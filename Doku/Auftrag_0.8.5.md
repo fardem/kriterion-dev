@@ -194,12 +194,12 @@ AM ENDE DES CHATS:
 * Der Stand ist committet und auf den Arbeitszweig geschoben. Sinnvoll
   geschnittene Commits mit deutschen Meldungen; der Haltepunkt bekommt einen
   eigenen, damit er in der Historie steht.
-* `kriterion.zip` (Ordner `kriterion/` oberste Ebene, ohne `.env`, `data/`,
-  `node_modules/`, `package-lock.json`, `Doku/`). **Das Repo ist privat, der
-  Server zieht deshalb nicht selbst** — das ZIP ist der Einspielweg und bleibt
-  es. Es wird aus dem gepushten Stand gebaut, nicht aus einem Zwischenstand,
-  und einmal ausgepackt gegengeprüft: `npm test` im entpackten Ordner muss
-  dieselbe Zahl liefern wie im Repo.
+* Kein ZIP, kein Dateiversand. Das Repo ist privat, der Server zieht nicht
+  selbst — das Einspielpaket holt sich der Mensch über „Download ZIP" von
+  GitHub. **Der gepushte Stand IST also das Auslieferungspaket**, und was
+  nicht im Zweig steht, kommt nicht auf den Server. Vor dem letzten Push
+  deshalb: `git status` muss leer sein, und `npm test` läuft ein letztes Mal
+  gegen genau diesen Stand.
 * `Doku/Aenderungsprotokoll_0.8.5.md` liegt im Zweig, als Rohstoff für die
   spätere Dokumentenpflege: was gebaut wurde je Datei, Abweichungen mit
   Begründung, neue Stolpersteine mit Nummer und Kernsatz, die
@@ -212,13 +212,12 @@ Projektstand und Konzeptpapier NICHT anfassen und keinen Auftragsblock für
 die nächste Stufe bauen. Das kommt erst, wenn ich gemeldet habe, dass 0.8.5
 eingespielt ist und sauber läuft.
 
-Zum Einspielen — zwei Fallen, beide schon vorgekommen, siehe Projektstand
-Abschnitt 2: `public/app.js` steckt fest im Docker-Abbild und nicht im
-eingehängten Verzeichnis, ohne `--build` läuft also die alte Oberfläche
-weiter. Und eine unvollständige Kopie sieht aus wie eine vollständige — die
-Versionsnummer im Footer kommt aus `package.json` und sagt NICHTS über die
-übrigen Dateien. Nenn mir deshalb im Chat eine Textstelle, die es nur in der
-neuen `public/app.js` gibt, zum Gegenprüfen mit
+Zum Einspielen, siehe Projektstand Abschnitt 2: `public/app.js` steckt fest im
+Docker-Abbild und nicht im eingehängten Verzeichnis — ohne `--build` läuft die
+alte Oberfläche weiter, und die Versionsnummer im Footer taugt nicht als
+Beleg, sie kommt aus `package.json` und sagt nichts über die übrigen Dateien.
+Nenn mir deshalb im Chat eine Textstelle, die es nur in der neuen
+`public/app.js` gibt, zum Gegenprüfen mit
 `curl -s http://localhost:3100/app.js | grep -c`.
 
 

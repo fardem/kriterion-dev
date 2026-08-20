@@ -85,20 +85,31 @@ zurückgeht, braucht keine Rücksicht auf das Schema zu nehmen. Vor jedem
 Einspielen gehört trotzdem eine Sicherung des Datenverzeichnisses dazu, wie
 immer.
 
-**Der Weg zum Einspielen.** Der Pfad steht am laufenden Container — kein Suchen, kein Abschreiben:
+**Der Weg zum Einspielen.** Das Repo ist **privat**, der Server zieht deshalb
+nicht selbst — das ZIP kommt über „Download ZIP" von GitHub auf den Wirt. Der
+Pfad steht am laufenden Container, kein Suchen, kein Abschreiben:
 
 ```bash
 cd "$(docker inspect kriterion --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}')"
 docker compose down
 cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # bei Datenbankstufen
 mv kriterion kriterion-alt
-python3 -m zipfile -e kriterion.zip .
+python3 -m zipfile -e kriterion-main.zip .
+mv kriterion-main kriterion               # GitHub hängt den Zweignamen an
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # OHNE DIESE ZEILE STARTET NICHTS
 cd kriterion && docker compose up -d --build
 ```
 
-Fünf Dinge, die dabei schiefgehen können, alle schon vorgekommen:
+Sechs Dinge, die dabei schiefgehen können, alle schon vorgekommen:
+
+- **Der Ordner aus dem GitHub-ZIP heißt nicht `kriterion`.** GitHub packt den
+  Zweignamen an: aus `main` wird `kriterion-main`, und Schrägstriche im
+  Zweignamen werden zu Bindestrichen (`claude/g3-…` → `kriterion-claude-g3-…`).
+  Ohne das `mv` legt das anschließende `cp -r kriterion-alt/data kriterion/data`
+  den Bestand in einen Ordner, den `docker compose` nie ansieht — oder
+  scheitert. **Der Zweigname steht damit im Einspielweg**: wer von einem
+  Arbeitszweig lädt, passt beide Zeilen an.
 
 - **`--build` vergessen.** `docker compose up -d` startet stillschweigend die
   alte Version weiter — der Quelltext steckt im Abbild, nicht im eingehängten
