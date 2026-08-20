@@ -4820,7 +4820,7 @@ const DOM_ANBIETER = [
   { schluessel: 'eigen3', name: '', vorlage: '', eigen: true, vorhanden: false, aktiv: false, standard: false }
 ];
 
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null } = {}) {
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null } = {}) {
   // Die Anbieter kommen ueber /api/settings. Wer eigene Einstellungen
   // mitgibt, ueberschreibt gezielt -- alles Uebrige bleibt bei der Vorgabe.
   einstellungen = { suchAnbieter: DOM_ANBIETER, suchNamen: 3, ...einstellungen };
@@ -4973,6 +4973,13 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       return gib({ username: 'bert', eintraege: 2, fremdKommentare: 3, fremdBewertungen: 1,
                    fremdTesttage: 0, kommentare: 4, bewertungen: 2, testtage: 1 });
     if (url === '/api/items') return gib(uebersichtItems || uebersicht);
+    /* Ein ZWEITER Eintrag, nur fuer den Vergleich: dort holt die Ansicht
+       mehrere Detailantworten nebeneinander. Ohne ihn faende sie fuer die
+       zweite Nummer das leere Objekt und zerbraeche an dessen fehlenden
+       Feldern -- der Lauf stuerzte ab, statt eine Pruefung rot zu faerben.
+       Er steht VOR dem Sammelfall fuer /api/items/1, damit startsWith ihn
+       nicht abfaengt. */
+    if (zweiterEintrag && url === `/api/items/${zweiterEintrag.id}`) return gib(zweiterEintrag);
     /* PUT auf den Eintrag: der echte Server antwortet mit detail() NACH der
        Aenderung, der Doppelgaenger muss das nachmachen. Gaebe er stur den
        alten Stand zurueck, pruefte man jedes Bedienelement gegen einen
@@ -7913,4 +7920,171 @@ async function pruefeOberflaeche() {
     !!wSysU.document.getElementById('mtags') && !!wSysU.document.getElementById('mcats'),
     'die Karten sind schon jetzt verschwunden');
   wSysU.close();
+
+  /* ================= Vergleich: meine / alle ================= */
+  gruppe('Der Umschalter der Vergleichsansicht');
+
+  /* Der Vergleich wird ueber den ECHTEN WEG erreicht: zwei Karten auswaehlen,
+     dann die Leiste druecken. state.compare haengt nicht am window
+     (Stolperstein 23), und eine Abkuerzung dorthin pruefte einen Weg, den es
+     nicht gibt.
+
+     Die Prueflage ist so gebaut, dass sich JEDE der drei Zahlen unterscheidet
+     -- Kriterienwert, Kopfzahl und Testtagzeile. Waeren sie in beiden
+     Stellungen gleich, bliebe jede Pruefung gruen, gleich was der Umschalter
+     tut. Der zweite Eintrag traegt eigene Werte ueber dem Schnitt und einen
+     Schnitt ueber mehr Stimmen; der erste traegt dieselbe Zahl in beiden
+     Stellungen und ist damit die Gegenprobe im Bestand selbst: ein Umschalter,
+     der einfach alles anders faerbt, faellt hier auf.
+       Eintrag 1: eigene 3 / 3 / 3,  Schnitt 3,4 / 4,1 / -,  Kopf 3,0 | 3,0
+       Eintrag 2: eigene 5 / 4 / -,   Schnitt 2,0 / 3,0 / -,  Kopf 4,5 | 2,5
+       Testtage:  eigene 1 | 0,       ueber alle 1 | 3
+     Am dritten Kriterium des ersten Eintrags steht ein eigener Wert OHNE
+     Schnitt ueber alle -- dieselbe Zeile traegt also je nach Stellung "3 / 5"
+     oder "–". Schaerfer laesst sich nicht belegen, dass zwei verschiedene
+     Felder gelesen werden. */
+  const vChefin2 = { id: 1, name: 'chefin', geloescht: false };
+  const vBert2 = { id: 2, name: 'bert', geloescht: false };
+  const zweit = {
+    id: 2, title: 'Zweites', description: '', rejected: false, tested: false,
+    favorite: false, category: null, verfasser: vBert2,
+    photos: [], links: [], comments: [], attachments: [], tags: [],
+    testDays: [
+      { id: 11, day: '2026-08-05', rating: 5, mine: false, verfasser: vBert2, tags: [] },
+      { id: 12, day: '2026-08-06', rating: 4, mine: false, verfasser: vBert2, tags: [] },
+      { id: 13, day: '2026-08-07', rating: 3, mine: false, verfasser: vBert2, tags: [] }
+    ],
+    ratings: [
+      { criterion_id: 7, name: 'Zuerst', value: 5, avg: 2, count: 3, stimmen: [] },
+      { criterion_id: 8, name: 'Dann', value: 4, avg: 3, count: 2, stimmen: [] },
+      { criterion_id: 9, name: 'Zuletzt', value: 0, avg: null, count: 0, stimmen: [] }
+    ],
+    avgRating: 2.5, testCount: 3, testAvg: 4, testLast: 3
+  };
+  const zweiKarten = [
+    { id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3, testCount: 1,
+      testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00', searchText: 'beispiel' },
+    { id: 2, title: 'Zweites', rejected: false, tested: false, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 2.5, testCount: 3,
+      testAvg: 4, testLast: 3, updated_at: '2026-08-01 10:00:00', searchText: 'zweites' }
+  ];
+  const oeffneVergleich = async (benutzerZahl) => {
+    const dom = baueDom(JSDOM, { hash: '', uebersichtItems: zweiKarten, zweiterEintrag: zweit,
+      einstellungen: { filters: null, benutzerZahl } });
+    const w = dom.w;
+    await new Promise(r => setTimeout(r, 80));
+    // Der echte Weg: beide Haken setzen, dann die Leiste druecken.
+    [...w.document.querySelectorAll('.pick-box')].forEach(k =>
+      k.dispatchEvent(new w.MouseEvent('click', { bubbles: true })));
+    await new Promise(r => setTimeout(r, 40));
+    const leiste = w.document.querySelector('.cmp-bar .btn');
+    if (leiste) leiste.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 120));
+    return { dom, w };
+  };
+
+  const { dom: vglDom, w: wVgl } = await oeffneVergleich(3);
+  pruefe('Zwei Karten ausgewaehlt fuehren in den Vergleich',
+    !!wVgl.document.getElementById('cg') &&
+    wVgl.document.querySelectorAll('.cmp-col').length === 2,
+    `${wVgl.document.querySelectorAll('.cmp-col').length} Spalten`);
+
+  const cmpSpalte = (n) => wVgl.document.querySelectorAll('.cmp-col')[n];
+  const cmpZeilen = (n) => [...cmpSpalte(n).querySelectorAll('.cmp-crit')]
+    .map(z => z.lastElementChild.textContent.trim());
+  const cmpKopf = (n) => cmpSpalte(n).querySelector('.cmp-schnitt').textContent.trim();
+  const cmpBeste = (n) => [...cmpSpalte(n).querySelectorAll('.cmp-crit')]
+    .map(z => !!z.querySelector('.cmp-best'));
+  const cmpSicht = (wert) => wVgl.document.querySelector(`#cmp-sicht [data-sicht="${wert}"]`);
+
+  pruefe('Der Umschalter steht da und traegt beide Stellungen',
+    !!cmpSicht('meine') && !!cmpSicht('alle'), 'ein Knopf fehlt');
+  /* VORGABESTELLUNG "alle" -- der Vergleich fragt, wie die Dinge zueinander
+     stehen, und das beantwortet der Schnitt ueber alle. */
+  pruefe('Vorgabestellung ist „alle"',
+    cmpSicht('alle').classList.contains('on') &&
+    !cmpSicht('meine').classList.contains('on'),
+    `${cmpSicht('meine').className} | ${cmpSicht('alle').className}`);
+  pruefe('In Stellung „alle" zeigen die Zeilen den Schnitt ueber alle',
+    gleich(cmpZeilen(0), ['3,4 / 5', '4,1 / 5', '–', '1']) &&
+    gleich(cmpZeilen(1), ['2 / 5', '3 / 5', '–', '3']),
+    JSON.stringify([cmpZeilen(0), cmpZeilen(1)]));
+  pruefe('Und die Kopfzeile denselben Schnitt',
+    gleich([cmpKopf(0), cmpKopf(1)], ['★ 3,0 Durchschnitt', '★ 2,5 Durchschnitt']),
+    JSON.stringify([cmpKopf(0), cmpKopf(1)]));
+  pruefe('Der beste Wert je Kriterium ist hervorgehoben',
+    gleich(cmpBeste(0), [true, true, false, false]) &&
+    gleich(cmpBeste(1), [false, false, false, true]),
+    JSON.stringify([cmpBeste(0), cmpBeste(1)]));
+
+  /* Ein wirklich zugestellter Druck, kein Behandleraufruf (Stolperstein 61). */
+  cmpSicht('meine').dispatchEvent(new wVgl.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Ein Druck schaltet auf „meine" um',
+    cmpSicht('meine').classList.contains('on') &&
+    !cmpSicht('alle').classList.contains('on'),
+    `${cmpSicht('meine').className} | ${cmpSicht('alle').className}`);
+  /* Das dritte Kriterium ist der schaerfste Beleg: am ersten Eintrag steht
+     dort ein EIGENER Wert von 3, waehrend der Schnitt ueber alle leer ist.
+     Dieselbe Zeile zeigt in der einen Stellung "–" und in der anderen "3 / 5"
+     -- eine Ansicht, die einfach beide Male dasselbe Feld laese, koennte das
+     nicht. */
+  pruefe('Jetzt stehen in den Zeilen die eigenen Werte',
+    gleich(cmpZeilen(0), ['3 / 5', '3 / 5', '3 / 5', '1']) &&
+    gleich(cmpZeilen(1), ['5 / 5', '4 / 5', '–', '–']),
+    JSON.stringify([cmpZeilen(0), cmpZeilen(1)]));
+  /* DIE KOPFZEILE SCHALTET MIT -- sonst waere es derselbe Widerspruch mit
+     einem Knopf davor: eigene Werte in den Zeilen, der Schnitt darueber.
+     4,5 ist das Mittel aus 5 und 4, im Klienten gebildet und genau einmal
+     gerundet. */
+  /* ZWEI Pruefungen, nicht eine: die erste faellt, wenn die Kopfzeile
+     ueberhaupt nicht mitschaltet, die zweite auch dann, wenn sie mitschaltet
+     und dabei falsch rechnet. Stuende hier nur die zweite, machten beide
+     Rueckbauten dieselbe Punktliste rot -- und dann pruefen sie dieselbe Sache
+     (Stolperstein 72). */
+  pruefe('Und die Kopfzeile schaltet mit',
+    cmpKopf(1) !== '★ 2,5 Durchschnitt', cmpKopf(1));
+  pruefe('Sie zeigt das Mittel der eigenen Werte, ohne die Nullen',
+    gleich([cmpKopf(0), cmpKopf(1)], ['★ 3,0 Durchschnitt', '★ 4,5 Durchschnitt']),
+    JSON.stringify([cmpKopf(0), cmpKopf(1)]));
+  // Die Testtagzeile ebenso, gezaehlt ueber mine.
+  pruefe('Die Testtagzeile schaltet mit, gezaehlt ueber mine',
+    cmpZeilen(0)[3] === '1' && cmpZeilen(1)[3] === '–',
+    JSON.stringify([cmpZeilen(0)[3], cmpZeilen(1)[3]]));
+  pruefe('Und die Hervorhebung wandert mit',
+    gleich(cmpBeste(0), [false, false, true, true]) &&
+    gleich(cmpBeste(1), [true, true, false, false]),
+    JSON.stringify([cmpBeste(0), cmpBeste(1)]));
+  pruefe('Die Zeile darueber sagt, was gezeigt wird',
+    /eigenen Werte/.test(wVgl.document.getElementById('cmp-hint').textContent),
+    wVgl.document.getElementById('cmp-hint').textContent);
+
+  /* ANSICHTSZUSTAND, KEINE EINSTELLUNG: der Umschalter schreibt nichts an den
+     Server. Ginge er dorthin, waere er eine zweite Wahrheit ueber dieselben
+     Daten und stuende beim naechsten Aufruf noch immer so. */
+  pruefe('Der Umschalter schreibt nichts an den Server',
+    !vglDom.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/settings'),
+    JSON.stringify(vglDom.gesendet.filter(g => g.methode === 'PUT').map(g => g.url)));
+
+  cmpSicht('alle').dispatchEvent(new wVgl.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Und zurueck geht es auch',
+    cmpSicht('alle').classList.contains('on') && cmpZeilen(1)[0] === '2 / 5',
+    JSON.stringify(cmpZeilen(1)));
+  wVgl.close();
+
+  /* Bei genau einem Zugang erscheint er nicht -- beide Stellungen waeren
+     dieselbe Zahl, und ein Knopf ohne Wirkung sieht aus wie ein Fehler. */
+  const { w: wEiner } = await oeffneVergleich(1);
+  pruefe('Bei genau einem Zugang steht der Vergleich trotzdem',
+    wEiner.document.querySelectorAll('.cmp-col').length === 2,
+    `${wEiner.document.querySelectorAll('.cmp-col').length} Spalten`);
+  pruefe('Aber der Umschalter erscheint gar nicht erst',
+    !wEiner.document.getElementById('cmp-sicht'), 'der Umschalter steht da');
+  pruefe('Und die Zeile darueber sagt nichts von einer Sicht',
+    !/eigenen Werte|ueber alle|über alle/.test(
+      wEiner.document.getElementById('cmp-hint').textContent),
+    wEiner.document.getElementById('cmp-hint').textContent);
+  wEiner.close();
 }

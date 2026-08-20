@@ -1282,41 +1282,112 @@ async function renderCompare() {
   const names = [];
   items.forEach(i => i.ratings.forEach(r => { if (!names.includes(r.name)) names.push(r.name); }));
 
+  /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie linksOffen und
+     wolkeOffen. Der Umschalter ist eine Linse auf dieselben Daten und darf
+     keine zweite Wahrheit werden; beim naechsten Aufruf steht wieder die
+     Vorgabe.
+     VORGABESTELLUNG "alle": der Vergleich fragt, wie die Dinge zueinander
+     stehen, und das beantwortet der Schnitt ueber alle.
+     Bei genau einem Zugang erscheint der Umschalter nicht -- dann sind beide
+     Stellungen dieselbe Zahl, und ein Knopf ohne Wirkung sieht aus wie ein
+     Fehler. */
+  let nurMeine = false;
+
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">← Zurück zur Übersicht</a>
     <h1 class="page-title">Vergleich</h1>
-    <p class="hint" style="margin:0 0 20px">${items.length} ${esc(vSache(items.length))} gegenübergestellt. Bester Wert je Kriterium ist hervorgehoben.</p>
+    <p class="hint" id="cmp-hint" style="margin:0 0 ${mehrereBenutzer() ? '10px' : '20px'}"></p>
+    ${mehrereBenutzer() ? `<div class="pills" id="cmp-sicht" style="margin:0 0 20px"></div>` : ''}
     <div class="cmp-grid" id="cg" style="grid-template-columns:repeat(auto-fit,minmax(264px,1fr))"></div>
   </div>`;
 
   const cg = document.getElementById('cg');
-  const bestOf = (name) => Math.max(...items.map(o => { const r = o.ratings.find(x => x.name === name); return r ? r.value : 0; }));
-  const bestTest = Math.max(...items.map(o => o.testCount || 0));
 
-  items.forEach(it => {
-    const col = document.createElement('div');
-    col.className = 'cmp-col';
-    const rows = names.map(n => {
-      const r = it.ratings.find(x => x.name === n);
-      const v = r ? r.value : 0;
-      const best = v > 0 && v === bestOf(n);
-      return `<div class="cmp-crit"><span class="cn">${esc(n)}</span>
-        <span class="${best ? 'cmp-best' : ''}">${v > 0 ? v + ' / 5' : '–'}</span></div>`;
-    }).join('');
-    const testRow = `<div class="cmp-crit" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
-      <span class="cn">${esc(V.zeitpunktMehrzahl)}</span>
-      <span class="${it.testCount && it.testCount === bestTest ? 'cmp-best' : ''}">${it.testCount || '–'}</span></div>`;
-    col.innerHTML = `
-      <div class="cimg">${it.photos[0] ? `<img src="/api/photos/${it.photos[0].id}/raw?size=medium" alt="">` : ''}</div>
-      <div class="cbody">
-        ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
-        <h3>${esc(it.title)}</h3>
-        <div class="hint" style="margin-bottom:10px">${it.avgRating ? '★ ' + it.avgRating.toFixed(1).replace('.', ',') + ' Durchschnitt' : 'keine Wertung'}</div>
-        ${rows}${testRow}
-        <div style="margin-top:12px"><a href="#/item/${it.id}" class="btn btn-sm" style="width:100%">Öffnen</a></div>
-      </div>`;
-    cg.appendChild(col);
-  });
+  /* DIE ZAHL FUER "MEINE" BILDET DER KLIENT. Bei einem Bewerter hat jedes
+     Kriterium hoechstens eine Stimme -- Stufe 1 des Zweistufenmittels ist also
+     der eigene Wert, und Stufe 2 mittelt darueber. Ein zweiter Rechenweg im
+     Server waere eine zweite Wahrheit ueber denselben Schnitt.
+     EIN ZWEITER RUNDUNGSORT, ABER FUER EINE ANDERE ZAHL -- darin liegt der
+     Unterschied zu "gerundet wird genau einmal": jene Regel gilt dem Schnitt
+     UEBER ALLE, der weiterhin nur im Server entsteht. Hier wird der EIGENE
+     Schnitt gebildet, und auch er wird genau einmal gerundet, am Ende und auf
+     dasselbe Zehntel wie drueben.
+     Nur Werte ueber null zaehlen, wie ueberall: eine zurueckgesetzte Bewertung
+     hinterlaesst eine Zeile mit 0, und die ist keine Stimme. */
+  const eigenerSchnitt = (it) => {
+    const werte = it.ratings.map(r => r.value).filter(v => v > 0);
+    if (!werte.length) return null;
+    return Math.round((werte.reduce((s, v) => s + v, 0) / werte.length) * 10) / 10;
+  };
+  // Drei Zahlen, ein Schalter: Kriterienwert, Kopfzahl und Testtagzeile
+  // schalten gemeinsam um. Schaltete nur eine, waere es derselbe Widerspruch
+  // mit einem Knopf davor.
+  const wertVon = (it, name) => {
+    const r = it.ratings.find(x => x.name === name);
+    if (!r) return 0;
+    return nurMeine ? r.value : (r.avg || 0);
+  };
+  const schnittVon = (it) => (nurMeine ? eigenerSchnitt(it) : it.avgRating);
+  const zeitpunkteVon = (it) => (nurMeine
+    ? (it.testDays || []).filter(t => t.mine).length
+    : (it.testCount || 0));
+  const alsZahl = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
+
+  function zeichneSicht() {
+    const box = document.getElementById('cmp-sicht');
+    if (!box) return;
+    box.innerHTML = '';
+    [true, false].forEach(meine => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (meine === nurMeine ? ' on' : '');
+      b.dataset.sicht = meine ? 'meine' : 'alle';
+      b.textContent = meine ? 'meine' : 'alle';
+      b.onclick = () => { nurMeine = meine; zeichne(); };
+      box.appendChild(b);
+    });
+  }
+
+  function zeichne() {
+    zeichneSicht();
+    document.getElementById('cmp-hint').textContent =
+      `${items.length} ${vSache(items.length)} gegenübergestellt. `
+      + `Bester Wert je Kriterium ist hervorgehoben.`
+      + (mehrereBenutzer()
+        ? (nurMeine ? ' Gezeigt werden die eigenen Werte.' : ' Gezeigt wird der Schnitt über alle.')
+        : '');
+
+    const bestOf = (name) => Math.max(...items.map(o => wertVon(o, name)));
+    const bestTest = Math.max(...items.map(zeitpunkteVon));
+
+    cg.innerHTML = '';
+    items.forEach(it => {
+      const col = document.createElement('div');
+      col.className = 'cmp-col';
+      const rows = names.map(n => {
+        const v = wertVon(it, n);
+        const best = v > 0 && v === bestOf(n);
+        return `<div class="cmp-crit"><span class="cn">${esc(n)}</span>
+          <span class="${best ? 'cmp-best' : ''}">${v > 0 ? alsZahl(v) + ' / 5' : '–'}</span></div>`;
+      }).join('');
+      const zahl = zeitpunkteVon(it);
+      const testRow = `<div class="cmp-crit" style="border-top:1px solid var(--line);margin-top:6px;padding-top:9px">
+        <span class="cn">${esc(V.zeitpunktMehrzahl)}</span>
+        <span class="${zahl && zahl === bestTest ? 'cmp-best' : ''}">${zahl || '–'}</span></div>`;
+      const schnitt = schnittVon(it);
+      col.innerHTML = `
+        <div class="cimg">${it.photos[0] ? `<img src="/api/photos/${it.photos[0].id}/raw?size=medium" alt="">` : ''}</div>
+        <div class="cbody">
+          ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
+          <h3>${esc(it.title)}</h3>
+          <div class="hint cmp-schnitt" style="margin-bottom:10px">${schnitt ? '★ ' + schnitt.toFixed(1).replace('.', ',') + ' Durchschnitt' : 'keine Wertung'}</div>
+          ${rows}${testRow}
+          <div style="margin-top:12px"><a href="#/item/${it.id}" class="btn btn-sm" style="width:100%">Öffnen</a></div>
+        </div>`;
+      cg.appendChild(col);
+    });
+  }
+
+  zeichne();
 }
 
 /* ================= Vollbild ================= */
