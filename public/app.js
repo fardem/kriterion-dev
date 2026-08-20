@@ -284,6 +284,42 @@ function ordneBloecke() {
   });
 }
 
+/* Die Zahlen am Kommentarblock. GEBILDET AN EINEM ORT: derselbe Satz steht
+   aufgeklappt wie eingeklappt in der Kopfzeile, und zwei Bildungen liefen
+   frueher oder spaeter auseinander.
+
+       12 Kommentare, davon 3 Berichte und 5 Aufgaben (2 Erledigt)
+
+   DAVON, nicht Mittelpunkte: die Zahlen dahinter sind TEILMENGEN, keine
+   Summanden -- addiert ergaeben sie mehr Kommentare, als es gibt. Die Klammer
+   nistet die zweite Ebene ein: das Erledigte steckt IN den Aufgaben, sonst
+   schrumpfte die Zahl beim Abhaken.
+   Eine Gruppe mit null verschwindet ganz ("davon 0 Berichte" ist keine
+   Auskunft), ohne Erledigte faellt die Klammer weg, und ohne Kommentare bleibt
+   der Hinweis ganz leer -- wie bei den Links.
+   DIE NOTIZ BLEIBT UNGENANNT: sie ist der Zustand ohne Markierung und hat
+   weder eigenes Wort noch Knopf noch Kante; wer rechnen will, kommt selbst auf
+   sie. DIE ANPINNUNG STEHT NICHT IN DER ZEILE: sie ist die zweite,
+   unabhaengige Achse, und zwei Achsen in einer Zeile sind nicht mehr lesbar.
+   "Kommentar" ist eine FESTE Beschriftung und kein zwoelftes Vokabelwort --
+   anders als Sache und Zeitpunkt verschiebt es sich nicht mit dem Gegenstand. */
+function kommentarZahlen(kommentare) {
+  const liste = kommentare || [];
+  const n = liste.length;
+  if (!n) return '';
+  const zaehle = (...arten) => liste.filter(c => arten.includes(c.kind)).length;
+  const berichte = zaehle('report');
+  // Erledigtes zaehlt MIT zu den Aufgaben, nicht daneben.
+  const aufgaben = zaehle('task', 'done');
+  const fertig = zaehle('done');
+  const teile = [];
+  if (berichte) teile.push(`${berichte} ${vBericht(berichte)}`);
+  if (aufgaben) teile.push(`${aufgaben} ${vAufgabe(aufgaben)}`
+    + (fertig ? ` (${fertig} ${V.aufgabeErledigt})` : ''));
+  return `${n} ${n === 1 ? 'Kommentar' : 'Kommentare'}`
+    + (teile.length ? `, davon ${teile.join(' und ')}` : '');
+}
+
 // Kurzfassung des Inhalts für die eingeklappte Kopfzeile.
 function blockZusammenfassung(name, item) {
   switch (name) {
@@ -298,7 +334,13 @@ function blockZusammenfassung(name, item) {
     case 'testtage': return String(item.testDays.length);
     case 'links': return String(item.links.length);
     case 'dateien': return String((item.attachments || []).length);
-    case 'kommentare': return String(item.comments.length);
+    /* Der Kommentarblock traegt seine Zahlen NICHT hier, sondern in seinem
+       eigenen Hinweis in der Kopfzeile -- und die steht auch eingeklappt da.
+       Beides zugleich waere derselbe Satz zweimal nebeneinander. Das ist die
+       ausdruecklich entschiedene Abweichung von den uebrigen Bloecken: sie
+       tragen hier eine sehr kurze Kurzfassung, der Kommentarblock den vollen
+       Satz an seiner eigenen Stelle. */
+    case 'kommentare': return '';
     default: return '';
   }
 }
@@ -329,7 +371,9 @@ function ruesteBloeckeAus(item) {
     block.classList.toggle('zu', zu);
     kopf.querySelector('.bcaret').textContent = zu ? '▸' : '▾';
     const summe = kopf.querySelector('.bsumme');
-    summe.textContent = zu ? `(${blockZusammenfassung(name, item)})` : '';
+    // Eine leere Kurzfassung bleibt leer: "()" waere eine Klammer um nichts.
+    const kurz = zu ? blockZusammenfassung(name, item) : '';
+    summe.textContent = kurz ? `(${kurz})` : '';
 
     // Klick auf die Kopfzeile klappt ein und aus. Griff und alles Bedienbare
     // darin sind ausgenommen, sonst löst das Zurücksetzen der Bewertung
@@ -488,6 +532,8 @@ function aufgabeWeiter(art) {
 }
 const vSache = (n) => (n === 1 ? V.sacheEinzahl : V.sacheMehrzahl);
 const vZeit = (n) => (n === 1 ? V.zeitpunktEinzahl : V.zeitpunktMehrzahl);
+const vBericht = (n) => (n === 1 ? V.berichtEinzahl : V.berichtMehrzahl);
+const vAufgabe = (n) => (n === 1 ? V.aufgabeEinzahl : V.aufgabeMehrzahl);
 
 /* Aus dem Verfasserobjekt des Servers wird die Beschriftung -- GENAU HIER und
    nirgends sonst, damit die Karte "Zugaenge" und die Beitraege im Eintrag
@@ -662,6 +708,18 @@ let EIGENTUEMER = true;
 // Die Schwelle steht GENAU HIER und nirgends sonst.
 const mehrereBenutzer = () => BENUTZER_ZAHL > 1;
 
+/* Die beiden Anlegen-Schalter, global und mit Vorgabe an. Der Bildschirm haelt
+   sich an dieselbe Regel wie der Server: DER ADMIN KOMMT IMMER DURCH. Bote die
+   Oberflaeche die Zeile "+ neu anlegen" trotz ausgeschaltetem Schalter an,
+   erzeugte sie zuverlaessig eine Fehlermeldung -- und ein solcher Knopf sieht
+   aus wie ein Fehler.
+   Aus heisst ausdruecklich NUR: die Zeile zum Anlegen verschwindet. Auswahl
+   und Wolke bleiben, denn zuweisen darf immer jeder. */
+let TAGS_FREI = true;
+let KATEGORIEN_FREI = true;
+const darfTagAnlegen = () => ADMIN || TAGS_FREI;
+const darfKategorieAnlegen = () => ADMIN || KATEGORIEN_FREI;
+
 async function ladeEinstellungen() {
   EINSTELLUNGEN = await api('GET', '/api/settings');
   if (EINSTELLUNGEN.benutzerZahl) BENUTZER_ZAHL = EINSTELLUNGEN.benutzerZahl;
@@ -674,6 +732,11 @@ async function ladeEinstellungen() {
   if (EINSTELLUNGEN.zeitleiste !== undefined) ZEITLEISTE_AN = EINSTELLUNGEN.zeitleiste !== false;
   if (Array.isArray(EINSTELLUNGEN.suchAnbieter)) SUCHANBIETER = EINSTELLUNGEN.suchAnbieter;
   if (EINSTELLUNGEN.suchNamen) SUCHNAMEN = EINSTELLUNGEN.suchNamen;
+  // Der Server leitet beide beim Lesen ab und liefert sie immer; die Vorgabe
+  // hier greift nur, wenn die Antwort das Feld gar nicht kennt.
+  if (EINSTELLUNGEN.tagsFreiAnlegen !== undefined) TAGS_FREI = EINSTELLUNGEN.tagsFreiAnlegen !== false;
+  if (EINSTELLUNGEN.kategorienFreiAnlegen !== undefined)
+    KATEGORIEN_FREI = EINSTELLUNGEN.kategorienFreiAnlegen !== false;
   wendeSchriftAn();
 }
 
@@ -1541,19 +1604,21 @@ async function renderDetail(id) {
           <div class="block-head"><span class="label">Kategorie</span></div>
           <div class="row-in">
             <select class="select select-sm" id="cat" style="min-width:148px;padding:9px 11px"></select>
-            <input class="input input-sm" id="newcat" placeholder="+ neue Kategorie" style="padding:8px 11px">
-            <button class="btn btn-sm" id="newcat-b">Anlegen</button>
+            ${darfKategorieAnlegen() ? `<input class="input input-sm" id="newcat" placeholder="+ neue Kategorie" style="padding:8px 11px">
+            <button class="btn btn-sm" id="newcat-b">Anlegen</button>` : ''}
           </div>
         </div>
 
         <div class="block" data-block="tags">
           <div class="block-head"><span class="label">Tags</span></div>
           <div class="chips" id="chips"></div>
-          <div class="row-in">
+          <!-- Diese Liste steht ausserhalb der Eingabezeile: die Tageingabe
+               am Testtag benutzt sie, und die bleibt in jedem Fall stehen. -->
+          <datalist id="tagsug"></datalist>
+          ${darfTagAnlegen() ? `<div class="row-in">
             <input class="input input-sm" id="newtag" list="tagsug" placeholder="Tag eingeben, Enter bestätigt" style="padding:8px 11px">
-            <datalist id="tagsug"></datalist>
             <button class="btn btn-sm" id="newtag-b">+ Hinzufügen</button>
-          </div>
+          </div>` : ''}
           <div class="wolke-kopf"><span class="hint">Vorhandene Tags — Klick vergibt, erneuter Klick nimmt zurück</span>
             <button class="link-btn" id="tagcloud-more" hidden>mehr</button></div>
           <div class="pills cloud" id="tagcloud"></div>
@@ -1599,7 +1664,7 @@ async function renderDetail(id) {
     </div>
 
     <div class="block block-wide" data-block="kommentare">
-      <div class="block-head"><span class="label">Kommentare</span></div>
+      <div class="block-head"><span class="label">Kommentare</span><span class="hint" id="ccount"></span></div>
       <div class="cmts" id="cmts"></div>
       <div class="cmt-form">
         <textarea class="ta" id="ctext" placeholder="Notiz hinterlassen — Bilder mit Strg+V einfügen …"></textarea>
@@ -1899,8 +1964,13 @@ async function renderDetail(id) {
       el.value = ''; drawCat(); toast('Kategorie gesetzt');
     } catch (e) { toast(e.message, true); }
   };
-  document.getElementById('newcat-b').onclick = addCat;
-  document.getElementById('newcat').addEventListener('keydown', e => { if (e.key === 'Enter') addCat(); });
+  // Die Behandler haengen nur an tatsaechlich vorhandenen Elementen: steht der
+  // Schalter auf aus, gibt es die Anlegezeile gar nicht.
+  const newcatEl = document.getElementById('newcat');
+  if (newcatEl) {
+    document.getElementById('newcat-b').onclick = addCat;
+    newcatEl.addEventListener('keydown', e => { if (e.key === 'Enter') addCat(); });
+  }
 
   /* ---- Tags ---- */
   function drawTags() {
@@ -1968,8 +2038,11 @@ async function renderDetail(id) {
       await loadTagList();
     } catch (e) { toast(e.message, true); }
   };
-  document.getElementById('newtag-b').onclick = addTag;
-  document.getElementById('newtag').addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
+  const newtagEl = document.getElementById('newtag');
+  if (newtagEl) {
+    document.getElementById('newtag-b').onclick = addTag;
+    newtagEl.addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
+  }
 
   /* ---- Bewertung ---- */
   function drawRatings() {
@@ -2434,6 +2507,10 @@ async function renderDetail(id) {
   /* ---- Kommentare ---- */
   function drawComments() {
     const box = document.getElementById('cmts');
+    // Der Hinweis steht in der Kopfzeile und bleibt damit auch eingeklappt
+    // sichtbar -- eingeklappt ist gerade der Moment, in dem man nicht
+    // hineinsieht. Gebildet wird er an einem Ort, oben bei kommentarZahlen().
+    document.getElementById('ccount').textContent = kommentarZahlen(item.comments);
     box.innerHTML = item.comments.length ? '' : `<span class="hint">Noch keine Kommentare.</span>`;
     item.comments.forEach(c => {
       const bericht = c.kind === 'report', aufgabe = c.kind === 'task',
@@ -2461,8 +2538,18 @@ async function renderDetail(id) {
       const meins = c.mine === true;
       const verwalten = meins || ADMIN;
 
-      // Markierungen links, Bearbeiten und Löschen rechts. Die Reihenfolge in
-      // der Liste macht der Server; hier wird nur umgeschaltet.
+      /* DER EINGRIFFSVERMERK NENNT DIE ROLLE, NICHT DIE PERSON -- und dafuer
+         braucht es kein Feld in der Antwort. DELETE /api/comment-images/:id
+         steht hinter darfAendern (Verfasser ODER Admin), und hochgezaehlt wird
+         nur, wenn ein ANDERER als der Verfasser entfernt. Wer beide Klemmen
+         passiert, kann also nur der Admin sein; eine herrenlose Zeile laesst
+         ohnehin nur ihn durch. Kein Name, kein Zeitpunkt, keine Kette: eine
+         Rolle ist keine Person.
+         Der Satz ist nur so lange wahr, wie die Klemme dort steht -- eine
+         Pruefung am Quelltext bindet die Beschriftung an sie.
+
+         Markierungen links, Bearbeiten und Loeschen rechts. Die Reihenfolge in
+         der Liste macht der Server; hier wird nur umgeschaltet. */
       el.innerHTML = `<div class="cmt-head">
           ${verwalten ? `<span class="marks">
             <button class="mark pin${c.pinned ? ' on' : ''}" title="Anpinnen — steht dann ganz oben">📌</button>
@@ -2477,7 +2564,7 @@ async function renderDetail(id) {
             ? `<span class="cmt-von">${esc(verfasserName(c.verfasser))}</span> · ` : ''
           }${fmtDate(c.created_at)}${c.updated_at ? ' · bearbeitet' : ''}${
             c.bilderEntfernt ? ` · <span class="cmt-eingriff">${c.bilderEntfernt} ${
-              c.bilderEntfernt === 1 ? 'Bild' : 'Bilder'} entfernt</span>` : ''}</span>
+              c.bilderEntfernt === 1 ? 'Bild' : 'Bilder'} vom Admin entfernt</span>` : ''}</span>
           <span class="acts">${meins ? `<button class="mact ed" title="Bearbeiten">✎</button>` : ''
             }${verwalten ? `<button class="mact rm" title="Löschen">✕</button>` : ''}</span>
         </div>
@@ -2798,6 +2885,12 @@ async function renderSystem() {
         <p class="desc">Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)}
           erhalten und haben nur keine Kategorie mehr.</p>
         <div class="manage-list" id="mcats"></div>
+        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Wer eine <strong>neue</strong> Kategorie
+          anlegen darf. Ohne Häkchen bleibt die Auswahl aus dem Vorhandenen für jeden bestehen —
+          nur die Zeile „+ neue Kategorie" am ${esc(V.sacheEinzahl)} verschwindet. Der Admin legt
+          weiterhin an.</p>
+        <label class="ex-files"><input type="checkbox" id="katfrei">
+          Neue Kategorien darf jeder anlegen</label>` : ''}
       </div>
 
       <div class="sys-card">
@@ -2805,6 +2898,12 @@ async function renderSystem() {
         <p class="desc">Umbenennen oder löschen. Ein gelöschter Tag verschwindet überall;
           die ${esc(V.sacheMehrzahl)} selbst bleiben unberührt.</p>
         <div class="manage-list" id="mtags"></div>
+        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Wer einen <strong>neuen</strong> Tag
+          anlegen darf. Ohne Häkchen bleiben Wolke und Vergabe für jeden bestehen — nur die
+          Eingabezeile am ${esc(V.sacheEinzahl)} verschwindet. Am ${esc(V.zeitpunktEinzahl)} bleibt
+          sie stehen, weil es dort keine Wolke gibt; ein unbekannter Name wird dann abgewiesen.</p>
+        <label class="ex-files"><input type="checkbox" id="tagfrei">
+          Neue Tags darf jeder anlegen</label>` : ''}
       </div>
 
       <div class="sys-card">
@@ -3146,6 +3245,26 @@ async function renderSystem() {
     try { await api('PUT', '/api/settings', { zeitleiste: ZEITLEISTE_AN }); toast('Gespeichert'); }
     catch (e) { ZEITLEISTE_AN = vorher; zl.checked = vorher; toast(e.message, true); }
   };
+
+  /* --- Die beiden Anlegen-Schalter ---
+     Nur der Admin bekommt sie zu sehen; ein Haken, der zuverlaessig 403
+     erzeugt, saehe aus wie ein Fehler. EIN Helfer fuer beide: zwei
+     gleichlautende Bloecke nebeneinander liefen frueher oder spaeter
+     auseinander. Schlaegt das Speichern fehl, geht die Stellung zurueck --
+     sonst zeigte der Bildschirm etwas anderes an als der Server haelt. */
+  const anlegeSchalter = (id, schluessel, lies, merke) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.checked = lies();
+    el.onchange = async () => {
+      const vorher = lies();
+      merke(el.checked);
+      try { await api('PUT', '/api/settings', { [schluessel]: el.checked }); toast('Gespeichert'); }
+      catch (e) { merke(vorher); el.checked = vorher; toast(e.message, true); }
+    };
+  };
+  anlegeSchalter('tagfrei', 'tagsFreiAnlegen', () => TAGS_FREI, v => { TAGS_FREI = v; });
+  anlegeSchalter('katfrei', 'kategorienFreiAnlegen', () => KATEGORIEN_FREI, v => { KATEGORIEN_FREI = v; });
 
   document.getElementById('breset').onclick = async () => {
     if (!await confirmBox('Standardanordnung wiederherstellen?',

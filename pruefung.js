@@ -378,6 +378,12 @@ const namen = (liste) => liste.map(c => c.name);
     vorgabe.vokabular.sacheEinzahl === 'Eintrag' && vorgabe.vokabular.zeitpunktMehrzahl === 'Testtage',
     JSON.stringify(vorgabe.vokabular));
   pruefe('Vorgabe der Schriftgroesse ist 100', vorgabe.schrift === 100);
+  /* Die Liste bleibt bei elf Woertern. Nichts bekommt ein neues Vokabelwort,
+     nur weil es auf dem Bildschirm steht -- "Kommentar" etwa ist eine feste
+     Beschriftung und verschiebt sich nicht mit dem Gegenstand. */
+  pruefe('Das Vokabular hat elf Woerter, nicht mehr',
+    Object.keys(vorgabe.vokabular).length === 11,
+    `${Object.keys(vorgabe.vokabular).length}: ${Object.keys(vorgabe.vokabular).join(', ')}`);
 
   const gesetzt = await ruf('PUT', '/api/settings', { vokabular: {
     sacheEinzahl: '  Maschine  ', sacheMehrzahl: 'Maschinen',
@@ -2073,6 +2079,16 @@ const namen = (liste) => liste.map(c => c.name);
     return z;
   };
   const fEine = (sql, ...werte) => fZeilen(sql, ...werte)[0];
+  /* Schreibender Zugriff neben dem laufenden Server -- im WAL-Modus erlaubt.
+     Gebraucht wird er, um einen Zeitstempel von Hand zu leeren: datetime('now')
+     loest nur Sekunden auf, und ob eine Anweisung ihn innerhalb derselben
+     Sekunde neu gesetzt hat, waere sonst unbeweisbar (Stolperstein 60). */
+  const fSchreibe = (sql, ...werte) => {
+    const d = fDatenbank();
+    d.pragma('busy_timeout = 4000');
+    d.prepare(sql).run(...werte);
+    d.close();
+  };
 
   /* Die herrenlose Zeile ERST JETZT, nach dem Start: ordneBestandZu() laeuft
      bei jedem Start und wiese sie sonst der Eigentuemerin zu.
@@ -2212,9 +2228,27 @@ const namen = (liste) => liste.map(c => c.name);
     fText(1)?.text === 'Berts Kommentar, berichtigt' && fText(1)?.pinned === 1,
     JSON.stringify(fText(1)));
 
+  /* AN DER LOESCHROUTE GILT GENAU EINES VON BEIDEN, NIE BEIDES UND NIE KEINES:
+     updated_at beim Verfasser, der Vermerk beim Fremden. Deshalb stehen die
+     beiden Spalten ab hier IMMER nebeneinander in der Pruefung -- eine, die
+     nur eine von beiden ansieht, liesse den Fall "beides zugleich" durch.
+     Der Ausgangswert wird von Hand geleert: bert hat eben seinen eigenen Text
+     geaendert, updated_at steht also schon, und eine Pruefung darauf koennte
+     gar nicht mehr scheitern (Stolperstein 60). */
+  const fVermerk = () => fEine('SELECT images_removed FROM comments WHERE id = 1')?.images_removed;
+  const fBearbeitet = () => fEine('SELECT updated_at FROM comments WHERE id = 1')?.updated_at;
+  fSchreibe('UPDATE comments SET updated_at = NULL WHERE id = 1');
+  pruefe('Die Ausgangslage traegt weder Vermerk noch bearbeitet',
+    fVermerk() === 0 && fBearbeitet() === null, JSON.stringify([fVermerk(), fBearbeitet()]));
+
   const fBildAdmin = await fRuf('keks-f-anna', 'POST', '/api/comments/1/images', {});
   pruefe('Der Admin haengt kein Bild an einen fremden Kommentar', fBildAdmin.status === 403,
     `Status ${fBildAdmin.status}`);
+  /* ANHAENGEN IST BEARBEITEN -- und weil der Admin gar nicht anhaengen darf,
+     ist auch sein abgewiesener Versuch keine. Weder das eine noch das andere. */
+  pruefe('Und sein abgewiesener Versuch aendert an beidem nichts',
+    fVermerk() === 0 && fBearbeitet() === null, JSON.stringify([fVermerk(), fBearbeitet()]));
+
   const fBildEigenWeg = await fRuf('keks-f-bert', 'DELETE', '/api/comment-images/2');
   pruefe('Der Verfasser loescht sein eigenes Bild',
     fBildEigenWeg.status === 200 && fZeilen('SELECT id FROM comment_images').length === 1,
@@ -2224,21 +2258,39 @@ const namen = (liste) => liste.map(c => c.name);
      und hinterlaesst nichts. Diese Haelfte steht hier und nicht bloss beim
      Admin: eine Pruefung, die nur das Hochzaehlen belegt, liesse offen, ob
      ueberhaupt eine Bedingung davorsteht. */
-  const fVermerk = () => fEine('SELECT images_removed FROM comments WHERE id = 1')?.images_removed;
   pruefe('Raeumt der Verfasser bei sich auf, entsteht kein Vermerk',
     fVermerk() === 0, `images_removed = ${fVermerk()}`);
+  // Die andere Haelfte desselben Vorgangs: ENTFERNEN IST BEARBEITEN.
+  pruefe('Aber es gilt als Bearbeitung durch ihn selbst',
+    fBearbeitet() !== null && fBearbeitet() !== undefined, `updated_at = ${fBearbeitet()}`);
+  pruefe('Die Antwort sagt dasselbe',
+    !!fBildEigenWeg.inhalt?.comments?.find(k => k.id === 1)?.updated_at,
+    JSON.stringify(fBildEigenWeg.inhalt?.comments?.find(k => k.id === 1)?.updated_at));
+
+  fSchreibe('UPDATE comments SET updated_at = NULL WHERE id = 1');
   const fBildFremdWeg = await fRuf('keks-f-carla', 'DELETE', '/api/comment-images/1');
   pruefe('Ein Fremder loescht kein Bild aus einem fremden Kommentar', fBildFremdWeg.status === 403,
     `Status ${fBildFremdWeg.status}`);
   pruefe('Und das Bild ist noch da', fZeilen('SELECT id FROM comment_images').length === 1);
   pruefe('Ein abgewiesener Eingriff vermerkt auch nichts',
     fVermerk() === 0, `images_removed = ${fVermerk()}`);
+  pruefe('Und gilt erst recht nicht als Bearbeitung',
+    fBearbeitet() === null, `updated_at = ${fBearbeitet()}`);
+
   const fBildAdminWeg = await fRuf('keks-f-anna', 'DELETE', '/api/comment-images/1');
   pruefe('Der Admin loescht ein Bild aus einem fremden Kommentar',
     fBildAdminWeg.status === 200 && fZeilen('SELECT id FROM comment_images').length === 0,
     `Status ${fBildAdminWeg.status}`);
   pruefe('Und DAS hinterlaesst den Vermerk am Kommentar',
     fVermerk() === 1, `images_removed = ${fVermerk()}`);
+  /* DIE SCHAERFSTE ZEILE DES PUNKTES: der Eingriff des Admins setzt NIE
+     "bearbeitet". Saehe die fremde Loeschung aus wie eine Bearbeitung durch den
+     Verfasser, haette der Admin genau das getan, was ihm verwehrt ist. */
+  pruefe('Aber ausdruecklich KEIN bearbeitet -- das waere eine fremde Aussage',
+    fBearbeitet() === null, `updated_at = ${fBearbeitet()}`);
+  pruefe('Auch in der Antwort steht kein bearbeitet',
+    fBildAdminWeg.inhalt?.comments?.find(k => k.id === 1)?.updated_at === null,
+    JSON.stringify(fBildAdminWeg.inhalt?.comments?.find(k => k.id === 1)?.updated_at));
   /* In der Antwort heisst es bilderEntfernt, nicht images_removed -- und die
      nackte Spalte steht nirgends, wie schon bei user_id. */
   const fVermerkAntwort = fBildAdminWeg.inhalt.comments.find(k => k.id === 1);
@@ -2678,6 +2730,163 @@ const namen = (liste) => liste.map(c => c.name);
       .test(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')),
     'ein schreibender Weg auf /api/ratings, der die Note aendert');
 
+  /* ---------------------------------------------------------------- */
+  gruppe('Wer darf anlegen');
+
+  /* Zwei getrennte globale Schalter, Vorgabe an. Abgeschaltet wird
+     ausschliesslich das ANLEGEN eines neuen Namens -- ZUWEISEN DARF IMMER
+     JEDER, und genau das ist der Kern: die Klemme sitzt an jedem der drei Wege
+     HINTER dem Nachschlagen des vorhandenen Namens.
+
+     BERT IST DER RUFER, FUER DEN DIE ADMINFRAGE FALSCH IST. Ohne ihn bliebe
+     hier alles gruen, denn darfAnlegen beginnt mit einem meist wahren ODER
+     (Stolperstein 73): fuer carla und anna ist der erste Teil ohnehin wahr.
+     Bert gehoert ausserdem Eintrag 2 -- er kommt also an nurEintragVerfasser
+     vorbei und scheitert, wenn ueberhaupt, an der neuen Klemme und an keiner
+     anderen.
+     Zu jeder Verweigerung steht der Erfolgsfall daneben UND die Nachschau,
+     dass wirklich keine Zeile entstanden ist. */
+  const fTagZahl = () => fZeilen('SELECT id FROM tags').length;
+  const fKatZahl = () => fZeilen('SELECT id FROM product_categories').length;
+  const fSchalter = (k) => fEine('SELECT value FROM settings WHERE key = ?', k);
+
+  /* VORGABE AN, UND ZWAR ALS ABLEITUNG BEIM LESEN: in der Datenbank steht
+     dafuer nichts. Ein Umstiegsblock waere hier Code, der zu 1.0 wieder
+     herausmuesste -- eine Ableitung muss gar nicht erst entfernt werden. */
+  const fEinstBert = (await fRuf('keks-f-bert', 'GET', '/api/settings')).inhalt;
+  pruefe('Beide Schalter stehen in der Antwort und auf an',
+    fEinstBert?.tagsFreiAnlegen === true && fEinstBert?.kategorienFreiAnlegen === true,
+    JSON.stringify([fEinstBert?.tagsFreiAnlegen, fEinstBert?.kategorienFreiAnlegen]));
+  pruefe('Und dafuer steht nichts in der Datenbank -- abgeleitet beim Lesen',
+    fSchalter('tagsFreiAnlegen') === undefined && fSchalter('kategorienFreiAnlegen') === undefined,
+    JSON.stringify([fSchalter('tagsFreiAnlegen'), fSchalter('kategorienFreiAnlegen')]));
+
+  // Der Erfolgsfall ZUERST, mit eingeschaltetem Schalter: ohne ihn liesse sich
+  // nicht sehen, ob der Weg ueberhaupt je offen ist.
+  const fTagVorher = fTagZahl();
+  const fNeuTagAn = await fRuf('keks-f-bert', 'POST', '/api/items/2/tags', { name: 'Frisch' });
+  pruefe('Mit Schalter an legt auch ein gewoehnlicher Benutzer einen Tag an',
+    fNeuTagAn.status === 201 && fTagZahl() === fTagVorher + 1,
+    `Status ${fNeuTagAn.status}, ${fTagVorher} -> ${fTagZahl()}`);
+  const fKatVorher = fKatZahl();
+  const fNeuKatAn = await fRuf('keks-f-bert', 'POST', '/api/product-categories', { name: 'Frischkategorie' });
+  pruefe('Und ebenso eine Kategorie',
+    fNeuKatAn.status === 201 && fKatZahl() === fKatVorher + 1,
+    `Status ${fNeuKatAn.status}, ${fKatVorher} -> ${fKatZahl()}`);
+
+  /* Umgelegt wird ueber PUT /api/settings -- keine neue Route. Die
+     Adminpruefung dort ist ABGELEITET ("was nicht persoenlich ist, ist
+     Adminsache") und muss die beiden neuen Schluessel deshalb von selbst
+     greifen. Ein Benutzer kommt nicht daran, und zwar bevor irgendetwas
+     geschrieben ist. */
+  const fSchalterBert = await fRuf('keks-f-bert', 'PUT', '/api/settings', { tagsFreiAnlegen: false });
+  pruefe('Ein Benutzer legt die Schalter nicht um', fSchalterBert.status === 403,
+    `Status ${fSchalterBert.status}`);
+  pruefe('Die Absage nennt den Admin',
+    /Admin/.test(fSchalterBert.inhalt?.error || ''), fSchalterBert.inhalt?.error);
+  pruefe('Und in der Datenbank steht danach immer noch nichts',
+    fSchalter('tagsFreiAnlegen') === undefined, JSON.stringify(fSchalter('tagsFreiAnlegen')));
+
+  /* Der Admin OHNE Eigentuemerrecht legt sie um -- sonst bliebe die Pruefung
+     auch dann gruen, wenn dort nurEigentuemer stuende. */
+  const fSchalterAus = await fRuf('keks-f-carla', 'PUT', '/api/settings',
+    { tagsFreiAnlegen: false, kategorienFreiAnlegen: false });
+  pruefe('Der Admin legt beide Schalter um',
+    fSchalterAus.status === 200 && fSchalterAus.inhalt?.tagsFreiAnlegen === false &&
+    fSchalterAus.inhalt?.kategorienFreiAnlegen === false,
+    JSON.stringify([fSchalterAus.status, fSchalterAus.inhalt?.tagsFreiAnlegen]));
+  pruefe('Erst jetzt steht etwas in der Datenbank',
+    fSchalter('tagsFreiAnlegen')?.value === 'false', JSON.stringify(fSchalter('tagsFreiAnlegen')));
+  pruefe('Und der naechste Abruf liefert dieselbe Stellung',
+    (await fRuf('keks-f-bert', 'GET', '/api/settings')).inhalt?.tagsFreiAnlegen === false);
+
+  /* ---- Weg 1: Tags am Eintrag ---- */
+  const fTagAus = fTagZahl();
+  const fTagNeuAus = await fRuf('keks-f-bert', 'POST', '/api/items/2/tags', { name: 'Verboten' });
+  pruefe('Mit Schalter aus legt der Benutzer keinen neuen Tag mehr an',
+    fTagNeuAus.status === 403, `Status ${fTagNeuAus.status}`);
+  pruefe('Und es ist keine Zeile entstanden',
+    fTagZahl() === fTagAus && fZeilen('SELECT id FROM tags WHERE name = ?', 'Verboten').length === 0,
+    `${fTagAus} -> ${fTagZahl()}`);
+  pruefe('Die Absage sagt, woran es liegt',
+    /Neue Tags/.test(fTagNeuAus.inhalt?.error || ''), fTagNeuAus.inhalt?.error);
+  /* DIE ZEILE, UM DIE ES GEHT: der vorhandene Tag laesst sich weiterhin
+     zuweisen. Stuende die Klemme VOR dem Nachschlagen, naehme sie das Zuweisen
+     mit -- und "Zuweisen darf immer jeder" waere nur noch eine Behauptung. */
+  const fTagVergeben = await fRuf('keks-f-bert', 'POST', '/api/items/2/tags', { name: 'Frisch' });
+  pruefe('Einen VORHANDENEN Tag vergibt er trotzdem',
+    fTagVergeben.status === 201 &&
+    (fTagVergeben.inhalt?.tags || []).some(t => t.name === 'Frisch'),
+    `Status ${fTagVergeben.status}: ${JSON.stringify((fTagVergeben.inhalt?.tags || []).map(t => t.name))}`);
+  pruefe('Und dabei entsteht keine zweite Zeile fuer denselben Namen',
+    fTagZahl() === fTagAus, `${fTagAus} -> ${fTagZahl()}`);
+  // Der Admin kommt weiterhin durch: ihm gehoert das Aufraeumen, und ein
+  // Schalter, den er erst umlegen muesste, waere eine Schranke gegen sich selbst.
+  const fTagAdmin = await fRuf('keks-f-carla', 'POST', '/api/items/2/tags', { name: 'Vom Admin' });
+  pruefe('Der Admin legt auch bei ausgeschaltetem Schalter an',
+    fTagAdmin.status === 201 && fTagZahl() === fTagAus + 1,
+    `Status ${fTagAdmin.status}, ${fTagAus} -> ${fTagZahl()}`);
+
+  /* ---- Weg 2: Kategorien ---- */
+  const fKatAus = fKatZahl();
+  const fKatNeuAus = await fRuf('keks-f-bert', 'POST', '/api/product-categories', { name: 'Verbotene' });
+  pruefe('Mit Schalter aus legt der Benutzer keine neue Kategorie mehr an',
+    fKatNeuAus.status === 403, `Status ${fKatNeuAus.status}`);
+  pruefe('Auch hier ist keine Zeile entstanden',
+    fKatZahl() === fKatAus &&
+    fZeilen('SELECT id FROM product_categories WHERE name = ?', 'Verbotene').length === 0,
+    `${fKatAus} -> ${fKatZahl()}`);
+  pruefe('Und die Absage sagt es',
+    /Neue Kategorien/.test(fKatNeuAus.inhalt?.error || ''), fKatNeuAus.inhalt?.error);
+  const fKatVorhanden = await fRuf('keks-f-bert', 'POST', '/api/product-categories',
+    { name: 'frischkategorie' });
+  pruefe('Eine VORHANDENE Kategorie bekommt er weiterhin -- auch in anderer Schreibweise',
+    fKatVorhanden.status === 200 && fKatVorhanden.inhalt?.name === 'Frischkategorie',
+    `Status ${fKatVorhanden.status}: ${JSON.stringify(fKatVorhanden.inhalt)}`);
+  const fKatAdmin = await fRuf('keks-f-carla', 'POST', '/api/product-categories', { name: 'Vom Admin' });
+  pruefe('Der Admin legt auch hier weiterhin an',
+    fKatAdmin.status === 201 && fKatZahl() === fKatAus + 1,
+    `Status ${fKatAdmin.status}, ${fKatAus} -> ${fKatZahl()}`);
+
+  /* ---- Weg 3: Tags am Testtag ----
+     DER SONDERFALL: dort gibt es keine Wolke, die Eingabe ist der einzige
+     Zuweisungsweg und bleibt auf dem Bildschirm stehen. Ein unbekannter Name
+     faellt deshalb hier durch, mit sprechender Meldung -- und ein bekannter
+     kommt weiterhin an. Bert braucht dafuer einen EIGENEN Testtag: an einen
+     fremden haengt er ohnehin nichts (nurSelbst). */
+  const fTtagNeu = await fRuf('keks-f-bert', 'POST', '/api/items/2/test-days',
+    { day: '2024-09-09', rating: 3 });
+  const fTtagId = fEine('SELECT id FROM test_days WHERE day = ? AND user_id = 2', '2024-09-09')?.id;
+  pruefe('Bert hat einen eigenen Testtag', fTtagNeu.status === 201 && !!fTtagId,
+    `Status ${fTtagNeu.status}, id ${fTtagId}`);
+  const fTtagVerboten = await fRuf('keks-f-bert', 'POST', `/api/test-days/${fTtagId}/tags`,
+    { name: 'Nebel' });
+  pruefe('Am eigenen Testtag legt er keinen neuen Tag an',
+    fTtagVerboten.status === 403, `Status ${fTtagVerboten.status}`);
+  pruefe('Und auch dort entsteht keine Zeile',
+    fZeilen('SELECT id FROM tags WHERE name = ?', 'Nebel').length === 0 &&
+    fZeilen('SELECT tag_id FROM test_day_tags WHERE test_day_id = ?', fTtagId).length === 0);
+  pruefe('Die Meldung ist dieselbe sprechende',
+    /Neue Tags/.test(fTtagVerboten.inhalt?.error || ''), fTtagVerboten.inhalt?.error);
+  const fTtagBekannt = await fRuf('keks-f-bert', 'POST', `/api/test-days/${fTtagId}/tags`,
+    { name: 'Frisch' });
+  pruefe('Einen bekannten Namen weist er dem Testtag weiterhin zu',
+    fTtagBekannt.status === 201 &&
+    fZeilen('SELECT tag_id FROM test_day_tags WHERE test_day_id = ?', fTtagId).length === 1,
+    `Status ${fTtagBekannt.status}`);
+
+  /* Und wieder an: der Weg muss sich auch oeffnen lassen, sonst belegte die
+     Pruefung nur, dass er zu ist. */
+  await fRuf('keks-f-anna', 'PUT', '/api/settings',
+    { tagsFreiAnlegen: true, kategorienFreiAnlegen: true });
+  const fWiederAn = fTagZahl();
+  const fTagWiederAn = await fRuf('keks-f-bert', 'POST', '/api/items/2/tags', { name: 'Wieder frei' });
+  pruefe('Umgelegt steht der Weg wieder offen',
+    fTagWiederAn.status === 201 && fTagZahl() === fWiederAn + 1,
+    `Status ${fTagWiederAn.status}, ${fWiederAn} -> ${fTagZahl()}`);
+  pruefe('Und der Schalter steht als wahr in der Datenbank, nicht als Loch',
+    fSchalter('tagsFreiAnlegen')?.value === 'true', JSON.stringify(fSchalter('tagsFreiAnlegen')));
+
   await F.stopp();
   fs.rmSync(fDir, { recursive: true, force: true });
 
@@ -2803,7 +3012,7 @@ const namen = (liste) => liste.map(c => c.name);
                        NICHTS hin, und auch das wird geprueft. */
   const fQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
   const RUMPF_WOERTER = ['darfAendern(', 'nurSelbst(', 'eintragFrei(', 'istAdmin(',
-    'istEigentuemer(', 'zielZugangFrei('];
+    'istEigentuemer(', 'zielZugangFrei(', 'darfAnlegen('];
   const F_ROUTEN = [
     ['POST',   '/api/setup',                     'offen'],
     ['POST',   '/api/login',                     'offen'],
@@ -2818,12 +3027,14 @@ const namen = (liste) => liste.map(c => c.name);
     ['PUT',    '/api/criteria/order',            'nurAdmin'],
     ['PUT',    '/api/criteria/:id',              'nurAdmin'],
     ['DELETE', '/api/criteria/:id',              'nurAdmin'],
-    ['POST',   '/api/product-categories',        'offen'],
+    // Zuweisen darf jeder, einen NEUEN Namen anlegen haengt am Schalter --
+    // deshalb im Rumpf und hinter dem Nachschlagen, nicht vor der Route.
+    ['POST',   '/api/product-categories',        'im Rumpf'],
     ['PUT',    '/api/product-categories/:id',    'nurAdmin'],
     ['DELETE', '/api/product-categories/:id',    'nurAdmin'],
     ['PUT',    '/api/tags/:id',                  'nurAdmin'],
     ['DELETE', '/api/tags/:id',                  'nurAdmin'],
-    ['POST',   '/api/items/:id/tags',            'nurEintragVerfasser'],
+    ['POST',   '/api/items/:id/tags',            'nurEintragVerfasser, im Rumpf'],
     ['DELETE', '/api/items/:id/tags/:tagId',     'nurEintragVerfasser'],
     ['POST',   '/api/items',                     'offen'],
     ['PUT',    '/api/items/:id',                 'im Rumpf'],
@@ -2909,6 +3120,48 @@ const namen = (liste) => liste.map(c => c.name);
   // unterscheiden.
   pruefe('Und wo offen steht, steht auch keine Klemme',
     fZuviel.length === 0, fZuviel.join(' · '));
+
+  /* DIE BESCHRIFTUNG DES EINGRIFFSVERMERKS HAENGT AN DIESER KLEMME.
+     "2 Bilder vom Admin entfernt" nennt eine ROLLE, und die steht in keiner
+     Spalte: sie folgt daraus, dass DELETE /api/comment-images/:id hinter
+     darfAendern steht -- Verfasser ODER Admin -- und der Vermerk nur
+     hochgezaehlt wird, wenn ein ANDERER als der Verfasser entfernt. Wer beide
+     Klemmen passiert, kann nur der Admin sein.
+     Faellt eine der beiden Zeilen, wird der Satz auf dem Bildschirm falsch.
+     Er steht in einer anderen Datei; ohne diese Pruefung faende das niemand,
+     und keine Verhaltenspruefung koennte es zeigen -- denn ein Server ohne
+     Klemme antwortet nicht falsch, er laesst nur den Falschen durch.
+     Erst das VORHANDENSEIN des Rumpfes, dann die Eigenschaft: ein Rumpf, den
+     es nicht gibt, ist eine leere Zeichenkette, und jede Verneinung darauf
+     waere wahr (Stolperstein 81). */
+  const fBildWeg = fGefunden.find(r => r.schluessel === 'DELETE /api/comment-images/:id');
+  const fBildWegRumpf = fBildWeg ? fBildWeg.rumpf : '';
+  pruefe('Die Loeschroute fuer Kommentarbilder ist ueberhaupt da',
+    fBildWegRumpf.length > 0, 'die Route fehlt im Quelltext');
+  pruefe('Sie steht hinter darfAendern -- Verfasser oder Admin',
+    fBildWegRumpf.includes('darfAendern(req, b.user_id)'),
+    fBildWegRumpf ? 'die Klemme fehlt im Rumpf' : '(kein Rumpf)');
+  pruefe('Und der Vermerk zaehlt nur bei einem anderen als dem Verfasser hoch',
+    fBildWegRumpf.includes('b.user_id !== req.benutzer.id') &&
+    fBildWegRumpf.includes('images_removed = images_removed + 1'),
+    fBildWegRumpf ? 'Bedingung oder Hochzaehlen fehlt' : '(kein Rumpf)');
+  /* Und genau eines von beiden: der andere Zweig setzt "bearbeitet". Ein
+     zweites if statt des else liesse beides zugleich zu. */
+  pruefe('Der andere Zweig setzt bearbeitet, und es ist ein else',
+    /\belse\s*\n?\s*kommentarBearbeitet\.run\(b\.comment_id\)/.test(fBildWegRumpf),
+    fBildWegRumpf ? 'kein else-Zweig mit kommentarBearbeitet' : '(kein Rumpf)');
+  const fAppQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  pruefe('Erst deshalb darf der Bildschirm die Rolle nennen',
+    fAppQuelle.includes('vom Admin entfernt') &&
+    fBildWegRumpf.includes('darfAendern(req, b.user_id)') &&
+    fBildWegRumpf.includes('b.user_id !== req.benutzer.id'),
+    fAppQuelle.includes('vom Admin entfernt')
+      ? 'die Beschriftung steht da, die Klemme nicht mehr'
+      : 'die Beschriftung fehlt in public/app.js');
+  // Kein Wer, kein Wann, keine Kette: es bleibt bei der Rolle.
+  pruefe('Und nennt dabei keinen Namen und keinen Zeitpunkt',
+    !/cmt-eingriff[^`]*verfasserName|cmt-eingriff[^`]*fmtDate/.test(fAppQuelle),
+    'der Vermerk nennt Person oder Zeitpunkt');
 
   /* Den vorhandenen Waechter erweitern,
      die Regel nicht ein zweites Mal hinschreiben: steht die Adminfrage
@@ -3878,6 +4131,14 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Das Bild liefert keine Bytes in der Übersicht mit',
     !('data' in bild1) && !('thumb' in bild1));
 
+  /* ANHAENGEN IST BEARBEITEN, also ist Entfernen es auch. Die ENTSTEHUNG
+     dagegen ist keines von beiden: ein frisch angelegter Kommentar traegt kein
+     "bearbeitet", auch wenn Bilder mitgekommen sind -- sonst stuende es an
+     jedem, der je eines hatte. */
+  pruefe('Ein neu angelegter Kommentar mit Bild gilt nicht als bearbeitet',
+    mitBild.inhalt.comments[0].updated_at === null,
+    JSON.stringify(mitBild.inhalt.comments[0].updated_at));
+
   const bAntwort = async (id2, abfrage = '') => {
     const a2 = await fetch(`${BASIS}/api/comment-images/${id2}/raw${abfrage}`, { headers: { cookie: keks } });
     return { status: a2.status, h: Object.fromEntries(a2.headers), bytes: Buffer.from(await a2.arrayBuffer()) };
@@ -3912,6 +4173,24 @@ const namen = (liste) => liste.map(c => c.name);
     [{ name: 'zwei.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
   pruefe('Bilder lassen sich nachreichen',
     nachgereicht.status === 201 && nachgereicht.inhalt.comments[0].images.length === 2);
+  const kNach = nachgereicht.inhalt.comments.find(k2 => k2.id === kid);
+  pruefe('Ein nachgereichtes Bild setzt „bearbeitet"',
+    !!kNach?.updated_at, JSON.stringify(kNach?.updated_at));
+  /* Und ausdruecklich NICHT den Eingriffsvermerk. An diesem Weg kann er gar
+     nicht entstehen -- er steht dem Verfasser offen und sonst niemandem. */
+  pruefe('Und dabei entsteht kein Eingriffsvermerk',
+    kNach?.bilderEntfernt === 0, JSON.stringify(kNach?.bilderEntfernt));
+
+  /* Kein Bild, keine Bearbeitung. Ein eigener Kommentar dafuer, weil der
+     obere sein "bearbeitet" schon traegt und die Pruefung dort gar nicht mehr
+     scheitern koennte. */
+  const ohneBild = await sendeKommentar(bk.id, { text: 'Noch ohne Bild' });
+  const ohneBildId = ohneBild.inhalt.comments.find(k2 => k2.text === 'Noch ohne Bild')?.id;
+  const leerNach = await sendeMehrteilig(`/api/comments/${ohneBildId}/images`, 'images', []);
+  const kLeer = leerNach.inhalt.comments?.find(k2 => k2.id === ohneBildId);
+  pruefe('Ein Ruf ohne Datei setzt kein „bearbeitet"',
+    !!kLeer && kLeer.updated_at === null && kLeer.images.length === 0,
+    JSON.stringify([leerNach.status, kLeer?.updated_at, kLeer?.images.length]));
 
   const zuViele = await sendeMehrteilig(`/api/comments/${kid}/images`, 'images',
     Array.from({ length: 6 }, (_, i) => ({ name: `x${i}.png`, typ: 'image/png',
@@ -3922,6 +4201,15 @@ const namen = (liste) => liste.map(c => c.name);
   const nachWeg = (await ruf('DELETE', `/api/comment-images/${bilderVorher[0].id}`)).inhalt;
   pruefe('Einzelnes Bild lässt sich entfernen', nachWeg.comments[0].images.length === 1);
   pruefe('Sortiernummern bleiben lückenlos', nachWeg.comments[0].images[0].sort_order === 0);
+  /* Der Verfasser raeumt bei sich auf -- ein Vermerk entsteht dabei
+     ausdruecklich nicht. Die andere Haelfte derselben Regel ("das setzt
+     bearbeitet") steht bei den Rechten an Kommentaren: dort laesst sich der
+     Ausgangswert von Hand leeren, hier traegt der Kommentar sein "bearbeitet"
+     vom Nachreichen schon, und die Pruefung koennte gar nicht scheitern
+     (Stolperstein 60). */
+  const kWeg = nachWeg.comments.find(k2 => k2.id === kid);
+  pruefe('Räumt der Verfasser bei sich auf, entsteht auch hier kein Vermerk',
+    kWeg?.bilderEntfernt === 0, JSON.stringify(kWeg?.bilderEntfernt));
   pruefe('Entferntes Bild ist nicht mehr abrufbar',
     (await bAntwort(bilderVorher[0].id)).status === 404);
 
@@ -4957,6 +5245,14 @@ async function pruefeOberflaeche() {
       zeitpunktEinzahl: 'Sitzung', zeitpunktMehrzahl: 'Sitzungen'
     }
   };
+  /* Ein ZWEITER Satz, diesmal vollstaendig -- er traegt auch die Woerter fuer
+     Bericht und Aufgabe. Der obere bleibt bewusst unvollstaendig: an ihm
+     haengt die Pruefung, dass die Karte im Systembereich fuer ein Wort, das
+     das Vokabular nicht nennt, die Vorgabe zeigt. Beides in einem Satz ginge
+     nicht, ohne eine der beiden Aussagen zu verlieren. */
+  const eigenVoll = { filters: null, vokabular: { ...eigen.vokabular,
+    berichtEinzahl: 'Notat', berichtMehrzahl: 'Notate',
+    aufgabeEinzahl: 'ToDo', aufgabeMehrzahl: 'ToDo’s', aufgabeErledigt: 'Done' } };
 
   // Direkteinstieg auf einen Eintrag: hier lief loadAll() frueher nie, das
   // Vokabular waere also nicht geladen gewesen.
@@ -4976,6 +5272,28 @@ async function pruefeOberflaeche() {
     !/Testtag|Getestet|Eintrag löschen/.test(textDetail));
   pruefe('Knopf fuer neue Zeitpunkte benutzt die Einzahl',
     w2.document.getElementById('tadd').textContent === '+ Sitzung eintragen');
+
+  /* Die Zahlen am Kommentarblock holen ihre Woerter aus dem Vokabular --
+     "Kommentar" dagegen bleibt eine FESTE Beschriftung und wird kein
+     zwoelftes Vokabelwort: anders als Sache und Zeitpunkt verschiebt es sich
+     nicht mit dem Gegenstand. Beide Haelften stehen nebeneinander, sonst
+     bliebe die eine gruen, waehrend die andere sich verschoebe. */
+  const vokDom = baueDom(JSDOM, { einstellungen: eigenVoll, hash: '#/item/1' });
+  const wVok = vokDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const kzVok = wVok.document.getElementById('ccount');
+  pruefe('Die Zahlen am Kommentarblock folgen dem Vokabular',
+    kzVok?.textContent === '6 Kommentare, davon 1 Notat und 2 ToDo’s (1 Done)',
+    kzVok ? kzVok.textContent : '(kein Hinweis)');
+  pruefe('„Kommentar" bleibt dabei fest',
+    /^6 Kommentare/.test(kzVok?.textContent || '') &&
+    wVok.kommentarZahlen([{ kind: 'note' }]) === '1 Kommentar',
+    wVok.kommentarZahlen([{ kind: 'note' }]));
+  pruefe('Und die Einzahl kommt ebenfalls aus dem Vokabular',
+    wVok.kommentarZahlen([{ kind: 'report' }, { kind: 'task' }])
+      === '2 Kommentare, davon 1 Notat und 1 ToDo',
+    wVok.kommentarZahlen([{ kind: 'report' }, { kind: 'task' }]));
+  wVok.close();
 
   /* ---- Der Favoritenknopf, mit einem wirklich zugestellten Klick ----
      Die einzige Prueflage im ganzen Prüfstand, die ein Ereignis zustellt
@@ -5658,9 +5976,38 @@ async function pruefeOberflaeche() {
   bewertung.querySelector('.block-head').onclick({ target: bewertung.querySelector('.bgrip') });
   pruefe('Der Griff klappt nicht mit ein', bewertung.classList.contains('zu') === vorher);
 
+  /* DERSELBE VOLLE SATZ AUCH EINGEKLAPPT -- eingeklappt ist gerade der Moment,
+     in dem man nicht hineinsieht. Der Hinweis steht in der Kopfzeile und bleibt
+     deshalb von selbst stehen; die Kurzfassung daneben bleibt leer, sonst
+     stuende derselbe Satz zweimal in einer Zeile. Und eine leere Kurzfassung
+     erzeugt KEINE leere Klammer: "()" waere eine Klammer um nichts. */
+  kommentare.querySelector('.block-head').onclick({ target: kommentare.querySelector('.label') });
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Der Kommentarblock laesst sich einklappen', kommentare.classList.contains('zu'));
+  pruefe('Eingeklappt steht dort keine leere Klammer',
+    kommentare.querySelector('.bsumme').textContent === '',
+    `"${kommentare.querySelector('.bsumme').textContent}"`);
+  pruefe('Und derselbe volle Satz steht weiterhin in der Kopfzeile',
+    kommentare.querySelector('#ccount')?.textContent
+      === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 Erledigt)',
+    kommentare.querySelector('#ccount')?.textContent);
+  // Wieder aufklappen, damit die Gruppen darunter denselben Aufbau vorfinden.
+  kommentare.querySelector('.block-head').onclick({ target: kommentare.querySelector('.label') });
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Und wieder auf', !kommentare.classList.contains('zu'));
+
+  /* UMGEDREHT STATT GELOESCHT (Stolperstein 74). Bis hierher zaehlte die
+     Kurzfassung die Kommentare; jetzt traegt der Block seinen vollen Satz an
+     eigener Stelle, und die Kurzfassung bleibt ausdruecklich leer. BEIDE
+     HAELFTEN IN EINER PRUEFUNG: die eine allein bliebe gruen, waehrend die
+     andere alles wegnimmt. */
+  pruefe('Der Kommentarblock zaehlt in seinem Hinweis, nicht in der Kurzfassung',
+    wb.blockZusammenfassung('kommentare', { comments: [{ kind: 'note' }, { kind: 'report' }] }) === '' &&
+    wb.kommentarZahlen([{ kind: 'note' }, { kind: 'report' }]) === '2 Kommentare, davon 1 Bericht',
+    `Kurzfassung "${wb.blockZusammenfassung('kommentare', { comments: [{ kind: 'note' }] })}", ` +
+    `Hinweis "${wb.kommentarZahlen([{ kind: 'note' }, { kind: 'report' }])}"`);
+
   // Zusammenfassung nennt echte Zahlen
-  pruefe('Zusammenfassung zählt Kommentare',
-    wb.blockZusammenfassung('kommentare', { comments: [1, 2, 3] }) === '3');
   pruefe('Zusammenfassung kürzt die Beschreibung',
     wb.blockZusammenfassung('beschreibung', { description: 'x'.repeat(80) }).endsWith(' …'));
   pruefe('Leere Beschreibung sagt das auch',
@@ -6920,8 +7267,17 @@ async function pruefeOberflaeche() {
      bliebe ungeprueft. */
   const vermerke = [...wb.document.querySelectorAll('#cmts .cmt-head .cmt-eingriff')]
     .map(z => z.textContent);
+  /* DER VERMERK NENNT DIE ROLLE. "vom Admin" steht in keiner Spalte: es folgt
+     aus den beiden Klemmen an der Loeschroute (siehe den Waechter ueber den
+     Quelltext). Kein Name, kein Zeitpunkt, keine Kette -- eine Rolle ist keine
+     Person. Zwei Kommentare mit VERSCHIEDENEN Zahlen, damit Ein- und Mehrzahl
+     nebeneinander stehen. */
   pruefe('Der Eingriffsvermerk steht als eigene Angabe in der Kopfzeile',
-    gleich(vermerke, ['1 Bild entfernt', '2 Bilder entfernt']), JSON.stringify(vermerke));
+    gleich(vermerke, ['1 Bild vom Admin entfernt', '2 Bilder vom Admin entfernt']),
+    JSON.stringify(vermerke));
+  pruefe('Und er nennt die Rolle, nicht die Person',
+    vermerke.every(z => /vom Admin/.test(z)) &&
+    !vermerke.some(z => /chefin|bert|carla|Benutzer/.test(z)), JSON.stringify(vermerke));
   pruefe('Und ausdrücklich nicht im Textfeld',
     ![...wb.document.querySelectorAll('#cmts .cmt-body')].some(b => /entfernt/.test(b.textContent)),
     'ein Kommentartext nennt den Vermerk');
@@ -6930,6 +7286,64 @@ async function pruefeOberflaeche() {
     !kmts[5].querySelector('.cmt-eingriff'));
   pruefe('Es gibt keinen Knopf, der ihn zurücksetzt',
     ![...wb.document.querySelectorAll('#cmts .cmt-eingriff')].some(z => z.querySelector('button')));
+
+  /* --- Die Zahlen in der Kopfzeile des Kommentarblocks ------------------
+     Links und Dateien tragen ihren Hinweis, Kommentare bisher nicht. Der Satz
+     nennt TEILMENGEN, keine Summanden: "davon", und die Klammer nistet die
+     zweite Ebene ein -- das Erledigte steckt IN den Aufgaben. Addiert ergaeben
+     die Zahlen mehr Kommentare, als es gibt; genau das soll der Wortlaut
+     verhindern.
+     Der Prueflage nach: sechs Kommentare, darunter ein Bericht, eine Aufgabe
+     und ein erledigtes Todo. Die Notiz bleibt ungenannt, die Anpinnung steht
+     nicht in der Zeile. */
+  const kZaehl = wb.document.getElementById('ccount');
+  pruefe('Der Kommentarblock traegt seine Zahlen in der Kopfzeile',
+    !!kZaehl && kZaehl.textContent === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 Erledigt)',
+    kZaehl ? kZaehl.textContent : '(kein Hinweis)');
+  pruefe('Und zwar dort, wo Links und Dateien ihren auch tragen',
+    !!kZaehl && !!kZaehl.closest('.block-head') &&
+    kZaehl.closest('.block')?.dataset.block === 'kommentare',
+    kZaehl ? kZaehl.parentElement?.className : '(kein Hinweis)');
+
+  // Gebildet an EINEM Ort. Die Randfaelle unmittelbar an der Funktion, nicht
+  // ueber sechs aufgebaute Kommentarlagen.
+  const kz = (...arten) => wb.kommentarZahlen(arten.map(k => ({ kind: k })));
+  pruefe('Bei null Kommentaren bleibt der Hinweis ganz leer, wie bei den Links',
+    kz() === '' && wb.kommentarZahlen(null) === '' && wb.kommentarZahlen(undefined) === '',
+    JSON.stringify([kz(), wb.kommentarZahlen(null)]));
+  pruefe('Ein einzelner Kommentar steht in der Einzahl',
+    kz('note') === '1 Kommentar', kz('note'));
+  pruefe('Nur Notizen: das „davon" faellt ganz weg',
+    kz('note', 'note', 'note') === '3 Kommentare', kz('note', 'note', 'note'));
+  pruefe('Eine Gruppe mit null verschwindet ganz',
+    kz('note', 'report') === '2 Kommentare, davon 1 Bericht', kz('note', 'report'));
+  pruefe('Ohne Erledigte faellt die Klammer weg',
+    kz('note', 'task', 'task') === '3 Kommentare, davon 2 Aufgaben', kz('note', 'task', 'task'));
+  pruefe('Das Erledigte steckt IN den Aufgaben, nicht daneben',
+    kz('task', 'task', 'done') === '3 Kommentare, davon 3 Aufgaben (1 Erledigt)',
+    kz('task', 'task', 'done'));
+  pruefe('Ein erledigtes Todo allein ist immer noch eine Aufgabe',
+    kz('done') === '1 Kommentar, davon 1 Aufgabe (1 Erledigt)', kz('done'));
+  pruefe('Zwei Gruppen werden mit „und" verbunden, nicht mit einem Mittelpunkt',
+    kz('report', 'report', 'task', 'done', 'note')
+      === '5 Kommentare, davon 2 Berichte und 2 Aufgaben (1 Erledigt)',
+    kz('report', 'report', 'task', 'done', 'note'));
+  pruefe('Bei einem einzigen greift ueberall die Einzahl',
+    kz('report', 'task') === '2 Kommentare, davon 1 Bericht und 1 Aufgabe',
+    kz('report', 'task'));
+  pruefe('Die NOTIZ bleibt ungenannt — sie ist der Zustand ohne Markierung',
+    !/Notiz/i.test(kz('note', 'note', 'report')), kz('note', 'note', 'report'));
+  pruefe('Und die ANPINNUNG steht nicht in der Zeile: zweite, unabhaengige Achse',
+    wb.kommentarZahlen([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }])
+      === '2 Kommentare',
+    wb.kommentarZahlen([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }]));
+  /* Die Summe der Teilmengen darf die Gesamtzahl nicht ueberschreiten -- das
+     ist der Sinn von "davon". Waeren es Summanden, ergaebe die Prueflage
+     1 + 2 + 1 = 4 von 3. */
+  pruefe('Die Teilmengen bleiben Teilmengen',
+    (() => { const t = kz('report', 'task', 'done').match(/\d+/g).map(Number);
+             return t[0] === 3 && t[1] === 1 && t[2] === 2 && t[3] === 1; })(),
+    kz('report', 'task', 'done'));
 
   /* --- Fuenf Faelle, drei Antworten ------------------------------------
      Der Bildschirm bietet nicht mehr an, was der Server abweist. Die drei
@@ -7362,4 +7776,141 @@ async function pruefeOberflaeche() {
   pruefe('Zweiter Klick öffnet kein zweites Feld',
     trow.querySelectorAll('.ttag-in').length === 1);
   wb.close();
+
+  /* ================= Die beiden Anlegen-Schalter ================= */
+  gruppe('Anlegen-Schalter in der Oberflaeche');
+
+  /* Der Bildschirm bietet nicht an, was der Server abweist. DREI AUFBAUTEN
+     nebeneinander: einer ohne Adminrolle und mit ausgeschalteten Schaltern,
+     einer mit Adminrolle bei derselben Stellung, einer ohne Adminrolle bei
+     eingeschalteten Schaltern. darfTagAnlegen() beginnt mit einem meist
+     wahren ODER -- ohne den ersten Aufbau bliebe verdeckt, an welcher
+     Bedingung die Zeilen ueberhaupt haengen (Stolperstein 73), ohne den
+     dritten bliebe offen, ob sie je erscheinen. */
+  const anlegeVorrat = [
+    { id: 1, name: 'Vorhanden', usage_count: 3, test_usage_count: 0 },
+    { id: 2, name: 'Auch da', usage_count: 1, test_usage_count: 0, vergeben: true }
+  ];
+  const anlegeDom = (istAdmin, frei) => baueDom(JSDOM, { hash: '#/item/1', tags: anlegeVorrat,
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin,
+                     tagsFreiAnlegen: frei, kategorienFreiAnlegen: frei } });
+
+  const ausDom = anlegeDom(false, false);
+  const wAus = ausDom.w;
+  await new Promise(r => setTimeout(r, 80));
+
+  pruefe('Ohne Recht verschwindet die Zeile zum Anlegen eines Tags',
+    !wAus.document.getElementById('newtag') && !wAus.document.getElementById('newtag-b'),
+    'die Eingabezeile steht noch da');
+  pruefe('Und die Zeile fuer eine neue Kategorie ebenso',
+    !wAus.document.getElementById('newcat') && !wAus.document.getElementById('newcat-b'),
+    'die Kategoriezeile steht noch da');
+  /* AUSWAHL AUS DEM VORHANDENEN BLEIBT. Das ist der ganze Sinn des Schalters:
+     zuweisen darf immer jeder, nur das Anlegen faellt weg. */
+  pruefe('Die Auswahlliste der Kategorien bleibt stehen',
+    !!wAus.document.getElementById('cat'), 'die Auswahl ist mitverschwunden');
+  pruefe('Und die Tagwolke bleibt vollstaendig bedienbar',
+    wAus.document.querySelectorAll('#tagcloud .pill-tag').length === 2 &&
+    [...wAus.document.querySelectorAll('#tagcloud .pill-tag')].every(p => !!p.onclick),
+    `${wAus.document.querySelectorAll('#tagcloud .pill-tag').length} Marken`);
+  pruefe('Auch die Marken am Eintrag lassen sich weiterhin abnehmen',
+    !!wAus.document.querySelector('#chips .chip button'), 'kein ✕ an der Marke');
+  pruefe('Die Vorschlagsliste bleibt -- die Testtagzeile braucht sie',
+    !!wAus.document.getElementById('tagsug'), 'die datalist ist mitverschwunden');
+  /* DER SONDERFALL AM TESTTAG: dort gibt es keine Wolke, die Eingabe ist der
+     einzige Zuweisungsweg und bleibt deshalb stehen. Ein unbekannter Name
+     faellt erst am Server durch. */
+  const aTrow = wAus.document.querySelector('#tdays .trow');
+  pruefe('Am Testtag bleibt der Knopf fuer Tags stehen',
+    !!aTrow && !!aTrow.querySelector('.ttag-add'), 'kein + am Testtag');
+  aTrow.querySelector('.ttag-add').dispatchEvent(new wAus.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Und er oeffnet weiterhin das Eingabefeld',
+    !!aTrow.querySelector('.ttag-in'), 'das Feld bleibt zu');
+  /* Ein Behandler an einem fehlenden Element risse die ganze Ansicht mit --
+     deshalb haengen sie nur an dem, was wirklich dasteht. */
+  pruefe('Die Ansicht steht trotzdem vollstaendig da',
+    !!wAus.document.getElementById('cmts') && !!wAus.document.getElementById('chips') &&
+    !!wAus.document.getElementById('links') && !!wAus.document.getElementById('ratings'),
+    'der Aufbau ist an den fehlenden Zeilen zerbrochen');
+  wAus.close();
+
+  const admDom = anlegeDom(true, false);
+  const wAdm = admDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Der Admin behaelt beide Zeilen, auch bei ausgeschaltetem Schalter',
+    !!wAdm.document.getElementById('newtag') && !!wAdm.document.getElementById('newcat'),
+    'dem Admin fehlt eine der beiden Zeilen');
+  wAdm.close();
+
+  const anDom = anlegeDom(false, true);
+  const wAn = anDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Mit eingeschaltetem Schalter sieht auch der Benutzer beide Zeilen wieder',
+    !!wAn.document.getElementById('newtag') && !!wAn.document.getElementById('newcat'),
+    'die Zeilen bleiben weg');
+  // Und der Weg funktioniert auch: ein wirklich zugestellter Druck schickt den
+  // Namen. Ein Knopf, den es gibt und der nichts tut, waere nicht besser.
+  anDom.gesendet.length = 0;
+  wAn.document.getElementById('newtag').value = 'Ganz neu';
+  wAn.document.getElementById('newtag-b').dispatchEvent(new wAn.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  const anGesendet = anDom.gesendet.filter(g => /\/api\/items\/1\/tags$/.test(g.url)).pop();
+  pruefe('Der Knopf schickt den neuen Namen an den Eintrag',
+    anGesendet && anGesendet.methode === 'POST' && anGesendet.koerper?.name === 'Ganz neu',
+    JSON.stringify(anGesendet));
+  wAn.close();
+
+  /* ---- Die Haken im Systembereich ----
+     Nur der Admin bekommt sie zu sehen: ein Haken, der zuverlaessig eine
+     Absage erzeugt, saehe aus wie ein Fehler. */
+  const sysDom = baueDom(JSDOM, { einstellungen: { filters: null, istAdmin: true,
+    tagsFreiAnlegen: false, kategorienFreiAnlegen: true } });
+  const wSys = sysDom.w;
+  await new Promise(r => setTimeout(r, 60));
+  await wSys.renderSystem();
+  const hakenTag = wSys.document.getElementById('tagfrei');
+  const hakenKat = wSys.document.getElementById('katfrei');
+  pruefe('Der Systembereich traegt beide Haken',
+    !!hakenTag && !!hakenKat,
+    `${hakenTag ? '' : 'tagfrei fehlt '}${hakenKat ? '' : 'katfrei fehlt'}`);
+  pruefe('Und jeder zeigt seine eigene Stellung',
+    hakenTag.checked === false && hakenKat.checked === true,
+    JSON.stringify([hakenTag.checked, hakenKat.checked]));
+  pruefe('Sie stehen bei den Karten, die sie betreffen',
+    hakenTag.closest('.sys-card')?.querySelector('h3')?.textContent === 'Tags' &&
+    hakenKat.closest('.sys-card')?.querySelector('h3')?.textContent === 'Kategorien',
+    `${hakenTag.closest('.sys-card')?.querySelector('h3')?.textContent} / ` +
+    `${hakenKat.closest('.sys-card')?.querySelector('h3')?.textContent}`);
+  /* Ein wirklich zugestelltes Ereignis, kein Behandleraufruf: der Behandler
+     laeuft nach einem await weiter, und genau dort saessen die Fehler, die im
+     bloss gebauten DOM unsichtbar bleiben (Stolperstein 61). */
+  sysDom.gesendet.length = 0;
+  hakenTag.checked = true;
+  hakenTag.dispatchEvent(new wSys.Event('change', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  const hakenGesendet = sysDom.gesendet.filter(
+    g => g.url === '/api/settings' && g.koerper && g.koerper.tagsFreiAnlegen !== undefined).pop();
+  pruefe('Der Haken schickt genau seinen eigenen Schluessel, sonst nichts',
+    hakenGesendet && hakenGesendet.methode === 'PUT' &&
+    gleich(Object.keys(hakenGesendet.koerper), ['tagsFreiAnlegen']) &&
+    hakenGesendet.koerper.tagsFreiAnlegen === true,
+    JSON.stringify(hakenGesendet));
+  pruefe('Und der andere Haken bleibt dabei unberuehrt',
+    hakenKat.checked === true &&
+    !sysDom.gesendet.some(g => g.koerper && g.koerper.kategorienFreiAnlegen !== undefined),
+    JSON.stringify(sysDom.gesendet.map(g => g.koerper)));
+  wSys.close();
+
+  const sysUser = baueDom(JSDOM, { einstellungen: { filters: null, istAdmin: false } });
+  const wSysU = sysUser.w;
+  await new Promise(r => setTimeout(r, 60));
+  await wSysU.renderSystem();
+  pruefe('Ein Benutzer bekommt die Haken gar nicht erst zu sehen',
+    !wSysU.document.getElementById('tagfrei') && !wSysU.document.getElementById('katfrei'),
+    'ein Haken steht auch ohne Adminrolle da');
+  pruefe('Die Karten selbst bleiben ihm -- das raeumt erst die naechste Stufe',
+    !!wSysU.document.getElementById('mtags') && !!wSysU.document.getElementById('mcats'),
+    'die Karten sind schon jetzt verschwunden');
+  wSysU.close();
 }

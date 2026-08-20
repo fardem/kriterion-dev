@@ -25,6 +25,14 @@ const upload = multer({
 });
 
 const touch = db.prepare(`UPDATE items SET updated_at = datetime('now') WHERE id = ?`);
+/* "bearbeitet" am Kommentar. EINE Stelle fuer beide Bildwege -- anhaengen und
+   entfernen sind dieselbe Aussage ueber denselben Menschen, und zwei Anweisungen
+   desselben Wortlauts liefen frueher oder spaeter auseinander.
+   updated_at ist eine Aussage UEBER DEN VERFASSER: nur er loest es aus. Der
+   Eingriff eines Admins setzt es nie -- sonst saehe seine Loeschung aus wie eine
+   Bearbeitung durch den Verfasser. Am Kommentartext steht dieselbe Regel
+   ausgeschrieben in PUT /api/comments/:id. */
+const kommentarBearbeitet = db.prepare(`UPDATE comments SET updated_at = datetime('now') WHERE id = ?`);
 const getSetting = (k, fallback) => {
   const r = db.prepare('SELECT value FROM settings WHERE key = ?').get(k);
   if (!r) return fallback;
@@ -216,6 +224,8 @@ const VERWEIGERT_ADMIN = 'Das verwaltet nur der Admin.';
 const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer der Anlage.';
 const VERWEIGERT_EINTRAG = 'Diesen Eintrag ändert nur, wer ihn angelegt hat — oder der Admin.';
 const VERWEIGERT_SELBST = 'Das ändert nur, wer es geschrieben hat.';
+const VERWEIGERT_TAG_NEU = 'Neue Tags legt nur der Admin an. Vorhandene lassen sich weiterhin vergeben.';
+const VERWEIGERT_KAT_NEU = 'Neue Kategorien legt nur der Admin an. Vorhandene lassen sich weiterhin wählen.';
 
 function nurAdmin(req, res, next) {
   if (!istAdmin(req)) return res.status(403).json({ error: VERWEIGERT_ADMIN });
@@ -243,6 +253,26 @@ function darfAendern(req, verfasserId) {
 // fremdem Namen zu veraendern ist die Art Funktion, die man spaeter bereut.
 function nurSelbst(req, verfasserId) {
   return verfasserId != null && verfasserId === req.benutzer.id;
+}
+
+/* Wer einen NEUEN Namen anlegen darf -- Tag oder Kategorie. Zwei globale
+   Schalter, Vorgabe an, ABGELEITET BEIM LESEN: ein Schluessel, der nicht in
+   settings steht, gilt als eingeschaltet. Damit braucht kein Bestand angefasst
+   zu werden, es entsteht kein Umstiegscode, und zu 1.0 ist nichts
+   zurueckzubauen.
+   Der Unterschied zu den Kriterien: ein neuer Tag erscheint nur dort, wo man
+   ihn hinsetzt, ein neues Kriterium ueberall. Deshalb ein Schalter und keine
+   feste Regel -- der Nutzen kommt erst mit dem dritten Zugang, wenn einer
+   "Alu" und der naechste "Aluminium" tippt und nur der Admin aufraeumen darf.
+   DER ADMIN KOMMT IMMER DURCH: ihm gehoert das Umbenennen und Loeschen, und
+   ein Schalter, den er erst umlegen muesste, um selbst etwas anzulegen, waere
+   eine Schranke gegen sich selbst.
+   DIE KLEMME SITZT AN JEDEM ANLEGEWEG HINTER DEM NACHSCHLAGEN DES VORHANDENEN
+   NAMENS -- nur so bleibt "Zuweisen darf immer jeder" baulich wahr statt eine
+   Behauptung. */
+const freiAnlegen = (schluessel) => getSetting(schluessel, true) !== false;
+function darfAnlegen(req, schluessel) {
+  return istAdmin(req) || freiAnlegen(schluessel);
 }
 
 /* Alles, was an einem Eintrag haengt -- Fotos, Dateien, Links, Tags, Kategorie,
@@ -644,7 +674,12 @@ app.get('/api/settings', (req, res) => res.json({
   zeitleiste: zeitleisteAn(req.benutzer.id),
   suche: suchvorlage(),
   suchAnbieter: suchAnbieter(),
-  suchNamen: suchNamen(req.benutzer.id)
+  suchNamen: suchNamen(req.benutzer.id),
+  // Abgeleitet beim Lesen, nicht in der Datenbank nachgetragen. Die Oberflaeche
+  // laesst danach die Zeile "+ neu anlegen" weg; die Auswahl aus dem
+  // Vorhandenen bleibt in jedem Fall stehen.
+  tagsFreiAnlegen: freiAnlegen('tagsFreiAnlegen'),
+  kategorienFreiAnlegen: freiAnlegen('kategorienFreiAnlegen')
 }));
 
 app.put('/api/settings', (req, res) => {
@@ -740,11 +775,17 @@ app.put('/api/settings', (req, res) => {
       return res.status(400).json({ error: 'Diese Zahl an Anbieternamen gibt es nicht.' });
     putUserSetting(req.benutzer.id, 'suchNamen', JSON.stringify(n));
   }
+  // Die beiden Anlegen-Schalter sind global und damit Adminsache -- ueber die
+  // Ableitung ganz oben, ohne zweite Liste und ohne eigene Route.
+  for (const k of ['tagsFreiAnlegen', 'kategorienFreiAnlegen'])
+    if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
   res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vokabular: vokabular(),
              schrift: schriftgroesse(req.benutzer.id), bloecke: bloecke(req.benutzer.id),
              linkZeilen: linkZeilen(req.benutzer.id), zeitleiste: zeitleisteAn(req.benutzer.id),
              suche: suchvorlage(), suchAnbieter: suchAnbieter(),
-             suchNamen: suchNamen(req.benutzer.id) });
+             suchNamen: suchNamen(req.benutzer.id),
+             tagsFreiAnlegen: freiAnlegen('tagsFreiAnlegen'),
+             kategorienFreiAnlegen: freiAnlegen('kategorienFreiAnlegen') });
 });
 
 /* ---- Bewertungskriterien (Skala fest 1-5) ---- */
@@ -828,14 +869,18 @@ app.post('/api/product-categories', (req, res) => {
   if (!name) return res.status(400).json({ error: 'Name fehlt' });
   const found = db.prepare('SELECT * FROM product_categories WHERE name = ? COLLATE NOCASE').get(name);
   if (found) return res.json(found);
+  // HINTER dem Nachschlagen: eine VORHANDENE Kategorie zuzuweisen bleibt fuer
+  // jeden offen, nur ein NEUER Name haengt am Schalter. Stuende die Klemme
+  // davor, naehme sie das Zuweisen mit.
+  if (!darfAnlegen(req, 'kategorienFreiAnlegen'))
+    return res.status(403).json({ error: VERWEIGERT_KAT_NEU });
   const i = db.prepare('INSERT INTO product_categories (name) VALUES (?)').run(name);
   res.status(201).json(db.prepare('SELECT * FROM product_categories WHERE id = ?').get(i.lastInsertRowid));
 });
 
 // Umbenennen und loeschen wirkt auf JEDEN Eintrag, der die Kategorie
-// traegt -- also Adminsache, wie bei den Kriterien. Das ANLEGEN bleibt offen:
-// eine Kategorie entsteht beim Ausfuellen des Eintrags nebenbei, und ein
-// Schalter, der das dem Admin vorbehaelt, steht noch aus.
+// traegt -- also Adminsache, wie bei den Kriterien. Das ANLEGEN haengt am
+// Schalter kategorienFreiAnlegen, Vorgabe an; zuweisen darf immer jeder.
 app.put('/api/product-categories/:id', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: 'Name fehlt' });
@@ -879,11 +924,19 @@ app.delete('/api/tags/:id', nurAdmin, (req, res) => {
   res.status(204).end();
 });
 
-function findOrCreateTag(name) {
-  const clean = name.trim();
-  const ex = db.prepare('SELECT * FROM tags WHERE name = ? COLLATE NOCASE').get(clean);
-  if (ex) return ex;
-  const i = db.prepare('INSERT INTO tags (name) VALUES (?)').run(clean);
+/* Nachschlagen und Anlegen sind ZWEI Schritte, weil die Klemme dazwischen
+   gehoert: einen VORHANDENEN Tag zuzuweisen darf immer jeder, nur ein neuer
+   Name haengt am Schalter. Ein gemeinsamer Helfer, der beides in einem Zug
+   taete, truege die Klemme in seinem eigenen Rumpf -- und dann liesse sich an
+   keinem der beiden Wege noch gegenpruefen, dass sie dort wirklich wirkt.
+   Der Import geht an beiden vorbei: er gehoert dem Eigentuemer und legt seine
+   Tags selbst an. */
+function findeTag(name) {
+  return db.prepare('SELECT * FROM tags WHERE name = ? COLLATE NOCASE').get(name.trim());
+}
+
+function legeTagAn(name) {
+  const i = db.prepare('INSERT INTO tags (name) VALUES (?)').run(name.trim());
   return db.prepare('SELECT * FROM tags WHERE id = ?').get(i.lastInsertRowid);
 }
 
@@ -895,7 +948,14 @@ function findOrCreateTag(name) {
 app.post('/api/items/:id/tags', nurEintragVerfasser, (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: 'Tag-Name fehlt' });
-  const tag = findOrCreateTag(name);
+  // Erst nachschlagen, dann die Klemme: einen vorhandenen Tag vergibt auch
+  // hier jeder, der an den Eintrag darf. Die Wolke im Block bleibt deshalb
+  // bedienbar, wenn der Schalter aus ist -- nur die Eingabezeile verschwindet.
+  let tag = findeTag(name);
+  if (!tag) {
+    if (!darfAnlegen(req, 'tagsFreiAnlegen')) return res.status(403).json({ error: VERWEIGERT_TAG_NEU });
+    tag = legeTagAn(name);
+  }
   db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(req.params.id, tag.id);
   touch.run(req.params.id);
   res.status(201).json(detail(req.params.id, req.benutzer.id));
@@ -1615,7 +1675,16 @@ app.post('/api/test-days/:id/tags', (req, res) => {
   // einem fremden Testtag zu ergaenzen hiesse, eine fremde Beobachtung
   // umzuschreiben.
   if (!nurSelbst(req, t.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
-  const tag = findOrCreateTag(name);
+  /* AM TESTTAG GIBT ES KEINE WOLKE -- die Eingabe ist der einzige
+     Zuweisungsweg und bleibt deshalb auf dem Bildschirm stehen. Ein
+     unbekannter Name faellt hier mit sprechender Meldung durch, statt dass die
+     Zeile verschwaende: sonst naehme der Schalter das Zuweisen mit, und
+     "Zuweisen darf immer jeder" gilt. */
+  let tag = findeTag(name);
+  if (!tag) {
+    if (!darfAnlegen(req, 'tagsFreiAnlegen')) return res.status(403).json({ error: VERWEIGERT_TAG_NEU });
+    tag = legeTagAn(name);
+  }
   db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(t.id, tag.id);
   touch.run(t.item_id);
   res.status(201).json(detail(t.item_id, req.benutzer.id));
@@ -1805,7 +1874,15 @@ app.post('/api/comments/:id/images', kommentarBildUpload.array('images', BILD_ZA
       return res.status(400).json({ error: `Mehr als ${BILD_ZAHL} Bilder je Kommentar sind nicht vorgesehen.` });
     const k = await kodiereAlle(req.files);
     if (k.fehler) return res.status(400).json({ error: k.fehler });
-    speichereKommentarBilder(c.id, k.bilder);
+    /* Anhaengen IST Bearbeiten -- und hierher kommt nach der Klemme oben nur
+       der Verfasser. Ein Vermerk kann an diesem Weg deshalb gar nicht
+       entstehen: der Admin haengt nichts an.
+       KEIN BILD, KEINE BEARBEITUNG: ein Ruf ohne Datei hat nichts angehaengt,
+       und "bearbeitet" waere dann eine Aussage ueber nichts. */
+    if (k.bilder.length) {
+      speichereKommentarBilder(c.id, k.bilder);
+      kommentarBearbeitet.run(c.id);
+    }
     touch.run(c.item_id);
     res.status(201).json(detail(c.item_id, req.benutzer.id));
   } catch (e) { next(e); }
@@ -1821,16 +1898,26 @@ app.delete('/api/comment-images/:id', (req, res) => {
   if (!b) return res.status(404).json({ error: 'Nicht gefunden' });
   if (!darfAendern(req, b.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM comment_images WHERE id = ?').run(b.id);
-  /* DER EINGRIFFSVERMERK. Hochgezaehlt NUR, wenn ein anderer als der
+  /* HIER GILT GENAU EINES VON BEIDEN, NIE BEIDES UND NIE KEINES -- deshalb ein
+     if/else und nicht zwei Bedingungen nebeneinander.
+
+     DER EINGRIFFSVERMERK. Hochgezaehlt NUR, wenn ein anderer als der
      Verfasser entfernt -- wer bei sich aufraeumt, greift in keine fremde
      Aussage ein. Eine HERRENLOSE Zeile (user_id IS NULL) hat keinen
      Verfasser, also ist jeder Entfernende ein anderer; die Bedingung faellt
      dort von selbst richtig aus.
      Nicht zuruecksetzbar: es gibt keinen Weg, der die Zahl je verkleinert.
      Ein blankes UPDATE auf die eine Zeile -- kein OR REPLACE, an einem
-     Kommentar haengen Bilder, und die duerfen dabei nicht mitgehen. */
+     Kommentar haengen Bilder, und die duerfen dabei nicht mitgehen.
+
+     "BEARBEITET" dagegen im anderen Zweig: Entfernen ist Bearbeiten, genau wie
+     Anhaengen. Es steht nur dem Verfasser zu -- traege der Kommentar nach dem
+     Eingriff eines Admins "bearbeitet", saehe die fremde Loeschung aus wie
+     seine eigene Bearbeitung. */
   if (b.user_id !== req.benutzer.id)
     db.prepare('UPDATE comments SET images_removed = images_removed + 1 WHERE id = ?').run(b.comment_id);
+  else
+    kommentarBearbeitet.run(b.comment_id);
   // Sortiernummern lueckenlos halten, wie bei Fotos, Links und Dateien.
   const rest = db.prepare('SELECT id FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id').all(b.comment_id);
   const u = db.prepare('UPDATE comment_images SET sort_order = ? WHERE id = ?');
