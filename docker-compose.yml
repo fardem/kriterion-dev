@@ -1,0 +1,12 @@
+services:
+  kriterion:
+    build: .
+    container_name: kriterion
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3100:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PORT=3000
