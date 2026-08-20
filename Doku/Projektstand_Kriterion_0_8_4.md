@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 5 · Stand 20. August 2026 · gebaut: Version 0.8.3**
+**Kompakte Übergabe · Revision 6 · Stand 20. August 2026 · gebaut: Version 0.8.4**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,12 +8,13 @@ Mitgeben: dieses Blatt plus das ZIP mit dem Quelltext. Fertige
 Einstiegsnachrichten dafür liegen in `Startpaket_Kriterion.md` — das ist nur
 für den Menschen gedacht und wird nicht mitgeschickt.
 
-**Was Revision 5 ist.** Revision 3 hat mit der Bereinigung 0.8.1 alles
-weggeräumt, was zur Vergangenheit gehörte, Revision 4 trug 0.8.2 nach; diese
-trägt **0.8.3** nach — die erste Hälfte der zweiten Hälfte von G2, und mit ihr
-**den ersten Umstiegscode seit der Bereinigung**. Der Aufbau bleibt: Versionen vor der jüngsten
-stehen als je eine Zeile (Abschnitt 9), Prüf- und Gegenprobenlisten ab 0.8.0,
-Stolpersteine als Kernsätze.
+**Was Revision 6 ist.** Revision 3 hat mit der Bereinigung 0.8.1 alles
+weggeräumt, was zur Vergangenheit gehörte, Revision 4 trug 0.8.2 nach,
+Revision 5 die erste Hälfte von 0.8.3; diese trägt **0.8.4** nach — den Rest
+der zweiten Hälfte von G2, alle fünf Punkte. **Damit ist Stufe G2
+vollständig.** Der Aufbau bleibt: Versionen vor der jüngsten stehen als je
+eine Zeile (Abschnitt 9), Prüf- und Gegenprobenlisten ab 0.8.0, Stolpersteine
+als Kernsätze.
 **Vollständig geblieben sind die Abschnitte 5, 5a und 12** — Entscheidungen,
 Sicherheitsregel, Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht
 mehr berücksichtigt.
@@ -61,24 +62,28 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**Auf dem Server läuft 0.8.3** — eingespielt und nachgeprüft. Sie bringt vier
-Punkte der zweiten Hälfte von G2: den **Eingriffsvermerk am Kommentar**, `mine`
-am Kommentar samt der Oberfläche, die nicht mehr anbietet, was der Server
-abweist, die **blaue Aufgabenmarke** und die **Tagwolke, die ganz aufklappt**.
-**1243 von 1243 Prüfungen.**
+**Auf dem Server läuft 0.8.4** — eingespielt und nachgeprüft. Sie bringt den
+Rest der zweiten Hälfte von G2, alle fünf Punkte: den **Eingriffsvermerk nennt
+die Rolle** („2 Bilder vom Admin entfernt"), **`updated_at` an den Bildwegen
+des Verfassers**, die **Zahlen in der Kopfzeile des Kommentarblocks**, die
+**beiden Anlegen-Schalter** für Tags und Kategorien und den **Umschalter
+„meine/alle" in der Vergleichsansicht**. **Damit ist Stufe G2 vollständig.**
+**1349 von 1349 Prüfungen.**
 
-**0.8.3 hat das Schema angefasst** — Spalte `images_removed` an `comments` —
-und damit ist zum ersten Mal seit der Bereinigung 0.8.1 wieder **Umstiegscode**
-in `db.js` entstanden: `umstieg083()`, markiert und vorgemerkt für 1.0.
+**0.8.4 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
+Tabelle gebraucht — die beiden Anlegen-Schalter sind eine reine Ableitung
+beim Lesen. Es ist kein Umstiegscode entstanden; `umstieg083()` aus 0.8.3
+bleibt der einzige, weiterhin vorgemerkt für 1.0.
 
-**Vorausgesetzt wird eine Datenbank aus 0.8.0 oder neuer.** Ältere Bestände
-werden nicht mehr übernommen; sie bräuchten den Zwischenschritt über 0.8.0 als
-letzte Version mit Umstiegscode.
+**Vorausgesetzt wird weiterhin eine Datenbank aus 0.8.0 oder neuer.** Ältere
+Bestände werden nicht übernommen; sie bräuchten den Zwischenschritt über 0.8.0
+als letzte Version mit Umstiegscode.
 
-**Zurückrollen ist eine Dateikopie**, solange keine Version das Schema anfasst.
-0.8.3 hat es getan; wer auf 0.8.2 zurückgeht, behält eine Datenbank mit einer
-Spalte, die dort niemand liest — harmlos, aber vor jedem weiteren Einspielen
-gehört eine Sicherung des Datenverzeichnisses dazu.
+**Zurückrollen ist wieder eine reine Dateikopie.** 0.8.3 hatte das Schema
+angefasst (Spalte `images_removed`), 0.8.4 nicht — wer von 0.8.4 auf 0.8.3
+zurückgeht, braucht keine Rücksicht auf das Schema zu nehmen. Vor jedem
+Einspielen gehört trotzdem eine Sicherung des Datenverzeichnisses dazu, wie
+immer.
 
 **Der Weg zum Einspielen.** Der Pfad steht am laufenden Container — kein Suchen, kein Abschreiben:
 
@@ -93,13 +98,28 @@ cp kriterion-alt/.env kriterion/.env      # OHNE DIESE ZEILE STARTET NICHTS
 cd kriterion && docker compose up -d --build
 ```
 
-Vier Dinge, die dabei schiefgehen können, alle schon vorgekommen:
+Fünf Dinge, die dabei schiefgehen können, alle schon vorgekommen:
 
 - **`--build` vergessen.** `docker compose up -d` startet stillschweigend die
   alte Version weiter — der Quelltext steckt im Abbild, nicht im eingehängten
   Verzeichnis. `curl -s http://localhost:3100/api/config` nennt die Version, die
   der Server wirklich ausliefert. Stimmt sie und die Oberfläche verhält sich
   trotzdem alt, liegt `app.js` im Zwischenspeicher des Browsers (Strg+Shift+R).
+- **Eine unvollständige Kopie sieht aus wie eine vollständige.** Die
+  Versionsnummer im Footer kommt aus `/api/config`, also aus `package.json` —
+  sie ist keine Aussage über die übrigen Dateien. Wurden `package.json` und
+  `server.js` ersetzt, `public/app.js` aber nicht, zeigt der Footer die neue
+  Version, während die Oberfläche sich alt verhält; anders als beim
+  vergessenen `--build` hilft hier kein `Strg+Shift+R`, weil der Container die
+  alte Datei tatsächlich ausliefert. `docker-compose.yml` hängt nur `./data`
+  ein — `public/app.js` steckt seit dem Bau **fest im Abbild** und muss vor
+  dem `--build` auf der Platte liegen. Prüfen mit einer Textstelle, die es nur
+  in der neuen Datei gibt:
+  `curl -s http://localhost:3100/app.js | grep -c "<neue Textstelle>"`
+  Steht die Textstelle schon im Verzeichnis, aber nicht in der Antwort, wurde
+  nicht neu gebaut; steht sie auch im Verzeichnis nicht, war die Kopie
+  unvollständig — dann hilft nur, den vollständigen Dateisatz erneut
+  einzuspielen, nicht einzelne Dateien nachzuziehen.
 - **`cp .env.example .env` statt der echten `.env`** (Stolperstein 45). Dann
   steht `ENCRYPTION_KEY=` leer da, der Start erzeugt einen **neuen** Schlüssel
   und legt ihn als `data/encryption.key` ab, und die vorhandene Datenbank lässt
@@ -1148,6 +1168,76 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   und **nicht im Export**: Kommentarbilder wandern nur mit `files=1`, ein
   Vermerk neben null Bildern wäre sinnlos, und er ist eine Aussage über
   Verwaltung in *dieser* Anlage. Formatnummer bleibt 6.
+  **Seit 0.8.4 nennt der Satz die Rolle** — „2 Bilder vom Admin entfernt".
+  Kein Feld dafür nötig: wer beide Klemmen an `DELETE
+  /api/comment-images/:id` passiert (`darfAendern`, dann ein anderer als der
+  Verfasser), kann nur der Admin sein. Der Satz ist deshalb nur so lange wahr,
+  wie die Klemme genau dort steht — eine Prüfung am Quelltext bindet die
+  Beschriftung daran. Der Vermerk bleibt für **alle** Leser sichtbar, nicht nur
+  für den Verfasser: das Loch, das ein entferntes Bild hinterlässt, ist für
+  jeden da, und ein Vermerk, den nur einer sieht, wäre eine Benachrichtigung —
+  die hat Kriterion nicht.
+- **`updated_at` ist eine Aussage über den Verfasser** (seit 0.8.4). Anhängen
+  ist Bearbeiten, also ist Entfernen es auch — beides setzt jetzt „bearbeitet",
+  aber **nur, wenn der Verfasser selbst** es tut. An `DELETE
+  /api/comment-images/:id` gilt deshalb genau eines von beiden: der Vermerk
+  beim Fremden, `updated_at` beim Verfasser, nie beides und nie keines (ein
+  `if`/`else` um dieselbe Bedingung, nicht zwei getrennte). Der Eingriff eines
+  Admins setzt `updated_at` **nie** — sonst sähe seine Löschung aus wie eine
+  Bearbeitung durch den Verfasser, und genau das darf er nicht. Ein Ruf ohne
+  Datei (`POST /api/comments/:id/images` ohne Anhang) setzt ebenfalls nichts:
+  nichts angehängt heißt nicht bearbeitet. Unberührt bleibt „ein Merkmal
+  umzuschalten ist keine Bearbeitung" — Anpinnen und Art setzen weiterhin
+  nichts.
+- **Die Zahlen am Kommentarblock nennen Teilmengen, keine Summanden** (seit
+  0.8.4): „12 Kommentare, davon 3 Berichte und 5 Aufgaben (2 Erledigt)".
+  „Davon", nicht Mittelpunkte — die Zahlen dahinter zählen dieselben
+  Kommentare noch einmal aus einem anderen Blickwinkel, addiert ergäben sie
+  mehr Kommentare, als es gibt. Die Klammer nistet die zweite Ebene ein: das
+  Erledigte steckt **in** den Aufgaben, sonst schrumpfte die Zahl beim
+  Abhaken. Eine Gruppe mit null verschwindet ganz, ohne Erledigte fällt die
+  Klammer weg, ohne Kommentare bleibt der Hinweis ganz leer, wie bei den
+  Links. **„Kommentar" bleibt eine feste Beschriftung** und wird kein
+  zwölftes Vokabelwort — anders als Sache und Zeitpunkt verschiebt es sich
+  nicht mit dem Gegenstand. Die **Notiz** bleibt ungenannt: sie ist der
+  Zustand ohne Markierung und hat kein eigenes Wort. Die **Anpinnung** steht
+  nicht in der Zeile: zweite, unabhängige Achse, zwei Achsen in einer Zeile
+  wären nicht mehr lesbar. Derselbe volle Satz auch **eingeklappt** — der
+  Kommentarblock weicht damit bewusst von Links und Dateien ab, die dort eine
+  sehr kurze Kurzfassung tragen.
+- **Ein Block hat genau eine Stelle für seine Zahlen** (seit 0.8.4, Muster
+  aus dem Bau der vorigen Regel). `.block-head` trägt zwei mögliche Stellen:
+  die Kurzfassung `.bsumme`, die nur eingeklappt erscheint, und einen freien
+  Hinweis (`#lcount`, `#acount`, `#ccount`), der immer dasteht. Wer einem
+  Block beide gibt, zeigt eingeklappt zweimal dasselbe. Der Kommentarblock
+  trägt seine Zahlen ausschließlich im Hinweis; `blockZusammenfassung()`
+  liefert für ihn deshalb leer, und eine leere Kurzfassung erzeugt keine
+  leere Klammer mehr — „()" wäre eine Klammer um nichts.
+- **Tags und Kategorien: anlegen darf jeder — abschaltbar** (seit 0.8.4).
+  Zwei globale Schalter (`tagsFreiAnlegen`, `kategorienFreiAnlegen`), Vorgabe
+  an, als **Ableitung beim Lesen** — kein Umstiegscode, nichts, was zu 1.0
+  zurückzubauen wäre. Aus heißt ausschließlich: die Zeile „+ neu anlegen"
+  verschwindet, die Auswahl aus dem Vorhandenen bleibt (Kategorie) und die
+  Wolke bleibt bedienbar (Tags am Eintrag). **Zuweisen darf immer jeder** —
+  die Klemme sitzt an jedem der drei Anlegewege *hinter* dem Nachschlagen des
+  vorhandenen Namens, nicht davor, sonst nähme sie das Zuweisen mit.
+  **Der Admin kommt immer durch**, unabhängig vom Schalter: er räumt ohnehin
+  auf, ein Schalter, den er erst umlegen müsste, um selbst anzulegen, wäre
+  eine Schranke gegen sich selbst. **Der Sonderfall am Testtag:** dort gibt
+  es keine Wolke, die Eingabe ist der einzige Zuweisungsweg und bleibt
+  deshalb stehen; ein unbekannter Name wird dort mit sprechender Meldung
+  abgewiesen.
+- **Der Umschalter der Vergleichsansicht ist Ansichtszustand, keine
+  Einstellung** (seit 0.8.4) — im Speicher wie `linksOffen` und `wolkeOffen`,
+  nicht in `user_settings`. Vorgabestellung **„alle"**: Kriterienwerte,
+  Kopfzahl und Testtagzeile zeigen den Schnitt über alle Bewerter.
+  **Kriterienwerte, Kopfzahl und Testtagzeile schalten gemeinsam** — sonst
+  wäre es derselbe Widerspruch mit einem Knopf davor, den der Umschalter
+  gerade auflösen soll. **Bei genau einem Zugang erscheint er nicht:** dann
+  sind beide Stellungen dieselbe Zahl. Die Zahl für „meine" bildet der
+  **Klient**: bei einem Bewerter hat jedes Kriterium höchstens eine Stimme,
+  Stufe 1 des Zweistufenmittels ist also der eigene Wert — kein zweiter
+  Rechenweg im Server, aber ein zweiter Rundungsort für eine *andere* Zahl.
 - **Eine neue Spalte braucht beides: die DDL und einen Umstiegsblock** (seit
   0.8.3). `CREATE TABLE IF NOT EXISTS` rührt eine vorhandene Tabelle nicht an
   (Stolperstein 13), und seit 0.8.1 gibt es keinen anderen Nachrüstweg mehr.
@@ -1445,6 +1535,37 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     **keine einzige Zeile** aus. Stolperstein 76 in neuer Gestalt: ist ein
     Rückbau so grundlegend, gehört eine engere zweite Gegenprobe daneben, die
     die DDL gültig lässt und genau eine Prüfung trifft.
+83. **Was in der Kopfzeile steht, überlebt das Einklappen — ein zweiter Text
+    daneben wird dort zur Doppelung, und eine leere Kurzfassung zur leeren
+    Klammer.** `.block-head` trägt zwei Stellen für Inhaltsangaben: die
+    Kurzfassung `.bsumme` (nur eingeklappt sichtbar) und einen freien Hinweis
+    (`#lcount`, `#acount`, immer sichtbar). Wer einem Block beides gibt, zeigt
+    eingeklappt zweimal dasselbe. Und wer die Kurzfassung leer lässt, bekommt
+    „()", eine Klammer um nichts. Ein Block hat genau eine Stelle für seine
+    Zahlen; welche, entscheidet, ob sie eingeklappt sichtbar bleiben soll.
+84. **Ein absichtlich unvollständiger Prüfbestand trägt eine Aussage — wer
+    ihn vervollständigt, löscht sie.** Ein Vokabularsatz, der nur einen Teil
+    der elf Wörter nennt, ist keine Nachlässigkeit: daran hängt die Prüfung,
+    dass eine Karte für ein *nicht genanntes* Wort die Vorgabe zeigt. Ihn zu
+    vervollständigen macht diese Prüfung rot — zu Recht. Richtig ist ein
+    zweiter, vollständiger Satz daneben. Verwandt mit 32, aber umgekehrt: dort
+    verhindert der Bestand eine Prüfung, hier *ist* er eine.
+85. **Wo die Anzeige selbst rundet, ist ein Rundungsschritt davor nicht
+    gegenprüfbar.** Bildet der Klient eine eigene Zahl (z. B. den Schnitt der
+    eigenen Werte) und rundet die Anzeige hinterher ohnehin auf dasselbe
+    Zehntel, bleibt der Rückbau der ersten Rundung auf dem Bildschirm stumm.
+    Der Schritt gehört trotzdem hin: er macht aus dem rohen Mittel dieselbe
+    Art Zahl wie die vom Server gelieferte, sonst stünden zwei Sorten Schnitt
+    nebeneinander. Ein Schritt, dessen Wirkung erst außerhalb der Anzeige
+    sichtbar würde, gehört mit seinem Grund in den Kommentar — und in die
+    Liste „nicht gegengeprüft, mit Grund".
+86. **Ein Abbruch in einer Gruppe, die der Rückbau gar nicht berührt, ist
+    erst ein Fund, wenn er sich allein wiederholen lässt.** Ein Rückbau nannte
+    drei richtige rote Punkte und brach danach in einer völlig fremden Gruppe
+    ab; allein wiederholt lief er glatt durch — ein liegengebliebener Prozess
+    auf dem Prüfport, nicht der Rückbau. Ergänzung zu 75 und 76: vor dem
+    Deuten eines Abbruchs die Frage, ob er überhaupt im Wirkbereich des
+    Rückbaus liegt — und wenn nicht, den Rückbau allein wiederholen.
 
 ---
 
@@ -1458,12 +1579,16 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Abbilds).
 
-**Zuletzt: 1243 von 1243 bestanden** (0.8.3; 39 neue Prüfungen). Darunter ein
-eigener Abschnitt **„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen:
+**Zuletzt: 1349 von 1349 bestanden** (0.8.4; 106 neue Prüfungen, davon 65 in
+drei neuen Gruppen: „Wer darf anlegen" (28), „Anlegen-Schalter in der
+Oberfläche" (19), „Der Umschalter der Vergleichsansicht" (18)). Der Abschnitt
+**„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen steht unverändert:
 er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage, nur ohne die neue
 Spalte und mit einer Zeile darin — und belegt, dass der Umstieg sie ergänzt,
 dass die Bestandszeile auf der Vorgabe null steht, dass ein zweiter Lauf stumm
-bleibt und dass eine **frische** Anlage die Spalte ohne Umstieg trägt.
+bleibt und dass eine **frische** Anlage die Spalte ohne Umstieg trägt. 0.8.4
+selbst hat keinen eigenen Umstiegsabschnitt — kein Punkt hat das Schema
+angefasst.
 
 **Was abgedeckt ist**, grob nach Bereichen:
 
@@ -1596,6 +1721,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.1 | Umstellung auf frische Anlage (102 Umstiegsprüfungen entfielen) | — | — |
 | 0.8.2 | Stufe G2, erste Hälfte (61) | 19 | Stolpersteine 78, 79 und 80 |
 | 0.8.3 | Stufe G2, zweite Hälfte, Punkte 1–4 (39) | 16 | Stolpersteine 81 und 82 |
+| 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte (106) | 34 | Stolpersteine 83, 84, 85 und 86 |
 
 **In 0.8.0 hundertfünfzehn neue Prüfungen zur Stufe G1.** Der Prüfbestand
 entsteht hier **über die Verwaltung selbst** — anders als in allen Stufen davor,
@@ -1710,7 +1836,12 @@ machen; dafür steht jetzt eine engere Gegenprobe daneben (Stolperstein 76).
   Schriftgröße irgendwo etwas umbricht, wie sich das Ziehen der Blöcke anfühlt,
   ob die Zeitleiste bei echtem Bestand lesbar bleibt (sie ist auf rund 50 Punkte
   über fünf Jahre ausgelegt; bei Hunderten wäre sie zu überdenken) und ob die
-  Tagwolke mit einer Zeile auskommt.
+  Tagwolke mit einer Zeile auskommt. Aus 0.8.4 dazu: der Umbruch der
+  Kommentar-Kopfzeile bei „… bearbeitet · 2 Bilder vom Admin entfernt" in der
+  schmalen Spalte (`.cmt-head` hat `flex-wrap` bewusst nicht — kippt es doch,
+  ist die Antwort dort, nicht eine kürzere Beschriftung), der Hinweis am
+  Kommentarblock auf- und eingeklappt, der Tagblock ohne seine Eingabezeile bei
+  ausgeschaltetem Schalter und der Umschalter im Vergleich.
 - **Blockanordnung und Einklappzustand liegen in den Einstellungen**, nicht im
   Export. Nach einem ersetzenden Import stehen sie unverändert da.
 - **Veröffentlichung auf GitHub ist vorbereitet:** `.env` per `.gitignore`
@@ -1727,95 +1858,58 @@ machen; dafür steht jetzt eine engere Gegenprobe daneben (Stolperstein 76).
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.3 — Stufe G2, zweite Hälfte, erster Teil: der Eingriff wird sichtbar.**
+**0.8.4 — Stufe G2, zweite Hälfte, Rest: alle fünf Punkte, Stufe G2 vollständig.**
 
-*Der Eingriffsvermerk am Kommentar.* Spalte
-`images_removed INTEGER NOT NULL DEFAULT 0` an `comments`, in der vollständigen
-DDL. Hochgezählt in `DELETE /api/comment-images/:id`, **nur** wenn ein anderer
-als der Verfasser entfernt — blankes `UPDATE`, kein `OR REPLACE`. In der
-Antwort `bilderEntfernt`; die nackte Spalte verlässt den Server nicht, dieselbe
-Bauform wie bei `user_id`. In der Oberfläche eine eigene Angabe in der
-Kopfzeile, mit Ein- und Mehrzahl, nie im Textfeld, ohne Rücksetzer. Nicht im
-Export, Formatnummer bleibt 6.
+*Der Eingriffsvermerk nennt die Rolle.* „2 Bilder vom Admin entfernt" statt nur
+„entfernt" — kein Feld dafür nötig: wer beide Klemmen an `DELETE
+/api/comment-images/:id` passiert (`darfAendern`, dann ein anderer als der
+Verfasser), kann nur der Admin sein. Kein Wer, kein Wann, keine Kette — eine
+Rolle ist keine Person. Eine Prüfung am Quelltext bindet die Beschriftung an
+genau diese beiden Klemmen.
 
-*Der erste Umstiegscode seit der Bereinigung.* Der Entwurf sagte „kein
-Umstiegscode nötig, die Vorgabe 0 greift für jede Bestandszeile". Das galt für
-die Zeilen, nicht für die Spalte: `CREATE TABLE IF NOT EXISTS` rührt eine
-vorhandene Tabelle nicht an (Stolperstein 13), und seit 0.8.1 gibt es keinen
-Nachrüstweg mehr. **Vor dem Bauen nachgestellt, gemeldet und freigegeben.**
-Gebaut nach der Bauregel: `umstieg083()` in `db.js`, 18 Zeilen zwischen
-`// UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0` und `// ENDE UMSTIEG 0.8.3`, eigener
-Prüfabschnitt mit sieben Prüfungen, Eintrag unter „Vorgemerkt für 1.0".
+*`updated_at` an den Bildwegen des Verfassers.* Neue vorbereitete Anweisung
+`kommentarBearbeitet` neben `touch`. Anhängen ist Bearbeiten, also ist
+Entfernen es auch — an `DELETE /api/comment-images/:id` gilt jetzt **genau
+eines von beiden**, per `if`/`else` um dieselbe Bedingung: der Vermerk beim
+Fremden, `updated_at` beim Verfasser, nie beides und nie keines. Ein Ruf ohne
+Datei setzt nichts. Anpinnen und Art bleiben unberührt.
 
-*`mine` am Kommentar und die fünf Bedienelemente.* `qComments()` bekommt den
-Benutzer als zweites Argument samt Klemme und liefert `mine` — dasselbe Muster
-wie am Testtag und an der Stimme. Die Oberfläche zeigt ✎ nur beim Verfasser,
-und ✕ am Kommentar, ✕ am Bild sowie die drei Marken bei Verfasser oder Admin.
-„+ Bild" bekommt keine eigene Klemme: es steht ausschließlich im
-Bearbeitenmodus und fällt mit ✎ baulich weg. Geprüft mit **zwei Aufbauten** —
-einer mit Adminrolle, einer ohne; sonst bliebe verdeckt, an welcher Bedingung
-die Knöpfe hängen (Stolperstein 73).
+*Zahlen in der Kopfzeile des Kommentarblocks.* Neue Funktion
+`kommentarZahlen()` — ein Ort für beide Zustände, auf- und eingeklappt:
+„12 Kommentare, davon 3 Berichte und 5 Aufgaben (2 Erledigt)". Teilmengen,
+keine Summanden; das Erledigte steckt in den Aufgaben. Der Kommentarblock
+bekommt dafür einen eigenen Hinweis (`#ccount`) statt der Kurzfassung —
+`blockZusammenfassung('kommentare')` liefert seither leer, und eine leere
+Kurzfassung erzeugt keine leere Klammer mehr.
 
-*Die Aufgabenmarke.* Eine Zeile: `.mark.aufg.on` in Blau, wie die Kante
-daneben. Der eingeschaltete, noch offene Aufgabenknopf fiel bis dahin auf
-`.mark.on` zurück und war orange.
+*Die beiden Anlegen-Schalter.* `tagsFreiAnlegen` und `kategorienFreiAnlegen`,
+global, Vorgabe an, als Ableitung beim Lesen — kein Umstiegscode. Drei
+Anlegewege (`POST /api/product-categories`, `.../items/:id/tags`,
+`.../test-days/:id/tags`) bekommen die Klemme **hinter** dem Nachschlagen des
+vorhandenen Namens, damit „Zuweisen darf immer jeder" baulich wahr bleibt.
+`findOrCreateTag()` dafür in `findeTag()` und `legeTagAn()` zerlegt. Der Admin
+kommt immer durch. Am Testtag bleibt die Eingabe stehen — dort gibt es keine
+Wolke.
 
-*Die Tagwolke, zwei Wege.* `begrenzeWolke()` bricht bei Höhe null ab und nimmt
-eine vorhandene `maxHeight` weg; dazu zeichnet das Aufklappen des Tagblocks die
-Wolke neu (`wolkeNeuzeichnen`, in `route()` geleert, in `renderDetail()`
-gesetzt). Die Gegenproben belegen einzeln, dass die beiden einander **nicht**
-verdecken.
+*Der Umschalter der Vergleichsansicht.* „meine / alle" über dem
+Vergleichsraster, Ansichtszustand im Speicher wie `linksOffen`, Vorgabe
+„alle". Kriterienwerte, Kopfzahl und Testtagzeile schalten **gemeinsam**. Bei
+genau einem Zugang erscheint der Umschalter nicht. Die Zahl für „meine" bildet
+der Klient (`eigenerSchnitt()`) — kein zweiter Rechenweg im Server, aber ein
+zweiter Rundungsort für eine andere Zahl.
 
-**1243 von 1243 Prüfungen**, 16 Gegenproben. Zwei neue Stolpersteine (81, 82),
-beide **beim Gegenprüfen** gefunden: eine Prüfung, die bei fehlender Regel gar
-nicht scheitern konnte, und ein Rückbau, der den Lauf abbrach, ohne einen Namen
-zu nennen. `F_ROUTEN` unverändert 46 Routen, keine neue schreibende Route.
+**1349 von 1349 Prüfungen**, 34 Gegenproben. Vier neue Stolpersteine (83–86).
+`F_ROUTEN` unverändert 46 Routen, zwei Arten geändert
+(`'offen'` bzw. `'nurEintragVerfasser'` → `… , im Rumpf'`). **Kein Punkt hat
+das Schema angefasst**, kein Umstiegscode entstanden.
 
-**Am Haltepunkt angehalten.** Offen: die beiden Anlegen-Schalter und der
-Umschalter der Vergleichsansicht. Siehe Abschnitt 10.
-
-**0.8.2 — Stufe G2, erste Hälfte: der Bildschirm sagt, wem was gehört.**
-
-*Verfassernamen an vier Trägern.* Eintrag, Kommentar, Testtag und jede
-einzelne Bewertung nennen ihren Verfasser als Objekt `{ id, name, geloescht }`;
-die nackte `user_id` steht in keiner Antwort mehr. Gebaut aus **einer** Karte je
-Anfrage (`verfasserKarte()`), nach dem Muster des Exports. Ein Grabstein liefert
-`name: null` — die Beschriftung „Gelöschter Benutzer 7" entsteht in
-`public/app.js`, an genau einem Ort, den auch die Karte „Zugänge" ruft. Eine
-herrenlose Zeile heißt „Ohne Verfasser". Angezeigt wird alles erst ab **zwei
-aktiven Zugängen**, abgeleitet aus `benutzerZahl` über `mehrereBenutzer()` —
-kein neuer Schalter, keine zweite Schwelle.
-
-*Die Stimmenliste je Kriterium.* Unter der Sternzeile steht, wer welchen Wert
-vergeben hat, aus einer eigenen gruppierten Abfrage — kein dritter JOIN neben
-Schnitt und eigener Sternzeile. Nur Werte > 0. Je Stimme `id`, `wert`, `mine`
-und Verfasser; ohne die `id` gäbe es keinen Weg zu einer einzelnen fremden
-Bewertung.
-
-*Der Löschdialog am Eintrag.* `GET /api/items/:id/bestand` liefert Fotos,
-Dateien, Links und je Trägerart die Zahlen getrennt nach eigen und fremd — aus
-Sicht des **Löschenden**. Lesend, deshalb kein Eintrag in `F_ROUTEN`; der
-Wächter `nurEintragVerfasser` steht trotzdem davor. Der Dialog liest alle Zahlen
-von dort, nicht mehr zur Hälfte aus dem geladenen Eintrag.
-
-*Der Endpunkt für fremde Bewertungen.* `DELETE /api/ratings/:id` mit
-`darfAendern` im Rumpf — löschen darf der Admin, umschreiben niemand. Ein `PUT`
-auf denselben Pfad entsteht nicht, und eine Prüfung am Quelltext hält das fest.
-Das ✕ erscheint nur beim Admin und nur an fremden Stimmen.
-
-*Nebenbei:* die vier verbliebenen „Verwalter" in Prosa-Kommentaren heißen jetzt
-„Admin".
-
-**Kein Schema angefasst, kein Umstiegscode entstanden**, `db.js` und `auth.js`
-unverändert. **1204 von 1204 Prüfungen**, 19 Gegenproben. Drei neue
-Stolpersteine (78, 79, 80). `F_ROUTEN` zählt jetzt 46 Routen.
-
-**Am Haltepunkt angehalten.** Offen aus dem Auftrag: der Eingriffsvermerk am
-Kommentar, die beiden Anlegen-Schalter für Tags und Kategorien und die
-Vergleichsansicht — alle drei entschieden, keiner gebaut. Siehe Abschnitt 10.
+**Stufe G2 ist damit vollständig** — kein Haltepunkt mehr offen. Als Nächstes
+Stufe G3 auf 0.8.5. Siehe Abschnitt 10.
 
 | Version | Was |
 |---|---|
+| 0.8.3 | Stufe G2, zweite Hälfte, erster Teil: Eingriffsvermerk am Kommentar (`images_removed`, erster Umstiegscode seit der Bereinigung), `mine` am Kommentar samt Oberfläche, blaue Aufgabenmarke, Tagwolke klappt ganz auf |
+| 0.8.2 | Stufe G2, erste Hälfte: Verfassernamen an vier Trägern als Objekt, Stimmenliste je Kriterium, Löschdialog am Eintrag (`GET .../bestand`), `DELETE /api/ratings/:id` für fremde Bewertungen |
 | 0.8.1 | Bereinigung (keine Stufe): `legacy.js` und aller Umstiegscode entfernt, Schema als vollständige DDL, Prüfstand auf frische Anlagen (−102 Prüfungen), Kommentare und Vokabular vereinheitlicht |
 | 0.8.0 | Stufe G1: Karte „Zugänge", Rollenleiter `user` < `admin` < `eigentuemer` als vergebbarer Rollenwert, Sperren an zwei Stellen durchgesetzt, Namensbremse, Löschen als Grabstein mit freigegebenem Namen, `zugang.js` ersetzt `AUTH_RESET` |
 | 0.7.2 | Stufe F: serverseitige Rechteschicht für alle schreibenden Endpunkte, Export/Import nur Eigentümer, „Leitung" → „Admin", Selbstbezugsfehler entfernt |
@@ -1861,38 +1955,19 @@ damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
    vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion.md` und wird nur
-   noch dort gepflegt.** Die Stufen A bis F und **die erste Hälfte von G2**
-   sind erledigt (0.6.0 bis 0.8.2); 0.8.1 war eine Bereinigung, keine Stufe.
+   noch dort gepflegt.** Die Stufen A bis F und **G2 vollständig** sind
+   erledigt (0.6.0 bis 0.8.4); 0.8.1 war eine Bereinigung, keine Stufe.
 
-   **Die zweite Hälfte von G2 ist zur Hälfte gebaut.** In 0.8.3 erledigt: der
-   **Eingriffsvermerk am Kommentar**, `mine` samt der Oberfläche, die nicht
-   mehr anbietet, was der Server abweist, die **blaue Aufgabenmarke** und die
-   **Tagwolke**.
+   **G2, zweite Hälfte, ist mit 0.8.4 vollständig.** In 0.8.3 erledigt: der
+   Eingriffsvermerk am Kommentar (noch ohne Rolle), `mine` samt der
+   Oberfläche, die blaue Aufgabenmarke, die Tagwolke. In 0.8.4 erledigt: der
+   Vermerk nennt die **Rolle**, `updated_at` an den Bildwegen des Verfassers,
+   die **Zahlen in der Kopfzeile des Kommentarblocks**, die beiden
+   **Anlegen-Schalter** und der **Umschalter „meine/alle"** in der
+   Vergleichsansicht. Details in Abschnitt 5 und Abschnitt 9.
 
-   **Als Nächstes: der Rest auf 0.8.4.** Fünf Punkte, alle entschieden:
-   *(a)* die beiden **Anlegen-Schalter** `tagsFreiAnlegen` und
-   `kategorienFreiAnlegen`, global, Vorgabe an, als Ableitung beim Lesen — die
-   Klemme sitzt **hinter** dem Nachschlagen des vorhandenen Namens, nur so
-   bleibt „Zuweisen darf immer jeder" baulich wahr;
-   *(b)* die **Vergleichsansicht** — Umschalter „meine / alle",
-   Vorgabestellung „alle", Kopfzeile und Testtagzeile schalten mit, die Zahl
-   für „meine" bildet der Klient;
-   *(c)* der Vermerk sagt, **wer** eingegriffen hat: „2 Bilder vom Admin
-   entfernt" — die Rolle, nicht die Person, und nur so lange wahr, wie die
-   Löschroute hinter `darfAendern` steht;
-   *(d)* **`updated_at` bei den Bildwegen des Verfassers** — Anhängen ist
-   Bearbeiten, also ist Entfernen es auch. `updated_at` ist eine Aussage über
-   den *Verfasser*; der Eingriff des Admins setzt es **nie**. An der
-   Löschroute gilt damit genau eines von beiden;
-   *(e)* **Zahlen in der Kopfzeile des Kommentarblocks**:
-   `12 Kommentare, davon 3 Berichte und 5 ToDo's (2 Done)` — „davon", weil es
-   Teilmengen sind; das Erledigte steckt in den Aufgaben. „Kommentar" bleibt
-   eine feste Beschriftung, die **Notiz** bleibt ungenannt (sie ist der Zustand
-   ohne Markierung), die **Anpinnung** steht nicht in der Zeile (zweite,
-   unabhängige Achse). Derselbe volle Satz auch eingeklappt — bewusste
-   Abweichung von den übrigen Blöcken.
-
-   *Danach:* **Stufe G3 auf 0.8.5 — „Der Systembereich lernt die Rechte".** Von
+   **Als Nächstes: Stufe G3 auf 0.8.5 — „Der Systembereich lernt die
+   Rechte".** Von
    neun Karten hängt heute genau eine an der Rolle; ein Benutzer sieht Titel,
    Kennzahlen, Export, Import, Kategorien, Tags und Vokabular zum Bearbeiten.
    Der Server verweigert jedes Schreiben — es ist Anzeige, aber genau die
@@ -1991,60 +2066,30 @@ Eingetragen im Konzeptpapier, hier als Merkzettel — nur noch, was bindet:
   `GET /api/users` steht hinter `nurAdmin` — für die Beiträge im Eintrag lag
   nichts bereit.
 - **Der Eingriffsvermerk am Kommentar ist eine bewusste Ausnahme von „kein
-  Änderungsverlauf"** — gebaut in 0.8.3, siehe Abschnitt 5. **Berichtigung
-  gegenüber Revision 4:** dort stand „kein Umstiegscode". Das galt für die
-  Zeilen, nicht für die Spalte — 0.8.3 brauchte einen und hat ihn bekommen.
-  **Offen für 0.8.4:** der Vermerk nennt künftig die **Rolle** — „2 Bilder vom
-  Admin entfernt". Kein Name, kein Zeitpunkt, keine Kette; die Rolle ist keine
-  Person. Der Satz ist nur so lange wahr, wie die Löschroute hinter
-  `darfAendern` steht, und eine Prüfung bindet die Beschriftung daran.
-  **Der Vermerk ist für ALLE sichtbar**, nicht nur für den Verfasser: das Loch,
-  das ein entferntes Bild hinterlässt, ist für jeden Leser da, und ein Vermerk,
-  den nur einer sieht, wäre eine Benachrichtigung — die hat Kriterion nicht.
-  Daraus die allgemeine Regel: **ein Vermerk gehört dorthin, wo aus einer
-  Aussage etwas herausgenommen wird — nicht dorthin, wo eine ganze Aussage
-  verschwindet.** Ein gelöschter Kommentar und ein gelöschter Link bekommen
-  deshalb keinen.
-- **`updated_at` ist eine Aussage über den Verfasser** (beschlossen für 0.8.4).
-  Nur er löst es aus — Text, Bild dran, Bild weg; Anhängen ist Bearbeiten, also
-  ist Entfernen es auch. Der Eingriff eines Admins setzt es **nie**, sonst sähe
-  seine Löschung aus wie eine Bearbeitung durch den Verfasser. An der
-  Löschroute für Kommentarbilder gilt damit genau eines von beiden: `updated_at`
-  beim Verfasser, der Vermerk beim Fremden — nie beides, nie keines.
-  Unberührt bleibt „ein Merkmal umzuschalten ist keine Bearbeitung": Anpinnen
-  und Art setzen weiterhin nichts.
-- **Die Anlegen-Schalter haben einen Sonderfall** (0.8.4): „Auswahl aus dem
-  Vorhandenen bleibt, nur ‚+ neu anlegen' verschwindet" trägt an der Kategorie
-  (die Auswahlliste bleibt) und an den Tags am Eintrag (die Wolke bleibt).
-  **Am Testtag gibt es keine Wolke** — dort ist die Eingabe der einzige
-  Zuweisungsweg und muss stehenbleiben; ein unbekannter Name wird vom Server
-  mit sprechender Meldung abgewiesen. Die Klemme sitzt **hinter** dem
-  Nachschlagen des vorhandenen Namens, sonst wäre „Zuweisen darf immer jeder"
-  nur noch eine Behauptung.
-- **Der Umschalter der Vergleichsansicht ist Ansichtszustand, keine
-  Einstellung** (0.8.4) — im Speicher wie `linksOffen` und `wolkeOffen`, damit
-  er eine Linse auf dieselben Daten bleibt und keine zweite Wahrheit wird. Bei
-  genau einem Zugang erscheint er nicht. **Kopfzeile und Testtagzeile schalten
-  mit**, sonst ist es derselbe Widerspruch mit einem Knopf davor.
-  Vorgabestellung „alle". Die Zahl für „meine" bildet der **Klient**: bei einem
-  Bewerter hat jedes Kriterium höchstens eine Stimme, Stufe 1 des
-  Zweistufenmittels ist also der eigene Wert — kein zweiter Rechenweg im
-  Server, aber ein zweiter Rundungsort für eine *andere* Zahl.
-- **Die Zahlen am Kommentarblock nennen Teilmengen, keine Summanden** (0.8.4).
-  `12 Kommentare, davon 3 Berichte und 5 ToDo's (2 Done)` — das Erledigte
-  steckt in den Aufgaben, sonst schrumpfte die Zahl beim Abhaken. „Kommentar"
-  bleibt eine **feste Beschriftung** und wird kein zwölftes Vokabelwort: anders
-  als Sache und Zeitpunkt verschiebt es sich nicht mit dem Gegenstand. Die
-  **Notiz** bleibt ungenannt — sie ist der Zustand ohne Markierung, hat kein
-  Wort, keinen Knopf, keine Kante. Die **Anpinnung** steht nicht in der Zeile:
-  zweite, unabhängige Achse.
+  Änderungsverlauf"** — gebaut in 0.8.3, die Rolle im Satz („2 Bilder vom Admin
+  entfernt") in 0.8.4 nachgezogen, siehe Abschnitt 5. **Berichtigung gegenüber
+  Revision 4:** dort stand „kein Umstiegscode". Das galt für die Zeilen, nicht
+  für die Spalte — 0.8.3 brauchte einen und hat ihn bekommen. **Der Vermerk ist
+  für ALLE sichtbar**, nicht nur für den Verfasser — das bleibt so und ist
+  nicht zu bauen, nur ins Papier: das Loch, das ein entferntes Bild
+  hinterlässt, ist für jeden Leser da, und ein Vermerk, den nur einer sieht,
+  wäre eine Benachrichtigung — die hat Kriterion nicht. Daraus die allgemeine
+  Regel: **ein Vermerk gehört dorthin, wo aus einer Aussage etwas
+  herausgenommen wird — nicht dorthin, wo eine ganze Aussage verschwindet.**
+  Ein gelöschter Kommentar und ein gelöschter Link bekommen deshalb keinen —
+  gilt unverändert für den fünften Träger aus G4 (Abschnitt 10 Punkt 5).
+  `updated_at`, die beiden Anlegen-Schalter, der Umschalter der
+  Vergleichsansicht und die Zahlen am Kommentarblock sind mit 0.8.4 ebenfalls
+  gebaut und in Abschnitt 5 nachzulesen; die Merkposten hier sind eingelöst.
 - **Wird ein Endpunkt eingeschränkt, sind die Prüfungen der Vorgängerversion
-  die ersten Betroffenen** (Stolperstein 74). Für 0.8.4 heißt das konkret: „Die
-  Kennzahlen selbst sieht weiterhin jeder" und „Tags und Kategorien bleiben
-  unangetastet bedienbar" sind dann umzudrehen, nicht zu löschen.
+  die ersten Betroffenen** (Stolperstein 74) — bindet weiterhin, für **G3 auf
+  0.8.5**: „Die Kennzahlen selbst sieht weiterhin jeder" und „Tags und
+  Kategorien bleiben unangetastet bedienbar" sind dann umzudrehen, nicht zu
+  löschen.
 - **Das Vokabular und `appTitle` müssen ausgeliefert werden, auch an einen
   Benutzer** — das Vokabular *ist* jede Beschriftung, der Titel steht in der
-  Kopfzeile. Was in 0.8.4 verschwindet, sind die **Karten**, nicht die Daten.
+  Kopfzeile. Was in **G3 auf 0.8.5** verschwindet, sind die **Karten**, nicht
+  die Daten.
 - **Die Übersicht sortiert weiter nach `updated_at` für alle:** die Liste
   zeigt, wo etwas geschieht, nicht wo ich zuletzt war.
 
