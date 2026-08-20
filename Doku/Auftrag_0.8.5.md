@@ -1,5 +1,6 @@
-Projekt Kriterion. Angehängt: Quelltext als ZIP, Projektstand, Konzeptpapier
-zum Mehrbenutzerbetrieb und das Änderungsprotokoll 0.8.4.
+Projekt Kriterion. Quelltext und Dokumente liegen im Repo `fardem/kriterion`;
+Projektstand, Konzeptpapier zum Mehrbenutzerbetrieb und das Änderungsprotokoll
+0.8.4 stehen dort unter `Doku/`. Gearbeitet wird im Repo, nicht an einer Kopie.
 
 AUFTRAG: Stufe G3 — „Der Systembereich lernt die Rechte", auf Version 0.8.5.
 Es ist die einzige Stelle, an der die Rechteschicht aus Stufe F noch keine
@@ -126,7 +127,7 @@ VORGEHEN — in dieser Reihenfolge:
 1. Lies den Projektstand (besonders Abschnitt 5, Abschnitt 6 Stolpersteine,
    Abschnitt 11), den Block „Stufe G3" im Konzeptpapier und das
    Änderungsprotokoll 0.8.4.
-2. Sieh dir die betroffenen Dateien im ZIP an, bevor du etwas vorschlägst.
+2. Sieh dir die betroffenen Dateien im Repo an, bevor du etwas vorschlägst.
 3. Besprich, was du ändern willst, und warte auf meine Bestätigung. Nicht
    sofort bauen. Unstimmigkeiten zwischen Papier und Quelltext sagst du jetzt.
 4. Erst nach meinem OK bauen — gezielte Änderungen, keine Neuerzeugung ganzer
@@ -188,27 +189,29 @@ arbeitet, muss sich in einem Zug entfernen lassen.
   1.0" im Projektstand: Datei, Funktion, Zeilenzahl, Zahl der Prüfungen, in
   einem Satz die Begründung.
 
-AM ENDE DES CHATS liefere mir:
+AM ENDE DES CHATS:
 
-* `kriterion.zip` (Ordner `kriterion/` oberste Ebene, ohne `.env`, `data/`,
-  `node_modules/`, `package-lock.json`, `Doku/`)
-* ein `Aenderungsprotokoll_0.8.5.md` als Rohstoff für die spätere
-  Dokumentenpflege: was gebaut wurde je Datei, Abweichungen mit Begründung,
-  neue Stolpersteine mit Nummer und Kernsatz, die Gegenprobentabelle,
-  Prüfungszahlen vorher/nachher, was für „Vorgemerkt für 1.0" anfällt,
-  Offengebliebenes
-* die Befehle zum Nachprüfen auf dem Server mit erwartetem Ergebnis — im Chat,
-  nicht in den Dokumenten, und ohne Platzhalter, die die Shell frisst
+* Der Stand ist committet und auf den Arbeitszweig geschoben — kein ZIP, kein
+  Dateiversand. Sinnvoll geschnittene Commits mit deutschen Meldungen; der
+  Haltepunkt bekommt einen eigenen, damit er in der Historie steht.
+* `Doku/Aenderungsprotokoll_0.8.5.md` liegt im selben Zweig, als Rohstoff für
+  die spätere Dokumentenpflege: was gebaut wurde je Datei, Abweichungen mit
+  Begründung, neue Stolpersteine mit Nummer und Kernsatz, die
+  Gegenprobentabelle, Prüfungszahlen vorher/nachher, was für „Vorgemerkt für
+  1.0" anfällt, Offengebliebenes.
+* Die Befehle zum Nachprüfen auf dem Server mit erwartetem Ergebnis — im Chat,
+  nicht in den Dokumenten, und ohne Platzhalter, die die Shell frisst.
 
 Projektstand und Konzeptpapier NICHT anfassen und keinen Auftragsblock für
 die nächste Stufe bauen. Das kommt erst, wenn ich gemeldet habe, dass 0.8.5
 eingespielt ist und sauber läuft.
 
-Zum Einspielen: die Versionsnummer im Footer kommt aus `package.json` und
-sagt NICHTS über die übrigen Dateien. Nach dem `--build` mit einer Textstelle
-gegenprüfen, die es nur in der neuen `public/app.js` gibt — sie steckt fest im
-Docker-Abbild und nicht im eingehängten Verzeichnis. Siehe Projektstand
-Abschnitt 2.
+Zum Einspielen: `public/app.js` steckt fest im Docker-Abbild und nicht im
+eingehängten Verzeichnis — ohne `--build` läuft die alte Oberfläche weiter.
+Die Versionsnummer im Footer taugt nicht als Beleg, sie kommt aus
+`package.json` und sagt nichts über die übrigen Dateien. Nenn mir deshalb im
+Chat eine Textstelle, die es nur in der neuen `public/app.js` gibt, zum
+Gegenprüfen mit `curl … /app.js | grep -c`. Siehe Projektstand Abschnitt 2.
 
 
 ZUM VORMERKEN, NICHT IN DIESER RUNDE:
