@@ -1,7 +1,7 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 20. August 2026 · gebaut bis Version 0.8.3**
-(Stufen A bis G1 erledigt, G2 zur Hälfte; 0.8.1 war eine **Bereinigung**,
+**Konzeptpapier · Stand 20. August 2026 · gebaut bis Version 0.8.4**
+(Stufen A bis G2 erledigt, **G2 vollständig**; 0.8.1 war eine **Bereinigung**,
 keine Stufe.)
 
 Dieses Papier trägt die Entwürfe der Stufen und was beim Bauen anders kam.
@@ -216,13 +216,16 @@ Wächter. Anlegen und Aufräumen gehören an dieselbe Stelle — wer Unordnung
 erzeugen kann, die nur einer aufräumen kann, erzeugt sie. *(Verworfen: ein
 Antragswesen.)*
 
-**Offen für Stufe G2, zweite Hälfte (0.8.3):**
+**Erledigt in Stufe G2, zweite Hälfte (0.8.4):**
 
 **Tags und Kategorien: anlegen darf jeder — abschaltbar.** Zwei getrennte
 globale Schalter im Verwaltungsbereich (`tagsFreiAnlegen`,
-`kategorienFreiAnlegen`), Vorgabe an. Aus heißt: Auswahl aus dem Vorhandenen
-bleibt, nur die Zeile „+ neu anlegen" verschwindet. Zuweisen darf immer jeder,
-umbenennen und löschen bleibt wie heute im Systembereich.
+`kategorienFreiAnlegen`), Vorgabe an, als Ableitung beim Lesen. Aus heißt:
+Auswahl aus dem Vorhandenen bleibt, nur die Zeile „+ neu anlegen" verschwindet.
+Zuweisen darf immer jeder, umbenennen und löschen bleibt wie heute im
+Systembereich. **Der Admin kommt am Schalter immer vorbei** — im Entwurf noch
+offen, beim Bauen entschieden: er räumt ohnehin auf, ein Schalter gegen sich
+selbst wäre schief.
 
 Der Unterschied zu den Kriterien: ein neuer Tag erscheint nur dort, wo man ihn
 hinsetzt. Ein neues Kriterium erscheint überall. **Deshalb ist es ein Schalter
@@ -433,7 +436,7 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | — | 0.8.1 | *Keine Stufe.* **Bereinigung:** `legacy.js` und aller Umstiegscode entfernt, Schema als DDL, Prüfstand auf frische Anlagen (−102 Prüfungen), Kommentare und Vokabular vereinheitlicht, Dokumente eingedampft | mittel |
 | **G2a** | **0.8.2** | Verfassernamen an vier Trägern, Stimmenliste je Kriterium, Löschdialog am Eintrag, Endpunkt für fremde Bewertungen — **erledigt**, siehe unten | mittel |
 | **G2b** | **0.8.3** | Eingriffsvermerk am Kommentar, `mine` am Kommentar samt der Oberfläche dazu, blaue Aufgabenmarke, Tagwolke — **erledigt**, siehe unten | mittel |
-| **G2c** | **0.8.4** | Rest von G2: die beiden Anlegen-Schalter und die Vergleichsansicht; dazu die Rolle im Vermerk, `updated_at` bei den Bildwegen und die Zahlen am Kommentarblock | mittel |
+| **G2c** | **0.8.4** | Rest von G2: die beiden Anlegen-Schalter und die Vergleichsansicht; dazu die Rolle im Vermerk, `updated_at` bei den Bildwegen und die Zahlen am Kommentarblock — **erledigt, Stufe G2 vollständig**, siehe unten | mittel |
 | **G3** | **0.8.5** | *Neu eingeschoben.* „Der Systembereich lernt die Rechte": neun Karten nach Rolle, `GET /api/stats` hinter den Admin, Kachel „Zugänge" über die volle Breite, Trennlinien in der Linkliste | mittel |
 | **G4** | **0.8.6** | *Neu.* „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der Zeile ab zwei Zugängen, Formatnummer 6 → 7 | mittel |
 | **H** | **0.8.7** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
@@ -612,7 +615,11 @@ bereit. Und das genannte Muster heißt im Quelltext `verfasserName()` im
 die beiden Anlegen-Schalter und die Vergleichsansicht — alle drei entschieden,
 siehe die zweite Hälfte unten.
 
-## Stufe G2, zweite Hälfte — zur Hälfte erledigt in Version 0.8.3
+## Stufe G2, zweite Hälfte — erledigt in Version 0.8.3 und 0.8.4
+
+**Stufe G2 ist mit 0.8.4 vollständig.** Alle sieben Punkte der zweiten Hälfte
+gebaut, keiner offen. Details und Abweichungen im Projektstand, Abschnitt 5
+und Abschnitt 9.
 
 ~~**Der Eingriffsvermerk am Kommentar.**~~ **Erledigt in 0.8.3.** Entschieden
 als **bewusste Ausnahme von „kein Änderungsverlauf"**, und die Begründung
@@ -629,28 +636,33 @@ Bestandszeile)" war **falsch** — er galt für die Zeilen, nicht für die Spalt
 deshalb einen markierten Umstiegsblock `umstieg083()` bekommen — vor dem Bauen
 nachgestellt, gemeldet und freigegeben. **Merksatz für jede weitere Spalte:
 DDL und Umstiegsblock, nicht eines von beidem.**
-**Offen für 0.8.4:** der Vermerk nennt die **Rolle** — „2 Bilder vom Admin
-entfernt". Ohne sie ist die Angabe für Fremde nicht deutbar; mit ihr bleibt
-„kein Wer" gewahrt, denn eine Rolle ist keine Person. Der Satz ist nur so lange
-wahr, wie `DELETE /api/comment-images/:id` hinter `darfAendern` steht, und eine
-Prüfung bindet die Beschriftung daran. **Der Vermerk ist für ALLE sichtbar:**
-das Loch ist für jeden Leser da, und ein Vermerk, den nur einer sieht, wäre
-eine Benachrichtigung — die hat Kriterion nicht.
+~~**Offen für 0.8.4:** der Vermerk nennt die Rolle.~~ **Erledigt in 0.8.4.**
+„2 Bilder vom Admin entfernt" — ohne eigenes Feld: wer beide Klemmen an
+`DELETE /api/comment-images/:id` passiert (`darfAendern`, dann ein anderer als
+der Verfasser), kann nur der Admin sein. Eine Prüfung am Quelltext bindet die
+Beschriftung an genau diese beiden Klemmen. **Der Vermerk bleibt für ALLE
+sichtbar:** das Loch ist für jeden Leser da, und ein Vermerk, den nur einer
+sieht, wäre eine Benachrichtigung — die hat Kriterion nicht.
 
-**Dazu für 0.8.4: `updated_at` bei den Bildwegen des Verfassers.** Anhängen ist
-Bearbeiten, also ist Entfernen es auch; heute setzt keiner von beiden
-„bearbeitet". `updated_at` ist eine Aussage **über den Verfasser** — der
-Eingriff des Admins setzt es nie, sonst sähe seine Löschung aus wie eine
-Bearbeitung durch den Verfasser. An der Löschroute gilt damit genau eines von
-beiden. „Ein Merkmal umzuschalten ist keine Bearbeitung" bleibt unberührt.
+~~**Dazu für 0.8.4: `updated_at` bei den Bildwegen des Verfassers.**~~
+**Erledigt in 0.8.4.** Anhängen ist Bearbeiten, also ist Entfernen es auch —
+beide setzen jetzt „bearbeitet", aber nur der Verfasser selbst löst es aus. An
+der Löschroute gilt damit genau eines von beiden, gebaut als `if`/`else` um
+dieselbe Bedingung: der Vermerk beim Fremden, `updated_at` beim Verfasser, nie
+beides und nie keines. Der Eingriff des Admins setzt es nie. **Abweichung, im
+Auftrag nicht vorgesehen:** ein Ruf ohne Datei (`POST
+/api/comments/:id/images` ohne Anhang) setzt ebenfalls nichts — nichts
+angehängt heißt nicht bearbeitet. „Ein Merkmal umzuschalten ist keine
+Bearbeitung" bleibt unberührt.
 
-**Die beiden Anlegen-Schalter. Offen, Version 0.8.4.** `tagsFreiAnlegen` und
-`kategorienFreiAnlegen`, global, Vorgabe an, als **Ableitung beim Lesen** —
-kein Umstiegscode. Geschrieben über `PUT /api/settings`, dessen Adminprüfung
-bereits abgeleitet ist („was nicht persönlich ist, ist Adminsache"), also keine
-neue Route und keine zweite Liste. Drei Anlegewege bekommen die Klemme, jeweils
-**hinter** dem Nachschlagen des vorhandenen Namens — nur so bleibt „Zuweisen
-darf immer jeder" baulich wahr: `POST /api/product-categories`
+~~**Die beiden Anlegen-Schalter. Offen, Version 0.8.4.**~~ **Erledigt in
+0.8.4.** `tagsFreiAnlegen` und `kategorienFreiAnlegen`, global, Vorgabe an, als
+**Ableitung beim Lesen** — kein Umstiegscode. Geschrieben über `PUT
+/api/settings`, dessen Adminprüfung bereits abgeleitet ist („was nicht
+persönlich ist, ist Adminsache"), also keine neue Route und keine zweite
+Liste. Drei Anlegewege bekommen die Klemme, jeweils **hinter** dem
+Nachschlagen des vorhandenen Namens — nur so bleibt „Zuweisen darf immer
+jeder" baulich wahr: `POST /api/product-categories`
 (`'offen'` → `'im Rumpf'`), `POST /api/items/:id/tags`
 (`'nurEintragVerfasser'` → `'nurEintragVerfasser, im Rumpf'`) und
 `POST /api/test-days/:id/tags` (schon `'im Rumpf'`). Der Import braucht keine:
@@ -661,34 +673,44 @@ bleibt) und an den Tags am Eintrag (die Wolke bleibt). **Am Testtag gibt es
 keine Wolke** — dort ist die Eingabe der einzige Zuweisungsweg und bleibt
 stehen; ein unbekannter Name wird vom Server mit sprechender Meldung
 abgewiesen, denn „Zuweisen darf immer jeder".
+**Zwei Abweichungen gegenüber dem Entwurf, beide vor dem Bauen gemeldet:**
+`findOrCreateTag()` musste in `findeTag()` und `legeTagAn()` zerlegt werden —
+ein gemeinsamer Helfer trüge die Klemme in seinem eigenen Rumpf statt in den
+Routenrümpfen, und der Wächter über den Quelltext fände sie dort nicht. Und
+der Entwurf schwieg dazu, ob der Admin ebenfalls am Schalter hängt — er tut es
+nicht: die Rechtetabelle (Abschnitt 3) gibt ihm für „Tags und Kategorien
+anlegen" ohnehin ein ✔, und ein Schalter, den er erst umlegen müsste, um selbst
+anzulegen, wäre eine Schranke gegen sich selbst.
 
-**Die Vergleichsansicht. Offen, Version 0.8.4.** Die seit 0.7.0 offene Frage
-ist entschieden: ein **Umschalter „meine / alle"**. Zwei Auflagen, ohne die er
-nichts löst — **die Kopfzeile schaltet mit** (sonst ist es derselbe Widerspruch
-mit einem Knopf davor), und er ist **Ansichtszustand im Speicher**, keine
-gespeicherte Einstellung, wie `linksOffen` und `wolkeOffen`. Bei genau einem
-Zugang erscheint er nicht. **Vorgabestellung „alle"**; die **Testtagzeile
-schaltet mit**, gezählt über `mine`. Die Zahl für „meine" bildet der
-**Klient**: bei einem Bewerter hat jedes Kriterium höchstens eine Stimme,
-Stufe 1 des Zweistufenmittels ist also der eigene Wert — kein zweiter Rechenweg
-im Server, aber ein zweiter Rundungsort für eine *andere* Zahl, und der gehört
-kommentiert. *Verworfen:* durchgehend der Schnitt (der eigene Wert wäre im
-Vergleich nicht mehr zu sehen), durchgehend die eigenen Werte (bräuchte eine
-zweite Rechnung im Server und stünde quer zu „der Schnitt bleibt über alle"),
-beides nebeneinander (zu dicht in einer 264-px-Spalte).
+~~**Die Vergleichsansicht. Offen, Version 0.8.4.**~~ **Erledigt in 0.8.4.** Die
+seit 0.7.0 offene Frage ist gebaut: ein **Umschalter „meine / alle"**. Zwei
+Auflagen, ohne die er nichts löst — **die Kopfzeile schaltet mit** (sonst ist
+es derselbe Widerspruch mit einem Knopf davor), und er ist **Ansichtszustand
+im Speicher**, keine gespeicherte Einstellung, wie `linksOffen` und
+`wolkeOffen`. Bei genau einem Zugang erscheint er nicht. **Vorgabestellung
+„alle"**; die **Testtagzeile schaltet mit**, gezählt über `mine`. Die Zahl für
+„meine" bildet der **Klient**: bei einem Bewerter hat jedes Kriterium
+höchstens eine Stimme, Stufe 1 des Zweistufenmittels ist also der eigene Wert
+— kein zweiter Rechenweg im Server, aber ein zweiter Rundungsort für eine
+*andere* Zahl, kommentiert im Quelltext. *Verworfen wie entschieden:*
+durchgehend der Schnitt, durchgehend die eigenen Werte, beides nebeneinander.
 
-**Neu für 0.8.4: Zahlen in der Kopfzeile des Kommentarblocks.** Links und
-Dateien tragen ihren Hinweis, Kommentare als einziger Block nicht — aufgeklappt
-sieht man nicht, wie viele es sind. Wortlaut:
-`12 Kommentare, davon 3 Berichte und 5 ToDo's (2 Done)`. **„Davon", nicht
-Mittelpunkte:** die Zahlen dahinter sind Teilmengen, keine Summanden, und die
-Klammer nistet die zweite Ebene ein — das Erledigte steckt **in** den Aufgaben,
-sonst schrumpfte die Zahl beim Abhaken. „Kommentar" bleibt eine **feste
-Beschriftung** und wird kein zwölftes Vokabelwort; die **Notiz** bleibt
-ungenannt, weil sie der Zustand ohne Markierung ist; die **Anpinnung** steht
-nicht in der Zeile, weil sie die zweite, unabhängige Achse ist. Derselbe volle
-Satz auch **eingeklappt** — bewusste Abweichung von den übrigen Blöcken, die
-dort eine sehr kurze Kurzfassung tragen.
+~~**Neu für 0.8.4: Zahlen in der Kopfzeile des Kommentarblocks.**~~
+**Erledigt in 0.8.4.** Links und Dateien tragen ihren Hinweis, Kommentare als
+einziger Block trugen ihn nicht — aufgeklappt sah man nicht, wie viele es
+sind. Wortlaut: `12 Kommentare, davon 3 Berichte und 5 Aufgaben (2 Erledigt)`.
+**„Davon", nicht Mittelpunkte:** die Zahlen dahinter sind Teilmengen, keine
+Summanden, und die Klammer nistet die zweite Ebene ein — das Erledigte steckt
+**in** den Aufgaben, sonst schrumpfte die Zahl beim Abhaken. „Kommentar"
+bleibt eine **feste Beschriftung** und wird kein zwölftes Vokabelwort; die
+**Notiz** bleibt ungenannt, weil sie der Zustand ohne Markierung ist; die
+**Anpinnung** steht nicht in der Zeile, weil sie die zweite, unabhängige Achse
+ist. Derselbe volle Satz auch **eingeklappt** — bewusste Abweichung von den
+übrigen Blöcken, die dort eine sehr kurze Kurzfassung tragen.
+**Abweichung, im Entwurf nicht bedacht:** dafür bekam der Kommentarblock einen
+eigenen Hinweis (`#ccount`) statt die Kurzfassung `.bsumme` zu füllen — der
+Satz trägt selbst schon eine Klammer, verschachtelt wäre er unlesbar, und der
+Hinweis überlebt das Einklappen ohnehin von selbst.
 
 **Die drei Funde aus dem Betrieb — alle drei erledigt in 0.8.3.**
 ~~Die **Aufgabenmarke** ist orange, obwohl `.cmt.aufgabe` daneben längst blau
@@ -837,8 +859,8 @@ Stand 0.8.0 —:
   Entfernen darf er, und genau dafür gibt es den Eingriffsvermerk.
 - **Was an allen Einträgen aller Benutzer erscheint, gehört dem Admin.** Was
   nur dort erscheint, wo man es hinsetzt, gehört jedem. Daraus folgen:
-  Kriterien beim Admin (erledigt 0.7.0), Tags und Kategorien bei allen (die
-  Schalter kommen in 0.8.4). **Links wechseln in Stufe G4 die Seite:** sie
+  Kriterien beim Admin (erledigt 0.7.0), Tags und Kategorien bei allen
+  (Schalter seit 0.8.4). **Links wechseln in Stufe G4 die Seite:** sie
   erscheinen nur dort, wo man sie hinsetzt, gehören also jedem.
 - **E-Mail ist Bequemlichkeit, nie Voraussetzung.** Jeder verschickte Link
   ist im Verwaltungsbereich zum Kopieren sichtbar.
