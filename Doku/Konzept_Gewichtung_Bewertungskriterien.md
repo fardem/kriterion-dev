@@ -1,6 +1,7 @@
 # Konzept — Gewichtung der Bewertungskriterien
 
-Ausgangsstand: 0.8.6. Vorgemerkt als Punkt 4.1 in
+Ausgangsstand: 0.8.6. **Beschlossen für 0.8.40**; der Stufenplan steht im
+Projektstand, Abschnitt 10. Hervorgegangen aus Punkt 4.1 in
 `Ideen_und_Vorschlaege.md`.
 
 Sprache wie im Ideenpapier: gewöhnliches IT-Deutsch, nicht die Projektsprache.
@@ -743,8 +744,8 @@ Migrationsblock statt zweier und eine Runde Import-Prüfungen statt zweier.
 
 Dagegen steht die Regel, dass eine Stufe in einem Durchgang abzuarbeiten sein
 muss. G4 (Links bekommen Verfasser) ist bereits als „größer, als es aussieht"
-markiert. **Meine Empfehlung: getrennt lassen** — G4 auf 0.8.7 mit Format 7,
-die Gewichtung auf 0.8.8 mit Format 8. Der Verlust ist eine Formatnummer, der
+markiert. **Meine Empfehlung: getrennt lassen** — G4 auf 0.8.30 mit Format 7,
+die Gewichtung auf 0.8.40 mit Format 8. Der Verlust ist eine Formatnummer, der
 Gewinn ist eine Stufe, die am Stück durchdacht werden kann.
 
 ---
@@ -756,7 +757,7 @@ Migrationsblock, denn `CREATE TABLE IF NOT EXISTS` rüstet an einer vorhandenen
 Tabelle nichts nach:
 
 ```js
-// UMSTIEG 0.8.x — ENTFAELLT MIT 1.0
+// UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
 // Die Spalte gewicht steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
 // eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.6
 // traegt rating_criteria ohne diese Spalte; die Vorgabe 1.0 greift nur dort,
@@ -766,11 +767,11 @@ function umstiegGewicht() {
   const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
   if (spalten.includes('gewicht')) return 0;
   db.exec('ALTER TABLE rating_criteria ADD COLUMN gewicht REAL NOT NULL DEFAULT 1.0');
-  console.log('[Kriterion] rating_criteria um gewicht ergaenzt (Umstieg auf 0.8.x).');
+  console.log('[Kriterion] rating_criteria um gewicht ergaenzt (Umstieg auf 0.8.40).');
   return 1;
 }
 umstiegGewicht();
-// ENDE UMSTIEG 0.8.x
+// ENDE UMSTIEG 0.8.40
 ```
 
 Wortgleich zum Muster von `umstieg083()`, inklusive der Marke für die
