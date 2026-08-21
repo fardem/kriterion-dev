@@ -604,10 +604,15 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .sys-card h3 { font-size: 1.03rem; font-weight: 620; letter-spacing: -.018em; margin: 0 0 4px; }
 .sys-card .desc { color: var(--muted); font-size: .87rem; margin: 0 0 14px; line-height: 1.55; }
 .sys-card .desc strong { color: var(--text-2); font-weight: 600; }
-/* Abschnitt innerhalb einer Karte: derselbe Abstand, den die uebrigen
-   Abschnitte als Zahl im Markup tragen -- hier als Klasse, weil es in den
-   Linkkarten mehrere davon gibt. */
-.sys-card .sys-teil { margin: 16px 0 8px; }
+/* Eine Karte ueber die volle Breite des Rasters. Die Zugangsliste traegt je
+   Zeile Name, Rolle, Status, Eintragszahl und bis zu vier Bedienelemente --
+   in einer Rasterspalte von 300 px bricht das um. */
+.sys-card.breit { grid-column: 1 / -1; }
+/* Abschnitt innerhalb einer Karte, mit dezenter Trennlinie darueber. Wo
+   mehrere Einstellungen untereinander stehen, laufen sie ohne Linie zu einem
+   Textblock zusammen. Dieselbe Linienfarbe wie der Kartenrand, damit keine
+   zweite Graustufe entsteht. */
+.sys-card .sys-teil { border-top: 1px solid var(--line); margin: 16px 0 8px; padding-top: 14px; }
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem; }
 .kv:last-child { border-bottom: none; }
 .kv .k { color: var(--muted); }

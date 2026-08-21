@@ -8135,6 +8135,55 @@ async function pruefeOberflaeche() {
   pruefe('AUTH_RESET steht in der ganzen Oberflaeche nirgends mehr',
     !rAppQuelle.includes('AUTH_RESET'), 'public/app.js nennt AUTH_RESET noch');
 
+
+  /* --- Die Kachel "Zugaenge" ueber die volle Breite ---
+     Zwei Haelften, und beide werden gebraucht: die Klasse am Knoten sagt
+     nichts darueber, ob sie etwas bewirkt, und die Regel im Stylesheet nichts
+     darueber, ob sie jemand traegt. Erst das Vorhandensein der Regel, dann
+     ihre Eigenschaft -- eine fehlende Regel liefert eine leere Zeichenkette,
+     und jede Verneinung darauf waere wahr (Stolperstein 81). */
+  const rKachel = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugänge');
+  pruefe('Die Kachel "Zugaenge" ist da', !!rKachel);
+  pruefe('Und sie ist als breite Kachel gekennzeichnet',
+    !!rKachel && rKachel.classList.contains('breit'),
+    rKachel?.className);
+  // Und ausdruecklich als einzige: eine Kennzeichnung, die alle tragen, ist
+  // keine.
+  pruefe('Als einzige der dreizehn',
+    [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.breit')].length === 1,
+    `${rEig.w.document.querySelectorAll('.sys-grid > .sys-card.breit').length} breite Kacheln`);
+
+  const rCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+    .replace(/\s+/g, ' ');
+  const rRegel = (w) => (rCss.match(new RegExp(w.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
+  pruefe('Die Regel fuer die breite Kachel steht ueberhaupt im Stylesheet',
+    rRegel('.sys-card.breit').length > 0, '(keine Regel)');
+  pruefe('Und sie zieht die Kachel ueber alle Rasterspalten',
+    /grid-column: 1 \/ -1/.test(rRegel('.sys-card.breit')),
+    rRegel('.sys-card.breit') || '(keine Regel)');
+
+  /* --- Trennlinien zwischen den Abschnitten der Linkkarten --- */
+  pruefe('Die Karte "Links" traegt einen abgesetzten Abschnitt',
+    rUser.w.document.querySelectorAll('.sys-card .sys-teil').length > 0,
+    `${rUser.w.document.querySelectorAll('.sys-card .sys-teil').length} Abschnitte`);
+  pruefe('Und die Karte "Suchanbieter" ebenfalls',
+    [...rAdm.w.document.querySelectorAll('.sys-card')]
+      .filter(k => k.querySelector('h3')?.textContent.trim() === 'Suchanbieter')
+      .some(k => k.querySelector('.sys-teil')),
+    'kein abgesetzter Abschnitt in der Karte "Suchanbieter"');
+  pruefe('Die Regel dafuer steht ueberhaupt im Stylesheet',
+    rRegel('.sys-card .sys-teil').length > 0, '(keine Regel)');
+  pruefe('Und sie zieht eine Linie darueber, nicht bloss einen Abstand',
+    /border-top: 1px solid var\(--line\)/.test(rRegel('.sys-card .sys-teil')) &&
+    /padding-top:/.test(rRegel('.sys-card .sys-teil')),
+    rRegel('.sys-card .sys-teil') || '(keine Regel)');
+  // Keine neue Farbe: --line gibt es laengst und bedeutet dort bereits
+  // "Kante zwischen zwei Flaechen".
+  pruefe('Ohne eine neue Farbe dafuer zu erfinden',
+    !/border-top: 1px solid (?!var\(--line\))/.test(rRegel('.sys-card .sys-teil')),
+    rRegel('.sys-card .sys-teil'));
+
   rEig.w.close(); rAdm.w.close(); rUser.w.close();
 
   /* ================= Vergleich: meine / alle ================= */

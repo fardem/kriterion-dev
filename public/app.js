@@ -3009,7 +3009,7 @@ async function renderSystem() {
         </div>` : ''}
       </div>
 
-      ${ADMIN ? `<div class="sys-card">
+      ${ADMIN ? `<div class="sys-card breit">
         <h3>Zugänge</h3>
         <p class="desc">Wer sich anmelden darf. <strong>Sperren ist in den meisten Fällen das,
           was man eigentlich will</strong> — die Anmeldung wird abgewiesen, die Beiträge bleiben
