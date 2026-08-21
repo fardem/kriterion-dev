@@ -1,8 +1,8 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 20. August 2026 · gebaut bis Version 0.8.4**
-(Stufen A bis G2 erledigt, **G2 vollständig**; 0.8.1 war eine **Bereinigung**,
-keine Stufe.)
+**Konzeptpapier · Stand 21. August 2026 · gebaut bis Version 0.8.6**
+(Stufen A bis G3 erledigt, **G3 vollständig**; 0.8.1 war eine **Bereinigung**
+und 0.8.6 eine Runde **Berichtigungen aus dem Betrieb** — beides keine Stufen.)
 
 Dieses Papier trägt die Entwürfe der Stufen und was beim Bauen anders kam.
 Erledigtes steht seit der Bereinigung als **Ergebnisblock** — was gilt, mit
@@ -108,6 +108,7 @@ anderen Admin oder den Eigentümer kommt nur der Eigentümer.
 | eigene Bewertung, eigene Testtage | ✔ | ✔ | ✔ |
 | fremde Bewertung/Testtag löschen | — | — | ✔ |
 | fremde Bewertung/Testtagsnote **ändern** | — | — | **—** |
+| **sehen, wer welchen Wert vergeben hat** | — | — | ✔ (eigene Ansicht, seit 0.8.6) |
 | Favorit am Eintrag (★) | persönlich, jeder für sich | | |
 | Tags und Kategorien **zuweisen** | ✔ (nur am eigenen Eintrag) | — | ✔ |
 | Tags und Kategorien **anlegen** | abschaltbar, siehe Abschnitt 7 | | ✔ |
@@ -136,7 +137,9 @@ umschreiben nein. Eine fremde Aussage unter fremdem Namen verändern zu können
 ist die Art Funktion, die man später bereut. **Seit 0.8.2 gibt es den Löschweg
 auch für die einzelne fremde Bewertung** (`DELETE /api/ratings/:id`, hinter
 `darfAendern`); ein schreibender Weg auf denselben Pfad entsteht ausdrücklich
-nicht, und eine Prüfung am Quelltext hält das fest.
+nicht, und eine Prüfung am Quelltext hält das fest. **Seit 0.8.6 wird er aus
+der Adminansicht gerufen** statt aus einer Liste unter der Sternzeile — der
+Endpunkt selbst ist dabei unverändert geblieben.
 
 **Die Anpinnung am Kommentar bleibt beim Verfasser** (und beim Admin), obwohl
 sie auf die Sortierung aller Leser wirkt — `pinned DESC` steht ganz vorn in der
@@ -187,13 +190,14 @@ kann um bis zu 0,05 danebenliegen). Es zählen nur Werte > 0.
 eigene Kriterium, der Knopf „Meine Bewertung zurücksetzen" die eigenen Werte
 des Eintrags.
 
-**Die Stimmenliste kam in 0.8.2 dazu und geht in 0.8.6 wieder** — unter der
-Sternzeile stand je Kriterium, wer welchen Wert vergeben hat. Das ist mehr,
-als eine Bewertung aussagen soll: **der Schnitt und die eigene Zahl reichen.**
-Wer welchen Wert vergeben hat, sieht künftig nur noch der **Admin in einer
-eigenen Ansicht**, die er ausdrücklich aufruft. Sie ist zugleich der
-**Löschweg** für eine fremde Bewertung — der hing bisher am ✕ in der
-Stimmenzeile und muss mitwandern. Siehe den Block „0.8.6" in Teil III.
+**Die Stimmenliste kam in 0.8.2 dazu und ist in 0.8.6 gewandert** — unter der
+Sternzeile stand je Kriterium, wer welchen Wert vergeben hat, für jeden
+sichtbar. Das ist mehr, als eine Bewertung aussagen soll: **der Schnitt und
+die eigene Zahl reichen.** Wer welchen Wert vergeben hat, sieht seitdem nur
+noch der **Admin in einer eigenen Ansicht**, die er über den Knopf „Wer hat
+bewertet" im Blockkopf ausdrücklich aufruft. Sie ist zugleich der **Löschweg**
+für eine fremde Bewertung — der hing am ✕ in der Stimmenzeile und ist
+mitgewandert. Siehe den Block „0.8.6" in Teil III.
 
 ## 6. Testtage, Zeitleiste, „Getestet" — erledigt in 0.7.0
 
@@ -455,7 +459,7 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | **G2b** | **0.8.3** | Eingriffsvermerk am Kommentar, `mine` am Kommentar samt der Oberfläche dazu, blaue Aufgabenmarke, Tagwolke — **erledigt**, siehe unten | mittel |
 | **G2c** | **0.8.4** | Rest von G2: die beiden Anlegen-Schalter und die Vergleichsansicht; dazu die Rolle im Vermerk, `updated_at` bei den Bildwegen und die Zahlen am Kommentarblock — **erledigt, Stufe G2 vollständig**, siehe unten | mittel |
 | **G3** | **0.8.5** | „Der Systembereich lernt die Rechte": dreizehn Karten nach Rolle, `GET /api/stats` hinter den Admin, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien — **erledigt**, siehe unten | mittel |
-| — | **0.8.6** | *Keine Stufe.* **Berichtigungen aus dem Betrieb:** Scrollen der Linkliste am Finger, Bewertungsdetails nur noch für den Admin, Datum am Eintragsverfasser, Lücke im Kartenraster, „angemeldet als" in der Kopfzeile | klein |
+| — | **0.8.6** | *Keine Stufe.* **Berichtigungen aus dem Betrieb:** Bewertungsdetails nur noch für den Admin (eigener Endpunkt, Löschweg mitgewandert), Scrollen der Linkliste am Finger, Lücke im Kartenraster, Datum am Eintragsverfasser, „angemeldet als" in der Kopfzeile — **erledigt**, siehe unten | klein |
 | **G4** | **0.8.7** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der Zeile ab zwei Zugängen, Formatnummer 6 → 7 | mittel |
 | **H** | **0.8.8** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
 | **I** | 0.9.0 | Mailversand mit Anbietervorlagen, öffentliche Adresse, Testmail, Selbstregistrierung mit Freischaltung. *Abbruchpunkt: nach dem Versand, vor der Selbstregistrierung.* | groß |
@@ -601,9 +605,10 @@ ihren Verfasser als Objekt `verfasser: { id, name, geloescht }`; die nackte
 `user_id` steht in keiner Antwort mehr. Gebaut aus **einer** Karte je Anfrage.
 Ein Grabstein liefert `name: null` — die Beschriftung „Gelöschter Benutzer 7"
 entsteht in `public/app.js`, an genau einem Ort, den auch die Karte „Zugänge"
-ruft; eine herrenlose Zeile heißt „Ohne Verfasser". Unter der Sternzeile steht
-je Kriterium die **Stimmenliste** mit `id`, `wert`, `mine` und Verfasser, aus
-einer eigenen gruppierten Abfrage. **Bei genau einem aktiven Zugang bleibt
+ruft; eine herrenlose Zeile heißt „Ohne Verfasser". Je Kriterium entsteht die
+**Stimmenliste** mit `id`, `wert`, `mine` und Verfasser aus einer eigenen
+gruppierten Abfrage — *bis 0.8.5 unter der Sternzeile für jeden, seit 0.8.6 in
+der Adminansicht.* **Bei genau einem aktiven Zugang bleibt
 davon alles aus**, abgeleitet aus `benutzerZahl` — kein Schalter, keine zweite
 Schwelle. Der **Löschdialog am Eintrag** liest seine Zahlen aus
 `GET /api/items/:id/bestand`, getrennt nach eigen und fremd aus Sicht des
@@ -812,74 +817,69 @@ unangetastet bedienbar". **Zwei neue Stolpersteine:** 87 (eine Prüflage, die
 nur die eine Hälfte einer Rollenleiter setzt) und 88 (wer eine Karte
 versteckt, muss ihre Behandler mitverstecken).
 
-## 0.8.6 — Berichtigungen aus dem Betrieb — offen
+## 0.8.6 — Berichtigungen aus dem Betrieb — erledigt in Version 0.8.6
 
-**Keine Stufe des Umbaus, eine Runde Nacharbeit.** Fünf Punkte, die beim
-Ansehen von 0.8.5 aufgefallen sind. Kein Schema, kein Umstiegscode. Die
-Reihenfolge ist die Reihenfolge der Wichtigkeit.
+**Keine Stufe des Umbaus, eine Runde Nacharbeit.** Fünf Punkte, alle beim
+Ansehen von 0.8.5 aufgefallen. Kein Schema, kein Umstiegscode.
 
-**1. Die Bewertungsdetails gehören dem Admin.** Heute steht unter der
-Sternzeile je Kriterium, **wer welchen Wert vergeben hat** — mit Namen, für
-jeden sichtbar. Das ist mehr, als eine Bewertung aussagen soll. Künftig zeigt
-die Zeile nur noch den **eigenen Wert und den Durchschnitt**; wer welchen Wert
-vergeben hat, sieht der **Admin in einer eigenen Ansicht**, die er ausdrücklich
-aufruft.
+**Was gilt.** Die Sternzeile zeigt den **eigenen Wert und den Schnitt**, mehr
+nicht. Wer welchen Wert vergeben hat, sieht der **Admin in einer eigenen
+Ansicht**, die er über den Knopf **„Wer hat bewertet"** im Blockkopf aufruft —
+ein Dialog, kein Aufklapper an der Zeile. Der Knopf steht nur beim Admin und
+erst **ab zwei Zugängen**: bei einem wäre die Ansicht der eigene Wert ein
+zweites Mal. In der Ansicht trägt jede **fremde** Stimme ihr ✕; damit ist der
+Löschweg aus 0.8.2 mitgewandert. `DELETE /api/ratings/:id` ist **unverändert**
+geblieben, samt `darfAendern` und seiner Zeile in `F_ROUTEN`.
+Geliefert wird die Liste ebenfalls nicht mehr an jeden: `detail()` hängt keine
+`stimmen` mehr an die Kriterienzeilen, und der neue
+**`GET /api/items/:id/stimmen`** trägt `nurAdmin` in der Routenzeile. Lesende
+Route, also **kein** Eintrag in `F_ROUTEN` — das vierte Mal, dass dieses
+Muster angewandt wird; die Zahl bleibt bei 46. `avg` und `count` bleiben
+unangetastet: der Schnitt und die Zahl der Bewerter sind keine Aussage über
+eine Person.
 
-> **Das nimmt eine Entscheidung aus 0.8.2 zurück** — dort wurde die
-> Stimmenliste eingeführt, und sie ist seither die **Voraussetzung des
-> Löschwegs**: das ✕ an einer fremden Bewertung hängt an ihrer Zeile.
-> Verschwindet die Liste ersatzlos, kann der Admin keine fremde Bewertung mehr
-> entfernen. Die eigene Ansicht ist deshalb **kein Zusatz, sondern die
-> Bedingung** — sie trägt den Löschweg weiter.
-> `DELETE /api/ratings/:id` bleibt unverändert; was sich ändert, ist, von wo
-> aus er gerufen wird. Der Endpunkt, der die Stimmen liefert, gehört hinter
-> `nurAdmin` — dasselbe Muster wie `GET /api/stats` in 0.8.5, also **lesend
-> mit Wächter und ohne Eintrag in `F_ROUTEN`**.
+**Dazu erledigt.** `begrenzeLinks()` schneidet die Linkliste ab
+(`overflowY: hidden`) statt ihr einen eigenen Bildlauf zu geben — auf dem
+Finger scrollt damit immer die Seite, und der Weg zum Rest ist der Knopf „alle
+N anzeigen". `grid-auto-flow: dense` am `.sys-grid` schließt die Lücke vor der
+breiten Kachel „Zugänge", ohne die Reihenfolge im Quelltext anzufassen. Die
+Zeile „Angelegt von" nennt jetzt auch **wann**. Und in der Kopfzeile steht
+neben „Abmelden", **wer angemeldet ist** — auch bei einem einzigen Zugang.
 
-**2. Die Linkliste scrollt am Finger nicht mehr in sich selbst.** Wer auf dem
-Handy die Seite herunterzieht und dabei über die Linkliste kommt, scrollt
-plötzlich nur noch die Liste statt der Seite. Ursache ist
-`box.style.overflowY = 'auto'` in `begrenzeLinks()`.
-**Der einfachste Weg ist der beste: `hidden` statt `auto`.** Die Liste
-bekommt keinen eigenen Bildlauf mehr, sondern wird schlicht abgeschnitten —
-und der Knopf „alle N anzeigen" steht **schon da** und klappt sie auf. Damit
-scrollt am Finger immer die Seite, und die Einstellung „sichtbare Zeilen"
-behält ihren Sinn. Eine Haltezeit wie beim Ziehen wäre die aufwendigere und
-ungewohntere Lösung; sie ist beim Scrollen nicht üblich und würde jedes
-Wischen um 0,4 s verzögern. **Dieselbe Frage stellt sich bei der Tagwolke** —
-`begrenzeWolke()` setzt `overflow` ebenso; dort mitprüfen.
+**Abweichungen.**
+- **Die Tagwolke war gar nicht betroffen.** `begrenzeWolke()` setzte seit jeher
+  `overflow: hidden`, nie `auto`. Nichts geändert; die Prüflage steht jetzt
+  trotzdem daneben, damit ein späterer Griff nach `auto` dort ebenso auffällt.
+- **Die Kopfzeile wird nur in der Übersicht gezeichnet.** Der Entwurf begründete
+  den Weg über `/api/settings` damit, dass die Kopfzeile auch beim
+  Direkteinstieg auf einen Eintrag entsteht — das stimmt nicht, die
+  Detailansicht hat nur „← Zurück". Die Entscheidung bleibt trotzdem: ein
+  Abruf weniger, und die Angabe hängt an `start()` statt an `loadAll()`.
+- **Der Aufrufknopf hängt an `ADMIN && mehrereBenutzer()`**, nicht nur an der
+  Rolle — beide Hälften mit eigener Prüflage.
+- **Im Dialog hängt das ✕ nur noch daran, ob die Stimme fremd ist.** Eine
+  zweite Rollenfrage darin wäre eine zweite Wahrheit und ließe sich nicht
+  gegenprüfen: den Dialog bekommt ohnehin nur der Admin.
+- **Der Endpunkt liefert keinen Kriterienname.** Reihenfolge und Name stehen im
+  geladenen Eintrag; zwei Quellen für denselben Namen wären zwei Wahrheiten.
 
-**3. Die Lücke im Kartenraster.** Die Kachel „Zugänge" geht seit 0.8.5 über
-die volle Breite. Steht sie nicht am Anfang einer Rasterzeile, lässt CSS Grid
-davor eine Lücke. **Eine feste Position löst das nicht:** wie viele Karten in
-eine Zeile passen, hängt an der Fensterbreite (`auto-fit`), und wie viele
-Karten es überhaupt gibt, hängt an der Rolle — dreizehn beim Eigentümer, elf
-beim Admin. Position 10 stimmt bei drei Spalten und ist bei zwei falsch.
-**Richtig ist `grid-auto-flow: dense` am `.sys-grid`:** das Raster zieht eine
-nachfolgende schmale Karte in die Lücke, unter jeder Breite und bei jeder
-Kartenzahl. Die Reihenfolge im Quelltext bleibt, wie sie ist.
-*Falls dense nicht überzeugt:* Ersatzweise die Kachel ans **Ende** des Rasters
-— dort kann keine Lücke davor entstehen.
+**Verworfen:** eine anonyme Werteliste („3 · 4 · 2" ohne Namen). Der Admin
+wüsste dann nicht, wessen Bewertung er entfernt, und für alle anderen wäre es
+eine Zahlenreihe ohne Aussage.
 
-**4. „Angelegt von" bekommt ein Datum.** Die Zeile in der Detailansicht nennt
-den Verfasser, aber nicht wann. `items.created_at` steht in der Antwort, es ist
-reine Anzeige. **Bei genau einem Zugang** bleibt die Zeile wie bisher weg —
-dann ist auch das Datum kein Gewinn, es steht schon in der Sortierung.
+**Drei Prüfungen umgedreht, vier serverseitige und sieben in der Oberfläche
+umgehängt, keine gelöscht** (Auflage aus Stolperstein 74). **Drei neue
+Stolpersteine:** 89 (zwei Dialoge übereinander teilen sich die Abbruchtaste),
+90 (ein Doppelgänger, dessen Antwort sich ändern soll, muss sie wirklich
+ändern) und 91 (eine Funktion, die selbst misst, ist im gebauten DOM nur an
+einer gestellten Höhe prüfbar).
 
-**5. „Angemeldet als" in der Kopfzeile.** Neben dem Knopf „Abmelden" fehlt,
-wer man gerade ist. **Auch bei einem einzigen Zugang anzeigen:** es ist eine
-Aussage über **mich**, nicht über andere — derselbe Grund, aus dem die Karte
-„Zugang" in 0.8.5 für jeden stehenbleibt. Der Name steht in `/api/account`;
-ob er zusätzlich an `/api/settings` gehört, damit die Kopfzeile ihn beim
-Direkteinstieg ohne zweiten Abruf hat, ist beim Bauen zu entscheiden.
-
-**Ausdrücklich nicht in dieser Runde, weil kein Bau nötig ist:** dass „+ neue
-Kategorie" am Eintrag nur dem Admin offenstehen soll. **Der Schalter dafür
-steht seit 0.8.4 im Systembereich** — Häkchen bei „Kategorien" heraus, und die
+**Ausdrücklich nicht in dieser Runde, weil kein Bau nötig war:** dass „+ neue
+Kategorie" am Eintrag nur dem Admin offensteht. **Der Schalter dafür steht seit
+0.8.4 im Systembereich** — Häkchen bei „Kategorien" heraus, und die
 Anlegezeile verschwindet für jeden außer dem Admin; das Auswahlfeld aus dem
-Vorhandenen bleibt. Bei den **Tags** bleibt das Häkchen an: dort darf jeder
-einen neuen Namen am Eintrag vergeben, im Systembereich sieht er seit 0.8.5
-ohnehin nur die Liste. **Das ist eine Einstellung, keine Version.**
+Vorhandenen bleibt. Bei den **Tags** bleibt das Häkchen an. **Das ist eine
+Einstellung, keine Version.**
 
 ## Stufe G4 — offen, Version 0.8.7
 
@@ -989,7 +989,9 @@ Stand 0.8.0 —:
   *Erledigt in 0.8.2; „fremd" meint die Sicht des Löschenden.*
 - **Was nicht angezeigt werden darf, wird nicht geliefert** (seit 0.8.2). Ein
   freigegebener Grabsteinname verlässt den Server nicht, auch wenn die
-  Oberfläche ihn ohnehin ignorieren würde.
+  Oberfläche ihn ohnehin ignorieren würde. **Zum zweiten Mal angewandt in
+  0.8.6:** `detail()` hängt keine Stimmen mehr an die Kriterienzeilen — sonst
+  hinge die Regel daran, dass die Oberfläche mitspielt.
 - **Die Übersicht sortiert nach `updated_at`, und das gilt für alle.**
   Schreibt jemand einen Kommentar, rückt der Eintrag auf jedem Bildschirm
   nach oben. Das ist gewollt: die Liste zeigt, wo etwas geschieht, nicht wo
