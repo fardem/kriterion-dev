@@ -664,6 +664,11 @@ const qBenutzerZahl = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status !
 
 app.get('/api/settings', (req, res) => res.json({
   benutzerZahl: qBenutzerZahl.get().n,
+  // Der eigene Name fuer die Kopfzeile. Er steht auch in GET /api/account --
+  // das ist keine zweite Wahrheit, beide lesen dieselbe angemeldete Zeile.
+  // Hier, weil ladeEinstellungen() beim Start ohnehin laeuft und die Kopfzeile
+  // ihn damit ohne zweiten Abruf hat.
+  name: req.benutzer.username,
   istAdmin: istAdmin(req),
   istEigentuemer: istEigentuemer(req),
   filters: getUserSetting(req.benutzer.id, 'filters', null),
@@ -1751,7 +1756,7 @@ app.delete('/api/items/:id/ratings', (req, res) => {
    fuer denselben Namen waeren zwei Wahrheiten.
    KEINE SCHWELLE bei einem einzigen Zugang: der Server liefert, die
    Oberflaeche entscheidet ueber mehrereBenutzer(), ob sie den Aufruf ueberhaupt
-   anbietet -- dieselbe Aufteilung wie bei der Durchschnittsspalte seit 0.7.0. */
+   anbietet -- dieselbe Aufteilung wie bei der Durchschnittsspalte. */
 app.get('/api/items/:id/stimmen', nurAdmin, (req, res) => {
   const stimmen = stimmenJeKriterium(req.params.id, req.benutzer.id, verfasserKarte());
   res.json([...stimmen].map(([criterion_id, liste]) => ({ criterion_id, stimmen: liste })));

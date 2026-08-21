@@ -2557,6 +2557,23 @@ const namen = (liste) => liste.map(c => c.name);
     fStatsAnna.status === 200 && typeof fStatsAnna.inhalt?.itemCount === 'number',
     `Status ${fStatsAnna.status}`);
 
+  /* Der eigene Name in den Einstellungen -- fuer die Kopfzeile. Er steht auch
+     in GET /api/account; beide lesen dieselbe angemeldete Zeile, das ist keine
+     zweite Wahrheit. Hier, weil ladeEinstellungen() beim Start ohnehin laeuft.
+     ZWEI RUFER, und darum geht es: eine Antwort, die stur den ERSTEN Zugang
+     nennte, waere bei der Eigentuemerin richtig und bei jedem anderen falsch. */
+  const fNameAnna = (await fRuf('keks-f-anna', 'GET', '/api/settings')).inhalt;
+  const fNameBert = (await fRuf('keks-f-bert', 'GET', '/api/settings')).inhalt;
+  pruefe('Die Einstellungen nennen den eigenen Namen',
+    fNameAnna?.name === 'anna', JSON.stringify(fNameAnna?.name));
+  pruefe('Und jedem seinen eigenen, nicht den der Eigentuemerin',
+    fNameBert?.name === 'bert', JSON.stringify(fNameBert?.name));
+  // Dieselbe Angabe steht unveraendert unter /api/account -- die Kopfzeile
+  // spart sich damit nur den zweiten Abruf.
+  pruefe('Dieselbe Angabe steht weiterhin unter /api/account',
+    (await fRuf('keks-f-bert', 'GET', '/api/account')).inhalt?.username === 'bert',
+    JSON.stringify((await fRuf('keks-f-bert', 'GET', '/api/account')).inhalt));
+
   /* ----------------------------------------------------------------
      Ab hier ist carla Admin OHNE Eigentuemerrecht -- die wichtigste Lage
      fuer alles, was folgt: an ihr faellt auf, wenn eine Regel den Admin
@@ -5078,7 +5095,11 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     if (url === '/api/criteria/order') return gib(kriterien);
     if (url === '/api/tags') return gib(tags);
     if (url === '/api/product-categories') return gib([]);
-    if (url === '/api/settings') return gib(einstellungen);
+    /* Der eigene Name steht seit 0.8.6 in dieser Antwort, und der
+       Doppelgaenger liefert ihn mit -- sonst bliebe die Kopfzeile leer und
+       jede Pruefung darauf blind. Als Vorgabe DERSELBE Name wie unter
+       /api/account; eine Prueflage kann ihn ueberschreiben. */
+    if (url === '/api/settings') return gib({ name: 'chefin', ...einstellungen });
     // Die Karte "Zugaenge" holt sich die Liste selbst. Ohne diese
     // Zeile bekaeme sie {} und zeichnete gar nichts -- und jede Pruefung auf
     // die Karte waere blind dafuer, ob sie ueberhaupt gefuellt wird.
@@ -6447,6 +6468,11 @@ async function pruefeOberflaeche() {
   pruefe('Bei einem Zugang steht keine Verfasserzeile am Eintrag',
     eEinzeln.w.document.getElementById('ivf')?.hidden === true,
     JSON.stringify(eEinzeln.w.document.getElementById('ivf')?.textContent));
+  // Und damit auch kein Datum. Es steht dort schon in der Sortierung; die
+  // Zeile bliebe sonst als reine Datumszeile stehen.
+  pruefe('Und damit auch kein Anlegedatum',
+    !/2026/.test(eEinzeln.w.document.getElementById('ivf')?.textContent || ''),
+    JSON.stringify(eEinzeln.w.document.getElementById('ivf')?.textContent));
   pruefe('Und kein Name an den Kommentaren',
     eEinzeln.w.document.querySelectorAll('#cmts .cmt-von').length === 0);
   pruefe('Und keiner an den Testtagen',
@@ -6468,6 +6494,12 @@ async function pruefeOberflaeche() {
   pruefe('Ab zwei Zugaengen sagt der Eintrag, wer ihn angelegt hat',
     eIvf?.hidden === false && /Angelegt von bert/.test(eIvf?.textContent || ''),
     JSON.stringify([eIvf?.hidden, eIvf?.textContent]));
+  /* Und seit 0.8.6 auch, wann. Geprueft wird auf den Tag aus created_at
+     (2026-07-20), nicht bloss auf irgendeine Zahl: eine Pruefung auf "da steht
+     ein Datum" bliebe auch bei einem falschen gruen. */
+  pruefe('Und seit 0.8.6 auch, wann',
+    /Angelegt von bert am 20\.07\.2026/.test(eIvf?.textContent || ''),
+    JSON.stringify(eIvf?.textContent));
 
   const eVon = [...eDoc.querySelectorAll('#cmts .cmt .cmt-von')].map(z => z.textContent);
   pruefe('Jeder Kommentar traegt den Namen seines Verfassers',
@@ -6487,6 +6519,65 @@ async function pruefeOberflaeche() {
   const eTvon = [...eDoc.querySelectorAll('#tdays .tvon')].map(z => z.textContent);
   pruefe('Jeder Testtag nennt seinen Verfasser',
     eTvon.length === 1 && eTvon[0] === 'chefin', JSON.stringify(eTvon));
+
+  /* --- Wer angemeldet ist, in der Kopfzeile -----------------------------
+     AUCH BEI EINEM EINZIGEN ZUGANG: eine Aussage ueber MICH, nicht ueber
+     andere -- derselbe Grund, aus dem die Karte "Zugang" fuer jeden
+     stehenbleibt. Deshalb steht die Lage mit einem Zugang hier VORNE: an ihr
+     faellt auf, wenn jemand die Angabe hinter mehrereBenutzer() klemmt. */
+  const eKopf1 = baueDom(JSDOM, {
+    einstellungen: { filters: null, benutzerZahl: 1, istAdmin: true, name: 'chefin' } });
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Die Kopfzeile nennt auch bei einem einzigen Zugang, wer angemeldet ist',
+    /Angemeldet als chefin/.test(eKopf1.w.document.getElementById('wer')?.textContent || ''),
+    JSON.stringify(eKopf1.w.document.getElementById('wer')?.textContent));
+  eKopf1.w.close();
+
+  const eKopf = baueDom(JSDOM, {
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true, name: 'bert' } });
+  await new Promise(r => setTimeout(r, 80));
+  const eWer = eKopf.w.document.getElementById('wer');
+  pruefe('Und ab zwei Zugaengen ebenso, mit dem Namen des Angemeldeten',
+    /Angemeldet als bert/.test(eWer?.textContent || ''), JSON.stringify(eWer?.textContent));
+  // Neben dem Knopf zum Abmelden, nicht irgendwo in der Zeile.
+  pruefe('Sie steht unmittelbar vor dem Knopf zum Abmelden',
+    eWer?.nextElementSibling?.id === 'out', eWer?.nextElementSibling?.id);
+  eKopf.w.close();
+
+  /* Ein Benutzername ist Eingabe, keine Konstante -- spitze Klammern duerfen
+     kein HTML werden. Dieselbe Regel wie beim Vokabular. */
+  const eBoese = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 3,
+    istAdmin: true, name: '<b id="boese9">X</b>' } });
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Aus einem Benutzernamen wird in der Kopfzeile kein HTML',
+    !eBoese.w.document.getElementById('boese9') &&
+    (eBoese.w.document.getElementById('wer')?.textContent || '').includes('<b id="boese9">X</b>'),
+    eBoese.w.document.getElementById('wer')?.textContent);
+  eBoese.w.close();
+
+  /* Nach dem Umbenennen des eigenen Zugangs zieht die Kopfzeile nach.
+     ladeEinstellungen() laeuft nur beim Start -- ohne das Nachziehen stuende
+     dort bis zum naechsten Laden der Seite der alte Name. */
+  const eUm = baueDom(JSDOM, {
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true, name: 'chefin' } });
+  await new Promise(r => setTimeout(r, 80));
+  await eUm.w.renderSystem();
+  await new Promise(r => setTimeout(r, 30));
+  eUm.w.document.getElementById('acc-old').value = 'altes-passwort';
+  eUm.w.document.getElementById('acc-user').value = 'chefin2';
+  eUm.w.document.getElementById('acc-save')
+    .dispatchEvent(new eUm.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 60));
+  pruefe('Das Umbenennen geht wirklich an den Server',
+    eUm.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/account' &&
+                            x.koerper?.username === 'chefin2'),
+    JSON.stringify(eUm.gesendet.slice(-2)));
+  await eUm.w.renderList();
+  await new Promise(r => setTimeout(r, 60));
+  pruefe('Und die Kopfzeile nennt danach den neuen Namen',
+    /Angemeldet als chefin2/.test(eUm.w.document.getElementById('wer')?.textContent || ''),
+    JSON.stringify(eUm.w.document.getElementById('wer')?.textContent));
+  eUm.w.close();
 
   /* --- Wer hat bewertet: die Ansicht des Admins -------------------------
      UMGEHAENGT MIT 0.8.6, nicht geloescht (Stolperstein 74). Bis 0.8.5 standen
@@ -8384,6 +8475,21 @@ async function pruefeOberflaeche() {
   pruefe('Und sie zieht die Kachel ueber alle Rasterspalten',
     /grid-column: 1 \/ -1/.test(rRegel('.sys-card.breit')),
     rRegel('.sys-card.breit') || '(keine Regel)');
+  /* Die Luecke, die eine breite Kachel davor hinterlaesst. GEPRUEFT WIRD AM
+     STYLESHEET, NICHT AM GEFUEHL: jsdom rechnet kein Layout, ein Raster gibt
+     es hier gar nicht. Wieder erst das Vorhandensein der Regel, dann ihre
+     Eigenschaft -- eine fehlende Regel liefert eine leere Zeichenkette, und
+     jede Verneinung darauf waere wahr (Stolperstein 81). */
+  pruefe('Die Regel fuer das Kartenraster steht ueberhaupt im Stylesheet',
+    rRegel('.sys-grid').length > 0, '(keine Regel)');
+  pruefe('Und das Raster zieht nachfolgende Karten in die Luecke',
+    /grid-auto-flow: dense/.test(rRegel('.sys-grid')),
+    rRegel('.sys-grid') || '(keine Regel)');
+  // Die Reihenfolge im Quelltext bleibt davon unberuehrt: die Kachel steht
+  // weiterhin dort, wo sie stand, und nicht am Ende.
+  pruefe('Und die Kachel steht dabei nicht am Ende des Rasters',
+    [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')].pop() !== rKachel,
+    'die breite Kachel ist ans Ende gewandert');
 
   /* --- Trennlinien zwischen den Abschnitten der Linkkarten --- */
   pruefe('Die Karte "Links" traegt einen abgesetzten Abschnitt',

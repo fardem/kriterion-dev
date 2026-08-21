@@ -151,6 +151,11 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .brand { display: flex; align-items: center; gap: 11px; margin-right: auto; min-width: 0; }
 .brand h1 { font-size: 1.23rem; font-weight: 620; letter-spacing: -.028em; margin: 0; }
 .brand .count { font-size: .77rem; color: var(--faint); font-family: var(--mono); }
+/* Wer gerade angemeldet ist, neben dem Knopf zum Abmelden. Keine neue Farbe:
+   .hint gibt es laengst und bedeutet dort schon "Auskunft, kein
+   Bedienelement". Umbrechen darf die Angabe nicht -- sie stuende sonst
+   zwischen zwei Knoepfen. */
+.masthead .wer { white-space: nowrap; }
 
 .search-box { position: relative; flex: 1; min-width: 180px; max-width: 320px; }
 .search-box .input { padding-left: 34px; padding-right: 28px; }
@@ -608,7 +613,12 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .cmp-best { color: var(--green); font-weight: 700; }
 
 /* ---------- Systembereich ---------- */
-.sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-top: 6px; }
+/* grid-auto-flow: dense zieht eine nachfolgende schmale Karte in die Luecke,
+   die eine Karte ueber die volle Breite davor hinterlaesst. Eine feste
+   Position taete das nicht: wie viele Karten in eine Zeile passen, haengt an
+   der Fensterbreite (auto-fit), und wie viele es ueberhaupt gibt, an der
+   Rolle. Die Reihenfolge im Quelltext bleibt davon unberuehrt. */
+.sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-flow: dense; gap: 18px; margin-top: 6px; }
 .sys-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px 20px; }
 .sys-card h3 { font-size: 1.03rem; font-weight: 620; letter-spacing: -.018em; margin: 0 0 4px; }
 .sys-card .desc { color: var(--muted); font-size: .87rem; margin: 0 0 14px; line-height: 1.55; }
