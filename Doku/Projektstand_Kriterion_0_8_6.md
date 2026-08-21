@@ -1,25 +1,29 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 7 · Stand 21. August 2026 · gebaut: Version 0.8.5**
+**Kompakte Übergabe · Revision 8 · Stand 21. August 2026 · gebaut: Version 0.8.6**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
-Mitgeben: dieses Blatt plus das ZIP mit dem Quelltext. Fertige
-Einstiegsnachrichten dafür liegen in `Startpaket_Kriterion.md` — das ist nur
-für den Menschen gedacht und wird nicht mitgeschickt.
+**Gearbeitet wird im Repo `fardem/kriterion`**, nicht an einer Kopie; dieses
+Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
+`Doku/`.
 
-**Was Revision 7 ist.** Revision 3 hat mit der Bereinigung 0.8.1 alles
-weggeräumt, was zur Vergangenheit gehörte, Revision 4 trug 0.8.2 nach,
-Revision 5 die erste Hälfte von 0.8.3, Revision 6 den Rest von G2; diese trägt
-**0.8.5** nach — **Stufe G3, alle sechs Punkte**. Der Aufbau bleibt: Versionen
-vor der jüngsten stehen als je eine Zeile (Abschnitt 9), Prüf- und
-Gegenprobenlisten ab 0.8.0, Stolpersteine als Kernsätze.
+**Was Revision 8 ist.** Revision 3 hat mit der Bereinigung 0.8.1 alles
+weggeräumt, was zur Vergangenheit gehörte; die Revisionen 4 bis 7 trugen 0.8.2
+bis 0.8.5 nach. Diese trägt **0.8.6** nach — *keine Stufe, eine Runde
+Nacharbeit aus dem Betrieb*.
+**Neu am Aufbau:** die Regel „die jüngste Version ausführlich, alles davor als
+eine Zeile" gilt ab jetzt **auch für die Gegenprobenlisten in Abschnitt 7**.
+Ausführlich steht dort nur noch die jüngste Version; von den älteren bleibt,
+was heute noch bindet — die Lehren selbst leben ohnehin als Stolpersteine in
+Abschnitt 6 weiter. Ohne diesen Schnitt wüchse das Blatt mit jeder Version um
+eine Tabelle, die niemand mehr liest.
 **Vollständig geblieben sind die Abschnitte 5, 5a und 12** — Entscheidungen,
 Sicherheitsregel, Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht
 mehr berücksichtigt.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_5.md` gepflegt und nur
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_6.md` gepflegt und nur
 dort.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
@@ -61,18 +65,18 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**Auf dem Server läuft 0.8.5** — eingespielt und nachgeprüft. Sie bringt
-**Stufe G3, alle sechs Punkte**: die **dreizehn Karten des Systembereichs nach
-Rolle**, **`GET /api/stats` hinter `nurAdmin`**, das **Muster der
-Kriterienkarte für Kategorien und Tags**, die Karte **„Links" in zwei
-geschnitten**, die **berichtigte `AUTH_RESET`-Zeile**, die Kachel **„Zugänge"
-über die volle Breite** und **Trennlinien** in den Linkkarten.
-**1391 von 1391 Prüfungen.**
+**Auf dem Server läuft 0.8.6** — eingespielt und nachgeprüft. *Keine Stufe,
+eine Runde Nacharbeit:* die **Bewertungsdetails gehören dem Admin** (die
+Stimmenliste ist von der Sternzeile in eine eigene Ansicht gewandert, samt
+Löschweg), die **Linkliste scrollt am Finger nicht mehr in sich selbst**, die
+**Lücke im Kartenraster** ist zu, „Angelegt von" nennt jetzt auch **wann**,
+und in der Kopfzeile steht, **wer angemeldet ist**.
+**1429 von 1429 Prüfungen.**
 
-**0.8.5 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
-Tabelle gebraucht — es ging um Bildschirm und einen Wächter. Es ist kein
-Umstiegscode entstanden; `umstieg083()` aus 0.8.3 bleibt der einzige,
-weiterhin vorgemerkt für 1.0.
+**0.8.6 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
+Tabelle gebraucht — vier von fünf waren reine Oberfläche, der fünfte ein
+lesender Endpunkt mit Wächter. Es ist kein Umstiegscode entstanden;
+`umstieg083()` aus 0.8.3 bleibt der einzige, weiterhin vorgemerkt für 1.0.
 
 **Die beiden Anlegen-Schalter stehen im Betrieb so:** bei den **Kategorien
 aus** (nur der Admin legt neue an, das Auswahlfeld am Eintrag bleibt), bei den
@@ -84,7 +88,7 @@ Bestände werden nicht übernommen; sie bräuchten den Zwischenschritt über 0.8
 als letzte Version mit Umstiegscode.
 
 **Zurückrollen ist weiterhin eine reine Dateikopie.** Seit 0.8.3 (Spalte
-`images_removed`) hat keine Version das Schema angefasst — wer von 0.8.5
+`images_removed`) hat keine Version das Schema angefasst — wer von 0.8.6
 zurückgeht, braucht keine Rücksicht darauf zu nehmen. **Das ändert sich mit
 Stufe G4:** dort kommt eine Spalte an `links`. Vor jedem
 Einspielen gehört trotzdem eine Sicherung des Datenverzeichnisses dazu, wie
@@ -130,8 +134,10 @@ Sechs Dinge, die dabei schiefgehen können, alle schon vorgekommen:
   alte Datei tatsächlich ausliefert. `docker-compose.yml` hängt nur `./data`
   ein — `public/app.js` steckt seit dem Bau **fest im Abbild** und muss vor
   dem `--build` auf der Platte liegen. Prüfen mit einer Textstelle, die es nur
-  in der neuen Datei gibt:
-  `curl -s http://localhost:3100/app.js | grep -c "<neue Textstelle>"`
+  in der neuen Datei gibt — **für 0.8.6:**
+  `curl -s http://localhost:3100/app.js | grep -c 'Wer hat bewertet'`
+  (erwartet: 3; `'Angemeldet als'` ergibt 1). Zu jeder Version gehört eine
+  eigene solche Stelle; die letzte taugt dafür nicht mehr.
   Steht die Textstelle schon im Verzeichnis, aber nicht in der Antwort, wurde
   nicht neu gebaut; steht sie auch im Verzeichnis nicht, war die Kopie
   unvollständig — dann hilft nur, den vollständigen Dateisatz erneut
@@ -244,13 +250,19 @@ und drei Testkennzahlen; Vergleich mehrerer Einträge; „★ Favoriten" als
 eigener, mit jedem Teststatus kombinierbarer Filter. Filter- und Sortierwahl
 werden serverseitig gespeichert.
 
-**Wer was geschrieben hat:** Eintrag, Kommentar, Testtag und jede einzelne
-Bewertung nennen ihren Verfasser mit Namen; unter der Sternzeile steht je
-Kriterium, wer welchen Wert vergeben hat. Ein entfernter Zugang erscheint als
-„Gelöschter Benutzer 7", eine Zeile ohne Verfasser als „Ohne Verfasser". **Bei
-genau einem aktiven Zugang bleibt davon alles aus** — abgeleitet aus der Zahl
-der Zugänge, ohne Schalter. Ein Admin kann eine fremde Bewertung entfernen; die
-Note ändert er nicht.
+**Wer was geschrieben hat:** Eintrag, Kommentar und Testtag nennen ihren
+Verfasser mit Namen, der Eintrag dazu **wann** er angelegt wurde. Ein
+entfernter Zugang erscheint als „Gelöschter Benutzer 7", eine Zeile ohne
+Verfasser als „Ohne Verfasser". **Bei genau einem aktiven Zugang bleibt davon
+alles aus** — abgeleitet aus der Zahl der Zugänge, ohne Schalter.
+**Die Bewertung sagt nur den eigenen Wert und den Schnitt** (seit 0.8.6). Wer
+welchen Wert vergeben hat, sieht der **Admin in einer eigenen Ansicht**, die er
+über „Wer hat bewertet" im Blockkopf ausdrücklich aufruft; dort entfernt er
+auch eine fremde Bewertung. Die Note ändert er nicht.
+
+**Wer angemeldet ist, steht in der Kopfzeile** (seit 0.8.6), neben „Abmelden" —
+und zwar **auch bei einem einzigen Zugang**: das ist eine Aussage über einen
+selbst, nicht über andere.
 
 **Eintrag:** mehrere Fotos mit Vollbild, Zoom und einstellbarem Bildausschnitt
 für die quadratische Vorschau, angehängte Dateien mit Vorschau, Beschreibung,
@@ -261,7 +273,8 @@ und nimmt zurück. Testtage können eigene Tags tragen. Die Blöcke lassen sich 
 Griff anordnen und per Klick auf die Kopfzeile einklappen — innerhalb ihres
 Bereichs, nicht darüber hinaus.
 
-**Systembereich: dreizehn Karten, und sie hängen an der Rolle** (seit 0.8.5).
+**Systembereich: dreizehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
+die breite Kachel „Zugänge" lässt seit 0.8.6 keine Lücke mehr im Raster).
 Dem **Admin**: beide Titel, Kennzahlen, Kategorien und Tags umbenennen und
 löschen, Bewertungskriterien umbenennen, löschen und per Ziehen sortieren,
 Karte „Zugänge" (anlegen, sperren, Passwort zurücksetzen, Rolle wechseln,
@@ -996,7 +1009,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_5.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_6.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -1133,13 +1146,17 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   Muster `geloescht-<zahl>` in `auth.js` und wandert nicht in einen zweiten
   Quelltext. Eine Gegenprobe belegt es: baut man die Bildung zurück, werden
   **auch** die beiden Prüfungen an der Verwaltungskarte rot.
-- **Die Stimmenliste ist die Voraussetzung des Löschwegs** (seit 0.8.2). Je
-  Kriterium steht unter der Sternzeile, wer welchen Wert vergeben hat — mit
-  `id`, `wert`, `mine` und Verfasser. Ohne die `id` gäbe es vom Bildschirm aus
-  keinen Weg zu einer einzelnen fremden Bewertung, und der Endpunkt darunter
-  wäre unerreichbar. Gerechnet wird sie aus einer **eigenen gruppierten
-  Abfrage**, ausdrücklich nicht aus einem dritten JOIN neben dem Schnitt und der
-  eigenen Sternzeile.
+- **Die Stimmenliste ist die Voraussetzung des Löschwegs** (seit 0.8.2, an
+  einen anderen Ort gerückt in 0.8.6). Je Kriterium steht, wer welchen Wert
+  vergeben hat — mit `id`, `wert`, `mine` und Verfasser. Ohne die `id` gäbe es
+  vom Bildschirm aus keinen Weg zu einer einzelnen fremden Bewertung, und der
+  Endpunkt darunter wäre unerreichbar. Gerechnet wird sie aus einer **eigenen
+  gruppierten Abfrage**, ausdrücklich nicht aus einem dritten JOIN neben dem
+  Schnitt und der eigenen Sternzeile.
+  ~~Sie steht unter der Sternzeile.~~ **Widerrufen in 0.8.6**, siehe den
+  eigenen Punkt weiter unten: die Liste war damit für **jeden** sichtbar, und
+  das ist mehr, als eine Bewertung aussagen soll. Der Löschweg ist mit ihr
+  gewandert — er ist der Grund, warum sie nicht ersatzlos verschwinden konnte.
 - **Nur Werte > 0 sind Stimmen** (seit 0.8.2, dieselbe Regel wie überall). Eine
   zurückgesetzte Bewertung hinterlässt eine Zeile mit 0; sie erscheint weder in
   der Stimmenliste noch in den Zahlen des Löschdialogs. **Das weicht bewusst von
@@ -1321,6 +1338,59 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   Aufklappen stehenblieb. Beide Wege sind nötig und decken einander **nicht**
   zu: die Messung bricht bei Höhe null ab **und** das Aufklappen zeichnet die
   Wolke neu. Stolperstein 14 in neuer Gestalt.
+
+- **Wer welchen Wert vergeben hat, sieht nur der Admin** (seit 0.8.6). Nimmt
+  den sichtbaren Teil der Stimmenliste aus 0.8.2 **ausdrücklich** zurück: die
+  Sternzeile zeigt den **eigenen Wert und den Schnitt**, mehr soll eine
+  Bewertung nicht aussagen. Die Namensliste ruft der Admin über den Knopf „Wer
+  hat bewertet" im Blockkopf auf — eine eigene Ansicht, kein Aufklapper an der
+  Zeile. **`avg` und `count` bleiben unangetastet:** der Schnitt und die Zahl
+  der Bewerter sind keine Aussage über eine Person.
+  **Geliefert wird sie auch nicht mehr** (Stolperstein 79): `detail()` hängt
+  keine `stimmen` mehr an die Kriterienzeilen, sonst hinge die Regel daran,
+  dass die Oberfläche mitspielt. Der eigene Endpunkt
+  `GET /api/items/:id/stimmen` ist lesend, trägt `nurAdmin` in der Routenzeile
+  und steht **nicht** in `F_ROUTEN`.
+  Der Knopf hängt an `ADMIN && mehrereBenutzer()`: bei einem Zugang wäre die
+  Ansicht der eigene Wert ein zweites Mal — dieselbe Schwelle wie bei der
+  Durchschnittsspalte, und sie steht ausschließlich in der Oberfläche.
+  *Verworfen:* eine anonyme Werteliste („3 · 4 · 2" ohne Namen). Der Admin
+  wüsste dann nicht, wessen Bewertung er entfernt, und für alle anderen wäre es
+  eine Zahlenreihe ohne Aussage.
+- **Wer eine Anzeige einschränkt, prüft zuerst, was an ihr hängt** (seit
+  0.8.6). `DELETE /api/ratings/:id` ist bei alldem **unverändert** geblieben,
+  samt `darfAendern` und seiner Zeile in `F_ROUTEN`; geändert hat sich nur, von
+  wo aus er gerufen wird. Wäre die Liste ersatzlos verschwunden, wäre der
+  Endpunkt vom Bildschirm aus unerreichbar gewesen — die neue Ansicht ist
+  deshalb kein Zusatz, sondern die Bedingung.
+- **Eine Liste wird abgeschnitten, nicht scrollbar** (seit 0.8.6). Ein eigener
+  Bildlauf in einer Liste fängt auf dem Finger die Wischbewegung ab: wer die
+  Seite herunterzieht und dabei über die Liste kommt, scrollt plötzlich nur
+  noch die Liste. Der Weg zum Rest ist der Aufklappknopf, den es längst gibt.
+  Gilt für die Linkliste (`begrenzeLinks()`) und die beiden Tagwolken
+  (`begrenzeWolke()`) — die Wolken waren schon immer so gebaut, die Prüflage
+  steht seit 0.8.6 trotzdem daneben. *Verworfen:* eine Haltezeit wie beim
+  Ziehen — beim Scrollen unüblich, und sie verzögerte jedes Wischen um 0,4 s.
+- **Eine breite Karte im Raster braucht `grid-auto-flow: dense`, keine feste
+  Position** (seit 0.8.6). Wie viele Karten in eine Zeile passen, hängt an der
+  Fensterbreite (`auto-fit`), wie viele es gibt, an der Rolle — eine Position,
+  die bei drei Spalten stimmt, ist bei zwei falsch. Das Raster zieht eine
+  nachfolgende schmale Karte selbst in die Lücke. **Die Reihenfolge im
+  Quelltext bleibt, wie sie ist**, und eine Prüfung hält genau das fest; die
+  Ersatzlösung „Kachel ans Ende" ist damit ausdrücklich nicht gebaut.
+- **„Angemeldet als" steht auch bei einem einzigen Zugang** (seit 0.8.6). Das
+  unterscheidet die Angabe von allem, was `mehrereBenutzer()` verbirgt: dort
+  geht es immer um **andere**, hier um einen selbst — derselbe Grund, aus dem
+  die Karte „Zugang" seit 0.8.5 für jeden stehenbleibt. Der Name kommt über
+  `GET /api/settings`, weil `ladeEinstellungen()` in `start()` läuft und die
+  Angabe damit überall bereitsteht (Stolperstein 16). Dass er auch unter
+  `GET /api/account` steht, ist **keine zweite Wahrheit**: beide Antworten
+  lesen dieselbe angemeldete Zeile. Nach dem Umbenennen des eigenen Zugangs
+  zieht die Kopfzeile nach — `ladeEinstellungen()` läuft nur beim Start.
+- **„Angelegt von" nennt auch das Datum** (seit 0.8.6), in derselben Form wie
+  die Kopfzeile eines Kommentars. Zwei Schreibweisen für denselben Zeitpunkt
+  wären eine zu viel. Bei genau einem Zugang bleibt die **ganze Zeile** weg wie
+  bisher — dann steht das Datum schon in der Sortierung.
 
 ---
 
@@ -1644,6 +1714,28 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     im Prüfstand reißt es den Lauf mit, ohne einen einzigen Namen zu nennen.
     Zu jeder Karte an einer Rolle gehört dieselbe Frage für ihre Behandler —
     an **einem** Ort, nicht an zehn.
+89. **Zwei Dialoge übereinander teilen sich die Abbruchtaste.** Ein
+    Escape-Behandler an `document` schließt **jeden** offenen Dialog, nicht nur
+    den obersten — eine Rückfrage über einer Ansicht nähme beim Abbrechen
+    beide zugleich weg. Wer einen zweiten Dialog über einen ersten legt, fragt
+    im Behandler, ob er selbst der oberste ist. Verwandt mit 41, aber
+    umgekehrt: dort hängt ein Behandler an einem Element, das neu gezeichnet
+    wird, hier greifen zwei **gültige** Behandler auf dasselbe Ereignis zu.
+90. **Ein Doppelgänger, der eine Antwort nur ausliefert, kann kein
+    Neuzeichnen belegen.** Antwortet er auf ein Löschen zwar mit dem neuen
+    Stand, liefert aber weiterhin dieselbe Liste, ist „die Ansicht zeichnet
+    sich neu" von „die Ansicht blieb stehen" nicht zu unterscheiden — die
+    Prüfung bliebe in beiden Fällen grün. **Ein Doppelgänger, dessen Antwort
+    sich durch einen Schreibvorgang ändern soll, muss sie wirklich ändern.**
+    Fortschreibung der Regel aus 0.8.5: dort ging es darum, dass er nicht
+    *vereinfachen* darf, hier darum, dass er nicht *erstarren* darf.
+91. **Eine Funktion, die selbst misst, ist im gebauten DOM nur an einer
+    gestellten Höhe prüfbar.** `begrenzeWolke()` liest `offsetHeight`; in
+    jsdom ist das immer null, und die Funktion bricht dann **absichtlich** ab
+    (die Regel aus 0.8.3). Eine Prüfung an einer echten Ansicht prüft deshalb
+    nicht die Begrenzung, sondern den Abbruch — und wird rot, obwohl der Code
+    richtig ist. **Wo eine Prüfung Layout braucht, muss sie es stellen.**
+    Verwandt mit 20 und mit „Was der Prüfstand nicht kann: Aussehen".
 
 ---
 
@@ -1657,15 +1749,15 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Abbilds).
 
-**Zuletzt: 1391 von 1391 bestanden** (0.8.5; 42 neue Prüfungen, davon 37 in
-einer neuen Gruppe: „Der Systembereich nach Rolle"). Der Abschnitt
+**Zuletzt: 1429 von 1429 bestanden** (0.8.6; 38 neue Prüfungen netto, davon
+12 in einer neuen Gruppe: „Wer hat bewertet -- die Ansicht des Admins"). Der Abschnitt
 **„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen steht unverändert:
 er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage, nur ohne die neue
 Spalte und mit einer Zeile darin — und belegt, dass der Umstieg sie ergänzt,
 dass die Bestandszeile auf der Vorgabe null steht, dass ein zweiter Lauf stumm
-bleibt und dass eine **frische** Anlage die Spalte ohne Umstieg trägt. Weder
-0.8.4 noch 0.8.5 hat einen eigenen Umstiegsabschnitt — kein Punkt hat das
-Schema angefasst.
+bleibt und dass eine **frische** Anlage die Spalte ohne Umstieg trägt. Seit
+0.8.4 hat keine Version einen eigenen Umstiegsabschnitt bekommen — keine hat
+das Schema angefasst.
 
 **Was abgedeckt ist**, grob nach Bereichen:
 
@@ -1800,131 +1892,98 @@ Ansicht, Zoom lädt das Original.
 | 0.8.3 | Stufe G2, zweite Hälfte, Punkte 1–4 (39) | 16 | Stolpersteine 81 und 82 |
 | 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte (106) | 34 | Stolpersteine 83, 84, 85 und 86 |
 | 0.8.5 | Stufe G3 — alle sechs Punkte (42) | 19 | Stolpersteine 87 und 88 |
+| 0.8.6 | Berichtigungen aus dem Betrieb — alle fünf Punkte (38 netto) | 23 | Stolpersteine 89, 90 und 91 |
 
-**In 0.8.0 hundertfünfzehn neue Prüfungen zur Stufe G1.** Der Prüfbestand
-entsteht hier **über die Verwaltung selbst** — anders als in allen Stufen davor,
-wo die Zugänge von Hand in die Datenbank geschrieben wurden. Der Grund ist, dass
-genau dieser Weg das Neue ist; nur die Einrichtung läuft über die
-Einrichtungsseite, weil jeder Zugang ein **echtes Passwort** braucht (ohne das
-ließe sich weder die Anmeldung eines Gesperrten prüfen noch die Bremse je Name).
-Fünf Lagen stehen nebeneinander: die Eigentümerin, ein Admin **ohne**
-Eigentümerrecht, ein gewöhnlicher Benutzer, ein Gesperrter und ein Grabstein.
-Der Admin ohne Eigentümerrecht ist dabei der wichtigste — ohne ihn wäre „Admin"
-von „Eigentümer" nicht zu unterscheiden, und jede Prüfung darauf bliebe auch
-dann grün, wenn überall nur `nurAdmin` stünde (Stolperstein 73).
+**Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
+was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
+gelten dort weiter.
 
-**Zwanzig Gegenproben, gemessen an den Namen der roten Prüfungen**
-(Stolperstein 49). Die aufschlussreichsten:
+**Aus 0.8.0 (115 Prüfungen, 20 Gegenproben):** Der Prüfbestand entsteht
+seitdem **über die Verwaltung selbst**, nur die Einrichtung läuft über die
+Einrichtungsseite — jeder Zugang braucht ein **echtes Passwort**, sonst ließe
+sich weder die Anmeldung eines Gesperrten noch die Bremse je Name prüfen.
+**Fünf Lagen stehen nebeneinander:** Eigentümerin, Admin **ohne**
+Eigentümerrecht, gewöhnlicher Benutzer, Gesperrter, Grabstein. Die mittlere ist
+die wichtigste — ohne sie wäre „Admin" von „Eigentümer" nicht zu unterscheiden,
+und jede Prüfung darauf bliebe grün, auch wenn überall nur `nurAdmin` stünde
+(Stolperstein 73). Drei Gegenproben trugen mehr als ihre Zahl: die auf die
+**zweite** Namensprüfstelle (1 rot — sie wird von der ersten nicht abgedeckt,
+Stolperstein 53), die *verschobene* statt entfernte Namensbremse (2 rot,
+Stolperstein 72) und die Selbstsperr-Klemme, deren erster Rückbau **stumm**
+blieb, weil das 403 von `darfAnZugang` kam (Stolperstein 73).
 
-| Rückbau | Ergebnis |
-|---|---|
-| Zeile wird beim Entfernen doch gelöscht | 10 rot, darunter *Seine Einträge stehen noch und gehören weiterhin ihm* |
-| jeder Admin kommt an jeden Zugang | 3 rot |
-| Admin darf beim Anlegen eine Rolle vergeben | 8 rot, darunter der **Routenwächter** |
-| man darf sich selbst sperren | 23 rot |
-| der letzte Eigentümer darf verschwinden | 4 rot |
-| `requireAuth` sieht den Status nicht an | 2 rot |
-| die Anmelderoute sieht den Status nicht an | 3 rot |
-| der Name wird bei der Bremse nicht gezählt | 1 rot |
-| der Name wird **hart** gesperrt (Regel *verschoben*) | 2 rot |
-| Startregel ohne Zwischenschritt über den Admin | 2 rot |
-| `eigentuemerId` als blanke kleinste Nummer | 2 rot |
-| Grabsteinname wird nicht freigegeben | 3 rot |
-| Grabsteinmuster nicht gesperrt | 2 rot |
-| nur die **erste** der beiden Namensprüfstellen | **1 rot** |
-| `zugang.js` liest je Frage neu ein | 3 rot |
-| Karte steht auch ohne Adminrolle da | 2 rot |
+**Aus 0.8.2 (61 Prüfungen, 19 Gegenproben):** Der Prüfbestand für den
+Löschdialog entsteht **eigens** und nicht aus dem Gewachsenen — drei Verfasser,
+drei Sorten Beitrag, dazu die zwei Fälle, die genau die zwei Klemmen treffen
+(eine zurückgesetzte Bewertung mit Wert 0 und eine herrenlose Zeile). Ein
+**vierter** Rufer musste dazu, der weder Verfasser noch Admin ist; ohne ihn
+ließe sich an den neuen Wegen gar keine Verweigerung herstellen. Das Paar zur
+`value > 0`-Bedingung ist Stolperstein 80 in Reinform: derselbe Wortlaut an
+zwei Zeilen, und erst der zweite, engere Rückbau macht die Prüfung rot, die ihn
+meint. Und ein abgebrochener Treiberlauf ließ einen Rückbau im Quelltext stehen
+und erzeugte drei Läufe lang falsche rote Punkte (Stolperstein 75).
 
-**Drei davon tragen mehr als ihre Zahl.** Die vorletzte ist eine
-Feinheitsprüfung: sie belegt, dass die **zweite** Namensprüfstelle nicht von der
-ersten abgedeckt wird — genau die Frage aus Stolperstein 53. Die Zeile zur
-harten Namenssperre ist ein *verschobener*, kein entfernter Rückbau: die Bremse
-bleibt, nur ihre Eigenschaft ändert sich, und trotzdem wird sie rot
-(Stolperstein 72 richtig angewandt). Und der Rückbau der Selbstsperr-Klemme war
-beim ersten Anlauf **stumm** — die Prüflage konnte gar nicht scheitern, weil das
-403 von `darfAnZugang` kam; sie steht jetzt am Eigentümer bei zwei Eigentümern
-und ist 23-fach rot.
+**Aus 0.8.5 (42 Prüfungen, 19 Gegenproben):** Die Gruppe „Der Systembereich
+nach Rolle" baut den Bereich **dreimal** auf. Zu jedem „ist weg" steht das „mit
+Rolle ist es da" daneben — eine verschwundene Karte ist von einer, die es nie
+gab, nur am Gegenaufbau zu unterscheiden (Stolperstein 81). Das aufschlussreichste
+Paar: der grobe Rückbau des bedingten Kennzahlenabrufs belegt die **Tragweite**
+(19 rot, weil ein einziger fehlgeschlagener Abruf im Sammel-`Promise.all` den
+ganzen Rumpf mit `return` verlässt), der engere den **Ort** (1 rot). Zwei der
+drei groben Rückbauten rissen den Lauf mit, ohne einen Namen zu nennen —
+deshalb steht neben jedem eine engere Zweitprobe (Stolpersteine 76 und 82).
 
-**In 0.8.2 einundsechzig neue Prüfungen und neunzehn Gegenproben.** Der
-Prüfbestand für den Löschdialog entsteht eigens und nicht aus dem Gewachsenen:
-drei Verfasser, drei Sorten Beitrag, dazu die zwei Fälle, die genau die zwei
-Klemmen treffen — eine zurückgesetzte Bewertung (Wert 0) und eine herrenlose
-Zeile. Ein **vierter** Rufer musste dazu, der weder Verfasser noch Admin ist;
-ohne ihn ließe sich an den neuen Wegen gar keine Verweigerung herstellen.
+**In 0.8.6 achtunddreißig neue Prüfungen netto und dreiundzwanzig
+Gegenproben.** Netto, weil die Gruppe „Verfasser in der Antwort" **schrumpft**:
+ihre vier Stimmenprüfungen stehen jetzt am eigenen Endpunkt, und was dort
+bleibt, ist die eine Prüfung darauf, dass die Stimmen in der Eintragsantwort
+**nicht** mehr vorkommen. Die neue Servergruppe stellt vier Rufer nebeneinander
+— den Fremden, den **Verfasser des Eintrags**, den Admin ohne Eigentümerrecht
+und die Eigentümerin. Der zweite ist der entscheidende: ohne ihn bliebe die
+Prüfung auch dann grün, wenn dort `nurEintragVerfasser` stünde.
 
 | Rückbau | Ergebnis |
 |---|---|
-| Grabstein liefert doch seinen freigegebenen Namen | **1 rot** — *Der freigegebene Name steht dabei nirgends in der Antwort* |
-| Kommentare nennen keinen Verfasser mehr | 3 rot |
-| Testtage nennen keinen Verfasser mehr | 3 rot |
-| Stimmenliste ohne `value > 0` | 4 rot |
-| keine Stimmenliste an der Kriterienzeile | 3 rot |
-| Löschdialog mit `!=` statt `IS NOT` | 4 rot, darunter *Die herrenlose Zeile zählt bei jedem als fremd* |
-| Dialog ohne `value > 0` bei **fremd** | 2 rot |
-| Dialog ohne `value > 0` bei **eigen** | **1 rot** |
-| Dialogzahlen ohne Wächter | 2 rot |
-| `DELETE /api/ratings/:id` ohne jede Klemme | 7 rot, darunter der **Routenwächter** |
-| Klemme **verschoben**: `nurSelbst` statt `darfAendern` | 3 rot — andere Liste |
-| Stimmenliste auch bei einem Zugang | **1 rot** |
-| ✕ auch an der eigenen Stimme | 4 rot |
-| ✕ auch ohne Adminrolle | **1 rot** |
-| Dialog verschweigt die fremden Beiträge | **1 rot** |
-| Beschriftung bildet den Grabstein nicht aus der Nummer | 4 rot, **davon 2 an der Karte „Zugänge"** |
-| Eintrag sagt nicht mehr, wer ihn angelegt hat | **1 rot** |
-| Kommentare zeigen keinen Namen mehr | 3 rot |
-| Testtage zeigen keinen Namen mehr | **1 rot** |
+| `nurAdmin` fällt aus der Routenzeile von `GET /api/items/:id/stimmen` | 3 rot |
+| `detail()` hängt die Stimmen wieder an die Kriterienzeilen | **1 rot** — *Der Eintrag selbst nennt seit 0.8.6 keine Stimmen mehr* |
+| der Aufrufknopf hängt nur noch an `mehrereBenutzer()` | **1 rot** — *Ohne Adminrolle gibt es den Aufruf gar nicht* |
+| der Aufrufknopf hängt nur noch an `ADMIN` | **1 rot** — *Bei einem Zugang gibt es den Aufruf gar nicht* |
+| das ✕ steht an **jeder** Stimme, auch an der eigenen | 5 rot |
+| die Ansicht zeichnet auch Kriterien **ohne** Stimme | 3 rot |
+| nach dem Löschen wird die Liste **nicht** neu geholt | **1 rot** |
+| der Escape-Behandler fragt nicht, ob er der oberste ist | **1 rot** |
+| der Endpunkt reicht eine feste Nummer statt `req.benutzer.id` durch | **1 rot** |
+| `overflowY = 'auto'` in `begrenzeLinks()` — der Stand von 0.8.5 | **1 rot** |
+| aufgeklappt wird die Abschneidung nicht mehr weggenommen | **1 rot** |
+| `begrenzeWolke()` setzt `overflow: 'auto'` | **1 rot** |
+| `grid-auto-flow: dense` fällt aus der Regel | **1 rot** |
+| die ganze `.sys-grid`-Regel fällt weg | 2 rot |
+| die Kachel „Zugänge" wandert ans **Ende** des Rasters | 2 rot |
+| die Verfasserzeile nennt wieder nur den Verfasser, kein Datum | **1 rot** |
+| die Verfasserzeile steht auch bei einem einzigen Zugang | 2 rot |
+| `name` fällt aus `GET /api/settings` | 2 rot |
+| die Angabe fällt aus der Kopfzeile | 5 rot |
+| die Antwort nennt den **ersten** Zugang statt des angemeldeten | **1 rot** |
+| `NAME` wird nach dem Umbenennen nicht mitgesetzt | **1 rot** |
+| `esc()` fällt um den Namen weg | **1 rot** |
 
-**Drei tragen mehr als ihre Zahl.** Das Paar zur `value > 0`-Bedingung ist
-Stolperstein 80 in Reinform: derselbe Wortlaut an zwei Zeilen, und erst der
-zweite, engere Rückbau macht die Prüfung rot, die ihn meint. Die beiden Rückbauten
-an `DELETE /api/ratings/:id` liefern **verschiedene** Punktlisten — der zweite
-nimmt die Regel nicht weg, sondern verschiebt sie, und belegt damit die Wahl
-zwischen `darfAendern` und `nurSelbst` statt bloß das Vorhandensein irgendeiner
-Klemme (Stolperstein 72 richtig angewandt). Und der Rückbau der Beschriftung
-macht auch die Karte „Zugänge" rot — der Beleg, dass sie wirklich an einem Ort
-steht und beide Rufer sie benutzen.
+**Drei Paare tragen mehr als ihre Zahl.** Die beiden Rückbauten am Aufrufknopf
+belegen **je eine Hälfte** derselben Bedingung — ohne Adminrolle und bei einem
+einzigen Zugang; verschiedene Punktlisten, also zwei verschiedene Sachen
+(Stolperstein 72). Das Paar an der Rasterregel ist Stolperstein 81 in Reinform:
+ohne die Prüfung auf das **Vorhandensein** der Regel bliebe bei einer fehlenden
+Regel nur ein roter Punkt statt zwei, weil eine leere Zeichenkette jede
+Verneinung wahr macht. Und das Paar an `/api/settings` trennt „die Angabe
+fehlt" von „die Angabe ist falsch": der engere Rückbau lässt den Namen stehen
+und nennt den **ersten** Zugang — bei der Eigentümerin richtig, bei jedem
+anderen falsch.
 
-**Was die Gegenproben zusätzlich gekostet haben**, weil es sonst niemand
-glaubt: ein abgebrochener Treiberlauf hat einen Rückbau im Quelltext
-stehenlassen und drei Läufe lang falsche rote Punkte erzeugt (Stolperstein 75).
-Der vollständige Rückbau der Rollenleiter zerlegt den Lauf, statt ihn rot zu
-machen; dafür steht jetzt eine engere Gegenprobe daneben (Stolperstein 76).
-
-**In 0.8.5 zweiundvierzig neue Prüfungen und neunzehn Gegenproben.** Die neue
-Gruppe „Der Systembereich nach Rolle" baut den Bereich **dreimal** auf —
-Eigentümerin, Admin **ohne** Eigentümerrecht, gewöhnlicher Benutzer. Ohne die
-mittlere Lage wäre „Eigentümer" von „Admin" nicht zu unterscheiden
-(Stolperstein 73). Und zu jedem „ist weg" steht das „mit Rolle ist es da"
-daneben: eine verschwundene Karte ist von einer, die es nie gab, nur am
-Gegenaufbau zu unterscheiden (Stolperstein 81).
-
-| Rückbau | Ergebnis |
-|---|---|
-| die Kennzahlen werden wieder **unbedingt** abgerufen | **19 rot** — der Systembereich bleibt für einen Benutzer vollständig leer |
-| derselbe Rückbau, aber der Abruf **gelingt** | **1 rot** — *Ohne Adminrolle werden die Kennzahlen gar nicht erst abgerufen* |
-| `nurAdmin` fällt aus der Routenzeile von `GET /api/stats` | 2 rot |
-| die **zweite, engere** Klemme fällt: Schlüsselwert an jeden Admin | **1 rot** |
-| Export und Import stehen jedem Admin (Klemme *verschoben*) | 2 rot |
-| die Karte „Titel" / „Vokabular" / „Suchanbieter" steht wieder für jeden | 2 / 3 / 3 rot |
-| Tags und Kategorien wieder unangetastet bedienbar (Stand 0.8.4) | **1 rot** |
-| die Karte „Tags" verschwindet **ganz**, statt nur ihrer Zeichen | **0 — Lauf abgebrochen** |
-| die Zeilen bleiben, aber ohne Rolle ohne **Namen** | 2 rot |
-| der Behandler der Titelkarte hängt wieder blank am Element | **0 — Lauf abgebrochen** |
-| derselbe blanke Behandler, aber die Karte steht wieder da | 2 rot |
-| die `AUTH_RESET`-Zeile steht wieder da | 3 rot |
-| die Kachel trägt die Kennzeichnung `breit` nicht mehr | 2 rot |
-| die Kennzeichnung bleibt, die Regel bewirkt nichts (`grid-column: auto`) | **1 rot** |
-| der Abschnitt bekommt nur Abstand, keine Linie | **1 rot** |
-| die Linie bekommt eine eigene Farbe statt `var(--line)` | 2 rot |
-
-**Drei Paare tragen mehr als ihre Zahl.** Das erste ist die konkreteste Falle
-der Stufe: der grobe Rückbau belegt die **Tragweite** (19 rot, weil ein
-einziger fehlgeschlagener Abruf im Sammel-`Promise.all` den ganzen Rumpf mit
-`return` verlässt), der engere den **Ort** (1 rot). Zwei der drei groben
-Rückbauten reißen den Lauf mit, ohne einen Namen zu nennen — deshalb steht
-neben jedem eine engere Zweitprobe (Stolpersteine 76 und 82). Und das Paar zur
-breiten Kachel ist Lücke 1 von oben in Reinform: eine Klassenprüfung belegt
-nicht, dass die Klasse etwas bewirkt.
+**Kein Rückbau hat in dieser Runde den Lauf abgerissen**, eine engere
+Zweitprobe nach Stolperstein 76 war deshalb nirgends nötig. Was ein Rückbau
+dagegen zeigte: steht das ✕ auch an der **eigenen** Stimme, ist es das erste in
+der Liste — der Klick trifft dann eine andere Bewertung, und drei weitere
+Prüfungen fallen als Folge desselben Rückbaus. Das ist keine zweite Sache,
+sondern dieselbe.
 
 ---
 
@@ -1972,47 +2031,53 @@ nicht, dass die Klasse etwas bewirkt.
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.5 — Stufe G3: „Der Systembereich lernt die Rechte", alle sechs Punkte.**
+**0.8.6 — „Berichtigungen aus dem Betrieb", alle fünf Punkte.** Keine Stufe
+des Umbaus, eine Runde Nacharbeit an dem, was beim Ansehen von 0.8.5
+aufgefallen ist.
 
-*Die Karten hängen an der Rolle.* Vorher hing genau eine daran, jetzt zehn von
-dreizehn. Dem **Admin**: Titel, Kennzahlen, Kategorien, Tags,
-Bewertungskriterien, Zugänge, Suchanbieter, Vokabular. Dem **Eigentümer**
-zusätzlich: Export und Import. **Jedem, auch ohne Rolle:** Zugang, Darstellung
-und Links — Selbstbezug, alles persönlich. Neuer Helfer `amElement()`, damit
-kein Behandler an einer Karte hängt, die es nicht gibt.
+*Die Bewertungsdetails gehören dem Admin.* Unter der Sternzeile stand je
+Kriterium, **wer welchen Wert vergeben hat** — mit Namen, für jeden sichtbar.
+Die Zeile zeigt jetzt nur noch den eigenen Wert und den Schnitt; die
+Namensliste ruft der Admin über den Knopf **„Wer hat bewertet"** im Blockkopf
+auf, sichtbar erst ab zwei Zugängen. **Das nimmt den sichtbaren Teil der
+Stimmenliste aus 0.8.2 zurück** — und weil an ihr der **Löschweg** für eine
+fremde Bewertung hing, ist die neue Ansicht kein Zusatz, sondern die Bedingung.
+`DELETE /api/ratings/:id` blieb unverändert; geändert hat sich nur, von wo aus
+er gerufen wird. Geliefert wird die Liste ebenfalls nicht mehr an jeden:
+`detail()` hängt keine `stimmen` mehr an, der neue
+`GET /api/items/:id/stimmen` trägt `nurAdmin` in der Routenzeile und steht als
+lesende Route **nicht** in `F_ROUTEN`. Der einzige Servereingriff der Runde,
+neben einer Zeile für Punkt 5.
 
-*`GET /api/stats` steht hinter `nurAdmin`.* Nimmt „Die Kennzahlen selbst sieht
-weiterhin jeder" aus 0.7.2 zurück. Lesende Route, deshalb kein Eintrag in
-`F_ROUTEN`. Der Schlüsselwert im selben Rumpf bleibt eine zweite, engere
-Klemme am Eigentümer. In der Oberfläche wird der Abruf **bedingt** — sonst
-bliebe der ganze Systembereich für einen Benutzer leer, weil sechs Abrufe in
-einem `Promise.all` hängen und ein Fehlschlag den Rumpf mit `return` verlässt.
+*Die Linkliste scrollt am Finger nicht mehr in sich selbst.* `begrenzeLinks()`
+setzt `overflowY = 'hidden'` statt `'auto'`: die Liste wird abgeschnitten, und
+der Knopf „alle N anzeigen" stand schon da. Damit scrollt am Finger immer die
+Seite. **Die Tagwolke war nicht betroffen** — `begrenzeWolke()` setzte seit
+jeher `hidden`; die Prüflage steht jetzt trotzdem daneben.
 
-*Kategorien und Tags bekommen das Muster der Kriterienkarte.* Zeilen sichtbar,
-Griff, ✎ und ✕ weg — an allen drei Karten dieselbe Regel. Die Karten selbst
-bleiben stehen: wer nicht verwalten darf, darf trotzdem nachsehen.
+*Die Lücke im Kartenraster.* `grid-auto-flow: dense` am `.sys-grid` zieht eine
+nachfolgende schmale Karte in die Lücke, die die breite Kachel „Zugänge" davor
+hinterlässt — unter jeder Breite und bei jeder Kartenzahl. Die Reihenfolge im
+Quelltext bleibt, wie sie ist; eine Prüfung hält das fest.
 
-*Die Karte „Links" ist in zwei geschnitten.* „Links" (jeder): sichtbare Zeilen
-und Zahl der Anbieternamen, beides persönlich. „Suchanbieter" (Admin): Vorrat,
-Startanbieter, drei eigene, alles global. Damit sind es **dreizehn** Karten.
+*Zwei Angaben, die gefehlt haben.* „Angelegt von" nennt jetzt auch **wann**,
+in derselben Form wie die Kopfzeile eines Kommentars (bei einem Zugang bleibt
+die ganze Zeile weg wie bisher). Und in der Kopfzeile steht neben „Abmelden",
+**wer angemeldet ist** — auch bei einem einzigen Zugang, denn das ist eine
+Aussage über einen selbst. Der Name kommt über `GET /api/settings`, weil
+`ladeEinstellungen()` in `start()` läuft.
 
-*Die veraltete `AUTH_RESET`-Zeile.* Die Karte „Zugang" nennt jetzt
-`zugang.js passwort`; `AUTH_RESET` kommt in `public/app.js` nirgends mehr vor.
+**1429 von 1429 Prüfungen**, 23 Gegenproben. Drei neue Stolpersteine (89, 90,
+91). Drei Prüfungen umgedreht, vier serverseitige und sieben in der Oberfläche
+umgehängt, keine gelöscht (Stolperstein 74). `F_ROUTEN` unverändert 46.
+**Kein Punkt hat das Schema angefasst**, kein Umstiegscode entstanden.
 
-*Zwei Kleinigkeiten desselben Bildschirms.* Die Kachel „Zugänge" geht über die
-volle Breite (`.sys-card.breit`), und zwischen den Abschnitten der beiden
-Linkkarten stehen dezente Trennlinien (`.sys-teil`) — ohne neue Farbe.
-
-**1391 von 1391 Prüfungen**, 19 Gegenproben. Zwei neue Stolpersteine (87, 88).
-Zwei Prüfungen umgedreht statt gelöscht (Stolperstein 74). `F_ROUTEN`
-unverändert 46. **Kein Punkt hat das Schema angefasst**, kein Umstiegscode
-entstanden.
-
-Als Nächstes eine kleine Runde Nacharbeit auf **0.8.6**, dann Stufe G4 auf
-**0.8.7**. Siehe Abschnitt 10.
+Als Nächstes **Stufe G4 auf 0.8.7** — die erste Datenbankstufe seit 0.8.3.
+Siehe Abschnitt 10.
 
 | Version | Was |
 |---|---|
+| 0.8.5 | Stufe G3: dreizehn Karten des Systembereichs nach Rolle, `GET /api/stats` hinter `nurAdmin`, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien, berichtigte `AUTH_RESET`-Zeile |
 | 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte, **Stufe G2 vollständig**: Eingriffsvermerk nennt die Rolle, `updated_at` an den Bildwegen des Verfassers, Zahlen in der Kopfzeile des Kommentarblocks, die beiden Anlegen-Schalter, Umschalter „meine/alle" im Vergleich |
 | 0.8.3 | Stufe G2, zweite Hälfte, erster Teil: Eingriffsvermerk am Kommentar (`images_removed`, erster Umstiegscode seit der Bereinigung), `mine` am Kommentar samt Oberfläche, blaue Aufgabenmarke, Tagwolke klappt ganz auf |
 | 0.8.2 | Stufe G2, erste Hälfte: Verfassernamen an vier Trägern als Objekt, Stimmenliste je Kriterium, Löschdialog am Eintrag (`GET .../bestand`), `DELETE /api/ratings/:id` für fremde Bewertungen |
@@ -2060,62 +2125,28 @@ Als Nächstes eine kleine Runde Nacharbeit auf **0.8.6**, dann Stufe G4 auf
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_5.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_6.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
-   erledigt (0.6.0 bis 0.8.5); 0.8.1 war eine Bereinigung, keine Stufe.
+   erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
+   aus dem Betrieb) waren keine Stufen.
 
-   **G3 ist mit 0.8.5 vollständig** — alle sechs Punkte, Einzelheiten in
+   **0.8.6 ist eingespielt und läuft** — alle fünf Punkte, Einzelheiten in
    Abschnitt 5 und Abschnitt 9.
 
-   **Als Nächstes: 0.8.6 — „Berichtigungen aus dem Betrieb". Keine Stufe,
-   eine Runde Nacharbeit.** Fünf Punkte, alle beim Ansehen von 0.8.5
-   aufgefallen, kein Schema, kein Umstiegscode:
-
-   1. **Die Bewertungsdetails gehören dem Admin.** Unter der Sternzeile steht
-      heute je Kriterium, **wer welchen Wert vergeben hat** — mit Namen, für
-      jeden sichtbar. Künftig zeigt die Zeile nur noch den **eigenen Wert und
-      den Durchschnitt**; die Namensliste sieht der **Admin in einer eigenen
-      Ansicht**, die er ausdrücklich aufruft. **Das nimmt die Stimmenliste
-      aus 0.8.2 zurück — und sie ist die Voraussetzung des Löschwegs:** das ✕
-      an einer fremden Bewertung hängt an ihrer Zeile. Die eigene Ansicht ist
-      deshalb kein Zusatz, sondern die Bedingung. Der liefernde Endpunkt
-      gehört hinter `nurAdmin`, lesend und ohne Eintrag in `F_ROUTEN` —
-      dasselbe Muster wie `GET /api/stats` in 0.8.5.
-   2. **Die Linkliste scrollt am Finger nicht mehr in sich selbst.** Wer auf
-      dem Handy die Seite herunterzieht und über die Linkliste kommt, scrollt
-      plötzlich nur noch die Liste. Ursache ist `box.style.overflowY = 'auto'`
-      in `begrenzeLinks()`. **Richtig ist `hidden`:** die Liste wird
-      abgeschnitten, und der Knopf „alle N anzeigen" steht schon da. Eine
-      Haltezeit wie beim Ziehen wäre aufwendiger, ungewohnt und verzögerte
-      jedes Wischen. **Bei der Tagwolke mitprüfen** — `begrenzeWolke()` setzt
-      `overflow` ebenso.
-   3. **Die Lücke im Kartenraster.** Die Kachel „Zugänge" geht seit 0.8.5
-      über die volle Breite; steht sie nicht am Anfang einer Rasterzeile,
-      bleibt davor eine Lücke. **Eine feste Position löst das nicht:** wie
-      viele Karten in eine Zeile passen, hängt an der Fensterbreite
-      (`auto-fit`), wie viele es gibt, an der Rolle. **Richtig ist
-      `grid-auto-flow: dense`** am `.sys-grid` — das Raster zieht eine
-      nachfolgende schmale Karte in die Lücke, unter jeder Breite und bei
-      jeder Kartenzahl.
-   4. **„Angelegt von" bekommt ein Datum.** `items.created_at` steht in der
-      Antwort, reine Anzeige. Bei genau einem Zugang bleibt die Zeile wie
-      bisher weg.
-   5. **„Angemeldet als" in der Kopfzeile**, neben „Abmelden". **Auch bei
-      einem einzigen Zugang:** es ist eine Aussage über *mich*, nicht über
-      andere — derselbe Grund, aus dem die Karte „Zugang" für jeden
-      stehenbleibt.
-
-   *Dann:* **Stufe G4 auf 0.8.7 — „Die Linkliste bekommt Verfasser".**
+   **Als Nächstes: Stufe G4 auf 0.8.7 — „Die Linkliste bekommt Verfasser".**
    Links darf jeder eintragen; löschen darf sie der Eintrager oder der Admin,
    und ab zwei Zugängen steht sein Name an der Zeile. Das **kehrt die Zeile
    „Titel, Beschreibung, Fotos, Dateien, Links, Tags, Kategorie" der
-   Rechtetabelle um** und macht Links zum fünften Träger. Umfang: `user_id` an
-   `links` samt Umstiegsblock und `ON DELETE SET NULL`, Bestandszeilen fallen
-   an den **Eintragsverfasser**; Export und Import nennen den Namen, also
-   **Formatnummer 6 → 7**; Sortieren bleibt beim Eintragsverfasser und Admin.
-   Ein gelöschter Link bekommt ausdrücklich **keinen** Vermerk.
-   **Erste Datenbankstufe seit 0.8.3** — Sicherung des Datenverzeichnisses
-   gehört wieder ausdrücklich dazu.
+   Rechtetabelle um** und macht Links zum fünften Träger neben Eintrag,
+   Kommentar, Testtag und Bewertung. Umfang: `user_id` an `links` samt
+   Umstiegsblock und `ON DELETE SET NULL`, Bestandszeilen fallen an den
+   **Eintragsverfasser** (nicht an den Eigentümer, sonst gehörten die eigenen
+   Links plötzlich jemand anderem); Export und Import nennen den Namen, also
+   **Formatnummer 6 → 7**; Sortieren bleibt beim Eintragsverfasser und Admin;
+   Platz in der Zeile prüfen, sie trägt schon Domain, Pfad und bis zu vier
+   Anbieternamen. Ein gelöschter Link bekommt ausdrücklich **keinen** Vermerk.
+   **Erste Datenbankstufe seit 0.8.3** — die Sicherung des Datenverzeichnisses
+   gehört wieder ausdrücklich in den Einspielweg.
 
    *Dann:* **Stufe H (Tokens) wird 0.8.8**, **Stufe I (Mailversand und
    Selbstanmeldung) bleibt 0.9.0.**
@@ -2171,7 +2202,7 @@ damit alte Verweise stimmen.)*
 - Aus den Punkten oben gehören die **Vorgabewerte** (Punkt 7) und die
   **Sicherung auf Knopfdruck** (Punkt 8) vor 1.0 erledigt oder entschieden.
 
-**Ideen ohne Beschluss** stehen in `Ideensammlung_Katalog.md`: Sicherung auf
+**Ideen ohne Beschluss**, hier als Liste und sonst nirgends: Sicherung auf
 Anforderung, Prüfung der Wiederherstellung, Endpunkt für den Gesundheitszustand,
 Anzeige des Speicherverbrauchs, PWA-Manifest, Doppelerkennung, Vorlagen für
 Einträge, Tags in Mengen bearbeiten, Druckstylesheet.
@@ -2180,57 +2211,54 @@ Einträge, Tags in Mengen bearbeiten, Druckstylesheet.
 
 ## 11. Beschlossen für die kommenden Stufen
 
-Eingetragen im Konzeptpapier, hier als Merkzettel — nur noch, was bindet:
+Eingetragen im Konzeptpapier, hier als Merkzettel — **nur noch, was bindet.**
+Eingelöste Merkposten fallen mit der Version heraus, in der sie gebaut sind;
+was von ihnen als Regel weitergilt, steht in Abschnitt 5.
 
 - **Wer eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` im Prüfstand
   ein** — sonst wird der Lauf namentlich rot, und genau das ist der Zweck.
   Die Liste (aktuell 46 Routen) ist die Stelle, an der die Rechtefrage
   gestellt wird; seit 0.8.0 kennt sie die vierte Art `'nurAdmin, im Rumpf'`.
+- **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — viermal
+  angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
+  `GET /api/stats`, seit 0.8.6 `GET /api/items/:id/stimmen`). Die Liste ist
+  die Stelle für **schreibende** Routen; die Zahl bleibt bei 46, bis Stufe G4
+  sie anfasst.
 - **Wer aus einer Nummer einen Namen machen muss, hat zwei Muster** — und sie
   gehen in verschiedene Richtungen. `verfasserKarte()` in `server.js` macht aus
   einer Nummer einen Verfasser (für den Bildschirm, als Objekt),
   `verfasserName()` im Export macht aus ihr einen Namen (für die Datei, als
   Zeichenkette), und `verfasser()` im Import macht aus einem Namen eine Nummer.
-  *Berichtigung gegenüber Revision 3: dort stand, für „Gelöschter Benutzer 7"
-  liege alles bereit und das Muster stehe in `verfasser()`. Beides war falsch.*
   `daten.ich` und `daten.darfRollen` gelten nur für die Karte „Zugänge", und
-  `GET /api/users` steht hinter `nurAdmin` — für die Beiträge im Eintrag lag
-  nichts bereit.
-- **Der Eingriffsvermerk am Kommentar ist eine bewusste Ausnahme von „kein
-  Änderungsverlauf"** — gebaut in 0.8.3, die Rolle im Satz („2 Bilder vom Admin
-  entfernt") in 0.8.4 nachgezogen, siehe Abschnitt 5. **Berichtigung gegenüber
-  Revision 4:** dort stand „kein Umstiegscode". Das galt für die Zeilen, nicht
-  für die Spalte — 0.8.3 brauchte einen und hat ihn bekommen. **Der Vermerk ist
-  für ALLE sichtbar**, nicht nur für den Verfasser — das bleibt so und ist
-  nicht zu bauen, nur ins Papier: das Loch, das ein entferntes Bild
-  hinterlässt, ist für jeden Leser da, und ein Vermerk, den nur einer sieht,
-  wäre eine Benachrichtigung — die hat Kriterion nicht. Daraus die allgemeine
-  Regel: **ein Vermerk gehört dorthin, wo aus einer Aussage etwas
-  herausgenommen wird — nicht dorthin, wo eine ganze Aussage verschwindet.**
-  Ein gelöschter Kommentar und ein gelöschter Link bekommen deshalb keinen —
-  gilt unverändert für den fünften Träger aus G4 (Abschnitt 10 Punkt 5).
-  `updated_at`, die beiden Anlegen-Schalter, der Umschalter der
-  Vergleichsansicht und die Zahlen am Kommentarblock sind mit 0.8.4 ebenfalls
-  gebaut und in Abschnitt 5 nachzulesen; die Merkposten hier sind eingelöst.
+  `GET /api/users` steht hinter `nurAdmin` — für die Beiträge im Eintrag liegt
+  dort nichts bereit.
 - **Wird ein Endpunkt eingeschränkt, sind die Prüfungen der Vorgängerversion
-  die ersten Betroffenen** (Stolperstein 74) — bindet weiterhin. **Für 0.8.5
-  eingelöst:** „Die Kennzahlen selbst sieht weiterhin jeder" und „Tags und
-  Kategorien bleiben unangetastet bedienbar" sind umgedreht, nicht gelöscht.
-  **Für 0.8.6 steht die nächste an:** die Stimmenliste aus 0.8.2 verliert ihre
-  Prüfungen an der Sternzeile und bekommt sie an der Adminansicht wieder —
-  „Die Stimmenliste steht an jeder Kriterienzeile" ist dann umzudrehen.
-- **Das Vokabular und `appTitle` müssen ausgeliefert werden, auch an einen
-  Benutzer** — **mit 0.8.5 eingelöst.** Was verschwunden ist, sind die
-  **Karten**, nicht die Daten; eine Prüfung hält genau das fest.
-- **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — dreimal
-  angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
-  `GET /api/stats`), und für 0.8.6 ein viertes Mal vorgesehen. Die Liste ist
-  die Stelle für **schreibende** Routen; die Zahl bleibt bei 46, bis Stufe G4
-  sie anfasst.
+  die ersten Betroffenen** (Stolperstein 74) — bindet weiterhin, und zwar für
+  jede kommende Stufe. **Für 0.8.6 eingelöst:** die Stimmenliste aus 0.8.2 hat
+  ihre Prüfungen an der Sternzeile verloren und an der Adminansicht
+  wiederbekommen — vier serverseitig, sieben in der Oberfläche umgehängt, drei
+  umgedreht, keine gelöscht. **Umdrehen oder umhängen, nicht löschen** ist
+  damit in fünf aufeinanderfolgenden Versionen angewandt worden.
+- **Wer eine Anzeige einschränkt, prüft zuerst, was an ihr hängt** (seit
+  0.8.6). Am ✕ der Stimmenliste hing der einzige Weg zu einer fremden
+  Bewertung; wäre die Liste ersatzlos verschwunden, wäre der Endpunkt darunter
+  vom Bildschirm aus unerreichbar geworden. **Die Frage gehört vor den Bau,
+  nicht in die Gegenprobe.**
+- **Ein Vermerk gehört dorthin, wo aus einer Aussage etwas herausgenommen
+  wird — nicht dorthin, wo eine ganze Aussage verschwindet.** Der
+  Eingriffsvermerk am Kommentar ist die einzige Ausnahme von „kein
+  Änderungsverlauf" und für **alle** sichtbar (gebaut in 0.8.3/0.8.4, siehe
+  Abschnitt 5). Ein gelöschter Kommentar und ein gelöschter Link bekommen
+  deshalb keinen — gilt unverändert für den fünften Träger aus G4
+  (Abschnitt 10 Punkt 5).
 - **Die Rollen sind eine Leiter, auch in der Prüflage** (seit 0.8.5,
   Stolperstein 87). Wer `istAdmin: false` setzt, setzt `istEigentuemer`
   gleich mit — sonst baut die Prüflage einen Zustand nach, den der Server nie
   ausliefert.
+- **Ein Doppelgänger antwortet wie der echte Server** (Stolperstein 90). Er
+  darf die Antwort weder vereinfachen noch erstarren lassen: was sich durch
+  einen Schreibvorgang ändert, muss sich bei ihm wirklich ändern, und was
+  hinter einem Wächter liegt, liegt auch bei ihm dahinter.
 - **Die beiden Anlegen-Schalter sind eine Einstellung, keine Version.** Im
   Betrieb steht der bei den **Kategorien aus** und der bei den **Tags an**.
   Wer künftig „das Anlegen soll nur der Admin dürfen" hört, prüft **zuerst

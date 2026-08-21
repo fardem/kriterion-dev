@@ -181,6 +181,9 @@ Am einzelnen Eintrag gilt:
 | Art und Anpinnung am Kommentar | ✔ | — | ✔ |
 | Note eines fremden Testtags ändern | — | — | — |
 | fremden Testtag löschen | — | — | ✔ |
+| sehen, wer welchen Wert bewertet hat | — | — | ✔ |
+| fremde Bewertung löschen | — | — | ✔ |
+| Note einer fremden Bewertung ändern | — | — | — |
 | Bild an einen Kommentar hängen | ✔ | — | — |
 | Bild aus einem Kommentar löschen | ✔ | — | ✔ |
 
@@ -195,13 +198,25 @@ kommt **bevor** irgendetwas geschrieben ist.
 ### Wer was geschrieben hat
 
 **Bei genau einem Zugang bleibt davon alles aus.** Sobald es einen zweiten
-gibt, nennen **Eintrag, Kommentar, Testtag und jede einzelne Bewertung** ihren
-Verfasser mit Namen. Unter der Sternzeile steht je Kriterium, wer welchen Wert
-vergeben hat; eigene Testtage sind gefüllt, fremde ein Ring.
+gibt, nennen **Eintrag, Kommentar und Testtag** ihren Verfasser mit Namen —
+der Eintrag dazu, **wann** er angelegt wurde. Eigene Testtage sind gefüllt,
+fremde ein Ring.
+
+**Die Bewertung sagt nur den eigenen Wert und den Schnitt.** Wer welchen Wert
+vergeben hat, ist eine Angabe über einzelne Personen und steht deshalb nicht
+unter der Sternzeile. Der **Admin** sieht sie in einer eigenen Ansicht, die er
+über den Knopf **„Wer hat bewertet"** im Blockkopf ausdrücklich aufruft; dort
+kann er eine fremde Bewertung auch entfernen. Ausgeliefert wird die Liste
+ebenfalls nur an ihn — was nicht angezeigt werden darf, wird gar nicht erst
+geschickt.
 
 Ein entfernter Zugang erscheint als **„Gelöschter Benutzer 7"**, eine Zeile
 ohne Verfasser als **„Ohne Verfasser"**. Der freigegebene Name verlässt den
 Server dabei nicht.
+
+**In der Kopfzeile steht, wer angemeldet ist** — neben dem Knopf „Abmelden",
+und zwar auch dann, wenn es nur einen Zugang gibt: das ist eine Aussage über
+einen selbst, nicht über andere.
 
 Entfernt ein Admin ein Bild aus einem fremden Kommentar, steht in dessen
 Kopfzeile ein **Vermerk**: „2 Bilder vom Admin entfernt". Er nennt eine
@@ -332,9 +347,12 @@ es zwei, beide im Systembereich einstellbar:
   Kriterien**. Ein **Doppelklick auf die Sterne setzt genau dieses Kriterium
   zurück**, der Knopf oben leert die eigenen Werte für diesen Eintrag — fremde
   Bewertungen bleiben unberührt.
-  Sind mehrere Zugänge eingerichtet, steht unter der Sternzeile, **wer welchen
-  Wert vergeben hat**. Der Admin kann dort eine fremde Bewertung **entfernen**
-  — ändern kann er sie nicht.
+  **Wer welchen Wert vergeben hat, steht nicht unter der Sternzeile.** Ab zwei
+  Zugängen findet der **Admin** im Blockkopf den Knopf **„Wer hat bewertet"**:
+  er öffnet eine Ansicht mit den Namen je Kriterium, und dort lässt sich eine
+  fremde Bewertung **entfernen** — ändern lässt sie sich nicht. Für alle
+  anderen gibt es den Knopf nicht, und der Server liefert ihnen die Namen auch
+  nicht aus.
   **Angelegt, umbenannt, sortiert und gelöscht werden Kriterien
   ausschließlich im Systembereich und ausschließlich vom Admin.** Ein
   neues Kriterium erscheint sofort an jedem Eintrag, ein gelöschtes nimmt
@@ -352,8 +370,9 @@ es zwei, beide im Systembereich einstellbar:
   Verlauf. Solange Testtage vorhanden sind, lässt sich „Getestet" nicht
   zurücknehmen.
 - **Links**: beliebig viele Adressen. Ein Klick auf die Zeile öffnet sie in einem
-  neuen Tab, Ziehen sortiert um. Bewusst ohne Favicons — die müssten von fremden
-  Servern geladen werden. **Was keine Adresse ist, wird zur Suche**: ein Wort,
+  neuen Tab, Ziehen sortiert um. Über der eingestellten Zeilenzahl wird die
+  Liste **abgeschnitten**, nicht scrollbar — der Knopf darunter klappt sie auf.
+  Bewusst ohne Favicons — die müssten von fremden Servern geladen werden. **Was keine Adresse ist, wird zur Suche**: ein Wort,
   eine Normbezeichnung, eine Artikelnummer bleibt im Rohzustand stehen und führt
   beim Klick zum Startanbieter. Solche Zeilen tragen rechts eine
   Lupe statt des Pfeils und nennen unter dem Text die Anbieter, bei denen sich
@@ -425,6 +444,12 @@ Zeiger. Deshalb gilt: **mit der Maus wird sofort gezogen, mit dem Finger erst
 nach kurzem Halten** (0,4 Sekunden). Bewegt sich der Finger vorher, war es ein
 Wisch — dann wird gescrollt und nichts umsortiert. Sobald gegriffen ist, meldet
 das die Zeile mit einem Rahmen, und das Gerät gibt einen kurzen Impuls.
+
+**Keine Liste scrollt in sich selbst.** Wer die Seite herunterzieht und dabei
+über eine lange Linkliste oder eine Tagwolke kommt, scrollt weiter die Seite —
+die Listen werden abgeschnitten statt scrollbar gemacht, und der Weg zum Rest
+ist der Aufklappknopf darunter. Ein eigener Bildlauf mitten in der Seite fängt
+sonst die Wischbewegung ab.
 
 Zeilenaktionen sind überall Zeichen (`✎` bearbeiten, `✕` löschen), nicht mal
 Text und mal Zeichen. Auf schmalen Bildschirmen passt Text nicht in die
@@ -587,8 +612,11 @@ Verzeichnis. Welche Version wirklich läuft, sagt
 `curl -s http://localhost:3100/api/config`. Diese Zahl kommt allerdings aus der
 `package.json` und ist **keine Aussage über die übrigen Dateien**: wurden
 `package.json` und `server.js` ersetzt, `public/app.js` aber nicht, zeigt der
-Footer die neue Version, während die Oberfläche sich alt verhält. Dagegen hilft
-nur, den vollständigen Dateisatz erneut einzuspielen.
+Footer die neue Version, während die Oberfläche sich alt verhält. Belegen lässt
+sich das nur an einer Textstelle, die es allein in der neuen Datei gibt — für
+0.8.6 etwa `curl -s http://localhost:3100/app.js | grep -c 'Wer hat bewertet'`
+(erwartet: 3). Hilft dann nur, den vollständigen Dateisatz erneut einzuspielen,
+nicht einzelne Dateien nachzuziehen.
 
 **Die `.env` liegt bewusst nicht im Paket** — sie enthält den Schlüssel und hat
 in einer verteilten Datei nichts verloren. Sie wandert deshalb mit dem alten
