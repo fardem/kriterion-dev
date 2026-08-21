@@ -35,6 +35,7 @@ const CSP_ANWENDUNG =
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Content-Security-Policy', CSP_ANWENDUNG);
+  if (auth.HINTER_PROXY) res.set('Strict-Transport-Security', 'max-age=31536000');
   next();
 });
 app.use(express.static(path.join(__dirname, 'public')));
@@ -2524,5 +2525,12 @@ app.listen(PORT, () => {
   const u = auth.holeBenutzer();
   console.log(`[Kriterion] Läuft auf Port ${PORT} — ` +
     (u ? `Eigentümer: ${u.username}` : 'noch kein Zugang, Einrichtung im Browser'));
+  // Die Betriebsart gehoert ins Protokoll: an ihr haengen der gelesene Kopf,
+  // das Secure am Keks, HSTS und der Name des Kekses. Wer sie falsch stehen
+  // hat, sieht es hier und nicht erst an einer wirkungslosen Anmeldebremse.
+  console.log(`[Kriterion] Hinter Proxy: ${auth.HINTER_PROXY ? 'an' : 'aus'} — ` +
+    (auth.HINTER_PROXY
+      ? 'X-Forwarded-For wird gelesen, Keks mit Secure und __Host-'
+      : 'X-Forwarded-For wird nicht gelesen'));
   setTimeout(() => backfillVariants().then(maintainStorage).catch(e => console.error(e)), 1500);
 });
