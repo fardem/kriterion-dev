@@ -2530,12 +2530,32 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Der Schluesselwert steht ueberhaupt zur Verfuegung',
     fStatsAnna.inhalt?.keyFromEnv === false && typeof fStatsAnna.inhalt?.keyHex === 'string',
     JSON.stringify([fStatsAnna.inhalt?.keyFromEnv, typeof fStatsAnna.inhalt?.keyHex]));
-  pruefe('Aber nur die Eigentuemerin bekommt ihn',
-    fStatsBert.inhalt?.keyHex === null && fStatsCarla.inhalt?.keyHex === null,
-    JSON.stringify([fStatsBert.inhalt?.keyHex, fStatsCarla.inhalt?.keyHex]));
-  pruefe('Die Kennzahlen selbst sieht weiterhin jeder',
-    fStatsBert.status === 200 && typeof fStatsBert.inhalt?.itemCount === 'number',
-    `Status ${fStatsBert.status}`);
+  /* UMGEDREHT SEIT 0.8.5, nicht geloescht: bis 0.8.4 hiess diese Prueflage
+     "Aber nur die Eigentuemerin bekommt ihn" und fragte bert und carla
+     zugleich. Bert kommt seit 0.8.5 gar nicht mehr an die Kennzahlen -- der
+     Schluesselwert ist damit nur noch an carla pruefbar, und genau dort
+     gehoert er hin: sie ist Admin OHNE Eigentuemerrecht, also die einzige
+     Lage, in der die zweite, engere Klemme ueberhaupt etwas entscheidet
+     (Stolperstein 73). */
+  pruefe('Aber den Schluesselwert bekommt nur die Eigentuemerin',
+    fStatsCarla.status === 200 && fStatsCarla.inhalt?.keyHex === null,
+    JSON.stringify([fStatsCarla.status, fStatsCarla.inhalt?.keyHex]));
+  /* UMGEDREHT SEIT 0.8.5, nicht geloescht (Stolperstein 74): bis 0.8.4 hiess
+     die Prueflage "Die Kennzahlen selbst sieht weiterhin jeder". Die Zahlen
+     sagen, wie gross der Bestand und die Datenbank sind -- eine Aussage ueber
+     die Anlage als Ganzes. */
+  pruefe('Die Kennzahlen selbst sieht seit 0.8.5 nur noch der Admin',
+    fStatsBert.status === 403, `Status ${fStatsBert.status}`);
+  pruefe('Die Absage nennt dabei den Admin',
+    /Admin/.test(fStatsBert.inhalt?.error || ''), fStatsBert.inhalt?.error);
+  // Der Erfolgsfall daneben, und zwar an BEIDEN Rollen darueber: ohne ihn
+  // waere "403 fuer jeden" von "403 fuer den Benutzer" nicht zu unterscheiden.
+  pruefe('Ein Admin ohne Eigentuemerrecht sieht sie',
+    fStatsCarla.status === 200 && typeof fStatsCarla.inhalt?.itemCount === 'number',
+    `Status ${fStatsCarla.status}`);
+  pruefe('Und die Eigentuemerin auch',
+    fStatsAnna.status === 200 && typeof fStatsAnna.inhalt?.itemCount === 'number',
+    `Status ${fStatsAnna.status}`);
 
   /* ----------------------------------------------------------------
      Ab hier ist carla Admin OHNE Eigentuemerrecht -- die wichtigste Lage
@@ -5012,9 +5032,19 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       return gib(beispiel);
     if (url.startsWith('/api/attachments/41/preview'))
       return gib({ art: 'text', text: 'Erste Zeile\nZweite Zeile', gekuerzt: false });
-    if (url === '/api/stats') return gib({ dbBytes: 1, photoCount: 0, photoBytes: 0, itemCount: 1,
-      commentCount: 0, linkCount: 0, testDayCount: 0, attachmentCount: 4, attachmentBytes: 6144,
-      version: require('./package.json').version, keyFromEnv: false, keyHex: 'ab'.repeat(32) });
+    /* Die Kennzahlen stehen seit 0.8.5 hinter nurAdmin, und der Doppelgaenger
+       macht das mit. Antwortete er jedem mit 200, verdeckte er genau die
+       Falle, um die es in dieser Stufe geht: renderSystem() haengt sechs
+       Abrufe in EIN Promise.all, und ein einziger Fehlschlag verliesse den
+       Rumpf mit return -- der Systembereich bliebe fuer einen gewoehnlichen
+       Benutzer vollstaendig leer, auch die Karten, die ihm zustehen. */
+    if (url === '/api/stats') {
+      if (einstellungen.istAdmin === false)
+        return gib({ error: 'Das verwaltet nur der Admin.' }, 403);
+      return gib({ dbBytes: 1, photoCount: 0, photoBytes: 0, itemCount: 1,
+        commentCount: 0, linkCount: 0, testDayCount: 0, attachmentCount: 4, attachmentBytes: 6144,
+        version: require('./package.json').version, keyFromEnv: false, keyHex: 'ab'.repeat(32) });
+    }
     return gib({});
   };
   const skript = w.document.createElement('script');
@@ -6405,8 +6435,17 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 20));
   eMehr.w.close();
 
-  /* --- Das Anlegefeld im Systembereich, mit zugestelltem Ereignis --- */
-  const eSys = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+  /* --- Das Anlegefeld im Systembereich, mit zugestelltem Ereignis ---
+     Beide Lagen bekommen DIESELBEN zwei Tags: nur so laesst sich das Muster
+     der Karte an beiden Rollen nebeneinander pruefen. Eine leere Liste zeigt
+     "Noch nichts angelegt" -- und eine Pruefung auf fehlende Bedienzeichen
+     bliebe daran gruen, ohne je etwas zu belegen (Stolperstein 81). */
+  const eSysTags = [
+    { id: 21, name: 'Alu', usage_count: 3, test_usage_count: 1 },
+    { id: 22, name: 'Stahl', usage_count: 1, test_usage_count: 0 }
+  ];
+  const eSys = baueDom(JSDOM, { tags: eSysTags,
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
   await new Promise(r => setTimeout(r, 60));
   await eSys.w.renderSystem();
   await new Promise(r => setTimeout(r, 20));
@@ -6415,6 +6454,14 @@ async function pruefeOberflaeche() {
   pruefe('Die Kriterienzeilen tragen Griff, Umbenennen und Loeschen',
     [...eSys.w.document.querySelectorAll('#mcrits .mrow')]
       .every(z => z.querySelector('.grip') && z.querySelector('.ed') && z.querySelector('.rm')));
+  // Das Gegenstueck zur umgedrehten Pruefung weiter unten: MIT Adminrolle
+  // stehen die Zeichen an Tags und Kategorien sehr wohl da. Ohne diese Zeile
+  // waere "keine Zeichen" von "gar keine Zeilen" nicht zu unterscheiden.
+  pruefe('Und die Tagzeilen tragen mit Adminrolle ✎ und ✕',
+    [...eSys.w.document.querySelectorAll('#mtags .mrow')].length === 2 &&
+    [...eSys.w.document.querySelectorAll('#mtags .mrow')]
+      .every(z => z.querySelector('.ed') && z.querySelector('.rm')),
+    `${eSys.w.document.querySelectorAll('#mtags .mrow .mact').length} Knoepfe`);
   if (eFeld) {
     eFeld.value = 'Verpackung';
     // Wirklich zugestellt, nicht von Hand gerufen -- und danach durch die
@@ -6429,8 +6476,14 @@ async function pruefeOberflaeche() {
   pruefe('Und das Feld ist danach wieder leer', eFeld?.value === '', JSON.stringify(eFeld?.value));
   eSys.w.close();
 
-  /* --- Und dasselbe fuer einen ohne Adminrolle --- */
-  const eSysUser = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+  /* --- Und dasselbe fuer einen ohne Adminrolle ---
+     istEigentuemer MUSS hier mit auf false: die Rollen sind eine LEITER, ein
+     Eigentuemer ohne Adminrecht kann es gar nicht geben. Bliebe das Feld auf
+     seiner Vorgabe true, baute die Prueflage eine Lage nach, die der Server
+     nie ausliefert -- und pruefte den Systembereich gegen sie. */
+  const eSysUser = baueDom(JSDOM, { tags: eSysTags,
+    einstellungen: { filters: null, benutzerZahl: 3,
+      istAdmin: false, istEigentuemer: false } });
   await new Promise(r => setTimeout(r, 60));
   await eSysUser.w.renderSystem();
   await new Promise(r => setTimeout(r, 20));
@@ -6445,10 +6498,21 @@ async function pruefeOberflaeche() {
     `${eSysUser.w.document.querySelectorAll('#mcrits .mrow .mact').length} Knoepfe`);
   pruefe('Die Kriterien selbst bleiben sichtbar',
     /Zuerst/.test(eSysUser.w.document.getElementById('mcrits')?.textContent || ''));
-  // Tags und Kategorien gehen das nicht an -- die Klemme gilt nur den Kriterien.
-  pruefe('Tags und Kategorien bleiben unangetastet bedienbar',
-    [...eSysUser.w.document.querySelectorAll('#mtags .mrow')].every(z => z.querySelector('.rm')),
-    `${eSysUser.w.document.querySelectorAll('#mtags .mrow .rm').length}`);
+  /* UMGEDREHT SEIT 0.8.5, nicht geloescht (Stolperstein 74): bis 0.8.4 hiess
+     die Prueflage "Tags und Kategorien bleiben unangetastet bedienbar" -- die
+     Klemme galt nur den Kriterien. Seit 0.8.5 tragen alle drei Karten
+     dasselbe Muster: Zeilen sichtbar, Bedienzeichen weg. Umbenennen und
+     Loeschen stehen an allen dreien hinter nurAdmin. */
+  pruefe('Tags und Kategorien tragen seit 0.8.5 dasselbe Muster',
+    [...eSysUser.w.document.querySelectorAll('#mtags .mrow')].length > 0 &&
+    ![...eSysUser.w.document.querySelectorAll('#mtags .mrow')]
+      .some(z => z.querySelector('.ed') || z.querySelector('.rm')),
+    `${eSysUser.w.document.querySelectorAll('#mtags .mrow .mact').length} Knoepfe`);
+  // Und die Namen stehen trotzdem da: wer nicht verwalten darf, darf nachsehen.
+  pruefe('Die Tagnamen selbst bleiben sichtbar',
+    [...eSysUser.w.document.querySelectorAll('#mtags .mrow .mname')]
+      .some(z => (z.textContent || '').trim().length > 0),
+    eSysUser.w.document.getElementById('mtags')?.textContent);
   eSysUser.w.close();
 
   /* --- Die Karte "Zugaenge" -----------------------------------------------
@@ -7909,17 +7973,169 @@ async function pruefeOberflaeche() {
     JSON.stringify(sysDom.gesendet.map(g => g.koerper)));
   wSys.close();
 
-  const sysUser = baueDom(JSDOM, { einstellungen: { filters: null, istAdmin: false } });
+  const sysUser = baueDom(JSDOM, { einstellungen: { filters: null,
+    istAdmin: false, istEigentuemer: false } });
   const wSysU = sysUser.w;
   await new Promise(r => setTimeout(r, 60));
   await wSysU.renderSystem();
   pruefe('Ein Benutzer bekommt die Haken gar nicht erst zu sehen',
     !wSysU.document.getElementById('tagfrei') && !wSysU.document.getElementById('katfrei'),
     'ein Haken steht auch ohne Adminrolle da');
-  pruefe('Die Karten selbst bleiben ihm -- das raeumt erst die naechste Stufe',
+  // Die beiden KARTEN bleiben stehen, auch seit 0.8.5: wer nicht verwalten
+  // darf, darf nachsehen, was es gibt. Weg sind nur die Bedienzeichen.
+  pruefe('Die Karten selbst bleiben ihm',
     !!wSysU.document.getElementById('mtags') && !!wSysU.document.getElementById('mcats'),
-    'die Karten sind schon jetzt verschwunden');
+    'die Karten sind verschwunden');
   wSysU.close();
+
+  /* ================= Der Systembereich nach Rolle ================= */
+  gruppe('Der Systembereich nach Rolle');
+
+  /* DREI LAGEN NEBENEINANDER, und keine ist entbehrlich: die Eigentuemerin
+     (alle Karten), ein Admin OHNE Eigentuemerrecht (alles ausser Export und
+     Import) und ein gewoehnlicher Benutzer (drei Karten). Ohne die mittlere
+     waere "Eigentuemer" von "Admin" gar nicht zu unterscheiden, und jede
+     Pruefung darauf bliebe auch dann gruen, wenn ueberall nur die Adminfrage
+     stuende (Stolperstein 73).
+     Und zu jedem "ist weg" gehoert das "mit Rolle ist es DA" daneben: eine
+     Pruefung, die bei fehlendem Gegenstand gruen bleibt, kann gar nicht
+     scheitern (Stolperstein 81). Hier heisst das: eine verschwundene Karte
+     ist von einer Karte, die es nie gab, nur am Gegenaufbau zu unterscheiden. */
+  const rTags = [
+    { id: 31, name: 'Alu', usage_count: 3, test_usage_count: 1 },
+    { id: 32, name: 'Stahl', usage_count: 1, test_usage_count: 0 }
+  ];
+  const baueSystem = async (rollen) => {
+    const d = baueDom(JSDOM, { tags: rTags,
+      einstellungen: { filters: null, benutzerZahl: 4, ...rollen } });
+    await new Promise(r => setTimeout(r, 60));
+    await d.w.renderSystem();
+    await new Promise(r => setTimeout(r, 40));
+    return d;
+  };
+  // Die Karten werden an ihrer UEBERSCHRIFT abgezaehlt, nicht an einer id:
+  // die Ueberschrift ist das, was auf dem Bildschirm steht.
+  const kartenVon = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
+    .map(h => h.textContent.trim());
+
+  const rEig = await baueSystem({ istAdmin: true, istEigentuemer: true });
+  const rAdm = await baueSystem({ istAdmin: true, istEigentuemer: false });
+  const rUser = await baueSystem({ istAdmin: false, istEigentuemer: false });
+  const kEig = kartenVon(rEig), kAdm = kartenVon(rAdm), kUser = kartenVon(rUser);
+
+  const ALLE_KARTEN = ['Titel', 'Zugang', 'Kennzahlen', 'Export', 'Import', 'Kategorien',
+    'Tags', 'Bewertungskriterien', 'Zugänge', 'Darstellung', 'Links', 'Suchanbieter',
+    'Vokabular'];
+  pruefe('Die Eigentuemerin sieht alle dreizehn Karten',
+    gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
+
+  /* Die drei, die JEDEM bleiben -- und der Grund steht in jeder von ihnen:
+     "Zugang" ist der eigene Zugang, "Darstellung" ist Schriftgroesse und
+     Blockanordnung, "Links" ist die Zahl der sichtbaren Zeilen und der
+     angezeigten Anbieternamen. Alles Selbstbezug, alles persoenlich. */
+  pruefe('Ein gewoehnlicher Benutzer sieht sechs -- drei persoenliche, drei zum Nachsehen',
+    gleich(kUser, ['Zugang', 'Kategorien', 'Tags', 'Bewertungskriterien',
+                   'Darstellung', 'Links']),
+    kUser.join(' · '));
+
+  /* Punkt fuer Punkt, weil eine Sammelpruefung nicht sagt, WELCHE Karte
+     fehlt -- und weil jede fuer sich gegengeprueft werden koennen muss. */
+  for (const karte of ['Titel', 'Kennzahlen', 'Vokabular', 'Zugänge', 'Suchanbieter']) {
+    pruefe(`Die Karte "${karte}" steht nur beim Admin`,
+      kAdm.includes(karte) && !kUser.includes(karte),
+      `Admin: ${kAdm.includes(karte)} · Benutzer: ${kUser.includes(karte)}`);
+  }
+  for (const karte of ['Export', 'Import']) {
+    pruefe(`Die Karte "${karte}" steht nur beim Eigentuemer`,
+      kEig.includes(karte) && !kAdm.includes(karte) && !kUser.includes(karte),
+      `Eigentuemer: ${kEig.includes(karte)} · Admin: ${kAdm.includes(karte)}`);
+  }
+  for (const karte of ['Zugang', 'Darstellung', 'Links']) {
+    pruefe(`Die Karte "${karte}" steht jedem, auch ohne Rolle`,
+      kUser.includes(karte) && kEig.includes(karte), kUser.join(' · '));
+  }
+
+  /* DIE KONKRETESTE FALLE DIESER STUFE. renderSystem() haengt sechs Abrufe in
+     EIN Promise.all, und der Rumpf verlaesst sich mit return, sobald einer
+     scheitert. Stuenden die Kennzahlen hinter dem Admin und wuerden trotzdem
+     abgerufen, bliebe der Systembereich fuer einen Benutzer VOLLSTAENDIG
+     leer -- auch die drei Karten, die ihm zustehen. Punkt 2 ist ohne Punkt 1
+     nicht zu haben. */
+  pruefe('Ohne Adminrolle werden die Kennzahlen gar nicht erst abgerufen',
+    !rUser.gesendet.some(x => x.url === '/api/stats'),
+    rUser.gesendet.map(x => x.url).join(' · '));
+  pruefe('Mit Adminrolle sehr wohl',
+    rAdm.gesendet.some(x => x.url === '/api/stats'),
+    rAdm.gesendet.map(x => x.url).join(' · '));
+  pruefe('Und der Systembereich bleibt dabei ueberhaupt gefuellt',
+    kUser.length > 0 && !/lädt …/.test(rUser.w.document.getElementById('app')?.textContent || ''),
+    rUser.w.document.getElementById('app')?.textContent?.slice(0, 80));
+
+  /* Was verschwindet, sind die KARTEN, nicht die Daten. Das Vokabular ist
+     jede Beschriftung der Oberflaeche -- ohne es haette der Benutzer einen
+     Bildschirm ohne Woerter. Geprueft wird an einer Beschriftung, die aus dem
+     Vokabular kommt und nicht aus dem Quelltext. */
+  const rVok = await baueSystem({ istAdmin: false, istEigentuemer: false,
+    vokabular: { sacheMehrzahl: 'Geräte' } });
+  pruefe('Das Vokabular wird trotzdem ausgeliefert und benutzt',
+    /Geräte/.test(rVok.w.document.getElementById('app')?.textContent || ''),
+    'die Beschriftung folgt dem Vokabular nicht');
+  pruefe('Aber die Karte zum Bearbeiten steht ihm nicht',
+    !rVok.w.document.getElementById('v1') && !rVok.w.document.getElementById('vsave'));
+  rVok.w.close();
+
+  /* Die persoenlichen Karten sind nicht nur da, sie funktionieren auch. Ein
+     wirklich zugestelltes Ereignis, samt Durchlauf der Ereignisschleife --
+     eine Karte, die dasteht und nichts tut, waere nicht besser als keine
+     (Stolperstein 61). */
+  rUser.gesendet.length = 0;
+  const rPille = [...rUser.w.document.querySelectorAll('#fsize .pill')]
+    .find(b => b.textContent === '120 %');
+  pruefe('Die Schriftgroesse traegt ihre Stufen auch ohne Rolle', !!rPille,
+    [...rUser.w.document.querySelectorAll('#fsize .pill')].map(b => b.textContent).join(' · '));
+  if (rPille) {
+    rPille.dispatchEvent(new rUser.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+  }
+  const rGesendet = rUser.gesendet.filter(x => x.methode === 'PUT' && x.url === '/api/settings').pop();
+  pruefe('Und der Druck speichert sie wirklich',
+    rGesendet?.koerper?.schrift === 120, JSON.stringify(rGesendet));
+
+  /* Die persoenliche Haelfte der Links bleibt, die Adminhaelfte geht. Beides
+     an EINER Lage, sonst liesse sich der Schnitt der Karte nicht belegen. */
+  pruefe('Die Zahl der Anbieternamen bleibt dem Benutzer',
+    !!rUser.w.document.getElementById('snamen') &&
+    rUser.w.document.querySelectorAll('#snamen .pill').length > 0);
+  pruefe('Und die sichtbaren Linkzeilen ebenso',
+    rUser.w.document.querySelectorAll('#lzeilen .pill').length > 0);
+  pruefe('Vorrat, Startanbieter und eigene Anbieter dagegen nicht',
+    !rUser.w.document.getElementById('sanbieter') &&
+    !rUser.w.document.getElementById('seigene'));
+  pruefe('Beim Admin stehen sie sehr wohl da',
+    rAdm.w.document.querySelectorAll('#sanbieter .sanb').length > 0 &&
+    rAdm.w.document.querySelectorAll('#seigene .sanb-slot').length === 3,
+    `${rAdm.w.document.querySelectorAll('#sanbieter .sanb').length} Anbieter`);
+
+  /* Die veraltete Anleitung. Eine falsche Anleitung auf dem Bildschirm ist
+     schlimmer als eine fehlende: sie wird befolgt. Erst das Vorhandensein der
+     Karte, dann ihr Inhalt -- sonst bliebe die Verneinung auch dann wahr,
+     wenn die Karte gar nicht mehr da waere (Stolperstein 81). */
+  const rZugangKarte = [...rUser.w.document.querySelectorAll('.sys-card')]
+    .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugang');
+  pruefe('Die Karte "Zugang" ist ueberhaupt da', !!rZugangKarte);
+  pruefe('Sie nennt AUTH_RESET nicht mehr',
+    !!rZugangKarte && !/AUTH_RESET/.test(rZugangKarte.textContent || ''),
+    rZugangKarte?.textContent?.slice(0, 200));
+  pruefe('Sondern den Befehl, der wirklich hilft',
+    !!rZugangKarte && /zugang\.js passwort/.test(rZugangKarte.textContent || ''),
+    rZugangKarte?.textContent?.slice(0, 300));
+  // Und ausdruecklich in der ganzen Oberflaeche nicht mehr als Anleitung:
+  // die Zeichenkette steht in app.js nur noch dort, wo sie hingehoert.
+  const rAppQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  pruefe('AUTH_RESET steht in der ganzen Oberflaeche nirgends mehr',
+    !rAppQuelle.includes('AUTH_RESET'), 'public/app.js nennt AUTH_RESET noch');
+
+  rEig.w.close(); rAdm.w.close(); rUser.w.close();
 
   /* ================= Vergleich: meine / alle ================= */
   gruppe('Der Umschalter der Vergleichsansicht');

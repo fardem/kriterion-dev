@@ -1948,7 +1948,15 @@ app.delete('/api/comments/:id', (req, res) => {
 });
 
 /* ---- Kennzahlen ---- */
-app.get('/api/stats', (req, res) => {
+// NUR DER ADMIN. Die Zahlen sagen, wie gross der Bestand und wie belegt die
+// Datenbank ist -- das ist eine Aussage ueber die Anlage als Ganzes und nicht
+// ueber den Einzelnen. Lesende Route, deshalb steht sie in keiner Liste
+// schreibender Routen; der Waechter davor ist derselbe wie bei
+// GET /api/users/:id/bestand.
+// Der Schluesselwert weiter unten im Rumpf bleibt eine ZWEITE, engere Klemme:
+// den bekommt weiterhin nur der Eigentuemer. Zusammenlegen liesse sich das
+// nicht -- es sind zwei verschiedene Fragen an dieselbe Antwort.
+app.get('/api/stats', nurAdmin, (req, res) => {
   let dbBytes = 0;
   try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
   const p = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos').get();
