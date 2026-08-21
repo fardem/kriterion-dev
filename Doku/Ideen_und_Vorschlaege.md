@@ -472,6 +472,10 @@ den wichtigsten halte.
 
 ### 4.1 Gewichtung der Kriterien **[NEU]**
 
+> **Ausgearbeitet in `Konzept_Gewichtung_Bewertungskriterien.md`.** Dort steht
+> der vollständige Bauplan samt der Antwort auf „nie über 5, nie unter 1" —
+> sie ist beim gewichteten Mittelwert geschenkt und braucht keinen Deckel.
+
 **Das Problem.** Alle Kriterien zählen heute gleich viel. „Optische
 Erscheinung" und „Verarbeitungsqualität" gehen mit demselben Gewicht in den
 Gesamtschnitt ein — und das ist bei fast jeder realen Beurteilung falsch.
