@@ -1,8 +1,17 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 21. August 2026 · gebaut bis Version 0.8.6**
-(Stufen A bis G3 erledigt, **G3 vollständig**; 0.8.1 war eine **Bereinigung**
-und 0.8.6 eine Runde **Berichtigungen aus dem Betrieb** — beides keine Stufen.)
+**Konzeptpapier · Stand 21. August 2026 · gebaut bis Version 0.8.10 — Abdruck `48fe44e7`**
+(Stufen A bis G3 erledigt, **G3 vollständig**; 0.8.1 war eine **Bereinigung**,
+0.8.6 eine Runde **Berichtigungen aus dem Betrieb** und 0.8.10 die Runde
+**Werkzeug** — alle drei keine Stufen.)
+
+**0.8.10 hat den Mehrbenutzerbetrieb nicht berührt.** Sie ging an den Bau
+(Sperrdatei, `npm ci`, `sharp`, Node 22), an den Prüfstand (Gruppenfilter,
+Prüflauf bei jedem Push) und mit dem Versionsabdruck an eine einzige Zeile im
+Systembereich. Keine Rolle, kein Recht, kein Endpunkt, kein Schema — dieses
+Papier ändert sich dadurch nur in seinen Nummern. **Die nächste Stufe des
+Umbaus bleibt G4 auf 0.8.30**, und davor liegt mit 0.8.20 noch eine Runde
+ohne Schemaänderung.
 
 Dieses Papier trägt die Entwürfe der Stufen und was beim Bauen anders kam.
 Erledigtes steht seit der Bereinigung als **Ergebnisblock** — was gilt, mit
@@ -448,7 +457,9 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 > Kurzvideos, Sicherung). **Die Nummern gehen dort in Zehnerschritten**, damit
 > zwischen zwei Stufen neun Nummern für Berichtigungsrunden frei bleiben —
 > 0.8.1 und 0.8.6 waren genau das und mussten sich in eine geplante Nummer
-> drängen.
+> drängen. **Mit 0.8.10 ist der Zehnerschritt zum ersten Mal wirklich
+> gebaut**, und die Sortierung `0.8.9 < 0.8.10 < 0.8.20` hat im Betrieb
+> gehalten.
 >
 > **Der Inhalt der Stufen G4, H und I bleibt unverändert und wird weiter hier
 > gepflegt.** Nur ihre Nummern und ihre Nachbarn stehen im Projektstand.
@@ -472,13 +483,14 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | **G2c** | **0.8.4** | Rest von G2: die beiden Anlegen-Schalter und die Vergleichsansicht; dazu die Rolle im Vermerk, `updated_at` bei den Bildwegen und die Zahlen am Kommentarblock — **erledigt, Stufe G2 vollständig**, siehe unten | mittel |
 | **G3** | **0.8.5** | „Der Systembereich lernt die Rechte": dreizehn Karten nach Rolle, `GET /api/stats` hinter den Admin, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien — **erledigt**, siehe unten | mittel |
 | — | **0.8.6** | *Keine Stufe.* **Berichtigungen aus dem Betrieb:** Bewertungsdetails nur noch für den Admin (eigener Endpunkt, Löschweg mitgewandert), Scrollen der Linkliste am Finger, Lücke im Kartenraster, Datum am Eintragsverfasser, „angemeldet als" in der Kopfzeile — **erledigt**, siehe unten | klein |
+| — | **0.8.10** | *Keine Stufe.* **Werkzeug:** `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Abbild auf Node 22, Versionsabdruck über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push — **erledigt**, den Umbau nicht berührt | klein |
 | **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der Zeile ab zwei Zugängen, Formatnummer 6 → 7 | mittel |
 | **H** | **0.8.80** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
 | **I** | 0.9.0 | Mailversand mit Anbietervorlagen, öffentliche Adresse, Testmail, Selbstregistrierung mit Freischaltung. *Abbruchpunkt: nach dem Versand, vor der Selbstregistrierung.* | groß |
 
-**Vor G4 liegen zwei Runden ohne Schemaänderung** (0.8.10 Werkzeug, 0.8.20
-Sicherheit), **zwischen G4 und H vier weitere Stufen** (Gewichtung,
-Kurzvideos, „Offen/Neu", Sicherung und Papierkorb). Alle fünf gehören nicht
+**Vor G4 liegt noch eine Runde ohne Schemaänderung** (0.8.20 „Die Schotten
+dicht"; 0.8.10 „Werkzeug" ist gebaut), **zwischen G4 und H vier weitere
+Stufen** (Gewichtung, Kurzvideos, „Offen/Neu", Sicherung und Papierkorb). Alle fünf gehören nicht
 zum Mehrbenutzerbetrieb und stehen deshalb im Projektstand, Abschnitt 10 —
 zusammen mit der Begründung für die Reihenfolge.
 
@@ -903,6 +915,20 @@ Anlegezeile verschwindet für jeden außer dem Admin; das Auswahlfeld aus dem
 Vorhandenen bleibt. Bei den **Tags** bleibt das Häkchen an. **Das ist eine
 Einstellung, keine Version.**
 
+## 0.8.10 — Werkzeug — erledigt in Version 0.8.10
+
+**Kein Block, und das ist die Auskunft.** 0.8.10 hat den Mehrbenutzerbetrieb
+an keiner Stelle berührt: keine Rolle, kein Recht, kein Endpunkt, kein Schema.
+`F_ROUTEN` blieb bei 46. Gebaut wurden der wiederholbare Bau, `sharp` und Node
+22, der Versionsabdruck und zwei Dinge am Prüfstand — was davon gilt, steht
+im Projektstand, Abschnitte 2, 5, 7 und 9.
+
+**Eines wirkt trotzdem hierher**, weil es jede kommende Stufe betrifft: der
+**Abdruck** löst die Textstelle je Version ab, mit der bisher nachgeprüft
+wurde, ob wirklich der neue Dateisatz läuft (siehe „Nachprüfen per SSH"). Und
+er wird **zuletzt** gebildet, nach der letzten Änderung an einer
+ausgelieferten Datei — jede spätere Änderung macht die genannte Zeile falsch.
+
 ## Stufe G4 — offen, Version 0.8.30
 
 **„Die Linkliste bekommt Verfasser."** Heute gehören Links dem
@@ -939,6 +965,22 @@ mitgeliefert und stehen nicht mehr hier. Drei Ebenen, in dieser Reihenfolge:
 **1. Protokoll.** `docker compose logs --tail=50 kriterion`. Der Start meldet
 den Eigentümer und `.env`-Reste; fehlt nach einem Einspielen die erwartete
 Änderung, wurde der Container nicht neu gebaut (`--build` vergessen).
+
+**1a. Der Abdruck** (seit 0.8.10) — die Antwort auf „läuft wirklich der neue
+Dateisatz". Die Versionsnummer aus `/api/config` sagt nichts über die übrigen
+Dateien; der Abdruck deckt alles ab, was der Server lädt und ausliefert. Er
+steht hinter der Anmeldung, die deshalb in den Befehl gehört:
+
+```bash
+curl -s -c kekse.txt -X POST localhost:3100/api/login \
+  -H 'Content-Type: application/json' -d '{"user":"NAME","password":"..."}'
+curl -s -b kekse.txt localhost:3100/api/stats | head -c 60
+```
+
+Erwartet für 0.8.10: `{"version":"0.8.10","abdruck":"48fe44e7",…`. Der Abdruck
+jeder Version steht im Kopf des Projektstands und in ihrem
+Änderungsprotokoll. **Was er nicht abdeckt:** `zugang.js` — es liegt im
+Abbild, läuft aber nie im Server.
 
 **2. Datenbank von innen.** Sie ist verschlüsselt, `sqlite3` von außen
 scheitert — die passende Bibliothek liegt im Container:
