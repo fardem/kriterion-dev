@@ -3,7 +3,12 @@
  * Prueft die Kriterienverwaltung (umbenennen, sortieren, Wirkung auf
  * Detailansicht, Vergleich und Export) und die mitwachsenden Textfelder.
  *
- *   node pruefung.js
+ *   node pruefung.js            alles
+ *   node pruefung.js Rechte     nur Gruppen mit "Rechte" im Namen
+ *
+ * Der Name filtert die AUSGABE, nicht die ARBEIT: die Prueflagen bauen
+ * aufeinander auf, es wird also nichts schneller. Ein gefilterter Lauf sagt am
+ * Ende ausdruecklich, dass er gefiltert war -- er ist kein vollstaendiger Beleg.
  *
  * Laeuft gegen einen echten Server mit echter, verschluesselter Datenbank in
  * einem Wegwerfverzeichnis; der Bestand unter data/ wird nicht angefasst.
@@ -19,13 +24,90 @@ const Database = require('better-sqlite3-multiple-ciphers');
 const anh = require('./anhaenge');
 
 /* ================= Kleiner Pruefrahmen ================= */
+/* EIN NAMENSFILTER AUF DER AUSGABE, NICHT AUF DER ARBEIT.
+
+     node pruefung.js            alles, wie bisher
+     node pruefung.js Rechte     nur Gruppen mit "Rechte" im Namen
+
+   Diese Datei ist EIN langer Ablauf: die Prueflagen bauen aufeinander auf,
+   Server werden einmal gestartet, Bestaende nacheinander erzeugt. Ein
+   Namensfilter kann deshalb nur die AUSGABE einschraenken, nicht die ARBEIT
+   -- wer wartet, wartet weiter. Der Gewinn ist ein anderer und trotzdem echt:
+   beim Deuten roter Punkte verschwindet das Rauschen.
+
+   DIE REGEL DAZU, sonst wird daraus eine Falle: ein gefilterter Lauf sagt am
+   Ende ausdruecklich, dass er gefiltert war, wie viele Gruppen er uebergangen
+   hat und ob darin etwas rot war. Ohne das liese sich "alles in Ordnung" nach
+   einem Teillauf als vollstaendiger Beleg lesen -- genau der stille
+   Fehlschluss aus Stolperstein 81.
+
+   DER RUECKGABEWERT folgt dem GEZEIGTEN: sonst waere ein gefilterter Lauf aus
+   Gruenden rot, die gar nicht angesehen werden, und der Filter waere wertlos.
+   Ein Filter, auf den KEINE Gruppe passt, ist dagegen rot -- sonst meldete
+   ein Tippfehler im Namen wortlos Erfolg. */
+const FILTER = (process.argv[2] || '').trim();
 let bestanden = 0, gescheitert = 0, uebersprungen = 0;
-const gruppe = (name) => console.log(`\n── ${name} ${'─'.repeat(Math.max(0, 58 - name.length))}`);
+let stillBestanden = 0, stillGescheitert = 0;
+let gruppenGezeigt = 0, gruppenStill = 0;
+let stumm = false;
+const gruppe = (name) => {
+  stumm = FILTER !== '' && !name.toLowerCase().includes(FILTER.toLowerCase());
+  if (stumm) { gruppenStill++; return; }
+  gruppenGezeigt++;
+  console.log(`\n── ${name} ${'─'.repeat(Math.max(0, 58 - name.length))}`);
+};
 function pruefe(name, bedingung, hinweis = '') {
+  // Die Bedingung ist beim Aufruf laengst gerechnet -- der Filter nimmt die
+  // Zeile weg, nicht die Arbeit. Gezaehlt wird sie trotzdem, damit der
+  // Schlussblock sagen kann, ob im Uebergangenen etwas rot war.
+  if (stumm) { if (bedingung) stillBestanden++; else stillGescheitert++; return; }
   if (bedingung) { bestanden++; console.log(`  ✓ ${name}`); }
   else { gescheitert++; console.log(`  ✗ ${name}${hinweis ? `\n      ${hinweis}` : ''}`); }
 }
+// EINE Stelle fuer den Schlussblock: der gefilterte und der volle Lauf enden
+// gleich, und die Selbstprobe weiter unten pruefT genau diese Stelle.
+function schlussBlock() {
+  console.log(`\n${'═'.repeat(62)}`);
+  const summe = bestanden + gescheitert;
+  // "0 von 0 bestanden -- alles in Ordnung" waere die schlimmste Zeile des
+  // ganzen Prueflaufs: sie meldet Erfolg fuer nichts.
+  if (!summe) console.log('  KEINE PRUEFUNG GEZEIGT — nichts belegt.');
+  else console.log(`  ${bestanden} von ${summe} Pruefungen bestanden` +
+              (uebersprungen ? `, ${uebersprungen} uebersprungen` : '') +
+              (gescheitert ? `  —  ${gescheitert} GESCHEITERT` : '  —  alles in Ordnung'));
+  if (FILTER) {
+    console.log(`\n  GEFILTERTER LAUF nach "${FILTER}" — KEIN VOLLSTAENDIGER BELEG.`);
+    if (!gruppenGezeigt)
+      console.log(`  KEINE EINZIGE GRUPPE traegt den Namen — es wurde nichts geprueft.`);
+    else
+      console.log(`  ${gruppenGezeigt} von ${gruppenGezeigt + gruppenStill} Gruppen gezeigt, ` +
+                  `${gruppenStill} uebergangen (${stillBestanden + stillGescheitert} Pruefungen).`);
+    if (stillGescheitert)
+      console.log(`  DARIN ${stillGescheitert} GESCHEITERT — hier nicht angezeigt. ` +
+                  `Ohne Filter laufen lassen, um sie zu sehen.`);
+  }
+  console.log(`${'═'.repeat(62)}\n`);
+}
+const rueckgabewert = () => (gescheitert || (FILTER && !gruppenGezeigt)) ? 1 : 0;
 const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/* SELBSTPROBE DES RAHMENS. Mit gesetztem PRUEFRAHMEN_PROBE laeuft NICHT der
+   Prueflauf, sondern nur der Rahmen darueber: zwei gestellte Gruppen mit
+   gestellten Ergebnissen. Damit ist die Regel des gefilterten Laufs pruefbar,
+   ohne den ganzen Durchlauf ein zweites Mal zu fahren -- und ohne dass der
+   Rahmen sich selbst bestaetigt: die Gruppe "Der Gruppenfilter" faehrt diese
+   Probe als eigenen Prozess und sieht sich Ausgabe und Rueckgabewert an. */
+if (process.env.PRUEFRAHMEN_PROBE) {
+  const lage = process.env.PRUEFRAHMEN_PROBE;
+  gruppe('Rechte am Eintrag');
+  pruefe('gezeigt und grün', true);
+  pruefe('gezeigt und rot', lage !== 'rot-gezeigt');
+  gruppe('Fotos und Vorschau');
+  pruefe('übergangen und grün', true);
+  pruefe('übergangen und rot', lage !== 'rot-uebergangen');
+  schlussBlock();
+  process.exit(rueckgabewert());
+}
 
 /* ================= Umgebung ================= */
 const KEY = crypto.randomBytes(32).toString('hex');
@@ -469,6 +551,77 @@ const namen = (liste) => liste.map(c => c.name);
     imAbdruck.join(' · '));
   pruefe('Kein Modul des Servers wird erst innerhalb einer Funktion geladen',
     spaetGeladen.length === 0, spaetGeladen.join(', '));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Gruppenfilter');
+
+  /* Der Rahmen kann sich nicht selbst bestaetigen: waeren Zaehlung oder
+     Rueckgabewert falsch, waere es genau die Zaehlung, die es meldet. Die
+     Selbstprobe am Dateianfang laeuft deshalb als EIGENER PROZESS, und hier
+     werden Ausgabe und Rueckgabewert von aussen angesehen. Sie fuehrt zwei
+     gestellte Gruppen und kostet Millisekunden -- den ganzen Durchlauf ein
+     zweites Mal zu fahren, kostete eine Minute und brachte nichts dazu. */
+  const rahmenProbe = (lage, filter) => {
+    const r = require('child_process').spawnSync(process.execPath,
+      filter ? ['pruefung.js', filter] : ['pruefung.js'],
+      { cwd: __dirname, encoding: 'utf8', env: { ...process.env, PRUEFRAHMEN_PROBE: lage } });
+    return { text: r.stdout || '', code: r.status };
+  };
+
+  const ohneFilter = rahmenProbe('1', '');
+  // Erst das Vorhandensein: kaeme aus dem Kindprozess gar nichts, waere jede
+  // Verneinung darunter wahr und der ganze Abschnitt gruen (Stolperstein 81).
+  pruefe('Die Selbstprobe des Rahmens läuft überhaupt',
+    /Pruefungen bestanden/.test(ohneFilter.text), JSON.stringify(ohneFilter.text.slice(0, 120)));
+  pruefe('Ohne Filter stehen beide Gruppen da',
+    /Rechte am Eintrag/.test(ohneFilter.text) && /Fotos und Vorschau/.test(ohneFilter.text));
+  pruefe('Und kein Wort von einem gefilterten Lauf',
+    !/GEFILTERTER LAUF/.test(ohneFilter.text));
+  pruefe('Vier Prüfungen, Rückgabewert null',
+    /4 von 4 Pruefungen bestanden/.test(ohneFilter.text) && ohneFilter.code === 0,
+    `Code ${ohneFilter.code}`);
+
+  const gefiltert = rahmenProbe('1', 'Rechte');
+  pruefe('Mit Filter bleibt die passende Gruppe stehen',
+    /Rechte am Eintrag/.test(gefiltert.text));
+  pruefe('Und die andere verschwindet',
+    !/Fotos und Vorschau/.test(gefiltert.text));
+  /* DIE REGEL, UM DIE ES GEHT: ohne diesen Satz liese sich "alles in Ordnung"
+     nach einem Teillauf als vollstaendiger Beleg lesen. */
+  pruefe('Der Lauf sagt selbst, dass er gefiltert war',
+    /GEFILTERTER LAUF nach "Rechte" — KEIN VOLLSTAENDIGER BELEG/.test(gefiltert.text));
+  pruefe('Und nennt die Zahl der übergangenen Gruppen',
+    /1 von 2 Gruppen gezeigt, 1 uebergangen \(2 Pruefungen\)/.test(gefiltert.text),
+    gefiltert.text.split('\n').filter(z => /Gruppen/.test(z)).join(' | '));
+
+  /* Ein Fehlschlag in einer UEBERGANGENEN Gruppe: der Rueckgabewert folgt dem
+     Gezeigten und bleibt null -- sonst waere der Filter wertlos -- aber der
+     Schlussblock nennt ihn, damit niemand den Teillauf fuer vollstaendig
+     haelt. */
+  const stillRot = rahmenProbe('rot-uebergangen', 'Rechte');
+  pruefe('Ein Fehlschlag im Übergangenen wird ausdrücklich gemeldet',
+    /DARIN 1 GESCHEITERT — hier nicht angezeigt/.test(stillRot.text),
+    stillRot.text.split('\n').filter(z => /GESCHEITERT/.test(z)).join(' | '));
+  pruefe('Und färbt den Rückgabewert trotzdem nicht rot', stillRot.code === 0,
+    `Code ${stillRot.code}`);
+  pruefe('Er taucht auch in keiner Zeile mit einem Namen auf',
+    !/✗/.test(stillRot.text), stillRot.text.split('\n').filter(z => /✗/.test(z)).join(' | '));
+
+  /* Und die Gegenrichtung: ein Fehlschlag in einer GEZEIGTEN Gruppe macht den
+     Lauf rot. Ohne dieses Paar bliebe offen, ob der Rueckgabewert ueberhaupt
+     noch auf etwas reagiert. */
+  const gezeigtRot = rahmenProbe('rot-gezeigt', 'Rechte');
+  pruefe('Ein Fehlschlag im Gezeigten macht den Lauf rot',
+    gezeigtRot.code === 1 && /1 GESCHEITERT/.test(gezeigtRot.text), `Code ${gezeigtRot.code}`);
+
+  /* Ein Filter, auf den nichts passt, ist die eigentliche Falle: er zeigt
+     nichts, und ohne Regel meldete er wortlos Erfolg. */
+  const daneben = rahmenProbe('1', 'Gibtesnicht');
+  pruefe('Ein Filter ohne Treffer meldet keinen Erfolg',
+    /KEINE PRUEFUNG GEZEIGT/.test(daneben.text) &&
+    /KEINE EINZIGE GRUPPE traegt den Namen/.test(daneben.text),
+    daneben.text.split('\n').filter(z => z.trim()).join(' | '));
+  pruefe('Und sein Rückgabewert ist rot', daneben.code === 1, `Code ${daneben.code}`);
 
   /* ---------------------------------------------------------------- */
   gruppe('Kriterien: lesen, umbenennen, anlegen');
@@ -4847,16 +5000,11 @@ const namen = (liste) => liste.map(c => c.name);
   schluss.close();
 
   /* ---------------------------------------------------------------- */
-  console.log(`\n${'═'.repeat(62)}`);
-  const summe = bestanden + gescheitert;
-  console.log(`  ${bestanden} von ${summe} Pruefungen bestanden` +
-              (uebersprungen ? `, ${uebersprungen} uebersprungen` : '') +
-              (gescheitert ? `  —  ${gescheitert} GESCHEITERT` : '  —  alles in Ordnung'));
-  console.log(`${'═'.repeat(62)}\n`);
+  schlussBlock();
 
   kind.kill();
   fs.rmSync(DATA, { recursive: true, force: true });
-  process.exit(gescheitert ? 1 : 0);
+  process.exit(rueckgabewert());
 })().catch(e => {
   console.error('\nPrueflauf abgebrochen:', e.message);
   if (kind) kind.kill();
