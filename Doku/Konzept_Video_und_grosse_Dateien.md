@@ -1,8 +1,9 @@
 # Konzept — Videos und große Dateien
 
-Vorgesehen **nach 1.0**. Der Projektstand führt Videos seit Langem als
-zurückgestellt („kein Verzicht, sondern ein eigener Bauabschnitt"); dieses
-Papier sagt, wie der Bauabschnitt aussähe.
+**Teil I ist beschlossen für 0.8.50 — also vor 1.0. Teil II steht auf 1.1.0.**
+Der Projektstand führte Videos bis dahin geschlossen als zurückgestellt („kein
+Verzicht, sondern ein eigener Bauabschnitt"); das stimmte nur für die eine
+Hälfte.
 
 Sprache wie in den übrigen neuen Papieren: gewöhnliches IT-Deutsch.
 
@@ -29,8 +30,30 @@ Auslieferung und Hochladen —, und jeder einzelne davon zieht eigenen Code nach
 sich. Wer beides in einem Zug baut, baut zwei Dinge gleichzeitig und hat
 hinterher an keinem eine klare Regel.
 
-**Deshalb: zwei Versionen.** Kurzvideos zuerst — sie sind für sich vollständig
-und liefern den sichtbaren Nutzen. Große Dateien danach.
+**Deshalb: zwei Versionen, und sie liegen bewusst weit auseinander.**
+
+| | Version | Warum dort |
+|---|---|---|
+| **Teil I** Kurzvideos | **0.8.50** | ändert eine **bestehende** Tabelle — das gehört vor die Zusage der Abwärtskompatibilität, nicht dahinter |
+| **Teil II** Große Dateien | **1.1.0** | legt **neue** Tabellen und einen zweiten Speicherort an, ohne den bisherigen anzurühren — bricht die Zusage deshalb nicht |
+
+**Das ist die Umkehrung des ersten Entwurfs**, und der Grund dafür gehört
+genannt: dort stand „beides nach 1.0, weil beides Datenmodell und Speicherort
+anfasst". Das Argument ist richtig, zeigt aber in die andere Richtung. Ab 1.0
+wird Abwärtskompatibilität **zugesichert**. Eine Änderung an `photos` — der
+Tabelle, in der jeder vorhandene Bestand liegt — will man **vor** dieser
+Zusage machen, nicht unmittelbar danach. Teil II legt dagegen nur Neues
+daneben: ein vorhandener Anhang bleibt, wo er ist, und nur neue große Dateien
+gehen nach draußen.
+
+**Zwei Bindungen an die Nachbarstufen:**
+
+- **0.8.20 muss vorher liegen.** Der Videoweg liefert eine Datei **inline**
+  aus. Er darf erst gebaut werden, wenn die Regel „der ausgelieferte Typ kommt
+  nie aus der Datenbank" auch am Fotoweg gilt — siehe Abschnitt 6.
+- **0.8.70 muss danach liegen.** Der Papierkorb dort serialisiert einen
+  Eintrag. Gibt es dann schon Videos, wird die Serialisierung **einmal**
+  gebaut statt einmal gebaut und einmal nachgezogen.
 
 ---
 
@@ -75,6 +98,28 @@ Löschwege, die Kaskade am Eintrag.
 
 Damit funktionieren Kartenraster, Vorschauleiste und Sortierung **ohne eine
 einzige Änderung** — sie greifen ohnehin nur auf `thumb` und `sort_order` zu.
+
+## 3a. Es gelten dieselben Regeln wie am Foto — alle
+
+Das ist keine Absichtserklärung, sondern eine **Folge der Bauform**: weil ein
+Video in derselben Tabelle steht wie ein Foto, greift jede vorhandene Regel
+von selbst. Nichts davon muss durchgesetzt werden, und nichts davon darf
+später eine Ausnahme bekommen.
+
+| | gilt am Video, weil |
+|---|---|
+| **Rechte** | Hinzufügen, Umsortieren und Löschen laufen über `nurEintragVerfasser` — dieselbe Klemme wie beim Foto. Wer den Eintrag ändern darf, darf Videos hinzufügen und entfernen; sonst niemand. |
+| **Kaskade** | `photos.item_id` hat `ON DELETE CASCADE`. Ein gelöschter Eintrag nimmt seine Videos mit, ohne dass irgendwo etwas ergänzt wird. |
+| **Reihenfolge** | `sort_order`, dasselbe Ziehen mit Maus und Finger, dieselbe 0,4-Sekunden-Schwelle. Steht ein Video vorn, ist sein Standbild das Hauptbild. |
+| **Löschdialog** | Der Dialog am Eintrag nennt die Zahlen. Videos zählen dort mit — als eigene Zeile, nicht als Fotos getarnt. |
+| **Kennzahlen** | Der Systembereich zählt Fotos; künftig Fotos **und** Videos, getrennt ausgewiesen. Die Datenbankgröße wächst sichtbar mit. |
+| **Verschlüsselung** | Ein Video liegt als BLOB in der Datenbank und ist damit von SQLCipher mit abgedeckt — wie jedes Foto, ohne eigenes Verfahren. |
+| **Sicherung** | `./data` deckt es ab. Der Satz in der README bleibt wortgleich wahr. |
+| **Auslieferung** | Positivliste nach Endung, `nosniff`, eigene Sicherheitsregel auf der Antwort — dieselben Schichten wie bei jeder anderen Datei, siehe Abschnitt 6. |
+
+**Die einzige Stelle, an der ein Video sich anders verhält**, ist der Zoom im
+Vollbild: beim Bild geht der zweite Klick auf Originalgröße, beim Video gehört
+er der Abspielsteuerung. Siehe Abschnitt 8.
 
 ## 4. Das Standbild — und warum dafür kein `ffmpeg` nötig ist
 
@@ -366,11 +411,14 @@ Drei Dinge, die dabei schiefgehen können und deshalb vorab geregelt gehören:
 kurze Videos an der Stelle der Fotos will — und das war der Ausgangswunsch —
 ist danach fertig.
 
-**Vorschlag: 1.1.0 für Teil I, 1.2.0 für Teil II.** Beides nach 1.0, weil
-beides Datenmodell und Speicherort anfasst und die Zusage der
-Abwärtskompatibilität ab 1.0 gilt: ein Bestand mit Videos muss dann in jeder
-folgenden Version lesbar bleiben. Diese Zusage will man nicht einlösen müssen,
-während man noch überlegt, wie die Dateien liegen sollen.
+**Beschlossen: 0.8.50 für Teil I, 1.1.0 für Teil II.** Die Begründung steht in
+Abschnitt 1; sie hängt daran, dass Teil I eine bestehende Tabelle ändert und
+Teil II nur neue anlegt.
+
+**Teil II lässt sich jederzeit vorziehen**, ohne dass an Teil I etwas anders
+gebaut werden müsste. Die beiden teilen sich keinen Code: der eine Weg legt
+BLOBs in die Datenbank, der andere Dateien daneben. Was sie teilen, ist
+allein die Positivliste der Formate — und die steht ohnehin an einer Stelle.
 
 ## 16. Was ich ausdrücklich nicht vorschlage
 

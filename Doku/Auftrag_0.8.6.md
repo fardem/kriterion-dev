@@ -240,6 +240,9 @@ zum Gegenprüfen mit `curl -s http://localhost:3100/app.js | grep -c`.
 
 ZUM VORMERKEN, NICHT IN DIESER RUNDE:
 
+* HINWEIS: Dieser Ausblick ist ueberholt. Der gueltige Stufenplan steht im
+  Projektstand, Abschnitt 10 — G4 wurde 0.8.30, H wurde 0.8.80, I blieb 0.9.0,
+  und die Nummern gehen seither in Zehnerschritten.
 * STUFE G4 auf 0.8.7 — „Die Linkliste bekommt Verfasser." Links dürfen von
   jedem eingetragen werden; löschen darf sie der Eintrager oder der Admin, und
   der Name des Eintragers steht ab zwei Zugängen an der Zeile. Das kehrt die

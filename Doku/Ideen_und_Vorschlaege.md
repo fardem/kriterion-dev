@@ -5,6 +5,36 @@ Prüfstand vollständig durchgelaufen: **1429 von 1429 Prüfungen bestanden**.
 
 ---
 
+> ## ⚑ Eingearbeitet — dieses Papier ist Quelle, nicht Stand
+>
+> **Was hieraus gilt, steht seit der Einarbeitung im Projektstand,
+> Abschnitt 10 und 11.** Dort ist der Stufenplan, dort werden die Punkte
+> gepflegt, und nur dort. Zwei Stellen für dieselbe Angabe halten nur eine
+> aktuell (Stolperstein 47) — deshalb ist auch das eigene Roadmap-Papier
+> aufgegangen und wieder verschwunden.
+>
+> **Wozu es trotzdem stehenbleibt:** die Befunde in Abschnitt 2 und die
+> Messwerte in Abschnitt 3 stehen sonst nirgends — jeder mit dem Weg, ihn
+> nachzustellen, und mit dem, was dabei herauskam. Wer eine der Stufen baut,
+> findet hier die Begründung dahinter statt nur ihren Namen.
+>
+> **Zwei Punkte sind seither umgestoßen worden:**
+>
+> - **Videos** standen unter „was ich nicht in die Roadmap nehmen würde". Das
+>   war falsch — es gilt nur für große Dateien. Kurzvideos bis 20 MB liegen
+>   wie ein Foto in der Datenbank, und das Standbild kann der Browser
+>   liefern. Ausgearbeitet in `Konzept_Video_und_grosse_Dateien.md`,
+>   beschlossen für 0.8.50.
+> - **Punkt 4.1, Gewichtung**, ist vollständig ausgearbeitet in
+>   `Konzept_Gewichtung_Bewertungskriterien.md` — mit drei Vorschlägen statt
+>   sechs festen Stufen und freier Eingabe von 0,2 bis 2.
+>
+> Neue Punkte werden **hier nicht mehr nachgetragen.** Was aus dem Betrieb
+> kommt, geht in den Projektstand; was ein eigenes Vorhaben ist, bekommt ein
+> eigenes Konzeptpapier.
+
+---
+
 ## Vorbemerkung
 
 **Zur Sprache.** Dieses Dokument ist bewusst in normalem deutschem
@@ -847,7 +877,7 @@ curl -s http://localhost:3100/api/config
 ```
 
 Zum Vergleich gehört ein Wert, der zur Version veröffentlicht wird — eine
-Zeile im Änderungsprotokoll: *„0.8.7 — Abdruck `a3f91c02`"*.
+Zeile im Änderungsprotokoll: *„0.8.10 — Abdruck `a3f91c02`"*.
 
 **Aufwand: etwa zwanzig Zeilen.** Und der ganze Absatz in der README, der die
 grep-Prozedur erklärt, wird durch drei Sätze ersetzt. Von allen Vorschlägen
