@@ -375,6 +375,19 @@ const namen = (liste) => liste.map(c => c.name);
     !bauZeilen.some(z => /npm install/.test(z)),
     bauZeilen.filter(z => /npm install/.test(z)).join(' · '));
 
+  /* Ohne HEALTHCHECK weiss Docker nur, dass der Prozess laeuft -- nicht, ob
+     er antwortet. Ein Container in einer Neustartschleife saehe von aussen
+     gesund aus.
+     Gefragt wird /api/config und NICHT /api/health: health liegt hinter der
+     Anmeldung, ein Healthcheck kaeme dort nie durch. Beide Haelften stehen
+     hier zusammen, sonst pruefte die Zeile nur einen Text im Dockerfile. */
+  const gesundZeile = dockerText.split('\n').find(z => z.startsWith('HEALTHCHECK'));
+  pruefe('Der Dockerfile hat einen Healthcheck', !!gesundZeile, 'keine HEALTHCHECK-Zeile');
+  pruefe('Er fragt /api/config, das schon vor der Anmeldung antwortet',
+    dockerText.includes("/api/config'") || dockerText.includes('/api/config"'),
+    gesundZeile || '(keine Zeile)');
+  pruefe('Und /api/config antwortet wirklich ohne Anmeldung',
+    (await fetch(`${BASIS}/api/config`)).status === 200);
 
   /* ---------------------------------------------------------------- */
   gruppe('Der Versionsabdruck');
@@ -3796,6 +3809,14 @@ const namen = (liste) => liste.map(c => c.name);
     /res\.status\(500\)\.json\(\{ error: '[^']+' \}\)/.test(fFehlerRumpf),
     fFehlerRumpf ? 'kein fester Text bei 500' : '(kein Rumpf)');
 
+  /* SAUBERES HERUNTERFAHREN. Sechs Zeilen, und die Sicherung des
+     Datenverzeichnisses wird verlaesslich -- geprueft wird hier, dass beide
+     Zeichen behandelt werden und die WAL wirklich abgeschlossen wird. */
+  pruefe('SIGTERM und SIGINT werden behandelt',
+    fQuelle.includes("['SIGTERM', 'SIGINT']"), 'kein Handler fuer die Abbruchzeichen');
+  pruefe('Und dabei wird die WAL abgeschlossen',
+    fQuelle.includes("wal_checkpoint(TRUNCATE)") && fQuelle.includes('db.close()'),
+    'kein wal_checkpoint oder kein db.close');
 
   /* ================================================================
      Verwaltung, Rollen, Sperren, Grabstein
@@ -5254,6 +5275,63 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und dabei entsteht kein halber Eintrag',
     !(await ruf('GET', '/api/items')).inhalt.some(i => i.title === 'Kaputt'));
   await ruf('DELETE', `/api/items/${fhItem.id}`);
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Sauberes Herunterfahren und der Index auf sessions');
+
+  const hDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-abschluss-'));
+  const H2 = starteWeiterenServer(hDir2, {}, 5640);
+  await H2.bereit;
+  await H2.ruf('POST', '/api/setup', { user: 'hilde', password: 'hildes-langes-wort' });
+  await H2.ruf('POST', '/api/items', { title: 'Vor dem Herunterfahren' });
+
+  const walPfad = path.join(hDir2, 'katalog.sqlite-wal');
+  // Erst das Vorhandensein, dann die Eigenschaft: waere die WAL schon vorher
+  // leer, belegte die Zeile danach nichts (Stolperstein 81).
+  const walVorher = fs.existsSync(walPfad) ? fs.statSync(walPfad).size : 0;
+  pruefe('Vor dem Herunterfahren steht etwas in der WAL', walVorher > 0, `${walVorher} Bytes`);
+
+  await H2.stopp();                       // schickt SIGTERM
+  await new Promise(r => setTimeout(r, 300));
+  const walNachher = fs.existsSync(walPfad) ? fs.statSync(walPfad).size : 0;
+  /* Nach SIGTERM ist die WAL abgeschlossen. Wer in genau diesem Augenblick
+     das Datenverzeichnis sichert, sichert einen vollstaendigen Stand -- das
+     ist der ganze Zweck der sechs Zeilen. */
+  pruefe('Nach SIGTERM ist die WAL abgeschlossen', walNachher === 0, `${walNachher} Bytes`);
+  // Und der Bestand ist wirklich in der Hauptdatei angekommen, nicht bloss
+  // die WAL geloescht.
+  {
+    const d = oeffne(path.join(hDir2, 'katalog.sqlite'));
+    pruefe('Der Bestand steht danach in der Datenbank',
+      d.prepare('SELECT COUNT(*) n FROM items').get().n === 1);
+    /* DER INDEX AUF sessions.user_id. Jede Frage nach den Sitzungen EINES
+       Benutzers laese sonst die ganze Tabelle. */
+    const idx = d.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'sessions'").all();
+    pruefe('Der Index auf sessions.user_id ist da',
+      idx.some(i => i.name === 'idx_sessions_user'), JSON.stringify(idx.map(i => i.name)));
+    // Er wird auch wirklich benutzt -- ein Index, den der Abfrageplaner
+    // uebergeht, waere nur eine Zeile im Schema.
+    const plan = d.prepare('EXPLAIN QUERY PLAN SELECT token FROM sessions WHERE user_id = 1').all();
+    pruefe('Und der Abfrageplaner nimmt ihn',
+      plan.some(z => String(z.detail || '').includes('idx_sessions_user')),
+      JSON.stringify(plan.map(z => z.detail)));
+    // KEIN UMSTIEGSCODE NOETIG, und das wird hier belegt statt geglaubt: der
+    // Index wird entfernt, der Server einmal gestartet -- und er ist wieder
+    // da. Anders als eine neue Spalte ruestet CREATE INDEX IF NOT EXISTS sich
+    // bei jedem Start selbst nach, in bestehender wie frischer Anlage.
+    d.prepare('DROP INDEX idx_sessions_user').run();
+    pruefe('Zur Gegenprobe entfernt', !d.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_sessions_user'").get());
+    d.close();
+  }
+  kurzlauf(`require('./db'); console.log('da');`, hDir2);
+  {
+    const d = oeffne(path.join(hDir2, 'katalog.sqlite'));
+    pruefe('Und beim naechsten Start von selbst wieder da', !!d.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_sessions_user'").get());
+    d.close();
+  }
+  fs.rmSync(hDir2, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   gruppe('Anhänge: Vorschau');

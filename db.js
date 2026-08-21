@@ -213,6 +213,11 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   last_seen TEXT NOT NULL DEFAULT (datetime('now'))
 );
+-- Der Primaerschluessel liegt auf token; jede Frage nach den Sitzungen EINES
+-- Benutzers -- sperren, loeschen, spaeter "Meine Sitzungen" -- laese sonst die
+-- ganze Tabelle. Ein Index ist kein Umstieg: er fasst die Zeilenform nicht an
+-- und legt sich bei jedem Start selbst nach, in frischer wie bestehender Anlage.
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 
 -- Der Favorit: eine Aussage eines Benutzers ueber einen Eintrag, keine
 -- Eigenschaft des Eintrags -- deshalb eine eigene Tabelle. Es gibt nur Zeilen

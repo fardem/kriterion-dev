@@ -2534,6 +2534,18 @@ function bildeAbdruck() {
 // der Pruefstand haelt genau das fest.
 const ABDRUCK = bildeAbdruck();
 
+/* Sauberes Herunterfahren. Ohne das beendet "docker compose down" den Prozess
+   hart: die WAL-Datei bleibt liegen, und wer in genau diesem Augenblick das
+   Datenverzeichnis sichert, sichert einen Zustand mit offener WAL. Fuer SQLite
+   ist das ungefaehrlich, fuer eine Sicherung nicht.
+   Der Abschluss darf nichts werfen -- wer beendet, ist nicht mehr zu retten. */
+for (const zeichen of ['SIGTERM', 'SIGINT']) {
+  process.on(zeichen, () => {
+    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}
+    process.exit(0);
+  });
+}
+
 app.listen(PORT, () => {
   // holeBenutzer() ist hier RICHTIG: beim Start gibt es keine Anfrage und
   // damit keinen angemeldeten Benutzer. Gemeint ist der Eigentuemer, und so
