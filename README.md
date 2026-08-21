@@ -230,7 +230,12 @@ es zwei, beide im Systembereich einstellbar:
   lässt sich mit jedem Teststatus kombinieren. Ein Favorit ist persönlich
   und sortiert die gemeinsame Liste nicht um — wer seine Favoriten sammeln
   will, nimmt den Filter.
-- Über das Häkchen auf einer Karte lassen sich Einträge vergleichen.
+- Über das Häkchen auf einer Karte lassen sich Einträge vergleichen. Im
+  Vergleich steht bei **mehr als einem Zugang** ein Umschalter
+  **„meine / alle"** über dem Raster: er schaltet Kriterienwerte, Kopfzahl und
+  Testtagzeile gemeinsam zwischen den eigenen Werten und dem Schnitt über
+  alle. Vorgabe ist „alle". Bei einem einzigen Zugang erscheint er nicht —
+  dann wären beide Stellungen dieselbe Zahl.
 
 **Eintrag**
 - Blättern mit ← → oder über die Pfeile, ohne vorher ins Bild zu klicken. Klick
@@ -336,9 +341,20 @@ es zwei, beide im Systembereich einstellbar:
   Rückfrage. Beim Eintrag wird benannt, was dranhängt.
 
 **Systembereich** (Zahnrad in der Kopfzeile)
-- Beide Titel ändern
+
+**Was man dort sieht, hängt an der Rolle.** Ein gewöhnlicher Benutzer bekommt
+sechs Karten: seinen eigenen **Zugang**, die **Darstellung**, die **Links**
+und die drei Listen **Kategorien**, **Tags** und **Bewertungskriterien** — die
+letzten drei ohne Bedienzeichen, nur zum Nachsehen. Alles Übrige steht dem
+**Admin**, Export und Import allein dem **Eigentümer**. Der Grund: ein Knopf,
+der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
+
+- Beide Titel ändern *(Admin)*
 - Kennzahlen: Einträge, Fotos, Kommentare, Links, Testtage, Datenbankgröße
+  *(Admin)*. Der Schlüsselwert zum Abschreiben steht darin nur für den
+  **Eigentümer**.
 - **Zugänge** verwalten — siehe den Abschnitt „Rollen und Zugänge" oben
+  *(Admin)*
 - **Export** mit oder ohne Fotos, nur für den Eigentümer der Anlage. Die
   Datei nennt zu jedem Eintrag, jeder Bewertung, jedem Kommentar und jedem
   Testtag den **Verfassernamen**.
@@ -353,18 +369,25 @@ es zwei, beide im Systembereich einstellbar:
 - **Darstellung**: Schriftgröße der Oberfläche in fünf Stufen von 80 % bis
   120 %, Zeitleiste an oder aus, Standardanordnung der Blöcke — alles
   serverseitig gespeichert
-- **Links**: Zahl der sichtbaren Zeilen, bevor aufgeklappt werden muss, und die
-  **Suchanbieter** für Zeilen, die keine Adresse sind. Sechs eingebaute
+- **Links** *(jeder)*: Zahl der sichtbaren Zeilen, bevor aufgeklappt werden
+  muss, und die Zahl der Anbieternamen unter einer Suchzeile — beides
+  persönlich, jeder stellt es für sich ein.
+- **Suchanbieter** *(Admin)*: die Anbieter für Zeilen, die keine Adresse sind.
+  Sechs eingebaute
   (Google, Bing, DuckDuckGo, Startpage, Brave Search, Ecosia) und bis zu drei
   eigene mit Name und Vorlage, `%s` als Platzhalter — etwa für ein Forum oder
   einen Suchdienst im Heimnetz. Erlaubt sind ausschließlich `http://` und
   `https://`. Ein Häkchen nimmt einen Anbieter in die Auswahl, **Start** macht
-  ihn zum Ziel des Zeilenklicks. Dazu die Zahl der Namen, die unter einer
-  Suchzeile stehen sollen: eine bis vier.
-- **Vokabular**: wie die Dinge heißen sollen (siehe unten)
+  ihn zum Ziel des Zeilenklicks. Beides gilt für alle — der Admin kuratiert,
+  die Dichte bestimmt jeder für sich.
+- **Vokabular**: wie die Dinge heißen sollen (siehe unten) *(Admin)*
 - **Kategorien und Tags** umbenennen oder löschen, mit Angabe der betroffenen
-  Einträge
-- **Bewertungskriterien** umbenennen, löschen und **per Ziehen sortieren**. Die
+  Einträge *(Admin)*. Dazu je ein Häkchen, **wer einen neuen Namen anlegen
+  darf**: mit Haken jeder unmittelbar am Eintrag, ohne Haken nur der Admin.
+  Zuweisen und Auswählen aus dem Vorhandenen bleibt in jedem Fall für alle
+  offen — abgeschaltet verschwindet nur die Zeile „+ neu anlegen".
+- **Bewertungskriterien** umbenennen, löschen und **per Ziehen sortieren**
+  *(Admin)*. Die
   Reihenfolge gilt für Detailansicht und Vergleich gleichermaßen — im Vergleich
   fällt das oberste Kriterium zuerst ins Auge. Die Zahl nennt die Einträge, bei
   denen Sterne vergeben sind; ein zurückgesetztes Kriterium zählt nicht mit.

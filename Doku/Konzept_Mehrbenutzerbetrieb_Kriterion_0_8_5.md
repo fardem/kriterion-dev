@@ -187,6 +187,14 @@ kann um bis zu 0,05 danebenliegen). Es zählen nur Werte > 0.
 eigene Kriterium, der Knopf „Meine Bewertung zurücksetzen" die eigenen Werte
 des Eintrags.
 
+**Die Stimmenliste kam in 0.8.2 dazu und geht in 0.8.6 wieder** — unter der
+Sternzeile stand je Kriterium, wer welchen Wert vergeben hat. Das ist mehr,
+als eine Bewertung aussagen soll: **der Schnitt und die eigene Zahl reichen.**
+Wer welchen Wert vergeben hat, sieht künftig nur noch der **Admin in einer
+eigenen Ansicht**, die er ausdrücklich aufruft. Sie ist zugleich der
+**Löschweg** für eine fremde Bewertung — der hing bisher am ✕ in der
+Stimmenzeile und muss mitwandern. Siehe den Block „0.8.6" in Teil III.
+
 ## 6. Testtage, Zeitleiste, „Getestet" — erledigt in 0.7.0
 
 **Was gilt:** Der Sternwert eines Testtags gehört dem Eintragenden; im
@@ -236,6 +244,15 @@ einer „Alu" und der nächste „Aluminium" tippt und nur der Admin aufräumen 
 Tagwolke, die Eingabe ist der einzige Zuweisungsweg. Sie bleibt stehen; ein
 unbekannter Name wird vom Server abgewiesen. Sonst nähme der Schalter das
 Zuweisen mit, und „Zuweisen darf immer jeder" gilt.
+
+**Die gewählte Stellung im Betrieb, seit 0.8.5 entschieden:** bei den
+**Kategorien** ist der Schalter **aus** — eine neue Kategorie legt nur der
+Admin an, am Eintrag bleibt das Auswahlfeld aus dem Vorhandenen. Bei den
+**Tags** ist er **an** — dort vergibt jeder einen neuen Namen unmittelbar am
+Eintrag. Im Systembereich sieht ein gewöhnlicher Benutzer seit 0.8.5 bei
+beiden nur noch die Liste; umbenannt und gelöscht wird dort weiterhin
+ausschließlich vom Admin. **Das ist eine Einstellung, kein Bau** — genau
+dafür ist der Schalter da, und beide Stellungen sind jederzeit umkehrbar.
 
 ## 8. Einstellungen: global gegen persönlich — erledigt in 0.6.5
 
@@ -437,9 +454,10 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | **G2a** | **0.8.2** | Verfassernamen an vier Trägern, Stimmenliste je Kriterium, Löschdialog am Eintrag, Endpunkt für fremde Bewertungen — **erledigt**, siehe unten | mittel |
 | **G2b** | **0.8.3** | Eingriffsvermerk am Kommentar, `mine` am Kommentar samt der Oberfläche dazu, blaue Aufgabenmarke, Tagwolke — **erledigt**, siehe unten | mittel |
 | **G2c** | **0.8.4** | Rest von G2: die beiden Anlegen-Schalter und die Vergleichsansicht; dazu die Rolle im Vermerk, `updated_at` bei den Bildwegen und die Zahlen am Kommentarblock — **erledigt, Stufe G2 vollständig**, siehe unten | mittel |
-| **G3** | **0.8.5** | *Neu eingeschoben.* „Der Systembereich lernt die Rechte": neun Karten nach Rolle, `GET /api/stats` hinter den Admin, Kachel „Zugänge" über die volle Breite, Trennlinien in der Linkliste | mittel |
-| **G4** | **0.8.6** | *Neu.* „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der Zeile ab zwei Zugängen, Formatnummer 6 → 7 | mittel |
-| **H** | **0.8.7** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
+| **G3** | **0.8.5** | „Der Systembereich lernt die Rechte": dreizehn Karten nach Rolle, `GET /api/stats` hinter den Admin, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien — **erledigt**, siehe unten | mittel |
+| — | **0.8.6** | *Keine Stufe.* **Berichtigungen aus dem Betrieb:** Scrollen der Linkliste am Finger, Bewertungsdetails nur noch für den Admin, Datum am Eintragsverfasser, Lücke im Kartenraster, „angemeldet als" in der Kopfzeile | klein |
+| **G4** | **0.8.7** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der Zeile ab zwei Zugängen, Formatnummer 6 → 7 | mittel |
+| **H** | **0.8.8** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
 | **I** | 0.9.0 | Mailversand mit Anbietervorlagen, öffentliche Adresse, Testmail, Selbstregistrierung mit Freischaltung. *Abbruchpunkt: nach dem Versand, vor der Selbstregistrierung.* | groß |
 
 Danach: Sicherung auf Knopfdruck, dann 1.0.0.
@@ -729,53 +747,141 @@ gegengeprüft: `begrenzeWolke()` bricht bei Höhe 0 ab, und das Aufklappen
 zeichnet die Wolke neu.
 
 
-## Stufe G3 — offen, Version 0.8.5
+## Stufe G3 — erledigt in Version 0.8.5
 
-**„Der Systembereich lernt die Rechte."** Neu eingeschoben, weil es die einzige
-Stelle ist, an der die Rechteschicht aus Stufe F noch keine Entsprechung auf dem
-Bildschirm hat. Von neun Karten hängt heute genau **eine** an der Rolle
-(„Zugänge"); bei den Kriterien sind immerhin die Bedienelemente ausgeblendet.
-Ein gewöhnlicher Benutzer sieht: **Titel** mit Eingabefeldern und
-Speichern-Knopf, **Kennzahlen** samt Speicherverbrauch, **Export** und
-**Import** als vollständige Kacheln, **Kategorien** und **Tags** mit ✎ und ✕,
-**Vokabular** zum Bearbeiten.
+**„Der Systembereich lernt die Rechte."** Gebaut wie entworfen, mit einer
+Erweiterung: es waren **nicht neun Karten, sondern zwölf** — und nach dem Bau
+sind es **dreizehn**.
 
-**Kein Loch:** der Server verweigert jedes Schreiben (Stufe F, geprüft). Es ist
-Anzeige — aber genau die Bauform, gegen die hier schon zweimal entschieden
-wurde: *ein Knopf, der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein
-Fehler.*
+**Die Karten hängen jetzt an der Rolle.** Vorher hing genau eine daran.
 
-**Zwei Sorten Arbeit, und sie bleiben getrennt.** *Oberfläche:* Karten und
-Bedienelemente nach Rolle; für Kategorien und Tags das Muster der
-Kriterienkarte übernehmen (Zeilen sichtbar, ✎ und ✕ weg). *Server:* nur bei den
-**Kennzahlen** — `GET /api/stats` hinter `nurAdmin`, was die Entscheidung „Die
-Kennzahlen selbst sieht weiterhin jeder" aus 0.7.2 zurücknimmt. Export und
-Import stehen bereits hinter `nurEigentuemer`.
+| Karte | steht |
+|---|---|
+| Titel, Kennzahlen, Kategorien, Tags, Bewertungskriterien, Zugänge, Suchanbieter, Vokabular | dem Admin |
+| Export, Import | dem Eigentümer |
+| **Zugang, Darstellung, Links** | **jedem, auch ohne Rolle** |
 
-**Was sich nicht wörtlich einlösen lässt.** „Ansicht für Vokabular und Titel gar
-nicht" geht nicht: das Vokabular **ist** jede Beschriftung der Oberfläche, und
-`appTitle` steht in der Kopfzeile. Beide müssen ausgeliefert werden. Was
-verschwindet, sind die **Karten**, nicht die Daten.
+Die drei letzten sind **Selbstbezug**: der eigene Zugang, die eigene
+Schriftgröße und Blockanordnung, die eigene Zahl sichtbarer Linkzeilen und
+Anbieternamen. Sie gehen niemanden sonst etwas an und hängen an keiner Rolle.
 
-**Dazu zwei Kleinigkeiten desselben Bildschirms:** die Kachel „Zugänge" trägt
-eine Liste mit Namen, Rolle, Status, Eintragszahl und bis zu vier
-Bedienelementen je Zeile und steht im selben Raster wie „Titel" — sie gehört
-über die volle Breite. Und die Linkliste im Systemmenü braucht dezente
-Trennlinien zwischen ihren Abschnitten.
+**Kategorien, Tags und Kriterien bleiben für jeden stehen** — Zeilen sichtbar,
+Griff, ✎ und ✕ weg. *Wer nicht verwalten darf, darf trotzdem nachsehen:* die
+Namen sind die Auswahl, aus der jeder am Eintrag schöpft. Eine versteckte
+Karte nähme ihm die Übersicht über etwas, das er benutzt.
 
-**Auflage aus Stolperstein 74:** wird ein Endpunkt eingeschränkt, sind die
-Prüfungen der Vorgängerversion die ersten Betroffenen. Hier konkret „Die
-Kennzahlen selbst sieht weiterhin jeder" und „Tags und Kategorien bleiben
-unangetastet bedienbar" — umdrehen, nicht löschen. In 0.8.3 ist das schon
-einmal vorgekommen und hat funktioniert: aus „Bearbeiten und Löschen bleiben
-rechts" wurde „Bearbeiten steht nur am eigenen Kommentar, Löschen an jedem".
+**Die Karte „Links" ist in zwei geschnitten** — im Entwurf nicht bedacht. Sie
+mischte als einzige Karte Persönliches mit Adminsachen. Der Schnitt folgt
+genau der Trennung, die der Server seit 0.6.5 hält:
 
-**Dazu gehört die veraltete `AUTH_RESET`-Zeile.** Die Karte „Zugang" sagt
-weiterhin „vergessen heißt `AUTH_RESET=1` am Server"; seit 0.8.0 falsch, und
-die Karte „Zugänge" nennt zwei Bildschirmzeilen tiefer schon `zugang.js`.
-Derselbe Bildschirm, also hierher.
+- **„Links"** (jeder): sichtbare Linkzeilen, Zahl der Anbieternamen. Beides
+  persönlich.
+- **„Suchanbieter"** (Admin): Vorrat, Startanbieter, die drei eigenen
+  Anbieter. Alles global.
 
-## Stufe G4 — offen, Version 0.8.6
+*Der Admin kuratiert, der Benutzer bestimmt die Dichte* — dieser Satz stand
+schon in `server.js` und hat seit 0.8.5 seine Entsprechung auf dem Bildschirm.
+
+**`GET /api/stats` steht hinter `nurAdmin`.** Das nimmt „Die Kennzahlen selbst
+sieht weiterhin jeder" aus 0.7.2 zurück. Lesende Route, deshalb **kein**
+Eintrag in `F_ROUTEN` — die Zahl bleibt bei 46. Der Schlüsselwert in derselben
+Antwort bleibt eine **zweite, engere Klemme** am Eigentümer; die beiden decken
+einander nicht zu, eine eigene Gegenprobe belegt das.
+
+**Die konkreteste Falle der Stufe, und sie ist eingetreten.** `renderSystem()`
+hängt sechs Abrufe in **ein** `Promise.all` und verlässt den Rumpf mit
+`return`, sobald einer scheitert. Stünden die Kennzahlen hinter dem Admin und
+würden trotzdem abgerufen, bliebe der Systembereich für einen gewöhnlichen
+Benutzer **vollständig leer** — auch die drei Karten, die ihm zustehen. Der
+Abruf ist deshalb bedingt; ein `catch` daneben wäre eine zweite Schicht und
+verdeckte die erste in jeder Gegenprobe. Der Rückbau macht **19 Prüfungen**
+rot.
+
+**Dazu erledigt:** die veraltete `AUTH_RESET`-Zeile in der Karte „Zugang" (sie
+nennt jetzt `zugang.js`), die Kachel „Zugänge" über die volle Breite und
+dezente Trennlinien zwischen den Abschnitten der beiden Linkkarten.
+
+**Was ausdrücklich nicht gebaut wurde:** „Ansicht für Vokabular und Titel gar
+nicht". Das Vokabular **ist** jede Beschriftung, der interne Titel steht in der
+Kopfzeile — beide werden weiter ausgeliefert. Was verschwindet, sind die
+**Karten**, nicht die Daten.
+
+**Zwei Prüfungen umgedreht statt gelöscht** (Auflage aus Stolperstein 74):
+„Die Kennzahlen selbst sieht weiterhin jeder" und „Tags und Kategorien bleiben
+unangetastet bedienbar". **Zwei neue Stolpersteine:** 87 (eine Prüflage, die
+nur die eine Hälfte einer Rollenleiter setzt) und 88 (wer eine Karte
+versteckt, muss ihre Behandler mitverstecken).
+
+## 0.8.6 — Berichtigungen aus dem Betrieb — offen
+
+**Keine Stufe des Umbaus, eine Runde Nacharbeit.** Fünf Punkte, die beim
+Ansehen von 0.8.5 aufgefallen sind. Kein Schema, kein Umstiegscode. Die
+Reihenfolge ist die Reihenfolge der Wichtigkeit.
+
+**1. Die Bewertungsdetails gehören dem Admin.** Heute steht unter der
+Sternzeile je Kriterium, **wer welchen Wert vergeben hat** — mit Namen, für
+jeden sichtbar. Das ist mehr, als eine Bewertung aussagen soll. Künftig zeigt
+die Zeile nur noch den **eigenen Wert und den Durchschnitt**; wer welchen Wert
+vergeben hat, sieht der **Admin in einer eigenen Ansicht**, die er ausdrücklich
+aufruft.
+
+> **Das nimmt eine Entscheidung aus 0.8.2 zurück** — dort wurde die
+> Stimmenliste eingeführt, und sie ist seither die **Voraussetzung des
+> Löschwegs**: das ✕ an einer fremden Bewertung hängt an ihrer Zeile.
+> Verschwindet die Liste ersatzlos, kann der Admin keine fremde Bewertung mehr
+> entfernen. Die eigene Ansicht ist deshalb **kein Zusatz, sondern die
+> Bedingung** — sie trägt den Löschweg weiter.
+> `DELETE /api/ratings/:id` bleibt unverändert; was sich ändert, ist, von wo
+> aus er gerufen wird. Der Endpunkt, der die Stimmen liefert, gehört hinter
+> `nurAdmin` — dasselbe Muster wie `GET /api/stats` in 0.8.5, also **lesend
+> mit Wächter und ohne Eintrag in `F_ROUTEN`**.
+
+**2. Die Linkliste scrollt am Finger nicht mehr in sich selbst.** Wer auf dem
+Handy die Seite herunterzieht und dabei über die Linkliste kommt, scrollt
+plötzlich nur noch die Liste statt der Seite. Ursache ist
+`box.style.overflowY = 'auto'` in `begrenzeLinks()`.
+**Der einfachste Weg ist der beste: `hidden` statt `auto`.** Die Liste
+bekommt keinen eigenen Bildlauf mehr, sondern wird schlicht abgeschnitten —
+und der Knopf „alle N anzeigen" steht **schon da** und klappt sie auf. Damit
+scrollt am Finger immer die Seite, und die Einstellung „sichtbare Zeilen"
+behält ihren Sinn. Eine Haltezeit wie beim Ziehen wäre die aufwendigere und
+ungewohntere Lösung; sie ist beim Scrollen nicht üblich und würde jedes
+Wischen um 0,4 s verzögern. **Dieselbe Frage stellt sich bei der Tagwolke** —
+`begrenzeWolke()` setzt `overflow` ebenso; dort mitprüfen.
+
+**3. Die Lücke im Kartenraster.** Die Kachel „Zugänge" geht seit 0.8.5 über
+die volle Breite. Steht sie nicht am Anfang einer Rasterzeile, lässt CSS Grid
+davor eine Lücke. **Eine feste Position löst das nicht:** wie viele Karten in
+eine Zeile passen, hängt an der Fensterbreite (`auto-fit`), und wie viele
+Karten es überhaupt gibt, hängt an der Rolle — dreizehn beim Eigentümer, elf
+beim Admin. Position 10 stimmt bei drei Spalten und ist bei zwei falsch.
+**Richtig ist `grid-auto-flow: dense` am `.sys-grid`:** das Raster zieht eine
+nachfolgende schmale Karte in die Lücke, unter jeder Breite und bei jeder
+Kartenzahl. Die Reihenfolge im Quelltext bleibt, wie sie ist.
+*Falls dense nicht überzeugt:* Ersatzweise die Kachel ans **Ende** des Rasters
+— dort kann keine Lücke davor entstehen.
+
+**4. „Angelegt von" bekommt ein Datum.** Die Zeile in der Detailansicht nennt
+den Verfasser, aber nicht wann. `items.created_at` steht in der Antwort, es ist
+reine Anzeige. **Bei genau einem Zugang** bleibt die Zeile wie bisher weg —
+dann ist auch das Datum kein Gewinn, es steht schon in der Sortierung.
+
+**5. „Angemeldet als" in der Kopfzeile.** Neben dem Knopf „Abmelden" fehlt,
+wer man gerade ist. **Auch bei einem einzigen Zugang anzeigen:** es ist eine
+Aussage über **mich**, nicht über andere — derselbe Grund, aus dem die Karte
+„Zugang" in 0.8.5 für jeden stehenbleibt. Der Name steht in `/api/account`;
+ob er zusätzlich an `/api/settings` gehört, damit die Kopfzeile ihn beim
+Direkteinstieg ohne zweiten Abruf hat, ist beim Bauen zu entscheiden.
+
+**Ausdrücklich nicht in dieser Runde, weil kein Bau nötig ist:** dass „+ neue
+Kategorie" am Eintrag nur dem Admin offenstehen soll. **Der Schalter dafür
+steht seit 0.8.4 im Systembereich** — Häkchen bei „Kategorien" heraus, und die
+Anlegezeile verschwindet für jeden außer dem Admin; das Auswahlfeld aus dem
+Vorhandenen bleibt. Bei den **Tags** bleibt das Häkchen an: dort darf jeder
+einen neuen Namen am Eintrag vergeben, im Systembereich sieht er seit 0.8.5
+ohnehin nur die Liste. **Das ist eine Einstellung, keine Version.**
+
+## Stufe G4 — offen, Version 0.8.7
 
 **„Die Linkliste bekommt Verfasser."** Heute gehören Links dem
 **Eintragsverfasser**: `POST /api/items/:id/links` steht hinter
