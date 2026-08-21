@@ -441,6 +441,18 @@ Geschnitten nach **Arbeitsmenge je Thread**, nicht nach Sichtbarkeit. Jede
 Stufe muss in einem Chat abzuarbeiten sein. **Die Versionsnummern der offenen
 Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 
+> **Neue Nummern für die offenen Stufen — G4 wird 0.8.30, H wird 0.8.80, I
+> bleibt 0.9.0.** Die Stufen des Umbaus stehen nicht mehr allein: der
+> Gesamtplan im Projektstand, Abschnitt 10, schiebt Runden dazwischen, die
+> nicht zum Mehrbenutzerbetrieb gehören (Werkzeug, Sicherheit, Gewichtung,
+> Kurzvideos, Sicherung). **Die Nummern gehen dort in Zehnerschritten**, damit
+> zwischen zwei Stufen neun Nummern für Berichtigungsrunden frei bleiben —
+> 0.8.1 und 0.8.6 waren genau das und mussten sich in eine geplante Nummer
+> drängen.
+>
+> **Der Inhalt der Stufen G4, H und I bleibt unverändert und wird weiter hier
+> gepflegt.** Nur ihre Nummern und ihre Nachbarn stehen im Projektstand.
+
 | | Version | Was | Umfang |
 |---|---|---|---|
 | **A** | 0.6.0 | `users` um `role`/`email`/`status`/`last_login`, `sessions.user_id`, `req.benutzer` — **erledigt**, siehe unten | klein |
@@ -460,11 +472,21 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | **G2c** | **0.8.4** | Rest von G2: die beiden Anlegen-Schalter und die Vergleichsansicht; dazu die Rolle im Vermerk, `updated_at` bei den Bildwegen und die Zahlen am Kommentarblock — **erledigt, Stufe G2 vollständig**, siehe unten | mittel |
 | **G3** | **0.8.5** | „Der Systembereich lernt die Rechte": dreizehn Karten nach Rolle, `GET /api/stats` hinter den Admin, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien — **erledigt**, siehe unten | mittel |
 | — | **0.8.6** | *Keine Stufe.* **Berichtigungen aus dem Betrieb:** Bewertungsdetails nur noch für den Admin (eigener Endpunkt, Löschweg mitgewandert), Scrollen der Linkliste am Finger, Lücke im Kartenraster, Datum am Eintragsverfasser, „angemeldet als" in der Kopfzeile — **erledigt**, siehe unten | klein |
-| **G4** | **0.8.7** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der Zeile ab zwei Zugängen, Formatnummer 6 → 7 | mittel |
-| **H** | **0.8.8** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
+| **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der Zeile ab zwei Zugängen, Formatnummer 6 → 7 | mittel |
+| **H** | **0.8.80** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
 | **I** | 0.9.0 | Mailversand mit Anbietervorlagen, öffentliche Adresse, Testmail, Selbstregistrierung mit Freischaltung. *Abbruchpunkt: nach dem Versand, vor der Selbstregistrierung.* | groß |
 
-Danach: Sicherung auf Knopfdruck, dann 1.0.0.
+**Vor G4 liegen zwei Runden ohne Schemaänderung** (0.8.10 Werkzeug, 0.8.20
+Sicherheit), **zwischen G4 und H vier weitere Stufen** (Gewichtung,
+Kurzvideos, „Offen/Neu", Sicherung und Papierkorb). Alle fünf gehören nicht
+zum Mehrbenutzerbetrieb und stehen deshalb im Projektstand, Abschnitt 10 —
+zusammen mit der Begründung für die Reihenfolge.
+
+Danach: Zwei-Faktor, Suche, dann 1.0.0. **Zwei Punkte hängen unmittelbar an
+Stufe I und gehören beim Bauen mitgedacht:** die Tokens aus H tragen auch die
+Zwischenstufe der Zwei-Faktor-Anmeldung (0.9.10), und der Satz „E-Mail ist
+Bequemlichkeit, nie Voraussetzung" gilt dort **nicht** — ein zweiter Faktor
+über TOTP braucht ausdrücklich kein Netz und darf deshalb nie ausfallen.
 
 ## Stufe A — erledigt in Version 0.6.0
 
@@ -881,7 +903,7 @@ Anlegezeile verschwindet für jeden außer dem Admin; das Auswahlfeld aus dem
 Vorhandenen bleibt. Bei den **Tags** bleibt das Häkchen an. **Das ist eine
 Einstellung, keine Version.**
 
-## Stufe G4 — offen, Version 0.8.7
+## Stufe G4 — offen, Version 0.8.30
 
 **„Die Linkliste bekommt Verfasser."** Heute gehören Links dem
 **Eintragsverfasser**: `POST /api/items/:id/links` steht hinter

@@ -1,0 +1,45 @@
+# Der Pruefstand laeuft bei jedem Push und an jeder Anfrage.
+#
+# Bisher lief er nur, wenn jemand daran dachte. Die Schluesselwoerter sind
+# englisch, weil GitHub sie so liest; alles andere steht auf Deutsch.
+name: Pruefstand
+
+on: [push, pull_request]
+
+# Ein neuer Push auf denselben Zweig loest den vorigen Lauf ab. Fuer ein
+# privates Repository sind die Minuten gedeckelt, und zwei Laeufe auf einen
+# ueberholten Stand sagen nichts, was der neuere nicht besser saegte.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # DIE VERSION AUS DEM ABBILD, nicht die zufaellig neueste. Laeuft der
+      # Prueflauf gegen eine andere als der Container, prueft er etwas, das so
+      # nirgends betrieben wird. Der Pruefstand haelt beide Zahlen gegeneinander
+      # -- wer hier eine aendert, wird namentlich rot.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # npm ci und nicht npm install: derselbe Grund wie im Dockerfile -- nur so
+      # wird die Sperrdatei gelesen, und ein Auseinanderlaufen von package.json
+      # und Sperrdatei ist hier ein Fehler und kein stiller Ausweg.
+      - name: Abhaengigkeiten
+        run: npm ci
+
+      - name: Pruefstand
+        run: npm test
+
+      # UEBER ALLE Abhaengigkeiten, auch die zum Entwickeln. Sich hier auf
+      # --omit=dev zurueckzuziehen waere ein Herabsetzen der Schwelle durch die
+      # Hintertuer -- und genau das soll nicht passieren. Bleibt etwas uebrig,
+      # gehoert es gemeldet und angesehen.
+      - name: Bekannte Luecken
+        run: npm audit --audit-level=high

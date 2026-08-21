@@ -2072,7 +2072,7 @@ Aussage über einen selbst. Der Name kommt über `GET /api/settings`, weil
 umgehängt, keine gelöscht (Stolperstein 74). `F_ROUTEN` unverändert 46.
 **Kein Punkt hat das Schema angefasst**, kein Umstiegscode entstanden.
 
-Als Nächstes **Stufe G4 auf 0.8.7** — die erste Datenbankstufe seit 0.8.3.
+Als Nächstes **Stufe G4 auf 0.8.30** — die erste Datenbankstufe seit 0.8.3. Davor liegen 0.8.10 und 0.8.20, beide ohne Schemaänderung.
 Siehe Abschnitt 10.
 
 | Version | Was |
@@ -2121,6 +2121,65 @@ Siehe Abschnitt 10.
 
 ## 10. Zurückgestellt und offen
 
+### Der Stufenplan bis 1.0
+
+**Hier steht der Plan, und sonst nirgends.** Der Mehrbenutzerbetrieb bringt
+seine eigenen Stufen im Konzeptpapier mit (G4, H, I); ihre Versionsnummern
+stehen unten mit drin, ihr Inhalt bleibt dort.
+
+**Die Nummern gehen in Zehnerschritten.** Die neun Nummern zwischen zwei
+Stufen bleiben für Berichtigungs- und Bereinigungsrunden frei — 0.8.1 und
+0.8.6 waren genau das und mussten sich in eine geplante Nummer drängen.
+Nachgeprüft: `0.8.7.2` ist unbrauchbar (vier Zahlen sind kein gültiges
+Versionsschema, `npm version` lehnt sie ab), `0.8.10` und `0.8.75` gehen
+beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
+
+| Version | Name | Was | Schema | Format |
+|---|---|---|---|---|
+| **0.8.10** | Werkzeug | `package-lock.json` einchecken, `npm ci` statt `npm install`, `sharp` auf 0.35, Versionsabdruck über die ausgelieferten Dateien, Prüflauf bei jedem Push, Prüfstand in Gruppen aufrufbar | — | — |
+| **0.8.20** | Die Schotten dicht | SVG am Fotoweg, `X-Forwarded-For`, `Secure`-Cookie, Sicherheitsregel für die Anwendung selbst, Fehler-Handler, sauberes Herunterfahren, Index auf `sessions.user_id` | — | — |
+| **0.8.30** | **Stufe G4** — Links bekommen Verfasser | siehe Konzeptpapier | ja | 6 → 7 |
+| **0.8.40** | Gewichtung der Kriterien | siehe `Konzept_Gewichtung_Bewertungskriterien.md` | ja | 7 → 8 |
+| **0.8.50** | Kurzvideos am Fotoplatz | bis 20 MB, in der Datenbank, Standbild aus dem Browser — siehe `Konzept_Video_und_grosse_Dateien.md`, Teil I | ja | 8 → 9 |
+| **0.8.60** | Was ist offen, was ist neu | Ansicht „Offen" über alle Einträge, Filter „Neu seit …" | — | — |
+| **0.8.70** | Sicherung und Papierkorb | `VACUUM INTO` auf Knopfdruck (Punkt 8), Papierkorb, einzelnen Eintrag exportieren | ja | — |
+| **0.8.80** | **Stufe H** — Tokens | Einladung und Rücksetzung, dazu „Meine Sitzungen" | ja | — |
+| **0.8.90** | Schwere Eingriffe | Re-Authentifizierung, Sicherheitsprotokoll, Schlüssel wechseln | ja | — |
+| **0.9.0** | **Stufe I** — Mailversand und Selbstanmeldung | siehe Konzeptpapier | ja | — |
+| **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
+| **0.9.20** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen | ja | — |
+| **1.0.0** | Bereinigung und Zusage | Umstiegscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
+| **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
+
+**Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
+antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
+eine Verbindung zu einem fremden Server auf. Das ist die größte Änderung der
+Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
+
+**Die Reihenfolge ist nicht beliebig.** Vier Bindungen:
+
+- **0.8.10 vor allem anderen.** Ohne festgenagelte Abhängigkeiten ist jeder
+  Bau ein anderer, und ohne Prüflauf bei jedem Push läuft der Prüfstand nur,
+  wenn jemand daran denkt. Beides sichert alles Folgende ab.
+- **0.8.20 vor 0.8.50.** Der Videoweg liefert eine Datei **inline** aus. Er
+  darf erst gebaut werden, wenn die Regel „der gemeldete Typ des Hochladenden
+  wird nie ausgeliefert" auch am Fotoweg gilt.
+- **0.8.50 vor 0.8.70.** Der Papierkorb serialisiert einen Eintrag. Gibt es
+  dann schon Videos, wird die Serialisierung **einmal** gebaut statt einmal
+  gebaut und einmal nachgezogen.
+- **0.8.10 und 0.8.20 vor 1.0.0.** Eine Veröffentlichung heißt fremde
+  Installationen. Danach stehen die beiden Befunde nicht mehr in einer Anlage,
+  sondern in allen.
+
+**Ist die Anlage bereits von außen erreichbar, tauschen 0.8.10 und 0.8.20 die
+Plätze.** Dann zuerst die Löcher, dann das Werkzeug.
+
+**Die Herkunft der neuen Punkte** — Befunde, Messwerte und Begründungen —
+steht in `Ideen_und_Vorschlaege.md`. Das Papier ist damit **Quelle, nicht
+Stand**: was daraus gilt, steht ab jetzt hier.
+
+### Die einzelnen Punkte
+
 1.–4. *(erledigt bzw. aufgegangen in früheren Versionen — die Zählung bleibt,
 damit alte Verweise stimmen.)*
 
@@ -2133,7 +2192,9 @@ damit alte Verweise stimmen.)*
    **0.8.6 ist eingespielt und läuft** — alle fünf Punkte, Einzelheiten in
    Abschnitt 5 und Abschnitt 9.
 
-   **Als Nächstes: Stufe G4 auf 0.8.7 — „Die Linkliste bekommt Verfasser".**
+   **Als Nächstes: Stufe G4 auf 0.8.30 — „Die Linkliste bekommt Verfasser".**
+   Davor liegen mit 0.8.10 und 0.8.20 zwei Runden **ohne Schemaänderung**;
+   die Begründung steht im Stufenplan oben.
    Links darf jeder eintragen; löschen darf sie der Eintrager oder der Admin,
    und ab zwei Zugängen steht sein Name an der Zeile. Das **kehrt die Zeile
    „Titel, Beschreibung, Fotos, Dateien, Links, Tags, Kategorie" der
@@ -2148,20 +2209,58 @@ damit alte Verweise stimmen.)*
    **Erste Datenbankstufe seit 0.8.3** — die Sicherung des Datenverzeichnisses
    gehört wieder ausdrücklich in den Einspielweg.
 
-   *Dann:* **Stufe H (Tokens) wird 0.8.8**, **Stufe I (Mailversand und
-   Selbstanmeldung) bleibt 0.9.0.**
+   *Dann:* **Stufe H (Tokens) wird 0.8.80**, **Stufe I (Mailversand und
+   Selbstanmeldung) bleibt 0.9.0.** Zwischen G4 und H liegen mit 0.8.40 bis
+   0.8.70 vier Stufen, die nicht zum Mehrbenutzerbetrieb gehören.
 
    *Anmerkung, unverändert gültig:* eine Veröffentlichung setzt keinen
    Mehrbenutzerbetrieb voraus. „Für eine Person, dafür vollständig
    verschlüsselt" ist ein Merkmal, kein Mangel.
 
-6. **Videos.** Zurückgestellt, kein Verzicht, sondern ein eigener Bauabschnitt —
-   etwa so aufwändig wie mehrere der zwölf Punkte zusammen. Bei über einem
-   Gigabyte scheidet die Datenbank aus; nötig wären verschlüsselte Dateien
-   daneben, blockweise Verschlüsselung zum Springen, Bereichsanfragen im Server
-   und stückweises Hochladen. Zwei Einschränkungen blieben bestehen: der Export
-   könnte Videos nicht enthalten, und nicht jedes Format ist im Browser
-   abspielbar.
+6. **Videos — beschlossen, und es sind zwei Vorhaben.** Der bisherige Eintrag
+   („zurückgestellt, ein eigener Bauabschnitt") stimmte nur für die eine
+   Hälfte. Ausgearbeitet in `Konzept_Video_und_grosse_Dateien.md`.
+
+   **Kurzvideos am Fotoplatz — 0.8.50, also vor 1.0.** Bis 20 MB, als BLOB
+   **in** der Datenbank wie ein Foto. Gemessen: 20 MB kosten 770 ms beim
+   Schreiben und 124 ms beim Lesen; bei 50 MB wären es schon 533 ms beim
+   Lesen, und der ganze Blob steht dabei im Arbeitsspeicher — daher die
+   Grenze bei 20 MB.
+
+   **Dieselbe Tabelle `photos`, eine Spalte `art` dazu.** Fotos und Videos
+   stehen in **einer** Reihenfolge; zwei Tabellen hießen zwei sortierte
+   Listen und damit zwei Quellen für die Frage, was das Hauptbild ist. Am
+   Video gilt **jede Regel, die am Foto gilt** — dieselben Rechte, dieselbe
+   Kaskade, dasselbe Ziehen zum Umsortieren.
+
+   **Das Standbild macht der Browser**, vor dem Hochladen, über `<video>` und
+   `<canvas>`. Damit **kein `ffmpeg`**, keine neue Abhängigkeit, und der
+   Server öffnet nie ein Video — er speichert Bytes und liefert Bytes. Wer
+   ein Video nicht abspielen kann, kann es auch nicht hochladen, und das ist
+   richtig: ein Videoplatz, der nicht abspielt, ist ein kaputter Platz.
+
+   **Große Dateien bis 2 GB — 1.1.0, also nach 1.0.** Sie können nicht in die
+   Datenbank (Node hält keinen Buffer über 2 GB, und ohne Bereichsabfragen
+   spielt iOS Safari überhaupt nicht ab). Sie liegen daneben und bekommen
+   eine **eigene Verschlüsselung**, deren Schlüssel aus dem
+   Datenbankschlüssel abgeleitet wird — *ein Schlüssel für die Anlage* bleibt
+   wahr. Nachgewiesen, dass man darin springen kann: AES-256 im Zählermodus,
+   neun Sprungstellen geprüft, 1 MB aus der Mitte einer 50-MB-Datei in 15 ms.
+   Gebaut wird trotzdem nicht mit CTR allein, sondern **stückweise mit
+   Beglaubigung** — CTR schützt gegen Lesen, nicht gegen Verändern, und das
+   wäre die einzige Stelle im Projekt, an der etwas *halb* geschützt ist.
+
+   **Warum das eine vor und das andere nach 1.0 steht.** Ab 1.0 wird
+   Abwärtskompatibilität zugesichert. Die Kurzvideos ändern eine **bestehende**
+   Tabelle — so etwas gehört vor die Zusage, nicht dahinter. Die großen
+   Dateien legen dagegen **neue** Tabellen und einen zweiten Speicherort an,
+   ohne den bisherigen anzurühren: ein Anhang bleibt in der Datenbank, nur
+   neue große gehen daneben. Deshalb bricht 1.1.0 die Zusage nicht.
+
+   **Zwei Einschränkungen bleiben in beiden Fällen:** nicht jedes Format ist
+   im Browser abspielbar (die Antwort darauf ist der Anhang, nicht ein
+   Umkodierer), und der JSON-Export trägt Videodateien nur mit eigenem
+   Schalter, große gar nicht.
 7. **Vorgabewerte vor der Veröffentlichung durchsehen.** `title_app` hat im
    Server die Vorgabe „Model Bewertungen" — ein persönlicher Wert, der in einer
    frischen Installation für jeden dasteht. Dazu liegt die Vorgabe für
@@ -2169,12 +2268,21 @@ damit alte Verweise stimmen.)*
    `public/app.js` als „Kriterion". Harmlos, weil der Rückfall in der
    Oberfläche nur greift, wenn `/api/config` gar nicht antwortet — aber es ist
    die Form von Stolperstein 47 und gehört vor 1.0.0 auf eine Wahrheit gebracht.
-8. **Sicherungskopie auf Knopfdruck.** Vorschlag aus dem Betrieb, noch nicht
-   beschlossen: `VACUUM INTO` erzeugt eine **verschlüsselte**, vollständige und
-   konsistente Kopie der Datenbank — geprüft, ohne Schlüssel meldet sie „file is
-   not a database". Dazu ein Hinweis „letzte Sicherung vor N Tagen" und ein
-   einstellbarer Zielort, damit die Kopie nicht neben dem Original liegt. Gehört
-   nach dem Mehrbenutzerbetrieb und vor 1.0.0.
+8. **Sicherungskopie auf Knopfdruck — beschlossen, 0.8.70.** `VACUUM INTO`
+   erzeugt eine **verschlüsselte**, vollständige und konsistente Kopie der
+   Datenbank — geprüft, ohne Schlüssel meldet sie „file is not a database".
+   Dazu ein Hinweis „letzte Sicherung vor N Tagen" und ein einstellbarer
+   Zielort, damit die Kopie nicht neben dem Original liegt.
+
+   **Dazu die Rollenteilung, die bisher nirgends stand:** `VACUUM INTO` ist
+   der **Sicherungsweg**, der JSON-Export der **Austauschweg**. Beide werden
+   gebraucht, aber für Verschiedenes — die Kopie ist konstant im
+   Speicherbedarf und vollständig, der Export überlebt einen Formatwechsel
+   und braucht keinen Schlüssel. Heute muss der Export beides sein und ist
+   für das eine davon zu schwer: er baut **eine** JSON-Zeichenkette mit allen
+   Fotos als Base64, und Node kann eine Zeichenkette über rund 512 MB nicht
+   halten. Der Hinweis auf die erwartete Exportgröße gehört deshalb neben den
+   Knopf.
 
 ### Vorgemerkt für 1.0
 
@@ -2199,13 +2307,39 @@ damit alte Verweise stimmen.)*
 - **Abwärtskompatibilität.** Ab 1.0 wird sie zugesichert und
   aufrechterhalten. Fällt die Entscheidung früher, wird sie vorher final in
   die Dokumente eingearbeitet.
-- Aus den Punkten oben gehören die **Vorgabewerte** (Punkt 7) und die
-  **Sicherung auf Knopfdruck** (Punkt 8) vor 1.0 erledigt oder entschieden.
+- **Die Vorgabewerte** (Punkt 7) gehören in 1.0.0. Aufzulösen ist die zweite
+  Vorgabe für `title_public` in `public/app.js`, und zwar **zugunsten des
+  Servers**: das Frontend bekommt gar keine. Antwortet `/api/config` nicht,
+  zeigt die Anmeldeseite lieber nichts als etwas Falsches — das spart die
+  zweite Wahrheit ganz, statt sie abzugleichen. Für `title_app` ist
+  „Bewertungen" die neutrale Vorgabe.
+- **Tastaturbedienung beim Sortieren.** Umsortiert wird an fünf Stellen
+  (Fotos, Links, Kriterien, Blöcke, Tags am Testtag), überall ausschließlich
+  über Zeigerereignisse. Im Frontend stehen **null** `tabindex` und zwei
+  `aria-`Angaben auf 3.857 Zeilen. Wer keine Maus benutzen kann, kann die
+  Reihenfolge der Fotos nicht ändern — und das erste Foto ist das Hauptbild.
+  Die Antwort ist klein: `tabindex="0"` an der Zeile und `Alt+↑`/`Alt+↓` im
+  Fokus. **Daraus eine Regel:** *Was sich ziehen lässt, muss sich auch mit der
+  Tastatur bewegen lassen. Maus, Finger und Tastatur sind drei Fälle, nicht
+  zwei.*
+- **Ein Satz in die README: eine Anlage ist ein Sachgebiet.** Kriterien sind
+  global und erscheinen an jedem Eintrag. Wer Modelle **und** Werkzeuge **und**
+  Bezugsquellen in derselben Anlage sammelt, hat an jedem Eintrag die Kriterien
+  aller drei stehen — bei 25 Kriterien ist die Detailansicht eine Wand aus
+  Sternenzeilen, von denen zwei Drittel nie ausgefüllt werden. Das ist die
+  einzige Annahme der Architektur, die nirgends aufgeschrieben ist.
+  **Aufschreiben statt bauen:** wer zwei Sachgebiete sammelt, betreibt zwei
+  Anlagen — was zur Linie „ein Schlüssel, eine Datenbank" ohnehin besser
+  passt. Kriteriengruppen je Kategorie wären ein Umbau und sind ausdrücklich
+  **nicht** vorgesehen.
 
-**Ideen ohne Beschluss**, hier als Liste und sonst nirgends: Sicherung auf
-Anforderung, Prüfung der Wiederherstellung, Endpunkt für den Gesundheitszustand,
-Anzeige des Speicherverbrauchs, PWA-Manifest, Doppelerkennung, Vorlagen für
-Einträge, Tags in Mengen bearbeiten, Druckstylesheet.
+**Ideen ohne Beschluss**, hier als Liste und sonst nirgends: Prüfung der
+Wiederherstellung, Anzeige des Speicherverbrauchs, PWA-Manifest, Vorlagen für
+Einträge, Tags in Mengen bearbeiten, Druckstylesheet, Fälligkeitsdatum an
+Aufgaben, Erwähnungen im Kommentar.
+
+*Herausgefallen, weil beschlossen:* Sicherung auf Anforderung und Endpunkt für
+den Gesundheitszustand (0.8.20 bzw. 0.8.70), Doppelerkennung (0.9.20).
 
 ---
 
@@ -2264,7 +2398,45 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   Wer künftig „das Anlegen soll nur der Admin dürfen" hört, prüft **zuerst
   die Schalterstellung**, bevor er baut.
 - **Die Übersicht sortiert weiter nach `updated_at` für alle:** die Liste
-  zeigt, wo etwas geschieht, nicht wo ich zuletzt war.
+  zeigt, wo etwas geschieht, nicht wo ich zuletzt war. **Daraus folgt für
+  0.8.60:** „Neu seit …" wird ein **Filter**, kein zweiter Sortierweg — er
+  ist persönlich und darf die gemeinsame Reihenfolge nicht anrühren, genau
+  wie der Favoritenfilter. Der Merkzeitpunkt wird beim **Verlassen** der
+  Übersicht gesetzt, nicht beim Betreten: Zeitstempel haben Sekundenauflösung
+  (Stolperstein 15), und beim Betreten wäre das Fenster scharf.
+- **Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine
+  Behauptung** (ab 0.8.20). Er darf nur geglaubt werden, wo ausdrücklich
+  eingestellt ist, wer ihn setzen darf. Bisher stand die Regel nur für den
+  `Host`-Kopf im Konzeptpapier; sie gilt genauso für `X-Forwarded-For`, und
+  dort ist sie nachweislich verletzt — mit wechselndem Kopf greift die
+  IP-Bremse nie. **Eine Einstellung, fünf Wirkungen:** gelesener Kopf,
+  `Secure` am Keks, `Strict-Transport-Security`, `__Host-`-Präfix und der
+  Hinweis in der README hängen alle daran.
+- **Der ausgelieferte Typ kommt nie aus der Datenbank** (ab 0.8.20). Die Regel
+  steht seit jeher im Kopf von `anhaenge.js` — der Fotoweg hält sie nicht ein
+  und liefert den gemeldeten Typ des Hochladenden zurück, samt SVG. Dagegen
+  hilft kein Merksatz, sondern ein **Wächter im Prüfstand**, gebaut wie der
+  auf die Adminfrage: keine Zeile in `server.js` setzt `Content-Type` aus
+  einem Wert, der aus der Datenbank kommt. **Bindet unmittelbar für 0.8.50** —
+  ein Video wird inline ausgeliefert.
+- **Fotos und Videos stehen in EINER Reihenfolge** (ab 0.8.50). Deshalb
+  dieselbe Tabelle mit einer Spalte `art`, keine zweite Tabelle. Und am Video
+  gilt jede Regel, die am Foto gilt — Rechte, Kaskade, Umsortieren, Kennzahlen.
+- **Der Server öffnet nie ein Video** (ab 0.8.50). Das Standbild macht der
+  Browser vor dem Hochladen. Wer später einen Umkodierer vorschlägt,
+  verhandelt damit eine neue Abhängigkeit von der Größe des halben Abbilds —
+  die Antwort auf ein nicht abspielbares Format ist der Anhang.
+- **Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt**
+  (ab 0.8.90). Export, Import, Rolle vergeben, fremdes Passwort zurücksetzen,
+  Zugang entfernen, Schlüssel wechseln. Die Grenze ist nicht „gefährlich",
+  sondern dieselbe, an der schon die Eigentümerrolle liegt. `aendereZugang()`
+  wendet das Prinzip längst an („das bisherige Passwort ist Pflicht — sonst
+  genügte eine fremde offene Sitzung"); es fehlt nur bei den schweren Wegen.
+- **Ein Sicherheitsprotokoll ist kein Änderungsverlauf** (ab 0.8.90). Die
+  Entscheidung gegen den Änderungsverlauf gilt **Inhalten**. Das Protokoll
+  hält fest, wer Zugang hatte und wer die Anlage als Ganzes angefasst hat —
+  kein Eintragstitel, kein Kommentartext, keine Bewertung. Dieselbe Trennlinie
+  wie überall: was die Anlage betrifft, nicht was jemand gesagt hat.
 
 ---
 
