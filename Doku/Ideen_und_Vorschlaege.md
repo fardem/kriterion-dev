@@ -29,6 +29,15 @@ Prüfstand vollständig durchgelaufen: **1429 von 1429 Prüfungen bestanden**.
 >   `Konzept_Gewichtung_Bewertungskriterien.md` — mit drei Vorschlägen statt
 >   sechs festen Stufen und freier Eingabe von 0,2 bis 2.
 >
+> **Vier Punkte sind mit 0.8.10 gebaut** (Projektstand Abschnitt 9): **2.5**
+> (Abhängigkeiten festgenagelt), **5.1** (Versionsabdruck — dort abgeleitet
+> über `require.cache` und `public/`, nicht über drei von Hand genannte
+> Dateien), **5.4** (Prüflauf bei jedem Push) und **5.5** (Prüfstand
+> filterbar). **Zu 5.5 eine Korrektur:** die dortige Begründung, ein Filter
+> spare Zeit, stimmt nicht — die Prüflagen bauen aufeinander auf, ein
+> gefilterter Lauf dauert genauso lange wie der volle. Der Gewinn ist das
+> verschwindende Rauschen beim Deuten roter Punkte, nicht Geschwindigkeit.
+>
 > Neue Punkte werden **hier nicht mehr nachgetragen.** Was aus dem Betrieb
 > kommt, geht in den Projektstand; was ein eigenes Vorhaben ist, bekommt ein
 > eigenes Konzeptpapier.
