@@ -1698,6 +1698,7 @@ async function renderDetail(id) {
         <div class="block" data-block="bewertung">
           <div class="block-head"><span class="label">Bewertung</span>
             <span class="hint" id="rhead"></span>
+            ${ADMIN && mehrereBenutzer() ? `<button class="btn btn-ghost btn-sm" id="rwho">Wer hat bewertet</button>` : ''}
             <button class="btn btn-ghost btn-sm" id="reset-r">Meine Bewertung zurücksetzen</button></div>
           <div id="ratings"></div>
         </div>
@@ -2167,38 +2168,10 @@ async function renderDetail(id) {
       }
       row.append(n, acts);
       box.appendChild(row);
-
-      /* Wer welchen Wert vergeben hat. Erst ab zwei Zugängen: bei einem wäre
-         die Zeile der eigene Wert ein zweites Mal, direkt neben den Sternen.
-         Das ✕ steht nur am FREMDEN Wert und nur beim Admin — den eigenen
-         räumt man mit dem Doppelklick auf den Stern weg, und ein Knopf, der
-         zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
-         Die Note ändert der Admin nicht: es gibt hier kein Sterne-Widget an
-         einer fremden Stimme, sondern nur den Weg, sie zu entfernen. */
-      if (!mehrereBenutzer() || !(r.stimmen || []).length) return;
-      const liste = document.createElement('div');
-      liste.className = 'rstimmen';
-      r.stimmen.forEach(st => {
-        const s2 = document.createElement('span');
-        s2.className = 'rstimme' + (st.mine ? ' meine' : '');
-        s2.appendChild(document.createTextNode(`${verfasserName(st.verfasser)} ${st.wert}`));
-        if (ADMIN && !st.mine) {
-          const x = document.createElement('button');
-          x.className = 'xdel';
-          x.textContent = '✕';
-          x.title = 'Diese Bewertung entfernen';
-          x.onclick = async () => {
-            if (!await confirmBox('Fremde Bewertung entfernen?',
-              `Die Bewertung von ${verfasserName(st.verfasser)} für „${r.name}" wird entfernt. ` +
-              `Die Note lässt sich nicht ändern, nur löschen.`, 'Entfernen')) return;
-            try { item = await api('DELETE', `/api/ratings/${st.id}`); drawRatings(); toast('Bewertung entfernt'); }
-            catch (e) { toast(e.message, true); }
-          };
-          s2.appendChild(x);
-        }
-        liste.appendChild(s2);
-      });
-      box.appendChild(liste);
+      /* HIER STEHT SEIT 0.8.6 KEINE STIMMENLISTE MEHR. Wer welchen Wert
+         vergeben hat, ist eine Angabe über einzelne Personen; die Zeile zeigt
+         den eigenen Wert und den Schnitt, mehr soll eine Bewertung nicht
+         aussagen. Die Liste ruft der Admin über den Knopf im Blockkopf auf. */
     });
     ruesteBloeckeAus(item);
   }
@@ -2208,6 +2181,101 @@ async function renderDetail(id) {
   // Der Wortlaut bleibt bei einem wie bei zehn Zugaengen derselbe: eine
   // Beschriftung, die mit der Zahl der Zugaenge umspringt, waere eine zweite
   // Wahrheit ueber denselben Knopf.
+  /* ---- Wer hat bewertet: die Ansicht des Admins ----
+     Die Liste stand bis 0.8.5 unter jeder Sternzeile und war damit für jeden
+     sichtbar. Sie ist jetzt eine eigene Ansicht, die der Admin ausdrücklich
+     aufruft — und zugleich der LÖSCHWEG für eine fremde Bewertung: das ✕ hing
+     an der Stimmenzeile und ist mitgewandert. Ohne diese Ansicht wäre
+     DELETE /api/ratings/:id vom Bildschirm aus unerreichbar.
+     Der Knopf steht nur beim Admin und erst ab zwei Zugängen: bei einem wäre
+     die Liste der eigene Wert ein zweites Mal. Der Server verweigert den Abruf
+     ohnehin; ein Knopf, der zuverlässig eine Fehlermeldung erzeugt, sieht aus
+     wie ein Fehler. */
+  async function zeigeStimmen() {
+    let liste;
+    try { liste = await api('GET', `/api/items/${id}/stimmen`); }
+    catch (e) { return toast(e.message, true); }
+    const bd = document.createElement('div');
+    bd.className = 'backdrop';
+    bd.innerHTML = `<div class="modal" id="stimmen-modal"><h2>Wer hat bewertet</h2>
+      <p>Diese Liste sieht nur der Admin. Eine fremde Bewertung lässt sich hier
+         entfernen — die Note ändert niemand.</p>
+      <div class="stimmliste" id="stimmliste"></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
+    document.body.appendChild(bd);
+    const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
+    // NUR DER OBERSTE DIALOG SCHLIESST. Das ✕ hier drin fragt über confirmBox
+    // nach, und dann liegen zwei Dialoge übereinander -- ohne diese Frage
+    // nähme eine Taste beide zugleich weg.
+    const onKey = e => {
+      if (e.key !== 'Escape') return;
+      if ([...document.querySelectorAll('.backdrop')].pop() !== bd) return;
+      zu();
+    };
+    document.addEventListener('keydown', onKey, true);
+    bd.querySelector('[data-no]').onclick = zu;
+    bd.onclick = e => { if (e.target === bd) zu(); };
+    zeichneStimmen();
+
+    function zeichneStimmen() {
+      const box = bd.querySelector('#stimmliste');
+      box.innerHTML = '';
+      const je = new Map(liste.map(z => [z.criterion_id, z.stimmen]));
+      // Reihenfolge und Name kommen aus dem Eintrag: der Endpunkt liefert nur
+      // Nummern, Werte und Verfasser. Zwei Quellen für denselben Namen wären
+      // zwei Wahrheiten.
+      let etwas = false;
+      item.ratings.forEach(r => {
+        const stimmen = je.get(r.criterion_id) || [];
+        // Ein Kriterium ohne Stimme bekommt gar keine Zeile -- eine leere
+        // Liste unter einem Namen sagt nichts.
+        if (!stimmen.length) return;
+        etwas = true;
+        const zeile = document.createElement('div');
+        zeile.className = 'stimmzeile';
+        const n = document.createElement('span');
+        n.className = 'rname'; n.textContent = r.name;
+        const wer = document.createElement('div');
+        wer.className = 'rstimmen';
+        stimmen.forEach(st => {
+          const s2 = document.createElement('span');
+          s2.className = 'rstimme' + (st.mine ? ' meine' : '');
+          s2.appendChild(document.createTextNode(`${verfasserName(st.verfasser)} ${st.wert}`));
+          /* Das ✕ steht nur am FREMDEN Wert — den eigenen räumt man mit dem
+             Doppelklick auf den Stern weg, und zwei Wege für dieselbe Absicht
+             wären einer zu viel. Die Note ändert der Admin nicht: es gibt hier
+             kein Sterne-Widget an einer fremden Stimme, nur den Weg, sie zu
+             entfernen. */
+          if (!st.mine) {
+            const x = document.createElement('button');
+            x.className = 'xdel';
+            x.textContent = '✕';
+            x.title = 'Diese Bewertung entfernen';
+            x.onclick = async () => {
+              if (!await confirmBox('Fremde Bewertung entfernen?',
+                `Die Bewertung von ${verfasserName(st.verfasser)} für „${r.name}" wird entfernt. ` +
+                `Die Note lässt sich nicht ändern, nur löschen.`, 'Entfernen')) return;
+              try {
+                item = await api('DELETE', `/api/ratings/${st.id}`);
+                liste = await api('GET', `/api/items/${id}/stimmen`);
+                drawRatings(); zeichneStimmen(); toast('Bewertung entfernt');
+              } catch (e) { toast(e.message, true); }
+            };
+            s2.appendChild(x);
+          }
+          wer.appendChild(s2);
+        });
+        zeile.append(n, wer);
+        box.appendChild(zeile);
+      });
+      if (!etwas) box.innerHTML = `<span class="hint">Noch hat niemand bewertet.</span>`;
+    }
+  }
+  // Der Knopf steht nur beim Admin ab zwei Zugängen; ohne ihn gibt es hier
+  // nichts anzuhängen.
+  const rwhoEl = document.getElementById('rwho');
+  if (rwhoEl) rwhoEl.onclick = zeigeStimmen;
+
   document.getElementById('reset-r').onclick = async () => {
     if (!await confirmBox('Meine Bewertung zurücksetzen?',
       'Meine Sterne werden hier geleert. Fremde Bewertungen und die Kriterien selbst bleiben bestehen.',
