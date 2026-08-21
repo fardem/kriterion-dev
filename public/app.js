@@ -2865,8 +2865,17 @@ async function renderSystem() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
   let stats, titles, cats, tags, crits, zugang;
   try {
+    /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
+       stehen hinter dem Admin; ein Abruf, der zuverlaessig 403 ergibt, risse
+       hier mehr mit als seine eigene Karte -- alle sechs
+       Abrufe haengen in EINEM Promise.all, und ein einziger Fehlschlag
+       verliesse den Rumpf mit return. Der Systembereich bliebe dann leer,
+       auch die Karten, die jedem zustehen.
+       Bewusst KEIN catch je Abruf daneben: die Bedingung hier ist die eine
+       Stelle, an der die Frage gestellt wird. Ein Auffangnetz darunter
+       verdeckte sie in jeder Gegenprobe. */
     [stats, titles, cats, tags, crits, zugang] = await Promise.all([
-      api('GET', '/api/stats'), api('GET', '/api/titles'),
+      ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/account')
     ]);
@@ -2878,7 +2887,7 @@ async function renderSystem() {
     <p class="hint" style="margin:0 0 22px">Alles, was den Bestand als Ganzes betrifft.</p>
     <div class="sys-grid">
 
-      <div class="sys-card">
+      ${ADMIN ? `<div class="sys-card">
         <h3>Titel</h3>
         <p class="desc">Der <strong>öffentliche Titel</strong> steht auf der Anmeldeseite und ist für
           jeden sichtbar, der die Adresse aufruft. Der <strong>interne Titel</strong> erscheint erst
@@ -2888,7 +2897,7 @@ async function renderSystem() {
         <div class="field"><label>Titel nach der Anmeldung</label>
           <input class="input" id="ta2" value="${esc(titles.appTitle)}"></div>
         <button class="btn btn-accent btn-sm" id="tsave">Titel speichern</button>
-      </div>
+      </div>` : ''}
 
       <div class="sys-card">
         <h3>Zugang</h3>
@@ -2906,11 +2915,12 @@ async function renderSystem() {
           <input class="input" id="acc-new2" type="password" autocomplete="new-password"></div>
         <p class="desc" style="margin:0 0 10px">Mindestens ${MIN_PASSWORT} Zeichen. Über die
           Oberfläche gibt es keine Wiederherstellung; vergessen heißt
-          <code>AUTH_RESET=1</code> am Server.</p>
+          <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>
+          auf dem Server.</p>
         <button class="btn btn-accent btn-sm" id="acc-save">Zugang ändern</button>
       </div>
 
-      <div class="sys-card">
+      ${ADMIN ? `<div class="sys-card">
         <h3>Kennzahlen</h3>
         <p class="desc">Umfang des Bestands und Belegung der Datenbank.</p>
         <div class="kv"><span class="k">${esc(V.sacheMehrzahl)}</span><span class="v">${stats.itemCount}</span></div>
@@ -2928,9 +2938,13 @@ async function renderSystem() {
               <p style="margin:8px 0 0">Danach <code>docker compose up -d</code> und im Protokoll „Schlüssel aus ENCRYPTION_KEY geladen" prüfen — <strong>erst dann</strong> <code>data/encryption.key</code> entfernen.</p>
             </div>`}
         </div>
-      </div>
+      </div>` : ''}
 
-      <div class="sys-card">
+      ${/* Export und Import gehoeren dem Eigentuemer, beide Routen stehen hinter
+            nurEigentuemer. Die Groessenschaetzung liest aus den Kennzahlen --
+            das geht nur auf, weil die Rollen eine LEITER sind: wer Eigentuemer
+            ist, ist auch Admin, und dann steht stats. Faellt diese Leiter
+            jemals, faellt hier eine Karte auf null. */''}${EIGENTUEMER ? `<div class="sys-card">
         <h3>Export</h3>
         <p class="desc">Sichert den gesamten Bestand als eine Datei. Mit Fotos wird sie deutlich
           größer, weil Bilder als Text kodiert werden müssen — rechne mit rund einem Drittel
@@ -2949,7 +2963,7 @@ async function renderSystem() {
           gefragt, was mit dem vorhandenen Bestand geschehen soll.</p>
         <label class="drop" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
           Exportdatei auswählen</label>
-      </div>
+      </div>` : ''}
 
       <div class="sys-card">
         <h3>Kategorien</h3>
@@ -3047,16 +3061,25 @@ async function renderSystem() {
           aufgeklappt werden muss.</p>
         <div class="pills" id="lzeilen"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Wird in der Linkliste etwas eingetragen, das
+        <p class="desc sys-teil">Wird in der Linkliste etwas eingetragen, das
           keine Adresse ist, wird daraus eine <strong>Suche</strong>. Gespeichert bleibt der
           Rohtext — ein Anbieterwechsel gilt deshalb rückwirkend für alle vorhandenen
           Suchzeilen. Gefragt wird erst beim Klick, Kriterion selbst ruft niemanden.</p>
-        <p class="desc" style="margin:0 0 8px">Das Häkchen nimmt einen Anbieter in die Auswahl,
+        <p class="desc" style="margin:0 0 8px">Wie viele Anbieternamen unter einer Suchzeile
+          stehen. Gezählt wird der Startanbieter mit; sind weniger in der Auswahl, stehen
+          entsprechend weniger da.</p>
+        <div class="pills" id="snamen"></div>
+      </div>
+
+      ${ADMIN ? `<div class="sys-card">
+        <h3>Suchanbieter</h3>
+        <p class="desc">Das Häkchen nimmt einen Anbieter in die Auswahl,
           <strong>Start</strong> macht ihn zum Ziel des Zeilenklicks. Der Startanbieter steht
-          unter der Suchzeile immer vorn.</p>
+          unter der Suchzeile immer vorn. Beides gilt für alle — die Zahl der angezeigten
+          Namen bestimmt jeder für sich in der Karte „Links".</p>
         <div class="sanb-liste" id="sanbieter"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Bis zu drei eigene Anbieter. <code>%s</code> steht
+        <p class="desc sys-teil">Bis zu drei eigene Anbieter. <code>%s</code> steht
           für den Suchtext; erlaubt sind nur <code>http://</code> und <code>https://</code>. Ein
           Platz zählt erst, wenn Name <em>und</em> Vorlage dastehen. Der Name darf bis zu 20
           Zeichen lang sein.</p>
@@ -3067,14 +3090,9 @@ async function renderSystem() {
           <code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code><br>
           Das <code>%3A</code> muss so dastehen — der Doppelpunkt gehört in die Vorlage, nicht in
           den Suchtext.</p>
+      </div>` : ''}
 
-        <p class="desc" style="margin:16px 0 8px">Wie viele Anbieternamen unter einer Suchzeile
-          stehen. Gezählt wird der Startanbieter mit; sind weniger in der Auswahl, stehen
-          entsprechend weniger da.</p>
-        <div class="pills" id="snamen"></div>
-      </div>
-
-      <div class="sys-card">
+      ${ADMIN ? `<div class="sys-card">
         <h3>Vokabular</h3>
         <p class="desc">Wie die Dinge in der Oberfläche heißen sollen. <strong>Nur die
           Beschriftung ändert sich</strong> — Datenbank und Exportdateien bleiben unberührt,
@@ -3108,11 +3126,18 @@ async function renderSystem() {
           <button class="btn btn-accent btn-sm" id="vsave">Vokabular speichern</button>
           <button class="btn btn-ghost btn-sm" id="vreset">Vorgaben</button>
         </div>
-      </div>
+      </div>` : ''}
 
     </div></div>`;
 
-  document.getElementById('tsave').onclick = async () => {
+  /* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. EIN Ort fuer
+     die Frage: stuende vor jedem Behandler dieselbe Klammer, risse die erste
+     vergessene beim Zeichnen fuer einen gewoehnlichen Benutzer den ganzen
+     Systembereich mit -- und zwar wortlos, weil der Fehler nach dem Setzen
+     von app.innerHTML kaeme. */
+  const amElement = (id, tu) => { const el = document.getElementById(id); if (el) tu(el); };
+
+  amElement('tsave', tsave => tsave.onclick = async () => {
     const p = document.getElementById('tp').value.trim();
     const a = document.getElementById('ta2').value.trim();
     try {
@@ -3121,7 +3146,7 @@ async function renderSystem() {
       document.title = TITLE_APP;
       toast('Titel gespeichert');
     } catch (e) { toast(e.message, true); }
-  };
+  });
 
   document.getElementById('acc-save').onclick = async () => {
     const alt = document.getElementById('acc-old').value;
@@ -3144,15 +3169,15 @@ async function renderSystem() {
 
   // Dateien haben einen eigenen Schalter mit Vorgabe aus: bei 50 MB je Datei
   // waere die Exportdatei sonst schnell unhandlich.
-  const mitDateien = () => (document.getElementById('ex-files').checked ? '&files=1' : '');
-  document.getElementById('ex-yes').onclick = () => { window.location = '/api/export?photos=1' + mitDateien(); };
-  document.getElementById('ex-no').onclick = () => { window.location = '/api/export?photos=0' + mitDateien(); };
+  const mitDateien = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '');
+  amElement('ex-yes', b => b.onclick = () => { window.location = '/api/export?photos=1' + mitDateien(); });
+  amElement('ex-no', b => b.onclick = () => { window.location = '/api/export?photos=0' + mitDateien(); });
 
-  document.getElementById('imp').onchange = e => {
+  amElement('imp', imp => imp.onchange = e => {
     const file = e.target.files[0];
     e.target.value = '';
     if (file) askImport(file);
-  };
+  });
 
   /* --- Schriftgröße --- */
   function drawSchrift() {
@@ -3337,14 +3362,14 @@ async function renderSystem() {
   anlegeSchalter('tagfrei', 'tagsFreiAnlegen', () => TAGS_FREI, v => { TAGS_FREI = v; });
   anlegeSchalter('katfrei', 'kategorienFreiAnlegen', () => KATEGORIEN_FREI, v => { KATEGORIEN_FREI = v; });
 
-  document.getElementById('breset').onclick = async () => {
+  amElement('breset', breset => breset.onclick = async () => {
     if (!await confirmBox('Standardanordnung wiederherstellen?',
       'Die Blöcke der Detailansicht kehren in ihre Ausgangsreihenfolge zurück, alle eingeklappten werden wieder geöffnet.',
       'Wiederherstellen')) return;
     BLOECKE = { seite: [...BLOCK_VORGABE.seite], unten: [...BLOCK_VORGABE.unten], zu: [] };
     try { await api('PUT', '/api/settings', { bloecke: BLOECKE }); toast('Standardanordnung wiederhergestellt'); }
     catch (e) { toast(e.message, true); }
-  };
+  });
 
   /* --- Vokabular --- */
   // Die Probe zeigt dieselben Textbausteine, die die Oberfläche später
@@ -3384,19 +3409,22 @@ async function renderSystem() {
        <span>Als ${esc(a1)} markieren</span><span>4 ${esc(am)}</span>
        <span>Auf „${esc(ae)}" setzen</span>`;
   }
+  // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
+  // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
+  // Beschriftung der Oberflaeche. Was hier fehlt, ist die Karte, nicht der Wert.
   ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11'].forEach(id =>
-    document.getElementById(id).addEventListener('input', drawProbe));
-  drawProbe();
+    amElement(id, feld => feld.addEventListener('input', drawProbe)));
+  if (document.getElementById('vprobe')) drawProbe();
 
-  document.getElementById('vsave').onclick = async () => {
+  amElement('vsave', vsave => vsave.onclick = async () => {
     try {
       const r = await api('PUT', '/api/settings', { vokabular: vFelder() });
       V = { ...V, ...r.vokabular };
       toast('Vokabular gespeichert');
       renderSystem();          // leere Felder kommen mit der Vorgabe zurück
     } catch (e) { toast(e.message, true); }
-  };
-  document.getElementById('vreset').onclick = async () => {
+  });
+  amElement('vreset', vreset => vreset.onclick = async () => {
     if (!await confirmBox('Vorgaben wiederherstellen?',
       'Die elf Wörter werden auf Eintrag/Einträge, Getestet/Ungetestet, Testtag/Testtage, Bericht/Berichte, Aufgabe/Aufgaben und Erledigt zurückgesetzt.',
       'Zurücksetzen')) return;
@@ -3410,7 +3438,7 @@ async function renderSystem() {
       toast('Vorgaben wiederhergestellt');
       renderSystem();
     } catch (e) { toast(e.message, true); }
-  };
+  });
 
   /* --- Kategorien, Tags und Kriterien verwalten --- */
   // Dieselbe Liste fuer alle drei. Kriterien haben zusaetzlich einen Griff,
@@ -3438,11 +3466,15 @@ async function renderSystem() {
   function manage(boxId, list, kind) {
     const box = document.getElementById(boxId);
     const art = KIND[kind];
-    // Die Kriterien gehoeren dem Admin, alle vier Wege. Fuer
-    // andere bleibt die Karte eine Liste -- kein Griff, kein ✎, kein ✕ und
-    // kein Anlegefeld. Der Server verweigert es ohnehin; ein Knopf, der eine
-    // Fehlermeldung erzeugt, sieht aber aus wie ein Fehler.
-    const darf = kind !== 'crit' || ADMIN;
+    // Umbenennen und Loeschen gehoeren dem Admin -- bei allen dreien, und bei
+    // den Kriterien auch das Sortieren. Fuer andere bleibt die Karte eine
+    // LISTE: kein Griff, kein ✎, kein ✕ und kein Anlegefeld. Der Server
+    // verweigert es ohnehin; ein Knopf, der eine Fehlermeldung erzeugt, sieht
+    // aber aus wie ein Fehler.
+    // DIE KARTE SELBST BLEIBT STEHEN, alle drei. Wer nicht verwalten darf,
+    // darf trotzdem nachsehen, was es gibt -- die Namen sind die Auswahl, aus
+    // der jeder am Eintrag schoepft.
+    const darf = ADMIN;
     box.innerHTML = '';
     if (!list.length) { box.innerHTML = `<span class="hint">Noch nichts angelegt.</span>`; return; }
     list.forEach(entry => {
