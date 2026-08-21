@@ -612,11 +612,16 @@ Verzeichnis. Welche Version wirklich läuft, sagt
 `curl -s http://localhost:3100/api/config`. Diese Zahl kommt allerdings aus der
 `package.json` und ist **keine Aussage über die übrigen Dateien**: wurden
 `package.json` und `server.js` ersetzt, `public/app.js` aber nicht, zeigt der
-Footer die neue Version, während die Oberfläche sich alt verhält. Belegen lässt
-sich das nur an einer Textstelle, die es allein in der neuen Datei gibt — für
-0.8.6 etwa `curl -s http://localhost:3100/app.js | grep -c 'Wer hat bewertet'`
-(erwartet: 3). Hilft dann nur, den vollständigen Dateisatz erneut einzuspielen,
-nicht einzelne Dateien nachzuziehen.
+Footer die neue Version, während die Oberfläche sich alt verhält.
+
+**Seit 0.8.10 gibt es dafür einen Abdruck.** Der Server bildet beim Start eine
+kurze Prüfsumme über alles, was er lädt und ausliefert (`server.js`, `db.js`,
+`auth.js`, `keys.js`, `anhaenge.js`, `package.json`, `public/`), und meldet sie
+unter `abdruck` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen" im
+Systembereich. Der Wert steht zu jeder Version im Änderungsprotokoll
+(`Doku/Aenderungsprotokoll_<Version>.md`, Zeile „Abdruck …"). Stimmt er nicht
+überein, ist der Dateisatz unvollständig eingespielt — dann hilft nur, ihn
+vollständig erneut einzuspielen, nicht einzelne Dateien nachzuziehen.
 
 **Die `.env` liegt bewusst nicht im Paket** — sie enthält den Schlüssel und hat
 in einer verteilten Datei nichts verloren. Sie wandert deshalb mit dem alten
