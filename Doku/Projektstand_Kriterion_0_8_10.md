@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 8 · Stand 21. August 2026 · gebaut: Version 0.8.6**
+**Kompakte Übergabe · Revision 9 · Stand 21. August 2026 · gebaut: Version 0.8.10**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,16 +8,11 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 8 ist.** Revision 3 hat mit der Bereinigung 0.8.1 alles
-weggeräumt, was zur Vergangenheit gehörte; die Revisionen 4 bis 7 trugen 0.8.2
-bis 0.8.5 nach. Diese trägt **0.8.6** nach — *keine Stufe, eine Runde
-Nacharbeit aus dem Betrieb*.
-**Neu am Aufbau:** die Regel „die jüngste Version ausführlich, alles davor als
-eine Zeile" gilt ab jetzt **auch für die Gegenprobenlisten in Abschnitt 7**.
-Ausführlich steht dort nur noch die jüngste Version; von den älteren bleibt,
-was heute noch bindet — die Lehren selbst leben ohnehin als Stolpersteine in
-Abschnitt 6 weiter. Ohne diesen Schnitt wüchse das Blatt mit jeder Version um
-eine Tabelle, die niemand mehr liest.
+**Was Revision 9 ist.** Revision 8 trug 0.8.6 nach. Diese trägt **0.8.10**
+nach — *keine Stufe des Umbaus, die erste Runde des neuen Stufenplans*
+(Abschnitt 10): `package-lock.json` eingecheckt, `sharp` auf 0.35.3, das
+Abbild auf Node 22, ein Versionsabdruck über die ausgelieferten Dateien, der
+Prüfstand filterbar und ein Prüflauf bei jedem Push.
 **Vollständig geblieben sind die Abschnitte 5, 5a und 12** — Entscheidungen,
 Sicherheitsregel, Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht
 mehr berücksichtigt.
@@ -65,18 +60,28 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**Auf dem Server läuft 0.8.6** — eingespielt und nachgeprüft. *Keine Stufe,
-eine Runde Nacharbeit:* die **Bewertungsdetails gehören dem Admin** (die
-Stimmenliste ist von der Sternzeile in eine eigene Ansicht gewandert, samt
-Löschweg), die **Linkliste scrollt am Finger nicht mehr in sich selbst**, die
-**Lücke im Kartenraster** ist zu, „Angelegt von" nennt jetzt auch **wann**,
-und in der Kopfzeile steht, **wer angemeldet ist**.
-**1429 von 1429 Prüfungen.**
+**0.8.10 ist gebaut, alle Prüfungen grün, auf `main` gemergt.** *Keine Stufe
+des Umbaus, die erste Runde des neuen Stufenplans* (Abschnitt 10):
+`package-lock.json` liegt jetzt im Repo und der `Dockerfile` liest sie mit
+`npm ci`, `sharp` steht auf 0.35.3 (die Lücke aus `npm audit` ist zu), das
+Abbild auf Node 22, der Server bildet beim Start einen **Abdruck** über die
+ausgelieferten Dateien (`GET /api/stats`, Karte „Kennzahlen"), der Prüfstand
+lässt sich nach Gruppen filtern, und `.github/workflows/pruefstand.yml` fährt
+ihn bei jedem Push.
+**1480 von 1480 Prüfungen.**
 
-**0.8.6 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
-Tabelle gebraucht — vier von fünf waren reine Oberfläche, der fünfte ein
-lesender Endpunkt mit Wächter. Es ist kein Umstiegscode entstanden;
-`umstieg083()` aus 0.8.3 bleibt der einzige, weiterhin vorgemerkt für 1.0.
+**Die Einspielung auf dem Betriebsserver ist zum Stand dieses Blatts noch
+nicht bestätigt.** Der gemeldete Abdruck wich zunächst vom erwarteten
+`48fe44e7` ab — Ursache offen, geprüft werden sollten Zeilenenden, eine
+überzählige Datei unter `public/` und ob wirklich der gepushte Stand gebaut
+wurde (Abschnitt 2, „Eine unvollständige Kopie" unten). **Diese Zeile gehört
+korrigiert, sobald der Abdruck übereinstimmt.**
+
+**0.8.10 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
+Tabelle gebraucht — die Punkte 1, 2 und 5 fassen nur den Bau an, Punkt 4 nur
+den Prüfstand, Punkt 3 ist der einzige Eingriff in den Anwendungscode. Es ist
+kein Umstiegscode entstanden; `umstieg083()` aus 0.8.3 bleibt der einzige,
+weiterhin vorgemerkt für 1.0.
 
 **Die beiden Anlegen-Schalter stehen im Betrieb so:** bei den **Kategorien
 aus** (nur der Admin legt neue an, das Auswahlfeld am Eintrag bleibt), bei den
@@ -133,15 +138,17 @@ Sechs Dinge, die dabei schiefgehen können, alle schon vorgekommen:
   vergessenen `--build` hilft hier kein `Strg+Shift+R`, weil der Container die
   alte Datei tatsächlich ausliefert. `docker-compose.yml` hängt nur `./data`
   ein — `public/app.js` steckt seit dem Bau **fest im Abbild** und muss vor
-  dem `--build` auf der Platte liegen. Prüfen mit einer Textstelle, die es nur
-  in der neuen Datei gibt — **für 0.8.6:**
-  `curl -s http://localhost:3100/app.js | grep -c 'Wer hat bewertet'`
-  (erwartet: 3; `'Angemeldet als'` ergibt 1). Zu jeder Version gehört eine
-  eigene solche Stelle; die letzte taugt dafür nicht mehr.
-  Steht die Textstelle schon im Verzeichnis, aber nicht in der Antwort, wurde
-  nicht neu gebaut; steht sie auch im Verzeichnis nicht, war die Kopie
-  unvollständig — dann hilft nur, den vollständigen Dateisatz erneut
-  einzuspielen, nicht einzelne Dateien nachzuziehen.
+  dem `--build` auf der Platte liegen.
+
+  **Seit 0.8.10 wird das über den Abdruck geprüft, nicht mehr über eine
+  Textstelle je Version.** Angemeldet, in der Karte „Kennzahlen": ein Wert,
+  der sich ändert, sobald irgendeine ausgelieferte Datei anders ist —
+  `curl -s -b kekse.txt http://localhost:3100/api/stats` nennt ihn als
+  `abdruck`. Der erwartete Wert steht zu jeder Version im Änderungsprotokoll
+  (`Doku/Aenderungsprotokoll_<Version>.md`). Stimmt er nicht überein, war die
+  Kopie unvollständig oder es wurde nicht neu gebaut — dann hilft nur, den
+  vollständigen Dateisatz erneut einzuspielen, nicht einzelne Dateien
+  nachzuziehen.
 - **`cp .env.example .env` statt der echten `.env`** (Stolperstein 45). Dann
   steht `ENCRYPTION_KEY=` leer da, der Start erzeugt einen **neuen** Schlüssel
   und legt ihn als `data/encryption.key` ab, und die vorhandene Datenbank lässt
@@ -1736,6 +1743,31 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     nicht die Begrenzung, sondern den Abbruch — und wird rot, obwohl der Code
     richtig ist. **Wo eine Prüfung Layout braucht, muss sie es stellen.**
     Verwandt mit 20 und mit „Was der Prüfstand nicht kann: Aussehen".
+92. **`fetch()` weigert sich, bestimmte Portnummern überhaupt anzuwählen.**
+    Ein Prüfserver auf Port 6000 läuft, meldet es im Protokoll — und die
+    Prüfung kommt trotzdem nicht an ihn heran: `fetch failed: bad port`. 6000
+    ist X11 und steht auf der Sperrliste der Fetch-Spezifikation, zusammen mit
+    rund achtzig weiteren. `curl` kommt durch, `fetch` nicht. Ein Prüfstand,
+    der sich seine Ports selbst vergibt, muss diese Liste meiden — und das
+    Fehlerbild führt in die Irre, weil der Server nachweislich läuft.
+93. **Ein Filter auf der Ausgabe braucht drei Aussagen, nicht eine.** Dass
+    gefiltert wurde, wie viel übergangen wurde, und ob im Übergangenen etwas
+    rot war. Fehlt die dritte, ist der Teillauf still; fehlt die zweite,
+    sieht er aus wie ein voller Lauf; fehlt die erste, ist er von einem
+    vollen Lauf gar nicht zu unterscheiden. **Der gefährlichste Sonderfall:**
+    ein Filter ohne Treffer zeigt nichts und meldete ohne eigene Regel Erfolg
+    für nichts.
+94. **Ein Rahmen kann sich nicht selbst bestätigen.** Wäre die Zählung des
+    Prüfrahmens falsch, wäre es die Zählung, die es meldet. Prüfbar wird er
+    erst von außen — als eigener Prozess, dessen Ausgabe und Rückgabewert
+    angesehen werden. Damit das nicht den ganzen Durchlauf ein zweites Mal
+    kostet, trägt der Prüfstand eine Selbstprobe, die nur den Rahmen fährt:
+    zwei gestellte Gruppen, Millisekunden statt einer Minute.
+95. **Ein Abdruck über Dateien ist erst dann vollständig, wenn alle Dateien
+    schon geladen sind.** Er entsteht beim Start; ein `require` **innerhalb**
+    einer Funktion liefe später und stünde dann nicht darin — der Abdruck
+    würde still unvollständig, ohne dass irgendetwas rot wird. Dagegen hilft
+    kein Kommentar, sondern ein Wächter über den Modulgraphen ab `server.js`.
 
 ---
 
@@ -1749,8 +1781,9 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Abbilds).
 
-**Zuletzt: 1429 von 1429 bestanden** (0.8.6; 38 neue Prüfungen netto, davon
-12 in einer neuen Gruppe: „Wer hat bewertet -- die Ansicht des Admins"). Der Abschnitt
+**Zuletzt: 1480 von 1480 bestanden** (0.8.10; 51 neue Prüfungen, vier neue
+Gruppen: „Der Bau ist wiederholbar", „Der Versionsabdruck", „Der
+Gruppenfilter", „Der Prüflauf bei jedem Push"). Der Abschnitt
 **„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen steht unverändert:
 er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage, nur ohne die neue
 Spalte und mit einer Zeile darin — und belegt, dass der Umstieg sie ergänzt,
@@ -1797,6 +1830,12 @@ das Schema angefasst.
   Eigentümerfrage je genau einmal vorkommen, und der Wächter darauf, dass das
   Wort „Leitung" nirgends zurückkehrt. **Das ist die einzige Prüfung, die
   eine fehlende Entscheidung findet.**
+- **Das Werkzeug selbst (seit 0.8.10):** die Sperrdatei, der `Dockerfile`, der
+  Versionsabdruck und die Datei für den Prüflauf bei jedem Push — geprüft
+  gegen den Quelltext, teils über einen Server aus einer **Kopie** des
+  Quelltexts in einem Wegwerfverzeichnis. Dazu eine **Selbstprobe des
+  Prüfrahmens**, die den Gruppenfilter als eigenen Prozess fährt und Ausgabe
+  und Rückgabewert von außen ansieht (Stolperstein 94).
 
 **Wichtiger als die Zahl: die Prüfungen werden gegengeprüft.** Über hundert
 gezielte Rückbauten am Code führen jeweils zu genau den passenden
@@ -1893,6 +1932,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte (106) | 34 | Stolpersteine 83, 84, 85 und 86 |
 | 0.8.5 | Stufe G3 — alle sechs Punkte (42) | 19 | Stolpersteine 87 und 88 |
 | 0.8.6 | Berichtigungen aus dem Betrieb — alle fünf Punkte (38 netto) | 23 | Stolpersteine 89, 90 und 91 |
+| 0.8.10 | Werkzeug — alle fünf Punkte (51) | 32 | Stolpersteine 92 bis 95 |
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -1933,57 +1973,48 @@ ganzen Rumpf mit `return` verlässt), der engere den **Ort** (1 rot). Zwei der
 drei groben Rückbauten rissen den Lauf mit, ohne einen Namen zu nennen —
 deshalb steht neben jedem eine engere Zweitprobe (Stolpersteine 76 und 82).
 
-**In 0.8.6 achtunddreißig neue Prüfungen netto und dreiundzwanzig
-Gegenproben.** Netto, weil die Gruppe „Verfasser in der Antwort" **schrumpft**:
-ihre vier Stimmenprüfungen stehen jetzt am eigenen Endpunkt, und was dort
-bleibt, ist die eine Prüfung darauf, dass die Stimmen in der Eintragsantwort
-**nicht** mehr vorkommen. Die neue Servergruppe stellt vier Rufer nebeneinander
-— den Fremden, den **Verfasser des Eintrags**, den Admin ohne Eigentümerrecht
-und die Eigentümerin. Der zweite ist der entscheidende: ohne ihn bliebe die
-Prüfung auch dann grün, wenn dort `nurEintragVerfasser` stünde.
+**Aus 0.8.6 (38 Prüfungen netto, 23 Gegenproben):** Der neue Endpunkt für die
+Stimmenliste stellt vier Rufer nebeneinander — den Fremden, den **Verfasser
+des Eintrags**, den Admin ohne Eigentümerrecht und die Eigentümerin; der
+zweite ist der entscheidende, ohne ihn bliebe die Prüfung auch bei
+`nurEintragVerfasser` grün. Zwei Paare trugen mehr als ihre Zahl: die beiden
+Rückbauten am Aufrufknopf belegen je eine Hälfte derselben Bedingung (ohne
+Adminrolle, bei einem einzigen Zugang — Stolperstein 72), und das Paar an der
+Rasterregel ist Stolperstein 81 in Reinform: ohne die Prüfung auf das
+Vorhandensein der Regel bliebe bei einer fehlenden Regel nur ein roter Punkt
+statt zwei.
+
+**In 0.8.10 51 neue Prüfungen und 32 Gegenproben, alle mit eigener
+Punktliste.** Vier neue Gruppen (Abschnitt „Was abgedeckt ist" oben), dazu
+sechs Prüfungen in vorhandenen Gruppen. Zwei Gegenproben stechen heraus: bei
+`.dockerignore` mit einem nie greifenden Muster bleibt „hält die Sperrdatei
+nicht zurück" **grün** — Stolperstein 81 in Reinform, nur die Prüfung daneben
+findet es. Und der naive Verzeichnislauf statt der Ableitung über
+`require.cache` färbt genau die drei Prüfungen rot, die die Falle des Auftrags
+benennen: `pruefung.js`, `Doku/` und `zugang.js` zählten mit.
 
 | Rückbau | Ergebnis |
 |---|---|
-| `nurAdmin` fällt aus der Routenzeile von `GET /api/items/:id/stimmen` | 3 rot |
-| `detail()` hängt die Stimmen wieder an die Kriterienzeilen | **1 rot** — *Der Eintrag selbst nennt seit 0.8.6 keine Stimmen mehr* |
-| der Aufrufknopf hängt nur noch an `mehrereBenutzer()` | **1 rot** — *Ohne Adminrolle gibt es den Aufruf gar nicht* |
-| der Aufrufknopf hängt nur noch an `ADMIN` | **1 rot** — *Bei einem Zugang gibt es den Aufruf gar nicht* |
-| das ✕ steht an **jeder** Stimme, auch an der eigenen | 5 rot |
-| die Ansicht zeichnet auch Kriterien **ohne** Stimme | 3 rot |
-| nach dem Löschen wird die Liste **nicht** neu geholt | **1 rot** |
-| der Escape-Behandler fragt nicht, ob er der oberste ist | **1 rot** |
-| der Endpunkt reicht eine feste Nummer statt `req.benutzer.id` durch | **1 rot** |
-| `overflowY = 'auto'` in `begrenzeLinks()` — der Stand von 0.8.5 | **1 rot** |
-| aufgeklappt wird die Abschneidung nicht mehr weggenommen | **1 rot** |
-| `begrenzeWolke()` setzt `overflow: 'auto'` | **1 rot** |
-| `grid-auto-flow: dense` fällt aus der Regel | **1 rot** |
-| die ganze `.sys-grid`-Regel fällt weg | 2 rot |
-| die Kachel „Zugänge" wandert ans **Ende** des Rasters | 2 rot |
-| die Verfasserzeile nennt wieder nur den Verfasser, kein Datum | **1 rot** |
-| die Verfasserzeile steht auch bei einem einzigen Zugang | 2 rot |
-| `name` fällt aus `GET /api/settings` | 2 rot |
-| die Angabe fällt aus der Kopfzeile | 5 rot |
-| die Antwort nennt den **ersten** Zugang statt des angemeldeten | **1 rot** |
-| `NAME` wird nach dem Umbenennen nicht mitgesetzt | **1 rot** |
-| `esc()` fällt um den Namen weg | **1 rot** |
+| `package-lock.json` wird in `.dockerignore` aufgenommen | **1 rot** |
+| `npm ci` wird wieder `npm install` | 2 rot |
+| die Sperrdatei fehlt ganz | 4 rot |
+| `alsMuster()` trifft nie | **1 rot** — *Stolperstein 81 in Reinform* |
+| `abdruck` fällt aus der Antwort von `/api/stats` | 5 rot |
+| die Liste wird ein blosser Verzeichnislauf über alle `.js` der Wurzel | 4 rot |
+| der **Name** geht nicht mehr in den Hash, nur der Inhalt | **1 rot** |
+| `abdruck` wandert **zusätzlich** nach `/api/config` | 2 rot |
+| der Doppelgänger kennt `abdruck` nicht mehr | **1 rot** — *Stolperstein 90* |
+| ein `require` wandert in `db.js` in eine Funktion | **1 rot** — *Stolperstein 95* |
+| der Schlussblock sagt nicht mehr, dass gefiltert wurde | **1 rot** |
+| ein übergangener Fehlschlag färbt den Lauf doch rot | 2 rot |
+| der Rückgabewert kümmert sich nicht mehr um den Filter ohne Treffer | **1 rot** |
+| `node-version` im Prüflauf auf `'20'` | **1 rot** — *Abbild und Prüflauf laufen auseinander* |
+| `--audit-level=high` wird `moderate` | 2 rot |
+| die Datei für den Prüflauf fehlt ganz | 7 rot |
 
-**Drei Paare tragen mehr als ihre Zahl.** Die beiden Rückbauten am Aufrufknopf
-belegen **je eine Hälfte** derselben Bedingung — ohne Adminrolle und bei einem
-einzigen Zugang; verschiedene Punktlisten, also zwei verschiedene Sachen
-(Stolperstein 72). Das Paar an der Rasterregel ist Stolperstein 81 in Reinform:
-ohne die Prüfung auf das **Vorhandensein** der Regel bliebe bei einer fehlenden
-Regel nur ein roter Punkt statt zwei, weil eine leere Zeichenkette jede
-Verneinung wahr macht. Und das Paar an `/api/settings` trennt „die Angabe
-fehlt" von „die Angabe ist falsch": der engere Rückbau lässt den Namen stehen
-und nennt den **ersten** Zugang — bei der Eigentümerin richtig, bei jedem
-anderen falsch.
-
-**Kein Rückbau hat in dieser Runde den Lauf abgerissen**, eine engere
-Zweitprobe nach Stolperstein 76 war deshalb nirgends nötig. Was ein Rückbau
-dagegen zeigte: steht das ✕ auch an der **eigenen** Stimme, ist es das erste in
-der Liste — der Klick trifft dann eine andere Bewertung, und drei weitere
-Prüfungen fallen als Folge desselben Rückbaus. Das ist keine zweite Sache,
-sondern dieselbe.
+**Vollständige Tabelle im Änderungsprotokoll 0.8.10.** Kein Rückbau hat den
+Lauf abgerissen, eine engere Zweitprobe nach Stolperstein 76 war nirgends
+nötig.
 
 ---
 
@@ -2031,52 +2062,51 @@ sondern dieselbe.
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.6 — „Berichtigungen aus dem Betrieb", alle fünf Punkte.** Keine Stufe
-des Umbaus, eine Runde Nacharbeit an dem, was beim Ansehen von 0.8.5
-aufgefallen ist.
+**0.8.10 — „Werkzeug", alle fünf Punkte.** Keine Stufe des Umbaus, die erste
+Runde des neuen Stufenplans (Abschnitt 10). Fünf Punkte, kein Schema, kein
+Umstiegscode, keine neue schreibende Route.
 
-*Die Bewertungsdetails gehören dem Admin.* Unter der Sternzeile stand je
-Kriterium, **wer welchen Wert vergeben hat** — mit Namen, für jeden sichtbar.
-Die Zeile zeigt jetzt nur noch den eigenen Wert und den Schnitt; die
-Namensliste ruft der Admin über den Knopf **„Wer hat bewertet"** im Blockkopf
-auf, sichtbar erst ab zwei Zugängen. **Das nimmt den sichtbaren Teil der
-Stimmenliste aus 0.8.2 zurück** — und weil an ihr der **Löschweg** für eine
-fremde Bewertung hing, ist die neue Ansicht kein Zusatz, sondern die Bedingung.
-`DELETE /api/ratings/:id` blieb unverändert; geändert hat sich nur, von wo aus
-er gerufen wird. Geliefert wird die Liste ebenfalls nicht mehr an jeden:
-`detail()` hängt keine `stimmen` mehr an, der neue
-`GET /api/items/:id/stimmen` trägt `nurAdmin` in der Routenzeile und steht als
-lesende Route **nicht** in `F_ROUTEN`. Der einzige Servereingriff der Runde,
-neben einer Zeile für Punkt 5.
+*Der Bau wird wiederholbar.* `package-lock.json` liegt jetzt im Repo
+(`lockfileVersion 3`, 177 Pakete), der `Dockerfile` liest sie mit `npm ci
+--omit=dev` statt `npm install --omit=dev` — ohne den Wechsel läge die Datei
+nur ungenutzt daneben. Belegt außerhalb des Prüfstands: `npm ci` bricht ab, wo
+`npm install` am selben Stand wortlos eine andere Version auflöste.
 
-*Die Linkliste scrollt am Finger nicht mehr in sich selbst.* `begrenzeLinks()`
-setzt `overflowY = 'hidden'` statt `'auto'`: die Liste wird abgeschnitten, und
-der Knopf „alle N anzeigen" stand schon da. Damit scrollt am Finger immer die
-Seite. **Die Tagwolke war nicht betroffen** — `begrenzeWolke()` setzte seit
-jeher `hidden`; die Prüflage steht jetzt trotzdem daneben.
+*`sharp` auf 0.35.3, das Abbild auf Node 22.* `npm audit` meldete für
+`sharp <0.35` geerbte Lücken aus libvips mit dem Schweregrad „high"; danach
+„found 0 vulnerabilities". Node 20 ist seit dem 30. April 2026 ohne Pflege.
+Gemessen statt geglaubt: auf Node 22 übersetzt `better-sqlite3-multiple-ciphers`
+gar nicht erst (Fertigbau für ABI 127), auf Node 24 gäbe es keinen und der Bau
+fiele auf `node-gyp` zurück — deshalb 22, nicht 24.
 
-*Die Lücke im Kartenraster.* `grid-auto-flow: dense` am `.sys-grid` zieht eine
-nachfolgende schmale Karte in die Lücke, die die breite Kachel „Zugänge" davor
-hinterlässt — unter jeder Breite und bei jeder Kartenzahl. Die Reihenfolge im
-Quelltext bleibt, wie sie ist; eine Prüfung hält das fest.
+*Ein Versionsnachweis, der wirklich trägt.* Der Server bildet beim Start einen
+Abdruck (SHA-256, acht Zeichen) über das, was er tatsächlich lädt
+(`require.cache`) und ausliefert (`public/`) — abgeleitet, nicht gepflegt.
+`GET /api/stats` nennt ihn, die Karte „Kennzahlen" zeigt ihn. Er geht bewusst
+**nicht** nach `/api/config`: die Liste dort ist eine Sicherheitsgrenze, die
+mehr wert ist als die eine gesparte Anmeldung. `zugang.js` läuft nie im
+Server und steht deshalb nicht im Abdruck — er sagt, welcher Server läuft,
+nicht welches Werkzeug danebenliegt. **Das war die letzte Version, die dafür
+eine Textstelle zum Gegenprüfen brauchte** — siehe Abschnitt 2.
 
-*Zwei Angaben, die gefehlt haben.* „Angelegt von" nennt jetzt auch **wann**,
-in derselben Form wie die Kopfzeile eines Kommentars (bei einem Zugang bleibt
-die ganze Zeile weg wie bisher). Und in der Kopfzeile steht neben „Abmelden",
-**wer angemeldet ist** — auch bei einem einzigen Zugang, denn das ist eine
-Aussage über einen selbst. Der Name kommt über `GET /api/settings`, weil
-`ladeEinstellungen()` in `start()` läuft.
+*Der Prüfstand lässt sich filtern und läuft bei jedem Push.* `node
+pruefung.js Rechte` zeigt nur passende Gruppen — die Arbeit bleibt dieselbe
+(die Prüflagen bauen aufeinander auf), nur die Ausgabe schrumpft. Ein
+gefilterter Lauf sagt das selbst und lässt den Rückgabewert dem Gezeigten
+folgen. `.github/workflows/pruefstand.yml`: `npm ci`, `npm test`, `npm audit
+--audit-level=high`, Node-Version identisch mit dem Abbild.
 
-**1429 von 1429 Prüfungen**, 23 Gegenproben. Drei neue Stolpersteine (89, 90,
-91). Drei Prüfungen umgedreht, vier serverseitige und sieben in der Oberfläche
-umgehängt, keine gelöscht (Stolperstein 74). `F_ROUTEN` unverändert 46.
-**Kein Punkt hat das Schema angefasst**, kein Umstiegscode entstanden.
+**1480 von 1480 Prüfungen**, 32 Gegenproben. Vier neue Stolpersteine (92 bis
+95). `F_ROUTEN` unverändert 46. **Kein Punkt hat das Schema angefasst**, kein
+Umstiegscode entstanden.
 
-Als Nächstes **Stufe G4 auf 0.8.30** — die erste Datenbankstufe seit 0.8.3. Davor liegen 0.8.10 und 0.8.20, beide ohne Schemaänderung.
-Siehe Abschnitt 10.
+Als Nächstes **0.8.20 „Die Schotten dicht"** — SVG am Fotoweg,
+`X-Forwarded-For`, `Secure`-Cookie und mehr. Danach **Stufe G4 auf 0.8.30**,
+die erste Datenbankstufe seit 0.8.3. Siehe Abschnitt 10.
 
 | Version | Was |
 |---|---|
+| 0.8.6 | Berichtigungen aus dem Betrieb, alle fünf Punkte: Bewertungsdetails gehören dem Admin (samt Löschweg für eine fremde Bewertung), Linkliste abgeschnitten statt scrollbar, `grid-auto-flow: dense` schließt die Lücke im Kartenraster, „Angemeldet als" auch bei einem Zugang, „Angelegt von" nennt auch das Datum |
 | 0.8.5 | Stufe G3: dreizehn Karten des Systembereichs nach Rolle, `GET /api/stats` hinter `nurAdmin`, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien, berichtigte `AUTH_RESET`-Zeile |
 | 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte, **Stufe G2 vollständig**: Eingriffsvermerk nennt die Rolle, `updated_at` an den Bildwegen des Verfassers, Zahlen in der Kopfzeile des Kommentarblocks, die beiden Anlegen-Schalter, Umschalter „meine/alle" im Vergleich |
 | 0.8.3 | Stufe G2, zweite Hälfte, erster Teil: Eingriffsvermerk am Kommentar (`images_removed`, erster Umstiegscode seit der Bereinigung), `mine` am Kommentar samt Oberfläche, blaue Aufgabenmarke, Tagwolke klappt ganz auf |
@@ -2151,6 +2181,9 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **1.0.0** | Bereinigung und Zusage | Umstiegscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
+**0.8.10 ist gebaut** — Einzelheiten in Abschnitt 2 und Abschnitt 9. Als
+Nächstes **0.8.20**.
+
 **Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
 antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
 eine Verbindung zu einem fremden Server auf. Das ist die größte Änderung der
@@ -2158,9 +2191,9 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
 
 **Die Reihenfolge ist nicht beliebig.** Vier Bindungen:
 
-- **0.8.10 vor allem anderen.** Ohne festgenagelte Abhängigkeiten ist jeder
-  Bau ein anderer, und ohne Prüflauf bei jedem Push läuft der Prüfstand nur,
-  wenn jemand daran denkt. Beides sichert alles Folgende ab.
+- **0.8.10 vor allem anderen** (erledigt). Ohne festgenagelte Abhängigkeiten
+  wäre jeder Bau ein anderer gewesen, und ohne Prüflauf bei jedem Push liefe
+  der Prüfstand nur, wenn jemand daran denkt. Beides sichert alles Folgende ab.
 - **0.8.20 vor 0.8.50.** Der Videoweg liefert eine Datei **inline** aus. Er
   darf erst gebaut werden, wenn die Regel „der gemeldete Typ des Hochladenden
   wird nie ausgeliefert" auch am Fotoweg gilt.
@@ -2170,9 +2203,6 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
 - **0.8.10 und 0.8.20 vor 1.0.0.** Eine Veröffentlichung heißt fremde
   Installationen. Danach stehen die beiden Befunde nicht mehr in einer Anlage,
   sondern in allen.
-
-**Ist die Anlage bereits von außen erreichbar, tauschen 0.8.10 und 0.8.20 die
-Plätze.** Dann zuerst die Löcher, dann das Werkzeug.
 
 **Die Herkunft der neuen Punkte** — Befunde, Messwerte und Begründungen —
 steht in `Ideen_und_Vorschlaege.md`. Das Papier ist damit **Quelle, nicht
@@ -2193,8 +2223,8 @@ damit alte Verweise stimmen.)*
    Abschnitt 5 und Abschnitt 9.
 
    **Als Nächstes: Stufe G4 auf 0.8.30 — „Die Linkliste bekommt Verfasser".**
-   Davor liegen mit 0.8.10 und 0.8.20 zwei Runden **ohne Schemaänderung**;
-   die Begründung steht im Stufenplan oben.
+   Davor liegt mit 0.8.20 noch eine Runde **ohne Schemaänderung** — 0.8.10 ist
+   erledigt; die Begründung steht im Stufenplan oben.
    Links darf jeder eintragen; löschen darf sie der Eintrager oder der Admin,
    und ab zwei Zugängen steht sein Name an der Zeile. Das **kehrt die Zeile
    „Titel, Beschreibung, Fotos, Dateien, Links, Tags, Kategorie" der
@@ -2404,6 +2434,18 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   wie der Favoritenfilter. Der Merkzeitpunkt wird beim **Verlassen** der
   Übersicht gesetzt, nicht beim Betreten: Zeitstempel haben Sekundenauflösung
   (Stolperstein 15), und beim Betreten wäre das Fenster scharf.
+- **Die Node-Version steht an zwei Stellen und muss an beiden dieselbe sein**
+  (seit 0.8.10). Im `Dockerfile` (beide Stufen) und in
+  `.github/workflows/pruefstand.yml`. Laufen sie auseinander, prüft der
+  Prüflauf gegen etwas, das im Container so nicht betrieben wird — genau der
+  Befund, der zu dieser Regel geführt hat (lokal 22, im Abbild 20). Der
+  Prüfstand hält die beiden Zahlen gegeneinander.
+- **Was der Server weder lädt noch ausliefert, steht nicht im Abdruck**
+  (seit 0.8.10). Die Liste dafür ist abgeleitet — `require.cache` plus
+  `public/` —, nicht gepflegt; `pruefung.js`, `Doku/` und `zugang.js` können
+  dadurch gar nicht erst hineingeraten. Wer ein weiteres serverseitiges Modul
+  ergänzt, das beim Start geladen wird, sieht den Abdruck dadurch wandern —
+  das ist beabsichtigt, nicht zu unterdrücken.
 - **Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine
   Behauptung** (ab 0.8.20). Er darf nur geglaubt werden, wo ausdrücklich
   eingestellt ist, wer ihn setzen darf. Bisher stand die Regel nur für den
