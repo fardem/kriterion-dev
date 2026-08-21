@@ -3006,7 +3006,8 @@ async function renderSystem() {
 
       ${ADMIN ? `<div class="sys-card">
         <h3>Kennzahlen</h3>
-        <p class="desc">Umfang des Bestands und Belegung der Datenbank.</p>
+        <p class="desc">Umfang des Bestands, Belegung der Datenbank und der Abdruck
+          der laufenden Dateien.</p>
         <div class="kv"><span class="k">${esc(V.sacheMehrzahl)}</span><span class="v">${stats.itemCount}</span></div>
         <div class="kv"><span class="k">Fotos</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
         <div class="kv"><span class="k">Kommentare</span><span class="v">${stats.commentCount}</span></div>
@@ -3014,6 +3015,11 @@ async function renderSystem() {
         <div class="kv"><span class="k">${esc(V.zeitpunktMehrzahl)}</span><span class="v">${stats.testDayCount}</span></div>
           <div class="kv"><span class="k">Dateien</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
         <div class="kv"><span class="k">Datenbank</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
+        ${/* Der Abdruck beantwortet, was die Versionsnummer nicht kann: ob die
+             Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
+             Einspielen wird er gegen die Zeile im Aenderungsprotokoll
+             gehalten -- stimmt er nicht, ist ein Dateisatz halb eingespielt. */''}
+        <div class="kv"><span class="k">Abdruck</span><span class="v"><code>${esc(stats.abdruck || '—')}</code></span></div>
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">Der Schlüssel kommt aus der Umgebung. Denk daran: <strong>.env und data/ nicht ins selbe Backup legen</strong> — und ohne den Schlüssel sind die Daten unwiederbringlich verloren.</div>`
           : `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.

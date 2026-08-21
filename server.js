@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
 const anh = require('./anhaenge');
@@ -1995,6 +1996,12 @@ app.get('/api/stats', nurAdmin, (req, res) => {
   const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();
   res.json({
     version: VERSION,
+    // Der Abdruck steht hier und nicht in /api/config: er ist dieselbe Art
+    // Aussage wie die Zahlen darunter -- eine ueber die ANLAGE ALS GANZES.
+    // Und die Liste in /api/config ist ausdruecklich abgeschlossen; was
+    // dort steht, sieht jeder, der die Adresse kennt. Der Abdruck nagelt
+    // den laufenden Dateisatz fest und geht deshalb nicht vor die Anmeldung.
+    abdruck: ABDRUCK,
     dbBytes, photoCount: p.n, photoBytes: p.o,
     attachmentCount: an.n, attachmentBytes: an.o,
     itemCount: db.prepare('SELECT COUNT(*) n FROM items').get().n,
@@ -2404,6 +2411,64 @@ async function maintainStorage() {
     if (free * page > 32 * 1024 * 1024) { reclaim(); }
   }
 }
+
+/* ---- Versionsabdruck ---- */
+// Die Versionsnummer kommt aus der package.json und sagt NICHTS ueber die
+// uebrigen Dateien: wurden package.json und server.js ersetzt, public/app.js
+// aber nicht, zeigt die Fusszeile die neue Version, waehrend die Oberflaeche
+// sich alt verhaelt. Der Abdruck ist die Aussage, die die Versionsnummer nicht
+// machen kann -- er aendert sich, sobald IRGENDEINE der beteiligten Dateien
+// anders ist. Ein halb eingespielter Dateisatz zeigt damit einen Abdruck, der
+// zu keiner Version gehoert.
+//
+// DIE LISTE WIRD ABGELEITET, NICHT GEPFLEGT, und zwar aus dem, was der Server
+// wirklich tut: alles unter public/ liefert express.static aus, alles in
+// require.cache unterhalb dieses Verzeichnisses fuehrt er aus. Eine zweite,
+// gepflegte Liste hiesse zwei Wahrheiten ueber dieselbe Sache und liefe
+// frueher oder spaeter auseinander.
+//
+// Damit kann die Falle gar nicht erst entstehen: pruefung.js und Doku/ liegen
+// im Repo, aber NICHT im Abbild (.dockerignore). Ein Abdruck, der sie
+// mitzaehlte, waere im Container ein anderer als auf der Platte und damit
+// wertlos. Der Server laedt sie nicht und liefert sie nicht aus -- sie koennen
+// also nicht hineingeraten, ohne dass jemand sie ausdruecklich hereinholt.
+//
+// DIE GRENZE, DIE DARAUS FOLGT, IST ABSICHT: zugang.js liegt im Abbild, wird
+// aber nur von Hand aufgerufen und nie vom Server geladen. Es steht deshalb
+// nicht im Abdruck. Der Abdruck sagt, WELCHER SERVER LAEUFT, nicht welches
+// Werkzeug danebenliegt.
+function dateienUnter(verzeichnis) {
+  const raus = [];
+  for (const e of fs.readdirSync(verzeichnis, { withFileTypes: true })) {
+    const voll = path.join(verzeichnis, e.name);
+    if (e.isDirectory()) raus.push(...dateienUnter(voll));
+    else if (e.isFile()) raus.push(voll);
+  }
+  return raus;
+}
+
+function bildeAbdruck() {
+  const ausgefuehrt = Object.keys(require.cache).filter(f =>
+    f.startsWith(__dirname + path.sep) && !f.split(path.sep).includes('node_modules'));
+  const liste = [...new Set([...ausgefuehrt, ...dateienUnter(path.join(__dirname, 'public'))])]
+    .map(f => path.relative(__dirname, f).split(path.sep).join('/'))
+    .sort();
+  const h = crypto.createHash('sha256');
+  for (const rel of liste) {
+    // Der NAME gehoert mit hinein, sonst bliebe der Abdruck gleich, wenn zwei
+    // Dateien ihre Inhalte tauschen oder eine umbenannt wird. Das Nullzeichen
+    // trennt, damit sich Name und Inhalt nicht ineinanderschieben koennen.
+    h.update(rel); h.update('\0');
+    h.update(fs.readFileSync(path.join(__dirname, rel))); h.update('\0');
+  }
+  return h.digest('hex').slice(0, 8);
+}
+
+// Beim Start, nach allen require-Aufrufen: erst dann ist require.cache
+// vollstaendig. Alle Module dieses Projekts werden am Dateianfang geladen; ein
+// require INNERHALB einer Funktion machte diesen Abdruck unvollstaendig, und
+// der Pruefstand haelt genau das fest.
+const ABDRUCK = bildeAbdruck();
 
 app.listen(PORT, () => {
   // holeBenutzer() ist hier RICHTIG: beim Start gibt es keine Anfrage und

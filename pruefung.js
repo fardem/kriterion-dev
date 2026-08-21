@@ -294,6 +294,183 @@ const namen = (liste) => liste.map(c => c.name);
     bauZeilen.filter(z => /npm install/.test(z)).join(' · '));
 
   /* ---------------------------------------------------------------- */
+  gruppe('Der Versionsabdruck');
+
+  /* Der Abdruck ist eine Ableitung beim Start: er geht ueber die Dateien, die
+     der Server WIRKLICH laedt (require.cache) und WIRKLICH ausliefert
+     (public/). Geprueft wird deshalb nicht die Liste -- die nachzubilden
+     hiesse, dieselbe Rechnung ein zweites Mal aufzuschreiben und damit zwei
+     Wahrheiten zu haben. Geprueft wird, WORAUF ER REAGIERT.
+
+     Dafuer laeuft ein Server aus einer KOPIE des Quelltextes in einem
+     Wegwerfverzeichnis. Nur so lassen sich Dateien anfassen, ohne den
+     laufenden Prueflauf unter sich selbst zu veraendern. */
+  const quellKopie = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-quelle-'));
+  for (const e of fs.readdirSync(__dirname, { withFileTypes: true })) {
+    if (['node_modules', 'data', '.git'].includes(e.name)) continue;
+    const ziel = path.join(quellKopie, e.name);
+    if (e.isDirectory()) fs.cpSync(path.join(__dirname, e.name), ziel, { recursive: true });
+    else if (e.isFile()) fs.copyFileSync(path.join(__dirname, e.name), ziel);
+  }
+  // Ueber die Verknuepfung loest require die Pakete auf ihren ECHTEN Ort auf;
+  // sie liegen damit ausserhalb der Kopie und koennen gar nicht mitzaehlen.
+  fs.symlinkSync(path.join(__dirname, 'node_modules'), path.join(quellKopie, 'node_modules'));
+
+  // Ein Server aus der Kopie, frisch eingerichtet, einmal nach den Kennzahlen
+  // gefragt und wieder beendet. Jeder Aufruf bekommt ein eigenes
+  // Datenverzeichnis -- der Abdruck darf vom Bestand nicht abhaengen.
+  /* Die Ports werden fortlaufend vergeben, nicht gewuerfelt: hier laufen ueber
+     ein Dutzend Server nacheinander, und bei gewuerfelten Nummern trifft
+     frueher oder spaeter einer auf einen, der noch nicht losgelassen hat.
+     NICHT AB 6000: fetch() weigert sich, eine Reihe von Portnummern
+     ueberhaupt anzuwaehlen -- 6000 ist X11 und steht auf der Sperrliste der
+     Fetch-Spezifikation. Der Server laeuft dann und meldet es auch, nur
+     kommt die Pruefung nicht an ihn heran ("bad port"). curl kommt durch,
+     fetch nicht. */
+  let abdruckPort = 6100;
+  async function abdruckAus(verzeichnis) {
+    const datenVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-abdruck-'));
+    const port = abdruckPort++;
+    const basis = `http://127.0.0.1:${port}`;
+    const umgebung = { ...process.env, PORT: String(port), DATA_DIR: datenVerz, ENCRYPTION_KEY: KEY };
+    delete umgebung.AUTH_RESET;
+    const kindQ = spawn(process.execPath, ['server.js'], { cwd: verzeichnis, env: umgebung });
+    let prot = '';
+    kindQ.stdout.on('data', d => { prot += d; });
+    kindQ.stderr.on('data', d => { prot += d; });
+    try {
+      let bereit = false;
+      for (let i = 0; i < 120 && !bereit; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        try { bereit = (await fetch(`${basis}/api/config`)).ok; } catch {}
+      }
+      if (!bereit) throw new Error(`Server aus der Kopie (Port ${port}) nicht erreichbar\n${prot}`);
+      const ein = await fetch(`${basis}/api/setup`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user: NUTZER, password: PASSWORT }) });
+      const keksQ = (ein.headers.get('set-cookie') || '').split(';')[0];
+      const st = await (await fetch(`${basis}/api/stats`, { headers: { cookie: keksQ } })).json();
+      return st.abdruck;
+    } finally {
+      await new Promise(r => { kindQ.on('exit', r); kindQ.kill(); });
+      fs.rmSync(datenVerz, { recursive: true, force: true });
+    }
+  }
+
+  // Der Wert des laufenden Servers, gegen den verglichen wird.
+  const abdruckPlatte = (await ruf('GET', '/api/stats')).inhalt.abdruck;
+  const abdruckKopie = await abdruckAus(quellKopie);
+  // Erst das Vorhandensein, dann jede Aussage darueber (Stolperstein 81): ohne
+  // diese Zeile bliebe jeder Vergleich zweier fehlender Werte wahr.
+  pruefe('Der Server aus der Kopie nennt einen Abdruck',
+    /^[0-9a-f]{8}$/.test(abdruckKopie || ''), JSON.stringify(abdruckKopie));
+  /* Die Kopie liegt woanders, traegt ein eigenes Datenverzeichnis und einen
+     eigenen Bestand -- und kommt trotzdem auf denselben Wert. Der Abdruck
+     haengt am INHALT der Dateien, nicht am Ort und nicht am Bestand. */
+  pruefe('Und es ist derselbe wie auf der Platte', abdruckKopie === abdruckPlatte,
+    `${abdruckKopie} gegen ${abdruckPlatte}`);
+
+  // Kleine Hilfe: eine Datei in der Kopie anfassen und neu fragen.
+  const nachAenderung = async (rel, inhalt) => {
+    const voll = path.join(quellKopie, rel);
+    fs.mkdirSync(path.dirname(voll), { recursive: true });
+    fs.writeFileSync(voll, inhalt);
+    return abdruckAus(quellKopie);
+  };
+
+  /* DIE FALLE, UND SIE IST DER GRUND FUER DIE ABLEITUNG: pruefung.js und Doku/
+     liegen im Repo, aber nicht im Abbild (.dockerignore). Zaehlten sie mit,
+     waere der Abdruck im Container ein anderer als auf der Platte -- und damit
+     wertlos. */
+  pruefe('Eine Änderung an pruefung.js lässt ihn unberührt',
+    await nachAenderung('pruefung.js', '// nicht ausgeliefert\n') === abdruckKopie);
+  pruefe('Eine neue Datei unter Doku ebenfalls',
+    await nachAenderung('Doku/Neu.md', '# nicht ausgeliefert\n') === abdruckKopie);
+  /* Die bewusste Grenze, ausdruecklich festgehalten, damit sie nicht
+     stillschweigend kippt: zugang.js liegt im Abbild, wird aber nur von Hand
+     aufgerufen und nie vom Server geladen. Der Abdruck sagt, welcher SERVER
+     laeuft. */
+  pruefe('Und eine an zugang.js auch — es läuft nicht im Server',
+    await nachAenderung('zugang.js', '// von Hand, nicht im Server\n') === abdruckKopie);
+
+  /* Und die Gegenrichtung. Ohne sie koennte der Abdruck eine feste
+     Zeichenkette sein und alle Pruefungen darueber blieben gruen. */
+  const appVorher = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  const abdruckApp = await nachAenderung('public/app.js', appVorher + '\n// eine Zeile mehr\n');
+  pruefe('Eine Änderung an public/app.js ändert ihn',
+    /^[0-9a-f]{8}$/.test(abdruckApp || '') && abdruckApp !== abdruckKopie,
+    `${abdruckApp} gegen ${abdruckKopie}`);
+  fs.writeFileSync(path.join(quellKopie, 'public', 'app.js'), appVorher);
+
+  const dbVorher = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+  const abdruckDb = await nachAenderung('db.js', dbVorher + '\n// eine Zeile mehr\n');
+  pruefe('Eine Änderung an db.js ändert ihn ebenfalls',
+    abdruckDb !== abdruckKopie && abdruckDb !== abdruckApp,
+    `${abdruckDb} gegen ${abdruckKopie} und ${abdruckApp}`);
+  fs.writeFileSync(path.join(quellKopie, 'db.js'), dbVorher);
+
+  /* DER NAME GEHOERT MIT HINEIN, nicht nur der Inhalt. Zwei Dateien mit
+     GLEICHEM Inhalt und verschiedenem Namen muessen zu verschiedenen Abdruecken
+     fuehren -- sonst bliebe eine Umbenennung unsichtbar. Der Inhalt ist bei
+     beiden Schritten Zeichen fuer Zeichen derselbe, es unterscheidet sie
+     ausschliesslich der Name. */
+  const abdruckZ1 = await nachAenderung('public/z1.txt', 'derselbe Inhalt\n');
+  fs.rmSync(path.join(quellKopie, 'public', 'z1.txt'));
+  const abdruckZ2 = await nachAenderung('public/z2.txt', 'derselbe Inhalt\n');
+  pruefe('Zwei Dateien gleichen Inhalts unter verschiedenem Namen sind verschieden',
+    abdruckZ1 !== abdruckZ2 && /^[0-9a-f]{8}$/.test(abdruckZ1 || ''),
+    `${abdruckZ1} gegen ${abdruckZ2}`);
+  fs.rmSync(path.join(quellKopie, 'public', 'z2.txt'));
+
+  /* Zum Schluss zurueck auf den Ausgangsstand. Bliebe der Abdruck jetzt
+     verschieden, haengt er an etwas anderem als dem Inhalt -- an der Zahl der
+     Starts etwa, oder an einem Zeitstempel. */
+  pruefe('Zurück am Ausgangsstand steht wieder der erste Wert',
+    await abdruckAus(quellKopie) === abdruckKopie);
+
+  fs.rmSync(quellKopie, { recursive: true, force: true });
+
+  /* Der Abdruck wird beim START gebildet, und vollstaendig ist er nur, solange
+     jedes Modul am Dateianfang geladen wird: ein require INNERHALB einer
+     Funktion liefe erst spaeter und stuende dann nicht darin -- der Abdruck
+     wuerde still unvollstaendig, ohne dass irgendetwas rot wird.
+
+     Geprueft wird an dem, was WIRKLICH im Abdruck steht, also am Modulgraphen
+     ab server.js. Auch das eine Ableitung und keine zweite Liste. zugang.js
+     und pruefung.js fallen heraus -- beide laden innerhalb von Funktionen und
+     duerfen das auch, weil der Server sie nie laedt. */
+  const modulGraph = (start) => {
+    const gesehen = new Set();
+    const holen = (rel) => {
+      if (gesehen.has(rel)) return;
+      gesehen.add(rel);
+      for (const t of fs.readFileSync(path.join(__dirname, rel), 'utf8')
+        .matchAll(/require\('\.\/([\w.-]+)'\)/g)) {
+        const name = /\.(js|json)$/.test(t[1]) ? t[1] : t[1] + '.js';
+        if (fs.existsSync(path.join(__dirname, name))) holen(name);
+      }
+    };
+    holen(start);
+    return [...gesehen].sort();
+  };
+  const imAbdruck = modulGraph('server.js').filter(n => n.endsWith('.js'));
+  const spaetGeladen = [];
+  for (const n of imAbdruck)
+    fs.readFileSync(path.join(__dirname, n), 'utf8').split('\n').forEach((z, i) => {
+      if (/^\s+.*\brequire\(/.test(z)) spaetGeladen.push(`${n}:${i + 1}`);
+    });
+  // Erst das Vorhandensein, dann die Eigenschaft: bliebe die Ableitung bei
+  // server.js allein stehen, waere die Pruefung darunter gruen, ohne eine
+  // einzige der anderen Dateien gelesen zu haben (Stolperstein 81).
+  pruefe('Der Modulgraph nennt mehr als server.js allein',
+    imAbdruck.length >= 5, imAbdruck.join(' · '));
+  pruefe('Und weder zugang.js noch pruefung.js stehen darauf',
+    !imAbdruck.includes('zugang.js') && !imAbdruck.includes('pruefung.js'),
+    imAbdruck.join(' · '));
+  pruefe('Kein Modul des Servers wird erst innerhalb einer Funktion geladen',
+    spaetGeladen.length === 0, spaetGeladen.join(', '));
+
+  /* ---------------------------------------------------------------- */
   gruppe('Kriterien: lesen, umbenennen, anlegen');
 
   let krit = (await ruf('GET', '/api/criteria')).inhalt;
@@ -637,6 +814,15 @@ const namen = (liste) => liste.map(c => c.name);
     !JSON.stringify(cfg).includes('Intern') && !('appTitle' in cfg));
   pruefe('Die Kennzahlen nennen sie ebenfalls',
     (await ruf('GET', '/api/stats')).inhalt.version === cfg.version);
+  /* Seit 0.8.10 gibt es den Abdruck. Er steht ausdruecklich NICHT vor der
+     Anmeldung, sondern bei den Kennzahlen. Diese beiden Zeilen halten die
+     Entscheidung fest, statt sie nur im Kommentar zu haben -- die Pruefung
+     darueber ist damit umgedreht und nicht geloescht (Stolperstein 74). */
+  pruefe('Der Abdruck bleibt vor der Anmeldung draußen', !('abdruck' in cfg),
+    JSON.stringify(Object.keys(cfg)));
+  const statsAbdruck = (await ruf('GET', '/api/stats')).inhalt.abdruck;
+  pruefe('Die Kennzahlen nennen ihn dafür', /^[0-9a-f]{8}$/.test(statsAbdruck || ''),
+    JSON.stringify(statsAbdruck));
 
   const e0 = (await ruf('GET', '/api/settings')).inhalt;
   pruefe('Vorgabe: fünf sichtbare Linkzeilen', e0.linkZeilen === 5, `${e0.linkZeilen}`);
@@ -5229,9 +5415,14 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     if (url === '/api/stats') {
       if (einstellungen.istAdmin === false)
         return gib({ error: 'Das verwaltet nur der Admin.' }, 403);
+      /* Der Abdruck gehoert seit 0.8.10 dazu. Ein Doppelgaenger, der ihn
+         auslaesst, macht jede Pruefung an der Karte blind: sie zeichnete
+         nichts, und "die Zeile fehlt" waere von "die Zeile ist falsch" nicht
+         zu unterscheiden (Stolperstein 90). */
       return gib({ dbBytes: 1, photoCount: 0, photoBytes: 0, itemCount: 1,
         commentCount: 0, linkCount: 0, testDayCount: 0, attachmentCount: 4, attachmentBytes: 6144,
-        version: require('./package.json').version, keyFromEnv: false, keyHex: 'ab'.repeat(32) });
+        version: require('./package.json').version, abdruck: 'a1b2c3d4',
+        keyFromEnv: false, keyHex: 'ab'.repeat(32) });
     }
     return gib({});
   };
@@ -8438,6 +8629,30 @@ async function pruefeOberflaeche() {
   pruefe('Und der Systembereich bleibt dabei ueberhaupt gefuellt',
     kUser.length > 0 && !/lädt …/.test(rUser.w.document.getElementById('app')?.textContent || ''),
     rUser.w.document.getElementById('app')?.textContent?.slice(0, 80));
+
+  /* DER ABDRUCK IN DER KARTE (0.8.10). Geprueft wird an der KARTE, in der er
+     stehen soll, nicht am ganzen Bildschirm: ein Wert, der irgendwo im
+     Systembereich auftaucht, belegt nicht, dass er bei den Kennzahlen steht.
+     Und zum "ist da" gehoert das "ohne Adminrolle ist es weg" daneben -- ohne
+     den Gegenaufbau bliebe die Pruefung auch dann gruen, wenn die Zeile
+     ueberall stuende (Stolperstein 81). */
+  const kennzahlenKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
+  const admKarte = kennzahlenKarte(rAdm);
+  pruefe('Die Karte Kennzahlen ist für den Admin überhaupt da', !!admKarte,
+    kAdm.join(' · '));
+  pruefe('Sie trägt eine Zeile mit der Beschriftung Abdruck',
+    [...(admKarte?.querySelectorAll('.kv') || [])]
+      .some(z => z.querySelector('.k')?.textContent.trim() === 'Abdruck'),
+    [...(admKarte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
+  pruefe('Und darin steht der Wert aus der Antwort',
+    [...(admKarte?.querySelectorAll('.kv') || [])]
+      .some(z => z.querySelector('.k')?.textContent.trim() === 'Abdruck' &&
+                 z.querySelector('.v')?.textContent.trim() === 'a1b2c3d4'),
+    [...(admKarte?.querySelectorAll('.kv .v') || [])].map(v => v.textContent.trim()).join(' · '));
+  pruefe('Ohne Adminrolle steht der Abdruck nirgends',
+    !/a1b2c3d4/.test(rUser.w.document.getElementById('app')?.textContent || ''),
+    rUser.w.document.getElementById('app')?.textContent?.slice(0, 120));
 
   /* Was verschwindet, sind die KARTEN, nicht die Daten. Das Vokabular ist
      jede Beschriftung der Oberflaeche -- ohne es haette der Benutzer einen
