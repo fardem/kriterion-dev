@@ -28,10 +28,10 @@ gibt keine voreingestellte Kennung, und in der `.env` steht kein Passwort — de
 Zugang liegt als scrypt-Hash in der verschlüsselten Datenbank. Mindestens zehn
 Zeichen, sonst keine Regeln.
 
-Die `.env` enthält damit nur noch den Schlüssel und darf leer bleiben. Sie muss
-aber **vorhanden** sein: `docker compose` liest sie ein und bricht sonst ab,
-bevor der Container startet. Deshalb der Schritt `cp .env.example .env` oben.
-Die **Titel werden im Systembereich der Anwendung gepflegt**, nicht über die
+Die `.env` enthält damit nur den Schlüssel und darf leer bleiben. Sie muss aber
+**vorhanden** sein: `docker compose` liest sie ein und bricht sonst ab, bevor
+der Container startet. Deshalb der Schritt `cp .env.example .env` oben. Die
+**Titel werden im Systembereich der Anwendung gepflegt**, nicht über die
 Umgebung.
 
 **Passwort vergessen?** Auf dem Server, nicht über die `.env`:
@@ -49,9 +49,10 @@ Eigentümer nicht mehr anmeldet. Läuft der Container gar nicht erst an, tut es
 `docker compose run --rm kriterion node zugang.js …` ebenso.
 
 Das setzt Zugriff auf den Server voraus und ist deshalb kein Umweg um die
-Anmeldung. **`AUTH_RESET`, `AUTH_USER` und `AUTH_PASSWORD` werden nicht
-gelesen.** Stehen sie noch in der `.env`, meldet der Start sie als entfernbar;
-kaputt geht dadurch nichts.
+Anmeldung. **Der Zugang lässt sich über keine Umgebungsvariable setzen oder
+zurücksetzen** — `AUTH_RESET`, `AUTH_USER` und `AUTH_PASSWORD` werden nicht
+gelesen. Stehen sie in der `.env`, meldet der Start sie als entfernbar; sie
+enthalten ein Passwort im Klartext und gehören heraus.
 
 ## Der Schlüssel — bitte einmal aufmerksam lesen
 
@@ -191,6 +192,24 @@ einen fremden Testtag löschen, nicht aber dessen Note.
 Eine Absage kommt als Meldung, nicht als stille Wirkungslosigkeit, und sie
 kommt **bevor** irgendetwas geschrieben ist.
 
+### Wer was geschrieben hat
+
+**Bei genau einem Zugang bleibt davon alles aus.** Sobald es einen zweiten
+gibt, nennen **Eintrag, Kommentar, Testtag und jede einzelne Bewertung** ihren
+Verfasser mit Namen. Unter der Sternzeile steht je Kriterium, wer welchen Wert
+vergeben hat; eigene Testtage sind gefüllt, fremde ein Ring.
+
+Ein entfernter Zugang erscheint als **„Gelöschter Benutzer 7"**, eine Zeile
+ohne Verfasser als **„Ohne Verfasser"**. Der freigegebene Name verlässt den
+Server dabei nicht.
+
+Entfernt ein Admin ein Bild aus einem fremden Kommentar, steht in dessen
+Kopfzeile ein **Vermerk**: „2 Bilder vom Admin entfernt". Er nennt eine
+**Rolle, keine Person**, und ist für jeden sichtbar — das Loch, das ein
+entferntes Bild hinterlässt, ist ohnehin für jeden Leser da. Es ist die
+einzige Stelle, an der Kriterion einen Eingriff festhält; einen
+Änderungsverlauf gibt es nicht.
+
 ### Zwei Titel
 
 Der Titel auf der Anmeldeseite ist für jeden sichtbar, der die Adresse aufruft.
@@ -290,6 +309,10 @@ es zwei, beide im Systembereich einstellbar:
   die Stelle. So sind alle vier Zustände unterscheidbar, ohne dass sich die
   Zeichen überlagern, und ein Bericht behält seine Kante auch dann, wenn er
   angepinnt wird.
+- **Der Blockkopf zählt**: „12 Kommentare, davon 3 Berichte und 5 Aufgaben
+  (2 Erledigt)". Die Zahlen hinter dem „davon" sind **Teilmengen**, keine
+  Summanden — das Erledigte steckt in den Aufgaben. Gruppen mit null fallen
+  weg. Der Satz bleibt auch eingeklappt stehen.
 - **Adressen im Kommentartext werden anklickbar.** Erkannt wird nur
   ausdrücklich Geschriebenes: `http://`, `https://` und `www.` ohne Schema. Ein
   blankes `beispiel.de` bleibt Text — anders als in der Linkliste, wo ein Wort
@@ -309,6 +332,9 @@ es zwei, beide im Systembereich einstellbar:
   Kriterien**. Ein **Doppelklick auf die Sterne setzt genau dieses Kriterium
   zurück**, der Knopf oben leert die eigenen Werte für diesen Eintrag — fremde
   Bewertungen bleiben unberührt.
+  Sind mehrere Zugänge eingerichtet, steht unter der Sternzeile, **wer welchen
+  Wert vergeben hat**. Der Admin kann dort eine fremde Bewertung **entfernen**
+  — ändern kann er sie nicht.
   **Angelegt, umbenannt, sortiert und gelöscht werden Kriterien
   ausschließlich im Systembereich und ausschließlich vom Admin.** Ein
   neues Kriterium erscheint sofort an jedem Eintrag, ein gelöschtes nimmt
@@ -318,7 +344,7 @@ es zwei, beide im Systembereich einstellbar:
   Im Systembereich steht daneben, in wie vielen Einträgen das Kriterium
   verwendet wird.
 - **Beschreibung und Kommentarfelder wachsen mit dem Text** — sie zeigen immer
-  den ganzen Inhalt und haben deshalb keinen Ziehgriff mehr.
+  den ganzen Inhalt und haben deshalb keinen Ziehgriff.
 - **Testtage**: nur bei eingeschaltetem „Getestet". Jede Zeile ist ein Tag mit
   einer einzigen Gesamtnote — das Bauchgefühl dieses Tages, unabhängig von den
   Kriterien. Ein Datum kann nur einmal vorkommen; wird es erneut eingetragen,
@@ -400,10 +426,6 @@ nach kurzem Halten** (0,4 Sekunden). Bewegt sich der Finger vorher, war es ein
 Wisch — dann wird gescrollt und nichts umsortiert. Sobald gegriffen ist, meldet
 das die Zeile mit einem Rahmen, und das Gerät gibt einen kurzen Impuls.
 
-**Kein `touch-action: none`** auf sortierbaren Listen. Genau das hat vorher
-jede Wischbewegung über Fotos oder Links zum Umsortieren gemacht und das
-Scrollen unmöglich — man musste eine bildfreie Stelle suchen.
-
 Zeilenaktionen sind überall Zeichen (`✎` bearbeiten, `✕` löschen), nicht mal
 Text und mal Zeichen. Auf schmalen Bildschirmen passt Text nicht in die
 Kopfzeile, und uneinheitlich sieht es ohnehin schlechter aus.
@@ -415,16 +437,9 @@ Blättern hängen an der Lightbox, nicht an der Bildfläche: im gezoomten Zustan
 wird diese zum Scrollbereich, und Kinder davon wandern beim Verschieben mit dem
 Bild aus dem Bild.
 
-**Nach dem Zoom steht die Mitte des Bildes im Blick**, nicht die
-linke obere Ecke. Ist das Original kleiner als die Fläche, sitzt es mittig statt
-oben links. Beides hat dieselbe Ursache: die Fläche muss im gezoomten Zustand
-auf `flex-start` stehen, weil ein zentriertes Kind, das größer als sein Behälter
-ist, nach *beiden* Seiten überläuft — die obere linke Hälfte wäre dann gar nicht
-mehr erreichbar. Zentriert wird deshalb über `margin: auto` am Bild: ist Platz
-da, teilt der Rand ihn auf; ist keiner da, wird er null und `flex-start` greift.
-Den Bildlauf setzt die Anwendung erst, wenn das Original geladen ist — vorher
-stünden noch die Maße der kleinen Variante fest und die Mitte wäre falsch
-berechnet.
+**Nach dem Zoom steht die Mitte des Bildes im Blick**, nicht die linke obere
+Ecke, und in jede Richtung lässt sich schieben. Ist das Original kleiner als die
+Fläche, sitzt es mittig statt oben links.
 
 ## Vokabular
 
@@ -552,12 +567,28 @@ einspielen.
 
 ```bash
 cd .../kriterion && docker compose down
-cd .. && mv kriterion kriterion-alt
-python3 -m zipfile -e kriterion.zip .
+cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # bei Datenbankstufen
+mv kriterion kriterion-alt
+python3 -m zipfile -e kriterion-main.zip .
+mv kriterion-main kriterion               # der Ordner heißt nach dem Zweig
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
 cd kriterion && docker compose up -d --build
 ```
+
+**Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Zweignamen
+an: aus `main` wird `kriterion-main`. Ohne das `mv` legt das folgende
+`cp -r kriterion-alt/data kriterion/data` den Bestand in einen Ordner, den
+`docker compose` nie ansieht.
+
+**`--build` ist nicht optional.** Ohne es startet stillschweigend die alte
+Version weiter — der Quelltext steckt im Abbild, nicht im eingehängten
+Verzeichnis. Welche Version wirklich läuft, sagt
+`curl -s http://localhost:3100/api/config`. Diese Zahl kommt allerdings aus der
+`package.json` und ist **keine Aussage über die übrigen Dateien**: wurden
+`package.json` und `server.js` ersetzt, `public/app.js` aber nicht, zeigt der
+Footer die neue Version, während die Oberfläche sich alt verhält. Dagegen hilft
+nur, den vollständigen Dateisatz erneut einzuspielen.
 
 **Die `.env` liegt bewusst nicht im Paket** — sie enthält den Schlüssel und hat
 in einer verteilten Datei nichts verloren. Sie wandert deshalb mit dem alten
@@ -578,23 +609,21 @@ geladen" dasteht (`docker compose logs kriterion`). Steht dort stattdessen die
 Warnung über eine Schlüsseldatei neben den Daten, wurde die `.env` nicht
 gelesen — dann sofort anhalten und nachsehen, bevor etwas geschrieben wird.
 
-**Vorausgesetzt wird eine Datenbank aus Version 0.8.0.** Kriterion enthält
-keinen Umstiegscode mehr; ein älterer Bestand braucht den Zwischenschritt über
-0.8.0 als letzte Version, die ihn noch übernehmen konnte.
+**Vorausgesetzt wird eine Datenbank aus Version 0.8.0 oder neuer.** Ein
+älterer Bestand wird nicht übernommen; er braucht den Zwischenschritt über
+0.8.0, die letzte Version, die ihn noch lesen konnte.
 
 ## Datenmodell
 
-Die Datenbankdatei heißt `katalog.sqlite` — der Dateiname stammt aus der Zeit
-vor der Umbenennung des Projekts und wandert bewusst nicht mit: ein anderer
-Name ließe den Start eine leere Neuinstallation vermuten.
+Die Datenbankdatei heißt `katalog.sqlite`. Der Dateiname wandert bei einer
+Umbenennung des Projekts bewusst **nicht** mit: ein anderer Name ließe den
+Start eine leere Neuinstallation vermuten.
 
 - `items` — Titel, Beschreibung, Getestet-/Abgelehnt-Merkmal, Kategorie
 - `item_pins` — der **Favorit**, je Benutzer und je Eintrag; nur Zeilen für
   tatsächlich Markiertes. Die Spalte `items.favorite` bleibt ungenutzt im
-  Schema und wird nie beschrieben. *Der Tabellenname stammt aus der Zeit, als
-  das Merkmal in der Oberfläche „Anheftung" hieß — Tabellennamen wandern wie
-  üblich nicht mit. Die Anpinnung der **Kommentare** (`comments.pinned`) ist
-  etwas anderes und heißt weiterhin so.*
+  Schema und wird nie beschrieben. Die Anpinnung der **Kommentare**
+  (`comments.pinned`) ist etwas anderes.
 - `photos` — Original, Kachel und mittlere Variante, mit Reihenfolge
 - `links` — Adressen mit Reihenfolge
 - `test_days` — ein Eintrag je Tag mit Gesamtnote, eindeutig pro Eintrag, Tag
@@ -602,14 +631,16 @@ Name ließe den Start eine leere Neuinstallation vermuten.
 - `rating_criteria` / `ratings` — gemeinsame Kriterien mit frei bestimmbarer
   Reihenfolge, Werte je Eintrag und je Benutzer
 - `product_categories`, `tags`, `item_tags`
-- `comments` — mit Bearbeitungszeitpunkt
+- `comments` — mit Bearbeitungszeitpunkt und `images_removed`: die Zahl der
+  Bilder, die ein **anderer** als der Verfasser entfernt hat
 - `test_day_tags` — Tags an einzelnen Testtagen, getrennt von `item_tags`
 - `comments.kind` / `comments.pinned` — Art und Anpinnung je Kommentar
 - `comment_images` — Bilder in Kommentaren, eigene Tabelle neben `attachments`
 - `attachments` — angehängte Dateien samt Bytes
 - `photos.focus_x` / `photos.focus_y` — Fokuspunkt der quadratischen Vorschau
-- `settings` — die **globale** Hälfte: Titel, Vokabular und die Suchanbieter
-  (Vorrat, eigene Anbieter, Startanbieter). Sache des Admins
+- `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchanbieter
+  (Vorrat, eigene Anbieter, Startanbieter) und die beiden Schalter, wer neue
+  Tags und Kategorien anlegen darf. Sache des Admins
 - `user_settings` — die **persönliche** Hälfte: Filterwahl, Schriftgröße,
   Blockanordnung, sichtbare Linkzeilen, Zeitleiste und die Zahl der
   Anbieternamen. Je Benutzer eine Zeile pro Schlüssel
@@ -618,9 +649,9 @@ Name ließe den Start eine leere Neuinstallation vermuten.
   bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen
 - `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer
 - `items.user_id` / `comments.user_id` / `test_days.user_id` /
-  `ratings.user_id` — der Verfasser. `ON DELETE SET NULL` ist nur noch das
-  Auffangnetz für ein `DELETE` von Hand: die Anwendung entfernt keine
-  Benutzerzeile mehr, herrenloser Bestand fällt beim Start an den Eigentümer
+  `ratings.user_id` — der Verfasser. `ON DELETE SET NULL` ist das Auffangnetz
+  für ein `DELETE` von Hand: die Anwendung selbst entfernt keine Benutzerzeile,
+  und herrenloser Bestand fällt beim Start an den Eigentümer
 
 ## Prüfen
 
