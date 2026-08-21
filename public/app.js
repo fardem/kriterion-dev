@@ -705,6 +705,10 @@ let EINSTELLUNGEN = null;
 let BENUTZER_ZAHL = 1;
 let ADMIN = true;
 let EIGENTUEMER = true;
+// Der eigene Name in der Kopfzeile. AUCH BEI EINEM EINZIGEN ZUGANG: das ist
+// eine Aussage ueber MICH, nicht ueber andere -- derselbe Grund, aus dem die
+// Karte "Zugang" fuer jeden stehenbleibt.
+let NAME = '';
 // Die Schwelle steht GENAU HIER und nirgends sonst.
 const mehrereBenutzer = () => BENUTZER_ZAHL > 1;
 
@@ -723,6 +727,7 @@ const darfKategorieAnlegen = () => ADMIN || KATEGORIEN_FREI;
 async function ladeEinstellungen() {
   EINSTELLUNGEN = await api('GET', '/api/settings');
   if (EINSTELLUNGEN.benutzerZahl) BENUTZER_ZAHL = EINSTELLUNGEN.benutzerZahl;
+  if (EINSTELLUNGEN.name) NAME = EINSTELLUNGEN.name;
   if (EINSTELLUNGEN.istAdmin !== undefined) ADMIN = !!EINSTELLUNGEN.istAdmin;
   if (EINSTELLUNGEN.istEigentuemer !== undefined) EIGENTUEMER = !!EINSTELLUNGEN.istEigentuemer;
   if (EINSTELLUNGEN.vokabular) V = { ...V, ...EINSTELLUNGEN.vokabular };
@@ -873,6 +878,7 @@ async function renderList() {
         <button class="clr" id="qclr" title="Suche leeren" style="display:none">✕</button>
       </div>
       <button class="icon-btn" id="sys" title="Systembereich">${ICON_SYS}</button>
+      <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>
       <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>
       <button class="btn btn-accent" id="new">+ ${esc(V.sacheEinzahl)}</button>
     </div>
@@ -2003,16 +2009,21 @@ async function renderDetail(id) {
   };
 
   /* ---- Kategorie ---- */
-  /* ---- Wer den Eintrag angelegt hat ----
+  /* ---- Wer den Eintrag angelegt hat, und wann ----
      Bei genau einem aktiven Zugang bleibt die Zeile weg -- "Angelegt von mir"
-     ist keine Information. Abgeleitet aus der Zahl der Zugänge, nicht aus
-     einem Schalter; die Schwelle steht in mehrereBenutzer() und nirgends
-     sonst. */
+     ist keine Information, und dann ist auch das Datum keine: es steht schon
+     in der Sortierung. Abgeleitet aus der Zahl der Zugänge, nicht aus einem
+     Schalter; die Schwelle steht in mehrereBenutzer() und nirgends sonst.
+     Das Datum ist reine Anzeige, in derselben Form wie am Kommentar --
+     zwei Schreibweisen für denselben Zeitpunkt wären eine zu viel.
+     `created_at` steht NOT NULL in der Zeile; ein Auffangnetz für den
+     fehlenden Wert wäre eines gegen etwas, das es nicht gibt. */
   function drawVerfasser() {
     const el = document.getElementById('ivf');
     if (!el) return;
     el.hidden = !mehrereBenutzer();
-    el.textContent = mehrereBenutzer() ? `Angelegt von ${verfasserName(item.verfasser)}` : '';
+    el.textContent = mehrereBenutzer()
+      ? `Angelegt von ${verfasserName(item.verfasser)} am ${fmtDate(item.created_at)}` : '';
   }
 
   function drawCat() {
@@ -2168,10 +2179,10 @@ async function renderDetail(id) {
       }
       row.append(n, acts);
       box.appendChild(row);
-      /* HIER STEHT SEIT 0.8.6 KEINE STIMMENLISTE MEHR. Wer welchen Wert
-         vergeben hat, ist eine Angabe über einzelne Personen; die Zeile zeigt
-         den eigenen Wert und den Schnitt, mehr soll eine Bewertung nicht
-         aussagen. Die Liste ruft der Admin über den Knopf im Blockkopf auf. */
+      /* HIER STEHT AUSDRÜCKLICH KEINE STIMMENLISTE. Wer welchen Wert vergeben
+         hat, ist eine Angabe über einzelne Personen; die Zeile zeigt den
+         eigenen Wert und den Schnitt, mehr soll eine Bewertung nicht aussagen.
+         Die Liste ruft der Admin über den Knopf im Blockkopf auf. */
     });
     ruesteBloeckeAus(item);
   }
@@ -2182,11 +2193,11 @@ async function renderDetail(id) {
   // Beschriftung, die mit der Zahl der Zugaenge umspringt, waere eine zweite
   // Wahrheit ueber denselben Knopf.
   /* ---- Wer hat bewertet: die Ansicht des Admins ----
-     Die Liste stand bis 0.8.5 unter jeder Sternzeile und war damit für jeden
-     sichtbar. Sie ist jetzt eine eigene Ansicht, die der Admin ausdrücklich
-     aufruft — und zugleich der LÖSCHWEG für eine fremde Bewertung: das ✕ hing
-     an der Stimmenzeile und ist mitgewandert. Ohne diese Ansicht wäre
-     DELETE /api/ratings/:id vom Bildschirm aus unerreichbar.
+     Wer welchen Wert vergeben hat, steht nicht unter der Sternzeile: die
+     Angabe geht sonst an jeden. Sie ist eine eigene Ansicht, die der Admin
+     ausdrücklich aufruft — und zugleich der LÖSCHWEG für eine fremde
+     Bewertung. Ohne diese Ansicht wäre DELETE /api/ratings/:id vom Bildschirm
+     aus unerreichbar.
      Der Knopf steht nur beim Admin und erst ab zwei Zugängen: bei einem wäre
      die Liste der eigene Wert ein zweites Mal. Der Server verweigert den Abruf
      ohnehin; ein Knopf, der zuverlässig eine Fehlermeldung erzeugt, sieht aus
@@ -3236,6 +3247,10 @@ async function renderSystem() {
         oldPassword: alt, username: name, newPassword: neu1
       });
       toast(r.passwortGewechselt ? 'Zugang geändert' : 'Benutzername geändert');
+      // Die Kopfzeile nennt den Namen. Ohne diese Zeile stuende dort bis zum
+      // naechsten Laden der Seite der alte -- ladeEinstellungen() laeuft nur
+      // beim Start.
+      NAME = name;
       renderSystem();   // leert die Passwortfelder
     } catch (e) { toast(e.message, true); }
   };
