@@ -624,6 +624,52 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und sein Rückgabewert ist rot', daneben.code === 1, `Code ${daneben.code}`);
 
   /* ---------------------------------------------------------------- */
+  gruppe('Der Prueflauf bei jedem Push');
+
+  /* ZWEI ZAHLEN, DIE ZUSAMMENGEHOEREN. Laeuft der Prueflauf gegen eine andere
+     Node-Version als der Container, prueft er etwas, das so nirgends
+     betrieben wird -- und der Befund davor ("lokal 22, im Abbild 20") kaeme
+     unbemerkt zurueck. Beide Zahlen stehen an verschiedenen Stellen; hier
+     werden sie gegeneinander gehalten. */
+  const werkPfad = path.join(__dirname, '.github', 'workflows', 'pruefstand.yml');
+  const werkDa = fs.existsSync(werkPfad);
+  // Erst das Vorhandensein: fehlt die Datei, waere jede Aussage ueber ihren
+  // Inhalt an einer leeren Zeichenkette wahr (Stolperstein 81).
+  pruefe('Die Datei für den Prüflauf liegt im Repo', werkDa, werkPfad);
+  const werkText = werkDa ? fs.readFileSync(werkPfad, 'utf8') : '';
+  const werkNode = (werkText.match(/node-version:\s*'([^']+)'/) || [])[1];
+  const abbildNode = (dockerText.match(/^FROM node:(\d+)-/m) || [])[1];
+  pruefe('Sie nennt eine Node-Version', !!werkNode, JSON.stringify(werkNode));
+  pruefe('Der Dockerfile nennt ebenfalls eine', !!abbildNode, JSON.stringify(abbildNode));
+  pruefe('Und es ist dieselbe', werkNode === abbildNode,
+    `Prüflauf ${werkNode}, Abbild ${abbildNode}`);
+  // Beide Stufen des Dockerfile -- die Bauphase uebersetzt, die Laufzeit
+  // fuehrt aus. Stuenden dort verschiedene Zahlen, passte die native
+  // Datenbankanbindung nicht zur Laufzeit (ABI).
+  const abbildZeilen = [...dockerText.matchAll(/^FROM node:([^\s]+)/mg)].map(t => t[1]);
+  pruefe('Bauphase und Laufzeit stehen auf demselben Abbild',
+    abbildZeilen.length === 2 && abbildZeilen[0] === abbildZeilen[1],
+    abbildZeilen.join(' gegen '));
+
+  /* Der Lauf muss die Sperrdatei lesen und die bekannten Luecken ansehen --
+     sonst waere er ein Prueflauf ohne die beiden Punkte, um die es in dieser
+     Runde geht. */
+  pruefe('Der Lauf holt die Abhängigkeiten mit npm ci',
+    /^\s+run: npm ci$/m.test(werkText));
+  pruefe('Er fährt den Prüfstand', /^\s+run: npm test$/m.test(werkText));
+  pruefe('Und sieht die bekannten Lücken ab "high" an',
+    /^\s+run: npm audit --audit-level=high$/m.test(werkText));
+  // Die Schwelle wird nicht heimlich gesenkt: weder ueber --audit-level noch
+  // dadurch, dass der Schritt scheitern darf.
+  pruefe('Die Schwelle ist nicht abgesenkt',
+    !/audit-level=(low|moderate)/.test(werkText) &&
+    !/continue-on-error/.test(werkText) && !/\|\|\s*true/.test(werkText),
+    werkText.split('\n').filter(z => /audit|continue-on-error/.test(z)).join(' | '));
+  pruefe('Er läuft bei push und bei pull_request',
+    /^on:\s*\[push, pull_request\]$/m.test(werkText),
+    (werkText.match(/^on:.*$/m) || [''])[0]);
+
+  /* ---------------------------------------------------------------- */
   gruppe('Kriterien: lesen, umbenennen, anlegen');
 
   let krit = (await ruf('GET', '/api/criteria')).inhalt;
