@@ -375,6 +375,7 @@ const namen = (liste) => liste.map(c => c.name);
     !bauZeilen.some(z => /npm install/.test(z)),
     bauZeilen.filter(z => /npm install/.test(z)).join(' · '));
 
+
   /* ---------------------------------------------------------------- */
   gruppe('Der Versionsabdruck');
 
@@ -3748,6 +3749,38 @@ const namen = (liste) => liste.map(c => c.name);
     .filter(d => fs.readFileSync(path.join(__dirname, d), 'utf8').includes('Leitung'));
   pruefe('Das Wort Leitung kommt nirgends mehr vor', fLeitung.length === 0, fLeitung.join(' · '));
 
+  /* DER AUSGELIEFERTE TYP KOMMT NIE AUS DER DATENBANK.
+     Dagegen hilft kein Merksatz, sondern ein Waechter: server.js setzt den
+     Content-Type ueberhaupt nicht mehr selbst. Wer eine Auslieferung ergaenzt
+     -- ein Video ab 0.8.50 --, wird hier namentlich rot und muss sich fuer
+     einen der beiden Wege in anhaenge.js entscheiden: Typ nach Endung
+     (setzeKopfzeilen) oder Typ nach den ersten Bytes (setzeBildKopfzeilen).
+     Gezaehlt wird woertlich, ohne zusammengesetztes Muster. */
+  const fTypSelbst = ["res.set('Content-Type'", 'res.set("Content-Type"',
+                      "res.setHeader('Content-Type'", 'res.type(']
+    .map(z => [z, fQuelle.split(z).length - 1]).filter(([, n]) => n > 0);
+  pruefe('server.js setzt den Content-Type an keiner Stelle selbst',
+    fTypSelbst.length === 0, fTypSelbst.map(([z, n]) => `${z} (${n}x)`).join(' · '));
+  const fAnhQuelle = fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8');
+  // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne die
+  // Funktion belegte die Zeile darunter nichts.
+  pruefe('Die Ableitung aus den Bytes gibt es', fAnhQuelle.includes('function typAusBytes('),
+    'typAusBytes fehlt in anhaenge.js');
+  const fRohRumpf = (() => {
+    const a = fQuelle.indexOf("app.get('/api/photos/:id/raw'");
+    if (a < 0) return '';
+    const e = fQuelle.indexOf('\n});', a);
+    return e < 0 ? '' : fQuelle.slice(a, e);
+  })();
+  pruefe('Die Fotoroute ist ueberhaupt da', fRohRumpf.length > 0, 'die Route fehlt im Quelltext');
+  pruefe('Und sie ruft die Ableitung aus den Bytes auf',
+    fRohRumpf.includes('anh.setzeBildKopfzeilen('),
+    fRohRumpf ? 'setzeBildKopfzeilen fehlt im Rumpf' : '(kein Rumpf)');
+  pruefe('Der gemeldete Typ kommt in ihrem Rumpf gar nicht mehr vor',
+    !fRohRumpf.includes('mime'), fRohRumpf ? 'mime steht noch im Rumpf' : '(kein Rumpf)');
+
+
+
   /* ================================================================
      Verwaltung, Rollen, Sperren, Grabstein
      ================================================================
@@ -4925,6 +4958,91 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Pfadangaben beim Import werden abgeschnitten',
     pfDet.attachments[0].filename === 'shadow', pfDet.attachments[0].filename);
   await ruf('DELETE', `/api/items/${pfItem.id}`);
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Fotos: Auslieferung (Sicherheitsregel)');
+
+  /* Dieselbe Regel wie bei den Anhaengen, nur an einem Weg, der sie lange
+     nicht hatte: der gemeldete Typ des Hochladenden wird gespeichert und
+     angezeigt, aber NIE ausgeliefert.
+     ZWEI SCHICHTEN, und beide werden hier einzeln belegt:
+       Beim Hochladen faellt alles heraus, was kein Rasterbild IST -- geprueft
+       am Ergebnis (sharp metadata), nicht an der Angabe.
+       Beim Ausliefern entscheiden die ersten Bytes. Das schuetzt auch, was
+       schon vor dieser Regel in der Datenbank lag, und dafuer steht die
+       Bestandsprobe weiter unten: sie schreibt eine SVG an sharp vorbei
+       hinein, so wie sie eine alte Anlage haette. */
+  const fo = (await ruf('POST', '/api/items', { title: 'Fotoprobe' })).inhalt;
+  const SVG_BOESE = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8">' +
+    '<scr' + 'ipt>document.title="AUSGEFUEHRT"</scr' + 'ipt><rect width="8" height="8"/></svg>';
+
+  const svgHoch = await sendeMehrteilig(`/api/items/${fo.id}/photos`, 'photos',
+    [{ name: 'boese.svg', typ: 'image/svg+xml', inhalt: SVG_BOESE }]);
+  pruefe('Eine SVG wird als Foto abgewiesen', svgHoch.status === 400,
+    `${svgHoch.status}: ${JSON.stringify(svgHoch.inhalt)}`);
+  // Erst das Vorhandensein, dann die Eigenschaft: ohne den Erfolgsfall daneben
+  // bliebe die Abweisung auch dann gruen, wenn gar nichts mehr hochladbar
+  // waere (Stolperstein 81).
+  const pngHoch = await sendeMehrteilig(`/api/items/${fo.id}/photos`, 'photos',
+    [{ name: 'gut.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
+  pruefe('Ein echtes PNG geht durch', pngHoch.status === 201 && pngHoch.inhalt.photos.length >= 1,
+    `${pngHoch.status}: ${JSON.stringify(pngHoch.inhalt?.error)}`);
+  // Die Nachschau: die abgewiesene Datei ist auch wirklich nicht angekommen.
+  const foNach = (await ruf('GET', `/api/items/${fo.id}`)).inhalt;
+  pruefe('Die abgewiesene SVG steht in keiner Zeile', foNach.photos.length === 1,
+    `${foNach.photos.length} Foto(s)`);
+
+  const fAntwort = async (id2, abfrage = '') => {
+    const a2 = await fetch(`${BASIS}/api/photos/${id2}/raw${abfrage}`, { headers: { cookie: keks } });
+    return { status: a2.status, h: Object.fromEntries(a2.headers), bytes: Buffer.from(await a2.arrayBuffer()) };
+  };
+  const fPng = await fAntwort(foNach.photos[0].id);
+  pruefe('Ein Rasterbild wird mit seinem eigenen Typ ausgeliefert',
+    fPng.h['content-type'] === 'image/png', fPng.h['content-type']);
+  pruefe('Und darf eingebettet werden', /^inline;/.test(fPng.h['content-disposition'] || ''),
+    fPng.h['content-disposition']);
+  pruefe('nosniff steht auch am Foto', fPng.h['x-content-type-options'] === 'nosniff');
+  pruefe('Auch das Foto bekommt die Sicherheitsregel',
+    /default-src 'none'/.test(fPng.h['content-security-policy'] || '') &&
+    /sandbox/.test(fPng.h['content-security-policy'] || ''), fPng.h['content-security-policy']);
+  pruefe('Das Foto darf kein Skript ausfuehren',
+    !/allow-scripts/.test(fPng.h['content-security-policy'] || ''), fPng.h['content-security-policy']);
+  const fThumb = await fAntwort(foNach.photos[0].id, '?size=thumb');
+  pruefe('Das Vorschaubild kommt als JPEG', fThumb.h['content-type'] === 'image/jpeg',
+    fThumb.h['content-type']);
+  pruefe('Und es sind wirklich JPEG-Bytes', fThumb.bytes.slice(0, 2).toString('hex') === 'ffd8',
+    fThumb.bytes.slice(0, 4).toString('hex'));
+
+  /* BESTANDSDATEN. Eine SVG, die vor dieser Version hereinkam: an der
+     Hochladepruefung vorbei direkt in die Tabelle, mit genau dem gemeldeten
+     Typ, den der alte Weg ausgeliefert haette. Ohne diese Probe belegte die
+     Abweisung oben nur, dass nichts NEUES hineinkommt. */
+  {
+    const d = oeffne(path.join(DATA, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    d.prepare('INSERT INTO photos (item_id, mime_type, data, sort_order) VALUES (?, ?, ?, ?)')
+      .run(fo.id, 'image/svg+xml', Buffer.from(SVG_BOESE, 'utf8'), 99);
+    d.close();
+  }
+  const foMitAlt = (await ruf('GET', `/api/items/${fo.id}`)).inhalt;
+  const altSvg = foMitAlt.photos.find(x => x.mime_type === 'image/svg+xml');
+  pruefe('Die Bestandszeile ist da und wird weiter angezeigt', !!altSvg,
+    JSON.stringify(foMitAlt.photos.map(x => x.mime_type)));
+  const fSvg = altSvg ? await fAntwort(altSvg.id) : null;
+  pruefe('Eine SVG aus dem Bestand geht NIE als image/svg+xml heraus',
+    !!fSvg && fSvg.h['content-type'] === 'application/octet-stream', fSvg?.h['content-type']);
+  pruefe('Sie wird heruntergeladen statt angezeigt',
+    !!fSvg && /^attachment;/.test(fSvg.h['content-disposition'] || ''), fSvg?.h['content-disposition']);
+  /* Die Kontrolle am AUSGELIEFERTEN BYTESTROM. Eine Pruefung, die nur die
+     Kopfzeile ansieht, belegt nicht, was tatsaechlich herausgeht: der Inhalt
+     ist unveraendert die SVG samt Skript -- gefaehrlich waere allein, dass der
+     Browser sie als Webseite liest, und genau das verhindert die Kopfzeile. */
+  pruefe('Der Bytestrom ist unveraendert die SVG',
+    !!fSvg && fSvg.bytes.toString('utf8') === SVG_BOESE,
+    fSvg ? fSvg.bytes.slice(0, 40).toString('utf8') : '');
+  pruefe('Und der gespeicherte Typ steht weiter in der Anzeige',
+    altSvg?.mime_type === 'image/svg+xml', altSvg?.mime_type);
+  await ruf('DELETE', `/api/items/${fo.id}`);
 
   /* ---------------------------------------------------------------- */
   gruppe('Anhänge: Vorschau');

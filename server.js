@@ -21,9 +21,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 30 * 1024 * 1024 },
+  // Erste, grobe Schranke am gemeldeten Typ. Sie haelt nichts auf, was sich
+  // umbenennen laesst -- die tragende Pruefung ist rasterBild() weiter unten,
+  // und die sieht das Ergebnis statt die Angabe.
   fileFilter: (req, file, cb) =>
-    /^image\//.test(file.mimetype) ? cb(null, true) : cb(new Error('Nur Bilddateien sind erlaubt'))
+    /^image\//.test(file.mimetype)
+      ? cb(null, true)
+      : cb(Object.assign(new Error('Nur Bilddateien sind erlaubt'), { status: 400 }))
 });
+
+/* Was als Foto hereinkommt, muss ein Rasterbild sein -- und zwar dem INHALT
+   nach. sharp liest auch SVG anstandslos und macht daraus brauchbare
+   Vorschaubilder; der Upload saehe also normal aus, und die Datei laege
+   danach als Skripttraeger in der Datenbank. Dieselbe Regel gilt bei den
+   Bildern in Kommentaren seit jeher, dort ueber die Neukodierung.
+   Die Liste ist die aus dem Ideenpapier; svg fehlt darin mit Absicht. */
+const RASTER_FORMATE = ['jpeg', 'png', 'webp', 'avif', 'gif', 'tiff'];
+async function rasterBild(buf) {
+  try {
+    const m = await sharp(buf).metadata();
+    return RASTER_FORMATE.includes(m.format);
+  } catch { return false; }
+}
 
 const touch = db.prepare(`UPDATE items SET updated_at = datetime('now') WHERE id = ?`);
 /* "bearbeitet" am Kommentar. EINE Stelle fuer beide Bildwege -- anhaengen und
@@ -1429,6 +1448,8 @@ app.post('/api/items/:id/photos', nurEintragVerfasser, upload.array('photos', 40
       .get(req.params.id).m + 1;
     const ins = db.prepare('INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
     for (const f of req.files || []) {
+      if (!await rasterBild(f.buffer))
+        return res.status(400).json({ error: 'Nur Bilddateien sind erlaubt' });
       const v = await makeVariants(f.buffer);
       ins.run(req.params.id, f.mimetype, f.buffer, v.thumb, v.medium, pos++);
     }
@@ -1437,14 +1458,19 @@ app.post('/api/items/:id/photos', nurEintragVerfasser, upload.array('photos', 40
   } catch (e) { next(e); }
 });
 
+/* Der ausgelieferte Typ kommt aus den ersten Bytes, nie aus photos.mime_type.
+   Die Spalte ist eine Angabe des Hochladenden: sie wird gespeichert und
+   angezeigt, sie entscheidet aber nicht, was der Browser mit der Antwort
+   macht. Damit ist auch geschuetzt, was schon in der Datenbank liegt -- eine
+   Ableitung braucht keinen Umstieg. Dieselbe Regel wie bei den Anhaengen,
+   siehe anhaenge.js. */
 app.get('/api/photos/:id/raw', (req, res) => {
   const p = db.prepare('SELECT * FROM photos WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).end();
-  let blob = p.data, mime = p.mime_type;
-  if (req.query.size === 'thumb' && p.thumb) { blob = p.thumb; mime = 'image/jpeg'; }
-  else if (req.query.size === 'medium' && p.medium) { blob = p.medium; mime = 'image/jpeg'; }
-  res.set('Content-Type', mime);
-  res.set('Cache-Control', 'private, max-age=86400');
+  let blob = p.data;
+  if (req.query.size === 'thumb' && p.thumb) blob = p.thumb;
+  else if (req.query.size === 'medium' && p.medium) blob = p.medium;
+  anh.setzeBildKopfzeilen(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
   res.send(blob);
 });
 
