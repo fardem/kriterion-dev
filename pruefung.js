@@ -3779,6 +3779,22 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Der gemeldete Typ kommt in ihrem Rumpf gar nicht mehr vor',
     !fRohRumpf.includes('mime'), fRohRumpf ? 'mime steht noch im Rumpf' : '(kein Rumpf)');
 
+  /* DER FEHLER-HANDLER TRENNT ZWEI DINGE. Absicht behaelt ihren Rang, alles
+     Uebrige wird 500 mit festem Text. Der Rumpf wird hier nur daraufhin
+     angesehen, DASS beide Wege da sind -- was sie bewirken, prueft die Gruppe
+     "Fehler nach Rang" am laufenden Server. */
+  const fFehlerRumpf = (() => {
+    const a = fQuelle.indexOf('app.use((err, req, res, next)');
+    if (a < 0) return '';
+    const e = fQuelle.indexOf('\n});', a);
+    return e < 0 ? '' : fQuelle.slice(a, e);
+  })();
+  pruefe('Den Fehler-Handler gibt es', fFehlerRumpf.length > 0, 'kein Handler gefunden');
+  pruefe('Er kennt die Markierung absichtlicher Fehler',
+    fFehlerRumpf.includes('err.status'), fFehlerRumpf ? 'err.status fehlt' : '(kein Rumpf)');
+  pruefe('Und er liefert die Meldung eines Serverfehlers nicht aus',
+    /res\.status\(500\)\.json\(\{ error: '[^']+' \}\)/.test(fFehlerRumpf),
+    fFehlerRumpf ? 'kein fester Text bei 500' : '(kein Rumpf)');
 
 
   /* ================================================================
@@ -5195,6 +5211,49 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Ohne Proxy steht kein Strict-Transport-Security',
     cspSeite.headers.get('strict-transport-security') === null,
     cspSeite.headers.get('strict-transport-security'));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Fehler nach Rang');
+
+  /* 400 heisst "du hast falsch gefragt", 500 heisst "bei mir ist etwas
+     kaputt". Vorher kam alles als 400 zurueck, samt der Meldung des Fehlers
+     -- bei einem Fehler der Datenbank stuenden darin Tabellen- und
+     Spaltennamen.
+     Beide Haelften gehoeren zusammen geprueft: wuerde nur der Rang geprueft,
+     bliebe die Zeile auch dann gruen, wenn gar nichts mehr durchkaeme. */
+  const fhItem = (await ruf('POST', '/api/items', { title: 'Fehlerprobe' })).inhalt;
+
+  // ABSICHT BEHAELT IHREN RANG: ein Fehler von multer -- hier ein Feldname,
+  // den die Route nicht kennt -- ist eine echte 400 und behaelt seine Meldung.
+  const fhMulter = await sendeMehrteilig(`/api/items/${fhItem.id}/photos`, 'gibtsnicht',
+    [{ name: 'a.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
+  pruefe('Ein Fehler von multer bleibt eine 400', fhMulter.status === 400,
+    `${fhMulter.status}: ${JSON.stringify(fhMulter.inhalt)}`);
+  pruefe('Und behaelt seine Meldung', !!fhMulter.inhalt?.error, JSON.stringify(fhMulter.inhalt));
+
+  // Und die markierten Fehler der Anwendung ebenso: eine Datei, die kein Bild
+  // ist, wird weiterhin mit ihrer eigenen Meldung abgewiesen.
+  const fhKeinBild = await sendeMehrteilig(`/api/items/${fhItem.id}/photos`, 'photos',
+    [{ name: 'a.txt', typ: 'text/plain', inhalt: 'kein Bild' }]);
+  pruefe('Eine abgewiesene Datei bleibt eine 400', fhKeinBild.status === 400,
+    `${fhKeinBild.status}: ${JSON.stringify(fhKeinBild.inhalt)}`);
+  pruefe('Mit der Meldung, die dem Benutzer weiterhilft',
+    /Bilddatei/.test(fhKeinBild.inhalt?.error || ''), JSON.stringify(fhKeinBild.inhalt));
+
+  /* EIN ECHTER SERVERFEHLER. Eine Einspieldatei, in der "photos" keine Liste
+     ist: der Server stolpert beim Durchgehen. Vorher kam das als 400 samt der
+     inneren Meldung zurueck -- jetzt als 500 mit festem Text. */
+  const fhKaputt = await sendeImport(
+    { version: 5, title: 'T', items: [{ title: 'Kaputt', photos: 5 }] }, 'merge');
+  pruefe('Ein Fehler des Servers kommt als 500', fhKaputt.status === 500,
+    `${fhKaputt.status}: ${JSON.stringify(fhKaputt.inhalt)}`);
+  pruefe('Und verraet nichts ueber sein Inneres',
+    !!fhKaputt.inhalt?.error && !/iterable|photos|SQL|SQLITE/i.test(fhKaputt.inhalt.error),
+    JSON.stringify(fhKaputt.inhalt));
+  // Die Nachschau: der halbe Eintrag ist auch nicht angekommen.
+  pruefe('Und dabei entsteht kein halber Eintrag',
+    !(await ruf('GET', '/api/items')).inhalt.some(i => i.title === 'Kaputt'));
+  await ruf('DELETE', `/api/items/${fhItem.id}`);
 
   /* ---------------------------------------------------------------- */
   gruppe('Anhänge: Vorschau');

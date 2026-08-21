@@ -2421,9 +2421,25 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
+/* Der letzte Fehler-Handler. Zwei Regeln:
+
+   Ein Fehler, den der Server ABSICHTLICH wirft, traegt eine Markierung
+   (err.status) und behaelt damit seinen Rang und seine Meldung. Multer-Fehler
+   -- "Datei zu gross", "zu viele Dateien" -- sind ebenfalls echte 400 und
+   behalten ihre Meldung.
+
+   Alles Uebrige ist ein Fehler DES SERVERS und wird 500 mit festem Text: ein
+   SQL-Fehler nennt Tabellen und Spalten, ein sharp-Absturz den Pfad. Was
+   nicht angezeigt werden soll, wird auch nicht geliefert; die Einzelheiten
+   stehen im Protokoll, und dort gehoeren sie hin.
+
+   400 fuer alles war irrefuehrend: "du hast falsch gefragt" ist etwas anderes
+   als "bei mir ist etwas kaputt", und der Unterschied faellt beim Suchen an. */
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(400).json({ error: err.message || 'Unbekannter Fehler' });
+  const rang = err.status || err.statusCode || (err instanceof multer.MulterError ? 400 : 500);
+  if (rang >= 500) return res.status(500).json({ error: 'Im Server ist etwas schiefgegangen.' });
+  res.status(rang).json({ error: err.message || 'Unbekannter Fehler' });
 });
 
 /* ================= Start ================= */
