@@ -5726,10 +5726,22 @@ async function pruefeOberflaeche() {
   pruefe('Drei Zeilen zählen die Lücken mit', (ww.begrenzeWolke(wolkenkasten, 3), wolkenkasten.style.maxHeight === '90px'),
     wolkenkasten.style.maxHeight);
   pruefe('Abgeschnittenes wird gemeldet', ww.begrenzeWolke(wolkenkasten, 1) === true);
+  /* Und zwar abgeschnitten, nicht scrollbar. Die Wolke hatte nie einen
+     eigenen Bildlauf -- die Prueflage steht seit 0.8.6 daneben, damit ein
+     spaeterer Griff nach 'auto' hier ebenso auffaellt wie an der Linkliste:
+     ein eigener Bildlauf faengt auf dem Finger die Wischbewegung ab.
+     Erst das Vorhandensein der Begrenzung, dann ihre Art. */
+  pruefe('Und die Wolke wird abgeschnitten, nicht scrollbar',
+    (ww.begrenzeWolke(wolkenkasten, 1),
+     wolkenkasten.style.maxHeight !== '' && wolkenkasten.style.overflow === 'hidden'),
+    JSON.stringify([wolkenkasten.style.maxHeight, wolkenkasten.style.overflow]));
   inhaltshoehe2 = 20;
   pruefe('Passt alles hinein, meldet nichts', ww.begrenzeWolke(wolkenkasten, 3) === false);
   pruefe('Null Zeilen heben die Begrenzung auf',
     (ww.begrenzeWolke(wolkenkasten, 0), wolkenkasten.style.maxHeight === ''));
+  pruefe('Und nehmen die Abschneidung mit',
+    (ww.begrenzeWolke(wolkenkasten, 0), wolkenkasten.style.overflow === ''),
+    JSON.stringify(wolkenkasten.style.overflow));
 
   const wolke = [...ww.document.querySelectorAll('#tagcloud .pill')];
   pruefe('Detailwolke zeigt alle Tags des Vorrats', wolke.length === 4, `${wolke.length}`);
@@ -7059,14 +7071,30 @@ async function pruefeOberflaeche() {
   pruefe('Alle Links stehen im Dokument', linkZeilen.length === 8, `${linkZeilen.length}`);
   pruefe('Bei mehr als fünf gibt es einen Aufklappknopf', !!mehrKnopf && !mehrKnopf.hidden);
   pruefe('Der Knopf nennt die Gesamtzahl', /alle 8/.test(mehrKnopf.textContent), mehrKnopf.textContent);
-  pruefe('Zugeklappt bleibt die Liste scrollbar',
-    wb.document.getElementById('links').style.overflowY === 'auto');
+  /* UMGEDREHT MIT 0.8.6, nicht geloescht: bis 0.8.5 hiess die Prueflage
+     "Zugeklappt bleibt die Liste scrollbar". Ein eigener Bildlauf faengt auf
+     dem Finger die Wischbewegung ab -- wer die Seite herunterzieht und dabei
+     ueber die Liste kommt, scrollt ploetzlich nur noch die Liste. Der Weg zum
+     Rest ist der Knopf darunter, und den gibt es laengst.
+     Erst das Vorhandensein der Begrenzung, dann ihre Art: ohne den ersten Teil
+     bliebe die Pruefung auch dann gruen, wenn gar nichts begrenzt waere --
+     eine leere Angabe ist ja auch nicht 'auto' (Stolperstein 81). */
+  pruefe('Zugeklappt wird die Liste abgeschnitten, nicht scrollbar',
+    wb.document.getElementById('links').style.maxHeight !== '' &&
+    wb.document.getElementById('links').style.overflowY === 'hidden',
+    JSON.stringify([wb.document.getElementById('links').style.maxHeight,
+                    wb.document.getElementById('links').style.overflowY]));
   mehrKnopf?.onclick?.();
   await new Promise(r => setTimeout(r, 20));
   const mehr2 = wb.document.getElementById('links-more');
   pruefe('Aufgeklappt fällt die Höhenbegrenzung weg',
     wb.document.getElementById('links').style.maxHeight === '',
     wb.document.getElementById('links').style.maxHeight);
+  // Und mit ihr die Abschneidung: aufgeklappt steht die Liste im Fluss der
+  // Seite, ohne jede eigene Angabe zum Ueberlauf.
+  pruefe('Und die Abschneidung ebenso',
+    wb.document.getElementById('links').style.overflowY === '',
+    JSON.stringify(wb.document.getElementById('links').style.overflowY));
   pruefe('Und der Knopf klappt wieder zu', /weniger/.test(mehr2?.textContent || ''), mehr2?.textContent);
   mehr2?.onclick?.();
   await new Promise(r => setTimeout(r, 20));

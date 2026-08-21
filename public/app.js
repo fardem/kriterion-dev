@@ -2487,6 +2487,11 @@ async function renderDetail(id) {
   // Sichtbare Zeilen begrenzen, statt die Liste immer scrollen zu lassen.
   // Die Zeilenhoehe wird an der ersten Zeile gemessen -- sie haengt an der
   // eingestellten Schriftgroesse und laesst sich nicht raten.
+  // ABGESCHNITTEN, NICHT SCROLLBAR. Ein eigener Bildlauf faengt auf dem Finger
+  // die Wischbewegung ab: wer die Seite herunterzieht und dabei ueber die
+  // Liste kommt, scrollt ploetzlich nur noch die Liste. Der Knopf "alle N
+  // anzeigen" ist der Weg zum Rest -- damit scrollt am Finger immer die Seite,
+  // und die Einstellung "sichtbare Zeilen" behaelt ihren Sinn.
   function begrenzeLinks() {
     const box = document.getElementById('links');
     const knopf = document.getElementById('links-more');
@@ -2504,7 +2509,7 @@ async function renderDetail(id) {
     const h = zeilen[0]?.offsetHeight || 0;
     const abstand = 5;   // entspricht dem margin-bottom von .lrow
     box.style.maxHeight = (LINKZEILEN * h + (LINKZEILEN - 1) * abstand) + 'px';
-    box.style.overflowY = 'auto';
+    box.style.overflowY = 'hidden';
     knopf.hidden = false;
     knopf.textContent = `alle ${zeilen.length} anzeigen`;
     knopf.onclick = () => { linksOffen = true; drawLinks(); };
