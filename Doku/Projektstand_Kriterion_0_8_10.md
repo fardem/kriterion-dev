@@ -46,10 +46,12 @@ Node.js/Express, verschlüsselte SQLite-Datenbank (SQLCipher über
 `better-sqlite3-multiple-ciphers`), `sharp` für die Bildvarianten, Frontend
 ohne Framework, Auslieferung per Docker.
 
-17 Dateien. Darin `pruefung.js` — der Prüfstand, läuft über `npm test` —,
+19 Dateien. Darin `pruefung.js` — der Prüfstand, läuft über `npm test` —,
 `anhaenge.js` mit sämtlichen Auslieferungsregeln für angehängte Dateien
 (Abschnitt 5a) und `zugang.js`, der Befehl auf dem Wirt für Passwort und
-Zugänge.
+Zugänge. **Zwei sind mit 0.8.10 dazugekommen** — vorher waren es 17:
+`package-lock.json` nagelt die Abhängigkeiten fest,
+`.github/workflows/pruefstand.yml` fährt den Prüfstand bei jedem Push.
 
 **Das Projekt heißt „Kriterion", die Datenbankdatei weiterhin
 `katalog.sqlite`.** Der Dateiname ist kein Projektname und wandert bei keiner
@@ -1398,6 +1400,38 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   die Kopfzeile eines Kommentars. Zwei Schreibweisen für denselben Zeitpunkt
   wären eine zu viel. Bei genau einem Zugang bleibt die **ganze Zeile** weg wie
   bisher — dann steht das Datum schon in der Sortierung.
+- **Der Abdruck steht bei den Kennzahlen, nicht in `/api/config`** (seit
+  0.8.10). Er ist **dieselbe Art Aussage** wie die Zahlen darunter — eine über
+  die Anlage als Ganzes —, und an `GET /api/stats` ist die Grenze schon
+  gezogen. Der billigere Weg wäre `/api/config` gewesen, nachprüfbar ohne
+  Anmeldung; dagegen steht, dass die Liste dort eine **Sicherheitsgrenze** ist,
+  gehalten von einer Prüfung, die den Schlüsselsatz Zeichen für Zeichen
+  vergleicht. **Der erste harmlose Eintrag ist der Präzedenzfall, der den
+  zweiten billig macht.** Und wem der Abdruck nützt — dem Betreiber —, der
+  kann sich anmelden.
+- **Die Liste für den Abdruck wird abgeleitet, nicht gepflegt** (seit 0.8.10).
+  `public/` plus `require.cache` unterhalb des Projektverzeichnisses und
+  außerhalb von `node_modules`: was der Server ausliefert plus was er
+  ausführt. Ein bloßer Verzeichnislauf hätte `pruefung.js` und `Doku/`
+  **ausschließen** müssen — und dieser Ausschluss wäre eine zweite gepflegte
+  Liste gewesen, die mit der ersten auseinanderläuft (die Bauform von
+  Stolperstein 47). Bei der Ableitung kann der Fall gar nicht entstehen.
+  **Je Datei gehen Name und Inhalt in den Hash**, durch ein Nullzeichen
+  getrennt: sonst bliebe eine Umbenennung unsichtbar, und zwei Dateien, die
+  ihre Inhalte tauschen, ergäben denselben Wert.
+- **Der Abdruck entsteht beim Start, nach allen `require`-Aufrufen** (seit
+  0.8.10). `const ABDRUCK = bildeAbdruck();` steht unmittelbar vor
+  `app.listen`, weil `require.cache` erst dann vollständig ist. Ein `require`
+  **innerhalb** einer Funktion liefe später und stünde nicht darin — der
+  Abdruck würde still unvollständig. Dagegen hilft kein Kommentar, sondern der
+  Wächter über den Modulgraphen im Prüfstand (Stolperstein 95).
+- **Der Bau löst Abhängigkeiten nicht selbst auf** (seit 0.8.10).
+  `package-lock.json` liegt im Repo, der `Dockerfile` ruft `npm ci --omit=dev`.
+  **Der Wechsel des Befehls ist der eigentliche Punkt** — ohne ihn läge die
+  Sperrdatei im Repo und würde beim Bauen übergangen, ein Merker, der nichts
+  bewirkt. `npm ci` bricht ab, wo `npm install` nachgäbe, und genau das ist
+  gewollt: zwei Leute, die dasselbe ZIP bauen, bekommen denselben
+  Abhängigkeitsbaum.
 
 ---
 
@@ -2054,6 +2088,35 @@ nötig.
 - **Nach jedem Einspielen lohnt ein Blick ins Protokoll:** der Start meldet
   den Eigentümer, `.env`-Reste und — falls je nötig — die Zuordnung
   herrenlosen Bestands („Bestand ohne Benutzer dem Eigentuemer zugeordnet").
+- **Die Minuten bei GitHub Actions sind gedeckelt, weil das Repo privat ist**
+  (seit 0.8.10). **Gemessen** an den bisherigen Läufen: einer dauert
+  **76 bis 83 Sekunden**, abgerechnet wird auf die angefangene Minute, also
+  rund zwei. Ein Push auf einen Zweig mit **offener Anfrage löst zwei Läufe
+  aus** — einen für `push`, einen für `pull_request`, beide auf demselben
+  Stand —, kostet also etwa das Doppelte. **Welche Minutenzahl der Tarif
+  hergibt, steht unter Settings → Billing** und ist über die API ohne
+  zusätzliches Recht nicht zu lesen; die Zahl gehört dort nachgesehen und
+  nicht geschätzt. Ein Prüflauf, der mitten im Monat stehenbleibt, ist
+  schlechter als keiner, weil man sich auf ihn verlässt — deshalb löst
+  `concurrency` mit `cancel-in-progress` einen überholten Lauf auf demselben
+  Zweig ab, und `cache: npm` hält den Paketzwischenspeicher.
+- **Der Prüflauf kann unter schwerer Nebenlast abreißen** (aufgefallen in
+  0.8.10). Zweimal meldete `starteWeiterenServer` „Zweitserver nicht
+  erreichbar", beide Male während gleichzeitig ein Abbild gebaut wurde; ohne
+  Nebenlast lief er sauber durch. Die Ursache ist kein Zusammenstoß — jeder
+  Zweitserver wird vor dem nächsten gestoppt —, sondern das **Wartefenster von
+  12 Sekunden** (120 Versuche im Abstand von 100 ms), das unter Last nicht
+  reicht. **Auf einem geteilten Läufer bei GitHub kann das wieder auftreten.**
+  Die Antwort wäre ein größeres Fenster und eine Fehlermeldung, die sagt,
+  **welcher** Zweitserver gemeint ist — es gibt 14 Aufrufstellen, und die
+  Meldung nennt heute keine davon. Nicht gebaut, weil es keiner der fünf
+  Punkte von 0.8.10 war.
+- **Nicht belegt aus 0.8.10:** dass Debian die drei Pakete `python3`, `make`
+  und `g++` ausliefert. Die Bausitzung kam nicht an `deb.debian.org` heran und
+  lief über ein Grundabbild, das sie schon mitbrachte. Die Zeile in der
+  Bauphase des `Dockerfile` ist unverändert und wird auf Node 22 ohnehin nicht
+  gebraucht — für `better-sqlite3-multiple-ciphers` gibt es dort einen
+  Fertigbau. Sie ist ein **Auffangnetz**, falls der einmal fehlt.
 
 ---
 
