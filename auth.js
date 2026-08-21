@@ -1,7 +1,34 @@
 const crypto = require('crypto');
 const { db, ordneBestandZu } = require('./db');
 
-const COOKIE_NAME = 'kriterion_session';
+/* EINE EINSTELLUNG, FUENF WIRKUNGEN.
+
+   Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung.
+   X-Forwarded-For darf nur dort geglaubt werden, wo ausdruecklich eingestellt
+   ist, dass ein Proxy davorsteht -- sonst setzt ihn der Aufrufer bei jedem
+   Versuch neu und bekommt bei jedem Versuch einen frischen Zaehler; die
+   Anmeldebremse je Adresse greift dann nie.
+
+   HINTER_PROXY=1 (an):  X-Forwarded-For wird gelesen, der Keks traegt Secure
+                         und das Praefix __Host-, HSTS wird gesetzt.
+   fehlt (aus, Vorgabe): allein req.socket.remoteAddress. Der richtige Zustand
+                         fuer "direkt im Heimnetz, Port 3100".
+
+   Umgebungsvariable und nicht settings-Tabelle: sie entscheidet ueber
+   Netzwerkvertrauen, nicht ueber eine Vorliebe. Ein uebernommener
+   Admin-Zugang koennte sie sonst selbst umlegen.
+
+   EINE ADRESSLISTE, WER DEN KOPF SETZEN DARF, IST BEWUSST NICHT GEBAUT: die
+   Einstellung ist ein Ja/Nein, kein Adressbuch. Ist die Anlage je aus
+   mehreren Netzen gleichzeitig erreichbar, gehoert das nachgeliefert. */
+const HINTER_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(process.env.HINTER_PROXY || '').trim());
+
+/* Der Keksname haengt an der Einstellung: das Praefix __Host- ist eine
+   Zusage des Namens an den Browser -- nur ueber HTTPS gesetzt, ohne Domain,
+   mit Path=/ -- und ohne Secure verwuerfe der Browser den Keks stillschweigend.
+   WER DIE EINSTELLUNG UMLEGT, MELDET DAMIT ALLE EINMALIG AB: der alte Name
+   wird nicht mehr gelesen. Kein Datenverlust, nur eine neue Anmeldung. */
+const COOKIE_NAME = HINTER_PROXY ? '__Host-kriterion_session' : 'kriterion_session';
 const SESSION_DAYS = 30;
 
 // --- Passwoerter -------------------------------------------------------
@@ -343,9 +370,22 @@ function verzoegerung(count) {
   return ueber > 0 ? Math.min(ueber * 700, 4000) : 0;
 }
 
+/* Die Adresse des Aufrufers -- Grundlage der Anmeldebremse.
+
+   Ohne Proxy zaehlt allein die tatsaechliche Verbindung. Der Kopf wird nicht
+   einmal angesehen; er koennte nur luegen.
+
+   Mit Proxy zaehlt der LETZTE Eintrag der Kette und nicht der erste: ein
+   Proxy haengt die Gegenstelle, die er wirklich sieht, hinten an. Alles davor
+   kann der Aufrufer selbst hineingeschrieben haben -- genau der erste Eintrag
+   also, den die alte Fassung nahm. */
 function clientIp(req) {
-  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
-    || req.socket.remoteAddress || 'unbekannt';
+  if (HINTER_PROXY) {
+    const kette = String(req.headers['x-forwarded-for'] || '')
+      .split(',').map(t => t.trim()).filter(Boolean);
+    if (kette.length) return kette[kette.length - 1];
+  }
+  return req.socket.remoteAddress || 'unbekannt';
 }
 
 function checkThrottle(ip, name) {
@@ -461,9 +501,14 @@ function sitzungsBenutzer(token) {
   return b;
 }
 
+// Secure haengt an derselben Einstellung wie der gelesene Kopf: wer hinter
+// einem Proxy betreibt, hat HTTPS und soll den Keks nie im Klartext schicken.
+// Ohne Proxy darf es NICHT gesetzt werden -- der Browser verwuerfe den Keks
+// bei http://<adresse>:3100, und niemand kaeme mehr herein.
+const SICHER = HINTER_PROXY ? '; Secure' : '';
 const sessionCookie = (t) =>
-  `${COOKIE_NAME}=${t}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`;
-const clearCookie = () => `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`;
+  `${COOKIE_NAME}=${t}; HttpOnly; Path=/; SameSite=Lax${SICHER}; Max-Age=${SESSION_DAYS * 86400}`;
+const clearCookie = () => `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax${SICHER}; Max-Age=0`;
 
 // req.benutzer ist ab hier fuer jeden geschuetzten Endpunkt gesetzt:
 // { id, username, role, status }. Genau EINE Abfrage je Anfrage: wer den
@@ -491,7 +536,7 @@ function requireAuth(req, res, next) {
 }
 
 module.exports = {
-  COOKIE_NAME, PASSWORT_MIN, parseCookies, pruefeAnmeldung, legeSitzungAn, destroySession,
+  COOKIE_NAME, HINTER_PROXY, PASSWORT_MIN, parseCookies, pruefeAnmeldung, legeSitzungAn, destroySession,
   sitzungsBenutzer, pruneSessions, sessionCookie, clearCookie, requireAuth,
   clientIp, checkThrottle, noteFailure, noteSuccess,
   holeBenutzer, holeBenutzerNachNamen, benutzerVorhanden, legeErstenBenutzerAn, aendereZugang,

@@ -4232,6 +4232,89 @@ const namen = (liste) => liste.map(c => c.name);
   fs.rmSync(hDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
+  gruppe('Ohne Proxy ist der Kopf nur eine Behauptung');
+
+  /* EIN KOPF VOM AUFRUFER IST NIE EINE FESTSTELLUNG. Ohne die Einstellung
+     wird X-Forwarded-For gar nicht erst angesehen -- und genau das wird hier
+     belegt: zwoelf Fehlversuche, bei jedem ein anderer Kopf. Frueher bekam
+     der Aufrufer damit bei jedem Versuch einen frischen Zaehler und wurde nie
+     gebremst. Jetzt zaehlt die tatsaechliche Verbindung, und die ist bei allen
+     zwoelf dieselbe.
+     DIESE GRUPPE STEHT ZULETZT AUF DIESEM SERVER: sie sperrt die Adresse
+     absichtlich hart, und danach kaeme hier niemand mehr herein. */
+  let gGesperrtAb = 0;
+  for (let i = 1; i <= 12; i++) {
+    const a = await gAnmelden('anna', 'ganz-sicher-falsch', `10.0.7.${i}`);
+    if (a.status === 429 && !gGesperrtAb) gGesperrtAb = i;
+  }
+  pruefe('Ein wechselnder Kopf haelt die Bremse nicht mehr auf',
+    gGesperrtAb > 0 && gGesperrtAb <= 11, `gesperrt ab Versuch ${gGesperrtAb || '(nie)'}`);
+  pruefe('Und auch das richtige Passwort kommt waehrend der Sperre nicht durch',
+    (await gAnmelden('anna', 'annas-langes-wort', '10.0.7.99')).status === 429);
+  // Der Keks der Anlage ohne Proxy: kein Secure, kein Praefix. Beides waere
+  // hier falsch -- der Browser verwuerfe den Keks ueber http.
+  const gKeksKopf = await (async () => {
+    const a = await fetch(G.basis + '/api/login', { method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user: 'anna', password: 'annas-langes-wort' }) });
+    return a.headers.get('set-cookie') || '';
+  })();
+  pruefe('Ohne Proxy traegt der Keks kein Secure',
+    gKeksKopf === '' || !/;\s*Secure/i.test(gKeksKopf), gKeksKopf);
+  pruefe('Und er heisst weiterhin kriterion_session',
+    gKeksKopf === '' || gKeksKopf.startsWith('kriterion_session='), gKeksKopf.split(';')[0]);
+
+  await G.stopp();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Hinter dem Proxy wird der Kopf gelesen');
+
+  /* DIESELBE ANLAGE, EINE EINSTELLUNG ANDERS. Derselbe Bestand, derselbe
+     Zugang -- nur HINTER_PROXY=1. Eine Pruefung, die nur die Vorgabe ansieht,
+     belegt die Einstellung nicht; deshalb beide Lagen.
+     Der Prozess ist neu, die Zaehler der vorigen Gruppe sind damit weg -- sie
+     stehen im Arbeitsspeicher und nicht in der Datenbank. */
+  const P = starteWeiterenServer(gDir, { HINTER_PROXY: '1' }, 5700);
+  await P.bereit;
+  const pAnmelden = async (name, passwort, adresse) => {
+    const kopf = { 'content-type': 'application/json' };
+    if (adresse) kopf['x-forwarded-for'] = adresse;
+    const t0 = Date.now();
+    const a = await fetch(P.basis + '/api/login',
+      { method: 'POST', headers: kopf, body: JSON.stringify({ user: name, password: passwort }) });
+    let inhalt = null;
+    try { inhalt = await a.json(); } catch {}
+    return { status: a.status, inhalt, ms: Date.now() - t0,
+             setzKeks: a.headers.get('set-cookie') || '' };
+  };
+
+  const pGut = await pAnmelden('anna', 'annas-langes-wort', '10.1.0.1');
+  pruefe('Die Anmeldung gelingt auch hinter dem Proxy', pGut.status === 200,
+    `${pGut.status}: ${JSON.stringify(pGut.inhalt)}`);
+  pruefe('Der Keks traegt hinter dem Proxy Secure', /;\s*Secure/i.test(pGut.setzKeks), pGut.setzKeks);
+  // Das Praefix __Host- ist eine Zusage an den Browser: nur ueber HTTPS, ohne
+  // Domain, mit Path=/. Es verlangt den Namen woertlich.
+  pruefe('Und er heisst __Host-kriterion_session',
+    pGut.setzKeks.startsWith('__Host-kriterion_session='), pGut.setzKeks.split(';')[0]);
+  pruefe('Path=/ und HttpOnly stehen weiterhin dabei',
+    /;\s*Path=\//.test(pGut.setzKeks) && /;\s*HttpOnly/i.test(pGut.setzKeks), pGut.setzKeks);
+  pruefe('Ohne Domain -- sonst waere das Praefix ungueltig',
+    !/;\s*Domain=/i.test(pGut.setzKeks), pGut.setzKeks);
+  // Der Keks mit dem neuen Namen wird auch wirklich gelesen: sonst waere die
+  // Umbenennung eine Anlage, in die niemand mehr hineinkaeme.
+  const pKeksWert = pGut.setzKeks.split(';')[0];
+  const pSitzung = await fetch(P.basis + '/api/settings', { headers: { cookie: pKeksWert } });
+  pruefe('Mit diesem Keks laesst sich weiterarbeiten', pSitzung.status === 200, `${pSitzung.status}`);
+  // Und der alte Name gilt nicht mehr -- die einmalige Abmeldung beim
+  // Umlegen der Einstellung ist damit belegt und keine Vermutung.
+  const pAlterName = await fetch(P.basis + '/api/settings',
+    { headers: { cookie: 'kriterion_session=' + pKeksWert.split('=')[1] } });
+  pruefe('Der alte Keksname gilt nicht mehr', pAlterName.status === 401, `${pAlterName.status}`);
+  pruefe('Hinter dem Proxy steht Strict-Transport-Security',
+    /max-age=\d+/.test((await fetch(P.basis + '/api/config')).headers.get('strict-transport-security') || ''),
+    (await fetch(P.basis + '/api/config')).headers.get('strict-transport-security'));
+
+  /* ---------------------------------------------------------------- */
   gruppe('Die Anmeldebremse zaehlt auch den Namen');
 
   /* Die IP-Bremse sieht verteiltes Raten gegen EINEN Namen nicht: zehn
@@ -4241,11 +4324,13 @@ const namen = (liste) => liste.map(c => c.name);
      waere ein Werkzeug gegen fremde Zugaenge.
      Jeder Versuch kommt hier von einer EIGENEN Adresse: sonst zaehlte die
      IP-Bremse mit und es liesse sich nicht unterscheiden, welche der beiden
-     gebremst hat. */
+     gebremst hat. DASS verschiedene Adressen ueberhaupt ankommen, ist die
+     Einstellung dieses Servers -- ohne sie waeren alle zwoelf Versuche
+     dieselbe Adresse, und die Gruppe pruefte die IP-Bremse statt der
+     Namensbremse. */
   const gVersuch = async (name, adresse) => {
-    const t0 = Date.now();
-    const a = await gAnmelden(name, 'ganz-sicher-falsch', adresse);
-    return { ms: Date.now() - t0, status: a.status };
+    const a = await pAnmelden(name, 'ganz-sicher-falsch', adresse);
+    return { ms: a.ms, status: a.status };
   };
   let gNamensSperre = 0;
   for (let i = 1; i <= 6; i++) {
@@ -4270,13 +4355,34 @@ const namen = (liste) => liste.map(c => c.name);
     gNamensSperre === 0, `gesperrt ab Versuch ${gNamensSperre}`);
   // Die richtige Anmeldung kommt trotzdem durch -- nur eben verzoegert. Das
   // ist der ganze Unterschied zur harten Sperre der IP.
-  const gTrotzdem = await gAnmelden('anna', 'annas-langes-wort', '10.0.9.2');
+  const gTrotzdem = await pAnmelden('anna', 'annas-langes-wort', '10.0.9.2');
   pruefe('Das richtige Passwort kommt trotz Bremse durch', gTrotzdem.status === 200,
     `Status ${gTrotzdem.status}`);
   pruefe('Und der Zaehler des Namens ist danach zurueckgesetzt',
     (await gVersuch('anna', '10.0.9.3')).ms < 700);
 
-  await G.stopp();
+  /* ---------------------------------------------------------------- */
+  gruppe('Welcher Eintrag der Kette zaehlt');
+
+  /* DER LETZTE, NICHT DER ERSTE. Ein Proxy haengt die Gegenstelle, die er
+     wirklich sieht, hinten an; alles davor kann der Aufrufer selbst
+     hineingeschrieben haben.
+     Zehn Versuche mit festem LETZTEN und wechselndem ersten Eintrag muessen
+     also sperren -- und danach kommt eine Kette mit demselben Wert VORNE und
+     wechselndem Ende ungebremst durch. Waere es umgekehrt gebaut, waere genau
+     eine der beiden Pruefungen rot. */
+  // Jeder Versuch mit EIGENEM Namen: sonst zaehlte die Namensbremse mit, und
+  // die Gruppe belegte nicht, welcher Eintrag der Kette gemeint ist.
+  for (let i = 1; i <= 11; i++)
+    await gVersuch(`kette-${i}`, `172.16.0.${i}, 203.0.113.7`);
+  const kLetzter = await gVersuch('kette-x', '172.16.9.9, 203.0.113.7');
+  pruefe('Der letzte Eintrag der Kette wird gezaehlt und gesperrt',
+    kLetzter.status === 429, `Status ${kLetzter.status}`);
+  const kErster = await gVersuch('kette-y', '203.0.113.7, 198.51.100.5');
+  pruefe('Der erste Eintrag zaehlt ausdruecklich nicht',
+    kErster.status === 401, `Status ${kErster.status}`);
+
+  await P.stopp();
   fs.rmSync(gDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
