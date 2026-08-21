@@ -1217,15 +1217,18 @@ function detail(id, benutzerId) {
   // Ein Kriterium, das niemand bewertet hat, bekommt avg: null und count: 0;
   // die Oberflaeche zeigt dort nichts.
   const schnitte = schnitteJeKriterium(id);
-  // Und daneben, wer welchen Wert vergeben hat. Die Oberflaeche zeigt die
-  // Liste erst ab zwei Zugaengen -- bei einem waere sie der eigene Wert ein
-  // zweites Mal.
-  const stimmen = stimmenJeKriterium(id, benutzerId, karte);
+  // WER WELCHEN WERT VERGEBEN HAT, STEHT HIER AUSDRUECKLICH NICHT. Diese
+  // Antwort geht an jeden, und eine Angabe darueber, wie eine EINZELNE PERSON
+  // bewertet hat, ist mehr, als eine Bewertung aussagen soll. Was nicht
+  // angezeigt werden darf, wird nicht geliefert -- sonst haengt die Regel
+  // daran, dass die Oberflaeche mitspielt.
+  // Die Liste holt der Admin ueber GET /api/items/:id/stimmen.
+  // avg und count bleiben: der Schnitt und die Zahl der Bewerter sind keine
+  // Aussage ueber eine Person.
   for (const r of it.ratings) {
     const z = schnitte.get(r.criterion_id);
     r.avg = z ? Math.round(z.schnitt * 10) / 10 : null;
     r.count = z ? z.anzahl : 0;
-    r.stimmen = stimmen.get(r.criterion_id) || [];
   }
   it.avgRating = gesamtSchnitt(schnitte);
   Object.assign(it, testStats(id));
@@ -1728,6 +1731,30 @@ app.delete('/api/items/:id/ratings', (req, res) => {
     .run(req.params.id, req.benutzer.id);
   touch.run(req.params.id);
   res.json(detail(req.params.id, req.benutzer.id));
+});
+
+/* Wer welchen Wert vergeben hat -- die Ansicht des Admins.
+   NUR DER ADMIN. Wer wie bewertet hat, ist eine Angabe ueber einzelne
+   Personen; die Sternzeile am Eintrag zeigt deshalb nur noch den eigenen Wert
+   und den Schnitt. Diese Liste ruft der Admin ausdruecklich auf.
+   Lesende Route, also KEIN Eintrag in der Liste der schreibenden Routen -- der
+   Waechter davor ist derselbe wie bei GET /api/stats und
+   GET /api/items/:id/bestand.
+   Sie ist zugleich die VORAUSSETZUNG DES LOESCHWEGS: ohne die id gaebe es vom
+   Bildschirm aus keinen Weg zu einer einzelnen fremden Bewertung, und
+   DELETE /api/ratings/:id waere unerreichbar.
+   Der Benutzer wird durchgereicht, weil stimmenJeKriterium() ihn braucht --
+   `mine` unterscheidet die eigene Stimme von den fremden, und am eigenen Wert
+   steht kein Loeschkreuz.
+   Nur Kriterien MIT Stimmen stehen in der Antwort; den Namen je Kriterium
+   liefert sie nicht, den hat die Oberflaeche aus dem Eintrag. Zwei Quellen
+   fuer denselben Namen waeren zwei Wahrheiten.
+   KEINE SCHWELLE bei einem einzigen Zugang: der Server liefert, die
+   Oberflaeche entscheidet ueber mehrereBenutzer(), ob sie den Aufruf ueberhaupt
+   anbietet -- dieselbe Aufteilung wie bei der Durchschnittsspalte seit 0.7.0. */
+app.get('/api/items/:id/stimmen', nurAdmin, (req, res) => {
+  const stimmen = stimmenJeKriterium(req.params.id, req.benutzer.id, verfasserKarte());
+  res.json([...stimmen].map(([criterion_id, liste]) => ({ criterion_id, stimmen: liste })));
 });
 
 /* Eine EINZELNE fremde Bewertung entfernen -- der Weg, den es bis hierher

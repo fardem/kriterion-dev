@@ -2629,24 +2629,19 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify((fVEintrag?.testDays || []).map(d => [d.day, d.mine])));
 
   const fVOptik = (fVEintrag?.ratings || []).find(r => r.criterion_id === fOptikId);
-  pruefe('Je Kriterium steht, wer welchen Wert vergeben hat',
-    gleich((fVOptik?.stimmen || []).map(s => `${s.verfasser?.name}/${s.wert}`), ['bert/4', 'anna/2']),
-    JSON.stringify(fVOptik?.stimmen));
-  /* Die Bedingung value > 0 an genau dieser Stelle: carla hat bewertet und
-     zurueckgesetzt, ihre Zeile steht mit 0 in der Tabelle. Sie ist keine
-     Stimme -- dieselbe Regel wie beim Schnitt und beim Verwendungszaehler. */
-  pruefe('Eine zurueckgesetzte Bewertung ist keine Stimme',
-    !(fVOptik?.stimmen || []).some(s => s.verfasser?.name === 'carla') &&
-    fZeilen('SELECT value FROM ratings WHERE item_id = ? AND user_id = 3', fVId)[0]?.value === 0,
-    JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = ?', fVId)));
-  pruefe('Die eigene Stimme ist als solche gekennzeichnet',
-    gleich((fVOptik?.stimmen || []).map(s => s.mine), [true, false]),
-    JSON.stringify((fVOptik?.stimmen || []).map(s => s.mine)));
-  // Ohne die id gaebe es vom Bildschirm aus keinen Weg zu einer einzelnen
-  // fremden Bewertung -- der Endpunkt darunter waere unerreichbar.
-  pruefe('Jede Stimme nennt ihre Nummer',
-    (fVOptik?.stimmen || []).every(s => Number.isInteger(s.id)),
-    JSON.stringify((fVOptik?.stimmen || []).map(s => s.id)));
+  /* UMGEHAENGT MIT 0.8.6, nicht geloescht: bis 0.8.5 stand die Stimmenliste an
+     jeder Kriterienzeile DIESER Antwort -- und die geht an jeden. Die vier
+     Pruefungen darauf stehen jetzt in der Gruppe "Wer hat bewertet" am
+     eigenen Endpunkt.
+     HIER bleibt die Gegenrichtung, und sie ist der eigentliche Gegenstand:
+     was nicht angezeigt werden darf, wird auch nicht geliefert -- sonst haengt
+     die Regel daran, dass die Oberflaeche mitspielt.
+     Erst das Vorhandensein der Zeilen, dann die Eigenschaft: ohne den ersten
+     Teil bliebe die Pruefung auch bei gar keinen Kriterien gruen. */
+  pruefe('Der Eintrag selbst nennt seit 0.8.6 keine Stimmen mehr',
+    (fVEintrag?.ratings || []).length > 0 &&
+    (fVEintrag?.ratings || []).every(r => !('stimmen' in r)),
+    JSON.stringify(fVEintrag?.ratings));
   pruefe('Schnitt und Bewerterzahl stehen unveraendert daneben',
     fVOptik?.avg === 3 && fVOptik?.count === 2,
     JSON.stringify([fVOptik?.avg, fVOptik?.count]));
@@ -2711,6 +2706,83 @@ const namen = (liste) => liste.map(c => c.name);
     /angelegt hat/.test(fBFremd.inhalt?.error || ''), fBFremd.inhalt?.error);
 
   /* ---------------------------------------------------------------- */
+  gruppe('Wer hat bewertet -- die Ansicht des Admins');
+
+  /* Die Liste stand bis 0.8.5 an jeder Kriterienzeile der Eintragsantwort und
+     ging damit an jeden. Sie steht jetzt hinter einem eigenen lesenden
+     Endpunkt mit Waechter -- dasselbe Muster wie GET /api/stats, also OHNE
+     Eintrag in F_ROUTEN.
+     Vier Rufer nebeneinander, weil erst sie die Klemme sichtbar machen: der
+     Fremde, der Verfasser des Eintrags, der Admin ohne Eigentuemerrecht und
+     die Eigentuemerin. */
+  const fStRuf = (keksWert) => fRuf(keksWert, 'GET', `/api/items/${fVId}/stimmen`);
+  const fStBestand = () => fZeilen('SELECT id, value, user_id FROM ratings WHERE item_id = ? ORDER BY id', fVId);
+  const fStVorher = fStBestand();
+
+  const fStDirk = await fStRuf('keks-f-dirk');
+  const fStBert = await fStRuf('keks-f-bert');
+  const fStCarla = await fStRuf('keks-f-carla');
+  const fStAnna = await fStRuf('keks-f-anna');
+
+  pruefe('Wer welchen Wert vergeben hat, sieht nur der Admin',
+    fStDirk.status === 403, `Status ${fStDirk.status}`);
+  /* Der Verfasser des Eintrags ausdruecklich auch nicht. Er darf den Eintrag
+     loeschen, samt allem, was daran haengt -- aber wie eine ANDERE PERSON
+     bewertet hat, ist keine Angabe ueber seinen Eintrag. Ohne diesen Rufer
+     bliebe die Pruefung auch dann gruen, wenn dort nurEintragVerfasser
+     stuende (Stolperstein 73). */
+  pruefe('Auch der Verfasser des Eintrags nicht',
+    fStBert.status === 403, `Status ${fStBert.status}`);
+  pruefe('Die Absage nennt den Admin',
+    /Admin/.test(fStBert.inhalt?.error || ''), fStBert.inhalt?.error);
+  // Der Erfolgsfall daneben, an BEIDEN Rollen: ohne ihn waere "403 fuer jeden"
+  // von "403 fuer den Benutzer" nicht zu unterscheiden.
+  pruefe('Ein Admin ohne Eigentuemerrecht bekommt die Liste',
+    fStCarla.status === 200 && Array.isArray(fStCarla.inhalt), `Status ${fStCarla.status}`);
+  pruefe('Und die Eigentuemerin auch',
+    fStAnna.status === 200 && Array.isArray(fStAnna.inhalt), `Status ${fStAnna.status}`);
+  // Lesend heisst lesend: nach vier Abrufen steht jede Bewertungszeile
+  // unveraendert da.
+  pruefe('Und geschrieben wird dabei nichts',
+    gleich(fStBestand(), fStVorher), JSON.stringify(fStBestand()));
+
+  /* UMGEHAENGT MIT 0.8.6, nicht geloescht (Stolperstein 74): dieselben vier
+     Aussagen wie bis 0.8.5 an der Eintragsantwort -- nur eben hier. */
+  const fStOptik = (fStCarla.inhalt || []).find(z => z.criterion_id === fOptikId);
+  pruefe('Je Kriterium steht, wer welchen Wert vergeben hat',
+    gleich((fStOptik?.stimmen || []).map(s => `${s.verfasser?.name}/${s.wert}`), ['bert/4', 'anna/2']),
+    JSON.stringify(fStOptik?.stimmen));
+  /* Die Bedingung value > 0 an genau dieser Stelle: carla hat bewertet und
+     zurueckgesetzt, ihre Zeile steht mit 0 in der Tabelle. Sie ist keine
+     Stimme -- dieselbe Regel wie beim Schnitt und beim Verwendungszaehler. */
+  pruefe('Eine zurueckgesetzte Bewertung ist keine Stimme',
+    !(fStOptik?.stimmen || []).some(s => s.verfasser?.name === 'carla') &&
+    fZeilen('SELECT value FROM ratings WHERE item_id = ? AND user_id = 3', fVId)[0]?.value === 0,
+    JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = ?', fVId)));
+  // Ohne die id gaebe es vom Bildschirm aus keinen Weg zu einer einzelnen
+  // fremden Bewertung -- DELETE /api/ratings/:id waere unerreichbar.
+  pruefe('Jede Stimme nennt ihre Nummer',
+    (fStOptik?.stimmen || []).every(s => Number.isInteger(s.id)),
+    JSON.stringify((fStOptik?.stimmen || []).map(s => s.id)));
+  /* `mine` haengt am ABRUFENDEN, nicht an der Zeile. Deshalb zwei Sichten
+     nebeneinander: anna hat selbst bewertet, carla hat ihre Bewertung
+     zurueckgesetzt und ist damit an keiner Stimme beteiligt. Waere nur eine
+     Sicht geprueft, bliebe offen, ob das Feld ueberhaupt vom Rufer abhaengt. */
+  const fStOptikAnna = (fStAnna.inhalt || []).find(z => z.criterion_id === fOptikId);
+  pruefe('Die eigene Stimme ist als solche gekennzeichnet',
+    gleich((fStOptikAnna?.stimmen || []).map(s => s.mine), [false, true]),
+    JSON.stringify((fStOptikAnna?.stimmen || []).map(s => s.mine)));
+  pruefe('Und fuer einen Admin ohne eigene Bewertung ist es keine davon',
+    (fStOptik?.stimmen || []).length === 2 &&
+    (fStOptik?.stimmen || []).every(s => s.mine === false),
+    JSON.stringify((fStOptik?.stimmen || []).map(s => s.mine)));
+  // Der Grabsteinname verlaesst den Server nicht -- hier gibt es keinen, aber
+  // die Form ist dieselbe wie ueberall: ein Objekt, nie die nackte Nummer.
+  pruefe('Die Stimme nennt den Verfasser als Objekt, nicht als Nummer',
+    (fStOptik?.stimmen || []).every(s => s.verfasser && s.user_id === undefined),
+    JSON.stringify(fStOptik?.stimmen));
+
+  /* ---------------------------------------------------------------- */
   gruppe('Eine fremde Bewertung entfernen');
 
   const fRAnna = fZeilen('SELECT id FROM ratings WHERE item_id = ? AND user_id = 1', fVId)[0]?.id;
@@ -2735,9 +2807,21 @@ const namen = (liste) => liste.map(c => c.name);
   const fRAdmin = await fRuf('keks-f-carla', 'DELETE', `/api/ratings/${fRAnna}`);
   pruefe('Der Admin entfernt eine fremde Bewertung',
     fRAdmin.status === 200 && !fRSteht(fRAnna), `Status ${fRAdmin.status}`);
+  /* UMGEHAENGT MIT 0.8.6: bis 0.8.5 stand hier die Zahl der Stimmen in der
+     Antwort. Die Antwort ist weiterhin der neu gezeichnete Eintrag -- nur ist
+     die Bewerterzahl jetzt das, woran sich das ablesen laesst. Beide
+     Bewertungen auf Optik sind entfernt, also steht dort keine mehr. */
   pruefe('Die Antwort ist der neu gezeichnete Eintrag',
-    (fRAdmin.inhalt?.ratings || []).find(r => r.criterion_id === fOptikId)?.stimmen?.length === 0,
+    (fRAdmin.inhalt?.ratings || []).find(r => r.criterion_id === fOptikId)?.count === 0,
     JSON.stringify(fRAdmin.inhalt?.ratings?.find(r => r.criterion_id === fOptikId)));
+  /* Und die Ansicht des Admins zeigt dort gar keine Zeile mehr: aufgenommen
+     werden nur Kriterien MIT Stimmen. Ein Kriterium ohne Stimme bekaeme sonst
+     eine leere Liste unter seinem Namen -- eine Zeile, die nichts sagt. */
+  const fStLeer = await fStRuf('keks-f-carla');
+  pruefe('Ein Kriterium ohne Stimme steht gar nicht in der Ansicht',
+    fStLeer.status === 200 &&
+    !(fStLeer.inhalt || []).some(z => z.criterion_id === fOptikId),
+    JSON.stringify(fStLeer.inhalt));
   const fRWeg = await fRuf('keks-f-carla', 'DELETE', `/api/ratings/${fRAnna}`);
   pruefe('Eine Bewertung, die es nicht gibt, meldet 404', fRWeg.status === 404,
     `Status ${fRWeg.status}`);
@@ -4939,26 +5023,36 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     // Werte je Kriterium: gleiche machten die Pruefung blind dafuer, ob die
     // Spalte ihre eigene Zeile trifft. Das dritte Kriterium hat niemand
     // bewertet -- dort bleibt die Spalte leer.
-    /* stimmen: wer welchen Wert vergeben hat. Die Zahl der Stimmen stimmt mit
-       count ueberein -- ein Doppelgaenger, der sich hier widerspricht, macht
-       jede Pruefung darauf wertlos. Die erste Zeile traegt alle vier Lagen
-       nebeneinander: die eigene Stimme (kein Loeschkreuz), zwei fremde
-       lebende, einen Grabstein und eine herrenlose. Die dritte hat gar keine. */
+    // WER WELCHEN WERT VERGEBEN HAT, STEHT HIER SEIT 0.8.6 NICHT MEHR: der
+    // echte Server liefert es an dieser Antwort nicht mehr aus, und ein
+    // Doppelgaenger, der es doch taete, machte die Pruefung darauf wertlos.
     ratings: kriterien.map((c, i) => ({
       criterion_id: c.id, name: c.name, value: 3,
-      avg: [3.4, 4.1, null][i], count: [5, 2, 0][i],
-      stimmen: [
-        [{ id: 501, wert: 3, mine: true, verfasser: vChefin },
-         { id: 502, wert: 4, mine: false, verfasser: vBert },
-         { id: 503, wert: 2, mine: false, verfasser: vGrab },
-         { id: 504, wert: 4, mine: false, verfasser: null },
-         { id: 505, wert: 4, mine: false, verfasser: { id: 3, name: 'carla', geloescht: false } }],
-        [{ id: 506, wert: 3, mine: true, verfasser: vChefin },
-         { id: 507, wert: 5, mine: false, verfasser: vBert }],
-        []
-      ][i] })),
-    avgRating: 3, testCount: 1, testAvg: 4, testLast: 4
+      avg: [3.4, 4.1, null][i], count: [5, 2, 0][i] })),
+    avgRating: 3, testCount: 1, testAvg: 4, testLast: 4,
+    // Reine Anzeige, seit 0.8.6 in der Verfasserzeile. Ohne dieses Feld
+    // zeichnete die Zeile ins Leere und jede Pruefung darauf waere blind.
+    created_at: '2026-07-20 14:30:00'
   };
+  /* Die Antwort des neuen Endpunkts GET /api/items/:id/stimmen -- wer welchen
+     Wert vergeben hat, je Kriterium. Die Zahl der Stimmen stimmt mit count in
+     den Zeilen darueber ueberein; ein Doppelgaenger, der sich hier
+     widerspricht, macht jede Pruefung darauf wertlos.
+     Die erste Zeile traegt alle vier Lagen nebeneinander: die eigene Stimme
+     (kein Loeschkreuz), zwei fremde lebende, einen Grabstein und eine
+     herrenlose. Das dritte Kriterium kommt GAR NICHT VOR -- der echte Server
+     nimmt nur Kriterien mit Stimmen auf. */
+  const stimmenAntwort = [
+    { criterion_id: 7, stimmen: [
+      { id: 501, wert: 3, mine: true, verfasser: vChefin },
+      { id: 502, wert: 4, mine: false, verfasser: vBert },
+      { id: 503, wert: 2, mine: false, verfasser: vGrab },
+      { id: 504, wert: 4, mine: false, verfasser: null },
+      { id: 505, wert: 4, mine: false, verfasser: { id: 3, name: 'carla', geloescht: false } }] },
+    { criterion_id: 8, stimmen: [
+      { id: 506, wert: 3, mine: true, verfasser: vChefin },
+      { id: 507, wert: 5, mine: false, verfasser: vBert }] }
+  ];
   const uebersicht = [{
     id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
@@ -5020,9 +5114,27 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
                    eigenKommentare: 2, fremdKommentare: 4,
                    eigenBewertungen: 1, fremdBewertungen: 3,
                    eigenTesttage: 1, fremdTesttage: 2 });
+    /* Wer welchen Wert vergeben hat -- seit 0.8.6 ein eigener Endpunkt hinter
+       nurAdmin, und der Doppelgaenger macht BEIDES mit. Antwortete er jedem
+       mit 200, waere die Rolle unpruefbar; antwortete er mit dem leeren
+       Objekt, zeichnete die Ansicht nichts und jede Pruefung darauf waere
+       blind -- dieselbe Ueberlegung wie bei /api/users und /api/stats.
+       VOR dem Sammelfall darunter: startsWith('/api/items/1') faenge den Pfad
+       sonst ab und lieferte den ganzen Eintrag. */
+    if (url === '/api/items/1/stimmen') {
+      if (einstellungen.istAdmin === false)
+        return gib({ error: 'Das verwaltet nur der Admin.' }, 403);
+      return gib(stimmenAntwort);
+    }
     // Der Weg fuer eine fremde Bewertung. Der echte Server antwortet mit dem
-    // neu gezeichneten Eintrag.
-    if (/^\/api\/ratings\/\d+$/.test(url) && opt.method === 'DELETE') return gib(beispiel);
+    // neu gezeichneten Eintrag -- UND die Stimme ist danach wirklich weg. Ohne
+    // das zweite waere ein Neuzeichnen der Adminansicht von einem
+    // stehengebliebenen Stand nicht zu unterscheiden.
+    if (/^\/api\/ratings\/\d+$/.test(url) && opt.method === 'DELETE') {
+      const weg = Number(url.split('/').pop());
+      for (const z of stimmenAntwort) z.stimmen = z.stimmen.filter(st => st.id !== weg);
+      return gib(beispiel);
+    }
     if (url.startsWith('/api/items/1')) return gib(beispiel);
     // Endpunkte, die den ganzen Eintrag zurueckgeben. Ohne das wird `item` im
     // Frontend leer, und alles Folgende bricht -- der Prueflauf stuerzte
@@ -5053,7 +5165,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   // document.body.textContent und jede Textpruefung findet dort Woerter,
   // die auf dem Bildschirm gar nicht stehen.
   w.document.head.appendChild(skript);
-  return { w, gesendet, kriterien, beispiel };
+  return { w, gesendet, kriterien, beispiel, stimmenAntwort };
 }
 
 async function pruefeOberflaeche() {
@@ -6327,8 +6439,17 @@ async function pruefeOberflaeche() {
     eEinzeln.w.document.querySelectorAll('#cmts .cmt-von').length === 0);
   pruefe('Und keiner an den Testtagen',
     eEinzeln.w.document.querySelectorAll('#tdays .tvon').length === 0);
-  pruefe('Und keine Stimmenliste unter den Sternen',
-    eEinzeln.w.document.querySelectorAll('#ratings .rstimmen').length === 0);
+  /* UMGEDREHT MIT 0.8.6, nicht geloescht: bis 0.8.5 hiess die Prueflage "Und
+     keine Stimmenliste unter den Sternen" und war die einzige Lage, in der
+     unter den Sternen nichts stand. Unter den Sternen steht jetzt fuer
+     JEDEN nichts mehr; was hier bleibt, ist die zweite Haelfte der Bedingung
+     am Aufrufknopf: bei einem einzigen Zugang waere die Ansicht der eigene
+     Wert ein zweites Mal. Diese Lage ist Admin -- ohne sie waere die Halbierung
+     der Bedingung von "nur der Admin" nicht zu unterscheiden. */
+  pruefe('Bei einem Zugang gibt es den Aufruf gar nicht',
+    eEinzeln.w.document.getElementById('rwho') === null &&
+    eEinzeln.w.document.getElementById('reset-r') !== null,
+    'rwho steht im Blockkopf');
   eEinzeln.w.close();
 
   const eIvf = eDoc.getElementById('ivf');
@@ -6355,14 +6476,38 @@ async function pruefeOberflaeche() {
   pruefe('Jeder Testtag nennt seinen Verfasser',
     eTvon.length === 1 && eTvon[0] === 'chefin', JSON.stringify(eTvon));
 
-  /* --- Die Stimmenliste unter der Sternzeile ---------------------------- */
-  const eStimmZeilen = [...eDoc.querySelectorAll('#ratings .rstimmen')];
-  pruefe('Unter den Sternen steht, wer welchen Wert vergeben hat',
-    eStimmZeilen.length === 2, `${eStimmZeilen.length} Listen`);
+  /* --- Wer hat bewertet: die Ansicht des Admins -------------------------
+     UMGEHAENGT MIT 0.8.6, nicht geloescht (Stolperstein 74). Bis 0.8.5 standen
+     dieselben Aussagen an der Stimmenliste unter der Sternzeile; sie sind mit
+     ihr in die Adminansicht gewandert. Was hier NEU dazukommt, ist die
+     Gegenrichtung: unter den Sternen steht nichts mehr. */
+  pruefe('Unter den Sternen steht seit 0.8.6 keine Stimmenliste mehr',
+    [...eDoc.querySelectorAll('#ratings .rrow')].length === 3 &&
+    eDoc.querySelectorAll('#ratings .rstimmen').length === 0,
+    `${eDoc.querySelectorAll('#ratings .rstimmen').length} Listen`);
+  pruefe('Der Blockkopf bietet dem Admin die Ansicht an',
+    !!eDoc.getElementById('rwho'), 'kein Knopf im Blockkopf');
+  // Wirklich zugestellt, nicht von Hand gerufen -- und danach durch die
+  // Ereignisschleife.
+  eDoc.getElementById('rwho')?.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Der Knopf holt die Stimmen beim Server',
+    eMehr.gesendet.some(x => x.methode === 'GET' && x.url === '/api/items/1/stimmen'),
+    JSON.stringify(eMehr.gesendet.slice(-3)));
+  const eAnsicht = eDoc.querySelector('.backdrop #stimmliste');
+  pruefe('Und oeffnet einen Dialog mit der Liste', !!eAnsicht);
+  const eStimmZeilen = [...(eAnsicht?.querySelectorAll('.stimmzeile') || [])];
+  pruefe('Je Kriterium steht dort, wer welchen Wert vergeben hat',
+    eStimmZeilen.length === 2, `${eStimmZeilen.length} Zeilen`);
   // Das dritte Kriterium hat keine Stimme -- dort steht auch keine leere Liste.
   pruefe('Ein Kriterium ohne Stimme bekommt gar keine Liste',
     eStimmZeilen.length === 2 &&
     [...eDoc.querySelectorAll('#ratings .rrow')].length === 3);
+  // Der Name kommt aus dem Eintrag, nicht aus der Antwort des Endpunkts --
+  // zwei Quellen fuer denselben Namen waeren zwei Wahrheiten.
+  pruefe('Jede Zeile traegt den Namen ihres Kriteriums',
+    gleich(eStimmZeilen.map(z => z.querySelector('.rname')?.textContent), ['Zuerst', 'Dann']),
+    JSON.stringify(eStimmZeilen.map(z => z.querySelector('.rname')?.textContent)));
   const eStimmen = [...eStimmZeilen[0]?.querySelectorAll('.rstimme') || []]
     .map(z => z.textContent.replace('✕', '').trim());
   pruefe('Jede Stimme nennt Name und Wert',
@@ -6372,47 +6517,96 @@ async function pruefeOberflaeche() {
   pruefe('Die eigene Stimme ist gekennzeichnet',
     eStimmZeilen[0]?.querySelectorAll('.rstimme.meine').length === 1,
     `${eStimmZeilen[0]?.querySelectorAll('.rstimme.meine').length}`);
-  /* Das ✕ steht am FREMDEN Wert und nur beim Admin. Am eigenen nicht: dafuer
-     gibt es die Sterne und den Ruecksetzer, und zwei Wege fuer dieselbe
-     Absicht waeren einer zu viel. */
-  pruefe('Der Admin bekommt ein ✕ an jeder fremden Stimme',
+  /* Das ✕ steht am FREMDEN Wert. Am eigenen nicht: dafuer gibt es die Sterne
+     und den Ruecksetzer, und zwei Wege fuer dieselbe Absicht waeren einer zu
+     viel. Eine Rollenfrage steht hier NICHT mehr daneben -- den Dialog
+     bekommt ohnehin nur der Admin zu sehen, und eine zweite Klemme darin
+     liesse sich nicht gegenpruefen. */
+  pruefe('An jeder fremden Stimme steht ein ✕',
     eStimmZeilen[0]?.querySelectorAll('.rstimme .xdel').length === 4,
     `${eStimmZeilen[0]?.querySelectorAll('.rstimme .xdel').length}`);
   pruefe('Aber keins an der eigenen',
     !eStimmZeilen[0]?.querySelector('.rstimme.meine .xdel'));
-
-  const eKeinAdmin = baueDom(JSDOM, { hash: '#/item/1',
-    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
-  await new Promise(r => setTimeout(r, 80));
-  pruefe('Ohne Adminrolle stehen die Namen trotzdem da',
-    eKeinAdmin.w.document.querySelectorAll('#ratings .rstimme').length === 7,
-    `${eKeinAdmin.w.document.querySelectorAll('#ratings .rstimme').length}`);
-  // Der Server verweigert es ohnehin; ein Knopf, der zuverlaessig eine
-  // Fehlermeldung erzeugt, sieht aus wie ein Fehler.
-  pruefe('Aber kein einziges Loeschkreuz',
-    eKeinAdmin.w.document.querySelectorAll('#ratings .rstimme .xdel').length === 0,
-    `${eKeinAdmin.w.document.querySelectorAll('#ratings .rstimme .xdel').length}`);
-  eKeinAdmin.w.close();
+  pruefe('Und der freigegebene Grabsteinname steht auch hier nicht',
+    !/geloescht-4/.test(eAnsicht?.textContent || ''), eAnsicht?.textContent);
 
   /* --- Und jetzt wirklich draufdruecken ---------------------------------
      Ein gebauter DOM zeigt nicht, was beim Klicken passiert. Das Ereignis
      wird zugestellt, das Modal bestaetigt, danach durch die Ereignisschleife
-     -- und erst dann wird nachgesehen, was der Server bekommen hat. */
+     -- und erst dann wird nachgesehen, was der Server bekommen hat.
+     Die Rueckfrage liegt hier UEBER dem Dialog: zwei .backdrop
+     uebereinander, und der zweite ist der juengere. */
   const eKreuz = eStimmZeilen[0]?.querySelectorAll('.rstimme .xdel')[0];
   if (eKreuz) {
     eKreuz.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
-    const eFrage = eDoc.querySelector('.backdrop');
-    pruefe('Das ✕ fragt vorher nach', !!eFrage);
+    const eFrage = [...eDoc.querySelectorAll('.backdrop')].pop();
+    pruefe('Das ✕ fragt vorher nach',
+      !!eFrage && eFrage !== eAnsicht?.closest('.backdrop'),
+      `${eDoc.querySelectorAll('.backdrop').length} Dialoge`);
     pruefe('Die Frage nennt den Verfasser und sagt, dass nur Loeschen geht',
       /bert/.test(eFrage?.textContent || '') && /nicht ändern/.test(eFrage?.textContent || ''),
       eFrage?.querySelector('p')?.textContent);
     eFrage?.querySelector('[data-yes]')?.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await new Promise(r => setTimeout(r, 60));
   }
   const eEntfernt = eMehr.gesendet.filter(x => x.methode === 'DELETE' && /^\/api\/ratings\//.test(x.url)).pop();
   pruefe('Der Klick entfernt wirklich genau diese Bewertung',
     eEntfernt?.url === '/api/ratings/502', JSON.stringify(eEntfernt));
+  /* Und die Ansicht zeichnet sich danach neu. Ohne diese Pruefung waere ein
+     stehengebliebener Stand von einem neu gezeichneten nicht zu
+     unterscheiden -- der Doppelgaenger nimmt die Stimme deshalb wirklich aus
+     seiner Antwort. */
+  pruefe('Danach holt sie die Liste neu und zeigt die Stimme nicht mehr',
+    eMehr.gesendet.filter(x => x.url === '/api/items/1/stimmen').length === 2 &&
+    ![...eDoc.querySelectorAll('.backdrop .rstimme')]
+      .some(z => /bert 4/.test(z.textContent)),
+    JSON.stringify([...eDoc.querySelectorAll('.backdrop .rstimme')].map(z => z.textContent)));
+  /* Zwei Dialoge uebereinander, und eine Taste nimmt nur den obersten weg.
+     Ohne diese Frage schluesse dieselbe Taste die Ansicht gleich mit -- der
+     Admin haette abgebrochen und staende wieder am Eintrag. */
+  const eKreuz2 = [...eDoc.querySelectorAll('.backdrop .rstimme .xdel')][0];
+  const eVorAbbruch = eMehr.gesendet.length;
+  if (eKreuz2) {
+    eKreuz2.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 30));
+    eDoc.dispatchEvent(new eMehr.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise(r => setTimeout(r, 30));
+  }
+  pruefe('Ein Abbruch nimmt nur die Rueckfrage weg, nicht die Ansicht',
+    eDoc.querySelectorAll('.backdrop').length === 1 &&
+    !!eDoc.querySelector('.backdrop #stimmliste'),
+    `${eDoc.querySelectorAll('.backdrop').length} Dialoge`);
+  pruefe('Und geloescht wird dabei nichts',
+    eMehr.gesendet.length === eVorAbbruch,
+    JSON.stringify(eMehr.gesendet.slice(eVorAbbruch)));
+  // Zumachen, sonst steht der Dialog beim Loeschdialog darunter noch im Weg.
+  eDoc.querySelector('.backdrop [data-no]')?.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Und danach ist die Ansicht wirklich zu',
+    eDoc.querySelectorAll('.backdrop').length === 0,
+    `${eDoc.querySelectorAll('.backdrop').length} Dialoge`);
+
+  /* Ohne Adminrolle gibt es den Aufruf ueberhaupt nicht -- der erste Teil der
+     Bedingung. Die zweite Haelfte (ein einziger Zugang) steht weiter oben an
+     eEinzeln; ohne beide Lagen bliebe eine der beiden ungeprueft. */
+  const eKeinAdmin = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Ohne Adminrolle gibt es den Aufruf gar nicht',
+    eKeinAdmin.w.document.getElementById('rwho') === null &&
+    eKeinAdmin.w.document.getElementById('reset-r') !== null,
+    'rwho steht im Blockkopf');
+  // Und die Stimmen werden auch nicht abgerufen. Der Server verweigert es
+  // ohnehin -- aber ein Abruf, der zuverlaessig ein 403 erzeugt, waere genau
+  // die Falle aus 0.8.5: sechs Abrufe in einem Promise.all.
+  pruefe('Und die Stimmen werden gar nicht erst abgerufen',
+    !eKeinAdmin.gesendet.some(x => /\/stimmen$/.test(x.url)),
+    JSON.stringify(eKeinAdmin.gesendet.map(x => x.url)));
+  pruefe('Und kein einziger fremder Wert steht auf dem Bildschirm',
+    eKeinAdmin.w.document.querySelectorAll('.rstimme').length === 0,
+    `${eKeinAdmin.w.document.querySelectorAll('.rstimme').length}`);
+  eKeinAdmin.w.close();
 
   /* --- Der Loeschdialog am Eintrag ---------------------------------------
      Die Zahlen kommen vom Server, nicht aus dem geladenen Eintrag: nur dort
@@ -8220,9 +8414,9 @@ async function pruefeOberflaeche() {
       { id: 13, day: '2026-08-07', rating: 3, mine: false, verfasser: vBert2, tags: [] }
     ],
     ratings: [
-      { criterion_id: 7, name: 'Zuerst', value: 5, avg: 2, count: 3, stimmen: [] },
-      { criterion_id: 8, name: 'Dann', value: 4, avg: 3, count: 2, stimmen: [] },
-      { criterion_id: 9, name: 'Zuletzt', value: 0, avg: null, count: 0, stimmen: [] }
+      { criterion_id: 7, name: 'Zuerst', value: 5, avg: 2, count: 3 },
+      { criterion_id: 8, name: 'Dann', value: 4, avg: 3, count: 2 },
+      { criterion_id: 9, name: 'Zuletzt', value: 0, avg: null, count: 0 }
     ],
     avgRating: 2.5, testCount: 3, testAvg: 4, testLast: 3
   };
