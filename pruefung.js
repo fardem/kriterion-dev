@@ -239,6 +239,61 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Kein alter Name mehr in den ausgelieferten Dateien', funde.length === 0, funde.join(', '));
 
   /* ---------------------------------------------------------------- */
+  gruppe('Der Bau ist wiederholbar');
+
+  /* Die Sperrdatei nagelt die Abhaengigkeiten fest. Sie allein genuegt nicht:
+     ohne `npm ci` laege sie im Repo und wuerde beim Bauen uebergangen -- ein
+     Merker, der nichts bewirkt. Deshalb pruefen die drei Stuecke zusammen:
+     die Datei ist da, das Abbild bekommt sie zu sehen, und der Befehl liest
+     sie auch. */
+  const sperrPfad = path.join(__dirname, 'package-lock.json');
+  const sperrDa = fs.existsSync(sperrPfad);
+  // Erst das Vorhandensein, dann die Eigenschaft: ohne diese Zeile bliebe
+  // jede Aussage ueber den Inhalt bei fehlender Datei unpruefbar
+  // (Stolperstein 81).
+  pruefe('Die Sperrdatei liegt im Repo', sperrDa, sperrPfad);
+  const sperre = sperrDa ? JSON.parse(fs.readFileSync(sperrPfad, 'utf8')) : {};
+  pruefe('Sie hat das heutige Format', sperre.lockfileVersion >= 3, `${sperre.lockfileVersion}`);
+  pruefe('Sie gehört zu dieser package.json',
+    sperre.name === paketJson.name && sperre.version === paketJson.version,
+    `${sperre.name} ${sperre.version} gegen ${paketJson.name} ${paketJson.version}`);
+  pruefe('Sie nennt jede Abhängigkeit der package.json',
+    Object.keys(paketJson.dependencies).every(n => sperre.packages && sperre.packages['node_modules/' + n]),
+    Object.keys(paketJson.dependencies).filter(n => !(sperre.packages || {})['node_modules/' + n]).join(', '));
+
+  /* Der Ausschluss entscheidet darueber, ob `npm ci` im Abbild ueberhaupt
+     etwas findet: was .dockerignore nennt, geht nicht mit in den Bauzusammen-
+     hang, und dann bricht der Bau ab. Geprueft wird gegen JEDE Zeile, nicht
+     gegen den blossen Dateinamen -- ein `*.json` wuerde sonst durchrutschen. */
+  const alsMuster = (zeile) => new RegExp('^' + zeile.trim()
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000')
+    .replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*') + '$');
+  const ausschluesse = fs.readFileSync(path.join(__dirname, '.dockerignore'), 'utf8')
+    .split('\n').map(z => z.trim()).filter(z => z && !z.startsWith('#') && !z.startsWith('!'));
+  const trifft = ausschluesse.filter(z => alsMuster(z).test('package-lock.json'));
+  pruefe('.dockerignore hält die Sperrdatei nicht zurück', trifft.length === 0, trifft.join(', '));
+  // Gegenprobe zur Gegenprobe: das Muster taugt ueberhaupt etwas. Ohne diese
+  // Zeile bliebe die Pruefung darueber auch dann gruen, wenn alsMuster() nie
+  // etwas traefe -- eine Pruefung, die nicht scheitern kann.
+  pruefe('Und das Muster greift nachweislich',
+    ausschluesse.some(z => alsMuster(z).test('pruefung.js')) &&
+    ausschluesse.some(z => alsMuster(z).test('kriterion.log')),
+    ausschluesse.join(' · '));
+
+  const dockerText = fs.readFileSync(path.join(__dirname, 'Dockerfile'), 'utf8');
+  pruefe('Der Dockerfile kopiert die Sperrdatei in die Bauphase',
+    /^COPY package\.json package-lock\.json \.\/$/m.test(dockerText));
+  pruefe('Und liest sie mit npm ci', /^RUN npm ci --omit=dev$/m.test(dockerText));
+  /* Das ist der eigentliche Punkt: bliebe irgendwo ein Aufruf der alten Art
+     stehen, waere die Sperrdatei ein Merker ohne Wirkung. Gelesen werden nur
+     die BEFEHLSZEILEN -- der Kommentar daneben nennt den alten Namen und darf
+     das auch. */
+  const bauZeilen = dockerText.split('\n').filter(z => !z.trim().startsWith('#'));
+  pruefe('Keine Bauzeile ruft npm install',
+    !bauZeilen.some(z => /npm install/.test(z)),
+    bauZeilen.filter(z => /npm install/.test(z)).join(' · '));
+
+  /* ---------------------------------------------------------------- */
   gruppe('Kriterien: lesen, umbenennen, anlegen');
 
   let krit = (await ruf('GET', '/api/criteria')).inhalt;
