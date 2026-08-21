@@ -13,7 +13,9 @@ Wird gebaut, wird im Duktus des Projekts dokumentiert.
 Gewünscht ist:
 
 - ein Gewicht je Bewertungskriterium, einstellbar im Systembereich
-- Wertebereich **0,2 bis 2,0**
+- drei Vorgaben zum Anklicken — **1 · 1,2 · 1,5** —, dazu **freie Eingabe**
+- Wertebereich **0,2 bis 2**, **immer positiv**
+- Zahlen mit **Komma**, wie in Deutschland üblich — nicht mit Punkt
 - **ein Eintrag darf nie über 5 und nie unter 1 kommen**
 
 Der dritte Punkt klingt nach Arbeit — nach Deckeln, nach Abfangen, nach einer
@@ -52,7 +54,7 @@ Da jeder Kriterienwert in [1, 5] liegt, liegt der gewichtete Schnitt
 zwangsläufig ebenfalls in [1, 5]. Immer. Bei jeder Gewichtskombination.
 
 **Nachgerechnet** (500.000 Zufallsdurchläufe, 1 bis 8 Kriterien, Werte
-gleichverteilt in [1, 5], Gewichte gleichverteilt in [0,2, 2,0]):
+gleichverteilt von 1 bis 5, Gewichte gleichverteilt von 0,2 bis 2):
 
 ```
 kleinster aufgetretener Wert:  1,000119
@@ -142,10 +144,12 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
   sort_order INTEGER NOT NULL DEFAULT 0,
-  -- Das GEWICHT dieses Kriteriums im Gesamtschnitt. 1.0 heisst "zaehlt wie
-  -- jedes andere". Erlaubt ist 0.2 bis 2.0; NULL und 0 sind es nicht -- bei
-  -- Gewicht 0 waere der Nenner eines Eintrags, an dem nur dieses Kriterium
-  -- bewertet ist, null, und die Division ginge nicht auf.
+  -- Das GEWICHT dieses Kriteriums im Gesamtschnitt. 1 heisst "zaehlt wie
+  -- jedes andere". Erlaubt ist 0,2 bis 2, und nur positiv: NULL, 0 und alles
+  -- Negative sind es nicht. Bei Gewicht 0 waere der Nenner eines Eintrags, an
+  -- dem nur dieses Kriterium bewertet ist, null, und die Division ginge nicht
+  -- auf; ein negatives Gewicht kehrte die Aussage um -- eine gute Note zoege
+  -- den Schnitt nach unten -- und braeche die Zusicherung [1,5] mit.
   -- Verrechnet wird als gewichteter MITTELWERT, nicht als Summe: dadurch
   -- liegt der Gesamtschnitt immer zwischen 1 und 5, ohne dass das irgendwo
   -- durchgesetzt werden muesste.
@@ -154,13 +158,13 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
 );
 ```
 
-**Warum `REAL` und nicht Zehntel als `INTEGER`.** Zehntel (2 bis 20) wären
+**Warum `REAL` und nicht Hundertstel als `INTEGER`.** Hundertstel (20 bis 200) wären
 exakt und würden Gleitkomma ganz vermeiden — aber sie zwängen jeder
 Lesestelle eine Umrechnung auf, und die vergisst irgendwann jemand.
 `photos.focus_x REAL NOT NULL DEFAULT 50` ist der Präzedenzfall im eigenen
 Schema: ein Prozentwert als REAL, ohne Umrechnung. Dasselbe hier.
 
-Die Gleitkommafrage ist ohnehin unkritisch: gerundet wird auf ein Zehntel, und
+Die Gleitkommafrage ist ohnehin unkritisch: gerundet wird auf ein Hundertstel, und
 der Fehler einer Double-Multiplikation liegt fünfzehn Stellen darunter. Und
 `1.0` ist im Binärformat exakt darstellbar — die Abfrage „weicht das Gewicht
 von 1 ab?", von der die Anzeige abhängt, ist deshalb verlässlich.
@@ -294,26 +298,40 @@ Die Grenzen stehen **einmal** und werden von jedem Schreibweg gerufen:
 /* Der gueltige Bereich eines Gewichts steht GENAU HIER. Zwei Schreibwege
    fuehren darauf (Verwaltung und Import); stuende die Spanne an beiden,
    liefen sie irgendwann auseinander.
-   0.2 als Untergrenze ist keine Geschmacksfrage: bei 0 waere der Nenner
-   eines Eintrags, an dem nur dieses Kriterium bewertet ist, null.
-   ABGEWIESEN WIRD, NICHT STILL ZURECHTGEBOGEN -- eine Absage kommt als
-   Meldung, nicht als stille Wirkungslosigkeit. */
+   NUR POSITIVE WERTE, und die Untergrenze ist keine Geschmacksfrage: bei 0
+   waere der Nenner eines Eintrags, an dem nur dieses Kriterium bewertet ist,
+   null. Ein negatives Gewicht kehrte die Aussage um -- eine gute Note zoege
+   den Schnitt nach unten -- und braeche zugleich die Zusicherung, dass der
+   Gesamtschnitt zwischen 1 und 5 liegt.
+   Auf der Leitung steht eine ZAHL, kein Text: das Komma ist eine Sache der
+   Anzeige und hat in der Schnittstelle nichts verloren. */
 const GEWICHT_MIN = 0.2, GEWICHT_MAX = 2.0;
 
 function gueltigesGewicht(roh) {
   const g = Number(roh);
   if (!Number.isFinite(g) || g < GEWICHT_MIN || g > GEWICHT_MAX) return null;
-  // Auf ein Zehntel festlegen: 1.9999999 ist kein einstellbarer Wert und
-  // saehe in der Anzeige wie 2,0 aus, waere es aber nicht.
-  return Math.round(g * 10) / 10;
+  // Auf Hundertstel festlegen. Nicht als Schranke gedacht, sondern gegen den
+  // Rest der Gleitkommarechnung: 1.2000000000000002 hat niemand eingegeben.
+  return Math.round(g * 100) / 100;
 }
 ```
 
-**Bewusst abweisend, nicht klemmend.** Der Bewertungswert wird an zwei Stellen
-mit `Math.max(0, Math.min(5, …))` stillschweigend zurechtgebogen — das ist
-dort in Ordnung, weil der Wert aus einem Sterne-Widget kommt, das gar nichts
-anderes senden kann. Ein Gewicht wird von Hand eingegeben. Wer 5 eintippt,
-soll erfahren, dass es 5 nicht gibt, statt zu glauben, es habe gewirkt.
+**Abgewiesen wird, was etwas anderes bedeutet — gerundet wird, was dasselbe
+bedeutet.** Diese Unterscheidung trägt die ganze Regel:
+
+- **Außerhalb von 0,2 bis 2 → Absage mit Meldung.** Wer 5 eintippt, meint 5.
+  Den Wert stillschweigend auf 2 zu ziehen hieße, eine andere Aussage zu
+  speichern als die eingegebene — und der Betroffene glaubte, es habe
+  gewirkt. Dasselbe gilt für alles Negative.
+- **Feiner als ein Hundertstel → gerundet.** 1,234 und 1,23 sind dieselbe
+  Aussage. Und die Rundung ist **nicht still**: das Feld zeigt danach 1,23,
+  also genau das, was gespeichert wurde.
+
+Das ist bewusst nicht dieselbe Haltung wie beim Bewertungswert, der an zwei
+Stellen mit `Math.max(0, Math.min(5, …))` zurechtgebogen wird. Dort ist es
+richtig — der Wert kommt aus einem Sterne-Widget, das gar nichts anderes
+senden kann, also gibt es keine Fehleingabe, die man melden könnte. Ein
+Gewicht wird von Hand getippt.
 
 `PUT /api/criteria/:id` bekommt das Feld dazu:
 
@@ -324,7 +342,8 @@ app.put('/api/criteria/:id', nurAdmin, (req, res) => {
   if (req.body.gewicht !== undefined) {
     gewicht = gueltigesGewicht(req.body.gewicht);
     if (gewicht === null) return res.status(400).json({
-      error: `Das Gewicht muss zwischen ${GEWICHT_MIN} und ${GEWICHT_MAX} liegen.` });
+      error: `Das Gewicht muss eine Zahl zwischen ${zahl(GEWICHT_MIN)} und ` +
+             `${zahl(GEWICHT_MAX)} sein.` });
   }
   // Name und Gewicht in EINEM UPDATE: zwei Anweisungen hintereinander
   // koennten halb durchlaufen.
@@ -338,6 +357,17 @@ app.put('/api/criteria/:id', nurAdmin, (req, res) => {
 steht bereits hinter `nurAdmin` und bereits in `F_ROUTEN`. **Die Zahl bleibt
 bei 46.** (Das ist ausdrücklich zu erwähnen, weil der Prüfstand sie zählt und
 ein Merkposten in Abschnitt 11 des Projektstands daran hängt.)
+
+**Die Meldung braucht das Komma.** `${GEWICHT_MIN}` allein ergäbe „zwischen
+0.2 und 2 sein" — ein Punkt mitten in einem deutschen Satz. Deshalb steht auch
+serverseitig ein Formatierer daneben, wortgleich zu der Konvention, die die
+Oberfläche an neun Stellen schon benutzt:
+
+```js
+// Deutsches Komma in Meldungen. Dieselbe Regel wie in der Oberflaeche
+// (`toFixed(1).replace('.', ',')`), nur ohne feste Nachkommastelle.
+const zahl = (n) => String(n).replace('.', ',');
+```
 
 `POST /api/criteria` nimmt das Feld **nicht** entgegen — ein neues Kriterium
 startet immer bei 1,0 und wird danach eingestellt. Ein Feld weniger im
@@ -405,57 +435,142 @@ vom Server, und dabei bleibt es.
 Karte **„Bewertungskriterien"**, dieselbe Zeile wie heute:
 
 ```
-⣿   Verarbeitungsqualität        [×1,5 ▾]   12 Einträge   ✎  ✕
-⣿   Funktionalität               [×2 ▾]      12 Einträge   ✎  ✕
-⣿   Optische Erscheinung         [×0,5 ▾]     9 Einträge   ✎  ✕
+⣿   Verarbeitungsqualität     × [1,5  ▾]   12 Einträge   ✎  ✕
+⣿   Funktionalität            × [1,2  ▾]   12 Einträge   ✎  ✕
+⣿   Optische Erscheinung      × [1    ▾]    9 Einträge   ✎  ✕
 ```
 
-**Ein `<select>`, kein Zahlenfeld — und das ist eine bewusste Entscheidung.**
-Die drei Verwaltungslisten (Kategorien, Tags, Kriterien) teilen sich eine
-Renderfunktion, und das Umbenennen läuft dort **inline**: das ✎ ersetzt den
-Namen durch ein Eingabefeld, `blur` speichert. Ein zweites freies Feld in
-derselben Zeile würde diesem Muster in die Quere kommen — zwei Felder, zwei
-`blur`-Ereignisse, und die Frage, welches wann speichert.
+**Ein Textfeld mit Vorschlagsliste — kein Auswahlfeld.** Drei feste Stufen
+decken den Bereich 0,2 bis 2 nicht ab, und ein Auswahlfeld mit einem
+zusätzlichen Eintrag „anderer Wert …" wäre ein Moduswechsel: erst wählen,
+dann tippen, in zwei verschiedenen Bedienformen für dieselbe Sache.
 
-Ein Auswahlfeld hat das Problem nicht: es speichert bei `change`, sofort und
-eindeutig, und auf dem Handy öffnet es den nativen Auswahldialog statt einer
-Zahlentastatur.
+Ein `<input>` mit `<datalist>` ist beides zugleich: ein Klick zeigt die
+Vorschläge, ein Tastendruck überschreibt sie. **Das Muster gibt es im Projekt
+schon** — die Tageingabe am Eintrag ist genau so gebaut (`#newtag` mit
+`list="tagsug"`).
 
-**Angeboten werden sechs Stufen:**
+**Vorgeschlagen werden drei Werte:**
 
 ```
-0,2   ·   0,5   ·   0,75   ·   1   ·   1,5   ·   2
+1     ·     1,2     ·     1,5
 ```
 
-Lesbar als: *kaum · halb · drei Viertel · normal · anderthalb · doppelt.*
-Gewichte sind relativ — nur die Verhältnisse zählen —, und sechs klar
-unterscheidbare Stufen sind in der Praxis besser bedienbar als neunzehn
-Zehntelschritte, zwischen denen niemand einen Unterschied begründen kann.
+Alles andere zwischen **0,2 und 2** lässt sich eintippen.
 
-**Der Server nimmt trotzdem den ganzen Bereich 0,2–2,0 in Zehntelschritten
-an.** Das ist kein Widerspruch, sondern dieselbe Aufteilung, die es schon
-gibt: der Server liefert und prüft, die Oberfläche entscheidet, was sie
-anbietet (so wie bei der Durchschnittsspalte, die serverseitig immer kommt und
-bei einem Zugang nur nicht gezeigt wird). Wer die Stufen später feiner haben
-will, ändert eine Liste in `app.js` — der Server bleibt unberührt.
+**Warum alle drei Vorschläge bei 1 oder darüber liegen.** 1 ist der Anker —
+„zählt wie jedes andere". In der Praxis macht man das Wichtige schwerer, statt
+alles andere leichter zu machen: das Ergebnis ist dasselbe, aber man dreht an
+einer Zeile statt an allen übrigen. Wer trotzdem nach unten will, tippt 0,8
+oder 0,5. **Die Vorschlagsliste ist eine Zeile in `app.js`** und jederzeit
+erweiterbar, ohne dass der Server davon etwas merkt.
 
-**Zwei konkrete Fallstricke beim Einbau:**
+**Der Server nimmt denselben Bereich an, den das Feld annimmt** — 0,2 bis 2.
+Anders als im ersten Entwurf gibt es hier keine Aufteilung mehr in „Server
+kann mehr, Oberfläche bietet weniger": mit freier Eingabe fällt der Grund
+dafür weg, und eine Grenze ist besser als zwei.
 
-1. **`makeSortable` muss das Auswahlfeld ausnehmen.** Die Kriterienzeile ist
-   ziehbar; heute steht dort `ignore: '.mact, input'`. Ohne `select` in dieser
-   Liste beginnt beim Antippen des Feldes ein Ziehvorgang statt der Auswahl —
-   auf dem Handy mit der 0,4-Sekunden-Schwelle besonders unangenehm.
-   Also: `ignore: '.mact, input, select'`.
-2. **Nach dem Speichern muss `refresh()` laufen**, sonst zeigt der
-   Verwendungszähler daneben veraltete Zahlen — dasselbe Muster wie beim
-   Umbenennen.
+#### Komma, nicht Punkt
+
+**Gelesen wird beides, geschrieben wird immer mit Komma.** Getippt wird `1,2`;
+ein eingefügter Wert aus einer Tabelle kann `1.2` heißen und soll nicht
+scheitern.
+
+```js
+/* Komma herein, Komma hinaus.
+   "1,2" und "1.2" ergeben beide 1.2; alles andere ergibt NaN und faellt
+   damit durch gueltigesGewicht(). Auch "" und " " -- ein leeres Feld ist
+   keine Null, siehe den dritten Fallstrick unten. */
+const gewichtAusText = (roh) => {
+  const t = String(roh).trim();
+  return t === '' ? NaN : Number(t.replace(',', '.'));
+};
+
+/* 1 -> "1", 1.2 -> "1,2", 1.25 -> "1,25". KEINE nachlaufenden Nullen:
+   "1,50" sieht nach einer Genauigkeit aus, die es nicht gibt -- und "1,0"
+   nach einer Einstellung, wo in Wahrheit die Vorgabe steht.
+   .replace('.', ',') ist die Konvention der ganzen Oberflaeche; sie steht
+   dort schon an neun Stellen. */
+const gewichtText = (g) => String(Math.round(g * 100) / 100).replace('.', ',');
+```
+
+**Durchgespielt** — beide Helfer zusammen mit `gueltigesGewicht()`:
+
+| Eingabe | gespeichert | Anzeige danach |
+|---|---|---|
+| `1,2` | 1,2 | `1,2` |
+| `1.2` | 1,2 | `1,2` |
+| `1` | 1 | `1` |
+| `0,2` | 0,2 | `0,2` |
+| `1,25` | 1,25 | `1,25` |
+| `1,234` | 1,23 | `1,23` — gerundet, und man sieht es |
+| `0,19` | — | abgewiesen, unter der Grenze |
+| `2,1` | — | abgewiesen, über der Grenze |
+| `-1` · `-1,5` | — | abgewiesen, nicht positiv |
+| `0` | — | abgewiesen, spränge die Division |
+| leer · `abc` · `1,2,3` | — | abgewiesen, keine Zahl |
+
+Das Feld ist **`type="text"` mit `inputmode="decimal"`**, nicht
+`type="number"`. Begründung, damit es niemand später „aufräumt":
+
+- `type="number"` nimmt das Komma nur an, wenn die Browsersprache es vorsieht
+  — bei einem englisch eingestellten Browser auf einem deutschen Rechner also
+  nicht.
+- Bei einer Eingabe, die er für ungültig hält, liefert `input.value` einen
+  **leeren String** statt dem, was sichtbar dasteht. Man kann dann nicht
+  einmal melden, was falsch war.
+- `inputmode="decimal"` bringt die Zahlentastatur auf dem Handy und hat keinen
+  dieser Nachteile.
+
+#### Drei Fallstricke beim Einbau
+
+1. **`makeSortable` deckt das Feld bereits ab.** Die Kriterienzeile ist
+   ziehbar, und die Ausnahmeliste lautet heute schon `ignore: '.mact, input'`
+   — ein `<input>` ist damit ausgenommen, ohne dass etwas geändert werden
+   muss. *(Ein `<select>` wäre es nicht gewesen; das war ein Argument gegen
+   die erste Fassung dieses Abschnitts.)*
+
+2. **Nach einem Gewichtswechsel wird die Liste NICHT neu gezeichnet.** Das ist
+   der Unterschied zum Umbenennen — dort *muss* neu gezeichnet werden, weil das
+   ✎ den Namen durch ein Eingabefeld **ersetzt** hat und der Zustand
+   zurückgebaut gehört. Ein Gewichtswechsel ersetzt nichts: das Feld steht
+   dauerhaft da und trägt den neuen Wert bereits.
+
+   ```js
+   feld.onchange = async () => {
+     const g = gewichtAusText(feld.value);
+     if (Number.isNaN(g)) { feld.value = gewichtText(entry.gewicht); return; }
+     try {
+       const neu = await api('PUT', `/api/criteria/${entry.id}`,
+                             { name: entry.name, gewicht: g });
+       // Den Datensatz IN DER LISTE nachziehen statt neu zu laden -- sonst
+       // zeigt die naechste Zeichnung wieder den alten Wert.
+       entry.gewicht = neu.gewicht;
+       feld.value = gewichtText(neu.gewicht);   // zeigt die Rundung mit
+       toast('Gewicht gespeichert');
+     } catch (e) { toast(e.message, true); feld.value = gewichtText(entry.gewicht); }
+   };
+   ```
+
+   Ein `refresh()` an dieser Stelle wäre nicht nur überflüssig, sondern
+   schädlich: ist an derselben Zeile gerade ein Umbenennen offen, risse der
+   Neuaufbau es weg. Der Verwendungszähler daneben ändert sich durch ein
+   Gewicht ohnehin nicht.
+
+3. **Ein leeres Feld ist keine Null.** Wer den Inhalt löscht und wegklickt,
+   meint nicht „Gewicht 0" — er hat es sich anders überlegt. Dann wird der
+   alte Wert wieder eingesetzt und **keine Anfrage geschickt**. `Number('')`
+   ergibt in JavaScript 0, deshalb fängt `gewichtAusText()` den leeren Fall
+   ausdrücklich vorher ab; ohne das liefe er in eine Absage „muss zwischen 0,2
+   und 2 sein", die niemand verlangt hat.
 
 ### 7.2 Was die Karte sonst noch braucht
 
 Ein Satz unter der Liste, der die Rechnung benennt:
 
 > Das Gewicht bestimmt, wie stark ein Kriterium in den Gesamtschnitt eingeht.
-> Bei 1 zählen alle gleich. Der Gesamtschnitt bleibt in jedem Fall zwischen
+> Bei 1 zählen alle gleich. Möglich ist 0,2 bis 2 — die Vorschläge sind nur
+> die häufigsten Werte. Der Gesamtschnitt bleibt in jedem Fall zwischen
 > 1 und 5.
 
 Der letzte Satz ist wichtig: er nimmt genau die Sorge vorweg, die diesem
@@ -695,8 +810,8 @@ antworten wie der echte Server (Stolperstein 90).
 | 5 | A=5 (×2), B=1 (×1) → **3,7**; dieselben Werte ungewichtet → **3,0** | die Wirkung selbst |
 | 6 | **3 Kriterien, nur eines bewertet (3, ×0,2), die anderen ×2 unbewertet → 3,0** | die Falle aus Abschnitt 2 |
 | 7 | Alle Werte 5 bei gemischten Gewichten → **genau 5,0**; alle Werte 1 → **genau 1,0** | die zugesicherten Grenzen |
-| 8 | Extremfall 1 (×0,2) gegen 5 (×2,0) → Ergebnis in [1, 5] | Grenzen unter Last |
-| 9 | Abgewiesen mit 400: `0`, `-1`, `2.1`, `3`, `""`, `"abc"`, `null` | `gueltigesGewicht()` |
+| 8 | Extremfall 1 (×0,2) gegen 5 (×2) → Ergebnis zwischen 1 und 5 | Grenzen unter Last |
+| 9 | Abgewiesen mit 400: `0`, `-1`, `-1,5`, `2,1`, `3`, `"abc"`, `null`, `Infinity` | `gueltigesGewicht()`, „nur positiv" eingeschlossen |
 | 10 | Nach einer Abweisung steht der **alte** Wert unverändert in der Datenbank | keine halbe Schreibung |
 | 11 | Ein `user` bekommt 403 — **zweite Sitzung, echter zweiter Keks** | Stolperstein 3 |
 | 12 | **Vergleich: „meine" ist ebenso gewichtet wie „alle"** — Prüflage, in der sich beide Zahlen ungewichtet *und* gewichtet unterscheiden | die zweite Rechenstelle |
@@ -710,9 +825,18 @@ antworten wie der echte Server (Stolperstein 90).
 | 20 | Oberfläche: `×1,5` steht an der Zeile, `×1` steht nirgends | Ableitung, kein Schalter |
 | 21 | Oberfläche: das Wort „gewichtet" am Blockkopf erscheint nur bei Abweichung | dito |
 | 22 | Oberfläche: Auswahl im `select` löst über ein echtes `change`-Ereignis den Schreibweg aus | Stolperstein 17 |
-| 23 | Oberfläche: Ziehen der Kriterienzeile startet **nicht**, wenn das Auswahlfeld berührt wird | der Fallstrick aus 7.1 |
-| 24 | Quelltext-Wächter: `GEWICHT_MIN` steht genau einmal | eine Wahrheit |
-| 25 | Quelltext-Wächter: `F_ROUTEN` hat weiterhin 46 Einträge | keine neue schreibende Route |
+| 23 | Oberfläche: Ziehen der Kriterienzeile startet **nicht**, wenn das Eingabefeld berührt wird | Fallstrick 1 aus 7.1 |
+| 24 | Oberfläche: `1,2` im Feld ergibt 1,2 in der Datenbank | deutsches Komma |
+| 25 | Oberfläche: `1.2` im Feld ergibt ebenfalls 1,2 | eingefügte Werte scheitern nicht |
+| 26 | Anzeige: 1 → `1`, 1,2 → `1,2`, 1,25 → `1,25` — **nie** `1,0` oder `1,50` | keine erfundene Genauigkeit |
+| 27 | `1,234` wird zu 1,23 **und das Feld zeigt danach `1,23`** | gerundet, aber nicht still |
+| 28 | Leeres Feld: alter Wert kehrt zurück, **keine** Anfrage geht raus | Fallstrick 3 aus 7.1 |
+| 29 | Eine Absage vom Server setzt das Feld auf den alten Wert zurück | kein Wert im Feld, der nicht gespeichert ist |
+| 30 | Die Fehlermeldung des Servers trägt ein **Komma**, keinen Punkt | `zahl()` |
+| 31 | Nach einem Gewichtswechsel wird die Liste **nicht** neu gezeichnet, die Zeile trägt trotzdem den neuen Wert | Fallstrick 2 aus 7.1 |
+| 32 | Ein offenes Umbenennen an derselben Zeile überlebt einen Gewichtswechsel daneben | dito |
+| 33 | Quelltext-Wächter: `GEWICHT_MIN` steht genau einmal | eine Wahrheit |
+| 34 | Quelltext-Wächter: `F_ROUTEN` hat weiterhin 46 Einträge | keine neue schreibende Route |
 
 **Prüfung 4** ist die wichtigste: sie belegt, dass ein Einspielen dieser
 Version in einen laufenden Bestand keine einzige angezeigte Zahl verändert.
@@ -762,10 +886,11 @@ Vier Punkte, bei denen ich eine Empfehlung habe, aber keine Gewissheit:
 
 | | Frage | Meine Empfehlung |
 |---|---|---|
-| 1 | **Sechs Stufen oder freie Zehntel?** | Sechs Stufen (0,2 · 0,5 · 0,75 · 1 · 1,5 · 2). Der Server nimmt ohnehin den ganzen Bereich, die Stufen sind eine Frage der Oberfläche und jederzeit änderbar. |
-| 2 | **Auswahlfeld in der Zeile oder Eingabe hinter dem ✎?** | Auswahlfeld. Das ✎ trägt das gemeinsame Inline-Umbenennen aller drei Listen; ein zweites Feld darin brächte zwei `blur`-Wege in eine Zeile. |
+| 1 | ~~Sechs Stufen oder freie Zehntel?~~ | **Entschieden:** drei Vorschläge (1 · 1,2 · 1,5) in einer Vorschlagsliste, freie Eingabe von 0,2 bis 2, immer positiv, Anzeige mit Komma. Eingebaut in Abschnitt 5 und 7.1. |
+| 2 | ~~Auswahlfeld in der Zeile oder Eingabe hinter dem ✎?~~ | **Hinfällig durch 1:** es wird ein Textfeld mit Vorschlagsliste in der Zeile. Es speichert bei `change`, es steht in der `ignore`-Liste von `makeSortable` schon drin, und es kommt dem Inline-Umbenennen nicht in die Quere, solange nach einem Gewichtswechsel **nicht** neu gezeichnet wird. |
 | 3 | **Zusammen mit G4 oder als eigene Stufe?** | Eigene Stufe. Eine gesparte Formatnummer wiegt weniger als eine Stufe, die am Stück durchdacht werden kann. |
 | 4 | **Vorschau der Rangfolge im Systembereich?** | Später, nicht jetzt. Sie ist das, was Gewichte im Alltag richtig bedienbar macht — aber sie ist eine eigene Ansicht mit eigenem Endpunkt, und die Gewichtung funktioniert ohne sie vollständig. |
+| 5 | **Soll es auch einen Vorschlag unter 1 geben?** | Aus meiner Sicht nicht nötig — wer nach unten will, tippt 0,8. Wenn du es anders siehst, ist es eine Zeile in `app.js`. |
 
 ---
 
@@ -776,9 +901,9 @@ Vier Punkte, bei denen ich eine Empfehlung habe, aber keine Gewissheit:
 | `db.js` | Spalte in der DDL, Migrationsblock | ~25 Zeilen |
 | `server.js` | `qSchnittJeKriterium` um den JOIN, `gesamtSchnitt()` gewichtet, `gueltigesGewicht()`, `PUT /api/criteria/:id`, `qCriteria`, `detail()` | ~40 Zeilen |
 | `server.js` | Export-Feld, Import-Zweig | ~20 Zeilen |
-| `public/app.js` | Auswahlfeld in der Kriterienkarte, `×1,5` an drei Anzeigeorten, `eigenerSchnitt()` gewichtet, `ignore`-Liste | ~50 Zeilen |
+| `public/app.js` | Eingabefeld mit Vorschlagsliste in der Kriterienkarte, `gewichtAusText()` / `gewichtText()`, `×1,5` an drei Anzeigeorten, `eigenerSchnitt()` gewichtet | ~55 Zeilen |
 | `public/style.css` | eine Klasse für die Gewichtsmarke | ~6 Zeilen |
-| `pruefung.js` | 25 Prüfungen | ~200 Zeilen |
+| `pruefung.js` | 34 Prüfungen | ~260 Zeilen |
 | Doku | Projektstand Abschnitt 4 und 5, README, Änderungsprotokoll | — |
 
 **Eine Stufe, ein Durchgang.** Kein Tabellenneubau, keine neue Route, keine
