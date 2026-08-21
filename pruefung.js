@@ -5045,6 +5045,52 @@ const namen = (liste) => liste.map(c => c.name);
   await ruf('DELETE', `/api/items/${fo.id}`);
 
   /* ---------------------------------------------------------------- */
+  gruppe('Die Sicherheitsregel fuer die Anwendung selbst');
+
+  /* Die Regel greift zweimal fuer denselben Fehler: waere der Typ am Fotoweg
+     doch einmal falsch, verboete sie das Ausfuehren trotzdem. Deshalb steht
+     sie hier neben der Ableitung und nicht statt ihrer. */
+  const cspSeite = await fetch(`${BASIS}/`);
+  const cspWert = cspSeite.headers.get('content-security-policy') || '';
+  pruefe('Die Seite selbst traegt eine Sicherheitsregel', cspWert.length > 0, cspWert);
+  pruefe('Nichts wird von fremden Adressen geladen', /default-src 'self'/.test(cspWert), cspWert);
+  pruefe('Skript nur aus der eigenen Anlage', /script-src 'self'/.test(cspWert), cspWert);
+  /* DIE TRAGENDE ZEILE: script-src ohne 'unsafe-inline'. Eine Regel, die
+     eingebettetes Skript erlaubte, koennte man sich sparen. */
+  pruefe('Und ausdruecklich KEIN eingebettetes Skript',
+    !/script-src[^;]*unsafe-inline/.test(cspWert), cspWert);
+  pruefe('Die Anlage laesst sich nicht in einen fremden Rahmen setzen',
+    /frame-ancestors 'none'/.test(cspWert), cspWert);
+  pruefe('base-uri und form-action sind zu',
+    /base-uri 'none'/.test(cspWert) && /form-action 'none'/.test(cspWert), cspWert);
+  /* frame-src 'self' GEHOERT HINEIN und ist keine Nachlaessigkeit: die
+     PDF-Vorschau bindet ein iframe auf den eigenen Ursprung ein. Ohne die
+     Freigabe bliebe sie leer -- und deshalb steht die Zeile aus der
+     Oberflaeche hier daneben. */
+  const cspApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  pruefe('Die PDF-Vorschau bindet wirklich ein iframe ein',
+    cspApp.includes('<iframe src="/api/attachments/'), 'kein iframe gefunden');
+  pruefe('Und die Regel erlaubt genau das', /frame-src 'self'/.test(cspWert), cspWert);
+  /* style-src 'unsafe-inline' ist NOETIG: die Oberflaeche setzt Abstaende,
+     Rasterspalten und den Fokuspunkt als style="..."-Attribut. Ohne die
+     Freigabe verwirft der Browser JEDES davon -- im Chromium nachgemessen.
+     Die Zahl steht hier, damit der Grund nicht behauptet, sondern gezaehlt
+     ist; faellt sie je auf 0, gehoert die Freigabe wieder weg. */
+  const stilAttribute = (cspApp.match(/style="/g) || []).length;
+  pruefe('Die Oberflaeche setzt style-Attribute, die Freigabe hat also einen Grund',
+    stilAttribute > 0, `${stilAttribute} Stellen`);
+  pruefe('Und die Freigabe steht nur bei style-src',
+    /style-src[^;]*unsafe-inline/.test(cspWert), cspWert);
+  pruefe('Auch eine Antwort der Schnittstelle traegt die Regel',
+    ((await fetch(`${BASIS}/api/config`)).headers.get('content-security-policy') || '') === cspWert);
+  /* Die Anlage ohne Proxy spricht kein HTTPS -- ein HSTS-Kopf sperrte sie
+     aus. Er haengt an derselben Einstellung wie alles Uebrige, siehe die
+     beiden Gruppen zum Proxy weiter unten. */
+  pruefe('Ohne Proxy steht kein Strict-Transport-Security',
+    cspSeite.headers.get('strict-transport-security') === null,
+    cspSeite.headers.get('strict-transport-security'));
+
+  /* ---------------------------------------------------------------- */
   gruppe('Anhänge: Vorschau');
 
   pruefe('Text bekommt eine Textvorschau', nachName['notiz.txt'].preview === 'text');

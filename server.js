@@ -14,8 +14,29 @@ const auth = require('./auth');
 const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(express.json({ limit: '2mb' }));
-// Gilt fuer die ganze Anwendung: der Browser darf den Typ nie selbst erraten.
-app.use((req, res, next) => { res.set('X-Content-Type-Options', 'nosniff'); next(); });
+/* Gilt fuer die ganze Anwendung.
+   nosniff: der Browser darf den Typ nie selbst erraten.
+   Die Sicherheitsregel ist die zweite Verteidigung hinter der Ableitung des
+   Typs am Fotoweg -- zwei Schichten fuer denselben Fehler. Sie ist hier
+   billig, weil die Oberflaeche nichts von aussen nachlaedt und kein
+   onclick= in einer Zeichenkette kennt.
+   'unsafe-inline' bei style-src ist NOETIG und keine Nachlaessigkeit: die
+   Oberflaeche setzt Randabstaende, Rasterspalten und den Fokuspunkt als
+   style="..."-Attribut, und eine Sicherheitsregel ohne diese Freigabe
+   verwirft ausnahmslos jedes davon. script-src bleibt streng -- dort liegt
+   die Wirkung. frame-src 'self' traegt die PDF-Vorschau, die ein iframe auf
+   den eigenen Ursprung einbindet.
+   Strict-Transport-Security nur hinter dem Proxy: im Heimnetz auf Port 3100
+   spricht niemand HTTPS, und ein gesetzter Kopf sperrte die Anlage aus. */
+const CSP_ANWENDUNG =
+  "default-src 'self'; img-src 'self' data: blob:; " +
+  "style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'self'; " +
+  "frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+app.use((req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Content-Security-Policy', CSP_ANWENDUNG);
+  next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({
