@@ -33,6 +33,47 @@ Fünf Regeln, aus denen sich die Reihenfolge unten ergibt:
    reproduzierter Befund, der drei Versionen hinter einer Funktionsstufe
    wartet, ist eine Entscheidung — dann soll sie ausdrücklich getroffen
    werden.
+6. **Zwischen den Stufen bleiben Nummern frei.** Die Geschichte zeigt, dass
+   ungeplante Runden kommen: 0.8.1 war eine Bereinigung, 0.8.6 eine
+   Berichtigungsrunde aus dem Betrieb. Beide mussten sich in eine geplante
+   Nummer drängen.
+
+---
+
+## 1a. Die Nummerierung — Zehnerschritte
+
+**Gewünscht war Platz nach oben.** Zwei Formen standen zur Wahl; nur eine
+funktioniert.
+
+| Form | `npm pack` | `npm version patch` | Urteil |
+|---|---|---|---|
+| `0.8.7.2` | ok | **lehnt ab** | **unbrauchbar** — vier Zahlen sind kein gültiges Versionsschema |
+| `0.8.75` | ok | ok → `0.8.76` | brauchbar, liest sich aber wie eine Kommazahl |
+| `0.8.10` | ok | ok → `0.8.11` | **empfohlen** |
+
+`0.8.7.2` scheitert an derselben Regel, die im Projektstand schon steht
+(*Versionsnummern brauchen drei Zahlen — `0.6.10`, nicht `0.6.9b`*). Der Satz
+war auf Buchstaben gemünzt, gilt aber genauso für eine vierte Zahl.
+
+**Empfehlung: die Stufen gehen in Zehnerschritten**, die neun Nummern
+dazwischen bleiben für Berichtigungs- und Bereinigungsrunden frei.
+
+```
+0.8.10   Stufe          0.8.11 … 0.8.19   frei fuer Nacharbeit
+0.8.20   Stufe          0.8.21 … 0.8.29   frei
+0.8.30   Stufe          …
+```
+
+Die Sortierung stimmt, weil Versionsnummern zahlweise verglichen werden, nicht
+als Text:
+
+```
+0.8.6  <  0.8.7  <  0.8.9  <  0.8.10  <  0.8.20  <  0.9.0
+```
+
+Der einzige Preis: `0.8.10` liest sich für einen Moment wie „0.8.1.0". Der
+Projektstand hat den Fall mit `0.6.10` schon vorweggenommen — die Form ist
+also nicht neu, nur bisher nie gebraucht worden.
 
 ---
 
@@ -48,45 +89,54 @@ Und so würde ich sie verschränken:
 
 | Version | Name | Band | Inhalt | Schema | Format |
 |---|---|---|---|---|---|
-| **0.8.7** | Werkzeug | W | Lockfile, `npm ci`, `sharp`-Sprung, Versionsabdruck, CI, Prüfstand in Gruppen | — | — |
-| **0.8.8** | Die Schotten dicht | W | SVG als Foto, `X-Forwarded-For`, `Secure`-Cookie, CSP und drei weitere Header, Fehler-Handler, SIGTERM, Healthcheck, Index auf `sessions.user_id` | — | — |
-| **0.8.9** | G4 — Links bekommen Verfasser | U | wie im Konzept beschrieben | ja | 6 → 7 |
-| **0.9.0** | Gewichtung der Kriterien | F | wie im Konzeptpapier dazu | ja | 7 → 8 |
-| **0.9.1** | Was ist offen, was ist neu | F | Ansicht „Offen", Filter „Neu seit …" | — | — |
-| **0.9.2** | Sicherung und Papierkorb | F | `VACUUM INTO` auf Knopfdruck, Papierkorb, einzelnen Eintrag exportieren | ja | — |
-| **0.9.3** | Stufe H — Tokens | U | Einladung und Rücksetzung, dazu „Meine Sitzungen" | ja | — |
-| **0.9.4** | Schwere Eingriffe | W | Re-Authentifizierung, Sicherheitsprotokoll, Schlüsselwechsel | ja | — |
-| **0.9.5** | Stufe I — Mail und Selbstanmeldung | U | wie im Konzept | ja | — |
-| **0.9.6** | Zwei-Faktor | W | TOTP, Wiederherstellungscodes | ja | — |
-| **0.9.7** | Suche und Bestand | F | FTS5, gespeicherte Ansichten, Duplikate finden und zusammenführen | ja | — |
+| **0.8.10** | Werkzeug | W | Lockfile, `npm ci`, `sharp`-Sprung, Versionsabdruck, CI, Prüfstand in Gruppen | — | — |
+| **0.8.20** | Die Schotten dicht | W | SVG als Foto, `X-Forwarded-For`, `Secure`-Cookie, CSP und drei weitere Header, Fehler-Handler, SIGTERM, Healthcheck, Index auf `sessions.user_id` | — | — |
+| **0.8.30** | G4 — Links bekommen Verfasser | U | wie im Konzept beschrieben | ja | 6 → 7 |
+| **0.8.40** | Gewichtung der Kriterien | F | wie im Konzeptpapier dazu | ja | 7 → 8 |
+| **0.8.50** | Was ist offen, was ist neu | F | Ansicht „Offen", Filter „Neu seit …" | — | — |
+| **0.8.60** | Sicherung und Papierkorb | F | `VACUUM INTO` auf Knopfdruck, Papierkorb, einzelnen Eintrag exportieren | ja | — |
+| **0.8.70** | Stufe H — Tokens | U | Einladung und Rücksetzung, dazu „Meine Sitzungen" | ja | — |
+| **0.8.80** | Schwere Eingriffe | W | Re-Authentifizierung, Sicherheitsprotokoll, Schlüsselwechsel | ja | — |
+| **0.9.0** | Stufe I — Mail und Selbstanmeldung | U | wie im Konzept. Der Sprung auf 0.9 sagt es: ab hier redet die Anlage nach außen | ja | — |
+| **0.9.10** | Zwei-Faktor | W | TOTP, Wiederherstellungscodes — 22 Zeilen Rechnung, siehe Abschnitt 3.1 | ja | — |
+| **0.9.20** | Suche und Bestand | F | FTS5, gespeicherte Ansichten, Duplikate finden und zusammenführen | ja | — |
 | **1.0.0** | Bereinigung und Zusage | — | Umstiegscode raus, Absage an zu alte Datenbanken, Vorgabewerte, Tastaturbedienung, Abwärtskompatibilität wird zugesichert | — | — |
+| **1.1.0** | Kurzvideos am Fotoplatz | F | bis 20 MB, in der Datenbank, Standbild aus dem Browser — `Konzept_Video_und_grosse_Dateien.md`, Teil I | ja | ja |
+| **1.2.0** | Große Dateien bis 2 GB | F | eigener Speicherort, eigene Verschlüsselung, Bereichsabfragen, stückweises Hochladen — Teil II | ja | — |
 
-**Das sind sieben Versionen mehr als bisher geplant.** Der bisherige Plan
+**Das sind sieben Stufen mehr als bisher geplant, dazu zwei nach 1.0.** Der bisherige Plan
 lautete G4 → H → I → Sicherung → 1.0. Er bleibt darin vollständig enthalten;
 alles Zusätzliche kommt aus dem Ideenpapier. Wenn das zu viel ist, steht in
 Abschnitt 5 ein kürzerer Weg.
 
 ### Die eine Abweichung vom bisherigen Plan, die begründet gehört
 
-**G4 rutscht von 0.8.7 auf 0.8.9.** Vor ihm stehen zwei Runden **ohne
+**G4 rutscht von 0.8.7 auf 0.8.30.** Vor ihm stehen zwei Runden **ohne
 Schemaänderung**, die zusammen etwa so viel Arbeit sind wie G4 allein.
 
 Der Grund ist Regel 1 und 2: Die beiden Runden sichern alles ab, was danach
-kommt. Nach 0.8.7 läuft der Prüfstand bei jedem Push und `npm audit` meldet
+kommt. Nach 0.8.10 läuft der Prüfstand bei jedem Push und `npm audit` meldet
 neue Verwundbarkeiten von selbst — G4 wird dadurch sicherer gebaut als heute.
 Und beide Runden fassen die Datenbank nicht an, lassen sich also einspielen,
 ohne dass vorher jemand `./data` sichern muss.
 
-**Wenn die Anlage schon von außen erreichbar ist, würde ich 0.8.7 und 0.8.8
+**Wenn die Anlage schon von außen erreichbar ist, würde ich 0.8.10 und 0.8.20
 tauschen.** Dann zuerst die Löcher, dann das Werkzeug. Für eine Anlage im
 eigenen Netz ist die Reihenfolge oben die bessere.
 
-### Warum 0.9.0 und nicht 0.8.10
+### Was der Sprung auf 0.9.0 bedeutet
 
-Die Gewichtung ändert eine Zahl, die überall steht. Das ist keine
-Nacharbeit an einer Stelle, sondern eine Aussage über den ganzen Bestand —
-und der Sprung auf 0.9.0 sagt das. Versionsnummern sind hier ohnehin Aussagen
-und keine Kosten.
+Er fällt auf **Stufe I — Mailversand und Selbstanmeldung**, und das ist kein
+Zufall: bis dahin ist Kriterion eine Anlage, die ausschließlich auf Anfragen
+antwortet. Ab Stufe I **redet sie von sich aus nach außen** — sie baut eine
+Verbindung zu einem fremden Server auf und verschickt Nachrichten.
+
+Das ist die größte Änderung der Betriebsart im ganzen Plan, größer als jede
+einzelne Funktion davor. Die Nummer soll das sagen.
+
+Alles davor bleibt in 0.8 — auch die Gewichtung, obwohl sie eine Zahl ändert,
+die überall steht. Sie ändert **was angezeigt wird**, nicht **womit die Anlage
+spricht**.
 
 ---
 
@@ -140,6 +190,23 @@ Das ist derselbe Satz, der über der E-Mail-Entscheidung steht, nur andersherum:
 E-Mail ist Bequemlichkeit und darf ausfallen — TOTP ist Schutz und **fällt nie
 aus**, weil es nichts gibt, das ausfallen könnte.
 
+**Wie aufwendig ist die Rechnung wirklich? Nachgebaut und gegengeprüft.**
+Die vollständige TOTP-Prüfung — Base32 einlesen, HMAC-SHA1, dynamische
+Auswahl, Fenster von ±1 Schritt, Vergleich mit `timingSafeEqual` — sind
+**22 Zeilen**. Gegengeprüft an allen sechs Testwerten aus RFC 6238, Anhang B:
+
+```
+  T=         59  erwartet 94287082  bekommen 94287082  ✓
+  T= 1111111109  erwartet 07081804  bekommen 07081804  ✓
+  T= 1111111111  erwartet 14050471  bekommen 14050471  ✓
+  T= 1234567890  erwartet 89005924  bekommen 89005924  ✓
+  T= 2000000000  erwartet 69279037  bekommen 69279037  ✓
+  T=20000000000  erwartet 65353130  bekommen 65353130  ✓
+```
+
+**Die Rechnung ist also nicht das Schwierige.** Schwierig ist der Ablauf
+drumherum — und der ist es, der den Umfang macht:
+
 **Umfang, ehrlich:**
 
 - `users` bekommt `totp_secret` und `totp_bestaetigt`.
@@ -157,7 +224,7 @@ aus**, weil es nichts gibt, das ausfallen könnte.
 - Ein Fenster von ±1 Zeitschritt gegen ungenaue Uhren, und ein verbrauchter
   Zeitschritt darf nicht zweimal gelten.
 
-**Deshalb steht es auf 0.9.6, nach H und I** — dort steht die
+**Deshalb steht es auf 0.9.10, nach H und I** — dort steht die
 Token-Infrastruktur schon, und der Weg „Zugang verloren" ist dann gebaut.
 
 ### 3.2 Meine Sitzungen sehen und beenden
@@ -190,7 +257,7 @@ Praktisch ist es bei einer kleinen Tabelle folgenlos — es ist eine
 Konsistenzsache. **Und es kostet keinen Migrationsblock:**
 `CREATE INDEX IF NOT EXISTS` wirkt anders als `ALTER TABLE ADD COLUMN` auch
 auf eine bestehende Tabelle. Eine Zeile in der DDL, fertig. Deshalb steht es
-oben in 0.8.8 und nicht bei 3.2.
+oben in 0.8.20 und nicht bei 3.2.
 
 ### 3.3 Re-Authentifizierung für schwere Eingriffe
 
@@ -282,7 +349,7 @@ Der letzte Punkt ist der gefährliche, und er gehört groß und rot. Ein
 Schlüsselwechsel ohne nachgezogene `.env` ist genau die Neustartschleife, die
 die README beim falschen Schlüssel beschreibt.
 
-### 3.6 Die übrigen Kopfzeilen — billig, gehören zu 0.8.8
+### 3.6 Die übrigen Kopfzeilen — billig, gehören zu 0.8.20
 
 Neben der CSP aus dem Ideenpapier, alle einzeilig:
 
@@ -311,7 +378,7 @@ bereits Vorkommen im Quelltext (die Adminfrage). Dieselbe Bauform:
 
 Diese eine Prüfung hätte Befund 2.1 nie entstehen lassen — und sie fängt den
 nächsten dieser Art, den heute noch niemand gebaut hat. Sie gehört mit in
-0.8.8, in dieselbe Runde wie die Berichtigung selbst.
+0.8.20, in dieselbe Runde wie die Berichtigung selbst.
 
 ---
 
@@ -319,7 +386,7 @@ nächsten dieser Art, den heute noch niemand gebaut hat. Sie gehört mit in
 
 Sechs, die im Ideenpapier noch nicht standen.
 
-### 4.1 Volltextsuche mit FTS5 *(0.9.7)*
+### 4.1 Volltextsuche mit FTS5 *(0.9.20)*
 
 Im Ideenpapier stand nur „`searchText` raus, Such-Endpoint rein". Der saubere
 Weg dafür heißt **FTS5** und steckt bereits in SQLite — keine neue
@@ -335,7 +402,7 @@ Die Tabelle wird aus den Inhalten befüllt und ist damit eine **Ableitung**,
 keine zweite Wahrheit — sie lässt sich jederzeit verwerfen und neu aufbauen.
 Genau die Bauform, die das Projekt an anderer Stelle schon bevorzugt.
 
-### 4.2 Gespeicherte Ansichten *(0.9.7)*
+### 4.2 Gespeicherte Ansichten *(0.9.20)*
 
 Filter, Tags, Sortierung und Suchbegriff unter einem Namen ablegen:
 „Ungetestet, Kategorie Werkzeug, nach Bewertung". Ein Klick stellt sie
@@ -346,22 +413,22 @@ Schlüssel/Wert, ein weiterer Schlüssel genügt. Und sie sortiert die gemeinsam
 Liste nicht um, sondern setzt nur die Filter, die es ohnehin gibt. Dieselbe
 Einordnung wie beim Favoritenfilter.
 
-### 4.3 Fälligkeitsdatum an Aufgaben *(mit 0.9.2, wo ohnehin Schema angefasst wird)*
+### 4.3 Fälligkeitsdatum an Aufgaben *(mit 0.8.60, wo ohnehin Schema angefasst wird)*
 
 Eine Aufgabe hat heute zwei Zustände und keinen Zeitpunkt. Mit der Ansicht
-„Offen" aus 0.9.1 wird ein Datum erst interessant: die Liste sortiert danach,
+„Offen" aus 0.8.50 wird ein Datum erst interessant: die Liste sortiert danach,
 und Überfälliges steht oben.
 
 Eine Spalte an `comments`, optional. **Keine Erinnerung, keine Nachricht** —
 das Datum steht da und wird sortiert, mehr nicht. Alles andere setzte
 Mailversand voraus und bräche „Bequemlichkeit ist nie Voraussetzung".
 
-### 4.4 Einen einzelnen Eintrag exportieren *(0.9.2)*
+### 4.4 Einen einzelnen Eintrag exportieren *(0.8.60)*
 
 Um eine Beurteilung weiterzugeben, ohne den ganzen Bestand aus der Hand zu
 geben. Und um sie in eine andere Anlage zu übernehmen.
 
-**Der Grund, warum es ausgerechnet in 0.9.2 gehört:** der Papierkorb braucht
+**Der Grund, warum es ausgerechnet in 0.8.60 gehört:** der Papierkorb braucht
 sowieso eine Serialisierung *eines* Eintrags. Wer den Papierkorb baut, hat
 diese Funktion fast fertig — sie danach separat zu bauen, hieße denselben Code
 zweimal zu schreiben.
@@ -369,7 +436,7 @@ zweimal zu schreiben.
 **Rechte:** anders als der vollständige Export darf das **jeder**. Ein
 einzelner Eintrag ist kein Bestand, und sichtbar ist er für alle ohnehin.
 
-### 4.5 Zwei Einträge zusammenführen *(0.9.7, zusammen mit der Duplikaterkennung)*
+### 4.5 Zwei Einträge zusammenführen *(0.9.20, zusammen mit der Duplikaterkennung)*
 
 Die Duplikaterkennung findet, dass zwei Leute dieselbe Maschine angelegt
 haben. Und dann? Heute: einen löschen und die Arbeit daran verlieren.
@@ -408,9 +475,9 @@ Punkte, die ich **vor 1.0 nicht weglassen** würde:
 
 | | Warum unverzichtbar |
 |---|---|
-| **0.8.7 Werkzeug** | ohne Lockfile ist jeder Build ein anderer; ohne CI läuft der Prüfstand nur, wenn jemand daran denkt |
-| **0.8.8 Sicherheit** | zwei reproduzierte Löcher, beide klein zu schließen |
-| **0.9.2 Sicherung** | ohne Sicherung auf Knopfdruck ist der einzige Rückweg ein Export, der bei Fotos am Speicher scheitert |
+| **0.8.10 Werkzeug** | ohne Lockfile ist jeder Build ein anderer; ohne CI läuft der Prüfstand nur, wenn jemand daran denkt |
+| **0.8.20 Sicherheit** | zwei reproduzierte Löcher, beide klein zu schließen |
+| **0.8.60 Sicherung** | ohne Sicherung auf Knopfdruck ist der einzige Rückweg ein Export, der bei Fotos am Speicher scheitert |
 | **1.0.0 Bereinigung** | Umstiegscode raus und die Absage an zu alte Datenbanken — sonst läuft ein alter Bestand weiterhin wortlos in SQL-Fehler |
 
 Alles andere ließe sich hinter 1.0 schieben, **ohne dass die Veröffentlichung
@@ -418,7 +485,7 @@ darunter leidet.** Das gilt ausdrücklich auch für die Gewichtung, so gern ich
 sie sähe: „Für ein Sachgebiet, für eine Person, dafür vollständig
 verschlüsselt" ist ein fertiges Produkt.
 
-Umgekehrt gilt: **1.0 ohne 0.8.7 und 0.8.8 würde ich nicht veröffentlichen.**
+Umgekehrt gilt: **1.0 ohne 0.8.10 und 0.8.20 würde ich nicht veröffentlichen.**
 Eine Veröffentlichung heißt fremde Installationen, und fremde Installationen
 heißt, dass die Befunde 2.1 und 2.2 dann nicht mehr in einer Anlage stehen,
 sondern in allen.
@@ -427,8 +494,12 @@ sondern in allen.
 
 ## 6. Was ich nicht in die Roadmap nehmen würde
 
-- **Videos** — richtig zurückgestellt. Über einem Gigabyte scheidet die
-  Datenbank aus, und der Export könnte sie nie enthalten.
+- ~~**Videos**~~ — **zurückgenommen.** Der Einwand („über einem Gigabyte
+  scheidet die Datenbank aus") stimmt, trifft aber nur die eine Hälfte. Ein
+  **Kurzvideo bis 20 MB am Fotoplatz** liegt genauso in der Datenbank wie ein
+  Foto, und das Standbild dafür kann der Browser liefern — kein `ffmpeg`, keine
+  neue Abhängigkeit. Steht als 1.1.0 und 1.2.0 in der Tabelle oben,
+  ausgearbeitet in `Konzept_Video_und_grosse_Dateien.md`.
 - **Verschlüsselung je Benutzer** — ein Neubau, kein Anbau, und für ein
   selbstgehostetes System die falsche Abwägung.
 - **PWA-Manifest** — im eigenen Netz, ohne Offline-Anspruch, bleibt davon das
