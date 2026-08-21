@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 6 · Stand 20. August 2026 · gebaut: Version 0.8.4**
+**Kompakte Übergabe · Revision 7 · Stand 21. August 2026 · gebaut: Version 0.8.5**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,19 +8,18 @@ Mitgeben: dieses Blatt plus das ZIP mit dem Quelltext. Fertige
 Einstiegsnachrichten dafür liegen in `Startpaket_Kriterion.md` — das ist nur
 für den Menschen gedacht und wird nicht mitgeschickt.
 
-**Was Revision 6 ist.** Revision 3 hat mit der Bereinigung 0.8.1 alles
+**Was Revision 7 ist.** Revision 3 hat mit der Bereinigung 0.8.1 alles
 weggeräumt, was zur Vergangenheit gehörte, Revision 4 trug 0.8.2 nach,
-Revision 5 die erste Hälfte von 0.8.3; diese trägt **0.8.4** nach — den Rest
-der zweiten Hälfte von G2, alle fünf Punkte. **Damit ist Stufe G2
-vollständig.** Der Aufbau bleibt: Versionen vor der jüngsten stehen als je
-eine Zeile (Abschnitt 9), Prüf- und Gegenprobenlisten ab 0.8.0, Stolpersteine
-als Kernsätze.
+Revision 5 die erste Hälfte von 0.8.3, Revision 6 den Rest von G2; diese trägt
+**0.8.5** nach — **Stufe G3, alle sechs Punkte**. Der Aufbau bleibt: Versionen
+vor der jüngsten stehen als je eine Zeile (Abschnitt 9), Prüf- und
+Gegenprobenlisten ab 0.8.0, Stolpersteine als Kernsätze.
 **Vollständig geblieben sind die Abschnitte 5, 5a und 12** — Entscheidungen,
 Sicherheitsregel, Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht
 mehr berücksichtigt.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion.md` gepflegt und nur
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_5.md` gepflegt und nur
 dort.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
@@ -62,26 +61,32 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**Auf dem Server läuft 0.8.4** — eingespielt und nachgeprüft. Sie bringt den
-Rest der zweiten Hälfte von G2, alle fünf Punkte: den **Eingriffsvermerk nennt
-die Rolle** („2 Bilder vom Admin entfernt"), **`updated_at` an den Bildwegen
-des Verfassers**, die **Zahlen in der Kopfzeile des Kommentarblocks**, die
-**beiden Anlegen-Schalter** für Tags und Kategorien und den **Umschalter
-„meine/alle" in der Vergleichsansicht**. **Damit ist Stufe G2 vollständig.**
-**1349 von 1349 Prüfungen.**
+**Auf dem Server läuft 0.8.5** — eingespielt und nachgeprüft. Sie bringt
+**Stufe G3, alle sechs Punkte**: die **dreizehn Karten des Systembereichs nach
+Rolle**, **`GET /api/stats` hinter `nurAdmin`**, das **Muster der
+Kriterienkarte für Kategorien und Tags**, die Karte **„Links" in zwei
+geschnitten**, die **berichtigte `AUTH_RESET`-Zeile**, die Kachel **„Zugänge"
+über die volle Breite** und **Trennlinien** in den Linkkarten.
+**1391 von 1391 Prüfungen.**
 
-**0.8.4 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
-Tabelle gebraucht — die beiden Anlegen-Schalter sind eine reine Ableitung
-beim Lesen. Es ist kein Umstiegscode entstanden; `umstieg083()` aus 0.8.3
-bleibt der einzige, weiterhin vorgemerkt für 1.0.
+**0.8.5 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
+Tabelle gebraucht — es ging um Bildschirm und einen Wächter. Es ist kein
+Umstiegscode entstanden; `umstieg083()` aus 0.8.3 bleibt der einzige,
+weiterhin vorgemerkt für 1.0.
+
+**Die beiden Anlegen-Schalter stehen im Betrieb so:** bei den **Kategorien
+aus** (nur der Admin legt neue an, das Auswahlfeld am Eintrag bleibt), bei den
+**Tags an** (jeder vergibt am Eintrag einen neuen Namen). Das ist eine
+Einstellung im Systembereich, keine Version — beides jederzeit umkehrbar.
 
 **Vorausgesetzt wird weiterhin eine Datenbank aus 0.8.0 oder neuer.** Ältere
 Bestände werden nicht übernommen; sie bräuchten den Zwischenschritt über 0.8.0
 als letzte Version mit Umstiegscode.
 
-**Zurückrollen ist wieder eine reine Dateikopie.** 0.8.3 hatte das Schema
-angefasst (Spalte `images_removed`), 0.8.4 nicht — wer von 0.8.4 auf 0.8.3
-zurückgeht, braucht keine Rücksicht auf das Schema zu nehmen. Vor jedem
+**Zurückrollen ist weiterhin eine reine Dateikopie.** Seit 0.8.3 (Spalte
+`images_removed`) hat keine Version das Schema angefasst — wer von 0.8.5
+zurückgeht, braucht keine Rücksicht darauf zu nehmen. **Das ändert sich mit
+Stufe G4:** dort kommt eine Spalte an `links`. Vor jedem
 Einspielen gehört trotzdem eine Sicherung des Datenverzeichnisses dazu, wie
 immer.
 
@@ -256,19 +261,27 @@ und nimmt zurück. Testtage können eigene Tags tragen. Die Blöcke lassen sich 
 Griff anordnen und per Klick auf die Kopfzeile einklappen — innerhalb ihres
 Bereichs, nicht darüber hinaus.
 
-**Systembereich:** beide Titel, Kennzahlen, Karte „Zugänge" (anlegen,
-sperren, Passwort zurücksetzen, Rolle wechseln, entfernen), Export mit/ohne
-Fotos, Import (ersetzen oder zusammenführen), Kategorien und Tags umbenennen
-und löschen, Bewertungskriterien umbenennen, löschen und per Ziehen sortieren,
-Schriftgröße in fünf Stufen, Vokabular aus elf Wörtern, Karte „Links" mit
-sichtbaren Zeilen, Suchanbietern und der Zahl der angezeigten Namen.
+**Systembereich: dreizehn Karten, und sie hängen an der Rolle** (seit 0.8.5).
+Dem **Admin**: beide Titel, Kennzahlen, Kategorien und Tags umbenennen und
+löschen, Bewertungskriterien umbenennen, löschen und per Ziehen sortieren,
+Karte „Zugänge" (anlegen, sperren, Passwort zurücksetzen, Rolle wechseln,
+entfernen), Karte „Suchanbieter" (Vorrat, Startanbieter, drei eigene),
+Vokabular aus elf Wörtern. Dem **Eigentümer** zusätzlich: Export mit/ohne
+Fotos und Import (ersetzen oder zusammenführen).
+**Jedem, auch ohne Rolle:** „Zugang" (eigener Name und Passwort),
+„Darstellung" (Schriftgröße in fünf Stufen, Zeitleiste, Blockanordnung) und
+„Links" (sichtbare Zeilen, Zahl der angezeigten Anbieternamen). Die Karten
+„Kategorien", „Tags" und „Bewertungskriterien" stehen ebenfalls für jeden —
+aber als **Liste ohne Bedienzeichen**: wer nicht verwalten darf, darf
+trotzdem nachsehen.
 
 **Links und Suchzeilen:** Was wie eine Adresse aussieht, wird eine — mit
 `https://` davor, wenn keins dasteht. Alles andere bleibt Rohtext und führt beim
 Klick zum Startanbieter. Erkennbar an der Lupe rechts statt des Pfeils und an
 den Anbieternamen unter dem Text. Sechs eingebaute und bis zu drei eigene
 Anbieter; der Admin nimmt sie per Häkchen in die Auswahl und bestimmt mit
-„Start" das Ziel des Zeilenklicks. Unter der Zeile stehen ein bis vier Namen,
+„Start" das Ziel des Zeilenklicks — seit 0.8.5 in der eigenen Karte
+„Suchanbieter". Unter der Zeile stehen ein bis vier Namen,
 der Startanbieter zuerst; jeder Name ist ein eigenes Klickziel.
 
 **Vokabular:** Sache (Einzahl/Mehrzahl), Merkmal (erfüllt/nicht erfüllt),
@@ -983,7 +996,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_5.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -1238,6 +1251,46 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   es keine Wolke, die Eingabe ist der einzige Zuweisungsweg und bleibt
   deshalb stehen; ein unbekannter Name wird dort mit sprechender Meldung
   abgewiesen.
+- **Die Kennzahlen sieht nur der Admin** (seit 0.8.5). Nimmt „Die Kennzahlen
+  selbst sieht weiterhin jeder" aus 0.7.2 **ausdrücklich zurück**. Sie sagen,
+  wie groß der Bestand und wie belegt die Datenbank ist — eine Aussage über
+  die **Anlage als Ganzes**, nicht über den Einzelnen. `GET /api/stats` trägt
+  den Wächter in der Routenzeile. **Der Schlüsselwert im selben Rumpf bleibt
+  eine zweite, engere Klemme** am Eigentümer; die beiden wurden ausdrücklich
+  nicht zusammengelegt, und eine eigene Gegenprobe belegt, dass sie einander
+  nicht zudecken.
+- **Ein lesender Endpunkt kann einen Wächter tragen und steht trotzdem nicht
+  in `F_ROUTEN`** (seit 0.8.2, mit 0.8.5 zum dritten Mal angewandt). Die Liste
+  ist die Stelle, an der die Rechtefrage für **schreibende** Routen gestellt
+  wird. Ein Wächter vor einer lesenden Route ist davon unberührt — die Zahl
+  bleibt bei 46.
+- **Was verschwindet, sind die Karten, nicht die Daten** (seit 0.8.5). Das
+  Vokabular **ist** jede Beschriftung der Oberfläche, der interne Titel steht
+  in der Kopfzeile — beide werden auch an einen gewöhnlichen Benutzer
+  ausgeliefert. Weg ist nur, womit man sie ändern könnte. „Ansicht für
+  Vokabular und Titel gar nicht" aus dem ersten Entwurf lässt sich nicht
+  wörtlich einlösen und wurde nicht versucht.
+- **Wer nicht verwalten darf, darf trotzdem nachsehen** (seit 0.8.5). Die
+  Karten „Kategorien", „Tags" und „Bewertungskriterien" bleiben für jeden
+  stehen; weg sind nur Griff, ✎ und ✕. Die Namen sind die Auswahl, aus der
+  jeder am Eintrag schöpft — eine versteckte Karte nähme ihm die Übersicht
+  über etwas, das er benutzt.
+- **Drei Karten sind Selbstbezug und hängen an keiner Rolle** (seit 0.8.5):
+  „Zugang" (der eigene Zugang), „Darstellung" (Schriftgröße, Zeitleiste,
+  Blockanordnung) und „Links" (sichtbare Zeilen, Zahl der Anbieternamen).
+  Alles persönlich, alles geht niemanden sonst etwas an.
+- **Die Karte „Links" ist in zwei geschnitten** (seit 0.8.5). Sie mischte als
+  einzige Karte des Systembereichs Persönliches mit Adminsachen. Der Schnitt
+  folgt genau der Trennung, die der Server seit 0.6.5 hält: `linkZeilen` und
+  `suchNamen` sind persönlich, `suche`, `sucheEigene` und `sucheAktiv` sind
+  global. **Der Admin kuratiert, der Benutzer bestimmt die Dichte** — der Satz
+  stand schon in `server.js` und hat seit 0.8.5 seine Entsprechung auf dem
+  Bildschirm.
+- **Eine Karte, die an einer Rolle hängt, nimmt ihre Behandler mit** (seit
+  0.8.5). Zehn Behandler hingen blank an `document.getElementById(...)`; ohne
+  ihre Karte ist das `null`, und die Zuweisung wirft **nach** dem Setzen von
+  `app.innerHTML` — halb gezeichneter Bildschirm, keine Meldung. Ein Ort für
+  die Frage (`amElement()`), nicht zehn. Siehe Stolperstein 88.
 - **Der Umschalter der Vergleichsansicht ist Ansichtszustand, keine
   Einstellung** (seit 0.8.4) — im Speicher wie `linksOffen` und `wolkeOffen`,
   nicht in `user_settings`. Vorgabestellung **„alle"**: Kriterienwerte,
@@ -1577,6 +1630,20 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     auf dem Prüfport, nicht der Rückbau. Ergänzung zu 75 und 76: vor dem
     Deuten eines Abbruchs die Frage, ob er überhaupt im Wirkbereich des
     Rückbaus liegt — und wenn nicht, den Rückbau allein wiederholen.
+87. **Eine Prüflage, die nur die eine Hälfte einer Rollenleiter setzt, prüft
+    eine Lage, die es nicht gibt.** Zwei Aufbauten setzten `istAdmin: false`
+    und ließen `istEigentuemer` auf der Vorgabe `true` — solange keine Karte
+    an der Eigentümerfrage hing, fiel das nicht auf. Wo zwei Felder derselben
+    Leiter angehören, setzt die Prüflage **beide**. Verwandt mit 71, aber
+    umgekehrt: dort räumt der Bestand die Lage weg, hier ist sie von
+    vornherein unmöglich.
+88. **Wer eine Karte versteckt, muss ihre Behandler mitverstecken — und der
+    Fehler kommt zu spät, um laut zu sein.** Ein Behandler an einem Element,
+    das es nicht mehr gibt, wirft **nach** dem Setzen von `app.innerHTML`: auf
+    dem Bildschirm steht ein halb eingerichteter Bereich ohne jede Meldung,
+    im Prüfstand reißt es den Lauf mit, ohne einen einzigen Namen zu nennen.
+    Zu jeder Karte an einer Rolle gehört dieselbe Frage für ihre Behandler —
+    an **einem** Ort, nicht an zehn.
 
 ---
 
@@ -1590,16 +1657,15 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Abbilds).
 
-**Zuletzt: 1349 von 1349 bestanden** (0.8.4; 106 neue Prüfungen, davon 65 in
-drei neuen Gruppen: „Wer darf anlegen" (28), „Anlegen-Schalter in der
-Oberfläche" (19), „Der Umschalter der Vergleichsansicht" (18)). Der Abschnitt
+**Zuletzt: 1391 von 1391 bestanden** (0.8.5; 42 neue Prüfungen, davon 37 in
+einer neuen Gruppe: „Der Systembereich nach Rolle"). Der Abschnitt
 **„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen steht unverändert:
 er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage, nur ohne die neue
 Spalte und mit einer Zeile darin — und belegt, dass der Umstieg sie ergänzt,
 dass die Bestandszeile auf der Vorgabe null steht, dass ein zweiter Lauf stumm
-bleibt und dass eine **frische** Anlage die Spalte ohne Umstieg trägt. 0.8.4
-selbst hat keinen eigenen Umstiegsabschnitt — kein Punkt hat das Schema
-angefasst.
+bleibt und dass eine **frische** Anlage die Spalte ohne Umstieg trägt. Weder
+0.8.4 noch 0.8.5 hat einen eigenen Umstiegsabschnitt — kein Punkt hat das
+Schema angefasst.
 
 **Was abgedeckt ist**, grob nach Bereichen:
 
@@ -1733,6 +1799,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.2 | Stufe G2, erste Hälfte (61) | 19 | Stolpersteine 78, 79 und 80 |
 | 0.8.3 | Stufe G2, zweite Hälfte, Punkte 1–4 (39) | 16 | Stolpersteine 81 und 82 |
 | 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte (106) | 34 | Stolpersteine 83, 84, 85 und 86 |
+| 0.8.5 | Stufe G3 — alle sechs Punkte (42) | 19 | Stolpersteine 87 und 88 |
 
 **In 0.8.0 hundertfünfzehn neue Prüfungen zur Stufe G1.** Der Prüfbestand
 entsteht hier **über die Verwaltung selbst** — anders als in allen Stufen davor,
@@ -1823,6 +1890,42 @@ stehenlassen und drei Läufe lang falsche rote Punkte erzeugt (Stolperstein 75).
 Der vollständige Rückbau der Rollenleiter zerlegt den Lauf, statt ihn rot zu
 machen; dafür steht jetzt eine engere Gegenprobe daneben (Stolperstein 76).
 
+**In 0.8.5 zweiundvierzig neue Prüfungen und neunzehn Gegenproben.** Die neue
+Gruppe „Der Systembereich nach Rolle" baut den Bereich **dreimal** auf —
+Eigentümerin, Admin **ohne** Eigentümerrecht, gewöhnlicher Benutzer. Ohne die
+mittlere Lage wäre „Eigentümer" von „Admin" nicht zu unterscheiden
+(Stolperstein 73). Und zu jedem „ist weg" steht das „mit Rolle ist es da"
+daneben: eine verschwundene Karte ist von einer, die es nie gab, nur am
+Gegenaufbau zu unterscheiden (Stolperstein 81).
+
+| Rückbau | Ergebnis |
+|---|---|
+| die Kennzahlen werden wieder **unbedingt** abgerufen | **19 rot** — der Systembereich bleibt für einen Benutzer vollständig leer |
+| derselbe Rückbau, aber der Abruf **gelingt** | **1 rot** — *Ohne Adminrolle werden die Kennzahlen gar nicht erst abgerufen* |
+| `nurAdmin` fällt aus der Routenzeile von `GET /api/stats` | 2 rot |
+| die **zweite, engere** Klemme fällt: Schlüsselwert an jeden Admin | **1 rot** |
+| Export und Import stehen jedem Admin (Klemme *verschoben*) | 2 rot |
+| die Karte „Titel" / „Vokabular" / „Suchanbieter" steht wieder für jeden | 2 / 3 / 3 rot |
+| Tags und Kategorien wieder unangetastet bedienbar (Stand 0.8.4) | **1 rot** |
+| die Karte „Tags" verschwindet **ganz**, statt nur ihrer Zeichen | **0 — Lauf abgebrochen** |
+| die Zeilen bleiben, aber ohne Rolle ohne **Namen** | 2 rot |
+| der Behandler der Titelkarte hängt wieder blank am Element | **0 — Lauf abgebrochen** |
+| derselbe blanke Behandler, aber die Karte steht wieder da | 2 rot |
+| die `AUTH_RESET`-Zeile steht wieder da | 3 rot |
+| die Kachel trägt die Kennzeichnung `breit` nicht mehr | 2 rot |
+| die Kennzeichnung bleibt, die Regel bewirkt nichts (`grid-column: auto`) | **1 rot** |
+| der Abschnitt bekommt nur Abstand, keine Linie | **1 rot** |
+| die Linie bekommt eine eigene Farbe statt `var(--line)` | 2 rot |
+
+**Drei Paare tragen mehr als ihre Zahl.** Das erste ist die konkreteste Falle
+der Stufe: der grobe Rückbau belegt die **Tragweite** (19 rot, weil ein
+einziger fehlgeschlagener Abruf im Sammel-`Promise.all` den ganzen Rumpf mit
+`return` verlässt), der engere den **Ort** (1 rot). Zwei der drei groben
+Rückbauten reißen den Lauf mit, ohne einen Namen zu nennen — deshalb steht
+neben jedem eine engere Zweitprobe (Stolpersteine 76 und 82). Und das Paar zur
+breiten Kachel ist Lücke 1 von oben in Reinform: eine Klassenprüfung belegt
+nicht, dass die Klasse etwas bewirkt.
+
 ---
 
 ## 8. Offene Betriebspunkte
@@ -1869,56 +1972,48 @@ machen; dafür steht jetzt eine engere Gegenprobe daneben (Stolperstein 76).
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.4 — Stufe G2, zweite Hälfte, Rest: alle fünf Punkte, Stufe G2 vollständig.**
+**0.8.5 — Stufe G3: „Der Systembereich lernt die Rechte", alle sechs Punkte.**
 
-*Der Eingriffsvermerk nennt die Rolle.* „2 Bilder vom Admin entfernt" statt nur
-„entfernt" — kein Feld dafür nötig: wer beide Klemmen an `DELETE
-/api/comment-images/:id` passiert (`darfAendern`, dann ein anderer als der
-Verfasser), kann nur der Admin sein. Kein Wer, kein Wann, keine Kette — eine
-Rolle ist keine Person. Eine Prüfung am Quelltext bindet die Beschriftung an
-genau diese beiden Klemmen.
+*Die Karten hängen an der Rolle.* Vorher hing genau eine daran, jetzt zehn von
+dreizehn. Dem **Admin**: Titel, Kennzahlen, Kategorien, Tags,
+Bewertungskriterien, Zugänge, Suchanbieter, Vokabular. Dem **Eigentümer**
+zusätzlich: Export und Import. **Jedem, auch ohne Rolle:** Zugang, Darstellung
+und Links — Selbstbezug, alles persönlich. Neuer Helfer `amElement()`, damit
+kein Behandler an einer Karte hängt, die es nicht gibt.
 
-*`updated_at` an den Bildwegen des Verfassers.* Neue vorbereitete Anweisung
-`kommentarBearbeitet` neben `touch`. Anhängen ist Bearbeiten, also ist
-Entfernen es auch — an `DELETE /api/comment-images/:id` gilt jetzt **genau
-eines von beiden**, per `if`/`else` um dieselbe Bedingung: der Vermerk beim
-Fremden, `updated_at` beim Verfasser, nie beides und nie keines. Ein Ruf ohne
-Datei setzt nichts. Anpinnen und Art bleiben unberührt.
+*`GET /api/stats` steht hinter `nurAdmin`.* Nimmt „Die Kennzahlen selbst sieht
+weiterhin jeder" aus 0.7.2 zurück. Lesende Route, deshalb kein Eintrag in
+`F_ROUTEN`. Der Schlüsselwert im selben Rumpf bleibt eine zweite, engere
+Klemme am Eigentümer. In der Oberfläche wird der Abruf **bedingt** — sonst
+bliebe der ganze Systembereich für einen Benutzer leer, weil sechs Abrufe in
+einem `Promise.all` hängen und ein Fehlschlag den Rumpf mit `return` verlässt.
 
-*Zahlen in der Kopfzeile des Kommentarblocks.* Neue Funktion
-`kommentarZahlen()` — ein Ort für beide Zustände, auf- und eingeklappt:
-„12 Kommentare, davon 3 Berichte und 5 Aufgaben (2 Erledigt)". Teilmengen,
-keine Summanden; das Erledigte steckt in den Aufgaben. Der Kommentarblock
-bekommt dafür einen eigenen Hinweis (`#ccount`) statt der Kurzfassung —
-`blockZusammenfassung('kommentare')` liefert seither leer, und eine leere
-Kurzfassung erzeugt keine leere Klammer mehr.
+*Kategorien und Tags bekommen das Muster der Kriterienkarte.* Zeilen sichtbar,
+Griff, ✎ und ✕ weg — an allen drei Karten dieselbe Regel. Die Karten selbst
+bleiben stehen: wer nicht verwalten darf, darf trotzdem nachsehen.
 
-*Die beiden Anlegen-Schalter.* `tagsFreiAnlegen` und `kategorienFreiAnlegen`,
-global, Vorgabe an, als Ableitung beim Lesen — kein Umstiegscode. Drei
-Anlegewege (`POST /api/product-categories`, `.../items/:id/tags`,
-`.../test-days/:id/tags`) bekommen die Klemme **hinter** dem Nachschlagen des
-vorhandenen Namens, damit „Zuweisen darf immer jeder" baulich wahr bleibt.
-`findOrCreateTag()` dafür in `findeTag()` und `legeTagAn()` zerlegt. Der Admin
-kommt immer durch. Am Testtag bleibt die Eingabe stehen — dort gibt es keine
-Wolke.
+*Die Karte „Links" ist in zwei geschnitten.* „Links" (jeder): sichtbare Zeilen
+und Zahl der Anbieternamen, beides persönlich. „Suchanbieter" (Admin): Vorrat,
+Startanbieter, drei eigene, alles global. Damit sind es **dreizehn** Karten.
 
-*Der Umschalter der Vergleichsansicht.* „meine / alle" über dem
-Vergleichsraster, Ansichtszustand im Speicher wie `linksOffen`, Vorgabe
-„alle". Kriterienwerte, Kopfzahl und Testtagzeile schalten **gemeinsam**. Bei
-genau einem Zugang erscheint der Umschalter nicht. Die Zahl für „meine" bildet
-der Klient (`eigenerSchnitt()`) — kein zweiter Rechenweg im Server, aber ein
-zweiter Rundungsort für eine andere Zahl.
+*Die veraltete `AUTH_RESET`-Zeile.* Die Karte „Zugang" nennt jetzt
+`zugang.js passwort`; `AUTH_RESET` kommt in `public/app.js` nirgends mehr vor.
 
-**1349 von 1349 Prüfungen**, 34 Gegenproben. Vier neue Stolpersteine (83–86).
-`F_ROUTEN` unverändert 46 Routen, zwei Arten geändert
-(`'offen'` bzw. `'nurEintragVerfasser'` → `… , im Rumpf'`). **Kein Punkt hat
-das Schema angefasst**, kein Umstiegscode entstanden.
+*Zwei Kleinigkeiten desselben Bildschirms.* Die Kachel „Zugänge" geht über die
+volle Breite (`.sys-card.breit`), und zwischen den Abschnitten der beiden
+Linkkarten stehen dezente Trennlinien (`.sys-teil`) — ohne neue Farbe.
 
-**Stufe G2 ist damit vollständig** — kein Haltepunkt mehr offen. Als Nächstes
-Stufe G3 auf 0.8.5. Siehe Abschnitt 10.
+**1391 von 1391 Prüfungen**, 19 Gegenproben. Zwei neue Stolpersteine (87, 88).
+Zwei Prüfungen umgedreht statt gelöscht (Stolperstein 74). `F_ROUTEN`
+unverändert 46. **Kein Punkt hat das Schema angefasst**, kein Umstiegscode
+entstanden.
+
+Als Nächstes eine kleine Runde Nacharbeit auf **0.8.6**, dann Stufe G4 auf
+**0.8.7**. Siehe Abschnitt 10.
 
 | Version | Was |
 |---|---|
+| 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte, **Stufe G2 vollständig**: Eingriffsvermerk nennt die Rolle, `updated_at` an den Bildwegen des Verfassers, Zahlen in der Kopfzeile des Kommentarblocks, die beiden Anlegen-Schalter, Umschalter „meine/alle" im Vergleich |
 | 0.8.3 | Stufe G2, zweite Hälfte, erster Teil: Eingriffsvermerk am Kommentar (`images_removed`, erster Umstiegscode seit der Bereinigung), `mine` am Kommentar samt Oberfläche, blaue Aufgabenmarke, Tagwolke klappt ganz auf |
 | 0.8.2 | Stufe G2, erste Hälfte: Verfassernamen an vier Trägern als Objekt, Stimmenliste je Kriterium, Löschdialog am Eintrag (`GET .../bestand`), `DELETE /api/ratings/:id` für fremde Bewertungen |
 | 0.8.1 | Bereinigung (keine Stufe): `legacy.js` und aller Umstiegscode entfernt, Schema als vollständige DDL, Prüfstand auf frische Anlagen (−102 Prüfungen), Kommentare und Vokabular vereinheitlicht |
@@ -1965,28 +2060,52 @@ Stufe G3 auf 0.8.5. Siehe Abschnitt 10.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion.md` und wird nur
-   noch dort gepflegt.** Die Stufen A bis F und **G2 vollständig** sind
-   erledigt (0.6.0 bis 0.8.4); 0.8.1 war eine Bereinigung, keine Stufe.
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_5.md` und wird
+   nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
+   erledigt (0.6.0 bis 0.8.5); 0.8.1 war eine Bereinigung, keine Stufe.
 
-   **G2, zweite Hälfte, ist mit 0.8.4 vollständig.** In 0.8.3 erledigt: der
-   Eingriffsvermerk am Kommentar (noch ohne Rolle), `mine` samt der
-   Oberfläche, die blaue Aufgabenmarke, die Tagwolke. In 0.8.4 erledigt: der
-   Vermerk nennt die **Rolle**, `updated_at` an den Bildwegen des Verfassers,
-   die **Zahlen in der Kopfzeile des Kommentarblocks**, die beiden
-   **Anlegen-Schalter** und der **Umschalter „meine/alle"** in der
-   Vergleichsansicht. Details in Abschnitt 5 und Abschnitt 9.
+   **G3 ist mit 0.8.5 vollständig** — alle sechs Punkte, Einzelheiten in
+   Abschnitt 5 und Abschnitt 9.
 
-   **Als Nächstes: Stufe G3 auf 0.8.5 — „Der Systembereich lernt die
-   Rechte".** Von
-   neun Karten hängt heute genau eine an der Rolle; ein Benutzer sieht Titel,
-   Kennzahlen, Export, Import, Kategorien, Tags und Vokabular zum Bearbeiten.
-   Der Server verweigert jedes Schreiben — es ist Anzeige, aber genau die
-   Bauform, gegen die hier schon zweimal entschieden wurde. Dazu die Kachel
-   „Zugänge" über die volle Breite und Trennlinien in der Linkliste. Dorthin
-   gehört auch die veraltete `AUTH_RESET`-Zeile in der Karte „Zugang".
+   **Als Nächstes: 0.8.6 — „Berichtigungen aus dem Betrieb". Keine Stufe,
+   eine Runde Nacharbeit.** Fünf Punkte, alle beim Ansehen von 0.8.5
+   aufgefallen, kein Schema, kein Umstiegscode:
 
-   *Dann:* **neue Stufe G4 auf 0.8.6 — „Die Linkliste bekommt Verfasser".**
+   1. **Die Bewertungsdetails gehören dem Admin.** Unter der Sternzeile steht
+      heute je Kriterium, **wer welchen Wert vergeben hat** — mit Namen, für
+      jeden sichtbar. Künftig zeigt die Zeile nur noch den **eigenen Wert und
+      den Durchschnitt**; die Namensliste sieht der **Admin in einer eigenen
+      Ansicht**, die er ausdrücklich aufruft. **Das nimmt die Stimmenliste
+      aus 0.8.2 zurück — und sie ist die Voraussetzung des Löschwegs:** das ✕
+      an einer fremden Bewertung hängt an ihrer Zeile. Die eigene Ansicht ist
+      deshalb kein Zusatz, sondern die Bedingung. Der liefernde Endpunkt
+      gehört hinter `nurAdmin`, lesend und ohne Eintrag in `F_ROUTEN` —
+      dasselbe Muster wie `GET /api/stats` in 0.8.5.
+   2. **Die Linkliste scrollt am Finger nicht mehr in sich selbst.** Wer auf
+      dem Handy die Seite herunterzieht und über die Linkliste kommt, scrollt
+      plötzlich nur noch die Liste. Ursache ist `box.style.overflowY = 'auto'`
+      in `begrenzeLinks()`. **Richtig ist `hidden`:** die Liste wird
+      abgeschnitten, und der Knopf „alle N anzeigen" steht schon da. Eine
+      Haltezeit wie beim Ziehen wäre aufwendiger, ungewohnt und verzögerte
+      jedes Wischen. **Bei der Tagwolke mitprüfen** — `begrenzeWolke()` setzt
+      `overflow` ebenso.
+   3. **Die Lücke im Kartenraster.** Die Kachel „Zugänge" geht seit 0.8.5
+      über die volle Breite; steht sie nicht am Anfang einer Rasterzeile,
+      bleibt davor eine Lücke. **Eine feste Position löst das nicht:** wie
+      viele Karten in eine Zeile passen, hängt an der Fensterbreite
+      (`auto-fit`), wie viele es gibt, an der Rolle. **Richtig ist
+      `grid-auto-flow: dense`** am `.sys-grid` — das Raster zieht eine
+      nachfolgende schmale Karte in die Lücke, unter jeder Breite und bei
+      jeder Kartenzahl.
+   4. **„Angelegt von" bekommt ein Datum.** `items.created_at` steht in der
+      Antwort, reine Anzeige. Bei genau einem Zugang bleibt die Zeile wie
+      bisher weg.
+   5. **„Angemeldet als" in der Kopfzeile**, neben „Abmelden". **Auch bei
+      einem einzigen Zugang:** es ist eine Aussage über *mich*, nicht über
+      andere — derselbe Grund, aus dem die Karte „Zugang" für jeden
+      stehenbleibt.
+
+   *Dann:* **Stufe G4 auf 0.8.7 — „Die Linkliste bekommt Verfasser".**
    Links darf jeder eintragen; löschen darf sie der Eintrager oder der Admin,
    und ab zwei Zugängen steht sein Name an der Zeile. Das **kehrt die Zeile
    „Titel, Beschreibung, Fotos, Dateien, Links, Tags, Kategorie" der
@@ -1994,10 +2113,11 @@ damit alte Verweise stimmen.)*
    `links` samt Umstiegsblock und `ON DELETE SET NULL`, Bestandszeilen fallen
    an den **Eintragsverfasser**; Export und Import nennen den Namen, also
    **Formatnummer 6 → 7**; Sortieren bleibt beim Eintragsverfasser und Admin.
-   Ein gelöschter Link bekommt ausdrücklich **keinen** Vermerk — er ist eine
-   ganze Aussage, die geht, kein Loch in einer bleibenden.
+   Ein gelöschter Link bekommt ausdrücklich **keinen** Vermerk.
+   **Erste Datenbankstufe seit 0.8.3** — Sicherung des Datenverzeichnisses
+   gehört wieder ausdrücklich dazu.
 
-   *Dann:* **Stufe H (Tokens) wird 0.8.7**, **Stufe I (Mailversand und
+   *Dann:* **Stufe H (Tokens) wird 0.8.8**, **Stufe I (Mailversand und
    Selbstanmeldung) bleibt 0.9.0.**
 
    *Anmerkung, unverändert gültig:* eine Veröffentlichung setzt keinen
@@ -2093,14 +2213,28 @@ Eingetragen im Konzeptpapier, hier als Merkzettel — nur noch, was bindet:
   Vergleichsansicht und die Zahlen am Kommentarblock sind mit 0.8.4 ebenfalls
   gebaut und in Abschnitt 5 nachzulesen; die Merkposten hier sind eingelöst.
 - **Wird ein Endpunkt eingeschränkt, sind die Prüfungen der Vorgängerversion
-  die ersten Betroffenen** (Stolperstein 74) — bindet weiterhin, für **G3 auf
-  0.8.5**: „Die Kennzahlen selbst sieht weiterhin jeder" und „Tags und
-  Kategorien bleiben unangetastet bedienbar" sind dann umzudrehen, nicht zu
-  löschen.
+  die ersten Betroffenen** (Stolperstein 74) — bindet weiterhin. **Für 0.8.5
+  eingelöst:** „Die Kennzahlen selbst sieht weiterhin jeder" und „Tags und
+  Kategorien bleiben unangetastet bedienbar" sind umgedreht, nicht gelöscht.
+  **Für 0.8.6 steht die nächste an:** die Stimmenliste aus 0.8.2 verliert ihre
+  Prüfungen an der Sternzeile und bekommt sie an der Adminansicht wieder —
+  „Die Stimmenliste steht an jeder Kriterienzeile" ist dann umzudrehen.
 - **Das Vokabular und `appTitle` müssen ausgeliefert werden, auch an einen
-  Benutzer** — das Vokabular *ist* jede Beschriftung, der Titel steht in der
-  Kopfzeile. Was in **G3 auf 0.8.5** verschwindet, sind die **Karten**, nicht
-  die Daten.
+  Benutzer** — **mit 0.8.5 eingelöst.** Was verschwunden ist, sind die
+  **Karten**, nicht die Daten; eine Prüfung hält genau das fest.
+- **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — dreimal
+  angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
+  `GET /api/stats`), und für 0.8.6 ein viertes Mal vorgesehen. Die Liste ist
+  die Stelle für **schreibende** Routen; die Zahl bleibt bei 46, bis Stufe G4
+  sie anfasst.
+- **Die Rollen sind eine Leiter, auch in der Prüflage** (seit 0.8.5,
+  Stolperstein 87). Wer `istAdmin: false` setzt, setzt `istEigentuemer`
+  gleich mit — sonst baut die Prüflage einen Zustand nach, den der Server nie
+  ausliefert.
+- **Die beiden Anlegen-Schalter sind eine Einstellung, keine Version.** Im
+  Betrieb steht der bei den **Kategorien aus** und der bei den **Tags an**.
+  Wer künftig „das Anlegen soll nur der Admin dürfen" hört, prüft **zuerst
+  die Schalterstellung**, bevor er baut.
 - **Die Übersicht sortiert weiter nach `updated_at` für alle:** die Liste
   zeigt, wo etwas geschieht, nicht wo ich zuletzt war.
 
