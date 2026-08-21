@@ -22,6 +22,10 @@
  *      damit ueberhaupt nie.
  *   8. SVG steht bewusst NICHT auf der Vorschauliste: eine SVG-Datei kann
  *      Skript enthalten, und ein direkt geoeffneter Tab ist eine Webseite.
+ *   9. Wo kein Dateiname mitgefuehrt wird, entscheiden die ERSTEN BYTES --
+ *      typAusBytes(). Ein gespeicherter Typ ist eine Angabe des Hochladenden
+ *      und taugt zum Ausliefern so wenig wie eine Endung, die er selbst
+ *      gewaehlt hat. Gilt fuer die Fotos, siehe setzeBildKopfzeilen().
  */
 const zlib = require('zlib');
 
@@ -133,6 +137,58 @@ function setzeKopfzeilen(res, dateiname, { inline = false } = {}) {
   return wirklichInline;
 }
 
+/* ---- Typ aus den ersten Bytes ----
+ * Fuer Bilder, die ohne Dateinamen in der Datenbank liegen: den Typ sagt der
+ * Inhalt, nie eine gespeicherte Angabe. Erkannt wird nur, was auch
+ * eingebettet werden darf -- alles Uebrige bleibt bewusst unerkannt und geht
+ * damit als application/octet-stream zum Herunterladen heraus. Eine SVG faellt
+ * hier heraus, denn sie ist Text und beginnt mit nichts Festem; genau das ist
+ * die gewuenschte Antwort.
+ */
+function typAusBytes(buf) {
+  if (!Buffer.isBuffer(buf) || buf.length < 12) return null;
+  const b = buf;
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b[0] === 0x89 && b.slice(1, 8).toString('latin1') === 'PNG\r\n\x1a\n') return 'image/png';
+  const kopf = b.slice(0, 6).toString('latin1');
+  if (kopf === 'GIF87a' || kopf === 'GIF89a') return 'image/gif';
+  if (b.slice(0, 4).toString('latin1') === 'RIFF' && b.slice(8, 12).toString('latin1') === 'WEBP')
+    return 'image/webp';
+  // ISO-BMFF: Laenge, dann 'ftyp', dann die Marke. avif einzeln, avis ist die
+  // Bildfolge -- beide gehen durch dieselbe Anzeige.
+  if (b.slice(4, 8).toString('latin1') === 'ftyp') {
+    const marke = b.slice(8, 12).toString('latin1');
+    if (marke === 'avif' || marke === 'avis') return 'image/avif';
+  }
+  const tiff = b.slice(0, 4);
+  if ((tiff[0] === 0x49 && tiff[1] === 0x49 && tiff[2] === 0x2a && tiff[3] === 0x00) ||
+      (tiff[0] === 0x4d && tiff[1] === 0x4d && tiff[2] === 0x00 && tiff[3] === 0x2a))
+    return 'image/tiff';
+  if (b[0] === 0x42 && b[1] === 0x4d) return 'image/bmp';
+  return null;
+}
+
+// Kopfzeilen fuer ein Bild aus der Datenbank. Zweite Form von
+// setzeKopfzeilen(): dort entscheidet der Dateiname, hier der Inhalt --
+// gespeichert ist kein Name, und der gemeldete Typ zaehlt ohnehin nicht.
+// Unerkanntes geht als Download heraus statt als Anzeige; ein Bild, das der
+// Browser nicht kennt, kann er auch nicht zeigen.
+function setzeBildKopfzeilen(res, buf, { name = 'bild', maxAge = 3600 } = {}) {
+  const typ = typAusBytes(buf) || 'application/octet-stream';
+  const inline = INLINE_ERLAUBT.has(typ);
+  // Der Name traegt die Endung des ERKANNTEN Typs, nicht die einer Angabe.
+  const endungen = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
+                     'image/webp': 'webp', 'image/avif': 'avif', 'image/tiff': 'tiff',
+                     'image/bmp': 'bmp' };
+  const dateiname = endungen[typ] ? `${name}.${endungen[typ]}` : `${name}.bin`;
+  res.set('Content-Type', typ);
+  res.set('Content-Disposition', dispositionKopf(dateiname, inline));
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Content-Security-Policy', sicherheitsRegel(typ));
+  res.set('Cache-Control', `private, max-age=${maxAge}`);
+  return typ;
+}
+
 /* ================= Textvorschau ================= */
 
 const VORSCHAU_ZEICHEN = 200 * 1024;   // mehr liest niemand im Browser
@@ -212,6 +268,7 @@ function docxVorschau(buf) {
 
 module.exports = {
   ausgabeTyp, vorschauArt, dispositionKopf, setzeKopfzeilen, sicherheitsRegel,
+  typAusBytes, setzeBildKopfzeilen,
   textVorschau, docxVorschau, findeImZip, endung,
   INLINE_ERLAUBT, TYP_NACH_ENDUNG, VORSCHAU_ZEICHEN
 };
