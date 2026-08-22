@@ -836,6 +836,44 @@ app.put('/api/settings', (req, res) => {
 });
 
 /* ---- Bewertungskriterien (Skala fest 1-5) ---- */
+
+/* --- Das Gewicht eines Kriteriums ----------------------------------------
+   DER GUELTIGE BEREICH STEHT GENAU HIER. Zwei Schreibwege fuehren darauf --
+   die Verwaltung und der Import; stuende die Spanne an beiden, liefen sie
+   irgendwann auseinander. Aus demselben Grund steht sie auch NICHT als CHECK
+   in der DDL: das waere eine dritte Stelle fuer dieselbe Grenze, und sie
+   meldete sich nicht als Absage mit Meldung, sondern als abgebrochene
+   Schreibung.
+   NUR POSITIVE WERTE, und die Untergrenze ist keine Geschmacksfrage: bei 0
+   waere der Nenner eines Eintrags, an dem nur dieses Kriterium bewertet ist,
+   null. Ein negatives Gewicht kehrte die Aussage um -- eine gute Note zoege
+   den Schnitt nach unten -- und braeche zugleich die Zusicherung, dass der
+   Gesamtschnitt zwischen 1 und 5 liegt.
+   In der Schnittstelle steht eine ZAHL, kein Text: das Komma ist eine Sache
+   der Anzeige und hat hier nichts verloren. */
+const GEWICHT_MIN = 0.2, GEWICHT_MAX = 2.0;
+
+/* ABGEWIESEN WIRD, WAS ETWAS ANDERES BEDEUTET -- GERUNDET WIRD, WAS DASSELBE
+   BEDEUTET. Wer 5 eintippt, meint 5; den Wert still auf 2 zu ziehen hiesse,
+   eine andere Aussage zu speichern als die eingegebene. 1,234 und 1,23 sind
+   dagegen dieselbe Aussage.
+   Das ist bewusst nicht dieselbe Haltung wie beim Bewertungswert, der mit
+   Math.max(0, Math.min(5, ...)) zurechtgebogen wird: der kommt aus einem
+   Sterne-Widget, das gar nichts anderes senden kann. Ein Gewicht wird von
+   Hand getippt. */
+function gueltigesGewicht(roh) {
+  const g = Number(roh);
+  if (!Number.isFinite(g) || g < GEWICHT_MIN || g > GEWICHT_MAX) return null;
+  // Auf Hundertstel festlegen. Nicht als Schranke gedacht, sondern gegen den
+  // Rest der Gleitkommarechnung: 1.2000000000000002 hat niemand eingegeben.
+  return Math.round(g * 100) / 100;
+}
+
+// Deutsches Komma in Meldungen. Dieselbe Regel wie in der Oberflaeche
+// (`toFixed(1).replace('.', ',')`), nur ohne feste Nachkommastelle:
+// "zwischen 0.2 und 2" waere ein Punkt mitten in einem deutschen Satz.
+const zahl = (n) => String(n).replace('.', ',');
+
 // Die Reihenfolge ist frei bestimmbar und gilt ueberall gleich: Detailansicht
 // und Vergleich lesen beide aus derselben Sortierung.
 //
@@ -847,8 +885,11 @@ app.put('/api/settings', (req, res) => {
 // genau dort, wo sie die Entscheidung tragen soll.
 // Die Bedingung value > 0 bleibt: ein zurueckgesetztes Kriterium hinterlaesst
 // eine Zeile mit 0, und die ist keine Verwendung.
+// gewicht steht mit in der Liste: die Verwaltungskarte zeichnet daraus ihr
+// Eingabefeld, und ohne die Angabe stuende dort bei jedem Neuaufbau wieder
+// die Vorgabe statt des gespeicherten Werts.
 const qCriteria = db.prepare(`
-  SELECT c.id, c.name, c.sort_order, c.created_at,
+  SELECT c.id, c.name, c.sort_order, c.gewicht, c.created_at,
          (SELECT COUNT(DISTINCT r.item_id) FROM ratings r
            WHERE r.criterion_id = c.id AND r.value > 0) AS usage_count
   FROM rating_criteria c ORDER BY c.sort_order, c.id`);
@@ -868,6 +909,9 @@ const qCriteria = db.prepare(`
 
 app.get('/api/criteria', (req, res) => res.json(qCriteria.all()));
 
+// KEIN Gewicht beim Anlegen. Ein neues Kriterium startet auf 1,0 -- der Wert
+// steht in der DDL -- und wird danach in der Zeile eingestellt. Ein Feld
+// weniger im Anlegeweg, und die Vorgabe steht nur an einer Stelle.
 app.post('/api/criteria', nurAdmin, (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: 'Name fehlt' });
@@ -896,7 +940,20 @@ app.put('/api/criteria/:id', nurAdmin, (req, res) => {
   const clash = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE AND id != ?')
     .get(name, req.params.id);
   if (clash) return res.status(409).json({ error: 'Diesen Namen gibt es bereits.' });
-  db.prepare('UPDATE rating_criteria SET name = ? WHERE id = ?').run(name, req.params.id);
+  // Das Gewicht ist FREIWILLIG: das Umbenennen schickt nur den Namen und darf
+  // das Gewicht nicht mit anfassen. Ohne diese Unterscheidung setzte jedes ✎
+  // die Gewichtung still auf die Vorgabe zurueck.
+  let gewicht = null;
+  if (req.body.gewicht !== undefined) {
+    gewicht = gueltigesGewicht(req.body.gewicht);
+    if (gewicht === null) return res.status(400).json({
+      error: `Das Gewicht muss eine Zahl zwischen ${zahl(GEWICHT_MIN)} und ` +
+             `${zahl(GEWICHT_MAX)} sein.` });
+  }
+  // Name und Gewicht in EINEM UPDATE: zwei Anweisungen hintereinander koennten
+  // halb durchlaufen. COALESCE laesst das Gewicht stehen, wenn keines kam.
+  db.prepare('UPDATE rating_criteria SET name = ?, gewicht = COALESCE(?, gewicht) WHERE id = ?')
+    .run(name, gewicht, req.params.id);
   res.json(db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(req.params.id));
 });
 
