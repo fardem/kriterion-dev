@@ -215,9 +215,22 @@ const namen = (liste) => liste.map(c => c.name);
 
   // Der Hauptserver startet auf einer leeren Anlage -- genau wie im Betrieb.
   const frischDb = oeffne(path.join(DATA, 'katalog.sqlite'));
-  const frischKrit = frischDb.prepare('SELECT name, sort_order FROM rating_criteria ORDER BY sort_order, id').all();
+  /* Die Spalte gewicht steht mit in der Abfrage -- und wird abgefangen, falls
+     es sie nicht gibt: sonst risse ein Rueckbau der DDL den ganzen Lauf in der
+     ERSTEN Gruppe ab und nennte keinen einzigen Namen (Stolperstein 103). */
+  let frischKrit;
+  try {
+    frischKrit = frischDb.prepare('SELECT name, sort_order, gewicht FROM rating_criteria ORDER BY sort_order, id').all();
+  } catch {
+    frischKrit = frischDb.prepare('SELECT name, sort_order FROM rating_criteria ORDER BY sort_order, id').all();
+  }
   pruefe('Grundausstattung wird angelegt', frischKrit.length === 3, JSON.stringify(frischKrit));
   pruefe('Grundausstattung ist durchnummeriert', gleich(frischKrit.map(c => c.sort_order), [0, 1, 2]));
+  /* Erst auf Vorhandensein, dann auf die Eigenschaft (Stolperstein 81): eine
+     leere Liste liesse every() gruen und belegte nichts. */
+  pruefe('Und jedes Kriterium startet auf Gewicht 1',
+    frischKrit.length === 3 && frischKrit.every(c => c.gewicht === 1),
+    JSON.stringify(frischKrit.map(c => `${c.name}:${c.gewicht}`)));
   frischDb.close();
   pruefe('Vor der Einrichtung meldet /api/config Einrichtungsbedarf',
     (await ruf('GET', '/api/config')).inhalt.setupRequired === true);
@@ -795,6 +808,81 @@ const namen = (liste) => liste.map(c => c.name);
     gleich(nachNeu.slice(-3), ['Zuerst', 'Dann', 'Zuletzt']), JSON.stringify(nachNeu));
   const eingespielt = (await ruf('GET', '/api/items')).inhalt;
   pruefe('Eintrag aus der Datei ist da', eingespielt.length === 1 && eingespielt[0].title === 'Eingespielt');
+
+  /* --- Die Gewichte in der Datei -----------------------------------------
+     Eine Datei OHNE das Feld muss weiterhin laufen, und alles steht danach auf
+     1,0. Das ist der Fall jeder aelteren Exportdatei -- und die eben
+     eingespielte war schon eine. */
+  const gewNachAlt = (await ruf('GET', '/api/criteria')).inhalt;
+  pruefe('Eine Datei ohne das Feld laesst alle Gewichte auf 1',
+    gewNachAlt.length > 0 && gewNachAlt.every(c => c.gewicht === 1),
+    JSON.stringify(gewNachAlt.map(c => `${c.name}:${c.gewicht}`)));
+
+  /* EIN BEKANNTES KRITERIUM BEHAELT SEIN GEWICHT, ein NEUES bekommt das aus
+     der Datei. Der Import legt Bestand an, er aendert keine Einstellung des
+     Ziels -- dieselbe Regel wie beim ersetzenden Import, der `users` nicht
+     anruehrt. Beide Faelle in EINER Datei, sonst liesse sich nicht sehen, ob
+     die Unterscheidung ueberhaupt stattfindet. */
+  const gewZiel = gewNachAlt.find(c => c.name === 'Zuerst');
+  await ruf('PUT', `/api/criteria/${gewZiel.id}`, { name: 'Zuerst', gewicht: 1.5 });
+  const gewDatei = { exported_at: new Date().toISOString(), title: 'Mit Gewichten', version: 9,
+    criteria: ['Zuerst', 'Ganz neu'],
+    criteriaGewichte: { 'Zuerst': 0.5, 'Ganz neu': 1.8 },
+    items: [{ title: 'Mit Gewichten', ratings: [] }] };
+  const gewIm = await sendeImport(gewDatei, 'merge');
+  pruefe('Ein Import mit Gewichten gelingt', gewIm.status === 200, JSON.stringify(gewIm.inhalt));
+  const gewNach = (await ruf('GET', '/api/criteria')).inhalt;
+  const gewVon = (n) => gewNach.find(c => c.name === n)?.gewicht;
+  pruefe('Ein bekanntes Kriterium behaelt sein vorhandenes Gewicht',
+    gewVon('Zuerst') === 1.5, `${gewVon('Zuerst')}`);
+  pruefe('Ein neu angelegtes bekommt das Gewicht aus der Datei',
+    gewVon('Ganz neu') === 1.8, `${gewVon('Ganz neu')}`);
+
+  /* EIN UNGUELTIGES GEWICHT BRICHT NICHT AB, sondern faellt auf 1,0 und wird
+     genannt -- dieselbe Haltung wie bei einem unbekannten Verfassernamen.
+     Drei Sorten Unfug nebeneinander: ueber der Grenze, negativ und gar keine
+     Zahl. Und ein gueltiges daneben, sonst bliebe offen, ob ueberhaupt noch
+     etwas ankommt. */
+  const gewKrumm = { exported_at: new Date().toISOString(), title: 'Krumm', version: 9,
+    criteria: ['Zu schwer', 'Negativ', 'Kein Wert', 'Sauber'],
+    criteriaGewichte: { 'Zu schwer': 9, 'Negativ': -1, 'Kein Wert': 'viel', 'Sauber': 1.2 },
+    items: [{ title: 'Krumme Datei', ratings: [] }] };
+  const gewImKrumm = await sendeImport(gewKrumm, 'merge');
+  pruefe('Ein ungueltiges Gewicht bricht die Einspielung nicht ab',
+    gewImKrumm.status === 200 && gewImKrumm.inhalt?.items === 1, JSON.stringify(gewImKrumm.inhalt));
+  const gewKrummNach = (await ruf('GET', '/api/criteria')).inhalt;
+  const gewKrummVon = (n) => gewKrummNach.find(c => c.name === n)?.gewicht;
+  pruefe('Es faellt auf 1,0 zurueck',
+    gewKrummVon('Zu schwer') === 1 && gewKrummVon('Negativ') === 1 && gewKrummVon('Kein Wert') === 1,
+    JSON.stringify(gewKrummNach.map(c => `${c.name}:${c.gewicht}`)));
+  pruefe('Das gueltige daneben kommt trotzdem an', gewKrummVon('Sauber') === 1.2,
+    `${gewKrummVon('Sauber')}`);
+  pruefe('Und die Antwort nennt die verworfenen Gewichte',
+    gleich(gewImKrumm.inhalt?.gewichteVerworfen, ['Kein Wert', 'Negativ', 'Zu schwer']),
+    JSON.stringify(gewImKrumm.inhalt?.gewichteVerworfen));
+  pruefe('Bei einer sauberen Datei bleibt die Liste leer',
+    gleich(gewIm.inhalt?.gewichteVerworfen, []), JSON.stringify(gewIm.inhalt?.gewichteVerworfen));
+  pruefe('Das Protokoll nennt sie ebenfalls',
+    /ungueltiges Gewicht auf 1,0 zurueckgesetzt/.test(ausgabe),
+    (ausgabe.match(/.*Gewicht auf 1,0.*/) || ['(nichts im Protokoll)'])[0]);
+
+  /* Ein RUNDLAUF: Gewichte setzen, exportieren, in dieselbe Anlage ersetzend
+     einspielen. Der ersetzende Import loescht items, Kategorien und Tags --
+     rating_criteria ausdruecklich NICHT. Die Gewichte stehen danach also
+     unveraendert da. */
+  const gewRund = (await ruf('GET', '/api/criteria')).inhalt;
+  await ruf('PUT', `/api/criteria/${gewRund[0].id}`, { name: gewRund[0].name, gewicht: 0.6 });
+  const gewVorRund = (await ruf('GET', '/api/criteria')).inhalt
+    .map(c => `${c.name}:${c.gewicht}`);
+  const gewAus = (await ruf('GET', '/api/export?photos=0')).inhalt;
+  await sendeImport(gewAus, 'replace');
+  pruefe('Ein Rundlauf in dieselbe Anlage laesst die Gewichte stehen',
+    gleich((await ruf('GET', '/api/criteria')).inhalt.map(c => `${c.name}:${c.gewicht}`), gewVorRund),
+    JSON.stringify((await ruf('GET', '/api/criteria')).inhalt.map(c => `${c.name}:${c.gewicht}`)));
+  // Und die Datei traegt sie ueberhaupt -- sonst belegte der Rundlauf oben nur,
+  // dass der Import nichts anfasst.
+  pruefe('Und die Exportdatei traegt sie',
+    gewAus?.criteriaGewichte?.[gewRund[0].name] === 0.6, JSON.stringify(gewAus?.criteriaGewichte));
 
   /* ---------------------------------------------------------------- */
   gruppe('Schriftgroessen im Stylesheet');
@@ -2144,6 +2232,228 @@ const namen = (liste) => liste.map(c => c.name);
   const eJaLoeschen = await eRuf('keks-e-eins', 'DELETE', `/api/criteria/${eJaAnlegen.inhalt.id}`);
   pruefe('Und loescht wieder', eJaLoeschen.status === 204, `Status ${eJaLoeschen.status}`);
 
+  /* ---------------------------------------------------------------- */
+  gruppe('Gewichtung: der Rechenweg');
+
+  /* DIESELBE PRUEFLAGE WIE DARUEBER, und das ist Absicht: mehrere Bewerter und
+     ungleich viele Stimmen je Kriterium. An einer Lage mit einer Stimme je
+     Kriterium belegte die wichtigste Pruefung dieser Runde zu wenig.
+       Optik   5/3/1  -> 3,0   (drei Stimmen)
+       Haptik  4/2    -> 3,0   (zwei Stimmen)
+       Preis   5      -> 5,0   (eine Stimme)
+       Kundendienst   -> gar nichts, faellt heraus
+     ungewichtet: (3,0 + 3,0 + 5,0) / 3 = 3,7 */
+  const gKrit = (await eRuf('keks-e-eins', 'GET', '/api/criteria')).inhalt;
+  const gId = (n) => gKrit.find(c => c.name === n)?.id;
+  const gSetz = (name, wert, keks = 'keks-e-eins') =>
+    eRuf(keks, 'PUT', `/api/criteria/${gId(name)}`, { name, gewicht: wert });
+  const gSchnitt = async (itemId = 1) =>
+    (await eRuf('keks-e-eins', 'GET', `/api/items/${itemId}`)).inhalt?.avgRating;
+  // Abgefangen wie ueberall, wo die Spalte gelesen wird: ohne das reisst ein
+  // Rueckbau der DDL den Lauf ab, statt rot zu werden (Stolperstein 103).
+  const gGewichte = () => {
+    const d = oeffne(path.join(stufeEDir, 'katalog.sqlite'));
+    let z = [];
+    try { z = d.prepare('SELECT name, gewicht FROM rating_criteria ORDER BY sort_order, id').all(); }
+    catch { /* die Spalte fehlt -- die Pruefungen darauf werden rot */ }
+    d.close();
+    return z;
+  };
+
+  pruefe('Die Prueflage traegt vier Kriterien mit ungleich vielen Stimmen',
+    gKrit?.length === 4 && gleich(gKrit.map(c => c.name), ['Optik', 'Haptik', 'Preis', 'Kundendienst']),
+    JSON.stringify(gKrit?.map(c => c.name)));
+  pruefe('Die Kriterienliste nennt das Gewicht',
+    gKrit?.every(c => c.gewicht === 1), JSON.stringify(gKrit?.map(c => `${c.name}:${c.gewicht}`)));
+  /* Stolperstein 102: was die Oberflaeche aus der Antwort liest, gehoert an
+     der ECHTEN Antwort geprueft. Der Doppelgaenger bringt gewicht selbst mit
+     und koennte ein fehlendes Feld gar nicht bemerken. */
+  const gDetail = (await eRuf('keks-e-eins', 'GET', '/api/items/1')).inhalt;
+  pruefe('Und jede Kriterienzeile am Eintrag traegt es ebenfalls',
+    gDetail?.ratings?.length === 4 && gDetail.ratings.every(r => r.gewicht === 1),
+    JSON.stringify(gDetail?.ratings?.map(r => `${r.name}:${r.gewicht}`)));
+
+  /* DIE WICHTIGSTE PRUEFUNG DER RUNDE. Sie belegt, dass ein Einspielen dieser
+     Version keine einzige angezeigte Zahl veraendert: bei Gewicht 1 ueberall
+     ist der gewichtete Mittelwert bitgleich zum ungewichteten. Nachgerechnet
+     wird die Gegenzahl HIER, aus den Zeilenwerten der Antwort -- eine fest
+     hingeschriebene 3,7 belegte nur, dass irgendjemand einmal 3,7 getippt hat. */
+  const gUngewichtet = (sicht) => {
+    const w = (sicht?.ratings || []).filter(r => r.avg != null).map(r => r.avg);
+    if (!w.length) return null;
+    return Math.round((w.reduce((s, v) => s + v, 0) / w.length) * 10) / 10;
+  };
+  pruefe('Alle Gewichte 1: der Gesamtschnitt ist der ungewichtete',
+    gDetail?.avgRating === gUngewichtet(gDetail) && gDetail?.avgRating === 3.7,
+    `${gDetail?.avgRating} gegen ${gUngewichtet(gDetail)}`);
+
+  /* --- Die Wirkung selbst --- */
+  const gOptik2 = await gSetz('Optik', 2);
+  pruefe('Der Admin setzt ein Gewicht', gOptik2.status === 200 && gOptik2.inhalt?.gewicht === 2,
+    `Status ${gOptik2.status}, ${JSON.stringify(gOptik2.inhalt)}`);
+  /* (3,0*2 + 3,0*1 + 5,0*1) / 4 = 3,5 -- und ausdruecklich nicht mehr 3,7. */
+  pruefe('Und der Gesamtschnitt folgt', (await gSchnitt()) === 3.5, `${await gSchnitt()}`);
+  pruefe('Er ist ausdruecklich nicht mehr der ungewichtete', (await gSchnitt()) !== 3.7);
+  /* Der Schnitt JE KRITERIUM bleibt ungewichtet: er ist eine Aussage ueber das
+     Kriterium, nicht ueber den Eintrag -- ihn zu gewichten hiesse, ihn mit
+     sich selbst zu gewichten. */
+  const gNachOptik = (await eRuf('keks-e-eins', 'GET', '/api/items/1')).inhalt;
+  pruefe('Der Schnitt je Kriterium bleibt ungewichtet',
+    gNachOptik?.ratings?.find(r => r.name === 'Optik')?.avg === 3 &&
+    gNachOptik?.ratings?.find(r => r.name === 'Optik')?.count === 3,
+    JSON.stringify(gNachOptik?.ratings?.map(r => `${r.name}:${r.avg}/${r.count}`)));
+
+  /* DIE FALLE. Ein UNBEWERTETES Kriterium darf sein Gewicht nicht in den
+     Nenner bringen. Kundendienst hat an diesem Eintrag keine einzige Stimme;
+     ein Nenner ueber ALLE Kriterien -- etwa SUM(gewicht) ueber die Tabelle --
+     ergaebe hier 14/6 = 2,3 statt 14/4 = 3,5. */
+  await gSetz('Kundendienst', 2);
+  pruefe('Ein unbewertetes Kriterium bringt sein Gewicht NICHT in den Nenner',
+    (await gSchnitt()) === 3.5, `${await gSchnitt()}`);
+  /* Und derselbe Fall in seiner schaerfsten Form, am zweiten Eintrag: dort ist
+     NUR Optik bewertet (eine Stimme, Wert 4). Mit Optik auf 0,2 und den
+     anderen dreien auf 2 muss die Zahl 4,0 sein -- ein falscher Nenner
+     ergaebe 4*0,2 / (0,2+2+2+2) = 0,1 und damit einen Eintrag unter 1. */
+  await gSetz('Optik', 0.2); await gSetz('Haptik', 2); await gSetz('Preis', 2);
+  pruefe('Ist nur ein Kriterium bewertet, zaehlt allein dessen Gewicht',
+    (await gSchnitt(2)) === 4, `${await gSchnitt(2)}`);
+  pruefe('Und der Eintrag rutscht damit nicht unter 1',
+    (await gSchnitt(2)) >= 1 && (await gSchnitt(2)) <= 5, `${await gSchnitt(2)}`);
+
+  /* --- Die zugesicherten Grenzen, unter Last --- */
+  const gExtrem = (await eRuf('keks-e-eins', 'POST', '/api/items', { title: 'Grenzfall' })).inhalt;
+  const gWerte = async (paare) => {
+    for (const [name, wert] of paare)
+      await eRuf('keks-e-eins', 'PUT', `/api/items/${gExtrem.id}/ratings`,
+        { criterionId: gId(name), value: wert });
+    return (await eRuf('keks-e-eins', 'GET', `/api/items/${gExtrem.id}`)).inhalt?.avgRating;
+  };
+  // Gewichte stehen gemischt: Optik 0,2 · Haptik 2 · Preis 2 · Kundendienst 2.
+  pruefe('Alle Werte 5 bei gemischten Gewichten ergeben genau 5,0',
+    (await gWerte([['Optik', 5], ['Haptik', 5], ['Preis', 5], ['Kundendienst', 5]])) === 5);
+  pruefe('Alle Werte 1 ergeben genau 1,0',
+    (await gWerte([['Optik', 1], ['Haptik', 1], ['Preis', 1], ['Kundendienst', 1]])) === 1);
+  /* Der Extremfall: der kleinste Wert am kleinsten Gewicht gegen den groessten
+     am groessten. (1*0,2 + 5*2) / 2,2 = 4,64 -> 4,6. */
+  const gGegen = await gWerte([['Optik', 1], ['Haptik', 5], ['Preis', 0], ['Kundendienst', 0]]);
+  pruefe('1 bei 0,2 gegen 5 bei 2 bleibt zwischen 1 und 5',
+    gGegen === 4.6 && gGegen >= 1 && gGegen <= 5, `${gGegen}`);
+
+  /* --- Die Wirkung erreicht die Uebersicht --- */
+  /* Sortiert wird im Klienten ueber avgRating (app.js: rating_desc). Geprueft
+     wird deshalb, dass /api/items die Zahlen so liefert, dass sich die
+     Reihenfolge dreht -- mit derselben Formel wie dort. */
+  const gRangfolge = async () => {
+    const liste = (await eRuf('keks-e-eins', 'GET', '/api/items')).inhalt || [];
+    return [...liste].sort((a, b2) => (b2.avgRating ?? -1) - (a.avgRating ?? -1)).map(i => i.id);
+  };
+  await gSetz('Optik', 2); await gSetz('Haptik', 0.2);
+  const gRangA = await gRangfolge();
+  await gSetz('Optik', 0.2); await gSetz('Haptik', 2);
+  const gRangB = await gRangfolge();
+  pruefe('Ein Gewichtswechsel dreht die Rangfolge der Uebersicht',
+    !gleich(gRangA, gRangB), `${JSON.stringify(gRangA)} gegen ${JSON.stringify(gRangB)}`);
+
+  /* Ein Gewicht ist keine Aenderung AM EINTRAG. Ruehrte es updated_at an,
+     sortierte sich die Uebersicht bei jedem Dreh am Gewicht um. */
+  const gStand = () => {
+    const d = oeffne(path.join(stufeEDir, 'katalog.sqlite'));
+    const z = d.prepare('SELECT id, updated_at FROM items ORDER BY id').all();
+    d.close();
+    return z.map(i => `${i.id}:${i.updated_at}`);
+  };
+  const gVorZeit = gStand();
+  await gSetz('Preis', 1.5);
+  pruefe('Ein Gewichtswechsel ruehrt updated_at nicht an',
+    gleich(gVorZeit, gStand()), JSON.stringify([gVorZeit, gStand()]));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Gewichtung: was angenommen wird und was nicht');
+
+  const gAlt = gGewichte().find(c => c.name === 'Preis')?.gewicht;
+  /* ABGEWIESEN WIRD, WAS ETWAS ANDERES BEDEUTET. Null und alles Negative sind
+     ausdruecklich dabei: bei 0 ginge die Division nicht auf, ein negatives
+     Gewicht kehrte die Aussage um. */
+  const gAbweisungen = [
+    ['0', 0], ['-1', -1], ['-1,5', -1.5], ['2,1', 2.1], ['3', 3], ['0,19', 0.19],
+    ['"abc"', 'abc'], ['null', null], ['Infinity', 'Infinity'], ['leerer Text', '']
+  ];
+  for (const [wie, was] of gAbweisungen) {
+    const a = await gSetz('Preis', was);
+    pruefe(`Abgewiesen mit 400: ${wie}`, a.status === 400, `Status ${a.status}, ${JSON.stringify(a.inhalt)}`);
+  }
+  pruefe('Und nach allen Absagen steht der alte Wert unveraendert in der Datenbank',
+    gGewichte().find(c => c.name === 'Preis')?.gewicht === gAlt,
+    JSON.stringify(gGewichte()));
+  /* Die Meldung steht in einem deutschen Satz und traegt deshalb ein Komma.
+     "zwischen 0.2 und 2" waere ein Punkt mitten im Satz. */
+  const gMeldung = (await gSetz('Preis', 9)).inhalt?.error || '';
+  pruefe('Die Absage nennt die Spanne mit Komma, nicht mit Punkt',
+    /0,2/.test(gMeldung) && !/0\.2/.test(gMeldung), JSON.stringify(gMeldung));
+
+  /* GERUNDET WIRD, WAS DASSELBE BEDEUTET. 1,234 und 1,23 sind dieselbe
+     Aussage; die Antwort traegt den gespeicherten Wert, damit das Feld die
+     Rundung zeigen kann -- gerundet, aber nicht still. */
+  const gRund = await gSetz('Preis', 1.234);
+  pruefe('Feiner als ein Hundertstel wird gerundet statt abgewiesen',
+    gRund.status === 200 && gRund.inhalt?.gewicht === 1.23,
+    `Status ${gRund.status}, ${JSON.stringify(gRund.inhalt?.gewicht)}`);
+  pruefe('Und die Rundung steht so in der Datenbank',
+    gGewichte().find(c => c.name === 'Preis')?.gewicht === 1.23, JSON.stringify(gGewichte()));
+  for (const [wie, was, soll] of [['0,2', 0.2, 0.2], ['2', 2, 2], ['1,25', 1.25, 1.25]]) {
+    const a = await gSetz('Preis', was);
+    pruefe(`Angenommen: ${wie}`, a.status === 200 && a.inhalt?.gewicht === soll,
+      `Status ${a.status}, ${JSON.stringify(a.inhalt?.gewicht)}`);
+  }
+
+  /* Das Umbenennen schickt kein Gewicht -- und darf es deshalb auch nicht
+     zuruecksetzen. Ohne COALESCE stuende hier nach jedem ✎ wieder 1. */
+  await gSetz('Preis', 1.5);
+  const gUmbenannt = await eRuf('keks-e-eins', 'PUT', `/api/criteria/${gId('Preis')}`, { name: 'Preis' });
+  pruefe('Umbenennen ohne Gewichtsangabe laesst das Gewicht stehen',
+    gUmbenannt.inhalt?.gewicht === 1.5, JSON.stringify(gUmbenannt.inhalt));
+  /* Ein neu angelegtes Kriterium startet auf der Vorgabe -- POST nimmt gar
+     kein Gewicht entgegen, und die Vorgabe steht nur in der DDL. */
+  const gNeu = await eRuf('keks-e-eins', 'POST', '/api/criteria', { name: 'Frisch', gewicht: 2 });
+  pruefe('Ein neues Kriterium startet auf 1, auch wenn ein Gewicht mitkommt',
+    gNeu.status === 201 && gNeu.inhalt?.gewicht === 1, JSON.stringify(gNeu.inhalt));
+  await eRuf('keks-e-eins', 'DELETE', `/api/criteria/${gNeu.inhalt.id}`);
+
+  /* --- Die Klemme: zwei vorbereitete Sitzungen, echte zweite Keks ---------
+     Zu jeder Verweigerung der Erfolgsfall daneben und die Nachschau, dass
+     nichts geschrieben wurde (Stolperstein 3). */
+  const gVorRecht = gGewichte().find(c => c.name === 'Preis')?.gewicht;
+  const gNein = await gSetz('Preis', 0.5, 'keks-e-zwei');
+  pruefe('Ein gewoehnlicher Benutzer setzt kein Gewicht', gNein.status === 403,
+    `Status ${gNein.status}`);
+  pruefe('Und nach dem 403 steht der alte Wert unveraendert in der Datenbank',
+    gGewichte().find(c => c.name === 'Preis')?.gewicht === gVorRecht,
+    JSON.stringify(gGewichte()));
+  const gJa = await gSetz('Preis', 0.5, 'keks-e-eins');
+  pruefe('Der Admin setzt es', gJa.status === 200 && gJa.inhalt?.gewicht === 0.5,
+    `Status ${gJa.status}, ${JSON.stringify(gJa.inhalt)}`);
+
+  /* --- Export und Import der Gewichte --- */
+  await gSetz('Optik', 1); await gSetz('Haptik', 1.5);
+  await gSetz('Preis', 1); await gSetz('Kundendienst', 1);
+  const gAus = (await eRuf('keks-e-eins', 'GET', '/api/export?photos=0')).inhalt;
+  pruefe('Die Formatnummer steht auf 9', gAus?.version === 9, JSON.stringify(gAus?.version));
+  pruefe('criteria bleibt eine Liste von Namen',
+    Array.isArray(gAus?.criteria) && gAus.criteria.every(n => typeof n === 'string'),
+    JSON.stringify(gAus?.criteria));
+  pruefe('Der Export nennt die Gewichte in einem eigenen Feld',
+    gAus?.criteriaGewichte?.Haptik === 1.5, JSON.stringify(gAus?.criteriaGewichte));
+  /* NUR ABWEICHUNGEN. Stuenden die Einsen mit drin, waere die Datei eines
+     ungewichteten Bestands nicht mehr zeichengleich zu der von vorher. */
+  pruefe('Und nur die Abweichungen -- ein Kriterium mit Gewicht 1 fehlt darin',
+    gleich(Object.keys(gAus?.criteriaGewichte || {}), ['Haptik']),
+    JSON.stringify(gAus?.criteriaGewichte));
+  await gSetz('Haptik', 1);
+  const gAusGleich = (await eRuf('keks-e-eins', 'GET', '/api/export?photos=0')).inhalt;
+  pruefe('Ein ungewichteter Bestand ergibt ein leeres Feld',
+    gAusGleich?.criteriaGewichte && Object.keys(gAusGleich.criteriaGewichte).length === 0,
+    JSON.stringify(gAusGleich?.criteriaGewichte));
+
   await SE1.stopp();
   fs.rmSync(stufeEDir, { recursive: true, force: true });
 
@@ -2311,7 +2621,7 @@ const namen = (liste) => liste.map(c => c.name);
     e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  pruefe('Die Formatnummer der Datei steht auf 8', e2Aus?.version === 8, JSON.stringify(e2Aus?.version));
+  pruefe('Die Formatnummer der Datei steht auf 9', e2Aus?.version === 9, JSON.stringify(e2Aus?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
@@ -4000,6 +4310,14 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Der Pruefstand kennt jede schreibende Route',
     fUnbekannt.length === 0 && fVerschwunden.length === 0,
     `ohne Entscheidung: ${fUnbekannt.join(' · ') || '—'} · verschwunden: ${fVerschwunden.join(' · ') || '—'}`);
+  /* Die ZAHL selbst, ausdruecklich: 0.8.40 ist die erste Runde seit langem,
+     die keine schreibende Route hinzufuegt -- das Gewicht geht ueber
+     PUT /api/criteria/:id, die es laengst gibt und die laengst hinter
+     nurAdmin steht. Bleibt die Zahl stehen, hat sich am Rechtebild nichts
+     verschoben; waechst sie unbemerkt, faellt genau das hier auf. */
+  pruefe('Und es sind weiterhin genau 46 schreibende Routen',
+    F_ROUTEN.length === 46 && fGefunden.length === 46,
+    `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
   const fOhneWaechter = [], fOhneKlemme = [], fZuviel = [], fOhneSelbst = [], fZuvielWaechter = [];
@@ -4156,6 +4474,48 @@ const namen = (liste) => liste.map(c => c.name);
   const fLeitung = ['server.js', 'auth.js', 'db.js', 'public/app.js', 'public/index.html']
     .filter(d => fs.readFileSync(path.join(__dirname, d), 'utf8').includes('Leitung'));
   pruefe('Das Wort Leitung kommt nirgends mehr vor', fLeitung.length === 0, fLeitung.join(' · '));
+
+  /* DIE SPANNE DES GEWICHTS STEHT AN GENAU EINER STELLE. Zwei Schreibwege
+     fuehren darauf -- die Verwaltung und der Import; stuende sie an beiden,
+     liefen sie irgendwann auseinander. Dieselbe Bauform wie bei der
+     Adminfrage darueber: den vorhandenen Waechter erweitern, die Regel nicht
+     ein zweites Mal hinschreiben. */
+  for (const [wort, wo] of [['GEWICHT_MIN = ', 'die Untergrenze'], ['GEWICHT_MAX = ', 'die Obergrenze']]) {
+    const n = fQuelle.split(wort).length - 1;
+    pruefe(`${wo[0].toUpperCase()}${wo.slice(1)} des Gewichts steht genau einmal im Quelltext`,
+      n === 1, `${n} Vorkommen`);
+  }
+  const fGueltigDef = fQuelle.split('function gueltigesGewicht').length - 1;
+  pruefe('Und es gibt genau eine Pruefung darauf', fGueltigDef === 1, `${fGueltigDef} Vorkommen`);
+  /* DIE OBERFLAECHE KENNT DIE SPANNE NICHT. Stuende sie auch in app.js, waere
+     sie die zweite Stelle -- und die, die es nicht meldet, wenn sie
+     auseinanderlaufen. Das Feld schickt, was getippt wurde; der Server sagt,
+     ob es geht. */
+  pruefe('Die Oberflaeche traegt die Spanne nicht ein zweites Mal',
+    !/GEWICHT_(MIN|MAX)/.test(fAppQuelle),
+    (fAppQuelle.match(/.*GEWICHT_(MIN|MAX).*/) || [''])[0]);
+  /* DER NENNER DARF NIE UEBER ALLE KRITERIEN GEHEN. Der naheliegende Griff --
+     eine Summe ueber die ganze Tabelle -- drueckt einen Eintrag unter 1 und
+     braeche damit die Zusicherung dieser Runde. Er soll gar nicht erst
+     unbemerkt hereinkommen.
+     ANGESEHEN WIRD NUR CODE, NICHT DER KOMMENTAR DANEBEN: an genau dieser
+     Stelle in server.js steht der falsche Griff ausgeschrieben, damit ihn der
+     Naechste nicht fuer einen guten haelt. Ein Waechter ueber den ganzen Text
+     faerbte sich am Warnschild statt an der Sache -- derselbe Fehlgriff, an
+     dem in dieser Runde schon eine Pruefung auf den DDL-Text gescheitert ist. */
+  const fCodeZeilen = fQuelle.split('\n')
+    .filter(z => { const t = z.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*'); })
+    .join('\n');
+  pruefe('Nirgends wird ueber ALLE Gewichte summiert',
+    !/SUM\(\s*\w*\.?gewicht\s*\)/i.test(fCodeZeilen),
+    (fCodeZeilen.match(/.*SUM\(\s*\w*\.?gewicht\s*\).*/i) || [''])[0]);
+  /* Und die Gegenprobe zum Waechter selbst: er darf nicht deshalb gruen sein,
+     weil er gar nichts mehr ansieht. Der Code muss die Wortfolge, auf die er
+     zielt, ueberhaupt tragen koennen -- hier belegt an der Abfrage, die das
+     Gewicht mitbringt. */
+  pruefe('Und der Waechter sieht wirklich Code an',
+    /JOIN rating_criteria c ON c\.id = r\.criterion_id/.test(fCodeZeilen),
+    'der Waechter liest keinen Code mehr');
 
   /* DER AUSGELIEFERTE TYP KOMMT NIE AUS DER DATENBANK.
      Dagegen hilft kein Merksatz, sondern ein Waechter: server.js setzt den
@@ -5263,9 +5623,10 @@ const namen = (liste) => liste.map(c => c.name);
     pruefe('Der Index auf attachments liegt danach wieder da',
       idx.includes('idx_attachments_item'), idx.join(', '));
   }
-  /* BEIDE UMSTIEGE IN EINEM LAUF -- die Lage, die im Betrieb wirklich
-     vorkommt: wer von 0.8.20 auf 0.8.31 geht, faehrt beide hintereinander.
-     Ohne diese Probe bliebe offen, ob sie sich gegenseitig stoeren. */
+  /* ALLE UMSTIEGE IN EINEM LAUF -- die Lage, die im Betrieb wirklich vorkommt:
+     wer von 0.8.20 auf 0.8.40 geht, faehrt sie hintereinander. Ohne diese
+     Probe bliebe offen, ob sie sich gegenseitig stoeren.
+     Erweitert statt verdoppelt: kommt eine Stufe dazu, kommt sie hier hinein. */
   {
     const uBeide = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg-beide-'));
     uLauf(uBeide);
@@ -5294,24 +5655,248 @@ const namen = (liste) => liste.map(c => c.name);
         VALUES (1, 'beides.txt', 3, x'616263', 0);
       DROP TABLE attachments;
       ALTER TABLE attachments_0820 RENAME TO attachments;
+      CREATE TABLE rating_criteria_0820 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE, sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')));
+      INSERT INTO rating_criteria_0820 (name, sort_order) VALUES ('Beides', 0);
+      DROP TABLE rating_criteria;
+      ALTER TABLE rating_criteria_0820 RENAME TO rating_criteria;
     `);
     d.close();
     const uBeideAus = uLauf(uBeide);
-    pruefe('Ein Sprung von 0.8.20 faehrt BEIDE Umstiege in einem Start',
-      /links um user_id ergaenzt/.test(uBeideAus) && /attachments um user_id ergaenzt/.test(uBeideAus),
+    pruefe('Ein Sprung von 0.8.20 faehrt ALLE Umstiege in einem Start',
+      /links um user_id ergaenzt/.test(uBeideAus) &&
+      /attachments um user_id ergaenzt/.test(uBeideAus) &&
+      /rating_criteria um gewicht ergaenzt/.test(uBeideAus),
       JSON.stringify(uBeideAus.trim()));
     const d2 = oeffne(path.join(uBeide, 'katalog.sqlite'));
     const uBeideZeilen = [
       d2.prepare(`SELECT u.username FROM links l LEFT JOIN users u ON u.id = l.user_id`).get()?.username,
       d2.prepare(`SELECT u.username FROM attachments a LEFT JOIN users u ON u.id = a.user_id`).get()?.username
     ];
+    let uBeideGewicht = [];
+    try { uBeideGewicht = d2.prepare('SELECT name, gewicht FROM rating_criteria').all(); }
+    catch { /* die Spalte fehlt -- die Pruefung darauf wird rot */ }
     d2.close();
     pruefe('Und beide Zeilen landen beim Verfasser ihres Eintrags',
       gleich(uBeideZeilen, ['bert', 'bert']), JSON.stringify(uBeideZeilen));
+    pruefe('Und das Kriterium traegt danach das Vorgabegewicht',
+      uBeideGewicht.length === 1 && uBeideGewicht[0].gewicht === 1,
+      JSON.stringify(uBeideGewicht));
     fs.rmSync(uBeide, { recursive: true, force: true });
   }
   fs.rmSync(u31Dir, { recursive: true, force: true });
   fs.rmSync(u31FrischDir, { recursive: true, force: true });
+
+  /* ================================================================
+     UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Umstiegscode
+     verschwindet, steht beieinander und traegt dieselbe Marke.
+     ================================================================ */
+  gruppe('UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0');
+
+  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
+     aus 0.8.0 bis 0.8.31 -- dieselbe Anlage, nur ohne die Spalte gewicht an
+     rating_criteria. Und mit Kriterien darin: eine leere Tabelle bewiese
+     nichts ueber die Vorgabe (Stolperstein 81).
+
+     KEINE FRAGE NACH EINEM VERFASSER, anders als in den beiden Abschnitten
+     darueber: ein Gewicht kann nicht herrenlos werden. Die Prueflage traegt
+     trotzdem Bewertungen an den Kriterien -- daran haengt die eigentliche
+     Zusicherung dieser Runde: der Umstieg darf keine angezeigte Zahl
+     veraendern. */
+  const u40Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg0840-'));
+  const u40FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0840-'));
+  const u40Spalten = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
+    d.close();
+    return sp;
+  };
+  /* Faengt den Fall ab, dass die Spalte gar nicht da ist: ohne das reisst eine
+     Gegenprobe, die den Umstieg zurueckbaut, den ganzen Lauf ab und nennt
+     KEINEN einzigen Namen (Stolperstein 103). Eine leere Liste macht die
+     Pruefungen darunter rot, und das ist die Auskunft, die gebraucht wird. */
+  const u40Zeilen = () => {
+    const d = oeffne(path.join(u40Dir, 'katalog.sqlite'));
+    let z = [];
+    try { z = d.prepare('SELECT name, gewicht FROM rating_criteria ORDER BY sort_order, id').all(); }
+    catch { /* die Spalte fehlt -- die Pruefungen darunter werden rot */ }
+    d.close();
+    return z;
+  };
+
+  uLauf(u40Dir);
+  {
+    const d = oeffne(path.join(u40Dir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Bestandseintrag', 1)").run();
+    /* Tabellenneubau statt ALTER TABLE ... DROP COLUMN, aus demselben Grund
+       wie in den Abschnitten darueber: SQLite prueft nach dem Entfernen den
+       verbliebenen DDL-Text, und der endet hier mit einem Kommentar hinter dem
+       letzten Komma. Ausserhalb jeder Transaktion, sonst waere das PRAGMA ein
+       stiller No-op (Stolperstein 12); das DROP TABLE ist bei eingeschalteten
+       Fremdschluesseln ein DELETE mit Kaskade -- deshalb entstehen die
+       Bewertungen erst danach. */
+    d.pragma('foreign_keys = OFF');
+    d.exec(`
+      CREATE TABLE rating_criteria_0831 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO rating_criteria_0831 (name, sort_order) VALUES
+        ('Optik', 0), ('Haptik', 1), ('Preis', 2);
+      DROP TABLE rating_criteria;
+      ALTER TABLE rating_criteria_0831 RENAME TO rating_criteria;
+      INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES
+        (1, 1, 5, 1), (1, 2, 2, 1), (1, 3, 4, 1);
+    `);
+    d.close();
+  }
+  pruefe('Die Prueflage traegt die Spalte wirklich nicht',
+    !u40Spalten(u40Dir).includes('gewicht'), u40Spalten(u40Dir).join(', '));
+  /* Und sie traegt wirklich Kriterien -- ohne diese Zeile stuende der Beleg
+     unten auf null Zeilen und bliebe gruen, ohne etwas zu belegen
+     (Stolperstein 81). Eigene Abfrage, weil u40Zeilen() die Spalte gewicht
+     liest, die es hier noch nicht gibt. */
+  {
+    const d = oeffne(path.join(u40Dir, 'katalog.sqlite'));
+    const n = d.prepare('SELECT COUNT(*) AS n FROM rating_criteria').get().n;
+    const b = d.prepare('SELECT COUNT(*) AS n FROM ratings WHERE value > 0').get().n;
+    d.close();
+    pruefe('Und sie traegt drei Kriterien mit Bewertungen daran', n === 3 && b === 3,
+      `${n} Kriterien, ${b} Bewertungen`);
+  }
+
+  const u40Ausgabe = uLauf(u40Dir);
+  pruefe('Der Umstieg ergaenzt die Spalte im Bestand',
+    u40Spalten(u40Dir).includes('gewicht'), u40Spalten(u40Dir).join(', '));
+  pruefe('Er sagt im Protokoll, was er getan hat',
+    /rating_criteria um gewicht ergaenzt/.test(u40Ausgabe), JSON.stringify(u40Ausgabe.trim()));
+
+  /* DER KERN DIESES ABSCHNITTS. Jeder andere Wert als 1,0 aenderte beim
+     Einspielen still saemtliche Gesamtschnitte. Erst auf Vorhandensein, dann
+     auf die Eigenschaft -- bei null Zeilen bliebe every() gruen und belegte
+     nichts (Stolperstein 81). */
+  pruefe('Die drei Bestandszeilen stehen auf 1,0',
+    u40Zeilen().length === 3 && u40Zeilen().every(z => z.gewicht === 1),
+    JSON.stringify(u40Zeilen()));
+  /* Und die Vorgabe kommt aus dem DEFAULT der Spalte, nicht aus einem
+     nachgeschobenen UPDATE: db.js schreibt nach dem ALTER TABLE nichts mehr
+     an diese Tabelle. Nachgestellt am Quelltext, nicht geglaubt. */
+  {
+    const u40Quelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const u40Block = u40Quelle.slice(u40Quelle.indexOf('// UMSTIEG 0.8.40'),
+                                     u40Quelle.indexOf('// ENDE UMSTIEG 0.8.40'));
+    pruefe('Die Vorgabe kommt aus dem DEFAULT, nicht aus einem UPDATE',
+      u40Block.includes('DEFAULT 1.0') && !/UPDATE\s+rating_criteria/i.test(u40Block),
+      JSON.stringify(u40Block.slice(0, 80)));
+    /* ordneBestandZu() wird ausdruecklich NICHT angefasst: dort geht es um
+       user_id und um die Frage, wem eine herrenlose Zeile gehoert. Ein Gewicht
+       kann nicht herrenlos werden. Der Waechter haelt fest, dass die Tabelle
+       dort nicht auftaucht. */
+    const u40Auffang = u40Quelle.slice(u40Quelle.indexOf('function ordneBestandZu'),
+                                       u40Quelle.indexOf('ordneBestandZu();'));
+    pruefe('Das Auffangnetz kennt rating_criteria nicht',
+      !u40Auffang.includes('rating_criteria'), 'rating_criteria steht in ordneBestandZu()');
+  }
+
+  /* Der eigentliche Beleg der Runde, an derselben Anlage: der Gesamtschnitt
+     nach dem Umstieg ist derselbe, den die Rechnung ohne Gewichte ergaebe.
+     (5 + 2 + 4) / 3 = 3,67 -> 3,7. Hier von Hand nachgerechnet statt aus dem
+     Server geholt: eine fest hingeschriebene Zahl belegte weniger. */
+  {
+    const d = oeffne(path.join(u40Dir, 'katalog.sqlite'));
+    // Wieder abgefangen, aus demselben Grund wie bei u40Zeilen().
+    let zeilen = [];
+    try {
+      zeilen = d.prepare(`SELECT r.value * 1.0 AS w, c.gewicht FROM ratings r
+                          JOIN rating_criteria c ON c.id = r.criterion_id
+                          WHERE r.item_id = 1 AND r.value > 0`).all();
+    } catch { /* die Spalte fehlt -- die Pruefung darunter wird rot */ }
+    d.close();
+    const ungewichtet = zeilen.length
+      ? Math.round((zeilen.reduce((s2, z) => s2 + z.w, 0) / zeilen.length) * 10) / 10 : null;
+    let za = 0, ne = 0;
+    for (const z of zeilen) { za += z.w * z.gewicht; ne += z.gewicht; }
+    const gewichtet = ne ? Math.round((za / ne) * 10) / 10 : null;
+    pruefe('Nach dem Umstieg rechnet die Gewichtung dasselbe wie vorher',
+      zeilen.length === 3 && gewichtet === ungewichtet && gewichtet === 3.7,
+      `${gewichtet} gegen ${ungewichtet}`);
+  }
+
+  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
+  const u40Zweitens = uLauf(u40Dir);
+  pruefe('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
+    !/rating_criteria um gewicht ergaenzt/.test(u40Zweitens), JSON.stringify(u40Zweitens.trim()));
+  pruefe('Und die Zeilen sind dabei unangetastet geblieben',
+    gleich(u40Zeilen().map(z => `${z.name}:${z.gewicht}`), ['Optik:1', 'Haptik:1', 'Preis:1']),
+    JSON.stringify(u40Zeilen()));
+  /* Ein von Hand gesetztes Gewicht ueberlebt jeden weiteren Start -- sonst
+     stellte der naechste Neustand alles wieder auf die Vorgabe. */
+  {
+    const d = oeffne(path.join(u40Dir, 'katalog.sqlite'));
+    // Abgefangen wie jede andere Lesestelle: fehlt die Spalte, wird die
+    // Pruefung darunter rot, statt den Lauf abzureissen (Stolperstein 103).
+    try { d.prepare("UPDATE rating_criteria SET gewicht = 1.5 WHERE name = 'Optik'").run(); }
+    catch { /* die Spalte fehlt */ }
+    d.close();
+  }
+  uLauf(u40Dir);
+  pruefe('Ein gesetztes Gewicht ueberlebt den naechsten Start',
+    u40Zeilen().find(z => z.name === 'Optik')?.gewicht === 1.5, JSON.stringify(u40Zeilen()));
+
+  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus dem Umstieg.
+     Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
+     und zu 1.0 faellt der Umstieg weg, die Spalte muss bleiben. */
+  const u40Frisch = uLauf(u40FrischDir);
+  pruefe('Eine frische Anlage traegt die Spalte ohne Umstieg',
+    u40Spalten(u40FrischDir).includes('gewicht') &&
+    !/rating_criteria um gewicht ergaenzt/.test(u40Frisch),
+    `${u40Spalten(u40FrischDir).includes('gewicht')} / ${JSON.stringify(u40Frisch.trim())}`);
+  /* Und sie ist genauso gebaut wie die migrierte: NOT NULL mit Vorgabe 1,0 und
+     ohne CHECK. Waeren die beiden verschieden gebaut, waere das genau die
+     Abweichung, die 0.6.0 als Fehler erkannt hat. */
+  /* Nachgesehen wird das VERHALTEN, nicht der DDL-Text: das Wort CHECK steht
+     im Kommentar an der Spalte, und ein Waechter ueber den Text faerbte sich
+     daran. Ein Wert ausserhalb der Spanne muss direkt in der Datenbank
+     durchgehen -- die Gueltigkeit steht im Server, an genau einer Stelle, und
+     nicht ein zweites Mal im Schema. */
+  const u40Bau = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(rating_criteria)').all().find(c => c.name === 'gewicht');
+    // Fehlt die Spalte ganz, kommt hier 'keine Spalte' heraus -- und die
+    // Pruefungen darunter werden rot, statt den Lauf abzureissen.
+    const versuch = (sql) => {
+      try { d.prepare(sql).run(); return 'geht durch'; }
+      catch (e) { return /no such column/i.test(e.message) ? 'keine Spalte' : 'abgewiesen'; }
+    };
+    const ausserhalb = versuch(
+      'UPDATE rating_criteria SET gewicht = 9 WHERE id = (SELECT MIN(id) FROM rating_criteria)');
+    if (ausserhalb === 'geht durch') versuch('UPDATE rating_criteria SET gewicht = 1 WHERE gewicht = 9');
+    const leer = versuch(
+      'UPDATE rating_criteria SET gewicht = NULL WHERE id = (SELECT MIN(id) FROM rating_criteria)');
+    d.close();
+    return { notnull: sp?.notnull, vorgabe: String(sp?.dflt_value), ausserhalb, leer };
+  };
+  const u40BauMigriert = u40Bau(u40Dir), u40BauFrisch = u40Bau(u40FrischDir);
+  pruefe('Migrierte und frische Anlage bauen die Spalte gleich',
+    gleich(u40BauMigriert, u40BauFrisch),
+    `${JSON.stringify(u40BauMigriert)} gegen ${JSON.stringify(u40BauFrisch)}`);
+  pruefe('Sie ist NOT NULL mit Vorgabe 1.0',
+    u40BauFrisch.notnull === 1 && u40BauFrisch.vorgabe === '1.0' &&
+    u40BauFrisch.leer === 'abgewiesen', JSON.stringify(u40BauFrisch));
+  /* KEIN CHECK -- und zwar nicht, weil SQLite keinen nachruesten koennte
+     (ADD COLUMN nimmt einen an, das ist nachgestellt), sondern weil die Spanne
+     dann zweimal stuende: hier und in GEWICHT_MIN/GEWICHT_MAX. Zwei Stellen
+     fuer dieselbe Grenze laufen auseinander. */
+  pruefe('Und sie traegt keinen CHECK -- die Grenze steht allein im Server',
+    u40BauFrisch.ausserhalb === 'geht durch', JSON.stringify(u40BauFrisch.ausserhalb));
+  fs.rmSync(u40Dir, { recursive: true, force: true });
+  fs.rmSync(u40FrischDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   gruppe('Anordnung der Blöcke');
@@ -6519,7 +7104,12 @@ const DOM_ANBIETER = [
   { schluessel: 'eigen3', name: '', vorlage: '', eigen: true, vorhanden: false, aktiv: false, standard: false }
 ];
 
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null } = {}) {
+/* kriterienGewichte und eigeneWerte sind die beiden Stellschrauben der
+   Gewichtung. Vorgabe sind DREI VERSCHIEDENE Gewichte, eines davon 1 -- so
+   lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
+   Doppelgaenger mit lauter Einsen naehme genau die Pruefung weg, fuer die er
+   gebaut ist (Stolperstein 90). */
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Die Anbieter kommen ueber /api/settings. Wer eigene Einstellungen
   // mitgibt, ueberschreibt gezielt -- alles Uebrige bleibt bei der Vorgabe.
   einstellungen = { suchAnbieter: DOM_ANBIETER, suchNamen: 3, ...einstellungen };
@@ -6538,9 +7128,9 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   };
   const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   const kriterien = [
-    { id: 7, name: 'Zuerst', sort_order: 0, usage_count: 2 },
-    { id: 8, name: 'Dann', sort_order: 1, usage_count: 0 },
-    { id: 9, name: 'Zuletzt', sort_order: 2, usage_count: 1 }
+    { id: 7, name: 'Zuerst', sort_order: 0, usage_count: 2, gewicht: kriterienGewichte[0] },
+    { id: 8, name: 'Dann', sort_order: 1, usage_count: 0, gewicht: kriterienGewichte[1] },
+    { id: 9, name: 'Zuletzt', sort_order: 2, usage_count: 1, gewicht: kriterienGewichte[2] }
   ];
   /* Verfasser im Doppelgaenger: der falsche Server muss antworten wie der
      echte, sonst verschwindet genau die Pruefung, fuer die er gebaut ist.
@@ -6649,8 +7239,11 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     // WER WELCHEN WERT VERGEBEN HAT, STEHT HIER SEIT 0.8.6 NICHT MEHR: der
     // echte Server liefert es an dieser Antwort nicht mehr aus, und ein
     // Doppelgaenger, der es doch taete, machte die Pruefung darauf wertlos.
+    // gewicht steht an JEDER Kriterienzeile -- der echte Server liefert es seit
+    // 0.8.40, und ein Doppelgaenger, der die Antwort vereinfacht, loescht
+    // genau die Pruefung, fuer die er gebaut ist.
     ratings: kriterien.map((c, i) => ({
-      criterion_id: c.id, name: c.name, value: 3,
+      criterion_id: c.id, name: c.name, value: eigeneWerte[i], gewicht: c.gewicht,
       avg: [3.4, 4.1, null][i], count: [5, 2, 0][i] })),
     avgRating: 3, testCount: 1, testAvg: 4, testLast: 4,
     // Reine Anzeige, seit 0.8.6 in der Verfasserzeile. Ohne dieses Feld
@@ -6700,7 +7293,11 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     if (url === '/api/criteria') return gib(kriterien);
     if (url === '/api/criteria/order') return gib(kriterien);
     if (url === '/api/tags') return gib(tags);
-    if (url === '/api/product-categories') return gib([]);
+    /* NICHT LEER. Eine leere Karte hat keine Zeilen, und eine Pruefung darauf,
+       dass an ihren Zeilen etwas NICHT steht, bliebe auf null Zeilen gruen und
+       belegte nichts (Stolperstein 81). Genau das ist beim Bau von 0.8.40 an
+       der Gegenprobe zum Gewichtsfeld aufgefallen. */
+    if (url === '/api/product-categories') return gib(kategorien);
     /* Der eigene Name steht seit 0.8.6 in dieser Antwort, und der
        Doppelgaenger liefert ihn mit -- sonst bliebe die Kopfzeile leer und
        jede Pruefung darauf blind. Als Vorgabe DERSELBE Name wie unter
@@ -6763,6 +7360,24 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       const weg = Number(url.split('/').pop());
       for (const z of stimmenAntwort) z.stimmen = z.stimmen.filter(st => st.id !== weg);
       return gib(beispiel);
+    }
+    /* PUT auf ein Kriterium. Der echte Server antwortet mit der GESPEICHERTEN
+       Zeile -- also mit dem auf Hundertstel gerundeten Gewicht, und mit einer
+       Absage, wenn der Wert die Spanne verlaesst. Ein Doppelgaenger, der stur
+       200 und den geschickten Wert zurueckgaebe, naehme genau die beiden
+       Pruefungen weg, fuer die er hier gebraucht wird: dass das Feld die
+       Rundung zeigt, und dass es sich nach einer Absage zurueckstellt. */
+    if (/^\/api\/criteria\/\d+$/.test(url) && opt.method === 'PUT') {
+      const k = kriterien.find(c => c.id === Number(url.split('/').pop()));
+      const koerper = JSON.parse(opt.body || '{}');
+      if (koerper.gewicht !== undefined) {
+        const g = Number(koerper.gewicht);
+        if (!Number.isFinite(g) || g < 0.2 || g > 2)
+          return gib({ error: 'Das Gewicht muss eine Zahl zwischen 0,2 und 2 sein.' }, 400);
+        k.gewicht = Math.round(g * 100) / 100;
+      }
+      if (koerper.name) k.name = koerper.name;
+      return gib({ ...k });
     }
     if (url.startsWith('/api/items/1')) return gib(beispiel);
     // Endpunkte, die den ganzen Eintrag zurueckgeben. Ohne das wird `item` im
@@ -6912,7 +7527,10 @@ async function pruefeOberflaeche() {
   pruefe('Beschreibungsfeld waechst mit', beschreibung.classList.contains('ta-auto'));
   pruefe('Kommentarfeld waechst mit', w.document.getElementById('ctext').classList.contains('ta-auto'));
   pruefe('Beschreibung steht unveraendert im Feld', beschreibung.value === beispiel.description);
-  const zeilen = [...w.document.querySelectorAll('#ratings .rname')].map(e => e.textContent);
+  // firstChild, nicht textContent: hinter dem Namen kann die Gewichtsmarke
+  // stehen, und die gehoert nicht zum Namen.
+  const zeilen = [...w.document.querySelectorAll('#ratings .rname')]
+    .map(e => e.firstChild.textContent.trim());
   pruefe('Bewertungsblock folgt der Serverreihenfolge',
     gleich(zeilen, ['Zuerst', 'Dann', 'Zuletzt']), JSON.stringify(zeilen));
   // Die Bewertungszeile traegt keinen Loeschknopf -- weder
@@ -10389,6 +11007,289 @@ async function pruefeOberflaeche() {
   rEig.w.close(); rAdm.w.close(); rUser.w.close();
 
   /* ================= Vergleich: meine / alle ================= */
+  /* ================= Das Gewicht in der Oberflaeche ================= */
+  gruppe('Das Gewicht am Eintrag');
+
+  /* Vorgabelage des Doppelgaengers: Gewichte 1,5 · 1 · 0,5, eigene Werte
+     3 · 3 · 3. Damit lassen sich Anzeige UND Nichtanzeige an derselben Lage
+     belegen -- die mittlere Zeile steht auf 1 und darf nichts tragen. */
+  const gwEintrag = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+  await new Promise(r => setTimeout(r, 80));
+  const gwDoc = gwEintrag.w.document;
+  const gwMarken = () => [...gwDoc.querySelectorAll('#ratings .rrow .rname')]
+    .map(z => z.querySelector('.rgew')?.textContent || '');
+
+  pruefe('Die Gewichtsmarke steht hinter dem Kriteriennamen',
+    gleich(gwMarken(), ['×1,5', '', '×0,5']), JSON.stringify(gwMarken()));
+  /* ABLEITUNG, KEIN SCHALTER: bei Gewicht 1 steht dort nichts. "×1" an jeder
+     Zeile waere Rauschen ohne Aussage -- dieselbe Bauform wie die
+     Durchschnittsspalte, die bei einem einzigen Zugang entfaellt. */
+  pruefe('Und ×1 steht nirgends',
+    !gwDoc.getElementById('ratings').textContent.includes('×1 ') &&
+    !gwMarken().includes('×1'), JSON.stringify(gwMarken()));
+  /* Der Name selbst bleibt unberuehrt -- die Marke ist ein eigener Knoten und
+     wird nicht in den Namen hineingeschrieben. Ein Kriterienname ist Eingabe. */
+  pruefe('Der Kriterienname bleibt davon unberuehrt',
+    gleich([...gwDoc.querySelectorAll('#ratings .rname')].map(z => z.firstChild.textContent.trim()),
+           ['Zuerst', 'Dann', 'Zuletzt']));
+  pruefe('Der Blockkopf sagt, dass gewichtet gerechnet wurde',
+    / gewichtet$/.test(gwDoc.getElementById('rhead')?.textContent || ''),
+    JSON.stringify(gwDoc.getElementById('rhead')?.textContent));
+  pruefe('Und die Zahl daneben steht unveraendert dort',
+    /⌀\s*3,0/.test(gwDoc.getElementById('rhead')?.textContent || ''),
+    JSON.stringify(gwDoc.getElementById('rhead')?.textContent));
+  gwEintrag.w.close();
+
+  /* GEGENLAGE 1: alle Gewichte auf 1. Ohne sie bliebe offen, ob die Anzeige
+     ueberhaupt an einer Bedingung haengt -- eine Pruefung, die nur das
+     Vorhandensein belegt, koennte einen fest eingebauten Text nicht von einer
+     Ableitung unterscheiden. */
+  const gwGleich = baueDom(JSDOM, { hash: '#/item/1', kriterienGewichte: [1, 1, 1],
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Stehen alle Gewichte auf 1, steht keine Marke da',
+    gwGleich.w.document.querySelectorAll('#ratings .rgew').length === 0,
+    `${gwGleich.w.document.querySelectorAll('#ratings .rgew').length} Marken`);
+  pruefe('Und der Blockkopf traegt genau das, was er vorher trug',
+    gwGleich.w.document.getElementById('rhead')?.textContent === '⌀ 3,0',
+    JSON.stringify(gwGleich.w.document.getElementById('rhead')?.textContent));
+  gwGleich.w.close();
+
+  /* GEGENLAGE 2 -- die feinere: ein Kriterium mit Gewicht 1,5, das an diesem
+     Eintrag NIEMAND bewertet hat. Es geht in die Rechnung gar nicht ein, also
+     darf das Wort "gewichtet" nicht dastehen. Die Marke an der Zeile bleibt
+     dagegen: sie ist eine Aussage ueber das Kriterium, nicht ueber die Zahl.
+     Das dritte Kriterium hat count 0 und avg null; mit eigenem Wert 0 ist es
+     von niemandem bewertet. */
+  const gwUnbewertet = baueDom(JSDOM, { hash: '#/item/1',
+    kriterienGewichte: [1, 1, 1.5], eigeneWerte: [3, 3, 0],
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+  await new Promise(r => setTimeout(r, 80));
+  const gwUDoc = gwUnbewertet.w.document;
+  pruefe('Ein Gewicht an einem unbewerteten Kriterium steht trotzdem an der Zeile',
+    [...gwUDoc.querySelectorAll('#ratings .rrow .rname')]
+      .map(z => z.querySelector('.rgew')?.textContent || '')[2] === '×1,5',
+    JSON.stringify([...gwUDoc.querySelectorAll('#ratings .rrow .rname')]
+      .map(z => z.querySelector('.rgew')?.textContent || '')));
+  pruefe('Aber der Blockkopf nennt sich nicht gewichtet — es floss nichts ein',
+    !/gewichtet/.test(gwUDoc.getElementById('rhead')?.textContent || ''),
+    JSON.stringify(gwUDoc.getElementById('rhead')?.textContent));
+  gwUnbewertet.w.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Das Gewicht im Systembereich');
+
+  const gwSys = baueDom(JSDOM, { hash: '',
+    tags: [{ id: 31, name: 'Grün', usage_count: 3, test_usage_count: 1 },
+           { id: 32, name: 'Blau', usage_count: 0, test_usage_count: 0 }],
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+  await new Promise(r => setTimeout(r, 80));
+  await gwSys.w.renderSystem();
+  const gwSDoc = gwSys.w.document;
+  const gwFelder = () => [...gwSDoc.querySelectorAll('#mcrits .mgew-feld')];
+  const gwGesendet = gwSys.gesendet;
+
+  pruefe('Jede Kriterienzeile traegt ein Gewichtsfeld', gwFelder().length === 3,
+    `${gwFelder().length} Felder`);
+  /* DIE KARTE ZEICHNET manage(), UND DIESELBE FUNKTION ZEICHNET AUCH
+     KATEGORIEN UND TAGS. Ein Gewicht gibt es dort nicht -- eine Kategorie
+     rechnet nirgends mit. Ohne diese Zeilen bliebe offen, ob die
+     Unterscheidung ueberhaupt stattfindet.
+     ERST AUF ZEILEN, DANN AUF DIE EIGENSCHAFT (Stolperstein 81): eine leere
+     Karte hat keine Zeilen, und "keine der 0 Zeilen traegt ein Feld" ist wahr
+     und belegt nichts. Genau daran ist die Gegenprobe zu diesem Punkt beim
+     Bauen zuerst stumm geblieben. */
+  pruefe('Die Kategorienkarte traegt ueberhaupt Zeilen',
+    gwSDoc.querySelectorAll('#mcats .mrow').length >= 2,
+    `${gwSDoc.querySelectorAll('#mcats .mrow').length} Zeilen`);
+  pruefe('Und keine davon traegt ein Gewicht',
+    gwSDoc.querySelectorAll('#mcats .mgew').length === 0,
+    gwSDoc.getElementById('mcats')?.innerHTML.slice(0, 200));
+  pruefe('Die Tagkarte traegt ebenfalls Zeilen',
+    gwSDoc.querySelectorAll('#mtags .mrow').length >= 1,
+    `${gwSDoc.querySelectorAll('#mtags .mrow').length} Zeilen`);
+  pruefe('Und auch dort steht keines',
+    gwSDoc.querySelectorAll('#mtags .mgew').length === 0,
+    gwSDoc.getElementById('mtags')?.innerHTML.slice(0, 200));
+  /* KEINE ERFUNDENE GENAUIGKEIT: 1 steht als "1", nicht als "1,0" -- das sieht
+     nach einer Einstellung aus, wo in Wahrheit die Vorgabe steht. Und 1,5
+     nicht als "1,50". */
+  pruefe('Die Felder zeigen den Wert mit Komma und ohne nachlaufende Nullen',
+    gleich(gwFelder().map(f => f.value), ['1,5', '1', '0,5']),
+    JSON.stringify(gwFelder().map(f => f.value)));
+  pruefe('Das Feld ist ein Textfeld mit Dezimaltastatur, kein Zahlenfeld',
+    gwFelder().every(f => f.getAttribute('type') === 'text' &&
+                          f.getAttribute('inputmode') === 'decimal'),
+    JSON.stringify(gwFelder().map(f => `${f.getAttribute('type')}/${f.getAttribute('inputmode')}`)));
+  pruefe('Und es haengt an der Vorschlagsliste',
+    gwFelder().every(f => f.getAttribute('list') === 'gewichtsug') &&
+    !!gwSDoc.getElementById('gewichtsug'));
+  const gwVorschlaege = [...(gwSDoc.getElementById('gewichtsug')?.querySelectorAll('option') || [])]
+    .map(o => o.value);
+  pruefe('Die Vorschlaege reichen unter und ueber 1',
+    gleich(gwVorschlaege, ['0,5', '0,8', '1', '1,2', '1,5']), JSON.stringify(gwVorschlaege));
+  pruefe('Die Karte erklaert, was das Gewicht bewirkt',
+    /zwischen\s+1\s+und\s+5/.test(gwSDoc.getElementById('mcrits')?.parentElement?.textContent || ''));
+  /* Und die Regeln dazu im Stylesheet -- eine Klassenpruefung allein belegt
+     nicht, dass die Klasse etwas bewirkt (Luecke 1 des Pruefstands). Erst auf
+     Vorhandensein, dann auf die Eigenschaft (Stolperstein 81). */
+  {
+    const gwCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const gwRegel = (gwCss.match(/\.mrow \.mgew-feld \{[^}]*\}/) || [''])[0];
+    pruefe('Das Stylesheet kennt das Gewichtsfeld', gwRegel.length > 0);
+    /* Die Breite steht in em, nicht in px: die Schriftgroesse der Oberflaeche
+       ist in fuenf Stufen einstellbar, und ein festes Mass hielte bei 120 %
+       "1,25" nicht mehr. */
+    pruefe('Und seine Breite waechst mit der Schriftgroesse mit',
+      /width: *[0-9.]+em/.test(gwRegel) && !/width: *[0-9.]+px/.test(gwRegel), gwRegel);
+    const gwMarkeRegel = (gwCss.match(/\.rrow \.rname \.rgew[^{]*\{[^}]*\}/) || [''])[0];
+    pruefe('Und die Gewichtsmarke ist gedaempft, nicht golden',
+      /var\(--faint\)/.test(gwMarkeRegel) && !/--gold/.test(gwMarkeRegel), gwMarkeRegel);
+  }
+
+  /* --- Schreiben: ein WIRKLICH ZUGESTELLTES change-Ereignis ---------------
+     .click() oder ein Aufruf von onchange genuegt nicht (Stolperstein 17):
+     ein Fehler in einem Behandler, der nach einem await weiterlaeuft, entsteht
+     erst beim echten Ereignis. */
+  const gwPuts = () => gwGesendet.filter(z => z.methode === 'PUT' && /^\/api\/criteria\/\d+$/.test(z.url));
+  const gwSchreib = async (feld, text) => {
+    const vorher = gwPuts().length;
+    feld.value = text;
+    feld.dispatchEvent(new gwSys.w.Event('change', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    return { neu: gwPuts().length - vorher, letzter: gwPuts().pop() };
+  };
+
+  const gwKomma = await gwSchreib(gwFelder()[1], '1,2');
+  pruefe('Ein change-Ereignis am Feld loest den Schreibweg aus', gwKomma.neu === 1,
+    `${gwKomma.neu} Aufrufe`);
+  pruefe('Deutsches Komma kommt als Zahl 1.2 am Server an',
+    gwKomma.letzter?.koerper?.gewicht === 1.2, JSON.stringify(gwKomma.letzter?.koerper));
+  /* Ein eingefuegter Wert aus einer Tabelle kann "1.2" heissen und soll nicht
+     scheitern. Gelesen wird beides, geschrieben wird immer mit Komma. */
+  const gwPunkt = await gwSchreib(gwFelder()[1], '1.8');
+  pruefe('Ein Punkt statt des Kommas wird ebenso gelesen',
+    gwPunkt.letzter?.koerper?.gewicht === 1.8, JSON.stringify(gwPunkt.letzter?.koerper));
+  pruefe('Und das Feld zeigt danach wieder ein Komma',
+    gwFelder()[1].value === '1,8', JSON.stringify(gwFelder()[1].value));
+
+  /* GERUNDET, ABER NICHT STILL: 1,234 und 1,23 sind dieselbe Aussage -- das
+     Feld zeigt danach, was gespeichert wurde. */
+  const gwRund = await gwSchreib(gwFelder()[1], '1,234');
+  pruefe('Feiner als ein Hundertstel geht so hinaus, wie es getippt wurde',
+    gwRund.letzter?.koerper?.gewicht === 1.234, JSON.stringify(gwRund.letzter?.koerper));
+  pruefe('Und das Feld zeigt danach den gespeicherten Wert 1,23',
+    gwFelder()[1].value === '1,23', JSON.stringify(gwFelder()[1].value));
+
+  /* EIN LEERES FELD IST KEINE NULL. Number('') ergibt 0, und ohne die Klemme
+     davor liefe ein geloeschtes Feld in eine Absage "muss zwischen 0,2 und 2
+     sein", die niemand verlangt hat. */
+  const gwLeer = await gwSchreib(gwFelder()[1], '   ');
+  pruefe('Ein leeres Feld schickt gar nichts', gwLeer.neu === 0, `${gwLeer.neu} Aufrufe`);
+  pruefe('Und der alte Wert kehrt ins Feld zurueck',
+    gwFelder()[1].value === '1,23', JSON.stringify(gwFelder()[1].value));
+  const gwText = await gwSchreib(gwFelder()[1], 'abc');
+  pruefe('Unlesbarer Text ebenso wenig', gwText.neu === 0 && gwFelder()[1].value === '1,23',
+    `${gwText.neu} Aufrufe, Feld ${JSON.stringify(gwFelder()[1].value)}`);
+
+  /* Eine Absage vom Server setzt das Feld zurueck: kein Wert im Feld, der
+     nicht gespeichert ist. */
+  const gwAbsage = await gwSchreib(gwFelder()[1], '2,5');
+  pruefe('Ein Wert ueber der Grenze geht hinaus und wird abgewiesen',
+    gwAbsage.neu === 1 && gwAbsage.letzter?.koerper?.gewicht === 2.5,
+    JSON.stringify(gwAbsage.letzter?.koerper));
+  pruefe('Und das Feld steht danach wieder auf dem gespeicherten Wert',
+    gwFelder()[1].value === '1,23', JSON.stringify(gwFelder()[1].value));
+
+  /* NACH EINEM GEWICHTSWECHSEL WIRD DIE LISTE NICHT NEU GEZEICHNET. Geprueft
+     ueber die Knotengleichheit: ein refresh() baute die Zeilen neu auf, und
+     der alte Knoten haenge dann nicht mehr im Dokument. */
+  const gwKnoten = gwFelder()[1];
+  await gwSchreib(gwKnoten, '1,4');
+  pruefe('Die Liste wird nach einem Gewichtswechsel nicht neu gezeichnet',
+    gwKnoten === gwFelder()[1] && gwKnoten.isConnected, 'die Zeile wurde ersetzt');
+  pruefe('Die Zeile traegt trotzdem den neuen Wert',
+    gwFelder()[1].value === '1,4', JSON.stringify(gwFelder()[1].value));
+  /* Und das ist der Grund dafuer: ein offenes Umbenennen an derselben Zeile
+     ueberlebt den Gewichtswechsel daneben. Ein refresh() risse es weg. */
+  const gwReihe = gwSDoc.querySelectorAll('#mcrits .mrow')[1];
+  gwReihe.querySelector('.ed').dispatchEvent(new gwSys.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Ein Umbenennen laesst sich oeffnen', !!gwReihe.querySelector('input.medit'));
+  const gwUmbenennFeld = gwReihe.querySelector('input.medit');
+  gwUmbenennFeld.value = 'Halb getippt';
+  await gwSchreib(gwReihe.querySelector('.mgew-feld'), '1,1');
+  pruefe('Ein offenes Umbenennen ueberlebt den Gewichtswechsel daneben',
+    gwReihe.querySelector('input.medit') === gwUmbenennFeld &&
+    gwUmbenennFeld.value === 'Halb getippt' && gwUmbenennFeld.isConnected,
+    gwReihe.innerHTML.slice(0, 160));
+  /* Das Umbenennen schickt kein Gewicht mit -- sonst setzte jedes ✎ die
+     Gewichtung auf den Stand des Feldes zurueck, auch wenn niemand es
+     angefasst hat. */
+  const gwVorUmbenennen = gwPuts().length;
+  gwUmbenennFeld.value = 'Neuer Name';
+  gwUmbenennFeld.dispatchEvent(new gwSys.w.Event('blur', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  const gwUmbenennRuf = gwPuts()[gwPuts().length - 1];
+  pruefe('Das Umbenennen schickt nur den Namen, kein Gewicht',
+    gwPuts().length > gwVorUmbenennen && gwUmbenennRuf?.koerper?.gewicht === undefined,
+    JSON.stringify(gwUmbenennRuf?.koerper));
+
+  /* Fallstrick 1 aus dem Konzept: die Kriterienzeile ist ziehbar, und die
+     Ausnahmeliste von makeSortable lautet '.mact, input'. Ein <input> ist
+     damit ausgenommen -- nachgestellt statt geglaubt, mit echten
+     Zeigerereignissen. */
+  await gwSys.w.renderSystem();
+  await new Promise(r => setTimeout(r, 20));
+  const gwZeilen = [...gwSDoc.querySelectorAll('#mcrits .mrow')];
+  gwSDoc.elementFromPoint = () => gwZeilen[2];
+  const gwZeiger = (art, y) => {
+    const e = new gwSys.w.Event(art, { bubbles: true });
+    Object.defineProperty(e, 'clientX', { value: 0 });
+    Object.defineProperty(e, 'clientY', { value: y });
+    return e;
+  };
+  const gwVorSortieren = gwGesendet.filter(z => z.url === '/api/criteria/order').length;
+  gwZeilen[0].querySelector('.mgew-feld').dispatchEvent(gwZeiger('pointerdown', 0));
+  gwSDoc.dispatchEvent(gwZeiger('pointermove', 120));
+  gwSDoc.dispatchEvent(gwZeiger('pointerup', 120));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Am Gewichtsfeld beginnt kein Ziehen',
+    gwGesendet.filter(z => z.url === '/api/criteria/order').length === gwVorSortieren,
+    'die Zeile wurde umsortiert');
+  /* Die Gegenprobe daneben, sonst belegte die Zeile darueber auch dann etwas,
+     wenn das Ziehen ueberhaupt nicht mehr ginge (Stolperstein 81). */
+  gwZeilen[0].dispatchEvent(gwZeiger('pointerdown', 0));
+  gwSDoc.dispatchEvent(gwZeiger('pointermove', 120));
+  gwSDoc.dispatchEvent(gwZeiger('pointerup', 120));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Am Rest der Zeile beginnt es sehr wohl',
+    gwGesendet.filter(z => z.url === '/api/criteria/order').length > gwVorSortieren,
+    'das Ziehen geht gar nicht mehr');
+  gwSys.w.close();
+
+  /* Wer nicht verwalten darf, sieht das Gewicht als Text statt als Feld -- es
+     erklaert die Kopfzahl an jedem Eintrag, und die sieht er ja auch. */
+  /* istEigentuemer MUSS hier mit auf false: die Rollen sind eine LEITER, ein
+     Eigentuemer ohne Adminrecht kann es gar nicht geben. Bliebe das Feld auf
+     seiner Vorgabe, baute die Prueflage eine Lage nach, die der Server nie
+     ausliefert. */
+  const gwNurLesen = baueDom(JSDOM, { hash: '',
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false, istEigentuemer: false } });
+  await new Promise(r => setTimeout(r, 80));
+  await gwNurLesen.w.renderSystem();
+  await new Promise(r => setTimeout(r, 20));
+  const gwNDoc = gwNurLesen.w.document;
+  pruefe('Ohne Adminrecht steht kein Eingabefeld da',
+    gwNDoc.querySelectorAll('#mcrits .mgew-feld').length === 0);
+  pruefe('Das Gewicht selbst steht trotzdem an der Zeile',
+    gleich([...gwNDoc.querySelectorAll('#mcrits .mgew-fest')].map(z => z.textContent),
+           ['×1,5', '×1', '×0,5']),
+    JSON.stringify([...gwNDoc.querySelectorAll('#mcrits .mgew-fest')].map(z => z.textContent)));
+  gwNurLesen.w.close();
+
+  /* ---------------------------------------------------------------- */
   gruppe('Der Umschalter der Vergleichsansicht');
 
   /* Der Vergleich wird ueber den ECHTEN WEG erreicht: zwei Karten auswaehlen,
@@ -10421,10 +11322,13 @@ async function pruefeOberflaeche() {
       { id: 12, day: '2026-08-06', rating: 4, mine: false, verfasser: vBert2, tags: [] },
       { id: 13, day: '2026-08-07', rating: 3, mine: false, verfasser: vBert2, tags: [] }
     ],
+    /* Die Gewichte stehen wie im Doppelgaenger: 1,5 · 1 · 0,5. Damit ist die
+       Kopfzahl der Stellung "meine" gewichtet 4,6 und ungewichtet 4,5 -- die
+       Prueflage unterscheidet die beiden Formeln also wirklich. */
     ratings: [
-      { criterion_id: 7, name: 'Zuerst', value: 5, avg: 2, count: 3 },
-      { criterion_id: 8, name: 'Dann', value: 4, avg: 3, count: 2 },
-      { criterion_id: 9, name: 'Zuletzt', value: 0, avg: null, count: 0 }
+      { criterion_id: 7, name: 'Zuerst', value: 5, gewicht: 1.5, avg: 2, count: 3 },
+      { criterion_id: 8, name: 'Dann', value: 4, gewicht: 1, avg: 3, count: 2 },
+      { criterion_id: 9, name: 'Zuletzt', value: 0, gewicht: 0.5, avg: null, count: 0 }
     ],
     avgRating: 2.5, testCount: 3, testAvg: 4, testLast: 3
   };
@@ -10503,8 +11407,8 @@ async function pruefeOberflaeche() {
     JSON.stringify([cmpZeilen(0), cmpZeilen(1)]));
   /* DIE KOPFZEILE SCHALTET MIT -- sonst waere es derselbe Widerspruch mit
      einem Knopf davor: eigene Werte in den Zeilen, der Schnitt darueber.
-     4,5 ist das Mittel aus 5 und 4, im Klienten gebildet und genau einmal
-     gerundet. */
+     4,6 ist der GEWICHTETE Mittelwert aus 5 (x1,5) und 4 (x1), im Klienten
+     gebildet und genau einmal gerundet: 11,5 / 2,5. */
   /* ZWEI Pruefungen, nicht eine: die erste faellt, wenn die Kopfzeile
      ueberhaupt nicht mitschaltet, die zweite auch dann, wenn sie mitschaltet
      und dabei falsch rechnet. Stuende hier nur die zweite, machten beide
@@ -10513,8 +11417,38 @@ async function pruefeOberflaeche() {
   pruefe('Und die Kopfzeile schaltet mit',
     cmpKopf(1) !== '★ 2,5 Durchschnitt', cmpKopf(1));
   pruefe('Sie zeigt das Mittel der eigenen Werte, ohne die Nullen',
-    gleich([cmpKopf(0), cmpKopf(1)], ['★ 3,0 Durchschnitt', '★ 4,5 Durchschnitt']),
+    gleich([cmpKopf(0), cmpKopf(1)], ['★ 3,0 Durchschnitt', '★ 4,6 Durchschnitt']),
     JSON.stringify([cmpKopf(0), cmpKopf(1)]));
+  /* DIE ZWEITE RECHENSTELLE IST EBENSO GEWICHTET WIE DIE ERSTE. Bliebe sie
+     ungewichtet, stuende hier 4,5 -- und der Umschalter zeigte zwei Zahlen
+     nach zwei verschiedenen Formeln. Niemand koennte dann sagen, ob ein
+     Unterschied von der anderen Bewertermenge kommt oder von der fehlenden
+     Gewichtung.
+     Die eigene Rechnung steht danebengeschrieben: eine fest hingetippte 4,6
+     belegte nur, dass jemand einmal 4,6 getippt hat. */
+  const cmpUngewichtet = (5 + 4) / 2;
+  const cmpGewichtet = Math.round(((5 * 1.5 + 4 * 1) / (1.5 + 1)) * 10) / 10;
+  pruefe('Die eigene Zahl ist gewichtet, nicht das flache Mittel',
+    cmpKopf(1) === `★ ${cmpGewichtet.toFixed(1).replace('.', ',')} Durchschnitt` &&
+    cmpGewichtet !== cmpUngewichtet,
+    `${cmpKopf(1)} — gewichtet ${cmpGewichtet}, ungewichtet ${cmpUngewichtet}`);
+  /* Der Nenner zaehlt nur die Kriterien, die ICH bewertet habe. "Zuletzt"
+     traegt Gewicht 0,5 und keinen eigenen Wert; kaeme es in den Nenner,
+     stuende hier 11,5 / 3 = 3,8 -- die eigene Zahl laege unter der ueber alle,
+     ohne dass es an den Werten laege. */
+  pruefe('Ein Kriterium ohne eigenen Wert bringt sein Gewicht nicht in den Nenner',
+    cmpKopf(1) !== '★ 3,8 Durchschnitt', cmpKopf(1));
+  /* Die Marke am Kriterium: ×1,5 und ×0,5 stehen an ihren Zeilen, an der Zeile
+     mit Gewicht 1 steht nichts. Ableitung, kein Schalter. */
+  const cmpMarken = [...cmpSpalte(0).querySelectorAll('.cmp-crit .cn')]
+    .map(z => z.querySelector('.cgew')?.textContent || '');
+  pruefe('Das Gewicht steht an der Zeilenbeschriftung, und nur bei Abweichung',
+    gleich(cmpMarken, ['×1,5', '', '×0,5', '']), JSON.stringify(cmpMarken));
+  /* Einmal je Zeile, nicht je Spalte: das Gewicht gehoert dem Kriterium, und
+     die Spalten sind die Eintraege. */
+  pruefe('Und in der zweiten Spalte steht dieselbe Marke noch einmal',
+    gleich([...cmpSpalte(1).querySelectorAll('.cmp-crit .cn')]
+      .map(z => z.querySelector('.cgew')?.textContent || ''), ['×1,5', '', '×0,5', '']));
   // Die Testtagzeile ebenso, gezaehlt ueber mine.
   pruefe('Die Testtagzeile schaltet mit, gezaehlt ueber mine',
     cmpZeilen(0)[3] === '1' && cmpZeilen(1)[3] === '–',
