@@ -523,6 +523,16 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    aus, auch der Startanbieter: jeder bedeutet dasselbe, naemlich "ein Klick
    hierauf sucht dort". */
 .snamen { font-size: .7rem; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Die zweite Zeile der Linkzeile traegt zweierlei: links den Pfad -- bei einer
+   Suchzeile die Anbieternamen --, rechts den Namen dessen, der den Link
+   eingetragen hat. Der Name ist unverkuerzbar, abgeschnitten wird der Pfad.
+   Ohne diese Aufteilung frisst eine lange Adresse genau die Angabe weg, um
+   derentwillen die Zeile den Namen ueberhaupt traegt.
+   Der Name steht in --muted und nicht in --faint wie der Pfad: er ist die
+   Auskunft, der Pfad ist Beiwerk. Dieselbe Farbe wie am Kommentar (.cmt-von). */
+.lunten { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.lunten .path, .lunten .snamen { flex: 1 1 auto; min-width: 0; }
+.lunten .lvon { flex: 0 0 auto; font-size: .7rem; color: var(--muted); }
 .snamen .sname { cursor: pointer; transition: color .14s var(--ease); }
 .snamen .sname:hover { color: var(--accent-hi); text-decoration: underline; }
 

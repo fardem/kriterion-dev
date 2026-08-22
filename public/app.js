@@ -2427,19 +2427,63 @@ async function renderDetail(id) {
       const anbieter = suche ? suchListe() : [];
       const standard = anbieter[0] || null;
       const oben = suche ? l.url : dom;
+
+      /* WANN DER NAME AN DER ZEILE STEHT -- die Regel steht hier und nirgends
+         sonst. Zwei Bedingungen, und beide sagen dasselbe: gezeigt wird der
+         Name nur, wo er eine Auskunft ist.
+         Bei einem einzigen Zugang sagt "von mir" nichts -- dieselbe Schwelle
+         wie ueberall, sie steht in mehrereBenutzer().
+         Und an einer Zeile, die der Verfasser des Eintrags selbst eingetragen
+         hat, wiederholte der Name nur, was oben am Eintrag ohnehin steht. Was
+         uebrig bleibt, ist der Fall, um den es geht: jemand anderes hat etwas
+         beigesteuert. "Kein Name" heisst bei mehreren Zugaengen also "vom
+         Verfasser des Eintrags".
+         Verglichen wird ueber die Nummer, nicht ueber den Namen: ein Grabstein
+         hat keinen mehr. Fehlt der Verfasser auf beiden Seiten, ist niemand zu
+         nennen; fehlt er nur an der Zeile, steht dort "Ohne Verfasser" -- eine
+         herrenlose Zeile ist eine Auskunft. */
+      const fremdeZeile = (l.verfasser?.id ?? null) !== (item.verfasser?.id ?? null);
+      const zeigeVon = mehrereBenutzer() && fremdeZeile;
+      // Das Datum steht im Ueberfahrtext, nicht in der Zeile: die Zeile ist auf
+      // dem Handy am Anschlag, und der Name ist die Angabe, um die es geht.
+      const eingetragen = zeigeVon
+        ? `Eingetragen von ${verfasserName(l.verfasser)} am ${fmtDate(l.created_at)}` : '';
+
+      /* DAS LOESCHKREUZ FOLGT DEM RECHT, NICHT DER ANZEIGE: der Server laesst
+         den Eintrager und den Admin durch (darfAendern). Beides ist getrennt --
+         an der eigenen Zeile steht ein Kreuz ohne Namen, an einer fremden ein
+         Name ohne Kreuz, solange man nicht Admin ist.
+         `mine` sagt der Server; die Oberflaeche rechnet das nicht aus dem
+         Verfasserobjekt zurueck. */
+      const darfWeg = l.mine === true || ADMIN;
+
       const row = document.createElement('div');
       row.className = 'lrow' + (suche ? ' suche' : '');
       row.dataset.lid = l.id;
-      row.title = suche
+      const grundText = suche
         ? (standard ? `Suche nach „${l.url}" bei ${standard.name}` : `Suche nach „${l.url}"`)
         : l.url;
+      row.title = eingetragen ? `${grundText} · ${eingetragen}` : grundText;
+      // Die zweite Zeile traegt links den Pfad (bei einer Suchzeile die
+      // Anbieternamen) und rechts den Namen. Beides in EINER Zeile, damit die
+      // Linkzeile nicht auf drei Hoehen waechst; abgeschnitten wird der Pfad,
+      // nie der Name.
+      // Das Trennzeichen ist verschieden, und das mit Absicht: in der Suchzeile
+      // bedeutet " · " bereits "noch ein Anbieter, anklickbar". Derselbe Punkt
+      // vor einem Namen, der kein Klickziel ist, waere eine zweite Bedeutung
+      // fuer dasselbe Zeichen.
+      const untenLinks = suche ? '<span class="snamen"></span>'
+                               : (path ? `<span class="path">${esc(path)}</span>` : '');
+      const trenner = untenLinks ? (suche ? '— ' : '· ') : '';
+      const unten = untenLinks + (zeigeVon
+        ? `<span class="lvon">${trenner}${esc(verfasserName(l.verfasser))}</span>` : '');
       row.innerHTML = `<span class="grip" title="Zum Sortieren ziehen">⣿</span>
         <span class="lnum">${n + 1}</span>
         <span class="lurl"><span class="dom">${esc(oben)}</span>${
-          suche ? '<span class="snamen"></span>' : (path ? `<span class="path">${esc(path)}</span>` : '')
+          unten ? `<span class="lunten">${unten}</span>` : ''
         }</span>
         <span class="go">${suche ? ICON_SEARCH : '↗'}</span>
-        <button class="xdel" title="${suche ? 'Sucheintrag entfernen' : 'Link entfernen'}">✕</button>`;
+        ${darfWeg ? `<button class="xdel" title="${suche ? 'Sucheintrag entfernen' : 'Link entfernen'}">✕</button>` : ''}`;
       // Die Namen sind Eingabe des Admins und werden als Beschriftung
       // gerendert -- die erste Stelle in der Linkliste, an der das gilt.
       // Deshalb echte Knoten mit textContent statt innerHTML: Maskierung ist
@@ -2464,7 +2508,9 @@ async function renderDetail(id) {
           namensBox.appendChild(s);
         });
       }
-      row.querySelector('.xdel').onclick = async (e) => {
+      // Der Behandler nur dort, wo das Kreuz auch steht -- an einem fehlenden
+      // Element risse er den Aufbau der ganzen Liste mit.
+      if (darfWeg) row.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(suche ? 'Sucheintrag entfernen?' : 'Link entfernen?',
           `${suche ? `„${l.url}"` : dom} wird aus der Liste gelöscht.`, 'Entfernen')) return;
