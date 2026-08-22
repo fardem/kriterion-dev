@@ -2955,17 +2955,20 @@ async function renderDetail(id) {
     catch (e) { return toast(e.message, true); }
 
     const zaehl = (n, ein, mehr) => (n ? [`${n} ${n === 1 ? ein : mehr}`] : []);
+    // Fotos und Dateien haengen am Eintrag und gehoeren seinem Verfasser. Ein
+    // Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
     const inhalt = [
       ...zaehl(b.fotos, 'Foto', 'Fotos'),
-      ...zaehl(b.links, 'Link', 'Links'),
       ...zaehl(b.dateien, 'Datei', 'Dateien')
     ];
     const eigen = [
+      ...zaehl(b.eigenLinks, 'Link', 'Links'),
       ...zaehl(b.eigenKommentare, 'Kommentar', 'Kommentare'),
       ...zaehl(b.eigenBewertungen, 'Bewertung', 'Bewertungen'),
       ...(b.eigenTesttage ? [`${b.eigenTesttage} ${vZeit(b.eigenTesttage)}`] : [])
     ];
     const fremd = [
+      ...zaehl(b.fremdLinks, 'Link', 'Links'),
       ...zaehl(b.fremdKommentare, 'Kommentar', 'Kommentare'),
       ...zaehl(b.fremdBewertungen, 'Bewertung', 'Bewertungen'),
       ...(b.fremdTesttage ? [`${b.fremdTesttage} ${vZeit(b.fremdTesttage)}`] : [])
@@ -3771,11 +3774,12 @@ async function renderSystem() {
             `Der Zugang wird stillgelegt, der Name wird frei. Seine ${b.eintraege} ${vSache(b.eintraege)} ` +
             `und seine Beiträge bleiben sichtbar und tragen künftig „Gelöschter Benutzer ${z.id}“.\n\n` +
             `OK = seine ${b.eintraege} ${vSache(b.eintraege)} MITLÖSCHEN — samt ${b.fremdKommentare} fremden ` +
-            `Kommentaren, ${b.fremdBewertungen} fremden Bewertungen und ${b.fremdTesttage} fremden ` +
-            `${vZeit(b.fremdTesttage)} daran.\nAbbrechen = stehen lassen.`);
+            `Kommentaren, ${b.fremdBewertungen} fremden Bewertungen, ${b.fremdTesttage} fremden ` +
+            `${vZeit(b.fremdTesttage)} und ${b.fremdLinks} fremden Links daran.\nAbbrechen = stehen lassen.`);
           const beitraegeWeg = confirm(
             `Und seine Beiträge in fremden ${vSache(2)}?\n\n` +
-            `${b.kommentare} Kommentare, ${b.bewertungen} Bewertungen, ${b.testtage} ${vZeit(b.testtage)}.\n\n` +
+            `${b.kommentare} Kommentare, ${b.bewertungen} Bewertungen, ${b.testtage} ${vZeit(b.testtage)}, ` +
+            `${b.links} Links.\n\n` +
             `OK = mitlöschen.\nAbbrechen = stehen lassen.`);
           if (!confirm(`„${z.username}“ jetzt entfernen? Das lässt sich nicht rückgängig machen.`)) return;
           try {

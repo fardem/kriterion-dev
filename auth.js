@@ -281,10 +281,14 @@ function zaehleBestand(benutzerId) {
     fremdKommentare: eins(`SELECT COUNT(*) n FROM comments WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
     fremdBewertungen: eins(`SELECT COUNT(*) n FROM ratings WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
     fremdTesttage: eins(`SELECT COUNT(*) n FROM test_days WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
+    fremdLinks: eins(`SELECT COUNT(*) n FROM links WHERE user_id IS NOT ? AND item_id IN (${seine})`, id, id),
     // SEINE Beitraege in FREMDEN Eintraegen -- das zweite Haekchen
     kommentare: eins(`SELECT COUNT(*) n FROM comments WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
     bewertungen: eins(`SELECT COUNT(*) n FROM ratings WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
-    testtage: eins(`SELECT COUNT(*) n FROM test_days WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id)
+    testtage: eins(`SELECT COUNT(*) n FROM test_days WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id),
+    // Der fuenfte Traeger. Ohne ihn saehe ein Zugang, der zwanzig Links in
+    // fremden Eintraegen hinterlassen hat, im Dialog leer aus.
+    links: eins(`SELECT COUNT(*) n FROM links WHERE user_id = ? AND item_id NOT IN (${seine})`, id, id)
   };
 }
 
@@ -310,6 +314,9 @@ function entferneZugang(benutzerId, optionen = {}) {
       db.prepare('DELETE FROM comments WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM ratings WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM test_days WHERE user_id = ?').run(u.id);
+      // Der Dialog nennt seine Links; also gehen sie hier auch mit. Eine Zahl
+      // im Dialog, die nichts bewirkt, waere schlimmer als keine.
+      db.prepare('DELETE FROM links WHERE user_id = ?').run(u.id);
     }
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM item_pins WHERE user_id = ?').run(u.id);

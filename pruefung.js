@@ -3347,9 +3347,18 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Eine zurueckgesetzte Bewertung erscheint in keiner Zahl',
     fBCarla?.eigenBewertungen === 0 && fBCarla?.fremdBewertungen === 2,
     JSON.stringify(fBCarla));
-  pruefe('Fotos, Links und Dateien stehen ebenfalls im Dialog',
-    fBBert?.fotos === 0 && fBBert?.links === 0 && fBBert?.dateien === 0,
-    JSON.stringify(fBBert));
+  pruefe('Fotos und Dateien stehen mit je einer Zahl im Dialog',
+    fBBert?.fotos === 0 && fBBert?.dateien === 0, JSON.stringify(fBBert));
+  /* UMGESTELLT MIT 0.8.30, nicht geloescht: bis 0.8.20 stand hier EINE Zahl
+     fuer die Links. Seit die Zeile einen Verfasser hat, kann sie fremd sein und
+     gehoert auf dieselbe Seite wie Kommentar, Bewertung und Testtag. */
+  pruefe('Und die Links getrennt nach eigen und fremd',
+    fBBert?.eigenLinks === 1 && fBBert?.fremdLinks === 1, JSON.stringify(fBBert));
+  pruefe('Fuer den Admin ohne eigenen Beitrag sind beide Links fremd',
+    fBCarla?.eigenLinks === 0 && fBCarla?.fremdLinks === 2, JSON.stringify(fBCarla));
+  // Und die Gegenrichtung: fuer anna ist genau die andere Zeile die eigene.
+  pruefe('Fuer den zweiten Verfasser sind dieselben zwei Zeilen andersherum verteilt',
+    fBAnna?.eigenLinks === 1 && fBAnna?.fremdLinks === 1, JSON.stringify(fBAnna));
 
   const fBFremd = await fRuf('keks-f-dirk', 'GET', `/api/items/${fVId}/bestand`);
   pruefe('Wer nicht loeschen darf, bekommt die Zahlen nicht', fBFremd.status === 403,
@@ -4357,11 +4366,20 @@ const namen = (liste) => liste.map(c => c.name);
   await gRuf(gAnna, 'POST', `/api/items/${gBertItem.id}/comments`, { text: 'Annas Kommentar bei Bert' });
   await gRuf(gBert, 'POST', `/api/items/${gAnnaItem.id}/comments`, { text: 'Berts Kommentar bei Anna' });
   await gRuf(gBert, 'POST', `/api/items/${gAnnaItem.id}/test-days`, { day: '2026-05-05', rating: 4 });
+  // Beide Richtungen am fuenften Traeger: ein fremder Link an SEINEM Eintrag
+  // und sein Link in einem FREMDEN Eintrag.
+  await gRuf(gAnna, 'POST', `/api/items/${gBertItem.id}/links`, { url: 'https://annas-link-bei-bert.test' });
+  await gRuf(gBert, 'POST', `/api/items/${gAnnaItem.id}/links`, { url: 'https://berts-link-bei-anna.test' });
 
   const gBestand = await gRuf(gAnna, 'GET', `/api/users/${gBertId}/bestand`);
   pruefe('Der Loeschdialog bekommt die Zahlen, getrennt nach eigen und fremd',
     gBestand.inhalt?.eintraege === 1 && gBestand.inhalt?.fremdKommentare === 1 &&
     gBestand.inhalt?.kommentare === 1 && gBestand.inhalt?.testtage === 1,
+    JSON.stringify(gBestand.inhalt));
+  /* Der fuenfte Traeger, in beiden Richtungen. Ohne ihn saehe ein Zugang, der
+     zwanzig Links in fremden Eintraegen hinterlassen hat, im Dialog leer aus. */
+  pruefe('Und die Links in beiden Richtungen',
+    gBestand.inhalt?.fremdLinks === 1 && gBestand.inhalt?.links === 1,
     JSON.stringify(gBestand.inhalt));
 
   const gWeg = await gRuf(gAnna, 'DELETE', `/api/users/${gBertId}`);
@@ -4383,10 +4401,14 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Seine Kommentare in fremden Eintraegen ebenso',
     gZeilen('SELECT COUNT(*) n FROM comments WHERE user_id = ?', gBertId)[0]?.n === 1,
     JSON.stringify(gZeilen('SELECT id, text, user_id FROM comments')));
+  pruefe('Seine Links in fremden Eintraegen ebenfalls',
+    gZeilen('SELECT COUNT(*) n FROM links WHERE user_id = ?', gBertId)[0]?.n === 1,
+    JSON.stringify(gZeilen('SELECT id, url, user_id FROM links')));
   pruefe('Nichts ist dabei herrenlos geworden',
     gZeilen('SELECT COUNT(*) n FROM items WHERE user_id IS NULL')[0]?.n === 0 &&
     gZeilen('SELECT COUNT(*) n FROM comments WHERE user_id IS NULL')[0]?.n === 0 &&
-    gZeilen('SELECT COUNT(*) n FROM test_days WHERE user_id IS NULL')[0]?.n === 0);
+    gZeilen('SELECT COUNT(*) n FROM test_days WHERE user_id IS NULL')[0]?.n === 0 &&
+    gZeilen('SELECT COUNT(*) n FROM links WHERE user_id IS NULL')[0]?.n === 0);
   /* Und wie der stehengebliebene Beitrag jetzt auf den Bildschirm kommt: die
      Antwort nennt die NUMMER und sagt "geloescht", die Oberflaeche macht
      daraus "Geloeschter Benutzer <nr>". Der freigegebene Grabsteinname geht
@@ -4433,11 +4455,18 @@ const namen = (liste) => liste.map(c => c.name);
   const gEmilItem = (await gRuf(gEmilKeks, 'POST', '/api/items', { title: 'Emils Eintrag' })).inhalt;
   await gRuf(gAnna, 'POST', `/api/items/${gEmilItem.id}/comments`, { text: 'Annas Kommentar bei Emil' });
   await gRuf(gEmilKeks, 'POST', `/api/items/${gAnnaItem.id}/comments`, { text: 'Emils Kommentar bei Anna' });
+  await gRuf(gAnna, 'POST', `/api/items/${gEmilItem.id}/links`, { url: 'https://annas-link-bei-emil.test' });
+  await gRuf(gEmilKeks, 'POST', `/api/items/${gAnnaItem.id}/links`, { url: 'https://emils-link-bei-anna.test' });
   const gEmilBestand = (await gRuf(gAnna, 'GET', `/api/users/${gEmilId}/bestand`)).inhalt;
   pruefe('Die Zahlen nennen den fremden Kommentar an seinem Eintrag',
     gEmilBestand?.eintraege === 1 && gEmilBestand?.fremdKommentare === 1 &&
     gEmilBestand?.kommentare === 1, JSON.stringify(gEmilBestand));
+  pruefe('Und den fremden Link daran ebenso',
+    gEmilBestand?.fremdLinks === 1 && gEmilBestand?.links === 1,
+    JSON.stringify(gEmilBestand));
   const gAnnaKommentarVorher = gZeilen('SELECT COUNT(*) n FROM comments WHERE item_id = ?',
+    gAnnaItem.id)[0].n;
+  const gAnnaLinksVorher = gZeilen('SELECT COUNT(*) n FROM links WHERE item_id = ?',
     gAnnaItem.id)[0].n;
   await gRuf(gAnna, 'DELETE', `/api/users/${gEmilId}?eintraege=1&beitraege=1`);
   pruefe('Mit dem ersten Haekchen sind seine Eintraege weg',
@@ -4448,6 +4477,14 @@ const namen = (liste) => liste.map(c => c.name);
     gZeilen('SELECT COUNT(*) n FROM comments WHERE item_id = ?', gAnnaItem.id)[0].n
       === gAnnaKommentarVorher - 1,
     `${gZeilen('SELECT COUNT(*) n FROM comments WHERE item_id = ?', gAnnaItem.id)[0].n} von ${gAnnaKommentarVorher}`);
+  /* Und sein Link ebenso. Eine Zahl im Dialog, die nichts bewirkt, waere
+     schlimmer als keine: der Haken sagt "mitloeschen". */
+  pruefe('Und sein Link im fremden Eintrag desgleichen',
+    gZeilen('SELECT COUNT(*) n FROM links WHERE item_id = ?', gAnnaItem.id)[0].n
+      === gAnnaLinksVorher - 1,
+    `${gZeilen('SELECT COUNT(*) n FROM links WHERE item_id = ?', gAnnaItem.id)[0].n} von ${gAnnaLinksVorher}`);
+  pruefe('Der fremde Link an seinem Eintrag ging ueber die Kaskade mit',
+    gZeilen('SELECT COUNT(*) n FROM links WHERE item_id = ?', gEmilItem.id)[0].n === 0);
   pruefe('Der fremde Eintrag selbst bleibt stehen',
     gZeilen('SELECT id FROM items WHERE id = ?', gAnnaItem.id).length === 1);
   pruefe('Und auch hier bleibt die Zeile als Grabstein stehen',
@@ -5770,24 +5807,34 @@ const namen = (liste) => liste.map(c => c.name);
   const fuellItem = (await ruf('POST', '/api/items', { title: 'Schlussdurchlauf' })).inhalt;
   await ruf('POST', `/api/items/${fuellItem.id}/test-days`, { day: '2024-07-07', rating: 2 });
   await sendeKommentar(fuellItem.id, { text: 'Kommentar zum Schlussdurchlauf' });
+  // Der fuenfte Traeger seit 0.8.30, ueber beide Wege: von Hand eingetragen
+  // (hier) und eingespielt (unten in der Importdatei, in beiden Formen).
+  await ruf('POST', `/api/items/${fuellItem.id}/links`, { url: 'https://schluss.test/eins' });
+  await ruf('POST', `/api/items/${fuellItem.id}/links`, { url: 'Schlusssuchtext' });
   // Auch ratings gehoert mit in den Durchlauf -- ueber beide Wege, auf
   // denen eine Bewertungszeile entsteht: von Hand gesetzt und eingespielt.
   const schlussKriterien = (await ruf('GET', '/api/criteria')).inhalt;
   await ruf('PUT', `/api/items/${fuellItem.id}/ratings`,
     { criterionId: schlussKriterien[0].id, value: 4 });
   await sendeImport({ version: 5, title: 'S', items: [
+    // Formatnummer 5: die Linkzeile ist eine nackte Zeichenkette ohne
+    // Verfasser -- sie muss trotzdem eine user_id bekommen.
     { title: 'Schluss eins', testDays: [{ day: '2024-07-08', rating: 3 }],
       ratings: [{ name: schlussKriterien[0].name, value: 5 }],
+      links: ['https://schluss.example/alt', 'Alter Suchtext'],
       comments: [{ text: 'S1a' }, { text: 'S1b' }] },
+    // Und die neue Form daneben, mit und ohne genannten Namen.
     { title: 'Schluss zwei', testDays: [{ day: '2024-07-09', rating: 4 }],
       ratings: [{ name: schlussKriterien[0].name, value: 2 },
                 { name: 'Frisch erfundenes Kriterium', value: 3 }],
+      links: [{ url: 'https://schluss.example/neu', author: null },
+              { url: 'https://schluss.example/wer', author: 'gibtesnicht' }],
       comments: [{ text: 'S2a' }] }
   ] }, 'merge');
 
   const schluss = oeffne(path.join(DATA, 'katalog.sqlite'));
   const schlussZahl = {};
-  for (const t of ['items', 'comments', 'test_days', 'ratings']) {
+  for (const t of ['items', 'comments', 'test_days', 'ratings', 'links']) {
     schlussZahl[t] = schluss.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n;
     const ohne = schluss.prepare(`SELECT COUNT(*) n FROM ${t} WHERE user_id IS NULL`).get().n;
     pruefe(`${t}: keine der ${schlussZahl[t]} Zeilen ist ohne Benutzer`, ohne === 0,
@@ -5795,9 +5842,10 @@ const namen = (liste) => liste.map(c => c.name);
   }
   pruefe('Der Durchlauf laeuft ueber einen belastbaren Bestand',
     schlussZahl.items >= 5 && schlussZahl.comments >= 4 && schlussZahl.test_days >= 4 &&
-    schlussZahl.ratings >= 4,
+    schlussZahl.ratings >= 4 && schlussZahl.links >= 6,
     `${schlussZahl.items} Eintraege, ${schlussZahl.comments} Kommentare, ` +
-    `${schlussZahl.test_days} Testtage, ${schlussZahl.ratings} Bewertungen`);
+    `${schlussZahl.test_days} Testtage, ${schlussZahl.ratings} Bewertungen, ` +
+    `${schlussZahl.links} Links`);
   schluss.close();
 
   /* ---------------------------------------------------------------- */
@@ -6342,7 +6390,8 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        jedem Feld, damit sich sehen laesst, ob der Dialog jede an ihrer
        richtigen Stelle nennt. */
     if (url === '/api/items/1/bestand')
-      return gib({ fotos: 1, dateien: 4, links: 8,
+      return gib({ fotos: 1, dateien: 4,
+                   eigenLinks: 6, fremdLinks: 8,
                    eigenKommentare: 2, fremdKommentare: 4,
                    eigenBewertungen: 1, fremdBewertungen: 3,
                    eigenTesttage: 1, fremdTesttage: 2 });
@@ -7936,14 +7985,19 @@ async function pruefeOberflaeche() {
     eMehr.gesendet.some(x => x.url === '/api/items/1/bestand'),
     JSON.stringify(eMehr.gesendet.slice(-3)));
   const eDialog = eDoc.querySelector('.backdrop .modal p')?.textContent || '';
+  /* UMGESTELLT MIT 0.8.30, nicht geloescht: bis 0.8.20 stand hier "8 Links"
+     im ersten Satz. Ein Link kann seit dieser Fassung fremd sein und gehoert
+     damit zu den Beitraegen, nicht zum Eintrag. */
   pruefe('Der Dialog nennt, was am Eintrag selbst haengt',
-    /1 Foto/.test(eDialog) && /8 Links/.test(eDialog) && /4 Dateien/.test(eDialog), eDialog);
+    /1 Foto/.test(eDialog) && /4 Dateien/.test(eDialog), eDialog);
+  pruefe('Und die Links stehen ausdruecklich nicht mehr darunter',
+    !/Dabei gehen[^.]*Links/.test(eDialog), eDialog);
   pruefe('Und die eigenen Beitraege getrennt',
-    /Dazu 2 Kommentare, 1 Bewertung, 1 Testtag von mir/.test(eDialog), eDialog);
+    /Dazu 6 Links, 2 Kommentare, 1 Bewertung, 1 Testtag von mir/.test(eDialog), eDialog);
   /* Der eigentliche Gegenstand: was ANDEREN gehoert, steht in einem eigenen
      Satz -- die Kaskade nimmt es mit, und das darf nicht wortlos geschehen. */
   pruefe('Und die fremden in einem eigenen Satz',
-    /Und von anderen: 4 Kommentare, 3 Bewertungen, 2 Testtage/.test(eDialog), eDialog);
+    /Und von anderen: 8 Links, 4 Kommentare, 3 Bewertungen, 2 Testtage/.test(eDialog), eDialog);
   eDoc.querySelector('.backdrop [data-no]')?.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 20));
   eMehr.w.close();
