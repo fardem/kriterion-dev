@@ -1,17 +1,33 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 21. August 2026 · gebaut bis Version 0.8.10 — Abdruck `48fe44e7`**
+**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.20 — Abdruck `3ab38137`**
 (Stufen A bis G3 erledigt, **G3 vollständig**; 0.8.1 war eine **Bereinigung**,
-0.8.6 eine Runde **Berichtigungen aus dem Betrieb** und 0.8.10 die Runde
-**Werkzeug** — alle drei keine Stufen.)
+0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10 die Runde
+**Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle vier keine
+Stufen.)
 
-**0.8.10 hat den Mehrbenutzerbetrieb nicht berührt.** Sie ging an den Bau
-(Sperrdatei, `npm ci`, `sharp`, Node 22), an den Prüfstand (Gruppenfilter,
-Prüflauf bei jedem Push) und mit dem Versionsabdruck an eine einzige Zeile im
-Systembereich. Keine Rolle, kein Recht, kein Endpunkt, kein Schema — dieses
-Papier ändert sich dadurch nur in seinen Nummern. **Die nächste Stufe des
-Umbaus bleibt G4 auf 0.8.30**, und davor liegt mit 0.8.20 noch eine Runde
-ohne Schemaänderung.
+**Weder 0.8.10 noch 0.8.20 haben den Mehrbenutzerbetrieb berührt.** 0.8.10
+ging an den Bau (Sperrdatei, `npm ci`, `sharp`, Node 22), an den Prüfstand
+(Gruppenfilter, Prüflauf bei jedem Push) und mit dem Versionsabdruck an eine
+einzige Zeile im Systembereich. 0.8.20 ging an die Absicherung: der Fotoweg
+liefert nie mehr den gemeldeten Typ, die Anwendung bekommt eine
+Sicherheitsregel, der Kopf `X-Forwarded-For` wird nur noch nach ausdrücklicher
+Einstellung geglaubt, der Fehler-Handler trennt Absicht von Panne, dazu
+sauberes Herunterfahren und ein Index auf `sessions.user_id`. Keine Rolle,
+kein Recht, kein Endpunkt, kein Schema — dieses Papier ändert sich durch
+beide nur in seinen Nummern.
+
+**Damit ist die nächste Version die nächste Stufe: G4 auf 0.8.30.** Die beiden
+Runden ohne Schemaänderung, die davor lagen, sind gebaut.
+
+**Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
+`HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
+hängen auch `Secure` am Sitzungskeks, `Strict-Transport-Security` und das
+Präfix `__Host-` am Keksnamen. Wer künftig etwas an der Sitzung baut (Stufe H,
+„Meine Sitzungen"), findet den Keksnamen deshalb **nicht** als feste
+Zeichenkette vor, sondern nimmt ihn aus `auth.COOKIE_NAME`. Im Betrieb steht
+die Einstellung auf der Vorgabe **aus**; sie gehört auf `1`, sobald Kriterion
+über den Proxy nach außen geht (Projektstand, Abschnitte 2 und 3).
 
 Dieses Papier trägt die Entwürfe der Stufen und was beim Bauen anders kam.
 Erledigtes steht seit der Bereinigung als **Ergebnisblock** — was gilt, mit
@@ -484,13 +500,14 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | **G3** | **0.8.5** | „Der Systembereich lernt die Rechte": dreizehn Karten nach Rolle, `GET /api/stats` hinter den Admin, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien — **erledigt**, siehe unten | mittel |
 | — | **0.8.6** | *Keine Stufe.* **Berichtigungen aus dem Betrieb:** Bewertungsdetails nur noch für den Admin (eigener Endpunkt, Löschweg mitgewandert), Scrollen der Linkliste am Finger, Lücke im Kartenraster, Datum am Eintragsverfasser, „angemeldet als" in der Kopfzeile — **erledigt**, siehe unten | klein |
 | — | **0.8.10** | *Keine Stufe.* **Werkzeug:** `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Abbild auf Node 22, Versionsabdruck über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push — **erledigt**, den Umbau nicht berührt | klein |
+| — | **0.8.20** | *Keine Stufe.* **„Die Schotten dicht":** SVG am Fotoweg (Typ aus den ersten Bytes statt aus der Datenbank), Sicherheitsregel für die Anwendung selbst, `X-Forwarded-For` nur nach Einstellung samt `Secure`/HSTS/`__Host-`, Fehler-Handler nach Rang, sauberes Herunterfahren, Index auf `sessions.user_id` — **erledigt**, den Umbau nicht berührt | klein |
 | **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der Zeile ab zwei Zugängen, Formatnummer 6 → 7 | mittel |
 | **H** | **0.8.80** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
 | **I** | 0.9.0 | Mailversand mit Anbietervorlagen, öffentliche Adresse, Testmail, Selbstregistrierung mit Freischaltung. *Abbruchpunkt: nach dem Versand, vor der Selbstregistrierung.* | groß |
 
-**Vor G4 liegt noch eine Runde ohne Schemaänderung** (0.8.20 „Die Schotten
-dicht"; 0.8.10 „Werkzeug" ist gebaut), **zwischen G4 und H vier weitere
-Stufen** (Gewichtung, Kurzvideos, „Offen/Neu", Sicherung und Papierkorb). Alle fünf gehören nicht
+**Vor G4 liegt nichts mehr** — die beiden Runden ohne Schemaänderung (0.8.10
+„Werkzeug", 0.8.20 „Die Schotten dicht") sind gebaut. **Zwischen G4 und H
+liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu", Sicherung und Papierkorb). Alle fünf gehören nicht
 zum Mehrbenutzerbetrieb und stehen deshalb im Projektstand, Abschnitt 10 —
 zusammen mit der Begründung für die Reihenfolge.
 
@@ -929,6 +946,24 @@ wurde, ob wirklich der neue Dateisatz läuft (siehe „Nachprüfen per SSH"). Un
 er wird **zuletzt** gebildet, nach der letzten Änderung an einer
 ausgelieferten Datei — jede spätere Änderung macht die genannte Zeile falsch.
 
+## 0.8.20 — „Die Schotten dicht" — erledigt in Version 0.8.20
+
+**Kein Block, und das ist die Auskunft.** 0.8.20 hat den Mehrbenutzerbetrieb
+an keiner Stelle berührt: keine Rolle, kein Recht, kein Endpunkt, kein Schema.
+`F_ROUTEN` blieb bei 46. Was gebaut wurde und was davon gilt, steht im
+Projektstand, Abschnitte 2, 5, 5a, 7 und 9.
+
+**Zwei Dinge wirken trotzdem hierher**, weil sie jede kommende Stufe betreffen:
+
+- **Der Sitzungskeks heißt nicht mehr fest `kriterion_session`.** Bei
+  `HINTER_PROXY=1` heißt er `__Host-kriterion_session` und trägt `Secure`. Wer
+  in Stufe H „Meine Sitzungen" baut, nimmt den Namen aus `auth.COOKIE_NAME`
+  und schreibt ihn nirgends ab.
+- **Der ausgelieferte Typ kommt nie aus der Datenbank**, und ein Wächter im
+  Prüfstand hält das fest: keine Zeile in `server.js` setzt den Content-Type
+  selbst. Er wird namentlich rot, sobald jemand eine Auslieferung ergänzt —
+  gedacht für 0.8.50, wo ein Video inline ausgeliefert wird.
+
 ## Stufe G4 — offen, Version 0.8.30
 
 **„Die Linkliste bekommt Verfasser."** Heute gehören Links dem
@@ -977,7 +1012,7 @@ curl -s -c kekse.txt -X POST localhost:3100/api/login \
 curl -s -b kekse.txt localhost:3100/api/stats | head -c 60
 ```
 
-Erwartet für 0.8.10: `{"version":"0.8.10","abdruck":"48fe44e7",…`. Der Abdruck
+Erwartet für 0.8.20: `{"version":"0.8.20","abdruck":"3ab38137",…`. Der Abdruck
 jeder Version steht im Kopf des Projektstands und in ihrem
 Änderungsprotokoll. **Was er nicht abdeckt:** `zugang.js` — es liegt im
 Abbild, läuft aber nie im Server.

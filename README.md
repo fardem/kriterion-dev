@@ -34,6 +34,10 @@ der Container startet. Deshalb der Schritt `cp .env.example .env` oben. Die
 **Titel werden im Systembereich der Anwendung gepflegt**, nicht über die
 Umgebung.
 
+Ein zweiter Eintrag ist möglich und in der Vorgabe **aus**: `HINTER_PROXY=1`,
+wenn Kriterion hinter einem Reverse Proxy betrieben wird. Was daran hängt,
+steht im Abschnitt „Anmeldung".
+
 **Passwort vergessen?** Auf dem Server, nicht über die `.env`:
 
 ```bash
@@ -117,7 +121,50 @@ Gezählt wird zusätzlich je Benutzername — dort wird nur verzögert, nie
 gesperrt: eine harte Namenssperre wäre ein Werkzeug *gegen* fremde Zugänge.
 
 Wird Kriterion über einen Reverse Proxy nach außen gegeben, dann **nur über
-HTTPS** — sonst wandert das Passwort im Klartext durchs Netz.
+HTTPS** — sonst wandert das Passwort im Klartext durchs Netz. Und dann gehört
+`HINTER_PROXY=1` in die `.env`.
+
+**Warum die Einstellung nötig ist.** Ein Reverse Proxy nimmt die Verbindung des
+Besuchers entgegen und öffnet eine **eigene** zum Container. Kriterion sieht an
+der Verbindung deshalb immer nur den Proxy; die Adresse des Besuchers kommt
+allein als Kopfzeile `X-Forwarded-For` an. **Ein Kopf vom Aufrufer ist aber nie
+eine Feststellung, sondern eine Behauptung** — wer ihn bei jedem Anmeldeversuch
+ändert, bekäme sonst jedes Mal einen frischen Zähler, und die Bremse je Adresse
+liefe ins Leere. Geglaubt wird er deshalb nur, wo ausdrücklich eingestellt ist,
+dass ein Proxy davorsteht.
+
+Eine Einstellung, fünf Wirkungen:
+
+| | `HINTER_PROXY` fehlt (Vorgabe) | `HINTER_PROXY=1` |
+|---|---|---|
+| Adresse des Aufrufers | die tatsächliche Verbindung | der **letzte** Eintrag aus `X-Forwarded-For` |
+| Sitzungskeks | `kriterion_session` | `__Host-kriterion_session` |
+| `Secure` am Keks | nein | ja |
+| `Strict-Transport-Security` | nein | `max-age=31536000` |
+| richtig für | direkt im Heimnetz, Port 3100 | Betrieb hinter einem Proxy, HTTPS |
+
+Der **letzte** Eintrag der Kette und nicht der erste: ein Proxy hängt die
+Gegenstelle, die er wirklich sieht, hinten an — alles davor kann der Aufrufer
+selbst hineingeschrieben haben.
+
+Zwei Dinge beim Umlegen:
+
+- **Es meldet alle einmalig ab.** Das Präfix `__Host-` verlangt den Keksnamen
+  wörtlich; der alte Name wird nicht mehr gelesen. Kein Datenverlust, nur eine
+  neue Anmeldung.
+- **Danach geht die Anmeldung nur noch über HTTPS.** Der `Secure`-Keks wird
+  über `http://` vom Browser verworfen — ein direkter Aufruf von
+  `http://<server-ip>:3100` käme nicht mehr herein.
+
+Der Start sagt im Protokoll, welche Lage gilt: `Hinter Proxy: an` oder
+`Hinter Proxy: aus`.
+
+**Was die Einstellung nicht ist:** eine Liste, wer den Kopf setzen darf. Bleibt
+der Port des Containers im eigenen Netz erreichbar, kann dort auch jemand von
+Hand einen Kopf mitschicken und die Bremse damit umgehen — ein gewöhnlicher
+Browser tut das nicht, ein absichtlicher Aufruf schon. Wer das ausschließen
+will, gibt den Port nicht mehr im Netz frei, sondern lässt allein den Proxy
+heran.
 
 ### Rollen und Zugänge
 
@@ -535,6 +582,27 @@ haben. Die Verteidigung liegt in Schichten, damit kein einzelner Fehler genügt:
    vollständige `sandbox`. Daneben steht immer ein Verweis „In neuem Tab
    öffnen", falls ein Browser das Einbetten trotzdem verweigert.
 
+**Fotos folgen derselben Regel** — seit 0.8.20 und in beiden Richtungen. Beim
+**Hochladen** wird das Ergebnis geprüft, nicht die Angabe: was `sharp` nicht als
+JPEG, PNG, WebP, AVIF, GIF oder TIFF liest, wird abgewiesen. Eine SVG kommt
+damit gar nicht erst herein — sie bestand den alten Filter, weil sie sich
+`image/svg+xml` nennt, und ließ sich anstandslos zu Vorschaubildern rastern.
+Beim **Ausliefern** entscheiden die ersten Bytes, nie der gespeicherte Typ:
+alles Unerkannte geht als `application/octet-stream` zum Herunterladen heraus.
+Damit ist auch geschützt, was schon vorher in der Datenbank lag — eine
+Ableitung braucht keine Datenüberführung. Die Spalte `photos.mime_type` bleibt
+stehen und wird weiter angezeigt; sie ist eine Anzeige, keine Grundlage der
+Auslieferung.
+
+**Die Anwendung selbst hat ebenfalls eine `Content-Security-Policy`** (seit
+0.8.20, auf jeder Antwort): `default-src 'self'`, `script-src 'self'` ohne
+jedes eingebettete Skript, `frame-ancestors 'none'`, `base-uri 'none'`,
+`form-action 'none'`. `frame-src 'self'` trägt die PDF-Vorschau. Bei
+`style-src` steht `'unsafe-inline'`, und zwar nötigerweise: die Oberfläche
+setzt Abstände, Rasterspalten und den Fokuspunkt als `style="…"`-Attribut, und
+ohne die Freigabe verwirft der Browser jedes davon. Die tragende Zeile ist
+`script-src` — dort steht sie nicht.
+
 **Bilder in Kommentaren sind der eine Fall, in dem doch beim Hochladen
 geprüft wird:** dort ist ausschließlich Bild erlaubt, jede Datei geht durch
 `sharp` und wird neu kodiert gespeichert. Was `sharp` nicht als Bild lesen kann,
@@ -583,6 +651,11 @@ Für den Bestand genügt das Verzeichnis `./data`. Wurde ein eigener
 `ENCRYPTION_KEY` gesetzt, gehört dieser **getrennt davon** gesichert — siehe den
 Abschnitt zum Schlüssel. Ohne ihn lässt sich aus der Sicherung nichts
 wiederherstellen.
+
+`docker compose down` beendet den Server sauber: er schließt die WAL-Datei ab
+und die Datenbank, bevor er geht. Wer im Anschluss sichert, sichert damit einen
+vollständigen Stand — vorher blieb bei einem harten Ende eine offene WAL
+liegen.
 
 Zusätzlich empfiehlt sich ein gelegentlicher Export über den Systembereich: Er
 ist unabhängig von Datenbankformat und Schlüssel und lässt sich jederzeit wieder
@@ -699,7 +772,9 @@ frisch über Einrichtungsseite und Verwaltung. Geprüft werden unter anderem die
 Rechteschicht mit mehreren Zugängen nebeneinander, die Zugangsverwaltung samt
 `zugang.js` als echtem Prozess, die Kriterienverwaltung samt Reihenfolge, deren
 Wirkung auf Detailansicht, Vergleich und Export, die Auslieferungsregeln für
-Anhänge sowie die mitwachsenden Textfelder im echten DOM.
+Anhänge **und Fotos** — samt echtem Upload einer SVG und Kontrolle des
+ausgelieferten Bytestroms —, die Anmeldebremse in beiden Proxy-Lagen sowie die
+mitwachsenden Textfelder im echten DOM.
 
 Die Datei `pruefung.js` ist per `.dockerignore` ausgeschlossen und landet nicht
 im Abbild.

@@ -103,7 +103,33 @@ Alternativen dazu.
 Vier davon halte ich für Sicherheitsbefunde, drei für Betriebsmängel. Alle
 sind reproduziert.
 
-### 2.1 SVG kommt als Foto herein und geht mit seinem Typ wieder heraus — **hoch**
+> **Stand der Befunde — nachgetragen, der Text darunter bleibt wie er war.**
+> Dieses Papier ist **Quelle, nicht Stand**: es hält fest, wie die Befunde
+> entstanden und womit sie belegt wurden. Was daraus gilt, steht im
+> Projektstand. Damit niemand die Liste als offen liest:
+>
+> | Befund | eingelöst | wie |
+> |---|---|---|
+> | 2.1 SVG am Fotoweg | **0.8.20** | zwei Schichten: `sharp().metadata()` beim Hochladen, Typ aus den ersten Bytes beim Ausliefern |
+> | 2.2 `X-Forwarded-For` | **0.8.20** | Einstellung `HINTER_PROXY`, Vorgabe aus; gelesen wird der **letzte** Eintrag der Kette |
+> | 2.3 `Secure` am Keks | **0.8.20** | hängt an derselben Einstellung, dazu `__Host-` und HSTS |
+> | 2.4 CSP für die Anwendung | **0.8.20** | gebaut — mit einer Abweichung, siehe unten |
+> | 2.5 Abhängigkeiten festnageln | **0.8.10** | `package-lock.json` im Repo, `npm ci`, `sharp` 0.35.3, Node 22 |
+> | 2.6 Fehler-Handler | **0.8.20** | Absicht behält ihren Rang, alles Übrige 500 mit festem Text |
+> | 2.7a sauberes Herunterfahren | **0.8.20** | `SIGTERM`/`SIGINT` schließen WAL und Datenbank |
+> | 2.7b Healthcheck | **0.8.20** | `HEALTHCHECK` gegen `/api/config` |
+>
+> **Eine Messung dieses Papiers hat sich als falsch erwiesen** (2.4): dass
+> `style-src 'self'` ein `style="…"`-Attribut weiterhin erlaube. Im echten
+> Chromium nachgemessen verwirft der Browser damit **jedes** solche Attribut,
+> und in `public/app.js` stehen 36. Gebaut ist deshalb `style-src 'self'
+> 'unsafe-inline'`; `script-src` bleibt streng. Einzelheiten im
+> Änderungsprotokoll 0.8.20, Abweichung A.
+>
+> **Und der Rat aus Abschnitt 8 ist gebaut:** der Wächter im Prüfstand, der
+> festhält, dass keine Zeile in `server.js` den Content-Type selbst setzt.
+
+### 2.1 SVG kommt als Foto herein und geht mit seinem Typ wieder heraus — **hoch** · *eingelöst in 0.8.20*
 
 **Der Befund.** `anhaenge.js` trägt im Kopf die Sicherheitsregel des Projekts
 in acht Punkten. Punkt 1: *„Der gemeldete Typ des Hochladenden wird
@@ -181,7 +207,7 @@ Der Foto-Pfad benutzt ihn nur nicht.
 Die Spalte `photos.mime_type` bleibt stehen und wird weiter angezeigt — genau
 wie `attachments.mime_type`, mit demselben Kommentar daneben.
 
-### 2.2 `X-Forwarded-For` wird ungeprüft geglaubt — die IP-Bremse läuft ins Leere — **hoch**
+### 2.2 `X-Forwarded-For` wird ungeprüft geglaubt — die IP-Bremse läuft ins Leere — **hoch** · *eingelöst in 0.8.20*
 
 **Der Befund.**
 
@@ -235,7 +261,7 @@ den ich vorschlagen würde in Abschnitt 5 aufzunehmen:
 Dazu ein Satz in der README beim Reverse-Proxy-Hinweis, der ohnehin schon
 dort steht.
 
-### 2.3 Der Session-Cookie trägt kein `Secure` — **mittel**
+### 2.3 Der Session-Cookie trägt kein `Secure` — **mittel** · *eingelöst in 0.8.20*
 
 ```js
 // auth.js:465
@@ -259,7 +285,7 @@ den Cookie verwerfen und niemand käme mehr herein.
 wer es aus lässt, ist im eigenen Netz. Eine Einstellung, zwei Wirkungen, kein
 zweiter Schalter — das entspricht der Doktrin.
 
-### 2.4 Die Anwendung selbst hat keine Content-Security-Policy — **mittel**
+### 2.4 Die Anwendung selbst hat keine Content-Security-Policy — **mittel** · *eingelöst in 0.8.20, mit Abweichung*
 
 Anhänge bekommen `default-src 'none'; sandbox`. Die eigentliche Seite bekommt
 nichts. Sie **braucht** heute auch nichts: es gibt kein `onclick=` in
@@ -283,7 +309,7 @@ irgendwo ein `style="…"`-Attribut gesetzt wird — das erlaubt `style-src`
 weiterhin, `unsafe-inline` wäre nur für `<style>`-Elemente nötig. Beides ist
 im Prüfstand belegbar.
 
-### 2.5 Die Abhängigkeiten sind nicht festgenagelt — **mittel**
+### 2.5 Die Abhängigkeiten sind nicht festgenagelt — **mittel** · *eingelöst in 0.8.10*
 
 Drei Dinge, die zusammengehören:
 
@@ -334,7 +360,7 @@ Prüfstand deckt die Bildwege ab, der Test dafür existiert also schon.
 Rhythmus wie der Prüfstand. Ein selbstgehostetes System bekommt keine
 Sicherheitsupdates geschenkt.
 
-### 2.6 Der Fehler-Handler antwortet auf alles mit 400 — **klein**
+### 2.6 Der Fehler-Handler antwortet auf alles mit 400 — **klein** · *eingelöst in 0.8.20*
 
 ```js
 // server.js:2369
@@ -360,7 +386,7 @@ ohne Markierung wird 500 mit festem Text; die Einzelheiten bleiben im
 Protokoll. Multer-Fehler („Datei zu groß") sind echte 400 und behalten ihre
 Meldung.
 
-### 2.7 Kein sauberes Herunterfahren, kein Healthcheck — **klein**
+### 2.7 Kein sauberes Herunterfahren, kein Healthcheck — **klein** · *eingelöst in 0.8.20*
 
 **a)** Es gibt keinen `SIGTERM`-Handler. `docker compose down` beendet den
 Prozess hart; die WAL-Datei bleibt liegen und die Datenbank wird beim nächsten
@@ -1074,15 +1100,19 @@ Das gehört mit dazu, sonst liest sich die Liste oben wie eine Mängelanzeige.
 
 ## 7. Was ich zuerst machen würde
 
-| # | Was | Aufwand | Warum jetzt |
-|---|---|---|---|
-| 1 | **2.1** SVG als Foto | klein | Sicherheit, und die Regel dagegen steht schon im Projekt |
-| 2 | **2.2** `X-Forwarded-For` + **2.3** `Secure` | klein | eine Einstellung, zwei Sicherheitsbefunde |
-| 3 | **2.5** Lockfile, `npm ci`, `sharp` | klein | jeder Build ist heute ein anderer |
-| 4 | **5.4** Prüfstand in CI | klein | ab dann laufen 1–3 automatisch nach |
-| 5 | **5.1** Versionsabdruck | klein | löst ein dokumentiertes Betriebsproblem endgültig |
-| 6 | **4.4** Ansicht „Offen" | klein | macht ein gebautes Feature erst brauchbar |
-| 7 | **2.4** CSP + **2.6** Fehler-Handler + **2.7** SIGTERM/Healthcheck | klein | Betriebshärte, alles am selben Nachmittag |
+Die ersten sieben Zeilen sind inzwischen gebaut — 0.8.10 und 0.8.20 haben sie
+in genau dieser Reihenfolge abgearbeitet. Die Tabelle bleibt als Beleg stehen,
+dass die Reihenfolge getragen hat.
+
+| # | Was | Aufwand | Warum jetzt | |
+|---|---|---|---|---|
+| 1 | **2.1** SVG als Foto | klein | Sicherheit, und die Regel dagegen steht schon im Projekt | ✓ 0.8.20 |
+| 2 | **2.2** `X-Forwarded-For` + **2.3** `Secure` | klein | eine Einstellung, zwei Sicherheitsbefunde | ✓ 0.8.20 |
+| 3 | **2.5** Lockfile, `npm ci`, `sharp` | klein | jeder Build ist heute ein anderer | ✓ 0.8.10 |
+| 4 | **5.4** Prüfstand in CI | klein | ab dann laufen 1–3 automatisch nach | ✓ 0.8.10 |
+| 5 | **5.1** Versionsabdruck | klein | löst ein dokumentiertes Betriebsproblem endgültig | ✓ 0.8.10 |
+| 6 | **4.4** Ansicht „Offen" | klein | macht ein gebautes Feature erst brauchbar | 0.8.60 |
+| 7 | **2.4** CSP + **2.6** Fehler-Handler + **2.7** SIGTERM/Healthcheck | klein | Betriebshärte, alles am selben Nachmittag | ✓ 0.8.20 |
 | 8 | **4.3** „Neu seit …" | klein | keine Migration, großer Gewinn im Mehrbenutzerbetrieb |
 | 9 | **G4** (Roadmap: Links bekommen Verfasser) | mittel | steht an, siehe Anmerkung unten |
 | 10 | **4.1** Gewichtung der Kriterien | mittel | inhaltlich der wichtigste Punkt der Liste |
@@ -1112,7 +1142,8 @@ Gewinn ist eine Stufe, die man am Stück durchdenken kann.
 
 Der Code ist in einem Zustand, den man selten sieht: 1.429 Prüfungen, alle
 grün, jede Entscheidung begründet, jeder Stolperstein nummeriert und mit
-Merksatz versehen. Die Stolpersteinliste ist für sich genommen ein Dokument,
+Merksatz versehen. *(Die Zahl ist die zum Zeitpunkt dieses Papiers; sie steht
+hier bewusst unverändert — der aktuelle Stand gehört in den Projektstand.)* Die Stolpersteinliste ist für sich genommen ein Dokument,
 aus dem andere Projekte lernen könnten.
 
 Die Befunde in Abschnitt 2 widersprechen dem nicht — sie bestätigen es eher:
@@ -1129,3 +1160,8 @@ zählt bereits Vorkommen im Quelltext (der Wächter auf die Adminfrage) — das
 ist genau das richtige Werkzeug dafür. Ein Wächter, der prüft, dass kein
 Endpoint einen gespeicherten `mime_type` ausliefert, hätte 2.1 nie entstehen
 lassen.
+
+*Nachtrag: genau dieser Wächter ist in 0.8.20 gebaut worden — server.js setzt
+den Content-Type an keiner Stelle mehr selbst, und wer künftig eine
+Auslieferung ergänzt, wird namentlich rot. Er bindet unmittelbar für 0.8.50,
+wo ein Video inline ausgeliefert wird.*
