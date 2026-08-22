@@ -1107,18 +1107,31 @@ const qTags = db.prepare('SELECT t.* FROM tags t JOIN item_tags it ON it.tag_id 
 const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
 /* --- Schnitt und Anzahl je Kriterium --------------------------------------
-   EINE Abfrage, gruppiert -- ausdruecklich KEIN zweiter JOIN neben den, der in
-   detail() die eigene Sternzeile holt. Zwei JOINs auf dieselbe Tabelle
-   vervielfachen sich: drei Bewerter an einem Kriterium
+   EINE Abfrage, gruppiert -- ausdruecklich KEIN zweiter JOIN AUF `ratings`
+   neben den, der in detail() die eigene Sternzeile holt. Zwei JOINs auf
+   DIESELBE Tabelle vervielfachen sich: drei Bewerter an einem Kriterium
    ergaeben dreimal dieselbe Zeile, und der Schnitt daraus waere zwar zufaellig
    richtig, der Zaehler aber neunfach. Deshalb hier gruppiert und drueben per
    Map angehaengt.
+   DER JOIN AUF `rating_criteria` DARUNTER IST ETWAS ANDERES und faellt nicht
+   unter diese Warnung: er trifft ueber criterion_id genau eine Zeile, die
+   Zeilenzahl bleibt. c.gewicht steht zusaetzlich im GROUP BY, damit die
+   Abfrage nicht auf SQLites Nachsicht gegenueber freien Spalten angewiesen
+   ist.
+   DAS GEWICHT REIST AN DER SCHNITTZEILE MIT, statt beim Rechnen separat
+   nachgeschlagen zu werden. Das ist der Grund fuer den JOIN: so kann der
+   Nenner des Gesamtschnitts gar nicht aus einer anderen Menge entstehen als
+   der Zaehler. Wer eine Zeile hat, hat ihr Gewicht; wer keine hat, hat auch
+   keins im Nenner.
    Gezaehlt und gemittelt wird ueber Werte > 0, wie ueberall: ein
    zurueckgesetztes Kriterium hinterlaesst eine Zeile mit 0, und die ist keine
    Stimme. */
 const qSchnittJeKriterium = db.prepare(`
-  SELECT criterion_id, AVG(value * 1.0) AS schnitt, COUNT(*) AS anzahl
-    FROM ratings WHERE item_id = ? AND value > 0 GROUP BY criterion_id`);
+  SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,
+         c.gewicht
+    FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
+   WHERE r.item_id = ? AND r.value > 0
+   GROUP BY r.criterion_id, c.gewicht`);
 
 function schnitteJeKriterium(itemId) {
   const m = new Map();
@@ -1160,18 +1173,40 @@ function stimmenJeKriterium(itemId, benutzerId, karte) {
 // Kriterium, das drei Leute bewertet haben, dreifach gegen eines, das nur
 // einer bewertet hat, und die Kopfzahl waere aus den angezeigten Zeilenwerten
 // nicht mehr nachvollziehbar.
+// Der zweite Schritt ist ein GEWICHTETER Mittelwert. Bei Gewicht 1 ueberall
+// ist er rechnerisch derselbe wie ein ungewichteter -- Zaehler und Nenner
+// bekommen denselben Faktor.
+//
+// DER NENNER SUMMIERT NUR DIE GEWICHTE DER BEWERTETEN KRITERIEN. Das ist die
+// eine Stelle, an der ein naheliegender Griff alles kippt: ein Nenner ueber
+// ALLE Kriterien -- etwa SELECT SUM(gewicht) FROM rating_criteria -- drueckte
+// einen Eintrag unter 1. Ein Eintrag mit einem einzigen bewerteten Kriterium
+// (Wert 3, Gewicht 0,2) und zwei unbewerteten a Gewicht 2 ergaebe dort 0,14
+// statt 3,0.
+// Die Antwort darauf ist baulich, nicht sorgfaeltig: Zaehler und Nenner
+// entstehen in DERSELBEN Schleife aus DERSELBEN Menge, und das Gewicht kommt
+// an der Schnittzeile mit (siehe qSchnittJeKriterium). Eine zweite Quelle gibt
+// es hier gar nicht.
+// Weil jeder Kriterienwert in [1,5] liegt und jedes Gewicht groesser als null
+// ist, liegt auch das Ergebnis in [1,5]. Das ist eine Eigenschaft des
+// gewichteten Mittels -- eine Konvexkombination --, keine Regel, die hier
+// durchgesetzt wuerde. Es gibt keinen Deckel, der vergessen werden koennte.
 // Gerundet wird GENAU EINMAL, hier am Ende. Je Kriterium vorzurunden und dann
 // zu mitteln waere ein zweiter Rundungsort fuer dieselbe Zahl -- SQL und
 // JavaScript muessten dafuer gleich runden. Der Preis ist bekannt und steht im
 // Konzept: wer die angezeigten Zehntel von Hand mittelt, kann um bis zu 0,05
-// danebenliegen.
+// danebenliegen; mit Gewichten ist die Kopfzahl durch blosses Mitteln der
+// Zeilen ohnehin nicht mehr nachzurechnen -- deshalb steht das Gewicht an der
+// Zeile.
 // Bei EINEM Benutzer liefert das Zweistufenmittel dasselbe wie ein flaches --
 // jedes Kriterium hat dann hoechstens eine Stimme.
 function gesamtSchnitt(karte) {
-  const werte = [...karte.values()].map(z => z.schnitt);
-  if (!werte.length) return null;
-  const a = werte.reduce((s, v) => s + v, 0) / werte.length;
-  return Math.round(a * 10) / 10;
+  let zaehler = 0, nenner = 0;
+  for (const z of karte.values()) { zaehler += z.schnitt * z.gewicht; nenner += z.gewicht; }
+  // Kein Nenner heisst: kein bewertetes Kriterium, also keine Zahl. Bei
+  // mindestens einer Zeile ist er mindestens GEWICHT_MIN und damit nie null.
+  if (!nenner) return null;
+  return Math.round((zaehler / nenner) * 10) / 10;
 }
 
 const qTestDaysRoh = db.prepare('SELECT id, day, rating, user_id FROM test_days WHERE item_id = ? ORDER BY day DESC, id DESC');
@@ -1272,8 +1307,12 @@ function detail(id, benutzerId) {
   // Sache. Ein Bedienelement zeigt den Zustand, den es veraendert; der Schnitt
   // ueber alle steht daneben in avg und count -- angehaengt aus
   // einer gruppierten Abfrage, nicht aus einem zweiten JOIN.
+  // gewicht steht an jeder Zeile: die Oberflaeche zeichnet daraus die Marke
+  // ×1,5 hinter dem Namen, und der Vergleich rechnet in der Stellung "meine"
+  // damit -- ohne das Feld liefe dort eine ungewichtete Zahl neben einer
+  // gewichteten.
   it.ratings = db.prepare(`
-    SELECT c.id AS criterion_id, c.name, COALESCE(r.value, 0) AS value
+    SELECT c.id AS criterion_id, c.name, c.gewicht, COALESCE(r.value, 0) AS value
     FROM rating_criteria c LEFT JOIN ratings r
       ON r.criterion_id = c.id AND r.item_id = ? AND r.user_id = ?
     ORDER BY c.sort_order, c.id`).all(id, benutzerId);
