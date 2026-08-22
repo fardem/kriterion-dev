@@ -1634,18 +1634,29 @@ function normalisiereLink(roh) {
   return ADRESSMUSTER.some(m => m.test(t)) ? 'https://' + t : t;
 }
 
-app.post('/api/items/:id/links', nurEintragVerfasser, (req, res) => {
+/* EINTRAGEN DARF JEDER -- wie den Kommentar, den Testtag und die Bewertung.
+   Ein Link erscheint nur dort, wo man ihn hinsetzt, und gehoert damit dem, der
+   ihn hinsetzt, nicht dem Verfasser des Eintrags. Was an ALLEN Eintraegen
+   erscheint, gehoert weiter dem Admin.
+   Die Zeile traegt ihren Verfasser von Anfang an; darauf steht spaeter die
+   Frage, wer sie loeschen darf. */
+app.post('/api/items/:id/links', (req, res) => {
   const url = normalisiereLink(req.body.url);
   if (!url) return res.status(400).json({ error: 'Adresse oder Suchbegriff fehlt' });
   if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: 'Nicht gefunden' });
   const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM links WHERE item_id = ?')
     .get(req.params.id).m + 1;
-  db.prepare('INSERT INTO links (item_id, url, sort_order) VALUES (?, ?, ?)').run(req.params.id, url, pos);
+  db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
+    .run(req.params.id, url, pos, req.benutzer.id);
   touch.run(req.params.id);
   res.status(201).json(detail(req.params.id, req.benutzer.id));
 });
 
+/* SORTIEREN BLEIBT BEIM EINTRAGSVERFASSER UND ADMIN -- ausdruecklich, nicht
+   aus Versehen: die Reihenfolge aendert keine Aussage und ist umkehrbar,
+   dieselbe Ueberlegung wie beim Anpinnen eines Kommentars. Eintragen und
+   Loeschen richten sich dagegen nach der einzelnen Zeile. */
 app.put('/api/items/:id/link-order', nurEintragVerfasser, (req, res) => {
   const ids = Array.isArray(req.body.order) ? req.body.order : [];
   const s = db.prepare('UPDATE links SET sort_order = ? WHERE id = ? AND item_id = ?');
@@ -1654,10 +1665,17 @@ app.put('/api/items/:id/link-order', nurEintragVerfasser, (req, res) => {
   res.json(detail(req.params.id, req.benutzer.id));
 });
 
+/* LOESCHEN DARF DER EINTRAGER ODER DER ADMIN. Gefragt wird nach der ZEILE
+   (darfAendern), nicht mehr nach dem Eintrag: wer einen Link in einen fremden
+   Eintrag setzt, muss ihn auch wieder herausnehmen koennen, und der Verfasser
+   des Eintrags ist dafuer der Falsche. Herrenlose Zeilen faengt darfAendern
+   ab -- sie gehoeren dem Admin. Ein geloeschter Link bekommt ausdruecklich
+   KEINEN Vermerk: er ist eine ganze Aussage, die geht, kein Loch in einer
+   bleibenden. */
 app.delete('/api/links/:id', (req, res) => {
   const l = db.prepare('SELECT * FROM links WHERE id = ?').get(req.params.id);
   if (!l) return res.status(404).json({ error: 'Nicht gefunden' });
-  if (!eintragFrei(req, res, l.item_id)) return;
+  if (!darfAendern(req, l.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM links WHERE id = ?').run(req.params.id);
   const rest = db.prepare('SELECT id FROM links WHERE item_id = ? ORDER BY sort_order, id').all(l.item_id);
   const s = db.prepare('UPDATE links SET sort_order = ? WHERE id = ?');
