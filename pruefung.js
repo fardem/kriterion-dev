@@ -2483,7 +2483,11 @@ const namen = (liste) => liste.map(c => c.name);
       .run(Buffer.from('kein echtes Bild, wird nur geloescht'));
     d.prepare("INSERT INTO attachments (item_id, filename, mime_type, size, data) VALUES (2, 'zettel.txt', 'text/plain', 5, ?)")
       .run(Buffer.from('hallo'));
-    d.prepare("INSERT INTO links (item_id, url, sort_order) VALUES (2, 'https://beispiel.test', 0)").run();
+    /* Der Link traegt seinen Verfasser ausdruecklich: ohne user_id schoebe ihn
+       ordneBestandZu() beim Start der Eigentuemerin zu, und "der Admin loescht
+       einen FREMDEN Link" weiter unten loeschte dann einen eigenen -- gruen,
+       aber ueber etwas anderes. */
+    d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (2, 'https://beispiel.test', 0, 2)").run();
     // Ids abholen statt raten: db.js legt auf einer frischen Datenbank drei
     // Vorgabekriterien an, und danach faengt die Nummerierung nicht bei 1
     // an -- geratene Ids reissen den Lauf mit
@@ -2603,16 +2607,53 @@ const namen = (liste) => liste.map(c => c.name);
     gleich(fZeilen('SELECT tag_id FROM item_tags WHERE item_id = 2').map(z => z.tag_id), [fMarkeId]),
     JSON.stringify(fZeilen('SELECT tag_id FROM item_tags WHERE item_id = 2')));
 
+  /* ---- Die Linkzeile, seit 0.8.30 der fuenfte Traeger ---------------------
+     UMGEDREHT MIT 0.8.30, NICHT GELOESCHT (Stolperstein 74): bis 0.8.20 stand
+     hier "Ein Fremder haengt keinen Link an einen fremden Eintrag" mit 403.
+     Genau das ist jetzt erlaubt -- und die Zeile daneben belegt, dass sie
+     dabei SEINEN Namen bekommt und nicht den des Eintragsverfassers.
+     Die Reihenfolge ist keine Bequemlichkeit: carla legt zuerst an, damit es
+     ueberhaupt eine eigene Zeile zu loeschen gibt, und anna raeumt zuletzt
+     berts Zeile weg -- danach ist die Liste leer. */
   const fLink = await fRuf('keks-f-carla', 'POST', '/api/items/2/links', { url: 'https://fremd.test' });
-  pruefe('Ein Fremder haengt keinen Link an einen fremden Eintrag', fLink.status === 403,
+  pruefe('Ein Fremder haengt einen Link an einen fremden Eintrag', fLink.status === 201,
     `Status ${fLink.status}`);
-  pruefe('Und die Linkliste ist unveraendert',
-    fZeilen('SELECT id FROM links WHERE item_id = 2').length === 1);
+  const fLinkNeu = fEine("SELECT id, user_id FROM links WHERE url = 'https://fremd.test'");
+  pruefe('Und die Zeile gehoert ihm, nicht dem Verfasser des Eintrags',
+    fLinkNeu !== undefined && fLinkNeu.user_id === 3,
+    JSON.stringify(fZeilen('SELECT id, url, user_id FROM links WHERE item_id = 2')));
+  // Der Erfolgsfall hat die Liste wirklich verlaengert -- sonst waere ein 201
+  // ohne Wirkung von einem mit nicht zu unterscheiden.
+  pruefe('Die Linkliste ist um genau eine Zeile laenger',
+    fZeilen('SELECT id FROM links WHERE item_id = 2').length === 2,
+    JSON.stringify(fZeilen('SELECT id, url, user_id FROM links WHERE item_id = 2')));
+
   const fLinkWeg = await fRuf('keks-f-carla', 'DELETE', '/api/links/1');
-  pruefe('Ein Fremder loescht keinen Link', fLinkWeg.status === 403, `Status ${fLinkWeg.status}`);
-  pruefe('Und der Link steht noch', fZeilen('SELECT id FROM links WHERE id = 1').length === 1);
+  pruefe('Ein Fremder loescht keinen fremden Link', fLinkWeg.status === 403, `Status ${fLinkWeg.status}`);
+  pruefe('Und der fremde Link steht noch', fZeilen('SELECT id FROM links WHERE id = 1').length === 1);
+
+  /* SORTIEREN BLEIBT BEIM EINTRAGSVERFASSER UND ADMIN. Ohne diese Zeile waere
+     nicht zu unterscheiden, ob die Rechte an der Linkliste als Ganzes
+     gefallen sind oder nur die an der einzelnen Zeile. */
+  const fLinkOrdnungVorher = fZeilen('SELECT id, sort_order FROM links WHERE item_id = 2 ORDER BY id');
+  const fLinkSort = await fRuf('keks-f-carla', 'PUT', '/api/items/2/link-order',
+    { order: [fLinkNeu?.id, 1] });
+  pruefe('Ein Fremder sortiert die Linkliste nicht um', fLinkSort.status === 403,
+    `Status ${fLinkSort.status}`);
+  pruefe('Und die Reihenfolge steht unveraendert',
+    gleich(fZeilen('SELECT id, sort_order FROM links WHERE item_id = 2 ORDER BY id'),
+           fLinkOrdnungVorher),
+    JSON.stringify(fZeilen('SELECT id, sort_order FROM links WHERE item_id = 2 ORDER BY id')));
+
+  const fLinkEigen = await fRuf('keks-f-carla', 'DELETE', `/api/links/${fLinkNeu?.id}`);
+  pruefe('Aber seinen eigenen Link loescht er', fLinkEigen.status === 204, `Status ${fLinkEigen.status}`);
+  pruefe('Und die Zeile ist wirklich weg',
+    fZeilen('SELECT id FROM links WHERE id = ?', fLinkNeu?.id).length === 0);
+
   const fLinkAdmin = await fRuf('keks-f-anna', 'DELETE', '/api/links/1');
   pruefe('Der Admin loescht einen fremden Link', fLinkAdmin.status === 204, `Status ${fLinkAdmin.status}`);
+  pruefe('Und auch diese Zeile ist weg',
+    fZeilen('SELECT id FROM links WHERE id = 1').length === 0);
 
   const fFokus = await fRuf('keks-f-carla', 'PUT', '/api/photos/1/focus', { x: 10, y: 10 });
   const fFotoOrder = await fRuf('keks-f-carla', 'PUT', '/api/items/2/photo-order', { order: [1] });
@@ -3620,7 +3661,9 @@ const namen = (liste) => liste.map(c => c.name);
     ['DELETE', '/api/attachments/:id',           'im Rumpf'],
     ['PUT',    '/api/items/:id/photo-order',     'nurEintragVerfasser'],
     ['DELETE', '/api/photos/:id',                'im Rumpf'],
-    ['POST',   '/api/items/:id/links',           'nurEintragVerfasser'],
+    // Eintragen darf jeder -- wie Kommentar, Testtag und Bewertung. Umgestellt
+    // mit 0.8.30: ein Link erscheint nur dort, wo man ihn hinsetzt.
+    ['POST',   '/api/items/:id/links',           'offen'],
     ['PUT',    '/api/items/:id/link-order',      'nurEintragVerfasser'],
     ['DELETE', '/api/links/:id',                 'im Rumpf'],
     ['POST',   '/api/items/:id/test-days',       'offen'],
@@ -3668,7 +3711,8 @@ const namen = (liste) => liste.map(c => c.name);
     fUnbekannt.length === 0 && fVerschwunden.length === 0,
     `ohne Entscheidung: ${fUnbekannt.join(' · ') || '—'} · verschwunden: ${fVerschwunden.join(' · ') || '—'}`);
 
-  const fOhneWaechter = [], fOhneKlemme = [], fZuviel = [], fOhneSelbst = [];
+  const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
+  const fOhneWaechter = [], fOhneKlemme = [], fZuviel = [], fOhneSelbst = [], fZuvielWaechter = [];
   for (const r of fGefunden) {
     const art = fErwartet.get(r.schluessel);
     if (!art) continue;
@@ -3683,6 +3727,15 @@ const namen = (liste) => liste.map(c => c.name);
     if (willKlemme && !hatKlemme) fOhneKlemme.push(r.schluessel);
     if (art === 'selbstbezug' && !r.rumpf.includes('aendereZugang(req.benutzer.id')) fOhneSelbst.push(r.schluessel);
     if (art === 'offen' && hatKlemme) fZuviel.push(r.schluessel);
+    /* Und die andere Haelfte derselben Gegenrichtung: eine Route, die "offen"
+       heisst, darf auch keinen benannten Waechter in der Routenzeile tragen.
+       Aufgefallen bei einer Gegenprobe zu 0.8.30 -- der Rueckbau setzte
+       nurEintragVerfasser vor POST /api/items/:id/links zurueck, und der
+       Waechter ueber den Quelltext blieb vollstaendig gruen: er sah nur in den
+       RUMPF. Acht Verhaltenspruefungen fanden es, aber die eine Pruefung, die
+       eine falsche ENTSCHEIDUNG finden soll, sah nichts. */
+    if (art === 'offen' && WAECHTER_WOERTER.some(w => r.kopf.includes(w)))
+      fZuvielWaechter.push(r.schluessel);
   }
   pruefe('Jede Route mit benanntem Waechter traegt ihn in der Routenzeile',
     fOhneWaechter.length === 0, fOhneWaechter.join(' · '));
@@ -3695,6 +3748,38 @@ const namen = (liste) => liste.map(c => c.name);
   // unterscheiden.
   pruefe('Und wo offen steht, steht auch keine Klemme',
     fZuviel.length === 0, fZuviel.join(' · '));
+  pruefe('Und erst recht kein Waechter in der Routenzeile',
+    fZuvielWaechter.length === 0, fZuvielWaechter.join(' · '));
+
+  /* WELCHE Klemme im Rumpf steht, sagt F_ROUTEN nicht -- die Liste kennt nur
+     die Art 'im Rumpf'. eintragFrei( und darfAendern( stehen beide in
+     RUMPF_WOERTER, und genau zwischen diesen beiden liegt die Wende von
+     0.8.30: gefragt wird nicht mehr nach dem EINTRAG, sondern nach der ZEILE.
+     Ohne diese Pruefung bliebe ein Rueckbau auf eintragFrei vollstaendig
+     gruen -- der Prueflauf saehe eine Klemme und waere zufrieden.
+     Dieselbe Bauform wie beim Kommentarbild darunter, und aus demselben
+     Grund: erst das Vorhandensein des Rumpfes, dann die Eigenschaft
+     (Stolperstein 81). */
+  const fLinkWegRoute = fGefunden.find(r => r.schluessel === 'DELETE /api/links/:id');
+  const fLinkWegRumpf = fLinkWegRoute ? fLinkWegRoute.rumpf : '';
+  pruefe('Die Loeschroute fuer Links ist ueberhaupt da',
+    fLinkWegRumpf.length > 0, 'die Route fehlt im Quelltext');
+  pruefe('Sie fragt nach der ZEILE, nicht nach dem Eintrag',
+    fLinkWegRumpf.includes('darfAendern(req, l.user_id)') &&
+    !fLinkWegRumpf.includes('eintragFrei('),
+    fLinkWegRumpf ? 'darfAendern(req, l.user_id) fehlt oder eintragFrei steht noch da' : '(kein Rumpf)');
+  /* Und die Gegenrichtung am Eintragen: der Waechter ist dort gefallen, die
+     Zeile bekommt stattdessen ihren Verfasser. Ein POST ohne user_id liefe
+     stumm in eine herrenlose Zeile -- das Auffangnetz schoebe sie beim
+     naechsten Start dem Eigentuemer zu, und niemand saehe es. */
+  const fLinkNeuRoute = fGefunden.find(r => r.schluessel === 'POST /api/items/:id/links');
+  const fLinkNeuRumpf = fLinkNeuRoute ? fLinkNeuRoute.rumpf : '';
+  pruefe('Die Anlegeroute fuer Links ist ueberhaupt da',
+    fLinkNeuRumpf.length > 0, 'die Route fehlt im Quelltext');
+  pruefe('Sie schreibt den Verfasser in die neue Zeile',
+    fLinkNeuRumpf.includes('INSERT INTO links (item_id, url, sort_order, user_id)') &&
+    fLinkNeuRumpf.includes('req.benutzer.id'),
+    fLinkNeuRumpf ? 'die Spalte user_id fehlt im INSERT' : '(kein Rumpf)');
 
   /* DIE BESCHRIFTUNG DES EINGRIFFSVERMERKS HAENGT AN DIESER KLEMME.
      "2 Bilder vom Admin entfernt" nennt eine ROLLE, und die steht in keiner
