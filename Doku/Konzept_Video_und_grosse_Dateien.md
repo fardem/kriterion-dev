@@ -46,10 +46,14 @@ Zusage machen, nicht unmittelbar danach. Teil II legt dagegen nur Neues
 daneben: ein vorhandener Anhang bleibt, wo er ist, und nur neue große Dateien
 gehen nach draußen.
 
-> **Nachgetragen nach 0.8.31.** Die Formatnummer der Exportdatei steht
-> inzwischen auf **8** (0.8.30 hob sie auf 7, 0.8.31 auf 8); die Gewichtung
-> 0.8.40 hebt sie auf 9, und die Kurzvideos gehen damit **9 → 10**. Der
-> Stufenplan im Projektstand, Abschnitt 10, führt die Zahlen.
+> **Nachgetragen nach 0.8.40.** Die Formatnummer der Exportdatei steht
+> inzwischen auf **9** (0.8.30 hob sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9); die
+> Kurzvideos gehen damit **9 → 10**. Der Stufenplan im Projektstand,
+> Abschnitt 10, führt die Zahlen.
+> **0.8.40 ist gebaut, damit ist diese Stufe die nächste.** Die Bindung
+> „0.8.20 vor 0.8.50" ist seit 0.8.20 erfüllt; der Wächter im Prüfstand, der
+> namentlich rot wird, sobald der Videoweg seinen Typ selbst setzt, steht
+> unverändert.
 
 **Zwei Bindungen an die Nachbarstufen:**
 

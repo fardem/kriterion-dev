@@ -26,8 +26,10 @@ Prüfstand vollständig durchgelaufen: **1429 von 1429 Prüfungen bestanden**.
 >   liefern. Ausgearbeitet in `Konzept_Video_und_grosse_Dateien.md`,
 >   beschlossen für 0.8.50.
 > - **Punkt 4.1, Gewichtung**, ist vollständig ausgearbeitet in
->   `Konzept_Gewichtung_Bewertungskriterien.md` — mit drei Vorschlägen statt
->   sechs festen Stufen und freier Eingabe von 0,2 bis 2.
+>   `Konzept_Gewichtung_Bewertungskriterien.md` — und **mit 0.8.40 gebaut**.
+>   Statt drei Vorschlägen sind es fünf geworden (`0,5 · 0,8 · 1 · 1,2 · 1,5`),
+>   freie Eingabe von 0,2 bis 2 wie vorgesehen; die Formatnummer ging **8 → 9**,
+>   nicht 7 → 8.
 >
 > **Vier Punkte sind mit 0.8.10 gebaut** (Projektstand Abschnitt 9): **2.5**
 > (Abhängigkeiten festgenagelt), **5.1** (Versionsabdruck — dort abgeleitet
@@ -535,11 +537,17 @@ Hier wird es interessant. Die Reihenfolge ist meine Einschätzung des
 Verhältnisses von Nutzen zu Aufwand — der erste Vorschlag ist der, den ich für
 den wichtigsten halte.
 
-### 4.1 Gewichtung der Kriterien **[NEU]**
+### 4.1 Gewichtung der Kriterien **[GEBAUT — 0.8.40]**
 
-> **Ausgearbeitet in `Konzept_Gewichtung_Bewertungskriterien.md`.** Dort steht
-> der vollständige Bauplan samt der Antwort auf „nie über 5, nie unter 1" —
-> sie ist beim gewichteten Mittelwert geschenkt und braucht keinen Deckel.
+> **Ausgearbeitet in `Konzept_Gewichtung_Bewertungskriterien.md`, gebaut in
+> 0.8.40.** Dort steht der vollständige Bauplan samt der Antwort auf „nie über
+> 5, nie unter 1" — sie ist beim gewichteten Mittelwert geschenkt und braucht
+> keinen Deckel. Was daraus gilt, steht ab jetzt im Projektstand, Abschnitt 5;
+> was beim Bauen anders entschieden wurde, in
+> `Doku/Aenderungsprotokoll_0.8.40.md`.
+> **Offen geblieben ist die Vorschau der Rangfolge** — sehen, wie sich die
+> Spitze verschiebt, wenn man an einem Gewicht dreht. Sie ist eine eigene
+> Ansicht mit eigenem Endpunkt und bleibt vorgemerkt.
 
 **Das Problem.** Alle Kriterien zählen heute gleich viel. „Optische
 Erscheinung" und „Verarbeitungsqualität" gehen mit demselben Gewicht in den
@@ -1115,8 +1123,8 @@ dass die Reihenfolge getragen hat.
 | 7 | **2.4** CSP + **2.6** Fehler-Handler + **2.7** SIGTERM/Healthcheck | klein | Betriebshärte, alles am selben Nachmittag | ✓ 0.8.20 |
 | 8 | **4.3** „Neu seit …" | klein | keine Migration, großer Gewinn im Mehrbenutzerbetrieb |
 | 9 | **G4** (Roadmap: Links bekommen Verfasser) | mittel | ✓ 0.8.30 — **nicht** mit 4.2 zusammengelegt, siehe Anmerkung unten; die Dateien folgten in 0.8.31 |
-| 10 | **4.1** Gewichtung der Kriterien | mittel | inhaltlich der wichtigste Punkt der Liste |
-| 11 | **4.2** Abgelehnt mit Datum und Begründung | klein | zusammen mit 10, gleiche Baustelle |
+| 10 | **4.1** Gewichtung der Kriterien | mittel | ✓ 0.8.40 — inhaltlich der wichtigste Punkt der Liste; **nicht** mit 4.2 zusammengelegt |
+| 11 | **4.2** Abgelehnt mit Datum und Begründung | klein | offen geblieben — die Zusammenlegung mit 10 ist nicht gekommen |
 | 12 | **3.1** `searchText` aus der Liste | mittel | wenn der Bestand wächst |
 | 13 | **5.2** Sicherung auf Knopfdruck | mittel | vor 1.0, steht schon auf der Liste |
 | 14 | **4.5** Papierkorb | mittel | vor der ersten fremden Installation |
@@ -1136,9 +1144,10 @@ zusammenlegen (beide klein, beide am Eintrag) und **4.1** als eigene Stufe
 direkt danach mit Format 8 fahren — der Verlust ist eine Formatnummer, der
 Gewinn ist eine Stufe, die man am Stück durchdenken kann.
 
-> **Nachgetragen nach 0.8.30 — der Vorschlag ist bewusst NICHT angenommen
-> worden.** G4 ist allein gefahren worden, mit Formatnummer 6 → 7; 4.2 bleibt
-> offen, und 4.1 wird 0.8.40 mit 7 → 8. Die Begründung ist die zweite Hälfte
+> **Nachgetragen nach 0.8.40 — der Vorschlag ist bewusst NICHT angenommen
+> worden, und zwar zweimal.** G4 ist allein gefahren worden, mit Formatnummer
+> 6 → 7, die Dateien folgten in 0.8.31 mit 7 → 8; **4.1 ist in 0.8.40 allein
+> gefahren worden, mit 8 → 9**, und 4.2 bleibt offen. Die Begründung ist die zweite Hälfte
 > des Absatzes darüber, und sie hat sich im Bau bestätigt: G4 brauchte allein
 > **76 neue Prüfungen und 31 Gegenproben** (die Dateien kamen in 0.8.31 als
 > eigene Runde nach, noch einmal 58 und 16) — Schema, Umstieg, Rechtewende,

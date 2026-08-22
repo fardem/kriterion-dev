@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 12 · Stand 22. August 2026 · gebaut: Version 0.8.31**
+**Kompakte Übergabe · Revision 13 · Stand 22. August 2026 · gebaut: Version 0.8.40**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,34 +8,38 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 12 ist.** Revision 11 trug 0.8.30 nach. Diese trägt zusätzlich
-**0.8.31** nach — *keine Stufe, eine Berichtigungsrunde*, die dieselbe Wende am
-sechsten Träger nachholt.
+**Was Revision 13 ist.** Revision 12 trug 0.8.30 und 0.8.31 nach. Diese trägt
+**0.8.40** nach — „Nicht jedes Kriterium wiegt gleich", die nächste Runde des
+Stufenplans und **keine Stufe des Mehrbenutzerbetriebs**; der ist mit G4 bis
+auf H und I gebaut.
+
+**0.8.40 gibt jedem Bewertungskriterium ein Gewicht** zwischen 0,2 und 2,
+einstellbar vom Admin. Der Gesamtschnitt eines Eintrags wird zum **gewichteten
+Mittelwert** — bei Gewicht 1 überall rechnerisch identisch mit vorher, und
+damit rückwärts wie vorwärts umkehrbar. **Ein Eintrag kommt dabei nie über 5
+und nie unter 1**, und zwar baulich: ein gewichteter Mittelwert liegt bei
+positiven Gewichten immer zwischen dem kleinsten und dem größten gemittelten
+Wert. Es gibt keinen Deckel, der vergessen werden könnte.
 
 **0.8.30 war Stufe G4, „Die Linkliste bekommt Verfasser"**, und die erste
 Datenbankstufe seit 0.8.3: `links` bekommt eine `user_id`, eintragen darf
 jeder, löschen der Eintrager oder der Admin, sortieren bleibt beim
 Eintragsverfasser, und ab zwei Zugängen steht an einer **fremden** Linkzeile
-der Name.
-
-**0.8.31 tut dasselbe für die Dateien.** Die Regel galt sachlich immer schon
-auch für sie — sie war nur nicht gebaut. `attachments` bekommt eine `user_id`,
-hochladen darf jeder, löschen der Hochladende oder der Admin, und der Name
-steht nach derselben Regel an der Zeile. **Das ist der erste Fall, in dem sich
-die Zehnerschritte des Stufenplans auszahlen:** die Runde nimmt eine der neun
-freien Nummern, und 0.8.40 bleibt die Gewichtung.
+der Name. **0.8.31 tat dasselbe für die Dateien** und war der erste Fall, in
+dem sich die Zehnerschritte des Stufenplans ausgezahlt haben: die Runde nahm
+eine der neun freien Nummern, und 0.8.40 blieb die Gewichtung.
 **Damit ist der Mehrbenutzerbetrieb bis auf die Stufen H und I gebaut.**
 Vollständig geblieben sind die Abschnitte 5 und 12 — Entscheidungen und
 Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht mehr
 berücksichtigt.
 
 **Zwei Dinge ändern sich für den Betrieb**, und beide stehen in Abschnitt 2:
-**ein Rückschritt ist ab hier keine reine Dateikopie mehr**, und die
-**Formatnummer der Exportdatei steht auf 8** (0.8.30 hob sie auf 7, 0.8.31 auf
-8).
+**ein Rückschritt ist weiterhin keine reine Dateikopie**, und die
+**Formatnummer der Exportdatei steht auf 9** (0.8.30 hob sie auf 7, 0.8.31 auf
+8, 0.8.40 auf 9).
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_31.md` gepflegt und
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_40.md` gepflegt und
 nur dort.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
@@ -87,12 +91,24 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.31 ist gebaut** — Abdruck **`1a801477`**. *Keine Stufe, eine
+**0.8.40 ist gebaut** — Abdruck **`49d2ae53`**. *Eine
+Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:*
+`rating_criteria` trägt ein `gewicht REAL NOT NULL DEFAULT 1.0`,
+`gesamtSchnitt()` ist ein gewichteter Mittelwert über die **bewerteten**
+Kriterien, das Gewicht wird in der Kriterienkarte des Systembereichs
+eingestellt, `×1,5` steht an drei Anzeigeorten, und Export und Import tragen
+es mit (**Formatnummer 8 → 9**).
+**Keine neue schreibende Route: `F_ROUTEN` bleibt bei 46, und keine Art
+wechselt** — das Gewicht geht über `PUT /api/criteria/:id`, die es längst gibt
+und die längst hinter `nurAdmin` steht.
+**1807 von 1807 Prüfungen**, 30 Gegenproben.
+
+**0.8.31 davor** — Abdruck `1a801477`. *Keine Stufe, eine
 Berichtigungsrunde:* `attachments` trägt eine `user_id`, hochladen ist offen,
 `DELETE /api/attachments/:id` fragt nach der **Datei** statt nach dem
 **Eintrag**, der Name steht nach derselben Regel an der Zeile, und Export und
-Import tragen ihn mit (**Formatnummer 7 → 8**). Dieselbe Bauform wie 0.8.30,
-am sechsten Träger. **1682 von 1682 Prüfungen**, 16 Gegenproben.
+Import tragen ihn mit (**Formatnummer 7 → 8**). **1682 von 1682 Prüfungen**,
+16 Gegenproben.
 
 **0.8.30 davor** — Abdruck `f498cbda`. *Stufe G4 des Umbaus und die
 erste Datenbankstufe seit 0.8.3* (Abschnitt 10): `links` trägt eine `user_id`
@@ -125,17 +141,25 @@ Besucher in einem Zähler. Was daran hängt und was beim Umlegen passiert, steht
 in Abschnitt 3 und in der README. **Das Umlegen gehört in denselben Schritt
 wie die Freigabe nach außen, nicht davor und nicht danach.**
 
-**0.8.30 UND 0.8.31 haben das Schema angefasst** — die ersten Versionen seit
-0.8.3. `links` und `attachments` bekommen je
-`user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`, und dazu gehört je
-ein Umstiegsblock: `umstieg0830()` und `umstieg0831()` in `db.js`, mit den
-Marken der Bauregel, einmalig, wiederholbar und im Normalfall stumm. **Es sind
-damit drei markierte Blöcke im Projekt**; alle drei sind für 1.0 vorgemerkt
-(Abschnitt 10).
+**0.8.30, 0.8.31 UND 0.8.40 haben das Schema angefasst** — die ersten
+Versionen seit 0.8.3. `links` und `attachments` bekommen je
+`user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`, `rating_criteria`
+bekommt `gewicht REAL NOT NULL DEFAULT 1.0`, und dazu gehört je ein
+Umstiegsblock: `umstieg0830()`, `umstieg0831()` und `umstieg0840()` in
+`db.js`, mit den Marken der Bauregel, einmalig, wiederholbar und im Normalfall
+stumm. **Es sind damit vier markierte Blöcke im Projekt**; alle vier sind für
+1.0 vorgemerkt (Abschnitt 10).
 
-**Wer von 0.8.20 kommt, fährt beide in einem Start.** Das Protokoll nennt dann
-zwei Zeilen. Nachgestellt statt geglaubt: der Prüfstand fährt genau diesen
-Sprung und belegt, dass sich die beiden nicht ins Gehege kommen.
+**Wer von 0.8.20 kommt, fährt alle drei in einem Start.** Das Protokoll nennt
+dann drei Zeilen. Nachgestellt statt geglaubt: der Prüfstand fährt genau
+diesen Sprung und belegt, dass sie sich nicht ins Gehege kommen.
+
+**Der Umstieg auf 0.8.40 verändert keine angezeigte Zahl.** Die Bestandszeilen
+bekommen ihr Gewicht 1,0 aus dem `DEFAULT` der Spalte, nicht aus einem
+nachgeschobenen `UPDATE` — und bei Gewicht 1 überall ist der gewichtete
+Mittelwert bitgleich zum ungewichteten. Der Prüfstand belegt das an einer Lage
+mit **mehreren Bewertern und ungleich vielen Stimmen je Kriterium**; an einer
+Lage mit einer Stimme je Kriterium belegte es zu wenig.
 
 **Die Bestandszeilen fallen an den Verfasser ihres Eintrags, nicht an den
 Eigentümer.** Bis 0.8.20 *waren* die Links eines Eintrags die Sache seines
@@ -154,11 +178,11 @@ Einstellung im Systembereich, keine Version — beides jederzeit umkehrbar.
 Bestände werden nicht übernommen; sie bräuchten den Zwischenschritt über 0.8.0
 als letzte Version mit Umstiegscode.
 
-**Zurückrollen ist ab 0.8.30 keine reine Dateikopie mehr — und ab 0.8.31
+**Zurückrollen ist ab 0.8.30 keine reine Dateikopie mehr — und ab 0.8.40
 erst recht nicht.** Zwischen 0.8.3 und
 0.8.20 hat keine Version das Schema angefasst; wer in diesem Bereich
 zurückging, brauchte keine Rücksicht darauf zu nehmen. **Eine Datenbank aus
-0.8.31 trägt zwei Spalten, die 0.8.20 nicht kennt.** Ein Rückschritt geht
+0.8.40 trägt drei Spalten, die 0.8.20 nicht kennt.** Ein Rückschritt geht
 deshalb nur über die **Sicherung des Datenverzeichnisses**, die vor dem
 Einspielen entstanden ist — nicht über das Zurückkopieren der alten Dateien
 allein. Die Sicherung steht dafür ausdrücklich im Einspielweg unten.
@@ -167,8 +191,11 @@ allein. Die Sicherung steht dafür ausdrücklich im Einspielweg unten.
 zusätzliche Spalte stört SQLite nicht, und 0.8.20 schreibt sie einfach nicht
 mehr. Verlassen sollte man sich darauf nicht — jede Linkzeile, die danach
 entsteht, ist herrenlos, und beim nächsten Vorwärtsschritt fällt sie dem
-Eigentümer zu statt dem Eintrager. Die Sicherung ist der Weg, der ohne diese
-Fußnote auskommt.*
+Eigentümer zu statt dem Eintrager. Bei den Gewichten ist die Lage milder und
+trotzdem dieselbe Sorte: eine ältere Version liest die Spalte nicht, rechnet
+also wieder ungewichtet — die eingestellten Gewichte stehen still da und
+wirken beim nächsten Vorwärtsschritt wieder. Die Sicherung ist der Weg, der
+ohne diese Fußnoten auskommt.*
 
 **Der Weg zum Einspielen.** Das Repo ist **privat**, der Server zieht deshalb
 nicht selbst — das ZIP kommt über „Download ZIP" von GitHub auf den Wirt. Der
@@ -399,6 +426,15 @@ welchen Wert vergeben hat, sieht der **Admin in einer eigenen Ansicht**, die er
 über „Wer hat bewertet" im Blockkopf ausdrücklich aufruft; dort entfernt er
 auch eine fremde Bewertung. Die Note ändert er nicht.
 
+**Jedes Kriterium hat ein Gewicht** (seit 0.8.40), zwischen 0,2 und 2,
+eingestellt vom Admin in der Kriterienkarte des Systembereichs. Der
+Gesamtschnitt eines Eintrags ist der **gewichtete Mittelwert** über die
+bewerteten Kriterien; die Werte je Kriterium bleiben ungewichtet. Weicht ein
+Gewicht von 1 ab, steht `×1,5` hinter dem Kriteriennamen — im Bewertungsblock
+und an der Zeilenbeschriftung im Vergleich —, und am Blockkopf steht das Wort
+„gewichtet". Alles davon ist **abgeleitet**, kein Schalter: bei Gewicht 1
+steht nichts da, und die Anzeige sieht aus wie vor 0.8.40.
+
 **Wer angemeldet ist, steht in der Kopfzeile** (seit 0.8.6), neben „Abmelden" —
 und zwar **auch bei einem einzigen Zugang**: das ist eine Aussage über einen
 selbst, nicht über andere.
@@ -415,7 +451,8 @@ Bereichs, nicht darüber hinaus.
 **Systembereich: dreizehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
 die breite Kachel „Zugänge" lässt seit 0.8.6 keine Lücke mehr im Raster).
 Dem **Admin**: beide Titel, Kennzahlen, Kategorien und Tags umbenennen und
-löschen, Bewertungskriterien umbenennen, löschen und per Ziehen sortieren,
+löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
+**gewichten**,
 Karte „Zugänge" (anlegen, sperren, Passwort zurücksetzen, Rolle wechseln,
 entfernen), Karte „Suchanbieter" (Vorrat, Startanbieter, drei eigene),
 Vokabular aus elf Wörtern. Dem **Eigentümer** zusätzlich: Export mit/ohne
@@ -425,7 +462,9 @@ Fotos und Import (ersetzen oder zusammenführen).
 „Links" (sichtbare Zeilen, Zahl der angezeigten Anbieternamen). Die Karten
 „Kategorien", „Tags" und „Bewertungskriterien" stehen ebenfalls für jeden —
 aber als **Liste ohne Bedienzeichen**: wer nicht verwalten darf, darf
-trotzdem nachsehen.
+trotzdem nachsehen. **Das Gewicht steht dort als Text statt als Eingabefeld**
+(seit 0.8.40) — es erklärt die Kopfzahl an jedem Eintrag, und die sieht er ja
+auch.
 
 **Dateien am Eintrag:** Hochladen darf **jeder** (seit 0.8.31), löschen der
 Hochladende oder der Admin; ab zwei Zugängen trägt eine **fremde** Datei den
@@ -632,7 +671,109 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   wichtig. Dazu liegen Rot und Orange auf Dunkel ohnehin zu dicht beieinander
   (siehe die Begründung bei „Abgelehnt").
 - **Skala fest 1–5.** Wählbare Skalen würden die Vergleichsansicht verfälschen,
-  die je Kriterium den besten Wert hervorhebt.
+  die je Kriterium den besten Wert hervorhebt. **Die Gewichtung von 0.8.40
+  berührt das nicht:** ein Gewicht ändert keinen einzigen Kriterienwert, nur
+  die eine Zahl darunter. Die Hervorhebung vergleicht Werte, die alle in
+  derselben Zeile und damit unter demselben Gewicht stehen.
+- **Jedes Kriterium hat ein Gewicht, und es gehört dem Admin** (seit 0.8.40).
+  Zwischen **0,2 und 2**, immer positiv, Vorgabe 1. Es ist **keine
+  persönliche Einstellung** und steht ausdrücklich nicht in `user_settings`:
+  hätten zwei Leute verschiedene Gewichte, hätte derselbe Eintrag zwei
+  verschiedene Gesamtschnitte — eine zweite Wahrheit in Reinform. Es gilt
+  dieselbe Regel wie seit 0.8.4: was an **allen** Einträgen **aller** Benutzer
+  erscheint, stellt der Admin ein.
+  **Und es steht in der Datenbank, nicht in einer Datei.** Das Gewicht gehört
+  dem Kriterium, also ist es eine **Spalte an `rating_criteria`** und nicht
+  einmal ein Schlüssel in `settings`. Eine Konfigurationsdatei stünde außerhalb
+  der Verschlüsselung, außerhalb der Sicherung und außerhalb des Exports;
+  `.env` trägt nur, was **vor** dem Öffnen der Datenbank lesbar sein muss.
+- **„Nie über 5, nie unter 1" ist baulich wahr, nicht geklemmt** (seit
+  0.8.40). Ein **gewichteter Mittelwert** liegt bei positiven Gewichten immer
+  zwischen dem kleinsten und dem größten gemittelten Wert — eine
+  Konvexkombination. Da jeder Kriterienwert in [1, 5] liegt, liegt der
+  Gesamtschnitt zwangsläufig ebenfalls dort. Es gibt keinen Deckel, der
+  vergessen werden könnte, weil es keinen Deckel gibt; dieselbe Bauform wie
+  die Rollenleiter aus 0.8.0.
+  *Eine gewichtete **Summe** hätte einen Deckel gebraucht — drei Kriterien mit
+  5 bei Gewicht 2 ergäben 30 —, und ein Deckel bei 5 ebnete jede
+  Unterscheidung im oberen Bereich ein. Der Rechenweg ist die Entscheidung,
+  nicht die Absicherung danach.*
+- **Der Nenner summiert nur die Gewichte der BEWERTETEN Kriterien** (seit
+  0.8.40). Das ist die eine Stelle, an der ein naheliegender Griff die ganze
+  Zusicherung bricht: ein Nenner über *alle* Kriterien — etwa eine Summe über
+  die ganze Tabelle, was sauber aussieht — drückt einen Eintrag unter 1. Drei
+  Kriterien, bewertet nur eines mit 3 bei Gewicht 0,2, die beiden anderen
+  unbewertet bei Gewicht 2: richtig sind **3,0**, falsch wären **0,1**.
+  **Die Antwort darauf ist baulich, nicht sorgfältig:** das Gewicht reist an
+  der Schnittzeile mit (`qSchnittJeKriterium` holt es per JOIN), statt separat
+  nachgeschlagen zu werden. Zähler und Nenner entstehen in **derselben**
+  Schleife aus **derselben** Menge; eine zweite Quelle gibt es dort gar nicht.
+- **Die Gültigkeit steht an genau einer Stelle, und nicht im Schema** (seit
+  0.8.40). `GEWICHT_MIN`, `GEWICHT_MAX` und `gueltigesGewicht()` stehen einmal
+  in `server.js`; zwei Schreibwege führen darauf (Verwaltung und Import), die
+  Oberfläche kennt die Spanne nicht. **Ein `CHECK` an der Spalte wäre eine
+  dritte Stelle** — und er meldete sich nicht als Absage mit Meldung, sondern
+  als abgebrochene Schreibung. *Anders als das Gewichtungspapier annimmt,
+  ließe SQLite ihn sich per `ALTER TABLE` durchaus nachrüsten; das ist
+  nachgestellt worden (Stolperstein 107). Der Grund ist ein anderer.*
+- **Abgewiesen wird, was etwas anderes bedeutet — gerundet wird, was dasselbe
+  bedeutet** (seit 0.8.40). Außerhalb von 0,2 bis 2 kommt eine Absage mit
+  Meldung: wer 5 eintippt, meint 5, und den Wert still auf 2 zu ziehen hieße,
+  eine andere Aussage zu speichern als die eingegebene. Feiner als ein
+  Hundertstel wird gerundet, denn 1,234 und 1,23 sind dieselbe Aussage — und
+  die Rundung ist **nicht still**: das Feld zeigt danach den gespeicherten
+  Wert. Das ist bewusst **nicht** dieselbe Haltung wie beim Bewertungswert,
+  der mit `Math.max(0, Math.min(5, …))` zurechtgebogen wird; der kommt aus
+  einem Sterne-Widget, das gar nichts anderes senden kann. Ein Gewicht wird
+  von Hand getippt.
+  **Ein leeres Feld ist keine Null.** `Number('')` ergibt 0; wer den Inhalt
+  löscht und wegklickt, meint aber nicht „Gewicht 0" — dann wird der alte Wert
+  wieder eingesetzt und gar keine Anfrage geschickt.
+- **Komma herein, Komma hinaus** (seit 0.8.40). Gelesen wird `1,2` und `1.2` —
+  ein eingefügter Wert aus einer Tabelle soll nicht scheitern —, geschrieben
+  wird immer mit Komma und **ohne nachlaufende Nullen**: „1,50" sähe nach
+  einer Genauigkeit aus, die es nicht gibt, und „1,0" nach einer Einstellung,
+  wo in Wahrheit die Vorgabe steht. Auch die Meldung des Servers trägt ein
+  Komma; „zwischen 0.2 und 2" wäre ein Punkt mitten in einem deutschen Satz.
+- **Das Feld ist `type="text"` mit `inputmode="decimal"`, nicht
+  `type="number"`** (seit 0.8.40). Drei Gründe, und sie stehen als Kommentar
+  im Quelltext, damit es niemand später „aufräumt": `type="number"` nimmt das
+  Komma nur an, wenn die Browsersprache es vorsieht; bei einer Eingabe, die er
+  für ungültig hält, liefert `input.value` einen **leeren String** statt dem,
+  was sichtbar dasteht — man kann dann nicht einmal melden, was falsch war;
+  und `inputmode="decimal"` bringt die Zahlentastatur auf dem Handy, ohne
+  einen dieser Nachteile.
+- **`sort_order` und `gewicht` bleiben getrennt.** Naheliegend wäre, das
+  Gewicht aus der Reihenfolge abzuleiten — eine Wahrheit statt zweier. Das
+  wäre trotzdem falsch: `renumberCriteria()` nummeriert lückenlos durch, ein
+  neu eingeschobenes Kriterium verschöbe damit **still sämtliche Gewichte**,
+  und zwei gleich wichtige Kriterien in fester Anzeigereihenfolge wären
+  unmöglich. Die Reihenfolge ist eine Aussage über die Anzeige, das Gewicht
+  eine über die Rechnung. Zwei Aussagen, zwei Spalten.
+- **Das Gewicht wird angezeigt, und das ist kein Beiwerk** (seit 0.8.40). Der
+  Rundungspreis weiter unten sagt, dass man beim Nachmitteln der angezeigten
+  Zehntel um bis zu 0,05 danebenliegen kann. **Mit Gewichten ist der
+  Zusammenhang zwischen Zeilenwerten und Kopfzahl grundsätzlich nicht mehr
+  durch Mitteln nachvollziehbar** — ohne die Anzeige sähe die Kopfzahl schlicht
+  falsch aus. `×1,5` steht deshalb an drei Orten, **nur bei Abweichung von 1**,
+  und ist überall **abgeleitet**: dieselbe Bauform wie die
+  Durchschnittsspalte, die bei einem einzigen Zugang entfällt.
+  **Das Wort „gewichtet" am Blockkopf leitet sich aus den BEWERTETEN
+  Kriterien ab**, nicht aus allen. Ein Kriterium mit Gewicht 1,5, das an
+  diesem Eintrag niemand bewertet hat, geht in die Rechnung gar nicht ein; das
+  Wort stünde sonst an einer Zahl, an der keine Gewichtung stattgefunden hat.
+  Die Marke an der Zeile bleibt davon unberührt — sie ist eine Aussage über
+  das Kriterium, nicht über die Zahl.
+- **Es sind und bleiben genau zwei Rechenstellen** (seit 0.8.40). Der Server
+  rechnet den Schnitt über alle, der Klient den für die Stellung „meine" im
+  Vergleich — und **beide sind gewichtet**. Bliebe die zweite ungewichtet,
+  zeigte der Umschalter zwei Zahlen nach zwei verschiedenen Formeln, und
+  niemand könnte sagen, ob ein Unterschied von der anderen Bewertermenge kommt
+  oder von der fehlenden Gewichtung. Wer eine **dritte** Rechenstelle anlegt —
+  etwa in der Kachel der Übersicht —, bricht die Regel; die Kachel liest
+  `avgRating` vom Server, und dabei bleibt es.
+- **Kein Eintrag im Vokabular für „Gewicht".** Es ist ein Wort über die
+  Rechnung, nicht über den Gegenstand. Die elf Wörter bleiben elf.
 - **Kriterienreihenfolge wird gepflegt, nicht abgeleitet.** Keine alphabetische
   Sortierung, keine Sortierung nach Häufigkeit — die Reihenfolge ist eine
   Aussage darüber, was zuerst zählt, und steht als `sort_order` in der
@@ -989,6 +1130,13 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   müssten dafür gleich runden. Der Preis steht hier, damit ihn niemand für
   einen Fehler hält: wer die angezeigten Zehntel von Hand mittelt, kann um bis
   zu 0,05 danebenliegen.
+  **Seit 0.8.40 bekommt der zweite Schritt Gewichte, der erste nicht.** Die
+  Zweistufigkeit bleibt unangetastet; aus dem ungewichteten Mittel über die
+  Kriterien wird ein gewichtetes. Bei Gewicht 1 überall ist es dasselbe —
+  Zähler und Nenner bekommen denselben Faktor —, und wer alle Gewichte auf 1
+  zurückstellt, bekommt exakt die alten Zahlen wieder. Die Sache ist
+  vollständig umkehrbar, ohne Datenverlust. Gerundet wird weiterhin genau
+  einmal.
 - **Die Durchschnittsspalte entfällt bei genau einem Zugang** (seit 0.7.0).
   „3,4 · 1" ist keine Information. Abgeleitet aus `benutzerZahl`, nicht aus
   einem Schalter — ein Zustand, keine zweite Wahrheit. Die Schwelle steht
@@ -1221,7 +1369,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_31.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_40.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -2088,6 +2236,25 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     „Cannot add a REFERENCES column with non-NULL default value" — auch auf
     `NOT NULL DEFAULT 0`. *Eine nachgerüstete Fremdschlüsselspalte ist immer
     nullbar; wer sie anders will, braucht einen Tabellenneubau.*
+106. **Ein Wächter über den Quelltext färbt sich am Warnschild statt an der
+    Sache.** Zwei Prüfungen aus 0.8.40 sind daran gescheitert, und zwar beide
+    am *unveränderten* Stand: „die Spalte trägt keinen `CHECK`" las den
+    DDL-Text aus `sqlite_master` — und **SQLite speichert die Kommentare mit**,
+    in denen erklärt wird, warum kein `CHECK` dasteht. „Nirgends wird über ALLE
+    Gewichte summiert" las `server.js` als Ganzes und traf den Kommentar, der
+    den falschen Griff ausschreibt, damit ihn der Nächste nicht für einen guten
+    hält. *Wer eine Regel als Text prüft, prüft Code — der Kommentar daneben
+    erklärt die Regel und darf sie nicht auslösen.* Beide Male derselbe Ausweg:
+    die eine Prüfung sieht sich jetzt das **Verhalten** an, die andere filtert
+    die Kommentarzeilen weg — samt Gegenprobe, dass sie danach überhaupt noch
+    Code liest.
+107. **`ALTER TABLE … ADD COLUMN … CHECK (…)` geht sehr wohl.** Nachgestellt
+    statt geglaubt, und diesmal fiel die *Behauptung* und nicht der Bau: das
+    Gewichtungspapier verneint es, SQLite nimmt es an, und der `CHECK` greift
+    danach. Das Gegenstück zu 105, das dieselbe Frage für `REFERENCES` stellt
+    und andersherum beantwortet. *Zwei Nachrüstungen, zwei verschiedene
+    Antworten — die eine sagt nichts über die andere.* (Der `CHECK` bleibt
+    trotzdem weg, aus einem anderen Grund: Abschnitt 5.)
 
 ---
 
@@ -2101,12 +2268,13 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Abbilds).
 
-**Zuletzt: 1682 von 1682 bestanden** (0.8.31; 58 neue Prüfungen, zwei neue
-Gruppen: „UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0" und „Der Name an der
-Dateizeile"). Davor 0.8.30 mit 76 neuen Prüfungen und den Gruppen „UMSTIEG
-0.8.30" und „Der Name an der Linkzeile".
+**Zuletzt: 1807 von 1807 bestanden** (0.8.40; 125 neue Prüfungen, fünf neue
+Gruppen: „UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0", „Gewichtung: der Rechenweg",
+„Gewichtung: was angenommen wird und was nicht", „Das Gewicht am Eintrag" und
+„Das Gewicht im Systembereich"). Davor 0.8.31 mit 58 neuen Prüfungen und
+0.8.30 mit 76.
 
-**Es gibt jetzt DREI Umstiegsabschnitte**, und alle tragen dieselbe Marke.
+**Es gibt jetzt VIER Umstiegsabschnitte**, und alle tragen dieselbe Marke.
 Der Abschnitt **„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen
 steht unverändert: er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage,
 nur ohne die neue Spalte und mit einer Zeile darin — und belegt, dass der
@@ -2124,6 +2292,20 @@ herrenlos ist: sie kann der Umstieg nicht füllen und fällt danach dem
 Auffangnetz zu. **Damit sind beide Regeln an einem Lauf zu sehen.** Dazu die
 Gegenlage, dass der Index auf `links` sich beim Start selbst nachlegt, während
 die Spalte es nicht täte.
+
+Der Abschnitt **„UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0"** stellt eine Datenbank
+aus 0.8.31 nach — dieselbe Anlage, nur ohne die Spalte `gewicht`, mit drei
+Kriterien und **mit Bewertungen daran**. Die Frage nach einem Verfasser stellt
+sich hier nicht; ein Gewicht kann nicht herrenlos werden. Belegt wird: die
+Spalte kommt dazu, die Bestandszeilen stehen auf **1,0**, die Vorgabe kommt
+aus dem `DEFAULT` und nicht aus einem `UPDATE` (am Quelltext nachgesehen),
+`ordneBestandZu()` kennt `rating_criteria` gar nicht, ein zweiter Lauf bleibt
+stumm, ein von Hand gesetztes Gewicht überlebt den nächsten Start, und eine
+**frische** Anlage trägt die Spalte ohne Umstieg. Dazu die eigentliche
+Zusicherung der Runde, an derselben Anlage nachgerechnet: **der gewichtete
+Gesamtschnitt ist nach dem Umstieg derselbe wie der ungewichtete davor.**
+Und die Gegenlage, dass migrierte und frische Anlage die Spalte **gleich**
+bauen — geprüft am Verhalten, nicht am DDL-Text (Stolperstein 106).
 
 **Der Index auf `sessions.user_id` ist der Beleg dafür, dass ein Index kein
 Umstieg ist** (0.8.20, nachgestellt statt geglaubt): Der Prüfstand entfernt
@@ -2146,6 +2328,32 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   wird die Datenbank angesehen (Stolperstein 77).
 - **Kriterien:** anlegen, umbenennen, sortieren, löschen, lückenlose
   Nummerierung, Wirkung auf Detailansicht und Vergleich.
+- **Die Gewichtung (0.8.40):** der Rechenweg an einer Lage mit **drei
+  Bewertern und ungleich vielen Stimmen je Kriterium** — ohne das belegte die
+  wichtigste Prüfung der Runde zu wenig. Darin: alle Gewichte 1 ergeben den
+  ungewichteten Schnitt (die Gegenzahl wird aus den Zeilenwerten der Antwort
+  nachgerechnet, nicht hingeschrieben); ein unbewertetes Kriterium bringt sein
+  Gewicht **nicht** in den Nenner, auch nicht in der schärfsten Lage, in der
+  ein einziges bewertetes Kriterium bei Gewicht 0,2 gegen drei unbewertete bei
+  Gewicht 2 steht; alle Werte 5 bei gemischten Gewichten ergeben **genau**
+  5,0, alle Werte 1 **genau** 1,0; ein Gewichtswechsel dreht die Rangfolge der
+  Übersicht und rührt `updated_at` **nicht** an. Dazu die Gültigkeit — zehn
+  Abweisungen mit 400, darunter `0`, alles Negative und `Infinity`, jede mit
+  der Nachschau, dass der alte Wert unverändert dasteht; die Rundung auf
+  Hundertstel; das Komma in der Meldung; und die Klemme mit **zweiter
+  Sitzung**: ein Benutzer bekommt 403, der Admin kommt durch, und nach dem 403
+  steht der alte Wert in der Datenbank.
+- **Die Gewichtung in der Oberfläche:** die Marke `×1,5` an drei Orten samt
+  **zwei Gegenlagen** — alle Gewichte auf 1 (dann steht nirgends etwas), und
+  ein Gewicht ≠ 1 an einem Kriterium, das **niemand bewertet hat** (dann steht
+  die Marke an der Zeile, aber nicht das Wort „gewichtet" am Kopf). Das
+  Eingabefeld wird über ein **wirklich zugestelltes `change`-Ereignis**
+  bedient, nicht über einen Aufruf von `onchange`; geprüft sind Komma und
+  Punkt, die sichtbare Rundung, das leere Feld (das gar nichts schickt), die
+  Rückstellung nach einer Absage, dass die Liste **nicht** neu gezeichnet wird
+  und dass ein offenes Umbenennen daneben überlebt. Dazu, dass das Feld an der
+  Kriterienkarte steht und an den Karten „Kategorien" und „Tags" **nicht** —
+  `manage()` zeichnet alle drei.
 - **Export und Import** in beiden Richtungen, auch mit alten Exportdateien
   ohne die neueren Felder, samt Rundlauf durch drei Verfasser.
 - **Oberfläche im echten DOM (`jsdom`):** mitwachsende Felder, Reihenfolge
@@ -2182,14 +2390,19 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   eine Regel, die an einer Stelle geprüft ist und an der zweiten nur behauptet,
   ist an der zweiten ungeprüft.
 - **Der Quelltext selbst:** eine gepflegte Liste **aller schreibenden Routen
-  (aktuell 46)** samt der Art ihrer Absicherung, gehalten gegen das, was in
+  (aktuell 46, und die Zahl wird seit 0.8.40 ausdrücklich geprüft)** samt der
+  Art ihrer Absicherung, gehalten gegen das, was in
   `server.js` wirklich steht — in beide Richtungen, denn wo „offen" steht,
   darf **weder eine Klemme im Rumpf noch ein Wächter in der Routenzeile**
   stehen (die zweite Hälfte seit 0.8.30, Stolperstein 101). Dazu seit 0.8.30
   zwei Prüfungen darauf, **welche** Klemme im Rumpf der beiden Linkrouten
   steht — die Art `'im Rumpf'` unterscheidet das nicht. Dazu die Zählung, dass Adminfrage und
   Eigentümerfrage je genau einmal vorkommen, und der Wächter darauf, dass das
-  Wort „Leitung" nirgends zurückkehrt. **Das ist die einzige Prüfung, die
+  Wort „Leitung" nirgends zurückkehrt. **Seit 0.8.40 auch die Spanne des
+  Gewichts:** `GEWICHT_MIN` und `GEWICHT_MAX` je genau einmal, genau eine
+  `gueltigesGewicht()`, keine Spanne in `app.js` — und der Wächter darauf,
+  dass nirgends über **alle** Gewichte summiert wird, mit einer Gegenprobe,
+  dass er überhaupt noch Code liest (Stolperstein 106). **Das ist die einzige Prüfung, die
   eine fehlende Entscheidung findet.**
 - **Das Werkzeug selbst (seit 0.8.10):** die Sperrdatei, der `Dockerfile`, der
   Versionsabdruck und die Datei für den Prüflauf bei jedem Push — geprüft
@@ -2217,7 +2430,7 @@ Fehlschlägen. Was dabei gilt:
   Ein Rückbau kann den Lauf abreißen; dann sind die roten Punkte davor nur die
   halbe Auskunft.
 
-**Sieben Lücken sind dabei schon aufgefallen — sie sind der eigentliche Ertrag:**
+**Neun Lücken sind dabei schon aufgefallen — sie sind der eigentliche Ertrag:**
 
 1. **Eine Klassenprüfung belegt nicht, dass die Klasse etwas bewirkt.** Drei
    Prüfungen lasen nur die Klassennamen am Kommentarknoten; ein ersatzloses
@@ -2250,6 +2463,15 @@ Fehlschlägen. Was dabei gilt:
    Antwort. Gefunden in 0.8.30, behoben durch fünf Prüfungen an der echten
    Serverantwort (Stolperstein 102). Verwandt mit Lücke 3, aber schärfer: dort
    war es eine doppelt gehaltene Vorgabe, hier ist es der Prüfstand selbst.
+
+9. **Ein Wächter über den Quelltext trifft den Kommentar, der die Regel
+   erklärt.** Zwei Prüfungen aus 0.8.40 waren schon am unveränderten Stand rot:
+   das Wort `CHECK` steht im Kommentar an der Spalte, und SQLite speichert
+   Kommentare im DDL-Text mit; der falsche Griff „Summe über alle Gewichte"
+   steht ausgeschrieben in `server.js`, damit ihn der Nächste nicht für einen
+   guten hält. **Beide Fehlschläge lagen an der Prüfung, nicht am Code**
+   (Stolperstein 106) — und sie sind vor dem Bauen aufgefallen, weil eine neue
+   Prüfung erst am unveränderten Stand grün sein muss.
 
 **Acht Prüfungen sind als zu nachsichtig aufgeflogen** — zwei standen schlicht
 auf `true`. Eine Prüfung, die nie scheitern kann, ist schlimmer als keine. Und
@@ -2506,7 +2728,50 @@ sind zwei Dinge:
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.31 — „Dateien bekommen Verfasser".** *Keine Stufe, eine
+**0.8.40 — „Nicht jedes Kriterium wiegt gleich".** Die nächste Runde des
+Stufenplans, **keine Stufe des Mehrbenutzerbetriebs** — und trotzdem eine
+Datenbankstufe.
+
+*Das Schema und der Umstieg.* `rating_criteria` trägt
+`gewicht REAL NOT NULL DEFAULT 1.0`, samt `umstieg0840()`, dem **vierten**
+markierten Block. **Die Bestandszeilen bekommen 1,0 aus dem `DEFAULT` der
+Spalte**, nicht aus einem nachgeschobenen `UPDATE`. `ordneBestandZu()` bleibt
+unberührt: ein Gewicht kann nicht herrenlos werden. **Kein `CHECK`** — nicht
+weil SQLite ihn nicht nachrüsten könnte (er könnte, das ist nachgestellt
+worden), sondern weil die Spanne dann zweimal stünde.
+
+*Der Rechenweg.* `qSchnittJeKriterium` bekommt einen JOIN auf
+`rating_criteria`, das Gewicht **reist an der Schnittzeile mit**, und
+`gesamtSchnitt()` wird ein gewichteter Mittelwert. **Der Nenner summiert nur
+die Gewichte der bewerteten Kriterien** — die eine Stelle, an der ein
+naheliegender Griff die Zusicherung [1, 5] bricht; sie ist baulich gelöst und
+nicht durch Sorgfalt. `avg` und `count` je Kriterium bleiben ungewichtet,
+gerundet wird weiterhin genau einmal.
+
+*Wo es eingestellt wird.* `GEWICHT_MIN = 0.2`, `GEWICHT_MAX = 2.0` und
+`gueltigesGewicht()` an **genau einer** Stelle; zwei Schreibwege führen darauf.
+In der Kriterienkarte steht ein Textfeld mit Vorschlagsliste
+(**0,5 · 0,8 · 1 · 1,2 · 1,5**, freie Eingabe dazwischen), `type="text"` mit
+`inputmode="decimal"`. Komma herein, Komma hinaus. **Keine neue schreibende
+Route: `F_ROUTEN` bleibt bei 46, und keine Art wechselt.**
+
+*Wo es sichtbar wird.* `×1,5` an der Kriterienzeile, an der
+Zeilenbeschriftung im Vergleich und das Wort „gewichtet" am Blockkopf — alles
+abgeleitet, nur bei Abweichung von 1, das Wort zusätzlich nur über die
+**bewerteten** Kriterien. `eigenerSchnitt()` im Klienten rechnet ebenfalls
+gewichtet; es bleiben **genau zwei** Rechenstellen.
+
+*Export und Import.* `criteriaGewichte` als zusätzliches Feld, **nur
+Abweichungen**, `criteria` unverändert eine Liste von Namen. **Formatnummer
+8 → 9.** Ein bekanntes Kriterium behält beim Einspielen sein Gewicht, ein neu
+angelegtes bekommt das aus der Datei, ein ungültiges fällt auf 1,0 und wird
+genannt statt abzubrechen.
+
+**1807 von 1807 Prüfungen**, 30 Gegenproben, **zwei
+neue Stolpersteine** (106 und 107, beide über das Prüfen selbst). Einzelheiten
+in `Doku/Aenderungsprotokoll_0.8.40.md`.
+
+**0.8.31 davor — „Dateien bekommen Verfasser".** *Keine Stufe, eine
 Berichtigungsrunde* — und die erste, die eine der neun freien Nummern zwischen
 zwei Stufen nutzt (Abschnitt 10). Sachlich dieselbe Wende wie G4, nur am
 sechsten Träger: die Regel galt für Dateien immer schon, sie war nur nicht
@@ -2529,7 +2794,7 @@ räumt die Dateien beim zweiten Häkchen mit weg.
 fünf aus 0.8.30 haben getragen. Einzelheiten in
 `Doku/Aenderungsprotokoll_0.8.31.md`.
 
-**0.8.30 — Stufe G4, „Die Linkliste bekommt Verfasser", alle fünf Punkte.**
+**0.8.30 davor — Stufe G4, „Die Linkliste bekommt Verfasser", alle fünf Punkte.**
 Die erste Datenbankstufe seit 0.8.3 und die letzte offene Stufe des
 Mehrbenutzerbetriebs vor H.
 
@@ -2649,7 +2914,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.20** | Die Schotten dicht | SVG am Fotoweg, `X-Forwarded-For`, `Secure`-Cookie, Sicherheitsregel für die Anwendung selbst, Fehler-Handler, sauberes Herunterfahren, Index auf `sessions.user_id` | — | — |
 | **0.8.30** | **Stufe G4** — Links bekommen Verfasser | `user_id` an `links`, eintragen offen, löschen beim Eintrager oder Admin, Name an der fremden Zeile, beide Löschdialoge | ja | 6 → 7 |
 | **0.8.31** | *(keine Stufe)* Dateien bekommen Verfasser | dieselbe Wende am sechsten Träger — `user_id` an `attachments`, hochladen offen, löschen beim Hochladenden oder Admin | ja | 7 → 8 |
-| **0.8.40** | Gewichtung der Kriterien | siehe `Konzept_Gewichtung_Bewertungskriterien.md` | ja | 8 → 9 |
+| **0.8.40** | Gewichtung der Kriterien | Gewicht 0,2 bis 2 je Kriterium, gewichteter Gesamtschnitt, Anzeige `×1,5`, `criteriaGewichte` im Austauschformat — siehe `Konzept_Gewichtung_Bewertungskriterien.md` | ja | 8 → 9 |
 | **0.8.50** | Kurzvideos am Fotoplatz | bis 20 MB, in der Datenbank, Standbild aus dem Browser — siehe `Konzept_Video_und_grosse_Dateien.md`, Teil I | ja | 9 → 10 |
 | **0.8.60** | Was ist offen, was ist neu | Ansicht „Offen" über alle Einträge, Filter „Neu seit …" | — | — |
 | **0.8.70** | Sicherung und Papierkorb | `VACUUM INTO` auf Knopfdruck (Punkt 8), Papierkorb, einzelnen Eintrag exportieren | ja | — |
@@ -2661,16 +2926,18 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **1.0.0** | Bereinigung und Zusage | Umstiegscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
-**0.8.10, 0.8.20, 0.8.30 und 0.8.31 sind gebaut** — Einzelheiten in Abschnitt 2
-und Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit 0.8.3**
-gefahren, mit 0.8.31 gleich die zweite;
+**0.8.10, 0.8.20, 0.8.30, 0.8.31 und 0.8.40 sind gebaut** — Einzelheiten in
+Abschnitt 2 und Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit
+0.8.3** gefahren, mit 0.8.31 die zweite und mit 0.8.40 die dritte;
 die Sicherung des Datenverzeichnisses steht seitdem als **Pflicht** im
 Einspielweg (Abschnitt 2), nicht mehr als Empfehlung.
 
-**Als Nächstes 0.8.40 — Gewichtung der Bewertungskriterien**, ausgearbeitet in
-`Konzept_Gewichtung_Bewertungskriterien.md`. Auch sie fasst das Schema an und
-hebt die Formatnummer, diesmal **7 → 8**. Der Weg dorthin ist frei: die letzte
-offene Stufe des Mehrbenutzerbetriebs vor H war G4, und sie ist gebaut.
+**Als Nächstes 0.8.50 — Kurzvideos am Fotoplatz**, ausgearbeitet in
+`Konzept_Video_und_grosse_Dateien.md`, Teil I. Auch sie fasst das Schema an
+und hebt die Formatnummer, dann **9 → 10**. Die Bindung „0.8.20 vor 0.8.50"
+ist erfüllt: die Regel „der gemeldete Typ des Hochladenden wird nie
+ausgeliefert" gilt seit 0.8.20 auch am Fotoweg, und der Wächter im Prüfstand
+hält sie fest.
 
 **Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
 antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
@@ -2693,14 +2960,17 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
 - **0.8.10 und 0.8.20 vor 1.0.0** (beide erledigt). Eine Veröffentlichung
   heißt fremde Installationen. Danach stünden die beiden Befunde nicht mehr in
   einer Anlage, sondern in allen — deshalb lagen sie vorn und nicht hinten.
-- **G4 vor 0.8.40** (erledigt). Beide heben die Formatnummer, und beide fassen
-  das Schema an. Nacheinander gebaut heißt: zwei Formatnummern statt einer,
-  zwei Umstiegsblöcke statt einem — **und das ist bewusst so entschieden**.
-  Das Ideenpapier schlägt das Zusammenlegen vor; die Regel „jede Stufe muss in
-  einem Chat abzuarbeiten sein" wiegt schwerer als eine gesparte Formatnummer.
-  G4 war mit Schema, Umstieg, Rechtewende, Oberfläche und Austauschformat
-  bereits breit genug — **die Runde hat 76 Prüfungen und 31 Gegenproben
-  gebraucht**, und das war keine Reserve mehr.
+- **G4 vor 0.8.40** (beide erledigt). Beide heben die Formatnummer, und beide
+  fassen das Schema an. Nacheinander gebaut heißt: zwei Formatnummern statt
+  einer, zwei Umstiegsblöcke statt einem — **und das ist bewusst so
+  entschieden**. Das Ideenpapier schlägt das Zusammenlegen vor; die Regel
+  „jede Stufe muss in einem Chat abzuarbeiten sein" wiegt schwerer als eine
+  gesparte Formatnummer. G4 war mit Schema, Umstieg, Rechtewende, Oberfläche
+  und Austauschformat bereits breit genug — **die Runde hat 76 Prüfungen und
+  31 Gegenproben gebraucht**, und das war keine Reserve mehr.
+  **Im Nachhinein bestätigt:** 0.8.40 allein brauchte 125 neue Prüfungen
+  und 30 Gegenproben. Zusammengelegt wäre keine der beiden Runden in einem
+  Durchgang fertig geworden.
 
 **Die Herkunft der neuen Punkte** — Befunde, Messwerte und Begründungen —
 steht in `Ideen_und_Vorschlaege.md`. Das Papier ist damit **Quelle, nicht
@@ -2712,7 +2982,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_31.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_40.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.
@@ -2813,8 +3083,8 @@ damit alte Verweise stimmen.)*
 ### Vorgemerkt für 1.0
 
 *Aus 0.8.10 und 0.8.20 ist hier nichts dazugekommen — beide haben das Schema
-nicht angefasst. **Aus 0.8.30 und 0.8.31 ist je ein markierter Block
-dazugekommen; es sind jetzt drei.***
+nicht angefasst. **Aus 0.8.30, 0.8.31 und 0.8.40 ist je ein markierter Block
+dazugekommen; es sind jetzt vier.***
 
 - **Finale Bereinigung.** Der Rückbau des Umstiegscodes wurde aus
   Notwendigkeit nach 0.8.0 vorgezogen; zu 1.0 folgt eine letzte Bereinigung
@@ -2843,18 +3113,32 @@ dazugekommen; es sind jetzt drei.***
   den **Verfasser ihres Eintrags**, Spalte bleibt, Block fällt, `attachments`
   in `ordneBestandZu()` fällt **nicht** mit. Prüfabschnitt „UMSTIEG 0.8.31 —
   ENTFAELLT MIT 1.0", Export von `umstieg0831` mit derselben Marke.
-  **Eine Prüfung gehört BEIDEN Blöcken und fällt erst mit dem zweiten:** „Ein
-  Sprung von 0.8.20 fährt BEIDE Umstiege in einem Start". Sie steht im
-  Abschnitt von 0.8.31 und ist beim Rückbau mitzunehmen — wer nur einen der
-  beiden Blöcke entfernt, muss sie umschreiben statt löschen.
+  **Eine Prüfung gehört ALLEN markierten Blöcken und fällt erst mit dem
+  letzten:** „Ein Sprung von 0.8.20 fährt ALLE Umstiege in einem Start". Sie
+  steht im Abschnitt von 0.8.31 und ist beim Rückbau mitzunehmen — wer nur
+  einen der Blöcke entfernt, muss sie umschreiben statt löschen.
+- **`db.js`, `umstieg0840()` — 27 Zeilen samt Marken, 15 Prüfungen** (seit 0.8.40). Ergänzt `gewicht` an `rating_criteria` in einer
+  Datenbank aus 0.8.0 bis 0.8.31; die Bestandszeilen bekommen 1,0 **aus dem
+  `DEFAULT` der Spalte**, nicht aus einem `UPDATE`. Zu 1.0 fällt der Block
+  weg, **die Spalte in der DDL bleibt** — dieselbe Prüfung hält es fest.
+  Prüfabschnitt „UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0" in `pruefung.js`
+  (196 Zeilen), Export von `umstieg0840` mit derselben Marke.
+  **Was ausdrücklich NICHT mitfällt:** alles, was mit der Spalte selbst zu tun
+  hat — `GEWICHT_MIN`/`GEWICHT_MAX`, `gueltigesGewicht()`, der JOIN in
+  `qSchnittJeKriterium`, der gewichtete `gesamtSchnitt()`, das Feld in der
+  Verwaltungskarte und `criteriaGewichte` im Austauschformat. Der Umstieg
+  trägt die Spalte nach, er trägt die Gewichtung nicht.
+  **Und `rating_criteria` kommt in `ordneBestandZu()` gar nicht vor** — anders
+  als bei 0.8.30 und 0.8.31 gibt es hier nichts, was nicht mitfallen dürfte.
 - **Harte Zurückweisung zu alter Datenbanken.** Seit 0.8.1 wird ein Bestand
   aus der Zeit vor 0.8.0 nicht mehr übernommen, aber auch nicht erkannt — der
   Start liefe in SQL-Fehler statt in eine Meldung. Vor 1.0 gehört an den
   Start eine klare Absage, die den Zwischenschritt über 0.8.0 nennt. **Seit
   0.8.3 wiegt der Punkt schwerer:** es gibt wieder Umstiegscode, und eine
   Anlage aus der Zeit vor 0.8.0 läuft weiterhin wortlos in SQL-Fehler. **Mit
-  0.8.30 gibt es davon zwei** — und `umstieg0830()` greift auf eine Tabelle
+  0.8.40 gibt es davon vier** — und `umstieg0830()` greift auf eine Tabelle
   `links` zu, die es in einer wirklich alten Anlage geben mag oder nicht.
+  `rating_criteria` gibt es dagegen seit jeher.
 - **Abwärtskompatibilität.** Ab 1.0 wird sie zugesichert und
   aufrechterhalten. Fällt die Entscheidung früher, wird sie vorher final in
   die Dokumente eingearbeitet.
@@ -2912,7 +3196,25 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   `GET /api/stats`, seit 0.8.6 `GET /api/items/:id/stimmen`). Die Liste ist
   die Stelle für **schreibende** Routen. **Auch G4 hat die Zahl nicht bewegt:**
   sie steht weiterhin bei 46, es ist keine schreibende Route entstanden — nur
-  eine hat ihre Art gewechselt.
+  eine hat ihre Art gewechselt. **0.8.40 hat weder das eine noch das andere
+  getan** — das Gewicht geht über `PUT /api/criteria/:id`, die es längst gibt;
+  seitdem prüft der Prüfstand die **Zahl 46 ausdrücklich**, nicht nur die
+  Übereinstimmung der Liste mit dem Quelltext.
+- **Eine Einstellung, die an allen Einträgen aller Benutzer erscheint, gehört
+  dem Admin — und in die Datenbank** (seit 0.8.4, am Gewicht in 0.8.40 zum
+  wiederholten Mal angewandt). Nicht in `user_settings`: zwei Leute mit
+  verschiedenen Werten hätten zwei verschiedene Wahrheiten über dieselbe
+  Sache. Und nicht in eine Konfigurationsdatei: die stünde außerhalb der
+  Verschlüsselung, außerhalb der Sicherung und außerhalb des Exports. `.env`
+  trägt nur, was **vor** dem Öffnen der Datenbank lesbar sein muss.
+- **Wer eine Zusicherung über eine Zahl gibt, sucht den Rechenweg, der sie
+  baulich wahr macht** (seit 0.8.40). „Nie über 5, nie unter 1" ist keine
+  Regel, die durchgesetzt wird, sondern eine Eigenschaft des gewichteten
+  Mittels. Dieselbe Bauform wie die Rollenleiter aus 0.8.0: *ein Deckel, den
+  es nicht gibt, kann nicht vergessen werden.* Und die Kehrseite gehört dazu:
+  **wo ein Rechenweg eine Zusicherung trägt, ist die eine Stelle, an der er
+  kippen kann, im Quelltext zu benennen** — hier der Nenner, der nur über die
+  bewerteten Kriterien gehen darf.
 - **Die Art in `F_ROUTEN` sagt nicht, WELCHE Klemme im Rumpf steht** (seit
   0.8.30). `eintragFrei(`, `darfAendern(`, `nurSelbst(` und die Übrigen stehen
   alle in `RUMPF_WOERTER`; die Art `'im Rumpf'` unterscheidet sie nicht. Wer
