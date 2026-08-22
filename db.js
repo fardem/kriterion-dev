@@ -94,6 +94,24 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  -- Das GEWICHT dieses Kriteriums im Gesamtschnitt. 1 heisst "zaehlt wie
+  -- jedes andere". Erlaubt ist 0,2 bis 2, und nur positiv: NULL, 0 und alles
+  -- Negative sind es nicht. Bei Gewicht 0 waere der Nenner eines Eintrags, an
+  -- dem nur dieses Kriterium bewertet ist, null, und die Division ginge nicht
+  -- auf; ein negatives Gewicht kehrte die Aussage um -- eine gute Note zoege
+  -- den Schnitt nach unten -- und braeche die Zusicherung [1,5] mit.
+  -- Verrechnet wird als gewichteter MITTELWERT, nicht als Summe: dadurch
+  -- liegt der Gesamtschnitt immer zwischen 1 und 5, ohne dass das irgendwo
+  -- durchgesetzt werden muesste.
+  -- KEIN CHECK an dieser Stelle, und der Grund ist nicht, dass SQLite es
+  -- nicht koennte -- ADD COLUMN nimmt einen CHECK an, und er greift danach.
+  -- Der Grund ist, dass die Spanne dann ZWEIMAL stuende: hier und in
+  -- GEWICHT_MIN/GEWICHT_MAX im Server. Zwei Stellen fuer dieselbe Grenze
+  -- laufen auseinander, und die zweite meldete sich nicht als Absage mit
+  -- Meldung, sondern als abgebrochene Schreibung.
+  -- REAL und nicht Hundertstel als INTEGER: eine Umrechnung an jeder
+  -- Lesestelle vergisst irgendwann jemand. photos.focus_x geht denselben Weg.
+  gewicht REAL NOT NULL DEFAULT 1.0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -333,6 +351,32 @@ function umstieg0831() {
 umstieg0831();
 // ENDE UMSTIEG 0.8.31
 
+// UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
+// Die Spalte gewicht steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
+// eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.0
+// bis 0.8.31 traegt rating_criteria ohne diese Spalte.
+// DIE BESTANDSZEILEN BEKOMMEN 1,0, und zwar aus dem DEFAULT der Spalte, nicht
+// aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit NOT NULL
+// DEFAULT fuellt die vorhandenen Zeilen selbst. Jeder andere Wert aenderte
+// beim Einspielen still saemtliche Gesamtschnitte.
+// KEINE FRAGE NACH EINEM EIGENTUEMER, anders als bei den beiden Umstiegen
+// darueber: ein Gewicht kann nicht herrenlos werden, es hat einen
+// NOT-NULL-Vorgabewert. Das Auffangnetz weiter unten geht diese Spalte
+// deshalb nichts an.
+// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
+// weg, die Spalte in der DDL bleibt.
+function umstieg0840() {
+  const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
+  if (spalten.includes('gewicht')) return 0;
+  db.exec('ALTER TABLE rating_criteria ADD COLUMN gewicht REAL NOT NULL DEFAULT 1.0');
+  const n = db.prepare('SELECT COUNT(*) AS n FROM rating_criteria').get().n;
+  console.log(`[Kriterion] rating_criteria um gewicht ergaenzt (Umstieg auf 0.8.40); ` +
+    `${n} Kriterien stehen auf dem Vorgabegewicht 1,0.`);
+  return 1;
+}
+umstieg0840();
+// ENDE UMSTIEG 0.8.40
+
 // --- Auffangnetz: die Anlage braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
@@ -433,4 +477,6 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0
                    umstieg0830,
                    // UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0
-                   umstieg0831 };
+                   umstieg0831,
+                   // UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
+                   umstieg0840 };
