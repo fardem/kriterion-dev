@@ -37,6 +37,22 @@ bereits, sie steht bereits hinter `nurAdmin` und bereits in `F_ROUTEN`. **Die
 Zahl bleibt bei 46, und keine Art wechselt.** Das ist ausdrücklich zu
 erwähnen, weil es die erste Runde seit langem ist, in der das gilt.
 
+**DIE GEWICHTUNG IST GLOBAL UND GEHÖRT DEM ADMIN.** Sie ist keine persönliche
+Einstellung und bekommt keinen Eintrag in `user_settings`. Der Grund steht im
+Gewichtungspapier und ist der härteste, den das Projekt kennt: hätten zwei
+Leute verschiedene Gewichte, hätte derselbe Eintrag zwei verschiedene
+Gesamtschnitte — eine zweite Wahrheit in Reinform. Es gilt dieselbe Regel wie
+seit 0.8.4: was an **allen** Einträgen **aller** Benutzer erscheint, stellt
+der Admin ein.
+
+**UND SIE WIRD IN DER DATENBANK GEHALTEN, NICHT IN EINER DATEI.** Das Gewicht
+gehört dem Kriterium, also ist es eine **Spalte an `rating_criteria`** und
+nicht einmal ein Schlüssel in `settings`. Eine Konfigurationsdatei wäre an
+dieser Stelle ein Fehler: sie stünde außerhalb der Verschlüsselung, außerhalb
+der Sicherung und außerhalb des Exports — eine zweite Wahrheit neben der
+Datenbank. `.env` trägt nur, was **vor** dem Öffnen der Datenbank lesbar sein
+muss; das Gewicht gehört nicht dazu.
+
 Fünf Punkte. Die Bündelung folgt der Sache; bei jedem Punkt steht, warum er so
 geschnitten ist.
 
@@ -216,10 +232,21 @@ geschnitten ist.
    komplizierter, und es ist eine Sache für den Bildschirm — **entscheide du.**
 
 Haltepunkt: **nach Punkt 4.** Dann ist die Gewichtung am Bildschirm
-vollständig und in sich stimmig. **Was dort noch fehlt, ist eine echte Lücke
-und kein Schönheitsfehler:** ein Export verlöre die Gewichte, und ein Rundlauf
-setzte alles auf 1 zurück. Ein Stand am Haltepunkt ist committbar, aber
-**nicht einspielbar**. Sag es dazu, wenn du dort anhältst.
+vollständig und in sich stimmig, und sie steht auch dauerhaft: die Spalte
+`rating_criteria.gewicht` ist ab Punkt 1 da, der Wert liegt in der
+verschlüsselten Datenbank und übersteht jeden Neustart. **Was dort noch fehlt,
+ist trotzdem eine echte Lücke und kein Schönheitsfehler:** ein Export
+schriebe die Gewichte nicht mit.
+
+**Und zwar genau so weit, wie es stimmt** — ich habe es am Einlesecode
+nachgesehen, statt es zu vermuten: der ersetzende Import löscht `items`,
+`product_categories` und `tags`, **nicht aber `rating_criteria`**, und er legt
+ein Kriterium nur an, wenn es fehlt. Ein Rundlauf **in dieselbe Anlage** ließe
+die Gewichte also stehen. Verloren wären sie beim Einspielen in eine
+**frische Anlage**: dort entstünden die Kriterien neu und stünden allesamt auf
+dem Vorgabewert 1. Ein Stand am Haltepunkt ist damit committbar und im
+eigenen Haus auch benutzbar, **aber nicht umzugsfähig**. Sag es dazu, wenn du
+dort anhältst.
 
 5. EXPORT UND IMPORT, FORMATNUMMER 8 → 9. Ohne diesen Punkt verlöre die Datei
    genau die Angabe, die diese Runde einführt.
