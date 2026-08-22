@@ -2308,16 +2308,29 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
   // Zusaetzliches Feld, damit die Kriterienreihenfolge den Export ueberlebt.
   // Bestehende Feldnamen bleiben unveraendert, aeltere Dateien ohne dieses
   // Feld lassen sich weiterhin einspielen.
-  const criteria = db.prepare('SELECT name FROM rating_criteria ORDER BY sort_order, id').all().map(c => c.name);
+  const kritZeilen = db.prepare('SELECT name, gewicht FROM rating_criteria ORDER BY sort_order, id').all();
+  const criteria = kritZeilen.map(c => c.name);
+  /* Die Gewichte kommen als EIGENES Feld daneben, criteria bleibt eine Liste
+     von Namen. Auf Objekte umzustellen brauchte nur einen Buchstaben mehr,
+     liefe aber in einer aelteren Anlage durch String() und ergaebe dort ein
+     Kriterium namens "[object Object]". Ein zusaetzliches Feld ignoriert sie
+     dagegen wortlos -- Rueckwaertskompatibilitaet ist zugesichert, und die
+     Gegenrichtung ist hier fast geschenkt.
+     NUR ABWEICHUNGEN. Ein Kriterium mit Gewicht 1 taucht gar nicht auf --
+     dieselbe Regel wie bei der Anzeige, und ein ungewichteter Bestand ergibt
+     damit eine Datei, die zeichengleich zu der vor dieser Version ist. */
+  const criteriaGewichte = {};
+  for (const c of kritZeilen) if (c.gewicht !== 1) criteriaGewichte[c.name] = c.gewicht;
   res.set('Content-Disposition', `attachment; filename="${slug}-export-${new Date().toISOString().slice(0,10)}.json"`);
-  // Formatnummer 6 (mit Verfassernamen). Sie ist eine AUSSAGE, keine
-  // Bedingung: weder der Import noch die Oberflaeche lesen sie. Entschieden
-  // wird ueber das Vorhandensein der Felder -- nur so bleiben aeltere Dateien
-  // lesbar, ohne dass irgendwo eine Fallunterscheidung nach Nummer steht.
-  // 8 statt 7, seit auch der Anhang seinen Verfasser nennt. Die Nummer sagt,
-  // was in der Datei steht, nicht wer sie geschrieben hat -- der Import liest
-  // weiterhin jede aeltere Form.
-  res.json({ exported_at: new Date().toISOString(), title, version: 8, criteria, items });
+  // Die Formatnummer ist eine AUSSAGE, keine Bedingung: weder der Import noch
+  // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
+  // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
+  // Fallunterscheidung nach Nummer steht.
+  // 9 statt 8, seit die Datei die Gewichte der Kriterien mitnimmt. Die Nummer
+  // sagt, was in der Datei steht, nicht wer sie geschrieben hat -- der Import
+  // liest weiterhin jede aeltere Form.
+  res.json({ exported_at: new Date().toISOString(), title, version: 9,
+             criteria, criteriaGewichte, items });
 });
 
 /* ---- Import ---- */
@@ -2433,6 +2446,28 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
       return id;
     };
 
+    /* Die Gewichte aus der Datei, einmal aufbereitet -- und ausdruecklich
+       AUSSERHALB der Transaktion, weil die Antwort unten die verworfenen
+       nennen muss. Der Schluessel steht klein geschrieben, weil critByName()
+       ueber COLLATE NOCASE sucht -- sonst faende "Verarbeitung" das Gewicht zu
+       "verarbeitung" nicht.
+       EIN UNGUELTIGES GEWICHT BRICHT NICHT AB, sondern faellt auf 1,0 und wird
+       genannt. Eine ganze Einspielung an einem Zahlenwert scheitern zu lassen
+       waere unverhaeltnismaessig -- dieselbe Haltung wie bei einem unbekannten
+       Verfassernamen. */
+    const dateiGewichte = new Map();
+    const verworfeneGewichte = new Set();
+    const rohGewichte = payload.criteriaGewichte;
+    if (rohGewichte && typeof rohGewichte === 'object' && !Array.isArray(rohGewichte)) {
+      for (const [name, roh] of Object.entries(rohGewichte)) {
+        const sauber = String(name || '').trim();
+        if (!sauber) continue;
+        const g = gueltigesGewicht(roh);
+        if (g === null) { verworfeneGewichte.add(sauber); continue; }
+        dateiGewichte.set(sauber.toLowerCase(), g);
+      }
+    }
+
     // Ein einziger Vorgang: bricht etwas ab, bleibt der Bestand unveraendert.
     db.transaction(() => {
       if (mode === 'replace') {
@@ -2453,9 +2488,15 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
       };
       const critByName = (name) => {
         const f = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE').get(name);
+        // EIN BEKANNTES KRITERIUM BEHAELT SEIN GEWICHT. Der Import legt
+        // Bestand an, er aendert keine Einstellung des Ziels -- dieselbe Regel
+        // wie beim ersetzenden Import, der `users` nicht anruehrt.
         if (f) return f.id;
         const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
-        return db.prepare('INSERT INTO rating_criteria (name, sort_order) VALUES (?, ?)').run(name, pos).lastInsertRowid;
+        // Ein NEU angelegtes bekommt das Gewicht aus der Datei, sonst 1,0.
+        const g = dateiGewichte.get(String(name).trim().toLowerCase());
+        return db.prepare('INSERT INTO rating_criteria (name, sort_order, gewicht) VALUES (?, ?, ?)')
+          .run(name, pos, g === undefined ? 1.0 : g).lastInsertRowid;
       };
 
       // Kriterien vorab in der Reihenfolge der Datei anlegen. Vorhandene
@@ -2599,8 +2640,17 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
     if (unbekannt.length)
       console.log(`[Kriterion] Import: unbekannte Verfasser dem Einspielenden zugeordnet ` +
                   `(${unbekannt.length}): ${unbekannt.join(', ')}`);
+    /* Dieselbe Bauform eine Zeile tiefer: ein Gewicht, das die Spanne
+       verlaesst, bricht nichts ab und verschwindet auch nicht wortlos. Es
+       steht in der Antwort UND im Protokoll -- die Antwort fuer den Pruefstand
+       und die Abfrage von Hand, das Protokoll fuer den Betrieb. */
+    const gewichteVerworfen = [...verworfeneGewichte].sort();
+    if (gewichteVerworfen.length)
+      console.log(`[Kriterion] Import: ungueltiges Gewicht auf 1,0 zurueckgesetzt ` +
+                  `(${gewichteVerworfen.length}): ${gewichteVerworfen.join(', ')}`);
     res.json({ ok: true, mode, ...stats,
-               verfasserZugeordnet: zugeordnet, verfasserUnbekannt: unbekannt });
+               verfasserZugeordnet: zugeordnet, verfasserUnbekannt: unbekannt,
+               gewichteVerworfen });
   } catch (e) { next(e); }
 });
 
