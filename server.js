@@ -1439,6 +1439,11 @@ app.put('/api/items/:id', (req, res) => {
    IS NOT statt !=, weil user_id leer sein darf: eine herrenlose Zeile ist eine
    fremde und fiele bei != aus dem Vergleich heraus.
 
+   FOTOS UND DATEIEN STEHEN MIT JE EINER ZAHL DA, LINKS NICHT MEHR. Fotos und
+   Dateien haengen am Eintrag und gehoeren damit seinem Verfasser; ein Link
+   kann seit dieser Fassung fremd sein und gehoert deshalb auf dieselbe Seite
+   wie Kommentar, Bewertung und Testtag.
+
    value > 0 bei den Bewertungen: eine zurueckgesetzte Zeile steht mit 0 in der
    Tabelle und ist keine Stimme -- dieselbe Bedingung wie beim Schnitt, bei der
    Stimmenliste und beim Verwendungszaehler der Kriterien. Die Zahl im Dialog
@@ -1449,7 +1454,8 @@ app.get('/api/items/:id/bestand', nurEintragVerfasser, (req, res) => {
   res.json({
     fotos: eins('SELECT COUNT(*) n FROM photos WHERE item_id = ?', id),
     dateien: eins('SELECT COUNT(*) n FROM attachments WHERE item_id = ?', id),
-    links: eins('SELECT COUNT(*) n FROM links WHERE item_id = ?', id),
+    eigenLinks: eins('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id = ?', id, ich),
+    fremdLinks: eins('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id IS NOT ?', id, ich),
     eigenKommentare: eins('SELECT COUNT(*) n FROM comments WHERE item_id = ? AND user_id = ?', id, ich),
     fremdKommentare: eins('SELECT COUNT(*) n FROM comments WHERE item_id = ? AND user_id IS NOT ?', id, ich),
     eigenBewertungen: eins('SELECT COUNT(*) n FROM ratings WHERE item_id = ? AND value > 0 AND user_id = ?', id, ich),
