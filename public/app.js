@@ -530,6 +530,34 @@ let V = {
 function aufgabeWeiter(art) {
   return { note: 'task', task: 'done', done: 'note', report: 'task' }[art] || 'task';
 }
+/* --- Das Gewicht eines Kriteriums: Komma herein, Komma hinaus -------------
+   "1,2" und "1.2" ergeben beide 1.2; alles andere ergibt NaN und faellt damit
+   beim Server durch gueltigesGewicht(). Auch "" und " " -- EIN LEERES FELD IST
+   KEINE NULL. Number('') ergibt in JavaScript 0, und ohne diese Klemme liefe
+   ein geloeschtes Feld in eine Absage "muss zwischen 0,2 und 2 sein", die
+   niemand verlangt hat.
+   Die Spanne selbst steht NICHT hier, sondern nur im Server: zwei Stellen fuer
+   dieselbe Grenze liefen auseinander, und die Oberflaeche waere die, die es
+   nicht meldet. */
+const gewichtAusText = (roh) => {
+  const t = String(roh ?? '').trim();
+  return t === '' ? NaN : Number(t.replace(',', '.'));
+};
+
+/* 1 -> "1", 1.2 -> "1,2", 1.25 -> "1,25". KEINE nachlaufenden Nullen: "1,50"
+   sieht nach einer Genauigkeit aus, die es nicht gibt -- und "1,0" nach einer
+   Einstellung, wo in Wahrheit die Vorgabe steht.
+   .replace('.', ',') ist die Konvention der ganzen Oberflaeche. */
+const gewichtText = (g) => String(Math.round(Number(g) * 100) / 100).replace('.', ',');
+
+/* Die Marke hinter einem Kriteriennamen -- ABGELEITET, kein Schalter: bei
+   Gewicht 1 steht dort nichts. "×1" an jeder Zeile waere Rauschen ohne
+   Aussage, aus demselben Grund, aus dem die Durchschnittsspalte bei einem
+   einzigen Zugang entfaellt.
+   Ohne diese Anzeige saehe die Kopfzahl schlicht falsch aus: mit Gewichten
+   laesst sich das Mittel der Zeilenwerte nicht mehr im Kopf nachrechnen. */
+const gewichtMarke = (g) => (Number(g) === 1 || g == null ? '' : '×' + gewichtText(g));
+
 const vSache = (n) => (n === 1 ? V.sacheEinzahl : V.sacheMehrzahl);
 const vZeit = (n) => (n === 1 ? V.zeitpunktEinzahl : V.zeitpunktMehrzahl);
 const vBericht = (n) => (n === 1 ? V.berichtEinzahl : V.berichtMehrzahl);
@@ -3163,6 +3191,22 @@ async function renderSystem() {
              Vergleich gleichermaßen; die Zahl nennt, an wie vielen ${esc(V.sacheMehrzahl)}
              Sterne vergeben sind.`}</p>
         <div class="manage-list" id="mcrits"></div>
+        <p class="desc" style="margin:10px 0 0">Das <strong>Gewicht</strong> bestimmt, wie stark ein
+          Kriterium in den Gesamtschnitt eingeht. Bei 1 zählen alle gleich. ${ADMIN
+            ? `Möglich ist 0,2 bis 2 — die Vorschläge sind nur die häufigsten Werte.`
+            : `Eingestellt wird es vom Admin; es gilt für alle.`}
+          Der Gesamtschnitt bleibt in jedem Fall zwischen 1 und 5.</p>
+        <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
+             ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
+             tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
+             Eintrag (#newtag mit list="tagsug").
+             ZWEI VORSCHLAEGE UNTER 1: die Liste ist der einzige Ort, an dem der Bereich unter 1
+             ueberhaupt sichtbar wird. Ohne sie bliebe er da und waere nur nicht auffindbar.
+             Sie kostet eine Zeile und der Server merkt davon nichts -- alles zwischen 0,2 und 2
+             laesst sich ohnehin eintippen. -->
+        <datalist id="gewichtsug">
+          <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
+        </datalist>
         ${ADMIN ? `<div class="row-in" style="margin-top:12px">
           <input class="input input-sm" id="newcrit" placeholder="Neues Kriterium" style="padding:8px 11px">
           <button class="btn btn-sm" id="newcrit-b">+ Anlegen</button>
@@ -3623,6 +3667,13 @@ async function renderSystem() {
     },
     crit: {
       url: '/api/criteria', frage: 'Kriterium löschen?', sortierbar: true,
+      // DAS GEWICHTSFELD GEHOERT ALLEIN HIERHER. manage() zeichnet dieselbe
+      // Zeile auch fuer Kategorien und Tags, und dort gibt es kein Gewicht --
+      // ein Kriterium wiegt im Gesamtschnitt, eine Kategorie rechnet nirgends
+      // mit. Die Unterscheidung laeuft ueber diesen Eintrag, wie schon bei
+      // `sortierbar` und `zaehler`, und nicht ueber eine Abfrage auf den
+      // Kartennamen.
+      gewicht: true,
       warnung: e => `„${e.name}" wird überall entfernt, samt vergebener Sterne.`
     }
   };
@@ -3646,8 +3697,24 @@ async function renderSystem() {
       row.className = 'mrow' + (art.sortierbar && darf ? ' drag' : '');
       row.dataset.mid = entry.id;
       const url = art.url;
+      /* Die Zeile war schon besetzt: Griff, Name, Verwendungszaehler, ✎ und ✕.
+         Das Gewichtsfeld steht ZWISCHEN Name und Zaehler -- der Name traegt
+         flex:1 und schiebt alles Weitere nach rechts, das Feld sitzt damit an
+         der Kante zwischen Beschriftung und Kennzahlen. Rechts der Knoepfe
+         waere es zwischen zwei Aktionen geraten, obwohl es keine ist.
+         WER NICHT VERWALTEN DARF, SIEHT DAS GEWICHT TROTZDEM -- es erklaert
+         die Kopfzahl an jedem Eintrag, und die sieht er ja auch. Nur als Text
+         statt als Feld, wie bei Name und Zaehler daneben. */
+      const gewFeld = art.gewicht
+        ? (darf
+          ? `<span class="mgew" title="Gewicht im Gesamtschnitt">×<input class="mgew-feld"
+               type="text" inputmode="decimal" list="gewichtsug" aria-label="Gewicht"
+               value="${esc(gewichtText(entry.gewicht))}"></span>`
+          : `<span class="mgew mgew-fest" title="Gewicht im Gesamtschnitt">×${esc(gewichtText(entry.gewicht))}</span>`)
+        : '';
       row.innerHTML = `${art.sortierbar && darf ? `<span class="grip" title="Zum Sortieren ziehen">⣿</span>` : ''}
         <span class="mname">${esc(entry.name)}</span>
+        ${gewFeld}
         <span class="mcount">${esc(art.zaehler ? art.zaehler(entry) : `${entry.usage_count} ${vSache(entry.usage_count)}`)}</span>
         ${darf ? `<button class="mact ed" title="Umbenennen">✎</button>
         <button class="mact rm" title="Löschen">✕</button>` : ''}`;
@@ -3666,6 +3733,37 @@ async function renderSystem() {
           }
         });
       }
+      /* NACH EINEM GEWICHTSWECHSEL WIRD DIE LISTE NICHT NEU GEZEICHNET. Das
+         ist der Unterschied zum Umbenennen: dort MUSS neu gezeichnet werden,
+         weil das ✎ den Namen durch ein Eingabefeld ERSETZT hat und der Zustand
+         zurueckgebaut gehoert. Ein Gewichtswechsel ersetzt nichts -- das Feld
+         steht dauerhaft da und traegt den neuen Wert bereits. Ein refresh()
+         waere hier nicht nur ueberfluessig, sondern schaedlich: ist an
+         derselben Zeile gerade ein Umbenennen offen, risse der Neuaufbau es
+         weg. Der Verwendungszaehler daneben aendert sich durch ein Gewicht
+         ohnehin nicht. */
+      const gewEingabe = row.querySelector('.mgew-feld');
+      if (gewEingabe) gewEingabe.onchange = async () => {
+        const g = gewichtAusText(gewEingabe.value);
+        // Ein leeres oder unlesbares Feld schickt GAR NICHTS: wer den Inhalt
+        // loescht und wegklickt, hat es sich anders ueberlegt und meint nicht
+        // "Gewicht 0".
+        if (Number.isNaN(g)) { gewEingabe.value = gewichtText(entry.gewicht); return; }
+        try {
+          const nun = await api('PUT', `${url}/${entry.id}`, { name: entry.name, gewicht: g });
+          // Den Datensatz IN DER LISTE nachziehen statt neu zu laden -- sonst
+          // zeigte die naechste Zeichnung wieder den alten Wert.
+          entry.gewicht = nun.gewicht;
+          // Zeigt die Rundung mit: 1,234 steht danach als 1,23 im Feld. Die
+          // Rundung ist damit nicht still.
+          gewEingabe.value = gewichtText(nun.gewicht);
+          toast('Gewicht gespeichert');
+        } catch (e) {
+          toast(e.message, true);
+          // Kein Wert im Feld, der nicht gespeichert ist.
+          gewEingabe.value = gewichtText(entry.gewicht);
+        }
+      };
       row.querySelector('.ed').onclick = () => {
         const inp = document.createElement('input');
         inp.className = 'medit'; inp.value = entry.name;

@@ -669,6 +669,27 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .mrow .mact:hover { color: var(--accent); background: var(--accent-dim); }
 .mrow .mact.rm:hover { color: var(--red); background: var(--red-dim); }
 .mrow input.medit { flex: 1; background: var(--bg); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 8px; font-size: .87rem; }
+/* Das Gewicht in der Kriterienzeile, zwischen Name und Verwendungszaehler.
+   Anders als ✎ und ✕ steht es DAUERHAFT da (kein opacity: 0 bis zum
+   Ueberfahren): es zeigt einen Wert, es ist keine Aktion.
+   Feste Breite, damit die Zeilen untereinander stehen und der Zaehler daneben
+   nicht wandert, sobald ein Feld zwei Nachkommastellen traegt. */
+.mrow .mgew { display: flex; align-items: center; gap: 2px; flex-shrink: 0;
+  font-family: var(--mono); font-size: .72rem; color: var(--faint); }
+.mrow .mgew-feld {
+  /* Breite in em, nicht in px: die Schriftgroesse der Oberflaeche ist in fuenf
+     Stufen einstellbar, und ein festes Mass hielte bei 120 % "1,25" nicht mehr.
+     Dieselbe Ueberlegung wie bei den textfuehrenden Mindestbreiten. */
+  width: 3.8em; background: var(--bg); border: 1px solid var(--line); border-radius: 5px;
+  padding: 3px 6px; font-family: var(--mono); font-size: .78rem; color: var(--text);
+  text-align: right;
+  transition: border-color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.mrow .mgew-feld:hover { border-color: #333b44; }
+.mrow .mgew-feld:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+/* Wer nicht verwalten darf, sieht denselben Wert als Text -- die Zahl erklaert
+   die Kopfzahl an jedem Eintrag, und die sieht er ja auch. */
+.mrow .mgew-fest { font-size: .74rem; }
 /* Kein touch-action: none. Das hat auf dem Finger jede Wischbewegung zum
    Umsortieren gemacht und das Scrollen unmoeglich -- gezogen wird jetzt erst
    nach kurzem Halten, siehe makeSortable in app.js. */
