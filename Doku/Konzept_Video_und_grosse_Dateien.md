@@ -48,9 +48,11 @@ gehen nach draußen.
 
 **Zwei Bindungen an die Nachbarstufen:**
 
-- **0.8.20 muss vorher liegen.** Der Videoweg liefert eine Datei **inline**
-  aus. Er darf erst gebaut werden, wenn die Regel „der ausgelieferte Typ kommt
-  nie aus der Datenbank" auch am Fotoweg gilt — siehe Abschnitt 6.
+- **0.8.20 muss vorher liegen — erledigt.** Der Videoweg liefert eine Datei
+  **inline** aus. Er durfte erst gebaut werden, wenn die Regel „der
+  ausgelieferte Typ kommt nie aus der Datenbank" auch am Fotoweg gilt — siehe
+  Abschnitt 6. Sie gilt seit 0.8.20, und ein Wächter im Prüfstand hält sie
+  fest: er wird namentlich rot, sobald der Videoweg seinen Typ selbst setzt.
 - **0.8.70 muss danach liegen.** Der Papierkorb dort serialisiert einen
   Eintrag. Gibt es dann schon Videos, wird die Serialisierung **einmal**
   gebaut statt einmal gebaut und einmal nachgezogen.

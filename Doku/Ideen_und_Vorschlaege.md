@@ -1114,7 +1114,7 @@ dass die Reihenfolge getragen hat.
 | 6 | **4.4** Ansicht „Offen" | klein | macht ein gebautes Feature erst brauchbar | 0.8.60 |
 | 7 | **2.4** CSP + **2.6** Fehler-Handler + **2.7** SIGTERM/Healthcheck | klein | Betriebshärte, alles am selben Nachmittag | ✓ 0.8.20 |
 | 8 | **4.3** „Neu seit …" | klein | keine Migration, großer Gewinn im Mehrbenutzerbetrieb |
-| 9 | **G4** (Roadmap: Links bekommen Verfasser) | mittel | steht an, siehe Anmerkung unten |
+| 9 | **G4** (Roadmap: Links bekommen Verfasser) | mittel | ✓ 0.8.30 — **nicht** mit 4.2 zusammengelegt, siehe Anmerkung unten |
 | 10 | **4.1** Gewichtung der Kriterien | mittel | inhaltlich der wichtigste Punkt der Liste |
 | 11 | **4.2** Abgelehnt mit Datum und Begründung | klein | zusammen mit 10, gleiche Baustelle |
 | 12 | **3.1** `searchText` aus der Liste | mittel | wenn der Bestand wächst |
@@ -1135,6 +1135,19 @@ schwerer als die gesparte Formaterhöhung. Ich würde deshalb **G4 und 4.2**
 zusammenlegen (beide klein, beide am Eintrag) und **4.1** als eigene Stufe
 direkt danach mit Format 8 fahren — der Verlust ist eine Formatnummer, der
 Gewinn ist eine Stufe, die man am Stück durchdenken kann.
+
+> **Nachgetragen nach 0.8.30 — der Vorschlag ist bewusst NICHT angenommen
+> worden.** G4 ist allein gefahren worden, mit Formatnummer 6 → 7; 4.2 bleibt
+> offen, und 4.1 wird 0.8.40 mit 7 → 8. Die Begründung ist die zweite Hälfte
+> des Absatzes darüber, und sie hat sich im Bau bestätigt: G4 brauchte allein
+> **74 neue Prüfungen und 29 Gegenproben** — Schema, Umstieg, Rechtewende,
+> Oberfläche und Austauschformat in einem Durchgang. Für eine zweite Baustelle
+> war darin keine Reserve mehr.
+>
+> **Die gesparte Formatnummer wäre teuer bezahlt gewesen.** Eine
+> Formaterhöhung kostet einen Absatz im Export, eine Fallunterscheidung im
+> Import und eine Handvoll Prüfungen. Eine Stufe, die nicht in einen Durchgang
+> passt, kostet einen abgebrochenen Bau. Der Preis steht in keinem Verhältnis.
 
 ---
 

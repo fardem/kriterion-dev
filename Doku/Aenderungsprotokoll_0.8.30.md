@@ -204,12 +204,16 @@ eine ganze Aussage, die geht, kein Loch in einer bleibenden. Der
 Eingriffsvermerk bleibt auf den einen Fall begrenzt, für den er beschlossen
 wurde.
 
-### I. „Vorgemerkt für 1.0" steht hier, nicht im Projektstand
+### I. „Vorgemerkt für 1.0" stand erst hier, dann im Projektstand
 
 Der Auftrag sagt an einer Stelle „der markierte Block bekommt **sofort** seinen
 Eintrag im Projektstand" und am Schluss „Projektstand … **nicht anfassen**".
-Aufgelöst wie in 0.8.20: der Eintrag steht fertig in Abschnitt 6 dieses
-Protokolls und ist von dort zu übernehmen.
+Aufgelöst wie in 0.8.20: der Eintrag stand zunächst fertig in Abschnitt 6
+dieses Protokolls.
+
+**Inzwischen ist die Dokumentenpflege gelaufen** und der Eintrag steht im
+Projektstand, Abschnitt 10, unter „Vorgemerkt für 1.0" — zusammen mit dem
+Hinweis, dass `links` in `ordneBestandZu()` ausdrücklich **nicht** mitfällt.
 
 ---
 
@@ -389,8 +393,9 @@ wertvollste der Runde — er hat Stolperstein 102 gefunden.
 
 ## 6. Vorgemerkt für 1.0
 
-*Zum Übernehmen in Projektstand Abschnitt 10, „Vorgemerkt für 1.0" — der
-zweite markierte Block im Projekt.*
+*Übernommen in Projektstand Abschnitt 10, „Vorgemerkt für 1.0" — der zweite
+markierte Block im Projekt. Hier steht der Wortlaut, wie er dort eingetragen
+wurde.*
 
 > - **`db.js`, `umstieg0830()` — 27 Zeilen samt Marken, 11 Prüfungen** (seit
 >   0.8.30). Ergänzt `user_id` an `links` in einer Datenbank aus 0.8.0 bis

@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 10 · Stand 22. August 2026 · gebaut: Version 0.8.20**
+**Kompakte Übergabe · Revision 11 · Stand 22. August 2026 · gebaut: Version 0.8.30**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,20 +8,23 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 10 ist.** Revision 9 trug 0.8.10 nach. Diese trägt **0.8.20**
-nach — *keine Stufe des Umbaus, die zweite Runde des neuen Stufenplans*
-(Abschnitt 10): der Fotoweg liefert nie mehr den gemeldeten Typ, die Anwendung
-hat eine eigene Sicherheitsregel, `X-Forwarded-For` wird nur nach
-ausdrücklicher Einstellung geglaubt, der Fehler-Handler trennt Absicht von
-Panne, dazu sauberes Herunterfahren, ein Index auf `sessions.user_id` und ein
-Healthcheck im Abbild.
-**Abschnitt 5a ist gewachsen** — die Sicherheitsregel gilt jetzt auch am
-Fotoweg und für die Anwendung selbst. **Vollständig geblieben sind die
-Abschnitte 5 und 12** — Entscheidungen und Arbeitsweise. Bestände und
-Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
+**Was Revision 11 ist.** Revision 10 trug 0.8.20 nach. Diese trägt **0.8.30**
+nach — **Stufe G4 des Umbaus, „Die Linkliste bekommt Verfasser", und die erste
+Datenbankstufe seit 0.8.3**: `links` bekommt eine `user_id`, eintragen darf
+jeder, löschen der Eintrager oder der Admin, sortieren bleibt beim
+Eintragsverfasser, und ab zwei Zugängen steht an einer **fremden** Linkzeile
+der Name.
+**Damit ist der Mehrbenutzerbetrieb bis auf die Stufen H und I gebaut.**
+Vollständig geblieben sind die Abschnitte 5 und 12 — Entscheidungen und
+Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht mehr
+berücksichtigt.
+
+**Zwei Dinge ändern sich für den Betrieb**, und beide stehen in Abschnitt 2:
+**ein Rückschritt ist ab hier keine reine Dateikopie mehr**, und die
+**Formatnummer der Exportdatei steht auf 7**.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_20.md` gepflegt und
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_30.md` gepflegt und
 nur dort.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
@@ -73,24 +76,24 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.20 ist gebaut, eingespielt und läuft** — Abdruck **`3ab38137`**, am
-Betriebsserver bestätigt (Versionszeile im Fuß, Abdruck in der Karte
-„Kennzahlen", eine SVG wird als Foto abgewiesen). *Keine Stufe des Umbaus, die
-zweite Runde des neuen Stufenplans* (Abschnitt 10): der Fotoweg leitet den
-ausgelieferten Typ aus den ersten Bytes ab statt aus `photos.mime_type` und
-weist beim Hochladen alles ab, was kein Rasterbild **ist**; die Anwendung
-selbst bekommt eine `Content-Security-Policy`; `X-Forwarded-For` wird nur noch
-nach ausdrücklicher Einstellung geglaubt; der Fehler-Handler trennt Absicht
-von Panne; `SIGTERM` schließt die WAL ab; `sessions.user_id` bekommt einen
-Index; das Abbild einen `HEALTHCHECK`.
-**1548 von 1548 Prüfungen.**
+**0.8.30 ist gebaut** — Abdruck **`6302a4b1`**. *Stufe G4 des Umbaus und die
+erste Datenbankstufe seit 0.8.3* (Abschnitt 10): `links` trägt eine `user_id`
+mit `ON DELETE SET NULL`, `POST /api/items/:id/links` verliert seinen Wächter
+und schreibt den Eintrager, `DELETE /api/links/:id` fragt nach der **Zeile**
+statt nach dem **Eintrag**, Sortieren bleibt beim Eintragsverfasser und Admin,
+die Zeile nennt ihren Verfasser, Export und Import tragen ihn mit
+(**Formatnummer 6 → 7**), und die beiden Löschdialoge kennen den fünften
+Träger.
+**1622 von 1622 Prüfungen**, 29 Gegenproben.
 
-**Auch 0.8.10 ist eingespielt und bestätigt** — Abdruck `48fe44e7`, stimmt
-überein. Der Unterschied, den Revision 9 noch offen ließ, hat sich mit dem
-vollständigen Einspielen erledigt; die Ursache ist nicht abschließend
-festgestellt worden. Der wahrscheinlichste Fall steht unten („Eine
-unvollständige Kopie") — **der Abdruck hat getan, wofür er gebaut wurde:** er
-hat den Unterschied gezeigt, statt ihn stillschweigend hinzunehmen.
+**Der Abdruck ist im Container bestätigt worden, nicht nur auf der Platte** —
+und dazu der Umstieg selbst: eine Datenbank mit `links` ohne `user_id`, ein
+`docker restart`, und im Protokoll steht die Zeile des Umstiegs; danach gehört
+die Linkzeile dem Verfasser ihres Eintrags und nicht dem Eigentümer.
+Einzelheiten in `Doku/Aenderungsprotokoll_0.8.30.md`, Abschnitt 7.
+
+**Auch 0.8.10 und 0.8.20 sind eingespielt und bestätigt** — Abdrücke
+`48fe44e7` und `3ab38137`, beide stimmen überein.
 
 **`HINTER_PROXY` steht im Betrieb auf der Vorgabe: aus** — und das ist für den
 heutigen Betrieb richtig. Kriterion läuft direkt im Heimnetz; die
@@ -104,12 +107,20 @@ Besucher in einem Zähler. Was daran hängt und was beim Umlegen passiert, steht
 in Abschnitt 3 und in der README. **Das Umlegen gehört in denselben Schritt
 wie die Freigabe nach außen, nicht davor und nicht danach.**
 
-**0.8.20 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
-Tabelle gebraucht — der Index auf `sessions.user_id` ist eine Ableitung beim
-Start (`CREATE INDEX IF NOT EXISTS`) und rüstet sich in bestehender wie
-frischer Anlage selbst nach; nachgestellt statt geglaubt, siehe Abschnitt 7.
-Es ist kein Umstiegscode entstanden; `umstieg083()` aus 0.8.3 bleibt der
-einzige, weiterhin vorgemerkt für 1.0.
+**0.8.30 HAT das Schema angefasst** — als erste Version seit 0.8.3. `links`
+bekommt `user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`, und dazu
+gehört ein Umstiegsblock: `umstieg0830()` in `db.js`, mit den Marken der
+Bauregel, einmalig, wiederholbar und im Normalfall stumm. **Es ist damit der
+zweite markierte Block im Projekt**; beide sind für 1.0 vorgemerkt
+(Abschnitt 10).
+
+**Die Bestandszeilen fallen an den Verfasser ihres Eintrags, nicht an den
+Eigentümer.** Bis 0.8.20 *waren* die Links eines Eintrags die Sache seines
+Verfassers; sie ihm zu nehmen und dem Eigentümer zu geben, machte aus seinen
+Links stillschweigend fremde. **Das Auffangnetz `ordneBestandZu()` beantwortet
+eine andere Frage** — wem eine Zeile zufällt, die *später* herrenlos wird — und
+antwortet dort weiterhin mit dem Eigentümer. Zwei Zeitpunkte, zwei Regeln, und
+beide stehen im Quelltext nebeneinander erklärt.
 
 **Die beiden Anlegen-Schalter stehen im Betrieb so:** bei den **Kategorien
 aus** (nur der Admin legt neue an, das Auswahlfeld am Eintrag bleibt), bei den
@@ -120,12 +131,20 @@ Einstellung im Systembereich, keine Version — beides jederzeit umkehrbar.
 Bestände werden nicht übernommen; sie bräuchten den Zwischenschritt über 0.8.0
 als letzte Version mit Umstiegscode.
 
-**Zurückrollen ist weiterhin eine reine Dateikopie.** Seit 0.8.3 (Spalte
-`images_removed`) hat keine Version das Schema angefasst — wer von 0.8.6
-zurückgeht, braucht keine Rücksicht darauf zu nehmen. **Das ändert sich mit
-Stufe G4:** dort kommt eine Spalte an `links`. Vor jedem
-Einspielen gehört trotzdem eine Sicherung des Datenverzeichnisses dazu, wie
-immer.
+**Zurückrollen ist ab 0.8.30 keine reine Dateikopie mehr.** Zwischen 0.8.3 und
+0.8.20 hat keine Version das Schema angefasst; wer in diesem Bereich
+zurückging, brauchte keine Rücksicht darauf zu nehmen. **Eine Datenbank aus
+0.8.30 trägt eine Spalte, die 0.8.20 nicht kennt.** Ein Rückschritt geht
+deshalb nur über die **Sicherung des Datenverzeichnisses**, die vor dem
+Einspielen entstanden ist — nicht über das Zurückkopieren der alten Dateien
+allein. Die Sicherung steht dafür ausdrücklich im Einspielweg unten.
+
+*Genau genommen ginge der Rückschritt auch mit der neuen Datenbank: eine
+zusätzliche Spalte stört SQLite nicht, und 0.8.20 schreibt sie einfach nicht
+mehr. Verlassen sollte man sich darauf nicht — jede Linkzeile, die danach
+entsteht, ist herrenlos, und beim nächsten Vorwärtsschritt fällt sie dem
+Eigentümer zu statt dem Eintrager. Die Sicherung ist der Weg, der ohne diese
+Fußnote auskommt.*
 
 **Der Weg zum Einspielen.** Das Repo ist **privat**, der Server zieht deshalb
 nicht selbst — das ZIP kommt über „Download ZIP" von GitHub auf den Wirt. Der
@@ -134,7 +153,7 @@ Pfad steht am laufenden Container, kein Suchen, kein Abschreiben:
 ```bash
 cd "$(docker inspect kriterion --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}')"
 docker compose down
-cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # bei Datenbankstufen
+cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # PFLICHT bei Datenbankstufen
 mv kriterion kriterion-alt
 python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion               # GitHub hängt den Zweignamen an
@@ -143,7 +162,12 @@ cp kriterion-alt/.env kriterion/.env      # OHNE DIESE ZEILE STARTET NICHTS
 cd kriterion && docker compose up -d --build
 ```
 
-Sechs Dinge, die dabei schiefgehen können, alle schon vorgekommen:
+**Die Sicherungszeile ist seit 0.8.30 keine Empfehlung mehr.** Bei einer
+Datenbankstufe ist sie der einzige Weg zurück — siehe oben. Sie gehört
+**zwischen** `docker compose down` und alles Weitere: eine Sicherung, die
+neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
+
+Sieben Dinge, die dabei schiefgehen können, alle schon vorgekommen:
 
 - **Der Ordner aus dem GitHub-ZIP heißt nicht `kriterion`.** GitHub packt den
   Zweignamen an: aus `main` wird `kriterion-main`, und Schrägstriche im
@@ -189,6 +213,11 @@ Sechs Dinge, die dabei schiefgehen können, alle schon vorgekommen:
   Bestand wirkt dann leer.
 - **Der alte Ordner läuft noch** und belegt Port 3100. Deshalb steht das
   `docker compose down` an erster Stelle.
+- **Die Sicherung wurde bei einer Datenbankstufe übersprungen** (seit 0.8.30
+  möglich). Vorher war der Rückweg das Zurückkopieren des alten Dateisatzes;
+  seit `links.user_id` reicht das nicht mehr. Wer ohne Sicherung einspielt,
+  hat keinen Rückweg — der Bestand geht dabei nicht verloren, aber er lässt
+  sich nicht mehr auf die vorige Version zurückbringen.
 
 **Nicht auf Variablen umstellen:** Eine frühere Compose-Datei nutzte
 `"${HOST_PORT:-3100}:3000"`. Die Ersetzung wurde auf dem Zielsystem nicht
@@ -201,8 +230,8 @@ unmittelbar da.
 
 Mehrbenutzerbetrieb mit Rechteschicht: jede Sitzung weiß, wem sie gehört
 (`sessions.user_id`), `requireAuth` legt den Benutzer als `req.benutzer` ab,
-und jeder Eintrag, Kommentar, Testtag und jede Bewertung kennt ihren
-Verfasser. **Jeder schreibende Endpunkt weiß, wer etwas darf:** der **Admin**
+und jeder Eintrag, Kommentar, Testtag, **jede Linkzeile** (seit 0.8.30) und
+jede Bewertung kennt ihren Verfasser. **Jeder schreibende Endpunkt weiß, wer etwas darf:** der **Admin**
 (`role = 'admin'`) verwaltet den gemeinsamen Bestand und löscht fremde
 Beiträge, der **Eigentümer** (`role = 'eigentuemer'`) besitzt Export, Import,
 Schlüsselwert und Rollenvergabe, alles am Eintrag gehört seinem Verfasser.
@@ -210,6 +239,16 @@ Was ein Admin ausdrücklich **nicht** darf: einen fremden Kommentartext
 ändern, die Note eines fremden Testtags ändern, ein Bild an einen fremden
 Kommentar hängen. **Löschen ja, umschreiben nein.** Bei einem einzigen Zugang
 ist von alledem nichts zu merken.
+
+**Seit 0.8.30 ist die Linkzeile der fünfte Träger.** Sie folgt derselben Regel
+wie Kommentar, Testtag und Bewertung: **eintragen darf jeder, löschen der
+Eintrager oder der Admin.** Dahinter steht die Entscheidung aus 0.8.4 — *was
+an allen Einträgen aller Benutzer erscheint, gehört dem Admin; was nur dort
+erscheint, wo man es hinsetzt, gehört jedem.* Ein Link erscheint nur dort, wo
+man ihn hinsetzt.
+**Das Sortieren bleibt beim Eintragsverfasser und Admin**, und zwar
+ausdrücklich: die Reihenfolge ändert keine Aussage und ist umkehrbar —
+dieselbe Überlegung wie beim Anpinnen eines Kommentars.
 
 **Der Zugang liegt als scrypt-Hash in der Tabelle `users`**, nicht in der
 Umgebung; gesetzt wird er beim ersten Aufruf im Browser, und wer die Anlage
@@ -356,7 +395,12 @@ Fotos und Import (ersetzen oder zusammenführen).
 aber als **Liste ohne Bedienzeichen**: wer nicht verwalten darf, darf
 trotzdem nachsehen.
 
-**Links und Suchzeilen:** Was wie eine Adresse aussieht, wird eine — mit
+**Links und Suchzeilen:** Eintragen darf **jeder** (seit 0.8.30), löschen der
+Eintrager oder der Admin; das ✕ steht nur dort, wo es auch gedrückt werden
+darf. Ab zwei Zugängen trägt eine **fremde** Zeile — also eine, die nicht vom
+Verfasser des Eintrags stammt — den Namen ihres Eintragers in der zweiten
+Zeile, und der Überfahrtext nennt ihn samt Datum.
+Was wie eine Adresse aussieht, wird eine — mit
 `https://` davor, wenn keins dasteht. Alles andere bleibt Rohtext und führt beim
 Klick zum Startanbieter. Erkennbar an der Lupe rechts statt des Pfeils und an
 den Anbieternamen unter dem Text. Sechs eingebaute und bis zu drei eigene
@@ -434,6 +478,31 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
 - **Keine Favicons bei den Links.** Sie würden von fremden Servern nachgeladen
   und brächen das Offline-Prinzip. Stattdessen Domain als Text.
 - **Links: nur Adresse, keine Bezeichnung, keine Gruppen.** Bewusst verworfen.
+- **Ein Link gehört dem, der ihn einträgt** (seit 0.8.30) — nicht dem
+  Verfasser des Eintrags. Er erscheint nur dort, wo man ihn hinsetzt, und
+  fällt damit auf die Seite von Kommentar, Testtag und Bewertung. **Sortieren
+  bleibt trotzdem beim Eintragsverfasser:** es ändert keine Aussage und ist
+  umkehrbar. Wer das eine für eine Nachlässigkeit hält, hat das andere nicht
+  gelesen — die Trennung ist die Entscheidung.
+- **Der Name an einer Linkzeile steht nur, wo er eine Auskunft ist**
+  (seit 0.8.30). Zwei Bedingungen, und beide gehören zusammen: mehrere
+  Zugänge **und** eine Zeile, die nicht vom Verfasser des Eintrags stammt. An
+  seinen eigenen Zeilen wiederholte der Name nur, was oben am Eintrag ohnehin
+  steht. **Daraus folgt ein Satz, den man kennen muss:** „kein Name" heißt bei
+  mehreren Zugängen „vom Verfasser des Eintrags". Die Regel steht in
+  `drawLinks()` und nirgends sonst; die Schwelle in `mehrereBenutzer()`.
+- **Ein Bedienzeichen folgt dem Recht, nicht der Anzeige** (seit 0.8.30, am ✕
+  der Linkzeile). Beides ist getrennt: ein Kreuz ohne Namen ist möglich (die
+  eigene Zeile bei einem Zugang), ein Name ohne Kreuz auch (eine fremde Zeile,
+  wenn man nicht Admin ist). Wer eines aus dem anderen ableitet, baut eine
+  zweite Wahrheit über dieselbe Frage.
+- **Zwei Regeln für zwei Zeitpunkte sind keine zweite Wahrheit** (seit
+  0.8.30). `umstieg0830()` gibt die Bestandslinks dem **Eintragsverfasser**,
+  `ordneBestandZu()` gibt später herrenlos gewordene Zeilen dem
+  **Eigentümer**. Das ist kein Widerspruch, sondern eine Antwort auf zwei
+  verschiedene Fragen — aber es liest sich als einer, wenn es nicht dasteht.
+  **Beide stehen deshalb im Quelltext nebeneinander erklärt**, nicht jede für
+  sich.
 - **Eine Suchzeile speichert den Rohtext, nie eine fertige Suchadresse**
   (seit 0.5.3). Sonst stünde ein Suchanbieter für immer in den Daten, und ein
   Anbieterwechsel wirkte nur auf neue Zeilen. So gilt er rückwirkend für alle.
@@ -1095,7 +1164,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_20.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_30.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -1934,6 +2003,34 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Rückbau stehen — und die nächste Änderung baut auf einem Stand auf, den
     niemand so wollte. Gegenproben laufen deshalb seit 0.8.20 in einer
     **Kopie des Arbeitsbaums**; der echte Baum wird nicht angefasst.
+101. **Eine Gegenrichtung wird an beiden Orten geprüft — Rumpf *und*
+    Routenzeile.** Der Wächter über den Quelltext prüfte bei der Art `'offen'`
+    nur, dass im **Rumpf** keine Klemme steht. Ein Wächter, der in die
+    **Routenzeile** zurückwandert, blieb ihm unsichtbar: die Gegenprobe färbte
+    acht Verhaltensprüfungen rot — und ausgerechnet die eine Prüfung nicht,
+    die eine falsche *Entscheidung* finden soll. Behoben in 0.8.30.
+102. **Ein Doppelgänger, der ein Feld selbst mitbringt, deckt die Serverseite
+    zu.** Der Rückbau „`verfasser` fällt aus der Linkzeile in `detail()`" blieb
+    **vollständig grün**: die Oberflächenprüfungen laufen gegen `baueDom`,
+    dessen Prüflage das Feld selbst setzt, und die Rechteprüfungen sehen in die
+    Datenbank statt in die Antwort. *Zu jedem Feld, das die Oberfläche aus der
+    Antwort liest, gehört eine Prüfung an der echten Antwort.* Lücke 3 des
+    Prüfstands (Abschnitt 7), zum zweiten Mal.
+103. **Eine Prüfzeile, die auf `liste[0].feld` zugreift, reißt den Lauf ab,
+    statt rot zu werden.** Fällt die Zeile weg, ist `liste[0]` `undefined`, und
+    der Zugriff beendet den ganzen Lauf — der dann **keinen einzigen Namen**
+    nennt. Verwandt mit 76, aber eigenständig: dort ist der *Rückbau* zu grob,
+    hier ist die *Prüfung* zu unvorsichtig. Der Fragezeichenpunkt gehört dorthin.
+104. **Seit es fünf Träger mit `user_id` gibt, muss jede von Hand angelegte
+    Prüfzeile ihren Verfasser ausdrücklich tragen.** Eine Prüflage legte ihre
+    Linkzeile ohne `user_id` an; `ordneBestandZu()` schob sie beim Start der
+    Eigentümerin zu — und „der Admin löscht einen **fremden** Link" löschte
+    danach einen eigenen: grün, aber über etwas anderes.
+105. **`ALTER TABLE … ADD COLUMN … REFERENCES` geht nur mit der Vorgabe NULL.**
+    Nachgestellt statt geglaubt: SQLite antwortet auf jede andere Vorgabe mit
+    „Cannot add a REFERENCES column with non-NULL default value" — auch auf
+    `NOT NULL DEFAULT 0`. *Eine nachgerüstete Fremdschlüsselspalte ist immer
+    nullbar; wer sie anders will, braucht einen Tabellenneubau.*
 
 ---
 
@@ -1947,18 +2044,28 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Abbilds).
 
-**Zuletzt: 1548 von 1548 bestanden** (0.8.20; 68 neue Prüfungen, sieben neue
-Gruppen: „Fotos: Auslieferung (Sicherheitsregel)", „Die Sicherheitsregel fuer
-die Anwendung selbst", „Ohne Proxy ist der Kopf nur eine Behauptung", „Hinter
-dem Proxy wird der Kopf gelesen", „Welcher Eintrag der Kette zaehlt", „Fehler
-nach Rang", „Sauberes Herunterfahren und der Index auf sessions"). Der Abschnitt
-**„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen steht unverändert:
-er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage, nur ohne die neue
-Spalte und mit einer Zeile darin — und belegt, dass der Umstieg sie ergänzt,
-dass die Bestandszeile auf der Vorgabe null steht, dass ein zweiter Lauf stumm
-bleibt und dass eine **frische** Anlage die Spalte ohne Umstieg trägt. Seit
-0.8.4 hat keine Version einen eigenen Umstiegsabschnitt bekommen — keine hat
-das Schema angefasst.
+**Zuletzt: 1622 von 1622 bestanden** (0.8.30; 74 neue Prüfungen, zwei neue
+Gruppen: „UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0" und „Der Name an der
+Linkzeile").
+
+**Es gibt jetzt ZWEI Umstiegsabschnitte**, und beide tragen dieselbe Marke.
+Der Abschnitt **„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen
+steht unverändert: er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage,
+nur ohne die neue Spalte und mit einer Zeile darin — und belegt, dass der
+Umstieg sie ergänzt, dass die Bestandszeile auf der Vorgabe null steht, dass
+ein zweiter Lauf stumm bleibt und dass eine **frische** Anlage die Spalte ohne
+Umstieg trägt.
+
+Der Abschnitt **„UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0"** mit elf Prüfungen ist
+nach demselben Muster gebaut, aber die Prüflage muss mehr können: sie stellt
+eine Datenbank aus 0.8.20 nach und ist **so eingerichtet, dass die falsche
+Antwort auffällt** — der Eintrag gehört `bert`, Eigentümerin ist `chefin`.
+Fielen die Bestandszeilen an den Eigentümer statt an den Eintragsverfasser,
+stünde dort `chefin`. Eine dritte Linkzeile hängt an einem Eintrag, der selbst
+herrenlos ist: sie kann der Umstieg nicht füllen und fällt danach dem
+Auffangnetz zu. **Damit sind beide Regeln an einem Lauf zu sehen.** Dazu die
+Gegenlage, dass der Index auf `links` sich beim Start selbst nachlegt, während
+die Spalte es nicht täte.
 
 **Der Index auf `sessions.user_id` ist der Beleg dafür, dass ein Index kein
 Umstieg ist** (0.8.20, nachgestellt statt geglaubt): Der Prüfstand entfernt
@@ -1998,11 +2105,25 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   (Stolperstein 56); jede Verweigerung einzeln, jede mit dem Erfolgsfall
   daneben **und** der Nachschau, dass wirklich nichts geschrieben wurde. Dazu
   ein **Admin ohne Eigentümerrolle** — ohne ihn ließe sich „Eigentümer" von
-  „Admin" gar nicht unterscheiden.
+  „Admin" gar nicht unterscheiden. **Seit 0.8.30 auch am fünften Träger:** ein
+  Fremder trägt einen Link ein und die Zeile gehört *ihm*, er löscht einen
+  fremden nicht und seinen eigenen schon, er sortiert nicht um, der Admin
+  löscht einen fremden.
+- **Der Name an der Linkzeile (seit 0.8.30):** drei Fenster nebeneinander —
+  drei Zugänge mit Adminrolle, ein Zugang, drei Zugänge ohne Adminrolle. Die
+  Prüflage trägt **fünf Verfasserlagen** an acht Zeilen: vier vom
+  Eintragsverfasser (dort steht kein Name), eine mit spitzen Klammern im
+  Namen, eine von der Fragenden, eine herrenlose und die Suchzeile von einem
+  Grabstein. Beide Hälften der Anzeigeregel bekommen ihre eigene Gegenlage,
+  und die Stylesheet-Regel wird erst auf Vorhandensein, dann auf Eigenschaft
+  geprüft.
 - **Der Quelltext selbst:** eine gepflegte Liste **aller schreibenden Routen
   (aktuell 46)** samt der Art ihrer Absicherung, gehalten gegen das, was in
   `server.js` wirklich steht — in beide Richtungen, denn wo „offen" steht,
-  darf auch nichts stehen. Dazu die Zählung, dass Adminfrage und
+  darf **weder eine Klemme im Rumpf noch ein Wächter in der Routenzeile**
+  stehen (die zweite Hälfte seit 0.8.30, Stolperstein 101). Dazu seit 0.8.30
+  zwei Prüfungen darauf, **welche** Klemme im Rumpf der beiden Linkrouten
+  steht — die Art `'im Rumpf'` unterscheidet das nicht. Dazu die Zählung, dass Adminfrage und
   Eigentümerfrage je genau einmal vorkommen, und der Wächter darauf, dass das
   Wort „Leitung" nirgends zurückkehrt. **Das ist die einzige Prüfung, die
   eine fehlende Entscheidung findet.**
@@ -2058,6 +2179,13 @@ Fehlschlägen. Was dabei gilt:
    und dabei dieselbe Punktliste geliefert wie die Gegenprobe daneben
    (Stolperstein 72). **Wenn zwei Gegenproben dieselben Namen rot machen,
    prüfen sie dieselbe Sache.**
+8. **Ein Doppelgänger, der ein Feld selbst mitbringt, prüft sich selbst.**
+   Der Rückbau „`verfasser` fällt aus der Linkzeile in `detail()`" blieb
+   vollständig grün — die Oberflächenprüfungen bekommen das Feld aus der
+   eigenen Prüflage, die Rechteprüfungen sehen in die Datenbank statt in die
+   Antwort. Gefunden in 0.8.30, behoben durch fünf Prüfungen an der echten
+   Serverantwort (Stolperstein 102). Verwandt mit Lücke 3, aber schärfer: dort
+   war es eine doppelt gehaltene Vorgabe, hier ist es der Prüfstand selbst.
 
 **Acht Prüfungen sind als zu nachsichtig aufgeflogen** — zwei standen schlicht
 auf `true`. Eine Prüfung, die nie scheitern kann, ist schlimmer als keine. Und
@@ -2110,6 +2238,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.6 | Berichtigungen aus dem Betrieb — alle fünf Punkte (38 netto) | 23 | Stolpersteine 89, 90 und 91 |
 | 0.8.10 | Werkzeug — alle fünf Punkte (51) | 32 | Stolpersteine 92 bis 95 |
 | 0.8.20 | Die Schotten dicht — alle fünf Punkte (68) | 14 | Stolpersteine 96 bis 100 |
+| 0.8.30 | Stufe G4 — alle fünf Punkte (74) | 29 | Stolpersteine 101 bis 105, Lücke 8 oben |
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -2193,6 +2322,28 @@ benennen: `pruefung.js`, `Doku/` und `zugang.js` zählten mit.
 Lauf abgerissen, eine engere Zweitprobe nach Stolperstein 76 war nirgends
 nötig.
 
+**In 0.8.30 74 neue Prüfungen und 29 Gegenproben** — die meisten einer
+einzelnen Version bisher. Drei sind mehr wert als ihre Zahl:
+
+| Rückbau | Ergebnis |
+|---|---|
+| `user_id` aus der `links`-DDL | **1 rot** — nur „Eine frische Anlage trägt die Spalte ohne Umstieg"; auf einer bestehenden Anlage rüstet der Umstieg sie ohnehin nach. *Stolperstein 81 in Reinform* |
+| `verfasser` fällt aus der Linkzeile in `detail()` | **stumm** — und damit der wertvollste Rückbau der Runde (Lücke 8, Stolperstein 102) |
+| `nurEintragVerfasser` wieder vor `POST …/links` | 8 rot, der Quelltextwächter **grün** — Stolperstein 101, behoben; danach 9 rot |
+| der Umstieg ordnet niemanden zu | 3 rot |
+| der Umstieg setzt den **Eigentümer** ein | 3 rot — **dieselben Namen**, Stolperstein 72 |
+| Name ohne die Schwelle `mehrereBenutzer()` | 2 rot |
+| Name an **jeder** Zeile | 2 rot — **andere** Namen als darüber |
+
+**Das letzte Paar ist die Bauform, auf die es ankommt:** die Anzeigeregel hat
+zwei Hälften, und jede färbt ihre eigenen Namen rot. Ein Rückbau, der nur eine
+entfernt, ist von einem, der beide entfernt, unterscheidbar.
+
+**Zwei Rückbauten haben den Lauf abgerissen**, beide mit einer engeren
+Zweitprobe daneben (Stolperstein 76). Einer davon hat Stolperstein 103
+gefunden: nicht der Rückbau war zu grob, sondern die Prüfung zu unvorsichtig.
+**Vollständige Tabelle im Änderungsprotokoll 0.8.30.**
+
 ---
 
 ## 8. Offene Betriebspunkte
@@ -2228,10 +2379,17 @@ nötig.
 - **Veröffentlichung auf GitHub ist vorbereitet:** `.env` per `.gitignore`
   ausgeschlossen, `.env.example` als Vorlage, keine echten Zugangsdaten im
   Quelltext. Offen davor: Punkt 7 in Abschnitt 10.
+- **Die Sicherung des Datenverzeichnisses ist seit 0.8.30 Pflicht, nicht
+  Empfehlung** — jedenfalls bei einer Datenbankstufe. Ein Rückschritt ist
+  keine reine Dateikopie mehr (Abschnitt 2). Betroffen sind ab jetzt die
+  Stufen mit „ja" in der Schemaspalte des Stufenplans; die nächste ist
+  **0.8.40**.
 - **Nach jedem Einspielen lohnt ein Blick ins Protokoll:** der Start meldet
   den Eigentümer, `.env`-Reste, seit 0.8.20 die Betriebsart („Hinter Proxy:
-  an/aus") und — falls je nötig — die Zuordnung herrenlosen Bestands
-  („Bestand ohne Benutzer dem Eigentuemer zugeordnet").
+  an/aus"), — falls je nötig — die Zuordnung herrenlosen Bestands
+  („Bestand ohne Benutzer dem Eigentuemer zugeordnet") und, **einmalig beim
+  Umstieg auf 0.8.30**, die Zeile „links um user_id ergaenzt". Beim zweiten
+  Start ist sie weg; das ist richtig so.
 - **Der Container ist seit 0.8.20 sichtbar gesund oder nicht.** Das Abbild
   trägt einen `HEALTHCHECK` gegen `/api/config`; `docker compose ps` zeigt
   `healthy`. Vorher wusste Docker nur, dass der Prozess läuft — ein Container
@@ -2258,55 +2416,57 @@ nötig.
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.20 — „Die Schotten dicht", alle fünf Punkte.** Keine Stufe des Umbaus,
-die zweite Runde des neuen Stufenplans (Abschnitt 10). Kein Schema, kein
-Umstiegscode, keine neue schreibende Route, `F_ROUTEN` unverändert 46.
+**0.8.30 — Stufe G4, „Die Linkliste bekommt Verfasser", alle fünf Punkte.**
+Die erste Datenbankstufe seit 0.8.3 und die letzte offene Stufe des
+Mehrbenutzerbetriebs vor H.
 
-*Die SVG geht nicht mehr mit ihrem eigenen Typ heraus.* Der Fotoweg hielt sich
-an keinen der acht Punkte im Kopf von `anhaenge.js`: `GET /api/photos/:id/raw`
-lieferte `photos.mime_type` aus, und der Upload-Filter ließ `image/svg+xml`
-durch, weil er die **Angabe** prüfte. Jetzt zwei Schichten: beim Hochladen
-entscheidet `sharp().metadata()` über das Ergebnis, beim Ausliefern
-entscheiden die ersten Bytes (`typAusBytes` in `anhaenge.js`). Bestandsdaten
-sind damit ohne Umstieg mitgeschützt. Die Spalte bleibt als Anzeige stehen.
-**Dazu ein Wächter im Prüfstand:** keine Zeile in `server.js` setzt den
-Content-Type selbst.
+*Die Linkzeile bekommt einen Verfasser.* `links` trägt `user_id` mit
+`ON DELETE SET NULL` — dieselbe Form wie an den vier anderen Trägern, in der
+vollständigen DDL. Dazu `umstieg0830()` mit den Marken der Bauregel: einmalig,
+wiederholbar und im Normalfall stumm. **Die Bestandszeilen fallen an den
+Eintragsverfasser**, nicht an den Eigentümer; `ordneBestandZu()` nimmt `links`
+trotzdem auf, weil es eine andere Frage zu einem anderen Zeitpunkt beantwortet
+(Abschnitt 5).
 
-*Die Anwendung bekommt eine eigene Sicherheitsregel.* `default-src 'self'`,
-`script-src 'self'` ohne eingebettetes Skript, `frame-ancestors 'none'`,
-`base-uri 'none'`, `form-action 'none'`; `frame-src 'self'` trägt die
-PDF-Vorschau. **Eine Abweichung vom Auftrag, gemessen statt geglaubt:**
-`style-src` braucht `'unsafe-inline'`, sonst verwirft der Browser die 36
-`style="…"`-Attribute der Oberfläche (Stolperstein 96).
+*Die Rechte kehren sich um, aber nicht alle drei.* `POST /api/items/:id/links`
+verliert `nurEintragVerfasser` und schreibt `req.benutzer.id`;
+`DELETE /api/links/:id` klemmt auf `darfAendern(req, l.user_id)` statt auf
+`eintragFrei(…, l.item_id)` — die Frage nach der **Zeile** statt nach dem
+**Eintrag**; `PUT /api/items/:id/link-order` bleibt, wo es war.
+**`F_ROUTEN` bleibt bei 46 Routen, und nur EINE Art wechselt** — der Auftrag
+nahm zwei an. Die Art `'im Rumpf'` sagt nur, *dass* eine Klemme dasteht, nicht
+*welche*; die Wende wäre für die Liste unsichtbar gewesen. Zwei eigene
+Quelltextprüfungen halten sie jetzt fest.
 
-*Ein Kopf vom Aufrufer ist eine Behauptung.* `HINTER_PROXY` (Vorgabe aus)
-entscheidet über fünf Dinge zugleich: gelesener Kopf — und zwar der **letzte**
-Eintrag der Kette —, `Secure` am Keks, `Strict-Transport-Security`, das Präfix
-`__Host-` am Keksnamen und der Hinweis in der README. Umgebungsvariable und
-nicht `settings`: sie entscheidet über Netzwerkvertrauen, nicht über eine
-Vorliebe. Ein Adressbuch, wer den Kopf setzen darf, ist bewusst nicht gebaut.
+*Der Name steht an der fremden Zeile, nicht an jeder.* Zwei Bedingungen
+(Abschnitt 5): mehrere Zugänge **und** eine Zeile, die nicht vom Verfasser des
+Eintrags stammt. Er steht in der zweiten Zeile neben Pfad bzw. Anbieternamen
+und ist **unverkürzbar** — ohne diese Aufteilung fräße ein langer Pfad genau
+die Angabe weg, um derentwillen die Zeile ihn trägt. Das Datum steht im
+Überfahrtext; auf einem Berührbildschirm ist es damit nicht erreichbar, und
+das ist bewusst getragen.
 
-*Der Fehler-Handler trennt Absicht von Panne.* Markierte Fehler (`err.status`)
-und Multer-Fehler behalten Rang und Meldung, alles Übrige wird 500 mit festem
-Text — vorher kam ein SQL-Fehler als 400 samt Tabellen- und Spaltennamen
-zurück. Nachgezählt vor dem Bau, damit keine bestehende 4xx-Antwort still zur
-500 wird: die 25 Würfe aus `auth.js` werden alle lokal gefangen, nur fünf
-`next(e)`-Wege erreichen den Handler.
+*Formatnummer 6 → 7.* Ein Link ist im Export ein Objekt aus `url` und
+`author`. Der Import liest **beide** Formen; ein Link aus einer Datei der
+Formatnummer 6 fällt an den **Verfasser des Eintrags** — dieselbe Antwort wie
+beim Umstieg und aus demselben Grund.
 
-*Zwei Dinge am Rand.* `SIGTERM`/`SIGINT` schließen WAL und Datenbank ab — wer
-danach `./data` sichert, sichert einen vollständigen Stand. Und
-`sessions.user_id` bekommt einen Index; er trägt schon heute das Sperren und
-Löschen von Zugängen und ab 0.8.80 „Meine Sitzungen". Dazu ein `HEALTHCHECK`
-im Abbild gegen `/api/config`.
+*Und was daran hing.* `GET /api/items/:id/bestand` nennt Links getrennt nach
+eigen und fremd, `auth.zaehleBestand()` kannte sie überhaupt nicht, und
+`entferneZugang()` räumt sie beim zweiten Häkchen jetzt wirklich mit weg — eine
+Zahl im Dialog, die nichts bewirkt, wäre schlimmer als keine.
 
-**1548 von 1548 Prüfungen**, 14 Gegenproben. Fünf neue Stolpersteine (96 bis
-100). **Kein Punkt hat das Schema angefasst**, kein Umstiegscode entstanden.
+**1622 von 1622 Prüfungen**, 29 Gegenproben. Fünf neue Stolpersteine (101 bis
+105) und eine achte Lücke im Prüfstand (Abschnitt 7) — gefunden von der einen
+Gegenprobe, die **stumm** blieb.
 
-Als Nächstes **Stufe G4 auf 0.8.30 — „Die Linkliste bekommt Verfasser"**, die
-erste Datenbankstufe seit 0.8.3. Siehe Abschnitt 10.
+Als Nächstes **0.8.40 — Gewichtung der Bewertungskriterien**, siehe
+Abschnitt 10 und `Konzept_Gewichtung_Bewertungskriterien.md`. Sie hebt die
+Formatnummer erneut (7 → 8).
 
 | Version | Was |
 |---|---|
+| 0.8.20 | „Die Schotten dicht", alle fünf Punkte: Fotoweg leitet den ausgelieferten Typ aus den ersten Bytes ab und weist beim Hochladen alles ab, was kein Rasterbild ist; `Content-Security-Policy` für die Anwendung; `X-Forwarded-For` nur nach ausdrücklicher Einstellung samt `Secure`/HSTS/`__Host-`; Fehler-Handler nach Rang; sauberes Herunterfahren; Index auf `sessions.user_id`; `HEALTHCHECK` im Abbild |
 | 0.8.10 | Werkzeug, alle fünf Punkte: `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Abbild auf Node 22, Versionsabdruck über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push |
 | 0.8.6 | Berichtigungen aus dem Betrieb, alle fünf Punkte: Bewertungsdetails gehören dem Admin (samt Löschweg für eine fremde Bewertung), Linkliste abgeschnitten statt scrollbar, `grid-auto-flow: dense` schließt die Lücke im Kartenraster, „Angemeldet als" auch bei einem Zugang, „Angelegt von" nennt auch das Datum |
 | 0.8.5 | Stufe G3: dreizehn Karten des Systembereichs nach Rolle, `GET /api/stats` hinter `nurAdmin`, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien, berichtigte `AUTH_RESET`-Zeile |
@@ -2370,7 +2530,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 |---|---|---|---|---|
 | **0.8.10** | Werkzeug | `package-lock.json` einchecken, `npm ci` statt `npm install`, `sharp` auf 0.35, Versionsabdruck über die ausgelieferten Dateien, Prüflauf bei jedem Push, Prüfstand in Gruppen aufrufbar | — | — |
 | **0.8.20** | Die Schotten dicht | SVG am Fotoweg, `X-Forwarded-For`, `Secure`-Cookie, Sicherheitsregel für die Anwendung selbst, Fehler-Handler, sauberes Herunterfahren, Index auf `sessions.user_id` | — | — |
-| **0.8.30** | **Stufe G4** — Links bekommen Verfasser | siehe Konzeptpapier | ja | 6 → 7 |
+| **0.8.30** | **Stufe G4** — Links bekommen Verfasser | `user_id` an `links`, eintragen offen, löschen beim Eintrager oder Admin, Name an der fremden Zeile, beide Löschdialoge | ja | 6 → 7 |
 | **0.8.40** | Gewichtung der Kriterien | siehe `Konzept_Gewichtung_Bewertungskriterien.md` | ja | 7 → 8 |
 | **0.8.50** | Kurzvideos am Fotoplatz | bis 20 MB, in der Datenbank, Standbild aus dem Browser — siehe `Konzept_Video_und_grosse_Dateien.md`, Teil I | ja | 8 → 9 |
 | **0.8.60** | Was ist offen, was ist neu | Ansicht „Offen" über alle Einträge, Filter „Neu seit …" | — | — |
@@ -2383,10 +2543,15 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **1.0.0** | Bereinigung und Zusage | Umstiegscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
-**0.8.10 und 0.8.20 sind gebaut und eingespielt** — Einzelheiten in Abschnitt 2
-und Abschnitt 9. Als Nächstes **Stufe G4 auf 0.8.30**, die erste
-Datenbankstufe seit 0.8.3; die Sicherung des Datenverzeichnisses gehört dort
-wieder ausdrücklich in den Einspielweg.
+**0.8.10, 0.8.20 und 0.8.30 sind gebaut** — Einzelheiten in Abschnitt 2 und
+Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit 0.8.3** gefahren;
+die Sicherung des Datenverzeichnisses steht seitdem als **Pflicht** im
+Einspielweg (Abschnitt 2), nicht mehr als Empfehlung.
+
+**Als Nächstes 0.8.40 — Gewichtung der Bewertungskriterien**, ausgearbeitet in
+`Konzept_Gewichtung_Bewertungskriterien.md`. Auch sie fasst das Schema an und
+hebt die Formatnummer, diesmal **7 → 8**. Der Weg dorthin ist frei: die letzte
+offene Stufe des Mehrbenutzerbetriebs vor H war G4, und sie ist gebaut.
 
 **Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
 antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
@@ -2409,6 +2574,14 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
 - **0.8.10 und 0.8.20 vor 1.0.0** (beide erledigt). Eine Veröffentlichung
   heißt fremde Installationen. Danach stünden die beiden Befunde nicht mehr in
   einer Anlage, sondern in allen — deshalb lagen sie vorn und nicht hinten.
+- **G4 vor 0.8.40** (erledigt). Beide heben die Formatnummer, und beide fassen
+  das Schema an. Nacheinander gebaut heißt: zwei Formatnummern statt einer,
+  zwei Umstiegsblöcke statt einem — **und das ist bewusst so entschieden**.
+  Das Ideenpapier schlägt das Zusammenlegen vor; die Regel „jede Stufe muss in
+  einem Chat abzuarbeiten sein" wiegt schwerer als eine gesparte Formatnummer.
+  G4 war mit Schema, Umstieg, Rechtewende, Oberfläche und Austauschformat
+  bereits breit genug — **die Runde hat 74 Prüfungen und 29 Gegenproben
+  gebraucht**, und das war keine Reserve mehr.
 
 **Die Herkunft der neuen Punkte** — Befunde, Messwerte und Begründungen —
 steht in `Ideen_und_Vorschlaege.md`. Das Papier ist damit **Quelle, nicht
@@ -2420,7 +2593,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_20.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_30.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.
@@ -2428,27 +2601,24 @@ damit alte Verweise stimmen.)*
    **0.8.6 ist eingespielt und läuft** — alle fünf Punkte, Einzelheiten in
    Abschnitt 5 und Abschnitt 9.
 
-   **Als Nächstes: Stufe G4 auf 0.8.30 — „Die Linkliste bekommt Verfasser".**
-   Die beiden Runden ohne Schemaänderung davor (0.8.10 „Werkzeug", 0.8.20
-   „Die Schotten dicht") sind gebaut; die Begründung für ihre Lage steht im
-   Stufenplan oben.
-   Links darf jeder eintragen; löschen darf sie der Eintrager oder der Admin,
-   und ab zwei Zugängen steht sein Name an der Zeile. Das **kehrt die Zeile
-   „Titel, Beschreibung, Fotos, Dateien, Links, Tags, Kategorie" der
-   Rechtetabelle um** und macht Links zum fünften Träger neben Eintrag,
-   Kommentar, Testtag und Bewertung. Umfang: `user_id` an `links` samt
-   Umstiegsblock und `ON DELETE SET NULL`, Bestandszeilen fallen an den
-   **Eintragsverfasser** (nicht an den Eigentümer, sonst gehörten die eigenen
-   Links plötzlich jemand anderem); Export und Import nennen den Namen, also
-   **Formatnummer 6 → 7**; Sortieren bleibt beim Eintragsverfasser und Admin;
-   Platz in der Zeile prüfen, sie trägt schon Domain, Pfad und bis zu vier
-   Anbieternamen. Ein gelöschter Link bekommt ausdrücklich **keinen** Vermerk.
-   **Erste Datenbankstufe seit 0.8.3** — die Sicherung des Datenverzeichnisses
-   gehört wieder ausdrücklich in den Einspielweg.
+   **Stufe G4 ist gebaut (0.8.30) — „Die Linkliste bekommt Verfasser".**
+   Damit sind die Stufen A bis G **vollständig**. Links darf jeder eintragen;
+   löschen darf sie der Eintrager oder der Admin, sortieren bleibt beim
+   Eintragsverfasser, und ab zwei Zugängen steht an einer **fremden** Zeile der
+   Name ihres Eintragers. Das hat die Zeile „Titel, Beschreibung, Fotos,
+   Dateien, Links, Tags, Kategorie" der Rechtetabelle umgekehrt und macht
+   Links zum **fünften Träger** neben Eintrag, Kommentar, Testtag und
+   Bewertung. Gebaut: `user_id` an `links` samt `umstieg0830()` und
+   `ON DELETE SET NULL`, Bestandszeilen beim **Eintragsverfasser**, Export und
+   Import mit Namen (**Formatnummer 6 → 7**), beide Löschdialoge um den
+   fünften Träger ergänzt. Ein gelöschter Link bekommt weiterhin **keinen**
+   Vermerk. Einzelheiten in Abschnitt 9 und in
+   `Doku/Aenderungsprotokoll_0.8.30.md`.
 
    *Dann:* **Stufe H (Tokens) wird 0.8.80**, **Stufe I (Mailversand und
    Selbstanmeldung) bleibt 0.9.0.** Zwischen G4 und H liegen mit 0.8.40 bis
-   0.8.70 vier Stufen, die nicht zum Mehrbenutzerbetrieb gehören.
+   0.8.70 vier Stufen, die nicht zum Mehrbenutzerbetrieb gehören — **die
+   nächste davon ist 0.8.40, die Gewichtung.**
 
    *Anmerkung, unverändert gültig:* eine Veröffentlichung setzt keinen
    Mehrbenutzerbetrieb voraus. „Für eine Person, dafür vollständig
@@ -2523,9 +2693,9 @@ damit alte Verweise stimmen.)*
 
 ### Vorgemerkt für 1.0
 
-*Aus 0.8.10 und 0.8.20 ist hier **nichts** dazugekommen: beide haben das
-Schema nicht angefasst, und der Index aus 0.8.20 ist eine Ableitung beim Start,
-kein Umstieg.*
+*Aus 0.8.10 und 0.8.20 ist hier nichts dazugekommen — beide haben das Schema
+nicht angefasst. **Aus 0.8.30 ist ein zweiter markierter Block
+dazugekommen.***
 
 - **Finale Bereinigung.** Der Rückbau des Umstiegscodes wurde aus
   Notwendigkeit nach 0.8.0 vorgezogen; zu 1.0 folgt eine letzte Bereinigung
@@ -2539,12 +2709,24 @@ kein Umstieg.*
   zugehörigen Prüfungen stehen im Abschnitt „UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"
   in `pruefung.js` (91 Zeilen); der Export von `umstieg083` in `module.exports`
   trägt dieselbe Marke und fällt mit.
+- **`db.js`, `umstieg0830()` — 27 Zeilen samt Marken, 11 Prüfungen** (seit
+  0.8.30). Ergänzt `user_id` an `links` in einer Datenbank aus 0.8.0 bis
+  0.8.20 und ordnet die Bestandszeilen dem **Verfasser ihres Eintrags** zu. Zu
+  1.0 fällt der Block weg, **die Spalte in der DDL bleibt** — dieselbe Prüfung
+  hält es fest. Die zugehörigen Prüfungen stehen im Abschnitt „UMSTIEG 0.8.30
+  — ENTFAELLT MIT 1.0" in `pruefung.js` (124 Zeilen); der Export von
+  `umstieg0830` in `module.exports` trägt dieselbe Marke und fällt mit.
+  **Was ausdrücklich NICHT mitfällt:** `links` in der Tabellenliste von
+  `ordneBestandZu()`. Das Auffangnetz ist kein Umstieg — es läuft bei jedem
+  Start und beantwortet eine andere Frage (Abschnitt 5).
 - **Harte Zurückweisung zu alter Datenbanken.** Seit 0.8.1 wird ein Bestand
   aus der Zeit vor 0.8.0 nicht mehr übernommen, aber auch nicht erkannt — der
   Start liefe in SQL-Fehler statt in eine Meldung. Vor 1.0 gehört an den
   Start eine klare Absage, die den Zwischenschritt über 0.8.0 nennt. **Seit
   0.8.3 wiegt der Punkt schwerer:** es gibt wieder Umstiegscode, und eine
-  Anlage aus der Zeit vor 0.8.0 läuft weiterhin wortlos in SQL-Fehler.
+  Anlage aus der Zeit vor 0.8.0 läuft weiterhin wortlos in SQL-Fehler. **Mit
+  0.8.30 gibt es davon zwei** — und `umstieg0830()` greift auf eine Tabelle
+  `links` zu, die es in einer wirklich alten Anlage geben mag oder nicht.
 - **Abwärtskompatibilität.** Ab 1.0 wird sie zugesichert und
   aufrechterhalten. Fällt die Entscheidung früher, wird sie vorher final in
   die Dokumente eingearbeitet.
@@ -2556,7 +2738,10 @@ kein Umstieg.*
   „Bewertungen" die neutrale Vorgabe.
 - **Tastaturbedienung beim Sortieren.** Umsortiert wird an fünf Stellen
   (Fotos, Links, Kriterien, Blöcke, Tags am Testtag), überall ausschließlich
-  über Zeigerereignisse. Im Frontend stehen **null** `tabindex` und zwei
+  über Zeigerereignisse. **Seit 0.8.30 hängt an der Linkzeile noch etwas
+  daran:** das Datum des Eintragers steht nur im Überfahrtext und ist damit
+  ohne Zeigegerät gar nicht erreichbar. Wer die Tastaturbedienung baut, sieht
+  sich diese Stelle mit an. Im Frontend stehen **null** `tabindex` und zwei
   `aria-`Angaben auf 3.857 Zeilen. Wer keine Maus benutzen kann, kann die
   Reihenfolge der Fotos nicht ändern — und das erste Foto ist das Hauptbild.
   Die Antwort ist klein: `tabindex="0"` an der Zeile und `Alt+↑`/`Alt+↓` im
@@ -2597,8 +2782,21 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
 - **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — viermal
   angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
   `GET /api/stats`, seit 0.8.6 `GET /api/items/:id/stimmen`). Die Liste ist
-  die Stelle für **schreibende** Routen; die Zahl bleibt bei 46, bis Stufe G4
-  sie anfasst.
+  die Stelle für **schreibende** Routen. **Auch G4 hat die Zahl nicht bewegt:**
+  sie steht weiterhin bei 46, es ist keine schreibende Route entstanden — nur
+  eine hat ihre Art gewechselt.
+- **Die Art in `F_ROUTEN` sagt nicht, WELCHE Klemme im Rumpf steht** (seit
+  0.8.30). `eintragFrei(`, `darfAendern(`, `nurSelbst(` und die Übrigen stehen
+  alle in `RUMPF_WOERTER`; die Art `'im Rumpf'` unterscheidet sie nicht. Wer
+  eine Klemme durch eine andere ersetzt — etwa die Frage nach dem *Eintrag*
+  durch die nach der *Zeile* —, bewegt die Liste nicht und braucht eine eigene
+  Quelltextprüfung daneben. Zweimal gebaut: an `DELETE /api/comment-images/:id`
+  (0.8.4) und an `DELETE /api/links/:id` (0.8.30).
+- **Wo `'offen'` steht, steht weder eine Klemme im Rumpf noch ein Wächter in
+  der Routenzeile** (seit 0.8.30, Stolperstein 101). Bis dahin prüfte der
+  Wächter über den Quelltext nur den Rumpf — ein Wächter, der in die
+  Routenzeile zurückwanderte, blieb ihm unsichtbar. Beide Richtungen werden
+  jetzt geprüft.
 - **Wer aus einer Nummer einen Namen machen muss, hat zwei Muster** — und sie
   gehen in verschiedene Richtungen. `verfasserKarte()` in `server.js` macht aus
   einer Nummer einen Verfasser (für den Bildschirm, als Objekt),
@@ -2624,8 +2822,16 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   Eingriffsvermerk am Kommentar ist die einzige Ausnahme von „kein
   Änderungsverlauf" und für **alle** sichtbar (gebaut in 0.8.3/0.8.4, siehe
   Abschnitt 5). Ein gelöschter Kommentar und ein gelöschter Link bekommen
-  deshalb keinen — gilt unverändert für den fünften Träger aus G4
-  (Abschnitt 10 Punkt 5).
+  deshalb keinen — **in 0.8.30 am fünften Träger bestätigt und so gebaut.**
+- **Jede von Hand angelegte Prüfzeile trägt ihren Verfasser ausdrücklich**
+  (seit 0.8.30, Stolperstein 104). Es gibt fünf Tabellen mit `user_id`; eine
+  Zeile ohne sie überlebt den nächsten Start nicht so, wie sie angelegt wurde —
+  `ordneBestandZu()` schiebt sie dem Eigentümer zu, und eine Prüfung auf
+  „fremd" prüft danach etwas anderes, als ihr Name sagt.
+- **Zu jedem Feld, das die Oberfläche aus der Antwort liest, gehört eine
+  Prüfung an der echten Antwort** (seit 0.8.30, Stolperstein 102). Der
+  Doppelgänger in `baueDom` bringt die Felder selbst mit; er kann eine
+  fehlende Serverantwort nicht bemerken. Wer ein Feld ergänzt, ergänzt beides.
 - **Die Rollen sind eine Leiter, auch in der Prüflage** (seit 0.8.5,
   Stolperstein 87). Wer `istAdmin: false` setzt, setzt `istEigentuemer`
   gleich mit — sonst baut die Prüflage einen Zustand nach, den der Server nie
