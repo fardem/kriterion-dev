@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 9 · Stand 21. August 2026 · gebaut: Version 0.8.10**
+**Kompakte Übergabe · Revision 10 · Stand 22. August 2026 · gebaut: Version 0.8.20**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,18 +8,21 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 9 ist.** Revision 8 trug 0.8.6 nach. Diese trägt **0.8.10**
-nach — *keine Stufe des Umbaus, die erste Runde des neuen Stufenplans*
-(Abschnitt 10): `package-lock.json` eingecheckt, `sharp` auf 0.35.3, das
-Abbild auf Node 22, ein Versionsabdruck über die ausgelieferten Dateien, der
-Prüfstand filterbar und ein Prüflauf bei jedem Push.
-**Vollständig geblieben sind die Abschnitte 5, 5a und 12** — Entscheidungen,
-Sicherheitsregel, Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht
-mehr berücksichtigt.
+**Was Revision 10 ist.** Revision 9 trug 0.8.10 nach. Diese trägt **0.8.20**
+nach — *keine Stufe des Umbaus, die zweite Runde des neuen Stufenplans*
+(Abschnitt 10): der Fotoweg liefert nie mehr den gemeldeten Typ, die Anwendung
+hat eine eigene Sicherheitsregel, `X-Forwarded-For` wird nur nach
+ausdrücklicher Einstellung geglaubt, der Fehler-Handler trennt Absicht von
+Panne, dazu sauberes Herunterfahren, ein Index auf `sessions.user_id` und ein
+Healthcheck im Abbild.
+**Abschnitt 5a ist gewachsen** — die Sicherheitsregel gilt jetzt auch am
+Fotoweg und für die Anwendung selbst. **Vollständig geblieben sind die
+Abschnitte 5 und 12** — Entscheidungen und Arbeitsweise. Bestände und
+Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_6.md` gepflegt und nur
-dort.
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_20.md` gepflegt und
+nur dort.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
 > `admin` < `eigentuemer`. **Benutzer** schreibt eigene Beiträge. **Admin**
@@ -42,6 +45,16 @@ Geräte, Materialien, Modelle, Prototypen. Kein Verkauf, keine Cloud, läuft
 offline im Heimnetz auf einem Intel N100 unter OpenMediaVault, hinter Nginx
 Proxy Manager, erreichbar auf Port **3100**.
 
+**Zur Netzlage, seit 0.8.20 nachgesehen statt vermutet** (`docker inspect`):
+Kriterion hängt allein in `kriterion_default`, Nginx Proxy Manager in
+`npm_external-net`/`npm_internal-net` — **kein gemeinsames Netz**. Und
+wichtiger: **Kriterion wird zum Stand dieses Blatts gar nicht über den Proxy
+geführt.** Es läuft im Heimnetz auf Port 3100, direkt. Der Proxy steht auf
+demselben Wirt für andere Dienste und wäre der Weg nach außen, sobald
+Kriterion ins Internet gegeben wird — dann über den veröffentlichten Port
+3100, nicht über den Containernamen. **Daraus folgt die Stellung von
+`HINTER_PROXY`** (Abschnitt 3): heute aus, mit dem Schritt nach außen an.
+
 Node.js/Express, verschlüsselte SQLite-Datenbank (SQLCipher über
 `better-sqlite3-multiple-ciphers`), `sharp` für die Bildvarianten, Frontend
 ohne Framework, Auslieferung per Docker.
@@ -60,28 +73,43 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.10 ist gebaut, alle Prüfungen grün, auf `main` gemergt.** *Keine Stufe
-des Umbaus, die erste Runde des neuen Stufenplans* (Abschnitt 10):
-`package-lock.json` liegt jetzt im Repo und der `Dockerfile` liest sie mit
-`npm ci`, `sharp` steht auf 0.35.3 (die Lücke aus `npm audit` ist zu), das
-Abbild auf Node 22, der Server bildet beim Start einen **Abdruck** über die
-ausgelieferten Dateien (`GET /api/stats`, Karte „Kennzahlen"), der Prüfstand
-lässt sich nach Gruppen filtern, und `.github/workflows/pruefstand.yml` fährt
-ihn bei jedem Push.
-**1480 von 1480 Prüfungen.**
+**0.8.20 ist gebaut, eingespielt und läuft** — Abdruck **`3ab38137`**, am
+Betriebsserver bestätigt (Versionszeile im Fuß, Abdruck in der Karte
+„Kennzahlen", eine SVG wird als Foto abgewiesen). *Keine Stufe des Umbaus, die
+zweite Runde des neuen Stufenplans* (Abschnitt 10): der Fotoweg leitet den
+ausgelieferten Typ aus den ersten Bytes ab statt aus `photos.mime_type` und
+weist beim Hochladen alles ab, was kein Rasterbild **ist**; die Anwendung
+selbst bekommt eine `Content-Security-Policy`; `X-Forwarded-For` wird nur noch
+nach ausdrücklicher Einstellung geglaubt; der Fehler-Handler trennt Absicht
+von Panne; `SIGTERM` schließt die WAL ab; `sessions.user_id` bekommt einen
+Index; das Abbild einen `HEALTHCHECK`.
+**1548 von 1548 Prüfungen.**
 
-**Die Einspielung auf dem Betriebsserver ist zum Stand dieses Blatts noch
-nicht bestätigt.** Der gemeldete Abdruck wich zunächst vom erwarteten
-`48fe44e7` ab — Ursache offen, geprüft werden sollten Zeilenenden, eine
-überzählige Datei unter `public/` und ob wirklich der gepushte Stand gebaut
-wurde (Abschnitt 2, „Eine unvollständige Kopie" unten). **Diese Zeile gehört
-korrigiert, sobald der Abdruck übereinstimmt.**
+**Auch 0.8.10 ist eingespielt und bestätigt** — Abdruck `48fe44e7`, stimmt
+überein. Der Unterschied, den Revision 9 noch offen ließ, hat sich mit dem
+vollständigen Einspielen erledigt; die Ursache ist nicht abschließend
+festgestellt worden. Der wahrscheinlichste Fall steht unten („Eine
+unvollständige Kopie") — **der Abdruck hat getan, wofür er gebaut wurde:** er
+hat den Unterschied gezeigt, statt ihn stillschweigend hinzunehmen.
 
-**0.8.10 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
-Tabelle gebraucht — die Punkte 1, 2 und 5 fassen nur den Bau an, Punkt 4 nur
-den Prüfstand, Punkt 3 ist der einzige Eingriff in den Anwendungscode. Es ist
-kein Umstiegscode entstanden; `umstieg083()` aus 0.8.3 bleibt der einzige,
-weiterhin vorgemerkt für 1.0.
+**`HINTER_PROXY` steht im Betrieb auf der Vorgabe: aus** — und das ist für den
+heutigen Betrieb richtig. Kriterion läuft direkt im Heimnetz; die
+Anmeldebremse zählt damit die tatsächliche Verbindung, also das Gerät. Der
+Kopf `X-Forwarded-For` wird nicht einmal angesehen.
+
+**Sie gehört auf `1`, sobald Kriterion über den Proxy nach außen geht** — dann
+sieht der Container an der Verbindung nur noch den Proxy, und die Adresse des
+Besuchers kommt allein als Kopfzeile an; ohne die Einstellung lägen alle
+Besucher in einem Zähler. Was daran hängt und was beim Umlegen passiert, steht
+in Abschnitt 3 und in der README. **Das Umlegen gehört in denselben Schritt
+wie die Freigabe nach außen, nicht davor und nicht danach.**
+
+**0.8.20 hat das Schema NICHT angefasst.** Kein Punkt hat eine Spalte oder
+Tabelle gebraucht — der Index auf `sessions.user_id` ist eine Ableitung beim
+Start (`CREATE INDEX IF NOT EXISTS`) und rüstet sich in bestehender wie
+frischer Anlage selbst nach; nachgestellt statt geglaubt, siehe Abschnitt 7.
+Es ist kein Umstiegscode entstanden; `umstieg083()` aus 0.8.3 bleibt der
+einzige, weiterhin vorgemerkt für 1.0.
 
 **Die beiden Anlegen-Schalter stehen im Betrieb so:** bei den **Kategorien
 aus** (nur der Admin legt neue an, das Auswahlfeld am Eintrag bleibt), bei den
@@ -188,10 +216,43 @@ Umgebung; gesetzt wird er beim ersten Aufruf im Browser, und wer die Anlage
 einrichtet, ist ihr Eigentümer. Es gibt keine voreingestellte Kennung.
 Mindestens zehn Zeichen, sonst keine Regeln. Ohne Anmeldung ist außer dem
 öffentlichen Titel nichts sichtbar — auch die Schnittstellen liefern nichts
-aus, Fotos und Export eingeschlossen. Sitzung 30 Tage, Cookie
-`kriterion_session` mit `HttpOnly`/`SameSite=Lax`. Die Anmeldebremse zählt je
-IP (weich ab fünf Fehlversuchen, hart ab zehn für fünf Minuten) und
-zusätzlich je Benutzername — dort nur verzögernd, nie sperrend.
+aus, Fotos und Export eingeschlossen. Sitzung 30 Tage, Cookie mit
+`HttpOnly`/`SameSite=Lax`. Die Anmeldebremse zählt je IP (weich ab fünf
+Fehlversuchen, hart ab zehn für fünf Minuten) und zusätzlich je Benutzername —
+dort nur verzögernd, nie sperrend.
+
+**EINE EINSTELLUNG, FÜNF WIRKUNGEN — `HINTER_PROXY` (seit 0.8.20).** Sie steht
+in der `.env`, nicht in `settings`: sie entscheidet über Netzwerkvertrauen,
+nicht über eine Vorliebe, und ein übernommener Admin-Zugang könnte sie sonst
+selbst umlegen. Vorgabe ist **aus**, und so steht sie im Betrieb — Kriterion
+läuft heute direkt im Heimnetz (Abschnitt 2).
+
+| | fehlt (Vorgabe) | `HINTER_PROXY=1` |
+|---|---|---|
+| Adresse des Aufrufers | `req.socket.remoteAddress` | **letzter** Eintrag aus `X-Forwarded-For` |
+| Keksname | `kriterion_session` | `__Host-kriterion_session` |
+| `Secure` am Keks | nein | ja |
+| `Strict-Transport-Security` | nein | `max-age=31536000` |
+| richtig für | direkt im Heimnetz, Port 3100 | Betrieb hinter einem Proxy, HTTPS |
+
+**Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung**
+(Abschnitt 5). Ohne die Einstellung wird `X-Forwarded-For` nicht einmal
+angesehen; mit ihr zählt der **letzte** Eintrag der Kette und nicht der erste —
+ein Proxy hängt die Gegenstelle, die er wirklich sieht, hinten an, alles davor
+kann der Aufrufer selbst geschrieben haben. Genau der erste Eintrag war es,
+den die Fassung vor 0.8.20 nahm; mit wechselndem Kopf griff die Bremse nie.
+
+**Der Keksname steht deshalb nirgends mehr als feste Zeichenkette** — wer ihn
+braucht, nimmt `auth.COOKIE_NAME`. **Und das Umlegen meldet alle einmalig ab:**
+das Präfix `__Host-` verlangt den Namen wörtlich, der alte wird nicht mehr
+gelesen. Danach geht die Anmeldung nur noch über HTTPS; der `Secure`-Keks wird
+über `http://` verworfen.
+
+**Was die Einstellung nicht ist: eine Liste, wer den Kopf setzen darf.** Sie
+ist ein Ja/Nein. Solange der Port des Containers im eigenen Netz erreichbar
+ist, kann dort jemand von Hand einen Kopf mitschicken — ein gewöhnlicher
+Browser tut das nicht, ein absichtlicher Aufruf schon. Bewusst getragen,
+siehe Abschnitt 8.
 
 **Passwort vergessen:** ein Befehl auf dem Wirt, keine Umgebungsvariable.
 
@@ -327,8 +388,9 @@ Kommentare, Bewertungen und Testtage mit, und das darf nicht wortlos geschehen.
 Datenbank. Vorschau für Bilder, PDF, Text/Markdown/CSV/Log und `.docx`; alles
 andere wird heruntergeladen. Die Absicherung steht in Abschnitt 5a.
 
-**Bilder:** Originale bleiben unverändert. Zusätzlich Kachel (400 px, ~17 KB)
-und mittlere Variante (1600 px, ~140 KB). Übersicht nutzt die Kachel, Detail und
+**Bilder:** Originale bleiben unverändert — was hereinkommt, muss aber seit
+0.8.20 ein Rasterbild **sein**, nicht bloß so heißen (Abschnitt 5a).
+Zusätzlich Kachel (400 px, ~17 KB) und mittlere Variante (1600 px, ~140 KB). Übersicht nutzt die Kachel, Detail und
 Vollbild die mittlere, erst der Zoom lädt das Original. Aufschlag rund 7 %,
 Ersparnis beim Blättern etwa Faktor 100. Fotos ohne Varianten werden nach dem
 Start im Hintergrund nachgerüstet.
@@ -339,6 +401,23 @@ Start im Hintergrund nachgerüstet.
 
 Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
 
+- **Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung**
+  (seit 0.8.20). Er darf nur geglaubt werden, wo ausdrücklich eingestellt ist,
+  wer ihn setzen darf. Gilt für `X-Forwarded-For` — dort gebaut als
+  `HINTER_PROXY`, Abschnitt 3 — und unverändert für den `Host`-Kopf: **die
+  öffentliche Adresse ist eine Einstellung, niemals der `Host`-Kopf**, sonst
+  ließe sich ein Rücksetzlink über einen gefälschten Kopf auf einen fremden
+  Server umbiegen. Wer künftig einen weiteren Kopf auswertet, stellt zuerst
+  diese Frage.
+- **Der ausgelieferte Typ kommt nie aus der Datenbank** (seit 0.8.20). Er
+  kommt aus der Endung (`anhaenge.js`, `ausgabeTyp`) oder aus den ersten Bytes
+  (`typAusBytes`) — nie aus einer Spalte, die der Hochladende gefüllt hat.
+  `photos.mime_type` und `attachments.mime_type` bleiben stehen und werden
+  angezeigt; sie sind eine Anzeige, keine Ausliefergrundlage. **Dagegen hilft
+  kein Merksatz, sondern ein Wächter im Prüfstand:** keine Zeile in
+  `server.js` setzt den Content-Type selbst. Wer eine Auslieferung ergänzt,
+  wird namentlich rot — **gedacht für 0.8.50**, wo ein Video inline
+  ausgeliefert wird.
 - **Testtage und Kriterienbewertung sind getrennt.** Die Kriterien sind eine
   Analyse, die Testtage ein Verlauf. Nicht zu einem Durchschnitt verrechnen und
   nicht in denselben Block stecken.
@@ -1016,7 +1095,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_6.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_20.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -1401,12 +1480,15 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
 
 ---
 
-## 5a. Die Sicherheitsregel für angehängte Dateien
+## 5a. Die Sicherheitsregel für ausgelieferte Dateien
 
-**Eine Anlage darf niemals so ausgeliefert werden, dass der Browser sie als
-Webseite ausführt.** Das ist die einzige Regel in diesem Projekt, bei der ein
-Fehler nicht bloß ärgerlich wäre. Alles in `anhaenge.js` dient ihr. Sieben
-Schichten, damit kein einzelner Fehler genügt:
+**Keine gespeicherte Datei darf jemals so ausgeliefert werden, dass der
+Browser sie als Webseite ausführt.** Das ist die einzige Regel in diesem
+Projekt, bei der ein Fehler nicht bloß ärgerlich wäre. Alles in `anhaenge.js`
+dient ihr. **Seit 0.8.20 gilt sie ausdrücklich auch am Fotoweg** — dort hielt
+sie sich zuvor an keinen ihrer eigenen Punkte (unten, „Der Fotoweg").
+
+Sieben Schichten, damit kein einzelner Fehler genügt:
 
 1. **Der gemeldete Typ des Hochladenden wird nie ausgeliefert.** Gespeichert
    und angezeigt ja, ausgeliefert nie. Was rausgeht, bestimmt eine eigene Liste
@@ -1423,8 +1505,53 @@ Schichten, damit kein einzelner Fehler genügt:
 7. **Text wird nie als Datei ausgeliefert**, sondern gelesen und als JSON
    geschickt; die Oberfläche setzt ihn mit `textContent` in die Seite.
 
+**Achte Schicht, seit 0.8.20: der Typ aus den ersten Bytes.** Wo kein
+Dateiname mitgeführt wird — bei den Fotos —, entscheidet der **Inhalt**
+(`typAusBytes`). Erkannt wird nur, was auch eingebettet werden darf: JPEG,
+PNG, GIF, WebP, AVIF, TIFF, BMP. Alles Übrige bleibt bewusst unerkannt und
+geht als `application/octet-stream` mit `attachment` heraus. Eine SVG ist Text
+und beginnt mit nichts Festem — sie fällt heraus, und genau das ist die
+gewünschte Antwort.
+
+**Neunte Schicht, seit 0.8.20: die Anwendung selbst hat eine
+`Content-Security-Policy`.** Auf jeder Antwort, neben dem `nosniff`:
+
+```
+default-src 'self'; img-src 'self' data: blob:;
+style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'self';
+frame-ancestors 'none'; base-uri 'none'; form-action 'none'
+```
+
+Sie ist die Schicht, die beim Befund am Fotoweg **mitgegriffen hätte** — zwei
+Verteidigungen für denselben Fehler, und billig, weil die Oberfläche nichts von
+außen nachlädt. `frame-src 'self'` trägt die PDF-Vorschau. **`'unsafe-inline'`
+bei `style-src` ist nötig und keine Nachlässigkeit:** die Oberfläche setzt an
+36 Stellen `style="…"`-Attribute, und im echten Chromium nachgemessen verwirft
+der Browser ohne die Freigabe **jedes einzelne** — die Seite lädt, sie sieht
+falsch aus (Stolperstein 96). Die tragende Zeile ist `script-src`; dort steht
+sie nicht, und der Prüfstand hält das fest.
+
+**Der Fotoweg (seit 0.8.20).** Er hielt sich bis dahin an keinen der Punkte 1
+und 8: `GET /api/photos/:id/raw` lieferte `photos.mime_type` aus, und der
+Upload-Filter prüfte `/^image\//` — `image/svg+xml` besteht das, und `sharp`
+rastert eine SVG anstandslos zu Vorschaubildern, der Upload sah also normal
+aus. Wer die Adresse direkt öffnete („Grafik in neuem Tab öffnen"), bekam
+Skript im Ursprung der Anwendung. Jetzt gilt dort dieselbe Regel wie überall,
+in zwei Schichten:
+
+* **Beim Hochladen** entscheidet das Ergebnis, nicht die Angabe:
+  `sharp(buf).metadata()` liefert `format`, und alles außerhalb von
+  `jpeg|png|webp|avif|gif|tiff` wird abgewiesen. Dieselbe Regel, die
+  Kommentarbilder schon hatten.
+* **Beim Ausliefern** entscheiden die ersten Bytes. Damit ist auch geschützt,
+  was schon vorher in der Datenbank lag — eine Ableitung braucht keinen
+  Umstieg.
+
 **Bei Anhängen wird bewusst nicht gefiltert.** Eine Positivliste dort wäre
-durch Umbenennen zu umgehen und wiegte in falscher Sicherheit.
+durch Umbenennen zu umgehen und wiegte in falscher Sicherheit. **Bei Fotos
+schon** — dort ist die Positivliste kein Ersatz für die Auslieferung, sondern
+die zweite Schicht daneben, und sie ist nicht durch Umbenennen zu umgehen,
+weil sie das Bild wirklich öffnet.
 
 **Bilder in Kommentaren sind der eine Fall, in dem doch beim Hochladen geprüft
 wird.** Dort ist ausschließlich Bild erlaubt: jede Datei geht durch `sharp` und
@@ -1448,7 +1575,11 @@ bleiben unverändert. **Die Lockerung gilt nur für PDF** — geprüft wird auch
 das. Daneben steht immer „In neuem Tab öffnen" als Ausweichweg.
 
 Der Prüfstand lädt eine echte HTML-Seite mit Skript hoch und prüft jede
-einzelne dieser Schichten. Wer hier etwas ändert, lässt `npm test` laufen und
+einzelne dieser Schichten. **Am Fotoweg dasselbe mit einer echten SVG** — und
+dort gehört die Kontrolle des ausgelieferten **Bytestroms** dazu: eine
+Prüfung, die nur die Kopfzeile ansieht, belegt nicht, was herausgeht
+(Stolperstein 98). Eine per SQL eingesetzte Bestandszeile deckt den Fall ab,
+den es vor 0.8.20 schon gab. Wer hier etwas ändert, lässt `npm test` laufen und
 baut die Änderung zusätzlich probeweise zurück (siehe Abschnitt 7).
 
 ---
@@ -1769,6 +1900,41 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     würde still unvollständig, ohne dass irgendetwas rot wird. Dagegen hilft
     kein Kommentar, sondern ein Wächter über den Modulgraphen ab `server.js`.
 
+96. **Eine Content-Security-Policy mit `style-src` verwirft auch
+    `style="…"`-Attribute.** Nicht nur `<style>`-Elemente: `'unsafe-inline'`
+    entscheidet über beides zugleich, und ohne die Freigabe fällt jedes
+    einzelne Attribut still weg — die Seite lädt, sie sieht nur falsch aus.
+    `el.style.x = …` über CSSOM bleibt erlaubt. **Vor einer CSP gehören die
+    Attribute gezählt, nicht geschätzt** — und nachgemessen wird im Browser,
+    nicht in `jsdom`: dort greift keine CSP, eine Prüfung sähe nur die
+    Kopfzeile.
+
+97. **Wer eine Kopfzeile vom Aufrufer nicht mehr glaubt, nimmt zuerst dem
+    eigenen Prüfstand ein Werkzeug weg.** Die Gruppe zur Namensbremse gab
+    jedem Versuch eine eigene Adresse per `X-Forwarded-For` — genau die
+    Behauptung, die 0.8.20 nicht mehr annimmt. Vier Prüfungen wurden rot, ohne
+    dass etwas kaputt war. Sie sind auf einen Server **mit** eingeschalteter
+    Einstellung umgehängt worden und prüfen seitdem zwei Sachen statt einer.
+    Stolperstein 74 in neuer Gestalt: **umhängen, nicht löschen.**
+
+98. **Eine Prüfung, die nur die Kopfzeile ansieht, belegt nicht, was
+    herausgeht.** Zur Auslieferung gehört der Bytestrom daneben: bei einer SVG
+    aus dem Bestand ist der Inhalt unverändert die SVG samt Skript —
+    gefährlich wäre allein, dass der Browser sie als Webseite liest. Erst
+    Kopfzeile **und** Inhalt zusammen sagen, was der Fall ist.
+
+99. **`pkill -f "node server.js"` erschlägt den laufenden Prüfstand.** Der
+    startet seine Server als eigene Prozesse mit genau dieser Befehlszeile.
+    Ein Aufräumbefehl neben einem laufenden Prüflauf sah aus wie ein echter
+    Fehler („Prueflauf abgebrochen: fetch failed"), war aber selbst die
+    Ursache. **Was im Hintergrund läuft, gehört vor jedem `pkill` bedacht.**
+
+100. **Ein Rückbau in derselben Arbeitskopie ist eine Wette auf einen
+    störungsfreien Lauf.** Bricht der Vorgang mittendrin ab, bleibt der
+    Rückbau stehen — und die nächste Änderung baut auf einem Stand auf, den
+    niemand so wollte. Gegenproben laufen deshalb seit 0.8.20 in einer
+    **Kopie des Arbeitsbaums**; der echte Baum wird nicht angefasst.
+
 ---
 
 ## 7. Prüfstand
@@ -1781,9 +1947,11 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Abbilds).
 
-**Zuletzt: 1480 von 1480 bestanden** (0.8.10; 51 neue Prüfungen, vier neue
-Gruppen: „Der Bau ist wiederholbar", „Der Versionsabdruck", „Der
-Gruppenfilter", „Der Prüflauf bei jedem Push"). Der Abschnitt
+**Zuletzt: 1548 von 1548 bestanden** (0.8.20; 68 neue Prüfungen, sieben neue
+Gruppen: „Fotos: Auslieferung (Sicherheitsregel)", „Die Sicherheitsregel fuer
+die Anwendung selbst", „Ohne Proxy ist der Kopf nur eine Behauptung", „Hinter
+dem Proxy wird der Kopf gelesen", „Welcher Eintrag der Kette zaehlt", „Fehler
+nach Rang", „Sauberes Herunterfahren und der Index auf sessions"). Der Abschnitt
 **„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen steht unverändert:
 er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage, nur ohne die neue
 Spalte und mit einer Zeile darin — und belegt, dass der Umstieg sie ergänzt,
@@ -1791,6 +1959,14 @@ dass die Bestandszeile auf der Vorgabe null steht, dass ein zweiter Lauf stumm
 bleibt und dass eine **frische** Anlage die Spalte ohne Umstieg trägt. Seit
 0.8.4 hat keine Version einen eigenen Umstiegsabschnitt bekommen — keine hat
 das Schema angefasst.
+
+**Der Index auf `sessions.user_id` ist der Beleg dafür, dass ein Index kein
+Umstieg ist** (0.8.20, nachgestellt statt geglaubt): Der Prüfstand entfernt
+ihn von Hand aus einer bestehenden Anlage, startet den Server einmal — und er
+ist wieder da. `CREATE INDEX IF NOT EXISTS` rüstet sich bei jedem Start selbst
+nach, anders als eine neue **Spalte**, die `CREATE TABLE IF NOT EXISTS` in
+einer vorhandenen Tabelle nie nachträgt. Dass der Abfrageplaner ihn auch nimmt,
+prüft `EXPLAIN QUERY PLAN` daneben.
 
 **Was abgedeckt ist**, grob nach Bereichen:
 
@@ -1933,6 +2109,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.5 | Stufe G3 — alle sechs Punkte (42) | 19 | Stolpersteine 87 und 88 |
 | 0.8.6 | Berichtigungen aus dem Betrieb — alle fünf Punkte (38 netto) | 23 | Stolpersteine 89, 90 und 91 |
 | 0.8.10 | Werkzeug — alle fünf Punkte (51) | 32 | Stolpersteine 92 bis 95 |
+| 0.8.20 | Die Schotten dicht — alle fünf Punkte (68) | 14 | Stolpersteine 96 bis 100 |
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -2052,8 +2229,27 @@ nötig.
   ausgeschlossen, `.env.example` als Vorlage, keine echten Zugangsdaten im
   Quelltext. Offen davor: Punkt 7 in Abschnitt 10.
 - **Nach jedem Einspielen lohnt ein Blick ins Protokoll:** der Start meldet
-  den Eigentümer, `.env`-Reste und — falls je nötig — die Zuordnung
-  herrenlosen Bestands („Bestand ohne Benutzer dem Eigentuemer zugeordnet").
+  den Eigentümer, `.env`-Reste, seit 0.8.20 die Betriebsart („Hinter Proxy:
+  an/aus") und — falls je nötig — die Zuordnung herrenlosen Bestands
+  („Bestand ohne Benutzer dem Eigentuemer zugeordnet").
+- **Der Container ist seit 0.8.20 sichtbar gesund oder nicht.** Das Abbild
+  trägt einen `HEALTHCHECK` gegen `/api/config`; `docker compose ps` zeigt
+  `healthy`. Vorher wusste Docker nur, dass der Prozess läuft — ein Container
+  in einer Neustartschleife sah von außen gesund aus.
+- **Der Weg nach außen ist noch nicht gebaut, und daran hängt eine
+  Entscheidung.** Heute ist Kriterion nur im Heimnetz auf Port 3100
+  erreichbar; `HINTER_PROXY` steht deshalb auf der Vorgabe (Abschnitt 2). Beim
+  Schritt nach außen über den Proxy gehören **zwei** Dinge zusammen: die
+  Einstellung auf `1` — und die Frage, ob der Port 3100 daneben offen bleiben
+  soll. Bleibt er offen, kann jemand im Heimnetz den Proxy umgehen und
+  `X-Forwarded-For` selbst setzen; die Anmeldebremse ließe sich so aushebeln.
+  Ein gewöhnlicher Browser tut das nicht, ein absichtlicher Aufruf schon.
+  **Als tragbar eingestuft**, solange es das Heimnetz betrifft: der Schutz
+  gilt dem Weg aus dem Internet. Wer es doch schließen will, hängt Kriterion
+  in das Netz des Proxys und lässt die Portfreigabe fallen — dann kommt
+  niemand mehr direkt heran, und der Zugriff im Heimnetz läuft ebenfalls über
+  den Proxy. Ein Adressbuch, wer den Kopf setzen darf, ist in 0.8.20
+  ausdrücklich **nicht** gebaut worden und wäre der dritte Weg (Abschnitt 11).
 
 ---
 
@@ -2062,50 +2258,56 @@ nötig.
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.10 — „Werkzeug", alle fünf Punkte.** Keine Stufe des Umbaus, die erste
-Runde des neuen Stufenplans (Abschnitt 10). Fünf Punkte, kein Schema, kein
-Umstiegscode, keine neue schreibende Route.
+**0.8.20 — „Die Schotten dicht", alle fünf Punkte.** Keine Stufe des Umbaus,
+die zweite Runde des neuen Stufenplans (Abschnitt 10). Kein Schema, kein
+Umstiegscode, keine neue schreibende Route, `F_ROUTEN` unverändert 46.
 
-*Der Bau wird wiederholbar.* `package-lock.json` liegt jetzt im Repo
-(`lockfileVersion 3`, 177 Pakete), der `Dockerfile` liest sie mit `npm ci
---omit=dev` statt `npm install --omit=dev` — ohne den Wechsel läge die Datei
-nur ungenutzt daneben. Belegt außerhalb des Prüfstands: `npm ci` bricht ab, wo
-`npm install` am selben Stand wortlos eine andere Version auflöste.
+*Die SVG geht nicht mehr mit ihrem eigenen Typ heraus.* Der Fotoweg hielt sich
+an keinen der acht Punkte im Kopf von `anhaenge.js`: `GET /api/photos/:id/raw`
+lieferte `photos.mime_type` aus, und der Upload-Filter ließ `image/svg+xml`
+durch, weil er die **Angabe** prüfte. Jetzt zwei Schichten: beim Hochladen
+entscheidet `sharp().metadata()` über das Ergebnis, beim Ausliefern
+entscheiden die ersten Bytes (`typAusBytes` in `anhaenge.js`). Bestandsdaten
+sind damit ohne Umstieg mitgeschützt. Die Spalte bleibt als Anzeige stehen.
+**Dazu ein Wächter im Prüfstand:** keine Zeile in `server.js` setzt den
+Content-Type selbst.
 
-*`sharp` auf 0.35.3, das Abbild auf Node 22.* `npm audit` meldete für
-`sharp <0.35` geerbte Lücken aus libvips mit dem Schweregrad „high"; danach
-„found 0 vulnerabilities". Node 20 ist seit dem 30. April 2026 ohne Pflege.
-Gemessen statt geglaubt: auf Node 22 übersetzt `better-sqlite3-multiple-ciphers`
-gar nicht erst (Fertigbau für ABI 127), auf Node 24 gäbe es keinen und der Bau
-fiele auf `node-gyp` zurück — deshalb 22, nicht 24.
+*Die Anwendung bekommt eine eigene Sicherheitsregel.* `default-src 'self'`,
+`script-src 'self'` ohne eingebettetes Skript, `frame-ancestors 'none'`,
+`base-uri 'none'`, `form-action 'none'`; `frame-src 'self'` trägt die
+PDF-Vorschau. **Eine Abweichung vom Auftrag, gemessen statt geglaubt:**
+`style-src` braucht `'unsafe-inline'`, sonst verwirft der Browser die 36
+`style="…"`-Attribute der Oberfläche (Stolperstein 96).
 
-*Ein Versionsnachweis, der wirklich trägt.* Der Server bildet beim Start einen
-Abdruck (SHA-256, acht Zeichen) über das, was er tatsächlich lädt
-(`require.cache`) und ausliefert (`public/`) — abgeleitet, nicht gepflegt.
-`GET /api/stats` nennt ihn, die Karte „Kennzahlen" zeigt ihn. Er geht bewusst
-**nicht** nach `/api/config`: die Liste dort ist eine Sicherheitsgrenze, die
-mehr wert ist als die eine gesparte Anmeldung. `zugang.js` läuft nie im
-Server und steht deshalb nicht im Abdruck — er sagt, welcher Server läuft,
-nicht welches Werkzeug danebenliegt. **Das war die letzte Version, die dafür
-eine Textstelle zum Gegenprüfen brauchte** — siehe Abschnitt 2.
+*Ein Kopf vom Aufrufer ist eine Behauptung.* `HINTER_PROXY` (Vorgabe aus)
+entscheidet über fünf Dinge zugleich: gelesener Kopf — und zwar der **letzte**
+Eintrag der Kette —, `Secure` am Keks, `Strict-Transport-Security`, das Präfix
+`__Host-` am Keksnamen und der Hinweis in der README. Umgebungsvariable und
+nicht `settings`: sie entscheidet über Netzwerkvertrauen, nicht über eine
+Vorliebe. Ein Adressbuch, wer den Kopf setzen darf, ist bewusst nicht gebaut.
 
-*Der Prüfstand lässt sich filtern und läuft bei jedem Push.* `node
-pruefung.js Rechte` zeigt nur passende Gruppen — die Arbeit bleibt dieselbe
-(die Prüflagen bauen aufeinander auf), nur die Ausgabe schrumpft. Ein
-gefilterter Lauf sagt das selbst und lässt den Rückgabewert dem Gezeigten
-folgen. `.github/workflows/pruefstand.yml`: `npm ci`, `npm test`, `npm audit
---audit-level=high`, Node-Version identisch mit dem Abbild.
+*Der Fehler-Handler trennt Absicht von Panne.* Markierte Fehler (`err.status`)
+und Multer-Fehler behalten Rang und Meldung, alles Übrige wird 500 mit festem
+Text — vorher kam ein SQL-Fehler als 400 samt Tabellen- und Spaltennamen
+zurück. Nachgezählt vor dem Bau, damit keine bestehende 4xx-Antwort still zur
+500 wird: die 25 Würfe aus `auth.js` werden alle lokal gefangen, nur fünf
+`next(e)`-Wege erreichen den Handler.
 
-**1480 von 1480 Prüfungen**, 32 Gegenproben. Vier neue Stolpersteine (92 bis
-95). `F_ROUTEN` unverändert 46. **Kein Punkt hat das Schema angefasst**, kein
-Umstiegscode entstanden.
+*Zwei Dinge am Rand.* `SIGTERM`/`SIGINT` schließen WAL und Datenbank ab — wer
+danach `./data` sichert, sichert einen vollständigen Stand. Und
+`sessions.user_id` bekommt einen Index; er trägt schon heute das Sperren und
+Löschen von Zugängen und ab 0.8.80 „Meine Sitzungen". Dazu ein `HEALTHCHECK`
+im Abbild gegen `/api/config`.
 
-Als Nächstes **0.8.20 „Die Schotten dicht"** — SVG am Fotoweg,
-`X-Forwarded-For`, `Secure`-Cookie und mehr. Danach **Stufe G4 auf 0.8.30**,
-die erste Datenbankstufe seit 0.8.3. Siehe Abschnitt 10.
+**1548 von 1548 Prüfungen**, 14 Gegenproben. Fünf neue Stolpersteine (96 bis
+100). **Kein Punkt hat das Schema angefasst**, kein Umstiegscode entstanden.
+
+Als Nächstes **Stufe G4 auf 0.8.30 — „Die Linkliste bekommt Verfasser"**, die
+erste Datenbankstufe seit 0.8.3. Siehe Abschnitt 10.
 
 | Version | Was |
 |---|---|
+| 0.8.10 | Werkzeug, alle fünf Punkte: `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Abbild auf Node 22, Versionsabdruck über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push |
 | 0.8.6 | Berichtigungen aus dem Betrieb, alle fünf Punkte: Bewertungsdetails gehören dem Admin (samt Löschweg für eine fremde Bewertung), Linkliste abgeschnitten statt scrollbar, `grid-auto-flow: dense` schließt die Lücke im Kartenraster, „Angemeldet als" auch bei einem Zugang, „Angelegt von" nennt auch das Datum |
 | 0.8.5 | Stufe G3: dreizehn Karten des Systembereichs nach Rolle, `GET /api/stats` hinter `nurAdmin`, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien, berichtigte `AUTH_RESET`-Zeile |
 | 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte, **Stufe G2 vollständig**: Eingriffsvermerk nennt die Rolle, `updated_at` an den Bildwegen des Verfassers, Zahlen in der Kopfzeile des Kommentarblocks, die beiden Anlegen-Schalter, Umschalter „meine/alle" im Vergleich |
@@ -2181,8 +2383,10 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **1.0.0** | Bereinigung und Zusage | Umstiegscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
-**0.8.10 ist gebaut** — Einzelheiten in Abschnitt 2 und Abschnitt 9. Als
-Nächstes **0.8.20**.
+**0.8.10 und 0.8.20 sind gebaut und eingespielt** — Einzelheiten in Abschnitt 2
+und Abschnitt 9. Als Nächstes **Stufe G4 auf 0.8.30**, die erste
+Datenbankstufe seit 0.8.3; die Sicherung des Datenverzeichnisses gehört dort
+wieder ausdrücklich in den Einspielweg.
 
 **Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
 antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
@@ -2194,15 +2398,17 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
 - **0.8.10 vor allem anderen** (erledigt). Ohne festgenagelte Abhängigkeiten
   wäre jeder Bau ein anderer gewesen, und ohne Prüflauf bei jedem Push liefe
   der Prüfstand nur, wenn jemand daran denkt. Beides sichert alles Folgende ab.
-- **0.8.20 vor 0.8.50.** Der Videoweg liefert eine Datei **inline** aus. Er
-  darf erst gebaut werden, wenn die Regel „der gemeldete Typ des Hochladenden
-  wird nie ausgeliefert" auch am Fotoweg gilt.
+- **0.8.20 vor 0.8.50** (erledigt). Der Videoweg liefert eine Datei **inline**
+  aus. Er durfte erst gebaut werden, wenn die Regel „der gemeldete Typ des
+  Hochladenden wird nie ausgeliefert" auch am Fotoweg gilt. Sie gilt jetzt,
+  und der Wächter im Prüfstand hält sie fest — er wird namentlich rot, sobald
+  der Videoweg seinen Typ selbst setzt.
 - **0.8.50 vor 0.8.70.** Der Papierkorb serialisiert einen Eintrag. Gibt es
   dann schon Videos, wird die Serialisierung **einmal** gebaut statt einmal
   gebaut und einmal nachgezogen.
-- **0.8.10 und 0.8.20 vor 1.0.0.** Eine Veröffentlichung heißt fremde
-  Installationen. Danach stehen die beiden Befunde nicht mehr in einer Anlage,
-  sondern in allen.
+- **0.8.10 und 0.8.20 vor 1.0.0** (beide erledigt). Eine Veröffentlichung
+  heißt fremde Installationen. Danach stünden die beiden Befunde nicht mehr in
+  einer Anlage, sondern in allen — deshalb lagen sie vorn und nicht hinten.
 
 **Die Herkunft der neuen Punkte** — Befunde, Messwerte und Begründungen —
 steht in `Ideen_und_Vorschlaege.md`. Das Papier ist damit **Quelle, nicht
@@ -2214,7 +2420,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_6.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_20.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.
@@ -2223,8 +2429,9 @@ damit alte Verweise stimmen.)*
    Abschnitt 5 und Abschnitt 9.
 
    **Als Nächstes: Stufe G4 auf 0.8.30 — „Die Linkliste bekommt Verfasser".**
-   Davor liegt mit 0.8.20 noch eine Runde **ohne Schemaänderung** — 0.8.10 ist
-   erledigt; die Begründung steht im Stufenplan oben.
+   Die beiden Runden ohne Schemaänderung davor (0.8.10 „Werkzeug", 0.8.20
+   „Die Schotten dicht") sind gebaut; die Begründung für ihre Lage steht im
+   Stufenplan oben.
    Links darf jeder eintragen; löschen darf sie der Eintrager oder der Admin,
    und ab zwei Zugängen steht sein Name an der Zeile. Das **kehrt die Zeile
    „Titel, Beschreibung, Fotos, Dateien, Links, Tags, Kategorie" der
@@ -2315,6 +2522,10 @@ damit alte Verweise stimmen.)*
    Knopf.
 
 ### Vorgemerkt für 1.0
+
+*Aus 0.8.10 und 0.8.20 ist hier **nichts** dazugekommen: beide haben das
+Schema nicht angefasst, und der Index aus 0.8.20 ist eine Ableitung beim Start,
+kein Umstieg.*
 
 - **Finale Bereinigung.** Der Rückbau des Umstiegscodes wurde aus
   Notwendigkeit nach 0.8.0 vorgezogen; zu 1.0 folgt eine letzte Bereinigung
@@ -2446,21 +2657,20 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   dadurch gar nicht erst hineingeraten. Wer ein weiteres serverseitiges Modul
   ergänzt, das beim Start geladen wird, sieht den Abdruck dadurch wandern —
   das ist beabsichtigt, nicht zu unterdrücken.
-- **Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine
-  Behauptung** (ab 0.8.20). Er darf nur geglaubt werden, wo ausdrücklich
-  eingestellt ist, wer ihn setzen darf. Bisher stand die Regel nur für den
-  `Host`-Kopf im Konzeptpapier; sie gilt genauso für `X-Forwarded-For`, und
-  dort ist sie nachweislich verletzt — mit wechselndem Kopf greift die
-  IP-Bremse nie. **Eine Einstellung, fünf Wirkungen:** gelesener Kopf,
-  `Secure` am Keks, `Strict-Transport-Security`, `__Host-`-Präfix und der
-  Hinweis in der README hängen alle daran.
-- **Der ausgelieferte Typ kommt nie aus der Datenbank** (ab 0.8.20). Die Regel
-  steht seit jeher im Kopf von `anhaenge.js` — der Fotoweg hält sie nicht ein
-  und liefert den gemeldeten Typ des Hochladenden zurück, samt SVG. Dagegen
-  hilft kein Merksatz, sondern ein **Wächter im Prüfstand**, gebaut wie der
-  auf die Adminfrage: keine Zeile in `server.js` setzt `Content-Type` aus
-  einem Wert, der aus der Datenbank kommt. **Bindet unmittelbar für 0.8.50** —
-  ein Video wird inline ausgeliefert.
+- **Der Wächter über den ausgelieferten Typ bindet unmittelbar für 0.8.50**
+  (eingelöst in 0.8.20, die Regel steht jetzt in Abschnitt 5). Keine Zeile in
+  `server.js` setzt den Content-Type selbst; wer den Videoweg baut,
+  entscheidet sich für einen der beiden Wege in `anhaenge.js` — Typ nach
+  Endung oder Typ nach den ersten Bytes — und wird sonst namentlich rot.
+- **Der Keksname ist keine feste Zeichenkette mehr** (seit 0.8.20). Bei
+  `HINTER_PROXY=1` heißt er `__Host-kriterion_session`. Wer in **0.8.80**
+  „Meine Sitzungen" baut, nimmt ihn aus `auth.COOKIE_NAME` und schreibt ihn
+  nirgends ab.
+- **Ein Adressbuch, wer `X-Forwarded-For` setzen darf, ist bewusst nicht
+  gebaut** (Entscheidung aus 0.8.20). Die Einstellung ist ein Ja/Nein. Wird
+  die Anlage je aus mehreren Netzen zugleich erreichbar — oder soll der direkt
+  erreichbare Port abgesichert werden, ohne ihn zu schließen —, gehört es
+  nachgeliefert. Der einfachere Weg steht in Abschnitt 8.
 - **Fotos und Videos stehen in EINER Reihenfolge** (ab 0.8.50). Deshalb
   dieselbe Tabelle mit einer Spalte `art`, keine zweite Tabelle. Und am Video
   gilt jede Regel, die am Foto gilt — Rechte, Kaskade, Umsortieren, Kennzahlen.
