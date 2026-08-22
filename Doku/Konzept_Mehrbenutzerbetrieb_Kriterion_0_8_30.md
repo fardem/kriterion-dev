@@ -1,10 +1,18 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.20 — Abdruck `3ab38137`**
-(Stufen A bis G3 erledigt, **G3 vollständig**; 0.8.1 war eine **Bereinigung**,
-0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10 die Runde
-**Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle vier keine
-Stufen.)
+**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.30 — Abdruck `6302a4b1`**
+(Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
+**Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
+die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
+vier keine Stufen.)
+
+**Mit 0.8.30 ist Stufe G4 gebaut, und damit die letzte offene Stufe des
+Mehrbenutzerbetriebs vor H.** „Die Linkliste bekommt Verfasser": `links` trägt
+eine `user_id`, eintragen darf jeder, löschen der Eintrager oder der Admin,
+sortieren bleibt beim Eintragsverfasser, und ab zwei Zugängen steht an einer
+**fremden** Linkzeile der Name ihres Eintragers. Das kehrt eine Zeile der
+Rechtetabelle in Abschnitt 3 um und macht Links zum **fünften Träger** neben
+Eintrag, Kommentar, Testtag und Bewertung. Der Ergebnisblock steht in Teil III.
 
 **Weder 0.8.10 noch 0.8.20 haben den Mehrbenutzerbetrieb berührt.** 0.8.10
 ging an den Bau (Sperrdatei, `npm ci`, `sharp`, Node 22), an den Prüfstand
@@ -17,8 +25,10 @@ sauberes Herunterfahren und ein Index auf `sessions.user_id`. Keine Rolle,
 kein Recht, kein Endpunkt, kein Schema — dieses Papier ändert sich durch
 beide nur in seinen Nummern.
 
-**Damit ist die nächste Version die nächste Stufe: G4 auf 0.8.30.** Die beiden
-Runden ohne Schemaänderung, die davor lagen, sind gebaut.
+**Offen sind damit noch H (Tokens, 0.8.80) und I (Mailversand und
+Selbstanmeldung, 0.9.0).** Zwischen G4 und H liegen vier Stufen, die nicht zum
+Mehrbenutzerbetrieb gehören; sie stehen im Projektstand, Abschnitt 10. Die
+nächste ist **0.8.40, die Gewichtung der Bewertungskriterien**.
 
 **Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
 `HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
@@ -124,8 +134,12 @@ anderen Admin oder den Eigentümer kommt nur der Eigentümer.
 | | Verfasser | anderer | Admin |
 |---|---|---|---|
 | alles sehen | ✔ | ✔ | ✔ |
-| Titel, Beschreibung, Fotos, Dateien, Links, Tags, Kategorie, abgelehnt, getestet | ✔ | — | ✔ |
+| Titel, Beschreibung, Fotos, Dateien, Tags, Kategorie, abgelehnt, getestet | ✔ | — | ✔ |
 | Eintrag löschen | ✔ | — | ✔ |
+| **Link eintragen** *(seit 0.8.30)* | ✔ | ✔ | ✔ |
+| **eigenen Link löschen** *(seit 0.8.30)* | ✔ | ✔ | ✔ |
+| **fremden Link löschen** *(seit 0.8.30)* | — | — | ✔ |
+| **Linkliste umsortieren** *(bleibt beim Eintrag)* | ✔ | — | ✔ |
 | Kommentar schreiben | ✔ | ✔ | ✔ |
 | eigenen Kommentar ändern/löschen | ✔ | — | ✔ (nur löschen) |
 | Art (Notiz/Bericht/Aufgabe/erledigt) und Anpinnung setzen | ✔ | — | ✔ |
@@ -146,6 +160,16 @@ Seit 0.7.2 zusätzlich entschieden: Tags am Testtag folgen dem Testtag und
 gehören nur seinem Verfasser; Bilder an einen Kommentar darf nur der
 Verfasser **anhängen**, löschen darf sie auch der Admin; eine **herrenlose**
 Zeile (`user_id IS NULL`) gehört dem Admin.
+
+**Die Linkzeile hat mit 0.8.30 die Seite gewechselt.** Sie stand bis dahin in
+der ersten Zeile dieser Tabelle, also beim Verfasser des Eintrags. Dahinter
+steht die Regel aus 0.8.4: *was an allen Einträgen aller Benutzer erscheint,
+gehört dem Admin; was nur dort erscheint, wo man es hinsetzt, gehört jedem.*
+Ein Link erscheint nur dort, wo man ihn hinsetzt.
+**Das Umsortieren ist ausdrücklich nicht mitgewandert:** es ändert keine
+Aussage und ist umkehrbar — dieselbe Überlegung wie beim Anpinnen eines
+Kommentars. Und **ein gelöschter Link bekommt keinen Vermerk**: er ist eine
+ganze Aussage, die geht, kein Loch in einer bleibenden.
 
 **Einen Eintrag zu löschen nimmt fremde Kommentare und Bewertungen mit.** Die
 Tabelle oben gibt das Löschen des Eintrags dem Verfasser; die Kaskade räumt dann
@@ -181,13 +205,20 @@ innerhalb des angepinnten Blocks. Gehört nicht in dieses Vorhaben.
 als vollständige DDL in `db.js` — das Schema dort ist die Wahrheit, nicht
 mehr dieses Papier. Die tragenden Entscheidungen: `sessions.user_id` mit
 `ON DELETE CASCADE` als Wurzel des Ganzen; `user_id` an `items`, `comments`,
-`test_days` und `ratings` mit **`ON DELETE SET NULL`** als Auffangnetz
+`test_days`, `ratings` und — seit 0.8.30 — `links` mit
+**`ON DELETE SET NULL`** als Auffangnetz
 (`CASCADE` ließe einen Gelöschten den halben Bestand mitnehmen, gar keine
 Angabe ließe ein `DELETE` von Hand an der Fremdschlüsselverletzung
 scheitern); `UNIQUE` um `user_id` erweitert bei `ratings` und `test_days`;
 `item_pins` für den Favoriten; `user_settings` mit
 `ON DELETE CASCADE` und `PRIMARY KEY (user_id, key)` für die persönliche
 Hälfte.
+
+**Fünf Träger seit 0.8.30**, nicht mehr vier. `links.user_id` ist die einzige
+Spalte, die nachgerüstet werden musste — mit `umstieg0830()`, dem zweiten
+markierten Block im Projekt. Nachgestellt dabei: eine Fremdschlüsselspalte
+lässt sich nur **nullbar** nachrüsten (Projektstand, Stolperstein 105); für
+`links` war das ohnehin die richtige Form.
 
 **Offen für Stufe H:** `tokens (hash, user_id, zweck, ablauf, benutzt_am)`.
 Zur Adress-Eindeutigkeit siehe Abschnitt 10 — ein **partieller Index**, wenn
@@ -439,8 +470,9 @@ Code, erst bauen, wenn SMTP nachweislich scheitert.
 ## 12. Export und Import — erledigt in 0.7.1 und 0.7.2
 
 **Was gilt:** Der Export nennt zu **jedem Eintrag, jeder Bewertung, jedem
-Kommentar und jedem Testtag** den Verfassernamen (**vier** Träger — der
-Eintrag fehlte im Entwurf; Formatversion 6). Beim Import wird ein bekannter
+Kommentar, jedem Testtag und — seit 0.8.30 — jeder Linkzeile** den
+Verfassernamen (**fünf** Träger; der Eintrag fehlte im Entwurf, die Linkzeile
+kam mit Stufe G4 dazu). **Formatversion 7** seit 0.8.30, davor 6. Beim Import wird ein bekannter
 Name zugeordnet, alles andere fällt **laut gemeldet** an den Importierenden;
 **ein unbekannter Name legt keinen Zugang an**, die Anpinnung wandert nicht
 mit, geliefert wird der Name, nie die Id. Ältere Exportdateien bleiben
@@ -501,15 +533,15 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | — | **0.8.6** | *Keine Stufe.* **Berichtigungen aus dem Betrieb:** Bewertungsdetails nur noch für den Admin (eigener Endpunkt, Löschweg mitgewandert), Scrollen der Linkliste am Finger, Lücke im Kartenraster, Datum am Eintragsverfasser, „angemeldet als" in der Kopfzeile — **erledigt**, siehe unten | klein |
 | — | **0.8.10** | *Keine Stufe.* **Werkzeug:** `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Abbild auf Node 22, Versionsabdruck über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push — **erledigt**, den Umbau nicht berührt | klein |
 | — | **0.8.20** | *Keine Stufe.* **„Die Schotten dicht":** SVG am Fotoweg (Typ aus den ersten Bytes statt aus der Datenbank), Sicherheitsregel für die Anwendung selbst, `X-Forwarded-For` nur nach Einstellung samt `Secure`/HSTS/`__Host-`, Fehler-Handler nach Rang, sauberes Herunterfahren, Index auf `sessions.user_id` — **erledigt**, den Umbau nicht berührt | klein |
-| **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der Zeile ab zwei Zugängen, Formatnummer 6 → 7 | mittel |
+| **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der **fremden** Zeile ab zwei Zugängen, Formatnummer 6 → 7 — **erledigt, Stufe G vollständig**, siehe unten | mittel |
 | **H** | **0.8.80** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
 | **I** | 0.9.0 | Mailversand mit Anbietervorlagen, öffentliche Adresse, Testmail, Selbstregistrierung mit Freischaltung. *Abbruchpunkt: nach dem Versand, vor der Selbstregistrierung.* | groß |
 
-**Vor G4 liegt nichts mehr** — die beiden Runden ohne Schemaänderung (0.8.10
-„Werkzeug", 0.8.20 „Die Schotten dicht") sind gebaut. **Zwischen G4 und H
-liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu", Sicherung und Papierkorb). Alle fünf gehören nicht
-zum Mehrbenutzerbetrieb und stehen deshalb im Projektstand, Abschnitt 10 —
-zusammen mit der Begründung für die Reihenfolge.
+**G4 ist gebaut, und damit sind die Stufen A bis G vollständig.** **Zwischen
+G4 und H liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu",
+Sicherung und Papierkorb). Alle vier gehören nicht zum Mehrbenutzerbetrieb und
+stehen deshalb im Projektstand, Abschnitt 10 — zusammen mit der Begründung für
+die Reihenfolge. **Als Nächstes 0.8.40, die Gewichtung.**
 
 Danach: Zwei-Faktor, Suche, dann 1.0.0. **Zwei Punkte hängen unmittelbar an
 Stufe I und gehören beim Bauen mitgedacht:** die Tokens aus H tragen auch die
@@ -596,9 +628,10 @@ Schnitt über alle.
 
 ## Stufe E2 — Export und Import mit Verfassernamen — erledigt in Version 0.7.1
 
-**Vier** Träger statt drei (der Eintrag kam dazu); unbekannte Namen werden
-**laut** gemeldet und fallen an den Importierenden; kein Zugang wird vom
-Import angelegt; der Favorit wandert nicht mit; Formatversion 6. **Dabei
+**Vier** Träger statt drei (der Eintrag kam dazu; der fünfte, die Linkzeile,
+kam mit G4 in 0.8.30); unbekannte Namen werden **laut** gemeldet und fallen an
+den Importierenden; kein Zugang wird vom Import angelegt; der Favorit wandert
+nicht mit; Formatversion 6, seit 0.8.30 **7**. **Dabei
 gefunden, älter als die Stufe:** `INSERT OR REPLACE` ist ein `DELETE` mit
 Nachspiel — die Kinder gehen über die Kaskade mit (Stolperstein 70; Teil V
 Punkt 18 hält die Warnung für die Löschwege in G2 fest).
@@ -964,33 +997,81 @@ Projektstand, Abschnitte 2, 5, 5a, 7 und 9.
   selbst. Er wird namentlich rot, sobald jemand eine Auslieferung ergänzt —
   gedacht für 0.8.50, wo ein Video inline ausgeliefert wird.
 
-## Stufe G4 — offen, Version 0.8.30
+## Stufe G4 — erledigt in Version 0.8.30
 
-**„Die Linkliste bekommt Verfasser."** Heute gehören Links dem
-**Eintragsverfasser**: `POST /api/items/:id/links` steht hinter
-`nurEintragVerfasser`, ebenso Sortieren und Löschen. Künftig darf **jeder**
+**„Die Linkliste bekommt Verfasser."** Bis 0.8.20 gehörten Links dem
+**Eintragsverfasser**: `POST /api/items/:id/links` stand hinter
+`nurEintragVerfasser`, ebenso Sortieren und Löschen. Jetzt darf **jeder**
 einen Link eintragen; löschen darf ihn der **Eintrager oder der Admin**, und
 ab zwei Zugängen steht sein Name an der Zeile.
 
-**Das kehrt eine Zeile der Rechtetabelle um** (Abschnitt 3): „Titel,
-Beschreibung, Fotos, Dateien, **Links**, Tags, Kategorie" verliert die Links.
-Sie werden damit zum **fünften Träger** neben Eintrag, Kommentar, Testtag und
-Bewertung.
+**Was gilt.** Die Rechte gehen in drei verschiedene Richtungen, und das ist
+die Entscheidung dieser Stufe:
 
-**Umfang, und er ist größer, als er aussieht.** `links` hat keine `user_id` —
-also Schemaänderung samt **Umstiegsblock** und `ON DELETE SET NULL`;
-Bestandszeilen fallen an den **Eintragsverfasser**, nicht an den Eigentümer,
-sonst gehörten die eigenen Links plötzlich jemand anderem. Export und Import
-nennen den Namen wie an den vier anderen Trägern, also **Formatnummer 6 → 7**
-— ohne das kämen eingespielte Links herrenlos herein. **Sortieren bleibt beim
-Eintragsverfasser und Admin:** es ändert keine Aussage und ist umkehrbar,
-dieselbe Überlegung wie beim Anpinnen. Der **Platz** in der Zeile ist zu
-prüfen — sie trägt schon Domain, Pfad und bis zu vier Anbieternamen.
+| Route | vorher | jetzt |
+|---|---|---|
+| `POST /api/items/:id/links` | `nurEintragVerfasser` | **offen**, schreibt `req.benutzer.id` |
+| `DELETE /api/links/:id` | `eintragFrei(…, l.item_id)` | **`darfAendern(req, l.user_id)`** |
+| `PUT /api/items/:id/link-order` | `nurEintragVerfasser` | **unverändert** |
 
-**Kein Vermerk beim Löschen.** Ein gelöschter Link ist eine ganze Aussage, die
-geht, kein Loch in einer bleibenden — dieselbe Regel wie beim ganz gelöschten
-Kommentar. Der Eingriffsvermerk bleibt auf den einen Fall begrenzt, für den er
-beschlossen wurde.
+`links` trägt `user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`,
+nachgerüstet über `umstieg0830()` — den zweiten markierten Block im Projekt.
+**Die Bestandszeilen fallen an den Eintragsverfasser**, nicht an den
+Eigentümer: bis dahin *waren* die Links eines Eintrags die Sache seines
+Verfassers. `ordneBestandZu()` nimmt `links` trotzdem auf und antwortet dort
+weiterhin mit dem Eigentümer — das ist eine andere Frage zu einem anderen
+Zeitpunkt, und beide stehen im Quelltext nebeneinander erklärt.
+
+Export und Import nennen den Namen wie an den vier anderen Trägern; ein Link
+ist in der Datei ein Objekt aus `url` und `author`, **Formatnummer 6 → 7**.
+Der Import liest beide Formen. **Ein Link aus einer Datei der Formatnummer 6
+fällt an den Verfasser des Eintrags** — dieselbe Antwort wie beim Umstieg: die
+Datei sagt nichts anderes, als dass die Links zu diesem Eintrag gehören.
+
+**Der Name steht an der fremden Zeile, nicht an jeder — Abweichung vom
+Entwurf.** Der Entwurf sagte „ab zwei Zugängen steht sein Name an der Zeile".
+Gebaut ist es enger: **mehrere Zugänge und eine Zeile, die nicht vom Verfasser
+des Eintrags stammt.** Bei den vier anderen Trägern steht jede Zeile für sich;
+die Linkliste ist eine Liste vieler kurzer Zeilen, und ein Name an jeder wäre
+Rauschen. An der einen fremden ist er die Auskunft — „jemand anderes hat etwas
+beigesteuert". Daraus folgt ein Satz, den man kennen muss: **„kein Name" heißt
+bei mehreren Zugängen „vom Verfasser des Eintrags".**
+
+**Der Platz in der Zeile war der offene Punkt, und er hat eine Antwort
+gebraucht.** Die Zeile trägt Griff, Nummer, Domain, Pfad, bis zu vier
+Anbieternamen, Pfeil oder Lupe und das ✕. Der Name steht jetzt in der
+**zweiten** Zeile neben Pfad bzw. Anbieternamen — nicht darunter, sonst wüchse
+die Zeile auf dem Handy auf drei Höhen. Beide sind ein Flex-Paar: der Pfad
+darf schrumpfen, **der Name nicht**. Ohne das fräße eine lange Adresse genau
+die Angabe weg, um derentwillen die Zeile ihn trägt. Trennzeichen:
+Mittelpunkt an der Adresszeile, Gedankenstrich an der Suchzeile — dort
+bedeutet „ · " bereits „noch ein Anbieter, anklickbar".
+
+**Das Datum steht im Überfahrtext**, nicht in der Zeile. Auf einem
+Berührbildschirm ist es damit nicht erreichbar; bewusst getragen, der Name
+bleibt in beiden Fällen sichtbar.
+
+**Das ✕ folgt dem Recht, nicht der Anzeige.** Beides ist getrennt: ein Kreuz
+ohne Namen ist möglich, ein Name ohne Kreuz auch.
+
+**Kein Vermerk beim Löschen** — wie entworfen. Ein gelöschter Link ist eine
+ganze Aussage, die geht, kein Loch in einer bleibenden; der Eingriffsvermerk
+bleibt auf den einen Fall begrenzt, für den er beschlossen wurde.
+
+**Was daran hing und leicht übersehen worden wäre:** beide Löschdialoge
+zählten Beiträge auf und wären nach der Rechtewende nachweislich unvollständig
+gewesen. `GET /api/items/:id/bestand` nennt Links jetzt getrennt nach eigen
+und fremd; `auth.zaehleBestand()` kannte sie überhaupt nicht — ein Zugang mit
+zwanzig Links in fremden Einträgen sah dort leer aus. Und `entferneZugang()`
+räumt sie beim zweiten Häkchen wirklich mit weg: eine Zahl im Dialog, die
+nichts bewirkt, wäre schlimmer als keine.
+
+**`F_ROUTEN` blieb bei 46 Routen, und nur EINE Art hat gewechselt** — der
+Auftrag nahm zwei an. Die Art `'im Rumpf'` sagt nur, *dass* eine Klemme
+dasteht, nicht *welche*; die Wende von `eintragFrei` auf `darfAendern` wäre
+für die Liste unsichtbar gewesen. Zwei eigene Quelltextprüfungen halten sie
+jetzt fest. Einzelheiten und die vollständige Gegenprobentabelle stehen in
+`Doku/Aenderungsprotokoll_0.8.30.md`.
 
 ## Nachprüfen per SSH
 
@@ -1012,7 +1093,7 @@ curl -s -c kekse.txt -X POST localhost:3100/api/login \
 curl -s -b kekse.txt localhost:3100/api/stats | head -c 60
 ```
 
-Erwartet für 0.8.20: `{"version":"0.8.20","abdruck":"3ab38137",…`. Der Abdruck
+Erwartet für 0.8.30: `{"version":"0.8.30","abdruck":"6302a4b1",…`. Der Abdruck
 jeder Version steht im Kopf des Projektstands und in ihrem
 Änderungsprotokoll. **Was er nicht abdeckt:** `zugang.js` — es liegt im
 Abbild, läuft aber nie im Server.
@@ -1023,10 +1104,16 @@ scheitert — die passende Bibliothek liegt im Container:
 ```bash
 docker compose exec kriterion node -e "
   const db=require('./db').db;
-  console.log(db.prepare('PRAGMA table_info(ratings)').all().map(c=>c.name).join(', '));
-  console.log(db.prepare('SELECT COUNT(*) n FROM ratings WHERE user_id IS NULL').get());
+  for (const t of ['items','comments','test_days','ratings','links'])
+    console.log(t, '->', db.prepare('SELECT COUNT(*) n FROM '+t+' WHERE user_id IS NULL').get().n);
 "
 ```
+
+**Fünf Träger, fünfmal `0` — das ist die zeitlose Form dieser Abfrage.** Sie
+war bis 0.8.20 auf `ratings` geschrieben; seit 0.8.30 gehört `links` dazu, und
+die Schleife spart es, sie beim nächsten Träger wieder umzuschreiben. Wer
+zusätzlich wissen will, ob eine Spalte überhaupt angekommen ist:
+`db.prepare('PRAGMA table_info(links)').all().map(c=>c.name)`.
 
 Der Augenschein ist hier nicht die Bestätigung, sondern die Abfrage: eine
 Datenbank, der beim Umbau etwas verlorengegangen ist, sieht in der Oberfläche
@@ -1065,8 +1152,10 @@ Stand 0.8.0 —:
 - **Was an allen Einträgen aller Benutzer erscheint, gehört dem Admin.** Was
   nur dort erscheint, wo man es hinsetzt, gehört jedem. Daraus folgen:
   Kriterien beim Admin (erledigt 0.7.0), Tags und Kategorien bei allen
-  (Schalter seit 0.8.4). **Links wechseln in Stufe G4 die Seite:** sie
-  erscheinen nur dort, wo man sie hinsetzt, gehören also jedem.
+  (Schalter seit 0.8.4). **Links haben in Stufe G4 die Seite gewechselt**
+  (erledigt 0.8.30): sie erscheinen nur dort, wo man sie hinsetzt, und gehören
+  damit jedem. *Das Umsortieren ist nicht mitgewandert — es ändert keine
+  Aussage und ist umkehrbar.*
 - **E-Mail ist Bequemlichkeit, nie Voraussetzung.** Jeder verschickte Link
   ist im Verwaltungsbereich zum Kopieren sichtbar.
 - **Die Antwort auf eine Registrierung verrät nichts über den Bestand.**
@@ -1106,6 +1195,13 @@ Stand 0.8.0 —:
 - **Höchstens vier Anbieternamen unter einer Suchzeile**, Name höchstens 20
   Zeichen. Eine Handy-Entscheidung: die Zeile selbst ist das Hauptziel,
   kleine Ziele daneben sind ab vier zu dicht.
+- **Der Name an einer Linkzeile steht nur, wo er eine Auskunft ist**
+  (seit 0.8.30): mehrere Zugänge **und** eine Zeile, die nicht vom Verfasser
+  des Eintrags stammt. Daraus folgt, dass „kein Name" bei mehreren Zugängen
+  „vom Verfasser des Eintrags" heißt. **Und der Name wird nie abgeschnitten** —
+  abgeschnitten wird der Pfad daneben.
+- **Ein Bedienzeichen folgt dem Recht, nicht der Anzeige** (seit 0.8.30, am ✕
+  der Linkzeile). Ein Kreuz ohne Namen ist möglich, ein Name ohne Kreuz auch.
 
 # Teil V — Zu erwartende Stolpersteine
 
@@ -1193,16 +1289,27 @@ ihrem Merksatz; **die offenen Auflagen stehen vollständig.**
     *In 0.8.3 erneut geprüft und wieder nicht zutreffend:* an `comments`
     schreibt nichts mit `OR REPLACE` oder `ON CONFLICT` (auch der Import nicht,
     dort steht ein blankes `INSERT`), und der Zähler des Eingriffsvermerks ist
-    ein `UPDATE` auf eine bestehende Zeile. **Die Auflage bleibt stehen** —
-    zuletzt für Stufe G4, wo `links` eine `user_id` bekommt.
+    ein `UPDATE` auf eine bestehende Zeile.
+    *In 0.8.30 zum dritten Mal geprüft und wieder nicht zutreffend:* an `links`
+    hängen keine Kinder, und der Import schreibt sie mit blankem `INSERT`.
+    **Die Auflage bleibt stehen** — als Nächstes für 0.8.40, wo die Gewichtung
+    an `rating_criteria` geht.
 19. *Eingetreten und erledigt in 0.7.2.* **Merksatz: der Import kann unter
     fremdem Namen schreiben — deshalb gehört er (samt Export) hinter den
     Eigentümer.**
 20. **Eine neue Spalte braucht die DDL *und* einen Umstiegsblock**
-    (0.8.3 eingetreten). `CREATE TABLE IF NOT EXISTS` rüstet nichts nach
-    (Stolperstein 13), und seit der Bereinigung 0.8.1 gibt es keinen anderen
-    Weg. **Betrifft unmittelbar Stufe G4**, wo `links` eine `user_id` bekommt —
-    dort zusätzlich mit der Frage, **wem** die Bestandszeilen zufallen.
+    (0.8.3 eingetreten, **0.8.30 zum zweiten Mal**). `CREATE TABLE IF NOT
+    EXISTS` rüstet nichts nach (Stolperstein 13), und seit der Bereinigung
+    0.8.1 gibt es keinen anderen Weg.
+    *Aus 0.8.30 kommen zwei Auflagen dazu, und beide gelten für jede folgende
+    Datenbankstufe:* **erstens** ist die Frage, **wem** die Bestandszeilen
+    zufallen, eine eigene Entscheidung und nicht dieselbe wie die des
+    Auffangnetzes — hier fielen sie an den Eintragsverfasser, dort fallen sie
+    an den Eigentümer, und wer das nicht nebeneinander erklärt, hinterlässt
+    einen scheinbaren Widerspruch. **Zweitens** lässt sich eine
+    Fremdschlüsselspalte nur **nullbar** nachrüsten: SQLite lehnt jede andere
+    Vorgabe ab (Projektstand, Stolperstein 105). Wer eine `NOT NULL`-Spalte mit
+    `REFERENCES` braucht, braucht einen Tabellenneubau.
 21. **Eine Prüfung, die bei fehlendem Gegenstand grün bleibt, kann gar nicht
     scheitern** (Stolperstein 81). Erst das Vorhandensein prüfen, dann die
     Eigenschaft. **Und ein Rückbau, der den Lauf abbricht, nennt keinen Namen**

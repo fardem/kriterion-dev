@@ -4,6 +4,14 @@ Ausgangsstand: 0.8.6. **Beschlossen für 0.8.40**; der Stufenplan steht im
 Projektstand, Abschnitt 10. Hervorgegangen aus Punkt 4.1 in
 `Ideen_und_Vorschlaege.md`.
 
+> **Nachgetragen nach 0.8.30 — zwei Zahlen in diesem Papier sind
+> weitergerückt.** Stufe G4 ist gebaut und hat die Formatnummer auf **7**
+> gehoben; die Gewichtung geht damit **7 → 8**, nicht 6 → 7. Und der
+> Umstiegsblock heißt weiterhin `umstieg0840()`, ist dann aber der **dritte**
+> markierte Block im Projekt, nicht der zweite — `umstieg0830()` liegt
+> dazwischen. Der Text darunter ist im Übrigen unverändert; die Empfehlung
+> „getrennt lassen" (Abschnitt 10) ist so entschieden und so gebaut worden.
+
 Sprache wie im Ideenpapier: gewöhnliches IT-Deutsch, nicht die Projektsprache.
 Wird gebaut, wird im Duktus des Projekts dokumentiert.
 
@@ -720,8 +728,9 @@ unverändert."*
 `criteriaGewichte` nicht auf — dieselbe Regel wie bei der Anzeige, und die
 Datei bleibt in einem ungewichteten Bestand zeichengleich zu heute.
 
-**Die Formatnummer geht 6 → 7.** Sie ist im Projekt eine Aussage, keine
-Bedingung — entschieden wird über das Vorhandensein der Felder.
+**Die Formatnummer geht 7 → 8** (bis 0.8.30 stand hier 6 → 7; G4 hat die 7
+belegt). Sie ist im Projekt eine Aussage, keine Bedingung — entschieden wird
+über das Vorhandensein der Felder.
 
 ### Beim Einspielen
 
@@ -738,15 +747,17 @@ Bedingung — entschieden wird über das Vorhandensein der Felder.
 
 ### Zum Zeitpunkt
 
-**Stufe G4 hebt das Format ohnehin von 6 auf 7.** Fallen Gewichtung und G4 in
-dieselbe Version, ist es **eine** Formaterhöhung statt zweier, ein
-Migrationsblock statt zweier und eine Runde Import-Prüfungen statt zweier.
+**Entschieden und gebaut: getrennt.** Der Absatz hier lautete ursprünglich als
+Abwägung — G4 hebt das Format ohnehin, also ließe sich mit einer gemeinsamen
+Version eine Formaterhöhung, ein Migrationsblock und eine Runde
+Import-Prüfungen sparen. Dagegen stand die Regel, dass eine Stufe in einem
+Durchgang abzuarbeiten sein muss, und die Empfehlung lautete: getrennt lassen.
 
-Dagegen steht die Regel, dass eine Stufe in einem Durchgang abzuarbeiten sein
-muss. G4 (Links bekommen Verfasser) ist bereits als „größer, als es aussieht"
-markiert. **Meine Empfehlung: getrennt lassen** — G4 auf 0.8.30 mit Format 7,
-die Gewichtung auf 0.8.40 mit Format 8. Der Verlust ist eine Formatnummer, der
-Gewinn ist eine Stufe, die am Stück durchdacht werden kann.
+**So ist es gekommen.** G4 ist auf 0.8.30 allein gefahren worden, mit Format 7;
+die Gewichtung wird 0.8.40 mit Format 8. Die Empfehlung hat sich im Bau
+bestätigt: G4 brauchte allein 74 neue Prüfungen und 29 Gegenproben — Schema,
+Umstieg, Rechtewende, Oberfläche und Austauschformat in einem Durchgang. Für
+eine zweite Baustelle war darin keine Reserve.
 
 ---
 
@@ -755,6 +766,10 @@ Gewinn ist eine Stufe, die am Stück durchdacht werden kann.
 Nach Stolperstein 20 gehören **beide** Teile dazu — die DDL *und* ein
 Migrationsblock, denn `CREATE TABLE IF NOT EXISTS` rüstet an einer vorhandenen
 Tabelle nichts nach:
+
+*Der Block ist damit der **dritte** markierte im Projekt — nach `umstieg083()`
+(0.8.3) und `umstieg0830()` (0.8.30). Beide stehen unter „Vorgemerkt für 1.0"
+im Projektstand; dieser gehört dort sofort dazu.*
 
 ```js
 // UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
@@ -780,7 +795,8 @@ Bereinigung zu 1.0.
 **Bestandszeilen bekommen 1,0** — und das ist die einzig mögliche Wahl: jeder
 andere Wert änderte beim Einspielen still sämtliche Gesamtschnitte. Anders als
 in Stufe G4, wo die Frage „wem fallen die Bestandszeilen zu" echte Abwägung
-verlangt, ist sie hier trivial. Sie gehört trotzdem ausdrücklich beantwortet,
+verlangte — sie fielen an den **Eintragsverfasser** und ausdrücklich nicht an
+den Eigentümer —, ist sie hier trivial. Sie gehört trotzdem ausdrücklich beantwortet,
 weil Stolperstein 20 sie verlangt.
 
 **Stolperstein 18 geprüft, nicht zutreffend.** An `rating_criteria` schreibt
@@ -889,7 +905,7 @@ Vier Punkte, bei denen ich eine Empfehlung habe, aber keine Gewissheit:
 |---|---|---|
 | 1 | ~~Sechs Stufen oder freie Zehntel?~~ | **Entschieden:** drei Vorschläge (1 · 1,2 · 1,5) in einer Vorschlagsliste, freie Eingabe von 0,2 bis 2, immer positiv, Anzeige mit Komma. Eingebaut in Abschnitt 5 und 7.1. |
 | 2 | ~~Auswahlfeld in der Zeile oder Eingabe hinter dem ✎?~~ | **Hinfällig durch 1:** es wird ein Textfeld mit Vorschlagsliste in der Zeile. Es speichert bei `change`, es steht in der `ignore`-Liste von `makeSortable` schon drin, und es kommt dem Inline-Umbenennen nicht in die Quere, solange nach einem Gewichtswechsel **nicht** neu gezeichnet wird. |
-| 3 | **Zusammen mit G4 oder als eigene Stufe?** | Eigene Stufe. Eine gesparte Formatnummer wiegt weniger als eine Stufe, die am Stück durchdacht werden kann. |
+| 3 | **Zusammen mit G4 oder als eigene Stufe?** | Eigene Stufe. Eine gesparte Formatnummer wiegt weniger als eine Stufe, die am Stück durchdacht werden kann. **So entschieden und so gebaut: G4 auf 0.8.30 allein, Format 7.** |
 | 4 | **Vorschau der Rangfolge im Systembereich?** | Später, nicht jetzt. Sie ist das, was Gewichte im Alltag richtig bedienbar macht — aber sie ist eine eigene Ansicht mit eigenem Endpunkt, und die Gewichtung funktioniert ohne sie vollständig. |
 | 5 | **Soll es auch einen Vorschlag unter 1 geben?** | Aus meiner Sicht nicht nötig — wer nach unten will, tippt 0,8. Wenn du es anders siehst, ist es eine Zeile in `app.js`. |
 
