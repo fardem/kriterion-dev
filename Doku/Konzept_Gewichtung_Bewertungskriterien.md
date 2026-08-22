@@ -1,16 +1,37 @@
 # Konzept — Gewichtung der Bewertungskriterien
 
-Ausgangsstand: 0.8.6. **Beschlossen für 0.8.40**; der Stufenplan steht im
+Ausgangsstand: 0.8.6. **Gebaut in 0.8.40**; der Stufenplan steht im
 Projektstand, Abschnitt 10. Hervorgegangen aus Punkt 4.1 in
 `Ideen_und_Vorschlaege.md`.
 
-> **Nachgetragen nach 0.8.30 und 0.8.31 — zwei Zahlen in diesem Papier sind
-> weitergerückt.** Stufe G4 hat die Formatnummer auf **7** gehoben, die Runde
-> 0.8.31 (Dateien bekommen Verfasser) auf **8**; die Gewichtung geht damit
-> **8 → 9**, nicht 6 → 7. Und der Umstiegsblock heißt weiterhin
-> `umstieg0840()`, ist dann aber der **vierte** markierte Block im Projekt,
-> nicht der zweite — `umstieg0830()` und `umstieg0831()` liegen dazwischen. Der Text darunter ist im Übrigen unverändert; die Empfehlung
-> „getrennt lassen" (Abschnitt 10) ist so entschieden und so gebaut worden.
+> **ERLEDIGT — gebaut in 0.8.40.** Dieses Papier ist ab hier **Quelle, nicht
+> Stand**: was daraus gilt, steht im Projektstand, Abschnitt 5. Was beim Bauen
+> anders entschieden wurde, steht in
+> `Doku/Aenderungsprotokoll_0.8.40.md`, Abschnitt 2. Vier Dinge in Kürze:
+>
+> - **Die Formatnummer ging 8 → 9**, nicht 6 → 7 und nicht 7 → 8. Stufe G4 hat
+>   die 7 belegt, 0.8.31 die 8. Im Text unten steht sie an zwei Stellen noch
+>   alt: im JSON-Beispiel in Abschnitt 10 (`"version": 7`) und im Satz „die
+>   Gewichtung wird 0.8.40 mit Format 8" ebenda.
+> - **Der Umstiegsblock heißt `umstieg0840()`**, nicht `umstiegGewicht()`, und
+>   ist der **vierte** markierte Block im Projekt — `umstieg0830()` und
+>   `umstieg0831()` liegen dazwischen.
+> - **Die Begründung gegen den `CHECK` in Abschnitt 3 ist falsch.** SQLite
+>   nimmt `ALTER TABLE … ADD COLUMN … CHECK (…)` sehr wohl an, und der `CHECK`
+>   greift danach; das ist nachgestellt worden (Stolperstein 107). Er ist
+>   trotzdem nicht gebaut, aus einem anderen Grund: die Spanne stünde dann
+>   zweimal.
+> - **Zwei kleine Abweichungen am Bildschirm.** Die Vorschlagsliste reicht
+>   unter 1 (`0,5 · 0,8 · 1 · 1,2 · 1,5`), und das Wort „gewichtet" am
+>   Blockkopf leitet sich aus den **bewerteten** Kriterien ab, nicht aus allen.
+>   Prüfung 22 in Abschnitt 12 spricht noch von einem `select`; gebaut ist ein
+>   Textfeld mit Vorschlagsliste, wie Abschnitt 7.1 es beschreibt.
+>
+> **Alle Zeilennummern im Text sind weitergerückt** — das Papier ist auf dem
+> Stand 0.8.6 geschrieben. Die Empfehlung „getrennt lassen" (Abschnitt 10) ist
+> so entschieden und so gebaut worden.
+> **Offen geblieben ist Punkt 4 aus Abschnitt 14:** die Vorschau der Rangfolge
+> im Systembereich. Sie bleibt vorgemerkt.
 
 Sprache wie im Ideenpapier: gewöhnliches IT-Deutsch, nicht die Projektsprache.
 Wird gebaut, wird im Duktus des Projekts dokumentiert.

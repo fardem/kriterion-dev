@@ -12,6 +12,8 @@ Node.js/Express, verschlüsselte SQLite-Datenbank, Frontend ohne Framework. Kein
 externen Schriftarten, kein CDN, keine Favicon-Abrufe — läuft vollständig
 offline im eigenen Netz.
 
+**Was eine Version mitbringt, steht kurzgefasst in `Doku/Changelog.md`.**
+
 ## Einrichten
 
 ```bash
@@ -425,6 +427,12 @@ es zwei, beide im Systembereich einstellbar:
   Kriterien**. Ein **Doppelklick auf die Sterne setzt genau dieses Kriterium
   zurück**, der Knopf oben leert die eigenen Werte für diesen Eintrag — fremde
   Bewertungen bleiben unberührt.
+  **Kriterien können verschieden schwer wiegen.** Ist an einem Kriterium ein
+  Gewicht eingestellt, das von 1 abweicht, steht `×1,5` hinter seinem Namen,
+  und im Blockkopf steht neben der Zahl das Wort „gewichtet". Stehen alle
+  Gewichte auf 1 — so, wie eine frische Anlage startet —, sieht der Block aus
+  wie zuvor. Eingestellt wird das Gewicht im Systembereich; **der
+  Gesamtschnitt bleibt in jedem Fall zwischen 1 und 5.**
   **Wer welchen Wert vergeben hat, steht nicht unter der Sternzeile.** Ab zwei
   Zugängen findet der **Admin** im Blockkopf den Knopf **„Wer hat bewertet"**:
   er öffnet eine Ansicht mit den Namen je Kriterium, und dort lässt sich eine
@@ -520,11 +528,33 @@ der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
   darf**: mit Haken jeder unmittelbar am Eintrag, ohne Haken nur der Admin.
   Zuweisen und Auswählen aus dem Vorhandenen bleibt in jedem Fall für alle
   offen — abgeschaltet verschwindet nur die Zeile „+ neu anlegen".
-- **Bewertungskriterien** umbenennen, löschen und **per Ziehen sortieren**
-  *(Admin)*. Die
+- **Bewertungskriterien** umbenennen, löschen, **per Ziehen sortieren** und
+  **gewichten** *(Admin)*. Die
   Reihenfolge gilt für Detailansicht und Vergleich gleichermaßen — im Vergleich
   fällt das oberste Kriterium zuerst ins Auge. Die Zahl nennt die Einträge, bei
   denen Sterne vergeben sind; ein zurückgesetztes Kriterium zählt nicht mit.
+
+  **Das Gewicht** bestimmt, wie stark ein Kriterium in den Gesamtschnitt
+  eingeht. Bei **1** zählen alle gleich — so startet jede Anlage, und so
+  bleiben die Zahlen die gewohnten. Möglich ist **0,2 bis 2**; angeboten
+  werden `0,5 · 0,8 · 1 · 1,2 · 1,5`, alles dazwischen lässt sich eintippen.
+  Geschrieben wird mit Komma (`1,5`), gelesen wird auch ein Punkt (`1.5`).
+  Feiner als zwei Nachkommastellen wird gerundet — und man sieht es, denn das
+  Feld zeigt danach den gespeicherten Wert. Ein Wert außerhalb der Spanne wird
+  **abgewiesen**, nicht stillschweigend zurechtgebogen: wer 5 eintippt, meint
+  5. Ein leer gelassenes Feld bedeutet nicht „0", sondern „doch nicht" — der
+  alte Wert kehrt zurück.
+
+  **Der Gesamtschnitt eines Eintrags bleibt dabei immer zwischen 1 und 5.**
+  Das ist keine Klemme, sondern eine Eigenschaft der Rechnung: gerechnet wird
+  ein **gewichteter Mittelwert**, und der liegt zwangsläufig zwischen dem
+  kleinsten und dem größten der gemittelten Werte. Gewichtet wird nur der
+  Schritt über die Kriterien; die Werte je Kriterium bleiben, was sie sind.
+
+  **Das Gewicht gilt für alle.** Es ist keine persönliche Einstellung — hätten
+  zwei Leute verschiedene Gewichte, hätte derselbe Eintrag zwei verschiedene
+  Gesamtschnitte. Wer nicht verwalten darf, sieht das Gewicht trotzdem: es
+  erklärt die Zahl, die an jedem Eintrag steht.
 
 ## Auf dem Handy
 
@@ -709,7 +739,7 @@ einspielen.
 > Der Weg zurück ist dann die Sicherung, die **vor** dem Einspielen entstanden
 > ist — nicht das Zurückkopieren der alten Dateien. Welche Versionen das
 > betrifft, sagt das Änderungsprotokoll der jeweiligen Version; zuletzt
-> **0.8.30** und **0.8.31**.
+> **0.8.30**, **0.8.31** und **0.8.40**.
 
 ## Eine neue Version einspielen
 
@@ -771,9 +801,10 @@ Warnung über eine Schlüsseldatei neben den Daten, wurde die `.env` nicht
 gelesen — dann sofort anhalten und nachsehen, bevor etwas geschrieben wird.
 
 **Rüstet eine Version eine Spalte nach, sagt sie es im selben Protokoll** —
-etwa „links um user_id ergaenzt (Umstieg auf 0.8.30)". Die Zeile kommt genau
-einmal; beim nächsten Start ist sie weg, und das ist richtig so. Wer mehrere
-Versionen auf einmal überspringt, sieht entsprechend mehrere Zeilen.
+etwa „links um user_id ergaenzt (Umstieg auf 0.8.30)" oder „rating_criteria um
+gewicht ergaenzt (Umstieg auf 0.8.40)". Die Zeile kommt genau einmal; beim
+nächsten Start ist sie weg, und das ist richtig so. Wer mehrere Versionen auf
+einmal überspringt, sieht entsprechend mehrere Zeilen.
 
 **Vorausgesetzt wird eine Datenbank aus Version 0.8.0 oder neuer.** Ein
 älterer Bestand wird nicht übernommen; er braucht den Zwischenschritt über
@@ -795,7 +826,9 @@ Start eine leere Neuinstallation vermuten.
 - `test_days` — ein Eintrag je Tag mit Gesamtnote, eindeutig pro Eintrag, Tag
   **und Benutzer**
 - `rating_criteria` / `ratings` — gemeinsame Kriterien mit frei bestimmbarer
-  Reihenfolge, Werte je Eintrag und je Benutzer
+  Reihenfolge **und Gewicht** (`gewicht`, 0,2 bis 2, Vorgabe 1), Werte je
+  Eintrag und je Benutzer. Reihenfolge und Gewicht sind zwei Spalten, weil sie
+  zwei Aussagen sind: die eine über die Anzeige, die andere über die Rechnung
 - `product_categories`, `tags`, `item_tags`
 - `comments` — mit Bearbeitungszeitpunkt und `images_removed`: die Zahl der
   Bilder, die ein **anderer** als der Verfasser entfernt hat
@@ -832,8 +865,9 @@ Der Prüfstand legt echte Server mit echten, verschlüsselten Datenbanken in
 Wegwerfverzeichnissen an — `./data` bleibt unangetastet, alle Anlagen entstehen
 frisch über Einrichtungsseite und Verwaltung. Geprüft werden unter anderem die
 Rechteschicht mit mehreren Zugängen nebeneinander, die Zugangsverwaltung samt
-`zugang.js` als echtem Prozess, die Kriterienverwaltung samt Reihenfolge, deren
-Wirkung auf Detailansicht, Vergleich und Export, die Auslieferungsregeln für
+`zugang.js` als echtem Prozess, die Kriterienverwaltung samt Reihenfolge **und
+Gewicht**, deren Wirkung auf Detailansicht, Vergleich und Export, die
+Auslieferungsregeln für
 Anhänge **und Fotos** — samt echtem Upload einer SVG und Kontrolle des
 ausgelieferten Bytestroms —, die Anmeldebremse in beiden Proxy-Lagen sowie die
 mitwachsenden Textfelder im echten DOM.

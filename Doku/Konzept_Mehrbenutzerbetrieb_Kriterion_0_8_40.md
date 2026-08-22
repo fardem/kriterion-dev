@@ -1,10 +1,20 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.31 — Abdruck `1a801477`**
+**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.40 — Abdruck `49d2ae53`**
 (Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
 vier keine Stufen.)
+
+**0.8.40 berührt den Mehrbenutzerbetrieb nicht.** Die Gewichtung der
+Bewertungskriterien ist eine Datenbankstufe, aber keine Stufe dieses Papiers:
+keine Rolle, kein Recht, kein Endpunkt, kein Träger. `F_ROUTEN` bleibt bei 46,
+und **keine Route wechselt ihre Art** — das Gewicht geht über
+`PUT /api/criteria/:id`, die längst hinter `nurAdmin` steht. Eine Sache berührt
+dieses Papier trotzdem, und sie bestätigt eine seiner Regeln: **das Gewicht ist
+ausdrücklich keine persönliche Einstellung.** Hätten zwei Leute verschiedene
+Gewichte, hätte derselbe Eintrag zwei verschiedene Gesamtschnitte — es gilt
+dieselbe Trennung wie seit 0.8.4 zwischen `settings` und `user_settings`.
 
 **Mit 0.8.31 sind Links UND Dateien beim Eintrager**, und damit ist der
 Mehrbenutzerbetrieb bis auf H und I gebaut. 0.8.31 ist **keine Stufe**,
@@ -35,7 +45,8 @@ beide nur in seinen Nummern.
 **Offen sind damit noch H (Tokens, 0.8.80) und I (Mailversand und
 Selbstanmeldung, 0.9.0).** Zwischen G4 und H liegen vier Stufen, die nicht zum
 Mehrbenutzerbetrieb gehören; sie stehen im Projektstand, Abschnitt 10. Die
-nächste ist **0.8.40, die Gewichtung der Bewertungskriterien**.
+erste davon — **0.8.40, die Gewichtung** — ist gebaut; die nächste ist
+**0.8.50, Kurzvideos am Fotoplatz**.
 
 **Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
 `HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
@@ -553,7 +564,8 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 G4 und H liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu",
 Sicherung und Papierkorb). Alle vier gehören nicht zum Mehrbenutzerbetrieb und
 stehen deshalb im Projektstand, Abschnitt 10 — zusammen mit der Begründung für
-die Reihenfolge. **Als Nächstes 0.8.40, die Gewichtung.**
+die Reihenfolge. **Die erste, 0.8.40 (Gewichtung), ist gebaut; als Nächstes
+0.8.50, Kurzvideos am Fotoplatz.**
 
 Danach: Zwei-Faktor, Suche, dann 1.0.0. **Zwei Punkte hängen unmittelbar an
 Stufe I und gehören beim Bauen mitgedacht:** die Tokens aus H tragen auch die
