@@ -1,6 +1,6 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.30 — Abdruck `6302a4b1`**
+**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.30 — Abdruck `f498cbda`**
 (Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
@@ -1040,12 +1040,31 @@ bei mehreren Zugängen „vom Verfasser des Eintrags".**
 **Der Platz in der Zeile war der offene Punkt, und er hat eine Antwort
 gebraucht.** Die Zeile trägt Griff, Nummer, Domain, Pfad, bis zu vier
 Anbieternamen, Pfeil oder Lupe und das ✕. Der Name steht jetzt in der
-**zweiten** Zeile neben Pfad bzw. Anbieternamen — nicht darunter, sonst wüchse
-die Zeile auf dem Handy auf drei Höhen. Beide sind ein Flex-Paar: der Pfad
-darf schrumpfen, **der Name nicht**. Ohne das fräße eine lange Adresse genau
-die Angabe weg, um derentwillen die Zeile ihn trägt. Trennzeichen:
-Mittelpunkt an der Adresszeile, Gedankenstrich an der Suchzeile — dort
-bedeutet „ · " bereits „noch ein Anbieter, anklickbar".
+**zweiten** Zeile, **direkt hinter** Pfad bzw. Anbieternamen — nicht darunter,
+sonst wüchse die Zeile auf dem Handy auf drei Höhen. Beide sind ein Flex-Paar:
+der Pfad nimmt sich nur, was er braucht, und darf schrumpfen, **der Name
+nicht**. Ohne das fräße eine lange Adresse genau die Angabe weg, um
+derentwillen die Zeile ihn trägt.
+
+**Der Name steht in Klammern — `(chefin)` —, an beiden Zeilenarten gleich, und
+ohne Trennzeichen davor.** *Berichtigt aus dem Betrieb, siehe unten.* Ein
+Trennzeichen wäre an beiden falsch: in der Suchzeile bedeutet „ · " bereits
+„noch ein Anbieter, anklickbar", und ein Strich davor sieht aus wie ein
+abgerissener Satz. Die Klammer sagt von selbst, dass hier eine **Angabe über**
+die Zeile steht und kein weiterer Teil von ihr. Sie trägt außerdem jede Form,
+die `verfasserName()` liefert: `(chefin)`, `(Gelöschter Benutzer 4)`,
+`(Ohne Verfasser)`. **Ein Vorwort wie „von" täte das nicht** — „von Ohne
+Verfasser" ist kein Deutsch.
+
+> **Aus dem Betrieb berichtigt, noch vor dem Einspielen.** Gebaut war zuerst
+> ein Mittelpunkt an der Adresszeile und ein Gedankenstrich an der Suchzeile,
+> und der Pfad nahm sich die volle Breite (`flex: 1 1 auto`). Am Bildschirm
+> ergab das zweierlei Schaden: der Name stand ganz am **rechten Rand**, wo er
+> zu nichts mehr gehörte, und der Strich davor las sich wie ein Bruch. Beides
+> ist der Fall, den Abschnitt 7 des Projektstands meint — *was der Prüfstand
+> nicht kann, ist Aussehen.* Die Prüfungen waren grün und das Ergebnis
+> trotzdem unbrauchbar; es ist das dritte Mal (nach der leeren PDF-Vorschau
+> und dem unsichtbaren Löschkreuz, Stolpersteine 29 und 30).
 
 **Das Datum steht im Überfahrtext**, nicht in der Zeile. Auf einem
 Berührbildschirm ist es damit nicht erreichbar; bewusst getragen, der Name
@@ -1093,7 +1112,7 @@ curl -s -c kekse.txt -X POST localhost:3100/api/login \
 curl -s -b kekse.txt localhost:3100/api/stats | head -c 60
 ```
 
-Erwartet für 0.8.30: `{"version":"0.8.30","abdruck":"6302a4b1",…`. Der Abdruck
+Erwartet für 0.8.30: `{"version":"0.8.30","abdruck":"f498cbda",…`. Der Abdruck
 jeder Version steht im Kopf des Projektstands und in ihrem
 Änderungsprotokoll. **Was er nicht abdeckt:** `zugang.js` — es liegt im
 Abbild, läuft aber nie im Server.

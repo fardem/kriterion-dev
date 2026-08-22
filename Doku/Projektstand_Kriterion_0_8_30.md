@@ -76,7 +76,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.30 ist gebaut** — Abdruck **`6302a4b1`**. *Stufe G4 des Umbaus und die
+**0.8.30 ist gebaut** — Abdruck **`f498cbda`**. *Stufe G4 des Umbaus und die
 erste Datenbankstufe seit 0.8.3* (Abschnitt 10): `links` trägt eine `user_id`
 mit `ON DELETE SET NULL`, `POST /api/items/:id/links` verliert seinen Wächter
 und schreibt den Eintrager, `DELETE /api/links/:id` fragt nach der **Zeile**
@@ -84,7 +84,7 @@ statt nach dem **Eintrag**, Sortieren bleibt beim Eintragsverfasser und Admin,
 die Zeile nennt ihren Verfasser, Export und Import tragen ihn mit
 (**Formatnummer 6 → 7**), und die beiden Löschdialoge kennen den fünften
 Träger.
-**1622 von 1622 Prüfungen**, 29 Gegenproben.
+**1624 von 1624 Prüfungen**, 31 Gegenproben.
 
 **Der Abdruck ist im Container bestätigt worden, nicht nur auf der Platte** —
 und dazu der Umstieg selbst: eine Datenbank mit `links` ohne `user_id`, ein
@@ -398,8 +398,9 @@ trotzdem nachsehen.
 **Links und Suchzeilen:** Eintragen darf **jeder** (seit 0.8.30), löschen der
 Eintrager oder der Admin; das ✕ steht nur dort, wo es auch gedrückt werden
 darf. Ab zwei Zugängen trägt eine **fremde** Zeile — also eine, die nicht vom
-Verfasser des Eintrags stammt — den Namen ihres Eintragers in der zweiten
-Zeile, und der Überfahrtext nennt ihn samt Datum.
+Verfasser des Eintrags stammt — den Namen ihres Eintragers **in Klammern**
+direkt hinter Pfad bzw. Anbieternamen: `(chefin)`. Der Überfahrtext nennt ihn
+samt Datum.
 Was wie eine Adresse aussieht, wird eine — mit
 `https://` davor, wenn keins dasteht. Alles andere bleibt Rohtext und führt beim
 Klick zum Startanbieter. Erkennbar an der Lupe rechts statt des Pfeils und an
@@ -491,6 +492,19 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   steht. **Daraus folgt ein Satz, den man kennen muss:** „kein Name" heißt bei
   mehreren Zugängen „vom Verfasser des Eintrags". Die Regel steht in
   `drawLinks()` und nirgends sonst; die Schwelle in `mehrereBenutzer()`.
+- **Ein Name an einer Zeile steht in Klammern, ohne Trennzeichen davor**
+  (seit 0.8.30). Die Klammer sagt von selbst, dass dort eine **Angabe über**
+  die Zeile steht und kein weiterer Teil von ihr — ein Trennzeichen davor liest
+  sich wie ein abgerissener Satz, und in der Suchzeile bedeutet „ · " ohnehin
+  schon „noch ein Anbieter, anklickbar".
+  **Und sie trägt jede Form, die `verfasserName()` liefert:** `(chefin)`,
+  `(Gelöschter Benutzer 4)`, `(Ohne Verfasser)`. Ein Vorwort wie „von" täte das
+  nicht — „von Ohne Verfasser" ist kein Deutsch, und zwei Formen für dieselbe
+  Sache wären eine Fallunterscheidung, die niemand pflegen will.
+  **Der Name steht direkt hinter dem Inhalt, nicht am rechten Rand.** Was sich
+  die volle Breite nimmt, schiebt ihn ans andere Ende der Zeile, wo er zu
+  nichts mehr gehört; im Stylesheet heißt das `flex: 0 1 auto` am Inhalt und
+  `flex: 0 0 auto` am Namen.
 - **Ein Bedienzeichen folgt dem Recht, nicht der Anzeige** (seit 0.8.30, am ✕
   der Linkzeile). Beides ist getrennt: ein Kreuz ohne Namen ist möglich (die
   eigene Zeile bei einem Zugang), ein Name ohne Kreuz auch (eine fremde Zeile,
@@ -2044,7 +2058,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Abbilds).
 
-**Zuletzt: 1622 von 1622 bestanden** (0.8.30; 74 neue Prüfungen, zwei neue
+**Zuletzt: 1624 von 1624 bestanden** (0.8.30; 76 neue Prüfungen, zwei neue
 Gruppen: „UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0" und „Der Name an der
 Linkzeile").
 
@@ -2238,7 +2252,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.6 | Berichtigungen aus dem Betrieb — alle fünf Punkte (38 netto) | 23 | Stolpersteine 89, 90 und 91 |
 | 0.8.10 | Werkzeug — alle fünf Punkte (51) | 32 | Stolpersteine 92 bis 95 |
 | 0.8.20 | Die Schotten dicht — alle fünf Punkte (68) | 14 | Stolpersteine 96 bis 100 |
-| 0.8.30 | Stufe G4 — alle fünf Punkte (74) | 29 | Stolpersteine 101 bis 105, Lücke 8 oben |
+| 0.8.30 | Stufe G4 — alle fünf Punkte (76) | 31 | Stolpersteine 101 bis 105, Lücke 8 oben |
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -2322,7 +2336,7 @@ benennen: `pruefung.js`, `Doku/` und `zugang.js` zählten mit.
 Lauf abgerissen, eine engere Zweitprobe nach Stolperstein 76 war nirgends
 nötig.
 
-**In 0.8.30 74 neue Prüfungen und 29 Gegenproben** — die meisten einer
+**In 0.8.30 76 neue Prüfungen und 31 Gegenproben** — die meisten einer
 einzelnen Version bisher. Drei sind mehr wert als ihre Zahl:
 
 | Rückbau | Ergebnis |
@@ -2334,6 +2348,8 @@ einzelnen Version bisher. Drei sind mehr wert als ihre Zahl:
 | der Umstieg setzt den **Eigentümer** ein | 3 rot — **dieselben Namen**, Stolperstein 72 |
 | Name ohne die Schwelle `mehrereBenutzer()` | 2 rot |
 | Name an **jeder** Zeile | 2 rot — **andere** Namen als darüber |
+| ein Trennzeichen statt der Klammern um den Namen | 7 rot |
+| der Inhalt der zweiten Zeile nimmt sich wieder die volle Breite | **1 rot** |
 
 **Das letzte Paar ist die Bauform, auf die es ankommt:** die Anzeigeregel hat
 zwei Hälften, und jede färbt ihre eigenen Namen rot. Ein Rückbau, der nur eine
@@ -2342,7 +2358,12 @@ entfernt, ist von einem, der beide entfernt, unterscheidbar.
 **Zwei Rückbauten haben den Lauf abgerissen**, beide mit einer engeren
 Zweitprobe daneben (Stolperstein 76). Einer davon hat Stolperstein 103
 gefunden: nicht der Rückbau war zu grob, sondern die Prüfung zu unvorsichtig.
-**Vollständige Tabelle im Änderungsprotokoll 0.8.30.**
+
+**Die beiden letzten Zeilen der Tabelle kamen erst nach dem Bau dazu** — die
+Anzeige des Namens ist am Bildschirm berichtigt worden, nachdem der Prüflauf
+längst grün war. *Was der Prüfstand nicht kann, ist Aussehen*, zum dritten Mal
+(nach den Stolpersteinen 29 und 30). **Vollständige Tabelle im
+Änderungsprotokoll 0.8.30.**
 
 ---
 
@@ -2456,7 +2477,7 @@ eigen und fremd, `auth.zaehleBestand()` kannte sie überhaupt nicht, und
 `entferneZugang()` räumt sie beim zweiten Häkchen jetzt wirklich mit weg — eine
 Zahl im Dialog, die nichts bewirkt, wäre schlimmer als keine.
 
-**1622 von 1622 Prüfungen**, 29 Gegenproben. Fünf neue Stolpersteine (101 bis
+**1624 von 1624 Prüfungen**, 31 Gegenproben. Fünf neue Stolpersteine (101 bis
 105) und eine achte Lücke im Prüfstand (Abschnitt 7) — gefunden von der einen
 Gegenprobe, die **stumm** blieb.
 
@@ -2580,7 +2601,7 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
   Das Ideenpapier schlägt das Zusammenlegen vor; die Regel „jede Stufe muss in
   einem Chat abzuarbeiten sein" wiegt schwerer als eine gesparte Formatnummer.
   G4 war mit Schema, Umstieg, Rechtewende, Oberfläche und Austauschformat
-  bereits breit genug — **die Runde hat 74 Prüfungen und 29 Gegenproben
+  bereits breit genug — **die Runde hat 76 Prüfungen und 31 Gegenproben
   gebraucht**, und das war keine Reserve mehr.
 
 **Die Herkunft der neuen Punkte** — Befunde, Messwerte und Begründungen —

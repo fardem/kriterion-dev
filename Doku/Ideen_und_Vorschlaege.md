@@ -1140,7 +1140,7 @@ Gewinn ist eine Stufe, die man am Stück durchdenken kann.
 > worden.** G4 ist allein gefahren worden, mit Formatnummer 6 → 7; 4.2 bleibt
 > offen, und 4.1 wird 0.8.40 mit 7 → 8. Die Begründung ist die zweite Hälfte
 > des Absatzes darüber, und sie hat sich im Bau bestätigt: G4 brauchte allein
-> **74 neue Prüfungen und 29 Gegenproben** — Schema, Umstieg, Rechtewende,
+> **76 neue Prüfungen und 31 Gegenproben** — Schema, Umstieg, Rechtewende,
 > Oberfläche und Austauschformat in einem Durchgang. Für eine zweite Baustelle
 > war darin keine Reserve mehr.
 >

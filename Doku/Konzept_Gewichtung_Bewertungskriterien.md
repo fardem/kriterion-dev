@@ -755,7 +755,7 @@ Durchgang abzuarbeiten sein muss, und die Empfehlung lautete: getrennt lassen.
 
 **So ist es gekommen.** G4 ist auf 0.8.30 allein gefahren worden, mit Format 7;
 die Gewichtung wird 0.8.40 mit Format 8. Die Empfehlung hat sich im Bau
-bestätigt: G4 brauchte allein 74 neue Prüfungen und 29 Gegenproben — Schema,
+bestätigt: G4 brauchte allein 76 neue Prüfungen und 31 Gegenproben — Schema,
 Umstieg, Rechtewende, Oberfläche und Austauschformat in einem Durchgang. Für
 eine zweite Baustelle war darin keine Reserve.
 

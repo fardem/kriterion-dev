@@ -2464,19 +2464,23 @@ async function renderDetail(id) {
         ? (standard ? `Suche nach „${l.url}" bei ${standard.name}` : `Suche nach „${l.url}"`)
         : l.url;
       row.title = eingetragen ? `${grundText} · ${eingetragen}` : grundText;
-      // Die zweite Zeile traegt links den Pfad (bei einer Suchzeile die
-      // Anbieternamen) und rechts den Namen. Beides in EINER Zeile, damit die
-      // Linkzeile nicht auf drei Hoehen waechst; abgeschnitten wird der Pfad,
-      // nie der Name.
-      // Das Trennzeichen ist verschieden, und das mit Absicht: in der Suchzeile
-      // bedeutet " · " bereits "noch ein Anbieter, anklickbar". Derselbe Punkt
-      // vor einem Namen, der kein Klickziel ist, waere eine zweite Bedeutung
-      // fuer dasselbe Zeichen.
+      /* Die zweite Zeile traegt den Pfad (bei einer Suchzeile die
+         Anbieternamen) und dahinter den Namen. Beides in EINER Zeile, damit die
+         Linkzeile nicht auf drei Hoehen waechst; abgeschnitten wird der Pfad,
+         nie der Name.
+         DER NAME STEHT IN KLAMMERN UND OHNE TRENNZEICHEN. Ein Trennzeichen
+         waere hier an beiden Zeilenarten falsch: in der Suchzeile bedeutet
+         " · " bereits "noch ein Anbieter, anklickbar", und ein Strich davor
+         sieht aus wie ein abgerissener Satz. Die Klammer sagt von selbst, dass
+         hier eine Angabe ueber die Zeile steht und kein weiterer Teil von ihr.
+         Sie traegt ausserdem jede Form, die verfasserName() liefert --
+         "(chefin)", "(Geloeschter Benutzer 4)", "(Ohne Verfasser)". Ein
+         Vorwort wie "von" taete das nicht: "von Ohne Verfasser" ist kein
+         Deutsch. */
       const untenLinks = suche ? '<span class="snamen"></span>'
                                : (path ? `<span class="path">${esc(path)}</span>` : '');
-      const trenner = untenLinks ? (suche ? '— ' : '· ') : '';
       const unten = untenLinks + (zeigeVon
-        ? `<span class="lvon">${trenner}${esc(verfasserName(l.verfasser))}</span>` : '');
+        ? `<span class="lvon">(${esc(verfasserName(l.verfasser))})</span>` : '');
       row.innerHTML = `<span class="grip" title="Zum Sortieren ziehen">⣿</span>
         <span class="lnum">${n + 1}</span>
         <span class="lurl"><span class="dom">${esc(oben)}</span>${

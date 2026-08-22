@@ -3,7 +3,7 @@
 **Rohstoff für die Dokumentenpflege. Projektstand, Konzeptpapier, Ideenpapier
 und README sind nicht angefasst.**
 
-**0.8.30 — Abdruck `6302a4b1`**
+**0.8.30 — Abdruck `f498cbda`**
 
 Der Abdruck ist **zuletzt** gebildet worden, nach der letzten Änderung an einer
 ausgelieferten Datei — die Versionsnummer in `package.json` eingeschlossen, denn
@@ -11,13 +11,21 @@ ausgelieferten Datei — die Versionsnummer in `package.json` eingeschlossen, de
 `db.js`, `server.js`, `auth.js`, `public/app.js` und `public/style.css` an; alle
 fünf deckt er. `pruefung.js` bewegt ihn nicht — es wird weder geladen noch
 ausgeliefert. Zweimal unabhängig gerechnet (laufender Server über `/api/stats`
-und Nachrechnung über dieselbe Ableitung), beide Male `6302a4b1`; **im
-Container derselbe Wert.**
+und Nachrechnung über dieselbe Ableitung).
+
+> **Der Abdruck ist einmal weitergerückt, und das gehört dazu.** Der erste
+> Stand trug `6302a4b1`; mit ihm ist der Container gebaut und geprüft worden
+> (Abschnitt 7). Danach kam die Berichtigung am Bildschirm dazu (Abweichung F)
+> — sie fasst `public/app.js` und `public/style.css` an, und damit ändert sich
+> der Abdruck: **`f498cbda`.** Genau dafür ist er gebaut. Die Versionsnummer
+> bleibt `0.8.30`: der erste Stand ist nie eingespielt worden, und eine Zahl
+> für einen Stand zu verbrauchen, den niemand betrieben hat, wäre eine Lücke
+> in der Versionsgeschichte. **Auf dem Server erwartet wird `f498cbda`.**
 
 Gebaut wurden **alle fünf Auftragspunkte**. Der Haltepunkt nach Punkt 4 ist
 erreicht und steht als eigener Commit in der Historie.
 
-Prüfungen: **1548 → 1622** (74 neue), alle grün. **29 Gegenproben**, jede in
+Prüfungen: **1548 → 1624** (76 neue), alle grün. **31 Gegenproben**, jede in
 einer Kopie des Arbeitsbaums (Stolperstein 100).
 
 `F_ROUTEN` bleibt bei **46** Routen. Es ist keine schreibende Route entstanden;
@@ -184,11 +192,35 @@ kein Zeigen, dort ist das Datum nicht erreichbar. Der Auftrag warnt zu Recht
 davor, den *Namen* im `title` zu verstecken — der bleibt sichtbar, ins
 Verborgene geht nur das Datum.
 
-### F. Trennzeichen: Mittelpunkt an der Adresszeile, Gedankenstrich an der Suchzeile
+### F. Der Name steht in Klammern, ohne Trennzeichen — berichtigt am Bildschirm
 
-In der Suchzeile bedeutet „ · " bereits „noch ein Anbieter, anklickbar". Derselbe
-Punkt vor einem Namen, der kein Klickziel ist, wäre eine zweite Bedeutung für
-dasselbe Zeichen.
+**Gebaut war zuerst etwas anderes**, und das gehört hierher, weil es der
+lehrreichere Teil ist: ein Mittelpunkt an der Adresszeile, ein Gedankenstrich
+an der Suchzeile, und `flex: 1 1 auto` am Pfad. Die Überlegung dahinter war
+richtig — in der Suchzeile bedeutet „ · " bereits „noch ein Anbieter,
+anklickbar", also braucht der Name dort ein anderes Zeichen.
+
+**Am Bildschirm war es trotzdem falsch, und zwar doppelt.** Der Pfad nahm sich
+die volle Breite und schob den Namen ans **rechte Ende** der Zeile — dort
+gehörte er zu nichts mehr, er hing einfach da. Und der Strich davor las sich
+wie ein abgerissener Satz statt wie eine Zugehörigkeit.
+
+**Jetzt: `(chefin)`, an beiden Zeilenarten gleich, ohne Trennzeichen, direkt
+hinter dem Pfad** (`flex: 0 1 auto` — der Pfad nimmt sich nur, was er braucht,
+und darf weiterhin schrumpfen; der Name nicht). Die Klammer sagt von selbst,
+dass hier eine **Angabe über** die Zeile steht und kein weiterer Teil von ihr,
+und sie trägt jede Form, die `verfasserName()` liefert: `(chefin)`,
+`(Gelöschter Benutzer 4)`, `(Ohne Verfasser)`.
+
+**Warum kein „von" davor**, was am deutlichsten gewesen wäre: es komponiert
+nicht. „von Ohne Verfasser" ist kein Deutsch, und eine Fallunterscheidung
+zwischen echten Namen und Ersatzbeschriftungen wären zwei Formen für dieselbe
+Sache — genau das, was das Projekt an anderer Stelle vermeidet.
+
+**Das ist der Fall aus Projektstand Abschnitt 7:** *was der Prüfstand nicht
+kann, ist Aussehen.* Die Prüfungen waren grün, die Regel war entschieden und
+begründet, und das Ergebnis war trotzdem unbrauchbar. Zum dritten Mal nach der
+leeren PDF-Vorschau und dem unsichtbaren Löschkreuz (Stolpersteine 29 und 30).
 
 ### G. Kein neuer Vokabeleintrag, keine neue Verweigerungsmeldung
 
@@ -298,7 +330,8 @@ in beiden Fällen verletzt.
 | ✕ an jeder Zeile | 2 rot |
 | `esc()` am Verfassernamen entfernt | **1 rot** |
 | Datum nicht mehr im Überfahrtext | **1 rot** |
-| dasselbe Trennzeichen in Adress- und Suchzeile | **1 rot** |
+| ein Trennzeichen statt der Klammern | 7 rot |
+| der Pfad nimmt sich wieder die volle Breite (`flex: 1 1 auto`) | **1 rot** |
 | der Name steht **neben** statt **in** der zweiten Zeile | 2 rot |
 | Regel `.lunten` ersatzlos aus dem Stylesheet | 4 rot |
 | nur `display: flex` aus `.lunten` | **1 rot** — Stolperstein 81, das Paar dazu |
@@ -336,7 +369,7 @@ wertvollste der Runde — er hat Stolperstein 102 gefunden.
 
 ## 5. Prüfungszahlen
 
-**1548 → 1622, alle grün.** 74 neue Prüfungen, zwei neue Gruppen.
+**1548 → 1624, alle grün.** 76 neue Prüfungen, zwei neue Gruppen.
 
 | Gruppe | Prüfungen | |
 |---|---|---|
@@ -370,7 +403,9 @@ wertvollste der Runde — er hat Stolperstein 102 gefunden.
   **fünf Verfasserlagen** an acht Zeilen: vier vom Eintragsverfasser (kein
   Name), eine mit spitzen Klammern im Namen, eine von der Fragenden, eine
   herrenlose und die Suchzeile von einem Grabstein. Geprüft werden Name,
-  Trennzeichen, Maskierung am **gerenderten HTML**, die Stelle in der zweiten
+  Klammerform an **beiden** Zeilenarten, Maskierung am **gerenderten HTML**
+  (samt der Probe, dass die Klammern aus der Vorlage kommen und nicht aus dem
+  Namen), die Stelle in der zweiten
   Zeile, der Überfahrtext mit Datum, das ✕ nach dem Recht — und die Regel im
   Stylesheet, erst auf Vorhandensein, dann auf Eigenschaft.
 - **Rechte.** Die fünf Fälle des Auftrags, in dieser Reihenfolge: ein Fremder
@@ -426,11 +461,17 @@ jetzt belegt:
 #8 DONE 13.9s
 ```
 
+*Der Bau lief gegen den Stand `6302a4b1`, also vor der Berichtigung am
+Bildschirm (Abweichung F). Sie fasst nur `public/app.js` und
+`public/style.css` an; am Abbild, an den Fassungen und am Umstieg ändert sie
+nichts. Wiederholt worden ist der Bau nicht — die Krücke unten macht ihn
+teuer, und keine der belegten Aussagen hängt an den beiden Dateien.*
+
 **Gemessen am fertigen Abbild:** 101 MB, Node v22.23.2, `sharp` 0.35.3 auf
 libvips 8.18.3, `better-sqlite3-multiple-ciphers` gegen SQLite 3.49.2 und
 **aus dem Fertigbau** — es wurde nichts übersetzt. Im Laufzeitabbild liegt kein
-Übersetzer. Der Healthcheck meldet `healthy`. **Der Abdruck im Container ist
-`6302a4b1` — derselbe wie auf der Platte.**
+Übersetzer. Der Healthcheck meldet `healthy`. **Der Abdruck im Container war
+`6302a4b1` — derselbe wie damals auf der Platte.**
 
 **Und der Umstieg ist im Container gefahren worden**, nicht nur im Prüfstand:
 eine Datenbank mit `links` ohne `user_id`, ein `docker restart`, und im
