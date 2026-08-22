@@ -1314,7 +1314,15 @@ async function renderCompare() {
   catch (e) { toast(e.message, true); location.hash = '#/'; return; }
 
   const names = [];
-  items.forEach(i => i.ratings.forEach(r => { if (!names.includes(r.name)) names.push(r.name); }));
+  /* Das Gewicht gehoert dem KRITERIUM, nicht der Spalte: die Kriterienzeilen
+     tragen den Namen einmal je Zeile, die Spalten sind die Eintraege. Die
+     Marke steht deshalb einmal an der Zeilenbeschriftung und nicht je Spalte.
+     Erste Nennung gewinnt, wie beim Namen -- global ist das Gewicht ohnehin
+     dasselbe, gleich aus welchem Eintrag die Zeile stammt. */
+  const gewichte = new Map();
+  items.forEach(i => i.ratings.forEach(r => {
+    if (!names.includes(r.name)) { names.push(r.name); gewichte.set(r.name, r.gewicht); }
+  }));
 
   /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie linksOffen und
      wolkeOffen. Der Umschalter ist eine Linse auf dieselben Daten und darf
@@ -1347,11 +1355,27 @@ async function renderCompare() {
      Schnitt gebildet, und auch er wird genau einmal gerundet, am Ende und auf
      dasselbe Zehntel wie drueben.
      Nur Werte ueber null zaehlen, wie ueberall: eine zurueckgesetzte Bewertung
-     hinterlaesst eine Zeile mit 0, und die ist keine Stimme. */
+     hinterlaesst eine Zeile mit 0, und die ist keine Stimme.
+     DIESELBE FORMEL WIE gesamtSchnitt() IM SERVER, auf die eigene Menge
+     angewandt: gewichteter Mittelwert, Nenner nur ueber die Kriterien, die ICH
+     bewertet habe. Bliebe diese Stelle ungewichtet, zeigte der Umschalter
+     "meine / alle" zwei Zahlen nach zwei verschiedenen Formeln -- und niemand
+     koennte sagen, ob ein Unterschied von der anderen Bewertermenge kommt oder
+     von der fehlenden Gewichtung. Genau die zweite Wahrheit, die der Absatz
+     darueber vermeiden will.
+     Ein Kriterium ohne eigenen Wert bringt sein Gewicht NICHT in den Nenner --
+     dieselbe Falle wie im Server, hier bezogen auf "von mir bewertet" statt
+     auf "von irgendwem bewertet". Sonst laege die eigene Zahl unter der ueber
+     alle, ohne dass es an den Werten laege.
+     ES SIND UND BLEIBEN GENAU ZWEI RECHENSTELLEN. Die Kachel der Uebersicht
+     liest avgRating vom Server, und dabei bleibt es. */
   const eigenerSchnitt = (it) => {
-    const werte = it.ratings.map(r => r.value).filter(v => v > 0);
-    if (!werte.length) return null;
-    return Math.round((werte.reduce((s, v) => s + v, 0) / werte.length) * 10) / 10;
+    let zaehler = 0, nenner = 0;
+    for (const r of it.ratings) {
+      if (r.value > 0) { zaehler += r.value * r.gewicht; nenner += r.gewicht; }
+    }
+    if (!nenner) return null;
+    return Math.round((zaehler / nenner) * 10) / 10;
   };
   // Drei Zahlen, ein Schalter: Kriterienwert, Kopfzahl und Testtagzeile
   // schalten gemeinsam um. Schaltete nur eine, waere es derselbe Widerspruch
@@ -1400,7 +1424,11 @@ async function renderCompare() {
       const rows = names.map(n => {
         const v = wertVon(it, n);
         const best = v > 0 && v === bestOf(n);
-        return `<div class="cmp-crit"><span class="cn">${esc(n)}</span>
+        // Die Marke ×1,5 an der Zeilenbeschriftung, abgeleitet wie ueberall:
+        // bei Gewicht 1 steht dort nichts.
+        const marke = gewichtMarke(gewichte.get(n));
+        return `<div class="cmp-crit"><span class="cn">${esc(n)}${
+            marke ? ` <span class="cgew" title="Gewicht im Gesamtschnitt">${esc(marke)}</span>` : ''}</span>
           <span class="${best ? 'cmp-best' : ''}">${v > 0 ? alsZahl(v) + ' / 5' : '–'}</span></div>`;
       }).join('');
       const zahl = zeitpunkteVon(it);
@@ -2168,13 +2196,34 @@ async function renderDetail(id) {
     // den Zeilen stehen. Damit ist sie nachvollziehbar, sobald beide zugleich
     // sichtbar sind.
     const kopf = document.getElementById('rhead');
+    /* DAS WORT "gewichtet" IST ABGELEITET, kein Schalter und keine Einstellung
+       -- dieselbe Bauform wie die Durchschnittsspalte, die bei einem einzigen
+       Zugang entfaellt. Sind alle Gewichte 1, steht dort genau das, was vor
+       dieser Version dort stand.
+       ABGELEITET AUS DEN BEWERTETEN KRITERIEN, nicht aus allen: ein Kriterium
+       mit Gewicht 1,5, das an diesem Eintrag niemand bewertet hat, geht in die
+       Rechnung gar nicht ein. Das Wort stuende dann an einer Zahl, an der
+       keine Gewichtung stattgefunden hat. */
+    const gewichtetGerechnet = item.ratings
+      .some(r => (r.value > 0 || r.avg != null) && Number(r.gewicht) !== 1);
     if (kopf) kopf.textContent = item.avgRating
-      ? '⌀ ' + item.avgRating.toFixed(1).replace('.', ',') : '';
+      ? '⌀ ' + item.avgRating.toFixed(1).replace('.', ',') + (gewichtetGerechnet ? ' gewichtet' : '') : '';
     item.ratings.forEach(r => {
       const row = document.createElement('div');
       row.className = 'rrow';
       const n = document.createElement('span');
       n.className = 'rname'; n.textContent = r.name;
+      // Die Marke ×1,5 hinter dem Namen. Ohne sie saehe die Kopfzahl falsch
+      // aus -- mit Gewichten ist sie aus den Zeilenwerten nicht mehr durch
+      // Mitteln nachzuvollziehen. Eigener Knoten statt Text im Namen: der Name
+      // ist Eingabe und wird gesetzt, nicht zusammengebaut.
+      const marke = gewichtMarke(r.gewicht);
+      if (marke) {
+        const m = document.createElement('span');
+        m.className = 'rgew'; m.textContent = marke;
+        m.title = 'Gewicht im Gesamtschnitt';
+        n.append(' ', m);
+      }
       const acts = document.createElement('div');
       acts.className = 'racts';
       const set = v => enqueue(async () => {

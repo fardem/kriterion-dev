@@ -412,6 +412,15 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .rrow:last-of-type { border-bottom: none; }
 .rrow .rname { font-size: .93rem; font-weight: 500; }
 .rrow .racts { display: flex; align-items: center; gap: 9px; }
+/* Die Gewichtsmarke ×1,5 hinter dem Kriteriennamen -- und dieselbe Marke an
+   der Zeilenbeschriftung im Vergleich. Gedaempft und in Festbreitenschrift wie
+   jede andere Kennzahl: sie ist Auskunft, kein Bedienelement. Keine neue
+   Farbe, --faint gibt es laengst; Gold bleibt der Bewertung selbst
+   vorbehalten. Bei Gewicht 1 steht hier gar nichts -- das entscheidet app.js,
+   nicht das Stylesheet. */
+.rrow .rname .rgew, .cmp-crit .cn .cgew {
+  font-family: var(--mono); font-size: .72rem; color: var(--faint); white-space: nowrap;
+}
 /* Schnitt ueber alle und Zahl der Bewerter, rechts neben den eigenen
    Sternen. Gedaempfte Textfarbe und Festbreitenschrift, damit die Zahlen
    untereinander stehen und die goldenen Sterne das auffaellige Element
