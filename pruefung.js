@@ -8612,21 +8612,28 @@ async function pruefeOberflaeche() {
     lvM.slice(0, 4).every(z => !z.querySelector('.lvon')),
     lvM.slice(0, 4).map(z => lvName(z)).join(' | ') || '(kein Name -- richtig)');
   pruefe('An einer fremden Zeile steht er',
-    /chefin$/.test(lvName(lvM[5])), lvName(lvM[5]) || '(kein Name)');
+    lvName(lvM[5]) === '(chefin)', lvName(lvM[5]) || '(kein Name)');
   /* Eine herrenlose Zeile ist eine Auskunft, kein Nichts -- sie sagt es
      ausdruecklich. */
   pruefe('Eine herrenlose Zeile nennt ausdruecklich keinen Verfasser',
-    /Ohne Verfasser$/.test(lvName(lvM[6])), lvName(lvM[6]) || '(kein Name)');
+    lvName(lvM[6]) === '(Ohne Verfasser)', lvName(lvM[6]) || '(kein Name)');
   // Der Grabstein hat keinen Namen mehr; aus der Nummer wird die Beschriftung.
   pruefe('Ein Grabstein erscheint mit seiner Nummer',
-    /Gelöschter Benutzer 4$/.test(lvName(lvM[7])), lvName(lvM[7]) || '(kein Name)');
+    lvName(lvM[7]) === '(Gelöschter Benutzer 4)', lvName(lvM[7]) || '(kein Name)');
 
-  /* Das Trennzeichen ist in der Suchzeile ein anderes, und das mit Absicht:
-     dort bedeutet " · " bereits "noch ein Anbieter, anklickbar". */
-  pruefe('Die Adresszeile trennt den Namen mit einem Mittelpunkt',
-    lvName(lvM[5]).startsWith('· '), lvName(lvM[5]));
-  pruefe('Die Suchzeile mit einem eigenen Zeichen',
-    lvName(lvM[7]).startsWith('— '), lvName(lvM[7]));
+  /* EIN Zeichen fuer beide Zeilenarten, und es ist die Klammer. Ein Trennzeichen
+     davor waere an beiden falsch: in der Suchzeile bedeutet " · " bereits "noch
+     ein Anbieter, anklickbar", und ein Strich sieht aus wie ein abgerissener
+     Satz. Geprueft wird an BEIDEN Zeilenarten -- eine Regel, die nur an einer
+     gilt, ist keine. */
+  pruefe('Der Name steht in Klammern, an der Adresszeile',
+    /^\(.+\)$/.test(lvName(lvM[5])), lvName(lvM[5]));
+  pruefe('Und an der Suchzeile genauso',
+    /^\(.+\)$/.test(lvName(lvM[7])), lvName(lvM[7]));
+  // Und kein Trennzeichen davor -- weder Mittelpunkt noch Strich.
+  pruefe('Ohne Trennzeichen davor',
+    lvM.every(z => !/^[·—-]/.test(lvName(z))),
+    lvM.map(z => lvName(z)).filter(Boolean).join(' | '));
   /* Der Name steht NEBEN dem Pfad, nicht darunter -- sonst waechst die Zeile
      auf dem Handy auf drei Hoehen. */
   pruefe('Name und Pfad stehen in derselben zweiten Zeile',
@@ -8657,6 +8664,10 @@ async function pruefeOberflaeche() {
     !lvMehr.w.document.getElementById('boese-link') &&
     lvName(lvM[4]).includes('<b id="boese-link">X</b>'),
     lvM[4]?.querySelector('.lvon')?.innerHTML);
+  /* Und die Klammern kommen aus der Vorlage, nicht aus dem Namen: bei einem
+     Namen mit spitzen Klammern muessen sie trotzdem aussen stehen. */
+  pruefe('Die Klammern stehen auch dort aussen',
+    /^\(.*\)$/.test(lvName(lvM[4])), lvName(lvM[4]));
 
   /* DAS LOESCHKREUZ FOLGT DEM RECHT, NICHT DER ANZEIGE. Hier ist die Fragende
      Admin: sie darf jede Zeile loeschen, auch die, an der ihr Name gar nicht
@@ -8716,8 +8727,12 @@ async function pruefeOberflaeche() {
     regelL('.lunten').length > 0, '(keine Regel .lunten)');
   pruefe('Sie stellt Pfad und Namen nebeneinander',
     /display: flex/.test(regelL('.lunten')), regelL('.lunten') || '(keine Regel)');
-  pruefe('Der Pfad darf schrumpfen',
-    /flex: 1 1 auto/.test(regelL('.lunten .path, .lunten .snamen')),
+  /* `0 1 auto` und nicht `1 1 auto`: der Pfad nimmt sich nur, was er braucht.
+     Waechst er auf die volle Breite, schiebt er den Namen ans rechte Ende der
+     Zeile, wo er zu nichts mehr gehoert -- genau das war der Befund aus dem
+     Betrieb. Schrumpfen darf er weiterhin. */
+  pruefe('Der Pfad nimmt sich nur, was er braucht, und darf schrumpfen',
+    /flex: 0 1 auto/.test(regelL('.lunten .path, .lunten .snamen')),
     regelL('.lunten .path, .lunten .snamen') || '(keine Regel)');
   pruefe('Der Name nicht',
     /flex: 0 0 auto/.test(regelL('.lunten .lvon')),
