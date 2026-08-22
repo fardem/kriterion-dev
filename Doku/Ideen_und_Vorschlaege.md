@@ -1114,7 +1114,7 @@ dass die Reihenfolge getragen hat.
 | 6 | **4.4** Ansicht „Offen" | klein | macht ein gebautes Feature erst brauchbar | 0.8.60 |
 | 7 | **2.4** CSP + **2.6** Fehler-Handler + **2.7** SIGTERM/Healthcheck | klein | Betriebshärte, alles am selben Nachmittag | ✓ 0.8.20 |
 | 8 | **4.3** „Neu seit …" | klein | keine Migration, großer Gewinn im Mehrbenutzerbetrieb |
-| 9 | **G4** (Roadmap: Links bekommen Verfasser) | mittel | ✓ 0.8.30 — **nicht** mit 4.2 zusammengelegt, siehe Anmerkung unten |
+| 9 | **G4** (Roadmap: Links bekommen Verfasser) | mittel | ✓ 0.8.30 — **nicht** mit 4.2 zusammengelegt, siehe Anmerkung unten; die Dateien folgten in 0.8.31 |
 | 10 | **4.1** Gewichtung der Kriterien | mittel | inhaltlich der wichtigste Punkt der Liste |
 | 11 | **4.2** Abgelehnt mit Datum und Begründung | klein | zusammen mit 10, gleiche Baustelle |
 | 12 | **3.1** `searchText` aus der Liste | mittel | wenn der Bestand wächst |
@@ -1140,7 +1140,8 @@ Gewinn ist eine Stufe, die man am Stück durchdenken kann.
 > worden.** G4 ist allein gefahren worden, mit Formatnummer 6 → 7; 4.2 bleibt
 > offen, und 4.1 wird 0.8.40 mit 7 → 8. Die Begründung ist die zweite Hälfte
 > des Absatzes darüber, und sie hat sich im Bau bestätigt: G4 brauchte allein
-> **76 neue Prüfungen und 31 Gegenproben** — Schema, Umstieg, Rechtewende,
+> **76 neue Prüfungen und 31 Gegenproben** (die Dateien kamen in 0.8.31 als
+> eigene Runde nach, noch einmal 58 und 16) — Schema, Umstieg, Rechtewende,
 > Oberfläche und Austauschformat in einem Durchgang. Für eine zweite Baustelle
 > war darin keine Reserve mehr.
 >

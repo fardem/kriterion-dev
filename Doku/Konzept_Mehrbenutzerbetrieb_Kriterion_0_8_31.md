@@ -1,10 +1,17 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.30 — Abdruck `f498cbda`**
+**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.31 — Abdruck `1a801477`**
 (Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
 vier keine Stufen.)
+
+**Mit 0.8.31 sind Links UND Dateien beim Eintrager**, und damit ist der
+Mehrbenutzerbetrieb bis auf H und I gebaut. 0.8.31 ist **keine Stufe**,
+sondern eine Berichtigungsrunde: sie holt am sechsten Träger nach, was G4 am
+fünften entschieden hat — hochladen darf jeder, löschen der Hochladende oder
+der Admin, der Name steht nach derselben Regel an der Zeile, Formatnummer
+**7 → 8**. Der Ergebnisblock steht in Teil III unter G4.
 
 **Mit 0.8.30 ist Stufe G4 gebaut, und damit die letzte offene Stufe des
 Mehrbenutzerbetriebs vor H.** „Die Linkliste bekommt Verfasser": `links` trägt
@@ -134,11 +141,11 @@ anderen Admin oder den Eigentümer kommt nur der Eigentümer.
 | | Verfasser | anderer | Admin |
 |---|---|---|---|
 | alles sehen | ✔ | ✔ | ✔ |
-| Titel, Beschreibung, Fotos, Dateien, Tags, Kategorie, abgelehnt, getestet | ✔ | — | ✔ |
+| Titel, Beschreibung, Fotos, Tags, Kategorie, abgelehnt, getestet | ✔ | — | ✔ |
 | Eintrag löschen | ✔ | — | ✔ |
-| **Link eintragen** *(seit 0.8.30)* | ✔ | ✔ | ✔ |
-| **eigenen Link löschen** *(seit 0.8.30)* | ✔ | ✔ | ✔ |
-| **fremden Link löschen** *(seit 0.8.30)* | — | — | ✔ |
+| **Link eintragen / Datei hochladen** *(0.8.30 / 0.8.31)* | ✔ | ✔ | ✔ |
+| **eigenen Link, eigene Datei löschen** | ✔ | ✔ | ✔ |
+| **fremden Link, fremde Datei löschen** | — | — | ✔ |
 | **Linkliste umsortieren** *(bleibt beim Eintrag)* | ✔ | — | ✔ |
 | Kommentar schreiben | ✔ | ✔ | ✔ |
 | eigenen Kommentar ändern/löschen | ✔ | — | ✔ (nur löschen) |
@@ -161,11 +168,14 @@ gehören nur seinem Verfasser; Bilder an einen Kommentar darf nur der
 Verfasser **anhängen**, löschen darf sie auch der Admin; eine **herrenlose**
 Zeile (`user_id IS NULL`) gehört dem Admin.
 
-**Die Linkzeile hat mit 0.8.30 die Seite gewechselt.** Sie stand bis dahin in
+**Linkzeile und Datei haben die Seite gewechselt** — die Linkzeile mit 0.8.30,
+die Datei mit 0.8.31. Beide standen bis dahin in
 der ersten Zeile dieser Tabelle, also beim Verfasser des Eintrags. Dahinter
 steht die Regel aus 0.8.4: *was an allen Einträgen aller Benutzer erscheint,
 gehört dem Admin; was nur dort erscheint, wo man es hinsetzt, gehört jedem.*
-Ein Link erscheint nur dort, wo man ihn hinsetzt.
+Ein Link und eine Datei erscheinen nur dort, wo man sie hinsetzt.
+**Fotos bleiben ausdrücklich, wo sie sind:** das erste Foto ist das Hauptbild
+und damit das Gesicht des Eintrags, keine Beigabe.
 **Das Umsortieren ist ausdrücklich nicht mitgewandert:** es ändert keine
 Aussage und ist umkehrbar — dieselbe Überlegung wie beim Anpinnen eines
 Kommentars. Und **ein gelöschter Link bekommt keinen Vermerk**: er ist eine
@@ -205,8 +215,8 @@ innerhalb des angepinnten Blocks. Gehört nicht in dieses Vorhaben.
 als vollständige DDL in `db.js` — das Schema dort ist die Wahrheit, nicht
 mehr dieses Papier. Die tragenden Entscheidungen: `sessions.user_id` mit
 `ON DELETE CASCADE` als Wurzel des Ganzen; `user_id` an `items`, `comments`,
-`test_days`, `ratings` und — seit 0.8.30 — `links` mit
-**`ON DELETE SET NULL`** als Auffangnetz
+`test_days`, `ratings` und — seit 0.8.30 bzw. 0.8.31 — `links` und
+`attachments` mit **`ON DELETE SET NULL`** als Auffangnetz
 (`CASCADE` ließe einen Gelöschten den halben Bestand mitnehmen, gar keine
 Angabe ließe ein `DELETE` von Hand an der Fremdschlüsselverletzung
 scheitern); `UNIQUE` um `user_id` erweitert bei `ratings` und `test_days`;
@@ -214,9 +224,10 @@ scheitern); `UNIQUE` um `user_id` erweitert bei `ratings` und `test_days`;
 `ON DELETE CASCADE` und `PRIMARY KEY (user_id, key)` für die persönliche
 Hälfte.
 
-**Fünf Träger seit 0.8.30**, nicht mehr vier. `links.user_id` ist die einzige
-Spalte, die nachgerüstet werden musste — mit `umstieg0830()`, dem zweiten
-markierten Block im Projekt. Nachgestellt dabei: eine Fremdschlüsselspalte
+**Sechs Träger seit 0.8.31**, nicht mehr vier. `links.user_id` und
+`attachments.user_id` sind die beiden Spalten, die nachgerüstet werden mussten
+— mit `umstieg0830()` und `umstieg0831()`, dem zweiten und dritten markierten
+Block im Projekt. Wer von 0.8.20 kommt, fährt beide in einem Start. Nachgestellt dabei: eine Fremdschlüsselspalte
 lässt sich nur **nullbar** nachrüsten (Projektstand, Stolperstein 105); für
 `links` war das ohnehin die richtige Form.
 
@@ -534,6 +545,7 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | — | **0.8.10** | *Keine Stufe.* **Werkzeug:** `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Abbild auf Node 22, Versionsabdruck über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push — **erledigt**, den Umbau nicht berührt | klein |
 | — | **0.8.20** | *Keine Stufe.* **„Die Schotten dicht":** SVG am Fotoweg (Typ aus den ersten Bytes statt aus der Datenbank), Sicherheitsregel für die Anwendung selbst, `X-Forwarded-For` nur nach Einstellung samt `Secure`/HSTS/`__Host-`, Fehler-Handler nach Rang, sauberes Herunterfahren, Index auf `sessions.user_id` — **erledigt**, den Umbau nicht berührt | klein |
 | **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der **fremden** Zeile ab zwei Zugängen, Formatnummer 6 → 7 — **erledigt, Stufe G vollständig**, siehe unten | mittel |
+| — | **0.8.31** | *Keine Stufe.* **Dieselbe Wende an den Dateien:** `user_id` an `attachments`, hochladen offen, löschen beim Hochladenden oder Admin, Name an der fremden Zeile, Formatnummer 7 → 8 — **erledigt** | klein |
 | **H** | **0.8.80** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
 | **I** | 0.9.0 | Mailversand mit Anbietervorlagen, öffentliche Adresse, Testmail, Selbstregistrierung mit Freischaltung. *Abbruchpunkt: nach dem Versand, vor der Selbstregistrierung.* | groß |
 
@@ -1085,6 +1097,17 @@ zwanzig Links in fremden Einträgen sah dort leer aus. Und `entferneZugang()`
 räumt sie beim zweiten Häkchen wirklich mit weg: eine Zahl im Dialog, die
 nichts bewirkt, wäre schlimmer als keine.
 
+**Nachgeholt in 0.8.31: dieselbe Wende an den Dateien.** Der Entwurf sprach
+nur von Links, aber die Begründung — *was nur dort erscheint, wo man es
+hinsetzt, gehört jedem* — trifft eine Datei genauso. `attachments` bekommt
+`user_id` samt `umstieg0831()`, hochladen wird offen,
+`DELETE /api/attachments/:id` fragt nach der Datei, der Name steht nach
+derselben Regel an der Zeile (dort hinter der Größe, weil die Zeile einzeilig
+ist), **Formatnummer 7 → 8**. Der Wächter fiel dort **vor multer** weg — er
+hatte den zusätzlichen Zweck, die Datei eines Fremden gar nicht erst
+einzulesen, und diese Begründung ist mit der Rechtewende gegenstandslos.
+*Keine eigene Stufe: die Regel war entschieden, nur nicht gebaut.*
+
 **`F_ROUTEN` blieb bei 46 Routen, und nur EINE Art hat gewechselt** — der
 Auftrag nahm zwei an. Die Art `'im Rumpf'` sagt nur, *dass* eine Klemme
 dasteht, nicht *welche*; die Wende von `eintragFrei` auf `darfAendern` wäre
@@ -1112,7 +1135,7 @@ curl -s -c kekse.txt -X POST localhost:3100/api/login \
 curl -s -b kekse.txt localhost:3100/api/stats | head -c 60
 ```
 
-Erwartet für 0.8.30: `{"version":"0.8.30","abdruck":"f498cbda",…`. Der Abdruck
+Erwartet für 0.8.31: `{"version":"0.8.31","abdruck":"1a801477",…`. Der Abdruck
 jeder Version steht im Kopf des Projektstands und in ihrem
 Änderungsprotokoll. **Was er nicht abdeckt:** `zugang.js` — es liegt im
 Abbild, läuft aber nie im Server.
@@ -1123,14 +1146,15 @@ scheitert — die passende Bibliothek liegt im Container:
 ```bash
 docker compose exec kriterion node -e "
   const db=require('./db').db;
-  for (const t of ['items','comments','test_days','ratings','links'])
+  for (const t of ['items','comments','test_days','ratings','links','attachments'])
     console.log(t, '->', db.prepare('SELECT COUNT(*) n FROM '+t+' WHERE user_id IS NULL').get().n);
 "
 ```
 
-**Fünf Träger, fünfmal `0` — das ist die zeitlose Form dieser Abfrage.** Sie
-war bis 0.8.20 auf `ratings` geschrieben; seit 0.8.30 gehört `links` dazu, und
-die Schleife spart es, sie beim nächsten Träger wieder umzuschreiben. Wer
+**Sechs Träger, sechsmal `0` — das ist die zeitlose Form dieser Abfrage.** Sie
+war bis 0.8.20 auf `ratings` geschrieben; seit 0.8.30 gehört `links` dazu und
+seit 0.8.31 `attachments`. Die Schleife hat sich damit schon einmal
+ausgezahlt. Wer
 zusätzlich wissen will, ob eine Spalte überhaupt angekommen ist:
 `db.prepare('PRAGMA table_info(links)').all().map(c=>c.name)`.
 
@@ -1172,9 +1196,11 @@ Stand 0.8.0 —:
   nur dort erscheint, wo man es hinsetzt, gehört jedem. Daraus folgen:
   Kriterien beim Admin (erledigt 0.7.0), Tags und Kategorien bei allen
   (Schalter seit 0.8.4). **Links haben in Stufe G4 die Seite gewechselt**
-  (erledigt 0.8.30): sie erscheinen nur dort, wo man sie hinsetzt, und gehören
-  damit jedem. *Das Umsortieren ist nicht mitgewandert — es ändert keine
-  Aussage und ist umkehrbar.*
+  (erledigt 0.8.30) und **Dateien in 0.8.31**: sie erscheinen nur dort, wo man
+  sie hinsetzt, und gehören damit jedem. *Das Umsortieren der Links ist nicht
+  mitgewandert — es ändert keine Aussage und ist umkehrbar.*
+  **Fotos sind ausdrücklich nicht gewandert:** das erste Foto ist das Hauptbild
+  und damit das Gesicht des Eintrags, keine Beigabe.
 - **E-Mail ist Bequemlichkeit, nie Voraussetzung.** Jeder verschickte Link
   ist im Verwaltungsbereich zum Kopieren sichtbar.
 - **Die Antwort auf eine Registrierung verrät nichts über den Bestand.**
@@ -1214,9 +1240,9 @@ Stand 0.8.0 —:
 - **Höchstens vier Anbieternamen unter einer Suchzeile**, Name höchstens 20
   Zeichen. Eine Handy-Entscheidung: die Zeile selbst ist das Hauptziel,
   kleine Ziele daneben sind ab vier zu dicht.
-- **Der Name an einer Linkzeile steht nur, wo er eine Auskunft ist**
-  (seit 0.8.30): mehrere Zugänge **und** eine Zeile, die nicht vom Verfasser
-  des Eintrags stammt. Daraus folgt, dass „kein Name" bei mehreren Zugängen
+- **Der Name an einer Zeile steht nur, wo er eine Auskunft ist** (seit 0.8.30
+  am Link, seit 0.8.31 an der Datei): mehrere Zugänge **und** eine Zeile, die
+  nicht vom Verfasser des Eintrags stammt. Daraus folgt, dass „kein Name" bei mehreren Zugängen
   „vom Verfasser des Eintrags" heißt. **Und der Name wird nie abgeschnitten** —
   abgeschnitten wird der Pfad daneben.
 - **Ein Bedienzeichen folgt dem Recht, nicht der Anzeige** (seit 0.8.30, am ✕
@@ -1329,6 +1355,11 @@ ihrem Merksatz; **die offenen Auflagen stehen vollständig.**
     Fremdschlüsselspalte nur **nullbar** nachrüsten: SQLite lehnt jede andere
     Vorgabe ab (Projektstand, Stolperstein 105). Wer eine `NOT NULL`-Spalte mit
     `REFERENCES` braucht, braucht einen Tabellenneubau.
+    *In 0.8.31 zum zweiten Mal angewandt, und beide Auflagen haben getragen.*
+    **Dazu eine dritte, die dort dazukam:** liegen mehrere Umstiegsblöcke
+    vor, gehört ein Prüflauf dazu, der sie **hintereinander in einem Start**
+    fährt — das ist die Lage, die im Betrieb wirklich vorkommt, und keiner der
+    einzelnen Abschnitte deckt sie ab.
 21. **Eine Prüfung, die bei fehlendem Gegenstand grün bleibt, kann gar nicht
     scheitern** (Stolperstein 81). Erst das Vorhandensein prüfen, dann die
     Eigenschaft. **Und ein Rückbau, der den Lauf abbricht, nennt keinen Namen**

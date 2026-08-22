@@ -2200,6 +2200,13 @@ const namen = (liste) => liste.map(c => c.name);
                                  ['https://link-ohne-verfasser.test', 3, 2]])
       d.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (1, ?, ?, ?)')
         .run(url, pos, u);
+    // Und der sechste Traeger, mit denselben Lagen: zwei Verfasser, dazu eine
+    // Zeile, die nach dem Start herrenlos gemacht wird.
+    for (const [name, u, pos] of [['datei-von-anna.txt', 1, 0],
+                                  ['datei-von-carla.txt', 3, 1],
+                                  ['datei-ohne-verfasser.txt', 3, 2]])
+      d.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+                 VALUES (1, ?, 'text/plain', 3, ?, ?, ?)`).run(name, Buffer.from('abc'), pos, u);
     // Anna markiert den zweiten Eintrag als Favorit -- fuer die Probe, dass
     // der Favorit NICHT mitwandert, sondern beim Exportierenden bleibt.
     d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (1, 2)').run();
@@ -2262,6 +2269,7 @@ const namen = (liste) => liste.map(c => c.name);
     d.pragma('busy_timeout = 4000');
     d.prepare('UPDATE comments SET user_id = NULL WHERE text = ?').run('Kommentar ohne Verfasser');
     d.prepare('UPDATE links SET user_id = NULL WHERE url = ?').run('https://link-ohne-verfasser.test');
+    d.prepare('UPDATE attachments SET user_id = NULL WHERE filename = ?').run('datei-ohne-verfasser.txt');
     d.close();
   }
 
@@ -2303,7 +2311,25 @@ const namen = (liste) => liste.map(c => c.name);
     e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  pruefe('Die Formatnummer der Datei steht auf 7', e2Aus?.version === 7, JSON.stringify(e2Aus?.version));
+  pruefe('Die Formatnummer der Datei steht auf 8', e2Aus?.version === 8, JSON.stringify(e2Aus?.version));
+
+  /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
+     zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
+     nennt wieder ausdruecklich null. */
+  const e2MitDateien = (await e2Ruf('keks-e2-anna', 'GET', '/api/export?photos=0&files=1')).inhalt;
+  const e2DateiEintrag = e2MitDateien?.items?.find(i => i.title === 'Rundlauf');
+  pruefe('Ein Export mit Dateien traegt sie ueberhaupt',
+    (e2DateiEintrag?.attachments || []).length === 3,
+    JSON.stringify((e2DateiEintrag?.attachments || []).map(a2 => a2.filename)));
+  pruefe('Der Export nennt den Verfasser jeder Datei',
+    gleich((e2DateiEintrag?.attachments || []).map(a2 => `${a2.filename}/${a2.author}`),
+           ['datei-von-anna.txt/anna', 'datei-von-carla.txt/carla',
+            'datei-ohne-verfasser.txt/null']),
+    JSON.stringify((e2DateiEintrag?.attachments || []).map(a2 => `${a2.filename}/${a2.author}`)));
+  // Ohne den Schalter bleiben die Dateien weg -- unveraendert, und die
+  // Verfasserangabe aendert daran nichts.
+  pruefe('Ohne den Schalter bleiben die Dateien weiterhin weg',
+    gleich(e2Eintrag?.attachments, []), JSON.stringify(e2Eintrag?.attachments));
   // Der Favorit ist KEIN Inhalt: er bleibt der des Exportierenden, auch
   // wenn der Eintrag jemand anderem gehoert.
   pruefe('Der Favorit bleibt der des Exportierenden',
@@ -2553,6 +2579,58 @@ const namen = (liste) => liste.map(c => c.name);
     e2LinkNeu.inhalt?.verfasserZugeordnet === 2,
     JSON.stringify(e2LinkNeu.inhalt?.verfasserZugeordnet));
 
+  /* --- Beide Dateiformen ---------------------------------------------------
+     Bis Formatnummer 7 trug ein Anhang kein Feld `author`, ab 8 trägt er eins.
+     Eingespielt wird als anna, der genannte Eintragsverfasser ist BERT -- nur
+     so ist "faellt an den Eintragsverfasser" von "faellt an den Einspielenden"
+     zu unterscheiden. */
+  const e2Bytes = Buffer.from('inhalt').toString('base64');
+  const e2DateiAlt = await e2Import('keks-e2-anna', { version: 7, title: 'D7', items: [{
+    title: 'Dateien ohne Verfasser', author: 'bert',
+    attachments: [{ filename: 'alt.txt', mime_type: 'text/plain', data_base64: e2Bytes }] }] }, 'merge');
+  pruefe('Eine Datei ohne Verfasserfeld laesst sich einspielen',
+    e2DateiAlt.status === 200 && e2DateiAlt.inhalt?.attachments === 1,
+    JSON.stringify(e2DateiAlt.inhalt));
+  const e2DateiAltZeilen = e2Namen(`SELECT a.filename, u.username FROM attachments a
+                                    JOIN items i ON i.id = a.item_id
+                                    LEFT JOIN users u ON u.id = a.user_id
+                                    WHERE i.title = ?`, 'Dateien ohne Verfasser');
+  pruefe('Sie faellt an den Verfasser des Eintrags, nicht an den Einspielenden',
+    e2DateiAltZeilen.length === 1 && e2DateiAltZeilen[0].username === 'bert',
+    JSON.stringify(e2DateiAltZeilen));
+
+  const e2DateiNeu = await e2Import('keks-e2-anna', { version: 8, title: 'D8', items: [{
+    title: 'Dateien mit Verfasser', author: 'bert',
+    attachments: [
+      { filename: 'von-carla.txt', mime_type: 'text/plain', author: 'carla', data_base64: e2Bytes },
+      { filename: 'von-dora.txt', mime_type: 'text/plain', author: 'dora', data_base64: e2Bytes },
+      { filename: 'ohne.txt', mime_type: 'text/plain', author: null, data_base64: e2Bytes }] }] }, 'merge');
+  pruefe('Eine Datei mit Verfasserfeld laesst sich einspielen',
+    e2DateiNeu.status === 200 && e2DateiNeu.inhalt?.attachments === 3,
+    JSON.stringify(e2DateiNeu.inhalt));
+  const e2DateiNeuZeilen = e2Namen(`SELECT a.filename, u.username FROM attachments a
+                                    JOIN items i ON i.id = a.item_id
+                                    LEFT JOIN users u ON u.id = a.user_id
+                                    WHERE i.title = ? ORDER BY a.sort_order`, 'Dateien mit Verfasser');
+  pruefe('Ein genannter Name an der Datei entscheidet',
+    e2DateiNeuZeilen.find(z => z.filename === 'von-carla.txt')?.username === 'carla',
+    JSON.stringify(e2DateiNeuZeilen));
+  pruefe('Ein unbekannter Name faellt an den Einspielenden',
+    e2DateiNeuZeilen.find(z => z.filename === 'von-dora.txt')?.username === 'anna',
+    JSON.stringify(e2DateiNeuZeilen));
+  /* author null heisst "kein Name genannt" -- der Einspielende. Das ist etwas
+     ANDERES als ein fehlendes Feld, und genau daran haengt die
+     Unterscheidung: dort war es der Eintragsverfasser. */
+  pruefe('Und author null ebenfalls, anders als ein fehlendes Feld',
+    e2DateiNeuZeilen.find(z => z.filename === 'ohne.txt')?.username === 'anna',
+    JSON.stringify(e2DateiNeuZeilen));
+  pruefe('Die Antwort nennt den unbekannten Namen der Datei',
+    gleich(e2DateiNeu.inhalt?.verfasserUnbekannt, ['dora']),
+    JSON.stringify(e2DateiNeu.inhalt?.verfasserUnbekannt));
+  pruefe('Und keine dieser Dateien bleibt herrenlos',
+    e2Namen('SELECT COUNT(*) n FROM attachments WHERE user_id IS NULL')[0].n === 0,
+    JSON.stringify(e2Namen('SELECT id, filename, user_id FROM attachments WHERE user_id IS NULL')));
+
   await SE2.stopp();
   fs.rmSync(e2Dir, { recursive: true, force: true });
 
@@ -2589,7 +2667,11 @@ const namen = (liste) => liste.map(c => c.name);
     // An Berts Eintrag haengt alles, was ein Fremder anfassen koennte.
     d.prepare("INSERT INTO photos (item_id, mime_type, data, sort_order) VALUES (2, 'image/jpeg', ?, 0)")
       .run(Buffer.from('kein echtes Bild, wird nur geloescht'));
-    d.prepare("INSERT INTO attachments (item_id, filename, mime_type, size, data) VALUES (2, 'zettel.txt', 'text/plain', 5, ?)")
+    /* Die Datei traegt ihren Verfasser ausdruecklich -- derselbe Grund wie an
+       der Linkzeile darunter (Stolperstein 104): ohne user_id schoebe sie
+       ordneBestandZu() beim Start der Eigentuemerin zu, und "der Admin loescht
+       eine FREMDE Datei" loeschte dann eine eigene. */
+    d.prepare("INSERT INTO attachments (item_id, filename, mime_type, size, data, user_id) VALUES (2, 'zettel.txt', 'text/plain', 5, ?, 2)")
       .run(Buffer.from('hallo'));
     /* Der Link traegt seinen Verfasser ausdruecklich: ohne user_id schoebe ihn
        ordneBestandZu() beim Start der Eigentuemerin zu, und "der Admin loescht
@@ -2636,6 +2718,27 @@ const namen = (liste) => liste.map(c => c.name);
     let inhalt = null;
     try { inhalt = await a.json(); } catch {}
     return { status: a.status, inhalt };
+  };
+  /* Ein echter mehrteiliger Upload gegen DIESEN Server, mit DIESEM Keks. Die
+     vorhandene Hilfe sendeDateien() haengt fest am Hauptserver und an dessen
+     Anmeldung; hier braucht es drei Rufer nebeneinander. Ohne echten Upload
+     bewiese der Erfolgsfall nichts ueber die Route -- der Waechter stand vor
+     multer, ein nachgereichter INSERT liefe an beidem vorbei. */
+  const fUpload = async (keksWert, itemId, name, inhalt) => {
+    const grenze = '----pruefungf' + crypto.randomBytes(6).toString('hex');
+    const teile = [
+      Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="files"; filename="${name}"\r\n` +
+                  `Content-Type: text/plain\r\n\r\n`, 'utf8'),
+      Buffer.from(inhalt, 'utf8'),
+      Buffer.from(`\r\n--${grenze}--\r\n`, 'utf8')
+    ];
+    const a = await fetch(F.basis + `/api/items/${itemId}/attachments`, {
+      method: 'POST',
+      headers: { cookie: `kriterion_session=${keksWert}`,
+                 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: Buffer.concat(teile)
+    });
+    return { status: a.status, inhalt: await a.json().catch(() => null) };
   };
   const fDatenbank = () => oeffne(path.join(fDir, 'katalog.sqlite'));
   const fZeilen = (sql, ...werte) => {
@@ -2773,11 +2876,38 @@ const namen = (liste) => liste.map(c => c.name);
     gleich(fZeilen('SELECT focus_x, focus_y FROM photos WHERE id = 1'), [{ focus_x: 50, focus_y: 50 }]),
     JSON.stringify(fZeilen('SELECT focus_x, focus_y FROM photos')));
 
+  /* ---- Die Datei, seit 0.8.31 der sechste Traeger ------------------------
+     UMGEDREHT MIT 0.8.31, NICHT GELOESCHT (Stolperstein 74): bis 0.8.30 stand
+     hier nur die Verweigerung. Hochladen ist jetzt offen -- und die Zeile
+     daneben belegt, dass die Datei dabei SEINEN Namen bekommt.
+     Der Erfolgsfall laeuft ueber einen echten mehrteiligen Upload; ein
+     nachgereichter INSERT bewiese nichts ueber die Route. */
+  const fDateiAn = await fUpload('keks-f-carla', 2, 'von-carla.txt', 'inhalt von carla');
+  pruefe('Ein Fremder haengt eine Datei an einen fremden Eintrag', fDateiAn.status === 201,
+    `Status ${fDateiAn.status}`);
+  const fDateiNeu = fEine("SELECT id, user_id FROM attachments WHERE filename = 'von-carla.txt'");
+  pruefe('Und die Datei gehoert ihm, nicht dem Verfasser des Eintrags',
+    fDateiNeu !== undefined && fDateiNeu.user_id === 3,
+    JSON.stringify(fZeilen('SELECT id, filename, user_id FROM attachments')));
+  pruefe('Die Dateiliste ist um genau eine Zeile laenger',
+    fZeilen('SELECT id FROM attachments WHERE item_id = 2').length === 2,
+    JSON.stringify(fZeilen('SELECT id, filename, user_id FROM attachments')));
+
   const fDateiWeg = await fRuf('keks-f-carla', 'DELETE', '/api/attachments/1');
   pruefe('Ein Fremder loescht keine fremde Datei', fDateiWeg.status === 403, `Status ${fDateiWeg.status}`);
-  pruefe('Und die Datei liegt noch da', fZeilen('SELECT id FROM attachments').length === 1);
+  pruefe('Und die fremde Datei liegt noch da',
+    fZeilen('SELECT id FROM attachments WHERE id = 1').length === 1);
+
+  const fDateiEigen = await fRuf('keks-f-carla', 'DELETE', `/api/attachments/${fDateiNeu?.id}`);
+  pruefe('Aber seine eigene Datei loescht er', fDateiEigen.status === 200,
+    `Status ${fDateiEigen.status}`);
+  pruefe('Und sie ist wirklich weg',
+    fZeilen('SELECT id FROM attachments WHERE id = ?', fDateiNeu?.id).length === 0);
+
   const fDateiAdmin = await fRuf('keks-f-anna', 'DELETE', '/api/attachments/1');
   pruefe('Der Admin loescht eine fremde Datei', fDateiAdmin.status === 200, `Status ${fDateiAdmin.status}`);
+  pruefe('Und auch diese Zeile ist weg',
+    fZeilen('SELECT id FROM attachments WHERE id = 1').length === 0);
 
   /* Eine herrenlose Zeile gehoert dem Admin. Ohne die Klemme auf null waere
      sie fuer jeden offen -- und genau solche Zeilen entstehen, wenn ein
@@ -3200,6 +3330,9 @@ const namen = (liste) => liste.map(c => c.name);
   // belegen.
   await fRuf('keks-f-bert', 'POST', `/api/items/${fVId}/links`, { url: 'https://berts-link.test' });
   await fRuf('keks-f-anna', 'POST', `/api/items/${fVId}/links`, { url: 'https://annas-link.test' });
+  // Dasselbe am sechsten Traeger: je eine Datei von bert und von anna.
+  await fUpload('keks-f-bert', fVId, 'von-bert.txt', 'berts Datei');
+  await fUpload('keks-f-anna', fVId, 'von-anna.txt', 'annas Datei');
   // Carla setzt ihre wieder zurueck: die Zeile bleibt mit 0 stehen und ist
   // KEINE Stimme -- weder in der Liste noch in der Zahl des Dialogs.
   await fRuf('keks-f-carla', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 5 });
@@ -3347,8 +3480,14 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Eine zurueckgesetzte Bewertung erscheint in keiner Zahl',
     fBCarla?.eigenBewertungen === 0 && fBCarla?.fremdBewertungen === 2,
     JSON.stringify(fBCarla));
-  pruefe('Fotos und Dateien stehen mit je einer Zahl im Dialog',
-    fBBert?.fotos === 0 && fBBert?.dateien === 0, JSON.stringify(fBBert));
+  pruefe('Die Fotos stehen mit einer Zahl im Dialog',
+    fBBert?.fotos === 0, JSON.stringify(fBBert));
+  /* UMGESTELLT MIT 0.8.31: die Dateien stehen nicht mehr mit EINER Zahl da.
+     Seit sie einen Verfasser haben, koennen sie fremd sein. */
+  pruefe('Und die Dateien getrennt nach eigen und fremd',
+    fBBert?.eigenDateien === 1 && fBBert?.fremdDateien === 1, JSON.stringify(fBBert));
+  pruefe('Fuer den Admin ohne eigenen Beitrag sind beide Dateien fremd',
+    fBCarla?.eigenDateien === 0 && fBCarla?.fremdDateien === 2, JSON.stringify(fBCarla));
   /* UMGESTELLT MIT 0.8.30, nicht geloescht: bis 0.8.20 stand hier EINE Zahl
      fuer die Links. Seit die Zeile einen Verfasser hat, kann sie fremd sein und
      gehoert auf dieselbe Seite wie Kommentar, Bewertung und Testtag. */
@@ -3806,7 +3945,9 @@ const namen = (liste) => liste.map(c => c.name);
     ['DELETE', '/api/items/:id',                 'nurEintragVerfasser'],
     ['POST',   '/api/items/:id/photos',          'nurEintragVerfasser'],
     ['PUT',    '/api/photos/:id/focus',          'im Rumpf'],
-    ['POST',   '/api/items/:id/attachments',     'nurEintragVerfasser'],
+    // Hochladen darf jeder -- umgestellt mit 0.8.31, aus demselben Grund wie
+    // beim Link: eine Datei erscheint nur dort, wo man sie hinsetzt.
+    ['POST',   '/api/items/:id/attachments',     'offen'],
     ['DELETE', '/api/attachments/:id',           'im Rumpf'],
     ['PUT',    '/api/items/:id/photo-order',     'nurEintragVerfasser'],
     ['DELETE', '/api/photos/:id',                'im Rumpf'],
@@ -3929,6 +4070,26 @@ const namen = (liste) => liste.map(c => c.name);
     fLinkNeuRumpf.includes('INSERT INTO links (item_id, url, sort_order, user_id)') &&
     fLinkNeuRumpf.includes('req.benutzer.id'),
     fLinkNeuRumpf ? 'die Spalte user_id fehlt im INSERT' : '(kein Rumpf)');
+
+  /* Dasselbe am sechsten Traeger. Die Bauform ist die von 0.8.30, und der
+     Grund ist unveraendert: F_ROUTEN kennt nur die Art 'im Rumpf' und
+     unterscheidet eintragFrei( nicht von darfAendern(. */
+  const fAnhWegRoute = fGefunden.find(r => r.schluessel === 'DELETE /api/attachments/:id');
+  const fAnhWegRumpf = fAnhWegRoute ? fAnhWegRoute.rumpf : '';
+  pruefe('Die Loeschroute fuer Dateien ist ueberhaupt da',
+    fAnhWegRumpf.length > 0, 'die Route fehlt im Quelltext');
+  pruefe('Sie fragt nach der DATEI, nicht nach dem Eintrag',
+    fAnhWegRumpf.includes('darfAendern(req, a.user_id)') &&
+    !fAnhWegRumpf.includes('eintragFrei('),
+    fAnhWegRumpf ? 'darfAendern(req, a.user_id) fehlt oder eintragFrei steht noch da' : '(kein Rumpf)');
+  const fAnhNeuRoute = fGefunden.find(r => r.schluessel === 'POST /api/items/:id/attachments');
+  const fAnhNeuRumpf = fAnhNeuRoute ? fAnhNeuRoute.rumpf : '';
+  pruefe('Die Anlegeroute fuer Dateien ist ueberhaupt da',
+    fAnhNeuRumpf.length > 0, 'die Route fehlt im Quelltext');
+  pruefe('Sie schreibt den Verfasser in die neue Zeile',
+    fAnhNeuRumpf.includes('data, sort_order, user_id') &&
+    fAnhNeuRumpf.includes('req.benutzer.id'),
+    fAnhNeuRumpf ? 'die Spalte user_id fehlt im INSERT' : '(kein Rumpf)');
 
   /* DIE BESCHRIFTUNG DES EINGRIFFSVERMERKS HAENGT AN DIESER KLEMME.
      "2 Bilder vom Admin entfernt" nennt eine ROLLE, und die steht in keiner
@@ -4370,6 +4531,13 @@ const namen = (liste) => liste.map(c => c.name);
   // und sein Link in einem FREMDEN Eintrag.
   await gRuf(gAnna, 'POST', `/api/items/${gBertItem.id}/links`, { url: 'https://annas-link-bei-bert.test' });
   await gRuf(gBert, 'POST', `/api/items/${gAnnaItem.id}/links`, { url: 'https://berts-link-bei-anna.test' });
+  // Und am sechsten Traeger, wieder in beide Richtungen. Von Hand gesetzt statt
+  // hochgeladen: dieser Server hat keine eigene Upload-Hilfe, und geprueft wird
+  // hier das Zaehlen und Loeschen, nicht die Route.
+  gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'von-anna.txt', 3, ?, ?)",
+    gBertItem.id, Buffer.from('abc'), gAnnaId);
+  gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'von-bert.txt', 3, ?, ?)",
+    gAnnaItem.id, Buffer.from('abc'), gBertId);
 
   const gBestand = await gRuf(gAnna, 'GET', `/api/users/${gBertId}/bestand`);
   pruefe('Der Loeschdialog bekommt die Zahlen, getrennt nach eigen und fremd',
@@ -4380,6 +4548,9 @@ const namen = (liste) => liste.map(c => c.name);
      zwanzig Links in fremden Eintraegen hinterlassen hat, im Dialog leer aus. */
   pruefe('Und die Links in beiden Richtungen',
     gBestand.inhalt?.fremdLinks === 1 && gBestand.inhalt?.links === 1,
+    JSON.stringify(gBestand.inhalt));
+  pruefe('Und die Dateien ebenso',
+    gBestand.inhalt?.fremdDateien === 1 && gBestand.inhalt?.dateien === 1,
     JSON.stringify(gBestand.inhalt));
 
   const gWeg = await gRuf(gAnna, 'DELETE', `/api/users/${gBertId}`);
@@ -4404,11 +4575,15 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Seine Links in fremden Eintraegen ebenfalls',
     gZeilen('SELECT COUNT(*) n FROM links WHERE user_id = ?', gBertId)[0]?.n === 1,
     JSON.stringify(gZeilen('SELECT id, url, user_id FROM links')));
+  pruefe('Und seine Dateien desgleichen',
+    gZeilen('SELECT COUNT(*) n FROM attachments WHERE user_id = ?', gBertId)[0]?.n === 1,
+    JSON.stringify(gZeilen('SELECT id, filename, user_id FROM attachments')));
   pruefe('Nichts ist dabei herrenlos geworden',
     gZeilen('SELECT COUNT(*) n FROM items WHERE user_id IS NULL')[0]?.n === 0 &&
     gZeilen('SELECT COUNT(*) n FROM comments WHERE user_id IS NULL')[0]?.n === 0 &&
     gZeilen('SELECT COUNT(*) n FROM test_days WHERE user_id IS NULL')[0]?.n === 0 &&
-    gZeilen('SELECT COUNT(*) n FROM links WHERE user_id IS NULL')[0]?.n === 0);
+    gZeilen('SELECT COUNT(*) n FROM links WHERE user_id IS NULL')[0]?.n === 0 &&
+    gZeilen('SELECT COUNT(*) n FROM attachments WHERE user_id IS NULL')[0]?.n === 0);
   /* Und wie der stehengebliebene Beitrag jetzt auf den Bildschirm kommt: die
      Antwort nennt die NUMMER und sagt "geloescht", die Oberflaeche macht
      daraus "Geloeschter Benutzer <nr>". Der freigegebene Grabsteinname geht
@@ -4457,6 +4632,10 @@ const namen = (liste) => liste.map(c => c.name);
   await gRuf(gEmilKeks, 'POST', `/api/items/${gAnnaItem.id}/comments`, { text: 'Emils Kommentar bei Anna' });
   await gRuf(gAnna, 'POST', `/api/items/${gEmilItem.id}/links`, { url: 'https://annas-link-bei-emil.test' });
   await gRuf(gEmilKeks, 'POST', `/api/items/${gAnnaItem.id}/links`, { url: 'https://emils-link-bei-anna.test' });
+  gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'annas-datei-bei-emil.txt', 3, ?, ?)",
+    gEmilItem.id, Buffer.from('abc'), gAnnaId);
+  gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'emils-datei-bei-anna.txt', 3, ?, ?)",
+    gAnnaItem.id, Buffer.from('abc'), gEmilId);
   const gEmilBestand = (await gRuf(gAnna, 'GET', `/api/users/${gEmilId}/bestand`)).inhalt;
   pruefe('Die Zahlen nennen den fremden Kommentar an seinem Eintrag',
     gEmilBestand?.eintraege === 1 && gEmilBestand?.fremdKommentare === 1 &&
@@ -4467,6 +4646,8 @@ const namen = (liste) => liste.map(c => c.name);
   const gAnnaKommentarVorher = gZeilen('SELECT COUNT(*) n FROM comments WHERE item_id = ?',
     gAnnaItem.id)[0].n;
   const gAnnaLinksVorher = gZeilen('SELECT COUNT(*) n FROM links WHERE item_id = ?',
+    gAnnaItem.id)[0].n;
+  const gAnnaDateienVorher = gZeilen('SELECT COUNT(*) n FROM attachments WHERE item_id = ?',
     gAnnaItem.id)[0].n;
   await gRuf(gAnna, 'DELETE', `/api/users/${gEmilId}?eintraege=1&beitraege=1`);
   pruefe('Mit dem ersten Haekchen sind seine Eintraege weg',
@@ -4485,6 +4666,12 @@ const namen = (liste) => liste.map(c => c.name);
     `${gZeilen('SELECT COUNT(*) n FROM links WHERE item_id = ?', gAnnaItem.id)[0].n} von ${gAnnaLinksVorher}`);
   pruefe('Der fremde Link an seinem Eintrag ging ueber die Kaskade mit',
     gZeilen('SELECT COUNT(*) n FROM links WHERE item_id = ?', gEmilItem.id)[0].n === 0);
+  pruefe('Und seine Datei im fremden Eintrag ebenso',
+    gZeilen('SELECT COUNT(*) n FROM attachments WHERE item_id = ?', gAnnaItem.id)[0].n
+      === gAnnaDateienVorher - 1,
+    `${gZeilen('SELECT COUNT(*) n FROM attachments WHERE item_id = ?', gAnnaItem.id)[0].n} von ${gAnnaDateienVorher}`);
+  pruefe('Die fremde Datei an seinem Eintrag ging ueber die Kaskade mit',
+    gZeilen('SELECT COUNT(*) n FROM attachments WHERE item_id = ?', gEmilItem.id)[0].n === 0);
   pruefe('Der fremde Eintrag selbst bleibt stehen',
     gZeilen('SELECT id FROM items WHERE id = ?', gAnnaItem.id).length === 1);
   pruefe('Und auch hier bleibt die Zeile als Grabstein stehen',
@@ -4982,6 +5169,149 @@ const namen = (liste) => liste.map(c => c.name);
   }
   fs.rmSync(u30Dir, { recursive: true, force: true });
   fs.rmSync(u30FrischDir, { recursive: true, force: true });
+
+  /* ================================================================
+     UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0
+     Dieselbe Bauform wie der Abschnitt darueber, an attachments.
+     ================================================================ */
+  gruppe('UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0');
+
+  /* Wieder so eingerichtet, dass die falsche Antwort auffaellt: der Eintrag
+     gehoert bert, Eigentuemerin ist chefin. Und wieder eine dritte Zeile an
+     einem herrenlosen Eintrag, die der Umstieg nicht fuellen kann. */
+  const u31Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg0831-'));
+  const u31FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0831-'));
+  const u31Spalten = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(attachments)').all().map(c => c.name);
+    d.close();
+    return sp;
+  };
+  const u31Zeilen = () => {
+    const d = oeffne(path.join(u31Dir, 'katalog.sqlite'));
+    const z = d.prepare(`SELECT a.filename, u.username FROM attachments a
+                         LEFT JOIN users u ON u.id = a.user_id ORDER BY a.id`).all();
+    d.close();
+    return z;
+  };
+
+  uLauf(u31Dir);
+  {
+    const d = oeffne(path.join(u31Dir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('bert', 'x')").run();
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Berts Eintrag', 2)").run();
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Ohne Verfasser', NULL)").run();
+    // Tabellenneubau statt DROP COLUMN, aus denselben Gruenden wie oben.
+    d.pragma('foreign_keys = OFF');
+    d.exec(`
+      CREATE TABLE attachments_0830 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+        filename TEXT NOT NULL,
+        mime_type TEXT NOT NULL DEFAULT '',
+        size INTEGER NOT NULL DEFAULT 0,
+        data BLOB NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO attachments_0830 (item_id, filename, size, data, sort_order) VALUES
+        (1, 'berts-erste.txt', 3, x'616263', 0),
+        (1, 'berts-zweite.txt', 3, x'616263', 1),
+        (2, 'an-herrenlosem.txt', 3, x'616263', 0);
+      DROP TABLE attachments;
+      ALTER TABLE attachments_0830 RENAME TO attachments;
+    `);
+    d.close();
+  }
+  pruefe('Die Prueflage traegt die Spalte wirklich nicht',
+    !u31Spalten(u31Dir).includes('user_id'), u31Spalten(u31Dir).join(', '));
+
+  const u31Ausgabe = uLauf(u31Dir);
+  pruefe('Der Umstieg ergaenzt die Spalte im Bestand',
+    u31Spalten(u31Dir).includes('user_id'), u31Spalten(u31Dir).join(', '));
+  pruefe('Er sagt im Protokoll, was er getan hat',
+    /attachments um user_id ergaenzt/.test(u31Ausgabe), JSON.stringify(u31Ausgabe.trim()));
+  pruefe('Die Bestandsdateien fallen an den Verfasser ihres Eintrags',
+    gleich(u31Zeilen().filter(z => /^berts-/.test(z.filename)).map(z => z.username), ['bert', 'bert']),
+    JSON.stringify(u31Zeilen()));
+  pruefe('Und ausdruecklich nicht an den Eigentuemer',
+    u31Zeilen().filter(z => /^berts-/.test(z.filename)).every(z => z.username !== 'chefin'),
+    JSON.stringify(u31Zeilen()));
+  pruefe('Was der Umstieg nicht fuellen kann, faengt das Auffangnetz auf',
+    u31Zeilen().find(z => /herrenlosem/.test(z.filename))?.username === 'chefin',
+    JSON.stringify(u31Zeilen()));
+  pruefe('Danach steht keine Datei mehr ohne Benutzer',
+    u31Zeilen().every(z => z.username != null), JSON.stringify(u31Zeilen()));
+
+  const u31Zweitens = uLauf(u31Dir);
+  pruefe('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
+    !/attachments um user_id ergaenzt/.test(u31Zweitens), JSON.stringify(u31Zweitens.trim()));
+  pruefe('Und die Zeilen sind dabei unangetastet geblieben',
+    gleich(u31Zeilen().map(z => z.username), ['bert', 'bert', 'chefin']),
+    JSON.stringify(u31Zeilen()));
+
+  const u31Frisch = uLauf(u31FrischDir);
+  pruefe('Eine frische Anlage traegt die Spalte ohne Umstieg',
+    u31Spalten(u31FrischDir).includes('user_id') && !/attachments um user_id ergaenzt/.test(u31Frisch),
+    `${u31Spalten(u31FrischDir).includes('user_id')} / ${JSON.stringify(u31Frisch.trim())}`);
+  {
+    const d = oeffne(path.join(u31Dir, 'katalog.sqlite'));
+    const idx = d.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'attachments'")
+      .all().map(z => z.name);
+    d.close();
+    pruefe('Der Index auf attachments liegt danach wieder da',
+      idx.includes('idx_attachments_item'), idx.join(', '));
+  }
+  /* BEIDE UMSTIEGE IN EINEM LAUF -- die Lage, die im Betrieb wirklich
+     vorkommt: wer von 0.8.20 auf 0.8.31 geht, faehrt beide hintereinander.
+     Ohne diese Probe bliebe offen, ob sie sich gegenseitig stoeren. */
+  {
+    const uBeide = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg-beide-'));
+    uLauf(uBeide);
+    const d = oeffne(path.join(uBeide, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('bert', 'x')").run();
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Berts Eintrag', 2)").run();
+    d.pragma('foreign_keys = OFF');
+    d.exec(`
+      CREATE TABLE links_0820 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+        url TEXT NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')));
+      INSERT INTO links_0820 (item_id, url, sort_order) VALUES (1, 'https://beides.test', 0);
+      DROP TABLE links;
+      ALTER TABLE links_0820 RENAME TO links;
+      CREATE TABLE attachments_0820 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+        filename TEXT NOT NULL, mime_type TEXT NOT NULL DEFAULT '',
+        size INTEGER NOT NULL DEFAULT 0, data BLOB NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')));
+      INSERT INTO attachments_0820 (item_id, filename, size, data, sort_order)
+        VALUES (1, 'beides.txt', 3, x'616263', 0);
+      DROP TABLE attachments;
+      ALTER TABLE attachments_0820 RENAME TO attachments;
+    `);
+    d.close();
+    const uBeideAus = uLauf(uBeide);
+    pruefe('Ein Sprung von 0.8.20 faehrt BEIDE Umstiege in einem Start',
+      /links um user_id ergaenzt/.test(uBeideAus) && /attachments um user_id ergaenzt/.test(uBeideAus),
+      JSON.stringify(uBeideAus.trim()));
+    const d2 = oeffne(path.join(uBeide, 'katalog.sqlite'));
+    const uBeideZeilen = [
+      d2.prepare(`SELECT u.username FROM links l LEFT JOIN users u ON u.id = l.user_id`).get()?.username,
+      d2.prepare(`SELECT u.username FROM attachments a LEFT JOIN users u ON u.id = a.user_id`).get()?.username
+    ];
+    d2.close();
+    pruefe('Und beide Zeilen landen beim Verfasser ihres Eintrags',
+      gleich(uBeideZeilen, ['bert', 'bert']), JSON.stringify(uBeideZeilen));
+    fs.rmSync(uBeide, { recursive: true, force: true });
+  }
+  fs.rmSync(u31Dir, { recursive: true, force: true });
+  fs.rmSync(u31FrischDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   gruppe('Anordnung der Blöcke');
@@ -5811,6 +6141,9 @@ const namen = (liste) => liste.map(c => c.name);
   // (hier) und eingespielt (unten in der Importdatei, in beiden Formen).
   await ruf('POST', `/api/items/${fuellItem.id}/links`, { url: 'https://schluss.test/eins' });
   await ruf('POST', `/api/items/${fuellItem.id}/links`, { url: 'Schlusssuchtext' });
+  // Der sechste Traeger seit 0.8.31, ebenfalls ueber beide Wege: echter Upload
+  // hier, eingespielt unten in der Importdatei.
+  await sendeDateien(fuellItem.id, [{ name: 'schluss.txt', typ: 'text/plain', inhalt: 'Schlussdurchlauf' }]);
   // Auch ratings gehoert mit in den Durchlauf -- ueber beide Wege, auf
   // denen eine Bewertungszeile entsteht: von Hand gesetzt und eingespielt.
   const schlussKriterien = (await ruf('GET', '/api/criteria')).inhalt;
@@ -5829,12 +6162,19 @@ const namen = (liste) => liste.map(c => c.name);
                 { name: 'Frisch erfundenes Kriterium', value: 3 }],
       links: [{ url: 'https://schluss.example/neu', author: null },
               { url: 'https://schluss.example/wer', author: 'gibtesnicht' }],
+      // Eine Datei ohne author-Feld (Format bis 7) und eine mit -- beide
+      // muessen eine user_id bekommen.
+      attachments: [
+        { filename: 'schluss-alt.txt', mime_type: 'text/plain',
+          data_base64: Buffer.from('alt').toString('base64') },
+        { filename: 'schluss-neu.txt', mime_type: 'text/plain', author: null,
+          data_base64: Buffer.from('neu').toString('base64') }],
       comments: [{ text: 'S2a' }] }
   ] }, 'merge');
 
   const schluss = oeffne(path.join(DATA, 'katalog.sqlite'));
   const schlussZahl = {};
-  for (const t of ['items', 'comments', 'test_days', 'ratings', 'links']) {
+  for (const t of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
     schlussZahl[t] = schluss.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n;
     const ohne = schluss.prepare(`SELECT COUNT(*) n FROM ${t} WHERE user_id IS NULL`).get().n;
     pruefe(`${t}: keine der ${schlussZahl[t]} Zeilen ist ohne Benutzer`, ohne === 0,
@@ -5842,10 +6182,10 @@ const namen = (liste) => liste.map(c => c.name);
   }
   pruefe('Der Durchlauf laeuft ueber einen belastbaren Bestand',
     schlussZahl.items >= 5 && schlussZahl.comments >= 4 && schlussZahl.test_days >= 4 &&
-    schlussZahl.ratings >= 4 && schlussZahl.links >= 6,
+    schlussZahl.ratings >= 4 && schlussZahl.links >= 6 && schlussZahl.attachments >= 3,
     `${schlussZahl.items} Eintraege, ${schlussZahl.comments} Kommentare, ` +
     `${schlussZahl.test_days} Testtage, ${schlussZahl.ratings} Bewertungen, ` +
-    `${schlussZahl.links} Links`);
+    `${schlussZahl.links} Links, ${schlussZahl.attachments} Dateien`);
   schluss.close();
 
   /* ---------------------------------------------------------------- */
@@ -6283,10 +6623,17 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
         created_at: '2026-07-29 09:00:00', updated_at: null, images: [] }
     ],
     attachments: [
-      { id: 41, filename: 'notiz.txt', mime_type: 'text/plain', size: 120, sort_order: 0, preview: 'text' },
-      { id: 42, filename: 'foto.png', mime_type: 'image/png', size: 2048, sort_order: 1, preview: 'bild' },
-      { id: 43, filename: 'doku.pdf', mime_type: 'application/pdf', size: 900000, sort_order: 2, preview: 'pdf' },
-      { id: 44, filename: 'archiv.zip', mime_type: 'application/zip', size: 5242880, sort_order: 3, preview: 'keine' }
+      /* Vier Verfasserlagen wie an der Linkzeile: zwei vom Verfasser des
+         Eintrags (dort steht kein Name), eine von der Fragenden (mine) und
+         eine herrenlose. created_at traegt den Ueberfahrtext. */
+      { id: 41, filename: 'notiz.txt', mime_type: 'text/plain', size: 120, sort_order: 0, preview: 'text',
+        created_at: '2026-08-01 10:00:00', mine: false, verfasser: vBert },
+      { id: 42, filename: 'foto.png', mime_type: 'image/png', size: 2048, sort_order: 1, preview: 'bild',
+        created_at: '2026-08-01 11:00:00', mine: false, verfasser: vBert },
+      { id: 43, filename: 'doku.pdf', mime_type: 'application/pdf', size: 900000, sort_order: 2, preview: 'pdf',
+        created_at: '2026-08-02 12:00:00', mine: true, verfasser: vChefin },
+      { id: 44, filename: 'archiv.zip', mime_type: 'application/zip', size: 5242880, sort_order: 3, preview: 'keine',
+        created_at: '2026-08-03 13:00:00', mine: false, verfasser: null }
     ],
     tags: tags.filter(t => t.vergeben),
     // mine: der echte Server sagt zu jedem Testtag, ob er dem
@@ -6390,7 +6737,8 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        jedem Feld, damit sich sehen laesst, ob der Dialog jede an ihrer
        richtigen Stelle nennt. */
     if (url === '/api/items/1/bestand')
-      return gib({ fotos: 1, dateien: 4,
+      return gib({ fotos: 1,
+                   eigenDateien: 5, fremdDateien: 7,
                    eigenLinks: 6, fremdLinks: 8,
                    eigenKommentare: 2, fremdKommentare: 4,
                    eigenBewertungen: 1, fremdBewertungen: 3,
@@ -7989,15 +8337,17 @@ async function pruefeOberflaeche() {
      im ersten Satz. Ein Link kann seit dieser Fassung fremd sein und gehoert
      damit zu den Beitraegen, nicht zum Eintrag. */
   pruefe('Der Dialog nennt, was am Eintrag selbst haengt',
-    /1 Foto/.test(eDialog) && /4 Dateien/.test(eDialog), eDialog);
-  pruefe('Und die Links stehen ausdruecklich nicht mehr darunter',
-    !/Dabei gehen[^.]*Links/.test(eDialog), eDialog);
+    /Dabei gehen 1 Foto verloren/.test(eDialog), eDialog);
+  /* Seit 0.8.30 die Links, seit 0.8.31 auch die Dateien: was fremd sein kann,
+     steht bei den Beitraegen und nicht beim Eintrag. */
+  pruefe('Und weder Links noch Dateien stehen darunter',
+    !/Dabei gehen[^.]*Link/.test(eDialog) && !/Dabei gehen[^.]*Datei/.test(eDialog), eDialog);
   pruefe('Und die eigenen Beitraege getrennt',
-    /Dazu 6 Links, 2 Kommentare, 1 Bewertung, 1 Testtag von mir/.test(eDialog), eDialog);
+    /Dazu 6 Links, 5 Dateien, 2 Kommentare, 1 Bewertung, 1 Testtag von mir/.test(eDialog), eDialog);
   /* Der eigentliche Gegenstand: was ANDEREN gehoert, steht in einem eigenen
      Satz -- die Kaskade nimmt es mit, und das darf nicht wortlos geschehen. */
   pruefe('Und die fremden in einem eigenen Satz',
-    /Und von anderen: 8 Links, 4 Kommentare, 3 Bewertungen, 2 Testtage/.test(eDialog), eDialog);
+    /Und von anderen: 8 Links, 7 Dateien, 4 Kommentare, 3 Bewertungen, 2 Testtage/.test(eDialog), eDialog);
   eDoc.querySelector('.backdrop [data-no]')?.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 20));
   eMehr.w.close();
@@ -8737,6 +9087,85 @@ async function pruefeOberflaeche() {
   pruefe('Der Name nicht',
     /flex: 0 0 auto/.test(regelL('.lunten .lvon')),
     regelL('.lunten .lvon') || '(keine Regel)');
+
+  /* ================= Der Name an der Dateizeile ================= */
+  gruppe('Der Name an der Dateizeile');
+
+  /* DIESELBE REGEL WIE AN DER LINKZEILE, und sie bekommt hier ihre eigenen
+     Gegenlagen -- eine Regel, die an einer Stelle geprueft ist und an der
+     zweiten nur behauptet, ist an der zweiten ungeprueft.
+     Der Eintrag gehoert bert; chefin und die herrenlose Zeile sind ihm fremd. */
+  const avZeilen = (fenster) => [...fenster.document.querySelectorAll('#atts .arow')];
+  const avName = (z) => z?.querySelector('.avon')?.textContent || '';
+
+  const avMehr = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 3 } });
+  await new Promise(r => setTimeout(r, 80));
+  const avM = avZeilen(avMehr.w);
+  pruefe('Die Dateiliste steht bei mehreren Zugaengen vollstaendig da',
+    avM.length === 4, `${avM.length}`);
+  pruefe('An einer Datei des Eintragsverfassers steht kein Name',
+    avM.slice(0, 2).every(z => !z.querySelector('.avon')),
+    avM.slice(0, 2).map(z => avName(z)).join(' | ') || '(kein Name -- richtig)');
+  pruefe('An einer fremden Datei steht er, in Klammern',
+    avName(avM[2]) === '(chefin)', avName(avM[2]) || '(kein Name)');
+  pruefe('Eine herrenlose Datei nennt ausdruecklich keinen Verfasser',
+    avName(avM[3]) === '(Ohne Verfasser)', avName(avM[3]) || '(kein Name)');
+  /* Der Name steht bei den Angaben ZUR Datei, also hinter der Groesse -- nicht
+     hinter dem Dateinamen. Der Name der Datei ist die Hauptsache der Zeile und
+     darf nicht schrumpfen, um Platz fuer eine Nebenangabe zu machen. */
+  pruefe('Er steht hinter der Groesse, nicht hinter dem Dateinamen',
+    !!avM[2].querySelector('.asize + .avon'),
+    avM[2].innerHTML.slice(0, 200));
+  pruefe('Der Ueberfahrtext nennt den Hochladenden und das Datum',
+    /Hochgeladen von chefin am \d\d\.\d\d\.\d{4}/.test(avM[2].title), avM[2].title);
+  pruefe('Und was ein Klick tut, steht weiterhin davor',
+    /^Klicken zum/.test(avM[2].title), avM[2].title);
+  pruefe('An einer eigenen Datei steht davon nichts',
+    !/Hochgeladen von/.test(avM[0].title), avM[0].title);
+  pruefe('Der Admin sieht an jeder Datei ein Loeschkreuz',
+    avM.every(z => !!z.querySelector('.xdel')),
+    `${avM.filter(z => !!z.querySelector('.xdel')).length} von ${avM.length}`);
+  avMehr.w.close();
+
+  // Erste Gegenlage: ein Zugang -- kein Name, aber das Kreuz bleibt.
+  const avEins = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 1 } });
+  await new Promise(r => setTimeout(r, 80));
+  const avE = avZeilen(avEins.w);
+  pruefe('Auch bei einem einzigen Zugang stehen alle Dateien da',
+    avE.length === 4, `${avE.length}`);
+  pruefe('Aber an keiner steht ein Name',
+    avE.every(z => !z.querySelector('.avon')),
+    avE.map(z => avName(z)).filter(Boolean).join(' | ') || '(kein Name -- richtig)');
+  pruefe('Und im Ueberfahrtext steht auch kein Hochladender',
+    avE.every(z => !/Hochgeladen von/.test(z.title)),
+    avE.map(z => z.title).filter(t => /Hochgeladen/.test(t)).join(' | ') || '(nichts -- richtig)');
+  avEins.w.close();
+
+  // Zweite Gegenlage: mehrere Zugaenge ohne Adminrolle -- Anzeige und Recht
+  // trennen sich sichtbar.
+  const avUser = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+  await new Promise(r => setTimeout(r, 80));
+  const avU = avZeilen(avUser.w);
+  pruefe('Ohne Adminrolle steht das Kreuz nur an der eigenen Datei',
+    avU.filter(z => !!z.querySelector('.xdel')).length === 1 && !!avU[2].querySelector('.xdel'),
+    avU.map((z, i) => (z.querySelector('.xdel') ? i : null)).filter(i => i !== null).join(', '));
+  pruefe('Ein Name ohne Kreuz ist auch hier moeglich',
+    !!avU[3].querySelector('.avon') && !avU[3].querySelector('.xdel'),
+    `${avName(avU[3])} / ${!!avU[3].querySelector('.xdel')}`);
+  // Ein fehlendes Kreuz darf den Rest der Zeile nicht mitreissen.
+  pruefe('Die Zeilen ohne Kreuz sind sonst unversehrt',
+    avU.length === 4 && avU.every(z => !!z.querySelector('.aname') && !!z.querySelector('.adl')),
+    `${avU.length}`);
+  avUser.w.close();
+
+  // Und die Regel im Stylesheet: der Name wird nie abgeschnitten.
+  pruefe('Der Name an der Dateizeile ist im Stylesheet ueberhaupt geregelt',
+    regelL('.arow .avon').length > 0, '(keine Regel .arow .avon)');
+  pruefe('Und er darf nicht schrumpfen',
+    /flex-shrink: 0/.test(regelL('.arow .avon')), regelL('.arow .avon') || '(keine Regel)');
 
   /* ================= Ziehen auf dem Finger ================= */
   gruppe('Ziehen: Maus sofort, Finger erst nach Halten');

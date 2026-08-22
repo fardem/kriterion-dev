@@ -2619,14 +2619,30 @@ async function renderDetail(id) {
       zeile.title = kannVorschau
         ? (offen ? 'Klicken zum Zuklappen' : 'Klicken zum Ansehen')
         : 'Klicken zum Herunterladen';
+      /* DIESELBE REGEL WIE AN DER LINKZEILE, und sie steht dort ausfuehrlich:
+         der Name nur bei mehreren Zugaengen und nur an einer Zeile, die NICHT
+         vom Verfasser des Eintrags stammt. In Klammern, ohne Trennzeichen.
+         Er steht hinter der Groesse, nicht hinter dem Dateinamen: rechts stehen
+         die Angaben ZUR Datei, links ist ihr Name -- und der darf nicht
+         abgeschnitten werden, um Platz fuer eine Nebenangabe zu machen. */
+      const fremdeDatei = (a.verfasser?.id ?? null) !== (item.verfasser?.id ?? null);
+      const zeigeVon = mehrereBenutzer() && fremdeDatei;
+      const hochgeladen = zeigeVon
+        ? `Hochgeladen von ${verfasserName(a.verfasser)} am ${fmtDate(a.created_at)}` : '';
+      if (hochgeladen) zeile.title = `${zeile.title} · ${hochgeladen}`;
+      // Das ✕ folgt dem Recht, nicht der Anzeige -- wie am Link.
+      const darfWeg = a.mine === true || ADMIN;
+
       zeile.innerHTML = `<span class="aicon">${a.preview === 'bild' ? '▣' : a.preview === 'pdf' ? '▤' : a.preview === 'keine' ? '▪' : '▥'}</span>
         <span class="aname">${esc(a.filename)}</span>
         <span class="asize">${groesse(a.size)}</span>
+        ${zeigeVon ? `<span class="avon">(${esc(verfasserName(a.verfasser))})</span>` : ''}
         <span class="ago">${kannVorschau ? (offen ? '▾' : '▸') : '↓'}</span>
         <a class="adl" href="/api/attachments/${a.id}/raw" download title="Herunterladen">↓</a>
-        <button class="xdel" title="Datei entfernen">✕</button>`;
+        ${darfWeg ? `<button class="xdel" title="Datei entfernen">✕</button>` : ''}`;
 
-      zeile.querySelector('.xdel').onclick = async (e) => {
+      // Der Behandler nur dort, wo das Kreuz auch steht.
+      if (darfWeg) zeile.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox('Datei entfernen?', `„${a.filename}" wird unwiderruflich gelöscht.`)) return;
         try { item = await api('DELETE', `/api/attachments/${a.id}`); offeneVorschau.delete(a.id); drawAtts(); }
@@ -2962,17 +2978,18 @@ async function renderDetail(id) {
     // Fotos und Dateien haengen am Eintrag und gehoeren seinem Verfasser. Ein
     // Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
     const inhalt = [
-      ...zaehl(b.fotos, 'Foto', 'Fotos'),
-      ...zaehl(b.dateien, 'Datei', 'Dateien')
+      ...zaehl(b.fotos, 'Foto', 'Fotos')
     ];
     const eigen = [
       ...zaehl(b.eigenLinks, 'Link', 'Links'),
+      ...zaehl(b.eigenDateien, 'Datei', 'Dateien'),
       ...zaehl(b.eigenKommentare, 'Kommentar', 'Kommentare'),
       ...zaehl(b.eigenBewertungen, 'Bewertung', 'Bewertungen'),
       ...(b.eigenTesttage ? [`${b.eigenTesttage} ${vZeit(b.eigenTesttage)}`] : [])
     ];
     const fremd = [
       ...zaehl(b.fremdLinks, 'Link', 'Links'),
+      ...zaehl(b.fremdDateien, 'Datei', 'Dateien'),
       ...zaehl(b.fremdKommentare, 'Kommentar', 'Kommentare'),
       ...zaehl(b.fremdBewertungen, 'Bewertung', 'Bewertungen'),
       ...(b.fremdTesttage ? [`${b.fremdTesttage} ${vZeit(b.fremdTesttage)}`] : [])
@@ -3779,11 +3796,12 @@ async function renderSystem() {
             `und seine Beiträge bleiben sichtbar und tragen künftig „Gelöschter Benutzer ${z.id}“.\n\n` +
             `OK = seine ${b.eintraege} ${vSache(b.eintraege)} MITLÖSCHEN — samt ${b.fremdKommentare} fremden ` +
             `Kommentaren, ${b.fremdBewertungen} fremden Bewertungen, ${b.fremdTesttage} fremden ` +
-            `${vZeit(b.fremdTesttage)} und ${b.fremdLinks} fremden Links daran.\nAbbrechen = stehen lassen.`);
+            `${vZeit(b.fremdTesttage)}, ${b.fremdLinks} fremden Links und ${b.fremdDateien} fremden ` +
+            `Dateien daran.\nAbbrechen = stehen lassen.`);
           const beitraegeWeg = confirm(
             `Und seine Beiträge in fremden ${vSache(2)}?\n\n` +
             `${b.kommentare} Kommentare, ${b.bewertungen} Bewertungen, ${b.testtage} ${vZeit(b.testtage)}, ` +
-            `${b.links} Links.\n\n` +
+            `${b.links} Links, ${b.dateien} Dateien.\n\n` +
             `OK = mitlöschen.\nAbbrechen = stehen lassen.`);
           if (!confirm(`„${z.username}“ jetzt entfernen? Das lässt sich nicht rückgängig machen.`)) return;
           try {

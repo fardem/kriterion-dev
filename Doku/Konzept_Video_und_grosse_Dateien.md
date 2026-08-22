@@ -46,6 +46,11 @@ Zusage machen, nicht unmittelbar danach. Teil II legt dagegen nur Neues
 daneben: ein vorhandener Anhang bleibt, wo er ist, und nur neue große Dateien
 gehen nach draußen.
 
+> **Nachgetragen nach 0.8.31.** Die Formatnummer der Exportdatei steht
+> inzwischen auf **8** (0.8.30 hob sie auf 7, 0.8.31 auf 8); die Gewichtung
+> 0.8.40 hebt sie auf 9, und die Kurzvideos gehen damit **9 → 10**. Der
+> Stufenplan im Projektstand, Abschnitt 10, führt die Zahlen.
+
 **Zwei Bindungen an die Nachbarstufen:**
 
 - **0.8.20 muss vorher liegen — erledigt.** Der Videoweg liefert eine Datei

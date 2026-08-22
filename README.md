@@ -218,13 +218,13 @@ Am einzelnen Eintrag gilt:
 | | Verfasser | jeder andere | Admin |
 |---|---|---|---|
 | alles sehen | ✔ | ✔ | ✔ |
-| Titel, Beschreibung, Fotos, Dateien, Tags, Kategorie, getestet, abgelehnt | ✔ | — | ✔ |
+| Titel, Beschreibung, Fotos, Tags, Kategorie, getestet, abgelehnt | ✔ | — | ✔ |
 | Eintrag löschen | ✔ | — | ✔ |
 | **Favorit** (★ am Eintrag) | persönlich — jeder für sich, an jedem Eintrag | | |
 | eigene Bewertung, eigener Testtag | ✔ | ✔ | ✔ |
-| Link eintragen | ✔ | ✔ | ✔ |
-| eigenen Link löschen | ✔ | ✔ | ✔ |
-| fremden Link löschen | — | — | ✔ |
+| Link eintragen, Datei hochladen | ✔ | ✔ | ✔ |
+| eigenen Link, eigene Datei löschen | ✔ | ✔ | ✔ |
+| fremden Link, fremde Datei löschen | — | — | ✔ |
 | Linkliste umsortieren | ✔ | — | ✔ |
 | Kommentar schreiben | ✔ | ✔ | ✔ |
 | eigenen Kommentar ändern | ✔ | — | — |
@@ -243,12 +243,17 @@ aber er verändert keine fremde Aussage unter fremdem Namen. Deshalb darf er
 einen Kommentar löschen, nicht aber dessen Text ändern — und deshalb darf er
 einen fremden Testtag löschen, nicht aber dessen Note.
 
-**Warum Links in der Tabelle ihre eigenen Zeilen haben:** ein Link erscheint
-nur dort, wo man ihn hinsetzt — anders als ein Kriterium, das an jedem Eintrag
-steht. Deshalb darf ihn **jeder** eintragen, und wieder wegnehmen darf ihn,
-wer ihn hingesetzt hat, oder der Admin. **Das Umsortieren bleibt beim
-Verfasser des Eintrags:** die Reihenfolge ändert keine Aussage und lässt sich
-zurücknehmen — dieselbe Überlegung wie beim Anpinnen eines Kommentars.
+**Warum Links und Dateien in der Tabelle ihre eigenen Zeilen haben:** beide
+erscheinen nur dort, wo man sie hinsetzt — anders als ein Kriterium, das an
+jedem Eintrag steht. Deshalb darf sie **jeder** dazutun, und wieder wegnehmen
+darf sie, wer sie hingesetzt hat, oder der Admin. **Das Umsortieren der Links
+bleibt beim Verfasser des Eintrags:** die Reihenfolge ändert keine Aussage und
+lässt sich zurücknehmen — dieselbe Überlegung wie beim Anpinnen eines
+Kommentars.
+
+**Fotos sind bewusst nicht dabei.** Sie gehören zum Eintrag selbst: das erste
+Foto ist das Hauptbild und damit sein Gesicht in der Übersicht. Wer die
+Reihenfolge ändert, ändert den Eintrag — das bleibt bei seinem Verfasser.
 
 Eine Absage kommt als Meldung, nicht als stille Wirkungslosigkeit, und sie
 kommt **bevor** irgendetwas geschrieben ist.
@@ -260,17 +265,20 @@ gibt, nennen **Eintrag, Kommentar und Testtag** ihren Verfasser mit Namen —
 der Eintrag dazu, **wann** er angelegt wurde. Eigene Testtage sind gefüllt,
 fremde ein Ring.
 
-**Eine Linkzeile nennt ihren Eintrager nur dann, wenn er nicht der Verfasser
-des Eintrags ist.** Der Gedanke dahinter: an den eigenen Zeilen des
+**Eine Linkzeile und eine Datei nennen ihren Eintrager bzw. Hochladenden nur
+dann, wenn er nicht der Verfasser des Eintrags ist.** Der Gedanke dahinter: an den eigenen Zeilen des
 Eintragsverfassers wiederholte der Name nur, was oben am Eintrag ohnehin
 steht, und die Linkliste ist eine Liste vieler kurzer Zeilen — ein Name an
 jeder wäre Rauschen. An der einen fremden ist er die Auskunft: *hier hat
 jemand anderes etwas beigesteuert.*
 **Umgekehrt gelesen heißt das:** steht bei mehreren Zugängen kein Name an
-einer Linkzeile, stammt sie vom Verfasser des Eintrags. Wer mit dem Zeiger
+einer solchen Zeile, stammt sie vom Verfasser des Eintrags. Wer mit dem Zeiger
 über der Zeile stehen bleibt, sieht zusätzlich das Datum: „Eingetragen von
-… am …". Auf einem Berührbildschirm gibt es kein Überfahren — dort bleibt es
-beim Namen.
+… am …" bzw. „Hochgeladen von … am …". Auf einem Berührbildschirm gibt es kein
+Überfahren — dort bleibt es beim Namen.
+
+Am Link steht der Name hinter dem Pfad, an der Datei hinter der Größe: dort
+stehen die Angaben **zur** Datei, und ihr Name behält den Platz.
 
 **Die Bewertung sagt nur den eigenen Wert und den Schnitt.** Wer welchen Wert
 vergeben hat, ist eine Angabe über einzelne Personen und steht deshalb nicht
@@ -457,10 +465,10 @@ es zwei, beide im Systembereich einstellbar:
   nie eine fertige Suchadresse — ein Anbieterwechsel gilt deshalb rückwirkend
   für alle vorhandenen Suchzeilen.
 - Kommentare lassen sich nachträglich bearbeiten und löschen.
-- Löschen von Eintrag, Foto, Kommentar, Link und Testtag jeweils mit
-  Rückfrage. Beim Eintrag wird benannt, was dranhängt — **Links, Kommentare,
-  Bewertungen und Testtage getrennt nach eigenen und fremden**, denn die
-  fremden gehen über die Kaskade mit.
+- Löschen von Eintrag, Foto, Kommentar, Link, Datei und Testtag jeweils mit
+  Rückfrage. Beim Eintrag wird benannt, was dranhängt — **Links, Dateien,
+  Kommentare, Bewertungen und Testtage getrennt nach eigenen und fremden**,
+  denn die fremden gehen über die Kaskade mit.
 
 **Systembereich** (Zahnrad in der Kopfzeile)
 
@@ -479,7 +487,7 @@ der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
   *(Admin)*
 - **Export** mit oder ohne Fotos, nur für den Eigentümer der Anlage. Die
   Datei nennt zu jedem Eintrag, jeder Bewertung, jedem Kommentar, jedem
-  Testtag und **jeder Linkzeile** den **Verfassernamen**.
+  Testtag, **jeder Linkzeile und jeder Datei** den **Verfassernamen**.
 - **Import** einer Exportdatei, wahlweise *ersetzen* oder *zusammenführen* —
   ebenfalls nur für den Eigentümer, und zwar in beiden Fällen: eine
   Exportdatei kann Beiträge **unter fremdem Namen** anlegen.
@@ -488,10 +496,10 @@ der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
   alles andere fällt an den Einspielenden — auch ältere Dateien, die noch gar
   keinen Namen kennen. **Ein unbekannter Name legt keinen Zugang an**; er wird
   im Protokoll genannt, damit man ihn vor einem zweiten Versuch anlegen kann.
-  **Eine Ausnahme, und sie ist die naheliegende:** Links aus einer Datei, die
-  noch gar kein Feld dafür hat, fallen an den **Verfasser des Eintrags** und
-  nicht an den Einspielenden. Die Datei sagt ja nichts anderes, als dass die
-  Links zu diesem Eintrag gehören.
+  **Eine Ausnahme, und sie ist die naheliegende:** Links und Dateien aus einer
+  Exportdatei, die noch gar kein Feld dafür hat, fallen an den **Verfasser des
+  Eintrags** und nicht an den Einspielenden. Die Datei sagt ja nichts anderes,
+  als dass sie zu diesem Eintrag gehören.
 - **Darstellung**: Schriftgröße der Oberfläche in fünf Stufen von 80 % bis
   120 %, Zeitleiste an oder aus, Standardanordnung der Blöcke — alles
   serverseitig gespeichert
@@ -701,7 +709,7 @@ einspielen.
 > Der Weg zurück ist dann die Sicherung, die **vor** dem Einspielen entstanden
 > ist — nicht das Zurückkopieren der alten Dateien. Welche Versionen das
 > betrifft, sagt das Änderungsprotokoll der jeweiligen Version; zuletzt
-> **0.8.30**.
+> **0.8.30** und **0.8.31**.
 
 ## Eine neue Version einspielen
 
@@ -764,7 +772,8 @@ gelesen — dann sofort anhalten und nachsehen, bevor etwas geschrieben wird.
 
 **Rüstet eine Version eine Spalte nach, sagt sie es im selben Protokoll** —
 etwa „links um user_id ergaenzt (Umstieg auf 0.8.30)". Die Zeile kommt genau
-einmal; beim nächsten Start ist sie weg, und das ist richtig so.
+einmal; beim nächsten Start ist sie weg, und das ist richtig so. Wer mehrere
+Versionen auf einmal überspringt, sieht entsprechend mehrere Zeilen.
 
 **Vorausgesetzt wird eine Datenbank aus Version 0.8.0 oder neuer.** Ein
 älterer Bestand wird nicht übernommen; er braucht den Zwischenschritt über
@@ -793,7 +802,7 @@ Start eine leere Neuinstallation vermuten.
 - `test_day_tags` — Tags an einzelnen Testtagen, getrennt von `item_tags`
 - `comments.kind` / `comments.pinned` — Art und Anpinnung je Kommentar
 - `comment_images` — Bilder in Kommentaren, eigene Tabelle neben `attachments`
-- `attachments` — angehängte Dateien samt Bytes
+- `attachments` — angehängte Dateien samt Bytes **und Verfasser**
 - `photos.focus_x` / `photos.focus_y` — Fokuspunkt der quadratischen Vorschau
 - `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchanbieter
   (Vorrat, eigene Anbieter, Startanbieter) und die beiden Schalter, wer neue
@@ -806,7 +815,8 @@ Start eine leere Neuinstallation vermuten.
   bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen
 - `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer
 - `items.user_id` / `comments.user_id` / `test_days.user_id` /
-  `ratings.user_id` / `links.user_id` — der Verfasser, an fünf Trägern.
+  `ratings.user_id` / `links.user_id` / `attachments.user_id` — der Verfasser,
+  an sechs Trägern.
   `ON DELETE SET NULL` ist das Auffangnetz für ein `DELETE` von Hand: die
   Anwendung selbst entfernt keine Benutzerzeile, und herrenloser Bestand fällt
   beim Start an den Eigentümer

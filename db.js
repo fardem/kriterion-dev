@@ -169,6 +169,9 @@ CREATE INDEX IF NOT EXISTS idx_test_day_tags_tag ON test_day_tags(tag_id);
 
 -- Anhaenge am Eintrag. mime_type ist der vom Browser gemeldete Typ und dient
 -- NUR der Anzeige -- ausgeliefert wird nie mit diesem Wert, siehe server.js.
+-- Eine Datei gehoert dem, der sie hochlaedt, nicht dem Verfasser des Eintrags:
+-- sie erscheint nur dort, wo man sie hinsetzt. Damit ist attachments der
+-- sechste Traeger -- dieselbe Form und derselbe Grund wie bei links.
 CREATE TABLE IF NOT EXISTS attachments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
@@ -177,7 +180,8 @@ CREATE TABLE IF NOT EXISTS attachments (
   size INTEGER NOT NULL DEFAULT 0,
   data BLOB NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_attachments_item ON attachments(item_id);
 
@@ -303,6 +307,32 @@ function umstieg0830() {
 umstieg0830();
 // ENDE UMSTIEG 0.8.30
 
+// UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0
+// Dieselbe Sache wie eine Version zuvor, nur an attachments: die Spalte steht
+// in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle
+// nicht an (Stolperstein 13). Ein Bestand aus 0.8.0 bis 0.8.30 traegt
+// attachments ohne user_id.
+// DIE BESTANDSZEILEN FALLEN AN DEN EINTRAGSVERFASSER, aus demselben Grund wie
+// bei den Links: bis zu dieser Version WAREN die Dateien eines Eintrags die
+// Sache seines Verfassers. Das Auffangnetz weiter unten beantwortet eine
+// andere Frage zu einem anderen Zeitpunkt -- dort gilt der Eigentuemer.
+// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
+// weg, die Spalte in der DDL bleibt.
+function umstieg0831() {
+  const spalten = db.prepare('PRAGMA table_info(attachments)').all().map(c => c.name);
+  if (spalten.includes('user_id')) return 0;
+  db.exec('ALTER TABLE attachments ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
+  const n = db.prepare(
+    'UPDATE attachments SET user_id = (SELECT user_id FROM items WHERE items.id = attachments.item_id)' +
+    ' WHERE user_id IS NULL'
+  ).run().changes;
+  console.log(`[Kriterion] attachments um user_id ergaenzt (Umstieg auf 0.8.31); ` +
+    `${n} Dateien dem Verfasser ihres Eintrags zugeordnet.`);
+  return 1;
+}
+umstieg0831();
+// ENDE UMSTIEG 0.8.31
+
 // --- Auffangnetz: die Anlage braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
@@ -332,7 +362,8 @@ function eigentuemerId() {
 
 // --- Auffangnetz: kein Bestand ohne Benutzer ---
 // Alles, was niemandem gehoert, faellt an den Eigentuemer -- auch eine
-// Linkzeile. DAS IST NICHT DIESELBE REGEL WIE IM UMSTIEG 0.8.30, und beide
+// Linkzeile und eine Datei.
+// DAS IST NICHT DIESELBE REGEL WIE IN DEN UMSTIEGEN DARUEBER, und beide
 // stehen bewusst nebeneinander: der Umstieg beantwortet einmalig, wem die
 // Links eines BESTEHENDEN Eintrags gehoeren (seinem Verfasser), das Netz
 // beantwortet fortlaufend, wem eine Zeile zufaellt, die ihren Verfasser
@@ -350,9 +381,9 @@ function ordneBestandZu() {
   let summe = 0;
   const eigentuemer = eigentuemerId();
   if (eigentuemer == null) {
-    return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0 };
+    return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0 };
   }
-  for (const tabelle of ['items', 'comments', 'test_days', 'ratings', 'links']) {
+  for (const tabelle of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
     const n = db.prepare(
       `UPDATE OR IGNORE ${tabelle} SET user_id = ? WHERE user_id IS NULL`
     ).run(eigentuemer).changes;
@@ -362,7 +393,7 @@ function ordneBestandZu() {
   if (summe) {
     console.log('[Kriterion] Bestand ohne Benutzer dem Eigentuemer zugeordnet: ' +
       `${zahlen.items} Eintraege, ${zahlen.comments} Kommentare, ${zahlen.test_days} Testtage, ` +
-      `${zahlen.ratings} Bewertungen, ${zahlen.links} Links.`);
+      `${zahlen.ratings} Bewertungen, ${zahlen.links} Links, ${zahlen.attachments} Dateien.`);
   }
   return zahlen;
 }
@@ -400,4 +431,6 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0
                    umstieg083,
                    // UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0
-                   umstieg0830 };
+                   umstieg0830,
+                   // UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0
+                   umstieg0831 };

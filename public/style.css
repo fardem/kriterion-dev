@@ -862,6 +862,11 @@ body.lb-open { overflow: hidden; }
 .arow .aicon { color: var(--faint); font-size: .87rem; flex-shrink: 0; }
 .arow .aname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .87rem; }
 .arow .asize { font-family: var(--mono); font-size: .7rem; color: var(--faint); flex-shrink: 0; }
+/* Der Name dessen, der die Datei hochgeladen hat -- dieselbe Form und dieselbe
+   Farbe wie an der Linkzeile (.lvon) und am Kommentar (.cmt-von). Er steht bei
+   den Angaben ZUR Datei, also rechts, und wird nie abgeschnitten: schrumpfen
+   darf der Dateiname, denn der ist links und hat den Platz dafuer. */
+.arow .avon { font-size: .7rem; color: var(--muted); flex-shrink: 0; }
 /* Nur noch der Ausweichknopf der PDF-Vorschau benutzt diese Form. */
 .abtn {
   font-size: .73rem; color: var(--muted); padding: 3px 8px; border-radius: 5px;

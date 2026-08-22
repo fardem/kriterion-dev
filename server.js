@@ -1015,7 +1015,7 @@ app.delete('/api/items/:id/tags/:tagId', nurEintragVerfasser, (req, res) => {
 });
 
 /* ================= Eintraege ================= */
-const qAttachments = db.prepare(`SELECT id, filename, mime_type, size, sort_order, created_at
+const qAttachments = db.prepare(`SELECT id, filename, mime_type, size, sort_order, created_at, user_id
   FROM attachments WHERE item_id = ? ORDER BY sort_order, id`);
 // Reihenfolge durchgaengig chronologisch, in Gruppen: Angepinntes zuerst
 // (Anpinnen schlaegt die Art), dann Aufgaben, dann Berichte, dann Notizen.
@@ -1240,9 +1240,17 @@ function detail(id, benutzerId) {
   it.favorite = !!qMeinPin.get(benutzerId, id);
   it.category = it.product_category_id ? qCat.get(it.product_category_id) : null;
   it.photos = qPhotos.all(id);
-  // Nur die Angaben, nie die Bytes. Die Art der Vorschau entscheidet der
-  // Server anhand der Endung -- die Oberflaeche soll das nicht selbst raten.
-  it.attachments = qAttachments.all(id).map(a2 => ({ ...a2, preview: anh.vorschauArt(a2.filename) }));
+  /* Nur die Angaben, nie die Bytes. Die Art der Vorschau entscheidet der
+     Server anhand der Endung -- die Oberflaeche soll das nicht selbst raten.
+     Verfasser und `mine` wie an der Linkzeile: daran haengt das Loeschkreuz,
+     und die Oberflaeche soll das nicht aus dem Verfasserobjekt zurueckrechnen
+     muessen. Die nackte Nummer geht nicht hinaus. */
+  it.attachments = qAttachments.all(id).map(a2 => ({
+    id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
+    sort_order: a2.sort_order, created_at: a2.created_at,
+    preview: anh.vorschauArt(a2.filename),
+    mine: a2.user_id === benutzerId, verfasser: verfasserAus(karte, a2.user_id)
+  }));
   /* Die Linkzeile sagt wie Kommentar, Testtag und Stimme, wem sie gehoert.
      `mine` steht daneben, weil daran das Loeschkreuz haengt -- die Oberflaeche
      soll das nicht aus dem Verfasserobjekt zurueckrechnen muessen; bei einem
@@ -1439,10 +1447,10 @@ app.put('/api/items/:id', (req, res) => {
    IS NOT statt !=, weil user_id leer sein darf: eine herrenlose Zeile ist eine
    fremde und fiele bei != aus dem Vergleich heraus.
 
-   FOTOS UND DATEIEN STEHEN MIT JE EINER ZAHL DA, LINKS NICHT MEHR. Fotos und
-   Dateien haengen am Eintrag und gehoeren damit seinem Verfasser; ein Link
-   kann seit dieser Fassung fremd sein und gehoert deshalb auf dieselbe Seite
-   wie Kommentar, Bewertung und Testtag.
+   NUR NOCH DIE FOTOS STEHEN MIT EINER ZAHL DA. Sie haengen am Eintrag und
+   gehoeren damit seinem Verfasser. Links (0.8.30) und Dateien (0.8.31) koennen
+   fremd sein und gehoeren deshalb auf dieselbe Seite wie Kommentar, Bewertung
+   und Testtag.
 
    value > 0 bei den Bewertungen: eine zurueckgesetzte Zeile steht mit 0 in der
    Tabelle und ist keine Stimme -- dieselbe Bedingung wie beim Schnitt, bei der
@@ -1453,7 +1461,8 @@ app.get('/api/items/:id/bestand', nurEintragVerfasser, (req, res) => {
   const eins = (sql, ...w) => db.prepare(sql).get(...w).n;
   res.json({
     fotos: eins('SELECT COUNT(*) n FROM photos WHERE item_id = ?', id),
-    dateien: eins('SELECT COUNT(*) n FROM attachments WHERE item_id = ?', id),
+    eigenDateien: eins('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id = ?', id, ich),
+    fremdDateien: eins('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id IS NOT ?', id, ich),
     eigenLinks: eins('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id = ?', id, ich),
     fremdLinks: eins('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id IS NOT ?', id, ich),
     eigenKommentare: eins('SELECT COUNT(*) n FROM comments WHERE item_id = ? AND user_id = ?', id, ich),
@@ -1541,7 +1550,11 @@ const ANHANG_MAX = 50 * 1024 * 1024;
 const ANHANG_ZAHL = 20;
 const anhangUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: ANHANG_MAX } });
 
-app.post('/api/items/:id/attachments', nurEintragVerfasser, anhangUpload.array('files', ANHANG_ZAHL), (req, res, next) => {
+/* HOCHLADEN DARF JEDER -- dieselbe Regel wie an der Linkzeile und aus demselben
+   Grund: eine Datei erscheint nur dort, wo man sie hinsetzt. Der Waechter vor
+   multer ist damit gefallen; die Grenze von ANHANG_ZAHL Dateien je Eintrag
+   gilt weiter fuer alle zusammen, nicht je Benutzer. */
+app.post('/api/items/:id/attachments', anhangUpload.array('files', ANHANG_ZAHL), (req, res, next) => {
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: 'Nicht gefunden' });
@@ -1551,13 +1564,14 @@ app.post('/api/items/:id/attachments', nurEintragVerfasser, anhangUpload.array('
       return res.status(400).json({ error: `Mehr als ${ANHANG_ZAHL} Dateien je Eintrag sind nicht vorgesehen.` });
     let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
       .get(req.params.id).m + 1;
-    const ins = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order)
-                            VALUES (?, ?, ?, ?, ?, ?)`);
+    const ins = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)`);
     for (const f of req.files || []) {
       // Nur der Name, nie ein Pfad: ein hochgeladenes "../../etwas" soll
       // nichts weiter sein als ein merkwuerdiger Dateiname.
       const name = path.basename(String(f.originalname || 'datei')).slice(0, 200) || 'datei';
-      ins.run(req.params.id, name, String(f.mimetype || '').slice(0, 120), f.buffer.length, f.buffer, pos++);
+      ins.run(req.params.id, name, String(f.mimetype || '').slice(0, 120), f.buffer.length, f.buffer,
+              pos++, req.benutzer.id);
     }
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.benutzer.id));
@@ -1588,10 +1602,14 @@ app.get('/api/attachments/:id/preview', (req, res) => {
   res.status(400).json({ error: 'Für diese Datei gibt es keine Textvorschau.' });
 });
 
+/* LOESCHEN DARF DER HOCHLADENDE ODER DER ADMIN. Gefragt wird nach der ZEILE
+   (darfAendern), nicht mehr nach dem Eintrag: wer eine Datei an einen fremden
+   Eintrag haengt, muss sie auch wieder herausnehmen koennen. Herrenlose Zeilen
+   faengt darfAendern ab -- sie gehoeren dem Admin. */
 app.delete('/api/attachments/:id', (req, res) => {
-  const a = db.prepare('SELECT item_id FROM attachments WHERE id = ?').get(req.params.id);
+  const a = db.prepare('SELECT item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).json({ error: 'Nicht gefunden' });
-  if (!eintragFrei(req, res, a.item_id)) return;
+  if (!darfAendern(req, a.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);
   // Sortiernummern lueckenlos halten, wie bei Fotos und Links.
   const rest = db.prepare('SELECT id FROM attachments WHERE item_id = ? ORDER BY sort_order, id').all(a.item_id);
@@ -2180,9 +2198,12 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
                      data_base64: p.data.toString('base64') }));
     }
     if (withFiles) {
-      o.attachments = db.prepare('SELECT filename, mime_type, data FROM attachments WHERE item_id = ? ORDER BY sort_order, id')
+      // author wie an den fuenf anderen Traegern; ohne das Feld kaemen
+      // eingespielte Dateien herrenlos herein. Dafuer steht die Formatnummer 8.
+      o.attachments = db.prepare('SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id')
         .all(it.id)
-        .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type, data_base64: a2.data.toString('base64') }));
+        .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
+                      author: verfasserName(a2.user_id), data_base64: a2.data.toString('base64') }));
     }
     return o;
   });
@@ -2197,10 +2218,10 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
   // Bedingung: weder der Import noch die Oberflaeche lesen sie. Entschieden
   // wird ueber das Vorhandensein der Felder -- nur so bleiben aeltere Dateien
   // lesbar, ohne dass irgendwo eine Fallunterscheidung nach Nummer steht.
-  // 7 statt 6, seit die Linkzeile ihren Verfasser nennt. Die Nummer sagt, was
-  // in der Datei steht, nicht wer sie geschrieben hat -- der Import liest
+  // 8 statt 7, seit auch der Anhang seinen Verfasser nennt. Die Nummer sagt,
+  // was in der Datei steht, nicht wer sie geschrieben hat -- der Import liest
   // weiterhin jede aeltere Form.
-  res.json({ exported_at: new Date().toISOString(), title, version: 7, criteria, items });
+  res.json({ exported_at: new Date().toISOString(), title, version: 8, criteria, items });
 });
 
 /* ---- Import ---- */
@@ -2254,7 +2275,11 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
         const buf = Buffer.from(a2.data_base64, 'base64');
         attachments.push({
           name: path.basename(String(a2.filename || 'datei')).slice(0, 200) || 'datei',
-          mime: String(a2.mime_type || '').slice(0, 120), buf
+          mime: String(a2.mime_type || '').slice(0, 120), buf,
+          // Roh mitgenommen und erst in der Transaktion aufgeloest: verfasser()
+          // liegt dort und zaehlt mit. `hatAutor` unterscheidet "kein Name
+          // genannt" (author: null) von "Feld gibt es nicht" (Format bis 7).
+          hatAutor: 'author' in a2, autor: a2.author
         });
       }
       // Kommentarbilder vorab kodieren -- in der Transaktion darf nichts
@@ -2447,12 +2472,17 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
               .run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, i); stats.photos++; });
 
-        // Fehlt das Feld (aeltere Exportdatei oder Export ohne Dateien),
-        // bleibt der Eintrag einfach ohne Anhaenge.
+        /* Fehlt das Feld (aeltere Exportdatei oder Export ohne Dateien),
+           bleibt der Eintrag einfach ohne Anhaenge.
+           WEM EINE DATEI AUS EINER DATEI DER FORMATNUMMER 7 ODER AELTER
+           GEHOERT: dem Verfasser DES EINTRAGS -- dieselbe Antwort wie beim
+           Umstieg und wie bei den Links. Steht dagegen ein Feld `author` da,
+           entscheidet es, auch wenn es null ist. */
         attachments.forEach((a2, i) =>
-          { db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order)
-                        VALUES (?, ?, ?, ?, ?, ?)`)
-              .run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i); stats.attachments++; });
+          { db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)`)
+              .run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i,
+                   a2.hatAutor ? verfasser(a2.autor) : itemVerfasser); stats.attachments++; });
       }
     })();
 

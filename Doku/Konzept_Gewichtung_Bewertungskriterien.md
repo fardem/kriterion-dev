@@ -4,12 +4,12 @@ Ausgangsstand: 0.8.6. **Beschlossen für 0.8.40**; der Stufenplan steht im
 Projektstand, Abschnitt 10. Hervorgegangen aus Punkt 4.1 in
 `Ideen_und_Vorschlaege.md`.
 
-> **Nachgetragen nach 0.8.30 — zwei Zahlen in diesem Papier sind
-> weitergerückt.** Stufe G4 ist gebaut und hat die Formatnummer auf **7**
-> gehoben; die Gewichtung geht damit **7 → 8**, nicht 6 → 7. Und der
-> Umstiegsblock heißt weiterhin `umstieg0840()`, ist dann aber der **dritte**
-> markierte Block im Projekt, nicht der zweite — `umstieg0830()` liegt
-> dazwischen. Der Text darunter ist im Übrigen unverändert; die Empfehlung
+> **Nachgetragen nach 0.8.30 und 0.8.31 — zwei Zahlen in diesem Papier sind
+> weitergerückt.** Stufe G4 hat die Formatnummer auf **7** gehoben, die Runde
+> 0.8.31 (Dateien bekommen Verfasser) auf **8**; die Gewichtung geht damit
+> **8 → 9**, nicht 6 → 7. Und der Umstiegsblock heißt weiterhin
+> `umstieg0840()`, ist dann aber der **vierte** markierte Block im Projekt,
+> nicht der zweite — `umstieg0830()` und `umstieg0831()` liegen dazwischen. Der Text darunter ist im Übrigen unverändert; die Empfehlung
 > „getrennt lassen" (Abschnitt 10) ist so entschieden und so gebaut worden.
 
 Sprache wie im Ideenpapier: gewöhnliches IT-Deutsch, nicht die Projektsprache.
@@ -728,8 +728,8 @@ unverändert."*
 `criteriaGewichte` nicht auf — dieselbe Regel wie bei der Anzeige, und die
 Datei bleibt in einem ungewichteten Bestand zeichengleich zu heute.
 
-**Die Formatnummer geht 7 → 8** (bis 0.8.30 stand hier 6 → 7; G4 hat die 7
-belegt). Sie ist im Projekt eine Aussage, keine Bedingung — entschieden wird
+**Die Formatnummer geht 8 → 9** (ursprünglich stand hier 6 → 7; G4 hat die 7
+belegt, 0.8.31 die 8). Sie ist im Projekt eine Aussage, keine Bedingung — entschieden wird
 über das Vorhandensein der Felder.
 
 ### Beim Einspielen
@@ -767,9 +767,10 @@ Nach Stolperstein 20 gehören **beide** Teile dazu — die DDL *und* ein
 Migrationsblock, denn `CREATE TABLE IF NOT EXISTS` rüstet an einer vorhandenen
 Tabelle nichts nach:
 
-*Der Block ist damit der **dritte** markierte im Projekt — nach `umstieg083()`
-(0.8.3) und `umstieg0830()` (0.8.30). Beide stehen unter „Vorgemerkt für 1.0"
-im Projektstand; dieser gehört dort sofort dazu.*
+*Der Block ist damit der **vierte** markierte im Projekt — nach `umstieg083()`
+(0.8.3), `umstieg0830()` (0.8.30) und `umstieg0831()` (0.8.31). Alle drei
+stehen unter „Vorgemerkt für 1.0" im Projektstand; dieser gehört dort sofort
+dazu.*
 
 ```js
 // UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
