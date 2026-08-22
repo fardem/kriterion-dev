@@ -61,12 +61,19 @@ CREATE TABLE IF NOT EXISTS photos (
 );
 CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);
 
+-- Ein Link gehoert dem, der ihn eintraegt, nicht dem Verfasser des Eintrags:
+-- er erscheint nur dort, wo man ihn hinsetzt. Damit ist links der fuenfte
+-- Traeger neben items, comments, test_days und ratings.
+-- ON DELETE SET NULL und ausdruecklich NICHT NOT NULL: der Grabstein haelt die
+-- Nummer zwar am Leben, aber die Spalte muss den Fall aushalten, in dem eine
+-- Zeile in users doch verschwindet.
 CREATE TABLE IF NOT EXISTS links (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_links_item ON links(item_id, sort_order);
 
@@ -268,6 +275,34 @@ function umstieg083() {
 umstieg083();
 // ENDE UMSTIEG 0.8.3
 
+// UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0
+// Die Spalte user_id steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
+// eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.0
+// bis 0.8.20 traegt links ohne diese Spalte.
+// DIE BESTANDSZEILEN FALLEN AN DEN EINTRAGSVERFASSER, NICHT AN DEN
+// EIGENTUEMER -- und das ist etwas anderes als die Regel im Auffangnetz
+// weiter unten. Bis zu dieser Version WAREN die Links eines Eintrags die
+// Sache seines Verfassers; sie ihm zu nehmen und dem Eigentuemer zu geben,
+// machte aus seinen Links stillschweigend fremde. Das Auffangnetz beantwortet
+// eine andere Frage zu einem anderen Zeitpunkt: wem eine Zeile zufaellt, die
+// SPAETER herrenlos wird. Zwei Zeitpunkte, zwei Regeln, kein Widerspruch.
+// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
+// weg, die Spalte in der DDL bleibt.
+function umstieg0830() {
+  const spalten = db.prepare('PRAGMA table_info(links)').all().map(c => c.name);
+  if (spalten.includes('user_id')) return 0;
+  db.exec('ALTER TABLE links ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
+  const n = db.prepare(
+    'UPDATE links SET user_id = (SELECT user_id FROM items WHERE items.id = links.item_id)' +
+    ' WHERE user_id IS NULL'
+  ).run().changes;
+  console.log(`[Kriterion] links um user_id ergaenzt (Umstieg auf 0.8.30); ` +
+    `${n} Linkzeilen dem Verfasser ihres Eintrags zugeordnet.`);
+  return 1;
+}
+umstieg0830();
+// ENDE UMSTIEG 0.8.30
+
 // --- Auffangnetz: die Anlage braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
@@ -296,7 +331,13 @@ function eigentuemerId() {
 }
 
 // --- Auffangnetz: kein Bestand ohne Benutzer ---
-// Alles, was niemandem gehoert, faellt an den Eigentuemer. Im Normalbetrieb
+// Alles, was niemandem gehoert, faellt an den Eigentuemer -- auch eine
+// Linkzeile. DAS IST NICHT DIESELBE REGEL WIE IM UMSTIEG 0.8.30, und beide
+// stehen bewusst nebeneinander: der Umstieg beantwortet einmalig, wem die
+// Links eines BESTEHENDEN Eintrags gehoeren (seinem Verfasser), das Netz
+// beantwortet fortlaufend, wem eine Zeile zufaellt, die ihren Verfasser
+// VERLOREN hat (dem Eigentuemer, wie ueberall sonst). Verschiedene
+// Zeitpunkte, verschiedene Fragen. Im Normalbetrieb
 // entsteht so etwas nicht (geloeschte Zugaenge bleiben als Grabstein stehen);
 // das Netz faengt Fehlerfaelle. ZWEI AUFRUFSTELLEN, beide noetig: hier beim
 // Start und in auth.js nach legeErstenBenutzerAn() -- beim Start einer leeren
@@ -309,9 +350,9 @@ function ordneBestandZu() {
   let summe = 0;
   const eigentuemer = eigentuemerId();
   if (eigentuemer == null) {
-    return { items: 0, comments: 0, test_days: 0, ratings: 0 };
+    return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0 };
   }
-  for (const tabelle of ['items', 'comments', 'test_days', 'ratings']) {
+  for (const tabelle of ['items', 'comments', 'test_days', 'ratings', 'links']) {
     const n = db.prepare(
       `UPDATE OR IGNORE ${tabelle} SET user_id = ? WHERE user_id IS NULL`
     ).run(eigentuemer).changes;
@@ -321,7 +362,7 @@ function ordneBestandZu() {
   if (summe) {
     console.log('[Kriterion] Bestand ohne Benutzer dem Eigentuemer zugeordnet: ' +
       `${zahlen.items} Eintraege, ${zahlen.comments} Kommentare, ${zahlen.test_days} Testtage, ` +
-      `${zahlen.ratings} Bewertungen.`);
+      `${zahlen.ratings} Bewertungen, ${zahlen.links} Links.`);
   }
   return zahlen;
 }
@@ -357,4 +398,6 @@ renumberCriteria();
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
                    renumberCriteria, ordneBestandZu, eigentuemerId,
                    // UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0
-                   umstieg083 };
+                   umstieg083,
+                   // UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0
+                   umstieg0830 };

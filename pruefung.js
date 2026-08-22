@@ -4598,6 +4598,129 @@ const namen = (liste) => liste.map(c => c.name);
   fs.rmSync(uDir, { recursive: true, force: true });
   fs.rmSync(uZweiterDir, { recursive: true, force: true });
 
+  /* ================================================================
+     UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Umstiegscode
+     verschwindet, steht beieinander und traegt dieselbe Marke.
+     ================================================================ */
+  gruppe('UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0');
+
+  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
+     aus 0.8.0 bis 0.8.20 -- dieselbe Anlage, nur ohne die neue Spalte an
+     links. Und mit Linkzeilen darin: eine leere Tabelle bewiese nichts.
+
+     DIE ANLAGE IST SO GEBAUT, DASS DIE FALSCHE ANTWORT AUFFAELLT. Der Eintrag
+     gehoert BERT, Eigentuemerin ist CHEFIN (kleinste Nummer, ueber die
+     Startregel). Fielen die Bestandszeilen an den Eigentuemer statt an den
+     Eintragsverfasser, stuende dort chefin -- und genau das waere still
+     falsch: bis 0.8.20 WAREN die Links eines Eintrags die Sache seines
+     Verfassers.
+     Die dritte Zeile haengt an einem Eintrag, der selbst herrenlos ist. Sie
+     kann der Umstieg nicht fuellen; sie faellt danach dem Auffangnetz zu, und
+     das ist die zweite, andere Regel. */
+  const u30Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg0830-'));
+  const u30FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0830-'));
+  const u30Spalten = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(links)').all().map(c => c.name);
+    d.close();
+    return sp;
+  };
+  const u30Zeilen = () => {
+    const d = oeffne(path.join(u30Dir, 'katalog.sqlite'));
+    const z = d.prepare(`SELECT l.url, u.username FROM links l
+                         LEFT JOIN users u ON u.id = l.user_id ORDER BY l.id`).all();
+    d.close();
+    return z;
+  };
+
+  uLauf(u30Dir);
+  {
+    const d = oeffne(path.join(u30Dir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('bert', 'x')").run();
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Berts Eintrag', 2)").run();
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Ohne Verfasser', NULL)").run();
+    /* Tabellenneubau statt ALTER TABLE ... DROP COLUMN, aus demselben Grund
+       wie beim Umstieg 0.8.3 darueber: SQLite prueft nach dem Entfernen den
+       verbliebenen DDL-Text. Ausserhalb jeder Transaktion, sonst waere das
+       PRAGMA ein stiller No-op (Stolperstein 12); das DROP TABLE ist bei
+       eingeschalteten Fremdschluesseln ein DELETE mit Kaskade. */
+    d.pragma('foreign_keys = OFF');
+    d.exec(`
+      CREATE TABLE links_0820 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO links_0820 (item_id, url, sort_order) VALUES
+        (1, 'https://berts-erster.test', 0),
+        (1, 'https://berts-zweiter.test', 1),
+        (2, 'https://an-herrenlosem.test', 0);
+      DROP TABLE links;
+      ALTER TABLE links_0820 RENAME TO links;
+    `);
+    d.close();
+  }
+  pruefe('Die Prueflage traegt die Spalte wirklich nicht',
+    !u30Spalten(u30Dir).includes('user_id'), u30Spalten(u30Dir).join(', '));
+
+  const u30Ausgabe = uLauf(u30Dir);
+  pruefe('Der Umstieg ergaenzt die Spalte im Bestand',
+    u30Spalten(u30Dir).includes('user_id'), u30Spalten(u30Dir).join(', '));
+  pruefe('Er sagt im Protokoll, was er getan hat',
+    /links um user_id ergaenzt/.test(u30Ausgabe), JSON.stringify(u30Ausgabe.trim()));
+
+  /* DER KERN DIESES ABSCHNITTS. Beide Zeilen an berts Eintrag gehoeren bert --
+     nicht chefin. Waere hier der Eigentuemer eingesetzt worden, machte der
+     Umstieg aus berts Links stillschweigend fremde. */
+  pruefe('Die Bestandszeilen fallen an den Verfasser ihres Eintrags',
+    gleich(u30Zeilen().filter(z => /berts-/.test(z.url)).map(z => z.username), ['bert', 'bert']),
+    JSON.stringify(u30Zeilen()));
+  pruefe('Und ausdruecklich nicht an den Eigentuemer',
+    u30Zeilen().filter(z => /berts-/.test(z.url)).every(z => z.username !== 'chefin'),
+    JSON.stringify(u30Zeilen()));
+  /* Die zweite Regel, am selben Lauf: was der Umstieg nicht fuellen kann --
+     ein Link an einem herrenlosen Eintrag --, faengt ordneBestandZu() auf, und
+     dort ist der Eigentuemer die eingefuehrte Antwort. Zwei Regeln fuer zwei
+     Zeitpunkte, und beide sind hier zu sehen. */
+  pruefe('Was der Umstieg nicht fuellen kann, faengt das Auffangnetz auf',
+    u30Zeilen().find(z => /herrenlosem/.test(z.url))?.username === 'chefin',
+    JSON.stringify(u30Zeilen()));
+  pruefe('Danach steht keine Linkzeile mehr ohne Benutzer',
+    u30Zeilen().every(z => z.username != null), JSON.stringify(u30Zeilen()));
+
+  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
+  const u30Zweitens = uLauf(u30Dir);
+  pruefe('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
+    !/links um user_id ergaenzt/.test(u30Zweitens), JSON.stringify(u30Zweitens.trim()));
+  pruefe('Und die Zeilen sind dabei unangetastet geblieben',
+    gleich(u30Zeilen().map(z => z.username), ['bert', 'bert', 'chefin']),
+    JSON.stringify(u30Zeilen()));
+
+  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus dem Umstieg.
+     Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
+     und zu 1.0 faellt der Umstieg weg, die Spalte muss bleiben. */
+  const u30Frisch = uLauf(u30FrischDir);
+  pruefe('Eine frische Anlage traegt die Spalte ohne Umstieg',
+    u30Spalten(u30FrischDir).includes('user_id') && !/links um user_id ergaenzt/.test(u30Frisch),
+    `${u30Spalten(u30FrischDir).includes('user_id')} / ${JSON.stringify(u30Frisch.trim())}`);
+  /* Der Index ist mit dem Tabellenneubau verschwunden und legt sich beim Start
+     selbst nach -- der Unterschied zwischen einem Index und einer Spalte,
+     nachgestellt statt geglaubt (wie 0.8.20 an sessions). */
+  {
+    const d = oeffne(path.join(u30Dir, 'katalog.sqlite'));
+    const idx = d.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'links'")
+      .all().map(z => z.name);
+    d.close();
+    pruefe('Der Index auf links liegt danach wieder da',
+      idx.includes('idx_links_item'), idx.join(', '));
+  }
+  fs.rmSync(u30Dir, { recursive: true, force: true });
+  fs.rmSync(u30FrischDir, { recursive: true, force: true });
+
   /* ---------------------------------------------------------------- */
   gruppe('Anordnung der Blöcke');
 
