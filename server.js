@@ -2137,7 +2137,11 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
       created_at: it.created_at, updated_at: it.updated_at,
       category: it.product_category_id ? qCat.get(it.product_category_id).name : null,
       tags: qTags.all(it.id).map(t => t.name),
-      links: qLinks.all(it.id).map(l => l.url),
+      // Ein Link ist keine nackte Zeichenkette mehr, sondern eine Adresse mit
+      // Verfasser -- wie an den vier anderen Traegern. Ohne dieses Feld kaemen
+      // eingespielte Links herrenlos herein, und der Export verloere genau die
+      // Angabe, die es zu tragen gilt. Dafuer steht die Formatnummer 7.
+      links: qLinks.all(it.id).map(l => ({ url: l.url, author: verfasserName(l.user_id) })),
       // ORDER BY day, id: zwei Leute duerfen denselben Tag eintragen. Ohne
       // die zweite Bedingung haetten die beiden Zeilen keine feste
       // Reihenfolge in der Datei.
@@ -2187,7 +2191,10 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
   // Bedingung: weder der Import noch die Oberflaeche lesen sie. Entschieden
   // wird ueber das Vorhandensein der Felder -- nur so bleiben aeltere Dateien
   // lesbar, ohne dass irgendwo eine Fallunterscheidung nach Nummer steht.
-  res.json({ exported_at: new Date().toISOString(), title, version: 6, criteria, items });
+  // 7 statt 6, seit die Linkzeile ihren Verfasser nennt. Die Nummer sagt, was
+  // in der Datei steht, nicht wer sie geschrieben hat -- der Import liest
+  // weiterhin jede aeltere Form.
+  res.json({ exported_at: new Date().toISOString(), title, version: 7, criteria, items });
 });
 
 /* ---- Import ---- */
@@ -2336,13 +2343,17 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
       for (const { it, photos, attachments } of prepared) {
         // Der genannte Verfasser, wenn es ihn gibt -- sonst der
         // Einspielende.
+        // EINMAL ermittelt und festgehalten: die Linkzeilen einer Datei ohne
+        // Verfasserangabe brauchen dieselbe Nummer noch einmal, und ein
+        // zweiter Aufruf von verfasser() zaehlte den Fremdverweis doppelt.
+        const itemVerfasser = verfasser(it.author);
         const id = db.prepare(`INSERT INTO items
           (title, description, rejected, tested, product_category_id, created_at, updated_at, user_id)
           VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')), ?)`)
           .run(it.title || 'Ohne Titel', it.description || '',
                it.rejected ? 1 : 0, it.tested ? 1 : 0,
                catByName(it.category), it.created_at || null, it.updated_at || null,
-               verfasser(it.author)).lastInsertRowid;
+               itemVerfasser).lastInsertRowid;
         // Der Favorit bleibt beim Einspielenden, auch wenn der Eintrag einem
         // anderen zufaellt: favorite heisst "habe ICH als Favorit markiert".
         if (it.favorite) db.prepare('INSERT OR IGNORE INTO item_pins (user_id, item_id) VALUES (?, ?)')
@@ -2359,12 +2370,25 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
         // darf also nicht der eintragsuebergreifende
         // Zaehler in stats sein und nicht der Index der Rohliste, aus der
         // Leerzeilen herausfallen.
+        /* ZWEI FORMEN, EINE SCHLEIFE. Bis Formatnummer 6 war ein Link eine
+           nackte Zeichenkette, ab 7 ein Objekt mit url und author. Eine alte
+           Datei ist kein Fehler, sondern der Normalfall nach einem
+           Rueckschritt.
+           WEM EIN LINK AUS EINER DATEI DER FORMATNUMMER 6 GEHOERT: dem
+           Verfasser DES EINTRAGS -- dieselbe Antwort wie beim Umstieg und aus
+           demselben Grund. Die Datei sagt nichts anderes, als dass die Links
+           zu diesem Eintrag gehoeren; "unbekannter Name" traefe es nicht, es
+           steht ja keiner da. Deshalb wird hier verfasser() NICHT gefragt,
+           sondern die schon ermittelte Nummer des Eintrags genommen. */
         let lpos = 0;
-        (it.links || []).forEach((url) => {
-          const sauber = normalisiereLink(url);
+        (it.links || []).forEach((eintrag) => {
+          const roh = (eintrag && typeof eintrag === 'object') ? eintrag.url : eintrag;
+          const sauber = normalisiereLink(roh);
           if (!sauber) return;
-          db.prepare('INSERT INTO links (item_id, url, sort_order) VALUES (?, ?, ?)')
-            .run(id, sauber, lpos++);
+          const wem = (eintrag && typeof eintrag === 'object' && 'author' in eintrag)
+            ? verfasser(eintrag.author) : itemVerfasser;
+          db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
+            .run(id, sauber, lpos++, wem);
           stats.links++;
         });
 

@@ -1094,8 +1094,17 @@ const namen = (liste) => liste.map(c => c.name);
   // traegt ueberall ein Schema und darf sich deshalb nicht veraendern.
   const lkAus = (await ruf('GET', '/api/export?photos=0')).inhalt
     .items.find(i => i.title === 'Linkprobe');
+  /* UMGESTELLT MIT 0.8.30, nicht geloescht: ein Link ist im Export seit
+     Formatnummer 7 ein Objekt aus Adresse und Verfasser. Was in der ADRESSE
+     steht, ist davon unberuehrt -- und genau das prueft diese Zeile weiter.
+     Erst das Vorhandensein, dann die Eigenschaft: bei leerer Liste waere jede
+     Aussage ueber die Form wahr (Stolperstein 81). */
+  const lkAusUrls = (lkAus.links || []).map(l => l.url);
   pruefe('Der Export nennt Suchtexte im Rohzustand',
-    lkAus.links.includes('Handbuch 3000') && lkAus.links.includes('https://beispiel.de'),
+    lkAusUrls.includes('Handbuch 3000') && lkAusUrls.includes('https://beispiel.de'),
+    JSON.stringify(lkAus.links));
+  pruefe('Und jede Linkzeile im Export traegt das Feld author',
+    (lkAus.links || []).length > 0 && lkAus.links.every(l => l && typeof l === 'object' && 'author' in l),
     JSON.stringify(lkAus.links));
   await ruf('DELETE', `/api/items/${lk.id}`);
 
@@ -1104,11 +1113,16 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Import mit gemischten Zeilen gelingt', lkImp.status === 200);
   const lkNeu = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Eingespielte Links');
   const lkNeuD = (await ruf('GET', `/api/items/${lkNeu.id}`)).inhalt;
+  /* Der Fragezeichenpunkt ist keine Zierde: faellt eine Zeile beim Einspielen
+     weg, ist links[0] undefined -- und ein Zugriff darauf REISST DEN LAUF AB,
+     statt einen roten Punkt zu setzen. Eine Gegenprobe, die den Lauf
+     abbricht, nennt keinen einzigen Namen (Stolperstein 76). */
   pruefe('Eingespielte Adresse bleibt unverändert',
-    lkNeuD.links[0].url === 'https://alt.example/pfad', JSON.stringify(lkNeuD.links.map(l => l.url)));
+    lkNeuD.links[0]?.url === 'https://alt.example/pfad', JSON.stringify(lkNeuD.links.map(l => l.url)));
   pruefe('Eingespielte Adresse ohne Schema bekommt eins',
-    lkNeuD.links[1].url === 'https://beispiel.de');
-  pruefe('Eingespielter Suchtext bleibt roh', lkNeuD.links[2].url === 'Ein Suchtext');
+    lkNeuD.links[1]?.url === 'https://beispiel.de', JSON.stringify(lkNeuD.links.map(l => l.url)));
+  pruefe('Eingespielter Suchtext bleibt roh', lkNeuD.links[2]?.url === 'Ein Suchtext',
+    JSON.stringify(lkNeuD.links.map(l => l.url)));
   pruefe('Leerzeilen fallen weg', lkNeuD.links.length === 3, `${lkNeuD.links.length}`);
   // Lueckenlos, und nicht der eintragsuebergreifende Zaehler.
   pruefe('Die Sortiernummern bleiben lückenlos bei null beginnend',
@@ -2177,6 +2191,15 @@ const namen = (liste) => liste.map(c => c.name);
     for (const [text, u] of [['Kommentar von Anna', 1], ['Kommentar von Carla', 3],
                              ['Kommentar ohne Verfasser', 3]])
       d.prepare('INSERT INTO comments (item_id, text, user_id) VALUES (1, ?, ?)').run(text, u);
+    // Der fuenfte Traeger: drei Zeilen an EINEM Eintrag, damit "der Link
+    // gehoert seinem Eintrager" von "der Link gehoert dem Eintragsverfasser"
+    // ueberhaupt zu unterscheiden ist. Die dritte wird nach dem Start
+    // herrenlos gemacht, wie der Kommentar daneben.
+    for (const [url, u, pos] of [['https://link-von-anna.test', 1, 0],
+                                 ['https://link-von-carla.test', 3, 1],
+                                 ['https://link-ohne-verfasser.test', 3, 2]])
+      d.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (1, ?, ?, ?)')
+        .run(url, pos, u);
     // Anna markiert den zweiten Eintrag als Favorit -- fuer die Probe, dass
     // der Favorit NICHT mitwandert, sondern beim Exportierenden bleibt.
     d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (1, 2)').run();
@@ -2238,6 +2261,7 @@ const namen = (liste) => liste.map(c => c.name);
     const d = e2Datenbank();
     d.pragma('busy_timeout = 4000');
     d.prepare('UPDATE comments SET user_id = NULL WHERE text = ?').run('Kommentar ohne Verfasser');
+    d.prepare('UPDATE links SET user_id = NULL WHERE url = ?').run('https://link-ohne-verfasser.test');
     d.close();
   }
 
@@ -2260,6 +2284,14 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Der Export nennt den Verfasser jedes Kommentars',
     gleich((e2Eintrag?.comments || []).map(c => c.author), ['anna', 'carla', null]),
     JSON.stringify(e2Eintrag?.comments?.map(c => `${c.text}:${c.author}`)));
+  /* Der fuenfte Traeger. Die Reihenfolge ist die der Sortiernummer, und die
+     herrenlose Zeile nennt ausdruecklich null -- sonst waere "kein Verfasser"
+     von "altes Dateiformat" nicht zu unterscheiden. */
+  pruefe('Der Export nennt den Verfasser jeder Linkzeile',
+    gleich((e2Eintrag?.links || []).map(l => `${l.url}/${l.author}`),
+           ['https://link-von-anna.test/anna', 'https://link-von-carla.test/carla',
+            'https://link-ohne-verfasser.test/null']),
+    JSON.stringify(e2Eintrag?.links));
   // Eine nackte Id liest niemand, und in einer Datei, die das Haus verlaesst,
   // hat sie nichts verloren.
   pruefe('Der Export nennt nirgends die Verfasser-Id',
@@ -2271,7 +2303,7 @@ const namen = (liste) => liste.map(c => c.name);
     e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  pruefe('Die Formatnummer der Datei steht auf 6', e2Aus?.version === 6, JSON.stringify(e2Aus?.version));
+  pruefe('Die Formatnummer der Datei steht auf 7', e2Aus?.version === 7, JSON.stringify(e2Aus?.version));
   // Der Favorit ist KEIN Inhalt: er bleibt der des Exportierenden, auch
   // wenn der Eintrag jemand anderem gehoert.
   pruefe('Der Favorit bleibt der des Exportierenden',
@@ -2323,6 +2355,16 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und behalten beide ihre Tags',
     gleich(e2RundTagtags.map(z => `${z.rating}:${z.name}`), ['4:Regen', '2:Sonne']),
     JSON.stringify(e2RundTagtags));
+
+  const e2RundLinks = e2Namen(`SELECT l.url, u.username FROM links l
+                               LEFT JOIN users u ON u.id = l.user_id ORDER BY l.sort_order, l.id`);
+  /* Ohne das Feld author im Export kaemen alle drei Zeilen bei anna an -- die
+     Pruefung waere dann an genau einem Namen zu erkennen: carla. */
+  pruefe('Nach dem Rundlauf gehoert jede Linkzeile wieder ihrem Eintrager',
+    gleich(e2RundLinks.map(z => `${z.url}:${z.username}`),
+           ['https://link-von-anna.test:anna', 'https://link-von-carla.test:carla',
+            'https://link-ohne-verfasser.test:anna']),
+    JSON.stringify(e2RundLinks));
 
   const e2RundKom = e2Namen(`SELECT c.text, u.username FROM comments c
                              LEFT JOIN users u ON u.id = c.user_id ORDER BY c.id`);
@@ -2444,6 +2486,72 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Eine alte Datei meldet keinen unbekannten Verfasser',
     gleich(e2Alt.inhalt?.verfasserUnbekannt, []) && e2Alt.inhalt?.verfasserZugeordnet === 0,
     JSON.stringify([e2Alt.inhalt?.verfasserUnbekannt, e2Alt.inhalt?.verfasserZugeordnet]));
+
+  /* --- Beide Linkformen in einer Datei ------------------------------------
+     Bis Formatnummer 6 war ein Link eine nackte Zeichenkette, ab 7 ein Objekt
+     mit url und author. Der Import muss beide lesen -- eine alte Exportdatei
+     ist kein Fehler, sondern der Normalfall nach einem Rueckschritt.
+     EINGESPIELT WIRD ALS ANNA, und der genannte Eintragsverfasser ist BERT.
+     Genau darauf kommt es an: nur so ist "der Link faellt an den
+     Eintragsverfasser" von "der Link faellt an den Einspielenden"
+     unterscheidbar. Waere der Eintrag annas, waere die Pruefung gruen, ohne
+     etwas zu belegen. */
+  const e2LinkAlt = await e2Import('keks-e2-anna', { version: 6, title: 'L6', items: [{
+    title: 'Links ohne Verfasser', author: 'bert',
+    links: ['https://sechs.example/eins', 'Suchtext aus sechs'] }] }, 'merge');
+  pruefe('Eine Datei der Formatnummer 6 laesst sich einspielen',
+    e2LinkAlt.status === 200 && e2LinkAlt.inhalt?.items === 1, JSON.stringify(e2LinkAlt.inhalt));
+  const e2LinkAltZeilen = e2Namen(`SELECT l.url, u.username FROM links l
+                                   JOIN items i ON i.id = l.item_id
+                                   LEFT JOIN users u ON u.id = l.user_id
+                                   WHERE i.title = ? ORDER BY l.sort_order`, 'Links ohne Verfasser');
+  pruefe('Ihre Links fallen an den Verfasser des Eintrags, nicht an den Einspielenden',
+    e2LinkAltZeilen.length === 2 && e2LinkAltZeilen.every(z => z.username === 'bert'),
+    JSON.stringify(e2LinkAltZeilen));
+  // Und keine dieser Zeilen ist dabei herrenlos geblieben -- sonst schoebe sie
+  // das Auffangnetz beim naechsten Start dem Eigentuemer zu.
+  pruefe('Und keine davon bleibt herrenlos',
+    e2Namen(`SELECT COUNT(*) n FROM links WHERE user_id IS NULL`)[0].n === 0,
+    JSON.stringify(e2Namen('SELECT id, url, user_id FROM links WHERE user_id IS NULL')));
+
+  /* Die neue Form daneben, mit denselben drei Lagen wie am Kommentar: ein
+     bekannter Name, ein unbekannter, gar keine Angabe. */
+  const e2LinkNeu = await e2Import('keks-e2-anna', { version: 7, title: 'L7', items: [{
+    title: 'Links mit Verfasser', author: 'bert',
+    links: [{ url: 'https://sieben.example/carla', author: 'carla' },
+            { url: 'https://sieben.example/dora', author: 'dora' },
+            { url: 'https://sieben.example/leer', author: null }] }] }, 'merge');
+  pruefe('Eine Datei der Formatnummer 7 laesst sich einspielen',
+    e2LinkNeu.status === 200 && e2LinkNeu.inhalt?.items === 1, JSON.stringify(e2LinkNeu.inhalt));
+  const e2LinkNeuZeilen = e2Namen(`SELECT l.url, u.username FROM links l
+                                   JOIN items i ON i.id = l.item_id
+                                   LEFT JOIN users u ON u.id = l.user_id
+                                   WHERE i.title = ? ORDER BY l.sort_order`, 'Links mit Verfasser');
+  pruefe('Ein genannter Name an der Linkzeile entscheidet',
+    e2LinkNeuZeilen.find(z => /carla$/.test(z.url))?.username === 'carla',
+    JSON.stringify(e2LinkNeuZeilen));
+  /* Ein unbekannter Name faellt an den Einspielenden -- der vorhandene Weg
+     ueber verfasser() gilt unveraendert. Der Eintragsverfasser (bert) ist
+     hier ausdruecklich NICHT die Antwort: die Datei nennt einen Namen, er ist
+     nur keiner aus dieser Anlage. */
+  pruefe('Ein unbekannter Name an der Linkzeile faellt an den Einspielenden',
+    e2LinkNeuZeilen.find(z => /dora$/.test(z.url))?.username === 'anna',
+    JSON.stringify(e2LinkNeuZeilen));
+  // author null heisst "kein Name genannt" -- dieselbe Antwort wie am
+  // Kommentar: der Einspielende.
+  pruefe('Und author null ebenfalls',
+    e2LinkNeuZeilen.find(z => /leer$/.test(z.url))?.username === 'anna',
+    JSON.stringify(e2LinkNeuZeilen));
+  // Die laute Haelfte, auch hier: der unbekannte Name steht im Protokoll.
+  pruefe('Die Antwort nennt den unbekannten Namen der Linkzeile',
+    gleich(e2LinkNeu.inhalt?.verfasserUnbekannt, ['dora']),
+    JSON.stringify(e2LinkNeu.inhalt?.verfasserUnbekannt));
+  // Gezaehlt wird eine einzige fremde Zuordnung: bert am Eintrag. carla an der
+  // Linkzeile ist die zweite. dora gibt es nicht, null nennt niemanden, und
+  // anna ist der Einspielende selbst.
+  pruefe('Und zaehlt die fremde Zuordnung der Linkzeile mit',
+    e2LinkNeu.inhalt?.verfasserZugeordnet === 2,
+    JSON.stringify(e2LinkNeu.inhalt?.verfasserZugeordnet));
 
   await SE2.stopp();
   fs.rmSync(e2Dir, { recursive: true, force: true });
