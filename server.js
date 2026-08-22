@@ -1104,7 +1104,7 @@ function qComments(itemId, benutzerId, karte) {
 
 const qPhotos = db.prepare('SELECT id, item_id, mime_type, focus_x, focus_y, sort_order, created_at FROM photos WHERE item_id = ? ORDER BY sort_order, id');
 const qTags = db.prepare('SELECT t.* FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE');
-const qLinks = db.prepare('SELECT id, url, sort_order FROM links WHERE item_id = ? ORDER BY sort_order, id');
+const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
 /* --- Schnitt und Anzahl je Kriterium --------------------------------------
    EINE Abfrage, gruppiert -- ausdruecklich KEIN zweiter JOIN neben den, der in
@@ -1243,7 +1243,18 @@ function detail(id, benutzerId) {
   // Nur die Angaben, nie die Bytes. Die Art der Vorschau entscheidet der
   // Server anhand der Endung -- die Oberflaeche soll das nicht selbst raten.
   it.attachments = qAttachments.all(id).map(a2 => ({ ...a2, preview: anh.vorschauArt(a2.filename) }));
-  it.links = qLinks.all(id);
+  /* Die Linkzeile sagt wie Kommentar, Testtag und Stimme, wem sie gehoert.
+     `mine` steht daneben, weil daran das Loeschkreuz haengt -- die Oberflaeche
+     soll das nicht aus dem Verfasserobjekt zurueckrechnen muessen; bei einem
+     Grabstein ginge das gar nicht, der hat keinen Namen mehr.
+     created_at bleibt in der Antwort: es traegt den Ueberfahrtext der Zeile.
+     WER DEN NAMEN ZEIGT, entscheidet die Oberflaeche -- ein Verfassername ist
+     keine Auskunft, die zurueckgehalten werden muesste; er steht an den vier
+     anderen Traegern ohnehin in jeder Antwort. */
+  it.links = qLinks.all(id).map(l => ({
+    id: l.id, url: l.url, sort_order: l.sort_order, created_at: l.created_at,
+    mine: l.user_id === benutzerId, verfasser: verfasserAus(karte, l.user_id)
+  }));
   it.tags = qTags.all(id);
   it.testDays = qTestDays(id, benutzerId, karte);
   it.comments = qComments(id, benutzerId, karte);

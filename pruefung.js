@@ -3087,6 +3087,11 @@ const namen = (liste) => liste.map(c => c.name);
   await fRuf('keks-f-anna', 'POST', `/api/items/${fVId}/comments`, { text: 'Kommentar von anna' });
   await fRuf('keks-f-anna', 'POST', `/api/items/${fVId}/test-days`, { day: '2024-06-02', rating: 5 });
   await fRuf('keks-f-anna', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 2 });
+  // Zwei Linkzeilen, eine je Verfasser: seit 0.8.30 kann auch ein Link fremd
+  // sein, und ohne beide Sorten liesse sich die Trennung im Dialog nicht
+  // belegen.
+  await fRuf('keks-f-bert', 'POST', `/api/items/${fVId}/links`, { url: 'https://berts-link.test' });
+  await fRuf('keks-f-anna', 'POST', `/api/items/${fVId}/links`, { url: 'https://annas-link.test' });
   // Carla setzt ihre wieder zurueck: die Zeile bleibt mit 0 stehen und ist
   // KEINE Stimme -- weder in der Liste noch in der Zahl des Dialogs.
   await fRuf('keks-f-carla', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 5 });
@@ -3128,6 +3133,33 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify(fVKom('Herrenloser Kommentar')?.verfasser));
   pruefe('Kein Kommentar traegt noch eine nackte Verfassernummer',
     (fVEintrag?.comments || []).every(c => c.user_id === undefined));
+
+  /* DIE LINKZEILE, seit 0.8.30 der fuenfte Traeger -- und diese Gruppe ist die
+     EINZIGE Stelle, an der die Antwort des echten Servers dazu angesehen wird.
+     Aufgefallen bei einer Gegenprobe: nimmt detail() den Verfasser von der
+     Linkzeile weg, bleibt der ganze Lauf gruen, wenn hier nichts steht -- die
+     Oberflaechenpruefungen laufen gegen einen Doppelgaenger, der das Feld
+     selbst mitbringt, und die Rechtepruefungen sehen in die Datenbank statt in
+     die Antwort. Das ist Luecke 3 des Pruefstands in Reinform. */
+  const fVLink = (teil) => (fVEintrag?.links || []).find(l => l.url.includes(teil));
+  pruefe('Die Linkliste der Antwort ist ueberhaupt gefuellt',
+    (fVEintrag?.links || []).length === 2, JSON.stringify(fVEintrag?.links));
+  pruefe('Jede Linkzeile nennt ihren Verfasser',
+    fVLink('berts-link')?.verfasser?.name === 'bert' &&
+    fVLink('annas-link')?.verfasser?.name === 'anna',
+    JSON.stringify((fVEintrag?.links || []).map(l => l.verfasser)));
+  /* mine steht daneben und ersetzt den Namen nicht: daran haengt das
+     Loeschkreuz. Gefragt hat bert -- seine Zeile ist seine, annas nicht. */
+  pruefe('Und sagt, ob sie mir gehoert',
+    fVLink('berts-link')?.mine === true && fVLink('annas-link')?.mine === false,
+    JSON.stringify((fVEintrag?.links || []).map(l => [l.url, l.mine])));
+  // Der Ueberfahrtext haengt am Zeitpunkt; ohne ihn in der Antwort bliebe er leer.
+  pruefe('Und wann sie eingetragen wurde',
+    (fVEintrag?.links || []).every(l => typeof l.created_at === 'string' && l.created_at.length > 0),
+    JSON.stringify((fVEintrag?.links || []).map(l => l.created_at)));
+  pruefe('Keine Linkzeile traegt noch eine nackte Verfassernummer',
+    (fVEintrag?.links || []).every(l => l.user_id === undefined),
+    JSON.stringify(fVEintrag?.links));
 
   const fVTag = (t) => (fVEintrag?.testDays || []).find(d => d.day === t);
   pruefe('Jeder Testtag nennt seinen Verfasser',
@@ -6022,17 +6054,38 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   const vChefin = { id: 1, name: 'chefin', geloescht: false };
   const vBert = { id: 2, name: 'bert', geloescht: false };
   const vGrab = { id: 4, name: null, geloescht: true };
+  // Ein Benutzername ist Eingabe, keine Konstante. Die Linkzeile ist seit
+  // 0.8.30 die zweite Stelle in der Linkliste, an der Eingabe als Beschriftung
+  // gerendert wird -- die erste sind die Anbieternamen.
+  const vBoese = { id: 5, name: 'Verfasser <b id="boese-link">X</b>', geloescht: false };
   const beispiel = {
     id: 1, title: 'Beispiel', description: 'Eine Beschreibung.\nZweite Zeile.',
     rejected: false, tested: true, favorite: false, category: null,
     verfasser: vBert,
     photos: [{ id: 5, mime_type: 'image/png', focus_x: 50, focus_y: 50, sort_order: 0 }],
-    // Sieben Adressen und eine Suchzeile -- an der letzten haengt die Pruefung
-    // der Kennzeichnung. Die Gesamtzahl bleibt acht, damit die Begrenzung der
-    // sichtbaren Zeilen weiter an derselben Schwelle geprueft wird.
+    /* Sieben Adressen und eine Suchzeile -- an der letzten haengt die Pruefung
+       der Kennzeichnung. Die Gesamtzahl bleibt acht, damit die Begrenzung der
+       sichtbaren Zeilen weiter an derselben Schwelle geprueft wird.
+       FUENF VERFASSERLAGEN, und sie sind der Gegenstand seit 0.8.30: vier
+       Zeilen vom Verfasser des Eintrags selbst (bert -- dort steht kein Name),
+       eine mit spitzen Klammern im Namen, eine von der Fragenden (chefin, also
+       mine), eine herrenlose und die Suchzeile von einem Grabstein. Waeren
+       alle gleich, liesse sich nicht sehen, ob die Beschriftung ihre eigene
+       Zeile trifft.
+       created_at steht an jeder Zeile: der echte Server liefert es, und der
+       Ueberfahrtext haengt daran. */
     links: [
-      ...Array.from({ length: 7 }, (_, i) => ({ id: 80 + i, url: `https://beispiel.de/${i}`, sort_order: i })),
-      { id: 87, url: 'Handbuch 3000', sort_order: 7 }
+      ...Array.from({ length: 4 }, (_, i) => ({
+        id: 80 + i, url: `https://beispiel.de/${i}`, sort_order: i,
+        created_at: '2026-08-01 10:00:00', mine: false, verfasser: vBert })),
+      { id: 84, url: 'https://beispiel.de/4', sort_order: 4,
+        created_at: '2026-08-01 10:30:00', mine: false, verfasser: vBoese },
+      { id: 85, url: 'https://beispiel.de/5', sort_order: 5,
+        created_at: '2026-08-02 11:30:00', mine: true, verfasser: vChefin },
+      { id: 86, url: 'https://beispiel.de/6', sort_order: 6,
+        created_at: '2026-08-03 12:00:00', mine: false, verfasser: null },
+      { id: 87, url: 'Handbuch 3000', sort_order: 7,
+        created_at: '2026-08-04 13:00:00', mine: false, verfasser: vGrab }
     ],
     comments: [
       /* mine und bilderEntfernt an JEDEM Kommentar: der echte Server liefert
@@ -8371,6 +8424,142 @@ async function pruefeOberflaeche() {
   pruefe('Was sie tun, steht im Überfahrtext',
     kopfAktionen.every(b3 => (b3.getAttribute('title') || '').length > 3),
     kopfAktionen.map(b3 => b3.getAttribute('title')).join(' | '));
+
+  /* ================= Der Name an der Linkzeile ================= */
+  gruppe('Der Name an der Linkzeile');
+
+  /* DIE REGEL HAT ZWEI HAELFTEN, und beide brauchen ihre eigene Gegenlage
+     (Stolperstein 72): gezeigt wird der Name nur bei MEHREREN Zugaengen UND
+     nur an einer Zeile, die NICHT vom Verfasser des Eintrags stammt.
+     Ein Rueckbau, der nur eine der beiden Bedingungen entfernt, faerbt sonst
+     dieselben Punkte wie einer, der beide entfernt.
+     Der Eintrag gehoert bert; chefin, der boese Name, der Grabstein und die
+     herrenlose Zeile sind ihm fremd. */
+  const lvZeilen = (fenster) => [...fenster.document.querySelectorAll('#links .lrow')];
+  const lvName = (z) => z?.querySelector('.lvon')?.textContent || '';
+
+  const lvMehr = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 3 } });
+  await new Promise(r => setTimeout(r, 80));
+  const lvM = lvZeilen(lvMehr.w);
+  // Erst das Vorhandensein, dann die Eigenschaft: ohne Zeilen waere jede
+  // Aussage ueber sie wahr (Stolperstein 81).
+  pruefe('Die Linkliste steht auch bei mehreren Zugaengen vollstaendig da',
+    lvM.length === 8, `${lvM.length}`);
+  pruefe('An einer Zeile des Eintragsverfassers steht kein Name',
+    lvM.slice(0, 4).every(z => !z.querySelector('.lvon')),
+    lvM.slice(0, 4).map(z => lvName(z)).join(' | ') || '(kein Name -- richtig)');
+  pruefe('An einer fremden Zeile steht er',
+    /chefin$/.test(lvName(lvM[5])), lvName(lvM[5]) || '(kein Name)');
+  /* Eine herrenlose Zeile ist eine Auskunft, kein Nichts -- sie sagt es
+     ausdruecklich. */
+  pruefe('Eine herrenlose Zeile nennt ausdruecklich keinen Verfasser',
+    /Ohne Verfasser$/.test(lvName(lvM[6])), lvName(lvM[6]) || '(kein Name)');
+  // Der Grabstein hat keinen Namen mehr; aus der Nummer wird die Beschriftung.
+  pruefe('Ein Grabstein erscheint mit seiner Nummer',
+    /Gelöschter Benutzer 4$/.test(lvName(lvM[7])), lvName(lvM[7]) || '(kein Name)');
+
+  /* Das Trennzeichen ist in der Suchzeile ein anderes, und das mit Absicht:
+     dort bedeutet " · " bereits "noch ein Anbieter, anklickbar". */
+  pruefe('Die Adresszeile trennt den Namen mit einem Mittelpunkt',
+    lvName(lvM[5]).startsWith('· '), lvName(lvM[5]));
+  pruefe('Die Suchzeile mit einem eigenen Zeichen',
+    lvName(lvM[7]).startsWith('— '), lvName(lvM[7]));
+  /* Der Name steht NEBEN dem Pfad, nicht darunter -- sonst waechst die Zeile
+     auf dem Handy auf drei Hoehen. */
+  pruefe('Name und Pfad stehen in derselben zweiten Zeile',
+    !!lvM[5].querySelector('.lunten > .path') && !!lvM[5].querySelector('.lunten > .lvon'),
+    lvM[5].querySelector('.lurl')?.innerHTML);
+  pruefe('Und bei der Suchzeile Anbieternamen und Name ebenso',
+    !!lvM[7].querySelector('.lunten > .snamen') && !!lvM[7].querySelector('.lunten > .lvon'),
+    lvM[7].querySelector('.lurl')?.innerHTML);
+
+  /* Das Datum steht im Ueberfahrtext, nicht in der Zeile -- die Zeile ist auf
+     dem Handy am Anschlag. Der Name bleibt sichtbar, nur das Datum nicht. */
+  pruefe('Der Ueberfahrtext nennt Eintrager und Datum',
+    /Eingetragen von chefin am \d\d\.\d\d\.\d{4}/.test(lvM[5].title), lvM[5].title);
+  /* Und der bisherige Ueberfahrtext bleibt davor stehen -- er sagt, was ein
+     Klick tut, und das ist die wichtigere Auskunft. Bewusst OHNE das
+     Trennzeichen geprueft: sonst faerbt ein Rueckbau, der nur das Datum
+     entfernt, diese Zeile mit, und zwei Gegenproben, die dieselben Namen rot
+     machen, pruefen dieselbe Sache (Stolperstein 72). */
+  pruefe('Und was die Zeile sonst tut, steht weiterhin davor',
+    lvM[5].title.startsWith('https://beispiel.de/5'), lvM[5].title);
+  pruefe('An einer eigenen Zeile steht davon nichts',
+    !/Eingetragen von/.test(lvM[0].title), lvM[0].title);
+
+  /* Ein Benutzername ist Eingabe, keine Konstante. Geprueft am gerenderten
+     HTML, nicht an textContent -- eine fehlende Maskierung faellt textContent
+     gar nicht auf. */
+  pruefe('Aus einem Verfassernamen mit spitzen Klammern wird kein HTML',
+    !lvMehr.w.document.getElementById('boese-link') &&
+    lvName(lvM[4]).includes('<b id="boese-link">X</b>'),
+    lvM[4]?.querySelector('.lvon')?.innerHTML);
+
+  /* DAS LOESCHKREUZ FOLGT DEM RECHT, NICHT DER ANZEIGE. Hier ist die Fragende
+     Admin: sie darf jede Zeile loeschen, auch die, an der ihr Name gar nicht
+     steht. */
+  pruefe('Der Admin sieht an jeder Zeile ein Loeschkreuz',
+    lvM.every(z => !!z.querySelector('.xdel')),
+    `${lvM.filter(z => !!z.querySelector('.xdel')).length} von ${lvM.length}`);
+  lvMehr.w.close();
+
+  /* Die erste Gegenlage: EIN Zugang. "Von mir" ist keine Auskunft, und die
+     Schwelle steht in mehrereBenutzer() und nirgends sonst. Dieselben acht
+     Zeilen, dieselben Verfasser -- nur die Zahl ist eine andere. */
+  const lvEins = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 1 } });
+  await new Promise(r => setTimeout(r, 80));
+  const lvE = lvZeilen(lvEins.w);
+  pruefe('Auch bei einem einzigen Zugang stehen alle Zeilen da',
+    lvE.length === 8, `${lvE.length}`);
+  pruefe('Aber an keiner steht ein Name',
+    lvE.every(z => !z.querySelector('.lvon')),
+    lvE.map(z => lvName(z)).filter(Boolean).join(' | ') || '(kein Name -- richtig)');
+  pruefe('Und im Ueberfahrtext steht auch kein Eintrager',
+    lvE.every(z => !/Eingetragen von/.test(z.title)),
+    lvE.map(z => z.title).filter(t => /Eingetragen/.test(t)).join(' | ') || '(nichts -- richtig)');
+  // Ein Kreuz ohne Namen: die beiden Regeln sind wirklich getrennt.
+  pruefe('Das Loeschkreuz steht davon unberuehrt weiterhin da',
+    lvE.every(z => !!z.querySelector('.xdel')),
+    `${lvE.filter(z => !!z.querySelector('.xdel')).length} von ${lvE.length}`);
+  lvEins.w.close();
+
+  /* Die zweite Gegenlage: mehrere Zugaenge, aber ohne Adminrolle. Jetzt
+     trennen sich Anzeige und Recht sichtbar -- an der Grabsteinzeile steht ein
+     Name und kein Kreuz. */
+  const lvUser = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+  await new Promise(r => setTimeout(r, 80));
+  const lvU = lvZeilen(lvUser.w);
+  pruefe('Ohne Adminrolle steht das Kreuz nur an der eigenen Zeile',
+    lvU.filter(z => !!z.querySelector('.xdel')).length === 1 && !!lvU[5].querySelector('.xdel'),
+    lvU.map((z, i) => (z.querySelector('.xdel') ? i : null)).filter(i => i !== null).join(', '));
+  pruefe('Ein Name ohne Kreuz ist moeglich -- Anzeige und Recht sind getrennt',
+    !!lvU[7].querySelector('.lvon') && !lvU[7].querySelector('.xdel'),
+    `${lvName(lvU[7])} / ${!!lvU[7].querySelector('.xdel')}`);
+  // Und die Zeile bleibt im Uebrigen vollstaendig -- ein fehlendes Kreuz darf
+  // nicht den Aufbau der Liste mitreissen.
+  pruefe('Die Zeilen ohne Kreuz sind sonst unversehrt',
+    lvU.length === 8 && lvU.every(z => !!z.querySelector('.lurl') && !!z.querySelector('.go')),
+    `${lvU.length}`);
+  lvUser.w.close();
+
+  /* Und die Regel steht wirklich im Stylesheet: ohne die Aufteilung der
+     zweiten Zeile frisst ein langer Pfad den Namen weg. Erst das Vorhandensein
+     der Regel, dann ihre Eigenschaft (Stolperstein 81). */
+  const cssL = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
+  const regelL = (wahl) => (cssL.match(new RegExp(wahl.replace(/[.>]/g, m => '\\' + m) + ' \\{[^}]*\\}')) || [''])[0];
+  pruefe('Die zweite Zeile der Linkzeile ist im Stylesheet ueberhaupt geregelt',
+    regelL('.lunten').length > 0, '(keine Regel .lunten)');
+  pruefe('Sie stellt Pfad und Namen nebeneinander',
+    /display: flex/.test(regelL('.lunten')), regelL('.lunten') || '(keine Regel)');
+  pruefe('Der Pfad darf schrumpfen',
+    /flex: 1 1 auto/.test(regelL('.lunten .path, .lunten .snamen')),
+    regelL('.lunten .path, .lunten .snamen') || '(keine Regel)');
+  pruefe('Der Name nicht',
+    /flex: 0 0 auto/.test(regelL('.lunten .lvon')),
+    regelL('.lunten .lvon') || '(keine Regel)');
 
   /* ================= Ziehen auf dem Finger ================= */
   gruppe('Ziehen: Maus sofort, Finger erst nach Halten');
