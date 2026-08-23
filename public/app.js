@@ -447,7 +447,7 @@ function waehleBilder(fertig) {
   inp.click();
 }
 
-// Mehrteiliges Formular schicken. api() sendet JSON und taugt dafuer nicht.
+// Multipart-Formular schicken. api() sendet JSON und taugt dafuer nicht.
 async function sendeFormular(pfad, formular) {
   const a = await fetch(pfad, { method: 'POST', body: formular, credentials: 'same-origin' });
   const daten = await a.json().catch(() => ({}));
@@ -700,7 +700,7 @@ function baueKommentarknoten(stuecke) {
     const text = String(s?.text ?? '');
     if (!text) return;
     // Schranke 2: unmittelbar vor dem Setzen von href noch einmal pruefen.
-    // Faellt die Zeichenkette durch, wird sie gewoehnlicher Text, nicht Link.
+    // Faellt der String durch, wird sie gewoehnlicher Text, nicht Link.
     if (s?.ziel && /^https?:\/\//i.test(String(s.ziel))) {
       const a = document.createElement('a');
       a.href = String(s.ziel);
@@ -880,7 +880,7 @@ function visibleItems(filter) {
      baut eine zweite Wahrheit ueber denselben Bestand.
      Verglichen werden zwei Zeitstempel aus DERSELBEN Quelle -- beide kommen
      als 'JJJJ-MM-TT HH:MM:SS' vom Server, und in diesem Format ist der
-     Zeichenkettenvergleich der Vergleich der Zeiten. Genau wie die Sortierung
+     Stringvergleich der Vergleich der Zeiten. Genau wie die Sortierung
      eine Zeile tiefer, die localeCompare auf dieselbe Spalte anwendet.
      OHNE gespeicherten Wert greift er GAR NICHT: beim allerersten Besuch gibt
      es keinen Bezugspunkt, und ein Filter, der dann alles zeigt, erklaert
@@ -2282,7 +2282,7 @@ async function renderDetail(id) {
   /* Ein Standbild aus dem gewaehlten Video ziehen -- IM BROWSER, ohne dass der
      Server das Video je oeffnen muesste. Wer es abspielen kann, kann auch ein
      Standbild daraus ziehen; wer nicht, laedt es gar nicht erst hoch. Das ist
-     die Entscheidung, an der der ganze Videoweg haengt: kein ffmpeg im Abbild,
+     die Entscheidung, an der der ganze Videoweg haengt: kein ffmpeg im Image,
      keine neue Abhaengigkeit, keine Videobibliothek mit eigener
      Angriffsflaeche.
      Die blob:-Adresse am <video> braucht media-src 'self' blob: in der
@@ -3538,7 +3538,7 @@ async function renderSystem() {
 
       ${ADMIN ? `<div class="sys-card">
         <h3>Kennzahlen</h3>
-        <p class="desc">Umfang des Bestands, Belegung der Datenbank und der Abdruck
+        <p class="desc">Umfang des Bestands, Belegung der Datenbank und der Fingerprint
           der laufenden Dateien.</p>
         <div class="kv"><span class="k">${esc(V.sacheMehrzahl)}</span><span class="v">${stats.itemCount}</span></div>
         <div class="kv"><span class="k">Fotos</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
@@ -3548,11 +3548,11 @@ async function renderSystem() {
         <div class="kv"><span class="k">${esc(V.zeitpunktMehrzahl)}</span><span class="v">${stats.testDayCount}</span></div>
           <div class="kv"><span class="k">Dateien</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
         <div class="kv"><span class="k">Datenbank</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
-        ${/* Der Abdruck beantwortet, was die Versionsnummer nicht kann: ob die
+        ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann: ob die
              Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
              Einspielen wird er gegen die Zeile im Aenderungsprotokoll
              gehalten -- stimmt er nicht, ist ein Dateisatz halb eingespielt. */''}
-        <div class="kv"><span class="k">Abdruck</span><span class="v"><code>${esc(stats.abdruck || '—')}</code></span></div>
+        <div class="kv"><span class="k">Fingerprint</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">Der Schlüssel kommt aus der Umgebung. Denk daran: <strong>.env und data/ nicht ins selbe Backup legen</strong> — und ohne den Schlüssel sind die Daten unwiederbringlich verloren.</div>`
           : `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.

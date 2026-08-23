@@ -12,7 +12,7 @@ Prüfungen: **1391 → 1429** (38 neue), alle grün.
 entstanden, und keine hat ihre Art gewechselt. Der neue Endpunkt ist lesend
 und trägt seinen Wächter in der Routenzeile; das ist das vierte Mal, dass
 dieses Muster angewandt wird.
-**Kein Punkt hat das Schema angefasst.** Es ist kein Umstiegscode entstanden,
+**Kein Punkt hat das Schema angefasst.** Es ist kein Migrationscode entstanden,
 und für „Vorgemerkt für 1.0" fällt aus dieser Version **nichts** an.
 
 ---
@@ -98,7 +98,7 @@ id="wer">Angemeldet als ${esc(NAME)}</span>` unmittelbar vor dem Knopf
   Bedienelement" (Stolperstein 48).
 
 ### `pruefung.js` (+194/−15 `pruefe`-Aufrufe gezählt; netto +38 Prüfungen)
-- **Der Doppelgänger kennt den neuen Endpunkt** — und hält die Rolle nach,
+- **Der Mock kennt den neuen Endpunkt** — und hält die Rolle nach,
   wie bei `/api/stats`. `beispiel.ratings` trägt **keine** `stimmen` mehr; die
   vier Lagen (eigene, fremde lebende, Grabstein, herrenlos) stehen jetzt in
   `stimmenAntwort`, und das dritte Kriterium kommt dort gar nicht vor.
@@ -107,7 +107,7 @@ id="wer">Angemeldet als ${esc(NAME)}</span>` unmittelbar vor dem Knopf
   zu unterscheiden (Stolperstein 90).
 - `beispiel` bekommt `created_at` — ohne das zeichnete die Verfasserzeile ins
   Leere und jede Prüfung darauf wäre blind.
-- `/api/settings` liefert im Doppelgänger einen Vorgabenamen (`chefin`,
+- `/api/settings` liefert im Mock einen Vorgabenamen (`chefin`,
   derselbe wie unter `/api/account`); eine Prüflage kann ihn überschreiben.
 - **Neue Servergruppe „Wer hat bewertet -- die Ansicht des Admins"** mit vier
   Rufern nebeneinander.
@@ -125,7 +125,7 @@ id="wer">Angemeldet als ${esc(NAME)}</span>` unmittelbar vor dem Knopf
 | 3 | **Der Aufrufknopf hängt an `ADMIN && mehrereBenutzer()`, nicht nur an `ADMIN`** | Beides | Bei genau einem Zugang wäre die Ansicht der eigene Wert ein zweites Mal — dieselbe Begründung wie bei der Durchschnittsspalte seit 0.7.0. **Die Schwelle steht ausschließlich in der Oberfläche**; der Server liefert und entscheidet nichts darüber. Zu jeder Hälfte der Bedingung gehört eine eigene Prüflage (G3 und G4 liefern verschiedene Punktlisten). |
 | 4 | **Im Dialog hängt das ✕ nur noch an `!st.mine`, nicht mehr an `ADMIN && !st.mine`** | Klemme weggenommen, nicht verdoppelt | Den Dialog bekommt ohnehin nur der Admin zu sehen — und der Server gibt die Liste ohnehin nur ihm. Eine zweite Rollenfrage darin wäre eine zweite Wahrheit über dieselbe Sache und ließe sich nicht gegenprüfen: ihr Rückbau bliebe stumm (Stolperstein 50). Was die Prüflage stattdessen belegt: **ohne Adminrolle gibt es den Aufruf gar nicht und wird auch nichts abgerufen.** |
 | 5 | **Der Endpunkt liefert keinen Kriterienname** | Nur Nummern | Reihenfolge und Name stehen in `item.ratings`, das die Ansicht ohnehin hat. Zwei Quellen für denselben Namen wären zwei Wahrheiten — dieselbe Überlegung wie bei den Zahlen des Löschdialogs, nur mit umgekehrtem Ergebnis: dort ließ sich die Frage aus dem geladenen Eintrag *nicht* beantworten, hier schon. |
-| 6 | **Der Doppelgänger stellt `/api/stats`-artig auch `/api/items/1/stimmen` hinter die Rolle** | Nachgebaut, obwohl heute keine Prüflage ihn ohne Rolle ruft | Ein Doppelgänger, der die Antwort vereinfacht, löscht genau die Prüfung, für die er gebaut ist. Dass der Zweig heute nicht angesprochen wird, ist eine Aussage über die **Oberfläche** (sie ruft ohne Rolle gar nicht) und keine über den Server. Steht unter „nicht gegengeprüft, mit Grund". |
+| 6 | **Der Mock stellt `/api/stats`-artig auch `/api/items/1/stimmen` hinter die Rolle** | Nachgebaut, obwohl heute keine Prüflage ihn ohne Rolle ruft | Ein Mock, der die Antwort vereinfacht, löscht genau die Prüfung, für die er gebaut ist. Dass der Zweig heute nicht angesprochen wird, ist eine Aussage über die **Oberfläche** (sie ruft ohne Rolle gar nicht) und keine über den Server. Steht unter „nicht gegengeprüft, mit Grund". |
 | 7 | **Die Prüfung „die Wolke wird abgeschnitten" steht am gestellten Kasten, nicht an der echten Ansicht** | Nötig, beim Bauen aufgefallen | Der erste Versuch stand an `#tagcloud` in einer echten Detailansicht und wurde sofort rot: jsdom rechnet kein Layout, `offsetHeight` der ersten Marke ist null, und `begrenzeWolke()` bricht dann **absichtlich** ab, ohne etwas zu setzen. Prüfbar ist die Funktion nur dort, wo die Höhe gestellt wird (Stolperstein 91). |
 | 8 | **Das Datum steht mit Uhrzeit, nicht nur als Tag** | `fmtDate()` | Es ist dieselbe Angabe wie in der Kopfzeile jedes Kommentars, und zwei Schreibweisen für denselben Zeitpunkt wären eine zu viel. |
 | 9 | **Ein Auffangnetz für ein fehlendes `created_at` gibt es nicht** | Bewusst keins | Die Spalte steht `NOT NULL DEFAULT (datetime('now'))`. Ein Netz gegen etwas, das es nicht gibt, ließe sich nicht gegenprüfen. |
@@ -143,11 +143,11 @@ Behandler, ob er selbst der oberste ist. **Verwandt mit 41**, aber umgekehrt:
 dort bleibt ein Behandler an einem Element hängen, das neu gezeichnet wird,
 hier greifen zwei gültige Behandler auf dasselbe Ereignis zu.
 
-**90. Ein Doppelgänger, der eine Antwort nur ausliefert, kann kein
+**90. Ein Mock, der eine Antwort nur ausliefert, kann kein
 Neuzeichnen belegen.** Antwortet er auf ein `DELETE` zwar mit dem neuen Stand
 des Eintrags, liefert aber weiterhin dieselbe Liste, ist „die Ansicht zeichnet
 sich neu" von „die Ansicht blieb stehen" nicht zu unterscheiden — die
-Prüfung bliebe in beiden Fällen grün. **Ein Doppelgänger, dessen Antwort sich
+Prüfung bliebe in beiden Fällen grün. **Ein Mock, dessen Antwort sich
 durch einen Schreibvorgang ändern soll, muss sie wirklich ändern.**
 Fortschreibung von Abweichung 7 aus 0.8.5: dort ging es darum, dass er nicht
 *vereinfachen* darf, hier darum, dass er nicht *erstarren* darf.
@@ -220,7 +220,7 @@ Prüfungen — keine deckt die andere zu (Stolperstein 53).
 
 **G14 gegen G15 ist Stolperstein 81 in Reinform:** ohne die Prüfung auf das
 **Vorhandensein** der Regel bliebe bei einer fehlenden Regel nur ein roter
-Punkt statt zwei — eine leere Zeichenkette macht jede Verneinung wahr.
+Punkt statt zwei — ein leerer String macht jede Verneinung wahr.
 
 **G16 belegt die Entscheidung gegen die Ersatzlösung des Auftrags.** Die
 Kachel ans Ende zu ziehen wäre der andere Weg gewesen; die Prüfung hält fest,
@@ -251,7 +251,7 @@ Eigentümerin richtig und bei jedem anderen falsch.
 
 **Nicht gegengeprüft, mit Grund:**
 
-- **Die Rollenklemme des Doppelgängers an `/api/items/1/stimmen`.** Ein
+- **Die Rollenklemme des Mocks an `/api/items/1/stimmen`.** Ein
   Rückbau bliebe stumm: die Oberfläche ruft den Endpunkt ohne Adminrolle gar
   nicht erst, es gibt also keine Prüflage, die eine 403-Antwort sähe. Der Zweig
   steht trotzdem — er bildet den echten Server ab, und die Aussage „ohne Rolle
@@ -271,7 +271,7 @@ Eigentümerin richtig und bei jedem anderen falsch.
 | Prüfungen gesamt | 1391 | **1429** |
 | `F_ROUTEN` | 46 | **46** (unverändert) |
 | Formatnummer Export | 6 | **6** (unverändert) |
-| Umstiegsblöcke | 1 (`umstieg083`) | **1** (unverändert) |
+| Migrationsblöcke | 1 (`migration083`) | **1** (unverändert) |
 | Karten im Systembereich | 13 | **13** (unverändert) |
 
 Neue Prüfungen nach Ort:
@@ -333,7 +333,7 @@ Eintrag* las bis 0.8.5 die Zahl der Stimmen in der Antwort; sie liest jetzt
 ## 6. Vorgemerkt für 1.0
 
 **Aus dieser Version fällt nichts an.** Kein Punkt hat das Schema angefasst,
-es ist kein Umstiegscode entstanden. `umstieg083()` in `db.js` bleibt der
+es ist kein Migrationscode entstanden. `migration083()` in `db.js` bleibt der
 einzige markierte Block — 18 Zeilen, 7 Prüfungen, unverändert.
 
 ---

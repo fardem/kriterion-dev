@@ -13,9 +13,9 @@ Projektstand, Abschnitt 10. Hervorgegangen aus Punkt 4.1 in
 >   die 7 belegt, 0.8.31 die 8. Im Text unten steht sie an zwei Stellen noch
 >   alt: im JSON-Beispiel in Abschnitt 10 (`"version": 7`) und im Satz „die
 >   Gewichtung wird 0.8.40 mit Format 8" ebenda.
-> - **Der Umstiegsblock heißt `umstieg0840()`**, nicht `umstiegGewicht()`, und
->   ist der **vierte** markierte Block im Projekt — `umstieg0830()` und
->   `umstieg0831()` liegen dazwischen.
+> - **Der Migrationsblock heißt `migration0840()`**, nicht `umstiegGewicht()`, und
+>   ist der **vierte** markierte Block im Projekt — `migration0830()` und
+>   `migration0831()` liegen dazwischen.
 > - **Die Begründung gegen den `CHECK` in Abschnitt 3 ist falsch.** SQLite
 >   nimmt `ALTER TABLE … ADD COLUMN … CHECK (…)` sehr wohl an, und der `CHECK`
 >   greift danach; das ist nachgestellt worden (Stolperstein 107). Er ist
@@ -777,7 +777,7 @@ Durchgang abzuarbeiten sein muss, und die Empfehlung lautete: getrennt lassen.
 **So ist es gekommen.** G4 ist auf 0.8.30 allein gefahren worden, mit Format 7;
 die Gewichtung wird 0.8.40 mit Format 8. Die Empfehlung hat sich im Bau
 bestätigt: G4 brauchte allein 76 neue Prüfungen und 31 Gegenproben — Schema,
-Umstieg, Rechtewende, Oberfläche und Austauschformat in einem Durchgang. Für
+Migration, Rechtewende, Oberfläche und Austauschformat in einem Durchgang. Für
 eine zweite Baustelle war darin keine Reserve.
 
 ---
@@ -788,13 +788,13 @@ Nach Stolperstein 20 gehören **beide** Teile dazu — die DDL *und* ein
 Migrationsblock, denn `CREATE TABLE IF NOT EXISTS` rüstet an einer vorhandenen
 Tabelle nichts nach:
 
-*Der Block ist damit der **vierte** markierte im Projekt — nach `umstieg083()`
-(0.8.3), `umstieg0830()` (0.8.30) und `umstieg0831()` (0.8.31). Alle drei
+*Der Block ist damit der **vierte** markierte im Projekt — nach `migration083()`
+(0.8.3), `migration0830()` (0.8.30) und `migration0831()` (0.8.31). Alle drei
 stehen unter „Vorgemerkt für 1.0" im Projektstand; dieser gehört dort sofort
 dazu.*
 
 ```js
-// UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
+// MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
 // Die Spalte gewicht steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
 // eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.6
 // traegt rating_criteria ohne diese Spalte; die Vorgabe 1.0 greift nur dort,
@@ -804,14 +804,14 @@ function umstiegGewicht() {
   const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
   if (spalten.includes('gewicht')) return 0;
   db.exec('ALTER TABLE rating_criteria ADD COLUMN gewicht REAL NOT NULL DEFAULT 1.0');
-  console.log('[Kriterion] rating_criteria um gewicht ergaenzt (Umstieg auf 0.8.40).');
+  console.log('[Kriterion] rating_criteria um gewicht ergaenzt (Migration auf 0.8.40).');
   return 1;
 }
 umstiegGewicht();
-// ENDE UMSTIEG 0.8.40
+// ENDE MIGRATION 0.8.40
 ```
 
-Wortgleich zum Muster von `umstieg083()`, inklusive der Marke für die
+Wortgleich zum Muster von `migration083()`, inklusive der Marke für die
 Bereinigung zu 1.0.
 
 **Bestandszeilen bekommen 1,0** — und das ist die einzig mögliche Wahl: jeder
@@ -828,7 +828,7 @@ Verwaltung schreibt `UPDATE` auf eine bestehende Zeile. Damit kann keine Zeile
 still verschwinden und ihre `ratings` über die Kaskade mitnehmen.
 
 **`ALTER TABLE ADD COLUMN` mit `NOT NULL DEFAULT` ist in SQLite erlaubt** und
-füllt vorhandene Zeilen sofort — es ist derselbe Weg, den `umstieg083()` schon
+füllt vorhandene Zeilen sofort — es ist derselbe Weg, den `migration083()` schon
 gegangen ist.
 
 ---
@@ -837,14 +837,14 @@ gegangen ist.
 
 Nach den Regeln des Projekts: jede Verweigerung braucht ihre eigene Gegenprobe
 mit zweiter Sitzung (Stolperstein 3), jedes neue Bedienelement braucht ein
-wirklich zugestelltes Ereignis (Stolperstein 17), und ein Doppelgänger muss
+wirklich zugestelltes Ereignis (Stolperstein 17), und ein Mock muss
 antworten wie der echte Server (Stolperstein 90).
 
 | # | Prüfung | Warum sie da sein muss |
 |---|---|---|
 | 1 | Frische Anlage: alle drei Grundkriterien haben `gewicht = 1` | Vorgabe in der DDL |
 | 2 | Migration: Datenbank ohne Spalte bekommt sie, Bestandszeilen auf 1,0 | Stolperstein 20 |
-| 3 | Migration ist wiederholbar und beim zweiten Lauf stumm | Muster von `umstieg083` |
+| 3 | Migration ist wiederholbar und beim zweiten Lauf stumm | Muster von `migration083` |
 | 4 | **Alle Gewichte 1 → `avgRating` bitgleich zum ungewichteten Ergebnis** | *die* Regressionsprüfung |
 | 5 | A=5 (×2), B=1 (×1) → **3,7**; dieselben Werte ungewichtet → **3,0** | die Wirkung selbst |
 | 6 | **3 Kriterien, nur eines bewertet (3, ×0,2), die anderen ×2 unbewertet → 3,0** | die Falle aus Abschnitt 2 |
@@ -852,7 +852,7 @@ antworten wie der echte Server (Stolperstein 90).
 | 8 | Extremfall 1 (×0,2) gegen 5 (×2) → Ergebnis zwischen 1 und 5 | Grenzen unter Last |
 | 9 | Abgewiesen mit 400: `0`, `-1`, `-1,5`, `2,1`, `3`, `"abc"`, `null`, `Infinity` | `gueltigesGewicht()`, „nur positiv" eingeschlossen |
 | 10 | Nach einer Abweisung steht der **alte** Wert unverändert in der Datenbank | keine halbe Schreibung |
-| 11 | Ein `user` bekommt 403 — **zweite Sitzung, echter zweiter Keks** | Stolperstein 3 |
+| 11 | Ein `user` bekommt 403 — **zweite Sitzung, echter zweiter Cookie** | Stolperstein 3 |
 | 12 | **Vergleich: „meine" ist ebenso gewichtet wie „alle"** — Prüflage, in der sich beide Zahlen ungewichtet *und* gewichtet unterscheiden | die zweite Rechenstelle |
 | 13 | Vergleich: die Hervorhebung des besten Werts je Kriterium bleibt unverändert | Zusicherung an die feste Skala |
 | 14 | Export enthält `criteriaGewichte`; Kriterien mit Gewicht 1 fehlen darin | nur Abweichungen |
@@ -884,7 +884,7 @@ Stimmen je Kriterium hängen, sonst belegt sie zu wenig.
 
 **Prüfung 6 und 12** sind die beiden, die man ohne dieses Papier vergäße.
 
-**Zum Doppelgänger** (Stolperstein 90): er muss `gewicht` an **allen**
+**Zum Mock** (Stolperstein 90): er muss `gewicht` an **allen**
 Kriterienzeilen liefern, und mindestens zwei davon mit **verschiedenen**
 Werten — einer davon 1, damit sich Anzeige und Nichtanzeige gleichzeitig
 belegen lassen. Und sein `avgRating` muss sich nach einem Gewichtswechsel

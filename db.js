@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS comments (
   -- Bild entfernt; der Verfasser raeumt bei sich auf, das ist kein Eingriff.
   -- Nicht zuruecksetzbar, und NIE im Textfeld -- dort taete der Admin genau
   -- das, was er nicht darf.
-  -- Die Vorgabe 0 greift fuer jede Bestandszeile; Umstiegscode braucht es
+  -- Die Vorgabe 0 greift fuer jede Bestandszeile; Migrationscode braucht es
   -- deshalb nicht.
   images_removed INTEGER NOT NULL DEFAULT 0
 );
@@ -269,7 +269,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 -- Der Primaerschluessel liegt auf token; jede Frage nach den Sitzungen EINES
 -- Benutzers -- sperren, loeschen, spaeter "Meine Sitzungen" -- laese sonst die
--- ganze Tabelle. Ein Index ist kein Umstieg: er fasst die Zeilenform nicht an
+-- ganze Tabelle. Ein Index ist keine Migration: er fasst die Zeilenform nicht an
 -- und legt sich bei jedem Start selbst nach, in frischer wie bestehender Anlage.
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 
@@ -305,24 +305,24 @@ CREATE TABLE IF NOT EXISTS user_settings (
 const db = open(DB_FILE);
 db.exec(SCHEMA);
 
-// UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0
+// MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
 // Die Spalte images_removed steht in der DDL, aber CREATE TABLE IF NOT EXISTS
 // ruehrt eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus
 // 0.8.0 bis 0.8.2 traegt comments ohne diese Spalte; die Vorgabe 0 greift nur
 // dort, wo die Spalte ueberhaupt existiert.
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
-function umstieg083() {
+function migration083() {
   const spalten = db.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
   if (spalten.includes('images_removed')) return 0;
   db.exec('ALTER TABLE comments ADD COLUMN images_removed INTEGER NOT NULL DEFAULT 0');
-  console.log('[Kriterion] comments um images_removed ergaenzt (Umstieg auf 0.8.3).');
+  console.log('[Kriterion] comments um images_removed ergaenzt (Migration auf 0.8.3).');
   return 1;
 }
-umstieg083();
-// ENDE UMSTIEG 0.8.3
+migration083();
+// ENDE MIGRATION 0.8.3
 
-// UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0
+// MIGRATION 0.8.30 — ENTFAELLT MIT 1.0
 // Die Spalte user_id steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
 // eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.0
 // bis 0.8.20 traegt links ohne diese Spalte.
@@ -335,7 +335,7 @@ umstieg083();
 // SPAETER herrenlos wird. Zwei Zeitpunkte, zwei Regeln, kein Widerspruch.
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
-function umstieg0830() {
+function migration0830() {
   const spalten = db.prepare('PRAGMA table_info(links)').all().map(c => c.name);
   if (spalten.includes('user_id')) return 0;
   db.exec('ALTER TABLE links ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
@@ -343,14 +343,14 @@ function umstieg0830() {
     'UPDATE links SET user_id = (SELECT user_id FROM items WHERE items.id = links.item_id)' +
     ' WHERE user_id IS NULL'
   ).run().changes;
-  console.log(`[Kriterion] links um user_id ergaenzt (Umstieg auf 0.8.30); ` +
+  console.log(`[Kriterion] links um user_id ergaenzt (Migration auf 0.8.30); ` +
     `${n} Linkzeilen dem Verfasser ihres Eintrags zugeordnet.`);
   return 1;
 }
-umstieg0830();
-// ENDE UMSTIEG 0.8.30
+migration0830();
+// ENDE MIGRATION 0.8.30
 
-// UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0
+// MIGRATION 0.8.31 — ENTFAELLT MIT 1.0
 // Dieselbe Sache wie eine Version zuvor, nur an attachments: die Spalte steht
 // in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle
 // nicht an (Stolperstein 13). Ein Bestand aus 0.8.0 bis 0.8.30 traegt
@@ -361,7 +361,7 @@ umstieg0830();
 // andere Frage zu einem anderen Zeitpunkt -- dort gilt der Eigentuemer.
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
-function umstieg0831() {
+function migration0831() {
   const spalten = db.prepare('PRAGMA table_info(attachments)').all().map(c => c.name);
   if (spalten.includes('user_id')) return 0;
   db.exec('ALTER TABLE attachments ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
@@ -369,14 +369,14 @@ function umstieg0831() {
     'UPDATE attachments SET user_id = (SELECT user_id FROM items WHERE items.id = attachments.item_id)' +
     ' WHERE user_id IS NULL'
   ).run().changes;
-  console.log(`[Kriterion] attachments um user_id ergaenzt (Umstieg auf 0.8.31); ` +
+  console.log(`[Kriterion] attachments um user_id ergaenzt (Migration auf 0.8.31); ` +
     `${n} Dateien dem Verfasser ihres Eintrags zugeordnet.`);
   return 1;
 }
-umstieg0831();
-// ENDE UMSTIEG 0.8.31
+migration0831();
+// ENDE MIGRATION 0.8.31
 
-// UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
+// MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
 // Die Spalte gewicht steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
 // eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.0
 // bis 0.8.31 traegt rating_criteria ohne diese Spalte.
@@ -384,25 +384,25 @@ umstieg0831();
 // aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit NOT NULL
 // DEFAULT fuellt die vorhandenen Zeilen selbst. Jeder andere Wert aenderte
 // beim Einspielen still saemtliche Gesamtschnitte.
-// KEINE FRAGE NACH EINEM EIGENTUEMER, anders als bei den beiden Umstiegen
+// KEINE FRAGE NACH EINEM EIGENTUEMER, anders als bei den beiden Migrationen
 // darueber: ein Gewicht kann nicht herrenlos werden, es hat einen
 // NOT-NULL-Vorgabewert. Das Auffangnetz weiter unten geht diese Spalte
 // deshalb nichts an.
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalte in der DDL bleibt.
-function umstieg0840() {
+function migration0840() {
   const spalten = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
   if (spalten.includes('gewicht')) return 0;
   db.exec('ALTER TABLE rating_criteria ADD COLUMN gewicht REAL NOT NULL DEFAULT 1.0');
   const n = db.prepare('SELECT COUNT(*) AS n FROM rating_criteria').get().n;
-  console.log(`[Kriterion] rating_criteria um gewicht ergaenzt (Umstieg auf 0.8.40); ` +
+  console.log(`[Kriterion] rating_criteria um gewicht ergaenzt (Migration auf 0.8.40); ` +
     `${n} Kriterien stehen auf dem Vorgabegewicht 1,0.`);
   return 1;
 }
-umstieg0840();
-// ENDE UMSTIEG 0.8.40
+migration0840();
+// ENDE MIGRATION 0.8.40
 
-// UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0
+// MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
 // Die Spalten art und dauer stehen in der DDL, aber CREATE TABLE IF NOT EXISTS
 // ruehrt eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus
 // 0.8.0 bis 0.8.40 traegt photos ohne diese Spalten.
@@ -419,7 +419,7 @@ umstieg0840();
 // diese Tabelle deshalb nichts an.
 // Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
 // weg, die Spalten in der DDL bleiben.
-function umstieg0850() {
+function migration0850() {
   const spalten = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
   const fehlend = [];
   if (!spalten.includes('art')) {
@@ -432,12 +432,12 @@ function umstieg0850() {
   }
   if (!fehlend.length) return 0;
   const n = db.prepare('SELECT COUNT(*) AS n FROM photos').get().n;
-  console.log(`[Kriterion] photos um ${fehlend.join(' und ')} ergaenzt (Umstieg auf 0.8.50); ` +
+  console.log(`[Kriterion] photos um ${fehlend.join(' und ')} ergaenzt (Migration auf 0.8.50); ` +
     `${n} Zeilen stehen auf der Vorgabeart 'bild'.`);
   return 1;
 }
-umstieg0850();
-// ENDE UMSTIEG 0.8.50
+migration0850();
+// ENDE MIGRATION 0.8.50
 
 // --- Auffangnetz: die Anlage braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
@@ -469,8 +469,8 @@ function eigentuemerId() {
 // --- Auffangnetz: kein Bestand ohne Benutzer ---
 // Alles, was niemandem gehoert, faellt an den Eigentuemer -- auch eine
 // Linkzeile und eine Datei.
-// DAS IST NICHT DIESELBE REGEL WIE IN DEN UMSTIEGEN DARUEBER, und beide
-// stehen bewusst nebeneinander: der Umstieg beantwortet einmalig, wem die
+// DAS IST NICHT DIESELBE REGEL WIE IN DEN MIGRATIONEN DARUEBER, und beide
+// stehen bewusst nebeneinander: die Migration beantwortet einmalig, wem die
 // Links eines BESTEHENDEN Eintrags gehoeren (seinem Verfasser), das Netz
 // beantwortet fortlaufend, wem eine Zeile zufaellt, die ihren Verfasser
 // VERLOREN hat (dem Eigentuemer, wie ueberall sonst). Verschiedene
@@ -534,13 +534,13 @@ renumberCriteria();
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
                    renumberCriteria, ordneBestandZu, eigentuemerId,
-                   // UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0
-                   umstieg083,
-                   // UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0
-                   umstieg0830,
-                   // UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0
-                   umstieg0831,
-                   // UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
-                   umstieg0840,
-                   // UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0
-                   umstieg0850 };
+                   // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
+                   migration083,
+                   // MIGRATION 0.8.30 — ENTFAELLT MIT 1.0
+                   migration0830,
+                   // MIGRATION 0.8.31 — ENTFAELLT MIT 1.0
+                   migration0831,
+                   // MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
+                   migration0840,
+                   // MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
+                   migration0850 };

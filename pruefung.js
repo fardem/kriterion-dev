@@ -157,12 +157,12 @@ function kurzlauf(code, datenVerzeichnis) {
 }
 
 // Ein weiterer Server mit eigenem Datenverzeichnis, eigener Umgebung und
-// eigenem Keks. Gebraucht fuer alle Prueflagen, die eine eigene Anlage
+// eigenem Cookie. Gebraucht fuer alle Prueflagen, die eine eigene Anlage
 // brauchen: frische Einrichtung, Rechte mit mehreren Zugaengen, Sperren.
 function starteWeiterenServer(datenVerzeichnis, zusatz, portBasis) {
   const port = portBasis + Math.floor(Math.random() * 60);
   const basis = `http://127.0.0.1:${port}`;
-  let protokoll = '', keksB = '';
+  let protokoll = '', cookieB = '';
   const umgebung = { ...process.env, PORT: String(port), DATA_DIR: datenVerzeichnis, ENCRYPTION_KEY: KEY };
   delete umgebung.AUTH_RESET;
   Object.assign(umgebung, zusatz);
@@ -171,11 +171,11 @@ function starteWeiterenServer(datenVerzeichnis, zusatz, portBasis) {
   kindB.stderr.on('data', d => { protokoll += d; });
   const rufB = async (methode, pfad, koerper) => {
     const opt = { method: methode, headers: {} };
-    if (keksB) opt.headers.cookie = keksB;
+    if (cookieB) opt.headers.cookie = cookieB;
     if (koerper !== undefined) { opt.headers['content-type'] = 'application/json'; opt.body = JSON.stringify(koerper); }
     const a = await fetch(basis + pfad, opt);
     const setz = a.headers.get('set-cookie');
-    if (setz) keksB = setz.split(';')[0];
+    if (setz) cookieB = setz.split(';')[0];
     let inhalt = null;
     try { inhalt = await a.json(); } catch {}
     return { status: a.status, inhalt };
@@ -188,18 +188,18 @@ function starteWeiterenServer(datenVerzeichnis, zusatz, portBasis) {
     throw new Error(`Zweitserver nicht erreichbar\n${protokoll}`);
   })();
   return { bereit, ruf: rufB, protokoll: () => protokoll, basis,
-           keksLoeschen: () => { keksB = ''; },
+           cookieLoeschen: () => { cookieB = ''; },
            stopp: () => new Promise(r => { kindB.on('exit', r); kindB.kill(); }) };
 }
 
-let keks = '';
+let cookie = '';
 async function ruf(methode, pfad, koerper) {
   const opt = { method: methode, headers: {} };
-  if (keks) opt.headers.cookie = keks;
+  if (cookie) opt.headers.cookie = cookie;
   if (koerper !== undefined) { opt.headers['content-type'] = 'application/json'; opt.body = JSON.stringify(koerper); }
   const a = await fetch(BASIS + pfad, opt);
   const setz = a.headers.get('set-cookie');
-  if (setz) keks = setz.split(';')[0];
+  if (setz) cookie = setz.split(';')[0];
   let inhalt = null;
   try { inhalt = await a.json(); } catch {}
   return { status: a.status, inhalt };
@@ -257,9 +257,9 @@ const namen = (liste) => liste.map(c => c.name);
   nutzerTabelle.close();
 
   // Die Einrichtung meldet gleich an; die Anmelderoute wird trotzdem belegt.
-  keks = '';
+  cookie = '';
   const anmeldung = await ruf('POST', '/api/login', { user: NUTZER, password: PASSWORT });
-  pruefe('Anmeldung gelingt', anmeldung.status === 200 && keks.startsWith('kriterion_session='));
+  pruefe('Anmeldung gelingt', anmeldung.status === 200 && cookie.startsWith('kriterion_session='));
   pruefe('Eingerichtet meldet /api/config keinen Einrichtungsbedarf',
     (await ruf('GET', '/api/config')).inhalt.setupRequired === false);
 
@@ -281,7 +281,7 @@ const namen = (liste) => liste.map(c => c.name);
   gruppe('Umbenennung auf Kriterion');
 
   // Zwei Stellen der Umbenennung stehen bewusst nicht hier, sondern dort, wo
-  // sie hingehoeren: der Keksname eine Zeile weiter oben in der Anmeldung, die
+  // sie hingehoeren: der Cookiename eine Zeile weiter oben in der Anmeldung, die
   // Versionszeile in der Oberflaechengruppe. Beide gab es schon und wurden nur
   // umgestellt. Hier steht, was neu dazukommt.
 
@@ -303,7 +303,7 @@ const namen = (liste) => liste.map(c => c.name);
   // Weg, den es gar nicht gibt.
   const titelZuvor = (await ruf('GET', '/api/titles')).inhalt;
   await ruf('PUT', '/api/titles', { publicTitle: titelZuvor.publicTitle, appTitle: '...' });
-  const expAntwort = await fetch(`${BASIS}/api/export?photos=0`, { headers: { cookie: keks } });
+  const expAntwort = await fetch(`${BASIS}/api/export?photos=0`, { headers: { cookie: cookie } });
   const dispoKopf = expAntwort.headers.get('content-disposition') || '';
   await expAntwort.arrayBuffer();
   pruefe('Rueckfallname der Exportdatei lautet kriterion',
@@ -336,27 +336,27 @@ const namen = (liste) => liste.map(c => c.name);
   /* ---------------------------------------------------------------- */
   gruppe('Der Bau ist wiederholbar');
 
-  /* Die Sperrdatei nagelt die Abhaengigkeiten fest. Sie allein genuegt nicht:
-     ohne `npm ci` laege sie im Repo und wuerde beim Bauen uebergangen -- ein
+  /* Das Lockfile nagelt die Abhaengigkeiten fest. Es allein genuegt nicht:
+     ohne `npm ci` laege es im Repo und wuerde beim Bauen uebergangen -- ein
      Merker, der nichts bewirkt. Deshalb pruefen die drei Stuecke zusammen:
-     die Datei ist da, das Abbild bekommt sie zu sehen, und der Befehl liest
+     die Datei ist da, das Image bekommt sie zu sehen, und der Befehl liest
      sie auch. */
   const sperrPfad = path.join(__dirname, 'package-lock.json');
   const sperrDa = fs.existsSync(sperrPfad);
   // Erst das Vorhandensein, dann die Eigenschaft: ohne diese Zeile bliebe
   // jede Aussage ueber den Inhalt bei fehlender Datei unpruefbar
   // (Stolperstein 81).
-  pruefe('Die Sperrdatei liegt im Repo', sperrDa, sperrPfad);
+  pruefe('Das Lockfile liegt im Repo', sperrDa, sperrPfad);
   const sperre = sperrDa ? JSON.parse(fs.readFileSync(sperrPfad, 'utf8')) : {};
-  pruefe('Sie hat das heutige Format', sperre.lockfileVersion >= 3, `${sperre.lockfileVersion}`);
-  pruefe('Sie gehört zu dieser package.json',
+  pruefe('Es hat das heutige Format', sperre.lockfileVersion >= 3, `${sperre.lockfileVersion}`);
+  pruefe('Es gehört zu dieser package.json',
     sperre.name === paketJson.name && sperre.version === paketJson.version,
     `${sperre.name} ${sperre.version} gegen ${paketJson.name} ${paketJson.version}`);
-  pruefe('Sie nennt jede Abhängigkeit der package.json',
+  pruefe('Es nennt jede Abhängigkeit der package.json',
     Object.keys(paketJson.dependencies).every(n => sperre.packages && sperre.packages['node_modules/' + n]),
     Object.keys(paketJson.dependencies).filter(n => !(sperre.packages || {})['node_modules/' + n]).join(', '));
 
-  /* Der Ausschluss entscheidet darueber, ob `npm ci` im Abbild ueberhaupt
+  /* Der Ausschluss entscheidet darueber, ob `npm ci` im Image ueberhaupt
      etwas findet: was .dockerignore nennt, geht nicht mit in den Bauzusammen-
      hang, und dann bricht der Bau ab. Geprueft wird gegen JEDE Zeile, nicht
      gegen den blossen Dateinamen -- ein `*.json` wuerde sonst durchrutschen. */
@@ -366,7 +366,7 @@ const namen = (liste) => liste.map(c => c.name);
   const ausschluesse = fs.readFileSync(path.join(__dirname, '.dockerignore'), 'utf8')
     .split('\n').map(z => z.trim()).filter(z => z && !z.startsWith('#') && !z.startsWith('!'));
   const trifft = ausschluesse.filter(z => alsMuster(z).test('package-lock.json'));
-  pruefe('.dockerignore hält die Sperrdatei nicht zurück', trifft.length === 0, trifft.join(', '));
+  pruefe('.dockerignore hält das Lockfile nicht zurück', trifft.length === 0, trifft.join(', '));
   // Gegenprobe zur Gegenprobe: das Muster taugt ueberhaupt etwas. Ohne diese
   // Zeile bliebe die Pruefung darueber auch dann gruen, wenn alsMuster() nie
   // etwas traefe -- eine Pruefung, die nicht scheitern kann.
@@ -376,11 +376,11 @@ const namen = (liste) => liste.map(c => c.name);
     ausschluesse.join(' · '));
 
   const dockerText = fs.readFileSync(path.join(__dirname, 'Dockerfile'), 'utf8');
-  pruefe('Der Dockerfile kopiert die Sperrdatei in die Bauphase',
+  pruefe('Der Dockerfile kopiert das Lockfile in die Bauphase',
     /^COPY package\.json package-lock\.json \.\/$/m.test(dockerText));
   pruefe('Und liest sie mit npm ci', /^RUN npm ci --omit=dev$/m.test(dockerText));
   /* Das ist der eigentliche Punkt: bliebe irgendwo ein Aufruf der alten Art
-     stehen, waere die Sperrdatei ein Merker ohne Wirkung. Gelesen werden nur
+     stehen, waere das Lockfile ein Merker ohne Wirkung. Gelesen werden nur
      die BEFEHLSZEILEN -- der Kommentar daneben nennt den alten Namen und darf
      das auch. */
   const bauZeilen = dockerText.split('\n').filter(z => !z.trim().startsWith('#'));
@@ -403,9 +403,9 @@ const namen = (liste) => liste.map(c => c.name);
     (await fetch(`${BASIS}/api/config`)).status === 200);
 
   /* ---------------------------------------------------------------- */
-  gruppe('Der Versionsabdruck');
+  gruppe('Der Versions-Fingerprint');
 
-  /* Der Abdruck ist eine Ableitung beim Start: er geht ueber die Dateien, die
+  /* Der Fingerprint ist eine Ableitung beim Start: er geht ueber die Dateien, die
      der Server WIRKLICH laedt (require.cache) und WIRKLICH ausliefert
      (public/). Geprueft wird deshalb nicht die Liste -- die nachzubilden
      hiesse, dieselbe Rechnung ein zweites Mal aufzuschreiben und damit zwei
@@ -427,7 +427,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   // Ein Server aus der Kopie, frisch eingerichtet, einmal nach den Kennzahlen
   // gefragt und wieder beendet. Jeder Aufruf bekommt ein eigenes
-  // Datenverzeichnis -- der Abdruck darf vom Bestand nicht abhaengen.
+  // Datenverzeichnis -- der Fingerprint darf vom Bestand nicht abhaengen.
   /* Die Ports werden fortlaufend vergeben, nicht gewuerfelt: hier laufen ueber
      ein Dutzend Server nacheinander, und bei gewuerfelten Nummern trifft
      frueher oder spaeter einer auf einen, der noch nicht losgelassen hat.
@@ -436,10 +436,10 @@ const namen = (liste) => liste.map(c => c.name);
      Fetch-Spezifikation. Der Server laeuft dann und meldet es auch, nur
      kommt die Pruefung nicht an ihn heran ("bad port"). curl kommt durch,
      fetch nicht. */
-  let abdruckPort = 6100;
-  async function abdruckAus(verzeichnis) {
-    const datenVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-abdruck-'));
-    const port = abdruckPort++;
+  let fingerprintPort = 6100;
+  async function fingerprintAus(verzeichnis) {
+    const datenVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fingerprint-'));
+    const port = fingerprintPort++;
     const basis = `http://127.0.0.1:${port}`;
     const umgebung = { ...process.env, PORT: String(port), DATA_DIR: datenVerz, ENCRYPTION_KEY: KEY };
     delete umgebung.AUTH_RESET;
@@ -457,9 +457,9 @@ const namen = (liste) => liste.map(c => c.name);
       const ein = await fetch(`${basis}/api/setup`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ user: NUTZER, password: PASSWORT }) });
-      const keksQ = (ein.headers.get('set-cookie') || '').split(';')[0];
-      const st = await (await fetch(`${basis}/api/stats`, { headers: { cookie: keksQ } })).json();
-      return st.abdruck;
+      const cookieQ = (ein.headers.get('set-cookie') || '').split(';')[0];
+      const st = await (await fetch(`${basis}/api/stats`, { headers: { cookie: cookieQ } })).json();
+      return st.fingerprint;
     } finally {
       await new Promise(r => { kindQ.on('exit', r); kindQ.kill(); });
       fs.rmSync(datenVerz, { recursive: true, force: true });
@@ -467,55 +467,55 @@ const namen = (liste) => liste.map(c => c.name);
   }
 
   // Der Wert des laufenden Servers, gegen den verglichen wird.
-  const abdruckPlatte = (await ruf('GET', '/api/stats')).inhalt.abdruck;
-  const abdruckKopie = await abdruckAus(quellKopie);
+  const fingerprintPlatte = (await ruf('GET', '/api/stats')).inhalt.fingerprint;
+  const fingerprintKopie = await fingerprintAus(quellKopie);
   // Erst das Vorhandensein, dann jede Aussage darueber (Stolperstein 81): ohne
   // diese Zeile bliebe jeder Vergleich zweier fehlender Werte wahr.
-  pruefe('Der Server aus der Kopie nennt einen Abdruck',
-    /^[0-9a-f]{8}$/.test(abdruckKopie || ''), JSON.stringify(abdruckKopie));
+  pruefe('Der Server aus der Kopie nennt einen Fingerprint',
+    /^[0-9a-f]{8}$/.test(fingerprintKopie || ''), JSON.stringify(fingerprintKopie));
   /* Die Kopie liegt woanders, traegt ein eigenes Datenverzeichnis und einen
-     eigenen Bestand -- und kommt trotzdem auf denselben Wert. Der Abdruck
+     eigenen Bestand -- und kommt trotzdem auf denselben Wert. Der Fingerprint
      haengt am INHALT der Dateien, nicht am Ort und nicht am Bestand. */
-  pruefe('Und es ist derselbe wie auf der Platte', abdruckKopie === abdruckPlatte,
-    `${abdruckKopie} gegen ${abdruckPlatte}`);
+  pruefe('Und es ist derselbe wie auf der Platte', fingerprintKopie === fingerprintPlatte,
+    `${fingerprintKopie} gegen ${fingerprintPlatte}`);
 
   // Kleine Hilfe: eine Datei in der Kopie anfassen und neu fragen.
   const nachAenderung = async (rel, inhalt) => {
     const voll = path.join(quellKopie, rel);
     fs.mkdirSync(path.dirname(voll), { recursive: true });
     fs.writeFileSync(voll, inhalt);
-    return abdruckAus(quellKopie);
+    return fingerprintAus(quellKopie);
   };
 
   /* DIE FALLE, UND SIE IST DER GRUND FUER DIE ABLEITUNG: pruefung.js und Doku/
-     liegen im Repo, aber nicht im Abbild (.dockerignore). Zaehlten sie mit,
-     waere der Abdruck im Container ein anderer als auf der Platte -- und damit
+     liegen im Repo, aber nicht im Image (.dockerignore). Zaehlten sie mit,
+     waere der Fingerprint im Container ein anderer als auf der Platte -- und damit
      wertlos. */
   pruefe('Eine Änderung an pruefung.js lässt ihn unberührt',
-    await nachAenderung('pruefung.js', '// nicht ausgeliefert\n') === abdruckKopie);
+    await nachAenderung('pruefung.js', '// nicht ausgeliefert\n') === fingerprintKopie);
   pruefe('Eine neue Datei unter Doku ebenfalls',
-    await nachAenderung('Doku/Neu.md', '# nicht ausgeliefert\n') === abdruckKopie);
+    await nachAenderung('Doku/Neu.md', '# nicht ausgeliefert\n') === fingerprintKopie);
   /* Die bewusste Grenze, ausdruecklich festgehalten, damit sie nicht
-     stillschweigend kippt: zugang.js liegt im Abbild, wird aber nur von Hand
-     aufgerufen und nie vom Server geladen. Der Abdruck sagt, welcher SERVER
+     stillschweigend kippt: zugang.js liegt im Image, wird aber nur von Hand
+     aufgerufen und nie vom Server geladen. Der Fingerprint sagt, welcher SERVER
      laeuft. */
   pruefe('Und eine an zugang.js auch — es läuft nicht im Server',
-    await nachAenderung('zugang.js', '// von Hand, nicht im Server\n') === abdruckKopie);
+    await nachAenderung('zugang.js', '// von Hand, nicht im Server\n') === fingerprintKopie);
 
-  /* Und die Gegenrichtung. Ohne sie koennte der Abdruck eine feste
-     Zeichenkette sein und alle Pruefungen darueber blieben gruen. */
+  /* Und die Gegenrichtung. Ohne sie koennte der Fingerprint eine feste
+     String sein und alle Pruefungen darueber blieben gruen. */
   const appVorher = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-  const abdruckApp = await nachAenderung('public/app.js', appVorher + '\n// eine Zeile mehr\n');
+  const fingerprintApp = await nachAenderung('public/app.js', appVorher + '\n// eine Zeile mehr\n');
   pruefe('Eine Änderung an public/app.js ändert ihn',
-    /^[0-9a-f]{8}$/.test(abdruckApp || '') && abdruckApp !== abdruckKopie,
-    `${abdruckApp} gegen ${abdruckKopie}`);
+    /^[0-9a-f]{8}$/.test(fingerprintApp || '') && fingerprintApp !== fingerprintKopie,
+    `${fingerprintApp} gegen ${fingerprintKopie}`);
   fs.writeFileSync(path.join(quellKopie, 'public', 'app.js'), appVorher);
 
   const dbVorher = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-  const abdruckDb = await nachAenderung('db.js', dbVorher + '\n// eine Zeile mehr\n');
+  const fingerprintDb = await nachAenderung('db.js', dbVorher + '\n// eine Zeile mehr\n');
   pruefe('Eine Änderung an db.js ändert ihn ebenfalls',
-    abdruckDb !== abdruckKopie && abdruckDb !== abdruckApp,
-    `${abdruckDb} gegen ${abdruckKopie} und ${abdruckApp}`);
+    fingerprintDb !== fingerprintKopie && fingerprintDb !== fingerprintApp,
+    `${fingerprintDb} gegen ${fingerprintKopie} und ${fingerprintApp}`);
   fs.writeFileSync(path.join(quellKopie, 'db.js'), dbVorher);
 
   /* DER NAME GEHOERT MIT HINEIN, nicht nur der Inhalt. Zwei Dateien mit
@@ -523,28 +523,28 @@ const namen = (liste) => liste.map(c => c.name);
      fuehren -- sonst bliebe eine Umbenennung unsichtbar. Der Inhalt ist bei
      beiden Schritten Zeichen fuer Zeichen derselbe, es unterscheidet sie
      ausschliesslich der Name. */
-  const abdruckZ1 = await nachAenderung('public/z1.txt', 'derselbe Inhalt\n');
+  const fingerprintZ1 = await nachAenderung('public/z1.txt', 'derselbe Inhalt\n');
   fs.rmSync(path.join(quellKopie, 'public', 'z1.txt'));
-  const abdruckZ2 = await nachAenderung('public/z2.txt', 'derselbe Inhalt\n');
+  const fingerprintZ2 = await nachAenderung('public/z2.txt', 'derselbe Inhalt\n');
   pruefe('Zwei Dateien gleichen Inhalts unter verschiedenem Namen sind verschieden',
-    abdruckZ1 !== abdruckZ2 && /^[0-9a-f]{8}$/.test(abdruckZ1 || ''),
-    `${abdruckZ1} gegen ${abdruckZ2}`);
+    fingerprintZ1 !== fingerprintZ2 && /^[0-9a-f]{8}$/.test(fingerprintZ1 || ''),
+    `${fingerprintZ1} gegen ${fingerprintZ2}`);
   fs.rmSync(path.join(quellKopie, 'public', 'z2.txt'));
 
-  /* Zum Schluss zurueck auf den Ausgangsstand. Bliebe der Abdruck jetzt
+  /* Zum Schluss zurueck auf den Ausgangsstand. Bliebe der Fingerprint jetzt
      verschieden, haengt er an etwas anderem als dem Inhalt -- an der Zahl der
      Starts etwa, oder an einem Zeitstempel. */
   pruefe('Zurück am Ausgangsstand steht wieder der erste Wert',
-    await abdruckAus(quellKopie) === abdruckKopie);
+    await fingerprintAus(quellKopie) === fingerprintKopie);
 
   fs.rmSync(quellKopie, { recursive: true, force: true });
 
-  /* Der Abdruck wird beim START gebildet, und vollstaendig ist er nur, solange
+  /* Der Fingerprint wird beim START gebildet, und vollstaendig ist er nur, solange
      jedes Modul am Dateianfang geladen wird: ein require INNERHALB einer
-     Funktion liefe erst spaeter und stuende dann nicht darin -- der Abdruck
+     Funktion liefe erst spaeter und stuende dann nicht darin -- der Fingerprint
      wuerde still unvollstaendig, ohne dass irgendetwas rot wird.
 
-     Geprueft wird an dem, was WIRKLICH im Abdruck steht, also am Modulgraphen
+     Geprueft wird an dem, was WIRKLICH im Fingerprint steht, also am Modulgraphen
      ab server.js. Auch das eine Ableitung und keine zweite Liste. zugang.js
      und pruefung.js fallen heraus -- beide laden innerhalb von Funktionen und
      duerfen das auch, weil der Server sie nie laedt. */
@@ -562,9 +562,9 @@ const namen = (liste) => liste.map(c => c.name);
     holen(start);
     return [...gesehen].sort();
   };
-  const imAbdruck = modulGraph('server.js').filter(n => n.endsWith('.js'));
+  const imFingerprint = modulGraph('server.js').filter(n => n.endsWith('.js'));
   const spaetGeladen = [];
-  for (const n of imAbdruck)
+  for (const n of imFingerprint)
     fs.readFileSync(path.join(__dirname, n), 'utf8').split('\n').forEach((z, i) => {
       if (/^\s+.*\brequire\(/.test(z)) spaetGeladen.push(`${n}:${i + 1}`);
     });
@@ -572,10 +572,10 @@ const namen = (liste) => liste.map(c => c.name);
   // server.js allein stehen, waere die Pruefung darunter gruen, ohne eine
   // einzige der anderen Dateien gelesen zu haben (Stolperstein 81).
   pruefe('Der Modulgraph nennt mehr als server.js allein',
-    imAbdruck.length >= 5, imAbdruck.join(' · '));
+    imFingerprint.length >= 5, imFingerprint.join(' · '));
   pruefe('Und weder zugang.js noch pruefung.js stehen darauf',
-    !imAbdruck.includes('zugang.js') && !imAbdruck.includes('pruefung.js'),
-    imAbdruck.join(' · '));
+    !imFingerprint.includes('zugang.js') && !imFingerprint.includes('pruefung.js'),
+    imFingerprint.join(' · '));
   pruefe('Kein Modul des Servers wird erst innerhalb einer Funktion geladen',
     spaetGeladen.length === 0, spaetGeladen.join(', '));
 
@@ -655,30 +655,30 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* ZWEI ZAHLEN, DIE ZUSAMMENGEHOEREN. Laeuft der Prueflauf gegen eine andere
      Node-Version als der Container, prueft er etwas, das so nirgends
-     betrieben wird -- und der Befund davor ("lokal 22, im Abbild 20") kaeme
+     betrieben wird -- und der Befund davor ("lokal 22, im Image 20") kaeme
      unbemerkt zurueck. Beide Zahlen stehen an verschiedenen Stellen; hier
      werden sie gegeneinander gehalten. */
   const werkPfad = path.join(__dirname, '.github', 'workflows', 'pruefstand.yml');
   const werkDa = fs.existsSync(werkPfad);
   // Erst das Vorhandensein: fehlt die Datei, waere jede Aussage ueber ihren
-  // Inhalt an einer leeren Zeichenkette wahr (Stolperstein 81).
+  // Inhalt an einem leeren String wahr (Stolperstein 81).
   pruefe('Die Datei für den Prüflauf liegt im Repo', werkDa, werkPfad);
   const werkText = werkDa ? fs.readFileSync(werkPfad, 'utf8') : '';
   const werkNode = (werkText.match(/node-version:\s*'([^']+)'/) || [])[1];
-  const abbildNode = (dockerText.match(/^FROM node:(\d+)-/m) || [])[1];
+  const imageNode = (dockerText.match(/^FROM node:(\d+)-/m) || [])[1];
   pruefe('Sie nennt eine Node-Version', !!werkNode, JSON.stringify(werkNode));
-  pruefe('Der Dockerfile nennt ebenfalls eine', !!abbildNode, JSON.stringify(abbildNode));
-  pruefe('Und es ist dieselbe', werkNode === abbildNode,
-    `Prüflauf ${werkNode}, Abbild ${abbildNode}`);
+  pruefe('Der Dockerfile nennt ebenfalls eine', !!imageNode, JSON.stringify(imageNode));
+  pruefe('Und es ist dieselbe', werkNode === imageNode,
+    `Prüflauf ${werkNode}, Image ${imageNode}`);
   // Beide Stufen des Dockerfile -- die Bauphase uebersetzt, die Laufzeit
   // fuehrt aus. Stuenden dort verschiedene Zahlen, passte die native
   // Datenbankanbindung nicht zur Laufzeit (ABI).
-  const abbildZeilen = [...dockerText.matchAll(/^FROM node:([^\s]+)/mg)].map(t => t[1]);
-  pruefe('Bauphase und Laufzeit stehen auf demselben Abbild',
-    abbildZeilen.length === 2 && abbildZeilen[0] === abbildZeilen[1],
-    abbildZeilen.join(' gegen '));
+  const imageZeilen = [...dockerText.matchAll(/^FROM node:([^\s]+)/mg)].map(t => t[1]);
+  pruefe('Bauphase und Laufzeit stehen auf demselben Image',
+    imageZeilen.length === 2 && imageZeilen[0] === imageZeilen[1],
+    imageZeilen.join(' gegen '));
 
-  /* Der Lauf muss die Sperrdatei lesen und die bekannten Luecken ansehen --
+  /* Der Lauf muss das Lockfile lesen und die bekannten Luecken ansehen --
      sonst waere er ein Prueflauf ohne die beiden Punkte, um die es in dieser
      Runde geht. */
   pruefe('Der Lauf holt die Abhängigkeiten mit npm ci',
@@ -1115,15 +1115,15 @@ const namen = (liste) => liste.map(c => c.name);
     !JSON.stringify(cfg).includes('Intern') && !('appTitle' in cfg));
   pruefe('Die Kennzahlen nennen sie ebenfalls',
     (await ruf('GET', '/api/stats')).inhalt.version === cfg.version);
-  /* Seit 0.8.10 gibt es den Abdruck. Er steht ausdruecklich NICHT vor der
+  /* Seit 0.8.10 gibt es den Fingerprint. Er steht ausdruecklich NICHT vor der
      Anmeldung, sondern bei den Kennzahlen. Diese beiden Zeilen halten die
      Entscheidung fest, statt sie nur im Kommentar zu haben -- die Pruefung
      darueber ist damit umgedreht und nicht geloescht (Stolperstein 74). */
-  pruefe('Der Abdruck bleibt vor der Anmeldung draußen', !('abdruck' in cfg),
+  pruefe('Der Fingerprint bleibt vor der Anmeldung draußen', !('fingerprint' in cfg),
     JSON.stringify(Object.keys(cfg)));
-  const statsAbdruck = (await ruf('GET', '/api/stats')).inhalt.abdruck;
-  pruefe('Die Kennzahlen nennen ihn dafür', /^[0-9a-f]{8}$/.test(statsAbdruck || ''),
-    JSON.stringify(statsAbdruck));
+  const statsFingerprint = (await ruf('GET', '/api/stats')).inhalt.fingerprint;
+  pruefe('Die Kennzahlen nennen ihn dafür', /^[0-9a-f]{8}$/.test(statsFingerprint || ''),
+    JSON.stringify(statsFingerprint));
 
   const e0 = (await ruf('GET', '/api/settings')).inhalt;
   pruefe('Vorgabe: fünf sichtbare Linkzeilen', e0.linkZeilen === 5, `${e0.linkZeilen}`);
@@ -1409,8 +1409,8 @@ const namen = (liste) => liste.map(c => c.name);
     const auth = require('./auth');
     const r = db.prepare("INSERT INTO users (username, password_hash, role) VALUES ('probe','x','admin')").run();
     const token = auth.legeSitzungAn(r.lastInsertRowid);
-    function durchlauf(keks) {
-      const req = { headers: { cookie: keks } };
+    function durchlauf(cookie) {
+      const req = { headers: { cookie: cookie } };
       let stand = 0, weiter = false;
       const res = { status(c) { stand = c; return this; }, json() { return this; } };
       auth.requireAuth(req, res, () => { weiter = true; });
@@ -1424,7 +1424,7 @@ const namen = (liste) => liste.map(c => c.name);
     console.log(JSON.stringify({
       gut: durchlauf('kriterion_session=' + token),
       herrenlos: durchlauf('kriterion_session=herrenlos'),
-      ohneKeks: durchlauf(''),
+      ohneCookie: durchlauf(''),
       ohneId
     }));`, mwDir));
   pruefe('requireAuth laesst eine gueltige Sitzung durch', mw.gut.weiter === true, JSON.stringify(mw.gut));
@@ -1438,7 +1438,7 @@ const namen = (liste) => liste.map(c => c.name);
     mw.herrenlos.weiter === false && mw.herrenlos.stand === 401, JSON.stringify(mw.herrenlos));
   pruefe('Und setzt auch kein req.benutzer', mw.herrenlos.benutzer === null,
     JSON.stringify(mw.herrenlos.benutzer));
-  pruefe('Ohne Keks bleibt es bei 401', mw.ohneKeks.stand === 401, JSON.stringify(mw.ohneKeks));
+  pruefe('Ohne Cookie bleibt es bei 401', mw.ohneCookie.stand === 401, JSON.stringify(mw.ohneCookie));
   pruefe('Eine Sitzung ohne Benutzer laesst sich gar nicht erst anlegen',
     /Benutzer/.test(mw.ohneId || ''), String(mw.ohneId));
   fs.rmSync(mwDir, { recursive: true, force: true });
@@ -1657,8 +1657,8 @@ const namen = (liste) => liste.map(c => c.name);
   const pDir = legeFavoritenBestandAn();
   const P1 = starteWeiterenServer(pDir, {}, 4950);
   await P1.bereit;
-  const pRuf = async (keksName, methode, pfad, koerper) => {
-    const opt = { method: methode, headers: { cookie: `kriterion_session=${keksName}` } };
+  const pRuf = async (cookieName, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieName}` } };
     if (koerper !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(koerper);
@@ -1807,7 +1807,7 @@ const namen = (liste) => liste.map(c => c.name);
      gegengehalten, damit ein still entfernter Schluessel auffaellt. */
   const srvQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
   // Bewusst ohne zusammengesetzten regulaeren Ausdruck: der wird beim Einbetten
-  // in eine Zeichenkette ein zweites Mal maskiert und ist dann falsch, ohne dass
+  // in ein String ein zweites Mal maskiert und ist dann falsch, ohne dass
   // man es ihm ansieht -- genau das ist beim Bauen dieser Gruppe passiert. Von
   // Klammer zu Klammer schneiden ist langweiliger und deshalb richtig.
   const listeAus = (text, name) => {
@@ -1883,19 +1883,19 @@ const namen = (liste) => liste.map(c => c.name);
     const d = oeffne(path.join(dir, 'katalog.sqlite'));
     d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('erster', 'x');
     d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('zweiter', 'x');
-    d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run('keks-d-eins', 1);
-    d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run('keks-d-zwei', 2);
+    d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run('cookie-d-eins', 1);
+    d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run('cookie-d-zwei', 2);
     d.close();
     return dir;
   }
   const dDir = legeZweiBenutzerAn();
   const D1 = starteWeiterenServer(dDir, {}, 5200);
   await D1.bereit;
-  // Zwei echte Kekse nebeneinander, ohne den gemeinsamen Keksspeicher von
+  // Zwei echte Cookies nebeneinander, ohne den gemeinsamen Cookiespeicher von
   // starteWeiterenServer zu benutzen -- sonst ueberschriebe der zweite den
   // ersten und es gaebe wieder nur einen Rufer.
-  const dRuf = async (keksWert, methode, pfad, koerper) => {
-    const opt = { method: methode, headers: { cookie: `kriterion_session=${keksWert}` } };
+  const dRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
     if (koerper !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(koerper);
@@ -1906,14 +1906,14 @@ const namen = (liste) => liste.map(c => c.name);
     return { status: a.status, inhalt };
   };
 
-  await dRuf('keks-d-eins', 'PUT', '/api/settings',
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings',
     { schrift: 120, linkZeilen: 12, zeitleiste: false, suchNamen: 4 });
-  await dRuf('keks-d-zwei', 'PUT', '/api/settings',
+  await dRuf('cookie-d-zwei', 'PUT', '/api/settings',
     { schrift: 80, linkZeilen: 3, suchNamen: 1 });
-  await dRuf('keks-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
-  await dRuf('keks-d-zwei', 'PUT', '/api/settings', { filters: { tested: 'no' } });
-  const dEins = (await dRuf('keks-d-eins', 'GET', '/api/settings')).inhalt;
-  const dZwei = (await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt;
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
+  await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { filters: { tested: 'no' } });
+  const dEins = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt;
+  const dZwei = (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt;
 
   pruefe('Die Schriftgroesse gehoert dem Benutzer, nicht allen',
     dEins.schrift === 120 && dZwei.schrift === 80,
@@ -1940,12 +1940,12 @@ const namen = (liste) => liste.map(c => c.name);
      Antwort traegt null. Ohne diese Zeile bliebe offen, ob der Server ihn
      nicht schon beim Lesen anlegt -- dann waere "neu seit" beim ersten Besuch
      immer leer. */
-  const dVorher = (await dRuf('keks-d-eins', 'GET', '/api/settings')).inhalt;
+  const dVorher = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt;
   pruefe('Vor dem ersten Verlassen der Uebersicht gibt es keinen Merkzeitpunkt',
     dVorher.zuletztGesehen === null, JSON.stringify(dVorher.zuletztGesehen));
-  const dGesehen = await dRuf('keks-d-eins', 'PUT', '/api/settings',
+  const dGesehen = await dRuf('cookie-d-eins', 'PUT', '/api/settings',
     { zuletztGesehen: '1999-01-01 00:00:00' });
-  const dNachher = (await dRuf('keks-d-eins', 'GET', '/api/settings')).inhalt;
+  const dNachher = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt;
   pruefe('Nach dem Verlassen steht er da',
     dGesehen.status === 200 && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dNachher.zuletztGesehen || ''),
     JSON.stringify(dNachher.zuletztGesehen));
@@ -1971,8 +1971,8 @@ const namen = (liste) => liste.map(c => c.name);
       <= 2000,
     `gemerkt ${dNachher.zuletztGesehen}, Uhr ${dUhr}`);
   pruefe('Er gehoert dem, der ihn gesetzt hat',
-    (await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen === null,
-    JSON.stringify((await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen));
+    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen === null,
+    JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen));
 
   /* DER SCHLUESSEL MUSS IN PERSOENLICHE_SCHLUESSEL STEHEN, und das ist keine
      Formsache. PUT /api/settings leitet aus dieser Liste ab, was jeder fuer
@@ -1985,21 +1985,21 @@ const namen = (liste) => liste.map(c => c.name);
      nachgesehen, sonst pruefte die Zeile darunter womoeglich einen zweiten
      Admin (Stolperstein 87). */
   pruefe('Der zweite Zugang traegt wirklich keine Adminrolle',
-    (await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin === false,
-    JSON.stringify((await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin));
-  const dGesehenZwei = await dRuf('keks-d-zwei', 'PUT', '/api/settings', { zuletztGesehen: 1 });
+    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin === false,
+    JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin));
+  const dGesehenZwei = await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { zuletztGesehen: 1 });
   pruefe('Auch ohne Adminrolle merkt sich jeder seinen eigenen Zeitpunkt',
     dGesehenZwei.status === 200, `Status ${dGesehenZwei.status} / ${JSON.stringify(dGesehenZwei.inhalt)}`);
   pruefe('Und er steht danach bei ihm',
-    /^\d{4}-/.test((await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen || ''),
-    JSON.stringify((await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen));
+    /^\d{4}-/.test((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen || ''),
+    JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen));
 
   // Und die Blockanordnung, die eine eigene Bauform hat (verschachteltes
   // Objekt statt Zahl) und deshalb eigens geprueft wird.
-  await dRuf('keks-d-eins', 'PUT', '/api/settings',
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings',
     { bloecke: { seite: ['bewertung', 'tags', 'kategorie'], unten: [], zu: ['links'] } });
-  const dBlEins = (await dRuf('keks-d-eins', 'GET', '/api/settings')).inhalt.bloecke;
-  const dBlZwei = (await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.bloecke;
+  const dBlEins = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt.bloecke;
+  const dBlZwei = (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.bloecke;
   pruefe('Die Blockanordnung gehoert dem Benutzer',
     gleich(dBlEins.seite, ['bewertung', 'tags', 'kategorie']) &&
     gleich(dBlZwei.seite, ['kategorie', 'tags', 'bewertung']),
@@ -2013,11 +2013,11 @@ const namen = (liste) => liste.map(c => c.name);
      Gruppe nur, dass irgendetwas je Benutzer verschieden ist -- nicht, dass die
      Trennung an der richtigen Stelle verlaeuft. Vorrat, Startanbieter und
      eigene Anbieter gehoeren dem Admin. */
-  await dRuf('keks-d-eins', 'PUT', '/api/settings', { sucheAktiv: ['ddg', 'bing'] });
-  await dRuf('keks-d-eins', 'PUT', '/api/settings',
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings', { sucheAktiv: ['ddg', 'bing'] });
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings',
     { vokabular: { sacheEinzahl: 'Maschine' } });
-  const dGlobEins = (await dRuf('keks-d-eins', 'GET', '/api/settings')).inhalt;
-  const dGlobZwei = (await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt;
+  const dGlobEins = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt;
+  const dGlobZwei = (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt;
   // standardVon und imVorrat stehen weiter oben in dieser Datei --
   // eine zweite Ausfertigung daneben waere eine Doppelung, die sich nur
   // halb prueft.
@@ -2110,7 +2110,7 @@ const namen = (liste) => liste.map(c => c.name);
       d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(n, 'x');
     // Drei fertige Sitzungen, eine je Benutzer -- schneller und
     // unabhaengiger als der Weg ueber die Verwaltung.
-    for (const [t, u] of [['keks-e-eins', 1], ['keks-e-zwei', 2], ['keks-e-drei', 3]])
+    for (const [t, u] of [['cookie-e-eins', 1], ['cookie-e-zwei', 2], ['cookie-e-drei', 3]])
       d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
     for (const t of ['Dreier', 'Zweiter Eintrag'])
       d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run(t);
@@ -2153,9 +2153,9 @@ const namen = (liste) => liste.map(c => c.name);
   const stufeEDir = legeDreiBenutzerAn();
   const SE1 = starteWeiterenServer(stufeEDir, {}, 5560);
   await SE1.bereit;
-  // Drei echte Kekse nebeneinander, am gemeinsamen Keksspeicher vorbei.
-  const eRuf = async (keksWert, methode, pfad, koerper) => {
-    const opt = { method: methode, headers: { cookie: `kriterion_session=${keksWert}` } };
+  // Drei echte Cookies nebeneinander, am gemeinsamen Cookiespeicher vorbei.
+  const eRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
     if (koerper !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(koerper);
@@ -2167,9 +2167,9 @@ const namen = (liste) => liste.map(c => c.name);
   };
   const eZeile = (sicht, name) => sicht?.ratings?.find(r => r.name === name);
 
-  const eEins = (await eRuf('keks-e-eins', 'GET', '/api/items/1')).inhalt;
-  const eZwei = (await eRuf('keks-e-zwei', 'GET', '/api/items/1')).inhalt;
-  const eDrei = (await eRuf('keks-e-drei', 'GET', '/api/items/1')).inhalt;
+  const eEins = (await eRuf('cookie-e-eins', 'GET', '/api/items/1')).inhalt;
+  const eZwei = (await eRuf('cookie-e-zwei', 'GET', '/api/items/1')).inhalt;
+  const eDrei = (await eRuf('cookie-e-drei', 'GET', '/api/items/1')).inhalt;
 
   pruefe('Jedes Kriterium steht genau einmal in der Sternzeile',
     eEins?.ratings?.length === 4 &&
@@ -2216,7 +2216,7 @@ const namen = (liste) => liste.map(c => c.name);
     eEins?.avgRating !== 3.3, JSON.stringify(eEins?.avgRating));
   // Dieselbe Zahl muss auch die Kachel tragen -- sie kommt aus einer anderen
   // Abfrage und muesste sonst getrennt gepflegt werden.
-  const eListe = (await eRuf('keks-e-eins', 'GET', '/api/items')).inhalt;
+  const eListe = (await eRuf('cookie-e-eins', 'GET', '/api/items')).inhalt;
   pruefe('Die Uebersicht rechnet mit demselben Ergebnis',
     eListe?.find(i => i.id === 1)?.avgRating === 3.7,
     JSON.stringify(eListe?.map(i => `${i.id}:${i.avgRating}`)));
@@ -2224,7 +2224,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* Der Verwendungszaehler in der Verwaltungskarte. Optik hat VIER Zeilen an
      ZWEI Eintraegen -- die Oberflaeche beschriftet die Zahl mit dem Wort fuer
      Eintraege, also muessen es zwei sein. Mit COUNT(*) stuende dort vier. */
-  const eKrit = (await eRuf('keks-e-eins', 'GET', '/api/criteria')).inhalt;
+  const eKrit = (await eRuf('cookie-e-eins', 'GET', '/api/criteria')).inhalt;
   const eKritZahl = (n) => eKrit?.find(c => c.name === n)?.usage_count;
   pruefe('Der Verwendungszaehler zaehlt Eintraege, nicht Bewertungszeilen',
     eKritZahl('Optik') === 2 && eKritZahl('Haptik') === 1 && eKritZahl('Preis') === 1,
@@ -2258,8 +2258,8 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify({ c: eEins?.testCount, a: eEins?.testAvg, l: eEins?.testLast }));
 
   /* --- Benutzerzahl und Rolle in den Einstellungen --- */
-  const eStellE = (await eRuf('keks-e-eins', 'GET', '/api/settings')).inhalt;
-  const eStellZ = (await eRuf('keks-e-zwei', 'GET', '/api/settings')).inhalt;
+  const eStellE = (await eRuf('cookie-e-eins', 'GET', '/api/settings')).inhalt;
+  const eStellZ = (await eRuf('cookie-e-zwei', 'GET', '/api/settings')).inhalt;
   pruefe('Die Einstellungen nennen die Zahl der Zugaenge',
     eStellE?.benutzerZahl === 3 && eStellZ?.benutzerZahl === 3,
     JSON.stringify([eStellE?.benutzerZahl, eStellZ?.benutzerZahl]));
@@ -2272,11 +2272,11 @@ const namen = (liste) => liste.map(c => c.name);
      Erfolgsfall durchspielt, belegt kein Verbot -- deshalb
      steht zu jeder Verweigerung der Erfolgsfall des Admins daneben, und
      darunter die Nachschau, dass wirklich nichts geschehen ist. */
-  const eVorher = (await eRuf('keks-e-eins', 'GET', '/api/criteria')).inhalt;
-  const eNeinAnlegen = await eRuf('keks-e-zwei', 'POST', '/api/criteria', { name: 'Heimlich' });
-  const eNeinUmbenennen = await eRuf('keks-e-zwei', 'PUT', `/api/criteria/${eVorher[0].id}`, { name: 'Umgetauft' });
-  const eNeinLoeschen = await eRuf('keks-e-zwei', 'DELETE', `/api/criteria/${eVorher[0].id}`);
-  const eNeinSortieren = await eRuf('keks-e-zwei', 'PUT', '/api/criteria/order',
+  const eVorher = (await eRuf('cookie-e-eins', 'GET', '/api/criteria')).inhalt;
+  const eNeinAnlegen = await eRuf('cookie-e-zwei', 'POST', '/api/criteria', { name: 'Heimlich' });
+  const eNeinUmbenennen = await eRuf('cookie-e-zwei', 'PUT', `/api/criteria/${eVorher[0].id}`, { name: 'Umgetauft' });
+  const eNeinLoeschen = await eRuf('cookie-e-zwei', 'DELETE', `/api/criteria/${eVorher[0].id}`);
+  const eNeinSortieren = await eRuf('cookie-e-zwei', 'PUT', '/api/criteria/order',
     { order: [...eVorher].reverse().map(c => c.id) });
   pruefe('Ein Benutzer legt kein Kriterium an', eNeinAnlegen.status === 403,
     `Status ${eNeinAnlegen.status}`);
@@ -2286,17 +2286,17 @@ const namen = (liste) => liste.map(c => c.name);
     `Status ${eNeinLoeschen.status}`);
   pruefe('Ein Benutzer sortiert die Kriterien nicht um', eNeinSortieren.status === 403,
     `Status ${eNeinSortieren.status}`);
-  const eNachher = (await eRuf('keks-e-eins', 'GET', '/api/criteria')).inhalt;
+  const eNachher = (await eRuf('cookie-e-eins', 'GET', '/api/criteria')).inhalt;
   pruefe('Und die vier Absagen haben nichts veraendert',
     gleich(eNachher.map(c => c.name), eVorher.map(c => c.name)),
     JSON.stringify(eNachher.map(c => c.name)));
 
-  const eJaAnlegen = await eRuf('keks-e-eins', 'POST', '/api/criteria', { name: 'Verpackung' });
-  const eJaUmbenennen = await eRuf('keks-e-eins', 'PUT', `/api/criteria/${eVorher[3].id}`, { name: 'Kundendienst' });
+  const eJaAnlegen = await eRuf('cookie-e-eins', 'POST', '/api/criteria', { name: 'Verpackung' });
+  const eJaUmbenennen = await eRuf('cookie-e-eins', 'PUT', `/api/criteria/${eVorher[3].id}`, { name: 'Kundendienst' });
   pruefe('Der Admin legt an und benennt um',
     eJaAnlegen.status === 201 && eJaUmbenennen.status === 200,
     `Status ${eJaAnlegen.status} / ${eJaUmbenennen.status}`);
-  const eJaLoeschen = await eRuf('keks-e-eins', 'DELETE', `/api/criteria/${eJaAnlegen.inhalt.id}`);
+  const eJaLoeschen = await eRuf('cookie-e-eins', 'DELETE', `/api/criteria/${eJaAnlegen.inhalt.id}`);
   pruefe('Und loescht wieder', eJaLoeschen.status === 204, `Status ${eJaLoeschen.status}`);
 
   /* ---------------------------------------------------------------- */
@@ -2310,12 +2310,12 @@ const namen = (liste) => liste.map(c => c.name);
        Preis   5      -> 5,0   (eine Stimme)
        Kundendienst   -> gar nichts, faellt heraus
      ungewichtet: (3,0 + 3,0 + 5,0) / 3 = 3,7 */
-  const gKrit = (await eRuf('keks-e-eins', 'GET', '/api/criteria')).inhalt;
+  const gKrit = (await eRuf('cookie-e-eins', 'GET', '/api/criteria')).inhalt;
   const gId = (n) => gKrit.find(c => c.name === n)?.id;
-  const gSetz = (name, wert, keks = 'keks-e-eins') =>
-    eRuf(keks, 'PUT', `/api/criteria/${gId(name)}`, { name, gewicht: wert });
+  const gSetz = (name, wert, cookie = 'cookie-e-eins') =>
+    eRuf(cookie, 'PUT', `/api/criteria/${gId(name)}`, { name, gewicht: wert });
   const gSchnitt = async (itemId = 1) =>
-    (await eRuf('keks-e-eins', 'GET', `/api/items/${itemId}`)).inhalt?.avgRating;
+    (await eRuf('cookie-e-eins', 'GET', `/api/items/${itemId}`)).inhalt?.avgRating;
   // Abgefangen wie ueberall, wo die Spalte gelesen wird: ohne das reisst ein
   // Rueckbau der DDL den Lauf ab, statt rot zu werden (Stolperstein 103).
   const gGewichte = () => {
@@ -2333,9 +2333,9 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Die Kriterienliste nennt das Gewicht',
     gKrit?.every(c => c.gewicht === 1), JSON.stringify(gKrit?.map(c => `${c.name}:${c.gewicht}`)));
   /* Stolperstein 102: was die Oberflaeche aus der Antwort liest, gehoert an
-     der ECHTEN Antwort geprueft. Der Doppelgaenger bringt gewicht selbst mit
+     der ECHTEN Antwort geprueft. Der Mock bringt gewicht selbst mit
      und koennte ein fehlendes Feld gar nicht bemerken. */
-  const gDetail = (await eRuf('keks-e-eins', 'GET', '/api/items/1')).inhalt;
+  const gDetail = (await eRuf('cookie-e-eins', 'GET', '/api/items/1')).inhalt;
   pruefe('Und jede Kriterienzeile am Eintrag traegt es ebenfalls',
     gDetail?.ratings?.length === 4 && gDetail.ratings.every(r => r.gewicht === 1),
     JSON.stringify(gDetail?.ratings?.map(r => `${r.name}:${r.gewicht}`)));
@@ -2364,7 +2364,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* Der Schnitt JE KRITERIUM bleibt ungewichtet: er ist eine Aussage ueber das
      Kriterium, nicht ueber den Eintrag -- ihn zu gewichten hiesse, ihn mit
      sich selbst zu gewichten. */
-  const gNachOptik = (await eRuf('keks-e-eins', 'GET', '/api/items/1')).inhalt;
+  const gNachOptik = (await eRuf('cookie-e-eins', 'GET', '/api/items/1')).inhalt;
   pruefe('Der Schnitt je Kriterium bleibt ungewichtet',
     gNachOptik?.ratings?.find(r => r.name === 'Optik')?.avg === 3 &&
     gNachOptik?.ratings?.find(r => r.name === 'Optik')?.count === 3,
@@ -2388,12 +2388,12 @@ const namen = (liste) => liste.map(c => c.name);
     (await gSchnitt(2)) >= 1 && (await gSchnitt(2)) <= 5, `${await gSchnitt(2)}`);
 
   /* --- Die zugesicherten Grenzen, unter Last --- */
-  const gExtrem = (await eRuf('keks-e-eins', 'POST', '/api/items', { title: 'Grenzfall' })).inhalt;
+  const gExtrem = (await eRuf('cookie-e-eins', 'POST', '/api/items', { title: 'Grenzfall' })).inhalt;
   const gWerte = async (paare) => {
     for (const [name, wert] of paare)
-      await eRuf('keks-e-eins', 'PUT', `/api/items/${gExtrem.id}/ratings`,
+      await eRuf('cookie-e-eins', 'PUT', `/api/items/${gExtrem.id}/ratings`,
         { criterionId: gId(name), value: wert });
-    return (await eRuf('keks-e-eins', 'GET', `/api/items/${gExtrem.id}`)).inhalt?.avgRating;
+    return (await eRuf('cookie-e-eins', 'GET', `/api/items/${gExtrem.id}`)).inhalt?.avgRating;
   };
   // Gewichte stehen gemischt: Optik 0,2 · Haptik 2 · Preis 2 · Kundendienst 2.
   pruefe('Alle Werte 5 bei gemischten Gewichten ergeben genau 5,0',
@@ -2411,7 +2411,7 @@ const namen = (liste) => liste.map(c => c.name);
      wird deshalb, dass /api/items die Zahlen so liefert, dass sich die
      Reihenfolge dreht -- mit derselben Formel wie dort. */
   const gRangfolge = async () => {
-    const liste = (await eRuf('keks-e-eins', 'GET', '/api/items')).inhalt || [];
+    const liste = (await eRuf('cookie-e-eins', 'GET', '/api/items')).inhalt || [];
     return [...liste].sort((a, b2) => (b2.avgRating ?? -1) - (a.avgRating ?? -1)).map(i => i.id);
   };
   await gSetz('Optik', 2); await gSetz('Haptik', 0.2);
@@ -2476,34 +2476,34 @@ const namen = (liste) => liste.map(c => c.name);
   /* Das Umbenennen schickt kein Gewicht -- und darf es deshalb auch nicht
      zuruecksetzen. Ohne COALESCE stuende hier nach jedem ✎ wieder 1. */
   await gSetz('Preis', 1.5);
-  const gUmbenannt = await eRuf('keks-e-eins', 'PUT', `/api/criteria/${gId('Preis')}`, { name: 'Preis' });
+  const gUmbenannt = await eRuf('cookie-e-eins', 'PUT', `/api/criteria/${gId('Preis')}`, { name: 'Preis' });
   pruefe('Umbenennen ohne Gewichtsangabe laesst das Gewicht stehen',
     gUmbenannt.inhalt?.gewicht === 1.5, JSON.stringify(gUmbenannt.inhalt));
   /* Ein neu angelegtes Kriterium startet auf der Vorgabe -- POST nimmt gar
      kein Gewicht entgegen, und die Vorgabe steht nur in der DDL. */
-  const gNeu = await eRuf('keks-e-eins', 'POST', '/api/criteria', { name: 'Frisch', gewicht: 2 });
+  const gNeu = await eRuf('cookie-e-eins', 'POST', '/api/criteria', { name: 'Frisch', gewicht: 2 });
   pruefe('Ein neues Kriterium startet auf 1, auch wenn ein Gewicht mitkommt',
     gNeu.status === 201 && gNeu.inhalt?.gewicht === 1, JSON.stringify(gNeu.inhalt));
-  await eRuf('keks-e-eins', 'DELETE', `/api/criteria/${gNeu.inhalt.id}`);
+  await eRuf('cookie-e-eins', 'DELETE', `/api/criteria/${gNeu.inhalt.id}`);
 
-  /* --- Die Klemme: zwei vorbereitete Sitzungen, echte zweite Keks ---------
+  /* --- Die Klemme: zwei vorbereitete Sitzungen, echte zweite Cookie ---------
      Zu jeder Verweigerung der Erfolgsfall daneben und die Nachschau, dass
      nichts geschrieben wurde (Stolperstein 3). */
   const gVorRecht = gGewichte().find(c => c.name === 'Preis')?.gewicht;
-  const gNein = await gSetz('Preis', 0.5, 'keks-e-zwei');
+  const gNein = await gSetz('Preis', 0.5, 'cookie-e-zwei');
   pruefe('Ein gewoehnlicher Benutzer setzt kein Gewicht', gNein.status === 403,
     `Status ${gNein.status}`);
   pruefe('Und nach dem 403 steht der alte Wert unveraendert in der Datenbank',
     gGewichte().find(c => c.name === 'Preis')?.gewicht === gVorRecht,
     JSON.stringify(gGewichte()));
-  const gJa = await gSetz('Preis', 0.5, 'keks-e-eins');
+  const gJa = await gSetz('Preis', 0.5, 'cookie-e-eins');
   pruefe('Der Admin setzt es', gJa.status === 200 && gJa.inhalt?.gewicht === 0.5,
     `Status ${gJa.status}, ${JSON.stringify(gJa.inhalt)}`);
 
   /* --- Export und Import der Gewichte --- */
   await gSetz('Optik', 1); await gSetz('Haptik', 1.5);
   await gSetz('Preis', 1); await gSetz('Kundendienst', 1);
-  const gAus = (await eRuf('keks-e-eins', 'GET', '/api/export?photos=0')).inhalt;
+  const gAus = (await eRuf('cookie-e-eins', 'GET', '/api/export?photos=0')).inhalt;
   pruefe('Die Formatnummer steht auf 10', gAus?.version === 10, JSON.stringify(gAus?.version));
   pruefe('criteria bleibt eine Liste von Namen',
     Array.isArray(gAus?.criteria) && gAus.criteria.every(n => typeof n === 'string'),
@@ -2516,7 +2516,7 @@ const namen = (liste) => liste.map(c => c.name);
     gleich(Object.keys(gAus?.criteriaGewichte || {}), ['Haptik']),
     JSON.stringify(gAus?.criteriaGewichte));
   await gSetz('Haptik', 1);
-  const gAusGleich = (await eRuf('keks-e-eins', 'GET', '/api/export?photos=0')).inhalt;
+  const gAusGleich = (await eRuf('cookie-e-eins', 'GET', '/api/export?photos=0')).inhalt;
   pruefe('Ein ungewichteter Bestand ergibt ein leeres Feld',
     gAusGleich?.criteriaGewichte && Object.keys(gAusGleich.criteriaGewichte).length === 0,
     JSON.stringify(gAusGleich?.criteriaGewichte));
@@ -2544,7 +2544,7 @@ const namen = (liste) => liste.map(c => c.name);
     const d = oeffne(path.join(dir, 'katalog.sqlite'));
     for (const n of ['anna', 'bert', 'carla'])
       d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(n, 'x');
-    for (const [t, u] of [['keks-e2-anna', 1], ['keks-e2-bert', 2], ['keks-e2-carla', 3]])
+    for (const [t, u] of [['cookie-e2-anna', 1], ['cookie-e2-bert', 2], ['cookie-e2-carla', 3]])
       d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
     d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run('Rundlauf');
     d.prepare('INSERT INTO items (title, user_id) VALUES (?, 2)').run('Von Bert');
@@ -2595,8 +2595,8 @@ const namen = (liste) => liste.map(c => c.name);
   const SE2 = starteWeiterenServer(e2Dir, {}, 5620);
   await SE2.bereit;
 
-  const e2Ruf = async (keksWert, methode, pfad, koerper) => {
-    const opt = { method: methode, headers: { cookie: `kriterion_session=${keksWert}` } };
+  const e2Ruf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
     if (koerper !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(koerper);
@@ -2607,8 +2607,8 @@ const namen = (liste) => liste.map(c => c.name);
     return { status: a.status, inhalt };
   };
   // Eigene Ausfertigung von sendeImport: die vorhandene haengt fest am
-  // Hauptserver und an dessen Keks, hier braucht es drei nebeneinander.
-  const e2Import = async (keksWert, objekt, modus) => {
+  // Hauptserver und an dessen Cookie, hier braucht es drei nebeneinander.
+  const e2Import = async (cookieWert, objekt, modus) => {
     const grenze = '----pruefunge2' + crypto.randomBytes(6).toString('hex');
     const teil = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
@@ -2617,7 +2617,7 @@ const namen = (liste) => liste.map(c => c.name);
     const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
     const a = await fetch(SE2.basis + '/api/import', {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${keksWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
+      headers: { cookie: `kriterion_session=${cookieWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
       body: koerper
     });
     return { status: a.status, inhalt: await a.json().catch(() => null) };
@@ -2651,7 +2651,7 @@ const namen = (liste) => liste.map(c => c.name);
   }
 
   /* --- Der Export nennt die Verfasser --- */
-  const e2Aus = (await e2Ruf('keks-e2-anna', 'GET', '/api/export?photos=0')).inhalt;
+  const e2Aus = (await e2Ruf('cookie-e2-anna', 'GET', '/api/export?photos=0')).inhalt;
   const e2Eintrag = e2Aus?.items?.find(i => i.title === 'Rundlauf');
   const e2Zweiter = e2Aus?.items?.find(i => i.title === 'Von Bert');
 
@@ -2693,7 +2693,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
      nennt wieder ausdruecklich null. */
-  const e2MitDateien = (await e2Ruf('keks-e2-anna', 'GET', '/api/export?photos=0&files=1')).inhalt;
+  const e2MitDateien = (await e2Ruf('cookie-e2-anna', 'GET', '/api/export?photos=0&files=1')).inhalt;
   const e2DateiEintrag = e2MitDateien?.items?.find(i => i.title === 'Rundlauf');
   pruefe('Ein Export mit Dateien traegt sie ueberhaupt',
     (e2DateiEintrag?.attachments || []).length === 3,
@@ -2722,7 +2722,7 @@ const namen = (liste) => liste.map(c => c.name);
      Bestands geschrieben: berts Eintrag, berts und carlas Bewertungen, berts
      Testtag und carlas Kommentar fielen ihr weiterhin zu. Die Gegenprobe
      (Zuordnung entfernt) macht sie unveraendert rot. */
-  const e2Rund = await e2Import('keks-e2-anna', e2Aus, 'replace');
+  const e2Rund = await e2Import('cookie-e2-anna', e2Aus, 'replace');
   pruefe('Der ersetzende Rundlauf gelingt', e2Rund.status === 200, JSON.stringify(e2Rund.inhalt));
   pruefe('Und meldet keinen unbekannten Verfasser',
     gleich(e2Rund.inhalt?.verfasserUnbekannt, []), JSON.stringify(e2Rund.inhalt?.verfasserUnbekannt));
@@ -2809,7 +2809,7 @@ const namen = (liste) => liste.map(c => c.name);
      die Schreibweise koennte dann gar nicht scheitern, egal ob COLLATE
      NOCASE wirkt oder nicht. Der Grossbuchstabenname ist deshalb
      'BERT'. */
-  const e2Fremd = await e2Import('keks-e2-anna', { version: 6, title: 'F', items: [{
+  const e2Fremd = await e2Import('cookie-e2-anna', { version: 6, title: 'F', items: [{
     title: 'Fremde Namen',
     author: 'BERT',
     comments: [{ text: 'von unbekannt', author: 'dora' },
@@ -2871,7 +2871,7 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify(e2NachFremd));
 
   /* --- Aeltere Datei, die gar keinen Verfasser kennt --- */
-  const e2Alt = await e2Import('keks-e2-anna', { version: 5, title: 'A', items: [{
+  const e2Alt = await e2Import('cookie-e2-anna', { version: 5, title: 'A', items: [{
     title: 'Alte Datei',
     comments: [{ text: 'alt und ohne Verfasser' }],
     ratings: [{ name: 'Optik', value: 4 }],
@@ -2891,15 +2891,15 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify([e2Alt.inhalt?.verfasserUnbekannt, e2Alt.inhalt?.verfasserZugeordnet]));
 
   /* --- Beide Linkformen in einer Datei ------------------------------------
-     Bis Formatnummer 6 war ein Link eine nackte Zeichenkette, ab 7 ein Objekt
+     Bis Formatnummer 6 war ein Link eine nackte String, ab 7 ein Objekt
      mit url und author. Der Import muss beide lesen -- eine alte Exportdatei
-     ist kein Fehler, sondern der Normalfall nach einem Rueckschritt.
+     ist kein Fehler, sondern der Normalfall nach einem Downgrade.
      EINGESPIELT WIRD ALS ANNA, und der genannte Eintragsverfasser ist BERT.
      Genau darauf kommt es an: nur so ist "der Link faellt an den
      Eintragsverfasser" von "der Link faellt an den Einspielenden"
      unterscheidbar. Waere der Eintrag annas, waere die Pruefung gruen, ohne
      etwas zu belegen. */
-  const e2LinkAlt = await e2Import('keks-e2-anna', { version: 6, title: 'L6', items: [{
+  const e2LinkAlt = await e2Import('cookie-e2-anna', { version: 6, title: 'L6', items: [{
     title: 'Links ohne Verfasser', author: 'bert',
     links: ['https://sechs.example/eins', 'Suchtext aus sechs'] }] }, 'merge');
   pruefe('Eine Datei der Formatnummer 6 laesst sich einspielen',
@@ -2919,7 +2919,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* Die neue Form daneben, mit denselben drei Lagen wie am Kommentar: ein
      bekannter Name, ein unbekannter, gar keine Angabe. */
-  const e2LinkNeu = await e2Import('keks-e2-anna', { version: 7, title: 'L7', items: [{
+  const e2LinkNeu = await e2Import('cookie-e2-anna', { version: 7, title: 'L7', items: [{
     title: 'Links mit Verfasser', author: 'bert',
     links: [{ url: 'https://sieben.example/carla', author: 'carla' },
             { url: 'https://sieben.example/dora', author: 'dora' },
@@ -2962,7 +2962,7 @@ const namen = (liste) => liste.map(c => c.name);
      so ist "faellt an den Eintragsverfasser" von "faellt an den Einspielenden"
      zu unterscheiden. */
   const e2Bytes = Buffer.from('inhalt').toString('base64');
-  const e2DateiAlt = await e2Import('keks-e2-anna', { version: 7, title: 'D7', items: [{
+  const e2DateiAlt = await e2Import('cookie-e2-anna', { version: 7, title: 'D7', items: [{
     title: 'Dateien ohne Verfasser', author: 'bert',
     attachments: [{ filename: 'alt.txt', mime_type: 'text/plain', data_base64: e2Bytes }] }] }, 'merge');
   pruefe('Eine Datei ohne Verfasserfeld laesst sich einspielen',
@@ -2976,7 +2976,7 @@ const namen = (liste) => liste.map(c => c.name);
     e2DateiAltZeilen.length === 1 && e2DateiAltZeilen[0].username === 'bert',
     JSON.stringify(e2DateiAltZeilen));
 
-  const e2DateiNeu = await e2Import('keks-e2-anna', { version: 8, title: 'D8', items: [{
+  const e2DateiNeu = await e2Import('cookie-e2-anna', { version: 8, title: 'D8', items: [{
     title: 'Dateien mit Verfasser', author: 'bert',
     attachments: [
       { filename: 'von-carla.txt', mime_type: 'text/plain', author: 'carla', data_base64: e2Bytes },
@@ -3039,7 +3039,7 @@ const namen = (liste) => liste.map(c => c.name);
     ];
     const a = await fetch(SE2.basis + `/api/items/${e2VidItem?.id}/videos`, {
       method: 'POST',
-      headers: { cookie: 'kriterion_session=keks-e2-anna',
+      headers: { cookie: 'kriterion_session=cookie-e2-anna',
                  'content-type': `multipart/form-data; boundary=${grenze}` },
       body: Buffer.concat(teile)
     });
@@ -3048,8 +3048,8 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Die Prueflage traegt wirklich ein Video', e2VidHoch.status === 201,
     `${e2VidHoch.status}: ${JSON.stringify(e2VidHoch.inhalt?.error)}`);
 
-  const e2OhneVid = (await e2Ruf('keks-e2-anna', 'GET', '/api/export?photos=1')).inhalt;
-  const e2MitVid = (await e2Ruf('keks-e2-anna', 'GET', '/api/export?photos=1&videos=1')).inhalt;
+  const e2OhneVid = (await e2Ruf('cookie-e2-anna', 'GET', '/api/export?photos=1')).inhalt;
+  const e2MitVid = (await e2Ruf('cookie-e2-anna', 'GET', '/api/export?photos=1&videos=1')).inhalt;
   const vidZeile = (datei) => (datei?.items?.find(i => i.title === e2VidItem?.title)?.photos || [])
     .find(p2 => p2.art === 'video');
   pruefe('Ohne den Schalter steht die Videozeile als Marke in der Datei',
@@ -3073,7 +3073,7 @@ const namen = (liste) => liste.map(c => c.name);
      Dauer und das Standbild wirklich ankommen. Das Standbild ist der Punkt --
      ohne das eigene Feld erzeugte der Import die Varianten aus data, also aus
      der Videodatei, und sie waeren leer. */
-  const e2VidRund = await e2Import('keks-e2-anna', e2MitVid, 'replace');
+  const e2VidRund = await e2Import('cookie-e2-anna', e2MitVid, 'replace');
   pruefe('Der Rundlauf mit Videos gelingt', e2VidRund.status === 200,
     JSON.stringify(e2VidRund.inhalt));
   pruefe('Und er zaehlt das Video eigens, nicht als Foto',
@@ -3090,7 +3090,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* Und dieselbe Datei OHNE die Videobytes: kein Platz, aber eine Meldung.
      Nicht abbrechen, melden -- dieselbe Haltung wie bei unbekannten
      Verfassernamen und ungueltigen Gewichten. */
-  const e2VidOhne = await e2Import('keks-e2-anna', e2OhneVid, 'replace');
+  const e2VidOhne = await e2Import('cookie-e2-anna', e2OhneVid, 'replace');
   pruefe('Eine Datei ohne Videobytes laesst sich trotzdem einspielen',
     e2VidOhne.status === 200, JSON.stringify(e2VidOhne.inhalt));
   pruefe('Und sie nennt in der Antwort, wie viele Videos gefehlt haben',
@@ -3102,7 +3102,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* Ein Video, dessen Standbild sich nicht durch sharp lesen laesst, wird
      uebergangen und genannt -- dieselbe Regel wie beim Hochladen. */
-  const e2VidKaputt = await e2Import('keks-e2-anna', { version: 10, title: 'K', items: [{
+  const e2VidKaputt = await e2Import('cookie-e2-anna', { version: 10, title: 'K', items: [{
     title: 'Mit kaputtem Standbild',
     photos: [{ art: 'video', dauer: 3, mime_type: 'video/mp4',
                data_base64: MP4().toString('base64'),
@@ -3118,7 +3118,7 @@ const namen = (liste) => liste.map(c => c.name);
      Entschieden wird ueber das Vorhandensein der Felder, nicht ueber die
      Formatnummer -- die ist im Projekt eine Aussage, keine Bedingung.
      Die Datei nennt hier ausdruecklich version 9, also die von vorher. */
-  const e2VidAlt = await e2Import('keks-e2-anna', { version: 9, title: 'A9', items: [{
+  const e2VidAlt = await e2Import('cookie-e2-anna', { version: 9, title: 'A9', items: [{
     title: 'Aus einer Datei ohne art',
     photos: [{ mime_type: 'image/png', data_base64: PNG_BASE64 }]
   }] }, 'merge');
@@ -3161,7 +3161,7 @@ const namen = (liste) => liste.map(c => c.name);
     const d = oeffne(path.join(dir, 'katalog.sqlite'));
     for (const n of ['anna', 'bert', 'carla'])
       d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(n, 'x');
-    for (const [t, u] of [['keks-f-anna', 1], ['keks-f-bert', 2], ['keks-f-carla', 3]])
+    for (const [t, u] of [['cookie-f-anna', 1], ['cookie-f-bert', 2], ['cookie-f-carla', 3]])
       d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
     d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run('Von Anna');
     d.prepare('INSERT INTO items (title, user_id) VALUES (?, 2)').run('Von Bert');
@@ -3210,8 +3210,8 @@ const namen = (liste) => liste.map(c => c.name);
   const F = starteWeiterenServer(fDir, { ENCRYPTION_KEY: '' }, 5680);
   await F.bereit;
 
-  const fRuf = async (keksWert, methode, pfad, koerper) => {
-    const opt = { method: methode, headers: { cookie: `kriterion_session=${keksWert}` } };
+  const fRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
     if (koerper !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(koerper);
@@ -3221,12 +3221,12 @@ const namen = (liste) => liste.map(c => c.name);
     try { inhalt = await a.json(); } catch {}
     return { status: a.status, inhalt };
   };
-  /* Ein echter mehrteiliger Upload gegen DIESEN Server, mit DIESEM Keks. Die
+  /* Ein echter Multipart-Upload gegen DIESEN Server, mit DIESEM Cookie. Die
      vorhandene Hilfe sendeDateien() haengt fest am Hauptserver und an dessen
      Anmeldung; hier braucht es drei Rufer nebeneinander. Ohne echten Upload
      bewiese der Erfolgsfall nichts ueber die Route -- der Waechter stand vor
      multer, ein nachgereichter INSERT liefe an beidem vorbei. */
-  const fUpload = async (keksWert, itemId, name, inhalt) => {
+  const fUpload = async (cookieWert, itemId, name, inhalt) => {
     const grenze = '----pruefungf' + crypto.randomBytes(6).toString('hex');
     const teile = [
       Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="files"; filename="${name}"\r\n` +
@@ -3236,7 +3236,7 @@ const namen = (liste) => liste.map(c => c.name);
     ];
     const a = await fetch(F.basis + `/api/items/${itemId}/attachments`, {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${keksWert}`,
+      headers: { cookie: `kriterion_session=${cookieWert}`,
                  'content-type': `multipart/form-data; boundary=${grenze}` },
       body: Buffer.concat(teile)
     });
@@ -3273,17 +3273,17 @@ const namen = (liste) => liste.map(c => c.name);
 
   const fTitel = (id) => fEine('SELECT title FROM items WHERE id = ?', id)?.title;
 
-  const fFremdTitel = await fRuf('keks-f-carla', 'PUT', '/api/items/2', { title: 'Gekapert' });
+  const fFremdTitel = await fRuf('cookie-f-carla', 'PUT', '/api/items/2', { title: 'Gekapert' });
   pruefe('Ein Fremder benennt einen Eintrag nicht um', fFremdTitel.status === 403,
     `Status ${fFremdTitel.status}`);
   pruefe('Und der Titel steht unveraendert da', fTitel(2) === 'Von Bert', fTitel(2));
   pruefe('Die Absage nennt den Grund',
     /angelegt hat/.test(fFremdTitel.inhalt?.error || ''), fFremdTitel.inhalt?.error);
 
-  const fEigenTitel = await fRuf('keks-f-bert', 'PUT', '/api/items/2', { description: 'von bert selbst' });
+  const fEigenTitel = await fRuf('cookie-f-bert', 'PUT', '/api/items/2', { description: 'von bert selbst' });
   pruefe('Der Verfasser aendert seinen eigenen Eintrag', fEigenTitel.status === 200,
     `Status ${fEigenTitel.status}`);
-  const fAdminTitel = await fRuf('keks-f-anna', 'PUT', '/api/items/2', { description: 'vom Admin berichtigt' });
+  const fAdminTitel = await fRuf('cookie-f-anna', 'PUT', '/api/items/2', { description: 'vom Admin berichtigt' });
   pruefe('Der Admin aendert auch einen fremden Eintrag', fAdminTitel.status === 200,
     `Status ${fAdminTitel.status}`);
 
@@ -3291,7 +3291,7 @@ const namen = (liste) => liste.map(c => c.name);
      persoenlich. Zur Gegenprobe gehoeren BEIDE Richtungen -- Klemme ganz weg
      macht die Verweigerung oben rot und laesst diese hier gruen, Klemme ueber
      die ganze Route genau umgekehrt. */
-  const fFavor = await fRuf('keks-f-carla', 'PUT', '/api/items/2', { favorite: true });
+  const fFavor = await fRuf('cookie-f-carla', 'PUT', '/api/items/2', { favorite: true });
   pruefe('Ein Fremder setzt seinen eigenen Favoriten an einem fremden Eintrag',
     fFavor.status === 200, `Status ${fFavor.status}`);
   pruefe('Und der Favorit steht bei ihm, nicht beim Verfasser',
@@ -3300,19 +3300,19 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* Beides in einem Ruf: die Absage muss kommen, BEVOR der Favorit
      geschrieben ist. Sonst waere ein abgelehnter Ruf halb ausgefuehrt. */
-  const fBeides = await fRuf('keks-f-carla', 'PUT', '/api/items/2', { favorite: false, title: 'Gekapert' });
+  const fBeides = await fRuf('cookie-f-carla', 'PUT', '/api/items/2', { favorite: false, title: 'Gekapert' });
   pruefe('Favorit und Titel zusammen werden abgewiesen', fBeides.status === 403,
     `Status ${fBeides.status}`);
   pruefe('Und der Favorit ist dabei NICHT mit weggeraeumt worden',
     fZeilen('SELECT 1 FROM item_pins WHERE user_id = 3 AND item_id = 2').length === 1,
     JSON.stringify(fZeilen('SELECT user_id, item_id FROM item_pins')));
 
-  const fLoeschFremd = await fRuf('keks-f-carla', 'DELETE', '/api/items/2');
+  const fLoeschFremd = await fRuf('cookie-f-carla', 'DELETE', '/api/items/2');
   pruefe('Ein Fremder loescht keinen Eintrag', fLoeschFremd.status === 403, `Status ${fLoeschFremd.status}`);
   pruefe('Und der Eintrag steht noch', fTitel(2) === 'Von Bert', fTitel(2));
 
-  const fTagAn = await fRuf('keks-f-carla', 'POST', '/api/items/2/tags', { name: 'Fremdtag' });
-  const fTagWeg = await fRuf('keks-f-carla', 'DELETE', `/api/items/2/tags/${fMarkeId}`);
+  const fTagAn = await fRuf('cookie-f-carla', 'POST', '/api/items/2/tags', { name: 'Fremdtag' });
+  const fTagWeg = await fRuf('cookie-f-carla', 'DELETE', `/api/items/2/tags/${fMarkeId}`);
   pruefe('Ein Fremder haengt keinen Tag an einen fremden Eintrag', fTagAn.status === 403,
     `Status ${fTagAn.status}`);
   pruefe('Und nimmt auch keinen weg', fTagWeg.status === 403, `Status ${fTagWeg.status}`);
@@ -3328,7 +3328,7 @@ const namen = (liste) => liste.map(c => c.name);
      Die Reihenfolge ist keine Bequemlichkeit: carla legt zuerst an, damit es
      ueberhaupt eine eigene Zeile zu loeschen gibt, und anna raeumt zuletzt
      berts Zeile weg -- danach ist die Liste leer. */
-  const fLink = await fRuf('keks-f-carla', 'POST', '/api/items/2/links', { url: 'https://fremd.test' });
+  const fLink = await fRuf('cookie-f-carla', 'POST', '/api/items/2/links', { url: 'https://fremd.test' });
   pruefe('Ein Fremder haengt einen Link an einen fremden Eintrag', fLink.status === 201,
     `Status ${fLink.status}`);
   const fLinkNeu = fEine("SELECT id, user_id FROM links WHERE url = 'https://fremd.test'");
@@ -3341,7 +3341,7 @@ const namen = (liste) => liste.map(c => c.name);
     fZeilen('SELECT id FROM links WHERE item_id = 2').length === 2,
     JSON.stringify(fZeilen('SELECT id, url, user_id FROM links WHERE item_id = 2')));
 
-  const fLinkWeg = await fRuf('keks-f-carla', 'DELETE', '/api/links/1');
+  const fLinkWeg = await fRuf('cookie-f-carla', 'DELETE', '/api/links/1');
   pruefe('Ein Fremder loescht keinen fremden Link', fLinkWeg.status === 403, `Status ${fLinkWeg.status}`);
   pruefe('Und der fremde Link steht noch', fZeilen('SELECT id FROM links WHERE id = 1').length === 1);
 
@@ -3349,7 +3349,7 @@ const namen = (liste) => liste.map(c => c.name);
      nicht zu unterscheiden, ob die Rechte an der Linkliste als Ganzes
      gefallen sind oder nur die an der einzelnen Zeile. */
   const fLinkOrdnungVorher = fZeilen('SELECT id, sort_order FROM links WHERE item_id = 2 ORDER BY id');
-  const fLinkSort = await fRuf('keks-f-carla', 'PUT', '/api/items/2/link-order',
+  const fLinkSort = await fRuf('cookie-f-carla', 'PUT', '/api/items/2/link-order',
     { order: [fLinkNeu?.id, 1] });
   pruefe('Ein Fremder sortiert die Linkliste nicht um', fLinkSort.status === 403,
     `Status ${fLinkSort.status}`);
@@ -3358,19 +3358,19 @@ const namen = (liste) => liste.map(c => c.name);
            fLinkOrdnungVorher),
     JSON.stringify(fZeilen('SELECT id, sort_order FROM links WHERE item_id = 2 ORDER BY id')));
 
-  const fLinkEigen = await fRuf('keks-f-carla', 'DELETE', `/api/links/${fLinkNeu?.id}`);
+  const fLinkEigen = await fRuf('cookie-f-carla', 'DELETE', `/api/links/${fLinkNeu?.id}`);
   pruefe('Aber seinen eigenen Link loescht er', fLinkEigen.status === 204, `Status ${fLinkEigen.status}`);
   pruefe('Und die Zeile ist wirklich weg',
     fZeilen('SELECT id FROM links WHERE id = ?', fLinkNeu?.id).length === 0);
 
-  const fLinkAdmin = await fRuf('keks-f-anna', 'DELETE', '/api/links/1');
+  const fLinkAdmin = await fRuf('cookie-f-anna', 'DELETE', '/api/links/1');
   pruefe('Der Admin loescht einen fremden Link', fLinkAdmin.status === 204, `Status ${fLinkAdmin.status}`);
   pruefe('Und auch diese Zeile ist weg',
     fZeilen('SELECT id FROM links WHERE id = 1').length === 0);
 
-  const fFokus = await fRuf('keks-f-carla', 'PUT', '/api/photos/1/focus', { x: 10, y: 10 });
-  const fFotoOrder = await fRuf('keks-f-carla', 'PUT', '/api/items/2/photo-order', { order: [1] });
-  const fFotoWeg = await fRuf('keks-f-carla', 'DELETE', '/api/photos/1');
+  const fFokus = await fRuf('cookie-f-carla', 'PUT', '/api/photos/1/focus', { x: 10, y: 10 });
+  const fFotoOrder = await fRuf('cookie-f-carla', 'PUT', '/api/items/2/photo-order', { order: [1] });
+  const fFotoWeg = await fRuf('cookie-f-carla', 'DELETE', '/api/photos/1');
   pruefe('Ein Fremder verschiebt keinen Fokuspunkt', fFokus.status === 403, `Status ${fFokus.status}`);
   pruefe('Ein Fremder sortiert fremde Fotos nicht um', fFotoOrder.status === 403, `Status ${fFotoOrder.status}`);
   pruefe('Ein Fremder loescht kein fremdes Foto', fFotoWeg.status === 403, `Status ${fFotoWeg.status}`);
@@ -3382,12 +3382,12 @@ const namen = (liste) => liste.map(c => c.name);
      NICHT wie die Datei umgedreht: ein Video haengt am Eintrag und gehoert
      damit seinem Verfasser, genau wie ein Foto. Wer den Eintrag aendern darf,
      darf Videos hinzufuegen; sonst niemand.
-     MIT ECHTEM MEHRTEILIGEM UPLOAD, nicht mit einem nachgereichten INSERT:
+     MIT ECHTEM MULTIPART UPLOAD, nicht mit einem nachgereichten INSERT:
      der Waechter steht VOR multer, und ein INSERT liefe an beidem vorbei
      (die Lehre aus 0.8.31). Und zu jeder Verweigerung der Erfolgsfall
      daneben -- sonst bliebe die Absage auch dann gruen, wenn ueberhaupt
      nichts mehr hochladbar waere (Stolperstein 81). */
-  const fVideoAn = async (keksWert, itemId) => {
+  const fVideoAn = async (cookieWert, itemId) => {
     const grenze = '----pruefungv' + crypto.randomBytes(6).toString('hex');
     const teil = (name, dateiname, typ, inhalt) => [
       Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="${name}"; ` +
@@ -3401,27 +3401,27 @@ const namen = (liste) => liste.map(c => c.name);
     ];
     const a = await fetch(F.basis + `/api/items/${itemId}/videos`, {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${keksWert}`,
+      headers: { cookie: `kriterion_session=${cookieWert}`,
                  'content-type': `multipart/form-data; boundary=${grenze}` },
       body: Buffer.concat(teile)
     });
     return { status: a.status, inhalt: await a.json().catch(() => null) };
   };
   const fVorher = fZeilen('SELECT id FROM photos WHERE item_id = 2').length;
-  const fVideoFremd = await fVideoAn('keks-f-carla', 2);
+  const fVideoFremd = await fVideoAn('cookie-f-carla', 2);
   pruefe('Ein Fremder laedt kein Video an einen fremden Eintrag', fVideoFremd.status === 403,
     `Status ${fVideoFremd.status}`);
   // Die Nachschau: nach dem 403 steht KEINE Zeile in photos.
   pruefe('Und nach der Absage steht keine neue Zeile in photos',
     fZeilen('SELECT id FROM photos WHERE item_id = 2').length === fVorher,
     JSON.stringify(fZeilen("SELECT id, art FROM photos WHERE item_id = 2")));
-  const fVideoEigen = await fVideoAn('keks-f-bert', 2);
+  const fVideoEigen = await fVideoAn('cookie-f-bert', 2);
   pruefe('Der Verfasser des Eintrags dagegen schon', fVideoEigen.status === 201,
     `Status ${fVideoEigen.status}: ${JSON.stringify(fVideoEigen.inhalt?.error)}`);
   const fVideoZeile = fEine("SELECT id, art, dauer FROM photos WHERE item_id = 2 AND art = 'video'");
   pruefe('Und die Zeile traegt art = video mit ihrer Dauer',
     fVideoZeile?.art === 'video' && fVideoZeile?.dauer === 5, JSON.stringify(fVideoZeile));
-  const fVideoWeg = await fRuf('keks-f-carla', 'DELETE', `/api/photos/${fVideoZeile?.id}`);
+  const fVideoWeg = await fRuf('cookie-f-carla', 'DELETE', `/api/photos/${fVideoZeile?.id}`);
   pruefe('Ein Fremder loescht auch kein fremdes Video', fVideoWeg.status === 403,
     `Status ${fVideoWeg.status}`);
   pruefe('Und das Video liegt noch da',
@@ -3431,9 +3431,9 @@ const namen = (liste) => liste.map(c => c.name);
      UMGEDREHT MIT 0.8.31, NICHT GELOESCHT (Stolperstein 74): bis 0.8.30 stand
      hier nur die Verweigerung. Hochladen ist jetzt offen -- und die Zeile
      daneben belegt, dass die Datei dabei SEINEN Namen bekommt.
-     Der Erfolgsfall laeuft ueber einen echten mehrteiligen Upload; ein
+     Der Erfolgsfall laeuft ueber einen echten Multipart-Upload; ein
      nachgereichter INSERT bewiese nichts ueber die Route. */
-  const fDateiAn = await fUpload('keks-f-carla', 2, 'von-carla.txt', 'inhalt von carla');
+  const fDateiAn = await fUpload('cookie-f-carla', 2, 'von-carla.txt', 'inhalt von carla');
   pruefe('Ein Fremder haengt eine Datei an einen fremden Eintrag', fDateiAn.status === 201,
     `Status ${fDateiAn.status}`);
   const fDateiNeu = fEine("SELECT id, user_id FROM attachments WHERE filename = 'von-carla.txt'");
@@ -3444,18 +3444,18 @@ const namen = (liste) => liste.map(c => c.name);
     fZeilen('SELECT id FROM attachments WHERE item_id = 2').length === 2,
     JSON.stringify(fZeilen('SELECT id, filename, user_id FROM attachments')));
 
-  const fDateiWeg = await fRuf('keks-f-carla', 'DELETE', '/api/attachments/1');
+  const fDateiWeg = await fRuf('cookie-f-carla', 'DELETE', '/api/attachments/1');
   pruefe('Ein Fremder loescht keine fremde Datei', fDateiWeg.status === 403, `Status ${fDateiWeg.status}`);
   pruefe('Und die fremde Datei liegt noch da',
     fZeilen('SELECT id FROM attachments WHERE id = 1').length === 1);
 
-  const fDateiEigen = await fRuf('keks-f-carla', 'DELETE', `/api/attachments/${fDateiNeu?.id}`);
+  const fDateiEigen = await fRuf('cookie-f-carla', 'DELETE', `/api/attachments/${fDateiNeu?.id}`);
   pruefe('Aber seine eigene Datei loescht er', fDateiEigen.status === 200,
     `Status ${fDateiEigen.status}`);
   pruefe('Und sie ist wirklich weg',
     fZeilen('SELECT id FROM attachments WHERE id = ?', fDateiNeu?.id).length === 0);
 
-  const fDateiAdmin = await fRuf('keks-f-anna', 'DELETE', '/api/attachments/1');
+  const fDateiAdmin = await fRuf('cookie-f-anna', 'DELETE', '/api/attachments/1');
   pruefe('Der Admin loescht eine fremde Datei', fDateiAdmin.status === 200, `Status ${fDateiAdmin.status}`);
   pruefe('Und auch diese Zeile ist weg',
     fZeilen('SELECT id FROM attachments WHERE id = 1').length === 0);
@@ -3463,10 +3463,10 @@ const namen = (liste) => liste.map(c => c.name);
   /* Eine herrenlose Zeile gehoert dem Admin. Ohne die Klemme auf null waere
      sie fuer jeden offen -- und genau solche Zeilen entstehen, wenn ein
      Zugang samt Beitraegen geloescht wird. */
-  const fHerrenlosFremd = await fRuf('keks-f-carla', 'PUT', '/api/items/3', { title: 'Genommen' });
+  const fHerrenlosFremd = await fRuf('cookie-f-carla', 'PUT', '/api/items/3', { title: 'Genommen' });
   pruefe('Eine herrenlose Zeile gehoert nicht jedem', fHerrenlosFremd.status === 403,
     `Status ${fHerrenlosFremd.status}`);
-  const fHerrenlosAdmin = await fRuf('keks-f-anna', 'PUT', '/api/items/3', { title: 'Vom Admin' });
+  const fHerrenlosAdmin = await fRuf('cookie-f-anna', 'PUT', '/api/items/3', { title: 'Vom Admin' });
   pruefe('Aber dem Admin', fHerrenlosAdmin.status === 200 && fTitel(3) === 'Vom Admin',
     `Status ${fHerrenlosAdmin.status} / ${fTitel(3)}`);
 
@@ -3475,36 +3475,36 @@ const namen = (liste) => liste.map(c => c.name);
 
   const fText = (id) => fEine('SELECT text, pinned FROM comments WHERE id = ?', id);
 
-  const fTextFremd = await fRuf('keks-f-carla', 'PUT', '/api/comments/1', { text: 'umgeschrieben' });
+  const fTextFremd = await fRuf('cookie-f-carla', 'PUT', '/api/comments/1', { text: 'umgeschrieben' });
   pruefe('Ein Fremder aendert keinen fremden Kommentartext', fTextFremd.status === 403,
     `Status ${fTextFremd.status}`);
   /* Die schaerfste Zeile der ganzen Schicht: AUCH DER ADMIN NICHT. Loeschen
      ja, umschreiben nein -- eine fremde Aussage unter fremdem Namen zu
      veraendern ist die Art Funktion, die man spaeter bereut. */
-  const fTextAdmin = await fRuf('keks-f-anna', 'PUT', '/api/comments/1', { text: 'vom Admin umgeschrieben' });
+  const fTextAdmin = await fRuf('cookie-f-anna', 'PUT', '/api/comments/1', { text: 'vom Admin umgeschrieben' });
   pruefe('Und der Admin aendert ihn auch nicht', fTextAdmin.status === 403,
     `Status ${fTextAdmin.status}`);
   pruefe('Der Kommentartext steht unveraendert da', fText(1)?.text === 'Berts Kommentar', fText(1)?.text);
-  const fTextEigen = await fRuf('keks-f-bert', 'PUT', '/api/comments/1', { text: 'Berts Kommentar, berichtigt' });
+  const fTextEigen = await fRuf('cookie-f-bert', 'PUT', '/api/comments/1', { text: 'Berts Kommentar, berichtigt' });
   pruefe('Der Verfasser aendert seinen eigenen Text',
     fTextEigen.status === 200 && fText(1)?.text === 'Berts Kommentar, berichtigt', fText(1)?.text);
 
   /* Die Merkmale dagegen darf der Admin: die Anpinnung wirkt auf die
      Sortierung fuer ALLE (pinned DESC steht ganz vorn), aendert keine Aussage
      und ist umkehrbar. */
-  const fPinAdmin = await fRuf('keks-f-anna', 'PUT', '/api/comments/1', { pinned: 1 });
+  const fPinAdmin = await fRuf('cookie-f-anna', 'PUT', '/api/comments/1', { pinned: 1 });
   pruefe('Der Admin pinnt einen fremden Kommentar an',
     fPinAdmin.status === 200 && fText(1)?.pinned === 1, `Status ${fPinAdmin.status} / ${fText(1)?.pinned}`);
-  const fPinFremd = await fRuf('keks-f-carla', 'PUT', '/api/comments/1', { pinned: 0 });
+  const fPinFremd = await fRuf('cookie-f-carla', 'PUT', '/api/comments/1', { pinned: 0 });
   pruefe('Ein Fremder pinnt nicht an und nicht ab', fPinFremd.status === 403, `Status ${fPinFremd.status}`);
-  const fArtFremd = await fRuf('keks-f-carla', 'PUT', '/api/comments/1', { kind: 'report' });
+  const fArtFremd = await fRuf('cookie-f-carla', 'PUT', '/api/comments/1', { kind: 'report' });
   pruefe('Und aendert auch die Art nicht', fArtFremd.status === 403, `Status ${fArtFremd.status}`);
   pruefe('Die Anpinnung steht noch, wie der Admin sie gesetzt hat', fText(1)?.pinned === 1);
 
   /* Text und Merkmal in einem Ruf: die Absage muss kommen, bevor irgendetwas
      geschrieben ist -- sonst haette der Admin die Anpinnung durchgebracht und
      nur der Text waere abgewiesen worden. */
-  const fBeidesK = await fRuf('keks-f-anna', 'PUT', '/api/comments/1',
+  const fBeidesK = await fRuf('cookie-f-anna', 'PUT', '/api/comments/1',
     { text: 'doch umgeschrieben', pinned: 0 });
   pruefe('Text und Anpinnung zusammen weist der Admin sich selbst ab', fBeidesK.status === 403,
     `Status ${fBeidesK.status}`);
@@ -3525,7 +3525,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Die Ausgangslage traegt weder Vermerk noch bearbeitet',
     fVermerk() === 0 && fBearbeitet() === null, JSON.stringify([fVermerk(), fBearbeitet()]));
 
-  const fBildAdmin = await fRuf('keks-f-anna', 'POST', '/api/comments/1/images', {});
+  const fBildAdmin = await fRuf('cookie-f-anna', 'POST', '/api/comments/1/images', {});
   pruefe('Der Admin haengt kein Bild an einen fremden Kommentar', fBildAdmin.status === 403,
     `Status ${fBildAdmin.status}`);
   /* ANHAENGEN IST BEARBEITEN -- und weil der Admin gar nicht anhaengen darf,
@@ -3533,7 +3533,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und sein abgewiesener Versuch aendert an beidem nichts',
     fVermerk() === 0 && fBearbeitet() === null, JSON.stringify([fVermerk(), fBearbeitet()]));
 
-  const fBildEigenWeg = await fRuf('keks-f-bert', 'DELETE', '/api/comment-images/2');
+  const fBildEigenWeg = await fRuf('cookie-f-bert', 'DELETE', '/api/comment-images/2');
   pruefe('Der Verfasser loescht sein eigenes Bild',
     fBildEigenWeg.status === 200 && fZeilen('SELECT id FROM comment_images').length === 1,
     `Status ${fBildEigenWeg.status}`);
@@ -3552,7 +3552,7 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify(fBildEigenWeg.inhalt?.comments?.find(k => k.id === 1)?.updated_at));
 
   fSchreibe('UPDATE comments SET updated_at = NULL WHERE id = 1');
-  const fBildFremdWeg = await fRuf('keks-f-carla', 'DELETE', '/api/comment-images/1');
+  const fBildFremdWeg = await fRuf('cookie-f-carla', 'DELETE', '/api/comment-images/1');
   pruefe('Ein Fremder loescht kein Bild aus einem fremden Kommentar', fBildFremdWeg.status === 403,
     `Status ${fBildFremdWeg.status}`);
   pruefe('Und das Bild ist noch da', fZeilen('SELECT id FROM comment_images').length === 1);
@@ -3561,7 +3561,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und gilt erst recht nicht als Bearbeitung',
     fBearbeitet() === null, `updated_at = ${fBearbeitet()}`);
 
-  const fBildAdminWeg = await fRuf('keks-f-anna', 'DELETE', '/api/comment-images/1');
+  const fBildAdminWeg = await fRuf('cookie-f-anna', 'DELETE', '/api/comment-images/1');
   pruefe('Der Admin loescht ein Bild aus einem fremden Kommentar',
     fBildAdminWeg.status === 200 && fZeilen('SELECT id FROM comment_images').length === 0,
     `Status ${fBildAdminWeg.status}`);
@@ -3591,8 +3591,8 @@ const namen = (liste) => liste.map(c => c.name);
   /* `mine` am Kommentar -- dasselbe Muster wie am Testtag und an der Stimme.
      ZWEI RUFER nebeneinander: an derselben Zeile muss die Antwort
      verschieden ausfallen, sonst belegt sie nur, dass das Feld existiert. */
-  const fMineBert = (await fRuf('keks-f-bert', 'GET', '/api/items/2')).inhalt.comments;
-  const fMineAnna = (await fRuf('keks-f-anna', 'GET', '/api/items/2')).inhalt.comments;
+  const fMineBert = (await fRuf('cookie-f-bert', 'GET', '/api/items/2')).inhalt.comments;
+  const fMineAnna = (await fRuf('cookie-f-anna', 'GET', '/api/items/2')).inhalt.comments;
   const fMineVon = (liste, kid) => liste.find(k => k.id === kid)?.mine;
   pruefe('Jeder Kommentar sagt, ob er dem Fragenden gehoert',
     fMineBert.every(k => typeof k.mine === 'boolean'),
@@ -3606,70 +3606,70 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Die Verfassernummer steht dabei weiterhin in keiner Antwort',
     !fMineBert.some(k => 'user_id' in k), JSON.stringify(Object.keys(fMineBert[0] || {})));
 
-  const fKomWeg = await fRuf('keks-f-carla', 'DELETE', '/api/comments/1');
+  const fKomWeg = await fRuf('cookie-f-carla', 'DELETE', '/api/comments/1');
   pruefe('Ein Fremder loescht keinen fremden Kommentar', fKomWeg.status === 403, `Status ${fKomWeg.status}`);
   pruefe('Und der Kommentar steht noch', fZeilen('SELECT id FROM comments WHERE id = 1').length === 1);
-  const fKomAdmin = await fRuf('keks-f-anna', 'DELETE', '/api/comments/1');
+  const fKomAdmin = await fRuf('cookie-f-anna', 'DELETE', '/api/comments/1');
   pruefe('Der Admin loescht einen fremden Kommentar',
     fKomAdmin.status === 204 && fZeilen('SELECT id FROM comments WHERE id = 1').length === 0,
     `Status ${fKomAdmin.status}`);
-  const fKomNeu = await fRuf('keks-f-carla', 'POST', '/api/items/2/comments', { text: 'Carla sagt etwas' });
+  const fKomNeu = await fRuf('cookie-f-carla', 'POST', '/api/items/2/comments', { text: 'Carla sagt etwas' });
   pruefe('Aber schreiben darf jeder an jedem Eintrag', fKomNeu.status === 201, `Status ${fKomNeu.status}`);
 
   /* ---------------------------------------------------------------- */
   gruppe('Rechte an Testtagen und Bewertungen');
 
-  const fTagNeu = await fRuf('keks-f-carla', 'POST', '/api/items/2/test-days',
+  const fTagNeu = await fRuf('cookie-f-carla', 'POST', '/api/items/2/test-days',
     { day: '2024-05-05', rating: 2 });
   pruefe('Jeder traegt seinen eigenen Testtag ein, auch am fremden Eintrag',
     fTagNeu.status === 201, `Status ${fTagNeu.status}`);
   pruefe('Und das bleiben zwei Zeilen am selben Datum',
     fZeilen('SELECT id FROM test_days WHERE item_id = 2').length === 2);
 
-  const fNoteFremd = await fRuf('keks-f-carla', 'PUT', '/api/test-days/1', { rating: 1 });
+  const fNoteFremd = await fRuf('cookie-f-carla', 'PUT', '/api/test-days/1', { rating: 1 });
   pruefe('Ein Fremder aendert die Note eines fremden Testtags nicht', fNoteFremd.status === 403,
     `Status ${fNoteFremd.status}`);
   /* Auch der Admin nicht: die Note IST die Aussage dieser Zeile, genau wie
      eine Bewertung. Loeschen ja, umschreiben nein. */
-  const fNoteAdmin = await fRuf('keks-f-anna', 'PUT', '/api/test-days/1', { rating: 1 });
+  const fNoteAdmin = await fRuf('cookie-f-anna', 'PUT', '/api/test-days/1', { rating: 1 });
   pruefe('Und der Admin auch nicht', fNoteAdmin.status === 403, `Status ${fNoteAdmin.status}`);
   pruefe('Die Note steht unveraendert', fEine('SELECT rating FROM test_days WHERE id = 1')?.rating === 4,
     JSON.stringify(fEine('SELECT rating FROM test_days WHERE id = 1')));
-  const fNoteEigen = await fRuf('keks-f-bert', 'PUT', '/api/test-days/1', { rating: 3 });
+  const fNoteEigen = await fRuf('cookie-f-bert', 'PUT', '/api/test-days/1', { rating: 3 });
   pruefe('Der Verfasser aendert seine eigene Note',
     fNoteEigen.status === 200 && fEine('SELECT rating FROM test_days WHERE id = 1')?.rating === 3,
     `Status ${fNoteEigen.status}`);
 
-  const fTtagAn = await fRuf('keks-f-anna', 'POST', '/api/test-days/1/tags', { name: 'Regen' });
+  const fTtagAn = await fRuf('cookie-f-anna', 'POST', '/api/test-days/1/tags', { name: 'Regen' });
   pruefe('Auch der Admin haengt keinen Tag an einen fremden Testtag', fTtagAn.status === 403,
     `Status ${fTtagAn.status}`);
-  const fTtagEigen = await fRuf('keks-f-bert', 'POST', '/api/test-days/1/tags', { name: 'Regen' });
+  const fTtagEigen = await fRuf('cookie-f-bert', 'POST', '/api/test-days/1/tags', { name: 'Regen' });
   pruefe('Der Verfasser tut es', fTtagEigen.status === 201, `Status ${fTtagEigen.status}`);
   const fRegenId = fEine('SELECT id FROM tags WHERE name = ?', 'Regen')?.id;
-  const fTtagWeg = await fRuf('keks-f-carla', 'DELETE', `/api/test-days/1/tags/${fRegenId}`);
+  const fTtagWeg = await fRuf('cookie-f-carla', 'DELETE', `/api/test-days/1/tags/${fRegenId}`);
   pruefe('Und ein Fremder nimmt ihn nicht wieder weg', fTtagWeg.status === 403, `Status ${fTtagWeg.status}`);
   pruefe('Der Tag haengt noch am Testtag',
     fZeilen('SELECT tag_id FROM test_day_tags WHERE test_day_id = 1').length === 1);
 
-  const fTtagLoeschFremd = await fRuf('keks-f-carla', 'DELETE', '/api/test-days/1');
+  const fTtagLoeschFremd = await fRuf('cookie-f-carla', 'DELETE', '/api/test-days/1');
   pruefe('Ein Fremder loescht keinen fremden Testtag', fTtagLoeschFremd.status === 403,
     `Status ${fTtagLoeschFremd.status}`);
   pruefe('Und der Testtag steht noch', fZeilen('SELECT id FROM test_days WHERE id = 1').length === 1);
   /* Loeschen darf der Admin -- der Unterschied zum Aendern ist die ganze
      Regel, und er wird hier in zwei aufeinanderfolgenden Rufen belegt. */
-  const fTtagLoeschAdmin = await fRuf('keks-f-anna', 'DELETE', '/api/test-days/1');
+  const fTtagLoeschAdmin = await fRuf('cookie-f-anna', 'DELETE', '/api/test-days/1');
   pruefe('Der Admin loescht einen fremden Testtag',
     fTtagLoeschAdmin.status === 200 && fZeilen('SELECT id FROM test_days WHERE id = 1').length === 0,
     `Status ${fTtagLoeschAdmin.status}`);
 
-  const fBew = await fRuf('keks-f-carla', 'PUT', '/api/items/2/ratings', { criterionId: fOptikId, value: 2 });
+  const fBew = await fRuf('cookie-f-carla', 'PUT', '/api/items/2/ratings', { criterionId: fOptikId, value: 2 });
   pruefe('Jeder bewertet fuer sich, auch an einem fremden Eintrag', fBew.status === 200,
     `Status ${fBew.status}`);
   pruefe('Und das sind zwei Zeilen zum selben Kriterium',
     gleich(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2 ORDER BY user_id')
       .map(z => `${z.user_id}/${z.value}`), ['2/5', '3/2']),
     JSON.stringify(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2')));
-  await fRuf('keks-f-carla', 'DELETE', '/api/items/2/ratings');
+  await fRuf('cookie-f-carla', 'DELETE', '/api/items/2/ratings');
   pruefe('Zuruecksetzen trifft nur die eigenen Zeilen -- ohne jeden Waechter',
     gleich(fZeilen('SELECT user_id, value FROM ratings WHERE item_id = 2')
       .map(z => `${z.user_id}/${z.value}`), ['2/5']),
@@ -3678,54 +3678,54 @@ const namen = (liste) => liste.map(c => c.name);
   /* ---------------------------------------------------------------- */
   gruppe('Rechte in der Verwaltung');
 
-  const fTitelFremd = await fRuf('keks-f-bert', 'PUT', '/api/titles',
+  const fTitelFremd = await fRuf('cookie-f-bert', 'PUT', '/api/titles',
     { publicTitle: 'Gekapert', appTitle: 'Gekapert' });
   pruefe('Ein Benutzer aendert die Titel nicht', fTitelFremd.status === 403, `Status ${fTitelFremd.status}`);
   pruefe('Die Absage nennt den Admin',
     /Admin/.test(fTitelFremd.inhalt?.error || ''), fTitelFremd.inhalt?.error);
-  const fTitelAdmin = await fRuf('keks-f-anna', 'PUT', '/api/titles',
+  const fTitelAdmin = await fRuf('cookie-f-anna', 'PUT', '/api/titles',
     { publicTitle: 'Kriterion', appTitle: 'Prüfstand' });
   pruefe('Der Admin aendert sie', fTitelAdmin.status === 200, `Status ${fTitelAdmin.status}`);
 
-  const fTagUm = await fRuf('keks-f-bert', 'PUT', `/api/tags/${fMarkeId}`, { name: 'Umbenannt' });
-  const fTagLoesch = await fRuf('keks-f-bert', 'DELETE', `/api/tags/${fMarkeId}`);
+  const fTagUm = await fRuf('cookie-f-bert', 'PUT', `/api/tags/${fMarkeId}`, { name: 'Umbenannt' });
+  const fTagLoesch = await fRuf('cookie-f-bert', 'DELETE', `/api/tags/${fMarkeId}`);
   pruefe('Ein Benutzer benennt keinen Tag um', fTagUm.status === 403, `Status ${fTagUm.status}`);
   pruefe('Und loescht keinen', fTagLoesch.status === 403, `Status ${fTagLoesch.status}`);
   pruefe('Der Tag heisst noch, wie er hiess',
     fEine('SELECT name FROM tags WHERE id = ?', fMarkeId)?.name === 'Marke',
     JSON.stringify(fEine('SELECT name FROM tags WHERE id = ?', fMarkeId)));
 
-  const fKatNeu = await fRuf('keks-f-bert', 'POST', '/api/product-categories', { name: 'Werkzeug' });
+  const fKatNeu = await fRuf('cookie-f-bert', 'POST', '/api/product-categories', { name: 'Werkzeug' });
   pruefe('Eine Kategorie anlegen darf weiterhin jeder', fKatNeu.status === 201, `Status ${fKatNeu.status}`);
-  const fKatUm = await fRuf('keks-f-bert', 'PUT', `/api/product-categories/${fKatNeu.inhalt?.id}`,
+  const fKatUm = await fRuf('cookie-f-bert', 'PUT', `/api/product-categories/${fKatNeu.inhalt?.id}`,
     { name: 'Umbenannt' });
-  const fKatLoesch = await fRuf('keks-f-bert', 'DELETE', `/api/product-categories/${fKatNeu.inhalt?.id}`);
+  const fKatLoesch = await fRuf('cookie-f-bert', 'DELETE', `/api/product-categories/${fKatNeu.inhalt?.id}`);
   pruefe('Umbenennen und Loeschen aber nicht',
     fKatUm.status === 403 && fKatLoesch.status === 403,
     `Status ${fKatUm.status} / ${fKatLoesch.status}`);
   pruefe('Die Kategorie steht unveraendert da',
     fEine('SELECT name FROM product_categories WHERE id = ?', fKatNeu.inhalt?.id)?.name === 'Werkzeug');
 
-  const fEigen = await fRuf('keks-f-bert', 'PUT', '/api/settings', { schrift: 110 });
+  const fEigen = await fRuf('cookie-f-bert', 'PUT', '/api/settings', { schrift: 110 });
   pruefe('Seine persoenlichen Einstellungen schreibt jeder selbst',
     fEigen.status === 200 && fEigen.inhalt?.schrift === 110, JSON.stringify(fEigen.inhalt?.schrift));
-  const fVokabel = await fRuf('keks-f-bert', 'PUT', '/api/settings',
+  const fVokabel = await fRuf('cookie-f-bert', 'PUT', '/api/settings',
     { vokabular: { sacheEinzahl: 'Ding' } });
   pruefe('Das Vokabular aendert er nicht', fVokabel.status === 403, `Status ${fVokabel.status}`);
-  const fAnbieter = await fRuf('keks-f-bert', 'PUT', '/api/settings', { sucheAktiv: ['ddg'] });
+  const fAnbieter = await fRuf('cookie-f-bert', 'PUT', '/api/settings', { sucheAktiv: ['ddg'] });
   pruefe('Und den Suchanbietervorrat auch nicht', fAnbieter.status === 403, `Status ${fAnbieter.status}`);
   pruefe('Das Vokabular steht unveraendert',
-    (await fRuf('keks-f-anna', 'GET', '/api/settings')).inhalt?.vokabular?.sacheEinzahl === 'Eintrag');
+    (await fRuf('cookie-f-anna', 'GET', '/api/settings')).inhalt?.vokabular?.sacheEinzahl === 'Eintrag');
   /* Gemischt: die persoenliche Haelfte darf NICHT geschrieben sein, wenn die
      globale abgewiesen wird. Deshalb steht die Frage vor dem ersten Schreiben. */
-  const fGemischt = await fRuf('keks-f-bert', 'PUT', '/api/settings',
+  const fGemischt = await fRuf('cookie-f-bert', 'PUT', '/api/settings',
     { schrift: 80, vokabular: { sacheEinzahl: 'Ding' } });
   pruefe('Persoenlich und global zusammen wird abgewiesen', fGemischt.status === 403,
     `Status ${fGemischt.status}`);
   pruefe('Und die persoenliche Haelfte ist dabei NICHT geschrieben worden',
-    (await fRuf('keks-f-bert', 'GET', '/api/settings')).inhalt?.schrift === 110,
-    JSON.stringify((await fRuf('keks-f-bert', 'GET', '/api/settings')).inhalt?.schrift));
-  const fVokabelAdmin = await fRuf('keks-f-anna', 'PUT', '/api/settings',
+    (await fRuf('cookie-f-bert', 'GET', '/api/settings')).inhalt?.schrift === 110,
+    JSON.stringify((await fRuf('cookie-f-bert', 'GET', '/api/settings')).inhalt?.schrift));
+  const fVokabelAdmin = await fRuf('cookie-f-anna', 'PUT', '/api/settings',
     { vokabular: { sacheEinzahl: 'Ding', sacheMehrzahl: 'Dinge' } });
   pruefe('Der Admin aendert das Vokabular',
     fVokabelAdmin.status === 200 && fVokabelAdmin.inhalt?.vokabular?.sacheEinzahl === 'Ding',
@@ -3745,32 +3745,32 @@ const namen = (liste) => liste.map(c => c.name);
     d.prepare("UPDATE users SET role = 'admin' WHERE username = 'carla'").run();
     d.close();
   }
-  const fCarlaRolle = await fRuf('keks-f-carla', 'GET', '/api/settings');
+  const fCarlaRolle = await fRuf('cookie-f-carla', 'GET', '/api/settings');
   pruefe('Carla ist jetzt Admin, aber nicht Eigentuemerin',
     fCarlaRolle.inhalt?.istAdmin === true && fCarlaRolle.inhalt?.istEigentuemer === false,
     JSON.stringify([fCarlaRolle.inhalt?.istAdmin, fCarlaRolle.inhalt?.istEigentuemer]));
-  const fAnnaRolle = await fRuf('keks-f-anna', 'GET', '/api/settings');
+  const fAnnaRolle = await fRuf('cookie-f-anna', 'GET', '/api/settings');
   pruefe('Anna ist beides',
     fAnnaRolle.inhalt?.istAdmin === true && fAnnaRolle.inhalt?.istEigentuemer === true,
     JSON.stringify([fAnnaRolle.inhalt?.istAdmin, fAnnaRolle.inhalt?.istEigentuemer]));
   pruefe('Und bert ist keines von beiden',
-    (await fRuf('keks-f-bert', 'GET', '/api/settings')).inhalt?.istEigentuemer === false);
+    (await fRuf('cookie-f-bert', 'GET', '/api/settings')).inhalt?.istEigentuemer === false);
 
-  const fExportBert = await fRuf('keks-f-bert', 'GET', '/api/export?photos=0');
+  const fExportBert = await fRuf('cookie-f-bert', 'GET', '/api/export?photos=0');
   pruefe('Ein Benutzer exportiert nicht', fExportBert.status === 403, `Status ${fExportBert.status}`);
-  const fExportCarla = await fRuf('keks-f-carla', 'GET', '/api/export?photos=0');
+  const fExportCarla = await fRuf('cookie-f-carla', 'GET', '/api/export?photos=0');
   pruefe('Und ein Admin ohne Eigentuemerrecht auch nicht', fExportCarla.status === 403,
     `Status ${fExportCarla.status}`);
   pruefe('Die Absage nennt den Eigentuemer',
     /Eigentümer/.test(fExportCarla.inhalt?.error || ''), fExportCarla.inhalt?.error);
-  const fExportAnna = await fRuf('keks-f-anna', 'GET', '/api/export?photos=0');
+  const fExportAnna = await fRuf('cookie-f-anna', 'GET', '/api/export?photos=0');
   pruefe('Die Eigentuemerin exportiert',
     fExportAnna.status === 200 && Array.isArray(fExportAnna.inhalt?.items),
     `Status ${fExportAnna.status}`);
 
   /* Der Import: eine Exportdatei kann unter FREMDEM NAMEN
      schreiben. Beide Modi liegen dahinter, nicht nur "ersetzen". */
-  const fImport = async (keksWert, objekt, modus) => {
+  const fImport = async (cookieWert, objekt, modus) => {
     const grenze = '----pruefungf' + crypto.randomBytes(6).toString('hex');
     const teil = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
@@ -3779,7 +3779,7 @@ const namen = (liste) => liste.map(c => c.name);
     const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
     const a = await fetch(F.basis + '/api/import', {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${keksWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
+      headers: { cookie: `kriterion_session=${cookieWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
       body: koerper
     });
     return { status: a.status, inhalt: await a.json().catch(() => null) };
@@ -3790,25 +3790,25 @@ const namen = (liste) => liste.map(c => c.name);
   const fEintragZahl = () => fZeilen('SELECT id FROM items').length;
   const fVorImport = fEintragZahl();
 
-  const fImportBert = await fImport('keks-f-bert', fFremdeDatei, 'merge');
+  const fImportBert = await fImport('cookie-f-bert', fFremdeDatei, 'merge');
   pruefe('Ein Benutzer spielt nichts ein', fImportBert.status === 403, `Status ${fImportBert.status}`);
-  const fImportCarla = await fImport('keks-f-carla', fFremdeDatei, 'merge');
+  const fImportCarla = await fImport('cookie-f-carla', fFremdeDatei, 'merge');
   pruefe('Und ein Admin ohne Eigentuemerrecht auch nicht', fImportCarla.status === 403,
     `Status ${fImportCarla.status}`);
-  const fErsetzenCarla = await fImport('keks-f-carla', fFremdeDatei, 'replace');
+  const fErsetzenCarla = await fImport('cookie-f-carla', fFremdeDatei, 'replace');
   pruefe('Auch nicht ersetzend', fErsetzenCarla.status === 403, `Status ${fErsetzenCarla.status}`);
   pruefe('Und der Bestand ist dabei unberuehrt geblieben', fEintragZahl() === fVorImport,
     `${fEintragZahl()} statt ${fVorImport}`);
   pruefe('Es steht kein untergeschobener Beitrag unter fremdem Namen da',
     fZeilen('SELECT id FROM comments WHERE text = ?', 'das hat bert nie geschrieben').length === 0);
-  const fImportAnna = await fImport('keks-f-anna', fFremdeDatei, 'merge');
+  const fImportAnna = await fImport('cookie-f-anna', fFremdeDatei, 'merge');
   pruefe('Die Eigentuemerin spielt ein',
     fImportAnna.status === 200 && fEintragZahl() === fVorImport + 1,
     `Status ${fImportAnna.status} / ${fEintragZahl()}`);
 
-  const fStatsBert = await fRuf('keks-f-bert', 'GET', '/api/stats');
-  const fStatsCarla = await fRuf('keks-f-carla', 'GET', '/api/stats');
-  const fStatsAnna = await fRuf('keks-f-anna', 'GET', '/api/stats');
+  const fStatsBert = await fRuf('cookie-f-bert', 'GET', '/api/stats');
+  const fStatsCarla = await fRuf('cookie-f-carla', 'GET', '/api/stats');
+  const fStatsAnna = await fRuf('cookie-f-anna', 'GET', '/api/stats');
   // Der Schluessel liegt in dieser Prueflage als Datei neben der Datenbank --
   // nur dann gibt es ueberhaupt etwas auszuliefern.
   pruefe('Der Schluesselwert steht ueberhaupt zur Verfuegung',
@@ -3846,8 +3846,8 @@ const namen = (liste) => liste.map(c => c.name);
      zweite Wahrheit. Hier, weil ladeEinstellungen() beim Start ohnehin laeuft.
      ZWEI RUFER, und darum geht es: eine Antwort, die stur den ERSTEN Zugang
      nennte, waere bei der Eigentuemerin richtig und bei jedem anderen falsch. */
-  const fNameAnna = (await fRuf('keks-f-anna', 'GET', '/api/settings')).inhalt;
-  const fNameBert = (await fRuf('keks-f-bert', 'GET', '/api/settings')).inhalt;
+  const fNameAnna = (await fRuf('cookie-f-anna', 'GET', '/api/settings')).inhalt;
+  const fNameBert = (await fRuf('cookie-f-bert', 'GET', '/api/settings')).inhalt;
   pruefe('Die Einstellungen nennen den eigenen Namen',
     fNameAnna?.name === 'anna', JSON.stringify(fNameAnna?.name));
   pruefe('Und jedem seinen eigenen, nicht den der Eigentuemerin',
@@ -3855,8 +3855,8 @@ const namen = (liste) => liste.map(c => c.name);
   // Dieselbe Angabe steht unveraendert unter /api/account -- die Kopfzeile
   // spart sich damit nur den zweiten Abruf.
   pruefe('Dieselbe Angabe steht weiterhin unter /api/account',
-    (await fRuf('keks-f-bert', 'GET', '/api/account')).inhalt?.username === 'bert',
-    JSON.stringify((await fRuf('keks-f-bert', 'GET', '/api/account')).inhalt));
+    (await fRuf('cookie-f-bert', 'GET', '/api/account')).inhalt?.username === 'bert',
+    JSON.stringify((await fRuf('cookie-f-bert', 'GET', '/api/account')).inhalt));
 
   /* ----------------------------------------------------------------
      Ab hier ist carla Admin OHNE Eigentuemerrecht -- die wichtigste Lage
@@ -3869,25 +3869,25 @@ const namen = (liste) => liste.map(c => c.name);
      stehengelassen haben. Drei Verfasser, drei Sorten Beitrag, dazu zwei
      Faelle, die genau die zwei Klemmen treffen -- eine zurueckgesetzte
      Bewertung (value 0) und eine herrenlose Zeile (user_id IS NULL). */
-  const fVId = (await fRuf('keks-f-bert', 'POST', '/api/items', { title: 'Zum Loeschen' })).inhalt.id;
-  await fRuf('keks-f-bert', 'POST', `/api/items/${fVId}/comments`, { text: 'Kommentar von bert' });
-  await fRuf('keks-f-bert', 'POST', `/api/items/${fVId}/test-days`, { day: '2024-06-01', rating: 3 });
-  await fRuf('keks-f-bert', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 4 });
-  await fRuf('keks-f-anna', 'POST', `/api/items/${fVId}/comments`, { text: 'Kommentar von anna' });
-  await fRuf('keks-f-anna', 'POST', `/api/items/${fVId}/test-days`, { day: '2024-06-02', rating: 5 });
-  await fRuf('keks-f-anna', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 2 });
+  const fVId = (await fRuf('cookie-f-bert', 'POST', '/api/items', { title: 'Zum Loeschen' })).inhalt.id;
+  await fRuf('cookie-f-bert', 'POST', `/api/items/${fVId}/comments`, { text: 'Kommentar von bert' });
+  await fRuf('cookie-f-bert', 'POST', `/api/items/${fVId}/test-days`, { day: '2024-06-01', rating: 3 });
+  await fRuf('cookie-f-bert', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 4 });
+  await fRuf('cookie-f-anna', 'POST', `/api/items/${fVId}/comments`, { text: 'Kommentar von anna' });
+  await fRuf('cookie-f-anna', 'POST', `/api/items/${fVId}/test-days`, { day: '2024-06-02', rating: 5 });
+  await fRuf('cookie-f-anna', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 2 });
   // Zwei Linkzeilen, eine je Verfasser: seit 0.8.30 kann auch ein Link fremd
   // sein, und ohne beide Sorten liesse sich die Trennung im Dialog nicht
   // belegen.
-  await fRuf('keks-f-bert', 'POST', `/api/items/${fVId}/links`, { url: 'https://berts-link.test' });
-  await fRuf('keks-f-anna', 'POST', `/api/items/${fVId}/links`, { url: 'https://annas-link.test' });
+  await fRuf('cookie-f-bert', 'POST', `/api/items/${fVId}/links`, { url: 'https://berts-link.test' });
+  await fRuf('cookie-f-anna', 'POST', `/api/items/${fVId}/links`, { url: 'https://annas-link.test' });
   // Dasselbe am sechsten Traeger: je eine Datei von bert und von anna.
-  await fUpload('keks-f-bert', fVId, 'von-bert.txt', 'berts Datei');
-  await fUpload('keks-f-anna', fVId, 'von-anna.txt', 'annas Datei');
+  await fUpload('cookie-f-bert', fVId, 'von-bert.txt', 'berts Datei');
+  await fUpload('cookie-f-anna', fVId, 'von-anna.txt', 'annas Datei');
   // Carla setzt ihre wieder zurueck: die Zeile bleibt mit 0 stehen und ist
   // KEINE Stimme -- weder in der Liste noch in der Zahl des Dialogs.
-  await fRuf('keks-f-carla', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 5 });
-  await fRuf('keks-f-carla', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 0 });
+  await fRuf('cookie-f-carla', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 5 });
+  await fRuf('cookie-f-carla', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fOptikId, value: 0 });
   {
     const d = fDatenbank();
     d.pragma('busy_timeout = 4000');
@@ -3898,11 +3898,11 @@ const namen = (liste) => liste.map(c => c.name);
     // Verfasser, anna und carla sind Admin.
     const dirkId = d.prepare("INSERT INTO users (username, password_hash, role) VALUES ('dirk', 'x', 'user')")
       .run().lastInsertRowid;
-    d.prepare("INSERT INTO sessions (token, user_id) VALUES ('keks-f-dirk', ?)").run(dirkId);
+    d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-f-dirk', ?)").run(dirkId);
     d.close();
   }
 
-  const fVEintrag = (await fRuf('keks-f-bert', 'GET', `/api/items/${fVId}`)).inhalt;
+  const fVEintrag = (await fRuf('cookie-f-bert', 'GET', `/api/items/${fVId}`)).inhalt;
   pruefe('Der Eintrag nennt seinen Verfasser mit Namen',
     fVEintrag?.verfasser?.name === 'bert' && fVEintrag?.verfasser?.geloescht === false,
     JSON.stringify(fVEintrag?.verfasser));
@@ -3930,7 +3930,7 @@ const namen = (liste) => liste.map(c => c.name);
      EINZIGE Stelle, an der die Antwort des echten Servers dazu angesehen wird.
      Aufgefallen bei einer Gegenprobe: nimmt detail() den Verfasser von der
      Linkzeile weg, bleibt der ganze Lauf gruen, wenn hier nichts steht -- die
-     Oberflaechenpruefungen laufen gegen einen Doppelgaenger, der das Feld
+     Oberflaechenpruefungen laufen gegen einen Mock, der das Feld
      selbst mitbringt, und die Rechtepruefungen sehen in die Datenbank statt in
      die Antwort. Das ist Luecke 3 des Pruefstands in Reinform. */
   const fVLink = (teil) => (fVEintrag?.links || []).find(l => l.url.includes(teil));
@@ -3982,7 +3982,7 @@ const namen = (liste) => liste.map(c => c.name);
     fVOptik?.avg === 3 && fVOptik?.count === 2,
     JSON.stringify([fVOptik?.avg, fVOptik?.count]));
 
-  const fVListe = (await fRuf('keks-f-bert', 'GET', '/api/items')).inhalt;
+  const fVListe = (await fRuf('cookie-f-bert', 'GET', '/api/items')).inhalt;
   pruefe('Auch die Uebersicht nennt den Verfasser je Eintrag',
     (fVListe || []).find(i => i.id === fVId)?.verfasser?.name === 'bert',
     JSON.stringify((fVListe || []).find(i => i.id === fVId)?.verfasser));
@@ -3996,11 +3996,11 @@ const namen = (liste) => liste.map(c => c.name);
   /* Dieselbe Lage, drei Sichten. Das ist der eigentliche Gegenstand: "fremd"
      meint, was dem LOESCHENDEN fremd ist, nicht was dem Verfasser fremd ist.
      Waeren die drei Antworten gleich, liesse sich das gar nicht belegen. */
-  const fBestand = async (keksWert) =>
-    (await fRuf(keksWert, 'GET', `/api/items/${fVId}/bestand`)).inhalt;
-  const fBBert = await fBestand('keks-f-bert');
-  const fBAnna = await fBestand('keks-f-anna');
-  const fBCarla = await fBestand('keks-f-carla');
+  const fBestand = async (cookieWert) =>
+    (await fRuf(cookieWert, 'GET', `/api/items/${fVId}/bestand`)).inhalt;
+  const fBBert = await fBestand('cookie-f-bert');
+  const fBAnna = await fBestand('cookie-f-anna');
+  const fBCarla = await fBestand('cookie-f-carla');
 
   pruefe('Der Verfasser sieht einen eigenen und zwei fremde Kommentare',
     fBBert?.eigenKommentare === 1 && fBBert?.fremdKommentare === 2,
@@ -4050,7 +4050,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Fuer den zweiten Verfasser sind dieselben zwei Zeilen andersherum verteilt',
     fBAnna?.eigenLinks === 1 && fBAnna?.fremdLinks === 1, JSON.stringify(fBAnna));
 
-  const fBFremd = await fRuf('keks-f-dirk', 'GET', `/api/items/${fVId}/bestand`);
+  const fBFremd = await fRuf('cookie-f-dirk', 'GET', `/api/items/${fVId}/bestand`);
   pruefe('Wer nicht loeschen darf, bekommt die Zahlen nicht', fBFremd.status === 403,
     `Status ${fBFremd.status}`);
   pruefe('Die Absage nennt den Grund',
@@ -4066,14 +4066,14 @@ const namen = (liste) => liste.map(c => c.name);
      Vier Rufer nebeneinander, weil erst sie die Klemme sichtbar machen: der
      Fremde, der Verfasser des Eintrags, der Admin ohne Eigentuemerrecht und
      die Eigentuemerin. */
-  const fStRuf = (keksWert) => fRuf(keksWert, 'GET', `/api/items/${fVId}/stimmen`);
+  const fStRuf = (cookieWert) => fRuf(cookieWert, 'GET', `/api/items/${fVId}/stimmen`);
   const fStBestand = () => fZeilen('SELECT id, value, user_id FROM ratings WHERE item_id = ? ORDER BY id', fVId);
   const fStVorher = fStBestand();
 
-  const fStDirk = await fStRuf('keks-f-dirk');
-  const fStBert = await fStRuf('keks-f-bert');
-  const fStCarla = await fStRuf('keks-f-carla');
-  const fStAnna = await fStRuf('keks-f-anna');
+  const fStDirk = await fStRuf('cookie-f-dirk');
+  const fStBert = await fStRuf('cookie-f-bert');
+  const fStCarla = await fStRuf('cookie-f-carla');
+  const fStAnna = await fStRuf('cookie-f-anna');
 
   pruefe('Wer welchen Wert vergeben hat, sieht nur der Admin',
     fStDirk.status === 403, `Status ${fStDirk.status}`);
@@ -4140,22 +4140,22 @@ const namen = (liste) => liste.map(c => c.name);
   const fRBert = fZeilen('SELECT id FROM ratings WHERE item_id = ? AND user_id = 2', fVId)[0]?.id;
   const fRSteht = (id) => fZeilen('SELECT id FROM ratings WHERE id = ?', id).length === 1;
 
-  const fRDirk = await fRuf('keks-f-dirk', 'DELETE', `/api/ratings/${fRAnna}`);
+  const fRDirk = await fRuf('cookie-f-dirk', 'DELETE', `/api/ratings/${fRAnna}`);
   pruefe('Ein Fremder entfernt keine fremde Bewertung', fRDirk.status === 403,
     `Status ${fRDirk.status}`);
   pruefe('Und die Zeile steht noch', fRSteht(fRAnna));
-  const fRBertFremd = await fRuf('keks-f-bert', 'DELETE', `/api/ratings/${fRAnna}`);
+  const fRBertFremd = await fRuf('cookie-f-bert', 'DELETE', `/api/ratings/${fRAnna}`);
   pruefe('Auch der Verfasser des Eintrags nicht -- die Bewertung ist nicht seine',
     fRBertFremd.status === 403, `Status ${fRBertFremd.status}`);
   pruefe('Auch danach steht sie noch', fRSteht(fRAnna));
 
-  const fREigen = await fRuf('keks-f-bert', 'DELETE', `/api/ratings/${fRBert}`);
+  const fREigen = await fRuf('cookie-f-bert', 'DELETE', `/api/ratings/${fRBert}`);
   pruefe('Die eigene entfernt jeder', fREigen.status === 200 && !fRSteht(fRBert),
     `Status ${fREigen.status}`);
   /* Der Erfolgsfall daneben, und zwar mit dem Admin OHNE Eigentuemerrecht --
      sonst bliebe die Pruefung auch dann gruen, wenn dort nurEigentuemer
      stuende. */
-  const fRAdmin = await fRuf('keks-f-carla', 'DELETE', `/api/ratings/${fRAnna}`);
+  const fRAdmin = await fRuf('cookie-f-carla', 'DELETE', `/api/ratings/${fRAnna}`);
   pruefe('Der Admin entfernt eine fremde Bewertung',
     fRAdmin.status === 200 && !fRSteht(fRAnna), `Status ${fRAdmin.status}`);
   /* UMGEHAENGT MIT 0.8.6: bis 0.8.5 stand hier die Zahl der Stimmen in der
@@ -4168,12 +4168,12 @@ const namen = (liste) => liste.map(c => c.name);
   /* Und die Ansicht des Admins zeigt dort gar keine Zeile mehr: aufgenommen
      werden nur Kriterien MIT Stimmen. Ein Kriterium ohne Stimme bekaeme sonst
      eine leere Liste unter seinem Namen -- eine Zeile, die nichts sagt. */
-  const fStLeer = await fStRuf('keks-f-carla');
+  const fStLeer = await fStRuf('cookie-f-carla');
   pruefe('Ein Kriterium ohne Stimme steht gar nicht in der Ansicht',
     fStLeer.status === 200 &&
     !(fStLeer.inhalt || []).some(z => z.criterion_id === fOptikId),
     JSON.stringify(fStLeer.inhalt));
-  const fRWeg = await fRuf('keks-f-carla', 'DELETE', `/api/ratings/${fRAnna}`);
+  const fRWeg = await fRuf('cookie-f-carla', 'DELETE', `/api/ratings/${fRAnna}`);
   pruefe('Eine Bewertung, die es nicht gibt, meldet 404', fRWeg.status === 404,
     `Status ${fRWeg.status}`);
 
@@ -4206,9 +4206,9 @@ const namen = (liste) => liste.map(c => c.name);
   const fSchalter = (k) => fEine('SELECT value FROM settings WHERE key = ?', k);
 
   /* VORGABE AN, UND ZWAR ALS ABLEITUNG BEIM LESEN: in der Datenbank steht
-     dafuer nichts. Ein Umstiegsblock waere hier Code, der zu 1.0 wieder
+     dafuer nichts. Ein Migrationsblock waere hier Code, der zu 1.0 wieder
      herausmuesste -- eine Ableitung muss gar nicht erst entfernt werden. */
-  const fEinstBert = (await fRuf('keks-f-bert', 'GET', '/api/settings')).inhalt;
+  const fEinstBert = (await fRuf('cookie-f-bert', 'GET', '/api/settings')).inhalt;
   pruefe('Beide Schalter stehen in der Antwort und auf an',
     fEinstBert?.tagsFreiAnlegen === true && fEinstBert?.kategorienFreiAnlegen === true,
     JSON.stringify([fEinstBert?.tagsFreiAnlegen, fEinstBert?.kategorienFreiAnlegen]));
@@ -4219,12 +4219,12 @@ const namen = (liste) => liste.map(c => c.name);
   // Der Erfolgsfall ZUERST, mit eingeschaltetem Schalter: ohne ihn liesse sich
   // nicht sehen, ob der Weg ueberhaupt je offen ist.
   const fTagVorher = fTagZahl();
-  const fNeuTagAn = await fRuf('keks-f-bert', 'POST', '/api/items/2/tags', { name: 'Frisch' });
+  const fNeuTagAn = await fRuf('cookie-f-bert', 'POST', '/api/items/2/tags', { name: 'Frisch' });
   pruefe('Mit Schalter an legt auch ein gewoehnlicher Benutzer einen Tag an',
     fNeuTagAn.status === 201 && fTagZahl() === fTagVorher + 1,
     `Status ${fNeuTagAn.status}, ${fTagVorher} -> ${fTagZahl()}`);
   const fKatVorher = fKatZahl();
-  const fNeuKatAn = await fRuf('keks-f-bert', 'POST', '/api/product-categories', { name: 'Frischkategorie' });
+  const fNeuKatAn = await fRuf('cookie-f-bert', 'POST', '/api/product-categories', { name: 'Frischkategorie' });
   pruefe('Und ebenso eine Kategorie',
     fNeuKatAn.status === 201 && fKatZahl() === fKatVorher + 1,
     `Status ${fNeuKatAn.status}, ${fKatVorher} -> ${fKatZahl()}`);
@@ -4234,7 +4234,7 @@ const namen = (liste) => liste.map(c => c.name);
      Adminsache") und muss die beiden neuen Schluessel deshalb von selbst
      greifen. Ein Benutzer kommt nicht daran, und zwar bevor irgendetwas
      geschrieben ist. */
-  const fSchalterBert = await fRuf('keks-f-bert', 'PUT', '/api/settings', { tagsFreiAnlegen: false });
+  const fSchalterBert = await fRuf('cookie-f-bert', 'PUT', '/api/settings', { tagsFreiAnlegen: false });
   pruefe('Ein Benutzer legt die Schalter nicht um', fSchalterBert.status === 403,
     `Status ${fSchalterBert.status}`);
   pruefe('Die Absage nennt den Admin',
@@ -4244,7 +4244,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* Der Admin OHNE Eigentuemerrecht legt sie um -- sonst bliebe die Pruefung
      auch dann gruen, wenn dort nurEigentuemer stuende. */
-  const fSchalterAus = await fRuf('keks-f-carla', 'PUT', '/api/settings',
+  const fSchalterAus = await fRuf('cookie-f-carla', 'PUT', '/api/settings',
     { tagsFreiAnlegen: false, kategorienFreiAnlegen: false });
   pruefe('Der Admin legt beide Schalter um',
     fSchalterAus.status === 200 && fSchalterAus.inhalt?.tagsFreiAnlegen === false &&
@@ -4253,11 +4253,11 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Erst jetzt steht etwas in der Datenbank',
     fSchalter('tagsFreiAnlegen')?.value === 'false', JSON.stringify(fSchalter('tagsFreiAnlegen')));
   pruefe('Und der naechste Abruf liefert dieselbe Stellung',
-    (await fRuf('keks-f-bert', 'GET', '/api/settings')).inhalt?.tagsFreiAnlegen === false);
+    (await fRuf('cookie-f-bert', 'GET', '/api/settings')).inhalt?.tagsFreiAnlegen === false);
 
   /* ---- Weg 1: Tags am Eintrag ---- */
   const fTagAus = fTagZahl();
-  const fTagNeuAus = await fRuf('keks-f-bert', 'POST', '/api/items/2/tags', { name: 'Verboten' });
+  const fTagNeuAus = await fRuf('cookie-f-bert', 'POST', '/api/items/2/tags', { name: 'Verboten' });
   pruefe('Mit Schalter aus legt der Benutzer keinen neuen Tag mehr an',
     fTagNeuAus.status === 403, `Status ${fTagNeuAus.status}`);
   pruefe('Und es ist keine Zeile entstanden',
@@ -4268,7 +4268,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* DIE ZEILE, UM DIE ES GEHT: der vorhandene Tag laesst sich weiterhin
      zuweisen. Stuende die Klemme VOR dem Nachschlagen, naehme sie das Zuweisen
      mit -- und "Zuweisen darf immer jeder" waere nur noch eine Behauptung. */
-  const fTagVergeben = await fRuf('keks-f-bert', 'POST', '/api/items/2/tags', { name: 'Frisch' });
+  const fTagVergeben = await fRuf('cookie-f-bert', 'POST', '/api/items/2/tags', { name: 'Frisch' });
   pruefe('Einen VORHANDENEN Tag vergibt er trotzdem',
     fTagVergeben.status === 201 &&
     (fTagVergeben.inhalt?.tags || []).some(t => t.name === 'Frisch'),
@@ -4277,14 +4277,14 @@ const namen = (liste) => liste.map(c => c.name);
     fTagZahl() === fTagAus, `${fTagAus} -> ${fTagZahl()}`);
   // Der Admin kommt weiterhin durch: ihm gehoert das Aufraeumen, und ein
   // Schalter, den er erst umlegen muesste, waere eine Schranke gegen sich selbst.
-  const fTagAdmin = await fRuf('keks-f-carla', 'POST', '/api/items/2/tags', { name: 'Vom Admin' });
+  const fTagAdmin = await fRuf('cookie-f-carla', 'POST', '/api/items/2/tags', { name: 'Vom Admin' });
   pruefe('Der Admin legt auch bei ausgeschaltetem Schalter an',
     fTagAdmin.status === 201 && fTagZahl() === fTagAus + 1,
     `Status ${fTagAdmin.status}, ${fTagAus} -> ${fTagZahl()}`);
 
   /* ---- Weg 2: Kategorien ---- */
   const fKatAus = fKatZahl();
-  const fKatNeuAus = await fRuf('keks-f-bert', 'POST', '/api/product-categories', { name: 'Verbotene' });
+  const fKatNeuAus = await fRuf('cookie-f-bert', 'POST', '/api/product-categories', { name: 'Verbotene' });
   pruefe('Mit Schalter aus legt der Benutzer keine neue Kategorie mehr an',
     fKatNeuAus.status === 403, `Status ${fKatNeuAus.status}`);
   pruefe('Auch hier ist keine Zeile entstanden',
@@ -4293,12 +4293,12 @@ const namen = (liste) => liste.map(c => c.name);
     `${fKatAus} -> ${fKatZahl()}`);
   pruefe('Und die Absage sagt es',
     /Neue Kategorien/.test(fKatNeuAus.inhalt?.error || ''), fKatNeuAus.inhalt?.error);
-  const fKatVorhanden = await fRuf('keks-f-bert', 'POST', '/api/product-categories',
+  const fKatVorhanden = await fRuf('cookie-f-bert', 'POST', '/api/product-categories',
     { name: 'frischkategorie' });
   pruefe('Eine VORHANDENE Kategorie bekommt er weiterhin -- auch in anderer Schreibweise',
     fKatVorhanden.status === 200 && fKatVorhanden.inhalt?.name === 'Frischkategorie',
     `Status ${fKatVorhanden.status}: ${JSON.stringify(fKatVorhanden.inhalt)}`);
-  const fKatAdmin = await fRuf('keks-f-carla', 'POST', '/api/product-categories', { name: 'Vom Admin' });
+  const fKatAdmin = await fRuf('cookie-f-carla', 'POST', '/api/product-categories', { name: 'Vom Admin' });
   pruefe('Der Admin legt auch hier weiterhin an',
     fKatAdmin.status === 201 && fKatZahl() === fKatAus + 1,
     `Status ${fKatAdmin.status}, ${fKatAus} -> ${fKatZahl()}`);
@@ -4309,12 +4309,12 @@ const namen = (liste) => liste.map(c => c.name);
      faellt deshalb hier durch, mit sprechender Meldung -- und ein bekannter
      kommt weiterhin an. Bert braucht dafuer einen EIGENEN Testtag: an einen
      fremden haengt er ohnehin nichts (nurSelbst). */
-  const fTtagNeu = await fRuf('keks-f-bert', 'POST', '/api/items/2/test-days',
+  const fTtagNeu = await fRuf('cookie-f-bert', 'POST', '/api/items/2/test-days',
     { day: '2024-09-09', rating: 3 });
   const fTtagId = fEine('SELECT id FROM test_days WHERE day = ? AND user_id = 2', '2024-09-09')?.id;
   pruefe('Bert hat einen eigenen Testtag', fTtagNeu.status === 201 && !!fTtagId,
     `Status ${fTtagNeu.status}, id ${fTtagId}`);
-  const fTtagVerboten = await fRuf('keks-f-bert', 'POST', `/api/test-days/${fTtagId}/tags`,
+  const fTtagVerboten = await fRuf('cookie-f-bert', 'POST', `/api/test-days/${fTtagId}/tags`,
     { name: 'Nebel' });
   pruefe('Am eigenen Testtag legt er keinen neuen Tag an',
     fTtagVerboten.status === 403, `Status ${fTtagVerboten.status}`);
@@ -4323,7 +4323,7 @@ const namen = (liste) => liste.map(c => c.name);
     fZeilen('SELECT tag_id FROM test_day_tags WHERE test_day_id = ?', fTtagId).length === 0);
   pruefe('Die Meldung ist dieselbe sprechende',
     /Neue Tags/.test(fTtagVerboten.inhalt?.error || ''), fTtagVerboten.inhalt?.error);
-  const fTtagBekannt = await fRuf('keks-f-bert', 'POST', `/api/test-days/${fTtagId}/tags`,
+  const fTtagBekannt = await fRuf('cookie-f-bert', 'POST', `/api/test-days/${fTtagId}/tags`,
     { name: 'Frisch' });
   pruefe('Einen bekannten Namen weist er dem Testtag weiterhin zu',
     fTtagBekannt.status === 201 &&
@@ -4332,10 +4332,10 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* Und wieder an: der Weg muss sich auch oeffnen lassen, sonst belegte die
      Pruefung nur, dass er zu ist. */
-  await fRuf('keks-f-anna', 'PUT', '/api/settings',
+  await fRuf('cookie-f-anna', 'PUT', '/api/settings',
     { tagsFreiAnlegen: true, kategorienFreiAnlegen: true });
   const fWiederAn = fTagZahl();
-  const fTagWiederAn = await fRuf('keks-f-bert', 'POST', '/api/items/2/tags', { name: 'Wieder frei' });
+  const fTagWiederAn = await fRuf('cookie-f-bert', 'POST', '/api/items/2/tags', { name: 'Wieder frei' });
   pruefe('Umgelegt steht der Weg wieder offen',
     fTagWiederAn.status === 201 && fTagZahl() === fWiederAn + 1,
     `Status ${fTagWiederAn.status}, ${fWiederAn} -> ${fTagZahl()}`);
@@ -4355,28 +4355,28 @@ const namen = (liste) => liste.map(c => c.name);
      loest nur Sekunden auf, und zwei in derselben Sekunde angelegte Eintraege
      stuenden in unbestimmter Reihenfolge -- die Pruefung auf die Ordnung
      koennte dann gar nicht scheitern. */
-  const oA = (await fRuf('keks-f-anna', 'POST', '/api/items', { title: 'Aufgabenblatt A' })).inhalt;
-  const oB = (await fRuf('keks-f-bert', 'POST', '/api/items', { title: 'Aufgabenblatt B' })).inhalt;
-  const oSchreib = async (keks, itemId, text, kind) =>
-    (await fRuf(keks, 'POST', `/api/items/${itemId}/comments`, { text, kind })).inhalt;
-  await oSchreib('keks-f-anna', oA.id, 'A-eins offen', 'task');
-  await oSchreib('keks-f-bert', oA.id, 'A-zwei offen', 'task');
-  await oSchreib('keks-f-anna', oA.id, 'A-drei erledigt', 'done');
-  await oSchreib('keks-f-anna', oA.id, 'A-vier Notiz', 'note');
-  await oSchreib('keks-f-anna', oA.id, 'A-fuenf Bericht', 'report');
-  await oSchreib('keks-f-carla', oB.id, 'B-eins offen', 'task');
+  const oA = (await fRuf('cookie-f-anna', 'POST', '/api/items', { title: 'Aufgabenblatt A' })).inhalt;
+  const oB = (await fRuf('cookie-f-bert', 'POST', '/api/items', { title: 'Aufgabenblatt B' })).inhalt;
+  const oSchreib = async (cookie, itemId, text, kind) =>
+    (await fRuf(cookie, 'POST', `/api/items/${itemId}/comments`, { text, kind })).inhalt;
+  await oSchreib('cookie-f-anna', oA.id, 'A-eins offen', 'task');
+  await oSchreib('cookie-f-bert', oA.id, 'A-zwei offen', 'task');
+  await oSchreib('cookie-f-anna', oA.id, 'A-drei erledigt', 'done');
+  await oSchreib('cookie-f-anna', oA.id, 'A-vier Notiz', 'note');
+  await oSchreib('cookie-f-anna', oA.id, 'A-fuenf Bericht', 'report');
+  await oSchreib('cookie-f-carla', oB.id, 'B-eins offen', 'task');
   // Eine HERRENLOSE Aufgabe: der Verfasser fehlt, und das Feld muss trotzdem
   // dastehen -- null heisst "diese Zeile hat keinen Verfasser", ein fehlendes
   // Feld hiesse "diese Antwort kennt das Feld nicht". Erst nach dem Start
   // geleert, sonst schoebe ordneBestandZu() sie der Eigentuemerin zu.
-  await oSchreib('keks-f-anna', oB.id, 'B-zwei herrenlos', 'task');
+  await oSchreib('cookie-f-anna', oB.id, 'B-zwei herrenlos', 'task');
   fSchreibe("UPDATE comments SET user_id = NULL WHERE text = 'B-zwei herrenlos'");
   // B ist juenger als A -- die Ansicht muss B deshalb zuerst nennen.
   fSchreibe("UPDATE items SET updated_at = '2026-08-02 10:00:00' WHERE id = ?", oA.id);
   fSchreibe("UPDATE items SET updated_at = '2026-08-03 10:00:00' WHERE id = ?", oB.id);
 
-  const oHole = async (keks) => (await fRuf(keks, 'GET', '/api/offen')).inhalt;
-  const oListe = await oHole('keks-f-anna');
+  const oHole = async (cookie) => (await fRuf(cookie, 'GET', '/api/offen')).inhalt;
+  const oListe = await oHole('cookie-f-anna');
   const oTexte = (l) => (l || []).map(z => z.text);
 
   /* Erst das Vorhandensein, dann die Verneinung (Stolperstein 81): dass die
@@ -4410,7 +4410,7 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify((oListe || []).map(z => z.item?.id)));
 
   /* Jedes Feld, das die Oberflaeche aus der Antwort liest, an der ECHTEN
-     Antwort geprueft -- nicht nur am Doppelgaenger (Stolperstein 102). */
+     Antwort geprueft -- nicht nur am Mock (Stolperstein 102). */
   const oEine = (l, text) => (l || []).find(z => z.text === text);
   pruefe('Jede Zeile nennt ihren Eintrag mit Nummer und Titel',
     oEine(oListe, 'A-eins offen')?.item?.id === oA.id &&
@@ -4435,7 +4435,7 @@ const namen = (liste) => liste.map(c => c.name);
      Oberflaeche aus dem Verfasserobjekt zurueckrechnen, und bei einem
      Grabstein ginge das gar nicht. Dieselbe Antwort sieht fuer zwei Leute
      verschieden aus; mit nur einem Rufer waere das nicht zu sehen. */
-  const oListeBert = await oHole('keks-f-bert');
+  const oListeBert = await oHole('cookie-f-bert');
   pruefe('mine steht an jeder Zeile',
     (oListe || []).every(z => typeof z.mine === 'boolean'),
     JSON.stringify((oListe || []).map(z => z.mine)));
@@ -4468,7 +4468,7 @@ const namen = (liste) => liste.map(c => c.name);
      Eigentuemer gehoert" die Adminrolle und kaeme durch. Wer sie als Fremde
      einsetzte, pruefte die Klemme an einem Zugang, der sie gar nicht
      spuert -- gruen, aber ueber etwas anderes. */
-  const oHakenFremd = await fRuf('keks-f-bert', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
+  const oHakenFremd = await fRuf('cookie-f-bert', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
     { kind: 'done' });
   pruefe('Ein Fremder hakt eine fremde Aufgabe nicht ab',
     oHakenFremd.status === 403, `Status ${oHakenFremd.status}`);
@@ -4476,14 +4476,14 @@ const namen = (liste) => liste.map(c => c.name);
   /* Auch die herrenlose nicht: eine Zeile ohne Verfasser gehoert dem Admin,
      nicht allen. Ohne diese Zeile bliebe die Klemme an der herrenlosen Zeile
      an dieser Route ungeprueft. */
-  const oHakenHerrenlos = await fRuf('keks-f-bert', 'PUT',
+  const oHakenHerrenlos = await fRuf('cookie-f-bert', 'PUT',
     `/api/comments/${oNr('B-zwei herrenlos')}`, { kind: 'done' });
   pruefe('Und eine herrenlose erst recht nicht', oHakenHerrenlos.status === 403,
     `Status ${oHakenHerrenlos.status}`);
   pruefe('Auch sie steht unveraendert offen da',
     oArt('B-zwei herrenlos') === 'task', oArt('B-zwei herrenlos'));
 
-  const oHakenEigen = await fRuf('keks-f-bert', 'PUT', `/api/comments/${oNr('A-zwei offen')}`,
+  const oHakenEigen = await fRuf('cookie-f-bert', 'PUT', `/api/comments/${oNr('A-zwei offen')}`,
     { kind: 'done' });
   pruefe('Der Verfasser hakt seine eigene Aufgabe ab',
     oHakenEigen.status === 200 && oArt('A-zwei offen') === 'done',
@@ -4496,13 +4496,13 @@ const namen = (liste) => liste.map(c => c.name);
      CARLA und nicht anna: ein Admin OHNE Eigentuemerrolle. Mit anna liesse
      sich nicht sehen, ob hier die Adminfrage entscheidet oder die
      Eigentuemerfrage. */
-  const oHakenAdmin = await fRuf('keks-f-carla', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
+  const oHakenAdmin = await fRuf('cookie-f-carla', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
     { kind: 'done' });
   pruefe('Ein Admin ohne Eigentuemerrolle hakt eine fremde Aufgabe ab',
     oHakenAdmin.status === 200 && oArt('A-eins offen') === 'done',
     `Status ${oHakenAdmin.status} / ${oArt('A-eins offen')}`);
 
-  const oNachHaken = await oHole('keks-f-anna');
+  const oNachHaken = await oHole('cookie-f-anna');
   pruefe('Die abgehakte Aufgabe faellt beim naechsten Aufbau aus der Ansicht',
     !oTexte(oNachHaken).includes('A-eins offen') && !oTexte(oNachHaken).includes('A-zwei offen'),
     JSON.stringify(oTexte(oNachHaken)));
@@ -4514,18 +4514,18 @@ const namen = (liste) => liste.map(c => c.name);
      Pruefung nur, dass er in eine Richtung wirkt. Die Zeile wird wieder eine
      AUFGABE und keine Notiz -- die Weiterschaltung im Eintrag geht auf Notiz
      weiter, der Haken ist ein Zustand und keine Abfolge. */
-  const oZurueck = await fRuf('keks-f-anna', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
+  const oZurueck = await fRuf('cookie-f-anna', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
     { kind: 'task' });
   pruefe('Der Haken laesst sich wieder wegnehmen',
     oZurueck.status === 200 && oArt('A-eins offen') === 'task', oArt('A-eins offen'));
   pruefe('Und die Zeile steht wieder in der Ansicht',
-    oTexte(await oHole('keks-f-anna')).includes('A-eins offen'));
+    oTexte(await oHole('cookie-f-anna')).includes('A-eins offen'));
 
   /* Die Ansicht liegt hinter der Anmeldung wie alles unter /api. Ohne diese
      Zeile bliebe offen, ob ein neuer lesender Endpunkt die Schicht umgeht. */
-  const oOhneKeks = await fetch(F.basis + '/api/offen');
-  pruefe('Ohne Anmeldung gibt es die Ansicht nicht', oOhneKeks.status === 401,
-    `Status ${oOhneKeks.status}`);
+  const oOhneCookie = await fetch(F.basis + '/api/offen');
+  pruefe('Ohne Anmeldung gibt es die Ansicht nicht', oOhneCookie.status === 401,
+    `Status ${oOhneCookie.status}`);
 
   /* ---------------------------------------------------------------- */
   gruppe('Neu seit: die Sekunde am Rand');
@@ -4550,9 +4550,9 @@ const namen = (liste) => liste.map(c => c.name);
   };
   let sekGetroffen = false, sekMarke = null, sekStand = null, sekVerlassen = null;
   for (let versuch = 0; versuch < 12 && !sekGetroffen; versuch++) {
-    await fRuf('keks-f-anna', 'PUT', '/api/settings', { zuletztGesehen: 1 });
+    await fRuf('cookie-f-anna', 'PUT', '/api/settings', { zuletztGesehen: 1 });
     sekVerlassen = fUhr();
-    await fRuf('keks-f-bert', 'POST', `/api/items/${oA.id}/comments`,
+    await fRuf('cookie-f-bert', 'POST', `/api/items/${oA.id}/comments`,
       { text: `Sekundenprobe ${versuch}` });
     sekMarke = JSON.parse(fEine(
       "SELECT value FROM user_settings WHERE user_id = 1 AND key = 'zuletztGesehen'").value);
@@ -4598,12 +4598,12 @@ const namen = (liste) => liste.map(c => c.name);
     d.pragma('busy_timeout = 4000');
     d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('bert', 'x');
     const bertId = d.prepare('SELECT id FROM users WHERE username = ?').get('bert').id;
-    d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run('keks-sb-bert', bertId);
-    d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, 1)').run('keks-sb-anna-zwei');
+    d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run('cookie-sb-bert', bertId);
+    d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, 1)').run('cookie-sb-anna-zwei');
     d.close();
   }
-  const sbRuf = async (keksWert, methode, pfad, koerper) => {
-    const opt = { method: methode, headers: { cookie: `kriterion_session=${keksWert}` } };
+  const sbRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
     if (koerper !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(koerper);
@@ -4622,7 +4622,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* Erste Stelle: GET /api/account. Stuende dort holeBenutzer(), also
      der erste Zugang, saehe bert den Namen der Eigentuemerin. */
-  const sbKonto = await sbRuf('keks-sb-bert', 'GET', '/api/account');
+  const sbKonto = await sbRuf('cookie-sb-bert', 'GET', '/api/account');
   pruefe('Der Systembereich nennt den angemeldeten Namen, nicht den ersten',
     sbKonto.inhalt?.username === 'bert', JSON.stringify(sbKonto.inhalt));
 
@@ -4630,7 +4630,7 @@ const namen = (liste) => liste.map(c => c.name);
      Benutzer, benannte bert hier mit ANNAS Passwort ihren Zugang um, weil
      beides zusammenpasste. Geprueft wird gegen BERTS Zeile, und dessen
      Passwort ist es nicht. */
-  const sbFremd = await sbRuf('keks-sb-bert', 'PUT', '/api/account',
+  const sbFremd = await sbRuf('cookie-sb-bert', 'PUT', '/api/account',
     { oldPassword: 'annas-langes-wort', username: 'uebernommen', newPassword: '' });
   pruefe('Ein Zweiter aendert mit fremdem Passwort nichts', sbFremd.status === 400,
     `Status ${sbFremd.status}`);
@@ -4643,7 +4643,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Vor dem Wechsel stehen drei Sitzungen',
     sbZeilen('SELECT token FROM sessions').length === 3,
     JSON.stringify(sbZeilen('SELECT token, user_id FROM sessions')));
-  const sbWechsel = await sbRuf('keks-sb-anna-zwei', 'PUT', '/api/account',
+  const sbWechsel = await sbRuf('cookie-sb-anna-zwei', 'PUT', '/api/account',
     { oldPassword: 'annas-langes-wort', username: 'anna', newPassword: 'annas-neues-wort' });
   pruefe('Die Eigentuemerin wechselt ihr Passwort',
     sbWechsel.status === 200 && sbWechsel.inhalt?.passwortGewechselt === true,
@@ -4652,12 +4652,12 @@ const namen = (liste) => liste.map(c => c.name);
     sbZeilen('SELECT token FROM sessions WHERE user_id = 1').length === 1,
     JSON.stringify(sbZeilen('SELECT token, user_id FROM sessions')));
   pruefe('Berts Sitzung bleibt bestehen',
-    (await sbRuf('keks-sb-bert', 'GET', '/api/account')).status === 200,
+    (await sbRuf('cookie-sb-bert', 'GET', '/api/account')).status === 200,
     JSON.stringify(sbZeilen('SELECT token, user_id FROM sessions')));
 
   /* username traegt UNIQUE COLLATE NOCASE. Ohne eine eigene Frage kaeme ab
      dem zweiten Zugang die rohe SQLite-Meldung als 400 heraus. */
-  const sbKollision = await sbRuf('keks-sb-anna-zwei', 'PUT', '/api/account',
+  const sbKollision = await sbRuf('cookie-sb-anna-zwei', 'PUT', '/api/account',
     { oldPassword: 'annas-neues-wort', username: 'BERT', newPassword: '' });
   pruefe('Ein schon vergebener Name wird verstaendlich abgewiesen',
     sbKollision.status === 400 && /gibt es bereits/.test(sbKollision.inhalt?.error || ''),
@@ -4678,7 +4678,7 @@ const namen = (liste) => liste.map(c => c.name);
      entscheiden, wird hier namentlich rot; alle Prüfungen darüber bleiben
      gruen, weil es zu einer Route, die es noch nicht gibt, auch keine gibt.
      Geschnitten wird von Klammer zu Klammer mit indexOf, ausdruecklich OHNE
-     zusammengesetztes Muster: eine aus einer Zeichenkette gebaute Regel wird
+     zusammengesetztes Muster: eine aus einem String gebaute Regel wird
      zweistufig maskiert und sieht dabei in jeder Schreibweise plausibel aus
      -- und ist dabei in jeder Schreibweise plausibel.
 
@@ -4902,7 +4902,7 @@ const namen = (liste) => liste.map(c => c.name);
      und keine Verhaltenspruefung koennte es zeigen -- denn ein Server ohne
      Klemme antwortet nicht falsch, er laesst nur den Falschen durch.
      Erst das VORHANDENSEIN des Rumpfes, dann die Eigenschaft: ein Rumpf, den
-     es nicht gibt, ist eine leere Zeichenkette, und jede Verneinung darauf
+     es nicht gibt, ist ein leerer String, und jede Verneinung darauf
      waere wahr (Stolperstein 81). */
   const fBildWeg = fGefunden.find(r => r.schluessel === 'DELETE /api/comment-images/:id');
   const fBildWegRumpf = fBildWeg ? fBildWeg.rumpf : '';
@@ -5004,7 +5004,7 @@ const namen = (liste) => liste.map(c => c.name);
      Content-Type ueberhaupt nicht mehr selbst. Wer eine Auslieferung ergaenzt
      -- ein Video ab 0.8.50 --, wird hier namentlich rot und muss sich fuer
      einen der beiden Wege in anhaenge.js entscheiden: Typ nach Endung
-     (setzeKopfzeilen) oder Typ nach den ersten Bytes (setzeBildKopfzeilen).
+     (setzeHeader) oder Typ nach den ersten Bytes (setzeBildHeader).
      Gezaehlt wird woertlich, ohne zusammengesetztes Muster. */
   const TYP_WOERTER = ["res.set('Content-Type'", 'res.set("Content-Type"',
                       "res.setHeader('Content-Type'", 'res.type('];
@@ -5034,8 +5034,8 @@ const namen = (liste) => liste.map(c => c.name);
   })();
   pruefe('Die Fotoroute ist ueberhaupt da', fRohRumpf.length > 0, 'die Route fehlt im Quelltext');
   pruefe('Und sie ruft die Ableitung aus den Bytes auf',
-    fRohRumpf.includes('anh.setzeBildKopfzeilen('),
-    fRohRumpf ? 'setzeBildKopfzeilen fehlt im Rumpf' : '(kein Rumpf)');
+    fRohRumpf.includes('anh.setzeBildHeader('),
+    fRohRumpf ? 'setzeBildHeader fehlt im Rumpf' : '(kein Rumpf)');
   pruefe('Der gemeldete Typ kommt in ihrem Rumpf gar nicht mehr vor',
     !fRohRumpf.includes('mime'), fRohRumpf ? 'mime steht noch im Rumpf' : '(kein Rumpf)');
 
@@ -5065,6 +5065,162 @@ const namen = (liste) => liste.map(c => c.name);
     fQuelle.includes("wal_checkpoint(TRUNCATE)") && fQuelle.includes('db.close()'),
     'kein wal_checkpoint oder kein db.close');
 
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Sprachwaechter');
+
+  /* DEUTSCH BLEIBT DIE SPRACHE, aber Fachbegriffe werden nicht zwanghaft
+     eingedeutscht. Der Massstab ist das Wort, das ein deutschsprachiger
+     Entwickler im Gespraech benutzen wuerde -- Cookie statt `Keks`,
+     Migration statt `Umstieg`.
+
+     DIE LISTE IST KURZ ZU HALTEN. Ein Waechter, der jedes zweite Wort
+     anmeckert, wird abgeschaltet; hier stehen deshalb nur die zwoelf
+     Uebersetzungen, die 0.8.60 abgeraeumt hat, und keine Geschmacksfragen.
+
+     ER ZIELT AUF UEBERSETZTE LEHNWOERTER, NICHT AUF DIE EIGENEN BILDER DES
+     PROJEKTS. "Stolperstein", "Gegenprobe", "Pruefstand", "Waechter" und
+     "Klemme" sind keine Uebersetzungen von irgendetwas Englischem -- sie
+     bleiben und stehen ausdruecklich nicht in dieser Liste.
+
+     ER IST DIE AUSNAHME VON DER REGEL AUS STOLPERSTEIN 106: jeder andere
+     Waechter ueber den Quelltext filtert die Kommentarzeilen weg, dieser
+     sieht sie ausdruecklich an -- die Sprache steht ja gerade dort. Umgekehrt
+     laesst er CODE in Ruhe: einen Bezeichner faengt er nicht, denn er liest
+     nur Kommentare -- und was in Backticks steht, ist zitierter Code und
+     keine Sprache. Beides bekommt unten seine eigene Gegenprobe. */
+  const SPRACHLISTE = [
+    ['Keks', 'Cookie'], ['Umstieg', 'Migration'], ['Abbild', 'Image'],
+    ['Sperrdatei', 'Lockfile'], ['Doppelgänger', 'Mock'], ['Doppelgaenger', 'Mock'],
+    ['mehrteilig', 'Multipart'], ['Zweigname', 'Branchname'],
+    ['Rückschritt', 'Downgrade'], ['Rueckschritt', 'Downgrade'],
+    ['Ereignisschleife', 'Event Loop'], ['Zeichenkette', 'String'],
+    ['Abdruck', 'Fingerprint']
+  ];
+  const SPRACHMUSTER = new RegExp(
+    '(' + SPRACHLISTE.map(([w]) => w).join('|') + ')', 'i');
+
+  /* Aus einer Quelltextdatei bleiben die KOMMENTARZEILEN uebrig, aus einer
+     Doku-Datei die PROSA -- Code in Zaeunen und in Backticks faellt dort
+     ebenso weg. Ein Waechter ueber die Sprache liest Sprache; ein zitierter
+     Bezeichner aus einem aelteren Papier ist keine Prosa und wird nicht
+     umbenannt, nur weil er zitiert wird. */
+  /* Beide filtern ZEILENWEISE und lassen die Zeilenzahl unangetastet -- was
+     nicht zaehlt, wird leer statt weggeworfen. Sonst naennte der Waechter
+     Zeilennummern, die es in der Datei gar nicht gibt, und der Befund waere
+     nicht auffindbar. */
+  function nurKommentare(text) {
+    let inBlock = false;
+    return text.split('\n').map(z => {
+      const t = z.trim();
+      if (inBlock) { if (t.includes('*/')) inBlock = false; return z; }
+      if (t.startsWith('/*')) { if (!t.includes('*/')) inBlock = true; return z; }
+      if (t.startsWith('//')) return z;
+      const p = z.indexOf('//');
+      return (p >= 0 && !/['"`]/.test(z.slice(0, p))) ? z.slice(p) : '';
+    }).map(z => z.replace(/`[^`]*`/g, '')).join('\n');
+  }
+  function nurProsa(text) {
+    let inZaun = false;
+    return text.split('\n').map(z => {
+      if (z.trim().startsWith('```')) { inZaun = !inZaun; return ''; }
+      return inZaun ? '' : z.replace(/`[^`]*`/g, '');
+    }).join('\n');
+  }
+
+  function sprachTreffer(text, name) {
+    const raus = [];
+    text.split('\n').forEach((z, i) => {
+      const t = z.match(SPRACHMUSTER);
+      if (t) raus.push(`${name}:${i + 1} „${t[1]}"`);
+    });
+    return raus;
+  }
+
+  const SPRACH_QUELLEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
+                          'zugang.js', 'pruefung.js', 'public/app.js'];
+  const sprachQuelltext = SPRACH_QUELLEN.flatMap(n => {
+    const p = path.join(__dirname, n);
+    return fs.existsSync(p)
+      ? sprachTreffer(nurKommentare(fs.readFileSync(p, 'utf8')), n) : [];
+  });
+  const sprachDokuDateien = (fs.existsSync(path.join(__dirname, 'Doku'))
+    ? fs.readdirSync(path.join(__dirname, 'Doku')).filter(n => n.endsWith('.md')) : [])
+    // Der Auftrag der laufenden Runde bleibt aussen vor: er FUEHRT die Wortliste
+    // und nennt jedes dieser Woerter als Beispiel. Ein Waechter, der ihn
+    // anmeckert, meckert seine eigene Vorschrift an.
+    .filter(n => !/^Auftrag_/.test(n))
+    .map(n => path.join('Doku', n))
+    .concat(['README.md']);
+  const sprachDoku = sprachDokuDateien.flatMap(n => {
+    const p = path.join(__dirname, n);
+    return fs.existsSync(p) ? sprachTreffer(nurProsa(fs.readFileSync(p, 'utf8')), n) : [];
+  });
+
+  /* ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): ein Waechter,
+     der auf null Dateien laeuft, ist grün und belegt nichts. */
+  /* DIE ZAHL AUSDRUECKLICH, nicht nur "alle, die dastehen": eine gekuerzte
+     Liste bliebe sonst gruen, und der Waechter saehe ohne jeden Hinweis nur
+     noch die halbe Anwendung an. Genau das ist beim Bauen dieser Gruppe an
+     einer Gegenprobe aufgefallen -- der Rueckbau auf eine einzige Datei blieb
+     stumm. Dieselbe Ueberlegung wie bei der Zahl in F_ROUTEN. */
+  pruefe('Der Sprachwaechter sieht alle acht Quelltextdateien an',
+    SPRACH_QUELLEN.length === 8 &&
+    SPRACH_QUELLEN.every(n => fs.existsSync(path.join(__dirname, n))),
+    `${SPRACH_QUELLEN.length} Dateien, fehlend: ` +
+    JSON.stringify(SPRACH_QUELLEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
+  /* Und der Beleg, dass der Filter ueberhaupt etwas uebrig laesst: einer, der
+     alles wegwirft, machte jede Verneinung darauf wahr (Stolperstein 81).
+     Gezaehlt wird ueber alle acht zusammen -- `keys.js` traegt nur drei
+     Kommentarzeilen, eine Schwelle je Datei waere dort eine Zufallszahl. */
+  const sprachKommentarZeilen = SPRACH_QUELLEN.reduce((n, d) =>
+    n + nurKommentare(fs.readFileSync(path.join(__dirname, d), 'utf8'))
+      .split('\n').filter(z => z.trim()).length, 0);
+  pruefe('Und aus ihnen bleiben mehr als tausend Kommentarzeilen uebrig',
+    sprachKommentarZeilen > 1000, `${sprachKommentarZeilen} Zeilen`);
+  pruefe('Und mindestens zehn Dokumente daneben',
+    sprachDokuDateien.length >= 10, `${sprachDokuDateien.length} Dokumente`);
+  pruefe('Die Kommentare des Quelltextes benutzen die heutigen Fachwoerter',
+    sprachQuelltext.length === 0, sprachQuelltext.slice(0, 12).join(' · '));
+  pruefe('Die Dokumente ebenso',
+    sprachDoku.length === 0, sprachDoku.slice(0, 12).join(' · '));
+
+  /* SECHS GEGENPROBEN AN GESTELLTEN TEXTEN, damit der Waechter nicht bei
+     der guten Absicht bleibt. Sie laufen an Strings und nicht am
+     Arbeitsbaum -- ein Waechter, der erst auf einem zurueckgebauten Stand
+     etwas faende, waere selbst nie geprueft. */
+  pruefe('Er liest ueberhaupt noch etwas: ein Kommentar mit „Keks" faellt auf',
+    sprachTreffer(nurKommentare('// Der Keks traegt Secure.\nconst a = 1;'), 'x').length === 1,
+    JSON.stringify(sprachTreffer(nurKommentare('// Der Keks traegt Secure.'), 'x')));
+  pruefe('Und ein Fliesskommentar mit „Umstieg" ebenso',
+    sprachTreffer(nurKommentare('/* Der Umstieg\n   laeuft einmal. */'), 'x').length === 1);
+  /* DIE UMGEKEHRTE GEGENPROBE, und sie ist die eigentliche Ausnahme dieses
+     Waechters: CODE meckert er NICHT an. Ein Bezeichner ist keine Sprache,
+     und ein Waechter, der ihn faengt, faengt bei der naechsten Runde auch
+     jeden String in einer Prueflage. */
+  pruefe('Aber Code laesst er in Ruhe -- ein Bezeichner ist keine Sprache',
+    sprachTreffer(nurKommentare("const keksWert = 'abc';\nlet Umstieg = 1;"), 'x').length === 0,
+    JSON.stringify(sprachTreffer(nurKommentare("const keksWert = 'abc';"), 'x')));
+  pruefe('Auch in einem Kommentar bleibt der zitierte Bezeichner unberuehrt',
+    sprachTreffer(nurKommentare('// Der Wert steht in `keksWert` und heisst so.'), 'x').length === 0,
+    JSON.stringify(sprachTreffer(nurKommentare('// Der Wert steht in `keksWert`.'), 'x')));
+  pruefe('Und in einem Dokument faengt er die Prosa, nicht den Code im Zaun',
+    sprachTreffer(nurProsa('Der Keks ist da.\n```\nconst keks = 1;\n```\n'), 'x').length === 1,
+    JSON.stringify(sprachTreffer(nurProsa('Der Keks ist da.\n```\nconst keks = 1;\n```\n'), 'x')));
+  pruefe('Auch ein zitierter Bezeichner in Backticks bleibt unberuehrt',
+    sprachTreffer(nurProsa('Er heisst `umstiegGewicht()` und nicht anders.'), 'x').length === 0,
+    JSON.stringify(sprachTreffer(nurProsa('Er heisst `umstiegGewicht()`.'), 'x')));
+
+  /* Die Liste bleibt kurz -- das ist keine Geschmacksfrage, sondern die
+     Bedingung dafuer, dass der Waechter nicht abgeschaltet wird. */
+  pruefe('Die Wortliste bleibt kurz',
+    SPRACHLISTE.length <= 15, `${SPRACHLISTE.length} Woerter`);
+  /* Und die eigenen Bilder des Projekts stehen ausdruecklich NICHT darin:
+     sie sind keine Uebersetzungen und bleiben. */
+  pruefe('Die eigenen Begriffe des Projekts stehen nicht auf der Liste',
+    !['Stolperstein', 'Gegenprobe', 'Prüfstand', 'Wächter', 'Klemme']
+      .some(w => SPRACHLISTE.some(([x]) => x === w)),
+    JSON.stringify(SPRACHLISTE.map(([x]) => x)));
+
   /* ================================================================
      Verwaltung, Rollen, Sperren, Grabstein
      ================================================================
@@ -5086,9 +5242,9 @@ const namen = (liste) => liste.map(c => c.name);
   const G = starteWeiterenServer(gDir, {}, 5820);
   await G.bereit;
 
-  const gRuf = async (keksWert, methode, pfad, koerper) => {
+  const gRuf = async (cookieWert, methode, pfad, koerper) => {
     const opt = { method: methode, headers: {} };
-    if (keksWert) opt.headers.cookie = `kriterion_session=${keksWert}`;
+    if (cookieWert) opt.headers.cookie = `kriterion_session=${cookieWert}`;
     if (koerper !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(koerper);
@@ -5098,7 +5254,7 @@ const namen = (liste) => liste.map(c => c.name);
     try { inhalt = await a.json(); } catch {}
     return { status: a.status, inhalt };
   };
-  // Meldet an und gibt den Keks zurueck. Die Anmeldung ist hier kein
+  // Meldet an und gibt den Cookie zurueck. Die Anmeldung ist hier kein
   // Beiwerk -- ohne sie gaebe es keine Sitzung mit der richtigen Rolle.
   const gAnmelden = async (name, passwort, adresse) => {
     const kopf = { 'content-type': 'application/json' };
@@ -5108,7 +5264,7 @@ const namen = (liste) => liste.map(c => c.name);
     let inhalt = null;
     try { inhalt = await a.json(); } catch {}
     const setz = a.headers.get('set-cookie') || '';
-    return { status: a.status, inhalt, keks: setz ? setz.split(';')[0].split('=')[1] : null };
+    return { status: a.status, inhalt, cookie: setz ? setz.split(';')[0].split('=')[1] : null };
   };
   const gZeilen = (sql, ...werte) => {
     const d = oeffne(path.join(gDir, 'katalog.sqlite'));
@@ -5127,7 +5283,7 @@ const namen = (liste) => liste.map(c => c.name);
   const gStatus = (name) => gZeilen('SELECT status FROM users WHERE username = ?', name)[0]?.status;
 
   await G.ruf('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
-  const gAnna = (await gAnmelden('anna', 'annas-langes-wort')).keks;
+  const gAnna = (await gAnmelden('anna', 'annas-langes-wort')).cookie;
 
   pruefe('Die Einrichtung macht den ersten Zugang zum Eigentuemer',
     gRolle('anna') === 'eigentuemer', gRolle('anna'));
@@ -5148,8 +5304,8 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und mit ausdruecklicher Rolle auch einen Admin',
     gCarlaAn.status === 200 && gRolle('carla') === 'admin', gRolle('carla'));
 
-  const gBert = (await gAnmelden('bert', 'berts-langes-wort')).keks;
-  const gCarla = (await gAnmelden('carla', 'carlas-langes-wort')).keks;
+  const gBert = (await gAnmelden('bert', 'berts-langes-wort')).cookie;
+  const gCarla = (await gAnmelden('carla', 'carlas-langes-wort')).cookie;
   const gBertStell = (await gRuf(gBert, 'GET', '/api/settings')).inhalt;
   const gCarlaStell = (await gRuf(gCarla, 'GET', '/api/settings')).inhalt;
   pruefe('Ein Benutzer ist weder Admin noch Eigentuemer',
@@ -5294,9 +5450,9 @@ const namen = (liste) => liste.map(c => c.name);
     (await gRuf(gAnna, 'PUT', `/api/users/${gAnnaId}`, { rolle: 'admin' })).status === 200 &&
     gRolle('anna') === 'admin', gRolle('anna'));
   // Und zurueck, damit die folgenden Gruppen auf der gewohnten Lage stehen.
-  const gCarlaKeks2 = (await gAnmelden('carla', 'carlas-langes-wort')).keks;
-  await gRuf(gCarlaKeks2, 'PUT', `/api/users/${gAnnaId}`, { rolle: 'eigentuemer' });
-  await gRuf(gCarlaKeks2, 'PUT', `/api/users/${gCarlaId}`, { rolle: 'admin' });
+  const gCarlaCookie2 = (await gAnmelden('carla', 'carlas-langes-wort')).cookie;
+  await gRuf(gCarlaCookie2, 'PUT', `/api/users/${gAnnaId}`, { rolle: 'eigentuemer' });
+  await gRuf(gCarlaCookie2, 'PUT', `/api/users/${gCarlaId}`, { rolle: 'admin' });
   pruefe('Danach steht die Ausgangslage wieder',
     gRolle('anna') === 'eigentuemer' && gRolle('carla') === 'admin',
     JSON.stringify(gZeilen('SELECT username, role FROM users')));
@@ -5307,7 +5463,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* ZWEI STELLEN, ZWEI EIGENE GEGENPROBEN: die Anmeldung
      weist einen gesperrten Zugang ab, und requireAuth laesst eine LAUFENDE
      Sitzung nicht weiterlaufen. Ohne die zweite bliebe ein gerade Gesperrter
-     bis zum Ablauf seines Kekses drin, also bis zu dreissig Tage. */
+     bis zum Ablauf seines Cookies drin, also bis zu dreissig Tage. */
   await gRuf(gAnna, 'PUT', `/api/users/${gDoraId}`, { status: 'gesperrt' });
   const gDoraAn = await gAnmelden('dora', 'doras-langes-wort');
   pruefe('Ein gesperrter Zugang kommt mit richtigem Passwort nicht herein',
@@ -5333,20 +5489,20 @@ const namen = (liste) => liste.map(c => c.name);
      die Route: setzeStatus raeumt die Sitzungen mit weg, und dann liefe diese
      Pruefung ins Leere -- sie waere gruen, auch wenn requireAuth den Status
      gar nicht ansaehe. */
-  const gDora = (await gAnmelden('dora', 'doras-langes-wort')).keks;
+  const gDora = (await gAnmelden('dora', 'doras-langes-wort')).cookie;
   pruefe('Die frische Sitzung des Freigegebenen laeuft',
     (await gRuf(gDora, 'GET', '/api/settings')).status === 200);
   gSchreibe("UPDATE users SET status = 'gesperrt' WHERE id = ?", gDoraId);
   const gLaufend = await gRuf(gDora, 'GET', '/api/settings');
   pruefe('Eine laufende Sitzung eines Gesperrten laeuft nicht weiter',
     gLaufend.status === 401, `Status ${gLaufend.status}`);
-  pruefe('Und der Keks ist dabei weggeraeumt worden',
+  pruefe('Und der Cookie ist dabei weggeraeumt worden',
     gZeilen('SELECT token FROM sessions WHERE token = ?', gDora).length === 0);
   gSchreibe("UPDATE users SET status = 'aktiv' WHERE id = ?", gDoraId);
 
   /* Und das Sperren ueber die Route raeumt sie ebenfalls weg -- das ist die
      erste der beiden Schichten und wirkt sofort. */
-  const gDora2 = (await gAnmelden('dora', 'doras-langes-wort')).keks;
+  const gDora2 = (await gAnmelden('dora', 'doras-langes-wort')).cookie;
   await gRuf(gAnna, 'PUT', `/api/users/${gDoraId}`, { status: 'gesperrt' });
   pruefe('Das Sperren beendet die laufende Sitzung sofort',
     gZeilen('SELECT token FROM sessions WHERE token = ?', gDora2).length === 0,
@@ -5356,7 +5512,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* Das Passwort zuruecksetzen: der Admin kennt das bisherige nicht. Alle
      Sitzungen des Betroffenen fallen -- wer ein fremdes Passwort neu setzt,
      will den bisherigen Inhaber draussen haben. */
-  const gDora3 = (await gAnmelden('dora', 'doras-langes-wort')).keks;
+  const gDora3 = (await gAnmelden('dora', 'doras-langes-wort')).cookie;
   const gNeuesWort = await gRuf(gCarla, 'PUT', `/api/users/${gDoraId}`, { passwort: 'doras-neues-wort' });
   pruefe('Ein Admin setzt das Passwort eines Benutzers zurueck', gNeuesWort.status === 200,
     JSON.stringify(gNeuesWort.inhalt));
@@ -5478,12 +5634,12 @@ const namen = (liste) => liste.map(c => c.name);
   const gEmil = await gRuf(gAnna, 'POST', '/api/users',
     { username: 'emil', passwort: 'emils-langes-wort' });
   const gEmilId = gEmil.inhalt.id;
-  const gEmilKeks = (await gAnmelden('emil', 'emils-langes-wort')).keks;
-  const gEmilItem = (await gRuf(gEmilKeks, 'POST', '/api/items', { title: 'Emils Eintrag' })).inhalt;
+  const gEmilCookie = (await gAnmelden('emil', 'emils-langes-wort')).cookie;
+  const gEmilItem = (await gRuf(gEmilCookie, 'POST', '/api/items', { title: 'Emils Eintrag' })).inhalt;
   await gRuf(gAnna, 'POST', `/api/items/${gEmilItem.id}/comments`, { text: 'Annas Kommentar bei Emil' });
-  await gRuf(gEmilKeks, 'POST', `/api/items/${gAnnaItem.id}/comments`, { text: 'Emils Kommentar bei Anna' });
+  await gRuf(gEmilCookie, 'POST', `/api/items/${gAnnaItem.id}/comments`, { text: 'Emils Kommentar bei Anna' });
   await gRuf(gAnna, 'POST', `/api/items/${gEmilItem.id}/links`, { url: 'https://annas-link-bei-emil.test' });
-  await gRuf(gEmilKeks, 'POST', `/api/items/${gAnnaItem.id}/links`, { url: 'https://emils-link-bei-anna.test' });
+  await gRuf(gEmilCookie, 'POST', `/api/items/${gAnnaItem.id}/links`, { url: 'https://emils-link-bei-anna.test' });
   gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'annas-datei-bei-emil.txt', 3, ?, ?)",
     gEmilItem.id, Buffer.from('abc'), gAnnaId);
   gSchreibe("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'emils-datei-bei-anna.txt', 3, ?, ?)",
@@ -5589,18 +5745,18 @@ const namen = (liste) => liste.map(c => c.name);
     gGesperrtAb > 0 && gGesperrtAb <= 11, `gesperrt ab Versuch ${gGesperrtAb || '(nie)'}`);
   pruefe('Und auch das richtige Passwort kommt waehrend der Sperre nicht durch',
     (await gAnmelden('anna', 'annas-langes-wort', '10.0.7.99')).status === 429);
-  // Der Keks der Anlage ohne Proxy: kein Secure, kein Praefix. Beides waere
-  // hier falsch -- der Browser verwuerfe den Keks ueber http.
-  const gKeksKopf = await (async () => {
+  // Der Cookie der Anlage ohne Proxy: kein Secure, kein Praefix. Beides waere
+  // hier falsch -- der Browser verwuerfe den Cookie ueber http.
+  const gCookieKopf = await (async () => {
     const a = await fetch(G.basis + '/api/login', { method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ user: 'anna', password: 'annas-langes-wort' }) });
     return a.headers.get('set-cookie') || '';
   })();
-  pruefe('Ohne Proxy traegt der Keks kein Secure',
-    gKeksKopf === '' || !/;\s*Secure/i.test(gKeksKopf), gKeksKopf);
+  pruefe('Ohne Proxy traegt der Cookie kein Secure',
+    gCookieKopf === '' || !/;\s*Secure/i.test(gCookieKopf), gCookieKopf);
   pruefe('Und er heisst weiterhin kriterion_session',
-    gKeksKopf === '' || gKeksKopf.startsWith('kriterion_session='), gKeksKopf.split(';')[0]);
+    gCookieKopf === '' || gCookieKopf.startsWith('kriterion_session='), gCookieKopf.split(';')[0]);
 
   await G.stopp();
 
@@ -5623,31 +5779,31 @@ const namen = (liste) => liste.map(c => c.name);
     let inhalt = null;
     try { inhalt = await a.json(); } catch {}
     return { status: a.status, inhalt, ms: Date.now() - t0,
-             setzKeks: a.headers.get('set-cookie') || '' };
+             setzCookie: a.headers.get('set-cookie') || '' };
   };
 
   const pGut = await pAnmelden('anna', 'annas-langes-wort', '10.1.0.1');
   pruefe('Die Anmeldung gelingt auch hinter dem Proxy', pGut.status === 200,
     `${pGut.status}: ${JSON.stringify(pGut.inhalt)}`);
-  pruefe('Der Keks traegt hinter dem Proxy Secure', /;\s*Secure/i.test(pGut.setzKeks), pGut.setzKeks);
+  pruefe('Der Cookie traegt hinter dem Proxy Secure', /;\s*Secure/i.test(pGut.setzCookie), pGut.setzCookie);
   // Das Praefix __Host- ist eine Zusage an den Browser: nur ueber HTTPS, ohne
   // Domain, mit Path=/. Es verlangt den Namen woertlich.
   pruefe('Und er heisst __Host-kriterion_session',
-    pGut.setzKeks.startsWith('__Host-kriterion_session='), pGut.setzKeks.split(';')[0]);
+    pGut.setzCookie.startsWith('__Host-kriterion_session='), pGut.setzCookie.split(';')[0]);
   pruefe('Path=/ und HttpOnly stehen weiterhin dabei',
-    /;\s*Path=\//.test(pGut.setzKeks) && /;\s*HttpOnly/i.test(pGut.setzKeks), pGut.setzKeks);
+    /;\s*Path=\//.test(pGut.setzCookie) && /;\s*HttpOnly/i.test(pGut.setzCookie), pGut.setzCookie);
   pruefe('Ohne Domain -- sonst waere das Praefix ungueltig',
-    !/;\s*Domain=/i.test(pGut.setzKeks), pGut.setzKeks);
-  // Der Keks mit dem neuen Namen wird auch wirklich gelesen: sonst waere die
+    !/;\s*Domain=/i.test(pGut.setzCookie), pGut.setzCookie);
+  // Der Cookie mit dem neuen Namen wird auch wirklich gelesen: sonst waere die
   // Umbenennung eine Anlage, in die niemand mehr hineinkaeme.
-  const pKeksWert = pGut.setzKeks.split(';')[0];
-  const pSitzung = await fetch(P.basis + '/api/settings', { headers: { cookie: pKeksWert } });
-  pruefe('Mit diesem Keks laesst sich weiterarbeiten', pSitzung.status === 200, `${pSitzung.status}`);
+  const pCookieWert = pGut.setzCookie.split(';')[0];
+  const pSitzung = await fetch(P.basis + '/api/settings', { headers: { cookie: pCookieWert } });
+  pruefe('Mit diesem Cookie laesst sich weiterarbeiten', pSitzung.status === 200, `${pSitzung.status}`);
   // Und der alte Name gilt nicht mehr -- die einmalige Abmeldung beim
   // Umlegen der Einstellung ist damit belegt und keine Vermutung.
   const pAlterName = await fetch(P.basis + '/api/settings',
-    { headers: { cookie: 'kriterion_session=' + pKeksWert.split('=')[1] } });
-  pruefe('Der alte Keksname gilt nicht mehr', pAlterName.status === 401, `${pAlterName.status}`);
+    { headers: { cookie: 'kriterion_session=' + pCookieWert.split('=')[1] } });
+  pruefe('Der alte Cookiename gilt nicht mehr', pAlterName.status === 401, `${pAlterName.status}`);
   pruefe('Hinter dem Proxy steht Strict-Transport-Security',
     /max-age=\d+/.test((await fetch(P.basis + '/api/config')).headers.get('strict-transport-security') || ''),
     (await fetch(P.basis + '/api/config')).headers.get('strict-transport-security'));
@@ -5810,16 +5966,16 @@ const namen = (liste) => liste.map(c => c.name);
   fs.rmSync(zDir, { recursive: true, force: true });
 
   /* ================================================================
-     UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Umstiegscode
+     MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
      verschwindet, steht beieinander und traegt dieselbe Marke.
      ================================================================ */
-  gruppe('UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0');
+  gruppe('MIGRATION 0.8.3 — ENTFAELLT MIT 1.0');
 
   /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
      aus 0.8.0 bis 0.8.2 -- dieselbe Anlage, nur ohne die neue Spalte. Und mit
      einer Zeile darin: eine leere Tabelle bewiese nichts ueber die Vorgabe. */
-  const uDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg083-'));
+  const uDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration083-'));
   const uZweiterDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch083-'));
   const uLauf = (verzeichnis) => require('child_process')
     .execFileSync(process.execPath, ['-e', "require('./db');"], {
@@ -5868,7 +6024,7 @@ const namen = (liste) => liste.map(c => c.name);
     !umsSpalten(uDir).includes('images_removed'), umsSpalten(uDir).join(', '));
 
   const uAusgabe = uLauf(uDir);
-  pruefe('Der Umstieg ergaenzt die Spalte im Bestand',
+  pruefe('Die Migration ergaenzt die Spalte im Bestand',
     umsSpalten(uDir).includes('images_removed'), umsSpalten(uDir).join(', '));
   pruefe('Er sagt im Protokoll, was er getan hat',
     /images_removed/.test(uAusgabe), JSON.stringify(uAusgabe.trim()));
@@ -5889,22 +6045,22 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und die Zeile ist dabei unangetastet geblieben',
     uWert().length === 1 && uWert()[0].images_removed === 0, JSON.stringify(uWert()));
 
-  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus dem Umstieg.
+  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus der Migration.
      Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
-     und zu 1.0 faellt der Umstieg weg, die Spalte muss bleiben. */
+     und zu 1.0 faellt die Migration weg, die Spalte muss bleiben. */
   const uFrisch = uLauf(uZweiterDir);
-  pruefe('Eine frische Anlage traegt die Spalte ohne Umstieg',
+  pruefe('Eine frische Anlage traegt die Spalte ohne Migration',
     umsSpalten(uZweiterDir).includes('images_removed') && !/images_removed/.test(uFrisch),
     `${umsSpalten(uZweiterDir).includes('images_removed')} / ${JSON.stringify(uFrisch.trim())}`);
   fs.rmSync(uDir, { recursive: true, force: true });
   fs.rmSync(uZweiterDir, { recursive: true, force: true });
 
   /* ================================================================
-     UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Umstiegscode
+     MIGRATION 0.8.30 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
      verschwindet, steht beieinander und traegt dieselbe Marke.
      ================================================================ */
-  gruppe('UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0');
+  gruppe('MIGRATION 0.8.30 — ENTFAELLT MIT 1.0');
 
   /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
      aus 0.8.0 bis 0.8.20 -- dieselbe Anlage, nur ohne die neue Spalte an
@@ -5917,9 +6073,9 @@ const namen = (liste) => liste.map(c => c.name);
      falsch: bis 0.8.20 WAREN die Links eines Eintrags die Sache seines
      Verfassers.
      Die dritte Zeile haengt an einem Eintrag, der selbst herrenlos ist. Sie
-     kann der Umstieg nicht fuellen; sie faellt danach dem Auffangnetz zu, und
+     kann die Migration nicht fuellen; sie faellt danach dem Auffangnetz zu, und
      das ist die zweite, andere Regel. */
-  const u30Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg0830-'));
+  const u30Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0830-'));
   const u30FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0830-'));
   const u30Spalten = (verzeichnis) => {
     const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
@@ -5943,7 +6099,7 @@ const namen = (liste) => liste.map(c => c.name);
     d.prepare("INSERT INTO items (title, user_id) VALUES ('Berts Eintrag', 2)").run();
     d.prepare("INSERT INTO items (title, user_id) VALUES ('Ohne Verfasser', NULL)").run();
     /* Tabellenneubau statt ALTER TABLE ... DROP COLUMN, aus demselben Grund
-       wie beim Umstieg 0.8.3 darueber: SQLite prueft nach dem Entfernen den
+       wie beim Migration 0.8.3 darueber: SQLite prueft nach dem Entfernen den
        verbliebenen DDL-Text. Ausserhalb jeder Transaktion, sonst waere das
        PRAGMA ein stiller No-op (Stolperstein 12); das DROP TABLE ist bei
        eingeschalteten Fremdschluesseln ein DELETE mit Kaskade. */
@@ -5969,25 +6125,25 @@ const namen = (liste) => liste.map(c => c.name);
     !u30Spalten(u30Dir).includes('user_id'), u30Spalten(u30Dir).join(', '));
 
   const u30Ausgabe = uLauf(u30Dir);
-  pruefe('Der Umstieg ergaenzt die Spalte im Bestand',
+  pruefe('Die Migration ergaenzt die Spalte im Bestand',
     u30Spalten(u30Dir).includes('user_id'), u30Spalten(u30Dir).join(', '));
   pruefe('Er sagt im Protokoll, was er getan hat',
     /links um user_id ergaenzt/.test(u30Ausgabe), JSON.stringify(u30Ausgabe.trim()));
 
   /* DER KERN DIESES ABSCHNITTS. Beide Zeilen an berts Eintrag gehoeren bert --
      nicht chefin. Waere hier der Eigentuemer eingesetzt worden, machte der
-     Umstieg aus berts Links stillschweigend fremde. */
+     Migration aus berts Links stillschweigend fremde. */
   pruefe('Die Bestandszeilen fallen an den Verfasser ihres Eintrags',
     gleich(u30Zeilen().filter(z => /berts-/.test(z.url)).map(z => z.username), ['bert', 'bert']),
     JSON.stringify(u30Zeilen()));
   pruefe('Und ausdruecklich nicht an den Eigentuemer',
     u30Zeilen().filter(z => /berts-/.test(z.url)).every(z => z.username !== 'chefin'),
     JSON.stringify(u30Zeilen()));
-  /* Die zweite Regel, am selben Lauf: was der Umstieg nicht fuellen kann --
+  /* Die zweite Regel, am selben Lauf: was die Migration nicht fuellen kann --
      ein Link an einem herrenlosen Eintrag --, faengt ordneBestandZu() auf, und
      dort ist der Eigentuemer die eingefuehrte Antwort. Zwei Regeln fuer zwei
      Zeitpunkte, und beide sind hier zu sehen. */
-  pruefe('Was der Umstieg nicht fuellen kann, faengt das Auffangnetz auf',
+  pruefe('Was die Migration nicht fuellen kann, faengt das Auffangnetz auf',
     u30Zeilen().find(z => /herrenlosem/.test(z.url))?.username === 'chefin',
     JSON.stringify(u30Zeilen()));
   pruefe('Danach steht keine Linkzeile mehr ohne Benutzer',
@@ -6001,11 +6157,11 @@ const namen = (liste) => liste.map(c => c.name);
     gleich(u30Zeilen().map(z => z.username), ['bert', 'bert', 'chefin']),
     JSON.stringify(u30Zeilen()));
 
-  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus dem Umstieg.
+  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus der Migration.
      Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
-     und zu 1.0 faellt der Umstieg weg, die Spalte muss bleiben. */
+     und zu 1.0 faellt die Migration weg, die Spalte muss bleiben. */
   const u30Frisch = uLauf(u30FrischDir);
-  pruefe('Eine frische Anlage traegt die Spalte ohne Umstieg',
+  pruefe('Eine frische Anlage traegt die Spalte ohne Migration',
     u30Spalten(u30FrischDir).includes('user_id') && !/links um user_id ergaenzt/.test(u30Frisch),
     `${u30Spalten(u30FrischDir).includes('user_id')} / ${JSON.stringify(u30Frisch.trim())}`);
   /* Der Index ist mit dem Tabellenneubau verschwunden und legt sich beim Start
@@ -6023,15 +6179,15 @@ const namen = (liste) => liste.map(c => c.name);
   fs.rmSync(u30FrischDir, { recursive: true, force: true });
 
   /* ================================================================
-     UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0
+     MIGRATION 0.8.31 — ENTFAELLT MIT 1.0
      Dieselbe Bauform wie der Abschnitt darueber, an attachments.
      ================================================================ */
-  gruppe('UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0');
+  gruppe('MIGRATION 0.8.31 — ENTFAELLT MIT 1.0');
 
   /* Wieder so eingerichtet, dass die falsche Antwort auffaellt: der Eintrag
      gehoert bert, Eigentuemerin ist chefin. Und wieder eine dritte Zeile an
-     einem herrenlosen Eintrag, die der Umstieg nicht fuellen kann. */
-  const u31Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg0831-'));
+     einem herrenlosen Eintrag, die die Migration nicht fuellen kann. */
+  const u31Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0831-'));
   const u31FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0831-'));
   const u31Spalten = (verzeichnis) => {
     const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
@@ -6080,7 +6236,7 @@ const namen = (liste) => liste.map(c => c.name);
     !u31Spalten(u31Dir).includes('user_id'), u31Spalten(u31Dir).join(', '));
 
   const u31Ausgabe = uLauf(u31Dir);
-  pruefe('Der Umstieg ergaenzt die Spalte im Bestand',
+  pruefe('Die Migration ergaenzt die Spalte im Bestand',
     u31Spalten(u31Dir).includes('user_id'), u31Spalten(u31Dir).join(', '));
   pruefe('Er sagt im Protokoll, was er getan hat',
     /attachments um user_id ergaenzt/.test(u31Ausgabe), JSON.stringify(u31Ausgabe.trim()));
@@ -6090,7 +6246,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und ausdruecklich nicht an den Eigentuemer',
     u31Zeilen().filter(z => /^berts-/.test(z.filename)).every(z => z.username !== 'chefin'),
     JSON.stringify(u31Zeilen()));
-  pruefe('Was der Umstieg nicht fuellen kann, faengt das Auffangnetz auf',
+  pruefe('Was die Migration nicht fuellen kann, faengt das Auffangnetz auf',
     u31Zeilen().find(z => /herrenlosem/.test(z.filename))?.username === 'chefin',
     JSON.stringify(u31Zeilen()));
   pruefe('Danach steht keine Datei mehr ohne Benutzer',
@@ -6104,7 +6260,7 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify(u31Zeilen()));
 
   const u31Frisch = uLauf(u31FrischDir);
-  pruefe('Eine frische Anlage traegt die Spalte ohne Umstieg',
+  pruefe('Eine frische Anlage traegt die Spalte ohne Migration',
     u31Spalten(u31FrischDir).includes('user_id') && !/attachments um user_id ergaenzt/.test(u31Frisch),
     `${u31Spalten(u31FrischDir).includes('user_id')} / ${JSON.stringify(u31Frisch.trim())}`);
   {
@@ -6115,12 +6271,12 @@ const namen = (liste) => liste.map(c => c.name);
     pruefe('Der Index auf attachments liegt danach wieder da',
       idx.includes('idx_attachments_item'), idx.join(', '));
   }
-  /* ALLE UMSTIEGE IN EINEM LAUF -- die Lage, die im Betrieb wirklich vorkommt:
+  /* ALLE MIGRATIONEN IN EINEM LAUF -- die Lage, die im Betrieb wirklich vorkommt:
      wer von 0.8.20 auf 0.8.40 geht, faehrt sie hintereinander. Ohne diese
      Probe bliebe offen, ob sie sich gegenseitig stoeren.
      Erweitert statt verdoppelt: kommt eine Stufe dazu, kommt sie hier hinein. */
   {
-    const uBeide = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg-beide-'));
+    const uBeide = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration-beide-'));
     uLauf(uBeide);
     const d = oeffne(path.join(uBeide, 'katalog.sqlite'));
     d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
@@ -6168,7 +6324,7 @@ const namen = (liste) => liste.map(c => c.name);
     `);
     d.close();
     const uBeideAus = uLauf(uBeide);
-    pruefe('Ein Sprung von 0.8.20 faehrt ALLE Umstiege in einem Start',
+    pruefe('Ein Sprung von 0.8.20 faehrt ALLE Migrationen in einem Start',
       /links um user_id ergaenzt/.test(uBeideAus) &&
       /attachments um user_id ergaenzt/.test(uBeideAus) &&
       /rating_criteria um gewicht ergaenzt/.test(uBeideAus) &&
@@ -6199,11 +6355,11 @@ const namen = (liste) => liste.map(c => c.name);
   fs.rmSync(u31FrischDir, { recursive: true, force: true });
 
   /* ================================================================
-     UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Umstiegscode
+     MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
      verschwindet, steht beieinander und traegt dieselbe Marke.
      ================================================================ */
-  gruppe('UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0');
+  gruppe('MIGRATION 0.8.40 — ENTFAELLT MIT 1.0');
 
   /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
      aus 0.8.0 bis 0.8.31 -- dieselbe Anlage, nur ohne die Spalte gewicht an
@@ -6213,9 +6369,9 @@ const namen = (liste) => liste.map(c => c.name);
      KEINE FRAGE NACH EINEM VERFASSER, anders als in den beiden Abschnitten
      darueber: ein Gewicht kann nicht herrenlos werden. Die Prueflage traegt
      trotzdem Bewertungen an den Kriterien -- daran haengt die eigentliche
-     Zusicherung dieser Runde: der Umstieg darf keine angezeigte Zahl
+     Zusicherung dieser Runde: die Migration darf keine angezeigte Zahl
      veraendern. */
-  const u40Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg0840-'));
+  const u40Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0840-'));
   const u40FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0840-'));
   const u40Spalten = (verzeichnis) => {
     const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
@@ -6224,7 +6380,7 @@ const namen = (liste) => liste.map(c => c.name);
     return sp;
   };
   /* Faengt den Fall ab, dass die Spalte gar nicht da ist: ohne das reisst eine
-     Gegenprobe, die den Umstieg zurueckbaut, den ganzen Lauf ab und nennt
+     Gegenprobe, die die Migration zurueckbaut, den ganzen Lauf ab und nennt
      KEINEN einzigen Namen (Stolperstein 103). Eine leere Liste macht die
      Pruefungen darunter rot, und das ist die Auskunft, die gebraucht wird. */
   const u40Zeilen = () => {
@@ -6281,7 +6437,7 @@ const namen = (liste) => liste.map(c => c.name);
   }
 
   const u40Ausgabe = uLauf(u40Dir);
-  pruefe('Der Umstieg ergaenzt die Spalte im Bestand',
+  pruefe('Die Migration ergaenzt die Spalte im Bestand',
     u40Spalten(u40Dir).includes('gewicht'), u40Spalten(u40Dir).join(', '));
   pruefe('Er sagt im Protokoll, was er getan hat',
     /rating_criteria um gewicht ergaenzt/.test(u40Ausgabe), JSON.stringify(u40Ausgabe.trim()));
@@ -6298,8 +6454,8 @@ const namen = (liste) => liste.map(c => c.name);
      an diese Tabelle. Nachgestellt am Quelltext, nicht geglaubt. */
   {
     const u40Quelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    const u40Block = u40Quelle.slice(u40Quelle.indexOf('// UMSTIEG 0.8.40'),
-                                     u40Quelle.indexOf('// ENDE UMSTIEG 0.8.40'));
+    const u40Block = u40Quelle.slice(u40Quelle.indexOf('// MIGRATION 0.8.40'),
+                                     u40Quelle.indexOf('// ENDE MIGRATION 0.8.40'));
     pruefe('Die Vorgabe kommt aus dem DEFAULT, nicht aus einem UPDATE',
       u40Block.includes('DEFAULT 1.0') && !/UPDATE\s+rating_criteria/i.test(u40Block),
       JSON.stringify(u40Block.slice(0, 80)));
@@ -6314,7 +6470,7 @@ const namen = (liste) => liste.map(c => c.name);
   }
 
   /* Der eigentliche Beleg der Runde, an derselben Anlage: der Gesamtschnitt
-     nach dem Umstieg ist derselbe, den die Rechnung ohne Gewichte ergaebe.
+     nach der Migration ist derselbe, den die Rechnung ohne Gewichte ergaebe.
      (5 + 2 + 4) / 3 = 3,67 -> 3,7. Hier von Hand nachgerechnet statt aus dem
      Server geholt: eine fest hingeschriebene Zahl belegte weniger. */
   {
@@ -6332,7 +6488,7 @@ const namen = (liste) => liste.map(c => c.name);
     let za = 0, ne = 0;
     for (const z of zeilen) { za += z.w * z.gewicht; ne += z.gewicht; }
     const gewichtet = ne ? Math.round((za / ne) * 10) / 10 : null;
-    pruefe('Nach dem Umstieg rechnet die Gewichtung dasselbe wie vorher',
+    pruefe('Nach der Migration rechnet die Gewichtung dasselbe wie vorher',
       zeilen.length === 3 && gewichtet === ungewichtet && gewichtet === 3.7,
       `${gewichtet} gegen ${ungewichtet}`);
   }
@@ -6358,11 +6514,11 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Ein gesetztes Gewicht ueberlebt den naechsten Start',
     u40Zeilen().find(z => z.name === 'Optik')?.gewicht === 1.5, JSON.stringify(u40Zeilen()));
 
-  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus dem Umstieg.
+  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus der Migration.
      Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
-     und zu 1.0 faellt der Umstieg weg, die Spalte muss bleiben. */
+     und zu 1.0 faellt die Migration weg, die Spalte muss bleiben. */
   const u40Frisch = uLauf(u40FrischDir);
-  pruefe('Eine frische Anlage traegt die Spalte ohne Umstieg',
+  pruefe('Eine frische Anlage traegt die Spalte ohne Migration',
     u40Spalten(u40FrischDir).includes('gewicht') &&
     !/rating_criteria um gewicht ergaenzt/.test(u40Frisch),
     `${u40Spalten(u40FrischDir).includes('gewicht')} / ${JSON.stringify(u40Frisch.trim())}`);
@@ -6408,11 +6564,11 @@ const namen = (liste) => liste.map(c => c.name);
   fs.rmSync(u40FrischDir, { recursive: true, force: true });
 
   /* ================================================================
-     UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Umstiegscode
+     MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
      verschwindet, steht beieinander und traegt dieselbe Marke.
      ================================================================ */
-  gruppe('UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0');
+  gruppe('MIGRATION 0.8.50 — ENTFAELLT MIT 1.0');
 
   /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
      aus 0.8.0 bis 0.8.40 -- dieselbe Anlage, nur ohne art und dauer an photos.
@@ -6422,7 +6578,7 @@ const namen = (liste) => liste.map(c => c.name);
      seinem Eintrag, nicht einem Verfasser -- Fotos sind kein Traeger. Die
      Frage ist gestellt und verneint, und der Waechter weiter unten haelt es
      fest. */
-  const u50Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg0850-'));
+  const u50Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0850-'));
   const u50FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0850-'));
   const u50Spalten = (verzeichnis) => {
     const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
@@ -6501,7 +6657,7 @@ const namen = (liste) => liste.map(c => c.name);
   }
 
   const u50Ausgabe = uLauf(u50Dir);
-  pruefe('Der Umstieg ergaenzt beide Spalten im Bestand',
+  pruefe('Die Migration ergaenzt beide Spalten im Bestand',
     u50Spalten(u50Dir).includes('art') && u50Spalten(u50Dir).includes('dauer'),
     u50Spalten(u50Dir).join(', '));
   pruefe('Er sagt im Protokoll, was er getan hat',
@@ -6509,7 +6665,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* DER KERN DIESES ABSCHNITTS. Jeder andere Wert als 'bild' machte aus jedem
      vorhandenen Foto still ein Video -- und die Auslieferung boete danach
-     Bereiche an einer Datei an, die keine ist. dauer bleibt NULL: ein Foto hat
+     Ranges an einer Datei an, die keine ist. dauer bleibt NULL: ein Foto hat
      keine Dauer. Erst auf Vorhandensein, dann auf die Eigenschaft. */
   pruefe('Die beiden Bestandszeilen stehen auf bild, ohne Dauer',
     u50Zeilen().length === 2 && u50Zeilen().every(z => z.art === 'bild' && z.dauer === null),
@@ -6519,8 +6675,8 @@ const namen = (liste) => liste.map(c => c.name);
      diese Tabelle. Nachgestellt am Quelltext, nicht geglaubt. */
   {
     const u50Quelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    const u50Block = u50Quelle.slice(u50Quelle.indexOf('// UMSTIEG 0.8.50'),
-                                     u50Quelle.indexOf('// ENDE UMSTIEG 0.8.50'));
+    const u50Block = u50Quelle.slice(u50Quelle.indexOf('// MIGRATION 0.8.50'),
+                                     u50Quelle.indexOf('// ENDE MIGRATION 0.8.50'));
     pruefe('Die Vorgabe kommt aus dem DEFAULT, nicht aus einem UPDATE',
       u50Block.includes("DEFAULT 'bild'") && !/UPDATE\s+photos/i.test(u50Block),
       JSON.stringify(u50Block.slice(0, 80)));
@@ -6565,7 +6721,7 @@ const namen = (liste) => liste.map(c => c.name);
       u50Spalten(dir).includes(daneben) && !u50Spalten(dir).includes(fehlt[0]),
       u50Spalten(dir).join(', '));
     const ausgabe = uLauf(dir);
-    pruefe(`Der Umstieg ruestet ${fehlt[0]} einzeln nach`,
+    pruefe(`Die Migration ruestet ${fehlt[0]} einzeln nach`,
       u50Spalten(dir).includes(fehlt[0]) &&
       new RegExp(`photos um ${fehlt[0]} ergaenzt`).test(ausgabe),
       `${u50Spalten(dir).join(', ')} / ${JSON.stringify(ausgabe.trim())}`);
@@ -6576,11 +6732,11 @@ const namen = (liste) => liste.map(c => c.name);
     fs.rmSync(dir, { recursive: true, force: true });
   }
 
-  /* Die frische Anlage bekommt die Spalten aus der DDL, nicht aus dem Umstieg.
+  /* Die frische Anlage bekommt die Spalten aus der DDL, nicht aus der Migration.
      Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt -- und
-     zu 1.0 faellt der Umstieg weg, die Spalten muessen bleiben. */
+     zu 1.0 faellt die Migration weg, die Spalten muessen bleiben. */
   const u50Frisch = uLauf(u50FrischDir);
-  pruefe('Eine frische Anlage traegt beide Spalten ohne Umstieg',
+  pruefe('Eine frische Anlage traegt beide Spalten ohne Migration',
     u50Spalten(u50FrischDir).includes('art') && u50Spalten(u50FrischDir).includes('dauer') &&
     !/photos um /.test(u50Frisch),
     `${u50Spalten(u50FrischDir).join(', ')} / ${JSON.stringify(u50Frisch.trim())}`);
@@ -6917,7 +7073,7 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify(mitBild.inhalt.comments[0].updated_at));
 
   const bAntwort = async (id2, abfrage = '') => {
-    const a2 = await fetch(`${BASIS}/api/comment-images/${id2}/raw${abfrage}`, { headers: { cookie: keks } });
+    const a2 = await fetch(`${BASIS}/api/comment-images/${id2}/raw${abfrage}`, { headers: { cookie: cookie } });
     return { status: a2.status, h: Object.fromEntries(a2.headers), bytes: Buffer.from(await a2.arrayBuffer()) };
   };
   const roh = await bAntwort(bild1.id);
@@ -6946,7 +7102,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Ein Kommentar nur aus Bild wird abgewiesen', ohneText.status === 400);
 
   const kid = mitBild.inhalt.comments[0].id;
-  const nachgereicht = await sendeMehrteilig(`/api/comments/${kid}/images`, 'images',
+  const nachgereicht = await sendeMultipart(`/api/comments/${kid}/images`, 'images',
     [{ name: 'zwei.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
   pruefe('Bilder lassen sich nachreichen',
     nachgereicht.status === 201 && nachgereicht.inhalt.comments[0].images.length === 2);
@@ -6963,13 +7119,13 @@ const namen = (liste) => liste.map(c => c.name);
      scheitern koennte. */
   const ohneBild = await sendeKommentar(bk.id, { text: 'Noch ohne Bild' });
   const ohneBildId = ohneBild.inhalt.comments.find(k2 => k2.text === 'Noch ohne Bild')?.id;
-  const leerNach = await sendeMehrteilig(`/api/comments/${ohneBildId}/images`, 'images', []);
+  const leerNach = await sendeMultipart(`/api/comments/${ohneBildId}/images`, 'images', []);
   const kLeer = leerNach.inhalt.comments?.find(k2 => k2.id === ohneBildId);
   pruefe('Ein Ruf ohne Datei setzt kein „bearbeitet"',
     !!kLeer && kLeer.updated_at === null && kLeer.images.length === 0,
     JSON.stringify([leerNach.status, kLeer?.updated_at, kLeer?.images.length]));
 
-  const zuViele = await sendeMehrteilig(`/api/comments/${kid}/images`, 'images',
+  const zuViele = await sendeMultipart(`/api/comments/${kid}/images`, 'images',
     Array.from({ length: 6 }, (_, i) => ({ name: `x${i}.png`, typ: 'image/png',
       inhalt: Buffer.from(PNG_BASE64, 'base64') })));
   pruefe('Mehr als sechs Bilder werden abgewiesen', zuViele.status === 400, `${zuViele.status}`);
@@ -7036,7 +7192,7 @@ const namen = (liste) => liste.map(c => c.name);
   for (const a2 of hoch.inhalt.attachments) nachName[a2.filename] = a2;
 
   const kopf = async (id, abfrage = '') => {
-    const a2 = await fetch(`${BASIS}/api/attachments/${id}/raw${abfrage}`, { headers: { cookie: keks } });
+    const a2 = await fetch(`${BASIS}/api/attachments/${id}/raw${abfrage}`, { headers: { cookie: cookie } });
     return { status: a2.status, h: Object.fromEntries(a2.headers), text: await a2.text() };
   };
 
@@ -7100,8 +7256,8 @@ const namen = (liste) => liste.map(c => c.name);
     nachName['egal.bin'].mime_type === 'application/x-msdownload' &&
     bin.h['content-type'] === 'application/octet-stream');
 
-  // Dateiname mit Zeilenumbruch. Ueber den mehrteiligen Koerper kommt so
-  // etwas gar nicht erst an -- die Kopfzeile endet am Zeilenumbruch. Der
+  // Dateiname mit Zeilenumbruch. Ueber den Multipart-Koerper kommt so
+  // etwas gar nicht erst an -- der Header endet am Zeilenumbruch. Der
   // wirkliche Weg fuehrt ueber den Import, wo ein solcher Name im JSON
   // problemlos steht. Genau der wird hier geprueft.
   const boeserName = 'a"b\r\nX-Eingeschleust: ja.txt';
@@ -7113,9 +7269,9 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Steuerzeichen im Namen erreichen die Datenbank',
     /\r\n/.test(bnDet.attachments[0].filename), JSON.stringify(bnDet.attachments[0].filename));
   const kopfBoese = await kopf(bnDet.attachments[0].id);
-  pruefe('Trotzdem keine eingeschleuste Kopfzeile',
+  pruefe('Trotzdem keine eingeschleuste Header',
     kopfBoese.h['x-eingeschleust'] === undefined, JSON.stringify(kopfBoese.h['x-eingeschleust']));
-  pruefe('Kopfzeile bleibt wohlgeformt',
+  pruefe('Header bleibt wohlgeformt',
     /^attachment; filename="[^"]*"; filename\*=UTF-8''/.test(kopfBoese.h['content-disposition']),
     kopfBoese.h['content-disposition']);
   // Express haengt an Text-Typen von sich aus ein charset an -- deshalb auf
@@ -7159,14 +7315,14 @@ const namen = (liste) => liste.map(c => c.name);
   const SVG_BOESE = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8">' +
     '<scr' + 'ipt>document.title="AUSGEFUEHRT"</scr' + 'ipt><rect width="8" height="8"/></svg>';
 
-  const svgHoch = await sendeMehrteilig(`/api/items/${fo.id}/photos`, 'photos',
+  const svgHoch = await sendeMultipart(`/api/items/${fo.id}/photos`, 'photos',
     [{ name: 'boese.svg', typ: 'image/svg+xml', inhalt: SVG_BOESE }]);
   pruefe('Eine SVG wird als Foto abgewiesen', svgHoch.status === 400,
     `${svgHoch.status}: ${JSON.stringify(svgHoch.inhalt)}`);
   // Erst das Vorhandensein, dann die Eigenschaft: ohne den Erfolgsfall daneben
   // bliebe die Abweisung auch dann gruen, wenn gar nichts mehr hochladbar
   // waere (Stolperstein 81).
-  const pngHoch = await sendeMehrteilig(`/api/items/${fo.id}/photos`, 'photos',
+  const pngHoch = await sendeMultipart(`/api/items/${fo.id}/photos`, 'photos',
     [{ name: 'gut.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
   pruefe('Ein echtes PNG geht durch', pngHoch.status === 201 && pngHoch.inhalt.photos.length >= 1,
     `${pngHoch.status}: ${JSON.stringify(pngHoch.inhalt?.error)}`);
@@ -7176,7 +7332,7 @@ const namen = (liste) => liste.map(c => c.name);
     `${foNach.photos.length} Foto(s)`);
 
   const fAntwort = async (id2, abfrage = '') => {
-    const a2 = await fetch(`${BASIS}/api/photos/${id2}/raw${abfrage}`, { headers: { cookie: keks } });
+    const a2 = await fetch(`${BASIS}/api/photos/${id2}/raw${abfrage}`, { headers: { cookie: cookie } });
     return { status: a2.status, h: Object.fromEntries(a2.headers), bytes: Buffer.from(await a2.arrayBuffer()) };
   };
   const fPng = await fAntwort(foNach.photos[0].id);
@@ -7217,9 +7373,9 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Sie wird heruntergeladen statt angezeigt',
     !!fSvg && /^attachment;/.test(fSvg.h['content-disposition'] || ''), fSvg?.h['content-disposition']);
   /* Die Kontrolle am AUSGELIEFERTEN BYTESTROM. Eine Pruefung, die nur die
-     Kopfzeile ansieht, belegt nicht, was tatsaechlich herausgeht: der Inhalt
+     Header ansieht, belegt nicht, was tatsaechlich herausgeht: der Inhalt
      ist unveraendert die SVG samt Skript -- gefaehrlich waere allein, dass der
-     Browser sie als Webseite liest, und genau das verhindert die Kopfzeile. */
+     Browser sie als Webseite liest, und genau das verhindert der Header. */
   pruefe('Der Bytestrom ist unveraendert die SVG',
     !!fSvg && fSvg.bytes.toString('utf8') === SVG_BOESE,
     fSvg ? fSvg.bytes.slice(0, 40).toString('utf8') : '');
@@ -7239,7 +7395,7 @@ const namen = (liste) => liste.map(c => c.name);
      Stelle: nur so lassen sich Hauptbild und Abspielzeichen unabhaengig
      voneinander belegen. */
   const vi = (await ruf('POST', '/api/items', { title: 'Videoprobe' })).inhalt;
-  await sendeMehrteilig(`/api/items/${vi.id}/photos`, 'photos',
+  await sendeMultipart(`/api/items/${vi.id}/photos`, 'photos',
     [{ name: 'eins.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
   const vHoch = await sendeVideo(vi.id, { dauer: 42 });
   pruefe('Ein echtes MP4 mit Standbild geht durch', vHoch.status === 201,
@@ -7364,13 +7520,13 @@ const namen = (liste) => liste.map(c => c.name);
   gruppe('Videos: Auslieferung (Sicherheitsregel)');
 
   /* DIESELBE SCHAERFE WIE BEI DER SVG-PROBE. Angesehen wird nicht nur die
-     Kopfzeile, sondern der ausgelieferte BYTESTROM -- eine Pruefung, die nur
+     Header, sondern der ausgelieferte BYTESTROM -- eine Pruefung, die nur
      den Kopf liest, belegt nicht, was herausgeht (Stolperstein 98).
      UND DER TYP KOMMT AUS DEN ERSTEN BYTES, nie aus photos.mime_type: die
      Spalte ist eine Angabe des Hochladenden. */
-  const vAntwort = async (id2, abfrage = '', kopfzeilen = {}) => {
+  const vAntwort = async (id2, abfrage = '', header = {}) => {
     const a2 = await fetch(`${BASIS}/api/photos/${id2}/raw${abfrage}`,
-      { headers: { cookie: keks, ...kopfzeilen } });
+      { headers: { cookie: cookie, ...header } });
     return { status: a2.status, h: Object.fromEntries(a2.headers),
              bytes: Buffer.from(await a2.arrayBuffer()) };
   };
@@ -7419,10 +7575,10 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* BEREICHE. Ohne sie kann der Browser im Video nicht springen, und manche
      Abspieler beginnen gar nicht erst. */
-  pruefe('Das Video bietet Bereiche an', vRaw.h['accept-ranges'] === 'bytes',
+  pruefe('Das Video bietet Ranges an', vRaw.h['accept-ranges'] === 'bytes',
     JSON.stringify(vRaw.h['accept-ranges']));
   const vTeil = vMp4Id ? await vAntwort(vMp4Id, '', { range: 'bytes=10-19' }) : vLeer;
-  pruefe('Ein Bereich wird mit 206 beantwortet', vTeil.status === 206, `Status ${vTeil.status}`);
+  pruefe('Ein Range wird mit 206 beantwortet', vTeil.status === 206, `Status ${vTeil.status}`);
   pruefe('Und er nennt genau die Stelle',
     vTeil.h['content-range'] === `bytes 10-19/${MP4().length}`, vTeil.h['content-range']);
   pruefe('Und liefert genau diese zehn Bytes',
@@ -7438,23 +7594,23 @@ const namen = (liste) => liste.map(c => c.name);
   for (const [kopf, was] of [['bytes=20-10', 'Ende vor Anfang'],
                              ['bytes=99999-', 'Anfang hinter dem Dateiende']]) {
     const schlecht = vMp4Id ? await vAntwort(vMp4Id, '', { range: kopf }) : vLeer;
-    pruefe(`Ungueltiger Bereich (${was}) wird mit 416 abgewiesen`, schlecht.status === 416,
+    pruefe(`Ungueltiger Range (${was}) wird mit 416 abgewiesen`, schlecht.status === 416,
       `Status ${schlecht.status}`);
     pruefe(`Und die Antwort nennt die wirkliche Groesse (${was})`,
       schlecht.h['content-range'] === `bytes */${MP4().length}`, schlecht.h['content-range']);
   }
 
   /* AN DER AUSLIEFERUNG VORHANDENER FOTOS AENDERT DIESE RUNDE NICHTS. Das ist
-     keine Nebenbemerkung: der Einspielweg vergleicht die Kopfzeilen eines
+     keine Nebenbemerkung: der Einspielweg vergleicht der Header eines
      Fotos vor und nach dem Einspielen, und sie muessen gleich sein. */
   const vFotoRaw = vBildId ? await vAntwort(vBildId) : vLeer;
-  pruefe('Ein Foto bietet weiterhin KEINE Bereiche an',
+  pruefe('Ein Foto bietet weiterhin KEINE Ranges an',
     vFotoRaw.h['accept-ranges'] === undefined, JSON.stringify(vFotoRaw.h['accept-ranges']));
-  const vFotoBereich = vBildId ? await vAntwort(vBildId, '', { range: 'bytes=0-3' }) : vLeer;
-  pruefe('Und ein Bereich am Foto wird uebergangen, nicht beantwortet',
-    vFotoBereich.status === 200 &&
-    vFotoBereich.bytes.equals(Buffer.from(PNG_BASE64, 'base64')),
-    `Status ${vFotoBereich.status}, ${vFotoBereich.bytes.length} Bytes`);
+  const vFotoRange = vBildId ? await vAntwort(vBildId, '', { range: 'bytes=0-3' }) : vLeer;
+  pruefe('Und ein Range am Foto wird uebergangen, nicht beantwortet',
+    vFotoRange.status === 200 &&
+    vFotoRange.bytes.equals(Buffer.from(PNG_BASE64, 'base64')),
+    `Status ${vFotoRange.status}, ${vFotoRange.bytes.length} Bytes`);
 
   /* BESTANDSDATEN UND UNBEKANNTE MARKEN. Eine ISO-Datei mit einer Marke, die
      nicht auf der Liste steht, geht als Download heraus -- nicht abspielbar,
@@ -7615,7 +7771,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   // ABSICHT BEHAELT IHREN RANG: ein Fehler von multer -- hier ein Feldname,
   // den die Route nicht kennt -- ist eine echte 400 und behaelt seine Meldung.
-  const fhMulter = await sendeMehrteilig(`/api/items/${fhItem.id}/photos`, 'gibtsnicht',
+  const fhMulter = await sendeMultipart(`/api/items/${fhItem.id}/photos`, 'gibtsnicht',
     [{ name: 'a.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
   pruefe('Ein Fehler von multer bleibt eine 400', fhMulter.status === 400,
     `${fhMulter.status}: ${JSON.stringify(fhMulter.inhalt)}`);
@@ -7623,7 +7779,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   // Und die markierten Fehler der Anwendung ebenso: eine Datei, die kein Bild
   // ist, wird weiterhin mit ihrer eigenen Meldung abgewiesen.
-  const fhKeinBild = await sendeMehrteilig(`/api/items/${fhItem.id}/photos`, 'photos',
+  const fhKeinBild = await sendeMultipart(`/api/items/${fhItem.id}/photos`, 'photos',
     [{ name: 'a.txt', typ: 'text/plain', inhalt: 'kein Bild' }]);
   pruefe('Eine abgewiesene Datei bleibt eine 400', fhKeinBild.status === 400,
     `${fhKeinBild.status}: ${JSON.stringify(fhKeinBild.inhalt)}`);
@@ -7684,7 +7840,7 @@ const namen = (liste) => liste.map(c => c.name);
     pruefe('Und der Abfrageplaner nimmt ihn',
       plan.some(z => String(z.detail || '').includes('idx_sessions_user')),
       JSON.stringify(plan.map(z => z.detail)));
-    // KEIN UMSTIEGSCODE NOETIG, und das wird hier belegt statt geglaubt: der
+    // KEIN MIGRATIONSCODE NOETIG, und das wird hier belegt statt geglaubt: der
     // Index wird entfernt, der Server einmal gestartet -- und er ist wieder
     // da. Anders als eine neue Spalte ruestet CREATE INDEX IF NOT EXISTS sich
     // bei jedem Start selbst nach, in bestehender wie frischer Anlage.
@@ -7804,7 +7960,7 @@ const namen = (liste) => liste.map(c => c.name);
   await ruf('PUT', `/api/items/${fuellItem.id}/ratings`,
     { criterionId: schlussKriterien[0].id, value: 4 });
   await sendeImport({ version: 5, title: 'S', items: [
-    // Formatnummer 5: die Linkzeile ist eine nackte Zeichenkette ohne
+    // Formatnummer 5: die Linkzeile ist eine nackte String ohne
     // Verfasser -- sie muss trotzdem eine user_id bekommen.
     { title: 'Schluss eins', testDays: [{ day: '2024-07-08', rating: 3 }],
       ratings: [{ name: schlussKriterien[0].name, value: 5 }],
@@ -7926,7 +8082,7 @@ async function pruefeErstanmeldung() {
   pruefe('Passwortwechsel gelingt', gewechselt.status === 200 && gewechselt.inhalt.passwortGewechselt === true);
   pruefe('Die eigene Sitzung bleibt bestehen', (await B.ruf('GET', '/api/criteria')).status === 200);
 
-  B.keksLoeschen();
+  B.cookieLoeschen();
   pruefe('Das alte Passwort gilt nicht mehr',
     (await B.ruf('POST', '/api/login', { user: 'chefin', password: 'zehn-zeichen-und-mehr' })).status === 401);
   pruefe('Der alte Benutzername gilt nicht mehr',
@@ -7942,7 +8098,7 @@ async function pruefeErstanmeldung() {
   // Bewusst ganz am Schluss und auf diesem Server: nach zehn Fehlversuchen ist
   // die Adresse fuenf Minuten gesperrt, alles Weitere liefe ins Leere.
   gruppe('Erstanmeldung: Anmeldesperre bleibt');
-  B.keksLoeschen();
+  B.cookieLoeschen();
   const zeiten = [];
   let gesperrtAb = 0, letzteMeldung = '';
   for (let i = 1; i <= 11; i++) {
@@ -8045,7 +8201,7 @@ const PNG_BASE64 =
    aufgenommen und tragen deshalb genau die Koepfe, die eine echte Datei
    traegt: die MP4 den ISO-Kasten ftyp mit der Marke isom an Byte 8, die WebM
    den EBML-Kopf 1A 45 DF A3. Genau daran erkennt typAusBytes() sie -- eine
-   von Hand zusammengesetzte Kopfzeile bewiese darueber nichts.
+   von Hand zusammengesetzte Header bewiese darueber nichts.
    Klein gehalten (1418 und 1053 Bytes), damit sie im Pruefstand nichts
    kosten. */
 const MP4_BASE64 =
@@ -8102,28 +8258,28 @@ function sendeVideo(itemId, { video = MP4(), name = 'clip.mp4', typ = 'video/mp4
   const dateien = [{ feld: 'video', name, typ, inhalt: video }];
   if (!ohneStandbild)
     dateien.push({ feld: 'standbild', name: standbildName, typ: standbildTyp, inhalt: standbild });
-  return sendeMehrteilig(`/api/items/${itemId}/videos`, 'video', dateien,
+  return sendeMultipart(`/api/items/${itemId}/videos`, 'video', dateien,
                          dauer === null ? {} : { dauer: String(dauer) });
 }
 
 async function legeFotoAn(itemId) {
-  const antwort = await sendeMehrteilig(`/api/items/${itemId}/photos`, 'photos',
+  const antwort = await sendeMultipart(`/api/items/${itemId}/photos`, 'photos',
     [{ name: 'p.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
   return antwort.inhalt.photos[0];
 }
 
-// Kommentar anlegen: mehrteilig, weil Bilder mitkommen koennen.
+// Kommentar anlegen: Multipart, weil Bilder mitkommen koennen.
 async function sendeKommentar(itemId, felder, bilder = []) {
-  return sendeMehrteilig(`/api/items/${itemId}/comments`, 'images', bilder, felder);
+  return sendeMultipart(`/api/items/${itemId}/comments`, 'images', bilder, felder);
 }
 
 const sendeDateien = (itemId, dateien) =>
-  sendeMehrteilig(`/api/items/${itemId}/attachments`, 'files', dateien);
+  sendeMultipart(`/api/items/${itemId}/attachments`, 'files', dateien);
 
-// Mehrteiliger Formularkoerper von Hand: die Pruefung soll ohne zusaetzliche
+// Multipart-Formularkoerper von Hand: die Pruefung soll ohne zusaetzliche
 // Bibliothek auskommen, und Buffer duerfen nicht ueber Strings laufen --
 // sonst zerfaellt jedes Byte ueber 127.
-async function sendeMehrteilig(pfad, feld, dateien, felder = {}) {
+async function sendeMultipart(pfad, feld, dateien, felder = {}) {
   const grenze = '----pruefung' + crypto.randomBytes(6).toString('hex');
   const teile = [];
   for (const [k, v] of Object.entries(felder)) {
@@ -8143,7 +8299,7 @@ async function sendeMehrteilig(pfad, feld, dateien, felder = {}) {
   teile.push(Buffer.from(`--${grenze}--\r\n`, 'utf8'));
   const a = await fetch(BASIS + pfad, {
     method: 'POST',
-    headers: { cookie: keks, 'content-type': `multipart/form-data; boundary=${grenze}` },
+    headers: { cookie: cookie, 'content-type': `multipart/form-data; boundary=${grenze}` },
     body: Buffer.concat(teile)
   });
   return { status: a.status, inhalt: await a.json().catch(() => null) };
@@ -8207,7 +8363,7 @@ async function sendeImport(objekt, modus) {
   const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
   const a = await fetch(BASIS + '/api/import', {
     method: 'POST',
-    headers: { cookie: keks, 'content-type': `multipart/form-data; boundary=${grenze}` },
+    headers: { cookie: cookie, 'content-type': `multipart/form-data; boundary=${grenze}` },
     body: koerper
   });
   return { status: a.status, inhalt: await a.json().catch(() => null) };
@@ -8243,7 +8399,7 @@ const DOM_ANBIETER = [
 /* kriterienGewichte und eigeneWerte sind die beiden Stellschrauben der
    Gewichtung. Vorgabe sind DREI VERSCHIEDENE Gewichte, eines davon 1 -- so
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
-   Doppelgaenger mit lauter Einsen naehme genau die Pruefung weg, fuer die er
+   Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
 function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
@@ -8271,7 +8427,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     { id: 8, name: 'Dann', sort_order: 1, usage_count: 0, gewicht: kriterienGewichte[1] },
     { id: 9, name: 'Zuletzt', sort_order: 2, usage_count: 1, gewicht: kriterienGewichte[2] }
   ];
-  /* Verfasser im Doppelgaenger: der falsche Server muss antworten wie der
+  /* Verfasser im Mock: der falsche Server muss antworten wie der
      echte, sonst verschwindet genau die Pruefung, fuer die er gebaut ist.
      BEWUSST VERSCHIEDENE Lagen -- ein lebender Name, ein Grabstein (Name
      null, nur die Nummer) und eine herrenlose Zeile. Waeren alle gleich,
@@ -8287,7 +8443,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     id: 1, title: 'Beispiel', description: 'Eine Beschreibung.\nZweite Zeile.',
     rejected: false, tested: true, favorite: false, category: null,
     verfasser: vBert,
-    /* ZWEI ZEILEN, UND SIE SIND VERSCHIEDENER ART -- ein Doppelgaenger mit
+    /* ZWEI ZEILEN, UND SIE SIND VERSCHIEDENER ART -- ein Mock mit
        lauter Bildern naehme genau die Pruefungen weg, fuer die er hier
        gebraucht wird (Stolperstein 90). Das Video steht ausdruecklich NICHT an
        erster Stelle: nur so lassen sich Hauptbild und Abspielzeichen
@@ -8323,7 +8479,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     ],
     comments: [
       /* mine und bilderEntfernt an JEDEM Kommentar: der echte Server liefert
-         beides seit 0.8.3, und ein Doppelgaenger, der die Antwort
+         beides seit 0.8.3, und ein Mock, der die Antwort
          vereinfacht, loescht genau die Pruefung, fuer die er gebaut ist.
          `ich` ist Zugang 1 (chefin) -- die drei Zeilen von chefin sind
          meine, die von bert, vom Grabstein und die herrenlose sind es nicht.
@@ -8375,7 +8531,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     ],
     tags: tags.filter(t => t.vergeben),
     // mine: der echte Server sagt zu jedem Testtag, ob er dem
-    // Abrufenden gehoert. Der Doppelgaenger muss das mitliefern -- sonst
+    // Abrufenden gehoert. Der Mock muss das mitliefern -- sonst
     // zeichnete die Zeitleiste hier alles gefuellt und die Unterscheidung
     // waere unpruefbar.
     testDays: [{ id: 3, day: '2026-08-01', rating: 4, mine: true, verfasser: vChefin,
@@ -8386,9 +8542,9 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     // bewertet -- dort bleibt die Spalte leer.
     // WER WELCHEN WERT VERGEBEN HAT, STEHT HIER SEIT 0.8.6 NICHT MEHR: der
     // echte Server liefert es an dieser Antwort nicht mehr aus, und ein
-    // Doppelgaenger, der es doch taete, machte die Pruefung darauf wertlos.
+    // Mock, der es doch taete, machte die Pruefung darauf wertlos.
     // gewicht steht an JEDER Kriterienzeile -- der echte Server liefert es seit
-    // 0.8.40, und ein Doppelgaenger, der die Antwort vereinfacht, loescht
+    // 0.8.40, und ein Mock, der die Antwort vereinfacht, loescht
     // genau die Pruefung, fuer die er gebaut ist.
     ratings: kriterien.map((c, i) => ({
       criterion_id: c.id, name: c.name, value: eigeneWerte[i], gewicht: c.gewicht,
@@ -8400,7 +8556,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   };
   /* Die Antwort des neuen Endpunkts GET /api/items/:id/stimmen -- wer welchen
      Wert vergeben hat, je Kriterium. Die Zahl der Stimmen stimmt mit count in
-     den Zeilen darueber ueberein; ein Doppelgaenger, der sich hier
+     den Zeilen darueber ueberein; ein Mock, der sich hier
      widerspricht, macht jede Pruefung darauf wertlos.
      Die erste Zeile traegt alle vier Lagen nebeneinander: die eigene Stimme
      (kein Loeschkreuz), zwei fremde lebende, einen Grabstein und eine
@@ -8434,7 +8590,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
      Grabstein. Ohne sie liesse sich nicht sehen, ob der Haken seiner eigenen
      Zeile folgt.
      `kind` steht an jeder Zeile, obwohl der echte Endpunkt es nicht
-     ausliefert: der Doppelgaenger braucht es, um beim Schreiben WIRKLICH eine
+     ausliefert: der Mock braucht es, um beim Schreiben WIRKLICH eine
      andere Antwort zu geben. Gaebe er stur dieselbe Liste zurueck, waere "die
      Ansicht hat den Haken gesetzt" von "nichts ist passiert" nicht zu
      unterscheiden. */
@@ -8488,7 +8644,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        der Gegenprobe zum Gewichtsfeld aufgefallen. */
     if (url === '/api/product-categories') return gib(kategorien);
     /* Der eigene Name steht seit 0.8.6 in dieser Antwort, und der
-       Doppelgaenger liefert ihn mit -- sonst bliebe die Kopfzeile leer und
+       Mock liefert ihn mit -- sonst bliebe die Kopfzeile leer und
        jede Pruefung darauf blind. Als Vorgabe DERSELBE Name wie unter
        /api/account; eine Prueflage kann ihn ueberschreiben. */
     if (url === '/api/settings') return gib({ name: 'chefin', ...einstellungen });
@@ -8508,7 +8664,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        nicht abfaengt. */
     if (zweiterEintrag && url === `/api/items/${zweiterEintrag.id}`) return gib(zweiterEintrag);
     /* PUT auf den Eintrag: der echte Server antwortet mit detail() NACH der
-       Aenderung, der Doppelgaenger muss das nachmachen. Gaebe er stur den
+       Aenderung, der Mock muss das nachmachen. Gaebe er stur den
        alten Stand zurueck, pruefte man jedes Bedienelement gegen einen
        Zustand, den es nach dem Klick nie gab -- und ein Knopf, der sich gar
        nicht neu zeichnet, waere von einem, der richtig zeichnet, nicht zu
@@ -8530,7 +8686,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
                    eigenBewertungen: 1, fremdBewertungen: 3,
                    eigenTesttage: 1, fremdTesttage: 2 });
     /* Wer welchen Wert vergeben hat -- seit 0.8.6 ein eigener Endpunkt hinter
-       nurAdmin, und der Doppelgaenger macht BEIDES mit. Antwortete er jedem
+       nurAdmin, und der Mock macht BEIDES mit. Antwortete er jedem
        mit 200, waere die Rolle unpruefbar; antwortete er mit dem leeren
        Objekt, zeichnete die Ansicht nichts und jede Pruefung darauf waere
        blind -- dieselbe Ueberlegung wie bei /api/users und /api/stats.
@@ -8552,7 +8708,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     }
     /* PUT auf ein Kriterium. Der echte Server antwortet mit der GESPEICHERTEN
        Zeile -- also mit dem auf Hundertstel gerundeten Gewicht, und mit einer
-       Absage, wenn der Wert die Spanne verlaesst. Ein Doppelgaenger, der stur
+       Absage, wenn der Wert die Spanne verlaesst. Ein Mock, der stur
        200 und den geschickten Wert zurueckgaebe, naehme genau die beiden
        Pruefungen weg, fuer die er hier gebraucht wird: dass das Feld die
        Rundung zeigt, und dass es sich nach einer Absage zurueckstellt. */
@@ -8570,14 +8726,14 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     }
     /* Die Ansicht "Offen". Gefiltert wird HIER, wie im echten Server: nur die
        Art 'task' geht hinaus, und `kind` selbst steht nicht in der Antwort --
-       der echte Endpunkt liefert es nicht, und ein Doppelgaenger, der mehr
+       der echte Endpunkt liefert es nicht, und ein Mock, der mehr
        mitschickt, machte jede Pruefung darauf wertlos. */
     if (url === '/api/offen')
       return gib(offen.filter(z => z.kind === 'task').map(z => ({
         id: z.id, text: z.text, created_at: z.created_at,
         item: z.item, mine: z.mine, verfasser: z.verfasser })));
     /* PUT auf einen Kommentar: der echte Server schreibt die Art und antwortet
-       mit dem neu gebauten Eintrag. Der Doppelgaenger muss BEIDES nachmachen --
+       mit dem neu gebauten Eintrag. Der Mock muss BEIDES nachmachen --
        antwortete er nur, ohne seinen Bestand zu aendern, waere ein gesetzter
        Haken von einem verschluckten nicht zu unterscheiden (Stolperstein 90).
        Er steht VOR dem Sammelfall darunter, der jedem Kommentarweg den ganzen
@@ -8602,7 +8758,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       return gib(beispiel);
     if (url.startsWith('/api/attachments/41/preview'))
       return gib({ art: 'text', text: 'Erste Zeile\nZweite Zeile', gekuerzt: false });
-    /* Die Kennzahlen stehen seit 0.8.5 hinter nurAdmin, und der Doppelgaenger
+    /* Die Kennzahlen stehen seit 0.8.5 hinter nurAdmin, und der Mock
        macht das mit. Antwortete er jedem mit 200, verdeckte er genau die
        Falle, um die es in dieser Stufe geht: renderSystem() haengt sechs
        Abrufe in EIN Promise.all, und ein einziger Fehlschlag verliesse den
@@ -8611,13 +8767,13 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     if (url === '/api/stats') {
       if (einstellungen.istAdmin === false)
         return gib({ error: 'Das verwaltet nur der Admin.' }, 403);
-      /* Der Abdruck gehoert seit 0.8.10 dazu. Ein Doppelgaenger, der ihn
+      /* Der Fingerprint gehoert seit 0.8.10 dazu. Ein Mock, der ihn
          auslaesst, macht jede Pruefung an der Karte blind: sie zeichnete
          nichts, und "die Zeile fehlt" waere von "die Zeile ist falsch" nicht
          zu unterscheiden (Stolperstein 90). */
       return gib({ dbBytes: 1, photoCount: 0, photoBytes: 0, itemCount: 1,
         commentCount: 0, linkCount: 0, testDayCount: 0, attachmentCount: 4, attachmentBytes: 6144,
-        version: require('./package.json').version, abdruck: 'a1b2c3d4',
+        version: require('./package.json').version, fingerprint: 'a1b2c3d4',
         keyFromEnv: false, keyHex: 'ab'.repeat(32) });
     }
     return gib({});
@@ -8800,7 +8956,7 @@ async function pruefeOberflaeche() {
 
   /* --- Die persoenlichen Schalter, mit wirklich zugestelltem Klick ---
    * Ein Bedienelement ist erst geprueft, wenn ein Ereignis wirklich
-   * zugestellt wurde und die Ereignisschleife durchlaufen ist. Die vier
+   * zugestellt wurde und der Event Loop durchlaufen ist. Die vier
    * Schalter hier schreiben in die persoenliche Tabelle, und genau dort
    * saesse ein Fehler.
    *
@@ -8810,9 +8966,9 @@ async function pruefeOberflaeche() {
    *
    * Die beiden Schalter zeichnen ihren Zustand aus der eigenen Variablen neu,
    * NICHT aus der Antwort des Servers -- deshalb faellt hier nicht auf, dass
-   * der Doppelgaenger auf PUT stur den alten Stand zurueckgibt. Das ist hier
+   * der Mock auf PUT stur den alten Stand zurueckgibt. Das ist hier
    * folgenlos: der Zustand kommt gar nicht von dort. Wer diese Schalter
-   * einmal auf die Serverantwort umstellt, muss den Doppelgaenger mit
+   * einmal auf die Serverantwort umstellt, muss den Mock mit
    * umstellen. */
   const schriftKnoepfe = [...w.document.querySelectorAll('#fsize .pill')];
   const zielSchrift = schriftKnoepfe.find(b => b.textContent === '120 %');
@@ -8915,7 +9071,7 @@ async function pruefeOberflaeche() {
      statt nur den gebauten DOM anzusehen -- und sie muss es sein: der Fehler
      war in jedem gebauten DOM unsichtbar, weil er erst
      entsteht, wenn ein Behandler nach einem await weiterlaeuft.
-     Der Doppelgaenger antwortet auf PUT mit dem geaenderten Eintrag, so wie
+     Der Mock antwortet auf PUT mit dem geaenderten Eintrag, so wie
      der Server es tut. */
   gruppe('Favorit: der Knopf im Eintrag');
   const pinDom = baueDom(JSDOM, { hash: '#/item/1' });
@@ -8929,7 +9085,7 @@ async function pruefeOberflaeche() {
 
   /* Nicht .click() und nicht die Behandlerfunktion von Hand rufen: beides
      ginge am Fehler vorbei. Es muss ein zugestelltes Ereignis sein, und
-     danach muss die Ereignisschleife durchlaufen -- erst dann setzt der
+     danach muss der Event Loop durchlaufen -- erst dann setzt der
      Browser currentTarget auf null. */
   pinKnopf().dispatchEvent(new wp.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
@@ -9264,7 +9420,7 @@ async function pruefeOberflaeche() {
 
   // Ein Bedienelement ist erst geprueft, wenn ein Ereignis wirklich zugestellt
   // wurde (Stolperstein 61) -- also dispatchEvent samt Durchlauf der
-  // Ereignisschleife, nicht der von Hand gerufene Behandler.
+  // Event Loop, nicht der von Hand gerufene Behandler.
   const vorherPille = zw.document.querySelector('#tagcloud .pill');
   tagBlock.querySelector('.block-head')
     .dispatchEvent(new zw.MouseEvent('click', { bubbles: true }));
@@ -9565,8 +9721,8 @@ async function pruefeOberflaeche() {
   const offGruppen = (d) => [...d.w.document.querySelectorAll('.off-gruppe')];
 
   /* Drei Zugaenge: nur dann erscheinen Verfassername und Umschalter. Die
-     Prueflage des Doppelgaengers traegt neben den drei offenen Aufgaben eine
-     erledigte, eine Notiz und einen Bericht -- der Doppelgaenger filtert wie
+     Prueflage des Mocks traegt neben den drei offenen Aufgaben eine
+     erledigte, eine Notiz und einen Bericht -- der Mock filtert wie
      der echte Server, und was er nicht liefert, darf hier auch nicht stehen. */
   const offAlle = await offBaue({ einstellungen: { filters: null, benutzerZahl: 3 } });
 
@@ -9705,7 +9861,7 @@ async function pruefeOberflaeche() {
     !offZeilen(offAdmin)[0].classList.contains('erledigt'),
     offZeilen(offAdmin)[0].className);
 
-  /* Der Doppelgaenger aendert seinen Bestand wirklich mit (Stolperstein 90):
+  /* Der Mock aendert seinen Bestand wirklich mit (Stolperstein 90):
      wird die Ansicht neu aufgebaut, ist die abgehakte Zeile fort. Ohne diese
      Zeile waere "die Ansicht hat den Haken gesetzt" von "nichts ist passiert"
      nicht zu unterscheiden. */
@@ -9754,7 +9910,7 @@ async function pruefeOberflaeche() {
   /* DIE UEBERSCHRIFT KOMMT AUS DEM VOKABULAR. Eine Ansicht, die „Offene
      Aufgaben" schreibt, waehrend der Betreiber sie „ToDo's" nennt, ist falsch
      beschriftet. Geprueft wird an einer Prueflage, die das Vokabular
-     umstellt -- ohne sie bliebe jede feste Zeichenkette unbemerkt. */
+     umstellt -- ohne sie bliebe jeder feste String unbemerkt. */
   const offVok = await offBaue({ einstellungen: { ...eigenVoll, benutzerZahl: 3 } });
   pruefe('Die Ueberschrift benutzt das Vokabular, nicht das feste Wort',
     offVok.w.document.querySelector('.page-title')?.textContent === 'Offene ToDo’s',
@@ -10507,7 +10663,7 @@ async function pruefeOberflaeche() {
   pruefe('Der Blockkopf bietet dem Admin die Ansicht an',
     !!eDoc.getElementById('rwho'), 'kein Knopf im Blockkopf');
   // Wirklich zugestellt, nicht von Hand gerufen -- und danach durch die
-  // Ereignisschleife.
+  // Event Loop.
   eDoc.getElementById('rwho')?.dispatchEvent(new eMehr.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   pruefe('Der Knopf holt die Stimmen beim Server',
@@ -10551,7 +10707,7 @@ async function pruefeOberflaeche() {
 
   /* --- Und jetzt wirklich draufdruecken ---------------------------------
      Ein gebauter DOM zeigt nicht, was beim Klicken passiert. Das Ereignis
-     wird zugestellt, das Modal bestaetigt, danach durch die Ereignisschleife
+     wird zugestellt, das Modal bestaetigt, danach durch der Event Loop
      -- und erst dann wird nachgesehen, was der Server bekommen hat.
      Die Rueckfrage liegt hier UEBER dem Dialog: zwei .backdrop
      uebereinander, und der zweite ist der juengere. */
@@ -10574,7 +10730,7 @@ async function pruefeOberflaeche() {
     eEntfernt?.url === '/api/ratings/502', JSON.stringify(eEntfernt));
   /* Und die Ansicht zeichnet sich danach neu. Ohne diese Pruefung waere ein
      stehengebliebener Stand von einem neu gezeichneten nicht zu
-     unterscheiden -- der Doppelgaenger nimmt die Stimme deshalb wirklich aus
+     unterscheiden -- der Mock nimmt die Stimme deshalb wirklich aus
      seiner Antwort. */
   pruefe('Danach holt sie die Liste neu und zeigt die Stimme nicht mehr',
     eMehr.gesendet.filter(x => x.url === '/api/items/1/stimmen').length === 2 &&
@@ -10685,7 +10841,7 @@ async function pruefeOberflaeche() {
   if (eFeld) {
     eFeld.value = 'Verpackung';
     // Wirklich zugestellt, nicht von Hand gerufen -- und danach durch die
-    // Ereignisschleife.
+    // Event Loop.
     eSys.w.document.getElementById('newcrit-b')
       .dispatchEvent(new eSys.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
@@ -11834,7 +11990,7 @@ async function pruefeOberflaeche() {
      und ein erledigtes Todo. Die Notiz bleibt ungenannt, die Anpinnung steht
      nicht in der Zeile. */
   /* AN EINEM FRISCHEN AUFBAU. Die Pruefungen darueber haben in DIESEM Fenster
-     zwei Arten umgeschaltet, und der Doppelgaenger schreibt das seit 0.8.60
+     zwei Arten umgeschaltet, und der Mock schreibt das seit 0.8.60
      wirklich mit -- eine Antwort, die sich durch einen Schreibvorgang aendern
      soll, muss sich wirklich aendern (Stolperstein 90). Die Zahlen der
      Prueflage liessen sich an diesem Fenster danach nicht mehr ablesen. */
@@ -12150,7 +12306,7 @@ async function pruefeOberflaeche() {
 
   /* WORAN DIE OBERFLAECHE EIN VIDEO ERKENNT: an art aus der Antwort, an nichts
      sonst. Kein Raten am ausgelieferten Typ, keine zweite Wahrheit.
-     Der Doppelgaenger traegt deshalb beides nebeneinander -- ein Bild an
+     Der Mock traegt deshalb beides nebeneinander -- ein Bild an
      erster, ein Video an zweiter Stelle. Mit lauter Bildern fielen genau die
      Pruefungen weg, fuer die er hier steht (Stolperstein 90). */
   const vDom = baueDom(JSDOM, { hash: '#/item/1' });
@@ -12753,7 +12909,7 @@ async function pruefeOberflaeche() {
     kUser.length > 0 && !/lädt …/.test(rUser.w.document.getElementById('app')?.textContent || ''),
     rUser.w.document.getElementById('app')?.textContent?.slice(0, 80));
 
-  /* DER ABDRUCK IN DER KARTE (0.8.10). Geprueft wird an der KARTE, in der er
+  /* DER FINGERPRINT IN DER KARTE (0.8.10). Geprueft wird an der KARTE, in der er
      stehen soll, nicht am ganzen Bildschirm: ein Wert, der irgendwo im
      Systembereich auftaucht, belegt nicht, dass er bei den Kennzahlen steht.
      Und zum "ist da" gehoert das "ohne Adminrolle ist es weg" daneben -- ohne
@@ -12764,16 +12920,16 @@ async function pruefeOberflaeche() {
   const admKarte = kennzahlenKarte(rAdm);
   pruefe('Die Karte Kennzahlen ist für den Admin überhaupt da', !!admKarte,
     kAdm.join(' · '));
-  pruefe('Sie trägt eine Zeile mit der Beschriftung Abdruck',
+  pruefe('Sie trägt eine Zeile mit der Beschriftung Fingerprint',
     [...(admKarte?.querySelectorAll('.kv') || [])]
-      .some(z => z.querySelector('.k')?.textContent.trim() === 'Abdruck'),
+      .some(z => z.querySelector('.k')?.textContent.trim() === 'Fingerprint'),
     [...(admKarte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
   pruefe('Und darin steht der Wert aus der Antwort',
     [...(admKarte?.querySelectorAll('.kv') || [])]
-      .some(z => z.querySelector('.k')?.textContent.trim() === 'Abdruck' &&
+      .some(z => z.querySelector('.k')?.textContent.trim() === 'Fingerprint' &&
                  z.querySelector('.v')?.textContent.trim() === 'a1b2c3d4'),
     [...(admKarte?.querySelectorAll('.kv .v') || [])].map(v => v.textContent.trim()).join(' · '));
-  pruefe('Ohne Adminrolle steht der Abdruck nirgends',
+  pruefe('Ohne Adminrolle steht der Fingerprint nirgends',
     !/a1b2c3d4/.test(rUser.w.document.getElementById('app')?.textContent || ''),
     rUser.w.document.getElementById('app')?.textContent?.slice(0, 120));
 
@@ -12791,7 +12947,7 @@ async function pruefeOberflaeche() {
   rVok.w.close();
 
   /* Die persoenlichen Karten sind nicht nur da, sie funktionieren auch. Ein
-     wirklich zugestelltes Ereignis, samt Durchlauf der Ereignisschleife --
+     wirklich zugestelltes Ereignis, samt Durchlauf des Event Loops --
      eine Karte, die dasteht und nichts tut, waere nicht besser als keine
      (Stolperstein 61). */
   rUser.gesendet.length = 0;
@@ -12836,7 +12992,7 @@ async function pruefeOberflaeche() {
     !!rZugangKarte && /zugang\.js passwort/.test(rZugangKarte.textContent || ''),
     rZugangKarte?.textContent?.slice(0, 300));
   // Und ausdruecklich in der ganzen Oberflaeche nicht mehr als Anleitung:
-  // die Zeichenkette steht in app.js nur noch dort, wo sie hingehoert.
+  // der String steht in app.js nur noch dort, wo sie hingehoert.
   const rAppQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   pruefe('AUTH_RESET steht in der ganzen Oberflaeche nirgends mehr',
     !rAppQuelle.includes('AUTH_RESET'), 'public/app.js nennt AUTH_RESET noch');
@@ -12846,7 +13002,7 @@ async function pruefeOberflaeche() {
      Zwei Haelften, und beide werden gebraucht: die Klasse am Knoten sagt
      nichts darueber, ob sie etwas bewirkt, und die Regel im Stylesheet nichts
      darueber, ob sie jemand traegt. Erst das Vorhandensein der Regel, dann
-     ihre Eigenschaft -- eine fehlende Regel liefert eine leere Zeichenkette,
+     ihre Eigenschaft -- eine fehlende Regel liefert ein leerer String,
      und jede Verneinung darauf waere wahr (Stolperstein 81). */
   const rKachel = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugänge');
@@ -12871,7 +13027,7 @@ async function pruefeOberflaeche() {
   /* Die Luecke, die eine breite Kachel davor hinterlaesst. GEPRUEFT WIRD AM
      STYLESHEET, NICHT AM GEFUEHL: jsdom rechnet kein Layout, ein Raster gibt
      es hier gar nicht. Wieder erst das Vorhandensein der Regel, dann ihre
-     Eigenschaft -- eine fehlende Regel liefert eine leere Zeichenkette, und
+     Eigenschaft -- eine fehlende Regel liefert ein leerer String, und
      jede Verneinung darauf waere wahr (Stolperstein 81). */
   pruefe('Die Regel fuer das Kartenraster steht ueberhaupt im Stylesheet',
     rRegel('.sys-grid').length > 0, '(keine Regel)');
@@ -12911,7 +13067,7 @@ async function pruefeOberflaeche() {
   /* ================= Das Gewicht in der Oberflaeche ================= */
   gruppe('Das Gewicht am Eintrag');
 
-  /* Vorgabelage des Doppelgaengers: Gewichte 1,5 · 1 · 0,5, eigene Werte
+  /* Vorgabelage des Mocks: Gewichte 1,5 · 1 · 0,5, eigene Werte
      3 · 3 · 3. Damit lassen sich Anzeige UND Nichtanzeige an derselben Lage
      belegen -- die mittlere Zeile steht auf 1 und darf nichts tragen. */
   const gwEintrag = baueDom(JSDOM, { hash: '#/item/1',
@@ -13223,7 +13379,7 @@ async function pruefeOberflaeche() {
       { id: 12, day: '2026-08-06', rating: 4, mine: false, verfasser: vBert2, tags: [] },
       { id: 13, day: '2026-08-07', rating: 3, mine: false, verfasser: vBert2, tags: [] }
     ],
-    /* Die Gewichte stehen wie im Doppelgaenger: 1,5 · 1 · 0,5. Damit ist die
+    /* Die Gewichte stehen wie im Mock: 1,5 · 1 · 0,5. Damit ist die
        Kopfzahl der Stellung "meine" gewichtet 4,6 und ungewichtet 4,5 -- die
        Prueflage unterscheidet die beiden Formeln also wirklich. */
     ratings: [

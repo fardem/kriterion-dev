@@ -9,7 +9,7 @@ const { db, ordneBestandZu } = require('./db');
    Versuch neu und bekommt bei jedem Versuch einen frischen Zaehler; die
    Anmeldebremse je Adresse greift dann nie.
 
-   HINTER_PROXY=1 (an):  X-Forwarded-For wird gelesen, der Keks traegt Secure
+   HINTER_PROXY=1 (an):  X-Forwarded-For wird gelesen, der Cookie traegt Secure
                          und das Praefix __Host-, HSTS wird gesetzt.
    fehlt (aus, Vorgabe): allein req.socket.remoteAddress. Der richtige Zustand
                          fuer "direkt im Heimnetz, Port 3100".
@@ -23,9 +23,9 @@ const { db, ordneBestandZu } = require('./db');
    mehreren Netzen gleichzeitig erreichbar, gehoert das nachgeliefert. */
 const HINTER_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(process.env.HINTER_PROXY || '').trim());
 
-/* Der Keksname haengt an der Einstellung: das Praefix __Host- ist eine
+/* Der Cookiename haengt an der Einstellung: das Praefix __Host- ist eine
    Zusage des Namens an den Browser -- nur ueber HTTPS gesetzt, ohne Domain,
-   mit Path=/ -- und ohne Secure verwuerfe der Browser den Keks stillschweigend.
+   mit Path=/ -- und ohne Secure verwuerfe der Browser den Cookie stillschweigend.
    WER DIE EINSTELLUNG UMLEGT, MELDET DAMIT ALLE EINMALIG AB: der alte Name
    wird nicht mehr gelesen. Kein Datenverlust, nur eine neue Anmeldung. */
 const COOKIE_NAME = HINTER_PROXY ? '__Host-kriterion_session' : 'kriterion_session';
@@ -54,7 +54,7 @@ async function hashePasswort(passwort) {
   return baueWert(salz, await scryptRechne(String(passwort), salz, SCRYPT), SCRYPT);
 }
 
-// Gleiche Rechnung, aber ohne Ereignisschleife -- nur fuer den Startvorgang,
+// Gleiche Rechnung, aber ohne Event Loop -- nur fuer den Startvorgang,
 // wo ohnehin niemand wartet.
 function hashePasswortSync(passwort) {
   const salz = crypto.randomBytes(16);
@@ -494,9 +494,9 @@ function pruneSessions() {
   db.prepare(`DELETE FROM sessions WHERE last_seen < datetime('now', '-${SESSION_DAYS} days')`).run();
 }
 
-// Liefert den Benutzer hinter dem Keks oder null. Der JOIN ist die Aussage:
+// Liefert den Benutzer hinter dem Cookie oder null. Der JOIN ist die Aussage:
 // eine Sitzung ohne Benutzer gilt nicht. Im Betrieb kann es sie nicht geben --
-// beim Anlegen ist die Id Pflicht, bestehende wurden beim Umstieg nachgezogen,
+// beim Anlegen ist die Id Pflicht, bestehende wurden beim Migration nachgezogen,
 // und mit dem Benutzer gehen seine Sitzungen ueber die Kaskade mit. Bliebe doch
 // eine herrenlose Zeile liegen, waere sie ein Schluessel zu niemandem.
 // Nebenwirkung mit Absicht: der Zugriff frischt last_seen auf.
@@ -513,8 +513,8 @@ function sitzungsBenutzer(token) {
 }
 
 // Secure haengt an derselben Einstellung wie der gelesene Kopf: wer hinter
-// einem Proxy betreibt, hat HTTPS und soll den Keks nie im Klartext schicken.
-// Ohne Proxy darf es NICHT gesetzt werden -- der Browser verwuerfe den Keks
+// einem Proxy betreibt, hat HTTPS und soll den Cookie nie im Klartext schicken.
+// Ohne Proxy darf es NICHT gesetzt werden -- der Browser verwuerfe den Cookie
 // bei http://<adresse>:3100, und niemand kaeme mehr herein.
 const SICHER = HINTER_PROXY ? '; Secure' : '';
 const sessionCookie = (t) =>
@@ -526,7 +526,7 @@ const clearCookie = () => `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax${SICH
 // Benutzer braucht, nimmt req.benutzer und fragt die Datenbank nicht noch
 // einmal. Der Status wird hier durchgesetzt -- zweite von zwei Stellen neben
 // der Anmelderoute; ohne diese bliebe ein gerade gesperrter Zugang bis zum
-// Ablauf seines Kekses drin. 401 und nicht 403: der Zugang gilt nicht mehr,
+// Ablauf seines Cookies drin. 401 und nicht 403: der Zugang gilt nicht mehr,
 // die Oberflaeche gehoert auf die Anmeldeseite.
 function requireAuth(req, res, next) {
   const token = parseCookies(req)[COOKIE_NAME];

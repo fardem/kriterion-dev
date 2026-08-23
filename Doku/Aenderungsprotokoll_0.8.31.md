@@ -2,7 +2,7 @@
 
 **Rohstoff für die Dokumentenpflege.**
 
-**0.8.31 — Abdruck `1a801477`**
+**0.8.31 — Fingerprint `1a801477`**
 
 Eine **Berichtigungsrunde**, keine Stufe — und das ist der Grund für die
 Nummer. Die Regel aus G4 galt sachlich immer schon auch für Dateien; sie war
@@ -11,7 +11,7 @@ zehnerweise zu verschieben, nimmt die Runde eine der neun Nummern, die zwischen
 zwei Stufen genau dafür frei stehen (Projektstand, Abschnitt 10).
 
 **Was sie trotzdem ist: eine Datenbankstufe.** `attachments` bekommt eine
-Spalte, es gibt einen Umstiegsblock, und die Formatnummer geht **7 → 8**. Die
+Spalte, es gibt einen Migrationsblock, und die Formatnummer geht **7 → 8**. Die
 Sicherung des Datenverzeichnisses gehört in den Einspielweg.
 
 Prüfungen: **1624 → 1682** (58 neue), alle grün. **16 Gegenproben**, jede in
@@ -27,7 +27,7 @@ einer Kopie des Arbeitsbaums.
 ### `db.js` (+39/−6 Zeilen)
 
 `attachments` trägt `user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`
-— dieselbe Form wie an den fünf anderen Trägern. Dazu `umstieg0831()` mit den
+— dieselbe Form wie an den fünf anderen Trägern. Dazu `migration0831()` mit den
 Marken der Bauregel; die Bestandszeilen fallen an den **Verfasser ihres
 Eintrags**, aus demselben Grund wie bei den Links: bis 0.8.30 *waren* die
 Dateien eines Eintrags die Sache seines Verfassers.
@@ -59,7 +59,7 @@ Löschdialoge nennen Dateien getrennt nach eigen und fremd.
 
 ### `pruefung.js` (+476/−32 Zeilen)
 
-Zwei neue Gruppen, umgedrehte Prüfungen, der zweite Umstiegsabschnitt.
+Zwei neue Gruppen, umgedrehte Prüfungen, der zweite Migrationsabschnitt.
 
 ---
 
@@ -105,7 +105,7 @@ war nie die Rechtefrage.
 ### E. Die Unterscheidung „Feld fehlt" gegen „author ist null"
 
 Beim Link genügte `'author' in eintrag`, weil der Link selbst entweder eine
-Zeichenkette oder ein Objekt ist. Beim Anhang ist es **immer** ein Objekt — die
+String oder ein Objekt ist. Beim Anhang ist es **immer** ein Objekt — die
 Bytes müssen ja irgendwo stehen. Die Unterscheidung läuft deshalb allein über
 das Vorhandensein des Feldes:
 
@@ -134,8 +134,8 @@ entstanden ist — und alle fünf Stolpersteine von dort haben getragen:
 - **101** (die Gegenrichtung an beiden Orten prüfen) hat den Rückbau „Wächter
   zurück vor `POST …/attachments`" namentlich rot gemacht — die Prüfung, die
   es in 0.8.30 noch nicht gab.
-- **102** (der Doppelgänger deckt die Serverseite zu) hat verhindert, dass die
-  Verfasserangabe an der Dateizeile nur im Doppelgänger existiert.
+- **102** (der Mock deckt die Serverseite zu) hat verhindert, dass die
+  Verfasserangabe an der Dateizeile nur im Mock existiert.
 
 ---
 
@@ -146,8 +146,8 @@ und vor jedem Deuten per `diff` belegt (Stolperstein 75).
 
 | Rückbau | Ergebnis |
 |---|---|
-| `user_id` aus der `attachments`-DDL | **1 rot** — nur „Eine frische Anlage trägt die Spalte ohne Umstieg". *Stolperstein 81 in Reinform* |
-| der Umstieg ordnet niemanden zu | 4 rot — darunter der Lauf, der **beide** Umstiege hintereinander fährt |
+| `user_id` aus der `attachments`-DDL | **1 rot** — nur „Eine frische Anlage trägt die Spalte ohne Migration". *Stolperstein 81 in Reinform* |
+| die Migration ordnet niemanden zu | 4 rot — darunter der Lauf, der **beide** Migrationen hintereinander fährt |
 | `attachments` aus `ordneBestandZu()` | 3 rot |
 | `nurEintragVerfasser` wieder vor `POST …/attachments` | 5 rot, darunter „Und erst recht kein Wächter in der Routenzeile" (Stolperstein 101) |
 | `POST` schreibt keine `user_id` | 6 rot, darunter „attachments: keine der 3 Zeilen ist ohne Benutzer" |
@@ -175,7 +175,7 @@ Linkzeile, und sie trägt auch hier.
 
 | Gruppe | Prüfungen | |
 |---|---|---|
-| `UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0` | 13 | neu |
+| `MIGRATION 0.8.31 — ENTFAELLT MIT 1.0` | 13 | neu |
 | `Der Name an der Dateizeile` | 17 | neu |
 | `Verfasser in Export und Import` | +11 | erweitert |
 | `Rechte am Eintrag` | +6 | erweitert |
@@ -184,15 +184,15 @@ Linkzeile, und sie trägt auch hier.
 | `Der Loeschdialog am Eintrag` | +2 | erweitert |
 | `Keine Zeile ohne Benutzer` | +1 | erweitert |
 
-**Zwei Dinge im Umstiegsabschnitt sind neu gegenüber 0.8.30:**
+**Zwei Dinge im Migrationsabschnitt sind neu gegenüber 0.8.30:**
 
-- **Der Erfolgsfall läuft über einen echten mehrteiligen Upload.** Der Wächter
+- **Der Erfolgsfall läuft über einen echten Multipart-Upload.** Der Wächter
   stand vor multer; ein nachgereichter `INSERT` liefe an beidem vorbei und
   bewiese nichts über die Route. Dafür gibt es eine eigene Upload-Hilfe gegen
-  den Rechteserver, mit dem Keks des jeweiligen Rufers.
-- **Ein Lauf fährt BEIDE Umstiege hintereinander** — die Lage, die im Betrieb
-  wirklich vorkommt: wer von 0.8.20 auf 0.8.31 geht, bekommt `umstieg0830()`
-  und `umstieg0831()` in einem Start. Belegt wird, dass beide Protokollzeilen
+  den Rechteserver, mit dem Cookie des jeweiligen Rufers.
+- **Ein Lauf fährt BEIDE Migrationen hintereinander** — die Lage, die im Betrieb
+  wirklich vorkommt: wer von 0.8.20 auf 0.8.31 geht, bekommt `migration0830()`
+  und `migration0831()` in einem Start. Belegt wird, dass beide Protokollzeilen
   erscheinen und beide Zeilen beim Verfasser ihres Eintrags landen.
 
 Und die Prüfgruppe „Keine Zeile ohne Benutzer" hat sich beim Bau selbst
@@ -207,17 +207,17 @@ daneben, die den Bestand auf eine Schwelle prüft. Genau dafür steht sie da.
 *Zum Übernehmen in Projektstand Abschnitt 10 — der **dritte** markierte Block
 im Projekt.*
 
-> - **`db.js`, `umstieg0831()` — 27 Zeilen samt Marken, 13 Prüfungen** (seit
+> - **`db.js`, `migration0831()` — 27 Zeilen samt Marken, 13 Prüfungen** (seit
 >   0.8.31). Ergänzt `user_id` an `attachments` in einer Datenbank aus 0.8.0
 >   bis 0.8.30 und ordnet die Bestandszeilen dem **Verfasser ihres Eintrags**
 >   zu. Zu 1.0 fällt der Block weg, **die Spalte in der DDL bleibt**. Die
->   zugehörigen Prüfungen stehen im Abschnitt „UMSTIEG 0.8.31 — ENTFAELLT MIT
->   1.0" in `pruefung.js`; der Export von `umstieg0831` in `module.exports`
+>   zugehörigen Prüfungen stehen im Abschnitt „MIGRATION 0.8.31 — ENTFAELLT MIT
+>   1.0" in `pruefung.js`; der Export von `migration0831` in `module.exports`
 >   trägt dieselbe Marke und fällt mit.
 >   **Was NICHT mitfällt:** `attachments` in der Tabellenliste von
->   `ordneBestandZu()` — das Auffangnetz ist kein Umstieg.
+>   `ordneBestandZu()` — das Auffangnetz ist keine Migration.
 >   **Und was mit beiden Blöcken zugleich fällt:** die Prüfung „Ein Sprung von
->   0.8.20 fährt BEIDE Umstiege in einem Start". Sie gehört keinem der beiden
+>   0.8.20 fährt BEIDE Migrationen in einem Start". Sie gehört keinem der beiden
 >   allein.
 
 ---
@@ -225,8 +225,8 @@ im Projekt.*
 ## 7. Offen geblieben
 
 - **Der Docker-Bau ist für diese Runde nicht wiederholt worden.** Der Beleg
-  aus 0.8.30 gilt unverändert für Abbild, Fassungen und Übersetzerfreiheit;
-  diese Runde fasst keine Abhängigkeit an. Der **Umstieg** ist im Prüfstand
+  aus 0.8.30 gilt unverändert für Image, Fassungen und Übersetzerfreiheit;
+  diese Runde fasst keine Abhängigkeit an. Der **Migration** ist im Prüfstand
   belegt, nicht im Container — anders als bei 0.8.30.
 - **Der Wortlaut des Löschdialogs am Zugang bleibt oberflächenungeprüft.**
   Unverändert aus 0.8.30; die Zahlen dahinter sind geprüft, der Satz nicht.

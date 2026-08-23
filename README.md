@@ -130,7 +130,7 @@ HTTPS** — sonst wandert das Passwort im Klartext durchs Netz. Und dann gehört
 **Warum die Einstellung nötig ist.** Ein Reverse Proxy nimmt die Verbindung des
 Besuchers entgegen und öffnet eine **eigene** zum Container. Kriterion sieht an
 der Verbindung deshalb immer nur den Proxy; die Adresse des Besuchers kommt
-allein als Kopfzeile `X-Forwarded-For` an. **Ein Kopf vom Aufrufer ist aber nie
+allein als Header `X-Forwarded-For` an. **Ein Kopf vom Aufrufer ist aber nie
 eine Feststellung, sondern eine Behauptung** — wer ihn bei jedem Anmeldeversuch
 ändert, bekäme sonst jedes Mal einen frischen Zähler, und die Bremse je Adresse
 liefe ins Leere. Geglaubt wird er deshalb nur, wo ausdrücklich eingestellt ist,
@@ -141,8 +141,8 @@ Eine Einstellung, fünf Wirkungen:
 | | `HINTER_PROXY` fehlt (Vorgabe) | `HINTER_PROXY=1` |
 |---|---|---|
 | Adresse des Aufrufers | die tatsächliche Verbindung | der **letzte** Eintrag aus `X-Forwarded-For` |
-| Sitzungskeks | `kriterion_session` | `__Host-kriterion_session` |
-| `Secure` am Keks | nein | ja |
+| Sitzungscookie | `kriterion_session` | `__Host-kriterion_session` |
+| `Secure` am Cookie | nein | ja |
 | `Strict-Transport-Security` | nein | `max-age=31536000` |
 | richtig für | direkt im Heimnetz, Port 3100 | Betrieb hinter einem Proxy, HTTPS |
 
@@ -152,10 +152,10 @@ selbst hineingeschrieben haben.
 
 Zwei Dinge beim Umlegen:
 
-- **Es meldet alle einmalig ab.** Das Präfix `__Host-` verlangt den Keksnamen
+- **Es meldet alle einmalig ab.** Das Präfix `__Host-` verlangt den Cookienamen
   wörtlich; der alte Name wird nicht mehr gelesen. Kein Datenverlust, nur eine
   neue Anmeldung.
-- **Danach geht die Anmeldung nur noch über HTTPS.** Der `Secure`-Keks wird
+- **Danach geht die Anmeldung nur noch über HTTPS.** Der `Secure`-Cookie wird
   über `http://` vom Browser verworfen — ein direkter Aufruf von
   `http://<server-ip>:3100` käme nicht mehr herein.
 
@@ -650,11 +650,11 @@ haben. Die Verteidigung liegt in Schichten, damit kein einzelner Fehler genügt:
 3. **`Content-Disposition: attachment` ist die Vorgabe.** `inline` gibt es nur
    für Bilder und PDF, und auch nur, wenn es ausdrücklich angefordert wird.
 4. **`X-Content-Type-Options: nosniff`** — sonst darf der Browser den Typ selbst
-   erraten. Steht zusätzlich als Kopfzeile für die ganze Anwendung.
+   erraten. Steht zusätzlich als Header für die ganze Anwendung.
 5. **`Content-Security-Policy: default-src 'none'; sandbox`** auf jeder
    Anlagen-Antwort. Selbst wenn alles andere versagt, läuft dort nichts.
-6. **Der Dateiname wird für die Kopfzeile entschärft.** Zeilenumbrüche würden
-   erlauben, weitere Kopfzeilen einzuschleusen; Anführungszeichen würden den
+6. **Der Dateiname wird für der Header entschärft.** Zeilenumbrüche würden
+   erlauben, weitere Header einzuschleusen; Anführungszeichen würden den
    Wert beenden. Umlaute kommen über `filename*=UTF-8''` durch.
 7. **Text, Markdown, CSV und Log werden gar nicht als Datei ausgeliefert.** Der
    Server liest sie und schickt sie als JSON; die Oberfläche setzt sie als Text
@@ -712,7 +712,7 @@ Sicherheit. Die Sicherheit hängt vollständig an der Auslieferung.
 
 **Links im Kommentartext hängen an zwei Schranken.** Erstens erkennt die
 Zerlegung ausschließlich `http://`, `https://` und `www.` — `javascript:` und
-`data:` können dort gar nicht erst passen. Zweitens wird die Zeichenkette
+`data:` können dort gar nicht erst passen. Zweitens wird der String
 unmittelbar vor dem Setzen von `href` noch einmal gegen `^https?://` geprüft;
 fällt sie durch, wird sie als gewöhnlicher Text gezeichnet statt als Link. Dazu
 `target="_blank"` und `rel="noopener noreferrer"`. Der Text selbst kommt nie
@@ -741,7 +741,7 @@ Inhalt, nicht nach dem Dateinamen.
 
 **Das Standbild erzeugt der Browser des Hochladenden**, über ein verstecktes
 `<video>` und eine Zeichenfläche, und schickt es als zweiten Teil desselben
-Vorgangs mit. Damit kommt **kein `ffmpeg` ins Abbild** — rund hundert Megabyte
+Vorgangs mit. Damit kommt **kein `ffmpeg` ins Image** — rund hundert Megabyte
 mit eigener Angriffsfläche und eigenem Aktualisierungsbedarf —, und der Server
 öffnet nie ein Video. Zwei Folgen gehören dazu: wer ein Video nicht abspielen
 kann, kann es auch nicht hochladen (ein Videoplatz, der nicht abspielt, wäre
@@ -754,7 +754,7 @@ Blob im Arbeitsspeicher — eine BLOB-Zeile wird nicht stückweise gelesen. 20 M
 reichen für ein bis zwei Minuten Handyvideo. Wer mehr braucht, hängt die Datei
 als Anhang an; dort wird sie heruntergeladen statt abgespielt.
 
-Ausgeliefert wird **in Bereichen**, damit sich im Video springen lässt. Fotos
+Ausgeliefert wird **in Ranges**, damit sich im Video springen lässt. Fotos
 bleiben davon unberührt.
 
 ## Speicherbedarf
@@ -804,7 +804,7 @@ cd .../kriterion && docker compose down
 cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # Pflicht bei Datenbankstufen
 mv kriterion kriterion-alt
 python3 -m zipfile -e kriterion-main.zip .
-mv kriterion-main kriterion               # der Ordner heißt nach dem Zweig
+mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
 cd kriterion && docker compose up -d --build
@@ -815,25 +815,25 @@ die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
 enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
 Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
 
-**Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Zweignamen
+**Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Branchnamen
 an: aus `main` wird `kriterion-main`. Ohne das `mv` legt das folgende
 `cp -r kriterion-alt/data kriterion/data` den Bestand in einen Ordner, den
 `docker compose` nie ansieht.
 
 **`--build` ist nicht optional.** Ohne es startet stillschweigend die alte
-Version weiter — der Quelltext steckt im Abbild, nicht im eingehängten
+Version weiter — der Quelltext steckt im Image, nicht im eingehängten
 Verzeichnis. Welche Version wirklich läuft, sagt
 `curl -s http://localhost:3100/api/config`. Diese Zahl kommt allerdings aus der
 `package.json` und ist **keine Aussage über die übrigen Dateien**: wurden
 `package.json` und `server.js` ersetzt, `public/app.js` aber nicht, zeigt der
 Footer die neue Version, während die Oberfläche sich alt verhält.
 
-**Seit 0.8.10 gibt es dafür einen Abdruck.** Der Server bildet beim Start eine
+**Seit 0.8.10 gibt es dafür einen Fingerprint.** Der Server bildet beim Start eine
 kurze Prüfsumme über alles, was er lädt und ausliefert (`server.js`, `db.js`,
 `auth.js`, `keys.js`, `anhaenge.js`, `package.json`, `public/`), und meldet sie
-unter `abdruck` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen" im
+unter `fingerprint` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen" im
 Systembereich. Der Wert steht zu jeder Version im Änderungsprotokoll
-(`Doku/Aenderungsprotokoll_<Version>.md`, Zeile „Abdruck …"). Stimmt er nicht
+(`Doku/Aenderungsprotokoll_<Version>.md`, Zeile „Fingerprint …"). Stimmt er nicht
 überein, ist der Dateisatz unvollständig eingespielt — dann hilft nur, ihn
 vollständig erneut einzuspielen, nicht einzelne Dateien nachzuziehen.
 
@@ -857,8 +857,8 @@ Warnung über eine Schlüsseldatei neben den Daten, wurde die `.env` nicht
 gelesen — dann sofort anhalten und nachsehen, bevor etwas geschrieben wird.
 
 **Rüstet eine Version eine Spalte nach, sagt sie es im selben Protokoll** —
-etwa „links um user_id ergaenzt (Umstieg auf 0.8.30)" oder „rating_criteria um
-gewicht ergaenzt (Umstieg auf 0.8.40)". Die Zeile kommt genau einmal; beim
+etwa „links um user_id ergaenzt (Migration auf 0.8.30)" oder „rating_criteria um
+gewicht ergaenzt (Migration auf 0.8.40)". Die Zeile kommt genau einmal; beim
 nächsten Start ist sie weg, und das ist richtig so. Wer mehrere Versionen auf
 einmal überspringt, sieht entsprechend mehrere Zeilen.
 
@@ -926,8 +926,8 @@ Gewicht**, deren Wirkung auf Detailansicht, Vergleich und Export, die
 Auslieferungsregeln für
 Anhänge, **Fotos und Videos** — samt echtem Upload einer SVG sowie einer echten
 MP4- und WebM-Datei und Kontrolle des ausgelieferten Bytestroms —, die
-Bereichsauslieferung samt ihrer Absagen, die Anmeldebremse in beiden
+Range-Auslieferung samt ihrer Absagen, die Anmeldebremse in beiden
 Proxy-Lagen sowie die mitwachsenden Textfelder im echten DOM.
 
 Die Datei `pruefung.js` ist per `.dockerignore` ausgeschlossen und landet nicht
-im Abbild.
+im Image.

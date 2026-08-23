@@ -15,8 +15,8 @@
  *   5. Content-Security-Policy: default-src 'none' plus sandbox. Fuer PDF
  *      lautet sie 'sandbox allow-scripts' -- siehe die Begruendung bei
  *      sicherheitsRegel() weiter unten.
- *   6. Der Dateiname wird fuer die Kopfzeile entschaerft (Zeilenumbrueche und
- *      Anfuehrungszeichen raus), sonst liessen sich Kopfzeilen einschleusen.
+ *   6. Der Dateiname wird fuer der Header entschaerft (Zeilenumbrueche und
+ *      Anfuehrungszeichen raus), sonst liessen sich Header einschleusen.
  *   7. Text, Markdown, CSV und Log werden gar nicht als Datei ausgeliefert,
  *      sondern gelesen und als JSON geschickt. Der Browser interpretiert sie
  *      damit ueberhaupt nie.
@@ -25,7 +25,7 @@
  *   9. Wo kein Dateiname mitgefuehrt wird, entscheiden die ERSTEN BYTES --
  *      typAusBytes(). Ein gespeicherter Typ ist eine Angabe des Hochladenden
  *      und taugt zum Ausliefern so wenig wie eine Endung, die er selbst
- *      gewaehlt hat. Gilt fuer die Fotos, siehe setzeBildKopfzeilen().
+ *      gewaehlt hat. Gilt fuer die Fotos, siehe setzeBildHeader().
  */
 const zlib = require('zlib');
 
@@ -40,7 +40,7 @@ const BILD_TYPEN = {
 /* Kurzvideos am Fotoplatz. EINE Liste fuer beide Richtungen: die Endung eines
  * Anhangs (TYP_NACH_ENDUNG weiter unten) und der Name einer ausgelieferten
  * Zeile aus photos, wo gar kein Dateiname gespeichert ist
- * (setzeBildKopfzeilen). Zwei Listen fuer dieselbe Frage liefen auseinander.
+ * (setzeBildHeader). Zwei Listen fuer dieselbe Frage liefen auseinander.
  * .mov ist der Grenzfall, den die Praxis erzwingt -- jedes iPhone liefert ihn.
  * Verboten wird er nicht; ob er taugt, entscheidet die Standbildpruefung im
  * Browser des Hochladenden: wer ein Video nicht abspielen kann, kann kein
@@ -117,8 +117,8 @@ function vorschauArt(dateiname) {
   return 'keine';
 }
 
-// Dateiname fuer die Kopfzeile. Zeilenumbrueche wuerden erlauben, weitere
-// Kopfzeilen einzuschleusen; Anfuehrungszeichen wuerden den Wert beenden.
+// Dateiname fuer der Header. Zeilenumbrueche wuerden erlauben, weitere
+// Header einzuschleusen; Anfuehrungszeichen wuerden den Wert beenden.
 // Zusaetzlich die Form nach RFC 5987, damit Umlaute ankommen.
 function dispositionKopf(dateiname, inline) {
   const roh = String(dateiname || 'datei').replace(/[\r\n]/g, ' ');
@@ -153,8 +153,8 @@ function sicherheitsRegel(typ) {
     : "default-src 'none'; sandbox";
 }
 
-// Setzt alle Kopfzeilen fuer eine Anlage. Einzige Stelle, an der das geschieht.
-function setzeKopfzeilen(res, dateiname, { inline = false } = {}) {
+// Setzt alle Header fuer eine Anlage. Einzige Stelle, an der das geschieht.
+function setzeHeader(res, dateiname, { inline = false } = {}) {
   const typ = ausgabeTyp(dateiname);
   // Inline nur, wenn der Typ auf der kurzen Positivliste steht UND es
   // ausdruecklich verlangt wurde. Im Zweifel herunterladen.
@@ -212,12 +212,12 @@ function typAusBytes(buf) {
   return null;
 }
 
-// Kopfzeilen fuer ein Bild aus der Datenbank. Zweite Form von
-// setzeKopfzeilen(): dort entscheidet der Dateiname, hier der Inhalt --
+// Header fuer ein Bild aus der Datenbank. Zweite Form von
+// setzeHeader(): dort entscheidet der Dateiname, hier der Inhalt --
 // gespeichert ist kein Name, und der gemeldete Typ zaehlt ohnehin nicht.
 // Unerkanntes geht als Download heraus statt als Anzeige; ein Bild, das der
 // Browser nicht kennt, kann er auch nicht zeigen.
-function setzeBildKopfzeilen(res, buf, { name = 'bild', maxAge = 3600 } = {}) {
+function setzeBildHeader(res, buf, { name = 'bild', maxAge = 3600 } = {}) {
   const typ = typAusBytes(buf) || 'application/octet-stream';
   const inline = INLINE_ERLAUBT.has(typ);
   // Der Name traegt die Endung des ERKANNTEN Typs, nicht die einer Angabe.
@@ -235,9 +235,9 @@ function setzeBildKopfzeilen(res, buf, { name = 'bild', maxAge = 3600 } = {}) {
   return typ;
 }
 
-/* ---- Bereiche ----
- * Ein Video wird in Bereichen ausgeliefert, ein Bild nicht. Der Grund ist
- * nicht die Groesse, sondern die Bedienung: ohne Bereiche kann der Browser im
+/* ---- Ranges ----
+ * Ein Video wird in Ranges ausgeliefert, ein Bild nicht. Der Grund ist
+ * nicht die Groesse, sondern die Bedienung: ohne Ranges kann der Browser im
  * Video nicht springen, und manche Abspieler beginnen gar nicht erst. Der
  * Blob liegt beim Lesen ohnehin ganz im Arbeitsspeicher; herausgeschnitten
  * wird daraus nur ein Stueck.
@@ -248,18 +248,18 @@ function setzeBildKopfzeilen(res, buf, { name = 'bild', maxAge = 3600 } = {}) {
  * Fehlers. Zurechtgerueckt wird nur das eine, was die Norm ausdruecklich so
  * will: ein Ende hinter dem Dateiende meint das Dateiende.
  *
- * Rueckgabe: null (kein Bereich verlangt -- alles am Stueck),
+ * Rueckgabe: null (kein Range verlangt -- alles am Stueck),
  * { ungueltig: true } (416) oder { von, bis } einschliesslich beider Enden.
  */
-function bereichAus(kopf, groesse) {
+function rangeAus(kopf, groesse) {
   if (typeof kopf !== 'string') return null;
   const m = kopf.trim().match(/^bytes=(\d*)-(\d*)$/);
-  // Mehrere Bereiche in einer Anfrage sind erlaubt, werden hier aber nicht
+  // Mehrere Ranges in einer Anfrage sind erlaubt, werden hier aber nicht
   // beantwortet: die Norm laesst zu, stattdessen alles am Stueck zu schicken.
   if (!m) return null;
   const [, a, e] = m;
   if (a === '' && e === '') return null;
-  // Eine leere Datei hat keinen Bereich, den man verlangen koennte.
+  // Eine leere Datei hat keinen Range, den man verlangen koennte.
   if (groesse <= 0) return { ungueltig: true };
   let von, bis;
   if (a === '') {
@@ -357,8 +357,8 @@ function docxVorschau(buf) {
 }
 
 module.exports = {
-  ausgabeTyp, vorschauArt, dispositionKopf, setzeKopfzeilen, sicherheitsRegel,
-  typAusBytes, setzeBildKopfzeilen, bereichAus,
+  ausgabeTyp, vorschauArt, dispositionKopf, setzeHeader, sicherheitsRegel,
+  typAusBytes, setzeBildHeader, rangeAus,
   textVorschau, docxVorschau, findeImZip, endung,
   INLINE_ERLAUBT, TYP_NACH_ENDUNG, VIDEO_TYPEN, VORSCHAU_ZEICHEN
 };

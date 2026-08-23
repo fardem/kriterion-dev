@@ -3,9 +3,9 @@
 **Rohstoff für die Dokumentenpflege. Projektstand, Konzeptpapier, Ideenpapier
 und README sind nicht angefasst.**
 
-**0.8.20 — Abdruck `3ab38137`**
+**0.8.20 — Fingerprint `3ab38137`**
 
-Der Abdruck ist **zuletzt** gebildet worden, nach der letzten Änderung an einer
+Der Fingerprint ist **zuletzt** gebildet worden, nach der letzten Änderung an einer
 ausgelieferten Datei. Diese Runde ändert nichts an seiner Ableitung; sie fasst
 mit `anhaenge.js`, `auth.js`, `db.js` und `server.js` vier Dateien an, die er
 ohnehin schon deckt. `Dockerfile` und `pruefung.js` bewegen ihn nicht — beide
@@ -19,7 +19,7 @@ Prüflauf gegen genau diesen Commit: 1526 von 1526.
 Prüfungen: **1480 → 1548** (68 neue), alle grün.
 `F_ROUTEN` unverändert **46** Routen — es ist keine schreibende Route
 entstanden und keine hat ihre Art gewechselt. **Kein Punkt hat das Schema
-angefasst.** Es ist kein Umstiegscode entstanden, und für „Vorgemerkt für 1.0"
+angefasst.** Es ist kein Migrationscode entstanden, und für „Vorgemerkt für 1.0"
 fällt aus dieser Version **nichts** an: der Index ist eine Ableitung beim
 Start, `hinterProxy` rührt kein Schema an, alles Übrige ist Anwendungscode.
 
@@ -37,7 +37,7 @@ Version auf `0.8.20`.
 
 ### `package-lock.json` (+2/−2 Zeilen)
 Nur die beiden Versionszeilen — `npm install --package-lock-only`, keine
-Abhängigkeit bewegt. Ohne das wäre *„Sie gehört zu dieser package.json"* rot
+Abhängigkeit bewegt. Ohne das wäre *„Es gehört zu dieser package.json"* rot
 geworden.
 
 ### `anhaenge.js` (+57/−0 Zeilen)
@@ -49,8 +49,8 @@ unerkannt und wird damit `application/octet-stream`. Eine SVG ist Text und
 beginnt mit nichts Festem — sie fällt heraus, und das ist die gewünschte
 Antwort.
 
-`setzeBildKopfzeilen(res, buf, { name, maxAge })` ist die zweite Form von
-`setzeKopfzeilen()`: dort entscheidet der Dateiname, hier der Inhalt. Sie
+`setzeBildHeader(res, buf, { name, maxAge })` ist die zweite Form von
+`setzeHeader()`: dort entscheidet der Dateiname, hier der Inhalt. Sie
 setzt Content-Type, Content-Disposition (inline nur für die Positivliste,
 sonst Download), `nosniff`, die Sicherheitsregel und `Cache-Control`. Der
 ausgelieferte Dateiname trägt die Endung des **erkannten** Typs.
@@ -61,7 +61,7 @@ ausgelieferte Dateiname trägt die Endung des **erkannten** Typs.
 Ergebnis eines der sechs Rasterformate ist; `POST /api/items/:id/photos` weist
 alles andere mit 400 ab. `metadata()` kommt damit zum ersten Mal in den
 Quelltext. `GET /api/photos/:id/raw` setzt den Typ nicht mehr selbst, sondern
-ruft `anh.setzeBildKopfzeilen()` — `photos.mime_type` kommt im Rumpf gar nicht
+ruft `anh.setzeBildHeader()` — `photos.mime_type` kommt im Rumpf gar nicht
 mehr vor. Der `fileFilter` am Upload wirft seinen Fehler ab jetzt mit
 `status = 400` (siehe Punkt 4).
 
@@ -92,7 +92,7 @@ aus). Vier Wirkungen hängen daran:
 - `clientIp()` liest `X-Forwarded-For` nur bei eingeschalteter Einstellung —
   und dann den **letzten** Eintrag der Kette. Ohne sie allein
   `req.socket.remoteAddress`; der Kopf wird nicht einmal angesehen.
-- `SICHER` hängt `; Secure` an den Keks.
+- `SICHER` hängt `; Secure` an den Cookie.
 - `COOKIE_NAME` wird `__Host-kriterion_session` statt `kriterion_session`.
 - `HINTER_PROXY` wird mitexportiert; `server.js` setzt daran HSTS.
 
@@ -117,7 +117,7 @@ Abschnitt 5.
 
 Der Auftrag hält fest, ein `style="…"`-Attribut sei von `style-src` weiterhin
 erlaubt, `'unsafe-inline'` nur für `<style>`-Elemente nötig. **Das ist
-falsch.** In einem echten Chromium nachgemessen, eigener Server, Kopfzeile
+falsch.** In einem echten Chromium nachgemessen, eigener Server, Header
 wörtlich wie im Auftrag:
 
 ```
@@ -168,7 +168,7 @@ SVG-Fotos unaufspielbar gemacht, ohne etwas zu gewinnen.
 
 ### E. Die Kommentarbilder bleiben, wie sie sind
 
-`GET /api/comment-images/:id/raw` ruft weiter `setzeKopfzeilen(res,
+`GET /api/comment-images/:id/raw` ruft weiter `setzeHeader(res,
 'bild.jpg')`. Das ist kein Versehen: die Bytes sind dort beim Hochladen neu
 kodiert worden, der Typ steht damit ohnehin fest. Der Wächter über den
 Quelltext greift trotzdem — auch diese Zeile setzt keinen Typ selbst.
@@ -176,7 +176,7 @@ Quelltext greift trotzdem — auch diese Zeile setzt keinen Typ selbst.
 ### F. `photos.mime_type` bleibt stehen
 
 Die Spalte wird weiter geschrieben und angezeigt. Sie ist ab jetzt eine
-Anzeige, keine Ausliefergrundlage. Kein Schemaeingriff, kein Umstiegscode —
+Anzeige, keine Ausliefergrundlage. Kein Schemaeingriff, kein Migrationscode —
 und der Prüfstand belegt an einer echten Bestandszeile, dass eine vor dieser
 Version hereingekommene SVG trotzdem nicht mehr als `image/svg+xml` herausgeht.
 
@@ -196,9 +196,9 @@ Hinweis fehlt damit — siehe Abschnitt 7.
 einzelne Attribut still weg — die Seite lädt, sie sieht nur falsch aus.
 `el.style.x = …` über CSSOM bleibt dagegen erlaubt. **Vor einer CSP gehören
 die Attribute gezählt, nicht geschätzt** — und nachgemessen wird im Browser,
-nicht in `jsdom`: dort greift keine CSP, eine Prüfung sähe nur die Kopfzeile.
+nicht in `jsdom`: dort greift keine CSP, eine Prüfung sähe nur den Header.
 
-**97. Wer eine Kopfzeile vom Aufrufer nicht mehr glaubt, nimmt zuerst dem
+**97. Wer ein Header vom Aufrufer nicht mehr glaubt, nimmt zuerst dem
 eigenen Prüfstand ein Werkzeug weg.** Die Gruppe zur Namensbremse gab jedem
 Versuch eine eigene Adresse per `X-Forwarded-For` — genau die Behauptung, die
 diese Version nicht mehr annimmt. Vier Prüfungen wurden rot, ohne dass etwas
@@ -206,10 +206,10 @@ kaputt war. Sie sind auf einen Server **mit** eingeschalteter Einstellung
 umgehängt worden, und damit prüfen sie jetzt zwei Sachen statt einer.
 Stolperstein 74 in neuer Gestalt: umhängen, nicht löschen.
 
-**98. Eine Prüfung, die nur die Kopfzeile ansieht, belegt nicht, was
+**98. Eine Prüfung, die nur der Header ansieht, belegt nicht, was
 herausgeht.** Zur Auslieferung gehört der Bytestrom daneben: der Inhalt ist
 bei einer SVG aus dem Bestand unverändert die SVG samt Skript — gefährlich
-wäre allein, dass der Browser sie als Webseite liest. Erst Kopfzeile **und**
+wäre allein, dass der Browser sie als Webseite liest. Erst Header **und**
 Inhalt zusammen sagen, was der Fall ist.
 
 **99. `pkill -f "node server.js"` erschlägt den laufenden Prüfstand.** Der
@@ -236,7 +236,7 @@ mit dem Filter auf ihre Gruppe.
 
 | Rückbau | Ergebnis |
 |---|---|
-| `setzeBildKopfzeilen()` wird wieder `res.set('Content-Type', p.mime_type)` | **5 rot** in *Fotos*, dazu 3 im Wächter — *Eine SVG aus dem Bestand geht NIE als image/svg+xml heraus* |
+| `setzeBildHeader()` wird wieder `res.set('Content-Type', p.mime_type)` | **5 rot** in *Fotos*, dazu 3 im Wächter — *Eine SVG aus dem Bestand geht NIE als image/svg+xml heraus* |
 | die Prüfung `rasterBild()` beim Hochladen fällt weg | **5 rot** — *Eine SVG wird als Foto abgewiesen* |
 | `/api/health` setzt seinen Typ wieder selbst | **1 rot** — *server.js setzt den Content-Type an keiner Stelle selbst* |
 
@@ -248,7 +248,7 @@ eine **fehlende** Entscheidung, nicht eine falsche. Er trägt unmittelbar für
 
 | Rückbau | Ergebnis |
 |---|---|
-| die Kopfzeile fällt ganz weg | **7 rot** |
+| der Header fällt ganz weg | **7 rot** |
 | `style-src` verliert `'unsafe-inline'` | **1 rot** — *Und die Freigabe steht nur bei style-src* |
 | `script-src` bekommt `'unsafe-inline'` | **1 rot** — *Und ausdrücklich KEIN eingebettetes Skript* |
 
@@ -262,8 +262,8 @@ sie nichts zu suchen hat.
 |---|---|
 | `clientIp()` wie vor 0.8.20 (erster Eintrag, immer geglaubt) | **2 rot**, dazu 1 im Übergangenen — *Ein wechselnder Kopf hält die Bremse nicht mehr auf* |
 | der **erste** statt der letzte Eintrag der Kette | **1 rot** — *Der letzte Eintrag der Kette wird gezählt und gesperrt* |
-| `Secure` fällt weg | **1 rot** — *Der Keks trägt hinter dem Proxy Secure* |
-| der Keksname bleibt `kriterion_session` | **2 rot** — *Und er heisst \_\_Host-kriterion\_session* |
+| `Secure` fällt weg | **1 rot** — *Der Cookie trägt hinter dem Proxy Secure* |
+| der Cookiename bleibt `kriterion_session` | **2 rot** — *Und er heisst \_\_Host-kriterion\_session* |
 | HSTS fällt weg | **1 rot** — *Hinter dem Proxy steht Strict-Transport-Security* |
 
 Fünf Rückbauten für fünf Wirkungen einer Einstellung — jede einzeln belegt.
@@ -312,21 +312,21 @@ Einzelheiten stehen im Protokoll, wo sie hingehören.
 
 **Was die neuen Gruppen wirklich fahren**, nicht nur ansehen:
 
-- **Fotos.** Echter Server, echter mehrteiliger Upload einer SVG mit
+- **Fotos.** Echter Server, echter Multipart-Upload einer SVG mit
   `<script>`, echte Kontrolle des ausgelieferten Bytestroms. Dazu der
   Erfolgsfall daneben (PNG), die Nachschau, dass die abgewiesene Datei in
   keiner Zeile steht, und eine per SQL eingesetzte **Bestandszeile** für den
   Fall, den es vor dieser Version schon gab.
 - **Proxy.** Beide Lagen, jede auf einem eigenen Server mit eigener Umgebung:
   aus (Vorgabe) und an, mit echtem `X-Forwarded-For` im Prüfaufruf. Belegt
-  wird auch, dass der Keks mit dem neuen Namen **gelesen** wird und der alte
+  wird auch, dass der Cookie mit dem neuen Namen **gelesen** wird und der alte
   Name nicht mehr gilt — die einmalige Abmeldung ist damit belegt, nicht
   vermutet.
 - **Herunterfahren.** Die WAL wird vor dem Signal gemessen (`> 0 Bytes`,
   Stolperstein 81), dann `SIGTERM`, dann wieder gemessen (`0 Bytes`), dann
   nachgesehen, dass der Bestand wirklich in der Hauptdatei steht.
 - **Index.** Nicht nur „steht im Schema": `EXPLAIN QUERY PLAN` belegt, dass
-  der Abfrageplaner ihn nimmt. Und die Behauptung „kein Umstiegscode nötig"
+  der Abfrageplaner ihn nimmt. Und die Behauptung „kein Migrationscode nötig"
   ist nachgestellt statt geglaubt — Index von Hand entfernt, ein Start, Index
   wieder da.
 
@@ -334,8 +334,8 @@ Einzelheiten stehen im Protokoll, wo sie hingehören.
 
 ## 6. Vorgemerkt für 1.0
 
-**Nichts.** Kein markierter Block ist entstanden. `umstieg083()` bleibt der
-einzige Umstiegscode im Projekt.
+**Nichts.** Kein markierter Block ist entstanden. `migration083()` bleibt der
+einzige Migrationscode im Projekt.
 
 ---
 
@@ -360,15 +360,15 @@ einzige Umstiegscode im Projekt.
   braucht die Sicherheitsregel `'unsafe-inline'` bei `style-src`. Ein eigener
   Auftrag, keine Nebensache.
 - **Der Betriebsstand im Projektstand.** Dort steht noch, die Einspielung von
-  0.8.10 sei nicht bestätigt; sie ist es inzwischen, mit Abdruck `48fe44e7`.
+  0.8.10 sei nicht bestätigt; sie ist es inzwischen, mit Fingerprint `48fe44e7`.
   Gehört bei der Dokumentenpflege korrigiert.
 
 ---
 
 ## 8. Für die Dokumente
 
-- **Projektstand Abschnitt 2:** 0.8.20 gebaut, 1548 Prüfungen, Abdruck
-  `3ab38137`. 0.8.10 ist eingespielt und läuft, Abdruck `48fe44e7` bestätigt.
+- **Projektstand Abschnitt 2:** 0.8.20 gebaut, 1548 Prüfungen, Fingerprint
+  `3ab38137`. 0.8.10 ist eingespielt und läuft, Fingerprint `48fe44e7` bestätigt.
 - **Projektstand Abschnitt 5a:** die Regel gilt ab jetzt auch am Fotoweg; der
   Kopf von `anhaenge.js` trägt einen neunten Punkt (Typ aus den ersten Bytes).
 - **Projektstand Abschnitt 6:** Stolpersteine 96 bis 100.
