@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 13 · Stand 22. August 2026 · gebaut: Version 0.8.40**
+**Kompakte Übergabe · Revision 14 · Stand 23. August 2026 · gebaut: Version 0.8.50**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,13 +8,30 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 13 ist.** Revision 12 trug 0.8.30 und 0.8.31 nach. Diese trägt
-**0.8.40** nach — „Nicht jedes Kriterium wiegt gleich", die nächste Runde des
-Stufenplans und **keine Stufe des Mehrbenutzerbetriebs**; der ist mit G4 bis
-auf H und I gebaut.
+**Was Revision 14 ist.** Revision 13 trug 0.8.40 nach. Diese trägt **0.8.50**
+nach — „Kurzvideos am Fotoplatz", die nächste Runde des Stufenplans und
+**keine Stufe des Mehrbenutzerbetriebs**; der ist mit G4 bis auf H und I
+gebaut.
 
-**0.8.40 gibt jedem Bewertungskriterium ein Gewicht** zwischen 0,2 und 2,
-einstellbar vom Admin. Der Gesamtschnitt eines Eintrags wird zum **gewichteten
+**0.8.50 stellt ein Kurzvideo bis 20 MB in dieselbe Reihe wie die Fotos** —
+dieselbe Tabelle, eine Spalte `art` mehr und eine `dauer` daneben. Zwei
+Tabellen hießen zwei sortierte Listen und damit zwei Quellen für die Frage,
+was das Hauptbild ist. **Daraus folgt, dass jede vorhandene Regel von selbst
+greift**: Rechte, Kaskade, Reihenfolge, Fokuspunkt, Verschlüsselung, Sicherung.
+Drei Dinge greifen ausdrücklich **nicht** von selbst und sind gebaut worden:
+Löschdialog, Kennzahlen und die Auslieferung.
+
+**Die Entscheidung, an der die Runde hängt, ist baulich: `ffmpeg` kommt nicht
+ins Abbild.** Das Standbild erzeugt der Browser des Hochladenden über
+`<video>` und `<canvas>`, bevor hochgeladen wird. Vier Folgen, alle gewollt:
+keine neue Abhängigkeit; **der Server öffnet nie ein Video** — er liest zwölf
+Bytes, speichert den Rest und liefert ihn wieder aus; wer ein Video nicht
+abspielen kann, kann es nicht hochladen (und das ist richtig — ein Videoplatz,
+der nicht abspielt, ist ein kaputter Platz); und **das Standbild ist nicht
+überprüfbar**, es ist eine Vorschau und keine Aussage.
+
+**0.8.40 gab jedem Bewertungskriterium ein Gewicht** zwischen 0,2 und 2,
+einstellbar vom Admin. Der Gesamtschnitt eines Eintrags wurde zum **gewichteten
 Mittelwert** — bei Gewicht 1 überall rechnerisch identisch mit vorher, und
 damit rückwärts wie vorwärts umkehrbar. **Ein Eintrag kommt dabei nie über 5
 und nie unter 1**, und zwar baulich: ein gewichteter Mittelwert liegt bei
@@ -35,11 +52,11 @@ berücksichtigt.
 
 **Zwei Dinge ändern sich für den Betrieb**, und beide stehen in Abschnitt 2:
 **ein Rückschritt ist weiterhin keine reine Dateikopie**, und die
-**Formatnummer der Exportdatei steht auf 9** (0.8.30 hob sie auf 7, 0.8.31 auf
-8, 0.8.40 auf 9).
+**Formatnummer der Exportdatei steht auf 10** (0.8.30 hob sie auf 7, 0.8.31 auf
+8, 0.8.40 auf 9, 0.8.50 auf 10).
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_40.md` gepflegt und
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_50.md` gepflegt und
 nur dort.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
@@ -91,15 +108,28 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.40 ist gebaut** — Abdruck **`49d2ae53`**. *Eine
+**0.8.50 ist gebaut** — Abdruck **`3cb528d6`**. *Eine
+Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:* `photos` trägt
+`art TEXT NOT NULL DEFAULT 'bild'` und `dauer INTEGER`, ein Kurzvideo bis
+20 MB liegt als BLOB in derselben Tabelle wie die Fotos, das Standbild kommt
+aus dem Browser des Hochladenden, ausgeliefert wird `inline` und **in
+Bereichen** (nur am Video), und Export und Import tragen Videos über einen
+eigenen Schalter mit (**Formatnummer 9 → 10**).
+**Eine neue schreibende Route: `F_ROUTEN` geht von 46 auf 47** —
+`POST /api/items/:id/videos` hinter `nurEintragVerfasser`, dieselbe Klemme wie
+am Fotoweg. Die Sicherheitsregel der Anwendung bekommt `media-src 'self'
+blob:`; ohne `blob:` ließe sich überhaupt kein Video hochladen.
+**1953 von 1953 Prüfungen**, 30 Gegenproben.
+
+**0.8.40 davor** — Abdruck `49d2ae53`. *Eine
 Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:*
 `rating_criteria` trägt ein `gewicht REAL NOT NULL DEFAULT 1.0`,
 `gesamtSchnitt()` ist ein gewichteter Mittelwert über die **bewerteten**
 Kriterien, das Gewicht wird in der Kriterienkarte des Systembereichs
 eingestellt, `×1,5` steht an drei Anzeigeorten, und Export und Import tragen
 es mit (**Formatnummer 8 → 9**).
-**Keine neue schreibende Route: `F_ROUTEN` bleibt bei 46, und keine Art
-wechselt** — das Gewicht geht über `PUT /api/criteria/:id`, die es längst gibt
+**Keine neue schreibende Route: `F_ROUTEN` blieb bei 46, und keine Art
+wechselte** — das Gewicht geht über `PUT /api/criteria/:id`, die es längst gibt
 und die längst hinter `nurAdmin` steht.
 **1807 von 1807 Prüfungen**, 30 Gegenproben.
 
@@ -141,18 +171,33 @@ Besucher in einem Zähler. Was daran hängt und was beim Umlegen passiert, steht
 in Abschnitt 3 und in der README. **Das Umlegen gehört in denselben Schritt
 wie die Freigabe nach außen, nicht davor und nicht danach.**
 
-**0.8.30, 0.8.31 UND 0.8.40 haben das Schema angefasst** — die ersten
+**0.8.30, 0.8.31, 0.8.40 UND 0.8.50 haben das Schema angefasst** — die ersten
 Versionen seit 0.8.3. `links` und `attachments` bekommen je
 `user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`, `rating_criteria`
-bekommt `gewicht REAL NOT NULL DEFAULT 1.0`, und dazu gehört je ein
-Umstiegsblock: `umstieg0830()`, `umstieg0831()` und `umstieg0840()` in
+bekommt `gewicht REAL NOT NULL DEFAULT 1.0`, `photos` bekommt
+`art TEXT NOT NULL DEFAULT 'bild'` und `dauer INTEGER`, und dazu gehört je ein
+Umstiegsblock: `umstieg0830()`, `umstieg0831()`, `umstieg0840()` und
+`umstieg0850()` in
 `db.js`, mit den Marken der Bauregel, einmalig, wiederholbar und im Normalfall
-stumm. **Es sind damit vier markierte Blöcke im Projekt**; alle vier sind für
+stumm. **Es sind damit fünf markierte Blöcke im Projekt**; alle fünf sind für
 1.0 vorgemerkt (Abschnitt 10).
 
-**Wer von 0.8.20 kommt, fährt alle drei in einem Start.** Das Protokoll nennt
-dann drei Zeilen. Nachgestellt statt geglaubt: der Prüfstand fährt genau
+**`umstieg0850()` fragt jede seiner beiden Spalten EINZELN ab.** Zwei
+`ALTER TABLE` sind zwei Anweisungen: scheitert die zweite, bleibt die erste
+stehen — nachgestellt, und ohne Transaktion ist genau das das Ergebnis. Ein
+Block, der beim Vorhandensein von `art` zurückkehrte, ließe `dauer` dann für
+immer fehlen. So heilt der nächste Start einen zerrissenen Stand.
+
+**Wer von 0.8.20 kommt, fährt alle vier in einem Start.** Das Protokoll nennt
+dann vier Zeilen. Nachgestellt statt geglaubt: der Prüfstand fährt genau
 diesen Sprung und belegt, dass sie sich nicht ins Gehege kommen.
+
+**Der Umstieg auf 0.8.50 verändert keine angezeigte Zeile.** Jedes vorhandene
+Foto steht danach auf `art = 'bild'` und `dauer = NULL` — die Vorgabe kommt aus
+dem `DEFAULT` der Spalte, nicht aus einem nachgeschobenen `UPDATE`. An der
+Auslieferung vorhandener Fotos ändert die Runde nichts: keine Kopfzeile
+verschiebt sich, und Bereiche bietet allein ein Video an. Der Prüfstand hält
+beides fest.
 
 **Der Umstieg auf 0.8.40 verändert keine angezeigte Zahl.** Die Bestandszeilen
 bekommen ihr Gewicht 1,0 aus dem `DEFAULT` der Spalte, nicht aus einem
@@ -439,7 +484,8 @@ steht nichts da, und die Anzeige sieht aus wie vor 0.8.40.
 und zwar **auch bei einem einzigen Zugang**: das ist eine Aussage über einen
 selbst, nicht über andere.
 
-**Eintrag:** mehrere Fotos mit Vollbild, Zoom und einstellbarem Bildausschnitt
+**Eintrag:** mehrere Fotos **und Kurzvideos** mit Vollbild, Zoom (nur am Foto)
+und einstellbarem Bildausschnitt
 für die quadratische Vorschau, angehängte Dateien mit Vorschau, Beschreibung,
 Kategorie, Tags, Bewertungskriterien, Testtage, Links, Kommentare, zwei
 unabhängige Merkmale (getestet, abgelehnt), Favorit. Beschreibung und
@@ -447,6 +493,18 @@ Kommentarfelder wachsen mit dem Text. Tagwolke über drei Zeilen, Klick vergibt
 und nimmt zurück. Testtage können eigene Tags tragen. Die Blöcke lassen sich per
 Griff anordnen und per Klick auf die Kopfzeile einklappen — innerhalb ihres
 Bereichs, nicht darüber hinaus.
+
+**Kurzvideos stehen in derselben Reihe wie die Fotos** (seit 0.8.50), bis
+20 MB, als MP4, WebM oder MOV. Erkannt wird nach dem **Inhalt**, nicht nach der
+Endung. In der Vorschauleiste trägt ein Video ein ▶ und, wenn die Dauer bekannt
+ist, seine Länge als `0:42`; auf der Karte steht sein Standbild wie ein Foto,
+mit einem Abspielzeichen darauf. Im Eintrag und im Vollbild wird mit der
+Steuerung des Browsers abgespielt, und darin lässt sich springen — die
+Auslieferung beantwortet Bereiche. **Nichts spielt von selbst los**, und beim
+Blättern wie beim Verlassen wird angehalten. **Kein Zoom am Video:** der zweite
+Klick gehört der Abspielsteuerung. Der Ausschnittmodus bleibt bedienbar und
+zeigt dort das Standbild. Alles davon ist **abgeleitet** aus `art` und `dauer`
+der Antwort, kein Schalter.
 
 **Systembereich: dreizehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
 die breite Kachel „Zugänge" lässt seit 0.8.6 keine Lücke mehr im Raster).
@@ -456,7 +514,10 @@ löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
 Karte „Zugänge" (anlegen, sperren, Passwort zurücksetzen, Rolle wechseln,
 entfernen), Karte „Suchanbieter" (Vorrat, Startanbieter, drei eigene),
 Vokabular aus elf Wörtern. Dem **Eigentümer** zusätzlich: Export mit/ohne
-Fotos und Import (ersetzen oder zusammenführen).
+Fotos, mit eigenem Häkchen für Dateien und eines für **Videos**, und Import
+(ersetzen oder zusammenführen).
+**„Video" ist kein zwölfter Vokabeleintrag** und wird keiner — die elf bleiben
+elf. Es ist ein Wort über den Gegenstand, so wie „Foto" auch.
 **Jedem, auch ohne Rolle:** „Zugang" (eigener Name und Passwort),
 „Darstellung" (Schriftgröße in fünf Stufen, Zeitleiste, Blockanordnung) und
 „Links" (sichtbare Zeilen, Zahl der angezeigten Anbieternamen). Die Karten
@@ -514,7 +575,13 @@ andere wird heruntergeladen. Die Absicherung steht in Abschnitt 5a.
 Zusätzlich Kachel (400 px, ~17 KB) und mittlere Variante (1600 px, ~140 KB). Übersicht nutzt die Kachel, Detail und
 Vollbild die mittlere, erst der Zoom lädt das Original. Aufschlag rund 7 %,
 Ersparnis beim Blättern etwa Faktor 100. Fotos ohne Varianten werden nach dem
-Start im Hintergrund nachgerüstet.
+Start im Hintergrund nachgerüstet — **Videozeilen ausdrücklich nicht**: dort
+stünde in `data` die Videodatei, das Nachrüsten liefe darauf in einen Fehler
+und überschriebe ein vorhandenes Standbild.
+
+**Videos:** unverändert gespeichert, bis 20 MB je Stück; dazu die beiden
+Varianten ihres Standbilds. Umkodiert wird nichts, weder beim Hochladen noch
+beim Ausliefern.
 
 ---
 
@@ -537,8 +604,12 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   angezeigt; sie sind eine Anzeige, keine Ausliefergrundlage. **Dagegen hilft
   kein Merksatz, sondern ein Wächter im Prüfstand:** keine Zeile in
   `server.js` setzt den Content-Type selbst. Wer eine Auslieferung ergänzt,
-  wird namentlich rot — **gedacht für 0.8.50**, wo ein Video inline
-  ausgeliefert wird.
+  wird namentlich rot. **Er hat in 0.8.50 gehalten:** der Videoweg liefert
+  `inline` aus und geht trotzdem durch `setzeBildKopfzeilen()`; keine Zeile
+  in `server.js` ist dazugekommen, die den Typ selbst setzt. Seit 0.8.50 hat
+  der Wächter eine Gegenprobe neben sich, die ihn an einer verletzenden
+  Zeichenkette vorführt — sonst bliebe er auch dann grün, wenn er gar nichts
+  mehr ansähe.
 - **Testtage und Kriterienbewertung sind getrennt.** Die Kriterien sind eine
   Analyse, die Testtage ein Verlauf. Nicht zu einem Durchschnitt verrechnen und
   nicht in denselben Block stecken.
@@ -551,7 +622,36 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   durchgesetzt, mit sprechender Begründung. Ein Schalter, der wortlos nichts
   tut, wirkt wie ein Fehler.
 - **Erstes Foto ist das Hauptbild.** Kein separater Schalter; Reihenfolge per
-  Ziehen, mit Maus und Finger (Pointer-Events, nicht HTML5-Drag).
+  Ziehen, mit Maus und Finger (Pointer-Events, nicht HTML5-Drag). **Seit
+  0.8.50 heißt „Foto" hier „erstes Element"** — steht ein Video vorn, ist sein
+  Standbild das Hauptbild. Die Regel selbst ändert sich nicht.
+- **Fotos und Videos stehen in EINER Tabelle** (seit 0.8.50). Zwei Tabellen
+  hießen zwei sortierte Listen und damit **zwei Quellen** für die Frage, was
+  an erster Stelle steht — die zweite Wahrheit in Reinform. Aus der einen
+  Tabelle folgt, dass jede vorhandene Regel von selbst greift: Rechte,
+  Kaskade, Reihenfolge, Fokuspunkt, Verschlüsselung, Sicherung. **Nichts davon
+  darf je eine Ausnahme bekommen.** Was NICHT von selbst greift, ist genau
+  dreierlei und ist gebaut: Löschdialog, Kennzahlen und die Auslieferung.
+- **`ffmpeg` kommt nicht ins Abbild** (seit 0.8.50), und keine andere neue
+  Abhängigkeit. Das Standbild eines Videos erzeugt der **Browser des
+  Hochladenden** über `<video>` und `<canvas>`. Daraus folgt: **der Server
+  öffnet nie ein Video** — er liest zwölf Bytes für die Typerkennung,
+  speichert den Rest und liefert ihn wieder aus; die gesamte Klasse von
+  Verwundbarkeiten in Videobibliotheken entfällt, weil keine im Spiel ist.
+  Und: **wer ein Video nicht abspielen kann, kann es nicht hochladen.** Das
+  ist richtig — ein Videoplatz, der nicht abspielt, ist ein kaputter Platz.
+  Wer ein Format ablegen will, das der Browser nicht kann, nimmt den Anhang.
+- **Das Standbild belegt nichts** (seit 0.8.50). Ein manipulierter Browser
+  könnte eines schicken, das nicht zum Video gehört. Das ist hinnehmbar — es
+  ist eine Vorschau, keine Aussage —, und es steht hier wie im Quelltext,
+  damit es niemand später für einen Beleg hält.
+- **Videos werden in Bereichen ausgeliefert, Fotos nicht** (seit 0.8.50).
+  Der Grund ist nicht die Größe, sondern die Bedienung: ohne Bereiche kann der
+  Browser im Video nicht springen, und manche Abspieler beginnen gar nicht
+  erst. Der Bereich kommt vom Aufrufer und wird geprüft; Ungültiges wird mit
+  **416** beantwortet, nicht stillschweigend zurechtgebogen. **An der
+  Auslieferung eines Fotos ändert sich dadurch keine einzige Kopfzeile** —
+  das ist Absicht und wird geprüft.
 - **Keine Favicons bei den Links.** Sie würden von fremden Servern nachgeladen
   und brächen das Offline-Prinzip. Stattdessen Domain als Text.
 - **Links: nur Adresse, keine Bezeichnung, keine Gruppen.** Bewusst verworfen.
@@ -1369,7 +1469,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_40.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_50.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -1780,9 +1880,15 @@ Sieben Schichten, damit kein einzelner Fehler genügt:
    geschickt; die Oberfläche setzt ihn mit `textContent` in die Seite.
 
 **Achte Schicht, seit 0.8.20: der Typ aus den ersten Bytes.** Wo kein
-Dateiname mitgeführt wird — bei den Fotos —, entscheidet der **Inhalt**
-(`typAusBytes`). Erkannt wird nur, was auch eingebettet werden darf: JPEG,
-PNG, GIF, WebP, AVIF, TIFF, BMP. Alles Übrige bleibt bewusst unerkannt und
+Dateiname mitgeführt wird — bei den Fotos **und Videos** —, entscheidet der
+**Inhalt** (`typAusBytes`). Erkannt wird nur, was auch eingebettet werden darf:
+JPEG, PNG, GIF, WebP, AVIF, TIFF, BMP — **seit 0.8.50 dazu `video/mp4`,
+`video/webm` und `video/quicktime`**. MP4, M4V und MOV sind ISO-BMFF und
+tragen `ftyp` an Byte 4; erkannt werden nur Marken auf einer Positivliste
+(`isom`, `iso2`, `mp41`, `mp42`, `avc1`, `M4V `, `qt  ` und einige mehr), WebM
+am EBML-Kopf `1A 45 DF A3`. **An echten Dateien nachgestellt, nicht geglaubt.**
+Eine unbekannte ISO-Marke — darunter die Bildformate `heic` und `mif1` —
+bleibt bewusst unerkannt und geht als Download heraus. Alles Übrige bleibt bewusst unerkannt und
 geht als `application/octet-stream` mit `attachment` heraus. Eine SVG ist Text
 und beginnt mit nichts Festem — sie fällt heraus, und genau das ist die
 gewünschte Antwort.
@@ -1791,10 +1897,20 @@ gewünschte Antwort.
 `Content-Security-Policy`.** Auf jeder Antwort, neben dem `nosniff`:
 
 ```
-default-src 'self'; img-src 'self' data: blob:;
+default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:;
 style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'self';
 frame-ancestors 'none'; base-uri 'none'; form-action 'none'
 ```
+
+**`media-src 'self' blob:` ist seit 0.8.50 dabei, und beide Angaben sind
+nötig.** `'self'` trägt das Abspielen aus der eigenen Anlage. `blob:` trägt das
+**Standbild vor dem Hochladen**: die Oberfläche hängt die gewählte Datei als
+`blob:`-Adresse an ein `<video>`, um ein Einzelbild daraus zu ziehen. Eine
+`blob:`-Adresse an einem `<video>` fällt unter `media-src`, **nicht** unter
+`img-src` — ohne die Freigabe verwirft der Browser sie **wortlos**, und es
+ließe sich überhaupt kein Video hochladen. Im echten Chromium nachgemessen:
+*„Refused to load media from blob:"*, `MEDIA_ELEMENT_ERROR` 4. Der Prüfstand
+hält beide Angaben einzeln fest.
 
 Sie ist die Schicht, die beim Befund am Fotoweg **mitgegriffen hätte** — zwei
 Verteidigungen für denselben Fehler, und billig, weil die Oberfläche nichts von
@@ -1833,6 +1949,22 @@ wird neu kodiert gespeichert, Unlesbares wird abgewiesen. Eine als `.png`
 getarnte HTML-Datei kommt damit gar nicht erst in die Datenbank. Der
 Unterschied ist beabsichtigt — bei Anhängen ist jede Datei erlaubt, bei
 Kommentarbildern nicht.
+
+**Der Videoweg (seit 0.8.50).** Er hält sich an dieselben Punkte, und zwar
+ohne Ausnahme. Beim **Hochladen** entscheidet der Inhalt: `typAusBytes()` muss
+einen der drei Videotypen liefern, sonst 400 — dieselbe Erkennung, die auch
+beim Ausliefern entscheidet, damit keine Zeile entstehen kann, die sich
+hinterher nicht abspielen lässt. Auf die Videodatei wird `rasterBild()`
+ausdrücklich **nicht** angewandt; das Standbild dagegen läuft durch genau
+denselben Weg wie jedes Foto. Beim **Ausliefern** entscheiden wieder die ersten
+Bytes; die drei Videotypen stehen auf der `inline`-Liste, weil ein Video sonst
+heruntergeladen statt abgespielt würde. **Hinzunehmende Folge:** damit darf
+auch ein **Anhang** mit Videoendung inline heraus, wenn er ausdrücklich so
+angefordert wird — die Oberfläche fordert das nur für Bild und PDF an. Die
+Regel auf der Antwort bleibt `default-src 'none'; sandbox`; **nachgemessen im
+echten Chromium behindert `sandbox` das Abspielen nicht** — eingebettet nicht,
+und direkt im Tab geöffnet ist der Bildschirmabzug mit und ohne `sandbox`
+bytegleich.
 
 **SVG steht nicht auf der Vorschauliste.** Eine SVG-Datei kann Skript
 enthalten; in einem `img` läuft es nicht, aber ein direkt geöffneter Tab ist
@@ -2256,6 +2388,42 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Antworten — die eine sagt nichts über die andere.* (Der `CHECK` bleibt
     trotzdem weg, aus einem anderen Grund: Abschnitt 5.)
 
+108. **Zwei `ALTER TABLE` sind zwei Anweisungen — scheitert die zweite, bleibt
+    die erste stehen.** Nachgestellt: ohne Transaktion überlebt die erste
+    Spalte, in einer `db.transaction()` rollen beide zurück. Für einen
+    Umstiegsblock mit **mehr als einer** Spalte folgt daraus die Bauform: nicht
+    den Block als Ganzes fragen, sondern **jede Spalte einzeln**. Dann heilt
+    der nächste Start einen zerrissenen Stand von selbst; ein Block, der beim
+    Vorhandensein der ersten zurückkehrt, ließe die zweite für immer fehlen.
+    *Die Transaktion verhindert den Riss, die Einzelabfrage überlebt ihn — nur
+    das Zweite hilft gegen einen Riss, der in einer früheren Version entstand.*
+
+109. **Ein Nachrüster, der aus `data` ableitet, gehört auf die Zeilen
+    eingeschränkt, deren `data` das Erwartete trägt.** `backfillVariants()`
+    holte jede Zeile mit fehlender Vorschau und erzeugte **beide** Varianten
+    neu — an einer Videozeile also aus der Videodatei. Ergebnis: zwei leere
+    Varianten, ein **überschriebenes** Standbild und eine Zeile, die bei jedem
+    Start aufs Neue fällig ist. Der Fehler ist nicht das Ableiten, sondern die
+    unbeschränkte Auswahl. *Wer eine Spalte mit zwei Bedeutungen einführt, geht
+    jede Stelle durch, die sie ohne Fallunterscheidung liest.* Aufgefallen beim
+    Durchgehen von Abschnitt 3a des Videopapiers, vor dem Bauen.
+
+110. **Eine Prüfung, die auf eine Nebenwirkung wartet, wartet auf die Meldung,
+    nicht auf die Uhr.** Das Nachrüsten der Vorschaubilder startet 1,5 Sekunden
+    nach dem Zuhören; eine feste Wartezeit von 400 ms war zu kurz und ließ die
+    Prüfung rot werden, obwohl der Code stimmte. Eine großzügigere feste Zahl
+    hätte den Lauf verlangsamt und wäre auf einer langsameren Maschine
+    trotzdem zu kurz. *Warte auf das, was du erwartest, mit einer Obergrenze —
+    nicht auf eine geschätzte Dauer.*
+
+111. **jsdom kennt `<video>`, aber nicht `pause()` und `load()`.** Beide melden
+    sich als `jsdomError` und schwemmen das Protokoll voll, ohne dass etwas
+    falsch wäre. Gefiltert wird genau diese eine Meldung über eine eigene
+    `VirtualConsole`; alles andere geht unverändert durch. *Ein Filter über
+    Fehlermeldungen ist eine Wette — er gehört so eng gefasst, dass er nur den
+    bekannten Fall trifft.* (In jsdom 30 heißt der Weg `forwardTo(console,
+    { jsdomErrors: 'none' })`; `sendTo` gibt es nicht mehr.)
+
 ---
 
 ## 7. Prüfstand
@@ -2268,13 +2436,14 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Abbilds).
 
-**Zuletzt: 1807 von 1807 bestanden** (0.8.40; 125 neue Prüfungen, fünf neue
-Gruppen: „UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0", „Gewichtung: der Rechenweg",
-„Gewichtung: was angenommen wird und was nicht", „Das Gewicht am Eintrag" und
-„Das Gewicht im Systembereich"). Davor 0.8.31 mit 58 neuen Prüfungen und
-0.8.30 mit 76.
+**Zuletzt: 1953 von 1953 bestanden** (0.8.50; 146 neue Prüfungen, vier neue
+Gruppen: „UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0", „Videos am Fotoplatz",
+„Videos: Auslieferung (Sicherheitsregel)" und „Videos am Bildschirm"; dazu
+Ergänzungen an „Export und Import", „Rechte am Eintrag" und „Die
+Sicherheitsregel fuer die Anwendung selbst"). Davor 0.8.40 mit 125 neuen
+Prüfungen, 0.8.31 mit 58 und 0.8.30 mit 76.
 
-**Es gibt jetzt VIER Umstiegsabschnitte**, und alle tragen dieselbe Marke.
+**Es gibt jetzt FÜNF Umstiegsabschnitte**, und alle tragen dieselbe Marke.
 Der Abschnitt **„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen
 steht unverändert: er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage,
 nur ohne die neue Spalte und mit einer Zeile darin — und belegt, dass der
@@ -2306,6 +2475,30 @@ Zusicherung der Runde, an derselben Anlage nachgerechnet: **der gewichtete
 Gesamtschnitt ist nach dem Umstieg derselbe wie der ungewichtete davor.**
 Und die Gegenlage, dass migrierte und frische Anlage die Spalte **gleich**
 bauen — geprüft am Verhalten, nicht am DDL-Text (Stolperstein 106).
+
+Der Abschnitt **„UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0"** stellt eine Datenbank
+aus 0.8.40 nach — dieselbe Anlage, nur ohne `art` und `dauer` an `photos`, und
+**mit Fotos darin**; eine leere Tabelle bewiese nichts über die Vorgabe. Die
+Frage nach einem Verfasser stellt sich auch hier nicht: ein Foto gehört seinem
+Eintrag, nicht einem Verfasser, und `ordneBestandZu()` kennt `photos` gar
+nicht. Belegt wird: beide Spalten kommen dazu, die Bestandszeilen stehen auf
+`'bild'` und `NULL`, die Vorgabe kommt aus dem `DEFAULT` und nicht aus einem
+`UPDATE` (am Quelltext nachgesehen), ein zweiter Lauf bleibt stumm, und eine
+**frische** Anlage trägt beide Spalten ohne Umstieg. **Dazu die Probe, die
+diesen Abschnitt von den vier davor unterscheidet: jede der beiden Spalten
+wird EINZELN nachgerüstet** — zwei weitere Prüflagen, in der einen fehlt nur
+`art`, in der anderen nur `dauer`. Und die Gegenlage, dass migrierte und
+frische Anlage die Spalten **gleich** bauen, geprüft am Verhalten statt am
+DDL-Text (Stolperstein 106): `art` ist `NOT NULL` mit Vorgabe `'bild'`, `dauer`
+darf leer bleiben, und eine dritte Art geht in der Datenbank durch — es gibt
+**keinen `CHECK`**, die Menge der erlaubten Werte steht allein im Server.
+Dass der Index auf `photos` unverändert der eine von vorher ist, steht
+daneben; ein Index über `art` brächte nichts.
+
+**Die Probe „Ein Sprung von 0.8.20 fährt ALLE Umstiege in einem Start" gehört
+allen fünf Blöcken** und ist erweitert worden, nicht verdoppelt: sie steht im
+Abschnitt von 0.8.31 und trägt jetzt auch eine Fototabelle ohne die beiden
+neuen Spalten.
 
 **Der Index auf `sessions.user_id` ist der Beleg dafür, dass ein Index kein
 Umstieg ist** (0.8.20, nachgestellt statt geglaubt): Der Prüfstand entfernt
@@ -2355,12 +2548,29 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   Kriterienkarte steht und an den Karten „Kategorien" und „Tags" **nicht** —
   `manage()` zeichnet alle drei.
 - **Export und Import** in beiden Richtungen, auch mit alten Exportdateien
-  ohne die neueren Felder, samt Rundlauf durch drei Verfasser.
+  ohne die neueren Felder, samt Rundlauf durch drei Verfasser. **Seit 0.8.50
+  auch mit Videos:** beide Schalterstellungen, die Marke ohne Bytes, der
+  Rundlauf mit Videodatei **und Standbild**, ein unlesbares Standbild, das
+  übergangen und genannt wird, und eine ältere Datei ohne `art`, in der alles
+  ein Bild ist.
 - **Oberfläche im echten DOM (`jsdom`):** mitwachsende Felder, Reihenfolge
   und Sichtbarkeit der Blöcke, Vergleichsansicht, Sternenzeile mit eigenem
   und gemitteltem Wert. **Der Favoriten-Stern bekommt ein wirklich
   zugestelltes Klickereignis** — ein Fehler hinter einem `await` bleibt im
   nur gebauten DOM sonst grundsätzlich unsichtbar (Stolperstein 61).
+- **Videos (0.8.50):** ein echtes MP4 und eine echte WebM werden hochgeladen,
+  und angesehen wird der **ausgelieferte Bytestrom samt Kopfzeilen** — Typ,
+  `Content-Disposition: inline`, der Name mit der Endung des *erkannten* Typs,
+  `nosniff`, die Sicherheitsregel ohne `allow-scripts`. Dazu: eine Datei mit
+  **falscher Endung und Videobytes** kommt herein, eine mit Videoendung und
+  Bildbytes nicht — der Inhalt entscheidet. `size=thumb` und `size=medium`
+  liefern an einer Videozeile ein **Bild**, ohne Größe die **Videodatei**,
+  bytegleich. Die **Bereiche** mit `206`, `Content-Range`, offenem Ende,
+  Suffix und zwei Absagen mit `416`; ein **Foto bietet weiterhin keine an**
+  und beantwortet einen Bereich mit dem ganzen Bild. Eine unbekannte ISO-Marke
+  aus dem Bestand geht als Download heraus. Und: das Nachrüsten der
+  Vorschaubilder lässt das Standbild eines Videos in Ruhe, tut am Foto daneben
+  aber weiterhin seine Arbeit.
 - **Dateien:** jede einzelne Schicht der Sicherheitsregel aus Abschnitt 5a —
   dafür lädt der Prüfstand eine echte HTML-Seite mit Skript und eine
   SVG-Datei hoch und sieht sich die Kopfzeilen der Antwort an. Die
@@ -2377,7 +2587,10 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   löscht einen fremden. **Seit 0.8.31 dasselbe am sechsten Träger**, dort mit
   einem **echten mehrteiligen Upload**: der Wächter stand vor multer, ein
   nachgereichter `INSERT` liefe an beidem vorbei und bewiese nichts über die
-  Route.
+  Route. **Seit 0.8.50 am Videoweg dasselbe**, ebenfalls mit echtem
+  mehrteiligem Upload: ein Fremder bekommt 403 und danach steht **keine Zeile**
+  in `photos`, der Verfasser bekommt 201 und die Zeile trägt `art = 'video'`
+  mit ihrer Dauer, ein Fremder löscht das Video nicht.
 - **Der Name an der Datei- und der Linkzeile (0.8.30/0.8.31):** je drei
   Fenster nebeneinander —
   drei Zugänge mit Adminrolle, ein Zugang, drei Zugänge ohne Adminrolle. Die
@@ -2390,7 +2603,7 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   eine Regel, die an einer Stelle geprüft ist und an der zweiten nur behauptet,
   ist an der zweiten ungeprüft.
 - **Der Quelltext selbst:** eine gepflegte Liste **aller schreibenden Routen
-  (aktuell 46, und die Zahl wird seit 0.8.40 ausdrücklich geprüft)** samt der
+  (aktuell 47, und die Zahl wird seit 0.8.40 ausdrücklich geprüft)** samt der
   Art ihrer Absicherung, gehalten gegen das, was in
   `server.js` wirklich steht — in beide Richtungen, denn wo „offen" steht,
   darf **weder eine Klemme im Rumpf noch ein Wächter in der Routenzeile**
@@ -2403,7 +2616,10 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   `gueltigesGewicht()`, keine Spanne in `app.js` — und der Wächter darauf,
   dass nirgends über **alle** Gewichte summiert wird, mit einer Gegenprobe,
   dass er überhaupt noch Code liest (Stolperstein 106). **Das ist die einzige Prüfung, die
-  eine fehlende Entscheidung findet.**
+  eine fehlende Entscheidung findet.** **Seit 0.8.50 hat auch der Wächter über
+  den Content-Type seine Gegenprobe:** dieselbe Zählung wird an einer
+  Zeichenkette vorgeführt, die die Verletzung trägt — sonst bliebe er grün,
+  wenn er gar nichts mehr ansähe.
 - **Das Werkzeug selbst (seit 0.8.10):** die Sperrdatei, der `Dockerfile`, der
   Versionsabdruck und die Datei für den Prüflauf bei jedem Push — geprüft
   gegen den Quelltext, teils über einen Server aus einer **Kopie** des
@@ -2526,6 +2742,8 @@ Ansicht, Zoom lädt das Original.
 | 0.8.20 | Die Schotten dicht — alle fünf Punkte (68) | 14 | Stolpersteine 96 bis 100 |
 | 0.8.30 | Stufe G4 — alle fünf Punkte (76) | 31 | Stolpersteine 101 bis 105, Lücke 8 oben |
 | 0.8.31 | Dateien bekommen Verfasser (58) | 16 | — (die fünf aus 0.8.30 haben getragen) |
+| 0.8.40 | Gewichtete Bewertungskriterien — alle fünf Punkte (125) | 30 | Stolpersteine 106 und 107, Lücke 9 oben |
+| 0.8.50 | Kurzvideos am Fotoplatz — alle fünf Punkte (146) | 30 | Stolpersteine 108 bis 111 |
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -2728,8 +2946,70 @@ sind zwei Dinge:
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.40 — „Nicht jedes Kriterium wiegt gleich".** Die nächste Runde des
-Stufenplans, **keine Stufe des Mehrbenutzerbetriebs** — und trotzdem eine
+**0.8.50 — „Kurzvideos am Fotoplatz".** Die nächste Runde des Stufenplans,
+**keine Stufe des Mehrbenutzerbetriebs** — und eine Datenbankstufe.
+
+*Das Schema und der Umstieg.* `photos` trägt `art TEXT NOT NULL DEFAULT 'bild'`
+und `dauer INTEGER`, samt `umstieg0850()`, dem **fünften** markierten Block.
+**Dieselbe Tabelle, keine zweite:** zwei Tabellen hießen zwei sortierte Listen
+und damit zwei Quellen für die Frage nach dem Hauptbild. Die Bestandszeilen
+bekommen `'bild'` aus dem `DEFAULT`, `dauer` bleibt `NULL`.
+`ordneBestandZu()` bleibt unberührt — ein Foto gehört seinem Eintrag, nicht
+einem Verfasser. **Kein `CHECK`**, aus demselben Grund wie beim Gewicht.
+**Der Block fragt jede seiner beiden Spalten einzeln ab** (Stolperstein 108).
+
+*Der Weg herein.* Eine eigene Route `POST /api/items/:id/videos` hinter
+`nurEintragVerfasser`, mit eigenem `multer` und zwei benannten Feldern —
+`F_ROUTEN` geht von **46 auf 47**, die erste neue schreibende Route seit
+langem. Die vorhandene Fotoroute zu erweitern hätte ihren `fileFilter` auf
+`^image\/` lockern müssen, und das nähme die erste Schranke dem Fotoweg mit ab.
+`VIDEO_MAX = 20 MB` steht an genau einer Stelle, mit der gemessenen Begründung
+daneben. **Der Inhalt entscheidet:** `typAusBytes()` muss einen der drei
+Videotypen liefern. Das Standbild läuft durch `rasterBild()` und
+`makeVariants()` wie jedes Foto; auf die Videodatei wird `rasterBild()`
+ausdrücklich **nicht** angewandt.
+
+*Das Standbild kommt aus dem Browser.* `ffmpeg` bleibt draußen — hundert
+Megabyte mit eigener Angriffsfläche für eine Vorschau. Vier Folgen, alle
+gewollt: keine neue Abhängigkeit, der Server öffnet nie ein Video, wer nicht
+abspielen kann, kann nicht hochladen, und das Standbild belegt nichts.
+
+*Die Auslieferung.* `typAusBytes()` erkennt zusätzlich `video/mp4`,
+`video/webm` und `video/quicktime`; die Endungsliste steht in `anhaenge.js` und
+trägt beide Richtungen; die drei Typen kommen auf die `inline`-Liste. **Der
+Wächter aus 0.8.20 hat gehalten** — `server.js` setzt weiterhin an keiner
+Stelle den Content-Type selbst. **Ausgeliefert wird in Bereichen**, aber nur am
+Video und nur an der ganzen Datei: Ungültiges bekommt **416**, und an einem
+Foto verschiebt sich keine Kopfzeile. Das Papier verlangte an einer Stelle
+`Accept-Ranges: none` und an einer anderen das Gegenteil; entschieden wurde für
+die Bereiche.
+
+*Am Bildschirm.* `qPhotos` liefert `art` und `dauer` mit — woran die
+Oberfläche ein Video erkennt, ist allein `art`. Vorschauleiste mit ▶ und
+Länge, Vollbild mit `<video controls>`, kein automatisches Abspielen, kein
+Zoom, Anhalten beim Blättern **und** beim Verlassen. Auf der Karte das
+Standbild mit Abspielzeichen und der Zähler „3 Fotos · 1 Video".
+**Die Sicherheitsregel der Anwendung bekommt `media-src 'self' blob:`** —
+ohne `blob:` verwirft der Browser die Adresse, an der das Standbild entsteht,
+und zwar wortlos. Löschdialog und Kennzahlen weisen Videos getrennt aus; die
+alten Feldnamen behalten ihre Bedeutung und bekommen Nachbarn.
+
+*Export und Import.* Eigener Schalter `videos=1`, Vorgabe aus. **Kein
+Videoeintrag ohne Videodatei** — `photos.data` ist `NOT NULL`. Ohne den
+Schalter bleibt die Zeile als **Marke** ohne Bytes in der Datei stehen; nur so
+kann der Import nennen, wie viele Videos gefehlt haben. Das Standbild geht
+eigens mit, sonst erzeugte der Import die Varianten aus der Videodatei.
+**Formatnummer 9 → 10.**
+
+*Ein Befund nebenbei:* `backfillVariants()` hätte an einer Videozeile die
+Varianten aus der Videodatei erzeugt und ein vorhandenes Standbild
+überschrieben (Stolperstein 109).
+
+**1953 von 1953 Prüfungen**, 30 Gegenproben, **vier neue Stolpersteine**
+(108 bis 111). Einzelheiten in `Doku/Aenderungsprotokoll_0.8.50.md`.
+
+**0.8.40 davor — „Nicht jedes Kriterium wiegt gleich".** Die Runde davor im
+Stufenplan, **keine Stufe des Mehrbenutzerbetriebs** — und ebenfalls eine
 Datenbankstufe.
 
 *Das Schema und der Umstieg.* `rating_criteria` trägt
@@ -2767,7 +3047,7 @@ Abweichungen**, `criteria` unverändert eine Liste von Namen. **Formatnummer
 angelegtes bekommt das aus der Datei, ein ungültiges fällt auf 1,0 und wird
 genannt statt abzubrechen.
 
-**1807 von 1807 Prüfungen**, 30 Gegenproben, **zwei
+**1807 von 1807 Prüfungen** in jenem Stand, 30 Gegenproben, **zwei
 neue Stolpersteine** (106 und 107, beide über das Prüfen selbst). Einzelheiten
 in `Doku/Aenderungsprotokoll_0.8.40.md`.
 
@@ -2926,18 +3206,17 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **1.0.0** | Bereinigung und Zusage | Umstiegscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
-**0.8.10, 0.8.20, 0.8.30, 0.8.31 und 0.8.40 sind gebaut** — Einzelheiten in
-Abschnitt 2 und Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit
-0.8.3** gefahren, mit 0.8.31 die zweite und mit 0.8.40 die dritte;
+**0.8.10, 0.8.20, 0.8.30, 0.8.31, 0.8.40 und 0.8.50 sind gebaut** —
+Einzelheiten in Abschnitt 2 und Abschnitt 9. Mit 0.8.30 ist **die erste
+Datenbankstufe seit 0.8.3** gefahren, mit 0.8.31 die zweite, mit 0.8.40 die
+dritte und mit 0.8.50 die vierte;
 die Sicherung des Datenverzeichnisses steht seitdem als **Pflicht** im
 Einspielweg (Abschnitt 2), nicht mehr als Empfehlung.
 
-**Als Nächstes 0.8.50 — Kurzvideos am Fotoplatz**, ausgearbeitet in
-`Konzept_Video_und_grosse_Dateien.md`, Teil I. Auch sie fasst das Schema an
-und hebt die Formatnummer, dann **9 → 10**. Die Bindung „0.8.20 vor 0.8.50"
-ist erfüllt: die Regel „der gemeldete Typ des Hochladenden wird nie
-ausgeliefert" gilt seit 0.8.20 auch am Fotoweg, und der Wächter im Prüfstand
-hält sie fest.
+**Als Nächstes 0.8.60 — Was ist offen, was ist neu.** Sie fasst das Schema
+nicht an und hebt die Formatnummer nicht. **Teil I des Videopapiers ist mit
+0.8.50 abgearbeitet;** Teil II bleibt auf 1.1.0 und teilt mit Teil I keinen
+Code außer der Positivliste der Formate.
 
 **Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
 antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
@@ -2949,14 +3228,18 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
 - **0.8.10 vor allem anderen** (erledigt). Ohne festgenagelte Abhängigkeiten
   wäre jeder Bau ein anderer gewesen, und ohne Prüflauf bei jedem Push liefe
   der Prüfstand nur, wenn jemand daran denkt. Beides sichert alles Folgende ab.
-- **0.8.20 vor 0.8.50** (erledigt). Der Videoweg liefert eine Datei **inline**
-  aus. Er durfte erst gebaut werden, wenn die Regel „der gemeldete Typ des
-  Hochladenden wird nie ausgeliefert" auch am Fotoweg gilt. Sie gilt jetzt,
-  und der Wächter im Prüfstand hält sie fest — er wird namentlich rot, sobald
-  der Videoweg seinen Typ selbst setzt.
-- **0.8.50 vor 0.8.70.** Der Papierkorb serialisiert einen Eintrag. Gibt es
-  dann schon Videos, wird die Serialisierung **einmal** gebaut statt einmal
-  gebaut und einmal nachgezogen.
+- **0.8.20 vor 0.8.50** (beide erledigt). Der Videoweg liefert eine Datei
+  **inline** aus. Er durfte erst gebaut werden, wenn die Regel „der gemeldete
+  Typ des Hochladenden wird nie ausgeliefert" auch am Fotoweg gilt.
+  **Die Bindung hat sich beim Bauen bewährt:** der Videoweg ist durch
+  `setzeBildKopfzeilen()` gegangen, ohne dass in `server.js` eine einzige
+  Zeile dazukam, die den Typ selbst setzt — der Wächter blieb grün, und er hat
+  seitdem eine Gegenprobe neben sich.
+- **0.8.50 vor 0.8.70** (die erste Hälfte erledigt). Der Papierkorb
+  serialisiert einen Eintrag. Da es jetzt schon Videos gibt, wird die
+  Serialisierung **einmal** gebaut statt einmal gebaut und einmal nachgezogen.
+  **Was 0.8.70 dabei mitnehmen muss:** ein Eintrag trägt seit 0.8.50 Zeilen
+  zweier Arten in `photos`, und die Videohälfte kann sehr groß sein.
 - **0.8.10 und 0.8.20 vor 1.0.0** (beide erledigt). Eine Veröffentlichung
   heißt fremde Installationen. Danach stünden die beiden Befunde nicht mehr in
   einer Anlage, sondern in allen — deshalb lagen sie vorn und nicht hinten.
@@ -2982,7 +3265,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_40.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_50.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.
@@ -3083,8 +3366,8 @@ damit alte Verweise stimmen.)*
 ### Vorgemerkt für 1.0
 
 *Aus 0.8.10 und 0.8.20 ist hier nichts dazugekommen — beide haben das Schema
-nicht angefasst. **Aus 0.8.30, 0.8.31 und 0.8.40 ist je ein markierter Block
-dazugekommen; es sind jetzt vier.***
+nicht angefasst. **Aus 0.8.30, 0.8.31, 0.8.40 und 0.8.50 ist je ein markierter
+Block dazugekommen; es sind jetzt fünf.***
 
 - **Finale Bereinigung.** Der Rückbau des Umstiegscodes wurde aus
   Notwendigkeit nach 0.8.0 vorgezogen; zu 1.0 folgt eine letzte Bereinigung
@@ -3116,7 +3399,9 @@ dazugekommen; es sind jetzt vier.***
   **Eine Prüfung gehört ALLEN markierten Blöcken und fällt erst mit dem
   letzten:** „Ein Sprung von 0.8.20 fährt ALLE Umstiege in einem Start". Sie
   steht im Abschnitt von 0.8.31 und ist beim Rückbau mitzunehmen — wer nur
-  einen der Blöcke entfernt, muss sie umschreiben statt löschen.
+  einen der Blöcke entfernt, muss sie umschreiben statt löschen. **Sie ist
+  mit 0.8.50 erweitert worden, nicht verdoppelt**, und trägt jetzt auch eine
+  Fototabelle ohne `art` und `dauer`.
 - **`db.js`, `umstieg0840()` — 27 Zeilen samt Marken, 15 Prüfungen** (seit 0.8.40). Ergänzt `gewicht` an `rating_criteria` in einer
   Datenbank aus 0.8.0 bis 0.8.31; die Bestandszeilen bekommen 1,0 **aus dem
   `DEFAULT` der Spalte**, nicht aus einem `UPDATE`. Zu 1.0 fällt der Block
@@ -3130,15 +3415,33 @@ dazugekommen; es sind jetzt vier.***
   trägt die Spalte nach, er trägt die Gewichtung nicht.
   **Und `rating_criteria` kommt in `ordneBestandZu()` gar nicht vor** — anders
   als bei 0.8.30 und 0.8.31 gibt es hier nichts, was nicht mitfallen dürfte.
+- **`db.js`, `umstieg0850()` — 33 Zeilen samt Marken, 26 Prüfungen** (seit
+  0.8.50). Ergänzt `art` und `dauer` an `photos` in einer Datenbank aus 0.8.0
+  bis 0.8.40; die Bestandszeilen bekommen `'bild'` **aus dem `DEFAULT` der
+  Spalte**, `dauer` bleibt `NULL`. **Der einzige Block mit zwei Spalten — und
+  deshalb der einzige, der jede einzeln abfragt** (Stolperstein 108). Zu 1.0
+  fällt der Block weg, **die Spalten in der DDL bleiben** — dieselbe Prüfung
+  hält es fest. Prüfabschnitt „UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0" in
+  `pruefung.js` (rund 190 Zeilen), Export von `umstieg0850` mit derselben
+  Marke.
+  **Was ausdrücklich NICHT mitfällt:** alles, was mit den Spalten selbst zu tun
+  hat — die Videoroute samt `VIDEO_MAX`, die Videotypen in `typAusBytes()` und
+  `INLINE_ERLAUBT`, die Bereichsauslieferung, `media-src` in der
+  Sicherheitsregel, `art`/`dauer` in `qPhotos`, die getrennten Zahlen in
+  Löschdialog und Kennzahlen, der Filter in `backfillVariants()` und der
+  Videoschalter im Austauschformat. Der Umstieg trägt die Spalten nach, er
+  trägt den Videoweg nicht.
+  **Und `photos` kommt in `ordneBestandZu()` gar nicht vor** — wie schon bei
+  0.8.40 gibt es hier nichts, was nicht mitfallen dürfte.
 - **Harte Zurückweisung zu alter Datenbanken.** Seit 0.8.1 wird ein Bestand
   aus der Zeit vor 0.8.0 nicht mehr übernommen, aber auch nicht erkannt — der
   Start liefe in SQL-Fehler statt in eine Meldung. Vor 1.0 gehört an den
   Start eine klare Absage, die den Zwischenschritt über 0.8.0 nennt. **Seit
   0.8.3 wiegt der Punkt schwerer:** es gibt wieder Umstiegscode, und eine
   Anlage aus der Zeit vor 0.8.0 läuft weiterhin wortlos in SQL-Fehler. **Mit
-  0.8.40 gibt es davon vier** — und `umstieg0830()` greift auf eine Tabelle
+  0.8.50 gibt es davon fünf** — und `umstieg0830()` greift auf eine Tabelle
   `links` zu, die es in einer wirklich alten Anlage geben mag oder nicht.
-  `rating_criteria` gibt es dagegen seit jeher.
+  `rating_criteria` und `photos` gibt es dagegen seit jeher.
 - **Abwärtskompatibilität.** Ab 1.0 wird sie zugesichert und
   aufrechterhalten. Fällt die Entscheidung früher, wird sie vorher final in
   die Dokumente eingearbeitet.
@@ -3149,8 +3452,8 @@ dazugekommen; es sind jetzt vier.***
   zweite Wahrheit ganz, statt sie abzugleichen. Für `title_app` ist
   „Bewertungen" die neutrale Vorgabe.
 - **Tastaturbedienung beim Sortieren.** Umsortiert wird an fünf Stellen
-  (Fotos, Links, Kriterien, Blöcke, Tags am Testtag), überall ausschließlich
-  über Zeigerereignisse. **Seit 0.8.30 hängt an der Linkzeile noch etwas
+  (Fotos **und Videos**, Links, Kriterien, Blöcke, Tags am Testtag), überall
+  ausschließlich über Zeigerereignisse. **Seit 0.8.30 hängt an der Linkzeile noch etwas
   daran:** das Datum des Eintragers steht nur im Überfahrtext und ist damit
   ohne Zeigegerät gar nicht erreichbar. Wer die Tastaturbedienung baut, sieht
   sich diese Stelle mit an. Im Frontend stehen **null** `tabindex` und zwei
@@ -3189,17 +3492,21 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
 
 - **Wer eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` im Prüfstand
   ein** — sonst wird der Lauf namentlich rot, und genau das ist der Zweck.
-  Die Liste (aktuell 46 Routen) ist die Stelle, an der die Rechtefrage
+  Die Liste (aktuell 47 Routen) ist die Stelle, an der die Rechtefrage
   gestellt wird; seit 0.8.0 kennt sie die vierte Art `'nurAdmin, im Rumpf'`.
 - **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — viermal
   angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
   `GET /api/stats`, seit 0.8.6 `GET /api/items/:id/stimmen`). Die Liste ist
-  die Stelle für **schreibende** Routen. **Auch G4 hat die Zahl nicht bewegt:**
-  sie steht weiterhin bei 46, es ist keine schreibende Route entstanden — nur
-  eine hat ihre Art gewechselt. **0.8.40 hat weder das eine noch das andere
-  getan** — das Gewicht geht über `PUT /api/criteria/:id`, die es längst gibt;
-  seitdem prüft der Prüfstand die **Zahl 46 ausdrücklich**, nicht nur die
-  Übereinstimmung der Liste mit dem Quelltext.
+  die Stelle für **schreibende** Routen. **G4 hat die Zahl nicht bewegt:**
+  es entstand keine schreibende Route — nur eine hat ihre Art gewechselt.
+  **0.8.40 hat weder das eine noch das andere getan** — das Gewicht geht über
+  `PUT /api/criteria/:id`, die es längst gibt; seitdem prüft der Prüfstand die
+  **Zahl ausdrücklich**, nicht nur die Übereinstimmung der Liste mit dem
+  Quelltext. **0.8.50 hat sie zum ersten Mal seit langem bewegt: 46 → 47**,
+  mit `POST /api/items/:id/videos` hinter `nurEintragVerfasser`. Die Route ist
+  eigens entstanden, statt die Fotoroute zu erweitern — deren `fileFilter`
+  wäre dabei gelockert worden, und das hätte die erste Schranke dem Fotoweg
+  mit abgenommen.
 - **Eine Einstellung, die an allen Einträgen aller Benutzer erscheint, gehört
   dem Admin — und in die Datenbank** (seit 0.8.4, am Gewicht in 0.8.40 zum
   wiederholten Mal angewandt). Nicht in `user_settings`: zwei Leute mit
@@ -3275,6 +3582,24 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   Prüfung an der echten Antwort** (seit 0.8.30, Stolperstein 102). Der
   Doppelgänger in `baueDom` bringt die Felder selbst mit; er kann eine
   fehlende Serverantwort nicht bemerken. Wer ein Feld ergänzt, ergänzt beides.
+  **In 0.8.50 an `art` und `dauer` angewandt**, an den Fotozeilen von
+  `detail()` **und** von `/api/items`.
+- **Der Doppelgänger trägt beide Fälle, wenn eine Spalte zwei Bedeutungen
+  hat** (seit 0.8.50, Stolperstein 90 verschärft). Seine Fotoliste enthält ein
+  Bild **und** ein Video, und das Video steht ausdrücklich **nicht** an erster
+  Stelle: nur so lassen sich Hauptbild und Abspielzeichen unabhängig
+  voneinander belegen. Ein Doppelgänger mit lauter Bildern nähme genau die
+  Prüfungen weg, für die er gebaut wird.
+- **Wer eine Spalte mit zwei Bedeutungen einführt, geht jede Stelle durch, die
+  sie ohne Fallunterscheidung liest** (seit 0.8.50, Stolperstein 109). In
+  0.8.50 war das `backfillVariants()`; gefunden wurde es beim Durchgehen der
+  Liste „welche Regel gilt von selbst", nicht von einer Prüfung.
+- **Fotos und Videos stehen in EINER Tabelle, und das darf keine Ausnahme
+  bekommen** (seit 0.8.50). Wer künftig eine Abfrage auf `photos` schreibt,
+  entscheidet ausdrücklich, ob sie beide Arten meint. Die drei Stellen, an
+  denen die Trennung gebaut ist, sind Löschdialog, Kennzahlen und Export; jede
+  andere Stelle behandelt beide Arten gleich, und das ist der Zweck der
+  Bauform.
 - **Die Rollen sind eine Leiter, auch in der Prüflage** (seit 0.8.5,
   Stolperstein 87). Wer `istAdmin: false` setzt, setzt `istEigentuemer`
   gleich mit — sonst baut die Prüflage einen Zustand nach, den der Server nie
