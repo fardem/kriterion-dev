@@ -740,6 +740,18 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Rot bleibt dem Zerstoeren vorbehalten, und auf Dunkel liegen Rot und Orange
    ohnehin zu dicht beieinander. Ein Grabstein ist noch staerker gedaempft; er
    ist kein Fehler, sondern eine Zeile, die nur noch einen Namen ersetzt. */
+/* Papierkorb. Die Zeile bricht um: oben der Titel und die beiden Knoepfe,
+   darunter die Angaben. Ein Titel kann lang sein, und die Frist gehoert
+   trotzdem vollstaendig lesbar daneben.
+   DIE KNOEPFE STEHEN DAUERHAFT DA und nicht erst beim Ueberfahren wie an den
+   uebrigen Verwaltungszeilen: ein Rueckweg, den man erst suchen muss, ist
+   keiner -- und auf einem Zeigegeraet ohne Ueberfahren gaebe es ihn gar
+   nicht. */
+.mrow.pk { flex-wrap: wrap; align-items: center; }
+.mrow.pk .mname { white-space: normal; font-weight: 560; }
+.mrow.pk .mact { opacity: 1; flex-shrink: 0; }
+.mrow.pk .pk-meta { flex-basis: 100%; font-family: var(--mono); font-size: .7rem; color: var(--faint); }
+
 .mrow.zug .zug-rolle { font-size: .78rem; color: var(--muted); flex-shrink: 0; }
 .mrow.zug .zug-status { font-family: var(--mono); font-size: .68rem; color: var(--faint); flex-shrink: 0; }
 .mrow.zug .zug-ich { color: var(--faint); font-weight: 400; }

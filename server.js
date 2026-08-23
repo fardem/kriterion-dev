@@ -744,7 +744,12 @@ app.get('/api/settings', (req, res) => res.json({
   // laesst danach die Zeile "+ neu anlegen" weg; die Auswahl aus dem
   // Vorhandenen bleibt in jedem Fall stehen.
   tagsFreiAnlegen: freiAnlegen('tagsFreiAnlegen'),
-  kategorienFreiAnlegen: freiAnlegen('kategorienFreiAnlegen')
+  kategorienFreiAnlegen: freiAnlegen('kategorienFreiAnlegen'),
+  // Die Frist des Papierkorbs. Sie steht HIER und nicht nur in
+  // GET /api/papierkorb: den Loeschdialog sieht jeder, die Karte nur der
+  // Admin. Eine Zahl, die die Oberflaeche selbst mitbraechte, waere eine
+  // zweite Wahrheit ueber dieselbe Frist.
+  papierkorbTage: PAPIERKORB_TAGE
 }));
 
 app.put('/api/settings', (req, res) => {
@@ -1620,7 +1625,12 @@ app.get('/api/items/:id/bestand', nurEintragVerfasser, (req, res) => {
 // der Dialog in der Oberflaeche nennt die Zahlen vorher, getrennt nach eigen
 // und fremd, aus GET /api/items/:id/bestand.
 app.delete('/api/items/:id', nurEintragVerfasser, (req, res) => {
-  db.prepare('DELETE FROM items WHERE id = ?').run(req.params.id);
+  // Seit 0.8.70 geht das Loeschen durch den Papierkorb: der Eintrag wird
+  // serialisiert und in DERSELBEN Transaktion entfernt. Danach laeuft die
+  // Kaskade wie bisher, und der Eintrag ist wirklich weg -- er liegt nur
+  // zusaetzlich noch als Paket daneben. Der Dialog in der Oberflaeche sagt es
+  // vorher; "unwiderruflich" waere jetzt falsch.
+  inDenPapierkorb(req.params.id, req.benutzer.id);
   reclaim();
   res.status(204).end();
 });
@@ -2369,6 +2379,14 @@ app.get('/api/stats', nurAdmin, (req, res) => {
   const p = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art != 'video'").get();
   const vi = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art = 'video'").get();
   const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();
+  /* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos in
+     0.8.50: sonst wundert sich jemand ueber eine Datenbank, die nach dem
+     Aufraeumen groesser ist als vorher. Die alten Zahlen behalten ihre
+     Bedeutung und bekommen einen Nachbarn -- itemCount zaehlt weiterhin die
+     Eintraege, und ein geloeschter ist keiner mehr. */
+  const pk = db.prepare(`SELECT COUNT(*) AS n,
+      COALESCE(SUM(length(inhalt)),0) + COALESCE((SELECT SUM(length(daten)) FROM papierkorb_bytes),0) AS o
+    FROM papierkorb`).get();
   res.json({
     version: VERSION,
     // Der Fingerprint steht hier und nicht in /api/config: er ist dieselbe Art
@@ -2380,6 +2398,7 @@ app.get('/api/stats', nurAdmin, (req, res) => {
     dbBytes, photoCount: p.n, photoBytes: p.o,
     videoCount: vi.n, videoBytes: vi.o,
     attachmentCount: an.n, attachmentBytes: an.o,
+    papierkorbCount: pk.n, papierkorbBytes: pk.o,
     itemCount: db.prepare('SELECT COUNT(*) n FROM items').get().n,
     commentCount: db.prepare('SELECT COUNT(*) n FROM comments').get().n,
     linkCount: db.prepare('SELECT COUNT(*) n FROM links').get().n,
@@ -2395,123 +2414,188 @@ app.get('/api/stats', nurAdmin, (req, res) => {
   });
 });
 
-/* ---- Export ---- */
-// Nur der Eigentuemer. Die Exportdatei ist der gesamte Bestand in
-// einer Datei, die das Haus verlaesst -- mit allen Fotos, allen Anhaengen und
-// den Namen aller Verfasser. "Alles sehen darf jeder" gilt fuer
-// den Bildschirm, nicht fuer die Mitnahme.
-// HINZUNEHMENDE FOLGE, und sie gehoert in den Betrieb: ein Admin ohne
-// Eigentuemerrecht kann keine Sicherung mehr ziehen.
-app.get('/api/export', nurEigentuemer, (req, res) => {
-  const withPhotos = req.query.photos !== '0';
-  // Eigener Schalter, Vorgabe aus: bei 50 MB je Datei waere die Exportdatei
-  // sonst schnell unhandlich -- Base64 blaeht zusaetzlich um ein Drittel auf.
-  const withFiles = req.query.files === '1';
-  /* Dasselbe fuer die Videos, und aus demselben Grund nur schaerfer: ein
-     20-MB-Video wird als Base64 zu 27 MB, und zwanzig davon sind 540 MB in
-     EINEM String. Node haelt kein String ueber rund 512 MB; der
-     Export risse. Vorgabe deshalb aus. */
-  const withVideos = req.query.videos === '1';
-  // favorite nennt den Favoriten DESSEN, DER EXPORTIERT -- dieselbe
-  // Bedeutung wie im Feld favorite der Schnittstelle. Der Feldname bleibt,
-  // damit aeltere Dateien einspielbar bleiben.
-  // BEWUSST: der Verfasser kommt zu Eintrag, Bewertung, Kommentar und
-  // Testtag, NICHT zum Favoriten. Er ist eine Aussage ueber einen Eintrag und
-  // nicht sein Inhalt; eine Liste fremder Favoriten in der Datei waere
-  // Ablage, kein Bestand.
-  const exportPins = new Set(qMeinePins.all(req.benutzer.id).map(p => p.item_id));
-  // EINE Karte von der Id auf den Namen, einmal je Aufruf gebaut und
-  // an vier Stellen benutzt -- statt vier LEFT JOINs auf users. Ein Ort, der
-  // aus einer Id einen Namen macht; die Gegenrichtung im Import hat aus
-  // demselben Grund ebenfalls genau einen.
-  // Der Name wird geliefert, NICHT die Id: eine nackte Id liest niemand, und
-  // sie waere in einer Datei, die das Haus verlaesst, eine Angabe ueber eine
-  // Person ohne jeden Nutzen. Wo eine Zeile herrenlos ist (ON DELETE SET NULL),
-  // steht ausdruecklich null -- das Feld fehlt nie, damit sich "kein Verfasser"
-  // von "altes Dateiformat" unterscheiden laesst.
+/* ================= Das Austauschformat =================
+
+   EINE ABBILDUNG JE EINTRAG, und sie steht hier statt mitten in der
+   Exportroute. Gerufen wird sie an drei Stellen: der volle Export, der
+   Einzelexport und der Papierkorb. Zwei Rechenwege fuer dieselbe Datei laufen
+   auseinander -- und ausgerechnet die Runde, die das Wiederherstellen baut,
+   haette damit den Fehler eingebaut, den sie verhindern soll.
+
+   DIE BYTES GEHEN UEBER EINEN TRICHTER, nicht ueber ein festes Feld. Zwei
+   Formen, ein Weg:
+     Exportdatei -- Base64 im Feld <name>_base64. Die Datei ist EIN String.
+     Papierkorb  -- eine NUMMER im Feld <name>_ref; die Bytes liegen daneben
+                    in papierkorb_bytes, als Bytes.
+   Der Grund ist gemessen und keine Vorsicht: ein Eintrag darf seit 0.8.50
+   zwanzig Videos zu je 20 MB tragen. Als Base64 sind das 533 MB in EINEM
+   String, und Node haelt keinen String ueber 512 MB
+   (MAX_STRING_LENGTH = 536.870.888); JSON.stringify antwortet mit
+   "RangeError: Invalid string length". Ein Papierkorb, der stumpf alles
+   einpackt, risse an genau dem Eintrag, den zu verlieren am meisten wehtut.
+   Zippen hilft dagegen NICHT -- der String entsteht vor dem Zippen. */
+
+// Die Formatnummer ist eine AUSSAGE, keine Bedingung: weder der Import noch
+// die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
+// Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
+// Fallunterscheidung nach Nummer steht. Sie steht an genau einer Stelle.
+// 10 seit 0.8.50, als die Fotozeilen ihre Art und die Videos ihre Dauer und
+// ihr Standbild mitbekamen. Eine Datei mit EINEM Eintrag ist dieselbe Form wie
+// eine mit hundert; der Einzelexport aus 0.8.70 bewegt die Nummer deshalb
+// nicht.
+const AUSTAUSCH_FORMAT = 10;
+
+// Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
+// hier und nicht als Zahl im Rumpf: der Wert kommt aus Node und nicht aus
+// einer Schaetzung.
+const AUSTAUSCH_MAX = Math.floor(require('buffer').constants.MAX_STRING_LENGTH * 0.9);
+
+// Der Trichter der Exportdatei. Base64 blaeht um ein Drittel auf, und das ist
+// der Preis dafuer, dass eine Textdatei Bytes tragen kann.
+const TRICHTER_DATEI = { endung: '_base64', nimm: (buf) => buf.toString('base64') };
+
+/* Der Trichter des Papierkorbs. Er sammelt die Bytes in einer Liste und legt
+   nur ihre Nummer ins Paket; die Liste wandert danach zeilenweise nach
+   papierkorb_bytes. So entsteht an keiner Stelle ein grosser String. */
+function trichterAblage(sammler) {
+  return { endung: '_ref', nimm: (buf) => { sammler.push(buf); return sammler.length - 1; } };
+}
+
+/* Die Gegenrichtung, einmal fuer beide Formen. Eine Datei traegt Base64, eine
+   Papierkorbzeile eine Nummer; `quelle` loest die Nummer auf und ist bei einer
+   Datei null. ERST DAS VORHANDENSEIN, dann der Wert -- ein fehlendes Feld ist
+   der Normalfall (Export ohne Videos, aeltere Datei) und kein Fehler. */
+function bytesAus(o, name, quelle) {
+  const b64 = o[name + '_base64'];
+  if (b64) return Buffer.from(b64, 'base64');
+  const nr = o[name + '_ref'];
+  if (quelle && nr != null) return quelle(nr);
+  return null;
+}
+
+/* EINE Karte von der Id auf den Namen, einmal je Aufruf gebaut und an vier
+   Stellen benutzt -- statt vier LEFT JOINs auf users. Ein Ort, der aus einer
+   Id einen Namen macht; die Gegenrichtung im Import hat aus demselben Grund
+   ebenfalls genau einen.
+   Der Name wird geliefert, NICHT die Id: eine nackte Id liest niemand, und sie
+   waere in einer Datei, die das Haus verlaesst, eine Angabe ueber eine Person
+   ohne jeden Nutzen. Wo eine Zeile herrenlos ist (ON DELETE SET NULL), steht
+   ausdruecklich null -- das Feld fehlt nie, damit sich "kein Verfasser" von
+   "altes Dateiformat" unterscheiden laesst. */
+function verfasserNamen() {
   const namen = new Map(db.prepare('SELECT id, username FROM users').all().map(u => [u.id, u.username]));
-  const verfasserName = (id) => (id == null ? null : (namen.get(id) || null));
-  const items = db.prepare('SELECT * FROM items ORDER BY id').all().map(it => {
-    const o = {
-      title: it.title, description: it.description,
-      rejected: !!it.rejected, tested: !!it.tested, favorite: exportPins.has(it.id),
-      // Der Eintrag selbst nennt seinen Verfasser: ohne dieses Feld schoebe
-      // eine ersetzende Wiederherstellung ALLE Eintraege dem Einspielenden zu.
-      author: verfasserName(it.user_id),
-      created_at: it.created_at, updated_at: it.updated_at,
-      category: it.product_category_id ? qCat.get(it.product_category_id).name : null,
-      tags: qTags.all(it.id).map(t => t.name),
-      // Ein Link ist keine nackte String mehr, sondern eine Adresse mit
-      // Verfasser -- wie an den vier anderen Traegern. Ohne dieses Feld kaemen
-      // eingespielte Links herrenlos herein, und der Export verloere genau die
-      // Angabe, die es zu tragen gilt. Dafuer steht die Formatnummer 7.
-      links: qLinks.all(it.id).map(l => ({ url: l.url, author: verfasserName(l.user_id) })),
-      // ORDER BY day, id: zwei Leute duerfen denselben Tag eintragen. Ohne
-      // die zweite Bedingung haetten die beiden Zeilen keine feste
-      // Reihenfolge in der Datei.
-      testDays: db.prepare('SELECT id, day, rating, user_id FROM test_days WHERE item_id = ? ORDER BY day, id').all(it.id)
-        .map(t => ({ day: t.day, rating: t.rating, author: verfasserName(t.user_id),
-                     tags: qTestDayTags.all(t.id).map(x => x.name) })),
-      // Dasselbe hier: je Kriterium steht eine Zeile JE BEWERTER in der Tabelle.
-      // Ohne den Verfasser fielen sie beim Einspielen alle auf dieselbe Zeile
-      // und ueberschrieben einander -- nur die letzte ueberlebte.
-      ratings: db.prepare(`SELECT c.name, r.value, r.user_id FROM ratings r
-                           JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.item_id = ?
-                           ORDER BY c.sort_order, c.id, r.user_id`).all(it.id)
-        .map(r => ({ name: r.name, value: r.value, author: verfasserName(r.user_id) })),
-      comments: db.prepare('SELECT id, text, kind, pinned, created_at, updated_at, user_id FROM comments WHERE item_id = ? ORDER BY id')
-        .all(it.id).map(c => ({
-          text: c.text, kind: c.kind, pinned: !!c.pinned, author: verfasserName(c.user_id),
-          created_at: c.created_at, updated_at: c.updated_at,
-          // Kommentarbilder folgen dem Schalter der Dateien; ein dritter waere
-          // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
-          images: withFiles
-            ? db.prepare('SELECT filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id')
-                .all(c.id).map(b2 => ({ filename: b2.filename, data_base64: b2.data.toString('base64') }))
-            : []
-        })),
-      photos: [], attachments: []
-    };
-    if (withPhotos) {
-      o.photos = db.prepare('SELECT mime_type, data, thumb, medium, focus_x, focus_y, art, dauer FROM photos WHERE item_id = ? ORDER BY sort_order, id')
-        .all(it.id).map(p => {
-          const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y, art: p.art };
-          if (p.art !== 'video') { z.data_base64 = p.data.toString('base64'); return z; }
-          z.dauer = p.dauer;
-          /* OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN -- ohne Bytes.
-             Sie legt beim Einspielen keinen Platz an (photos.data ist NOT
-             NULL, und ein Videoplatz, der ein Standbild ausliefert, bliebe im
-             Abspieler schwarz), aber der Import kann dadurch NENNEN, wie viele
-             Videos die Datei nicht enthielt. Ohne die Marke wuesste er es
-             nicht, und der Verlust waere still. */
-          if (withVideos) {
-            z.data_base64 = p.data.toString('base64');
-            /* Das Standbild geht EIGENS mit. Der Import erzeugt die Varianten
-               sonst aus data -- bei einem Video also aus der Videodatei, und
-               das Standbild waere verloren. */
-            const sb = p.medium || p.thumb;
-            if (sb) z.standbild_base64 = sb.toString('base64');
-          }
-          return z;
-        });
-    }
-    if (withFiles) {
-      // author wie an den fuenf anderen Traegern; ohne das Feld kaemen
-      // eingespielte Dateien herrenlos herein. Dafuer steht die Formatnummer 8.
-      o.attachments = db.prepare('SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id')
-        .all(it.id)
-        .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
-                      author: verfasserName(a2.user_id), data_base64: a2.data.toString('base64') }));
-    }
-    return o;
-  });
+  return (id) => (id == null ? null : (namen.get(id) || null));
+}
+
+/* Die Lage, in der ein Paket entsteht: wessen Favoriten gelten, wie die Bytes
+   hinausgehen und welche Schalter stehen. `pins` ist die Menge der Favoriten
+   DESSEN, DER ZIEHT -- dieselbe Bedeutung wie im Feld favorite der
+   Schnittstelle.
+   BEWUSST: der Verfasser kommt zu Eintrag, Bewertung, Kommentar und Testtag,
+   NICHT zum Favoriten. Er ist eine Aussage ueber einen Eintrag und nicht sein
+   Inhalt; eine Liste fremder Favoriten in der Datei waere Ablage, kein
+   Bestand. HINZUNEHMENDE FOLGE, und sie gehoert gesagt: beim Wiederherstellen
+   aus dem Papierkorb kommen die Favoriten ANDERER nicht zurueck. */
+function paketLage(benutzerId, schalter = {}) {
+  return {
+    verfasserName: verfasserNamen(),
+    pins: new Set(qMeinePins.all(benutzerId).map(p => p.item_id)),
+    trichter: schalter.trichter || TRICHTER_DATEI,
+    mitFotos: schalter.mitFotos !== false,
+    mitDateien: !!schalter.mitDateien,
+    mitVideos: !!schalter.mitVideos
+  };
+}
+
+// Die Abbildung je Eintrag. Sie kommt genau einmal vor; ein Waechter im
+// Pruefstand haelt das fest.
+function eintragAlsPaket(it, lage) {
+  const { verfasserName, pins, trichter, mitFotos, mitDateien, mitVideos } = lage;
+  const t = trichter.endung;
+  const o = {
+    title: it.title, description: it.description,
+    rejected: !!it.rejected, tested: !!it.tested, favorite: pins.has(it.id),
+    // Der Eintrag selbst nennt seinen Verfasser: ohne dieses Feld schoebe
+    // eine ersetzende Wiederherstellung ALLE Eintraege dem Einspielenden zu.
+    author: verfasserName(it.user_id),
+    created_at: it.created_at, updated_at: it.updated_at,
+    category: it.product_category_id ? qCat.get(it.product_category_id).name : null,
+    tags: qTags.all(it.id).map(x => x.name),
+    // Ein Link ist keine nackte String mehr, sondern eine Adresse mit
+    // Verfasser -- wie an den vier anderen Traegern. Ohne dieses Feld kaemen
+    // eingespielte Links herrenlos herein, und der Export verloere genau die
+    // Angabe, die es zu tragen gilt. Dafuer steht die Formatnummer 7.
+    links: qLinks.all(it.id).map(l => ({ url: l.url, author: verfasserName(l.user_id) })),
+    // ORDER BY day, id: zwei Leute duerfen denselben Tag eintragen. Ohne
+    // die zweite Bedingung haetten die beiden Zeilen keine feste
+    // Reihenfolge in der Datei.
+    testDays: db.prepare('SELECT id, day, rating, user_id FROM test_days WHERE item_id = ? ORDER BY day, id').all(it.id)
+      .map(x => ({ day: x.day, rating: x.rating, author: verfasserName(x.user_id),
+                   tags: qTestDayTags.all(x.id).map(y => y.name) })),
+    // Dasselbe hier: je Kriterium steht eine Zeile JE BEWERTER in der Tabelle.
+    // Ohne den Verfasser fielen sie beim Einspielen alle auf dieselbe Zeile
+    // und ueberschrieben einander -- nur die letzte ueberlebte.
+    ratings: db.prepare(`SELECT c.name, r.value, r.user_id FROM ratings r
+                         JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.item_id = ?
+                         ORDER BY c.sort_order, c.id, r.user_id`).all(it.id)
+      .map(r => ({ name: r.name, value: r.value, author: verfasserName(r.user_id) })),
+    comments: db.prepare('SELECT id, text, kind, pinned, created_at, updated_at, user_id FROM comments WHERE item_id = ? ORDER BY id')
+      .all(it.id).map(c => ({
+        text: c.text, kind: c.kind, pinned: !!c.pinned, author: verfasserName(c.user_id),
+        created_at: c.created_at, updated_at: c.updated_at,
+        // Kommentarbilder folgen dem Schalter der Dateien; ein dritter waere
+        // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
+        images: mitDateien
+          ? db.prepare('SELECT filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id')
+              .all(c.id).map(b2 => ({ filename: b2.filename, ['data' + t]: trichter.nimm(b2.data) }))
+          : []
+      })),
+    photos: [], attachments: []
+  };
+  if (mitFotos) {
+    o.photos = db.prepare('SELECT mime_type, data, thumb, medium, focus_x, focus_y, art, dauer FROM photos WHERE item_id = ? ORDER BY sort_order, id')
+      .all(it.id).map(p => {
+        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y, art: p.art };
+        if (p.art !== 'video') { z['data' + t] = trichter.nimm(p.data); return z; }
+        z.dauer = p.dauer;
+        /* OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN -- ohne Bytes.
+           Sie legt beim Einspielen keinen Platz an (photos.data ist NOT
+           NULL, und ein Videoplatz, der ein Standbild ausliefert, bliebe im
+           Abspieler schwarz), aber der Import kann dadurch NENNEN, wie viele
+           Videos die Datei nicht enthielt. Ohne die Marke wuesste er es
+           nicht, und der Verlust waere still. */
+        if (mitVideos) {
+          z['data' + t] = trichter.nimm(p.data);
+          /* Das Standbild geht EIGENS mit. Der Import erzeugt die Varianten
+             sonst aus data -- bei einem Video also aus der Videodatei, und
+             das Standbild waere verloren. */
+          const sb = p.medium || p.thumb;
+          if (sb) z['standbild' + t] = trichter.nimm(sb);
+        }
+        return z;
+      });
+  }
+  if (mitDateien) {
+    // author wie an den fuenf anderen Traegern; ohne das Feld kaemen
+    // eingespielte Dateien herrenlos herein. Dafuer steht die Formatnummer 8.
+    o.attachments = db.prepare('SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id')
+      .all(it.id)
+      .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
+                    author: verfasserName(a2.user_id), ['data' + t]: trichter.nimm(a2.data) }));
+  }
+  return o;
+}
+
+/* Der Umschlag um die Eintraege. Er steht getrennt, weil eine Datei mit EINEM
+   Eintrag denselben Umschlag braucht wie eine mit hundert -- und weil der
+   Papierkorb ihn ebenfalls ablegt: eine Papierkorbzeile ist ein vollstaendiges
+   Paket und nicht ein halbes. */
+function exportUmschlag(items) {
   const title = getSetting('title_app', 'Kriterion');
-  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kriterion';
   // Zusaetzliches Feld, damit die Kriterienreihenfolge den Export ueberlebt.
   // Bestehende Feldnamen bleiben unveraendert, aeltere Dateien ohne dieses
   // Feld lassen sich weiterhin einspielen.
   const kritZeilen = db.prepare('SELECT name, gewicht FROM rating_criteria ORDER BY sort_order, id').all();
-  const criteria = kritZeilen.map(c => c.name);
   /* Die Gewichte kommen als EIGENES Feld daneben, criteria bleibt eine Liste
      von Namen. Auf Objekte umzustellen brauchte nur einen Buchstaben mehr,
      liefe aber in einer aelteren Anlage durch String() und ergaebe dort ein
@@ -2523,20 +2607,460 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
      damit eine Datei, die zeichengleich zu der vor dieser Version ist. */
   const criteriaGewichte = {};
   for (const c of kritZeilen) if (c.gewicht !== 1) criteriaGewichte[c.name] = c.gewicht;
-  res.set('Content-Disposition', `attachment; filename="${slug}-export-${new Date().toISOString().slice(0,10)}.json"`);
-  // Die Formatnummer ist eine AUSSAGE, keine Bedingung: weder der Import noch
-  // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
-  // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
-  // Fallunterscheidung nach Nummer steht.
-  // 10 statt 9, seit die Fotozeilen ihre Art und die Videos ihre Dauer und ihr
-  // Standbild mitnehmen. Die Nummer sagt, was in der Datei steht, nicht wer
-  // sie geschrieben hat -- der Import liest weiterhin jede aeltere Form.
-  res.json({ exported_at: new Date().toISOString(), title, version: 10,
-             criteria, criteriaGewichte, items });
+  return { exported_at: new Date().toISOString(), title, version: AUSTAUSCH_FORMAT,
+           criteria: kritZeilen.map(c => c.name), criteriaGewichte, items };
+}
+
+// Der Dateiname einer Exportdatei. Aus dem Titel der Anlage, damit zwei
+// Anlagen nicht zwei gleichnamige Dateien im Ordner ablegen.
+function exportName(zusatz) {
+  const title = getSetting('title_app', 'Kriterion');
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kriterion';
+  return `${slug}-export${zusatz}-${new Date().toISOString().slice(0, 10)}.json`;
+}
+
+/* Wie viele Bytes eine Datei traegt, BEVOR sie gebaut wird. Base64 kostet ein
+   Drittel Aufschlag; wer darueber liegt, bekommt eine Absage statt eines
+   Abrisses. Eine Ansage ist besser als ein RangeError im Protokoll. */
+function austauschBytes(itemId, schalter) {
+  const eins = (sql, ...w) => db.prepare(sql).get(...w).n || 0;
+  let n = 0;
+  if (schalter.mitFotos)
+    n += eins("SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE item_id = ? AND art != 'video'", itemId);
+  if (schalter.mitFotos && schalter.mitVideos)
+    n += eins("SELECT COALESCE(SUM(length(data)+COALESCE(length(medium),0)),0) n FROM photos WHERE item_id = ? AND art = 'video'", itemId);
+  if (schalter.mitDateien) {
+    n += eins('SELECT COALESCE(SUM(length(data)),0) n FROM attachments WHERE item_id = ?', itemId);
+    n += eins(`SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
+               JOIN comments c ON c.id = ci.comment_id WHERE c.item_id = ?`, itemId);
+  }
+  return Math.round(n * 4 / 3);
+}
+
+/* ---- Export ---- */
+// Nur der Eigentuemer. Die Exportdatei ist der gesamte Bestand in
+// einer Datei, die das Haus verlaesst -- mit allen Fotos, allen Anhaengen und
+// den Namen aller Verfasser. "Alles sehen darf jeder" gilt fuer
+// den Bildschirm, nicht fuer die Mitnahme.
+// HINZUNEHMENDE FOLGE, und sie gehoert in den Betrieb: ein Admin ohne
+// Eigentuemerrecht kann keine Sicherung mehr ziehen.
+app.get('/api/export', nurEigentuemer, (req, res) => {
+  const schalter = {
+    mitFotos: req.query.photos !== '0',
+    // Eigener Schalter, Vorgabe aus: bei 50 MB je Datei waere die Exportdatei
+    // sonst schnell unhandlich -- Base64 blaeht zusaetzlich um ein Drittel auf.
+    mitDateien: req.query.files === '1',
+    /* Dasselbe fuer die Videos, und aus demselben Grund nur schaerfer: ein
+       20-MB-Video wird als Base64 zu 27 MB, und zwanzig davon sind 533 MB in
+       EINEM String. Node haelt kein String ueber rund 512 MB; der
+       Export risse. Vorgabe deshalb aus. */
+    mitVideos: req.query.videos === '1'
+  };
+  const lage = paketLage(req.benutzer.id, schalter);
+  const items = db.prepare('SELECT * FROM items ORDER BY id').all().map(it => eintragAlsPaket(it, lage));
+  res.set('Content-Disposition', `attachment; filename="${exportName('')}"`);
+  res.json(exportUmschlag(items));
+});
+
+/* ---- Ein einzelner Eintrag als Datei ----
+ * Lesend, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht trotzdem
+ * davor, und zwar derselbe wie am vollen Export.
+ * WARUM NICHT MILDER: eine Datei mit EINEM Eintrag nennt genauso die Namen
+ * ihrer Verfasser und kann beim Einspielen genauso unter fremdem Namen
+ * schreiben. Die Frage "was kann jemand mit dieser Datei tun" hat dieselbe
+ * Antwort wie beim vollen Export, und die Antwort haengt nicht an der Zahl der
+ * Eintraege.
+ * ALLES GEHT MIT, ohne Schalter: bei einem Eintrag ist die Datei die Sache
+ * selbst und keine Auswahl daraus. Wo sie zu gross wuerde, steht eine Absage.
+ */
+app.get('/api/items/:id/export', nurEigentuemer, (req, res) => {
+  const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
+  if (!it) return res.status(404).json({ error: 'Nicht gefunden' });
+  const schalter = { mitFotos: true, mitDateien: true, mitVideos: true };
+  const gross = austauschBytes(it.id, schalter);
+  if (gross > AUSTAUSCH_MAX)
+    return res.status(413).json({ error: `Dieser ${vokabular().sacheEinzahl} ist als Datei zu groß ` +
+      `(rund ${Math.round(gross / 1048576)} MB). Eine Exportdatei ist ein einziger Text, und der kann ` +
+      `nicht größer als 512 MB werden.` });
+  const paket = eintragAlsPaket(it, paketLage(req.benutzer.id, schalter));
+  res.set('Content-Disposition', `attachment; filename="${exportName('-' + it.id)}"`);
+  res.json(exportUmschlag([paket]));
 });
 
 /* ---- Import ---- */
 const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 900 * 1024 * 1024 } });
+
+/* DER DESERIALISIERER, und er steht hier statt im Routenrumpf -- aus demselben
+   Grund wie die Abbildung eine Seite weiter oben: das Wiederherstellen aus dem
+   Papierkorb braucht ihn genauso wie die Datei. Ein zweiter, frisch
+   geschriebener liefe auseinander, nur spiegelverkehrt.
+
+   `bytesQuelle` loest die Nummern des Papierkorbs auf und ist bei einer Datei
+   null -- dort stehen die Bytes als Base64 in der JSON selbst.
+
+   ASYNCHRON, und das hat einen Grund: die Bildvarianten entstehen ueber sharp
+   und muessen VOR der Transaktion fertig sein. In der Transaktion darf nichts
+   Langsames und nichts Asynchrones mehr passieren. */
+async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
+  // Ableitungen vorab erzeugen: das geht nicht innerhalb einer Transaktion,
+  // weil es asynchron ist.
+  const prepared = [];
+  // Kommentarbilder je Kommentarobjekt, damit sie in der Transaktion
+  // bereitliegen. WeakMap geht nicht -- die Objekte werden dort mehrfach
+  // nachgeschlagen.
+  const kommentarBilder = new Map();
+  /* Die laute Haelfte der Videos: nicht abbrechen, melden -- dieselbe Haltung
+     wie bei unbekannten Verfassernamen und ungueltigen Gewichten. */
+  let videosOhneDatei = 0, videosUnlesbar = 0;
+  for (const it of payload.items) {
+    const photos = [];
+    for (const p of it.photos || []) {
+      /* ENTSCHIEDEN WIRD UEBER DAS VORHANDENSEIN DER FELDER, nicht ueber die
+         Formatnummer -- die ist im Projekt eine Aussage, keine Bedingung.
+         Eine Datei ohne art an ihren Fotos ist eine aeltere, und alles darin
+         ist ein Bild. */
+      const istVideo = p.art === 'video';
+      const buf = bytesAus(p, 'data', bytesQuelle);
+      if (!buf) {
+        // Ein Videoplatz ohne Videodatei: so steht er in einer Datei, die
+        // ohne den Schalter geschrieben wurde. Er wird nicht angelegt,
+        // sondern gezaehlt und genannt. HINZUNEHMENDE FOLGE, und sie gehoert
+        // gesagt: stand das Video an erster Stelle, wird das naechste Foto
+        // zum Hauptbild.
+        if (istVideo) videosOhneDatei++;
+        continue;
+      }
+      /* Bei einem Video kommen die Varianten aus dem STANDBILD, nie aus
+         data: dort steht die Videodatei. Laesst sich das Standbild nicht
+         durch sharp lesen oder fehlt es, wird die Zeile uebergangen und
+         genannt -- dieselbe Regel wie beim Hochladen. */
+      const vorlage = istVideo ? bytesAus(p, 'standbild', bytesQuelle) : buf;
+      const v = vorlage ? await makeVariants(vorlage) : { thumb: null, medium: null };
+      // Dieselbe Schaerfe wie beim Hochladen: fehlt EINE der beiden
+      // Varianten, wird die Zeile nicht angelegt. Das Nachruesten beim Start
+      // holt sie an einer Videozeile nicht nach.
+      if (istVideo && (!v.thumb || !v.medium)) { videosUnlesbar++; continue; }
+      // Fokuspunkt aus der Datei uebernehmen; aeltere Exportdateien haben
+      // ihn nicht und landen auf der Mitte.
+      const im = (v2, vorgabe) => {
+        const n = Number(v2);
+        return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : vorgabe;
+      };
+      // Die Dauer ist eine Angabe wie der gemeldete Typ, und sie wird
+      // genauso beschnitten wie beim Hochladen.
+      const d = Math.round(Number(p.dauer));
+      photos.push({ mime: p.mime_type || (istVideo ? 'video/mp4' : 'image/jpeg'),
+                    buf, thumb: v.thumb, medium: v.medium,
+                    fx: im(p.focus_x, 50), fy: im(p.focus_y, 50),
+                    art: istVideo ? 'video' : 'bild',
+                    dauer: istVideo && Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null });
+    }
+    const attachments = [];
+    for (const a2 of it.attachments || []) {
+      const buf = bytesAus(a2, 'data', bytesQuelle);
+      if (!buf) continue;
+      attachments.push({
+        name: path.basename(String(a2.filename || 'datei')).slice(0, 200) || 'datei',
+        mime: String(a2.mime_type || '').slice(0, 120), buf,
+        // Roh mitgenommen und erst in der Transaktion aufgeloest: verfasser()
+        // liegt dort und zaehlt mit. `hatAutor` unterscheidet "kein Name
+        // genannt" (author: null) von "Feld gibt es nicht" (Format bis 7).
+        hatAutor: 'author' in a2, autor: a2.author
+      });
+    }
+    // Kommentarbilder vorab kodieren -- in der Transaktion darf nichts
+    // Langsames oder Asynchrones mehr passieren.
+    for (const c of it.comments || []) {
+      const fertig = [];
+      for (const b2 of c.images || []) {
+        const roh = bytesAus(b2, 'data', bytesQuelle);
+        if (!roh) continue;
+        try {
+          const { gross, klein } = await kodiereKommentarBild(roh);
+          fertig.push({ name: path.basename(String(b2.filename || 'bild.jpg')).slice(0, 200), gross, klein });
+        } catch { /* unlesbares Bild wird stillschweigend uebergangen */ }
+      }
+      if (fertig.length) kommentarBilder.set(c, fertig);
+    }
+    prepared.push({ it, photos, attachments });
+  }
+
+  const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0, attachments: 0 };
+  // Die Nummern der neu angelegten Eintraege. Der Papierkorb braucht sie, um
+  // nach dem Wiederherstellen in den Eintrag springen zu koennen; die
+  // Dateieinspielung laesst sie liegen.
+  const neueIds = [];
+
+  /* EIN Ort, der aus einem Namen eine Id macht -- die Gegenrichtung
+     zur Karte im Export. Die Regel:
+     ein genannter Name, den es gibt, wird zugeordnet; alles andere faellt
+     an den Einspielenden. Aeltere Dateien nennen gar keinen Namen und
+     landen deshalb vollstaendig beim Einspielenden.
+
+     EIN UNBEKANNTER NAME LEGT KEINEN ZUGANG AN. Taete er es, waere eine
+     Exportdatei ein Weg an der Verwaltung und am Passwort vorbei:
+     ein Zugang ohne Hash, den niemand angelegt hat.
+
+     EIN GRABSTEIN WIRD GEFUNDEN: ein entfernter Zugang bleibt als Zeile in
+     users stehen und traegt den Namen "geloescht-<nr>". Ein Beitrag, dessen
+     Verfasser inzwischen entfernt wurde, kommt deshalb WIEDER AM GRABSTEIN AN
+     und heisst auf dem Bildschirm weiterhin "Gelöschter Benutzer <nr>". Erst
+     wenn auch die Grabsteinzeile fort ist, faellt der Beitrag an den
+     Einspielenden -- und wird dann genannt.
+
+     Das Suchen laeuft ueber die Spalte username, und die traegt COLLATE
+     NOCASE -- die Gross- und Kleinschreibung entscheidet also nicht, und
+     zwar an derselben Spalte wie bei der Anmeldung. Ein NACHLAUFENDES
+     LEERZEICHEN trifft die Spalte dagegen nicht, deshalb das trim().
+
+     Der Zwischenspeicher haelt auch den Fehlgriff fest -- sonst fragte eine
+     Datei mit tausend Zeilen desselben unbekannten Namens tausendmal. */
+  const namensSpeicher = new Map();
+  const unbekannteNamen = new Set();
+  let zugeordnet = 0;
+  const qNachName = db.prepare('SELECT id FROM users WHERE username = ?');
+  const verfasser = (name) => {
+    const sauber = String(name == null ? '' : name).trim();
+    if (!sauber) return benutzerId;
+    let id = namensSpeicher.get(sauber);
+    if (id === undefined) {
+      const u = qNachName.get(sauber);
+      id = u ? u.id : null;
+      namensSpeicher.set(sauber, id);
+    }
+    if (id == null) { unbekannteNamen.add(sauber); return benutzerId; }
+    // Der eigene Name ist kein Fremdverweis: er zaehlt nicht als zugeordnet,
+    // sonst meldete jede selbst erzeugte Datei eine Zuordnung, die keine ist.
+    if (id !== benutzerId) zugeordnet++;
+    return id;
+  };
+
+  /* Die Gewichte aus der Datei, einmal aufbereitet -- und ausdruecklich
+     AUSSERHALB der Transaktion, weil die Antwort unten die verworfenen
+     nennen muss. Der Schluessel steht klein geschrieben, weil critByName()
+     ueber COLLATE NOCASE sucht -- sonst faende "Verarbeitung" das Gewicht zu
+     "verarbeitung" nicht.
+     EIN UNGUELTIGES GEWICHT BRICHT NICHT AB, sondern faellt auf 1,0 und wird
+     genannt. Eine ganze Einspielung an einem Zahlenwert scheitern zu lassen
+     waere unverhaeltnismaessig -- dieselbe Haltung wie bei einem unbekannten
+     Verfassernamen. */
+  const dateiGewichte = new Map();
+  const verworfeneGewichte = new Set();
+  const rohGewichte = payload.criteriaGewichte;
+  if (rohGewichte && typeof rohGewichte === 'object' && !Array.isArray(rohGewichte)) {
+    for (const [name, roh] of Object.entries(rohGewichte)) {
+      const sauber = String(name || '').trim();
+      if (!sauber) continue;
+      const g = gueltigesGewicht(roh);
+      if (g === null) { verworfeneGewichte.add(sauber); continue; }
+      dateiGewichte.set(sauber.toLowerCase(), g);
+    }
+  }
+
+  // Ein einziger Vorgang: bricht etwas ab, bleibt der Bestand unveraendert.
+  db.transaction(() => {
+    if (modus === 'replace') {
+      /* DIESE DREI ZEILEN FUELLEN DEN PAPIERKORB AUSDRUECKLICH NICHT.
+         Ein ersetzender Import legte sonst die ganze bisherige Anlage als
+         Pakete daneben und verdoppelte sie damit in derselben Datei. Wer
+         ersetzt, hat die Datei in der Hand, aus der er ersetzt -- das ist der
+         Rueckweg, und er ist ein anderer als der Papierkorb. */
+      db.prepare('DELETE FROM items').run();
+      db.prepare('DELETE FROM product_categories').run();
+      db.prepare('DELETE FROM tags').run();
+    }
+    const catByName = (name) => {
+      if (!name) return null;
+      const f = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE').get(name);
+      if (f) return f.id;
+      return db.prepare('INSERT INTO product_categories (name) VALUES (?)').run(name).lastInsertRowid;
+    };
+    const tagByName = (name) => {
+      const f = db.prepare('SELECT id FROM tags WHERE name = ? COLLATE NOCASE').get(name);
+      if (f) return f.id;
+      return db.prepare('INSERT INTO tags (name) VALUES (?)').run(name).lastInsertRowid;
+    };
+    const critByName = (name) => {
+      const f = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE').get(name);
+      // EIN BEKANNTES KRITERIUM BEHAELT SEIN GEWICHT. Der Import legt
+      // Bestand an, er aendert keine Einstellung des Ziels -- dieselbe Regel
+      // wie beim ersetzenden Import, der `users` nicht anruehrt.
+      if (f) return f.id;
+      const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
+      // Ein NEU angelegtes bekommt das Gewicht aus der Datei, sonst 1,0.
+      const g = dateiGewichte.get(String(name).trim().toLowerCase());
+      return db.prepare('INSERT INTO rating_criteria (name, sort_order, gewicht) VALUES (?, ?, ?)')
+        .run(name, pos, g === undefined ? 1.0 : g).lastInsertRowid;
+    };
+
+    // Kriterien vorab in der Reihenfolge der Datei anlegen. Vorhandene
+    // behalten ihren Platz, neue haengen sich in dieser Reihenfolge hinten an.
+    // Fehlt das Feld (aeltere Exportdatei), entstehen sie wie bisher in der
+    // Reihenfolge, in der die Eintraege sie erwaehnen.
+    for (const name of Array.isArray(payload.criteria) ? payload.criteria : []) {
+      const clean = String(name || '').trim();
+      if (clean) critByName(clean);
+    }
+
+    for (const { it, photos, attachments } of prepared) {
+      // Der genannte Verfasser, wenn es ihn gibt -- sonst der
+      // Einspielende.
+      // EINMAL ermittelt und festgehalten: die Linkzeilen einer Datei ohne
+      // Verfasserangabe brauchen dieselbe Nummer noch einmal, und ein
+      // zweiter Aufruf von verfasser() zaehlte den Fremdverweis doppelt.
+      const itemVerfasser = verfasser(it.author);
+      const id = db.prepare(`INSERT INTO items
+        (title, description, rejected, tested, product_category_id, created_at, updated_at, user_id)
+        VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')), ?)`)
+        .run(it.title || 'Ohne Titel', it.description || '',
+             it.rejected ? 1 : 0, it.tested ? 1 : 0,
+             catByName(it.category), it.created_at || null, it.updated_at || null,
+             itemVerfasser).lastInsertRowid;
+      neueIds.push(id);
+      // Der Favorit bleibt beim Einspielenden, auch wenn der Eintrag einem
+      // anderen zufaellt: favorite heisst "habe ICH als Favorit markiert".
+      if (it.favorite) db.prepare('INSERT OR IGNORE INTO item_pins (user_id, item_id) VALUES (?, ?)')
+        .run(benutzerId, id);
+      stats.items++;
+
+      for (const name of it.tags || [])
+        db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(id, tagByName(name));
+
+      // Dieselbe Regel wie beim Anlegen, damit sie an einer Stelle steht.
+      // Fuer aeltere Exportdateien aendert das nichts -- dort traegt jede
+      // Zeile bereits ein Schema und bleibt unveraendert.
+      // Die Sortiernummer zaehlt je Eintrag und muss lueckenlos bleiben,
+      // darf also nicht der eintragsuebergreifende
+      // Zaehler in stats sein und nicht der Index der Rohliste, aus der
+      // Leerzeilen herausfallen.
+      /* ZWEI FORMEN, EINE SCHLEIFE. Bis Formatnummer 6 war ein Link eine
+         nackte String, ab 7 ein Objekt mit url und author. Eine alte
+         Datei ist kein Fehler, sondern der Normalfall nach einem
+         Downgrade.
+         WEM EIN LINK AUS EINER DATEI DER FORMATNUMMER 6 GEHOERT: dem
+         Verfasser DES EINTRAGS -- dieselbe Antwort wie beim Migration und aus
+         demselben Grund. Die Datei sagt nichts anderes, als dass die Links
+         zu diesem Eintrag gehoeren; "unbekannter Name" traefe es nicht, es
+         steht ja keiner da. Deshalb wird hier verfasser() NICHT gefragt,
+         sondern die schon ermittelte Nummer des Eintrags genommen. */
+      let lpos = 0;
+      (it.links || []).forEach((eintrag) => {
+        const roh = (eintrag && typeof eintrag === 'object') ? eintrag.url : eintrag;
+        const sauber = normalisiereLink(roh);
+        if (!sauber) return;
+        const wem = (eintrag && typeof eintrag === 'object' && 'author' in eintrag)
+          ? verfasser(eintrag.author) : itemVerfasser;
+        db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
+          .run(id, sauber, lpos++, wem);
+        stats.links++;
+      });
+
+      for (const t of it.testDays || []) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(t.day || '')) continue;
+        // OR REPLACE bleibt: die Datei ist die Wahrheit, der spaetere Wert
+        // gewinnt. Das tut mehr, als es aussieht: REPLACE LOESCHT die
+        // getroffene Zeile, und ueber ON DELETE CASCADE gehen deren
+        // test_day_tags lautlos mit. Getroffen wird nur, was
+        // UNIQUE(item_id, day, user_id) verletzt -- also nur derselbe Tag
+        // DESSELBEN Verfassers; zwei Bewerter am selben Tag bleiben zwei
+        // Zeilen. Fallen zwei unbekannte Namen auf den Einspielenden,
+        // fallen sie doch zusammen -- deshalb die Protokollzeile unten.
+        const einf = db.prepare(`INSERT OR REPLACE INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)`)
+          .run(id, t.day, Math.max(1, Math.min(5, Number(t.rating) || 1)), verfasser(t.author));
+        // Aeltere Exportdateien haben hier kein Feld -- dann bleibt der
+        // Testtag einfach ohne Tags.
+        for (const name of Array.isArray(t.tags) ? t.tags : []) {
+          const clean = String(name || '').trim();
+          if (clean) db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)')
+            .run(einf.lastInsertRowid, tagByName(clean));
+        }
+        stats.testDays++;
+      }
+
+      // Wie bei Eintrag, Kommentar und Testtag: der genannte Verfasser, sonst
+      // der Einspielende. Dieselbe Ueberlegung zu OR REPLACE wie beim
+      // Testtag -- nur dass eine Bewertungszeile keine Kinder hat und ein
+      // Zusammenfallen daher nur den Wert kostet, nicht noch Tags dazu.
+      for (const r of it.ratings || [])
+        db.prepare(`INSERT OR REPLACE INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, ?, ?)`)
+          .run(id, critByName(r.name), Math.max(0, Math.min(5, Number(r.value) || 0)), verfasser(r.author));
+
+      for (const c of it.comments || []) {
+        // Aeltere Exportdateien kennen kind und pinned nicht -- dann gilt der
+        // Kommentar als gewoehnliche Notiz.
+        const einf = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id)
+                      VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?)`)
+            .run(id, c.text || '', kindWert(c.kind), c.pinned ? 1 : 0,
+                 c.created_at || null, c.updated_at || null, verfasser(c.author));
+        stats.comments++;
+        (kommentarBilder.get(c) || []).forEach((b2, i) =>
+          db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
+                      VALUES (?, ?, ?, ?, ?)`)
+            .run(einf.lastInsertRowid, b2.name, b2.gross, b2.klein, i));
+      }
+
+      // Fortlaufend neu nummeriert: uebergangene Videos hinterlassen keine
+      // Luecke in der Reihenfolge.
+      photos.forEach((p, i) =>
+        { db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, sort_order, art, dauer)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+            .run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, i, p.art, p.dauer);
+          if (p.art === 'video') stats.videos++; else stats.photos++; });
+
+      /* Fehlt das Feld (aeltere Exportdatei oder Export ohne Dateien),
+         bleibt der Eintrag einfach ohne Anhaenge.
+         WEM EINE DATEI AUS EINER DATEI DER FORMATNUMMER 7 ODER AELTER
+         GEHOERT: dem Verfasser DES EINTRAGS -- dieselbe Antwort wie beim
+         Migration und wie bei den Links. Steht dagegen ein Feld `author` da,
+         entscheidet es, auch wenn es null ist. */
+      attachments.forEach((a2, i) =>
+        { db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+                      VALUES (?, ?, ?, ?, ?, ?, ?)`)
+            .run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i,
+                 a2.hatAutor ? verfasser(a2.autor) : itemVerfasser); stats.attachments++; });
+    }
+  })();
+
+  renumberCriteria();
+  reclaim();
+
+  /* Die laute Haelfte. Ein Name, den es nicht gibt, faellt an den
+     Einspielenden -- das ist die entworfene Regel und trotzdem der stillste
+     denkbare Vorgang: beim Einspielen einer Mehrbenutzersicherung in eine
+     frische Anlage zieht der gesamte Bestand wortlos um, und zwei Zeilen zur
+     selben Sache fallen dabei ueber OR REPLACE zusammen. Deshalb steht die
+     Liste in der Antwort UND im Protokoll -- die Antwort fuer den Pruefstand
+     und die Abfrage von Hand, das Protokoll fuer den Betrieb, wo die
+     Nachschau ohnehin mit "docker compose logs" anfaengt.
+     Der Ausweg steht in der Zeile selbst: die fehlenden Zugaenge anlegen und
+     noch einmal einspielen. */
+  const unbekannt = [...unbekannteNamen].sort();
+  if (unbekannt.length)
+    console.log(`[Kriterion] Import: unbekannte Verfasser dem Einspielenden zugeordnet ` +
+                `(${unbekannt.length}): ${unbekannt.join(', ')}`);
+  /* Dieselbe Bauform eine Zeile tiefer: ein Gewicht, das die Spanne
+     verlaesst, bricht nichts ab und verschwindet auch nicht wortlos. Es
+     steht in der Antwort UND im Protokoll -- die Antwort fuer den Pruefstand
+     und die Abfrage von Hand, das Protokoll fuer den Betrieb. */
+  const gewichteVerworfen = [...verworfeneGewichte].sort();
+  if (gewichteVerworfen.length)
+    console.log(`[Kriterion] Import: ungueltiges Gewicht auf 1,0 zurueckgesetzt ` +
+                `(${gewichteVerworfen.length}): ${gewichteVerworfen.join(', ')}`);
+  /* Und dieselbe Bauform ein drittes Mal, an den Videos. Ein Export ohne den
+     Videoschalter enthaelt ihre Daten nicht; das darf nicht still bleiben,
+     denn stand ein Video an erster Stelle, wird jetzt das naechste Foto zum
+     Hauptbild. Antwort UND Protokoll -- die Antwort fuer den Pruefstand und
+     die Abfrage von Hand, das Protokoll fuer den Betrieb. */
+  if (videosOhneDatei)
+    console.log(`[Kriterion] Import: ${videosOhneDatei} Video(s) waren nicht in der Datei ` +
+                `enthalten und wurden uebergangen.`);
+  if (videosUnlesbar)
+    console.log(`[Kriterion] Import: ${videosUnlesbar} Video(s) ohne lesbares Standbild ` +
+                `uebergangen.`);
+  return { ok: true, mode: modus, ...stats,
+           verfasserZugeordnet: zugeordnet, verfasserUnbekannt: unbekannt,
+           gewichteVerworfen, videosOhneDatei, videosUnlesbar, neueIds };
+}
 
 /* Nur der Eigentuemer. EINE EXPORTDATEI KANN UNTER FREMDEM NAMEN SCHREIBEN:
    sie nennt zu jedem Eintrag, jeder Bewertung, jedem Kommentar und jedem
@@ -2557,350 +3081,168 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
     catch { return res.status(400).json({ error: 'Die Datei ist kein gültiger Export.' }); }
     if (!payload || !Array.isArray(payload.items))
       return res.status(400).json({ error: 'Die Datei enthält nichts zum Einspielen.' });
-
-    // Ableitungen vorab erzeugen: das geht nicht innerhalb einer Transaktion,
-    // weil es asynchron ist.
-    const prepared = [];
-    // Kommentarbilder je Kommentarobjekt, damit sie in der Transaktion
-    // bereitliegen. WeakMap geht nicht -- die Objekte werden dort mehrfach
-    // nachgeschlagen.
-    const kommentarBilder = new Map();
-    /* Die laute Haelfte der Videos: nicht abbrechen, melden -- dieselbe Haltung
-       wie bei unbekannten Verfassernamen und ungueltigen Gewichten. */
-    let videosOhneDatei = 0, videosUnlesbar = 0;
-    for (const it of payload.items) {
-      const photos = [];
-      for (const p of it.photos || []) {
-        /* ENTSCHIEDEN WIRD UEBER DAS VORHANDENSEIN DER FELDER, nicht ueber die
-           Formatnummer -- die ist im Projekt eine Aussage, keine Bedingung.
-           Eine Datei ohne art an ihren Fotos ist eine aeltere, und alles darin
-           ist ein Bild. */
-        const istVideo = p.art === 'video';
-        if (!p.data_base64) {
-          // Ein Videoplatz ohne Videodatei: so steht er in einer Datei, die
-          // ohne den Schalter geschrieben wurde. Er wird nicht angelegt,
-          // sondern gezaehlt und genannt. HINZUNEHMENDE FOLGE, und sie gehoert
-          // gesagt: stand das Video an erster Stelle, wird das naechste Foto
-          // zum Hauptbild.
-          if (istVideo) videosOhneDatei++;
-          continue;
-        }
-        const buf = Buffer.from(p.data_base64, 'base64');
-        /* Bei einem Video kommen die Varianten aus dem STANDBILD, nie aus
-           data: dort steht die Videodatei. Laesst sich das Standbild nicht
-           durch sharp lesen oder fehlt es, wird die Zeile uebergangen und
-           genannt -- dieselbe Regel wie beim Hochladen. */
-        const quelle = istVideo
-          ? (p.standbild_base64 ? Buffer.from(p.standbild_base64, 'base64') : null)
-          : buf;
-        const v = quelle ? await makeVariants(quelle) : { thumb: null, medium: null };
-        // Dieselbe Schaerfe wie beim Hochladen: fehlt EINE der beiden
-        // Varianten, wird die Zeile nicht angelegt. Das Nachruesten beim Start
-        // holt sie an einer Videozeile nicht nach.
-        if (istVideo && (!v.thumb || !v.medium)) { videosUnlesbar++; continue; }
-        // Fokuspunkt aus der Datei uebernehmen; aeltere Exportdateien haben
-        // ihn nicht und landen auf der Mitte.
-        const im = (v2, vorgabe) => {
-          const n = Number(v2);
-          return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : vorgabe;
-        };
-        // Die Dauer ist eine Angabe wie der gemeldete Typ, und sie wird
-        // genauso beschnitten wie beim Hochladen.
-        const d = Math.round(Number(p.dauer));
-        photos.push({ mime: p.mime_type || (istVideo ? 'video/mp4' : 'image/jpeg'),
-                      buf, thumb: v.thumb, medium: v.medium,
-                      fx: im(p.focus_x, 50), fy: im(p.focus_y, 50),
-                      art: istVideo ? 'video' : 'bild',
-                      dauer: istVideo && Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null });
-      }
-      const attachments = [];
-      for (const a2 of it.attachments || []) {
-        if (!a2.data_base64) continue;
-        const buf = Buffer.from(a2.data_base64, 'base64');
-        attachments.push({
-          name: path.basename(String(a2.filename || 'datei')).slice(0, 200) || 'datei',
-          mime: String(a2.mime_type || '').slice(0, 120), buf,
-          // Roh mitgenommen und erst in der Transaktion aufgeloest: verfasser()
-          // liegt dort und zaehlt mit. `hatAutor` unterscheidet "kein Name
-          // genannt" (author: null) von "Feld gibt es nicht" (Format bis 7).
-          hatAutor: 'author' in a2, autor: a2.author
-        });
-      }
-      // Kommentarbilder vorab kodieren -- in der Transaktion darf nichts
-      // Langsames oder Asynchrones mehr passieren.
-      for (const c of it.comments || []) {
-        const fertig = [];
-        for (const b2 of c.images || []) {
-          if (!b2.data_base64) continue;
-          try {
-            const { gross, klein } = await kodiereKommentarBild(Buffer.from(b2.data_base64, 'base64'));
-            fertig.push({ name: path.basename(String(b2.filename || 'bild.jpg')).slice(0, 200), gross, klein });
-          } catch { /* unlesbares Bild wird stillschweigend uebergangen */ }
-        }
-        if (fertig.length) kommentarBilder.set(c, fertig);
-      }
-      prepared.push({ it, photos, attachments });
-    }
-
-    const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0, attachments: 0 };
-
-    /* EIN Ort, der aus einem Namen eine Id macht -- die Gegenrichtung
-       zur Karte im Export. Die Regel:
-       ein genannter Name, den es gibt, wird zugeordnet; alles andere faellt
-       an den Einspielenden. Aeltere Dateien nennen gar keinen Namen und
-       landen deshalb vollstaendig beim Einspielenden.
-
-       EIN UNBEKANNTER NAME LEGT KEINEN ZUGANG AN. Taete er es, waere eine
-       Exportdatei ein Weg an der Verwaltung und am Passwort vorbei:
-       ein Zugang ohne Hash, den niemand angelegt hat.
-
-       Das Suchen laeuft ueber die Spalte username, und die traegt COLLATE
-       NOCASE -- die Gross- und Kleinschreibung entscheidet also nicht, und
-       zwar an derselben Spalte wie bei der Anmeldung. Ein NACHLAUFENDES
-       LEERZEICHEN trifft die Spalte dagegen nicht, deshalb das trim().
-
-       Der Zwischenspeicher haelt auch den Fehlgriff fest -- sonst fragte eine
-       Datei mit tausend Zeilen desselben unbekannten Namens tausendmal. */
-    const namensSpeicher = new Map();
-    const unbekannteNamen = new Set();
-    let zugeordnet = 0;
-    const qNachName = db.prepare('SELECT id FROM users WHERE username = ?');
-    const verfasser = (name) => {
-      const sauber = String(name == null ? '' : name).trim();
-      if (!sauber) return req.benutzer.id;
-      let id = namensSpeicher.get(sauber);
-      if (id === undefined) {
-        const u = qNachName.get(sauber);
-        id = u ? u.id : null;
-        namensSpeicher.set(sauber, id);
-      }
-      if (id == null) { unbekannteNamen.add(sauber); return req.benutzer.id; }
-      // Der eigene Name ist kein Fremdverweis: er zaehlt nicht als zugeordnet,
-      // sonst meldete jede selbst erzeugte Datei eine Zuordnung, die keine ist.
-      if (id !== req.benutzer.id) zugeordnet++;
-      return id;
-    };
-
-    /* Die Gewichte aus der Datei, einmal aufbereitet -- und ausdruecklich
-       AUSSERHALB der Transaktion, weil die Antwort unten die verworfenen
-       nennen muss. Der Schluessel steht klein geschrieben, weil critByName()
-       ueber COLLATE NOCASE sucht -- sonst faende "Verarbeitung" das Gewicht zu
-       "verarbeitung" nicht.
-       EIN UNGUELTIGES GEWICHT BRICHT NICHT AB, sondern faellt auf 1,0 und wird
-       genannt. Eine ganze Einspielung an einem Zahlenwert scheitern zu lassen
-       waere unverhaeltnismaessig -- dieselbe Haltung wie bei einem unbekannten
-       Verfassernamen. */
-    const dateiGewichte = new Map();
-    const verworfeneGewichte = new Set();
-    const rohGewichte = payload.criteriaGewichte;
-    if (rohGewichte && typeof rohGewichte === 'object' && !Array.isArray(rohGewichte)) {
-      for (const [name, roh] of Object.entries(rohGewichte)) {
-        const sauber = String(name || '').trim();
-        if (!sauber) continue;
-        const g = gueltigesGewicht(roh);
-        if (g === null) { verworfeneGewichte.add(sauber); continue; }
-        dateiGewichte.set(sauber.toLowerCase(), g);
-      }
-    }
-
-    // Ein einziger Vorgang: bricht etwas ab, bleibt der Bestand unveraendert.
-    db.transaction(() => {
-      if (mode === 'replace') {
-        db.prepare('DELETE FROM items').run();
-        db.prepare('DELETE FROM product_categories').run();
-        db.prepare('DELETE FROM tags').run();
-      }
-      const catByName = (name) => {
-        if (!name) return null;
-        const f = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE').get(name);
-        if (f) return f.id;
-        return db.prepare('INSERT INTO product_categories (name) VALUES (?)').run(name).lastInsertRowid;
-      };
-      const tagByName = (name) => {
-        const f = db.prepare('SELECT id FROM tags WHERE name = ? COLLATE NOCASE').get(name);
-        if (f) return f.id;
-        return db.prepare('INSERT INTO tags (name) VALUES (?)').run(name).lastInsertRowid;
-      };
-      const critByName = (name) => {
-        const f = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE').get(name);
-        // EIN BEKANNTES KRITERIUM BEHAELT SEIN GEWICHT. Der Import legt
-        // Bestand an, er aendert keine Einstellung des Ziels -- dieselbe Regel
-        // wie beim ersetzenden Import, der `users` nicht anruehrt.
-        if (f) return f.id;
-        const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
-        // Ein NEU angelegtes bekommt das Gewicht aus der Datei, sonst 1,0.
-        const g = dateiGewichte.get(String(name).trim().toLowerCase());
-        return db.prepare('INSERT INTO rating_criteria (name, sort_order, gewicht) VALUES (?, ?, ?)')
-          .run(name, pos, g === undefined ? 1.0 : g).lastInsertRowid;
-      };
-
-      // Kriterien vorab in der Reihenfolge der Datei anlegen. Vorhandene
-      // behalten ihren Platz, neue haengen sich in dieser Reihenfolge hinten an.
-      // Fehlt das Feld (aeltere Exportdatei), entstehen sie wie bisher in der
-      // Reihenfolge, in der die Eintraege sie erwaehnen.
-      for (const name of Array.isArray(payload.criteria) ? payload.criteria : []) {
-        const clean = String(name || '').trim();
-        if (clean) critByName(clean);
-      }
-
-      for (const { it, photos, attachments } of prepared) {
-        // Der genannte Verfasser, wenn es ihn gibt -- sonst der
-        // Einspielende.
-        // EINMAL ermittelt und festgehalten: die Linkzeilen einer Datei ohne
-        // Verfasserangabe brauchen dieselbe Nummer noch einmal, und ein
-        // zweiter Aufruf von verfasser() zaehlte den Fremdverweis doppelt.
-        const itemVerfasser = verfasser(it.author);
-        const id = db.prepare(`INSERT INTO items
-          (title, description, rejected, tested, product_category_id, created_at, updated_at, user_id)
-          VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')), ?)`)
-          .run(it.title || 'Ohne Titel', it.description || '',
-               it.rejected ? 1 : 0, it.tested ? 1 : 0,
-               catByName(it.category), it.created_at || null, it.updated_at || null,
-               itemVerfasser).lastInsertRowid;
-        // Der Favorit bleibt beim Einspielenden, auch wenn der Eintrag einem
-        // anderen zufaellt: favorite heisst "habe ICH als Favorit markiert".
-        if (it.favorite) db.prepare('INSERT OR IGNORE INTO item_pins (user_id, item_id) VALUES (?, ?)')
-          .run(req.benutzer.id, id);
-        stats.items++;
-
-        for (const name of it.tags || [])
-          db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(id, tagByName(name));
-
-        // Dieselbe Regel wie beim Anlegen, damit sie an einer Stelle steht.
-        // Fuer aeltere Exportdateien aendert das nichts -- dort traegt jede
-        // Zeile bereits ein Schema und bleibt unveraendert.
-        // Die Sortiernummer zaehlt je Eintrag und muss lueckenlos bleiben,
-        // darf also nicht der eintragsuebergreifende
-        // Zaehler in stats sein und nicht der Index der Rohliste, aus der
-        // Leerzeilen herausfallen.
-        /* ZWEI FORMEN, EINE SCHLEIFE. Bis Formatnummer 6 war ein Link eine
-           nackte String, ab 7 ein Objekt mit url und author. Eine alte
-           Datei ist kein Fehler, sondern der Normalfall nach einem
-           Downgrade.
-           WEM EIN LINK AUS EINER DATEI DER FORMATNUMMER 6 GEHOERT: dem
-           Verfasser DES EINTRAGS -- dieselbe Antwort wie beim Migration und aus
-           demselben Grund. Die Datei sagt nichts anderes, als dass die Links
-           zu diesem Eintrag gehoeren; "unbekannter Name" traefe es nicht, es
-           steht ja keiner da. Deshalb wird hier verfasser() NICHT gefragt,
-           sondern die schon ermittelte Nummer des Eintrags genommen. */
-        let lpos = 0;
-        (it.links || []).forEach((eintrag) => {
-          const roh = (eintrag && typeof eintrag === 'object') ? eintrag.url : eintrag;
-          const sauber = normalisiereLink(roh);
-          if (!sauber) return;
-          const wem = (eintrag && typeof eintrag === 'object' && 'author' in eintrag)
-            ? verfasser(eintrag.author) : itemVerfasser;
-          db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
-            .run(id, sauber, lpos++, wem);
-          stats.links++;
-        });
-
-        for (const t of it.testDays || []) {
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(t.day || '')) continue;
-          // OR REPLACE bleibt: die Datei ist die Wahrheit, der spaetere Wert
-          // gewinnt. Das tut mehr, als es aussieht: REPLACE LOESCHT die
-          // getroffene Zeile, und ueber ON DELETE CASCADE gehen deren
-          // test_day_tags lautlos mit. Getroffen wird nur, was
-          // UNIQUE(item_id, day, user_id) verletzt -- also nur derselbe Tag
-          // DESSELBEN Verfassers; zwei Bewerter am selben Tag bleiben zwei
-          // Zeilen. Fallen zwei unbekannte Namen auf den Einspielenden,
-          // fallen sie doch zusammen -- deshalb die Protokollzeile unten.
-          const einf = db.prepare(`INSERT OR REPLACE INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)`)
-            .run(id, t.day, Math.max(1, Math.min(5, Number(t.rating) || 1)), verfasser(t.author));
-          // Aeltere Exportdateien haben hier kein Feld -- dann bleibt der
-          // Testtag einfach ohne Tags.
-          for (const name of Array.isArray(t.tags) ? t.tags : []) {
-            const clean = String(name || '').trim();
-            if (clean) db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)')
-              .run(einf.lastInsertRowid, tagByName(clean));
-          }
-          stats.testDays++;
-        }
-
-        // Wie bei Eintrag, Kommentar und Testtag: der genannte Verfasser, sonst
-        // der Einspielende. Dieselbe Ueberlegung zu OR REPLACE wie beim
-        // Testtag -- nur dass eine Bewertungszeile keine Kinder hat und ein
-        // Zusammenfallen daher nur den Wert kostet, nicht noch Tags dazu.
-        for (const r of it.ratings || [])
-          db.prepare(`INSERT OR REPLACE INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, ?, ?)`)
-            .run(id, critByName(r.name), Math.max(0, Math.min(5, Number(r.value) || 0)), verfasser(r.author));
-
-        for (const c of it.comments || []) {
-          // Aeltere Exportdateien kennen kind und pinned nicht -- dann gilt der
-          // Kommentar als gewoehnliche Notiz.
-          const einf = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id)
-                        VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?)`)
-              .run(id, c.text || '', kindWert(c.kind), c.pinned ? 1 : 0,
-                   c.created_at || null, c.updated_at || null, verfasser(c.author));
-          stats.comments++;
-          (kommentarBilder.get(c) || []).forEach((b2, i) =>
-            db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
-                        VALUES (?, ?, ?, ?, ?)`)
-              .run(einf.lastInsertRowid, b2.name, b2.gross, b2.klein, i));
-        }
-
-        // Fortlaufend neu nummeriert: uebergangene Videos hinterlassen keine
-        // Luecke in der Reihenfolge.
-        photos.forEach((p, i) =>
-          { db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, sort_order, art, dauer)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-              .run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, i, p.art, p.dauer);
-            if (p.art === 'video') stats.videos++; else stats.photos++; });
-
-        /* Fehlt das Feld (aeltere Exportdatei oder Export ohne Dateien),
-           bleibt der Eintrag einfach ohne Anhaenge.
-           WEM EINE DATEI AUS EINER DATEI DER FORMATNUMMER 7 ODER AELTER
-           GEHOERT: dem Verfasser DES EINTRAGS -- dieselbe Antwort wie beim
-           Migration und wie bei den Links. Steht dagegen ein Feld `author` da,
-           entscheidet es, auch wenn es null ist. */
-        attachments.forEach((a2, i) =>
-          { db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)`)
-              .run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i,
-                   a2.hatAutor ? verfasser(a2.autor) : itemVerfasser); stats.attachments++; });
-      }
-    })();
-
-    renumberCriteria();
-    reclaim();
-
-    /* Die laute Haelfte. Ein Name, den es nicht gibt, faellt an den
-       Einspielenden -- das ist die entworfene Regel und trotzdem der stillste
-       denkbare Vorgang: beim Einspielen einer Mehrbenutzersicherung in eine
-       frische Anlage zieht der gesamte Bestand wortlos um, und zwei Zeilen zur
-       selben Sache fallen dabei ueber OR REPLACE zusammen. Deshalb steht die
-       Liste in der Antwort UND im Protokoll -- die Antwort fuer den Pruefstand
-       und die Abfrage von Hand, das Protokoll fuer den Betrieb, wo die
-       Nachschau ohnehin mit "docker compose logs" anfaengt.
-       Der Ausweg steht in der Zeile selbst: die fehlenden Zugaenge anlegen und
-       noch einmal einspielen. */
-    const unbekannt = [...unbekannteNamen].sort();
-    if (unbekannt.length)
-      console.log(`[Kriterion] Import: unbekannte Verfasser dem Einspielenden zugeordnet ` +
-                  `(${unbekannt.length}): ${unbekannt.join(', ')}`);
-    /* Dieselbe Bauform eine Zeile tiefer: ein Gewicht, das die Spanne
-       verlaesst, bricht nichts ab und verschwindet auch nicht wortlos. Es
-       steht in der Antwort UND im Protokoll -- die Antwort fuer den Pruefstand
-       und die Abfrage von Hand, das Protokoll fuer den Betrieb. */
-    const gewichteVerworfen = [...verworfeneGewichte].sort();
-    if (gewichteVerworfen.length)
-      console.log(`[Kriterion] Import: ungueltiges Gewicht auf 1,0 zurueckgesetzt ` +
-                  `(${gewichteVerworfen.length}): ${gewichteVerworfen.join(', ')}`);
-    /* Und dieselbe Bauform ein drittes Mal, an den Videos. Ein Export ohne den
-       Videoschalter enthaelt ihre Daten nicht; das darf nicht still bleiben,
-       denn stand ein Video an erster Stelle, wird jetzt das naechste Foto zum
-       Hauptbild. Antwort UND Protokoll -- die Antwort fuer den Pruefstand und
-       die Abfrage von Hand, das Protokoll fuer den Betrieb. */
-    if (videosOhneDatei)
-      console.log(`[Kriterion] Import: ${videosOhneDatei} Video(s) waren nicht in der Datei ` +
-                  `enthalten und wurden uebergangen.`);
-    if (videosUnlesbar)
-      console.log(`[Kriterion] Import: ${videosUnlesbar} Video(s) ohne lesbares Standbild ` +
-                  `uebergangen.`);
-    res.json({ ok: true, mode, ...stats,
-               verfasserZugeordnet: zugeordnet, verfasserUnbekannt: unbekannt,
-               gewichteVerworfen, videosOhneDatei, videosUnlesbar });
+    // neueIds bleibt hier liegen: eine Datei mit hundert Eintraegen liefert
+    // hundert Nummern, mit denen die Oberflaeche nichts anfaengt.
+    const { neueIds, ...antwort } = await spieleEin(payload, req.benutzer.id, mode);
+    res.json(antwort);
   } catch (e) { next(e); }
+});
+
+
+/* ================= Der Papierkorb =================
+
+   Beim Loeschen eines Eintrags wird er im vorhandenen Austauschformat
+   serialisiert und als EINE Zeile abgelegt -- in DERSELBEN Transaktion wie das
+   Loeschen. Danach laeuft die Kaskade wie bisher.
+
+   KEINE BESTEHENDE ABFRAGE AENDERT SICH. items bekommt keine Spalte, kein
+   WHERE bekommt einen Zusatz. Ein geloeschter Eintrag ist wirklich weg -- er
+   liegt nur zusaetzlich noch als Paket daneben. Die Begruendung dieser Bauform
+   steht in db.js an der Tabelle.
+
+   ZWEI LOESCHWEGE FUELLEN IHN AUSDRUECKLICH NICHT, und das gehoert gesagt:
+   "Zugang entfernen" mit dem Haekchen "Eintraege mitnehmen" (das steckt in
+   auth.js, und auth.js darf von der Abbildung in server.js nichts wissen --
+   die Abhaengigkeit laeuft andersherum) und der ERSETZENDE Import (er
+   verdoppelte sonst die ganze bisherige Anlage in den Papierkorb). */
+
+const PAPIERKORB_TAGE = 30;
+
+const insPapierkorb = db.prepare(
+  'INSERT INTO papierkorb (titel, inhalt, geloescht_von) VALUES (?, ?, ?)');
+const insPapierkorbBytes = db.prepare(
+  'INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (?, ?, ?)');
+const qPapierkorbBytes = db.prepare(
+  'SELECT daten FROM papierkorb_bytes WHERE papierkorb_id = ? AND nr = ?');
+const delPapierkorbAlt = db.prepare(
+  "DELETE FROM papierkorb WHERE geloescht_am < datetime('now', ?)");
+
+/* ZWEI AUFRUFSTELLEN, beide noetig -- dieselbe Bauform wie bei
+   ordneBestandZu(): beim Start und beim Oeffnen der Karte. Eine Anlage, die
+   drei Monate durchlaeuft, raeumte sonst drei Monate lang nicht auf, und die
+   Karte zeigte Zeilen, die es laengst nicht mehr geben duerfte.
+   HINZUNEHMENDE FOLGE, und sie gehoert benannt: damit schreibt eine LESENDE
+   Route. Das ist Hauswirtschaft und keine Benutzerhandlung -- die Liste
+   schreibender Routen bleibt davon unberuehrt. Wiederholbar und im Normalfall
+   stumm.
+   Die Bytes fallen ueber ON DELETE CASCADE mit. */
+function raeumePapierkorbAuf() {
+  const n = delPapierkorbAlt.run(`-${PAPIERKORB_TAGE} days`).changes;
+  if (n) console.log(`[Kriterion] Papierkorb: ${n} Zeile(n) aelter als ` +
+    `${PAPIERKORB_TAGE} Tage entfernt.`);
+  return n;
+}
+// Erste Aufrufstelle: der Start. Die zweite steht an GET /api/papierkorb.
+raeumePapierkorbAuf();
+
+/* Der Weg hinein. EINE Transaktion, und das ist die Zusicherung der Runde:
+   entweder liegt der Eintrag im Papierkorb UND ist geloescht, oder er steht
+   unveraendert da. Ein halber Stand ist ausgeschlossen -- nachgestellt mit
+   einem erzwungenen Fehlschlag.
+   Gelesen wird IN der Transaktion: die Abbildung fragt zehn Tabellen ab, und
+   zwischen dem Lesen und dem Loeschen darf sich nichts bewegen. */
+function inDenPapierkorb(itemId, wer) {
+  const it = db.prepare('SELECT * FROM items WHERE id = ?').get(itemId);
+  if (!it) return null;
+  const sammler = [];
+  const lage = paketLage(wer, {
+    // Ohne Schalter: der Papierkorb ist kein Export, sondern der Rueckweg.
+    // Ein Rueckweg, der die Videos wegliesse, waere keiner.
+    mitFotos: true, mitDateien: true, mitVideos: true, trichter: trichterAblage(sammler)
+  });
+  return db.transaction(() => {
+    const umschlag = exportUmschlag([eintragAlsPaket(it, lage)]);
+    const p = insPapierkorb.run(it.title, JSON.stringify(umschlag), wer);
+    sammler.forEach((buf, nr) => insPapierkorbBytes.run(p.lastInsertRowid, nr, buf));
+    db.prepare('DELETE FROM items WHERE id = ?').run(it.id);
+    return p.lastInsertRowid;
+  })();
+}
+
+/* Die Liste. LESEND, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht
+   trotzdem davor, wie bei GET /api/stats und GET /api/items/:id/bestand.
+   WARUM DER ADMIN SIE SEHEN DARF: er darf jeden Eintrag loeschen und sieht in
+   der Uebersicht ohnehin jeden Titel -- "alles sehen darf jeder" gilt hier
+   fuer den Bildschirm. Der Papierkorb zeigt ihm nichts, was er vor dem
+   Loeschen nicht schon sah.
+   GEHANDELT WIRD TROTZDEM NUR VOM EIGENTUEMER: Wiederherstellen legt Zeilen
+   unter FREMDEM Namen an -- Kommentare, Bewertungen und Testtage anderer sind
+   ueber die Kaskade mit hineingewandert. Das ist naeher am Import als am
+   Loeschen, und der steht hinter nurEigentuemer. Dieselbe Bauform wie bei den
+   Karten "Kategorien", "Tags" und "Bewertungskriterien": Liste fuer jeden
+   Berechtigten, Bedienzeichen nur dort, wo gedrueckt werden darf. */
+const qPapierkorb = db.prepare(`SELECT p.id, p.titel, p.geloescht_am, p.geloescht_von,
+    (SELECT COUNT(*) FROM papierkorb_bytes b WHERE b.papierkorb_id = p.id) AS dateien,
+    length(p.inhalt) + COALESCE(
+      (SELECT SUM(length(b.daten)) FROM papierkorb_bytes b WHERE b.papierkorb_id = p.id), 0) AS bytes
+  FROM papierkorb p ORDER BY p.geloescht_am DESC, p.id DESC`);
+
+app.get('/api/papierkorb', nurAdmin, (req, res) => {
+  raeumePapierkorbAuf();
+  const karte = verfasserKarte();
+  res.json({
+    // Die Zahl steht in der Antwort und wird nicht aus der Liste gezaehlt: die
+    // Karte nennt sie auch dann, wenn sie die Liste noch gar nicht gezeichnet
+    // hat.
+    tage: PAPIERKORB_TAGE,
+    zeilen: qPapierkorb.all().map(z => ({
+      id: z.id, titel: z.titel, geloescht_am: z.geloescht_am,
+      // Wer geloescht hat, in derselben Form wie jeder Verfasser -- damit die
+      // Oberflaeche denselben einen Weg von der Nummer zum Namen geht und ein
+      // Grabstein "Gelöschter Benutzer 7" heisst.
+      loeschender: verfasserAus(karte, z.geloescht_von),
+      dateien: z.dateien, bytes: z.bytes,
+      // Die Frist rechnet der Server: die Zahl PAPIERKORB_TAGE steht an einer
+      // Stelle, und die Oberflaeche baut sie nicht nach.
+      tageOffen: Math.max(0, PAPIERKORB_TAGE - Math.floor(
+        (Date.now() - Date.parse(z.geloescht_am.replace(' ', 'T') + 'Z')) / 86400000))
+    }))
+  });
+});
+
+/* Wiederherstellen. Es legt einen NEUEN Eintrag an und stellt nicht den alten
+   zurueck -- die alte Nummer ist weg, und daran haengt nichts mehr. Genau das
+   kann der Import schon, und deshalb geht der Weg durch ihn.
+
+   WAS AUS DEN VERFASSERN WIRD, steht damit fest und wird hier nicht neu
+   erfunden: ein genannter Name, den es gibt, wird zugeordnet -- ein GRABSTEIN
+   ebenfalls, denn seine Zeile in users steht noch. Erst wenn auch sie fort
+   ist, faellt der Beitrag an den Wiederherstellenden und wird in der Antwort
+   genannt. Eine herrenlose Zeile (author: null) faellt ebenso an ihn.
+
+   WAS NICHT ZURUECKKOMMT und benannt gehoert: die Favoriten ANDERER (favorite
+   heisst "habe ICH markiert") und der Eingriffsvermerk am Kommentar -- beides
+   steht in keiner Exportdatei, und der Papierkorb ist eine. */
+app.post('/api/papierkorb/:id/wiederherstellen', nurEigentuemer, async (req, res, next) => {
+  try {
+    const z = db.prepare('SELECT * FROM papierkorb WHERE id = ?').get(req.params.id);
+    if (!z) return res.status(404).json({ error: 'Nicht gefunden' });
+    let umschlag;
+    try { umschlag = JSON.parse(z.inhalt); }
+    catch { return res.status(500).json({ error: 'Das Paket lässt sich nicht lesen.' }); }
+    // Die Bytes kommen aus der Nebentabelle, Zeile fuer Zeile -- nie alle
+    // zugleich in einem String. Fehlt eine Nummer, wird die Zeile uebergangen
+    // und genannt, wie bei einem Video ohne Datei.
+    const quelle = (nr) => {
+      const b = qPapierkorbBytes.get(z.id, nr);
+      return b ? b.daten : null;
+    };
+    const ergebnis = await spieleEin(umschlag, req.benutzer.id, 'merge', quelle);
+    // Erst nach dem Einspielen: scheitert es, bleibt die Zeile liegen.
+    db.prepare('DELETE FROM papierkorb WHERE id = ?').run(z.id);
+    reclaim();
+    res.json({ ...ergebnis, itemId: ergebnis.neueIds[0] ?? null, titel: z.titel });
+  } catch (e) { next(e); }
+});
+
+// Endgueltig entfernen. Dieselbe Rechtezeile wie das Wiederherstellen: wer
+// einen Rueckweg nehmen darf, darf ihn auch schliessen. Die Bytes fallen ueber
+// ON DELETE CASCADE mit.
+app.delete('/api/papierkorb/:id', nurEigentuemer, (req, res) => {
+  const n = db.prepare('DELETE FROM papierkorb WHERE id = ?').run(req.params.id).changes;
+  if (!n) return res.status(404).json({ error: 'Nicht gefunden' });
+  reclaim();
+  res.status(204).end();
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));

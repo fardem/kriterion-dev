@@ -3137,6 +3137,694 @@ const namen = (liste) => liste.map(c => c.name);
   fs.rmSync(e2Dir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
+  gruppe('Der Papierkorb: die Tabelle legt sich selbst an');
+
+  /* DIE KERNFRAGE DER RUNDE, nachgestellt statt geglaubt: braucht eine NEUE
+     TABELLE ueberhaupt einen Migrationsblock? Stolperstein 13 gilt der
+     SPALTE -- CREATE TABLE IF NOT EXISTS ruehrt eine vorhandene Tabelle nicht
+     an. Eine FEHLENDE Tabelle legt es dagegen bei jedem Start an.
+     Dieselbe Probe wie beim Index auf sessions.user_id in 0.8.20: von Hand
+     entfernen, Server einmal starten, nachsehen.
+     DIE GEGENLAGE GEHOERT DAZU: eine von Hand entfernte SPALTE kommt NICHT
+     von selbst zurueck. Ohne sie belegte die Probe nur, dass irgendetwas
+     nachwaechst. */
+  {
+    const tDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-pktab-'));
+    kurzlauf(`require('./db'); console.log('da');`, tDir);
+    const tDatei = path.join(tDir, 'katalog.sqlite');
+    const tTabellen = () => {
+      const d = oeffne(tDatei);
+      const n = d.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(z => z.name);
+      d.close();
+      return n;
+    };
+    const frisch = tTabellen();
+    pruefe('Eine frische Anlage traegt papierkorb ohne Migration',
+      frisch.includes('papierkorb'), JSON.stringify(frisch));
+    pruefe('Und papierkorb_bytes daneben',
+      frisch.includes('papierkorb_bytes'), JSON.stringify(frisch));
+
+    // Eine Zeile hinein, damit die Kaskade etwas zu tun bekommt.
+    {
+      const d = oeffne(tDatei);
+      const p = d.prepare("INSERT INTO papierkorb (titel, inhalt) VALUES ('X', '{}')").run().lastInsertRowid;
+      d.prepare('INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (?, 0, ?)')
+        .run(p, Buffer.from('bytes'));
+      // Beide Tabellen von Hand entfernen -- UND eine vorhandene Spalte dazu.
+      d.exec('DROP TABLE papierkorb_bytes');
+      d.exec('DROP TABLE papierkorb');
+      d.close();
+    }
+    const ohne = tTabellen();
+    pruefe('Von Hand entfernt sind sie wirklich weg',
+      !ohne.includes('papierkorb') && !ohne.includes('papierkorb_bytes'), JSON.stringify(ohne));
+
+    kurzlauf(`require('./db'); console.log('da');`, tDir);
+    const wieder = tTabellen();
+    pruefe('Ein einziger Start legt papierkorb wieder an',
+      wieder.includes('papierkorb'), JSON.stringify(wieder));
+    pruefe('Und papierkorb_bytes ebenso',
+      wieder.includes('papierkorb_bytes'), JSON.stringify(wieder));
+    {
+      const d = oeffne(tDatei);
+      const spalten = d.prepare('PRAGMA table_info(papierkorb)').all().map(c => c.name);
+      pruefe('Sie traegt alle fuenf Spalten',
+        gleich(spalten, ['id', 'geloescht_am', 'geloescht_von', 'titel', 'inhalt']),
+        JSON.stringify(spalten));
+      const idx = d.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='papierkorb'")
+        .all().map(z => z.name);
+      pruefe('Und den Index auf das Datum, ebenfalls ohne Migration',
+        idx.includes('idx_papierkorb_am'), JSON.stringify(idx));
+      /* UND DIE TRAGENDE REGEL DER RUNDE AN DER SCHMALSTEN STELLE: items
+         bekommt KEINE Spalte. Ein Zustand `geloescht` dort beruehrte jede
+         Abfrage im ganzen System. Gezaehlt wird gegen eine feste Liste, nicht
+         gegen "enthaelt nicht geloescht" -- so faellt auch jede andere neue
+         Spalte auf. */
+      const itemSpalten = d.prepare('PRAGMA table_info(items)').all().map(c => c.name);
+      pruefe('items traegt unveraendert genau seine zehn Spalten',
+        gleich(itemSpalten, ['id', 'title', 'description', 'rejected', 'tested', 'favorite',
+                             'product_category_id', 'created_at', 'updated_at', 'user_id']),
+        JSON.stringify(itemSpalten));
+      d.close();
+    }
+
+    /* DIE GEGENLAGE: eine SPALTE kommt nicht von selbst zurueck. Genommen wird
+       eine, die kein Migrationsblock nachtraegt -- items.description --, sonst
+       belegte die Zeile nur, dass eine Migration laeuft. Nachgestellt an einer
+       Kopie der Tabelle, wie es SQLite verlangt. */
+    {
+      const d = oeffne(tDatei);
+      d.pragma('foreign_keys = OFF');
+      d.exec('ALTER TABLE items DROP COLUMN description');
+      const ohneSpalte = d.prepare('PRAGMA table_info(items)').all().map(c => c.name);
+      d.close();
+      pruefe('Die Spalte ist von Hand entfernt',
+        !ohneSpalte.includes('description'), JSON.stringify(ohneSpalte));
+    }
+    let spaltenNachStart = [];
+    try {
+      kurzlauf(`require('./db'); console.log('da');`, tDir);
+      const d = oeffne(tDatei);
+      spaltenNachStart = d.prepare('PRAGMA table_info(items)').all().map(c => c.name);
+      d.close();
+    } catch { spaltenNachStart = ['(Start gescheitert)']; }
+    pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
+      !spaltenNachStart.includes('description'), JSON.stringify(spaltenNachStart));
+
+    fs.rmSync(tDir, { recursive: true, force: true });
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Papierkorb: der Rundlauf');
+
+  /* DIE TRAGENDE PRUEFUNG DER RUNDE. Ein Eintrag mit Fotos, Video, Dateien,
+     Links, Tags, Kommentaren ALLER VIER ARTEN mit Bild, Bewertungen und
+     Testtagen MEHRERER Verfasser wird geloescht, wiederhergestellt und Feld
+     fuer Feld gegen den Ausgangsstand gehalten. Eine Prueflage mit einem
+     nackten Titel belegte genau nichts.
+
+     VIER ZUGAENGE, und jeder steht fuer eine Lage:
+       anna  (1) Eigentuemerin -- sie darf wiederherstellen.
+       bert  (2) Admin OHNE Eigentuemerrolle -- er darf sehen und sonst nichts.
+       carla (3) gewoehnliche Benutzerin, Verfasserin des Eintrags.
+       dora  (4) wird nach dem Anlegen zum Grabstein: ihr Kommentar muss beim
+                 Wiederherstellen WIEDER AN IHR landen.
+     Dazu eine herrenlose Zeile, die erst NACH dem Start entsteht --
+     ordneBestandZu() schoebe sie sonst der Eigentuemerin zu (Stolperstein 104). */
+  const pkPng = Buffer.from(PNG_BASE64, 'base64');
+  const pkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-papierkorb-'));
+  let pkKritId, pkKritZweiId;
+  {
+    kurzlauf(`require('./db'); console.log('da');`, pkDir);
+    const d = oeffne(path.join(pkDir, 'katalog.sqlite'));
+    for (const n of ['anna', 'bert', 'carla', 'dora'])
+      d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(n, 'x');
+    for (const [t, u] of [['cookie-pk-anna', 1], ['cookie-pk-bert', 2],
+                          ['cookie-pk-carla', 3], ['cookie-pk-dora', 4]])
+      d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
+    d.prepare('DELETE FROM rating_criteria').run();
+    pkKritId = d.prepare("INSERT INTO rating_criteria (name, sort_order, gewicht) VALUES ('Optik', 0, 1.5)")
+      .run().lastInsertRowid;
+    pkKritZweiId = d.prepare("INSERT INTO rating_criteria (name, sort_order) VALUES ('Haptik', 1)")
+      .run().lastInsertRowid;
+    const katId = d.prepare("INSERT INTO product_categories (name) VALUES ('Werkzeug')").run().lastInsertRowid;
+    // Ein zweiter Eintrag daneben. Ohne ihn liesse sich nicht sehen, dass das
+    // Loeschen NUR den einen trifft.
+    d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run('Bleibt stehen');
+    const itId = d.prepare(`INSERT INTO items (title, description, rejected, tested,
+        product_category_id, created_at, updated_at, user_id)
+      VALUES (?, ?, 1, 1, ?, '2026-01-02 03:04:05', '2026-02-03 04:05:06', 3)`)
+      .run('Vollständig', 'Erste Zeile\nZweite Zeile', katId).lastInsertRowid;
+    // Foto und Video in EINER Tabelle -- das Video ausdruecklich NICHT an
+    // erster Stelle, sonst liesse sich das Hauptbild nicht unterscheiden.
+    d.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, sort_order, art)
+               VALUES (?, 'image/png', ?, ?, ?, 30, 70, 0, 'bild')`)
+      .run(itId, pkPng, pkPng, pkPng);
+    d.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, sort_order, art, dauer)
+               VALUES (?, 'video/mp4', ?, ?, ?, 50, 50, 1, 'video', 42)`)
+      .run(itId, MP4(), pkPng, pkPng);
+    // Zwei Dateien: eine von der Verfasserin, eine von einem Fremden.
+    d.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+               VALUES (?, 'zettel.txt', 'text/plain', 5, ?, 0, 3)`).run(itId, Buffer.from('hallo'));
+    d.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+               VALUES (?, 'berts-datei.txt', 'text/plain', 4, ?, 1, 2)`).run(itId, Buffer.from('bert'));
+    // Zwei Links, verschiedene Eintrager.
+    d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, 'https://eins.test', 0, 3)").run(itId);
+    d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, 'https://zwei.test', 1, 2)").run(itId);
+    // Tags am Eintrag und am Testtag.
+    const tagA = d.prepare("INSERT INTO tags (name) VALUES ('Alu')").run().lastInsertRowid;
+    const tagB = d.prepare("INSERT INTO tags (name) VALUES ('Stahl')").run().lastInsertRowid;
+    d.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(itId, tagA);
+    d.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(itId, tagB);
+    // Vier Kommentararten, vier Lagen: Notiz (carla), Bericht (bert, angepinnt),
+    // offene Aufgabe (dora -- wird Grabstein), erledigte Aufgabe (herrenlos).
+    const kNotiz = d.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id)
+        VALUES (?, 'Eine Notiz', 'note', 0, '2026-03-01 10:00:00', NULL, 3)`).run(itId).lastInsertRowid;
+    d.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, user_id)
+        VALUES (?, 'Ein Bericht von bert', 'report', 1, '2026-03-02 10:00:00', 2)`).run(itId);
+    d.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, user_id)
+        VALUES (?, 'Doras Aufgabe', 'task', 0, '2026-03-03 10:00:00', 4)`).run(itId);
+    d.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, user_id)
+        VALUES (?, 'Erledigt und herrenlos', 'done', 0, '2026-03-04 10:00:00', 3)`).run(itId);
+    // Ein ECHTES Bild am Kommentar: kodiereKommentarBild() jagt es beim
+    // Einspielen durch sharp, ein Fantasie-Puffer fiele wortlos heraus.
+    d.prepare("INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order) VALUES (?, 'bild.png', ?, ?, 0)")
+      .run(kNotiz, pkPng, pkPng);
+    // Bewertungen mehrerer Bewerter, dazu eine zurueckgesetzte mit Wert 0.
+    d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, 5, 3)').run(itId, pkKritId);
+    d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, 3, 2)').run(itId, pkKritId);
+    d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, 0, 3)').run(itId, pkKritZweiId);
+    // Testtage zweier Verfasser am SELBEN Tag -- das sind zwei Zeilen, nicht eine.
+    const tdA = d.prepare("INSERT INTO test_days (item_id, day, rating, user_id) VALUES (?, '2026-04-01', 4, 3)")
+      .run(itId).lastInsertRowid;
+    d.prepare("INSERT INTO test_days (item_id, day, rating, user_id) VALUES (?, '2026-04-01', 2, 2)").run(itId);
+    d.prepare('INSERT INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(tdA, tagA);
+    // Der Favorit der Verfasserin -- und einer von bert daneben. Nur EINER
+    // kommt zurueck, und das gehoert belegt statt behauptet.
+    d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (3, ?)').run(itId);
+    d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (2, ?)').run(itId);
+    d.close();
+  }
+  const PK = starteWeiterenServer(pkDir, {}, 4200);
+  await PK.bereit;
+
+  const pkRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(PK.basis + pfad, opt);
+    let inhalt = null;
+    try { inhalt = await a.json(); } catch {}
+    return { status: a.status, inhalt };
+  };
+  const pkImport = async (cookieWert, objekt, modus) => {
+    const grenze = '----pruefungpk' + crypto.randomBytes(6).toString('hex');
+    const teil = (name, wert, dateiname) =>
+      `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
+      (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
+      `\r\n\r\n${wert}\r\n`;
+    const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
+    const a = await fetch(PK.basis + '/api/import', {
+      method: 'POST',
+      headers: { cookie: `kriterion_session=${cookieWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: koerper
+    });
+    return { status: a.status, inhalt: await a.json().catch(() => null) };
+  };
+  const pkDatenbank = () => oeffne(path.join(pkDir, 'katalog.sqlite'));
+  const pkZeilen = (sql, ...werte) => {
+    const d = pkDatenbank();
+    const z = d.prepare(sql).all(...werte);
+    d.close();
+    return z;
+  };
+  const pkEine = (sql, ...werte) => pkZeilen(sql, ...werte)[0];
+  const pkSchreibe = (sql, ...werte) => {
+    const d = pkDatenbank();
+    d.pragma('busy_timeout = 4000');
+    d.prepare(sql).run(...werte);
+    d.close();
+  };
+
+  /* Erst JETZT, nach dem Start: ordneBestandZu() laeuft bei jedem Start und
+     wiese die herrenlose Zeile sonst der Eigentuemerin zu. Und dora wird zum
+     Grabstein -- ihre Zeile in users bleibt stehen, der Name wird der
+     Grabsteinname. */
+  pkSchreibe("UPDATE comments SET user_id = NULL WHERE text = 'Erledigt und herrenlos'");
+  pkSchreibe("UPDATE users SET username = 'geloescht-4', status = 'geloescht', role = 'user', " +
+             "password_hash = '' WHERE id = 4");
+  // bert bekommt die Adminrolle -- OHNE Eigentuemerrolle. Ohne diesen Zugang
+  // liesse sich "Eigentuemer" von "Admin" gar nicht unterscheiden.
+  pkSchreibe("UPDATE users SET role = 'admin' WHERE username = 'bert'");
+
+  const pkItemId = pkEine("SELECT id FROM items WHERE title = 'Vollständig'").id;
+  const pkRollen = await pkRuf('cookie-pk-bert', 'GET', '/api/settings');
+  pruefe('bert ist Admin, aber nicht Eigentuemer',
+    pkRollen.inhalt?.istAdmin === true && pkRollen.inhalt?.istEigentuemer === false,
+    JSON.stringify([pkRollen.inhalt?.istAdmin, pkRollen.inhalt?.istEigentuemer]));
+  pruefe('anna ist beides',
+    (await pkRuf('cookie-pk-anna', 'GET', '/api/settings')).inhalt?.istEigentuemer === true);
+  pruefe('carla ist keines von beiden',
+    (await pkRuf('cookie-pk-carla', 'GET', '/api/settings')).inhalt?.istAdmin === false);
+  pruefe('Die Frist steht in den Einstellungen und nicht nur in der Karte',
+    pkRollen.inhalt?.papierkorbTage === 30, JSON.stringify(pkRollen.inhalt?.papierkorbTage));
+
+  /* Der Ausgangsstand, an dem hinterher Feld fuer Feld gemessen wird. Gelesen
+     wird die ECHTE Antwort des Servers -- eine selbst zusammengestellte
+     Erwartung bewiese nichts ueber das, was wirklich herauskommt. */
+  const pkVorher = (await pkRuf('cookie-pk-carla', 'GET', `/api/items/${pkItemId}`)).inhalt;
+  const pkVorherBytes = pkZeilen(
+    "SELECT art, sort_order, mime_type, focus_x, focus_y, dauer, length(data) AS n, hex(data) AS h " +
+    'FROM photos WHERE item_id = ? ORDER BY sort_order', pkItemId);
+  const pkVorherDateien = pkZeilen(
+    'SELECT filename, mime_type, size, sort_order, user_id, hex(data) AS h FROM attachments ' +
+    'WHERE item_id = ? ORDER BY sort_order', pkItemId);
+  pruefe('Die Prueflage traegt wirklich alles',
+    pkVorher?.photos?.length === 2 && pkVorher?.comments?.length === 4 &&
+    pkVorher?.links?.length === 2 && pkVorher?.testDays?.length === 2 &&
+    pkVorher?.tags?.length === 2 && pkVorher?.attachments?.length === 2,
+    JSON.stringify({ fotos: pkVorher?.photos?.length, kommentare: pkVorher?.comments?.length,
+                     links: pkVorher?.links?.length, testtage: pkVorher?.testDays?.length,
+                     tags: pkVorher?.tags?.length, dateien: pkVorher?.attachments?.length }));
+  pruefe('Und Beitraege mehrerer Verfasser',
+    new Set(pkVorher.comments.map(c => JSON.stringify(c.verfasser))).size === 4,
+    JSON.stringify(pkVorher.comments.map(c => c.verfasser)));
+
+  // Loeschen darf die Verfasserin selbst.
+  const pkWeg = await pkRuf('cookie-pk-carla', 'DELETE', `/api/items/${pkItemId}`);
+  pruefe('Die Verfasserin loescht ihren Eintrag', pkWeg.status === 204, `Status ${pkWeg.status}`);
+  pruefe('Der Eintrag ist wirklich weg -- keine Zeile in items',
+    pkZeilen('SELECT id FROM items WHERE id = ?', pkItemId).length === 0);
+  pruefe('Und die Kaskade hat geraeumt',
+    pkZeilen('SELECT id FROM photos WHERE item_id = ?', pkItemId).length === 0 &&
+    pkZeilen('SELECT id FROM comments WHERE item_id = ?', pkItemId).length === 0 &&
+    pkZeilen('SELECT id FROM links WHERE item_id = ?', pkItemId).length === 0);
+  pruefe('Die Uebersicht kennt ihn nicht mehr',
+    !((await pkRuf('cookie-pk-carla', 'GET', '/api/items')).inhalt || []).some(i => i.id === pkItemId));
+  pruefe('Der Eintrag daneben steht unveraendert da',
+    pkZeilen("SELECT id FROM items WHERE title = 'Bleibt stehen'").length === 1);
+  pruefe('Genau EINE Zeile liegt im Papierkorb',
+    pkZeilen('SELECT id FROM papierkorb').length === 1,
+    JSON.stringify(pkZeilen('SELECT id, titel FROM papierkorb')));
+
+  const pkZeile = pkEine('SELECT id, titel, geloescht_von, length(inhalt) AS n FROM papierkorb');
+  pruefe('Sie traegt den Titel als eigene Spalte',
+    pkZeile?.titel === 'Vollständig', JSON.stringify(pkZeile?.titel));
+  pruefe('Und den Loeschenden', pkZeile?.geloescht_von === 3, JSON.stringify(pkZeile?.geloescht_von));
+
+  /* DER GRUND FUER DIE BAUFORM, an der Prueflage nachgemessen: die Bytes
+     liegen NICHT in der JSON. Der Umschlag bleibt klein, obwohl der Eintrag
+     eine Videodatei traegt -- sonst entstuende bei zwanzig Videos ein String
+     ueber der Grenze von Node. */
+  const pkBytesZeilen = pkZeilen('SELECT nr, length(daten) AS n FROM papierkorb_bytes ' +
+    'WHERE papierkorb_id = ? ORDER BY nr', pkZeile.id);
+  pruefe('Die Bytes liegen daneben, eine Zeile je Blob',
+    pkBytesZeilen.length === 6, JSON.stringify(pkBytesZeilen));
+  pruefe('Ihre Nummern sind lueckenlos ab null',
+    gleich(pkBytesZeilen.map(z => z.nr), [0, 1, 2, 3, 4, 5]), JSON.stringify(pkBytesZeilen.map(z => z.nr)));
+  const pkBytesSumme = pkBytesZeilen.reduce((s, z) => s + z.n, 0);
+  /* DER EIGENTLICHE BELEG: die Videodatei steht NICHT in der JSON. Waere sie
+     dort, stuende ihr Base64 darin -- und bei zwanzig Videos entstuende ein
+     String ueber der Grenze von Node. Gesucht wird der Anfang genau dieser
+     Datei, nicht irgendein Muster. */
+  pruefe('Die Videobytes stehen nicht in der JSON',
+    !pkEine('SELECT inhalt FROM papierkorb').inhalt.includes(MP4().toString('base64').slice(0, 60)),
+    MP4().toString('base64').slice(0, 60));
+  pruefe('Sie liegen als eigene Zeile daneben',
+    pkBytesZeilen.some(z => z.n === MP4().length), JSON.stringify(pkBytesZeilen.map(z => z.n)));
+  pruefe('In der JSON steht kein data_base64',
+    !pkEine('SELECT inhalt FROM papierkorb').inhalt.includes('data_base64'),
+    pkEine('SELECT inhalt FROM papierkorb').inhalt.slice(0, 200));
+  pruefe('Sondern data_ref',
+    pkEine('SELECT inhalt FROM papierkorb').inhalt.includes('"data_ref"'));
+
+  /* DIE KENNZAHLEN WEISEN IHN GETRENNT AUS -- sonst wundert sich jemand ueber
+     eine Datenbank, die nach dem Aufraeumen groesser ist als vorher. */
+  const pkStats = (await pkRuf('cookie-pk-anna', 'GET', '/api/stats')).inhalt;
+  pruefe('Die Kennzahlen nennen den Papierkorb',
+    pkStats?.papierkorbCount === 1, JSON.stringify(pkStats?.papierkorbCount));
+  pruefe('Mit seiner Groesse',
+    pkStats?.papierkorbBytes > pkBytesSumme, JSON.stringify(pkStats?.papierkorbBytes));
+  pruefe('Und die alten Zahlen bedeuten unveraendert dasselbe',
+    pkStats?.itemCount === 1 && pkStats?.photoCount === 0 && pkStats?.videoCount === 0 &&
+    pkStats?.commentCount === 0 && pkStats?.linkCount === 0 && pkStats?.attachmentCount === 0,
+    JSON.stringify({ items: pkStats?.itemCount, fotos: pkStats?.photoCount,
+                     videos: pkStats?.videoCount, kommentare: pkStats?.commentCount }));
+
+  // Die Liste, wie die Karte sie sieht.
+  const pkListe = (await pkRuf('cookie-pk-anna', 'GET', '/api/papierkorb')).inhalt;
+  pruefe('Die Liste nennt die Frist', pkListe?.tage === 30, JSON.stringify(pkListe?.tage));
+  pruefe('Und eine Zeile mit Titel, Datum und Loeschendem',
+    pkListe?.zeilen?.length === 1 && pkListe.zeilen[0].titel === 'Vollständig' &&
+    /^\d{4}-\d{2}-\d{2} /.test(pkListe.zeilen[0].geloescht_am || '') &&
+    pkListe.zeilen[0].loeschender?.name === 'carla',
+    JSON.stringify(pkListe?.zeilen?.[0]));
+  pruefe('Sie nennt die verbleibenden Tage',
+    pkListe.zeilen[0].tageOffen === 30, JSON.stringify(pkListe.zeilen[0].tageOffen));
+  pruefe('Und Zahl und Groesse der Bytes daneben',
+    pkListe.zeilen[0].dateien === 6 && pkListe.zeilen[0].bytes > pkBytesSumme,
+    JSON.stringify({ dateien: pkListe.zeilen[0].dateien, bytes: pkListe.zeilen[0].bytes }));
+
+  // --- Wiederherstellen ---
+  const pkZurueck = await pkRuf('cookie-pk-anna', 'POST', `/api/papierkorb/${pkZeile.id}/wiederherstellen`);
+  pruefe('Die Eigentuemerin holt den Eintrag zurueck',
+    pkZurueck.status === 200, JSON.stringify(pkZurueck.inhalt));
+  pruefe('Die Papierkorbzeile ist danach weg',
+    pkZeilen('SELECT id FROM papierkorb').length === 0);
+  pruefe('Und ihre Bytes mit ihr',
+    pkZeilen('SELECT id FROM papierkorb_bytes').length === 0);
+  const pkNeuId = pkZurueck.inhalt?.itemId;
+  pruefe('Die Antwort nennt die NEUE Nummer',
+    Number.isInteger(pkNeuId) && pkNeuId !== pkItemId, JSON.stringify(pkNeuId));
+
+  const pkNachher = (await pkRuf('cookie-pk-carla', 'GET', `/api/items/${pkNeuId}`)).inhalt;
+  pruefe('Titel, Beschreibung und die beiden Merkmale stehen wieder da',
+    pkNachher?.title === pkVorher.title && pkNachher?.description === pkVorher.description &&
+    pkNachher?.rejected === pkVorher.rejected && pkNachher?.tested === pkVorher.tested,
+    JSON.stringify({ t: pkNachher?.title, r: pkNachher?.rejected, g: pkNachher?.tested }));
+  pruefe('Die Zeitstempel ebenso',
+    pkNachher?.created_at === pkVorher.created_at && pkNachher?.updated_at === pkVorher.updated_at,
+    JSON.stringify([pkNachher?.created_at, pkNachher?.updated_at]));
+  pruefe('Die Kategorie ebenso',
+    pkNachher?.category?.name === pkVorher.category?.name, JSON.stringify(pkNachher?.category));
+  pruefe('Der Verfasser des Eintrags ebenso',
+    gleich(pkNachher?.verfasser, pkVorher.verfasser), JSON.stringify(pkNachher?.verfasser));
+  pruefe('Die Tags ebenso',
+    gleich((pkNachher?.tags || []).map(t => t.name).sort(), (pkVorher.tags || []).map(t => t.name).sort()),
+    JSON.stringify((pkNachher?.tags || []).map(t => t.name)));
+  pruefe('Die Links samt Reihenfolge und Eintragern',
+    gleich((pkNachher?.links || []).map(l => [l.url, l.verfasser?.name]),
+           (pkVorher.links || []).map(l => [l.url, l.verfasser?.name])),
+    JSON.stringify((pkNachher?.links || []).map(l => [l.url, l.verfasser?.name])));
+  pruefe('Die Testtage samt Note, Verfasser und Tags',
+    gleich((pkNachher?.testDays || []).map(t => [t.day, t.rating, t.verfasser?.name, (t.tags || []).map(x => x.name)]),
+           (pkVorher.testDays || []).map(t => [t.day, t.rating, t.verfasser?.name, (t.tags || []).map(x => x.name)])),
+    JSON.stringify((pkNachher?.testDays || []).map(t => [t.day, t.rating, t.verfasser?.name])));
+  pruefe('Die Kommentare samt Art, Anpinnung und Text',
+    gleich((pkNachher?.comments || []).map(c => [c.text, c.kind, c.pinned]),
+           (pkVorher.comments || []).map(c => [c.text, c.kind, c.pinned])),
+    JSON.stringify((pkNachher?.comments || []).map(c => [c.text, c.kind, c.pinned])));
+  /* Die Verfasser, und zwar die genannten: der lebende, der Admin und der
+     GRABSTEIN. Die herrenlose Zeile faellt bewusst an die Wiederherstellende
+     und steht deshalb NICHT in diesem Vergleich -- sie bekommt ihre eigene
+     Zeile darunter. */
+  pruefe('Und ihre genannten Verfasser -- der lebende, der Admin und der GRABSTEIN',
+    gleich((pkNachher?.comments || []).filter(c => c.text !== 'Erledigt und herrenlos').map(c => c.verfasser),
+           (pkVorher.comments || []).filter(c => c.text !== 'Erledigt und herrenlos').map(c => c.verfasser)),
+    JSON.stringify({ nachher: (pkNachher?.comments || []).map(c => c.verfasser),
+                     vorher: (pkVorher.comments || []).map(c => c.verfasser) }));
+  pruefe('Der Beitrag des Grabsteins landet WIEDER am Grabstein',
+    (pkNachher?.comments || []).some(c => c.text === 'Doras Aufgabe' && c.verfasser?.geloescht === true &&
+      c.verfasser?.id === 4),
+    JSON.stringify((pkNachher?.comments || []).find(c => c.text === 'Doras Aufgabe')?.verfasser));
+  pruefe('Die herrenlose Zeile faellt an die Wiederherstellende',
+    (pkNachher?.comments || []).find(c => c.text === 'Erledigt und herrenlos')?.verfasser?.name === 'anna',
+    JSON.stringify((pkNachher?.comments || []).find(c => c.text === 'Erledigt und herrenlos')?.verfasser));
+  pruefe('Kein Name blieb unbekannt',
+    gleich(pkZurueck.inhalt?.verfasserUnbekannt, []),
+    JSON.stringify(pkZurueck.inhalt?.verfasserUnbekannt));
+  pruefe('Das Bild am Kommentar kommt mit',
+    ((pkNachher?.comments || []).find(c => c.text === 'Eine Notiz')?.images || []).length === 1,
+    JSON.stringify((pkNachher?.comments || []).find(c => c.text === 'Eine Notiz')?.images));
+  pruefe('Die Bewertungen samt Werten',
+    gleich((pkNachher?.ratings || []).map(r => [r.name, r.wert, r.schnitt, r.anzahl]),
+           (pkVorher.ratings || []).map(r => [r.name, r.wert, r.schnitt, r.anzahl])),
+    JSON.stringify({ nachher: (pkNachher?.ratings || []).map(r => [r.name, r.schnitt, r.anzahl]),
+                     vorher: (pkVorher.ratings || []).map(r => [r.name, r.schnitt, r.anzahl]) }));
+  pruefe('Das Gewicht des Kriteriums ist unveraendert',
+    pkEine("SELECT gewicht FROM rating_criteria WHERE name = 'Optik'")?.gewicht === 1.5,
+    JSON.stringify(pkEine("SELECT gewicht FROM rating_criteria WHERE name = 'Optik'")));
+
+  const pkNachherBytes = pkZeilen(
+    "SELECT art, sort_order, mime_type, focus_x, focus_y, dauer, length(data) AS n, hex(data) AS h " +
+    'FROM photos WHERE item_id = ? ORDER BY sort_order', pkNeuId);
+  pruefe('Fotos und Video stehen wieder da -- BYTEGLEICH, samt Art, Dauer und Fokuspunkt',
+    gleich(pkNachherBytes, pkVorherBytes),
+    JSON.stringify(pkNachherBytes.map(z => [z.art, z.sort_order, z.dauer, z.n])));
+  const pkNachherDateien = pkZeilen(
+    'SELECT filename, mime_type, size, sort_order, user_id, hex(data) AS h FROM attachments ' +
+    'WHERE item_id = ? ORDER BY sort_order', pkNeuId);
+  pruefe('Die Dateien ebenso, samt Hochladendem',
+    gleich(pkNachherDateien, pkVorherDateien),
+    JSON.stringify(pkNachherDateien.map(z => [z.filename, z.size, z.user_id])));
+  pruefe('Die Standbilder des Videos sind wieder erzeugt',
+    (pkEine("SELECT thumb IS NOT NULL AS t, medium IS NOT NULL AS m FROM photos " +
+            "WHERE item_id = ? AND art = 'video'", pkNeuId)?.t === 1),
+    JSON.stringify(pkEine("SELECT thumb IS NOT NULL AS t, medium IS NOT NULL AS m FROM photos " +
+                          "WHERE item_id = ? AND art = 'video'", pkNeuId)));
+
+  /* WAS NICHT ZURUECKKOMMT, und es gehoert belegt statt verschwiegen: der
+     Favorit heisst "habe ICH markiert" und steht so schon im Austauschformat.
+     Zwei Leute hatten den Eintrag als Favoriten; zurueck kommt EINER, und zwar
+     bei der Wiederherstellenden. */
+  const pkPins = pkZeilen('SELECT user_id FROM item_pins WHERE item_id = ? ORDER BY user_id', pkNeuId);
+  pruefe('Der Favorit kommt bei der Wiederherstellenden an',
+    gleich(pkPins.map(z => z.user_id), [1]), JSON.stringify(pkPins));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Papierkorb: dieselbe Transaktion');
+
+  /* DIE ZUSICHERUNG DER RUNDE, mit erzwungenem Fehlschlag nachgestellt:
+     entweder liegt der Eintrag im Papierkorb UND ist geloescht, oder er steht
+     unveraendert da. Ein halber Stand ist ausgeschlossen.
+     Der Fehlschlag wird durch einen Auslöser erzwungen, der beim Einfuegen in
+     papierkorb zuschlaegt -- an der Datenbank und nicht am Quelltext, damit
+     der Arbeitsbaum unberuehrt bleibt (Stolperstein 100). */
+  {
+    const tItem = pkEine("SELECT id FROM items WHERE title = 'Bleibt stehen'").id;
+    const vorher = pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem);
+    pkSchreibe(`CREATE TRIGGER pk_bremse BEFORE INSERT ON papierkorb
+                BEGIN SELECT RAISE(ABORT, 'Probe: der Papierkorb nimmt nichts an'); END`);
+    const gescheitert2 = await pkRuf('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
+    pruefe('Scheitert das Einfuegen, scheitert das Loeschen mit',
+      gescheitert2.status >= 500, `Status ${gescheitert2.status}`);
+    pruefe('Der Eintrag steht danach UNVERAENDERT da, nicht halb',
+      gleich(pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem), vorher),
+      JSON.stringify(pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem)));
+    pruefe('Und im Papierkorb liegt nichts',
+      pkZeilen('SELECT id FROM papierkorb').length === 0,
+      JSON.stringify(pkZeilen('SELECT id, titel FROM papierkorb')));
+    pkSchreibe('DROP TRIGGER pk_bremse');
+    // Und der Beleg, dass es ohne die Bremse durchgeht -- sonst bliebe die
+    // Probe daruber auch dann gruen, wenn das Loeschen gar nicht mehr ginge.
+    const geht = await pkRuf('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
+    pruefe('Ohne die Bremse geht derselbe Griff durch', geht.status === 204, `Status ${geht.status}`);
+    pruefe('Und die Zeile liegt jetzt im Papierkorb',
+      pkZeilen('SELECT id FROM papierkorb').length === 1);
+    // Aufraeumen: die Zeile endgueltig entfernen, damit die Lagen darunter
+    // von einem bekannten Stand ausgehen.
+    const weg = pkEine('SELECT id FROM papierkorb').id;
+    pruefe('Endgueltig entfernen nimmt die Zeile',
+      (await pkRuf('cookie-pk-anna', 'DELETE', `/api/papierkorb/${weg}`)).status === 204);
+    pruefe('Und ihre Bytes ueber die Kaskade mit',
+      pkZeilen('SELECT id FROM papierkorb_bytes').length === 0);
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Papierkorb: die dreissig Tage');
+
+  /* DER AUSGANGSWERT WIRD VON HAND GESETZT (Stolperstein 60): datetime('now')
+     loest nur Sekunden auf, und dreissig Tage lassen sich nicht abwarten.
+     Geprueft wird die Grenze an BEIDEN Seiten. */
+  {
+    /* datetime() nimmt seine Modifikatoren EINZELN -- "-30 days +1 seconds"
+       in EINEM String ergibt NULL, und die Spalte ist NOT NULL. Nachgestellt
+       beim ersten Lauf: der Prueflauf riss daran ab. */
+    const setze = (titel, ...versatz) => {
+      pkSchreibe("INSERT INTO papierkorb (titel, inhalt, geloescht_von, geloescht_am) " +
+                 `VALUES (?, '{}', 1, datetime('now'${versatz.map(() => ', ?').join('')}))`,
+                 titel, ...versatz);
+      return pkEine('SELECT id FROM papierkorb WHERE titel = ?', titel).id;
+    };
+    const idAlt = setze('zu alt', '-31 days');
+    const idNeu = setze('von gestern', '-1 days');
+    const idKnappDrin = setze('knapp drin', '-30 days', '+1 seconds');
+    const idKnappDraussen = setze('knapp draussen', '-30 days', '-1 seconds');
+    pkSchreibe('INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (?, 0, ?)',
+      idAlt, Buffer.from('faellt mit'));
+    pruefe('Vier Zeilen liegen bereit',
+      pkZeilen('SELECT id FROM papierkorb').length === 4);
+
+    // ZWEITE AUFRUFSTELLE: das Oeffnen der Karte.
+    const nachKarte = (await pkRuf('cookie-pk-anna', 'GET', '/api/papierkorb')).inhalt;
+    const uebrig = (nachKarte?.zeilen || []).map(z => z.titel).sort();
+    pruefe('Beim Oeffnen der Karte faellt heraus, was aelter als dreissig Tage ist',
+      gleich(uebrig, ['knapp drin', 'von gestern']), JSON.stringify(uebrig));
+    pruefe('Die Zeile von gestern bleibt',
+      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idNeu).length === 1);
+    pruefe('Die Grenze traegt auf der einen Seite: eine Sekunde davor bleibt',
+      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idKnappDrin).length === 1);
+    pruefe('Und auf der anderen: eine Sekunde danach faellt heraus',
+      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idKnappDraussen).length === 0);
+    pruefe('Die Bytes der herausgefallenen Zeile fallen mit',
+      pkZeilen('SELECT id FROM papierkorb_bytes WHERE papierkorb_id = ?', idAlt).length === 0);
+    pruefe('Die verbleibenden Tage stehen an jeder Zeile',
+      (nachKarte.zeilen || []).every(z => Number.isInteger(z.tageOffen) && z.tageOffen >= 0),
+      JSON.stringify((nachKarte.zeilen || []).map(z => [z.titel, z.tageOffen])));
+    pruefe('Und die Zeile von gestern hat noch 29',
+      (nachKarte.zeilen || []).find(z => z.titel === 'von gestern')?.tageOffen === 29,
+      JSON.stringify((nachKarte.zeilen || []).find(z => z.titel === 'von gestern')));
+
+    // ERSTE AUFRUFSTELLE: der Start. Eigens belegt, sonst bliebe offen, ob
+    // ueberhaupt zwei Stellen aufraeumen.
+    pkSchreibe("UPDATE papierkorb SET geloescht_am = datetime('now', '-40 days') WHERE id = ?", idNeu);
+    pruefe('Die Zeile ist von Hand alt gemacht worden',
+      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idNeu).length === 1);
+    // Ein eigener kurzer Lauf auf demselben Verzeichnis -- er laedt server.js
+    // nicht, sondern nur db.js; deshalb wird der Start hier ueber einen
+    // zweiten Server gefahren.
+    const PK2 = starteWeiterenServer(pkDir, {}, 4260);
+    await PK2.bereit;
+    pruefe('Schon der Start raeumt sie weg',
+      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', idNeu).length === 0,
+      JSON.stringify(pkZeilen('SELECT id, titel, geloescht_am FROM papierkorb')));
+    pruefe('Und sagt es im Protokoll',
+      /Papierkorb: \d+ Zeile\(n\) aelter als 30 Tage entfernt/.test(PK2.protokoll()),
+      PK2.protokoll().slice(-400));
+    await PK2.stopp();
+    // Aufraeumen fuer die Lagen darunter.
+    pkSchreibe('DELETE FROM papierkorb');
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Papierkorb: die Rechte');
+
+  /* ZU JEDER VERWEIGERUNG DER ERFOLGSFALL DANEBEN und die Nachschau in der
+     Datenbank, dass wirklich nichts geschrieben wurde. Und ein ADMIN OHNE
+     EIGENTUEMERROLLE gehoert dazu -- ohne ihn liesse sich "Eigentuemer" von
+     "Admin" gar nicht unterscheiden. */
+  {
+    const opferId = (await pkRuf('cookie-pk-carla', 'POST', '/api/items',
+      { title: 'Zum Wegwerfen' })).inhalt.id;
+    await pkRuf('cookie-pk-carla', 'DELETE', `/api/items/${opferId}`);
+    const zeile = pkEine('SELECT id FROM papierkorb');
+    pruefe('Eine Zeile liegt bereit', !!zeile, JSON.stringify(zeile));
+
+    // --- Sehen ---
+    const sehenCarla = await pkRuf('cookie-pk-carla', 'GET', '/api/papierkorb');
+    pruefe('Ein gewoehnlicher Benutzer sieht den Papierkorb nicht',
+      sehenCarla.status === 403, `Status ${sehenCarla.status}`);
+    pruefe('Die Absage nennt den Grund',
+      /nur der Admin/.test(sehenCarla.inhalt?.error || ''), sehenCarla.inhalt?.error);
+    const sehenBert = await pkRuf('cookie-pk-bert', 'GET', '/api/papierkorb');
+    pruefe('Ein Admin ohne Eigentuemerrolle sieht ihn',
+      sehenBert.status === 200 && sehenBert.inhalt?.zeilen?.length === 1,
+      JSON.stringify([sehenBert.status, sehenBert.inhalt?.zeilen?.length]));
+    pruefe('Die Eigentuemerin auch',
+      (await pkRuf('cookie-pk-anna', 'GET', '/api/papierkorb')).status === 200);
+
+    // --- Wiederherstellen ---
+    const zurueckCarla = await pkRuf('cookie-pk-carla', 'POST', `/api/papierkorb/${zeile.id}/wiederherstellen`);
+    pruefe('Ein gewoehnlicher Benutzer stellt nichts wieder her',
+      zurueckCarla.status === 403, `Status ${zurueckCarla.status}`);
+    pruefe('Und danach steht die Zeile unveraendert im Papierkorb',
+      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', zeile.id).length === 1);
+    pruefe('Und es ist KEIN Eintrag entstanden',
+      pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 0);
+    const zurueckBert = await pkRuf('cookie-pk-bert', 'POST', `/api/papierkorb/${zeile.id}/wiederherstellen`);
+    pruefe('Auch der Admin ohne Eigentuemerrolle nicht',
+      zurueckBert.status === 403, `Status ${zurueckBert.status}`);
+    pruefe('Die Absage nennt den Eigentuemer',
+      /nur der Eigentümer/.test(zurueckBert.inhalt?.error || ''), zurueckBert.inhalt?.error);
+    pruefe('Und wieder ist kein Eintrag entstanden',
+      pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 0);
+
+    // --- Endgueltig entfernen ---
+    const wegCarla = await pkRuf('cookie-pk-carla', 'DELETE', `/api/papierkorb/${zeile.id}`);
+    pruefe('Ein gewoehnlicher Benutzer entfernt nichts endgueltig',
+      wegCarla.status === 403, `Status ${wegCarla.status}`);
+    const wegBert = await pkRuf('cookie-pk-bert', 'DELETE', `/api/papierkorb/${zeile.id}`);
+    pruefe('Der Admin ohne Eigentuemerrolle auch nicht', wegBert.status === 403, `Status ${wegBert.status}`);
+    pruefe('Und die Zeile liegt nach beiden Absagen noch da',
+      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', zeile.id).length === 1);
+
+    // Der Erfolgsfall, beide Wege.
+    const zurueckAnna = await pkRuf('cookie-pk-anna', 'POST', `/api/papierkorb/${zeile.id}/wiederherstellen`);
+    pruefe('Die Eigentuemerin kommt durch', zurueckAnna.status === 200, JSON.stringify(zurueckAnna.inhalt));
+    pruefe('Und der Eintrag ist da',
+      pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 1);
+
+    const zweiterId = (await pkRuf('cookie-pk-carla', 'POST', '/api/items', { title: 'Zweites Opfer' })).inhalt.id;
+    await pkRuf('cookie-pk-carla', 'DELETE', `/api/items/${zweiterId}`);
+    const zweiteZeile = pkEine('SELECT id FROM papierkorb');
+    pruefe('Die Eigentuemerin entfernt endgueltig',
+      (await pkRuf('cookie-pk-anna', 'DELETE', `/api/papierkorb/${zweiteZeile.id}`)).status === 204);
+    pruefe('Und danach ist die Zeile weg',
+      pkZeilen('SELECT id FROM papierkorb').length === 0);
+    pruefe('Eine Zeile, die es nicht gibt, ist eine 404 und kein stiller Erfolg',
+      (await pkRuf('cookie-pk-anna', 'DELETE', `/api/papierkorb/${zweiteZeile.id}`)).status === 404);
+    pruefe('Dasselbe beim Wiederherstellen',
+      (await pkRuf('cookie-pk-anna', 'POST', `/api/papierkorb/${zweiteZeile.id}/wiederherstellen`)).status === 404);
+    // Aufraeumen
+    pkSchreibe("DELETE FROM items WHERE title IN ('Zum Wegwerfen', 'Zweites Opfer')");
+    pkSchreibe('DELETE FROM papierkorb');
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Ein einzelner Eintrag als Datei');
+
+  /* Der kleinste Punkt der Runde -- und der, der dem Papierkorb sein Werkzeug
+     liefert. Geprueft wird nicht nur das JSON, sondern die Datei, die durch
+     den IMPORT wieder hereinkommt: dieselbe Form heisst, dass sie sich
+     einspielen laesst. */
+  {
+    const voll = await pkRuf('cookie-pk-anna', 'GET', '/api/export?photos=1&files=1&videos=1');
+    pruefe('Der volle Export geht durch', voll.status === 200, `Status ${voll.status}`);
+    const zielId = pkEine("SELECT id FROM items WHERE title = 'Vollständig'").id;
+    const einzeln = await pkRuf('cookie-pk-anna', `GET`, `/api/items/${zielId}/export`);
+    pruefe('Der Einzelexport geht durch', einzeln.status === 200, JSON.stringify(einzeln.inhalt).slice(0, 200));
+    pruefe('Er liefert genau EINEN Eintrag',
+      einzeln.inhalt?.items?.length === 1, JSON.stringify(einzeln.inhalt?.items?.length));
+    pruefe('Die Formatnummer bleibt bei 10',
+      einzeln.inhalt?.version === 10, JSON.stringify(einzeln.inhalt?.version));
+    pruefe('Der Umschlag traegt dieselben Felder wie beim vollen Export',
+      gleich(Object.keys(einzeln.inhalt || {}).sort(), Object.keys(voll.inhalt || {}).sort()),
+      JSON.stringify(Object.keys(einzeln.inhalt || {})));
+    pruefe('Und die Kriterien samt Gewichten',
+      gleich(einzeln.inhalt?.criteria, voll.inhalt?.criteria) &&
+      gleich(einzeln.inhalt?.criteriaGewichte, voll.inhalt?.criteriaGewichte),
+      JSON.stringify([einzeln.inhalt?.criteria, einzeln.inhalt?.criteriaGewichte]));
+    const ausVoll = (voll.inhalt?.items || []).find(i => i.title === 'Vollständig');
+    pruefe('Der Eintrag selbst ist Zeichen fuer Zeichen derselbe wie im vollen Export',
+      JSON.stringify(einzeln.inhalt.items[0]) === JSON.stringify(ausVoll),
+      JSON.stringify(Object.keys(einzeln.inhalt.items[0] || {})));
+
+    // Die Datei kommt durch den IMPORT wieder herein.
+    const wieder = await pkImport('cookie-pk-anna', einzeln.inhalt, 'merge');
+    pruefe('Die Datei laesst sich einspielen',
+      wieder.status === 200 && wieder.inhalt?.items === 1, JSON.stringify(wieder.inhalt));
+    pruefe('Mit Fotos, Video, Dateien und Kommentaren',
+      wieder.inhalt?.photos === 1 && wieder.inhalt?.videos === 1 &&
+      wieder.inhalt?.attachments === 2 && wieder.inhalt?.comments === 4,
+      JSON.stringify(wieder.inhalt));
+    const kopien = pkZeilen("SELECT id FROM items WHERE title = 'Vollständig' ORDER BY id");
+    pruefe('Und es steht ein zweiter Eintrag desselben Namens da',
+      kopien.length === 2, JSON.stringify(kopien));
+    const kopieId = kopien[kopien.length - 1].id;
+    pruefe('Seine Fotos sind bytegleich mit denen des Originals',
+      gleich(pkZeilen("SELECT art, sort_order, hex(data) AS h FROM photos WHERE item_id = ? ORDER BY sort_order", kopieId),
+             pkZeilen("SELECT art, sort_order, hex(data) AS h FROM photos WHERE item_id = ? ORDER BY sort_order", zielId)));
+    pkSchreibe('DELETE FROM items WHERE id = ?', kopieId);
+
+    // Der Waechter am Einzelexport.
+    const einzelCarla = await pkRuf('cookie-pk-carla', 'GET', `/api/items/${zielId}/export`);
+    pruefe('Ein gewoehnlicher Benutzer zieht keinen Einzelexport',
+      einzelCarla.status === 403, `Status ${einzelCarla.status}`);
+    const einzelBert = await pkRuf('cookie-pk-bert', 'GET', `/api/items/${zielId}/export`);
+    pruefe('Ein Admin ohne Eigentuemerrolle auch nicht',
+      einzelBert.status === 403, `Status ${einzelBert.status}`);
+    pruefe('Die Absage nennt den Eigentuemer',
+      /nur der Eigentümer/.test(einzelBert.inhalt?.error || ''), einzelBert.inhalt?.error);
+    pruefe('Ein Eintrag, den es nicht gibt, ist eine 404',
+      (await pkRuf('cookie-pk-anna', 'GET', '/api/items/999999/export')).status === 404);
+  }
+
+  await PK.stopp();
+  fs.rmSync(pkDir, { recursive: true, force: true });
+
+  /* ---------------------------------------------------------------- */
   gruppe('Rechte am Eintrag');
 
   /* Drei Zugaenge, drei fertige Sitzungen. Eine Rechteschicht laesst
@@ -4760,7 +5448,15 @@ const namen = (liste) => liste.map(c => c.name);
     ['POST',   '/api/comments/:id/images',       'im Rumpf'],
     ['DELETE', '/api/comment-images/:id',        'im Rumpf'],
     ['DELETE', '/api/comments/:id',              'im Rumpf'],
-    ['POST',   '/api/import',                    'nurEigentuemer']
+    ['POST',   '/api/import',                    'nurEigentuemer'],
+    /* Der Papierkorb, 0.8.70. SEHEN darf ihn der Admin (lesend, deshalb steht
+       GET /api/papierkorb hier nicht) -- HANDELN nur der Eigentuemer:
+       Wiederherstellen legt Zeilen unter FREMDEM Namen an, genau wie der
+       Import, und liegt damit in derselben Rechtezeile. Wer einen Rueckweg
+       nehmen darf, darf ihn auch schliessen; deshalb dieselbe Klemme am
+       endgueltigen Entfernen. */
+    ['POST',   '/api/papierkorb/:id/wiederherstellen', 'nurEigentuemer'],
+    ['DELETE', '/api/papierkorb/:id',            'nurEigentuemer']
   ];
 
   function schreibendeRouten(text) {
@@ -4796,9 +5492,12 @@ const namen = (liste) => liste.map(c => c.name);
      0.8.60 bewegt sie NICHT: die Ansicht "Offen" ist lesend, und der Haken
      geht ueber PUT /api/comments/:id, die es laengst gibt. Wer aus dem
      lesenden Endpunkt eine schreibende Route macht, wird hier namentlich
-     rot -- nachgestellt statt geglaubt. */
-  pruefe('Und es sind weiterhin genau 47 schreibende Routen',
-    F_ROUTEN.length === 47 && fGefunden.length === 47,
+     rot -- nachgestellt statt geglaubt.
+     0.8.70 bewegt sie: 47 werden 49. Der Papierkorb bringt zwei schreibende
+     Routen mit; die Liste und die Karte sind lesend und stehen deshalb NICHT
+     hier -- dieselbe Regel wie bei GET /api/stats. */
+  pruefe('Und es sind jetzt genau 49 schreibende Routen',
+    F_ROUTEN.length === 49 && fGefunden.length === 49,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
@@ -5064,6 +5763,139 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und dabei wird die WAL abgeschlossen',
     fQuelle.includes("wal_checkpoint(TRUNCATE)") && fQuelle.includes('db.close()'),
     'kein wal_checkpoint oder kein db.close');
+
+
+  /* --- 0.8.70: EINE ABBILDUNG JE EINTRAG, NICHT ZWEI ----------------------
+     Bis 0.8.60 stand sie mitten in der Exportroute. Jetzt rufen sie drei
+     Stellen -- der volle Export, der Einzelexport und der Papierkorb --, und
+     genau deshalb steht dieser Waechter hier: zwei Rechenwege fuer dieselbe
+     Datei laufen auseinander, und die Runde, die das Wiederherstellen baut,
+     haette den Fehler eingebaut, den sie verhindern soll.
+     Gezaehlt werden MARKEN, die es nur in der Abbildung gibt -- die
+     Funktionszeile allein saehe eine kopierte Feldliste daneben nicht. */
+  const ABBILD_MARKEN = ['function eintragAlsPaket(', 'favorite: pins.has(',
+                         'author: verfasserName(it.user_id)'];
+  const abbildZaehle = (text) => ABBILD_MARKEN.map(m => [m, text.split(m).length - 1]);
+  const fAbbild = abbildZaehle(fCodeZeilen);
+  pruefe('Die Abbildung je Eintrag kommt genau einmal im Quelltext vor',
+    fAbbild.every(([, n]) => n === 1), fAbbild.map(([m, n]) => `${m} (${n}x)`).join(' · '));
+  /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein, weil
+     er gar nichts mehr ansieht (Stolperstein 106). Vorgefuehrt an einem Text,
+     der die Verletzung traegt -- eine zweite, kopierte Feldliste. */
+  pruefe('Und er wuerde eine zweite Abbildung wirklich finden',
+    abbildZaehle(fCodeZeilen + '\nconst o = { favorite: pins.has(it.id) };')
+      .some(([, n]) => n === 2),
+    'der Waechter sieht die zweite Abbildung nicht');
+  const fAbbildRufe = fCodeZeilen.split('eintragAlsPaket(').length - 1;
+  pruefe('Sie wird an drei Stellen gerufen: Export, Einzelexport, Papierkorb',
+    fAbbildRufe === 4, `${fAbbildRufe} Vorkommen samt Deklaration`);
+
+  /* Dasselbe in der Gegenrichtung. Das Wiederherstellen geht durch den
+     IMPORT -- ein zweiter, frisch geschriebener Deserialisierer waere derselbe
+     Fehler, nur spiegelverkehrt. */
+  const EINSPIEL_MARKEN = ['function spieleEin(', 'const itemVerfasser = verfasser(it.author)'];
+  const fEinspiel = EINSPIEL_MARKEN.map(m => [m, fCodeZeilen.split(m).length - 1]);
+  pruefe('Und der Deserialisierer ebenfalls genau einmal',
+    fEinspiel.every(([, n]) => n === 1), fEinspiel.map(([m, n]) => `${m} (${n}x)`).join(' · '));
+  const fEinspielRufe = fCodeZeilen.split('spieleEin(').length - 1;
+  pruefe('Er wird an zwei Stellen gerufen: Import und Wiederherstellen',
+    fEinspielRufe === 3, `${fEinspielRufe} Vorkommen samt Deklaration`);
+
+  /* DIE FORMATNUMMER STEHT AN GENAU EINER STELLE. Zwei Umschlaege -- der volle
+     Export und der Einzelexport -- gehen durch dieselbe Funktion; stuende die
+     Zahl an beiden, liefen sie auseinander. */
+  const fFormatDef = fCodeZeilen.split('AUSTAUSCH_FORMAT = ').length - 1;
+  pruefe('Die Formatnummer steht genau einmal im Quelltext', fFormatDef === 1,
+    `${fFormatDef} Vorkommen`);
+  pruefe('Und nirgends noch einmal als nackte Zahl',
+    !/version:\s*\d/.test(fCodeZeilen),
+    (fCodeZeilen.match(/.*version:\s*\d.*/) || [''])[0]);
+
+  /* --- 0.8.70: DER PAPIERKORB FASST KEINE BESTEHENDE ABFRAGE AN -----------
+     Die tragende Regel der Runde. Kein Zustand `geloescht` an items, kein
+     WHERE-Zusatz irgendwo -- ein gelöschter Eintrag ist wirklich weg und liegt
+     nur zusaetzlich noch als Paket daneben. Wer das aufweicht, beruehrt jede
+     Abfrage im ganzen System, und jede vergessene Stelle waere ein stiller
+     Fehler.
+     ANGESEHEN WIRD NUR CODE (Stolperstein 106): der Kommentar an der Tabelle
+     in db.js nennt die Regel ausdruecklich und darf das auch. */
+  const BESTANDSTABELLEN = ['items', 'photos', 'comments', 'ratings', 'test_days',
+                            'links', 'attachments', 'comment_images', 'item_tags',
+                            'test_day_tags', 'item_pins'];
+  const bestandsAbfragen = (text) => text.split('\n')
+    .filter(z => BESTANDSTABELLEN.some(t =>
+      z.includes(`FROM ${t}`) || z.includes(`INTO ${t}`) || z.includes(`UPDATE ${t} `)));
+  const verunreinigt = (zeilen) => zeilen.filter(z => /papierkorb|geloescht/i.test(z));
+  const fBestandsZeilen = bestandsAbfragen(fCodeZeilen);
+  // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne
+  // Zeilen bliebe jede Verneinung darauf wahr und belegte nichts.
+  pruefe('Der Waechter findet die Abfragen auf den Bestand ueberhaupt',
+    fBestandsZeilen.length > 30, `${fBestandsZeilen.length} Zeilen`);
+  pruefe('Keine davon nennt den Papierkorb oder einen Zustand geloescht',
+    verunreinigt(fBestandsZeilen).length === 0,
+    verunreinigt(fBestandsZeilen).slice(0, 3).join(' · '));
+  pruefe('Und er wuerde einen solchen Zusatz wirklich finden',
+    verunreinigt(bestandsAbfragen(
+      "  const x = db.prepare('SELECT * FROM items WHERE geloescht = 0').all();")).length === 1,
+    'der Waechter sieht den Zusatz nicht');
+
+  /* KEIN SECHSTER MIGRATIONSBLOCK. Die Probe aus der Gruppe "Der Papierkorb:
+     die Tabelle legt sich selbst an" hat es hergegeben: CREATE TABLE IF NOT
+     EXISTS legt eine fehlende TABELLE bei jedem Start an. Es bleibt bei fuenf
+     markierten Bloecken, und es kommt kein Eintrag unter "Vorgemerkt fuer 1.0"
+     dazu. Wer trotzdem einen anlegt, wird hier namentlich rot. */
+  const fDbQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+  const fMigrationen = (fDbQuelle.match(/function migration0?\d+\(/g) || []);
+  pruefe('Es gibt genau fuenf Migrationsfunktionen', fMigrationen.length === 5,
+    fMigrationen.join(' · '));
+  pruefe('Und keine davon heisst migration0870',
+    !fDbQuelle.includes('migration0870'), 'migration0870 steht in db.js');
+  pruefe('Der Papierkorb steht als vollstaendige DDL im Schema',
+    fDbQuelle.includes('CREATE TABLE IF NOT EXISTS papierkorb (') &&
+    fDbQuelle.includes('CREATE TABLE IF NOT EXISTS papierkorb_bytes ('),
+    'die DDL fehlt');
+  /* UND geloescht_von GEHOERT AUSDRUECKLICH NICHT INS AUFFANGNETZ. Es ist die
+     Feststellung eines Vorgangs, nicht die Zugehoerigkeit von Bestand -- daran
+     haengt kein Recht und kein Filter. Waere die Tabelle dort eingetragen,
+     schoebe der naechste Start jeden Loeschenden still dem Eigentuemer zu und
+     machte aus einer Feststellung eine Falschaussage. */
+  const fNetzRumpf = (() => {
+    const a = fDbQuelle.indexOf('function ordneBestandZu(');
+    if (a < 0) return '';
+    const e = fDbQuelle.indexOf('\n}', a);
+    return e < 0 ? '' : fDbQuelle.slice(a, e);
+  })();
+  pruefe('Das Auffangnetz gibt es ueberhaupt', fNetzRumpf.length > 0, 'ordneBestandZu fehlt');
+  pruefe('Es kennt weiterhin genau die sechs Traeger mit user_id',
+    /\['items', 'comments', 'test_days', 'ratings', 'links', 'attachments'\]/.test(fNetzRumpf),
+    (fNetzRumpf.match(/for \(const tabelle of .*/) || [''])[0]);
+  pruefe('Und den Papierkorb ausdruecklich nicht',
+    !fNetzRumpf.includes('papierkorb'), 'papierkorb steht im Auffangnetz');
+
+  /* DIE FRIST STEHT IM SERVER, NICHT IN DER OBERFLAECHE. Die Karte und der
+     Loeschdialog nennen sie beide -- gerechnet wird sie an einer Stelle, und
+     die Oberflaeche bekommt sie ueber die Antwort. */
+  const fFristDef = fCodeZeilen.split('PAPIERKORB_TAGE = ').length - 1;
+  pruefe('Die Frist steht genau einmal im Server', fFristDef === 1, `${fFristDef} Vorkommen`);
+  pruefe('Die Oberflaeche rechnet die verbleibenden Tage nicht selbst nach',
+    !/tageOffen\s*=/.test(fAppQuelle),
+    (fAppQuelle.match(/.*tageOffen\s*=.*/) || [''])[0]);
+
+  /* SICHERUNG ODER BACKUP -- eines von beiden, und durchgehalten. Beide Woerter
+     sind gebraeuchlich; zwei fuer dieselbe Sache sind genau das, was die
+     Sprachregel aus Abschnitt 12 verhindern soll. Entschieden ist SICHERUNG:
+     der Einspielweg, der Stufenplan und das Ideenpapier sagen es laengst so.
+     Der Waechter sieht die ausgelieferten Dateien an -- Code UND Kommentare,
+     denn das Wort steht in Meldungen und in Beschriftungen. */
+  const SICHERUNG_DATEIEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
+                             'public/app.js', 'public/index.html', 'zugang.js'];
+  const fBackup = SICHERUNG_DATEIEN
+    .map(d => [d, (fs.readFileSync(path.join(__dirname, d), 'utf8').match(/Backup/gi) || []).length])
+    .filter(([, n]) => n > 0);
+  pruefe('Das Wort Backup steht in keiner ausgelieferten Datei mehr',
+    fBackup.length === 0, fBackup.map(([d, n]) => `${d} (${n}x)`).join(' · '));
+  pruefe('Und der Waechter wuerde es wirklich finden',
+    /Backup/i.test('// Das gehoert ins Backup.'), 'der Waechter sieht das Wort nicht');
 
   /* ---------------------------------------------------------------- */
   gruppe('Der Sprachwaechter');
@@ -8415,7 +9247,7 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
   const { VirtualConsole } = require('jsdom');
@@ -8435,6 +9267,18 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       { id: 4, username: 'geloescht-4', role: 'user', status: 'geloescht', last_login: null, created_at: '2026-04-01 09:00:00', eintraege: 1 }
     ]
   };
+  /* Der Papierkorb der Prueflage. Zwei Zeilen, zwei Lagen: eine von einem
+     lebenden Zugang, eine von einem Grabstein. Wer die Zahlen dieser Prueflage
+     misst, misst sie an einem FRISCHEN Aufbau -- die beiden Schreibwege unten
+     veraendern sie wirklich (Stolperstein 115). */
+  const papierkorb = papierkorbBestand || [
+    { id: 501, titel: 'Weggeworfenes', geloescht_am: '2026-08-01 09:00:00',
+      loeschender: { id: 1, name: 'chefin', geloescht: false },
+      dateien: 3, bytes: 2048, tageOffen: 12 },
+    { id: 502, titel: 'Von einem Grabstein', geloescht_am: '2026-08-10 11:30:00',
+      loeschender: { id: 4, name: null, geloescht: true },
+      dateien: 0, bytes: 512, tageOffen: 27 }
+  ];
   const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   const kriterien = [
     { id: 7, name: 'Zuerst', sort_order: 0, usage_count: 2, gewicht: kriterienGewichte[0] },
@@ -8661,7 +9505,41 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        Mock liefert ihn mit -- sonst bliebe die Kopfzeile leer und
        jede Pruefung darauf blind. Als Vorgabe DERSELBE Name wie unter
        /api/account; eine Prueflage kann ihn ueberschreiben. */
-    if (url === '/api/settings') return gib({ name: 'chefin', ...einstellungen });
+    if (url === '/api/settings') return gib({ name: 'chefin', papierkorbTage: 30, ...einstellungen });
+    /* DER PAPIERKORB IM MOCK, und er muss BEIDE Zustaende koennen: gefuellt
+       und leer. Eine Karte ohne Zeilen belegte nichts ueber die Zeilen, eine
+       ohne den leeren Fall nichts ueber die Auskunft "hier liegt nichts"
+       (Stolperstein 81).
+       ZWEI ZEILEN, UND SIE SIND VERSCHIEDENER ART: eine von einem lebenden
+       Zugang, eine von einem GRABSTEIN (loeschender.name null). Waeren beide
+       gleich, liesse sich nicht sehen, ob die Beschriftung ihre eigene Zeile
+       trifft.
+       ER STEHT HINTER dem Admin, wie der echte Server -- antwortete er jedem
+       mit 200, waere die Rolle unpruefbar. */
+    if (url === '/api/papierkorb') {
+      if (einstellungen.istAdmin === false)
+        return gib({ error: 'Das verwaltet nur der Admin.' }, 403);
+      return gib({ tage: 30, zeilen: papierkorb });
+    }
+    /* Und die beiden Wege, die den Bestand WIRKLICH aendern (Stolperstein 90):
+       ein Mock, der beim Zurueckholen zwar antwortet, aber dieselbe Liste
+       weiterliefert, macht "die Karte zeichnet sich neu" von "die Karte blieb
+       stehen" ununterscheidbar -- beide Faelle blieben gruen. */
+    if (/^\/api\/papierkorb\/\d+\/wiederherstellen$/.test(url) && opt.method === 'POST') {
+      const nr = Number(url.split('/')[3]);
+      const weg = papierkorb.findIndex(z => z.id === nr);
+      if (weg < 0) return gib({ error: 'Nicht gefunden' }, 404);
+      const [zeile] = papierkorb.splice(weg, 1);
+      return gib({ ok: true, itemId: 77, titel: zeile.titel, items: 1,
+                   verfasserUnbekannt: zeile.id === 502 ? ['dora'] : [] });
+    }
+    if (/^\/api\/papierkorb\/\d+$/.test(url) && opt.method === 'DELETE') {
+      const nr = Number(url.split('/').pop());
+      const weg = papierkorb.findIndex(z => z.id === nr);
+      if (weg < 0) return gib({ error: 'Nicht gefunden' }, 404);
+      papierkorb.splice(weg, 1);
+      return { ok: true, status: 204, json: async () => ({}) };
+    }
     // Die Karte "Zugaenge" holt sich die Liste selbst. Ohne diese
     // Zeile bekaeme sie {} und zeichnete gar nichts -- und jede Pruefung auf
     // die Karte waere blind dafuer, ob sie ueberhaupt gefuellt wird.
@@ -8785,8 +9663,15 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
          auslaesst, macht jede Pruefung an der Karte blind: sie zeichnete
          nichts, und "die Zeile fehlt" waere von "die Zeile ist falsch" nicht
          zu unterscheiden (Stolperstein 90). */
+      /* videoCount/videoBytes und papierkorbCount/papierkorbBytes stehen hier,
+         weil die Karten sie LESEN: die Exportkarte rechnet die erwartete
+         Groesse aus videoBytes, die Kennzahlenkarte zeigt den Papierkorb als
+         eigene Zeile. Ein Mock, der ein gelesenes Feld auslaesst, deckt die
+         Serverseite zu (Stolperstein 90). */
       return gib({ dbBytes: 1, photoCount: 0, photoBytes: 0, itemCount: 1,
+        videoCount: 0, videoBytes: 0,
         commentCount: 0, linkCount: 0, testDayCount: 0, attachmentCount: 4, attachmentBytes: 6144,
+        papierkorbCount: 2, papierkorbBytes: 2560,
         version: require('./package.json').version, fingerprint: 'a1b2c3d4',
         keyFromEnv: false, keyHex: 'ab'.repeat(32) });
     }
@@ -10810,7 +11695,18 @@ async function pruefeOberflaeche() {
      im ersten Satz. Ein Link kann seit dieser Fassung fremd sein und gehoert
      damit zu den Beitraegen, nicht zum Eintrag. */
   pruefe('Der Dialog nennt, was am Eintrag selbst haengt',
-    /Dabei gehen 1 Foto verloren/.test(eDialog), eDialog);
+    /Dabei gehen 1 Foto mit/.test(eDialog), eDialog);
+  /* SEIT 0.8.70 IST DER SCHLUSSSATZ EIN ANDERER, und das ist die einzige
+     Aenderung dieser Runde an etwas, das taeglich benutzt wird: mit dem
+     Papierkorb ist das Loeschen nicht mehr unwiderruflich, und ein Dialog,
+     der es weiter behauptete, sagte etwas Falsches. Die Zahlen bleiben --
+     sie sind die eigentliche Auskunft. */
+  pruefe('Sein Schlusssatz nennt den Papierkorb samt Frist',
+    /liegt danach 30 Tage im Papierkorb/.test(eDialog), eDialog);
+  pruefe('Und wer zurueckholen darf',
+    /Eigentümer der Anlage/.test(eDialog), eDialog);
+  pruefe('Das Wort "unwiderruflich" steht nicht mehr darin',
+    !/unwiderruflich/i.test(eDialog), eDialog);
   /* Seit 0.8.30 die Links, seit 0.8.31 auch die Dateien: was fremd sein kann,
      steht bei den Beitraegen und nicht beim Eintrag. */
   pruefe('Und weder Links noch Dateien stehen darunter',
@@ -12875,10 +13771,10 @@ async function pruefeOberflaeche() {
   const rUser = await baueSystem({ istAdmin: false, istEigentuemer: false });
   const kEig = kartenVon(rEig), kAdm = kartenVon(rAdm), kUser = kartenVon(rUser);
 
-  const ALLE_KARTEN = ['Titel', 'Zugang', 'Kennzahlen', 'Export', 'Import', 'Kategorien',
-    'Tags', 'Bewertungskriterien', 'Zugänge', 'Darstellung', 'Links', 'Suchanbieter',
-    'Vokabular'];
-  pruefe('Die Eigentuemerin sieht alle dreizehn Karten',
+  const ALLE_KARTEN = ['Titel', 'Zugang', 'Kennzahlen', 'Export', 'Import', 'Papierkorb',
+    'Kategorien', 'Tags', 'Bewertungskriterien', 'Zugänge', 'Darstellung', 'Links',
+    'Suchanbieter', 'Vokabular'];
+  pruefe('Die Eigentuemerin sieht alle vierzehn Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
 
   /* Die drei, die JEDEM bleiben -- und der Grund steht in jeder von ihnen:
@@ -12892,7 +13788,11 @@ async function pruefeOberflaeche() {
 
   /* Punkt fuer Punkt, weil eine Sammelpruefung nicht sagt, WELCHE Karte
      fehlt -- und weil jede fuer sich gegengeprueft werden koennen muss. */
-  for (const karte of ['Titel', 'Kennzahlen', 'Vokabular', 'Zugänge', 'Suchanbieter']) {
+  /* "Papierkorb" steht beim Admin -- SEHEN ist die Adminfrage, HANDELN die
+     Eigentuemerfrage. Dieselbe Bauform wie bei "Kategorien", "Tags" und
+     "Bewertungskriterien": die Karte bleibt, die Bedienzeichen verschwinden.
+     Dass die Knoepfe dem Admin fehlen, steht in der eigenen Gruppe darunter. */
+  for (const karte of ['Titel', 'Kennzahlen', 'Vokabular', 'Zugänge', 'Suchanbieter', 'Papierkorb']) {
     pruefe(`Die Karte "${karte}" steht nur beim Admin`,
       kAdm.includes(karte) && !kUser.includes(karte),
       `Admin: ${kAdm.includes(karte)} · Benutzer: ${kUser.includes(karte)}`);
@@ -13076,6 +13976,202 @@ async function pruefeOberflaeche() {
     rRegel('.sys-card .sys-teil'));
 
   rEig.w.close(); rAdm.w.close(); rUser.w.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Papierkorb in der Oberflaeche');
+
+  /* DIE KARTE IN BEIDEN ZUSTAENDEN -- gefuellt und leer (Stolperstein 90).
+     Eine Karte ohne Zeilen belegte nichts ueber die Zeilen, eine ohne den
+     leeren Fall nichts ueber die Auskunft "hier liegt nichts".
+     WER DIE ZAHLEN EINER PRUEFLAGE MISST, MISST SIE AN EINEM FRISCHEN AUFBAU
+     (Stolperstein 115): die beiden Schreibwege unten veraendern den Bestand
+     des Mocks wirklich, und was danach im selben Fenster laeuft, saehe etwas
+     anderes. Deshalb baut jede Lage ihren eigenen Systembereich. */
+  const pkSystem = async (rollen, opt = {}) => {
+    const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
+    await new Promise(r => setTimeout(r, 60));
+    await d.w.renderSystem();
+    await new Promise(r => setTimeout(r, 60));
+    return d;
+  };
+  const pkKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Papierkorb');
+  const pkReihen = (d) => [...(pkKarte(d)?.querySelectorAll('#mpapierkorb .mrow.pk') || [])];
+
+  const pkuEig = await pkSystem({ istAdmin: true, istEigentuemer: true });
+  const pkuAdm = await pkSystem({ istAdmin: true, istEigentuemer: false });
+  const pkuUser = await pkSystem({ istAdmin: false, istEigentuemer: false });
+
+  // ERST DAS VORHANDENSEIN, dann jede Aussage darueber (Stolperstein 81).
+  pruefe('Die Karte steht bei der Eigentuemerin', !!pkKarte(pkuEig));
+  pruefe('Und beim Admin ohne Eigentuemerrolle', !!pkKarte(pkuAdm));
+  pruefe('Bei einem gewoehnlichen Benutzer gibt es sie nicht', !pkKarte(pkuUser));
+  pruefe('Ohne Adminrolle wird die Liste gar nicht erst abgerufen',
+    !pkuUser.gesendet.some(x => x.url === '/api/papierkorb'),
+    pkuUser.gesendet.map(x => x.url).join(' · '));
+  pruefe('Mit Adminrolle sehr wohl',
+    pkuAdm.gesendet.some(x => x.url === '/api/papierkorb'),
+    pkuAdm.gesendet.map(x => x.url).join(' · '));
+
+  const pkuReihen = pkReihen(pkuEig);
+  pruefe('Die Karte zeigt beide Zeilen', pkuReihen.length === 2,
+    `${pkuReihen.length} Zeilen`);
+  pruefe('Mit ihren Titeln',
+    gleich(pkuReihen.map(r => r.querySelector('.mname')?.textContent), ['Weggeworfenes', 'Von einem Grabstein']),
+    JSON.stringify(pkuReihen.map(r => r.querySelector('.mname')?.textContent)));
+  const pkuMeta = pkuReihen.map(r => r.querySelector('.pk-meta')?.textContent || '');
+  pruefe('Jede Zeile nennt, wer geloescht hat',
+    /von chefin/.test(pkuMeta[0]), pkuMeta[0]);
+  /* Der GRABSTEIN geht denselben Weg von der Nummer zum Namen wie ueberall
+     sonst -- der Name steht in der Antwort ausdruecklich auf null. */
+  pruefe('Und ein Grabstein heisst wie ueberall "Geloeschter Benutzer 4"',
+    /von Gelöschter Benutzer 4/.test(pkuMeta[1]), pkuMeta[1]);
+  pruefe('Jede Zeile nennt die verbleibenden Tage',
+    /noch 12 Tage/.test(pkuMeta[0]) && /noch 27 Tage/.test(pkuMeta[1]),
+    JSON.stringify(pkuMeta));
+  pruefe('Und ihre Groesse', /2,0 KB/.test(pkuMeta[0]), pkuMeta[0]);
+  pruefe('Das Datum steht in deutscher Schreibweise',
+    /01\.08\.2026/.test(pkuMeta[0]), pkuMeta[0]);
+
+  /* BEIDE KNOEPFE NUR BEIM EIGENTUEMER. Erst das Vorhandensein der Zeile,
+     dann die Abwesenheit des Knopfes an ihr -- ohne die erste Haelfte bliebe
+     die zweite auf null Zeilen wahr und belegte nichts (Stolperstein 81). */
+  pruefe('Bei der Eigentuemerin steht an jeder Zeile Zurueckholen und ein Kreuz',
+    pkuReihen.every(r => !!r.querySelector('.pk-back') && !!r.querySelector('.pk-weg')),
+    JSON.stringify(pkuReihen.map(r => r.innerHTML.slice(0, 120))));
+  const pkuAdmReihen = pkReihen(pkuAdm);
+  pruefe('Beim Admin gibt es die Zeilen ueberhaupt', pkuAdmReihen.length === 2,
+    `${pkuAdmReihen.length} Zeilen`);
+  pruefe('Aber an ihnen steht kein einziger Knopf',
+    pkuAdmReihen.every(r => !r.querySelector('.pk-back') && !r.querySelector('.pk-weg')),
+    JSON.stringify(pkuAdmReihen.map(r => r.innerHTML.slice(0, 120))));
+  pruefe('Und die Karte sagt ihm, wer es darf',
+    /Eigentümer der Anlage/.test(pkKarte(pkuAdm)?.querySelector('.desc')?.textContent || ''),
+    pkKarte(pkuAdm)?.querySelector('.desc')?.textContent);
+  pruefe('Bei der Eigentuemerin steht dieser Satz NICHT',
+    !/Eigentümer der Anlage/.test(pkKarte(pkuEig)?.querySelector('.desc')?.textContent || ''),
+    pkKarte(pkuEig)?.querySelector('.desc')?.textContent);
+
+  // Die Frist steht in der Karte, und zwar die aus der Antwort.
+  pruefe('Die Karte nennt die Frist aus der Antwort',
+    /30 Tage/.test(pkKarte(pkuEig)?.querySelector('.desc')?.textContent || ''),
+    pkKarte(pkuEig)?.querySelector('.desc')?.textContent);
+
+  /* DAS VOKABULAR. Wer seine Eintraege "Maschinen" nennt, liest hier
+     "Gelöschte Maschinen" -- eine Karte, die den Bestand mit einem anderen
+     Wort benennt als der Rest der Oberflaeche, ist falsch beschriftet. */
+  const pkuVok = await pkSystem({ istAdmin: true, istEigentuemer: true,
+    vokabular: { sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen',
+                 zeitpunktEinzahl: 'Prüfung', zeitpunktMehrzahl: 'Prüfungen' } });
+  pruefe('Die Karte benutzt das Vokabular',
+    /Gelöschte Maschinen/.test(pkKarte(pkuVok)?.querySelector('.desc')?.textContent || ''),
+    pkKarte(pkuVok)?.querySelector('.desc')?.textContent);
+  pruefe('Und auch fuer den Zeitpunkt',
+    /Prüfungen/.test(pkKarte(pkuVok)?.querySelector('.desc')?.textContent || ''),
+    pkKarte(pkuVok)?.querySelector('.desc')?.textContent);
+
+  /* DER LEERE FALL, mit eigenem Aufbau. */
+  const pkuLeer = await pkSystem({ istAdmin: true, istEigentuemer: true }, { papierkorbBestand: [] });
+  pruefe('Ist der Papierkorb leer, steht die Karte trotzdem da', !!pkKarte(pkuLeer));
+  pruefe('Und sie sagt es',
+    /Keine gelöschten Einträge/.test(pkKarte(pkuLeer)?.textContent || ''),
+    pkKarte(pkuLeer)?.textContent?.slice(0, 200));
+  pruefe('Ohne eine einzige Zeile', pkReihen(pkuLeer).length === 0);
+  const pkuLeerVok = await pkSystem({ istAdmin: true, istEigentuemer: true,
+    vokabular: { sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen' } }, { papierkorbBestand: [] });
+  pruefe('Auch der leere Fall benutzt das Vokabular',
+    /Keine gelöschten Maschinen/.test(pkKarte(pkuLeerVok)?.textContent || ''),
+    pkKarte(pkuLeerVok)?.textContent?.slice(0, 200));
+
+  /* ZURUECKHOLEN, mit einem WIRKLICH zugestellten Ereignis -- .click() genuegt
+     nicht, und ein Fehler hinter einem await bliebe im nur gebauten DOM
+     unsichtbar (Stolperstein 61). Der Mock aendert seinen Bestand dabei
+     wirklich; ohne das waere "die Karte zeichnet sich neu" von "die Karte
+     blieb stehen" nicht zu unterscheiden (Stolperstein 90). */
+  {
+    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    const vorher = pkReihen(d).length;
+    pkReihen(d)[0].querySelector('.pk-back')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Der Knopf schickt das Zurueckholen an den Server',
+      d.gesendet.some(x => x.methode === 'POST' && x.url === '/api/papierkorb/501/wiederherstellen'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und holt die Liste danach neu',
+      d.gesendet.filter(x => x.url === '/api/papierkorb').length >= 2,
+      d.gesendet.map(x => x.url).join(' · '));
+    pruefe('Die Karte zeigt danach eine Zeile weniger',
+      pkReihen(d).length === vorher - 1, `vorher ${vorher}, danach ${pkReihen(d).length}`);
+    pruefe('Und die zurueckgeholte Zeile ist es, die fehlt',
+      !pkReihen(d).some(r => r.querySelector('.mname')?.textContent === 'Weggeworfenes'),
+      JSON.stringify(pkReihen(d).map(r => r.querySelector('.mname')?.textContent)));
+    pruefe('Eine Meldung sagt es',
+      /Weggeworfenes/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+      d.w.document.querySelector('.toast')?.textContent);
+  }
+
+  /* Und die laute Haelfte: unbekannte Verfasser aus der Antwort werden
+     genannt. Die zweite Zeile der Prueflage traegt sie. */
+  {
+    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    pkReihen(d)[1].querySelector('.pk-back')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Unbekannte Verfasser stehen in der Meldung',
+      /dora/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+      d.w.document.querySelector('.toast')?.textContent);
+  }
+
+  /* ENDGUELTIG ENTFERNEN -- mit Rueckfrage davor. Ein Weg ohne Rueckweg
+     bekommt eine. */
+  {
+    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    const vorher = pkReihen(d).length;
+    pkReihen(d)[0].querySelector('.pk-weg')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const frage = d.w.document.querySelector('.backdrop .modal');
+    pruefe('Das Kreuz fragt zuerst nach', !!frage, d.w.document.body.innerHTML.slice(0, 120));
+    pruefe('Und die Frage nennt den Titel und sagt, dass es danach keinen Rueckweg gibt',
+      /Weggeworfenes/.test(frage?.textContent || '') && /keinen Rückweg/.test(frage?.textContent || ''),
+      frage?.textContent);
+    // Erst abbrechen: danach darf NICHTS geschickt worden sein.
+    d.w.document.querySelector('.backdrop [data-no]')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Nach dem Abbrechen wird nichts geschickt',
+      !d.gesendet.some(x => x.methode === 'DELETE' && x.url.startsWith('/api/papierkorb/')),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und die Zeile steht noch da', pkReihen(d).length === vorher);
+
+    pkReihen(d)[0].querySelector('.pk-weg')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    d.w.document.querySelector('.backdrop [data-yes]')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Nach dem Bestaetigen geht das Entfernen hinaus',
+      d.gesendet.some(x => x.methode === 'DELETE' && x.url === '/api/papierkorb/501'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und die Karte zeigt eine Zeile weniger',
+      pkReihen(d).length === vorher - 1, `vorher ${vorher}, danach ${pkReihen(d).length}`);
+  }
+
+  /* DIE KENNZAHLENKARTE weist den Papierkorb getrennt aus. Geprueft an der
+     KARTE, in der er stehen soll -- ein Wert irgendwo im Systembereich belegte
+     nicht, dass er bei den Kennzahlen steht. */
+  {
+    const karte = [...pkuEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
+    pruefe('Die Karte Kennzahlen ist ueberhaupt da', !!karte);
+    const zeile = [...(karte?.querySelectorAll('.kv') || [])]
+      .find(z => z.querySelector('.k')?.textContent.trim() === 'Papierkorb');
+    pruefe('Sie traegt eine Zeile mit der Beschriftung Papierkorb', !!zeile,
+      [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
+    pruefe('Und darin stehen Zahl und Groesse aus der Antwort',
+      /^2 · 2,5 KB$/.test(zeile?.querySelector('.v')?.textContent?.trim() || ''),
+      zeile?.querySelector('.v')?.textContent);
+  }
 
   /* ================= Vergleich: meine / alle ================= */
   /* ================= Das Gewicht in der Oberflaeche ================= */

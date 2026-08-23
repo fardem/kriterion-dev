@@ -41,7 +41,7 @@ function warnKeyBesideData() {
     '  Fuer echten Schutz einen eigenen Schluessel erzeugen:\n' +
     '      openssl rand -hex 32\n' +
     '  und als ENCRYPTION_KEY in die .env eintragen.\n' +
-    '  Danach gilt: .env und data/ NICHT ins selbe Backup legen.\n' +
+    '  Danach gilt: .env und data/ NICHT in dieselbe Sicherung legen.\n' +
     '  Ohne den Schluessel sind alle Daten endgueltig verloren.\n' +
     '  ------------------------------------------------------------------\n'
   );
