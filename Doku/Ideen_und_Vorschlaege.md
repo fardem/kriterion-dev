@@ -23,8 +23,11 @@ Prüfstand vollständig durchgelaufen: **1429 von 1429 Prüfungen bestanden**.
 > - **Videos** standen unter „was ich nicht in die Roadmap nehmen würde". Das
 >   war falsch — es gilt nur für große Dateien. Kurzvideos bis 20 MB liegen
 >   wie ein Foto in der Datenbank, und das Standbild kann der Browser
->   liefern. Ausgearbeitet in `Konzept_Video_und_grosse_Dateien.md`,
->   beschlossen für 0.8.50.
+>   liefern. Ausgearbeitet in `Konzept_Video_und_grosse_Dateien.md`, Teil I —
+>   und **mit 0.8.50 gebaut**. Der Browser liefert das Standbild wirklich,
+>   `ffmpeg` ist draußen geblieben, und die Formatnummer ging **9 → 10**. Teil
+>   II (große Dateien bis 2 GB) bleibt auf 1.1.0; die Ablehnung galt also
+>   tatsächlich nur für die zweite Hälfte.
 > - **Punkt 4.1, Gewichtung**, ist vollständig ausgearbeitet in
 >   `Konzept_Gewichtung_Bewertungskriterien.md` — und **mit 0.8.40 gebaut**.
 >   Statt drei Vorschlägen sind es fünf geworden (`0,5 · 0,8 · 1 · 1,2 · 1,5`),
@@ -1186,5 +1189,12 @@ lassen.
 
 *Nachtrag: genau dieser Wächter ist in 0.8.20 gebaut worden — server.js setzt
 den Content-Type an keiner Stelle mehr selbst, und wer künftig eine
-Auslieferung ergänzt, wird namentlich rot. Er bindet unmittelbar für 0.8.50,
-wo ein Video inline ausgeliefert wird.*
+Auslieferung ergänzt, wird namentlich rot.*
+
+*Zweiter Nachtrag: **in 0.8.50 ist er zum ersten Mal auf die Probe gestellt
+worden** — dort kam mit dem Video eine inline ausgelieferte Datei dazu. Er
+blieb grün, weil der Videoweg durch `setzeBildKopfzeilen()` geht und den Typ
+aus den ersten Bytes nimmt. Der Befund 2.1 kann damit an der neuen Stelle gar
+nicht erst entstehen. Seit 0.8.50 steht neben dem Wächter eine Gegenprobe, die
+ihn an einer verletzenden Zeichenkette vorführt: sonst bliebe er auch dann
+grün, wenn er gar nichts mehr ansähe.*

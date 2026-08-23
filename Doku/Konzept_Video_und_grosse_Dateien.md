@@ -1,6 +1,29 @@
 # Konzept — Videos und große Dateien
 
-**Teil I ist beschlossen für 0.8.50 — also vor 1.0. Teil II steht auf 1.1.0.**
+> ## ✅ TEIL I IST GEBAUT — Version 0.8.50
+>
+> **Alles von Abschnitt 2 bis 9 ist umgesetzt.** Was dabei anders gebaut wurde
+> als hier beschrieben, steht **an jeder betroffenen Stelle** als eingerückter
+> Vermerk. Die verbindliche Fassung ist der Quelltext, dahinter der
+> Projektstand (Abschnitte 5, 5a und 9) und
+> `Doku/Aenderungsprotokoll_0.8.50.md`.
+>
+> **Fünf Stellen weichen ab**, alle aus demselben Grund: das Papier ist vor
+> dem Bau geschrieben worden und kannte den heutigen Quelltext nicht ganz.
+> 1. Der ausgelieferte Typ kommt **nicht nach Endung**, sondern aus den ersten
+>    Bytes — `photos` speichert keinen Dateinamen (Abschnitt 6).
+> 2. **`Accept-Ranges` wird geliefert**, nicht abgeschaltet (Abschnitt 6,
+>    Punkt 5 gegen Abschnitt 10).
+> 3. Die Sicherheitsregel der Anwendung brauchte **`media-src 'self' blob:`**
+>    — im Papier fehlt der Punkt ganz (Abschnitt 4).
+> 4. **Kein Videoplatz ohne Videodatei** im Export; stattdessen eine Marke in
+>    der Datei und eine Meldung beim Einspielen (Abschnitt 9).
+> 5. Das **Standbild muss eigens in die Exportdatei** — sonst erzeugte der
+>    Import die Varianten aus der Videodatei (im Papier nicht erwähnt).
+>
+> **Teil II bleibt unverändert offen und steht weiterhin auf 1.1.0.**
+
+**Teil I ist gebaut in 0.8.50 — also vor 1.0. Teil II steht auf 1.1.0.**
 Der Projektstand führte Videos bis dahin geschlossen als zurückgestellt („kein
 Verzicht, sondern ein eigener Bauabschnitt"); das stimmte nur für die eine
 Hälfte.
@@ -87,6 +110,13 @@ ALTER TABLE photos ADD COLUMN art TEXT NOT NULL DEFAULT 'bild';   -- 'bild' | 'v
 ALTER TABLE photos ADD COLUMN dauer INTEGER;                      -- Sekunden, nur bei Video
 ```
 
+> **Gebaut, mit einer Ergänzung.** Beide Spalten stehen in der vollständigen
+> DDL in `db.js`; nachgerüstet werden sie von `umstieg0850()`, dem fünften
+> markierten Block. **Der Block fragt jede Spalte EINZELN ab** — zwei
+> `ALTER TABLE` sind zwei Anweisungen, und scheitert die zweite, bleibt die
+> erste stehen (nachgestellt, Stolperstein 108). Ein Block mit einer einzigen
+> Abfrage ließe `dauer` nach einem abgebrochenen Lauf für immer fehlen.
+
 **Warum keine eigene Tabelle `videos`.** Fotos und Videos stehen in **einer**
 Reihenfolge — `sort_order` entscheidet, was das Hauptbild ist. Zwei Tabellen
 hießen: zwei sortierte Listen, die beim Anzeigen zusammengefügt werden müssen,
@@ -110,6 +140,13 @@ Löschwege, die Kaskade am Eintrag.
 Damit funktionieren Kartenraster, Vorschauleiste und Sortierung **ohne eine
 einzige Änderung** — sie greifen ohnehin nur auf `thumb` und `sort_order` zu.
 
+> **Eine Stelle greift doch auf `data` zu, und sie wurde übersehen:**
+> `backfillVariants()` erzeugt beim Start fehlende Vorschaubilder **aus
+> `data`**. An einer Videozeile wären das die Videobytes — zwei leere
+> Varianten, ein überschriebenes Standbild und eine Zeile, die bei jedem Start
+> aufs Neue fällig ist. Der Nachrüster fasst seit 0.8.50 nur noch Bilder an
+> (Stolperstein 109).
+
 ## 3a. Es gelten dieselben Regeln wie am Foto — alle
 
 Das ist keine Absichtserklärung, sondern eine **Folge der Bauform**: weil ein
@@ -127,6 +164,15 @@ später eine Ausnahme bekommen.
 | **Verschlüsselung** | Ein Video liegt als BLOB in der Datenbank und ist damit von SQLCipher mit abgedeckt — wie jedes Foto, ohne eigenes Verfahren. |
 | **Sicherung** | `./data` deckt es ab. Der Satz in der README bleibt wortgleich wahr. |
 | **Auslieferung** | Positivliste nach Endung, `nosniff`, eigene Sicherheitsregel auf der Antwort — dieselben Schichten wie bei jeder anderen Datei, siehe Abschnitt 6. |
+
+> **Beim Bauen einzeln durchgegangen: fünf der acht Zeilen gelten wirklich von
+> selbst** — Kaskade, Reihenfolge, Verschlüsselung, Sicherung und, bis auf die
+> neue Route, die Rechte. **Drei gelten nicht von selbst und mussten gebaut
+> werden:** Löschdialog, Kennzahlen und die Auslieferung. Das Papier führt sie
+> hier auf, als griffen sie von allein; sie tun es nicht, und die Tabelle sagt
+> in ihren eigenen Zeilen auch schon das Gegenteil („als eigene Zeile",
+> „getrennt ausgewiesen"). **An der neuen Route ist ohnehin nichts
+> automatisch:** `nurEintragVerfasser` steht dort ausdrücklich.
 
 **Die einzige Stelle, an der ein Video sich anders verhält**, ist der Zoom im
 Vollbild: beim Bild geht der zweite Klick auf Originalgröße, beim Video gehört
@@ -188,6 +234,21 @@ Kommentarbilder**: was `sharp` nicht als Bild lesen kann, kommt nicht herein.
 Folge 3 — sonst entsteht ein Platz ohne Bild und ohne Abspielbarkeit, und
 niemand versteht, warum.
 
+> **Gebaut wie beschrieben — mit einem Punkt, den das Papier nicht kennt und
+> ohne den gar nichts hochladbar wäre.** Die Sicherheitsregel der Anwendung
+> lautete `default-src 'self'; img-src 'self' data: blob:; …` und hatte **kein
+> `media-src`**. Damit greift `default-src 'self'`, und eine `blob:`-Adresse
+> an einem `<video>` fällt unter `media-src`, nicht unter `img-src` — der
+> Browser verwirft sie **wortlos**. Im echten Chromium nachgemessen:
+> *„Refused to load media from blob:"*, `MEDIA_ELEMENT_ERROR` 4. Die Regel
+> trägt seit 0.8.50 `media-src 'self' blob:`; `'self'` trägt das Abspielen aus
+> der eigenen Anlage, `blob:` das Standbild vor dem Hochladen.
+>
+> Zwei Kleinigkeiten am Beispielcode oben sind beim Bauen dazugekommen: ein
+> Video **ohne Bildmaße** (etwa eine reine Tonspur) ergäbe eine Zeichenfläche
+> der Größe null und damit gar kein Standbild, und `c.toBlob()` kann `null`
+> liefern. Beides wird abgefangen und als Meldung gezeigt.
+
 ## 5. Welche Formate
 
 Eine Positivliste nach **Endung**, wie in `anhaenge.js`:
@@ -228,6 +289,34 @@ schlimmer: eine Videodatei wird **inline** eingebunden.
 5. `Accept-Ranges: none` in Teil I — bei 20 MB lädt der Browser die Datei ganz
    und springt darin selbst.
 
+> **Zwei Abweichungen, und beide sind nachgestellt.**
+>
+> **Erstens: der Typ kommt aus den ersten Bytes, nicht nach Endung.** Punkt 1
+> oben ist am Fotoplatz nicht baubar — **`photos` speichert keinen
+> Dateinamen**, es gibt dort keine Endung. Der Fotoweg entscheidet seit 0.8.20
+> nach den ersten Bytes, und für ein Video geht das genauso: MP4, M4V und MOV
+> sind ISO-BMFF und tragen `ftyp` an Byte 4, WebM beginnt mit dem EBML-Kopf
+> `1A 45 DF A3`. An echten Dateien nachgestellt: eine im Browser aufgenommene
+> MP4 trägt `ftyp` mit der Marke `isom`, die WebM den erwarteten Kopf.
+> `typAusBytes()` erkennt seit 0.8.50 zusätzlich `video/mp4`, `video/webm` und
+> `video/quicktime`; die Endungsliste steht trotzdem in `anhaenge.js` und
+> trägt beide Richtungen — sie benennt die ausgelieferte Datei.
+>
+> **Zweitens: Bereiche werden geliefert.** Punkt 5 verlangt
+> `Accept-Ranges: none`, Abschnitt 10 sagt über denselben Gegenstand, iOS
+> Safari spiele ohne Bereiche gar nicht ab. Beides kann nicht stimmen.
+> Entschieden wurde für die Bereiche: der Blob liegt beim Lesen ohnehin ganz
+> im Arbeitsspeicher, ein `206` mit `Content-Range` ist ein Dutzend Zeilen, und
+> ein Video, das auf dem Handy nicht abspielt, ist genau der kaputte Platz, den
+> Abschnitt 4 vermeiden will. **Nur am Video und nur an der ganzen Datei** —
+> an einem Foto verschiebt sich keine Kopfzeile. Ungültige Bereiche bekommen
+> **416**.
+>
+> **Punkt 4 ist bestätigt:** `default-src 'none'; sandbox` behindert das
+> Abspielen nicht. Im echten Chromium nachgestellt — eingebettet spielt es
+> durch, und direkt im Tab geöffnet ist der Bildschirmabzug mit und ohne
+> `sandbox` bytegleich.
+
 ## 7. Was es kostet — gemessen
 
 20 MB als BLOB in der verschlüsselten Datenbank, auf dieser Maschine:
@@ -256,6 +345,15 @@ Auflösung; wer mehr braucht, ist in Teil II richtig.
   Ein Abspielzeichen darauf, sonst nichts — angespielt wird erst im Eintrag.
 - **Kein automatisches Abspielen**, nirgends.
 
+> **Gebaut, mit drei Ergänzungen.** *Angehalten wird nicht nur beim Verlassen,
+> sondern auch beim Blättern* — sonst spielt der Ton weiter, während man das
+> nächste Bild ansieht. *Der Zähler auf der Karte* nennt bei gemischtem
+> Bestand beide Zahlen („3 Fotos · 1 Video"), bei reinem Bestand das eine Wort.
+> *Der Ausschnittmodus bleibt am Videoplatz bedienbar* und zeigt dort das
+> Standbild: eingestellt wird die Kachel, und die gibt es am Video genauso.
+> Woran die Oberfläche ein Video erkennt, ist **allein `art` aus der
+> Antwort** — `qPhotos` liefert dafür `art` und `dauer` mit.
+
 ## 9. Export
 
 Ein 20-MB-Video wird als Base64 zu **27 MB**. Zwanzig davon sind 540 MB in
@@ -274,6 +372,28 @@ verlöre die Reihenfolge, und sie mitzunehmen ließe den Export scheitern.
 **Der eigentliche Sicherungsweg für Videos ist ohnehin nicht der Export**,
 sondern die Sicherung des Datenverzeichnisses (im Roadmap-Papier Stufe
 „Sicherung und Papierkorb").
+
+> **Der Platzhalter geht mit dem heutigen Schema nicht auf, und er ist nicht
+> gebaut worden.** `photos.data` ist `NOT NULL`. Ein Platz ohne Videodatei
+> müsste entweder das Standbild in `data` tragen — dann lieferte
+> `GET /api/photos/:id/raw` ein JPEG für eine Zeile, die `art = 'video'` sagt,
+> und der Abspieler bliebe schwarz —, oder `art` bekäme einen dritten Wert,
+> oder es käme eine weitere Spalte dazu. Alle drei kosten mehr, als der
+> gewonnene Platzhalter wert ist.
+>
+> **Gebaut wurde: kein Videoeintrag ohne Videodatei — aber eine Marke in der
+> Datei.** Ohne den Schalter steht die Zeile mit `art`, `dauer` und Fokus in
+> der Exportdatei, **ohne Bytes**. Sie legt beim Einspielen keinen Platz an,
+> aber der Import kann dadurch **nennen**, wie viele Videos gefehlt haben —
+> `videosOhneDatei` in der Antwort und im Protokoll. Ohne die Marke wüsste er
+> es nicht, und der Verlust wäre still. **Der Preis steht in der Antwort:**
+> stand das Video an erster Stelle, wird danach das nächste Foto zum Hauptbild.
+>
+> **Und ein Punkt, den das Papier gar nicht nennt: das Standbild muss eigens
+> in die Datei.** Der Import erzeugt die Varianten aus `data` — bei einem Video
+> also aus der Videodatei. Ohne das Feld `standbild_base64` wäre das Standbild
+> beim Einspielen verloren. Ein Video, dessen Standbild sich nicht durch
+> `sharp` lesen lässt, wird übergangen und genannt (`videosUnlesbar`).
 
 ---
 
@@ -415,12 +535,15 @@ Drei Dinge, die dabei schiefgehen können und deshalb vorab geregelt gehören:
 
 | | Umfang | Was daran hängt |
 |---|---|---|
-| **Teil I — Kurzvideos** | mittel | zwei Spalten, ein Upload-Weg, Standbild im Browser, Abspieler im Vollbild, ein Export-Schalter |
+| **Teil I — Kurzvideos** | mittel — **gebaut in 0.8.50** | zwei Spalten, ein Upload-Weg, Standbild im Browser, Abspieler im Vollbild, ein Export-Schalter |
 | **Teil II — Große Dateien** | **groß** | zweiter Speicherort, eigene Verschlüsselung, Bereichsabfragen, stückweises Hochladen, Aufräumen, Platzprüfung |
 
 **Teil I ist für sich vollständig** und braucht von Teil II nichts. Wer nur
 kurze Videos an der Stelle der Fotos will — und das war der Ausgangswunsch —
 ist danach fertig.
+
+**Teil I ist mit 0.8.50 gebaut** — 146 neue Prüfungen, 30 Gegenproben, vier
+neue Stolpersteine. Der Aufwand „mittel" hat gestimmt.
 
 **Beschlossen: 0.8.50 für Teil I, 1.1.0 für Teil II.** Die Begründung steht in
 Abschnitt 1; sie hängt daran, dass Teil I eine bestehende Tabelle ändert und

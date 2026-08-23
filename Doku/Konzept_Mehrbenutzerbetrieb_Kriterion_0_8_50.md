@@ -1,12 +1,25 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 22. August 2026 · gebaut bis Version 0.8.40 — Abdruck `49d2ae53`**
+**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.50 — Abdruck `3cb528d6`**
 (Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
 vier keine Stufen.)
 
-**0.8.40 berührt den Mehrbenutzerbetrieb nicht.** Die Gewichtung der
+**0.8.50 berührt den Mehrbenutzerbetrieb ebenfalls nicht — mit einer
+Ausnahme, und die bestätigt dieses Papier.** Kurzvideos am Fotoplatz sind eine
+Datenbankstufe, aber keine Stufe dieses Papiers: keine Rolle, kein Recht, kein
+neuer Träger. **Die Ausnahme ist eine neue schreibende Route** —
+`POST /api/items/:id/videos`, `F_ROUTEN` geht von **46 auf 47**. Sie steht
+hinter `nurEintragVerfasser`, also hinter **derselben Klemme wie der Fotoweg**,
+und begründet damit kein neues Recht: ein Video hängt am Eintrag und gehört
+seinem Verfasser, genau wie ein Foto. **Fotos und Videos sind weiterhin kein
+Träger** (Änderungsprotokoll 0.8.31, Abschnitt 7) — `photos` hat keine
+`user_id` und bekommt keine, und `ordneBestandZu()` kennt die Tabelle nicht.
+Der Prüfstand belegt die Route mit einem **echten mehrteiligen Upload**: ein
+Fremder bekommt 403, und danach steht keine Zeile in `photos`.
+
+**0.8.40 berührte den Mehrbenutzerbetrieb nicht.** Die Gewichtung der
 Bewertungskriterien ist eine Datenbankstufe, aber keine Stufe dieses Papiers:
 keine Rolle, kein Recht, kein Endpunkt, kein Träger. `F_ROUTEN` bleibt bei 46,
 und **keine Route wechselt ihre Art** — das Gewicht geht über
@@ -45,8 +58,9 @@ beide nur in seinen Nummern.
 **Offen sind damit noch H (Tokens, 0.8.80) und I (Mailversand und
 Selbstanmeldung, 0.9.0).** Zwischen G4 und H liegen vier Stufen, die nicht zum
 Mehrbenutzerbetrieb gehören; sie stehen im Projektstand, Abschnitt 10. Die
-erste davon — **0.8.40, die Gewichtung** — ist gebaut; die nächste ist
-**0.8.50, Kurzvideos am Fotoplatz**.
+ersten beiden davon — **0.8.40, die Gewichtung**, und **0.8.50, Kurzvideos am
+Fotoplatz** — sind gebaut; die nächste ist **0.8.60, „Was ist offen, was ist
+neu"**.
 
 **Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
 `HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
@@ -564,8 +578,8 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 G4 und H liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu",
 Sicherung und Papierkorb). Alle vier gehören nicht zum Mehrbenutzerbetrieb und
 stehen deshalb im Projektstand, Abschnitt 10 — zusammen mit der Begründung für
-die Reihenfolge. **Die erste, 0.8.40 (Gewichtung), ist gebaut; als Nächstes
-0.8.50, Kurzvideos am Fotoplatz.**
+die Reihenfolge. **Die ersten beiden, 0.8.40 (Gewichtung) und 0.8.50 (Kurzvideos), sind gebaut;
+als Nächstes 0.8.60, „Was ist offen, was ist neu".**
 
 Danach: Zwei-Faktor, Suche, dann 1.0.0. **Zwei Punkte hängen unmittelbar an
 Stufe I und gehören beim Bauen mitgedacht:** die Tokens aus H tragen auch die
@@ -702,7 +716,7 @@ beiden Wegen (Anlegen und Umbenennen).
 /api/users` steht hinter `nurAdmin`; für die Beiträge im Eintrag lag nichts
 bereit, und die Auflösung Nummer → Verfasser musste eigens gebaut werden.
 Wer dort eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` ein; die
-Liste (aktuell 46 Routen) kennt seit 0.8.0 eine vierte Art,
+Liste (aktuell 47 Routen) kennt seit 0.8.0 eine vierte Art,
 `'nurAdmin, im Rumpf'`, für Routen, die hinter einem Wächter stehen **und**
 drinnen noch einmal unterscheiden.
 
@@ -1018,8 +1032,11 @@ Projektstand, Abschnitte 2, 5, 5a, 7 und 9.
   und schreibt ihn nirgends ab.
 - **Der ausgelieferte Typ kommt nie aus der Datenbank**, und ein Wächter im
   Prüfstand hält das fest: keine Zeile in `server.js` setzt den Content-Type
-  selbst. Er wird namentlich rot, sobald jemand eine Auslieferung ergänzt —
-  gedacht für 0.8.50, wo ein Video inline ausgeliefert wird.
+  selbst. Er wird namentlich rot, sobald jemand eine Auslieferung ergänzt.
+  **In 0.8.50 hat er gehalten:** der Videoweg liefert `inline` aus und geht
+  trotzdem durch `setzeBildKopfzeilen()`; keine Zeile in `server.js` ist
+  dazugekommen, die den Typ selbst setzt. Seitdem hat er eine Gegenprobe
+  neben sich.
 
 ## Stufe G4 — erledigt in Version 0.8.30
 
@@ -1349,8 +1366,14 @@ ihrem Merksatz; **die offenen Auflagen stehen vollständig.**
     ein `UPDATE` auf eine bestehende Zeile.
     *In 0.8.30 zum dritten Mal geprüft und wieder nicht zutreffend:* an `links`
     hängen keine Kinder, und der Import schreibt sie mit blankem `INSERT`.
-    **Die Auflage bleibt stehen** — als Nächstes für 0.8.40, wo die Gewichtung
-    an `rating_criteria` geht.
+    *In 0.8.40 zum vierten Mal geprüft und wieder nicht zutreffend:* an
+    `rating_criteria` hängen zwar Bewertungen, der Umstieg legt aber keine
+    Zeile an und entfernt keine.
+    *In 0.8.50 zum fünften Mal geprüft und wieder nicht zutreffend:* an
+    `photos` hängen keine Kinder, der Umstieg rüstet nur zwei Spalten nach, und
+    der Import schreibt Fotozeilen mit blankem `INSERT`.
+    **Die Auflage bleibt stehen** — als Nächstes für 0.8.70, wo der Papierkorb
+    einen ganzen Eintrag samt seiner Kinder serialisiert.
 19. *Eingetreten und erledigt in 0.7.2.* **Merksatz: der Import kann unter
     fremdem Namen schreiben — deshalb gehört er (samt Export) hinter den
     Eigentümer.**

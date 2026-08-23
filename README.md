@@ -1,8 +1,8 @@
 # Kriterion
 
 Selbstgehostetes Bewertungsarchiv. Kein Verkauf, keine Cloud, keine Konten bei
-Dritten — Fotos, Bewertungen, Notizen und Linksammlungen bleiben auf dem eigenen
-Server.
+Dritten — Fotos, Kurzvideos, Bewertungen, Notizen und Linksammlungen bleiben auf
+dem eigenen Server.
 
 Gedacht für alles, was man sammelt und beurteilt: Geräte, Materialien, Modelle,
 Prototypen, Bezugsquellen. Die Oberfläche ist neutral gehalten und lässt sich
@@ -104,8 +104,9 @@ setzt, muss ihn auch verwahren.
 Die **gesamte Datenbankdatei** ist verschlüsselt (SQLCipher, AES-256). Ohne
 Schlüssel meldet selbst ein Datenbankwerkzeug nur „file is not a database" —
 lesbar ist nichts, auch nicht die Tabellenstruktur, Kategorienamen, Zeitstempel
-oder Bildgrößen. Fotos liegen mit in der Datenbank und werden nie als Datei auf
-die Platte geschrieben; der Upload läuft über den Arbeitsspeicher.
+oder Bildgrößen. Fotos **und Videos** liegen mit in der Datenbank und werden
+nie als Datei auf die Platte geschrieben; der Upload läuft über den
+Arbeitsspeicher.
 
 Innerhalb der geöffneten Datenbank steht alles im Klartext. Deshalb funktioniert
 die Suche über sämtliche Felder, ohne dass die Verschlüsselung im Weg steht.
@@ -114,7 +115,7 @@ die Suche über sämtliche Felder, ohne dass die Verschlüsselung im Weg steht.
 
 Ohne gültige Anmeldung ist außer dem öffentlichen Titel nichts zu sehen: keine
 Einträge, keine Kategorien, keine Zahlen. Auch die Schnittstellen liefern ohne
-Sitzung nichts aus, Fotos und Export eingeschlossen. Sitzungen laufen nach 30
+Sitzung nichts aus, Fotos, Videos und Export eingeschlossen. Sitzungen laufen nach 30
 Tagen ab.
 
 Nach mehreren Fehlversuchen antwortet die Anmeldung verzögert, nach zehn
@@ -220,7 +221,7 @@ Am einzelnen Eintrag gilt:
 | | Verfasser | jeder andere | Admin |
 |---|---|---|---|
 | alles sehen | ✔ | ✔ | ✔ |
-| Titel, Beschreibung, Fotos, Tags, Kategorie, getestet, abgelehnt | ✔ | — | ✔ |
+| Titel, Beschreibung, Fotos, Videos, Tags, Kategorie, getestet, abgelehnt | ✔ | — | ✔ |
 | Eintrag löschen | ✔ | — | ✔ |
 | **Favorit** (★ am Eintrag) | persönlich — jeder für sich, an jedem Eintrag | | |
 | eigene Bewertung, eigener Testtag | ✔ | ✔ | ✔ |
@@ -253,9 +254,11 @@ bleibt beim Verfasser des Eintrags:** die Reihenfolge ändert keine Aussage und
 lässt sich zurücknehmen — dieselbe Überlegung wie beim Anpinnen eines
 Kommentars.
 
-**Fotos sind bewusst nicht dabei.** Sie gehören zum Eintrag selbst: das erste
-Foto ist das Hauptbild und damit sein Gesicht in der Übersicht. Wer die
-Reihenfolge ändert, ändert den Eintrag — das bleibt bei seinem Verfasser.
+**Fotos und Videos sind bewusst nicht dabei.** Sie gehören zum Eintrag selbst:
+das erste Element ist das Hauptbild und damit sein Gesicht in der Übersicht.
+Wer die Reihenfolge ändert, ändert den Eintrag — das bleibt bei seinem
+Verfasser. Für ein Video gilt jede dieser Regeln unverändert, weil es in
+derselben Tabelle steht wie ein Foto; es bekommt kein eigenes Recht.
 
 Eine Absage kommt als Meldung, nicht als stille Wirkungslosigkeit, und sie
 kommt **bevor** irgendetwas geschrieben ist.
@@ -355,10 +358,16 @@ es zwei, beide im Systembereich einstellbar:
 - Blättern mit ← → oder über die Pfeile, ohne vorher ins Bild zu klicken. Klick
   aufs Foto öffnet die Vollbildansicht; dort zoomt ein weiterer Klick auf
   Originalgröße. Esc schließt, auf Touch wird gewischt.
-- Das **erste Foto ist das Hauptbild** — Reihenfolge durch Ziehen der
+- Das **erste Element ist das Hauptbild** — Reihenfolge durch Ziehen der
   Vorschaubilder ändern, mit Maus oder Finger.
 - Fotos lassen sich per Dateiauswahl, **Strg+V aus der Zwischenablage** oder
   durch Ablegen auf dem Feld hinzufügen.
+- **Kurzvideos bis 20 MB stehen in derselben Reihe** — MP4, WebM und MOV, über
+  dasselbe Feld hinzugefügt. In der Vorschauleiste trägt ein Video ein ▶ und
+  seine Länge, im Eintrag und im Vollbild wird es mit der Steuerung des
+  Browsers abgespielt; darin lässt sich springen. Nichts spielt von selbst los,
+  und beim Blättern oder Schließen wird angehalten. Steht ein Video vorn, ist
+  sein Standbild das Hauptbild. Siehe unten, „Kurzvideos".
 - **Blöcke lassen sich anordnen und einklappen**: Ziehen am Griff in der
   Kopfzeile, Klick auf die Kopfzeile klappt ein und aus. Eingeklappt nennt die
   Kopfzeile den Inhalt, etwa „Kommentare (3)". Verschoben wird nur innerhalb des
@@ -473,8 +482,9 @@ es zwei, beide im Systembereich einstellbar:
   nie eine fertige Suchadresse — ein Anbieterwechsel gilt deshalb rückwirkend
   für alle vorhandenen Suchzeilen.
 - Kommentare lassen sich nachträglich bearbeiten und löschen.
-- Löschen von Eintrag, Foto, Kommentar, Link, Datei und Testtag jeweils mit
-  Rückfrage. Beim Eintrag wird benannt, was dranhängt — **Links, Dateien,
+- Löschen von Eintrag, Foto, Video, Kommentar, Link, Datei und Testtag jeweils
+  mit Rückfrage. Beim Eintrag wird benannt, was dranhängt — **Fotos und Videos
+  getrennt**, dazu **Links, Dateien,
   Kommentare, Bewertungen und Testtage getrennt nach eigenen und fremden**,
   denn die fremden gehen über die Kaskade mit.
 
@@ -488,14 +498,18 @@ letzten drei ohne Bedienzeichen, nur zum Nachsehen. Alles Übrige steht dem
 der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
 
 - Beide Titel ändern *(Admin)*
-- Kennzahlen: Einträge, Fotos, Kommentare, Links, Testtage, Datenbankgröße
-  *(Admin)*. Der Schlüsselwert zum Abschreiben steht darin nur für den
+- Kennzahlen: Einträge, Fotos, Videos, Kommentare, Links, Testtage,
+  Datenbankgröße *(Admin)*. Der Schlüsselwert zum Abschreiben steht darin nur für den
   **Eigentümer**.
 - **Zugänge** verwalten — siehe den Abschnitt „Rollen und Zugänge" oben
   *(Admin)*
 - **Export** mit oder ohne Fotos, nur für den Eigentümer der Anlage. Die
   Datei nennt zu jedem Eintrag, jeder Bewertung, jedem Kommentar, jedem
   Testtag, **jeder Linkzeile und jeder Datei** den **Verfassernamen**.
+  **Videos gehen nur mit eigenem Häkchen mit** — ohne es nennt die Datei sie,
+  enthält sie aber nicht, und der Import sagt beim Einspielen, wie viele
+  gefehlt haben. Der eigentliche Sicherungsweg für Videos ist ohnehin nicht der
+  Export, sondern die Sicherung des Verzeichnisses `data`.
 - **Import** einer Exportdatei, wahlweise *ersetzen* oder *zusammenführen* —
   ebenfalls nur für den Eigentümer, und zwar in beiden Fällen: eine
   Exportdatei kann Beiträge **unter fremdem Namen** anlegen.
@@ -666,6 +680,13 @@ Ableitung braucht keine Datenüberführung. Die Spalte `photos.mime_type` bleibt
 stehen und wird weiter angezeigt; sie ist eine Anzeige, keine Grundlage der
 Auslieferung.
 
+**Videos gehen denselben Weg** (seit 0.8.50). Erkannt werden sie an den ersten
+Bytes: MP4, M4V und MOV tragen den ISO-Kasten `ftyp`, WebM den EBML-Kopf. Nur
+diese drei Typen kommen herein und gehen `inline` heraus; jede andere Marke
+wird zum Herunterladen. Der Server **öffnet ein Video nie** — er liest zwölf
+Bytes, speichert den Rest und liefert ihn wieder aus. Das Standbild dagegen
+läuft durch dieselbe Prüfung wie jedes Foto.
+
 **Die Anwendung selbst hat ebenfalls eine `Content-Security-Policy`** (seit
 0.8.20, auf jeder Antwort): `default-src 'self'`, `script-src 'self'` ohne
 jedes eingebettete Skript, `frame-ancestors 'none'`, `base-uri 'none'`,
@@ -673,7 +694,11 @@ jedes eingebettete Skript, `frame-ancestors 'none'`, `base-uri 'none'`,
 `style-src` steht `'unsafe-inline'`, und zwar nötigerweise: die Oberfläche
 setzt Abstände, Rasterspalten und den Fokuspunkt als `style="…"`-Attribut, und
 ohne die Freigabe verwirft der Browser jedes davon. Die tragende Zeile ist
-`script-src` — dort steht sie nicht.
+`script-src` — dort steht sie nicht. Seit 0.8.50 steht dort außerdem
+`media-src 'self' blob:`: `'self'` trägt das Abspielen aus der eigenen Anlage,
+`blob:` das Standbild vor dem Hochladen. Ohne die zweite Angabe verwirft der
+Browser die Adresse, an der die Oberfläche das Standbild zieht, und zwar
+wortlos — es ließe sich überhaupt kein Video hochladen.
 
 **Bilder in Kommentaren sind der eine Fall, in dem doch beim Hochladen
 geprüft wird:** dort ist ausschließlich Bild erlaubt, jede Datei geht durch
@@ -706,6 +731,32 @@ und liest `word/document.xml` als Text — eine eigene Abhängigkeit dafür wär
 eine vereinfachte Lesevorschau zu viel gewesen. Absätze und Zeilenumbrüche
 bleiben, alles andere fällt weg.
 
+## Kurzvideos
+
+Ein Video bis **20 MB** liegt in **derselben Reihe wie die Fotos** — dieselbe
+Tabelle, dieselbe Reihenfolge, dieselben Rechte, dieselbe Verschlüsselung. Es
+gibt keine zweite Liste und damit keine zweite Antwort auf die Frage, was das
+Hauptbild ist. Erlaubt sind **MP4, WebM und MOV**; entschieden wird nach dem
+Inhalt, nicht nach dem Dateinamen.
+
+**Das Standbild erzeugt der Browser des Hochladenden**, über ein verstecktes
+`<video>` und eine Zeichenfläche, und schickt es als zweiten Teil desselben
+Vorgangs mit. Damit kommt **kein `ffmpeg` ins Abbild** — rund hundert Megabyte
+mit eigener Angriffsfläche und eigenem Aktualisierungsbedarf —, und der Server
+öffnet nie ein Video. Zwei Folgen gehören dazu: wer ein Video nicht abspielen
+kann, kann es auch nicht hochladen (ein Videoplatz, der nicht abspielt, wäre
+ein kaputter Platz), und **das Standbild belegt nichts** — es ist eine
+Vorschau, keine Aussage über den Inhalt der Datei.
+
+**20 MB und nicht mehr**, und die Zahl ist gemessen: 50 MB kosten beim Lesen
+aus der verschlüsselten Datenbank rund eine halbe Sekunde, mit dem gesamten
+Blob im Arbeitsspeicher — eine BLOB-Zeile wird nicht stückweise gelesen. 20 MB
+reichen für ein bis zwei Minuten Handyvideo. Wer mehr braucht, hängt die Datei
+als Anhang an; dort wird sie heruntergeladen statt abgespielt.
+
+Ausgeliefert wird **in Bereichen**, damit sich im Video springen lässt. Fotos
+bleiben davon unberührt.
+
 ## Speicherbedarf
 
 Fotos werden **unverändert** gespeichert — ein Bild aus einer Systemkamera
@@ -714,6 +765,11 @@ Kachel (400 px) für die Übersicht und eine mittlere (1600 px) für Detail- und
 Vollbildansicht. Das kostet rund 7 % mehr Speicher, spart beim Blättern aber
 etwa den Faktor 100 an Datenübertragung. Das Original wird erst geladen, wenn im
 Vollbild gezoomt wird.
+
+**Ein Video zählt voll.** Es wird nicht umkodiert, sondern unverändert
+abgelegt; dazu kommen die beiden Varianten seines Standbilds. Bei 20 MB je
+Stück wächst die Datenbank entsprechend schnell — das ist der Grund für die
+Grenze.
 
 Gelöschter Platz wird automatisch freigegeben.
 
@@ -739,7 +795,7 @@ einspielen.
 > Der Weg zurück ist dann die Sicherung, die **vor** dem Einspielen entstanden
 > ist — nicht das Zurückkopieren der alten Dateien. Welche Versionen das
 > betrifft, sagt das Änderungsprotokoll der jeweiligen Version; zuletzt
-> **0.8.30**, **0.8.31** und **0.8.40**.
+> **0.8.30**, **0.8.31**, **0.8.40** und **0.8.50**.
 
 ## Eine neue Version einspielen
 
@@ -868,9 +924,10 @@ Rechteschicht mit mehreren Zugängen nebeneinander, die Zugangsverwaltung samt
 `zugang.js` als echtem Prozess, die Kriterienverwaltung samt Reihenfolge **und
 Gewicht**, deren Wirkung auf Detailansicht, Vergleich und Export, die
 Auslieferungsregeln für
-Anhänge **und Fotos** — samt echtem Upload einer SVG und Kontrolle des
-ausgelieferten Bytestroms —, die Anmeldebremse in beiden Proxy-Lagen sowie die
-mitwachsenden Textfelder im echten DOM.
+Anhänge, **Fotos und Videos** — samt echtem Upload einer SVG sowie einer echten
+MP4- und WebM-Datei und Kontrolle des ausgelieferten Bytestroms —, die
+Bereichsauslieferung samt ihrer Absagen, die Anmeldebremse in beiden
+Proxy-Lagen sowie die mitwachsenden Textfelder im echten DOM.
 
 Die Datei `pruefung.js` ist per `.dockerignore` ausgeschlossen und landet nicht
 im Abbild.
