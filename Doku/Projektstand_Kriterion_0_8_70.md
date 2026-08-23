@@ -148,7 +148,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.70 ist gebaut** — Fingerprint **`PLATZHALTER_FP`**. *Wieder eine
+**0.8.70 ist gebaut** — Fingerprint **`1aa9266a`**. *Wieder eine
 Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:* das Schema bekommt
 **zwei Tabellen**, `papierkorb` und `papierkorb_bytes` — und **keinen
 Migrationsblock**. Nachgestellt statt geglaubt: anders als eine Spalte legt
@@ -168,7 +168,7 @@ geprüft am **aufgelösten** Pfad.
 **Vier neue schreibende Routen: `F_ROUTEN` geht von 47 auf 51.** Die
 Formatnummer bleibt bei **10**; der **Einzelexport** ist dieselbe Form mit
 einem Eintrag.
-**PLATZHALTER_ZAHL von PLATZHALTER_ZAHL Prüfungen**, PLATZHALTER_GP
+**2381 von 2381 Prüfungen**, 38
 Gegenproben.
 
 **0.8.60 davor** — Fingerprint **`ab68b523`**. *Keine Datenbankstufe und
@@ -2807,8 +2807,8 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: PLATZHALTER_ZAHL von PLATZHALTER_ZAHL bestanden** (0.8.70;
-PLATZHALTER_NEU neue Prüfungen, neun neue Gruppen: „Der Papierkorb: die Tabelle
+**Zuletzt: 2381 von 2381 bestanden** (0.8.70;
+294 neue Prüfungen, neun neue Gruppen: „Der Papierkorb: die Tabelle
 legt sich selbst an", „Der Papierkorb: der Rundlauf", „Der Papierkorb: dieselbe
 Transaktion", „Der Papierkorb: die dreissig Tage", „Der Papierkorb: die
 Rechte", „Ein einzelner Eintrag als Datei", „Die Sicherung auf Knopfdruck",
@@ -3185,7 +3185,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.40 | Gewichtete Bewertungskriterien — alle fünf Punkte (125) | 30 | Stolpersteine 106 und 107, Lücke 9 oben |
 | 0.8.50 | Kurzvideos am Fotoplatz — alle fünf Punkte (146) | 30 | Stolpersteine 108 bis 111 |
 | 0.8.60 | Was ist offen, was ist neu — Ansicht „Offen", Filter „Neu seit …", Sprachbereinigung (132) | 17 | Stolpersteine 112 bis 116 |
-| 0.8.70 | Sicherung und Papierkorb — alle drei Punkte (PLATZHALTER_NEU) | PLATZHALTER_GP | Stolpersteine 117 bis 121 |
+| 0.8.70 | Sicherung und Papierkorb — alle drei Punkte (294) | 38 | Stolpersteine 117 bis 121 |
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -3430,7 +3430,7 @@ Pfad. „Letzte Sicherung vor N Tagen" kommt aus dem **Dateisystem**.
 **Vier neue schreibende Routen: `F_ROUTEN` 47 → 51.** Fünfzehn Karten im
 Systembereich, elf Vokabeleinträge, keine neue Abhängigkeit.
 
-**PLATZHALTER_ZAHL von PLATZHALTER_ZAHL Prüfungen**, PLATZHALTER_GP
+**2381 von 2381 Prüfungen**, 38
 Gegenproben, **fünf neue Stolpersteine** (117 bis 121). Einzelheiten in
 `Doku/Aenderungsprotokoll_0.8.70.md`.
 
