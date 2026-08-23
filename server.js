@@ -1625,11 +1625,11 @@ app.get('/api/items/:id/bestand', nurEintragVerfasser, (req, res) => {
 // der Dialog in der Oberflaeche nennt die Zahlen vorher, getrennt nach eigen
 // und fremd, aus GET /api/items/:id/bestand.
 app.delete('/api/items/:id', nurEintragVerfasser, (req, res) => {
-  // Seit 0.8.70 geht das Loeschen durch den Papierkorb: der Eintrag wird
-  // serialisiert und in DERSELBEN Transaktion entfernt. Danach laeuft die
-  // Kaskade wie bisher, und der Eintrag ist wirklich weg -- er liegt nur
-  // zusaetzlich noch als Paket daneben. Der Dialog in der Oberflaeche sagt es
-  // vorher; "unwiderruflich" waere jetzt falsch.
+  // Das Loeschen geht durch den Papierkorb: der Eintrag wird serialisiert und
+  // in DERSELBEN Transaktion entfernt. Danach laeuft die Kaskade wie zuvor,
+  // und der Eintrag ist wirklich weg -- er liegt nur zusaetzlich noch als
+  // Paket daneben. Der Dialog in der Oberflaeche sagt es vorher;
+  // "unwiderruflich" waere falsch.
   inDenPapierkorb(req.params.id, req.benutzer.id);
   reclaim();
   res.status(204).end();
@@ -2379,8 +2379,8 @@ app.get('/api/stats', nurAdmin, (req, res) => {
   const p = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art != 'video'").get();
   const vi = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art = 'video'").get();
   const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();
-  /* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos in
-     0.8.50: sonst wundert sich jemand ueber eine Datenbank, die nach dem
+  /* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos:
+     sonst wundert sich jemand ueber eine Datenbank, die nach dem
      Aufraeumen groesser ist als vorher. Die alten Zahlen behalten ihre
      Bedeutung und bekommen einen Nachbarn -- itemCount zaehlt weiterhin die
      Eintraege, und ein geloeschter ist keiner mehr. */
@@ -2427,8 +2427,8 @@ app.get('/api/stats', nurAdmin, (req, res) => {
      Exportdatei -- Base64 im Feld <name>_base64. Die Datei ist EIN String.
      Papierkorb  -- eine NUMMER im Feld <name>_ref; die Bytes liegen daneben
                     in papierkorb_bytes, als Bytes.
-   Der Grund ist gemessen und keine Vorsicht: ein Eintrag darf seit 0.8.50
-   zwanzig Videos zu je 20 MB tragen. Als Base64 sind das 533 MB in EINEM
+   Der Grund ist gemessen und keine Vorsicht: ein Eintrag darf zwanzig Videos
+   zu je 20 MB tragen. Als Base64 sind das 533 MB in EINEM
    String, und Node haelt keinen String ueber 512 MB
    (MAX_STRING_LENGTH = 536.870.888); JSON.stringify antwortet mit
    "RangeError: Invalid string length". Ein Papierkorb, der stumpf alles
@@ -2439,10 +2439,9 @@ app.get('/api/stats', nurAdmin, (req, res) => {
 // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
 // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
 // Fallunterscheidung nach Nummer steht. Sie steht an genau einer Stelle.
-// 10 seit 0.8.50, als die Fotozeilen ihre Art und die Videos ihre Dauer und
-// ihr Standbild mitbekamen. Eine Datei mit EINEM Eintrag ist dieselbe Form wie
-// eine mit hundert; der Einzelexport aus 0.8.70 bewegt die Nummer deshalb
-// nicht.
+// 10 statt 9, seit die Fotozeilen ihre Art und die Videos ihre Dauer und ihr
+// Standbild mitnehmen. Eine Datei mit EINEM Eintrag ist dieselbe Form wie eine
+// mit hundert; der Einzelexport bewegt die Nummer deshalb nicht.
 const AUSTAUSCH_FORMAT = 10;
 
 // Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
@@ -3244,6 +3243,228 @@ app.delete('/api/papierkorb/:id', nurEigentuemer, (req, res) => {
   reclaim();
   res.status(204).end();
 });
+
+
+/* ================= Die Sicherung =================
+
+   DIE ROLLENTEILUNG, und sie gehoert in die Oberflaeche und nicht nur in die
+   Dokumente:
+     VACUUM INTO   -- der SICHERUNGSWEG. Vollstaendig (samt Sitzungen und
+                      Einstellungen), konstant im Speicherbedarf, verschluesselt
+                      wie das Original -- und damit ohne den Schluessel wertlos.
+                      Ueberlebt keinen Formatwechsel.
+     JSON-Export   -- der AUSTAUSCHWEG. Ueberlebt einen Formatwechsel, braucht
+                      keinen Schluessel, ist dafuer unvollstaendig und baut die
+                      ganze Datei im Arbeitsspeicher.
+   Wer die beiden Karten nebeneinander sieht, muss ohne Rueckfrage wissen,
+   welche er will. Ein Satz je Karte, und er steht dort.
+
+   ES GIBT KEINEN ZWEITEN WEG. db.backup() liefe schrittweise und blockierte
+   nicht -- nachgestellt: an einer SQLCipher-Datenbank antwortet es mit
+   "backup is not supported with incompatible source and target databases",
+   weil die Zieldatenbank keinen Schluessel traegt. VACUUM INTO ist der Weg.
+
+   ES LAEUFT SYNCHRON, und das ist die Kroete: better-sqlite3 blockiert den
+   Prozess, und der Prozess ist der Server. Gemessen, nicht geschaetzt: rund
+   10 ms je MB (51 MB in 0,5 s, 2 GB in 26,5 s) -- auf schwaecherer Hardware
+   entsprechend mehr. Deshalb nennt die Karte die erwartete Dauer VORHER.
+
+   DER ZIELORT IST EINGABE UND WIRD ZU EINEM DATEIPFAD -- die erste Stelle im
+   Projekt, an der der Server an einen Ort schreibt, den jemand angeben darf.
+   Er ist deshalb zweistufig gebaut:
+     die WURZEL kommt aus der Umgebung (SICHERUNG_DIR) und ist ueber die
+       Oberflaeche nicht zu erreichen. KEIN Vorgabewert: ein Pfad, den es nur
+       im Container gibt, verschwaende beim naechsten Bau -- er muss eingehaengt
+       sein, und wer ihn einhaengt, benennt ihn auch.
+     der ORT ist ein Unterverzeichnis darunter, und mehr nicht.
+   Geprueft wird gegen eine POSITIVLISTE und danach am AUFGELOESTEN Pfad, nicht
+   am String: ein Symlink, der aus der Wurzel herausfuehrt, faellt erst dort
+   auf. Ein Verzeichnis, das es nicht gibt, ist eine Absage mit Begruendung --
+   kein stilles Anlegen. */
+
+const SICHERUNG_DIR = (process.env.SICHERUNG_DIR || '').trim();
+// Gemessen an einer verschluesselten Anlage: rund 10 ms je MB. Verdoppelt,
+// weil der Betrieb auf einem N100 laeuft und eine zu niedrige Ansage
+// schlimmer ist als eine zu hohe.
+const SICHERUNG_MS_JE_MB = 20;
+const SICHERUNG_MUSTER = /^kriterion-.+\.sqlite$/;
+// Positivliste statt Liste des Verbotenen: JEDES Segment faengt mit einem
+// Buchstaben oder einer Ziffer an. Damit sind '..', '.', ein fuehrender
+// Schraegstrich, ein Laufwerksbuchstabe und ein Gegenschraegstrich gar nicht
+// erst schreibbar -- nicht verboten, sondern nicht ausdrueckbar.
+const ORT_MUSTER = /^[A-Za-z0-9][A-Za-z0-9 ._-]*(\/[A-Za-z0-9][A-Za-z0-9 ._-]*)*$/;
+
+/* Liegt der eine Pfad im anderen? Gefragt wird an AUFGELOESTEN Pfaden --
+   ein Vergleich zweier Strings beantwortet die Frage nicht, sobald ein
+   Symlink im Spiel ist. */
+const liegtIn = (innen, aussen) => innen === aussen || innen.startsWith(aussen + path.sep);
+
+/* Die Lage wird bei JEDER Anfrage gelesen und nicht beim Start festgehalten:
+   wer das Verzeichnis nachtraeglich einhaengt, soll es nicht mit einem
+   Neustart bezahlen. Beim Start wird sie einmal ins Protokoll geschrieben. */
+function sicherungLage() {
+  if (!SICHERUNG_DIR)
+    return { ein: false, grund: 'Es ist kein Sicherungsort eingerichtet. ' +
+      'Die docker-compose.yml hängt ihn ein und benennt ihn als SICHERUNG_DIR — ' +
+      'beides gehört zusammen.' };
+  let wurzel;
+  try { wurzel = fs.realpathSync(SICHERUNG_DIR); }
+  catch { return { ein: false, grund: `Den Sicherungsort ${SICHERUNG_DIR} gibt es nicht. ` +
+    'Er wird nicht angelegt — häng ihn auf dem Wirt ein.' }; }
+  try { if (!fs.statSync(wurzel).isDirectory())
+    return { ein: false, grund: `${SICHERUNG_DIR} ist kein Verzeichnis.` }; }
+  catch { return { ein: false, grund: `${SICHERUNG_DIR} ist nicht lesbar.` }; }
+  let daten;
+  try { daten = fs.realpathSync(DATA_DIR); } catch { daten = path.resolve(DATA_DIR); }
+  // EINE SICHERUNG NEBEN DEM ORIGINAL IST KEINE. Beide Richtungen, denn beide
+  // sind falsch: der Sicherungsort im Datenverzeichnis und umgekehrt.
+  if (liegtIn(wurzel, daten) || liegtIn(daten, wurzel))
+    return { ein: false, grund: 'Der Sicherungsort darf nicht im Datenverzeichnis liegen — ' +
+      'eine Sicherung neben dem Original ist keine.' };
+  return { ein: true, wurzel };
+}
+
+/* Der eingestellte Ort, geprueft. Liefert entweder { ort, pfad } oder
+   { fehler } -- und der Fehler ist eine sprechende Begruendung, kein
+   "ungueltig". */
+function pruefeOrt(roh) {
+  const lage = sicherungLage();
+  if (!lage.ein) return { fehler: lage.grund };
+  const s = String(roh == null ? '' : roh).trim();
+  if (!s) return { ort: '', pfad: lage.wurzel };
+  if (s.length > 200) return { fehler: 'Der Ort ist zu lang (höchstens 200 Zeichen).' };
+  if (!ORT_MUSTER.test(s))
+    return { fehler: 'Der Ort ist ein Unterverzeichnis des eingerichteten Sicherungsorts. ' +
+      'Erlaubt sind Buchstaben, Ziffern, Leerzeichen, Punkt, Strich, Unterstrich und ' +
+      'Schrägstrich; ein führender Schrägstrich und „..“ sind es nicht.' };
+  let echt;
+  try { echt = fs.realpathSync(path.resolve(lage.wurzel, s)); }
+  catch { return { fehler: `Das Verzeichnis „${s}“ gibt es unter dem Sicherungsort nicht. ` +
+    'Es wird nicht angelegt — leg es auf dem Wirt an.' }; }
+  try { if (!fs.statSync(echt).isDirectory())
+    return { fehler: `„${s}“ ist kein Verzeichnis.` }; }
+  catch { return { fehler: `„${s}“ ist nicht lesbar.` }; }
+  // DIE PRUEFUNG HAENGT AM AUFGELOESTEN PFAD. Erst hier faellt ein Symlink
+  // auf, der aus der Wurzel herausfuehrt -- am String saehe er harmlos aus.
+  if (!liegtIn(echt, lage.wurzel))
+    return { fehler: `„${s}“ führt aus dem eingerichteten Sicherungsort heraus.` };
+  let daten;
+  try { daten = fs.realpathSync(DATA_DIR); } catch { daten = path.resolve(DATA_DIR); }
+  if (liegtIn(echt, daten))
+    return { fehler: 'Der Sicherungsort darf nicht im Datenverzeichnis liegen — ' +
+      'eine Sicherung neben dem Original ist keine.' };
+  return { ort: s, pfad: echt };
+}
+
+/* "Letzte Sicherung vor N Tagen" kommt aus dem DATEISYSTEM, nicht aus einem
+   Schluessel in settings. Ein Schluessel waere eine BEHAUPTUNG ueber die
+   Datei, das Dateisystem ist die Sache -- dieselbe Frage wie beim Merker
+   gegen den Index in 0.6.2, und dort ist sie zugunsten der Sache entschieden
+   worden. Der Preis steht daneben: ein unerreichbarer Zielort liefert keine
+   Auskunft, und dann sagt die Karte GENAU DAS statt einer Zahl. */
+function letzteSicherung(pfad) {
+  let namen;
+  try { namen = fs.readdirSync(pfad); }
+  catch { return { erreichbar: false, letzte: null, zahl: 0 }; }
+  const dateien = [];
+  for (const n of namen) {
+    if (!SICHERUNG_MUSTER.test(n)) continue;
+    try {
+      const st = fs.statSync(path.join(pfad, n));
+      if (st.isFile()) dateien.push({ name: n, zeit: st.mtimeMs, bytes: st.size });
+    } catch { /* eine Datei, die zwischen readdir und stat verschwindet */ }
+  }
+  if (!dateien.length) return { erreichbar: true, letzte: null, zahl: 0 };
+  dateien.sort((a, b) => b.zeit - a.zeit);
+  const j = dateien[0];
+  return { erreichbar: true, zahl: dateien.length, letzte: {
+    datei: j.name, bytes: j.bytes,
+    // Dieselbe Schreibweise wie jeder Zeitstempel der Anlage
+    // ("2026-08-23 19:56:01", UTC): die Oberflaeche hat genau einen Weg, aus
+    // einem Zeitstempel ein Datum zu machen, und der erwartet diese Form.
+    am: new Date(j.zeit).toISOString().slice(0, 19).replace('T', ' '),
+    tageHer: Math.max(0, Math.floor((Date.now() - j.zeit) / 86400000))
+  } };
+}
+
+// Lesend, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht trotzdem
+// davor, und zwar der des Exports: die Antwort nennt einen Pfad des Wirts.
+app.get('/api/sicherung', nurEigentuemer, (req, res) => {
+  const lage = sicherungLage();
+  const ort = getSetting('sicherungOrt', '');
+  let dbBytes = 0;
+  // MIT wal_checkpoint, wie bei den Kennzahlen: ohne ihn steht der frisch
+  // geschriebene Bestand noch in der WAL, die Datei sieht winzig aus, und die
+  // Ansage der Dauer waere zu niedrig. Stolperstein 4 in der Gegenrichtung.
+  try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
+  // Die erwartete Dauer wird aus der Groesse gerechnet und VORHER genannt:
+  // waehrend VACUUM INTO laeuft, steht die Anlage.
+  const dauer = Math.max(1, Math.round(dbBytes / 1048576 * SICHERUNG_MS_JE_MB / 1000));
+  if (!lage.ein) return res.json({ eingerichtet: false, grund: lage.grund, ort,
+                                   dbBytes, dauerSekunden: dauer, erreichbar: false, letzte: null });
+  const ziel = pruefeOrt(ort);
+  if (ziel.fehler) return res.json({ eingerichtet: true, wurzel: lage.wurzel, ort,
+                                     fehler: ziel.fehler, dbBytes, dauerSekunden: dauer,
+                                     erreichbar: false, letzte: null });
+  res.json({ eingerichtet: true, wurzel: lage.wurzel, ort, pfad: ziel.pfad,
+             dbBytes, dauerSekunden: dauer, ...letzteSicherung(ziel.pfad) });
+});
+
+/* Der Ort ist eine Einstellung der ANLAGE und gehoert damit in settings, nicht
+   in user_settings: zwei Leute mit verschiedenen Orten haetten zwei Wahrheiten
+   ueber dieselbe Sache.
+   EIGENE ROUTE statt PUT /api/settings: die leitet ihre Rechte aus
+   PERSOENLICHE_SCHLUESSEL ab -- was nicht persoenlich ist, ist dort Adminsache.
+   Der Sicherungsort gehoert aber in dieselbe Zeile wie Export und Import. */
+app.put('/api/sicherung/ort', nurEigentuemer, (req, res) => {
+  const geprueft = pruefeOrt(req.body?.ort);
+  if (geprueft.fehler) return res.status(400).json({ error: geprueft.fehler });
+  putSetting.run('sicherungOrt', JSON.stringify(geprueft.ort));
+  res.json({ ok: true, ort: geprueft.ort, pfad: geprueft.pfad, ...letzteSicherung(geprueft.pfad) });
+});
+
+app.post('/api/sicherung', nurEigentuemer, (req, res) => {
+  const lage = sicherungLage();
+  if (!lage.ein) return res.status(400).json({ error: lage.grund });
+  const ziel = pruefeOrt(getSetting('sicherungOrt', ''));
+  if (ziel.fehler) return res.status(400).json({ error: ziel.fehler });
+  /* NAME MIT DATUM UND UHRZEIT. Ueberschreiben waere die schlechteste Antwort:
+     eine Sicherung, die die vorige frisst, ist keine. VACUUM INTO scheitert an
+     einer vorhandenen Zieldatei ohnehin ("output file already exists") --
+     nachgestellt statt geglaubt --, aber darauf verlaesst sich der Name nicht. */
+  const marke = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  const datei = path.join(ziel.pfad, `kriterion-${marke}.sqlite`);
+  if (fs.existsSync(datei))
+    return res.status(409).json({ error: 'In dieser Sekunde liegt dort schon eine Sicherung.' });
+  const t0 = Date.now();
+  try {
+    db.prepare('VACUUM INTO ?').run(datei);
+  } catch (e) {
+    /* EINE HALBFERTIGE ZIELDATEI WIRD ENTFERNT (Stolperstein 8): sonst gilt
+       sie beim naechsten Blick als fertige Sicherung. */
+    try { if (fs.existsSync(datei)) fs.unlinkSync(datei); } catch {}
+    console.error('[Kriterion] Sicherung gescheitert:', e.message);
+    // Fester Text wie ueberall bei einem Fehler DES SERVERS: ein SQL-Fehler
+    // nennt Pfade und Tabellen, und die gehoeren ins Protokoll, nicht in die
+    // Antwort.
+    return res.status(500).json({ error: 'Die Sicherung ist gescheitert. ' +
+      'Die Einzelheiten stehen im Protokoll des Containers.' });
+  }
+  const ms = Date.now() - t0;
+  let bytes = 0;
+  try { bytes = fs.statSync(datei).size; } catch {}
+  console.log(`[Kriterion] Sicherung geschrieben: ${path.basename(datei)} ` +
+    `(${bytes} Bytes, ${ms} ms).`);
+  res.json({ ok: true, datei: path.basename(datei), pfad: ziel.pfad, bytes, ms,
+             ...letzteSicherung(ziel.pfad) });
+});
+
+// Einmal beim Start ins Protokoll -- wer den Ort falsch stehen hat, sieht es
+// hier und nicht erst am Knopf.
+{
+  const lage = sicherungLage();
+  console.log('[Kriterion] Sicherungsort: ' + (lage.ein ? lage.wurzel : `aus — ${lage.grund}`));
+}
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

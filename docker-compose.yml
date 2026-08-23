@@ -8,5 +8,19 @@ services:
       - "3100:3000"
     volumes:
       - ./data:/app/data
+      # DER SICHERUNGSORT (seit 0.8.70). Er liegt AUSSERHALB des
+      # Projektverzeichnisses, und das ist kein Geschmack: eine Sicherung neben
+      # dem Original ist keine, und beim Einspielen wird das Projektverzeichnis
+      # umbenannt (kriterion -> kriterion-alt). Ein relativer Pfad loest docker
+      # gegen den Ort DIESER Datei auf, also zeigt ../kriterion-sicherung vor
+      # und nach dem Einspielen auf dasselbe Verzeichnis.
+      # Wer woanders sichern will, aendert diese Zeile UND die Variable
+      # darunter -- beide gehoeren zusammen und duerfen nicht auseinanderlaufen.
+      - ../kriterion-sicherung:/sicherung
     environment:
       - PORT=3000
+      # Ohne diese Zeile bleibt die Karte "Sicherung" aus und sagt es. Sie
+      # steht hier und nicht in der .env: sie gehoert zur Einhaengung darueber,
+      # und ein Pfad ohne Einhaengung schriebe in eine Schicht, die beim
+      # naechsten Bau verschwindet.
+      - SICHERUNG_DIR=/sicherung

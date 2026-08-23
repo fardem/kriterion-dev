@@ -3394,7 +3394,11 @@ const namen = (liste) => liste.map(c => c.name);
   /* Der Ausgangsstand, an dem hinterher Feld fuer Feld gemessen wird. Gelesen
      wird die ECHTE Antwort des Servers -- eine selbst zusammengestellte
      Erwartung bewiese nichts ueber das, was wirklich herauskommt. */
-  const pkVorher = (await pkRuf('cookie-pk-carla', 'GET', `/api/items/${pkItemId}`)).inhalt;
+  /* Auch hier jede Lesestelle abgefangen (Stolperstein 103): antwortet der
+     Server nicht mit dem Eintrag, sollen die Pruefungen darunter ROT werden
+     und nicht der Lauf abreissen -- ein abgerissener Lauf nennt keinen
+     einzigen Namen. */
+  const pkVorher = (await pkRuf('cookie-pk-carla', 'GET', `/api/items/${pkItemId}`)).inhalt || {};
   const pkVorherBytes = pkZeilen(
     "SELECT art, sort_order, mime_type, focus_x, focus_y, dauer, length(data) AS n, hex(data) AS h " +
     'FROM photos WHERE item_id = ? ORDER BY sort_order', pkItemId);
@@ -3409,8 +3413,8 @@ const namen = (liste) => liste.map(c => c.name);
                      links: pkVorher?.links?.length, testtage: pkVorher?.testDays?.length,
                      tags: pkVorher?.tags?.length, dateien: pkVorher?.attachments?.length }));
   pruefe('Und Beitraege mehrerer Verfasser',
-    new Set(pkVorher.comments.map(c => JSON.stringify(c.verfasser))).size === 4,
-    JSON.stringify(pkVorher.comments.map(c => c.verfasser)));
+    new Set((pkVorher.comments || []).map(c => JSON.stringify(c.verfasser))).size === 4,
+    JSON.stringify((pkVorher.comments || []).map(c => c.verfasser)));
 
   // Loeschen darf die Verfasserin selbst.
   const pkWeg = await pkRuf('cookie-pk-carla', 'DELETE', `/api/items/${pkItemId}`);
@@ -3429,7 +3433,11 @@ const namen = (liste) => liste.map(c => c.name);
     pkZeilen('SELECT id FROM papierkorb').length === 1,
     JSON.stringify(pkZeilen('SELECT id, titel FROM papierkorb')));
 
-  const pkZeile = pkEine('SELECT id, titel, geloescht_von, length(inhalt) AS n FROM papierkorb');
+  /* JEDE LESESTELLE ABGEFANGEN (Stolperstein 103): faellt die Zeile weg, sollen
+     die Pruefungen darunter ROT werden und nicht der Lauf abreissen. Beim Bau
+     ist genau das passiert -- eine Gegenprobe, die den Papierkorb gar nicht
+     mehr fuellte, nahm den ganzen Lauf mit. */
+  const pkZeile = pkEine('SELECT id, titel, geloescht_von, length(inhalt) AS n FROM papierkorb') || {};
   pruefe('Sie traegt den Titel als eigene Spalte',
     pkZeile?.titel === 'Vollständig', JSON.stringify(pkZeile?.titel));
   pruefe('Und den Loeschenden', pkZeile?.geloescht_von === 3, JSON.stringify(pkZeile?.geloescht_von));
@@ -3439,7 +3447,7 @@ const namen = (liste) => liste.map(c => c.name);
      eine Videodatei traegt -- sonst entstuende bei zwanzig Videos ein String
      ueber der Grenze von Node. */
   const pkBytesZeilen = pkZeilen('SELECT nr, length(daten) AS n FROM papierkorb_bytes ' +
-    'WHERE papierkorb_id = ? ORDER BY nr', pkZeile.id);
+    'WHERE papierkorb_id = ? ORDER BY nr', pkZeile.id ?? -1);
   pruefe('Die Bytes liegen daneben, eine Zeile je Blob',
     pkBytesZeilen.length === 6, JSON.stringify(pkBytesZeilen));
   pruefe('Ihre Nummern sind lueckenlos ab null',
@@ -3450,15 +3458,15 @@ const namen = (liste) => liste.map(c => c.name);
      String ueber der Grenze von Node. Gesucht wird der Anfang genau dieser
      Datei, nicht irgendein Muster. */
   pruefe('Die Videobytes stehen nicht in der JSON',
-    !pkEine('SELECT inhalt FROM papierkorb').inhalt.includes(MP4().toString('base64').slice(0, 60)),
+    !(pkEine('SELECT inhalt FROM papierkorb')?.inhalt || '').includes(MP4().toString('base64').slice(0, 60)),
     MP4().toString('base64').slice(0, 60));
   pruefe('Sie liegen als eigene Zeile daneben',
     pkBytesZeilen.some(z => z.n === MP4().length), JSON.stringify(pkBytesZeilen.map(z => z.n)));
   pruefe('In der JSON steht kein data_base64',
-    !pkEine('SELECT inhalt FROM papierkorb').inhalt.includes('data_base64'),
-    pkEine('SELECT inhalt FROM papierkorb').inhalt.slice(0, 200));
+    !!pkZeile.n && !(pkEine('SELECT inhalt FROM papierkorb')?.inhalt || '').includes('data_base64'),
+    (pkEine('SELECT inhalt FROM papierkorb')?.inhalt || '(keine Zeile)').slice(0, 200));
   pruefe('Sondern data_ref',
-    pkEine('SELECT inhalt FROM papierkorb').inhalt.includes('"data_ref"'));
+    (pkEine('SELECT inhalt FROM papierkorb')?.inhalt || '').includes('"data_ref"'));
 
   /* DIE KENNZAHLEN WEISEN IHN GETRENNT AUS -- sonst wundert sich jemand ueber
      eine Datenbank, die nach dem Aufraeumen groesser ist als vorher. */
@@ -3474,21 +3482,24 @@ const namen = (liste) => liste.map(c => c.name);
                      videos: pkStats?.videoCount, kommentare: pkStats?.commentCount }));
 
   // Die Liste, wie die Karte sie sieht.
-  const pkListe = (await pkRuf('cookie-pk-anna', 'GET', '/api/papierkorb')).inhalt;
-  pruefe('Die Liste nennt die Frist', pkListe?.tage === 30, JSON.stringify(pkListe?.tage));
+  const pkListe = (await pkRuf('cookie-pk-anna', 'GET', '/api/papierkorb')).inhalt || {};
+  // Erst das Vorhandensein, dann jede Aussage darueber -- und jede Lesestelle
+  // abgefangen (Stolpersteine 81 und 103).
+  const pkErste = (pkListe.zeilen || [])[0] || {};
+  pruefe('Die Liste nennt die Frist', pkListe.tage === 30, JSON.stringify(pkListe.tage));
   pruefe('Und eine Zeile mit Titel, Datum und Loeschendem',
-    pkListe?.zeilen?.length === 1 && pkListe.zeilen[0].titel === 'Vollständig' &&
-    /^\d{4}-\d{2}-\d{2} /.test(pkListe.zeilen[0].geloescht_am || '') &&
-    pkListe.zeilen[0].loeschender?.name === 'carla',
-    JSON.stringify(pkListe?.zeilen?.[0]));
+    pkListe.zeilen?.length === 1 && pkErste.titel === 'Vollständig' &&
+    /^\d{4}-\d{2}-\d{2} /.test(pkErste.geloescht_am || '') &&
+    pkErste.loeschender?.name === 'carla',
+    JSON.stringify(pkErste));
   pruefe('Sie nennt die verbleibenden Tage',
-    pkListe.zeilen[0].tageOffen === 30, JSON.stringify(pkListe.zeilen[0].tageOffen));
+    pkErste.tageOffen === 30, JSON.stringify(pkErste.tageOffen));
   pruefe('Und Zahl und Groesse der Bytes daneben',
-    pkListe.zeilen[0].dateien === 6 && pkListe.zeilen[0].bytes > pkBytesSumme,
-    JSON.stringify({ dateien: pkListe.zeilen[0].dateien, bytes: pkListe.zeilen[0].bytes }));
+    pkErste.dateien === 6 && pkErste.bytes > pkBytesSumme,
+    JSON.stringify({ dateien: pkErste.dateien, bytes: pkErste.bytes }));
 
   // --- Wiederherstellen ---
-  const pkZurueck = await pkRuf('cookie-pk-anna', 'POST', `/api/papierkorb/${pkZeile.id}/wiederherstellen`);
+  const pkZurueck = await pkRuf('cookie-pk-anna', 'POST', `/api/papierkorb/${pkZeile.id ?? -1}/wiederherstellen`);
   pruefe('Die Eigentuemerin holt den Eintrag zurueck',
     pkZurueck.status === 200, JSON.stringify(pkZurueck.inhalt));
   pruefe('Die Papierkorbzeile ist danach weg',
@@ -3499,7 +3510,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Die Antwort nennt die NEUE Nummer',
     Number.isInteger(pkNeuId) && pkNeuId !== pkItemId, JSON.stringify(pkNeuId));
 
-  const pkNachher = (await pkRuf('cookie-pk-carla', 'GET', `/api/items/${pkNeuId}`)).inhalt;
+  const pkNachher = (await pkRuf('cookie-pk-carla', 'GET', `/api/items/${pkNeuId ?? -1}`)).inhalt || {};
   pruefe('Titel, Beschreibung und die beiden Merkmale stehen wieder da',
     pkNachher?.title === pkVorher.title && pkNachher?.description === pkVorher.description &&
     pkNachher?.rejected === pkVorher.rejected && pkNachher?.tested === pkVorher.tested,
@@ -3559,27 +3570,27 @@ const namen = (liste) => liste.map(c => c.name);
 
   const pkNachherBytes = pkZeilen(
     "SELECT art, sort_order, mime_type, focus_x, focus_y, dauer, length(data) AS n, hex(data) AS h " +
-    'FROM photos WHERE item_id = ? ORDER BY sort_order', pkNeuId);
+    'FROM photos WHERE item_id = ? ORDER BY sort_order', pkNeuId ?? -1);
   pruefe('Fotos und Video stehen wieder da -- BYTEGLEICH, samt Art, Dauer und Fokuspunkt',
     gleich(pkNachherBytes, pkVorherBytes),
     JSON.stringify(pkNachherBytes.map(z => [z.art, z.sort_order, z.dauer, z.n])));
   const pkNachherDateien = pkZeilen(
     'SELECT filename, mime_type, size, sort_order, user_id, hex(data) AS h FROM attachments ' +
-    'WHERE item_id = ? ORDER BY sort_order', pkNeuId);
+    'WHERE item_id = ? ORDER BY sort_order', pkNeuId ?? -1);
   pruefe('Die Dateien ebenso, samt Hochladendem',
     gleich(pkNachherDateien, pkVorherDateien),
     JSON.stringify(pkNachherDateien.map(z => [z.filename, z.size, z.user_id])));
   pruefe('Die Standbilder des Videos sind wieder erzeugt',
     (pkEine("SELECT thumb IS NOT NULL AS t, medium IS NOT NULL AS m FROM photos " +
-            "WHERE item_id = ? AND art = 'video'", pkNeuId)?.t === 1),
+            "WHERE item_id = ? AND art = 'video'", pkNeuId ?? -1)?.t === 1),
     JSON.stringify(pkEine("SELECT thumb IS NOT NULL AS t, medium IS NOT NULL AS m FROM photos " +
-                          "WHERE item_id = ? AND art = 'video'", pkNeuId)));
+                          "WHERE item_id = ? AND art = 'video'", pkNeuId ?? -1)));
 
   /* WAS NICHT ZURUECKKOMMT, und es gehoert belegt statt verschwiegen: der
      Favorit heisst "habe ICH markiert" und steht so schon im Austauschformat.
      Zwei Leute hatten den Eintrag als Favoriten; zurueck kommt EINER, und zwar
      bei der Wiederherstellenden. */
-  const pkPins = pkZeilen('SELECT user_id FROM item_pins WHERE item_id = ? ORDER BY user_id', pkNeuId);
+  const pkPins = pkZeilen('SELECT user_id FROM item_pins WHERE item_id = ? ORDER BY user_id', pkNeuId ?? -1);
   pruefe('Der Favorit kommt bei der Wiederherstellenden an',
     gleich(pkPins.map(z => z.user_id), [1]), JSON.stringify(pkPins));
 
@@ -3595,6 +3606,9 @@ const namen = (liste) => liste.map(c => c.name);
   {
     const tItem = pkEine("SELECT id FROM items WHERE title = 'Bleibt stehen'").id;
     const vorher = pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem);
+
+    /* ERSTE LAGE: das EINFUEGEN scheitert. Danach darf nichts geschehen sein --
+       weder eine Zeile im Papierkorb noch ein geloeschter Eintrag. */
     pkSchreibe(`CREATE TRIGGER pk_bremse BEFORE INSERT ON papierkorb
                 BEGIN SELECT RAISE(ABORT, 'Probe: der Papierkorb nimmt nichts an'); END`);
     const gescheitert2 = await pkRuf('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
@@ -3607,6 +3621,30 @@ const namen = (liste) => liste.map(c => c.name);
       pkZeilen('SELECT id FROM papierkorb').length === 0,
       JSON.stringify(pkZeilen('SELECT id, titel FROM papierkorb')));
     pkSchreibe('DROP TRIGGER pk_bremse');
+
+    /* ZWEITE LAGE, UND SIE IST DIE, FUER DIE DIE TRANSAKTION DA IST: das
+       Einfuegen geht durch, das LOESCHEN scheitert. Ohne db.transaction()
+       bliebe die Papierkorbzeile stehen, waehrend der Eintrag noch da ist --
+       ein Paket ohne Anlass, und der naechste Blick in die Karte zeigte einen
+       Eintrag, den es doppelt gibt.
+       Die erste Lage allein belegte das NICHT: dort scheitert die erste
+       Anweisung, und die Reihenfolge allein raeumte schon auf (Stolperstein 50
+       -- die Frage ist, ob die Stelle getroffen ist, an der die Regel wirkt). */
+    pkSchreibe(`CREATE TRIGGER pk_bremse2 BEFORE DELETE ON items
+                BEGIN SELECT RAISE(ABORT, 'Probe: der Eintrag laesst sich nicht loeschen'); END`);
+    const gescheitert3 = await pkRuf('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
+    pruefe('Scheitert das Loeschen, scheitert der ganze Vorgang',
+      gescheitert3.status >= 500, `Status ${gescheitert3.status}`);
+    pruefe('Der Eintrag steht auch dann unveraendert da',
+      gleich(pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem), vorher),
+      JSON.stringify(pkEine('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem)));
+    pruefe('UND es bleibt KEINE Papierkorbzeile zurueck',
+      pkZeilen('SELECT id FROM papierkorb').length === 0,
+      JSON.stringify(pkZeilen('SELECT id, titel FROM papierkorb')));
+    pruefe('Auch keine Bytes',
+      pkZeilen('SELECT id FROM papierkorb_bytes').length === 0,
+      JSON.stringify(pkZeilen('SELECT id FROM papierkorb_bytes')));
+    pkSchreibe('DROP TRIGGER pk_bremse2');
     // Und der Beleg, dass es ohne die Bremse durchgeht -- sonst bliebe die
     // Probe daruber auch dann gruen, wenn das Loeschen gar nicht mehr ginge.
     const geht = await pkRuf('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
@@ -3697,10 +3735,10 @@ const namen = (liste) => liste.map(c => c.name);
      "Admin" gar nicht unterscheiden. */
   {
     const opferId = (await pkRuf('cookie-pk-carla', 'POST', '/api/items',
-      { title: 'Zum Wegwerfen' })).inhalt.id;
+      { title: 'Zum Wegwerfen' })).inhalt?.id;
     await pkRuf('cookie-pk-carla', 'DELETE', `/api/items/${opferId}`);
-    const zeile = pkEine('SELECT id FROM papierkorb');
-    pruefe('Eine Zeile liegt bereit', !!zeile, JSON.stringify(zeile));
+    const zeile = pkEine('SELECT id FROM papierkorb') || {};
+    pruefe('Eine Zeile liegt bereit', Number.isInteger(zeile.id), JSON.stringify(zeile));
 
     // --- Sehen ---
     const sehenCarla = await pkRuf('cookie-pk-carla', 'GET', '/api/papierkorb');
@@ -3716,14 +3754,14 @@ const namen = (liste) => liste.map(c => c.name);
       (await pkRuf('cookie-pk-anna', 'GET', '/api/papierkorb')).status === 200);
 
     // --- Wiederherstellen ---
-    const zurueckCarla = await pkRuf('cookie-pk-carla', 'POST', `/api/papierkorb/${zeile.id}/wiederherstellen`);
+    const zurueckCarla = await pkRuf('cookie-pk-carla', 'POST', `/api/papierkorb/${zeile.id ?? -1}/wiederherstellen`);
     pruefe('Ein gewoehnlicher Benutzer stellt nichts wieder her',
       zurueckCarla.status === 403, `Status ${zurueckCarla.status}`);
     pruefe('Und danach steht die Zeile unveraendert im Papierkorb',
-      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', zeile.id).length === 1);
+      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', zeile.id ?? -1).length === 1);
     pruefe('Und es ist KEIN Eintrag entstanden',
       pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 0);
-    const zurueckBert = await pkRuf('cookie-pk-bert', 'POST', `/api/papierkorb/${zeile.id}/wiederherstellen`);
+    const zurueckBert = await pkRuf('cookie-pk-bert', 'POST', `/api/papierkorb/${zeile.id ?? -1}/wiederherstellen`);
     pruefe('Auch der Admin ohne Eigentuemerrolle nicht',
       zurueckBert.status === 403, `Status ${zurueckBert.status}`);
     pruefe('Die Absage nennt den Eigentuemer',
@@ -3732,31 +3770,31 @@ const namen = (liste) => liste.map(c => c.name);
       pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 0);
 
     // --- Endgueltig entfernen ---
-    const wegCarla = await pkRuf('cookie-pk-carla', 'DELETE', `/api/papierkorb/${zeile.id}`);
+    const wegCarla = await pkRuf('cookie-pk-carla', 'DELETE', `/api/papierkorb/${zeile.id ?? -1}`);
     pruefe('Ein gewoehnlicher Benutzer entfernt nichts endgueltig',
       wegCarla.status === 403, `Status ${wegCarla.status}`);
-    const wegBert = await pkRuf('cookie-pk-bert', 'DELETE', `/api/papierkorb/${zeile.id}`);
+    const wegBert = await pkRuf('cookie-pk-bert', 'DELETE', `/api/papierkorb/${zeile.id ?? -1}`);
     pruefe('Der Admin ohne Eigentuemerrolle auch nicht', wegBert.status === 403, `Status ${wegBert.status}`);
     pruefe('Und die Zeile liegt nach beiden Absagen noch da',
-      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', zeile.id).length === 1);
+      pkZeilen('SELECT id FROM papierkorb WHERE id = ?', zeile.id ?? -1).length === 1);
 
     // Der Erfolgsfall, beide Wege.
-    const zurueckAnna = await pkRuf('cookie-pk-anna', 'POST', `/api/papierkorb/${zeile.id}/wiederherstellen`);
+    const zurueckAnna = await pkRuf('cookie-pk-anna', 'POST', `/api/papierkorb/${zeile.id ?? -1}/wiederherstellen`);
     pruefe('Die Eigentuemerin kommt durch', zurueckAnna.status === 200, JSON.stringify(zurueckAnna.inhalt));
     pruefe('Und der Eintrag ist da',
       pkZeilen("SELECT id FROM items WHERE title = 'Zum Wegwerfen'").length === 1);
 
-    const zweiterId = (await pkRuf('cookie-pk-carla', 'POST', '/api/items', { title: 'Zweites Opfer' })).inhalt.id;
+    const zweiterId = (await pkRuf('cookie-pk-carla', 'POST', '/api/items', { title: 'Zweites Opfer' })).inhalt?.id;
     await pkRuf('cookie-pk-carla', 'DELETE', `/api/items/${zweiterId}`);
-    const zweiteZeile = pkEine('SELECT id FROM papierkorb');
+    const zweiteZeile = pkEine('SELECT id FROM papierkorb') || {};
     pruefe('Die Eigentuemerin entfernt endgueltig',
-      (await pkRuf('cookie-pk-anna', 'DELETE', `/api/papierkorb/${zweiteZeile.id}`)).status === 204);
+      (await pkRuf('cookie-pk-anna', 'DELETE', `/api/papierkorb/${zweiteZeile.id ?? -1}`)).status === 204);
     pruefe('Und danach ist die Zeile weg',
       pkZeilen('SELECT id FROM papierkorb').length === 0);
     pruefe('Eine Zeile, die es nicht gibt, ist eine 404 und kein stiller Erfolg',
-      (await pkRuf('cookie-pk-anna', 'DELETE', `/api/papierkorb/${zweiteZeile.id}`)).status === 404);
+      (await pkRuf('cookie-pk-anna', 'DELETE', `/api/papierkorb/${zweiteZeile.id ?? -1}`)).status === 404);
     pruefe('Dasselbe beim Wiederherstellen',
-      (await pkRuf('cookie-pk-anna', 'POST', `/api/papierkorb/${zweiteZeile.id}/wiederherstellen`)).status === 404);
+      (await pkRuf('cookie-pk-anna', 'POST', `/api/papierkorb/${zweiteZeile.id ?? -1}/wiederherstellen`)).status === 404);
     // Aufraeumen
     pkSchreibe("DELETE FROM items WHERE title IN ('Zum Wegwerfen', 'Zweites Opfer')");
     pkSchreibe('DELETE FROM papierkorb');
@@ -3788,8 +3826,8 @@ const namen = (liste) => liste.map(c => c.name);
       JSON.stringify([einzeln.inhalt?.criteria, einzeln.inhalt?.criteriaGewichte]));
     const ausVoll = (voll.inhalt?.items || []).find(i => i.title === 'Vollständig');
     pruefe('Der Eintrag selbst ist Zeichen fuer Zeichen derselbe wie im vollen Export',
-      JSON.stringify(einzeln.inhalt.items[0]) === JSON.stringify(ausVoll),
-      JSON.stringify(Object.keys(einzeln.inhalt.items[0] || {})));
+      JSON.stringify(einzeln.inhalt?.items?.[0]) === JSON.stringify(ausVoll) && !!ausVoll,
+      JSON.stringify(Object.keys(einzeln.inhalt?.items?.[0] || {})));
 
     // Die Datei kommt durch den IMPORT wieder herein.
     const wieder = await pkImport('cookie-pk-anna', einzeln.inhalt, 'merge');
@@ -3823,6 +3861,379 @@ const namen = (liste) => liste.map(c => c.name);
 
   await PK.stopp();
   fs.rmSync(pkDir, { recursive: true, force: true });
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Sicherung auf Knopfdruck');
+
+  /* VACUUM INTO an einer ECHTEN, verschluesselten Anlage: die Kopie entsteht,
+     sie ist OHNE Schluessel nicht lesbar, MIT Schluessel vollstaendig, und der
+     Ausgangsstand ist danach unveraendert.
+     ES GIBT KEINEN ZWEITEN WEG -- db.backup() liefe schrittweise und
+     blockierte nicht, scheitert an einer SQLCipher-Datenbank aber mit
+     "backup is not supported with incompatible source and target databases".
+     Auch das wird hier nachgestellt statt geglaubt. */
+  const siWurzel = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherungsort-'));
+  fs.mkdirSync(path.join(siWurzel, 'taeglich'));
+  fs.mkdirSync(path.join(siWurzel, 'leer'));
+  const siDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherung-'));
+  {
+    kurzlauf(`require('./db'); console.log('da');`, siDir);
+    const d = oeffne(path.join(siDir, 'katalog.sqlite'));
+    for (const n of ['anna', 'bert', 'carla'])
+      d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(n, 'x');
+    for (const [t, u] of [['cookie-si-anna', 1], ['cookie-si-bert', 2], ['cookie-si-carla', 3]])
+      d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Ein Merkmal', 1)").run();
+    d.close();
+  }
+  /* EIN SYMLINK, DER AUS DER WURZEL HERAUSFUEHRT -- und zwar ausgerechnet ins
+     DATENVERZEICHNIS. Am String sieht "zeigtAufDaten" harmlos aus; erst der
+     aufgeloeste Pfad verraet ihn. Genau daran haengt die Pruefung. */
+  fs.symlinkSync(siDir, path.join(siWurzel, 'zeigtAufDaten'));
+  const SI = starteWeiterenServer(siDir, { SICHERUNG_DIR: siWurzel }, 4300);
+  await SI.bereit;
+  // bert bekommt die Adminrolle -- OHNE Eigentuemerrolle.
+  {
+    const d = oeffne(path.join(siDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    d.prepare("UPDATE users SET role = 'admin' WHERE username = 'bert'").run();
+    d.close();
+  }
+  const siRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(SI.basis + pfad, opt);
+    let inhalt = null;
+    try { inhalt = await a.json(); } catch {}
+    return { status: a.status, inhalt };
+  };
+  const siDateien = (unter) => fs.readdirSync(path.join(siWurzel, unter || '.'))
+    .filter(n => /^kriterion-.*\.sqlite$/.test(n)).sort();
+  const siAlleDateien = () => [...siDateien(''), ...siDateien('taeglich'), ...siDateien('leer')];
+
+  const siStand = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+  pruefe('Die Karte ist eingerichtet',
+    siStand.inhalt?.eingerichtet === true, JSON.stringify(siStand.inhalt));
+  pruefe('Sie nennt die eingerichtete Wurzel',
+    siStand.inhalt?.wurzel === fs.realpathSync(siWurzel), JSON.stringify(siStand.inhalt?.wurzel));
+  pruefe('Und die erwartete Dauer aus der Groesse der Datenbank',
+    Number.isInteger(siStand.inhalt?.dauerSekunden) && siStand.inhalt.dauerSekunden >= 1,
+    JSON.stringify([siStand.inhalt?.dbBytes, siStand.inhalt?.dauerSekunden]));
+  pruefe('Noch liegt dort keine Sicherung',
+    siStand.inhalt?.erreichbar === true && siStand.inhalt?.letzte === null,
+    JSON.stringify(siStand.inhalt?.letzte));
+
+  /* --- DER ZIELORT IN BEIDE RICHTUNGEN ---
+     Zu jeder Absage die Nachschau, dass DANACH KEINE DATEI DA LIEGT -- eine
+     Absage, nach der trotzdem etwas geschrieben wurde, waere das Schlimmste. */
+  const siAbsagen = [
+    ['../raus', 'ein Pfad nach oben', /Unterverzeichnis/],
+    ['/etc', 'ein absoluter Pfad', /Unterverzeichnis/],
+    ['a/../b', 'ein Punktpunkt mitten im Pfad', /Unterverzeichnis/],
+    ['..', 'ein nacktes Punktpunkt', /Unterverzeichnis/],
+    ['taeglich\\weg', 'ein Gegenschraegstrich', /Unterverzeichnis/],
+    ['gibtsnicht', 'ein Verzeichnis, das es nicht gibt', /gibt es unter dem Sicherungsort nicht/],
+    ['zeigtAufDaten', 'ein Symlink aus der Wurzel heraus', /führt aus dem/]
+  ];
+  for (const [ort, was, muster] of siAbsagen) {
+    const r = await siRuf('cookie-si-anna', 'PUT', '/api/sicherung/ort', { ort });
+    pruefe(`Abgewiesen: ${was}`, r.status === 400, `Status ${r.status} · ${JSON.stringify(r.inhalt)}`);
+    pruefe(`Und die Begruendung spricht: ${was}`,
+      muster.test(r.inhalt?.error || ''), r.inhalt?.error);
+    pruefe(`Und nach der Absage liegt keine Datei da: ${was}`,
+      siAlleDateien().length === 0, siAlleDateien().join(' · '));
+  }
+  pruefe('Ein nicht angelegtes Verzeichnis wird auch NICHT angelegt',
+    !fs.existsSync(path.join(siWurzel, 'gibtsnicht')), 'es wurde still angelegt');
+  pruefe('Und der eingestellte Ort steht nach allen Absagen unveraendert leer',
+    (await siRuf('cookie-si-anna', 'GET', '/api/sicherung')).inhalt?.ort === '',
+    JSON.stringify((await siRuf('cookie-si-anna', 'GET', '/api/sicherung')).inhalt?.ort));
+
+  const siGut = await siRuf('cookie-si-anna', 'PUT', '/api/sicherung/ort', { ort: 'taeglich' });
+  pruefe('Ein erlaubter Ort geht durch',
+    siGut.status === 200 && siGut.inhalt?.ort === 'taeglich', JSON.stringify(siGut.inhalt));
+  pruefe('Und er steht danach in der Antwort der Karte',
+    (await siRuf('cookie-si-anna', 'GET', '/api/sicherung')).inhalt?.ort === 'taeglich');
+  pruefe('Der leere Ort ist die Wurzel selbst und ebenfalls erlaubt',
+    (await siRuf('cookie-si-anna', 'PUT', '/api/sicherung/ort', { ort: '' })).status === 200);
+  await siRuf('cookie-si-anna', 'PUT', '/api/sicherung/ort', { ort: 'taeglich' });
+
+  /* --- DIE KOPIE SELBST --- */
+  const siVorherBytes = fs.statSync(path.join(siDir, 'katalog.sqlite')).size;
+  const siVorherEintraege = (() => {
+    const d = oeffne(path.join(siDir, 'katalog.sqlite'));
+    const n = d.prepare('SELECT COUNT(*) n FROM items').get().n;
+    d.close();
+    return n;
+  })();
+  const siLos = await siRuf('cookie-si-anna', 'POST', '/api/sicherung');
+  pruefe('Die Sicherung geht durch', siLos.status === 200, JSON.stringify(siLos.inhalt));
+  pruefe('Der Name traegt Datum und Uhrzeit',
+    /^kriterion-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.sqlite$/.test(siLos.inhalt?.datei || ''),
+    siLos.inhalt?.datei);
+  pruefe('Die Datei liegt am eingestellten Ort',
+    siDateien('taeglich').includes(siLos.inhalt?.datei), siDateien('taeglich').join(' · '));
+  pruefe('Und nirgendwo sonst',
+    siDateien('').length === 0 && siDateien('leer').length === 0,
+    siAlleDateien().join(' · '));
+  /* JEDE LESESTELLE ABGEFANGEN (Stolperstein 103): faellt der Name aus der
+     Antwort, sollen die Pruefungen darunter ROT werden und nicht der Lauf
+     abreissen. Beim Bau hat genau das drei Gegenproben um ihre Auskunft
+     gebracht. */
+  const siKopie = path.join(siWurzel, 'taeglich',
+    siLos.inhalt?.datei || '(keine-datei-in-der-antwort)');
+  /* OHNE SCHLUESSEL IST SIE NICHT LESBAR -- das ist die Zusicherung, um
+     derentwillen VACUUM INTO gewaehlt wurde, und sie steht nicht nur im
+     Projektstand. */
+  let siOhne = '';
+  try {
+    if (!fs.existsSync(siKopie)) throw new Error('(die Kopie gibt es nicht)');
+    const k = new Database(siKopie, { readonly: true });
+    k.prepare('SELECT COUNT(*) n FROM items').get();
+    k.close();
+    siOhne = '(sie war lesbar)';
+  } catch (e) { siOhne = e.message; }
+  pruefe('Ohne Schluessel meldet die Kopie "file is not a database"',
+    /file is not a database/.test(siOhne), siOhne);
+  const siMit = (() => {
+    try {
+      if (!fs.existsSync(siKopie)) return { fehler: '(die Kopie gibt es nicht)' };
+      const k = oeffne(siKopie);
+      const zahl = k.prepare('SELECT COUNT(*) n FROM items').get().n;
+      const tabellen = k.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(z => z.name);
+      const zugaenge = k.prepare('SELECT COUNT(*) n FROM users').get().n;
+      const sitzungen = k.prepare('SELECT COUNT(*) n FROM sessions').get().n;
+      k.close();
+      return { zahl, tabellen, zugaenge, sitzungen };
+    } catch (e) { return { fehler: e.message }; }
+  })();
+  pruefe('Mit Schluessel laesst sie sich oeffnen', !siMit.fehler, siMit.fehler);
+  pruefe('Und sie ist vollstaendig -- Bestand, Zugaenge UND Sitzungen',
+    siMit.zahl === siVorherEintraege && siMit.zugaenge === 3 && siMit.sitzungen === 3,
+    JSON.stringify([siMit.zahl, siMit.zugaenge, siMit.sitzungen]));
+  pruefe('Auch die Tabellen des Papierkorbs stehen darin',
+    (siMit.tabellen || []).includes('papierkorb') && (siMit.tabellen || []).includes('papierkorb_bytes'),
+    JSON.stringify(siMit.tabellen));
+  pruefe('Der Ausgangsstand ist danach unveraendert',
+    (() => { const d = oeffne(path.join(siDir, 'katalog.sqlite'));
+             const n = d.prepare('SELECT COUNT(*) n FROM items').get().n; d.close();
+             return n === siVorherEintraege; })(),
+    `vorher ${siVorherEintraege} Eintraege, Datei vorher ${siVorherBytes} Bytes`);
+
+  /* EINE VORHANDENE ZIELDATEI WIRD NICHT UEBERSCHRIEBEN. Nachgestellt statt
+     geglaubt: VACUUM INTO antwortet auf eine vorhandene Datei mit "output file
+     already exists". Der Name mit Datum und Uhrzeit ist der Weg dorthin, nicht
+     die Rettung -- deshalb wird BEIDES geprueft. */
+  {
+    const d = oeffne(path.join(siDir, 'katalog.sqlite'));
+    const ziel = path.join(siWurzel, 'leer', 'schon-da.sqlite');
+    // Erst eine ECHTE Kopie dorthin, dann noch einmal auf denselben Pfad.
+    d.prepare('VACUUM INTO ?').run(ziel);
+    const vorher = fs.statSync(ziel).size;
+    let meldung = '(sie ging durch)';
+    try { d.prepare('VACUUM INTO ?').run(ziel); } catch (e) { meldung = e.message; }
+    d.close();
+    pruefe('VACUUM INTO scheitert an einer vorhandenen Zieldatei',
+      /already exists/.test(meldung), meldung);
+    pruefe('Und die vorhandene Datei ist unangetastet',
+      fs.statSync(ziel).size === vorher, `${fs.statSync(ziel).size} statt ${vorher}`);
+    // Und dasselbe an einer Datei, die gar keine Datenbank ist: auch sie wird
+    // nicht ueberschrieben, nur mit einer anderen Meldung.
+    const fremd = path.join(siWurzel, 'leer', 'fremd.sqlite');
+    fs.writeFileSync(fremd, 'nicht anfassen');
+    const d2 = oeffne(path.join(siDir, 'katalog.sqlite'));
+    let meldung2 = '(sie ging durch)';
+    try { d2.prepare('VACUUM INTO ?').run(fremd); } catch (e) { meldung2 = e.message; }
+    d2.close();
+    pruefe('Auch eine fremde Datei wird nicht ueberschrieben',
+      meldung2 !== '(sie ging durch)' &&
+      fs.readFileSync(fremd, 'utf8') === 'nicht anfassen', `${meldung2} · ` +
+      fs.readFileSync(fremd, 'utf8').slice(0, 40));
+    fs.unlinkSync(ziel);
+    fs.unlinkSync(fremd);
+  }
+  /* Und der zweite Griff am laufenden Server legt eine ZWEITE Datei an, statt
+     die erste zu fressen. Eine Sicherung, die die vorige frisst, ist keine. */
+  await new Promise(r => setTimeout(r, 1100));
+  const siZweite = await siRuf('cookie-si-anna', 'POST', '/api/sicherung');
+  pruefe('Ein zweiter Griff legt eine zweite Datei an',
+    siZweite.status === 200 && siZweite.inhalt?.datei !== siLos.inhalt?.datei,
+    JSON.stringify([siLos.inhalt?.datei, siZweite.inhalt?.datei]));
+  pruefe('Und die erste liegt unveraendert daneben',
+    siDateien('taeglich').length === 2 && fs.existsSync(siKopie),
+    siDateien('taeglich').join(' · '));
+
+  /* "LETZTE SICHERUNG VOR N TAGEN" KOMMT AUS DEM DATEISYSTEM, nicht aus einem
+     Schluessel in der Datenbank -- die Sache statt der Behauptung, wie beim
+     Merker gegen den Index in 0.6.2. Beide Richtungen:
+       das Datum der Datei von Hand alt gemacht -> die Zahl folgt
+       ein Schluessel in settings von Hand gesetzt -> die Zahl folgt NICHT */
+  {
+    const vorTagen = (n) => new Date(Date.now() - n * 86400000);
+    const beide = siDateien('taeglich');
+    pruefe('Zwei Dateien liegen bereit, an denen sich das Datum setzen laesst',
+      beide.length === 2, beide.join(' · '));
+    for (const n of beide)
+      fs.utimesSync(path.join(siWurzel, 'taeglich', n), vorTagen(9), vorTagen(9));
+    if (fs.existsSync(siKopie)) fs.utimesSync(siKopie, vorTagen(4), vorTagen(4));
+    const r = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+    pruefe('Die Zahl folgt dem Datum der Datei',
+      r.inhalt?.letzte?.tageHer === 4 && !!siLos.inhalt?.datei &&
+      r.inhalt?.letzte?.datei === siLos.inhalt.datei,
+      JSON.stringify(r.inhalt?.letzte));
+    pruefe('Und die juengste Datei ist die genannte',
+      r.inhalt?.zahl === 2, JSON.stringify(r.inhalt?.zahl));
+    // Ein Schluessel in settings darf nichts bewirken -- es gibt ihn nicht,
+    // und wer ihn einfuehrt, faellt hier auf.
+    const d = oeffne(path.join(siDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('letzteSicherung', ?)")
+      .run(JSON.stringify('1999-01-01 00:00:00'));
+    d.close();
+    const r2 = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+    pruefe('Ein Schluessel in settings bewegt die Zahl NICHT',
+      r2.inhalt?.letzte?.tageHer === 4, JSON.stringify(r2.inhalt?.letzte));
+    const d2 = oeffne(path.join(siDir, 'katalog.sqlite'));
+    d2.pragma('busy_timeout = 4000');
+    d2.prepare("DELETE FROM settings WHERE key = 'letzteSicherung'").run();
+    d2.close();
+  }
+
+  /* EIN UNERREICHBARER ZIELORT LIEFERT KEINE AUSKUNFT -- und die Karte sagt
+     GENAU DAS statt einer Zahl. Das ist der Preis der Entscheidung fuer das
+     Dateisystem, und er gehoert belegt. */
+  {
+    /* EIN EIGENES VERZEICHNIS, das verschwinden darf. Der eingestellte Ort
+       „taeglich" bleibt dabei unangetastet -- eine Prueflage, die ihn
+       wegzieht und hinterher zurueckschiebt, laesst sich nach einem Rueckbau
+       womoeglich gar nicht mehr herstellen und risse dann den Lauf ab. */
+    fs.mkdirSync(path.join(siWurzel, 'verschwindet'));
+    await siRuf('cookie-si-anna', 'PUT', '/api/sicherung/ort', { ort: 'verschwindet' });
+    fs.rmdirSync(path.join(siWurzel, 'verschwindet'));
+    const r = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+    pruefe('Ein verschwundener Zielort ergibt keine Zahl, sondern eine Ansage',
+      r.inhalt?.letzte === null && !!r.inhalt?.fehler, JSON.stringify(r.inhalt));
+    pruefe('Und die Ansage spricht',
+      /gibt es unter dem Sicherungsort nicht/.test(r.inhalt?.fehler || ''), r.inhalt?.fehler);
+    const los = await siRuf('cookie-si-anna', 'POST', '/api/sicherung');
+    pruefe('Und der Knopf laeuft dort nicht ins Leere, sondern sagt ab',
+      los.status === 400, `Status ${los.status} · ${JSON.stringify(los.inhalt)}`);
+    pruefe('Nach dieser Absage liegt keine neue Datei da',
+      siDateien('').length === 0, siDateien('').join(' · '));
+    fs.rmSync(path.join(siWurzel, 'verschwindet'), { recursive: true, force: true });
+    await siRuf('cookie-si-anna', 'PUT', '/api/sicherung/ort', { ort: 'taeglich' });
+  }
+
+  /* --- DIE RECHTE. Zu jeder Verweigerung der Erfolgsfall daneben und die
+     Nachschau, dass nichts geschrieben wurde. Und ein Admin OHNE
+     Eigentuemerrolle gehoert dazu. --- */
+  {
+    const vorher = siDateien('taeglich').length;
+    for (const [wer, name] of [['cookie-si-carla', 'Ein gewoehnlicher Benutzer'],
+                               ['cookie-si-bert', 'Ein Admin ohne Eigentuemerrolle']]) {
+      const lesen = await siRuf(wer, 'GET', '/api/sicherung');
+      pruefe(`${name} sieht die Karte nicht`, lesen.status === 403, `Status ${lesen.status}`);
+      const ort = await siRuf(wer, 'PUT', '/api/sicherung/ort', { ort: 'leer' });
+      pruefe(`${name} stellt den Zielort nicht um`, ort.status === 403, `Status ${ort.status}`);
+      const los = await siRuf(wer, 'POST', '/api/sicherung');
+      pruefe(`${name} sichert nicht`, los.status === 403, `Status ${los.status}`);
+      pruefe(`Und nach seinen Absagen liegt keine neue Datei da: ${name}`,
+        siDateien('taeglich').length === vorher && siDateien('leer').length === 0,
+        siAlleDateien().join(' · '));
+    }
+    pruefe('Der eingestellte Ort steht danach unveraendert auf taeglich',
+      (await siRuf('cookie-si-anna', 'GET', '/api/sicherung')).inhalt?.ort === 'taeglich');
+    /* Eine Sekunde Abstand: der Dateiname traegt Datum und UHRZEIT auf die
+       Sekunde genau, und zwei Sicherungen in derselben Sekunde sind eine
+       Kollision -- die 409 ist richtig, hier aber nicht die Frage. */
+    await new Promise(r => setTimeout(r, 1100));
+    const los = await siRuf('cookie-si-anna', 'POST', '/api/sicherung');
+    pruefe('Die Eigentuemerin kommt durch', los.status === 200, JSON.stringify(los.inhalt));
+  }
+  /* DER PROTOKOLLBELEG ZULETZT: die Ausgabe des Kindprozesses wird gepuffert,
+     und unmittelbar nach dem Start ist die Zeile womoeglich noch gar nicht
+     angekommen. Hier liegt der ganze Verkehr der Gruppe dazwischen. */
+  pruefe('Der Start nennt den Sicherungsort im Protokoll',
+    /\[Kriterion\] Sicherungsort: /.test(SI.protokoll()), SI.protokoll().slice(0, 400));
+  pruefe('Und jede geschriebene Sicherung steht ebenfalls darin',
+    (SI.protokoll().match(/\[Kriterion\] Sicherung geschrieben: /g) || []).length >= 3,
+    (SI.protokoll().match(/\[Kriterion\] Sicherung geschrieben: .*/g) || []).join(' · '));
+  await SI.stopp();
+
+  /* --- DER SICHERUNGSORT DARF NICHT IM DATENVERZEICHNIS LIEGEN. Eine eigene
+     Anlage, deren Wurzel genau dort steht: die Karte bleibt aus und sagt,
+     warum. --- */
+  {
+    const dDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherung-daneben-'));
+    kurzlauf(`require('./db'); console.log('da');`, dDir);
+    fs.mkdirSync(path.join(dDir, 'sicherung'));
+    const d = oeffne(path.join(dDir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
+    d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-sd-anna', 1)").run();
+    d.close();
+    const SD = starteWeiterenServer(dDir, { SICHERUNG_DIR: path.join(dDir, 'sicherung') }, 4360);
+    await SD.bereit;
+    const a = await fetch(SD.basis + '/api/sicherung',
+      { headers: { cookie: 'kriterion_session=cookie-sd-anna' } });
+    const inhalt = await a.json().catch(() => null);
+    pruefe('Ein Sicherungsort IM Datenverzeichnis bleibt aus',
+      inhalt?.eingerichtet === false, JSON.stringify(inhalt));
+    pruefe('Und sagt, warum',
+      /nicht im Datenverzeichnis/.test(inhalt?.grund || ''), inhalt?.grund);
+    pruefe('Der Knopf sagt dort ebenfalls ab',
+      (await (await fetch(SD.basis + '/api/sicherung', { method: 'POST',
+        headers: { cookie: 'kriterion_session=cookie-sd-anna' } })).json()
+      ).error?.includes('Datenverzeichnis'), 'keine sprechende Absage');
+    pruefe('Der Start sagt es im Protokoll',
+      /Sicherungsort: aus — .*Datenverzeichnis/.test(SD.protokoll()), SD.protokoll().slice(0, 500));
+    await SD.stopp();
+    fs.rmSync(dDir, { recursive: true, force: true });
+  }
+
+  /* --- OHNE SICHERUNG_DIR bleibt die Karte aus und sagt es. Das ist der
+     Zustand jeder Anlage, die den Einhaengepunkt noch nicht hat. --- */
+  {
+    const oDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherung-ohne-'));
+    kurzlauf(`require('./db'); console.log('da');`, oDir);
+    const d = oeffne(path.join(oDir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
+    d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-so-anna', 1)").run();
+    d.close();
+    const SO = starteWeiterenServer(oDir, { SICHERUNG_DIR: '' }, 4420);
+    await SO.bereit;
+    const inhalt = await (await fetch(SO.basis + '/api/sicherung',
+      { headers: { cookie: 'kriterion_session=cookie-so-anna' } })).json().catch(() => null);
+    pruefe('Ohne eingerichteten Ort bleibt die Karte aus',
+      inhalt?.eingerichtet === false, JSON.stringify(inhalt));
+    pruefe('Und nennt den Weg dorthin',
+      /docker-compose\.yml/.test(inhalt?.grund || ''), inhalt?.grund);
+    await SO.stopp();
+    fs.rmSync(oDir, { recursive: true, force: true });
+  }
+
+  /* --- ES GIBT KEINEN ZWEITEN WEG, nachgestellt statt geglaubt: db.backup()
+     liefe schrittweise und blockierte den Server nicht -- und scheitert an
+     einer verschluesselten Anlage. Das ist die Begruendung dafuer, dass
+     VACUUM INTO synchron laeuft und die Karte die Dauer vorher nennt. --- */
+  {
+    const d = oeffne(path.join(siDir, 'katalog.sqlite'));
+    pruefe('better-sqlite3 bringt einen schrittweisen Weg ueberhaupt mit',
+      typeof d.backup === 'function', typeof d.backup);
+    let meldung = '(sie ging durch)';
+    try { await d.backup(path.join(siWurzel, 'leer', 'schritt.sqlite')); }
+    catch (e) { meldung = e.message; }
+    d.close();
+    pruefe('Er scheitert an einer verschluesselten Anlage',
+      /not supported with incompatible source and target/.test(meldung), meldung);
+    pruefe('Und hinterlaesst keine brauchbare Kopie',
+      siDateien('leer').length === 0, siDateien('leer').join(' · '));
+  }
+
+  fs.rmSync(siWurzel, { recursive: true, force: true });
+  fs.rmSync(siDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   gruppe('Rechte am Eintrag');
@@ -5456,7 +5867,14 @@ const namen = (liste) => liste.map(c => c.name);
        nehmen darf, darf ihn auch schliessen; deshalb dieselbe Klemme am
        endgueltigen Entfernen. */
     ['POST',   '/api/papierkorb/:id/wiederherstellen', 'nurEigentuemer'],
-    ['DELETE', '/api/papierkorb/:id',            'nurEigentuemer']
+    ['DELETE', '/api/papierkorb/:id',            'nurEigentuemer'],
+    /* Die Sicherung, 0.8.70. Beide beim Eigentuemer, dieselbe Zeile wie Export
+       und Import -- alles, was die Anlage als Ganzes betrifft. Der Zielort geht
+       ausdruecklich NICHT ueber PUT /api/settings: die Route leitet ihre Rechte
+       aus PERSOENLICHE_SCHLUESSEL ab, und was dort nicht persoenlich ist, ist
+       Adminsache. Der Sicherungsort ist es nicht. */
+    ['PUT',    '/api/sicherung/ort',             'nurEigentuemer'],
+    ['POST',   '/api/sicherung',                 'nurEigentuemer']
   ];
 
   function schreibendeRouten(text) {
@@ -5493,11 +5911,12 @@ const namen = (liste) => liste.map(c => c.name);
      geht ueber PUT /api/comments/:id, die es laengst gibt. Wer aus dem
      lesenden Endpunkt eine schreibende Route macht, wird hier namentlich
      rot -- nachgestellt statt geglaubt.
-     0.8.70 bewegt sie: 47 werden 49. Der Papierkorb bringt zwei schreibende
-     Routen mit; die Liste und die Karte sind lesend und stehen deshalb NICHT
-     hier -- dieselbe Regel wie bei GET /api/stats. */
-  pruefe('Und es sind jetzt genau 49 schreibende Routen',
-    F_ROUTEN.length === 49 && fGefunden.length === 49,
+     0.8.70 bewegt sie: 47 werden 51. Der Papierkorb bringt zwei schreibende
+     Routen mit, die Sicherung zwei; die drei lesenden Endpunkte daneben
+     (GET /api/papierkorb, GET /api/items/:id/export, GET /api/sicherung)
+     stehen NICHT hier -- dieselbe Regel wie bei GET /api/stats. */
+  pruefe('Und es sind jetzt genau 51 schreibende Routen',
+    F_ROUTEN.length === 51 && fGefunden.length === 51,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
@@ -5889,13 +6308,22 @@ const namen = (liste) => liste.map(c => c.name);
      denn das Wort steht in Meldungen und in Beschriftungen. */
   const SICHERUNG_DATEIEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
                              'public/app.js', 'public/index.html', 'zugang.js'];
+  /* GROSSGESCHRIEBEN GESUCHT, und das ist keine Nachlaessigkeit: gemeint ist
+     das deutsche SUBSTANTIV. `db.backup()` ist ein Bezeichner und die Meldung
+     "backup is not supported ..." ein Zitat aus SQLite -- beides ist Code und
+     keine Sprache, dieselbe Trennlinie wie beim Sprachwaechter, der Backticks
+     ueberspringt. */
+  const backupZaehle = (text) => (text.match(/\bBackup\b/g) || []).length;
   const fBackup = SICHERUNG_DATEIEN
-    .map(d => [d, (fs.readFileSync(path.join(__dirname, d), 'utf8').match(/Backup/gi) || []).length])
+    .map(d => [d, backupZaehle(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
     .filter(([, n]) => n > 0);
   pruefe('Das Wort Backup steht in keiner ausgelieferten Datei mehr',
     fBackup.length === 0, fBackup.map(([d, n]) => `${d} (${n}x)`).join(' · '));
   pruefe('Und der Waechter wuerde es wirklich finden',
-    /Backup/i.test('// Das gehoert ins Backup.'), 'der Waechter sieht das Wort nicht');
+    backupZaehle('// Das gehoert ins Backup.') === 1, 'der Waechter sieht das Wort nicht');
+  pruefe('Den Bezeichner db.backup() laesst er dagegen in Ruhe',
+    backupZaehle('  try { await d.backup(ziel); } catch {}') === 0,
+    'der Waechter faerbt sich am Bezeichner');
 
   /* ---------------------------------------------------------------- */
   gruppe('Der Sprachwaechter');
@@ -9247,7 +9675,7 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
   const { VirtualConsole } = require('jsdom');
@@ -9279,6 +9707,16 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       loeschender: { id: 4, name: null, geloescht: true },
       dateien: 0, bytes: 512, tageOffen: 27 }
   ];
+  /* Die Sicherung der Prueflage. Vorgabe: eingerichtet, mit einer Sicherung
+     von vor drei Tagen. Eine Prueflage kann sie ueberschreiben -- die Karte
+     hat drei Zustaende (nicht eingerichtet, Zielort mit Fehler, in Ordnung),
+     und jeder braucht seinen eigenen Aufbau. */
+  const sicherung = sicherungStand || {
+    eingerichtet: true, wurzel: '/sicherung', ort: 'taeglich', pfad: '/sicherung/taeglich',
+    dbBytes: 52428800, dauerSekunden: 1, erreichbar: true, zahl: 2,
+    letzte: { datei: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
+              am: '2026-08-20 03:00:00', tageHer: 3 }
+  };
   const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   const kriterien = [
     { id: 7, name: 'Zuerst', sort_order: 0, usage_count: 2, gewicht: kriterienGewichte[0] },
@@ -9520,6 +9958,35 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       if (einstellungen.istAdmin === false)
         return gib({ error: 'Das verwaltet nur der Admin.' }, 403);
       return gib({ tage: 30, zeilen: papierkorb });
+    }
+    /* Die Sicherung. Sie steht hinter dem EIGENTUEMER, und der Mock macht das
+       mit -- antwortete er jedem mit 200, waere die Rolle unpruefbar. */
+    if (url === '/api/sicherung' && (opt.method || 'GET') === 'GET') {
+      if (einstellungen.istEigentuemer === false)
+        return gib({ error: 'Das kann nur der Eigentümer der Anlage.' }, 403);
+      return gib(sicherung);
+    }
+    /* Und die beiden Schreibwege, die ihren Stand WIRKLICH aendern
+       (Stolperstein 90): ein Mock, der stur denselben Stand zurueckgaebe,
+       machte "die Karte zeichnet sich neu" von "die Karte blieb stehen"
+       ununterscheidbar. */
+    if (url === '/api/sicherung/ort' && opt.method === 'PUT') {
+      const ort = String(JSON.parse(opt.body || '{}').ort || '');
+      if (ort.includes('..') || ort.startsWith('/'))
+        return gib({ error: 'Der Ort ist ein Unterverzeichnis des eingerichteten Sicherungsorts.' }, 400);
+      sicherung.ort = ort;
+      sicherung.pfad = ort ? `/sicherung/${ort}` : '/sicherung';
+      sicherung.fehler = null;
+      return gib({ ok: true, ort, pfad: sicherung.pfad, erreichbar: true,
+                   zahl: sicherung.zahl, letzte: sicherung.letzte });
+    }
+    if (url === '/api/sicherung' && opt.method === 'POST') {
+      const datei = 'kriterion-2026-08-23-19-00-00.sqlite';
+      sicherung.zahl = (sicherung.zahl || 0) + 1;
+      sicherung.letzte = { datei, bytes: 52428800, am: '2026-08-23 19:00:00', tageHer: 0 };
+      sicherung.erreichbar = true;
+      return gib({ ok: true, datei, pfad: sicherung.pfad, bytes: 52428800, ms: 512,
+                   erreichbar: true, zahl: sicherung.zahl, letzte: sicherung.letzte });
     }
     /* Und die beiden Wege, die den Bestand WIRKLICH aendern (Stolperstein 90):
        ein Mock, der beim Zurueckholen zwar antwortet, aber dieselbe Liste
@@ -13771,10 +14238,10 @@ async function pruefeOberflaeche() {
   const rUser = await baueSystem({ istAdmin: false, istEigentuemer: false });
   const kEig = kartenVon(rEig), kAdm = kartenVon(rAdm), kUser = kartenVon(rUser);
 
-  const ALLE_KARTEN = ['Titel', 'Zugang', 'Kennzahlen', 'Export', 'Import', 'Papierkorb',
-    'Kategorien', 'Tags', 'Bewertungskriterien', 'Zugänge', 'Darstellung', 'Links',
-    'Suchanbieter', 'Vokabular'];
-  pruefe('Die Eigentuemerin sieht alle vierzehn Karten',
+  const ALLE_KARTEN = ['Titel', 'Zugang', 'Kennzahlen', 'Export', 'Import', 'Sicherung',
+    'Papierkorb', 'Kategorien', 'Tags', 'Bewertungskriterien', 'Zugänge', 'Darstellung',
+    'Links', 'Suchanbieter', 'Vokabular'];
+  pruefe('Die Eigentuemerin sieht alle fuenfzehn Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
 
   /* Die drei, die JEDEM bleiben -- und der Grund steht in jeder von ihnen:
@@ -13797,7 +14264,7 @@ async function pruefeOberflaeche() {
       kAdm.includes(karte) && !kUser.includes(karte),
       `Admin: ${kAdm.includes(karte)} · Benutzer: ${kUser.includes(karte)}`);
   }
-  for (const karte of ['Export', 'Import']) {
+  for (const karte of ['Export', 'Import', 'Sicherung']) {
     pruefe(`Die Karte "${karte}" steht nur beim Eigentuemer`,
       kEig.includes(karte) && !kAdm.includes(karte) && !kUser.includes(karte),
       `Eigentuemer: ${kEig.includes(karte)} · Admin: ${kAdm.includes(karte)}`);
@@ -14037,7 +14504,7 @@ async function pruefeOberflaeche() {
      dann die Abwesenheit des Knopfes an ihr -- ohne die erste Haelfte bliebe
      die zweite auf null Zeilen wahr und belegte nichts (Stolperstein 81). */
   pruefe('Bei der Eigentuemerin steht an jeder Zeile Zurueckholen und ein Kreuz',
-    pkuReihen.every(r => !!r.querySelector('.pk-back') && !!r.querySelector('.pk-weg')),
+    pkuReihen.length === 2 && pkuReihen.every(r => !!r.querySelector('.pk-back') && !!r.querySelector('.pk-weg')),
     JSON.stringify(pkuReihen.map(r => r.innerHTML.slice(0, 120))));
   const pkuAdmReihen = pkReihen(pkuAdm);
   pruefe('Beim Admin gibt es die Zeilen ueberhaupt', pkuAdmReihen.length === 2,
@@ -14091,8 +14558,8 @@ async function pruefeOberflaeche() {
   {
     const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
     const vorher = pkReihen(d).length;
-    pkReihen(d)[0].querySelector('.pk-back')
-      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    pkReihen(d)[0]?.querySelector('.pk-back')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Knopf schickt das Zurueckholen an den Server',
       d.gesendet.some(x => x.methode === 'POST' && x.url === '/api/papierkorb/501/wiederherstellen'),
@@ -14114,8 +14581,8 @@ async function pruefeOberflaeche() {
      genannt. Die zweite Zeile der Prueflage traegt sie. */
   {
     const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
-    pkReihen(d)[1].querySelector('.pk-back')
-      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    pkReihen(d)[1]?.querySelector('.pk-back')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Unbekannte Verfasser stehen in der Meldung',
       /dora/.test(d.w.document.querySelector('.toast')?.textContent || ''),
@@ -14127,8 +14594,8 @@ async function pruefeOberflaeche() {
   {
     const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
     const vorher = pkReihen(d).length;
-    pkReihen(d)[0].querySelector('.pk-weg')
-      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    pkReihen(d)[0]?.querySelector('.pk-weg')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     const frage = d.w.document.querySelector('.backdrop .modal');
     pruefe('Das Kreuz fragt zuerst nach', !!frage, d.w.document.body.innerHTML.slice(0, 120));
@@ -14137,18 +14604,18 @@ async function pruefeOberflaeche() {
       frage?.textContent);
     // Erst abbrechen: danach darf NICHTS geschickt worden sein.
     d.w.document.querySelector('.backdrop [data-no]')
-      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     pruefe('Nach dem Abbrechen wird nichts geschickt',
       !d.gesendet.some(x => x.methode === 'DELETE' && x.url.startsWith('/api/papierkorb/')),
       d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
     pruefe('Und die Zeile steht noch da', pkReihen(d).length === vorher);
 
-    pkReihen(d)[0].querySelector('.pk-weg')
-      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    pkReihen(d)[0]?.querySelector('.pk-weg')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     d.w.document.querySelector('.backdrop [data-yes]')
-      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Nach dem Bestaetigen geht das Entfernen hinaus',
       d.gesendet.some(x => x.methode === 'DELETE' && x.url === '/api/papierkorb/501'),
@@ -14171,6 +14638,165 @@ async function pruefeOberflaeche() {
     pruefe('Und darin stehen Zahl und Groesse aus der Antwort',
       /^2 · 2,5 KB$/.test(zeile?.querySelector('.v')?.textContent?.trim() || ''),
       zeile?.querySelector('.v')?.textContent);
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Sicherung in der Oberflaeche');
+
+  /* DREI ZUSTAENDE, DREI AUFBAUTEN: eingerichtet, gar nicht eingerichtet und
+     ein Zielort mit Fehler. Eine Karte, die nur im guten Fall geprueft ist,
+     belegt nichts ueber die beiden Faelle, in denen sie etwas SAGEN muss.
+     WER DIE ZAHLEN EINER PRUEFLAGE MISST, MISST SIE AN EINEM FRISCHEN AUFBAU
+     (Stolperstein 115): die Schreibwege unten aendern den Stand des Mocks
+     wirklich. */
+  const siKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Sicherung');
+  const siEig = await pkSystem({ istAdmin: true, istEigentuemer: true });
+  const siAdm = await pkSystem({ istAdmin: true, istEigentuemer: false });
+
+  pruefe('Die Karte steht bei der Eigentuemerin', !!siKarte(siEig));
+  pruefe('Beim Admin ohne Eigentuemerrolle gibt es sie nicht', !siKarte(siAdm));
+  pruefe('Und ohne Eigentuemerrolle wird ihr Stand gar nicht erst abgerufen',
+    !siAdm.gesendet.some(x => x.url === '/api/sicherung'),
+    siAdm.gesendet.map(x => x.url).join(' · '));
+  pruefe('Mit Eigentuemerrolle sehr wohl',
+    siEig.gesendet.some(x => x.url === '/api/sicherung'),
+    siEig.gesendet.map(x => x.url).join(' · '));
+
+  /* DIE ROLLENTEILUNG STEHT AN BEIDEN KARTEN, nicht nur in den Dokumenten.
+     Wer sie nebeneinander sieht, muss ohne Rueckfrage wissen, welche er
+     will -- ein Satz je Karte, und beide werden hier geprueft. */
+  const siExportKarte = [...siEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Export');
+  pruefe('Die Exportkarte ist ueberhaupt da', !!siExportKarte);
+  pruefe('Sie nennt sich den Austauschweg',
+    /Austauschweg/.test(siExportKarte?.textContent || ''), siExportKarte?.textContent?.slice(0, 200));
+  pruefe('Und verweist auf die Sicherung',
+    /Sicherung/.test(siExportKarte?.textContent || ''), siExportKarte?.textContent?.slice(0, 300));
+  pruefe('Die Sicherungskarte nennt sich der Sicherungsweg',
+    /Sicherungsweg/.test(siKarte(siEig)?.textContent || ''),
+    siKarte(siEig)?.textContent?.slice(0, 200));
+  pruefe('Und sagt, dass sie keinen Formatwechsel ueberlebt',
+    /Formatwechsel/.test(siKarte(siEig)?.textContent || ''),
+    siKarte(siEig)?.textContent?.slice(0, 400));
+
+  /* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
+     Dokumentation: die Kopie ist ohne .env wertlos, und genau dort tappt
+     jemand in die Falle. */
+  const siWarn = siKarte(siEig)?.querySelector('.warn-box');
+  pruefe('Der Hinweis auf den Schluessel steht in der Karte', !!siWarn,
+    siKarte(siEig)?.innerHTML?.slice(0, 200));
+  pruefe('Und er nennt die .env',
+    /\.env/.test(siWarn?.textContent || ''), siWarn?.textContent);
+
+  pruefe('Die Karte nennt den eingerichteten Ort',
+    /\/sicherung/.test(siKarte(siEig)?.textContent || ''),
+    siKarte(siEig)?.textContent?.slice(0, 400));
+  pruefe('Das Feld traegt das eingestellte Unterverzeichnis',
+    siEig.w.document.getElementById('sich-ort')?.value === 'taeglich',
+    siEig.w.document.getElementById('sich-ort')?.value);
+  pruefe('Die letzte Sicherung steht mit ihren Tagen da',
+    /vor 3 Tagen/.test(siKarte(siEig)?.textContent || ''),
+    siKarte(siEig)?.textContent?.slice(0, 600));
+  pruefe('Samt Dateiname und Groesse',
+    /kriterion-2026-08-20-03-00-00\.sqlite/.test(siKarte(siEig)?.textContent || '') &&
+    /50,0 MB/.test(siKarte(siEig)?.textContent || ''),
+    siKarte(siEig)?.textContent?.slice(0, 600));
+  /* DIE DAUER STEHT VORHER DA. VACUUM INTO laeuft synchron, die Anlage steht
+     so lange still -- eine Ansage ist besser als ein stiller Stillstand. */
+  pruefe('Die Karte sagt vorher, dass die Anlage stillsteht',
+    /steht die\s+Anlage still/.test(siKarte(siEig)?.textContent || ''),
+    siKarte(siEig)?.textContent?.slice(0, 700));
+  pruefe('Und nennt die erwartete Dauer aus der Antwort',
+    /etwa\s+1 Sekunden/.test(siKarte(siEig)?.textContent || ''),
+    siKarte(siEig)?.textContent?.slice(0, 700));
+
+  /* DER NICHT EINGERICHTETE FALL. */
+  {
+    const d = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: { eingerichtet: false, grund: 'Es ist kein Sicherungsort eingerichtet. ' +
+        'Die docker-compose.yml hängt ihn ein.', ort: '', dbBytes: 1, dauerSekunden: 1,
+        erreichbar: false, letzte: null } });
+    pruefe('Ohne eingerichteten Ort steht die Karte trotzdem da', !!siKarte(d));
+    pruefe('Und sagt, warum sie nicht kann',
+      /kein Sicherungsort eingerichtet/.test(siKarte(d)?.textContent || ''),
+      siKarte(d)?.textContent?.slice(0, 300));
+    pruefe('Der Knopf steht dann gar nicht erst da',
+      !d.w.document.getElementById('sich-los'), 'der Knopf steht da');
+    pruefe('Und das Feld fuer den Ort ebenso wenig',
+      !d.w.document.getElementById('sich-ort'), 'das Feld steht da');
+  }
+
+  /* DER UNERREICHBARE ZIELORT. Die Karte sagt es, statt eine Zahl zu
+     behaupten -- das ist der Preis der Entscheidung fuer das Dateisystem. */
+  {
+    const d = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: { eingerichtet: true, wurzel: '/sicherung', ort: 'weg',
+        fehler: 'Das Verzeichnis „weg“ gibt es unter dem Sicherungsort nicht.',
+        dbBytes: 1024, dauerSekunden: 1, erreichbar: false, letzte: null } });
+    pruefe('Ein Zielort mit Fehler bekommt keine Zahl, sondern die Begruendung',
+      /gibt es unter dem Sicherungsort nicht/.test(siKarte(d)?.textContent || ''),
+      siKarte(d)?.textContent?.slice(0, 400));
+    pruefe('Und nirgends steht "vor 0 Tagen"',
+      !/vor \d+ Tag/.test(siKarte(d)?.textContent || ''),
+      siKarte(d)?.textContent?.slice(0, 400));
+  }
+  {
+    const d = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: { eingerichtet: true, wurzel: '/sicherung', ort: '',
+        pfad: '/sicherung', dbBytes: 1024, dauerSekunden: 1, erreichbar: true,
+        letzte: null, zahl: 0 } });
+    pruefe('Ein leerer Ort sagt, dass dort noch keine Sicherung liegt',
+      /noch keine Sicherung/.test(siKarte(d)?.textContent || ''),
+      siKarte(d)?.textContent?.slice(0, 400));
+  }
+
+  /* DER KNOPF, mit einem WIRKLICH zugestellten Ereignis. */
+  {
+    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.document.getElementById('sich-los')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Der Knopf schickt die Sicherung an den Server',
+      d.gesendet.some(x => x.methode === 'POST' && x.url === '/api/sicherung'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Eine Meldung nennt die geschriebene Datei',
+      /kriterion-2026-08-23-19-00-00\.sqlite/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+      d.w.document.querySelector('.toast')?.textContent);
+    pruefe('Und die Karte zeichnet sich mit dem neuen Stand neu',
+      /vor 0 Tagen/.test(siKarte(d)?.textContent || ''),
+      siKarte(d)?.textContent?.slice(0, 600));
+    pruefe('Die Zahl der Dateien am Ort waechst mit',
+      /kriterion-2026-08-23-19-00-00/.test(siKarte(d)?.textContent || ''),
+      siKarte(d)?.textContent?.slice(0, 600));
+  }
+
+  /* DER ZIELORT laesst sich umstellen -- und eine Absage des Servers wird
+     gesagt, statt still zu bleiben. */
+  {
+    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    if (d.w.document.getElementById('sich-ort')) d.w.document.getElementById('sich-ort').value = 'woechentlich';
+    d.w.document.getElementById('sich-ort-save')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Der Zielort geht mit dem eingetippten Wert hinaus',
+      d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/sicherung/ort' &&
+        x.koerper?.ort === 'woechentlich'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url} ${JSON.stringify(x.koerper)}`).join(' · '));
+    pruefe('Und die Karte traegt ihn danach',
+      d.w.document.getElementById('sich-ort')?.value === 'woechentlich',
+      d.w.document.getElementById('sich-ort')?.value);
+
+    if (d.w.document.getElementById('sich-ort')) d.w.document.getElementById('sich-ort').value = '../raus';
+    d.w.document.getElementById('sich-ort-save')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Eine Absage des Servers wird gesagt',
+      /Unterverzeichnis/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+      d.w.document.querySelector('.toast')?.textContent);
+    pruefe('Und der Ort bleibt der alte',
+      d.w.document.getElementById('sich-ort')?.value === '../raus',
+      d.w.document.getElementById('sich-ort')?.value);
   }
 
   /* ================= Vergleich: meine / alle ================= */

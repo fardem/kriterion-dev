@@ -88,12 +88,15 @@ Jedes Einspielen einer neuen Version erzeugt den Container neu und liest sie
 dabei erneut. Fehlt sie dann, öffnet sich die Datenbank nicht mehr.
 
 **Und jetzt der Punkt, an dem es in der Praxis schiefgeht:** Wer anschließend
-den kompletten Projektordner sichert, hat die `.env` mit im Backup — und damit
+den kompletten Projektordner sichert, hat die `.env` mit in der Sicherung — und damit
 den Schlüssel wieder neben den Daten. Die Verschlüsselung ist dann so wirksam
 wie ein Schloss mit danebenliegendem Schlüssel.
 
-> **Merksatz:** `.env` und `data/` gehören **nicht** ins selbe Backup. Den
-> Schlüssel getrennt aufbewahren, zum Beispiel im Passwortspeicher.
+> **Merksatz:** `.env` und `data/` gehören **nicht** in dieselbe Sicherung.
+> Den Schlüssel getrennt aufbewahren, zum Beispiel im Passwortspeicher.
+> **Das gilt seit 0.8.70 auch für die Sicherung auf Knopfdruck:** ihre Kopie
+> ist verschlüsselt und ohne den Schlüssel wertlos — der Zielort ist deshalb
+> nicht der Ort für die `.env`.
 
 **Die Kehrseite:** Ohne den Schlüssel sind alle Daten endgültig verloren. Es
 gibt keine Hintertür und keine Wiederherstellung. Wer den Schlüssel selbst
@@ -501,7 +504,13 @@ es zwei, beide im Systembereich einstellbar:
   mit Rückfrage. Beim Eintrag wird benannt, was dranhängt — **Fotos und Videos
   getrennt**, dazu **Links, Dateien,
   Kommentare, Bewertungen und Testtage getrennt nach eigenen und fremden**,
-  denn die fremden gehen über die Kaskade mit.
+  denn die fremden gehen über die Kaskade mit. **Seit 0.8.70 sagt der Dialog
+  dazu, dass der Eintrag dreißig Tage im Papierkorb liegt** und wer ihn von
+  dort zurückholen kann — der Eigentümer der Anlage, nicht der, der hier
+  klickt.
+- **„Diesen Eintrag als Datei"** *(Eigentümer, seit 0.8.70)*: derselbe Aufbau
+  wie eine volle Exportdatei, nur mit einem Eintrag — samt Fotos, Videos,
+  Dateien und Kommentarbildern.
 
 **Systembereich** (Zahnrad in der Kopfzeile)
 
@@ -509,12 +518,15 @@ es zwei, beide im Systembereich einstellbar:
 sechs Karten: seinen eigenen **Zugang**, die **Darstellung**, die **Links**
 und die drei Listen **Kategorien**, **Tags** und **Bewertungskriterien** — die
 letzten drei ohne Bedienzeichen, nur zum Nachsehen. Alles Übrige steht dem
-**Admin**, Export und Import allein dem **Eigentümer**. Der Grund: ein Knopf,
-der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
+**Admin**, Export, Import und Sicherung allein dem **Eigentümer**. Der Grund:
+ein Knopf, der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein
+Fehler. **Der Papierkorb ist der Zwischenfall:** die Karte steht dem Admin,
+die beiden Knöpfe daran nur dem Eigentümer — dieselbe Bauform wie bei den drei
+Listen.
 
 - Beide Titel ändern *(Admin)*
 - Kennzahlen: Einträge, Fotos, Videos, Kommentare, Links, Testtage,
-  Datenbankgröße *(Admin)*. Der Schlüsselwert zum Abschreiben steht darin nur für den
+  **Papierkorb** und Datenbankgröße *(Admin)*. Der Schlüsselwert zum Abschreiben steht darin nur für den
   **Eigentümer**.
 - **Zugänge** verwalten — siehe den Abschnitt „Rollen und Zugänge" oben
   *(Admin)*
@@ -537,6 +549,23 @@ der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
   Exportdatei, die noch gar kein Feld dafür hat, fallen an den **Verfasser des
   Eintrags** und nicht an den Einspielenden. Die Datei sagt ja nichts anderes,
   als dass sie zu diesem Eintrag gehören.
+- **Sicherung** *(Eigentümer, seit 0.8.70)*: eine vollständige, verschlüsselte
+  Kopie der Datenbank auf Knopfdruck — siehe den Abschnitt „Sichern" weiter
+  unten. Die Karte nennt den eingerichteten Zielort, das Unterverzeichnis
+  darunter, wann zuletzt gesichert wurde und wie lange es dauern wird.
+- **Papierkorb** *(Admin sieht, Eigentümer handelt; seit 0.8.70)*: was in den
+  letzten dreißig Tagen gelöscht wurde, mit Titel, Datum, Löschendem, der
+  verbleibenden Frist und der Größe. **„Zurückholen"** legt einen **neuen**
+  Eintrag mit demselben Inhalt an — Fotos, Videos, Dateien, Kommentare,
+  Bewertungen und Testtage samt ihren Verfassern; ein Verfasser, dessen Zugang
+  inzwischen entfernt wurde, bleibt „Gelöschter Benutzer N". **„Endgültig
+  entfernen"** schließt den Rückweg. Nach dreißig Tagen fällt eine Zeile von
+  selbst heraus.
+  *Zwei Dinge kommen nicht zurück, und das ist beabsichtigt:* die Favoriten
+  **anderer** (ein Favorit heißt „habe ich markiert") und der Vermerk über
+  entfernte Kommentarbilder. *Und zwei Löschwege füllen den Papierkorb nicht:*
+  „Zugang entfernen" mit dem Häkchen *Einträge mitnehmen* und der **ersetzende**
+  Import.
 - **Darstellung**: Schriftgröße der Oberfläche in fünf Stufen von 80 % bis
   120 %, Zeitleiste an oder aus, Standardanordnung der Blöcke — alles
   serverseitig gespeichert
@@ -790,19 +819,56 @@ Gelöschter Platz wird automatisch freigegeben.
 
 ## Sichern
 
-Für den Bestand genügt das Verzeichnis `./data`. Wurde ein eigener
-`ENCRYPTION_KEY` gesetzt, gehört dieser **getrennt davon** gesichert — siehe den
-Abschnitt zum Schlüssel. Ohne ihn lässt sich aus der Sicherung nichts
-wiederherstellen.
+**Es gibt drei Wege, und sie tun Verschiedenes.**
 
-`docker compose down` beendet den Server sauber: er schließt die WAL-Datei ab
-und die Datenbank, bevor er geht. Wer im Anschluss sichert, sichert damit einen
-vollständigen Stand — vorher blieb bei einem harten Ende eine offene WAL
-liegen.
+| | Sicherung auf Knopfdruck | Kopie von `./data` | JSON-Export |
+|---|---|---|---|
+| **Wozu** | der Notfall, im laufenden Betrieb | der Notfall, bei angehaltenem Server | Umzug, Archiv, Weitergabe |
+| **Vollständig** | ja, samt Sitzungen und Einstellungen | ja | nein |
+| **Braucht den Schlüssel** | ja | ja | nein |
+| **Überlebt einen Formatwechsel** | nein | nein | ja |
+| **Server muss stehen** | nein | ja | nein |
 
-Zusätzlich empfiehlt sich ein gelegentlicher Export über den Systembereich: Er
-ist unabhängig von Datenbankformat und Schlüssel und lässt sich jederzeit wieder
-einspielen.
+**Die Sicherung auf Knopfdruck** (seit 0.8.70) steht im Systembereich beim
+Eigentümer. Sie erzeugt über `VACUUM INTO` eine vollständige, verschlüsselte
+Kopie der Datenbank — konsistent, auch während gearbeitet wird. Die Karte nennt
+vorher, wie lange es dauert; **während die Kopie entsteht, steht die Anlage
+still** (rund zehn bis zwanzig Millisekunden je Megabyte). Sie zeigt außerdem,
+wann zuletzt gesichert wurde — gelesen wird das am Zielort selbst, nicht aus
+einem Merker in der Datenbank.
+
+**Der Zielort wird eingehängt, nicht eingetippt.** Die `docker-compose.yml`
+bringt ihn mit:
+
+```yaml
+    volumes:
+      - ./data:/app/data
+      - ../kriterion-sicherung:/sicherung
+    environment:
+      - SICHERUNG_DIR=/sicherung
+```
+
+Beide Zeilen gehören zusammen und stehen deshalb in **derselben** Datei: ein
+Pfad ohne Einhängung schriebe in eine Schicht des Containers, die beim nächsten
+`docker compose up --build` verschwindet. Der Ort liegt **außerhalb** des
+Projektverzeichnisses — eine Sicherung neben dem Original ist keine, und beim
+Einspielen wird das Projektverzeichnis umbenannt. In der Oberfläche lässt sich
+darunter ein **Unterverzeichnis** wählen; es muss dort schon liegen, angelegt
+wird keines.
+
+**Ohne die beiden Zeilen bleibt die Karte aus und sagt das** — sie schreibt
+nicht still irgendwohin.
+
+**Die Kopie von `./data`** bleibt der Weg für den angehaltenen Server:
+`docker compose down` beendet ihn sauber, schließt die WAL-Datei ab und die
+Datenbank. Wer im Anschluss kopiert, kopiert einen vollständigen Stand —
+vorher blieb bei einem harten Ende eine offene WAL liegen. Wurde ein eigener
+`ENCRYPTION_KEY` gesetzt, gehört dieser **getrennt davon** aufbewahrt.
+
+**Der JSON-Export** ist der Austauschweg: unabhängig von Datenbankformat und
+Schlüssel, dafür unvollständig (Sitzungen, Einstellungen und die Blockanordnung
+fehlen) und mit der ganzen Datei im Arbeitsspeicher. Seit 0.8.70 lässt sich
+auch **ein einzelner Eintrag** als Datei ziehen.
 
 > **Vor einer Version, die die Datenbank anfasst, ist die Sicherung Pflicht.**
 > Solche Versionen rüsten beim ersten Start eine Spalte nach; danach lässt sich
@@ -810,9 +876,13 @@ einspielen.
 > Der Weg zurück ist dann die Sicherung, die **vor** dem Einspielen entstanden
 > ist — nicht das Zurückkopieren der alten Dateien. Welche Versionen das
 > betrifft, sagt das Änderungsprotokoll der jeweiligen Version; zuletzt
-> **0.8.30**, **0.8.31**, **0.8.40** und **0.8.50**. **0.8.60 gehört
-> ausdrücklich nicht dazu:** dort ist die Sicherung eine Empfehlung, und der Weg
-> zurück ist wieder eine reine Dateikopie.
+> **0.8.30**, **0.8.31**, **0.8.40**, **0.8.50** und **0.8.70**. **0.8.60
+> gehört ausdrücklich nicht dazu:** dort war die Sicherung eine Empfehlung, und
+> der Weg zurück eine reine Dateikopie. **Mit 0.8.70 ist sie wieder Pflicht.**
+> *Der Sonderfall dieser Version: sie rüstet keine Spalte nach, sondern legt
+> zwei neue Tabellen an. Eine ältere Version sieht die gar nicht an — was
+> dort aber im Papierkorb liegt, ist nach einem Downgrade unerreichbar, und
+> jeder Eintrag, der dann gelöscht wird, ist wieder endgültig weg.*
 
 ## Eine neue Version einspielen
 
@@ -920,9 +990,18 @@ Start eine leere Neuinstallation vermuten.
   `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
   bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen
 - `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer
+- `papierkorb` / `papierkorb_bytes` — der **Papierkorb** (seit 0.8.70). Eine
+  Zeile je gelöschtem Eintrag: Zeitpunkt, Löschender, Titel und das ganze Paket
+  im Austauschformat; die Bytes (Fotos, Videos, Dateien, Kommentarbilder)
+  liegen daneben in der zweiten Tabelle, eine Zeile je Datei. **Keine
+  bestehende Abfrage fasst diese Tabellen an** — ein gelöschter Eintrag ist
+  wirklich weg und liegt nur zusätzlich noch als Paket daneben. Deshalb gibt es
+  auch **keinen** Zustand `geloescht` an `items`.
 - `items.user_id` / `comments.user_id` / `test_days.user_id` /
   `ratings.user_id` / `links.user_id` / `attachments.user_id` — der Verfasser,
-  an sechs Trägern.
+  an sechs Trägern. `papierkorb.geloescht_von` sieht aus wie ein siebter, ist
+  aber keiner: es hält fest, **wer gelöscht hat**, so wie ein Zeitstempel
+  festhält, wann — daran hängt kein Recht.
   `ON DELETE SET NULL` ist das Auffangnetz für ein `DELETE` von Hand: die
   Anwendung selbst entfernt keine Benutzerzeile, und herrenloser Bestand fällt
   beim Start an den Eigentümer
@@ -945,6 +1024,12 @@ Anhänge, **Fotos und Videos** — samt echtem Upload einer SVG sowie einer echt
 MP4- und WebM-Datei und Kontrolle des ausgelieferten Bytestroms —, die
 Range-Auslieferung samt ihrer Absagen, die Anmeldebremse in beiden
 Proxy-Lagen sowie die mitwachsenden Textfelder im echten DOM.
+**Seit 0.8.70 dazu der Rundlauf des Papierkorbs** — ein Eintrag mit Foto,
+Video, Dateien, Kommentaren aller Arten, Bewertungen und Testtagen mehrerer
+Verfasser wird gelöscht, zurückgeholt und Feld für Feld gegen den
+Ausgangsstand gehalten — und **die Sicherung an einer echten Anlage**: die
+Kopie entsteht, ist ohne Schlüssel nicht lesbar, mit Schlüssel vollständig, und
+jeder abgewiesene Zielort hinterlässt nachweislich keine Datei.
 
 Die Datei `pruefung.js` ist per `.dockerignore` ausgeschlossen und landet nicht
 im Image.
