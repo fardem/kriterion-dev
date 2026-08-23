@@ -1768,7 +1768,8 @@ async function renderDetail(id) {
         <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple>
           Fotos und Videos hinzufügen — mehrere möglich, oder mit Strg+V einfügen</label>
         <p class="hint hint-sm" style="margin:8px 2px 0">
-          Klick aufs Foto öffnet die Vollbildansicht. Blättern mit ← → oder den Pfeilen.
+          Klick aufs Foto öffnet die Vollbildansicht, am Video der Knopf „Vollbild".
+          Blättern mit ← → oder den Pfeilen.
           Das erste Element ist das Hauptbild; Reihenfolge per Ziehen ändern.
           Videos bis 20 MB, als MP4, WebM oder MOV — das Standbild erzeugt der Browser.</p>
       </div>
@@ -1901,12 +1902,19 @@ async function renderDetail(id) {
              src="/api/photos/${ps[idx].id}/raw"></video>`
         : `<img src="/api/photos/${ps[idx].id}/raw?size=medium" alt="" title="Für Vollbild klicken">`) + `
       ${idx === 0 ? `<span class="main-flag">Hauptbild</span>` : ''}
+      ${/* NUR am Videoplatz. Beim Foto oeffnet der Klick aufs Bild das
+           Vollbild; am Video gehoert der Klick der Abspielsteuerung, und ohne
+           diesen Knopf gaebe es von einem reinen Videobestand aus gar keinen
+           Weg hinein. Ein zweiter Knopf am Foto waere dagegen nur Beiwerk. */''}
+      ${zeigtVideo ? `<button class="vfull" title="Vollbild öffnen">Vollbild</button>` : ''}
       <button class="vfocus${ausschnittModus ? ' on' : ''}" title="Bildausschnitt der Vorschau festlegen">Ausschnitt</button>
       ${ps.length > 1 ? `<button class="vnav prev" title="Vorheriges (←)">‹</button>
         <button class="vnav next" title="Nächstes (→)">›</button>
         <span class="vcount">${idx + 1} / ${ps.length}</span>` : ''}`;
     const bild = v.querySelector('img');
     if (bild) bild.onclick = () => { if (!ausschnittModus) openLightbox(item.photos, idx, item.title); };
+    v.querySelector('.vfull')?.addEventListener('click',
+      () => openLightbox(item.photos, idx, item.title));
     v.querySelector('.vfocus').onclick = () => {
       ausschnittModus = !ausschnittModus;
       drawViewer();
