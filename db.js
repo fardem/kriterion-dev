@@ -300,6 +300,64 @@ CREATE TABLE IF NOT EXISTS user_settings (
   value TEXT NOT NULL,
   PRIMARY KEY (user_id, key)
 );
+
+-- DER PAPIERKORB FASST KEINE EINZIGE BESTEHENDE ABFRAGE AN, und das ist die
+-- tragende Regel seiner Bauform. Kein Zustand 'geloescht' an items: der
+-- beruehrte jede Abfrage im ganzen System, und jede vergessene Stelle waere
+-- ein stiller Fehler. Ein geloeschter Eintrag ist WIRKLICH weg -- er liegt nur
+-- zusaetzlich noch als Paket daneben.
+--
+-- KEIN MIGRATIONSBLOCK, und das ist nachgestellt statt geglaubt: anders als
+-- eine Spalte legt CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem
+-- Start an (Stolperstein 13 gilt der Spalte, nicht der Tabelle). Der
+-- Pruefstand entfernt sie von Hand aus einer bestehenden Anlage, startet
+-- einmal und sieht nach -- dieselbe Probe wie beim Index auf sessions.user_id.
+--
+-- geloescht_von IST KEIN TRAEGER WIE items.user_id. Es ist die Feststellung
+-- eines VORGANGS, so wie created_at -- wer den Knopf gedrueckt hat. Daran
+-- haengt kein Recht und kein Filter. Die Spalte gehoert deshalb ausdruecklich
+-- NICHT in ordneBestandZu(): das Auffangnetz beantwortet, wem herrenloser
+-- BESTAND zufaellt; hier stillschweigend den Eigentuemer einzusetzen machte
+-- aus einer Feststellung eine Falschaussage. Ein entfernter Zugang erscheint
+-- wie ueberall als "Gelöschter Benutzer <nr>".
+--
+-- titel STEHT ABSICHTLICH ZWEIMAL -- hier und im Paket. Er steht hier, damit
+-- die Liste lesbar ist, ohne jede Zeile zu entpacken; bei zwanzig Zeilen waere
+-- das zwanzigmal JSON.parse ueber ein Paket. Eine zweite Wahrheit kann daraus
+-- nicht werden: das Wiederherstellen liest ausschliesslich inhalt und diese
+-- Spalte nie.
+--
+-- inhalt IST EIN VOLLSTAENDIGER EXPORTUMSCHLAG MIT EINEM EINTRAG -- bis auf
+-- die Bytes. Fotos, Videos, Dateien und Kommentarbilder tragen statt Base64
+-- eine NUMMER und liegen in papierkorb_bytes daneben. Der Grund ist gemessen:
+-- zwanzig Videos zu je 20 MB sind als Base64 533 MB in EINEM String, und Node
+-- haelt keinen String ueber 512 MB. Zippen half nicht -- der String entstuende
+-- davor. Deshalb TEXT und eine zweite Tabelle statt eines gezippten BLOB.
+CREATE TABLE IF NOT EXISTS papierkorb (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  geloescht_am TEXT NOT NULL DEFAULT (datetime('now')),
+  geloescht_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  titel TEXT NOT NULL,
+  inhalt TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_papierkorb_am ON papierkorb(geloescht_am);
+
+-- Eine Zeile je Blob. Die Nummer nr ist die, die im Paket steht; UNIQUE haelt
+-- fest, dass zu einer Nummer genau ein Paket Bytes gehoert.
+-- ON DELETE CASCADE: eine Papierkorbzeile ohne ihre Bytes waere ein Paket, das
+-- sich nicht mehr auspacken laesst.
+-- WARUM EINE ZEILE JE BLOB und nicht ein grosser Blob: eine BLOB-Zeile wird
+-- nicht stueckweise gelesen, sondern ganz in den Arbeitsspeicher. Je Zeile
+-- sind das hoechstens 50 MB (die Grenze am Anhang). Und wenn Teil II des
+-- Videopapiers Dateien bis 2 GB bringt, teilt sich eine Datei hier auf
+-- mehrere nr auf -- SQLite traegt in einer Zelle rund 950 MB.
+CREATE TABLE IF NOT EXISTS papierkorb_bytes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  papierkorb_id INTEGER NOT NULL REFERENCES papierkorb(id) ON DELETE CASCADE,
+  nr INTEGER NOT NULL,
+  daten BLOB NOT NULL,
+  UNIQUE(papierkorb_id, nr)
+);
 `;
 
 const db = open(DB_FILE);

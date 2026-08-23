@@ -772,6 +772,12 @@ let ZULETZT_GESEHEN = null;
    und Wolke bleiben, denn zuweisen darf immer jeder. */
 let TAGS_FREI = true;
 let KATEGORIEN_FREI = true;
+/* Die Frist des Papierkorbs. Sie kommt aus /api/settings und wird hier NICHT
+   nachgebaut: die Zahl steht im Server an einer Stelle, und der Löschdialog
+   nennt sie jedem — auch dem, der die Karte gar nicht sehen darf. Die 30
+   hier ist kein zweiter Wert, sondern der Rückfall für eine Antwort, die das
+   Feld nicht kennt. */
+let PAPIERKORB_TAGE = 30;
 const darfTagAnlegen = () => ADMIN || TAGS_FREI;
 const darfKategorieAnlegen = () => ADMIN || KATEGORIEN_FREI;
 
@@ -797,6 +803,7 @@ async function ladeEinstellungen() {
   if (EINSTELLUNGEN.tagsFreiAnlegen !== undefined) TAGS_FREI = EINSTELLUNGEN.tagsFreiAnlegen !== false;
   if (EINSTELLUNGEN.kategorienFreiAnlegen !== undefined)
     KATEGORIEN_FREI = EINSTELLUNGEN.kategorienFreiAnlegen !== false;
+  if (EINSTELLUNGEN.papierkorbTage) PAPIERKORB_TAGE = EINSTELLUNGEN.papierkorbTage;
   wendeSchriftAn();
 }
 
@@ -3457,10 +3464,18 @@ async function renderDetail(id) {
       ...(b.fremdTesttage ? [`${b.fremdTesttage} ${vZeit(b.fremdTesttage)}`] : [])
     ];
 
-    const saetze = [`„${item.title}" wird unwiderruflich entfernt.`];
-    if (inhalt.length) saetze.push(`Dabei gehen ${inhalt.join(', ')} verloren.`);
+    /* DER DIALOG BLEIBT, SEIN SCHLUSSSATZ NICHT. Bis 0.8.60 begründete er sich
+       mit der Unwiderruflichkeit; seit dem Papierkorb wäre genau das falsch.
+       Die Zahlen sind trotzdem die eigentliche Auskunft — was hier verloren
+       geht, gehört anderen —, und sie stehen unverändert da. Wer
+       wiederherstellen darf, steht dabei: es ist nicht der, der hier
+       klickt. */
+    const saetze = [`„${item.title}" wird gelöscht.`];
+    if (inhalt.length) saetze.push(`Dabei gehen ${inhalt.join(', ')} mit.`);
     if (eigen.length) saetze.push(`Dazu ${eigen.join(', ')} von mir.`);
     if (fremd.length) saetze.push(`Und von anderen: ${fremd.join(', ')}.`);
+    saetze.push(`Alles davon liegt danach ${PAPIERKORB_TAGE} Tage im Papierkorb; ` +
+      `zurückholen kann es der Eigentümer der Anlage.`);
 
     if (!await confirmBox(`${V.sacheEinzahl} löschen?`, saetze.join(' '))) return;
     try { await api('DELETE', `/api/items/${id}`); state.compare.delete(id); location.hash = '#/'; }
@@ -3479,23 +3494,29 @@ async function renderDetail(id) {
 /* ================= Systembereich ================= */
 async function renderSystem() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
-  let stats, titles, cats, tags, crits, zugang;
+  let stats, titles, cats, tags, crits, zugang, papierkorb;
   try {
     /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
        stehen hinter dem Admin; ein Abruf, der zuverlaessig 403 ergibt, risse
-       hier mehr mit als seine eigene Karte -- alle sechs
+       hier mehr mit als seine eigene Karte -- alle sieben
        Abrufe haengen in EINEM Promise.all, und ein einziger Fehlschlag
        verliesse den Rumpf mit return. Der Systembereich bliebe dann leer,
        auch die Karten, die jedem zustehen.
        Bewusst KEIN catch je Abruf daneben: die Bedingung hier ist die eine
        Stelle, an der die Frage gestellt wird. Ein Auffangnetz darunter
-       verdeckte sie in jeder Gegenprobe. */
-    [stats, titles, cats, tags, crits, zugang] = await Promise.all([
+       verdeckte sie in jeder Gegenprobe.
+       DER PAPIERKORB STEHT SEIT 0.8.70 DANEBEN und geht denselben Weg: er
+       liegt hinter derselben Rolle wie die Kennzahlen. Und er wird HIER
+       geholt und nicht spaeter nachgeladen -- ein Nachladen liefe als
+       herrenlose Zusage weiter, auch wenn das Fenster laengst zu ist. */
+    [stats, titles, cats, tags, crits, zugang, papierkorb] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
-      api('GET', '/api/account')
+      api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null
     ]);
   } catch (e) { if (e.message !== 'Sitzung abgelaufen') toast(e.message, true); return; }
+  // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
+  if (papierkorb && papierkorb.tage) PAPIERKORB_TAGE = papierkorb.tage;
 
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">← Zurück zur Übersicht</a>
@@ -3547,6 +3568,11 @@ async function renderSystem() {
         <div class="kv"><span class="k">Links</span><span class="v">${stats.linkCount}</span></div>
         <div class="kv"><span class="k">${esc(V.zeitpunktMehrzahl)}</span><span class="v">${stats.testDayCount}</span></div>
           <div class="kv"><span class="k">Dateien</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
+        ${/* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos:
+             sonst wundert sich jemand ueber eine Datenbank, die nach dem
+             Aufraeumen groesser ist als vorher. Die Zeile steht UEBER der
+             Datenbankgroesse, weil sie ein Teil von ihr ist. */''}
+        <div class="kv"><span class="k">Papierkorb</span><span class="v">${stats.papierkorbCount || 0} · ${fmtBytes(stats.papierkorbBytes)}</span></div>
         <div class="kv"><span class="k">Datenbank</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
         ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann: ob die
              Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
@@ -3554,7 +3580,7 @@ async function renderSystem() {
              gehalten -- stimmt er nicht, ist ein Dateisatz halb eingespielt. */''}
         <div class="kv"><span class="k">Fingerprint</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
         <div style="margin-top:14px">${stats.keyFromEnv
-          ? `<div class="ok-box">Der Schlüssel kommt aus der Umgebung. Denk daran: <strong>.env und data/ nicht ins selbe Backup legen</strong> — und ohne den Schlüssel sind die Daten unwiederbringlich verloren.</div>`
+          ? `<div class="ok-box">Der Schlüssel kommt aus der Umgebung. Denk daran: <strong>.env und data/ nicht in dieselbe Sicherung legen</strong> — und ohne den Schlüssel sind die Daten unwiederbringlich verloren.</div>`
           : `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.
               <p style="margin:9px 0 6px">Für echten Schutz <strong>diesen</strong> Wert in die <code>.env</code> eintragen — keinen neuen erzeugen, sonst sind die vorhandenen Daten nicht mehr lesbar:</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
@@ -3594,6 +3620,22 @@ async function renderSystem() {
           gefragt, was mit dem vorhandenen Bestand geschehen soll.</p>
         <label class="drop" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
           Exportdatei auswählen</label>
+      </div>` : ''}
+
+      ${/* DIE KARTE STEHT BEIM ADMIN, GEHANDELT WIRD NUR VOM EIGENTUEMER --
+            dieselbe Bauform wie bei "Kategorien", "Tags" und
+            "Bewertungskriterien": wer nicht verwalten darf, darf trotzdem
+            nachsehen. Sehen ist hier harmlos, denn der Titel eines geloeschten
+            Eintrags stand vorher in der Uebersicht, die jeder sieht.
+            Zurueckholen dagegen legt Zeilen unter FREMDEM Namen an und liegt
+            damit in derselben Rechtezeile wie der Import. */''}${ADMIN ? `<div class="sys-card">
+        <h3>Papierkorb</h3>
+        <p class="desc">Gelöschte ${esc(V.sacheMehrzahl)} liegen hier <strong>${PAPIERKORB_TAGE} Tage</strong>
+          und lassen sich zurückholen; danach fallen sie heraus. Zurück kommt eine
+          <strong>neue</strong> Nummer mit demselben Inhalt — Fotos, Videos, Dateien, Kommentare,
+          Bewertungen und ${esc(V.zeitpunktMehrzahl)} samt ihren Verfassern.
+          ${EIGENTUEMER ? '' : 'Zurückholen und endgültig entfernen kann der Eigentümer der Anlage.'}</p>
+        <div class="manage-list" id="mpapierkorb"></div>
       </div>` : ''}
 
       <div class="sys-card">
@@ -3830,6 +3872,77 @@ async function renderSystem() {
     e.target.value = '';
     if (file) askImport(file);
   });
+
+  /* --- Papierkorb --- */
+  /* Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
+     wie bei den drei Verwaltungskarten. Nach einem Zurueckholen oder einem
+     endgueltigen Entfernen holt papierkorbNeu() die Liste noch einmal und
+     zeichnet nur DIESE Karte: ein Neuaufbau des ganzen Systembereichs leerte
+     die Passwortfelder daneben.
+     JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
+     soll die Karte etwas sagen und nicht der Lauf abreissen. */
+  async function papierkorbNeu() {
+    try { papierkorb = await api('GET', '/api/papierkorb'); }
+    catch (e) {
+      const box = document.getElementById('mpapierkorb');
+      if (box) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`;
+      return;
+    }
+    drawPapierkorb();
+  }
+  function drawPapierkorb() {
+    const box = document.getElementById('mpapierkorb');
+    if (!box) return;
+    const zeilen = Array.isArray(papierkorb && papierkorb.zeilen) ? papierkorb.zeilen : [];
+    box.innerHTML = '';
+    if (!zeilen.length) {
+      box.innerHTML = `<span class="hint">Keine gelöschten ${esc(V.sacheMehrzahl)}.</span>`;
+      return;
+    }
+    zeilen.forEach(z => {
+      const row = document.createElement('div');
+      row.className = 'mrow pk';
+      row.dataset.pkid = z.id;
+      const offen = Number(z.tageOffen);
+      const meta = [
+        `gelöscht ${fmtDate(z.geloescht_am)} von ${verfasserName(z.loeschender)}`,
+        `noch ${offen} ${offen === 1 ? 'Tag' : 'Tage'}`,
+        fmtBytes(z.bytes)
+      ];
+      // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
+      // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
+      // sieht aus wie ein Fehler.
+      row.innerHTML = `<span class="mname">${esc(z.titel)}</span>
+        ${EIGENTUEMER ? `<button class="mact pk-back" title="Wiederherstellen">↩ Zurückholen</button>
+        <button class="mact rm pk-weg" title="Endgültig entfernen">✕</button>` : ''}
+        <span class="pk-meta">${esc(meta.join(' · '))}</span>`;
+      box.appendChild(row);
+      const zurueck = row.querySelector('.pk-back');
+      if (zurueck) zurueck.onclick = async () => {
+        try {
+          const r = await api('POST', `/api/papierkorb/${z.id}/wiederherstellen`);
+          // Die unbekannten Verfasser stehen in der Antwort und gehoeren
+          // gesagt: sie sind beim Zurueckholen an MICH gefallen.
+          const offene = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
+          toast(`„${z.titel}" ist wieder da.` +
+            (offene.length ? ` Unbekannte Verfasser mir zugeordnet: ${offene.join(', ')}.` : ''));
+          papierkorbNeu();
+        } catch (e) { toast(e.message, true); }
+      };
+      const weg = row.querySelector('.pk-weg');
+      if (weg) weg.onclick = async () => {
+        if (!await confirmBox('Endgültig entfernen?',
+          `„${z.titel}" wird aus dem Papierkorb entfernt. Danach gibt es keinen Rückweg mehr.`,
+          'Endgültig entfernen')) return;
+        try {
+          await api('DELETE', `/api/papierkorb/${z.id}`);
+          toast('Endgültig entfernt');
+          papierkorbNeu();
+        } catch (e) { toast(e.message, true); }
+      };
+    });
+  }
+  drawPapierkorb();
 
   /* --- Schriftgröße --- */
   function drawSchrift() {
