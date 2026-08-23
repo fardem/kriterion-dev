@@ -26,10 +26,18 @@ app.use(express.json({ limit: '2mb' }));
    verwirft ausnahmslos jedes davon. script-src bleibt streng -- dort liegt
    die Wirkung. frame-src 'self' traegt die PDF-Vorschau, die ein iframe auf
    den eigenen Ursprung einbindet.
+   media-src TRAEGT DIE VIDEOS, und beide Angaben sind noetig. 'self' erlaubt
+   das Abspielen aus der eigenen Anlage. blob: erlaubt das Standbild VOR dem
+   Hochladen: die Oberflaeche haengt die gewaehlte Datei als blob:-Adresse an
+   ein <video>, um einen Einzelbild daraus zu ziehen. Eine blob:-Adresse an
+   einem <video> faellt unter media-src, nicht unter img-src -- ohne die
+   Freigabe verwirft der Browser sie WORTLOS, und es liesse sich ueberhaupt
+   kein Video hochladen (im echten Chromium nachgemessen: "Refused to load
+   media from blob:", MEDIA_ELEMENT_ERROR 4).
    Strict-Transport-Security nur hinter dem Proxy: im Heimnetz auf Port 3100
    spricht niemand HTTPS, und ein gesetzter Kopf sperrte die Anlage aus. */
 const CSP_ANWENDUNG =
-  "default-src 'self'; img-src 'self' data: blob:; " +
+  "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; " +
   "style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'self'; " +
   "frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
 app.use((req, res, next) => {
@@ -1159,7 +1167,11 @@ function qComments(itemId, benutzerId, karte) {
   return liste;
 }
 
-const qPhotos = db.prepare('SELECT id, item_id, mime_type, focus_x, focus_y, sort_order, created_at FROM photos WHERE item_id = ? ORDER BY sort_order, id');
+// art und dauer gehen mit hinaus: woran die Oberflaeche ein Video erkennt, ist
+// allein die Spalte art -- nicht der ausgelieferte Typ und nichts sonst. Ohne
+// die beiden Felder zeichnete sie ins Leere. Sie haengen damit an detail() UND
+// an /api/items (mainPhoto).
+const qPhotos = db.prepare('SELECT id, item_id, mime_type, focus_x, focus_y, sort_order, created_at, art, dauer FROM photos WHERE item_id = ? ORDER BY sort_order, id');
 const qTags = db.prepare('SELECT t.* FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE');
 const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
@@ -1415,8 +1427,14 @@ app.get('/api/items', (req, res) => {
     delete it.user_id;
     it.favorite = meinePins.has(it.id);
     const ph = qPhotos.all(it.id);
+    // Das erste Element ist das Hauptbild, gleich welcher Art -- bei einem
+    // Video steht dort sein Standbild. Die beiden Zaehler daneben sind
+    // getrennt: photoCount zaehlt Fotos und hat damit dieselbe Bedeutung wie
+    // vorher, videoCount ist der neue Nachbar. Zusammengezaehlt hiesse ein
+    // Video kuenftig "Foto", und eine aeltere Oberflaeche laese es falsch.
     it.mainPhoto = ph[0] || null;
-    it.photoCount = ph.length;
+    it.photoCount = ph.filter(p2 => p2.art !== 'video').length;
+    it.videoCount = ph.filter(p2 => p2.art === 'video').length;
     it.category = it.product_category_id ? qCat.get(it.product_category_id) : null;
     it.tags = qTags.all(it.id);
     const links = qLinks.all(it.id);
@@ -1556,7 +1574,11 @@ app.get('/api/items/:id/bestand', nurEintragVerfasser, (req, res) => {
   const id = req.params.id, ich = req.benutzer.id;
   const eins = (sql, ...w) => db.prepare(sql).get(...w).n;
   res.json({
-    fotos: eins('SELECT COUNT(*) n FROM photos WHERE item_id = ?', id),
+    // Zwei Zeilen, nicht eine Summe: ein Dialog, der "3 Fotos" sagt und dabei
+    // ein Video mit wegwirft, verschweigt genau die Zeile, um derentwillen er
+    // dasteht. `fotos` behaelt seine Bedeutung und bekommt einen Nachbarn.
+    fotos: eins("SELECT COUNT(*) n FROM photos WHERE item_id = ? AND art != 'video'", id),
+    videos: eins("SELECT COUNT(*) n FROM photos WHERE item_id = ? AND art = 'video'", id),
     eigenDateien: eins('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id = ?', id, ich),
     fremdDateien: eins('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id IS NOT ?', id, ich),
     eigenLinks: eins('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id = ?', id, ich),
@@ -2277,7 +2299,11 @@ app.delete('/api/comments/:id', (req, res) => {
 app.get('/api/stats', nurAdmin, (req, res) => {
   let dbBytes = 0;
   try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
-  const p = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos').get();
+  // Getrennt nach Art, aus demselben Grund wie im Loeschdialog: photoCount und
+  // photoBytes behalten ihre Bedeutung und bekommen Nachbarn. Zusammengezaehlt
+  // waere die alte Zahl kuenftig eine andere Aussage.
+  const p = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art != 'video'").get();
+  const vi = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art = 'video'").get();
   const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();
   res.json({
     version: VERSION,
@@ -2288,6 +2314,7 @@ app.get('/api/stats', nurAdmin, (req, res) => {
     // den laufenden Dateisatz fest und geht deshalb nicht vor die Anmeldung.
     abdruck: ABDRUCK,
     dbBytes, photoCount: p.n, photoBytes: p.o,
+    videoCount: vi.n, videoBytes: vi.o,
     attachmentCount: an.n, attachmentBytes: an.o,
     itemCount: db.prepare('SELECT COUNT(*) n FROM items').get().n,
     commentCount: db.prepare('SELECT COUNT(*) n FROM comments').get().n,
@@ -2766,8 +2793,14 @@ app.use((err, req, res, next) => {
 });
 
 /* ================= Start ================= */
+/* AUSDRUECKLICH NUR BILDER. Eine Videozeile traegt in data die Videodatei --
+   sharp liefe darauf in einen Fehler, beide Varianten kaemen leer zurueck und
+   das vorhandene Standbild waere ueberschrieben. Die Zeile bliebe ausserdem
+   bei jedem Start aufs Neue faellig. Und der Kernsatz gilt auch hier: der
+   Server oeffnet nie ein Video. Das Standbild kommt vom Browser. */
 async function backfillVariants() {
-  const pending = db.prepare('SELECT id FROM photos WHERE thumb IS NULL OR medium IS NULL').all();
+  const pending = db.prepare(
+    "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND art != 'video'").all();
   if (!pending.length) return;
   console.log(`[Kriterion] Erzeuge Vorschaubilder für ${pending.length} Foto(s) ...`);
   const get = db.prepare('SELECT data FROM photos WHERE id = ?');
