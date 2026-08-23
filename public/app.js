@@ -1221,6 +1221,20 @@ function zeigeHinweis(box, punkt, p) {
 }
 function versteckeHinweis(box) { box.querySelector('.zl-hinweis')?.remove(); }
 
+/* Die Marke auf der Karte, wenn mehr als ein Element dahintersteht. Bei
+   gemischtem Bestand stehen beide Zahlen da -- "3 Fotos" allein verschwiege,
+   dass auch ein Video dabei ist. Bei reinem Bestand bleibt es beim einen Wort.
+   Die beiden Zaehler kommen getrennt aus der Antwort und werden hier nicht
+   zusammengerechnet. */
+function bestandText(it) {
+  const f = it.photoCount || 0, v = it.videoCount || 0;
+  if (f + v < 2) return '';
+  const teile = [];
+  if (f) teile.push(`${f} ${f === 1 ? 'Foto' : 'Fotos'}`);
+  if (v) teile.push(`${v} ${v === 1 ? 'Video' : 'Videos'}`);
+  return `<div class="photo-count">${teile.join(' · ')}</div>`;
+}
+
 function card(it) {
   const a = document.createElement('a');
   a.href = `#/item/${it.id}`;
@@ -1241,7 +1255,8 @@ function card(it) {
         style="object-position:${fokus(it.mainPhoto)}">` : ICON_PH}
       ${badges.length ? `<div class="card-badges">${badges.join('')}</div>` : ''}
       ${it.favorite ? `<div class="card-pin" title="Favorit">★</div>` : ''}
-      ${it.photoCount > 1 ? `<div class="photo-count">${it.photoCount} Fotos</div>` : ''}
+      ${istVideo(it.mainPhoto) ? `<div class="card-spielmarke" title="Video">▶</div>` : ''}
+      ${bestandText(it)}
     </div>
     <div class="card-body">
       ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
@@ -1463,7 +1478,18 @@ function bildQuelle(p, groesse) {
     return `/api/comment-images/${p.id}/raw${groesse === 'thumb' ? '?size=thumb' : ''}`;
   return `/api/photos/${p.id}/raw${groesse ? `?size=${groesse}` : ''}`;
 }
-const hatOriginal = (p) => p.quelle !== 'kommentar';
+// Woran die Oberflaeche ein Video erkennt: an art aus der Antwort, an nichts
+// sonst. Kein Raten am ausgelieferten Typ, keine zweite Wahrheit.
+const istVideo = (p) => p?.art === 'video';
+// Beim Video gehoert der zweite Klick der Abspielsteuerung, nicht dem Zoom.
+// Kommentarbilder haben ohnehin kein Original.
+const hatOriginal = (p) => p.quelle !== 'kommentar' && !istVideo(p);
+// 42 -> "0:42", 130 -> "2:10". Ohne bekannte Dauer steht nichts da.
+function dauerText(s) {
+  const n = Number(s);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  return `${Math.floor(n / 60)}:${String(Math.floor(n % 60)).padStart(2, '0')}`;
+}
 
 // Nach dem Zoom steht der Bildlauf auf 0/0 -- man sieht die linke obere Ecke
 // des Originals statt der Stelle, die man eben noch betrachtet hat. Erwartet
@@ -1492,7 +1518,8 @@ function openLightbox(photos, startIdx, title) {
         <button class="lb-btn close" title="Schließen (Esc)">✕</button>
       </div>
     </div>
-    <div class="lb-stage"><img alt="" title="Klick zoomt auf Originalgröße"></div>
+    <div class="lb-stage"><img alt="" title="Klick zoomt auf Originalgröße">
+      <video class="lb-video" controls playsinline hidden></video></div>
     ${photos.length > 1 ? `<button class="lb-nav prev" title="Vorheriges (←)">‹</button>
                            <button class="lb-nav next" title="Nächstes (→)">›</button>` : ''}
     ${photos.length > 1 ? `<div class="lb-strip"></div>` : ''}`;
@@ -1501,7 +1528,20 @@ function openLightbox(photos, startIdx, title) {
 
   const stage = lb.querySelector('.lb-stage');
   const img = lb.querySelector('.lb-stage img');
+  const abspieler = lb.querySelector('.lb-video');
   const strip = lb.querySelector('.lb-strip');
+
+  /* ANHALTEN BEIM BLAETTERN UND BEIM VERLASSEN. Ohne das spielt der Ton
+     weiter, waehrend man das naechste Bild ansieht -- und beim Schliessen
+     bliebe ein unsichtbares Element am Laufen. Die Quelle wird mit
+     abgeraeumt, sonst laedt der Browser weiter. */
+  const halteAn = () => {
+    if (!abspieler.hidden || abspieler.src) {
+      abspieler.pause();
+      abspieler.removeAttribute('src');
+      abspieler.load();
+    }
+  };
 
   // Erst wenn das Original geladen ist, stehen seine Masse fest -- vorher waere
   // scrollWidth noch das der kleinen Variante und die Mitte falsch berechnet.
@@ -1518,7 +1558,18 @@ function openLightbox(photos, startIdx, title) {
     if (i >= photos.length) i = 0;
     zoomed = false;
     stage.classList.remove('zoomed');
-    img.src = bildQuelle(photos[i], 'medium');
+    halteAn();
+    const video = istVideo(photos[i]);
+    // Statt des Bildes der Abspieler. Kein automatisches Abspielen -- der
+    // Klick auf die Steuerung startet, sonst nichts.
+    img.hidden = video;
+    abspieler.hidden = !video;
+    if (video) {
+      abspieler.poster = bildQuelle(photos[i], 'medium');
+      abspieler.src = bildQuelle(photos[i], '');
+    } else {
+      img.src = bildQuelle(photos[i], 'medium');
+    }
     // Ohne Original kein Zoomknopf -- ein Knopf, der nichts tut, wirkt kaputt.
     lb.querySelector('.zoom').hidden = !hatOriginal(photos[i]);
     img.title = hatOriginal(photos[i]) ? 'Klick zoomt auf Originalgröße' : '';
@@ -1530,13 +1581,15 @@ function openLightbox(photos, startIdx, title) {
   }
   if (strip) photos.forEach((p, n) => {
     const t = document.createElement('button');
-    t.className = 'lb-thumb';
-    t.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">`;
+    t.className = 'lb-thumb' + (istVideo(p) ? ' ist-video' : '');
+    t.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
+      (istVideo(p) ? `<span class="spielmarke">▶</span>` : '');
     t.onclick = () => { i = n; show(); };
     strip.appendChild(t);
   });
 
   const close = () => {
+    halteAn();
     lightboxOpen = false;
     document.removeEventListener('keydown', onKey, true);
     document.body.classList.remove('lb-open');
@@ -1712,11 +1765,12 @@ async function renderDetail(id) {
       <div>
         <div class="viewer" id="viewer"></div>
         <div class="thumbs" id="thumbs"></div>
-        <label class="drop" id="drop"><input type="file" id="file" accept="image/*" multiple>
-          Fotos hinzufügen — mehrere möglich, oder mit Strg+V einfügen</label>
+        <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple>
+          Fotos und Videos hinzufügen — mehrere möglich, oder mit Strg+V einfügen</label>
         <p class="hint hint-sm" style="margin:8px 2px 0">
           Klick aufs Foto öffnet die Vollbildansicht. Blättern mit ← → oder den Pfeilen.
-          Das erste Foto ist das Hauptbild; Reihenfolge per Ziehen ändern.</p>
+          Das erste Element ist das Hauptbild; Reihenfolge per Ziehen ändern.
+          Videos bis 20 MB, als MP4, WebM oder MOV — das Standbild erzeugt der Browser.</p>
       </div>
 
       <div class="meta-col">
@@ -1829,24 +1883,36 @@ async function renderDetail(id) {
     // dann einen Ausschnitt, statt das Vollbild zu oeffnen.
     v.onpointerdown = v.onpointermove = v.onpointerup = null;
     v.classList.remove('focus-mode');
+    // Beim Blaettern anhalten, bevor das Element verschwindet -- sonst spielt
+    // der Ton der abgeraeumten Zeile noch einen Augenblick weiter.
+    v.querySelector('video')?.pause();
     const ps = item.photos;
     if (!ps.length) { v.innerHTML = ICON_PH; return; }
     if (idx >= ps.length) idx = 0;
     if (idx < 0) idx = ps.length - 1;
-    v.innerHTML = `<img src="/api/photos/${ps[idx].id}/raw?size=medium" alt="" title="Für Vollbild klicken">
+    /* Am Videoplatz steht der Abspieler -- ausser im Ausschnittmodus. Dort
+       zeigt der Betrachter das Standbild, denn eingestellt wird die Kachel,
+       und die gibt es am Video genauso. Der Rahmen rechnet ausserdem mit den
+       natuerlichen Massen eines Bildes. */
+    const zeigtVideo = istVideo(ps[idx]) && !ausschnittModus;
+    v.innerHTML = (zeigtVideo
+        ? `<video controls playsinline preload="metadata"
+             poster="/api/photos/${ps[idx].id}/raw?size=medium"
+             src="/api/photos/${ps[idx].id}/raw"></video>`
+        : `<img src="/api/photos/${ps[idx].id}/raw?size=medium" alt="" title="Für Vollbild klicken">`) + `
       ${idx === 0 ? `<span class="main-flag">Hauptbild</span>` : ''}
       <button class="vfocus${ausschnittModus ? ' on' : ''}" title="Bildausschnitt der Vorschau festlegen">Ausschnitt</button>
       ${ps.length > 1 ? `<button class="vnav prev" title="Vorheriges (←)">‹</button>
         <button class="vnav next" title="Nächstes (→)">›</button>
         <span class="vcount">${idx + 1} / ${ps.length}</span>` : ''}`;
     const bild = v.querySelector('img');
-    bild.onclick = () => { if (!ausschnittModus) openLightbox(item.photos, idx, item.title); };
+    if (bild) bild.onclick = () => { if (!ausschnittModus) openLightbox(item.photos, idx, item.title); };
     v.querySelector('.vfocus').onclick = () => {
       ausschnittModus = !ausschnittModus;
       drawViewer();
       if (ausschnittModus) toast('Klicken oder ziehen legt den Bildausschnitt fest');
     };
-    if (ausschnittModus) ruesteAusschnittAus(v, bild, ps[idx]);
+    if (ausschnittModus && bild) ruesteAusschnittAus(v, bild, ps[idx]);
     if (ps.length > 1) {
       v.querySelector('.prev').onclick = () => { idx--; drawViewer(); markThumb(); };
       v.querySelector('.next').onclick = () => { idx++; drawViewer(); markThumb(); };
@@ -1927,12 +1993,19 @@ async function renderDetail(id) {
     box.innerHTML = '';
     item.photos.forEach((p, i) => {
       const t = document.createElement('div');
-      t.className = 'thumb' + (i === idx ? ' current' : '');
+      t.className = 'thumb' + (i === idx ? ' current' : '') + (istVideo(p) ? ' ist-video' : '');
       t.dataset.pid = p.id;
-      t.innerHTML = `<img src="/api/photos/${p.id}/raw?size=thumb" alt="" style="object-position:${fokus(p)}"><span class="num">${i + 1}</span><span class="del" title="Foto löschen">✕</span>`;
+      // Abgeleitet aus art und dauer, kein Schalter: das ▶ in der Ecke und,
+      // wenn die Dauer bekannt ist, die Laenge daneben.
+      const laenge = istVideo(p) ? dauerText(p.dauer) : '';
+      const wort = istVideo(p) ? 'Video' : 'Foto';
+      t.innerHTML = `<img src="/api/photos/${p.id}/raw?size=thumb" alt="" style="object-position:${fokus(p)}">` +
+        (istVideo(p) ? `<span class="spielmarke">▶</span>` : '') +
+        (laenge ? `<span class="dauer">${laenge}</span>` : '') +
+        `<span class="num">${i + 1}</span><span class="del" title="${wort} löschen">✕</span>`;
       t.querySelector('.del').onclick = async (e) => {
         e.stopPropagation();
-        if (!await confirmBox('Foto löschen?', 'Dieses Foto wird unwiderruflich entfernt.')) return;
+        if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird unwiderruflich entfernt.`)) return;
         try {
           await api('DELETE', `/api/photos/${p.id}`);
           item = await api('GET', `/api/items/${id}`);
@@ -1958,18 +2031,77 @@ async function renderDetail(id) {
     });
   }
 
+  /* Ein Standbild aus dem gewaehlten Video ziehen -- IM BROWSER, ohne dass der
+     Server das Video je oeffnen muesste. Wer es abspielen kann, kann auch ein
+     Standbild daraus ziehen; wer nicht, laedt es gar nicht erst hoch. Das ist
+     die Entscheidung, an der der ganze Videoweg haengt: kein ffmpeg im Abbild,
+     keine neue Abhaengigkeit, keine Videobibliothek mit eigener
+     Angriffsflaeche.
+     Die blob:-Adresse am <video> braucht media-src 'self' blob: in der
+     Sicherheitsregel der Anwendung -- ohne die Freigabe scheitert das hier
+     wortlos. */
+  async function standbild(datei, sekunde = 1) {
+    const v = document.createElement('video');
+    v.preload = 'metadata'; v.muted = true; v.playsInline = true;
+    v.src = URL.createObjectURL(datei);
+    try {
+      await new Promise((ok, fehl) => {
+        v.onloadedmetadata = ok;
+        v.onerror = () => fehl(new Error('Dieses Video kann der Browser nicht lesen'));
+      });
+      // Ein Video ohne Bildmasse -- etwa eine reine Tonspur -- ergaebe eine
+      // Zeichenflaeche der Groesse null und damit gar kein Standbild.
+      if (!v.videoWidth || !v.videoHeight)
+        throw new Error('Dieses Video hat kein Bild');
+      v.currentTime = Math.min(sekunde, (v.duration || 2) / 2);
+      await new Promise((ok, fehl) => {
+        v.onseeked = ok;
+        v.onerror = () => fehl(new Error('Dieses Video kann der Browser nicht lesen'));
+      });
+      const c = document.createElement('canvas');
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext('2d').drawImage(v, 0, 0);
+      const bild = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+      if (!bild) throw new Error('Aus diesem Video ließ sich kein Standbild ziehen');
+      return { bild, dauer: Math.round(v.duration) || null };
+    } finally { URL.revokeObjectURL(v.src); }
+  }
+
+  // Fotos gehen gebuendelt in einem Vorgang, Videos einzeln: jedes bringt sein
+  // eigenes Standbild mit, und zwei benannte Felder tragen nur ein Paar.
   async function uploadFiles(files) {
     if (!files.length) return;
-    const fd = new FormData();
-    for (const f of files) fd.append('photos', f);
+    const bilder = files.filter(f => !/^video\//.test(f.type));
+    const videos = files.filter(f => /^video\//.test(f.type));
     const drop = document.getElementById('drop');
     const old = drop.textContent;
     drop.textContent = 'wird hochgeladen …';
+    let fertig = 0;
     try {
-      item = await api('POST', `/api/items/${id}/photos`, fd, true);
+      if (bilder.length) {
+        const fd = new FormData();
+        for (const f of bilder) fd.append('photos', f);
+        item = await api('POST', `/api/items/${id}/photos`, fd, true);
+        fertig += bilder.length;
+      }
+      for (const f of videos) {
+        drop.textContent = 'Standbild wird erzeugt …';
+        const { bild, dauer } = await standbild(f);
+        drop.textContent = 'wird hochgeladen …';
+        const fd = new FormData();
+        fd.append('video', f, f.name);
+        fd.append('standbild', bild, 'standbild.jpg');
+        if (dauer) fd.append('dauer', String(dauer));
+        item = await api('POST', `/api/items/${id}/videos`, fd, true);
+        fertig++;
+      }
       drawViewer(); drawThumbs();
-      toast(`${files.length} Foto${files.length === 1 ? '' : 's'} hinzugefügt`);
-    } catch (err) { toast(err.message, true); }
+      if (fertig) toast(`${fertig} ${fertig === 1 ? 'Element' : 'Elemente'} hinzugefügt`);
+    } catch (err) {
+      toast(err.message, true);
+      // Was schon durchging, ist durch -- die Anzeige muss es zeigen.
+      if (fertig) { drawViewer(); drawThumbs(); }
+    }
     drop.textContent = old;
   }
 
@@ -1990,7 +2122,8 @@ async function renderDetail(id) {
   const drop = document.getElementById('drop');
   ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-  drop.addEventListener('drop', e => uploadFiles([...(e.dataTransfer?.files || [])].filter(f => /^image\//.test(f.type))));
+  drop.addEventListener('drop', e => uploadFiles([...(e.dataTransfer?.files || [])]
+    .filter(f => /^image\//.test(f.type) || /^video\//.test(f.type))));
 
   // Pfeiltasten blaettern, aber nicht waehrend getippt wird und nicht bei offenem Vollbild
   const keyNav = e => {
@@ -3055,7 +3188,11 @@ async function renderDetail(id) {
     // Fotos und Dateien haengen am Eintrag und gehoeren seinem Verfasser. Ein
     // Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
     const inhalt = [
-      ...zaehl(b.fotos, 'Foto', 'Fotos')
+      ...zaehl(b.fotos, 'Foto', 'Fotos'),
+      // Eigene Zeile, nicht als Foto getarnt: ein Dialog, der "3 Fotos" sagt
+      // und dabei ein Video mit wegwirft, verschweigt genau das, um
+      // dessentwillen er dasteht.
+      ...zaehl(b.videos, 'Video', 'Videos')
     ];
     const eigen = [
       ...zaehl(b.eigenLinks, 'Link', 'Links'),
@@ -3157,6 +3294,7 @@ async function renderSystem() {
           der laufenden Dateien.</p>
         <div class="kv"><span class="k">${esc(V.sacheMehrzahl)}</span><span class="v">${stats.itemCount}</span></div>
         <div class="kv"><span class="k">Fotos</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
+        <div class="kv"><span class="k">Videos</span><span class="v">${stats.videoCount} · ${fmtBytes(stats.videoBytes)}</span></div>
         <div class="kv"><span class="k">Kommentare</span><span class="v">${stats.commentCount}</span></div>
         <div class="kv"><span class="k">Links</span><span class="v">${stats.linkCount}</span></div>
         <div class="kv"><span class="k">${esc(V.zeitpunktMehrzahl)}</span><span class="v">${stats.testDayCount}</span></div>
@@ -3192,6 +3330,14 @@ async function renderSystem() {
         </div>
         <label class="ex-files"><input type="checkbox" id="ex-files">
           Angehängte Dateien mitnehmen (~${fmtBytes(Math.round(stats.attachmentBytes * 1.34))})</label>
+        ${/* Eigener Schalter, Vorgabe aus. Ohne ihn bleibt der Platz des Videos
+             in der Datei vermerkt, die Datei selbst fehlt -- der Import sagt
+             dann, wie viele es waren. Stand ein Video an erster Stelle, wird
+             danach das naechste Foto zum Hauptbild. */''}
+        <label class="ex-files"><input type="checkbox" id="ex-videos">
+          Videos mitnehmen (~${fmtBytes(Math.round(stats.videoBytes * 1.34))})</label>
+        ${stats.videoCount ? `<p class="hint hint-sm" style="margin:6px 2px 0">
+          Ohne Häkchen bleiben die Videos zurück; die Einträge nennen sie, die Dateien fehlen.</p>` : ''}
       </div>
 
       <div class="sys-card">
@@ -3426,7 +3572,8 @@ async function renderSystem() {
 
   // Dateien haben einen eigenen Schalter mit Vorgabe aus: bei 50 MB je Datei
   // waere die Exportdatei sonst schnell unhandlich.
-  const mitDateien = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '');
+  const mitDateien = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '') +
+                           (document.getElementById('ex-videos')?.checked ? '&videos=1' : '');
   amElement('ex-yes', b => b.onclick = () => { window.location = '/api/export?photos=1' + mitDateien(); });
   amElement('ex-no', b => b.onclick = () => { window.location = '/api/export?photos=0' + mitDateien(); });
 
@@ -4051,7 +4198,13 @@ function askImport(file) {
       try {
         const r = await api('POST', '/api/import', fd, true);
         busy.remove();
-        toast(`${r.items} ${vSache(r.items)}, ${r.photos} Fotos, ${r.attachments} Dateien übernommen`);
+        toast(`${r.items} ${vSache(r.items)}, ${r.photos} Fotos, ${r.videos || 0} Videos, ` +
+              `${r.attachments} Dateien übernommen`);
+        /* Nicht abbrechen, melden -- und laut genug, dass es auffaellt: fehlt
+           ein Video, kann das naechste Foto zum Hauptbild geworden sein. */
+        const fehlend = (r.videosOhneDatei || 0) + (r.videosUnlesbar || 0);
+        if (fehlend) toast(`${fehlend} Video${fehlend === 1 ? '' : 's'} fehlte in der Datei und ` +
+                           `wurde übergangen — steht ein Eintrag jetzt anders da, ist das der Grund.`, true);
         location.hash = '#/';
         if (location.hash === '#/') renderList();
       } catch (e) { busy.remove(); toast(e.message, true); }
