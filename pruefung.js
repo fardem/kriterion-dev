@@ -4023,6 +4023,29 @@ const namen = (liste) => liste.map(c => c.name);
              return n === siVorherEintraege; })(),
     `vorher ${siVorherEintraege} Eintraege, Datei vorher ${siVorherBytes} Bytes`);
 
+  /* DER ARBEITSNAME, und er ist die Antwort auf Stolperstein 8. Eine
+     halbfertige Kopie traegt nie den endgueltigen Namen: geschrieben wird auf
+     <name>.wird, umbenannt wird erst danach. Damit kann sie gar nicht als
+     fertige Sicherung gelesen werden.
+     GEPRUEFT WIRD BEIDES: dass nach einem geglueckten Lauf keine Arbeitsdatei
+     zurueckbleibt, und dass eine liegengebliebene ueberhaupt nicht mitzaehlt.
+     Die zweite Zeile ist die tragende -- sie gilt auch dann, wenn das
+     Aufraeumen einmal scheitert. */
+  pruefe('Nach einer geglueckten Sicherung liegt keine Arbeitsdatei mehr da',
+    fs.readdirSync(path.join(siWurzel, 'taeglich')).filter(n => n.endsWith('.wird')).length === 0,
+    fs.readdirSync(path.join(siWurzel, 'taeglich')).join(' · '));
+  {
+    const liegengeblieben = path.join(siWurzel, 'taeglich', 'kriterion-2020-01-01-00-00-00.sqlite.wird');
+    fs.writeFileSync(liegengeblieben, 'halbe Kopie');
+    const vorher = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+    pruefe('Eine liegengebliebene Arbeitsdatei zaehlt nicht als Sicherung',
+      vorher.inhalt?.zahl === 1 && vorher.inhalt?.letzte?.datei === siLos.inhalt?.datei,
+      JSON.stringify({ zahl: vorher.inhalt?.zahl, letzte: vorher.inhalt?.letzte?.datei }));
+    pruefe('Und sie liegt trotzdem noch da -- angefasst wird sie nicht',
+      fs.existsSync(liegengeblieben), 'die fremde Datei wurde entfernt');
+    fs.unlinkSync(liegengeblieben);
+  }
+
   /* EINE VORHANDENE ZIELDATEI WIRD NICHT UEBERSCHRIEBEN. Nachgestellt statt
      geglaubt: VACUUM INTO antwortet auf eine vorhandene Datei mit "output file
      already exists". Der Name mit Datum und Uhrzeit ist der Weg dorthin, nicht
@@ -6299,6 +6322,32 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Die Oberflaeche rechnet die verbleibenden Tage nicht selbst nach',
     !/tageOffen\s*=/.test(fAppQuelle),
     (fAppQuelle.match(/.*tageOffen\s*=.*/) || [''])[0]);
+
+  /* 0.8.70: DIE SICHERUNG SCHREIBT UNTER EINEM ARBEITSNAMEN. Der Fehlerweg
+     darf ausschliesslich diesen entfernen -- ein Aufraeumen, das die
+     endgueltige Datei trifft, wuerfe im Zweifel die Sicherung des Nachbarn
+     weg. Gelesen wird der Rumpf der Route, nicht die ganze Datei. */
+  const fSicherungRumpf = (() => {
+    const a = fCodeZeilen.indexOf("app.post('/api/sicherung'");
+    if (a < 0) return '';
+    const e = fCodeZeilen.indexOf('\n});', a);
+    return e < 0 ? '' : fCodeZeilen.slice(a, e);
+  })();
+  pruefe('Die Route zur Sicherung ist ueberhaupt da', fSicherungRumpf.length > 0,
+    'kein Rumpf gefunden');
+  pruefe('Sie schreibt unter einem Arbeitsnamen und benennt erst danach um',
+    /VACUUM INTO \?'\)\.run\(werdend\)/.test(fSicherungRumpf) &&
+    fSicherungRumpf.includes('fs.renameSync(werdend, datei)'),
+    fSicherungRumpf ? 'kein Arbeitsname im Rumpf' : '(kein Rumpf)');
+  pruefe('Und entfernt im Fehlerfall NUR den Arbeitsnamen',
+    fSicherungRumpf.includes('fs.unlinkSync(werdend)') &&
+    !fSicherungRumpf.includes('fs.unlinkSync(datei)'),
+    (fSicherungRumpf.match(/.*fs\.unlinkSync\(.*/g) || []).join(' · '));
+  /* Und die Gegenprobe zum Waechter selbst: er darf nicht deshalb gruen sein,
+     weil er gar nichts mehr ansieht (Stolperstein 106). */
+  pruefe('Und der Waechter wuerde ein Aufraeumen an der Zieldatei finden',
+    /fs\.unlinkSync\(datei\)/.test('    try { fs.unlinkSync(datei); } catch {}'),
+    'der Waechter sieht die Verletzung nicht');
 
   /* SICHERUNG ODER BACKUP -- eines von beiden, und durchgehalten. Beide Woerter
      sind gebraeuchlich; zwei fuer dieselbe Sache sind genau das, was die
