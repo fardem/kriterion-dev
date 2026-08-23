@@ -652,7 +652,7 @@ lehnt ab, ohne dass etwas anderes genommen wird.
 **Aufwand:** zwei Spalten, ein Migrationsblock, ein Eingabefeld,
 Export-Format. Klein.
 
-### 4.3 „Neu seit meinem letzten Besuch" **[NEU]**
+### 4.3 „Neu seit meinem letzten Besuch" **[GEBAUT — 0.8.60]**
 
 **Das Problem.** Die Übersicht sortiert nach `updated_at`, für alle gleich.
 Das ist bewusst so und richtig:
@@ -687,14 +687,36 @@ ausdrücklich als „persönlich, aber ohne die gemeinsame Liste umzusortieren"
 entschieden worden. Dies ist derselbe Fall.
 
 **Ein Stolperstein, der dazugehört:** Zeitstempel haben Sekundenauflösung
-(Stolperstein 15). Wer die Übersicht öffnet und in derselben Sekunde jemand
+(**Stolperstein 60**; oben stand fälschlich 15, berichtigt mit 0.8.60). Wer die Übersicht öffnet und in derselben Sekunde jemand
 anderes kommentiert, sieht den Kommentar nie als neu. Die Antwort ist, den
 Merkzeitpunkt beim **Verlassen** der Übersicht zu setzen, nicht beim
 Betreten — dann ist das Fenster harmlos.
 
 **Aufwand:** klein. Kein Schema, kein Export.
 
-### 4.4 Offene Aufgaben quer über alle Einträge **[NEU]**
+> **Gebaut in 0.8.60. Wo anders gebaut wurde als hier vorgeschlagen:**
+>
+> - **Der Stolperstein heißt 60, nicht 15.** „`datetime('now')` löst nur
+>   Sekunden auf" ist Stolperstein 60; 15 ist `/api/health` hinter der
+>   Anmeldung. Der Verweis oben war falsch.
+> - **Der Vergleich steht in der Oberfläche, nicht im Server.** Der Absatz
+>   oben sagt „serverseitig ist es ein Vergleich zweier Zeitstempel"; gebaut
+>   ist er in `visibleItems()`, eine Zeile neben dem Favoritenfilter — sonst
+>   wäre er nicht mit den übrigen Filtern kombinierbar, die alle dort sitzen.
+>   **Der Zeitstempel selbst kommt ausschließlich vom Server.**
+> - **Das Fenster wird um eine Sekunde nachgestellt.** Beim Verlassen zu
+>   setzen genügt nicht: ein Kommentar aus genau der Sekunde des Verlassens
+>   trüge sonst denselben Zeitstempel wie der Merkpunkt und gälte nie als neu.
+>   Gespeichert wird `datetime('now','-1 second')`.
+> - **Der Bezugspunkt wird einmal je Seitenleben gelesen.** Nicht im Vorschlag,
+>   aber ohne ihn ist die Sache unbrauchbar: würde er bei jeder Rückkehr in die
+>   Übersicht nachgezogen, sähe man sieben Neue und verlöre sechs davon beim
+>   ersten Klick.
+> - **Er erscheint auch bei einem einzigen Zugang** — anders als „meine /
+>   alle" ist er keine Aussage über andere. **Beim allerersten Besuch erscheint
+>   er nicht:** ohne Bezugspunkt erklärt er sich nicht.
+
+### 4.4 Offene Aufgaben quer über alle Einträge **[GEBAUT — 0.8.60]**
 
 **Das Problem.** Kommentare können „Aufgabe" sein und „erledigt" werden — ein
 gut durchdachtes Feature, bis hin zur Farbkante und zum Weiterschalt-Knopf
@@ -725,6 +747,26 @@ Verhältnis von Nutzen zu Aufwand in dieser ganzen Liste.
 Ich würde ihn **erst in einem zweiten Schritt** bauen: er wird bei jedem
 Seitenaufbau gebraucht, und die Frage, wie er nicht ständig neu abgefragt
 wird, gehört nicht in dieselbe Runde wie die Ansicht selbst.
+
+> **Gebaut in 0.8.60. Wo anders gebaut wurde als hier vorgeschlagen:**
+>
+> - **Die Art heißt `task`, nicht `todo`.** Der Vorschlag oben schreibt
+>   `kind = 'todo'`; im Quelltext heißen die vier Werte `note`, `report`,
+>   `task`, `done`. Gebaut ist `WHERE c.kind = 'task'` — dieselbe Schreibweise,
+>   die die Detailansicht benutzt.
+> - **Die Route braucht keinen Wächter.** Wer angemeldet ist, sieht die
+>   Kommentare ohnehin in jedem Eintrag. `GET /api/offen` steht damit in keiner
+>   Liste schreibender Routen, und `F_ROUTEN` bleibt bei 47.
+> - **Der Haken steht nur, wo er gedrückt werden darf** — beim Verfasser des
+>   Kommentars und beim Admin, wie am Kommentar im Eintrag. Ein Kästchen, das
+>   ein 403 holt, sähe aus wie ein Fehler.
+> - **Der Haken ist ein Zustand, keine Weiterschaltung.** `aufgabeWeiter()`
+>   machte aus einer erledigten Aufgabe eine Notiz; hier nähme der zweite Druck
+>   die Zeile lautlos aus der Menge.
+> - **Die abgehakte Zeile bleibt durchgestrichen stehen**, bis die Ansicht neu
+>   geladen wird — sonst ließe sich der Haken nicht gleich wieder wegnehmen.
+> - **Der Zähler in der Kopfzeile ist wie vorgeschlagen nicht gebaut** und
+>   bleibt vorgemerkt.
 
 ### 4.5 Ein Papierkorb, der das Schema nicht anfasst **[NEU]**
 
@@ -1122,9 +1164,9 @@ dass die Reihenfolge getragen hat.
 | 3 | **2.5** Lockfile, `npm ci`, `sharp` | klein | jeder Build ist heute ein anderer | ✓ 0.8.10 |
 | 4 | **5.4** Prüfstand in CI | klein | ab dann laufen 1–3 automatisch nach | ✓ 0.8.10 |
 | 5 | **5.1** Versions-Fingerprint | klein | löst ein dokumentiertes Betriebsproblem endgültig | ✓ 0.8.10 |
-| 6 | **4.4** Ansicht „Offen" | klein | macht ein gebautes Feature erst brauchbar | 0.8.60 |
+| 6 | **4.4** Ansicht „Offen" | klein | macht ein gebautes Feature erst brauchbar | ✓ 0.8.60 |
 | 7 | **2.4** CSP + **2.6** Fehler-Handler + **2.7** SIGTERM/Healthcheck | klein | Betriebshärte, alles am selben Nachmittag | ✓ 0.8.20 |
-| 8 | **4.3** „Neu seit …" | klein | keine Migration, großer Gewinn im Mehrbenutzerbetrieb |
+| 8 | **4.3** „Neu seit …" | klein | keine Migration, großer Gewinn im Mehrbenutzerbetrieb | ✓ 0.8.60 |
 | 9 | **G4** (Roadmap: Links bekommen Verfasser) | mittel | ✓ 0.8.30 — **nicht** mit 4.2 zusammengelegt, siehe Anmerkung unten; die Dateien folgten in 0.8.31 |
 | 10 | **4.1** Gewichtung der Kriterien | mittel | ✓ 0.8.40 — inhaltlich der wichtigste Punkt der Liste; **nicht** mit 4.2 zusammengelegt |
 | 11 | **4.2** Abgelehnt mit Datum und Begründung | klein | offen geblieben — die Zusammenlegung mit 10 ist nicht gekommen |

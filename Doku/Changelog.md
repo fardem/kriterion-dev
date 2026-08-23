@@ -6,6 +6,58 @@ ist. Die Einzelheiten stehen je Version in
 
 ---
 
+## 0.8.60 — Was ist offen, was ist neu
+
+**Zwei Dinge, die es längst gibt, werden auffindbar.** Aufgabenkommentare
+waren nur zu sehen, wenn man ihren Eintrag öffnete — bei zwanzig Einträgen
+hieß das zwanzigmal klicken. Und wer nach ein paar Tagen wiederkam, sah zwar,
+dass sich etwas getan hatte, aber nicht mehr, was davon neu war.
+
+### Neu
+
+- **Die Ansicht „Offen"** — ein neuer Knopf in der Kopfzeile, neben dem
+  Zahnrad. Sie zeigt alle nicht erledigten Aufgaben aus allen Einträgen auf
+  einem Bildschirm, gruppiert nach Eintrag, mit Verfasser und Datum. Ein Klick
+  führt in den Eintrag.
+- **Abhaken geht direkt dort.** Die Zeile bleibt danach durchgestrichen
+  stehen, damit sich der Haken gleich wieder wegnehmen lässt; beim nächsten
+  Aufruf ist sie fort. Wer abhaken darf, ist unverändert: der Verfasser des
+  Kommentars und der Admin.
+- **Ein Umschalter „meine / alle"** ab zwei Zugängen — bei einem einzigen
+  Zugang wären beide Stellungen dieselbe Liste.
+- **Der Filter „Neu seit …"** in der Filterzeile, neben „★ Favoriten", mit der
+  Zahl daneben. Er zeigt, was sich seit dem letzten Besuch getan hat, und
+  lässt sich mit Status, Kategorie und Tags frei kombinieren.
+- **Der Bezugspunkt ist persönlich** und wird beim Verlassen der Übersicht
+  gesetzt — während man hinsieht, bleibt die Liste also stehen. Beim
+  allerersten Besuch erscheint der Filter noch nicht: es gibt dann nichts, mit
+  dem sich vergleichen ließe.
+
+### Was gleich bleibt
+
+- **Die Reihenfolge der Übersicht ändert sich nicht.** Beide Neuerungen sind
+  Filter — die Liste zeigt weiter für alle gleich, wo zuletzt etwas geschehen
+  ist, und niemand bekommt eine eigene Sortierung.
+- **Am Kommentarblock im Eintrag ändert sich nichts.** Farbkante,
+  Weiterschaltknopf und Reihenfolge bleiben, wie sie waren; die neue Ansicht
+  kann nichts, was der Eintrag nicht auch könnte.
+- **Die Datenbank wird nicht angefasst**, und die Exportdatei behält ihr
+  Format. Eine Datei aus 0.8.50 lässt sich unverändert einspielen.
+- **Wer eigene Wörter eingestellt hat**, liest sie auch hier: heißen die
+  Aufgaben „Mängel", steht über der Ansicht „Offene Mängel".
+
+### Beim Einspielen
+
+- **Nichts Besonderes.** Diese Version fasst die Datenbank nicht an; die
+  Sicherung des Verzeichnisses `data` ist eine Empfehlung, keine Pflicht — und
+  der Weg zurück auf 0.8.50 ist wieder eine reine Dateikopie.
+- Der Filter „Neu seit …" erscheint erst beim **zweiten** Besuch der
+  Übersicht. Das ist kein Fehler: vorher gibt es keinen Bezugspunkt.
+- Intern heißt der `Abdruck` in der Kennzahlenkarte jetzt **Fingerprint** —
+  dieselbe Zahl, das gebräuchlichere Wort.
+
+---
+
 ## 0.8.50 — Kurzvideos am Fotoplatz
 
 **Ein kurzes Video gehört in dieselbe Reihe wie die Fotos.** Bis dahin blieb
