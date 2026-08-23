@@ -239,6 +239,17 @@ oder in einem Dokument steht. Ohne diese Regel hätte der Wächter das
 Gewichtungspapier angemeckert, das `umstiegGewicht()` als **nicht** gebauten
 Namen zitiert — und den Vermerk im Änderungsprotokoll 0.8.40 gleich mit.
 
+### I2. Und „Abbildung" ist kein Image
+
+Nachgetragen beim Schreiben des Auftrags für 0.8.70: das Wort **Abbildung**
+enthält `Abbild`, meint aber eine **Zuordnung** und hat mit einem Docker-Image
+nichts zu tun. Der Wächter hätte jede Prosa angemeckert, die von der Abbildung
+je Eintrag spricht — und ein Wächter, der jedes zweite Wort anmeckert, wird
+abgeschaltet. `Abbild` steht deshalb als `Abbild(?!ung)` im Muster, mit einer
+eigenen Gegenprobe an beiden Seiten: `Abbild` wird gefangen, `Abbildung`
+nicht. **Die Ausnahme steht im Quelltext und nicht in der Wortliste**, wo sie
+wie ein weiteres Verbot aussähe.
+
 ### J. Der Auftrag der laufenden Runde bleibt außen vor
 
 `Doku/Auftrag_*.md` führt die Wortliste und nennt jedes dieser Wörter als
@@ -323,6 +334,12 @@ Alle in einer **Kopie des Arbeitsbaums** (Stolperstein 100).
 | Der Sprachwächter sieht nur noch eine Datei an | **2 rot** — *Der Sprachwächter sieht alle acht Quelltextdateien an* · *Und aus ihnen bleiben mehr als tausend Kommentarzeilen übrig* |
 | Der Kommentarfilter wirft die `//`-Zeilen weg | **1 rot** — *Er liest überhaupt noch etwas: ein Kommentar mit `Keks` fällt auf* |
 
+Dazu **acht Gegenproben an gestellten Texten** innerhalb der Gruppe „Der
+Sprachwaechter": dass er einen Kommentar und einen Fließkommentar fängt, dass
+er Code und zitierten Code in Ruhe lässt (in beiden Formen), dass er in einem
+Dokument die Prosa und nicht den Code im Zaun liest, und dass er `Abbild`
+fängt, `Abbildung` aber stehen lässt.
+
 **Zwei Gegenproben sind zunächst stumm geblieben** und haben je einen
 Stolperstein gebracht:
 
@@ -335,7 +352,7 @@ Beide Prüfungen sind geschärft worden, danach beißen die Gegenproben.
 
 ## 6. Prüfungszahlen
 
-**Vorher 1953, nachher 2085** — **132 neue Prüfungen**, davon 122 in acht neuen
+**Vorher 1953, nachher 2087** — **134 neue Prüfungen**, davon 124 in acht neuen
 Gruppen und 10 in vorhandenen.
 
 | Gruppe | neu |
@@ -347,7 +364,7 @@ Gruppen und 10 in vorhandenen.
 | Offen: der Haken in der Ansicht | 26 |
 | Neu seit: der Filter in der Übersicht | 22 |
 | Neu seit: der Merkzeitpunkt | 11 |
-| Der Sprachwächter | 13 |
+| Der Sprachwächter | 15 |
 
 Dazu Ergänzungen an „Persönliche Einstellungen" (der Merkzeitpunkt, der
 Nicht-Admin, die Serveruhr) und an „Der Umschalter der Vergleichsansicht" (die

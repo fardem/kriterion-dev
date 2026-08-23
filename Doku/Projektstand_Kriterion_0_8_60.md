@@ -139,7 +139,7 @@ die Ansicht ist lesend, und der Erledigt-Haken geht über
 Dazu die **Sprachbereinigung** aus Abschnitt 12 samt einem Wächter im
 Prüfstand; sichtbar davon ist genau eine Umbenennung, der `Abdruck` in der
 Kennzahlenkarte heißt jetzt **Fingerprint**.
-**2085 von 2085 Prüfungen**, 17 Gegenproben.
+**2087 von 2087 Prüfungen**, 17 Gegenproben.
 
 **0.8.50 davor** — Fingerprint **`3cb528d6`**. *Eine
 Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:* `photos` trägt
@@ -2570,7 +2570,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 2085 von 2085 bestanden** (0.8.60; 132 neue Prüfungen, acht neue
+**Zuletzt: 2087 von 2087 bestanden** (0.8.60; 134 neue Prüfungen, acht neue
 Gruppen: „Offene Aufgaben: die Ansicht", „Der Haken am Aufgabenkommentar",
 „Neu seit: die Sekunde am Rand", „Offen: die Ansicht in der Oberflaeche",
 „Offen: der Haken in der Ansicht", „Neu seit: der Filter in der Uebersicht",
@@ -2780,7 +2780,7 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   und in den **Kommentaren** des Quelltextes. **Er ist die Ausnahme von
   Stolperstein 106** — jeder andere Wächter filtert die Kommentarzeilen weg,
   dieser sieht sie an — und lässt dafür Code in Ruhe; was in Backticks steht,
-  ist zitierter Code und keine Sprache. Sechs Gegenproben an gestellten Texten,
+  ist zitierter Code und keine Sprache. Acht Gegenproben an gestellten Texten,
   dazu die **Zahl** der angesehenen Dateien ausdrücklich (Stolperstein 113) und
   der Beleg, dass der Filter überhaupt etwas übrig lässt.
 - **Das Werkzeug selbst (seit 0.8.10):** das Lockfile, der `Dockerfile`, der
@@ -3146,7 +3146,7 @@ heißen jetzt `// MIGRATION 0.8.x — ENTFAELLT MIT 1.0` und `migration083()` bi
 Kennzahlenkarte heißt **Fingerprint**. Die Regel steht in Abschnitt 12, ein
 Wächter im Prüfstand hält sie fest.
 
-**2085 von 2085 Prüfungen**, 17 Gegenproben, **fünf neue Stolpersteine**
+**2087 von 2087 Prüfungen**, 17 Gegenproben, **fünf neue Stolpersteine**
 (112 bis 116). Einzelheiten in `Doku/Aenderungsprotokoll_0.8.60.md`.
 
 **0.8.50 davor — „Kurzvideos am Fotoplatz".** Die Runde davor im Stufenplan,
