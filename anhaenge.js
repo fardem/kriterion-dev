@@ -37,6 +37,25 @@ const BILD_TYPEN = {
   webp: 'image/webp', avif: 'image/avif', bmp: 'image/bmp'
 };
 
+/* Kurzvideos am Fotoplatz. EINE Liste fuer beide Richtungen: die Endung eines
+ * Anhangs (TYP_NACH_ENDUNG weiter unten) und der Name einer ausgelieferten
+ * Zeile aus photos, wo gar kein Dateiname gespeichert ist
+ * (setzeBildKopfzeilen). Zwei Listen fuer dieselbe Frage liefen auseinander.
+ * .mov ist der Grenzfall, den die Praxis erzwingt -- jedes iPhone liefert ihn.
+ * Verboten wird er nicht; ob er taugt, entscheidet die Standbildpruefung im
+ * Browser des Hochladenden: wer ein Video nicht abspielen kann, kann kein
+ * Standbild daraus ziehen und laedt es deshalb gar nicht erst hoch.
+ * Alles Uebrige -- .avi, .mkv, .wmv, .flv -- gehoert an den Anhang. Dort wird
+ * es heruntergeladen, und das ist die ehrliche Antwort. */
+const VIDEO_TYPEN = {
+  mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime'
+};
+
+// Dieselbe Liste rueckwaerts, fuer den Namen einer ausgelieferten Datei.
+// Tragen zwei Endungen denselben Typ, gewinnt die erste (mp4 vor m4v).
+const ENDUNG_NACH_TYP = {};
+for (const [e, t] of Object.entries(VIDEO_TYPEN)) if (!ENDUNG_NACH_TYP[t]) ENDUNG_NACH_TYP[t] = e;
+
 // Dateien, deren Inhalt als Text gelesen und als JSON geschickt wird.
 const TEXT_ENDUNGEN = ['txt', 'md', 'markdown', 'csv', 'tsv', 'log', 'ini', 'conf'];
 
@@ -45,6 +64,7 @@ const TEXT_ENDUNGEN = ['txt', 'md', 'markdown', 'csv', 'tsv', 'log', 'ini', 'con
 // svg, xml oder aehnliches.
 const TYP_NACH_ENDUNG = {
   ...BILD_TYPEN,
+  ...VIDEO_TYPEN,
   pdf: 'application/pdf',
   txt: 'text/plain', md: 'text/plain', markdown: 'text/plain',
   csv: 'text/plain', tsv: 'text/plain', log: 'text/plain',
@@ -56,12 +76,22 @@ const TYP_NACH_ENDUNG = {
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   odt: 'application/vnd.oasis.opendocument.text',
   ods: 'application/vnd.oasis.opendocument.spreadsheet',
-  mp3: 'audio/mpeg', wav: 'audio/wav', mp4: 'video/mp4', json: 'application/json'
+  mp3: 'audio/mpeg', wav: 'audio/wav', json: 'application/json'
 };
 
-// NUR diese Typen duerfen inline ausgeliefert werden. Alles andere bekommt
-// Content-Disposition: attachment, egal was es ist.
-const INLINE_ERLAUBT = new Set([...Object.values(BILD_TYPEN), 'application/pdf']);
+/* NUR diese Typen duerfen inline ausgeliefert werden. Alles andere bekommt
+ * Content-Disposition: attachment, egal was es ist.
+ * DIE VIDEOTYPEN STEHEN HIER, WEIL EIN VIDEO SONST HERUNTERGELADEN STATT
+ * ABGESPIELT WUERDE. Vertretbar ist das aus demselben Grund wie beim Bild: ein
+ * Video ist keine Webseite. Die tragenden Schichten bleiben unveraendert --
+ * eigener Content-Type statt dem des Hochladenden, nosniff, und die
+ * Sicherheitsregel default-src 'none'; sandbox auf der Antwort.
+ * HINZUNEHMENDE FOLGE: auch ein ANHANG mit Videoendung darf damit inline
+ * heraus, wenn er ausdruecklich so angefordert wird. Die Oberflaeche fordert
+ * inline nur fuer Bild und PDF an; von Hand geholt spielt er dann ab, statt
+ * herunterzuladen. */
+const INLINE_ERLAUBT = new Set([...Object.values(BILD_TYPEN),
+                                ...Object.values(VIDEO_TYPEN), 'application/pdf']);
 
 const endung = (name) => {
   const m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)$/);
@@ -145,6 +175,12 @@ function setzeKopfzeilen(res, dateiname, { inline = false } = {}) {
  * hier heraus, denn sie ist Text und beginnt mit nichts Festem; genau das ist
  * die gewuenschte Antwort.
  */
+/* Die Marken im ftyp-Kasten, die eine MP4 ausmachen. Positivliste, nicht
+   "alles, was nicht Bild ist": eine unbekannte ISO-Marke soll herunterladen,
+   nicht abspielen. M4V traegt ein nachlaufendes Leerzeichen. */
+const ISO_MARKEN_MP4 = new Set(['isom', 'iso2', 'iso4', 'iso5', 'iso6',
+  'mp41', 'mp42', 'mmp4', 'avc1', 'dash', 'cmfc', 'M4V ', 'M4VH', 'M4VP']);
+
 function typAusBytes(buf) {
   if (!Buffer.isBuffer(buf) || buf.length < 12) return null;
   const b = buf;
@@ -155,11 +191,19 @@ function typAusBytes(buf) {
   if (b.slice(0, 4).toString('latin1') === 'RIFF' && b.slice(8, 12).toString('latin1') === 'WEBP')
     return 'image/webp';
   // ISO-BMFF: Laenge, dann 'ftyp', dann die Marke. avif einzeln, avis ist die
-  // Bildfolge -- beide gehen durch dieselbe Anzeige.
+  // Bildfolge -- beide gehen durch dieselbe Anzeige. Dieselbe Stelle traegt
+  // die Videomarken: MP4, M4V und QuickTime sind ebenfalls ISO-BMFF.
+  // Nicht aufgefuehrte Marken -- darunter die Bildformate heic, heix und mif1
+  // -- bleiben bewusst unerkannt und gehen als Download heraus.
   if (b.slice(4, 8).toString('latin1') === 'ftyp') {
     const marke = b.slice(8, 12).toString('latin1');
     if (marke === 'avif' || marke === 'avis') return 'image/avif';
+    if (ISO_MARKEN_MP4.has(marke)) return 'video/mp4';
+    // Zwei nachlaufende Leerzeichen, so steht es in jeder QuickTime-Datei.
+    if (marke === 'qt  ') return 'video/quicktime';
   }
+  // WebM ist Matroska und beginnt mit dem EBML-Kopf.
+  if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return 'video/webm';
   const tiff = b.slice(0, 4);
   if ((tiff[0] === 0x49 && tiff[1] === 0x49 && tiff[2] === 0x2a && tiff[3] === 0x00) ||
       (tiff[0] === 0x4d && tiff[1] === 0x4d && tiff[2] === 0x00 && tiff[3] === 0x2a))
@@ -177,9 +221,11 @@ function setzeBildKopfzeilen(res, buf, { name = 'bild', maxAge = 3600 } = {}) {
   const typ = typAusBytes(buf) || 'application/octet-stream';
   const inline = INLINE_ERLAUBT.has(typ);
   // Der Name traegt die Endung des ERKANNTEN Typs, nicht die einer Angabe.
+  // Die Videohaelfte kommt aus derselben Liste wie die Endungen der Anhaenge --
+  // sonst hiesse ein ausgeliefertes Video foto-7.bin.
   const endungen = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
                      'image/webp': 'webp', 'image/avif': 'avif', 'image/tiff': 'tiff',
-                     'image/bmp': 'bmp' };
+                     'image/bmp': 'bmp', ...ENDUNG_NACH_TYP };
   const dateiname = endungen[typ] ? `${name}.${endungen[typ]}` : `${name}.bin`;
   res.set('Content-Type', typ);
   res.set('Content-Disposition', dispositionKopf(dateiname, inline));
@@ -187,6 +233,50 @@ function setzeBildKopfzeilen(res, buf, { name = 'bild', maxAge = 3600 } = {}) {
   res.set('Content-Security-Policy', sicherheitsRegel(typ));
   res.set('Cache-Control', `private, max-age=${maxAge}`);
   return typ;
+}
+
+/* ---- Bereiche ----
+ * Ein Video wird in Bereichen ausgeliefert, ein Bild nicht. Der Grund ist
+ * nicht die Groesse, sondern die Bedienung: ohne Bereiche kann der Browser im
+ * Video nicht springen, und manche Abspieler beginnen gar nicht erst. Der
+ * Blob liegt beim Lesen ohnehin ganz im Arbeitsspeicher; herausgeschnitten
+ * wird daraus nur ein Stueck.
+ *
+ * DER BEREICH KOMMT VOM AUFRUFER UND WIRD GEPRUEFT. Ungueltiges wird mit 416
+ * beantwortet, nicht stillschweigend zurechtgebogen -- ein Abspieler, der
+ * etwas anderes bekommt als er verlangt hat, zeigt Bildsalat statt eines
+ * Fehlers. Zurechtgerueckt wird nur das eine, was die Norm ausdruecklich so
+ * will: ein Ende hinter dem Dateiende meint das Dateiende.
+ *
+ * Rueckgabe: null (kein Bereich verlangt -- alles am Stueck),
+ * { ungueltig: true } (416) oder { von, bis } einschliesslich beider Enden.
+ */
+function bereichAus(kopf, groesse) {
+  if (typeof kopf !== 'string') return null;
+  const m = kopf.trim().match(/^bytes=(\d*)-(\d*)$/);
+  // Mehrere Bereiche in einer Anfrage sind erlaubt, werden hier aber nicht
+  // beantwortet: die Norm laesst zu, stattdessen alles am Stueck zu schicken.
+  if (!m) return null;
+  const [, a, e] = m;
+  if (a === '' && e === '') return null;
+  // Eine leere Datei hat keinen Bereich, den man verlangen koennte.
+  if (groesse <= 0) return { ungueltig: true };
+  let von, bis;
+  if (a === '') {
+    // bytes=-500 -- die letzten 500 Bytes. Null Bytes gibt es nicht.
+    const wieviel = Number(e);
+    if (wieviel <= 0) return { ungueltig: true };
+    von = Math.max(0, groesse - wieviel);
+    bis = groesse - 1;
+  } else {
+    von = Number(a);
+    bis = e === '' ? groesse - 1 : Number(e);
+    if (von >= groesse) return { ungueltig: true };
+    if (bis < von) return { ungueltig: true };
+    // Nur das: ein Ende hinter dem Dateiende meint das Dateiende.
+    if (bis >= groesse) bis = groesse - 1;
+  }
+  return { von, bis };
 }
 
 /* ================= Textvorschau ================= */
@@ -268,7 +358,7 @@ function docxVorschau(buf) {
 
 module.exports = {
   ausgabeTyp, vorschauArt, dispositionKopf, setzeKopfzeilen, sicherheitsRegel,
-  typAusBytes, setzeBildKopfzeilen,
+  typAusBytes, setzeBildKopfzeilen, bereichAus,
   textVorschau, docxVorschau, findeImZip, endung,
-  INLINE_ERLAUBT, TYP_NACH_ENDUNG, VORSCHAU_ZEICHEN
+  INLINE_ERLAUBT, TYP_NACH_ENDUNG, VIDEO_TYPEN, VORSCHAU_ZEICHEN
 };

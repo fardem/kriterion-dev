@@ -1602,20 +1602,108 @@ app.post('/api/items/:id/photos', nurEintragVerfasser, upload.array('photos', 40
   } catch (e) { next(e); }
 });
 
+/* ---- Videos ----
+ * EIGENE ROUTE, nicht die Fotoroute erweitert. Deren fileFilter auf ^image\/
+ * ist eine grobe erste Schranke, die nichts traegt -- aber sie zu lockern
+ * naehme sie dem Fotoweg mit ab, und eine Route truege zwei Gestalten.
+ * ZWEI TEILE IN EINEM VORGANG: die Videodatei und ein JPEG. Das Standbild
+ * erzeugt der Browser des Hochladenden ueber <video> und <canvas>; der Server
+ * oeffnet nie ein Video und braucht deshalb kein ffmpeg. Wer ein Video nicht
+ * abspielen kann, kann kein Standbild daraus ziehen und laedt es nicht hoch --
+ * und das ist richtig: ein Videoplatz, der nicht abspielt, ist ein kaputter.
+ */
+// 20 MB und nicht 50, und die Zahl ist gemessen: 50 MB kosten beim Lesen aus
+// der verschluesselten Datenbank eine halbe Sekunde -- mit dem ganzen Blob im
+// Arbeitsspeicher, denn eine BLOB-Zeile wird nicht stueckweise gelesen. Bei
+// zwei Leuten gleichzeitig ist das spuerbar. 20 MB reichen fuer ein bis zwei
+// Minuten Handyvideo. Wer mehr braucht, nimmt den Anhang.
+const VIDEO_MAX = 20 * 1024 * 1024;
+const videoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: VIDEO_MAX },
+  // Erste, grobe Schranke am gemeldeten Typ, wie am Fotoweg. Sie haelt nichts
+  // auf, was sich umbenennen laesst -- die tragenden Pruefungen stehen im
+  // Rumpf: typAusBytes() an der Videodatei, rasterBild() am Standbild.
+  fileFilter: (req, file, cb) => {
+    const gut = file.fieldname === 'video' ? /^video\//.test(file.mimetype)
+                                           : /^image\//.test(file.mimetype);
+    cb(gut ? null : Object.assign(new Error('Nur ein Video mit Standbild ist erlaubt'),
+                                  { status: 400 }), gut);
+  }
+});
+
+// Der Waechter steht VOR multer, wie am Fotoweg: die Datei eines Fremden soll
+// gar nicht erst eingelesen werden.
+app.post('/api/items/:id/videos', nurEintragVerfasser,
+  videoUpload.fields([{ name: 'video', maxCount: 1 }, { name: 'standbild', maxCount: 1 }]),
+  async (req, res, next) => {
+    try {
+      if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
+        return res.status(404).json({ error: 'Nicht gefunden' });
+      const video = req.files?.video?.[0], standbild = req.files?.standbild?.[0];
+      if (!video || !standbild)
+        return res.status(400).json({ error: 'Video und Standbild gehören zusammen' });
+      /* DER INHALT ENTSCHEIDET, nicht die Endung im Namen und nicht der
+         gemeldete Typ -- dieselbe Regel wie am Fotoweg, nur mit dem
+         Erkenner, der auch beim Ausliefern entscheidet. Damit kann keine
+         Videozeile entstehen, die sich hinterher nicht abspielen laesst.
+         AUF DIE VIDEODATEI WIRD rasterBild() AUSDRUECKLICH NICHT ANGEWANDT:
+         der Server oeffnet nie ein Video. Gelesen werden zwoelf Bytes. */
+      if (!Object.values(anh.VIDEO_TYPEN).includes(anh.typAusBytes(video.buffer)))
+        return res.status(400).json({ error: 'Nur MP4-, WebM- und MOV-Videos sind erlaubt' });
+      // Das Standbild geht denselben Weg wie jedes Foto: was sharp nicht als
+      // Bild lesen kann, kommt nicht herein.
+      if (!await rasterBild(standbild.buffer))
+        return res.status(400).json({ error: 'Das Standbild ist keine Bilddatei' });
+      // Die Dauer ist eine Angabe des Hochladenden wie der gemeldete Typ:
+      // gespeichert und angezeigt, nie tragend. Unsinniges wird zu NULL.
+      const d = Math.round(Number(req.body.dauer));
+      const dauer = Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null;
+      const v = await makeVariants(standbild.buffer);
+      // sort_order zaehlt weiter wie bisher: ein Video haengt sich hinten an
+      // die vorhandenen Zeilen, in derselben Nummerierung.
+      const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
+        .get(req.params.id).m + 1;
+      db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order, art, dauer)
+                  VALUES (?, ?, ?, ?, ?, ?, 'video', ?)`)
+        .run(req.params.id, video.mimetype, video.buffer, v.thumb, v.medium, pos, dauer);
+      touch.run(req.params.id);
+      res.status(201).json(detail(req.params.id, req.benutzer.id));
+    } catch (e) { next(e); }
+  });
+
 /* Der ausgelieferte Typ kommt aus den ersten Bytes, nie aus photos.mime_type.
    Die Spalte ist eine Angabe des Hochladenden: sie wird gespeichert und
    angezeigt, sie entscheidet aber nicht, was der Browser mit der Antwort
    macht. Damit ist auch geschuetzt, was schon in der Datenbank liegt -- eine
    Ableitung braucht keinen Umstieg. Dieselbe Regel wie bei den Anhaengen,
-   siehe anhaenge.js. */
+   siehe anhaenge.js. Bei einem Video ist der Blob je nach Groesse etwas
+   anderes: mit size= das Standbild, ohne die Videodatei -- und der Erkenner
+   sieht das den Bytes an, ohne dass hier etwas unterschieden wird.
+
+   BEREICHE NUR AM VIDEO UND NUR AN DER GANZEN DATEI. An einem Foto aendert
+   sich damit keine einzige Kopfzeile -- das ist Absicht und wird geprueft:
+   diese Runde darf an der Auslieferung vorhandener Fotos nichts aendern. */
 app.get('/api/photos/:id/raw', (req, res) => {
   const p = db.prepare('SELECT * FROM photos WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).end();
   let blob = p.data;
-  if (req.query.size === 'thumb' && p.thumb) blob = p.thumb;
-  else if (req.query.size === 'medium' && p.medium) blob = p.medium;
+  let bereichsfaehig = p.art === 'video';
+  if (req.query.size === 'thumb' && p.thumb) { blob = p.thumb; bereichsfaehig = false; }
+  else if (req.query.size === 'medium' && p.medium) { blob = p.medium; bereichsfaehig = false; }
   anh.setzeBildKopfzeilen(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
-  res.send(blob);
+  if (!bereichsfaehig) return res.send(blob);
+  res.set('Accept-Ranges', 'bytes');
+  const b = anh.bereichAus(req.headers.range, blob.length);
+  if (!b) return res.send(blob);
+  // Ungueltiges wird abgewiesen, nicht zurechtgebogen: ein Abspieler, der
+  // etwas anderes bekommt als er verlangt hat, zeigt Bildsalat statt Fehler.
+  if (b.ungueltig) {
+    res.set('Content-Range', `bytes */${blob.length}`);
+    return res.status(416).end();
+  }
+  res.set('Content-Range', `bytes ${b.von}-${b.bis}/${blob.length}`);
+  res.status(206).send(blob.slice(b.von, b.bis + 1));
 });
 
 // Fokuspunkt eines Fotos. Zwei Prozentwerte, sonst nichts -- das Bild selbst
