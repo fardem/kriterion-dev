@@ -2343,6 +2343,11 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
   // Eigener Schalter, Vorgabe aus: bei 50 MB je Datei waere die Exportdatei
   // sonst schnell unhandlich -- Base64 blaeht zusaetzlich um ein Drittel auf.
   const withFiles = req.query.files === '1';
+  /* Dasselbe fuer die Videos, und aus demselben Grund nur schaerfer: ein
+     20-MB-Video wird als Base64 zu 27 MB, und zwanzig davon sind 540 MB in
+     EINER Zeichenkette. Node haelt keine Zeichenkette ueber rund 512 MB; der
+     Export risse. Vorgabe deshalb aus. */
+  const withVideos = req.query.videos === '1';
   // favorite nennt den Favoriten DESSEN, DER EXPORTIERT -- dieselbe
   // Bedeutung wie im Feld favorite der Schnittstelle. Der Feldname bleibt,
   // damit aeltere Dateien einspielbar bleiben.
@@ -2404,9 +2409,27 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
       photos: [], attachments: []
     };
     if (withPhotos) {
-      o.photos = db.prepare('SELECT mime_type, data, focus_x, focus_y FROM photos WHERE item_id = ? ORDER BY sort_order, id').all(it.id)
-        .map(p => ({ mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,
-                     data_base64: p.data.toString('base64') }));
+      o.photos = db.prepare('SELECT mime_type, data, thumb, medium, focus_x, focus_y, art, dauer FROM photos WHERE item_id = ? ORDER BY sort_order, id')
+        .all(it.id).map(p => {
+          const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y, art: p.art };
+          if (p.art !== 'video') { z.data_base64 = p.data.toString('base64'); return z; }
+          z.dauer = p.dauer;
+          /* OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN -- ohne Bytes.
+             Sie legt beim Einspielen keinen Platz an (photos.data ist NOT
+             NULL, und ein Videoplatz, der ein Standbild ausliefert, bliebe im
+             Abspieler schwarz), aber der Import kann dadurch NENNEN, wie viele
+             Videos die Datei nicht enthielt. Ohne die Marke wuesste er es
+             nicht, und der Verlust waere still. */
+          if (withVideos) {
+            z.data_base64 = p.data.toString('base64');
+            /* Das Standbild geht EIGENS mit. Der Import erzeugt die Varianten
+               sonst aus data -- bei einem Video also aus der Videodatei, und
+               das Standbild waere verloren. */
+            const sb = p.medium || p.thumb;
+            if (sb) z.standbild_base64 = sb.toString('base64');
+          }
+          return z;
+        });
     }
     if (withFiles) {
       // author wie an den fuenf anderen Traegern; ohne das Feld kaemen
@@ -2441,10 +2464,10 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
   // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
   // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
   // Fallunterscheidung nach Nummer steht.
-  // 9 statt 8, seit die Datei die Gewichte der Kriterien mitnimmt. Die Nummer
-  // sagt, was in der Datei steht, nicht wer sie geschrieben hat -- der Import
-  // liest weiterhin jede aeltere Form.
-  res.json({ exported_at: new Date().toISOString(), title, version: 9,
+  // 10 statt 9, seit die Fotozeilen ihre Art und die Videos ihre Dauer und ihr
+  // Standbild mitnehmen. Die Nummer sagt, was in der Datei steht, nicht wer
+  // sie geschrieben hat -- der Import liest weiterhin jede aeltere Form.
+  res.json({ exported_at: new Date().toISOString(), title, version: 10,
              criteria, criteriaGewichte, items });
 });
 
@@ -2478,20 +2501,50 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
     // bereitliegen. WeakMap geht nicht -- die Objekte werden dort mehrfach
     // nachgeschlagen.
     const kommentarBilder = new Map();
+    /* Die laute Haelfte der Videos: nicht abbrechen, melden -- dieselbe Haltung
+       wie bei unbekannten Verfassernamen und ungueltigen Gewichten. */
+    let videosOhneDatei = 0, videosUnlesbar = 0;
     for (const it of payload.items) {
       const photos = [];
       for (const p of it.photos || []) {
-        if (!p.data_base64) continue;
+        /* ENTSCHIEDEN WIRD UEBER DAS VORHANDENSEIN DER FELDER, nicht ueber die
+           Formatnummer -- die ist im Projekt eine Aussage, keine Bedingung.
+           Eine Datei ohne art an ihren Fotos ist eine aeltere, und alles darin
+           ist ein Bild. */
+        const istVideo = p.art === 'video';
+        if (!p.data_base64) {
+          // Ein Videoplatz ohne Videodatei: so steht er in einer Datei, die
+          // ohne den Schalter geschrieben wurde. Er wird nicht angelegt,
+          // sondern gezaehlt und genannt. HINZUNEHMENDE FOLGE, und sie gehoert
+          // gesagt: stand das Video an erster Stelle, wird das naechste Foto
+          // zum Hauptbild.
+          if (istVideo) videosOhneDatei++;
+          continue;
+        }
         const buf = Buffer.from(p.data_base64, 'base64');
-        const v = await makeVariants(buf);
+        /* Bei einem Video kommen die Varianten aus dem STANDBILD, nie aus
+           data: dort steht die Videodatei. Laesst sich das Standbild nicht
+           durch sharp lesen oder fehlt es, wird die Zeile uebergangen und
+           genannt -- dieselbe Regel wie beim Hochladen. */
+        const quelle = istVideo
+          ? (p.standbild_base64 ? Buffer.from(p.standbild_base64, 'base64') : null)
+          : buf;
+        const v = quelle ? await makeVariants(quelle) : { thumb: null, medium: null };
+        if (istVideo && !v.thumb && !v.medium) { videosUnlesbar++; continue; }
         // Fokuspunkt aus der Datei uebernehmen; aeltere Exportdateien haben
         // ihn nicht und landen auf der Mitte.
         const im = (v2, vorgabe) => {
           const n = Number(v2);
           return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : vorgabe;
         };
-        photos.push({ mime: p.mime_type || 'image/jpeg', buf, thumb: v.thumb, medium: v.medium,
-                      fx: im(p.focus_x, 50), fy: im(p.focus_y, 50) });
+        // Die Dauer ist eine Angabe wie der gemeldete Typ, und sie wird
+        // genauso beschnitten wie beim Hochladen.
+        const d = Math.round(Number(p.dauer));
+        photos.push({ mime: p.mime_type || (istVideo ? 'video/mp4' : 'image/jpeg'),
+                      buf, thumb: v.thumb, medium: v.medium,
+                      fx: im(p.focus_x, 50), fy: im(p.focus_y, 50),
+                      art: istVideo ? 'video' : 'bild',
+                      dauer: istVideo && Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null });
       }
       const attachments = [];
       for (const a2 of it.attachments || []) {
@@ -2522,7 +2575,7 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
       prepared.push({ it, photos, attachments });
     }
 
-    const stats = { items: 0, photos: 0, comments: 0, links: 0, testDays: 0, attachments: 0 };
+    const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0, attachments: 0 };
 
     /* EIN Ort, der aus einem Namen eine Id macht -- die Gegenrichtung
        zur Karte im Export. Die Regel:
@@ -2719,10 +2772,13 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
               .run(einf.lastInsertRowid, b2.name, b2.gross, b2.klein, i));
         }
 
+        // Fortlaufend neu nummeriert: uebergangene Videos hinterlassen keine
+        // Luecke in der Reihenfolge.
         photos.forEach((p, i) =>
-          { db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, sort_order)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-              .run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, i); stats.photos++; });
+          { db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, sort_order, art, dauer)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+              .run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, i, p.art, p.dauer);
+            if (p.art === 'video') stats.videos++; else stats.photos++; });
 
         /* Fehlt das Feld (aeltere Exportdatei oder Export ohne Dateien),
            bleibt der Eintrag einfach ohne Anhaenge.
@@ -2763,9 +2819,20 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
     if (gewichteVerworfen.length)
       console.log(`[Kriterion] Import: ungueltiges Gewicht auf 1,0 zurueckgesetzt ` +
                   `(${gewichteVerworfen.length}): ${gewichteVerworfen.join(', ')}`);
+    /* Und dieselbe Bauform ein drittes Mal, an den Videos. Ein Export ohne den
+       Videoschalter enthaelt ihre Daten nicht; das darf nicht still bleiben,
+       denn stand ein Video an erster Stelle, wird jetzt das naechste Foto zum
+       Hauptbild. Antwort UND Protokoll -- die Antwort fuer den Pruefstand und
+       die Abfrage von Hand, das Protokoll fuer den Betrieb. */
+    if (videosOhneDatei)
+      console.log(`[Kriterion] Import: ${videosOhneDatei} Video(s) waren nicht in der Datei ` +
+                  `enthalten und wurden uebergangen.`);
+    if (videosUnlesbar)
+      console.log(`[Kriterion] Import: ${videosUnlesbar} Video(s) ohne lesbares Standbild ` +
+                  `uebergangen.`);
     res.json({ ok: true, mode, ...stats,
                verfasserZugeordnet: zugeordnet, verfasserUnbekannt: unbekannt,
-               gewichteVerworfen });
+               gewichteVerworfen, videosOhneDatei, videosUnlesbar });
   } catch (e) { next(e); }
 });
 
