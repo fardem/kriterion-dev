@@ -1774,7 +1774,7 @@ const namen = (liste) => liste.map(c => c.name);
   const rufe = [...ohneKommentar.matchAll(/detail\(([^)]+)\)/g)]
     .map(m => m[1]).filter(a => a !== 'id, benutzerId');
   pruefe('Keine Aufrufstelle von detail() ohne Benutzer',
-    rufe.length === 24 && rufe.every(a => /,\s*req\.benutzer\.id\s*$/.test(a)),
+    rufe.length === 25 && rufe.every(a => /,\s*req\.benutzer\.id\s*$/.test(a)),
     `${rufe.length} Aufrufe, ohne Benutzer: ` +
     JSON.stringify(rufe.filter(a => !/,\s*req\.benutzer\.id\s*$/.test(a))));
   pruefe('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
@@ -2437,7 +2437,7 @@ const namen = (liste) => liste.map(c => c.name);
   await gSetz('Optik', 1); await gSetz('Haptik', 1.5);
   await gSetz('Preis', 1); await gSetz('Kundendienst', 1);
   const gAus = (await eRuf('keks-e-eins', 'GET', '/api/export?photos=0')).inhalt;
-  pruefe('Die Formatnummer steht auf 9', gAus?.version === 9, JSON.stringify(gAus?.version));
+  pruefe('Die Formatnummer steht auf 10', gAus?.version === 10, JSON.stringify(gAus?.version));
   pruefe('criteria bleibt eine Liste von Namen',
     Array.isArray(gAus?.criteria) && gAus.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gAus?.criteria));
@@ -2621,7 +2621,7 @@ const namen = (liste) => liste.map(c => c.name);
     e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  pruefe('Die Formatnummer der Datei steht auf 9', e2Aus?.version === 9, JSON.stringify(e2Aus?.version));
+  pruefe('Die Formatnummer der Datei steht auf 10', e2Aus?.version === 10, JSON.stringify(e2Aus?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
@@ -2941,6 +2941,131 @@ const namen = (liste) => liste.map(c => c.name);
     e2Namen('SELECT COUNT(*) n FROM attachments WHERE user_id IS NULL')[0].n === 0,
     JSON.stringify(e2Namen('SELECT id, filename, user_id FROM attachments WHERE user_id IS NULL')));
 
+
+  /* --- Videos in der Exportdatei, Formatnummer 10 -------------------------
+     OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN, ohne Bytes. Sie legt
+     beim Einspielen keinen Platz an -- photos.data ist NOT NULL, und ein
+     Videoplatz, der ein Standbild ausliefert, bliebe im Abspieler schwarz --,
+     aber der Import kann dadurch NENNEN, wie viele Videos die Datei nicht
+     enthielt. Ohne die Marke waere der Verlust still, und still ist er das
+     Schlimmste: stand das Video an erster Stelle, wird danach das naechste
+     Foto zum Hauptbild.
+     Die Prueflage geht ueber einen echten Upload, nicht ueber ein INSERT --
+     nur so stehen Standbild und Varianten wirklich in der Zeile. */
+  /* Die Nummer wird geholt, nicht geraten: die ersetzenden Importe darueber
+     haben die Eintraege neu nummeriert. Und der Titel wird gleich mitgenommen,
+     denn die Zeilen unten suchen danach. */
+  const e2VidItem = e2Namen('SELECT id, title FROM items ORDER BY id LIMIT 1')[0];
+  pruefe('Es gibt einen Eintrag, an den das Video kann', !!e2VidItem,
+    JSON.stringify(e2Namen('SELECT id, title FROM items')));
+  const e2VidHoch = await (async () => {
+    const grenze = '----pruefunge2v' + crypto.randomBytes(6).toString('hex');
+    const teil = (name, dateiname, typ, inhalt) => [
+      Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="${name}"; ` +
+                  `filename="${dateiname}"\r\nContent-Type: ${typ}\r\n\r\n`, 'utf8'),
+      inhalt, Buffer.from('\r\n', 'utf8')];
+    const teile = [
+      ...teil('video', 'clip.mp4', 'video/mp4', MP4()),
+      ...teil('standbild', 'standbild.png', 'image/png', Buffer.from(PNG_BASE64, 'base64')),
+      Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="dauer"\r\n\r\n17\r\n`, 'utf8'),
+      Buffer.from(`--${grenze}--\r\n`, 'utf8')
+    ];
+    const a = await fetch(SE2.basis + `/api/items/${e2VidItem?.id}/videos`, {
+      method: 'POST',
+      headers: { cookie: 'kriterion_session=keks-e2-anna',
+                 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: Buffer.concat(teile)
+    });
+    return { status: a.status, inhalt: await a.json().catch(() => null) };
+  })();
+  pruefe('Die Prueflage traegt wirklich ein Video', e2VidHoch.status === 201,
+    `${e2VidHoch.status}: ${JSON.stringify(e2VidHoch.inhalt?.error)}`);
+
+  const e2OhneVid = (await e2Ruf('keks-e2-anna', 'GET', '/api/export?photos=1')).inhalt;
+  const e2MitVid = (await e2Ruf('keks-e2-anna', 'GET', '/api/export?photos=1&videos=1')).inhalt;
+  const vidZeile = (datei) => (datei?.items?.find(i => i.title === e2VidItem?.title)?.photos || [])
+    .find(p2 => p2.art === 'video');
+  pruefe('Ohne den Schalter steht die Videozeile als Marke in der Datei',
+    !!vidZeile(e2OhneVid) && vidZeile(e2OhneVid).dauer === 17 &&
+    !('data_base64' in vidZeile(e2OhneVid)),
+    JSON.stringify(vidZeile(e2OhneVid)));
+  pruefe('Mit dem Schalter traegt sie die Videodatei UND ihr Standbild',
+    !!vidZeile(e2MitVid)?.data_base64 && !!vidZeile(e2MitVid)?.standbild_base64,
+    JSON.stringify(Object.keys(vidZeile(e2MitVid) || {})));
+  pruefe('Und die Videobytes sind wirklich die hochgeladenen',
+    Buffer.from(vidZeile(e2MitVid)?.data_base64 || '', 'base64').equals(MP4()),
+    `${Buffer.from(vidZeile(e2MitVid)?.data_base64 || '', 'base64').length} Bytes`);
+  const e2VidFotos = (e2MitVid?.items?.find(i => i.title === e2VidItem?.title)?.photos || []);
+  pruefe('Die Videozeile steht dort neben mindestens einer Zeile ueberhaupt',
+    e2VidFotos.length >= 1, JSON.stringify(e2VidFotos.map(p2 => p2.art)));
+  pruefe('Und jede Zeile nennt ihre Art ausdruecklich',
+    e2VidFotos.every(p2 => p2.art === 'bild' || p2.art === 'video'),
+    JSON.stringify(e2VidFotos.map(p2 => p2.art)));
+
+  /* Der Rundlauf mit Videos: ersetzend einspielen und nachsehen, dass Art,
+     Dauer und das Standbild wirklich ankommen. Das Standbild ist der Punkt --
+     ohne das eigene Feld erzeugte der Import die Varianten aus data, also aus
+     der Videodatei, und sie waeren leer. */
+  const e2VidRund = await e2Import('keks-e2-anna', e2MitVid, 'replace');
+  pruefe('Der Rundlauf mit Videos gelingt', e2VidRund.status === 200,
+    JSON.stringify(e2VidRund.inhalt));
+  pruefe('Und er zaehlt das Video eigens, nicht als Foto',
+    e2VidRund.inhalt?.videos === 1 && e2VidRund.inhalt?.photos === 0,
+    JSON.stringify({ videos: e2VidRund.inhalt?.videos, photos: e2VidRund.inhalt?.photos }));
+  const e2VidNach = e2Namen("SELECT art, dauer, length(data) AS d, length(thumb) AS t, length(medium) AS m FROM photos WHERE art = 'video'");
+  pruefe('Die eingespielte Zeile ist ueberhaupt da', e2VidNach.length === 1,
+    JSON.stringify(e2VidNach));
+  pruefe('Sie traegt Art, Dauer, Videodatei UND beide Standbildvarianten',
+    e2VidNach[0]?.art === 'video' && e2VidNach[0]?.dauer === 17 &&
+    e2VidNach[0]?.d === MP4().length && e2VidNach[0]?.t > 0 && e2VidNach[0]?.m > 0,
+    JSON.stringify(e2VidNach));
+
+  /* Und dieselbe Datei OHNE die Videobytes: kein Platz, aber eine Meldung.
+     Nicht abbrechen, melden -- dieselbe Haltung wie bei unbekannten
+     Verfassernamen und ungueltigen Gewichten. */
+  const e2VidOhne = await e2Import('keks-e2-anna', e2OhneVid, 'replace');
+  pruefe('Eine Datei ohne Videobytes laesst sich trotzdem einspielen',
+    e2VidOhne.status === 200, JSON.stringify(e2VidOhne.inhalt));
+  pruefe('Und sie nennt in der Antwort, wie viele Videos gefehlt haben',
+    e2VidOhne.inhalt?.videosOhneDatei === 1 && e2VidOhne.inhalt?.videos === 0,
+    JSON.stringify({ ohne: e2VidOhne.inhalt?.videosOhneDatei, videos: e2VidOhne.inhalt?.videos }));
+  pruefe('In der Datenbank steht danach keine Videozeile',
+    e2Namen("SELECT COUNT(*) n FROM photos WHERE art = 'video'")[0].n === 0,
+    JSON.stringify(e2Namen('SELECT art FROM photos')));
+
+  /* Ein Video, dessen Standbild sich nicht durch sharp lesen laesst, wird
+     uebergangen und genannt -- dieselbe Regel wie beim Hochladen. */
+  const e2VidKaputt = await e2Import('keks-e2-anna', { version: 10, title: 'K', items: [{
+    title: 'Mit kaputtem Standbild',
+    photos: [{ art: 'video', dauer: 3, mime_type: 'video/mp4',
+               data_base64: MP4().toString('base64'),
+               standbild_base64: Buffer.from('kein Bild, nur Text').toString('base64') }]
+  }] }, 'merge');
+  pruefe('Ein unlesbares Standbild bricht den Import nicht ab',
+    e2VidKaputt.status === 200, JSON.stringify(e2VidKaputt.inhalt));
+  pruefe('Es wird uebergangen und genannt',
+    e2VidKaputt.inhalt?.videosUnlesbar === 1 && e2VidKaputt.inhalt?.videos === 0,
+    JSON.stringify({ unlesbar: e2VidKaputt.inhalt?.videosUnlesbar, videos: e2VidKaputt.inhalt?.videos }));
+
+  /* EINE AELTERE DATEI OHNE art AN IHREN FOTOS: alles darin ist ein Bild.
+     Entschieden wird ueber das Vorhandensein der Felder, nicht ueber die
+     Formatnummer -- die ist im Projekt eine Aussage, keine Bedingung.
+     Die Datei nennt hier ausdruecklich version 9, also die von vorher. */
+  const e2VidAlt = await e2Import('keks-e2-anna', { version: 9, title: 'A9', items: [{
+    title: 'Aus einer Datei ohne art',
+    photos: [{ mime_type: 'image/png', data_base64: PNG_BASE64 }]
+  }] }, 'merge');
+  pruefe('Eine aeltere Datei ohne art laesst sich einspielen',
+    e2VidAlt.status === 200 && e2VidAlt.inhalt?.photos === 1,
+    JSON.stringify(e2VidAlt.inhalt));
+  pruefe('Und alles darin ist ein Bild',
+    e2Namen("SELECT p.art FROM photos p JOIN items i ON i.id = p.item_id " +
+            "WHERE i.title = 'Aus einer Datei ohne art'").every(z => z.art === 'bild') &&
+    e2Namen("SELECT p.art FROM photos p JOIN items i ON i.id = p.item_id " +
+            "WHERE i.title = 'Aus einer Datei ohne art'").length === 1,
+    JSON.stringify(e2Namen("SELECT p.art FROM photos p JOIN items i ON i.id = p.item_id " +
+                           "WHERE i.title = 'Aus einer Datei ohne art'")));
+
   await SE2.stopp();
   fs.rmSync(e2Dir, { recursive: true, force: true });
 
@@ -3185,6 +3310,55 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Das Foto steht noch, mit unveraendertem Fokuspunkt',
     gleich(fZeilen('SELECT focus_x, focus_y FROM photos WHERE id = 1'), [{ focus_x: 50, focus_y: 50 }]),
     JSON.stringify(fZeilen('SELECT focus_x, focus_y FROM photos')));
+
+  /* ---- Das Video, seit 0.8.50 an der Stelle des Fotos --------------------
+     NICHT wie die Datei umgedreht: ein Video haengt am Eintrag und gehoert
+     damit seinem Verfasser, genau wie ein Foto. Wer den Eintrag aendern darf,
+     darf Videos hinzufuegen; sonst niemand.
+     MIT ECHTEM MEHRTEILIGEM UPLOAD, nicht mit einem nachgereichten INSERT:
+     der Waechter steht VOR multer, und ein INSERT liefe an beidem vorbei
+     (die Lehre aus 0.8.31). Und zu jeder Verweigerung der Erfolgsfall
+     daneben -- sonst bliebe die Absage auch dann gruen, wenn ueberhaupt
+     nichts mehr hochladbar waere (Stolperstein 81). */
+  const fVideoAn = async (keksWert, itemId) => {
+    const grenze = '----pruefungv' + crypto.randomBytes(6).toString('hex');
+    const teil = (name, dateiname, typ, inhalt) => [
+      Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="${name}"; ` +
+                  `filename="${dateiname}"\r\nContent-Type: ${typ}\r\n\r\n`, 'utf8'),
+      inhalt, Buffer.from('\r\n', 'utf8')];
+    const teile = [
+      ...teil('video', 'clip.mp4', 'video/mp4', MP4()),
+      ...teil('standbild', 'standbild.jpg', 'image/jpeg', Buffer.from(PNG_BASE64, 'base64')),
+      Buffer.from(`--${grenze}\r\nContent-Disposition: form-data; name="dauer"\r\n\r\n5\r\n`, 'utf8'),
+      Buffer.from(`--${grenze}--\r\n`, 'utf8')
+    ];
+    const a = await fetch(F.basis + `/api/items/${itemId}/videos`, {
+      method: 'POST',
+      headers: { cookie: `kriterion_session=${keksWert}`,
+                 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: Buffer.concat(teile)
+    });
+    return { status: a.status, inhalt: await a.json().catch(() => null) };
+  };
+  const fVorher = fZeilen('SELECT id FROM photos WHERE item_id = 2').length;
+  const fVideoFremd = await fVideoAn('keks-f-carla', 2);
+  pruefe('Ein Fremder laedt kein Video an einen fremden Eintrag', fVideoFremd.status === 403,
+    `Status ${fVideoFremd.status}`);
+  // Die Nachschau: nach dem 403 steht KEINE Zeile in photos.
+  pruefe('Und nach der Absage steht keine neue Zeile in photos',
+    fZeilen('SELECT id FROM photos WHERE item_id = 2').length === fVorher,
+    JSON.stringify(fZeilen("SELECT id, art FROM photos WHERE item_id = 2")));
+  const fVideoEigen = await fVideoAn('keks-f-bert', 2);
+  pruefe('Der Verfasser des Eintrags dagegen schon', fVideoEigen.status === 201,
+    `Status ${fVideoEigen.status}: ${JSON.stringify(fVideoEigen.inhalt?.error)}`);
+  const fVideoZeile = fEine("SELECT id, art, dauer FROM photos WHERE item_id = 2 AND art = 'video'");
+  pruefe('Und die Zeile traegt art = video mit ihrer Dauer',
+    fVideoZeile?.art === 'video' && fVideoZeile?.dauer === 5, JSON.stringify(fVideoZeile));
+  const fVideoWeg = await fRuf('keks-f-carla', 'DELETE', `/api/photos/${fVideoZeile?.id}`);
+  pruefe('Ein Fremder loescht auch kein fremdes Video', fVideoWeg.status === 403,
+    `Status ${fVideoWeg.status}`);
+  pruefe('Und das Video liegt noch da',
+    fZeilen('SELECT id FROM photos WHERE id = ?', fVideoZeile?.id).length === 1);
 
   /* ---- Die Datei, seit 0.8.31 der sechste Traeger ------------------------
      UMGEDREHT MIT 0.8.31, NICHT GELOESCHT (Stolperstein 74): bis 0.8.30 stand
@@ -4254,6 +4428,11 @@ const namen = (liste) => liste.map(c => c.name);
     ['PUT',    '/api/items/:id',                 'im Rumpf'],
     ['DELETE', '/api/items/:id',                 'nurEintragVerfasser'],
     ['POST',   '/api/items/:id/photos',          'nurEintragVerfasser'],
+    // Eigene Route statt der erweiterten Fotoroute: deren fileFilter auf
+    // ^image\/ zu lockern naehme die erste Schranke dem Fotoweg mit ab.
+    // Dieselbe Klemme wie dort -- wer den Eintrag aendern darf, darf Videos
+    // hinzufuegen, sonst niemand.
+    ['POST',   '/api/items/:id/videos',          'nurEintragVerfasser'],
     ['PUT',    '/api/photos/:id/focus',          'im Rumpf'],
     // Hochladen darf jeder -- umgestellt mit 0.8.31, aus demselben Grund wie
     // beim Link: eine Datei erscheint nur dort, wo man sie hinsetzt.
@@ -4310,13 +4489,12 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Der Pruefstand kennt jede schreibende Route',
     fUnbekannt.length === 0 && fVerschwunden.length === 0,
     `ohne Entscheidung: ${fUnbekannt.join(' · ') || '—'} · verschwunden: ${fVerschwunden.join(' · ') || '—'}`);
-  /* Die ZAHL selbst, ausdruecklich: 0.8.40 ist die erste Runde seit langem,
-     die keine schreibende Route hinzufuegt -- das Gewicht geht ueber
-     PUT /api/criteria/:id, die es laengst gibt und die laengst hinter
-     nurAdmin steht. Bleibt die Zahl stehen, hat sich am Rechtebild nichts
-     verschoben; waechst sie unbemerkt, faellt genau das hier auf. */
-  pruefe('Und es sind weiterhin genau 46 schreibende Routen',
-    F_ROUTEN.length === 46 && fGefunden.length === 46,
+  /* Die ZAHL selbst, ausdruecklich: 0.8.50 bringt EINE neue schreibende Route
+     mit, den Videoweg -- 46 werden 47. Bleibt die Zahl stehen, hat sich am
+     Rechtebild nichts verschoben; waechst sie unbemerkt, faellt genau das
+     hier auf. */
+  pruefe('Und es sind weiterhin genau 47 schreibende Routen',
+    F_ROUTEN.length === 47 && fGefunden.length === 47,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
@@ -4524,11 +4702,21 @@ const namen = (liste) => liste.map(c => c.name);
      einen der beiden Wege in anhaenge.js entscheiden: Typ nach Endung
      (setzeKopfzeilen) oder Typ nach den ersten Bytes (setzeBildKopfzeilen).
      Gezaehlt wird woertlich, ohne zusammengesetztes Muster. */
-  const fTypSelbst = ["res.set('Content-Type'", 'res.set("Content-Type"',
-                      "res.setHeader('Content-Type'", 'res.type(']
-    .map(z => [z, fQuelle.split(z).length - 1]).filter(([, n]) => n > 0);
+  const TYP_WOERTER = ["res.set('Content-Type'", 'res.set("Content-Type"',
+                      "res.setHeader('Content-Type'", 'res.type('];
+  const typZaehle = (text) => TYP_WOERTER
+    .map(z => [z, text.split(z).length - 1]).filter(([, n]) => n > 0);
+  const fTypSelbst = typZaehle(fQuelle);
   pruefe('server.js setzt den Content-Type an keiner Stelle selbst',
     fTypSelbst.length === 0, fTypSelbst.map(([z, n]) => `${z} (${n}x)`).join(' · '));
+  /* DIE GEGENPROBE ZUM WAECHTER SELBST. Ohne sie bliebe er auch dann gruen,
+     wenn er gar nichts mehr sieht -- und genau das ist der Fall, den 0.8.50
+     erwartet hat: wer den Videoweg baut und dabei den Typ selbst setzt, soll
+     namentlich rot werden. Vorgefuehrt an einem Text, der die Verletzung
+     traegt, statt an einer zurueckgebauten Datei. */
+  pruefe('Und er wuerde eine ergaenzte Auslieferung wirklich finden',
+    typZaehle("app.get('/x', (req, res) => { res.set('Content-Type', 'video/mp4'); });").length === 1,
+    'der Waechter sieht die Verletzung nicht');
   const fAnhQuelle = fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8');
   // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne die
   // Funktion belegte die Zeile darunter nichts.
@@ -5662,28 +5850,45 @@ const namen = (liste) => liste.map(c => c.name);
       INSERT INTO rating_criteria_0820 (name, sort_order) VALUES ('Beides', 0);
       DROP TABLE rating_criteria;
       ALTER TABLE rating_criteria_0820 RENAME TO rating_criteria;
+      CREATE TABLE photos_0820 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+        mime_type TEXT NOT NULL, data BLOB NOT NULL, thumb BLOB, medium BLOB,
+        focus_x REAL NOT NULL DEFAULT 50, focus_y REAL NOT NULL DEFAULT 50,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')));
+      INSERT INTO photos_0820 (item_id, mime_type, data, sort_order)
+        VALUES (1, 'image/png', x'89504e470d0a1a0a', 0);
+      DROP TABLE photos;
+      ALTER TABLE photos_0820 RENAME TO photos;
     `);
     d.close();
     const uBeideAus = uLauf(uBeide);
     pruefe('Ein Sprung von 0.8.20 faehrt ALLE Umstiege in einem Start',
       /links um user_id ergaenzt/.test(uBeideAus) &&
       /attachments um user_id ergaenzt/.test(uBeideAus) &&
-      /rating_criteria um gewicht ergaenzt/.test(uBeideAus),
+      /rating_criteria um gewicht ergaenzt/.test(uBeideAus) &&
+      /photos um art und dauer ergaenzt/.test(uBeideAus),
       JSON.stringify(uBeideAus.trim()));
     const d2 = oeffne(path.join(uBeide, 'katalog.sqlite'));
     const uBeideZeilen = [
       d2.prepare(`SELECT u.username FROM links l LEFT JOIN users u ON u.id = l.user_id`).get()?.username,
       d2.prepare(`SELECT u.username FROM attachments a LEFT JOIN users u ON u.id = a.user_id`).get()?.username
     ];
-    let uBeideGewicht = [];
+    let uBeideGewicht = [], uBeideFotos = [];
     try { uBeideGewicht = d2.prepare('SELECT name, gewicht FROM rating_criteria').all(); }
     catch { /* die Spalte fehlt -- die Pruefung darauf wird rot */ }
+    try { uBeideFotos = d2.prepare('SELECT art, dauer FROM photos').all(); }
+    catch { /* dieselbe Abfangung, aus demselben Grund */ }
     d2.close();
     pruefe('Und beide Zeilen landen beim Verfasser ihres Eintrags',
       gleich(uBeideZeilen, ['bert', 'bert']), JSON.stringify(uBeideZeilen));
     pruefe('Und das Kriterium traegt danach das Vorgabegewicht',
       uBeideGewicht.length === 1 && uBeideGewicht[0].gewicht === 1,
       JSON.stringify(uBeideGewicht));
+    pruefe('Und das Foto traegt danach die Vorgabeart',
+      uBeideFotos.length === 1 && uBeideFotos[0].art === 'bild' && uBeideFotos[0].dauer === null,
+      JSON.stringify(uBeideFotos));
     fs.rmSync(uBeide, { recursive: true, force: true });
   }
   fs.rmSync(u31Dir, { recursive: true, force: true });
@@ -5897,6 +6102,237 @@ const namen = (liste) => liste.map(c => c.name);
     u40BauFrisch.ausserhalb === 'geht durch', JSON.stringify(u40BauFrisch.ausserhalb));
   fs.rmSync(u40Dir, { recursive: true, force: true });
   fs.rmSync(u40FrischDir, { recursive: true, force: true });
+
+  /* ================================================================
+     UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Umstiegscode
+     verschwindet, steht beieinander und traegt dieselbe Marke.
+     ================================================================ */
+  gruppe('UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0');
+
+  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
+     aus 0.8.0 bis 0.8.40 -- dieselbe Anlage, nur ohne art und dauer an photos.
+     UND MIT FOTOS DARIN: eine leere Tabelle bewiese nichts ueber die Vorgabe
+     (Stolperstein 81).
+     KEINE FRAGE NACH EINEM VERFASSER, wie schon bei 0.8.40: ein Foto gehoert
+     seinem Eintrag, nicht einem Verfasser -- Fotos sind kein Traeger. Die
+     Frage ist gestellt und verneint, und der Waechter weiter unten haelt es
+     fest. */
+  const u50Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-umstieg0850-'));
+  const u50FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0850-'));
+  const u50Spalten = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
+    d.close();
+    return sp;
+  };
+  /* Abgefangen wie jede Lesestelle auf eine neue Spalte: fehlt sie, werden die
+     Pruefungen darunter rot, statt den Lauf abzureissen und KEINEN Namen zu
+     nennen (Stolperstein 103; in 0.8.40 hat genau das zugeschlagen). */
+  const u50Zeilen = (verzeichnis = u50Dir) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    let z = [];
+    try { z = d.prepare('SELECT id, art, dauer FROM photos ORDER BY sort_order, id').all(); }
+    catch { /* eine der Spalten fehlt -- die Pruefungen darunter werden rot */ }
+    d.close();
+    return z;
+  };
+  /* Eine Anlage aus 0.8.40 nachbauen: Tabellenneubau statt
+     ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
+     darueber -- SQLite prueft nach dem Entfernen den verbliebenen DDL-Text,
+     und der traegt hier Kommentare. Ausserhalb jeder Transaktion, sonst waere
+     das PRAGMA ein stiller No-op (Stolperstein 12).
+     `welche` sagt, welche der beiden Spalten die Prueflage NICHT hat -- damit
+     laesst sich belegen, dass jede EINZELN nachgeruestet wird. */
+  const u50Rueckbau = (verzeichnis, welche) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const zusatz = [
+      welche.includes('art') ? '' : "art TEXT NOT NULL DEFAULT 'bild',",
+      welche.includes('dauer') ? '' : 'dauer INTEGER,'
+    ].join(' ');
+    d.pragma('foreign_keys = OFF');
+    d.exec(`
+      CREATE TABLE photos_0840 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+        mime_type TEXT NOT NULL,
+        data BLOB NOT NULL,
+        thumb BLOB,
+        medium BLOB,
+        ${zusatz}
+        focus_x REAL NOT NULL DEFAULT 50,
+        focus_y REAL NOT NULL DEFAULT 50,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO photos_0840 (item_id, mime_type, data, sort_order)
+        VALUES (1, 'image/png', x'89504e470d0a1a0a', 0),
+               (1, 'image/jpeg', x'ffd8ffe000104a46', 1);
+      DROP TABLE photos;
+      ALTER TABLE photos_0840 RENAME TO photos;
+      CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);
+    `);
+    d.close();
+  };
+
+  uLauf(u50Dir);
+  {
+    const d = oeffne(path.join(u50Dir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Bestandseintrag', 1)").run();
+    d.close();
+  }
+  u50Rueckbau(u50Dir, ['art', 'dauer']);
+  pruefe('Die Prueflage traegt beide Spalten wirklich nicht',
+    !u50Spalten(u50Dir).includes('art') && !u50Spalten(u50Dir).includes('dauer'),
+    u50Spalten(u50Dir).join(', '));
+  /* Und sie traegt wirklich Fotos -- ohne diese Zeile stuende der Beleg unten
+     auf null Zeilen und bliebe gruen, ohne etwas zu belegen (Stolperstein 81).
+     Eigene Abfrage, weil u50Zeilen() Spalten liest, die es hier nicht gibt. */
+  {
+    const d = oeffne(path.join(u50Dir, 'katalog.sqlite'));
+    const n = d.prepare('SELECT COUNT(*) AS n FROM photos').get().n;
+    d.close();
+    pruefe('Und sie traegt zwei Fotos', n === 2, `${n} Fotos`);
+  }
+
+  const u50Ausgabe = uLauf(u50Dir);
+  pruefe('Der Umstieg ergaenzt beide Spalten im Bestand',
+    u50Spalten(u50Dir).includes('art') && u50Spalten(u50Dir).includes('dauer'),
+    u50Spalten(u50Dir).join(', '));
+  pruefe('Er sagt im Protokoll, was er getan hat',
+    /photos um art und dauer ergaenzt/.test(u50Ausgabe), JSON.stringify(u50Ausgabe.trim()));
+
+  /* DER KERN DIESES ABSCHNITTS. Jeder andere Wert als 'bild' machte aus jedem
+     vorhandenen Foto still ein Video -- und die Auslieferung boete danach
+     Bereiche an einer Datei an, die keine ist. dauer bleibt NULL: ein Foto hat
+     keine Dauer. Erst auf Vorhandensein, dann auf die Eigenschaft. */
+  pruefe('Die beiden Bestandszeilen stehen auf bild, ohne Dauer',
+    u50Zeilen().length === 2 && u50Zeilen().every(z => z.art === 'bild' && z.dauer === null),
+    JSON.stringify(u50Zeilen()));
+  /* Und die Vorgabe kommt aus dem DEFAULT der Spalte, nicht aus einem
+     nachgeschobenen UPDATE: db.js schreibt nach dem ALTER TABLE nichts mehr an
+     diese Tabelle. Nachgestellt am Quelltext, nicht geglaubt. */
+  {
+    const u50Quelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const u50Block = u50Quelle.slice(u50Quelle.indexOf('// UMSTIEG 0.8.50'),
+                                     u50Quelle.indexOf('// ENDE UMSTIEG 0.8.50'));
+    pruefe('Die Vorgabe kommt aus dem DEFAULT, nicht aus einem UPDATE',
+      u50Block.includes("DEFAULT 'bild'") && !/UPDATE\s+photos/i.test(u50Block),
+      JSON.stringify(u50Block.slice(0, 80)));
+    /* JEDE SPALTE WIRD EINZELN GEFRAGT. Ein Block, der beim Vorhandensein von
+       art zurueckkehrt, liesse dauer fehlen, wenn ein Lauf dazwischen
+       abgebrochen ist -- nachgemessen: zwei ALTER TABLE sind zwei Anweisungen,
+       und scheitert die zweite, bleibt die erste stehen. */
+    pruefe('Der Block fragt jede Spalte einzeln ab',
+      (u50Block.match(/spalten\.includes\(/g) || []).length === 2,
+      `${(u50Block.match(/spalten\.includes\(/g) || []).length} Abfragen`);
+    /* ordneBestandZu() wird ausdruecklich NICHT angefasst: dort geht es um
+       user_id und um die Frage, wem eine herrenlose Zeile gehoert. Ein Foto
+       gehoert seinem Eintrag, nicht einem Verfasser. */
+    const u50Auffang = u50Quelle.slice(u50Quelle.indexOf('function ordneBestandZu'),
+                                       u50Quelle.indexOf('ordneBestandZu();'));
+    pruefe('Das Auffangnetz kennt photos nicht',
+      !u50Auffang.includes('photos'), 'photos steht in ordneBestandZu()');
+  }
+
+  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
+  const u50Zweitens = uLauf(u50Dir);
+  pruefe('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
+    !/photos um /.test(u50Zweitens), JSON.stringify(u50Zweitens.trim()));
+  pruefe('Und die Zeilen sind dabei unangetastet geblieben',
+    u50Zeilen().length === 2 && u50Zeilen().every(z => z.art === 'bild'),
+    JSON.stringify(u50Zeilen()));
+
+  /* JEDE DER BEIDEN SPALTEN WIRD EINZELN NACHGERUESTET -- nachgestellt, nicht
+     nur am Quelltext gelesen. Das ist der zerrissene Stand, den ein Block mit
+     einer einzigen Abfrage fuer immer stehen liesse. */
+  for (const [fehlt, daneben] of [[['art'], 'dauer'], [['dauer'], 'art']]) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `kriterion-u50-${fehlt[0]}-`));
+    uLauf(dir);
+    {
+      const d = oeffne(path.join(dir, 'katalog.sqlite'));
+      d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+      d.prepare("INSERT INTO items (title, user_id) VALUES ('Halb', 1)").run();
+      d.close();
+    }
+    u50Rueckbau(dir, fehlt);
+    pruefe(`Die halbe Prueflage traegt ${daneben}, aber nicht ${fehlt[0]}`,
+      u50Spalten(dir).includes(daneben) && !u50Spalten(dir).includes(fehlt[0]),
+      u50Spalten(dir).join(', '));
+    const ausgabe = uLauf(dir);
+    pruefe(`Der Umstieg ruestet ${fehlt[0]} einzeln nach`,
+      u50Spalten(dir).includes(fehlt[0]) &&
+      new RegExp(`photos um ${fehlt[0]} ergaenzt`).test(ausgabe),
+      `${u50Spalten(dir).join(', ')} / ${JSON.stringify(ausgabe.trim())}`);
+    pruefe(`Und die Bestandszeilen stehen danach richtig da (${fehlt[0]} fehlte)`,
+      u50Zeilen(dir).length === 2 &&
+      u50Zeilen(dir).every(z => z.art === 'bild' && z.dauer === null),
+      JSON.stringify(u50Zeilen(dir)));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  /* Die frische Anlage bekommt die Spalten aus der DDL, nicht aus dem Umstieg.
+     Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt -- und
+     zu 1.0 faellt der Umstieg weg, die Spalten muessen bleiben. */
+  const u50Frisch = uLauf(u50FrischDir);
+  pruefe('Eine frische Anlage traegt beide Spalten ohne Umstieg',
+    u50Spalten(u50FrischDir).includes('art') && u50Spalten(u50FrischDir).includes('dauer') &&
+    !/photos um /.test(u50Frisch),
+    `${u50Spalten(u50FrischDir).join(', ')} / ${JSON.stringify(u50Frisch.trim())}`);
+  /* Und migrierte und frische Anlage bauen die Spalten gleich. Nachgesehen
+     wird das VERHALTEN, nicht der DDL-Text: das Wort CHECK steht im Kommentar
+     an der Spalte, und ein Waechter ueber den Text faerbte sich daran
+     (Stolperstein 106). Eine dritte Art muss direkt in der Datenbank
+     durchgehen -- die Menge der erlaubten Werte steht im Server, an einer
+     Stelle, und nicht ein zweites Mal im Schema. */
+  const u50Bau = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(photos)').all();
+    const art = sp.find(c => c.name === 'art'), dauer = sp.find(c => c.name === 'dauer');
+    const versuch = (sql) => {
+      try { d.prepare(sql).run(); return 'geht durch'; }
+      catch (e) { return /no such column/i.test(e.message) ? 'keine Spalte' : 'abgewiesen'; }
+    };
+    d.prepare("INSERT INTO items (id, title) VALUES (900, 'Bauprobe') ON CONFLICT(id) DO NOTHING").run();
+    const dritteArt = versuch(
+      "INSERT INTO photos (item_id, mime_type, data, art) VALUES (900, 'x', x'00', 'dritte')");
+    const leer = versuch(
+      "INSERT INTO photos (item_id, mime_type, data, art) VALUES (900, 'x', x'00', NULL)");
+    d.prepare('DELETE FROM photos WHERE item_id = 900').run();
+    d.prepare('DELETE FROM items WHERE id = 900').run();
+    d.close();
+    return { artNotnull: art?.notnull, artVorgabe: String(art?.dflt_value),
+             dauerNotnull: dauer?.notnull, dritteArt, leer };
+  };
+  const u50BauMigriert = u50Bau(u50Dir), u50BauFrisch = u50Bau(u50FrischDir);
+  pruefe('Migrierte und frische Anlage bauen die Spalten gleich',
+    gleich(u50BauMigriert, u50BauFrisch),
+    `${JSON.stringify(u50BauMigriert)} gegen ${JSON.stringify(u50BauFrisch)}`);
+  pruefe('art ist NOT NULL mit Vorgabe bild, dauer darf leer bleiben',
+    u50BauFrisch.artNotnull === 1 && u50BauFrisch.artVorgabe === "'bild'" &&
+    u50BauFrisch.dauerNotnull === 0 && u50BauFrisch.leer === 'abgewiesen',
+    JSON.stringify(u50BauFrisch));
+  /* KEIN CHECK -- und zwar nicht, weil SQLite keinen nachruesten koennte
+     (Stolperstein 107: ADD COLUMN nimmt einen an), sondern weil die Menge der
+     erlaubten Werte dann zweimal stuende. Zwei Stellen fuer dieselbe Liste
+     laufen auseinander. */
+  pruefe('Und art traegt keinen CHECK -- die Menge steht allein im Server',
+    u50BauFrisch.dritteArt === 'geht durch', JSON.stringify(u50BauFrisch.dritteArt));
+  /* Ein Index ueber art bringt nichts: die Zeilen je Eintrag sind einstellig,
+     und gefiltert wird nirgends nach Art. Der vorhandene Index bleibt, wie er
+     ist -- und dass er den Tabellenneubau der Prueflage ueberlebt hat, steht
+     hier gleich mit. */
+  {
+    const d = oeffne(path.join(u50FrischDir, 'katalog.sqlite'));
+    const idx = d.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'photos'")
+      .all().map(z => z.name);
+    d.close();
+    pruefe('Der Index auf photos ist unveraendert der eine von vorher',
+      idx.includes('idx_photos_item') && !idx.some(n => /art/i.test(n)), idx.join(', '));
+  }
+  fs.rmSync(u50Dir, { recursive: true, force: true });
+  fs.rmSync(u50FrischDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   gruppe('Anordnung der Blöcke');
@@ -6487,6 +6923,309 @@ const namen = (liste) => liste.map(c => c.name);
     altSvg?.mime_type === 'image/svg+xml', altSvg?.mime_type);
   await ruf('DELETE', `/api/items/${fo.id}`);
 
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Videos am Fotoplatz');
+
+  /* DIESELBE TABELLE, KEINE ZWEITE. Ein Video steht in derselben Reihe wie die
+     Fotos -- daraus folgt, dass Reihenfolge, Kaskade, Fokuspunkt und
+     Verschluesselung von selbst greifen. Was NICHT von selbst greift, steht
+     weiter unten: Loeschdialog, Kennzahlen und die Auslieferung.
+     DIE PRUEFLAGE TRAEGT BEIDES, und das Video ausdruecklich NICHT an erster
+     Stelle: nur so lassen sich Hauptbild und Abspielzeichen unabhaengig
+     voneinander belegen. */
+  const vi = (await ruf('POST', '/api/items', { title: 'Videoprobe' })).inhalt;
+  await sendeMehrteilig(`/api/items/${vi.id}/photos`, 'photos',
+    [{ name: 'eins.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
+  const vHoch = await sendeVideo(vi.id, { dauer: 42 });
+  pruefe('Ein echtes MP4 mit Standbild geht durch', vHoch.status === 201,
+    `${vHoch.status}: ${JSON.stringify(vHoch.inhalt?.error)}`);
+  // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne die
+  // Zeile belegte alles Weitere nichts.
+  pruefe('Der Eintrag traegt jetzt zwei Zeilen, Foto und Video',
+    vHoch.inhalt?.photos?.length === 2, JSON.stringify(vHoch.inhalt?.photos?.length));
+  const vFoto = vHoch.inhalt?.photos?.[0], vVideo = vHoch.inhalt?.photos?.[1];
+
+  /* ZU JEDEM FELD, DAS DIE OBERFLAECHE LIEST, EINE PRUEFUNG AN DER ECHTEN
+     ANTWORT (Stolperstein 102): woran sie ein Video erkennt, ist allein art. */
+  pruefe('Die Videozeile nennt ihre Art und ihre Dauer',
+    vVideo?.art === 'video' && vVideo?.dauer === 42,
+    JSON.stringify({ art: vVideo?.art, dauer: vVideo?.dauer }));
+  pruefe('Die Fotozeile daneben nennt bild und keine Dauer',
+    vFoto?.art === 'bild' && vFoto?.dauer === null,
+    JSON.stringify({ art: vFoto?.art, dauer: vFoto?.dauer }));
+  pruefe('Das Video haengt sich hinten an, in derselben Nummerierung',
+    vFoto?.sort_order === 0 && vVideo?.sort_order === 1,
+    JSON.stringify([vFoto?.sort_order, vVideo?.sort_order]));
+
+  /* DER INHALT ENTSCHEIDET, nicht die Endung im Namen. Beide Richtungen, sonst
+     belegte die eine nichts ueber die andere. */
+  const vFalscheEndung = await sendeVideo(vi.id, { name: 'gar-kein-video.txt' });
+  pruefe('Videobytes unter falscher Endung kommen trotzdem herein',
+    vFalscheEndung.status === 201, `${vFalscheEndung.status}: ${JSON.stringify(vFalscheEndung.inhalt?.error)}`);
+  const vBildBytes = await sendeVideo(vi.id, { video: Buffer.from(PNG_BASE64, 'base64') });
+  pruefe('Bildbytes unter Videoendung dagegen nicht', vBildBytes.status === 400,
+    `${vBildBytes.status}: ${JSON.stringify(vBildBytes.inhalt)}`);
+  const vWebm = await sendeVideo(vi.id, { video: WEBM(), name: 'clip.webm', typ: 'video/webm', dauer: 7 });
+  pruefe('Eine echte WebM geht ebenfalls durch', vWebm.status === 201,
+    `${vWebm.status}: ${JSON.stringify(vWebm.inhalt?.error)}`);
+
+  // Das Standbild geht denselben Weg wie jedes Foto: was sharp nicht als Bild
+  // lesen kann, kommt nicht herein.
+  const vOhneSb = await sendeVideo(vi.id, { ohneStandbild: true });
+  pruefe('Ohne Standbild kein Video', vOhneSb.status === 400,
+    `${vOhneSb.status}: ${JSON.stringify(vOhneSb.inhalt)}`);
+  const vKaputtesSb = await sendeVideo(vi.id, { standbild: Buffer.from('kein Bild, nur Text') });
+  pruefe('Ein unlesbares Standbild wird abgewiesen', vKaputtesSb.status === 400,
+    `${vKaputtesSb.status}: ${JSON.stringify(vKaputtesSb.inhalt)}`);
+  // Die grobe erste Schranke am gemeldeten Typ, wie am Fotoweg.
+  const vFalschesFeld = await sendeVideo(vi.id, { typ: 'text/plain' });
+  pruefe('Ein Feld, das sich nicht als Video meldet, faellt schon vor multer',
+    vFalschesFeld.status === 400, `${vFalschesFeld.status}`);
+  // Die Grenze steht an genau einer Stelle im Server; hier wird sie gereizt.
+  const vZuGross = await sendeVideo(vi.id,
+    { video: Buffer.concat([MP4(), Buffer.alloc(20 * 1024 * 1024)]) });
+  pruefe('Ein Video ueber 20 MB wird abgewiesen', vZuGross.status === 400,
+    `${vZuGross.status}: ${JSON.stringify(vZuGross.inhalt)}`);
+
+  // Die Nachschau: die abgewiesenen Vorgaenge sind auch wirklich nicht
+  // angekommen. Durch sollen genau vier Zeilen sein -- Foto, MP4, MP4 unter
+  // falscher Endung, WebM.
+  const vStand = (await ruf('GET', `/api/items/${vi.id}`)).inhalt;
+  pruefe('Nur die vier gueltigen Zeilen stehen da',
+    vStand.photos.length === 4 &&
+    gleich(vStand.photos.map(p2 => p2.art), ['bild', 'video', 'video', 'video']),
+    JSON.stringify(vStand.photos.map(p2 => p2.art)));
+
+  /* REIHENFOLGE, KASKADE UND LOESCHEN GELTEN VON SELBST -- sie arbeiten auf
+     Zeilen, nicht auf Arten. Belegt statt behauptet: umsortieren, loeschen,
+     und die Nummerierung bleibt lueckenlos. */
+  /* JEDE LESESTELLE ABGEFANGEN (Stolperstein 103): kam oben nichts herein,
+     werden die Pruefungen hier rot, statt den Lauf abzureissen und KEINEN
+     Namen zu nennen. Genau das hat eine Gegenprobe dieser Runde ausgeloest. */
+  const vIds = vStand.photos.map(p2 => p2.id);
+  const vNeu = [vIds[1], vIds[0], vIds[2], vIds[3]].filter(x => x !== undefined);
+  const vSort = await ruf('PUT', `/api/items/${vi.id}/photo-order`, { order: vNeu });
+  pruefe('Ein Video laesst sich vor ein Foto ziehen',
+    vSort.inhalt?.photos?.[0]?.art === 'video' && vSort.inhalt?.photos?.[1]?.art === 'bild',
+    JSON.stringify(vSort.inhalt?.photos?.map(p2 => p2.art)));
+  if (vIds[2] !== undefined) await ruf('DELETE', `/api/photos/${vIds[2]}`);
+  const vNachWeg = (await ruf('GET', `/api/items/${vi.id}`)).inhalt;
+  pruefe('Nach dem Loeschen bleibt die Nummerierung lueckenlos',
+    gleich(vNachWeg.photos.map(p2 => p2.sort_order), [0, 1, 2]),
+    JSON.stringify(vNachWeg.photos.map(p2 => p2.sort_order)));
+  // Der Fokuspunkt wirkt am Standbild und braucht keine eigene Regel.
+  const vFokus = await ruf('PUT', `/api/photos/${vNachWeg.photos[0]?.id}/focus`, { x: 20, y: 80 });
+  pruefe('Der Ausschnitt laesst sich auch am Video festlegen',
+    vFokus.inhalt?.photos?.[0]?.focus_x === 20 && vFokus.inhalt?.photos?.[0]?.focus_y === 80,
+    JSON.stringify([vFokus.inhalt?.photos?.[0]?.focus_x, vFokus.inhalt?.photos?.[0]?.focus_y]));
+
+  /* DER LOESCHDIALOG WEIST VIDEOS GETRENNT AUS. Ein Dialog, der "3 Fotos"
+     sagt und dabei ein Video mit wegwirft, verschweigt genau die Zeile, um
+     derentwillen er dasteht. */
+  const vBestand = (await ruf('GET', `/api/items/${vi.id}/bestand`)).inhalt;
+  pruefe('Der Loeschdialog zaehlt Fotos und Videos getrennt',
+    vBestand?.fotos === 1 && vBestand?.videos === 2,
+    JSON.stringify({ fotos: vBestand?.fotos, videos: vBestand?.videos }));
+
+  // Und dieselbe Trennung in der Uebersicht: mainPhoto ist die erste Zeile,
+  // gleich welcher Art -- hier also das Standbild eines Videos.
+  const vListe = (await ruf('GET', '/api/items')).inhalt.find(x => x.id === vi.id);
+  pruefe('Die Uebersicht zaehlt ebenfalls getrennt',
+    vListe?.photoCount === 1 && vListe?.videoCount === 2,
+    JSON.stringify({ photoCount: vListe?.photoCount, videoCount: vListe?.videoCount }));
+  pruefe('Und das erste Element ist das Hauptbild, auch wenn es ein Video ist',
+    vListe?.mainPhoto?.art === 'video', JSON.stringify(vListe?.mainPhoto?.art));
+
+  /* DIE KENNZAHLEN. photoCount und photoBytes behalten ihre Bedeutung -- sie
+     zaehlen Fotos -- und bekommen Nachbarn. Zusammengezaehlt laese eine
+     aeltere Oberflaeche sie falsch. */
+  const vStats = (await ruf('GET', '/api/stats')).inhalt;
+  pruefe('Die Kennzahlen nennen Videos mit eigener Zahl und eigener Groesse',
+    vStats?.videoCount >= 2 && vStats?.videoBytes >= MP4().length + WEBM().length,
+    JSON.stringify({ videoCount: vStats?.videoCount, videoBytes: vStats?.videoBytes }));
+  {
+    // Gegenprobe zur Bedeutung: die Fotozahl darf die Videos NICHT enthalten.
+    const d = oeffne(path.join(DATA, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    const nBild = d.prepare("SELECT COUNT(*) n FROM photos WHERE art != 'video'").get().n;
+    const nVideo = d.prepare("SELECT COUNT(*) n FROM photos WHERE art = 'video'").get().n;
+    d.close();
+    pruefe('photoCount zaehlt weiterhin nur Fotos',
+      vStats?.photoCount === nBild && vStats?.videoCount === nVideo,
+      `${vStats?.photoCount}/${nBild} Fotos, ${vStats?.videoCount}/${nVideo} Videos`);
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Videos: Auslieferung (Sicherheitsregel)');
+
+  /* DIESELBE SCHAERFE WIE BEI DER SVG-PROBE. Angesehen wird nicht nur die
+     Kopfzeile, sondern der ausgelieferte BYTESTROM -- eine Pruefung, die nur
+     den Kopf liest, belegt nicht, was herausgeht (Stolperstein 98).
+     UND DER TYP KOMMT AUS DEN ERSTEN BYTES, nie aus photos.mime_type: die
+     Spalte ist eine Angabe des Hochladenden. */
+  const vAntwort = async (id2, abfrage = '', kopfzeilen = {}) => {
+    const a2 = await fetch(`${BASIS}/api/photos/${id2}/raw${abfrage}`,
+      { headers: { cookie: keks, ...kopfzeilen } });
+    return { status: a2.status, h: Object.fromEntries(a2.headers),
+             bytes: Buffer.from(await a2.arrayBuffer()) };
+  };
+  const vAus = (await ruf('GET', `/api/items/${vi.id}`)).inhalt;
+  const vMp4Id = vAus.photos.find(p2 => p2.art === 'video')?.id;
+  const vBildId = vAus.photos.find(p2 => p2.art === 'bild')?.id;
+  pruefe('Es gibt eine Videozeile und eine Fotozeile zum Vergleich',
+    !!vMp4Id && !!vBildId, JSON.stringify(vAus.photos.map(p2 => `${p2.id}:${p2.art}`)));
+
+  // Abgefangen wie jede Lesestelle: fehlt die Zeile, werden die Pruefungen
+  // darunter rot, statt den Lauf abzureissen (Stolperstein 103).
+  const vLeer = { status: 0, h: {}, bytes: Buffer.alloc(0) };
+  const vRaw = vMp4Id ? await vAntwort(vMp4Id) : vLeer;
+  pruefe('Ein MP4 wird als video/mp4 ausgeliefert', vRaw.h['content-type'] === 'video/mp4',
+    vRaw.h['content-type']);
+  pruefe('Und darf eingebettet werden -- sonst spielte es nicht, sondern liefe herunter',
+    /^inline;/.test(vRaw.h['content-disposition'] || ''), vRaw.h['content-disposition']);
+  pruefe('Der Name traegt die Endung des ERKANNTEN Typs',
+    /filename="foto-\d+\.mp4"/.test(vRaw.h['content-disposition'] || ''), vRaw.h['content-disposition']);
+  pruefe('nosniff steht auch am Video', vRaw.h['x-content-type-options'] === 'nosniff');
+  pruefe('Auch das Video bekommt die Sicherheitsregel',
+    /default-src 'none'/.test(vRaw.h['content-security-policy'] || '') &&
+    /sandbox/.test(vRaw.h['content-security-policy'] || ''), vRaw.h['content-security-policy']);
+  pruefe('Das Video darf kein Skript ausfuehren',
+    !/allow-scripts/.test(vRaw.h['content-security-policy'] || ''), vRaw.h['content-security-policy']);
+  pruefe('Der Bytestrom ist unveraendert die hochgeladene Datei',
+    vRaw.bytes.equals(MP4()), `${vRaw.bytes.length} statt ${MP4().length} Bytes`);
+
+  const vWebmId = vAus.photos.find(p2 => p2.art === 'video' && p2.id !== vMp4Id)?.id;
+  const vWebmRaw = vWebmId ? await vAntwort(vWebmId) : null;
+  pruefe('Eine WebM wird als video/webm ausgeliefert',
+    vWebmRaw?.h['content-type'] === 'video/webm', vWebmRaw?.h['content-type']);
+  pruefe('Und auch sie kommt bytegleich heraus',
+    !!vWebmRaw && vWebmRaw.bytes.equals(WEBM()), `${vWebmRaw?.bytes.length} Bytes`);
+
+  /* MIT GROESSE DAS STANDBILD, OHNE GROESSE DIE VIDEODATEI. Dieselbe Zeile,
+     zwei verschiedene Blobs -- und der Erkenner sieht das den Bytes an, ohne
+     dass die Route etwas unterscheiden muesste. */
+  for (const groesse of ['thumb', 'medium']) {
+    const s2 = vMp4Id ? await vAntwort(vMp4Id, `?size=${groesse}`) : vLeer;
+    pruefe(`size=${groesse} an einer Videozeile liefert ein Bild`,
+      s2.h['content-type'] === 'image/jpeg', s2.h['content-type']);
+    pruefe(`Und es sind wirklich JPEG-Bytes (${groesse})`,
+      s2.bytes.slice(0, 2).toString('hex') === 'ffd8', s2.bytes.slice(0, 4).toString('hex'));
+  }
+
+  /* BEREICHE. Ohne sie kann der Browser im Video nicht springen, und manche
+     Abspieler beginnen gar nicht erst. */
+  pruefe('Das Video bietet Bereiche an', vRaw.h['accept-ranges'] === 'bytes',
+    JSON.stringify(vRaw.h['accept-ranges']));
+  const vTeil = vMp4Id ? await vAntwort(vMp4Id, '', { range: 'bytes=10-19' }) : vLeer;
+  pruefe('Ein Bereich wird mit 206 beantwortet', vTeil.status === 206, `Status ${vTeil.status}`);
+  pruefe('Und er nennt genau die Stelle',
+    vTeil.h['content-range'] === `bytes 10-19/${MP4().length}`, vTeil.h['content-range']);
+  pruefe('Und liefert genau diese zehn Bytes',
+    vTeil.bytes.equals(MP4().slice(10, 20)), vTeil.bytes.toString('hex'));
+  const vOffen = vMp4Id ? await vAntwort(vMp4Id, '', { range: 'bytes=1400-' }) : vLeer;
+  pruefe('Ein offenes Ende meint das Dateiende',
+    vOffen.status === 206 && vOffen.bytes.equals(MP4().slice(1400)),
+    `${vOffen.status}, ${vOffen.bytes.length} Bytes`);
+  const vSuffix = vMp4Id ? await vAntwort(vMp4Id, '', { range: 'bytes=-16' }) : vLeer;
+  pruefe('Und die letzten Bytes lassen sich einzeln holen',
+    vSuffix.status === 206 && vSuffix.bytes.equals(MP4().slice(-16)),
+    `${vSuffix.status}, ${vSuffix.bytes.length} Bytes`);
+  for (const [kopf, was] of [['bytes=20-10', 'Ende vor Anfang'],
+                             ['bytes=99999-', 'Anfang hinter dem Dateiende']]) {
+    const schlecht = vMp4Id ? await vAntwort(vMp4Id, '', { range: kopf }) : vLeer;
+    pruefe(`Ungueltiger Bereich (${was}) wird mit 416 abgewiesen`, schlecht.status === 416,
+      `Status ${schlecht.status}`);
+    pruefe(`Und die Antwort nennt die wirkliche Groesse (${was})`,
+      schlecht.h['content-range'] === `bytes */${MP4().length}`, schlecht.h['content-range']);
+  }
+
+  /* AN DER AUSLIEFERUNG VORHANDENER FOTOS AENDERT DIESE RUNDE NICHTS. Das ist
+     keine Nebenbemerkung: der Einspielweg vergleicht die Kopfzeilen eines
+     Fotos vor und nach dem Einspielen, und sie muessen gleich sein. */
+  const vFotoRaw = vBildId ? await vAntwort(vBildId) : vLeer;
+  pruefe('Ein Foto bietet weiterhin KEINE Bereiche an',
+    vFotoRaw.h['accept-ranges'] === undefined, JSON.stringify(vFotoRaw.h['accept-ranges']));
+  const vFotoBereich = vBildId ? await vAntwort(vBildId, '', { range: 'bytes=0-3' }) : vLeer;
+  pruefe('Und ein Bereich am Foto wird uebergangen, nicht beantwortet',
+    vFotoBereich.status === 200 &&
+    vFotoBereich.bytes.equals(Buffer.from(PNG_BASE64, 'base64')),
+    `Status ${vFotoBereich.status}, ${vFotoBereich.bytes.length} Bytes`);
+
+  /* BESTANDSDATEN UND UNBEKANNTE MARKEN. Eine ISO-Datei mit einer Marke, die
+     nicht auf der Liste steht, geht als Download heraus -- nicht abspielbar,
+     aber auch nicht eingebettet. Direkt in die Tabelle geschrieben, so wie es
+     die SVG-Probe am Fotoweg tut. */
+  {
+    const d = oeffne(path.join(DATA, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    d.prepare("INSERT INTO photos (item_id, mime_type, data, sort_order, art) VALUES (?, ?, ?, ?, 'video')")
+      .run(vi.id, 'video/mp4',
+           Buffer.concat([Buffer.from([0, 0, 0, 0x14]), Buffer.from('ftypxyz1', 'latin1'),
+                          Buffer.alloc(8)]), 98);
+    d.close();
+  }
+  const vFremd = (await ruf('GET', `/api/items/${vi.id}`)).inhalt.photos.find(p2 => p2.sort_order === 98);
+  pruefe('Die Zeile mit der fremden Marke ist da', !!vFremd, 'die Prueflage fehlt');
+  const vFremdRaw = vFremd ? await vAntwort(vFremd.id) : null;
+  pruefe('Eine unbekannte ISO-Marke geht als application/octet-stream heraus',
+    vFremdRaw?.h['content-type'] === 'application/octet-stream', vFremdRaw?.h['content-type']);
+  pruefe('Und wird heruntergeladen statt eingebettet',
+    /^attachment;/.test(vFremdRaw?.h['content-disposition'] || ''), vFremdRaw?.h['content-disposition']);
+  await ruf('DELETE', `/api/items/${vi.id}`);
+
+  /* --- Das Nachruesten der Vorschaubilder geht Videos nichts an -----------
+     BEFUND DIESER RUNDE, und er stand im Papier nicht: backfillVariants()
+     holt beim Start jede Zeile mit fehlender Kachel und erzeugt beide
+     Varianten NEU aus data. An einer Videozeile stuende dort die Videodatei
+     -- sharp liefe in einen Fehler, beide Varianten kaemen leer zurueck, und
+     ein VORHANDENES Standbild waere danach ueberschrieben. Die Zeile bliebe
+     ausserdem bei jedem Start aufs Neue faellig.
+     Nachgestellt an der schlimmsten Lage: Kachel da, mittlere Variante leer.
+     Und der Kernsatz gilt hier genauso: der Server oeffnet nie ein Video. */
+  {
+    const bfDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-backfill-'));
+    kurzlauf(`require('./db'); console.log('da');`, bfDir);
+    {
+      const d = oeffne(path.join(bfDir, 'katalog.sqlite'));
+      d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+      d.prepare("INSERT INTO items (title, user_id) VALUES ('Mit Video', 1)").run();
+      // Die Videozeile: Kachel vorhanden, mittlere Variante fehlt.
+      d.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order, art, dauer)
+                 VALUES (1, 'video/mp4', ?, ?, NULL, 0, 'video', 9)`)
+        .run(MP4(), Buffer.from(PNG_BASE64, 'base64'));
+      // Und eine echte Fotozeile ohne beides daneben -- ohne sie bliebe offen,
+      // ob das Nachruesten ueberhaupt noch etwas tut (Stolperstein 81).
+      d.prepare(`INSERT INTO photos (item_id, mime_type, data, sort_order)
+                 VALUES (1, 'image/png', ?, 1)`).run(Buffer.from(PNG_BASE64, 'base64'));
+      d.close();
+    }
+    const BF = starteWeiterenServer(bfDir, {}, 5740);
+    await BF.bereit;
+    // Das Nachruesten startet 1,5 Sekunden nach dem Zuhoeren und macht je
+    // Zeile 30 ms Pause. Gewartet wird auf die Meldung, nicht auf eine Uhr:
+    // eine feste Wartezeit waere entweder zu kurz oder verschenkte Zeit.
+    for (let i = 0; i < 60 && !/Vorschaubild\(er\) erzeugt/.test(BF.protokoll()); i++)
+      await new Promise(r => setTimeout(r, 100));
+    await BF.stopp();
+    const bfZeilen = (() => {
+      const d = oeffne(path.join(bfDir, 'katalog.sqlite'));
+      const z = d.prepare('SELECT art, length(thumb) AS t, length(medium) AS m FROM photos ORDER BY sort_order').all();
+      d.close();
+      return z;
+    })();
+    pruefe('Die Prueflage traegt beide Zeilen', bfZeilen.length === 2, JSON.stringify(bfZeilen));
+    pruefe('Das Standbild des Videos ueberlebt den Start',
+      bfZeilen[0]?.art === 'video' && bfZeilen[0]?.t > 0,
+      JSON.stringify(bfZeilen[0]));
+    pruefe('Und das Nachruesten tut am Foto daneben weiterhin seine Arbeit',
+      bfZeilen[1]?.t > 0 && bfZeilen[1]?.m > 0, JSON.stringify(bfZeilen[1]));
+    pruefe('Das Protokoll spricht auch von nur einem Foto',
+      /Erzeuge Vorschaubilder für 1 Foto\(s\)/.test(BF.protokoll()),
+      JSON.stringify((BF.protokoll().match(/Erzeuge Vorschaubilder[^\n]*/) || ['(keine Zeile)'])[0]));
+    fs.rmSync(bfDir, { recursive: true, force: true });
+  }
+
   /* ---------------------------------------------------------------- */
   gruppe('Die Sicherheitsregel fuer die Anwendung selbst');
 
@@ -6497,6 +7236,26 @@ const namen = (liste) => liste.map(c => c.name);
   const cspWert = cspSeite.headers.get('content-security-policy') || '';
   pruefe('Die Seite selbst traegt eine Sicherheitsregel', cspWert.length > 0, cspWert);
   pruefe('Nichts wird von fremden Adressen geladen', /default-src 'self'/.test(cspWert), cspWert);
+  /* media-src TRAEGT DIE VIDEOS, und beide Angaben sind noetig.
+     'self' erlaubt das Abspielen aus der eigenen Anlage; ohne die Zeile griffe
+     dafuer zwar default-src 'self' mit, aber blob: eben nicht -- und blob: ist
+     der Weg, auf dem die Oberflaeche das Standbild VOR dem Hochladen zieht.
+     Eine blob:-Adresse an einem <video> faellt unter media-src, nicht unter
+     img-src. Ohne die Freigabe verwirft der Browser sie WORTLOS, und es
+     liesse sich ueberhaupt kein Video hochladen (im echten Chromium
+     nachgemessen: "Refused to load media from blob:", MEDIA_ELEMENT_ERROR 4). */
+  const mediaTeil = (cspWert.match(/media-src[^;]*/) || [''])[0];
+  pruefe('Videos duerfen aus der eigenen Anlage abgespielt werden',
+    /media-src[^;]*'self'/.test(cspWert), cspWert);
+  pruefe('Und das Standbild darf vor dem Hochladen aus einer blob-Adresse kommen',
+    /media-src[^;]*blob:/.test(cspWert), cspWert);
+  // Die Gegenprobe zu dieser Pruefung: eine Regel OHNE blob: wird von genau
+  // diesem Muster nicht angenommen -- sonst bliebe sie gruen, ohne zu greifen.
+  pruefe('Eine Regel ohne blob: wuerde hier auffallen',
+    !/media-src[^;]*blob:/.test("default-src 'self'; media-src 'self'; script-src 'self'"),
+    'das Muster nimmt auch eine Regel ohne blob: an');
+  pruefe('media-src steht wirklich in der Regel und nicht nur im Muster',
+    mediaTeil.length > 0, cspWert);
   pruefe('Skript nur aus der eigenen Anlage', /script-src 'self'/.test(cspWert), cspWert);
   /* DIE TRAGENDE ZEILE: script-src ohne 'unsafe-inline'. Eine Regel, die
      eingebettetes Skript erlaubte, koennte man sich sparen. */
@@ -6511,6 +7270,12 @@ const namen = (liste) => liste.map(c => c.name);
      Freigabe bliebe sie leer -- und deshalb steht die Zeile aus der
      Oberflaeche hier daneben. */
   const cspApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  /* Und die Oberflaeche macht von der media-src-Freigabe wirklich Gebrauch --
+     ohne diese Zeile stuende die Erweiterung ohne Grund da. Dieselbe Bauform
+     wie bei der PDF-Vorschau eine Zeile tiefer. */
+  pruefe('Die Standbildfunktion setzt wirklich eine blob-Adresse an ein <video>',
+    cspApp.includes('URL.createObjectURL(datei)') && /async function standbild\(/.test(cspApp),
+    'die Standbildfunktion fehlt in app.js');
   pruefe('Die PDF-Vorschau bindet wirklich ein iframe ein',
     cspApp.includes('<iframe src="/api/attachments/'), 'kein iframe gefunden');
   pruefe('Und die Regel erlaubt genau das', /frame-src 'self'/.test(cspWert), cspWert);
@@ -6972,6 +7737,71 @@ async function pruefeErstanmeldung() {
 const PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
+/* ECHTE VIDEODATEIEN, keine Nachbildung. Beide sind in einem Browser
+   aufgenommen und tragen deshalb genau die Koepfe, die eine echte Datei
+   traegt: die MP4 den ISO-Kasten ftyp mit der Marke isom an Byte 8, die WebM
+   den EBML-Kopf 1A 45 DF A3. Genau daran erkennt typAusBytes() sie -- eine
+   von Hand zusammengesetzte Kopfzeile bewiese darueber nichts.
+   Klein gehalten (1418 und 1053 Bytes), damit sie im Pruefstand nichts
+   kosten. */
+const MP4_BASE64 =
+  'AAAAJGZ0eXBpc29tAAACAGlzb21pc282aXNvMnZwMDltcDQxAAACt21vb3YAAAB4bXZoZAEAAAAAAAAA5rBYpAAAAADm' +
+  'sFikAAAD6AAAAAAAAANtAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAA' +
+  'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAIPdHJhawAAAGh0a2hkAQAAAwAAAADmsFikAAAAAOawWKQAAAABAAAA' +
+  'AAAAAAAAAANtAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAABAAAAAMAAA' +
+  'AAABn21kaWEAAAAsbWRoZAEAAAAAAAAA5rBYpAAAAADmsFikAAB1MAAAAAAAAANtVcQAAAAAAC1oZGxyAAAAAAAAAAB2' +
+  'aWRlAAAAAAAAAAAAAAAAVmlkZW9IYW5kbGVyAAAAAT5taW5mAAAAFHZtaGQAAAABAAAAAAAAAAAAAAAlZGluZgAAAB1k' +
+  'cmVmAAAAAAAAAAEAAAANdXJsIAAAAAEAAAAA/XN0YmwAAAAQc3RzYwAAAAAAAAAAAAAAEHN0dHMAAAAAAAAAAAAAABRz' +
+  'dHN6AAAAAAAAAAAAAAAAAAAAEHN0Y28AAAAAAAAAAAAAALFzdHNkAAAAAAAAAAEAAAChdnAwOQAAAAAAAAABAAAAAQAA' +
+  'AAAAAAAAAAAAAABAADAASAAAAEgAAAAAAAAAAQpWUEMgQ29kaW5nAAAAAAAAAAAAAAAAAAAAAAAAAAAAABj//wAAABBw' +
+  'YXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAAAAAAAAAAAAAABR2cGNDAQAAAAAAgAYGBgAAAAAAE2NvbHJuY2x4AAYABgAG' +
+  'AAAAAChtdmV4AAAAIHRyZXgAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAAAAACobW9vZgAAABBtZmhkAAAAAAAAAAEAAACQ' +
+  'dHJhZgAAABR0ZmhkAAIAIAAAAAEBAQAAAAAAFHRmZHQBAAAAAAAAAAAAAAAAAABgdHJ1bgEAAwUAAAAJAAAAsAIAAAAA' +
+  'AA4ZAAAAWQAADiAAAAAkAAAHEAAAACQAAA4jAAAAJQAADiUAAAAkAAAHEgAAACUAAA4lAAAAJQAADiIAAAAmAAAD5wAA' +
+  'AFkAAAG7bWRhdIJJg0JgA/AC9gg4JBwYYgAAIEAAa0P//yyYN65AU8lvfomBC/vyzD6RbIYgCKcT//7CFVX1P3mwEZ+9' +
+  'CG3RAHfI6+Lx7UeFfAD////+MVf////9EUHR4dEAhgBAkvDBMQAADHAAAHMPW//KQAAD////+zxv///wAIZi0pgAhgBA' +
+  'kvCxLAAADHAAAHMPW/+JIAAH////9wMf///6eUMxaUwAhgBAkvCxJ4AADHAAAHMPW/gAAAB/////WM3////+J0oZi0pg' +
+  'AIYAQJLwoSMAAAxwAABzD1v/mkAAB///4AH////+vPkMxaUwAIYAQJLwkR6AAAxwAABzD1v/16AAA/////ytp/////UI' +
+  'kMxaUwCGAECS8JEcAAAMcAAAcw9b//68+AAB/////x4w///+rshmLSmAhgBAkvCBGYAADHAAAHMPW//0JAAB/////rbT' +
+  '/////KSEMxaUwACGAECSnCBFwAADcAAAdNIo2MYu2P/////Xo3////+uwFW1ncGX////16N////Xttj////8g/////bg' +
+  'XR////kH///1wR9j///5B///9cC6P///8g///+uAAAAAAExtZnJhAAAANHRmcmEBAAAAAAAAAQAAAD8AAAABAAAAAAAA' +
+  'AAAAAAAAAAAC2wAAAAEAAAABAAAAAQAAABBtZnJvAAAAAAAAAEw=';
+
+const WEBM_BASE64 =
+  'GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwEAAAAAAAPtEU2bdLlNu4tTq4QVSalmU6yBbk27' +
+  'i1OrhBZUrmtTrIGTTbuLU6uEH0O2dVOsgcFNu4xTq4QcU7trU6yCA9vsrgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' +
+  'AAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmoCrXsYMPQkBEiYREUukGTYCGQ2hyb21lV0GGQ2hyb21lFlSua6mup9eBAXPF' +
+  'hwGRNo5TXWyDgQFV7oEBhoVWX1ZQOOCKsIFAuoEwU8CBAR9DtnUBAAAAAAADDueBAKDrobyBAAAAEAMAnQEqQAAwAAJH' +
+  'CIWFiJmEiAyCAnWqAgbmQP30Js8uAP7u/5/8Buvi2mX/20P/1of/rQ/6UAB1oaqmqO6BAaWjsAIAnQEqQAAwAAcHCIWF' +
+  'iJmEiCWCAAaOT8zHm/FYAP7wdgCgzqGtgQB4ABECAAkQZAAYABpP9AwAEQwFU4D+8Az//16P/z0f/no/z/f4cqfTtsAA' +
+  'daGZppfugQGlktEBABwROAAYABhYL/QACIwAAPuBAKDVobSBAPEAkQIACRBMABgMVBwEEEz5hoAa4Vp/IAD+7unf/7O7' +
+  '9O79O7/Ax//ILlhdcS7WTljgdaGZppfugQGlktEBABwQ8AAYABhYL/QACIwAAPuBeKDPoa6BAS0AUQIACRA4ABgHMAgd' +
+  'BvLNQBMf//4A/uSI//2Mx+0Z/klf/u82AMJf8IAAdaGZppfugQGlktEBABwQzAAYABhYL/QACIwAAPuB8aDRoa+BAaUA' +
+  'EQIACRAoABgAGk/0DAARDAVTgP7wumv20RzCJzE3D/+krfpK36St/6QAAHWhmaaX7oEBpZLRAQAcEKAAGAAYWC/0AAiM' +
+  'AAD7ggEtoNGhr4ECHgARAgAJEBwAGAAaT/QMABT6qqiA/vUnX/+hQ/oUP6FD/6FD//ffDLe7f+YodaGZppfugQGlktEB' +
+  'ABwQfAAYABhYL/QACIwAAPuCAaWg16G1gQJaADECAAkQFAAYAB5X9AwAPQm48EQA/v42Jf/8GY/gzH8GY/+DMf/xZmlm' +
+  'aWhnaMFiNEB1oZmml+6BAaWS0QEAHBBgABgAGFgv9AAIjAAA+4ICHqDTobKBAtMAcQIACRANEADAOcBA6DeWagC8L//s' +
+  'AP735J//3ulekNUX/e6f/+zyYl0TD/s2AHWhmKaW7oEBpZGxAQAcEKQUYABhYL/QACIwAPuCAlqg0KGugQNLADECAAkQ' +
+  'CSAAwADSf6BgAKfVVUQA/vhff4Ax5nh5mLf/7Un68wcr/7TIAHWhmaaX7oEBpZLRAQAcEFAAGAAYWC/0AAiMAAD7ggLT' +
+  'HFO7a427i7OBALeG94EB8YHB';
+
+const MP4 = () => Buffer.from(MP4_BASE64, 'base64');
+const WEBM = () => Buffer.from(WEBM_BASE64, 'base64');
+
+/* Ein Video samt Standbild hochladen -- zwei benannte Felder in EINEM Vorgang,
+   so wie die Oberflaeche es schickt. Das Standbild ist ein echtes PNG; der
+   Server macht daraus wie bei jedem Foto Kachel und mittlere Variante. */
+function sendeVideo(itemId, { video = MP4(), name = 'clip.mp4', typ = 'video/mp4',
+                              standbild = Buffer.from(PNG_BASE64, 'base64'),
+                              standbildName = 'standbild.jpg', standbildTyp = 'image/jpeg',
+                              dauer = 42, ohneStandbild = false } = {}) {
+  const dateien = [{ feld: 'video', name, typ, inhalt: video }];
+  if (!ohneStandbild)
+    dateien.push({ feld: 'standbild', name: standbildName, typ: standbildTyp, inhalt: standbild });
+  return sendeMehrteilig(`/api/items/${itemId}/videos`, 'video', dateien,
+                         dauer === null ? {} : { dauer: String(dauer) });
+}
+
 async function legeFotoAn(itemId) {
   const antwort = await sendeMehrteilig(`/api/items/${itemId}/photos`, 'photos',
     [{ name: 'p.png', typ: 'image/png', inhalt: Buffer.from(PNG_BASE64, 'base64') }]);
@@ -6998,8 +7828,10 @@ async function sendeMehrteilig(pfad, feld, dateien, felder = {}) {
   }
   for (const d of dateien) {
     const inhalt = Buffer.isBuffer(d.inhalt) ? d.inhalt : Buffer.from(d.inhalt, 'utf8');
+    // Je Datei ein eigener Feldname, wenn sie einen nennt: der Videoweg
+    // schickt zwei verschiedene Felder in einem Vorgang.
     teile.push(Buffer.from(
-      `--${grenze}\r\nContent-Disposition: form-data; name="${feld}"; filename="${d.name}"\r\n` +
+      `--${grenze}\r\nContent-Disposition: form-data; name="${d.feld || feld}"; filename="${d.name}"\r\n` +
       `Content-Type: ${d.typ}\r\n\r\n`, 'utf8'));
     teile.push(inhalt);
     teile.push(Buffer.from('\r\n', 'utf8'));
@@ -7110,6 +7942,9 @@ const DOM_ANBIETER = [
    Doppelgaenger mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
 function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
+  // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
+  // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
+  const { VirtualConsole } = require('jsdom');
   // Die Anbieter kommen ueber /api/settings. Wer eigene Einstellungen
   // mitgibt, ueberschreibt gezielt -- alles Uebrige bleibt bei der Vorgabe.
   einstellungen = { suchAnbieter: DOM_ANBIETER, suchNamen: 3, ...einstellungen };
@@ -7148,7 +7983,16 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     id: 1, title: 'Beispiel', description: 'Eine Beschreibung.\nZweite Zeile.',
     rejected: false, tested: true, favorite: false, category: null,
     verfasser: vBert,
-    photos: [{ id: 5, mime_type: 'image/png', focus_x: 50, focus_y: 50, sort_order: 0 }],
+    /* ZWEI ZEILEN, UND SIE SIND VERSCHIEDENER ART -- ein Doppelgaenger mit
+       lauter Bildern naehme genau die Pruefungen weg, fuer die er hier
+       gebraucht wird (Stolperstein 90). Das Video steht ausdruecklich NICHT an
+       erster Stelle: nur so lassen sich Hauptbild und Abspielzeichen
+       unabhaengig voneinander belegen. art und dauer stehen an BEIDEN Zeilen,
+       so wie der echte Server sie liefert -- am Foto 'bild' und null. */
+    photos: [{ id: 5, mime_type: 'image/png', focus_x: 50, focus_y: 50, sort_order: 0,
+               art: 'bild', dauer: null },
+             { id: 6, mime_type: 'video/mp4', focus_x: 50, focus_y: 50, sort_order: 1,
+               art: 'video', dauer: 42 }],
     /* Sieben Adressen und eine Suchzeile -- an der letzten haengt die Pruefung
        der Kennzeichnung. Die Gesamtzahl bleibt acht, damit die Begrenzung der
        sichtbaren Zeilen weiter an derselben Schwelle geprueft wird.
@@ -7277,10 +8121,22 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   }];
   const gesendet = [];
 
+  /* jsdom kennt <video> als Element, aber nicht seine Methoden: pause() und
+     load() melden sich als jsdomError. Das ist Laerm, kein Befund -- die
+     Oberflaeche RUFT sie richtig, und genau das prueft die Gruppe "Videos am
+     Bildschirm" an hidden und src. Gefiltert wird deshalb genau diese eine
+     Meldung; alles andere geht unveraendert durch, damit kein echter Fehler
+     hier verschwindet. */
+  const stilleKonsole = new VirtualConsole();
+  stilleKonsole.forwardTo(console, { jsdomErrors: 'none' });
+  stilleKonsole.on('jsdomError', (e) => {
+    if (!/Not implemented: HTMLMediaElement/.test(e?.message || ''))
+      console.error(e?.type === 'unhandled-exception' ? e.cause?.stack : e?.message);
+  });
   const dom = new JSDOM(
     `<!DOCTYPE html><html lang="de"><body><div id="app"></div>` +
     `<p class="version-zeile" id="version"></p></body></html>`,
-    { runScripts: 'dangerously', url: `${BASIS}/${hash}` });
+    { runScripts: 'dangerously', url: `${BASIS}/${hash}`, virtualConsole: stilleKonsole });
   const w = dom.window;
   w.fetch = async (url, opt = {}) => {
     gesendet.push({ methode: opt.method || 'GET', url, koerper: opt.body ? JSON.parse(opt.body) : null });
@@ -10451,6 +11307,214 @@ async function pruefeOberflaeche() {
     `${buehne4.scrollLeft}/${buehne4.scrollTop}`);
   lb4.querySelector('.close').onclick();
   await new Promise(r => setTimeout(r, 20));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Videos am Bildschirm');
+
+  /* WORAN DIE OBERFLAECHE EIN VIDEO ERKENNT: an art aus der Antwort, an nichts
+     sonst. Kein Raten am ausgelieferten Typ, keine zweite Wahrheit.
+     Der Doppelgaenger traegt deshalb beides nebeneinander -- ein Bild an
+     erster, ein Video an zweiter Stelle. Mit lauter Bildern fielen genau die
+     Pruefungen weg, fuer die er hier steht (Stolperstein 90). */
+  const vDom = baueDom(JSDOM, { hash: '#/item/1' });
+  const wVid = vDom.w;
+  await new Promise(r => setTimeout(r, 60));
+
+  const vKacheln = [...wVid.document.querySelectorAll('#thumbs .thumb')];
+  // Erst das Vorhandensein, dann die Eigenschaft -- und ausdruecklich BEIDE
+  // Kacheln: eine Pruefung darauf, dass an einer Zeile etwas NICHT steht,
+  // gehoert hinter eine darauf, dass es die Zeile ueberhaupt gibt
+  // (Stolperstein 81).
+  pruefe('Die Vorschauleiste zeigt beide Zeilen', vKacheln.length === 2,
+    `${vKacheln.length} Kacheln`);
+  pruefe('Am Video steht ein Abspielzeichen',
+    !!vKacheln[1]?.querySelector('.spielmarke'), vKacheln[1]?.innerHTML?.slice(0, 120));
+  pruefe('Und am Foto daneben steht keins',
+    !!vKacheln[0] && !vKacheln[0].querySelector('.spielmarke'),
+    vKacheln[0]?.innerHTML?.slice(0, 120));
+  pruefe('Die Laenge steht als 0:42 an der Videokachel',
+    vKacheln[1]?.querySelector('.dauer')?.textContent === '0:42',
+    JSON.stringify(vKacheln[1]?.querySelector('.dauer')?.textContent));
+  pruefe('Und am Foto steht keine Laenge',
+    !!vKacheln[0] && !vKacheln[0].querySelector('.dauer'),
+    vKacheln[0]?.innerHTML?.slice(0, 120));
+  pruefe('Das Loeschkreuz am Video spricht vom Video, nicht vom Foto',
+    vKacheln[1]?.querySelector('.del')?.getAttribute('title') === 'Video löschen' &&
+    vKacheln[0]?.querySelector('.del')?.getAttribute('title') === 'Foto löschen',
+    JSON.stringify([vKacheln[0]?.querySelector('.del')?.getAttribute('title'),
+                    vKacheln[1]?.querySelector('.del')?.getAttribute('title')]));
+
+  /* DER BETRACHTER. Beim Foto ein <img>, beim Video ein <video controls> --
+     und ausdruecklich OHNE automatisches Abspielen. */
+  const vBetrachter = wVid.document.getElementById('viewer');
+  // Wieder abgefangen: ohne Betrachter waeren die Zeilen darunter ein Absturz
+  // statt einer Auskunft (Stolperstein 103).
+  pruefe('Der Betrachter steht ueberhaupt da', !!vBetrachter, 'kein #viewer');
+  pruefe('Beim Foto steht ein Bild im Betrachter',
+    !!vBetrachter?.querySelector('img') && !vBetrachter.querySelector('video'),
+    vBetrachter?.innerHTML?.slice(0, 90));
+  pruefe('Und dort steht kein eigener Vollbildknopf -- der Klick aufs Bild tut es',
+    !vBetrachter.querySelector('.vfull'), vBetrachter?.innerHTML?.slice(0, 160));
+  vBetrachter?.querySelector('.vnav.next')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  const vAbspieler = vBetrachter.querySelector('video');
+  pruefe('Beim Video steht ein Abspieler',
+    !!vAbspieler && !vBetrachter.querySelector('img'), vBetrachter?.innerHTML?.slice(0, 120));
+  pruefe('Er traegt eine Steuerung', vAbspieler?.hasAttribute('controls'));
+  pruefe('Und spielt ausdruecklich nicht von selbst los',
+    !vAbspieler?.hasAttribute('autoplay') && !vAbspieler?.hasAttribute('loop'),
+    vAbspieler?.outerHTML?.slice(0, 120));
+  pruefe('Die Videodatei kommt ohne Groessenangabe, das Standbild mit',
+    vAbspieler?.getAttribute('src') === '/api/photos/6/raw' &&
+    vAbspieler?.getAttribute('poster') === '/api/photos/6/raw?size=medium',
+    `${vAbspieler?.getAttribute('src')} / ${vAbspieler?.getAttribute('poster')}`);
+  /* EIN WEG INS VOLLBILD MUSS ES AM VIDEOPLATZ GEBEN. Beim Foto oeffnet der
+     Klick aufs Bild; am Video gehoert der Klick der Abspielsteuerung, und ohne
+     einen eigenen Knopf kaeme man von einem reinen Videobestand aus gar nicht
+     hinein. Am Fotoplatz steht er ausdruecklich NICHT -- erst das
+     Vorhandensein, dann die Abwesenheit (Stolperstein 81). */
+  pruefe('Am Videoplatz gibt es einen Knopf ins Vollbild',
+    !!vBetrachter.querySelector('.vfull'), vBetrachter?.innerHTML?.slice(0, 160));
+  vBetrachter?.querySelector('.vfull')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 30));
+  {
+    const lb = wVid.document.querySelector('.lightbox');
+    pruefe('Und er oeffnet das Vollbild am richtigen Element',
+      !!lb && lb.querySelector('.lb-video')?.hidden === false &&
+      lb.querySelector('.lb-video')?.getAttribute('src') === '/api/photos/6/raw',
+      lb ? lb.querySelector('.lb-video')?.getAttribute('src') : 'kein Vollbild');
+    lb?.querySelector('.close').dispatchEvent(new wVid.Event('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 30));
+  }
+
+  /* DER AUSSCHNITTMODUS BLEIBT AM VIDEOPLATZ BEDIENBAR -- eingestellt wird die
+     Kachel, und die gibt es dort genauso. Solange er an ist, steht das
+     Standbild da: der Rahmen rechnet mit den natuerlichen Massen eines Bildes,
+     und ein Abspieler hat keine. */
+  vBetrachter?.querySelector('.vfocus')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Im Ausschnittmodus zeigt der Videoplatz sein Standbild',
+    !!vBetrachter.querySelector('img') && !vBetrachter.querySelector('video'),
+    vBetrachter?.innerHTML?.slice(0, 120));
+  pruefe('Und der Rahmen zum Einstellen ist wirklich da',
+    !!vBetrachter.querySelector('.focus-frame') && vBetrachter.classList.contains('focus-mode'),
+    vBetrachter?.className);
+  vBetrachter?.querySelector('.vfocus')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Nach dem Verlassen steht der Abspieler wieder da',
+    !!vBetrachter.querySelector('video'), vBetrachter?.innerHTML?.slice(0, 120));
+
+  /* DAS VOLLBILD. Blaettern bleibt; beim Blaettern UND beim Verlassen wird
+     angehalten -- sonst spielt der Ton weiter, waehrend man das naechste Bild
+     ansieht. Das Papier sagt nur "beim Verlassen"; das Blaettern gehoert
+     dazu. */
+  const vGemischt = [{ id: 5, art: 'bild', dauer: null }, { id: 6, art: 'video', dauer: 42 }];
+  wVid.openLightbox(vGemischt, 1, 'Vollbildprobe');
+  await new Promise(r => setTimeout(r, 20));
+  const vLb = wVid.document.querySelector('.lightbox');
+  const vLbVideo = vLb?.querySelector('.lb-video'), vLbBild = vLb?.querySelector('.lb-stage img');
+  pruefe('Das Vollbild hat ueberhaupt einen Abspieler', !!vLbVideo, 'kein .lb-video');
+  pruefe('Am Video zeigt es ihn statt des Bildes',
+    vLbVideo?.hidden === false && vLbBild?.hidden === true,
+    JSON.stringify({ video: vLbVideo?.hidden, bild: vLbBild?.hidden }));
+  pruefe('Und er traegt die Videodatei',
+    vLbVideo?.getAttribute('src') === '/api/photos/6/raw', vLbVideo?.getAttribute('src'));
+  /* KEIN ZOOM BEIM VIDEO: der zweite Klick gehoert der Abspielsteuerung. Ein
+     Knopf, der nichts tut, wirkt kaputt -- deshalb ist er weg, nicht bloss
+     wirkungslos. */
+  pruefe('Der Zoomknopf ist am Video verborgen', vLb?.querySelector('.zoom')?.hidden === true,
+    JSON.stringify(vLb?.querySelector('.zoom')?.hidden));
+  /* UND DAS ATTRIBUT MUSS AUCH WIRKEN. .lb-btn traegt display: flex, und das
+     schlaegt das display:none, das der Browser einem hidden-Attribut mitgibt.
+     Ohne die eigene Regel stuende der Knopf sichtbar da und taete nichts --
+     eine Klassenpruefung allein belegt nicht, dass die Klasse etwas bewirkt
+     (Lücke 1 im Prüfstand). Im echten Chromium aufgefallen, nicht hier. */
+  {
+    const cssV = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+      .replace(/\s+/g, ' ');
+    pruefe('Und das hidden-Attribut wird am Knopf auch wirksam',
+      /\.lb-btn\[hidden\] \{[^}]*display: none[^}]*\}/.test(cssV),
+      (cssV.match(/\.lb-btn\[hidden\][^}]*\}/) || ['(keine Regel)'])[0]);
+  }
+  // Ein angehaltener Abspieler ohne Quelle: mehr laesst sich in jsdom nicht
+  // messen, und mehr braucht es auch nicht -- genau daran haengt, ob der Ton
+  // weiterlaeuft.
+  vLb?.querySelector('.prev')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Beim Blaettern wird angehalten und die Quelle abgeraeumt',
+    vLbVideo?.hidden === true && !vLbVideo?.getAttribute('src'),
+    JSON.stringify({ hidden: vLbVideo?.hidden, src: vLbVideo?.getAttribute('src') }));
+  pruefe('Und am Foto steht der Zoomknopf wieder da',
+    vLb?.querySelector('.zoom')?.hidden === false,
+    JSON.stringify(vLb?.querySelector('.zoom')?.hidden));
+  // Zurueck aufs Video, dann schliessen: auch dabei muss angehalten werden.
+  vLb?.querySelector('.next')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Zurueck am Video laeuft der Abspieler wieder',
+    vLbVideo?.getAttribute('src') === '/api/photos/6/raw', vLbVideo?.getAttribute('src'));
+  vLb?.querySelector('.close')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Beim Verlassen wird ebenfalls angehalten',
+    !vLbVideo?.getAttribute('src'), vLbVideo?.getAttribute('src'));
+  pruefe('Und das Vollbild ist zu', !wVid.document.querySelector('.lightbox'));
+
+  /* Die Marken in der Vorschauleiste des Vollbilds -- dieselbe Ableitung aus
+     art, an einer zweiten Stelle. */
+  wVid.openLightbox(vGemischt, 0, 'Leistenprobe');
+  await new Promise(r => setTimeout(r, 20));
+  const vStreifen = [...wVid.document.querySelectorAll('.lb-strip .lb-thumb')];
+  pruefe('Die Leiste im Vollbild zeigt beide Zeilen', vStreifen.length === 2,
+    `${vStreifen.length}`);
+  pruefe('Und die Marke steht dort am Video, nicht am Foto',
+    !!vStreifen[1]?.querySelector('.spielmarke') && !vStreifen[0]?.querySelector('.spielmarke'),
+    vStreifen.map(t => t.innerHTML.slice(0, 40)).join(' | '));
+  wVid.document.querySelector('.lightbox .close')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+
+  /* Und die Laengenangabe an ihren Raendern. Eigene Funktionsdeklaration in
+     app.js, damit der Pruefstand ihr die Zahlen unmittelbar vorlegen kann --
+     dieselbe Bauform wie bei zentriereBuehne(). */
+  pruefe('Die Laengenangabe rechnet Minuten und Sekunden richtig',
+    wVid.dauerText(42) === '0:42' && wVid.dauerText(130) === '2:10' && wVid.dauerText(60) === '1:00',
+    JSON.stringify([wVid.dauerText(42), wVid.dauerText(130), wVid.dauerText(60)]));
+  pruefe('Ohne bekannte Dauer steht nichts da',
+    wVid.dauerText(null) === '' && wVid.dauerText(0) === '' && wVid.dauerText('x') === '',
+    JSON.stringify([wVid.dauerText(null), wVid.dauerText(0), wVid.dauerText('x')]));
+
+  /* DIE KARTE. Dort steht das Standbild wie ein Foto, mit einem
+     Abspielzeichen darauf -- und der Zaehler nennt beide Zahlen, statt ein
+     Video als Foto auszugeben. */
+  const vKartenBestand = (mainArt, f, v) => [{
+    id: 1, title: 'Kartenprobe', rejected: false, tested: false, favorite: false,
+    category: null, tags: [], mainPhoto: { id: 5, art: mainArt, focus_x: 50, focus_y: 50 },
+    photoCount: f, videoCount: v, linkCount: 0, avgRating: 3, testCount: 0,
+    updated_at: '2026-08-01 10:00:00', searchText: 'kartenprobe'
+  }];
+  const vKarte = async (mainArt, f, v) => {
+    const d = baueDom(JSDOM, { uebersichtItems: vKartenBestand(mainArt, f, v) });
+    await new Promise(r => setTimeout(r, 60));
+    const karte = d.w.document.querySelector('.card');
+    return { karte, zaehler: karte?.querySelector('.photo-count')?.textContent,
+             marke: !!karte?.querySelector('.card-spielmarke') };
+  };
+  const vkGemischt = await vKarte('video', 3, 1);
+  pruefe('Die Karte steht ueberhaupt da', !!vkGemischt.karte, 'keine Karte');
+  pruefe('Bei gemischtem Bestand nennt der Zaehler beide Zahlen',
+    vkGemischt.zaehler === '3 Fotos · 1 Video', JSON.stringify(vkGemischt.zaehler));
+  pruefe('Und auf dem Standbild eines Videos steht ein Abspielzeichen',
+    vkGemischt.marke === true);
+  const vkNurFotos = await vKarte('bild', 3, 0);
+  pruefe('Bei reinem Fotobestand bleibt es beim einen Wort',
+    vkNurFotos.zaehler === '3 Fotos', JSON.stringify(vkNurFotos.zaehler));
+  pruefe('Und dort steht kein Abspielzeichen', vkNurFotos.marke === false);
+  const vkNurVideos = await vKarte('video', 0, 2);
+  pruefe('Bei reinem Videobestand ebenso',
+    vkNurVideos.zaehler === '2 Videos', JSON.stringify(vkNurVideos.zaehler));
+  const vkEines = await vKarte('video', 0, 1);
+  pruefe('Bei einem einzigen Element steht gar kein Zaehler',
+    vkEines.zaehler === undefined, JSON.stringify(vkEines.zaehler));
+  pruefe('Das Abspielzeichen steht trotzdem da',
+    vkEines.marke === true);
 
   const cssZ = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const regelZ = (w) => (cssZ.match(new RegExp(w.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
