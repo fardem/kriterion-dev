@@ -1682,6 +1682,13 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
       const d = Math.round(Number(req.body.dauer));
       const dauer = Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null;
       const v = await makeVariants(standbild.buffer);
+      /* Kaeme hier nichts heraus, bliebe die Zeile OHNE Standbild -- und zwar
+         dauerhaft: das Nachruesten beim Start laesst Videozeilen aus, weil es
+         sonst aus der Videodatei ableiten wuerde. Ein Foto in derselben Lage
+         holt seine Vorschau beim naechsten Start nach; ein Video kann das
+         nicht. Deshalb lieber gar nicht anlegen als kaputt. */
+      if (!v.thumb || !v.medium)
+        return res.status(400).json({ error: 'Aus dem Standbild ließ sich keine Vorschau erzeugen' });
       // sort_order zaehlt weiter wie bisher: ein Video haengt sich hinten an
       // die vorhandenen Zeilen, in derselben Nummerierung.
       const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
@@ -2530,7 +2537,10 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
           ? (p.standbild_base64 ? Buffer.from(p.standbild_base64, 'base64') : null)
           : buf;
         const v = quelle ? await makeVariants(quelle) : { thumb: null, medium: null };
-        if (istVideo && !v.thumb && !v.medium) { videosUnlesbar++; continue; }
+        // Dieselbe Schaerfe wie beim Hochladen: fehlt EINE der beiden
+        // Varianten, wird die Zeile nicht angelegt. Das Nachruesten beim Start
+        // holt sie an einer Videozeile nicht nach.
+        if (istVideo && (!v.thumb || !v.medium)) { videosUnlesbar++; continue; }
         // Fokuspunkt aus der Datei uebernehmen; aeltere Exportdateien haben
         // ihn nicht und landen auf der Mitte.
         const im = (v2, vorgabe) => {

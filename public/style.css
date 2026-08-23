@@ -781,6 +781,11 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .lb-count { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
 .lb-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 1rem; transition: all .15s var(--ease); }
 .lb-btn:hover { background: var(--surface-3); color: var(--text); border-color: #363e47; }
+/* display: flex oben schlaegt das display:none, das der Browser einem
+   hidden-Attribut mitgibt -- ohne diese Zeile bleibt der Zoomknopf stehen, wo
+   er nichts tut: am Kommentarbild und seit 0.8.50 am Video. Ein Knopf, der
+   nichts tut, wirkt kaputt. */
+.lb-btn[hidden] { display: none; }
 /* Die Pfeile haengen an der Lightbox, nicht an der Buehne: im gezoomten
    Zustand wird .lb-stage zum Scrollbereich, und Kinder davon wandern beim
    Verschieben mit dem Bild aus dem Bild. .lightbox ist fixed und scrollt nie. */
@@ -889,6 +894,17 @@ body.lb-open { overflow: hidden; }
 .viewer:hover .vfocus, .vfocus.on { opacity: 1; }
 .vfocus:hover { color: var(--text); border-color: #3a434c; }
 .vfocus.on { color: var(--accent); border-color: var(--accent); }
+/* Derselbe Knopf eine Handbreit weiter links -- nur am Videoplatz, wo der Klick
+   auf die Flaeche der Abspielsteuerung gehoert. Am Foto gibt es ihn nicht.
+   Er bleibt sichtbar, auch ohne Ueberfahren: mit dem Finger gibt es kein
+   Ueberfahren, und ohne ihn kaeme man von dort gar nicht ins Vollbild. */
+.vfull {
+  position: absolute; top: 10px; right: 92px; z-index: 3;
+  padding: 5px 10px; border-radius: 999px; font-size: .73rem; font-weight: 500;
+  background: rgba(8,10,12,.78); border: 1px solid var(--line); color: var(--text-2);
+  transition: color .15s var(--ease), border-color .15s var(--ease);
+}
+.vfull:hover { color: var(--text); border-color: #3a434c; }
 /* Im Ausschnitt-Modus zieht der Zeiger den Rahmen, statt das Vollbild zu oeffnen. */
 .viewer.focus-mode { cursor: crosshair; touch-action: none; }
 .viewer.focus-mode img { cursor: crosshair; }
