@@ -19,7 +19,7 @@ app.use(express.json({ limit: '2mb' }));
    Die Sicherheitsregel ist die zweite Verteidigung hinter der Ableitung des
    Typs am Fotoweg -- zwei Schichten fuer denselben Fehler. Sie ist hier
    billig, weil die Oberflaeche nichts von aussen nachlaedt und kein
-   onclick= in einer Zeichenkette kennt.
+   onclick= in einem String kennt.
    'unsafe-inline' bei style-src ist NOETIG und keine Nachlaessigkeit: die
    Oberflaeche setzt Randabstaende, Rasterspalten und den Fokuspunkt als
    style="..."-Attribut, und eine Sicherheitsregel ohne diese Freigabe
@@ -309,7 +309,7 @@ function nurSelbst(req, verfasserId) {
 /* Wer einen NEUEN Namen anlegen darf -- Tag oder Kategorie. Zwei globale
    Schalter, Vorgabe an, ABGELEITET BEIM LESEN: ein Schluessel, der nicht in
    settings steht, gilt als eingeschaltet. Damit braucht kein Bestand angefasst
-   zu werden, es entsteht kein Umstiegscode, und zu 1.0 ist nichts
+   zu werden, es entsteht kein Migrationscode, und zu 1.0 ist nichts
    zurueckzubauen.
    Der Unterschied zu den Kriterien: ein neuer Tag erscheint nur dort, wo man
    ihn hinsetzt, ein neues Kriterium ueberall. Deshalb ein Schalter und keine
@@ -1727,25 +1727,25 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
    Die Spalte ist eine Angabe des Hochladenden: sie wird gespeichert und
    angezeigt, sie entscheidet aber nicht, was der Browser mit der Antwort
    macht. Damit ist auch geschuetzt, was schon in der Datenbank liegt -- eine
-   Ableitung braucht keinen Umstieg. Dieselbe Regel wie bei den Anhaengen,
+   Ableitung braucht keinen Migration. Dieselbe Regel wie bei den Anhaengen,
    siehe anhaenge.js. Bei einem Video ist der Blob je nach Groesse etwas
    anderes: mit size= das Standbild, ohne die Videodatei -- und der Erkenner
    sieht das den Bytes an, ohne dass hier etwas unterschieden wird.
 
    BEREICHE NUR AM VIDEO UND NUR AN DER GANZEN DATEI. An einem Foto aendert
-   sich damit keine einzige Kopfzeile -- das ist Absicht und wird geprueft:
+   sich damit keine einzige Header -- das ist Absicht und wird geprueft:
    diese Runde darf an der Auslieferung vorhandener Fotos nichts aendern. */
 app.get('/api/photos/:id/raw', (req, res) => {
   const p = db.prepare('SELECT * FROM photos WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).end();
   let blob = p.data;
-  let bereichsfaehig = p.art === 'video';
-  if (req.query.size === 'thumb' && p.thumb) { blob = p.thumb; bereichsfaehig = false; }
-  else if (req.query.size === 'medium' && p.medium) { blob = p.medium; bereichsfaehig = false; }
-  anh.setzeBildKopfzeilen(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
-  if (!bereichsfaehig) return res.send(blob);
+  let rangefaehig = p.art === 'video';
+  if (req.query.size === 'thumb' && p.thumb) { blob = p.thumb; rangefaehig = false; }
+  else if (req.query.size === 'medium' && p.medium) { blob = p.medium; rangefaehig = false; }
+  anh.setzeBildHeader(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
+  if (!rangefaehig) return res.send(blob);
   res.set('Accept-Ranges', 'bytes');
-  const b = anh.bereichAus(req.headers.range, blob.length);
+  const b = anh.rangeAus(req.headers.range, blob.length);
   if (!b) return res.send(blob);
   // Ungueltiges wird abgewiesen, nicht zurechtgebogen: ein Abspieler, der
   // etwas anderes bekommt als er verlangt hat, zeigt Bildsalat statt Fehler.
@@ -1817,7 +1817,7 @@ app.post('/api/items/:id/attachments', anhangUpload.array('files', ANHANG_ZAHL),
 app.get('/api/attachments/:id/raw', (req, res) => {
   const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).end();
-  anh.setzeKopfzeilen(res, a.filename, { inline: req.query.inline === '1' });
+  anh.setzeHeader(res, a.filename, { inline: req.query.inline === '1' });
   res.send(a.data);
 });
 
@@ -2302,7 +2302,7 @@ app.delete('/api/comment-images/:id', (req, res) => {
 app.get('/api/comment-images/:id/raw', (req, res) => {
   const b = db.prepare('SELECT * FROM comment_images WHERE id = ?').get(req.params.id);
   if (!b) return res.status(404).end();
-  anh.setzeKopfzeilen(res, 'bild.jpg', { inline: true });
+  anh.setzeHeader(res, 'bild.jpg', { inline: true });
   res.send(req.query.size === 'thumb' && b.thumb ? b.thumb : b.data);
 });
 
@@ -2371,12 +2371,12 @@ app.get('/api/stats', nurAdmin, (req, res) => {
   const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();
   res.json({
     version: VERSION,
-    // Der Abdruck steht hier und nicht in /api/config: er ist dieselbe Art
+    // Der Fingerprint steht hier und nicht in /api/config: er ist dieselbe Art
     // Aussage wie die Zahlen darunter -- eine ueber die ANLAGE ALS GANZES.
     // Und die Liste in /api/config ist ausdruecklich abgeschlossen; was
-    // dort steht, sieht jeder, der die Adresse kennt. Der Abdruck nagelt
+    // dort steht, sieht jeder, der die Adresse kennt. Der Fingerprint nagelt
     // den laufenden Dateisatz fest und geht deshalb nicht vor die Anmeldung.
-    abdruck: ABDRUCK,
+    fingerprint: FINGERPRINT,
     dbBytes, photoCount: p.n, photoBytes: p.o,
     videoCount: vi.n, videoBytes: vi.o,
     attachmentCount: an.n, attachmentBytes: an.o,
@@ -2409,7 +2409,7 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
   const withFiles = req.query.files === '1';
   /* Dasselbe fuer die Videos, und aus demselben Grund nur schaerfer: ein
      20-MB-Video wird als Base64 zu 27 MB, und zwanzig davon sind 540 MB in
-     EINER Zeichenkette. Node haelt keine Zeichenkette ueber rund 512 MB; der
+     EINEM String. Node haelt kein String ueber rund 512 MB; der
      Export risse. Vorgabe deshalb aus. */
   const withVideos = req.query.videos === '1';
   // favorite nennt den Favoriten DESSEN, DER EXPORTIERT -- dieselbe
@@ -2441,7 +2441,7 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
       created_at: it.created_at, updated_at: it.updated_at,
       category: it.product_category_id ? qCat.get(it.product_category_id).name : null,
       tags: qTags.all(it.id).map(t => t.name),
-      // Ein Link ist keine nackte Zeichenkette mehr, sondern eine Adresse mit
+      // Ein Link ist keine nackte String mehr, sondern eine Adresse mit
       // Verfasser -- wie an den vier anderen Traegern. Ohne dieses Feld kaemen
       // eingespielte Links herrenlos herein, und der Export verloere genau die
       // Angabe, die es zu tragen gilt. Dafuer steht die Formatnummer 7.
@@ -2774,11 +2774,11 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
         // Zaehler in stats sein und nicht der Index der Rohliste, aus der
         // Leerzeilen herausfallen.
         /* ZWEI FORMEN, EINE SCHLEIFE. Bis Formatnummer 6 war ein Link eine
-           nackte Zeichenkette, ab 7 ein Objekt mit url und author. Eine alte
+           nackte String, ab 7 ein Objekt mit url und author. Eine alte
            Datei ist kein Fehler, sondern der Normalfall nach einem
-           Rueckschritt.
+           Downgrade.
            WEM EIN LINK AUS EINER DATEI DER FORMATNUMMER 6 GEHOERT: dem
-           Verfasser DES EINTRAGS -- dieselbe Antwort wie beim Umstieg und aus
+           Verfasser DES EINTRAGS -- dieselbe Antwort wie beim Migration und aus
            demselben Grund. Die Datei sagt nichts anderes, als dass die Links
            zu diesem Eintrag gehoeren; "unbekannter Name" traefe es nicht, es
            steht ja keiner da. Deshalb wird hier verfasser() NICHT gefragt,
@@ -2851,7 +2851,7 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
            bleibt der Eintrag einfach ohne Anhaenge.
            WEM EINE DATEI AUS EINER DATEI DER FORMATNUMMER 7 ODER AELTER
            GEHOERT: dem Verfasser DES EINTRAGS -- dieselbe Antwort wie beim
-           Umstieg und wie bei den Links. Steht dagegen ein Feld `author` da,
+           Migration und wie bei den Links. Steht dagegen ein Feld `author` da,
            entscheidet es, auch wenn es null ist. */
         attachments.forEach((a2, i) =>
           { db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
@@ -2966,13 +2966,13 @@ async function maintainStorage() {
   }
 }
 
-/* ---- Versionsabdruck ---- */
+/* ---- Versions-Fingerprint ---- */
 // Die Versionsnummer kommt aus der package.json und sagt NICHTS ueber die
 // uebrigen Dateien: wurden package.json und server.js ersetzt, public/app.js
 // aber nicht, zeigt die Fusszeile die neue Version, waehrend die Oberflaeche
-// sich alt verhaelt. Der Abdruck ist die Aussage, die die Versionsnummer nicht
+// sich alt verhaelt. Der Fingerprint ist die Aussage, die die Versionsnummer nicht
 // machen kann -- er aendert sich, sobald IRGENDEINE der beteiligten Dateien
-// anders ist. Ein halb eingespielter Dateisatz zeigt damit einen Abdruck, der
+// anders ist. Ein halb eingespielter Dateisatz zeigt damit einen Fingerprint, der
 // zu keiner Version gehoert.
 //
 // DIE LISTE WIRD ABGELEITET, NICHT GEPFLEGT, und zwar aus dem, was der Server
@@ -2982,14 +2982,14 @@ async function maintainStorage() {
 // frueher oder spaeter auseinander.
 //
 // Damit kann die Falle gar nicht erst entstehen: pruefung.js und Doku/ liegen
-// im Repo, aber NICHT im Abbild (.dockerignore). Ein Abdruck, der sie
+// im Repo, aber NICHT im Image (.dockerignore). Ein Fingerprint, der sie
 // mitzaehlte, waere im Container ein anderer als auf der Platte und damit
 // wertlos. Der Server laedt sie nicht und liefert sie nicht aus -- sie koennen
 // also nicht hineingeraten, ohne dass jemand sie ausdruecklich hereinholt.
 //
-// DIE GRENZE, DIE DARAUS FOLGT, IST ABSICHT: zugang.js liegt im Abbild, wird
+// DIE GRENZE, DIE DARAUS FOLGT, IST ABSICHT: zugang.js liegt im Image, wird
 // aber nur von Hand aufgerufen und nie vom Server geladen. Es steht deshalb
-// nicht im Abdruck. Der Abdruck sagt, WELCHER SERVER LAEUFT, nicht welches
+// nicht im Fingerprint. Der Fingerprint sagt, WELCHER SERVER LAEUFT, nicht welches
 // Werkzeug danebenliegt.
 function dateienUnter(verzeichnis) {
   const raus = [];
@@ -3001,7 +3001,7 @@ function dateienUnter(verzeichnis) {
   return raus;
 }
 
-function bildeAbdruck() {
+function bildeFingerprint() {
   const ausgefuehrt = Object.keys(require.cache).filter(f =>
     f.startsWith(__dirname + path.sep) && !f.split(path.sep).includes('node_modules'));
   const liste = [...new Set([...ausgefuehrt, ...dateienUnter(path.join(__dirname, 'public'))])]
@@ -3009,7 +3009,7 @@ function bildeAbdruck() {
     .sort();
   const h = crypto.createHash('sha256');
   for (const rel of liste) {
-    // Der NAME gehoert mit hinein, sonst bliebe der Abdruck gleich, wenn zwei
+    // Der NAME gehoert mit hinein, sonst bliebe der Fingerprint gleich, wenn zwei
     // Dateien ihre Inhalte tauschen oder eine umbenannt wird. Das Nullzeichen
     // trennt, damit sich Name und Inhalt nicht ineinanderschieben koennen.
     h.update(rel); h.update('\0');
@@ -3020,9 +3020,9 @@ function bildeAbdruck() {
 
 // Beim Start, nach allen require-Aufrufen: erst dann ist require.cache
 // vollstaendig. Alle Module dieses Projekts werden am Dateianfang geladen; ein
-// require INNERHALB einer Funktion machte diesen Abdruck unvollstaendig, und
+// require INNERHALB einer Funktion machte diesen Fingerprint unvollstaendig, und
 // der Pruefstand haelt genau das fest.
-const ABDRUCK = bildeAbdruck();
+const FINGERPRINT = bildeFingerprint();
 
 /* Sauberes Herunterfahren. Ohne das beendet "docker compose down" den Prozess
    hart: die WAL-Datei bleibt liegen, und wer in genau diesem Augenblick das
@@ -3044,11 +3044,11 @@ app.listen(PORT, () => {
   console.log(`[Kriterion] Läuft auf Port ${PORT} — ` +
     (u ? `Eigentümer: ${u.username}` : 'noch kein Zugang, Einrichtung im Browser'));
   // Die Betriebsart gehoert ins Protokoll: an ihr haengen der gelesene Kopf,
-  // das Secure am Keks, HSTS und der Name des Kekses. Wer sie falsch stehen
+  // das Secure am Cookie, HSTS und der Name des Cookies. Wer sie falsch stehen
   // hat, sieht es hier und nicht erst an einer wirkungslosen Anmeldebremse.
   console.log(`[Kriterion] Hinter Proxy: ${auth.HINTER_PROXY ? 'an' : 'aus'} — ` +
     (auth.HINTER_PROXY
-      ? 'X-Forwarded-For wird gelesen, Keks mit Secure und __Host-'
+      ? 'X-Forwarded-For wird gelesen, Cookie mit Secure und __Host-'
       : 'X-Forwarded-For wird nicht gelesen'));
   setTimeout(() => backfillVariants().then(maintainStorage).catch(e => console.error(e)), 1500);
 });

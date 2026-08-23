@@ -1,6 +1,6 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.50 — Abdruck `3cb528d6`**
+**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.50 — Fingerprint `3cb528d6`**
 (Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
@@ -16,7 +16,7 @@ und begründet damit kein neues Recht: ein Video hängt am Eintrag und gehört
 seinem Verfasser, genau wie ein Foto. **Fotos und Videos sind weiterhin kein
 Träger** (Änderungsprotokoll 0.8.31, Abschnitt 7) — `photos` hat keine
 `user_id` und bekommt keine, und `ordneBestandZu()` kennt die Tabelle nicht.
-Der Prüfstand belegt die Route mit einem **echten mehrteiligen Upload**: ein
+Der Prüfstand belegt die Route mit einem **echten Multipart-Upload**: ein
 Fremder bekommt 403, und danach steht keine Zeile in `photos`.
 
 **0.8.40 berührte den Mehrbenutzerbetrieb nicht.** Die Gewichtung der
@@ -45,8 +45,8 @@ Rechtetabelle in Abschnitt 3 um und macht Links zum **fünften Träger** neben
 Eintrag, Kommentar, Testtag und Bewertung. Der Ergebnisblock steht in Teil III.
 
 **Weder 0.8.10 noch 0.8.20 haben den Mehrbenutzerbetrieb berührt.** 0.8.10
-ging an den Bau (Sperrdatei, `npm ci`, `sharp`, Node 22), an den Prüfstand
-(Gruppenfilter, Prüflauf bei jedem Push) und mit dem Versionsabdruck an eine
+ging an den Bau (Lockfile, `npm ci`, `sharp`, Node 22), an den Prüfstand
+(Gruppenfilter, Prüflauf bei jedem Push) und mit dem Versions-Fingerprint an eine
 einzige Zeile im Systembereich. 0.8.20 ging an die Absicherung: der Fotoweg
 liefert nie mehr den gemeldeten Typ, die Anwendung bekommt eine
 Sicherheitsregel, der Kopf `X-Forwarded-For` wird nur noch nach ausdrücklicher
@@ -64,10 +64,10 @@ neu"**.
 
 **Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
 `HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
-hängen auch `Secure` am Sitzungskeks, `Strict-Transport-Security` und das
-Präfix `__Host-` am Keksnamen. Wer künftig etwas an der Sitzung baut (Stufe H,
-„Meine Sitzungen"), findet den Keksnamen deshalb **nicht** als feste
-Zeichenkette vor, sondern nimmt ihn aus `auth.COOKIE_NAME`. Im Betrieb steht
+hängen auch `Secure` am Sitzungscookie, `Strict-Transport-Security` und das
+Präfix `__Host-` am Cookienamen. Wer künftig etwas an der Sitzung baut (Stufe H,
+„Meine Sitzungen"), findet den Cookienamen deshalb **nicht** als feste
+String vor, sondern nimmt ihn aus `auth.COOKIE_NAME`. Im Betrieb steht
 die Einstellung auf der Vorgabe **aus**; sie gehört auf `1`, sobald Kriterion
 über den Proxy nach außen geht (Projektstand, Abschnitte 2 und 3).
 
@@ -93,7 +93,7 @@ Ständen dieses Papiers. **Alles Offene steht vollständig.**
 # Teil I — Umbenennung auf „Kriterion" — erledigt in Version 0.5.10
 
 **Was gilt:** Das Projekt heißt Kriterion; umbenannt sind Anzeigename,
-Paketname, Container- und Abbildname und der Keks (`kriterion_session`). **Die
+Paketname, Container- und Imagename und der Cookie (`kriterion_session`). **Die
 Datenbankdatei heißt weiterhin `katalog.sqlite`** — der Dateiname ist kein
 Projektname und wandert bei keiner Umbenennung mit. Das Risiko lag wie
 vorhergesagt im Betriebsvorgang (Ordnerwechsel, `.env`, alter Container am
@@ -251,7 +251,7 @@ Hälfte.
 
 **Sechs Träger seit 0.8.31**, nicht mehr vier. `links.user_id` und
 `attachments.user_id` sind die beiden Spalten, die nachgerüstet werden mussten
-— mit `umstieg0830()` und `umstieg0831()`, dem zweiten und dritten markierten
+— mit `migration0830()` und `migration0831()`, dem zweiten und dritten markierten
 Block im Projekt. Wer von 0.8.20 kommt, fährt beide in einem Start. Nachgestellt dabei: eine Fremdschlüsselspalte
 lässt sich nur **nullbar** nachrüsten (Projektstand, Stolperstein 105); für
 `links` war das ohnehin die richtige Form.
@@ -561,13 +561,13 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | **E2** | 0.7.1 | Export und Import mit Verfassernamen — **erledigt**, siehe unten | mittel |
 | **F** | 0.7.2 | Rechteschicht serverseitig, Endpunkt für Endpunkt; dazu der Selbstbezug — **erledigt**, siehe unten | mittel |
 | **G1** | 0.8.0 | Verwaltungskarte, Rollen, Sperren, Namensbremse, `zugang.js` — **erledigt**, siehe unten | groß |
-| — | 0.8.1 | *Keine Stufe.* **Bereinigung:** `legacy.js` und aller Umstiegscode entfernt, Schema als DDL, Prüfstand auf frische Anlagen (−102 Prüfungen), Kommentare und Vokabular vereinheitlicht, Dokumente eingedampft | mittel |
+| — | 0.8.1 | *Keine Stufe.* **Bereinigung:** `legacy.js` und aller Migrationscode entfernt, Schema als DDL, Prüfstand auf frische Anlagen (−102 Prüfungen), Kommentare und Vokabular vereinheitlicht, Dokumente eingedampft | mittel |
 | **G2a** | **0.8.2** | Verfassernamen an vier Trägern, Stimmenliste je Kriterium, Löschdialog am Eintrag, Endpunkt für fremde Bewertungen — **erledigt**, siehe unten | mittel |
 | **G2b** | **0.8.3** | Eingriffsvermerk am Kommentar, `mine` am Kommentar samt der Oberfläche dazu, blaue Aufgabenmarke, Tagwolke — **erledigt**, siehe unten | mittel |
 | **G2c** | **0.8.4** | Rest von G2: die beiden Anlegen-Schalter und die Vergleichsansicht; dazu die Rolle im Vermerk, `updated_at` bei den Bildwegen und die Zahlen am Kommentarblock — **erledigt, Stufe G2 vollständig**, siehe unten | mittel |
 | **G3** | **0.8.5** | „Der Systembereich lernt die Rechte": dreizehn Karten nach Rolle, `GET /api/stats` hinter den Admin, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien — **erledigt**, siehe unten | mittel |
 | — | **0.8.6** | *Keine Stufe.* **Berichtigungen aus dem Betrieb:** Bewertungsdetails nur noch für den Admin (eigener Endpunkt, Löschweg mitgewandert), Scrollen der Linkliste am Finger, Lücke im Kartenraster, Datum am Eintragsverfasser, „angemeldet als" in der Kopfzeile — **erledigt**, siehe unten | klein |
-| — | **0.8.10** | *Keine Stufe.* **Werkzeug:** `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Abbild auf Node 22, Versionsabdruck über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push — **erledigt**, den Umbau nicht berührt | klein |
+| — | **0.8.10** | *Keine Stufe.* **Werkzeug:** `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Image auf Node 22, Versions-Fingerprint über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push — **erledigt**, den Umbau nicht berührt | klein |
 | — | **0.8.20** | *Keine Stufe.* **„Die Schotten dicht":** SVG am Fotoweg (Typ aus den ersten Bytes statt aus der Datenbank), Sicherheitsregel für die Anwendung selbst, `X-Forwarded-For` nur nach Einstellung samt `Secure`/HSTS/`__Host-`, Fehler-Handler nach Rang, sauberes Herunterfahren, Index auf `sessions.user_id` — **erledigt**, den Umbau nicht berührt | klein |
 | **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der **fremden** Zeile ab zwei Zugängen, Formatnummer 6 → 7 — **erledigt, Stufe G vollständig**, siehe unten | mittel |
 | — | **0.8.31** | *Keine Stufe.* **Dieselbe Wende an den Dateien:** `user_id` an `attachments`, hochladen offen, löschen beim Hochladenden oder Admin, Name an der fremden Zeile, Formatnummer 7 → 8 — **erledigt** | klein |
@@ -738,7 +738,7 @@ Löschenden. **`DELETE /api/ratings/:id`** entfernt eine einzelne fremde
 Bewertung, hinter `darfAendern`; die Note ändert niemand.
 
 **Abweichungen.** Das Feld heißt `verfasser`, nicht `author` — der Export-
-`author` ist eine blanke Zeichenkette, hier steht ein Objekt, und gleicher Name
+`author` ist eine blanke String, hier steht ein Objekt, und gleicher Name
 bei anderer Form wäre eine Falle. *Verworfen:* ein Endpunkt `GET /api/verfasser`
 — er legte die vollständige Zugangsliste jedem offen. Der **Grabsteinname
 verlässt den Server nicht** (`name: null`), weil er freigegeben ist und längst
@@ -774,13 +774,13 @@ kein Wer, kein Wann, keine Kette. Gebaut wie entworfen: Spalte
 hochgezählt nur bei fremdem Eingriff, in der Antwort als `bilderEntfernt`, in
 der Kopfzeile als eigene Angabe, nie im Textfeld, nicht zurücksetzbar, nicht im
 Export, Formatnummer bleibt 6.
-**Abweichung:** der Satz „kein Umstiegscode (die Vorgabe 0 greift für jede
+**Abweichung:** der Satz „kein Migrationscode (die Vorgabe 0 greift für jede
 Bestandszeile)" war **falsch** — er galt für die Zeilen, nicht für die Spalte.
 `CREATE TABLE IF NOT EXISTS` rührt eine vorhandene Tabelle nicht an
 (Stolperstein 13), und seit 0.8.1 gibt es keinen Nachrüstweg mehr. 0.8.3 hat
-deshalb einen markierten Umstiegsblock `umstieg083()` bekommen — vor dem Bauen
+deshalb einen markierten Migrationsblock `migration083()` bekommen — vor dem Bauen
 nachgestellt, gemeldet und freigegeben. **Merksatz für jede weitere Spalte:
-DDL und Umstiegsblock, nicht eines von beidem.**
+DDL und Migrationsblock, nicht eines von beidem.**
 ~~**Offen für 0.8.4:** der Vermerk nennt die Rolle.~~ **Erledigt in 0.8.4.**
 „2 Bilder vom Admin entfernt" — ohne eigenes Feld: wer beide Klemmen an
 `DELETE /api/comment-images/:id` passiert (`darfAendern`, dann ein anderer als
@@ -802,7 +802,7 @@ Bearbeitung" bleibt unberührt.
 
 ~~**Die beiden Anlegen-Schalter. Offen, Version 0.8.4.**~~ **Erledigt in
 0.8.4.** `tagsFreiAnlegen` und `kategorienFreiAnlegen`, global, Vorgabe an, als
-**Ableitung beim Lesen** — kein Umstiegscode. Geschrieben über `PUT
+**Ableitung beim Lesen** — kein Migrationscode. Geschrieben über `PUT
 /api/settings`, dessen Adminprüfung bereits abgeleitet ist („was nicht
 persönlich ist, ist Adminsache"), also keine neue Route und keine zweite
 Liste. Drei Anlegewege bekommen die Klemme, jeweils **hinter** dem
@@ -930,7 +930,7 @@ dezente Trennlinien zwischen den Abschnitten der beiden Linkkarten.
 
 **Was ausdrücklich nicht gebaut wurde:** „Ansicht für Vokabular und Titel gar
 nicht". Das Vokabular **ist** jede Beschriftung, der interne Titel steht in der
-Kopfzeile — beide werden weiter ausgeliefert. Was verschwindet, sind die
+Header — beide werden weiter ausgeliefert. Was verschwindet, sind die
 **Karten**, nicht die Daten.
 
 **Zwei Prüfungen umgedreht statt gelöscht** (Auflage aus Stolperstein 74):
@@ -942,7 +942,7 @@ versteckt, muss ihre Behandler mitverstecken).
 ## 0.8.6 — Berichtigungen aus dem Betrieb — erledigt in Version 0.8.6
 
 **Keine Stufe des Umbaus, eine Runde Nacharbeit.** Fünf Punkte, alle beim
-Ansehen von 0.8.5 aufgefallen. Kein Schema, kein Umstiegscode.
+Ansehen von 0.8.5 aufgefallen. Kein Schema, kein Migrationscode.
 
 **Was gilt.** Die Sternzeile zeigt den **eigenen Wert und den Schnitt**, mehr
 nicht. Wer welchen Wert vergeben hat, sieht der **Admin in einer eigenen
@@ -992,7 +992,7 @@ eine Zahlenreihe ohne Aussage.
 **Drei Prüfungen umgedreht, vier serverseitige und sieben in der Oberfläche
 umgehängt, keine gelöscht** (Auflage aus Stolperstein 74). **Drei neue
 Stolpersteine:** 89 (zwei Dialoge übereinander teilen sich die Abbruchtaste),
-90 (ein Doppelgänger, dessen Antwort sich ändern soll, muss sie wirklich
+90 (ein Mock, dessen Antwort sich ändern soll, muss sie wirklich
 ändern) und 91 (eine Funktion, die selbst misst, ist im gebauten DOM nur an
 einer gestellten Höhe prüfbar).
 
@@ -1008,11 +1008,11 @@ Einstellung, keine Version.**
 **Kein Block, und das ist die Auskunft.** 0.8.10 hat den Mehrbenutzerbetrieb
 an keiner Stelle berührt: keine Rolle, kein Recht, kein Endpunkt, kein Schema.
 `F_ROUTEN` blieb bei 46. Gebaut wurden der wiederholbare Bau, `sharp` und Node
-22, der Versionsabdruck und zwei Dinge am Prüfstand — was davon gilt, steht
+22, der Versions-Fingerprint und zwei Dinge am Prüfstand — was davon gilt, steht
 im Projektstand, Abschnitte 2, 5, 7 und 9.
 
 **Eines wirkt trotzdem hierher**, weil es jede kommende Stufe betrifft: der
-**Abdruck** löst die Textstelle je Version ab, mit der bisher nachgeprüft
+**Fingerprint** löst die Textstelle je Version ab, mit der bisher nachgeprüft
 wurde, ob wirklich der neue Dateisatz läuft (siehe „Nachprüfen per SSH"). Und
 er wird **zuletzt** gebildet, nach der letzten Änderung an einer
 ausgelieferten Datei — jede spätere Änderung macht die genannte Zeile falsch.
@@ -1026,7 +1026,7 @@ Projektstand, Abschnitte 2, 5, 5a, 7 und 9.
 
 **Zwei Dinge wirken trotzdem hierher**, weil sie jede kommende Stufe betreffen:
 
-- **Der Sitzungskeks heißt nicht mehr fest `kriterion_session`.** Bei
+- **Der Sitzungscookie heißt nicht mehr fest `kriterion_session`.** Bei
   `HINTER_PROXY=1` heißt er `__Host-kriterion_session` und trägt `Secure`. Wer
   in Stufe H „Meine Sitzungen" baut, nimmt den Namen aus `auth.COOKIE_NAME`
   und schreibt ihn nirgends ab.
@@ -1034,7 +1034,7 @@ Projektstand, Abschnitte 2, 5, 5a, 7 und 9.
   Prüfstand hält das fest: keine Zeile in `server.js` setzt den Content-Type
   selbst. Er wird namentlich rot, sobald jemand eine Auslieferung ergänzt.
   **In 0.8.50 hat er gehalten:** der Videoweg liefert `inline` aus und geht
-  trotzdem durch `setzeBildKopfzeilen()`; keine Zeile in `server.js` ist
+  trotzdem durch `setzeBildHeader()`; keine Zeile in `server.js` ist
   dazugekommen, die den Typ selbst setzt. Seitdem hat er eine Gegenprobe
   neben sich.
 
@@ -1056,7 +1056,7 @@ die Entscheidung dieser Stufe:
 | `PUT /api/items/:id/link-order` | `nurEintragVerfasser` | **unverändert** |
 
 `links` trägt `user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`,
-nachgerüstet über `umstieg0830()` — den zweiten markierten Block im Projekt.
+nachgerüstet über `migration0830()` — den zweiten markierten Block im Projekt.
 **Die Bestandszeilen fallen an den Eintragsverfasser**, nicht an den
 Eigentümer: bis dahin *waren* die Links eines Eintrags die Sache seines
 Verfassers. `ordneBestandZu()` nimmt `links` trotzdem auf und antwortet dort
@@ -1066,7 +1066,7 @@ Zeitpunkt, und beide stehen im Quelltext nebeneinander erklärt.
 Export und Import nennen den Namen wie an den vier anderen Trägern; ein Link
 ist in der Datei ein Objekt aus `url` und `author`, **Formatnummer 6 → 7**.
 Der Import liest beide Formen. **Ein Link aus einer Datei der Formatnummer 6
-fällt an den Verfasser des Eintrags** — dieselbe Antwort wie beim Umstieg: die
+fällt an den Verfasser des Eintrags** — dieselbe Antwort wie beim Migration: die
 Datei sagt nichts anderes, als dass die Links zu diesem Eintrag gehören.
 
 **Der Name steht an der fremden Zeile, nicht an jeder — Abweichung vom
@@ -1129,7 +1129,7 @@ nichts bewirkt, wäre schlimmer als keine.
 **Nachgeholt in 0.8.31: dieselbe Wende an den Dateien.** Der Entwurf sprach
 nur von Links, aber die Begründung — *was nur dort erscheint, wo man es
 hinsetzt, gehört jedem* — trifft eine Datei genauso. `attachments` bekommt
-`user_id` samt `umstieg0831()`, hochladen wird offen,
+`user_id` samt `migration0831()`, hochladen wird offen,
 `DELETE /api/attachments/:id` fragt nach der Datei, der Name steht nach
 derselben Regel an der Zeile (dort hinter der Größe, weil die Zeile einzeilig
 ist), **Formatnummer 7 → 8**. Der Wächter fiel dort **vor multer** weg — er
@@ -1153,21 +1153,21 @@ mitgeliefert und stehen nicht mehr hier. Drei Ebenen, in dieser Reihenfolge:
 den Eigentümer und `.env`-Reste; fehlt nach einem Einspielen die erwartete
 Änderung, wurde der Container nicht neu gebaut (`--build` vergessen).
 
-**1a. Der Abdruck** (seit 0.8.10) — die Antwort auf „läuft wirklich der neue
+**1a. Der Fingerprint** (seit 0.8.10) — die Antwort auf „läuft wirklich der neue
 Dateisatz". Die Versionsnummer aus `/api/config` sagt nichts über die übrigen
-Dateien; der Abdruck deckt alles ab, was der Server lädt und ausliefert. Er
+Dateien; der Fingerprint deckt alles ab, was der Server lädt und ausliefert. Er
 steht hinter der Anmeldung, die deshalb in den Befehl gehört:
 
 ```bash
-curl -s -c kekse.txt -X POST localhost:3100/api/login \
+curl -s -c cookies.txt -X POST localhost:3100/api/login \
   -H 'Content-Type: application/json' -d '{"user":"NAME","password":"..."}'
-curl -s -b kekse.txt localhost:3100/api/stats | head -c 60
+curl -s -b cookies.txt localhost:3100/api/stats | head -c 60
 ```
 
-Erwartet für 0.8.31: `{"version":"0.8.31","abdruck":"1a801477",…`. Der Abdruck
+Erwartet für 0.8.31: `{"version":"0.8.31","fingerprint":"1a801477",…`. Der Fingerprint
 jeder Version steht im Kopf des Projektstands und in ihrem
 Änderungsprotokoll. **Was er nicht abdeckt:** `zugang.js` — es liegt im
-Abbild, läuft aber nie im Server.
+Image, läuft aber nie im Server.
 
 **2. Datenbank von innen.** Sie ist verschlüsselt, `sqlite3` von außen
 scheitert — die passende Bibliothek liegt im Container:
@@ -1202,7 +1202,7 @@ curl -s -c b.txt -X POST localhost:3100/api/login \
 curl -s -b b.txt -X DELETE localhost:3100/api/items/1     # muss 403 sein
 ```
 
-„Darf nicht" muss einzeln belegt werden, mit einem echten zweiten Keks. Der
+„Darf nicht" muss einzeln belegt werden, mit einem echten zweiten Cookie. Der
 Prüfstand hat dasselbe Muster eingebaut (drei Sitzungen nebeneinander, dazu
 ein Admin **ohne** Eigentümerrolle); von Hand gegenzuprüfen bleibt es
 trotzdem — es ist die Stelle, an der ein Fehler still bleibt und trotzdem
@@ -1339,13 +1339,13 @@ ihrem Merksatz; **die offenen Auflagen stehen vollständig.**
     zugestellt wurde** (Stolperstein 61). `.click()` oder der von Hand
     gerufene Behandler genügen nicht. **Für jede folgende Stufe mit neuen
     Bedienelementen — G2 bringt welche mit — gehört mindestens ein
-    `dispatchEvent` samt anschließendem Durchlauf der Ereignisschleife
+    `dispatchEvent` samt anschließendem Durchlauf des Event Loops
     dazu.** Nicht „neues Bedienelement" ist der Anlass, sondern „geänderter
     Weg hinter einem Bedienelement". Dazu die zweite Hälfte: **wo ein
-    Doppelgänger im Prüfstand die Antwort vereinfacht, verschwindet genau die
+    Mock im Prüfstand die Antwort vereinfacht, verschwindet genau die
     Prüfung, für die man ihn gebaut hat** — der falsche Server muss antworten
     wie der echte. *In 0.8.2 und 0.8.3 beide Male eingehalten:* der
-    Doppelgänger liefert `verfasser`, `mine` und `bilderEntfernt` an allen
+    Mock liefert `verfasser`, `mine` und `bilderEntfernt` an allen
     sechs Kommentaren, zwei davon mit **verschiedenen** Vermerkzahlen. Und: **ein Merkmal kann vollständig geprüft sein und
     trotzdem an der falschen Stelle wirken** (Stolperstein 65) — zu einem
     Merkmal in Sortierung oder Filter gehört eine Prüfung mit zwei
@@ -1367,17 +1367,17 @@ ihrem Merksatz; **die offenen Auflagen stehen vollständig.**
     *In 0.8.30 zum dritten Mal geprüft und wieder nicht zutreffend:* an `links`
     hängen keine Kinder, und der Import schreibt sie mit blankem `INSERT`.
     *In 0.8.40 zum vierten Mal geprüft und wieder nicht zutreffend:* an
-    `rating_criteria` hängen zwar Bewertungen, der Umstieg legt aber keine
+    `rating_criteria` hängen zwar Bewertungen, die Migration legt aber keine
     Zeile an und entfernt keine.
     *In 0.8.50 zum fünften Mal geprüft und wieder nicht zutreffend:* an
-    `photos` hängen keine Kinder, der Umstieg rüstet nur zwei Spalten nach, und
+    `photos` hängen keine Kinder, die Migration rüstet nur zwei Spalten nach, und
     der Import schreibt Fotozeilen mit blankem `INSERT`.
     **Die Auflage bleibt stehen** — als Nächstes für 0.8.70, wo der Papierkorb
     einen ganzen Eintrag samt seiner Kinder serialisiert.
 19. *Eingetreten und erledigt in 0.7.2.* **Merksatz: der Import kann unter
     fremdem Namen schreiben — deshalb gehört er (samt Export) hinter den
     Eigentümer.**
-20. **Eine neue Spalte braucht die DDL *und* einen Umstiegsblock**
+20. **Eine neue Spalte braucht die DDL *und* einen Migrationsblock**
     (0.8.3 eingetreten, **0.8.30 zum zweiten Mal**). `CREATE TABLE IF NOT
     EXISTS` rüstet nichts nach (Stolperstein 13), und seit der Bereinigung
     0.8.1 gibt es keinen anderen Weg.
@@ -1391,7 +1391,7 @@ ihrem Merksatz; **die offenen Auflagen stehen vollständig.**
     Vorgabe ab (Projektstand, Stolperstein 105). Wer eine `NOT NULL`-Spalte mit
     `REFERENCES` braucht, braucht einen Tabellenneubau.
     *In 0.8.31 zum zweiten Mal angewandt, und beide Auflagen haben getragen.*
-    **Dazu eine dritte, die dort dazukam:** liegen mehrere Umstiegsblöcke
+    **Dazu eine dritte, die dort dazukam:** liegen mehrere Migrationsblöcke
     vor, gehört ein Prüflauf dazu, der sie **hintereinander in einem Start**
     fährt — das ist die Lage, die im Betrieb wirklich vorkommt, und keiner der
     einzelnen Abschnitte deckt sie ab.

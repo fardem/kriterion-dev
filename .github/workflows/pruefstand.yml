@@ -29,8 +29,8 @@ jobs:
           cache: npm
 
       # npm ci und nicht npm install: derselbe Grund wie im Dockerfile -- nur so
-      # wird die Sperrdatei gelesen, und ein Auseinanderlaufen von package.json
-      # und Sperrdatei ist hier ein Fehler und kein stiller Ausweg.
+      # wird das Lockfile gelesen, und ein Auseinanderlaufen von package.json
+      # und Lockfile ist hier ein Fehler und kein stiller Ausweg.
       - name: Abhaengigkeiten
         run: npm ci
 

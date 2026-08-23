@@ -2,11 +2,11 @@
 
 **Rohstoff für die Dokumentenpflege.**
 
-**0.8.50 — Abdruck `3cb528d6`**
+**0.8.50 — Fingerprint `3cb528d6`**
 
 Die nächste Runde des Stufenplans, und **keine Stufe des
 Mehrbenutzerbetriebs** — der ist mit G4 bis auf H und I gebaut. Es ist eine
-**Datenbankstufe**: vollständige DDL in `db.js`, ein Umstiegsblock mit Marken,
+**Datenbankstufe**: vollständige DDL in `db.js`, ein Migrationsblock mit Marken,
 ein eigener Prüfabschnitt, ein Eintrag unter „Vorgemerkt für 1.0". Die
 Sicherung des Datenverzeichnisses gehört in den Einspielweg.
 
@@ -15,7 +15,7 @@ derselben Reihe wie die Fotos, mit einem **Standbild**, das der Browser des
 Hochladenden erzeugt — der Server öffnet nie ein Video.
 
 **Die Entscheidung, an der das Ganze hängt, ist baulich: `ffmpeg` kommt nicht
-ins Abbild.** Vier Folgen, alle gewollt: keine neue Abhängigkeit; der Server
+ins Image.** Vier Folgen, alle gewollt: keine neue Abhängigkeit; der Server
 speichert Bytes und liefert Bytes; wer ein Video nicht abspielen kann, kann es
 nicht hochladen; und das Standbild ist **nicht überprüfbar** — es ist eine
 Vorschau, keine Aussage. Der letzte Satz steht als Kommentar am Schema, damit
@@ -59,15 +59,15 @@ bedeuten. Sie ist die einzige Stelle, an der erklärt ist, warum `data` je nach
 nicht weil SQLite ihn nicht nähme (Stolperstein 107), sondern weil die Menge
 der erlaubten Werte sonst zweimal stünde.
 
-**`umstieg0850()`** — der **fünfte** markierte Block, mit den Marken der
+**`migration0850()`** — der **fünfte** markierte Block, mit den Marken der
 Bauregel, einmalig, wiederholbar und im Normalfall stumm. Er ist der erste
 Block mit **zwei** Spalten und deshalb der erste, der **jede einzeln abfragt**
 (Stolperstein 108). Die Meldung nennt, was wirklich ergänzt wurde:
-`photos um art und dauer ergaenzt (Umstieg auf 0.8.50); N Zeilen stehen auf der
+`photos um art und dauer ergaenzt (Migration auf 0.8.50); N Zeilen stehen auf der
 Vorgabeart 'bild'.` Die Vorgabe kommt aus dem `DEFAULT` der Spalte, nicht aus
 einem `UPDATE`; `dauer` bleibt bei den Bestandszeilen `NULL`.
 
-`umstieg0850` steht mit derselben Marke in `module.exports`.
+`migration0850` steht mit derselben Marke in `module.exports`.
 **`ordneBestandZu()` ist nicht angefasst worden** — ein Foto gehört seinem
 Eintrag, nicht einem Verfasser (Änderungsprotokoll 0.8.31, Abschnitt 7:
 *„Fotos sind weiterhin kein Träger"*). Die Frage ist gestellt und verneint, und
@@ -79,7 +79,7 @@ die Zeilen je Eintrag sind einstellig, und gefiltert wird nirgends nach Art.
 
 **`VIDEO_TYPEN`** — eine Liste für beide Richtungen: `mp4`, `m4v`, `webm`,
 `mov`. Sie speist `TYP_NACH_ENDUNG` (für Anhänge, Endung → Typ) und über
-`ENDUNG_NACH_TYP` die Namensgebung in `setzeBildKopfzeilen()` (Typ → Endung).
+`ENDUNG_NACH_TYP` die Namensgebung in `setzeBildHeader()` (Typ → Endung).
 Zwei Listen für dieselbe Frage liefen auseinander. Der bisherige Einzeleintrag
 `mp4: 'video/mp4'` ist darin aufgegangen.
 
@@ -98,10 +98,10 @@ hinzunehmende Folge steht als Kommentar daneben: damit darf auch ein **Anhang**
 mit Videoendung inline heraus, wenn er ausdrücklich so angefordert wird — die
 Oberfläche fordert das nur für Bild und PDF an.
 
-**`bereichAus(kopf, groesse)`** — neu. Liest einen `Range`-Kopf und liefert
-`null` (kein Bereich verlangt), `{ ungueltig: true }` (→ 416) oder
-`{ von, bis }`. Mehrere Bereiche in einer Anfrage werden nicht beantwortet,
-sondern wie „kein Bereich" behandelt; das lässt die Norm ausdrücklich zu.
+**`rangeAus(kopf, groesse)`** — neu. Liest einen `Range`-Kopf und liefert
+`null` (kein Range verlangt), `{ ungueltig: true }` (→ 416) oder
+`{ von, bis }`. Mehrere Ranges in einer Anfrage werden nicht beantwortet,
+sondern wie „kein Range" behandelt; das lässt die Norm ausdrücklich zu.
 Zurechtgerückt wird nur das eine, was die Norm so will: ein Ende hinter dem
 Dateiende meint das Dateiende.
 
@@ -130,11 +130,11 @@ gemeldeten Typ zieht (`^video\/` bzw. `^image\/`).
 `rasterBild()` ausdrücklich nicht angewandt, und der Grund steht daneben.
 `sort_order` zählt weiter wie bisher, `touch.run()` wie beim Foto.
 
-**`GET /api/photos/:id/raw`** — die Kopfzeilen kommen unverändert aus
-`anh.setzeBildKopfzeilen()`; der Wächter „server.js setzt den Content-Type an
+**`GET /api/photos/:id/raw`** — der Header kommen unverändert aus
+`anh.setzeBildHeader()`; der Wächter „server.js setzt den Content-Type an
 keiner Stelle selbst" bleibt grün. Dazu: `Accept-Ranges: bytes` und die
-Bereichsauslieferung, **nur bei `art = 'video'` und nur ohne `size=`**. Ein
-Foto bekommt keine einzige zusätzliche Kopfzeile.
+Range-Auslieferung, **nur bei `art = 'video'` und nur ohne `size=`**. Ein
+Foto bekommt keine einzige zusätzliche Header.
 
 **`qPhotos`** liefert `art` und `dauer` mit — an `detail()` **und** an
 `/api/items`.
@@ -224,13 +224,13 @@ Die Endungsliste steht trotzdem in `anhaenge.js` und nicht in `server.js` — si
 benennt die ausgelieferte Datei und ist dieselbe Liste, die die Anhänge
 benutzen.
 
-### B. Bereiche werden geliefert — das Papier widerspricht sich
+### B. Ranges werden geliefert — das Papier widerspricht sich
 
 Abschnitt 6, Punkt 5 verlangt `Accept-Ranges: none`. Abschnitt 10 sagt über
 denselben Gegenstand: *„iOS Safari spielt ein Video überhaupt nicht ab, wenn
-der Server keine Bereiche anbietet."* Beides kann nicht stimmen.
+der Server keine Ranges anbietet."* Beides kann nicht stimmen.
 
-**Entschieden für die Bereiche.** Der Blob liegt beim Lesen ohnehin ganz im
+**Entschieden für die Ranges.** Der Blob liegt beim Lesen ohnehin ganz im
 Arbeitsspeicher, ein `206` mit `Content-Range` auf einem Buffer ist ein Dutzend
 Zeilen, und ein Video, das auf dem Handy nicht abspielt, ist genau der kaputte
 Platz, den Abschnitt 4 vermeiden will. Chromium spielt auch mit
@@ -238,8 +238,8 @@ Platz, den Abschnitt 4 vermeiden will. Chromium spielt auch mit
 das ist der Grund, es zu bauen statt zu wetten.
 
 **Nur am Video und nur an der ganzen Datei.** An einem Foto verschiebt sich
-keine Kopfzeile; der Einspielweg vergleicht sie mit `curl -I` vor und nach dem
-Einspielen. Ungültige Bereiche bekommen **416** mit `Content-Range: bytes */N`,
+kein Header; der Einspielweg vergleicht sie mit `curl -I` vor und nach dem
+Einspielen. Ungültige Ranges bekommen **416** mit `Content-Range: bytes */N`,
 nicht ein zurechtgebogenes Stück: ein Abspieler, der etwas anderes bekommt als
 er verlangt hat, zeigt Bildsalat statt eines Fehlers.
 
@@ -357,7 +357,7 @@ verdrahtet. Die elf bleiben elf.
 
 **108. Zwei `ALTER TABLE` sind zwei Anweisungen — scheitert die zweite, bleibt
 die erste stehen.** Nachgestellt: ohne Transaktion überlebt die erste Spalte,
-in einer `db.transaction()` rollen beide zurück. Für einen Umstiegsblock mit
+in einer `db.transaction()` rollen beide zurück. Für einen Migrationsblock mit
 mehr als einer Spalte folgt daraus die Bauform: nicht den Block als Ganzes
 fragen, sondern **jede Spalte einzeln**. Dann heilt der nächste Start einen
 zerrissenen Stand von selbst. *Die Transaktion verhindert den Riss, die
@@ -400,18 +400,18 @@ Rückbaus und stehen hier nicht einzeln.
 
 | Rückbau | rot | die tragende Prüfung |
 |---|---|---|
-| `umstieg0850()` fragt nicht jede Spalte einzeln | 10 | „Der Block fragt jede Spalte einzeln ab" · „Der Umstieg rüstet dauer einzeln nach" |
+| `migration0850()` fragt nicht jede Spalte einzeln | 10 | „Der Block fragt jede Spalte einzeln ab" · „Die Migration rüstet dauer einzeln nach" |
 | Vorgabe der Spalte `art` ist nicht `'bild'` | 6 | „Die beiden Bestandszeilen stehen auf bild, ohne Dauer" |
-| Die DDL trägt die beiden Spalten nicht | 1 | „Eine frische Anlage trägt beide Spalten ohne Umstieg" |
+| Die DDL trägt die beiden Spalten nicht | 1 | „Eine frische Anlage trägt beide Spalten ohne Migration" |
 | `typAusBytes()` kennt die MP4-Marken nicht | 35 | „Ein MP4 wird als video/mp4 ausgeliefert" |
 | `typAusBytes()` kennt den EBML-Kopf nicht | 8 | „Eine echte WebM geht ebenfalls durch" |
 | `INLINE_ERLAUBT` ohne die Videotypen | 1 | „Und darf eingebettet werden — sonst spielte es nicht, sondern liefe herunter" |
 | Endungstabelle ohne die Videotypen | 1 | „Der Name trägt die Endung des ERKANNTEN Typs" |
-| `bereichAus()` biegt Ungültiges zurecht statt abzuweisen | 2 | „Ungültiger Bereich (Ende vor Anfang) wird mit 416 abgewiesen" |
+| `rangeAus()` biegt Ungültiges zurecht statt abzuweisen | 2 | „Ungültiger Range (Ende vor Anfang) wird mit 416 abgewiesen" |
 | `media-src` fehlt ganz | 3 | „Videos dürfen aus der eigenen Anlage abgespielt werden" |
 | `media-src` ohne `blob:` | 1 | „Und das Standbild darf vor dem Hochladen aus einer blob-Adresse kommen" |
-| Keine Bereiche am Video | 10 | „Das Video bietet Bereiche an" |
-| Bereiche auch am Foto | 2 | „Ein Foto bietet weiterhin KEINE Bereiche an" |
+| Keine Ranges am Video | 10 | „Das Video bietet Ranges an" |
+| Ranges auch am Foto | 2 | „Ein Foto bietet weiterhin KEINE Ranges an" |
 | `server.js` setzt den Content-Type selbst | 1 | „server.js setzt den Content-Type an keiner Stelle selbst" |
 | `qPhotos` liefert `art` und `dauer` nicht mit | 29 | „Die Videozeile nennt ihre Art und ihre Dauer" |
 | Der Löschdialog nennt die Videos nicht | 1 | „Der Löschdialog zählt Fotos und Videos getrennt" |
@@ -449,7 +449,7 @@ zwanzig und rissen dann ab.
 
 **Der Wächter über den Content-Type ließ sich nicht am laufenden Code
 zurückbauen.** Er zählt wörtlich und sieht dabei auch Kommentare an; die
-Gegenprobe setzt die verletzende Zeichenkette deshalb in einen **Kommentar** —
+Gegenprobe setzt die verletzende String deshalb in einen **Kommentar** —
 der Wächter wird namentlich rot, und der Server läuft weiter. Ein Rückbau, der
 eine Route wirklich anfasst, riss den Lauf ab und belegte damit weniger.
 
@@ -463,9 +463,9 @@ Vier neue Gruppen:
 
 | Gruppe | Was sie hält |
 |---|---|
-| **UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0** | Anlage aus 0.8.40 mit Fotos; beide Spalten kommen dazu, Bestand auf `'bild'`/`NULL`, Vorgabe aus dem `DEFAULT`, **jede Spalte einzeln nachgerüstet** (zwei weitere Prüflagen), zweiter Lauf stumm, frische Anlage ohne Umstieg, migriert und frisch gleich gebaut, kein `CHECK`, `ordneBestandZu()` kennt `photos` nicht, Index unverändert |
+| **MIGRATION 0.8.50 — ENTFAELLT MIT 1.0** | Anlage aus 0.8.40 mit Fotos; beide Spalten kommen dazu, Bestand auf `'bild'`/`NULL`, Vorgabe aus dem `DEFAULT`, **jede Spalte einzeln nachgerüstet** (zwei weitere Prüflagen), zweiter Lauf stumm, frische Anlage ohne Migration, migriert und frisch gleich gebaut, kein `CHECK`, `ordneBestandZu()` kennt `photos` nicht, Index unverändert |
 | **Videos am Fotoplatz** | Upload einer echten MP4 und WebM, `art`/`dauer` an der echten Antwort, Inhalt entscheidet in **beide** Richtungen, fehlendes und unlesbares Standbild, `VIDEO_MAX`, Reihenfolge über ein Video hinweg, Fokuspunkt am Video, Löschdialog und Kennzahlen getrennt, `mainPhoto` als Video |
-| **Videos: Auslieferung (Sicherheitsregel)** | Typ, `inline`, Name mit der Endung des *erkannten* Typs, `nosniff`, Sicherheitsregel ohne `allow-scripts`, Bytestrom bytegleich, `size=` liefert JPEG, Bereiche mit 206/offenem Ende/Suffix und zwei Absagen mit 416, **Foto ohne Bereiche**, unbekannte ISO-Marke als Download, Standbild überlebt das Nachrüsten |
+| **Videos: Auslieferung (Sicherheitsregel)** | Typ, `inline`, Name mit der Endung des *erkannten* Typs, `nosniff`, Sicherheitsregel ohne `allow-scripts`, Bytestrom bytegleich, `size=` liefert JPEG, Ranges mit 206/offenem Ende/Suffix und zwei Absagen mit 416, **Foto ohne Ranges**, unbekannte ISO-Marke als Download, Standbild überlebt das Nachrüsten |
 | **Videos am Bildschirm** | Marke und Länge an der richtigen Kachel **und nicht an der falschen**, Abspieler im Betrachter, Ausschnittmodus zeigt das Standbild, Vollbild mit `<video>`, Anhalten beim Blättern **und** beim Verlassen, kein Zoomknopf, Marke in der Leiste, Kartenzähler in vier Lagen |
 
 Ergänzt wurden:
@@ -473,7 +473,7 @@ Ergänzt wurden:
 - **Export und Import** — beide Schalterstellungen, die Marke ohne Bytes, der
   Rundlauf mit Videodatei und Standbild, ein unlesbares Standbild, eine ältere
   Datei ohne `art`. Formatnummer 10 an zwei Stellen.
-- **Rechte am Eintrag** — der Videoweg mit **echtem mehrteiligem Upload**:
+- **Rechte am Eintrag** — der Videoweg mit **echtem Multipart-Upload**:
   403 für den Fremden, danach keine Zeile in `photos`; 201 für den Verfasser,
   Zeile mit `art` und `dauer`; kein Löschen durch den Fremden.
 - **Die Sicherheitsregel fuer die Anwendung selbst** — `media-src` mit `'self'`
@@ -481,29 +481,29 @@ Ergänzt wurden:
   Beleg, dass die Oberfläche die Freigabe wirklich braucht.
 - **Der Waechter ueber den Quelltext** — `F_ROUTEN` 46 → 47, und der
   Content-Type-Wächter bekommt seine **Gegenprobe**: dieselbe Zählung an einer
-  Zeichenkette, die die Verletzung trägt.
-- **Der Doppelgänger in `baueDom`** trägt jetzt zwei Fotozeilen, ein Bild und
+  String, die die Verletzung trägt.
+- **Der Mock in `baueDom`** trägt jetzt zwei Fotozeilen, ein Bild und
   ein Video, **das Video nicht an erster Stelle** (Stolperstein 90 verschärft).
   `art` und `dauer` stehen an **beiden**.
 
 Die Prüffixtures sind **echte Dateien**: eine im Browser aufgenommene MP4
 (1 418 Bytes) und WebM (1 053 Bytes), als Base64-Konstanten wie `PNG_BASE64`.
-Eine von Hand zusammengesetzte Kopfzeile bewiese über `ftyp` nichts.
+Eine von Hand zusammengesetzte Header bewiese über `ftyp` nichts.
 
 ---
 
 ## 6. Vorgemerkt für 1.0
 
-`umstieg0850()` ist der **fünfte** markierte Block und hat seinen Eintrag im
+`migration0850()` ist der **fünfte** markierte Block und hat seinen Eintrag im
 Projektstand, Abschnitt 10, bekommen: Datei, Zeilenzahl, Prüfabschnitt, was
 bleibt (die beiden Spalten in der DDL) und was fällt (der Block). Dazu der
 Satz, was **nicht** mitfällt — die Videoroute samt `VIDEO_MAX`, die Videotypen
-in `typAusBytes()` und `INLINE_ERLAUBT`, die Bereichsauslieferung, `media-src`,
+in `typAusBytes()` und `INLINE_ERLAUBT`, die Range-Auslieferung, `media-src`,
 `art`/`dauer` in `qPhotos`, die getrennten Zahlen in Löschdialog und
 Kennzahlen, der Filter in `backfillVariants()` und der Videoschalter im
 Austauschformat.
 
-Die Prüfung „Ein Sprung von 0.8.20 fährt ALLE Umstiege in einem Start" ist
+Die Prüfung „Ein Sprung von 0.8.20 fährt ALLE Migrationen in einem Start" ist
 **erweitert** worden, nicht verdoppelt: sie steht weiterhin im Abschnitt von
 0.8.31 und trägt jetzt auch eine Fototabelle ohne die beiden neuen Spalten.
 
@@ -513,10 +513,10 @@ Die Prüfung „Ein Sprung von 0.8.20 fährt ALLE Umstiege in einem Start" ist
 
 - **Die Marke `qt  ` ist nicht an einer echten Datei belegt.** Siehe
   Abschnitt 2, A. Wer ein iPhone zur Hand hat, lädt ein `.mov` hoch und sieht
-  sich die Kopfzeilen an; erwartet wird `Content-Type: video/quicktime` und
+  sich der Header an; erwartet wird `Content-Type: video/quicktime` und
   `inline`.
 - **`Accept-Ranges` ist auf iOS Safari nicht nachgestellt.** Die Entscheidung
-  für die Bereiche ist gerade deshalb gefallen; ein Gerät stand nicht zur
+  für die Ranges ist gerade deshalb gefallen; ein Gerät stand nicht zur
   Verfügung.
 - **Tastaturbedienung beim Sortieren** bleibt offen und betrifft jetzt auch
   Videos (Projektstand, „Vorgemerkt für 1.0").

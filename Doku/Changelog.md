@@ -47,7 +47,7 @@ nur der Umweg über einen Anhang, der heruntergeladen statt abgespielt wurde.
   `data` sichern — bei angehaltenem Container. Ohne diese Sicherung gibt es
   keinen Weg zurück auf die vorige Version.
 - Beim ersten Start meldet das Protokoll einmalig
-  `photos um art und dauer ergaenzt (Umstieg auf 0.8.50)`. Danach steht jedes
+  `photos um art und dauer ergaenzt (Migration auf 0.8.50)`. Danach steht jedes
   vorhandene Foto auf der Art „bild"; an der Anzeige ändert sich nichts.
 - **Das Austauschformat steht jetzt auf 10.** Ältere Exportdateien lassen sich
   weiterhin einspielen.
@@ -101,7 +101,7 @@ einstellen.
   `data` sichern — bei angehaltenem Container. Ohne diese Sicherung gibt es
   keinen Weg zurück auf die vorige Version.
 - Beim ersten Start meldet das Protokoll einmalig
-  `rating_criteria um gewicht ergaenzt (Umstieg auf 0.8.40)`. Danach steht
+  `rating_criteria um gewicht ergaenzt (Migration auf 0.8.40)`. Danach steht
   jedes vorhandene Kriterium auf Gewicht 1.
 - **Das Austauschformat steht jetzt auf 9.** Ältere Exportdateien lassen sich
   weiterhin einspielen; eine neue Datei in einer älteren Anlage verliert nur

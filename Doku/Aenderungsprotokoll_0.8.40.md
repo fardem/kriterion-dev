@@ -2,11 +2,11 @@
 
 **Rohstoff für die Dokumentenpflege.**
 
-**0.8.40 — Abdruck `49d2ae53`**
+**0.8.40 — Fingerprint `49d2ae53`**
 
 Die nächste Runde des Stufenplans, und **keine Stufe des
 Mehrbenutzerbetriebs** — der ist mit G4 bis auf H und I gebaut. Es ist eine
-**Datenbankstufe**: vollständige DDL in `db.js`, ein Umstiegsblock mit Marken,
+**Datenbankstufe**: vollständige DDL in `db.js`, ein Migrationsblock mit Marken,
 ein eigener Prüfabschnitt, ein Eintrag unter „Vorgemerkt für 1.0". Die
 Sicherung des Datenverzeichnisses gehört in den Einspielweg.
 
@@ -43,10 +43,10 @@ Kommentartext aus dem Gewichtungspapier an der Spalte: warum `REAL` und nicht
 Hundertstel als `INTEGER`, warum 0 verboten ist, und warum die Untergrenze 0,2
 nicht Geschmack, sondern der Grund ist, dass die Division immer aufgeht.
 
-Dazu `umstieg0840()` mit den Marken der Bauregel — **27 Zeilen**, der
+Dazu `migration0840()` mit den Marken der Bauregel — **27 Zeilen**, der
 **vierte** markierte Block im Projekt. `PRAGMA table_info(rating_criteria)`
 entscheidet, ob etwas zu tun ist; einmalig, wiederholbar und im Normalfall
-stumm. Der Export von `umstieg0840` in `module.exports` trägt dieselbe Marke.
+stumm. Der Export von `migration0840` in `module.exports` trägt dieselbe Marke.
 
 **Die Bestandszeilen bekommen 1,0 aus dem `DEFAULT` der Spalte, nicht aus
 einem `UPDATE`.** `ALTER TABLE … ADD COLUMN … NOT NULL DEFAULT 1.0` füllt die
@@ -122,8 +122,8 @@ Aktion.
 
 ### `pruefung.js` (+954/−20 Zeilen)
 
-Fünf neue Gruppen — darunter der Umstiegsabschnitt —, fünf erweiterte, neue
-Wächter über den Quelltext und ein Doppelgänger, der `gewicht` an jeder
+Fünf neue Gruppen — darunter der Migrationsabschnitt —, fünf erweiterte, neue
+Wächter über den Quelltext und ein Mock, der `gewicht` an jeder
 Kriterienzeile mitbringt, drei verschiedene Gewichte kennt (eines davon 1) und
 seit dieser Runde auch **Kategorien** liefert.
 
@@ -210,7 +210,7 @@ Haltung wie bei Name und Zähler daneben, die für jeden dastehen.
   `select`", obwohl die Entscheidung längst auf ein Textfeld mit
   Vorschlagsliste gefallen ist. Das ist ein Rest der ersten Fassung.
 - **Der Migrationsblock heißt im Papier `umstiegGewicht()`.** Gebaut ist
-  `umstieg0840()`, wie der Auftrag verlangt und wie die drei Blöcke davor
+  `migration0840()`, wie der Auftrag verlangt und wie die drei Blöcke davor
   heißen.
 
 ### F. Ein veralteter Kommentar im Quelltext, mitberichtigt
@@ -268,8 +268,8 @@ und vor jedem Deuten per `diff` belegt (Stolperstein 75).
 | `gueltigesGewicht()` rundet nicht mehr auf Hundertstel | 2 rot |
 | Die Meldung trägt einen Punkt statt eines Kommas | **1 rot** |
 | Umbenennen setzt das Gewicht mit zurück (kein `COALESCE`) | **1 rot** |
-| **Der Umstiegsblock wird nicht mehr gefahren** | 9 rot — *im ersten Anlauf riss der Lauf ab und nannte keinen einzigen Namen; siehe „Was die Gegenproben gefunden haben"* |
-| Die Spalte steht nicht mehr in der DDL | **1 rot** — nur „Eine frische Anlage trägt die Spalte ohne Umstieg". *Stolperstein 81 in Reinform: der Umstieg trägt sie in der frischen Anlage nach* |
+| **Der Migrationsblock wird nicht mehr gefahren** | 9 rot — *im ersten Anlauf riss der Lauf ab und nannte keinen einzigen Namen; siehe „Was die Gegenproben gefunden haben"* |
+| Die Spalte steht nicht mehr in der DDL | **1 rot** — nur „Eine frische Anlage trägt die Spalte ohne Migration". *Stolperstein 81 in Reinform: die Migration trägt sie in der frischen Anlage nach* |
 | Der Export schreibt die Gewichte gar nicht mit | 4 rot |
 | Der Export schreibt auch die Einsen mit | 2 rot |
 | Der Import überschreibt das Gewicht eines bekannten Kriteriums | **1 rot** |
@@ -291,7 +291,7 @@ und vor jedem Deuten per `diff` belegt (Stolperstein 75).
 
 **Zwei Gegenproben haben etwas gefunden, und sie sind der Ertrag dieser Runde:**
 
-**1. Der Rückbau des Umstiegsblocks riss den Lauf ab, statt rot zu werden.**
+**1. Der Rückbau des Migrationsblocks riss den Lauf ab, statt rot zu werden.**
 Fehlt die Spalte, wirft jede Prüfzeile, die sie liest, einen SQL-Fehler — und
 `pruefe()` rechnet die Bedingung vor dem Aufruf. Der Lauf endete mit
 „Prueflauf abgebrochen" und **nannte keinen einzigen Namen**. Das ist
@@ -302,9 +302,9 @@ Prüfungen namentlich rot, wie es sein soll.
 
 **2. Die Gegenprobe „das Feld erscheint auch bei Kategorien und Tags" blieb
 vollständig stumm.** Der Grund ist Stolperstein 81 in Reinform: der
-Doppelgänger lieferte für `/api/product-categories` eine **leere Liste**, und
+Mock lieferte für `/api/product-categories` eine **leere Liste**, und
 die Prüflage hatte keine Tags. „Keine der 0 Zeilen trägt ein Gewichtsfeld" ist
-wahr und belegt nichts. Behoben, indem der Doppelgänger zwei Kategorien und
+wahr und belegt nichts. Behoben, indem der Mock zwei Kategorien und
 zwei Tags mitbringt und **vor** jeder Eigenschaftsprüfung geprüft wird, dass
 die Karte überhaupt Zeilen hat.
 
@@ -321,13 +321,13 @@ die Karte überhaupt Zeilen hat.
 | `Das Gewicht im Systembereich` | 33 | neu |
 | `Gewichtung: was angenommen wird und was nicht` | 27 | neu |
 | `Gewichtung: der Rechenweg` | 16 | neu |
-| `UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0` | 15 | neu |
+| `MIGRATION 0.8.40 — ENTFAELLT MIT 1.0` | 15 | neu |
 | `Das Gewicht am Eintrag` | 9 | neu |
 | `Export und Import` | +12 | erweitert |
 | `Der Waechter ueber den Quelltext` | +7 | erweitert |
 | `Der Umschalter der Vergleichsansicht` | +4 | erweitert |
 | `Frische Installation` | +1 | erweitert |
-| `UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0` | +1 | erweitert |
+| `MIGRATION 0.8.31 — ENTFAELLT MIT 1.0` | +1 | erweitert |
 
 **Die wichtigste Prüfung der Runde hängt an der Lage mit den drei Bewertern**
 (Gruppe „Gewichtung: der Rechenweg"), also an ungleich vielen Stimmen je
@@ -344,13 +344,13 @@ dem **nur eines** von vier Kriterien bewertet ist, mit Gewicht 0,2 gegen drei
 unbewertete à 2, muss den Wert dieses einen Kriteriums zeigen. Ein Nenner über
 alle ergäbe dort 0,1.
 
-**Der Umstiegsabschnitt sieht sich das Schema am Verhalten an, nicht am Text.**
+**Der Migrationsabschnitt sieht sich das Schema am Verhalten an, nicht am Text.**
 `PRAGMA table_info` liefert `notnull` und die Vorgabe; ob ein `CHECK` dasteht,
 wird durch einen Schreibversuch außerhalb der Spanne festgestellt. Ein Wächter
 über den DDL-Text färbte sich am Kommentar (Stolperstein 106).
 
 **Zwei Ergänzungen im Prüfstand, die nicht zur Gewichtung gehören und
-trotzdem dazugehören:** der Lauf über **alle** Umstiegsblöcke (im Abschnitt
+trotzdem dazugehören:** der Lauf über **alle** Migrationsblöcke (im Abschnitt
 von 0.8.31) trägt jetzt auch `rating_criteria`, und `F_ROUTEN` wird
 ausdrücklich **auf die Zahl 46** geprüft, nicht mehr nur auf die
 Übereinstimmung mit dem Quelltext.
@@ -362,24 +362,24 @@ ausdrücklich **auf die Zahl 46** geprüft, nicht mehr nur auf die
 *Zum Übernehmen in Projektstand Abschnitt 10 — der **vierte** markierte Block
 im Projekt.*
 
-> - **`db.js`, `umstieg0840()` — 27 Zeilen samt Marken, 15 Prüfungen**
+> - **`db.js`, `migration0840()` — 27 Zeilen samt Marken, 15 Prüfungen**
 >   (seit 0.8.40). Ergänzt `gewicht` an `rating_criteria` in einer Datenbank
 >   aus 0.8.0 bis 0.8.31; die Bestandszeilen bekommen 1,0 aus dem `DEFAULT`
 >   der Spalte. Zu 1.0 fällt der Block weg, **die Spalte in der DDL bleibt** —
->   die Prüfung „Eine frische Anlage trägt die Spalte ohne Umstieg" hält genau
->   das fest. Die zugehörigen Prüfungen stehen im Abschnitt „UMSTIEG 0.8.40 —
+>   die Prüfung „Eine frische Anlage trägt die Spalte ohne Migration" hält genau
+>   das fest. Die zugehörigen Prüfungen stehen im Abschnitt „MIGRATION 0.8.40 —
 >   ENTFAELLT MIT 1.0" in `pruefung.js` (196 Zeilen); der Export von
->   `umstieg0840` in `module.exports` trägt dieselbe Marke und fällt mit.
+>   `migration0840` in `module.exports` trägt dieselbe Marke und fällt mit.
 >   **Was ausdrücklich NICHT mitfällt:** alles, was mit der Spalte selbst zu
 >   tun hat — `GEWICHT_MIN`/`GEWICHT_MAX`, `gueltigesGewicht()`, der JOIN in
 >   `qSchnittJeKriterium`, der gewichtete `gesamtSchnitt()`, das Feld in der
->   Verwaltungskarte und `criteriaGewichte` im Austauschformat. Der Umstieg
+>   Verwaltungskarte und `criteriaGewichte` im Austauschformat. Die Migration
 >   trägt die Spalte nach, er trägt die Gewichtung nicht.
 >   **Und `rating_criteria` kommt in `ordneBestandZu()` gar nicht vor** —
 >   anders als bei 0.8.30 und 0.8.31 gibt es hier nichts, was nicht mitfallen
 >   dürfte.
 >   **Eine Prüfung gehört ALLEN vier Blöcken:** „Ein Sprung von 0.8.20 fährt
->   ALLE Umstiege in einem Start". Sie steht im Abschnitt von 0.8.31 und ist
+>   ALLE Migrationen in einem Start". Sie steht im Abschnitt von 0.8.31 und ist
 >   beim Rückbau umzuschreiben, nicht zu löschen.
 
 ---
@@ -392,7 +392,7 @@ im Projekt.*
   Endpunkt. Steht als Punkt 4 in Abschnitt 14 des Gewichtungspapiers und
   bleibt vorgemerkt.
 - **Der Docker-Bau ist für diese Runde nicht wiederholt worden.** Diese Runde
-  fasst keine Abhängigkeit an. Der **Umstieg** ist im Prüfstand belegt, nicht
+  fasst keine Abhängigkeit an. Der **Migration** ist im Prüfstand belegt, nicht
   im Container.
 - **Das Aussehen der neuen Zeile ist ungeprüft**, wie jedes Aussehen: der
   Prüfstand belegt, dass das Feld an seiner Stelle im DOM steht und die

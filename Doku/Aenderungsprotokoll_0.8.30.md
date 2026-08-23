@@ -3,9 +3,9 @@
 **Rohstoff für die Dokumentenpflege. Projektstand, Konzeptpapier, Ideenpapier
 und README sind nicht angefasst.**
 
-**0.8.30 — Abdruck `f498cbda`**
+**0.8.30 — Fingerprint `f498cbda`**
 
-Der Abdruck ist **zuletzt** gebildet worden, nach der letzten Änderung an einer
+Der Fingerprint ist **zuletzt** gebildet worden, nach der letzten Änderung an einer
 ausgelieferten Datei — die Versionsnummer in `package.json` eingeschlossen, denn
 `server.js` lädt sie und sie steht damit in seiner Ableitung. Diese Runde fasst
 `db.js`, `server.js`, `auth.js`, `public/app.js` und `public/style.css` an; alle
@@ -13,11 +13,11 @@ fünf deckt er. `pruefung.js` bewegt ihn nicht — es wird weder geladen noch
 ausgeliefert. Zweimal unabhängig gerechnet (laufender Server über `/api/stats`
 und Nachrechnung über dieselbe Ableitung).
 
-> **Der Abdruck ist einmal weitergerückt, und das gehört dazu.** Der erste
+> **Der Fingerprint ist einmal weitergerückt, und das gehört dazu.** Der erste
 > Stand trug `6302a4b1`; mit ihm ist der Container gebaut und geprüft worden
 > (Abschnitt 7). Danach kam die Berichtigung am Bildschirm dazu (Abweichung F)
 > — sie fasst `public/app.js` und `public/style.css` an, und damit ändert sich
-> der Abdruck: **`f498cbda`.** Genau dafür ist er gebaut. Die Versionsnummer
+> der Fingerprint: **`f498cbda`.** Genau dafür ist er gebaut. Die Versionsnummer
 > bleibt `0.8.30`: der erste Stand ist nie eingespielt worden, und eine Zahl
 > für einen Stand zu verbrauchen, den niemand betrieben hat, wäre eine Lücke
 > in der Versionsgeschichte. **Auf dem Server erwartet wird `f498cbda`.**
@@ -33,8 +33,8 @@ einer Kopie des Arbeitsbaums (Stolperstein 100).
 (Abweichung A).
 
 **Erste Datenbankstufe seit 0.8.3.** Für „Vorgemerkt für 1.0" fällt aus dieser
-Version ein markierter Block an: `umstieg0830()` ist der **zweite**
-Umstiegscode im Projekt.
+Version ein markierter Block an: `migration0830()` ist der **zweite**
+Migrationscode im Projekt.
 
 ---
 
@@ -49,7 +49,7 @@ Leben, aber die Spalte muss den Fall aushalten, in dem eine Zeile in `users`
 doch verschwindet. (Sie *könnte* auch gar nicht `NOT NULL` sein — siehe
 Stolperstein 105.)
 
-**`umstieg0830()`**, gebaut wie `umstieg083()` und mit denselben Marken.
+**`migration0830()`**, gebaut wie `migration083()` und mit denselben Marken.
 `PRAGMA table_info(links)` entscheidet, ob überhaupt etwas zu tun ist; einmalig,
 wiederholbar und im Normalfall stumm. Die Bestandszeilen fallen an den
 **Eintragsverfasser**:
@@ -61,7 +61,7 @@ UPDATE links SET user_id = (SELECT user_id FROM items WHERE items.id = links.ite
 
 **`ordneBestandZu()` nimmt `links` auf** — als fünfte Tabelle, samt der Zahl in
 der Protokollzeile und im Frührückgabewert. Das ist die **zweite, andere Regel**,
-und beide stehen im Quelltext nebeneinander erklärt: der Umstieg beantwortet
+und beide stehen im Quelltext nebeneinander erklärt: die Migration beantwortet
 einmalig, wem die Links eines *bestehenden* Eintrags gehören (seinem Verfasser);
 das Netz beantwortet fortlaufend, wem eine Zeile zufällt, die ihren Verfasser
 *verloren* hat (dem Eigentümer). Verschiedene Zeitpunkte, verschiedene Fragen —
@@ -80,7 +80,7 @@ kein Widerspruch, aber ohne die Erklärung läse der Nächste einen.
   Kommentar, denn es ist dieselbe Regel.
 - **`PUT /api/items/:id/link-order` bleibt unverändert** hinter
   `nurEintragVerfasser`, jetzt mit dem Grund im Quelltext.
-- **Export:** `links: [{ url, author }]` statt nackter Zeichenketten,
+- **Export:** `links: [{ url, author }]` statt nackter Strings,
   **Formatnummer 6 → 7**.
 - **Import:** liest beide Formen. Die Nummer des Eintragsverfassers wird
   **einmal** ermittelt und festgehalten (`itemVerfasser`) — ein zweiter Aufruf
@@ -110,12 +110,12 @@ vorgesehen und trotzdem nötig (Abweichung B).
 
 ### `pruefung.js` (+588/−29 Zeilen)
 
-Neue Gruppen, umgedrehte Prüfungen, der Umstiegsabschnitt — Einzelheiten in
+Neue Gruppen, umgedrehte Prüfungen, der Migrationsabschnitt — Einzelheiten in
 Abschnitt 5.
 
 ### `package.json` (+1/−1), `package-lock.json` (+2/−2)
 
-Version auf `0.8.30`, Sperrdatei über `npm install --package-lock-only`
+Version auf `0.8.30`, Lockfile über `npm install --package-lock-only`
 nachgezogen.
 
 ---
@@ -140,12 +140,12 @@ andere, dass der `INSERT` die Spalte `user_id` füllt.
 
 ### B. Die Linkzeile braucht eine neue Stylesheet-Regel
 
-Der Auftrag nennt vier Dateien im Abdruck; `public/style.css` kommt hinzu.
+Der Auftrag nennt vier Dateien im Fingerprint; `public/style.css` kommt hinzu.
 
 Grund: `.path` und `.snamen` schneiden mit `text-overflow: ellipsis` ab. Ein
 langer Pfad hätte den Namen vollständig aufgefressen — und damit genau die
 Angabe, um derentwillen die Zeile ihn trägt. Die zweite Zeile wird deshalb ein
-Flex-Paar. Die Datei stand ohnehin im Abdruck; sie ist hier nur ausdrücklich
+Flex-Paar. Die Datei stand ohnehin im Fingerprint; sie ist hier nur ausdrücklich
 genannt.
 
 ### C. `entferneZugang()` löscht die Links mit
@@ -260,7 +260,7 @@ Wächter nicht, der eine falsche *Entscheidung* finden soll. *Behoben in dieser
 Runde; die Prüfung „Und erst recht kein Wächter in der Routenzeile" steht
 daneben.*
 
-**102. Ein Doppelgänger, der ein Feld selbst mitbringt, deckt die Serverseite
+**102. Ein Mock, der ein Feld selbst mitbringt, deckt die Serverseite
 zu.** Der Rückbau „`verfasser` fällt aus der Linkzeile in `detail()`" blieb
 **vollständig grün**: die Oberflächenprüfungen laufen gegen `baueDom`, dessen
 Prüflage das Feld selbst setzt, und die Rechteprüfungen sehen in die Datenbank
@@ -296,18 +296,18 @@ war die nullbare Spalte ohnehin die richtige Antwort — aber die Wahl war keine
 vor jedem Deuten per `diff` belegt, dass der Quelltext der ist, den die Probe
 zu prüfen glaubt (Stolperstein 75).
 
-### Punkt 1 — Schema, Umstieg, Auffangnetz
+### Punkt 1 — Schema, Migration, Auffangnetz
 
 | Rückbau | Ergebnis |
 |---|---|
-| `user_id` aus der `links`-DDL | **1 rot** — nur „Eine frische Anlage trägt die Spalte ohne Umstieg". Auf einer bestehenden Anlage rüstet der Umstieg sie ohnehin nach; **nur die Gegenlage sieht die Lücke** (Stolperstein 81 in Reinform) |
-| `umstieg0830()` ganz entfernt | **Lauf reißt ab**, kein Name — `ordneBestandZu()` stößt auf die fehlende Spalte (Stolperstein 76) |
-| der Umstieg ergänzt die Spalte, ordnet aber niemanden zu | 3 rot — die **engere Zweitprobe** dazu, sie nennt den Ort |
-| der Umstieg setzt den **Eigentümer** statt des Eintragsverfassers | 3 rot — **dieselben Namen** wie darüber |
+| `user_id` aus der `links`-DDL | **1 rot** — nur „Eine frische Anlage trägt die Spalte ohne Migration". Auf einer bestehenden Anlage rüstet die Migration sie ohnehin nach; **nur die Gegenlage sieht die Lücke** (Stolperstein 81 in Reinform) |
+| `migration0830()` ganz entfernt | **Lauf reißt ab**, kein Name — `ordneBestandZu()` stößt auf die fehlende Spalte (Stolperstein 76) |
+| die Migration ergänzt die Spalte, ordnet aber niemanden zu | 3 rot — die **engere Zweitprobe** dazu, sie nennt den Ort |
+| die Migration setzt den **Eigentümer** statt des Eintragsverfassers | 3 rot — **dieselben Namen** wie darüber |
 | `links` aus `ordneBestandZu()` | 3 rot |
 
-**Die beiden mittleren prüfen dieselbe Sache** (Stolperstein 72): „der Umstieg
-setzt niemanden ein" und „der Umstieg setzt den Falschen ein" sind am Ergebnis
+**Die beiden mittleren prüfen dieselbe Sache** (Stolperstein 72): „die Migration
+setzt niemanden ein" und „die Migration setzt den Falschen ein" sind am Ergebnis
 nicht zu unterscheiden. Das ist kein Mangel der Prüfungen — die Aussage, die sie
 halten, lautet „die Bestandszeilen landen beim Eintragsverfasser", und die ist
 in beiden Fällen verletzt.
@@ -346,10 +346,10 @@ entfernt, ist von einem, der beide entfernt, unterscheidbar.
 
 | Rückbau | Ergebnis |
 |---|---|
-| Export liefert wieder nackte Zeichenketten | 4 rot |
+| Export liefert wieder nackte Strings | 4 rot |
 | Formatnummer bleibt 6 | **1 rot** |
-| Import liest die Zeichenkettenform nicht mehr (`eintrag.url` blind) | **Lauf reißt ab** — Stolperstein 103 |
-| Import lässt die Zeichenkettenform still fallen | 7 rot (nach dem Nachziehen der drei Prüfzeilen) |
+| Import liest die Stringform nicht mehr (`eintrag.url` blind) | **Lauf reißt ab** — Stolperstein 103 |
+| Import lässt die Stringform still fallen | 7 rot (nach dem Nachziehen der drei Prüfzeilen) |
 | Links aus einer Datei der Formatnummer 6 fallen an den Einspielenden | **1 rot** |
 
 ### Punkt 5 — Die Löschdialoge
@@ -373,7 +373,7 @@ wertvollste der Runde — er hat Stolperstein 102 gefunden.
 
 | Gruppe | Prüfungen | |
 |---|---|---|
-| `UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0` | 11 | neu |
+| `MIGRATION 0.8.30 — ENTFAELLT MIT 1.0` | 11 | neu |
 | `Der Name an der Linkzeile` | 25 | neu |
 | `Verfasser in Export und Import` | +11 | erweitert |
 | `Rechte am Eintrag` | +6 | erweitert |
@@ -387,16 +387,16 @@ wertvollste der Runde — er hat Stolperstein 102 gefunden.
 
 **Was die neuen Gruppen wirklich fahren:**
 
-- **Umstieg.** Eine Datenbank aus 0.8.20 wird nachgestellt — `links` per
+- **Migration.** Eine Datenbank aus 0.8.20 wird nachgestellt — `links` per
   Tabellenneubau ohne die Spalte, mit drei Zeilen darin. Die Anlage ist so
   gebaut, dass die falsche Antwort auffällt: der Eintrag gehört **bert**,
   Eigentümerin ist **chefin**. Belegt werden: die Spalte kommt dazu, die
   Bestandszeilen landen beim Eintragsverfasser und ausdrücklich nicht beim
   Eigentümer, ein zweiter Lauf bleibt stumm und lässt die Zeilen unangetastet,
-  eine frische Anlage trägt die Spalte **ohne** Umstieg — und der Index auf
+  eine frische Anlage trägt die Spalte **ohne** Migration — und der Index auf
   `links` legt sich beim Start selbst nach, während die Spalte es nicht täte.
   Die dritte Zeile hängt an einem Eintrag, der selbst herrenlos ist: sie kann
-  der Umstieg nicht füllen und fällt danach dem Auffangnetz zu. **Beide Regeln
+  die Migration nicht füllen und fällt danach dem Auffangnetz zu. **Beide Regeln
   sind an einem Lauf zu sehen.**
 - **Der Name an der Zeile.** Drei Fenster nebeneinander — drei Zugänge mit
   Adminrolle, ein Zugang, drei Zugänge ohne Adminrolle. Die Prüflage trägt
@@ -416,7 +416,7 @@ wertvollste der Runde — er hat Stolperstein 102 gefunden.
   die Nachschau in der Datenbank.
 - **Export und Import.** Drei Verfasserlagen an drei Linkzeilen eines Eintrags,
   der Rundlauf über Export und ersetzenden Import, dazu **zwei eigene Dateien**:
-  eine der Formatnummer 6 mit nackten Zeichenketten und dem Eintragsverfasser
+  eine der Formatnummer 6 mit nackten Strings und dem Eintragsverfasser
   `bert`, eingespielt als `anna` — nur so ist „fällt an den Eintragsverfasser"
   von „fällt an den Einspielenden" zu unterscheiden — und eine der Formatnummer
   7 mit bekanntem Namen, unbekanntem Namen und `author: null`.
@@ -432,21 +432,21 @@ wertvollste der Runde — er hat Stolperstein 102 gefunden.
 markierte Block im Projekt. Hier steht der Wortlaut, wie er dort eingetragen
 wurde.*
 
-> - **`db.js`, `umstieg0830()` — 27 Zeilen samt Marken, 11 Prüfungen** (seit
+> - **`db.js`, `migration0830()` — 27 Zeilen samt Marken, 11 Prüfungen** (seit
 >   0.8.30). Ergänzt `user_id` an `links` in einer Datenbank aus 0.8.0 bis
 >   0.8.20 und ordnet die Bestandszeilen dem **Verfasser ihres Eintrags** zu.
 >   Zu 1.0 fällt der Block weg, **die Spalte in der DDL bleibt** — die Prüfung
->   „Eine frische Anlage trägt die Spalte ohne Umstieg" hält genau das fest. Die
->   zugehörigen Prüfungen stehen im Abschnitt „UMSTIEG 0.8.30 — ENTFAELLT MIT
->   1.0" in `pruefung.js` (124 Zeilen); der Export von `umstieg0830` in
+>   „Eine frische Anlage trägt die Spalte ohne Migration" hält genau das fest. Die
+>   zugehörigen Prüfungen stehen im Abschnitt „MIGRATION 0.8.30 — ENTFAELLT MIT
+>   1.0" in `pruefung.js` (124 Zeilen); der Export von `migration0830` in
 >   `module.exports` trägt dieselbe Marke und fällt mit.
 >   **Was NICHT mitfällt:** `links` in der Tabellenliste von
->   `ordneBestandZu()`. Das Auffangnetz ist kein Umstieg — es läuft bei jedem
+>   `ordneBestandZu()`. Das Auffangnetz ist keine Migration — es läuft bei jedem
 >   Start und beantwortet eine andere Frage.
 
 ---
 
-## 7. Der Bau des Abbilds — die offene Zeile aus 0.8.10 ist beantwortet
+## 7. Der Bau des Images — die offene Zeile aus 0.8.10 ist beantwortet
 
 0.8.10 hielt fest: „Nicht belegt ist allein, dass Debian die drei Pakete
 ausliefert." Diese Sitzung hatte Zugang zu `deb.debian.org`, und die Zeile ist
@@ -463,22 +463,22 @@ jetzt belegt:
 
 *Der Bau lief gegen den Stand `6302a4b1`, also vor der Berichtigung am
 Bildschirm (Abweichung F). Sie fasst nur `public/app.js` und
-`public/style.css` an; am Abbild, an den Fassungen und am Umstieg ändert sie
+`public/style.css` an; am Image, an den Fassungen und am Migration ändert sie
 nichts. Wiederholt worden ist der Bau nicht — die Krücke unten macht ihn
 teuer, und keine der belegten Aussagen hängt an den beiden Dateien.*
 
-**Gemessen am fertigen Abbild:** 101 MB, Node v22.23.2, `sharp` 0.35.3 auf
+**Gemessen am fertigen Image:** 101 MB, Node v22.23.2, `sharp` 0.35.3 auf
 libvips 8.18.3, `better-sqlite3-multiple-ciphers` gegen SQLite 3.49.2 und
-**aus dem Fertigbau** — es wurde nichts übersetzt. Im Laufzeitabbild liegt kein
-Übersetzer. Der Healthcheck meldet `healthy`. **Der Abdruck im Container war
+**aus dem Fertigbau** — es wurde nichts übersetzt. Im Laufzeit-Image liegt kein
+Übersetzer. Der Healthcheck meldet `healthy`. **Der Fingerprint im Container war
 `6302a4b1` — derselbe wie damals auf der Platte.**
 
-**Und der Umstieg ist im Container gefahren worden**, nicht nur im Prüfstand:
+**Und die Migration ist im Container gefahren worden**, nicht nur im Prüfstand:
 eine Datenbank mit `links` ohne `user_id`, ein `docker restart`, und im
 Protokoll steht
 
 ```
-[Kriterion] links um user_id ergaenzt (Umstieg auf 0.8.30); 1 Linkzeilen dem Verfasser ihres Eintrags zugeordnet.
+[Kriterion] links um user_id ergaenzt (Migration auf 0.8.30); 1 Linkzeilen dem Verfasser ihres Eintrags zugeordnet.
 ```
 
 Die Zeile gehört danach dem Verfasser ihres Eintrags (Nummer 2) und nicht der
@@ -490,8 +490,8 @@ Sitzung schneidet TLS zur npm-Registrierung auf, und der Container kennt die
 Wurzel nicht — `npm ci` scheitert mit `SELF_SIGNED_CERT_IN_CHAIN`. Gebaut wurde
 deshalb mit `--network=host` und einer Kopie des `Dockerfile`, die in der
 **Bauphase** die Wurzel hereinkopiert und `NODE_EXTRA_CA_CERTS` setzt. Das
-Laufzeitabbild bekommt davon nichts: es holt sich über `COPY --from=builder`
-allein `/app`. **Der `Dockerfile` im Repo ist unverändert**, und der Abdruck
+Laufzeit-Image bekommt davon nichts: es holt sich über `COPY --from=builder`
+allein `/app`. **Der `Dockerfile` im Repo ist unverändert**, und der Fingerprint
 belegt, dass der Dateisatz im Container derselbe ist.
 
 **`node:22-bookworm-slim` bleibt.** Ein Sprung auf `trixie` ist keine Frage
@@ -507,10 +507,10 @@ für `better-sqlite3-multiple-ciphers` keinen Fertigbau (gemessen in 0.8.10).
   Runde für Kommentare, Bewertungen und Testtage ungeprüft da. Die **Zahlen**
   dahinter sind es (`zaehleBestand()`, Gegenprobe „ohne Links" → 2 rot), der
   Satz selbst nicht. Nicht angefasst, weil es keiner der fünf Punkte ist; die
-  Antwort wäre ein Doppelgänger für `confirm` in `baueDom`.
+  Antwort wäre ein Mock für `confirm` in `baueDom`.
 - **Der Prüflauf riss einmal mit „Zweitserver nicht erreichbar" ab.** Das ist
   das Zeitfenster von 12 Sekunden aus 0.8.10, hier unter der Nebenlast eines
-  gleichzeitigen Abbildbaus. Der Wiederholungslauf war grün, und alle folgenden
+  gleichzeitigen Image-Baus. Der Wiederholungslauf war grün, und alle folgenden
   Läufe ebenfalls. Unverändert offen und unverändert richtig beschrieben.
 - **Tastaturbedienung beim Sortieren.** Die Linkliste ist eine der fünf
   Stellen, die sich nur mit dem Zeiger umsortieren lassen. Diese Runde ändert

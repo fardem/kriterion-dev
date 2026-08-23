@@ -42,7 +42,7 @@ Das ist die wichtigste Erkenntnis dieses Papiers, und sie steht deshalb vorn.
 | Größe | bis **20 MB** | bis **2 GB** |
 | Gespeichert | als BLOB **in** der Datenbank | als Datei **neben** der Datenbank |
 | Verschlüsselt | durch SQLCipher, wie alles | **eigens**, mit eigenem Verfahren |
-| Ausgeliefert | am Stück | in **Bereichen** (Springen im Video) |
+| Ausgeliefert | am Stück | in **Ranges** (Springen im Video) |
 | Hochgeladen | in einem Zug | **in Stücken** |
 | Im JSON-Export | möglich, aber abschaltbar | **unmöglich** |
 | Aufwand | überschaubar | ein eigener Bauabschnitt |
@@ -111,7 +111,7 @@ ALTER TABLE photos ADD COLUMN dauer INTEGER;                      -- Sekunden, n
 ```
 
 > **Gebaut, mit einer Ergänzung.** Beide Spalten stehen in der vollständigen
-> DDL in `db.js`; nachgerüstet werden sie von `umstieg0850()`, dem fünften
+> DDL in `db.js`; nachgerüstet werden sie von `migration0850()`, dem fünften
 > markierten Block. **Der Block fragt jede Spalte EINZELN ab** — zwei
 > `ALTER TABLE` sind zwei Anweisungen, und scheitert die zweite, bleibt die
 > erste stehen (nachgestellt, Stolperstein 108). Ein Block mit einer einzigen
@@ -183,7 +183,7 @@ er der Abspielsteuerung. Siehe Abschnitt 8.
 **Das ist die Entscheidung, an der das ganze Vorhaben hängt.**
 
 Ein Standbild aus einem Video zu holen, heißt normalerweise: `ffmpeg`. Das ist
-ein Programm von rund hundert Megabyte, das ins Abbild müsste, mit eigener
+ein Programm von rund hundert Megabyte, das ins Image müsste, mit eigener
 Angriffsfläche und eigenem Aktualisierungsbedarf. Für ein Projekt, das scrypt
 lieber aus Nodes eingebautem `crypto` nimmt als aus einer Bibliothek, wäre das
 ein Bruch.
@@ -302,14 +302,14 @@ schlimmer: eine Videodatei wird **inline** eingebunden.
 > `video/quicktime`; die Endungsliste steht trotzdem in `anhaenge.js` und
 > trägt beide Richtungen — sie benennt die ausgelieferte Datei.
 >
-> **Zweitens: Bereiche werden geliefert.** Punkt 5 verlangt
+> **Zweitens: Ranges werden geliefert.** Punkt 5 verlangt
 > `Accept-Ranges: none`, Abschnitt 10 sagt über denselben Gegenstand, iOS
-> Safari spiele ohne Bereiche gar nicht ab. Beides kann nicht stimmen.
-> Entschieden wurde für die Bereiche: der Blob liegt beim Lesen ohnehin ganz
+> Safari spiele ohne Ranges gar nicht ab. Beides kann nicht stimmen.
+> Entschieden wurde für die Ranges: der Blob liegt beim Lesen ohnehin ganz
 > im Arbeitsspeicher, ein `206` mit `Content-Range` ist ein Dutzend Zeilen, und
 > ein Video, das auf dem Handy nicht abspielt, ist genau der kaputte Platz, den
 > Abschnitt 4 vermeiden will. **Nur am Video und nur an der ganzen Datei** —
-> an einem Foto verschiebt sich keine Kopfzeile. Ungültige Bereiche bekommen
+> an einem Foto verschiebt sich kein Header. Ungültige Ranges bekommen
 > **416**.
 >
 > **Punkt 4 ist bestätigt:** `default-src 'none'; sandbox` behindert das
@@ -357,7 +357,7 @@ Auflösung; wer mehr braucht, ist in Teil II richtig.
 ## 9. Export
 
 Ein 20-MB-Video wird als Base64 zu **27 MB**. Zwanzig davon sind 540 MB in
-**einer** JSON-Zeichenkette — das reißt den Export, siehe Abschnitt 3.2 des
+**einer** JSON-String — das reißt den Export, siehe Abschnitt 3.2 des
 Ideenpapiers.
 
 **Deshalb ein eigener Schalter, Vorgabe aus** — wie schon bei den Anhängen
@@ -406,9 +406,9 @@ Bei 2 GB scheitert es an drei Stellen gleichzeitig:
 - **Eine BLOB-Zeile wird ganz gelesen.** Der Weg, den Kriterion benutzt, gibt
   einen Buffer zurück — 2 GB im Arbeitsspeicher, und Node kann einen einzelnen
   Buffer über 2 GB gar nicht halten.
-- **Kein Springen.** Ohne Bereichsabfragen kann der Browser in einem Video
+- **Kein Springen.** Ohne Range-Abfragen kann der Browser in einem Video
   nicht vorspulen — und iOS Safari spielt ein Video **überhaupt nicht** ab,
-  wenn der Server keine Bereiche anbietet.
+  wenn der Server keine Ranges anbietet.
 - **Hochladen in einem Zug** geht nicht: `multer.memoryStorage()` nimmt die
   Datei komplett in den Speicher.
 
@@ -457,7 +457,7 @@ wird in Stücke von 1 MB zerlegt, jedes Stück einzeln mit `aes-256-gcm`
 verschlüsselt, der Zählerwert enthält die Stücknummer, und die 16-Byte-Marke
 jedes Stücks steht dahinter.
 
-- **Springen bleibt möglich:** ein Bereich betrifft ein paar Stücke, nur die
+- **Springen bleibt möglich:** ein Range betrifft ein paar Stücke, nur die
   werden geöffnet.
 - **Veränderung fällt auf:** ein gekipptes Bit lässt die Marke scheitern, und
   zwar bevor etwas ausgeliefert wird.
@@ -468,7 +468,7 @@ Die fünfzig Zeilen sind gut angelegt. Eine Verschlüsselung, die nur gegen Lese
 schützt und nicht gegen Verändern, ist in einem Papier schwer zu erklären — und
 in diesem Projekt wäre sie die einzige Stelle, an der etwas *halb* geschützt ist.
 
-## 12. Ausliefern in Bereichen
+## 12. Ausliefern in Ranges
 
 ```
 GET /api/attachments/17/raw
@@ -486,11 +486,11 @@ Was dabei zu beachten ist:
 
 - **Ohne `Accept-Ranges` spielt iOS Safari gar nicht ab.** Das ist kein
   Feinschliff, sondern die Voraussetzung.
-- **Der Bereich kommt vom Aufrufer** und ist zu prüfen: Ende vor Anfang,
+- **Der Range kommt vom Aufrufer** und ist zu prüfen: Ende vor Anfang,
   Anfang hinter dem Dateiende, absurd große Spannen. Ungültiges wird mit
   **416** beantwortet, nicht stillschweigend zurechtgebogen.
-- **Ein Bereich darf nichts über die Datei verraten**, was ein voller Abruf
-  nicht auch verriete — die Rechteprüfung sitzt vor dem Bereich, nicht dahinter.
+- **Ein Range darf nichts über die Datei verraten**, was ein voller Abruf
+  nicht auch verriete — die Rechteprüfung sitzt vor dem Range, nicht dahinter.
 
 ## 13. Hochladen in Stücken
 
@@ -536,7 +536,7 @@ Drei Dinge, die dabei schiefgehen können und deshalb vorab geregelt gehören:
 | | Umfang | Was daran hängt |
 |---|---|---|
 | **Teil I — Kurzvideos** | mittel — **gebaut in 0.8.50** | zwei Spalten, ein Upload-Weg, Standbild im Browser, Abspieler im Vollbild, ein Export-Schalter |
-| **Teil II — Große Dateien** | **groß** | zweiter Speicherort, eigene Verschlüsselung, Bereichsabfragen, stückweises Hochladen, Aufräumen, Platzprüfung |
+| **Teil II — Große Dateien** | **groß** | zweiter Speicherort, eigene Verschlüsselung, Range-Abfragen, stückweises Hochladen, Aufräumen, Platzprüfung |
 
 **Teil I ist für sich vollständig** und braucht von Teil II nichts. Wer nur
 kurze Videos an der Stelle der Fotos will — und das war der Ausgangswunsch —
@@ -558,7 +558,7 @@ allein die Positivliste der Formate — und die steht ohnehin an einer Stelle.
 
 - **Umkodieren auf dem Server.** Das hieße `ffmpeg`, und `ffmpeg` hieße eine
   eigene Angriffsfläche, ein eigener Aktualisierungsbedarf und ein Vielfaches
-  der Abbildgröße. Die Antwort auf ein nicht abspielbares Format ist der
+  der Imagegröße. Die Antwort auf ein nicht abspielbares Format ist der
   Anhang, nicht ein Umkodierer.
 - **Videos in Kommentaren.** Kommentarbilder sind bewusst klein und werden
   neu kodiert. Ein Video dort wäre ein dritter Speicherweg für dieselbe Sache.

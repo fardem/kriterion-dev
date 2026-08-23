@@ -22,7 +22,7 @@ Drei Dinge greifen ausdrücklich **nicht** von selbst und sind gebaut worden:
 Löschdialog, Kennzahlen und die Auslieferung.
 
 **Die Entscheidung, an der die Runde hängt, ist baulich: `ffmpeg` kommt nicht
-ins Abbild.** Das Standbild erzeugt der Browser des Hochladenden über
+ins Image.** Das Standbild erzeugt der Browser des Hochladenden über
 `<video>` und `<canvas>`, bevor hochgeladen wird. Vier Folgen, alle gewollt:
 keine neue Abhängigkeit; **der Server öffnet nie ein Video** — er liest zwölf
 Bytes, speichert den Rest und liefert ihn wieder aus; wer ein Video nicht
@@ -51,7 +51,7 @@ Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht mehr
 berücksichtigt.
 
 **Zwei Dinge ändern sich für den Betrieb**, und beide stehen in Abschnitt 2:
-**ein Rückschritt ist weiterhin keine reine Dateikopie**, und die
+**ein Downgrade ist weiterhin keine reine Dateikopie**, und die
 **Formatnummer der Exportdatei steht auf 10** (0.8.30 hob sie auf 7, 0.8.31 auf
 8, 0.8.40 auf 9, 0.8.50 auf 10).
 
@@ -108,12 +108,12 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.50 ist gebaut** — Abdruck **`3cb528d6`**. *Eine
+**0.8.50 ist gebaut** — Fingerprint **`3cb528d6`**. *Eine
 Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:* `photos` trägt
 `art TEXT NOT NULL DEFAULT 'bild'` und `dauer INTEGER`, ein Kurzvideo bis
 20 MB liegt als BLOB in derselben Tabelle wie die Fotos, das Standbild kommt
 aus dem Browser des Hochladenden, ausgeliefert wird `inline` und **in
-Bereichen** (nur am Video), und Export und Import tragen Videos über einen
+Ranges** (nur am Video), und Export und Import tragen Videos über einen
 eigenen Schalter mit (**Formatnummer 9 → 10**).
 **Eine neue schreibende Route: `F_ROUTEN` geht von 46 auf 47** —
 `POST /api/items/:id/videos` hinter `nurEintragVerfasser`, dieselbe Klemme wie
@@ -121,7 +121,7 @@ am Fotoweg. Die Sicherheitsregel der Anwendung bekommt `media-src 'self'
 blob:`; ohne `blob:` ließe sich überhaupt kein Video hochladen.
 **1953 von 1953 Prüfungen**, 30 Gegenproben.
 
-**0.8.40 davor** — Abdruck `49d2ae53`. *Eine
+**0.8.40 davor** — Fingerprint `49d2ae53`. *Eine
 Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:*
 `rating_criteria` trägt ein `gewicht REAL NOT NULL DEFAULT 1.0`,
 `gesamtSchnitt()` ist ein gewichteter Mittelwert über die **bewerteten**
@@ -133,14 +133,14 @@ wechselte** — das Gewicht geht über `PUT /api/criteria/:id`, die es längst g
 und die längst hinter `nurAdmin` steht.
 **1807 von 1807 Prüfungen**, 30 Gegenproben.
 
-**0.8.31 davor** — Abdruck `1a801477`. *Keine Stufe, eine
+**0.8.31 davor** — Fingerprint `1a801477`. *Keine Stufe, eine
 Berichtigungsrunde:* `attachments` trägt eine `user_id`, hochladen ist offen,
 `DELETE /api/attachments/:id` fragt nach der **Datei** statt nach dem
 **Eintrag**, der Name steht nach derselben Regel an der Zeile, und Export und
 Import tragen ihn mit (**Formatnummer 7 → 8**). **1682 von 1682 Prüfungen**,
 16 Gegenproben.
 
-**0.8.30 davor** — Abdruck `f498cbda`. *Stufe G4 des Umbaus und die
+**0.8.30 davor** — Fingerprint `f498cbda`. *Stufe G4 des Umbaus und die
 erste Datenbankstufe seit 0.8.3* (Abschnitt 10): `links` trägt eine `user_id`
 mit `ON DELETE SET NULL`, `POST /api/items/:id/links` verliert seinen Wächter
 und schreibt den Eintrager, `DELETE /api/links/:id` fragt nach der **Zeile**
@@ -150,9 +150,9 @@ die Zeile nennt ihren Verfasser, Export und Import tragen ihn mit
 Träger.
 **1624 von 1624 Prüfungen** in jenem Stand, 31 Gegenproben.
 
-**Der Abdruck ist im Container bestätigt worden, nicht nur auf der Platte** —
-und dazu der Umstieg selbst: eine Datenbank mit `links` ohne `user_id`, ein
-`docker restart`, und im Protokoll steht die Zeile des Umstiegs; danach gehört
+**Der Fingerprint ist im Container bestätigt worden, nicht nur auf der Platte** —
+und dazu die Migration selbst: eine Datenbank mit `links` ohne `user_id`, ein
+`docker restart`, und im Protokoll steht die Zeile der Migration; danach gehört
 die Linkzeile dem Verfasser ihres Eintrags und nicht dem Eigentümer.
 Einzelheiten in `Doku/Aenderungsprotokoll_0.8.30.md`, Abschnitt 7.
 
@@ -166,7 +166,7 @@ Kopf `X-Forwarded-For` wird nicht einmal angesehen.
 
 **Sie gehört auf `1`, sobald Kriterion über den Proxy nach außen geht** — dann
 sieht der Container an der Verbindung nur noch den Proxy, und die Adresse des
-Besuchers kommt allein als Kopfzeile an; ohne die Einstellung lägen alle
+Besuchers kommt allein als Header an; ohne die Einstellung lägen alle
 Besucher in einem Zähler. Was daran hängt und was beim Umlegen passiert, steht
 in Abschnitt 3 und in der README. **Das Umlegen gehört in denselben Schritt
 wie die Freigabe nach außen, nicht davor und nicht danach.**
@@ -176,13 +176,13 @@ Versionen seit 0.8.3. `links` und `attachments` bekommen je
 `user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`, `rating_criteria`
 bekommt `gewicht REAL NOT NULL DEFAULT 1.0`, `photos` bekommt
 `art TEXT NOT NULL DEFAULT 'bild'` und `dauer INTEGER`, und dazu gehört je ein
-Umstiegsblock: `umstieg0830()`, `umstieg0831()`, `umstieg0840()` und
-`umstieg0850()` in
+Migrationsblock: `migration0830()`, `migration0831()`, `migration0840()` und
+`migration0850()` in
 `db.js`, mit den Marken der Bauregel, einmalig, wiederholbar und im Normalfall
 stumm. **Es sind damit fünf markierte Blöcke im Projekt**; alle fünf sind für
 1.0 vorgemerkt (Abschnitt 10).
 
-**`umstieg0850()` fragt jede seiner beiden Spalten EINZELN ab.** Zwei
+**`migration0850()` fragt jede seiner beiden Spalten EINZELN ab.** Zwei
 `ALTER TABLE` sind zwei Anweisungen: scheitert die zweite, bleibt die erste
 stehen — nachgestellt, und ohne Transaktion ist genau das das Ergebnis. Ein
 Block, der beim Vorhandensein von `art` zurückkehrte, ließe `dauer` dann für
@@ -192,14 +192,14 @@ immer fehlen. So heilt der nächste Start einen zerrissenen Stand.
 dann vier Zeilen. Nachgestellt statt geglaubt: der Prüfstand fährt genau
 diesen Sprung und belegt, dass sie sich nicht ins Gehege kommen.
 
-**Der Umstieg auf 0.8.50 verändert keine angezeigte Zeile.** Jedes vorhandene
+**Die Migration auf 0.8.50 verändert keine angezeigte Zeile.** Jedes vorhandene
 Foto steht danach auf `art = 'bild'` und `dauer = NULL` — die Vorgabe kommt aus
 dem `DEFAULT` der Spalte, nicht aus einem nachgeschobenen `UPDATE`. An der
-Auslieferung vorhandener Fotos ändert die Runde nichts: keine Kopfzeile
-verschiebt sich, und Bereiche bietet allein ein Video an. Der Prüfstand hält
+Auslieferung vorhandener Fotos ändert die Runde nichts: kein Header
+verschiebt sich, und Ranges bietet allein ein Video an. Der Prüfstand hält
 beides fest.
 
-**Der Umstieg auf 0.8.40 verändert keine angezeigte Zahl.** Die Bestandszeilen
+**Die Migration auf 0.8.40 verändert keine angezeigte Zahl.** Die Bestandszeilen
 bekommen ihr Gewicht 1,0 aus dem `DEFAULT` der Spalte, nicht aus einem
 nachgeschobenen `UPDATE` — und bei Gewicht 1 überall ist der gewichtete
 Mittelwert bitgleich zum ungewichteten. Der Prüfstand belegt das an einer Lage
@@ -221,18 +221,18 @@ Einstellung im Systembereich, keine Version — beides jederzeit umkehrbar.
 
 **Vorausgesetzt wird weiterhin eine Datenbank aus 0.8.0 oder neuer.** Ältere
 Bestände werden nicht übernommen; sie bräuchten den Zwischenschritt über 0.8.0
-als letzte Version mit Umstiegscode.
+als letzte Version mit Migrationscode.
 
 **Zurückrollen ist ab 0.8.30 keine reine Dateikopie mehr — und ab 0.8.40
 erst recht nicht.** Zwischen 0.8.3 und
 0.8.20 hat keine Version das Schema angefasst; wer in diesem Bereich
 zurückging, brauchte keine Rücksicht darauf zu nehmen. **Eine Datenbank aus
-0.8.40 trägt drei Spalten, die 0.8.20 nicht kennt.** Ein Rückschritt geht
+0.8.40 trägt drei Spalten, die 0.8.20 nicht kennt.** Ein Downgrade geht
 deshalb nur über die **Sicherung des Datenverzeichnisses**, die vor dem
 Einspielen entstanden ist — nicht über das Zurückkopieren der alten Dateien
 allein. Die Sicherung steht dafür ausdrücklich im Einspielweg unten.
 
-*Genau genommen ginge der Rückschritt auch mit der neuen Datenbank: eine
+*Genau genommen ginge das Downgrade auch mit der neuen Datenbank: eine
 zusätzliche Spalte stört SQLite nicht, und 0.8.20 schreibt sie einfach nicht
 mehr. Verlassen sollte man sich darauf nicht — jede Linkzeile, die danach
 entsteht, ist herrenlos, und beim nächsten Vorwärtsschritt fällt sie dem
@@ -252,7 +252,7 @@ docker compose down
 cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # PFLICHT bei Datenbankstufen
 mv kriterion kriterion-alt
 python3 -m zipfile -e kriterion-main.zip .
-mv kriterion-main kriterion               # GitHub hängt den Zweignamen an
+mv kriterion-main kriterion               # GitHub hängt den Branchnamen an
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # OHNE DIESE ZEILE STARTET NICHTS
 cd kriterion && docker compose up -d --build
@@ -266,15 +266,15 @@ neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
 Sieben Dinge, die dabei schiefgehen können, alle schon vorgekommen:
 
 - **Der Ordner aus dem GitHub-ZIP heißt nicht `kriterion`.** GitHub packt den
-  Zweignamen an: aus `main` wird `kriterion-main`, und Schrägstriche im
-  Zweignamen werden zu Bindestrichen (`claude/g3-…` → `kriterion-claude-g3-…`).
+  Branchnamen an: aus `main` wird `kriterion-main`, und Schrägstriche im
+  Branchnamen werden zu Bindestrichen (`claude/g3-…` → `kriterion-claude-g3-…`).
   Ohne das `mv` legt das anschließende `cp -r kriterion-alt/data kriterion/data`
   den Bestand in einen Ordner, den `docker compose` nie ansieht — oder
-  scheitert. **Der Zweigname steht damit im Einspielweg**: wer von einem
-  Arbeitszweig lädt, passt beide Zeilen an.
+  scheitert. **Der Branchname steht damit im Einspielweg**: wer von einem
+  Arbeitsbranch lädt, passt beide Zeilen an.
 
 - **`--build` vergessen.** `docker compose up -d` startet stillschweigend die
-  alte Version weiter — der Quelltext steckt im Abbild, nicht im eingehängten
+  alte Version weiter — der Quelltext steckt im Image, nicht im eingehängten
   Verzeichnis. `curl -s http://localhost:3100/api/config` nennt die Version, die
   der Server wirklich ausliefert. Stimmt sie und die Oberfläche verhält sich
   trotzdem alt, liegt `app.js` im Zwischenspeicher des Browsers (Strg+Shift+R).
@@ -285,14 +285,14 @@ Sieben Dinge, die dabei schiefgehen können, alle schon vorgekommen:
   Version, während die Oberfläche sich alt verhält; anders als beim
   vergessenen `--build` hilft hier kein `Strg+Shift+R`, weil der Container die
   alte Datei tatsächlich ausliefert. `docker-compose.yml` hängt nur `./data`
-  ein — `public/app.js` steckt seit dem Bau **fest im Abbild** und muss vor
+  ein — `public/app.js` steckt seit dem Bau **fest im Image** und muss vor
   dem `--build` auf der Platte liegen.
 
-  **Seit 0.8.10 wird das über den Abdruck geprüft, nicht mehr über eine
+  **Seit 0.8.10 wird das über den Fingerprint geprüft, nicht mehr über eine
   Textstelle je Version.** Angemeldet, in der Karte „Kennzahlen": ein Wert,
   der sich ändert, sobald irgendeine ausgelieferte Datei anders ist —
-  `curl -s -b kekse.txt http://localhost:3100/api/stats` nennt ihn als
-  `abdruck`. Der erwartete Wert steht zu jeder Version im Änderungsprotokoll
+  `curl -s -b cookies.txt http://localhost:3100/api/stats` nennt ihn als
+  `fingerprint`. Der erwartete Wert steht zu jeder Version im Änderungsprotokoll
   (`Doku/Aenderungsprotokoll_<Version>.md`). Stimmt er nicht überein, war die
   Kopie unvollständig oder es wurde nicht neu gebaut — dann hilft nur, den
   vollständigen Dateisatz erneut einzuspielen, nicht einzelne Dateien
@@ -373,8 +373,8 @@ läuft heute direkt im Heimnetz (Abschnitt 2).
 | | fehlt (Vorgabe) | `HINTER_PROXY=1` |
 |---|---|---|
 | Adresse des Aufrufers | `req.socket.remoteAddress` | **letzter** Eintrag aus `X-Forwarded-For` |
-| Keksname | `kriterion_session` | `__Host-kriterion_session` |
-| `Secure` am Keks | nein | ja |
+| Cookiename | `kriterion_session` | `__Host-kriterion_session` |
+| `Secure` am Cookie | nein | ja |
 | `Strict-Transport-Security` | nein | `max-age=31536000` |
 | richtig für | direkt im Heimnetz, Port 3100 | Betrieb hinter einem Proxy, HTTPS |
 
@@ -385,10 +385,10 @@ ein Proxy hängt die Gegenstelle, die er wirklich sieht, hinten an, alles davor
 kann der Aufrufer selbst geschrieben haben. Genau der erste Eintrag war es,
 den die Fassung vor 0.8.20 nahm; mit wechselndem Kopf griff die Bremse nie.
 
-**Der Keksname steht deshalb nirgends mehr als feste Zeichenkette** — wer ihn
+**Der Cookiename steht deshalb nirgends mehr als fester String** — wer ihn
 braucht, nimmt `auth.COOKIE_NAME`. **Und das Umlegen meldet alle einmalig ab:**
 das Präfix `__Host-` verlangt den Namen wörtlich, der alte wird nicht mehr
-gelesen. Danach geht die Anmeldung nur noch über HTTPS; der `Secure`-Keks wird
+gelesen. Danach geht die Anmeldung nur noch über HTTPS; der `Secure`-Cookie wird
 über `http://` verworfen.
 
 **Was die Einstellung nicht ist: eine Liste, wer den Kopf setzen darf.** Sie
@@ -500,7 +500,7 @@ Endung. In der Vorschauleiste trägt ein Video ein ▶ und, wenn die Dauer bekan
 ist, seine Länge als `0:42`; auf der Karte steht sein Standbild wie ein Foto,
 mit einem Abspielzeichen darauf. Im Eintrag und im Vollbild wird mit der
 Steuerung des Browsers abgespielt, und darin lässt sich springen — die
-Auslieferung beantwortet Bereiche. **Nichts spielt von selbst los**, und beim
+Auslieferung beantwortet Ranges. **Nichts spielt von selbst los**, und beim
 Blättern wie beim Verlassen wird angehalten. **Kein Zoom am Video:** der zweite
 Klick gehört der Abspielsteuerung. Der Ausschnittmodus bleibt bedienbar und
 zeigt dort das Standbild. Alles davon ist **abgeleitet** aus `art` und `dauer`
@@ -605,10 +605,10 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   kein Merksatz, sondern ein Wächter im Prüfstand:** keine Zeile in
   `server.js` setzt den Content-Type selbst. Wer eine Auslieferung ergänzt,
   wird namentlich rot. **Er hat in 0.8.50 gehalten:** der Videoweg liefert
-  `inline` aus und geht trotzdem durch `setzeBildKopfzeilen()`; keine Zeile
+  `inline` aus und geht trotzdem durch `setzeBildHeader()`; keine Zeile
   in `server.js` ist dazugekommen, die den Typ selbst setzt. Seit 0.8.50 hat
   der Wächter eine Gegenprobe neben sich, die ihn an einer verletzenden
-  Zeichenkette vorführt — sonst bliebe er auch dann grün, wenn er gar nichts
+  String vorführt — sonst bliebe er auch dann grün, wenn er gar nichts
   mehr ansähe.
 - **Testtage und Kriterienbewertung sind getrennt.** Die Kriterien sind eine
   Analyse, die Testtage ein Verlauf. Nicht zu einem Durchschnitt verrechnen und
@@ -632,7 +632,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   Kaskade, Reihenfolge, Fokuspunkt, Verschlüsselung, Sicherung. **Nichts davon
   darf je eine Ausnahme bekommen.** Was NICHT von selbst greift, ist genau
   dreierlei und ist gebaut: Löschdialog, Kennzahlen und die Auslieferung.
-- **`ffmpeg` kommt nicht ins Abbild** (seit 0.8.50), und keine andere neue
+- **`ffmpeg` kommt nicht ins Image** (seit 0.8.50), und keine andere neue
   Abhängigkeit. Das Standbild eines Videos erzeugt der **Browser des
   Hochladenden** über `<video>` und `<canvas>`. Daraus folgt: **der Server
   öffnet nie ein Video** — er liest zwölf Bytes für die Typerkennung,
@@ -645,12 +645,12 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   könnte eines schicken, das nicht zum Video gehört. Das ist hinnehmbar — es
   ist eine Vorschau, keine Aussage —, und es steht hier wie im Quelltext,
   damit es niemand später für einen Beleg hält.
-- **Videos werden in Bereichen ausgeliefert, Fotos nicht** (seit 0.8.50).
-  Der Grund ist nicht die Größe, sondern die Bedienung: ohne Bereiche kann der
+- **Videos werden in Ranges ausgeliefert, Fotos nicht** (seit 0.8.50).
+  Der Grund ist nicht die Größe, sondern die Bedienung: ohne Ranges kann der
   Browser im Video nicht springen, und manche Abspieler beginnen gar nicht
-  erst. Der Bereich kommt vom Aufrufer und wird geprüft; Ungültiges wird mit
+  erst. Der Range kommt vom Aufrufer und wird geprüft; Ungültiges wird mit
   **416** beantwortet, nicht stillschweigend zurechtgebogen. **An der
-  Auslieferung eines Fotos ändert sich dadurch keine einzige Kopfzeile** —
+  Auslieferung eines Fotos ändert sich dadurch keine einzige Header** —
   das ist Absicht und wird geprüft.
 - **Keine Favicons bei den Links.** Sie würden von fremden Servern nachgeladen
   und brächen das Offline-Prinzip. Stattdessen Domain als Text.
@@ -693,7 +693,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   wenn man nicht Admin ist). Wer eines aus dem anderen ableitet, baut eine
   zweite Wahrheit über dieselbe Frage.
 - **Zwei Regeln für zwei Zeitpunkte sind keine zweite Wahrheit** (seit
-  0.8.30). `umstieg0830()` gibt die Bestandslinks dem **Eintragsverfasser**,
+  0.8.30). `migration0830()` gibt die Bestandslinks dem **Eintragsverfasser**,
   `ordneBestandZu()` gibt später herrenlos gewordene Zeilen dem
   **Eigentümer**. Das ist kein Widerspruch, sondern eine Antwort auf zwei
   verschiedene Fragen — aber es liest sich als einer, wenn es nicht dasteht.
@@ -725,7 +725,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
 - **`sucheAktiv[0]` ist die einzige Wahrheit darüber, wer Startanbieter ist**
   (seit 0.5.11). Die alte Einstellung `suche` wird zwar weiter mitgeschrieben,
   aber **nie wieder gelesen** — sie ist eine Projektion in eine Richtung, damit
-  ein Rückschritt auf 0.5.10 noch beim richtigen Anbieter sucht. Zwei Orte, die
+  ein Downgrade auf 0.5.10 noch beim richtigen Anbieter sucht. Zwei Orte, die
   beide sagen dürften, wer Standard ist, wären genau die Bauform der
   Stolpersteine 47 und 48.
 - **Der Schlüssel eines eigenen Anbieters hängt am Platz, nicht am Namen**
@@ -1064,7 +1064,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   kein Projektname und wandert bei keiner Umbenennung mit. Ein anderer Name
   hieße: der Start hält den Bestand für eine Neuinstallation und legt eine
   **leere** Datenbank an — neben der vollen Datei, die niemand mehr anfasst.
-- **Der Keksname trägt den Projektnamen** (`kriterion_session` seit 0.5.10).
+- **Der Cookiename trägt den Projektnamen** (`kriterion_session` seit 0.5.10).
   Ihn zu wechseln macht alle Sitzungen ungültig — einmal neu anmelden, keine
   Datenfolge. Das ist bei einer Umbenennung der billigste Zeitpunkt dafür:
   Stufe A des Mehrbenutzerbetriebs fasst die Sitzungstabelle ohnehin an und
@@ -1073,7 +1073,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
 - **Eine Sitzung ohne Benutzer gilt nicht** (seit 0.6.0). `sitzungsBenutzer()`
   fragt über einen JOIN von `sessions` auf `users`; wo kein Benutzer hängt, gibt
   es keine Anmeldung. Im Betrieb kann das nicht vorkommen — beim Anlegen ist die
-  Id Pflicht, bestehende Sitzungen wurden beim Umstieg nachgezogen, und mit dem
+  Id Pflicht, bestehende Sitzungen wurden beim Migration nachgezogen, und mit dem
   Benutzer gehen seine Sitzungen über die Kaskade mit. Eine herrenlose Zeile
   wäre ein Schlüssel zu niemandem und darf deshalb nicht der Duldung anheimfallen.
 - **Eigentümer wird, wer schon Rechte hat — aber nur, solange es keinen gibt**
@@ -1190,7 +1190,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   war"; eine persönliche Ablage ist genau Letzteres. Sichtbare Folge: Losheften
   schiebt den Eintrag nicht mehr an den Anfang. Dieselbe Überlegung gilt für die
   Migration — sie leert die Spalte, **ohne** `updated_at` mitzuschreiben, sonst
-  stünden nach dem Umstieg alle ehemals angehefteten Einträge oben, und zwar für
+  stünden nach der Migration alle ehemals angehefteten Einträge oben, und zwar für
   jeden.
 - **`items.favorite` bleibt als Spalte stehen und wird nie beschrieben**
   (seit 0.6.3, Begründung erneuert in 0.8.1). Die Spalte bleibt, damit
@@ -1223,7 +1223,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   Kriterium, das drei Leute bewertet haben, dreifach gegen eines mit einer
   Stimme, und die Kopfzahl wäre aus den angezeigten Zeilenwerten nicht mehr
   nachvollziehbar. **Bei genau einem Zugang liefern beide Rechnungen dasselbe**
-  — jedes Kriterium hat dann höchstens eine Stimme. Der Umstieg auf 0.7.0
+  — jedes Kriterium hat dann höchstens eine Stimme. Die Migration auf 0.7.0
   ändert im Einbenutzerbetrieb also keine einzige Zahl.
   **Gerundet wird genau einmal, am Ende.** Je Kriterium vorzurunden und dann zu
   mitteln wäre ein zweiter Rundungsort für dieselbe Zahl; SQL und JavaScript
@@ -1329,7 +1329,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   und ist keine: die Gegenprobe an jeder Stelle macht genau ihre eigene
   Prüfung rot. Dieselbe Frage wie bei Stolperstein 53 — nicht „ist das
   redundant", sondern „deckt eine Stelle die andere zu". *Die dritte
-  Aufrufstelle (nach der Übernahme aus der `.env`) ist mit dem Umstiegscode
+  Aufrufstelle (nach der Übernahme aus der `.env`) ist mit dem Migrationscode
   in 0.8.1 entfallen.*
 - **Eine Einstellung ist entweder Ansicht oder Sprache — und das entscheidet,
   wem sie gehört** (seit 0.6.5). `settings` zerfällt in zwei Hälften:
@@ -1361,7 +1361,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   sähe das niemand.
 - ~~**Die globale Zeile wird bei der Migration geräumt, nicht kopiert**~~
   (0.6.5). **Gegenstandslos seit 0.8.1:** die Migration ist mit dem
-  Umstiegscode entfernt. Die Lehre bleibt als Muster — eine Überführung
+  Migrationscode entfernt. Die Lehre bleibt als Muster — eine Überführung
   erkennt ihren Bedarf am Ergebnis, nicht an einem Merker.
 - ~~**`legacy.js` schreibt weiterhin `filters` global — und das bleibt so.**~~
   **Gegenstandslos seit 0.8.1:** `legacy.js` ist gelöscht, einen globalen
@@ -1572,7 +1572,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   ausdrücklich nicht: der Zähler wird nicht hochgesetzt.
 - **Der Status wird an zwei Stellen durchgesetzt** (seit 0.8.0), Anmeldung und
   `requireAuth`, und sie decken einander nicht zu. Ohne die zweite bliebe ein
-  gerade Gesperrter bis zum Ablauf seines Kekses drin, also bis zu dreißig Tage.
+  gerade Gesperrter bis zum Ablauf seines Cookies drin, also bis zu dreißig Tage.
   Das Sperren räumt seine Sitzungen zwar zusätzlich weg — **die Gegenprobe zu
   `requireAuth` muss den Status deshalb über die Datenbank setzen**, sonst
   bliebe sie grün, auch wenn die Klemme fehlte.
@@ -1586,9 +1586,9 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
 - **Der Verfasser kommt als Objekt, nicht als Name** (seit 0.8.2).
   `verfasser: { id, name, geloescht }` an Eintrag, Kommentar, Testtag und
   Stimme; die nackte `user_id` steht in keiner Antwort mehr. Ein Objekt statt
-  einer Zeichenkette, weil ein Grabstein keinen Namen mehr hat und die
+  einem String, weil ein Grabstein keinen Namen mehr hat und die
   Beschriftung aus der **Nummer** entsteht. Das Feld heißt ausdrücklich nicht
-  `author` wie im Export: dort ist es eine blanke Zeichenkette, hier ein
+  `author` wie im Export: dort ist es eine blanke String, hier ein
   Objekt, und gleicher Name bei anderer Form wäre eine Falle.
   **Herrenlos ist `null`, und das Feld fehlt nie** — sonst wäre „diese Zeile hat
   keinen Verfasser" von „diese Antwort kennt das Feld nicht" nicht zu
@@ -1716,7 +1716,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   leere Klammer mehr — „()" wäre eine Klammer um nichts.
 - **Tags und Kategorien: anlegen darf jeder — abschaltbar** (seit 0.8.4).
   Zwei globale Schalter (`tagsFreiAnlegen`, `kategorienFreiAnlegen`), Vorgabe
-  an, als **Ableitung beim Lesen** — kein Umstiegscode, nichts, was zu 1.0
+  an, als **Ableitung beim Lesen** — kein Migrationscode, nichts, was zu 1.0
   zurückzubauen wäre. Aus heißt ausschließlich: die Zeile „+ neu anlegen"
   verschwindet, die Auswahl aus dem Vorhandenen bleibt (Kategorie) und die
   Wolke bleibt bedienbar (Tags am Eintrag). **Zuweisen darf immer jeder** —
@@ -1779,12 +1779,12 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   **Klient**: bei einem Bewerter hat jedes Kriterium höchstens eine Stimme,
   Stufe 1 des Zweistufenmittels ist also der eigene Wert — kein zweiter
   Rechenweg im Server, aber ein zweiter Rundungsort für eine *andere* Zahl.
-- **Eine neue Spalte braucht beides: die DDL und einen Umstiegsblock** (seit
+- **Eine neue Spalte braucht beides: die DDL und einen Migrationsblock** (seit
   0.8.3). `CREATE TABLE IF NOT EXISTS` rührt eine vorhandene Tabelle nicht an
   (Stolperstein 13), und seit 0.8.1 gibt es keinen anderen Nachrüstweg mehr.
   Die Vorgabe greift für jede **Zeile**, aber nur dort, wo die **Spalte**
   existiert — der Entwurf zu 0.8.3 verwechselte das und behauptete „kein
-  Umstiegscode nötig". Die DDL bleibt trotzdem der Ort der Wahrheit: zu 1.0
+  Migrationscode nötig". Die DDL bleibt trotzdem der Ort der Wahrheit: zu 1.0
   fällt der Block weg, die Spalte bleibt.
 - **Der Knopf trägt die Farbe der Kante, die er setzt** (seit 0.8.3).
   Klarstellung zu „Orange ist Art und Bedienung", keine Rücknahme: die **Art**
@@ -1874,7 +1874,7 @@ Sieben Schichten, damit kein einzelner Fehler genügt:
 4. **`X-Content-Type-Options: nosniff`**, zusätzlich für die ganze Anwendung.
 5. **`Content-Security-Policy: default-src 'none'; sandbox`** auf jeder
    Anlagen-Antwort.
-6. **Der Dateiname wird für die Kopfzeile entschärft.** Zeilenumbrüche und
+6. **Der Dateiname wird für der Header entschärft.** Zeilenumbrüche und
    Anführungszeichen raus, Umlaute über `filename*=UTF-8''`.
 7. **Text wird nie als Datei ausgeliefert**, sondern gelesen und als JSON
    geschickt; die Oberfläche setzt ihn mit `textContent` in die Seite.
@@ -1935,7 +1935,7 @@ in zwei Schichten:
   Kommentarbilder schon hatten.
 * **Beim Ausliefern** entscheiden die ersten Bytes. Damit ist auch geschützt,
   was schon vorher in der Datenbank lag — eine Ableitung braucht keinen
-  Umstieg.
+  Migration.
 
 **Bei Anhängen wird bewusst nicht gefiltert.** Eine Positivliste dort wäre
 durch Umbenennen zu umgehen und wiegte in falscher Sicherheit. **Bei Fotos
@@ -1983,7 +1983,7 @@ das. Daneben steht immer „In neuem Tab öffnen" als Ausweichweg.
 Der Prüfstand lädt eine echte HTML-Seite mit Skript hoch und prüft jede
 einzelne dieser Schichten. **Am Fotoweg dasselbe mit einer echten SVG** — und
 dort gehört die Kontrolle des ausgelieferten **Bytestroms** dazu: eine
-Prüfung, die nur die Kopfzeile ansieht, belegt nicht, was herausgeht
+Prüfung, die nur der Header ansieht, belegt nicht, was herausgeht
 (Stolperstein 98). Eine per SQL eingesetzte Bestandszeile deckt den Fall ab,
 den es vor 0.8.20 schon gab. Wer hier etwas ändert, lässt `npm test` laufen und
 baut die Änderung zusätzlich probeweise zurück (siehe Abschnitt 7).
@@ -2037,7 +2037,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Quelltext in `body.textContent`, und Textprüfungen finden Wörter, die nie
     auf dem Bildschirm stehen.
 20. **CSS-Längen werden beim Zurücklesen normalisiert** — Zahlen vergleichen,
-    nicht Zeichenketten.
+    nicht Strings.
 21. **Zwei Zählungen an einer Tabelle brauchen zwei Unterabfragen** — zwei
     JOINs multiplizieren sich. Prüfbestände brauchen deshalb mehrere
     Verwendungen je Zeile, sonst ist 1 × 1 = 1 und nichts fällt auf.
@@ -2143,9 +2143,9 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
 61. **`e.currentTarget` ist nach dem ersten `await` `null`** — danach aus dem
     Zustandsobjekt neu zeichnen. Und: ein Bedienelement ist erst geprüft, wenn
     ein Ereignis wirklich zugestellt wurde (`dispatchEvent` samt Durchlauf der
-    Ereignisschleife).
+    Event Loop).
 62. **Ein zusammengesetzter regulärer Ausdruck wird zweimal maskiert** —
-    langweiliger Zeichenkettencode ist dort das kleinere Übel.
+    langweiliger String-Code ist dort das kleinere Übel.
 63. **Eine Spalte, die man vergleicht, muss im `SELECT` stehen** — sonst ist
     sie `undefined`, und die Prüfung kann gar nicht scheitern.
 64. **Zufällige Portwahl braucht Abstand** — überlappende Bereiche erzeugen
@@ -2203,7 +2203,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     derselben Abfrage.
 81. **Eine Prüfung, die bei fehlendem Gegenstand grün bleibt, kann gar nicht
     scheitern.** Fehlt die Regel im Stylesheet, liefert der Wächter eine leere
-    Zeichenkette, und jede Verneinung darauf ist wahr — die Gegenprobe machte
+    String, und jede Verneinung darauf ist wahr — die Gegenprobe machte
     nur eine statt zwei Prüfungen rot. Erst das **Vorhandensein** prüfen, dann
     die Eigenschaft. Verwandt mit 63 und 31, aber eigenständig: dort ist der
     Wert `undefined`, hier ein *plausibler* leerer Wert.
@@ -2265,11 +2265,11 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     im Behandler, ob er selbst der oberste ist. Verwandt mit 41, aber
     umgekehrt: dort hängt ein Behandler an einem Element, das neu gezeichnet
     wird, hier greifen zwei **gültige** Behandler auf dasselbe Ereignis zu.
-90. **Ein Doppelgänger, der eine Antwort nur ausliefert, kann kein
+90. **Ein Mock, der eine Antwort nur ausliefert, kann kein
     Neuzeichnen belegen.** Antwortet er auf ein Löschen zwar mit dem neuen
     Stand, liefert aber weiterhin dieselbe Liste, ist „die Ansicht zeichnet
     sich neu" von „die Ansicht blieb stehen" nicht zu unterscheiden — die
-    Prüfung bliebe in beiden Fällen grün. **Ein Doppelgänger, dessen Antwort
+    Prüfung bliebe in beiden Fällen grün. **Ein Mock, dessen Antwort
     sich durch einen Schreibvorgang ändern soll, muss sie wirklich ändern.**
     Fortschreibung der Regel aus 0.8.5: dort ging es darum, dass er nicht
     *vereinfachen* darf, hier darum, dass er nicht *erstarren* darf.
@@ -2300,9 +2300,9 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     angesehen werden. Damit das nicht den ganzen Durchlauf ein zweites Mal
     kostet, trägt der Prüfstand eine Selbstprobe, die nur den Rahmen fährt:
     zwei gestellte Gruppen, Millisekunden statt einer Minute.
-95. **Ein Abdruck über Dateien ist erst dann vollständig, wenn alle Dateien
+95. **Ein Fingerprint über Dateien ist erst dann vollständig, wenn alle Dateien
     schon geladen sind.** Er entsteht beim Start; ein `require` **innerhalb**
-    einer Funktion liefe später und stünde dann nicht darin — der Abdruck
+    einer Funktion liefe später und stünde dann nicht darin — der Fingerprint
     würde still unvollständig, ohne dass irgendetwas rot wird. Dagegen hilft
     kein Kommentar, sondern ein Wächter über den Modulgraphen ab `server.js`.
 
@@ -2313,9 +2313,9 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     `el.style.x = …` über CSSOM bleibt erlaubt. **Vor einer CSP gehören die
     Attribute gezählt, nicht geschätzt** — und nachgemessen wird im Browser,
     nicht in `jsdom`: dort greift keine CSP, eine Prüfung sähe nur die
-    Kopfzeile.
+    Header.
 
-97. **Wer eine Kopfzeile vom Aufrufer nicht mehr glaubt, nimmt zuerst dem
+97. **Wer ein Header vom Aufrufer nicht mehr glaubt, nimmt zuerst dem
     eigenen Prüfstand ein Werkzeug weg.** Die Gruppe zur Namensbremse gab
     jedem Versuch eine eigene Adresse per `X-Forwarded-For` — genau die
     Behauptung, die 0.8.20 nicht mehr annimmt. Vier Prüfungen wurden rot, ohne
@@ -2323,11 +2323,11 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Einstellung umgehängt worden und prüfen seitdem zwei Sachen statt einer.
     Stolperstein 74 in neuer Gestalt: **umhängen, nicht löschen.**
 
-98. **Eine Prüfung, die nur die Kopfzeile ansieht, belegt nicht, was
+98. **Eine Prüfung, die nur der Header ansieht, belegt nicht, was
     herausgeht.** Zur Auslieferung gehört der Bytestrom daneben: bei einer SVG
     aus dem Bestand ist der Inhalt unverändert die SVG samt Skript —
     gefährlich wäre allein, dass der Browser sie als Webseite liest. Erst
-    Kopfzeile **und** Inhalt zusammen sagen, was der Fall ist.
+    Header **und** Inhalt zusammen sagen, was der Fall ist.
 
 99. **`pkill -f "node server.js"` erschlägt den laufenden Prüfstand.** Der
     startet seine Server als eigene Prozesse mit genau dieser Befehlszeile.
@@ -2346,7 +2346,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     **Routenzeile** zurückwandert, blieb ihm unsichtbar: die Gegenprobe färbte
     acht Verhaltensprüfungen rot — und ausgerechnet die eine Prüfung nicht,
     die eine falsche *Entscheidung* finden soll. Behoben in 0.8.30.
-102. **Ein Doppelgänger, der ein Feld selbst mitbringt, deckt die Serverseite
+102. **Ein Mock, der ein Feld selbst mitbringt, deckt die Serverseite
     zu.** Der Rückbau „`verfasser` fällt aus der Linkzeile in `detail()`" blieb
     **vollständig grün**: die Oberflächenprüfungen laufen gegen `baueDom`,
     dessen Prüflage das Feld selbst setzt, und die Rechteprüfungen sehen in die
@@ -2391,7 +2391,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
 108. **Zwei `ALTER TABLE` sind zwei Anweisungen — scheitert die zweite, bleibt
     die erste stehen.** Nachgestellt: ohne Transaktion überlebt die erste
     Spalte, in einer `db.transaction()` rollen beide zurück. Für einen
-    Umstiegsblock mit **mehr als einer** Spalte folgt daraus die Bauform: nicht
+    Migrationsblock mit **mehr als einer** Spalte folgt daraus die Bauform: nicht
     den Block als Ganzes fragen, sondern **jede Spalte einzeln**. Dann heilt
     der nächste Start einen zerrissenen Stand von selbst; ein Block, der beim
     Vorhandensein der ersten zurückkehrt, ließe die zweite für immer fehlen.
@@ -2434,35 +2434,35 @@ Wegwerfverzeichnissen an — `data/` bleibt unangetastet, und **alle Anlagen
 entstehen frisch** über Einrichtungsseite und Verwaltung; einen präparierten
 Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
-außerhalb des Docker-Abbilds).
+außerhalb des Docker-Images).
 
 **Zuletzt: 1953 von 1953 bestanden** (0.8.50; 146 neue Prüfungen, vier neue
-Gruppen: „UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0", „Videos am Fotoplatz",
+Gruppen: „MIGRATION 0.8.50 — ENTFAELLT MIT 1.0", „Videos am Fotoplatz",
 „Videos: Auslieferung (Sicherheitsregel)" und „Videos am Bildschirm"; dazu
 Ergänzungen an „Export und Import", „Rechte am Eintrag" und „Die
 Sicherheitsregel fuer die Anwendung selbst"). Davor 0.8.40 mit 125 neuen
 Prüfungen, 0.8.31 mit 58 und 0.8.30 mit 76.
 
-**Es gibt jetzt FÜNF Umstiegsabschnitte**, und alle tragen dieselbe Marke.
-Der Abschnitt **„UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen
+**Es gibt jetzt FÜNF Migrationsabschnitte**, und alle tragen dieselbe Marke.
+Der Abschnitt **„MIGRATION 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen
 steht unverändert: er stellt eine Datenbank aus 0.8.2 nach — dieselbe Anlage,
 nur ohne die neue Spalte und mit einer Zeile darin — und belegt, dass der
-Umstieg sie ergänzt, dass die Bestandszeile auf der Vorgabe null steht, dass
+Migration sie ergänzt, dass die Bestandszeile auf der Vorgabe null steht, dass
 ein zweiter Lauf stumm bleibt und dass eine **frische** Anlage die Spalte ohne
-Umstieg trägt.
+Migration trägt.
 
-Der Abschnitt **„UMSTIEG 0.8.30 — ENTFAELLT MIT 1.0"** mit elf Prüfungen ist
+Der Abschnitt **„MIGRATION 0.8.30 — ENTFAELLT MIT 1.0"** mit elf Prüfungen ist
 nach demselben Muster gebaut, aber die Prüflage muss mehr können: sie stellt
 eine Datenbank aus 0.8.20 nach und ist **so eingerichtet, dass die falsche
 Antwort auffällt** — der Eintrag gehört `bert`, Eigentümerin ist `chefin`.
 Fielen die Bestandszeilen an den Eigentümer statt an den Eintragsverfasser,
 stünde dort `chefin`. Eine dritte Linkzeile hängt an einem Eintrag, der selbst
-herrenlos ist: sie kann der Umstieg nicht füllen und fällt danach dem
+herrenlos ist: sie kann die Migration nicht füllen und fällt danach dem
 Auffangnetz zu. **Damit sind beide Regeln an einem Lauf zu sehen.** Dazu die
 Gegenlage, dass der Index auf `links` sich beim Start selbst nachlegt, während
 die Spalte es nicht täte.
 
-Der Abschnitt **„UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0"** stellt eine Datenbank
+Der Abschnitt **„MIGRATION 0.8.40 — ENTFAELLT MIT 1.0"** stellt eine Datenbank
 aus 0.8.31 nach — dieselbe Anlage, nur ohne die Spalte `gewicht`, mit drei
 Kriterien und **mit Bewertungen daran**. Die Frage nach einem Verfasser stellt
 sich hier nicht; ein Gewicht kann nicht herrenlos werden. Belegt wird: die
@@ -2470,13 +2470,13 @@ Spalte kommt dazu, die Bestandszeilen stehen auf **1,0**, die Vorgabe kommt
 aus dem `DEFAULT` und nicht aus einem `UPDATE` (am Quelltext nachgesehen),
 `ordneBestandZu()` kennt `rating_criteria` gar nicht, ein zweiter Lauf bleibt
 stumm, ein von Hand gesetztes Gewicht überlebt den nächsten Start, und eine
-**frische** Anlage trägt die Spalte ohne Umstieg. Dazu die eigentliche
+**frische** Anlage trägt die Spalte ohne Migration. Dazu die eigentliche
 Zusicherung der Runde, an derselben Anlage nachgerechnet: **der gewichtete
-Gesamtschnitt ist nach dem Umstieg derselbe wie der ungewichtete davor.**
+Gesamtschnitt ist nach der Migration derselbe wie der ungewichtete davor.**
 Und die Gegenlage, dass migrierte und frische Anlage die Spalte **gleich**
 bauen — geprüft am Verhalten, nicht am DDL-Text (Stolperstein 106).
 
-Der Abschnitt **„UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0"** stellt eine Datenbank
+Der Abschnitt **„MIGRATION 0.8.50 — ENTFAELLT MIT 1.0"** stellt eine Datenbank
 aus 0.8.40 nach — dieselbe Anlage, nur ohne `art` und `dauer` an `photos`, und
 **mit Fotos darin**; eine leere Tabelle bewiese nichts über die Vorgabe. Die
 Frage nach einem Verfasser stellt sich auch hier nicht: ein Foto gehört seinem
@@ -2484,7 +2484,7 @@ Eintrag, nicht einem Verfasser, und `ordneBestandZu()` kennt `photos` gar
 nicht. Belegt wird: beide Spalten kommen dazu, die Bestandszeilen stehen auf
 `'bild'` und `NULL`, die Vorgabe kommt aus dem `DEFAULT` und nicht aus einem
 `UPDATE` (am Quelltext nachgesehen), ein zweiter Lauf bleibt stumm, und eine
-**frische** Anlage trägt beide Spalten ohne Umstieg. **Dazu die Probe, die
+**frische** Anlage trägt beide Spalten ohne Migration. **Dazu die Probe, die
 diesen Abschnitt von den vier davor unterscheidet: jede der beiden Spalten
 wird EINZELN nachgerüstet** — zwei weitere Prüflagen, in der einen fehlt nur
 `art`, in der anderen nur `dauer`. Und die Gegenlage, dass migrierte und
@@ -2495,13 +2495,13 @@ darf leer bleiben, und eine dritte Art geht in der Datenbank durch — es gibt
 Dass der Index auf `photos` unverändert der eine von vorher ist, steht
 daneben; ein Index über `art` brächte nichts.
 
-**Die Probe „Ein Sprung von 0.8.20 fährt ALLE Umstiege in einem Start" gehört
+**Die Probe „Ein Sprung von 0.8.20 fährt ALLE Migrationen in einem Start" gehört
 allen fünf Blöcken** und ist erweitert worden, nicht verdoppelt: sie steht im
 Abschnitt von 0.8.31 und trägt jetzt auch eine Fototabelle ohne die beiden
 neuen Spalten.
 
 **Der Index auf `sessions.user_id` ist der Beleg dafür, dass ein Index kein
-Umstieg ist** (0.8.20, nachgestellt statt geglaubt): Der Prüfstand entfernt
+Migration ist** (0.8.20, nachgestellt statt geglaubt): Der Prüfstand entfernt
 ihn von Hand aus einer bestehenden Anlage, startet den Server einmal — und er
 ist wieder da. `CREATE INDEX IF NOT EXISTS` rüstet sich bei jedem Start selbst
 nach, anders als eine neue **Spalte**, die `CREATE TABLE IF NOT EXISTS` in
@@ -2559,21 +2559,21 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   zugestelltes Klickereignis** — ein Fehler hinter einem `await` bleibt im
   nur gebauten DOM sonst grundsätzlich unsichtbar (Stolperstein 61).
 - **Videos (0.8.50):** ein echtes MP4 und eine echte WebM werden hochgeladen,
-  und angesehen wird der **ausgelieferte Bytestrom samt Kopfzeilen** — Typ,
+  und angesehen wird der **ausgelieferte Bytestrom samt Header** — Typ,
   `Content-Disposition: inline`, der Name mit der Endung des *erkannten* Typs,
   `nosniff`, die Sicherheitsregel ohne `allow-scripts`. Dazu: eine Datei mit
   **falscher Endung und Videobytes** kommt herein, eine mit Videoendung und
   Bildbytes nicht — der Inhalt entscheidet. `size=thumb` und `size=medium`
   liefern an einer Videozeile ein **Bild**, ohne Größe die **Videodatei**,
-  bytegleich. Die **Bereiche** mit `206`, `Content-Range`, offenem Ende,
+  bytegleich. Die **Ranges** mit `206`, `Content-Range`, offenem Ende,
   Suffix und zwei Absagen mit `416`; ein **Foto bietet weiterhin keine an**
-  und beantwortet einen Bereich mit dem ganzen Bild. Eine unbekannte ISO-Marke
+  und beantwortet einen Range mit dem ganzen Bild. Eine unbekannte ISO-Marke
   aus dem Bestand geht als Download heraus. Und: das Nachrüsten der
   Vorschaubilder lässt das Standbild eines Videos in Ruhe, tut am Foto daneben
   aber weiterhin seine Arbeit.
 - **Dateien:** jede einzelne Schicht der Sicherheitsregel aus Abschnitt 5a —
   dafür lädt der Prüfstand eine echte HTML-Seite mit Skript und eine
-  SVG-Datei hoch und sieht sich die Kopfzeilen der Antwort an. Die
+  SVG-Datei hoch und sieht sich der Header der Antwort an. Die
   `.docx`-Vorschau wird an einer selbst gebauten, echten `.docx` geprüft.
 - **Suchanbieter:** neun Plätze, Auswahl, Startanbieter, Nachrücken, die
   Schranken der Vorlage einzeln.
@@ -2585,10 +2585,10 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   Fremder trägt einen Link ein und die Zeile gehört *ihm*, er löscht einen
   fremden nicht und seinen eigenen schon, er sortiert nicht um, der Admin
   löscht einen fremden. **Seit 0.8.31 dasselbe am sechsten Träger**, dort mit
-  einem **echten mehrteiligen Upload**: der Wächter stand vor multer, ein
+  einem **echten Multipart-Upload**: der Wächter stand vor multer, ein
   nachgereichter `INSERT` liefe an beidem vorbei und bewiese nichts über die
   Route. **Seit 0.8.50 am Videoweg dasselbe**, ebenfalls mit echtem
-  mehrteiligem Upload: ein Fremder bekommt 403 und danach steht **keine Zeile**
+  Multipart-Upload: ein Fremder bekommt 403 und danach steht **keine Zeile**
   in `photos`, der Verfasser bekommt 201 und die Zeile trägt `art = 'video'`
   mit ihrer Dauer, ein Fremder löscht das Video nicht.
 - **Der Name an der Datei- und der Linkzeile (0.8.30/0.8.31):** je drei
@@ -2618,10 +2618,10 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   dass er überhaupt noch Code liest (Stolperstein 106). **Das ist die einzige Prüfung, die
   eine fehlende Entscheidung findet.** **Seit 0.8.50 hat auch der Wächter über
   den Content-Type seine Gegenprobe:** dieselbe Zählung wird an einer
-  Zeichenkette vorgeführt, die die Verletzung trägt — sonst bliebe er grün,
+  String vorgeführt, die die Verletzung trägt — sonst bliebe er grün,
   wenn er gar nichts mehr ansähe.
-- **Das Werkzeug selbst (seit 0.8.10):** die Sperrdatei, der `Dockerfile`, der
-  Versionsabdruck und die Datei für den Prüflauf bei jedem Push — geprüft
+- **Das Werkzeug selbst (seit 0.8.10):** das Lockfile, der `Dockerfile`, der
+  Versions-Fingerprint und die Datei für den Prüflauf bei jedem Push — geprüft
   gegen den Quelltext, teils über einen Server aus einer **Kopie** des
   Quelltexts in einem Wegwerfverzeichnis. Dazu eine **Selbstprobe des
   Prüfrahmens**, die den Gruppenfilter als eigenen Prozess fährt und Ausgabe
@@ -2672,7 +2672,7 @@ Fehlschlägen. Was dabei gilt:
    und dabei dieselbe Punktliste geliefert wie die Gegenprobe daneben
    (Stolperstein 72). **Wenn zwei Gegenproben dieselben Namen rot machen,
    prüfen sie dieselbe Sache.**
-8. **Ein Doppelgänger, der ein Feld selbst mitbringt, prüft sich selbst.**
+8. **Ein Mock, der ein Feld selbst mitbringt, prüft sich selbst.**
    Der Rückbau „`verfasser` fällt aus der Linkzeile in `detail()`" blieb
    vollständig grün — die Oberflächenprüfungen bekommen das Feld aus der
    eigenen Prüflage, die Rechteprüfungen sehen in die Datenbank statt in die
@@ -2732,7 +2732,7 @@ Ansicht, Zoom lädt das Original.
 | 0.7.1 | Stufe E2 (31) | 8 | Stolpersteine 70 und 71 |
 | 0.7.2 | Stufe F (112) | 25 | Stolpersteine 72, 73 und 74 |
 | 0.8.0 | Stufe G1 (115) | 20 | Stolpersteine 75, 76 und 77 |
-| 0.8.1 | Umstellung auf frische Anlage (102 Umstiegsprüfungen entfielen) | — | — |
+| 0.8.1 | Umstellung auf frische Anlage (102 Migrationsprüfungen entfielen) | — | — |
 | 0.8.2 | Stufe G2, erste Hälfte (61) | 19 | Stolpersteine 78, 79 und 80 |
 | 0.8.3 | Stufe G2, zweite Hälfte, Punkte 1–4 (39) | 16 | Stolpersteine 81 und 82 |
 | 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte (106) | 34 | Stolpersteine 83, 84, 85 und 86 |
@@ -2798,7 +2798,7 @@ statt zwei.
 **In 0.8.10 51 neue Prüfungen und 32 Gegenproben, alle mit eigener
 Punktliste.** Vier neue Gruppen (Abschnitt „Was abgedeckt ist" oben), dazu
 sechs Prüfungen in vorhandenen Gruppen. Zwei Gegenproben stechen heraus: bei
-`.dockerignore` mit einem nie greifenden Muster bleibt „hält die Sperrdatei
+`.dockerignore` mit einem nie greifenden Muster bleibt „hält das Lockfile
 nicht zurück" **grün** — Stolperstein 81 in Reinform, nur die Prüfung daneben
 findet es. Und der naive Verzeichnislauf statt der Ableitung über
 `require.cache` färbt genau die drei Prüfungen rot, die die Falle des Auftrags
@@ -2808,18 +2808,18 @@ benennen: `pruefung.js`, `Doku/` und `zugang.js` zählten mit.
 |---|---|
 | `package-lock.json` wird in `.dockerignore` aufgenommen | **1 rot** |
 | `npm ci` wird wieder `npm install` | 2 rot |
-| die Sperrdatei fehlt ganz | 4 rot |
+| das Lockfile fehlt ganz | 4 rot |
 | `alsMuster()` trifft nie | **1 rot** — *Stolperstein 81 in Reinform* |
-| `abdruck` fällt aus der Antwort von `/api/stats` | 5 rot |
+| `fingerprint` fällt aus der Antwort von `/api/stats` | 5 rot |
 | die Liste wird ein blosser Verzeichnislauf über alle `.js` der Wurzel | 4 rot |
 | der **Name** geht nicht mehr in den Hash, nur der Inhalt | **1 rot** |
-| `abdruck` wandert **zusätzlich** nach `/api/config` | 2 rot |
-| der Doppelgänger kennt `abdruck` nicht mehr | **1 rot** — *Stolperstein 90* |
+| `fingerprint` wandert **zusätzlich** nach `/api/config` | 2 rot |
+| der Mock kennt `fingerprint` nicht mehr | **1 rot** — *Stolperstein 90* |
 | ein `require` wandert in `db.js` in eine Funktion | **1 rot** — *Stolperstein 95* |
 | der Schlussblock sagt nicht mehr, dass gefiltert wurde | **1 rot** |
 | ein übergangener Fehlschlag färbt den Lauf doch rot | 2 rot |
 | der Rückgabewert kümmert sich nicht mehr um den Filter ohne Treffer | **1 rot** |
-| `node-version` im Prüflauf auf `'20'` | **1 rot** — *Abbild und Prüflauf laufen auseinander* |
+| `node-version` im Prüflauf auf `'20'` | **1 rot** — *Image und Prüflauf laufen auseinander* |
 | `--audit-level=high` wird `moderate` | 2 rot |
 | die Datei für den Prüflauf fehlt ganz | 7 rot |
 
@@ -2832,11 +2832,11 @@ einzelnen Version bisher. Drei sind mehr wert als ihre Zahl:
 
 | Rückbau | Ergebnis |
 |---|---|
-| `user_id` aus der `links`-DDL | **1 rot** — nur „Eine frische Anlage trägt die Spalte ohne Umstieg"; auf einer bestehenden Anlage rüstet der Umstieg sie ohnehin nach. *Stolperstein 81 in Reinform* |
+| `user_id` aus der `links`-DDL | **1 rot** — nur „Eine frische Anlage trägt die Spalte ohne Migration"; auf einer bestehenden Anlage rüstet die Migration sie ohnehin nach. *Stolperstein 81 in Reinform* |
 | `verfasser` fällt aus der Linkzeile in `detail()` | **stumm** — und damit der wertvollste Rückbau der Runde (Lücke 8, Stolperstein 102) |
 | `nurEintragVerfasser` wieder vor `POST …/links` | 8 rot, der Quelltextwächter **grün** — Stolperstein 101, behoben; danach 9 rot |
-| der Umstieg ordnet niemanden zu | 3 rot |
-| der Umstieg setzt den **Eigentümer** ein | 3 rot — **dieselben Namen**, Stolperstein 72 |
+| die Migration ordnet niemanden zu | 3 rot |
+| die Migration setzt den **Eigentümer** ein | 3 rot — **dieselben Namen**, Stolperstein 72 |
 | Name ohne die Schwelle `mehrereBenutzer()` | 2 rot |
 | Name an **jeder** Zeile | 2 rot — **andere** Namen als darüber |
 | ein Trennzeichen statt der Klammern um den Namen | 7 rot |
@@ -2910,7 +2910,7 @@ sind zwei Dinge:
   ausgeschlossen, `.env.example` als Vorlage, keine echten Zugangsdaten im
   Quelltext. Offen davor: Punkt 7 in Abschnitt 10.
 - **Die Sicherung des Datenverzeichnisses ist seit 0.8.30 Pflicht, nicht
-  Empfehlung** — jedenfalls bei einer Datenbankstufe. Ein Rückschritt ist
+  Empfehlung** — jedenfalls bei einer Datenbankstufe. Ein Downgrade ist
   keine reine Dateikopie mehr (Abschnitt 2). Betroffen sind ab jetzt die
   Stufen mit „ja" in der Schemaspalte des Stufenplans; die nächste ist
   **0.8.40**.
@@ -2918,9 +2918,9 @@ sind zwei Dinge:
   den Eigentümer, `.env`-Reste, seit 0.8.20 die Betriebsart („Hinter Proxy:
   an/aus"), — falls je nötig — die Zuordnung herrenlosen Bestands
   („Bestand ohne Benutzer dem Eigentuemer zugeordnet") und, **einmalig beim
-  Umstieg auf 0.8.30**, die Zeile „links um user_id ergaenzt". Beim zweiten
+  Migration auf 0.8.30**, die Zeile „links um user_id ergaenzt". Beim zweiten
   Start ist sie weg; das ist richtig so.
-- **Der Container ist seit 0.8.20 sichtbar gesund oder nicht.** Das Abbild
+- **Der Container ist seit 0.8.20 sichtbar gesund oder nicht.** Das Image
   trägt einen `HEALTHCHECK` gegen `/api/config`; `docker compose ps` zeigt
   `healthy`. Vorher wusste Docker nur, dass der Prozess läuft — ein Container
   in einer Neustartschleife sah von außen gesund aus.
@@ -2949,8 +2949,8 @@ tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 **0.8.50 — „Kurzvideos am Fotoplatz".** Die nächste Runde des Stufenplans,
 **keine Stufe des Mehrbenutzerbetriebs** — und eine Datenbankstufe.
 
-*Das Schema und der Umstieg.* `photos` trägt `art TEXT NOT NULL DEFAULT 'bild'`
-und `dauer INTEGER`, samt `umstieg0850()`, dem **fünften** markierten Block.
+*Das Schema und die Migration.* `photos` trägt `art TEXT NOT NULL DEFAULT 'bild'`
+und `dauer INTEGER`, samt `migration0850()`, dem **fünften** markierten Block.
 **Dieselbe Tabelle, keine zweite:** zwei Tabellen hießen zwei sortierte Listen
 und damit zwei Quellen für die Frage nach dem Hauptbild. Die Bestandszeilen
 bekommen `'bild'` aus dem `DEFAULT`, `dauer` bleibt `NULL`.
@@ -2978,11 +2978,11 @@ abspielen kann, kann nicht hochladen, und das Standbild belegt nichts.
 `video/webm` und `video/quicktime`; die Endungsliste steht in `anhaenge.js` und
 trägt beide Richtungen; die drei Typen kommen auf die `inline`-Liste. **Der
 Wächter aus 0.8.20 hat gehalten** — `server.js` setzt weiterhin an keiner
-Stelle den Content-Type selbst. **Ausgeliefert wird in Bereichen**, aber nur am
+Stelle den Content-Type selbst. **Ausgeliefert wird in Ranges**, aber nur am
 Video und nur an der ganzen Datei: Ungültiges bekommt **416**, und an einem
-Foto verschiebt sich keine Kopfzeile. Das Papier verlangte an einer Stelle
+Foto verschiebt sich kein Header. Das Papier verlangte an einer Stelle
 `Accept-Ranges: none` und an einer anderen das Gegenteil; entschieden wurde für
-die Bereiche.
+die Ranges.
 
 *Am Bildschirm.* `qPhotos` liefert `art` und `dauer` mit — woran die
 Oberfläche ein Video erkennt, ist allein `art`. Vorschauleiste mit ▶ und
@@ -3012,8 +3012,8 @@ Varianten aus der Videodatei erzeugt und ein vorhandenes Standbild
 Stufenplan, **keine Stufe des Mehrbenutzerbetriebs** — und ebenfalls eine
 Datenbankstufe.
 
-*Das Schema und der Umstieg.* `rating_criteria` trägt
-`gewicht REAL NOT NULL DEFAULT 1.0`, samt `umstieg0840()`, dem **vierten**
+*Das Schema und die Migration.* `rating_criteria` trägt
+`gewicht REAL NOT NULL DEFAULT 1.0`, samt `migration0840()`, dem **vierten**
 markierten Block. **Die Bestandszeilen bekommen 1,0 aus dem `DEFAULT` der
 Spalte**, nicht aus einem nachgeschobenen `UPDATE`. `ordneBestandZu()` bleibt
 unberührt: ein Gewicht kann nicht herrenlos werden. **Kein `CHECK`** — nicht
@@ -3057,7 +3057,7 @@ zwei Stufen nutzt (Abschnitt 10). Sachlich dieselbe Wende wie G4, nur am
 sechsten Träger: die Regel galt für Dateien immer schon, sie war nur nicht
 gebaut.
 
-`attachments` bekommt `user_id` samt `umstieg0831()`, dem **dritten**
+`attachments` bekommt `user_id` samt `migration0831()`, dem **dritten**
 markierten Block. `POST /api/items/:id/attachments` verliert seinen Wächter —
 er stand dort **vor multer**, mit dem Zweck, „die Datei eines Fremden gar
 nicht erst einzulesen"; diese Begründung ist gegenstandslos geworden, die
@@ -3080,7 +3080,7 @@ Mehrbenutzerbetriebs vor H.
 
 *Die Linkzeile bekommt einen Verfasser.* `links` trägt `user_id` mit
 `ON DELETE SET NULL` — dieselbe Form wie an den vier anderen Trägern, in der
-vollständigen DDL. Dazu `umstieg0830()` mit den Marken der Bauregel: einmalig,
+vollständigen DDL. Dazu `migration0830()` mit den Marken der Bauregel: einmalig,
 wiederholbar und im Normalfall stumm. **Die Bestandszeilen fallen an den
 Eintragsverfasser**, nicht an den Eigentümer; `ordneBestandZu()` nimmt `links`
 trotzdem auf, weil es eine andere Frage zu einem anderen Zeitpunkt beantwortet
@@ -3107,7 +3107,7 @@ das ist bewusst getragen.
 *Formatnummer 6 → 7.* Ein Link ist im Export ein Objekt aus `url` und
 `author`. Der Import liest **beide** Formen; ein Link aus einer Datei der
 Formatnummer 6 fällt an den **Verfasser des Eintrags** — dieselbe Antwort wie
-beim Umstieg und aus demselben Grund.
+beim Migration und aus demselben Grund.
 
 *Und was daran hing.* `GET /api/items/:id/bestand` nennt Links getrennt nach
 eigen und fremd, `auth.zaehleBestand()` kannte sie überhaupt nicht, und
@@ -3124,14 +3124,14 @@ Formatnummer erneut (**8 → 9**, nachdem 0.8.31 die 8 belegt hat).
 
 | Version | Was |
 |---|---|
-| 0.8.20 | „Die Schotten dicht", alle fünf Punkte: Fotoweg leitet den ausgelieferten Typ aus den ersten Bytes ab und weist beim Hochladen alles ab, was kein Rasterbild ist; `Content-Security-Policy` für die Anwendung; `X-Forwarded-For` nur nach ausdrücklicher Einstellung samt `Secure`/HSTS/`__Host-`; Fehler-Handler nach Rang; sauberes Herunterfahren; Index auf `sessions.user_id`; `HEALTHCHECK` im Abbild |
-| 0.8.10 | Werkzeug, alle fünf Punkte: `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Abbild auf Node 22, Versionsabdruck über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push |
+| 0.8.20 | „Die Schotten dicht", alle fünf Punkte: Fotoweg leitet den ausgelieferten Typ aus den ersten Bytes ab und weist beim Hochladen alles ab, was kein Rasterbild ist; `Content-Security-Policy` für die Anwendung; `X-Forwarded-For` nur nach ausdrücklicher Einstellung samt `Secure`/HSTS/`__Host-`; Fehler-Handler nach Rang; sauberes Herunterfahren; Index auf `sessions.user_id`; `HEALTHCHECK` im Image |
+| 0.8.10 | Werkzeug, alle fünf Punkte: `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Image auf Node 22, Versions-Fingerprint über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push |
 | 0.8.6 | Berichtigungen aus dem Betrieb, alle fünf Punkte: Bewertungsdetails gehören dem Admin (samt Löschweg für eine fremde Bewertung), Linkliste abgeschnitten statt scrollbar, `grid-auto-flow: dense` schließt die Lücke im Kartenraster, „Angemeldet als" auch bei einem Zugang, „Angelegt von" nennt auch das Datum |
 | 0.8.5 | Stufe G3: dreizehn Karten des Systembereichs nach Rolle, `GET /api/stats` hinter `nurAdmin`, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien, berichtigte `AUTH_RESET`-Zeile |
 | 0.8.4 | Stufe G2, zweite Hälfte, Rest — alle fünf Punkte, **Stufe G2 vollständig**: Eingriffsvermerk nennt die Rolle, `updated_at` an den Bildwegen des Verfassers, Zahlen in der Kopfzeile des Kommentarblocks, die beiden Anlegen-Schalter, Umschalter „meine/alle" im Vergleich |
-| 0.8.3 | Stufe G2, zweite Hälfte, erster Teil: Eingriffsvermerk am Kommentar (`images_removed`, erster Umstiegscode seit der Bereinigung), `mine` am Kommentar samt Oberfläche, blaue Aufgabenmarke, Tagwolke klappt ganz auf |
+| 0.8.3 | Stufe G2, zweite Hälfte, erster Teil: Eingriffsvermerk am Kommentar (`images_removed`, erster Migrationscode seit der Bereinigung), `mine` am Kommentar samt Oberfläche, blaue Aufgabenmarke, Tagwolke klappt ganz auf |
 | 0.8.2 | Stufe G2, erste Hälfte: Verfassernamen an vier Trägern als Objekt, Stimmenliste je Kriterium, Löschdialog am Eintrag (`GET .../bestand`), `DELETE /api/ratings/:id` für fremde Bewertungen |
-| 0.8.1 | Bereinigung (keine Stufe): `legacy.js` und aller Umstiegscode entfernt, Schema als vollständige DDL, Prüfstand auf frische Anlagen (−102 Prüfungen), Kommentare und Vokabular vereinheitlicht |
+| 0.8.1 | Bereinigung (keine Stufe): `legacy.js` und aller Migrationscode entfernt, Schema als vollständige DDL, Prüfstand auf frische Anlagen (−102 Prüfungen), Kommentare und Vokabular vereinheitlicht |
 | 0.8.0 | Stufe G1: Karte „Zugänge", Rollenleiter `user` < `admin` < `eigentuemer` als vergebbarer Rollenwert, Sperren an zwei Stellen durchgesetzt, Namensbremse, Löschen als Grabstein mit freigegebenem Namen, `zugang.js` ersetzt `AUTH_RESET` |
 | 0.7.2 | Stufe F: serverseitige Rechteschicht für alle schreibenden Endpunkte, Export/Import nur Eigentümer, „Leitung" → „Admin", Selbstbezugsfehler entfernt |
 | 0.7.1 | Stufe E2: Export/Import mit Verfassernamen an vier Trägern, Formatversion 6, unbekannte Namen fallen an den Eigentümer |
@@ -3144,7 +3144,7 @@ Formatnummer erneut (**8 → 9**, nachdem 0.8.31 die 8 belegt hat).
 | 0.6.1 | Stufe B: `user_id` an `items`, `comments`, `test_days`; Bestand fällt dem ersten Benutzer zu |
 | 0.6.0 | Stufe A: `users` um Rolle, Adresse, Status, letzte Anmeldung; `sessions.user_id`; `req.benutzer` |
 | 0.5.11 | Mehrere Suchanbieter je Suchzeile; Anbieterliste aus `app.js` in den Server gezogen |
-| 0.5.10 | Umbenennung auf „Kriterion", ohne jede Funktionsänderung; Keksname wechselte mit |
+| 0.5.10 | Umbenennung auf „Kriterion", ohne jede Funktionsänderung; Cookiename wechselte mit |
 | 0.5.9 | Erledigt-Zustand für Aufgaben (vierter `kind`-Wert, Weiterschaltung auf demselben Knopf) |
 | 0.5.8 | Kriterien werden nur noch im Systembereich gelöscht |
 | 0.5.7 | Dritte Kommentarart: Aufgabe |
@@ -3190,7 +3190,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 
 | Version | Name | Was | Schema | Format |
 |---|---|---|---|---|
-| **0.8.10** | Werkzeug | `package-lock.json` einchecken, `npm ci` statt `npm install`, `sharp` auf 0.35, Versionsabdruck über die ausgelieferten Dateien, Prüflauf bei jedem Push, Prüfstand in Gruppen aufrufbar | — | — |
+| **0.8.10** | Werkzeug | `package-lock.json` einchecken, `npm ci` statt `npm install`, `sharp` auf 0.35, Versions-Fingerprint über die ausgelieferten Dateien, Prüflauf bei jedem Push, Prüfstand in Gruppen aufrufbar | — | — |
 | **0.8.20** | Die Schotten dicht | SVG am Fotoweg, `X-Forwarded-For`, `Secure`-Cookie, Sicherheitsregel für die Anwendung selbst, Fehler-Handler, sauberes Herunterfahren, Index auf `sessions.user_id` | — | — |
 | **0.8.30** | **Stufe G4** — Links bekommen Verfasser | `user_id` an `links`, eintragen offen, löschen beim Eintrager oder Admin, Name an der fremden Zeile, beide Löschdialoge | ja | 6 → 7 |
 | **0.8.31** | *(keine Stufe)* Dateien bekommen Verfasser | dieselbe Wende am sechsten Träger — `user_id` an `attachments`, hochladen offen, löschen beim Hochladenden oder Admin | ja | 7 → 8 |
@@ -3203,7 +3203,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.9.0** | **Stufe I** — Mailversand und Selbstanmeldung | siehe Konzeptpapier | ja | — |
 | **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
 | **0.9.20** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen | ja | — |
-| **1.0.0** | Bereinigung und Zusage | Umstiegscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
+| **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
 **0.8.10, 0.8.20, 0.8.30, 0.8.31, 0.8.40 und 0.8.50 sind gebaut** —
@@ -3232,7 +3232,7 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
   **inline** aus. Er durfte erst gebaut werden, wenn die Regel „der gemeldete
   Typ des Hochladenden wird nie ausgeliefert" auch am Fotoweg gilt.
   **Die Bindung hat sich beim Bauen bewährt:** der Videoweg ist durch
-  `setzeBildKopfzeilen()` gegangen, ohne dass in `server.js` eine einzige
+  `setzeBildHeader()` gegangen, ohne dass in `server.js` eine einzige
   Zeile dazukam, die den Typ selbst setzt — der Wächter blieb grün, und er hat
   seitdem eine Gegenprobe neben sich.
 - **0.8.50 vor 0.8.70** (die erste Hälfte erledigt). Der Papierkorb
@@ -3245,10 +3245,10 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
   einer Anlage, sondern in allen — deshalb lagen sie vorn und nicht hinten.
 - **G4 vor 0.8.40** (beide erledigt). Beide heben die Formatnummer, und beide
   fassen das Schema an. Nacheinander gebaut heißt: zwei Formatnummern statt
-  einer, zwei Umstiegsblöcke statt einem — **und das ist bewusst so
+  einer, zwei Migrationsblöcke statt einem — **und das ist bewusst so
   entschieden**. Das Ideenpapier schlägt das Zusammenlegen vor; die Regel
   „jede Stufe muss in einem Chat abzuarbeiten sein" wiegt schwerer als eine
-  gesparte Formatnummer. G4 war mit Schema, Umstieg, Rechtewende, Oberfläche
+  gesparte Formatnummer. G4 war mit Schema, Migration, Rechtewende, Oberfläche
   und Austauschformat bereits breit genug — **die Runde hat 76 Prüfungen und
   31 Gegenproben gebraucht**, und das war keine Reserve mehr.
   **Im Nachhinein bestätigt:** 0.8.40 allein brauchte 125 neue Prüfungen
@@ -3280,7 +3280,7 @@ damit alte Verweise stimmen.)*
    Name ihres Eintragers. Das hat die Zeile „Titel, Beschreibung, Fotos,
    Dateien, Links, Tags, Kategorie" der Rechtetabelle umgekehrt und macht
    Links zum **fünften Träger** neben Eintrag, Kommentar, Testtag und
-   Bewertung. Gebaut: `user_id` an `links` samt `umstieg0830()` und
+   Bewertung. Gebaut: `user_id` an `links` samt `migration0830()` und
    `ON DELETE SET NULL`, Bestandszeilen beim **Eintragsverfasser**, Export und
    Import mit Namen (**Formatnummer 6 → 7**), beide Löschdialoge um den
    fünften Träger ergänzt. Ein gelöschter Link bekommt weiterhin **keinen**
@@ -3319,7 +3319,7 @@ damit alte Verweise stimmen.)*
    richtig: ein Videoplatz, der nicht abspielt, ist ein kaputter Platz.
 
    **Große Dateien bis 2 GB — 1.1.0, also nach 1.0.** Sie können nicht in die
-   Datenbank (Node hält keinen Buffer über 2 GB, und ohne Bereichsabfragen
+   Datenbank (Node hält keinen Buffer über 2 GB, und ohne Range-Abfragen
    spielt iOS Safari überhaupt nicht ab). Sie liegen daneben und bekommen
    eine **eigene Verschlüsselung**, deren Schlüssel aus dem
    Datenbankschlüssel abgeleitet wird — *ein Schlüssel für die Anlage* bleibt
@@ -3358,8 +3358,8 @@ damit alte Verweise stimmen.)*
    gebraucht, aber für Verschiedenes — die Kopie ist konstant im
    Speicherbedarf und vollständig, der Export überlebt einen Formatwechsel
    und braucht keinen Schlüssel. Heute muss der Export beides sein und ist
-   für das eine davon zu schwer: er baut **eine** JSON-Zeichenkette mit allen
-   Fotos als Base64, und Node kann eine Zeichenkette über rund 512 MB nicht
+   für das eine davon zu schwer: er baut **eine** JSON-String mit allen
+   Fotos als Base64, und Node kann ein String über rund 512 MB nicht
    halten. Der Hinweis auf die erwartete Exportgröße gehört deshalb neben den
    Knopf.
 
@@ -3369,67 +3369,67 @@ damit alte Verweise stimmen.)*
 nicht angefasst. **Aus 0.8.30, 0.8.31, 0.8.40 und 0.8.50 ist je ein markierter
 Block dazugekommen; es sind jetzt fünf.***
 
-- **Finale Bereinigung.** Der Rückbau des Umstiegscodes wurde aus
+- **Finale Bereinigung.** Der Rückbau des Migrationscodes wurde aus
   Notwendigkeit nach 0.8.0 vorgezogen; zu 1.0 folgt eine letzte Bereinigung
   über alles, was bis dahin dazukommt. **Daraus folgt eine Bauregel ab
   sofort:** jeder Code, der die Datenbank verändert, wird so geschnitten und
   gekennzeichnet, dass sein späterer Rückbau leichtfällt (Abschnitt 12).
-- **`db.js`, `umstieg083()` — 18 Zeilen, 7 Prüfungen** (seit 0.8.3). Ergänzt
+- **`db.js`, `migration083()` — 18 Zeilen, 7 Prüfungen** (seit 0.8.3). Ergänzt
   `images_removed` an `comments` in einer Datenbank aus 0.8.0 bis 0.8.2.
   Zu 1.0 fällt der Block weg, **die Spalte in der DDL bleibt** — die Prüfung
-  „Eine frische Anlage trägt die Spalte ohne Umstieg" hält genau das fest. Die
-  zugehörigen Prüfungen stehen im Abschnitt „UMSTIEG 0.8.3 — ENTFAELLT MIT 1.0"
-  in `pruefung.js` (91 Zeilen); der Export von `umstieg083` in `module.exports`
+  „Eine frische Anlage trägt die Spalte ohne Migration" hält genau das fest. Die
+  zugehörigen Prüfungen stehen im Abschnitt „MIGRATION 0.8.3 — ENTFAELLT MIT 1.0"
+  in `pruefung.js` (91 Zeilen); der Export von `migration083` in `module.exports`
   trägt dieselbe Marke und fällt mit.
-- **`db.js`, `umstieg0830()` — 27 Zeilen samt Marken, 11 Prüfungen** (seit
+- **`db.js`, `migration0830()` — 27 Zeilen samt Marken, 11 Prüfungen** (seit
   0.8.30). Ergänzt `user_id` an `links` in einer Datenbank aus 0.8.0 bis
   0.8.20 und ordnet die Bestandszeilen dem **Verfasser ihres Eintrags** zu. Zu
   1.0 fällt der Block weg, **die Spalte in der DDL bleibt** — dieselbe Prüfung
-  hält es fest. Die zugehörigen Prüfungen stehen im Abschnitt „UMSTIEG 0.8.30
+  hält es fest. Die zugehörigen Prüfungen stehen im Abschnitt „MIGRATION 0.8.30
   — ENTFAELLT MIT 1.0" in `pruefung.js` (124 Zeilen); der Export von
-  `umstieg0830` in `module.exports` trägt dieselbe Marke und fällt mit.
+  `migration0830` in `module.exports` trägt dieselbe Marke und fällt mit.
   **Was ausdrücklich NICHT mitfällt:** `links` in der Tabellenliste von
-  `ordneBestandZu()`. Das Auffangnetz ist kein Umstieg — es läuft bei jedem
+  `ordneBestandZu()`. Das Auffangnetz ist keine Migration — es läuft bei jedem
   Start und beantwortet eine andere Frage (Abschnitt 5).
-- **`db.js`, `umstieg0831()` — 27 Zeilen samt Marken, 13 Prüfungen** (seit
+- **`db.js`, `migration0831()` — 27 Zeilen samt Marken, 13 Prüfungen** (seit
   0.8.31). Dasselbe an `attachments`, mit denselben Regeln: Bestandszeilen an
   den **Verfasser ihres Eintrags**, Spalte bleibt, Block fällt, `attachments`
-  in `ordneBestandZu()` fällt **nicht** mit. Prüfabschnitt „UMSTIEG 0.8.31 —
-  ENTFAELLT MIT 1.0", Export von `umstieg0831` mit derselben Marke.
+  in `ordneBestandZu()` fällt **nicht** mit. Prüfabschnitt „MIGRATION 0.8.31 —
+  ENTFAELLT MIT 1.0", Export von `migration0831` mit derselben Marke.
   **Eine Prüfung gehört ALLEN markierten Blöcken und fällt erst mit dem
-  letzten:** „Ein Sprung von 0.8.20 fährt ALLE Umstiege in einem Start". Sie
+  letzten:** „Ein Sprung von 0.8.20 fährt ALLE Migrationen in einem Start". Sie
   steht im Abschnitt von 0.8.31 und ist beim Rückbau mitzunehmen — wer nur
   einen der Blöcke entfernt, muss sie umschreiben statt löschen. **Sie ist
   mit 0.8.50 erweitert worden, nicht verdoppelt**, und trägt jetzt auch eine
   Fototabelle ohne `art` und `dauer`.
-- **`db.js`, `umstieg0840()` — 27 Zeilen samt Marken, 15 Prüfungen** (seit 0.8.40). Ergänzt `gewicht` an `rating_criteria` in einer
+- **`db.js`, `migration0840()` — 27 Zeilen samt Marken, 15 Prüfungen** (seit 0.8.40). Ergänzt `gewicht` an `rating_criteria` in einer
   Datenbank aus 0.8.0 bis 0.8.31; die Bestandszeilen bekommen 1,0 **aus dem
   `DEFAULT` der Spalte**, nicht aus einem `UPDATE`. Zu 1.0 fällt der Block
   weg, **die Spalte in der DDL bleibt** — dieselbe Prüfung hält es fest.
-  Prüfabschnitt „UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0" in `pruefung.js`
-  (196 Zeilen), Export von `umstieg0840` mit derselben Marke.
+  Prüfabschnitt „MIGRATION 0.8.40 — ENTFAELLT MIT 1.0" in `pruefung.js`
+  (196 Zeilen), Export von `migration0840` mit derselben Marke.
   **Was ausdrücklich NICHT mitfällt:** alles, was mit der Spalte selbst zu tun
   hat — `GEWICHT_MIN`/`GEWICHT_MAX`, `gueltigesGewicht()`, der JOIN in
   `qSchnittJeKriterium`, der gewichtete `gesamtSchnitt()`, das Feld in der
-  Verwaltungskarte und `criteriaGewichte` im Austauschformat. Der Umstieg
+  Verwaltungskarte und `criteriaGewichte` im Austauschformat. Die Migration
   trägt die Spalte nach, er trägt die Gewichtung nicht.
   **Und `rating_criteria` kommt in `ordneBestandZu()` gar nicht vor** — anders
   als bei 0.8.30 und 0.8.31 gibt es hier nichts, was nicht mitfallen dürfte.
-- **`db.js`, `umstieg0850()` — 33 Zeilen samt Marken, 26 Prüfungen** (seit
+- **`db.js`, `migration0850()` — 33 Zeilen samt Marken, 26 Prüfungen** (seit
   0.8.50). Ergänzt `art` und `dauer` an `photos` in einer Datenbank aus 0.8.0
   bis 0.8.40; die Bestandszeilen bekommen `'bild'` **aus dem `DEFAULT` der
   Spalte**, `dauer` bleibt `NULL`. **Der einzige Block mit zwei Spalten — und
   deshalb der einzige, der jede einzeln abfragt** (Stolperstein 108). Zu 1.0
   fällt der Block weg, **die Spalten in der DDL bleiben** — dieselbe Prüfung
-  hält es fest. Prüfabschnitt „UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0" in
-  `pruefung.js` (rund 190 Zeilen), Export von `umstieg0850` mit derselben
+  hält es fest. Prüfabschnitt „MIGRATION 0.8.50 — ENTFAELLT MIT 1.0" in
+  `pruefung.js` (rund 190 Zeilen), Export von `migration0850` mit derselben
   Marke.
   **Was ausdrücklich NICHT mitfällt:** alles, was mit den Spalten selbst zu tun
   hat — die Videoroute samt `VIDEO_MAX`, die Videotypen in `typAusBytes()` und
-  `INLINE_ERLAUBT`, die Bereichsauslieferung, `media-src` in der
+  `INLINE_ERLAUBT`, die Range-Auslieferung, `media-src` in der
   Sicherheitsregel, `art`/`dauer` in `qPhotos`, die getrennten Zahlen in
   Löschdialog und Kennzahlen, der Filter in `backfillVariants()` und der
-  Videoschalter im Austauschformat. Der Umstieg trägt die Spalten nach, er
+  Videoschalter im Austauschformat. Die Migration trägt die Spalten nach, er
   trägt den Videoweg nicht.
   **Und `photos` kommt in `ordneBestandZu()` gar nicht vor** — wie schon bei
   0.8.40 gibt es hier nichts, was nicht mitfallen dürfte.
@@ -3437,9 +3437,9 @@ Block dazugekommen; es sind jetzt fünf.***
   aus der Zeit vor 0.8.0 nicht mehr übernommen, aber auch nicht erkannt — der
   Start liefe in SQL-Fehler statt in eine Meldung. Vor 1.0 gehört an den
   Start eine klare Absage, die den Zwischenschritt über 0.8.0 nennt. **Seit
-  0.8.3 wiegt der Punkt schwerer:** es gibt wieder Umstiegscode, und eine
+  0.8.3 wiegt der Punkt schwerer:** es gibt wieder Migrationscode, und eine
   Anlage aus der Zeit vor 0.8.0 läuft weiterhin wortlos in SQL-Fehler. **Mit
-  0.8.50 gibt es davon fünf** — und `umstieg0830()` greift auf eine Tabelle
+  0.8.50 gibt es davon fünf** — und `migration0830()` greift auf eine Tabelle
   `links` zu, die es in einer wirklich alten Anlage geben mag oder nicht.
   `rating_criteria` und `photos` gibt es dagegen seit jeher.
 - **Abwärtskompatibilität.** Ab 1.0 wird sie zugesichert und
@@ -3539,7 +3539,7 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   gehen in verschiedene Richtungen. `verfasserKarte()` in `server.js` macht aus
   einer Nummer einen Verfasser (für den Bildschirm, als Objekt),
   `verfasserName()` im Export macht aus ihr einen Namen (für die Datei, als
-  Zeichenkette), und `verfasser()` im Import macht aus einem Namen eine Nummer.
+  String), und `verfasser()` im Import macht aus einem Namen eine Nummer.
   `daten.ich` und `daten.darfRollen` gelten nur für die Karte „Zugänge", und
   `GET /api/users` steht hinter `nurAdmin` — für die Beiträge im Eintrag liegt
   dort nichts bereit.
@@ -3580,15 +3580,15 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   „fremd" prüft danach etwas anderes, als ihr Name sagt.
 - **Zu jedem Feld, das die Oberfläche aus der Antwort liest, gehört eine
   Prüfung an der echten Antwort** (seit 0.8.30, Stolperstein 102). Der
-  Doppelgänger in `baueDom` bringt die Felder selbst mit; er kann eine
+  Mock in `baueDom` bringt die Felder selbst mit; er kann eine
   fehlende Serverantwort nicht bemerken. Wer ein Feld ergänzt, ergänzt beides.
   **In 0.8.50 an `art` und `dauer` angewandt**, an den Fotozeilen von
   `detail()` **und** von `/api/items`.
-- **Der Doppelgänger trägt beide Fälle, wenn eine Spalte zwei Bedeutungen
+- **Der Mock trägt beide Fälle, wenn eine Spalte zwei Bedeutungen
   hat** (seit 0.8.50, Stolperstein 90 verschärft). Seine Fotoliste enthält ein
   Bild **und** ein Video, und das Video steht ausdrücklich **nicht** an erster
   Stelle: nur so lassen sich Hauptbild und Abspielzeichen unabhängig
-  voneinander belegen. Ein Doppelgänger mit lauter Bildern nähme genau die
+  voneinander belegen. Ein Mock mit lauter Bildern nähme genau die
   Prüfungen weg, für die er gebaut wird.
 - **Wer eine Spalte mit zwei Bedeutungen einführt, geht jede Stelle durch, die
   sie ohne Fallunterscheidung liest** (seit 0.8.50, Stolperstein 109). In
@@ -3604,7 +3604,7 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   Stolperstein 87). Wer `istAdmin: false` setzt, setzt `istEigentuemer`
   gleich mit — sonst baut die Prüflage einen Zustand nach, den der Server nie
   ausliefert.
-- **Ein Doppelgänger antwortet wie der echte Server** (Stolperstein 90). Er
+- **Ein Mock antwortet wie der echte Server** (Stolperstein 90). Er
   darf die Antwort weder vereinfachen noch erstarren lassen: was sich durch
   einen Schreibvorgang ändert, muss sich bei ihm wirklich ändern, und was
   hinter einem Wächter liegt, liegt auch bei ihm dahinter.
@@ -3623,20 +3623,20 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   (seit 0.8.10). Im `Dockerfile` (beide Stufen) und in
   `.github/workflows/pruefstand.yml`. Laufen sie auseinander, prüft der
   Prüflauf gegen etwas, das im Container so nicht betrieben wird — genau der
-  Befund, der zu dieser Regel geführt hat (lokal 22, im Abbild 20). Der
+  Befund, der zu dieser Regel geführt hat (lokal 22, im Image 20). Der
   Prüfstand hält die beiden Zahlen gegeneinander.
-- **Was der Server weder lädt noch ausliefert, steht nicht im Abdruck**
+- **Was der Server weder lädt noch ausliefert, steht nicht im Fingerprint**
   (seit 0.8.10). Die Liste dafür ist abgeleitet — `require.cache` plus
   `public/` —, nicht gepflegt; `pruefung.js`, `Doku/` und `zugang.js` können
   dadurch gar nicht erst hineingeraten. Wer ein weiteres serverseitiges Modul
-  ergänzt, das beim Start geladen wird, sieht den Abdruck dadurch wandern —
+  ergänzt, das beim Start geladen wird, sieht den Fingerprint dadurch wandern —
   das ist beabsichtigt, nicht zu unterdrücken.
 - **Der Wächter über den ausgelieferten Typ bindet unmittelbar für 0.8.50**
   (eingelöst in 0.8.20, die Regel steht jetzt in Abschnitt 5). Keine Zeile in
   `server.js` setzt den Content-Type selbst; wer den Videoweg baut,
   entscheidet sich für einen der beiden Wege in `anhaenge.js` — Typ nach
   Endung oder Typ nach den ersten Bytes — und wird sonst namentlich rot.
-- **Der Keksname ist keine feste Zeichenkette mehr** (seit 0.8.20). Bei
+- **Der Cookiename ist kein fester String mehr** (seit 0.8.20). Bei
   `HINTER_PROXY=1` heißt er `__Host-kriterion_session`. Wer in **0.8.80**
   „Meine Sitzungen" baut, nimmt ihn aus `auth.COOKIE_NAME` und schreibt ihn
   nirgends ab.
@@ -3650,7 +3650,7 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   gilt jede Regel, die am Foto gilt — Rechte, Kaskade, Umsortieren, Kennzahlen.
 - **Der Server öffnet nie ein Video** (ab 0.8.50). Das Standbild macht der
   Browser vor dem Hochladen. Wer später einen Umkodierer vorschlägt,
-  verhandelt damit eine neue Abhängigkeit von der Größe des halben Abbilds —
+  verhandelt damit eine neue Abhängigkeit von der Größe des halben Images —
   die Antwort auf ein nicht abspielbares Format ist der Anhang.
 - **Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt**
   (ab 0.8.90). Export, Import, Rolle vergeben, fremdes Passwort zurücksetzen,

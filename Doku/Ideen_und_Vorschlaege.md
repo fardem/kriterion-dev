@@ -1,6 +1,6 @@
 # Ideen und Vorschläge
 
-Stand der Analyse: Version 0.8.6, Zweig `main`, Commit `c1e673e`.
+Stand der Analyse: Version 0.8.6, Branch `main`, Commit `c1e673e`.
 Prüfstand vollständig durchgelaufen: **1429 von 1429 Prüfungen bestanden**.
 
 ---
@@ -35,7 +35,7 @@ Prüfstand vollständig durchgelaufen: **1429 von 1429 Prüfungen bestanden**.
 >   nicht 7 → 8.
 >
 > **Vier Punkte sind mit 0.8.10 gebaut** (Projektstand Abschnitt 9): **2.5**
-> (Abhängigkeiten festgenagelt), **5.1** (Versionsabdruck — dort abgeleitet
+> (Abhängigkeiten festgenagelt), **5.1** (Versions-Fingerprint — dort abgeleitet
 > über `require.cache` und `public/`, nicht über drei von Hand genannte
 > Dateien), **5.4** (Prüflauf bei jedem Push) und **5.5** (Prüfstand
 > filterbar). **Zu 5.5 eine Korrektur:** die dortige Begründung, ein Filter
@@ -117,7 +117,7 @@ sind reproduziert.
 > |---|---|---|
 > | 2.1 SVG am Fotoweg | **0.8.20** | zwei Schichten: `sharp().metadata()` beim Hochladen, Typ aus den ersten Bytes beim Ausliefern |
 > | 2.2 `X-Forwarded-For` | **0.8.20** | Einstellung `HINTER_PROXY`, Vorgabe aus; gelesen wird der **letzte** Eintrag der Kette |
-> | 2.3 `Secure` am Keks | **0.8.20** | hängt an derselben Einstellung, dazu `__Host-` und HSTS |
+> | 2.3 `Secure` am Cookie | **0.8.20** | hängt an derselben Einstellung, dazu `__Host-` und HSTS |
 > | 2.4 CSP für die Anwendung | **0.8.20** | gebaut — mit einer Abweichung, siehe unten |
 > | 2.5 Abhängigkeiten festnageln | **0.8.10** | `package-lock.json` im Repo, `npm ci`, `sharp` 0.35.3, Node 22 |
 > | 2.6 Fehler-Handler | **0.8.20** | Absicht behält ihren Rang, alles Übrige 500 mit festem Text |
@@ -192,7 +192,7 @@ angegeben.
 
 **Der Gegenbeweis, dass es ein Versehen ist und keine Entscheidung:** die
 Kommentarbilder machen es richtig. `GET /api/comment-images/:id/raw` ruft
-`anh.setzeKopfzeilen(res, 'bild.jpg', { inline: true })` — fester Dateiname,
+`anh.setzeHeader(res, 'bild.jpg', { inline: true })` — fester Dateiname,
 Typ aus der Positivliste, alle Schichten dran. Der sorgfältige Weg existiert.
 Der Foto-Pfad benutzt ihn nur nicht.
 
@@ -294,7 +294,7 @@ zweiter Schalter — das entspricht der Doktrin.
 
 Anhänge bekommen `default-src 'none'; sandbox`. Die eigentliche Seite bekommt
 nichts. Sie **braucht** heute auch nichts: es gibt kein `onclick=` in
-Zeichenketten (nachgezählt: 0), `esc()` wird durchgängig angewandt, der
+Strings (nachgezählt: 0), `esc()` wird durchgängig angewandt, der
 Kommentartext geht nachweislich nie über `innerHTML`.
 
 Genau deshalb ist eine CSP hier billig: sie kostet nichts und ist die Schicht,
@@ -329,7 +329,7 @@ und dokumentiert, ist das eine echte Lücke: **der eigene Code ist festgenagelt,
 die 158 Pakete darunter sind es nicht.**
 
 **b) Der Dockerfile benutzt `npm install`, nicht `npm ci`.** Selbst mit
-Lockfile würde er sie ignorieren — er kopiert sie nicht einmal:
+Lockfile würde er es ignorieren — er kopiert es nicht einmal:
 
 ```dockerfile
 COPY package.json ./
@@ -480,13 +480,13 @@ die Grenze um etwa den Faktor drei.
 
 ### 3.2 Export und Import laufen vollständig durch den Arbeitsspeicher
 
-Der Export baut **eine** JSON-Zeichenkette, in der jedes Foto und jeder Anhang
+Der Export baut **eine** JSON-String, in der jedes Foto und jeder Anhang
 als Base64 steckt (Aufschlag: ein Drittel), und schickt sie mit `res.json()`.
 Der Import nimmt Dateien bis **900 MB** über `multer.memoryStorage()`
 entgegen.
 
 Bei einem Bestand mit 300 Fotos aus einer Systemkamera (8–12 MB je Stück) sind
-das im Export mehrere Gigabyte in einer Zeichenkette. Node bricht dann mit
+das im Export mehrere Gigabyte in einem String. Node bricht dann mit
 `Invalid string length` ab — die Grenze für einen einzelnen String liegt bei
 etwa 512 MB. Beim Import kommt die Datei zusätzlich als Buffer **und** als
 geparstes Objekt in den Speicher, also grob das Zwei- bis Dreifache ihrer
@@ -586,7 +586,7 @@ vergleichbar. Ein Gewicht ändert **keinen einzigen Kriterienwert** — die
 Sterne bleiben 1–5, die Hervorhebung im Vergleich bleibt exakt wie sie ist.
 Es ändert sich allein die eine Zahl darüber.
 
-**Und der Umstieg ändert keine Zahl.** Mit Gewicht 1 überall ist der
+**Und die Migration ändert keine Zahl.** Mit Gewicht 1 überall ist der
 gewichtete Schnitt rechnerisch identisch mit dem heutigen. Das ist dasselbe
 Argument, mit dem 0.7.0 seinen Umbau begründet hat („ändert im
 Einbenutzerbetrieb keine einzige Zahl") — hier gilt es sogar für jeden
@@ -800,7 +800,7 @@ Titels: eine unaufdringliche Zeile *„Ähnlich: Bosch GSR 18V (2024), Bosch GSR
 18V-60"* mit Sprungmarken. Kein Blockieren, keine Rückfrage — nur der Hinweis.
 
 Als Vergleich reicht ein Titelabgleich, der Groß-/Kleinschreibung und
-Sonderzeichen ignoriert und Teilzeichenketten ab 4 Zeichen findet. Für
+Sonderzeichen ignoriert und Teilstrings ab 4 Zeichen findet. Für
 Trigramme oder Levenshtein sehe ich hier keinen Bedarf: die Titel sind kurz
 und Menschen tippen denselben Gegenstand meist ähnlich.
 
@@ -903,7 +903,7 @@ Dateien, die tatsächlich ausgeliefert werden:
 
 ```js
 const crypto = require('crypto');
-const ABDRUCK = crypto.createHash('sha256')
+const FINGERPRINT = crypto.createHash('sha256')
   .update(fs.readFileSync(path.join(__dirname, 'server.js')))
   .update(fs.readFileSync(path.join(__dirname, 'public/app.js')))
   .update(fs.readFileSync(path.join(__dirname, 'public/style.css')))
@@ -913,8 +913,8 @@ const ABDRUCK = crypto.createHash('sha256')
 `GET /api/config` liefert ihn mit, die Fußzeile zeigt ihn hinter der Version:
 `0.8.6 · a3f91c02`. Der Systembereich zeigt ihn groß.
 
-**Was das löst:** Der Abdruck ändert sich, sobald **irgendeine** der drei
-Dateien anders ist. Ein halb eingespielter Dateisatz zeigt einen Abdruck, der
+**Was das löst:** Der Fingerprint ändert sich, sobald **irgendeine** der drei
+Dateien anders ist. Ein halb eingespielter Dateisatz zeigt einen Fingerprint, der
 zu keiner Version gehört. Und die Prüfung nach dem Einspielen ist immer
 dieselbe, für jede Version:
 
@@ -923,7 +923,7 @@ curl -s http://localhost:3100/api/config
 ```
 
 Zum Vergleich gehört ein Wert, der zur Version veröffentlicht wird — eine
-Zeile im Änderungsprotokoll: *„0.8.10 — Abdruck `a3f91c02`"*.
+Zeile im Änderungsprotokoll: *„0.8.10 — Fingerprint `a3f91c02`"*.
 
 **Aufwand: etwa zwanzig Zeilen.** Und der ganze Absatz in der README, der die
 grep-Prozedur erklärt, wird durch drei Sätze ersetzt. Von allen Vorschlägen
@@ -1046,7 +1046,7 @@ Fehlschluss, gegen die die Stolpersteinliste sonst so gründlich anschreibt
 bleibt, kann gar nicht scheitern").
 
 Aufteilen in mehrere Dateien würde ich **nicht** vorschlagen: die gemeinsame
-Umgebung (Serverstart, Cookie-Verwaltung, Doppelgänger) ist der Wert dieser
+Umgebung (Serverstart, Cookie-Verwaltung, Mock) ist der Wert dieser
 Datei.
 
 ### 5.6 Die Vorgabewerte **[SCHÄRFT]**
@@ -1121,7 +1121,7 @@ dass die Reihenfolge getragen hat.
 | 2 | **2.2** `X-Forwarded-For` + **2.3** `Secure` | klein | eine Einstellung, zwei Sicherheitsbefunde | ✓ 0.8.20 |
 | 3 | **2.5** Lockfile, `npm ci`, `sharp` | klein | jeder Build ist heute ein anderer | ✓ 0.8.10 |
 | 4 | **5.4** Prüfstand in CI | klein | ab dann laufen 1–3 automatisch nach | ✓ 0.8.10 |
-| 5 | **5.1** Versionsabdruck | klein | löst ein dokumentiertes Betriebsproblem endgültig | ✓ 0.8.10 |
+| 5 | **5.1** Versions-Fingerprint | klein | löst ein dokumentiertes Betriebsproblem endgültig | ✓ 0.8.10 |
 | 6 | **4.4** Ansicht „Offen" | klein | macht ein gebautes Feature erst brauchbar | 0.8.60 |
 | 7 | **2.4** CSP + **2.6** Fehler-Handler + **2.7** SIGTERM/Healthcheck | klein | Betriebshärte, alles am selben Nachmittag | ✓ 0.8.20 |
 | 8 | **4.3** „Neu seit …" | klein | keine Migration, großer Gewinn im Mehrbenutzerbetrieb |
@@ -1153,7 +1153,7 @@ Gewinn ist eine Stufe, die man am Stück durchdenken kann.
 > gefahren worden, mit 8 → 9**, und 4.2 bleibt offen. Die Begründung ist die zweite Hälfte
 > des Absatzes darüber, und sie hat sich im Bau bestätigt: G4 brauchte allein
 > **76 neue Prüfungen und 31 Gegenproben** (die Dateien kamen in 0.8.31 als
-> eigene Runde nach, noch einmal 58 und 16) — Schema, Umstieg, Rechtewende,
+> eigene Runde nach, noch einmal 58 und 16) — Schema, Migration, Rechtewende,
 > Oberfläche und Austauschformat in einem Durchgang. Für eine zweite Baustelle
 > war darin keine Reserve mehr.
 >
@@ -1193,8 +1193,8 @@ Auslieferung ergänzt, wird namentlich rot.*
 
 *Zweiter Nachtrag: **in 0.8.50 ist er zum ersten Mal auf die Probe gestellt
 worden** — dort kam mit dem Video eine inline ausgelieferte Datei dazu. Er
-blieb grün, weil der Videoweg durch `setzeBildKopfzeilen()` geht und den Typ
+blieb grün, weil der Videoweg durch `setzeBildHeader()` geht und den Typ
 aus den ersten Bytes nimmt. Der Befund 2.1 kann damit an der neuen Stelle gar
 nicht erst entstehen. Seit 0.8.50 steht neben dem Wächter eine Gegenprobe, die
-ihn an einer verletzenden Zeichenkette vorführt: sonst bliebe er auch dann
+ihn an einer verletzenden String vorführt: sonst bliebe er auch dann
 grün, wenn er gar nichts mehr ansähe.*
