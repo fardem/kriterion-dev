@@ -2,7 +2,7 @@
 
 **Rohstoff für die Dokumentenpflege.**
 
-**0.8.70 — Fingerprint `PLATZHALTER`**
+**0.8.70 — Fingerprint `1aa9266a`**
 
 Die nächste Runde des Stufenplans, und **keine Stufe des
 Mehrbenutzerbetriebs** — der ist mit G4 bis auf H und I gebaut. Sie ist
@@ -493,16 +493,88 @@ Die Zählung setzt bei **117** fort.
 
 ## 5. Gegenprobentabelle
 
-PLATZHALTER_GEGENPROBEN
+**38 Rückbauten, jeder in einer eigenen KOPIE des Arbeitsbaums**
+(Stolperstein 100) und gegen einen **eingefrorenen** Stand, der vorher gegen
+den Arbeitsbaum verglichen wurde. Gemessen wird an den **Namen** der roten
+Prüfungen, nicht an ihrer Zahl (Stolperstein 49).
+
+| Rückbau | Ergebnis |
+|---|---|
+| Die Abbildung je Eintrag wird kopiert (zweite Feldliste daneben) | **1 rot** — „Die Abbildung je Eintrag kommt genau einmal im Quelltext vor" |
+| Der Einzelexport verliert nurEigentuemer | 3 rot — „Ein gewoehnlicher Benutzer zieht keinen Einzelexport" · „Ein Admin ohne Eigentuemerrolle auch nicht" · „Die Absage nennt den Eigentuemer" |
+| Die Formatnummer faellt auf 9 zurueck | 3 rot — „Die Formatnummer steht auf 10" · „Die Formatnummer der Datei steht auf 10" · „Die Formatnummer bleibt bei 10" |
+| Der Umschlag laesst criteria und criteriaGewichte weg | 6 rot — „Export nennt die Kriterienreihenfolge" · „Und die Exportdatei traegt sie" · „criteria bleibt eine Liste von Namen" · … (3 weitere) |
+| inDenPapierkorb laeuft ohne Transaktion | 4 rot — „UND es bleibt KEINE Papierkorbzeile zurueck" · „Und die Zeile liegt jetzt im Papierkorb" · „Vier Zeilen liegen bereit" · … (1 weitere) |
+| Das Loeschen fuellt den Papierkorb gar nicht | 39 rot — „Genau EINE Zeile liegt im Papierkorb" · „Sie traegt den Titel als eigene Spalte" · „Und den Loeschenden" · … (36 weitere)  **(Lauf danach abgerissen — grober Rückbau, enge Zweitproben daneben)** |
+| Der Papierkorb packt die Bytes doch als Base64 in die JSON | 7 rot — „Die Bytes liegen daneben, eine Zeile je Blob" · „Ihre Nummern sind lueckenlos ab null" · „Die Videobytes stehen nicht in der JSON" · … (4 weitere) |
+| Das Auffangnetz kennt eine Tabelle weniger (enge Zweitprobe: papierkorb selbst eintragen reisst den Start ab) | 4 rot — „Es kennt weiterhin genau die sechs Traeger mit user_id" · „Was die Migration nicht fuellen kann, faengt das Auffangnetz auf" · „Danach steht keine Datei mehr ohne Benutzer" · … (1 weitere) |
+| raeumePapierkorbAuf() faellt beim Start weg | 2 rot — „Schon der Start raeumt sie weg" · „Und sagt es im Protokoll" |
+| raeumePapierkorbAuf() faellt am Oeffnen der Karte weg | 3 rot — „Beim Oeffnen der Karte faellt heraus, was aelter als dreissig Tage ist" · „Und auf der anderen: eine Sekunde danach faellt heraus" · „Die Bytes der herausgefallenen Zeile fallen mit" |
+| Die Frist steht auf 29 statt 30 Tagen | 7 rot — „Die Frist steht in den Einstellungen und nicht nur in der Karte" · „Die Liste nennt die Frist" · „Sie nennt die verbleibenden Tage" · … (4 weitere) |
+| GET /api/papierkorb verliert nurAdmin | 2 rot — „Ein gewoehnlicher Benutzer sieht den Papierkorb nicht" · „Die Absage nennt den Grund" |
+| Wiederherstellen steht hinter nurAdmin statt nurEigentuemer | 6 rot — „Auch der Admin ohne Eigentuemerrolle nicht" · „Die Absage nennt den Eigentuemer" · „Und wieder ist kein Eintrag entstanden" · … (3 weitere) |
+| Die Papierkorbzeile wird beim Wiederherstellen nicht entfernt | 9 rot — „Die Papierkorbzeile ist danach weg" · „Und ihre Bytes mit ihr" · „Und im Papierkorb liegt nichts" · … (6 weitere) |
+| papierkorbCount faellt aus /api/stats | 2 rot — „Die Kennzahlen nennen den Papierkorb" · „Mit seiner Groesse" |
+| items bekommt doch eine Spalte geloescht | **1 rot** — „items traegt unveraendert genau seine zehn Spalten" |
+| Der Loeschdialog behaelt seinen alten Schlusssatz | **1 rot** — „Das Wort unwiderruflich steht nicht mehr darin" |
+| Die Papierkorbknoepfe stehen auch beim Admin | **1 rot** — „Aber an ihnen steht kein einziger Knopf" |
+| Der Mock aendert seinen Papierkorb beim Zurueckholen nicht (Stolperstein 90) | 2 rot — „Die Karte zeigt danach eine Zeile weniger" · „Und die zurueckgeholte Zeile ist es, die fehlt" |
+| Die Tabelle papierkorb faellt aus der DDL | **Abriss** — **der Start bricht ab**, der Server laesst sich ohne die Tabelle gar nicht mehr starten |
+| Der Zielort wird am String statt am aufgeloesten Pfad geprueft | 3 rot — „Abgewiesen: ein Symlink aus der Wurzel heraus" · „Und die Begruendung spricht: ein Symlink aus der Wurzel heraus" · „Und der eingestellte Ort steht nach allen Absagen unveraendert leer" |
+| Die Positivliste am Zielort faellt weg | 5 rot — „Und die Begruendung spricht: ein Pfad nach oben" · „Und die Begruendung spricht: ein absoluter Pfad" · „Und die Begruendung spricht: ein Punktpunkt mitten im Pfad" · … (2 weitere) |
+| Ein fehlendes Verzeichnis wird still angelegt | 7 rot — „Abgewiesen: ein Verzeichnis, das es nicht gibt" · „Und die Begruendung spricht: ein Verzeichnis, das es nicht gibt" · „Ein nicht angelegtes Verzeichnis wird auch NICHT angelegt" · … (4 weitere) |
+| Die letzte Sicherung kommt aus settings statt aus dem Dateisystem | **1 rot** — „Ein Schluessel in settings bewegt die Zahl NICHT" |
+| Der Dateiname traegt kein Datum, sondern steht fest | 7 rot — „Der Name traegt Datum und Uhrzeit" · „Ein zweiter Griff legt eine zweite Datei an" · „Und die erste liegt unveraendert daneben" · … (4 weitere) |
+| POST /api/sicherung verliert nurEigentuemer | 3 rot — „Ein gewoehnlicher Benutzer sichert nicht" · „Ein Admin ohne Eigentuemerrolle sichert nicht" · „Jede Route mit benanntem Waechter traegt ihn in der Routenzeile" |
+| PUT /api/sicherung/ort steht hinter nurAdmin statt nurEigentuemer | 4 rot — „Ein Admin ohne Eigentuemerrolle stellt den Zielort nicht um" · „Der eingestellte Ort steht danach unveraendert auf taeglich" · „Und hinterlaesst keine brauchbare Kopie" · … (1 weitere) |
+| Ein Sicherungsort im Datenverzeichnis wird nicht mehr abgewiesen | 4 rot — „Ein Sicherungsort IM Datenverzeichnis bleibt aus" · „Und sagt, warum" · „Der Knopf sagt dort ebenfalls ab" · … (1 weitere) |
+| Die Rollenteilung faellt aus der Exportkarte | 2 rot — „Sie nennt sich den Austauschweg" · „Und verweist auf die Sicherung" |
+| Der Hinweis auf den Schluessel faellt aus der Sicherungskarte | 2 rot — „Der Hinweis auf den Schluessel steht in der Karte" · „Und er nennt die .env" |
+| Die Karte sagt die Dauer nicht mehr vorher | 2 rot — „Die Karte sagt vorher, dass die Anlage stillsteht" · „Und nennt die erwartete Dauer aus der Antwort" |
+| Die Sicherung schreibt direkt auf den endgueltigen Namen statt unter einem Arbeitsnamen | **1 rot** — „Sie schreibt unter einem Arbeitsnamen und benennt erst danach um" |
+| Der Index auf papierkorb.geloescht_am faellt weg | **1 rot** — „Und den Index auf das Datum, ebenfalls ohne Migration" |
+| Der Einzelexport laesst die Videos weg | 3 rot — „Der Eintrag selbst ist Zeichen fuer Zeichen derselbe wie im vollen Export" · „Mit Fotos, Video, Dateien und Kommentaren" · „Seine Fotos sind bytegleich mit denen des Originals" |
+| papierkorbTage faellt aus /api/settings | **1 rot** — „Die Frist steht in den Einstellungen und nicht nur in der Karte" |
+| Die Papierkorbkarte schreibt Eintraege statt des Vokabulars | **1 rot** — „Die Karte benutzt das Vokabular" |
+| Der Fehlerweg raeumt die ZIELDATEI statt des Arbeitsnamens weg | **1 rot** — „Und entfernt im Fehlerfall NUR den Arbeitsnamen" |
+| letzteSicherung() zaehlt auch liegengebliebene Arbeitsdateien | **1 rot** — „Eine liegengebliebene Arbeitsdatei zaehlt nicht als Sicherung" |
+
+**Zwei Rückbauten haben den Lauf abgerissen, und beide aus demselben Grund:
+sie nehmen der Prüflage ihren Gegenstand.** „Das Löschen füllt den Papierkorb
+gar nicht" ist der **grobe** Rückbau, der die **Tragweite** zeigt (39 rot); den
+**Ort** zeigen die engen daneben — die Transaktion, die stehengebliebene Zeile,
+die Bytes an der JSON vorbei. „Die Tabelle fällt aus der DDL" bringt den Server
+gar nicht mehr zum Starten (`SQLITE_ERROR` beim Laden von `db.js`) und ist
+damit selbst eine Auskunft: **die DDL ist beim Start tragend, nicht bloß beim
+ersten Anlegen.** Die enge Zweitprobe dazu ist der Index (Stolperstein 76).
+
+**Eine Gegenprobe blieb stumm — und war der wertvollste Fund der Runde**
+(Abschnitt 3 L). Sie steht in dieser Tabelle jetzt mit **1 rot**, weil die
+Regel danach so gebaut wurde, dass sie prüfbar ist.
+
+**Drei Paare tragen mehr als ihre Zahl:**
+
+- **Positivliste und aufgelöster Pfad sind zwei Schichten.** Fällt die
+  Positivliste weg, bleibt jede **Abweisung** grün — nur die **Begründung**
+  wird falsch, weil `realpathSync` die Fälle ohnehin auffängt. Fällt umgekehrt
+  der aufgelöste Pfad weg, geht der **Symlink** durch, den die Positivliste
+  nicht sehen kann. Jede Schicht hat ihre eigenen Namen (Stolperstein 53).
+- **Die Herkunft von „letzte Sicherung" braucht beide Richtungen.** Der Rückbau
+  auf einen Schlüssel in `settings` färbt genau **eine** Prüfung rot — und zwar
+  die, die es meint: „Ein Schlüssel in settings bewegt die Zahl NICHT". Die
+  Zeile daneben, die dem Datum der Datei folgt, bliebe für sich allein grün.
+- **Der Mock, der nicht mitzieht** (Stolperstein 90): zwei rote Namen, und
+  beide betreffen das Neuzeichnen — ohne ihn wäre „die Karte zeichnet sich neu"
+  von „die Karte blieb stehen" nicht zu unterscheiden.
 
 ---
 
 ## 6. Prüfungszahlen
 
-**Vorher 2087, nachher PLATZHALTER_NACHHER — PLATZHALTER_NEU neue Prüfungen,
-PLATZHALTER_GP Gegenproben.**
+**Vorher 2087, nachher 2381 — 294 neue Prüfungen,
+38 Gegenproben.**
 
-Sechs neue Gruppen:
+Neun neue Gruppen:
 
 - **„Der Papierkorb: die Tabelle legt sich selbst an"** — die Probe aus
   Abschnitt 2 A samt Gegenlage an einer Spalte, und die Zusicherung, dass

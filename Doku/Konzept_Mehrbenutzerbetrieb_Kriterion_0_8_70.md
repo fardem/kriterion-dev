@@ -1,6 +1,6 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.70 — Fingerprint `PLATZHALTER_FP`**
+**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.70 — Fingerprint `1aa9266a`**
 (Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
