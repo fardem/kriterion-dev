@@ -5096,8 +5096,13 @@ const namen = (liste) => liste.map(c => c.name);
     ['Ereignisschleife', 'Event Loop'], ['Zeichenkette', 'String'],
     ['Abdruck', 'Fingerprint']
   ];
+  /* `Abbild` darf `Abbildung` NICHT treffen: eine Abbildung ist eine
+     Zuordnung und hat mit einem Image nichts zu tun. Ein Waechter, der jedes
+     zweite Wort anmeckert, wird abgeschaltet -- deshalb steht die Ausnahme
+     hier und nicht in der Wortliste, wo sie wie ein weiteres Verbot aussaehe.
+     Sie bekommt unten ihre eigene Gegenprobe. */
   const SPRACHMUSTER = new RegExp(
-    '(' + SPRACHLISTE.map(([w]) => w).join('|') + ')', 'i');
+    '(' + SPRACHLISTE.map(([w]) => (w === 'Abbild' ? 'Abbild(?!ung)' : w)).join('|') + ')', 'i');
 
   /* Aus einer Quelltextdatei bleiben die KOMMENTARZEILEN uebrig, aus einer
      Doku-Datei die PROSA -- Code in Zaeunen und in Backticks faellt dort
@@ -5184,7 +5189,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Die Dokumente ebenso',
     sprachDoku.length === 0, sprachDoku.slice(0, 12).join(' · '));
 
-  /* SECHS GEGENPROBEN AN GESTELLTEN TEXTEN, damit der Waechter nicht bei
+  /* ACHT GEGENPROBEN AN GESTELLTEN TEXTEN, damit der Waechter nicht bei
      der guten Absicht bleibt. Sie laufen an Strings und nicht am
      Arbeitsbaum -- ein Waechter, der erst auf einem zurueckgebauten Stand
      etwas faende, waere selbst nie geprueft. */
@@ -5203,6 +5208,15 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Auch in einem Kommentar bleibt der zitierte Bezeichner unberuehrt',
     sprachTreffer(nurKommentare('// Der Wert steht in `keksWert` und heisst so.'), 'x').length === 0,
     JSON.stringify(sprachTreffer(nurKommentare('// Der Wert steht in `keksWert`.'), 'x')));
+  /* Und die Ausnahme, die eine echte Falle waere: „Abbildung" ist eine
+     Zuordnung, kein Image. Erst der Treffer, dann die Ausnahme -- ohne die
+     erste Zeile bliebe die zweite auch dann gruen, wenn der Waechter das Wort
+     gar nicht mehr kennte (Stolperstein 81). */
+  pruefe('„Abbild" faengt er -- das ist das Image',
+    sprachTreffer(nurKommentare('// Das Abbild wird gebaut.'), 'x').length === 1);
+  pruefe('Aber „Abbildung" laesst er stehen -- das ist eine Zuordnung',
+    sprachTreffer(nurKommentare('// Die Abbildung je Eintrag steht einmal.'), 'x').length === 0,
+    JSON.stringify(sprachTreffer(nurKommentare('// Die Abbildung je Eintrag.'), 'x')));
   pruefe('Und in einem Dokument faengt er die Prosa, nicht den Code im Zaun',
     sprachTreffer(nurProsa('Der Keks ist da.\n```\nconst keks = 1;\n```\n'), 'x').length === 1,
     JSON.stringify(sprachTreffer(nurProsa('Der Keks ist da.\n```\nconst keks = 1;\n```\n'), 'x')));
