@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 14 · Stand 23. August 2026 · gebaut: Version 0.8.50**
+**Kompakte Übergabe · Revision 15 · Stand 23. August 2026 · gebaut: Version 0.8.60**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,10 +8,28 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 14 ist.** Revision 13 trug 0.8.40 nach. Diese trägt **0.8.50**
-nach — „Kurzvideos am Fotoplatz", die nächste Runde des Stufenplans und
+**Was Revision 15 ist.** Revision 14 trug 0.8.50 nach. Diese trägt **0.8.60**
+nach — „Was ist offen, was ist neu", die nächste Runde des Stufenplans und
 **keine Stufe des Mehrbenutzerbetriebs**; der ist mit G4 bis auf H und I
 gebaut.
+
+**0.8.60 macht zwei vorhandene Dinge auffindbar** und ist ausdrücklich
+**keine Datenbankstufe**: kein `ALTER TABLE`, kein sechster Migrationsblock,
+keine neue Formatnummer, `F_ROUTEN` unverändert bei 47. Die **Ansicht „Offen"**
+zeigt alle nicht erledigten Aufgabenkommentare quer über alle Einträge; der
+**Filter „Neu seit …"** zeigt, was sich seit dem letzten Besuch getan hat.
+**Beide filtern, beide sind persönlich, und keines von beiden sortiert die
+Übersicht um** — die Liste zeigt weiter für alle gleich, wo etwas geschieht.
+Aufgabenkommentare gibt es seit 0.5.9; die günstigste Art von Verbesserung ist,
+vorhandene Funktionalität erreichbar zu machen.
+
+**Dazu eine Sprachbereinigung, die mit den beiden nichts zu tun hat.** Deutsch
+bleibt die Sprache, Fachbegriffe werden aber nicht zwanghaft eingedeutscht —
+die Regel steht in Abschnitt 12. Zwölf Übersetzungen sind abgeräumt (Cookie,
+Migration, Image, Lockfile, Mock, Multipart, Header, Range, Branch, Downgrade,
+Event Loop, String), dazu heißt der `Abdruck` in der Kennzahlenkarte jetzt
+**Fingerprint** — die einzige Umbenennung, die ein Benutzer sieht. Ein Wächter
+im Prüfstand hält die Regel fest.
 
 **0.8.50 stellt ein Kurzvideo bis 20 MB in dieselbe Reihe wie die Fotos** —
 dieselbe Tabelle, eine Spalte `art` mehr und eine `dauer` daneben. Zwei
@@ -50,13 +68,14 @@ Vollständig geblieben sind die Abschnitte 5 und 12 — Entscheidungen und
 Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht mehr
 berücksichtigt.
 
-**Zwei Dinge ändern sich für den Betrieb**, und beide stehen in Abschnitt 2:
-**ein Downgrade ist weiterhin keine reine Dateikopie**, und die
-**Formatnummer der Exportdatei steht auf 10** (0.8.30 hob sie auf 7, 0.8.31 auf
-8, 0.8.40 auf 9, 0.8.50 auf 10).
+**Für den Betrieb ändert sich mit 0.8.60 nichts Wesentliches**, und das ist
+selbst eine Nachricht: **ein Downgrade ist wieder eine reine Dateikopie** —
+zum ersten Mal seit 0.8.30 —, und die **Formatnummer der Exportdatei bleibt bei
+10** (0.8.30 hob sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9, 0.8.50 auf 10). Beides
+steht in Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_50.md` gepflegt und
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_60.md` gepflegt und
 nur dort.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
@@ -108,7 +127,21 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.50 ist gebaut** — Fingerprint **`3cb528d6`**. *Eine
+**0.8.60 ist gebaut** — Fingerprint **`ab68b523`**. *Keine Datenbankstufe und
+keine Stufe des Mehrbenutzerbetriebs:* die **Ansicht „Offen"** über
+`GET /api/offen` zeigt alle nicht erledigten Aufgabenkommentare quer über alle
+Einträge, gruppiert nach Eintrag; der **Filter „Neu seit …"** hängt an einem
+persönlichen Schlüssel `zuletztGesehen` in `user_settings` und vergleicht zwei
+Zeitstempel. **Kein `ALTER TABLE`, kein sechster Migrationsblock, keine neue
+Formatnummer** — die Exportdatei bleibt bei 10. **`F_ROUTEN` bleibt bei 47:**
+die Ansicht ist lesend, und der Erledigt-Haken geht über
+`PUT /api/comments/:id`, die es längst gibt.
+Dazu die **Sprachbereinigung** aus Abschnitt 12 samt einem Wächter im
+Prüfstand; sichtbar davon ist genau eine Umbenennung, der `Abdruck` in der
+Kennzahlenkarte heißt jetzt **Fingerprint**.
+**2085 von 2085 Prüfungen**, 17 Gegenproben.
+
+**0.8.50 davor** — Fingerprint **`3cb528d6`**. *Eine
 Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:* `photos` trägt
 `art TEXT NOT NULL DEFAULT 'bild'` und `dauer INTEGER`, ein Kurzvideo bis
 20 MB liegt als BLOB in derselben Tabelle wie die Fotos, das Standbild kommt
@@ -262,6 +295,14 @@ cd kriterion && docker compose up -d --build
 Datenbankstufe ist sie der einzige Weg zurück — siehe oben. Sie gehört
 **zwischen** `docker compose down` und alles Weitere: eine Sicherung, die
 neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
+
+**Für 0.8.60 gilt sie ausdrücklich nur als Empfehlung.** Die Runde fasst das
+Schema nicht an; ein Downgrade auf 0.8.50 ist wieder eine **reine Dateikopie**,
+und die Exportdatei behält ihr Format. **Das ist seit 0.8.30 zum ersten Mal
+wieder so und gehört gesagt** — wer sich angewöhnt hat, vor jedem Einspielen zu
+sichern, tut trotzdem nichts Falsches. *Ein Wort zum neuen Schlüssel: bleibt
+`zuletztGesehen` nach einem Downgrade in `user_settings` stehen, stört er
+nichts — 0.8.50 liest ihn nicht. Beim nächsten Vorwärtsschritt wirkt er wieder.*
 
 Sieben Dinge, die dabei schiefgehen können, alle schon vorgekommen:
 
@@ -460,6 +501,24 @@ Verknüpfung Und/Oder umschaltbar); Sortierung nach Änderung, Bewertung, Titel
 und drei Testkennzahlen; Vergleich mehrerer Einträge; „★ Favoriten" als
 eigener, mit jedem Teststatus kombinierbarer Filter. Filter- und Sortierwahl
 werden serverseitig gespeichert.
+**Daneben „Neu seit …"** (seit 0.8.60) — derselbe Platz, dasselbe Muster: ein
+eigener Umschalter, mit allen übrigen Filtern kombinierbar, **persönlich**, mit
+der Zahl daneben (*„Neu seit 19.08. · 7"*). Er **filtert und sortiert nicht**.
+Der Bezugszeitpunkt ist ein persönlicher Schlüssel und wird beim **Verlassen**
+der Übersicht gesetzt; beim allerersten Besuch erscheint der Umschalter nicht,
+weil es dann nichts zu vergleichen gibt. **Bei einem einzigen Zugang erscheint
+er trotzdem** — anders als „meine / alle" ist er keine Aussage über andere.
+
+**Die Ansicht „Offen"** (seit 0.8.60): ein Knopf in der Kopfzeile neben dem
+Zahnrad führt auf einen Bildschirm mit **allen nicht erledigten
+Aufgabenkommentaren** über alle Einträge, gruppiert nach Eintrag, mit Verfasser
+und Datum an der Zeile. Ein Klick führt in den Eintrag. **Der Erledigt-Haken
+lässt sich dort setzen** — und steht nur, wo er gedrückt werden darf: beim
+Verfasser des Kommentars und beim Admin, dieselbe Regel wie am Kommentar im
+Eintrag. Die abgehakte Zeile **bleibt durchgestrichen stehen**, bis die Ansicht
+neu geladen wird. Umschalter „meine / alle" ab zwei Zugängen, Vorgabestellung
+„alle". Überschrift und Beschriftungen kommen aus dem **Vokabular**: wer seine
+Aufgaben „Mängel" nennt, liest dort „Offene Mängel".
 
 **Wer was geschrieben hat:** Eintrag, Kommentar und Testtag nennen ihren
 Verfasser mit Namen, der Eintrag dazu **wann** er angelegt wurde. Ein
@@ -1165,6 +1224,50 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   **Wer seine Favoriten sammeln will, nimmt den Filter** — der ist in derselben
   Version dazugekommen und ist die Voraussetzung dafür, dass diese Änderung
   kein Verlust ist.
+- **Zwei Filter sind zwei Filter, kein zweiter Sortierweg** (seit 0.8.60, am
+  Umschalter „Neu seit …"). Die Übersicht sortiert nach `updated_at`, für alle
+  gleich; wer daraus eine persönliche Reihenfolge macht, hat zwei Wahrheiten
+  über denselben Bestand. **Eine Vorsortierung des Neuen vor dem `switch` wäre
+  genau die Bauform, an der der Favorit 2020 gescheitert ist** — und sie fällt
+  an der Reihenfolge der *verbliebenen* Zeilen nicht auf, sondern nur an der
+  **ungefilterten** Liste (Stolperstein 114). Der Prüfstand misst sie deshalb
+  dort.
+- **Der Merkzeitpunkt kommt von der Serveruhr und wird um eine Sekunde
+  nachgestellt** (seit 0.8.60). Was der Aufrufer schickt, ist ein **Signal**
+  („ich habe die Übersicht verlassen"), keine Feststellung — eine mitgeschickte
+  Zeit wäre eine Behauptung, mit der sich jeder Bestand nach Belieben als
+  ungesehen erklären ließe. Dieselbe Regel wie beim `Host`-Header, nur an einer
+  neuen Stelle. **Und die Sekunde zurück ist keine Feinheit:** `datetime('now')`
+  löst nur Sekunden auf (Stolperstein 60); ein Kommentar aus derselben Sekunde
+  trüge sonst genau den Merkzeitpunkt und gälte nie als neu. *Lieber einen
+  Eintrag zweimal zeigen als einen verschlucken.*
+- **Der Merkzeitpunkt wird beim VERLASSEN gesetzt, gelesen wird er einmal je
+  Seitenleben** (seit 0.8.60). Beim Betreten gesetzt stünde er auf dem
+  Augenblick, in dem man hinsieht, und „neu seit" wäre immer leer. Und würde er
+  bei jeder Rückkehr in die Übersicht nachgezogen, sähe man sieben Neue und
+  verlöre sechs davon beim ersten Klick. **Ein Besuch ist eine Sitzung am
+  Bildschirm, kein Wechsel der Ansicht.**
+- **Der Haken in der Ansicht „Offen" ist ein Zustand, keine Weiterschaltung**
+  (seit 0.8.60). Er schickt `kind: 'done'` bzw. `'task'` ausdrücklich.
+  `aufgabeWeiter()` macht aus einer erledigten Aufgabe eine **Notiz** — im
+  Kommentarblock die gewollte Abfolge, hier ein Kästchen, dessen zweiter Druck
+  die Zeile lautlos aus der Menge nähme. Zwei Bedienelemente, zwei Bedeutungen.
+- **Der Erledigt-Haken am fremden Aufgabenkommentar bleibt bei „Verfasser oder
+  Admin"** (bestätigt in 0.8.60). „Löschen ja, umschreiben nein" gilt
+  **Aussagen**; ein Haken ändert keine Aussage, er setzt ein Merkmal — dieselbe
+  Klasse wie die Anpinnung, die der Admin seit 0.7.2 setzen darf. **Und das
+  Kästchen steht nur, wo es gedrückt werden darf:** ein Bedienzeichen folgt dem
+  Recht, nicht der Anzeige.
+- **Die Ansicht „Offen" ist lesend und steht deshalb in keiner Liste
+  schreibender Routen** (seit 0.8.60). Sie braucht auch keinen Wächter: wer
+  angemeldet ist, sieht die Kommentare ohnehin in jedem Eintrag. Der Haken geht
+  über `PUT /api/comments/:id`. **`F_ROUTEN` bleibt bei 47**, und die Zahl wird
+  ausdrücklich geprüft.
+- **Die Bedingung „nicht erledigt" heißt `kind = 'task'`, an beiden Stellen**
+  (seit 0.8.60). Die Detailansicht schreibt sie so, die neue Abfrage schreibt
+  sie genauso. `kind != 'done'` wäre falsch — es nähme Notizen und Berichte
+  mit — und ist als Gegenprobe gefahren. *Zwei Schreibweisen für dieselbe Frage
+  laufen auseinander.*
 - **Der Favoritenfilter ist ein eigener Umschalter, kein vierter Teststatus**
   (seit 0.6.6). Die drei Knöpfe „Alles anzeigen / Getestet / Ungetestet" sind
   drei Zustände **eines** Merkmals; genau einer gilt. Der Favorit ist davon
@@ -1469,7 +1572,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_50.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_60.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -2424,6 +2527,37 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     bekannten Fall trifft.* (In jsdom 30 heißt der Weg `forwardTo(console,
     { jsdomErrors: 'none' })`; `sendTo` gibt es nicht mehr.)
 
+112. **Ein Sprachwächter meldet sich selbst.** Sein eigener Kommentar erklärt
+    die Regel und nennt dabei die verbotenen Wörter. Stolperstein 106 in neuer
+    Gestalt und mit umgekehrtem Vorzeichen: dort trifft ein Wächter über den
+    *Code* den Kommentar daneben, hier trifft ein Wächter über die *Sprache*
+    die eigene Begründung. *Die Antwort ist dieselbe Trennlinie, nur andersherum
+    gezogen: was in Backticks steht, ist zitierter Code und keine Sprache — in
+    einem Kommentar so gut wie in einem Dokument.*
+113. **Ein Wächter über eine Dateiliste braucht die ZAHL, nicht nur „alle, die
+    dastehen".** Die Prüfung hing an `every(existsSync)` und blieb grün, als die
+    Liste auf eine einzige Datei gekürzt wurde — der Wächter sah danach ein
+    Achtel der Anwendung an und meldete nichts. *Dieselbe Überlegung wie bei der
+    Zahl in `F_ROUTEN`: eine Liste, die schrumpfen darf, ohne dass es auffällt,
+    ist keine Liste, sondern eine Behauptung.*
+114. **Eine Prüfung auf „filtert, sortiert nicht" fängt keine Vorsortierung.**
+    Verglichen wurde die Reihenfolge der *verbliebenen* Einträge mit und ohne
+    Filter — und eine Zeile, die das Neue vor den `switch` zieht, ändert genau
+    diese Reihenfolge **nicht**. Sie fällt erst auf, wenn die **ungefilterte**
+    Liste gegen ihre eingestellte Ordnung gehalten wird. *Wer prüfen will, dass
+    ein Filter nicht sortiert, misst die Liste ohne ihn.*
+115. **Ein Mock, der beim Schreiben wirklich mitzieht, verändert die Prüflage
+    für alles, was danach im selben Fenster läuft.** Stolperstein 90 verlangt,
+    dass er sich ändert; die Folge ist, dass Prüfungen, die die **Zahlen der
+    Prüflage** lesen, danach etwas anderes sehen. *Wer die Prüflage selbst
+    misst, misst sie an einem frischen Aufbau.*
+116. **Eine Schranke, die aus einer Liste ableitet, wird erst bei einem Zugang
+    OHNE Adminrolle laut.** `PUT /api/settings` leitet aus
+    `PERSOENLICHE_SCHLUESSEL` ab, was jeder für sich schreiben darf. Nimmt man
+    einen Schlüssel dort heraus, kommt der **Eigentümer** weiterhin durch — er
+    ist Admin — und nur ein gewöhnlicher Benutzer bekommt 403. *Wer eine
+    Rechteschranke gegenprüft, prüft sie an dem Zugang, den sie treffen soll.*
+
 ---
 
 ## 7. Prüfstand
@@ -2436,12 +2570,14 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 1953 von 1953 bestanden** (0.8.50; 146 neue Prüfungen, vier neue
-Gruppen: „MIGRATION 0.8.50 — ENTFAELLT MIT 1.0", „Videos am Fotoplatz",
-„Videos: Auslieferung (Sicherheitsregel)" und „Videos am Bildschirm"; dazu
-Ergänzungen an „Export und Import", „Rechte am Eintrag" und „Die
-Sicherheitsregel fuer die Anwendung selbst"). Davor 0.8.40 mit 125 neuen
-Prüfungen, 0.8.31 mit 58 und 0.8.30 mit 76.
+**Zuletzt: 2085 von 2085 bestanden** (0.8.60; 132 neue Prüfungen, acht neue
+Gruppen: „Offene Aufgaben: die Ansicht", „Der Haken am Aufgabenkommentar",
+„Neu seit: die Sekunde am Rand", „Offen: die Ansicht in der Oberflaeche",
+„Offen: der Haken in der Ansicht", „Neu seit: der Filter in der Uebersicht",
+„Neu seit: der Merkzeitpunkt" und „Der Sprachwaechter"; dazu Ergänzungen an
+„Persoenliche Einstellungen" und „Der Umschalter der Vergleichsansicht").
+Davor 0.8.50 mit 146 neuen Prüfungen, 0.8.40 mit 125, 0.8.31 mit 58 und
+0.8.30 mit 76.
 
 **Es gibt jetzt FÜNF Migrationsabschnitte**, und alle tragen dieselbe Marke.
 Der Abschnitt **„MIGRATION 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen
@@ -2616,10 +2752,37 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   `gueltigesGewicht()`, keine Spanne in `app.js` — und der Wächter darauf,
   dass nirgends über **alle** Gewichte summiert wird, mit einer Gegenprobe,
   dass er überhaupt noch Code liest (Stolperstein 106). **Das ist die einzige Prüfung, die
-  eine fehlende Entscheidung findet.** **Seit 0.8.50 hat auch der Wächter über
+  eine fehlende Entscheidung findet.** **0.8.60 hat die Zahl nicht bewegt:** die Ansicht „Offen" ist lesend,
+  und der Erledigt-Haken geht über `PUT /api/comments/:id` — nachgestellt statt
+  geglaubt, denn eine Gegenprobe macht aus dem lesenden Endpunkt eine
+  schreibende Route und färbt beide Zeilen rot. **Seit 0.8.50 hat auch der Wächter über
   den Content-Type seine Gegenprobe:** dieselbe Zählung wird an einer
   String vorgeführt, die die Verletzung trägt — sonst bliebe er grün,
   wenn er gar nichts mehr ansähe.
+- **Die Ansicht „Offen" und der Filter „Neu seit …" (0.8.60):** die Abfrage an
+  einer Prüflage, die neben zwei offenen Aufgaben eine **erledigte**, eine
+  **Notiz** und einen **Bericht** trägt — ohne die drei belegte sie nur, dass
+  überhaupt etwas erscheint. Zwei Einträge, damit die Gruppierung sichtbar
+  wird; drei Verfasserlagen, darunter eine **herrenlose** Zeile. Der Haken in
+  beiden Richtungen mit **zwei Sitzungen**: ein gewöhnlicher Benutzer bekommt
+  403 und danach steht die Art unverändert da, der Verfasser kommt durch, und
+  ein **Admin ohne Eigentümerrolle** kommt am fremden Haken ebenfalls durch.
+  In der Oberfläche: das Kästchen nur, wo das Recht steht (Vorhandensein
+  zuerst, dann Abwesenheit), die durchgestrichene Zeile, das Vokabular in
+  Überschrift und Beschriftung, beide leeren Fälle. Beim Filter: er **filtert
+  und sortiert nicht** — an zwei Sortierungen, und gemessen wird die
+  **ungefilterte** Liste (Stolperstein 114) —, er ist mit Status, Kategorie und
+  Tags kombinierbar, er erscheint beim ersten Besuch nicht und bei einem
+  einzigen Zugang doch. **Und die Sekunde am Rand:** eine Prüflage, in der ein
+  Kommentar in genau der Sekunde des Verlassens entsteht, samt dem Beleg, dass
+  die Lage wirklich getroffen wurde.
+- **Der Sprachwächter (seit 0.8.60):** eine kurze Wortliste, gesucht in `Doku/`
+  und in den **Kommentaren** des Quelltextes. **Er ist die Ausnahme von
+  Stolperstein 106** — jeder andere Wächter filtert die Kommentarzeilen weg,
+  dieser sieht sie an — und lässt dafür Code in Ruhe; was in Backticks steht,
+  ist zitierter Code und keine Sprache. Sechs Gegenproben an gestellten Texten,
+  dazu die **Zahl** der angesehenen Dateien ausdrücklich (Stolperstein 113) und
+  der Beleg, dass der Filter überhaupt etwas übrig lässt.
 - **Das Werkzeug selbst (seit 0.8.10):** das Lockfile, der `Dockerfile`, der
   Versions-Fingerprint und die Datei für den Prüflauf bei jedem Push — geprüft
   gegen den Quelltext, teils über einen Server aus einer **Kopie** des
@@ -2744,6 +2907,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.31 | Dateien bekommen Verfasser (58) | 16 | — (die fünf aus 0.8.30 haben getragen) |
 | 0.8.40 | Gewichtete Bewertungskriterien — alle fünf Punkte (125) | 30 | Stolpersteine 106 und 107, Lücke 9 oben |
 | 0.8.50 | Kurzvideos am Fotoplatz — alle fünf Punkte (146) | 30 | Stolpersteine 108 bis 111 |
+| 0.8.60 | Was ist offen, was ist neu — Ansicht „Offen", Filter „Neu seit …", Sprachbereinigung (132) | 17 | Stolpersteine 112 bis 116 |
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -2910,10 +3074,11 @@ sind zwei Dinge:
   ausgeschlossen, `.env.example` als Vorlage, keine echten Zugangsdaten im
   Quelltext. Offen davor: Punkt 7 in Abschnitt 10.
 - **Die Sicherung des Datenverzeichnisses ist seit 0.8.30 Pflicht, nicht
-  Empfehlung** — jedenfalls bei einer Datenbankstufe. Ein Downgrade ist
-  keine reine Dateikopie mehr (Abschnitt 2). Betroffen sind ab jetzt die
-  Stufen mit „ja" in der Schemaspalte des Stufenplans; die nächste ist
-  **0.8.40**.
+  Empfehlung** — jedenfalls bei einer Datenbankstufe. Ein Downgrade ist dann
+  keine reine Dateikopie mehr (Abschnitt 2). Betroffen sind die Stufen mit
+  „ja" in der Schemaspalte des Stufenplans. **0.8.60 ist keine davon:** dort
+  ist die Sicherung wieder eine Empfehlung und das Downgrade wieder eine reine
+  Dateikopie — zum ersten Mal seit 0.8.30. Die nächste Pflicht ist **0.8.70**.
 - **Nach jedem Einspielen lohnt ein Blick ins Protokoll:** der Start meldet
   den Eigentümer, `.env`-Reste, seit 0.8.20 die Betriebsart („Hinter Proxy:
   an/aus"), — falls je nötig — die Zuordnung herrenlosen Bestands
@@ -2946,7 +3111,45 @@ sind zwei Dinge:
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.50 — „Kurzvideos am Fotoplatz".** Die nächste Runde des Stufenplans,
+**0.8.60 — „Was ist offen, was ist neu".** Die nächste Runde des Stufenplans,
+**keine Stufe des Mehrbenutzerbetriebs** — und **keine Datenbankstufe**.
+
+*Was sie tut.* Zwei Dinge, die es längst gibt, werden auffindbar.
+Aufgabenkommentare gibt es seit 0.5.9, samt Farbkante und Weiterschaltknopf;
+sichtbar waren sie nur im eigenen Eintrag. **Die günstigste Art von
+Verbesserung ist, vorhandene Funktionalität erreichbar zu machen.**
+
+*Die Ansicht „Offen".* Ein Knopf in der Kopfzeile neben dem Zahnrad,
+`GET /api/offen` dahinter — **lesend und ohne Wächter**, also kein Eintrag in
+`F_ROUTEN`; die Zahl bleibt bei **47**. Eine Abfrage, kein zweiter Rechenweg:
+`WHERE c.kind = 'task'`, dieselbe Schreibweise wie in der Detailansicht.
+Sortiert wie die Übersicht, gruppiert nach Eintrag, mit Verfasser und Datum an
+der Zeile. **Der Erledigt-Haken geht über `PUT /api/comments/:id`** und steht
+nur, wo er gedrückt werden darf; die abgehakte Zeile bleibt durchgestrichen
+stehen. Umschalter „meine / alle" ab zwei Zugängen, Überschrift aus dem
+Vokabular.
+
+*Der Filter „Neu seit …".* Ein persönlicher Schlüssel `zuletztGesehen` in
+`user_settings` — **keine Schemaänderung, kein Migrationsblock**, genau das,
+wofür die Tabelle in Stufe D gebaut wurde. Er steht in
+`PERSOENLICHE_SCHLUESSEL`, dem siebten Eintrag dort. **Gesetzt wird er beim
+Verlassen der Übersicht**, von der **Serveruhr** und um eine Sekunde
+nachgestellt (Stolperstein 60); gelesen wird er **einmal je Seitenleben**. Er
+filtert und sortiert nicht, ist mit allen anderen Filtern kombinierbar,
+erscheint beim ersten Besuch nicht und bei einem einzigen Zugang doch.
+
+*Die Sprachbereinigung.* Zwölf übersetzte Lehnwörter sind abgeräumt, „Kopfzeile"
+und „Bereich" nur dort, wo HTTP gemeint ist; die eigenen Bilder des Projekts
+bleiben. Mitgewandert sind Bezeichner und Marken — die fünf Migrationsblöcke
+heißen jetzt `// MIGRATION 0.8.x — ENTFAELLT MIT 1.0` und `migration083()` bis
+`migration0850()`. Sichtbar ist genau eine Umbenennung: der `Abdruck` in der
+Kennzahlenkarte heißt **Fingerprint**. Die Regel steht in Abschnitt 12, ein
+Wächter im Prüfstand hält sie fest.
+
+**2085 von 2085 Prüfungen**, 17 Gegenproben, **fünf neue Stolpersteine**
+(112 bis 116). Einzelheiten in `Doku/Aenderungsprotokoll_0.8.60.md`.
+
+**0.8.50 davor — „Kurzvideos am Fotoplatz".** Die Runde davor im Stufenplan,
 **keine Stufe des Mehrbenutzerbetriebs** — und eine Datenbankstufe.
 
 *Das Schema und die Migration.* `photos` trägt `art TEXT NOT NULL DEFAULT 'bild'`
@@ -3008,9 +3211,8 @@ Varianten aus der Videodatei erzeugt und ein vorhandenes Standbild
 **1953 von 1953 Prüfungen**, 30 Gegenproben, **vier neue Stolpersteine**
 (108 bis 111). Einzelheiten in `Doku/Aenderungsprotokoll_0.8.50.md`.
 
-**0.8.40 davor — „Nicht jedes Kriterium wiegt gleich".** Die Runde davor im
-Stufenplan, **keine Stufe des Mehrbenutzerbetriebs** — und ebenfalls eine
-Datenbankstufe.
+**0.8.40 davor — „Nicht jedes Kriterium wiegt gleich".** **Keine Stufe des
+Mehrbenutzerbetriebs** — und ebenfalls eine Datenbankstufe.
 
 *Das Schema und die Migration.* `rating_criteria` trägt
 `gewicht REAL NOT NULL DEFAULT 1.0`, samt `migration0840()`, dem **vierten**
@@ -3206,17 +3408,19 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
-**0.8.10, 0.8.20, 0.8.30, 0.8.31, 0.8.40 und 0.8.50 sind gebaut** —
+**0.8.10, 0.8.20, 0.8.30, 0.8.31, 0.8.40, 0.8.50 und 0.8.60 sind gebaut** —
 Einzelheiten in Abschnitt 2 und Abschnitt 9. Mit 0.8.30 ist **die erste
 Datenbankstufe seit 0.8.3** gefahren, mit 0.8.31 die zweite, mit 0.8.40 die
-dritte und mit 0.8.50 die vierte;
-die Sicherung des Datenverzeichnisses steht seitdem als **Pflicht** im
-Einspielweg (Abschnitt 2), nicht mehr als Empfehlung.
+dritte und mit 0.8.50 die vierte; bei diesen vier steht die Sicherung des
+Datenverzeichnisses als **Pflicht** im Einspielweg (Abschnitt 2).
+**0.8.60 ist die erste Runde seit 0.8.20, die das Schema nicht anfasst** —
+dort ist die Sicherung wieder eine Empfehlung, und ein Downgrade ist wieder
+eine reine Dateikopie.
 
-**Als Nächstes 0.8.60 — Was ist offen, was ist neu.** Sie fasst das Schema
-nicht an und hebt die Formatnummer nicht. **Teil I des Videopapiers ist mit
-0.8.50 abgearbeitet;** Teil II bleibt auf 1.1.0 und teilt mit Teil I keinen
-Code außer der Positivliste der Formate.
+**Als Nächstes 0.8.70 — Sicherung und Papierkorb**, und wieder eine
+Datenbankstufe. **Teil I des Videopapiers ist mit 0.8.50 abgearbeitet;** Teil II
+bleibt auf 1.1.0 und teilt mit Teil I keinen Code außer der Positivliste der
+Formate.
 
 **Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
 antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
@@ -3235,7 +3439,9 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
   `setzeBildHeader()` gegangen, ohne dass in `server.js` eine einzige
   Zeile dazukam, die den Typ selbst setzt — der Wächter blieb grün, und er hat
   seitdem eine Gegenprobe neben sich.
-- **0.8.50 vor 0.8.70** (die erste Hälfte erledigt). Der Papierkorb
+- **0.8.50 vor 0.8.70** (die erste Hälfte erledigt; **0.8.60 liegt dazwischen
+  und bindet an nichts** — sie war die letzte kleine Runde vor dem Papierkorb).
+  Der Papierkorb
   serialisiert einen Eintrag. Da es jetzt schon Videos gibt, wird die
   Serialisierung **einmal** gebaut statt einmal gebaut und einmal nachgezogen.
   **Was 0.8.70 dabei mitnehmen muss:** ein Eintrag trägt seit 0.8.50 Zeilen
@@ -3265,7 +3471,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_50.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_60.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.
@@ -3496,13 +3702,18 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   gestellt wird; seit 0.8.0 kennt sie die vierte Art `'nurAdmin, im Rumpf'`.
 - **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — viermal
   angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
-  `GET /api/stats`, seit 0.8.6 `GET /api/items/:id/stimmen`). Die Liste ist
+  `GET /api/stats`, seit 0.8.6 `GET /api/items/:id/stimmen`). **`GET /api/offen`
+  aus 0.8.60 ist der erste Fall daneben:** ein lesender Endpunkt **ohne**
+  Wächter, wie `GET /api/items` — auch er steht dort nicht, und die Regel
+  bleibt dieselbe. Die Liste ist
   die Stelle für **schreibende** Routen. **G4 hat die Zahl nicht bewegt:**
   es entstand keine schreibende Route — nur eine hat ihre Art gewechselt.
   **0.8.40 hat weder das eine noch das andere getan** — das Gewicht geht über
   `PUT /api/criteria/:id`, die es längst gibt; seitdem prüft der Prüfstand die
   **Zahl ausdrücklich**, nicht nur die Übereinstimmung der Liste mit dem
-  Quelltext. **0.8.50 hat sie zum ersten Mal seit langem bewegt: 46 → 47**,
+  Quelltext. **0.8.60 hat sie nicht bewegt** — die Ansicht „Offen" ist lesend,
+  und der Erledigt-Haken geht über `PUT /api/comments/:id`, die es längst gibt.
+  **0.8.50 hat sie zum ersten Mal seit langem bewegt: 46 → 47**,
   mit `POST /api/items/:id/videos` hinter `nurEintragVerfasser`. Die Route ist
   eigens entstanden, statt die Fotoroute zu erweitern — deren `fileFilter`
   wäre dabei gelockert worden, und das hätte die erste Schranke dem Fotoweg
@@ -3613,12 +3824,13 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   Wer künftig „das Anlegen soll nur der Admin dürfen" hört, prüft **zuerst
   die Schalterstellung**, bevor er baut.
 - **Die Übersicht sortiert weiter nach `updated_at` für alle:** die Liste
-  zeigt, wo etwas geschieht, nicht wo ich zuletzt war. **Daraus folgt für
-  0.8.60:** „Neu seit …" wird ein **Filter**, kein zweiter Sortierweg — er
-  ist persönlich und darf die gemeinsame Reihenfolge nicht anrühren, genau
-  wie der Favoritenfilter. Der Merkzeitpunkt wird beim **Verlassen** der
-  Übersicht gesetzt, nicht beim Betreten: Zeitstempel haben Sekundenauflösung
-  (Stolperstein 15), und beim Betreten wäre das Fenster scharf.
+  zeigt, wo etwas geschieht, nicht wo ich zuletzt war. **Mit 0.8.60 eingelöst
+  und als Regel weitergegeben** (Abschnitt 5): „Neu seit …" ist ein **Filter**,
+  kein zweiter Sortierweg; der Merkzeitpunkt wird beim **Verlassen** gesetzt und
+  um eine Sekunde nachgestellt, weil Zeitstempel Sekundenauflösung haben
+  (**Stolperstein 60** — der Verweis lautete bis 0.8.60 an drei Stellen
+  fälschlich auf 15). **Wer künftig eine persönliche Ansicht baut, baut einen
+  Filter.**
 - **Die Node-Version steht an zwei Stellen und muss an beiden dieselbe sein**
   (seit 0.8.10). Im `Dockerfile` (beide Stufen) und in
   `.github/workflows/pruefstand.yml`. Laufen sie auseinander, prüft der
@@ -3689,5 +3901,33 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   eine finale Bereinigung; bis dahin wird jede Änderung am Schema oder an
   Bestandsdaten so geschnitten und gekennzeichnet, dass sie sich später mit
   einem Griff entfernen oder zusammenfassen lässt.
-- Sprache im Projekt: Deutsch, auch in Kommentaren, Oberfläche und Meldungen.
+- **Sprache im Projekt: Deutsch**, auch in Kommentaren, Oberfläche und
+  Meldungen. **Fachbegriffe werden aber nicht zwanghaft eingedeutscht**
+  (seit 0.8.60):
+
+  > Wo die deutschsprachige IT ein englisches Wort benutzt, steht dieses Wort —
+  > und wo es ein gebräuchliches deutsches gibt, steht das deutsche. Der Maßstab
+  > ist weder „möglichst deutsch" noch „möglichst englisch", sondern **das Wort,
+  > das ein deutschsprachiger Entwickler im Gespräch benutzen würde.**
+
+  **Die Regel zielt auf übersetzte Lehnwörter, nicht auf die eigenen Bilder des
+  Projekts.** „Stolperstein", „Gegenprobe", „Prüfstand", „Wächter" und „Klemme"
+  sind keine Übersetzungen von irgendetwas Englischem — sie sind eigene
+  Begriffe mit eigener Bedeutung und **bleiben**.
+
+  Abgeräumt mit 0.8.60: Cookie (nicht `Keks`), Migration (nicht `Umstieg`),
+  Image, Lockfile, Mock, Multipart, Branch, Downgrade, Event Loop, String,
+  Fingerprint (nicht `Abdruck`). **„Kopfzeile" und „Bereich" nur dort, wo ein
+  HTTP-Header bzw. ein Range gemeint ist** — die Kopfzeile der Anwendung, der
+  Blockbereich der Detailansicht, der gültige Bereich eines Gewichts und der
+  Zweig einer Verzweigung im Quelltext heißen weiter so. **Ein stures Suchen
+  und Ersetzen richtet hier Schaden an.**
+
+  **Ein Wächter im Prüfstand hält die Regel fest** („Der Sprachwaechter"): eine
+  **kurze** Liste, gesucht in `Doku/` und in den Kommentaren des Quelltextes —
+  ein Wächter, der jedes zweite Wort anmeckert, wird abgeschaltet. Er ist die
+  ausdrückliche Ausnahme von Stolperstein 106 und sieht die Kommentare an;
+  **Code lässt er in Ruhe**, und was in Backticks steht, ist zitierter Code und
+  keine Sprache. **Die Regel gilt ab sofort für alles Neue**, unabhängig davon,
+  wie weit die Bereinigung des Bestands geht.
 

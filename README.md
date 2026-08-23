@@ -347,6 +347,13 @@ es zwei, beide im Systembereich einstellbar:
   lässt sich mit jedem Teststatus kombinieren. Ein Favorit ist persönlich
   und sortiert die gemeinsame Liste nicht um — wer seine Favoriten sammeln
   will, nimmt den Filter.
+- **„Neu seit …"** steht daneben und folgt demselben Muster (seit 0.8.60): er
+  zeigt, was sich seit dem letzten Besuch getan hat, mit der Zahl daneben, und
+  lässt sich mit Status, Kategorie und Tags frei kombinieren. Der Bezugspunkt
+  ist persönlich und wird gesetzt, wenn man die Übersicht **verlässt** — solange
+  man hinsieht, bleibt die Liste also stehen. **Beim allerersten Besuch
+  erscheint der Umschalter nicht:** vorher gibt es nichts, womit sich
+  vergleichen ließe. Wie der Favorit filtert er und sortiert nicht.
 - Über das Häkchen auf einer Karte lassen sich Einträge vergleichen. Im
   Vergleich steht bei **mehr als einem Zugang** ein Umschalter
   **„meine / alle"** über dem Raster: er schaltet Kriterienwerte, Kopfzahl und
@@ -400,6 +407,14 @@ es zwei, beide im Systembereich einstellbar:
   mehrere zusammen.
   Die **Aufgabe** steht ganz oben, damit sie auffällt. Ihr Knopf
   schaltet **weiter statt um**: Notiz → Aufgabe → erledigt → Notiz.
+  **Alle offenen Aufgaben auf einen Blick** zeigt seit 0.8.60 die Ansicht
+  **„Offen"** — der Knopf dafür steht in der Kopfzeile neben dem Zahnrad. Sie
+  listet alle nicht erledigten Aufgaben aus allen Einträgen, gruppiert nach
+  Eintrag, mit Verfasser und Datum; ein Klick führt in den Eintrag, und abhaken
+  geht direkt dort. Die abgehakte Zeile bleibt durchgestrichen stehen, damit
+  sich der Haken gleich wieder wegnehmen lässt. Abhaken darf, wer den Kommentar
+  geschrieben hat, und der Admin — dieselbe Regel wie im Eintrag. Bei mehr als
+  einem Zugang steht darüber ein Umschalter **„meine / alle"**.
   Ein erledigtes Todo verlässt die Spitze und reiht sich nach Alter bei den
   Notizen ein — es bleibt aber als erledigt gekennzeichnet und wird nicht
   wieder zur Notiz. Der Berichtsknopf daneben bleibt ein gewöhnlicher
@@ -795,7 +810,9 @@ einspielen.
 > Der Weg zurück ist dann die Sicherung, die **vor** dem Einspielen entstanden
 > ist — nicht das Zurückkopieren der alten Dateien. Welche Versionen das
 > betrifft, sagt das Änderungsprotokoll der jeweiligen Version; zuletzt
-> **0.8.30**, **0.8.31**, **0.8.40** und **0.8.50**.
+> **0.8.30**, **0.8.31**, **0.8.40** und **0.8.50**. **0.8.60 gehört
+> ausdrücklich nicht dazu:** dort ist die Sicherung eine Empfehlung, und der Weg
+> zurück ist wieder eine reine Dateikopie.
 
 ## Eine neue Version einspielen
 

@@ -1,12 +1,42 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.50 — Fingerprint `3cb528d6`**
+**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.60 — Fingerprint `ab68b523`**
 (Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
 vier keine Stufen.)
 
-**0.8.50 berührt den Mehrbenutzerbetrieb ebenfalls nicht — mit einer
+**0.8.60 berührt den Mehrbenutzerbetrieb nicht — und bestätigt dabei zwei
+seiner Regeln.** „Was ist offen, was ist neu" ist keine Datenbankstufe und
+keine Stufe dieses Papiers: keine Rolle, kein Recht, kein Träger, kein Schema.
+**`F_ROUTEN` bleibt bei 47** — die Ansicht „Offen" ist eine lesende Route ohne
+Wächter, und der Erledigt-Haken geht über `PUT /api/comments/:id`, die es
+längst gibt.
+
+Bestätigt werden zwei Regeln:
+
+- **Der Erledigt-Haken am fremden Aufgabenkommentar bleibt bei „Verfasser oder
+  Admin".** „Löschen ja, umschreiben nein" gilt **Aussagen**; die Art eines
+  Kommentars ist ein **Merkmal**, und Merkmale darf der Admin seit 0.7.2
+  setzen. Die neue Ansicht schafft damit kein neues Recht, sie macht ein
+  vorhandenes erreichbar. Der Prüfstand belegt es mit **zwei Sitzungen** und
+  einem **Admin ohne Eigentümerrolle**: ein gewöhnlicher Benutzer bekommt 403
+  und danach steht die Art unverändert da.
+- **Der Merkzeitpunkt `zuletztGesehen` ist eine persönliche Einstellung** und
+  steht in `PERSOENLICHE_SCHLUESSEL` — dem siebten Eintrag dort. Genau dafür ist
+  `user_settings` in Stufe D gebaut worden: keine Schemaänderung, kein
+  Migrationsblock. **Und die Schranke aus 0.6.5 hat gehalten**, allerdings mit
+  einem Befund: sie wird erst bei einem Zugang **ohne** Adminrolle laut, weil
+  `PUT /api/settings` aus derselben Liste ableitet, was Adminsache ist
+  (Stolperstein 116).
+
+Was der Mehrbenutzerbetrieb dabei sichtbar macht: **der Umschalter „meine /
+alle" erscheint erst ab zwei Zugängen**, abgeleitet über `mehrereBenutzer()`,
+und der **Verfassername steht nur dann an der Zeile** — dieselbe Schwelle wie
+überall. Der Filter „Neu seit …" dagegen erscheint **immer**: er ist eine
+Aussage über einen selbst, nicht über andere.
+
+**0.8.50 davor berührte den Mehrbenutzerbetrieb ebenfalls nicht — mit einer
 Ausnahme, und die bestätigt dieses Papier.** Kurzvideos am Fotoplatz sind eine
 Datenbankstufe, aber keine Stufe dieses Papiers: keine Rolle, kein Recht, kein
 neuer Träger. **Die Ausnahme ist eine neue schreibende Route** —
@@ -58,9 +88,9 @@ beide nur in seinen Nummern.
 **Offen sind damit noch H (Tokens, 0.8.80) und I (Mailversand und
 Selbstanmeldung, 0.9.0).** Zwischen G4 und H liegen vier Stufen, die nicht zum
 Mehrbenutzerbetrieb gehören; sie stehen im Projektstand, Abschnitt 10. Die
-ersten beiden davon — **0.8.40, die Gewichtung**, und **0.8.50, Kurzvideos am
-Fotoplatz** — sind gebaut; die nächste ist **0.8.60, „Was ist offen, was ist
-neu"**.
+ersten drei davon — **0.8.40, die Gewichtung**, **0.8.50, Kurzvideos am
+Fotoplatz**, und **0.8.60, „Was ist offen, was ist neu"** — sind gebaut; die
+nächste ist **0.8.70, „Sicherung und Papierkorb"**.
 
 **Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
 `HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
@@ -578,8 +608,9 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 G4 und H liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu",
 Sicherung und Papierkorb). Alle vier gehören nicht zum Mehrbenutzerbetrieb und
 stehen deshalb im Projektstand, Abschnitt 10 — zusammen mit der Begründung für
-die Reihenfolge. **Die ersten beiden, 0.8.40 (Gewichtung) und 0.8.50 (Kurzvideos), sind gebaut;
-als Nächstes 0.8.60, „Was ist offen, was ist neu".**
+die Reihenfolge. **Die ersten drei — 0.8.40 (Gewichtung), 0.8.50 (Kurzvideos) und 0.8.60
+(„Offen/Neu") — sind gebaut; als Nächstes 0.8.70, „Sicherung und
+Papierkorb".**
 
 Danach: Zwei-Faktor, Suche, dann 1.0.0. **Zwei Punkte hängen unmittelbar an
 Stufe I und gehören beim Bauen mitgedacht:** die Tokens aus H tragen auch die
