@@ -1820,8 +1820,9 @@ const namen = (liste) => liste.map(c => c.name);
       .map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean).sort();
   };
   const dListeSrv = listeAus(srvQuelle, 'PERSOENLICHE_SCHLUESSEL');
-  const dSoll = ['bloecke', 'filters', 'linkZeilen', 'schrift', 'suchNamen', 'zeitleiste'];
-  pruefe('server.js kennt genau die sechs persoenlichen Schluessel',
+  const dSoll = ['bloecke', 'filters', 'linkZeilen', 'schrift', 'suchNamen', 'zeitleiste',
+                 'zuletztGesehen'];
+  pruefe('server.js kennt genau die sieben persoenlichen Schluessel',
     gleich(dListeSrv, dSoll), JSON.stringify(dListeSrv));
 
   /* Der Waechter ueber den Quelltext. Dieselbe Ueberlegung wie bei detail()
@@ -1930,6 +1931,69 @@ const namen = (liste) => liste.map(c => c.name);
     dEins.filters?.tested === 'yes' && dZwei.filters?.tested === 'no',
     JSON.stringify([dEins.filters, dZwei.filters]));
 
+  /* Der Merkzeitpunkt, und er ist der einzige der sieben, der seinen Wert
+     NICHT vom Aufrufer bekommt: geschickt wird ein Signal, gespeichert wird
+     die Serveruhr. Ein mitgeschickter Zeitstempel waere eine Behauptung --
+     damit liesse sich jeder Bestand nach Belieben als ungesehen erklaeren.
+     ERST DIE ABWESENHEIT, DANN DAS VORHANDENSEIN: vor dem ersten Verlassen
+     der Uebersicht steht der Schluessel gar nicht in der Tabelle, und die
+     Antwort traegt null. Ohne diese Zeile bliebe offen, ob der Server ihn
+     nicht schon beim Lesen anlegt -- dann waere "neu seit" beim ersten Besuch
+     immer leer. */
+  const dVorher = (await dRuf('keks-d-eins', 'GET', '/api/settings')).inhalt;
+  pruefe('Vor dem ersten Verlassen der Uebersicht gibt es keinen Merkzeitpunkt',
+    dVorher.zuletztGesehen === null, JSON.stringify(dVorher.zuletztGesehen));
+  const dGesehen = await dRuf('keks-d-eins', 'PUT', '/api/settings',
+    { zuletztGesehen: '1999-01-01 00:00:00' });
+  const dNachher = (await dRuf('keks-d-eins', 'GET', '/api/settings')).inhalt;
+  pruefe('Nach dem Verlassen steht er da',
+    dGesehen.status === 200 && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dNachher.zuletztGesehen || ''),
+    JSON.stringify(dNachher.zuletztGesehen));
+  pruefe('Und zwar von der Serveruhr, nicht aus dem Ruf',
+    dNachher.zuletztGesehen !== '1999-01-01 00:00:00' &&
+    dNachher.zuletztGesehen > '2020-01-01 00:00:00',
+    JSON.stringify(dNachher.zuletztGesehen));
+  /* DAS FENSTER IST NACHGESTELLT (Stolperstein 60): datetime('now') loest nur
+     Sekunden auf. Entstuende ein Kommentar in derselben Sekunde, in der jemand
+     die Uebersicht verlaesst, traege sein Eintrag genau diesen Zeitstempel und
+     gaelte danach nie als neu. Geprueft wird an der Sekunde selbst: der
+     gespeicherte Wert liegt VOR der Uhr des Servers, nicht auf ihr. */
+  const dUhr = (() => {
+    const d = oeffne(path.join(dDir, 'katalog.sqlite'));
+    const t = d.prepare("SELECT datetime('now') AS t").get().t;
+    d.close();
+    return t;
+  })();
+  pruefe('Der Merkzeitpunkt liegt vor der Serveruhr, nicht auf ihr',
+    dNachher.zuletztGesehen < dUhr, `gemerkt ${dNachher.zuletztGesehen}, Uhr ${dUhr}`);
+  pruefe('Und hoechstens eine Sekunde davor',
+    (new Date(dUhr.replace(' ', 'T') + 'Z') - new Date(dNachher.zuletztGesehen.replace(' ', 'T') + 'Z'))
+      <= 2000,
+    `gemerkt ${dNachher.zuletztGesehen}, Uhr ${dUhr}`);
+  pruefe('Er gehoert dem, der ihn gesetzt hat',
+    (await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen === null,
+    JSON.stringify((await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen));
+
+  /* DER SCHLUESSEL MUSS IN PERSOENLICHE_SCHLUESSEL STEHEN, und das ist keine
+     Formsache. PUT /api/settings leitet aus dieser Liste ab, was jeder fuer
+     sich schreiben darf; alles andere ist Adminsache. Stuende er nicht darin,
+     bekaeme ein gewoehnlicher Benutzer ein 403 und koennte sich nie merken,
+     wo er zuletzt war -- und der Wert landete beim naechsten Weg in die
+     globale Tabelle und gaelte still fuer alle.
+     DER ZWEITE ZUGANG IST DER GEGENSTAND: der erste ist Eigentuemer und damit
+     Admin, an ihm faellt die Luecke gar nicht auf. Die Rolle wird ausdruecklich
+     nachgesehen, sonst pruefte die Zeile darunter womoeglich einen zweiten
+     Admin (Stolperstein 87). */
+  pruefe('Der zweite Zugang traegt wirklich keine Adminrolle',
+    (await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin === false,
+    JSON.stringify((await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin));
+  const dGesehenZwei = await dRuf('keks-d-zwei', 'PUT', '/api/settings', { zuletztGesehen: 1 });
+  pruefe('Auch ohne Adminrolle merkt sich jeder seinen eigenen Zeitpunkt',
+    dGesehenZwei.status === 200, `Status ${dGesehenZwei.status} / ${JSON.stringify(dGesehenZwei.inhalt)}`);
+  pruefe('Und er steht danach bei ihm',
+    /^\d{4}-/.test((await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen || ''),
+    JSON.stringify((await dRuf('keks-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen));
+
   // Und die Blockanordnung, die eine eigene Bauform hat (verschachteltes
   // Objekt statt Zahl) und deshalb eigens geprueft wird.
   await dRuf('keks-d-eins', 'PUT', '/api/settings',
@@ -1984,7 +2048,7 @@ const namen = (liste) => liste.map(c => c.name);
   const dFehlend = dSoll.filter(k => !persoenlichDa(k, 1));
   pruefe('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dFalschGlobal.length === 0, `global gefunden: ${JSON.stringify(dFalschGlobal)}`);
-  pruefe('Alle sechs stehen beim Benutzer, der sie gesetzt hat',
+  pruefe('Alle sieben stehen beim Benutzer, der sie gesetzt hat',
     dFehlend.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dFehlend)}`);
   pruefe('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('sucheAktiv') && !persoenlichDa('sucheAktiv', 1),
@@ -1996,8 +2060,11 @@ const namen = (liste) => liste.map(c => c.name);
     !['suche', 'sucheAktiv', 'sucheEigene', 'vokabular', 'title_app', 'title_public']
       .some(k => persoenlichDa(k, 1)),
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 1').all()));
+  // Der Zweite hat vier Schluessel selbst gesetzt und seit 0.8.60 den
+  // Merkzeitpunkt dazu -- fuenf. Was er NICHT gesetzt hat, steht auch nicht
+  // bei ihm; genau darum geht es hier.
   pruefe('Die beiden Benutzer teilen sich keine Zeile',
-    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 4,
+    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 5,
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 2').all()));
   dDb.close();
 
@@ -4275,6 +4342,239 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und der Schalter steht als wahr in der Datenbank, nicht als Loch',
     fSchalter('tagsFreiAnlegen')?.value === 'true', JSON.stringify(fSchalter('tagsFreiAnlegen')));
 
+  /* ---------------------------------------------------------------- */
+  gruppe('Offene Aufgaben: die Ansicht');
+
+  /* Die Prueflage traegt NEBEN der offenen Aufgabe eine ERLEDIGTE, eine NOTIZ
+     und einen BERICHT. Ohne die drei belegte die Pruefung nur, dass ueberhaupt
+     etwas erscheint -- und nicht, dass genau das Richtige erscheint.
+     ZWEI Eintraege, weil sich an einem einzigen die Gruppierung gar nicht
+     zeigen liesse, und im ersten ZWEI offene Aufgaben: bei einer waere jede
+     falsche Ordnung unsichtbar.
+     DIE ZEITSTEMPEL WERDEN VON HAND GESETZT (Stolperstein 60): datetime('now')
+     loest nur Sekunden auf, und zwei in derselben Sekunde angelegte Eintraege
+     stuenden in unbestimmter Reihenfolge -- die Pruefung auf die Ordnung
+     koennte dann gar nicht scheitern. */
+  const oA = (await fRuf('keks-f-anna', 'POST', '/api/items', { title: 'Aufgabenblatt A' })).inhalt;
+  const oB = (await fRuf('keks-f-bert', 'POST', '/api/items', { title: 'Aufgabenblatt B' })).inhalt;
+  const oSchreib = async (keks, itemId, text, kind) =>
+    (await fRuf(keks, 'POST', `/api/items/${itemId}/comments`, { text, kind })).inhalt;
+  await oSchreib('keks-f-anna', oA.id, 'A-eins offen', 'task');
+  await oSchreib('keks-f-bert', oA.id, 'A-zwei offen', 'task');
+  await oSchreib('keks-f-anna', oA.id, 'A-drei erledigt', 'done');
+  await oSchreib('keks-f-anna', oA.id, 'A-vier Notiz', 'note');
+  await oSchreib('keks-f-anna', oA.id, 'A-fuenf Bericht', 'report');
+  await oSchreib('keks-f-carla', oB.id, 'B-eins offen', 'task');
+  // Eine HERRENLOSE Aufgabe: der Verfasser fehlt, und das Feld muss trotzdem
+  // dastehen -- null heisst "diese Zeile hat keinen Verfasser", ein fehlendes
+  // Feld hiesse "diese Antwort kennt das Feld nicht". Erst nach dem Start
+  // geleert, sonst schoebe ordneBestandZu() sie der Eigentuemerin zu.
+  await oSchreib('keks-f-anna', oB.id, 'B-zwei herrenlos', 'task');
+  fSchreibe("UPDATE comments SET user_id = NULL WHERE text = 'B-zwei herrenlos'");
+  // B ist juenger als A -- die Ansicht muss B deshalb zuerst nennen.
+  fSchreibe("UPDATE items SET updated_at = '2026-08-02 10:00:00' WHERE id = ?", oA.id);
+  fSchreibe("UPDATE items SET updated_at = '2026-08-03 10:00:00' WHERE id = ?", oB.id);
+
+  const oHole = async (keks) => (await fRuf(keks, 'GET', '/api/offen')).inhalt;
+  const oListe = await oHole('keks-f-anna');
+  const oTexte = (l) => (l || []).map(z => z.text);
+
+  /* Erst das Vorhandensein, dann die Verneinung (Stolperstein 81): dass die
+     erledigte Aufgabe, die Notiz und der Bericht ueberhaupt in der Datenbank
+     stehen, wird ausdruecklich geprueft -- sonst bliebe jede Aussage darueber,
+     dass sie NICHT erscheinen, auf einem leeren Bestand gruen. */
+  pruefe('Die Prueflage traegt neben den offenen Aufgaben auch die drei anderen Arten',
+    fZeilen("SELECT id FROM comments WHERE kind = 'done' AND text = 'A-drei erledigt'").length === 1 &&
+    fZeilen("SELECT id FROM comments WHERE kind = 'note' AND text = 'A-vier Notiz'").length === 1 &&
+    fZeilen("SELECT id FROM comments WHERE kind = 'report' AND text = 'A-fuenf Bericht'").length === 1,
+    JSON.stringify(fZeilen("SELECT text, kind FROM comments WHERE item_id IN (?, ?)", oA.id, oB.id)));
+  pruefe('Die Ansicht zeigt genau die nicht erledigten Aufgaben',
+    gleich(oTexte(oListe).slice().sort(),
+      ['A-eins offen', 'A-zwei offen', 'B-eins offen', 'B-zwei herrenlos']),
+    JSON.stringify(oTexte(oListe)));
+  pruefe('Die erledigte Aufgabe steht nicht darin',
+    !oTexte(oListe).includes('A-drei erledigt'), JSON.stringify(oTexte(oListe)));
+  pruefe('Notiz und Bericht ebenso wenig',
+    !oTexte(oListe).includes('A-vier Notiz') && !oTexte(oListe).includes('A-fuenf Bericht'),
+    JSON.stringify(oTexte(oListe)));
+
+  /* Die Reihenfolge ist die der Uebersicht: updated_at des Eintrags
+     absteigend, innerhalb des Eintrags die aelteste Aufgabe oben. Damit stehen
+     die Zeilen eines Eintrags beieinander -- die Gruppierung in der Oberflaeche
+     braucht keine zweite Ordnung. */
+  pruefe('Der juengere Eintrag steht oben, wie in der Uebersicht',
+    gleich(oTexte(oListe), ['B-eins offen', 'B-zwei herrenlos', 'A-eins offen', 'A-zwei offen']),
+    JSON.stringify(oTexte(oListe)));
+  pruefe('Die Zeilen eines Eintrags stehen beieinander',
+    gleich((oListe || []).map(z => z.item?.id), [oB.id, oB.id, oA.id, oA.id]),
+    JSON.stringify((oListe || []).map(z => z.item?.id)));
+
+  /* Jedes Feld, das die Oberflaeche aus der Antwort liest, an der ECHTEN
+     Antwort geprueft -- nicht nur am Doppelgaenger (Stolperstein 102). */
+  const oEine = (l, text) => (l || []).find(z => z.text === text);
+  pruefe('Jede Zeile nennt ihren Eintrag mit Nummer und Titel',
+    oEine(oListe, 'A-eins offen')?.item?.id === oA.id &&
+    oEine(oListe, 'A-eins offen')?.item?.title === 'Aufgabenblatt A',
+    JSON.stringify(oEine(oListe, 'A-eins offen')?.item));
+  pruefe('Jede Zeile nennt ihren Verfasser',
+    oEine(oListe, 'A-eins offen')?.verfasser?.name === 'anna' &&
+    oEine(oListe, 'A-zwei offen')?.verfasser?.name === 'bert' &&
+    oEine(oListe, 'B-eins offen')?.verfasser?.name === 'carla',
+    JSON.stringify((oListe || []).map(z => z.verfasser)));
+  pruefe('Eine herrenlose Zeile traegt null, und das Feld fehlt nicht',
+    'verfasser' in (oEine(oListe, 'B-zwei herrenlos') || {}) &&
+    oEine(oListe, 'B-zwei herrenlos')?.verfasser === null,
+    JSON.stringify(oEine(oListe, 'B-zwei herrenlos')));
+  pruefe('Jede Zeile nennt ihr Datum',
+    (oListe || []).every(z => /^\d{4}-\d{2}-\d{2} /.test(z.created_at || '')),
+    JSON.stringify((oListe || []).map(z => z.created_at)));
+  pruefe('Die Verfassernummer steht in keiner Zeile',
+    !(oListe || []).some(z => 'user_id' in z), JSON.stringify(Object.keys(oListe?.[0] || {})));
+
+  /* mine ist die Grundlage des Hakens -- ohne die Angabe muesste die
+     Oberflaeche aus dem Verfasserobjekt zurueckrechnen, und bei einem
+     Grabstein ginge das gar nicht. Dieselbe Antwort sieht fuer zwei Leute
+     verschieden aus; mit nur einem Rufer waere das nicht zu sehen. */
+  const oListeBert = await oHole('keks-f-bert');
+  pruefe('mine steht an jeder Zeile',
+    (oListe || []).every(z => typeof z.mine === 'boolean'),
+    JSON.stringify((oListe || []).map(z => z.mine)));
+  pruefe('Dieselbe Zeile ist fuer den einen meine und fuer den anderen nicht',
+    oEine(oListe, 'A-eins offen')?.mine === true &&
+    oEine(oListeBert, 'A-eins offen')?.mine === false,
+    JSON.stringify([oEine(oListe, 'A-eins offen')?.mine, oEine(oListeBert, 'A-eins offen')?.mine]));
+  pruefe('Und umgekehrt an der Zeile des anderen',
+    oEine(oListe, 'A-zwei offen')?.mine === false &&
+    oEine(oListeBert, 'A-zwei offen')?.mine === true,
+    JSON.stringify([oEine(oListe, 'A-zwei offen')?.mine, oEine(oListeBert, 'A-zwei offen')?.mine]));
+  pruefe('Eine herrenlose Zeile gehoert niemandem',
+    oEine(oListe, 'B-zwei herrenlos')?.mine === false,
+    JSON.stringify(oEine(oListe, 'B-zwei herrenlos')?.mine));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Haken am Aufgabenkommentar');
+
+  /* Der Haken geht ueber PUT /api/comments/:id -- dieselbe Route, dieselbe
+     Klemme wie im Eintrag: die Art setzt der Verfasser oder der Admin, sonst
+     niemand. Zu JEDER Verweigerung gehoert der Erfolgsfall daneben UND die
+     Nachschau, dass wirklich nichts geschrieben wurde. */
+  const oArt = (text) => fEine('SELECT kind FROM comments WHERE text = ?', text)?.kind;
+  const oNr = (text) => fEine('SELECT id FROM comments WHERE text = ?', text)?.id;
+  pruefe('Vor allem anderen: die Aufgaben stehen als offen in der Datenbank',
+    oArt('A-eins offen') === 'task' && oArt('A-zwei offen') === 'task',
+    JSON.stringify([oArt('A-eins offen'), oArt('A-zwei offen')]));
+
+  /* DER FREMDE IST HIER BERT: carla traegt seit der Gruppe "Was dem
+     Eigentuemer gehoert" die Adminrolle und kaeme durch. Wer sie als Fremde
+     einsetzte, pruefte die Klemme an einem Zugang, der sie gar nicht
+     spuert -- gruen, aber ueber etwas anderes. */
+  const oHakenFremd = await fRuf('keks-f-bert', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
+    { kind: 'done' });
+  pruefe('Ein Fremder hakt eine fremde Aufgabe nicht ab',
+    oHakenFremd.status === 403, `Status ${oHakenFremd.status}`);
+  pruefe('Und sie steht unveraendert offen da', oArt('A-eins offen') === 'task', oArt('A-eins offen'));
+  /* Auch die herrenlose nicht: eine Zeile ohne Verfasser gehoert dem Admin,
+     nicht allen. Ohne diese Zeile bliebe die Klemme an der herrenlosen Zeile
+     an dieser Route ungeprueft. */
+  const oHakenHerrenlos = await fRuf('keks-f-bert', 'PUT',
+    `/api/comments/${oNr('B-zwei herrenlos')}`, { kind: 'done' });
+  pruefe('Und eine herrenlose erst recht nicht', oHakenHerrenlos.status === 403,
+    `Status ${oHakenHerrenlos.status}`);
+  pruefe('Auch sie steht unveraendert offen da',
+    oArt('B-zwei herrenlos') === 'task', oArt('B-zwei herrenlos'));
+
+  const oHakenEigen = await fRuf('keks-f-bert', 'PUT', `/api/comments/${oNr('A-zwei offen')}`,
+    { kind: 'done' });
+  pruefe('Der Verfasser hakt seine eigene Aufgabe ab',
+    oHakenEigen.status === 200 && oArt('A-zwei offen') === 'done',
+    `Status ${oHakenEigen.status} / ${oArt('A-zwei offen')}`);
+  /* Der Admin am FREMDEN Haken -- das ist die Antwort auf die Rechtefrage
+     dieser Runde, und sie steht hier, damit sie nicht nur behauptet ist.
+     "Loeschen ja, umschreiben nein" bleibt unberuehrt: ein Haken aendert keine
+     fremde Aussage, er setzt ein Merkmal, und Merkmale darf der Admin seit
+     0.7.2.
+     CARLA und nicht anna: ein Admin OHNE Eigentuemerrolle. Mit anna liesse
+     sich nicht sehen, ob hier die Adminfrage entscheidet oder die
+     Eigentuemerfrage. */
+  const oHakenAdmin = await fRuf('keks-f-carla', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
+    { kind: 'done' });
+  pruefe('Ein Admin ohne Eigentuemerrolle hakt eine fremde Aufgabe ab',
+    oHakenAdmin.status === 200 && oArt('A-eins offen') === 'done',
+    `Status ${oHakenAdmin.status} / ${oArt('A-eins offen')}`);
+
+  const oNachHaken = await oHole('keks-f-anna');
+  pruefe('Die abgehakte Aufgabe faellt beim naechsten Aufbau aus der Ansicht',
+    !oTexte(oNachHaken).includes('A-eins offen') && !oTexte(oNachHaken).includes('A-zwei offen'),
+    JSON.stringify(oTexte(oNachHaken)));
+  pruefe('Der Rest steht unveraendert da',
+    gleich(oTexte(oNachHaken), ['B-eins offen', 'B-zwei herrenlos']),
+    JSON.stringify(oTexte(oNachHaken)));
+
+  /* Und zurueck: der Haken muss sich wegnehmen lassen, sonst belegte die
+     Pruefung nur, dass er in eine Richtung wirkt. Die Zeile wird wieder eine
+     AUFGABE und keine Notiz -- die Weiterschaltung im Eintrag geht auf Notiz
+     weiter, der Haken ist ein Zustand und keine Abfolge. */
+  const oZurueck = await fRuf('keks-f-anna', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
+    { kind: 'task' });
+  pruefe('Der Haken laesst sich wieder wegnehmen',
+    oZurueck.status === 200 && oArt('A-eins offen') === 'task', oArt('A-eins offen'));
+  pruefe('Und die Zeile steht wieder in der Ansicht',
+    oTexte(await oHole('keks-f-anna')).includes('A-eins offen'));
+
+  /* Die Ansicht liegt hinter der Anmeldung wie alles unter /api. Ohne diese
+     Zeile bliebe offen, ob ein neuer lesender Endpunkt die Schicht umgeht. */
+  const oOhneKeks = await fetch(F.basis + '/api/offen');
+  pruefe('Ohne Anmeldung gibt es die Ansicht nicht', oOhneKeks.status === 401,
+    `Status ${oOhneKeks.status}`);
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Neu seit: die Sekunde am Rand');
+
+  /* DIE PROBE, UM DIE ES IN DIESER RUNDE GEHT. datetime('now') loest nur
+     Sekunden auf (Stolperstein 60). Wer die Uebersicht verlaesst, waehrend in
+     DERSELBEN Sekunde jemand anderes kommentiert, traege sonst einen
+     Merkzeitpunkt, der genau auf dem Zeitstempel dieses Eintrags liegt -- und
+     der Eintrag gaelte nie als neu. Deshalb steht die Marke eine Sekunde
+     davor.
+     GETROFFEN WIRD DIE LAGE, NICHT BEHAUPTET: die beiden Rufe gehen
+     unmittelbar nacheinander hinaus, und die Sekunde des Verlassens wird
+     danach von der Uhr des Servers gelesen -- unabhaengig davon, wie die Marke
+     gebildet wurde. Nur wenn der Eintrag wirklich diese Sekunde traegt, ist
+     die Prueflage die gemeinte; bei einem Wechsel ueber die Sekundengrenze
+     wird es noch einmal versucht. */
+  const fUhr = () => {
+    const d = fDatenbank();
+    const t = d.prepare("SELECT datetime('now') AS t").get().t;
+    d.close();
+    return t;
+  };
+  let sekGetroffen = false, sekMarke = null, sekStand = null, sekVerlassen = null;
+  for (let versuch = 0; versuch < 12 && !sekGetroffen; versuch++) {
+    await fRuf('keks-f-anna', 'PUT', '/api/settings', { zuletztGesehen: 1 });
+    sekVerlassen = fUhr();
+    await fRuf('keks-f-bert', 'POST', `/api/items/${oA.id}/comments`,
+      { text: `Sekundenprobe ${versuch}` });
+    sekMarke = JSON.parse(fEine(
+      "SELECT value FROM user_settings WHERE user_id = 1 AND key = 'zuletztGesehen'").value);
+    sekStand = fEine('SELECT updated_at FROM items WHERE id = ?', oA.id).updated_at;
+    sekGetroffen = sekStand === sekVerlassen;
+  }
+  pruefe('Die Prueflage trifft wirklich die Sekunde des Verlassens',
+    sekGetroffen, `Verlassen ${sekVerlassen}, Eintrag ${sekStand}`);
+  /* Und die eigentliche Zusicherung: der Kommentar aus genau dieser Sekunde
+     kommt an. Steht die Marke ohne das Nachstellen auf der Sekunde des
+     Verlassens, ist dieser Vergleich falsch -- und genau diese Zeile wird
+     dann namentlich rot. */
+  pruefe('Ein Kommentar aus der Sekunde des Verlassens gilt danach als neu',
+    sekStand > sekMarke, `gemerkt ${sekMarke}, Eintrag ${sekStand}`);
+  /* Die Gegenrichtung gehoert dazu: was VOR dem Merkzeitpunkt liegt, ist
+     nicht neu. Ohne sie bliebe der Vergleich auch dann gruen, wenn er
+     schlichtweg alles durchliesse. */
+  fSchreibe("UPDATE items SET updated_at = '2020-01-01 00:00:00' WHERE id = ?", oB.id);
+  pruefe('Was aelter ist als der Merkzeitpunkt, ist nicht neu',
+    fEine('SELECT updated_at FROM items WHERE id = ?', oB.id).updated_at < sekMarke,
+    `gemerkt ${sekMarke}`);
+
   await F.stopp();
   fs.rmSync(fDir, { recursive: true, force: true });
 
@@ -4489,10 +4789,14 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Der Pruefstand kennt jede schreibende Route',
     fUnbekannt.length === 0 && fVerschwunden.length === 0,
     `ohne Entscheidung: ${fUnbekannt.join(' · ') || '—'} · verschwunden: ${fVerschwunden.join(' · ') || '—'}`);
-  /* Die ZAHL selbst, ausdruecklich: 0.8.50 bringt EINE neue schreibende Route
-     mit, den Videoweg -- 46 werden 47. Bleibt die Zahl stehen, hat sich am
+  /* Die ZAHL selbst, ausdruecklich: 0.8.50 brachte EINE neue schreibende Route
+     mit, den Videoweg -- 46 wurden 47. Bleibt die Zahl stehen, hat sich am
      Rechtebild nichts verschoben; waechst sie unbemerkt, faellt genau das
-     hier auf. */
+     hier auf.
+     0.8.60 bewegt sie NICHT: die Ansicht "Offen" ist lesend, und der Haken
+     geht ueber PUT /api/comments/:id, die es laengst gibt. Wer aus dem
+     lesenden Endpunkt eine schreibende Route macht, wird hier namentlich
+     rot -- nachgestellt statt geglaubt. */
   pruefe('Und es sind weiterhin genau 47 schreibende Routen',
     F_ROUTEN.length === 47 && fGefunden.length === 47,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
@@ -7941,7 +8245,7 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Doppelgaenger mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
   const { VirtualConsole } = require('jsdom');
@@ -8119,6 +8423,35 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     avgRating: 3, testCount: 2, testAvg: 4, testLast: 4,
     updated_at: '2026-08-01 10:00:00', searchText: 'beispiel'
   }];
+  /* Der Bestand fuer die Ansicht "Offen". EIGENE Zeilen neben beispiel.comments,
+     und zwar aus ZWEI Eintraegen -- an einem einzigen liesse sich die
+     Gruppierung gar nicht sehen.
+     VIER ARTEN NEBENEINANDER (Stolperstein 90): zwei offene Aufgaben, eine
+     erledigte, eine Notiz und ein Bericht. Eine Prueflage mit lauter offenen
+     Aufgaben naehme genau die Pruefung weg, fuer die sie gebaut wird -- dass
+     die Ansicht die drei anderen NICHT zeigt.
+     DREI VERFASSERLAGEN: die Fragende selbst (mine), ein Fremder und ein
+     Grabstein. Ohne sie liesse sich nicht sehen, ob der Haken seiner eigenen
+     Zeile folgt.
+     `kind` steht an jeder Zeile, obwohl der echte Endpunkt es nicht
+     ausliefert: der Doppelgaenger braucht es, um beim Schreiben WIRKLICH eine
+     andere Antwort zu geben. Gaebe er stur dieselbe Liste zurueck, waere "die
+     Ansicht hat den Haken gesetzt" von "nichts ist passiert" nicht zu
+     unterscheiden. */
+  const offen = offenBestand || [
+    { id: 65, kind: 'task', text: 'Eine Aufgabe', created_at: '2026-07-30 09:00:00',
+      item: { id: 1, title: 'Beispiel' }, mine: true, verfasser: vChefin },
+    { id: 66, kind: 'done', text: 'Schon erledigt', created_at: '2026-07-29 09:00:00',
+      item: { id: 1, title: 'Beispiel' }, mine: true, verfasser: vChefin },
+    { id: 61, kind: 'note', text: 'Angepinnte Notiz', created_at: '2026-08-03 09:00:00',
+      item: { id: 1, title: 'Beispiel' }, mine: true, verfasser: vChefin },
+    { id: 62, kind: 'report', text: 'Ein Bericht', created_at: '2026-08-02 09:00:00',
+      item: { id: 1, title: 'Beispiel' }, mine: false, verfasser: vBert },
+    { id: 67, kind: 'task', text: 'Fremde Aufgabe', created_at: '2026-07-28 09:00:00',
+      item: { id: 2, title: 'Zweites' }, mine: false, verfasser: vBert },
+    { id: 68, kind: 'task', text: 'Herrenlose Aufgabe', created_at: '2026-07-27 09:00:00',
+      item: { id: 2, title: 'Zweites' }, mine: false, verfasser: vGrab }
+  ];
   const gesendet = [];
 
   /* jsdom kennt <video> als Element, aber nicht seine Methoden: pause() und
@@ -8234,6 +8567,31 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       }
       if (koerper.name) k.name = koerper.name;
       return gib({ ...k });
+    }
+    /* Die Ansicht "Offen". Gefiltert wird HIER, wie im echten Server: nur die
+       Art 'task' geht hinaus, und `kind` selbst steht nicht in der Antwort --
+       der echte Endpunkt liefert es nicht, und ein Doppelgaenger, der mehr
+       mitschickt, machte jede Pruefung darauf wertlos. */
+    if (url === '/api/offen')
+      return gib(offen.filter(z => z.kind === 'task').map(z => ({
+        id: z.id, text: z.text, created_at: z.created_at,
+        item: z.item, mine: z.mine, verfasser: z.verfasser })));
+    /* PUT auf einen Kommentar: der echte Server schreibt die Art und antwortet
+       mit dem neu gebauten Eintrag. Der Doppelgaenger muss BEIDES nachmachen --
+       antwortete er nur, ohne seinen Bestand zu aendern, waere ein gesetzter
+       Haken von einem verschluckten nicht zu unterscheiden (Stolperstein 90).
+       Er steht VOR dem Sammelfall darunter, der jedem Kommentarweg den ganzen
+       Eintrag zurueckgibt. */
+    if (/^\/api\/comments\/\d+$/.test(url) && opt.method === 'PUT') {
+      const nr = Number(url.split('/').pop());
+      const koerper = JSON.parse(opt.body || '{}');
+      if (koerper.kind !== undefined) {
+        const zeile = offen.find(z => z.id === nr);
+        if (zeile) zeile.kind = koerper.kind;
+        const k = beispiel.comments.find(c => c.id === nr);
+        if (k) k.kind = koerper.kind;
+      }
+      return gib(beispiel);
     }
     if (url.startsWith('/api/items/1')) return gib(beispiel);
     // Endpunkte, die den ganzen Eintrag zurueckgeben. Ohne das wird `item` im
@@ -9193,6 +9551,477 @@ async function pruefeOberflaeche() {
   pruefe('Die Kommentare sprechen vom Anpinnen, nicht vom Favoriten',
     (appQuelle.match(/Anpinnen — steht dann ganz oben/g) || []).length === 2,
     'die Umbenennung hat die Kommentare mitgenommen -- das sind zwei verschiedene Dinge');
+
+  /* ================= Offen: die Ansicht ================= */
+  gruppe('Offen: die Ansicht in der Oberflaeche');
+
+  const offBaue = async (opt = {}) => {
+    const d = baueDom(JSDOM, { hash: '#/offen', ...opt });
+    await new Promise(r => setTimeout(r, 90));
+    return d;
+  };
+  const offZeilen = (d) => [...d.w.document.querySelectorAll('.off-zeile')];
+  const offTexte = (d) => offZeilen(d).map(z => z.querySelector('.off-text')?.textContent);
+  const offGruppen = (d) => [...d.w.document.querySelectorAll('.off-gruppe')];
+
+  /* Drei Zugaenge: nur dann erscheinen Verfassername und Umschalter. Die
+     Prueflage des Doppelgaengers traegt neben den drei offenen Aufgaben eine
+     erledigte, eine Notiz und einen Bericht -- der Doppelgaenger filtert wie
+     der echte Server, und was er nicht liefert, darf hier auch nicht stehen. */
+  const offAlle = await offBaue({ einstellungen: { filters: null, benutzerZahl: 3 } });
+
+  pruefe('Die Ansicht ist erreichbar und traegt eine Ueberschrift',
+    offAlle.w.document.querySelector('.page-title')?.textContent === 'Offene Aufgaben',
+    offAlle.w.document.querySelector('.page-title')?.textContent);
+  // Erst das Vorhandensein der Zeilen, dann die Aussage darueber, welche es
+  // sind -- auf null Zeilen waere jede Verneinung wahr (Stolperstein 81).
+  pruefe('Sie zeigt Zeilen', offZeilen(offAlle).length === 3, `${offZeilen(offAlle).length} Zeilen`);
+  pruefe('Und zwar genau die nicht erledigten Aufgaben',
+    gleich(offTexte(offAlle), ['Eine Aufgabe', 'Fremde Aufgabe', 'Herrenlose Aufgabe']),
+    JSON.stringify(offTexte(offAlle)));
+  pruefe('Die erledigte Aufgabe steht nicht darin',
+    !offTexte(offAlle).includes('Schon erledigt'), JSON.stringify(offTexte(offAlle)));
+  pruefe('Notiz und Bericht ebenso wenig',
+    !offTexte(offAlle).includes('Angepinnte Notiz') && !offTexte(offAlle).includes('Ein Bericht'),
+    JSON.stringify(offTexte(offAlle)));
+
+  pruefe('Die Zeilen sind nach Eintrag gruppiert',
+    offGruppen(offAlle).length === 2, `${offGruppen(offAlle).length} Gruppen`);
+  pruefe('Jede Gruppe traegt den Titel ihres Eintrags',
+    gleich(offGruppen(offAlle).map(g => g.querySelector('.off-titel')?.textContent),
+      ['Beispiel', 'Zweites']),
+    JSON.stringify(offGruppen(offAlle).map(g => g.querySelector('.off-titel')?.textContent)));
+  pruefe('Und die zweite Gruppe traegt ihre beiden Zeilen',
+    offGruppen(offAlle)[1]?.querySelectorAll('.off-zeile').length === 2,
+    `${offGruppen(offAlle)[1]?.querySelectorAll('.off-zeile').length}`);
+  pruefe('Ein Klick fuehrt in den Eintrag -- am Titel wie an der Zeile',
+    offGruppen(offAlle)[1]?.querySelector('.off-titel')?.getAttribute('href') === '#/item/2' &&
+    offGruppen(offAlle)[1]?.querySelector('.off-text')?.getAttribute('href') === '#/item/2',
+    offGruppen(offAlle)[1]?.querySelector('.off-titel')?.getAttribute('href'));
+
+  /* Verfasser und Datum an der Zeile. Drei Lagen nebeneinander: ein lebender
+     Name, ein Fremder und ein Grabstein -- waeren alle gleich, liesse sich
+     nicht sehen, ob die Beschriftung ihre eigene Zeile trifft. */
+  const offWann = (d) => offZeilen(d).map(z => z.querySelector('.off-wann')?.textContent);
+  pruefe('Jede Zeile nennt ihren Verfasser',
+    offWann(offAlle)[0]?.startsWith('chefin · ') && offWann(offAlle)[1]?.startsWith('bert · '),
+    JSON.stringify(offWann(offAlle)));
+  pruefe('Ein Grabstein wird zur Nummer, nicht zum leeren Namen',
+    offWann(offAlle)[2]?.startsWith('Gelöschter Benutzer 4 · '), JSON.stringify(offWann(offAlle)));
+  pruefe('Und jede Zeile nennt ihr Datum',
+    offWann(offAlle).every(t => /\d{2}\.\d{2}\.\d{4}/.test(t || '')), JSON.stringify(offWann(offAlle)));
+
+  /* Der Umschalter -- erst das Vorhandensein bei drei Zugaengen, dann die
+     Abwesenheit bei einem (Stolperstein 81). */
+  const offSicht = (d, welche) =>
+    d.w.document.querySelector(`#off-sicht [data-sicht="${welche}"]`);
+  pruefe('Bei mehreren Zugaengen steht der Umschalter „meine / alle" da',
+    !!offSicht(offAlle, 'meine') && !!offSicht(offAlle, 'alle'));
+  pruefe('Vorgabestellung ist „alle"',
+    offSicht(offAlle, 'alle')?.classList.contains('on') &&
+    !offSicht(offAlle, 'meine')?.classList.contains('on'),
+    `${offSicht(offAlle, 'meine')?.className} | ${offSicht(offAlle, 'alle')?.className}`);
+  offSicht(offAlle, 'meine').dispatchEvent(new offAlle.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('„meine" zeigt nur die eigenen Aufgaben',
+    gleich(offTexte(offAlle), ['Eine Aufgabe']), JSON.stringify(offTexte(offAlle)));
+  pruefe('Und die Zeile darueber sagt, was gezeigt wird',
+    /eigenen/.test(offAlle.w.document.getElementById('off-hint')?.textContent || ''),
+    offAlle.w.document.getElementById('off-hint')?.textContent);
+  offSicht(offAlle, 'alle').dispatchEvent(new offAlle.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Und zurueck geht es auch', offTexte(offAlle).length === 3, JSON.stringify(offTexte(offAlle)));
+  offAlle.w.close();
+
+  const offEiner = await offBaue({ einstellungen: { filters: null, benutzerZahl: 1 } });
+  pruefe('Bei einem Zugang stehen die Zeilen trotzdem da',
+    offZeilen(offEiner).length === 3, `${offZeilen(offEiner).length} Zeilen`);
+  pruefe('Aber der Umschalter erscheint nicht',
+    !offEiner.w.document.getElementById('off-sicht'));
+  pruefe('Und kein Verfassername steht an der Zeile',
+    offZeilen(offEiner).every(z => !/ · /.test(z.querySelector('.off-wann')?.textContent || '')),
+    JSON.stringify(offEiner.w.document.querySelectorAll('.off-wann').length
+      ? [...offEiner.w.document.querySelectorAll('.off-wann')].map(e => e.textContent) : '(keine)'));
+  offEiner.w.close();
+
+  /* ================= Der Haken in der Ansicht ================= */
+  gruppe('Offen: der Haken in der Ansicht');
+
+  /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. Erst die Lage, in
+     der es dasteht, dann die Gegenlage, in der es fehlt -- und in beiden wird
+     zuerst geprueft, dass es die ZEILE ueberhaupt gibt (Stolperstein 81). */
+  const offAdmin = await offBaue({ einstellungen: { filters: null, benutzerZahl: 3 } });
+  pruefe('Dem Admin steht an jeder Zeile ein Kaestchen',
+    offZeilen(offAdmin).length === 3 &&
+    offZeilen(offAdmin).every(z => !!z.querySelector('.off-haken')),
+    `${offZeilen(offAdmin).filter(z => z.querySelector('.off-haken')).length} von ${offZeilen(offAdmin).length}`);
+
+  const offBenutzer = await offBaue({
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+  pruefe('Ohne Adminrolle stehen die fremden Zeilen weiterhin da',
+    offZeilen(offBenutzer).length === 3, `${offZeilen(offBenutzer).length} Zeilen`);
+  pruefe('Aber nur an der eigenen steht ein Kaestchen',
+    offZeilen(offBenutzer).filter(z => z.querySelector('.off-haken')).length === 1 &&
+    !!offZeilen(offBenutzer)[0].querySelector('.off-haken'),
+    JSON.stringify(offZeilen(offBenutzer).map(z => !!z.querySelector('.off-haken'))));
+  offBenutzer.w.close();
+
+  /* Ein wirklich zugestellter Druck, kein Behandleraufruf (Stolperstein 61).
+     Geprueft wird BEIDES: was hinausgeht, und was danach auf dem Bildschirm
+     steht. */
+  offAdmin.gesendet.length = 0;
+  offZeilen(offAdmin)[0].querySelector('.off-haken')
+    .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+  const offGeschickt = offAdmin.gesendet.filter(g => g.methode === 'PUT');
+  pruefe('Der Haken schreibt ueber die vorhandene Kommentarroute',
+    offGeschickt.length === 1 && offGeschickt[0].url === '/api/comments/65',
+    JSON.stringify(offGeschickt.map(g => g.url)));
+  /* Er schickt die ART AUSDRUECKLICH und schaltet nicht weiter: aufgabeWeiter()
+     machte aus einer erledigten Aufgabe eine Notiz, und die Zeile fiele beim
+     zweiten Druck lautlos aus der Menge. */
+  pruefe('Und zwar die Art „erledigt", nichts sonst',
+    gleich(Object.keys(offGeschickt[0]?.koerper || {}), ['kind']) &&
+    offGeschickt[0]?.koerper?.kind === 'done',
+    JSON.stringify(offGeschickt[0]?.koerper));
+  pruefe('Die Zeile bleibt stehen, sie verschwindet nicht unter dem Zeiger',
+    offZeilen(offAdmin).length === 3 && offTexte(offAdmin)[0] === 'Eine Aufgabe',
+    JSON.stringify(offTexte(offAdmin)));
+  pruefe('Und sie zeichnet sich als erledigt',
+    offZeilen(offAdmin)[0].classList.contains('erledigt'),
+    offZeilen(offAdmin)[0].className);
+  pruefe('Das Kaestchen zeigt jetzt den Haken',
+    offZeilen(offAdmin)[0].querySelector('.off-haken')?.textContent === '☑',
+    offZeilen(offAdmin)[0].querySelector('.off-haken')?.textContent);
+
+  offAdmin.gesendet.length = 0;
+  offZeilen(offAdmin)[0].querySelector('.off-haken')
+    .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+  pruefe('Ein zweiter Druck nimmt ihn wieder weg -- und macht keine Notiz daraus',
+    offAdmin.gesendet.filter(g => g.methode === 'PUT')[0]?.koerper?.kind === 'task',
+    JSON.stringify(offAdmin.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
+  pruefe('Die Zeile steht danach wieder offen da',
+    !offZeilen(offAdmin)[0].classList.contains('erledigt'),
+    offZeilen(offAdmin)[0].className);
+
+  /* Der Doppelgaenger aendert seinen Bestand wirklich mit (Stolperstein 90):
+     wird die Ansicht neu aufgebaut, ist die abgehakte Zeile fort. Ohne diese
+     Zeile waere "die Ansicht hat den Haken gesetzt" von "nichts ist passiert"
+     nicht zu unterscheiden. */
+  offZeilen(offAdmin)[0].querySelector('.off-haken')
+    .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+  offAdmin.w.location.hash = '#/';
+  await new Promise(r => setTimeout(r, 60));
+  offAdmin.w.location.hash = '#/offen';
+  await new Promise(r => setTimeout(r, 90));
+  pruefe('Beim naechsten Aufbau ist die abgehakte Zeile fort',
+    gleich(offTexte(offAdmin), ['Fremde Aufgabe', 'Herrenlose Aufgabe']),
+    JSON.stringify(offTexte(offAdmin)));
+  offAdmin.w.close();
+
+  /* Ein leerer Bildschirm ist eine schlechte Antwort. */
+  const offLeer = await offBaue({ offenBestand: [], einstellungen: { filters: null, benutzerZahl: 3 } });
+  pruefe('Ohne offene Aufgaben steht ein Satz da, kein leerer Bildschirm',
+    /Nichts offen/.test(offLeer.w.document.getElementById('off-hint')?.textContent || ''),
+    offLeer.w.document.getElementById('off-hint')?.textContent);
+  pruefe('Und keine Gruppe daneben', offGruppen(offLeer).length === 0);
+  offLeer.w.close();
+
+  /* Nichts von MIR offen ist ein anderer Fall als gar nichts offen -- ein Satz
+     fuer beides erklaerte den einen falsch. */
+  const offNichtMeine = await offBaue({ einstellungen: { filters: null, benutzerZahl: 3 } });
+  offSicht(offNichtMeine, 'meine')
+    .dispatchEvent(new offNichtMeine.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  offZeilen(offNichtMeine)[0].querySelector('.off-haken')
+    .dispatchEvent(new offNichtMeine.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 50));
+  offNichtMeine.w.location.hash = '#/';
+  await new Promise(r => setTimeout(r, 60));
+  offNichtMeine.w.location.hash = '#/offen';
+  await new Promise(r => setTimeout(r, 90));
+  offSicht(offNichtMeine, 'meine')
+    .dispatchEvent(new offNichtMeine.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('„Von mir ist nichts offen" sagt etwas anderes als „nichts offen"',
+    /Von mir ist nichts offen/.test(
+      offNichtMeine.w.document.getElementById('off-hint')?.textContent || ''),
+    offNichtMeine.w.document.getElementById('off-hint')?.textContent);
+  offNichtMeine.w.close();
+
+  /* DIE UEBERSCHRIFT KOMMT AUS DEM VOKABULAR. Eine Ansicht, die „Offene
+     Aufgaben" schreibt, waehrend der Betreiber sie „ToDo's" nennt, ist falsch
+     beschriftet. Geprueft wird an einer Prueflage, die das Vokabular
+     umstellt -- ohne sie bliebe jede feste Zeichenkette unbemerkt. */
+  const offVok = await offBaue({ einstellungen: { ...eigenVoll, benutzerZahl: 3 } });
+  pruefe('Die Ueberschrift benutzt das Vokabular, nicht das feste Wort',
+    offVok.w.document.querySelector('.page-title')?.textContent === 'Offene ToDo’s',
+    offVok.w.document.querySelector('.page-title')?.textContent);
+  pruefe('Der Ueberfahrtext am Kaestchen ebenso',
+    /Done/.test(offZeilen(offVok)[0]?.querySelector('.off-haken')?.title || ''),
+    offZeilen(offVok)[0]?.querySelector('.off-haken')?.title);
+  pruefe('Und die Zeile darueber nennt beide Woerter des Vokabulars',
+    /ToDo’s/.test(offVok.w.document.getElementById('off-hint')?.textContent || '') &&
+    /Maschine/.test(offVok.w.document.getElementById('off-hint')?.textContent || ''),
+    offVok.w.document.getElementById('off-hint')?.textContent);
+  offVok.w.close();
+
+  const offLeerVok = await offBaue({ offenBestand: [],
+    einstellungen: { ...eigenVoll, benutzerZahl: 3 } });
+  pruefe('Auch der leere Satz benutzt das Vokabular',
+    /ToDo’s/.test(offLeerVok.w.document.getElementById('off-hint')?.textContent || ''),
+    offLeerVok.w.document.getElementById('off-hint')?.textContent);
+  offLeerVok.w.close();
+
+  /* Der Weg in die Ansicht: ein Knopf in der Kopfzeile, neben dem Zahnrad. */
+  const offKopf = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 3 } });
+  await new Promise(r => setTimeout(r, 90));
+  const offKnopf = offKopf.w.document.getElementById('offen');
+  pruefe('Die Kopfzeile traegt einen Knopf in die Ansicht', !!offKnopf);
+  pruefe('Und er steht neben dem Zahnrad',
+    offKnopf?.nextElementSibling?.id === 'sys', offKnopf?.nextElementSibling?.id);
+  pruefe('Sein Ueberfahrtext kommt aus dem Vokabular',
+    offKnopf?.title === 'Offene Aufgaben', offKnopf?.title);
+  offKnopf?.dispatchEvent(new offKopf.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 90));
+  pruefe('Ein zugestellter Klick fuehrt in die Ansicht',
+    offKopf.w.location.hash === '#/offen' &&
+    !!offKopf.w.document.querySelector('.off-gruppe'),
+    offKopf.w.location.hash);
+  offKopf.w.close();
+
+  /* Die Kante und der Durchstrich am Stylesheet -- im gebauten DOM laesst sich
+     ohne Layoutberechnung nicht sehen, ob etwas sichtbar ist. Erst das
+     Vorhandensein der Regel, dann ihre Eigenschaft (Stolperstein 81, Luecke 1). */
+  const cssOff = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
+  const regelOff = (wahl) => (cssOff.match(new RegExp(wahl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
+  pruefe('Die Gruppe traegt eine Regel im Stylesheet',
+    !!regelOff('.off-gruppe'), regelOff('.off-gruppe') || '(keine Regel)');
+  pruefe('Und sie ist blau wie die Aufgabe im Eintrag -- keine neue Farbe',
+    /border-left: *3px solid var\(--blue\)/.test(regelOff('.off-gruppe')), regelOff('.off-gruppe'));
+  pruefe('Die erledigte Zeile hat eine eigene Regel',
+    !!regelOff('.off-zeile.erledigt .off-text'), regelOff('.off-zeile.erledigt .off-text') || '(keine Regel)');
+  pruefe('Und sie streicht den Text durch',
+    /line-through/.test(regelOff('.off-zeile.erledigt .off-text')),
+    regelOff('.off-zeile.erledigt .off-text'));
+
+  /* ================= Neu seit ================= */
+  gruppe('Neu seit: der Filter in der Uebersicht');
+
+  /* Vier Eintraege, zwei alt und zwei neu -- und die beiden Haelften tragen
+     verschiedene Teststatus und Kategorien. Mit lauter gleichartigen Zeilen
+     liesse sich nicht sehen, ob der Filter sich mit den uebrigen kombiniert
+     oder sie ueberfaehrt.
+     DER MERKZEITPUNKT LIEGT MITTAGS: bei Mitternacht faerbte die Zeitzone des
+     Prueflaufs die Beschriftung um einen Tag um, und die Pruefung waere je
+     nach Rechner rot. */
+  const nsKat = { id: 21, name: 'Werkzeug' };
+  const nsTag = { id: 1, name: 'Grün' };
+  const nsMerk = '2026-08-10 12:00:00';
+  const nsEintrag = (id, titel, stand, extra = {}) => ({
+    id, title: titel, rejected: false, tested: false, favorite: false, category: null,
+    tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
+    testCount: null, testAvg: null, testLast: null, testDays: [],
+    updated_at: stand, searchText: titel.toLowerCase(), ...extra
+  });
+  const nsBestand = [
+    nsEintrag(1, 'Alpha alt', '2026-08-01 10:00:00', { tested: true, category: nsKat }),
+    nsEintrag(2, 'Beta neu', '2026-08-20 10:00:00', { tags: [nsTag] }),
+    nsEintrag(3, 'Gamma alt', '2026-08-02 10:00:00'),
+    nsEintrag(4, 'Delta neu', '2026-08-21 10:00:00', { tested: true, category: nsKat })
+  ];
+  const nsTagVorrat = [{ id: 1, name: 'Grün', usage_count: 1, test_usage_count: 0 }];
+  const nsTitel = (d) => [...d.w.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
+  const nsBaue = async (filters, mehr = {}) => {
+    const d = baueDom(JSDOM, {
+      uebersichtItems: nsBestand, tags: nsTagVorrat,
+      einstellungen: { filters, zuletztGesehen: nsMerk, ...mehr }
+    });
+    await new Promise(r => setTimeout(r, 90));
+    return d;
+  };
+  const nsVorgabe = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'all',
+                      favorit: false, neu: false, sort: 'title_asc' };
+
+  /* ERSTER BESUCH: kein Merkzeitpunkt, also kein Umschalter. Erst das
+     Vorhandensein der Filterzeile pruefen, dann die Abwesenheit des Knopfes --
+     ohne die erste Zeile bliebe die zweite auch bei einer gar nicht
+     gezeichneten Zeile gruen (Stolperstein 81). */
+  const nsErster = await nsBaue(nsVorgabe, { zuletztGesehen: null });
+  pruefe('Beim ersten Besuch steht die Filterzeile trotzdem da',
+    !!nsErster.w.document.getElementById('f-fav'));
+  pruefe('Aber „Neu seit ..." wird gar nicht erst angeboten',
+    !nsErster.w.document.getElementById('f-neu'));
+  pruefe('Und es sind alle Eintraege zu sehen', nsTitel(nsErster).length === 4,
+    JSON.stringify(nsTitel(nsErster)));
+  /* Ein gespeicherter Filter, der den Umschalter auf AN stehen hat, waehrend
+     es keinen Bezugspunkt gibt: er darf nichts wegnehmen. Sonst verschwaende
+     der halbe Bestand hinter einem Knopf, den es gar nicht gibt. */
+  const nsErsterAn = await nsBaue({ ...nsVorgabe, neu: true }, { zuletztGesehen: null });
+  pruefe('Ein gespeichertes „neu" ohne Bezugspunkt nimmt nichts weg',
+    nsTitel(nsErsterAn).length === 4, JSON.stringify(nsTitel(nsErsterAn)));
+  nsErster.w.close(); nsErsterAn.w.close();
+
+  const nsAus = await nsBaue(nsVorgabe);
+  const nsKnopf = nsAus.w.document.getElementById('f-neu');
+  pruefe('Mit Merkzeitpunkt steht der Umschalter da', !!nsKnopf);
+  pruefe('Er nennt den Tag, seit dem gezaehlt wird',
+    nsKnopf?.textContent.startsWith('Neu seit 10.08.'), nsKnopf?.textContent);
+  pruefe('Und daneben die Zahl',
+    nsKnopf?.querySelector('.n')?.textContent === '2', nsKnopf?.querySelector('.n')?.textContent);
+  pruefe('Er sitzt abgesetzt, wie der Favoritenknopf daneben',
+    nsKnopf?.classList.contains('pill-sep'), nsKnopf?.className);
+  pruefe('Vor dem Klick ist er nicht gesetzt',
+    !nsKnopf?.classList.contains('on'), nsKnopf?.className);
+
+  /* Ein wirklich zugestellter Klick (Stolperstein 61). */
+  nsKnopf.dispatchEvent(new nsAus.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Ein zugestellter Klick zeigt nur, was seither dazugekommen ist',
+    gleich(nsTitel(nsAus), ['Beta neu', 'Delta neu']), JSON.stringify(nsTitel(nsAus)));
+  pruefe('Und die Zahl daneben stimmt mit der Menge ueberein',
+    nsAus.w.document.getElementById('f-neu')?.querySelector('.n')?.textContent
+      === String(nsTitel(nsAus).length),
+    nsAus.w.document.getElementById('f-neu')?.querySelector('.n')?.textContent);
+  pruefe('Der Knopf zeichnet sich dabei als gesetzt',
+    nsAus.w.document.getElementById('f-neu')?.classList.contains('on'),
+    nsAus.w.document.getElementById('f-neu')?.className);
+  nsAus.w.document.getElementById('f-neu')
+    .dispatchEvent(new nsAus.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Erneuter Klick nimmt ihn zurueck', nsTitel(nsAus).length === 4,
+    JSON.stringify(nsTitel(nsAus)));
+  nsAus.w.close();
+
+  /* ER FILTERT, ER SORTIERT NICHT UM -- die tragende Regel dieser Runde.
+     Derselbe Bestand einmal mit und einmal ohne Filter, und die verbliebenen
+     Eintraege stehen in DERSELBEN Reihenfolge. Geprueft an ZWEI Sortierungen:
+     bei nur einer liesse sich nicht ausschliessen, dass der Filter zufaellig
+     dieselbe Ordnung erzeugt wie die eingestellte. */
+  const nsOrdnung = [
+    ['updated_desc', 'nach Änderung',
+     ['Delta neu', 'Beta neu', 'Gamma alt', 'Alpha alt'], ['Delta neu', 'Beta neu']],
+    ['title_asc', 'nach Titel',
+     ['Alpha alt', 'Beta neu', 'Delta neu', 'Gamma alt'], ['Beta neu', 'Delta neu']]
+  ];
+  for (const [wahl, name, sollOhne, sollMit] of nsOrdnung) {
+    const dOhne = await nsBaue({ ...nsVorgabe, sort: wahl });
+    const dMit = await nsBaue({ ...nsVorgabe, sort: wahl, neu: true });
+    const ohne = nsTitel(dOhne), mit = nsTitel(dMit);
+    /* ZUERST DIE UNGEFILTERTE LISTE, und das ist die eigentliche Zusicherung:
+       eine Vorsortierung des Neuen VOR dem `switch` -- die Bauform, an der
+       schon der Favorit gescheitert ist -- veraendert die Reihenfolge der
+       verbliebenen Zeilen gar nicht und bliebe an der Pruefung darunter
+       unsichtbar. Sie faellt nur auf, wenn die Liste OHNE Filter an ihrer
+       eingestellten Ordnung gemessen wird. */
+    pruefe(`Ohne Filter steht die Liste in der eingestellten Ordnung (${name})`,
+      gleich(ohne, sollOhne), JSON.stringify(ohne));
+    pruefe(`Der Filter nimmt Zeilen weg und ordnet nicht um (${name})`,
+      gleich(mit, sollMit) && gleich(mit, ohne.filter(t => mit.includes(t))),
+      `ohne ${JSON.stringify(ohne)} / mit ${JSON.stringify(mit)}`);
+    dOhne.w.close(); dMit.w.close();
+  }
+
+  /* Kombinierbar mit allem anderen -- wie der Favorit. Drei Paare, weil jeder
+     der drei Filter anders gebaut ist: Teststatus ist ein Wert aus dreien,
+     Kategorie eine Nummer, Tags eine Menge mit eigener Verknuepfung. */
+  const nsTest = await nsBaue({ ...nsVorgabe, neu: true, tested: 'tested' });
+  pruefe('Kombinierbar mit dem Teststatus',
+    gleich(nsTitel(nsTest), ['Delta neu']), JSON.stringify(nsTitel(nsTest)));
+  nsTest.w.close();
+  const nsKatDom = await nsBaue({ ...nsVorgabe, neu: true, categoryId: 21 });
+  pruefe('Kombinierbar mit der Kategorie',
+    gleich(nsTitel(nsKatDom), ['Delta neu']), JSON.stringify(nsTitel(nsKatDom)));
+  nsKatDom.w.close();
+  const nsTagDom = await nsBaue({ ...nsVorgabe, neu: true, tagIds: [1] });
+  pruefe('Kombinierbar mit dem Tagfilter',
+    gleich(nsTitel(nsTagDom), ['Beta neu']), JSON.stringify(nsTitel(nsTagDom)));
+  nsTagDom.w.close();
+  /* Und die Gegenlage zum Paar: ohne den zweiten Filter stuenden beide neuen
+     Eintraege da. Ohne sie belegte das Paar nur, dass ueberhaupt etwas
+     wegfaellt -- nicht, dass BEIDE Bedingungen greifen. */
+  const nsNurNeu = await nsBaue({ ...nsVorgabe, neu: true });
+  pruefe('Ohne den zweiten Filter blieben es zwei',
+    gleich(nsTitel(nsNurNeu), ['Beta neu', 'Delta neu']), JSON.stringify(nsTitel(nsNurNeu)));
+  nsNurNeu.w.close();
+
+  /* Bei EINEM Zugang erscheint er trotzdem -- anders als „meine / alle" ist er
+     keine Aussage ueber andere. Auch allein vergisst man, wo man war. */
+  const nsEiner = await nsBaue(nsVorgabe, { benutzerZahl: 1 });
+  pruefe('Auch bei einem einzigen Zugang steht der Umschalter da',
+    !!nsEiner.w.document.getElementById('f-neu'));
+  nsEiner.w.close();
+
+  /* ================= Der Merkzeitpunkt ================= */
+  gruppe('Neu seit: der Merkzeitpunkt');
+
+  /* BEIM VERLASSEN, NICHT BEIM BETRETEN. Erst die Abwesenheit nach dem
+     Aufbau -- und die ist hier belastbar, weil daneben belegt wird, dass
+     ueberhaupt etwas an /api/settings geht. */
+  const nsWeg = await nsBaue(nsVorgabe);
+  const nsPuts = () => nsWeg.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings');
+  pruefe('Das Betreten der Uebersicht merkt sich nichts',
+    nsPuts().length === 0, JSON.stringify(nsPuts().map(g => g.koerper)));
+  nsWeg.w.location.hash = '#/item/1';
+  await new Promise(r => setTimeout(r, 90));
+  pruefe('Das Verlassen der Uebersicht schickt den Merkzeitpunkt',
+    nsPuts().length === 1 && nsPuts()[0].koerper?.zuletztGesehen !== undefined,
+    JSON.stringify(nsPuts().map(g => g.koerper)));
+  /* Was hinausgeht, ist ein SIGNAL und keine Uhrzeit: die Uhr des Aufrufers
+     ist eine Behauptung, der Server setzt seine eigene ein. */
+  pruefe('Und zwar als Signal, nicht als Zeitangabe des Aufrufers',
+    !/\d{4}-\d{2}-\d{2}/.test(String(nsPuts()[0]?.koerper?.zuletztGesehen ?? '')),
+    JSON.stringify(nsPuts()[0]?.koerper));
+  pruefe('Der Filterstand wandert dabei nicht mit',
+    gleich(Object.keys(nsPuts()[0]?.koerper || {}), ['zuletztGesehen']),
+    JSON.stringify(nsPuts()[0]?.koerper));
+
+  /* DER BEZUGSPUNKT BLEIBT WAEHREND EINES SEITENLEBENS STEHEN. Ohne das waere
+     die Menge nach dem ersten geoeffneten Eintrag leer: man saehe zwei Neue
+     und verloere sie beim ersten Klick. */
+  nsWeg.w.location.hash = '#/';
+  await new Promise(r => setTimeout(r, 90));
+  pruefe('Zurueck in der Uebersicht steht derselbe Bezugspunkt',
+    nsWeg.w.document.getElementById('f-neu')?.textContent.startsWith('Neu seit 10.08.'),
+    nsWeg.w.document.getElementById('f-neu')?.textContent);
+  pruefe('Und dieselbe Menge wie vorher',
+    nsWeg.w.document.getElementById('f-neu')?.querySelector('.n')?.textContent === '2',
+    nsWeg.w.document.getElementById('f-neu')?.querySelector('.n')?.textContent);
+  nsWeg.w.close();
+
+  /* Der Weg in die Ansicht "Offen" ist ebenfalls ein Verlassen der Uebersicht,
+     der Weg in den Systembereich auch -- der Merkzeitpunkt haengt an der
+     Uebersicht und nicht an einem einzelnen Ziel. */
+  for (const ziel of ['#/offen', '#/system', '#/compare']) {
+    const d = await nsBaue(nsVorgabe);
+    d.w.location.hash = ziel;
+    await new Promise(r => setTimeout(r, 90));
+    pruefe(`Auch der Weg nach ${ziel} merkt den Zeitpunkt`,
+      d.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings'
+        && g.koerper?.zuletztGesehen !== undefined).length === 1,
+      JSON.stringify(d.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
+    d.w.close();
+  }
+
+  /* Und die Gegenprobe zum Ganzen: ein Wechsel, der die Uebersicht NICHT
+     verlaesst, merkt sich nichts. Ohne sie bliebe offen, ob der Merkzeitpunkt
+     bei jedem Neuzeichnen hinausginge -- dann stuende er auf dem Augenblick,
+     in dem man hinsieht, und "neu seit" waere immer leer. */
+  const nsBleibt = await nsBaue(nsVorgabe);
+  nsBleibt.w.document.getElementById('f-neu')
+    .dispatchEvent(new nsBleibt.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 60));
+  pruefe('Ein Filterklick in der Uebersicht merkt sich keinen Zeitpunkt',
+    nsBleibt.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings'
+      && g.koerper?.zuletztGesehen !== undefined).length === 0,
+    JSON.stringify(nsBleibt.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
+  pruefe('Er schreibt aber sehr wohl die Filterwahl',
+    nsBleibt.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/settings'
+      && g.koerper?.filters !== undefined),
+    JSON.stringify(nsBleibt.gesendet.filter(g => g.methode === 'PUT').map(g => Object.keys(g.koerper || {}))));
+  nsBleibt.w.close();
 
   /* ================= Blöcke ================= */
   gruppe('Blöcke anordnen und einklappen');
@@ -11004,7 +11833,14 @@ async function pruefeOberflaeche() {
      Der Prueflage nach: sechs Kommentare, darunter ein Bericht, eine Aufgabe
      und ein erledigtes Todo. Die Notiz bleibt ungenannt, die Anpinnung steht
      nicht in der Zeile. */
-  const kZaehl = wb.document.getElementById('ccount');
+  /* AN EINEM FRISCHEN AUFBAU. Die Pruefungen darueber haben in DIESEM Fenster
+     zwei Arten umgeschaltet, und der Doppelgaenger schreibt das seit 0.8.60
+     wirklich mit -- eine Antwort, die sich durch einen Schreibvorgang aendern
+     soll, muss sich wirklich aendern (Stolperstein 90). Die Zahlen der
+     Prueflage liessen sich an diesem Fenster danach nicht mehr ablesen. */
+  const kzDom = baueDom(JSDOM, { einstellungen: eigeneOrdnung, hash: '#/item/1' });
+  await new Promise(r => setTimeout(r, 90));
+  const kZaehl = kzDom.w.document.getElementById('ccount');
   pruefe('Der Kommentarblock traegt seine Zahlen in der Kopfzeile',
     !!kZaehl && kZaehl.textContent === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 Erledigt)',
     kZaehl ? kZaehl.textContent : '(kein Hinweis)');
@@ -11012,6 +11848,7 @@ async function pruefeOberflaeche() {
     !!kZaehl && !!kZaehl.closest('.block-head') &&
     kZaehl.closest('.block')?.dataset.block === 'kommentare',
     kZaehl ? kZaehl.parentElement?.className : '(kein Hinweis)');
+  kzDom.w.close();
 
   // Gebildet an EINEM Ort. Die Randfaelle unmittelbar an der Funktion, nicht
   // ueber sechs aufgebaute Kommentarlagen.
@@ -12527,10 +13364,20 @@ async function pruefeOberflaeche() {
 
   /* ANSICHTSZUSTAND, KEINE EINSTELLUNG: der Umschalter schreibt nichts an den
      Server. Ginge er dorthin, waere er eine zweite Wahrheit ueber dieselben
-     Daten und stuende beim naechsten Aufruf noch immer so. */
+     Daten und stuende beim naechsten Aufruf noch immer so.
+     AUSGENOMMEN IST DER MERKZEITPUNKT: die Prueflage kommt aus der Uebersicht,
+     und wer sie verlaesst, schickt seit 0.8.60 genau ein PUT auf /api/settings
+     mit `zuletztGesehen`. Die Ausnahme ist eng gefasst und wird DANEBEN
+     belegt -- ohne die zweite Zeile koennte sie stillschweigend alles
+     durchlassen und die erste bliebe gruen, was immer geschickt wuerde
+     (Stolperstein 81). */
+  const vglPuts = vglDom.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings');
   pruefe('Der Umschalter schreibt nichts an den Server',
-    !vglDom.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/settings'),
-    JSON.stringify(vglDom.gesendet.filter(g => g.methode === 'PUT').map(g => g.url)));
+    !vglPuts.some(g => !(g.koerper && g.koerper.zuletztGesehen !== undefined)),
+    JSON.stringify(vglPuts.map(g => g.koerper)));
+  pruefe('Und was dorthin ging, war ausschliesslich der Merkzeitpunkt',
+    vglPuts.length === 1 && gleich(Object.keys(vglPuts[0].koerper || {}), ['zuletztGesehen']),
+    JSON.stringify(vglPuts.map(g => g.koerper)));
 
   cmpSicht('alle').dispatchEvent(new wVgl.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
