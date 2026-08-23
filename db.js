@@ -44,6 +44,26 @@ CREATE TABLE IF NOT EXISTS items (
   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- photos traegt ZWEI Arten in EINER Tabelle. Zwei Tabellen hiessen zwei
+-- sortierte Listen und damit zwei Quellen fuer die Frage, was das Hauptbild
+-- ist. Der Tabellenname wandert deshalb NICHT mit (dieselbe Regel wie bei
+-- katalog.sqlite): ein umbenannter Name brauchte einen Tabellenneubau und
+-- braechte nichts.
+--
+-- WAS DIE VORHANDENEN SPALTEN BEI EINEM VIDEO BEDEUTEN -- die einzige Stelle,
+-- an der steht, warum data je nach art etwas anderes ist:
+--
+--   Spalte           bei art = 'bild'      bei art = 'video'
+--   ---------------  --------------------  ----------------------------
+--   data             das Originalbild      die VIDEODATEI
+--   thumb            Kachel 400 px         STANDBILD 400 px
+--   medium           1600 px               STANDBILD 1600 px
+--   focus_x/focus_y  Ausschnitt der Kachel dasselbe, am Standbild
+--   dauer            NULL                  Sekunden
+--
+-- Das Standbild erzeugt der Browser des Hochladenden, nicht der Server: er
+-- oeffnet nie ein Video. Damit ist das Standbild AUCH NICHT UEBERPRUEFBAR --
+-- es ist eine Vorschau, keine Aussage. Wer es fuer einen Beleg haelt, irrt.
 CREATE TABLE IF NOT EXISTS photos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
@@ -51,6 +71,11 @@ CREATE TABLE IF NOT EXISTS photos (
   data BLOB NOT NULL,
   thumb BLOB,
   medium BLOB,
+  -- Kein CHECK auf die beiden erlaubten Werte, obwohl SQLite einen annaehme:
+  -- die Menge stuende dann zweimal -- hier und dort, wo der Server sie prueft.
+  -- Zwei Stellen fuer dieselbe Liste laufen auseinander.
+  art TEXT NOT NULL DEFAULT 'bild',   -- 'bild' | 'video'
+  dauer INTEGER,                      -- Sekunden, nur bei Video
   -- Fokuspunkt in Prozent. Schneidet nichts weg: die Datei bleibt unangetastet,
   -- die beiden Werte verschieben nur das sichtbare Fenster der quadratischen
   -- Vorschau (object-position).
@@ -377,6 +402,43 @@ function umstieg0840() {
 umstieg0840();
 // ENDE UMSTIEG 0.8.40
 
+// UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0
+// Die Spalten art und dauer stehen in der DDL, aber CREATE TABLE IF NOT EXISTS
+// ruehrt eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus
+// 0.8.0 bis 0.8.40 traegt photos ohne diese Spalten.
+// DIE BESTANDSZEILEN BEKOMMEN 'bild', und zwar aus dem DEFAULT der Spalte,
+// nicht aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit
+// NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. dauer bleibt dabei
+// NULL, und das ist richtig -- ein Foto hat keine Dauer.
+// JEDE SPALTE WIRD EINZELN GEFRAGT, nicht der Block als Ganzes. Zwei
+// ALTER TABLE sind zwei Anweisungen: scheitert die zweite, bleibt die erste
+// stehen. Ein Block, der beim Vorhandensein von art zurueckkehrt, liesse dauer
+// dann fuer immer fehlen. So heilt der naechste Start den zerrissenen Stand.
+// KEINE FRAGE NACH EINEM VERFASSER, wie schon bei 0.8.40: ein Foto gehoert
+// seinem Eintrag, nicht einem Verfasser. Das Auffangnetz weiter unten geht
+// diese Tabelle deshalb nichts an.
+// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
+// weg, die Spalten in der DDL bleiben.
+function umstieg0850() {
+  const spalten = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
+  const fehlend = [];
+  if (!spalten.includes('art')) {
+    db.exec("ALTER TABLE photos ADD COLUMN art TEXT NOT NULL DEFAULT 'bild'");
+    fehlend.push('art');
+  }
+  if (!spalten.includes('dauer')) {
+    db.exec('ALTER TABLE photos ADD COLUMN dauer INTEGER');
+    fehlend.push('dauer');
+  }
+  if (!fehlend.length) return 0;
+  const n = db.prepare('SELECT COUNT(*) AS n FROM photos').get().n;
+  console.log(`[Kriterion] photos um ${fehlend.join(' und ')} ergaenzt (Umstieg auf 0.8.50); ` +
+    `${n} Zeilen stehen auf der Vorgabeart 'bild'.`);
+  return 1;
+}
+umstieg0850();
+// ENDE UMSTIEG 0.8.50
+
 // --- Auffangnetz: die Anlage braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
@@ -479,4 +541,6 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // UMSTIEG 0.8.31 — ENTFAELLT MIT 1.0
                    umstieg0831,
                    // UMSTIEG 0.8.40 — ENTFAELLT MIT 1.0
-                   umstieg0840 };
+                   umstieg0840,
+                   // UMSTIEG 0.8.50 — ENTFAELLT MIT 1.0
+                   umstieg0850 };
