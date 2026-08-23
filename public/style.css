@@ -1079,3 +1079,45 @@ body.lb-open .version-zeile { display: none; }
 body.anmeldung { display: flex; flex-direction: column; min-height: 100vh; }
 body.anmeldung #app { flex: 1 0 auto; display: flex; flex-direction: column; }
 body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
+
+/* ================= Die Ansicht „Offen" ================= */
+/* Sie zeigt Aufgabenkommentare quer über alle Einträge. Keine neue Farbe: die
+   Aufgabe ist blau, seit es die dritte Kommentarart gibt, und die Gruppe trägt
+   dieselbe Kante wie .cmt.aufgabe im Eintrag — dieselbe Sache, dieselbe Marke.
+   Wer hier eine eigene Farbe einführte, hätte zwei Kanäle für ein Merkmal. */
+.off-gruppe {
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-left: 3px solid var(--blue); border-radius: var(--r-sm);
+  padding: 10px 12px; margin-bottom: 10px;
+}
+.off-titel {
+  display: block; font-weight: 600; font-size: .95rem; color: var(--text);
+  margin-bottom: 7px; transition: color .15s var(--ease);
+}
+.off-titel:hover { color: var(--accent); }
+/* Der Text nimmt den Platz, der Zeitstempel nicht: flex: 0 1 auto am Inhalt,
+   flex: 0 0 auto an der Angabe — dieselbe Regel wie am Namen der Linkzeile.
+   Was sich die volle Breite nimmt, schöbe die Angabe ans andere Ende der
+   Zeile, wo sie zu nichts mehr gehört. */
+.off-zeile {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 4px 0; border-top: 1px solid var(--line-2);
+}
+.off-zeile:first-of-type { border-top: 0; }
+.off-text {
+  flex: 0 1 auto; color: var(--text-2); font-size: .9rem;
+  word-break: break-word; transition: color .15s var(--ease);
+}
+.off-text:hover { color: var(--accent); }
+.off-wann {
+  flex: 0 0 auto; margin-left: auto;
+  font-family: var(--mono); font-size: .7rem; color: var(--faint);
+}
+.off-haken { flex: 0 0 auto; color: var(--faint); font-size: .95rem; line-height: 1; }
+.off-haken:hover { color: var(--green); }
+/* Die erledigte Zeile bleibt stehen, durchgestrichen — sie verschwindet erst
+   beim nächsten Aufbau. Eine Zeile, die unter dem Zeiger wegspringt, nimmt die
+   Möglichkeit, den Haken gleich wieder wegzunehmen. Grün wie überall, wo etwas
+   positiv abgeschlossen ist. */
+.off-zeile.erledigt .off-text { text-decoration: line-through; color: var(--faint); }
+.off-zeile.erledigt .off-haken { color: var(--green); }

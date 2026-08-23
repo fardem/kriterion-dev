@@ -8,6 +8,15 @@ function fmtDate(iso) {
   const d = new Date(iso.replace(' ', 'T') + 'Z');
   return d.toLocaleString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
+// Kurzform fuer die Filterzeile: "19.08." -- der Platz dort ist eng, und das
+// Jahr sagt neben einem Merkzeitpunkt von vorgestern nichts. Den nachlaufenden
+// Punkt setzt die deutsche Schreibweise selbst; er wird hier NICHT angehaengt,
+// sonst stuende dort "19.08..".
+function fmtTagKurz(iso) {
+  if (!iso) return '';
+  const d = new Date(iso.replace(' ', 'T') + 'Z');
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+}
 function fmtDay(day) {
   const d = new Date(day + 'T12:00:00');
   return d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -49,6 +58,9 @@ function toast(msg, isErr = false) {
 }
 
 const ICON_PH = `<svg class="ph" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M3.5 17l5-4.5 3.5 3 3-2.5 5.5 4.5"/></svg>`;
+// Eine Liste mit Haken -- das Zeichen fuer "was ist noch offen". Es steht
+// neben dem Zahnrad und traegt dieselbe Groesse wie dieses.
+const ICON_OFFEN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5l2 2 3-3.5"/><path d="M3.5 13l2 2 3-3.5"/><path d="M3.5 19.5l2 2 3-3.5"/><path d="M12.5 6.5H21"/><path d="M12.5 13H21"/><path d="M12.5 19.5H21"/></svg>`;
 const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
 const MARK = (s = 30) => `<svg class="mark" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"/><path d="M12 2.8 L12 12 L20.2 7.4"/><path d="M20.2 16.6 L12 12 L20.2 7.4"/><path d="M12 21.2 L12 12 L3.8 16.6"/><path d="M3.8 7.4 L12 12 L3.8 16.6"/></svg>`;
@@ -740,6 +752,17 @@ let NAME = '';
 // Die Schwelle steht GENAU HIER und nirgends sonst.
 const mehrereBenutzer = () => BENUTZER_ZAHL > 1;
 
+/* Der Bezugszeitpunkt fuer "Neu seit ...". EINMAL beim Laden der Seite
+   gelesen und dann STEHENGELASSEN, obwohl der Server ihn bei jedem Verlassen
+   der Uebersicht weiterstellt. Ohne das waere die Menge nach dem ersten
+   geoeffneten Eintrag leer: man saehe sieben Neue und verloere sechs davon
+   beim ersten Klick. Der weitergestellte Wert gilt also erst beim naechsten
+   Laden der Seite -- ein Besuch ist eine Sitzung am Bildschirm, nicht ein
+   Wechsel der Ansicht.
+   null heisst "noch nie gesetzt": dann wird der Umschalter gar nicht erst
+   angeboten. */
+let ZULETZT_GESEHEN = null;
+
 /* Die beiden Anlegen-Schalter, global und mit Vorgabe an. Der Bildschirm haelt
    sich an dieselbe Regel wie der Server: DER ADMIN KOMMT IMMER DURCH. Bote die
    Oberflaeche die Zeile "+ neu anlegen" trotz ausgeschaltetem Schalter an,
@@ -763,6 +786,10 @@ async function ladeEinstellungen() {
   uebernimmBloecke(EINSTELLUNGEN.bloecke);
   if (EINSTELLUNGEN.linkZeilen) LINKZEILEN = EINSTELLUNGEN.linkZeilen;
   if (EINSTELLUNGEN.zeitleiste !== undefined) ZEITLEISTE_AN = EINSTELLUNGEN.zeitleiste !== false;
+  // Ausdruecklich nur beim ERSTEN Laden. ladeEinstellungen() laeuft nur in
+  // start(); ein spaeterer Aufruf duerfte den Bezugszeitpunkt nicht mehr
+  // nachziehen, sonst verschwaende die Menge unter dem Zeiger.
+  if (EINSTELLUNGEN.zuletztGesehen) ZULETZT_GESEHEN = EINSTELLUNGEN.zuletztGesehen;
   if (Array.isArray(EINSTELLUNGEN.suchAnbieter)) SUCHANBIETER = EINSTELLUNGEN.suchAnbieter;
   if (EINSTELLUNGEN.suchNamen) SUCHNAMEN = EINSTELLUNGEN.suchNamen;
   // Der Server leitet beide beim Lesen ab und liefert sie immer; die Vorgabe
@@ -792,7 +819,7 @@ async function loadAll() {
   const settings = EINSTELLUNGEN;
   if (settings && settings.filters) {
     state.filters = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'all',
-                      favorit: false, sort: 'updated_desc', ...settings.filters };
+                      favorit: false, neu: false, sort: 'updated_desc', ...settings.filters };
     if (!Array.isArray(state.filters.tagIds)) state.filters.tagIds = [];
     // Aeltere gespeicherte Filter kennen tagMode nicht -- sie bekommen die
     // Vorgabe. Alles ausser 'or' gilt als 'and'.
@@ -804,6 +831,8 @@ async function loadAll() {
     // daraus nicht sauber. Deshalb ausdruecklich auf einen Wahrheitswert
     // bringen.
     state.filters.favorit = state.filters.favorit === true;
+    // Und dasselbe fuer den neuen Umschalter, aus demselben Grund.
+    state.filters.neu = state.filters.neu === true;
   }
 }
 
@@ -827,8 +856,13 @@ function passtZuTags(item, tagIds, modus) {
     : tagIds.every(id => eigene.has(id));
 }
 
-function visibleItems() {
-  const f = state.filters;
+/* Der Parameter ist die Vorschau: die Filterzeile fragt "wie viele blieben
+   uebrig, wenn ich DIESEN Umschalter noch druecke" -- dieselbe Frage, die die
+   Tagwolke schon fuer ihre gedaempften Tags stellt. Ohne ihn braeuchte die
+   Zahl daneben einen zweiten Rechenweg, und zwei Wege fuer dieselbe Menge
+   laufen auseinander. */
+function visibleItems(filter) {
+  const f = filter || state.filters;
   let out = state.items;
   if (f.categoryId != null) out = out.filter(i => i.category && i.category.id === f.categoryId);
   // UND ist die Vorgabe: mit zwei Tags will man fast immer den Schnitt
@@ -840,6 +874,18 @@ function visibleItems() {
   // `tested`: Favorit und Teststatus sind unabhaengig, und "getestet UND
   // Favorit" muss moeglich bleiben.
   if (f.favorit) out = out.filter(i => i.favorite);
+  /* "Neu seit ..." ist ein FILTER, kein zweiter Sortierweg -- persoenlich wie
+     der Favorit und aus demselben Grund: die Liste zeigt, wo etwas geschieht,
+     nicht wo ICH zuletzt war. Wer daraus eine persoenliche Reihenfolge macht,
+     baut eine zweite Wahrheit ueber denselben Bestand.
+     Verglichen werden zwei Zeitstempel aus DERSELBEN Quelle -- beide kommen
+     als 'JJJJ-MM-TT HH:MM:SS' vom Server, und in diesem Format ist der
+     Zeichenkettenvergleich der Vergleich der Zeiten. Genau wie die Sortierung
+     eine Zeile tiefer, die localeCompare auf dieselbe Spalte anwendet.
+     OHNE gespeicherten Wert greift er GAR NICHT: beim allerersten Besuch gibt
+     es keinen Bezugspunkt, und ein Filter, der dann alles zeigt, erklaert
+     sich nicht -- die Filterzeile bietet ihn dort auch nicht an. */
+  if (f.neu && ZULETZT_GESEHEN) out = out.filter(i => i.updated_at > ZULETZT_GESEHEN);
   const q = state.search.trim().toLowerCase();
   if (q) out = out.filter(i => (i.searchText || '').includes(q));
 
@@ -879,13 +925,31 @@ async function start() {
   catch (e) { if (e.message === 'Sitzung abgelaufen') return; }
   route();
 }
+/* Welche Ansicht zuletzt stand -- gebraucht wird das fuer genau eine Frage:
+   ob die Uebersicht gerade VERLASSEN wird. */
+let LETZTE_ANSICHT = null;
+/* DER MERKZEITPUNKT WIRD BEIM VERLASSEN GESETZT, NICHT BEIM BETRETEN. Beim
+   Betreten waere er wertlos: er stuende dann auf dem Augenblick, in dem man
+   hinsieht, und "neu seit" waere immer leer. Beim Verlassen bleibt er
+   waehrend des ganzen Besuchs stehen.
+   Geschickt wird ein SIGNAL, keine Zeit -- die Uhr des Aufrufers ist eine
+   Behauptung; der Server setzt seine eigene ein.
+   Wer den Browser schliesst, ohne die Uebersicht zu verlassen, behaelt seinen
+   alten Merkzeitpunkt und sieht dieselben Eintraege noch einmal. Das ist die
+   richtige Seite des Fehlers: lieber zweimal zeigen als einmal verschlucken. */
+const merkeGesehen = () => { api('PUT', '/api/settings', { zuletztGesehen: 1 }).catch(() => {}); };
 function route() {
   const h = location.hash || '#/';
   // Die alte Ansicht ist gleich fort; ihre Wolke darf niemand mehr zeichnen.
   wolkeNeuzeichnen = null;
-  if (h === '#/system') return renderSystem();
-  if (h === '#/compare') return renderCompare();
   const m = h.match(/^#\/item\/(\d+)$/);
+  const ansicht = h === '#/system' ? 'system' : h === '#/compare' ? 'vergleich'
+    : h === '#/offen' ? 'offen' : m ? 'eintrag' : 'liste';
+  if (LETZTE_ANSICHT === 'liste' && ansicht !== 'liste') merkeGesehen();
+  LETZTE_ANSICHT = ansicht;
+  if (ansicht === 'system') return renderSystem();
+  if (ansicht === 'vergleich') return renderCompare();
+  if (ansicht === 'offen') return renderOffen();
   if (m) return renderDetail(+m[1]);
   return renderList();
 }
@@ -905,6 +969,7 @@ async function renderList() {
         <input class="input" id="q" placeholder="Suchen …" value="${esc(state.search)}">
         <button class="clr" id="qclr" title="Suche leeren" style="display:none">✕</button>
       </div>
+      <button class="icon-btn" id="offen" title="Offene ${esc(V.aufgabeMehrzahl)}">${ICON_OFFEN}</button>
       <button class="icon-btn" id="sys" title="Systembereich">${ICON_SYS}</button>
       <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>
       <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>
@@ -916,6 +981,7 @@ async function renderList() {
   </div>`;
 
   document.getElementById('new').onclick = openCreate;
+  document.getElementById('offen').onclick = () => { location.hash = '#/offen'; };
   document.getElementById('sys').onclick = () => { location.hash = '#/system'; };
   document.getElementById('out').onclick = async () => {
     await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
@@ -980,6 +1046,30 @@ function drawFilters() {
   bFav.title = f.favorit ? 'Alle Einträge zeigen' : 'Nur Favoriten zeigen';
   bFav.onclick = () => { f.favorit = !f.favorit; redraw(); };
   g1.appendChild(bFav);
+
+  /* "Neu seit ..." -- derselbe Platz, dasselbe Muster wie der Favorit
+     daneben: ein eigener Umschalter, mit allen uebrigen Filtern kombinierbar,
+     persoenlich.
+     ER ERSCHEINT NUR MIT BEZUGSPUNKT. Beim allerersten Besuch gibt es keinen,
+     und ein Filter, der dann alles zeigt, erklaert sich nicht. Bei EINEM
+     Zugang erscheint er trotzdem -- anders als "meine / alle" ist er keine
+     Aussage ueber andere: auch allein vergisst man, was man zuletzt gesehen
+     hat.
+     Die Zahl daneben steht wie an der Kategorie in einem <span class="n"> --
+     und sie ist die Vorschau auf den eigenen Klick, also die Menge unter ALLEN
+     uebrigen Filtern. Eine Gesamtzahl daneben widerspraeche der Liste,
+     sobald ein zweiter Filter an ist. */
+  if (ZULETZT_GESEHEN) {
+    const bNeu = document.createElement('button');
+    bNeu.className = 'pill pill-sep' + (f.neu ? ' on' : '');
+    bNeu.id = 'f-neu';
+    bNeu.innerHTML = `Neu seit ${esc(fmtTagKurz(ZULETZT_GESEHEN))}`
+      + `<span class="n">${visibleItems({ ...f, neu: true }).length}</span>`;
+    bNeu.title = f.neu ? 'Alle Einträge zeigen'
+      : `Nur was sich seit ${fmtDate(ZULETZT_GESEHEN)} getan hat`;
+    bNeu.onclick = () => { f.neu = !f.neu; redraw(); };
+    g1.appendChild(bNeu);
+  }
   r1.appendChild(g1);
 
   // Kategorie
@@ -1317,6 +1407,156 @@ function openCreate() {
   document.getElementById('ns').onclick = save;
   document.getElementById('nt').addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
   document.getElementById('nt').focus();
+}
+
+/* ================= Offene Aufgaben quer über alle Einträge ================= */
+/* Aufgabenkommentare gibt es seit langem, samt Farbkante und Weiterschaltknopf
+   -- sichtbar waren sie aber nur, wenn man ihren Eintrag öffnet. Diese Ansicht
+   macht vorhandene Funktionalität erreichbar; sie kann nichts, was der
+   Kommentarblock nicht auch könnte.
+
+   SIE LIEST, SIE ORDNET NICHT UM. Die Reihenfolge kommt vom Server und ist
+   dieselbe wie in der Übersicht: updated_at des Eintrags absteigend, innerhalb
+   des Eintrags die älteste Aufgabe oben.
+
+   DIE ÜBERSCHRIFT KOMMT AUS DEM VOKABULAR. Wer seine Aufgaben „Mängel" nennt,
+   liest hier „Offene Mängel" -- eine Ansicht, die daneben „Aufgaben" schriebe,
+   wäre falsch beschriftet. Deshalb steht in dieser Funktion kein einziges der
+   elf einstellbaren Wörter fest. */
+async function renderOffen() {
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
+  let zeilen;
+  try { zeilen = await api('GET', '/api/offen'); }
+  catch (e) {
+    if (e.message !== 'Sitzung abgelaufen')
+      app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`;
+    return;
+  }
+
+  /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie im Vergleich und aus
+     demselben Grund: der Umschalter ist eine Linse auf dieselben Daten und darf
+     keine zweite Wahrheit werden.
+     VORGABESTELLUNG „alle": die Ansicht beantwortet „was ist noch offen", und
+     das beantwortet der Blick über alle.
+     Bei genau einem Zugang erscheint der Umschalter nicht -- dann sind beide
+     Stellungen dieselbe Menge, und ein Knopf ohne Wirkung sieht aus wie ein
+     Fehler. Die Schwelle steht in mehrereBenutzer() wie überall. */
+  let nurMeine = false;
+
+  app.innerHTML = `<div class="shell">
+    <a href="#/" class="back">← Zurück zur Übersicht</a>
+    <h1 class="page-title">Offene ${esc(V.aufgabeMehrzahl)}</h1>
+    <p class="hint" id="off-hint" style="margin:0 0 ${mehrereBenutzer() ? '10px' : '20px'}"></p>
+    ${mehrereBenutzer() ? `<div class="pills" id="off-sicht" style="margin:0 0 20px"></div>` : ''}
+    <div id="off-liste"></div>
+  </div>`;
+
+  function zeichneSicht() {
+    const box = document.getElementById('off-sicht');
+    if (!box) return;
+    box.innerHTML = '';
+    [true, false].forEach(meine => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (meine === nurMeine ? ' on' : '');
+      b.dataset.sicht = meine ? 'meine' : 'alle';
+      b.textContent = meine ? 'meine' : 'alle';
+      b.onclick = () => { nurMeine = meine; zeichne(); };
+      box.appendChild(b);
+    });
+  }
+
+  /* Der Haken schickt die Art AUSDRÜCKLICH, er schaltet nicht weiter.
+     aufgabeWeiter() macht aus einer erledigten Aufgabe eine NOTIZ -- im
+     Kommentarblock ist das die gewollte Abfolge, hier wäre es ein Kästchen,
+     dessen zweiter Druck die Zeile lautlos aus der Menge nimmt. Zwei
+     Bedienelemente, zwei Bedeutungen: dort eine Abfolge, hier ein Zustand.
+     Geschrieben wird über PUT /api/comments/:id, die es längst gibt -- es
+     entsteht keine neue schreibende Route.
+     DIE ZEILE BLEIBT STEHEN, durchgestrichen: eine Zeile, die unter dem Zeiger
+     verschwindet, nimmt die Möglichkeit, den Haken gleich wieder wegzunehmen.
+     Der Vermerk steht nur hier im Speicher; beim nächsten Aufbau holt die
+     Ansicht die Wahrheit wieder vom Server. */
+  const setzeHaken = async (z, fertig) => {
+    try {
+      await api('PUT', `/api/comments/${z.id}`, { kind: fertig ? 'done' : 'task' });
+      z.erledigt = fertig;
+      zeichne();
+    } catch (e) { toast(e.message, true); }
+  };
+
+  function zeichne() {
+    zeichneSicht();
+    const sichtbar = nurMeine ? zeilen.filter(z => z.mine) : zeilen;
+    const gruppen = [];
+    for (const z of sichtbar) {
+      const letzte = gruppen[gruppen.length - 1];
+      if (letzte && letzte.id === z.item.id) letzte.zeilen.push(z);
+      else gruppen.push({ id: z.item.id, title: z.item.title, zeilen: [z] });
+    }
+
+    // Ein leerer Bildschirm ist eine schlechte Antwort. Und die beiden Fälle
+    // sind verschieden: gar nichts offen, oder nichts von mir.
+    document.getElementById('off-hint').textContent = !sichtbar.length
+      ? (zeilen.length ? `Von mir ist nichts offen.`
+                       : `Nichts offen — es warten keine ${V.aufgabeMehrzahl}.`)
+      : `${sichtbar.length} ${vAufgabe(sichtbar.length)} offen, gruppiert nach `
+        + `${V.sacheEinzahl}.`
+        + (mehrereBenutzer() ? (nurMeine ? ' Gezeigt werden die eigenen.'
+                                         : ' Gezeigt werden alle.') : '');
+
+    const box = document.getElementById('off-liste');
+    box.innerHTML = '';
+    gruppen.forEach(g => {
+      const kasten = document.createElement('div');
+      kasten.className = 'off-gruppe';
+      kasten.dataset.item = g.id;
+      const kopf = document.createElement('a');
+      kopf.className = 'off-titel';
+      kopf.href = `#/item/${g.id}`;
+      kopf.textContent = g.title;
+      kasten.appendChild(kopf);
+
+      g.zeilen.forEach(z => {
+        const el = document.createElement('div');
+        el.className = 'off-zeile' + (z.erledigt ? ' erledigt' : '');
+        el.dataset.kommentar = z.id;
+
+        /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. Die Art eines
+           Kommentars darf setzen, wer ihn geschrieben hat, und der Admin --
+           dieselbe Regel wie am Kommentar im Eintrag, und sie steht im Server.
+           Wo sie nicht gilt, steht hier kein Kästchen; ein Haken, der ein 403
+           holt, sähe aus wie ein Fehler. */
+        if (z.mine || ADMIN) {
+          const haken = document.createElement('button');
+          haken.className = 'off-haken';
+          haken.textContent = z.erledigt ? '☑' : '☐';
+          haken.title = z.erledigt ? 'Wieder öffnen'
+                                   : `Auf „${V.aufgabeErledigt}" setzen`;
+          haken.onclick = () => setzeHaken(z, !z.erledigt);
+          el.appendChild(haken);
+        }
+
+        const text = document.createElement('a');
+        text.className = 'off-text';
+        text.href = `#/item/${g.id}`;
+        text.textContent = z.text;
+        el.appendChild(text);
+
+        // Verfasser nur ab zwei Zugängen -- bei einem wiederholte der Name nur,
+        // wer ohnehin alles geschrieben hat. Dieselbe Schwelle wie überall.
+        const wann = document.createElement('span');
+        wann.className = 'off-wann';
+        wann.textContent = (mehrereBenutzer() ? `${verfasserName(z.verfasser)} · ` : '')
+          + fmtDate(z.created_at);
+        el.appendChild(wann);
+
+        kasten.appendChild(el);
+      });
+      box.appendChild(kasten);
+    });
+  }
+
+  zeichne();
 }
 
 /* ================= Vergleich ================= */

@@ -105,7 +105,8 @@ const putSetting = { run: (k, v) => {
 // Die persoenliche Haelfte von settings. Die Liste wird zur Laufzeit von der
 // Schranke oben gelesen -- eine Liste, die nur der Pruefstand ansieht, loescht
 // der Naechste als unbenutzt weg.
-const PERSOENLICHE_SCHLUESSEL = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleiste', 'suchNamen'];
+const PERSOENLICHE_SCHLUESSEL = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleiste', 'suchNamen',
+                                'zuletztGesehen'];
 
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
@@ -690,6 +691,14 @@ const schriftgroesse = (benutzerId) => {
   return SCHRIFT_STUFEN.includes(n) ? n : 100;
 };
 
+/* --- Der Merkzeitpunkt fuer "Neu seit ..." --------------------------------
+   Persoenlich, wie der Favorit. Er FILTERT die Uebersicht und sortiert sie
+   nicht um -- die Reihenfolge bleibt updated_at fuer alle.
+   NULL heisst "noch nie gesetzt", und das ist ein eigener Zustand: die
+   Oberflaeche bietet den Umschalter dann gar nicht erst an. Ein Filter, der
+   beim ersten Klick alles zeigt, erklaert sich nicht. */
+const zuletztGesehen = (benutzerId) => getUserSetting(benutzerId, 'zuletztGesehen', null);
+
 // Die Antwort mischt beide Haelften; die Oberflaeche merkt davon nichts.
 // Persoenlich sind filters, schrift, bloecke, linkZeilen, zeitleiste und
 // suchNamen; global bleiben vokabular und die drei Sucheinstellungen (suche,
@@ -727,6 +736,7 @@ app.get('/api/settings', (req, res) => res.json({
   bloecke: bloecke(req.benutzer.id),
   linkZeilen: linkZeilen(req.benutzer.id),
   zeitleiste: zeitleisteAn(req.benutzer.id),
+  zuletztGesehen: zuletztGesehen(req.benutzer.id),
   suche: suchvorlage(),
   suchAnbieter: suchAnbieter(),
   suchNamen: suchNamen(req.benutzer.id),
@@ -784,6 +794,18 @@ app.put('/api/settings', (req, res) => {
   }
   if (req.body.zeitleiste !== undefined)
     putUserSetting(req.benutzer.id, 'zeitleiste', JSON.stringify(!!req.body.zeitleiste));
+  /* DER MERKZEITPUNKT KOMMT VON DER SERVERUHR, NIE VOM AUFRUFER. Was der
+     Aufrufer schickt, ist ein Signal ("ich habe die Uebersicht verlassen") und
+     keine Feststellung -- eine mitgeschickte Zeit waere eine Behauptung, mit
+     der sich jeder Bestand nach Belieben als ungesehen erklaeren liesse.
+     UND SIE WIRD UM EINE SEKUNDE NACHGESTELLT. datetime('now') loest nur
+     Sekunden auf: entstuende ein Kommentar in DERSELBEN Sekunde, in der jemand
+     die Uebersicht verlaesst, traege sein Eintrag genau diesen Zeitstempel und
+     gaelte danach nie als neu. Die Sekunde zurueck macht das Fenster
+     harmlos -- lieber einen Eintrag zweimal zeigen als einen verschlucken. */
+  if (req.body.zuletztGesehen !== undefined)
+    putUserSetting(req.benutzer.id, 'zuletztGesehen',
+      JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
   // Eigene Anbieter zuerst: ein frisch angelegter muss im selben Zug in den
   // Vorrat aufgenommen werden koennen.
   if (req.body.sucheEigene !== undefined) {
@@ -2292,6 +2314,41 @@ app.delete('/api/comments/:id', (req, res) => {
   db.prepare('DELETE FROM comments WHERE id = ?').run(req.params.id);
   if (c) touch.run(c.item_id);
   res.status(204).end();
+});
+
+/* ---- Offene Aufgaben quer ueber alle Eintraege ---------------------------
+   Eine LESENDE Route ohne Waechter: wer angemeldet ist, sieht die Kommentare
+   ohnehin in jedem Eintrag. Sie steht deshalb in keiner Liste schreibender
+   Routen -- und der Haken wird auch nicht hier gesetzt, sondern ueber
+   PUT /api/comments/:id, das es laengst gibt.
+
+   DIESELBE BEDINGUNG WIE IN DER DETAILANSICHT: dort steht `c.kind === 'task'`,
+   hier `kind = 'task'`. Die Art ist EIN Wert -- 'task' ist die offene und
+   'done' die erledigte Aufgabe. Wer hier `kind != 'done'` schriebe, naehme
+   Notizen und Berichte mit; wer eine zweite Schreibweise erfindet, hat zwei
+   Ausdruecke fuer dieselbe Frage, und die laufen auseinander.
+
+   SORTIERT WIE DIE UEBERSICHT: updated_at des Eintrags absteigend, innerhalb
+   des Eintrags nach id -- also aelteste Aufgabe oben, wie im Kommentarblock.
+   Die Gruppierung macht die Oberflaeche; sie bricht auf den Wechsel der
+   Eintragsnummer um und braucht keine zweite Reihenfolge dafuer.
+
+   `mine` haengt an JEDER Zeile, wie am Kommentar im Eintrag: daran haengt der
+   Haken. Die Oberflaeche rechnet nicht aus dem Verfasserobjekt zurueck, wem
+   eine Zeile gehoert -- bei einem Grabstein ginge das gar nicht. */
+const qOffeneAufgaben = db.prepare(`
+  SELECT c.id, c.text, c.created_at, c.user_id, c.item_id, i.title, i.updated_at
+    FROM comments c JOIN items i ON i.id = c.item_id
+   WHERE c.kind = 'task'
+   ORDER BY i.updated_at DESC, c.id`);
+app.get('/api/offen', (req, res) => {
+  const karte = verfasserKarte();
+  res.json(qOffeneAufgaben.all().map(z => ({
+    id: z.id, text: z.text, created_at: z.created_at,
+    item: { id: z.item_id, title: z.title },
+    mine: z.user_id === req.benutzer.id,
+    verfasser: verfasserAus(karte, z.user_id)
+  })));
 });
 
 /* ---- Kennzahlen ---- */
