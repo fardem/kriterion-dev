@@ -3436,13 +3436,23 @@ app.post('/api/sicherung', nurEigentuemer, (req, res) => {
   const datei = path.join(ziel.pfad, `kriterion-${marke}.sqlite`);
   if (fs.existsSync(datei))
     return res.status(409).json({ error: 'In dieser Sekunde liegt dort schon eine Sicherung.' });
+  /* GESCHRIEBEN WIRD UNTER EINEM ARBEITSNAMEN, umbenannt wird erst danach.
+     Stolperstein 8 verlangt, eine halbfertige Zieldatei nach einem Fehlschlag
+     zu entfernen -- das hier ist eine Stufe schaerfer: der Fall entsteht gar
+     nicht. Eine halbfertige Kopie traegt NIE den endgueltigen Namen, faellt
+     damit aus SICHERUNG_MUSTER heraus und kann selbst dann nicht als fertige
+     Sicherung gelesen werden, wenn das Aufraeumen darunter scheitert.
+     ENTFERNT WIRD AUSSCHLIESSLICH DER ARBEITSNAME. Eine vorhandene fremde
+     Datei fasst dieser Weg unter keinen Umstaenden an -- ein Aufraeumen, das
+     die Datei des Nachbarn wegwirft, waere schlimmer als die halbe Kopie. */
+  const werdend = datei + '.wird';
+  try { if (fs.existsSync(werdend)) fs.unlinkSync(werdend); } catch {}
   const t0 = Date.now();
   try {
-    db.prepare('VACUUM INTO ?').run(datei);
+    db.prepare('VACUUM INTO ?').run(werdend);
+    fs.renameSync(werdend, datei);
   } catch (e) {
-    /* EINE HALBFERTIGE ZIELDATEI WIRD ENTFERNT (Stolperstein 8): sonst gilt
-       sie beim naechsten Blick als fertige Sicherung. */
-    try { if (fs.existsSync(datei)) fs.unlinkSync(datei); } catch {}
+    try { if (fs.existsSync(werdend)) fs.unlinkSync(werdend); } catch {}
     console.error('[Kriterion] Sicherung gescheitert:', e.message);
     // Fester Text wie ueberall bei einem Fehler DES SERVERS: ein SQL-Fehler
     // nennt Pfade und Tabellen, und die gehoeren ins Protokoll, nicht in die

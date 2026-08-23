@@ -2125,6 +2125,18 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   Verzeichnis, das es nicht gibt, ist eine Absage mit Begründung — kein stilles
   Anlegen.**
 
+- **Eine Sicherung entsteht unter einem Arbeitsnamen und wird erst danach
+  umbenannt** (seit 0.8.70). Stolperstein 8 verlangt, eine halbfertige
+  Zieldatei nach einem Fehlschlag zu entfernen; das hier ist eine Stufe
+  schärfer: **der Fall entsteht gar nicht.** Eine halbfertige Kopie trägt nie
+  den endgültigen Namen, fällt damit aus dem Muster heraus, nach dem „letzte
+  Sicherung" sucht, und kann selbst dann nicht als fertige Sicherung gelesen
+  werden, wenn das Aufräumen scheitert. **Entfernt wird ausschließlich der
+  Arbeitsname** — ein Aufräumen, das die endgültige Datei träfe, würfe im
+  Zweifel die Sicherung des Vortags weg. *Gefunden hat das eine Gegenprobe, die
+  stumm blieb:* die alte Fassung räumte hinterher auf, und keine einzige
+  Prüfung deckte es.
+
 - **Der Sicherungsort und seine Einhängung stehen in derselben Datei**
   (seit 0.8.70). Beide Hälften gehören in die `docker-compose.yml`; stünde die
   eine in der `.env`, liefen sie auseinander, und die Anlage schriebe in eine
@@ -2772,6 +2784,16 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     scheitert dann mit „output file already exists". Das ist die richtige
     Antwort — aber eine Prüflage, die zweimal hintereinander sichert, muss eine
     Sekunde warten, sonst prüft sie die Kollision statt der Sache.
+122. **Ein abgerissener Prüflauf hinterlässt seine Server.** Der Prüfstand
+    startet echte Server als Kindprozesse; bricht er ab, laufen sie weiter. Die
+    **Bereitschaftsprüfung** des nächsten Laufs (`GET /api/config` auf einem
+    zufällig gewählten Port) kann dann von einem **fremden** Server beantwortet
+    werden — und der Lauf prüft danach eine andere Anlage: Zeilen, die in der
+    Datenbank stehen, sind über die Schnittstelle nicht da. Beim Bau von 0.8.70
+    hat das zwei Gegenproben widersprüchliche Punkte liefern lassen, und der
+    Befund war erst zu sehen, als zwölf verwaiste Prozesse nebeneinander
+    standen. *Wer Gegenproben in Serie fährt, räumt die ganze Prozessgruppe ab
+    und nicht nur das Wegwerfverzeichnis.*
 
 ---
 

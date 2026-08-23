@@ -66,6 +66,9 @@ Zwei Commits, dazwischen der **Haltepunkt** nach den Punkten 1 und 3.
   `exportUmschlag()`; die Schalter und ihre Vorgaben sind unverändert.
 - **`POST /api/import`** ist auf zwölf Zeilen geschrumpft: Datei prüfen,
   `spieleEin()` rufen, antworten.
+- **Die Sicherung schreibt unter einem Arbeitsnamen** (`…sqlite.wird`) und
+  benennt erst danach um — die schärfere Form von Stolperstein 8
+  (Abschnitt 3 L).
 - **Der Papierkorb:** `PAPIERKORB_TAGE = 30`, `raeumePapierkorbAuf()` (zwei
   Aufrufstellen: Start und `GET /api/papierkorb`), `inDenPapierkorb()` —
   serialisieren, ablegen, löschen, **alles in einer `db.transaction()`**.
@@ -400,6 +403,45 @@ Beim Ergänzen von `papierkorbCount` ist aufgefallen, dass `/api/stats` im Mock
 erwartete Größe daraus rechnet. Ein Befund aus 0.8.50, der bis hierher stumm
 geblieben ist — Stolperstein 90 in Reinform. Beide Felder sind nachgetragen.
 
+### L. Eine Gegenprobe blieb stumm — und hat einen Fehler gefunden
+
+Der Rückbau **„eine halbfertige Zieldatei wird nach einem Fehlschlag nicht
+entfernt"** blieb **vollständig grün**. Die Regel aus Stolperstein 8 stand im
+Code und war von **keiner** Prüfung gedeckt — und beim Nachsehen war sie
+außerdem gefährlich: `if (fs.existsSync(datei)) fs.unlinkSync(datei)` im
+Fehlerweg hätte eine **fremde, fertige** Sicherung entfernt, wenn der 409-Halt
+davor je wegfiele.
+
+Gebaut ist jetzt die schärfere Form: **geschrieben wird unter einem
+Arbeitsnamen** (`…sqlite.wird`), **umbenannt wird erst danach**. Eine
+halbfertige Kopie trägt nie den endgültigen Namen und fällt aus
+`SICHERUNG_MUSTER` heraus — sie kann also gar nicht als fertige Sicherung
+gelesen werden, auch dann nicht, wenn das Aufräumen scheitert. Entfernt wird
+ausschließlich der Arbeitsname.
+
+Und damit ist die Regel **prüfbar** geworden, was sie vorher nicht war: eine
+liegengebliebene Arbeitsdatei zählt nachweislich nicht mit und wird
+nachweislich nicht angefasst, nach einem geglückten Lauf bleibt keine zurück,
+und ein Wächter über den Quelltext hält fest, dass der Fehlerweg nur den
+Arbeitsnamen entfernt.
+
+### M. Der Gegenprobentreiber hat sich selbst überführt
+
+Zwei Gegenproben lieferten widersprüchliche Punkte: Zeilen, die nachweislich in
+der Datenbank standen, waren über die Schnittstelle nicht da. Der Grund war
+nicht der Rückbau, sondern der **Treiber**: ein abgerissener Prüflauf lässt
+seine Serverprozesse weiterlaufen, und die Bereitschaftsprüfung des nächsten
+Laufs bekam ihre Antwort von einem **fremden** Server auf demselben Port. Zu
+sehen war es erst, als zwölf verwaiste Prozesse nebeneinander standen. Der
+Treiber räumt jetzt die ganze Prozessgruppe ab; danach lief kein Rückbau mehr
+widersprüchlich. **Das ist Stolperstein 122.**
+
+*Dazu ein Fehler im Vorgehen, der hierher gehört:* der erste Durchgang der
+Gegenproben zog seine Kopien aus dem Arbeitsbaum, **während daran noch
+geschrieben wurde**. Die Ergebnisse waren wertlos und sind verworfen worden.
+Seitdem läuft jeder Durchgang gegen einen **eingefrorenen** Stand, der vorher
+gegen den Arbeitsbaum verglichen wird.
+
 ---
 
 ## 4. Neue Stolpersteine
@@ -439,6 +481,13 @@ Die Zählung setzt bei **117** fort.
      scheitert dann mit „output file already exists". Das ist die richtige
      Antwort — aber eine Prüflage, die zweimal hintereinander sichert, muss
      eine Sekunde warten, sonst prüft sie die Kollision statt der Sache.
+
+122. **Ein abgerissener Prüflauf hinterlässt seine Server.** Die
+     Bereitschaftsprüfung des nächsten Laufs kann dann von einem **fremden**
+     Server auf demselben Port beantwortet werden, und der Lauf prüft danach
+     eine andere Anlage — Zeilen, die in der Datenbank stehen, sind über die
+     Schnittstelle nicht da. *Wer Gegenproben in Serie fährt, räumt die ganze
+     Prozessgruppe ab und nicht nur das Wegwerfverzeichnis.*
 
 ---
 
