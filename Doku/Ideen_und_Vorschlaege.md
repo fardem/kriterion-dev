@@ -768,7 +768,7 @@ wird, gehört nicht in dieselbe Runde wie die Ansicht selbst.
 > - **Der Zähler in der Kopfzeile ist wie vorgeschlagen nicht gebaut** und
 >   bleibt vorgemerkt.
 
-### 4.5 Ein Papierkorb, der das Schema nicht anfasst **[NEU]**
+### 4.5 Ein Papierkorb, der das Schema nicht anfasst **[GEBAUT — 0.8.70]**
 
 **Das Problem.** Einen Eintrag zu löschen nimmt über die Kaskade **fremde**
 Kommentare, Bewertungen und Testtage mit. Der Dialog nennt die Zahlen, sauber
@@ -818,12 +818,41 @@ aufgeräumt.
 - **Wiederherstellen legt einen neuen Eintrag an, es stellt nicht den alten
   zurück.** Die alte `id` ist weg, und daran hängt nichts mehr. Der Import
   kann das schon.
-- **Der Papierkorb steht mit im Datenverzeichnis und damit im Backup.** Die
+- **Der Papierkorb steht mit im Datenverzeichnis und damit in der Sicherung.** Die
   Kennzahlen sollten ihn getrennt ausweisen, sonst wundert sich jemand über
   die Datenbankgröße.
 
 **Aufwand:** eine Tabelle, zwei Aufrufe, eine Karte. Mittel — aber der Code
 für den schwierigen Teil ist schon geschrieben.
+
+> **Gebaut mit 0.8.70 — und an fünf Stellen anders, als es hier steht.**
+>
+> 1. **`inhalt` ist TEXT und nicht gezippt**, und die Bytes liegen in einer
+>    zweiten Tabelle `papierkorb_bytes` daneben. Der Grund ist gemessen: ein
+>    Eintrag darf seit 0.8.50 zwanzig Videos zu je 20 MB tragen, das sind als
+>    Base64 **533 MB in einem String**, und Node hält keinen über 512 MB —
+>    `JSON.stringify` antwortet mit `RangeError: Invalid string length`.
+>    **Zippen half nicht**, der String entsteht davor.
+> 2. **„Es entsteht kein neuer Code für die Datenstruktur" stimmte nicht.**
+>    Serialisierer und Deserialisierer standen **mitten in ihren Routen** und
+>    waren von außen gar nicht zu rufen. Beide sind erst herausgezogen worden
+>    (`eintragAlsPaket()` und `spieleEin()`); das war der halbe Aufwand der
+>    Runde — und der Einzelexport ist daraus abgefallen.
+> 3. **Die Karte steht beim Admin, gehandelt wird nur vom Eigentümer.** Sehen
+>    ist harmlos, weil jeder angemeldete Zugang jeden Titel ohnehin in der
+>    Übersicht sieht; Zurückholen legt dagegen Zeilen unter fremdem Namen an
+>    und liegt damit in derselben Rechtezeile wie der Import.
+> 4. **Aufgeräumt wird beim Start UND beim Öffnen der Karte.** Eine Anlage, die
+>    drei Monate durchläuft, räumte sonst drei Monate lang nicht auf.
+> 5. **`geloescht_von` gehört nicht ins Auffangnetz.** Es ist die Feststellung
+>    eines Vorgangs, keine Zugehörigkeit von Bestand.
+>
+> **Zwei Löschwege füllen ihn ausdrücklich nicht:** „Zugang entfernen" mit dem
+> Häkchen *Einträge mitnehmen* und der ersetzende Import. Und **zwei Dinge
+> kommen im Rundlauf nicht zurück**, beide aus dem vorhandenen Austauschformat:
+> die Favoriten anderer und der Eingriffsvermerk am Kommentar.
+>
+> Einzelheiten in `Doku/Aenderungsprotokoll_0.8.70.md`.
 
 ### 4.6 Doppelte Einträge beim Anlegen erkennen **[SCHÄRFT]**
 
@@ -971,7 +1000,7 @@ Zeile im Änderungsprotokoll: *„0.8.10 — Fingerprint `a3f91c02`"*.
 grep-Prozedur erklärt, wird durch drei Sätze ersetzt. Von allen Vorschlägen
 hier ist das der mit dem besten Verhältnis von Zeilen zu gespartem Ärger.
 
-### 5.2 Backup: `VACUUM INTO` wird der Hauptweg, der Export der Austauschweg **[SCHÄRFT]**
+### 5.2 Sicherung: `VACUUM INTO` wird der Hauptweg, der Export der Austauschweg **[GEBAUT — 0.8.70]**
 
 Steht im Projektstand als Punkt 8 („Sicherungskopie auf Knopfdruck", noch
 nicht beschlossen, bereits geprüft dass die Kopie verschlüsselt ist). Ich
@@ -998,10 +1027,33 @@ Export beides sein und ist für das eine davon zu schwer.
   dem Original ist keine.
 - **Der Hinweis auf den Schlüssel gehört an den Knopf**, nicht in die
   Dokumentation: die Kopie ist verschlüsselt und ohne `.env` wertlos. Das ist
-  dieselbe Falle, die die README beim Backup ausführlich beschreibt — hier
+  dieselbe Falle, die die README bei der Sicherung ausführlich beschreibt — hier
   steht sie an der Stelle, an der jemand sie tatsächlich tappt.
 - Der Export bleibt unverändert und bekommt bei großem Bestand die Warnung aus
   3.2.
+
+> **Gebaut mit 0.8.70 — und an zwei Stellen anders, als es hier steht.**
+>
+> 1. **Der Zielort ist zweistufig.** Die **Wurzel** kommt aus der Umgebung
+>    (`SICHERUNG_DIR`, ohne Vorgabewert) und ist über die Oberfläche nicht zu
+>    erreichen; einstellbar ist nur ein **Unterverzeichnis** darunter. „Außerhalb
+>    von `./data` vorbelegt" ginge im Container nicht: ein Pfad, den es nur dort
+>    gibt, verschwände beim nächsten `--build`. Deshalb hängt die
+>    `docker-compose.yml` ihn ein **und** benennt ihn, beides in derselben
+>    Datei.
+> 2. **„Letzte Sicherung vor N Tagen" kommt aus dem Dateisystem**, nicht aus
+>    einem Merker. Der Preis steht in der Karte: ein unerreichbarer Zielort
+>    liefert **keine Zahl**, und sie sagt genau das.
+>
+> Dazu ein Befund, der hier fehlte: **einen schrittweisen Weg gibt es nicht.**
+> `db.backup()` liefe, ohne den Server zu blockieren, scheitert an einer
+> SQLCipher-Datenbank aber mit „backup is not supported with incompatible source
+> and target databases". `VACUUM INTO` läuft synchron — gemessen rund 10 ms je
+> MB —, und die Karte sagt die erwartete Dauer vorher.
+>
+> **Die Wortwahl ist entschieden: „Sicherung", nicht „Backup."** Beides ist
+> gebräuchlich, und zwei Wörter für dieselbe Sache sind genau das, was die
+> Sprachregel verhindern soll.
 
 ### 5.3 Alles, was gezogen wird, braucht einen zweiten Weg **[NEU]**
 
@@ -1171,8 +1223,8 @@ dass die Reihenfolge getragen hat.
 | 10 | **4.1** Gewichtung der Kriterien | mittel | ✓ 0.8.40 — inhaltlich der wichtigste Punkt der Liste; **nicht** mit 4.2 zusammengelegt |
 | 11 | **4.2** Abgelehnt mit Datum und Begründung | klein | offen geblieben — die Zusammenlegung mit 10 ist nicht gekommen |
 | 12 | **3.1** `searchText` aus der Liste | mittel | wenn der Bestand wächst |
-| 13 | **5.2** Sicherung auf Knopfdruck | mittel | vor 1.0, steht schon auf der Liste |
-| 14 | **4.5** Papierkorb | mittel | vor der ersten fremden Installation |
+| 13 | **5.2** Sicherung auf Knopfdruck | mittel | ✓ 0.8.70 — zusammen mit 14 in einer Runde |
+| 14 | **4.5** Papierkorb | mittel | ✓ 0.8.70 — vor der ersten fremden Installation |
 | 15 | **4.8** README-Absatz zum Sachgebiet | winzig | vor 1.0, kostet einen Absatz |
 | 16 | **5.3** Tastatur beim Sortieren | klein | vor 1.0 |
 

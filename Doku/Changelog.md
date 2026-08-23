@@ -6,6 +6,72 @@ ist. Die Einzelheiten stehen je Version in
 
 ---
 
+## 0.8.70 — Sicherung und Papierkorb
+
+**Zwei Wege zurück, die es bisher nicht gab.** Ein gelöschter Eintrag war
+endgültig weg — samt allem, was andere daran geschrieben hatten. Und eine
+Sicherung der Anlage entstand nur von Hand auf dem Server.
+
+### Neu
+
+- **Der Papierkorb.** Ein gelöschter Eintrag liegt **dreißig Tage** dort und
+  lässt sich zurückholen — mit Fotos, Videos, Dateien, Kommentaren,
+  Bewertungen und Testtagen, jeweils samt Verfasser. Die Karte im Systembereich
+  zeigt, was drin liegt, wer gelöscht hat und wie lange es noch bleibt.
+- **Sehen darf den Papierkorb der Admin, zurückholen der Eigentümer der
+  Anlage.** Zurückholen legt Beiträge unter fremdem Namen wieder an; das ist
+  dieselbe Sache wie ein Import und liegt deshalb in derselben Hand.
+- **Der Löschdialog sagt es vorher.** Er nennt weiterhin, was am Eintrag hängt
+  und was davon anderen gehört — und dazu jetzt, dass alles davon dreißig Tage
+  im Papierkorb liegt.
+- **Sicherung auf Knopfdruck.** Eine neue Karte im Systembereich erzeugt eine
+  vollständige, verschlüsselte Kopie der Datenbank — ohne den Server anhalten
+  zu müssen. Sie sagt vorher, wie lange es dauert, und zeigt, wann zuletzt
+  gesichert wurde.
+- **Der Zielort liegt außerhalb des Projektordners** und wird in der
+  `docker-compose.yml` eingehängt; in der Oberfläche lässt sich darunter ein
+  Unterverzeichnis wählen. Jede Sicherung bekommt einen eigenen Namen mit Datum
+  und Uhrzeit — eine Sicherung überschreibt nie die vorige.
+- **Einen einzelnen Eintrag als Datei ziehen.** Dieselbe Form wie der volle
+  Export, nur mit einem Eintrag.
+- **Die Kennzahlen weisen den Papierkorb getrennt aus** — sonst wundert man
+  sich über eine Datenbank, die nach dem Aufräumen größer ist als vorher.
+
+### Was gleich bleibt
+
+- **Gelöscht ist gelöscht.** Ein gelöschter Eintrag verschwindet aus Übersicht,
+  Suche und Filtern wie bisher; er liegt nur zusätzlich noch als Paket im
+  Papierkorb. An der Bedienung ändert sich sonst nichts.
+- **Die Exportdatei behält ihr Format.** Eine Datei aus 0.8.50 oder 0.8.60
+  lässt sich unverändert einspielen, und eine Datei aus 0.8.70 auch dort wieder.
+- **Der Export bleibt, wie er war**, samt seiner Häkchen für Dateien und
+  Videos. Er ist der Weg für Umzug und Archiv; die neue Sicherung ist der Weg
+  für den Notfall. Ein Satz auf jeder der beiden Karten sagt, welche man will.
+- **Zwei Löschwege füllen den Papierkorb nicht:** einen Zugang mitsamt seinen
+  Einträgen zu entfernen, und ein Import, der den Bestand *ersetzt*. Beides ist
+  eine Ansage über die ganze Anlage, kein einzelner Fehlgriff.
+- **Zwei Kleinigkeiten kommen beim Zurückholen nicht mit:** Favoritensterne
+  **anderer** Benutzer und der Vermerk über entfernte Kommentarbilder.
+
+### Beim Einspielen
+
+- **Die Sicherung des Verzeichnisses `data` ist wieder Pflicht.** Diese Version
+  fasst die Datenbank an; ein Downgrade auf 0.8.60 ist keine reine Dateikopie
+  mehr. In 0.8.60 war das anders.
+- **Die neue `docker-compose.yml` gehört mit eingespielt.** Sie hängt den
+  Sicherungsort ein (`../kriterion-sicherung`) und benennt ihn. Ohne sie bleibt
+  die Karte „Sicherung" aus und sagt das — sie schreibt nicht still irgendwohin.
+- **Der Sicherungsort gehört nicht dorthin, wo auch die `.env` liegt.** Die
+  Kopie ist verschlüsselt; wer den Schlüssel danebenlegt, hebt die
+  Verschlüsselung auf.
+- **Die Anlage steht still, während eine Sicherung entsteht** — bei einer
+  Datenbank von einem Gigabyte etwa eine halbe Minute. Die Karte nennt die
+  erwartete Dauer, bevor man drückt.
+- Sonst nichts Besonderes: keine neuen Einstellungen, keine geänderte
+  Bedienung, kein neues Wort im Vokabular.
+
+---
+
 ## 0.8.60 — Was ist offen, was ist neu
 
 **Zwei Dinge, die es längst gibt, werden auffindbar.** Aufgabenkommentare

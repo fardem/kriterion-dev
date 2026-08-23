@@ -3464,12 +3464,11 @@ async function renderDetail(id) {
       ...(b.fremdTesttage ? [`${b.fremdTesttage} ${vZeit(b.fremdTesttage)}`] : [])
     ];
 
-    /* DER DIALOG BLEIBT, SEIN SCHLUSSSATZ NICHT. Bis 0.8.60 begründete er sich
-       mit der Unwiderruflichkeit; seit dem Papierkorb wäre genau das falsch.
-       Die Zahlen sind trotzdem die eigentliche Auskunft — was hier verloren
-       geht, gehört anderen —, und sie stehen unverändert da. Wer
-       wiederherstellen darf, steht dabei: es ist nicht der, der hier
-       klickt. */
+    /* DER DIALOG NENNT ZAHLEN, UND SEIN SCHLUSSSATZ NENNT DEN PAPIERKORB.
+       Mit Unwiderruflichkeit lässt er sich nicht mehr begründen — das wäre
+       falsch. Die Zahlen sind trotzdem die eigentliche Auskunft: was hier
+       verloren geht, gehört anderen. Und wer wiederherstellen darf, steht
+       dabei — es ist nicht der, der hier klickt. */
     const saetze = [`„${item.title}" wird gelöscht.`];
     if (inhalt.length) saetze.push(`Dabei gehen ${inhalt.join(', ')} mit.`);
     if (eigen.length) saetze.push(`Dazu ${eigen.join(', ')} von mir.`);
@@ -3494,25 +3493,26 @@ async function renderDetail(id) {
 /* ================= Systembereich ================= */
 async function renderSystem() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
-  let stats, titles, cats, tags, crits, zugang, papierkorb;
+  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung;
   try {
     /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
        stehen hinter dem Admin; ein Abruf, der zuverlaessig 403 ergibt, risse
-       hier mehr mit als seine eigene Karte -- alle sieben
+       hier mehr mit als seine eigene Karte -- alle
        Abrufe haengen in EINEM Promise.all, und ein einziger Fehlschlag
        verliesse den Rumpf mit return. Der Systembereich bliebe dann leer,
        auch die Karten, die jedem zustehen.
        Bewusst KEIN catch je Abruf daneben: die Bedingung hier ist die eine
        Stelle, an der die Frage gestellt wird. Ein Auffangnetz darunter
-       verdeckte sie in jeder Gegenprobe.
-       DER PAPIERKORB STEHT SEIT 0.8.70 DANEBEN und geht denselben Weg: er
-       liegt hinter derselben Rolle wie die Kennzahlen. Und er wird HIER
-       geholt und nicht spaeter nachgeladen -- ein Nachladen liefe als
+       verdeckte sie in jeder Gegenprobe. Es sind acht Abrufe.
+       DER PAPIERKORB UND DIE SICHERUNG GEHEN DENSELBEN WEG: jeder liegt
+       hinter der Rolle, hinter der auch seine Karte steht. Und beide werden
+       HIER geholt und nicht spaeter nachgeladen -- ein Nachladen liefe als
        herrenlose Zusage weiter, auch wenn das Fenster laengst zu ist. */
-    [stats, titles, cats, tags, crits, zugang, papierkorb] = await Promise.all([
+    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
-      api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null
+      api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null,
+      EIGENTUEMER ? api('GET', '/api/sicherung') : null
     ]);
   } catch (e) { if (e.message !== 'Sitzung abgelaufen') toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
@@ -3595,7 +3595,13 @@ async function renderSystem() {
             ist, ist auch Admin, und dann steht stats. Faellt diese Leiter
             jemals, faellt hier eine Karte auf null. */''}${EIGENTUEMER ? `<div class="sys-card">
         <h3>Export</h3>
-        <p class="desc">Sichert den gesamten Bestand als eine Datei. Mit Fotos wird sie deutlich
+        ${/* DIE ROLLENTEILUNG GEHOERT AN DIE KARTE, nicht nur in die Doku. Wer
+             Export und Sicherung nebeneinander sieht, muss ohne Rueckfrage
+             wissen, welche er will. Ein Satz je Karte, und er steht hier. */''}
+        <p class="desc"><strong>Der Austauschweg</strong> — für Umzug, Archiv und die Weitergabe:
+          die Datei überlebt einen Formatwechsel und braucht keinen Schlüssel. Für den Notfall
+          ist die Karte <strong>Sicherung</strong> zuständig.</p>
+        <p class="desc">Schreibt den gesamten Bestand in eine Datei. Mit Fotos wird sie deutlich
           größer, weil Bilder als Text kodiert werden müssen — rechne mit rund einem Drittel
           Aufschlag auf ${fmtBytes(stats.photoBytes)}.</p>
         <div class="row-in">
@@ -3620,6 +3626,21 @@ async function renderSystem() {
           gefragt, was mit dem vorhandenen Bestand geschehen soll.</p>
         <label class="drop" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
           Exportdatei auswählen</label>
+      </div>
+
+      <div class="sys-card">
+        <h3>Sicherung</h3>
+        <p class="desc"><strong>Der Sicherungsweg</strong> — eine vollständige, verschlüsselte
+          Kopie der Datenbank, samt allem, was der Export nicht mitnimmt. Sie braucht beim
+          Schreiben keinen nennenswerten Arbeitsspeicher, überlebt aber keinen Formatwechsel.</p>
+        ${/* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
+             Dokumentation: die Kopie ist ohne .env wertlos. Das ist dieselbe
+             Falle, die die README ausfuehrlich beschreibt -- hier steht sie an
+             der Stelle, an der jemand sie tatsaechlich tappt. */''}
+        <div class="warn-box" style="margin:0 0 14px"><strong>Die Kopie ist verschlüsselt.</strong>
+          Ohne den Schlüssel aus der <code>.env</code> lässt sie sich nicht öffnen — und beides
+          gehört nicht an denselben Ort.</div>
+        <div id="sicherung-box"></div>
       </div>` : ''}
 
       ${/* DIE KARTE STEHT BEIM ADMIN, GEHANDELT WIRD NUR VOM EIGENTUEMER --
@@ -3943,6 +3964,80 @@ async function renderSystem() {
     });
   }
   drawPapierkorb();
+
+  /* --- Sicherung --- */
+  /* Gezeichnet wird aus dem, was oben schon geholt wurde; nach jedem Schreiben
+     traegt die Antwort den neuen Stand, und die Karte zeichnet sich daraus neu.
+     JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
+     und nicht der Lauf abreissen. */
+  function drawSicherung() {
+    const box = document.getElementById('sicherung-box');
+    if (!box) return;
+    const d = sicherung || {};
+    if (!d.eingerichtet) {
+      box.innerHTML = `<div class="warn-box">${esc(d.grund || 'Es ist kein Sicherungsort eingerichtet.')}</div>`;
+      return;
+    }
+    /* „Letzte Sicherung vor N Tagen" kommt aus dem DATEISYSTEM, nicht aus einem
+       Schlüssel in der Datenbank. Der Preis steht hier: ist der Ort nicht
+       erreichbar, sagt die Karte GENAU DAS statt einer Zahl — eine Zahl aus
+       einem Merker wäre in genau diesem Fall die Lüge. */
+    const letzte = d.letzte;
+    const stand = d.fehler
+      ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler)}</div>`
+      : (!d.erreichbar
+        ? `<div class="warn-box" style="margin:0 0 12px">Der Zielort ist nicht erreichbar.</div>`
+        : (letzte
+          ? `<div class="kv"><span class="k">Letzte Sicherung</span><span class="v">vor ${letzte.tageHer} ${letzte.tageHer === 1 ? 'Tag' : 'Tagen'}</span></div>
+             <div class="kv"><span class="k">Datei</span><span class="v"><code>${esc(letzte.datei)}</code></span></div>
+             <div class="kv"><span class="k">Größe</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>
+             <div class="kv"><span class="k">Dateien am Ort</span><span class="v">${d.zahl || 0}</span></div>`
+          : `<p class="desc" style="margin:0 0 12px">An diesem Ort liegt noch keine Sicherung.</p>`));
+    box.innerHTML = `
+      <div class="field"><label>Zielort</label>
+        <p class="desc" style="margin:0 0 6px">Eingerichtet ist <code>${esc(d.wurzel || '')}</code>.
+          Darunter lässt sich ein Unterverzeichnis wählen; es muss dort schon liegen —
+          angelegt wird keines.</p>
+        <input class="input" id="sich-ort" value="${esc(d.ort || '')}" placeholder="(der eingerichtete Ort selbst)"
+          autocapitalize="off" spellcheck="false"></div>
+      <button class="btn btn-sm" id="sich-ort-save">Zielort speichern</button>
+      <div class="sys-teil"></div>
+      ${stand}
+      <p class="desc" style="margin:0 0 10px">Während die Kopie entsteht, <strong>steht die
+        Anlage still</strong> — bei ${fmtBytes(d.dbBytes)} sind das etwa
+        ${d.dauerSekunden} Sekunden.</p>
+      <button class="btn btn-accent btn-sm" id="sich-los">Jetzt sichern</button>`;
+
+    document.getElementById('sich-ort-save').onclick = async () => {
+      const wert = document.getElementById('sich-ort').value;
+      try {
+        const r = await api('PUT', '/api/sicherung/ort', { ort: wert });
+        sicherung = { ...sicherung, ort: r.ort, pfad: r.pfad, fehler: null,
+                      erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl };
+        toast('Zielort gespeichert');
+        drawSicherung();
+      } catch (e) { toast(e.message, true); }
+    };
+    /* Der Knopf sperrt sich selbst, solange die Kopie entsteht: VACUUM INTO
+       laeuft synchron, die Anlage steht so lange still, und ein zweiter Klick
+       stellte sich nur in die Schlange. */
+    document.getElementById('sich-los').onclick = async (e) => {
+      const knopf = e.currentTarget;
+      knopf.disabled = true;
+      knopf.textContent = 'Sicherung läuft …';
+      try {
+        const r = await api('POST', '/api/sicherung');
+        sicherung = { ...sicherung, erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl };
+        toast(`Sicherung geschrieben: ${r.datei} (${fmtBytes(r.bytes)})`);
+        drawSicherung();
+      } catch (err) {
+        toast(err.message, true);
+        knopf.disabled = false;
+        knopf.textContent = 'Jetzt sichern';
+      }
+    };
+  }
+  drawSicherung();
 
   /* --- Schriftgröße --- */
   function drawSchrift() {

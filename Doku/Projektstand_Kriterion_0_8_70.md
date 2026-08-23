@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 15 · Stand 23. August 2026 · gebaut: Version 0.8.60**
+**Kompakte Übergabe · Revision 16 · Stand 23. August 2026 · gebaut: Version 0.8.70**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,12 +8,31 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 15 ist.** Revision 14 trug 0.8.50 nach. Diese trägt **0.8.60**
-nach — „Was ist offen, was ist neu", die nächste Runde des Stufenplans und
+**Was Revision 16 ist.** Revision 15 trug 0.8.60 nach. Diese trägt **0.8.70**
+nach — „Sicherung und Papierkorb", die nächste Runde des Stufenplans und
 **keine Stufe des Mehrbenutzerbetriebs**; der ist mit G4 bis auf H und I
 gebaut.
 
-**0.8.60 macht zwei vorhandene Dinge auffindbar** und ist ausdrücklich
+**0.8.70 baut zwei Wege zurück, die es bisher nicht gab.** Ein **gelöschter
+Eintrag** liegt dreißig Tage im **Papierkorb** und lässt sich von dort
+zurückholen; eine **Sicherung der ganzen Anlage** entsteht auf Knopfdruck statt
+von Hand auf dem Wirt. **Es ist wieder eine Datenbankstufe** — das Schema
+bekommt zwei Tabellen —, aber **ohne Migrationsblock**: anders als eine Spalte
+legt `CREATE TABLE IF NOT EXISTS` eine fehlende Tabelle bei jedem Start an
+(nachgestellt, Abschnitt 6, Stolperstein 13). Es bleibt bei **fünf** markierten
+Blöcken.
+
+**Die tragende Regel der Runde: der Papierkorb fasst keine einzige bestehende
+Abfrage an.** Kein `geloescht`-Zustand an `items`, kein `WHERE`-Zusatz
+irgendwo. Ein gelöschter Eintrag ist **wirklich weg** — er liegt nur zusätzlich
+noch als Paket daneben. Dafür ist die Abbildung je Eintrag aus der Exportroute
+und der Deserialisierer aus dem Importrumpf **herausgezogen** worden; beide
+werden jetzt an mehreren Stellen gerufen, und ein Wächter hält fest, dass es je
+**einen** gibt. Nebenbei fällt daraus der **Einzelexport** ab: „diesen Eintrag
+als Datei". **Die Formatnummer bleibt bei 10**, `F_ROUTEN` geht von **47 auf
+51**.
+
+**0.8.60 davor macht zwei vorhandene Dinge auffindbar** und ist ausdrücklich
 **keine Datenbankstufe**: kein `ALTER TABLE`, kein sechster Migrationsblock,
 keine neue Formatnummer, `F_ROUTEN` unverändert bei 47. Die **Ansicht „Offen"**
 zeigt alle nicht erledigten Aufgabenkommentare quer über alle Einträge; der
@@ -68,14 +87,16 @@ Vollständig geblieben sind die Abschnitte 5 und 12 — Entscheidungen und
 Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht mehr
 berücksichtigt.
 
-**Für den Betrieb ändert sich mit 0.8.60 nichts Wesentliches**, und das ist
-selbst eine Nachricht: **ein Downgrade ist wieder eine reine Dateikopie** —
-zum ersten Mal seit 0.8.30 —, und die **Formatnummer der Exportdatei bleibt bei
-10** (0.8.30 hob sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9, 0.8.50 auf 10). Beides
-steht in Abschnitt 2.
+**Für den Betrieb ändert sich mit 0.8.70 zweierlei.** Die **Sicherung des
+Datenverzeichnisses steht wieder als PFLICHT im Einspielweg** — es ist eine
+Datenbankstufe, und ein Downgrade ist keine reine Dateikopie mehr; in 0.8.60
+war das anders. Und die **`docker-compose.yml` bekommt ein zweites Volume**:
+den Sicherungsort, außerhalb des Projektverzeichnisses. Die **Formatnummer der
+Exportdatei bleibt bei 10** (0.8.30 hob sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9,
+0.8.50 auf 10). Alles davon steht in Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_60.md` gepflegt und
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_70.md` gepflegt und
 nur dort.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
@@ -127,7 +148,30 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.60 ist gebaut** — Fingerprint **`ab68b523`**. *Keine Datenbankstufe und
+**0.8.70 ist gebaut** — Fingerprint **`PLATZHALTER_FP`**. *Wieder eine
+Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:* das Schema bekommt
+**zwei Tabellen**, `papierkorb` und `papierkorb_bytes` — und **keinen
+Migrationsblock**. Nachgestellt statt geglaubt: anders als eine Spalte legt
+`CREATE TABLE IF NOT EXISTS` eine fehlende **Tabelle** bei jedem Start an. Es
+bleibt bei **fünf** markierten Blöcken, und es kommt **kein** Eintrag unter
+„Vorgemerkt für 1.0" dazu.
+**Der Papierkorb fasst keine bestehende Abfrage an:** `items` trägt unverändert
+zehn Spalten, kein `WHERE` hat einen Zusatz. Beim Löschen wird der Eintrag im
+Austauschformat serialisiert und **in derselben Transaktion** entfernt; die
+Bytes gehen dabei **an der JSON vorbei** in eine Nebentabelle, weil zwanzig
+Videos als Base64 533 MB in einem String wären und Node keinen String über
+512 MB hält.
+**Die Sicherung auf Knopfdruck** nutzt `VACUUM INTO` — vollständig,
+verschlüsselt, ohne Schlüssel unlesbar. Der Zielort kommt zweistufig: die
+Wurzel aus `SICHERUNG_DIR`, ein Unterverzeichnis darunter aus der Oberfläche,
+geprüft am **aufgelösten** Pfad.
+**Vier neue schreibende Routen: `F_ROUTEN` geht von 47 auf 51.** Die
+Formatnummer bleibt bei **10**; der **Einzelexport** ist dieselbe Form mit
+einem Eintrag.
+**PLATZHALTER_ZAHL von PLATZHALTER_ZAHL Prüfungen**, PLATZHALTER_GP
+Gegenproben.
+
+**0.8.60 davor** — Fingerprint **`ab68b523`**. *Keine Datenbankstufe und
 keine Stufe des Mehrbenutzerbetriebs:* die **Ansicht „Offen"** über
 `GET /api/offen` zeigt alle nicht erledigten Aufgabenkommentare quer über alle
 Einträge, gruppiert nach Eintrag; der **Filter „Neu seit …"** hängt an einem
@@ -203,6 +247,13 @@ Besuchers kommt allein als Header an; ohne die Einstellung lägen alle
 Besucher in einem Zähler. Was daran hängt und was beim Umlegen passiert, steht
 in Abschnitt 3 und in der README. **Das Umlegen gehört in denselben Schritt
 wie die Freigabe nach außen, nicht davor und nicht danach.**
+
+**0.8.70 hat das Schema wieder angefasst — aber ohne Migrationscode.** Zwei
+neue TABELLEN stehen in der vollständigen DDL, und `CREATE TABLE IF NOT EXISTS`
+legt eine fehlende Tabelle bei jedem Start an. **Stolperstein 13 gilt der
+SPALTE, nicht der Tabelle**, und der Prüfstand belegt beides an einem Lauf:
+`papierkorb` von Hand entfernt kommt beim nächsten Start zurück, eine von Hand
+entfernte Spalte nicht. **Es bleibt deshalb bei fünf markierten Blöcken.**
 
 **0.8.30, 0.8.31, 0.8.40 UND 0.8.50 haben das Schema angefasst** — die ersten
 Versionen seit 0.8.3. `links` und `attachments` bekommen je
@@ -291,18 +342,35 @@ cp kriterion-alt/.env kriterion/.env      # OHNE DIESE ZEILE STARTET NICHTS
 cd kriterion && docker compose up -d --build
 ```
 
+**Seit 0.8.70 legt `docker compose` beim ersten Start ein zweites Verzeichnis
+an**: `../kriterion-sicherung` neben dem Projektordner. Dorthin schreibt die
+Karte „Sicherung". Es gehört **nicht** in dieselbe Ablage wie die `.env` — die
+Kopie ist verschlüsselt und ohne den Schlüssel wertlos, und beides
+nebeneinander hebt die Verschlüsselung auf.
+
 **Die Sicherungszeile ist seit 0.8.30 keine Empfehlung mehr.** Bei einer
 Datenbankstufe ist sie der einzige Weg zurück — siehe oben. Sie gehört
 **zwischen** `docker compose down` und alles Weitere: eine Sicherung, die
 neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
 
-**Für 0.8.60 gilt sie ausdrücklich nur als Empfehlung.** Die Runde fasst das
-Schema nicht an; ein Downgrade auf 0.8.50 ist wieder eine **reine Dateikopie**,
-und die Exportdatei behält ihr Format. **Das ist seit 0.8.30 zum ersten Mal
-wieder so und gehört gesagt** — wer sich angewöhnt hat, vor jedem Einspielen zu
-sichern, tut trotzdem nichts Falsches. *Ein Wort zum neuen Schlüssel: bleibt
-`zuletztGesehen` nach einem Downgrade in `user_settings` stehen, stört er
-nichts — 0.8.50 liest ihn nicht. Beim nächsten Vorwärtsschritt wirkt er wieder.*
+**Für 0.8.70 gilt sie wieder als PFLICHT.** Die Runde fasst das Schema an — sie
+ist eine Datenbankstufe —, und ein Downgrade ist damit keine reine Dateikopie
+mehr. **Das war in 0.8.60 anders und gehört ausdrücklich gesagt.**
+*Genau genommen stört ein Downgrade auf 0.8.60 wenig: zwei zusätzliche Tabellen
+sieht eine ältere Version gar nicht an, und die Exportdatei behält ihr Format
+10. Aber was im Papierkorb liegt, ist danach unerreichbar — die ältere Version
+kennt die Karte nicht —, und jeder Eintrag, der dort gelöscht wird, ist wieder
+endgültig weg. Die Sicherung ist der Weg, der ohne diese Fußnoten auskommt.*
+
+**Der Sicherungsort ist neu im Einspielweg.** `docker-compose.yml` hängt seit
+0.8.70 ein zweites Verzeichnis ein — `../kriterion-sicherung:/sicherung` — und
+benennt es als `SICHERUNG_DIR`. **Beide Hälften stehen in derselben Datei**,
+und das ist kein Geschmack: ein Pfad ohne Einhängung schriebe in eine Schicht
+des Containers, die beim nächsten `--build` verschwindet. Der Pfad liegt
+**außerhalb** des Projektverzeichnisses, weil das beim Einspielen umbenannt
+wird; `../kriterion-sicherung` zeigt vor und nach dem `mv` auf dasselbe
+Verzeichnis. Ohne die Einhängung bleibt die Karte „Sicherung" aus und sagt,
+warum.
 
 Sieben Dinge, die dabei schiefgehen können, alle schon vorgekommen:
 
@@ -350,6 +418,11 @@ Sieben Dinge, die dabei schiefgehen können, alle schon vorgekommen:
   Bestand wirkt dann leer.
 - **Der alte Ordner läuft noch** und belegt Port 3100. Deshalb steht das
   `docker compose down` an erster Stelle.
+- **Der Sicherungsort ist nicht eingehängt** (seit 0.8.70 möglich). Wer eine
+  alte `docker-compose.yml` weiterbenutzt, bekommt die Karte „Sicherung" mit
+  dem Satz „Es ist kein Sicherungsort eingerichtet" — und **nicht** eine, die
+  still ins Nichts schreibt. Der Ausweg ist die neue Datei aus dem ZIP; sie
+  wird beim Einspielen ohnehin mitkopiert.
 - **Die Sicherung wurde bei einer Datenbankstufe übersprungen** (seit 0.8.30
   möglich). Vorher war der Rückweg das Zurückkopieren des alten Dateisatzes;
   seit `links.user_id` reicht das nicht mehr. Wer ohne Sicherung einspielt,
@@ -479,7 +552,9 @@ Rechners liest sie nicht mehr. Daraus folgt: die `.env` muss dauerhaft liegen
 bleiben, denn **jedes Einspielen einer neuen Version erzeugt den Container neu**.
 
 Eine Kopie des Schlüssels gehört in den Passwortspeicher, und **`.env` und
-`data/` nicht ins selbe Backup**. Ohne den Schlüssel sind die Daten endgültig
+`data/` nicht in dieselbe Sicherung** — seit 0.8.70 gilt das auch für den
+Zielort der Sicherung auf Knopfdruck: ihre Kopie ist verschlüsselt und ohne den
+Schlüssel wertlos. Ohne den Schlüssel sind die Daten endgültig
 verloren. Wer auf dem Wirt `docker inspect` ausführen darf, sieht den Schlüssel
 — kein neues Loch, dieselbe Person könnte auch die `.env` lesen.
 
@@ -565,7 +640,7 @@ Klick gehört der Abspielsteuerung. Der Ausschnittmodus bleibt bedienbar und
 zeigt dort das Standbild. Alles davon ist **abgeleitet** aus `art` und `dauer`
 der Antwort, kein Schalter.
 
-**Systembereich: dreizehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
+**Systembereich: fünfzehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
 die breite Kachel „Zugänge" lässt seit 0.8.6 keine Lücke mehr im Raster).
 Dem **Admin**: beide Titel, Kennzahlen, Kategorien und Tags umbenennen und
 löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
@@ -573,8 +648,11 @@ löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
 Karte „Zugänge" (anlegen, sperren, Passwort zurücksetzen, Rolle wechseln,
 entfernen), Karte „Suchanbieter" (Vorrat, Startanbieter, drei eigene),
 Vokabular aus elf Wörtern. Dem **Eigentümer** zusätzlich: Export mit/ohne
-Fotos, mit eigenem Häkchen für Dateien und eines für **Videos**, und Import
-(ersetzen oder zusammenführen).
+Fotos, mit eigenem Häkchen für Dateien und eines für **Videos**, Import
+(ersetzen oder zusammenführen) und seit 0.8.70 die Karte **„Sicherung"**.
+**Die Karte „Papierkorb" (seit 0.8.70) steht dem Admin** — aber als Liste, an
+der nur der Eigentümer die beiden Knöpfe sieht; dieselbe Bauform wie bei
+„Kategorien", „Tags" und „Bewertungskriterien".
 **„Video" ist kein zwölfter Vokabeleintrag** und wird keiner — die elf bleiben
 elf. Es ist ein Wort über den Gegenstand, so wie „Foto" auch.
 **Jedem, auch ohne Rolle:** „Zugang" (eigener Name und Passwort),
@@ -624,6 +702,38 @@ den Rohtext.
 eigen und fremd: einen Eintrag zu löschen nimmt über die Kaskade fremde
 Kommentare, Bewertungen und Testtage mit, und das darf nicht wortlos geschehen.
 „Fremd" meint dabei, was dem **Löschenden** fremd ist.
+**Seit 0.8.70 sagt der Dialog am Eintrag nicht mehr „unwiderruflich"** — das
+wäre falsch. Die Zahlen bleiben wortgleich, der Schlusssatz nennt stattdessen
+den Papierkorb, die dreißig Tage und **wer zurückholen darf**: nicht der, der
+hier klickt.
+
+**Der Papierkorb** (seit 0.8.70): beim Löschen eines Eintrags wird er im
+vorhandenen Austauschformat serialisiert und **in derselben Transaktion** als
+eine Zeile abgelegt; danach läuft die Kaskade wie bisher. Die Karte im
+Systembereich nennt Titel, Datum, Löschenden, die verbleibenden Tage und die
+Größe. **Wiederherstellen legt einen NEUEN Eintrag an** — die alte Nummer ist
+weg, und daran hängt nichts mehr —, ordnet die Verfasser über ihre **Namen**
+wieder zu (ein Grabstein wird gefunden) und nennt, was dabei an den
+Wiederherstellenden gefallen ist. Nach dreißig Tagen fällt eine Zeile heraus;
+aufgeräumt wird beim **Start** und beim **Öffnen der Karte**. **Zwei Löschwege
+füllen ihn ausdrücklich nicht:** „Zugang entfernen" mit dem Häkchen *Einträge
+mitnehmen* und der ersetzende Import.
+
+**Die Sicherung auf Knopfdruck** (seit 0.8.70): eine Karte beim Eigentümer,
+neben Export und Import. `VACUUM INTO` erzeugt eine **vollständige,
+verschlüsselte** Kopie der Datenbank — samt Sitzungen und Einstellungen, ohne
+den Schlüssel unlesbar. Die Karte nennt **vorher**, wie lange es dauert und
+dass die Anlage währenddessen stillsteht, dazu „letzte Sicherung vor N Tagen"
+(aus dem **Dateisystem**, nicht aus einem Merker) und den Hinweis auf den
+Schlüssel. **Die Rollenteilung steht an beiden Karten:** `VACUUM INTO` ist der
+**Sicherungsweg**, der JSON-Export der **Austauschweg** — der überlebt einen
+Formatwechsel und braucht keinen Schlüssel, die Kopie ist dafür vollständig und
+konstant im Speicherbedarf.
+
+**Einen einzelnen Eintrag als Datei** (seit 0.8.70): `GET /api/items/:id/export`
+liefert dieselbe Form wie der volle Export, nur mit einem Eintrag — Formatnummer
+unverändert **10**, und alles geht mit. Wo die Datei die Stringgrenze sprengen
+würde, steht eine Absage mit Begründung statt eines Abrisses.
 
 **Dateien:** bis 50 MB je Stück, höchstens 20 je Eintrag, in der verschlüsselten
 Datenbank. Vorschau für Bilder, PDF, Text/Markdown/CSV/Log und `.docx`; alles
@@ -1572,7 +1682,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_60.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_70.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -1954,6 +2064,79 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   die Kopfzeile eines Kommentars. Zwei Schreibweisen für denselben Zeitpunkt
   wären eine zu viel. Bei genau einem Zugang bleibt die **ganze Zeile** weg wie
   bisher — dann steht das Datum schon in der Sortierung.
+
+- **„Löschen entwertet, es löscht nicht" gilt Benutzern — beim Eintrag gilt das
+  Gegenteil, und der Papierkorb ändert daran nichts** (seit 0.8.70). Ein
+  gelöschter Eintrag ist **wirklich weg**: kein `geloescht`-Zustand an `items`,
+  kein `WHERE`-Zusatz irgendwo. Er liegt nur **zusätzlich** noch als Paket
+  daneben, in einer Tabelle, die keine bestehende Abfrage anfasst. *Die Form
+  ist hier wichtiger als die Idee* — ein Zustand an `items` berührte jede
+  Abfrage im ganzen System, und jede vergessene Stelle wäre ein stiller Fehler.
+
+- **Wiederherstellen legt einen NEUEN Eintrag an** (seit 0.8.70). Die alte
+  Nummer ist weg, und daran hängt nichts mehr. Der Weg geht durch den **Import**
+  und erfindet dessen Regeln nicht neu: ein genannter Name, den es gibt, wird
+  zugeordnet — **ein Grabstein wird dabei gefunden**, seine Zeile in `users`
+  steht ja noch —, alles andere fällt an den Wiederherstellenden und wird
+  **genannt**.
+
+- **`geloescht_von` ist kein Träger wie `items.user_id`** (seit 0.8.70). Es ist
+  die Feststellung eines **Vorgangs**, so wie `created_at`; daran hängt kein
+  Recht und kein Filter. Die Spalte gehört deshalb ausdrücklich **nicht** in
+  `ordneBestandZu()`: das Auffangnetz beantwortet, wem herrenloser **Bestand**
+  zufällt, und hier stillschweigend den Eigentümer einzusetzen machte aus einer
+  Feststellung eine **Falschaussage**. Es gibt damit **sieben** Spalten mit
+  `user_id`-Charakter, aber weiterhin **sechs** im Auffangnetz.
+
+- **Der Titel steht im Papierkorb absichtlich zweimal** (seit 0.8.70) — als
+  eigene Spalte und im Paket. Er steht dort, damit die Liste lesbar ist, ohne
+  jede Zeile zu entpacken. **Eine zweite Wahrheit kann daraus nicht werden:**
+  das Wiederherstellen liest ausschließlich `inhalt` und die Spalte nie.
+
+- **Eine Exportdatei ist EIN String, und der hat eine Grenze** (seit 0.8.70,
+  gemessen). `MAX_STRING_LENGTH` ist 536.870.888 (512 MB); zwanzig Videos zu je
+  20 MB sind als Base64 533 MB, und `JSON.stringify` antwortet mit
+  `RangeError: Invalid string length`. **Zippen hilft nicht** — der String
+  entsteht davor. Daraus folgt die Bauform des Papierkorbs: die Bytes gehen an
+  der JSON **vorbei** in eine Nebentabelle. **Vorgabe für Teil II des
+  Videopapiers:** eine Datei über rund 950 MB passt auch dort nicht in eine
+  Zelle und teilt sich auf mehrere `nr` auf.
+
+- **Die Abbildung je Eintrag und der Deserialisierer stehen je genau einmal**
+  (seit 0.8.70). Bis dahin lagen beide mitten in ihren Routen. Jetzt rufen drei
+  Stellen `eintragAlsPaket()` und zwei `spieleEin()`; ein Wächter über den
+  Quelltext hält beide Zahlen fest. *Zwei Rechenwege für dieselbe Datei laufen
+  auseinander.*
+
+- **`VACUUM INTO` ist der Sicherungsweg, der JSON-Export der Austauschweg**
+  (seit 0.8.70), und **die Rollenteilung steht an beiden Karten**, nicht nur in
+  den Dokumenten. Die Kopie ist vollständig und konstant im Speicherbedarf,
+  überlebt aber keinen Formatwechsel und ist ohne den Schlüssel wertlos; der
+  Export ist unvollständig, baut die ganze Datei im Arbeitsspeicher und
+  überlebt beides. **Einen dritten Weg gibt es nicht:** `db.backup()` liefe
+  schrittweise, scheitert an einer SQLCipher-Datenbank aber an der
+  Zieldatenbank ohne Schlüssel (Stolperstein 117).
+
+- **Wohin geschrieben wird, entscheidet der aufgelöste Pfad** (seit 0.8.70).
+  Der Sicherungsort ist zweistufig: die Wurzel kommt aus der Umgebung und ist
+  über die Oberfläche nicht erreichbar, das Unterverzeichnis darunter geht
+  durch eine **Positivliste** und danach durch `realpathSync`. Erst dort fällt
+  ein Symlink auf, der aus der Wurzel herausführt (Stolperstein 120). **Ein
+  Verzeichnis, das es nicht gibt, ist eine Absage mit Begründung — kein stilles
+  Anlegen.**
+
+- **Der Sicherungsort und seine Einhängung stehen in derselben Datei**
+  (seit 0.8.70). Beide Hälften gehören in die `docker-compose.yml`; stünde die
+  eine in der `.env`, liefen sie auseinander, und die Anlage schriebe in eine
+  Schicht des Containers, die beim nächsten `--build` verschwindet.
+
+- **„Sicherung", nicht „Backup"** (seit 0.8.70). Beide Wörter sind
+  gebräuchlich; zwei für dieselbe Sache sind genau das, was die Sprachregel aus
+  Abschnitt 12 verhindern soll. Das Projekt sagt seit jeher „Sicherung" — im
+  Einspielweg, im Stufenplan, im Ideenpapier. **Nicht** in der Wortliste des
+  Sprachwächters: sie soll kurz bleiben, und das hier ist keine Übersetzung,
+  sondern eine Wahl zwischen zwei deutschen Wendungen. Ein eigener, enger
+  Wächter über die ausgelieferten Dateien hält sie fest.
 
 ---
 
@@ -2558,6 +2741,38 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     ist Admin — und nur ein gewöhnlicher Benutzer bekommt 403. *Wer eine
     Rechteschranke gegenprüft, prüft sie an dem Zugang, den sie treffen soll.*
 
+117. **`db.backup()` geht an einer verschlüsselten Datenbank nicht.** Der
+    schrittweise Weg der SQLite-Backup-API braucht eine Zieldatenbank mit
+    demselben Schlüssel und antwortet sonst mit „backup is not supported with
+    incompatible source and target databases". *Wer einen nicht blockierenden
+    Weg sucht, misst zuerst nach, ob es ihn an dieser Datenbank gibt.*
+118. **Eine Zusage, die nach dem Schließen ihres Fensters ankommt, reißt den
+    Lauf ab.** Eine Ansicht, die ihre Liste selbst nachlädt, läuft weiter, wenn
+    das jsdom-Fenster längst geschlossen ist; `document` ist dann `undefined`,
+    und der Zugriff beendet den ganzen Prüflauf, statt eine Prüfung rot zu
+    färben. *Was eine Ansicht beim Aufbau braucht, wird beim Aufbau geholt.*
+    Verwandt mit 103, aber eigenständig: dort ist die Prüfung zu unvorsichtig,
+    hier die Ansicht.
+119. **`datetime()` nimmt seine Modifikatoren EINZELN.**
+    `datetime('now', '-30 days +1 seconds')` ergibt **NULL**, nicht den
+    gemeinten Zeitpunkt — zwei Modifikatoren sind zwei Argumente. *Eine
+    Prüflage, die einen Zeitpunkt von Hand setzt, sieht nach, ob wirklich einer
+    dasteht.* Verwandt mit 60: dort ist die Auflösung zu grob, hier fehlt der
+    Wert ganz.
+120. **Eine Positivliste am Dateipfad ist stärker als jede Verbotsliste — aber
+    sie ersetzt den aufgelösten Pfad nicht.** `..` und ein absoluter Pfad sind
+    nicht ausdrückbar, wenn jedes Segment mit einem Buchstaben oder einer
+    Ziffer beginnen muss; **ein Symlink ist es sehr wohl**, und am String sieht
+    er harmlos aus. *Wer prüft, wohin geschrieben wird, prüft `realpathSync`
+    und nicht die Eingabe.* Die Gegenprobe zeigt beide Schichten getrennt: fällt
+    die Positivliste weg, bleibt die **Abweisung** grün und nur die
+    **Begründung** wird falsch — der aufgelöste Pfad fängt es auf.
+121. **Ein Dateiname mit Sekundenauflösung kollidiert in derselben Sekunde.**
+    Zwei Sicherungen kurz hintereinander tragen denselben Namen; `VACUUM INTO`
+    scheitert dann mit „output file already exists". Das ist die richtige
+    Antwort — aber eine Prüflage, die zweimal hintereinander sichert, muss eine
+    Sekunde warten, sonst prüft sie die Kollision statt der Sache.
+
 ---
 
 ## 7. Prüfstand
@@ -2570,14 +2785,16 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 2087 von 2087 bestanden** (0.8.60; 134 neue Prüfungen, acht neue
-Gruppen: „Offene Aufgaben: die Ansicht", „Der Haken am Aufgabenkommentar",
-„Neu seit: die Sekunde am Rand", „Offen: die Ansicht in der Oberflaeche",
-„Offen: der Haken in der Ansicht", „Neu seit: der Filter in der Uebersicht",
-„Neu seit: der Merkzeitpunkt" und „Der Sprachwaechter"; dazu Ergänzungen an
-„Persoenliche Einstellungen" und „Der Umschalter der Vergleichsansicht").
-Davor 0.8.50 mit 146 neuen Prüfungen, 0.8.40 mit 125, 0.8.31 mit 58 und
-0.8.30 mit 76.
+**Zuletzt: PLATZHALTER_ZAHL von PLATZHALTER_ZAHL bestanden** (0.8.70;
+PLATZHALTER_NEU neue Prüfungen, neun neue Gruppen: „Der Papierkorb: die Tabelle
+legt sich selbst an", „Der Papierkorb: der Rundlauf", „Der Papierkorb: dieselbe
+Transaktion", „Der Papierkorb: die dreissig Tage", „Der Papierkorb: die
+Rechte", „Ein einzelner Eintrag als Datei", „Die Sicherung auf Knopfdruck",
+„Der Papierkorb in der Oberflaeche" und „Die Sicherung in der Oberflaeche";
+dazu Ergänzungen an „Der Waechter ueber den Quelltext", „Der Systembereich nach
+Rolle", „Kommentare in der Oberflaeche" und am Mock in `baueDom`).
+Davor 0.8.60 mit 134 neuen Prüfungen, 0.8.50 mit 146, 0.8.40 mit 125, 0.8.31
+mit 58 und 0.8.30 mit 76.
 
 **Es gibt jetzt FÜNF Migrationsabschnitte**, und alle tragen dieselbe Marke.
 Der Abschnitt **„MIGRATION 0.8.3 — ENTFAELLT MIT 1.0"** mit sieben Prüfungen
@@ -2643,6 +2860,16 @@ ist wieder da. `CREATE INDEX IF NOT EXISTS` rüstet sich bei jedem Start selbst
 nach, anders als eine neue **Spalte**, die `CREATE TABLE IF NOT EXISTS` in
 einer vorhandenen Tabelle nie nachträgt. Dass der Abfrageplaner ihn auch nimmt,
 prüft `EXPLAIN QUERY PLAN` daneben.
+
+**Und seit 0.8.70 steht dieselbe Probe für eine ganze TABELLE daneben**, in der
+eigenen Gruppe „Der Papierkorb: die Tabelle legt sich selbst an": `papierkorb`
+und `papierkorb_bytes` werden von Hand entfernt, der Server startet einmal, und
+beide sind wieder da — samt Spalten und Index. **Die Gegenlage gehört dazu:**
+eine von Hand entfernte **Spalte** (`items.description`) kommt **nicht** von
+selbst zurück. Damit ist Stolperstein 13 an einem Lauf von beiden Seiten
+belegt, und **es bleibt bei fünf Migrationsabschnitten**: 0.8.70 hat keinen
+bekommen, weil es keinen Block gibt. Die Probe „Ein Sprung von 0.8.20 fährt
+ALLE Migrationen in einem Start" ist deshalb **nicht** erweitert worden.
 
 **Was abgedeckt ist**, grob nach Bereichen:
 
@@ -2776,6 +3003,34 @@ prüft `EXPLAIN QUERY PLAN` daneben.
   einzigen Zugang doch. **Und die Sekunde am Rand:** eine Prüflage, in der ein
   Kommentar in genau der Sekunde des Verlassens entsteht, samt dem Beleg, dass
   die Lage wirklich getroffen wurde.
+- **Der Papierkorb (0.8.70):** der **Rundlauf** ist die tragende Prüfung der
+  Runde — ein Eintrag mit Foto, echtem Video, zwei Dateien, zwei Links, zwei
+  Tags, Kommentaren **aller vier Arten** (darunter einer mit echtem Bild, einer
+  von einem **Grabstein** und ein **herrenloser**), Bewertungen zweier Bewerter
+  samt einer zurückgesetzten und Testtagen zweier Verfasser **am selben Tag**
+  wird gelöscht, wiederhergestellt und **Feld für Feld** gegen die echte
+  Serverantwort gehalten; Fotos und Video kommen **bytegleich** zurück. Dazu:
+  die Zeile entsteht **in derselben Transaktion** (ein Auslöser in der
+  Datenbank erzwingt den Fehlschlag, danach steht der Eintrag **unverändert**
+  da), die Bytes liegen **nicht** in der JSON (an der echten Videodatei
+  nachgesehen), die **dreißig Tage** an **beiden** Seiten der Grenze und **jede**
+  der beiden Aufräumstellen einzeln, die Rechte in beiden Richtungen mit einem
+  **Admin ohne Eigentümerrolle**, und die Kennzahl getrennt.
+- **Die Sicherung (0.8.70):** `VACUUM INTO` an einer echten Anlage — die Kopie
+  entsteht, ist **ohne Schlüssel nicht lesbar**, **mit** Schlüssel vollständig
+  (Bestand, Zugänge **und** Sitzungen), und der Ausgangsstand ist danach
+  unverändert. Der Zielort in beide Richtungen: sieben Absagen, jede mit ihrer
+  sprechenden Begründung **und** der Nachschau, dass danach keine Datei da
+  liegt; darunter ein **Symlink**, der aus der Wurzel herausführt, und ein
+  Verzeichnis, das es nicht gibt und auch nicht angelegt wird. Eine vorhandene
+  Zieldatei wird nicht überschrieben. „Letzte Sicherung" folgt dem
+  **Dateisystem** und ausdrücklich **nicht** einem Schlüssel in `settings`. Ein
+  unerreichbarer Ort ergibt eine Ansage statt einer Zahl. Ein Ort **im**
+  Datenverzeichnis bleibt aus und sagt, warum. Und die Probe, dass
+  `db.backup()` an dieser Datenbank kein zweiter Weg ist.
+- **Der Einzelexport (0.8.70):** dieselbe Form wie der volle Export — Zeichen
+  für Zeichen am Eintrag verglichen — und geprüft an einer Datei, die durch den
+  **Import** wieder hereinkommt, nicht nur am JSON.
 - **Der Sprachwächter (seit 0.8.60):** eine kurze Wortliste, gesucht in `Doku/`
   und in den **Kommentaren** des Quelltextes. **Er ist die Ausnahme von
   Stolperstein 106** — jeder andere Wächter filtert die Kommentarzeilen weg,
@@ -2908,6 +3163,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.40 | Gewichtete Bewertungskriterien — alle fünf Punkte (125) | 30 | Stolpersteine 106 und 107, Lücke 9 oben |
 | 0.8.50 | Kurzvideos am Fotoplatz — alle fünf Punkte (146) | 30 | Stolpersteine 108 bis 111 |
 | 0.8.60 | Was ist offen, was ist neu — Ansicht „Offen", Filter „Neu seit …", Sprachbereinigung (132) | 17 | Stolpersteine 112 bis 116 |
+| 0.8.70 | Sicherung und Papierkorb — alle drei Punkte (PLATZHALTER_NEU) | PLATZHALTER_GP | Stolpersteine 117 bis 121 |
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -3111,8 +3367,54 @@ sind zwei Dinge:
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.60 — „Was ist offen, was ist neu".** Die nächste Runde des Stufenplans,
-**keine Stufe des Mehrbenutzerbetriebs** — und **keine Datenbankstufe**.
+**0.8.70 — „Sicherung und Papierkorb".** Die nächste Runde des Stufenplans,
+**keine Stufe des Mehrbenutzerbetriebs** — und **wieder eine Datenbankstufe**,
+aber **ohne Migrationsblock**.
+
+*Was sie tut.* Zwei Wege zurück, die es bisher nicht gab. Ein gelöschter
+Eintrag lag bis dahin endgültig hinter der Kaskade; die einzige Rettung war ein
+Export, den jemand gezogen haben musste. Und eine Sicherung der Anlage entstand
+nur von Hand auf dem Wirt.
+
+*Der Papierkorb.* Zwei Tabellen in der vollständigen DDL — und **kein
+Migrationsblock**: `CREATE TABLE IF NOT EXISTS` legt eine fehlende **Tabelle**
+bei jedem Start an, anders als eine Spalte. **Keine bestehende Abfrage ändert
+sich**: `items` trägt unverändert zehn Spalten, kein `WHERE` bekommt einen
+Zusatz. Beim Löschen wird der Eintrag im vorhandenen Austauschformat
+serialisiert und **in derselben Transaktion** entfernt; danach läuft die
+Kaskade wie bisher. **Die Bytes gehen an der JSON vorbei** in eine
+Nebentabelle — als Base64 in einem String rissen zwanzig Videos die Grenze von
+Node. Sehen darf die Karte der **Admin**, zurückholen und endgültig entfernen
+der **Eigentümer**; Wiederherstellen legt einen **neuen** Eintrag an und geht
+durch den Import, samt dessen Regel zu den Verfassernamen. Nach dreißig Tagen
+fällt eine Zeile heraus, aufgeräumt beim **Start** und beim **Öffnen der
+Karte**.
+
+*Der Einzelexport.* Aus Punkt 3 gefallen: die Abbildung je Eintrag stand mitten
+in der Exportroute, der Deserialisierer mitten im Importrumpf. Beide sind
+herausgezogen, und ein Wächter hält fest, dass es je **einen** gibt. Damit ist
+„diesen Eintrag als Datei" ein Knopf und eine lesende Route —
+`GET /api/items/:id/export` hinter `nurEigentuemer`, **Formatnummer unverändert
+10**.
+
+*Die Sicherung.* `VACUUM INTO` erzeugt eine vollständige, verschlüsselte Kopie —
+ohne Schlüssel meldet sie „file is not a database". Einen schrittweisen Weg
+gibt es an dieser Datenbank nicht (Stolperstein 117). Sie läuft **synchron**,
+und die Karte sagt die erwartete Dauer **vorher**; gemessen sind rund 10 ms je
+MB. Der Zielort kommt zweistufig — Wurzel aus `SICHERUNG_DIR`,
+Unterverzeichnis aus der Oberfläche —, und geprüft wird am **aufgelösten**
+Pfad. „Letzte Sicherung vor N Tagen" kommt aus dem **Dateisystem**.
+
+**Vier neue schreibende Routen: `F_ROUTEN` 47 → 51.** Fünfzehn Karten im
+Systembereich, elf Vokabeleinträge, keine neue Abhängigkeit.
+
+**PLATZHALTER_ZAHL von PLATZHALTER_ZAHL Prüfungen**, PLATZHALTER_GP
+Gegenproben, **fünf neue Stolpersteine** (117 bis 121). Einzelheiten in
+`Doku/Aenderungsprotokoll_0.8.70.md`.
+
+**0.8.60 davor — „Was ist offen, was ist neu".** Die Runde davor im
+Stufenplan, **keine Stufe des Mehrbenutzerbetriebs** — und **keine
+Datenbankstufe**.
 
 *Was sie tut.* Zwei Dinge, die es längst gibt, werden auffindbar.
 Aufgabenkommentare gibt es seit 0.5.9, samt Farbkante und Weiterschaltknopf;
@@ -3399,7 +3701,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.40** | Gewichtung der Kriterien | Gewicht 0,2 bis 2 je Kriterium, gewichteter Gesamtschnitt, Anzeige `×1,5`, `criteriaGewichte` im Austauschformat — siehe `Konzept_Gewichtung_Bewertungskriterien.md` | ja | 8 → 9 |
 | **0.8.50** | Kurzvideos am Fotoplatz | bis 20 MB, in der Datenbank, Standbild aus dem Browser — siehe `Konzept_Video_und_grosse_Dateien.md`, Teil I | ja | 9 → 10 |
 | **0.8.60** | Was ist offen, was ist neu | Ansicht „Offen" über alle Einträge, Filter „Neu seit …" | — | — |
-| **0.8.70** | Sicherung und Papierkorb | `VACUUM INTO` auf Knopfdruck (Punkt 8), Papierkorb, einzelnen Eintrag exportieren | ja | — |
+| **0.8.70** | Sicherung und Papierkorb | `VACUUM INTO` auf Knopfdruck (Punkt 8), Papierkorb, einzelnen Eintrag exportieren | ja, **ohne Migrationsblock** | — |
 | **0.8.80** | **Stufe H** — Tokens | Einladung und Rücksetzung, dazu „Meine Sitzungen" | ja | — |
 | **0.8.90** | Schwere Eingriffe | Re-Authentifizierung, Sicherheitsprotokoll, Schlüssel wechseln | ja | — |
 | **0.9.0** | **Stufe I** — Mailversand und Selbstanmeldung | siehe Konzeptpapier | ja | — |
@@ -3408,19 +3710,23 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
-**0.8.10, 0.8.20, 0.8.30, 0.8.31, 0.8.40, 0.8.50 und 0.8.60 sind gebaut** —
-Einzelheiten in Abschnitt 2 und Abschnitt 9. Mit 0.8.30 ist **die erste
-Datenbankstufe seit 0.8.3** gefahren, mit 0.8.31 die zweite, mit 0.8.40 die
-dritte und mit 0.8.50 die vierte; bei diesen vier steht die Sicherung des
-Datenverzeichnisses als **Pflicht** im Einspielweg (Abschnitt 2).
-**0.8.60 ist die erste Runde seit 0.8.20, die das Schema nicht anfasst** —
-dort ist die Sicherung wieder eine Empfehlung, und ein Downgrade ist wieder
-eine reine Dateikopie.
+**0.8.10 bis 0.8.70 sind gebaut** — Einzelheiten in Abschnitt 2 und
+Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit 0.8.3** gefahren,
+mit 0.8.31 die zweite, mit 0.8.40 die dritte, mit 0.8.50 die vierte und mit
+0.8.70 die fünfte; bei allen fünf steht die Sicherung des Datenverzeichnisses
+als **Pflicht** im Einspielweg (Abschnitt 2). **0.8.60 war die einzige Runde
+seit 0.8.20, die das Schema nicht angefasst hat.**
 
-**Als Nächstes 0.8.70 — Sicherung und Papierkorb**, und wieder eine
-Datenbankstufe. **Teil I des Videopapiers ist mit 0.8.50 abgearbeitet;** Teil II
-bleibt auf 1.1.0 und teilt mit Teil I keinen Code außer der Positivliste der
-Formate.
+**0.8.70 ist die erste Datenbankstufe OHNE Migrationsblock.** Sie bringt zwei
+neue **Tabellen**, und `CREATE TABLE IF NOT EXISTS` legt eine fehlende Tabelle
+bei jedem Start an. Es bleibt bei **fünf** markierten Blöcken, und unter
+„Vorgemerkt für 1.0" kommt **nichts** dazu.
+
+**Als Nächstes 0.8.80 — Stufe H, Tokens.** **Teil I des Videopapiers ist mit
+0.8.50 abgearbeitet;** Teil II bleibt auf 1.1.0 und teilt mit Teil I keinen
+Code außer der Positivliste der Formate — **und seit 0.8.70 eine Vorgabe zum
+Papierkorb**: eine Datei über rund 950 MB passt nicht in eine Zelle und teilt
+sich auf mehrere `papierkorb_bytes.nr` auf.
 
 **Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
 antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
@@ -3439,13 +3745,13 @@ Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
   `setzeBildHeader()` gegangen, ohne dass in `server.js` eine einzige
   Zeile dazukam, die den Typ selbst setzt — der Wächter blieb grün, und er hat
   seitdem eine Gegenprobe neben sich.
-- **0.8.50 vor 0.8.70** (die erste Hälfte erledigt; **0.8.60 liegt dazwischen
-  und bindet an nichts** — sie war die letzte kleine Runde vor dem Papierkorb).
-  Der Papierkorb
-  serialisiert einen Eintrag. Da es jetzt schon Videos gibt, wird die
-  Serialisierung **einmal** gebaut statt einmal gebaut und einmal nachgezogen.
-  **Was 0.8.70 dabei mitnehmen muss:** ein Eintrag trägt seit 0.8.50 Zeilen
-  zweier Arten in `photos`, und die Videohälfte kann sehr groß sein.
+- **0.8.50 vor 0.8.70** (beide erledigt). Der Papierkorb serialisiert einen
+  Eintrag. Da es schon Videos gab, ist die Serialisierung **einmal** gebaut
+  worden statt einmal gebaut und einmal nachgezogen. **Die Bindung hat sich
+  beim Bauen ausgezahlt, und zwar schärfer als erwartet:** die Videohälfte ist
+  nicht bloß groß, sie sprengt als Base64 die Stringgrenze von Node. Wäre der
+  Papierkorb vor 0.8.50 gebaut worden, stünde die Bauform heute falsch da und
+  müsste umgebaut werden — mit Bestand darin.
 - **0.8.10 und 0.8.20 vor 1.0.0** (beide erledigt). Eine Veröffentlichung
   heißt fremde Installationen. Danach stünden die beiden Befunde nicht mehr in
   einer Anlage, sondern in allen — deshalb lagen sie vorn und nicht hinten.
@@ -3471,7 +3777,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_60.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_70.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.
@@ -3553,27 +3859,28 @@ damit alte Verweise stimmen.)*
    `public/app.js` als „Kriterion". Harmlos, weil der Rückfall in der
    Oberfläche nur greift, wenn `/api/config` gar nicht antwortet — aber es ist
    die Form von Stolperstein 47 und gehört vor 1.0.0 auf eine Wahrheit gebracht.
-8. **Sicherungskopie auf Knopfdruck — beschlossen, 0.8.70.** `VACUUM INTO`
+8. **Sicherungskopie auf Knopfdruck — ERLEDIGT mit 0.8.70.** `VACUUM INTO`
    erzeugt eine **verschlüsselte**, vollständige und konsistente Kopie der
-   Datenbank — geprüft, ohne Schlüssel meldet sie „file is not a database".
-   Dazu ein Hinweis „letzte Sicherung vor N Tagen" und ein einstellbarer
-   Zielort, damit die Kopie nicht neben dem Original liegt.
+   Datenbank; ohne Schlüssel meldet sie „file is not a database". Gebaut sind
+   die Karte „Sicherung" beim Eigentümer, der einstellbare Zielort, der
+   Hinweis „letzte Sicherung vor N Tagen" aus dem **Dateisystem** und die
+   Ansage der erwarteten Dauer.
 
-   **Dazu die Rollenteilung, die bisher nirgends stand:** `VACUUM INTO` ist
-   der **Sicherungsweg**, der JSON-Export der **Austauschweg**. Beide werden
-   gebraucht, aber für Verschiedenes — die Kopie ist konstant im
-   Speicherbedarf und vollständig, der Export überlebt einen Formatwechsel
-   und braucht keinen Schlüssel. Heute muss der Export beides sein und ist
-   für das eine davon zu schwer: er baut **eine** JSON-String mit allen
-   Fotos als Base64, und Node kann ein String über rund 512 MB nicht
-   halten. Der Hinweis auf die erwartete Exportgröße gehört deshalb neben den
-   Knopf.
+   **Die Rollenteilung steht jetzt an beiden Karten**, nicht nur in den
+   Dokumenten: `VACUUM INTO` ist der **Sicherungsweg**, der JSON-Export der
+   **Austauschweg**. Die Grenze, die den Export für das eine zu schwer macht,
+   ist inzwischen gemessen und benannt (Abschnitt 5): eine Exportdatei ist
+   **ein** String, und Node hält keinen über 512 MB. Genau daraus folgt auch
+   die Bauform des Papierkorbs.
 
 ### Vorgemerkt für 1.0
 
 *Aus 0.8.10 und 0.8.20 ist hier nichts dazugekommen — beide haben das Schema
 nicht angefasst. **Aus 0.8.30, 0.8.31, 0.8.40 und 0.8.50 ist je ein markierter
-Block dazugekommen; es sind jetzt fünf.***
+Block dazugekommen; es sind fünf.** **Aus 0.8.70 ist ebenfalls nichts
+dazugekommen, obwohl sie das Schema anfasst** — sie bringt zwei neue TABELLEN,
+und die legt `CREATE TABLE IF NOT EXISTS` bei jedem Start selbst an. Kein
+Block, kein Eintrag hier, kein sechster Migrationsabschnitt im Prüfstand.*
 
 - **Finale Bereinigung.** Der Rückbau des Migrationscodes wurde aus
   Notwendigkeit nach 0.8.0 vorgezogen; zu 1.0 folgt eine letzte Bereinigung
@@ -3698,7 +4005,7 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
 
 - **Wer eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` im Prüfstand
   ein** — sonst wird der Lauf namentlich rot, und genau das ist der Zweck.
-  Die Liste (aktuell 47 Routen) ist die Stelle, an der die Rechtefrage
+  Die Liste (aktuell 51 Routen) ist die Stelle, an der die Rechtefrage
   gestellt wird; seit 0.8.0 kennt sie die vierte Art `'nurAdmin, im Rumpf'`.
 - **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — viermal
   angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
@@ -3713,6 +4020,10 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   **Zahl ausdrücklich**, nicht nur die Übereinstimmung der Liste mit dem
   Quelltext. **0.8.60 hat sie nicht bewegt** — die Ansicht „Offen" ist lesend,
   und der Erledigt-Haken geht über `PUT /api/comments/:id`, die es längst gibt.
+  **0.8.70 bewegt sie um vier: 47 → 51** — zwei für den Papierkorb, zwei für
+  die Sicherung. Die drei lesenden Endpunkte daneben (`GET /api/papierkorb`,
+  `GET /api/items/:id/export`, `GET /api/sicherung`) stehen wie immer **nicht**
+  in der Liste, obwohl alle drei einen Wächter tragen.
   **0.8.50 hat sie zum ersten Mal seit langem bewegt: 46 → 47**,
   mit `POST /api/items/:id/videos` hinter `nurEintragVerfasser`. Die Route ist
   eigens entstanden, statt die Fotoroute zu erweitern — deren `fileFilter`
@@ -3789,6 +4100,11 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   Zeile ohne sie überlebt den nächsten Start nicht so, wie sie angelegt wurde —
   `ordneBestandZu()` schiebt sie dem Eigentümer zu, und eine Prüfung auf
   „fremd" prüft danach etwas anderes, als ihr Name sagt.
+  **Seit 0.8.70 gibt es eine SIEBTE Spalte mit `user_id`-Charakter**,
+  `papierkorb.geloescht_von` — und sie steht ausdrücklich **nicht** im
+  Auffangnetz (Abschnitt 5). Wer dort eine Tabelle ergänzt, prüft zuerst, ob
+  ihre Spalte eine **Zugehörigkeit** ist oder die Feststellung eines
+  **Vorgangs**.
 - **Zu jedem Feld, das die Oberfläche aus der Antwort liest, gehört eine
   Prüfung an der echten Antwort** (seit 0.8.30, Stolperstein 102). Der
   Mock in `baueDom` bringt die Felder selbst mit; er kann eine
@@ -3870,6 +4186,23 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   sondern dieselbe, an der schon die Eigentümerrolle liegt. `aendereZugang()`
   wendet das Prinzip längst an („das bisherige Passwort ist Pflicht — sonst
   genügte eine fremde offene Sitzung"); es fehlt nur bei den schweren Wegen.
+- **Wer eine Datei aus dem Bestand baut, denkt an die Stringgrenze**
+  (seit 0.8.70). Eine Exportdatei ist **ein** String, und Node hält keinen über
+  512 MB. Der volle Export hält mit den Schaltern dagegen, der Einzelexport mit
+  einer Absage, der Papierkorb mit einer Nebentabelle. **Wer einen vierten Weg
+  ergänzt, entscheidet sich für einen davon** — es gibt keinen, der ohne
+  auskommt.
+- **Wer eine Ansicht ergänzt, holt ihren Bestand beim Aufbau**
+  (seit 0.8.70, Stolperstein 118). `renderSystem()` hängt acht Abrufe in EIN
+  `Promise.all`, jeder hinter der Rolle, hinter der auch seine Karte steht. Ein
+  Nachladen aus der Karte heraus läuft als herrenlose Zusage weiter, wenn das
+  Fenster längst zu ist — und reißt im Prüfstand den ganzen Lauf ab.
+- **Wer an einen angegebenen Ort schreibt, prüft den aufgelösten Pfad**
+  (seit 0.8.70, Stolperstein 120). Positivliste zuerst, `realpathSync` danach,
+  und die Frage nach innerhalb/außerhalb an beiden Enden. Der Sicherungsort ist
+  bis auf Weiteres die **einzige** Stelle, an der der Server an einen Ort
+  schreibt, den jemand angeben darf; wer eine zweite baut, nimmt `pruefeOrt()`
+  zum Vorbild und schreibt die Regel nicht ein zweites Mal hin.
 - **Ein Sicherheitsprotokoll ist kein Änderungsverlauf** (ab 0.8.90). Die
   Entscheidung gegen den Änderungsverlauf gilt **Inhalten**. Das Protokoll
   hält fest, wer Zugang hatte und wer die Anlage als Ganzes angefasst hat —

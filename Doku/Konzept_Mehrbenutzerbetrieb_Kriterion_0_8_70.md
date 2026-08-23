@@ -1,16 +1,44 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.60 — Fingerprint `ab68b523`**
+**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.70 — Fingerprint `PLATZHALTER_FP`**
 (Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
 vier keine Stufen.)
 
-**0.8.60 berührt den Mehrbenutzerbetrieb nicht — und bestätigt dabei zwei
-seiner Regeln.** „Was ist offen, was ist neu" ist keine Datenbankstufe und
+**0.8.70 berührt den Mehrbenutzerbetrieb nicht — und legt dabei zwei seiner
+Regeln neu aus.** „Sicherung und Papierkorb" ist zwar wieder eine
+Datenbankstufe, aber keine Stufe dieses Papiers: keine Rolle, kein Träger, kein
+neues Recht. **`F_ROUTEN` geht von 47 auf 51** — zwei Routen für den
+Papierkorb, zwei für die Sicherung, alle vier hinter `nurEigentuemer`.
+
+Neu ausgelegt werden zwei Regeln:
+
+- **Auflage 20 („eine neue Spalte braucht die DDL *und* einen
+  Migrationsblock") gilt der SPALTE, nicht der TABELLE.** 0.8.70 ist die erste
+  Datenbankstufe **ohne** Migrationsblock: `CREATE TABLE IF NOT EXISTS` legt
+  eine fehlende Tabelle bei jedem Start an. Nachgestellt statt geglaubt, und
+  die Gegenlage steht daneben — eine von Hand entfernte Spalte kommt nicht von
+  selbst zurück. **Es bleibt bei fünf markierten Blöcken.**
+- **Auflage 18 (`OR REPLACE` und Kinderzeilen) ist zum sechsten Mal geprüft
+  und wieder nicht zutreffend.** Der Papierkorb legt Zeilen an und entfernt
+  sie, aber er ersetzt keine; das Wiederherstellen geht durch den **Import**,
+  der seine Regeln unverändert behält.
+
+Dazu ein Merksatz, der zu Auflage 19 gehört und sie schärft: **die
+Rechtefrage folgt der Schreibrichtung, nicht dem Gegenstand.** Der Papierkorb
+hält **fremde** Beiträge, und Wiederherstellen legt sie unter fremdem Namen
+wieder an — also gehört es hinter den **Eigentümer**, genau wie der Import.
+Nur das **Sehen** liegt beim Admin, und das ist harmlos: jeder angemeldete
+Zugang sieht jeden Titel ohnehin in der Übersicht.
+
+---
+
+**0.8.60 davor berührte den Mehrbenutzerbetrieb ebenfalls nicht — und
+bestätigte dabei zwei seiner Regeln.** „Was ist offen, was ist neu" ist keine Datenbankstufe und
 keine Stufe dieses Papiers: keine Rolle, kein Recht, kein Träger, kein Schema.
-**`F_ROUTEN` bleibt bei 47** — die Ansicht „Offen" ist eine lesende Route ohne
-Wächter, und der Erledigt-Haken geht über `PUT /api/comments/:id`, die es
+**`F_ROUTEN` blieb dort bei 47** — die Ansicht „Offen" ist eine lesende Route
+ohne Wächter, und der Erledigt-Haken geht über `PUT /api/comments/:id`, die es
 längst gibt.
 
 Bestätigt werden zwei Regeln:
@@ -89,8 +117,8 @@ beide nur in seinen Nummern.
 Selbstanmeldung, 0.9.0).** Zwischen G4 und H liegen vier Stufen, die nicht zum
 Mehrbenutzerbetrieb gehören; sie stehen im Projektstand, Abschnitt 10. Die
 ersten drei davon — **0.8.40, die Gewichtung**, **0.8.50, Kurzvideos am
-Fotoplatz**, und **0.8.60, „Was ist offen, was ist neu"** — sind gebaut; die
-nächste ist **0.8.70, „Sicherung und Papierkorb"**.
+Fotoplatz**, **0.8.60, „Was ist offen, was ist neu"** und **0.8.70,
+„Sicherung und Papierkorb"** — sind gebaut; die nächste ist **0.8.80, Stufe H**.
 
 **Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
 `HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
@@ -608,9 +636,9 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 G4 und H liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu",
 Sicherung und Papierkorb). Alle vier gehören nicht zum Mehrbenutzerbetrieb und
 stehen deshalb im Projektstand, Abschnitt 10 — zusammen mit der Begründung für
-die Reihenfolge. **Die ersten drei — 0.8.40 (Gewichtung), 0.8.50 (Kurzvideos) und 0.8.60
-(„Offen/Neu") — sind gebaut; als Nächstes 0.8.70, „Sicherung und
-Papierkorb".**
+die Reihenfolge. **Alle vier — 0.8.40 (Gewichtung), 0.8.50 (Kurzvideos),
+0.8.60 („Offen/Neu") und 0.8.70 (Sicherung und Papierkorb) — sind gebaut; als
+Nächstes 0.8.80, Stufe H.**
 
 Danach: Zwei-Faktor, Suche, dann 1.0.0. **Zwei Punkte hängen unmittelbar an
 Stufe I und gehören beim Bauen mitgedacht:** die Tokens aus H tragen auch die
@@ -1403,15 +1431,23 @@ ihrem Merksatz; **die offenen Auflagen stehen vollständig.**
     *In 0.8.50 zum fünften Mal geprüft und wieder nicht zutreffend:* an
     `photos` hängen keine Kinder, die Migration rüstet nur zwei Spalten nach, und
     der Import schreibt Fotozeilen mit blankem `INSERT`.
-    **Die Auflage bleibt stehen** — als Nächstes für 0.8.70, wo der Papierkorb
-    einen ganzen Eintrag samt seiner Kinder serialisiert.
+    *In 0.8.70 zum sechsten Mal geprüft und wieder nicht zutreffend:* der
+    Papierkorb serialisiert zwar einen ganzen Eintrag samt seiner Kinder,
+    **ersetzt** dabei aber nichts — er legt Zeilen an und entfernt sie, und
+    das Wiederherstellen geht durch den Import, der seine Regeln unverändert
+    behält.
+    **Die Auflage bleibt stehen.**
 19. *Eingetreten und erledigt in 0.7.2.* **Merksatz: der Import kann unter
     fremdem Namen schreiben — deshalb gehört er (samt Export) hinter den
     Eigentümer.**
-20. **Eine neue Spalte braucht die DDL *und* einen Migrationsblock**
-    (0.8.3 eingetreten, **0.8.30 zum zweiten Mal**). `CREATE TABLE IF NOT
-    EXISTS` rüstet nichts nach (Stolperstein 13), und seit der Bereinigung
-    0.8.1 gibt es keinen anderen Weg.
+20. **Eine neue SPALTE braucht die DDL *und* einen Migrationsblock — eine neue
+    TABELLE nicht** (0.8.3 eingetreten, **0.8.30 zum zweiten Mal**,
+    **0.8.70 präzisiert**). `CREATE TABLE IF NOT EXISTS` rüstet eine Spalte in
+    einer vorhandenen Tabelle nicht nach (Stolperstein 13), und seit der
+    Bereinigung 0.8.1 gibt es dafür keinen anderen Weg. **Eine fehlende
+    Tabelle legt derselbe Befehl dagegen bei jedem Start an** — nachgestellt in
+    0.8.70, samt der Gegenlage an einer Spalte. Der Papierkorb ist deshalb die
+    erste Datenbankstufe ohne Migrationsblock.
     *Aus 0.8.30 kommen zwei Auflagen dazu, und beide gelten für jede folgende
     Datenbankstufe:* **erstens** ist die Frage, **wem** die Bestandszeilen
     zufallen, eine eigene Entscheidung und nicht dieselbe wie die des
