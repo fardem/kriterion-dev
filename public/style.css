@@ -769,6 +769,23 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .zug-neu .input { flex: 1 1 130px; min-width: 0; }
 .zug-neu select.input { flex: 0 0 auto; width: auto; }
 
+/* "noch kein Passwort" steht an der Statusspalte und nimmt deren Schrift.
+   Es ist ein abgeleiteter Zustand und kein vierter in der Datenbank -- es
+   soll sich deshalb auch nicht wie einer anfuehlen. */
+.mrow.zug .zug-wartet { color: var(--accent); }
+/* Das Feld traegt den Link in voller Laenge; er wird kopiert, nicht gelesen,
+   deshalb die feste Schrift und die volle Zeile. */
+.zug-linkzeile { display: flex; align-items: center; gap: 7px; margin-top: 9px; }
+.zug-linkzeile .input { flex: 1 1 auto; min-width: 0; font-family: var(--mono); font-size: .72rem; }
+.zug-linkzeile .btn { flex: 0 0 auto; }
+
+/* Die eigene Anmeldung ist markiert -- sonst waere sie von einer fremden nicht
+   zu unterscheiden, und genau das ist die eine Auskunft dieser Karte. */
+.mrow.sitz .sitz-zeit { font-family: var(--mono); font-size: .68rem; color: var(--faint); flex-shrink: 0; }
+.mrow.sitz-ich { border-color: var(--accent); }
+.mrow.sitz-ich .mname { color: var(--accent); }
+.sitz-fuss { margin-top: 4px; }
+
 .warn-box { background: var(--red-dim); border: 1px solid rgba(240,85,92,.3); border-radius: var(--r-sm); padding: 11px 13px; font-size: .87rem; color: var(--text-2); line-height: 1.55; }
 .warn-box strong { color: var(--red); }
 .ok-box { background: var(--green-dim); border: 1px solid rgba(63,211,154,.3); border-radius: var(--r-sm); padding: 11px 13px; font-size: .87rem; color: var(--text-2); line-height: 1.55; }

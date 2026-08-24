@@ -234,6 +234,73 @@ app.get('/api/session', (req, res) => {
   res.json({ authenticated: Boolean(auth.sitzungsBenutzer(auth.parseCookies(req)[auth.COOKIE_NAME])) });
 });
 
+/* ---- Der Token vor der Anmeldung ----
+   ZWEI SCHREIBENDE ROUTEN DER ART 'offen' KOMMEN HIER DAZU -- die vierte und
+   fuenfte neben setup, login und logout. Im Kopf steht keine Rechtefrage, also
+   MUSS die Schranke im Rumpf stehen, und sie heisst Token.
+
+   BEIDE SIND POST, obwohl die erste nur LIEST. Das ist kein Versehen: der
+   Token gehoert in den RUMPF und nicht in Pfad oder Abfrage, wo er im
+   Zugriffsprotokoll, in der Verlaufsliste und womoeglich im Referrer stuende.
+   Der Waechter ueber den Quelltext sieht jedes app.post( an, deshalb steht die
+   lesende hier mit in F_ROUTEN -- mit dieser Begruendung daneben.
+
+   DIE ANMELDEBREMSE GREIFT AN BEIDEN. Ohne sie waeren sie ein Werkzeug zum
+   Durchprobieren. Beim Token gibt es keinen Benutzernamen: die IP-Haelfte
+   greift unveraendert, die Namenshaelfte faellt von selbst weg -- noteFailure
+   legt bei leerem Namen gar keinen Zaehler an. Die Kennwerte sind
+   unangetastet. */
+const TOKEN_ABSAGE = 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.';
+
+// true = weitermachen. Bei false ist die Antwort bereits geschrieben.
+async function tokenBremseFrei(req, res) {
+  const t = auth.checkThrottle(auth.clientIp(req), null);
+  if (t.blocked) {
+    res.status(429).json({
+      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`
+    });
+    return false;
+  }
+  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
+  return true;
+}
+
+/* Was auf der Seite steht, BEVOR das Passwort gesetzt wird. Der Server nennt
+   den Benutzernamen erst, wenn der Token traegt -- vorher verriete ein
+   geratener Token einen Namen. Das Formular selbst ist damit schon die
+   Bestaetigung, dass der Link gilt. */
+app.post('/api/token/pruefen', async (req, res) => {
+  const ip = auth.clientIp(req);
+  if (!await tokenBremseFrei(req, res)) return;
+  const t = auth.pruefeToken((req.body || {}).token);
+  if (!t) { auth.noteFailure(ip, null); return res.status(400).json({ error: TOKEN_ABSAGE }); }
+  // Kein noteSuccess: geprueft ist noch nicht eingeloest.
+  res.json({
+    username: t.username, ohnePasswort: t.ohnePasswort,
+    minPassword: auth.PASSWORT_MIN
+  });
+});
+
+/* Das Einloesen. Der Mindestwert von zehn Zeichen gilt unveraendert -- der Weg
+   dorthin ist neu, die Regel nicht; sie steht in auth.loeseTokenEin an
+   derselben Stelle wie fuer jeden anderen Weg.
+   ANGEMELDET WIRD GLEICH MIT, dieselbe Ueberlegung wie bei /api/setup: ein
+   zweites Formular unmittelbar nach dem ersten waere nur eine Huerde ohne
+   Gewinn -- das Passwort wurde ja gerade hier gewaehlt. Die Sitzung entsteht
+   NACH dem Einloesen, also nachdem alle bisherigen gefallen sind. */
+app.post('/api/token/einloesen', async (req, res) => {
+  const ip = auth.clientIp(req);
+  if (!await tokenBremseFrei(req, res)) return;
+  const { token, passwort } = req.body || {};
+  let ergebnis;
+  try { ergebnis = await auth.loeseTokenEin(token, passwort); }
+  catch (e) { auth.noteFailure(ip, null); return res.status(400).json({ error: e.message }); }
+  auth.noteSuccess(ip, null);
+  auth.pruneSessions();
+  res.set('Set-Cookie', auth.sessionCookie(auth.legeSitzungAn(ergebnis.id)));
+  res.json({ ok: true, username: ergebnis.username });
+});
+
 /* ================= Ab hier geschuetzt ================= */
 app.use('/api', auth.requireAuth);
 
@@ -380,12 +447,43 @@ app.put('/api/account', async (req, res) => {
   } catch (e) { return res.status(400).json({ error: e.message }); }
   // Alle anderen Sitzungen DIESES Benutzers fallen. Wer das Passwort wechselt,
   // will meist genau das; die eigene bleibt, sonst wuerde man sich selbst
-  // hinauswerfen. "AND user_id = ?" gehoert dazu: ohne die Klemme wirft ein
-  // Passwortwechsel jeden anderen Benutzer gleich mit hinaus.
-  const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
-  db.prepare('DELETE FROM sessions WHERE token != ? AND user_id = ?')
-    .run(eigener || '', req.benutzer.id);
+  // hinauswerfen. Die Zeile selbst steht in auth.js -- der Knopf "alle anderen
+  // beenden" ruft dieselbe, und zwei Ausfuehrungen derselben Regel liefen
+  // auseinander.
+  auth.beendeAndereSitzungen(req.benutzer.id, auth.parseCookies(req)[auth.COOKIE_NAME]);
   res.json(ergebnis);
+});
+
+/* ---- Meine Sitzungen ----
+   PERSOENLICH, KEIN SYSTEMBEREICH FUER ADMINS: die Karte steht beim eigenen
+   Zugang, neben "Passwort aendern". EIN ADMIN SIEHT KEINE FREMDEN SITZUNGEN --
+   fuer den Ernstfall gibt es das Sperren, und setzeStatus loescht sie bereits
+   mit. Ein zweiter Weg dorthin waere Stolperstein 47.
+   Beide schreibenden Routen tragen die Art 'selbstbezug': sie sind baulich auf
+   die eigenen Zeilen begrenzt, weil user_id aus req.benutzer kommt und nicht
+   aus der Adresse -- dieselbe Form wie bei PUT /api/account.
+   DIE FESTE ROUTE STEHT VOR DER PLATZHALTERROUTE (Stolperstein 11). */
+app.get('/api/sessions', (req, res) => {
+  const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
+  res.json({ sitzungen: auth.sitzungenVon(req.benutzer.id, eigener), tage: auth.SESSION_DAYS });
+});
+
+app.delete('/api/sessions', (req, res) => {
+  const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
+  res.json({ beendet: auth.beendeAndereSitzungen(req.benutzer.id, eigener) });
+});
+
+app.delete('/api/sessions/:kennung', (req, res) => {
+  const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
+  // Die eigene ueber diesen Weg zu beenden waere ein zweiter Abmeldeweg neben
+  // POST /api/logout -- und einer, nach dem die Oberflaeche weiterliefe, als
+  // waere nichts gewesen.
+  if (auth.sitzungsKennung(eigener || '') === String(req.params.kennung)) {
+    return res.status(400).json({ error: 'Die eigene Anmeldung wird über „Abmelden“ beendet.' });
+  }
+  const n = auth.beendeSitzung(req.benutzer.id, req.params.kennung);
+  if (!n) return res.status(404).json({ error: 'Diese Anmeldung gibt es nicht mehr.' });
+  res.json({ beendet: n });
 });
 
 /* ---- Zugaenge verwalten ----
@@ -411,6 +509,11 @@ function zielZugangFrei(req, res, id, selbstErlaubt = false) {
 }
 
 app.get('/api/users', nurAdmin, (req, res) => {
+  // Zweite Aufrufstelle des Aufraeumens; die erste steht beim Start. Dieselbe
+  // Bauform wie bei raeumePapierkorbAuf(): eine Anlage, die monatelang
+  // durchlaeuft, raeumte sonst monatelang nicht auf. Hauswirtschaft, keine
+  // Benutzerhandlung -- die Liste schreibender Routen bleibt unberuehrt.
+  auth.raeumeTokensAuf();
   res.json({
     zugaenge: auth.listeZugaenge(),
     ich: req.benutzer.id,
@@ -431,12 +534,44 @@ app.get('/api/users/:id/bestand', nurAdmin, (req, res) => {
 // Admin offen, ohne dass irgendwo "Rolle" steht. Dieselbe Ueberlegung wie beim
 // Import, den eine Exportdatei sonst unter fremdem Namen schreiben liesse.
 app.post('/api/users', nurAdmin, async (req, res) => {
-  const { username, passwort, rolle } = req.body || {};
+  const { username, passwort, rolle, einladen } = req.body || {};
   const gewuenscht = rolle || 'user';
   if (gewuenscht !== 'user' && !istEigentuemer(req))
     return res.status(403).json({ error: VERWEIGERT_ROLLE });
   try {
-    res.json(await auth.legeZugangAn(username, passwort, gewuenscht));
+    /* MIT EINLADUNG ENTSTEHT DER ZUGANG OHNE PASSWORT und bekommt den Link im
+       selben Zug. Zwei Schritte waeren ein Zustand dazwischen, in dem ein
+       Zugang dasteht, in den niemand hereinkommt und an den auch niemand mehr
+       denkt. `einladen` muss ausdruecklich true sein -- ein vergessenes
+       Passwortfeld scheitert weiter wie bisher. */
+    const angelegt = await auth.legeZugangAn(username, passwort, gewuenscht, einladen === true);
+    if (einladen !== true) return res.json(angelegt);
+    const t = auth.erzeugeToken(angelegt.id, 'einladung');
+    res.json({ ...angelegt, token: t.klartext, zweck: t.zweck, tage: t.tage });
+  } catch (e) { return res.status(400).json({ error: e.message }); }
+});
+
+/* Der Link fuer einen VORHANDENEN Zugang -- einladen (wenn der erste Link
+   abgelaufen ist) oder zuruecksetzen. Dieselbe Rechtezeile wie die drei
+   Verwaltungsrouten daneben: zielZugangFrei entscheidet, und damit gilt die
+   Rollenleiter auch hier -- ein Admin laedt keinen Eigentuemer ein und kommt
+   nicht an seinesgleichen.
+   DER SERVER GIBT NUR DEN TOKEN HERAUS, NICHT DEN LINK. Die vollstaendige
+   Adresse baut der Browser des Admins aus location -- er steht ja bereits an
+   der richtigen. Damit stellt sich die Frage nach einer oeffentlichen Adresse
+   in dieser Stufe gar nicht, und aus dem Host-Kopf wird nichts abgeleitet;
+   ueber einen gefaelschten Kopf liesse sich ein Link sonst auf einen fremden
+   Server umbiegen.
+   DAS IST DIE EINE ANTWORT, IN DER DER KLARTEXT STEHT. Danach steht er
+   nirgends mehr -- auch nicht in der Datenbank. */
+app.post('/api/users/:id/token', nurAdmin, (req, res) => {
+  const ziel = zielZugangFrei(req, res, req.params.id);
+  if (!ziel) return;
+  const zweck = (req.body || {}).zweck || 'einladung';
+  try {
+    const t = auth.erzeugeToken(ziel.id, zweck);
+    res.json({ id: t.id, username: t.username, token: t.klartext,
+               zweck: t.zweck, tage: t.tage, ohnePasswort: t.ohnePasswort });
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
@@ -3133,6 +3268,10 @@ function raeumePapierkorbAuf() {
 }
 // Erste Aufrufstelle: der Start. Die zweite steht an GET /api/papierkorb.
 raeumePapierkorbAuf();
+// Und dasselbe fuer die abgelaufenen Token, nach derselben Bauform: erste
+// Aufrufstelle hier, zweite an GET /api/users. Die Funktion steht in auth.js,
+// weil dort auch alles andere zu den Token steht.
+auth.raeumeTokensAuf();
 
 /* Der Weg hinein. EINE Transaktion, und das ist die Zusicherung der Runde:
    entweder liegt der Eintrag im Papierkorb UND ist geloescht, oder er steht

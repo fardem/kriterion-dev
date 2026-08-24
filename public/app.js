@@ -255,6 +255,94 @@ function showLogin(errMsg) {
   u.focus();
 }
 
+/* Der Link aus einer Einladung oder einer Rücksetzung.
+
+   EIN ZUSTAND DIESER SEITE, KEINE ZWEITE DATEI. Eine zweite ausgelieferte
+   Seite hieße eine zweite Stelle für Kopfzeilen, für die
+   Content-Security-Policy und für die Sicherheitsregel der ausgelieferten
+   Dateien — drei Stellen, an denen etwas auseinanderlaufen kann, für ein
+   Formular mit zwei Feldern.
+
+   DER SCHLÜSSEL STEHT IM FRAGMENT DER ADRESSE (#/einladung/…), und das ist
+   der Grund für diese Bauform: ein Fragment geht nie an den Server. Es steht
+   damit in keinem Zugriffsprotokoll und in keinem Referrer. Der Browser
+   schickt es von hier aus im Rumpf.
+
+   DER NAME KOMMT ERST VOM SERVER, wenn der Link trägt. Vorher steht auf
+   dieser Seite nichts über den Zugang — sonst verriete ein geratener Link
+   einen Benutzernamen. */
+async function showEinladung(schluessel) {
+  document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
+  document.body.classList.remove('lb-open');
+  document.body.classList.add('anmeldung');
+  document.documentElement.style.fontSize = '';
+  app.innerHTML = `<div class="login-screen"><div class="login-card">
+    ${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1>
+    <p class="sub">Der Link wird geprüft …</p></div></div>`;
+  document.title = TITLE_PUBLIC;
+
+  let stand;
+  try {
+    const res = await fetch('/api/token/pruefen', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: schluessel })
+    });
+    stand = await res.json().catch(() => ({}));
+    // Gilt der Link nicht mehr, geht es auf die gewöhnliche Anmeldeseite --
+    // mit der Absage darüber. Die Adresse wird dabei geleert, damit ein
+    // Neuladen nicht denselben toten Link noch einmal versucht.
+    if (!res.ok) { location.hash = '#/'; return showLogin(stand.error || 'Dieser Link gilt nicht mehr.'); }
+  } catch { location.hash = '#/'; return showLogin('Server nicht erreichbar.'); }
+
+  const min = stand.minPassword || MIN_PASSWORT;
+  zeichne();
+
+  function zeichne(errMsg) {
+    app.innerHTML = `<div class="login-screen"><div class="login-card">
+      ${MARK(34)}
+      <h1>${esc(TITLE_PUBLIC)}</h1>
+      <p class="sub">${stand.ohnePasswort
+        ? `Willkommen, <strong>${esc(stand.username)}</strong> — bitte ein Passwort wählen.`
+        : `Neues Passwort für <strong>${esc(stand.username)}</strong>.`}</p>
+      ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
+      <div class="field"><label for="ep">Passwort</label>
+        <input class="input" id="ep" type="password" autocomplete="new-password"></div>
+      <div class="field"><label for="ep2">Passwort wiederholen</label>
+        <input class="input" id="ep2" type="password" autocomplete="new-password"></div>
+      <p class="sub" style="margin:0 0 4px">Mindestens ${min} Zeichen. Dieser Link gilt danach
+        nicht mehr, und alle bestehenden Anmeldungen dieses Zugangs werden beendet.</p>
+      <button class="btn btn-accent" id="eb">Passwort setzen</button>
+    </div></div>`;
+
+    const p1 = document.getElementById('ep'), p2 = document.getElementById('ep2'),
+          b = document.getElementById('eb');
+    const submit = async () => {
+      if (p1.value.length < min) return zeichne(`Das Passwort muss mindestens ${min} Zeichen lang sein.`);
+      if (p1.value !== p2.value) return zeichne('Die beiden Passwörter stimmen nicht überein.');
+      b.disabled = true; b.textContent = 'Passwort setzen …';
+      try {
+        const res = await fetch('/api/token/einloesen', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: schluessel, passwort: p1.value })
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          return zeichne(j.error || 'Das Passwort konnte nicht gesetzt werden.');
+        }
+        // Angemeldet ist man damit schon -- der Server hat den Cookie
+        // mitgeschickt. Die Adresse wird geleert: der Link ist verbraucht.
+        location.hash = '#/';
+        start();
+      } catch { zeichne('Server nicht erreichbar.'); }
+    };
+    b.onclick = submit;
+    [p1, p2].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
+    p1.focus();
+  }
+}
+
 /* ================= Blöcke der Detailansicht ================= */
 // Reihenfolge und Einklappzustand gelten global, nicht je Eintrag, und liegen
 // auf dem Server. Verschoben wird nur innerhalb des jeweiligen Bereichs:
@@ -3493,7 +3581,7 @@ async function renderDetail(id) {
 /* ================= Systembereich ================= */
 async function renderSystem() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
-  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung;
+  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen;
   try {
     /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
        stehen hinter dem Admin; ein Abruf, der zuverlaessig 403 ergibt, risse
@@ -3507,12 +3595,14 @@ async function renderSystem() {
        DER PAPIERKORB UND DIE SICHERUNG GEHEN DENSELBEN WEG: jeder liegt
        hinter der Rolle, hinter der auch seine Karte steht. Und beide werden
        HIER geholt und nicht spaeter nachgeladen -- ein Nachladen liefe als
-       herrenlose Zusage weiter, auch wenn das Fenster laengst zu ist. */
-    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung] = await Promise.all([
+       herrenlose Zusage weiter, auch wenn das Fenster laengst zu ist.
+       DIE EIGENEN ANMELDUNGEN GEHEN DENSELBEN WEG und stehen ohne Bedingung
+       daneben: die Karte gehoert jedem, wie "Zugang" auch. */
+    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null,
-      EIGENTUEMER ? api('GET', '/api/sicherung') : null
+      EIGENTUEMER ? api('GET', '/api/sicherung') : null, api('GET', '/api/sessions')
     ]);
   } catch (e) { if (e.message !== 'Sitzung abgelaufen') toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
@@ -3555,6 +3645,16 @@ async function renderSystem() {
           <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>
           auf dem Server.</p>
         <button class="btn btn-accent btn-sm" id="acc-save">Zugang ändern</button>
+      </div>
+
+      <div class="sys-card">
+        <h3>Meine Sitzungen</h3>
+        <p class="desc">Wo dieser Zugang überall angemeldet ist. <strong>Was hier nicht
+          steht:</strong> von welchem Gerät. Die Anlage speichert weder Adresse noch
+          Browserkennung — das ist so gewollt und bleibt so. Sie kann deshalb
+          <strong>diese</strong> Anmeldung von <strong>allen anderen</strong> trennen, und
+          mehr braucht der Knopf darunter nicht.</p>
+        <div class="manage-list" id="msitzungen"></div>
       </div>
 
       ${ADMIN ? `<div class="sys-card">
@@ -3729,8 +3829,11 @@ async function renderSystem() {
             : `Rollen vergibt der Eigentümer der Anlage; an einen anderen Admin kommst du nicht.`}</p>
         <div class="manage-list" id="mzugaenge"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Ein neuer Zugang bekommt sein erstes Passwort
-          hier und kann es danach selbst ändern. Mindestens ${MIN_PASSWORT} Zeichen.</p>
+        <p class="desc" style="margin:16px 0 8px">Ein neuer Zugang wählt sein Passwort am besten
+          <strong>selbst</strong>: „Anlegen und Link“ legt ihn ohne Passwort an und gibt einen
+          Link aus, der sieben Tage und genau einmal gilt. Wer das
+          Passwortfeld ausfüllt und „+ Anlegen“ drückt, vergibt es wie bisher selbst —
+          mindestens ${MIN_PASSWORT} Zeichen.</p>
         <div class="zug-neu">
           <input class="input input-sm" id="zug-name" placeholder="Benutzername"
             autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -3741,8 +3844,10 @@ async function renderSystem() {
             <option value="admin">Admin</option>
             <option value="eigentuemer">Eigentümer</option>
           </select>` : ''}
+          <button class="btn btn-accent btn-sm" id="zug-einladen">+ Anlegen und Link</button>
           <button class="btn btn-sm" id="zug-anlegen">+ Anlegen</button>
         </div>
+        <div id="zug-link"></div>
 
         <p class="desc" style="margin:16px 0 0">Passwort vergessen und niemand kommt mehr herein?
           Auf dem Server hilft
@@ -3880,6 +3985,84 @@ async function renderSystem() {
       renderSystem();   // leert die Passwortfelder
     } catch (e) { toast(e.message, true); }
   };
+
+  /* --- Meine Sitzungen ---
+     Gezeichnet wird aus dem, was oben schon geholt wurde -- eine Karte, die
+     sich beim Einhaengen selbst nachlaedt, laeuft als herrenlose Zusage
+     weiter. Nach einem Beenden holt sitzungenNeu() die Liste noch einmal und
+     zeichnet NUR diese Karte: ein Neuaufbau des ganzen Systembereichs leerte
+     die Passwortfelder daneben.
+     JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
+     soll die Karte etwas sagen und nicht der Lauf abreissen. */
+  function zeichneSitzungen(d) {
+    const box = document.getElementById('msitzungen');
+    if (!box) return;
+    const dok = box.ownerDocument;
+    const liste = (d && Array.isArray(d.sitzungen)) ? d.sitzungen : null;
+    if (!liste) {
+      box.innerHTML = `<span class="hint">Die Anmeldungen konnten nicht geladen werden.</span>`;
+      return;
+    }
+    box.innerHTML = '';
+    const andere = liste.filter(z => !z.diese).length;
+    for (const z of liste) {
+      const row = dok.createElement('div');
+      row.className = 'mrow sitz' + (z.diese ? ' sitz-ich' : '');
+      row.dataset.kennung = z.kennung || '';
+      row.innerHTML = `<span class="mname">${z.diese
+          ? 'Diese Anmeldung <span class="zug-ich">(hier)</span>' : 'Andere Anmeldung'}</span>
+        <span class="sitz-zeit">angemeldet ${esc(fmtDate(z.angemeldetAm))}</span>
+        <span class="sitz-zeit">zuletzt gesehen ${esc(fmtDate(z.zuletztGesehen))}</span>`;
+      if (!z.diese) {
+        const w = dok.createElement('span');
+        w.className = 'zug-akt';
+        w.innerHTML = `<button class="mact rm sitz-x" title="Diese Anmeldung beenden">✕</button>`;
+        row.appendChild(w);
+        w.querySelector('.sitz-x').onclick = async () => {
+          try { await api('DELETE', `/api/sessions/${z.kennung}`); toast('Anmeldung beendet'); }
+          catch (e) { return toast(e.message, true); }
+          sitzungenNeu();
+        };
+      }
+      box.appendChild(row);
+    }
+    /* DIE ZAHL IST DIE AUSKUNFT DIESER KARTE. Wer eine Anmeldung erwartet und
+       vier sieht, weiss genug -- und das Heilmittel ist der eine Knopf
+       daneben. Steht keine andere da, steht auch kein Knopf: einer, der
+       zuverlaessig nichts tut, sieht aus wie ein Fehler. */
+    const fuss = dok.createElement('div');
+    fuss.className = 'sitz-fuss';
+    fuss.innerHTML = andere
+      ? `<p class="desc" style="margin:10px 0 8px">${andere === 1
+          ? 'Neben dieser steht <strong>eine weitere</strong> Anmeldung.'
+          : `Neben dieser stehen <strong>${andere} weitere</strong> Anmeldungen.`}
+          Eine Anmeldung läuft nach ${d.tage || 30} Tagen ohne Zugriff von selbst ab.</p>
+         <button class="btn btn-sm" id="sitz-alle">Alle anderen beenden</button>`
+      : `<p class="desc" style="margin:10px 0 0">Dies ist die <strong>einzige</strong> Anmeldung
+          dieses Zugangs.</p>`;
+    box.appendChild(fuss);
+    const alle = dok.getElementById('sitz-alle');
+    if (alle) alle.onclick = async () => {
+      if (!confirm(`Alle anderen Anmeldungen dieses Zugangs beenden? Diese hier bleibt bestehen.`)) return;
+      try {
+        const r = await api('DELETE', '/api/sessions');
+        toast(`${r && r.beendet ? r.beendet : 0} Anmeldung(en) beendet`);
+      } catch (e) { return toast(e.message, true); }
+      sitzungenNeu();
+    };
+  }
+  async function sitzungenNeu() {
+    const box = document.getElementById('msitzungen');
+    if (!box) return;
+    let d;
+    try { d = await api('GET', '/api/sessions'); }
+    catch (e) {
+      if (box.isConnected) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`;
+      return;
+    }
+    if (box.isConnected) zeichneSitzungen(d);
+  }
+  zeichneSitzungen(sitzungen);
 
   // Dateien haben einen eigenen Schalter mit Vorgabe aus: bei 50 MB je Datei
   // waere die Exportdatei sonst schnell unhandlich.
@@ -4478,6 +4661,45 @@ async function renderSystem() {
   const ROLLENWORT = { user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer' };
   const STATUSWORT = { aktiv: 'aktiv', gesperrt: 'gesperrt', geloescht: 'gelöscht' };
 
+  /* DIE VOLLSTÄNDIGE ADRESSE BAUT DER BROWSER, nicht der Server. Der Server
+     hinter einem Proxy weiß nicht, wie er von außen heißt, und aus dem
+     Host-Kopf darf er es nicht ableiten — über einen gefälschten Kopf ließe
+     sich ein Link sonst auf einen fremden Server umbiegen. Der Browser des
+     Admins steht bereits an der richtigen Adresse. */
+  const baueEinladungsAdresse = (schluessel) =>
+    `${location.origin}${location.pathname}#/einladung/${schluessel}`;
+
+  /* WER DEN LINK KOPIERT, MUSS AN DIESER STELLE LESEN, WAS ER IN DER HAND
+     HÄLT. Der Weitergabeweg ist der Admin selbst — mündlich, per Zettel, per
+     Messenger. Damit ist der Link ein Passwortersatz auf Zeit und steht nach
+     der Weitergabe in einem fremden Verlauf. Das gehört an den Bildschirm und
+     nicht bloß in ein Dokument. */
+  function zeigeLink(d) {
+    const box = document.getElementById('zug-link');
+    if (!box || !d || !d.token) return;
+    const adresse = baueEinladungsAdresse(d.token);
+    box.innerHTML = `<div class="warn-box zug-linkbox" style="margin:12px 0 0">
+      <strong>${d.zweck === 'ruecksetzung' ? 'Link zum Zurücksetzen' : 'Einladungslink'}
+      für „${esc(d.username || '')}“ — er wird nur dieses eine Mal angezeigt.</strong>
+      Er ist bis dahin ein <strong>Passwortersatz</strong>: wer ihn hat, kommt herein und setzt
+      das Passwort. Er gilt <strong>${d.tage || 7} Tage</strong> und <strong>genau einmal</strong>.
+      Nach der Weitergabe steht er in einem fremden Verlauf — gib ihn nur dem, für den er ist.
+      <div class="zug-linkzeile"><input class="input input-sm" id="zug-link-feld" readonly
+        value="${esc(adresse)}"><button class="btn btn-sm" id="zug-link-kopie">Kopieren</button></div>
+    </div>`;
+    const feld = document.getElementById('zug-link-feld');
+    feld.focus(); feld.select();
+    document.getElementById('zug-link-kopie').onclick = () => {
+      feld.select();
+      // Die Zwischenablage über das Skript ist nicht überall erlaubt; das
+      // markierte Feld daneben ist der Weg, der immer trägt.
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(adresse).then(() => toast('Link kopiert'),
+          () => toast('Bitte von Hand kopieren — der Link ist markiert.', true));
+      } else toast('Bitte von Hand kopieren — der Link ist markiert.', true);
+    };
+  }
+
   async function zeichneZugaenge() {
     const box = document.getElementById('mzugaenge');
     if (!box) return;
@@ -4505,10 +4727,17 @@ async function renderSystem() {
       // Dieselbe Beschriftung wie an jedem Beitrag im Eintrag -- eine
       // Funktion, zwei Rufer. Stuende die Bildung des Grabsteinnamens hier ein
       // zweites Mal, liefen die beiden Stellen auseinander.
+      /* "Noch kein Passwort" steht NICHT als vierter Zustand in der Datenbank:
+         ZUSTAENDE hat drei, und jede Stelle, die status liest, kennt sie. Es
+         ist abgeleitet aus dem leeren Hash — genau dem Wert, über den auch die
+         Anmeldung entscheidet. Am Grabstein wird es nie angezeigt: der trägt
+         denselben leeren Hash, ist aber über status unterschieden. */
+      const wartet = !grabstein && z.ohnePasswort;
       row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: grabstein }))}${
           selbst ? ' <span class="zug-ich">(du)</span>' : ''}</span>
         <span class="zug-rolle">${esc(ROLLENWORT[z.role] || z.role)}</span>
-        <span class="zug-status">${esc(STATUSWORT[z.status] || z.status)}</span>
+        <span class="zug-status">${esc(STATUSWORT[z.status] || z.status)}${
+          wartet ? ' <span class="zug-wartet">· noch kein Passwort</span>' : ''}</span>
         <span class="mcount">${z.eintraege} ${esc(vSache(z.eintraege))}</span>`;
       if (darf) {
         const werkzeug = dok.createElement('span');
@@ -4521,7 +4750,9 @@ async function renderSystem() {
            </select>` : ''}
            <button class="mact zug-s" title="${z.status === 'aktiv' ? 'Sperren' : 'Freigeben'}">${
              z.status === 'aktiv' ? '⃠' : '✓'}</button>
-           <button class="mact zug-p" title="Passwort zurücksetzen">🔑</button>
+           <button class="mact zug-l" title="${z.ohnePasswort ? 'Einladungslink erzeugen'
+             : 'Link zum Zurücksetzen erzeugen'}">🔗</button>
+           <button class="mact zug-p" title="Passwort direkt setzen">🔑</button>
            <button class="mact rm zug-x" title="Zugang entfernen">✕</button>`;
         row.appendChild(werkzeug);
 
@@ -4544,12 +4775,29 @@ async function renderSystem() {
           zeichneZugaenge();
         };
 
+        /* BEIDE WEGE BLEIBEN, UND DIE KARTE BEVORZUGT DEN LINK. Das ist kein
+           zweiter Weg zur selben Sache: der Link übergibt das RECHT, ein
+           Passwort zu setzen, der Schlüssel übergibt ein PASSWORT. Der direkte
+           Weg kommt ohne den Browser des anderen aus — für jemanden, der
+           danebensteht, ist er der kürzere. */
+        werkzeug.querySelector('.zug-l').onclick = async () => {
+          const zweck = z.ohnePasswort ? 'einladung' : 'ruecksetzung';
+          if (zweck === 'ruecksetzung' && !confirm(
+            `Link zum Zurücksetzen für „${z.username}“ erzeugen?\n\n` +
+            `Das bisherige Passwort bleibt gültig, bis der Link eingelöst wird. ` +
+            `Ein früher erzeugter Link gilt danach nicht mehr.`)) return;
+          try { zeigeLink(await api('POST', `/api/users/${z.id}/token`, { zweck })); }
+          catch (e) { toast(e.message, true); }
+          zeichneZugaenge();
+        };
+
         werkzeug.querySelector('.zug-p').onclick = async () => {
-          const neu = prompt(`Neues Passwort für „${z.username}“ (mindestens ${MIN_PASSWORT} Zeichen). ` +
-            `Alle Sitzungen dieses Zugangs fallen dabei.`);
+          const neu = prompt(`Neues Passwort für „${z.username}“ (mindestens ${MIN_PASSWORT} Zeichen) — ` +
+            `der direkte Weg ohne Link. Alle Sitzungen dieses Zugangs fallen dabei.`);
           if (neu === null || !neu.trim()) return;
           try { await api('PUT', `/api/users/${z.id}`, { passwort: neu }); toast('Passwort gesetzt'); }
           catch (e) { toast(e.message, true); }
+          zeichneZugaenge();
         };
 
         werkzeug.querySelector('.zug-x').onclick = async () => {
@@ -4585,21 +4833,30 @@ async function renderSystem() {
   }
   zeichneZugaenge();
 
-  const zugAnlegen = document.getElementById('zug-anlegen');
-  if (zugAnlegen) zugAnlegen.onclick = async () => {
+  /* ZWEI KNÖPFE, EIN WEG: derselbe Rumpf, und nur das Häkchen `einladen`
+     unterscheidet sie. Zwei getrennte Behandler nebeneinander liefen bei der
+     nächsten Änderung auseinander. */
+  const zugNeu = async (einladen) => {
     const nameFeld = document.getElementById('zug-name');
     const passFeld = document.getElementById('zug-pass');
     const rolleFeld = document.getElementById('zug-rolle');
-    const koerper = { username: nameFeld.value.trim(), passwort: passFeld.value };
+    const koerper = { username: nameFeld.value.trim() };
+    if (einladen) koerper.einladen = true;
+    else koerper.passwort = passFeld.value;
     if (rolleFeld) koerper.rolle = rolleFeld.value;
     if (!koerper.username) return toast('Bitte einen Benutzernamen angeben.', true);
     try {
-      await api('POST', '/api/users', koerper);
+      const d = await api('POST', '/api/users', koerper);
       nameFeld.value = ''; passFeld.value = '';
-      toast('Zugang angelegt');
+      toast(einladen ? 'Zugang angelegt — der Link steht unten' : 'Zugang angelegt');
+      if (einladen) zeigeLink(d);
     } catch (e) { return toast(e.message, true); }
     zeichneZugaenge();
   };
+  const zugAnlegen = document.getElementById('zug-anlegen');
+  if (zugAnlegen) zugAnlegen.onclick = () => zugNeu(false);
+  const zugEinladen = document.getElementById('zug-einladen');
+  if (zugEinladen) zugEinladen.onclick = () => zugNeu(true);
 
   // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
   // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
@@ -4703,6 +4960,13 @@ let einrichtungNoetig = false;
   document.title = TITLE_PUBLIC;
   // Die Einrichtung geht vor: ohne Zugang hilft keine Anmeldemaske.
   if (einrichtungNoetig) return showSetup();
+  /* Ein Link aus einer Einladung oder Rücksetzung geht VOR der Anmeldemaske,
+     aber NACH der Einrichtung: wer einen bekommen hat, will nicht erst ein
+     Passwort eingeben, das er ja gerade nicht kennt. Er geht auch vor der
+     Frage nach einer laufenden Anmeldung -- wer den Link aus einem Browser
+     öffnet, in dem noch jemand angemeldet ist, meint trotzdem den Link. */
+  const einl = (location.hash || '').match(/^#\/einladung\/([0-9a-f]{16,128})$/);
+  if (einl) return showEinladung(einl[1]);
   try {
     const s = await fetch('/api/session', { credentials: 'same-origin' }).then(r => r.json());
     if (s.authenticated) start(); else showLogin();
