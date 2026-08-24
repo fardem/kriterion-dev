@@ -5997,7 +5997,12 @@ const namen = (liste) => liste.map(c => c.name);
       d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
     d.close();
   }
-  const TK = starteWeiterenServer(tkDir, {}, 5960);
+  /* PORTBASIS 4680, NICHT 5960: eine Basis deckt sechzig Nummern, und
+     5960..6019 enthaelt die 6000 -- die waehlt fetch() gar nicht erst an
+     (X11, Sperrliste der Fetch-Spezifikation). Der Server liefe, und die
+     Bereitschaftspruefung kaeme nie an ihn heran. Aufgefallen an einer
+     Gegenprobe, die deshalb abriss statt rot zu werden. */
+  const TK = starteWeiterenServer(tkDir, {}, 4680);
   await TK.bereit;
 
   const tkRuf = async (cookieWert, methode, pfad, koerper) => {
@@ -6204,19 +6209,44 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* Die ERSTE Aufrufstelle -- der Start -- braucht einen eigenen Beleg: zwei
      Aufrufstellen einer Funktion sind zwei Stellen, und eine deckt die andere
-     nicht (Stolperstein 53). Genommen wird ein kurzer Lauf ohne Server. */
+     nicht (Stolperstein 53).
+     GEPRUEFT WIRD AN EINEM ECHTEN SERVERSTART, nicht an einem kurzen Lauf, der
+     raeumeTokensAuf() selbst ruft. Die erste Fassung tat genau das -- und eine
+     Gegenprobe, die den Aufruf aus server.js entfernte, blieb VOLLSTAENDIG
+     STUMM: geprueft war die Funktion, nicht die Aufrufstelle. Eine eigene
+     Anlage, weil der Server dieser Gruppe schon laeuft und die Datenbank
+     haelt. */
   {
-    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
-    d.prepare(`INSERT INTO tokens (hash, user_id, zweck, ablauf, benutzt_am)
-               VALUES ('uralt', 3, 'einladung', datetime('now', '-40 days'), datetime('now', '-39 days'))`).run();
-    d.close();
-    pruefe('Eine uralte Zeile liegt vor dem Start da',
-      tkZeilen("SELECT hash FROM tokens WHERE hash = 'uralt'").length === 1,
-      'die Zeile fehlt schon vorher');
-    kurzlauf(`const a = require('./auth'); a.raeumeTokensAuf(); console.log('da');`, tkDir);
-    pruefe('Und der Start raeumt sie weg -- erste Aufrufstelle',
-      tkZeilen("SELECT hash FROM tokens WHERE hash = 'uralt'").length === 0,
-      'die uralte Zeile steht noch da');
+    const auDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-tokenraum-'));
+    kurzlauf(`require('./db'); console.log('da');`, auDir);
+    const auZeilen = () => {
+      const d = oeffne(path.join(auDir, 'katalog.sqlite'));
+      const r = d.prepare('SELECT hash FROM tokens').all();
+      d.close();
+      return r;
+    };
+    {
+      const d = oeffne(path.join(auDir, 'katalog.sqlite'));
+      d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
+      // Eine uralte und eine frische -- ohne die zweite belegte der Lauf nur,
+      // dass ueberhaupt geloescht wird, nicht dass die Schwelle greift.
+      d.prepare(`INSERT INTO tokens (hash, user_id, zweck, ablauf, benutzt_am)
+                 VALUES ('uralt', 1, 'einladung', datetime('now', '-40 days'), datetime('now', '-39 days'))`).run();
+      d.prepare(`INSERT INTO tokens (hash, user_id, zweck, ablauf)
+                 VALUES ('frisch', 1, 'einladung', datetime('now', '+7 days'))`).run();
+      d.close();
+    }
+    pruefe('Eine uralte und eine frische Zeile liegen vor dem Start da',
+      auZeilen().length === 2, JSON.stringify(auZeilen()));
+    const AU = starteWeiterenServer(auDir, {}, 4620);
+    await AU.bereit;
+    const auNach = auZeilen().map(z => z.hash);
+    pruefe('Der Start raeumt die uralte weg -- erste Aufrufstelle',
+      !auNach.includes('uralt'), JSON.stringify(auNach));
+    pruefe('Und die frische bleibt stehen',
+      auNach.includes('frisch'), JSON.stringify(auNach));
+    await AU.stopp();
+    fs.rmSync(auDir, { recursive: true, force: true });
   }
 
   /* ---------------------------------------------------------------- */
@@ -6238,24 +6268,48 @@ const namen = (liste) => liste.map(c => c.name);
     { zweck: 'einladung' })).inhalt?.token || '';
   await tkRuf(null, 'POST', '/api/token/einloesen',
     { token: tkBenutztLink, passwort: 'ernas-passwort-1' });
-  const tkGesperrtLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
-    { zweck: 'ruecksetzung' })).inhalt?.token || '';
+  /* DIE BEIDEN LAGEN "gesperrt" UND "Grabstein" WERDEN VON HAND GESETZT, und
+     das ist kein Kunstgriff, sondern die einzige Art, sie ueberhaupt zu
+     erreichen: das Sperren und das Entfernen raeumen die offenen Links selbst
+     mit weg, und erzeugeToken() legt an einem nicht-aktiven Zugang gar keinen
+     erst an. Die Klemme in pruefeToken ist damit eine zweite Schicht -- und
+     eine zweite Schicht braucht ihre eigene Gegenprobe (Stolperstein 53).
+     Gefunden hat das eine Gegenprobe, die STUMM blieb: der Rueckbau der
+     Statusfrage machte nichts rot, weil die Lage ueber die Schnittstelle nie
+     entstand. */
   await tkRuf('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'gesperrt' });
+  const tkVonHand = (name, userId) => {
+    const klartext = crypto.randomBytes(32).toString('hex');
+    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    d.prepare(`INSERT INTO tokens (hash, user_id, zweck, ablauf)
+               VALUES (?, ?, 'ruecksetzung', datetime('now', '+7 days'))`)
+      .run(crypto.createHash('sha256').update(klartext).digest('hex'), userId);
+    d.close();
+    return klartext;
+  };
+  const tkGesperrtLink = tkVonHand('gesperrt', 5);
+  const tkGrabsteinLink = tkVonHand('grabstein', 6);
+  pruefe('Die beiden Zeilen liegen wirklich in der Tabelle',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id IN (5, 6) AND benutzt_am IS NULL').length === 2,
+    JSON.stringify(tkZeilen('SELECT user_id, benutzt_am FROM tokens WHERE user_id IN (5, 6)')));
+  pruefe('Und der Zugang dahinter ist wirklich gesperrt',
+    tkZeilen("SELECT status FROM users WHERE id = 5")[0]?.status === 'gesperrt',
+    JSON.stringify(tkZeilen('SELECT id, status FROM users WHERE id IN (5, 6)')));
 
-  pruefe('Die drei Lagen sind ueberhaupt hergestellt',
+  pruefe('Die Lagen sind ueberhaupt hergestellt',
     /^[0-9a-f]{64}$/.test(tkAblaufLink) && /^[0-9a-f]{64}$/.test(tkBenutztLink) &&
-    /^[0-9a-f]{64}$/.test(tkGesperrtLink),
-    `${tkAblaufLink.length} ${tkBenutztLink.length} ${tkGesperrtLink.length}`);
+    /^[0-9a-f]{64}$/.test(tkGesperrtLink) && /^[0-9a-f]{64}$/.test(tkGrabsteinLink),
+    `${tkAblaufLink.length} ${tkBenutztLink.length} ${tkGesperrtLink.length} ${tkGrabsteinLink.length}`);
 
   const tkAbsagen = [];
   for (const [name, wert] of [['abgelaufen', tkAblaufLink], ['schon benutzt', tkBenutztLink],
                               ['erfunden', 'f'.repeat(64)], ['zu einem gesperrten Zugang', tkGesperrtLink],
-                              ['leer', '']]) {
+                              ['zu einem Grabstein', tkGrabsteinLink], ['leer', '']]) {
     const a = await tkRuf(null, 'POST', '/api/token/pruefen', { token: wert });
     tkAbsagen.push({ name, status: a.status, roh: a.roh });
     pruefe(`Abgewiesen wird: ${name}`, a.status === 400, `${a.status} ${a.roh}`);
   }
-  pruefe('Und alle fuenf Absagen sind WORTGLEICH',
+  pruefe('Und alle sechs Absagen sind WORTGLEICH',
     new Set(tkAbsagen.map(a => a.roh)).size === 1,
     tkAbsagen.map(a => `${a.name}: ${a.roh}`).join(' · '));
   pruefe('Auch der Statuscode ist derselbe',
@@ -6276,6 +6330,20 @@ const namen = (liste) => liste.map(c => c.name);
     tkGutAntwort.roh.includes('carla') && !tkAbsagen.some(a => a.roh.includes('carla')),
     `${tkGutAntwort.roh} gegen ${tkAbsagen[0].roh}`);
   await tkRuf('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'aktiv' });
+  /* DIE VON HAND GESETZTEN ZEILEN WERDEN AUCH VON HAND WIEDER WEGGERAEUMT.
+     Das Freigeben nimmt sie nicht mit -- nur das Sperren tut das --, und die
+     naechste Gruppe zaehlt die offenen Zeilen desselben Zugangs. Wer die
+     Zahlen einer Prueflage misst, misst sie an einem frischen Aufbau
+     (Stolperstein 115); hier heisst das: eine Prueflage raeumt hinter sich
+     her, statt in die naechste hineinzuwirken. */
+  {
+    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    d.prepare('DELETE FROM tokens WHERE user_id IN (5, 6)').run();
+    d.close();
+  }
+  pruefe('Die von Hand gesetzten Zeilen sind wieder weg',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id IN (5, 6)').length === 0,
+    JSON.stringify(tkZeilen('SELECT user_id FROM tokens WHERE user_id IN (5, 6)')));
 
   /* ---------------------------------------------------------------- */
   gruppe('Der Token: beim Einloesen faellt alles Offene');
@@ -6551,7 +6619,7 @@ const namen = (liste) => liste.map(c => c.name);
     d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-tb-anna', 1)").run();
     d.close();
   }
-  const TB = starteWeiterenServer(tbDir, {}, 6020);
+  const TB = starteWeiterenServer(tbDir, {}, 4740);
   await TB.bereit;
   const tbRuf = async (cookieWert, methode, pfad, koerper) => {
     const opt = { method: methode, headers: {} };
@@ -6666,13 +6734,19 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Die eigenen Anmeldungen kommen ueberhaupt',
     msAnna.status === 200 && Array.isArray(msAnna.inhalt?.sitzungen),
     `${msAnna.status} ${msAnna.roh}`);
+  /* JEDE LESESTELLE IST ABGEFANGEN (Stolperstein 103). Beim Bau dieser Gruppe
+     hat eine Gegenprobe den Lauf abgerissen statt eine Prüfung rot zu faerben:
+     fiel die eigene Sitzung mit, antwortete /api/sessions mit 401, und der
+     Zugriff auf `.sitzungen.length` beendete den ganzen Lauf. */
+  const msListe = (a) => (a && a.inhalt && Array.isArray(a.inhalt.sitzungen))
+    ? a.inhalt.sitzungen : [];
   pruefe('Es sind genau die zwei eigenen',
-    msAnna.inhalt.sitzungen.length === 2, `${msAnna.inhalt.sitzungen.length} Zeilen`);
+    msListe(msAnna).length === 2, `${msListe(msAnna).length} Zeilen`);
   /* DIE NACHSCHAU, DASS KEINE FREMDE ZEILE DURCHKOMMT -- gerechnet gegen die
      Kennungen der fremden Sitzungen, nicht bloss gegen die Zahl. Zwei Zeilen
      koennten auch die falschen zwei sein. */
   const msKennung = (t) => crypto.createHash('sha256').update(t).digest('hex');
-  const msEigene = msAnna.inhalt.sitzungen.map(z => z.kennung);
+  const msEigene = msListe(msAnna).map(z => z.kennung);
   pruefe('Und es sind wirklich annas beide',
     msEigene.includes(msKennung('cookie-ms-anna-1')) &&
     msEigene.includes(msKennung('cookie-ms-anna-2')),
@@ -6682,9 +6756,10 @@ const namen = (liste) => liste.map(c => c.name);
     !msEigene.includes(msKennung('cookie-ms-carla-2')),
     JSON.stringify(msEigene));
   pruefe('Und carla sieht ihrerseits nur ihre beiden',
-    (await msRuf('cookie-ms-carla-1', 'GET', '/api/sessions')).inhalt.sitzungen
+    msListe(await msRuf('cookie-ms-carla-1', 'GET', '/api/sessions')).length === 2 &&
+    msListe(await msRuf('cookie-ms-carla-1', 'GET', '/api/sessions'))
       .every(z => [msKennung('cookie-ms-carla-1'), msKennung('cookie-ms-carla-2')].includes(z.kennung)),
-    JSON.stringify((await msRuf('cookie-ms-carla-1', 'GET', '/api/sessions')).inhalt.sitzungen.map(z => z.kennung)));
+    JSON.stringify(msListe(await msRuf('cookie-ms-carla-1', 'GET', '/api/sessions')).map(z => z.kennung)));
 
   /* DER SITZUNGSTOKEN SELBST STEHT IN KEINER ANTWORT -- er ist das Geheimnis,
      die Kennung ist nur sein Bild. Geprueft am vollen Rumpf. */
@@ -6695,9 +6770,10 @@ const namen = (liste) => liste.map(c => c.name);
     msEigene.every(k => /^[0-9a-f]{64}$/.test(k)) && !msEigene.includes('cookie-ms-anna-1'),
     JSON.stringify(msEigene));
   pruefe('Die Zeiten kommen mit -- angemeldet am und zuletzt gesehen',
-    msAnna.inhalt.sitzungen.every(z => /^\d{4}-\d\d-\d\d/.test(z.angemeldetAm || '') &&
-                                       /^\d{4}-\d\d-\d\d/.test(z.zuletztGesehen || '')),
-    JSON.stringify(msAnna.inhalt.sitzungen));
+    msListe(msAnna).length > 0 &&
+    msListe(msAnna).every(z => /^\d{4}-\d\d-\d\d/.test(z.angemeldetAm || '') &&
+                               /^\d{4}-\d\d-\d\d/.test(z.zuletztGesehen || '')),
+    JSON.stringify(msListe(msAnna)));
   pruefe('Und die Frist von dreissig Tagen rechnet der Server, nicht die Karte',
     msAnna.inhalt.tage === 30, JSON.stringify(msAnna.inhalt.tage));
   /* WAS AUSDRUECKLICH NICHT DASTEHT: keine Adresse, kein Browserkopf. Das ist
@@ -6710,18 +6786,18 @@ const namen = (liste) => liste.map(c => c.name);
   gruppe('Meine Sitzungen: die eigene ist markiert');
 
   pruefe('Genau eine der beiden ist als die eigene markiert',
-    msAnna.inhalt.sitzungen.filter(z => z.diese).length === 1,
-    JSON.stringify(msAnna.inhalt.sitzungen.map(z => z.diese)));
+    msListe(msAnna).filter(z => z.diese).length === 1,
+    JSON.stringify(msListe(msAnna).map(z => z.diese)));
   pruefe('Und es ist die, mit der gefragt wurde',
-    msAnna.inhalt.sitzungen.find(z => z.diese)?.kennung === msKennung('cookie-ms-anna-1'),
-    JSON.stringify(msAnna.inhalt.sitzungen.find(z => z.diese)));
+    msListe(msAnna).find(z => z.diese)?.kennung === msKennung('cookie-ms-anna-1'),
+    JSON.stringify(msListe(msAnna).find(z => z.diese)));
   /* DIE GEGENLAGE: dieselbe Liste, aus der ANDEREN Sitzung gefragt, markiert
      die andere. Ohne sie bliebe die Pruefung auch dann gruen, wenn immer die
      erste Zeile markiert waere. */
   const msAnna2 = await msRuf('cookie-ms-anna-2', 'GET', '/api/sessions');
   pruefe('Aus der anderen Sitzung gefragt, ist die andere markiert',
-    msAnna2.inhalt.sitzungen.find(z => z.diese)?.kennung === msKennung('cookie-ms-anna-2'),
-    JSON.stringify(msAnna2.inhalt.sitzungen.find(z => z.diese)));
+    msListe(msAnna2).find(z => z.diese)?.kennung === msKennung('cookie-ms-anna-2'),
+    JSON.stringify(msListe(msAnna2).find(z => z.diese)));
 
   // Eine einzelne fremde Sitzung beenden.
   const msWeg = await msRuf('cookie-ms-anna-1', 'DELETE',
@@ -6782,8 +6858,8 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify(msZeilen('SELECT token FROM sessions WHERE user_id = 2')));
   const msDanach = await msRuf('cookie-ms-anna-1', 'GET', '/api/sessions');
   pruefe('Die Liste zeigt danach nur noch die eine',
-    msDanach.inhalt.sitzungen.length === 1 && msDanach.inhalt.sitzungen[0].diese === true,
-    JSON.stringify(msDanach.inhalt.sitzungen));
+    msListe(msDanach).length === 1 && msListe(msDanach)[0]?.diese === true,
+    JSON.stringify(msListe(msDanach)));
 
   await MS.stopp();
   fs.rmSync(msDir, { recursive: true, force: true });
