@@ -28,8 +28,7 @@ Prüfstand vollständig durchgelaufen: **1429 von 1429 Prüfungen bestanden**.
 >   `ffmpeg` ist draußen geblieben, und die Formatnummer ging **9 → 10**. Teil
 >   II (große Dateien bis 2 GB) bleibt auf 1.1.0; die Ablehnung galt also
 >   tatsächlich nur für die zweite Hälfte.
-> - **Punkt 4.1, Gewichtung**, ist vollständig ausgearbeitet in
->   `Konzept_Gewichtung_Bewertungskriterien.md` — und **mit 0.8.40 gebaut**.
+> - **Punkt 4.1, Gewichtung**, ist **mit 0.8.40 gebaut**.
 >   Statt drei Vorschlägen sind es fünf geworden (`0,5 · 0,8 · 1 · 1,2 · 1,5`),
 >   freie Eingabe von 0,2 bis 2 wie vorgesehen; die Formatnummer ging **8 → 9**,
 >   nicht 7 → 8.
@@ -542,12 +541,10 @@ den wichtigsten halte.
 
 ### 4.1 Gewichtung der Kriterien **[GEBAUT — 0.8.40]**
 
-> **Ausgearbeitet in `Konzept_Gewichtung_Bewertungskriterien.md`, gebaut in
-> 0.8.40.** Dort steht der vollständige Bauplan samt der Antwort auf „nie über
-> 5, nie unter 1" — sie ist beim gewichteten Mittelwert geschenkt und braucht
-> keinen Deckel. Was daraus gilt, steht ab jetzt im Projektstand, Abschnitt 5;
-> was beim Bauen anders entschieden wurde, in
-> `Doku/Aenderungsprotokoll_0.8.40.md`.
+> **Gebaut in 0.8.40.** Die Antwort auf „nie über 5, nie unter 1" ist beim
+> gewichteten Mittelwert geschenkt und braucht keinen Deckel. Was daraus gilt,
+> steht im Projektstand, Abschnitt 5; was beim Bauen anders entschieden wurde,
+> in `Doku/Aenderungsprotokoll_0.8.40.md`.
 > **Offen geblieben ist die Vorschau der Rangfolge** — sehen, wie sich die
 > Spitze verschiebt, wenn man an einem Gewicht dreht. Sie ist eine eigene
 > Ansicht mit eigenem Endpunkt und bleibt vorgemerkt.

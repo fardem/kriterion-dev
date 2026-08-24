@@ -50,42 +50,19 @@ Event Loop, String), dazu heißt der `Abdruck` in der Kennzahlenkarte jetzt
 **Fingerprint** — die einzige Umbenennung, die ein Benutzer sieht. Ein Wächter
 im Prüfstand hält die Regel fest.
 
-**0.8.50 stellt ein Kurzvideo bis 20 MB in dieselbe Reihe wie die Fotos** —
-dieselbe Tabelle, eine Spalte `art` mehr und eine `dauer` daneben. Zwei
-Tabellen hießen zwei sortierte Listen und damit zwei Quellen für die Frage,
-was das Hauptbild ist. **Daraus folgt, dass jede vorhandene Regel von selbst
-greift**: Rechte, Kaskade, Reihenfolge, Fokuspunkt, Verschlüsselung, Sicherung.
-Drei Dinge greifen ausdrücklich **nicht** von selbst und sind gebaut worden:
-Löschdialog, Kennzahlen und die Auslieferung.
+**Was davor liegt, steht in Abschnitt 9** — 0.8.50 stellte das Kurzvideo in
+dieselbe Reihe wie die Fotos, 0.8.40 gab jedem Kriterium ein Gewicht, 0.8.30
+und 0.8.31 gaben Links und Dateien einen Verfasser. **Damit ist der
+Mehrbenutzerbetrieb bis auf die Stufen H und I gebaut.** Vollständig geblieben
+sind die Abschnitte 5 und 12 — Entscheidungen und Arbeitsweise. Bestände und
+Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
 
-**Die Entscheidung, an der die Runde hängt, ist baulich: `ffmpeg` kommt nicht
-ins Image.** Das Standbild erzeugt der Browser des Hochladenden über
-`<video>` und `<canvas>`, bevor hochgeladen wird. Vier Folgen, alle gewollt:
-keine neue Abhängigkeit; **der Server öffnet nie ein Video** — er liest zwölf
-Bytes, speichert den Rest und liefert ihn wieder aus; wer ein Video nicht
-abspielen kann, kann es nicht hochladen (und das ist richtig — ein Videoplatz,
-der nicht abspielt, ist ein kaputter Platz); und **das Standbild ist nicht
-überprüfbar**, es ist eine Vorschau und keine Aussage.
-
-**0.8.40 gab jedem Bewertungskriterium ein Gewicht** zwischen 0,2 und 2,
-einstellbar vom Admin. Der Gesamtschnitt eines Eintrags wurde zum **gewichteten
-Mittelwert** — bei Gewicht 1 überall rechnerisch identisch mit vorher, und
-damit rückwärts wie vorwärts umkehrbar. **Ein Eintrag kommt dabei nie über 5
-und nie unter 1**, und zwar baulich: ein gewichteter Mittelwert liegt bei
-positiven Gewichten immer zwischen dem kleinsten und dem größten gemittelten
-Wert. Es gibt keinen Deckel, der vergessen werden könnte.
-
-**0.8.30 war Stufe G4, „Die Linkliste bekommt Verfasser"**, und die erste
-Datenbankstufe seit 0.8.3: `links` bekommt eine `user_id`, eintragen darf
-jeder, löschen der Eintrager oder der Admin, sortieren bleibt beim
-Eintragsverfasser, und ab zwei Zugängen steht an einer **fremden** Linkzeile
-der Name. **0.8.31 tat dasselbe für die Dateien** und war der erste Fall, in
-dem sich die Zehnerschritte des Stufenplans ausgezahlt haben: die Runde nahm
-eine der neun freien Nummern, und 0.8.40 blieb die Gewichtung.
-**Damit ist der Mehrbenutzerbetrieb bis auf die Stufen H und I gebaut.**
-Vollständig geblieben sind die Abschnitte 5 und 12 — Entscheidungen und
-Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht mehr
-berücksichtigt.
+> **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
+> trägt die **gebaute** Runde und die eine davor ausführlich; alles Ältere
+> steht in **einem** Satz und sonst in Abschnitt 9. Wer eine Runde nachträgt,
+> kürzt die vorletzte auf diesen Satz ein. Ein Übergabeblatt, das mit jeder
+> Version wächst, wird irgendwann nicht mehr gelesen — und dann nützt es
+> niemandem mehr.
 
 **Für den Betrieb ändert sich mit 0.8.70 zweierlei.** Die **Sicherung des
 Datenverzeichnisses steht wieder als PFLICHT im Einspielweg** — es ist eine
@@ -3645,7 +3622,7 @@ Zahl im Dialog, die nichts bewirkt, wäre schlimmer als keine.
 Gegenprobe, die **stumm** blieb.
 
 Als Nächstes **0.8.40 — Gewichtung der Bewertungskriterien**, siehe
-Abschnitt 10 und `Konzept_Gewichtung_Bewertungskriterien.md`. Sie hebt die
+Abschnitt 10. Sie hebt die
 Formatnummer erneut (**8 → 9**, nachdem 0.8.31 die 8 belegt hat).
 
 | Version | Was |
@@ -3720,7 +3697,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.20** | Die Schotten dicht | SVG am Fotoweg, `X-Forwarded-For`, `Secure`-Cookie, Sicherheitsregel für die Anwendung selbst, Fehler-Handler, sauberes Herunterfahren, Index auf `sessions.user_id` | — | — |
 | **0.8.30** | **Stufe G4** — Links bekommen Verfasser | `user_id` an `links`, eintragen offen, löschen beim Eintrager oder Admin, Name an der fremden Zeile, beide Löschdialoge | ja | 6 → 7 |
 | **0.8.31** | *(keine Stufe)* Dateien bekommen Verfasser | dieselbe Wende am sechsten Träger — `user_id` an `attachments`, hochladen offen, löschen beim Hochladenden oder Admin | ja | 7 → 8 |
-| **0.8.40** | Gewichtung der Kriterien | Gewicht 0,2 bis 2 je Kriterium, gewichteter Gesamtschnitt, Anzeige `×1,5`, `criteriaGewichte` im Austauschformat — siehe `Konzept_Gewichtung_Bewertungskriterien.md` | ja | 8 → 9 |
+| **0.8.40** | Gewichtung der Kriterien | Gewicht 0,2 bis 2 je Kriterium, gewichteter Gesamtschnitt, Anzeige `×1,5`, `criteriaGewichte` im Austauschformat — Einzelheiten in Abschnitt 5 und `Doku/Aenderungsprotokoll_0.8.40.md` | ja | 8 → 9 |
 | **0.8.50** | Kurzvideos am Fotoplatz | bis 20 MB, in der Datenbank, Standbild aus dem Browser — siehe `Konzept_Video_und_grosse_Dateien.md`, Teil I | ja | 9 → 10 |
 | **0.8.60** | Was ist offen, was ist neu | Ansicht „Offen" über alle Einträge, Filter „Neu seit …" | — | — |
 | **0.8.70** | Sicherung und Papierkorb | `VACUUM INTO` auf Knopfdruck (Punkt 8), Papierkorb, einzelnen Eintrag exportieren | ja, **ohne Migrationsblock** | — |
