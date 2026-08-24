@@ -6,6 +6,42 @@ ist. Die Einzelheiten stehen je Version in
 
 ---
 
+## 0.8.71 — Der Sicherungsort zieht um
+
+**Eine Berichtigungsrunde, keine Stufe.** Der Sicherungsort lag bisher eine
+Ebene über dem Projektverzeichnis und legte dort einen zweiten Ordner an. Das
+hielt die Übersicht nicht — und die sichere Lage war es nur solange, wie
+niemand sie hinterfragte.
+
+### Neu
+
+- **Der Sicherungsort liegt jetzt im Projektverzeichnis** (`kriterion-sicherung`
+  neben `data`). Ein Ordner weniger eine Ebene höher.
+- **Die Karte „Sicherung" sagt, wie er liegt.** Ein **roter** Kasten, wenn er
+  im Projektverzeichnis liegt, mit dem Grund daneben; ein **grüner**, wenn er
+  außerhalb liegt. Abgewiesen wird keine der beiden Lagen — eine Sicherung am
+  falschen Ort ist besser als keine.
+- **Wer die sichere Lage will, stellt zwei Zeilen in der `docker-compose.yml`
+  um.** Wie, steht dort und in der README.
+
+### Was gleich bleibt
+
+- Alles andere. Kein Schema, keine neue Formatnummer, keine neue Route, keine
+  neue Abhängigkeit. Der Papierkorb, die Sicherung selbst und ihr Zielort in
+  der Oberfläche arbeiten unverändert.
+
+### Beim Einspielen
+
+- **Der Einspielweg hat eine Zeile mehr bekommen** — sie holt vorhandene
+  Sicherungen aus dem umbenannten Ordner zurück. Ohne sie bleiben sie in
+  `kriterion-alt` liegen. Steht der Sicherungsort außerhalb, ist die Zeile
+  wirkungslos und stört nicht.
+- **Die neue `docker-compose.yml` muss mit eingespielt werden** — sie trägt die
+  geänderte Einhängung und die geänderte Variable. Beide gehören zusammen.
+- Kein Pflicht-Sicherungspunkt: die Datenbank wird nicht angefasst.
+
+---
+
 ## 0.8.70 — Sicherung und Papierkorb
 
 **Zwei Wege zurück, die es bisher nicht gab.** Ein gelöschter Eintrag war

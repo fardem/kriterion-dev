@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 16 · Stand 23. August 2026 · gebaut: Version 0.8.70**
+**Kompakte Übergabe · Revision 17 · Stand 24. August 2026 · gebaut: Version 0.8.71**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,10 +8,25 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 16 ist.** Revision 15 trug 0.8.60 nach. Diese trägt **0.8.70**
-nach — „Sicherung und Papierkorb", die nächste Runde des Stufenplans und
-**keine Stufe des Mehrbenutzerbetriebs**; der ist mit G4 bis auf H und I
-gebaut.
+**Was Revision 17 ist.** Revision 16 trug 0.8.70 nach. Diese trägt **0.8.71**
+nach — „Der Sicherungsort zieht um", eine **Berichtigungsrunde** auf einer der
+neun freien Nummern, wie 0.8.1, 0.8.6 und 0.8.31. Sie fasst weder Schema noch
+Route noch Format an.
+
+**0.8.71 verlegt den Sicherungsort ins Projektverzeichnis und sagt, was das
+kostet.** Er lag bisher eine Ebene darüber und legte dort einen zweiten Ordner
+an; das hielt die Übersicht nicht. Jetzt liegt er neben `data` — und die Karte
+„Sicherung" markiert diese Lage **rot**, mit dem Grund daneben: beim Einspielen
+einer neuen Version wird das Projektverzeichnis umbenannt, ein Fehlgriff daran
+nähme Original und Sicherung auf einmal, und beide liegen auf derselben Platte.
+Liegt der Ort außerhalb, steht dort ein **grüner** Kasten. **Abgewiesen wird
+keine der beiden Lagen** — eine Sicherung am falschen Ort ist besser als keine,
+und der Auslieferungszustand ist genau dieser Fall. Der Einspielweg hat dafür
+**eine Zeile mehr** bekommen.
+
+**0.8.70 davor** brachte „Sicherung und Papierkorb", die nächste Runde des
+Stufenplans und **keine Stufe des Mehrbenutzerbetriebs**; der ist mit G4 bis
+auf H und I gebaut.
 
 **0.8.70 baut zwei Wege zurück, die es bisher nicht gab.** Ein **gelöschter
 Eintrag** liegt dreißig Tage im **Papierkorb** und lässt sich von dort
@@ -125,7 +140,17 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.70 ist gebaut** — Fingerprint **`1aa9266a`**. *Wieder eine
+**0.8.71 ist gebaut** — Fingerprint **`1b03fabf`**, 2398
+Prüfungen. Eine **Berichtigungsrunde ohne Schema, ohne Route, ohne
+Formatnummer**: der Sicherungsort liegt jetzt im Projektverzeichnis
+(`./kriterion-sicherung:/app/sicherung`), und `GET /api/sicherung` sagt über
+das Feld `imArbeitsverzeichnis`, wie er liegt. Die Karte macht daraus einen
+roten oder grünen Kasten. **Die Aussage trägt nur, solange die Einhängung die
+Lage spiegelt** — der Prozess sieht den Wirt nicht (Stolperstein 123); ein
+Wächter über die `docker-compose.yml` hält es fest. Der Einspielweg holt den
+Sicherungsordner jetzt eigens aus dem umbenannten Verzeichnis zurück.
+
+**0.8.70 davor** — Fingerprint **`1aa9266a`**. *Wieder eine
 Datenbankstufe, aber keine Stufe des Mehrbenutzerbetriebs:* das Schema bekommt
 **zwei Tabellen**, `papierkorb` und `papierkorb_bytes` — und **keinen
 Migrationsblock**. Nachgestellt statt geglaubt: anders als eine Spalte legt
@@ -2129,6 +2154,29 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
 
 ---
 
+- **Benannt statt verboten — die Lage des Sicherungsorts** (seit 0.8.71). Der
+  Riegel gegen den Sicherungsort **im Datenverzeichnis** bleibt eine Absage:
+  dort läge die Kopie in dem Verzeichnis, das sie schützen soll. Der Ort **im
+  Arbeitsverzeichnis** ist eine Stufe milder und wird deshalb **erlaubt und
+  angezeigt** — roter Kasten mit Grund, grüner Kasten daneben, wenn er
+  außerhalb liegt. Zwei Gründe: eine Sicherung am falschen Ort ist besser als
+  keine, und der **Auslieferungszustand ist selbst dieser Fall** — ein Riegel,
+  den die eigene Vorgabe verletzt, wäre absurd. *Wo eine Lage schlechter, aber
+  nicht falsch ist, gehört sie benannt und nicht verboten.*
+- **Die Lage gilt für die Wurzel, nicht für das Unterverzeichnis** (seit
+  0.8.71). `imArbeitsverzeichnis` wird an `SICHERUNG_DIR` gemessen und nicht am
+  in der Oberfläche gewählten Zielort: es ist eine Eigenschaft der
+  **Einrichtung**, nicht der Einstellung. Deshalb steht die Auskunft auch dann
+  da, wenn der gewählte Zielort gerade einen Fehler meldet.
+- **Ein Schalter kann nichts tun, während nichts läuft** (seit 0.8.71). Der
+  Vorschlag, den Sicherungsordner beim Einspielen einer neuen Version über eine
+  Einstellung in der `.env` verschieben zu lassen, ist verworfen: zu diesem
+  Zeitpunkt ist `docker compose down` längst gelaufen, und ein Schalter würde
+  von einem Prozess gelesen, den es nicht gibt. Ein eigenes Skript im Repo
+  stünde als **zweite Wahrheit** neben dem Weg in der README (Stolperstein 47).
+  Der Weg trägt ohnehin schon `data/` und `.env` hinüber — ein Drittes ist
+  **eine Zeile in derselben Liste**.
+
 ## 5a. Die Sicherheitsregel für ausgelieferte Dateien
 
 **Keine gespeicherte Datei darf jemals so ausgeliefert werden, dass der
@@ -2422,7 +2470,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
 62. **Ein zusammengesetzter regulärer Ausdruck wird zweimal maskiert** —
     langweiliger String-Code ist dort das kleinere Übel.
 63. **Eine Spalte, die man vergleicht, muss im `SELECT` stehen** — sonst ist
-    sie `undefined`, und die Prüfung kann gar nicht scheitern.
+    sie `1b03fabf`, und die Prüfung kann gar nicht scheitern.
 64. **Zufällige Portwahl braucht Abstand** — überlappende Bereiche erzeugen
     Rauschen, das beim Gegenprüfen wie ein Befund aussieht. Neue Basis:
     höchste vorhandene plus 60.
@@ -2481,7 +2529,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     String, und jede Verneinung darauf ist wahr — die Gegenprobe machte
     nur eine statt zwei Prüfungen rot. Erst das **Vorhandensein** prüfen, dann
     die Eigenschaft. Verwandt mit 63 und 31, aber eigenständig: dort ist der
-    Wert `undefined`, hier ein *plausibler* leerer Wert.
+    Wert `1b03fabf`, hier ein *plausibler* leerer Wert.
 82. **Die letzte Spalte einer Tabelle trägt das Komma ihres Vorgängers mit.**
     Ein Rückbau, der sie aus der DDL nimmt, hinterlässt ein nachlaufendes Komma;
     SQLite meldet „syntax error", `db.js` wirft beim Laden, und der Prüflauf gibt
@@ -2629,7 +2677,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Antwort liest, gehört eine Prüfung an der echten Antwort.* Lücke 3 des
     Prüfstands (Abschnitt 7), zum zweiten Mal.
 103. **Eine Prüfzeile, die auf `liste[0].feld` zugreift, reißt den Lauf ab,
-    statt rot zu werden.** Fällt die Zeile weg, ist `liste[0]` `undefined`, und
+    statt rot zu werden.** Fällt die Zeile weg, ist `liste[0]` `1b03fabf`, und
     der Zugriff beendet den ganzen Lauf — der dann **keinen einzigen Namen**
     nennt. Verwandt mit 76, aber eigenständig: dort ist der *Rückbau* zu grob,
     hier ist die *Prüfung* zu unvorsichtig. Der Fragezeichenpunkt gehört dorthin.
@@ -2737,7 +2785,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Weg sucht, misst zuerst nach, ob es ihn an dieser Datenbank gibt.*
 118. **Eine Zusage, die nach dem Schließen ihres Fensters ankommt, reißt den
     Lauf ab.** Eine Ansicht, die ihre Liste selbst nachlädt, läuft weiter, wenn
-    das jsdom-Fenster längst geschlossen ist; `document` ist dann `undefined`,
+    das jsdom-Fenster längst geschlossen ist; `document` ist dann `1b03fabf`,
     und der Zugriff beendet den ganzen Prüflauf, statt eine Prüfung rot zu
     färben. *Was eine Ansicht beim Aufbau braucht, wird beim Aufbau geholt.*
     Verwandt mit 103, aber eigenständig: dort ist die Prüfung zu unvorsichtig,
@@ -2772,6 +2820,20 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     standen. *Wer Gegenproben in Serie fährt, räumt die ganze Prozessgruppe ab
     und nicht nur das Wegwerfverzeichnis.*
 
+123. **Eine Aussage über die Welt draußen trägt nur, solange die Einhängung sie
+    spiegelt.** Der Prozess im Container sieht den Wirt nicht — er sieht
+    `/app/sicherung` und sonst nichts. Ob dieser Pfad draußen **im** oder
+    **neben** dem Projektverzeichnis liegt, kann er nicht messen; er liest die
+    Lage an seinem **eigenen** Pfad ab (`__dirname`) und setzt voraus, dass die
+    `docker-compose.yml` sie spiegelt: `./` draußen wird `/app` drinnen. Die
+    Voraussetzung ist unsichtbar, und genau darin liegt die Falle — wer den
+    Schnitt anders legt, bekommt eine falsche Farbe und keine Warnung darüber.
+    Sie steht deshalb an **drei** Stellen im Klartext (Quelltext,
+    `docker-compose.yml`, README) und in einem Wächter, der die
+    `docker-compose.yml` selbst liest. *Wer eine Aussage über etwas trifft, das
+    er nicht sehen kann, benennt die Brücke, über die sie trägt — und stellt
+    einen Wächter davor.*
+
 ---
 
 ## 7. Prüfstand
@@ -2784,7 +2846,14 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 2381 von 2381 bestanden** (0.8.70;
+**Zuletzt: 2398 von 2398 bestanden** (0.8.71; 17 neue Prüfungen, 6
+Gegenproben, **keine neue Gruppe** — die Lage des Sicherungsorts gehört zu dem,
+was schon geprüft wird, und eine eigene Gruppe hätte sie davon getrennt.
+Serverseitig liefert `GET /api/sicherung` das Feld `imArbeitsverzeichnis` in
+**beiden** Lagen, gefahren an zwei echten Servern; in der Oberfläche wird zu
+jeder Farbe geprüft, dass die **andere** gerade nicht dasteht; und ein Wächter
+liest die `docker-compose.yml` selbst — Einhängung und Variable dürfen nicht
+auseinanderlaufen, und `./` draußen muss `/app` drinnen heißen. Davor 0.8.70;
 294 neue Prüfungen, neun neue Gruppen: „Der Papierkorb: die Tabelle
 legt sich selbst an", „Der Papierkorb: der Rundlauf", „Der Papierkorb: dieselbe
 Transaktion", „Der Papierkorb: die dreissig Tage", „Der Papierkorb: die
@@ -3163,6 +3232,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.50 | Kurzvideos am Fotoplatz — alle fünf Punkte (146) | 30 | Stolpersteine 108 bis 111 |
 | 0.8.60 | Was ist offen, was ist neu — Ansicht „Offen", Filter „Neu seit …", Sprachbereinigung (132) | 17 | Stolpersteine 112 bis 116 |
 | 0.8.70 | Sicherung und Papierkorb — alle drei Punkte (294) | 38 | Stolpersteine 117 bis 121 |
+| 0.8.71 | 17 | 6 | Stolperstein 123 |
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -3366,7 +3436,25 @@ sind zwei Dinge:
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
 
-**0.8.70 — „Sicherung und Papierkorb".** Die nächste Runde des Stufenplans,
+**0.8.71 — „Der Sicherungsort zieht um".** Eine **Berichtigungsrunde** auf
+einer der neun freien Nummern, wie 0.8.1, 0.8.6 und 0.8.31 — **kein Schema,
+keine Route, keine Formatnummer**. Der Sicherungsort liegt jetzt **im**
+Projektverzeichnis (`./kriterion-sicherung:/app/sicherung`), weil ein zweiter
+Ordner eine Ebene höher die Übersicht nicht hielt. Der Preis wird nicht
+verschwiegen, sondern angezeigt: `GET /api/sicherung` liefert
+`imArbeitsverzeichnis`, und die Karte macht daraus einen **roten** Kasten samt
+Grund oder einen **grünen**. **Benannt, nicht verboten** — der Riegel gegen den
+Ort im *Datenverzeichnis* bleibt eine Absage, der Ort im Arbeitsverzeichnis
+wird erlaubt; ein Riegel, den die eigene Vorgabe verletzt, wäre absurd. Der
+Einspielweg holt den Sicherungsordner mit einer eigenen Zeile aus dem
+umbenannten Verzeichnis zurück.
+**Die Aussage trägt nur, solange die Einhängung die Lage spiegelt** — der
+Prozess sieht den Wirt nicht (Stolperstein 123); ein Wächter über die
+`docker-compose.yml` hält es fest.
+**2398 von 2398 Prüfungen**, 6 Gegenproben, **ein neuer Stolperstein** (123).
+Einzelheiten in `Doku/Aenderungsprotokoll_0.8.71.md`.
+
+**0.8.70 davor — „Sicherung und Papierkorb".** Die Runde davor im Stufenplan,
 **keine Stufe des Mehrbenutzerbetriebs** — und **wieder eine Datenbankstufe**,
 aber **ohne Migrationsblock**.
 
@@ -3701,6 +3789,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.50** | Kurzvideos am Fotoplatz | bis 20 MB, in der Datenbank, Standbild aus dem Browser — siehe `Konzept_Video_und_grosse_Dateien.md`, Teil I | ja | 9 → 10 |
 | **0.8.60** | Was ist offen, was ist neu | Ansicht „Offen" über alle Einträge, Filter „Neu seit …" | — | — |
 | **0.8.70** | Sicherung und Papierkorb | `VACUUM INTO` auf Knopfdruck (Punkt 8), Papierkorb, einzelnen Eintrag exportieren | ja, **ohne Migrationsblock** | — |
+| **0.8.71** | *(keine Stufe)* Der Sicherungsort zieht um | in das Projektverzeichnis, dazu die rot/grüne Anzeige, wie er liegt — benannt, nicht verboten | nein | — |
 | **0.8.80** | **Stufe H** — Tokens | Einladung und Rücksetzung, dazu „Meine Sitzungen" | ja | — |
 | **0.8.90** | Schwere Eingriffe | Re-Authentifizierung, Sicherheitsprotokoll, Schlüssel wechseln | ja | — |
 | **0.9.0** | **Stufe I** — Mailversand und Selbstanmeldung | siehe Konzeptpapier | ja | — |
@@ -3709,7 +3798,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
-**0.8.10 bis 0.8.70 sind gebaut** — Einzelheiten in Abschnitt 2 und
+**0.8.10 bis 0.8.71 sind gebaut** — Einzelheiten in Abschnitt 2 und
 Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit 0.8.3** gefahren,
 mit 0.8.31 die zweite, mit 0.8.40 die dritte, mit 0.8.50 die vierte und mit
 0.8.70 die fünfte; bei allen fünf steht die Sicherung des Datenverzeichnisses

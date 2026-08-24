@@ -3993,7 +3993,26 @@ async function renderSystem() {
              <div class="kv"><span class="k">Größe</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>
              <div class="kv"><span class="k">Dateien am Ort</span><span class="v">${d.zahl || 0}</span></div>`
           : `<p class="desc" style="margin:0 0 12px">An diesem Ort liegt noch keine Sicherung.</p>`));
+    /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
+       ist die Frage, die vor allen anderen steht. Ein Ort im
+       Arbeitsverzeichnis ist erlaubt und wird nicht abgewiesen -- er wird
+       benannt. Wer hier rot sieht, soll wissen, WARUM, und nicht bloss, DASS.
+       Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
+       sonst liest ihn beim nächsten Umbau niemand mehr. */
+    const lage = d.imArbeitsverzeichnis
+      ? `<div class="warn-box" id="sich-lage" style="margin:0 0 12px"><strong>Der Sicherungsort liegt im
+           Arbeitsverzeichnis.</strong> Dringend empfohlen ist er daneben. Er teilt hier das
+           Schicksal des Projektverzeichnisses: beim Einspielen einer neuen Version wird das
+           umbenannt, und die Sicherungen wandern mit — der Weg in der README holt sie eigens
+           zurück. Ein Fehlgriff am Projektordner nähme Original und Sicherung auf einmal,
+           und beide liegen ohnehin auf derselben Platte. Umgestellt wird es in der
+           <code>docker-compose.yml</code>; dort steht, wie.</div>`
+      : `<div class="ok-box" id="sich-lage" style="margin:0 0 12px">Der Sicherungsort liegt <strong>außerhalb
+           des Arbeitsverzeichnisses</strong>. So bleibt er unberührt, wenn das
+           Projektverzeichnis beim Einspielen einer neuen Version umbenannt oder ersetzt
+           wird.</div>`;
     box.innerHTML = `
+      ${lage}
       <div class="field"><label>Zielort</label>
         <p class="desc" style="margin:0 0 6px">Eingerichtet ist <code>${esc(d.wurzel || '')}</code>.
           Darunter lässt sich ein Unterverzeichnis wählen; es muss dort schon liegen —
