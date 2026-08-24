@@ -273,6 +273,62 @@ CREATE TABLE IF NOT EXISTS sessions (
 -- und legt sich bei jedem Start selbst nach, in frischer wie bestehender Anlage.
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 
+/* EIN MECHANISMUS, ZWEI ANLAESSE -- Einladung und Ruecksetzung. Beide enden
+   im selben Vorgang: jemand setzt sein Passwort selbst, ueber einen Link mit
+   begrenzter Haltbarkeit.
+
+   GESPEICHERT WIRD NUR DER HASH, und zwar SHA-256, einmal, OHNE Salz -- eine
+   bewusste Abweichung von der Linie des Projekts, das Passwoerter mit scrypt
+   absichtlich langsam rechnet. Der Grund ist der Gegenstand: scrypt schuetzt
+   RATBARE Geheimnisse, ein Token traegt 256 Bit aus dem Zufallsgenerator.
+   Mit Salz je Zeile muesste der Server bei jedem Einloeseversuch JEDE Zeile
+   einzeln durchrechnen -- auf einer Route, die VOR der Anmeldung steht, waere
+   das ein Hebel zum Lahmlegen. Ohne Salz ist der Hash ein Schluessel: die
+   Zeile wird ueber den Primaerschluessel GEFUNDEN statt gesucht. Ein
+   zeitunabhaengiger Vergleich hat hier deshalb nichts mehr zu tun -- es wird
+   nachgeschlagen, nicht verglichen.
+   Zum Vergleich, damit die Abweichung im richtigen Licht steht: sessions.token
+   steht im Klartext in der Tabelle. Den Hash zu speichern ist strenger als der
+   Bestand, nicht lockerer.
+
+   zweck IST DIE FESTSTELLUNG EINES VORGANGS, so wie papierkorb.geloescht_von
+   -- welcher Knopf gedrueckt wurde. Daran haengt kein Recht, kein Filter und
+   kein Ablauf; der Text am Bildschirm leitet sich aus dem ZUSTAND ab (hat der
+   Zugang ueberhaupt schon ein Passwort), nicht aus dieser Spalte. Sonst
+   stuenden hier zwei Wahrheiten nebeneinander. Sie bleibt trotzdem stehen:
+   ein Vorgang mit zwei Anlaessen soll sagen koennen, welcher es war, und das
+   Sicherheitsprotokoll aus 0.8.90 wird sie brauchen.
+   KEIN CHECK auf der Spalte -- dieselbe Ueberlegung wie bei users.status: die
+   Liste der gueltigen Werte steht im Code und laesst sich dort erweitern,
+   ohne die Tabelle neu zu bauen.
+
+   benutzt_am BLEIBT STEHEN statt die Zeile zu loeschen: es ist die einzige
+   Spur, dass eine Einladung angenommen wurde. Damit die Tabelle nicht ewig
+   waechst, raeumt raeumeTokensAuf() nach EINER Schwelle auf.
+
+   created_at STEHT ZUSAETZLICH ZUM ENTWURF im Konzeptpapier. Aus ablauf minus
+   sieben Tage zurueckzurechnen waere richtig, solange die Frist nie wechselt
+   -- und ab dem Tag, an dem sie wechselt, still falsch.
+
+   ON DELETE CASCADE: ein Token ohne Benutzer oeffnet nichts. Im Betrieb greift
+   die Kaskade nie -- ein Zugang wird zum Grabstein statt entfernt zu werden --,
+   deshalb raeumen entferneZugang() und setzeStatus() die Token ausdruecklich
+   selbst mit weg. Ein offener Link auf einen gesperrten Zugang waere sonst
+   ein Weg zurueck an der Sperre vorbei. */
+CREATE TABLE IF NOT EXISTS tokens (
+  hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  zweck TEXT NOT NULL,
+  ablauf TEXT NOT NULL,
+  benutzt_am TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+-- Gefragt wird ueber den Hash (Primaerschluessel) ODER nach allen Token EINES
+-- Benutzers -- beim Einloesen fallen die uebrigen, beim Sperren und Entfernen
+-- ebenso. Dieselbe Ueberlegung wie bei idx_sessions_user, und wie dort ist ein
+-- Index keine Migration.
+CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
+
 -- Der Favorit: eine Aussage eines Benutzers ueber einen Eintrag, keine
 -- Eigenschaft des Eintrags -- deshalb eine eigene Tabelle. Es gibt nur Zeilen
 -- fuer tatsaechliche Favoriten.
