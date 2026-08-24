@@ -3919,8 +3919,8 @@ async function renderSystem() {
           kein Änderungsverlauf, und das bleibt so. Ebenso wenig Adresse oder Browserkennung:
           die Anlage speichert beides nicht.</p>
         <p class="desc">Die Zeilen bleiben <strong>${protokoll.tage} Tage</strong> stehen und werden
-          danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Protokoll, das
-          sich wegräumen lässt, wäre keins.</p>
+          danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Sicherheitsprotokoll,
+          das sich wegräumen lässt, wäre keins.</p>
         <div class="prot-liste" id="protokoll-liste"></div>
         <p class="hint hint-sm" id="protokoll-fuss" style="margin:10px 2px 0"></p>
       </div>` : ''}

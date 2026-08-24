@@ -42,25 +42,7 @@ const PORT = process.env.PORT || 3000;
    und faellt auf den Browserweg zurueck -- dieselbe Form wie bei AUTH_RESET
    und beim fehlenden Sicherungsort. Ein Start, der an einem Tippfehler in
    einer OPTIONALEN Einstellung abbricht, ist schlimmer als der Tippfehler. */
-function pruefeOeffentlicheAdresse(roh) {
-  const wert = String(roh || '').trim();
-  if (!wert) return { adresse: '', gesetzt: false };
-  let u;
-  try { u = new URL(wert); }
-  catch { return { adresse: '', gesetzt: true, fehler: 'Das ist keine vollständige Adresse.' }; }
-  if (u.protocol !== 'http:' && u.protocol !== 'https:')
-    return { adresse: '', gesetzt: true, fehler: 'Nur http:// und https:// sind möglich.' };
-  if (!u.hostname)
-    return { adresse: '', gesetzt: true, fehler: 'Es fehlt der Rechnername.' };
-  if (u.username || u.password)
-    return { adresse: '', gesetzt: true, fehler: 'Zugangsdaten gehören nicht in die Adresse.' };
-  if (u.search) return { adresse: '', gesetzt: true, fehler: 'Eine Abfrage (?) ist nicht erlaubt.' };
-  if (u.hash) return { adresse: '', gesetzt: true, fehler: 'Ein Fragment (#) ist nicht erlaubt.' };
-  // Ohne abschliessenden Schraegstrich, damit der Link genau eine Form hat.
-  const adresse = (u.origin + u.pathname).replace(/\/+$/, '');
-  return { adresse, gesetzt: true };
-}
-const OEFFENTLICHE = pruefeOeffentlicheAdresse(process.env.OEFFENTLICHE_ADRESSE);
+const OEFFENTLICHE = auth.OEFFENTLICHE_ADRESSE;
 
 /* Was die Antwort ueber den Link sagt. IST DIE EINSTELLUNG LEER, GIBT DER
    SERVER KEINEN LINK HERAUS -- der Browser baut ihn weiter selbst, und die

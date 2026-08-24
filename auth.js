@@ -29,6 +29,44 @@ const HINTER_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(process.env.HINTER_P
    WER DIE EINSTELLUNG UMLEGT, MELDET DAMIT ALLE EINMALIG AB: der alte Name
    wird nicht mehr gelesen. Kein Datenverlust, nur eine neue Anmeldung. */
 const COOKIE_NAME = HINTER_PROXY ? '__Host-kriterion_session' : 'kriterion_session';
+
+/* --- Die oeffentliche Adresse -------------------------------------------
+   SIE STEHT HIER UND NICHT IN server.js, weil sie dieselbe Sorte Einstellung
+   ist wie HINTER_PROXY darueber: sie entscheidet ueber NETZWERKVERTRAUEN und
+   nicht ueber eine Vorliebe, und sie gehoert deshalb in die .env und nicht in
+   settings -- ein uebernommener Admin-Zugang koennte sie sonst selbst umlegen.
+   GEBAUT wird der Link in server.js; hier steht nur, welcher Wert gilt.
+
+   ALLES AB ? UND # WIRD ABGEWIESEN: das Fragment traegt bereits den
+   Schluessel des Links, und eine Abfrage haette an einer Adresse, aus der ein
+   Link gebaut wird, nichts zu suchen. Ein PFAD ist erlaubt -- die Anlage kann
+   unter einem Unterpfad haengen.
+   ZUGANGSDATEN IN DER ADRESSE WERDEN ABGEWIESEN: sie stuenden sonst in jedem
+   verschickten Link.
+   EIN UNBRAUCHBARER WERT BRICHT DEN START NICHT AB, sondern meldet sich laut
+   und faellt auf den Browserweg zurueck -- dieselbe Form wie bei AUTH_RESET
+   und beim fehlenden Sicherungsort. Ein Start, der an einem Tippfehler in
+   einer OPTIONALEN Einstellung abbricht, ist schlimmer als der Tippfehler. */
+function pruefeOeffentlicheAdresse(roh) {
+  const wert = String(roh || '').trim();
+  if (!wert) return { adresse: '', gesetzt: false };
+  let u;
+  try { u = new URL(wert); }
+  catch { return { adresse: '', gesetzt: true, fehler: 'Das ist keine vollständige Adresse.' }; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:')
+    return { adresse: '', gesetzt: true, fehler: 'Nur http:// und https:// sind möglich.' };
+  if (!u.hostname)
+    return { adresse: '', gesetzt: true, fehler: 'Es fehlt der Rechnername.' };
+  if (u.username || u.password)
+    return { adresse: '', gesetzt: true, fehler: 'Zugangsdaten gehören nicht in die Adresse.' };
+  if (u.search) return { adresse: '', gesetzt: true, fehler: 'Eine Abfrage (?) ist nicht erlaubt.' };
+  if (u.hash) return { adresse: '', gesetzt: true, fehler: 'Ein Fragment (#) ist nicht erlaubt.' };
+  // Ohne abschliessenden Schraegstrich, damit der Link genau eine Form hat.
+  const adresse = (u.origin + u.pathname).replace(/\/+$/, '');
+  return { adresse, gesetzt: true };
+}
+const OEFFENTLICHE_ADRESSE = pruefeOeffentlicheAdresse(process.env.OEFFENTLICHE_ADRESSE);
+
 const SESSION_DAYS = 30;
 
 // --- Passwoerter -------------------------------------------------------
@@ -1000,7 +1038,8 @@ function requireAuth(req, res, next) {
 }
 
 module.exports = {
-  COOKIE_NAME, HINTER_PROXY, PASSWORT_MIN, SESSION_DAYS, parseCookies, pruefeAnmeldung, legeSitzungAn, destroySession,
+  COOKIE_NAME, HINTER_PROXY, PASSWORT_MIN, SESSION_DAYS,
+  OEFFENTLICHE_ADRESSE, pruefeOeffentlicheAdresse, parseCookies, pruefeAnmeldung, legeSitzungAn, destroySession,
   sitzungsBenutzer, pruneSessions, sessionCookie, clearCookie, requireAuth,
   clientIp, checkThrottle, noteFailure, noteSuccess,
   // Meine Sitzungen und die Token; Rufer ist server.js.
