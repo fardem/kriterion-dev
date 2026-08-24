@@ -4582,6 +4582,28 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   bis auf Weiteres die **einzige** Stelle, an der der Server an einen Ort
   schreibt, den jemand angeben darf; wer eine zweite baut, nimmt `pruefeOrt()`
   zum Vorbild und schreibt die Regel nicht ein zweites Mal hin.
+- **Die öffentliche Adresse gehört in die `.env`, nicht in `settings`**
+  (beschlossen, gebaut ab 0.8.90). Seit 0.8.80 baut der **Browser des Admins**
+  den Einladungslink aus `location`; das ist sicher und braucht keine
+  Einstellung. Es hat aber eine Bruchstelle: **die Adresse, unter der der Admin
+  zugreift, ist nicht immer die, die der Empfänger benutzen soll.** Dagegen
+  kommt `OEFFENTLICHE_ADRESSE` — **optional**, leer heißt „wie bisher, der
+  Browser baut". Gesetzt gibt der Server den fertigen Link heraus, und die
+  Oberfläche sagt daneben, **woher** die Adresse kam.
+  **Warum `.env` und nicht der Systembereich, obwohl es dort bequemer wäre:**
+  dieselbe Linie wie `HINTER_PROXY` — sie entscheidet über Netzwerkvertrauen,
+  nicht über eine Vorliebe. Der Hebel liegt in der Rollenleiter: ein Admin
+  kommt nicht an einen anderen Admin oder den Eigentümer. Dürfte er die
+  öffentliche Adresse setzen, zeigte ab Stufe I **jede verschickte
+  Rücksetzmail** auf seinen Server — auch die, die sich der Eigentümer selbst
+  anfordert. *Eine Einstellung, die in der einen Stufe harmlos und in der
+  nächsten gefährlich ist, gehört von Anfang an dorthin, wo sie hingehört.*
+  **Der Systembereich zeigt sie, setzt sie nicht** — und zwar dort, wo der Link
+  entsteht, nicht in der Karte „Titel": die beiden Titel sind reine Anzeige und
+  werden frei getippt, die Adresse ist die Sorte, die man nur beim Einrichten
+  anfasst. **Ab Stufe I ist sie Pflicht**, denn dort verschickt der Server
+  selbst: *wer den Link von Hand weitergibt, hat einen Browser, der die Adresse
+  kennt; wer ihn verschicken lässt, hat keinen.*
 - **Ein Sicherheitsprotokoll ist kein Änderungsverlauf** (ab 0.8.90). Die
   Entscheidung gegen den Änderungsverlauf gilt **Inhalten**. Das Protokoll
   hält fest, wer Zugang hatte und wer die Anlage als Ganzes angefasst hat —
