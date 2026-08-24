@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 17 · Stand 24. August 2026 · gebaut: Version 0.8.71**
+**Kompakte Übergabe · Revision 18 · Stand 24. August 2026 · gebaut: Version 0.8.80**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,69 +8,54 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 17 ist.** Revision 16 trug 0.8.70 nach. Diese trägt **0.8.71**
-nach — „Der Sicherungsort zieht um", eine **Berichtigungsrunde** auf einer der
-neun freien Nummern, wie 0.8.1, 0.8.6 und 0.8.31. Sie fasst weder Schema noch
-Route noch Format an.
+**Was Revision 18 ist.** Revision 17 trug 0.8.71 nach. Diese trägt **0.8.80**
+nach — **Stufe H des Mehrbenutzerbetriebs, „Einladung, Rücksetzung,
+Sitzungen"**. Es ist die erste Stufe seit G4 (0.8.30); danach fehlt nur noch
+**Stufe I** (Mailversand und Selbstanmeldung, 0.9.0).
 
-**0.8.71 verlegt den Sicherungsort ins Projektverzeichnis und sagt, was das
-kostet.** Er lag bisher eine Ebene darüber und legte dort einen zweiten Ordner
-an; das hielt die Übersicht nicht. Jetzt liegt er neben `data` — und die Karte
-„Sicherung" markiert diese Lage **rot**, mit dem Grund daneben: beim Einspielen
-einer neuen Version wird das Projektverzeichnis umbenannt, ein Fehlgriff daran
-nähme Original und Sicherung auf einmal, und beide liegen auf derselben Platte.
-Liegt der Ort außerhalb, steht dort ein **grüner** Kasten. **Abgewiesen wird
-keine der beiden Lagen** — eine Sicherung am falschen Ort ist besser als keine,
-und der Auslieferungszustand ist genau dieser Fall. Der Einspielweg hat dafür
-**eine Zeile mehr** bekommen.
+**0.8.80 gibt das Passwort in die Hand dessen, dem es gehört.** Ein neuer
+Zugang bekommt es **selbst**, über einen Link mit begrenzter Haltbarkeit, statt
+es vom Admin gesagt zu bekommen — und jeder sieht in der neuen Karte
+**„Meine Sitzungen"**, wo er überall angemeldet ist. **Es ist eine
+Datenbankstufe** — das Schema bekommt die Tabelle `tokens` —, aber **ohne
+Migrationsblock**, wie schon 0.8.70: an dieser Tabelle nachgestellt, nicht
+abgeschrieben. Es bleibt bei **fünf** markierten Blöcken.
 
-**0.8.70 davor** brachte „Sicherung und Papierkorb", die nächste Runde des
-Stufenplans und **keine Stufe des Mehrbenutzerbetriebs**; der ist mit G4 bis
-auf H und I gebaut.
+**Die tragende Frage der Runde war keine technische: wie kommt der Link zum
+Empfänger?** Mailversand ist Stufe I. Also gibt es genau eine Antwort: der
+Admin **kopiert ihn und gibt ihn weiter** — mündlich, per Zettel, per
+Messenger. Das ist keine Notlösung, sondern die Bauform, und alles Weitere
+folgt daraus: der Link **ist** ein Passwortersatz auf Zeit, er steht nach der
+Weitergabe in einem fremden Verlauf, er gilt **sieben Tage** und **genau
+einmal**, und beim Einlösen fallen alle Sitzungen dieses Zugangs. **Das steht
+in der Oberfläche**, im Kasten neben dem Feld, aus dem kopiert wird — nicht nur
+in diesem Papier.
 
-**0.8.70 baut zwei Wege zurück, die es bisher nicht gab.** Ein **gelöschter
-Eintrag** liegt dreißig Tage im **Papierkorb** und lässt sich von dort
-zurückholen; eine **Sicherung der ganzen Anlage** entsteht auf Knopfdruck statt
-von Hand auf dem Wirt. **Es ist wieder eine Datenbankstufe** — das Schema
-bekommt zwei Tabellen —, aber **ohne Migrationsblock**: anders als eine Spalte
-legt `CREATE TABLE IF NOT EXISTS` eine fehlende Tabelle bei jedem Start an
-(nachgestellt, Abschnitt 6, Stolperstein 13). Es bleibt bei **fünf** markierten
-Blöcken.
+**Drei Entscheidungen, die von der Vorlage abweichen und begründet gehören.**
+Der Token wird mit **SHA-256 ohne Salz** gehasht statt mit scrypt — scrypt
+schützt ratbare Geheimnisse, ein Token trägt 256 Bit aus dem Zufallsgenerator,
+und mit Salz wäre der Hash nicht nachschlagbar. „Noch kein Passwort" wird aus
+**`password_hash = ''`** abgeleitet und nicht aus `last_login IS NULL` — die
+beiden beantworten verschiedene Fragen. Und die Absage vor der Anmeldung ist
+**eine einzige** für abgelaufen, benutzt, erfunden und gesperrt: das Heilmittel
+ist in jedem dieser Fälle dasselbe.
 
-**Die tragende Regel der Runde: der Papierkorb fasst keine einzige bestehende
-Abfrage an.** Kein `geloescht`-Zustand an `items`, kein `WHERE`-Zusatz
-irgendwo. Ein gelöschter Eintrag ist **wirklich weg** — er liegt nur zusätzlich
-noch als Paket daneben. Dafür ist die Abbildung je Eintrag aus der Exportroute
-und der Deserialisierer aus dem Importrumpf **herausgezogen** worden; beide
-werden jetzt an mehreren Stellen gerufen, und ein Wächter hält fest, dass es je
-**einen** gibt. Nebenbei fällt daraus der **Einzelexport** ab: „diesen Eintrag
-als Datei". **Die Formatnummer bleibt bei 10**, `F_ROUTEN` geht von **47 auf
-51**.
+**`F_ROUTEN` geht von 51 auf 56**, fünfzehn Karten im Systembereich werden
+**sechzehn**. Die Formatnummer bleibt bei **10** — Token und Sitzungen stehen
+nicht im Austauschformat. Keine neue Abhängigkeit, kein neuer Vokabeleintrag.
 
-**0.8.60 davor macht zwei vorhandene Dinge auffindbar** und ist ausdrücklich
-**keine Datenbankstufe**: kein `ALTER TABLE`, kein sechster Migrationsblock,
-keine neue Formatnummer, `F_ROUTEN` unverändert bei 47. Die **Ansicht „Offen"**
-zeigt alle nicht erledigten Aufgabenkommentare quer über alle Einträge; der
-**Filter „Neu seit …"** zeigt, was sich seit dem letzten Besuch getan hat.
-**Beide filtern, beide sind persönlich, und keines von beiden sortiert die
-Übersicht um** — die Liste zeigt weiter für alle gleich, wo etwas geschieht.
-Aufgabenkommentare gibt es seit 0.5.9; die günstigste Art von Verbesserung ist,
-vorhandene Funktionalität erreichbar zu machen.
+**0.8.71 davor** verlegte den Sicherungsort ins Projektverzeichnis und markiert
+diese Lage in der Karte „Sicherung" **rot**, mit dem Grund daneben; liegt der
+Ort außerhalb, steht dort ein grüner Kasten. **Abgewiesen wird keine der beiden
+Lagen.** Eine Berichtigungsrunde ohne Schema, ohne Route, ohne Formatnummer.
 
-**Dazu eine Sprachbereinigung, die mit den beiden nichts zu tun hat.** Deutsch
-bleibt die Sprache, Fachbegriffe werden aber nicht zwanghaft eingedeutscht —
-die Regel steht in Abschnitt 12. Zwölf Übersetzungen sind abgeräumt (Cookie,
-Migration, Image, Lockfile, Mock, Multipart, Header, Range, Branch, Downgrade,
-Event Loop, String), dazu heißt der `Abdruck` in der Kennzahlenkarte jetzt
-**Fingerprint** — die einzige Umbenennung, die ein Benutzer sieht. Ein Wächter
-im Prüfstand hält die Regel fest.
-
-**Was davor liegt, steht in Abschnitt 9** — 0.8.50 stellte das Kurzvideo in
-dieselbe Reihe wie die Fotos, 0.8.40 gab jedem Kriterium ein Gewicht, 0.8.30
-und 0.8.31 gaben Links und Dateien einen Verfasser. **Damit ist der
-Mehrbenutzerbetrieb bis auf die Stufen H und I gebaut.** Vollständig geblieben
-sind die Abschnitte 5 und 12 — Entscheidungen und Arbeitsweise. Bestände und
-Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
+**Was davor liegt, steht in Abschnitt 9** — 0.8.70 brachte Sicherung und
+Papierkorb, 0.8.60 machte „Offen" und „Neu seit" auffindbar, 0.8.50 stellte das
+Kurzvideo in dieselbe Reihe wie die Fotos, 0.8.40 gab jedem Kriterium ein
+Gewicht, 0.8.30 und 0.8.31 gaben Links und Dateien einen Verfasser.
+**Damit ist der Mehrbenutzerbetrieb bis auf Stufe I gebaut.** Vollständig
+geblieben sind die Abschnitte 5 und 12 — Entscheidungen und Arbeitsweise.
+Bestände und Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
 > trägt die **gebaute** Runde und die eine davor ausführlich; alles Ältere
@@ -79,17 +64,18 @@ Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
 > Version wächst, wird irgendwann nicht mehr gelesen — und dann nützt es
 > niemandem mehr.
 
-**Für den Betrieb ändert sich mit 0.8.70 zweierlei.** Die **Sicherung des
-Datenverzeichnisses steht wieder als PFLICHT im Einspielweg** — es ist eine
-Datenbankstufe, und ein Downgrade ist keine reine Dateikopie mehr; in 0.8.60
-war das anders. Und die **`docker-compose.yml` bekommt ein zweites Volume**:
-den Sicherungsort, außerhalb des Projektverzeichnisses. Die **Formatnummer der
-Exportdatei bleibt bei 10** (0.8.30 hob sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9,
-0.8.50 auf 10). Alles davon steht in Abschnitt 2.
+**Für den Betrieb ändert sich mit 0.8.80 eines.** Die **Sicherung des
+Datenverzeichnisses steht als PFLICHT im Einspielweg** — es ist eine
+Datenbankstufe, auch ohne Migrationsblock. Seit 0.8.70 gibt es sie auf
+Knopfdruck; das ist der bequemere der beiden Wege, **aber ohne die `.env` ist
+die Kopie wertlos**, denn sie ist verschlüsselt. Die `docker-compose.yml` und
+die `.env.example` sind **unberührt**. Die **Formatnummer der Exportdatei
+bleibt bei 10** (0.8.30 hob sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9, 0.8.50 auf
+10). Alles davon steht in Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_71.md` gepflegt und
-nur dort.
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_80.md` gepflegt und
+nur dort; von seinen Stufen ist nach dieser Runde **allein Stufe I offen**.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
 > `admin` < `eigentuemer`. **Benutzer** schreibt eigene Beiträge. **Admin**
@@ -140,7 +126,32 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.71 ist gebaut** — Fingerprint **`1b03fabf`**, 2398
+**0.8.80 ist gebaut** — Fingerprint **`4c046b7c`**, 2650
+Prüfungen. **Stufe H des Mehrbenutzerbetriebs, und eine Datenbankstufe ohne
+Migrationsblock:** das Schema bekommt die Tabelle `tokens`
+(`hash`, `user_id`, `zweck`, `ablauf`, `benutzt_am`, `created_at`) samt Index
+auf `user_id`. Nachgestellt an dieser Tabelle, nicht aus 0.8.70 abgeschrieben:
+`CREATE TABLE IF NOT EXISTS` legt eine fehlende **Tabelle** bei jedem Start an.
+Es bleibt bei **fünf** markierten Blöcken, und unter „Vorgemerkt für 1.0" kommt
+**nichts** dazu.
+**Ein Token trägt 32 Zufallsbytes; gespeichert wird nur sein SHA-256** — ohne
+Salz, damit die Zeile über den Primärschlüssel gefunden statt gesucht wird. Er
+gilt **sieben Tage** und **einmal**; beim Einlösen fallen alle Sitzungen dieses
+Zugangs **und alle übrigen offenen Links**. Abgelaufene Zeilen räumt
+`raeumeTokensAuf()` dreißig Tage nach Ablauf weg — beim Start und beim Öffnen
+der Karte „Zugänge".
+**Ein Zugang ohne Passwort trägt den leeren Hash** — dieselbe Sperre wie beim
+Grabstein, ohne eine einzige neue Klemme; `ZUSTAENDE` bleibt bei drei.
+**Zwei schreibende Routen stehen vor der Anmeldung** (`POST /api/token/pruefen`
+und `.../einloesen`), beide hinter der Anmeldebremse: die IP-Hälfte greift
+unverändert, die Namenshälfte fällt weg. Die Absage ist **eine einzige** für
+alle Fälle.
+**Die Einlöseseite ist ein Zustand der Anmeldeseite**, erreicht über
+`#/einladung/<schlüssel>` — das Fragment geht nie an den Server.
+**`F_ROUTEN` geht von 51 auf 56**, die Formatnummer bleibt bei **10**.
+34 Gegenproben.
+
+**0.8.71 davor** — Fingerprint **`1b03fabf`**, 2398
 Prüfungen. Eine **Berichtigungsrunde ohne Schema, ohne Route, ohne
 Formatnummer**: der Sicherungsort liegt jetzt im Projektverzeichnis
 (`./kriterion-sicherung:/app/sicherung`), und `GET /api/sicherung` sagt über
@@ -355,14 +366,27 @@ Datenbankstufe ist sie der einzige Weg zurück — siehe oben. Sie gehört
 **zwischen** `docker compose down` und alles Weitere: eine Sicherung, die
 neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
 
-**Für 0.8.70 gilt sie wieder als PFLICHT.** Die Runde fasst das Schema an — sie
-ist eine Datenbankstufe —, und ein Downgrade ist damit keine reine Dateikopie
-mehr. **Das war in 0.8.60 anders und gehört ausdrücklich gesagt.**
-*Genau genommen stört ein Downgrade auf 0.8.60 wenig: zwei zusätzliche Tabellen
+**Für 0.8.80 gilt sie als PFLICHT.** Die Runde fasst das Schema an — sie ist
+eine Datenbankstufe, auch ohne Migrationsblock —, und ein Downgrade ist damit
+keine reine Dateikopie mehr.
+*Genau genommen stört ein Downgrade auf 0.8.71 wenig: eine zusätzliche Tabelle
 sieht eine ältere Version gar nicht an, und die Exportdatei behält ihr Format
-10. Aber was im Papierkorb liegt, ist danach unerreichbar — die ältere Version
-kennt die Karte nicht —, und jeder Eintrag, der dort gelöscht wird, ist wieder
-endgültig weg. Die Sicherung ist der Weg, der ohne diese Fußnoten auskommt.*
+10. Aber jeder Zugang, der über einen Link angelegt und noch nicht eingelöst
+wurde, trägt einen leeren Hash — er kommt nicht herein, und die ältere Version
+hat keinen Weg, ihm einen neuen Link zu geben. Für ihn hilft dann nur
+`node zugang.js passwort <name>` auf dem Wirt. Die Sicherung ist der Weg, der
+ohne diese Fußnoten auskommt.*
+
+**Seit 0.8.70 gibt es die Sicherung auch auf Knopfdruck**, im Systembereich
+unter „Sicherung" — der bequemere der beiden Wege, und er läuft, ohne die
+Anlage anzuhalten. **Er ersetzt die Zeile oben aber nicht vollständig:** die
+Kopie ist verschlüsselt und **ohne die `.env` wertlos**. Wer sich auf den Knopf
+verlässt, sichert die `.env` getrennt — und legt beides ausdrücklich **nicht**
+in dieselbe Ablage.
+
+**Für 0.8.70 galt sie aus demselben Grund** — zwei neue Tabellen —, **und in
+0.8.60 war das anders**; das gehört gesagt, weil die Zeile seitdem nicht in
+jeder Runde dieselbe Bedeutung hatte.
 
 **Der Sicherungsort ist neu im Einspielweg.** `docker-compose.yml` hängt seit
 0.8.70 ein zweites Verzeichnis ein — `../kriterion-sicherung:/sicherung` — und
@@ -473,12 +497,77 @@ das Gesicht des Eintrags.
 **Der Zugang liegt als scrypt-Hash in der Tabelle `users`**, nicht in der
 Umgebung; gesetzt wird er beim ersten Aufruf im Browser, und wer die Anlage
 einrichtet, ist ihr Eigentümer. Es gibt keine voreingestellte Kennung.
-Mindestens zehn Zeichen, sonst keine Regeln. Ohne Anmeldung ist außer dem
+Mindestens zehn Zeichen, sonst keine Regeln — **auch für ein Passwort, das über
+einen Link gesetzt wird**. Ohne Anmeldung ist außer dem
 öffentlichen Titel nichts sichtbar — auch die Schnittstellen liefern nichts
 aus, Fotos und Export eingeschlossen. Sitzung 30 Tage, Cookie mit
 `HttpOnly`/`SameSite=Lax`. Die Anmeldebremse zählt je IP (weich ab fünf
 Fehlversuchen, hart ab zehn für fünf Minuten) und zusätzlich je Benutzername —
 dort nur verzögernd, nie sperrend.
+
+**DER LINK STATT DES GESAGTEN PASSWORTS — seit 0.8.80 (Stufe H).** Ein Zugang
+entsteht auf zwei Wegen, und die Karte „Zugänge" bevorzugt den zweiten:
+entweder legt der Admin ihn **mit erstem Passwort** an, oder er legt ihn
+**ohne** an und gibt einen **Link** aus. Wer den Link öffnet, wählt sein
+Passwort selbst. Derselbe Mechanismus trägt die **Rücksetzung** — ein
+Mechanismus, zwei Anlässe.
+
+| | |
+|---|---|
+| Was im Link steht | 32 Zufallsbytes, hexadezimal |
+| Was gespeichert wird | **nur der SHA-256 davon**, ohne Salz |
+| Haltbarkeit | **sieben Tage** |
+| Gültigkeit | **genau einmal** |
+| Beim Einlösen | alle Sitzungen dieses Zugangs fallen, **und alle übrigen offenen Links** |
+| Beim Sperren und Entfernen | die offenen Links fallen mit |
+| Wo der Schlüssel in der Adresse steht | im **Fragment** (`#/einladung/…`) — es geht nie an den Server |
+| Spur danach | die Zeile bleibt mit `benutzt_am` stehen und wird dreißig Tage nach Ablauf geräumt |
+
+**SHA-256 ohne Salz ist eine bewusste Abweichung von der scrypt-Linie.** scrypt
+ist absichtlich langsam und schützt damit **ratbare** Geheimnisse; ein Token
+trägt 256 Bit aus dem Zufallsgenerator, da kauft die Langsamkeit nichts. Mit
+Salz je Zeile wäre der Hash außerdem **nicht nachschlagbar** — der Server
+müsste bei jedem Versuch jede Zeile durchrechnen, und das auf einer Route, die
+**vor** der Anmeldung steht. Ohne Salz ist der Hash ein Schlüssel: die Zeile
+wird über den Primärschlüssel **gefunden** statt gesucht. Ein zeitunabhängiger
+Vergleich hat dort deshalb nichts mehr zu tun. *Zum Maßstab: `sessions.token`
+liegt im Klartext in der Tabelle — den Token zu hashen ist strenger als der
+Bestand, nicht lockerer.*
+
+**Der Weitergabeweg ist Teil der Bauform, keine Notlösung:** Mailversand ist
+Stufe I. Der Admin **kopiert den Link und gibt ihn weiter**. Damit ist er ein
+**Passwortersatz auf Zeit** und steht danach in einem fremden Verlauf — und
+genau das sagt die Oberfläche an der Stelle, an der er kopiert wird.
+
+**Die Absage vor der Anmeldung ist EINE**, für abgelaufen, schon benutzt,
+erfunden und „Zugang gesperrt": *„Dieser Link gilt nicht mehr. Bitte beim Admin
+einen neuen anfordern."* Der Grund ist nicht bloß Verschwiegenheit — **das
+Heilmittel ist in jedem dieser Fälle dasselbe.** Was das kostet, gehört dazu:
+wer sich vertippt hat, unterscheidet das nicht von „abgelaufen".
+
+**Ein Zugang ohne Passwort trägt den leeren Hash** — dieselbe Sperre wie beim
+Grabstein, und es kommt **keine neue Klemme** dazu: `pruefeAnmeldung()` fällt
+bei leerem Hash auf den Blindwert zurück, und `pruefePasswort()` weist einen
+Wert, der nicht nach scrypt aussieht, schon am Format ab. Zwei voneinander
+unabhängige Gründe, beide nachgestellt. **Es gibt keinen vierten Zustand:**
+„noch kein Passwort" wird aus `password_hash = ''` abgeleitet — nicht aus
+`last_login IS NULL`, denn das beantwortet „hat sich noch nie angemeldet", und
+das ist etwas anderes.
+
+**„Meine Sitzungen" — seit 0.8.80, und ehrlich beschriftet.** Jeder sieht beim
+eigenen Zugang, wo er überall angemeldet ist: angemeldet am, zuletzt gesehen,
+welche davon die eigene ist, und wie viele andere daneben stehen. **Ein Admin
+sieht keine fremden** — für den Ernstfall gibt es das Sperren, und das löscht
+die Sitzungen bereits mit.
+**Was die Karte nicht kann und offen sagt: sie kennt kein Gerät.** Die Anlage
+speichert **weder IP-Adresse noch Browserkopf** — das ist eine Eigenschaft und
+kein Mangel und passt zu „läuft offline im Heimnetz". Was sie trägt, ist die
+**Zahl** und **ein Knopf**: „alle anderen beenden".
+**Adressiert wird eine Sitzung über eine Kennung, die gerechnet und nirgends
+gespeichert wird** — der volle SHA-256 ihres Tokens. Der Token selbst ist
+Primärschlüssel **und** Geheimnis und darf in keiner Adresse stehen; die
+Kennung ist sein Bild und lässt sich nicht zurückrechnen. **Kein Schema, keine
+Migration, keine Frage nach Eindeutigkeit.**
 
 **EINE EINSTELLUNG, FÜNF WIRKUNGEN — `HINTER_PROXY` (seit 0.8.20).** Sie steht
 in der `.env`, nicht in `settings`: sie entscheidet über Netzwerkvertrauen,
@@ -502,7 +591,9 @@ kann der Aufrufer selbst geschrieben haben. Genau der erste Eintrag war es,
 den die Fassung vor 0.8.20 nahm; mit wechselndem Kopf griff die Bremse nie.
 
 **Der Cookiename steht deshalb nirgends mehr als fester String** — wer ihn
-braucht, nimmt `auth.COOKIE_NAME`. **Und das Umlegen meldet alle einmalig ab:**
+braucht, nimmt `auth.COOKIE_NAME`. **Seit 0.8.80 hält ein Wächter über die
+ausgelieferten Dateien das fest**, mit Gegenprobe, dass er überhaupt Code liest
+und sich nicht am Kommentar daneben färbt. **Und das Umlegen meldet alle einmalig ab:**
 das Präfix `__Host-` verlangt den Namen wörtlich, der alte wird nicht mehr
 gelesen. Danach geht die Anmeldung nur noch über HTTPS; der `Secure`-Cookie wird
 über `http://` verworfen.
@@ -513,7 +604,14 @@ ist, kann dort jemand von Hand einen Kopf mitschicken — ein gewöhnlicher
 Browser tut das nicht, ein absichtlicher Aufruf schon. Bewusst getragen,
 siehe Abschnitt 8.
 
-**Passwort vergessen:** ein Befehl auf dem Wirt, keine Umgebungsvariable.
+**Passwort vergessen: seit 0.8.80 gibt es zwei Wege, und sie ersetzen einander
+nicht.** In der Karte „Zugänge" erzeugt der Admin einen **Link zum
+Zurücksetzen** — der Betroffene wählt sein Passwort selbst, und das bisherige
+gilt weiter, bis der Link eingelöst wird. Daneben bleibt der **direkte** Weg:
+der Admin setzt ein Passwort und sagt es. *Der Link braucht den Browser des
+anderen, der direkte Weg nicht — deshalb sind es zwei Wege und nicht einer mit
+zwei Beschriftungen.* Kommt **niemand mehr herein**, gilt unverändert der
+dritte Weg über den Wirt:
 
 ```bash
 docker compose exec kriterion node zugang.js passwort <benutzername>
@@ -528,8 +626,8 @@ kein Eigentümer mehr anmelden kann. **`AUTH_RESET`, `AUTH_USER` und
 `AUTH_PASSWORD` werden nicht gelesen**; stehen sie noch in der `.env`, meldet
 der Start sie als entfernbar.
 
-**Beim Entfernen eines Zugangs gehen seine Sitzungen, Favoriten und
-persönlichen Einstellungen ausdrücklich mit weg** — sie sagen niemandem
+**Beim Entfernen eines Zugangs gehen seine Sitzungen, offenen Links, Favoriten
+und persönlichen Einstellungen ausdrücklich mit weg** — sie sagen niemandem
 etwas, sobald der Mensch weg ist. Der Bestand selbst bleibt: Löschen
 entwertet (Abschnitt 5).
 
@@ -642,13 +740,14 @@ Klick gehört der Abspielsteuerung. Der Ausschnittmodus bleibt bedienbar und
 zeigt dort das Standbild. Alles davon ist **abgeleitet** aus `art` und `dauer`
 der Antwort, kein Schalter.
 
-**Systembereich: fünfzehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
+**Systembereich: sechzehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
 die breite Kachel „Zugänge" lässt seit 0.8.6 keine Lücke mehr im Raster).
 Dem **Admin**: beide Titel, Kennzahlen, Kategorien und Tags umbenennen und
 löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
 **gewichten**,
-Karte „Zugänge" (anlegen, sperren, Passwort zurücksetzen, Rolle wechseln,
-entfernen), Karte „Suchanbieter" (Vorrat, Startanbieter, drei eigene),
+Karte „Zugänge" (anlegen **mit Passwort oder mit Link**, sperren, Passwort
+zurücksetzen **direkt oder über einen Link**, Rolle wechseln, entfernen),
+Karte „Suchanbieter" (Vorrat, Startanbieter, drei eigene),
 Vokabular aus elf Wörtern. Dem **Eigentümer** zusätzlich: Export mit/ohne
 Fotos, mit eigenem Häkchen für Dateien und eines für **Videos**, Import
 (ersetzen oder zusammenführen) und seit 0.8.70 die Karte **„Sicherung"**.
@@ -658,8 +757,11 @@ der nur der Eigentümer die beiden Knöpfe sieht; dieselbe Bauform wie bei
 **„Video" ist kein zwölfter Vokabeleintrag** und wird keiner — die elf bleiben
 elf. Es ist ein Wort über den Gegenstand, so wie „Foto" auch.
 **Jedem, auch ohne Rolle:** „Zugang" (eigener Name und Passwort),
-„Darstellung" (Schriftgröße in fünf Stufen, Zeitleiste, Blockanordnung) und
-„Links" (sichtbare Zeilen, Zahl der angezeigten Anbieternamen). Die Karten
+**„Meine Sitzungen"** (seit 0.8.80 — wo dieser Zugang überall angemeldet ist,
+mit „alle anderen beenden"; **kein Systembereich für Admins**, sie zeigt nur
+die eigenen), „Darstellung" (Schriftgröße in fünf Stufen, Zeitleiste,
+Blockanordnung) und „Links" (sichtbare Zeilen, Zahl der angezeigten
+Anbieternamen). Die Karten
 „Kategorien", „Tags" und „Bewertungskriterien" stehen ebenfalls für jeden —
 aber als **Liste ohne Bedienzeichen**: wer nicht verwalten darf, darf
 trotzdem nachsehen. **Das Gewicht steht dort als Text statt als Eingabefeld**
@@ -1684,7 +1786,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_71.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_80.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -2177,6 +2279,67 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   Der Weg trägt ohnehin schon `data/` und `.env` hinüber — ein Drittes ist
   **eine Zeile in derselben Liste**.
 
+---
+
+- **Ein Token wird nachgeschlagen, ein Passwort verglichen** (seit 0.8.80).
+  Deshalb SHA-256 **ohne Salz** statt scrypt, und deshalb steht dort **kein**
+  zeitunabhängiger Vergleich. scrypt schützt **ratbare** Geheimnisse; 256 Bit
+  aus dem Zufallsgenerator sind keins. Mit Salz je Zeile wäre der Hash nicht
+  nachschlagbar — der Server müsste bei jedem Versuch jede Zeile durchrechnen,
+  auf einer Route **vor** der Anmeldung. *Die Wahl des Hashverfahrens folgt dem
+  Gegenstand, nicht der Gewohnheit des Projekts.*
+- **Der Link ist ein Passwortersatz auf Zeit, und das steht am Bildschirm**
+  (seit 0.8.80). Weil Mailversand erst Stufe I ist, gibt der Admin ihn von Hand
+  weiter; danach steht er in einem fremden Verlauf. Sieben Tage, genau einmal,
+  alle Sitzungen fallen beim Einlösen. **Wer ihn kopiert, liest das an genau
+  der Stelle** — nicht bloß in einem Dokument.
+- **Beim Einlösen fällt ALLES Offene dieses Zugangs** (seit 0.8.80), nicht nur
+  der eine Link. Läge noch ein älterer in einem fremden Verlauf, setzte er
+  hinterher ein zweites Mal ein Passwort — „einmal gültig" wäre dann nur für je
+  einen Link wahr, nicht für den Vorgang. Dasselbe beim **Sperren** und beim
+  **Entfernen**: ein offener Link, der eine frische Sperre überlebte, wäre ein
+  Weg an ihr vorbei.
+- **Eine Absage vor der Anmeldung sagt nur, was zu tun ist** (seit 0.8.80).
+  Abgelaufen, schon benutzt, erfunden, gesperrt — vier Lagen, **eine**
+  Meldung, weil das Heilmittel dasselbe ist. *Wo verschiedene Ursachen
+  denselben nächsten Schritt haben, ist die Unterscheidung nur eine Auskunft an
+  den, der rät.* Der Preis gehört dazu und wird nicht verschwiegen: ein
+  Tippfehler in der Adresse sieht aus wie ein abgelaufener Link.
+- **„Noch kein Passwort" ist abgeleitet, kein vierter Zustand** (seit 0.8.80).
+  `ZUSTAENDE` hat drei, und jede Stelle, die `status` liest, kennt sie.
+  Abgeleitet wird aus `password_hash = ''` — dem Wert, über den auch die
+  Anmeldung entscheidet — und **nicht** aus `last_login IS NULL`: das
+  beantwortet „hat sich noch nie angemeldet", und das ist etwas anderes als
+  „kann sich nicht anmelden". *Der Grabstein trägt denselben leeren Hash; er
+  ist über `status` unterschieden und wird nie als „eingeladen" gelesen.*
+- **Der Link und der Schlüssel sind zwei Wege, nicht einer mit zwei
+  Beschriftungen** (seit 0.8.80). Der Link übergibt das **Recht, ein Passwort
+  zu setzen**, der direkte Weg übergibt ein **Passwort**. Der zweite kommt ohne
+  den Browser des anderen aus. Deshalb ist das **kein** Fall von Stolperstein
+  47, und deshalb stehen beide in der Karte — der Link zuerst.
+- **Eine Sitzung wird über eine gerechnete Kennung adressiert, nie über ihren
+  Token** (seit 0.8.80). Der Token ist Primärschlüssel **und** Geheimnis; in
+  einem Pfad stünde er im Zugriffsprotokoll, in der Verlaufsliste und womöglich
+  im Referrer. Die Kennung ist sein voller SHA-256 — **gerechnet und nirgends
+  gespeichert**, damit weder ein Schema noch eine Frage nach Eindeutigkeit
+  entsteht. Dieselbe Überlegung trägt die Einlöseseite: der Schlüssel steht im
+  **Fragment** der Adresse und geht damit nie an den Server.
+- **Die Anlage speichert weiterhin weder IP-Adresse noch Browserkopf**
+  (bestätigt in 0.8.80). „Meine Sitzungen" könnte damit mehr sagen — und sagt
+  stattdessen offen, dass sie das Gerät nicht kennt. *Eine Karte, die mehr
+  behauptet, als sie weiß, ist schlimmer als keine.* Was sie trägt, ist die
+  **Zahl** und **ein Knopf**.
+- **Der Server gibt den Token heraus, den Link baut der Browser** (seit
+  0.8.80). Damit stellt sich die Frage nach einer öffentlichen Adresse in
+  dieser Stufe gar nicht, und aus dem `Host`-Kopf wird nichts abgeleitet — über
+  einen gefälschten Kopf ließe sich ein Link sonst auf einen fremden Server
+  umbiegen. Der Browser des Admins steht ohnehin an der richtigen Adresse.
+- **„Token" im Quelltext, „Link" am Bildschirm** (seit 0.8.80). Dieselbe Form
+  wie bei „Sicherung": **nicht** in die Wortliste des Sprachwächters — „Token"
+  ist kein übersetztes Lehnwort, sondern der Fachbegriff —, sondern ein enger
+  eigener Wächter über `public/app.js`, denn diese Datei **ist** der
+  Bildschirm.
+
 ## 5a. Die Sicherheitsregel für ausgelieferte Dateien
 
 **Keine gespeicherte Datei darf jemals so ausgeliefert werden, dass der
@@ -2470,7 +2633,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
 62. **Ein zusammengesetzter regulärer Ausdruck wird zweimal maskiert** —
     langweiliger String-Code ist dort das kleinere Übel.
 63. **Eine Spalte, die man vergleicht, muss im `SELECT` stehen** — sonst ist
-    sie `1b03fabf`, und die Prüfung kann gar nicht scheitern.
+    sie `undefined`, und die Prüfung kann gar nicht scheitern.
 64. **Zufällige Portwahl braucht Abstand** — überlappende Bereiche erzeugen
     Rauschen, das beim Gegenprüfen wie ein Befund aussieht. Neue Basis:
     höchste vorhandene plus 60.
@@ -2529,7 +2692,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     String, und jede Verneinung darauf ist wahr — die Gegenprobe machte
     nur eine statt zwei Prüfungen rot. Erst das **Vorhandensein** prüfen, dann
     die Eigenschaft. Verwandt mit 63 und 31, aber eigenständig: dort ist der
-    Wert `1b03fabf`, hier ein *plausibler* leerer Wert.
+    Wert `undefined`, hier ein *plausibler* leerer Wert.
 82. **Die letzte Spalte einer Tabelle trägt das Komma ihres Vorgängers mit.**
     Ein Rückbau, der sie aus der DDL nimmt, hinterlässt ein nachlaufendes Komma;
     SQLite meldet „syntax error", `db.js` wirft beim Laden, und der Prüflauf gibt
@@ -2677,7 +2840,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Antwort liest, gehört eine Prüfung an der echten Antwort.* Lücke 3 des
     Prüfstands (Abschnitt 7), zum zweiten Mal.
 103. **Eine Prüfzeile, die auf `liste[0].feld` zugreift, reißt den Lauf ab,
-    statt rot zu werden.** Fällt die Zeile weg, ist `liste[0]` `1b03fabf`, und
+    statt rot zu werden.** Fällt die Zeile weg, ist `liste[0]` `undefined`, und
     der Zugriff beendet den ganzen Lauf — der dann **keinen einzigen Namen**
     nennt. Verwandt mit 76, aber eigenständig: dort ist der *Rückbau* zu grob,
     hier ist die *Prüfung* zu unvorsichtig. Der Fragezeichenpunkt gehört dorthin.
@@ -2785,7 +2948,7 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Weg sucht, misst zuerst nach, ob es ihn an dieser Datenbank gibt.*
 118. **Eine Zusage, die nach dem Schließen ihres Fensters ankommt, reißt den
     Lauf ab.** Eine Ansicht, die ihre Liste selbst nachlädt, läuft weiter, wenn
-    das jsdom-Fenster längst geschlossen ist; `document` ist dann `1b03fabf`,
+    das jsdom-Fenster längst geschlossen ist; `document` ist dann `undefined`,
     und der Zugriff beendet den ganzen Prüflauf, statt eine Prüfung rot zu
     färben. *Was eine Ansicht beim Aufbau braucht, wird beim Aufbau geholt.*
     Verwandt mit 103, aber eigenständig: dort ist die Prüfung zu unvorsichtig,
@@ -2833,6 +2996,43 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     `docker-compose.yml` selbst liest. *Wer eine Aussage über etwas trifft, das
     er nicht sehen kann, benennt die Brücke, über die sie trägt — und stellt
     einen Wächter davor.*
+
+124. **Eine Schwelle wird gelesen, bevor sie erhöht wird.** `checkThrottle`
+    fragt den Zählerstand ab, `noteFailure` zählt danach hoch — die harte
+    Schwelle von zehn ist deshalb erst **nach** dem zehnten Fehlversuch
+    erreicht, und gesperrt wird ab dem **elften**. Eine Grenzprüfung, die den
+    Übergang beim zehnten erwartet, wird rot, ohne dass am Code etwas falsch
+    wäre; beim Bau von 0.8.80 ist genau das passiert. *Wer eine Schwelle prüft,
+    prüft den Übergang — und sieht vorher nach, an welcher Stelle im Ablauf der
+    Zähler steht.*
+
+125. **Eine Regel, die Zeilen räumt, und eine Handlung, die eine anlegt,
+    hinterlassen genau eine.** „Beim Einlösen fallen ALLE Sitzungen dieses
+    Benutzers" und „wer einlöst, ist damit angemeldet" gelten beide — was
+    danach dasteht, ist **eine** Zeile, nicht keine. Eine Prüfung auf die
+    **Zahl** kann „die alten sind weg und eine neue steht da" nicht von „eine
+    alte ist stehengeblieben" unterscheiden; beide Male steht dort eine Zeile.
+    *Wo geräumt und angelegt wird, prüft man die IDENTITÄT der Zeilen, nicht
+    ihre Anzahl.* Verwandt mit 90, aber eigenständig: dort erstarrt der Mock,
+    hier zählt die Prüfung das Falsche.
+
+126. **Eine Prüfung, die die gerufene Funktion aufruft, prüft keine ihrer
+    Aufrufstellen.** „Beim Start wird aufgeräumt" lief als kurzer Lauf, der
+    `raeumeTokensAuf()` **selbst** rief — und blieb grün, als der Aufruf aus
+    `server.js` verschwand. Die Gegenprobe war **vollständig stumm**.
+    *Wo eine Funktion an zwei Stellen gerufen wird, läuft die Prüfung über den
+    Weg, den auch der Betrieb nimmt* — hier ein echter Serverstart. Verwandt
+    mit 53, aber eigenständig: dort deckt eine Stelle die andere zu, hier wird
+    gar keine von beiden angesehen.
+
+127. **Eine Portbasis deckt sechzig Nummern, und einige davon wählt `fetch()`
+    nicht an.** Die Basis 5960 deckt 5960 bis 6019 — und **6000 ist X11** und
+    steht auf der Sperrliste der Fetch-Spezifikation. Der Server läuft dann und
+    meldet es auch; nur die Bereitschaftsprüfung kommt nie an ihn heran, und
+    der Lauf reißt ab, statt eine Prüfung rot zu färben. Dasselbe gilt für
+    6665–6669 und 6697. *Stolperstein 64 verlangt Abstand zwischen den Basen —
+    dazu gehört der Abstand zu den gesperrten Nummern, und der wird
+    ausgerechnet, nicht geschätzt.*
 
 ---
 
@@ -3034,7 +3234,7 @@ ALLE Migrationen in einem Start" ist deshalb **nicht** erweitert worden.
   eine Regel, die an einer Stelle geprüft ist und an der zweiten nur behauptet,
   ist an der zweiten ungeprüft.
 - **Der Quelltext selbst:** eine gepflegte Liste **aller schreibenden Routen
-  (aktuell 47, und die Zahl wird seit 0.8.40 ausdrücklich geprüft)** samt der
+  (aktuell 56, und die Zahl wird seit 0.8.40 ausdrücklich geprüft)** samt der
   Art ihrer Absicherung, gehalten gegen das, was in
   `server.js` wirklich steht — in beide Richtungen, denn wo „offen" steht,
   darf **weder eine Klemme im Rumpf noch ein Wächter in der Routenzeile**
@@ -3054,6 +3254,16 @@ ALLE Migrationen in einem Start" ist deshalb **nicht** erweitert worden.
   den Content-Type seine Gegenprobe:** dieselbe Zählung wird an einer
   String vorgeführt, die die Verletzung trägt — sonst bliebe er grün,
   wenn er gar nichts mehr ansähe.
+  **0.8.80 bewegt die Zahl von 51 auf 56** und ändert eine Art von Grund auf:
+  `'selbstbezug'` prüft seitdem nicht mehr den **Namen einer Funktion**,
+  sondern die **Herkunft der Benutzernummer** — sie muss aus `req.benutzer`
+  kommen und darf nicht aus `req.params`. Beide Hälften einzeln, drei eigene
+  Gegenproben daneben; bis dahin gab es genau eine Route dieser Art, jetzt sind
+  es drei. **Zwei neue Wächter dazu:** der Cookiename steht in keiner der
+  sieben ausgelieferten Dateien abgeschrieben (und in `auth.js` genau einmal),
+  und am Bildschirm heißt es „Link" und nicht „Token" — beide mit Gegenprobe,
+  dass sie **Code** lesen und sich nicht am Kommentar daneben färben
+  (Stolperstein 106).
 - **Die Ansicht „Offen" und der Filter „Neu seit …" (0.8.60):** die Abfrage an
   einer Prüflage, die neben zwei offenen Aufgaben eine **erledigte**, eine
   **Notiz** und einen **Bericht** trägt — ohne die drei belegte sie nur, dass
@@ -3233,6 +3443,24 @@ Ansicht, Zoom lädt das Original.
 | 0.8.60 | Was ist offen, was ist neu — Ansicht „Offen", Filter „Neu seit …", Sprachbereinigung (132) | 17 | Stolpersteine 112 bis 116 |
 | 0.8.70 | Sicherung und Papierkorb — alle drei Punkte (294) | 38 | Stolpersteine 117 bis 121 |
 | 0.8.71 | 17 | 6 | Stolperstein 123 |
+| 0.8.80 | Stufe H — alle vier Punkte (252) | 34 | Stolpersteine 124 bis 127 |
+
+**Aus 0.8.80 (Stufe H):** der **Rundlauf** ist die tragende Prüfung — einladen,
+Link, Formular, Passwort, Anmeldung, und **derselbe Link ein zweites Mal
+nicht**. Daneben stehen: die Tabellenprobe samt der Gegenlage, dass eine
+**Spalte** nicht nachwächst; die Nachschau, dass der Klartext des Tokens in
+**keiner Spalte keiner Tabelle** steht, samt der Gegenprobe, dass die Nachschau
+überhaupt etwas findet; die sieben Tage an beiden Seiten mit von Hand gesetztem
+Ausgangswert **und** der Kontrolle, dass dort wirklich ein Wert steht; fünf
+Absagen, geprüft auf Wortgleichheit **und** gleichen Statuscode, mit dem
+Erfolgsfall daneben; die Bremse, belegt am Übergang vom zehnten zum elften
+Versuch auf einem **eigenen** Server; die Rechte am Einladen mit zwei
+vorbereiteten Sitzungen, einem **Admin ohne Eigentümerrolle** und der Nachschau
+nach jeder Absage, dass **nichts geschrieben** wurde. „Meine Sitzungen" mit
+**zwei Benutzern zu je zwei Sitzungen**; die eigene ist markiert, und dieselbe
+Liste aus der **anderen** Sitzung gefragt markiert die andere. In der
+Oberfläche jede Karte in **beiden** Zuständen, mit einem Mock, der beim
+Beenden wirklich mitzieht.
 
 **Ausführlich steht nur die jüngste Version.** Von den älteren bleibt hier,
 was heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6 und
@@ -3435,6 +3663,29 @@ sind zwei Dinge:
 
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
+
+**0.8.80 — Stufe H, „Einladung, Rücksetzung, Sitzungen".** Die erste Stufe des
+Mehrbenutzerbetriebs seit G4 (0.8.30); danach fehlt nur noch **Stufe I**. Ein
+neuer Zugang bekommt sein Passwort **selbst**, über einen Link mit begrenzter
+Haltbarkeit — **32 Zufallsbytes, gespeichert wird nur ihr SHA-256, sieben Tage,
+genau einmal**. Beim Einlösen fallen alle Sitzungen dieses Zugangs und alle
+übrigen offenen Links. **Ein Mechanismus, zwei Anlässe:** Einladung und
+Rücksetzung. Der direkte Weg „Passwort setzen und sagen" bleibt daneben — der
+Link braucht den Browser des anderen, dieser nicht.
+**Eine Datenbankstufe ohne Migrationsblock:** die Tabelle `tokens`, an dieser
+Tabelle nachgestellt statt aus 0.8.70 abgeschrieben. Es bleibt bei **fünf**
+markierten Blöcken.
+**Zwei schreibende Routen stehen vor der Anmeldung** und damit hinter der
+Anmeldebremse; die Absage ist **eine einzige** für alle Fälle, weil das
+Heilmittel dasselbe ist. Die Einlöseseite ist ein **Zustand der Anmeldeseite**,
+der Schlüssel steht im **Fragment** und geht nie an den Server.
+**Neu daneben: die Karte „Meine Sitzungen"** — für jeden, nicht für Admins;
+sie zeigt nur die eigenen, markiert die aktuelle und kann „alle anderen
+beenden". **Ohne Gerätekennung, und sie sagt das offen.** Adressiert wird über
+eine gerechnete Kennung, den vollen SHA-256 des Sitzungstokens — kein Schema,
+keine Migration.
+**`F_ROUTEN` 51 → 56**, fünfzehn Karten werden **sechzehn**, Formatnummer
+unverändert **10**, keine neue Abhängigkeit, kein neuer Vokabeleintrag.
 
 **0.8.71 — „Der Sicherungsort zieht um".** Eine **Berichtigungsrunde** auf
 einer der neun freien Nummern, wie 0.8.1, 0.8.6 und 0.8.31 — **kein Schema,
@@ -3790,7 +4041,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.60** | Was ist offen, was ist neu | Ansicht „Offen" über alle Einträge, Filter „Neu seit …" | — | — |
 | **0.8.70** | Sicherung und Papierkorb | `VACUUM INTO` auf Knopfdruck (Punkt 8), Papierkorb, einzelnen Eintrag exportieren | ja, **ohne Migrationsblock** | — |
 | **0.8.71** | *(keine Stufe)* Der Sicherungsort zieht um | in das Projektverzeichnis, dazu die rot/grüne Anzeige, wie er liegt — benannt, nicht verboten | nein | — |
-| **0.8.80** | **Stufe H** — Tokens | Einladung und Rücksetzung, dazu „Meine Sitzungen" | ja | — |
+| **0.8.80** | **Stufe H** — Tokens (**erledigt**) | Einladung und Rücksetzung über einen Link, dazu „Meine Sitzungen" | ja, **ohne Migrationsblock** | — |
 | **0.8.90** | Schwere Eingriffe | Re-Authentifizierung, Sicherheitsprotokoll, Schlüssel wechseln | ja | — |
 | **0.9.0** | **Stufe I** — Mailversand und Selbstanmeldung | siehe Konzeptpapier | ja | — |
 | **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
@@ -3798,23 +4049,28 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
-**0.8.10 bis 0.8.71 sind gebaut** — Einzelheiten in Abschnitt 2 und
+**0.8.10 bis 0.8.80 sind gebaut** — Einzelheiten in Abschnitt 2 und
 Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit 0.8.3** gefahren,
-mit 0.8.31 die zweite, mit 0.8.40 die dritte, mit 0.8.50 die vierte und mit
-0.8.70 die fünfte; bei allen fünf steht die Sicherung des Datenverzeichnisses
-als **Pflicht** im Einspielweg (Abschnitt 2). **0.8.60 war die einzige Runde
-seit 0.8.20, die das Schema nicht angefasst hat.**
+mit 0.8.31 die zweite, mit 0.8.40 die dritte, mit 0.8.50 die vierte, mit
+0.8.70 die fünfte und mit **0.8.80 die sechste**; bei allen sechs steht die
+Sicherung des Datenverzeichnisses als **Pflicht** im Einspielweg (Abschnitt 2).
+**0.8.60 und 0.8.71 sind die einzigen Runden seit 0.8.20, die das Schema nicht
+angefasst haben.**
 
-**0.8.70 ist die erste Datenbankstufe OHNE Migrationsblock.** Sie bringt zwei
-neue **Tabellen**, und `CREATE TABLE IF NOT EXISTS` legt eine fehlende Tabelle
-bei jedem Start an. Es bleibt bei **fünf** markierten Blöcken, und unter
-„Vorgemerkt für 1.0" kommt **nichts** dazu.
+**0.8.70 ist die erste Datenbankstufe OHNE Migrationsblock, 0.8.80 die
+zweite.** Beide bringen neue **Tabellen**, und `CREATE TABLE IF NOT EXISTS`
+legt eine fehlende Tabelle bei jedem Start an — in 0.8.80 an `tokens` erneut
+nachgestellt statt abgeschrieben. Es bleibt bei **fünf** markierten Blöcken,
+und unter „Vorgemerkt für 1.0" kommt **nichts** dazu.
 
-**Als Nächstes 0.8.80 — Stufe H, Tokens.** **Teil I des Videopapiers ist mit
-0.8.50 abgearbeitet;** Teil II bleibt auf 1.1.0 und teilt mit Teil I keinen
-Code außer der Positivliste der Formate — **und seit 0.8.70 eine Vorgabe zum
-Papierkorb**: eine Datei über rund 950 MB passt nicht in eine Zelle und teilt
-sich auf mehrere `papierkorb_bytes.nr` auf.
+**Als Nächstes 0.8.90 — Schwere Eingriffe.** *Diese Runde arbeitet ihr vor:*
+`tokens.benutzt_am` ist der erste Eintrag, den ein Sicherheitsprotokoll führen
+wollte, und die Re-Authentifizierung stellt dieselbe Frage wie Punkt 3 dieser
+Runde — was darf eine Route sagen, bevor sie weiß, wer fragt.
+**Teil I des Videopapiers ist mit 0.8.50 abgearbeitet;** Teil II bleibt auf
+1.1.0 und teilt mit Teil I keinen Code außer der Positivliste der Formate —
+**und seit 0.8.70 eine Vorgabe zum Papierkorb**: eine Datei über rund 950 MB
+passt nicht in eine Zelle und teilt sich auf mehrere `papierkorb_bytes.nr` auf.
 
 **Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
 antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
@@ -3865,7 +4121,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_71.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_80.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.
@@ -3887,10 +4143,23 @@ damit alte Verweise stimmen.)*
    Vermerk. Einzelheiten in Abschnitt 9 und in
    `Doku/Aenderungsprotokoll_0.8.30.md`.
 
-   *Dann:* **Stufe H (Tokens) wird 0.8.80**, **Stufe I (Mailversand und
-   Selbstanmeldung) bleibt 0.9.0.** Zwischen G4 und H liegen mit 0.8.40 bis
-   0.8.70 vier Stufen, die nicht zum Mehrbenutzerbetrieb gehören — **die
-   nächste davon ist 0.8.40, die Gewichtung.**
+   **Stufe H ist gebaut (0.8.80) — „Einladung, Rücksetzung, Sitzungen".**
+   Zwischen G4 und H lagen mit 0.8.40 bis 0.8.71 vier Runden, die nicht zum
+   Mehrbenutzerbetrieb gehörten. Ein Zugang entsteht seitdem wahlweise **ohne
+   Passwort** und bekommt einen **Link**, über den sein Inhaber es selbst
+   setzt; derselbe Mechanismus trägt die Rücksetzung. Gebaut: die Tabelle
+   `tokens` **ohne Migrationsblock**, SHA-256 ohne Salz statt scrypt, sieben
+   Tage, einmal gültig, beim Einlösen fallen alle Sitzungen **und alle übrigen
+   offenen Links**; dazu die Karte **„Meine Sitzungen"** für jeden.
+   `F_ROUTEN` 51 → 56, Formatnummer unverändert. Einzelheiten in Abschnitt 5
+   und in `Doku/Aenderungsprotokoll_0.8.80.md`.
+
+   *Dann:* **allein Stufe I (Mailversand und Selbstanmeldung) ist noch offen
+   und bleibt 0.9.0.** Sie erbt den Token dieser Runde unverändert; was hier an
+   Form entschieden wurde, gilt dort weiter. **Der Sprung auf 0.9.0 ist der
+   größte im ganzen Plan** — ab dort baut die Anlage von sich aus eine
+   Verbindung nach außen auf. Davor liegt mit **0.8.90** noch eine Runde, die
+   nicht zum Mehrbenutzerbetrieb gehört.
 
    *Anmerkung, unverändert gültig:* eine Veröffentlichung setzt keinen
    Mehrbenutzerbetrieb voraus. „Für eine Person, dafür vollständig
@@ -3965,10 +4234,13 @@ damit alte Verweise stimmen.)*
 
 *Aus 0.8.10 und 0.8.20 ist hier nichts dazugekommen — beide haben das Schema
 nicht angefasst. **Aus 0.8.30, 0.8.31, 0.8.40 und 0.8.50 ist je ein markierter
-Block dazugekommen; es sind fünf.** **Aus 0.8.70 ist ebenfalls nichts
-dazugekommen, obwohl sie das Schema anfasst** — sie bringt zwei neue TABELLEN,
-und die legt `CREATE TABLE IF NOT EXISTS` bei jedem Start selbst an. Kein
-Block, kein Eintrag hier, kein sechster Migrationsabschnitt im Prüfstand.*
+Block dazugekommen; es sind fünf.** **Aus 0.8.70 und 0.8.80 ist ebenfalls
+nichts dazugekommen, obwohl beide das Schema anfassen** — sie bringen neue
+TABELLEN, und die legt `CREATE TABLE IF NOT EXISTS` bei jedem Start selbst an.
+Kein Block, kein Eintrag hier, kein sechster Migrationsabschnitt im Prüfstand.
+**In 0.8.80 ist das an `tokens` erneut nachgestellt worden** statt aus der
+Vorrunde abgeschrieben — samt der Gegenlage, dass eine **Spalte** nicht
+nachwächst.*
 
 - **Finale Bereinigung.** Der Rückbau des Migrationscodes wurde aus
   Notwendigkeit nach 0.8.0 vorgezogen; zu 1.0 folgt eine letzte Bereinigung
@@ -4093,7 +4365,7 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
 
 - **Wer eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` im Prüfstand
   ein** — sonst wird der Lauf namentlich rot, und genau das ist der Zweck.
-  Die Liste (aktuell 51 Routen) ist die Stelle, an der die Rechtefrage
+  Die Liste (aktuell 56 Routen) ist die Stelle, an der die Rechtefrage
   gestellt wird; seit 0.8.0 kennt sie die vierte Art `'nurAdmin, im Rumpf'`.
 - **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — viermal
   angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
@@ -4112,6 +4384,16 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   die Sicherung. Die drei lesenden Endpunkte daneben (`GET /api/papierkorb`,
   `GET /api/items/:id/export`, `GET /api/sicherung`) stehen wie immer **nicht**
   in der Liste, obwohl alle drei einen Wächter tragen.
+  **0.8.80 bewegt sie um fünf: 51 → 56** — drei für den Token, zwei für „Meine
+  Sitzungen". `GET /api/sessions` steht wie immer **nicht** dort.
+  **Zwei Besonderheiten dieser Runde gehören genannt:** `POST /api/token/pruefen`
+  **liest nur** und steht trotzdem in der Liste — der Wächter sieht jedes
+  `app.post(` an, und eine Route stillschweigend auszunehmen wäre genau die
+  fehlende Entscheidung, die er finden soll. Und die Art `'selbstbezug'` prüft
+  seit dieser Runde die **Herkunft der Benutzernummer** statt den Namen einer
+  Funktion: sie muss aus `req.benutzer` kommen und darf nicht aus `req.params`.
+  *Wird ein Endpunkt erweitert, sind die Prüfungen der Vorgängerversion die
+  ersten Betroffenen* (Stolperstein 74).
   **0.8.50 hat sie zum ersten Mal seit langem bewegt: 46 → 47**,
   mit `POST /api/items/:id/videos` hinter `nurEintragVerfasser`. Die Route ist
   eigens entstanden, statt die Fotoroute zu erweitern — deren `fileFilter`

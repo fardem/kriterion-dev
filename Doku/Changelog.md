@@ -6,6 +6,67 @@ ist. Die Einzelheiten stehen je Version in
 
 ---
 
+## 0.8.80 — Einladung, Rücksetzung, Sitzungen
+
+**Das Passwort gehört dem, der es benutzt.** Bisher legte der Admin einen
+Zugang mit einem ersten Passwort an und musste es weitersagen — er kannte es
+also, und der neue Benutzer musste es hinterher selbst ändern, wenn ihm das
+unangenehm war. Jetzt bekommt er stattdessen einen **Link** und wählt sein
+Passwort selbst.
+
+### Neu
+
+- **Zugang anlegen mit Link.** In der Karte „Zugänge" legt „Anlegen und Link"
+  einen Zugang **ohne Passwort** an und zeigt dazu einen Link. Wer ihn öffnet,
+  wählt sein Passwort selbst und ist danach gleich angemeldet.
+- **Passwort zurücksetzen mit Link.** Dasselbe für einen vorhandenen Zugang:
+  das Kettenglied 🔗 an der Zeile erzeugt einen Link. Das bisherige Passwort
+  gilt weiter, bis er eingelöst wird.
+- **Der Link gilt sieben Tage und genau einmal.** Beim Einlösen werden alle
+  bestehenden Anmeldungen dieses Zugangs beendet, und alle anderen noch
+  offenen Links dazu verfallen.
+- **„Meine Sitzungen".** Eine neue Karte im Systembereich — für **jeden**, auch
+  ohne Rolle. Sie zeigt, wo dieser Zugang überall angemeldet ist, markiert die
+  aktuelle Anmeldung und hat einen Knopf „alle anderen beenden". Ein Admin
+  sieht dort **nur seine eigenen**, nie fremde.
+
+### Was gleich bleibt
+
+- **Der direkte Weg bleibt.** Der Admin kann weiterhin ein Passwort setzen und
+  es sagen — der Schlüssel 🔑 steht neben dem Kettenglied. Das ist der kürzere
+  Weg, wenn der andere danebensteht.
+- **Der Notweg auf dem Server bleibt unverändert:**
+  `docker compose exec kriterion node zugang.js passwort <name>`.
+- **Es wird nichts verschickt.** Kriterion baut weiterhin **keine** Verbindung
+  nach außen auf: den Link kopiert der Admin und gibt ihn weiter. Mailversand
+  kommt in einer späteren Version.
+- **Es wird nichts zusätzlich gespeichert.** „Meine Sitzungen" kennt **kein
+  Gerät** — weder IP-Adresse noch Browserkennung werden erfasst, wie bisher
+  auch nicht. Die Karte sagt das offen.
+- Export, Import, Papierkorb, Sicherung, Rollen und Rechte arbeiten
+  unverändert. Die Exportdatei behält ihr Format.
+
+### Beim Einspielen
+
+- **Die Sicherung des Datenverzeichnisses ist PFLICHT.** Die Datenbank bekommt
+  eine neue Tabelle; ein Downgrade auf eine ältere Version ist damit keine
+  reine Dateikopie mehr. Seit 0.8.70 geht das auch auf Knopfdruck — **aber die
+  Kopie ist verschlüsselt und ohne die `.env` wertlos**, also beides sichern
+  und ausdrücklich **nicht** in dieselbe Ablage legen.
+- **Sonst nichts.** Keine neue Einstellung, keine Änderung an der
+  `docker-compose.yml` oder der `.env`, keine neue Abhängigkeit. Die Tabelle
+  legt sich beim ersten Start selbst an.
+- **Ein Hinweis für den Fall eines Downgrades:** ein Zugang, der über einen
+  Link angelegt und noch **nicht** eingelöst wurde, hat kein Passwort. Eine
+  ältere Version kann ihm keinen neuen Link geben — dort hilft nur
+  `node zugang.js passwort <name>` auf dem Server.
+- **Der Link ist ein Passwortersatz auf Zeit.** Wer ihn weitergibt, gibt für
+  sieben Tage den Zugang weiter. Er steht danach in dem Verlauf, über den er
+  verschickt wurde — nur dem geben, für den er ist. Die Oberfläche sagt das an
+  der Stelle, an der er kopiert wird.
+
+---
+
 ## 0.8.71 — Der Sicherungsort zieht um
 
 **Eine Berichtigungsrunde, keine Stufe.** Der Sicherungsort lag bisher eine

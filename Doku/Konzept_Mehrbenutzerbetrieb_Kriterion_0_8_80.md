@@ -1,17 +1,27 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 24. August 2026 · gebaut bis Version 0.8.71 — Fingerprint `1b03fabf`**
-(Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
+**Konzeptpapier · Stand 24. August 2026 · gebaut bis Version 0.8.80 — Fingerprint `4c046b7c`**
+(Stufen A bis **H** erledigt; **allein Stufe I ist offen**. 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
-die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
-vier keine Stufen.)
+die Runde **Werkzeug**, 0.8.20 die Runde **„Die Schotten dicht"**, 0.8.40 bis
+0.8.71 vier weitere Runden — alle keine Stufen.)
 
-**0.8.71 berührt den Mehrbenutzerbetrieb nicht und legt auch keine seiner
-Regeln neu aus.** „Der Sicherungsort zieht um" ist eine Berichtigungsrunde auf
-einer freien Nummer: kein Schema, keine Route, keine Rolle, kein Träger, kein
-neues Recht. **`F_ROUTEN` bleibt bei 51.** Das Papier steht damit unverändert —
-nur sein Kopf ist nachgezogen, damit die Angabe „gebaut bis" nicht drei
-Versionen hinterherhinkt.
+**0.8.80 ist Stufe H, „Einladung, Rücksetzung, Sitzungen"** — die erste Stufe
+seit G4 (0.8.30). Ein Zugang bekommt sein Passwort **selbst**, über einen Link
+mit begrenzter Haltbarkeit; derselbe Mechanismus trägt die Rücksetzung. Dazu
+die Karte **„Meine Sitzungen"**. Das Schema bekommt die Tabelle `tokens`
+(Abschnitt 4), **ohne Migrationsblock**; **`F_ROUTEN` geht von 51 auf 56**.
+Die Stufe steht unten ausführlich, die **fünf Abweichungen vom Entwurf** in
+Abschnitt 10.
+
+**Damit fehlt nur noch Stufe I** — Mailversand und Selbstanmeldung, 0.9.0. Sie
+erbt den Token dieser Runde **unverändert**; was in Stufe H an Form entschieden
+wurde, gilt dort weiter.
+
+**0.8.71 davor berührte den Mehrbenutzerbetrieb nicht und legte auch keine
+seiner Regeln neu aus.** „Der Sicherungsort zieht um" war eine
+Berichtigungsrunde auf einer freien Nummer: kein Schema, keine Route, keine
+Rolle, kein Träger, kein neues Recht.
 
 **0.8.70 davor berührt den Mehrbenutzerbetrieb ebenfalls nicht — und legt
 dabei zwei seiner Regeln neu aus.** „Sicherung und Papierkorb" ist zwar wieder eine
@@ -126,13 +136,14 @@ Mehrbenutzerbetrieb gehören; sie stehen im Projektstand, Abschnitt 10. Die
 ersten drei davon — **0.8.40, die Gewichtung**, **0.8.50, Kurzvideos am
 Fotoplatz**, **0.8.60, „Was ist offen, was ist neu"** und **0.8.70,
 „Sicherung und Papierkorb"** — sind gebaut, dazu **0.8.71** als
-Berichtigungsrunde; die nächste Stufe ist **0.8.80, Stufe H**.
+Berichtigungsrunde. **Stufe H ist mit 0.8.80 gebaut**; davor liegt für 0.8.90
+noch eine Runde, die nicht zum Mehrbenutzerbetrieb gehört, dann folgt Stufe I.
 
 **Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
 `HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
 hängen auch `Secure` am Sitzungscookie, `Strict-Transport-Security` und das
-Präfix `__Host-` am Cookienamen. Wer künftig etwas an der Sitzung baut (Stufe H,
-„Meine Sitzungen"), findet den Cookienamen deshalb **nicht** als feste
+Präfix `__Host-` am Cookienamen. Wer etwas an der Sitzung baut — Stufe H hat
+es mit „Meine Sitzungen" getan —, findet den Cookienamen deshalb **nicht** als feste
 String vor, sondern nimmt ihn aus `auth.COOKIE_NAME`. Im Betrieb steht
 die Einstellung auf der Vorgabe **aus**; sie gehört auf `1`, sobald Kriterion
 über den Proxy nach außen geht (Projektstand, Abschnitte 2 und 3).
@@ -322,9 +333,16 @@ Block im Projekt. Wer von 0.8.20 kommt, fährt beide in einem Start. Nachgestell
 lässt sich nur **nullbar** nachrüsten (Projektstand, Stolperstein 105); für
 `links` war das ohnehin die richtige Form.
 
-**Offen für Stufe H:** `tokens (hash, user_id, zweck, ablauf, benutzt_am)`.
+**`tokens` ist gebaut (Stufe H, 0.8.80)** — und mit **einer Spalte mehr** als
+hier entworfen: `tokens (hash, user_id, zweck, ablauf, benutzt_am,
+created_at)`. `created_at` steht dazu, weil jede andere Tabelle des Schemas es
+trägt und weil „ablauf minus sieben Tage" ab dem Tag falsch wäre, an dem die
+Frist wechselt. `hash` ist der **Primärschlüssel**, `user_id` trägt
+`ON DELETE CASCADE` und einen eigenen Index. **Kein Migrationsblock** — an
+dieser Tabelle nachgestellt, nicht aus 0.8.70 abgeschrieben.
 Zur Adress-Eindeutigkeit siehe Abschnitt 10 — ein **partieller Index**, wenn
-sie gebraucht wird, nicht vorher.
+sie gebraucht wird, nicht vorher; in Stufe H wurde sie nicht gebraucht, denn
+der Link geht von Hand.
 
 ## 5. Die Bewertung — erledigt in 0.7.0
 
@@ -470,7 +488,17 @@ WordPress und Home Assistant auch: ein Befehl, ein Name, nur das Passwort.
 Damit entfällt das Rücksetz-Fenster ganz — und mit ihm der Einmalcode aus
 Stufe H, der nur existierte, um es zu schließen.
 
-**Offen (H/I):**
+**Gebaut in 0.8.80 (Stufe H):** die Karte „Zugänge" legt einen Zugang wahlweise
+**ohne Passwort** an und gibt dazu einen **Link** aus; an jeder Zeile steht
+neben dem Schlüssel ein **Kettenglied**, das einen Einladungs- bzw.
+Rücksetzlink erzeugt. **Beide Wege bleiben nebeneinander, und die Karte
+bevorzugt den Link** — er übergibt das *Recht, ein Passwort zu setzen*, der
+Schlüssel übergibt ein *Passwort*, und der zweite kommt ohne den Browser des
+anderen aus. Eine Zeile ohne Passwort trägt „noch kein Passwort", abgeleitet
+aus dem leeren Hash und **nicht** aus `last_login`. Dazu die Karte
+**„Meine Sitzungen"** beim eigenen Zugang — für jeden, nicht für Admins.
+
+**Offen (I):**
 
 **Adressen doppelt vergeben: hinter der Anmeldung klar sagen, davor nicht.**
 Legt der Admin jemanden an oder ändert jemand seine eigene Adresse, ist
@@ -480,7 +508,7 @@ Antwort — wer das sieht, ist angemeldet und sieht die Liste ohnehin. Für die
 Abschnitt 10: dort ist jede unterschiedliche Antwort ein Werkzeug zum
 Durchprobieren von Adressen.
 
-## 10. Registrierung und Tokens — offen, Stufe I (Selbstanmeldung) und H (Tokens)
+## 10. Registrierung und Tokens — Tokens erledigt in 0.8.80 (Stufe H), Registrierung offen (Stufe I)
 
 **Auf einen Schalter gekürzt, entschieden vor 0.8.0:** der Schalter
 „Mehrbenutzerbetrieb ein" widersprach Abschnitt 1 („ein Zustand, keine zweite
@@ -498,15 +526,52 @@ Passwort selbst.
 Adresse bereits existieren („Danke, die Anfrage liegt beim Admin").
 Andernfalls ist das Formular ein Werkzeug zum Durchprobieren von Adressen.
 
-**Token:** 32 Zufallsbytes, gespeichert wird nur der Hash, einmal gültig, Ablauf
-nach sieben Tagen, beim Einlösen alle Sitzungen dieses Benutzers beenden. **Ein
-Mechanismus, zwei Anlässe** — Einladung und Passwortrücksetzung.
+**Token — erledigt in 0.8.80.** 32 Zufallsbytes, gespeichert wird nur der Hash,
+einmal gültig, Ablauf nach sieben Tagen, beim Einlösen alle Sitzungen dieses
+Benutzers beenden. **Ein Mechanismus, zwei Anlässe** — Einladung und
+Passwortrücksetzung. **Stufe I erbt ihn unverändert.**
 
-**Missbrauchsschutz:** Deckel auf offene Anfragen (Vorschlag: 20), Zeitsperre pro
-IP.
+**Fünf Stellen, an denen anders gebaut wurde als hier beschrieben** — sie
+gelten ab jetzt in dieser Form:
+
+1. **SHA-256 ohne Salz, nicht scrypt.** Das Papier sagte nur „der Hash". scrypt
+   schützt *ratbare* Geheimnisse; ein Token trägt 256 Bit aus dem
+   Zufallsgenerator. Mit Salz je Zeile wäre der Hash nicht **nachschlagbar** —
+   der Server müsste bei jedem Versuch jede Zeile durchrechnen, auf einer Route
+   **vor** der Anmeldung. Ohne Salz ist er ein Schlüssel; ein zeitunabhängiger
+   Vergleich hat dort deshalb nichts mehr zu tun.
+2. **Beim Einlösen fallen auch alle ÜBRIGEN offenen Links dieses Zugangs**, und
+   dasselbe beim **Sperren** und **Entfernen**. Das Papier sagte „einmal
+   gültig" und meinte den einen Link; läge noch ein älterer in einem fremden
+   Verlauf, setzte er hinterher ein zweites Mal ein Passwort.
+3. **Der Server gibt nur den Token heraus, nie den fertigen Link.** Die
+   vollständige Adresse baut der Browser des Admins aus `location`. Damit
+   stellt sich die Frage nach der öffentlichen Adresse aus Abschnitt 11 in
+   dieser Stufe gar nicht.
+4. **Die Absage vor der Anmeldung ist EINE**, für abgelaufen, schon benutzt,
+   erfunden und „Zugang gesperrt" — nicht weil eine Auskunft verschwiegen
+   werden soll, sondern weil das **Heilmittel in jedem Fall dasselbe** ist.
+   Das ist dieselbe Überlegung wie bei der Registrierungsantwort oben, an einer
+   anderen Stelle.
+5. **`created_at` steht zusätzlich in der Tabelle** (siehe Abschnitt 4).
+
+**Wie der Link zum Empfänger kommt, ist Teil der Bauform:** Mailversand ist
+Stufe I, also **kopiert der Admin ihn und gibt ihn weiter**. Damit ist der Link
+ein **Passwortersatz auf Zeit** und steht nach der Weitergabe in einem fremden
+Verlauf — und **das sagt die Oberfläche an der Stelle, an der er kopiert
+wird.** Der Schlüssel steht im **Fragment** der Adresse (`#/einladung/…`) und
+geht damit nie an den Server.
+
+**Missbrauchsschutz — offen, Stufe I:** Deckel auf offene Anfragen (Vorschlag:
+20), Zeitsperre pro IP. **Beides gehört zur Selbstanmeldung und ist in Stufe H
+ausdrücklich nicht gebaut worden**: dort legt nur der Admin an, und der ist
+angemeldet. Was in Stufe H sehr wohl greift, ist die vorhandene
+**Anmeldebremse** — auf den beiden Routen vor der Anmeldung, mit der IP-Hälfte
+unverändert und ohne Namenshälfte.
 
 **Der Mindestwert von zehn Zeichen** aus 0.5.0 gilt unverändert für jedes
-Passwort, das über einen Token gesetzt wird.
+Passwort, das über einen Token gesetzt wird — in 0.8.80 an diesem Weg
+ausdrücklich geprüft.
 
 **Eindeutigkeit der Adresse — zu entscheiden, wenn sie gebraucht wird.**
 `users.email` hat bewusst **kein** `UNIQUE`: `ALTER TABLE` kann eines nicht
@@ -547,6 +612,10 @@ rDNS und SPF/DKIM. Deshalb immer über den SMTP-Zugang eines Anbieters.
 außen heißt. Sie wird eine **Einstellung** und darf **niemals** aus dem
 `Host`-Kopf abgeleitet werden — sonst lässt sich ein Rücksetzlink über einen
 gefälschten Kopf auf einen fremden Server umbiegen.
+**In Stufe H stellte sich die Frage nicht**, und das ist der Grund: der Server
+gibt dort nur den Token heraus, die vollständige Adresse baut der Browser des
+Admins. **Ab Stufe I geht der Link über den Server hinaus**, und dann wird die
+Einstellung gebraucht.
 
 **Zugangsdaten** in die `.env`, in der Oberfläche nur „gesetzt/nicht gesetzt".
 Dazu ein **Testmail-Knopf** — sonst fällt der Fehler erst auf, wenn jemand
@@ -637,7 +706,7 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | — | **0.8.20** | *Keine Stufe.* **„Die Schotten dicht":** SVG am Fotoweg (Typ aus den ersten Bytes statt aus der Datenbank), Sicherheitsregel für die Anwendung selbst, `X-Forwarded-For` nur nach Einstellung samt `Secure`/HSTS/`__Host-`, Fehler-Handler nach Rang, sauberes Herunterfahren, Index auf `sessions.user_id` — **erledigt**, den Umbau nicht berührt | klein |
 | **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der **fremden** Zeile ab zwei Zugängen, Formatnummer 6 → 7 — **erledigt, Stufe G vollständig**, siehe unten | mittel |
 | — | **0.8.31** | *Keine Stufe.* **Dieselbe Wende an den Dateien:** `user_id` an `attachments`, hochladen offen, löschen beim Hochladenden oder Admin, Name an der fremden Zeile, Formatnummer 7 → 8 — **erledigt** | klein |
-| **H** | **0.8.80** | Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* | mittel |
+| **H** | **0.8.80** | **erledigt.** Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* Einzelheiten unten. | mittel |
 | **I** | 0.9.0 | Mailversand mit Anbietervorlagen, öffentliche Adresse, Testmail, Selbstregistrierung mit Freischaltung. *Abbruchpunkt: nach dem Versand, vor der Selbstregistrierung.* | groß |
 
 **G4 ist gebaut, und damit sind die Stufen A bis G vollständig.** **Zwischen
@@ -1095,8 +1164,10 @@ Projektstand, Abschnitte 2, 5, 5a, 7 und 9.
 
 - **Der Sitzungscookie heißt nicht mehr fest `kriterion_session`.** Bei
   `HINTER_PROXY=1` heißt er `__Host-kriterion_session` und trägt `Secure`. Wer
-  in Stufe H „Meine Sitzungen" baut, nimmt den Namen aus `auth.COOKIE_NAME`
-  und schreibt ihn nirgends ab.
+  etwas an der Sitzung baut, nimmt den Namen aus `auth.COOKIE_NAME` und
+  schreibt ihn nirgends ab. **In 0.8.80 hat das gehalten**, und seitdem steht
+  ein eigener Wächter davor: der Name kommt in keiner der sieben ausgelieferten
+  Dateien abgeschrieben vor und entsteht in `auth.js` genau einmal.
 - **Der ausgelieferte Typ kommt nie aus der Datenbank**, und ein Wächter im
   Prüfstand hält das fest: keine Zeile in `server.js` setzt den Content-Type
   selbst. Er wird namentlich rot, sobald jemand eine Auslieferung ergänzt.
@@ -1210,6 +1281,58 @@ dasteht, nicht *welche*; die Wende von `eintragFrei` auf `darfAendern` wäre
 für die Liste unsichtbar gewesen. Zwei eigene Quelltextprüfungen halten sie
 jetzt fest. Einzelheiten und die vollständige Gegenprobentabelle stehen in
 `Doku/Aenderungsprotokoll_0.8.30.md`.
+
+## Stufe H — erledigt in Version 0.8.80
+
+**„Einladung, Rücksetzung, Sitzungen."** Die erste Stufe seit G4; dazwischen
+lagen mit 0.8.40 bis 0.8.71 vier Runden, die nicht dazugehörten. **Damit ist
+allein Stufe I offen.**
+
+**Was gilt.** Ein Zugang bekommt sein Passwort **selbst**, über einen Link:
+
+| | |
+|---|---|
+| Im Link | 32 Zufallsbytes, hexadezimal — im **Fragment** der Adresse |
+| Gespeichert | **nur der SHA-256**, ohne Salz; `hash` ist Primärschlüssel |
+| Haltbarkeit | sieben Tage |
+| Gültigkeit | genau einmal |
+| Beim Einlösen | alle Sitzungen **und alle übrigen offenen Links** dieses Zugangs fallen |
+| Beim Sperren/Entfernen | die offenen Links fallen mit |
+| Danach | die Zeile bleibt mit `benutzt_am` stehen, geräumt dreißig Tage nach Ablauf |
+
+**Die Abweichungen vom Entwurf stehen in Abschnitt 10** — fünf an der Zahl, und
+jede mit Begründung.
+
+**Fünf neue schreibende Routen, `F_ROUTEN` 51 → 56:**
+
+| Route | Art |
+|---|---|
+| `POST /api/token/pruefen` | **offen** — liest nur; POST, damit der Schlüssel im Rumpf bleibt |
+| `POST /api/token/einloesen` | **offen** |
+| `POST /api/users/:id/token` | `nurAdmin, im Rumpf` — `zielZugangFrei`, damit gilt die Rollenleiter |
+| `DELETE /api/sessions` | `selbstbezug` |
+| `DELETE /api/sessions/:kennung` | `selbstbezug` |
+
+**Kein vierter Zustand.** `ZUSTAENDE` bleibt bei `aktiv`, `gesperrt`,
+`geloescht`. „Noch kein Passwort" wird aus `password_hash = ''` abgeleitet —
+und **nicht** aus `last_login IS NULL`, denn das beantwortet „hat sich noch nie
+angemeldet". Ein Zugang ohne Passwort trägt den leeren Hash, dieselbe Sperre
+wie beim Grabstein, **ohne eine einzige neue Klemme**.
+
+**„Meine Sitzungen" — die zweite Hälfte der Stufe.** Jeder sieht beim eigenen
+Zugang, wo er überall angemeldet ist; ein **Admin sieht keine fremden**. Eine
+Sitzung wird über eine **gerechnete Kennung** adressiert — den vollen SHA-256
+ihres Tokens, nirgends gespeichert —, denn der Token ist Primärschlüssel *und*
+Geheimnis und darf in keiner Adresse stehen. **Ohne Gerätekennung:** die Anlage
+speichert weder IP noch Browserkopf, und die Karte sagt das offen; was sie
+trägt, ist die **Zahl** und der Knopf „alle anderen beenden".
+
+**`zugang.js` ist unberührt geblieben.** Es hat in 0.8.0 den Einmalcode dieser
+Stufe ersetzt (Abschnitt 9) und bleibt der Notweg, wenn niemand mehr
+hereinkommt.
+
+Einzelheiten und die vollständige Gegenprobentabelle stehen in
+`Doku/Aenderungsprotokoll_0.8.80.md`.
 
 ## Nachprüfen per SSH
 
