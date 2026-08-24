@@ -40,7 +40,10 @@ Ein zweiter Eintrag ist möglich und in der Vorgabe **aus**: `HINTER_PROXY=1`,
 wenn Kriterion hinter einem Reverse Proxy betrieben wird. Was daran hängt,
 steht im Abschnitt „Anmeldung".
 
-**Passwort vergessen?** Auf dem Server, nicht über die `.env`:
+**Passwort vergessen?** Der gewöhnliche Weg läuft seit 0.8.80 über die Karte
+„Zugänge": ein Admin erzeugt dort einen **Link zum Zurücksetzen**, und der
+Betreffende wählt sein Passwort selbst (siehe „Rollen und Zugänge"). Kommt
+**niemand mehr** herein, hilft der Weg auf dem Server, nicht die `.env`:
 
 ```bash
 docker compose exec kriterion node zugang.js passwort <name>
@@ -125,6 +128,13 @@ Nach mehreren Fehlversuchen antwortet die Anmeldung verzögert, nach zehn
 Fehlversuchen von derselben Adresse für einige Minuten gar nicht mehr.
 Gezählt wird zusätzlich je Benutzername — dort wird nur verzögert, nie
 gesperrt: eine harte Namenssperre wäre ein Werkzeug *gegen* fremde Zugänge.
+**Dieselbe Bremse steht seit 0.8.80 vor dem Einlösen eines Einladungs- oder
+Rücksetzlinks** — dort ohne die Hälfte je Benutzername, denn ein Link nennt
+keinen. Was dabei abgewiesen wird — abgelaufen, schon eingelöst, erfunden, oder
+der Zugang ist gesperrt —, beantwortet die Anlage **immer gleich**: „Dieser
+Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern." Der Grund ist
+nicht Geheimniskrämerei, sondern dass in allen vier Fällen dasselbe zu tun
+ist.
 
 Wird Kriterion über einen Reverse Proxy nach außen gegeben, dann **nur über
 HTTPS** — sonst wandert das Passwort im Klartext durchs Netz. Und dann gehört
@@ -193,9 +203,9 @@ verweigert nichts etwas.
   Sicherung ziehen — das ist Absicht.
 
 Verwaltet wird in der Karte **„Zugänge"** im Systembereich (nur für Admins
-sichtbar): anlegen mit erstem Passwort, sperren und freigeben, Passwort
-zurücksetzen, Rolle wechseln, entfernen. Drei Regeln stehen serverseitig fest,
-nicht nur ausgegraut in der Oberfläche:
+sichtbar): anlegen, sperren und freigeben, Passwort zurücksetzen, Rolle
+wechseln, entfernen. Drei Regeln stehen serverseitig fest, nicht nur ausgegraut
+in der Oberfläche:
 
 - **Ein Admin kommt nicht an seinesgleichen.** An einen anderen Admin oder den
   Eigentümer kommt nur der Eigentümer — sonst wäre die Verwaltung ein
@@ -206,15 +216,63 @@ nicht nur ausgegraut in der Oberfläche:
 
 Sperren wirkt sofort: die laufende Sitzung fällt, die Anmeldung nennt den
 Grund — aber erst nach dem richtigen Passwort, sonst wäre die Meldung ein
-Werkzeug zum Durchprobieren von Namen.
+Werkzeug zum Durchprobieren von Namen. Offene Einladungs- und Rücksetzlinke
+dieses Zugangs verfallen dabei mit.
+
+#### Einen Zugang anlegen — zwei Wege
+
+**Mit Link (empfohlen).** „**+ Anlegen und Link**" legt den Zugang **ohne
+Passwort** an und zeigt darunter einen Link. Den kopierst du und gibst ihn dem
+Betreffenden — mündlich, per Zettel, per Messenger. Wer ihn öffnet, wählt sein
+Passwort selbst und ist danach gleich angemeldet. **Du erfährst das Passwort
+nie.** In der Liste steht bei ihm „noch kein Passwort", bis er den Link
+eingelöst hat.
+
+**Mit erstem Passwort.** „**+ Anlegen**" mit ausgefülltem Passwortfeld — wie
+bisher. Der kürzere Weg, wenn der andere danebensteht.
+
+> **Der Link ist ein Passwortersatz auf Zeit.** Er gilt **sieben Tage** und
+> **genau einmal**; wer ihn in dieser Zeit hat, kommt herein. Nach der
+> Weitergabe steht er in dem Verlauf, über den du ihn geschickt hast — gib ihn
+> nur dem, für den er ist. Er wird **nur ein einziges Mal angezeigt**; ist er
+> weg, erzeugst du einen neuen.
+
+**Kriterion verschickt nichts.** Es baut keine Verbindung nach außen auf; der
+Link geht von Hand. Das ändert sich erst mit dem Mailversand in einer späteren
+Version.
+
+#### Ein Passwort zurücksetzen — ebenfalls zwei Wege
+
+- **🔗 Link zum Zurücksetzen** — derselbe Weg wie bei der Einladung. Das
+  bisherige Passwort gilt weiter, **bis** der Link eingelöst wird; danach
+  fallen alle Anmeldungen dieses Zugangs.
+- **🔑 Passwort direkt setzen** — du gibst eins ein und sagst es. Alle
+  Anmeldungen dieses Zugangs fallen sofort.
+
+Kommt **niemand mehr** herein, hilft weiterhin der Weg über den Server:
+`docker compose exec kriterion node zugang.js passwort <name>`.
+
+#### Meine Sitzungen
+
+Die Karte **„Meine Sitzungen"** im Systembereich steht **jedem**, auch ohne
+Rolle. Sie zeigt, wo dieser Zugang überall angemeldet ist — wann angemeldet,
+wann zuletzt gesehen, und welche davon die gerade benutzte ist. Der Knopf
+**„Alle anderen beenden"** wirft alle übrigen hinaus; die eigene bleibt.
+
+**Was die Karte nicht kann, und sie sagt es selbst:** sie kennt **kein Gerät**.
+Kriterion speichert weder IP-Adresse noch Browserkennung — das ist Absicht und
+passt zu „läuft im eigenen Netz". Was sie beantwortet, ist die Frage, die
+zählt: *stehen hier mehr Anmeldungen, als ich erwarte?* Wenn ja, ist der Knopf
+daneben die Antwort. **Ein Admin sieht hier nur seine eigenen Anmeldungen**,
+nie fremde; wer einen fremden Zugang aussperren muss, sperrt ihn.
 
 **Entfernen entwertet, es löscht nicht.** Die Benutzerzeile bleibt mit ihrer
 Nummer stehen, der Name wird freigegeben, und die Beiträge bleiben sichtbar —
 sie tragen künftig „Gelöschter Benutzer 7". Zwei Häkchen im Dialog nehmen auf
 Wunsch die Inhalte mit: *seine Einträge löschen* (nimmt über die Kaskade auch
 fremde Kommentare, Bewertungen und Testtage daran mit — der Dialog nennt die
-Zahlen) und *seine Beiträge in fremden Einträgen löschen*. Sitzungen,
-Favoriten und persönliche Einstellungen gehen immer mit. Der Name
+Zahlen) und *seine Beiträge in fremden Einträgen löschen*. Sitzungen, offene
+Links, Favoriten und persönliche Einstellungen gehen immer mit. Der Name
 `geloescht-<nummer>` ist als Benutzername gesperrt.
 
 ### Wer was darf
@@ -515,9 +573,10 @@ es zwei, beide im Systembereich einstellbar:
 **Systembereich** (Zahnrad in der Kopfzeile)
 
 **Was man dort sieht, hängt an der Rolle.** Ein gewöhnlicher Benutzer bekommt
-sechs Karten: seinen eigenen **Zugang**, die **Darstellung**, die **Links**
-und die drei Listen **Kategorien**, **Tags** und **Bewertungskriterien** — die
-letzten drei ohne Bedienzeichen, nur zum Nachsehen. Alles Übrige steht dem
+sieben Karten: seinen eigenen **Zugang**, **Meine Sitzungen**, die
+**Darstellung**, die **Links** und die drei Listen **Kategorien**, **Tags** und
+**Bewertungskriterien** — die letzten drei ohne Bedienzeichen, nur zum
+Nachsehen. Alles Übrige steht dem
 **Admin**, Export, Import und Sicherung allein dem **Eigentümer**. Der Grund:
 ein Knopf, der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein
 Fehler. **Der Papierkorb ist der Zwischenfall:** die Karte steht dem Admin,
@@ -528,8 +587,11 @@ Listen.
 - Kennzahlen: Einträge, Fotos, Videos, Kommentare, Links, Testtage,
   **Papierkorb** und Datenbankgröße *(Admin)*. Der Schlüsselwert zum Abschreiben steht darin nur für den
   **Eigentümer**.
-- **Zugänge** verwalten — siehe den Abschnitt „Rollen und Zugänge" oben
-  *(Admin)*
+- **Zugänge** verwalten — anlegen mit Passwort **oder mit Link**, sperren,
+  Passwort zurücksetzen **direkt oder mit Link**, Rolle wechseln, entfernen;
+  siehe den Abschnitt „Rollen und Zugänge" oben *(Admin)*
+- **Meine Sitzungen** — wo dieser Zugang überall angemeldet ist, mit „alle
+  anderen beenden" *(jeder; jeder sieht nur seine eigenen)*
 - **Export** mit oder ohne Fotos, nur für den Eigentümer der Anlage. Die
   Datei nennt zu jedem Eintrag, jeder Bewertung, jedem Kommentar, jedem
   Testtag, **jeder Linkzeile und jeder Datei** den **Verfassernamen**.
@@ -904,13 +966,16 @@ auch **ein einzelner Eintrag** als Datei ziehen.
 > Der Weg zurück ist dann die Sicherung, die **vor** dem Einspielen entstanden
 > ist — nicht das Zurückkopieren der alten Dateien. Welche Versionen das
 > betrifft, sagt das Änderungsprotokoll der jeweiligen Version; zuletzt
-> **0.8.30**, **0.8.31**, **0.8.40**, **0.8.50** und **0.8.70**. **0.8.60
-> gehört ausdrücklich nicht dazu:** dort war die Sicherung eine Empfehlung, und
-> der Weg zurück eine reine Dateikopie. **Mit 0.8.70 ist sie wieder Pflicht.**
-> *Der Sonderfall dieser Version: sie rüstet keine Spalte nach, sondern legt
-> zwei neue Tabellen an. Eine ältere Version sieht die gar nicht an — was
-> dort aber im Papierkorb liegt, ist nach einem Downgrade unerreichbar, und
-> jeder Eintrag, der dann gelöscht wird, ist wieder endgültig weg.*
+> **0.8.30**, **0.8.31**, **0.8.40**, **0.8.50**, **0.8.70** und **0.8.80**.
+> **0.8.60 und 0.8.71 gehören ausdrücklich nicht dazu:** dort war die Sicherung
+> eine Empfehlung, und der Weg zurück eine reine Dateikopie.
+> *Der Sonderfall von 0.8.70 und 0.8.80: sie rüsten keine Spalte nach, sondern
+> legen neue Tabellen an. Eine ältere Version sieht die gar nicht an — was in
+> 0.8.70 aber im Papierkorb liegt, ist nach einem Downgrade unerreichbar, und
+> jeder Eintrag, der dann gelöscht wird, ist wieder endgültig weg. Bei 0.8.80
+> trifft es einen Zugang, der über einen Link angelegt und noch nicht eingelöst
+> wurde: er hat kein Passwort, und eine ältere Version kann ihm keinen neuen
+> Link geben — dort hilft nur `node zugang.js passwort <name>`.*
 
 ## Eine neue Version einspielen
 
@@ -1026,7 +1091,13 @@ Start eine leere Neuinstallation vermuten.
 - `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
   `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
   bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen
-- `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer
+- `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer. In der Karte
+  **„Meine Sitzungen"** sieht jeder seine eigenen; adressiert werden sie über
+  eine **gerechnete Kennung**, nie über den Sitzungsschlüssel selbst
+- `tokens` — Einladungs- und Rücksetzlinke (seit 0.8.80). **Gespeichert ist nur
+  der SHA-256 des Links, nie er selbst**; dazu Benutzer, Anlass, Ablauf und
+  wann er eingelöst wurde. Sieben Tage haltbar, einmal gültig; abgelaufene
+  Zeilen räumt die Anlage nach dreißig Tagen selbst weg
 - `papierkorb` / `papierkorb_bytes` — der **Papierkorb** (seit 0.8.70). Eine
   Zeile je gelöschtem Eintrag: Zeitpunkt, Löschender, Titel und das ganze Paket
   im Austauschformat; die Bytes (Fotos, Videos, Dateien, Kommentarbilder)
@@ -1067,6 +1138,11 @@ Verfasser wird gelöscht, zurückgeholt und Feld für Feld gegen den
 Ausgangsstand gehalten — und **die Sicherung an einer echten Anlage**: die
 Kopie entsteht, ist ohne Schlüssel nicht lesbar, mit Schlüssel vollständig, und
 jeder abgewiesene Zielort hinterlässt nachweislich keine Datei.
+**Seit 0.8.80 dazu der Rundlauf des Einladungslinks** — anlegen, Link, Formular,
+Passwort, Anmeldung, und **derselbe Link ein zweites Mal nicht** —, die
+Nachschau, dass der Link selbst in **keiner Spalte keiner Tabelle** steht, die
+sieben Tage an beiden Seiten, die Anmeldebremse vor der Anmeldung und „Meine
+Sitzungen" mit zwei Benutzern zu je zwei Sitzungen.
 
 Die Datei `pruefung.js` ist per `.dockerignore` ausgeschlossen und landet nicht
 im Image.
