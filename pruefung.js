@@ -7576,6 +7576,55 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Absage nennt die Bestaetigung beim Namen',
     zbFremderZweck.inhalt?.bestaetigung === 'rolle', JSON.stringify(zbFremderZweck.inhalt));
 
+  /* UND DIE ZWECKBINDUNG BEI GLEICHEM ZIEL -- die drei Zeilen darueber taugen
+     dafuer nicht, und das ist ein Befund aus der Gegenprobe: sie halten eine
+     Freigabe fuer den Export (Ziel leer) gegen einen Rollenwechsel (Ziel emil)
+     und waeren auch dann gruen, wenn der Schluessel den ZWECK gar nicht
+     traegt -- die ZIELE unterscheiden sich ja schon. Der Rueckbau des Zwecks
+     aus dem Schluessel liess sie vollstaendig gruen.
+     GEPRUEFT WIRD DESHALB AN ZWEI PAAREN MIT GLEICHEM ZIEL: Export gegen
+     Import (beide ohne Ziel) und fremdes Passwort gegen Rolle (beide an
+     demselben Zugang). Erst damit steht die Bindung an den Zweck fuer sich. */
+  await zbFrei(zbAnna, ZB_ANNA, 'export');
+  const zbExportGegenImport = await zbRuf(zbAnna, 'POST', '/api/bestaetigung',
+    { passwort: 'nur-damit-nichts-liegenbleibt', zweck: 'export', ziel: null });
+  pruefe('Der Aufbau steht: die Export-Freigabe ist noch da',
+    zbExportGegenImport.status === 403, 'der Aufbau taugt nicht');
+  await zbFrei(zbAnna, ZB_ANNA, 'export');
+  {
+    const grenze = '----pruefungzk' + crypto.randomBytes(6).toString('hex');
+    const teil = (name, wert, dateiname) =>
+      `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
+      (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
+      `\r\n\r\n${wert}\r\n`;
+    const paket = { version: 10, title: 'Z', items: [] };
+    const a = await fetch(ZB.basis + '/api/import', {
+      method: 'POST',
+      headers: { cookie: `kriterion_session=${zbAnna}`,
+                 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: teil('mode', 'merge') + teil('file', JSON.stringify(paket), 'export.json') +
+            `--${grenze}--\r\n`
+    });
+    pruefe('Eine Freigabe fuer den Export traegt den Import NICHT -- beide ohne Ziel',
+      a.status === 403, `Status ${a.status}`);
+  }
+  await zbFrei(zbAnna, ZB_ANNA, 'passwort', zbEmil);
+  const zbPasswortGegenRolle = await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' });
+  pruefe('Eine Freigabe fuer das Passwort traegt die Rolle NICHT -- gleiches Ziel',
+    zbPasswortGegenRolle.status === 403, `Status ${zbPasswortGegenRolle.status}`);
+  pruefe('Und die Rolle steht weiterhin unveraendert da',
+    zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role === zbVorRolle,
+    zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role);
+  /* Die Gegenlage daneben: mit dem RICHTIGEN Zweck kommt derselbe Weg durch.
+     Ohne sie bliebe die Pruefung darueber auch dann gruen, wenn ueberhaupt
+     keine Freigabe mehr traegt (Stolperstein 81). */
+  await zbFrei(zbAnna, ZB_ANNA, 'rolle', zbEmil);
+  pruefe('Mit dem richtigen Zweck kommt er durch',
+    (await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' })).status === 200,
+    'der richtige Zweck traegt nicht');
+  await zbFrei(zbAnna, ZB_ANNA, 'rolle', zbEmil);
+  await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'user' });
+
   /* GEBUNDEN AN DAS ZIEL: eine Freigabe fuer Zugang A entfernt nicht Zugang B.
      Der Dialog nennt den Menschen; die Freigabe muss ihn deshalb auch nennen. */
   await zbFrei(zbAnna, ZB_ANNA, 'entfernen', zbEmil);
