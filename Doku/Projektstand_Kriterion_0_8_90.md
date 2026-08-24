@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 18 · Stand 24. August 2026 · gebaut: Version 0.8.80**
+**Kompakte Übergabe · Revision 19 · Stand 24. August 2026 · gebaut: Version 0.8.90**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,51 +8,57 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 18 ist.** Revision 17 trug 0.8.71 nach. Diese trägt **0.8.80**
-nach — **Stufe H des Mehrbenutzerbetriebs, „Einladung, Rücksetzung,
-Sitzungen"**. Es ist die erste Stufe seit G4 (0.8.30); danach fehlt nur noch
-**Stufe I** (Mailversand und Selbstanmeldung, 0.9.0).
+**Was Revision 19 ist.** Revision 18 trug 0.8.80 nach. Diese trägt **0.8.90**
+nach — **„Schwere Eingriffe"**, und das ist **keine Stufe des
+Mehrbenutzerbetriebs**: der ist mit Stufe H bis auf **Stufe I** gebaut, und die
+bleibt bei 0.9.0. Diese Runde liegt dazwischen und arbeitet ihr an einer Stelle
+vor.
 
-**0.8.80 gibt das Passwort in die Hand dessen, dem es gehört.** Ein neuer
-Zugang bekommt es **selbst**, über einen Link mit begrenzter Haltbarkeit, statt
-es vom Admin gesagt zu bekommen — und jeder sieht in der neuen Karte
-**„Meine Sitzungen"**, wo er überall angemeldet ist. **Es ist eine
-Datenbankstufe** — das Schema bekommt die Tabelle `tokens` —, aber **ohne
-Migrationsblock**, wie schon 0.8.70: an dieser Tabelle nachgestellt, nicht
-abgeschrieben. Es bleibt bei **fünf** markierten Blöcken.
+**0.8.90 in einem Satz: wer die Anlage als Ganzes anfasst, gibt sein Passwort
+noch einmal ein — und was dabei geschieht, steht hinterher nachlesbar da.**
+Drei Dinge sind dazugekommen: die **zweite Bestätigung** vor sieben schweren
+Wegen, das **Sicherheitsprotokoll** als Tabelle, in die sie schreibt, und die
+optionale **öffentliche Adresse** in der `.env`. **Es ist eine Datenbankstufe** —
+das Schema bekommt die Tabelle `sicherheitsprotokoll` —, aber **ohne
+Migrationsblock**, wie schon 0.8.70 und 0.8.80: an dieser Tabelle zum dritten
+Mal nachgestellt, nicht abgeschrieben. Es bleibt bei **fünf** markierten Blöcken.
 
-**Die tragende Frage der Runde war keine technische: wie kommt der Link zum
-Empfänger?** Mailversand ist Stufe I. Also gibt es genau eine Antwort: der
-Admin **kopiert ihn und gibt ihn weiter** — mündlich, per Zettel, per
-Messenger. Das ist keine Notlösung, sondern die Bauform, und alles Weitere
-folgt daraus: der Link **ist** ein Passwortersatz auf Zeit, er steht nach der
-Weitergabe in einem fremden Verlauf, er gilt **sieben Tage** und **genau
-einmal**, und beim Einlösen fallen alle Sitzungen dieses Zugangs. **Das steht
-in der Oberfläche**, im Kasten neben dem Feld, aus dem kopiert wird — nicht nur
-in diesem Papier.
+**Die tragende Frage der Runde war, wogegen das eigentlich verteidigt.** Nicht
+gegen einen Fremden — der kommt ohne Passwort gar nicht herein. Sondern gegen
+eine **fremde offene Sitzung**: einen Bildschirm, der unbeaufsichtigt stehen
+blieb, einen gestohlenen Cookie, einen Rechner, an dem jemand anderes sitzt.
+`aendereZugang()` wendet dieses Prinzip seit 0.5.0 an; es fehlte nur bei den
+schweren Wegen. Daraus folgt alles Weitere: die Bestätigung gilt **genau
+einmal**, für **genau eine Handlung an genau einem Ziel**, und sie ist an **die
+Sitzung** gebunden, nicht an den Menschen.
 
-**Drei Entscheidungen, die von der Vorlage abweichen und begründet gehören.**
-Der Token wird mit **SHA-256 ohne Salz** gehasht statt mit scrypt — scrypt
-schützt ratbare Geheimnisse, ein Token trägt 256 Bit aus dem Zufallsgenerator,
-und mit Salz wäre der Hash nicht nachschlagbar. „Noch kein Passwort" wird aus
-**`password_hash = ''`** abgeleitet und nicht aus `last_login IS NULL` — die
-beiden beantworten verschiedene Fragen. Und die Absage vor der Anmeldung ist
-**eine einzige** für abgelaufen, benutzt, erfunden und gesperrt: das Heilmittel
-ist in jedem dieser Fälle dasselbe.
+**Drei Entscheidungen, die vom Auftrag abweichen und begründet gehören.** Die
+Bestätigung reist **nicht im Rumpf der Handlung**, sondern kommt über eine
+eigene Route und liegt danach als kurzlebige **Freigabe im Arbeitsspeicher** —
+weil `GET /api/export` eine Browsernavigation ist (dort gibt es keinen Rumpf)
+und weil der Wächter vor `POST /api/import` ausdrücklich **vor multer** steht.
+Das Protokoll führt **keine Namensspalte**: sie wäre die eine Stelle im Projekt,
+die den Grabstein rückgängig macht. Und die **gescheiterte Anmeldung** steht
+darin — mit der Anmeldebremse als baulichem Deckel, denn sie ist die einzige
+Zeile, die ein Fremder auslösen kann.
 
-**`F_ROUTEN` geht von 51 auf 56**, fünfzehn Karten im Systembereich werden
-**sechzehn**. Die Formatnummer bleibt bei **10** — Token und Sitzungen stehen
-nicht im Austauschformat. Keine neue Abhängigkeit, kein neuer Vokabeleintrag.
+**`F_ROUTEN` geht von 56 auf 57** und bekommt die neue Art `'zweitbestaetigt'`;
+sechzehn Karten im Systembereich werden **siebzehn**. Die Formatnummer bleibt
+bei **10** — weder das Protokoll noch die Bestätigung stehen im
+Austauschformat. Keine neue Abhängigkeit, kein neuer Vokabeleintrag.
 
-**0.8.71 davor** verlegte den Sicherungsort ins Projektverzeichnis und markiert
-diese Lage in der Karte „Sicherung" **rot**, mit dem Grund daneben; liegt der
-Ort außerhalb, steht dort ein grüner Kasten. **Abgewiesen wird keine der beiden
-Lagen.** Eine Berichtigungsrunde ohne Schema, ohne Route, ohne Formatnummer.
+**0.8.80 davor** war **Stufe H**, „Einladung, Rücksetzung, Sitzungen": ein
+Zugang bekommt sein Passwort **selbst**, über einen Link mit begrenzter
+Haltbarkeit (32 Zufallsbytes, gespeichert als SHA-256 ohne Salz, sieben Tage,
+genau einmal), derselbe Mechanismus trägt die Rücksetzung, und jeder sieht in
+der Karte **„Meine Sitzungen"**, wo er überall angemeldet ist. Ebenfalls eine
+Datenbankstufe ohne Migrationsblock; `F_ROUTEN` ging von 51 auf 56.
 
-**Was davor liegt, steht in Abschnitt 9** — 0.8.70 brachte Sicherung und
-Papierkorb, 0.8.60 machte „Offen" und „Neu seit" auffindbar, 0.8.50 stellte das
-Kurzvideo in dieselbe Reihe wie die Fotos, 0.8.40 gab jedem Kriterium ein
-Gewicht, 0.8.30 und 0.8.31 gaben Links und Dateien einen Verfasser.
+**Was davor liegt, steht in Abschnitt 9** — 0.8.71 verlegte den Sicherungsort,
+0.8.70 brachte Sicherung und Papierkorb, 0.8.60 machte „Offen" und „Neu seit"
+auffindbar, 0.8.50 stellte das Kurzvideo in dieselbe Reihe wie die Fotos,
+0.8.40 gab jedem Kriterium ein Gewicht, 0.8.30 und 0.8.31 gaben Links und
+Dateien einen Verfasser.
 **Damit ist der Mehrbenutzerbetrieb bis auf Stufe I gebaut.** Vollständig
 geblieben sind die Abschnitte 5 und 12 — Entscheidungen und Arbeitsweise.
 Bestände und Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
@@ -64,18 +70,22 @@ Bestände und Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
 > Version wächst, wird irgendwann nicht mehr gelesen — und dann nützt es
 > niemandem mehr.
 
-**Für den Betrieb ändert sich mit 0.8.80 eines.** Die **Sicherung des
+**Für den Betrieb ändert sich mit 0.8.90 zweierlei.** Die **Sicherung des
 Datenverzeichnisses steht als PFLICHT im Einspielweg** — es ist eine
 Datenbankstufe, auch ohne Migrationsblock. Seit 0.8.70 gibt es sie auf
 Knopfdruck; das ist der bequemere der beiden Wege, **aber ohne die `.env` ist
-die Kopie wertlos**, denn sie ist verschlüsselt. Die `docker-compose.yml` und
-die `.env.example` sind **unberührt**. Die **Formatnummer der Exportdatei
+die Kopie wertlos**, denn sie ist verschlüsselt. Und die **`.env.example`
+bekommt einen neuen, optionalen Eintrag**: `OEFFENTLICHE_ADRESSE`, leer als
+Vorgabe — wer nichts tut, merkt nichts davon. Die `docker-compose.yml` ist
+**unberührt**. Die **Formatnummer der Exportdatei
 bleibt bei 10** (0.8.30 hob sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9, 0.8.50 auf
 10). Alles davon steht in Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_80.md` gepflegt und
-nur dort; von seinen Stufen ist nach dieser Runde **allein Stufe I offen**.
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_90.md` gepflegt und
+nur dort; von seinen Stufen ist **allein Stufe I offen** — diese Runde hat
+daran nichts bewegt. **Der Schlüsselwechsel aus dem Auftrag 0.8.90 ist NICHT
+gebaut** und liegt auf **0.8.91**; der Grund steht in Abschnitt 10.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
 > `admin` < `eigentuemer`. **Benutzer** schreibt eigene Beiträge. **Admin**
@@ -126,7 +136,28 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.80 ist gebaut** — Fingerprint **`a835ac92`**, 2661
+**0.8.90 ist gebaut** — Fingerprint **`FINGERPRINT_0890`**, 2903
+Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs, aber eine Datenbankstufe
+ohne Migrationsblock:** das Schema bekommt die Tabelle `sicherheitsprotokoll`
+(`id`, `am`, `was`, `wer`, `ziel`, `merkmal`) samt Index auf `am`. Zum dritten
+Mal an dieser Tabelle nachgestellt statt abgeschrieben. Es bleibt bei **fünf**
+markierten Blöcken, und unter „Vorgemerkt für 1.0" kommt **nichts** dazu.
+**Sieben schwere Wege über sechs Routen verlangen das Passwort ein zweites
+Mal** — Export, Import, Rolle vergeben, fremdes Passwort setzen, Link erzeugen,
+Zugang entfernen. Die Bestätigung kommt über `POST /api/bestaetigung` und liegt
+danach als **Freigabe im Arbeitsspeicher**: gebunden an Sitzungstoken, Zweck
+und Ziel, gültig 120 Sekunden und **genau einmal**. Kein Schema, also kein
+sechster Migrationsblock.
+**Das Sicherheitsprotokoll hält vierzehn Vorgänge fest**, 180 Tage lang; die
+Frist ist der **einzige** Weg hinaus. Es sieht nur der Eigentümer.
+**`OEFFENTLICHE_ADRESSE` ist neu in der `.env`** und optional; leer heißt „wie
+bisher, der Browser baut".
+**`F_ROUTEN` geht von 56 auf 57**, die Formatnummer bleibt bei **10**.
+24 Gegenproben.
+**Der Schlüsselwechsel, Punkt 3 des Auftrags, ist NICHT gebaut** — er liegt auf
+0.8.91 (Abschnitt 10).
+
+**0.8.80 davor** — Fingerprint **`a835ac92`**, 2661
 Prüfungen. **Stufe H des Mehrbenutzerbetriebs, und eine Datenbankstufe ohne
 Migrationsblock:** das Schema bekommt die Tabelle `tokens`
 (`hash`, `user_id`, `zweck`, `ablauf`, `benutzt_am`, `created_at`) samt Index
@@ -134,7 +165,7 @@ auf `user_id`. Nachgestellt an dieser Tabelle, nicht aus 0.8.70 abgeschrieben:
 `CREATE TABLE IF NOT EXISTS` legt eine fehlende **Tabelle** bei jedem Start an.
 Es bleibt bei **fünf** markierten Blöcken, und unter „Vorgemerkt für 1.0" kommt
 **nichts** dazu.
-**Ein Token trägt 32 Zufallsbytes; gespeichert wird nur sein SHA-256** — ohne
+**Stufe H im Einzelnen: ein Token trägt 32 Zufallsbytes; gespeichert wird nur sein SHA-256** — ohne
 Salz, damit die Zeile über den Primärschlüssel gefunden statt gesucht wird. Er
 gilt **sieben Tage** und **einmal**; beim Einlösen fallen alle Sitzungen dieses
 Zugangs **und alle übrigen offenen Links**. Abgelaufene Zeilen räumt
@@ -148,7 +179,7 @@ unverändert, die Namenshälfte fällt weg. Die Absage ist **eine einzige** für
 alle Fälle.
 **Die Einlöseseite ist ein Zustand der Anmeldeseite**, erreicht über
 `#/einladung/<schlüssel>` — das Fragment geht nie an den Server.
-**`F_ROUTEN` geht von 51 auf 56**, die Formatnummer bleibt bei **10**.
+**`F_ROUTEN` ging von 51 auf 56**, die Formatnummer blieb bei **10**.
 40 Gegenproben.
 
 **0.8.71 davor** — Fingerprint **`1b03fabf`**, 2398
@@ -366,9 +397,16 @@ Datenbankstufe ist sie der einzige Weg zurück — siehe oben. Sie gehört
 **zwischen** `docker compose down` und alles Weitere: eine Sicherung, die
 neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
 
-**Für 0.8.80 gilt sie als PFLICHT.** Die Runde fasst das Schema an — sie ist
+**Für 0.8.90 gilt sie als PFLICHT.** Die Runde fasst das Schema an — sie ist
 eine Datenbankstufe, auch ohne Migrationsblock —, und ein Downgrade ist damit
 keine reine Dateikopie mehr.
+*Genau genommen stört ein Downgrade auf 0.8.80 wenig: eine zusätzliche Tabelle
+sieht eine ältere Version gar nicht an, die Exportdatei behält Format 10, und
+`OEFFENTLICHE_ADRESSE` wird von ihr schlicht nicht gelesen. Was verloren geht,
+sind die Protokollzeilen — sie bleiben zwar stehen, aber niemand zeigt sie.
+Die Sicherung ist der Weg, der ohne diese Fußnoten auskommt.*
+
+**Für 0.8.80 galt sie aus demselben Grund.**
 *Genau genommen stört ein Downgrade auf 0.8.71 wenig: eine zusätzliche Tabelle
 sieht eine ältere Version gar nicht an, und die Exportdatei behält ihr Format
 10. Aber jeder Zugang, der über einen Link angelegt und noch nicht eingelöst
@@ -378,8 +416,12 @@ hat keinen Weg, ihm einen neuen Link zu geben. Für ihn hilft dann nur
 ohne diese Fußnoten auskommt.*
 
 **Seit 0.8.70 gibt es die Sicherung auch auf Knopfdruck**, im Systembereich
-unter „Sicherung" — der bequemere der beiden Wege, und er läuft, ohne die
-Anlage anzuhalten. **Er ersetzt die Zeile oben aber nicht vollständig:** die
+unter „Sicherung" — der bequemere der beiden Wege. **Während die Kopie
+entsteht, steht die Anlage still**; die Karte sagt es vorher mit einer
+Schätzung in Sekunden (rund 20 ms je MB). *Bis Revision 18 stand hier das
+Gegenteil — ein Fehler dieses Papiers: `VACUUM INTO` läuft synchron auf der
+einen Verbindung, und Abschnitt 4, die README und die Karte selbst sagen es
+richtig.* **Er ersetzt die Zeile oben aber nicht vollständig:** die
 Kopie ist verschlüsselt und **ohne die `.env` wertlos**. Wer sich auf den Knopf
 verlässt, sichert die `.env` getrennt — und legt beides ausdrücklich **nicht**
 in dieselbe Ablage.
@@ -502,8 +544,10 @@ einen Link gesetzt wird**. Ohne Anmeldung ist außer dem
 öffentlichen Titel nichts sichtbar — auch die Schnittstellen liefern nichts
 aus, Fotos und Export eingeschlossen. Sitzung 30 Tage, Cookie mit
 `HttpOnly`/`SameSite=Lax`. Die Anmeldebremse zählt je IP (weich ab fünf
-Fehlversuchen, hart ab zehn für fünf Minuten) und zusätzlich je Benutzername —
-dort nur verzögernd, nie sperrend.
+Fehlversuchen, hart **ab dem elften** für fünf Minuten — der Zähler wird
+gelesen, bevor er erhöht wird, Stolperstein 124) und zusätzlich je
+Benutzername — dort nur verzögernd, nie sperrend. **Seit 0.8.90 greift dieselbe
+Bremse auch hinter der Anmeldung**, an der zweiten Bestätigung.
 
 **DER LINK STATT DES GESAGTEN PASSWORTS — seit 0.8.80 (Stufe H).** Ein Zugang
 entsteht auf zwei Wegen, und die Karte „Zugänge" bevorzugt den zweiten:
@@ -625,6 +669,133 @@ Wirt voraus und ist deshalb kein Umweg um die Anmeldung.
 kein Eigentümer mehr anmelden kann. **`AUTH_RESET`, `AUTH_USER` und
 `AUTH_PASSWORD` werden nicht gelesen**; stehen sie noch in der `.env`, meldet
 der Start sie als entfernbar.
+
+**WAS DIE ANLAGE ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTÄTIGT — seit
+0.8.90.** Sieben Wege über sechs Routen verlangen das Passwort des
+Angemeldeten noch einmal:
+
+| Weg | Route |
+|---|---|
+| Export | `GET /api/export` |
+| Import | `POST /api/import` |
+| Rolle vergeben | `PUT /api/users/:id` (nur mit `rolle` im Rumpf) |
+| Fremdes Passwort setzen | `PUT /api/users/:id` (nur mit `passwort` im Rumpf) |
+| Link erzeugen | `POST /api/users/:id/token` |
+| Zugang entfernen | `DELETE /api/users/:id` |
+
+**Wogegen das verteidigt, ist nicht der Fremde**, sondern eine **fremde offene
+Sitzung**. Deshalb ist die Bestätigung an **die Sitzung** gebunden und nicht an
+den Menschen: eine zweite offene Sitzung desselben Zugangs muss selbst
+bestätigen.
+
+**Was ausdrücklich NICHT dahinter liegt, und es ist entschieden, nicht
+vergessen:** Sperren und Freigeben (umkehrbar, und ein gesperrter Zugang ist
+nicht die Anlage), einen Zugang **anlegen** (er ist neu und nimmt niemandem
+etwas — auch mit Einladungslink), der eigene Zugang (dort ist das bisherige
+Passwort seit 0.5.0 ohnehin Pflicht) und alles am Eintrag. **`POST /api/setup`
+erst recht** — dort gibt es kein bisheriges Passwort.
+
+**DIE FORM: EINE FREIGABE IM ARBEITSSPEICHER, KEIN SCHEMA.**
+
+| | |
+|---|---|
+| Woher | `POST /api/bestaetigung` mit `{ passwort, zweck, ziel }` |
+| Wo sie liegt | im Arbeitsspeicher, neben `attempts` der Anmeldebremse |
+| Gebunden an | **Sitzungstoken + Zweck + Ziel** |
+| Haltbarkeit | **120 Sekunden** |
+| Gültigkeit | **genau einmal** |
+| Beim Abmelden | fällt sie mit |
+| Absage | *„Das Passwort stimmt nicht."* — **403**, nie 401 |
+
+**Warum nicht im Rumpf der Handlung selbst**, was die schönere Form wäre: an
+zwei der sieben Wege geht es nicht auf. `GET /api/export` ist eine
+**Browsernavigation** — die Datei läuft damit an der Platte vorbei statt
+vollständig im Speicher zu stehen, und ein Rumpf ist dort baulich unmöglich.
+Und bei `POST /api/import` steht der Wächter ausdrücklich **vor multer**, damit
+die bis zu 900 MB große Datei eines Fremden gar nicht erst eingelesen wird; ein
+Passwort im Multipart-Rumpf wäre erst danach lesbar. Der Preis der gewählten
+Form ist benannt: es **ist** Zustand, und es gibt eine Frist. Er wiegt weniger
+als ein Export im Speicher des Browsers und ein Wächter, der hinter multer
+rutscht.
+
+**Die Rechtefrage steht VOR der Bestätigungsfrage.** Wer ohnehin nicht darf,
+erfährt das — und wird nicht erst nach seinem Passwort gefragt.
+
+**Die Anmeldebremse greift, dieselbe wie überall**, je Adresse und je Name.
+Ohne sie wäre die Bestätigungsroute ein Weg, ein Passwort ungebremst
+durchzuprobieren — und zwar **hinter** der Anmeldung, wo niemand hinsieht.
+**Die Absage ist hier klar und deutlich, anders als bei den Token aus 0.8.80**,
+und der Unterschied gehört benannt: dort wusste der Server nicht, wer fragt,
+und die eine verschleierte Absage schützte vor dem Durchprobieren. Hier ist der
+Fragende angemeldet und namentlich bekannt — eine verschleierte Absage schützte
+niemanden und verwirrte nur.
+
+**DAS SICHERHEITSPROTOKOLL — seit 0.8.90.** Es hält fest, **wer Zugang hatte
+und wer die Anlage als Ganzes angefasst hat**. Es ist **kein
+Änderungsverlauf**: kein Eintragstitel, kein Kommentartext, keine Bewertung,
+keine Note. Dieselbe Trennlinie wie überall.
+
+**Vierzehn Vorgänge:** Anmeldung gelungen, Anmeldung gescheitert, Bestätigung
+gescheitert, Zugang angelegt, Rolle vergeben, Zugang gesperrt/freigegeben,
+fremdes Passwort gesetzt, Zugang entfernt, eigener Zugang geändert, Link
+erzeugt, Link eingelöst, Export, Import, Sicherung.
+
+| | |
+|---|---|
+| Was in einer Zeile steht | Zeitpunkt, was, wer, an wem, ein kurzes Merkmal |
+| Was **nicht** darin steht | Namen, Freitext, IP-Adresse, Browserkopf, Schlüssel |
+| Wer es sieht | **der Eigentümer allein** |
+| Wie lange | **180 Tage**, geräumt beim Start und beim Öffnen der Karte |
+| Weg hinaus | **nur die Frist** — es gibt keine Löschroute |
+
+**Keine Namensspalte, obwohl sie verlockt:** `entferneZugang()` überschreibt
+`username`, und eine hier aufbewahrte Kopie wäre die eine Stelle im Projekt,
+die den Grabstein rückgängig macht. Gespeichert werden Nummern; ein entfernter
+Zugang erscheint wie überall als „Gelöschter Benutzer 7".
+**`wer` und `ziel` sind die Feststellung eines Vorgangs**, so wie
+`papierkorb.geloescht_von` — daran hängt kein Recht, und beide stehen
+ausdrücklich **nicht** in `ordneBestandZu()`. Es sind die achte und die neunte
+Spalte dieser Art.
+**Ein leeres `wer` heißt „über `zugang.js` auf dem Wirt"** — mit genau einer
+Ausnahme, und die ist am Vorgang zu erkennen: bei einer gescheiterten Anmeldung
+war niemand angemeldet. Ein eigenes Feld für die Herkunft wäre eine zweite
+Wahrheit daneben.
+
+**Die gescheiterte Anmeldung ist die einzige Zeile, die ein Fremder auslösen
+kann** — und damit die einzige, mit der sich die Tabelle von außen
+vollschreiben ließe. **Ihr Deckel ist die Bremse, die es schon gibt:**
+geschrieben wird nur, wenn die Anfrage die Passwortprüfung wirklich erreicht
+hat; der gesperrte Fall schreibt nichts. Damit sind es höchstens **zehn Zeilen
+je Adresse und Sperrzeit**, und die Obergrenze ist eine Eigenschaft der Anlage
+statt einer Regel, die jemand durchsetzen müsste. Der Preis, ehrlich benannt:
+verteiltes Raten aus vielen Adressen schreibt weiterhin viele Zeilen — die
+Frist trägt es, und die ersten zehn je Adresse sind die Spur, auf die es
+ankommt. **Der getippte Name wird nie gespeichert**; `ziel` trägt eine Nummer
+nur, wenn der Name einen vorhandenen Zugang traf.
+
+**`zugang.js` bleibt der Notweg ohne Rechtefrage** — Zugriff auf den Wirt *ist*
+die Berechtigung. **Aber seine drei schreibenden Befehle stehen im Protokoll**,
+sonst hätte ausgerechnet der Weg, den man hinterher nachlesen möchte, als
+einziger keine Spur.
+
+**DIE ÖFFENTLICHE ADRESSE — `OEFFENTLICHE_ADRESSE`, seit 0.8.90, optional.**
+Den Einladungslink baut weiterhin **der Browser des Admins** aus `location`;
+das ist die Vorgabe und braucht keine Einstellung. Es hat eine Bruchstelle: die
+Adresse, unter der der Admin zugreift, ist nicht immer die, die der Empfänger
+benutzen soll. Ist der Wert gesetzt, gibt der Server den fertigen Link heraus
+(`link` und `linkQuelle`), und der Linkkasten sagt in einer Zeile darunter,
+**woher** die Adresse kam.
+Geprüft wird über `new URL`: Schema (nur `http`/`https`) und Rechnername sind
+Pflicht, ein Pfad ist erlaubt, ein abschließender Schrägstrich fällt, und
+Zugangsdaten, `?` und `#` werden abgewiesen. **Ein unbrauchbarer Wert bricht
+den Start nicht ab**, sondern meldet sich laut und fällt auf den Browserweg
+zurück — dieselbe Form wie bei `AUTH_RESET` und beim fehlenden Sicherungsort.
+`http://` bei gesetztem `HINTER_PROXY` ist ein Widerspruch und bekommt eine
+**Warnung, keine Absage**: ein falscher Link ist ein toter Link, kein Verlust.
+**In `GET /api/config` steht sie nicht** — der Endpunkt liegt vor der
+Anmeldung. **Sie gehört in die `.env` und nicht in `settings`**, dieselbe Linie
+wie `HINTER_PROXY`: sie entscheidet über Netzwerkvertrauen, nicht über eine
+Vorliebe. Der Systembereich **zeigt** sie, er setzt sie nicht.
 
 **Beim Entfernen eines Zugangs gehen seine Sitzungen, offenen Links, Favoriten
 und persönlichen Einstellungen ausdrücklich mit weg** — sie sagen niemandem
@@ -834,6 +1005,20 @@ Schlüssel. **Die Rollenteilung steht an beiden Karten:** `VACUUM INTO` ist der
 Formatwechsel und braucht keinen Schlüssel, die Kopie ist dafür vollständig und
 konstant im Speicherbedarf.
 
+**Das Sicherheitsprotokoll** (seit 0.8.90): eine **breite** Karte beim
+Eigentümer, unter „Zugänge". Sie zeigt die hundert jüngsten von insgesamt N
+Vorgängen, je Zeile Zeitpunkt, Vorgang, Handelnder, Ziel und Merkmal, die
+jüngste oben. Was sie **nicht** zeigt, steht in ihr selbst: keine Inhalte,
+keine Adresse, keine Browserkennung. Die Zeilen bleiben **180 Tage** stehen,
+und die Frist ist der einzige Weg hinaus. Sie wird **beim Aufbau des
+Systembereichs** geholt, wie jede andere Karte auch (Stolperstein 118).
+Einzelheiten in Abschnitt 3.
+
+**Die zweite Bestätigung** (seit 0.8.90): kein eigener Ort, sondern ein Fenster
+vor sieben Wegen — nach dem Muster von `confirmBox()`, mit einem Passwortfeld
+und dem Satz daneben, **warum** gefragt wird. Ein Passwortfeld ohne Begründung
+sieht aus wie eine Schikane. Welche Wege, steht in Abschnitt 3.
+
 **Einen einzelnen Eintrag als Datei** (seit 0.8.70): `GET /api/items/:id/export`
 liefert dieselbe Form wie der volle Export, nur mit einem Eintrag — Formatnummer
 unverändert **10**, und alles geht mit. Wo die Datei die Stringgrenze sprengen
@@ -861,6 +1046,41 @@ beim Ausliefern.
 ## 5. Entscheidungen, die nicht rückgängig gemacht werden sollen
 
 Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
+
+- **Die zweite Bestätigung ist an die SITZUNG gebunden, nicht an den Menschen**
+  (seit 0.8.90). Verteidigt wird gegen eine **fremde offene Sitzung** — nicht
+  gegen einen Fremden, der kommt ohne Passwort gar nicht herein. Eine zweite
+  offene Sitzung desselben Zugangs muss deshalb selbst bestätigen, und mit dem
+  Abmelden fällt die Freigabe. *Wer die Bindung je an den Benutzer hängt, hat
+  genau die Lage wieder offen, gegen die die Runde gebaut wurde.*
+- **Die Rechtefrage steht vor der Bestätigungsfrage** (seit 0.8.90). Wer
+  ohnehin nicht darf, erfährt das — und wird nicht erst nach seinem Passwort
+  gefragt. Gebaut ist das an den drei Verwaltungsrouten, wo `zielZugangFrei`
+  läuft, **bevor** die Bestätigung geprüft wird. *Die umgekehrte Reihenfolge
+  wäre ein Weg, an einer fremden Rolle zu prüfen, ob ein Passwort stimmt.*
+- **Die Bestätigung reist NICHT im Rumpf der Handlung** (seit 0.8.90). Die
+  schönere Form scheitert an zwei der sieben Wege: `GET /api/export` ist eine
+  Browsernavigation (kein Rumpf möglich, und in die Adresse gehört ein Passwort
+  nie), und der Wächter vor `POST /api/import` steht ausdrücklich **vor
+  multer**. Die Freigabe kann beides, weil sie **vor** der Handlung steht und
+  nicht in ihr. *Wer einen achten Weg ergänzt, nimmt dieselbe Form — nicht eine
+  zweite daneben.*
+- **Das Sicherheitsprotokoll führt keine Namen** (seit 0.8.90). Gespeichert
+  werden Nummern; aufgelöst wird beim Anzeigen über denselben Weg wie überall.
+  Eine Namensspalte wäre die eine Stelle im Projekt, die den Grabstein
+  rückgängig macht — „die Beiträge bleiben stehen, aber ohne den Namen" gilt
+  auch hier. **Und kein Freitext von außen:** `merkmal` trägt ausschließlich
+  Werte aus einer geschlossenen Liste im Quelltext, sonst landete früher oder
+  später ein ins falsche Feld getipptes Passwort in der Tabelle.
+- **Ein leeres `wer` im Protokoll heißt „über `zugang.js` auf dem Wirt"**
+  (seit 0.8.90) — mit genau einer Ausnahme, und die ist am Vorgang zu erkennen:
+  bei einer gescheiterten Anmeldung war niemand angemeldet. Ein eigenes Feld
+  für die Herkunft wäre eine zweite Wahrheit daneben.
+- **Die Obergrenze des Protokolls ist die Anmeldebremse, keine eigene Regel**
+  (seit 0.8.90). Die gescheiterte Anmeldung ist die einzige Zeile, die ein
+  Fremder auslösen kann; geschrieben wird nur, wenn die Anfrage die
+  Passwortprüfung wirklich erreicht hat. *Ein Deckel, den es nicht gibt, kann
+  nicht vergessen werden* — dieselbe Bauform wie beim gewichteten Mittel.
 
 - **Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung**
   (seit 0.8.20). Er darf nur geglaubt werden, wo ausdrücklich eingestellt ist,
@@ -1786,7 +2006,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_80.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_90.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -3043,6 +3263,31 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     dazu gehört der Abstand zu den gesperrten Nummern, und der wird
     ausgerechnet, nicht geschätzt.*
 
+128. **`PRAGMA rekey` läuft im WAL-Modus nicht.** *„Rekeying is not supported in
+    WAL journal mode."* — und `db.js` setzt `journal_mode = WAL` bei jedem
+    Öffnen. Ein Schlüsselwechsel muss also erst auf `DELETE` umschalten,
+    wechseln und danach zurückschalten. **Nachgestellt vor dem Bau**, und der
+    Befund hat die Form von Punkt 3 des Auftrags 0.8.90 geändert. *Was an einem
+    Pragma zweifelhaft ist, wird in zwanzig Zeilen nachgebaut — auch dann, wenn
+    schon jemand gesagt hat, es laufe.*
+
+129. **Eine liegengebliebene Freigabe trägt zwei Minuten lang.** Eine Prüfgruppe
+    holte eine Bestätigung und verbrauchte sie nicht; die nächste Gruppe lief
+    mit derselben Sitzung gegen einen Weg, der dadurch offen stand — „ohne
+    Bestätigung abgewiesen" war rot, ohne dass am Code etwas falsch war.
+    *Wo eine Prüflage kurzlebigen Zustand im Arbeitsspeicher hinterlässt,
+    beginnt die nächste mit einer frischen Sitzung.* Verwandt mit 60, aber
+    umgekehrt: dort ist der Zustand zu alt, hier zu jung.
+
+130. **Ein Rückbau, der eine Tabelle aus der DDL nimmt, reißt den Start ab
+    statt eine Prüfung rot zu färben.** `auth.js` bereitet seine Anweisungen
+    beim Laden vor; fehlt die Tabelle, startet die Anlage gar nicht. Die
+    Gegenprobe zu „die Tabelle legt sich selbst an" läuft deshalb über den
+    **Index**, und der Befund gehört daneben geschrieben: *die Anlage startet
+    ohne die Tabelle überhaupt nicht — das ist schärfer als die Prüfung, aber
+    es ist eine andere Aussage.* Verwandt mit 103, aber eigenständig: dort
+    reißt die Prüfzeile ab, hier der Gegenstand selbst.
+
 ---
 
 ## 7. Prüfstand
@@ -3055,7 +3300,22 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 2398 von 2398 bestanden** (0.8.71; 17 neue Prüfungen, 6
+**Zuletzt: 2903 von 2903 bestanden** (0.8.90; **237 neue Prüfungen, 24
+Gegenproben, elf neue Gruppen**: „Das Sicherheitsprotokoll: die Tabelle legt
+sich selbst an", „… eine Zeile je Vorgang", „… kein Geheimnis in einer Zeile",
+„… die Frist an beiden Seiten", „… das Aufräumen an beiden Aufrufstellen",
+„… wer es sehen darf", „Die zweite Bestätigung: die Freigabe selbst",
+„… jeder schwere Weg einzeln", „… was NICHT dahinter liegt", „… die Bremse
+greift auch dahinter", „Die öffentliche Adresse: die Prüfung des Werts",
+„… beide Zustände am Server", „zugang.js schreibt ins Sicherheitsprotokoll" und
+die drei Oberflächengruppen. Die übrigen sind Erweiterungen vorhandener
+Gruppen: `F_ROUTEN` samt Zahl und der neuen Art `'zweitbestaetigt'`, der
+Wortwächter über „Protokoll", der Wächter gegen „Re-Authentifizierung" in
+ausgelieferten Dateien, der Wächter, dass keine Zeile den Anfragerumpf ausgibt,
+und die Kartenzahl im Systembereich.
+**Die Gegenproben haben zwei Befunde gebracht** — Stolperstein 129 und 130.
+Davor 0.8.80; 263 neue Prüfungen, 40 Gegenproben, vierzehn neue Gruppen.
+Davor 0.8.71; 17 neue Prüfungen, 6
 Gegenproben, **keine neue Gruppe** — die Lage des Sicherungsorts gehört zu dem,
 was schon geprüft wird, und eine eigene Gruppe hätte sie davon getrennt.
 Serverseitig liefert `GET /api/sicherung` das Feld `imArbeitsverzeichnis` in
@@ -3453,6 +3713,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.70 | Sicherung und Papierkorb — alle drei Punkte (294) | 38 | Stolpersteine 117 bis 121 |
 | 0.8.71 | 17 | 6 | Stolperstein 123 |
 | 0.8.80 | Stufe H — alle vier Punkte (263) | 40 | Stolpersteine 124 bis 127 |
+| 0.8.90 | Protokoll, zweite Bestätigung, öffentliche Adresse (237) | 24 | Stolpersteine 128 bis 130 |
 
 **Aus 0.8.80 (Stufe H):** der **Rundlauf** ist die tragende Prüfung — einladen,
 Link, Formular, Passwort, Anmeldung, und **derselbe Link ein zweites Mal
@@ -3643,7 +3904,9 @@ sind zwei Dinge:
   Dateikopie — zum ersten Mal seit 0.8.30. Die nächste Pflicht ist **0.8.70**.
 - **Nach jedem Einspielen lohnt ein Blick ins Protokoll:** der Start meldet
   den Eigentümer, `.env`-Reste, seit 0.8.20 die Betriebsart („Hinter Proxy:
-  an/aus"), — falls je nötig — die Zuordnung herrenlosen Bestands
+  an/aus"), seit 0.8.90 die **öffentliche Adresse** („Oeffentliche Adresse:
+  … / nicht gesetzt") und — falls Zeilen herausfallen — das Aufräumen des
+  Sicherheitsprotokolls, — falls je nötig — die Zuordnung herrenlosen Bestands
   („Bestand ohne Benutzer dem Eigentuemer zugeordnet") und, **einmalig beim
   Migration auf 0.8.30**, die Zeile „links um user_id ergaenzt". Beim zweiten
   Start ist sie weg; das ist richtig so.
@@ -3669,6 +3932,15 @@ sind zwei Dinge:
 ---
 
 ## 9. Versionsgeschichte
+
+**0.8.90 — „Schwere Eingriffe".** Keine Stufe des Mehrbenutzerbetriebs, aber
+eine Datenbankstufe ohne Migrationsblock. Die **zweite Bestätigung** vor sieben
+schweren Wegen, das **Sicherheitsprotokoll** mit vierzehn Vorgängen und 180
+Tagen Frist, die optionale **öffentliche Adresse** in der `.env`.
+`F_ROUTEN` 56 → 57 samt der neuen Art `'zweitbestaetigt'`, sechzehn Karten
+werden siebzehn, Formatnummer unverändert 10, keine neue Abhängigkeit.
+**Der Schlüsselwechsel ist nicht gebaut** und liegt auf 0.8.91.
+2903 Prüfungen, 24 Gegenproben, Stolpersteine 128 bis 130.
 
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.
@@ -4051,31 +4323,44 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.70** | Sicherung und Papierkorb | `VACUUM INTO` auf Knopfdruck (Punkt 8), Papierkorb, einzelnen Eintrag exportieren | ja, **ohne Migrationsblock** | — |
 | **0.8.71** | *(keine Stufe)* Der Sicherungsort zieht um | in das Projektverzeichnis, dazu die rot/grüne Anzeige, wie er liegt — benannt, nicht verboten | nein | — |
 | **0.8.80** | **Stufe H** — Tokens (**erledigt**) | Einladung und Rücksetzung über einen Link, dazu „Meine Sitzungen" | ja, **ohne Migrationsblock** | — |
-| **0.8.90** | Schwere Eingriffe | Re-Authentifizierung, Sicherheitsprotokoll, Schlüssel wechseln | ja | — |
+| **0.8.90** | Schwere Eingriffe (**erledigt**) | zweite Bestätigung, Sicherheitsprotokoll, öffentliche Adresse | ja, **ohne Migrationsblock** | — |
+| **0.8.91** | *(keine Stufe)* Der Schlüssel lässt sich wechseln | `PRAGMA rekey` samt Journalumschaltung, `.env`-Fall und Dateifall, die alten Sicherungen | nein | — |
 | **0.9.0** | **Stufe I** — Mailversand und Selbstanmeldung | siehe Konzeptpapier | ja | — |
 | **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
 | **0.9.20** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen | ja | — |
 | **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
-**0.8.10 bis 0.8.80 sind gebaut** — Einzelheiten in Abschnitt 2 und
+**0.8.10 bis 0.8.90 sind gebaut** — Einzelheiten in Abschnitt 2 und
 Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit 0.8.3** gefahren,
 mit 0.8.31 die zweite, mit 0.8.40 die dritte, mit 0.8.50 die vierte, mit
-0.8.70 die fünfte und mit **0.8.80 die sechste**; bei allen sechs steht die
-Sicherung des Datenverzeichnisses als **Pflicht** im Einspielweg (Abschnitt 2).
+0.8.70 die fünfte, mit 0.8.80 die sechste und mit **0.8.90 die siebte**; bei
+allen sieben steht die Sicherung des Datenverzeichnisses als **Pflicht** im
+Einspielweg (Abschnitt 2).
 **0.8.60 und 0.8.71 sind die einzigen Runden seit 0.8.20, die das Schema nicht
 angefasst haben.**
 
 **0.8.70 ist die erste Datenbankstufe OHNE Migrationsblock, 0.8.80 die
-zweite.** Beide bringen neue **Tabellen**, und `CREATE TABLE IF NOT EXISTS`
-legt eine fehlende Tabelle bei jedem Start an — in 0.8.80 an `tokens` erneut
-nachgestellt statt abgeschrieben. Es bleibt bei **fünf** markierten Blöcken,
-und unter „Vorgemerkt für 1.0" kommt **nichts** dazu.
+zweite, 0.8.90 die dritte.** Alle drei bringen neue **Tabellen**, und
+`CREATE TABLE IF NOT EXISTS` legt eine fehlende Tabelle bei jedem Start an — in
+0.8.90 an `sicherheitsprotokoll` zum dritten Mal nachgestellt statt
+abgeschrieben, samt der Gegenlage, dass eine **Spalte** nicht nachwächst. Es
+bleibt bei **fünf** markierten Blöcken, und unter „Vorgemerkt für 1.0" kommt
+**nichts** dazu.
 
-**Als Nächstes 0.8.90 — Schwere Eingriffe.** *Diese Runde arbeitet ihr vor:*
-`tokens.benutzt_am` ist der erste Eintrag, den ein Sicherheitsprotokoll führen
-wollte, und die Re-Authentifizierung stellt dieselbe Frage wie Punkt 3 dieser
-Runde — was darf eine Route sagen, bevor sie weiß, wer fragt.
+**Als Nächstes 0.8.91 — der Schlüsselwechsel, und er ist eine eigene Runde.**
+Er war Punkt 3 des Auftrags 0.8.90 und ist dort **bewusst herausgenommen
+worden**, mit drei Gründen: er ist der einzige Knopf im ganzen Projekt, der bei
+falscher Handhabung **alles** verliert; er hat beim Nachstellen seine Form
+geändert (**Stolperstein 128** — `PRAGMA rekey` läuft im WAL-Modus nicht); und
+er braucht einen eigenen Einspielweg samt Wegwerfanlage auf dem Server. Die
+Runde 0.8.90 war mit Protokoll, Bestätigung und Adresse bereits so breit wie
+0.8.80. *Der Stufenplan trägt das ohne Verschiebung: die neun Nummern zwischen
+zwei Stufen sind genau dafür da, und 0.8.31 hat es schon einmal getragen.*
+**Was 0.8.90 ihm vorgearbeitet hat:** die zweite Bestätigung steht bereit — der
+Schlüsselwechsel bekommt sie als achten Weg —, und das Sicherheitsprotokoll
+bekommt seinen fünfzehnten Vorgang. *Eine Protokollzeile nennt, DASS gewechselt
+wurde, nie WOHIN.*
 **Teil I des Videopapiers ist mit 0.8.50 abgearbeitet;** Teil II bleibt auf
 1.1.0 und teilt mit Teil I keinen Code außer der Positivliste der Formate —
 **und seit 0.8.70 eine Vorgabe zum Papierkorb**: eine Datei über rund 950 MB
@@ -4130,7 +4415,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_80.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_90.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.
@@ -4559,12 +4844,12 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   Browser vor dem Hochladen. Wer später einen Umkodierer vorschlägt,
   verhandelt damit eine neue Abhängigkeit von der Größe des halben Images —
   die Antwort auf ein nicht abspielbares Format ist der Anhang.
-- **Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt**
-  (ab 0.8.90). Export, Import, Rolle vergeben, fremdes Passwort zurücksetzen,
-  Zugang entfernen, Schlüssel wechseln. Die Grenze ist nicht „gefährlich",
-  sondern dieselbe, an der schon die Eigentümerrolle liegt. `aendereZugang()`
-  wendet das Prinzip längst an („das bisherige Passwort ist Pflicht — sonst
-  genügte eine fremde offene Sitzung"); es fehlt nur bei den schweren Wegen.
+- **Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt** —
+  **mit 0.8.90 eingelöst** (Abschnitt 3). Was davon als Regel weitergilt:
+  *die Rechtefrage steht vor der Bestätigungsfrage*, und *eine Bestätigung ist
+  an die Sitzung gebunden, nicht an den Menschen*. **Der Schlüsselwechsel ist
+  der eine Weg der Liste, der noch fehlt** — er kommt mit 0.8.91 als achter
+  dazu und bekommt dabei keine neue Form, sondern die vorhandene.
 - **Wer eine Datei aus dem Bestand baut, denkt an die Stringgrenze**
   (seit 0.8.70). Eine Exportdatei ist **ein** String, und Node hält keinen über
   512 MB. Der volle Export hält mit den Schaltern dagegen, der Einzelexport mit
@@ -4582,33 +4867,17 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   bis auf Weiteres die **einzige** Stelle, an der der Server an einen Ort
   schreibt, den jemand angeben darf; wer eine zweite baut, nimmt `pruefeOrt()`
   zum Vorbild und schreibt die Regel nicht ein zweites Mal hin.
-- **Die öffentliche Adresse gehört in die `.env`, nicht in `settings`**
-  (beschlossen, gebaut ab 0.8.90). Seit 0.8.80 baut der **Browser des Admins**
-  den Einladungslink aus `location`; das ist sicher und braucht keine
-  Einstellung. Es hat aber eine Bruchstelle: **die Adresse, unter der der Admin
-  zugreift, ist nicht immer die, die der Empfänger benutzen soll.** Dagegen
-  kommt `OEFFENTLICHE_ADRESSE` — **optional**, leer heißt „wie bisher, der
-  Browser baut". Gesetzt gibt der Server den fertigen Link heraus, und die
-  Oberfläche sagt daneben, **woher** die Adresse kam.
-  **Warum `.env` und nicht der Systembereich, obwohl es dort bequemer wäre:**
-  dieselbe Linie wie `HINTER_PROXY` — sie entscheidet über Netzwerkvertrauen,
-  nicht über eine Vorliebe. Der Hebel liegt in der Rollenleiter: ein Admin
-  kommt nicht an einen anderen Admin oder den Eigentümer. Dürfte er die
-  öffentliche Adresse setzen, zeigte ab Stufe I **jede verschickte
-  Rücksetzmail** auf seinen Server — auch die, die sich der Eigentümer selbst
-  anfordert. *Eine Einstellung, die in der einen Stufe harmlos und in der
-  nächsten gefährlich ist, gehört von Anfang an dorthin, wo sie hingehört.*
-  **Der Systembereich zeigt sie, setzt sie nicht** — und zwar dort, wo der Link
-  entsteht, nicht in der Karte „Titel": die beiden Titel sind reine Anzeige und
-  werden frei getippt, die Adresse ist die Sorte, die man nur beim Einrichten
-  anfasst. **Ab Stufe I ist sie Pflicht**, denn dort verschickt der Server
-  selbst: *wer den Link von Hand weitergibt, hat einen Browser, der die Adresse
-  kennt; wer ihn verschicken lässt, hat keinen.*
-- **Ein Sicherheitsprotokoll ist kein Änderungsverlauf** (ab 0.8.90). Die
-  Entscheidung gegen den Änderungsverlauf gilt **Inhalten**. Das Protokoll
-  hält fest, wer Zugang hatte und wer die Anlage als Ganzes angefasst hat —
-  kein Eintragstitel, kein Kommentartext, keine Bewertung. Dieselbe Trennlinie
-  wie überall: was die Anlage betrifft, nicht was jemand gesagt hat.
+- **Ein Sicherheitsprotokoll ist kein Änderungsverlauf** — **mit 0.8.90
+  eingelöst** (Abschnitt 3). Was davon als Regel weitergilt: *was die Anlage
+  betrifft, gehört hinein; was jemand gesagt hat, nicht*, und *eine Spalte, die
+  einen Vorgang feststellt, ist keine Zugehörigkeit* — sie gehört nicht in
+  `ordneBestandZu()`. **Wer einen Vorgang ergänzt**, trägt ihn in `VORGAENGE`
+  ein und entscheidet, ob er ein Merkmal aus der geschlossenen Liste braucht;
+  **Freitext von außen kommt in diese Tabelle nicht hinein.**
+- **Die öffentliche Adresse gehört in die `.env`** — **mit 0.8.90 eingelöst**
+  (Abschnitt 3). **Ab Stufe I ist sie Pflicht**, denn dort verschickt der
+  Server selbst: *wer den Link von Hand weitergibt, hat einen Browser, der die
+  Adresse kennt; wer ihn verschicken lässt, hat keinen.*
 
 ---
 
