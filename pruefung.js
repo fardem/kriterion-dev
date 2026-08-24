@@ -5866,6 +5866,929 @@ const namen = (liste) => liste.map(c => c.name);
   fs.rmSync(sbDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
+  gruppe('Der Token: die Tabelle legt sich selbst an');
+
+  /* NACHGESTELLT STATT ABGESCHRIEBEN. 0.8.70 hat belegt, dass
+     CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start anlegt --
+     Stolperstein 13 gilt der SPALTE. Ein Beleg aus der Vorrunde ist ein guter
+     Grund, es zu erwarten; kein Grund, es an DIESER Tabelle nicht zu pruefen.
+     Traegt die Probe, bleibt es bei fuenf markierten Migrationsbloecken und
+     es kommt kein Eintrag unter "Vorgemerkt fuer 1.0" dazu. */
+  {
+    const tkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-tokentab-'));
+    kurzlauf(`require('./db'); console.log('da');`, tkDir);
+    const tkDatei = path.join(tkDir, 'katalog.sqlite');
+    const tkTabellen = () => {
+      const d = oeffne(tkDatei);
+      const n = d.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(z => z.name);
+      d.close();
+      return n;
+    };
+    const tkFrisch = tkTabellen();
+    pruefe('Eine frische Anlage traegt tokens ohne Migration',
+      tkFrisch.includes('tokens'), JSON.stringify(tkFrisch));
+
+    {
+      const d = oeffne(tkDatei);
+      d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
+      d.prepare(`INSERT INTO tokens (hash, user_id, zweck, ablauf)
+                 VALUES ('abc', 1, 'einladung', datetime('now', '+7 days'))`).run();
+      d.exec('DROP TABLE tokens');
+      d.close();
+    }
+    const tkOhne = tkTabellen();
+    pruefe('Von Hand entfernt ist sie wirklich weg',
+      !tkOhne.includes('tokens'), JSON.stringify(tkOhne));
+
+    kurzlauf(`require('./db'); console.log('da');`, tkDir);
+    const tkWieder = tkTabellen();
+    pruefe('Ein einziger Start legt tokens wieder an',
+      tkWieder.includes('tokens'), JSON.stringify(tkWieder));
+    {
+      const d = oeffne(tkDatei);
+      const spalten = d.prepare('PRAGMA table_info(tokens)').all().map(c => c.name);
+      pruefe('Sie traegt alle sechs Spalten',
+        gleich(spalten, ['hash', 'user_id', 'zweck', 'ablauf', 'benutzt_am', 'created_at']),
+        JSON.stringify(spalten));
+      const idx = d.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='tokens'")
+        .all().map(z => z.name);
+      pruefe('Und den Index auf den Benutzer, ebenfalls ohne Migration',
+        idx.includes('idx_tokens_user'), JSON.stringify(idx));
+      /* UND DIE ANDERE HAELFTE DERSELBEN ENTSCHEIDUNG: users bekommt KEINE
+         Spalte. Ein Zustand 'eingeladen' waere ein vierter neben aktiv,
+         gesperrt und geloescht -- und jede Stelle, die status liest, muesste
+         ihn kennen. Gezaehlt wird gegen eine feste Liste, nicht gegen
+         "enthaelt nicht eingeladen": so faellt auch jede andere neue Spalte
+         auf. sessions ebenso -- die Kennung wird gerechnet, nicht gespeichert. */
+      const uSpalten = d.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+      pruefe('users traegt unveraendert genau seine acht Spalten',
+        gleich(uSpalten, ['id', 'username', 'password_hash', 'role', 'email',
+                          'status', 'last_login', 'created_at']),
+        JSON.stringify(uSpalten));
+      const sSpalten = d.prepare('PRAGMA table_info(sessions)').all().map(c => c.name);
+      pruefe('sessions traegt unveraendert genau seine vier Spalten',
+        gleich(sSpalten, ['token', 'user_id', 'created_at', 'last_seen']),
+        JSON.stringify(sSpalten));
+      d.close();
+    }
+    /* DIE GEGENLAGE, wie in der Vorrunde: eine SPALTE kommt nicht von selbst
+       zurueck. Ohne sie belegte die Probe nur, dass irgendetwas nachwaechst.
+       Genommen wird users.email -- sie traegt keinen Migrationsblock. */
+    {
+      const d = oeffne(tkDatei);
+      d.pragma('foreign_keys = OFF');
+      d.exec('ALTER TABLE users DROP COLUMN email');
+      const ohneSpalte = d.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+      d.close();
+      pruefe('Die Spalte ist von Hand entfernt',
+        !ohneSpalte.includes('email'), JSON.stringify(ohneSpalte));
+    }
+    let tkNachStart = [];
+    try {
+      kurzlauf(`require('./db'); console.log('da');`, tkDir);
+      const d = oeffne(tkDatei);
+      tkNachStart = d.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+      d.close();
+    } catch { tkNachStart = ['(Start gescheitert)']; }
+    pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
+      !tkNachStart.includes('email'), JSON.stringify(tkNachStart));
+
+    fs.rmSync(tkDir, { recursive: true, force: true });
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Token: der Rundlauf');
+
+  /* DIE TRAGENDE PRUEFUNG DER RUNDE: Admin laedt ein -> der Link fuehrt zum
+     Formular -> das Passwort wird gesetzt -> die Anmeldung gelingt -> DERSELBE
+     LINK EIN ZWEITES MAL GELINGT NICHT.
+
+     FUENF ZUGAENGE, und jeder steht fuer eine Lage:
+       anna  (1) Eigentuemerin -- sie darf an jeden.
+       bert  (2) Admin OHNE Eigentuemerrolle -- er darf an Benutzer und sonst
+                 an niemanden. Ohne ihn liesse sich "Eigentuemer" von "Admin"
+                 gar nicht unterscheiden.
+       carla (3) gewoehnliche Benutzerin -- sie darf gar nichts.
+       dora  (4) gewoehnliche Benutzerin MIT Passwort -- Ziel der Ruecksetzung.
+       erna  (5) angelegt OHNE Passwort -- Ziel der Einladung.
+     Dazu ein Grabstein (6) und ein gesperrter Zugang (7). */
+  const tkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-token-'));
+  // Ein echter scrypt-Wert, damit sich dora auch wirklich anmelden kann --
+  // ein Fantasiewert liesse jede Anmeldung scheitern und die Prueflage waere
+  // von einer kaputten nicht zu unterscheiden.
+  const TK_PASSWORT = 'doras-passwort';
+  let tkHash;
+  {
+    tkHash = kurzlauf(
+      `require('./auth').hashePasswort(${JSON.stringify(TK_PASSWORT)}).then(h => console.log(h));`, tkDir);
+    kurzlauf(`require('./db'); console.log('da');`, tkDir);
+    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    const ein = (name, rolle, status, hash) =>
+      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, ?, ?)')
+        .run(name, hash, rolle, status);
+    ein('anna', 'eigentuemer', 'aktiv', 'x');
+    ein('bert', 'admin', 'aktiv', 'x');
+    ein('carla', 'user', 'aktiv', 'x');
+    ein('dora', 'user', 'aktiv', tkHash);
+    ein('erna', 'user', 'aktiv', '');
+    ein('geloescht-6', 'user', 'geloescht', '');
+    ein('gustav', 'user', 'gesperrt', 'x');
+    for (const [t, u] of [['cookie-tk-anna', 1], ['cookie-tk-bert', 2], ['cookie-tk-carla', 3]])
+      d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
+    d.close();
+  }
+  const TK = starteWeiterenServer(tkDir, {}, 5960);
+  await TK.bereit;
+
+  const tkRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: {} };
+    if (cookieWert) opt.headers.cookie = `kriterion_session=${cookieWert}`;
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(TK.basis + pfad, opt);
+    let inhalt = null, roh = '';
+    try { roh = await a.text(); inhalt = JSON.parse(roh); } catch {}
+    return { status: a.status, inhalt, roh, cookie: (a.headers.get('set-cookie') || '') };
+  };
+  const tkZeilen = (sql, ...w) => {
+    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    const r = d.prepare(sql).all(...w);
+    d.close();
+    return r;
+  };
+
+  // 1. Der Admin laedt ein -- ein NEUER Zugang, ohne Passwort, in einem Zug.
+  const tkNeu = await tkRuf('cookie-tk-anna', 'POST', '/api/users',
+    { username: 'neuling', einladen: true });
+  pruefe('Der Admin legt einen Zugang mit Einladung an',
+    tkNeu.status === 200 && tkNeu.inhalt?.username === 'neuling',
+    `${tkNeu.status} ${tkNeu.roh}`);
+  pruefe('Und die Antwort sagt, dass er noch kein Passwort hat',
+    tkNeu.inhalt?.ohnePasswort === true, JSON.stringify(tkNeu.inhalt));
+  pruefe('Der Zugang steht in der Datenbank mit LEEREM Hash',
+    tkZeilen("SELECT password_hash h FROM users WHERE username = 'neuling'")[0]?.h === '',
+    JSON.stringify(tkZeilen("SELECT username, password_hash FROM users WHERE username = 'neuling'")));
+  const tkLink = tkNeu.inhalt?.token || '';
+  pruefe('Die Antwort traegt einen Schluessel aus 32 Zufallsbytes',
+    /^[0-9a-f]{64}$/.test(tkLink), JSON.stringify(tkLink));
+  pruefe('Und sie nennt die Frist von sieben Tagen',
+    tkNeu.inhalt?.tage === 7, JSON.stringify(tkNeu.inhalt?.tage));
+
+  // 2. Der Link fuehrt zum Formular -- und nennt dabei den Namen.
+  const tkPruef = await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkLink });
+  pruefe('Der Link fuehrt zum Formular',
+    tkPruef.status === 200 && tkPruef.inhalt?.username === 'neuling',
+    `${tkPruef.status} ${tkPruef.roh}`);
+  pruefe('Und das Formular weiss, dass noch kein Passwort dasteht',
+    tkPruef.inhalt?.ohnePasswort === true, JSON.stringify(tkPruef.inhalt));
+  pruefe('Der Mindestwert kommt vom Server, nicht aus der Oberflaeche',
+    tkPruef.inhalt?.minPassword === 10, JSON.stringify(tkPruef.inhalt?.minPassword));
+
+  // 3. Der Mindestwert gilt auch auf diesem Weg -- die Regel ist alt, der Weg neu.
+  const tkKurz = await tkRuf(null, 'POST', '/api/token/einloesen',
+    { token: tkLink, passwort: 'kurz' });
+  pruefe('Ein zu kurzes Passwort wird auch ueber den Link abgewiesen',
+    tkKurz.status === 400 && /mindestens 10/.test(tkKurz.inhalt?.error || ''),
+    `${tkKurz.status} ${tkKurz.roh}`);
+  pruefe('Und der Link ist danach noch nicht verbraucht',
+    tkZeilen("SELECT benutzt_am b FROM tokens WHERE user_id = (SELECT id FROM users WHERE username='neuling')")[0]?.b === null,
+    JSON.stringify(tkZeilen('SELECT benutzt_am FROM tokens')));
+
+  // 4. Das Passwort wird gesetzt.
+  const tkLoes = await tkRuf(null, 'POST', '/api/token/einloesen',
+    { token: tkLink, passwort: 'neulings-passwort' });
+  pruefe('Das Passwort wird ueber den Link gesetzt',
+    tkLoes.status === 200 && tkLoes.inhalt?.ok === true, `${tkLoes.status} ${tkLoes.roh}`);
+  pruefe('Und wer einloest, ist damit gleich angemeldet',
+    /kriterion_session=[0-9a-f]{64}/.test(tkLoes.cookie), JSON.stringify(tkLoes.cookie));
+  pruefe('Der Hash steht jetzt in der Datenbank',
+    /^scrypt\$/.test(tkZeilen("SELECT password_hash h FROM users WHERE username='neuling'")[0]?.h || ''),
+    'der Hash ist nicht gesetzt');
+
+  // 5. Die Anmeldung gelingt.
+  const tkAn = await tkRuf(null, 'POST', '/api/login',
+    { user: 'neuling', password: 'neulings-passwort' });
+  pruefe('Die Anmeldung mit dem neuen Passwort gelingt',
+    tkAn.status === 200, `${tkAn.status} ${tkAn.roh}`);
+
+  // 6. DERSELBE LINK EIN ZWEITES MAL.
+  const tkZweimal = await tkRuf(null, 'POST', '/api/token/einloesen',
+    { token: tkLink, passwort: 'ein-anderes-passwort' });
+  pruefe('Derselbe Link ein zweites Mal gelingt NICHT',
+    tkZweimal.status === 400, `${tkZweimal.status} ${tkZweimal.roh}`);
+  pruefe('Und das erste Passwort steht unveraendert',
+    (await tkRuf(null, 'POST', '/api/login',
+      { user: 'neuling', password: 'neulings-passwort' })).status === 200,
+    'das zweite Einloesen hat doch geschrieben');
+  pruefe('Auch das Pruefen weist ihn danach ab',
+    (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkLink })).status === 400,
+    'der verbrauchte Link fuehrt noch zum Formular');
+  pruefe('Die Zeile bleibt als Spur stehen, mit Datum',
+    /^\d{4}-\d\d-\d\d/.test(tkZeilen(
+      "SELECT benutzt_am b FROM tokens WHERE user_id=(SELECT id FROM users WHERE username='neuling')")[0]?.b || ''),
+    JSON.stringify(tkZeilen('SELECT zweck, benutzt_am FROM tokens')));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Token: gespeichert ist der Hash, nicht der Schluessel');
+
+  /* DIE NACHSCHAU IN DER DATENBANK, ueber ALLE Textspalten ALLER Tabellen --
+     nicht nur ueber tokens.hash. Eine Pruefung, die nur die eine Spalte
+     ansieht, bliebe gruen, wenn der Klartext irgendwo daneben landete.
+     ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): ohne einen
+     Token in der Tabelle waere jede Verneinung darauf wahr. */
+  const tkGeheim = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/4/token',
+    { zweck: 'ruecksetzung' })).inhalt?.token || '';
+  pruefe('Es liegt ueberhaupt ein Schluessel vor',
+    /^[0-9a-f]{64}$/.test(tkGeheim), JSON.stringify(tkGeheim));
+  {
+    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    const tabellen = d.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(z => z.name);
+    const treffer = [];
+    for (const t of tabellen) {
+      if (t.startsWith('sqlite_')) continue;
+      for (const c of d.prepare(`PRAGMA table_info("${t}")`).all()) {
+        const n = d.prepare(`SELECT COUNT(*) n FROM "${t}" WHERE CAST("${c.name}" AS TEXT) LIKE ?`)
+          .get(`%${tkGeheim}%`).n;
+        if (n) treffer.push(`${t}.${c.name}`);
+      }
+    }
+    d.close();
+    pruefe('Der Klartext steht in KEINER Spalte KEINER Tabelle',
+      treffer.length === 0, treffer.join(' · '));
+    // Und die Gegenprobe zur Nachschau selbst: sie findet etwas, wenn es da
+    // ist -- sonst belegte eine leere Trefferliste gar nichts.
+    const d2 = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    const hashDa = d2.prepare('SELECT COUNT(*) n FROM tokens WHERE hash LIKE ?')
+      .get(`%${crypto.createHash('sha256').update(tkGeheim).digest('hex')}%`).n;
+    d2.close();
+    pruefe('Der HASH dagegen steht da -- die Nachschau sieht ueberhaupt etwas',
+      hashDa === 1, `${hashDa} Zeilen`);
+  }
+
+  /* DER SCHLUESSEL STEHT IN KEINER ANTWORT AN DEN BILDSCHIRM ausser der einen,
+     die ihn erzeugt. Geprueft am VOLLSTAENDIGEN Antwortrumpf, nicht an einem
+     Feld: ein Feld, das man nicht kennt, prueft man auch nicht. */
+  for (const [name, pfad] of [['die Zugangsliste', '/api/users'],
+                              ['die eigenen Anmeldungen', '/api/sessions'],
+                              ['der eigene Zugang', '/api/account']]) {
+    const a = await tkRuf('cookie-tk-anna', 'GET', pfad);
+    pruefe(`Der Schluessel steht nicht in der Antwort: ${name}`,
+      a.status === 200 && !a.roh.includes(tkGeheim), `${a.status} ${a.roh.slice(0, 160)}`);
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Token: die sieben Tage an beiden Seiten');
+
+  /* DER AUSGANGSWERT WIRD VON HAND GESETZT (Stolperstein 60): datetime('now')
+     loest nur auf die Sekunde auf, eine Frist von sieben Tagen liesse sich
+     sonst gar nicht abwarten.
+     UND ES WIRD NACHGESEHEN, OB WIRKLICH EINER DASTEHT (Stolperstein 119):
+     datetime() nimmt seine Modifikatoren EINZELN -- zwei in einem String
+     ergeben NULL, und eine Prueflage mit NULL im Ablauf belegte nichts. */
+  const tkSetzeAblauf = (userId, modifikator) => {
+    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    d.prepare("UPDATE tokens SET ablauf = datetime('now', ?) WHERE user_id = ? AND benutzt_am IS NULL")
+      .run(modifikator, userId);
+    const wert = d.prepare('SELECT ablauf FROM tokens WHERE user_id = ? AND benutzt_am IS NULL')
+      .get(userId)?.ablauf;
+    d.close();
+    return wert;
+  };
+
+  // dora traegt seit der vorigen Gruppe einen offenen Ruecksetzlink.
+  const tkFrist = tkZeilen("SELECT ablauf FROM tokens WHERE user_id = 4 AND benutzt_am IS NULL")[0]?.ablauf;
+  pruefe('Der frisch erzeugte Link traegt ueberhaupt einen Ablauf',
+    /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(tkFrist || ''), JSON.stringify(tkFrist));
+  pruefe('Und er liegt rund sieben Tage voraus',
+    Math.abs((Date.parse(tkFrist.replace(' ', 'T') + 'Z') - Date.now()) / 86400000 - 7) < 0.02,
+    `${tkFrist} gegen jetzt`);
+
+  // EINE Sekunde vor Ablauf: er traegt noch.
+  const tkGleich = tkSetzeAblauf(4, '+1 seconds');
+  pruefe('Der von Hand gesetzte Ablauf steht wirklich da',
+    /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(tkGleich || ''), JSON.stringify(tkGleich));
+  pruefe('Eine Sekunde vor Ablauf traegt der Link noch',
+    (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkGeheim })).status === 200,
+    'der noch gueltige Link wird abgewiesen');
+
+  // EINE Sekunde nach Ablauf: er traegt nicht mehr.
+  const tkWeg = tkSetzeAblauf(4, '-1 seconds');
+  pruefe('Auch der abgelaufene Wert steht wirklich da',
+    /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(tkWeg || ''), JSON.stringify(tkWeg));
+  const tkAbgelaufen = await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkGeheim });
+  pruefe('Eine Sekunde nach Ablauf traegt er nicht mehr',
+    tkAbgelaufen.status === 400, `${tkAbgelaufen.status} ${tkAbgelaufen.roh}`);
+  pruefe('Und einloesen laesst er sich erst recht nicht',
+    (await tkRuf(null, 'POST', '/api/token/einloesen',
+      { token: tkGeheim, passwort: 'abgelaufenes-passwort' })).status === 400,
+    'ein abgelaufener Link setzt noch ein Passwort');
+  pruefe('doras Passwort steht danach unveraendert',
+    (await tkRuf(null, 'POST', '/api/login', { user: 'dora', password: TK_PASSWORT })).status === 200,
+    'das abgelaufene Einloesen hat doch geschrieben');
+
+  /* DAS AUFRAEUMEN, und zwar an BEIDEN Aufrufstellen einzeln. Die Zeile ist
+     abgelaufen, aber noch keine dreissig Tage -- sie bleibt also stehen. */
+  pruefe('Eine frisch abgelaufene Zeile bleibt zunaechst stehen',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id = 4').length === 1,
+    JSON.stringify(tkZeilen('SELECT ablauf, benutzt_am FROM tokens WHERE user_id = 4')));
+  tkSetzeAblauf(4, '-31 days');
+  pruefe('Vor dem Aufraeumen steht die alte Zeile noch da',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id = 4').length === 1,
+    'die Zeile fehlt schon vor dem Aufraeumen');
+  await tkRuf('cookie-tk-anna', 'GET', '/api/users');
+  pruefe('Das Oeffnen der Karte raeumt sie weg -- zweite Aufrufstelle',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id = 4').length === 0,
+    JSON.stringify(tkZeilen('SELECT ablauf FROM tokens WHERE user_id = 4')));
+
+  /* Die ERSTE Aufrufstelle -- der Start -- braucht einen eigenen Beleg: zwei
+     Aufrufstellen einer Funktion sind zwei Stellen, und eine deckt die andere
+     nicht (Stolperstein 53). Genommen wird ein kurzer Lauf ohne Server. */
+  {
+    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    d.prepare(`INSERT INTO tokens (hash, user_id, zweck, ablauf, benutzt_am)
+               VALUES ('uralt', 3, 'einladung', datetime('now', '-40 days'), datetime('now', '-39 days'))`).run();
+    d.close();
+    pruefe('Eine uralte Zeile liegt vor dem Start da',
+      tkZeilen("SELECT hash FROM tokens WHERE hash = 'uralt'").length === 1,
+      'die Zeile fehlt schon vorher');
+    kurzlauf(`const a = require('./auth'); a.raeumeTokensAuf(); console.log('da');`, tkDir);
+    pruefe('Und der Start raeumt sie weg -- erste Aufrufstelle',
+      tkZeilen("SELECT hash FROM tokens WHERE hash = 'uralt'").length === 0,
+      'die uralte Zeile steht noch da');
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Token: die Absage sieht immer gleich aus');
+
+  /* ENTSCHIEDEN: EINE Absage fuer alle Faelle -- abgelaufen, schon benutzt,
+     erfunden, Zugang gesperrt, Grabstein. Der Grund ist nicht bloss die
+     Verschwiegenheit: das HEILMITTEL ist in jedem dieser Faelle dasselbe,
+     naemlich beim Admin einen neuen Link holen. Drei Meldungen brechten dem
+     Ehrlichen nichts und dem Ratenden etwas.
+     WAS DAS KOSTET, ehrlich benannt und hier festgehalten: wer sich in der
+     Adresse vertippt hat, unterscheidet das nicht von "abgelaufen".
+     GEPRUEFT WIRD AM VOLLEN RUMPF UND AM STATUS, nicht am Wortlaut allein:
+     ein unterschiedlicher Statuscode waere dieselbe Auskunft in anderer Form. */
+  const tkAblaufLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/3/token',
+    { zweck: 'ruecksetzung' })).inhalt?.token || '';
+  tkSetzeAblauf(3, '-1 seconds');
+  const tkBenutztLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
+    { zweck: 'einladung' })).inhalt?.token || '';
+  await tkRuf(null, 'POST', '/api/token/einloesen',
+    { token: tkBenutztLink, passwort: 'ernas-passwort-1' });
+  const tkGesperrtLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
+    { zweck: 'ruecksetzung' })).inhalt?.token || '';
+  await tkRuf('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'gesperrt' });
+
+  pruefe('Die drei Lagen sind ueberhaupt hergestellt',
+    /^[0-9a-f]{64}$/.test(tkAblaufLink) && /^[0-9a-f]{64}$/.test(tkBenutztLink) &&
+    /^[0-9a-f]{64}$/.test(tkGesperrtLink),
+    `${tkAblaufLink.length} ${tkBenutztLink.length} ${tkGesperrtLink.length}`);
+
+  const tkAbsagen = [];
+  for (const [name, wert] of [['abgelaufen', tkAblaufLink], ['schon benutzt', tkBenutztLink],
+                              ['erfunden', 'f'.repeat(64)], ['zu einem gesperrten Zugang', tkGesperrtLink],
+                              ['leer', '']]) {
+    const a = await tkRuf(null, 'POST', '/api/token/pruefen', { token: wert });
+    tkAbsagen.push({ name, status: a.status, roh: a.roh });
+    pruefe(`Abgewiesen wird: ${name}`, a.status === 400, `${a.status} ${a.roh}`);
+  }
+  pruefe('Und alle fuenf Absagen sind WORTGLEICH',
+    new Set(tkAbsagen.map(a => a.roh)).size === 1,
+    tkAbsagen.map(a => `${a.name}: ${a.roh}`).join(' · '));
+  pruefe('Auch der Statuscode ist derselbe',
+    new Set(tkAbsagen.map(a => a.status)).size === 1,
+    tkAbsagen.map(a => `${a.name}: ${a.status}`).join(' · '));
+  pruefe('Die Absage nennt das Heilmittel',
+    /beim Admin einen neuen/.test(tkAbsagen[0].roh), tkAbsagen[0].roh);
+  /* UND DIE GEGENPROBE ZUR PRUEFUNG SELBST: sie darf nicht deshalb gruen
+     sein, weil alle Antworten leer sind (Stolperstein 81). Der ERFOLGSFALL
+     daneben sieht anders aus -- und nennt den Namen. */
+  const tkGut = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/3/token',
+    { zweck: 'ruecksetzung' })).inhalt?.token || '';
+  const tkGutAntwort = await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkGut });
+  pruefe('Der Erfolgsfall daneben sieht anders aus',
+    tkGutAntwort.status === 200 && tkGutAntwort.roh !== tkAbsagen[0].roh,
+    `${tkGutAntwort.status} ${tkGutAntwort.roh}`);
+  pruefe('Und erst DANN steht der Benutzername in der Antwort',
+    tkGutAntwort.roh.includes('carla') && !tkAbsagen.some(a => a.roh.includes('carla')),
+    `${tkGutAntwort.roh} gegen ${tkAbsagen[0].roh}`);
+  await tkRuf('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'aktiv' });
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Token: beim Einloesen faellt alles Offene');
+
+  /* DREI ZUSICHERUNGEN AUF EINMAL, und jede braucht ihren eigenen Beleg:
+     die Sitzungen DIESES Benutzers fallen, die eines ANDEREN bleiben stehen,
+     und alle uebrigen offenen Links desselben Benutzers fallen mit.
+     DIE VORBEREITETE SITZUNG WIRD DANACH WIRKLICH ABGEWIESEN -- nachgesehen
+     an einem Aufruf, nicht an der Zeilenzahl allein: eine Zeile, die noch da
+     ist, aber nicht mehr traegt, waere derselbe Befund in anderer Form, und
+     eine Zeile, die weg ist, aber noch traegt, gaebe es nicht. */
+  {
+    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    for (const [t, u] of [['cookie-tk-erna-1', 5], ['cookie-tk-erna-2', 5], ['cookie-tk-dora', 4]])
+      d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
+    d.close();
+  }
+  pruefe('Ernas beide Sitzungen tragen vorher',
+    (await tkRuf('cookie-tk-erna-1', 'GET', '/api/account')).status === 200 &&
+    (await tkRuf('cookie-tk-erna-2', 'GET', '/api/account')).status === 200,
+    'die vorbereiteten Sitzungen tragen schon vorher nicht');
+  pruefe('Und doras Sitzung ebenso',
+    (await tkRuf('cookie-tk-dora', 'GET', '/api/account')).status === 200,
+    'die fremde Sitzung traegt schon vorher nicht');
+
+  // ZWEI offene Links fuer erna -- der zweite muss mitfallen.
+  const tkErnaEins = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
+    { zweck: 'ruecksetzung' })).inhalt?.token || '';
+  const tkErnaZwei = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
+    { zweck: 'ruecksetzung' })).inhalt?.token || '';
+  pruefe('Zwei offene Links fuer denselben Zugang liegen vor',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id = 5 AND benutzt_am IS NULL').length === 2,
+    JSON.stringify(tkZeilen('SELECT benutzt_am FROM tokens WHERE user_id = 5')));
+  pruefe('Und beide tragen',
+    (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkErnaEins })).status === 200 &&
+    (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkErnaZwei })).status === 200,
+    'einer der beiden traegt schon vorher nicht');
+
+  const tkEinl = await tkRuf(null, 'POST', '/api/token/einloesen',
+    { token: tkErnaZwei, passwort: 'ernas-passwort-2' });
+  pruefe('Der zweite Link wird eingeloest',
+    tkEinl.status === 200, `${tkEinl.status} ${tkEinl.roh}`);
+  pruefe('Ernas erste Sitzung wird danach WIRKLICH abgewiesen',
+    (await tkRuf('cookie-tk-erna-1', 'GET', '/api/account')).status === 401,
+    'die alte Sitzung traegt noch');
+  pruefe('Und ihre zweite ebenso',
+    (await tkRuf('cookie-tk-erna-2', 'GET', '/api/account')).status === 401,
+    'die zweite alte Sitzung traegt noch');
+  pruefe('Doras Sitzung bleibt unberuehrt stehen',
+    (await tkRuf('cookie-tk-dora', 'GET', '/api/account')).status === 200,
+    'eine fremde Sitzung ist mitgefallen');
+  /* IN DER TABELLE BLEIBT GENAU EINE -- und das ist keine Ausnahme von der
+     Regel, sondern ihre Folge: erst fallen ALLE, dann entsteht die des
+     Einloesenden. Dieselbe Ueberlegung wie bei /api/setup, wo die
+     Ersteinrichtung gleich anmeldet -- ein zweites Formular unmittelbar nach
+     dem ersten waere eine Huerde ohne Gewinn.
+     GEPRUEFT WIRD, DASS ES EINE NEUE IST: an der Zahl allein waere "die
+     beiden alten sind weg und eine neue steht da" von "eine alte ist
+     stehengeblieben" nicht zu unterscheiden. */
+  const tkErnaSitz = tkZeilen('SELECT token FROM sessions WHERE user_id = 5').map(z => z.token);
+  pruefe('In der Tabelle steht genau eine Sitzung von erna -- die frische',
+    tkErnaSitz.length === 1 && !tkErnaSitz.includes('cookie-tk-erna-1') &&
+    !tkErnaSitz.includes('cookie-tk-erna-2'),
+    JSON.stringify(tkErnaSitz));
+  pruefe('Der ANDERE offene Link faellt mit',
+    (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkErnaEins })).status === 400,
+    'ein zweiter Link setzt hinterher noch ein Passwort');
+  pruefe('Und er steht auch nicht mehr in der Tabelle',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id = 5 AND benutzt_am IS NULL').length === 0,
+    JSON.stringify(tkZeilen('SELECT benutzt_am FROM tokens WHERE user_id = 5')));
+  pruefe('Die eingeloeste Zeile bleibt dagegen als Spur stehen',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id = 5 AND benutzt_am IS NOT NULL').length === 1,
+    JSON.stringify(tkZeilen('SELECT benutzt_am FROM tokens WHERE user_id = 5')));
+
+  /* Und dieselbe Frage am SPERREN und am ENTFERNEN: ein offener Link, der
+     eine frische Sperre ueberlebte, waere ein Weg an ihr vorbei. */
+  const tkSperrLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
+    { zweck: 'ruecksetzung' })).inhalt?.token || '';
+  pruefe('Vor dem Sperren traegt der Link',
+    (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkSperrLink })).status === 200,
+    'der frische Link traegt schon vorher nicht');
+  await tkRuf('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'gesperrt' });
+  pruefe('Sperren nimmt den offenen Link mit',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id = 5 AND benutzt_am IS NULL').length === 0,
+    JSON.stringify(tkZeilen('SELECT benutzt_am FROM tokens WHERE user_id = 5')));
+  await tkRuf('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'aktiv' });
+
+  const tkWegLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/3/token',
+    { zweck: 'ruecksetzung' })).inhalt?.token || '';
+  pruefe('Vor dem Entfernen traegt der Link',
+    (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkWegLink })).status === 200,
+    'der frische Link traegt schon vorher nicht');
+  await tkRuf('cookie-tk-anna', 'DELETE', '/api/users/3');
+  pruefe('Entfernen nimmt den offenen Link mit',
+    tkZeilen('SELECT hash FROM tokens WHERE user_id = 3 AND benutzt_am IS NULL').length === 0,
+    JSON.stringify(tkZeilen('SELECT benutzt_am FROM tokens WHERE user_id = 3')));
+  pruefe('Und der Link fuehrt zu nichts mehr',
+    (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkWegLink })).status === 400,
+    'der Link eines Grabsteins traegt noch');
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Zugang ohne Passwort kann sich nicht anmelden');
+
+  /* NACHGESTELLT STATT GEGLAUBT, und mit JEDEM Passwort -- auch mit dem
+     leeren und mit dem Wert, der im Feld steht. Der leere Hash ist die Sperre,
+     und es ist KEINE neue: pruefeAnmeldung faellt auf BLINDWERT zurueck, und
+     pruefePasswort weist einen Wert, der nicht nach scrypt aussieht, schon am
+     Format ab. Zwei voneinander unabhaengige Gruende -- eine Sperre, die es
+     nicht gibt, kann nicht vergessen werden. */
+  const tkOhne = await tkRuf('cookie-tk-anna', 'POST', '/api/users',
+    { username: 'stumm', einladen: true });
+  pruefe('Ein Zugang ohne Passwort ist angelegt',
+    tkOhne.status === 200 &&
+    tkZeilen("SELECT password_hash h FROM users WHERE username='stumm'")[0]?.h === '',
+    `${tkOhne.status} ${tkOhne.roh}`);
+  for (const [name, wert] of [['dem leeren', ''], ['einem Leerzeichen', ' '],
+                              ['irgendeinem', 'irgendetwas12'],
+                              ['dem Wert aus dem Feld', ''],
+                              ['einem scrypt-Rumpf', 'scrypt$16384$8$1$$'],
+                              ['gar keinem', undefined]]) {
+    const a = await tkRuf(null, 'POST', '/api/login',
+      wert === undefined ? { user: 'stumm' } : { user: 'stumm', password: wert });
+    pruefe(`Die Anmeldung scheitert mit ${name} Passwort`,
+      a.status === 401, `${a.status} ${a.roh}`);
+  }
+  /* DER ERFOLGSFALL DANEBEN (Stolperstein 81): ohne ihn belegte die Reihe
+     oben nur, dass sich ueberhaupt niemand anmelden kann. */
+  pruefe('Ein Zugang MIT Passwort kommt daneben herein',
+    (await tkRuf(null, 'POST', '/api/login', { user: 'dora', password: TK_PASSWORT })).status === 200,
+    'auch der gute Fall scheitert -- die Prueflage taugt nichts');
+  /* UND DER VIERTE ZUSTAND, DEN ES NICHT GIBT: abgeleitet wird aus dem leeren
+     Hash, nicht aus einem neuen Wert in status. Am GRABSTEIN steht dieselbe
+     Ableitung -- und er wird trotzdem nicht als "eingeladen" gelesen, weil
+     status ihn unterscheidet. */
+  const tkListe = (await tkRuf('cookie-tk-anna', 'GET', '/api/users')).inhalt?.zugaenge || [];
+  const tkFind = (n) => tkListe.find(z => z.username === n) || {};
+  pruefe('Die Liste ist ueberhaupt gefuellt',
+    tkListe.length >= 6, `${tkListe.length} Zeilen`);
+  pruefe('Der eingeladene Zugang traegt ohnePasswort',
+    tkFind('stumm').ohnePasswort === true, JSON.stringify(tkFind('stumm')));
+  pruefe('Ein Zugang mit Passwort traegt es nicht',
+    tkFind('dora').ohnePasswort === false, JSON.stringify(tkFind('dora')));
+  pruefe('Der Grabstein traegt es auch -- und bleibt ueber status unterschieden',
+    tkFind('geloescht-6').ohnePasswort === true && tkFind('geloescht-6').status === 'geloescht',
+    JSON.stringify(tkFind('geloescht-6')));
+  pruefe('Und status kennt weiterhin nur die drei bekannten Werte',
+    [...new Set(tkListe.map(z => z.status))].every(w => ['aktiv', 'gesperrt', 'geloescht'].includes(w)),
+    JSON.stringify([...new Set(tkListe.map(z => z.status))]));
+  pruefe('Der Hash selbst steht in keiner Zeile der Antwort',
+    !(await tkRuf('cookie-tk-anna', 'GET', '/api/users')).roh.includes('password_hash'),
+    'die Antwort traegt den Hash');
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Token: die Rechte am Einladen');
+
+  /* ZWEI VORBEREITETE SITZUNGEN, ZU JEDER VERWEIGERUNG DER ERFOLGSFALL
+     DANEBEN UND DIE NACHSCHAU, DASS NICHTS GESCHRIEBEN WURDE.
+     UND EIN ADMIN OHNE EIGENTUEMERROLLE GEHOERT DAZU -- ohne bert liesse sich
+     "Eigentuemer" von "Admin" gar nicht unterscheiden, und jede Pruefung
+     bliebe auch dann gruen, wenn ueberall nur die Adminfrage stuende.
+     Die Rollenleiter gilt hier wie an den drei Verwaltungsrouten daneben:
+     ein Admin laedt keinen Eigentuemer ein und kommt nicht an seinesgleichen. */
+  const tkOffen = () => tkZeilen('SELECT hash FROM tokens WHERE benutzt_am IS NULL').length;
+
+  // Erst der Erfolgsfall, damit die Verweigerungen daneben etwas bedeuten.
+  const tkVorher = tkOffen();
+  const tkAnnaDarf = await tkRuf('cookie-tk-anna', 'POST', '/api/users/4/token', { zweck: 'ruecksetzung' });
+  pruefe('Die Eigentuemerin darf einen Benutzer einladen',
+    tkAnnaDarf.status === 200 && /^[0-9a-f]{64}$/.test(tkAnnaDarf.inhalt?.token || ''),
+    `${tkAnnaDarf.status} ${tkAnnaDarf.roh}`);
+  pruefe('Und die Zeile ist wirklich geschrieben',
+    tkOffen() === tkVorher + 1, `${tkVorher} -> ${tkOffen()}`);
+  const tkBertDarf = await tkRuf('cookie-tk-bert', 'POST', '/api/users/4/token', { zweck: 'ruecksetzung' });
+  pruefe('Ein Admin ohne Eigentuemerrolle darf einen Benutzer ebenfalls',
+    tkBertDarf.status === 200, `${tkBertDarf.status} ${tkBertDarf.roh}`);
+
+  /* Die Verweigerungen. Nach JEDER wird nachgesehen, dass die Zahl der
+     offenen Zeilen unveraendert steht -- eine Absage, die die halbe
+     Aenderung schon geschrieben hat, waere schlimmer als keine. */
+  const tkNichts = async (name, cookieWert, pfad, koerper, erwartet) => {
+    const vorher = tkOffen();
+    const a = await tkRuf(cookieWert, 'POST', pfad, koerper);
+    pruefe(name, a.status === erwartet, `${a.status} statt ${erwartet}: ${a.roh}`);
+    pruefe(`Und dabei wurde nichts geschrieben: ${name}`,
+      tkOffen() === vorher, `${vorher} -> ${tkOffen()}`);
+  };
+  await tkNichts('Eine gewoehnliche Benutzerin darf gar nicht einladen',
+    'cookie-tk-dora-neu', '/api/users/4/token', { zweck: 'ruecksetzung' }, 401);
+  // Eine echte Sitzung fuer dora, damit die Absage aus der ROLLE kommt und
+  // nicht daraus, dass gar niemand angemeldet ist.
+  {
+    const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-tk-dora-echt', 4)").run();
+    d.close();
+  }
+  pruefe('doras Sitzung traegt ueberhaupt',
+    (await tkRuf('cookie-tk-dora-echt', 'GET', '/api/account')).status === 200,
+    'die vorbereitete Sitzung traegt nicht');
+  await tkNichts('Eine angemeldete Benutzerin darf trotzdem nicht einladen',
+    'cookie-tk-dora-echt', '/api/users/5/token', { zweck: 'ruecksetzung' }, 403);
+  await tkNichts('Ein Admin kommt nicht an seinesgleichen',
+    'cookie-tk-bert', '/api/users/2/token', { zweck: 'ruecksetzung' }, 403);
+  await tkNichts('Und erst recht nicht an die Eigentuemerin',
+    'cookie-tk-bert', '/api/users/1/token', { zweck: 'ruecksetzung' }, 403);
+  await tkNichts('An den eigenen Zugang kommt auch der Eigentuemer hier nicht',
+    'cookie-tk-anna', '/api/users/1/token', { zweck: 'ruecksetzung' }, 403);
+  await tkNichts('Zu einem Grabstein gibt es keinen Link',
+    'cookie-tk-anna', '/api/users/6/token', { zweck: 'ruecksetzung' }, 400);
+  await tkNichts('Und zu einem Zugang, den es nicht gibt, auch nicht',
+    'cookie-tk-anna', '/api/users/999/token', { zweck: 'ruecksetzung' }, 404);
+  await tkNichts('Einen Zweck, den es nicht gibt, weist der Server ab',
+    'cookie-tk-anna', '/api/users/4/token', { zweck: 'irgendwas' }, 400);
+  /* Die Gegenrichtung zur Rollenleiter: an einen ADMIN kommt der EIGENTUEMER
+     sehr wohl. Ohne diese Zeile bliebe "bert darf nicht" auch dann gruen,
+     wenn niemand duerfte. */
+  const tkAnnaAnAdmin = await tkRuf('cookie-tk-anna', 'POST', '/api/users/2/token',
+    { zweck: 'ruecksetzung' });
+  pruefe('An einen Admin kommt der Eigentuemer der Anlage',
+    tkAnnaAnAdmin.status === 200, `${tkAnnaAnAdmin.status} ${tkAnnaAnAdmin.roh}`);
+
+  /* Dieselbe Frage am ANLEGEWEG: ein Admin darf einen Benutzer anlegen und
+     einladen, eine Rolle vergeben darf er nicht -- sonst waere die Rollen-
+     vergabe ueber das Anlegen fuer jeden Admin offen, ohne dass irgendwo
+     "Rolle" steht. */
+  const tkBertLegtAn = await tkRuf('cookie-tk-bert', 'POST', '/api/users',
+    { username: 'berts-neuer', einladen: true });
+  pruefe('Ein Admin legt einen Benutzer mit Einladung an',
+    tkBertLegtAn.status === 200 && /^[0-9a-f]{64}$/.test(tkBertLegtAn.inhalt?.token || ''),
+    `${tkBertLegtAn.status} ${tkBertLegtAn.roh}`);
+  const tkVorAdmin = tkOffen();
+  const tkBertAdmin = await tkRuf('cookie-tk-bert', 'POST', '/api/users',
+    { username: 'berts-admin', rolle: 'admin', einladen: true });
+  pruefe('Aber keinen Admin -- Rollen vergibt der Eigentuemer',
+    tkBertAdmin.status === 403, `${tkBertAdmin.status} ${tkBertAdmin.roh}`);
+  pruefe('Und dabei entsteht weder Zugang noch Link',
+    tkOffen() === tkVorAdmin &&
+    tkZeilen("SELECT id FROM users WHERE username = 'berts-admin'").length === 0,
+    JSON.stringify(tkZeilen("SELECT username FROM users WHERE username = 'berts-admin'")));
+  const tkAnnaAdmin = await tkRuf('cookie-tk-anna', 'POST', '/api/users',
+    { username: 'annas-admin', rolle: 'admin', einladen: true });
+  pruefe('Die Eigentuemerin darf es',
+    tkAnnaAdmin.status === 200 && tkAnnaAdmin.inhalt?.role === 'admin',
+    `${tkAnnaAdmin.status} ${tkAnnaAdmin.roh}`);
+  /* Und der Weg ohne Einladung bleibt, wie er war: ein vergessenes
+     Passwortfeld legt KEINEN Zugang ohne Passwort an, sondern scheitert. */
+  const tkVergessen = await tkRuf('cookie-tk-anna', 'POST', '/api/users', { username: 'vergessen' });
+  pruefe('Ein vergessenes Passwortfeld scheitert weiter wie bisher',
+    tkVergessen.status === 400 && /mindestens 10/.test(tkVergessen.inhalt?.error || ''),
+    `${tkVergessen.status} ${tkVergessen.roh}`);
+  pruefe('Und legt keinen Zugang ohne Passwort an',
+    tkZeilen("SELECT id FROM users WHERE username = 'vergessen'").length === 0,
+    'der Zugang ist doch entstanden');
+
+  await TK.stopp();
+  fs.rmSync(tkDir, { recursive: true, force: true });
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Token: die Bremse greift vor der Anmeldung');
+
+  /* EIGENER SERVER, und das ist keine Umstaendlichkeit: die Zaehler der
+     Anmeldebremse liegen im Arbeitsspeicher des Prozesses, und zehn
+     Fehlversuche vergifteten jede andere Prueflage auf derselben Adresse.
+     BELEGT WIRD AM ZAEHLERSTAND, nicht an der Meldung: die Absage vor der
+     Schwelle und die Sperre danach sind zwei verschiedene Antworten, und der
+     Uebergang dazwischen ist der Beleg. Die Kennwerte selbst sind
+     unangetastet -- weich ab 5, hart ab 10, fuenf Minuten. */
+  const tbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-tokenbremse-'));
+  {
+    kurzlauf(`require('./db'); console.log('da');`, tbDir);
+    const d = oeffne(path.join(tbDir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash, role) VALUES ('anna', 'x', 'eigentuemer')").run();
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('carla', '')").run();
+    d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-tb-anna', 1)").run();
+    d.close();
+  }
+  const TB = starteWeiterenServer(tbDir, {}, 6020);
+  await TB.bereit;
+  const tbRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: {} };
+    if (cookieWert) opt.headers.cookie = `kriterion_session=${cookieWert}`;
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(TB.basis + pfad, opt);
+    let roh = '';
+    try { roh = await a.text(); } catch {}
+    return { status: a.status, roh };
+  };
+
+  // Ein gueltiger Link, damit der Erfolgsfall daneben steht.
+  const tbGut = JSON.parse((await tbRuf('cookie-tb-anna', 'POST', '/api/users/2/token',
+    { zweck: 'einladung' })).roh || '{}').token || '';
+  pruefe('Ein gueltiger Link liegt vor',
+    /^[0-9a-f]{64}$/.test(tbGut), JSON.stringify(tbGut));
+
+  const tbStufen = [];
+  for (let i = 1; i <= 12; i++) {
+    const a = await tbRuf(null, 'POST', '/api/token/pruefen', { token: 'a'.repeat(64) });
+    tbStufen.push(a.status);
+  }
+  /* DER ZEHNTE VERSUCH WIRD NOCH BEANTWORTET, DER ELFTE IST DER ERSTE
+     GESPERRTE, und das ist kein Nebenbefund: checkThrottle liest den Zaehler,
+     BEVOR noteFailure ihn hochzaehlt. Die harte Schwelle steht bei zehn --
+     erreicht ist sie also erst NACH dem zehnten. Genau so verhaelt sich die
+     Anmelderoute seit 0.8.0 auch; eine neue Route, die hier eine Stufe frueher
+     oder spaeter spurte, waere eine zweite Wahrheit ueber dieselbe Bremse. */
+  pruefe('Die ersten zehn Fehlversuche werden abgewiesen, nicht gesperrt',
+    tbStufen.slice(0, 10).every(s => s === 400), JSON.stringify(tbStufen));
+  pruefe('Ab dem elften schlaegt die Bremse zu -- 429 statt 400',
+    tbStufen[10] === 429 && tbStufen[11] === 429, JSON.stringify(tbStufen));
+  pruefe('Und der GUELTIGE Link kommt jetzt auch nicht mehr durch',
+    (await tbRuf(null, 'POST', '/api/token/pruefen', { token: tbGut })).status === 429,
+    'die Bremse laesst den gueltigen Link durch');
+  pruefe('Auch das Einloesen steht hinter derselben Bremse',
+    (await tbRuf(null, 'POST', '/api/token/einloesen',
+      { token: tbGut, passwort: 'ein-gutes-passwort' })).status === 429,
+    'das Einloesen laeuft an der Bremse vorbei');
+  pruefe('Und die Sperre nennt die verbleibende Zeit',
+    /Sekunden erneut/.test((await tbRuf(null, 'POST', '/api/token/pruefen',
+      { token: tbGut })).roh), 'die Sperre sagt nicht, wie lange');
+  /* DIE ANMELDUNG STEHT HINTER DEMSELBEN ZAEHLER -- die IP-Haelfte ist EINE,
+     und das gehoert belegt: sonst waere die neue Route ein Umweg, der den
+     Zaehler der Anmeldung gar nicht beruehrt. */
+  pruefe('Der Zaehler ist derselbe wie bei der Anmeldung',
+    (await tbRuf(null, 'POST', '/api/login', { user: 'anna', password: 'x' })).status === 429,
+    'die Anmeldung zaehlt getrennt');
+  /* Und die Gegenrichtung: das Passwort war NICHT falsch -- die vorbereitete
+     Sitzung traegt weiter. Die Bremse sperrt das Raten, nicht den Betrieb. */
+  pruefe('Eine bestehende Sitzung traegt trotz der Sperre weiter',
+    (await tbRuf('cookie-tb-anna', 'GET', '/api/account')).status === 200,
+    'die Bremse wirft angemeldete Benutzer hinaus');
+
+  await TB.stopp();
+  fs.rmSync(tbDir, { recursive: true, force: true });
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Meine Sitzungen: nur die eigenen');
+
+  /* ZWEI BENUTZER MIT JE ZWEI SITZUNGEN, und die Nachschau, dass keine fremde
+     Zeile durchkommt. Mit nur einem Benutzer bliebe die Pruefung auch dann
+     gruen, wenn die Route die ganze Tabelle auslieferte.
+     EIN ADMIN SIEHT KEINE FREMDEN -- hier ist anna Eigentuemerin, und auch
+     sie bekommt nur ihre eigenen. Fuer den Ernstfall gibt es das Sperren. */
+  const msDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sitzungen-'));
+  {
+    kurzlauf(`require('./db'); console.log('da');`, msDir);
+    const d = oeffne(path.join(msDir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash, role) VALUES ('anna', 'x', 'eigentuemer')").run();
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('carla', 'x')").run();
+    /* Die Zeitstempel VON HAND, und nicht datetime('now') (Stolperstein 60):
+       vier Zeilen in derselben Sekunde liessen sich in der Reihenfolge nicht
+       unterscheiden, und "zuletzt gesehen" waere unbeweisbar.
+       ZWEI MODIFIKATOREN SIND ZWEI ARGUMENTE (Stolperstein 119) -- deshalb
+       stehen hier feste Werte statt gerechneter. */
+    const sitz = [
+      ['cookie-ms-anna-1', 1, '2026-08-20 08:00:00', '2026-08-24 07:30:00'],
+      ['cookie-ms-anna-2', 1, '2026-08-18 19:15:00', '2026-08-23 21:00:00'],
+      ['cookie-ms-carla-1', 2, '2026-08-19 09:00:00', '2026-08-24 06:00:00'],
+      ['cookie-ms-carla-2', 2, '2026-08-01 11:00:00', '2026-08-22 09:45:00']
+    ];
+    for (const [t, u, c, l] of sitz)
+      d.prepare('INSERT INTO sessions (token, user_id, created_at, last_seen) VALUES (?, ?, ?, ?)')
+        .run(t, u, c, l);
+    d.close();
+  }
+  const MS = starteWeiterenServer(msDir, {}, 4560);
+  await MS.bereit;
+  const msRuf = async (cookieWert, methode, pfad) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${cookieWert}` } };
+    const a = await fetch(MS.basis + pfad, opt);
+    let inhalt = null, roh = '';
+    try { roh = await a.text(); inhalt = JSON.parse(roh); } catch {}
+    return { status: a.status, inhalt, roh };
+  };
+  const msZeilen = (sql, ...w) => {
+    const d = oeffne(path.join(msDir, 'katalog.sqlite'));
+    const r = d.prepare(sql).all(...w);
+    d.close();
+    return r;
+  };
+
+  pruefe('Die Prueflage traegt vier Sitzungen fuer zwei Zugaenge',
+    msZeilen('SELECT token FROM sessions').length === 4,
+    JSON.stringify(msZeilen('SELECT user_id, token FROM sessions')));
+
+  const msAnna = await msRuf('cookie-ms-anna-1', 'GET', '/api/sessions');
+  pruefe('Die eigenen Anmeldungen kommen ueberhaupt',
+    msAnna.status === 200 && Array.isArray(msAnna.inhalt?.sitzungen),
+    `${msAnna.status} ${msAnna.roh}`);
+  pruefe('Es sind genau die zwei eigenen',
+    msAnna.inhalt.sitzungen.length === 2, `${msAnna.inhalt.sitzungen.length} Zeilen`);
+  /* DIE NACHSCHAU, DASS KEINE FREMDE ZEILE DURCHKOMMT -- gerechnet gegen die
+     Kennungen der fremden Sitzungen, nicht bloss gegen die Zahl. Zwei Zeilen
+     koennten auch die falschen zwei sein. */
+  const msKennung = (t) => crypto.createHash('sha256').update(t).digest('hex');
+  const msEigene = msAnna.inhalt.sitzungen.map(z => z.kennung);
+  pruefe('Und es sind wirklich annas beide',
+    msEigene.includes(msKennung('cookie-ms-anna-1')) &&
+    msEigene.includes(msKennung('cookie-ms-anna-2')),
+    JSON.stringify(msEigene));
+  pruefe('Keine fremde Kennung kommt durch',
+    !msEigene.includes(msKennung('cookie-ms-carla-1')) &&
+    !msEigene.includes(msKennung('cookie-ms-carla-2')),
+    JSON.stringify(msEigene));
+  pruefe('Und carla sieht ihrerseits nur ihre beiden',
+    (await msRuf('cookie-ms-carla-1', 'GET', '/api/sessions')).inhalt.sitzungen
+      .every(z => [msKennung('cookie-ms-carla-1'), msKennung('cookie-ms-carla-2')].includes(z.kennung)),
+    JSON.stringify((await msRuf('cookie-ms-carla-1', 'GET', '/api/sessions')).inhalt.sitzungen.map(z => z.kennung)));
+
+  /* DER SITZUNGSTOKEN SELBST STEHT IN KEINER ANTWORT -- er ist das Geheimnis,
+     die Kennung ist nur sein Bild. Geprueft am vollen Rumpf. */
+  pruefe('Der Sitzungstoken steht in keiner Antwort',
+    !msAnna.roh.includes('cookie-ms-anna-1') && !msAnna.roh.includes('cookie-ms-anna-2'),
+    msAnna.roh.slice(0, 200));
+  pruefe('Die Kennung ist das Bild des Tokens, nicht der Token',
+    msEigene.every(k => /^[0-9a-f]{64}$/.test(k)) && !msEigene.includes('cookie-ms-anna-1'),
+    JSON.stringify(msEigene));
+  pruefe('Die Zeiten kommen mit -- angemeldet am und zuletzt gesehen',
+    msAnna.inhalt.sitzungen.every(z => /^\d{4}-\d\d-\d\d/.test(z.angemeldetAm || '') &&
+                                       /^\d{4}-\d\d-\d\d/.test(z.zuletztGesehen || '')),
+    JSON.stringify(msAnna.inhalt.sitzungen));
+  pruefe('Und die Frist von dreissig Tagen rechnet der Server, nicht die Karte',
+    msAnna.inhalt.tage === 30, JSON.stringify(msAnna.inhalt.tage));
+  /* WAS AUSDRUECKLICH NICHT DASTEHT: keine Adresse, kein Browserkopf. Das ist
+     eine Eigenschaft der Anlage und kein Mangel -- und eine Pruefung darauf
+     ist die einzige Art, sie festzuhalten. */
+  pruefe('Weder Adresse noch Browserkopf stehen in der Antwort',
+    !/ip|agent|browser|gerae?t/i.test(msAnna.roh), msAnna.roh.slice(0, 200));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Meine Sitzungen: die eigene ist markiert');
+
+  pruefe('Genau eine der beiden ist als die eigene markiert',
+    msAnna.inhalt.sitzungen.filter(z => z.diese).length === 1,
+    JSON.stringify(msAnna.inhalt.sitzungen.map(z => z.diese)));
+  pruefe('Und es ist die, mit der gefragt wurde',
+    msAnna.inhalt.sitzungen.find(z => z.diese)?.kennung === msKennung('cookie-ms-anna-1'),
+    JSON.stringify(msAnna.inhalt.sitzungen.find(z => z.diese)));
+  /* DIE GEGENLAGE: dieselbe Liste, aus der ANDEREN Sitzung gefragt, markiert
+     die andere. Ohne sie bliebe die Pruefung auch dann gruen, wenn immer die
+     erste Zeile markiert waere. */
+  const msAnna2 = await msRuf('cookie-ms-anna-2', 'GET', '/api/sessions');
+  pruefe('Aus der anderen Sitzung gefragt, ist die andere markiert',
+    msAnna2.inhalt.sitzungen.find(z => z.diese)?.kennung === msKennung('cookie-ms-anna-2'),
+    JSON.stringify(msAnna2.inhalt.sitzungen.find(z => z.diese)));
+
+  // Eine einzelne fremde Sitzung beenden.
+  const msWeg = await msRuf('cookie-ms-anna-1', 'DELETE',
+    `/api/sessions/${msKennung('cookie-ms-anna-2')}`);
+  pruefe('Eine einzelne andere Anmeldung laesst sich beenden',
+    msWeg.status === 200 && msWeg.inhalt?.beendet === 1, `${msWeg.status} ${msWeg.roh}`);
+  pruefe('Sie ist danach WIRKLICH abgewiesen',
+    (await msRuf('cookie-ms-anna-2', 'GET', '/api/account')).status === 401,
+    'die beendete Sitzung traegt noch');
+  pruefe('Und die eigene traegt weiter',
+    (await msRuf('cookie-ms-anna-1', 'GET', '/api/account')).status === 200,
+    'die eigene ist mitgefallen');
+  pruefe('Carlas Sitzungen sind unberuehrt',
+    msZeilen('SELECT token FROM sessions WHERE user_id = 2').length === 2,
+    JSON.stringify(msZeilen('SELECT token FROM sessions WHERE user_id = 2')));
+
+  // Eine FREMDE Sitzung ueber die Kennung -- geht nicht.
+  const msFremd = await msRuf('cookie-ms-anna-1', 'DELETE',
+    `/api/sessions/${msKennung('cookie-ms-carla-1')}`);
+  pruefe('Eine fremde Anmeldung laesst sich nicht beenden',
+    msFremd.status === 404, `${msFremd.status} ${msFremd.roh}`);
+  pruefe('Und carlas Sitzung traegt weiter',
+    (await msRuf('cookie-ms-carla-1', 'GET', '/api/account')).status === 200,
+    'die fremde Sitzung ist gefallen');
+  // Die EIGENE ueber diesen Weg -- ebenfalls nicht.
+  const msSelbst = await msRuf('cookie-ms-anna-1', 'DELETE',
+    `/api/sessions/${msKennung('cookie-ms-anna-1')}`);
+  pruefe('Die eigene geht ueber Abmelden, nicht ueber diesen Weg',
+    msSelbst.status === 400 && /Abmelden/.test(msSelbst.inhalt?.error || ''),
+    `${msSelbst.status} ${msSelbst.roh}`);
+  pruefe('Und sie traegt danach weiter',
+    (await msRuf('cookie-ms-anna-1', 'GET', '/api/account')).status === 200,
+    'die eigene ist doch gefallen');
+
+  // "Alle anderen beenden" -- und die eigene faellt NICHT mit.
+  {
+    const d = oeffne(path.join(msDir, 'katalog.sqlite'));
+    for (const t of ['cookie-ms-anna-3', 'cookie-ms-anna-4'])
+      d.prepare("INSERT INTO sessions (token, user_id) VALUES (?, 1)").run(t);
+    d.close();
+  }
+  pruefe('Zwei weitere Sitzungen sind vorbereitet und tragen',
+    (await msRuf('cookie-ms-anna-3', 'GET', '/api/account')).status === 200 &&
+    (await msRuf('cookie-ms-anna-4', 'GET', '/api/account')).status === 200,
+    'die vorbereiteten Sitzungen tragen nicht');
+  const msAlle = await msRuf('cookie-ms-anna-1', 'DELETE', '/api/sessions');
+  pruefe('Alle anderen lassen sich in einem Zug beenden',
+    msAlle.status === 200 && msAlle.inhalt?.beendet === 2, `${msAlle.status} ${msAlle.roh}`);
+  pruefe('Die eigene faellt dabei NICHT mit',
+    (await msRuf('cookie-ms-anna-1', 'GET', '/api/account')).status === 200,
+    'die eigene ist mitgefallen');
+  pruefe('Die beiden anderen sind WIRKLICH abgewiesen',
+    (await msRuf('cookie-ms-anna-3', 'GET', '/api/account')).status === 401 &&
+    (await msRuf('cookie-ms-anna-4', 'GET', '/api/account')).status === 401,
+    'eine der beiden traegt noch');
+  pruefe('Und carlas beide stehen unveraendert da',
+    msZeilen('SELECT token FROM sessions WHERE user_id = 2').length === 2,
+    JSON.stringify(msZeilen('SELECT token FROM sessions WHERE user_id = 2')));
+  const msDanach = await msRuf('cookie-ms-anna-1', 'GET', '/api/sessions');
+  pruefe('Die Liste zeigt danach nur noch die eine',
+    msDanach.inhalt.sitzungen.length === 1 && msDanach.inhalt.sitzungen[0].diese === true,
+    JSON.stringify(msDanach.inhalt.sitzungen));
+
+  await MS.stopp();
+  fs.rmSync(msDir, { recursive: true, force: true });
+
+  /* ---------------------------------------------------------------- */
   gruppe('Der Waechter ueber den Quelltext');
 
   /* Diese Gruppe prueft nicht, was der Server TUT, sondern was im Quelltext
@@ -5901,8 +6824,30 @@ const namen = (liste) => liste.map(c => c.name);
     ['POST',   '/api/setup',                     'offen'],
     ['POST',   '/api/login',                     'offen'],
     ['POST',   '/api/logout',                    'offen'],
+    /* Der Token, 0.8.80 -- die vierte und fuenfte offene schreibende Route.
+       Im Kopf steht keine Rechtefrage, also MUSS die Schranke im Rumpf
+       stehen, und sie heisst Token.
+       'pruefen' LIEST NUR und steht trotzdem hier: es ist ein POST, weil der
+       Token in den RUMPF gehoert und nicht in Pfad oder Abfrage, wo er im
+       Zugriffsprotokoll, in der Verlaufsliste und womoeglich im Referrer
+       stuende. Der Waechter sieht jedes app.post( an; eine Route, die er
+       findet und die Liste nicht kennt, faerbt ihn rot -- also gehoert sie
+       hierher, mit dieser Begruendung daneben und nicht stillschweigend
+       ausgenommen. */
+    ['POST',   '/api/token/pruefen',             'offen'],
+    ['POST',   '/api/token/einloesen',           'offen'],
     ['PUT',    '/api/account',                   'selbstbezug'],
+    /* Meine Sitzungen, 0.8.80. 'selbstbezug' wie PUT /api/account, und aus
+       demselben Grund: die Klemme ist nicht eine Rollenfrage im Rumpf, sondern
+       die Bauform -- user_id kommt aus req.benutzer und nie aus der Adresse.
+       Ein Admin kommt ueber diese Routen an keine fremde Sitzung. */
+    ['DELETE', '/api/sessions',                  'selbstbezug'],
+    ['DELETE', '/api/sessions/:kennung',         'selbstbezug'],
     ['POST',   '/api/users',                     'nurAdmin, im Rumpf'],
+    /* Der Link fuer einen vorhandenen Zugang. Dieselbe Rechtezeile wie die
+       drei Verwaltungsrouten: zielZugangFrei entscheidet, damit gilt die
+       Rollenleiter auch hier. */
+    ['POST',   '/api/users/:id/token',           'nurAdmin, im Rumpf'],
     ['PUT',    '/api/users/:id',                 'nurAdmin, im Rumpf'],
     ['DELETE', '/api/users/:id',                 'nurAdmin, im Rumpf'],
     ['PUT',    '/api/titles',                    'nurAdmin'],
@@ -6011,9 +6956,13 @@ const namen = (liste) => liste.map(c => c.name);
      0.8.70 bewegt sie: 47 werden 51. Der Papierkorb bringt zwei schreibende
      Routen mit, die Sicherung zwei; die drei lesenden Endpunkte daneben
      (GET /api/papierkorb, GET /api/items/:id/export, GET /api/sicherung)
-     stehen NICHT hier -- dieselbe Regel wie bei GET /api/stats. */
-  pruefe('Und es sind jetzt genau 51 schreibende Routen',
-    F_ROUTEN.length === 51 && fGefunden.length === 51,
+     stehen NICHT hier -- dieselbe Regel wie bei GET /api/stats.
+     0.8.80 bewegt sie: 51 werden 56. Der Token bringt drei mit
+     (pruefen, einloesen, der Link am Zugang), "Meine Sitzungen" zwei; der
+     lesende Endpunkt GET /api/sessions steht NICHT hier -- auch der nicht,
+     der VOR der Anmeldung liegt. */
+  pruefe('Und es sind jetzt genau 56 schreibende Routen',
+    F_ROUTEN.length === 56 && fGefunden.length === 56,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
@@ -6030,7 +6979,20 @@ const namen = (liste) => liste.map(c => c.name);
     const willKlemme = art.includes('im Rumpf');
     if (willWaechter && !r.kopf.includes(willWaechter)) fOhneWaechter.push(r.schluessel);
     if (willKlemme && !hatKlemme) fOhneKlemme.push(r.schluessel);
-    if (art === 'selbstbezug' && !r.rumpf.includes('aendereZugang(req.benutzer.id')) fOhneSelbst.push(r.schluessel);
+    /* 'selbstbezug' HEISST: DER BENUTZER KOMMT AUS req.benutzer UND NIE AUS
+       DER ADRESSE. Bis 0.8.71 gab es genau eine solche Route, und die Pruefung
+       nannte deshalb ihren Aufruf beim Namen. Seit 0.8.80 sind es drei --
+       "Meine Sitzungen" kommt dazu --, und die gemeinsame Regel ist die
+       Herkunft der Nummer, nicht der Name der Funktion.
+       BEIDE HAELFTEN GEHOEREN DAZU: req.benutzer.id MUSS dastehen, und die
+       Nummer darf NICHT aus req.params kommen. Ohne die zweite Haelfte bliebe
+       eine Route gruen, die beides tut und am Ende die fremde Nummer nimmt.
+       req.params.kennung ist ausgenommen -- das ist die Kennung der Sitzung,
+       nicht die des Benutzers, und sie wird gegen die EIGENEN Zeilen
+       aufgeloest. */
+    if (art === 'selbstbezug' &&
+        (!r.rumpf.includes('req.benutzer.id') ||
+         /req\.params\.(?!kennung)/.test(r.rumpf))) fOhneSelbst.push(r.schluessel);
     if (art === 'offen' && hatKlemme) fZuviel.push(r.schluessel);
     /* Und die andere Haelfte derselben Gegenrichtung: eine Route, die "offen"
        heisst, darf auch keinen benannten Waechter in der Routenzeile tragen.
@@ -6046,8 +7008,22 @@ const namen = (liste) => liste.map(c => c.name);
     fOhneWaechter.length === 0, fOhneWaechter.join(' · '));
   pruefe('Jede Route mit zwei Rechteklassen hat die Klemme im Rumpf',
     fOhneKlemme.length === 0, fOhneKlemme.join(' · '));
-  pruefe('Der Zugangswechsel nennt den angemeldeten Benutzer',
+  pruefe('Jede Route mit Selbstbezug nimmt den Benutzer aus der Sitzung',
     fOhneSelbst.length === 0, fOhneSelbst.join(' · '));
+  /* Und die Gegenprobe zur Pruefung selbst: sie darf nicht deshalb gruen sein,
+     weil sie beides durchgehen laesst (Stolperstein 106). Beide Haelften
+     einzeln, denn eine Regel mit zwei Haelften, von der nur eine wirkt, sieht
+     von aussen aus wie eine ganze. */
+  const selbstFehlt = (rumpf) =>
+    !rumpf.includes('req.benutzer.id') || /req\.params\.(?!kennung)/.test(rumpf);
+  pruefe('Und sie faende eine Route, die den Benutzer gar nicht nennt',
+    selbstFehlt('  res.json(auth.sitzungenVon(1));'), 'die fehlende Nennung faellt nicht auf');
+  pruefe('Und eine, die die Nummer aus der Adresse nimmt',
+    selbstFehlt('  auth.sitzungenVon(req.benutzer.id, req.params.id);'),
+    'die fremde Nummer faellt nicht auf');
+  pruefe('Den richtigen Fall laesst sie dagegen durch',
+    !selbstFehlt('  auth.beendeSitzung(req.benutzer.id, req.params.kennung);'),
+    'die Pruefung faerbt sich am richtigen Fall');
   // Die Gegenrichtung: wo "offen" steht, darf auch nichts stehen. Sonst waere
   // eine stillschweigend eingebaute Klemme von einer entschiedenen nicht zu
   // unterscheiden.
@@ -6422,6 +7398,83 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Und der Waechter wuerde ein Aufraeumen an der Zieldatei finden',
     /fs\.unlinkSync\(datei\)/.test('    try { fs.unlinkSync(datei); } catch {}'),
     'der Waechter sieht die Verletzung nicht');
+
+  /* DER COOKIENAME KOMMT AUS auth.COOKIE_NAME UND WIRD NIRGENDS ABGESCHRIEBEN.
+     Seit 0.8.20 haengt er an HINTER_PROXY: ohne Proxy heisst er
+     kriterion_session, mit Proxy traegt er das Praefix __Host-. Wer ihn
+     irgendwo als festen String hinschreibt, baut eine Stelle, die bei
+     umgelegter Einstellung still den falschen Cookie liest -- und still
+     heisst hier: die Anmeldung geht verloren, ohne dass irgendwo etwas rot
+     wird. auth.js selbst ist der EINE Ort, an dem er entsteht; dort steht er
+     zwangslaeufig.
+     GEPRUEFT WIRD CODE, NICHT DER KOMMENTAR DANEBEN (Stolperstein 106) --
+     sonst faerbte sich der Waechter an der Erklaerung, warum der Name nicht
+     dastehen darf. pruefung.js steht ausdruecklich NICHT auf der Liste: der
+     Pruefstand ist keine ausgelieferte Datei, laeuft immer ohne Proxy und
+     schickt den Cookie von Hand. */
+  const COOKIE_DATEIEN = ['server.js', 'db.js', 'anhaenge.js', 'keys.js',
+                          'public/app.js', 'public/index.html', 'zugang.js'];
+  // Derselbe Schnitt wie beim Sprachwaechter, nur andersherum: dort bleiben
+  // die Kommentare uebrig, hier faellt genau das weg.
+  function ohneKommentare(text) {
+    let inBlock = false;
+    return text.split('\n').map(z => {
+      const t = z.trim();
+      if (inBlock) { if (t.includes('*/')) inBlock = false; return ''; }
+      if (t.startsWith('/*')) { if (!t.includes('*/')) inBlock = true; return ''; }
+      if (t.startsWith('//')) return '';
+      const pos = z.indexOf('//');
+      return (pos >= 0 && !/['"`]/.test(z.slice(0, pos))) ? z.slice(0, pos) : z;
+    }).join('\n');
+  }
+  const cookieZaehle = (text) => (ohneKommentare(text).match(/kriterion_session/g) || []).length;
+  const fCookie = COOKIE_DATEIEN
+    .map(d => [d, cookieZaehle(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
+    .filter(([, n]) => n > 0);
+  /* ERST DAS VORHANDENSEIN (Stolperstein 81): ein Waechter, der auf null
+     Dateien laeuft, ist gruen und belegt nichts. */
+  pruefe('Der Cookiewaechter sieht alle sieben ausgelieferten Dateien an',
+    COOKIE_DATEIEN.length === 7 &&
+    COOKIE_DATEIEN.every(n => fs.existsSync(path.join(__dirname, n))),
+    JSON.stringify(COOKIE_DATEIEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
+  pruefe('Der Cookiename steht in keiner davon abgeschrieben',
+    fCookie.length === 0, fCookie.map(([d, n]) => `${d} (${n}x)`).join(' · '));
+  pruefe('Und in auth.js entsteht er genau einmal',
+    (ohneKommentare(fs.readFileSync(path.join(__dirname, 'auth.js'), 'utf8'))
+      .match(/'kriterion_session'/g) || []).length === 1,
+    'der eine Ort ist nicht mehr der eine');
+  /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein,
+     weil er gar keinen Code mehr liest (Stolperstein 106). */
+  pruefe('Und der Waechter wuerde ein abgeschriebenes Vorkommen finden',
+    cookieZaehle("const c = req.cookies['kriterion_session'];") === 1,
+    'der Waechter sieht den Namen nicht');
+  pruefe('Den Namen im Kommentar laesst er dagegen in Ruhe',
+    cookieZaehle('// Der Cookie heisst kriterion_session, wenn kein Proxy davorsteht.') === 0,
+    'der Waechter faerbt sich am Kommentar');
+
+  /* TOKEN ODER LINK -- eines von beiden am Bildschirm, und durchgehalten.
+     Entschieden ist: "Token" im Quelltext des Servers, denn dort ist es der
+     Fachbegriff und wird nicht zwanghaft eingedeutscht; "Link" am Bildschirm,
+     denn dort ist ein Token nichts, was jemand in der Hand haelt -- ein Link
+     schon. public/app.js IST der Bildschirm; deshalb sieht dieser Waechter
+     genau diese eine Datei an und nicht mehr.
+     GROSSGESCHRIEBEN GESUCHT, dieselbe Trennlinie wie beim Backup-Waechter:
+     gemeint ist das deutsche SUBSTANTIV. Der Bezeichner `token` ist Code. */
+  const tokenZaehle = (text) => (text.match(/\bToken\b/g) || []).length;
+  const fToken = tokenZaehle(fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8'));
+  pruefe('Am Bildschirm heisst es Link und nicht anders',
+    fToken === 0, `public/app.js (${fToken}x)`);
+  pruefe('Und der Waechter wuerde das Wort wirklich finden',
+    tokenZaehle("toast('Der Token ist abgelaufen');") === 1,
+    'der Waechter sieht das Wort nicht');
+  pruefe('Den Bezeichner token laesst er dagegen in Ruhe',
+    tokenZaehle("body: JSON.stringify({ token: schluessel })") === 0,
+    'der Waechter faerbt sich am Bezeichner');
+  /* Und die Gegenrichtung, damit die Entscheidung nicht bloss eine
+     Verneinung ist: das Wort, das dort STEHEN soll, steht auch da. */
+  pruefe('Und das Wort Link steht am Bildschirm wirklich',
+    /Einladungslink/.test(fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')),
+    'die Karte nennt den Link nicht beim Namen');
 
   /* SICHERUNG ODER BACKUP -- eines von beiden, und durchgehalten. Beide Woerter
      sind gebraeuchlich; zwei fuer dieselbe Sache sind genau das, was die
@@ -9798,7 +10851,7 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
   const { VirtualConsole } = require('jsdom');
@@ -9813,15 +10866,34 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     ich: 1, darfRollen: true, eigentuemer: 1,
     zugaenge: [
       { id: 1, username: 'chefin', role: 'eigentuemer', status: 'aktiv', last_login: '2026-08-01 09:00:00', created_at: '2026-01-01 09:00:00', eintraege: 5 },
-      { id: 2, username: 'bert', role: 'admin', status: 'aktiv', last_login: null, created_at: '2026-02-01 09:00:00', eintraege: 2 },
-      { id: 3, username: 'carla', role: 'user', status: 'gesperrt', last_login: null, created_at: '2026-03-01 09:00:00', eintraege: 0 },
-      { id: 4, username: 'geloescht-4', role: 'user', status: 'geloescht', last_login: null, created_at: '2026-04-01 09:00:00', eintraege: 1 }
+      /* bert TRAEGT ohnePasswort UND der Grabstein AUCH, und das ist die
+         eigentliche Lage: beide tragen in Wahrheit den leeren Hash. Nur an
+         der aktiven Zeile darf "noch kein Passwort" stehen -- am Grabstein
+         waere es eine Falschaussage. Ohne beide Zeilen liesse sich das nicht
+         unterscheiden. */
+      { id: 2, username: 'bert', role: 'admin', status: 'aktiv', last_login: null, created_at: '2026-02-01 09:00:00', eintraege: 2, ohnePasswort: true },
+      { id: 3, username: 'carla', role: 'user', status: 'gesperrt', last_login: null, created_at: '2026-03-01 09:00:00', eintraege: 0, ohnePasswort: false },
+      { id: 4, username: 'geloescht-4', role: 'user', status: 'geloescht', last_login: null, created_at: '2026-04-01 09:00:00', eintraege: 1, ohnePasswort: true }
     ]
   };
   /* Der Papierkorb der Prueflage. Zwei Zeilen, zwei Lagen: eine von einem
      lebenden Zugang, eine von einem Grabstein. Wer die Zahlen dieser Prueflage
      misst, misst sie an einem FRISCHEN Aufbau -- die beiden Schreibwege unten
      veraendern sie wirklich (Stolperstein 115). */
+  /* Die eigenen Anmeldungen der Prueflage. DREI Zeilen, und eine davon ist
+     die eigene -- ohne sie liesse sich "die eigene ist markiert" gar nicht
+     pruefen, und ohne die anderen nicht, dass sie nicht mitfaellt.
+     Der leere Fall (nur die eigene) ist ueber sitzungenBestand zu stellen;
+     eine Karte, die nur den einen Zustand kennt, belegt den anderen nicht. */
+  const sitzungen = sitzungenBestand || [
+    { kennung: 'a'.repeat(64), angemeldetAm: '2026-08-20 08:00:00',
+      zuletztGesehen: '2026-08-24 07:30:00', diese: true },
+    { kennung: 'b'.repeat(64), angemeldetAm: '2026-08-18 19:15:00',
+      zuletztGesehen: '2026-08-23 21:00:00', diese: false },
+    { kennung: 'c'.repeat(64), angemeldetAm: '2026-08-01 11:00:00',
+      zuletztGesehen: '2026-08-22 09:45:00', diese: false }
+  ];
+
   const papierkorb = papierkorbBestand || [
     { id: 501, titel: 'Weggeworfenes', geloescht_am: '2026-08-01 09:00:00',
       loeschender: { id: 1, name: 'chefin', geloescht: false },
@@ -10055,6 +11127,25 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     if (url === '/api/config') return gib({ title: 'Oeffentlich', version: require('./package.json').version,
       setupRequired: einrichtung, minPassword: 10 });
     if (url === '/api/session') return gib({ authenticated: angemeldet });
+    /* Der Weg VOR der Anmeldung. Zwei gueltige Schluessel, damit sich beide
+       Anlaesse unterscheiden lassen -- einer zu einem Zugang OHNE Passwort
+       (die Einladung) und einer zu einem MIT (die Ruecksetzung). Alles andere
+       bekommt die eine Absage, wortgleich wie am echten Server. */
+    const TOKEN_ABSAGE_MOCK = 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.';
+    const tokenLage = { ['d'.repeat(64)]: { username: 'carla', ohnePasswort: true },
+                        ['f'.repeat(64)]: { username: 'dora', ohnePasswort: false } };
+    if (url === '/api/token/pruefen' && opt.method === 'POST') {
+      const t = tokenLage[JSON.parse(opt.body || '{}').token];
+      return t ? gib({ ...t, minPassword: 10 }) : gib({ error: TOKEN_ABSAGE_MOCK }, 400);
+    }
+    if (url === '/api/token/einloesen' && opt.method === 'POST') {
+      const k = JSON.parse(opt.body || '{}');
+      const t = tokenLage[k.token];
+      if (!t) return gib({ error: TOKEN_ABSAGE_MOCK }, 400);
+      if (String(k.passwort || '').length < 10)
+        return gib({ error: 'Das Passwort muss mindestens 10 Zeichen lang sein.' }, 400);
+      return gib({ ok: true, username: t.username });
+    }
     if (url === '/api/account') return gib({ username: 'chefin', minPassword: 10 });
     if (url === '/api/titles') return gib({ publicTitle: 'Oeffentlich', appTitle: 'Intern' });
     if (url === '/api/criteria') return gib(kriterien);
@@ -10133,10 +11224,54 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       papierkorb.splice(weg, 1);
       return { ok: true, status: 204, json: async () => ({}) };
     }
+    /* Die eigenen Anmeldungen. WIE BEIM PAPIERKORB AENDERT DER MOCK SEINE
+       ANTWORT WIRKLICH (Stolperstein 90): einer, der nach dem Beenden
+       dieselbe Liste weiterliefert, macht "die Karte zeichnet sich neu" von
+       "die Karte blieb stehen" ununterscheidbar -- beides bliebe gruen.
+       WER DIE ZAHLEN DIESER PRUEFLAGE MISST, MISST SIE AN EINEM FRISCHEN
+       AUFBAU (Stolperstein 115). */
+    if (url === '/api/sessions' && (opt.method || 'GET') === 'GET')
+      return gib({ sitzungen: sitzungen.slice(), tage: 30 });
+    if (url === '/api/sessions' && opt.method === 'DELETE') {
+      const n = sitzungen.filter(z => !z.diese).length;
+      for (let i = sitzungen.length - 1; i >= 0; i--) if (!sitzungen[i].diese) sitzungen.splice(i, 1);
+      return gib({ beendet: n });
+    }
+    if (/^\/api\/sessions\/[0-9a-f]+$/.test(url) && opt.method === 'DELETE') {
+      const k = url.split('/').pop();
+      const weg = sitzungen.findIndex(z => z.kennung === k);
+      if (weg < 0) return gib({ error: 'Diese Anmeldung gibt es nicht mehr.' }, 404);
+      sitzungen.splice(weg, 1);
+      return gib({ beendet: 1 });
+    }
+    if (url === '/api/users' && opt.method === 'POST') {
+      const k = JSON.parse(opt.body || '{}');
+      const neuerZugang = { id: 9, username: k.username, role: k.rolle || 'user',
+                            status: 'aktiv', ohnePasswort: k.einladen === true };
+      // Auch hier zieht der Mock wirklich mit: die Liste danach ist eine andere.
+      zugaenge.zugaenge.push({ ...neuerZugang, last_login: null,
+                               created_at: '2026-08-24 09:00:00', eintraege: 0 });
+      return gib(k.einladen === true
+        ? { ...neuerZugang, token: 'e'.repeat(64), zweck: 'einladung', tage: 7 }
+        : neuerZugang);
+    }
     // Die Karte "Zugaenge" holt sich die Liste selbst. Ohne diese
     // Zeile bekaeme sie {} und zeichnete gar nichts -- und jede Pruefung auf
     // die Karte waere blind dafuer, ob sie ueberhaupt gefuellt wird.
+    // DER SCHREIBWEG STEHT DARUEBER: dieser Zweig fragt nicht nach der
+    // Methode und finge ein POST sonst mit ab.
     if (url === '/api/users') return gib(zugaenge);
+    /* Der Link fuer einen vorhandenen Zugang. Der Mock liefert einen
+       erkennbaren Wert statt eines zufaelligen: eine Pruefung soll die
+       Adresse im Feld nachrechnen koennen. */
+    if (/^\/api\/users\/\d+\/token$/.test(url) && opt.method === 'POST') {
+      const nr = Number(url.split('/')[3]);
+      const z = (zugaenge.zugaenge || []).find(q => q.id === nr) || {};
+      return gib({ id: nr, username: z.username, token: 'd'.repeat(64),
+                   zweck: (JSON.parse(opt.body || '{}').zweck) || 'einladung',
+                   tage: 7, ohnePasswort: Boolean(z.ohnePasswort) });
+    }
+
     if (/^\/api\/users\/\d+\/bestand$/.test(url))
       return gib({ username: 'bert', eintraege: 2, fremdKommentare: 3, fremdBewertungen: 1,
                    fremdTesttage: 0, kommentare: 4, bewertungen: 2, testtage: 1 });
@@ -14364,18 +15499,20 @@ async function pruefeOberflaeche() {
   const rUser = await baueSystem({ istAdmin: false, istEigentuemer: false });
   const kEig = kartenVon(rEig), kAdm = kartenVon(rAdm), kUser = kartenVon(rUser);
 
-  const ALLE_KARTEN = ['Titel', 'Zugang', 'Kennzahlen', 'Export', 'Import', 'Sicherung',
-    'Papierkorb', 'Kategorien', 'Tags', 'Bewertungskriterien', 'Zugänge', 'Darstellung',
-    'Links', 'Suchanbieter', 'Vokabular'];
-  pruefe('Die Eigentuemerin sieht alle fuenfzehn Karten',
+  const ALLE_KARTEN = ['Titel', 'Zugang', 'Meine Sitzungen', 'Kennzahlen', 'Export', 'Import',
+    'Sicherung', 'Papierkorb', 'Kategorien', 'Tags', 'Bewertungskriterien', 'Zugänge',
+    'Darstellung', 'Links', 'Suchanbieter', 'Vokabular'];
+  pruefe('Die Eigentuemerin sieht alle sechzehn Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
 
   /* Die drei, die JEDEM bleiben -- und der Grund steht in jeder von ihnen:
      "Zugang" ist der eigene Zugang, "Darstellung" ist Schriftgroesse und
      Blockanordnung, "Links" ist die Zahl der sichtbaren Zeilen und der
      angezeigten Anbieternamen. Alles Selbstbezug, alles persoenlich. */
-  pruefe('Ein gewoehnlicher Benutzer sieht sechs -- drei persoenliche, drei zum Nachsehen',
-    gleich(kUser, ['Zugang', 'Kategorien', 'Tags', 'Bewertungskriterien',
+  /* SIEBEN SEIT 0.8.80: "Meine Sitzungen" ist persoenlich wie "Zugang" und
+     steht deshalb JEDEM -- es ist kein Systembereich fuer Admins. */
+  pruefe('Ein gewoehnlicher Benutzer sieht sieben -- vier persoenliche, drei zum Nachsehen',
+    gleich(kUser, ['Zugang', 'Meine Sitzungen', 'Kategorien', 'Tags', 'Bewertungskriterien',
                    'Darstellung', 'Links']),
     kUser.join(' · '));
 
@@ -14395,7 +15532,7 @@ async function pruefeOberflaeche() {
       kEig.includes(karte) && !kAdm.includes(karte) && !kUser.includes(karte),
       `Eigentuemer: ${kEig.includes(karte)} · Admin: ${kAdm.includes(karte)}`);
   }
-  for (const karte of ['Zugang', 'Darstellung', 'Links']) {
+  for (const karte of ['Zugang', 'Meine Sitzungen', 'Darstellung', 'Links']) {
     pruefe(`Die Karte "${karte}" steht jedem, auch ohne Rolle`,
       kUser.includes(karte) && kEig.includes(karte), kUser.join(' · '));
   }
@@ -14569,6 +15706,411 @@ async function pruefeOberflaeche() {
     rRegel('.sys-card .sys-teil'));
 
   rEig.w.close(); rAdm.w.close(); rUser.w.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Einladungsseite in der Oberflaeche');
+
+  /* EIN ZUSTAND DER ANMELDESEITE, KEINE ZWEITE AUSGELIEFERTE DATEI -- sonst
+     gaebe es eine zweite Stelle fuer Kopfzeilen, Content-Security-Policy und
+     die Sicherheitsregel aus Abschnitt 5a.
+     GEPRUEFT WIRD AUCH, DASS DER SCHLUESSEL IM FRAGMENT STEHT und damit nie an
+     den Server geht: er steht in keinem Zugriffsprotokoll und in keinem
+     Referrer. */
+  const eiBau = async (schluessel) => {
+    const d = baueDom(JSDOM, { hash: `#/einladung/${schluessel}` });
+    await new Promise(r => setTimeout(r, 80));
+    return d;
+  };
+
+  const eiGut = await eiBau('d'.repeat(64));
+  pruefe('Der Aufruf mit einem Link fragt den Server nach ihm',
+    eiGut.gesendet.some(x => x.methode === 'POST' && x.url === '/api/token/pruefen'),
+    eiGut.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
+  /* DER SCHLUESSEL GEHT IM RUMPF, NICHT IN DER ADRESSE. Ohne diese Zeile
+     bliebe die Pruefung auch dann gruen, wenn er im Pfad stuende. */
+  pruefe('Und zwar im Rumpf, nicht in der Adresse',
+    eiGut.gesendet.find(x => x.url === '/api/token/pruefen')?.koerper?.token === 'd'.repeat(64) &&
+    !eiGut.gesendet.some(x => x.url.includes('d'.repeat(64))),
+    eiGut.gesendet.map(x => x.url).join(' · '));
+  pruefe('Die Anmeldemaske wird dabei gar nicht erst gebaut',
+    !eiGut.gesendet.some(x => x.url === '/api/session'),
+    eiGut.gesendet.map(x => x.url).join(' · '));
+  pruefe('Die Seite kennzeichnet sich als Anmeldeseite',
+    eiGut.w.document.body.classList.contains('anmeldung'));
+  pruefe('Sie steht in derselben Karte wie die Anmeldung',
+    !!eiGut.w.document.querySelector('.login-screen .login-card'), 'keine Anmeldekarte');
+  /* DER NAME KOMMT VOM SERVER, und zwar erst, wenn der Link traegt
+     (Stolperstein 102: das Feld wird aus der Antwort gelesen). */
+  pruefe('Sie begruesst mit dem Namen aus der Antwort',
+    /Willkommen, carla/.test(eiGut.w.document.body.textContent), 
+    eiGut.w.document.body.textContent.slice(0, 200));
+  pruefe('Und sie sagt, dass ein Passwort zu waehlen ist',
+    /Passwort wählen/.test(eiGut.w.document.body.textContent),
+    eiGut.w.document.body.textContent.slice(0, 200));
+  pruefe('Zwei Passwortfelder stehen da',
+    !!eiGut.w.document.getElementById('ep') && !!eiGut.w.document.getElementById('ep2'));
+  pruefe('Sie nennt den Mindestwert aus der Antwort',
+    /Mindestens 10 Zeichen/.test(eiGut.w.document.body.textContent),
+    eiGut.w.document.body.textContent.slice(0, 400));
+  pruefe('Und sie sagt, dass alle bestehenden Anmeldungen fallen',
+    /Anmeldungen dieses Zugangs werden beendet/.test(eiGut.w.document.body.textContent),
+    eiGut.w.document.body.textContent.slice(0, 400));
+  /* Und der zweite Anlass: derselbe Weg, anderer Text -- ABGELEITET AUS DEM
+     ZUSTAND (hat der Zugang schon ein Passwort), nicht aus dem Zweck. */
+  const eiZurueck = await eiBau('f'.repeat(64));
+  pruefe('Bei einem Zugang MIT Passwort steht ein anderer Text',
+    /Neues Passwort für/.test(eiZurueck.w.document.body.textContent) &&
+    !/Willkommen/.test(eiZurueck.w.document.body.textContent),
+    eiZurueck.w.document.body.textContent.slice(0, 200));
+  pruefe('Und auch dort steht der Name',
+    /dora/.test(eiZurueck.w.document.body.textContent),
+    eiZurueck.w.document.body.textContent.slice(0, 200));
+
+  /* DIE ABSAGE: zurueck auf die gewoehnliche Anmeldeseite, mit der Meldung
+     darueber -- und die Adresse wird geleert, damit ein Neuladen nicht
+     denselben toten Link noch einmal versucht. */
+  const eiWeg = await eiBau('9'.repeat(64));
+  pruefe('Ein Link, der nicht mehr gilt, fuehrt auf die Anmeldeseite',
+    !!eiWeg.w.document.getElementById('lu') && !!eiWeg.w.document.getElementById('lp'),
+    'keine Anmeldemaske');
+  pruefe('Mit der Absage darueber',
+    /gilt nicht mehr/.test(eiWeg.w.document.querySelector('.login-error')?.textContent || ''),
+    eiWeg.w.document.querySelector('.login-error')?.textContent);
+  pruefe('Und die Absage nennt das Heilmittel',
+    /beim Admin einen neuen/.test(eiWeg.w.document.querySelector('.login-error')?.textContent || ''),
+    eiWeg.w.document.querySelector('.login-error')?.textContent);
+  pruefe('Die Adresse ist danach geleert',
+    eiWeg.w.location.hash === '#/', eiWeg.w.location.hash);
+  pruefe('Und es steht kein Passwortfeld der Einladung mehr da',
+    !eiWeg.w.document.getElementById('ep'), 'das Formular steht noch');
+  /* Ein Fragment, das gar kein Schluessel ist, geht den gewoehnlichen Weg --
+     ohne den Server nach ihm zu fragen. */
+  const eiUnsinn = await eiBau('kurz');
+  pruefe('Ein Fragment ohne Schluessel wird gar nicht erst gefragt',
+    !eiUnsinn.gesendet.some(x => x.url === '/api/token/pruefen'),
+    eiUnsinn.gesendet.map(x => x.url).join(' · '));
+
+  /* DAS PASSWORT SETZEN, mit einem WIRKLICH zugestellten Ereignis. */
+  {
+    const d = await eiBau('d'.repeat(64));
+    d.w.document.getElementById('ep').value = 'kurz';
+    d.w.document.getElementById('ep2').value = 'kurz';
+    d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Ein zu kurzes Passwort geht gar nicht erst an den Server',
+      !d.gesendet.some(x => x.url === '/api/token/einloesen'),
+      d.gesendet.map(x => x.url).join(' · '));
+    pruefe('Und die Seite sagt es',
+      /mindestens 10 Zeichen/.test(d.w.document.querySelector('.login-error')?.textContent || ''),
+      d.w.document.querySelector('.login-error')?.textContent);
+
+    d.w.document.getElementById('ep').value = 'ein-gutes-passwort';
+    d.w.document.getElementById('ep2').value = 'ein-anderes-passwort';
+    d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Zwei verschiedene Passwoerter ebenso wenig',
+      !d.gesendet.some(x => x.url === '/api/token/einloesen'),
+      d.gesendet.map(x => x.url).join(' · '));
+    pruefe('Und auch das sagt die Seite',
+      /stimmen nicht überein/.test(d.w.document.querySelector('.login-error')?.textContent || ''),
+      d.w.document.querySelector('.login-error')?.textContent);
+
+    d.w.document.getElementById('ep').value = 'ein-gutes-passwort';
+    d.w.document.getElementById('ep2').value = 'ein-gutes-passwort';
+    d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 120));
+    const gesetzt = d.gesendet.find(x => x.url === '/api/token/einloesen');
+    pruefe('Zwei gleiche gehen an den Server',
+      !!gesetzt && gesetzt.methode === 'POST', JSON.stringify(gesetzt));
+    pruefe('Mit dem Schluessel und dem Passwort im Rumpf',
+      gesetzt?.koerper?.token === 'd'.repeat(64) &&
+      gesetzt?.koerper?.passwort === 'ein-gutes-passwort', JSON.stringify(gesetzt?.koerper));
+    pruefe('Danach ist die Adresse geleert -- der Link ist verbraucht',
+      d.w.location.hash === '#/', d.w.location.hash);
+    /* UND DIE SEITE GEHT WEITER, statt stehenzubleiben: angemeldet ist man
+       bereits, der Server hat den Cookie mitgeschickt. */
+    pruefe('Und die Oberflaeche baut sich auf',
+      !d.w.document.body.classList.contains('anmeldung'),
+      'die Seite steht noch auf der Anmeldung');
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Meine Sitzungen in der Oberflaeche');
+
+  /* DIE KARTE IN BEIDEN ZUSTAENDEN -- mehrere Anmeldungen und eine einzige
+     (Stolperstein 90). Eine Karte, die nur den einen Zustand kennt, belegt
+     ueber den anderen nichts, und gerade der leere Fall traegt hier die
+     Auskunft "dies ist die einzige".
+     WER DIE ZAHLEN EINER PRUEFLAGE MISST, MISST SIE AN EINEM FRISCHEN AUFBAU
+     (Stolperstein 115): der Schreibweg unten veraendert den Bestand des Mocks
+     wirklich, und was danach im selben Fenster laeuft, saehe etwas anderes. */
+  const msSystem = async (rollen, opt = {}) => {
+    const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
+    await new Promise(r => setTimeout(r, 60));
+    await d.w.renderSystem();
+    await new Promise(r => setTimeout(r, 60));
+    return d;
+  };
+  const msKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Meine Sitzungen');
+  const msReihen = (d) => [...(msKarte(d)?.querySelectorAll('#msitzungen .mrow.sitz') || [])];
+
+  const msuEig = await msSystem({ istAdmin: true, istEigentuemer: true });
+  const msuUser = await msSystem({ istAdmin: false, istEigentuemer: false });
+
+  // ERST DAS VORHANDENSEIN, dann jede Aussage darueber (Stolperstein 81).
+  pruefe('Die Karte steht bei der Eigentuemerin', !!msKarte(msuEig));
+  /* UND BEI EINEM GEWOEHNLICHEN BENUTZER AUCH -- sie ist persoenlich wie
+     "Zugang" und kein Systembereich fuer Admins. */
+  pruefe('Und bei einem gewoehnlichen Benutzer ebenso', !!msKarte(msuUser));
+  pruefe('Die Liste wird beim Aufbau des Bereichs geholt, nicht nachgeladen',
+    msuUser.gesendet.some(x => x.methode === 'GET' && x.url === '/api/sessions'),
+    msuUser.gesendet.map(x => x.url).join(' · '));
+
+  const msuReihen = msReihen(msuEig);
+  pruefe('Die Karte zeigt alle drei Anmeldungen', msuReihen.length === 3,
+    `${msuReihen.length} Zeilen`);
+  /* ZU JEDEM FELD, DAS DIE OBERFLAECHE AUS DER ANTWORT LIEST, GEHOERT EINE
+     PRUEFUNG (Stolperstein 102) -- hier beide Zeitangaben, in deutscher
+     Schreibweise. */
+  const msuText = msuReihen.map(r => r.textContent || '');
+  pruefe('Jede Zeile nennt, wann angemeldet wurde',
+    /angemeldet 20\.08\.2026/.test(msuText[0]), msuText[0]);
+  pruefe('Und wann zuletzt zugegriffen wurde',
+    /zuletzt gesehen 24\.08\.2026/.test(msuText[0]), msuText[0]);
+  pruefe('Die eigene ist markiert',
+    msuReihen.filter(r => r.classList.contains('sitz-ich')).length === 1,
+    msuReihen.map(r => r.className).join(' · '));
+  pruefe('Und sie sagt es auch mit Worten',
+    /Diese Anmeldung/.test(msuText[0]) && /\(hier\)/.test(msuText[0]), msuText[0]);
+  pruefe('Die anderen heissen anders',
+    msuText.slice(1).every(t => /Andere Anmeldung/.test(t)), JSON.stringify(msuText.slice(1)));
+  /* AN DER EIGENEN STEHT KEIN KREUZ -- man wuerde sich sonst selbst
+     hinauswerfen, und der Server weist den Weg ohnehin ab. Erst das
+     Vorhandensein der Zeile, dann die Aussage, dass an ihr etwas FEHLT
+     (Stolperstein 81). */
+  pruefe('Es gibt ueberhaupt eine eigene Zeile',
+    !!msuReihen.find(r => r.classList.contains('sitz-ich')));
+  pruefe('An der eigenen steht kein Kreuz',
+    !msuReihen.find(r => r.classList.contains('sitz-ich'))?.querySelector('.sitz-x'),
+    'die eigene traegt ein Kreuz');
+  pruefe('An den anderen steht eines',
+    msuReihen.filter(r => !r.classList.contains('sitz-ich'))
+      .every(r => !!r.querySelector('.sitz-x')),
+    'einer anderen fehlt das Kreuz');
+  /* DIE ZAHL IST DIE AUSKUNFT DIESER KARTE -- ohne Geraetekennung ist sie
+     das, was ueberhaupt etwas sagt. */
+  pruefe('Die Karte nennt die Zahl der anderen',
+    /2 weitere/.test(msKarte(msuEig)?.textContent || ''),
+    msKarte(msuEig)?.textContent?.slice(-260));
+  pruefe('Und den Knopf, der sie beendet',
+    !!msKarte(msuEig)?.querySelector('#sitz-alle'), 'der Knopf fehlt');
+  pruefe('Die Frist kommt vom Server und wird nicht nachgerechnet',
+    /30 Tagen/.test(msKarte(msuEig)?.textContent || ''),
+    msKarte(msuEig)?.textContent?.slice(-260));
+  /* WAS DIE KARTE AUSDRUECKLICH NICHT VERSPRICHT: ein Geraet. Die Beschriftung
+     sagt das offen -- eine Karte, die mehr behauptet, als sie weiss, waere
+     schlimmer als keine. */
+  pruefe('Die Karte sagt offen, dass sie das Geraet nicht kennt',
+    /weder Adresse noch\s+Browserkennung/i.test(msKarte(msuEig)?.querySelector('.desc')?.textContent || ''),
+    msKarte(msuEig)?.querySelector('.desc')?.textContent);
+
+  /* DER LEERE FALL -- nur die eigene, mit eigenem Aufbau. */
+  const msuEine = await msSystem({ istAdmin: true, istEigentuemer: true },
+    { sitzungenBestand: [{ kennung: 'a'.repeat(64), angemeldetAm: '2026-08-20 08:00:00',
+                           zuletztGesehen: '2026-08-24 07:30:00', diese: true }] });
+  pruefe('Bei nur einer Anmeldung steht die Karte trotzdem da', !!msKarte(msuEine));
+  pruefe('Mit genau einer Zeile', msReihen(msuEine).length === 1, `${msReihen(msuEine).length}`);
+  pruefe('Und sie sagt, dass es die einzige ist',
+    /einzige/.test(msKarte(msuEine)?.textContent || ''),
+    msKarte(msuEine)?.textContent?.slice(-200));
+  /* KEIN KNOPF, DER ZUVERLAESSIG NICHTS TUT -- er saehe aus wie ein Fehler. */
+  pruefe('Ohne andere Anmeldung steht auch kein Knopf da',
+    !msKarte(msuEine)?.querySelector('#sitz-alle'), 'der Knopf steht doch da');
+
+  /* EINE EINZELNE BEENDEN, mit einem WIRKLICH zugestellten Ereignis --
+     .click() genuegt nicht. Der Mock aendert seinen Bestand dabei wirklich
+     (Stolperstein 90). */
+  {
+    const d = await msSystem({ istAdmin: true, istEigentuemer: true });
+    const vorher = msReihen(d).length;
+    msReihen(d).find(r => !r.classList.contains('sitz-ich'))?.querySelector('.sitz-x')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Das Kreuz schickt das Beenden an den Server',
+      d.gesendet.some(x => x.methode === 'DELETE' && x.url === `/api/sessions/${'b'.repeat(64)}`),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und die Karte zeichnet sich mit einer Zeile weniger neu',
+      msReihen(d).length === vorher - 1, `${vorher} -> ${msReihen(d).length}`);
+    pruefe('Die eigene steht dabei weiter da',
+      msReihen(d).some(r => r.classList.contains('sitz-ich')),
+      msReihen(d).map(r => r.className).join(' · '));
+  }
+
+  /* ALLE ANDEREN BEENDEN. confirm ist in jsdom nicht gebaut und liefert
+     undefined -- ein falscher Wert, an dem der Behandler zurueckkaeme. Er
+     wird deshalb gestellt, und zwar ausdruecklich auf beide Antworten: ein
+     Abbruch, der trotzdem loescht, waere der schlimmere Fehler. */
+  {
+    const d = await msSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.confirm = () => false;
+    msKarte(d)?.querySelector('#sitz-alle')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Wer abbricht, beendet nichts',
+      !d.gesendet.some(x => x.methode === 'DELETE' && x.url === '/api/sessions'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und alle drei Zeilen stehen noch da', msReihen(d).length === 3,
+      `${msReihen(d).length}`);
+
+    d.w.confirm = () => true;
+    msKarte(d)?.querySelector('#sitz-alle')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Nach der Bestaetigung geht es an den Server',
+      d.gesendet.some(x => x.methode === 'DELETE' && x.url === '/api/sessions'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und es bleibt genau die eigene stehen',
+      msReihen(d).length === 1 && msReihen(d)[0].classList.contains('sitz-ich'),
+      msReihen(d).map(r => r.className).join(' · '));
+    pruefe('Die Karte sagt danach, dass es die einzige ist',
+      /einzige/.test(msKarte(d)?.textContent || ''), msKarte(d)?.textContent?.slice(-200));
+  }
+
+  /* JEDE LESESTELLE IST ABGEFANGEN (Stolperstein 103): fehlt die Antwort oder
+     ein Feld darin, soll die Karte etwas sagen und nicht der Lauf abreissen. */
+  {
+    const d = await msSystem({ istAdmin: true, istEigentuemer: true }, { sitzungenBestand: [] });
+    pruefe('Auch ohne eine einzige Zeile steht die Karte',
+      !!msKarte(d) && msReihen(d).length === 0, `${msReihen(d).length} Zeilen`);
+    pruefe('Und der Lauf reisst dabei nicht ab', true);
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Einladungslink in der Karte Zugaenge');
+
+  const ziKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Zugänge');
+  const ziReihen = (d) => [...(ziKarte(d)?.querySelectorAll('#mzugaenge .mrow.zug') || [])];
+  const ziSystem = async (rollen, opt = {}) => {
+    const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
+    await new Promise(r => setTimeout(r, 60));
+    await d.w.renderSystem();
+    await new Promise(r => setTimeout(r, 60));
+    return d;
+  };
+
+  const ziEig = await ziSystem({ istAdmin: true, istEigentuemer: true });
+  pruefe('Die Karte "Zugänge" steht da', !!ziKarte(ziEig));
+  pruefe('Und sie zeigt ihre Zeilen', ziReihen(ziEig).length >= 4, `${ziReihen(ziEig).length}`);
+
+  /* "NOCH KEIN PASSWORT" IST ABGELEITET, KEIN VIERTER ZUSTAND -- und es steht
+     NUR an der aktiven Zeile. Der Grabstein traegt denselben leeren Hash und
+     darf ihn trotzdem nicht tragen: das waere eine Falschaussage ueber einen
+     Zugang, den es nicht mehr gibt. Erst das Vorhandensein der Zeile, dann
+     die Aussage darueber (Stolperstein 81). */
+  const ziZeile = (name) => ziReihen(ziEig).find(r => (r.querySelector('.mname')?.textContent || '').includes(name));
+  pruefe('Die Zeile des eingeladenen Zugangs ist da', !!ziZeile('bert'));
+  pruefe('Sie traegt "noch kein Passwort"',
+    /noch kein Passwort/.test(ziZeile('bert')?.textContent || ''), ziZeile('bert')?.textContent);
+  pruefe('Die Zeile des Grabsteins ist auch da', !!ziZeile('Gelöschter Benutzer 4'));
+  pruefe('Aber sie traegt es NICHT',
+    !/noch kein Passwort/.test(ziZeile('Gelöschter Benutzer 4')?.textContent || ''),
+    ziZeile('Gelöschter Benutzer 4')?.textContent);
+  pruefe('Und eine Zeile mit Passwort ebenso wenig',
+    !/noch kein Passwort/.test(ziZeile('carla')?.textContent || ''),
+    ziZeile('carla')?.textContent);
+
+  /* BEIDE WEGE STEHEN NEBENEINANDER, und die Karte bevorzugt den Link:
+     er steht VOR dem Schluessel. */
+  pruefe('An einer bedienbaren Zeile steht das Kettenglied',
+    !!ziZeile('carla')?.querySelector('.zug-l'), 'der Knopf fehlt');
+  pruefe('Und der Schluessel daneben steht weiterhin',
+    !!ziZeile('carla')?.querySelector('.zug-p'), 'der direkte Weg ist verschwunden');
+  pruefe('Der Link steht VOR dem Schluessel',
+    [...(ziZeile('carla')?.querySelector('.zug-akt')?.children || [])]
+      .findIndex(e => e.classList.contains('zug-l')) <
+    [...(ziZeile('carla')?.querySelector('.zug-akt')?.children || [])]
+      .findIndex(e => e.classList.contains('zug-p')),
+    'die Reihenfolge stimmt nicht');
+  pruefe('Am Grabstein steht keiner von beiden',
+    !ziZeile('Gelöschter Benutzer 4')?.querySelector('.zug-l') &&
+    !ziZeile('Gelöschter Benutzer 4')?.querySelector('.zug-p'),
+    'der Grabstein traegt Bedienzeichen');
+
+  /* DEN LINK ERZEUGEN. Der Kasten erscheint, er nennt die Adresse VOLLSTAENDIG
+     -- gebaut aus location, nicht vom Server --, und die Warnung steht daneben. */
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.confirm = () => true;
+    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Das Kettenglied fragt den Server nach einem Link',
+      d.gesendet.some(x => x.methode === 'POST' && x.url === '/api/users/3/token'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und bei einem Zugang MIT Passwort ist der Zweck die Ruecksetzung',
+      d.gesendet.find(x => x.url === '/api/users/3/token')?.koerper?.zweck === 'ruecksetzung',
+      JSON.stringify(d.gesendet.find(x => x.url === '/api/users/3/token')?.koerper));
+    const feld = d.w.document.getElementById('zug-link-feld');
+    pruefe('Der Kasten mit dem Link steht da', !!feld, 'kein Feld');
+    /* DIE VOLLSTAENDIGE ADRESSE BAUT DER BROWSER -- der Server gibt nur den
+       Schluessel heraus. Nachgerechnet gegen den Ort des Fensters. */
+    pruefe('Er traegt die vollstaendige Adresse aus dem Ort des Fensters',
+      feld?.value === `${d.w.location.origin}${d.w.location.pathname}#/einladung/${'d'.repeat(64)}`,
+      feld?.value);
+    pruefe('Die Warnung steht daneben, nicht nur im Dokument',
+      /Passwortersatz/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
+      d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
+    pruefe('Sie nennt die Frist und die Einmaligkeit',
+      /7 Tage/.test(d.w.document.getElementById('zug-link')?.textContent || '') &&
+      /genau einmal/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
+      d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
+    pruefe('Und dass er nach der Weitergabe in einem fremden Verlauf steht',
+      /fremden Verlauf/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
+      d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
+    pruefe('Der Kasten sagt, dass der Link nur dieses eine Mal erscheint',
+      /nur dieses eine Mal/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
+      d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
+  }
+
+  /* ANLEGEN UND LINK -- ein Weg, zwei Knoepfe. */
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const vorher = ziReihen(d).length;
+    d.w.document.getElementById('zug-name').value = 'neuling';
+    d.w.document.getElementById('zug-einladen')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    const anlegen = d.gesendet.find(x => x.methode === 'POST' && x.url === '/api/users');
+    pruefe('Der Knopf legt den Zugang an',
+      !!anlegen && anlegen.koerper?.username === 'neuling', JSON.stringify(anlegen));
+    pruefe('Und zwar ausdruecklich mit Einladung',
+      anlegen?.koerper?.einladen === true, JSON.stringify(anlegen?.koerper));
+    pruefe('Ohne ein Passwort mitzuschicken',
+      anlegen?.koerper?.passwort === undefined, JSON.stringify(anlegen?.koerper));
+    pruefe('Der Link erscheint gleich mit',
+      d.w.document.getElementById('zug-link-feld')?.value
+        === `${d.w.location.origin}${d.w.location.pathname}#/einladung/${'e'.repeat(64)}`,
+      d.w.document.getElementById('zug-link-feld')?.value);
+    pruefe('Und die Liste zeichnet sich mit einer Zeile mehr neu',
+      ziReihen(d).length === vorher + 1, `${vorher} -> ${ziReihen(d).length}`);
+  }
+  /* DER ANDERE KNOPF SCHICKT KEINE EINLADUNG -- sonst waeren es nicht zwei
+     Wege, sondern einer mit zwei Beschriftungen. */
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.document.getElementById('zug-name').value = 'mitpasswort';
+    d.w.document.getElementById('zug-pass').value = 'ein-passwort-1';
+    d.w.document.getElementById('zug-anlegen')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    const anlegen = d.gesendet.find(x => x.methode === 'POST' && x.url === '/api/users');
+    pruefe('Der gewoehnliche Weg schickt das Passwort',
+      anlegen?.koerper?.passwort === 'ein-passwort-1', JSON.stringify(anlegen?.koerper));
+    pruefe('Und ausdruecklich KEINE Einladung',
+      anlegen?.koerper?.einladen === undefined, JSON.stringify(anlegen?.koerper));
+    pruefe('Und es erscheint kein Linkkasten',
+      !d.w.document.getElementById('zug-link-feld'), 'der Kasten steht doch da');
+  }
 
   /* ---------------------------------------------------------------- */
   gruppe('Der Papierkorb in der Oberflaeche');
