@@ -20,7 +20,7 @@ worden; die Begründung steht in Abschnitt 3.
 | | |
 |---|---|
 | Vorher | 0.8.80, Fingerprint `a835ac92`, 2661 Prüfungen |
-| Nachher | 0.8.90, Fingerprint `FINGERPRINT_0890`, **2903 Prüfungen** |
+| Nachher | 0.8.90, Fingerprint `aeb336bf`, **2903 Prüfungen** |
 | Neue Prüfungen | **237** |
 | Gegenproben | **24** |
 | `F_ROUTEN` | 56 → **57**, neue Art `'zweitbestaetigt'` |
@@ -682,4 +682,4 @@ drei Gegenproben zum Wortwächter).
 
 ---
 
-**0.8.90 — Fingerprint `FINGERPRINT_0890`**
+**0.8.90 — Fingerprint `aeb336bf`**

@@ -136,7 +136,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.90 ist gebaut** — Fingerprint **`FINGERPRINT_0890`**, 2903
+**0.8.90 ist gebaut** — Fingerprint **`aeb336bf`**, 2903
 Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs, aber eine Datenbankstufe
 ohne Migrationsblock:** das Schema bekommt die Tabelle `sicherheitsprotokoll`
 (`id`, `am`, `was`, `wer`, `ziel`, `merkmal`) samt Index auf `am`. Zum dritten
