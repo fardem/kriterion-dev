@@ -1,13 +1,20 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 23. August 2026 · gebaut bis Version 0.8.70 — Fingerprint `1aa9266a`**
+**Konzeptpapier · Stand 24. August 2026 · gebaut bis Version 0.8.71 — Fingerprint `1b03fabf`**
 (Stufen A bis **G4** erledigt, **G vollständig**; 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug** und 0.8.20 die Runde **„Die Schotten dicht"** — alle
 vier keine Stufen.)
 
-**0.8.70 berührt den Mehrbenutzerbetrieb nicht — und legt dabei zwei seiner
-Regeln neu aus.** „Sicherung und Papierkorb" ist zwar wieder eine
+**0.8.71 berührt den Mehrbenutzerbetrieb nicht und legt auch keine seiner
+Regeln neu aus.** „Der Sicherungsort zieht um" ist eine Berichtigungsrunde auf
+einer freien Nummer: kein Schema, keine Route, keine Rolle, kein Träger, kein
+neues Recht. **`F_ROUTEN` bleibt bei 51.** Das Papier steht damit unverändert —
+nur sein Kopf ist nachgezogen, damit die Angabe „gebaut bis" nicht drei
+Versionen hinterherhinkt.
+
+**0.8.70 davor berührt den Mehrbenutzerbetrieb ebenfalls nicht — und legt
+dabei zwei seiner Regeln neu aus.** „Sicherung und Papierkorb" ist zwar wieder eine
 Datenbankstufe, aber keine Stufe dieses Papiers: keine Rolle, kein Träger, kein
 neues Recht. **`F_ROUTEN` geht von 47 auf 51** — zwei Routen für den
 Papierkorb, zwei für die Sicherung, alle vier hinter `nurEigentuemer`.
@@ -118,7 +125,8 @@ Selbstanmeldung, 0.9.0).** Zwischen G4 und H liegen vier Stufen, die nicht zum
 Mehrbenutzerbetrieb gehören; sie stehen im Projektstand, Abschnitt 10. Die
 ersten drei davon — **0.8.40, die Gewichtung**, **0.8.50, Kurzvideos am
 Fotoplatz**, **0.8.60, „Was ist offen, was ist neu"** und **0.8.70,
-„Sicherung und Papierkorb"** — sind gebaut; die nächste ist **0.8.80, Stufe H**.
+„Sicherung und Papierkorb"** — sind gebaut, dazu **0.8.71** als
+Berichtigungsrunde; die nächste Stufe ist **0.8.80, Stufe H**.
 
 **Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
 `HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
@@ -637,8 +645,8 @@ G4 und H liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu",
 Sicherung und Papierkorb). Alle vier gehören nicht zum Mehrbenutzerbetrieb und
 stehen deshalb im Projektstand, Abschnitt 10 — zusammen mit der Begründung für
 die Reihenfolge. **Alle vier — 0.8.40 (Gewichtung), 0.8.50 (Kurzvideos),
-0.8.60 („Offen/Neu") und 0.8.70 (Sicherung und Papierkorb) — sind gebaut; als
-Nächstes 0.8.80, Stufe H.**
+0.8.60 („Offen/Neu") und 0.8.70 (Sicherung und Papierkorb) — sind gebaut, dazu
+0.8.71 als Berichtigungsrunde; als Nächstes 0.8.80, Stufe H.**
 
 Danach: Zwei-Faktor, Suche, dann 1.0.0. **Zwei Punkte hängen unmittelbar an
 Stufe I und gehören beim Bauen mitgedacht:** die Tokens aus H tragen auch die

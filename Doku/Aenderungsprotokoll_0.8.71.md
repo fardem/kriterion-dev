@@ -47,6 +47,16 @@ geprüft wird, und eine eigene Gruppe hätte sie davon getrennt.
 
 **`package.json` / `package-lock.json`** — Version `0.8.71`.
 
+**`Doku/Projektstand_Kriterion_0_8_70.md`** und
+**`Doku/Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_70.md`** — beide per `git mv`
+auf `_0_8_71` umbenannt, alle Verweise nachgezogen. Das Konzeptpapier ist
+inhaltlich **unverändert**: 0.8.71 berührt den Mehrbenutzerbetrieb nicht, legt
+keine seiner Auflagen neu aus und bewegt `F_ROUTEN` nicht. Nachgezogen ist nur,
+was sonst gedriftet wäre — die Kopfzeile („gebaut bis Version … — Fingerprint
+…") und die zwei Stellen, an denen die gebauten Versionen aufgezählt werden.
+*Ein Papier, dessen Kopf eine Version und einen Fingerprint behauptet, ist mit
+jeder Runde eine Behauptung mehr, die stimmen muss.*
+
 ---
 
 ## 2. Die Fragen, die vorher zu klären waren

@@ -10,7 +10,7 @@ Runden, die nicht dazugehörten. Danach fehlt nur noch **Stufe I** (Mailversand
 und Selbstanmeldung, 0.9.0).
 
 Ausgearbeitet liegt die Sache **an einer einzigen Stelle**: im
-**Konzeptpapier `Doku/Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_70.md`**,
+**Konzeptpapier `Doku/Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_71.md`**,
 dort Abschnitt 4 (das Datenmodell, der Satz „Offen für Stufe H"), Abschnitt 9
 (Verwaltung, samt der Notiz, warum der Einmalcode entfallen ist), Abschnitt 10
 (Registrierung und Tokens) und Abschnitt 11 (E-Mail, und warum sie hier noch
