@@ -12,6 +12,66 @@ const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria } = require(
 const auth = require('./auth');
 
 const PORT = process.env.PORT || 3000;
+
+/* ---- Die oeffentliche Adresse ----
+   SEIT 0.8.80 BAUT DER BROWSER DES ADMINS DEN EINLADUNGSLINK aus location.
+   Das ist sicher, braucht keine Einstellung und bleibt die Vorgabe -- "laeuft
+   im Heimnetz" soll ohne Konfiguration auskommen. Es hat genau eine
+   Bruchstelle: die Adresse, unter der der Admin zugreift, ist nicht immer die,
+   die der Empfaenger benutzen soll. Wer ueber http://192.168.1.50:3100
+   arbeitet und einen Link nach draussen gibt, gibt einen Link ins Leere.
+
+   SIE GEHOERT IN DIE .env UND NICHT IN settings, dieselbe Linie wie
+   HINTER_PROXY: sie entscheidet ueber Netzwerkvertrauen, nicht ueber eine
+   Vorliebe. Der Hebel liegt in der Rollenleiter -- ein Admin kommt nicht an
+   einen anderen Admin oder den Eigentuemer. Duerfte er die oeffentliche
+   Adresse setzen, zeigte ab Stufe I jede verschickte Ruecksetzmail auf seinen
+   Server, auch die, die sich der Eigentuemer selbst anfordert. Der
+   Systembereich ZEIGT sie deshalb, er setzt sie nicht.
+
+   AUS DEM HOST-KOPF WIRD WEITERHIN NICHTS ABGELEITET. Ueber einen gefaelschten
+   Kopf liesse sich ein Link sonst auf einen fremden Server umbiegen -- die
+   Einstellung ist die eine Stelle, an der jemand mit Zugriff auf den Wirt es
+   sagt, und sonst niemand.
+
+   ALLES AB ? UND # WIRD ABGEWIESEN: das Fragment traegt bereits den
+   Schluessel, und eine Abfrage haette an einer Adresse, aus der ein Link
+   gebaut wird, nichts zu suchen. Ein PFAD ist erlaubt -- die Anlage kann unter
+   einem Unterpfad haengen.
+   EIN UNBRAUCHBARER WERT BRICHT DEN START NICHT AB, sondern meldet sich laut
+   und faellt auf den Browserweg zurueck -- dieselbe Form wie bei AUTH_RESET
+   und beim fehlenden Sicherungsort. Ein Start, der an einem Tippfehler in
+   einer OPTIONALEN Einstellung abbricht, ist schlimmer als der Tippfehler. */
+function pruefeOeffentlicheAdresse(roh) {
+  const wert = String(roh || '').trim();
+  if (!wert) return { adresse: '', gesetzt: false };
+  let u;
+  try { u = new URL(wert); }
+  catch { return { adresse: '', gesetzt: true, fehler: 'Das ist keine vollständige Adresse.' }; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:')
+    return { adresse: '', gesetzt: true, fehler: 'Nur http:// und https:// sind möglich.' };
+  if (!u.hostname)
+    return { adresse: '', gesetzt: true, fehler: 'Es fehlt der Rechnername.' };
+  if (u.username || u.password)
+    return { adresse: '', gesetzt: true, fehler: 'Zugangsdaten gehören nicht in die Adresse.' };
+  if (u.search) return { adresse: '', gesetzt: true, fehler: 'Eine Abfrage (?) ist nicht erlaubt.' };
+  if (u.hash) return { adresse: '', gesetzt: true, fehler: 'Ein Fragment (#) ist nicht erlaubt.' };
+  // Ohne abschliessenden Schraegstrich, damit der Link genau eine Form hat.
+  const adresse = (u.origin + u.pathname).replace(/\/+$/, '');
+  return { adresse, gesetzt: true };
+}
+const OEFFENTLICHE = pruefeOeffentlicheAdresse(process.env.OEFFENTLICHE_ADRESSE);
+
+/* Was die Antwort ueber den Link sagt. IST DIE EINSTELLUNG LEER, GIBT DER
+   SERVER KEINEN LINK HERAUS -- der Browser baut ihn weiter selbst, und die
+   Oberflaeche sagt daneben, woher die Adresse kam. Zwei Felder statt eines:
+   aus einem fehlenden Link laesst sich "aus dem Browser" zwar erraten, aber
+   eine Oberflaeche, die aus einer Abwesenheit eine Aussage macht, ist genau
+   die zweite Wahrheit, die hier nicht entstehen soll. */
+const linkAngabe = (klartext) => OEFFENTLICHE.adresse
+  ? { link: `${OEFFENTLICHE.adresse}/#/einladung/${klartext}`, linkQuelle: 'einstellung' }
+  : { link: null, linkQuelle: 'browser' };
+
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 /* Gilt fuer die ganze Anwendung.
@@ -355,6 +415,47 @@ function nurEigentuemer(req, res, next) {
   next();
 }
 
+/* ---- Die zweite Bestaetigung ----
+   WAS DIE ANLAGE ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT. Die
+   Grenze ist nicht "gefaehrlich", sondern dieselbe, an der schon die
+   Eigentuemerrolle liegt. Verteidigt wird gegen eine FREMDE OFFENE SITZUNG --
+   nicht gegen einen Fremden, der kommt ohne Passwort gar nicht herein.
+
+   SIEBEN WEGE UEBER SECHS ROUTEN, und PUT /api/users/:id traegt zwei davon:
+     export     GET    /api/export
+     import     POST   /api/import
+     rolle      PUT    /api/users/:id   (nur wenn rolle im Rumpf steht)
+     passwort   PUT    /api/users/:id   (nur wenn passwort im Rumpf steht)
+     entfernen  DELETE /api/users/:id
+     link       POST   /api/users/:id/token
+   AUSDRUECKLICH NICHT DAHINTER: Sperren und Freigeben (umkehrbar, und ein
+   gesperrter Zugang ist nicht die Anlage), das Anlegen eines Zugangs (es
+   erzeugt einen neuen und nimmt niemandem etwas) und POST /api/setup (dort
+   gibt es kein bisheriges Passwort).
+
+   DIE REGEL STEHT GENAU EINMAL, hier. Zwei Formen desselben Aufrufs, weil die
+   Wege verschieden ankommen: der Waechter fuer die Routenzeile -- er MUSS es
+   sein, wo multer dahinter steht -- und die Frage im Rumpf, wo erst der Rumpf
+   sagt, ob ueberhaupt bestaetigt werden muss. */
+const VERWEIGERT_BESTAETIGUNG = 'Dafür ist dein Passwort nötig — bitte noch einmal bestätigen.';
+
+// true = weitermachen. Bei false ist die Antwort bereits geschrieben.
+// 403 und NICHT 401: der Zugang gilt weiter, nur diese eine Handlung nicht.
+// Ein 401 wuerfe die Oberflaeche auf die Anmeldeseite.
+function zweiteBestaetigung(req, res, zweck, ziel = null) {
+  const token = auth.parseCookies(req)[auth.COOKIE_NAME];
+  if (auth.verbraucheFreigabe(token, zweck, ziel)) return true;
+  res.status(403).json({ error: VERWEIGERT_BESTAETIGUNG, bestaetigung: zweck });
+  return false;
+}
+
+// Dieselbe Frage als Waechter in der Routenzeile. Das Ziel kommt aus der
+// Adresse -- bei Export und Import gibt es keins.
+const zweiteBestaetigungNoetig = (zweck) => (req, res, next) => {
+  const ziel = req.params.id === undefined ? null : req.params.id;
+  if (zweiteBestaetigung(req, res, zweck, ziel)) next();
+};
+
 // Verfasser oder Admin. EINE HERRENLOSE ZEILE (user_id IS NULL) GEHOERT DEM
 // ADMIN: ohne die Klemme auf null waere sie fuer jeden offen -- und genau die
 // entsteht, wenn ein Fremdschluessel mit ON DELETE SET NULL zuschlaegt.
@@ -486,6 +587,70 @@ app.delete('/api/sessions/:kennung', (req, res) => {
   res.json({ beendet: n });
 });
 
+/* ---- Die Freigabe holen ----
+   EINE ROUTE FUER ALLE SIEBEN WEGE. Sie prueft DASSELBE Passwort noch einmal,
+   nicht ein zweites Geheimnis -- ein zweiter Faktor ist eine eigene Stufe.
+   Die Art 'selbstbezug': der Benutzer kommt aus req.benutzer und nie aus der
+   Adresse. Wer bestaetigt, bestaetigt fuer sich.
+
+   DIE ANMELDEBREMSE GREIFT, dieselbe wie ueberall und mit unangetasteten
+   Kennwerten. Ohne sie waere diese Route ein Weg, ein Passwort ungebremst
+   durchzuprobieren -- und zwar HINTER der Anmeldung, wo niemand hinsieht.
+   Gezaehlt wird je Adresse UND je Name; der Name steht hier fest, es ist der
+   des Angemeldeten.
+
+   DIE ABSAGE IST KLAR UND DEUTLICH, und der Unterschied zu den Token aus
+   0.8.80 gehoert benannt: dort wusste der Server nicht, wer fragt, und die
+   eine verschleierte Absage schuetzte vor dem Durchprobieren. Hier ist der
+   Fragende angemeldet und namentlich bekannt -- eine verschleierte Absage
+   schuetzte niemanden und verwirrte nur. */
+app.post('/api/bestaetigung', async (req, res) => {
+  const ip = auth.clientIp(req);
+  const name = req.benutzer.username;
+  const t = auth.checkThrottle(ip, name);
+  if (t.blocked) {
+    return res.status(429).json({
+      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`
+    });
+  }
+  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
+  const { passwort, zweck, ziel } = req.body || {};
+  if (!auth.BESTAETIGUNG_ZWECKE.includes(zweck))
+    return res.status(400).json({ error: 'Diesen Zweck gibt es nicht.' });
+  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
+  if (!zeile || !await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) {
+    auth.noteFailure(ip, name);
+    // Die zweite der beiden Zeilen, bei denen das SCHEITERN der Vorgang ist.
+    // Wer hier scheitert, sitzt an einer angemeldeten Sitzung und kennt das
+    // Passwort nicht -- genau der Fall, gegen den diese Runde gebaut ist.
+    auth.protokolliere('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
+    return res.status(403).json({ error: 'Das Passwort stimmt nicht.' });
+  }
+  auth.noteSuccess(ip, name);
+  const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
+  try {
+    res.json({ ok: true, ...auth.erzeugeFreigabe(eigener, zweck, ziel) });
+  } catch (e) { return res.status(400).json({ error: e.message }); }
+});
+
+/* ---- Das Sicherheitsprotokoll ----
+   NUR DER EIGENTUEMER. Es nennt Namen und Vorgaenge ueber andere Zugaenge;
+   ein Admin, der es liest, saehe die Verwaltungsvorgaenge des Eigentuemers
+   ueber ihn selbst. Dieselbe Zeile wie Export, Import und der Schluesselwert
+   -- ein Admin verwaltet den Bestand, er sieht nicht die Anlage.
+   Lesend, deshalb kein Eintrag in F_ROUTEN.
+   ES GIBT KEINEN WEG HINAUS AUSSER DER FRIST. Eine Loeschroute waere ein
+   Protokoll, das der Betroffene selbst wegraeumen kann -- also keins.
+   ZWEITE AUFRUFSTELLE DES AUFRAEUMENS; die erste steht beim Start. Dieselbe
+   Bauform wie bei raeumePapierkorbAuf() und raeumeTokensAuf(): eine Anlage,
+   die ein halbes Jahr durchlaeuft, raeumte sonst ein halbes Jahr lang nicht
+   auf. Hauswirtschaft, keine Benutzerhandlung -- die Liste schreibender
+   Routen bleibt unberuehrt. */
+app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
+  auth.raeumeProtokollAuf();
+  res.json(auth.leseProtokoll());
+});
+
 /* ---- Zugaenge verwalten ----
    Die Vorgaenge selbst stehen in auth.js, weil zugang.js auf dem Wirt
    dieselben ruft -- zwei Wege zum selben Grabstein liefen auseinander.
@@ -544,10 +709,10 @@ app.post('/api/users', nurAdmin, async (req, res) => {
        Zugang dasteht, in den niemand hereinkommt und an den auch niemand mehr
        denkt. `einladen` muss ausdruecklich true sein -- ein vergessenes
        Passwortfeld scheitert weiter wie bisher. */
-    const angelegt = await auth.legeZugangAn(username, passwort, gewuenscht, einladen === true);
+    const angelegt = await auth.legeZugangAn(username, passwort, gewuenscht, einladen === true, req.benutzer.id);
     if (einladen !== true) return res.json(angelegt);
-    const t = auth.erzeugeToken(angelegt.id, 'einladung');
-    res.json({ ...angelegt, token: t.klartext, zweck: t.zweck, tage: t.tage });
+    const t = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);
+    res.json({ ...angelegt, token: t.klartext, zweck: t.zweck, tage: t.tage, ...linkAngabe(t.klartext) });
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
@@ -567,11 +732,16 @@ app.post('/api/users', nurAdmin, async (req, res) => {
 app.post('/api/users/:id/token', nurAdmin, (req, res) => {
   const ziel = zielZugangFrei(req, res, req.params.id);
   if (!ziel) return;
+  /* DIE RECHTEFRAGE STEHT VOR DER BESTAETIGUNGSFRAGE, und das ist keine
+     Geschmacksfrage: wer ohnehin nicht darf, soll erfahren, DASS er nicht
+     darf -- und nicht erst nach seinem Passwort gefragt werden. */
+  if (!zweiteBestaetigung(req, res, 'link', ziel.id)) return;
   const zweck = (req.body || {}).zweck || 'einladung';
   try {
-    const t = auth.erzeugeToken(ziel.id, zweck);
+    const t = auth.erzeugeToken(ziel.id, zweck, req.benutzer.id);
     res.json({ id: t.id, username: t.username, token: t.klartext,
-               zweck: t.zweck, tage: t.tage, ohnePasswort: t.ohnePasswort });
+               zweck: t.zweck, tage: t.tage, ohnePasswort: t.ohnePasswort,
+               ...linkAngabe(t.klartext) });
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
@@ -590,11 +760,19 @@ app.put('/api/users/:id', nurAdmin, async (req, res) => {
   if (!ziel) return;
   if (rolle !== undefined && !istEigentuemer(req))
     return res.status(403).json({ error: VERWEIGERT_ROLLE });
+  /* DIE ZWEITE BESTAETIGUNG STEHT HIER IM RUMPF UND NICHT IN DER ROUTENZEILE,
+     weil erst der Rumpf sagt, WELCHE der drei Rechteklassen gemeint ist:
+     Rolle und fremdes Passwort verlangen sie, Sperren und Freigeben nicht --
+     das ist umkehrbar und uebergibt nichts. Beide vor dem ersten Schreiben:
+     eine Absage, die die halbe Aenderung schon geschrieben hat, waere
+     schlimmer als keine. */
+  if (rolle !== undefined && !zweiteBestaetigung(req, res, 'rolle', ziel.id)) return;
+  if (passwort !== undefined && !zweiteBestaetigung(req, res, 'passwort', ziel.id)) return;
   try {
     let ergebnis = { id: ziel.id, username: ziel.username };
-    if (rolle !== undefined) ergebnis = { ...ergebnis, ...auth.setzeRolle(ziel.id, rolle) };
-    if (status !== undefined) ergebnis = { ...ergebnis, ...auth.setzeStatus(ziel.id, status) };
-    if (passwort !== undefined) { await auth.setzeNeuesPasswort(ziel.id, passwort); ergebnis.passwortGesetzt = true; }
+    if (rolle !== undefined) ergebnis = { ...ergebnis, ...auth.setzeRolle(ziel.id, rolle, req.benutzer.id) };
+    if (status !== undefined) ergebnis = { ...ergebnis, ...auth.setzeStatus(ziel.id, status, req.benutzer.id) };
+    if (passwort !== undefined) { await auth.setzeNeuesPasswort(ziel.id, passwort, req.benutzer.id); ergebnis.passwortGesetzt = true; }
     res.json(ergebnis);
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
@@ -605,11 +783,13 @@ app.put('/api/users/:id', nurAdmin, async (req, res) => {
 app.delete('/api/users/:id', nurAdmin, (req, res) => {
   const ziel = zielZugangFrei(req, res, req.params.id);
   if (!ziel) return;
+  // Rechtefrage vor Bestaetigungsfrage, wie an der Tokenroute.
+  if (!zweiteBestaetigung(req, res, 'entfernen', ziel.id)) return;
   try {
     res.json(auth.entferneZugang(ziel.id, {
       eintraege: req.query.eintraege === '1',
       beitraege: req.query.beitraege === '1'
-    }));
+    }, req.benutzer.id));
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
@@ -2778,7 +2958,16 @@ function austauschBytes(itemId, schalter) {
 // den Bildschirm, nicht fuer die Mitnahme.
 // HINZUNEHMENDE FOLGE, und sie gehoert in den Betrieb: ein Admin ohne
 // Eigentuemerrecht kann keine Sicherung mehr ziehen.
-app.get('/api/export', nurEigentuemer, (req, res) => {
+/* DIE ZWEITE BESTAETIGUNG ALS WAECHTER, und hier gab es gar keine Wahl: der
+   Knopf loest eine BROWSERNAVIGATION aus (window.location), damit die Datei an
+   der Platte vorbeilaeuft statt vollstaendig im Speicher zu stehen. Ein Rumpf
+   ist dort baulich unmoeglich, und in die Adresse gehoert ein Passwort nie --
+   dort stuende es im Zugriffsprotokoll, in der Verlaufsliste und womoeglich im
+   Referrer.
+   LESEND, DESHALB KEIN EINTRAG IN F_ROUTEN -- die Liste ist die Stelle fuer
+   schreibende Routen. Die Klemme bekommt deshalb eine eigene Quelltextpruefung
+   daneben; ohne sie waere sie die einzige der sieben, die niemand zaehlt. */
+app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req, res) => {
   const schalter = {
     mitFotos: req.query.photos !== '0',
     // Eigener Schalter, Vorgabe aus: bei 50 MB je Datei waere die Exportdatei
@@ -2792,6 +2981,7 @@ app.get('/api/export', nurEigentuemer, (req, res) => {
   };
   const lage = paketLage(req.benutzer.id, schalter);
   const items = db.prepare('SELECT * FROM items ORDER BY id').all().map(it => eintragAlsPaket(it, lage));
+  auth.protokolliere('export', { wer: req.benutzer.id });
   res.set('Content-Disposition', `attachment; filename="${exportName('')}"`);
   res.json(exportUmschlag(items));
 });
@@ -3206,7 +3396,13 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
    soll gar nicht erst eingelesen werden.
    BEIDE MODI, nicht nur "ersetzen": das Zusammenfuehren legt genauso Zeilen
    unter fremdem Namen an, es wirft nur nichts weg. */
-app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req, res, next) => {
+/* DIE ZWEITE BESTAETIGUNG STEHT VOR multer, aus demselben Grund wie der
+   Waechter darueber: eine bis zu 900 MB grosse Datei soll gar nicht erst
+   eingelesen werden, wenn die Handlung ohnehin abgewiesen wird. Ein Passwort
+   im Multipart-Rumpf waere erst DANACH lesbar -- das ist der Grund, warum die
+   Bestaetigung eine eigene Route hat und nicht im Rumpf der Handlung reist. */
+app.post('/api/import', nurEigentuemer, zweiteBestaetigungNoetig('import'),
+         importUpload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Keine Datei übermittelt' });
     const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
@@ -3218,6 +3414,7 @@ app.post('/api/import', nurEigentuemer, importUpload.single('file'), async (req,
     // neueIds bleibt hier liegen: eine Datei mit hundert Eintraegen liefert
     // hundert Nummern, mit denen die Oberflaeche nichts anfaengt.
     const { neueIds, ...antwort } = await spieleEin(payload, req.benutzer.id, mode);
+    auth.protokolliere('import', { wer: req.benutzer.id, merkmal: mode });
     res.json(antwort);
   } catch (e) { next(e); }
 });
@@ -3272,6 +3469,9 @@ raeumePapierkorbAuf();
 // Aufrufstelle hier, zweite an GET /api/users. Die Funktion steht in auth.js,
 // weil dort auch alles andere zu den Token steht.
 auth.raeumeTokensAuf();
+// Und dasselbe fuer das Sicherheitsprotokoll: erste Aufrufstelle hier, zweite
+// an GET /api/sicherheitsprotokoll.
+auth.raeumeProtokollAuf();
 
 /* Der Weg hinein. EINE Transaktion, und das ist die Zusicherung der Runde:
    entweder liegt der Eintrag im Papierkorb UND ist geloescht, oder er steht
@@ -3632,6 +3832,10 @@ app.post('/api/sicherung', nurEigentuemer, (req, res) => {
   try { bytes = fs.statSync(datei).size; } catch {}
   console.log(`[Kriterion] Sicherung geschrieben: ${path.basename(datei)} ` +
     `(${bytes} Bytes, ${ms} ms).`);
+  // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie der
+  // Export. Der Pfad steht NICHT in der Zeile: das Protokoll haelt Vorgaenge
+  // fest, keine Orte auf dem Wirt.
+  auth.protokolliere('sicherung', { wer: req.benutzer.id });
   res.json({ ok: true, datei: path.basename(datei), pfad: ziel.pfad, bytes, ms,
              ...letzteSicherung(ziel.pfad) });
 });
@@ -3790,5 +3994,24 @@ app.listen(PORT, () => {
     (auth.HINTER_PROXY
       ? 'X-Forwarded-For wird gelesen, Cookie mit Secure und __Host-'
       : 'X-Forwarded-For wird nicht gelesen'));
+  /* Die oeffentliche Adresse gehoert ins Protokoll: an ihr haengt, welchen
+     Link ein Empfaenger bekommt. Wer sie falsch stehen hat, sieht es hier und
+     nicht erst am toten Link beim Empfaenger. */
+  if (OEFFENTLICHE.fehler) {
+    console.warn(`[Kriterion] OEFFENTLICHE_ADRESSE ist unbrauchbar: ${OEFFENTLICHE.fehler} ` +
+      'Die Anlage laeuft weiter; den Einladungslink baut wie bisher der Browser des Admins.');
+  } else if (OEFFENTLICHE.adresse) {
+    console.log(`[Kriterion] Oeffentliche Adresse: ${OEFFENTLICHE.adresse} — ` +
+      'Einladungslinks werden damit gebaut.');
+    if (auth.HINTER_PROXY && OEFFENTLICHE.adresse.startsWith('http://')) {
+      // Widerspruch, aber kein Verlust: ein falscher Link ist ein toter Link.
+      // Eine Absage waere hier haerter als der Schaden.
+      console.warn('[Kriterion] Hinter einem Proxy und trotzdem http:// in ' +
+        'OEFFENTLICHE_ADRESSE — der Cookie traegt Secure, ueber http kommt niemand herein.');
+    }
+  } else {
+    console.log('[Kriterion] Oeffentliche Adresse: nicht gesetzt — ' +
+      'den Einladungslink baut der Browser des Admins.');
+  }
   setTimeout(() => backfillVariants().then(maintainStorage).catch(e => console.error(e)), 1500);
 });

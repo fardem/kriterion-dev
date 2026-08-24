@@ -329,6 +329,67 @@ CREATE TABLE IF NOT EXISTS tokens (
 -- Index keine Migration.
 CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
 
+/* DAS SICHERHEITSPROTOKOLL -- ES HAELT FEST, WER ZUGANG HATTE UND WER DIE
+   ANLAGE ALS GANZES ANGEFASST HAT.
+
+   ES IST KEIN AENDERUNGSVERLAUF, und das ist die tragende Grenze: kein
+   Eintragstitel, kein Kommentartext, keine Bewertung, keine Note. Dieselbe
+   Trennlinie wie ueberall -- was die ANLAGE betrifft, nicht was jemand GESAGT
+   hat. Die Entscheidung gegen den Aenderungsverlauf gilt Inhalten und bleibt.
+
+   KEIN MIGRATIONSBLOCK, und das ist zum dritten Mal nachgestellt statt
+   abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS eine
+   fehlende TABELLE bei jedem Start an (Stolperstein 13 gilt der Spalte). Der
+   Pruefstand entfernt sie von Hand aus einer bestehenden Anlage, startet
+   einmal und sieht nach -- samt der Gegenlage, dass eine Spalte nicht
+   nachwaechst. Es bleibt bei fuenf markierten Bloecken.
+
+   KEINE NAMENSSPALTE, obwohl sie verlockt. entferneZugang() ueberschreibt
+   username; eine hier aufbewahrte Kopie waere die eine Stelle im Projekt, die
+   den Grabstein rueckgaengig macht. Gespeichert werden Nummern, aufgeloest
+   wird beim Anzeigen ueber denselben Weg wie ueberall -- ein entfernter Zugang
+   heisst "Geloeschter Benutzer 7".
+
+   wer UND ziel SIND DIE FESTSTELLUNG EINES VORGANGS, so wie
+   papierkorb.geloescht_von -- wer den Knopf gedrueckt hat und an wem. Daran
+   haengt kein Recht und kein Filter. Beide gehoeren deshalb ausdruecklich
+   NICHT in ordneBestandZu(): das Auffangnetz beantwortet, wem herrenloser
+   BESTAND zufaellt; hier stillschweigend den Eigentuemer einzusetzen machte
+   aus einer Feststellung eine Falschaussage. Es sind die achte und die neunte
+   Spalte dieser Art.
+
+   wer IS NULL HEISST "UEBER zugang.js AUF DEM WIRT" -- mit genau einer
+   Ausnahme, und die ist ueber was zu erkennen: bei einer gescheiterten
+   Anmeldung gibt es keinen angemeldeten Benutzer. Jeder andere Vorgang kommt
+   entweder ueber eine Route (dann steht wer) oder vom Wirt (dann nicht).
+   Ein eigenes Feld fuer die Herkunft waere eine zweite Wahrheit daneben.
+
+   BEI EINER GESCHEITERTEN ANMELDUNG STEHT DER GETIPPTE NAME NIRGENDS. ziel
+   traegt die Nummer nur dann, wenn der Name einen vorhandenen Zugang traf --
+   sonst NULL. Freitext von aussen kommt in diese Tabelle nicht hinein; sonst
+   landete frueher oder spaeter ein ins falsche Feld getipptes Passwort darin.
+
+   merkmal TRAEGT AUSSCHLIESSLICH WERTE AUS EINER GESCHLOSSENEN LISTE im
+   Quelltext (MERKMALE in auth.js) -- die neue Rolle, der neue Status, der
+   Zweck des Links, die Betriebsart des Imports. Damit ist "in keiner Zeile
+   steht etwas, was dort nicht hingehoert" baulich wahr statt durchgesetzt.
+   KEIN CHECK auf der Spalte -- dieselbe Ueberlegung wie bei users.status.
+
+   ON DELETE SET NULL statt CASCADE: mit dem Menschen verschwindet der Vorgang
+   nicht. Im Betrieb greift die Kaskade ohnehin nie, weil ein Zugang zum
+   Grabstein wird statt entfernt zu werden. */
+CREATE TABLE IF NOT EXISTS sicherheitsprotokoll (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  am TEXT NOT NULL DEFAULT (datetime('now')),
+  was TEXT NOT NULL,
+  wer INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  ziel INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  merkmal TEXT
+);
+-- Gefragt wird immer nach den JUENGSTEN Zeilen und geraeumt nach dem Alter --
+-- beides ueber am. Wie bei idx_papierkorb_am ist ein Index keine Migration.
+CREATE INDEX IF NOT EXISTS idx_protokoll_am ON sicherheitsprotokoll(am);
+
 -- Der Favorit: eine Aussage eines Benutzers ueber einen Eintrag, keine
 -- Eigenschaft des Eintrags -- deshalb eine eigene Tabelle. Es gibt nur Zeilen
 -- fuer tatsaechliche Favoriten.

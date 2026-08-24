@@ -146,6 +146,53 @@ function confirmBox(title, text, confirmLabel = 'Löschen') {
   });
 }
 
+/* DIE ZWEITE BESTAETIGUNG AM BILDSCHIRM.
+   Ein eigener Dialog nach dem Muster von confirmBox() -- und ausdruecklich
+   KEIN prompt(): dort stuende das Passwort im Klartext auf dem Bildschirm.
+   DER GRUND STEHT DANEBEN, und das ist keine Zierde: ein Passwortfeld ohne
+   Begruendung sieht aus wie eine Schikane. Wer liest, warum gefragt wird,
+   versteht auch, warum es beim naechsten Mal wieder gefragt wird.
+   Liefert true, wenn die Freigabe steht -- der Rufer handelt danach. Bei false
+   ist entweder abgebrochen worden oder das Passwort war falsch; die Meldung
+   steht dann schon. */
+const BESTAETIGUNG_GRUND = 'Das trifft die Anlage als Ganzes. Damit eine fremde offene ' +
+  'Anmeldung das nicht kann, bestätigst du es mit deinem Passwort.';
+
+function bestaetigungsFeld(titel, was) {
+  return new Promise(resolve => {
+    const bd = document.createElement('div');
+    bd.className = 'backdrop';
+    bd.innerHTML = `<div class="modal"><h2>${esc(titel)}</h2>
+      <p>${esc(was)}</p>
+      <p class="desc" style="margin:0">${esc(BESTAETIGUNG_GRUND)}</p>
+      <div class="field" style="margin:0"><label>Dein Passwort</label>
+        <input class="input" id="best-pass" type="password" autocomplete="current-password"></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
+      <button class="btn btn-accent" data-yes>Bestätigen</button></div></div>`;
+    document.body.appendChild(bd);
+    const feld = bd.querySelector('#best-pass');
+    const done = v => { bd.remove(); resolve(v); };
+    bd.querySelector('[data-no]').onclick = () => done(null);
+    bd.querySelector('[data-yes]').onclick = () => done(feld.value);
+    bd.onclick = e => { if (e.target === bd) done(null); };
+    feld.addEventListener('keydown', e => { if (e.key === 'Enter') done(feld.value); });
+    const onKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey, true); done(null); } };
+    document.addEventListener('keydown', onKey, true);
+    feld.focus();
+  });
+}
+
+async function zweiteBestaetigung(zweck, ziel, titel, was) {
+  const passwort = await bestaetigungsFeld(titel, was);
+  // null heisst abgebrochen -- ein Abbruch, der trotzdem handelt, waere der
+  // schlimmere Fehler. Ein LEERES Feld ist keine Bestaetigung, sondern ein
+  // falsches Passwort und geht als solches an den Server.
+  if (passwort === null) return false;
+  try { await api('POST', '/api/bestaetigung', { passwort, zweck, ziel: ziel ?? null }); }
+  catch (e) { toast(e.message, true); return false; }
+  return true;
+}
+
 // Schreibvorgaenge der Reihe nach abarbeiten. Klick und Doppelklick auf
 // dieselben Sterne loesen mehrere Aufrufe kurz hintereinander aus; ohne
 // Serialisierung kann das Zuruecksetzen vor dem Setzen ankommen.
@@ -3581,7 +3628,7 @@ async function renderDetail(id) {
 /* ================= Systembereich ================= */
 async function renderSystem() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
-  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen;
+  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll;
   try {
     /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
        stehen hinter dem Admin; ein Abruf, der zuverlaessig 403 ergibt, risse
@@ -3597,12 +3644,16 @@ async function renderSystem() {
        HIER geholt und nicht spaeter nachgeladen -- ein Nachladen liefe als
        herrenlose Zusage weiter, auch wenn das Fenster laengst zu ist.
        DIE EIGENEN ANMELDUNGEN GEHEN DENSELBEN WEG und stehen ohne Bedingung
-       daneben: die Karte gehoert jedem, wie "Zugang" auch. */
-    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen] = await Promise.all([
+       daneben: die Karte gehoert jedem, wie "Zugang" auch.
+       DAS SICHERHEITSPROTOKOLL EBENSO, hinter dem Eigentuemer -- und HIER und
+       nicht spaeter aus der Karte heraus (Stolperstein 118). Es sind neun
+       Abrufe. */
+    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null,
-      EIGENTUEMER ? api('GET', '/api/sicherung') : null, api('GET', '/api/sessions')
+      EIGENTUEMER ? api('GET', '/api/sicherung') : null, api('GET', '/api/sessions'),
+      EIGENTUEMER ? api('GET', '/api/sicherheitsprotokoll') : null
     ]);
   } catch (e) { if (e.message !== 'Sitzung abgelaufen') toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
@@ -3856,6 +3907,24 @@ async function renderSystem() {
           <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.</p>
       </div>` : ''}
 
+      ${/* NUR DER EIGENTUEMER. Die Karte nennt Namen und Vorgaenge ueber andere
+            Zugaenge; ein Admin, der sie liest, saehe die Verwaltungsvorgaenge
+            des Eigentuemers ueber ihn selbst. Dieselbe Zeile wie Export,
+            Import und der Schluesselwert.
+            SIE IST KEIN AENDERUNGSVERLAUF, und das steht auch dort: kein
+            Eintragstitel, kein Kommentartext, keine Bewertung. */''}${EIGENTUEMER && protokoll ? `<div class="sys-card breit">
+        <h3>Sicherheitsprotokoll</h3>
+        <p class="desc">Wer Zugang hatte und wer die Anlage als Ganzes angefasst hat.
+          <strong>Was hier nicht steht:</strong> was jemand geschrieben oder bewertet hat — das ist
+          kein Änderungsverlauf, und das bleibt so. Ebenso wenig Adresse oder Browserkennung:
+          die Anlage speichert beides nicht.</p>
+        <p class="desc">Die Zeilen bleiben <strong>${protokoll.tage} Tage</strong> stehen und werden
+          danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Protokoll, das
+          sich wegräumen lässt, wäre keins.</p>
+        <div class="prot-liste" id="protokoll-liste"></div>
+        <p class="hint hint-sm" id="protokoll-fuss" style="margin:10px 2px 0"></p>
+      </div>` : ''}
+
       <div class="sys-card">
         <h3>Darstellung</h3>
         <p class="desc">Schriftgröße der gesamten Oberfläche. Wirkt sofort und gilt auf jedem
@@ -4066,12 +4135,103 @@ async function renderSystem() {
   }
   zeichneSitzungen(sitzungen);
 
+  /* --- Das Sicherheitsprotokoll ---
+     Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
+     wie bei den Verwaltungskarten und aus demselben Grund (Stolperstein 118).
+     JEDE LESESTELLE IST ABGEFANGEN: fehlt der Gegenstand, bleibt die Karte
+     leer und sagt es, statt den Lauf abzureissen. */
+  const VORGANGSWORT = {
+    'anmeldung.ok': 'Angemeldet',
+    'anmeldung.fehl': 'Anmeldung gescheitert',
+    'bestaetigung.fehl': 'Bestätigung gescheitert',
+    'zugang.neu': 'Zugang angelegt',
+    'zugang.rolle': 'Rolle vergeben',
+    'zugang.passwort': 'Passwort gesetzt',
+    'zugang.weg': 'Zugang entfernt',
+    'zugang.selbst': 'Eigener Zugang geändert',
+    'link.neu': 'Link erzeugt',
+    'link.ein': 'Link eingelöst',
+    'export': 'Export gezogen',
+    'import': 'Import eingespielt',
+    'sicherung': 'Sicherung geschrieben'
+  };
+  // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "gesperrt"
+  // und "freigegeben" sind zwei verschiedene Aussagen und sollen auch zwei
+  // verschiedene Zeilen sein.
+  const vorgangsWort = (z) => z.was === 'zugang.status'
+    ? (z.merkmal === 'aktiv' ? 'Zugang freigegeben' : 'Zugang gesperrt')
+    : (VORGANGSWORT[z.was] || z.was);
+  // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
+  // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
+  const MERKMALSWORT = {
+    user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer',
+    einladung: 'Einladung', ruecksetzung: 'Rücksetzung',
+    merge: 'zusammengeführt', replace: 'ersetzend',
+    name: 'Name', passwort: 'Passwort', beides: 'Name und Passwort'
+  };
+  const merkmalsWort = (z) => (z.was === 'zugang.status' ? '' : (MERKMALSWORT[z.merkmal] || ''));
+
+  /* WER GEHANDELT HAT. Eine leere Nummer heisst "über zugang.js auf dem Wirt"
+     -- mit genau einer Ausnahme, und die ist am Vorgang zu erkennen: bei einer
+     gescheiterten Anmeldung war niemand angemeldet. */
+  const protHandelnder = (z) => {
+    if (z.wer != null) return verfasserName({ id: z.wer, name: z.werName, geloescht: z.werName == null });
+    return z.was === 'anmeldung.fehl' ? '—' : 'über zugang.js auf dem Wirt';
+  };
+  const protZiel = (z) => {
+    if (z.ziel == null) return z.was === 'anmeldung.fehl' ? 'unbekannter Name' : '';
+    if (z.ziel === z.wer) return '';
+    return verfasserName({ id: z.ziel, name: z.zielName, geloescht: z.zielName == null });
+  };
+
+  function zeichneProtokoll(d) {
+    const box = document.getElementById('protokoll-liste');
+    const fuss = document.getElementById('protokoll-fuss');
+    if (!box) return;
+    const zeilen = (d && Array.isArray(d.zeilen)) ? d.zeilen : [];
+    if (!zeilen.length) {
+      box.innerHTML = `<p class="hint">Noch kein Vorgang festgehalten.</p>`;
+      if (fuss) fuss.textContent = '';
+      return;
+    }
+    box.innerHTML = '';
+    for (const z of zeilen) {
+      const zeile = document.createElement('div');
+      zeile.className = 'prot-zeile';
+      zeile.dataset.was = z.was;
+      const wen = protZiel(z), merk = merkmalsWort(z);
+      zeile.innerHTML = `<span class="prot-zeit">${esc(fmtDate(z.am))}</span>
+        <span class="prot-was">${esc(vorgangsWort(z))}</span>
+        <span class="prot-wer">${esc(protHandelnder(z))}</span>
+        <span class="prot-ziel">${wen ? '→ ' + esc(wen) : ''}</span>
+        <span class="prot-merkmal">${merk ? esc(merk) : ''}</span>`;
+      box.appendChild(zeile);
+    }
+    if (fuss) {
+      const gesamt = Number(d.gesamt) || zeilen.length;
+      fuss.textContent = gesamt > zeilen.length
+        ? `Die ${zeilen.length} jüngsten von ${gesamt} Vorgängen.`
+        : `${gesamt} ${gesamt === 1 ? 'Vorgang' : 'Vorgänge'}.`;
+    }
+  }
+  zeichneProtokoll(protokoll);
+
   // Dateien haben einen eigenen Schalter mit Vorgabe aus: bei 50 MB je Datei
   // waere die Exportdatei sonst schnell unhandlich.
   const mitDateien = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '') +
                            (document.getElementById('ex-videos')?.checked ? '&videos=1' : '');
-  amElement('ex-yes', b => b.onclick = () => { window.location = '/api/export?photos=1' + mitDateien(); });
-  amElement('ex-no', b => b.onclick = () => { window.location = '/api/export?photos=0' + mitDateien(); });
+  /* DER EXPORT BLEIBT EINE NAVIGATION -- die Datei laeuft damit an der Platte
+     vorbei statt vollstaendig im Speicher zu stehen. Die zweite Bestaetigung
+     steht deshalb DAVOR und nicht darin: sie holt die Freigabe, danach faehrt
+     der Browser los. */
+  const exportLos = async (mitFotos) => {
+    if (!await zweiteBestaetigung('export', null, 'Export bestätigen',
+      'Der Export schreibt den gesamten Bestand in eine Datei, die das Haus verlässt — ' +
+      'mit allen Fotos, allen Anhängen und den Namen aller Verfasser.')) return;
+    window.location = `/api/export?photos=${mitFotos ? 1 : 0}` + mitDateien();
+  };
+  amElement('ex-yes', b => b.onclick = () => exportLos(true));
+  amElement('ex-no', b => b.onclick = () => exportLos(false));
 
   amElement('imp', imp => imp.onchange = e => {
     const file = e.target.files[0];
@@ -4676,10 +4836,21 @@ async function renderSystem() {
      Messenger. Damit ist der Link ein Passwortersatz auf Zeit und steht nach
      der Weitergabe in einem fremden Verlauf. Das gehört an den Bildschirm und
      nicht bloß in ein Dokument. */
+  /* WOHER DIE ADRESSE KAM, GEHOERT AN DIE STELLE, AN DER DER LINK ENTSTEHT.
+     Wer den falschen Fall vor sich hat, soll ihn an dieser Zeile erkennen und
+     nicht am toten Link beim Empfaenger. Die Einstellung selbst wird hier nur
+     GEZEIGT und nicht gesetzt -- sie steht in der .env, aus demselben Grund
+     wie HINTER_PROXY. */
+  const linkHerkunft = (d) => d.linkQuelle === 'einstellung'
+    ? 'aus der Einstellung <code>OEFFENTLICHE_ADRESSE</code>'
+    : 'aus deinem Browser';
+
   function zeigeLink(d) {
     const box = document.getElementById('zug-link');
     if (!box || !d || !d.token) return;
-    const adresse = baueEinladungsAdresse(d.token);
+    // Der Server gibt den fertigen Link nur heraus, wenn die Einstellung steht.
+    // Sonst baut ihn der Browser wie bisher.
+    const adresse = d.link || baueEinladungsAdresse(d.token);
     box.innerHTML = `<div class="warn-box zug-linkbox" style="margin:12px 0 0">
       <strong>${d.zweck === 'ruecksetzung' ? 'Link zum Zurücksetzen' : 'Einladungslink'}
       für „${esc(d.username || '')}“ — er wird nur dieses eine Mal angezeigt.</strong>
@@ -4688,6 +4859,8 @@ async function renderSystem() {
       Nach der Weitergabe steht er in einem fremden Verlauf — gib ihn nur dem, für den er ist.
       <div class="zug-linkzeile"><input class="input input-sm" id="zug-link-feld" readonly
         value="${esc(adresse)}"><button class="btn btn-sm" id="zug-link-kopie">Kopieren</button></div>
+      <p class="zug-linkherkunft" id="zug-link-herkunft">Dieser Link zeigt auf
+        <code>${esc(new URL(adresse).origin)}</code> — <strong>${linkHerkunft(d)}</strong>.</p>
     </div>`;
     const feld = document.getElementById('zug-link-feld');
     feld.focus(); feld.select();
@@ -4762,6 +4935,8 @@ async function renderSystem() {
         if (rolleFeld) rolleFeld.onchange = async () => {
           // Vor dem ersten await lesen: danach ist das Feld schon neu gezeichnet.
           const neu = rolleFeld.value;
+          if (!await zweiteBestaetigung('rolle', z.id, 'Rolle vergeben',
+            `„${z.username}“ bekommt die Rolle ${ROLLENWORT[neu] || neu}.`)) { zeichneZugaenge(); return; }
           try { await api('PUT', `/api/users/${z.id}`, { rolle: neu }); toast('Rolle geändert'); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
@@ -4788,6 +4963,10 @@ async function renderSystem() {
             `Link zum Zurücksetzen für „${z.username}“ erzeugen?\n\n` +
             `Das bisherige Passwort bleibt gültig, bis der Link eingelöst wird. ` +
             `Ein früher erzeugter Link gilt danach nicht mehr.`)) return;
+          if (!await zweiteBestaetigung('link', z.id,
+            zweck === 'ruecksetzung' ? 'Link zum Zurücksetzen' : 'Einladungslink',
+            `Der Link ist ein Passwortersatz auf Zeit für „${z.username}“ — wer ihn hat, ` +
+            `kommt herein und setzt das Passwort.`)) return;
           try { zeigeLink(await api('POST', `/api/users/${z.id}/token`, { zweck })); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
@@ -4797,6 +4976,8 @@ async function renderSystem() {
           const neu = prompt(`Neues Passwort für „${z.username}“ (mindestens ${MIN_PASSWORT} Zeichen) — ` +
             `der direkte Weg ohne Link. Alle Sitzungen dieses Zugangs fallen dabei.`);
           if (neu === null || !neu.trim()) return;
+          if (!await zweiteBestaetigung('passwort', z.id, 'Fremdes Passwort setzen',
+            `„${z.username}“ bekommt ein neues Passwort, und alle seine Anmeldungen fallen.`)) return;
           try { await api('PUT', `/api/users/${z.id}`, { passwort: neu }); toast('Passwort gesetzt'); }
           catch (e) { toast(e.message, true); }
           zeichneZugaenge();
@@ -4823,6 +5004,8 @@ async function renderSystem() {
             `${b.links} Links, ${b.dateien} Dateien.\n\n` +
             `OK = mitlöschen.\nAbbrechen = stehen lassen.`);
           if (!confirm(`„${z.username}“ jetzt entfernen? Das lässt sich nicht rückgängig machen.`)) return;
+          if (!await zweiteBestaetigung('entfernen', z.id, 'Zugang entfernen',
+            `„${z.username}“ wird stillgelegt; der Name wird frei.`)) return;
           try {
             await api('DELETE', `/api/users/${z.id}?eintraege=${eintraegeWeg ? 1 : 0}&beitraege=${beitraegeWeg ? 1 : 0}`);
             toast('Zugang entfernt');
@@ -4939,6 +5122,10 @@ function askImport(file) {
     const run = async (mode) => {
       if (mode === 'replace' && !await confirmBox('Wirklich ersetzen?',
         'Der komplette vorhandene Bestand wird vorher gelöscht. Das lässt sich nicht rückgängig machen.', 'Ersetzen')) return;
+      if (!await zweiteBestaetigung('import', null, 'Import bestätigen',
+        mode === 'replace'
+          ? 'Der ersetzende Import löscht den vorhandenen Bestand und legt Einträge, Kommentare und Bewertungen unter fremden Namen an.'
+          : 'Der Import legt Einträge, Kommentare und Bewertungen unter fremden Namen an.')) return;
       close();
       const busy = document.createElement('div');
       busy.className = 'backdrop';
