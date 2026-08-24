@@ -552,7 +552,11 @@ Listen.
 - **Sicherung** *(Eigentümer, seit 0.8.70)*: eine vollständige, verschlüsselte
   Kopie der Datenbank auf Knopfdruck — siehe den Abschnitt „Sichern" weiter
   unten. Die Karte nennt den eingerichteten Zielort, das Unterverzeichnis
-  darunter, wann zuletzt gesichert wurde und wie lange es dauern wird.
+  darunter, wann zuletzt gesichert wurde und wie lange es dauern wird. **Ganz
+  oben steht, wie der Zielort liegt:** rot, wenn er im Projektverzeichnis
+  liegt, mit dem Grund daneben; grün, wenn er außerhalb liegt. Abgewiesen wird
+  keine der beiden Lagen — eine Sicherung am falschen Ort ist besser als
+  keine.
 - **Papierkorb** *(Admin sieht, Eigentümer handelt; seit 0.8.70)*: was in den
   letzten dreißig Tagen gelöscht wurde, mit Titel, Datum, Löschendem, der
   verbleibenden Frist und der Größe. **„Zurückholen"** legt einen **neuen**
@@ -843,18 +847,42 @@ bringt ihn mit:
 ```yaml
     volumes:
       - ./data:/app/data
-      - ../kriterion-sicherung:/sicherung
+      - ./kriterion-sicherung:/app/sicherung
     environment:
-      - SICHERUNG_DIR=/sicherung
+      - SICHERUNG_DIR=/app/sicherung
 ```
 
 Beide Zeilen gehören zusammen und stehen deshalb in **derselben** Datei: ein
 Pfad ohne Einhängung schriebe in eine Schicht des Containers, die beim nächsten
-`docker compose up --build` verschwindet. Der Ort liegt **außerhalb** des
-Projektverzeichnisses — eine Sicherung neben dem Original ist keine, und beim
-Einspielen wird das Projektverzeichnis umbenannt. In der Oberfläche lässt sich
-darunter ein **Unterverzeichnis** wählen; es muss dort schon liegen, angelegt
-wird keines.
+`docker compose up --build` verschwindet. In der Oberfläche lässt sich darunter
+ein **Unterverzeichnis** wählen; es muss dort schon liegen, angelegt wird
+keines.
+
+> **Die Vorgabe legt den Ort ins Projektverzeichnis — bequem, aber nicht die
+> sichere Lage.** Die Karte „Sicherung" markiert das **rot** und nennt den
+> Grund; liegt der Ort außerhalb, steht dort ein **grüner** Kasten. Drei Dinge
+> sprechen dagegen: beim Einspielen einer neuen Version wird das
+> Projektverzeichnis umbenannt und die Sicherungen wandern mit (der
+> Einspielweg unten holt sie eigens zurück); ein Fehlgriff am Projektordner
+> nähme Original und Sicherung auf einmal; und beide liegen auf derselben
+> Platte.
+>
+> **Umgestellt wird es in der `docker-compose.yml`, beide Zeilen zusammen:**
+>
+> ```yaml
+>       - ../kriterion-sicherung:/sicherung
+>     environment:
+>       - SICHERUNG_DIR=/sicherung
+> ```
+>
+> Dann entfällt auch die zusätzliche Zeile im Einspielweg. Ein relativer Pfad
+> löst `docker` gegen den Ort der `docker-compose.yml` auf, also zeigt
+> `../kriterion-sicherung` vor und nach dem Einspielen auf dasselbe
+> Verzeichnis.
+>
+> **Die Anzeige hängt an der Spiegelung:** was auf dem Wirt unter `./` liegt,
+> gehört im Container unter `/app`, was daneben liegen soll, daneben. Der
+> Container sieht den Wirt nicht — er liest die Lage an seinem eigenen Pfad ab.
 
 **Ohne die beiden Zeilen bleibt die Karte aus und sagt das** — sie schreibt
 nicht still irgendwohin.
@@ -894,8 +922,17 @@ python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
+mv kriterion-alt/kriterion-sicherung kriterion/ 2>/dev/null   # nur bei Ort im Projekt
 cd kriterion && docker compose up -d --build
 ```
+
+**Die vorletzte Zeile gilt nur, solange der Sicherungsort im
+Projektverzeichnis liegt** — der Auslieferungszustand. Sie holt die
+vorhandenen Sicherungen aus dem umbenannten Ordner zurück; ohne sie bleiben
+sie in `kriterion-alt` liegen und verschwinden, sobald der weggeräumt wird.
+Genau davor warnt der rote Kasten in der Karte „Sicherung". Liegt der Ort
+außerhalb, ist die Zeile ohne Wirkung und stört nicht — deshalb steht sie
+hier und nicht in einer Fußnote.
 
 **Die Sicherungszeile steht bewusst hinter `docker compose down`.** Eine Kopie,
 die neben einem laufenden Server entsteht, kann eine offene WAL-Datei

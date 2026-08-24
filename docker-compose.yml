@@ -8,19 +8,31 @@ services:
       - "3100:3000"
     volumes:
       - ./data:/app/data
-      # DER SICHERUNGSORT (seit 0.8.70). Er liegt AUSSERHALB des
-      # Projektverzeichnisses, und das ist kein Geschmack: eine Sicherung neben
-      # dem Original ist keine, und beim Einspielen wird das Projektverzeichnis
-      # umbenannt (kriterion -> kriterion-alt). Ein relativer Pfad loest docker
-      # gegen den Ort DIESER Datei auf, also zeigt ../kriterion-sicherung vor
-      # und nach dem Einspielen auf dasselbe Verzeichnis.
-      # Wer woanders sichern will, aendert diese Zeile UND die Variable
-      # darunter -- beide gehoeren zusammen und duerfen nicht auseinanderlaufen.
-      - ../kriterion-sicherung:/sicherung
+      # DER SICHERUNGSORT. Er liegt hier IM Projektverzeichnis -- das haelt die
+      # Uebersicht, ist aber ausdruecklich nicht die sichere Lage: beim
+      # Einspielen wird das Projektverzeichnis umbenannt
+      # (kriterion -> kriterion-alt), und die Sicherungen wandern mit. Wer den
+      # alten Ordner danach wegraeumt, raeumt sie mit weg. Die Karte
+      # "Sicherung" sagt das im Klartext und markiert es rot.
+      #
+      # AUSSERHALB IST DIE EMPFOHLENE LAGE. Dafuer beide Zeilen zusammen auf
+      #   - ../kriterion-sicherung:/sicherung
+      #   - SICHERUNG_DIR=/sicherung
+      # aendern. Ein relativer Pfad loest docker gegen den Ort DIESER Datei
+      # auf, also zeigt ../kriterion-sicherung vor und nach dem Einspielen auf
+      # dasselbe Verzeichnis. Beide Haelften gehoeren zusammen und duerfen
+      # nicht auseinanderlaufen.
+      #
+      # DIE ROT-GRUEN-ANZEIGE HAENGT AN DIESER SPIEGELUNG: was unter ./
+      # eingehaengt wird, gehoert unter /app; was unter ../ eingehaengt wird,
+      # daneben. Der Container sieht den Wirt nicht -- er liest die Lage an
+      # seinem eigenen Pfad ab. Wer den Schnitt anders legt, nimmt der Anzeige
+      # ihre Grundlage.
+      - ./kriterion-sicherung:/app/sicherung
     environment:
       - PORT=3000
       # Ohne diese Zeile bleibt die Karte "Sicherung" aus und sagt es. Sie
       # steht hier und nicht in der .env: sie gehoert zur Einhaengung darueber,
       # und ein Pfad ohne Einhaengung schriebe in eine Schicht, die beim
       # naechsten Bau verschwindet.
-      - SICHERUNG_DIR=/sicherung
+      - SICHERUNG_DIR=/app/sicherung

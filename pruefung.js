@@ -295,6 +295,31 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Dienst und Container heissen kriterion',
     /^ {2}kriterion:$/m.test(composeText) && /container_name: kriterion$/m.test(composeText));
   pruefe('package.json nennt den Namen kriterion', paketJson.name === 'kriterion', paketJson.name);
+
+  /* DIE EINHAENGUNG UND DIE VARIABLE GEHOEREN ZUSAMMEN. Ein SICHERUNG_DIR
+     ohne passende Einhaengung schriebe in eine Schicht des Containers, die
+     beim naechsten Bau verschwindet -- die Sicherung waere weg, und niemand
+     saehe es. Deshalb steht beides in DERSELBEN Datei, und deshalb prueft
+     das hier, dass es nicht auseinandergelaufen ist.
+     GEPRUEFT WIRD DIE INNERE HAELFTE: was links vom Doppelpunkt steht, ist
+     der Wirt und geht den Prozess nichts an. */
+  const composeZiele = [...composeText.matchAll(/^\s*-\s+[^\s#][^\s]*:(\/[^\s:]+)/gm)].map(m => m[1]);
+  const composeSich = (composeText.match(/^\s*-\s*SICHERUNG_DIR=(\S+)/m) || [])[1];
+  pruefe('Die docker-compose.yml nennt einen Sicherungsort', !!composeSich, composeSich);
+  pruefe('Und er ist wirklich eingehaengt -- Einhaengung und Variable laufen nicht auseinander',
+    !!composeSich && composeZiele.includes(composeSich),
+    `${composeSich} gegen ${composeZiele.join(', ')}`);
+  /* DIE ROT-GRUEN-ANZEIGE HAENGT AN DER SPIEGELUNG: was auf dem Wirt unter ./
+     liegt, gehoert im Container unter /app -- sonst sagt die Karte etwas
+     anderes als die Lage draussen. Geprueft wird an der Zeile selbst, nicht
+     an einem Kommentar daneben (Stolperstein 106). */
+  const composeSichZeile = (composeText.match(/^\s*-\s+(\.[^\s:]*):(\/[^\s:]+)\s*$/gm) || [])
+    .map(z => z.trim().replace(/^-\s+/, '').split(':'))
+    .find(([, innen]) => innen === composeSich);
+  pruefe('Die Einhaengung spiegelt die Lage: ./ draussen heisst /app drinnen',
+    !!composeSichZeile &&
+    (composeSichZeile[0].startsWith('./') === composeSichZeile[1].startsWith('/app/')),
+    JSON.stringify(composeSichZeile));
   pruefe('Der Fenstertitel heisst Kriterion', /<title>Kriterion<\/title>/.test(indexText));
 
   // Der Rueckfallname der Exportdatei greift nur, wenn title_app weder
@@ -3925,6 +3950,55 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Noch liegt dort keine Sicherung',
     siStand.inhalt?.erreichbar === true && siStand.inhalt?.letzte === null,
     JSON.stringify(siStand.inhalt?.letzte));
+
+  /* --- LIEGT DER SICHERUNGSORT IM ARBEITSVERZEICHNIS? ---
+     Eine Sicherung neben der Anwendung ist die bequeme, nicht die sichere
+     Lage: sie teilt das Schicksal des Projektverzeichnisses. Sie wird deshalb
+     NICHT abgewiesen -- sie wird benannt. Genau das trennt diese Prueflage von
+     den Absagen darunter: hier bleibt alles erlaubt, nur die Auskunft kippt.
+     BEIDE LAGEN WERDEN GEFAHREN. Eine Prueflage, die nur den einen Fall
+     kennt, belegt nichts ueber den anderen -- und ein Feld, das schlicht immer
+     false ist, saehe von aussen genauso aus. */
+  pruefe('Ein Ort ausserhalb des Arbeitsverzeichnisses meldet sich als solcher',
+    siStand.inhalt?.imArbeitsverzeichnis === false,
+    JSON.stringify(siStand.inhalt?.imArbeitsverzeichnis));
+
+  {
+    // Die Wurzel liegt diesmal UNTER dem Verzeichnis, in dem server.js steht.
+    const siInnen = fs.mkdtempSync(path.join(__dirname, 'kriterion-sicherung-probe-'));
+    const siInnenDaten = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-innen-'));
+    try {
+      kurzlauf(`require('./db'); console.log('da');`, siInnenDaten);
+      {
+        const d = oeffne(path.join(siInnenDaten, 'katalog.sqlite'));
+        d.prepare("INSERT INTO users (username, password_hash, role) VALUES ('anna', 'x', 'eigentuemer')").run();
+        d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-si-innen', 1)").run();
+        d.close();
+      }
+      const SI2 = starteWeiterenServer(siInnenDaten, { SICHERUNG_DIR: siInnen }, 4500);
+      await SI2.bereit;
+      const a = await fetch(SI2.basis + '/api/sicherung',
+        { headers: { cookie: 'kriterion_session=cookie-si-innen' } });
+      let innen = null;
+      try { innen = await a.json(); } catch {}
+      pruefe('Ein Ort IM Arbeitsverzeichnis meldet sich als solcher',
+        innen?.imArbeitsverzeichnis === true, JSON.stringify(innen?.imArbeitsverzeichnis));
+      pruefe('Und er ist trotzdem eingerichtet -- benannt, nicht abgewiesen',
+        innen?.eingerichtet === true && !innen?.fehler,
+        JSON.stringify([innen?.eingerichtet, innen?.grund, innen?.fehler]));
+      pruefe('Und es laesst sich dort wirklich sichern',
+        (await (await fetch(SI2.basis + '/api/sicherung',
+          { method: 'POST', headers: { cookie: 'kriterion_session=cookie-si-innen' } })).json())?.datei
+          !== undefined);
+      pruefe('Die Datei liegt danach im Arbeitsverzeichnis',
+        fs.readdirSync(siInnen).some(n => /^kriterion-.*\.sqlite$/.test(n)),
+        fs.readdirSync(siInnen).join(', '));
+      await SI2.stopp();
+    } finally {
+      fs.rmSync(siInnen, { recursive: true, force: true });
+      fs.rmSync(siInnenDaten, { recursive: true, force: true });
+    }
+  }
 
   /* --- DER ZIELORT IN BEIDE RICHTUNGEN ---
      Zu jeder Absage die Nachschau, dass DANACH KEINE DATEI DA LIEGT -- eine
@@ -9762,6 +9836,9 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
      und jeder braucht seinen eigenen Aufbau. */
   const sicherung = sicherungStand || {
     eingerichtet: true, wurzel: '/sicherung', ort: 'taeglich', pfad: '/sicherung/taeglich',
+    // Die Vorgabe ist die EMPFOHLENE Lage -- ausserhalb. Die Gegenlage steht
+    // als eigener Aufbau in der Gruppe darunter.
+    imArbeitsverzeichnis: false,
     dbBytes: 52428800, dauerSekunden: 1, erreichbar: true, zahl: 2,
     letzte: { datei: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
               am: '2026-08-20 03:00:00', tageHer: 3 }
@@ -14711,6 +14788,47 @@ async function pruefeOberflaeche() {
   pruefe('Mit Eigentuemerrolle sehr wohl',
     siEig.gesendet.some(x => x.url === '/api/sicherung'),
     siEig.gesendet.map(x => x.url).join(' · '));
+
+  /* ROT ODER GRUEN: DIE LAGE DES SICHERUNGSORTS.
+     Ein Ort im Arbeitsverzeichnis wird nicht abgewiesen -- er wird benannt.
+     Beide Lagen bekommen ihren eigenen Aufbau, und zu jeder gehoert die
+     Gegenprobe, dass die ANDERE Farbe gerade NICHT dasteht: ein Kasten, der
+     immer rot ist, saehe im guten Fall genauso aus wie einer, der rechnet
+     (Stolperstein 81 -- erst das Vorhandensein, dann die Eigenschaft). */
+  const siLage = (d) => d.w.document.getElementById('sich-lage');
+  pruefe('Die Karte sagt, wie der Sicherungsort liegt', !!siLage(siEig),
+    siKarte(siEig)?.innerHTML?.slice(0, 300));
+  pruefe('Ausserhalb des Arbeitsverzeichnisses ist der Kasten gruen',
+    siLage(siEig)?.classList.contains('ok-box') === true &&
+    siLage(siEig)?.classList.contains('warn-box') === false,
+    siLage(siEig)?.className);
+  pruefe('Und er sagt, was daran gut ist',
+    /außerhalb/.test(siLage(siEig)?.textContent || '') &&
+    /umbenannt|ersetzt/.test(siLage(siEig)?.textContent || ''),
+    siLage(siEig)?.textContent);
+
+  {
+    const siInn = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: { eingerichtet: true, wurzel: '/app/sicherung', ort: '',
+        pfad: '/app/sicherung', imArbeitsverzeichnis: true, dbBytes: 1048576,
+        dauerSekunden: 1, erreichbar: true, zahl: 0, letzte: null } });
+    const kasten = siLage(siInn);
+    pruefe('Im Arbeitsverzeichnis ist der Kasten rot', !!kasten &&
+      kasten.classList.contains('warn-box') === true &&
+      kasten.classList.contains('ok-box') === false, kasten?.className);
+    pruefe('Und er sagt, dass es dringend anders empfohlen ist',
+      /[Dd]ringend empfohlen/.test(kasten?.textContent || ''), kasten?.textContent);
+    pruefe('Er nennt den Grund und nicht nur das Urteil',
+      /umbenannt/.test(kasten?.textContent || '') &&
+      /Platte/.test(kasten?.textContent || ''), kasten?.textContent);
+    pruefe('Und er sagt, WO es umgestellt wird',
+      /docker-compose\.yml/.test(kasten?.textContent || ''), kasten?.textContent);
+    /* DIE KARTE BLEIBT BENUTZBAR. Der Kasten ist eine Auskunft, keine
+       Absage -- Zielort und Knopf stehen weiter da. */
+    pruefe('Der Knopf steht trotzdem da', !!siInn.w.document.getElementById('sich-los'));
+    pruefe('Und das Feld fuer den Zielort auch',
+      !!siInn.w.document.getElementById('sich-ort'));
+  }
 
   /* DIE ROLLENTEILUNG STEHT AN BEIDEN KARTEN, nicht nur in den Dokumenten.
      Wer sie nebeneinander sieht, muss ohne Rueckfrage wissen, welche er

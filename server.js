@@ -3299,6 +3299,30 @@ const ORT_MUSTER = /^[A-Za-z0-9][A-Za-z0-9 ._-]*(\/[A-Za-z0-9][A-Za-z0-9 ._-]*)*
    Symlink im Spiel ist. */
 const liegtIn = (innen, aussen) => innen === aussen || innen.startsWith(aussen + path.sep);
 
+/* Das Anwendungsverzeichnis -- der Ort, an dem diese Datei liegt. Es
+   beantwortet die eine Frage, die die Karte rot oder gruen macht: liegt der
+   Sicherungsort NEBEN der Anwendung oder ausserhalb?
+
+   EINE SICHERUNG IM ARBEITSVERZEICHNIS IST DIE BEQUEME, NICHT DIE SICHERE
+   LAGE. Sie ueberlebt kein Umbenennen des Projektverzeichnisses, kein
+   versehentliches Loeschen desselben, und sie liegt auf derselben Platte wie
+   das Original. Sie ist trotzdem erlaubt: eine Sicherung am falschen Ort ist
+   besser als keine, und wer sie so will, soll sie bekommen -- er soll nur
+   nicht glauben, sie sei am richtigen Ort.
+
+   DIE AUSSAGE TRAEGT NUR, WEIL DIE EINHAENGUNG DIE LAGE SPIEGELT. Der Prozess
+   sieht den Wirt nicht; er liest seinen eigenen Pfad. Was unter ./ eingehaengt
+   wird, gehoert deshalb unter das Anwendungsverzeichnis, was daneben liegen
+   soll, daneben -- und genau das steht in der docker-compose.yml daneben
+   geschrieben. Wer den Schnitt anders legt, nimmt dieser Anzeige ihre
+   Grundlage.
+
+   Aufgeloest wie jeder andere Pfad hier: ein Vergleich zweier Strings
+   beantwortet die Frage nicht, sobald ein Symlink im Spiel ist. */
+const ANWENDUNG_DIR = (() => {
+  try { return fs.realpathSync(__dirname); } catch { return path.resolve(__dirname); }
+})();
+
 /* Die Lage wird bei JEDER Anfrage gelesen und nicht beim Start festgehalten:
    wer das Verzeichnis nachtraeglich einhaengt, soll es nicht mit einem
    Neustart bezahlen. Beim Start wird sie einmal ins Protokoll geschrieben. */
@@ -3321,7 +3345,7 @@ function sicherungLage() {
   if (liegtIn(wurzel, daten) || liegtIn(daten, wurzel))
     return { ein: false, grund: 'Der Sicherungsort darf nicht im Datenverzeichnis liegen — ' +
       'eine Sicherung neben dem Original ist keine.' };
-  return { ein: true, wurzel };
+  return { ein: true, wurzel, imArbeitsverzeichnis: liegtIn(wurzel, ANWENDUNG_DIR) };
 }
 
 /* Der eingestellte Ort, geprueft. Liefert entweder { ort, pfad } oder
@@ -3404,9 +3428,13 @@ app.get('/api/sicherung', nurEigentuemer, (req, res) => {
                                    dbBytes, dauerSekunden: dauer, erreichbar: false, letzte: null });
   const ziel = pruefeOrt(ort);
   if (ziel.fehler) return res.json({ eingerichtet: true, wurzel: lage.wurzel, ort,
+                                     imArbeitsverzeichnis: lage.imArbeitsverzeichnis,
                                      fehler: ziel.fehler, dbBytes, dauerSekunden: dauer,
                                      erreichbar: false, letzte: null });
+  // Die Lage der WURZEL, nicht die des gewaehlten Unterverzeichnisses: sie ist
+  // eine Eigenschaft der Einrichtung und aendert sich mit dem Zielort nicht.
   res.json({ eingerichtet: true, wurzel: lage.wurzel, ort, pfad: ziel.pfad,
+             imArbeitsverzeichnis: lage.imArbeitsverzeichnis,
              dbBytes, dauerSekunden: dauer, ...letzteSicherung(ziel.pfad) });
 });
 
