@@ -1,6 +1,6 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 24. August 2026 · gebaut bis Version 0.8.80 — Fingerprint `4c046b7c`**
+**Konzeptpapier · Stand 24. August 2026 · gebaut bis Version 0.8.80 — Fingerprint `a835ac92`**
 (Stufen A bis **H** erledigt; **allein Stufe I ist offen**. 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug**, 0.8.20 die Runde **„Die Schotten dicht"**, 0.8.40 bis
@@ -489,7 +489,9 @@ Damit entfällt das Rücksetz-Fenster ganz — und mit ihm der Einmalcode aus
 Stufe H, der nur existierte, um es zu schließen.
 
 **Gebaut in 0.8.80 (Stufe H):** die Karte „Zugänge" legt einen Zugang wahlweise
-**ohne Passwort** an und gibt dazu einen **Link** aus; an jeder Zeile steht
+**ohne Passwort** an und gibt dazu einen **Link** aus — die Wahl steht als
+**Auswahlfeld** im Formular, und das Passwortfeld erscheint nur zu der
+Betriebsart, in der es gilt. An jeder Zeile steht
 neben dem Schlüssel ein **Kettenglied**, das einen Einladungs- bzw.
 Rücksetzlink erzeugt. **Beide Wege bleiben nebeneinander, und die Karte
 bevorzugt den Link** — er übergibt das *Recht, ein Passwort zu setzen*, der

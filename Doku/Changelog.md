@@ -16,9 +16,12 @@ Passwort selbst.
 
 ### Neu
 
-- **Zugang anlegen mit Link.** In der Karte „Zugänge" legt „Anlegen und Link"
-  einen Zugang **ohne Passwort** an und zeigt dazu einen Link. Wer ihn öffnet,
-  wählt sein Passwort selbst und ist danach gleich angemeldet.
+- **Zugang anlegen mit Link.** In der Karte „Zugänge" steht beim Anlegen ein
+  **Auswahlfeld**: *„Er wählt sein Passwort selbst"* (die Vorgabe) oder *„Ich
+  vergebe das erste Passwort"*. Bei der ersten Wahl gibt es gar kein
+  Passwortfeld — der Zugang entsteht **ohne** Passwort, und du bekommst einen
+  Link. Wer ihn öffnet, wählt sein Passwort selbst und ist danach gleich
+  angemeldet.
 - **Passwort zurücksetzen mit Link.** Dasselbe für einen vorhandenen Zugang:
   das Kettenglied 🔗 an der Zeile erzeugt einen Link. Das bisherige Passwort
   gilt weiter, bis er eingelöst wird.

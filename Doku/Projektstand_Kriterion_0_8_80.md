@@ -126,7 +126,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.80 ist gebaut** — Fingerprint **`4c046b7c`**, 2650
+**0.8.80 ist gebaut** — Fingerprint **`a835ac92`**, 2661
 Prüfungen. **Stufe H des Mehrbenutzerbetriebs, und eine Datenbankstufe ohne
 Migrationsblock:** das Schema bekommt die Tabelle `tokens`
 (`hash`, `user_id`, `zweck`, `ablauf`, `benutzt_am`, `created_at`) samt Index
@@ -149,7 +149,7 @@ alle Fälle.
 **Die Einlöseseite ist ein Zustand der Anmeldeseite**, erreicht über
 `#/einladung/<schlüssel>` — das Fragment geht nie an den Server.
 **`F_ROUTEN` geht von 51 auf 56**, die Formatnummer bleibt bei **10**.
-34 Gegenproben.
+40 Gegenproben.
 
 **0.8.71 davor** — Fingerprint **`1b03fabf`**, 2398
 Prüfungen. Eine **Berichtigungsrunde ohne Schema, ohne Route, ohne
@@ -2317,6 +2317,15 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   zu setzen**, der direkte Weg übergibt ein **Passwort**. Der zweite kommt ohne
   den Browser des anderen aus. Deshalb ist das **kein** Fall von Stolperstein
   47, und deshalb stehen beide in der Karte — der Link zuerst.
+- **Eine Betriebsart steht als Wahl im Formular, nicht in der Frage, welchen
+  Knopf man drückt** (seit 0.8.80, nachgebessert aus dem Betrieb). Beim Anlegen
+  eines Zugangs standen zuerst **zwei Knöpfe** nebeneinander; damit musste man
+  beide Beschriftungen lesen, um zu wissen, was gleich geschieht, und das
+  Passwortfeld stand auch dann da, wenn es gar nicht galt. Jetzt sagt ein
+  Auswahlfeld die Betriebsart, das Passwortfeld erscheint **nur zu ihr** — und
+  wird beim Zurückwechseln geleert —, und **ein** Knopf trägt die Folge im
+  Namen. *Ein Feld, das gerade nicht gilt, ist kein Feld;* dieselbe Überlegung,
+  aus der ein Knopf fehlt, wo er zuverlässig eine Fehlermeldung erzeugte.
 - **Eine Sitzung wird über eine gerechnete Kennung adressiert, nie über ihren
   Token** (seit 0.8.80). Der Token ist Primärschlüssel **und** Geheimnis; in
   einem Pfad stünde er im Zugriffsprotokoll, in der Verlaufsliste und womöglich
@@ -3443,7 +3452,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.60 | Was ist offen, was ist neu — Ansicht „Offen", Filter „Neu seit …", Sprachbereinigung (132) | 17 | Stolpersteine 112 bis 116 |
 | 0.8.70 | Sicherung und Papierkorb — alle drei Punkte (294) | 38 | Stolpersteine 117 bis 121 |
 | 0.8.71 | 17 | 6 | Stolperstein 123 |
-| 0.8.80 | Stufe H — alle vier Punkte (252) | 34 | Stolpersteine 124 bis 127 |
+| 0.8.80 | Stufe H — alle vier Punkte (263) | 40 | Stolpersteine 124 bis 127 |
 
 **Aus 0.8.80 (Stufe H):** der **Rundlauf** ist die tragende Prüfung — einladen,
 Link, Formular, Passwort, Anmeldung, und **derselbe Link ein zweites Mal

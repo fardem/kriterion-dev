@@ -10,7 +10,7 @@ Vorgänger: **0.8.71**, Fingerprint `1b03fabf`, **2398 Prüfungen**.
 beides ist der Stand von 0.8.70. 0.8.71 hat 17 Prüfungen nachgelegt; gerechnet
 wird ab 2398.*
 
-**Fingerprint 0.8.80 — `4c046b7c`**
+**Fingerprint 0.8.80 — `a835ac92`**
 
 **Was sich ändert, in einem Satz:** Ein neuer Zugang bekommt sein Passwort
 **selbst**, über einen Link mit begrenzter Haltbarkeit, statt es vom Admin
@@ -99,8 +99,9 @@ bisher.
 
 `showEinladung()` als **Zustand der Anmeldeseite**, erreicht über
 `#/einladung/<schlüssel>`, eingehängt in `boot()` **vor** der Frage nach einer
-laufenden Sitzung. Karte „Zugänge": das Kettenglied 🔗 an der Zeile, der Knopf
-„+ Anlegen und Link", der Kasten `zeigeLink()` samt Warnung. Neue Karte
+laufenden Sitzung. Karte „Zugänge": das Kettenglied 🔗 an der Zeile, das
+Auswahlfeld `zug-art` samt dem einen Knopf daneben, der Kasten `zeigeLink()`
+samt Warnung. Neue Karte
 „Meine Sitzungen" beim eigenen Zugang; ihr Stand kommt aus dem vorhandenen
 `Promise.all` von `renderSystem()`.
 
@@ -215,6 +216,36 @@ zu setzen**; der Schlüssel übergibt ein **Passwort**. Das ist nicht dasselbe i
 Grün: der direkte Weg kommt ohne den Browser des anderen aus und ist für
 jemanden, der danebensteht, der kürzere. Das 🔗 steht **vor** dem 🔑, und der
 Prüfstand hält die Reihenfolge fest.
+
+### H2. Wie wird beim Anlegen gewählt? **Ein Auswahlfeld, EIN Knopf — nachgebessert.**
+
+**Gebaut war zuerst etwas anderes, und der Einwand aus dem Betrieb war
+berechtigt.** Die erste Fassung stellte **zwei Knöpfe** nebeneinander —
+„+ Anlegen und Link" und „+ Anlegen" — und ließ das Passwortfeld in beiden
+Fällen stehen. Damit steckte die Betriebsart darin, **welchen** man drückt:
+man musste beide Beschriftungen lesen, um zu wissen, was gleich passiert, und
+daneben stand ein Feld, das in der Hälfte der Fälle nichts bedeutete.
+
+Gebaut ist jetzt: ein **Auswahlfeld** `zug-art` mit zwei Möglichkeiten,
+**ein** Knopf, und das Passwortfeld erscheint **nur** zu der Betriebsart, in
+der es gilt.
+
+| | |
+|---|---|
+| Vorgabe | **„Er wählt sein Passwort selbst"** — der Weg, bei dem der Admin es nie erfährt |
+| Passwortfeld | erscheint erst bei „Ich vergebe das erste Passwort" |
+| Beim Zurückwechseln | das Feld verschwindet **und wird geleert** |
+| Knopf | trägt die Folge im Namen: „+ Anlegen und Link" bzw. „+ Anlegen" |
+
+*Kein Radio, sondern ein `select`* — das Projekt kennt keine Radios, und für
+„eins von mehreren" steht in derselben Zeile schon eines für die Rolle.
+
+**Zwei Regeln dahinter, und beide sind älter als diese Runde:** *ein Feld, das
+gerade nicht gilt, ist kein Feld* — dieselbe Überlegung, aus der ein Knopf
+fehlt, wo er zuverlässig eine Fehlermeldung erzeugte. Und *ein Knopf, der
+zuverlässig etwas anderes tut, als sein Nachbar heißt, ist eine Falle.*
+**Geleert wird ausdrücklich:** ein Passwort, das man nicht mehr sieht, aber noch
+mitschickt, wäre die unangenehmste Art von Überraschung.
 
 ### I. Greift die Anmeldebremse? **Ja, ohne einen einzigen Umbau.**
 
@@ -497,7 +528,7 @@ solange die Einhängung sie spiegelt“). Die Zählung setzt deshalb bei
 
 ## 6. Gegenprobentabelle
 
-**34 Gegenproben, jede in einer KOPIE des Arbeitsbaums** (Stolperstein 100);
+**40 Gegenproben, jede in einer KOPIE des Arbeitsbaums** (Stolperstein 100);
 der Treiber beendet nach jedem Lauf die ganze **Prozessgruppe** (Stolperstein
 122) und belegt vor jedem Deuten per `diff`, dass der Quelltext wirklich der
 zurückgebaute ist. Gefahren wurden sie in **vier Spuren nebeneinander**, jede
@@ -511,7 +542,7 @@ verschwiegen** — sie sind Rauschen des Treibers, nicht Wirkung eines Rückbaus
   Kopien entstanden, bevor das zitierte Wort in diesem Protokoll berichtigt
   war — siehe Abschnitt 4 E. Der Lauf am Arbeitsbaum ist grün.
 * `Eine Änderung an public/app.js ändert ihn` (der Fingerprint) stand in zwei
-  von vierunddreißig Läufen. Unter **vier** gleichzeitigen Prüfständen wird die
+  von vierzig Läufen. Unter **vier** gleichzeitigen Prüfständen wird die
   Bereitschaftsprüfung eines der vielen Kindserver knapp; am Arbeitsbaum und in
   jedem Einzellauf ist die Prüfung grün.
 
@@ -551,6 +582,12 @@ verschwiegen** — sie sind Rauschen des Treibers, nicht Wirkung eines Rückbaus
 | GP31 | der Cookiename steht abgeschrieben in server.js | `Der Cookiename steht in keiner davon abgeschrieben` |
 | GP32 | am Bildschirm steht das Wort Token | `Eine Änderung an pruefung.js lässt ihn unberührt`<br>`Am Bildschirm heisst es Link und nicht anders` |
 | GP33 | die eigene Sitzung laesst sich ueber die Kennung beenden | `Die eigene geht ueber Abmelden, nicht ueber diesen Weg`<br>`Und sie traegt danach weiter`<br>`Alle anderen lassen sich in einem Zug beenden`<br>`Die eigene faellt dabei NICHT mit`<br>… und 2 weitere |
+| GP35 | die Vorgabe ist nicht mehr der Link | `Es traegt genau die zwei Betriebsarten`<br>`Die Vorgabe ist der Link`<br>`Und das Passwortfeld steht dabei nicht da`<br>`Der Knopf sagt, was er tun wird`<br>… und 3 weitere |
+| GP36 | das Passwortfeld steht immer da | `Und das Passwortfeld steht dabei nicht da`<br>`Zurueck beim Link verschwindet das Feld wieder` |
+| GP37 | der Knopf traegt immer dieselbe Beschriftung | `Der Knopf sagt, was er tun wird` |
+| GP38 | das versteckte Feld wird nicht geleert | `Und was darin stand, ist geleert` |
+| GP39 | die Wahl wirkt nicht auf das Abschicken | `Der gewoehnliche Weg schickt das Passwort`<br>`Und ausdruecklich KEINE Einladung`<br>`Und es erscheint kein Linkkasten` |
+| GP40 | die Stylesheet-Regel faellt weg | `Das Stylesheet nimmt ein verstecktes Feld wirklich aus der Zeile` |
 
 **Zwei Sonderfälle, beide erwartet und beide erklärt:**
 
@@ -572,11 +609,11 @@ verschwiegen** — sie sind Rauschen des Treibers, nicht Wirkung eines Rückbaus
 | | |
 |---|---|
 | Vorher (0.8.71) | 2398 |
-| Nachher (0.8.80) | 2650 |
-| Neu | 252 |
-| Gegenproben | 34 |
+| Nachher (0.8.80) | 2661 |
+| Neu | 263 |
+| Gegenproben | 40 |
 
-**Vierzehn neue Gruppen, 239 Prüfungen darin; die übrigen 13 sind
+**Vierzehn neue Gruppen, 250 Prüfungen darin; die übrigen 13 sind
 Erweiterungen vorhandener Gruppen** (`F_ROUTEN` samt Zahl und Arten, die drei
 Gegenproben zur Art `selbstbezug`, der Cookiewächter, der Wortwächter, die
 Kartenzahl im Systembereich, die Versionsnummer).
@@ -596,7 +633,7 @@ Kartenzahl im Systembereich, die Versionsnummer).
 | Meine Sitzungen: die eigene ist markiert | 17 |
 | Die Einladungsseite in der Oberfläche | 26 |
 | Meine Sitzungen in der Oberfläche | 30 |
-| Der Einladungslink in der Karte Zugänge | 27 |
+| Der Einladungslink in der Karte Zugänge | 38 |
 
 **Ein Migrationsabschnitt ist NICHT dazugekommen** — es gibt keinen
 Migrationsblock. An seiner Stelle steht die Probe selbst (Gruppe 1). Die Probe
