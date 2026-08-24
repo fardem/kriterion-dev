@@ -617,7 +617,18 @@ gefälschten Kopf auf einen fremden Server umbiegen.
 **In Stufe H stellte sich die Frage nicht**, und das ist der Grund: der Server
 gibt dort nur den Token heraus, die vollständige Adresse baut der Browser des
 Admins. **Ab Stufe I geht der Link über den Server hinaus**, und dann wird die
-Einstellung gebraucht.
+Einstellung gebraucht: *wer den Link von Hand weitergibt, hat einen Browser,
+der die Adresse kennt; wer ihn verschicken lässt, hat keinen.*
+
+**Wo sie liegt, ist entschieden (gebaut ab 0.8.90):** in der **`.env`** als
+`OEFFENTLICHE_ADRESSE`, **optional** — leer heißt „der Browser baut", wie in
+Stufe H. **Nicht** in `settings` und **nicht** in der Oberfläche einstellbar,
+und der Grund steht in der Rollenleiter: ein Admin kommt nicht an einen anderen
+Admin oder den Eigentümer. Dürfte er sie setzen, zeigte hier **jede verschickte
+Rücksetzmail** auf seinen Server — auch die des Eigentümers. Damit wäre die
+Einstellung genau der Weg an der Rollenleiter vorbei, den es nicht geben darf.
+Der Systembereich **zeigt** sie, dort wo der Link entsteht; setzen kann sie nur,
+wer an die `.env` kommt. Einzelheiten im Projektstand, Abschnitt 11.
 
 **Zugangsdaten** in die `.env`, in der Oberfläche nur „gesetzt/nicht gesetzt".
 Dazu ein **Testmail-Knopf** — sonst fällt der Fehler erst auf, wenn jemand
