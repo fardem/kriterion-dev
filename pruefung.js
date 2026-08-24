@@ -7482,6 +7482,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
     prSicht.inhalt?.zeilen[0]?.id > prSicht.inhalt?.zeilen[1]?.id,
     JSON.stringify(prSicht.inhalt?.zeilen.slice(0, 2).map(z => z.id)));
 
+  /* DIE LAGE WIRD BEENDET, und das ist keine Ordnungsliebe: ein Server, der
+     den Lauf ueberlebt, besetzt seinen Port weiter, und der naechste Lauf
+     bekommt auf demselben Port einen FREMDEN Server samt fremder Datenbank
+     (Stolperstein 122). Aufgefallen an einer Gegenprobe, die deshalb abriss
+     statt rot zu werden. */
+  await PR.stopp();
+  fs.rmSync(prDir, { recursive: true, force: true });
+
   /* ---------------------------------------------------------------- */
   gruppe('Die zweite Bestaetigung: die Freigabe selbst');
 
@@ -7853,6 +7861,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
     await SE.stopp();
     fs.rmSync(seDir, { recursive: true, force: true });
   }
+  // Und auch diese Lage wird beendet -- derselbe Grund wie bei PR darueber.
+  await ZB.stopp();
+  fs.rmSync(zbDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   gruppe('Die zweite Bestaetigung: die Bremse greift auch dahinter');

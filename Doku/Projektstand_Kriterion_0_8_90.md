@@ -136,7 +136,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.90 ist gebaut** — Fingerprint **`aeb336bf`**, 2903
+**0.8.90 ist gebaut** — Fingerprint **`aeb336bf`**, 2909
 Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs, aber eine Datenbankstufe
 ohne Migrationsblock:** das Schema bekommt die Tabelle `sicherheitsprotokoll`
 (`id`, `am`, `was`, `wer`, `ziel`, `merkmal`) samt Index auf `am`. Zum dritten
@@ -3288,6 +3288,39 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     es ist eine andere Aussage.* Verwandt mit 103, aber eigenständig: dort
     reißt die Prüfzeile ab, hier der Gegenstand selbst.
 
+131. **Was an einen Sitzungstoken gebunden ist, lässt sich nach dem Abmelden
+    von außen nicht mehr prüfen.** Eine Prüfung, die sich nach dem Abmelden
+    **neu** anmeldet und nachsieht, ob der alte Zustand noch trägt, kann nicht
+    scheitern — die neue Sitzung trägt einen anderen Token. Die Gegenprobe zu
+    „das Abmelden verwirft die Freigabe" blieb dementsprechend **vollständig
+    stumm**. *Wo ein Zustand im Arbeitsspeicher an einem Geheimnis hängt, das
+    nie wiederkehrt, läuft die Prüfung IM PROZESS und nicht über die
+    Schnittstelle.*
+
+132. **Eine Bindung aus mehreren Teilen wird an einem Paar geprüft, das sich
+    nur in EINEM Teil unterscheidet.** „Eine Freigabe für den Export vergibt
+    keine Rolle" hielt zwei Lagen gegeneinander, die sich in **Zweck und
+    Ziel** unterschieden — sie wäre auch dann grün geblieben, wenn der
+    Schlüssel den Zweck gar nicht trüge, denn die Ziele unterscheiden sich ja
+    schon. Der Rückbau des Zwecks ließ die ganze Gruppe grün. *Wer eine
+    zusammengesetzte Bindung prüft, hält je Teil ein Paar gegeneinander, das
+    sich NUR in diesem Teil unterscheidet.* Verwandt mit 53, aber
+    eigenständig: dort deckt eine Stelle die andere zu, hier ein Teil des
+    Schlüssels den anderen.
+
+133. **Ein Prozess ist an seinem Arbeitsverzeichnis zu erkennen, nicht an
+    seiner Befehlszeile.** Der Gegenprobentreiber räumte mit
+    `pkill -f <Kopierpfad>` auf und traf nie: ein mit `cwd` gestarteter
+    Kindprozess trägt den Pfad in `/proc/<pid>/cwd`, in der Befehlszeile steht
+    nur `node server.js`. `kill -- -$!` trifft ebenfalls daneben, weil
+    `setsid` eine **neue** Prozessgruppe anlegt. 48 Server sammelten sich an,
+    besetzten Ports und ließen acht Gegenproben abreißen — mit einem
+    Fehlerbild, das nach einem Befund am Code aussah. *Ein Aufräumen, das nie
+    greift, sieht aus wie eines, das greift; wer eines baut, sieht hinterher
+    nach, ob wirklich keiner überlebt hat.* Die Kehrseite von 122 — und in
+    derselben Runde ist die Regel auch in der eigenen Arbeit verletzt worden:
+    zwei Prüflagen liefen nach `npm test` weiter.
+
 ---
 
 ## 7. Prüfstand
@@ -3300,7 +3333,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 2903 von 2903 bestanden** (0.8.90; **237 neue Prüfungen, 24
+**Zuletzt: 2909 von 2909 bestanden** (0.8.90; **248 neue Prüfungen, 24
 Gegenproben, elf neue Gruppen**: „Das Sicherheitsprotokoll: die Tabelle legt
 sich selbst an", „… eine Zeile je Vorgang", „… kein Geheimnis in einer Zeile",
 „… die Frist an beiden Seiten", „… das Aufräumen an beiden Aufrufstellen",
@@ -3313,7 +3346,11 @@ Gruppen: `F_ROUTEN` samt Zahl und der neuen Art `'zweitbestaetigt'`, der
 Wortwächter über „Protokoll", der Wächter gegen „Re-Authentifizierung" in
 ausgelieferten Dateien, der Wächter, dass keine Zeile den Anfragerumpf ausgibt,
 und die Kartenzahl im Systembereich.
-**Die Gegenproben haben zwei Befunde gebracht** — Stolperstein 129 und 130.
+**Die Gegenproben haben fünf Befunde gebracht** — die Stolpersteine 129 bis
+133, und **zwei davon sind stumm gebliebene Gegenproben**: zwei Prüfungen
+konnten gar nicht scheitern und sind ersetzt bzw. ergänzt worden (131 und 132).
+Der Code war in beiden Fällen richtig; gefunden wurde eine Lücke in der
+Prüfung — und genau dafür sind Gegenproben da.
 Davor 0.8.80; 263 neue Prüfungen, 40 Gegenproben, vierzehn neue Gruppen.
 Davor 0.8.71; 17 neue Prüfungen, 6
 Gegenproben, **keine neue Gruppe** — die Lage des Sicherungsorts gehört zu dem,
@@ -3713,7 +3750,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.70 | Sicherung und Papierkorb — alle drei Punkte (294) | 38 | Stolpersteine 117 bis 121 |
 | 0.8.71 | 17 | 6 | Stolperstein 123 |
 | 0.8.80 | Stufe H — alle vier Punkte (263) | 40 | Stolpersteine 124 bis 127 |
-| 0.8.90 | Protokoll, zweite Bestätigung, öffentliche Adresse (237) | 24 | Stolpersteine 128 bis 130 |
+| 0.8.90 | Protokoll, zweite Bestätigung, öffentliche Adresse (248) | 24 | Stolpersteine 128 bis 133 |
 
 **Aus 0.8.80 (Stufe H):** der **Rundlauf** ist die tragende Prüfung — einladen,
 Link, Formular, Passwort, Anmeldung, und **derselbe Link ein zweites Mal
@@ -3940,7 +3977,7 @@ Tagen Frist, die optionale **öffentliche Adresse** in der `.env`.
 `F_ROUTEN` 56 → 57 samt der neuen Art `'zweitbestaetigt'`, sechzehn Karten
 werden siebzehn, Formatnummer unverändert 10, keine neue Abhängigkeit.
 **Der Schlüsselwechsel ist nicht gebaut** und liegt auf 0.8.91.
-2903 Prüfungen, 24 Gegenproben, Stolpersteine 128 bis 130.
+2909 Prüfungen, 24 Gegenproben, Stolpersteine 128 bis 133.
 
 Die jüngste Version steht ausführlich; alles davor als eine Zeile — die
 tragenden Entscheidungen dahinter leben in Abschnitt 5 weiter.

@@ -20,8 +20,8 @@ worden; die Begründung steht in Abschnitt 3.
 | | |
 |---|---|
 | Vorher | 0.8.80, Fingerprint `a835ac92`, 2661 Prüfungen |
-| Nachher | 0.8.90, Fingerprint `aeb336bf`, **2903 Prüfungen** |
-| Neue Prüfungen | **237** |
+| Nachher | 0.8.90, Fingerprint `aeb336bf`, **2909 Prüfungen** |
+| Neue Prüfungen | **248** |
 | Gegenproben | **24** |
 | `F_ROUTEN` | 56 → **57**, neue Art `'zweitbestaetigt'` |
 | Karten im Systembereich | 16 → **17** |
@@ -29,7 +29,7 @@ worden; die Begründung steht in Abschnitt 3.
 | Migrationsblöcke | **5** (unverändert) |
 | Vokabulareinträge | **11** (unverändert) |
 | Neue Abhängigkeiten | **keine** |
-| Neue Stolpersteine | **128, 129, 130** |
+| Neue Stolpersteine | **128 bis 133** |
 
 ---
 
@@ -501,7 +501,60 @@ mit dem alten nicht mehr.
   20 ms je MB ist genau `SICHERUNG_MS_JE_MB` — die Schätzung kann denselben
   Rechenweg nehmen.
 
-### B. Eine liegengebliebene Freigabe trägt zwei Minuten lang — Stolperstein 129
+### B. Zwei Gegenproben blieben stumm — und beide waren ein Fund
+
+**Nummer 20 — „Nach dem Abmelden trägt keine Freigabe mehr".** Die Prüfung
+meldete sich nach dem Abmelden **neu** an und sah nach, ob der Export noch
+durchkommt. Sie konnte gar nicht scheitern: die neue Sitzung trägt einen
+**anderen** Token, und die Freigabe hängt am alten. Der Rückbau von
+`verwirfFreigabe()` ließ sie vollständig grün. Was sie in Wahrheit prüfte, ist
+die Bindung an die Sitzung — und die stand zwei Absätze darüber schon.
+**Ersetzt** durch zwei Prüfungen **im Prozess**, dort wo die Freigabe liegt,
+mit der Gegenlage daneben: erst, dass eine Freigabe überhaupt trägt, dann, dass
+das Abmelden sie wegnimmt. → **Stolperstein 131.**
+
+**Nummer 9 — „Eine Freigabe für den Export vergibt keine Rolle".** Sie hielt
+eine Freigabe für den **Export** (Ziel leer) gegen einen **Rollenwechsel**
+(Ziel emil). Die beiden Lagen unterscheiden sich in Zweck **und** Ziel — die
+Prüfung wäre also auch dann grün, wenn der Schlüssel den Zweck gar nicht
+trägt. Genau das hat der Rückbau gezeigt: die ganze Gruppe blieb grün.
+**Ergänzt** um zwei Paare mit **gleichem** Ziel — Export gegen Import (beide
+ohne Ziel) und fremdes Passwort gegen Rolle (beide an demselben Zugang) —,
+samt der Gegenlage, dass der richtige Zweck denselben Weg durchlässt.
+→ **Stolperstein 132.**
+
+*Der Code war in beiden Fällen richtig. Gefunden wurde eine Lücke in der
+Prüfung — und genau dafür sind Gegenproben da.*
+
+### C. Der Gegenprobentreiber hat Stolperstein 122 nur behauptet
+
+Der erste Durchgang brach an **acht** von 24 Stellen mit „no such table:
+sicherheitsprotokoll" ab. Die Ursache lag nicht im Code und nicht in den
+Rückbauten: **48 verwaiste Server** hatten sich angesammelt und besetzten
+Ports, und der Prüfstand redete auf ihnen mit einer **fremden** Datenbank.
+
+Der Treiber räumte mit `pkill -f <Kopierpfad>` auf — und traf nie: ein mit
+`cwd` gestarteter Kindprozess trägt den Pfad **nicht** in seiner Befehlszeile,
+dort steht nur `node server.js`. `kill -- -$!` daneben trifft ebenfalls
+vorbei, weil `setsid` eine **neue** Prozessgruppe anlegt. Erkannt wird ein
+Prozess an `/proc/<pid>/cwd`. → **Stolperstein 133.**
+
+*Eine erste Vermutung — die Kopie sei über `cp` gegen den bewegten
+Arbeitsbaum entstanden — hat sich als falsch erwiesen und ist verworfen
+worden. Die Kopie entsteht trotzdem jetzt über `git archive`: sie ist damit
+atomar, und das ist ohnehin richtig.*
+
+### D. Zwei eigene Prüflagen liefen nach dem Lauf weiter
+
+Beim Nachsehen fiel auf, dass `npm test` **zwei Server** zurückließ — die
+Lagen `PR` (Sicherheitsprotokoll) und `ZB` (zweite Bestätigung) wurden nie
+beendet. Beide sind neu in dieser Runde; die vorhandenen Lagen beenden ihre
+Server seit jeher. Das ist derselbe Stolperstein 122 in der eigenen Arbeit: ihre Ports
+(4380–4439 und 4520–4579) hätten einen zweiten Lauf hintereinander vergiftet,
+und der von `ZB` überschneidet sich mit dem der Lage „Meine Sitzungen". Beide
+werden jetzt am Ende ihrer Gruppen beendet und ihre Verzeichnisse geräumt.
+
+### E. Eine liegengebliebene Freigabe trägt zwei Minuten lang — Stolperstein 129
 
 Die Gruppe „die Freigabe selbst" holte eine Bestätigung für den Export und
 verbrauchte sie nicht. Die nächste Gruppe lief mit derselben Sitzung gegen den
@@ -509,7 +562,7 @@ Export — und „ohne Bestätigung abgewiesen" war rot, ohne dass am Code etwas
 falsch war. *Wo eine Prüflage kurzlebigen Zustand im Arbeitsspeicher
 hinterlässt, beginnt die nächste mit einer frischen Sitzung.*
 
-### C. Ein Rückbau, der die Tabelle aus der DDL nimmt, reißt den Start ab — Stolperstein 130
+### F. Ein Rückbau, der die Tabelle aus der DDL nimmt, reißt den Start ab — Stolperstein 130
 
 `auth.js` bereitet seine Anweisungen beim Laden vor; fehlt die Tabelle, startet
 die Anlage gar nicht — der Prüflauf bricht mit „Server beendet (Code 1)" ab
@@ -518,7 +571,7 @@ den **Index**. Der Befund gehört daneben: **die Anlage startet ohne die Tabelle
 überhaupt nicht** — das ist schärfer als die Prüfung, aber es ist eine andere
 Aussage.
 
-### D. Die Reihenfolge Rechtefrage → Bestätigungsfrage ist beim Bauen gedreht worden
+### G. Die Reihenfolge Rechtefrage → Bestätigungsfrage ist beim Bauen gedreht worden
 
 Der erste Bau setzte den Wächter `zweiteBestaetigungNoetig` in die Routenzeile
 **aller** sechs Routen. An den drei Verwaltungsrouten steht er damit **vor**
@@ -529,7 +582,7 @@ er nicht darf — und nicht erst nach seinem Passwort gefragt werden.* Die
 umgekehrte Reihenfolge wäre außerdem ein Weg, an einer fremden Rolle zu prüfen,
 ob ein Passwort stimmt.
 
-### E. Die Unstimmigkeit im Projektstand, die vor dem Bau gemeldet wurde
+### H. Die Unstimmigkeit im Projektstand, die vor dem Bau gemeldet wurde
 
 Abschnitt 2 sagte, die Sicherung auf Knopfdruck laufe *„ohne die Anlage
 anzuhalten"*. Abschnitt 4 desselben Papiers, die README und die Karte selbst
@@ -556,7 +609,7 @@ es), und der Auftrag sprach von „vier Dingen", die `zugang.js` tut — es sind
 | Das Sicherheitsprotokoll: die Frist an beiden Seiten | 6 |
 | Das Sicherheitsprotokoll: das Aufräumen an beiden Aufrufstellen | 4 |
 | Das Sicherheitsprotokoll: wer es sehen darf | 9 |
-| Die zweite Bestätigung: die Freigabe selbst | 20 |
+| Die zweite Bestätigung: die Freigabe selbst | 25 |
 | Die zweite Bestätigung: jeder schwere Weg einzeln | 32 |
 | Die zweite Bestätigung: was NICHT dahinter liegt | 7 |
 | Die zweite Bestätigung: die Bremse greift auch dahinter | 6 |
@@ -617,7 +670,45 @@ zu 0.8.91.
 
 ## 6. Gegenprobentabelle
 
-**GEGENPROBENTABELLE**
+**24 Gegenproben, jede in einer eigenen Kopie des Arbeitsbaums** (Stolperstein
+100). Die Kopie entsteht über `git archive HEAD` und ist damit atomar gegen den
+Arbeitsbaum; der Treiber räumt nach jedem Lauf die hinterlassenen Server weg
+und sieht nach, ob wirklich keiner überlebt hat (Stolperstein 122).
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 01 | Der Index fehlt in der DDL | „Und den Index auf am, ebenfalls ohne Migration" |
+| 02 | `anmeldung.fehl` wird nicht geschrieben | 2 Prüfungen der Gruppe „eine Zeile je Vorgang" |
+| 03 | `anmeldung.ok` wird nicht geschrieben | 3 Prüfungen, darunter „Die Einrichtung schreibt genau zwei Zeilen" |
+| 04 | Die Frist steht auf 30 statt 180 Tagen | „Eine Zeile von 179 Tagen bleibt stehen", „Die Antwort nennt die Frist" |
+| 05 | Der **Startaufruf** des Aufräumens fällt weg | „Ein ECHTER Serverstart raeumt die alte Zeile weg" |
+| 06 | Der **Kartenaufruf** des Aufräumens fällt weg | „Eine von 181 Tagen faellt" |
+| 07 | Das Protokoll steht hinter `nurAdmin` | „Ein Admin OHNE Eigentuemerrecht sieht es nicht" |
+| 08 | Die Freigabe ist nicht ans **Ziel** gebunden | „Eine Freigabe fuer einen anderen Zugang traegt nicht" |
+| 09 | Die Freigabe ist nicht an den **Zweck** gebunden | „… traegt den Import NICHT", „… traegt die Rolle NICHT" |
+| 10 | Die Freigabe gilt mehr als **einmal** | „Und ein zweites Mal nicht — die Freigabe ist verbraucht" |
+| 11 | Die Freigabe ist nicht an die **Sitzung** gebunden | 4 Prüfungen, darunter „Die Freigabe der einen Sitzung traegt die andere nicht" |
+| 12 | `DELETE /api/users/:id` ohne Bestätigung | 8 Prüfungen aus „jeder schwere Weg einzeln" |
+| 13 | `GET /api/export` ohne Bestätigung | 5 Prüfungen, darunter „Und dabei wurde nichts geschrieben: Export" |
+| 14 | Die Anmeldebremse greift nicht an der Bestätigung | 5 Prüfungen, darunter „Der elfte ist der erste gesperrte" |
+| 15 | `bestaetigung.fehl` wird nicht geschrieben | „Eine gescheiterte Bestaetigung steht im Sicherheitsprotokoll" |
+| 16 | Ein Fragment wird nicht mehr abgewiesen | „Die Adresse wird geprueft: ein Fragment abgewiesen" |
+| 17 | Der Server gibt **immer** einen fertigen Link heraus | 4 Prüfungen aus „beide Zustaende am Server" |
+| 18 | Die Herkunftszeile im Linkkasten fällt weg | 6 Prüfungen, in **beiden** Zuständen |
+| 19 | Der Dialog vor dem Link fällt weg | 8 Prüfungen aus „Die zweite Bestaetigung in der Oberflaeche" |
+| 20 | Die Freigabe überlebt die Abmeldung | „Und das Abmelden nimmt sie weg" |
+| 21 | Die Karte heißt nur noch „Protokoll" | „Das alleinstehende Wort steht in genau zwei ausgelieferten Zeilen" |
+| 22 | `zugang.js` gibt einen Handelnden an | „Alle drei Befehle stehen im Sicherheitsprotokoll — ohne Handelnden" |
+| 23 | Der Grabsteinname geht mit hinaus | „Und nennt das Ziel als Nummer, ohne seinen Namen" |
+| 24 | `PUT /api/users/:id` (Rolle) ohne Bestätigung | 4 Prüfungen aus „jeder schwere Weg einzeln" |
+
+**Zwei Gegenproben sind zunächst STUMM geblieben, und beide waren ein Fund** —
+Nummer 20 und Nummer 9. Was daraus folgte, steht in Abschnitt 4.
+
+**Was 05 und 06 zusammen belegen, und es ist die wichtigste Zeile der Tabelle:**
+die beiden Aufrufstellen des Aufräumens decken einander **nicht** zu. Jeder
+Rückbau färbt eine **andere** Prüfung — genau das, woran die Vorrunde stumm
+geblieben ist (Stolperstein 126).
 
 ---
 
@@ -626,13 +717,15 @@ zu 0.8.91.
 | | |
 |---|---|
 | Vorher (0.8.80) | 2661 |
-| Nachher (0.8.90) | **2903** |
-| Neu | **237** |
+| Nachher (0.8.90) | **2909** |
+| Neu | **248** |
 | Gegenproben | **24** |
 
-Der Zuwachs von 242 gegenüber 237 erklärt sich aus fünf Prüfungen, die in
-vorhandene Gruppen eingefügt wurden (die beiden breiten Kacheln namentlich, die
-drei Gegenproben zum Wortwächter).
+Elf neue Gruppen und die drei Oberflächengruppen tragen den größten Teil; die
+übrigen sind Erweiterungen vorhandener Gruppen (`F_ROUTEN` samt Zahl und der
+neuen Art, die Wortwächter, die Kartenzahl, die beiden breiten Kacheln
+namentlich). **Sechs davon sind erst durch die Gegenproben entstanden** — zwei
+für die Freigabe im Prozess, vier für die Zweckbindung bei gleichem Ziel.
 
 ---
 
@@ -665,6 +758,11 @@ drei Gegenproben zum Wortwächter).
 
 * **Der Schlüsselwechsel** — 0.8.91, mit den drei Messungen aus Abschnitt 4 als
   Vorarbeit.
+* **Es gibt keinen Wächter darauf, dass eine Prüflage ihren Server beendet.**
+  Zwei der neuen Lagen hatten ihn zunächst nicht (Abschnitt 4 D); aufgefallen
+  ist es erst, als eine Gegenprobe daran abriss. Nachgemessen am fertigen
+  Stand: **vor dem Lauf 0 Server, nach dem Lauf 0 Server.** Ein Wächter, der
+  das festhält, wäre die naheliegende Ergänzung einer künftigen Runde.
 * **Der Import hat keine Oberflächenprüfung für die Bestätigung.** Sein Weg
   läuft über eine echte Datei und einen `FileReader`; ein gestellter
   Dateiwähler prüfte den Dateiwähler, nicht die Schranke. Serverseitig ist der
