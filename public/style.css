@@ -768,6 +768,11 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .zug-neu { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .zug-neu .input { flex: 1 1 130px; min-width: 0; }
 .zug-neu select.input { flex: 0 0 auto; width: auto; }
+/* Das Passwortfeld erscheint nur zu der Betriebsart, in der es gilt. Die
+   Regel steht ausdruecklich da: `hidden` ist eine Vorgabe des Browsers mit
+   schwacher Kraft, und in einem Flex-Kasten ist ein halb verstecktes Feld
+   schlimmer als gar keines. */
+.zug-neu [hidden] { display: none; }
 
 /* "noch kein Passwort" steht an der Statusspalte und nimmt deren Schrift.
    Es ist ein abgeleiteter Zustand und kein vierter in der Datenbank -- es

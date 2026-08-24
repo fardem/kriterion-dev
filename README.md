@@ -219,17 +219,23 @@ Grund — aber erst nach dem richtigen Passwort, sonst wäre die Meldung ein
 Werkzeug zum Durchprobieren von Namen. Offene Einladungs- und Rücksetzlinke
 dieses Zugangs verfallen dabei mit.
 
-#### Einen Zugang anlegen — zwei Wege
+#### Einen Zugang anlegen — die Wahl steht im Formular
 
-**Mit Link (empfohlen).** „**+ Anlegen und Link**" legt den Zugang **ohne
-Passwort** an und zeigt darunter einen Link. Den kopierst du und gibst ihn dem
-Betreffenden — mündlich, per Zettel, per Messenger. Wer ihn öffnet, wählt sein
-Passwort selbst und ist danach gleich angemeldet. **Du erfährst das Passwort
-nie.** In der Liste steht bei ihm „noch kein Passwort", bis er den Link
-eingelöst hat.
+Neben dem Namensfeld steht ein Auswahlfeld mit zwei Möglichkeiten. **Es
+bestimmt, was der Knopf daneben tut, und welche Felder überhaupt erscheinen.**
 
-**Mit erstem Passwort.** „**+ Anlegen**" mit ausgefülltem Passwortfeld — wie
-bisher. Der kürzere Weg, wenn der andere danebensteht.
+**„Er wählt sein Passwort selbst" — die Vorgabe und der empfohlene Weg.** Es
+gibt kein Passwortfeld; der Knopf heißt **„+ Anlegen und Link"**. Der Zugang
+entsteht **ohne** Passwort, und darunter erscheint ein Link. Den kopierst du
+und gibst ihn dem Betreffenden — mündlich, per Zettel, per Messenger. Wer ihn
+öffnet, wählt sein Passwort selbst und ist danach gleich angemeldet. **Du
+erfährst das Passwort nie.** In der Liste steht bei ihm „noch kein Passwort",
+bis er den Link eingelöst hat.
+
+**„Ich vergebe das erste Passwort" — wie bisher.** Erst dann erscheint das
+Passwortfeld, und der Knopf heißt nur noch **„+ Anlegen"**. Der kürzere Weg,
+wenn der andere danebensteht. Wechselst du zurück, verschwindet das Feld
+wieder — und was darin stand, wird geleert.
 
 > **Der Link ist ein Passwortersatz auf Zeit.** Er gilt **sieben Tage** und
 > **genau einmal**; wer ihn in dieser Zeit hat, kommt herein. Nach der

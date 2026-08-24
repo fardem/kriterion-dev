@@ -16148,12 +16148,63 @@ async function pruefeOberflaeche() {
       d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
   }
 
-  /* ANLEGEN UND LINK -- ein Weg, zwei Knoepfe. */
+  /* EINE WAHL, EIN KNOPF -- und das Passwortfeld erscheint nur zu der
+     Betriebsart, in der es gilt.
+     GEPRUEFT WERDEN BEIDE ZUSTAENDE UND DER WECHSEL DAZWISCHEN, in beide
+     Richtungen: eine Prueflage, die nur den Ausgangszustand kennt, belegt
+     ueber den anderen nichts, und eine, die nur hinwechselt, nicht, dass der
+     Rueckweg aufraeumt. */
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const art = d.w.document.getElementById('zug-art');
+    const knopf = d.w.document.getElementById('zug-anlegen');
+    const pass = d.w.document.getElementById('zug-pass');
+    pruefe('Das Auswahlfeld steht im Formular', !!art, 'kein Auswahlfeld');
+    pruefe('Und es gibt nur EINEN Anlegeknopf',
+      !!knopf && d.w.document.querySelectorAll('.zug-neu .btn').length === 1,
+      `${d.w.document.querySelectorAll('.zug-neu .btn').length} Knoepfe`);
+    pruefe('Es traegt genau die zwei Betriebsarten',
+      gleich([...art.options].map(o => o.value), ['link', 'passwort']),
+      JSON.stringify([...(art?.options || [])].map(o => o.value)));
+    /* DIE VORGABE IST DER LINK -- der Weg, bei dem der Admin das Passwort nie
+       erfaehrt. Stuende die Vorgabe anders, waere die Empfehlung im Text eine
+       Behauptung. */
+    pruefe('Die Vorgabe ist der Link', art.value === 'link', art.value);
+    pruefe('Und das Passwortfeld steht dabei nicht da',
+      pass.hidden === true, `hidden=${pass.hidden}`);
+    pruefe('Der Knopf sagt, was er tun wird',
+      knopf.textContent.includes('Link'), knopf.textContent);
+    /* Und die Regel dazu im Stylesheet -- ohne sie stuende das Feld im
+       Flex-Kasten weiter da (Stolperstein 81: erst das Vorhandensein). */
+    const ziCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
+    pruefe('Das Stylesheet nimmt ein verstecktes Feld wirklich aus der Zeile',
+      /\.zug-neu \[hidden\] \{[^}]*display: *none/.test(ziCss),
+      'Regel fuer .zug-neu [hidden] fehlt');
+
+    // Hinwechseln: das Feld erscheint, der Knopf heisst anders.
+    art.value = 'passwort';
+    art.dispatchEvent(new d.w.Event('change'));
+    pruefe('Nach der Wahl "ich vergebe eins" erscheint das Passwortfeld',
+      pass.hidden === false, `hidden=${pass.hidden}`);
+    pruefe('Und der Knopf spricht nicht mehr vom Link',
+      !knopf.textContent.includes('Link'), knopf.textContent);
+
+    // Zurueckwechseln: das Feld verschwindet UND wird geleert.
+    pass.value = 'heimlich-getipptes';
+    art.value = 'link';
+    art.dispatchEvent(new d.w.Event('change'));
+    pruefe('Zurueck beim Link verschwindet das Feld wieder',
+      pass.hidden === true, `hidden=${pass.hidden}`);
+    pruefe('Und was darin stand, ist geleert',
+      pass.value === '', JSON.stringify(pass.value));
+  }
+
+  /* Die Vorgabe legt mit Link an. */
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     const vorher = ziReihen(d).length;
     d.w.document.getElementById('zug-name').value = 'neuling';
-    d.w.document.getElementById('zug-einladen')
+    d.w.document.getElementById('zug-anlegen')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const anlegen = d.gesendet.find(x => x.methode === 'POST' && x.url === '/api/users');
@@ -16170,10 +16221,14 @@ async function pruefeOberflaeche() {
     pruefe('Und die Liste zeichnet sich mit einer Zeile mehr neu',
       ziReihen(d).length === vorher + 1, `${vorher} -> ${ziReihen(d).length}`);
   }
-  /* DER ANDERE KNOPF SCHICKT KEINE EINLADUNG -- sonst waeren es nicht zwei
-     Wege, sondern einer mit zwei Beschriftungen. */
+
+  /* Die andere Betriebsart schickt das Passwort und KEINE Einladung -- sonst
+     waere die Wahl eine Kulisse. */
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    const art = d.w.document.getElementById('zug-art');
+    art.value = 'passwort';
+    art.dispatchEvent(new d.w.Event('change'));
     d.w.document.getElementById('zug-name').value = 'mitpasswort';
     d.w.document.getElementById('zug-pass').value = 'ein-passwort-1';
     d.w.document.getElementById('zug-anlegen')

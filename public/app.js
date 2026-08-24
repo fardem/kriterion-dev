@@ -3829,23 +3829,25 @@ async function renderSystem() {
             : `Rollen vergibt der Eigentümer der Anlage; an einen anderen Admin kommst du nicht.`}</p>
         <div class="manage-list" id="mzugaenge"></div>
 
-        <p class="desc" style="margin:16px 0 8px">Ein neuer Zugang wählt sein Passwort am besten
-          <strong>selbst</strong>: „Anlegen und Link“ legt ihn ohne Passwort an und gibt einen
-          Link aus, der sieben Tage und genau einmal gilt. Wer das
-          Passwortfeld ausfüllt und „+ Anlegen“ drückt, vergibt es wie bisher selbst —
-          mindestens ${MIN_PASSWORT} Zeichen.</p>
+        <p class="desc" style="margin:16px 0 8px">Woher der neue Zugang sein Passwort bekommt,
+          steht als <strong>Wahl im Formular</strong> — das Feld daneben erscheint nur, wenn es
+          auch gilt. Der Weg über den <strong>Link</strong> ist der empfohlene: du erfährst das
+          Passwort nie, und der Link gilt sieben Tage und genau einmal.</p>
         <div class="zug-neu">
           <input class="input input-sm" id="zug-name" placeholder="Benutzername"
             autocomplete="off" autocapitalize="off" spellcheck="false">
+          <select class="input input-sm" id="zug-art">
+            <option value="link">Er wählt sein Passwort selbst</option>
+            <option value="passwort">Ich vergebe das erste Passwort</option>
+          </select>
           <input class="input input-sm" id="zug-pass" type="password" placeholder="Erstes Passwort"
-            autocomplete="new-password">
+            autocomplete="new-password" hidden>
           ${EIGENTUEMER ? `<select class="input input-sm" id="zug-rolle">
             <option value="user">Benutzer</option>
             <option value="admin">Admin</option>
             <option value="eigentuemer">Eigentümer</option>
           </select>` : ''}
-          <button class="btn btn-accent btn-sm" id="zug-einladen">+ Anlegen und Link</button>
-          <button class="btn btn-sm" id="zug-anlegen">+ Anlegen</button>
+          <button class="btn btn-accent btn-sm" id="zug-anlegen">+ Anlegen und Link</button>
         </div>
         <div id="zug-link"></div>
 
@@ -4833,30 +4835,49 @@ async function renderSystem() {
   }
   zeichneZugaenge();
 
-  /* ZWEI KNÖPFE, EIN WEG: derselbe Rumpf, und nur das Häkchen `einladen`
-     unterscheidet sie. Zwei getrennte Behandler nebeneinander liefen bei der
-     nächsten Änderung auseinander. */
-  const zugNeu = async (einladen) => {
+  /* EINE WAHL, EIN KNOPF. Vorher standen hier zwei Knöpfe nebeneinander, und
+     die Betriebsart steckte darin, WELCHEN man drückt — man musste beide
+     Beschriftungen lesen, um zu wissen, was gleich passiert, und das
+     Passwortfeld stand auch dann da, wenn es gar nicht galt.
+     Jetzt sagt das Auswahlfeld die Betriebsart, das Passwortfeld erscheint nur
+     zu ihr, und der Knopf trägt die Folge im Namen. Ein Feld, das nicht gilt,
+     ist kein Feld — und ein Knopf, der zuverlässig etwas anderes tut, als sein
+     Nachbar heißt, ist eine Falle.
+     DIE VORGABE IST DER LINK: es ist der Weg, bei dem der Admin das Passwort
+     nie erfährt. */
+  const zugArt = document.getElementById('zug-art');
+  const zugAnlegen = document.getElementById('zug-anlegen');
+  const zugPass = document.getElementById('zug-pass');
+
+  const zugArtGesetzt = () => {
+    if (!zugArt || !zugAnlegen || !zugPass) return;
+    const link = zugArt.value === 'link';
+    zugPass.hidden = link;
+    // Geleert, nicht bloß versteckt: ein Passwort, das man nicht mehr sieht,
+    // aber noch mitschickt, wäre die unangenehmste Art von Überraschung.
+    if (link) zugPass.value = '';
+    zugAnlegen.textContent = link ? '+ Anlegen und Link' : '+ Anlegen';
+  };
+  if (zugArt) zugArt.onchange = zugArtGesetzt;
+  zugArtGesetzt();
+
+  if (zugAnlegen) zugAnlegen.onclick = async () => {
     const nameFeld = document.getElementById('zug-name');
-    const passFeld = document.getElementById('zug-pass');
     const rolleFeld = document.getElementById('zug-rolle');
+    const einladen = !zugArt || zugArt.value === 'link';
     const koerper = { username: nameFeld.value.trim() };
     if (einladen) koerper.einladen = true;
-    else koerper.passwort = passFeld.value;
+    else koerper.passwort = zugPass.value;
     if (rolleFeld) koerper.rolle = rolleFeld.value;
     if (!koerper.username) return toast('Bitte einen Benutzernamen angeben.', true);
     try {
       const d = await api('POST', '/api/users', koerper);
-      nameFeld.value = ''; passFeld.value = '';
+      nameFeld.value = ''; zugPass.value = '';
       toast(einladen ? 'Zugang angelegt — der Link steht unten' : 'Zugang angelegt');
       if (einladen) zeigeLink(d);
     } catch (e) { return toast(e.message, true); }
     zeichneZugaenge();
   };
-  const zugAnlegen = document.getElementById('zug-anlegen');
-  if (zugAnlegen) zugAnlegen.onclick = () => zugNeu(false);
-  const zugEinladen = document.getElementById('zug-einladen');
-  if (zugEinladen) zugEinladen.onclick = () => zugNeu(true);
 
   // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
   // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
