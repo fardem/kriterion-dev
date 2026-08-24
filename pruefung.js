@@ -7613,15 +7613,33 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und ein zweites Mal nicht -- die Freigabe ist verbraucht',
     zbNochmal.status === 403, `Status ${zbNochmal.status}`);
 
-  /* MIT DER ABMELDUNG FAELLT SIE. Ohne das ueberlebte sie im Arbeitsspeicher
-     und stuende einer Sitzung zur Verfuegung, die es nicht mehr gibt. */
-  const zbAbmeld = await zbAnmelden('anna', ZB_ANNA);
-  await zbFrei(zbAbmeld, ZB_ANNA, 'export');
-  await zbRuf(zbAbmeld, 'POST', '/api/logout');
-  const zbNachAbmelden = await zbAnmelden('anna', ZB_ANNA);
-  pruefe('Nach dem Abmelden traegt keine Freigabe mehr',
-    (await zbRuf(zbNachAbmelden, 'GET', '/api/export?photos=0')).status === 403,
-    'die Freigabe hat die Abmeldung ueberlebt');
+  /* MIT DER ABMELDUNG FAELLT SIE -- UND DAS IST VON AUSSEN NICHT ZU SEHEN.
+     Die erste Fassung dieser Pruefung meldete nach dem Abmelden neu an und sah
+     nach, ob der Export noch durchkommt. Sie konnte gar nicht scheitern: die
+     neue Sitzung traegt einen ANDEREN Token, und die Freigabe haengt am alten.
+     Die Gegenprobe blieb dementsprechend stumm -- ein Fund, kein Beleg
+     (Stolperstein 131). Was sie in Wahrheit prueft, ist die Bindung an die
+     Sitzung, und die steht schon zwei Absaetze darueber.
+     GEPRUEFT WIRD DESHALB IM PROZESS, dort wo die Freigabe liegt. Und mit der
+     Gegenlage daneben: erst, dass eine Freigabe ueberhaupt traegt, dann, dass
+     das Abmelden sie wegnimmt (Stolperstein 81). */
+  {
+    const fwDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-freigabe-'));
+    kurzlauf(`require('./db'); console.log('da');`, fwDir);
+    const fwCode =
+      `const a = require('./auth'); const t = 'ein-token-das-es-so-nicht-gibt';` +
+      `a.erzeugeFreigabe(t, 'export', null);` +
+      `const traegt = a.verbraucheFreigabe(t, 'export', null);` +
+      `a.erzeugeFreigabe(t, 'export', null); a.destroySession(t);` +
+      `const nachAbmelden = a.verbraucheFreigabe(t, 'export', null);` +
+      `console.log(JSON.stringify({ traegt, nachAbmelden }));`;
+    const fw = JSON.parse(kurzlauf(fwCode, fwDir));
+    pruefe('Eine frisch erzeugte Freigabe traegt ueberhaupt',
+      fw.traegt === true, JSON.stringify(fw));
+    pruefe('Und das Abmelden nimmt sie weg',
+      fw.nachAbmelden === false, JSON.stringify(fw));
+    fs.rmSync(fwDir, { recursive: true, force: true });
+  }
 
   /* ---------------------------------------------------------------- */
   gruppe('Die zweite Bestaetigung: jeder schwere Weg einzeln');
