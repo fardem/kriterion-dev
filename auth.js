@@ -29,6 +29,44 @@ const HINTER_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(process.env.HINTER_P
    WER DIE EINSTELLUNG UMLEGT, MELDET DAMIT ALLE EINMALIG AB: der alte Name
    wird nicht mehr gelesen. Kein Datenverlust, nur eine neue Anmeldung. */
 const COOKIE_NAME = HINTER_PROXY ? '__Host-kriterion_session' : 'kriterion_session';
+
+/* --- Die oeffentliche Adresse -------------------------------------------
+   SIE STEHT HIER UND NICHT IN server.js, weil sie dieselbe Sorte Einstellung
+   ist wie HINTER_PROXY darueber: sie entscheidet ueber NETZWERKVERTRAUEN und
+   nicht ueber eine Vorliebe, und sie gehoert deshalb in die .env und nicht in
+   settings -- ein uebernommener Admin-Zugang koennte sie sonst selbst umlegen.
+   GEBAUT wird der Link in server.js; hier steht nur, welcher Wert gilt.
+
+   ALLES AB ? UND # WIRD ABGEWIESEN: das Fragment traegt bereits den
+   Schluessel des Links, und eine Abfrage haette an einer Adresse, aus der ein
+   Link gebaut wird, nichts zu suchen. Ein PFAD ist erlaubt -- die Anlage kann
+   unter einem Unterpfad haengen.
+   ZUGANGSDATEN IN DER ADRESSE WERDEN ABGEWIESEN: sie stuenden sonst in jedem
+   verschickten Link.
+   EIN UNBRAUCHBARER WERT BRICHT DEN START NICHT AB, sondern meldet sich laut
+   und faellt auf den Browserweg zurueck -- dieselbe Form wie bei AUTH_RESET
+   und beim fehlenden Sicherungsort. Ein Start, der an einem Tippfehler in
+   einer OPTIONALEN Einstellung abbricht, ist schlimmer als der Tippfehler. */
+function pruefeOeffentlicheAdresse(roh) {
+  const wert = String(roh || '').trim();
+  if (!wert) return { adresse: '', gesetzt: false };
+  let u;
+  try { u = new URL(wert); }
+  catch { return { adresse: '', gesetzt: true, fehler: 'Das ist keine vollständige Adresse.' }; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:')
+    return { adresse: '', gesetzt: true, fehler: 'Nur http:// und https:// sind möglich.' };
+  if (!u.hostname)
+    return { adresse: '', gesetzt: true, fehler: 'Es fehlt der Rechnername.' };
+  if (u.username || u.password)
+    return { adresse: '', gesetzt: true, fehler: 'Zugangsdaten gehören nicht in die Adresse.' };
+  if (u.search) return { adresse: '', gesetzt: true, fehler: 'Eine Abfrage (?) ist nicht erlaubt.' };
+  if (u.hash) return { adresse: '', gesetzt: true, fehler: 'Ein Fragment (#) ist nicht erlaubt.' };
+  // Ohne abschliessenden Schraegstrich, damit der Link genau eine Form hat.
+  const adresse = (u.origin + u.pathname).replace(/\/+$/, '');
+  return { adresse, gesetzt: true };
+}
+const OEFFENTLICHE_ADRESSE = pruefeOeffentlicheAdresse(process.env.OEFFENTLICHE_ADRESSE);
+
 const SESSION_DAYS = 30;
 
 // --- Passwoerter -------------------------------------------------------
@@ -151,6 +189,9 @@ async function legeErstenBenutzerAn(name, passwort) {
   // Anlage lief es ins Leere, weil es noch keinen Benutzer gab -- dieser Weg
   // liefert ihn erst jetzt nach.
   ordneBestandZu();
+  // Die erste Zeile des Sicherheitsprotokolls: die Anlage bekommt ihren
+  // Eigentuemer. Er handelt an sich selbst -- es gibt sonst niemanden.
+  protokolliere('zugang.neu', { wer: r.lastInsertRowid, ziel: r.lastInsertRowid, merkmal: 'eigentuemer' });
   return { id: r.lastInsertRowid, username: String(name).trim() };
 }
 
@@ -180,6 +221,12 @@ async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort
     throw new Error('Diesen Benutzernamen gibt es bereits.');
   const hash = wechselt ? await hashePasswort(neuesPasswort) : u.password_hash;
   db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?').run(name, hash, u.id);
+  /* Der eigene Zugang ist der erste Griff einer uebernommenen Sitzung: er
+     sperrt den Richtigen aus. Ein Aufruf, der nichts bewegt, ist kein Vorgang
+     und schreibt deshalb auch keine Zeile. */
+  const umbenannt = name !== u.username;
+  const merkmal = wechselt && umbenannt ? 'beides' : wechselt ? 'passwort' : umbenannt ? 'name' : null;
+  if (merkmal) protokolliere('zugang.selbst', { wer: u.id, ziel: u.id, merkmal });
   return { username: name, passwortGewechselt: wechselt };
 }
 
@@ -228,7 +275,7 @@ const zahlEigentuemer = () => db.prepare(
    der nicht nach scrypt aussieht, ohnehin am Format ab. Zwei voneinander
    unabhaengige Gruende, beide nachgestellt. Eine Sperre, die es nicht gibt,
    kann nicht vergessen werden -- genau derselbe Griff wie beim Grabstein. */
-async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false) {
+async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false, wer) {
   if (ohnePasswort === true) pruefeName(name);
   else pruefeVorgaben(name, passwort);
   if (!ROLLEN.includes(rolle)) throw new Error('Diese Rolle gibt es nicht.');
@@ -236,15 +283,18 @@ async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false
   if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(sauber))
     throw new Error('Diesen Benutzernamen gibt es bereits.');
   const hash = ohnePasswort === true ? '' : await hashePasswort(passwort);
+  const handelt = handelnder(wer);
   const r = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)')
     .run(sauber, hash, rolle);
+  protokolliere('zugang.neu', { wer: handelt, ziel: r.lastInsertRowid, merkmal: rolle });
   return { id: r.lastInsertRowid, username: sauber, role: rolle, ohnePasswort: hash === '' };
 }
 
 // Setzt ein Passwort ohne das bisherige zu kennen -- fuer den Admin, der es
 // zuruecksetzt, und fuer zugang.js. Die Sitzungen fallen dabei ALLE: wer ein
 // fremdes Passwort neu setzt, will den bisherigen Inhaber draussen haben.
-async function setzeNeuesPasswort(benutzerId, neuesPasswort) {
+async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {
+  const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
   if (!u) throw new Error('Diesen Zugang gibt es nicht.');
   if (u.status === 'geloescht') throw new Error('Dieser Zugang ist gelöscht.');
@@ -253,10 +303,12 @@ async function setzeNeuesPasswort(benutzerId, neuesPasswort) {
   const hash = await hashePasswort(neuesPasswort);
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, u.id);
   db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
+  protokolliere('zugang.passwort', { wer: handelt, ziel: u.id });
   return { id: u.id, username: u.username };
 }
 
-function setzeRolle(benutzerId, rolle) {
+function setzeRolle(benutzerId, rolle, wer) {
+  const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
   if (!u) throw new Error('Diesen Zugang gibt es nicht.');
   if (u.status === 'geloescht') throw new Error('Dieser Zugang ist gelöscht.');
@@ -267,10 +319,12 @@ function setzeRolle(benutzerId, rolle) {
   if (u.role === 'eigentuemer' && rolle !== 'eigentuemer' && zahlEigentuemer() <= 1)
     throw new Error('Das ist der letzte Eigentümer der Anlage — vorher einen zweiten bestimmen.');
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(rolle, u.id);
+  protokolliere('zugang.rolle', { wer: handelt, ziel: u.id, merkmal: rolle });
   return { id: u.id, username: u.username, role: rolle };
 }
 
-function setzeStatus(benutzerId, status) {
+function setzeStatus(benutzerId, status, wer) {
+  const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
   if (!u) throw new Error('Diesen Zugang gibt es nicht.');
   if (u.status === 'geloescht') throw new Error('Dieser Zugang ist gelöscht.');
@@ -289,6 +343,7 @@ function setzeStatus(benutzerId, status) {
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);
   }
+  protokolliere('zugang.status', { wer: handelt, ziel: u.id, merkmal: status });
   return { id: u.id, username: u.username, status };
 }
 
@@ -329,7 +384,8 @@ function zaehleBestand(benutzerId) {
    dem Eigentuemer zu: fremde Aussagen unter fremdem Namen.
    Mitgeloescht wird, was rein persoenlich ist: Sitzungen, Favoriten,
    Einstellungen. Inhalte nur auf ausdrueckliche Ansage. */
-function entferneZugang(benutzerId, optionen = {}) {
+function entferneZugang(benutzerId, optionen = {}, wer) {
+  const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
   if (!u) throw new Error('Diesen Zugang gibt es nicht.');
   if (u.status === 'geloescht') throw new Error('Dieser Zugang ist bereits gelöscht.');
@@ -359,6 +415,11 @@ function entferneZugang(benutzerId, optionen = {}) {
                "status = 'geloescht', email = NULL WHERE id = ?")
       .run(grabsteinName(u.id), u.id);
   })();
+  /* NACH der Transaktion, nicht darin: eine Protokollzeile, die einen Vorgang
+     mitreisst, ueber den sie berichtet, waere die falsche Reihenfolge. Die
+     Zeile bleibt stehen -- der Grabstein traegt seine Nummer weiter, ziel
+     zeigt also weiterhin auf etwas. */
+  protokolliere('zugang.weg', { wer: handelt, ziel: u.id });
   return { id: u.id, name: u.username, grabstein: grabsteinName(u.id), zahlen, optionen };
 }
 
@@ -498,7 +559,16 @@ async function pruefeAnmeldung(name, passwort) {
   const nameStimmt = u ? safeEqual(name || '', u.username) : false;
   const passwortStimmt = await pruefePasswort(passwort || '',
     (u && u.password_hash) ? u.password_hash : BLINDWERT);
-  return (nameStimmt && passwortStimmt) ? u : null;
+  if (nameStimmt && passwortStimmt) return u;
+  /* DIE EINZIGE ZEILE, DIE EIN FREMDER AUSLOESEN KANN -- und sie steht HIER,
+     weil nur hier bekannt ist, ob der getippte Name ueberhaupt einen Zugang
+     traf. Der getippte Name selbst geht NICHT in die Tabelle: sonst landete
+     frueher oder spaeter ein ins falsche Feld getipptes Passwort darin.
+     Geschrieben wird nur, wenn es bis hierher gekommen ist -- der gesperrte
+     Fall ruft diese Funktion gar nicht erst, und damit ist die Bremse der
+     Deckel ueber der Tabelle. */
+  protokolliere('anmeldung.fehl', { wer: null, ziel: nameStimmt ? u.id : null });
+  return null;
 }
 
 // Eine Sitzung entsteht in dieser Anwendung ausschliesslich durch eine
@@ -513,11 +583,18 @@ function legeSitzungAn(benutzerId) {
   const token = crypto.randomBytes(32).toString('hex');
   db.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(token, id);
   db.prepare(`UPDATE users SET last_login = datetime('now') WHERE id = ?`).run(id);
+  /* HIER und nicht an den drei Aufrufstellen einzeln -- aus demselben Grund
+     wie last_login darueber: eine Sitzung entsteht ausschliesslich durch eine
+     Anmeldung, ueber die Anmeldeseite, die Ersteinrichtung oder das Einloesen
+     eines Links. Eine Stelle kann nicht auseinanderlaufen. */
+  protokolliere('anmeldung.ok', { wer: id, ziel: id });
   return token;
 }
 
 function destroySession(token) {
   if (token) db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
+  // Mit der Sitzung faellt ihre offene Freigabe.
+  verwirfFreigabe(token);
 }
 
 function pruneSessions() {
@@ -631,7 +708,8 @@ function raeumeTokensAuf() {
    Die Rechtefrage steht hier ausdruecklich NICHT: wer einladen darf,
    entscheidet server.js an der Route -- dieselbe Trennung wie bei der
    uebrigen Zugangsverwaltung. */
-function erzeugeToken(benutzerId, zweck) {
+function erzeugeToken(benutzerId, zweck, wer) {
+  const handelt = handelnder(wer);
   const u = holeZugang(benutzerId);
   if (!u) throw new Error('Diesen Zugang gibt es nicht.');
   if (u.status !== 'aktiv') throw new Error('Dieser Zugang ist nicht aktiv.');
@@ -641,6 +719,9 @@ function erzeugeToken(benutzerId, zweck) {
     `INSERT INTO tokens (hash, user_id, zweck, ablauf)
      VALUES (?, ?, ?, datetime('now', ?))`
   ).run(tokenHash(klartext), u.id, zweck, `+${TOKEN_TAGE} days`);
+  // Ein Link IST ein Passwortersatz auf Zeit -- deshalb steht sein Entstehen im
+  // Sicherheitsprotokoll, und zwar mit dem Anlass. Der Schluessel selbst nie.
+  protokolliere('link.neu', { wer: handelt, ziel: u.id, merkmal: zweck });
   return {
     klartext, zweck, id: u.id, username: u.username,
     // Der Bildschirmtext leitet sich aus dem ZUSTAND ab, nicht aus zweck --
@@ -701,7 +782,207 @@ async function loeseTokenEin(klartext, neuesPasswort) {
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, t.id);
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(t.id);
   })();
+  // Der Einloesende handelt an sich selbst -- er ist ja gerade dabei, sein
+  // eigenes Passwort zu setzen. Die Zeile steht NACH der Transaktion.
+  protokolliere('link.ein', { wer: t.id, ziel: t.id, merkmal: t.zweck });
   return { id: t.id, username: t.username, zweck: t.zweck };
+}
+
+/* --- Das Sicherheitsprotokoll -------------------------------------------
+   ES HAELT FEST, WER ZUGANG HATTE UND WER DIE ANLAGE ALS GANZES ANGEFASST
+   HAT -- und ausdruecklich nichts darueber, was jemand GESAGT hat. Die
+   Begruendung zu Spalten und Grenzen steht am Schema in db.js.
+
+   VIERZEHN VORGAENGE, und die Liste ist die Entscheidung. Was nicht darin
+   steht, steht mit Begruendung im Aenderungsprotokoll dieser Runde -- eine
+   stillschweigend weggelassene Zeile waere von einer entschiedenen nicht zu
+   unterscheiden.
+
+   EINE REGEL MIT EINER BENANNTEN AUSNAHME: ein GESCHEITERTER Vorgang schreibt
+   NICHTS. Ausgenommen sind die beiden, bei denen das Scheitern selbst der
+   Vorgang ist -- die gescheiterte Anmeldung und die gescheiterte zweite
+   Bestaetigung. Beide sind das, wonach man hinterher sucht.
+
+   DIE GESCHEITERTE ANMELDUNG IST DIE EINZIGE ZEILE, DIE EIN FREMDER AUSLOESEN
+   KANN, und damit die einzige, mit der sich die Tabelle von aussen
+   vollschreiben liesse. Ihr Deckel ist die Bremse, die es schon gibt:
+   geschrieben wird NUR, wenn die Anfrage die Passwortpruefung wirklich
+   erreicht hat -- der gesperrte Fall schreibt nichts. Damit sind es hoechstens
+   HARD_LIMIT Zeilen je Adresse und BLOCK_MS, und die Obergrenze ist eine
+   Eigenschaft der Anlage statt einer Regel, die jemand durchsetzen muesste.
+   Der Preis, ehrlich benannt: verteiltes Raten aus vielen Adressen schreibt
+   weiterhin viele Zeilen. Die Frist traegt es, und die ersten zehn je Adresse
+   sind die Spur, auf die es ankommt. */
+const VORGAENGE = [
+  'anmeldung.ok', 'anmeldung.fehl', 'bestaetigung.fehl',
+  'zugang.neu', 'zugang.rolle', 'zugang.status', 'zugang.passwort',
+  'zugang.weg', 'zugang.selbst',
+  'link.neu', 'link.ein',
+  'export', 'import', 'sicherung'
+];
+/* Die geschlossene Liste fuer merkmal. NICHTS ausserhalb davon kommt in die
+   Tabelle -- damit ist "kein Freitext von aussen" baulich wahr und nicht bloss
+   beabsichtigt. Wer einen Vorgang ergaenzt, ergaenzt hier oder nimmt null. */
+const MERKMALE = ['user', 'admin', 'eigentuemer', 'aktiv', 'gesperrt',
+                  'einladung', 'ruecksetzung', 'merge', 'replace',
+                  'name', 'passwort', 'beides'];
+
+// Eine Frist, laenger als die dreissig Tage von Papierkorb und Tokenspur: ein
+// Protokoll, das den Vorfall vergisst, bevor jemand ihn bemerkt, ist keins.
+// Ein halbes Jahr deckt auch eine lange Abwesenheit ab.
+const PROTOKOLL_TAGE = 180;
+// Wie viele Zeilen die Karte hoechstens holt. Die GESAMTZAHL steht daneben,
+// damit aus "hundert Zeilen" nicht "hundert Vorgaenge" gelesen wird.
+const PROTOKOLL_GRENZE = 100;
+
+const insProtokoll = db.prepare(
+  'INSERT INTO sicherheitsprotokoll (was, wer, ziel, merkmal) VALUES (?, ?, ?, ?)');
+
+/* WER HANDELT -- die Nummer des Angemeldeten oder VOM_WIRT fuer zugang.js.
+   KEIN VORGABEWERT, und die Klemme darunter ist keine Zierde: ein vergessenes
+   Argument waere still eine FALSCHAUSSAGE -- die Zeile behauptete dann, der
+   Vorgang sei ueber den Wirt gelaufen. Dieselbe Ueberlegung wie bei qComments
+   in server.js, nur mit umgekehrtem Vorzeichen: null ist hier ein gueltiger
+   Wert, undefined nicht. */
+const VOM_WIRT = 'wirt';
+function handelnder(wer) {
+  if (wer === VOM_WIRT) return null;
+  const n = Number(wer);
+  if (!Number.isInteger(n) || n <= 0)
+    throw new Error('Dieser Vorgang braucht den Handelnden — eine Nummer oder VOM_WIRT.');
+  return n;
+}
+
+/* Schreibt EINE Zeile. Die Rechtefrage steht hier ausdruecklich NICHT -- wer
+   etwas darf, entscheidet server.js an der Route; zugang.js laeuft auf dem
+   Wirt und hat ohnehin alles. Diese Funktion haelt nur fest.
+   SIE WIRFT NIE. Ein Protokoll, das den Vorgang mitreisst, ueber den es
+   berichten soll, waere schlimmer als keins -- geschrieben wird deshalb NACH
+   dem Vorgang, und ein Fehlschlag geht ins Containerprotokoll.
+   DIE BEIDEN LISTEN WERDEN GEPRUEFT, nicht vorausgesetzt: ein vertippter
+   Vorgangsname faellt sonst erst auf, wenn ihn jemand in der Karte sucht. */
+function protokolliere(was, { wer = null, ziel = null, merkmal = null } = {}) {
+  try {
+    if (!VORGAENGE.includes(was)) throw new Error(`Unbekannter Vorgang: ${was}`);
+    if (merkmal != null && !MERKMALE.includes(merkmal))
+      throw new Error(`Unbekanntes Merkmal: ${merkmal}`);
+    const nr = (v) => {
+      const n = Number(v);
+      return Number.isInteger(n) && n > 0 ? n : null;
+    };
+    insProtokoll.run(was, nr(wer), nr(ziel), merkmal);
+  } catch (e) {
+    console.error('[Kriterion] Sicherheitsprotokoll:', e.message);
+  }
+}
+
+/* Dieselbe Bauform wie raeumeTokensAuf() und raeumePapierkorbAuf(): EINE
+   Funktion, ZWEI Aufrufstellen -- beim Start und beim Oeffnen der Karte. Eine
+   Anlage, die ein halbes Jahr durchlaeuft, raeumte sonst ein halbes Jahr lang
+   nicht auf.
+   EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
+   (Stolperstein 119). */
+const delProtokollAlt = db.prepare("DELETE FROM sicherheitsprotokoll WHERE am < datetime('now', ?)");
+function raeumeProtokollAuf() {
+  const n = delProtokollAlt.run(`-${PROTOKOLL_TAGE} days`).changes;
+  if (n) console.log(`[Kriterion] Sicherheitsprotokoll: ${n} Zeile(n) aelter als ` +
+    `${PROTOKOLL_TAGE} Tage entfernt.`);
+  return n;
+}
+
+/* Die juengsten Zeilen fuer die Karte, samt Gesamtzahl. Die NAMEN kommen ueber
+   einen JOIN und nicht aus der Tabelle -- ein Grabstein liefert dabei null,
+   und daraus macht die Oberflaeche "Geloeschter Benutzer <nr>", genau wie an
+   jedem Beitrag im Eintrag. */
+const qProtokoll = db.prepare(
+  `SELECT p.id, p.am, p.was, p.wer, p.ziel, p.merkmal,
+          CASE WHEN uw.status = 'geloescht' THEN NULL ELSE uw.username END AS werName,
+          CASE WHEN uz.status = 'geloescht' THEN NULL ELSE uz.username END AS zielName
+     FROM sicherheitsprotokoll p
+     LEFT JOIN users uw ON uw.id = p.wer
+     LEFT JOIN users uz ON uz.id = p.ziel
+    ORDER BY p.id DESC LIMIT ?`);
+const qProtokollZahl = db.prepare('SELECT COUNT(*) n FROM sicherheitsprotokoll');
+function leseProtokoll(grenze = PROTOKOLL_GRENZE) {
+  return {
+    zeilen: qProtokoll.all(grenze),
+    gesamt: qProtokollZahl.get().n,
+    tage: PROTOKOLL_TAGE,
+    grenze
+  };
+}
+
+/* --- Die zweite Bestaetigung -------------------------------------------
+   WAS DIE ANLAGE ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT.
+   Wogegen das verteidigt, ist nicht der Fremde -- der kommt ohne Passwort gar
+   nicht herein --, sondern die FREMDE OFFENE SITZUNG: ein Bildschirm, der
+   unbeaufsichtigt stehen blieb, ein gestohlener Cookie, ein Rechner, an dem
+   jemand anderes sitzt. aendereZugang() wendet dasselbe Prinzip seit 0.5.0 an;
+   es fehlte nur bei den schweren Wegen.
+
+   WARUM EINE FREIGABE UND NICHT DAS PASSWORT IM RUMPF DER HANDLUNG. Die
+   schoenere Form waere die zweite; sie geht an zwei der sieben Wege nicht auf:
+     * GET /api/export ist eine BROWSERNAVIGATION -- ein Rumpf ist dort
+       baulich unmoeglich, und in die Adresse gehoert ein Passwort nie.
+     * POST /api/import traegt seinen Waechter ausdruecklich VOR multer, damit
+       die bis zu 900 MB grosse Datei eines Fremden gar nicht erst eingelesen
+       wird. Ein Passwort im Multipart-Rumpf waere erst DANACH lesbar.
+   Die Freigabe kann beides, weil sie VOR der Handlung steht und nicht in ihr.
+
+   SIE BRAUCHT KEIN SCHEMA UND IST DESHALB KEIN SECHSTER MIGRATIONSBLOCK. Sie
+   liegt im Arbeitsspeicher, neben attempts und mit derselben Begruendung: ein
+   Neustart als Ruecksetzung ist hinnehmbar -- er kostet ein zweites Tippen.
+
+   GEBUNDEN AN DEN SITZUNGSTOKEN, nicht an den Benutzer. Eine zweite offene
+   Sitzung desselben Menschen muss selbst bestaetigen; genau darum geht es.
+   GEBUNDEN AN ZWECK UND ZIEL: eine Freigabe fuer den Export entfernt keinen
+   Zugang, und eine fuer Zugang 7 nicht Zugang 8.
+   EINMAL GUELTIG: wer drei Zugaenge nacheinander entfernt, tippt dreimal. */
+const FREIGABE_MS = 120 * 1000;
+const BESTAETIGUNG_ZWECKE = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link'];
+/* DER SCHLUESSEL IST DIE GANZE BINDUNG: Sitzungstoken, Zweck und Ziel. Ein
+   einziger Platz je Sitzung waere eine stille Falle -- eine Anfrage, die zwei
+   Zwecke braucht (Rolle UND Passwort in einem Rumpf), verloere mit dem ersten
+   Verbrauch den zweiten und schiene an der Schranke zu scheitern, obwohl beide
+   bestaetigt waren. */
+const freigaben = new Map(); // "token|zweck|ziel" -> Ablauf in ms
+
+const freigabeZiel = (z) => {
+  const n = Number(z);
+  return Number.isInteger(n) && n > 0 ? n : null;
+};
+const freigabeSchluessel = (token, zweck, ziel) =>
+  `${String(token)}|${zweck}|${freigabeZiel(ziel) ?? ''}`;
+
+function erzeugeFreigabe(token, zweck, ziel) {
+  if (!token) throw new Error('Eine Freigabe braucht die Sitzung.');
+  if (!BESTAETIGUNG_ZWECKE.includes(zweck)) throw new Error('Diesen Zweck gibt es nicht.');
+  freigaben.set(freigabeSchluessel(token, zweck, ziel), Date.now() + FREIGABE_MS);
+  return { zweck, sekunden: FREIGABE_MS / 1000 };
+}
+
+/* Prueft UND verbraucht in einem. Zwei Funktionen -- eine, die nachsieht, und
+   eine, die verbraucht -- waeren zwei Stellen, und die Route, die die zweite
+   vergisst, saehe von aussen genauso aus wie die richtige.
+   VERBRAUCHT WIRD AUCH DIE ABGELAUFENE: sonst bliebe sie liegen und ein
+   zweiter Versuch sagte dasselbe. */
+function verbraucheFreigabe(token, zweck, ziel) {
+  if (!token) return false;
+  const k = freigabeSchluessel(token, zweck, ziel);
+  const bis = freigaben.get(k);
+  if (bis === undefined) return false;
+  freigaben.delete(k);
+  return Date.now() <= bis;
+}
+
+// Mit der Sitzung fallen ihre Freigaben. Ohne das ueberlebten sie eine
+// Abmeldung im Arbeitsspeicher und stuenden einer neuen Sitzung mit demselben
+// Token -- den es zwar nicht zweimal gibt, aber eine Zusicherung, die von
+// dieser Annahme lebt, ist keine.
+function verwirfFreigabe(token) {
+  if (!token) return;
+  const vorn = `${String(token)}|`;
+  for (const k of freigaben.keys()) if (k.startsWith(vorn)) freigaben.delete(k);
 }
 
 // Liefert den Benutzer hinter dem Cookie oder null. Der JOIN ist die Aussage:
@@ -757,13 +1038,19 @@ function requireAuth(req, res, next) {
 }
 
 module.exports = {
-  COOKIE_NAME, HINTER_PROXY, PASSWORT_MIN, SESSION_DAYS, parseCookies, pruefeAnmeldung, legeSitzungAn, destroySession,
+  COOKIE_NAME, HINTER_PROXY, PASSWORT_MIN, SESSION_DAYS,
+  OEFFENTLICHE_ADRESSE, pruefeOeffentlicheAdresse, parseCookies, pruefeAnmeldung, legeSitzungAn, destroySession,
   sitzungsBenutzer, pruneSessions, sessionCookie, clearCookie, requireAuth,
   clientIp, checkThrottle, noteFailure, noteSuccess,
   // Meine Sitzungen und die Token; Rufer ist server.js.
   sitzungsKennung, sitzungenVon, beendeSitzung, beendeAndereSitzungen,
   TOKEN_TAGE, TOKEN_SPUR_TAGE, TOKEN_ZWECKE, tokenHash,
   raeumeTokensAuf, erzeugeToken, pruefeToken, loeseTokenEin,
+  // Das Sicherheitsprotokoll; Rufer sind server.js und zugang.js.
+  VORGAENGE, MERKMALE, PROTOKOLL_TAGE, PROTOKOLL_GRENZE, VOM_WIRT,
+  protokolliere, raeumeProtokollAuf, leseProtokoll,
+  // Die zweite Bestaetigung.
+  BESTAETIGUNG_ZWECKE, FREIGABE_MS, erzeugeFreigabe, verbraucheFreigabe, verwirfFreigabe,
   holeBenutzer, holeBenutzerNachNamen, benutzerVorhanden, legeErstenBenutzerAn, aendereZugang,
   hashePasswort, pruefePasswort,
   // Zugangsverwaltung; Rufer sind server.js und zugang.js.

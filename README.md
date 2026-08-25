@@ -136,6 +136,10 @@ Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern." Der Grund ist
 nicht Geheimniskrämerei, sondern dass in allen vier Fällen dasselbe zu tun
 ist.
 
+**Die zweite Bestätigung greift seit 0.8.90 auch hinter der Anmeldung** — vor
+jedem Weg, der die Anlage als Ganzes trifft. Was das ist und warum, steht
+unter „Rollen und Zugänge".
+
 Wird Kriterion über einen Reverse Proxy nach außen gegeben, dann **nur über
 HTTPS** — sonst wandert das Passwort im Klartext durchs Netz. Und dann gehört
 `HINTER_PROXY=1` in die `.env`.
@@ -258,6 +262,39 @@ Version.
 Kommt **niemand mehr** herein, hilft weiterhin der Weg über den Server:
 `docker compose exec kriterion node zugang.js passwort <name>`.
 
+#### Wohin der Link zeigt — `OEFFENTLICHE_ADRESSE`
+
+Den vollständigen Link baut **der Browser des Admins** aus der Adresse, an der
+er ohnehin steht. Das ist sicher, braucht keine Einstellung und bleibt die
+Vorgabe: „läuft im eigenen Netz" soll ohne Konfiguration auskommen.
+
+**Es hat genau eine Bruchstelle:** die Adresse, unter der *du* zugreifst, ist
+nicht immer die, die der *Empfänger* benutzen soll. Wer über
+`http://192.168.1.50:3100` arbeitet und einen Link nach draußen gibt, gibt
+einen Link ins Leere.
+
+Dagegen steht seit 0.8.90 eine **optionale** Zeile in der `.env`:
+
+```bash
+OEFFENTLICHE_ADRESSE=https://kriterion.beispiel.de
+```
+
+Ist sie gesetzt, gibt der Server den fertigen Link heraus; ist sie leer, baut
+ihn der Browser. **Der Kasten, aus dem du den Link kopierst, sagt in einer
+Zeile darunter, woher die Adresse kam** — damit du den falschen Fall dort
+erkennst und nicht erst am toten Link beim Empfänger.
+
+Schema und Rechnername sind Pflicht, ein Pfad ist erlaubt, alles ab `?` und `#`
+wird abgewiesen. **Ein unbrauchbarer Wert bricht den Start nicht ab**: er wird
+im Protokoll gemeldet, und der Browserweg trägt weiter.
+
+**Warum in der `.env` und nicht im Systembereich**, obwohl es dort bequemer
+wäre: dieselbe Linie wie `HINTER_PROXY` — die Einstellung entscheidet über
+Netzwerkvertrauen, nicht über eine Vorliebe. Ein Admin kommt nicht an einen
+anderen Admin; dürfte er die öffentliche Adresse setzen, zeigte später jede
+verschickte Mail auf seinen Server. Der Systembereich **zeigt** sie, er setzt
+sie nicht.
+
 #### Meine Sitzungen
 
 Die Karte **„Meine Sitzungen"** im Systembereich steht **jedem**, auch ohne
@@ -280,6 +317,59 @@ fremde Kommentare, Bewertungen und Testtage daran mit — der Dialog nennt die
 Zahlen) und *seine Beiträge in fremden Einträgen löschen*. Sitzungen, offene
 Links, Favoriten und persönliche Einstellungen gehen immer mit. Der Name
 `geloescht-<nummer>` ist als Benutzername gesperrt.
+
+#### Die zweite Bestätigung — seit 0.8.90
+
+**Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt.** Vor dem
+Export, dem Import, dem Vergeben einer Rolle, dem Setzen eines fremden
+Passworts, dem Erzeugen eines Links und dem Entfernen eines Zugangs fragt
+Kriterion nach **deinem eigenen Passwort** — in einem Fenster, das daneben
+schreibt, warum es fragt.
+
+**Wogegen das schützt, ist nicht der Fremde:** der kommt ohne Passwort gar
+nicht herein. Es schützt gegen eine **fremde offene Anmeldung** — einen
+Bildschirm, der unbeaufsichtigt stehen blieb, einen Rechner, an dem jemand
+anderes sitzt. Beim Ändern des eigenen Zugangs gilt dasselbe Prinzip seit
+0.5.0; bei den schweren Wegen hat es gefehlt.
+
+Die Bestätigung gilt **genau einmal** und **nur für die eine Handlung, für die
+du sie gegeben hast**. Wer drei Zugänge nacheinander entfernt, tippt dreimal.
+Das ist der Preis, und er ist gewollt. Sie ist außerdem an **die Anmeldung**
+gebunden, an der du gerade sitzt: eine zweite offene Anmeldung desselben
+Zugangs muss selbst bestätigen.
+
+**Was ausdrücklich nicht dahinter liegt:** einen Zugang **sperren oder
+freigeben** (das ist umkehrbar), einen Zugang **anlegen** (er ist neu und nimmt
+niemandem etwas), der eigene Zugang (dort ist das bisherige Passwort ohnehin
+Pflicht) und alles am Eintrag. **Ein zweiter Faktor ist es nicht** — gefragt
+wird dasselbe Passwort noch einmal.
+
+Auch hier gilt die Anmeldebremse: nach zehn falschen Bestätigungen von
+derselben Adresse ist für einige Minuten Ruhe.
+
+#### Das Sicherheitsprotokoll — seit 0.8.90
+
+Der Systembereich zeigt dem **Eigentümer** eine Karte
+**„Sicherheitsprotokoll"**. Sie hält fest, **wer Zugang hatte und wer die
+Anlage als Ganzes angefasst hat**: Anmeldungen (gelungen und gescheitert),
+angelegte, gesperrte, freigegebene und entfernte Zugänge, vergebene Rollen,
+gesetzte Passwörter, erzeugte und eingelöste Links, Export, Import und
+Sicherung.
+
+**Was dort nicht steht, ist der eigentliche Punkt.** Es ist **kein
+Änderungsverlauf**: kein Eintragstitel, kein Kommentartext, keine Bewertung,
+keine Note. Dieselbe Trennlinie wie überall — was die *Anlage* betrifft, nicht
+was jemand *gesagt* hat. Ebenso wenig stehen dort **IP-Adresse oder
+Browserkennung**: Kriterion speichert beides nicht, und dabei bleibt es.
+
+Ein entfernter Zugang erscheint auch hier als „Gelöschter Benutzer 7" — der
+Name wird nirgends aufbewahrt. Und ein Vorgang über den Server
+(`node zugang.js …`) trägt keinen Handelnden; die Zeile sagt das ausdrücklich.
+
+**Die Zeilen bleiben 180 Tage stehen** und werden danach von selbst geräumt.
+**Einen anderen Weg hinaus gibt es nicht** — ein Sicherheitsprotokoll, das sich
+wegräumen lässt, wäre keins. Das Wort meint hier nicht `docker compose logs`;
+das heißt in dieser Anleitung weiterhin schlicht *Protokoll*.
 
 ### Wer was darf
 
@@ -583,7 +673,8 @@ sieben Karten: seinen eigenen **Zugang**, **Meine Sitzungen**, die
 **Darstellung**, die **Links** und die drei Listen **Kategorien**, **Tags** und
 **Bewertungskriterien** — die letzten drei ohne Bedienzeichen, nur zum
 Nachsehen. Alles Übrige steht dem
-**Admin**, Export, Import und Sicherung allein dem **Eigentümer**. Der Grund:
+**Admin**, Export, Import, Sicherung und **Sicherheitsprotokoll** allein dem
+**Eigentümer**. Der Grund:
 ein Knopf, der zuverlässig eine Fehlermeldung erzeugt, sieht aus wie ein
 Fehler. **Der Papierkorb ist der Zwischenfall:** die Karte steht dem Admin,
 die beiden Knöpfe daran nur dem Eigentümer — dieselbe Bauform wie bei den drei
@@ -598,6 +689,10 @@ Listen.
   siehe den Abschnitt „Rollen und Zugänge" oben *(Admin)*
 - **Meine Sitzungen** — wo dieser Zugang überall angemeldet ist, mit „alle
   anderen beenden" *(jeder; jeder sieht nur seine eigenen)*
+- **Sicherheitsprotokoll** *(Eigentümer, seit 0.8.90)*: wer Zugang hatte und
+  wer die Anlage als Ganzes angefasst hat — 180 Tage lang, ohne einen Weg
+  hinaus außer der Frist. Kein Änderungsverlauf, keine Adresse, keine
+  Browserkennung.
 - **Export** mit oder ohne Fotos, nur für den Eigentümer der Anlage. Die
   Datei nennt zu jedem Eintrag, jeder Bewertung, jedem Kommentar, jedem
   Testtag, **jeder Linkzeile und jeder Datei** den **Verfassernamen**.
@@ -1104,6 +1199,13 @@ Start eine leere Neuinstallation vermuten.
   der SHA-256 des Links, nie er selbst**; dazu Benutzer, Anlass, Ablauf und
   wann er eingelöst wurde. Sieben Tage haltbar, einmal gültig; abgelaufene
   Zeilen räumt die Anlage nach dreißig Tagen selbst weg
+- `sicherheitsprotokoll` — **wer Zugang hatte und wer die Anlage als Ganzes
+  angefasst hat** (seit 0.8.90). Eine Zeile je Vorgang: Zeitpunkt, was, wer, an
+  wem und ein kurzes Merkmal aus einer festen Liste — **kein Freitext, keine
+  Namen, keine Adresse**. Beide Benutzerspalten halten einen **Vorgang** fest,
+  keine Zugehörigkeit; ein leeres `wer` heißt „über `zugang.js` auf dem Wirt",
+  außer bei einer gescheiterten Anmeldung. 180 Tage haltbar, und die Frist ist
+  der einzige Weg hinaus
 - `papierkorb` / `papierkorb_bytes` — der **Papierkorb** (seit 0.8.70). Eine
   Zeile je gelöschtem Eintrag: Zeitpunkt, Löschender, Titel und das ganze Paket
   im Austauschformat; die Bytes (Fotos, Videos, Dateien, Kommentarbilder)
@@ -1115,7 +1217,8 @@ Start eine leere Neuinstallation vermuten.
   `ratings.user_id` / `links.user_id` / `attachments.user_id` — der Verfasser,
   an sechs Trägern. `papierkorb.geloescht_von` sieht aus wie ein siebter, ist
   aber keiner: es hält fest, **wer gelöscht hat**, so wie ein Zeitstempel
-  festhält, wann — daran hängt kein Recht.
+  festhält, wann — daran hängt kein Recht. Dasselbe gilt seit 0.8.90 für
+  `sicherheitsprotokoll.wer` und `.ziel`.
   `ON DELETE SET NULL` ist das Auffangnetz für ein `DELETE` von Hand: die
   Anwendung selbst entfernt keine Benutzerzeile, und herrenloser Bestand fällt
   beim Start an den Eigentümer
@@ -1149,6 +1252,14 @@ Passwort, Anmeldung, und **derselbe Link ein zweites Mal nicht** —, die
 Nachschau, dass der Link selbst in **keiner Spalte keiner Tabelle** steht, die
 sieben Tage an beiden Seiten, die Anmeldebremse vor der Anmeldung und „Meine
 Sitzungen" mit zwei Benutzern zu je zwei Sitzungen.
+**Seit 0.8.90 dazu jeder der sieben schweren Wege einzeln** — ohne Bestätigung
+abgewiesen, mit falschem Passwort abgewiesen, mit richtigem durch, und nach
+jeder Verweigerung die Nachschau in der Datenbank, dass nichts geschrieben
+wurde —, das Sicherheitsprotokoll mit einer Zeile je Vorgang und der Nachschau,
+dass **kein Geheimnis in irgendeiner Spalte irgendeiner Zeile** steht, die
+Frist an beiden Seiten, das Aufräumen an **beiden** Aufrufstellen (die für den
+Start gegen einen echten Serverstart) und die öffentliche Adresse in beiden
+Zuständen.
 
 Die Datei `pruefung.js` ist per `.dockerignore` ausgeschlossen und landet nicht
 im Image.

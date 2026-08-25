@@ -156,6 +156,24 @@ function kurzlauf(code, datenVerzeichnis) {
   }).trim().split('\n').pop();
 }
 
+/* Setzt einem von Hand angelegten Zugang ein ECHTES Passwort. Gebraucht wird
+   das seit 0.8.90 in jeder Prueflage, deren Zugaenge eine zweite Bestaetigung
+   holen muessen: ein Zugang mit password_hash = 'x' kommt daran nicht vorbei,
+   und das ist richtig so.
+   GEHASHT WIRD MIT auth.hashePasswort UND NICHT MIT EINER ZWEITEN AUSFERTIGUNG
+   DES FORMATS -- eine zweite Wahrheit ueber den Hash waere genau die Sorte
+   Fehler, die der Prueflauf finden soll.
+   NICHT ueber setzeNeuesPasswort(): das raeumt die Sitzungen dieses Zugangs
+   mit weg, und die Prueflagen setzen ihre Sitzungen von Hand. */
+function setzePasswortImBestand(datenVerzeichnis, name, passwort) {
+  return kurzlauf(
+    `const a = require('./auth'); const { db } = require('./db');` +
+    `a.hashePasswort(${JSON.stringify(passwort)}).then(h => {` +
+    `db.prepare('UPDATE users SET password_hash = ? WHERE username = ?')` +
+    `.run(h, ${JSON.stringify(name)}); console.log('gesetzt'); });`,
+    datenVerzeichnis);
+}
+
 // Ein weiterer Server mit eigenem Datenverzeichnis, eigener Umgebung und
 // eigenem Cookie. Gebraucht fuer alle Prueflagen, die eine eigene Anlage
 // brauchen: frische Einrichtung, Rechte mit mehreren Zugaengen, Sperren.
@@ -205,6 +223,65 @@ async function ruf(methode, pfad, koerper) {
   return { status: a.status, inhalt };
 }
 const namen = (liste) => liste.map(c => c.name);
+
+/* ================= Die zweite Bestaetigung im Prueflauf =================
+   SEIT 0.8.90 VERLANGEN SIEBEN WEGE EINE FREIGABE: Export, Import, Rolle
+   vergeben, fremdes Passwort setzen, Zugang entfernen, Link erzeugen.
+
+   Die Pruefungen, die etwas ANDERES pruefen -- das Vokabular in der
+   Exportdatei, die Rollenleiter, den Grabstein --, sollen weiterhin ihren
+   Gegenstand pruefen und nicht an der neuen Schranke haengenbleiben. Dafuer
+   steht dieser Umschlag: er sieht am Weg, ob eine Freigabe noetig ist, holt sie
+   mit dem bekannten Passwort und ruft dann erst.
+
+   ER IST SICHTBAR UND BENANNT UND STEHT NICHT IN ruf(). Das ist der Punkt: die
+   Schranke selbst wird in eigenen Gruppen geprueft, und dort wird ausdruecklich
+   mit dem ROHEN Rufer gearbeitet. Wer diesen Umschlag entfernt, sieht die
+   Schranke sofort -- ein Umschlag, der sie unsichtbar macht, waere Stolperstein
+   52 in Reinform.
+
+   WELCHER ZWECK ZU WELCHEM WEG GEHOERT, steht hier genau einmal. Passt keiner,
+   ruft er unveraendert durch. */
+function bestaetigungNoetig(methode, pfad, koerper) {
+  const ohneAbfrage = String(pfad).split('?')[0];
+  if (methode === 'GET' && ohneAbfrage === '/api/export') return [['export', null]];
+  if (methode === 'POST' && ohneAbfrage === '/api/import') return [['import', null]];
+  const nutzer = ohneAbfrage.match(/^\/api\/users\/(\d+)$/);
+  if (nutzer) {
+    const id = Number(nutzer[1]);
+    if (methode === 'DELETE') return [['entfernen', id]];
+    if (methode === 'PUT') {
+      const raus = [];
+      if (koerper && koerper.rolle !== undefined) raus.push(['rolle', id]);
+      if (koerper && koerper.passwort !== undefined) raus.push(['passwort', id]);
+      return raus;
+    }
+  }
+  const link = ohneAbfrage.match(/^\/api\/users\/(\d+)\/token$/);
+  if (link && methode === 'POST') return [['link', Number(link[1])]];
+  return [];
+}
+
+/* Macht aus einem rohen Rufer einen, der die Freigabe vorher holt. Das
+   Passwort gehoert dazu -- ohne es gibt es keine Freigabe, und genau das ist
+   die Aussage der Runde. */
+function mitFreigabe(roh, passwort) {
+  return async (methode, pfad, koerper) => {
+    for (const [zweck, ziel] of bestaetigungNoetig(methode, pfad, koerper)) {
+      await roh('POST', '/api/bestaetigung', { passwort, zweck, ziel });
+    }
+    return roh(methode, pfad, koerper);
+  };
+}
+
+// Der Rufer des Hauptservers mit Freigabe. Der rohe heisst weiterhin ruf() und
+// wird ueberall dort gebraucht, wo die Schranke selbst der Gegenstand ist.
+const rufF = (...w) => mitFreigabe(ruf, PASSWORT)(...w);
+// Und dieselbe Freigabe fuer einen rohen fetch daneben: der Export laeuft an
+// zwei Stellen ueber fetch statt ueber ruf(), weil dort die KOPFZEILEN der
+// Antwort gebraucht werden.
+const freigabeHaupt = (zweck, ziel = null) =>
+  ruf('POST', '/api/bestaetigung', { passwort: PASSWORT, zweck, ziel });
 
 /* ================= Ablauf ================= */
 (async function lauf() {
@@ -328,6 +405,7 @@ const namen = (liste) => liste.map(c => c.name);
   // Weg, den es gar nicht gibt.
   const titelZuvor = (await ruf('GET', '/api/titles')).inhalt;
   await ruf('PUT', '/api/titles', { publicTitle: titelZuvor.publicTitle, appTitle: '...' });
+  await freigabeHaupt('export');
   const expAntwort = await fetch(`${BASIS}/api/export?photos=0`, { headers: { cookie: cookie } });
   const dispoKopf = expAntwort.headers.get('content-disposition') || '';
   await expAntwort.arrayBuffer();
@@ -806,7 +884,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* ---------------------------------------------------------------- */
   gruppe('Export und Import');
 
-  const aus = await ruf('GET', '/api/export?photos=0');
+  const aus = await rufF('GET', '/api/export?photos=0');
   pruefe('Export nennt die Kriterienreihenfolge',
     gleich(aus.inhalt.criteria, namen(nachher)), JSON.stringify(aus.inhalt.criteria));
   pruefe('Bestehende Felder unveraendert',
@@ -899,7 +977,7 @@ const namen = (liste) => liste.map(c => c.name);
   await ruf('PUT', `/api/criteria/${gewRund[0].id}`, { name: gewRund[0].name, gewicht: 0.6 });
   const gewVorRund = (await ruf('GET', '/api/criteria')).inhalt
     .map(c => `${c.name}:${c.gewicht}`);
-  const gewAus = (await ruf('GET', '/api/export?photos=0')).inhalt;
+  const gewAus = (await rufF('GET', '/api/export?photos=0')).inhalt;
   await sendeImport(gewAus, 'replace');
   pruefe('Ein Rundlauf in dieselbe Anlage laesst die Gewichte stehen',
     gleich((await ruf('GET', '/api/criteria')).inhalt.map(c => `${c.name}:${c.gewicht}`), gewVorRund),
@@ -1024,7 +1102,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Datumsmeldung kommt ohne Vokabelwort aus',
     zukunft.status === 400 && !/Testtag|Sitzung/.test(zukunft.inhalt.error), zukunft.inhalt.error);
 
-  const ausVok = await ruf('GET', '/api/export?photos=0');
+  const ausVok = await rufF('GET', '/api/export?photos=0');
   pruefe('Vokabular faerbt nicht auf den Export ab',
     !JSON.stringify(ausVok.inhalt).includes('Maschine') && 'testDays' in ausVok.inhalt.items[0]);
   await ruf('DELETE', `/api/items/${objekt.id}`);
@@ -1087,7 +1165,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Tag lässt sich vom Testtag lösen',
     weg.status === 200 && !weg.inhalt.testDays[0].tags.some(t => t.name === 'Nurhier'));
 
-  const ausT = await ruf('GET', '/api/export?photos=0');
+  const ausT = await rufF('GET', '/api/export?photos=0');
   const ausTag = ausT.inhalt.items.find(i => i.title === 'Tagprobe');
   // Am Datum festmachen, nicht am Listenplatz: die Reihenfolge im Export
   // haengt an den Daten, nicht an der Reihenfolge des Eintragens.
@@ -1205,7 +1283,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   // Export und Import fuehren durch dieselbe Regel. Eine alte Exportdatei
   // traegt ueberall ein Schema und darf sich deshalb nicht veraendern.
-  const lkAus = (await ruf('GET', '/api/export?photos=0')).inhalt
+  const lkAus = (await rufF('GET', '/api/export?photos=0')).inhalt
     .items.find(i => i.title === 'Linkprobe');
   /* UMGESTELLT MIT 0.8.30, nicht geloescht: ein Link ist im Export seit
      Formatnummer 7 ein Objekt aus Adresse und Verfasser. Was in der ADRESSE
@@ -1608,7 +1686,7 @@ const namen = (liste) => liste.map(c => c.name);
     pListe.filter(i => i.favorite).length === 1,
     `${pListe.filter(i => i.favorite).length} von ${pListe.length} als Favorit`);
 
-  const pExport = (await ruf('GET', '/api/export?photos=0')).inhalt;
+  const pExport = (await rufF('GET', '/api/export?photos=0')).inhalt;
   pruefe('Der Export nennt den eigenen Favoriten',
     pExport.items.find(i => i.title === 'Favoritenprobe')?.favorite === true,
     JSON.stringify(pExport.items.map(i => `${i.title}:${i.favorite}`)));
@@ -2176,6 +2254,10 @@ const namen = (liste) => liste.map(c => c.name);
   }
 
   const stufeEDir = legeDreiBenutzerAn();
+  // Der Exportierende dieser Lage braucht ein echtes Passwort: seit 0.8.90
+  // verlangt der Export eine zweite Bestaetigung.
+  const eWort = 'eins-langes-wort';
+  setzePasswortImBestand(stufeEDir, 'eins', eWort);
   const SE1 = starteWeiterenServer(stufeEDir, {}, 5560);
   await SE1.bereit;
   // Drei echte Cookies nebeneinander, am gemeinsamen Cookiespeicher vorbei.
@@ -2528,7 +2610,8 @@ const namen = (liste) => liste.map(c => c.name);
   /* --- Export und Import der Gewichte --- */
   await gSetz('Optik', 1); await gSetz('Haptik', 1.5);
   await gSetz('Preis', 1); await gSetz('Kundendienst', 1);
-  const gAus = (await eRuf('cookie-e-eins', 'GET', '/api/export?photos=0')).inhalt;
+  const eEinsF = mitFreigabe((m, p, k) => eRuf('cookie-e-eins', m, p, k), eWort);
+  const gAus = (await eEinsF('GET', '/api/export?photos=0')).inhalt;
   pruefe('Die Formatnummer steht auf 10', gAus?.version === 10, JSON.stringify(gAus?.version));
   pruefe('criteria bleibt eine Liste von Namen',
     Array.isArray(gAus?.criteria) && gAus.criteria.every(n => typeof n === 'string'),
@@ -2541,7 +2624,7 @@ const namen = (liste) => liste.map(c => c.name);
     gleich(Object.keys(gAus?.criteriaGewichte || {}), ['Haptik']),
     JSON.stringify(gAus?.criteriaGewichte));
   await gSetz('Haptik', 1);
-  const gAusGleich = (await eRuf('cookie-e-eins', 'GET', '/api/export?photos=0')).inhalt;
+  const gAusGleich = (await eEinsF('GET', '/api/export?photos=0')).inhalt;
   pruefe('Ein ungewichteter Bestand ergibt ein leeres Feld',
     gAusGleich?.criteriaGewichte && Object.keys(gAusGleich.criteriaGewichte).length === 0,
     JSON.stringify(gAusGleich?.criteriaGewichte));
@@ -2617,6 +2700,8 @@ const namen = (liste) => liste.map(c => c.name);
   }
 
   const e2Dir = legeVerfasserBestandAn();
+  const e2Wort = 'annas-langes-wort';
+  setzePasswortImBestand(e2Dir, 'anna', e2Wort);
   const SE2 = starteWeiterenServer(e2Dir, {}, 5620);
   await SE2.bereit;
 
@@ -2634,6 +2719,10 @@ const namen = (liste) => liste.map(c => c.name);
   // Eigene Ausfertigung von sendeImport: die vorhandene haengt fest am
   // Hauptserver und an dessen Cookie, hier braucht es drei nebeneinander.
   const e2Import = async (cookieWert, objekt, modus) => {
+    // Die Freigabe zuerst -- genau wie die Oberflaeche es tut. Sie steht VOR
+    // der Handlung, weil multer sonst die ganze Datei einlaese, bevor die
+    // Frage ueberhaupt gestellt waere.
+    await e2Ruf(cookieWert, 'POST', '/api/bestaetigung', { passwort: e2Wort, zweck: 'import', ziel: null });
     const grenze = '----pruefunge2' + crypto.randomBytes(6).toString('hex');
     const teil = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
@@ -2649,6 +2738,7 @@ const namen = (liste) => liste.map(c => c.name);
   };
   // Nachsehen, wem eine Zeile wirklich gehoert -- ueber den Namen, nicht ueber
   // die Id: nach einem ersetzenden Import sind die Ids der Eintraege neu.
+  const e2AnnaF = mitFreigabe((m, p, k) => e2Ruf('cookie-e2-anna', m, p, k), e2Wort);
   const e2Datenbank = () => oeffne(path.join(e2Dir, 'katalog.sqlite'));
   const e2Namen = (sql, ...werte) => {
     const d = e2Datenbank();
@@ -2676,7 +2766,7 @@ const namen = (liste) => liste.map(c => c.name);
   }
 
   /* --- Der Export nennt die Verfasser --- */
-  const e2Aus = (await e2Ruf('cookie-e2-anna', 'GET', '/api/export?photos=0')).inhalt;
+  const e2Aus = (await e2AnnaF('GET', '/api/export?photos=0')).inhalt;
   const e2Eintrag = e2Aus?.items?.find(i => i.title === 'Rundlauf');
   const e2Zweiter = e2Aus?.items?.find(i => i.title === 'Von Bert');
 
@@ -2718,7 +2808,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
      nennt wieder ausdruecklich null. */
-  const e2MitDateien = (await e2Ruf('cookie-e2-anna', 'GET', '/api/export?photos=0&files=1')).inhalt;
+  const e2MitDateien = (await e2AnnaF('GET', '/api/export?photos=0&files=1')).inhalt;
   const e2DateiEintrag = e2MitDateien?.items?.find(i => i.title === 'Rundlauf');
   pruefe('Ein Export mit Dateien traegt sie ueberhaupt',
     (e2DateiEintrag?.attachments || []).length === 3,
@@ -3073,8 +3163,8 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Die Prueflage traegt wirklich ein Video', e2VidHoch.status === 201,
     `${e2VidHoch.status}: ${JSON.stringify(e2VidHoch.inhalt?.error)}`);
 
-  const e2OhneVid = (await e2Ruf('cookie-e2-anna', 'GET', '/api/export?photos=1')).inhalt;
-  const e2MitVid = (await e2Ruf('cookie-e2-anna', 'GET', '/api/export?photos=1&videos=1')).inhalt;
+  const e2OhneVid = (await e2AnnaF('GET', '/api/export?photos=1')).inhalt;
+  const e2MitVid = (await e2AnnaF('GET', '/api/export?photos=1&videos=1')).inhalt;
   const vidZeile = (datei) => (datei?.items?.find(i => i.title === e2VidItem?.title)?.photos || [])
     .find(p2 => p2.art === 'video');
   pruefe('Ohne den Schalter steht die Videozeile als Marke in der Datei',
@@ -3350,6 +3440,8 @@ const namen = (liste) => liste.map(c => c.name);
     d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (2, ?)').run(itId);
     d.close();
   }
+  const pkWort = 'annas-langes-wort';
+  setzePasswortImBestand(pkDir, 'anna', pkWort);
   const PK = starteWeiterenServer(pkDir, {}, 4200);
   await PK.bereit;
 
@@ -3365,6 +3457,7 @@ const namen = (liste) => liste.map(c => c.name);
     return { status: a.status, inhalt };
   };
   const pkImport = async (cookieWert, objekt, modus) => {
+    await pkRuf(cookieWert, 'POST', '/api/bestaetigung', { passwort: pkWort, zweck: 'import', ziel: null });
     const grenze = '----pruefungpk' + crypto.randomBytes(6).toString('hex');
     const teil = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
@@ -3378,6 +3471,7 @@ const namen = (liste) => liste.map(c => c.name);
     });
     return { status: a.status, inhalt: await a.json().catch(() => null) };
   };
+  const pkAnnaF = mitFreigabe((m, p, k) => pkRuf('cookie-pk-anna', m, p, k), pkWort);
   const pkDatenbank = () => oeffne(path.join(pkDir, 'katalog.sqlite'));
   const pkZeilen = (sql, ...werte) => {
     const d = pkDatenbank();
@@ -3833,7 +3927,7 @@ const namen = (liste) => liste.map(c => c.name);
      den IMPORT wieder hereinkommt: dieselbe Form heisst, dass sie sich
      einspielen laesst. */
   {
-    const voll = await pkRuf('cookie-pk-anna', 'GET', '/api/export?photos=1&files=1&videos=1');
+    const voll = await pkAnnaF('GET', '/api/export?photos=1&files=1&videos=1');
     pruefe('Der volle Export geht durch', voll.status === 200, `Status ${voll.status}`);
     const zielId = pkEine("SELECT id FROM items WHERE title = 'Vollständig'").id;
     const einzeln = await pkRuf('cookie-pk-anna', `GET`, `/api/items/${zielId}/export`);
@@ -4403,6 +4497,8 @@ const namen = (liste) => liste.map(c => c.name);
   }
 
   const { dir: fDir, markeId: fMarkeId, optikId: fOptikId } = legeRechteBestandAn();
+  const fWort = 'annas-langes-wort';
+  setzePasswortImBestand(fDir, 'anna', fWort);
   const F = starteWeiterenServer(fDir, { ENCRYPTION_KEY: '' }, 5680);
   await F.bereit;
 
@@ -4959,14 +5055,21 @@ const namen = (liste) => liste.map(c => c.name);
     `Status ${fExportCarla.status}`);
   pruefe('Die Absage nennt den Eigentuemer',
     /Eigentümer/.test(fExportCarla.inhalt?.error || ''), fExportCarla.inhalt?.error);
-  const fExportAnna = await fRuf('cookie-f-anna', 'GET', '/api/export?photos=0');
+  const fAnnaF = mitFreigabe((m, p, k) => fRuf('cookie-f-anna', m, p, k), fWort);
+  const fExportAnna = await fAnnaF('GET', '/api/export?photos=0');
   pruefe('Die Eigentuemerin exportiert',
     fExportAnna.status === 200 && Array.isArray(fExportAnna.inhalt?.items),
     `Status ${fExportAnna.status}`);
 
   /* Der Import: eine Exportdatei kann unter FREMDEM NAMEN
      schreiben. Beide Modi liegen dahinter, nicht nur "ersetzen". */
+  /* Die Freigabe wird NUR fuer die Eigentuemerin geholt: die beiden Absagen
+     darunter kommen aus der Rollenleiter, und die steht VOR der
+     Bestaetigungsfrage -- wer ohnehin nicht darf, wird gar nicht erst nach
+     seinem Passwort gefragt. Genau das ist hier mitgeprueft. */
   const fImport = async (cookieWert, objekt, modus) => {
+    if (cookieWert === 'cookie-f-anna')
+      await fRuf(cookieWert, 'POST', '/api/bestaetigung', { passwort: fWort, zweck: 'import', ziel: null });
     const grenze = '----pruefungf' + crypto.randomBytes(6).toString('hex');
     const teil = (name, wert, dateiname) =>
       `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
@@ -5986,8 +6089,13 @@ const namen = (liste) => liste.map(c => c.name);
     const ein = (name, rolle, status, hash) =>
       d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, ?, ?)')
         .run(name, hash, rolle, status);
-    ein('anna', 'eigentuemer', 'aktiv', 'x');
-    ein('bert', 'admin', 'aktiv', 'x');
+    /* anna und bert tragen seit 0.8.90 ein ECHTES Passwort: das Erzeugen
+       eines Links und das Entfernen eines Zugangs verlangen eine zweite
+       Bestaetigung, und ein Hash 'x' kommt daran nicht vorbei. carla behaelt
+       ihren -- an ihren Wegen ist die Rollenleiter der Gegenstand, und die
+       steht VOR der Bestaetigungsfrage. */
+    ein('anna', 'eigentuemer', 'aktiv', tkHash);
+    ein('bert', 'admin', 'aktiv', tkHash);
     ein('carla', 'user', 'aktiv', 'x');
     ein('dora', 'user', 'aktiv', tkHash);
     ein('erna', 'user', 'aktiv', '');
@@ -6017,6 +6125,10 @@ const namen = (liste) => liste.map(c => c.name);
     try { roh = await a.text(); inhalt = JSON.parse(roh); } catch {}
     return { status: a.status, inhalt, roh, cookie: (a.headers.get('set-cookie') || '') };
   };
+  /* Der Rufer mit Freigabe -- einer je Cookie. Wo die Rollenleiter absagt,
+     kommt die Bestaetigungsfrage gar nicht erst dran; die Freigabe bleibt dann
+     ungenutzt liegen und laeuft ab. */
+  const tkF = (cookieWert) => mitFreigabe((m, p, k) => tkRuf(cookieWert, m, p, k), TK_PASSWORT);
   const tkZeilen = (sql, ...w) => {
     const d = oeffne(path.join(tkDir, 'katalog.sqlite'));
     const r = d.prepare(sql).all(...w);
@@ -6103,7 +6215,7 @@ const namen = (liste) => liste.map(c => c.name);
      ansieht, bliebe gruen, wenn der Klartext irgendwo daneben landete.
      ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): ohne einen
      Token in der Tabelle waere jede Verneinung darauf wahr. */
-  const tkGeheim = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/4/token',
+  const tkGeheim = (await tkF('cookie-tk-anna')('POST', '/api/users/4/token',
     { zweck: 'ruecksetzung' })).inhalt?.token || '';
   pruefe('Es liegt ueberhaupt ein Schluessel vor',
     /^[0-9a-f]{64}$/.test(tkGeheim), JSON.stringify(tkGeheim));
@@ -6261,10 +6373,10 @@ const namen = (liste) => liste.map(c => c.name);
      Adresse vertippt hat, unterscheidet das nicht von "abgelaufen".
      GEPRUEFT WIRD AM VOLLEN RUMPF UND AM STATUS, nicht am Wortlaut allein:
      ein unterschiedlicher Statuscode waere dieselbe Auskunft in anderer Form. */
-  const tkAblaufLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/3/token',
+  const tkAblaufLink = (await tkF('cookie-tk-anna')('POST', '/api/users/3/token',
     { zweck: 'ruecksetzung' })).inhalt?.token || '';
   tkSetzeAblauf(3, '-1 seconds');
-  const tkBenutztLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
+  const tkBenutztLink = (await tkF('cookie-tk-anna')('POST', '/api/users/5/token',
     { zweck: 'einladung' })).inhalt?.token || '';
   await tkRuf(null, 'POST', '/api/token/einloesen',
     { token: tkBenutztLink, passwort: 'ernas-passwort-1' });
@@ -6320,7 +6432,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* UND DIE GEGENPROBE ZUR PRUEFUNG SELBST: sie darf nicht deshalb gruen
      sein, weil alle Antworten leer sind (Stolperstein 81). Der ERFOLGSFALL
      daneben sieht anders aus -- und nennt den Namen. */
-  const tkGut = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/3/token',
+  const tkGut = (await tkF('cookie-tk-anna')('POST', '/api/users/3/token',
     { zweck: 'ruecksetzung' })).inhalt?.token || '';
   const tkGutAntwort = await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkGut });
   pruefe('Der Erfolgsfall daneben sieht anders aus',
@@ -6370,9 +6482,9 @@ const namen = (liste) => liste.map(c => c.name);
     'die fremde Sitzung traegt schon vorher nicht');
 
   // ZWEI offene Links fuer erna -- der zweite muss mitfallen.
-  const tkErnaEins = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
+  const tkErnaEins = (await tkF('cookie-tk-anna')('POST', '/api/users/5/token',
     { zweck: 'ruecksetzung' })).inhalt?.token || '';
-  const tkErnaZwei = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
+  const tkErnaZwei = (await tkF('cookie-tk-anna')('POST', '/api/users/5/token',
     { zweck: 'ruecksetzung' })).inhalt?.token || '';
   pruefe('Zwei offene Links fuer denselben Zugang liegen vor',
     tkZeilen('SELECT hash FROM tokens WHERE user_id = 5 AND benutzt_am IS NULL').length === 2,
@@ -6420,7 +6532,7 @@ const namen = (liste) => liste.map(c => c.name);
 
   /* Und dieselbe Frage am SPERREN und am ENTFERNEN: ein offener Link, der
      eine frische Sperre ueberlebte, waere ein Weg an ihr vorbei. */
-  const tkSperrLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/5/token',
+  const tkSperrLink = (await tkF('cookie-tk-anna')('POST', '/api/users/5/token',
     { zweck: 'ruecksetzung' })).inhalt?.token || '';
   pruefe('Vor dem Sperren traegt der Link',
     (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkSperrLink })).status === 200,
@@ -6431,12 +6543,12 @@ const namen = (liste) => liste.map(c => c.name);
     JSON.stringify(tkZeilen('SELECT benutzt_am FROM tokens WHERE user_id = 5')));
   await tkRuf('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'aktiv' });
 
-  const tkWegLink = (await tkRuf('cookie-tk-anna', 'POST', '/api/users/3/token',
+  const tkWegLink = (await tkF('cookie-tk-anna')('POST', '/api/users/3/token',
     { zweck: 'ruecksetzung' })).inhalt?.token || '';
   pruefe('Vor dem Entfernen traegt der Link',
     (await tkRuf(null, 'POST', '/api/token/pruefen', { token: tkWegLink })).status === 200,
     'der frische Link traegt schon vorher nicht');
-  await tkRuf('cookie-tk-anna', 'DELETE', '/api/users/3');
+  await tkF('cookie-tk-anna')('DELETE', '/api/users/3');
   pruefe('Entfernen nimmt den offenen Link mit',
     tkZeilen('SELECT hash FROM tokens WHERE user_id = 3 AND benutzt_am IS NULL').length === 0,
     JSON.stringify(tkZeilen('SELECT benutzt_am FROM tokens WHERE user_id = 3')));
@@ -6510,22 +6622,27 @@ const namen = (liste) => liste.map(c => c.name);
 
   // Erst der Erfolgsfall, damit die Verweigerungen daneben etwas bedeuten.
   const tkVorher = tkOffen();
-  const tkAnnaDarf = await tkRuf('cookie-tk-anna', 'POST', '/api/users/4/token', { zweck: 'ruecksetzung' });
+  const tkAnnaDarf = await tkF('cookie-tk-anna')('POST', '/api/users/4/token', { zweck: 'ruecksetzung' });
   pruefe('Die Eigentuemerin darf einen Benutzer einladen',
     tkAnnaDarf.status === 200 && /^[0-9a-f]{64}$/.test(tkAnnaDarf.inhalt?.token || ''),
     `${tkAnnaDarf.status} ${tkAnnaDarf.roh}`);
   pruefe('Und die Zeile ist wirklich geschrieben',
     tkOffen() === tkVorher + 1, `${tkVorher} -> ${tkOffen()}`);
-  const tkBertDarf = await tkRuf('cookie-tk-bert', 'POST', '/api/users/4/token', { zweck: 'ruecksetzung' });
+  const tkBertDarf = await tkF('cookie-tk-bert')('POST', '/api/users/4/token', { zweck: 'ruecksetzung' });
   pruefe('Ein Admin ohne Eigentuemerrolle darf einen Benutzer ebenfalls',
     tkBertDarf.status === 200, `${tkBertDarf.status} ${tkBertDarf.roh}`);
 
   /* Die Verweigerungen. Nach JEDER wird nachgesehen, dass die Zahl der
      offenen Zeilen unveraendert steht -- eine Absage, die die halbe
      Aenderung schon geschrieben hat, waere schlimmer als keine. */
+  /* DIE FREIGABE WIRD MITGEHOLT, und das gehoert begruendet: ohne sie
+     antwortete jeder dieser Wege mit der Bestaetigungsfrage statt mit der
+     Absage, die hier der Gegenstand ist -- die Pruefung waere gruen und
+     belegte etwas anderes (Stolperstein 74). Wo die Rollenleiter absagt,
+     bleibt die Freigabe ungenutzt liegen; sie kann keine Absage aufheben. */
   const tkNichts = async (name, cookieWert, pfad, koerper, erwartet) => {
     const vorher = tkOffen();
-    const a = await tkRuf(cookieWert, 'POST', pfad, koerper);
+    const a = await tkF(cookieWert)('POST', pfad, koerper);
     pruefe(name, a.status === erwartet, `${a.status} statt ${erwartet}: ${a.roh}`);
     pruefe(`Und dabei wurde nichts geschrieben: ${name}`,
       tkOffen() === vorher, `${vorher} -> ${tkOffen()}`);
@@ -6559,7 +6676,7 @@ const namen = (liste) => liste.map(c => c.name);
   /* Die Gegenrichtung zur Rollenleiter: an einen ADMIN kommt der EIGENTUEMER
      sehr wohl. Ohne diese Zeile bliebe "bert darf nicht" auch dann gruen,
      wenn niemand duerfte. */
-  const tkAnnaAnAdmin = await tkRuf('cookie-tk-anna', 'POST', '/api/users/2/token',
+  const tkAnnaAnAdmin = await tkF('cookie-tk-anna')('POST', '/api/users/2/token',
     { zweck: 'ruecksetzung' });
   pruefe('An einen Admin kommt der Eigentuemer der Anlage',
     tkAnnaAnAdmin.status === 200, `${tkAnnaAnAdmin.status} ${tkAnnaAnAdmin.roh}`);
@@ -6619,6 +6736,10 @@ const namen = (liste) => liste.map(c => c.name);
     d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-tb-anna', 1)").run();
     d.close();
   }
+  // Der eine Erfolgsfall dieser Lage laeuft ueber das Erzeugen eines Links --
+  // und das verlangt seit 0.8.90 ein echtes Passwort.
+  const tbWort = 'annas-langes-wort';
+  setzePasswortImBestand(tbDir, 'anna', tbWort);
   const TB = starteWeiterenServer(tbDir, {}, 4740);
   await TB.bereit;
   const tbRuf = async (cookieWert, methode, pfad, koerper) => {
@@ -6635,6 +6756,11 @@ const namen = (liste) => liste.map(c => c.name);
   };
 
   // Ein gueltiger Link, damit der Erfolgsfall daneben steht.
+  /* DIE FREIGABE ZUERST -- und ausdruecklich VOR den zwoelf Fehlversuchen
+     darunter: die Bremse zaehlt je Adresse, und eine Bestaetigung nach dem
+     elften Versuch kaeme selbst nicht mehr durch. */
+  await tbRuf('cookie-tb-anna', 'POST', '/api/bestaetigung',
+    { passwort: tbWort, zweck: 'link', ziel: 2 });
   const tbGut = JSON.parse((await tbRuf('cookie-tb-anna', 'POST', '/api/users/2/token',
     { zweck: 'einladung' })).roh || '{}').token || '';
   pruefe('Ein gueltiger Link liegt vor',
@@ -6864,6 +6990,1093 @@ const namen = (liste) => liste.map(c => c.name);
   await MS.stopp();
   fs.rmSync(msDir, { recursive: true, force: true });
 
+  /* ================================================================
+     0.8.90 — Das Sicherheitsprotokoll und die zweite Bestaetigung
+     ================================================================
+     EINE LAGE FUER BEIDE, und das ist keine Bequemlichkeit: das Protokoll ist
+     die Tabelle, in die die zweite Bestaetigung schreibt, und jede Handlung
+     hinter der Schranke hinterlaesst dort ihre Zeile. Zwei Lagen nebeneinander
+     haetten zwei Bestaende und keine gemeinsame Nachschau.
+
+       anna  = Eigentuemerin (Einrichtung)
+       bert  = gewoehnlicher Benutzer
+       carla = Admin OHNE Eigentuemerrecht -- ohne sie waere "Admin" von
+               "Eigentuemer" nicht zu unterscheiden
+       dora  = gewoehnliche Benutzerin, das ZIEL der schweren Wege          */
+  gruppe('Das Sicherheitsprotokoll: die Tabelle legt sich selbst an');
+
+  /* NACHGESTELLT STATT ABGESCHRIEBEN, ZUM DRITTEN MAL. 0.8.70 und 0.8.80 haben
+     belegt, dass CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem
+     Start anlegt -- Stolperstein 13 gilt der SPALTE. Zwei Belege sind ein
+     guter Grund, es zu erwarten; kein Grund, es an DIESER Tabelle nicht zu
+     pruefen. Traegt die Probe, bleibt es bei fuenf markierten Bloecken und es
+     kommt kein Eintrag unter "Vorgemerkt fuer 1.0" dazu. */
+  {
+    const spDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-prottab-'));
+    kurzlauf(`require('./db'); console.log('da');`, spDir);
+    const spDatei = path.join(spDir, 'katalog.sqlite');
+    const spTabellen = () => {
+      const d = oeffne(spDatei);
+      const n = d.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(z => z.name);
+      d.close();
+      return n;
+    };
+    const spFrisch = spTabellen();
+    pruefe('Eine frische Anlage traegt sicherheitsprotokoll ohne Migration',
+      spFrisch.includes('sicherheitsprotokoll'), JSON.stringify(spFrisch));
+
+    {
+      const d = oeffne(spDatei);
+      d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
+      d.prepare("INSERT INTO sicherheitsprotokoll (was, wer, ziel) VALUES ('export', 1, NULL)").run();
+      d.exec('DROP TABLE sicherheitsprotokoll');
+      d.close();
+    }
+    const spOhne = spTabellen();
+    pruefe('Von Hand entfernt ist sie wirklich weg',
+      !spOhne.includes('sicherheitsprotokoll'), JSON.stringify(spOhne));
+
+    kurzlauf(`require('./db'); console.log('da');`, spDir);
+    const spWieder = spTabellen();
+    pruefe('Ein einziger Start legt sie wieder an',
+      spWieder.includes('sicherheitsprotokoll'), JSON.stringify(spWieder));
+    {
+      const d = oeffne(spDatei);
+      const spalten = d.prepare('PRAGMA table_info(sicherheitsprotokoll)').all().map(c => c.name);
+      pruefe('Sie traegt alle sechs Spalten',
+        gleich(spalten, ['id', 'am', 'was', 'wer', 'ziel', 'merkmal']), JSON.stringify(spalten));
+      const idx = d.prepare("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='sicherheitsprotokoll'")
+        .all().map(z => z.name);
+      pruefe('Und den Index auf am, ebenfalls ohne Migration',
+        idx.includes('idx_protokoll_am'), JSON.stringify(idx));
+      /* UND DIE ANDERE HAELFTE DERSELBEN ENTSCHEIDUNG: sessions bekommt KEINE
+         Spalte. Eine "zuletzt bestaetigt am"-Spalte waere der SECHSTE
+         Migrationsblock gewesen -- die Freigabe liegt stattdessen im
+         Arbeitsspeicher. Gezaehlt wird gegen eine feste Liste, nicht gegen
+         "enthaelt nicht bestaetigt": so faellt auch jede andere neue Spalte auf. */
+      const sSpalten = d.prepare('PRAGMA table_info(sessions)').all().map(c => c.name);
+      pruefe('sessions traegt unveraendert genau seine vier Spalten',
+        gleich(sSpalten, ['token', 'user_id', 'created_at', 'last_seen']), JSON.stringify(sSpalten));
+      const uSpalten = d.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+      pruefe('users traegt unveraendert genau seine acht Spalten',
+        gleich(uSpalten, ['id', 'username', 'password_hash', 'role', 'email',
+                          'status', 'last_login', 'created_at']), JSON.stringify(uSpalten));
+      d.close();
+    }
+    /* DIE GEGENLAGE, wie in den beiden Runden zuvor: eine SPALTE kommt nicht
+       von selbst zurueck. Ohne sie belegte die Probe nur, dass irgendetwas
+       nachwaechst. Genommen wird users.email -- sie traegt keinen
+       Migrationsblock. */
+    {
+      const d = oeffne(spDatei);
+      d.pragma('foreign_keys = OFF');
+      d.exec('ALTER TABLE users DROP COLUMN email');
+      const ohneSpalte = d.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+      d.close();
+      pruefe('Die Spalte ist von Hand entfernt',
+        !ohneSpalte.includes('email'), JSON.stringify(ohneSpalte));
+    }
+    let spNachStart = [];
+    try {
+      kurzlauf(`require('./db'); console.log('da');`, spDir);
+      const d = oeffne(spDatei);
+      spNachStart = d.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+      d.close();
+    } catch { spNachStart = ['(Start gescheitert)']; }
+    pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
+      !spNachStart.includes('email'), JSON.stringify(spNachStart));
+
+    fs.rmSync(spDir, { recursive: true, force: true });
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Das Sicherheitsprotokoll: eine Zeile je Vorgang');
+
+  const prDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-protokoll-'));
+  const PR = starteWeiterenServer(prDir, {}, 4380);
+  await PR.bereit;
+
+  const prRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: {} };
+    if (cookieWert) opt.headers.cookie = `kriterion_session=${cookieWert}`;
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(PR.basis + pfad, opt);
+    let roh = '', inhalt = null;
+    try { roh = await a.text(); inhalt = JSON.parse(roh); } catch {}
+    return { status: a.status, inhalt, roh };
+  };
+  const prAnmelden = async (name, passwort) => {
+    const a = await fetch(PR.basis + '/api/login', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user: name, password: passwort })
+    });
+    const setz = a.headers.get('set-cookie') || '';
+    return setz ? setz.split(';')[0].split('=')[1] : null;
+  };
+  const prZeilen = (sql, ...w) => {
+    const d = oeffne(path.join(prDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    const r = d.prepare(sql).all(...w);
+    d.close();
+    return r;
+  };
+  const prSchreibe = (sql, ...w) => {
+    const d = oeffne(path.join(prDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    d.prepare(sql).run(...w);
+    d.close();
+  };
+  // Alles seit der letzten Marke. Ohne diese Form zaehlte jede Pruefung die
+  // Zeilen aller vorherigen mit, und "genau eine" waere nie wahr.
+  const prMarke = () => prZeilen('SELECT COALESCE(MAX(id), 0) m FROM sicherheitsprotokoll')[0].m;
+  const prSeit = (m) => prZeilen(
+    'SELECT id, am, was, wer, ziel, merkmal FROM sicherheitsprotokoll WHERE id > ? ORDER BY id', m);
+
+  const PR_ANNA = 'annas-langes-wort', PR_BERT = 'berts-langes-wort';
+  const PR_CARLA = 'carlas-langes-wort', PR_DORA = 'doras-langes-wort';
+
+  /* Die Einrichtung ist der erste Vorgang der Anlage -- und sie schreibt ZWEI
+     Zeilen: der Zugang entsteht, und die Anmeldung gelingt gleich mit. */
+  await PR.ruf('POST', '/api/setup', { user: 'anna', password: PR_ANNA });
+  const prErste = prZeilen('SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll ORDER BY id');
+  pruefe('Die Einrichtung schreibt genau zwei Zeilen',
+    prErste.length === 2, JSON.stringify(prErste));
+  pruefe('Die erste sagt, dass der Zugang entstand -- als Eigentuemer',
+    prErste[0]?.was === 'zugang.neu' && prErste[0]?.wer === 1 &&
+    prErste[0]?.ziel === 1 && prErste[0]?.merkmal === 'eigentuemer',
+    JSON.stringify(prErste[0]));
+  pruefe('Die zweite, dass die Anmeldung gelang',
+    prErste[1]?.was === 'anmeldung.ok' && prErste[1]?.wer === 1,
+    JSON.stringify(prErste[1]));
+
+  const prAnna = await prAnmelden('anna', PR_ANNA);
+  const prAnnaF = mitFreigabe((m, p, k) => prRuf(prAnna, m, p, k), PR_ANNA);
+
+  // Die uebrigen Zugaenge entstehen ueber die Verwaltung -- die ist ja gerade
+  // einer der Vorgaenge, die festgehalten werden.
+  let m = prMarke();
+  const prBertAn = await prRuf(prAnna, 'POST', '/api/users', { username: 'bert', passwort: PR_BERT });
+  const prBertId = prBertAn.inhalt?.id;
+  pruefe('Ein angelegter Zugang schreibt genau eine Zeile, mit der Rolle',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel, z.merkmal]),
+           [['zugang.neu', 1, prBertId, 'user']]), JSON.stringify(prSeit(m)));
+  await prRuf(prAnna, 'POST', '/api/users', { username: 'carla', passwort: PR_CARLA, rolle: 'admin' });
+  await prRuf(prAnna, 'POST', '/api/users', { username: 'dora', passwort: PR_DORA });
+  const prCarlaId = prZeilen("SELECT id FROM users WHERE username='carla'")[0].id;
+  const prDoraId = prZeilen("SELECT id FROM users WHERE username='dora'")[0].id;
+
+  /* DIE GESCHEITERTE ANMELDUNG -- die einzige Zeile, die ein Fremder ausloesen
+     kann. Zwei Lagen, und sie unterscheiden sich in ziel: ein Name, den es
+     gibt, und einer, den es nicht gibt. Der GETIPPTE Name steht in keiner von
+     beiden. */
+  m = prMarke();
+  await PR.ruf('POST', '/api/login', { user: 'anna', password: 'ganz-falsch-hier' });
+  pruefe('Eine gescheiterte Anmeldung an einem bekannten Namen nennt ihn als Ziel',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel]), [['anmeldung.fehl', null, 1]]),
+    JSON.stringify(prSeit(m)));
+  m = prMarke();
+  await PR.ruf('POST', '/api/login', { user: 'gibtesnicht', password: 'ganz-falsch-hier' });
+  pruefe('An einem unbekannten Namen bleibt das Ziel leer',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel]), [['anmeldung.fehl', null, null]]),
+    JSON.stringify(prSeit(m)));
+  pruefe('Und der getippte Name steht in KEINER Spalte KEINER Zeile',
+    !JSON.stringify(prZeilen('SELECT * FROM sicherheitsprotokoll')).includes('gibtesnicht'),
+    'der getippte Name ist in der Tabelle gelandet');
+
+  /* DIE VIER SCHWEREN WEGE AN EINEM FREMDEN ZUGANG, jeder einzeln und jeder
+     mit seiner Zeile. Gepruefte Reihenfolge: Rolle, Status, Passwort, Link. */
+  m = prMarke();
+  await prAnnaF('PUT', `/api/users/${prDoraId}`, { rolle: 'admin' });
+  pruefe('Eine vergebene Rolle schreibt eine Zeile mit der neuen Rolle',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel, z.merkmal]),
+           [['zugang.rolle', 1, prDoraId, 'admin']]), JSON.stringify(prSeit(m)));
+  await prAnnaF('PUT', `/api/users/${prDoraId}`, { rolle: 'user' });
+
+  m = prMarke();
+  await prRuf(prAnna, 'PUT', `/api/users/${prDoraId}`, { status: 'gesperrt' });
+  pruefe('Ein gesperrter Zugang schreibt eine Zeile mit dem Status',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel, z.merkmal]),
+           [['zugang.status', 1, prDoraId, 'gesperrt']]), JSON.stringify(prSeit(m)));
+  m = prMarke();
+  await prRuf(prAnna, 'PUT', `/api/users/${prDoraId}`, { status: 'aktiv' });
+  pruefe('Und das Freigeben ebenso, mit dem anderen Wert',
+    gleich(prSeit(m).map(z => [z.was, z.merkmal]), [['zugang.status', 'aktiv']]),
+    JSON.stringify(prSeit(m)));
+
+  m = prMarke();
+  await prAnnaF('PUT', `/api/users/${prDoraId}`, { passwort: 'doras-neues-wort' });
+  pruefe('Ein fremdes Passwort schreibt eine Zeile ohne Merkmal',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel, z.merkmal]),
+           [['zugang.passwort', 1, prDoraId, null]]), JSON.stringify(prSeit(m)));
+
+  m = prMarke();
+  const prLink = await prAnnaF('POST', `/api/users/${prDoraId}/token`, { zweck: 'ruecksetzung' });
+  pruefe('Ein erzeugter Link schreibt eine Zeile mit dem Anlass',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel, z.merkmal]),
+           [['link.neu', 1, prDoraId, 'ruecksetzung']]), JSON.stringify(prSeit(m)));
+
+  /* DAS EINLOESEN. Der Einloesende handelt an sich selbst -- und weil dabei
+     eine Sitzung entsteht, steht die Anmeldung daneben. ZWEI Zeilen, und beide
+     gehoeren dazu. */
+  m = prMarke();
+  await PR.ruf('POST', '/api/token/einloesen',
+    { token: prLink.inhalt?.token, passwort: 'doras-linkwort-neu' });
+  pruefe('Das Einloesen schreibt den Vorgang UND die Anmeldung',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel, z.merkmal]),
+           [['link.ein', prDoraId, prDoraId, 'ruecksetzung'],
+            ['anmeldung.ok', prDoraId, prDoraId, null]]), JSON.stringify(prSeit(m)));
+
+  /* DER EIGENE ZUGANG. Drei Lagen, drei Merkmale -- und die vierte, die KEINE
+     Zeile schreibt: ein Aufruf, der nichts bewegt, ist kein Vorgang. */
+  const prBert = await prAnmelden('bert', PR_BERT);
+  m = prMarke();
+  await prRuf(prBert, 'PUT', '/api/account', { oldPassword: PR_BERT, username: 'bert2' });
+  pruefe('Ein umbenannter eigener Zugang traegt das Merkmal Name',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel, z.merkmal]),
+           [['zugang.selbst', prBertId, prBertId, 'name']]), JSON.stringify(prSeit(m)));
+  m = prMarke();
+  await prRuf(prBert, 'PUT', '/api/account', { oldPassword: PR_BERT, newPassword: 'berts-zweites-wort' });
+  pruefe('Ein gewechseltes Passwort das Merkmal Passwort',
+    gleich(prSeit(m).map(z => [z.was, z.merkmal]), [['zugang.selbst', 'passwort']]),
+    JSON.stringify(prSeit(m)));
+  m = prMarke();
+  await prRuf(prBert, 'PUT', '/api/account',
+    { oldPassword: 'berts-zweites-wort', username: 'bert', newPassword: PR_BERT });
+  pruefe('Und beides zusammen das Merkmal beides',
+    gleich(prSeit(m).map(z => [z.was, z.merkmal]), [['zugang.selbst', 'beides']]),
+    JSON.stringify(prSeit(m)));
+  m = prMarke();
+  await prRuf(prBert, 'PUT', '/api/account', { oldPassword: PR_BERT });
+  pruefe('Ein Aufruf, der nichts bewegt, schreibt gar keine Zeile',
+    prSeit(m).length === 0, JSON.stringify(prSeit(m)));
+
+  /* EXPORT UND IMPORT -- die beiden, die die Anlage als GANZES betreffen. */
+  m = prMarke();
+  await prAnnaF('GET', '/api/export?photos=0');
+  pruefe('Ein Export schreibt eine Zeile ohne Ziel',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel]), [['export', 1, null]]),
+    JSON.stringify(prSeit(m)));
+
+  const prImport = async (cookieWert, passwort, objekt, modus) => {
+    if (passwort) await prRuf(cookieWert, 'POST', '/api/bestaetigung',
+      { passwort, zweck: 'import', ziel: null });
+    const grenze = '----pruefungpr' + crypto.randomBytes(6).toString('hex');
+    const teil = (name, wert, dateiname) =>
+      `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
+      (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
+      `\r\n\r\n${wert}\r\n`;
+    const koerper = teil('mode', modus) + teil('file', JSON.stringify(objekt), 'export.json') + `--${grenze}--\r\n`;
+    const a = await fetch(PR.basis + '/api/import', {
+      method: 'POST',
+      headers: { cookie: `kriterion_session=${cookieWert}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: koerper
+    });
+    return { status: a.status, inhalt: await a.json().catch(() => null) };
+  };
+  m = prMarke();
+  await prImport(prAnna, PR_ANNA, { version: 10, title: 'P', items: [{ title: 'Aus der Datei' }] }, 'merge');
+  pruefe('Ein Import schreibt eine Zeile mit der Betriebsart',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.merkmal]), [['import', 1, 'merge']]),
+    JSON.stringify(prSeit(m)));
+
+  /* DAS ENTFERNEN steht ganz am Ende dieser Reihe: danach ist der Zugang ein
+     Grabstein, und alles Weitere an ihm scheiterte. */
+  m = prMarke();
+  await prAnnaF('DELETE', `/api/users/${prDoraId}`);
+  pruefe('Ein entfernter Zugang schreibt eine Zeile',
+    gleich(prSeit(m).map(z => [z.was, z.wer, z.ziel]), [['zugang.weg', 1, prDoraId]]),
+    JSON.stringify(prSeit(m)));
+  /* UND DIE ZEILE BLEIBT LESBAR: der Grabstein behaelt seine Nummer, ziel
+     zeigt weiterhin auf etwas -- nur der Name faellt weg, wie ueberall. */
+  const prNachWeg = (await prRuf(prAnna, 'GET', '/api/sicherheitsprotokoll')).inhalt?.zeilen || [];
+  const prWegZeile = prNachWeg.find(z => z.was === 'zugang.weg');
+  pruefe('Sie steht danach in der Antwort',
+    !!prWegZeile, JSON.stringify(prNachWeg.slice(0, 2)));
+  pruefe('Und nennt das Ziel als Nummer, ohne seinen Namen',
+    prWegZeile?.ziel === prDoraId && prWegZeile?.zielName === null,
+    JSON.stringify(prWegZeile));
+
+  /* EIN GESCHEITERTER VORGANG SCHREIBT NICHTS -- mit den beiden benannten
+     Ausnahmen, bei denen das Scheitern selbst der Vorgang ist. Gepruefte
+     Lagen: ein zu kurzes Passwort, eine Rolle, die es nicht gibt, und ein
+     Zugang, den es nicht gibt. */
+  m = prMarke();
+  await prAnnaF('PUT', `/api/users/${prCarlaId}`, { passwort: 'kurz' });
+  await prAnnaF('PUT', `/api/users/${prCarlaId}`, { rolle: 'kaiserin' });
+  await prAnnaF('PUT', '/api/users/9999', { rolle: 'admin' });
+  pruefe('Drei gescheiterte Vorgaenge schreiben zusammen keine einzige Zeile',
+    prSeit(m).length === 0, JSON.stringify(prSeit(m)));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Das Sicherheitsprotokoll: kein Geheimnis in einer Zeile');
+
+  /* GEPRUEFT AM VOLLSTAENDIGEN ZEILENINHALT UEBER ALLE SPALTEN ALLER ZEILEN,
+     nicht an einem Feld: eine Pruefung, die nur merkmal ansieht, bliebe gruen,
+     wenn ein Geheimnis in was oder in einer neuen Spalte landete. */
+  const prAlles = () => JSON.stringify(prZeilen('SELECT * FROM sicherheitsprotokoll'));
+  /* EIN FRISCHER LINK FUER DIESE GRUPPE. Der aus der Gruppe darueber gehoerte
+     einem Zugang, der inzwischen entfernt ist -- und mit ihm sind seine Token
+     gefallen. Die Gegenprobe unten braucht aber eine Zeile, die es wirklich
+     gibt: eine Nachschau, die nirgends etwas findet, belegt nichts
+     (Stolperstein 81). */
+  const prFrisch = await prAnnaF('POST', `/api/users/${prCarlaId}/token`, { zweck: 'ruecksetzung' });
+  const prFrischHash = crypto.createHash('sha256').update(String(prFrisch.inhalt?.token)).digest('hex');
+  pruefe('Es liegen ueberhaupt Zeilen vor',
+    prZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n > 15,
+    `${prZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n} Zeilen`);
+  pruefe('Der Klartext eines Links steht in KEINER Spalte KEINER Zeile',
+    !prAlles().includes(prFrisch.inhalt?.token || 'kein-token') &&
+    !prAlles().includes(prLink.inhalt?.token || 'kein-token'),
+    'der Schluessel eines Links steht im Protokoll');
+  pruefe('Und auch nicht sein HASH',
+    !prAlles().includes(prFrischHash), 'der Hash des Links steht im Protokoll');
+  /* DIE GEGENPROBE ZUR NACHSCHAU SELBST: sie darf nicht deshalb gruen sein,
+     weil sie gar nichts sieht (Stolperstein 81). Der Hash steht sehr wohl da
+     -- naemlich in tokens, wo er hingehoert. */
+  pruefe('Die Nachschau sieht ueberhaupt etwas: in tokens steht der Hash',
+    JSON.stringify(prZeilen('SELECT * FROM tokens')).includes(prFrischHash),
+    'die Nachschau findet den Hash auch dort nicht');
+  for (const [name, wort] of [['der Eigentuemerin', PR_ANNA], ['eines Benutzers', PR_BERT],
+                              ['das ueber einen Link gesetzte', 'doras-linkwort-neu']]) {
+    pruefe(`Kein Passwort steht darin: ${name}`, !prAlles().includes(wort),
+      'ein Passwort steht im Protokoll');
+  }
+  pruefe('Und kein scrypt-Hash steht darin',
+    !prAlles().includes('scrypt$'), 'ein Hash steht im Protokoll');
+  /* DER SCHLUESSEL DER DATENBANK gehoert erst recht nicht hinein. Er wechselt
+     in dieser Runde noch nicht -- die Zeile dafuer kommt mit dem
+     Schluesselwechsel --, aber die Nachschau steht schon jetzt da: sie ist
+     das, was beim naechsten Vorgang zuerst rot wuerde. */
+  pruefe('Und der Schluessel der Datenbank ebenso wenig',
+    !prAlles().includes(KEY), 'der Schluessel steht im Protokoll');
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Das Sicherheitsprotokoll: die Frist an beiden Seiten');
+
+  /* DER AUSGANGSWERT WIRD VON HAND GESETZT (Stolperstein 60): datetime('now')
+     loest nur Sekunden auf, und eine Frist von 180 Tagen laesst sich an einer
+     frisch geschriebenen Zeile gar nicht pruefen.
+     EIN MODIFIKATOR JE AUFRUF (Stolperstein 119): datetime('now', '-181 days')
+     ist gueltig, datetime('now', '-181 days +1 seconds') waere NULL. Und zu
+     jedem gesetzten Wert gehoert die Nachschau, dass wirklich einer dasteht --
+     ohne sie loeschte die Frist eine Zeile mit am = NULL und die Pruefung
+     waere gruen aus dem falschen Grund. */
+  const prSetzeAlter = (id, modifikator) => {
+    prSchreibe("UPDATE sicherheitsprotokoll SET am = datetime('now', ?) WHERE id = ?", modifikator, id);
+    return prZeilen('SELECT am FROM sicherheitsprotokoll WHERE id = ?', id)[0]?.am;
+  };
+  const prAnzahl = () => prZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n;
+  const prDa = (id) => prZeilen('SELECT id FROM sicherheitsprotokoll WHERE id = ?', id).length === 1;
+
+  prSchreibe("INSERT INTO sicherheitsprotokoll (was, wer, ziel) VALUES ('export', 1, NULL)");
+  const prJung = prZeilen('SELECT MAX(id) m FROM sicherheitsprotokoll')[0].m;
+  prSchreibe("INSERT INTO sicherheitsprotokoll (was, wer, ziel) VALUES ('export', 1, NULL)");
+  const prAlt = prZeilen('SELECT MAX(id) m FROM sicherheitsprotokoll')[0].m;
+
+  const prJungWert = prSetzeAlter(prJung, '-179 days');
+  pruefe('Der von Hand gesetzte Ausgangswert steht wirklich da',
+    /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(prJungWert || ''), JSON.stringify(prJungWert));
+  const prAltWert = prSetzeAlter(prAlt, '-181 days');
+  pruefe('Und der aeltere ebenso',
+    /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(prAltWert || ''), JSON.stringify(prAltWert));
+
+  const prVorRaeumen = prAnzahl();
+  await prRuf(prAnna, 'GET', '/api/sicherheitsprotokoll');
+  pruefe('Eine Zeile von 179 Tagen bleibt stehen', prDa(prJung), 'die jaengere Zeile ist weg');
+  pruefe('Eine von 181 Tagen faellt', !prDa(prAlt), 'die aeltere Zeile steht noch');
+  pruefe('Und sonst faellt nichts', prAnzahl() === prVorRaeumen - 1,
+    `${prVorRaeumen} -> ${prAnzahl()}`);
+  pruefe('Die Antwort nennt die Frist',
+    (await prRuf(prAnna, 'GET', '/api/sicherheitsprotokoll')).inhalt?.tage === 180,
+    JSON.stringify((await prRuf(prAnna, 'GET', '/api/sicherheitsprotokoll')).inhalt?.tage));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Das Sicherheitsprotokoll: das Aufraeumen an beiden Aufrufstellen');
+
+  /* BEIDE AUFRUFSTELLEN EINZELN, und die fuer den Start laeuft gegen einen
+     ECHTEN SERVERSTART -- nicht gegen einen kurzen Lauf, der die Funktion
+     selbst ruft. Genau daran ist die Vorrunde einmal stumm geblieben
+     (Stolperstein 126): eine Pruefung, die die gerufene Funktion selbst
+     aufruft, prueft keine ihrer Aufrufstellen. */
+  {
+    const raDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-protraeum-'));
+    kurzlauf(`require('./db'); console.log('da');`, raDir);
+    const raZeilen = (sql, ...w) => {
+      const d = oeffne(path.join(raDir, 'katalog.sqlite'));
+      const r = d.prepare(sql).all(...w);
+      d.close();
+      return r;
+    };
+    {
+      const d = oeffne(path.join(raDir, 'katalog.sqlite'));
+      d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
+      d.prepare("INSERT INTO sicherheitsprotokoll (was, wer, am) VALUES ('export', 1, datetime('now', ?))")
+        .run('-181 days');
+      d.prepare("INSERT INTO sicherheitsprotokoll (was, wer, am) VALUES ('export', 1, datetime('now', ?))")
+        .run('-179 days');
+      d.close();
+    }
+    pruefe('Es liegen zwei Zeilen vor, eine alt und eine jung',
+      raZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n === 2 &&
+      raZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE am IS NULL")[0].n === 0,
+      JSON.stringify(raZeilen('SELECT id, am FROM sicherheitsprotokoll')));
+    const RA = starteWeiterenServer(raDir, {}, 4440);
+    await RA.bereit;
+    pruefe('Ein ECHTER Serverstart raeumt die alte Zeile weg',
+      raZeilen('SELECT COUNT(*) n FROM sicherheitsprotokoll')[0].n === 1,
+      JSON.stringify(raZeilen('SELECT id, am FROM sicherheitsprotokoll')));
+    pruefe('Und die junge bleibt stehen',
+      raZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE am > datetime('now', '-180 days')")[0].n === 1,
+      JSON.stringify(raZeilen('SELECT id, am FROM sicherheitsprotokoll')));
+    pruefe('Der Start sagt es auch im Protokoll des Containers',
+      /Sicherheitsprotokoll: 1 Zeile\(n\) aelter als 180 Tage entfernt/.test(RA.protokoll()),
+      RA.protokoll().split('\n').filter(z => /Sicherheits/.test(z)).join(' | ') || '(keine Zeile)');
+    await RA.stopp();
+    fs.rmSync(raDir, { recursive: true, force: true });
+  }
+  /* Die zweite Aufrufstelle steht an GET /api/sicherheitsprotokoll und ist in
+     der Gruppe darueber belegt -- dort faellt die 181 Tage alte Zeile an einem
+     laufenden Server, ohne dass er neu startet. */
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Das Sicherheitsprotokoll: wer es sehen darf');
+
+  /* ZWEI VORBEREITETE SITZUNGEN, ZU JEDER VERWEIGERUNG DER ERFOLGSFALL DANEBEN
+     -- UND EIN ADMIN OHNE EIGENTUEMERROLLE. Ohne carla waere "Admin" von
+     "Eigentuemer" gar nicht zu unterscheiden, und jede Pruefung darauf bliebe
+     auch dann gruen, wenn ueberall nurAdmin stuende. */
+  const prCarla = await prAnmelden('carla', PR_CARLA);
+  const prBertNeu = await prAnmelden('bert', PR_BERT);
+  const prSicht = await prRuf(prAnna, 'GET', '/api/sicherheitsprotokoll');
+  pruefe('Die Eigentuemerin sieht das Protokoll',
+    prSicht.status === 200 && Array.isArray(prSicht.inhalt?.zeilen),
+    `${prSicht.status} ${prSicht.roh.slice(0, 120)}`);
+  const prSichtCarla = await prRuf(prCarla, 'GET', '/api/sicherheitsprotokoll');
+  pruefe('Ein Admin OHNE Eigentuemerrecht sieht es nicht',
+    prSichtCarla.status === 403, `Status ${prSichtCarla.status}`);
+  pruefe('Und die Absage nennt den Eigentuemer',
+    /Eigentümer/.test(prSichtCarla.inhalt?.error || ''), prSichtCarla.inhalt?.error);
+  pruefe('Ein gewoehnlicher Benutzer erst recht nicht',
+    (await prRuf(prBertNeu, 'GET', '/api/sicherheitsprotokoll')).status === 403);
+  pruefe('Und ohne Anmeldung gibt es gar nichts',
+    (await prRuf(null, 'GET', '/api/sicherheitsprotokoll')).status === 401);
+  /* UND KEIN WEG HINAUS AUSSER DER FRIST. Ein Protokoll, das der Betroffene
+     selbst wegraeumen kann, ist keins -- geprueft an der Route, nicht an der
+     Absicht. */
+  pruefe('Es gibt keine Route, die das Protokoll leert',
+    (await prRuf(prAnna, 'DELETE', '/api/sicherheitsprotokoll')).status === 404,
+    'eine Loeschroute antwortet');
+  pruefe('Auch nicht auf eine einzelne Zeile',
+    (await prRuf(prAnna, 'DELETE', '/api/sicherheitsprotokoll/1')).status === 404,
+    'eine Loeschroute auf die Zeile antwortet');
+  /* Und die Zahl daneben: die Karte holt hoechstens hundert Zeilen, nennt aber
+     die Gesamtzahl. Ohne die zweite Angabe liest sich "hundert Zeilen" wie
+     "hundert Vorgaenge". */
+  pruefe('Die Antwort nennt Grenze und Gesamtzahl',
+    prSicht.inhalt?.grenze === 100 && prSicht.inhalt?.gesamt >= prSicht.inhalt?.zeilen.length,
+    JSON.stringify({ grenze: prSicht.inhalt?.grenze, gesamt: prSicht.inhalt?.gesamt }));
+  pruefe('Die juengste Zeile steht oben',
+    prSicht.inhalt?.zeilen[0]?.id > prSicht.inhalt?.zeilen[1]?.id,
+    JSON.stringify(prSicht.inhalt?.zeilen.slice(0, 2).map(z => z.id)));
+
+  /* DIE LAGE WIRD BEENDET, und das ist keine Ordnungsliebe: ein Server, der
+     den Lauf ueberlebt, besetzt seinen Port weiter, und der naechste Lauf
+     bekommt auf demselben Port einen FREMDEN Server samt fremder Datenbank
+     (Stolperstein 122). Aufgefallen an einer Gegenprobe, die deshalb abriss
+     statt rot zu werden. */
+  await PR.stopp();
+  fs.rmSync(prDir, { recursive: true, force: true });
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die zweite Bestaetigung: die Freigabe selbst');
+
+  /* WOGEGEN DAS VERTEIDIGT, gehoert vor die Pruefungen: nicht gegen einen
+     Fremden -- der kommt ohne Passwort gar nicht herein --, sondern gegen eine
+     FREMDE OFFENE SITZUNG. Daraus folgt jede Bindung darunter: an den
+     Sitzungstoken (nicht an den Menschen), an den Zweck und an das Ziel, und
+     einmal gueltig. */
+  const zbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-zweitbest-'));
+  const ZB = starteWeiterenServer(zbDir, {}, 4520);
+  await ZB.bereit;
+
+  const zbRuf = async (cookieWert, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: {} };
+    if (cookieWert) opt.headers.cookie = `kriterion_session=${cookieWert}`;
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(ZB.basis + pfad, opt);
+    let roh = '', inhalt = null;
+    try { roh = await a.text(); inhalt = JSON.parse(roh); } catch {}
+    return { status: a.status, inhalt, roh };
+  };
+  const zbAnmelden = async (name, passwort) => {
+    const a = await fetch(ZB.basis + '/api/login', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user: name, password: passwort })
+    });
+    const setz = a.headers.get('set-cookie') || '';
+    return setz ? setz.split(';')[0].split('=')[1] : null;
+  };
+  const zbZeilen = (sql, ...w) => {
+    const d = oeffne(path.join(zbDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    const r = d.prepare(sql).all(...w);
+    d.close();
+    return r;
+  };
+
+  const ZB_ANNA = 'annas-langes-wort', ZB_CARLA = 'carlas-langes-wort';
+  await ZB.ruf('POST', '/api/setup', { user: 'anna', password: ZB_ANNA });
+  let zbAnna = await zbAnmelden('anna', ZB_ANNA);
+  await zbRuf(zbAnna, 'POST', '/api/users', { username: 'carla', passwort: ZB_CARLA, rolle: 'admin' });
+  for (const n of ['emil', 'frida', 'gustav'])
+    await zbRuf(zbAnna, 'POST', '/api/users', { username: n, passwort: `${n}s-langes-wort` });
+  const zbId = (n) => zbZeilen('SELECT id FROM users WHERE username = ?', n)[0]?.id;
+  const zbEmil = zbId('emil'), zbFrida = zbId('frida'), zbGustav = zbId('gustav');
+  await zbRuf(zbAnna, 'POST', '/api/items', { title: 'Ein Eintrag' });
+
+  const zbFrei = (cookieWert, passwort, zweck, ziel = null) =>
+    zbRuf(cookieWert, 'POST', '/api/bestaetigung', { passwort, zweck, ziel });
+
+  pruefe('Ohne Anmeldung gibt es keine Freigabe',
+    (await zbFrei(null, ZB_ANNA, 'export')).status === 401);
+  const zbFalsch = await zbFrei(zbAnna, 'ganz-falsch-hier', 'export');
+  pruefe('Ein falsches Passwort wird abgewiesen', zbFalsch.status === 403, `Status ${zbFalsch.status}`);
+  /* DIE ABSAGE IST KLAR UND DEUTLICH, und das ist anders als bei den Token aus
+     0.8.80: dort wusste der Server nicht, wer fragt, und die eine verschleierte
+     Absage schuetzte vor dem Durchprobieren. Hier ist der Fragende angemeldet
+     und namentlich bekannt -- eine verschleierte Absage schuetzte niemanden. */
+  pruefe('Und sie sagt geradeheraus, woran es lag',
+    zbFalsch.inhalt?.error === 'Das Passwort stimmt nicht.', zbFalsch.inhalt?.error);
+  /* 403 UND NICHT 401: der Zugang gilt weiter, nur diese eine Handlung nicht.
+     Ein 401 wuerfe die Oberflaeche auf die Anmeldeseite -- api() behandelt ihn
+     so, und dann verschwaende der Bildschirm mitten in einer Handlung. */
+  pruefe('Und zwar mit 403, nicht mit 401', zbFalsch.status !== 401, `Status ${zbFalsch.status}`);
+  const zbFehlZeilen = zbZeilen("SELECT was, wer, ziel FROM sicherheitsprotokoll WHERE was = 'bestaetigung.fehl'");
+  pruefe('Eine gescheiterte Bestaetigung steht im Sicherheitsprotokoll',
+    zbFehlZeilen.length === 1 && zbFehlZeilen[0].wer === 1, JSON.stringify(zbFehlZeilen));
+  pruefe('Ein leeres Passwort ist keine Bestaetigung, sondern ein falsches',
+    (await zbFrei(zbAnna, '', 'export')).status === 403);
+  pruefe('Einen Zweck, den es nicht gibt, weist der Server ab',
+    (await zbFrei(zbAnna, ZB_ANNA, 'weltherrschaft')).status === 400);
+  const zbGut = await zbFrei(zbAnna, ZB_ANNA, 'export');
+  pruefe('Mit dem richtigen Passwort gibt es eine Freigabe',
+    zbGut.status === 200 && zbGut.inhalt?.ok === true, `${zbGut.status} ${zbGut.roh}`);
+  pruefe('Und die Antwort nennt Zweck und Frist',
+    zbGut.inhalt?.zweck === 'export' && zbGut.inhalt?.sekunden === 120,
+    JSON.stringify(zbGut.inhalt));
+
+  /* GEBUNDEN AN DEN ZWECK: eine Freigabe fuer den Export entfernt keinen
+     Zugang. Ohne diese Bindung waere eine einzige Bestaetigung ein Freibrief
+     fuer alle sieben Wege. */
+  const zbVorRolle = zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role;
+  const zbFremderZweck = await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' });
+  pruefe('Eine Freigabe fuer den Export vergibt keine Rolle',
+    zbFremderZweck.status === 403, `Status ${zbFremderZweck.status}`);
+  pruefe('Und die Rolle steht unveraendert da',
+    zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role === zbVorRolle,
+    zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role);
+  pruefe('Die Absage nennt die Bestaetigung beim Namen',
+    zbFremderZweck.inhalt?.bestaetigung === 'rolle', JSON.stringify(zbFremderZweck.inhalt));
+
+  /* UND DIE ZWECKBINDUNG BEI GLEICHEM ZIEL -- die drei Zeilen darueber taugen
+     dafuer nicht, und das ist ein Befund aus der Gegenprobe: sie halten eine
+     Freigabe fuer den Export (Ziel leer) gegen einen Rollenwechsel (Ziel emil)
+     und waeren auch dann gruen, wenn der Schluessel den ZWECK gar nicht
+     traegt -- die ZIELE unterscheiden sich ja schon. Der Rueckbau des Zwecks
+     aus dem Schluessel liess sie vollstaendig gruen.
+     GEPRUEFT WIRD DESHALB AN ZWEI PAAREN MIT GLEICHEM ZIEL: Export gegen
+     Import (beide ohne Ziel) und fremdes Passwort gegen Rolle (beide an
+     demselben Zugang). Erst damit steht die Bindung an den Zweck fuer sich. */
+  await zbFrei(zbAnna, ZB_ANNA, 'export');
+  const zbExportGegenImport = await zbRuf(zbAnna, 'POST', '/api/bestaetigung',
+    { passwort: 'nur-damit-nichts-liegenbleibt', zweck: 'export', ziel: null });
+  pruefe('Der Aufbau steht: die Export-Freigabe ist noch da',
+    zbExportGegenImport.status === 403, 'der Aufbau taugt nicht');
+  await zbFrei(zbAnna, ZB_ANNA, 'export');
+  {
+    const grenze = '----pruefungzk' + crypto.randomBytes(6).toString('hex');
+    const teil = (name, wert, dateiname) =>
+      `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
+      (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
+      `\r\n\r\n${wert}\r\n`;
+    const paket = { version: 10, title: 'Z', items: [] };
+    const a = await fetch(ZB.basis + '/api/import', {
+      method: 'POST',
+      headers: { cookie: `kriterion_session=${zbAnna}`,
+                 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: teil('mode', 'merge') + teil('file', JSON.stringify(paket), 'export.json') +
+            `--${grenze}--\r\n`
+    });
+    pruefe('Eine Freigabe fuer den Export traegt den Import NICHT -- beide ohne Ziel',
+      a.status === 403, `Status ${a.status}`);
+  }
+  await zbFrei(zbAnna, ZB_ANNA, 'passwort', zbEmil);
+  const zbPasswortGegenRolle = await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' });
+  pruefe('Eine Freigabe fuer das Passwort traegt die Rolle NICHT -- gleiches Ziel',
+    zbPasswortGegenRolle.status === 403, `Status ${zbPasswortGegenRolle.status}`);
+  pruefe('Und die Rolle steht weiterhin unveraendert da',
+    zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role === zbVorRolle,
+    zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role);
+  /* Die Gegenlage daneben: mit dem RICHTIGEN Zweck kommt derselbe Weg durch.
+     Ohne sie bliebe die Pruefung darueber auch dann gruen, wenn ueberhaupt
+     keine Freigabe mehr traegt (Stolperstein 81). */
+  await zbFrei(zbAnna, ZB_ANNA, 'rolle', zbEmil);
+  pruefe('Mit dem richtigen Zweck kommt er durch',
+    (await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' })).status === 200,
+    'der richtige Zweck traegt nicht');
+  await zbFrei(zbAnna, ZB_ANNA, 'rolle', zbEmil);
+  await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'user' });
+
+  /* GEBUNDEN AN DAS ZIEL: eine Freigabe fuer Zugang A entfernt nicht Zugang B.
+     Der Dialog nennt den Menschen; die Freigabe muss ihn deshalb auch nennen. */
+  await zbFrei(zbAnna, ZB_ANNA, 'entfernen', zbEmil);
+  const zbFremdesZiel = await zbRuf(zbAnna, 'DELETE', `/api/users/${zbFrida}`);
+  pruefe('Eine Freigabe fuer einen anderen Zugang traegt nicht',
+    zbFremdesZiel.status === 403, `Status ${zbFremdesZiel.status}`);
+  pruefe('Und der andere Zugang steht unveraendert da',
+    zbZeilen('SELECT status FROM users WHERE id = ?', zbFrida)[0]?.status === 'aktiv',
+    zbZeilen('SELECT status FROM users WHERE id = ?', zbFrida)[0]?.status);
+
+  /* GEBUNDEN AN DIE SITZUNG, nicht an den Menschen -- und das ist der ganze
+     Punkt der Runde: eine zweite offene Sitzung desselben Menschen muss selbst
+     bestaetigen. Genau die ist ja der Angriff, gegen den gebaut wird. */
+  const zbAnnaZwei = await zbAnmelden('anna', ZB_ANNA);
+  await zbFrei(zbAnna, ZB_ANNA, 'link', zbGustav);
+  const zbAndereSitzung = await zbRuf(zbAnnaZwei, 'POST', `/api/users/${zbGustav}/token`,
+    { zweck: 'ruecksetzung' });
+  pruefe('Die Freigabe der einen Sitzung traegt die andere nicht',
+    zbAndereSitzung.status === 403, `Status ${zbAndereSitzung.status}`);
+  pruefe('Und es ist dabei kein Link entstanden',
+    zbZeilen('SELECT COUNT(*) n FROM tokens WHERE user_id = ?', zbGustav)[0].n === 0,
+    JSON.stringify(zbZeilen('SELECT * FROM tokens')));
+  /* Die Gegenrichtung daneben: dieselbe Sitzung kommt sehr wohl durch. Ohne
+     sie bliebe die Pruefung darueber auch dann gruen, wenn gar keine Freigabe
+     mehr traegt. */
+  const zbEigeneSitzung = await zbRuf(zbAnna, 'POST', `/api/users/${zbGustav}/token`,
+    { zweck: 'ruecksetzung' });
+  pruefe('Dieselbe Sitzung kommt damit durch',
+    zbEigeneSitzung.status === 200, `${zbEigeneSitzung.status} ${zbEigeneSitzung.roh.slice(0, 120)}`);
+
+  /* EINMAL GUELTIG: wer drei Zugaenge nacheinander entfernt, tippt dreimal.
+     Der Preis ist benannt, und er wird auch geprueft. */
+  const zbNochmal = await zbRuf(zbAnna, 'POST', `/api/users/${zbGustav}/token`,
+    { zweck: 'ruecksetzung' });
+  pruefe('Und ein zweites Mal nicht -- die Freigabe ist verbraucht',
+    zbNochmal.status === 403, `Status ${zbNochmal.status}`);
+
+  /* MIT DER ABMELDUNG FAELLT SIE -- UND DAS IST VON AUSSEN NICHT ZU SEHEN.
+     Die erste Fassung dieser Pruefung meldete nach dem Abmelden neu an und sah
+     nach, ob der Export noch durchkommt. Sie konnte gar nicht scheitern: die
+     neue Sitzung traegt einen ANDEREN Token, und die Freigabe haengt am alten.
+     Die Gegenprobe blieb dementsprechend stumm -- ein Fund, kein Beleg
+     (Stolperstein 131). Was sie in Wahrheit prueft, ist die Bindung an die
+     Sitzung, und die steht schon zwei Absaetze darueber.
+     GEPRUEFT WIRD DESHALB IM PROZESS, dort wo die Freigabe liegt. Und mit der
+     Gegenlage daneben: erst, dass eine Freigabe ueberhaupt traegt, dann, dass
+     das Abmelden sie wegnimmt (Stolperstein 81). */
+  {
+    const fwDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-freigabe-'));
+    kurzlauf(`require('./db'); console.log('da');`, fwDir);
+    const fwCode =
+      `const a = require('./auth'); const t = 'ein-token-das-es-so-nicht-gibt';` +
+      `a.erzeugeFreigabe(t, 'export', null);` +
+      `const traegt = a.verbraucheFreigabe(t, 'export', null);` +
+      `a.erzeugeFreigabe(t, 'export', null); a.destroySession(t);` +
+      `const nachAbmelden = a.verbraucheFreigabe(t, 'export', null);` +
+      `console.log(JSON.stringify({ traegt, nachAbmelden }));`;
+    const fw = JSON.parse(kurzlauf(fwCode, fwDir));
+    pruefe('Eine frisch erzeugte Freigabe traegt ueberhaupt',
+      fw.traegt === true, JSON.stringify(fw));
+    pruefe('Und das Abmelden nimmt sie weg',
+      fw.nachAbmelden === false, JSON.stringify(fw));
+    fs.rmSync(fwDir, { recursive: true, force: true });
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die zweite Bestaetigung: jeder schwere Weg einzeln');
+
+  /* SIEBEN WEGE HEISST SIEBEN REIHEN. Eine Sammelpruefung sagt nicht, WELCHER
+     Weg offen steht -- und genau das ist die Frage, die dieser Prueflauf
+     beantworten koennen muss.
+     JEDE REIHE HAT DREI LAGEN UND EINE NACHSCHAU:
+       ohne Freigabe          -> abgewiesen, und in der Datenbank hat sich
+                                 nichts bewegt
+       mit falschem Passwort  -> keine Freigabe, also weiterhin abgewiesen
+       mit richtiger Freigabe -> durch
+     Die Nachschau nach der Verweigerung ist die wichtigste der drei: eine
+     Absage, die die halbe Aenderung schon geschrieben hat, waere schlimmer
+     als keine.
+     EINE FRISCHE SITZUNG ZUERST, und der Grund ist selbst ein Befund: die
+     Gruppe darueber hat eine Freigabe geholt und nicht verbraucht, und eine
+     liegengebliebene Freigabe traegt zwei Minuten lang. Ohne die frische
+     Sitzung liefe die erste Reihe gegen eine Freigabe, von der sie nichts
+     weiss -- und "ohne Bestaetigung abgewiesen" waere gruen aus dem falschen
+     Grund oder rot ohne Fehler im Code. */
+  zbAnna = await zbAnmelden('anna', ZB_ANNA);
+  const zbOhne = async (name, methode, pfad, koerper, nachschau, sollWert) => {
+    const a = await zbRuf(zbAnna, methode, pfad, koerper);
+    pruefe(`Ohne Bestaetigung abgewiesen: ${name}`, a.status === 403,
+      `${a.status} ${a.roh.slice(0, 100)}`);
+    pruefe(`Und dabei wurde nichts geschrieben: ${name}`,
+      gleich(nachschau(), sollWert), JSON.stringify(nachschau()));
+  };
+  const zbMitFalschem = async (name, zweck, ziel, methode, pfad, koerper, nachschau, sollWert) => {
+    const f = await zbFrei(zbAnna, 'ganz-falsch-hier', zweck, ziel);
+    pruefe(`Ein falsches Passwort gibt keine Freigabe: ${name}`, f.status === 403,
+      `Status ${f.status}`);
+    const a = await zbRuf(zbAnna, methode, pfad, koerper);
+    pruefe(`Und der Weg bleibt zu: ${name}`, a.status === 403, `Status ${a.status}`);
+    pruefe(`Auch dabei wurde nichts geschrieben: ${name}`,
+      gleich(nachschau(), sollWert), JSON.stringify(nachschau()));
+  };
+
+  // 1. Der Export.
+  const zbExportZahl = () => zbZeilen(
+    "SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'export'")[0].n;
+  const zbExportVorher = zbExportZahl();
+  await zbOhne('Export', 'GET', '/api/export?photos=0', undefined, zbExportZahl, zbExportVorher);
+  await zbMitFalschem('Export', 'export', null, 'GET', '/api/export?photos=0', undefined,
+    zbExportZahl, zbExportVorher);
+  await zbFrei(zbAnna, ZB_ANNA, 'export');
+  pruefe('Mit Bestaetigung geht der Export durch',
+    (await zbRuf(zbAnna, 'GET', '/api/export?photos=0')).status === 200);
+  pruefe('Und er steht danach im Sicherheitsprotokoll',
+    zbExportZahl() === zbExportVorher + 1, `${zbExportVorher} -> ${zbExportZahl()}`);
+
+  // 2. Der Import.
+  const zbImportSenden = async () => {
+    const grenze = '----pruefungzb' + crypto.randomBytes(6).toString('hex');
+    const teil = (name, wert, dateiname) =>
+      `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
+      (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
+      `\r\n\r\n${wert}\r\n`;
+    const paket = { version: 10, title: 'Z', items: [{ title: 'Aus der Datei' }] };
+    const koerper = teil('mode', 'merge') + teil('file', JSON.stringify(paket), 'export.json') +
+      `--${grenze}--\r\n`;
+    const a = await fetch(ZB.basis + '/api/import', {
+      method: 'POST',
+      headers: { cookie: `kriterion_session=${zbAnna}`, 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: koerper
+    });
+    return { status: a.status };
+  };
+  const zbEintraege = () => zbZeilen('SELECT COUNT(*) n FROM items')[0].n;
+  const zbEintraegeVorher = zbEintraege();
+  const zbImportOhne = await zbImportSenden();
+  pruefe('Ohne Bestaetigung abgewiesen: Import', zbImportOhne.status === 403,
+    `Status ${zbImportOhne.status}`);
+  pruefe('Und dabei wurde nichts geschrieben: Import',
+    zbEintraege() === zbEintraegeVorher, `${zbEintraegeVorher} -> ${zbEintraege()}`);
+  await zbFrei(zbAnna, 'ganz-falsch-hier', 'import');
+  pruefe('Und der Weg bleibt zu: Import', (await zbImportSenden()).status === 403);
+  await zbFrei(zbAnna, ZB_ANNA, 'import');
+  pruefe('Mit Bestaetigung geht der Import durch', (await zbImportSenden()).status === 200);
+  pruefe('Und der Eintrag aus der Datei steht da',
+    zbEintraege() === zbEintraegeVorher + 1, `${zbEintraegeVorher} -> ${zbEintraege()}`);
+
+  // 3. Die Rolle.
+  const zbRolle = () => zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role;
+  await zbOhne('Rolle vergeben', 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' }, zbRolle, 'user');
+  await zbMitFalschem('Rolle vergeben', 'rolle', zbEmil, 'PUT', `/api/users/${zbEmil}`,
+    { rolle: 'admin' }, zbRolle, 'user');
+  await zbFrei(zbAnna, ZB_ANNA, 'rolle', zbEmil);
+  pruefe('Mit Bestaetigung wird die Rolle vergeben',
+    (await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' })).status === 200 &&
+    zbRolle() === 'admin', zbRolle());
+
+  // 4. Das fremde Passwort.
+  const zbEmilHash = () => zbZeilen('SELECT password_hash h FROM users WHERE id = ?', zbEmil)[0]?.h;
+  const zbEmilVorher = zbEmilHash();
+  await zbOhne('Fremdes Passwort', 'PUT', `/api/users/${zbEmil}`, { passwort: 'emils-neues-wort' },
+    zbEmilHash, zbEmilVorher);
+  await zbMitFalschem('Fremdes Passwort', 'passwort', zbEmil, 'PUT', `/api/users/${zbEmil}`,
+    { passwort: 'emils-neues-wort' }, zbEmilHash, zbEmilVorher);
+  await zbFrei(zbAnna, ZB_ANNA, 'passwort', zbEmil);
+  pruefe('Mit Bestaetigung wird das fremde Passwort gesetzt',
+    (await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { passwort: 'emils-neues-wort' })).status === 200 &&
+    zbEmilHash() !== zbEmilVorher, 'der Hash steht unveraendert da');
+
+  // 5. Der Link.
+  const zbLinkZahl = () => zbZeilen('SELECT COUNT(*) n FROM tokens WHERE user_id = ?', zbFrida)[0].n;
+  await zbOhne('Link erzeugen', 'POST', `/api/users/${zbFrida}/token`, { zweck: 'ruecksetzung' },
+    zbLinkZahl, 0);
+  await zbMitFalschem('Link erzeugen', 'link', zbFrida, 'POST', `/api/users/${zbFrida}/token`,
+    { zweck: 'ruecksetzung' }, zbLinkZahl, 0);
+  await zbFrei(zbAnna, ZB_ANNA, 'link', zbFrida);
+  pruefe('Mit Bestaetigung entsteht der Link',
+    (await zbRuf(zbAnna, 'POST', `/api/users/${zbFrida}/token`, { zweck: 'ruecksetzung' })).status === 200 &&
+    zbLinkZahl() === 1, `${zbLinkZahl()} Zeilen`);
+
+  // 6. Das Entfernen.
+  const zbFridaStatus = () => zbZeilen('SELECT status FROM users WHERE id = ?', zbFrida)[0]?.status;
+  await zbOhne('Zugang entfernen', 'DELETE', `/api/users/${zbFrida}`, undefined, zbFridaStatus, 'aktiv');
+  await zbMitFalschem('Zugang entfernen', 'entfernen', zbFrida, 'DELETE', `/api/users/${zbFrida}`,
+    undefined, zbFridaStatus, 'aktiv');
+  await zbFrei(zbAnna, ZB_ANNA, 'entfernen', zbFrida);
+  pruefe('Mit Bestaetigung wird der Zugang entfernt',
+    (await zbRuf(zbAnna, 'DELETE', `/api/users/${zbFrida}`)).status === 200 &&
+    zbFridaStatus() === 'geloescht', zbFridaStatus());
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die zweite Bestaetigung: was NICHT dahinter liegt');
+
+  /* DIE GRENZE IST NICHT "GEFAEHRLICH", sondern dieselbe, an der schon die
+     Eigentuemerrolle liegt. Was nicht dahinter liegt, ist ENTSCHIEDEN und
+     nicht vergessen -- und deshalb steht jeder Fall hier einzeln. */
+  const zbGustavStatus = () => zbZeilen('SELECT status FROM users WHERE id = ?', zbGustav)[0]?.status;
+  pruefe('Sperren geht ohne Bestaetigung -- es ist umkehrbar',
+    (await zbRuf(zbAnna, 'PUT', `/api/users/${zbGustav}`, { status: 'gesperrt' })).status === 200 &&
+    zbGustavStatus() === 'gesperrt', zbGustavStatus());
+  pruefe('Und Freigeben ebenso',
+    (await zbRuf(zbAnna, 'PUT', `/api/users/${zbGustav}`, { status: 'aktiv' })).status === 200 &&
+    zbGustavStatus() === 'aktiv', zbGustavStatus());
+  pruefe('Einen Zugang anlegen geht ohne Bestaetigung -- es nimmt niemandem etwas',
+    (await zbRuf(zbAnna, 'POST', '/api/users', { username: 'heinz', passwort: 'heinz-langes-wort' })).status === 200,
+    'das Anlegen verlangt eine Bestaetigung');
+  pruefe('Auch mit Einladung, denn der Zugang ist NEU',
+    (await zbRuf(zbAnna, 'POST', '/api/users', { username: 'ida', einladen: true })).status === 200,
+    'das Anlegen mit Link verlangt eine Bestaetigung');
+  pruefe('Der eigene Zugang ebenso -- dort ist das bisherige Passwort schon Pflicht',
+    (await zbRuf(zbAnna, 'PUT', '/api/account', { oldPassword: ZB_ANNA, username: 'anna' })).status === 200,
+    'der eigene Zugang verlangt zusaetzlich eine Bestaetigung');
+  pruefe('Und ein Eintrag erst recht',
+    (await zbRuf(zbAnna, 'POST', '/api/items', { title: 'Ohne Bestaetigung' })).status === 201,
+    'ein Eintrag verlangt eine Bestaetigung');
+  /* UND DIE ERSTEINRICHTUNG. Es gibt zu diesem Zeitpunkt kein bisheriges
+     Passwort -- das ist offensichtlich, und es gehoert trotzdem geprueft: die
+     Route liegt VOR der Anmeldung und ist die vierte ihrer Art. */
+  {
+    const seDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-setupbest-'));
+    const SE = starteWeiterenServer(seDir, {}, 4580);
+    await SE.bereit;
+    const seAntwort = await SE.ruf('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
+    pruefe('Die Ersteinrichtung verlangt keine zweite Bestaetigung',
+      seAntwort.status === 200, `Status ${seAntwort.status}`);
+    await SE.stopp();
+    fs.rmSync(seDir, { recursive: true, force: true });
+  }
+  // Und auch diese Lage wird beendet -- derselbe Grund wie bei PR darueber.
+  await ZB.stopp();
+  fs.rmSync(zbDir, { recursive: true, force: true });
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die zweite Bestaetigung: die Bremse greift auch dahinter');
+
+  /* EIGENER SERVER, und das ist keine Umstaendlichkeit: die Zaehler der
+     Anmeldebremse liegen im Arbeitsspeicher des Prozesses, und zwoelf
+     Fehlversuche vergifteten jede andere Prueflage auf derselben Adresse.
+     BELEGT WIRD AM UEBERGANG, nicht an der Meldung. Und die Schwelle wird
+     NACHGERECHNET (Stolperstein 124): checkThrottle liest den Zaehlerstand,
+     BEVOR noteFailure ihn erhoeht -- gesperrt wird deshalb ab dem ELFTEN
+     Versuch, nicht ab dem zehnten.
+     OHNE DIE BREMSE WAERE DIESE ROUTE EIN WEG, EIN PASSWORT UNGEBREMST
+     DURCHZUPROBIEREN -- und zwar HINTER der Anmeldung, wo niemand hinsieht. */
+  {
+    const bbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-bestbremse-'));
+    const BB = starteWeiterenServer(bbDir, {}, 4640);
+    await BB.bereit;
+    const bbRuf = async (cookieWert, methode, pfad, koerper) => {
+      const opt = { method: methode, headers: {} };
+      if (cookieWert) opt.headers.cookie = `kriterion_session=${cookieWert}`;
+      if (koerper !== undefined) {
+        opt.headers['content-type'] = 'application/json';
+        opt.body = JSON.stringify(koerper);
+      }
+      const a = await fetch(BB.basis + pfad, opt);
+      let roh = '';
+      try { roh = await a.text(); } catch {}
+      return { status: a.status, roh };
+    };
+    await BB.ruf('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
+    const bbAn = await fetch(BB.basis + '/api/login', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user: 'anna', password: 'annas-langes-wort' })
+    });
+    const bbCookie = (bbAn.headers.get('set-cookie') || '').split(';')[0].split('=')[1];
+    const bbStufen = [];
+    for (let i = 1; i <= 12; i++) {
+      const a = await bbRuf(bbCookie, 'POST', '/api/bestaetigung',
+        { passwort: 'immer-falsch-hier', zweck: 'export', ziel: null });
+      bbStufen.push(a.status);
+    }
+    pruefe('Der zehnte Versuch wird noch beantwortet',
+      bbStufen[9] === 403, `Versuch 10: ${bbStufen[9]}`);
+    pruefe('Der elfte ist der erste gesperrte',
+      bbStufen[10] === 429, `Versuch 11: ${bbStufen[10]}`);
+    pruefe('Und danach bleibt es dabei',
+      bbStufen[11] === 429, `Versuch 12: ${bbStufen[11]}`);
+    pruefe('Der Uebergang liegt also genau zwischen zehn und elf',
+      bbStufen.slice(0, 10).every(s => s === 403) && bbStufen.slice(10).every(s => s === 429),
+      JSON.stringify(bbStufen));
+    /* UND DIE GESPERRTEN VERSUCHE SCHREIBEN NICHTS. Das ist der Deckel ueber
+       der Tabelle: die Bremse begrenzt, wie viele Zeilen ein Fremder
+       hoechstens erzeugen kann -- zehn je Adresse und Sperrzeit. Ein Deckel,
+       den es nicht gibt, kann nicht vergessen werden. */
+    const bbZeilen = (sql) => {
+      const d = oeffne(path.join(bbDir, 'katalog.sqlite'));
+      const r = d.prepare(sql).all();
+      d.close();
+      return r;
+    };
+    pruefe('Und die gesperrten Versuche schreiben keine Zeile mehr',
+      bbZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'bestaetigung.fehl'")[0].n === 10,
+      JSON.stringify(bbZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'bestaetigung.fehl'")));
+    /* Und die Gegenrichtung: die Sperre gilt der ADRESSE, also auch dem
+       richtigen Passwort. Sonst waere sie an dieser Route wirkungslos. */
+    pruefe('Auch das richtige Passwort kommt waehrend der Sperre nicht durch',
+      (await bbRuf(bbCookie, 'POST', '/api/bestaetigung',
+        { passwort: 'annas-langes-wort', zweck: 'export', ziel: null })).status === 429);
+    await BB.stopp();
+    fs.rmSync(bbDir, { recursive: true, force: true });
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die oeffentliche Adresse: die Pruefung des Werts');
+
+  /* GEPRUEFT UEBER EINEN KURZEN LAUF, nicht ueber zwoelf Serverstarts: die
+     Pruefung des Werts steht in auth.js -- dieselbe Sorte Einstellung wie
+     HINTER_PROXY, und beide entscheiden ueber Netzwerkvertrauen statt ueber
+     eine Vorliebe.
+     JEDER FALL EINZELN, denn eine Sammelpruefung sagt nicht, WELCHER Wert
+     durchrutscht. */
+  {
+    const oaDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-oeffadr-'));
+    kurzlauf(`require('./db'); console.log('da');`, oaDir);
+    const oaFaelle = [
+      ['https://kriterion.beispiel.de', 'https://kriterion.beispiel.de', 'die einfache Adresse'],
+      ['http://192.168.1.50:3100', 'http://192.168.1.50:3100', 'mit Port'],
+      ['https://beispiel.de/kriterion', 'https://beispiel.de/kriterion', 'mit Pfad'],
+      ['https://beispiel.de/', 'https://beispiel.de', 'der abschliessende Schraegstrich faellt'],
+      ['https://beispiel.de/kriterion///', 'https://beispiel.de/kriterion', 'auch mehrere'],
+      ['  https://beispiel.de  ', 'https://beispiel.de', 'Leerraum ringsum faellt'],
+      ['', '', 'leer ist der Normalfall'],
+      ['beispiel.de', '', 'ohne Schema abgewiesen'],
+      ['ftp://beispiel.de', '', 'ein fremdes Schema abgewiesen'],
+      ['https://', '', 'ohne Rechnernamen abgewiesen'],
+      ['https://a:b@beispiel.de', '', 'Zugangsdaten abgewiesen'],
+      ['https://beispiel.de/?a=1', '', 'eine Abfrage abgewiesen'],
+      ['https://beispiel.de/#/einladung/x', '', 'ein Fragment abgewiesen'],
+      ['ein Satz mit Leerzeichen', '', 'Unsinn abgewiesen']
+    ];
+    const oaCode = `const a = require('./auth');` +
+      `console.log(JSON.stringify(${JSON.stringify(oaFaelle.map(f => f[0]))}` +
+      `.map(w => a.pruefeOeffentlicheAdresse(w))));`;
+    const oaErgebnis = JSON.parse(kurzlauf(oaCode, oaDir));
+    pruefe('Die Pruefung liefert ueberhaupt zu jedem Wert eine Antwort',
+      Array.isArray(oaErgebnis) && oaErgebnis.length === oaFaelle.length,
+      JSON.stringify(oaErgebnis).slice(0, 160));
+    oaFaelle.forEach(([wert, soll, name], i) => {
+      pruefe(`Die Adresse wird geprueft: ${name}`,
+        oaErgebnis[i]?.adresse === soll,
+        `"${wert}" -> ${JSON.stringify(oaErgebnis[i])}`);
+    });
+    /* UND DER UNTERSCHIED ZWISCHEN "LEER" UND "UNBRAUCHBAR": beide fallen auf
+       den Browserweg zurueck, aber nur der zweite gehoert laut gemeldet. Ohne
+       diese Unterscheidung meldete der Start bei jeder unbesetzten Einstellung
+       einen Fehler. */
+    pruefe('Ein leerer Wert ist kein Fehler',
+      oaErgebnis[6]?.gesetzt === false && !oaErgebnis[6]?.fehler,
+      JSON.stringify(oaErgebnis[6]));
+    pruefe('Ein unbrauchbarer sehr wohl, und er nennt den Grund',
+      oaErgebnis[7]?.gesetzt === true && typeof oaErgebnis[7]?.fehler === 'string' &&
+      oaErgebnis[7].fehler.length > 10, JSON.stringify(oaErgebnis[7]));
+    fs.rmSync(oaDir, { recursive: true, force: true });
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die oeffentliche Adresse: beide Zustaende am Server');
+
+  /* BEIDE ZUSTAENDE AN ECHTEN SERVERN, denn sie enden verschieden: leer baut
+     der Browser, gesetzt gibt der Server den fertigen Link heraus. Und zu
+     jedem der beiden gehoert die Nachschau, dass der ANDERE gerade nicht
+     dasteht. */
+  {
+    const oaMachen = async (zusatz, portBasis) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-oeffsrv-'));
+      const S = starteWeiterenServer(dir, zusatz, portBasis);
+      await S.bereit;
+      await S.ruf('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
+      const neu = await S.ruf('POST', '/api/users', { username: 'bert', einladen: true });
+      return { dir, S, neu };
+    };
+
+    const ohne = await oaMachen({}, 4700);
+    pruefe('Ohne die Einstellung gibt der Server KEINEN fertigen Link heraus',
+      ohne.neu.inhalt?.link === null, JSON.stringify(ohne.neu.inhalt?.link));
+    pruefe('Und sagt ausdruecklich, dass der Browser ihn baut',
+      ohne.neu.inhalt?.linkQuelle === 'browser', JSON.stringify(ohne.neu.inhalt?.linkQuelle));
+    pruefe('Der Schluessel steht trotzdem in der Antwort -- daraus baut der Browser',
+      /^[0-9a-f]{64}$/.test(ohne.neu.inhalt?.token || ''), JSON.stringify(ohne.neu.inhalt?.token));
+    pruefe('Der Start sagt, dass sie nicht gesetzt ist',
+      /Oeffentliche Adresse: nicht gesetzt/.test(ohne.S.protokoll()),
+      ohne.S.protokoll().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
+    /* DIE ADRESSE STEHT NICHT IN /api/config, und das gehoert geprueft: der
+       Endpunkt liegt VOR der Anmeldung und darf ueber die Anlage nichts
+       verraten, was nicht ohnehin dasteht. */
+    const ohneCfg = await ohne.S.ruf('GET', '/api/config');
+    pruefe('Und /api/config nennt hier ohnehin nichts',
+      !JSON.stringify(ohneCfg.inhalt).toLowerCase().includes('adresse'),
+      JSON.stringify(ohneCfg.inhalt));
+
+    const mit = await oaMachen({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de/' }, 4760);
+    pruefe('Mit der Einstellung gibt der Server den fertigen Link heraus',
+      mit.neu.inhalt?.link === `https://kriterion.beispiel.de/#/einladung/${mit.neu.inhalt?.token}`,
+      JSON.stringify(mit.neu.inhalt?.link));
+    pruefe('Und sagt, woher die Adresse kam',
+      mit.neu.inhalt?.linkQuelle === 'einstellung', JSON.stringify(mit.neu.inhalt?.linkQuelle));
+    pruefe('Der Start nennt die Adresse im Protokoll des Containers',
+      /Oeffentliche Adresse: https:\/\/kriterion\.beispiel\.de —/.test(mit.S.protokoll()),
+      mit.S.protokoll().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
+    const mitCfg = await mit.S.ruf('GET', '/api/config');
+    pruefe('Die Adresse steht NICHT in /api/config',
+      !JSON.stringify(mitCfg.inhalt).includes('kriterion.beispiel.de'),
+      JSON.stringify(mitCfg.inhalt));
+    /* Und die Gegenprobe zur Nachschau: /api/config antwortet ueberhaupt und
+       traegt die Felder, die es tragen soll. Eine leere Antwort machte jede
+       Verneinung darauf wahr (Stolperstein 81). */
+    pruefe('Und /api/config traegt trotzdem seine bekannten Felder',
+      mitCfg.inhalt?.version === '0.8.90' && typeof mitCfg.inhalt?.title === 'string',
+      JSON.stringify(mitCfg.inhalt));
+
+    /* DER UNBRAUCHBARE WERT: der Start meldet es laut und die Anlage laeuft
+       weiter, mit dem Browserweg als Rueckfall -- dieselbe Form wie bei
+       AUTH_RESET und beim fehlenden Sicherungsort. Ein Start, der an einem
+       Tippfehler in einer OPTIONALEN Einstellung abbraeche, waere schlimmer
+       als der Tippfehler. */
+    const kaputt = await oaMachen({ OEFFENTLICHE_ADRESSE: 'kein-richtiger-wert' }, 4820);
+    pruefe('Ein unbrauchbarer Wert bricht den Start nicht ab',
+      kaputt.neu.status === 200, `Status ${kaputt.neu.status}`);
+    pruefe('Er wird aber laut gemeldet',
+      /OEFFENTLICHE_ADRESSE ist unbrauchbar/.test(kaputt.S.protokoll()),
+      kaputt.S.protokoll().split('\n').filter(z => /ADRESSE/.test(z)).join(' | ') || '(keine Zeile)');
+    pruefe('Und der Rueckfall ist der Browserweg',
+      kaputt.neu.inhalt?.link === null && kaputt.neu.inhalt?.linkQuelle === 'browser',
+      JSON.stringify(kaputt.neu.inhalt?.linkQuelle));
+
+    /* http:// HINTER EINEM PROXY IST EIN WIDERSPRUCH IN SICH -- und trotzdem
+       nur eine Warnung: ein falscher Link ist ein toter Link, kein Verlust.
+       Eine Absage waere hier haerter als der Schaden. */
+    const widerspruch = await oaMachen(
+      { HINTER_PROXY: '1', OEFFENTLICHE_ADRESSE: 'http://kriterion.beispiel.de' }, 4880);
+    pruefe('http hinter einem Proxy wird gewarnt, nicht abgewiesen',
+      /Hinter einem Proxy und trotzdem http/.test(widerspruch.S.protokoll()),
+      widerspruch.S.protokoll().split('\n').filter(z => /Proxy/.test(z)).join(' | '));
+    pruefe('Und die Adresse gilt trotzdem',
+      widerspruch.neu.inhalt?.linkQuelle === 'einstellung',
+      JSON.stringify(widerspruch.neu.inhalt?.linkQuelle));
+
+    for (const x of [ohne, mit, kaputt, widerspruch]) {
+      await x.S.stopp();
+      fs.rmSync(x.dir, { recursive: true, force: true });
+    }
+  }
+
   /* ---------------------------------------------------------------- */
   gruppe('Der Waechter ueber den Quelltext');
 
@@ -6892,7 +8105,15 @@ const namen = (liste) => liste.map(c => c.name);
        'selbstbezug'-- der eigene Zugang, geprueft in auth.js
        'offen'      -- ausdruecklich fuer jeden, ODER baulich schon auf die
                        eigene Zeile begrenzt (Bewertungen). Hier gehoert
-                       NICHTS hin, und auch das wird geprueft. */
+                       NICHTS hin, und auch das wird geprueft.
+       'zweitbestaetigt'
+                    -- ZUSATZ WIE 'im Rumpf', seit 0.8.90: der Weg trifft die
+                       Anlage als Ganzes und verlangt das Passwort ein zweites
+                       Mal. Die Art steht daneben und nicht anstelle der
+                       anderen: 'nurEigentuemer' sagt WER darf, dieser Zusatz
+                       sagt, dass es damit noch nicht getan ist. Genau der
+                       Befund aus 0.8.30 -- die Art sagte bis dahin nur, DASS
+                       eine Klemme dasteht, nicht WELCHE. */
   const fQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
   const RUMPF_WOERTER = ['darfAendern(', 'nurSelbst(', 'eintragFrei(', 'istAdmin(',
     'istEigentuemer(', 'zielZugangFrei(', 'darfAnlegen('];
@@ -6919,13 +8140,23 @@ const namen = (liste) => liste.map(c => c.name);
        Ein Admin kommt ueber diese Routen an keine fremde Sitzung. */
     ['DELETE', '/api/sessions',                  'selbstbezug'],
     ['DELETE', '/api/sessions/:kennung',         'selbstbezug'],
+    /* Die Freigabe fuer die schweren Wege, 0.8.90. 'selbstbezug' wie
+       PUT /api/account: der Benutzer kommt aus req.benutzer und nie aus der
+       Adresse -- wer bestaetigt, bestaetigt fuer sich. */
+    ['POST',   '/api/bestaetigung',              'selbstbezug'],
+    /* ANLEGEN BRAUCHT KEINE ZWEITE BESTAETIGUNG, und das ist entschieden und
+       nicht vergessen: es erzeugt einen NEUEN Zugang und nimmt niemandem
+       etwas. Der Link an einem BESTEHENDEN Zugang ist der andere Fall. */
     ['POST',   '/api/users',                     'nurAdmin, im Rumpf'],
     /* Der Link fuer einen vorhandenen Zugang. Dieselbe Rechtezeile wie die
        drei Verwaltungsrouten: zielZugangFrei entscheidet, damit gilt die
        Rollenleiter auch hier. */
-    ['POST',   '/api/users/:id/token',           'nurAdmin, im Rumpf'],
-    ['PUT',    '/api/users/:id',                 'nurAdmin, im Rumpf'],
-    ['DELETE', '/api/users/:id',                 'nurAdmin, im Rumpf'],
+    ['POST',   '/api/users/:id/token',           'nurAdmin, im Rumpf, zweitbestaetigt'],
+    /* Zwei der drei Rechteklassen dieser Route liegen hinter der zweiten
+       Bestaetigung -- Rolle und fremdes Passwort. Sperren und Freigeben nicht:
+       das ist umkehrbar und uebergibt nichts. */
+    ['PUT',    '/api/users/:id',                 'nurAdmin, im Rumpf, zweitbestaetigt'],
+    ['DELETE', '/api/users/:id',                 'nurAdmin, im Rumpf, zweitbestaetigt'],
     ['PUT',    '/api/titles',                    'nurAdmin'],
     ['PUT',    '/api/settings',                  'im Rumpf'],
     ['POST',   '/api/criteria',                  'nurAdmin'],
@@ -6977,7 +8208,7 @@ const namen = (liste) => liste.map(c => c.name);
     ['POST',   '/api/comments/:id/images',       'im Rumpf'],
     ['DELETE', '/api/comment-images/:id',        'im Rumpf'],
     ['DELETE', '/api/comments/:id',              'im Rumpf'],
-    ['POST',   '/api/import',                    'nurEigentuemer'],
+    ['POST',   '/api/import',                    'nurEigentuemer, zweitbestaetigt'],
     /* Der Papierkorb, 0.8.70. SEHEN darf ihn der Admin (lesend, deshalb steht
        GET /api/papierkorb hier nicht) -- HANDELN nur der Eigentuemer:
        Wiederherstellen legt Zeilen unter FREMDEM Namen an, genau wie der
@@ -7036,13 +8267,20 @@ const namen = (liste) => liste.map(c => c.name);
      0.8.80 bewegt sie: 51 werden 56. Der Token bringt drei mit
      (pruefen, einloesen, der Link am Zugang), "Meine Sitzungen" zwei; der
      lesende Endpunkt GET /api/sessions steht NICHT hier -- auch der nicht,
-     der VOR der Anmeldung liegt. */
-  pruefe('Und es sind jetzt genau 56 schreibende Routen',
-    F_ROUTEN.length === 56 && fGefunden.length === 56,
+     der VOR der Anmeldung liegt.
+     0.8.90 bewegt sie um EINE: 56 werden 57. Dazu kommt allein
+     POST /api/bestaetigung -- das Sicherheitsprotokoll ist LESEND
+     (GET /api/sicherheitsprotokoll) und steht deshalb nicht hier, und eine
+     Loeschroute darauf gibt es ausdruecklich nicht. Die sechs schweren Wege
+     sind vorhandene Routen und bekommen nur einen Zusatz an ihrer Art. */
+  pruefe('Und es sind jetzt genau 57 schreibende Routen',
+    F_ROUTEN.length === 57 && fGefunden.length === 57,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
+  const ZWEIT_WORT = 'zweiteBestaetigung';
   const fOhneWaechter = [], fOhneKlemme = [], fZuviel = [], fOhneSelbst = [], fZuvielWaechter = [];
+  const fOhneZweit = [], fZuvielZweit = [];
   for (const r of fGefunden) {
     const art = fErwartet.get(r.schluessel);
     if (!art) continue;
@@ -7069,6 +8307,13 @@ const namen = (liste) => liste.map(c => c.name);
     if (art === 'selbstbezug' &&
         (!r.rumpf.includes('req.benutzer.id') ||
          /req\.params\.(?!kennung)/.test(r.rumpf))) fOhneSelbst.push(r.schluessel);
+    /* Die Bestaetigung steht ABSICHTLICH NICHT in RUMPF_WOERTER: sie ist keine
+       Rechtefrage. Stuende sie dort, erfuellte sie die Klemme, die 'im Rumpf'
+       verlangt -- und eine Route, die ihre Rollenklemme verloren und nur noch
+       das Passwort fragt, bliebe gruen. */
+    const hatZweit = r.kopf.includes(ZWEIT_WORT) || r.rumpf.includes(ZWEIT_WORT);
+    if (art.includes('zweitbestaetigt') && !hatZweit) fOhneZweit.push(r.schluessel);
+    if (!art.includes('zweitbestaetigt') && hatZweit) fZuvielZweit.push(r.schluessel);
     if (art === 'offen' && hatKlemme) fZuviel.push(r.schluessel);
     /* Und die andere Haelfte derselben Gegenrichtung: eine Route, die "offen"
        heisst, darf auch keinen benannten Waechter in der Routenzeile tragen.
@@ -7086,6 +8331,14 @@ const namen = (liste) => liste.map(c => c.name);
     fOhneKlemme.length === 0, fOhneKlemme.join(' · '));
   pruefe('Jede Route mit Selbstbezug nimmt den Benutzer aus der Sitzung',
     fOhneSelbst.length === 0, fOhneSelbst.join(' · '));
+  /* DIE NEUE ART AUS 0.8.90, in BEIDE Richtungen. Ohne die zweite Haelfte
+     bliebe eine Route gruen, die die Bestaetigung stillschweigend eingebaut
+     hat -- und eine stillschweigend eingebaute Klemme ist von einer
+     entschiedenen nicht zu unterscheiden. */
+  pruefe('Jede zweitbestaetigte Route ruft die Bestaetigung wirklich',
+    fOhneZweit.length === 0, fOhneZweit.join(' · '));
+  pruefe('Und keine andere tut es stillschweigend',
+    fZuvielZweit.length === 0, fZuvielZweit.join(' · '));
   /* Und die Gegenprobe zur Pruefung selbst: sie darf nicht deshalb gruen sein,
      weil sie beides durchgehen laesst (Stolperstein 106). Beide Haelften
      einzeln, denn eine Regel mit zwei Haelften, von der nur eine wirkt, sieht
@@ -7577,6 +8830,89 @@ const namen = (liste) => liste.map(c => c.name);
     backupZaehle('  try { await d.backup(ziel); } catch {}') === 0,
     'der Waechter faerbt sich am Bezeichner');
 
+  /* SICHERHEITSPROTOKOLL ODER PROTOKOLL -- eines von beiden, und durchgehalten.
+     "Protokoll" IST IM PROJEKT VERGEBEN: so heisst docker compose logs, im
+     Einspielweg, in Abschnitt 8 des Projektstands und in der README ("Nach
+     jedem Einspielen lohnt ein Blick ins Protokoll"). Zwei verschiedene Dinge
+     unter demselben Wort sind Stolperstein 47 in der Sprache.
+     ENTSCHIEDEN IST: das neue Ding heisst am Bildschirm wie im Quelltext
+     SICHERHEITSPROTOKOLL und wird nie abgekuerzt. Der Waechter zaehlt deshalb
+     das ALLEINSTEHENDE Wort in den ausgelieferten Dateien und haelt die ZAHL
+     fest -- dieselbe Bauform wie die Zahl in F_ROUTEN. Wer das neue Ding je
+     "Protokoll" nennt, bewegt sie und wird namentlich rot.
+     GEPRUEFT WIRD CODE, NICHT DER KOMMENTAR DANEBEN (Stolperstein 106).
+     GROSSGESCHRIEBEN GESUCHT, dieselbe Trennlinie wie beim Backup-Waechter:
+     gemeint ist das deutsche SUBSTANTIV, nicht der Bezeichner
+     raeumeProtokollAuf. */
+  const PROT_DATEIEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
+                        'public/app.js', 'public/index.html', 'zugang.js'];
+  const protZaehle = (text) => (ohneKommentare(text).match(/(?<!Sicherheits)\bProtokoll\b/g) || []).length;
+  const fProt = PROT_DATEIEN
+    .map(d => [d, protZaehle(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
+    .filter(([, n]) => n > 0);
+  pruefe('Der Protokollwaechter sieht alle acht ausgelieferten Dateien an',
+    PROT_DATEIEN.length === 8 && PROT_DATEIEN.every(n => fs.existsSync(path.join(__dirname, n))),
+    JSON.stringify(PROT_DATEIEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
+  /* ZWEI VORKOMMEN, und beide meinen den Containerlog: die Meldung nach einer
+     gescheiterten Sicherung und der Hinweis in der Kennzahlenkarte, wo nach
+     dem Eintragen des Schluessels nachzusehen ist. Mehr darf es nicht werden. */
+  pruefe('Das alleinstehende Wort steht in genau zwei ausgelieferten Zeilen',
+    fProt.reduce((n, [, k]) => n + k, 0) === 2, fProt.map(([d, n]) => `${d} (${n}x)`).join(' · '));
+  pruefe('Und beide meinen den Containerlog',
+    gleich(fProt.map(([d]) => d).sort(), ['public/app.js', 'server.js']),
+    JSON.stringify(fProt));
+  /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein, weil
+     er gar keinen Code mehr liest (Stolperstein 106) -- und er darf das lange
+     Wort nicht mitzaehlen, sonst waere die Entscheidung wertlos. */
+  pruefe('Und der Waechter faende ein neues alleinstehendes Vorkommen',
+    protZaehle("  toast('Das Protokoll ist leer');") === 1, 'der Waechter sieht das Wort nicht');
+  pruefe('Das lange Wort laesst er dagegen in Ruhe',
+    protZaehle("  toast('Das Sicherheitsprotokoll ist leer');") === 0,
+    'der Waechter faerbt sich am langen Wort');
+  pruefe('Den Bezeichner raeumeProtokollAuf ebenso',
+    protZaehle('  auth.raeumeProtokollAuf();') === 0, 'der Waechter faerbt sich am Bezeichner');
+  pruefe('Und den Kommentar daneben auch',
+    protZaehle('// Die Zeile steht im Protokoll des Containers.') === 0,
+    'der Waechter faerbt sich am Kommentar');
+  /* Und die Gegenrichtung, damit die Entscheidung nicht bloss eine Verneinung
+     ist: das Wort, das dort STEHEN soll, steht auch da -- am Bildschirm. */
+  pruefe('Und das Wort Sicherheitsprotokoll steht am Bildschirm wirklich',
+    /<h3>Sicherheitsprotokoll<\/h3>/.test(fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')),
+    'die Karte nennt das Sicherheitsprotokoll nicht beim Namen');
+
+  /* RE-AUTHENTIFIZIERUNG IST DAS WORT DER PAPIERE, NICHT DES BILDSCHIRMS.
+     Dieselbe Entscheidung wie "Token oder Link" in 0.8.80, nur mit einem
+     Wort statt zweien: im Quelltext heisst es zweiteBestaetigung, am
+     Bildschirm "Zweite Bestätigung" -- ein Wort fuer beides kann gar nicht
+     auseinanderlaufen. Der Fachbegriff bleibt draussen: er sagt einem
+     Entwickler etwas und niemandem sonst. */
+  const reAuthZaehle = (text) => (text.match(/Re-?Authenti/gi) || []).length;
+  const fReAuth = PROT_DATEIEN
+    .map(d => [d, reAuthZaehle(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
+    .filter(([, n]) => n > 0);
+  pruefe('Das Wort Re-Authentifizierung steht in keiner ausgelieferten Datei',
+    fReAuth.length === 0, fReAuth.map(([d, n]) => `${d} (${n}x)`).join(' · '));
+  pruefe('Und der Waechter wuerde es wirklich finden',
+    reAuthZaehle('// Die Re-Authentifizierung greift hier.') === 1,
+    'der Waechter sieht das Wort nicht');
+  pruefe('Dafuer steht das gewaehlte Wort am Bildschirm',
+    /Bestätigen<\/button>/.test(fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')),
+    'der Dialog nennt die Bestaetigung nicht beim Namen');
+
+  /* DAS PASSWORT REIST IM RUMPF -- UND DARF NIRGENDS AUSGEGEBEN WERDEN. Im
+     Rumpf eines POST steht es nicht im Zugriffsprotokoll eines Proxys, der
+     die Anfragezeile schreibt; die Anlage selbst fuehrt gar keines. Was
+     bleibt, ist die eine Gefahr, gegen die ein Waechter hilft: eine Zeile, die
+     den Rumpf ins Containerprotokoll schreibt. */
+  const fRumpfAusgabe = ohneKommentare(fQuelle)
+    .split('\n').filter(z => /console\.(log|warn|error)\([^)]*req\.body/.test(z));
+  pruefe('Keine Zeile in server.js gibt den Rumpf einer Anfrage aus',
+    fRumpfAusgabe.length === 0, fRumpfAusgabe.join(' · '));
+  pruefe('Und der Waechter wuerde eine solche Zeile finden',
+    /console\.(log|warn|error)\([^)]*req\.body/.test("  console.log('Rumpf:', req.body);"),
+    'der Waechter sieht die Zeile nicht');
+
+
   /* ---------------------------------------------------------------- */
   gruppe('Der Sprachwaechter');
 
@@ -7805,6 +9141,14 @@ const namen = (liste) => liste.map(c => c.name);
     d.prepare(sql).run(...werte);
     d.close();
   };
+  /* Der Rufer mit Freigabe -- einer je Cookie, mit dem Passwort dieses
+     Zugangs. Wo die Rollenleiter absagt, bleibt die Freigabe ungenutzt: sie
+     steht HINTER der Rechtefrage und kann keine Absage aufheben. Genau das ist
+     an den Verweigerungen unten mitgeprueft. */
+  const gWORT = { anna: 'annas-langes-wort', bert: 'berts-langes-wort',
+                  carla: 'carlas-langes-wort', dora: 'doras-langes-wort' };
+  const gF = (cookieWert, wer) =>
+    mitFreigabe((m, p, k) => gRuf(cookieWert, m, p, k), gWORT[wer] || 'kein-passwort');
   const gRolle = (name) => gZeilen('SELECT role FROM users WHERE username = ?', name)[0]?.role;
   const gStatus = (name) => gZeilen('SELECT status FROM users WHERE username = ?', name)[0]?.status;
 
@@ -7932,13 +9276,13 @@ const namen = (liste) => liste.map(c => c.name);
     gSperrtAdminEig.status === 200 && gStatus('frida') === 'gesperrt', gStatus('frida'));
   await gRuf(gAnna, 'PUT', `/api/users/${gFridaId}`, { status: 'aktiv' });
 
-  const gRolleCarla = await gRuf(gCarla, 'PUT', `/api/users/${gBertId}`, { rolle: 'admin' });
+  const gRolleCarla = await gF(gCarla, 'carla')('PUT', `/api/users/${gBertId}`, { rolle: 'admin' });
   pruefe('Ein Admin vergibt keine Rolle', gRolleCarla.status === 403, `Status ${gRolleCarla.status}`);
   pruefe('Und die Rolle steht unveraendert da', gRolle('bert') === 'user', gRolle('bert'));
-  const gRolleAnna = await gRuf(gAnna, 'PUT', `/api/users/${gBertId}`, { rolle: 'admin' });
+  const gRolleAnna = await gF(gAnna, 'anna')('PUT', `/api/users/${gBertId}`, { rolle: 'admin' });
   pruefe('Der Eigentuemer vergibt sie', gRolleAnna.status === 200 && gRolle('bert') === 'admin',
     gRolle('bert'));
-  await gRuf(gAnna, 'PUT', `/api/users/${gBertId}`, { rolle: 'user' });
+  await gF(gAnna, 'anna')('PUT', `/api/users/${gBertId}`, { rolle: 'user' });
 
   /* Die Selbstsperre. ACHTUNG, die naheliegende Prueflage ist BLIND: laesst
      man carla (Admin) sich selbst sperren, kommt das 403 gar nicht von der
@@ -7957,12 +9301,12 @@ const namen = (liste) => liste.map(c => c.name);
   /* Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
      noch durch Sperren noch durch Loeschen. Ohne diese Klemme koennte sich die
      Anlage verriegeln, und der einzige Ausweg waere zugang.js auf dem Wirt. */
-  const gLetzterWeg = await gRuf(gAnna, 'PUT', `/api/users/${gAnnaId}`, { rolle: 'admin' });
+  const gLetzterWeg = await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { rolle: 'admin' });
   pruefe('Der letzte Eigentuemer stuft sich nicht selbst herab',
     gLetzterWeg.status === 400 && /letzte Eigentümer/.test(gLetzterWeg.inhalt?.error || ''),
     JSON.stringify(gLetzterWeg.inhalt));
   pruefe('Und bleibt Eigentuemer', gRolle('anna') === 'eigentuemer', gRolle('anna'));
-  await gRuf(gAnna, 'PUT', `/api/users/${gCarlaId}`, { rolle: 'eigentuemer' });
+  await gF(gAnna, 'anna')('PUT', `/api/users/${gCarlaId}`, { rolle: 'eigentuemer' });
   /* Jetzt gibt es zwei Eigentuemer -- und erst jetzt laesst sich die
      Selbstklemme belegen. anna kommt ueber darfAnZugang an ihre eigene Zeile
      (sie IST Eigentuemerin), und "der letzte Eigentuemer bleibt" greift nicht
@@ -7973,12 +9317,12 @@ const namen = (liste) => liste.map(c => c.name);
     gSelbstEigen.status === 403, `Status ${gSelbstEigen.status}`);
   pruefe('Und steht danach unveraendert auf aktiv', gStatus('anna') === 'aktiv', gStatus('anna'));
   pruefe('Mit einem zweiten Eigentuemer geht die Herabstufung',
-    (await gRuf(gAnna, 'PUT', `/api/users/${gAnnaId}`, { rolle: 'admin' })).status === 200 &&
+    (await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { rolle: 'admin' })).status === 200 &&
     gRolle('anna') === 'admin', gRolle('anna'));
   // Und zurueck, damit die folgenden Gruppen auf der gewohnten Lage stehen.
   const gCarlaCookie2 = (await gAnmelden('carla', 'carlas-langes-wort')).cookie;
-  await gRuf(gCarlaCookie2, 'PUT', `/api/users/${gAnnaId}`, { rolle: 'eigentuemer' });
-  await gRuf(gCarlaCookie2, 'PUT', `/api/users/${gCarlaId}`, { rolle: 'admin' });
+  await gF(gCarlaCookie2, 'carla')('PUT', `/api/users/${gAnnaId}`, { rolle: 'eigentuemer' });
+  await gF(gCarlaCookie2, 'carla')('PUT', `/api/users/${gCarlaId}`, { rolle: 'admin' });
   pruefe('Danach steht die Ausgangslage wieder',
     gRolle('anna') === 'eigentuemer' && gRolle('carla') === 'admin',
     JSON.stringify(gZeilen('SELECT username, role FROM users')));
@@ -8039,7 +9383,7 @@ const namen = (liste) => liste.map(c => c.name);
      Sitzungen des Betroffenen fallen -- wer ein fremdes Passwort neu setzt,
      will den bisherigen Inhaber draussen haben. */
   const gDora3 = (await gAnmelden('dora', 'doras-langes-wort')).cookie;
-  const gNeuesWort = await gRuf(gCarla, 'PUT', `/api/users/${gDoraId}`, { passwort: 'doras-neues-wort' });
+  const gNeuesWort = await gF(gCarla, 'carla')('PUT', `/api/users/${gDoraId}`, { passwort: 'doras-neues-wort' });
   pruefe('Ein Admin setzt das Passwort eines Benutzers zurueck', gNeuesWort.status === 200,
     JSON.stringify(gNeuesWort.inhalt));
   pruefe('Dabei fallen seine Sitzungen',
@@ -8087,7 +9431,7 @@ const namen = (liste) => liste.map(c => c.name);
     gBestand.inhalt?.fremdDateien === 1 && gBestand.inhalt?.dateien === 1,
     JSON.stringify(gBestand.inhalt));
 
-  const gWeg = await gRuf(gAnna, 'DELETE', `/api/users/${gBertId}`);
+  const gWeg = await gF(gAnna, 'anna')('DELETE', `/api/users/${gBertId}`);
   pruefe('Der Eigentuemer entfernt einen Zugang', gWeg.status === 200, JSON.stringify(gWeg.inhalt));
   const gGrab = gZeilen('SELECT id, username, role, status, password_hash FROM users WHERE id = ?', gBertId)[0];
   pruefe('Die Zeile bleibt mit ihrer Nummer stehen', !!gGrab, JSON.stringify(gGrab));
@@ -8150,7 +9494,7 @@ const namen = (liste) => liste.map(c => c.name);
   const gZahl = (await gRuf(gAnna, 'GET', '/api/settings')).inhalt?.benutzerZahl;
   pruefe('Die Benutzerzahl zaehlt den Grabstein nicht mit',
     gZahl === gZeilen("SELECT COUNT(*) n FROM users WHERE status != 'geloescht'")[0].n, `${gZahl}`);
-  const gNochmal = await gRuf(gAnna, 'DELETE', `/api/users/${gBertId}`);
+  const gNochmal = await gF(gAnna, 'anna')('DELETE', `/api/users/${gBertId}`);
   pruefe('Ein Grabstein laesst sich nicht noch einmal entfernen',
     gNochmal.status === 400, `Status ${gNochmal.status}`);
 
@@ -8183,7 +9527,7 @@ const namen = (liste) => liste.map(c => c.name);
     gAnnaItem.id)[0].n;
   const gAnnaDateienVorher = gZeilen('SELECT COUNT(*) n FROM attachments WHERE item_id = ?',
     gAnnaItem.id)[0].n;
-  await gRuf(gAnna, 'DELETE', `/api/users/${gEmilId}?eintraege=1&beitraege=1`);
+  await gF(gAnna, 'anna')('DELETE', `/api/users/${gEmilId}?eintraege=1&beitraege=1`);
   pruefe('Mit dem ersten Haekchen sind seine Eintraege weg',
     gZeilen('SELECT id FROM items WHERE id = ?', gEmilItem.id).length === 0);
   pruefe('Und der fremde Kommentar daran ueber die Kaskade mit',
@@ -8490,6 +9834,77 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Ohne Befehl kommt die Hilfe', /node zugang\.js passwort/.test(zHilfe.aus) && zHilfe.code === 0);
 
   fs.rmSync(zDir, { recursive: true, force: true });
+  /* ---------------------------------------------------------------- */
+  gruppe('zugang.js schreibt ins Sicherheitsprotokoll');
+
+  /* DER NOTWEG BEKOMMT KEINE RECHTEFRAGE -- Zugriff auf den Wirt IST die
+     Berechtigung, und eine Rechtefrage dort waere eine Kulisse. Das bleibt.
+     ABER ER HINTERLAESST EINE SPUR: sonst haette ausgerechnet der Weg, den man
+     hinterher nachlesen moechte, als einziger keine.
+     ERKANNT WIRD ER AN wer IS NULL -- ein eigenes Feld fuer die Herkunft waere
+     eine zweite Wahrheit daneben. Jeder andere Vorgang kommt entweder ueber
+     eine Route (dann steht wer) oder vom Wirt (dann nicht); die eine Ausnahme
+     ist die gescheiterte Anmeldung, und die ist ueber was zu erkennen. */
+  {
+    const zjDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-zugangprot-'));
+    const zjBefehl = (args, eingabe = '') => {
+      const { execFileSync } = require('child_process');
+      const umgebung = { ...process.env, DATA_DIR: zjDir, ENCRYPTION_KEY: KEY };
+      delete umgebung.AUTH_RESET;
+      try {
+        return { code: 0, aus: execFileSync(process.execPath, ['zugang.js', ...args],
+          { cwd: __dirname, encoding: 'utf8', input: eingabe, env: umgebung }) };
+      } catch (e) {
+        return { code: e.status == null ? 1 : e.status, aus: (e.stdout || '') + (e.stderr || '') };
+      }
+    };
+    const zjZeilen = (sql) => {
+      const d = oeffne(path.join(zjDir, 'katalog.sqlite'));
+      const r = d.prepare(sql).all();
+      d.close();
+      return r;
+    };
+    const ZJ = starteWeiterenServer(zjDir, {}, 4940);
+    await ZJ.bereit;
+    await ZJ.ruf('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
+    await ZJ.ruf('POST', '/api/users', { username: 'bert', passwort: 'berts-langes-wort' });
+    await ZJ.ruf('POST', '/api/users', { username: 'carla', passwort: 'carlas-langes-wort' });
+    await ZJ.stopp();
+
+    const zjSeit = () => zjZeilen(
+      "SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll WHERE wer IS NULL AND was <> 'anmeldung.fehl' ORDER BY id");
+    pruefe('Vor den Befehlen steht keine Zeile ohne Handelnden da',
+      zjSeit().length === 0, JSON.stringify(zjSeit()));
+
+    // ES TUT SEINE DINGE WEITERHIN OHNE RUECKFRAGE -- keine Bestaetigung,
+    // keine Rechtefrage, nur der Befehl.
+    const zjPass = zjBefehl(['passwort', 'bert'], 'berts-neues-wort\nberts-neues-wort\n');
+    pruefe('zugang.js setzt das Passwort weiterhin ohne jede Rueckfrage',
+      zjPass.code === 0 && /gesetzt/.test(zjPass.aus), zjPass.aus.split('\n').filter(Boolean).pop());
+    const zjEig = zjBefehl(['eigentuemer', 'carla']);
+    pruefe('Und macht weiterhin ohne Rueckfrage zum Eigentuemer', zjEig.code === 0);
+    const zjWeg = zjBefehl(['entfernen', 'bert'], 'ja\n');
+    pruefe('Und entfernt weiterhin nach der einen Sicherheitsabfrage', zjWeg.code === 0);
+
+    const zjBertId = zjZeilen("SELECT id FROM users WHERE username LIKE 'geloescht-%'")[0]?.id;
+    const zjCarlaId = zjZeilen("SELECT id FROM users WHERE username = 'carla'")[0]?.id;
+    pruefe('Alle drei Befehle stehen im Sicherheitsprotokoll -- ohne Handelnden',
+      gleich(zjSeit().map(z => [z.was, z.wer, z.ziel]),
+             [['zugang.passwort', null, zjBertId],
+              ['zugang.rolle', null, zjCarlaId],
+              ['zugang.weg', null, zjBertId]]), JSON.stringify(zjSeit()));
+    pruefe('Und die Rollenzeile nennt die neue Rolle',
+      zjSeit()[1]?.merkmal === 'eigentuemer', JSON.stringify(zjSeit()[1]));
+    /* DIE GEGENPROBE ZUR ERKENNUNG: ueber eine Route steht sehr wohl ein
+       Handelnder. Ohne sie bliebe "wer IS NULL heisst Wirt" auch dann gruen,
+       wenn NIE ein Handelnder eingetragen wuerde. */
+    pruefe('Ueber eine Route steht dagegen ein Handelnder',
+      zjZeilen("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'zugang.neu' AND wer IS NOT NULL")[0].n === 3,
+      JSON.stringify(zjZeilen("SELECT was, wer FROM sicherheitsprotokoll WHERE was = 'zugang.neu'")));
+
+    fs.rmSync(zjDir, { recursive: true, force: true });
+  }
+
 
   /* ================================================================
      MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
@@ -9382,7 +10797,7 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Übersicht liefert den Fokuspunkt des Hauptbilds mit',
     uebersichtF.mainPhoto.focus_x === 20 && uebersichtF.mainPhoto.focus_y === 70);
 
-  const ausF = await ruf('GET', '/api/export?photos=1');
+  const ausF = await rufF('GET', '/api/export?photos=1');
   const ausFoto = ausF.inhalt.items.find(i => i.title === 'Fokusprobe').photos[0];
   pruefe('Export nimmt den Fokuspunkt mit', ausFoto.focus_x === 20 && ausFoto.focus_y === 70);
   await ruf('DELETE', `/api/items/${fp.id}`);
@@ -9538,7 +10953,7 @@ const namen = (liste) => liste.map(c => c.name);
     !agD.comments.find(c => c.text === 'Aufgabe eins').updated_at);
   agD = (await ruf('PUT', `/api/comments/${aufgEins.id}`, { kind: 'task' })).inhalt;
 
-  const aufAus = (await ruf('GET', '/api/export?photos=0')).inhalt.items
+  const aufAus = (await rufF('GET', '/api/export?photos=0')).inhalt.items
     .find(i => i.title === 'Aufgabenprobe');
   pruefe('Der Export nennt die Aufgabe als solche',
     aufAus.comments.filter(c => c.kind === 'task').length === 3,
@@ -9558,7 +10973,7 @@ const namen = (liste) => liste.map(c => c.name);
     aufImpD.comments.find(c => c.text === 'Etwas Unbekanntes').kind);
   await ruf('DELETE', `/api/items/${aufImpE.id}`);
 
-  const ausK = await ruf('GET', '/api/export?photos=0');
+  const ausK = await rufF('GET', '/api/export?photos=0');
   const ausKm = ausK.inhalt.items.find(i => i.title === 'Kommentarprobe');
   pruefe('Export nennt Art und Anpinnung',
     ausKm.comments.every(c => 'kind' in c && 'pinned' in c) &&
@@ -9672,11 +11087,11 @@ const namen = (liste) => liste.map(c => c.name);
   pruefe('Entferntes Bild ist nicht mehr abrufbar',
     (await bAntwort(bilderVorher[0].id)).status === 404);
 
-  const ausB = await ruf('GET', '/api/export?photos=0');
+  const ausB = await rufF('GET', '/api/export?photos=0');
   const ausBk = ausB.inhalt.items.find(i => i.title === 'Bildkommentar');
   pruefe('Ohne Dateischalter kommen keine Kommentarbilder mit',
     ausBk.comments[0].images.length === 0);
-  const ausB2 = await ruf('GET', '/api/export?photos=0&files=1');
+  const ausB2 = await rufF('GET', '/api/export?photos=0&files=1');
   const ausBk2 = ausB2.inhalt.items.find(i => i.title === 'Bildkommentar');
   pruefe('Mit Dateischalter kommen sie mit',
     ausBk2.comments[0].images.length === 1 && !!ausBk2.comments[0].images[0].data_base64);
@@ -10419,10 +11834,10 @@ const namen = (liste) => liste.map(c => c.name);
     statA.attachmentCount === 9 && statA.attachmentBytes > 0,
     `${statA.attachmentCount} / ${statA.attachmentBytes}`);
 
-  const ausOhne = await ruf('GET', '/api/export?photos=0');
+  const ausOhne = await rufF('GET', '/api/export?photos=0');
   pruefe('Export lässt Dateien ohne Schalter weg',
     ausOhne.inhalt.items.find(i => i.title === 'Anhangprobe').attachments.length === 0);
-  const ausMit = await ruf('GET', '/api/export?photos=0&files=1');
+  const ausMit = await rufF('GET', '/api/export?photos=0&files=1');
   const ausAnh = ausMit.inhalt.items.find(i => i.title === 'Anhangprobe').attachments;
   pruefe('Export nimmt Dateien mit Schalter mit', ausAnh.length === 9, `${ausAnh.length}`);
   pruefe('Exportierte Datei enthält ihre Bytes',
@@ -10880,7 +12295,11 @@ function crc32(buf) {
   return (r ^ 0xffffffff) >>> 0;
 }
 
-async function sendeImport(objekt, modus) {
+/* Der Import geht ueber einen rohen fetch, weil er multipart schickt -- also
+   holt er seine Freigabe ausdruecklich davor. Genau das tut die Oberflaeche
+   auch: die Bestaetigung steht VOR der Handlung und nicht in ihr. */
+async function sendeImport(objekt, modus, ohneFreigabe = false) {
+  if (!ohneFreigabe) await freigabeHaupt('import');
   const grenze = '----pruefung' + crypto.randomBytes(6).toString('hex');
   const teil = (name, wert, dateiname) =>
     `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
@@ -10903,6 +12322,47 @@ async function sendeImport(objekt, modus) {
 // drei im Vorrat, Startpage als Standard. Der eigene Anbieter traegt bewusst
 // spitze Klammern im Namen -- er ist Eingabe des Admins und wird als
 // Beschriftung gerendert; daran haengt die Maskierungspruefung.
+/* Das Passwort der Prueflage fuer die zweite Bestaetigung. Es steht hier
+   einmal, damit die Prueflagen es nennen koennen -- und damit der FALSCHE Fall
+   ueberhaupt einer ist: ein Mock, der jedes Passwort durchliesse, machte jede
+   Pruefung auf die Absage gruen, ohne etwas zu belegen. */
+const DOM_PASSWORT = 'chefinnen-langes-wort';
+
+/* Das Sicherheitsprotokoll der Prueflage. VIER ZEILEN, VIER LAGEN, und jede
+   wird gebraucht: ein Vorgang mit Handelndem und Ziel, einer am eigenen
+   Zugang, einer VOM WIRT (wer ist leer) und eine gescheiterte Anmeldung an
+   einem unbekannten Namen (wer UND ziel sind leer). Waeren sie gleichartig,
+   liesse sich nicht pruefen, dass die Karte sie verschieden liest. */
+const DOM_PROTOKOLL = {
+  tage: 180, grenze: 100, gesamt: 7,
+  zeilen: [
+    { id: 7, am: '2026-08-24 09:15:00', was: 'zugang.rolle', wer: 1, werName: 'chefin',
+      ziel: 2, zielName: 'bert', merkmal: 'admin' },
+    { id: 6, am: '2026-08-24 08:00:00', was: 'export', wer: 1, werName: 'chefin',
+      ziel: null, zielName: null, merkmal: null },
+    { id: 5, am: '2026-08-23 22:40:00', was: 'zugang.passwort', wer: null, werName: null,
+      ziel: 3, zielName: 'carla', merkmal: null },
+    { id: 4, am: '2026-08-23 21:05:00', was: 'anmeldung.fehl', wer: null, werName: null,
+      ziel: null, zielName: null, merkmal: null }
+  ]
+};
+
+/* Fuellt den Dialog der zweiten Bestaetigung und drueckt den Knopf.
+   NEUE BEDIENELEMENTE WERDEN PER dispatchEvent GEDRUECKT, samt Durchlauf des
+   Event Loops -- .click() genuegt nicht. Liefert false, wenn gar kein Dialog
+   dasteht: eine Prueflage, die ihn erwartet und nicht bekommt, soll das sehen
+   statt an einer Null zu zerbrechen (Stolperstein 103). */
+async function bestaetigeImDom(d, passwort = 'chefinnen-langes-wort', abbrechen = false) {
+  const feld = d.w.document.getElementById('best-pass');
+  if (!feld) return false;
+  const knopf = feld.closest('.modal')?.querySelector(abbrechen ? '[data-no]' : '[data-yes]');
+  if (!knopf) return false;
+  feld.value = passwort;
+  knopf.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 60));
+  return true;
+}
+
 const DOM_ANBIETER = [
   { schluessel: 'google', name: 'Google', vorlage: 'https://www.google.com/search?q=%s',
     eigen: false, vorhanden: true, aktiv: false, standard: false },
@@ -10927,7 +12387,8 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
+  oeffentlicheAdresse = '', kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
   const { VirtualConsole } = require('jsdom');
@@ -10961,6 +12422,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
      pruefen, und ohne die anderen nicht, dass sie nicht mitfaellt.
      Der leere Fall (nur die eigene) ist ueber sitzungenBestand zu stellen;
      eine Karte, die nur den einen Zustand kennt, belegt den anderen nicht. */
+  const protokoll = protokollBestand || DOM_PROTOKOLL;
   const sitzungen = sitzungenBestand || [
     { kennung: 'a'.repeat(64), angemeldetAm: '2026-08-20 08:00:00',
       zuletztGesehen: '2026-08-24 07:30:00', diese: true },
@@ -11343,10 +12805,27 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     if (/^\/api\/users\/\d+\/token$/.test(url) && opt.method === 'POST') {
       const nr = Number(url.split('/')[3]);
       const z = (zugaenge.zugaenge || []).find(q => q.id === nr) || {};
+      /* WOHER DIE ADRESSE KAM, gehoert in die Antwort -- der echte Server sagt
+         es seit 0.8.90. Die Vorgabe ist der Browserweg; eine Prueflage kann
+         ueber oeffentlicheAdresse den anderen Zustand stellen, und ohne beide
+         liesse sich die Zeile im Linkkasten gar nicht pruefen. */
       return gib({ id: nr, username: z.username, token: 'd'.repeat(64),
                    zweck: (JSON.parse(opt.body || '{}').zweck) || 'einladung',
-                   tage: 7, ohnePasswort: Boolean(z.ohnePasswort) });
+                   tage: 7, ohnePasswort: Boolean(z.ohnePasswort),
+                   link: oeffentlicheAdresse ? `${oeffentlicheAdresse}/#/einladung/${'d'.repeat(64)}` : null,
+                   linkQuelle: oeffentlicheAdresse ? 'einstellung' : 'browser' });
     }
+    /* Die zweite Bestaetigung. DER MOCK ZIEHT WIRKLICH MIT (Stolperstein 90):
+       ein falsches Passwort wird abgewiesen, und die Oberflaeche muss danach
+       stehenbleiben statt zu handeln. */
+    if (url === '/api/bestaetigung' && opt.method === 'POST') {
+      const k = JSON.parse(opt.body || '{}');
+      if (k.passwort !== DOM_PASSWORT)
+        return Promise.resolve({ ok: false, status: 403,
+          json: () => Promise.resolve({ error: 'Das Passwort stimmt nicht.' }) });
+      return gib({ ok: true, zweck: k.zweck, sekunden: 120 });
+    }
+    if (url === '/api/sicherheitsprotokoll') return gib(protokoll);
 
     if (/^\/api\/users\/\d+\/bestand$/.test(url))
       return gib({ username: 'bert', eintraege: 2, fremdKommentare: 3, fremdBewertungen: 1,
@@ -15577,8 +17056,8 @@ async function pruefeOberflaeche() {
 
   const ALLE_KARTEN = ['Titel', 'Zugang', 'Meine Sitzungen', 'Kennzahlen', 'Export', 'Import',
     'Sicherung', 'Papierkorb', 'Kategorien', 'Tags', 'Bewertungskriterien', 'Zugänge',
-    'Darstellung', 'Links', 'Suchanbieter', 'Vokabular'];
-  pruefe('Die Eigentuemerin sieht alle sechzehn Karten',
+    'Sicherheitsprotokoll', 'Darstellung', 'Links', 'Suchanbieter', 'Vokabular'];
+  pruefe('Die Eigentuemerin sieht alle siebzehn Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
 
   /* Die drei, die JEDEM bleiben -- und der Grund steht in jeder von ihnen:
@@ -15603,7 +17082,7 @@ async function pruefeOberflaeche() {
       kAdm.includes(karte) && !kUser.includes(karte),
       `Admin: ${kAdm.includes(karte)} · Benutzer: ${kUser.includes(karte)}`);
   }
-  for (const karte of ['Export', 'Import', 'Sicherung']) {
+  for (const karte of ['Export', 'Import', 'Sicherung', 'Sicherheitsprotokoll']) {
     pruefe(`Die Karte "${karte}" steht nur beim Eigentuemer`,
       kEig.includes(karte) && !kAdm.includes(karte) && !kUser.includes(karte),
       `Eigentuemer: ${kEig.includes(karte)} · Admin: ${kAdm.includes(karte)}`);
@@ -15730,11 +17209,15 @@ async function pruefeOberflaeche() {
   pruefe('Und sie ist als breite Kachel gekennzeichnet',
     !!rKachel && rKachel.classList.contains('breit'),
     rKachel?.className);
-  // Und ausdruecklich als einzige: eine Kennzeichnung, die alle tragen, ist
-  // keine.
-  pruefe('Als einzige der dreizehn',
-    [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.breit')].length === 1,
-    `${rEig.w.document.querySelectorAll('.sys-grid > .sys-card.breit').length} breite Kacheln`);
+  /* Und ausdruecklich nicht alle: eine Kennzeichnung, die jede Kachel traegt,
+     ist keine. SEIT 0.8.90 SIND ES ZWEI -- das Sicherheitsprotokoll ist die
+     zweite, und zwar aus demselben Grund: eine Zeile je Vorgang braucht die
+     Breite. Beide werden namentlich genannt, sonst bliebe die Zahl gruen,
+     wenn eine andere Kachel die Klasse bekaeme. */
+  const rBreite = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.breit')]
+    .map(k => k.querySelector('h3')?.textContent.trim());
+  pruefe('Als eine von genau zweien, und beide namentlich',
+    gleich(rBreite, ['Zugänge', 'Sicherheitsprotokoll']), JSON.stringify(rBreite));
 
   const rCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
@@ -16120,6 +17603,16 @@ async function pruefeOberflaeche() {
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
+    /* SEIT 0.8.90 STEHT DIE ZWEITE BESTAETIGUNG DAVOR. Sie gehoert hier
+       mitgeprueft und nicht bloss weggeraeumt: ohne die erste Zeile bliebe
+       offen, ob der Dialog ueberhaupt erscheint -- und dann belegte der Rest
+       der Gruppe, dass der Link ohne Bestaetigung entsteht. */
+    pruefe('Vor dem Link steht die zweite Bestaetigung',
+      !!d.w.document.getElementById('best-pass'), 'kein Dialog');
+    pruefe('Und der Server ist bis dahin NICHT gefragt worden',
+      !d.gesendet.some(x => x.url === '/api/users/3/token'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    await bestaetigeImDom(d);
     pruefe('Das Kettenglied fragt den Server nach einem Link',
       d.gesendet.some(x => x.methode === 'POST' && x.url === '/api/users/3/token'),
       d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
@@ -16146,6 +17639,291 @@ async function pruefeOberflaeche() {
     pruefe('Der Kasten sagt, dass der Link nur dieses eine Mal erscheint',
       /nur dieses eine Mal/.test(d.w.document.getElementById('zug-link')?.textContent || ''),
       d.w.document.getElementById('zug-link')?.textContent?.slice(0, 240));
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Das Sicherheitsprotokoll in der Oberflaeche');
+
+  /* DIE KARTE HOLT IHREN BESTAND BEIM AUFBAU DES BEREICHS und laedt sich nicht
+     selbst nach (Stolperstein 118): eine Zusage, die nach dem Schliessen ihres
+     Fensters ankommt, risse den ganzen Lauf ab statt eine Pruefung rot zu
+     faerben. Geprueft wird das an der Abrufliste, nicht an der Absicht. */
+  const spKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Sicherheitsprotokoll');
+  const spReihen = (d) => [...(spKarte(d)?.querySelectorAll('.prot-zeile') || [])];
+  const spText = (d) => spKarte(d)?.textContent || '';
+
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    pruefe('Die Karte "Sicherheitsprotokoll" steht da', !!spKarte(d), 'keine Karte');
+    pruefe('Sie wird beim Aufbau des Bereichs geholt, nicht nachgeladen',
+      d.gesendet.filter(x => x.url === '/api/sicherheitsprotokoll').length === 1,
+      d.gesendet.filter(x => x.url === '/api/sicherheitsprotokoll').length + ' Abrufe');
+    pruefe('Und sie zeigt ihre vier Zeilen',
+      spReihen(d).length === 4, `${spReihen(d).length} Zeilen`);
+
+    /* JEDE DER VIER LAGEN EINZELN -- und erst das Vorhandensein der Zeile,
+       dann ihre Eigenschaft (Stolperstein 81). */
+    const spZeile = (was) => spReihen(d).find(z => z.dataset.was === was);
+    pruefe('Die Zeile zum Rollenwechsel ist ueberhaupt da', !!spZeile('zugang.rolle'));
+    pruefe('Sie nennt den Vorgang, den Handelnden, das Ziel und die neue Rolle',
+      /Rolle vergeben/.test(spZeile('zugang.rolle')?.textContent || '') &&
+      /chefin/.test(spZeile('zugang.rolle')?.textContent || '') &&
+      /→ bert/.test(spZeile('zugang.rolle')?.textContent || '') &&
+      /Admin/.test(spZeile('zugang.rolle')?.textContent || ''),
+      spZeile('zugang.rolle')?.textContent?.replace(/\s+/g, ' '));
+    pruefe('Die Zeile zum Export ist ueberhaupt da', !!spZeile('export'));
+    /* Erst das Vorhandensein des Feldes, dann seine Leere (Stolperstein 81):
+       ein fehlendes Feld liefert einen leeren Text, und jede Verneinung darauf
+       waere wahr. */
+    pruefe('Die Zeile zum Export hat ueberhaupt ein Zielfeld',
+      !!spZeile('export')?.querySelector('.prot-ziel'), 'kein Zielfeld');
+    pruefe('Und es bleibt leer -- der Export trifft die Anlage, nicht jemanden',
+      (spZeile('export')?.querySelector('.prot-ziel')?.textContent || '').trim() === '',
+      spZeile('export')?.textContent?.replace(/\s+/g, ' '));
+
+    /* wer IS NULL HEISST "UEBER zugang.js AUF DEM WIRT" -- mit genau einer
+       Ausnahme, und die ist am Vorgang zu erkennen. Beide Lagen stehen hier
+       nebeneinander; ohne die zweite bliebe die erste auch dann gruen, wenn
+       die Oberflaeche jede leere Nummer so beschriftete. */
+    pruefe('Die Zeile vom Wirt ist ueberhaupt da', !!spZeile('zugang.passwort'));
+    pruefe('Sie sagt, dass sie ueber zugang.js kam',
+      /zugang\.js auf dem Wirt/.test(spZeile('zugang.passwort')?.textContent || ''),
+      spZeile('zugang.passwort')?.textContent?.replace(/\s+/g, ' '));
+    pruefe('Die gescheiterte Anmeldung ist ueberhaupt da', !!spZeile('anmeldung.fehl'));
+    pruefe('Sie sagt NICHT, dass sie ueber den Wirt kam',
+      !/zugang\.js/.test(spZeile('anmeldung.fehl')?.textContent || ''),
+      spZeile('anmeldung.fehl')?.textContent?.replace(/\s+/g, ' '));
+    pruefe('Sondern nennt den Namen als unbekannt',
+      /unbekannter Name/.test(spZeile('anmeldung.fehl')?.textContent || ''),
+      spZeile('anmeldung.fehl')?.textContent?.replace(/\s+/g, ' '));
+
+    pruefe('Die Karte nennt die Frist',
+      /180 Tage/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 200));
+    pruefe('Und sagt, dass es keinen anderen Weg hinaus gibt',
+      /Einen anderen Weg hinaus gibt es nicht/.test(spText(d)),
+      spText(d).replace(/\s+/g, ' ').slice(0, 260));
+    pruefe('Sie sagt ausdruecklich, dass sie kein Aenderungsverlauf ist',
+      /kein Änderungsverlauf/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 260));
+    pruefe('Und dass weder Adresse noch Browserkennung darin stehen',
+      /Ebenso wenig Adresse oder Browserkennung/.test(spText(d)),
+      spText(d).replace(/\s+/g, ' ').slice(0, 400));
+    pruefe('Die Fusszeile nennt die gezeigten und die gesamten Vorgaenge',
+      /Die 4 jüngsten von 7 Vorgängen/.test(
+        d.w.document.getElementById('protokoll-fuss')?.textContent || ''),
+      d.w.document.getElementById('protokoll-fuss')?.textContent);
+  }
+
+  /* DER LEERE FALL. Eine Karte, die nur den gefuellten Zustand kennt, belegt
+     ueber den anderen nichts -- und "keine Zeile" darf nicht wie "noch nicht
+     geladen" aussehen. */
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+      { protokollBestand: { zeilen: [], gesamt: 0, tage: 180, grenze: 100 } });
+    pruefe('Auch ohne Vorgang steht die Karte da', !!spKarte(d));
+    pruefe('Und sie sagt es, statt leer zu bleiben',
+      /Noch kein Vorgang festgehalten/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 160));
+    pruefe('Es steht dann auch keine Zeile da', spReihen(d).length === 0, `${spReihen(d).length}`);
+  }
+
+  /* UND DIE ANDEREN BEIDEN ROLLEN. Dass die Karte fehlt, steht schon in der
+     Gruppe "Der Systembereich nach Rolle"; hier gehoert die andere Haelfte
+     dazu: der Abruf wird gar nicht erst gestellt. Ein Abruf, der zuverlaessig
+     403 ergibt, risse den ganzen Systembereich mit -- alle Abrufe haengen in
+     EINEM Promise.all. */
+  {
+    const dAdmin = await ziSystem({ istAdmin: true, istEigentuemer: false });
+    pruefe('Ohne Eigentuemerrolle wird das Protokoll gar nicht erst abgerufen',
+      !dAdmin.gesendet.some(x => x.url === '/api/sicherheitsprotokoll'),
+      dAdmin.gesendet.map(x => x.url).join(' · '));
+    pruefe('Und der Systembereich bleibt dabei gefuellt',
+      [...dAdmin.w.document.querySelectorAll('.sys-grid > .sys-card')].length > 5,
+      `${dAdmin.w.document.querySelectorAll('.sys-grid > .sys-card').length} Karten`);
+    const dUser = await ziSystem({ istAdmin: false, istEigentuemer: false });
+    pruefe('Ein gewoehnlicher Benutzer ruft es erst recht nicht ab',
+      !dUser.gesendet.some(x => x.url === '/api/sicherheitsprotokoll'),
+      dUser.gesendet.map(x => x.url).join(' · '));
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die zweite Bestaetigung in der Oberflaeche');
+
+  /* NEUE BEDIENELEMENTE WERDEN PER dispatchEvent GEDRUECKT, samt Durchlauf des
+     Event Loops -- .click() genuegt nicht.
+     confirm UND prompt SIND IN JSDOM NICHT GEBAUT und liefern undefined; sie
+     werden gestellt, und zwar auf BEIDE Antworten: ein Abbruch, der trotzdem
+     handelt, ist der schlimmere Fehler. */
+  const zdDialog = (d) => d.w.document.getElementById('best-pass');
+  const zdGefragt = (d, url) => d.gesendet.some(x => x.url === url);
+
+  // 1. DER LINK. Der Dialog steht davor, und vorher geht nichts an den Server.
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.confirm = () => true;
+    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Der Dialog steht da', !!zdDialog(d), 'kein Dialog');
+    pruefe('Und er sagt, WARUM gefragt wird',
+      /fremde offene Anmeldung/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
+      zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 220));
+    pruefe('Das Feld verbirgt die Eingabe',
+      zdDialog(d)?.type === 'password', zdDialog(d)?.type);
+    pruefe('Bis dahin ist weder die Freigabe noch der Link angefordert',
+      !zdGefragt(d, '/api/bestaetigung') && !zdGefragt(d, '/api/users/3/token'),
+      d.gesendet.map(x => x.url).join(' · '));
+
+    /* DER ABBRUCH. Ein Abbruch, der trotzdem handelt, ist der schlimmere
+       Fehler -- also wird er ausdruecklich geprueft. */
+    await bestaetigeImDom(d, 'egal', true);
+    pruefe('Nach dem Abbruch geht gar nichts an den Server',
+      !zdGefragt(d, '/api/bestaetigung') && !zdGefragt(d, '/api/users/3/token'),
+      d.gesendet.map(x => x.url).join(' · '));
+    pruefe('Und der Dialog ist weg', !zdDialog(d), 'der Dialog steht noch');
+  }
+
+  // 2. DAS FALSCHE PASSWORT. Die Freigabe wird gefragt und abgewiesen -- und
+  //    die Handlung laeuft NICHT trotzdem.
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.confirm = () => true;
+    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    await bestaetigeImDom(d, 'ganz-falsch-hier');
+    pruefe('Mit falschem Passwort wird die Freigabe gefragt',
+      zdGefragt(d, '/api/bestaetigung'), d.gesendet.map(x => x.url).join(' · '));
+    pruefe('Und die Handlung laeuft trotzdem NICHT',
+      !zdGefragt(d, '/api/users/3/token'), d.gesendet.map(x => x.url).join(' · '));
+    pruefe('Es steht auch kein Linkkasten da',
+      !d.w.document.getElementById('zug-link-feld'), 'der Link steht da');
+  }
+
+  // 3. DAS RICHTIGE PASSWORT -- an der Rolle, am fremden Passwort und am
+  //    Entfernen. Jeder Weg einzeln: eine Sammelpruefung sagt nicht, welcher
+  //    Knopf die Bestaetigung vergessen hat.
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.confirm = () => true;
+    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    const feld = zeile?.querySelector('.zug-r');
+    if (feld) { feld.value = 'admin'; feld.dispatchEvent(new d.w.Event('change', { bubbles: true })); }
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Vor dem Rollenwechsel steht der Dialog', !!zdDialog(d), 'kein Dialog');
+    await bestaetigeImDom(d);
+    const zdFreigabe = d.gesendet.find(x => x.url === '/api/bestaetigung');
+    pruefe('Die Freigabe nennt Zweck und Ziel',
+      zdFreigabe?.koerper?.zweck === 'rolle' && zdFreigabe?.koerper?.ziel === 3,
+      JSON.stringify(zdFreigabe?.koerper));
+    pruefe('Und danach geht der Rollenwechsel an den Server',
+      d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/users/3'),
+      d.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Die Freigabe kommt VOR der Handlung',
+      d.gesendet.findIndex(x => x.url === '/api/bestaetigung') <
+      d.gesendet.findIndex(x => x.methode === 'PUT' && x.url === '/api/users/3'),
+      d.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
+  }
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.confirm = () => true;
+    d.w.prompt = () => 'carlas-neues-langes-wort';
+    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    zeile?.querySelector('.zug-p')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Vor dem fremden Passwort steht der Dialog', !!zdDialog(d), 'kein Dialog');
+    await bestaetigeImDom(d);
+    pruefe('Die Freigabe traegt den Zweck Passwort',
+      d.gesendet.find(x => x.url === '/api/bestaetigung')?.koerper?.zweck === 'passwort',
+      JSON.stringify(d.gesendet.find(x => x.url === '/api/bestaetigung')?.koerper));
+    pruefe('Und danach wird das Passwort gesetzt',
+      d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/users/3' && x.koerper?.passwort),
+      d.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
+  }
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.confirm = () => true;
+    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    zeile?.querySelector('.zug-x')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Vor dem Entfernen steht der Dialog -- NACH den Rueckfragen',
+      !!zdDialog(d), 'kein Dialog');
+    pruefe('Und der Zugang ist bis dahin nicht entfernt',
+      !d.gesendet.some(x => x.methode === 'DELETE' && x.url.startsWith('/api/users/3')),
+      d.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
+    await bestaetigeImDom(d);
+    pruefe('Die Freigabe traegt den Zweck Entfernen',
+      d.gesendet.find(x => x.url === '/api/bestaetigung')?.koerper?.zweck === 'entfernen',
+      JSON.stringify(d.gesendet.find(x => x.url === '/api/bestaetigung')?.koerper));
+    pruefe('Und danach wird entfernt',
+      d.gesendet.some(x => x.methode === 'DELETE' && x.url.startsWith('/api/users/3')),
+      d.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
+  }
+
+  /* 4. DER EXPORT. Er ist eine BROWSERNAVIGATION -- geprueft wird bis zum
+     Dialog und beim Abbruch, denn ein bestaetigter Export verliesse jsdom.
+     Beide Haelften stehen damit: dass der Dialog kommt, und dass ein Abbruch
+     nichts ausloest. */
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    d.w.document.getElementById('ex-no')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Vor dem Export steht der Dialog', !!zdDialog(d), 'kein Dialog');
+    pruefe('Und er nennt, was der Export mitnimmt',
+      /Namen aller Verfasser/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
+      zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 220));
+    await bestaetigeImDom(d, 'egal', true);
+    pruefe('Nach dem Abbruch wird keine Freigabe geholt',
+      !zdGefragt(d, '/api/bestaetigung'), d.gesendet.map(x => x.url).join(' · '));
+  }
+  /* Was hier NICHT steht und warum: der Import laeuft ueber eine echte Datei
+     und einen FileReader; sein Weg ist serverseitig belegt (Gruppe "jeder
+     schwere Weg einzeln"), und ein gestellter Dateiwaehler pruefte den
+     Dateiwaehler, nicht die Schranke. */
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die oeffentliche Adresse im Linkkasten');
+
+  /* BEIDE ZUSTAENDE, und zu jedem die Nachschau, dass der ANDERE gerade nicht
+     dasteht -- sonst bliebe eine Zeile, die BEIDE Formen nennt, in beiden
+     Lagen gruen. */
+  const oaLink = async (opt) => {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, opt);
+    d.w.confirm = () => true;
+    const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
+    zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    await bestaetigeImDom(d);
+    return d;
+  };
+  {
+    const d = await oaLink({});
+    const zeile = d.w.document.getElementById('zug-link-herkunft');
+    pruefe('Die Herkunftszeile steht ueberhaupt da', !!zeile, 'keine Zeile');
+    pruefe('Ohne Einstellung sagt sie: aus deinem Browser',
+      /aus deinem Browser/.test(zeile?.textContent || ''), zeile?.textContent);
+    pruefe('Und nennt die Einstellung dabei NICHT',
+      !/OEFFENTLICHE_ADRESSE/.test(zeile?.textContent || ''), zeile?.textContent);
+    pruefe('Sie nennt die Adresse, auf die der Link zeigt',
+      (zeile?.textContent || '').includes(d.w.location.origin), zeile?.textContent);
+    pruefe('Und das Feld traegt die vom Browser gebaute Adresse',
+      d.w.document.getElementById('zug-link-feld')?.value ===
+        `${d.w.location.origin}${d.w.location.pathname}#/einladung/${'d'.repeat(64)}`,
+      d.w.document.getElementById('zug-link-feld')?.value);
+  }
+  {
+    const d = await oaLink({ oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
+    const zeile = d.w.document.getElementById('zug-link-herkunft');
+    pruefe('Mit Einstellung steht die Herkunftszeile ebenfalls da', !!zeile, 'keine Zeile');
+    pruefe('Und sie nennt die Einstellung beim Namen',
+      /OEFFENTLICHE_ADRESSE/.test(zeile?.textContent || ''), zeile?.textContent);
+    pruefe('Vom Browser ist dann NICHT die Rede',
+      !/aus deinem Browser/.test(zeile?.textContent || ''), zeile?.textContent);
+    pruefe('Sie nennt die Adresse aus der Einstellung',
+      /kriterion\.beispiel\.de/.test(zeile?.textContent || ''), zeile?.textContent);
+    pruefe('Und das Feld traegt den Link des Servers, nicht den des Browsers',
+      d.w.document.getElementById('zug-link-feld')?.value ===
+        `https://kriterion.beispiel.de/#/einladung/${'d'.repeat(64)}`,
+      d.w.document.getElementById('zug-link-feld')?.value);
   }
 
   /* EINE WAHL, EIN KNOPF -- und das Passwortfeld erscheint nur zu der

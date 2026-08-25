@@ -12,6 +12,9 @@
  * genauso gerufen. Hier steht nur die Bedienung: einlesen, fragen, ausgeben.
  * ZUGRIFF AUF DEN WIRT IST DIE BERECHTIGUNG -- wer diesen Befehl ausfuehren
  * kann, koennte auch die .env lesen. Eine Rechtefrage waere hier eine Kulisse.
+ * Das bleibt so -- ABER die drei schreibenden Befehle stehen im
+ * Sicherheitsprotokoll. Sonst haette der Notweg als einziger keine Spur, und
+ * genau er ist der, den man hinterher nachlesen moechte.
  */
 const readline = require('readline');
 const { db } = require('./db');
@@ -132,7 +135,10 @@ async function befehlPasswort(name) {
   const b = await frage('Zur Bestätigung noch einmal: ', true);
   if (a !== b) { console.error(ROT('Die beiden Eingaben stimmen nicht überein. Nichts geändert.')); process.exit(1); }
   try {
-    await auth.setzeNeuesPasswort(u.id, a);
+    // VOM_WIRT statt einer Nummer: hier ist niemand angemeldet. Die Zeile im
+    // Sicherheitsprotokoll traegt deshalb keinen Handelnden -- und genau daran
+    // ist der Notweg spaeter zu erkennen.
+    await auth.setzeNeuesPasswort(u.id, a, auth.VOM_WIRT);
   } catch (e) { console.error(ROT(e.message)); process.exit(1); }
   console.log(`Passwort für "${u.username}" gesetzt. Alle bisherigen Sitzungen dieses Zugangs sind beendet.`);
 }
@@ -161,7 +167,7 @@ async function befehlEntfernen(name, optionen) {
   if (antwort !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
   let ergebnis;
   try {
-    ergebnis = auth.entferneZugang(u.id, optionen);
+    ergebnis = auth.entferneZugang(u.id, optionen, auth.VOM_WIRT);
   } catch (e) { console.error(ROT(e.message)); process.exit(1); }
   console.log(`"${ergebnis.name}" ist entfernt. Die Zeile bleibt als ${ergebnis.grabstein} stehen.`);
 }
@@ -169,7 +175,7 @@ async function befehlEntfernen(name, optionen) {
 function befehlEigentuemer(name) {
   const u = findeZugang(name);
   try {
-    auth.setzeRolle(u.id, 'eigentuemer');
+    auth.setzeRolle(u.id, 'eigentuemer', auth.VOM_WIRT);
   } catch (e) { console.error(ROT(e.message)); process.exit(1); }
   console.log(`"${u.username}" ist jetzt Eigentümer der Anlage. ` +
     `Aktive Eigentümer: ${auth.zahlEigentuemer()}.`);

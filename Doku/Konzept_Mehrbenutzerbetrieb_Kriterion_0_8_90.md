@@ -1,10 +1,17 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 24. August 2026 · gebaut bis Version 0.8.80 — Fingerprint `a835ac92`**
+**Konzeptpapier · Stand 24. August 2026 · gebaut bis Version 0.8.90 — Fingerprint `aeb336bf`**
 (Stufen A bis **H** erledigt; **allein Stufe I ist offen**. 0.8.1 war eine
 **Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
 die Runde **Werkzeug**, 0.8.20 die Runde **„Die Schotten dicht"**, 0.8.40 bis
 0.8.71 vier weitere Runden — alle keine Stufen.)
+
+**0.8.90 ist KEINE Stufe dieses Papiers** und ändert an keiner seiner Regeln
+etwas. „Schwere Eingriffe" liegt zwischen H und I und **arbeitet Stufe I an
+einer Stelle vor**, die hier steht: die **öffentliche Adresse** aus Abschnitt 11
+ist gebaut, optional und leer als Vorgabe. Ab Stufe I ist sie **Pflicht**.
+Alles Übrige der Runde — die zweite Bestätigung und das Sicherheitsprotokoll —
+steht im Projektstand, nicht hier.
 
 **0.8.80 ist Stufe H, „Einladung, Rücksetzung, Sitzungen"** — die erste Stufe
 seit G4 (0.8.30). Ein Zugang bekommt sein Passwort **selbst**, über einen Link
@@ -620,7 +627,7 @@ Admins. **Ab Stufe I geht der Link über den Server hinaus**, und dann wird die
 Einstellung gebraucht: *wer den Link von Hand weitergibt, hat einen Browser,
 der die Adresse kennt; wer ihn verschicken lässt, hat keinen.*
 
-**Wo sie liegt, ist entschieden (gebaut ab 0.8.90):** in der **`.env`** als
+**Wo sie liegt, ist entschieden — und seit 0.8.90 gebaut:** in der **`.env`** als
 `OEFFENTLICHE_ADRESSE`, **optional** — leer heißt „der Browser baut", wie in
 Stufe H. **Nicht** in `settings` und **nicht** in der Oberfläche einstellbar,
 und der Grund steht in der Rollenleiter: ein Admin kommt nicht an einen anderen
@@ -629,6 +636,16 @@ Rücksetzmail** auf seinen Server — auch die des Eigentümers. Damit wäre die
 Einstellung genau der Weg an der Rollenleiter vorbei, den es nicht geben darf.
 Der Systembereich **zeigt** sie, dort wo der Link entsteht; setzen kann sie nur,
 wer an die `.env` kommt. Einzelheiten im Projektstand, Abschnitt 11.
+
+**Gebaut in 0.8.90, und was Stufe I davon vorfindet:** Schema und Rechnername
+sind Pflicht, ein Pfad ist erlaubt, alles ab `?` und `#` wird abgewiesen; ein
+unbrauchbarer Wert bricht den Start **nicht** ab, sondern meldet sich laut und
+fällt auf den Browserweg zurück. Ist sie gesetzt, gibt der Server den fertigen
+Link heraus (`link` und `linkQuelle` in der Antwort der beiden Tokenrouten),
+und der Linkkasten sagt in einer Zeile darunter, **woher** die Adresse kam.
+**In `GET /api/config` steht sie nicht** — der Endpunkt liegt vor der Anmeldung.
+Stufe I braucht damit nur noch den einen Schritt: **sie wird dort Pflicht**,
+denn beim Versand gibt es keinen Browser zu fragen.
 
 **Zugangsdaten** in die `.env`, in der Oberfläche nur „gesetzt/nicht gesetzt".
 Dazu ein **Testmail-Knopf** — sonst fällt der Fehler erst auf, wenn jemand

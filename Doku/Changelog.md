@@ -6,6 +6,70 @@ ist. Die Einzelheiten stehen je Version in
 
 ---
 
+## 0.8.90 — Schwere Eingriffe
+
+**Wer die Anlage als Ganzes anfasst, gibt sein Passwort noch einmal ein — und
+was dabei geschieht, steht hinterher nachlesbar da.** Bisher genügte eine offene
+Anmeldung, um einen Zugang zu entfernen, eine Rolle zu vergeben oder den ganzen
+Bestand zu exportieren. Wer einen Bildschirm unbeaufsichtigt stehen lässt,
+lässt damit die ganze Anlage offen. Das ändert sich.
+
+### Neu
+
+- **Die zweite Bestätigung.** Vor dem **Export**, dem **Import**, dem
+  **Vergeben einer Rolle**, dem **Setzen eines fremden Passworts**, dem
+  **Erzeugen eines Links** und dem **Entfernen eines Zugangs** fragt Kriterion
+  nach deinem eigenen Passwort — in einem Fenster, das daneben schreibt, warum
+  es fragt. Die Bestätigung gilt **genau einmal** und nur für die eine
+  Handlung: wer drei Zugänge nacheinander entfernt, tippt dreimal.
+- **Das Sicherheitsprotokoll.** Eine neue Karte im Systembereich, **nur für den
+  Eigentümer**. Sie hält fest, wer Zugang hatte und wer die Anlage als Ganzes
+  angefasst hat: Anmeldungen (gelungene und gescheiterte), angelegte,
+  gesperrte, freigegebene und entfernte Zugänge, vergebene Rollen, gesetzte
+  Passwörter, erzeugte und eingelöste Links, Export, Import und Sicherung. Die
+  Zeilen bleiben **180 Tage** stehen und werden danach von selbst geräumt.
+- **`OEFFENTLICHE_ADRESSE` in der `.env` — optional.** Den Einladungslink baut
+  bisher der Browser aus der Adresse, an der du gerade stehst. Wer über
+  `http://192.168.1.50:3100` arbeitet und einen Link nach draußen gibt, gibt
+  einen Link ins Leere. Ist die Zeile gesetzt, baut der Server den Link; der
+  Kasten sagt darunter, **woher** die Adresse kam.
+
+### Was gleich bleibt
+
+- **Sperren, Freigeben und Anlegen fragen nicht nach.** Sperren ist umkehrbar,
+  und ein neuer Zugang nimmt niemandem etwas. Auch am eigenen Zugang ändert
+  sich nichts — dort war das bisherige Passwort ohnehin schon Pflicht.
+- **Am Eintrag ändert sich gar nichts.** Schreiben, bewerten, kommentieren,
+  Fotos und Dateien: alles wie bisher.
+- **Das Protokoll ist kein Änderungsverlauf.** Es steht nicht darin, was jemand
+  geschrieben, bewertet oder geändert hat — nur, wer die *Anlage* angefasst
+  hat. Und es speichert weiterhin **weder IP-Adresse noch Browserkennung**.
+- **Es wird nichts verschickt.** Kriterion baut weiterhin keine Verbindung nach
+  außen auf. Mailversand kommt in einer späteren Version.
+- **Ohne die neue `.env`-Zeile läuft alles wie bisher.** Sie ist optional und
+  leer als Vorgabe.
+- Export, Import, Papierkorb, Sicherung, Rollen und Rechte arbeiten
+  unverändert. Die Exportdatei behält ihr Format.
+
+### Beim Einspielen
+
+- **Die Sicherung des Datenverzeichnisses ist PFLICHT.** Die Datenbank bekommt
+  eine neue Tabelle; ein Downgrade auf eine ältere Version ist damit keine
+  reine Dateikopie mehr. Auf Knopfdruck geht es auch — **aber die Kopie ist
+  verschlüsselt und ohne die `.env` wertlos**, also beides sichern und
+  ausdrücklich **nicht** in dieselbe Ablage legen.
+- **Sonst nichts.** Keine Änderung an der `docker-compose.yml`, keine neue
+  Abhängigkeit. Die Tabelle legt sich beim ersten Start selbst an.
+- **Wenn du die öffentliche Adresse setzen willst**, trag sie in die `.env` ein
+  und erzeuge den Container neu:
+  `OEFFENTLICHE_ADRESSE=https://kriterion.beispiel.de`. Ein Tippfehler bricht
+  den Start **nicht** ab — er wird im Protokoll gemeldet, und der bisherige Weg
+  trägt weiter.
+- **Halte dein eigenes Passwort bereit.** Es wird ab jetzt vor jedem schweren
+  Weg gefragt. Wer es nicht mehr weiß, ändert es vorher unter „Zugang".
+
+---
+
 ## 0.8.80 — Einladung, Rücksetzung, Sitzungen
 
 **Das Passwort gehört dem, der es benutzt.** Bisher legte der Admin einen
