@@ -177,7 +177,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.9.0 ist gebaut** — Fingerprint **`FINGERPRINT_0_9_0`**, 3180
+**0.9.0 ist gebaut** — Fingerprint **`FINGERPRINT_0_9_0`**, 3192
 Prüfungen. **Erste Hälfte von Stufe I, und KEINE Datenbankstufe:** diese Runde
 bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf** markierten
 Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts** dazu.
@@ -3899,6 +3899,29 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Startausgabe prüft, prüft sie an einem Neustart* — dort steht sie im
     Betrieb schließlich auch.
 
+145. **Eine stumme Gegenprobe sagt nicht immer „hier prüft niemand" — manchmal
+    sagt sie „diese Zeile tut nichts".** `PUT /api/mail` löschte die Marke der
+    letzten Testmail ausdrücklich. Ein Rückbau darauf blieb **auch mit einer
+    eigens dafür gebauten Prüfung** stumm, und der Grund lag im Code: der
+    Vergleich in `mailKarte()` hängt am Hash über den Zugang und verwirft die
+    Marke ohnehin — er kann sogar mehr, denn er fängt auch einen Wert, der auf
+    einem anderen Weg in `settings` landet. **Zwei Mechanismen für eine Zusage
+    sind einer zu viel.** Die Zeile ist entfernt, und der Rückbau zielt jetzt
+    auf den Vergleich. *Wer eine stumme Gegenprobe untersucht, fragt zuerst,
+    ob die zurückgebaute Zeile überhaupt etwas bewirkt.* Verwandt mit 138,
+    aber die Gegenrichtung: dort fehlt die Prüfung, hier fehlt die Wirkung.
+
+146. **Ein Rückbau, der den Prüflauf hängen lässt, blockiert seine Spur für
+    immer.** Zwei Rückbauten dieser Runde taten es — der eine nahm die Frist
+    über dem Mailversand weg, der andere das Abräumen der Verbindungen des
+    SMTP-Empfängers. Ohne CPU, ohne Meldung, und in der Laufzeile des Treibers
+    von einem stummen nicht zu unterscheiden. `gegenprobe.js` hat seitdem eine
+    **Zeitgrenze je Rückbau** und ein eigenes Wort dafür. *Ein Treiber, der
+    einen Rückbau fährt, rechnet damit, dass der Rückbau ihn aufhält.* Und die
+    Kehrseite: **beide Rückbauten waren schlecht gezielt** — einer, der die
+    Wirkung wegnimmt statt den Mechanismus zu zerstören, wird rot statt zu
+    hängen.
+
 ---
 
 ## 7. Prüfstand
@@ -3911,7 +3934,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3180 von 3180 bestanden** (0.9.0; **170 neue Prüfungen, 33
+**Zuletzt: 3192 von 3192 bestanden** (0.9.0; **182 neue Prüfungen, 33
 Gegenproben, neun neue Gruppen**: „Der Mailversand: das echte SMTP-Gespräch",
 „… das Offline-Prinzip in beide Richtungen", „… die Frist wird gemessen, nicht
 behauptet", „… die öffentliche Adresse ist Pflicht", „… das Passwort steht
@@ -3952,6 +3975,22 @@ Spalte wächst nicht nach") bleibt unverändert stehen.
 **Die Zahl der Abhängigkeiten steht im Prüfstand fest** — `npm ls --omit=dev`
 liefert 122 Pfade statt 121, und `nodemailer` bringt keinen Unterbaum mit.
 Wächst der Baum später still, wird es namentlich rot.
+
+**Zehn der 33 Gegenproben waren beim ersten Lauf stumm oder rissen ab**, und
+jede einzelne hat etwas gesagt: **vier echte Lücken** (alle Stolperstein 102 —
+die Oberfläche liest ein Feld gegen den Mock, und der bringt es selbst mit),
+**zwei zu lockere Prüfungen**, **vier Fehler an Prüfung oder Rückbau** (alle
+Stolperstein 138) und **ein Befund am Code**: eine Zeile, die nichts tat.
+Übrig bleibt genau eine stumme, und sie ist entschieden. Einzelheiten im
+Änderungsprotokoll, Befund L.
+*Die Lehre, in einem Satz:* **eine stumme Gegenprobe sagt nicht immer „hier
+prüft niemand" — manchmal sagt sie „diese Zeile tut nichts".**
+
+**`gegenprobe.js` hat dabei eine Zeitgrenze je Rückbau bekommen** (zwölf
+Minuten, das Doppelte eines Laufs). Ein Rückbau kann den Prüflauf nicht nur rot
+machen, sondern **hängen** lassen — dann blockiert er seine Spur für immer,
+ohne CPU und ohne Meldung, und in der Laufzeile war er von einem stummen nicht
+zu unterscheiden.
 
 **Davor 3010 von 3010** (0.8.91; **101 neue
 Prüfungen, 18 Gegenproben, elf neue Gruppen**: „Der
@@ -4407,7 +4446,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.80 | Stufe H — alle vier Punkte (263) | 40 | Stolpersteine 124 bis 127 |
 | 0.8.90 | Protokoll, zweite Bestätigung, öffentliche Adresse (248) | 24 | Stolpersteine 128 bis 133 |
 | 0.8.91 | Schlüsselwechsel, Gegenprobentreiber, Portversatz (101) | 18 | Stolpersteine 134 bis 140, Befund L |
-| 0.9.0 | Mailversand, Adresse am Zugang, Frist ab dem ersten Öffnen (170) | 33 | Stolpersteine 141 bis 144 |
+| 0.9.0 | Mailversand, Adresse am Zugang, Frist ab dem ersten Öffnen (182) | 33 | Stolpersteine 141 bis 146, Befund L |
 
 **Aus 0.8.80 (Stufe H):** der **Rundlauf** ist die tragende Prüfung — einladen,
 Link, Formular, Passwort, Anmeldung, und **derselbe Link ein zweites Mal
@@ -4670,7 +4709,7 @@ Adresse — ein gültiger Einladungslink sah danach tot aus (Stolperstein 141).
 Vorgänge bleiben fünfzehn, die Formatnummer 10, das Vokabular elf.
 **Eine neue Laufzeitabhängigkeit — die erste seit Langem:** `nodemailer` 9.0.5,
 MIT-0, +1 Paket, 776 KB, nachgemessen.
-3180 Prüfungen, 33 Gegenproben, Stolpersteine 141 bis 144.
+3192 Prüfungen, 33 Gegenproben, Stolpersteine 141 bis 146.
 
 **0.8.91 — „Der Schlüssel lässt sich wechseln".** Keine Stufe des
 Mehrbenutzerbetriebs und **keine Datenbankstufe**: keine Tabelle, keine Spalte,

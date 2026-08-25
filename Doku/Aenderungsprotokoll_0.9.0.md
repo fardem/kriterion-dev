@@ -520,43 +520,86 @@ Der Wächter aus 0.8.91 hat es beim ersten Lauf namentlich gemeldet, bevor eine
 einzige Prüflage unerreichbar wurde. Umgerechnet auf **6430**. *Genau der Fall,
 für den der Wächter gebaut wurde, und er ist beim ersten Gebrauch eingetreten.*
 
-### Befund L — drei stumm gebliebene Gegenproben, und sie sagen Verschiedenes
+### Befund L — zehn stumme oder abgerissene Gegenproben, und jede sagte etwas
 
-**Rückbau 02** („der Link fällt aus der Antwort, wenn der Versand trägt") blieb
-an `POST /api/users/:id/token` **vollständig stumm**. Der Grund ist
-Stolperstein 102 zum dritten Mal: geprüft war der Link nur am **Anlegen**; die
-Oberfläche liest ihn zwar auch an der Tokenroute, aber gegen den Mock — und der
-bringt das Feld selbst mit. **Zwei Routen sind zwei Stellen, und die eine deckt
-die andere nicht.** Nachgezogen: die Tokenroute wird jetzt am echten Server auf
-`versand`, `link`, `linkQuelle` und `minuten` geprüft, samt der zweiten Mail
-beim Empfänger.
+**Das ist der wertvollste Abschnitt dieser Runde.** Der Auftrag verlangt es so:
+*„Ein Rückbau, der KEINE Prüfung rot macht, ist ein FUND und wird untersucht,
+nicht abgehakt."* Von 33 Rückbauten blieben beim ersten Lauf **zehn** stumm oder
+rissen ab. Keiner davon war harmlos.
 
-**Rückbau 05** („die äußere Schranke über dem Versand fällt weg") blieb
-ebenfalls stumm — und der Fund war **mein Rückbau**, nicht die Prüfung: er hängte
-nur einen zusätzlichen, nie erfüllten Verlierer in den Wettlauf, statt die Frist
-zu entfernen. Am Verhalten änderte das nichts. Berichtigt.
+**Vier echte Lücken — und alle vier sind Stolperstein 102**, jetzt viermal in
+Folge: *die Oberfläche liest ein Feld aus der Antwort, geprüft wird aber gegen
+den Mock, und der bringt das Feld selbst mit.*
 
-**Und dabei ist ein echter Mangel am BELEG herausgekommen.** Die Fristgruppe
-maß bis dahin an einem Empfänger, der grüßt und danach schweigt — dort greift
-aber **nodemailers eigenes `socketTimeout`** bei fast derselben Millisekunde,
-und über die äußere Schranke war damit nichts bewiesen. Nachgestellt: ein
-Empfänger, der alle drei Sekunden **ein Byte** schickt und nie antwortet, setzt
-`socketTimeout` mit jedem Byte zurück — **nach 45 Sekunden hängt der Versand
-immer noch.** Der Prüfstand hat seitdem eine sechste Betriebsart
-(`'troepfelt'`), und *sie* ist die Lage, an der die äußere Schranke ihren Beleg
-bekommt.
+| | Was ungeprüft war |
+|---|---|
+| **02** | Der Link an `POST /api/users/:id/token`. Geprüft war er nur am **Anlegen** — zwei Routen sind zwei Stellen, und die eine deckt die andere nicht. |
+| **09** | Ein Zugang **ohne** Adresse an einer Anlage, an der der Versand steht. Ohne die Klemme liefe der Versuch bis zum Mailserver und käme als `'fehlgeschlagen'` zurück — der Admin suchte den Fehler beim Anbieter statt am Zugang. |
+| **14** | Dass die Marke der letzten Testmail nach einer Änderung am Zugang nicht mehr gilt. |
+| **18** | Das Mailpasswort wurde nur in der Antwort des **schreibenden** Wegs gesucht, nie in der des **lesenden**. |
 
-**Rückbau 06** („nodemailers Fristen stehen wieder auf ihren Vorgaben") bleibt
-stumm, und das ist **entschieden, nicht übersehen**: die Zusage trägt die äußere
-Schranke allein. Die drei Fristen darunter sind der schnellere Weg — ein toter
-Rechner scheitert nach sieben Sekunden statt nach zwanzig —, aber sie tragen
-nichts, was sonst fiele. Der Rückbau steht mit dieser Notiz in der Tabelle.
+**Zwei zu lockere Prüfungen.** „Die Absage nennt den Weg dorthin" prüfte auf das
+Wort *Zugang* — das steht schon im **ersten** Satz der Absage („Für deinen
+Zugang ist keine Adresse hinterlegt"); ein Rückbau, der den zweiten Satz
+wegnahm, blieb deshalb stumm. Geprüft wird jetzt der **Ort**: Systembereich,
+Karte „Zugang". Und „ein unbekannter Anbieter wird abgewiesen" nahm **jedes**
+400 — auch eines, das aus einem `TypeError` entstand, nachdem die Klemme
+gefallen war. Geprüft wird jetzt der **Wortlaut** der Absage.
+
+**Vier Fehler an meiner eigenen Prüfung oder am Rückbau — alle vier
+Stolperstein 138**, und der lautet: *eine Gegenprobe, die den Lauf mitnimmt,
+sagt nichts darüber, welche Prüfung den Rückbau bemerkt hätte.*
+
+* **05** — Der erste Anlauf hängte nur einen zusätzlichen, nie erfüllten
+  Verlierer in den Wettlauf, statt die Frist zu entfernen: am Verhalten änderte
+  das nichts. Der zweite strich sie aus dem Wettlauf — dann warf sie
+  **unbehandelt**, und der Server starb. Der dritte macht sie **wirkungslos**
+  und lässt alles stehen. **Und die Prüfung selbst brauchte ein eigenes
+  Auffangnetz:** ohne es hing der Prüflauf, sobald der Rückbau die Frist
+  wegnahm. Jede Messung der Frist läuft jetzt über eine eigene Grenze beim
+  Doppelten der Zusage — *was darunter liegt, ist eine Messung; was darüber
+  liegt, ist ein Befund.*
+* **25** — Der Rückbau nimmt den Knopf „noch einmal versuchen" weg, und meine
+  Prüfzeile griff ihn mit `.dispatchEvent` auf `null` (Stolperstein 103). Jetzt
+  über ein Auffangnetz.
+* **27** — Der Rückbau zielte auf die **Karte**; `mailstand` ist beim Admin aber
+  `null`, weil er gar nicht erst geholt wird — die Karte erschiene also
+  trotzdem nicht. Er zielt jetzt auf den **Abruf**, und der ist die tragende
+  Zeile.
+* **W6** — Der Rückbau nahm das Abräumen der Verbindungen weg; dann **hängt**
+  der Lauf am `close()`, statt rot zu werden. Er zielt jetzt auf den
+  Horchposten selbst, und genau der Wächter färbt sich, der dafür da ist.
+
+**Und ein Befund am Code — die letzte stumme.** Rückbau 14 blieb auch nach der
+neuen Prüfung stumm, und diesmal lag es am **Code**: das ausdrückliche Löschen
+der Marke in `PUT /api/mail` war **folgenlos**. Der Vergleich in `mailKarte()`
+hängt am Hash über den Zugang und verwirft die Marke ohnehin — und er kann
+mehr, denn er fängt auch einen Wert, der auf einem anderen Weg in `settings`
+landet. **Zwei Mechanismen für eine Zusage sind einer zu viel.** Das Löschen ist
+entfernt, die Begründung steht an seiner Stelle, und der Rückbau zielt jetzt auf
+den Vergleich. *Eine Gegenprobe, die stumm bleibt, sagt nicht immer „hier prüft
+niemand" — manchmal sagt sie „diese Zeile tut nichts".*
+
+**Übrig bleibt genau eine stumme, und sie ist entschieden: 06.** Nodemailers
+eigene Fristen auf ihre Vorgaben zurückzusetzen macht nichts rot, weil die
+Zusage **allein von der äußeren Schranke** getragen wird. Die drei darunter sind
+der schnellere Weg — ein toter Rechner scheitert nach sieben Sekunden statt nach
+zwanzig —, aber sie tragen nichts, was sonst fiele. Der Rückbau steht mit dieser
+Notiz in der Tabelle.
+
+**Und der Treiber hat dabei etwas bekommen.** Ein Rückbau, der den Prüflauf
+**hängen** lässt, blockierte seine Spur für immer — ohne CPU, ohne Meldung, und
+in der Laufzeile nicht von einem stummen zu unterscheiden. `gegenprobe.js` hat
+jetzt eine **Zeitgrenze je Rückbau** (zwölf Minuten, das Doppelte eines Laufs)
+und ein eigenes Wort dafür; die Tabelle unterschied „abgerissen" schon immer,
+die Zeile jetzt auch.
 
 ---
 
 ## 5. Neue Stolpersteine
 
-Die Zählung setzt bei **141** fort; 134 bis 140 waren vergeben.
+Die Zählung setzt bei **141** fort; 134 bis 140 waren vergeben. Es sind sechs
+geworden — 145 und 146 kommen aus den Gegenproben selbst.
 
 * **141** — Eine vorübergehende Absage darf den Schlüssel nicht wegwerfen.
 * **142** — Ein `net`-Server, der absichtlich schweigt, lässt sich nicht mit
@@ -565,6 +608,10 @@ Die Zählung setzt bei **141** fort; 134 bis 140 waren vergeben.
   so.
 * **144** — Eine Zeile, die beim Start geschrieben wird, lässt sich nicht an
   einem Server prüfen, der vor der Einstellung hochgekommen ist.
+* **145** — Eine stumme Gegenprobe sagt nicht immer „hier prüft niemand" —
+  manchmal sagt sie „diese Zeile tut nichts".
+* **146** — Ein Rückbau, der den Prüflauf hängen lässt, blockiert seine Spur
+  für immer.
 
 Die ausführlichen Fassungen stehen im Projektstand, Abschnitt 6.
 
@@ -615,7 +662,50 @@ es namentlich rot.
 
 ## 7. Gegenprobentabelle
 
-*Wird nach dem Lauf eingetragen.*
+**33 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
+gefahren über `gegenprobe.js` mit vier Nebenspuren.
+
+**Zehn davon waren beim ersten Lauf stumm oder rissen ab, und jede einzelne
+hat etwas gesagt** — vier echte Lücken, zwei zu lockere Prüfungen, vier Fehler
+an Prüfung oder Rückbau, dazu ein Befund am Code selbst. Alle stehen in
+Befund L und sind abgearbeitet. **Übrig bleibt genau eine stumme, und sie ist
+entschieden** (06).
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 01 | Der Token entsteht erst NACH dem Versand | 28 Prüfungen, darunter „Es liegt ueberhaupt ein Schluessel vor" (11 Gruppen) |
+| 02 | Der Link faellt aus der Antwort, wenn der Versand traegt | „Und auch dort steht der Link trotzdem in der Antwort", „Samt der Angabe, woher die Adresse kam" |
+| 03 | Das Feld versand faellt ganz weg | „Eine Einladung geht hinaus", „Auch die Tokenroute verschickt" |
+| 04 | Der Grund faellt weg -- "aus" steht ohne Auskunft da | „Mit einem Grund, der den Weg nennt" |
+| 05 | Die aeussere Schranke ueber dem Versand faellt weg | „Ein Empfaenger, der troepfelt, haelt die Antwort trotzdem nicht laenger als 20 s auf", „Der Token ist auch dort da", „Und der Grund nennt die Frist" |
+| 06 | Die Fristen von nodemailer stehen wieder auf ihren Vorgaben | **STUMM — das ist ein FUND** |
+| 07 | Ohne oeffentliche Adresse wird trotzdem verschickt | „Ohne oeffentliche Adresse wird NICHT verschickt", „Und der Grund nennt die Einstellung", „Der Empfaenger hat wirklich nichts bekommen" |
+| 08 | Die Adresse wird aus dem Host-Kopf abgeleitet | „Der Link steht vollstaendig im Rumpf", „Und der Link IN DER MAIL ebenso wenig" |
+| 09 | Ein Zugang ohne Adresse wird trotzdem beschickt | „Ein Zugang ohne Adresse wird gar nicht erst beschickt", „Und der Grund nennt die fehlende Adresse, nicht den Mailserver" |
+| 10 | Die Adresse laesst sich beim Anlegen nicht mehr mitgeben | „Auch die Tokenroute verschickt", „Die zweite Mail traegt den zweiten Schluessel" |
+| 11 | Die eigene Adresse laesst sich nicht mehr setzen | 7 Prüfungen, darunter „Die Testmail geht hinaus" (Gruppe „Der Mailversand: die Testmail geht an die eigene Adresse") |
+| 12 | Die Testmail nimmt die Adresse aus dem Rumpf | 4 Prüfungen, darunter „Und zwar an die eigene Adresse" (Gruppe „Der Mailversand: die Testmail geht an die eigene Adresse") |
+| 13 | Die Absage ohne eigene Adresse nennt den Weg dorthin nicht | „Und die Absage nennt den Weg dorthin -- den Ort, nicht nur das Wort" |
+| 14 | Die Marke gilt auch nach einer Aenderung am Zugang weiter | „Und die Marke ist danach weg", „Auch die gelesene Karte sagt jetzt "noch nie"" |
+| 15 | Der Mailzugang steht auch dem Admin offen | „Jede Route mit benanntem Waechter traegt ihn in der Routenzeile" |
+| 16 | Die Testmail steht auch dem Admin offen | „Und ein Admin loest die Testmail NICHT aus", „Jede Route mit benanntem Waechter traegt ihn in der Routenzeile" |
+| 17 | Die zweite Bestaetigung faellt am Mailzugang weg | „Ohne zweite Bestaetigung kommt auch der Eigentuemer nicht durch", „Und dabei wurde nichts geschrieben", „Jede zweitbestaetigte Route ruft die Bestaetigung wirklich" |
+| 18 | Das Mailpasswort steht in der Antwort | „Auch die gelesene Karte traegt das Passwort NICHT" |
+| 19 | Das Mailpasswort geht in die Kontrollausgabe | „Und das Passwort steht auch dort nicht" |
+| 20 | Ein mitgeschickter Server ueberschreibt die Vorlage | „Und auch ein GESPEICHERTER Wert verliert gegen die Vorlage" |
+| 21 | Ein unbekannter Anbieter wird durchgelassen | „Und zwar mit der benannten Absage, nicht mit einem Fehler" |
+| 22 | Das erste Oeffnen startet die Frist nicht | „Der Ablauf ist damit auf fuenfzehn Minuten heruntergeschrieben" |
+| 23 | Jedes Oeffnen schiebt die Frist weiter | „Und es schiebt die Frist nicht weiter", „Das dritte ebenso wenig" |
+| 24 | Die Absage nach der Frist bekommt einen eigenen Wortlaut | „Und die Absage ist die eine bekannte, ohne eigenen Grund", „Die Absage nennt das Heilmittel" |
+| 25 | Jede Absage wirft den Schluessel wieder aus der Adresse | 5 Prüfungen, darunter „Eine Absage der Bremse fuehrt NICHT auf die Anmeldemaske" (Gruppe „Die Einladungsseite in der Oberflaeche") |
+| 26 | Der zweite Anlauf nach der Bremse faellt weg | „Und der zweite Anlauf fuehrt wirklich zum Formular" |
+| 27 | Der Mailzugang wird auch fuer den Admin geholt | 17 Prüfungen, darunter „Ein Admin sieht die Karte ebenfalls" (4 Gruppen) |
+| 28 | Der Versandzustand verschwindet aus dem Linkkasten | 7 Prüfungen, darunter „Bei erfolgreichem Versand sagt der Kasten es" (Gruppe „Der Versandzustand neben dem Link") |
+| 29 | Das Adressfeld am eigenen Zugang schickt nichts mehr mit | 4 Prüfungen, darunter „Der Knopf schickt die Adresse mit" (Gruppe „Die eigene Adresse in der Karte „Zugang“") |
+| 30 | Die Frist steht nicht mehr auf der Einladungsseite | „Die Einladungsseite nennt die Frist ab dem ersten Oeffnen", „Und sagt, dass Neuladen in dieser Zeit erlaubt ist" |
+| W2 | Eine Portbasis liegt wieder auf der gesperrten 4045 | „Keine Portbasis deckt eine Nummer, die fetch() nicht anwaehlt" |
+| W5 | Der SMTP-Empfaenger wird nicht mehr vermerkt | „Der Lauf hat seine Portbasen vermerkt", „Der SMTP-Empfaenger hat seine Nummern vermerkt" |
+| W6 | Der SMTP-Empfaenger hoert nicht auf zu horchen | „Und kein SMTP-Empfaenger horcht noch" |
 
 ---
 
@@ -624,8 +714,8 @@ es namentlich rot.
 | | |
 |---|---|
 | Vorher (0.8.91) | 3010 |
-| Nachher (0.9.0) | **3180** |
-| Neu | **170** |
+| Nachher (0.9.0) | **3192** |
+| Neu | **182** |
 | Gegenproben | **33** |
 
 ---
