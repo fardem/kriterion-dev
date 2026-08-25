@@ -1302,10 +1302,15 @@ die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
 enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
 Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
 
-**0.8.91 fasst die Datenbank nicht an** — keine Tabelle, keine Spalte; ein
-Downgrade auf 0.8.90 wäre eine reine Dateikopie. Die Sicherung bleibt trotzdem
-Pflicht, und beim **Schlüsselwechsel** ein zweites Mal: siehe den Abschnitt
-„Den Schlüssel wechseln".
+**0.9.0 fasst die Datenbank nicht an** — keine Tabelle, keine Spalte; ein
+Downgrade auf 0.8.91 wäre eine reine Dateikopie. Die Sicherungszeile bleibt
+trotzdem im Weg: sie kostet nichts und ist der einzige Rückweg, der ohne
+Fußnoten auskommt. **Es kommt auch keine neue Zeile in die `.env`** — der
+Mailzugang steht im Systembereich, nicht dort.
+
+**0.8.91 davor fasste sie ebenfalls nicht an.** Dort war die Sicherung
+trotzdem Pflicht, und beim **Schlüsselwechsel** ein zweites Mal: siehe den
+Abschnitt „Den Schlüssel wechseln".
 
 **Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Branchnamen
 an: aus `main` wird `kriterion-main`. Ohne das `mv` legt das folgende
