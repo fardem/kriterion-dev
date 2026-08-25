@@ -19264,6 +19264,15 @@ function pruefeSchluesselwechsel() {
   // Die beiden Tabellen, in die der Wechsel seine eigene Spur schreibt.
   const SW_EIGENE = ['settings', 'sicherheitsprotokoll'];
 
+  /* JEDER ZERBRECHLICHE SCHRITT WIRD ZU EINEM ROTEN PUNKT, NICHT ZU EINEM
+     ABRISS. Diese Gruppen pruefen einen Vorgang, der scheitern KANN und in den
+     Gegenproben absichtlich scheitert -- eine Prueffzeile, die dann auf
+     `.get().value` zugreift oder einen Kindprozess ohne Auffangnetz ruft,
+     reisst den ganzen Lauf ab, statt eine Pruefung namentlich rot zu faerben
+     (Stolperstein 103). Genau daran ist die erste Gegenprobe dieser Runde
+     haengengeblieben. */
+  const swVersuch = (was, ersatz = null) => { try { return was(); } catch { return ersatz; } };
+
   const swOeffne = (verzeichnis, hex) => {
     const d = new Database(path.join(verzeichnis, 'katalog.sqlite'));
     d.pragma("cipher='sqlcipher'");
@@ -19340,21 +19349,24 @@ function pruefeSchluesselwechsel() {
 
   const w1 = swRuf(['wechseln', '--ja'], a1.dir, null);
   pruefe('Der Wechsel laeuft durch', w1.code === 0, `Rueckgabe ${w1.code}\n${w1.aus.slice(-400)}`);
-  const a1neu = fs.readFileSync(path.join(a1.dir, 'encryption.key'), 'utf8').trim();
+  const a1neu = swVersuch(
+    () => fs.readFileSync(path.join(a1.dir, 'encryption.key'), 'utf8').trim(), '');
   pruefe('Die Schluesseldatei traegt einen NEUEN 64-stelligen Wert',
     /^[0-9a-f]{64}$/.test(a1neu) && a1neu !== a1.hex,
     `${a1neu.length} Zeichen, gleich wie vorher: ${a1neu === a1.hex}`);
 
-  const d1 = swOeffne(a1.dir, a1neu);
+  // Oeffnen kann scheitern -- dann ist der Wechsel nicht durchgelaufen, und
+  // die drei Pruefungen darunter sind rot statt abwesend.
+  const d1 = swVersuch(() => swOeffne(a1.dir, a1neu));
   pruefe('Mit dem NEUEN Schluessel oeffnet die Datei',
-    d1.prepare('SELECT COUNT(*) n FROM items').get().n === 120,
-    JSON.stringify(d1.prepare('SELECT COUNT(*) n FROM items').get()));
+    swVersuch(() => d1.prepare('SELECT COUNT(*) n FROM items').get().n) === 120,
+    JSON.stringify(swVersuch(() => d1.prepare('SELECT COUNT(*) n FROM items').get())));
   pruefe('Und integrity_check meldet ok',
-    d1.pragma('integrity_check', { simple: true }) === 'ok',
-    d1.pragma('integrity_check', { simple: true }));
+    swVersuch(() => d1.pragma('integrity_check', { simple: true })) === 'ok',
+    String(swVersuch(() => d1.pragma('integrity_check', { simple: true }))));
   pruefe('Der Bestand ist Feld fuer Feld derselbe',
-    swAbdruck(d1, SW_EIGENE) === a1.abdruck,
-    `${swAbdruck(d1, SW_EIGENE)} statt ${a1.abdruck}`);
+    swVersuch(() => swAbdruck(d1, SW_EIGENE)) === a1.abdruck,
+    `${swVersuch(() => swAbdruck(d1, SW_EIGENE))} statt ${a1.abdruck}`);
   pruefe('Mit dem ALTEN Schluessel oeffnet sie nicht mehr',
     swOeffnetNicht(a1.dir, a1.hex), 'der alte Schluessel oeffnet noch');
 
@@ -19363,11 +19375,11 @@ function pruefeSchluesselwechsel() {
 
   pruefe('Vor dem Wechsel stand das Journal auf WAL', a1.journal === 'wal', a1.journal);
   pruefe('Nach dem Wechsel steht es wieder auf WAL',
-    d1.pragma('journal_mode', { simple: true }) === 'wal',
-    d1.pragma('journal_mode', { simple: true }));
+    swVersuch(() => d1.pragma('journal_mode', { simple: true })) === 'wal',
+    String(swVersuch(() => d1.pragma('journal_mode', { simple: true }))));
   pruefe('Und der Wechsel nennt beide Richtungen in seiner Meldung',
     /journal stand auf wal .* DELETE .* wal/i.test(w1.aus), w1.aus.slice(-300));
-  d1.close();
+  swVersuch(() => d1.close());
 
   /* DIE GEGENLAGE, und sie ist die wichtigste dieser Gruppe: OHNE die
      Umschaltung laeuft rekey gar nicht. Nachgestellt an einer eigenen Anlage
@@ -19449,7 +19461,9 @@ function pruefeSchluesselwechsel() {
   const envAktiv = envZeilen.filter(z => /^ENCRYPTION_KEY=/.test(z));
   pruefe('Die .env traegt danach GENAU EINE aktive Schluesselzeile',
     envAktiv.length === 1, JSON.stringify(envAktiv));
-  const envNeu = envAktiv[0].split('=')[1];
+  // Fehlt die Zeile, ist die Pruefung darueber schon rot -- hier darf sie den
+  // Lauf trotzdem nicht abreissen.
+  const envNeu = (envAktiv[0] || '').split('=')[1] || '';
   pruefe('Und die traegt einen neuen 64-stelligen Wert',
     /^[0-9a-f]{64}$/.test(envNeu) && envNeu !== envAlt, envNeu);
   pruefe('Der alte Wert steht auskommentiert darueber',
@@ -19482,34 +19496,36 @@ function pruefeSchluesselwechsel() {
   /* DIE PROTOKOLLZEILE NENNT, DASS GEWECHSELT WURDE, NIE WOHIN. Geprueft am
      VOLLSTAENDIGEN Zeileninhalt ueber ALLE Spalten ALLER Zeilen -- weder der
      alte noch der neue Wert darf irgendwo auftauchen. */
-  const d4 = swOeffne(a4.dir, envNeu);
-  const alleZeilen = JSON.stringify(d4.prepare('SELECT * FROM sicherheitsprotokoll').all());
+  const d4 = swVersuch(() => swOeffne(a4.dir, envNeu));
+  const protoZeilen = swVersuch(() => d4.prepare('SELECT * FROM sicherheitsprotokoll').all(), []);
+  const alleZeilen = JSON.stringify(protoZeilen);
   pruefe('Genau eine Zeile im Sicherheitsprotokoll, und sie heisst schluessel',
-    d4.prepare("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'schluessel'").get().n === 1,
-    alleZeilen);
+    protoZeilen.filter(z => z.was === 'schluessel').length === 1, alleZeilen);
   pruefe('Sie traegt keinen Handelnden, kein Ziel und kein Merkmal',
-    d4.prepare("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'schluessel' " +
-      'AND wer IS NULL AND ziel IS NULL AND merkmal IS NULL').get().n === 1, alleZeilen);
+    protoZeilen.filter(z => z.was === 'schluessel' &&
+      z.wer === null && z.ziel === null && z.merkmal === null).length === 1, alleZeilen);
+  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): eine leere
+     Tabelle belegt nichts darueber, dass in ihr kein Schluessel steht. */
   pruefe('Der ALTE Schluessel steht in keiner Spalte keiner Zeile',
-    !alleZeilen.includes(envAlt), alleZeilen);
+    protoZeilen.length > 0 && !alleZeilen.includes(envAlt), alleZeilen);
   pruefe('Der NEUE Schluessel ebenso wenig',
-    !alleZeilen.includes(envNeu), alleZeilen);
+    protoZeilen.length > 0 && envNeu !== '' && !alleZeilen.includes(envNeu), alleZeilen);
   /* Und die Gegenlage dazu: die Nachschau faengt ueberhaupt etwas. Ohne sie
      bliebe sie gruen, wenn die Tabelle leer waere (Stolperstein 81). */
   pruefe('Und die Nachschau faengt einen Wert, wenn einer dastuende',
     JSON.stringify([{ merkmal: envAlt }]).includes(envAlt));
 
-  const marke = JSON.parse(
-    d4.prepare("SELECT value FROM settings WHERE key = 'schluesselGewechseltAm'").get().value);
+  const marke = swVersuch(() => JSON.parse(
+    d4.prepare("SELECT value FROM settings WHERE key = 'schluesselGewechseltAm'").get().value), null);
   pruefe('Die Marke schluesselGewechseltAm steht in settings',
-    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(marke), marke);
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(marke)), String(marke));
   /* SIE IST KEIN SCHEMA. settings hat zwei Spalten und hatte sie vorher auch --
      diese Runde bringt keine Tabelle und keine Spalte, also keinen sechsten
      Migrationsblock. */
   pruefe('Und sie ist eine Zeile in settings, kein Schema',
-    d4.prepare("SELECT COUNT(*) n FROM pragma_table_info('settings')").get().n === 2,
-    JSON.stringify(d4.prepare("SELECT name FROM pragma_table_info('settings')").all()));
-  d4.close();
+    swVersuch(() => d4.prepare("SELECT COUNT(*) n FROM pragma_table_info('settings')").get().n) === 2,
+    JSON.stringify(swVersuch(() => d4.prepare("SELECT name FROM pragma_table_info('settings')").all())));
+  swVersuch(() => d4.close());
 
   /* IN DER AUSGABE DES WECHSELS steht der ALTE Wert -- absichtlich, denn er
      oeffnet die Sicherungen von vorher und ist ab jetzt sonst nirgends mehr.
@@ -19526,12 +19542,16 @@ function pruefeSchluesselwechsel() {
   /* WAS DER START INS CONTAINERPROTOKOLL SCHREIBT, wird angesehen. Das ist die
      Ausgabe, die dauerhaft stehen bleibt -- anders als die eines Befehls, den
      jemand von Hand auf dem Wirt tippt. */
-  const startAus = execFileSync(process.execPath, ['-e', "require('./db'); console.log('fertig');"],
-    { cwd: __dirname, encoding: 'utf8', env: swUmgebung(a4.dir, envNeu) });
+  // Auch der Start kann scheitern -- dann ist die Ausgabe leer, und die beiden
+  // Pruefungen darunter sind rot statt abwesend.
+  const startAus = swVersuch(() => execFileSync(process.execPath,
+    ['-e', "require('./db'); console.log('fertig');"],
+    { cwd: __dirname, encoding: 'utf8', env: swUmgebung(a4.dir, envNeu) }), '');
   pruefe('Der Start meldet die Herkunft des Schluessels',
     /Schluessel aus ENCRYPTION_KEY geladen/.test(startAus), startAus.slice(0, 200));
   pruefe('Und nennt dabei WEDER den alten NOCH den neuen Wert',
-    !startAus.includes(envAlt) && !startAus.includes(envNeu), startAus);
+    startAus !== '' && !startAus.includes(envAlt) &&
+    (envNeu === '' || !startAus.includes(envNeu)), startAus);
 
   /* ---- Der Abbruch mittendrin ------------------------------------------ */
   gruppe('Der Schluesselwechsel: der Abbruch mittendrin');
@@ -19545,6 +19565,8 @@ function pruefeSchluesselwechsel() {
   const a5 = swAnlage('abbruch');
   {
     const d = swOeffne(a5.dir, a5.hex);
+    // Das Fuellen selbst darf nicht abreissen -- die Anlage ist frisch, aber
+    // eine Gegenprobe kann jede Annahme darueber umstossen.
     d.exec("INSERT INTO papierkorb (id, titel, inhalt) VALUES (1, 'Brocken', '{}')");
     const ins = d.prepare('INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (1, ?, ?)');
     // ZUFALLSBYTES, nicht Nullen: eine Datenbank voller Nullen komprimiert der
@@ -19563,17 +19585,23 @@ function pruefeSchluesselwechsel() {
      KOPIE, damit die Anlage selbst unangetastet in den Abbruch geht. */
   const a5probe = path.join(SW, 'abbruch-probe');
   fs.cpSync(a5.dir, a5probe, { recursive: true });
-  const a5dauer = Number(swKurz(
+  const a5dauer = Number(swVersuch(() => swKurz(
     "const { wechsleSchluessel } = require('./db');" +
     `const t = Date.now(); wechsleSchluessel('${hexNeu()}'); console.log(Date.now() - t);`,
-    a5probe, null));
+    a5probe, null), '0'));
   pruefe(`Der Wechsel an ${Math.round(a5groesse / 1048576)} MB dauert lange genug zum Treffen`,
-    a5dauer >= 150, `${a5dauer} ms -- zu kurz, der Abbruch traefe daneben`);
+    a5dauer >= 150,
+    `${a5dauer} ms -- zu kurz zum Treffen, oder der Wechsel laeuft gar nicht durch`);
 
   const a5neu = hexNeu();
+  /* Der Schlag faellt nach einem Drittel der GEMESSENEN Dauer. Kam gar keine
+     brauchbare Messung heraus, wird nach einem festen kurzen Wert geschlagen --
+     die Pruefung darueber ist dann schon rot, und der Abbruch soll trotzdem
+     laufen statt den Lauf mit "sleep NaN" abreissen zu lassen. */
+  const a5schlag = (a5dauer >= 150 ? a5dauer / 3000 : 0.05).toFixed(3);
   const a5kind = spawnSync('sh', ['-c',
     `"${process.execPath}" -e "require('./db').wechsleSchluessel('${a5neu}')" & ` +
-    `kind=$!; sleep ${(a5dauer / 3000).toFixed(3)}; kill -9 $kind 2>/dev/null; wait $kind; echo fertig`],
+    `kind=$!; sleep ${a5schlag}; kill -9 $kind 2>/dev/null; wait $kind; echo fertig`],
     { cwd: __dirname, encoding: 'utf8', env: swUmgebung(a5.dir, null) });
   pruefe('Der Wechsel wurde mit kill -9 unterbrochen',
     /fertig/.test(a5kind.stdout || ''), JSON.stringify(a5kind.stdout));
@@ -19582,16 +19610,18 @@ function pruefeSchluesselwechsel() {
   pruefe('Der NEUE oeffnet nicht',
     swOeffnetNicht(a5.dir, a5neu), 'der neue Schluessel oeffnet -- es gab einen halben Zustand');
   {
-    const d = swOeffne(a5.dir, a5.hex);
-    pruefe('integrity_check ist ok', d.pragma('integrity_check', { simple: true }) === 'ok',
-      d.pragma('integrity_check', { simple: true }));
+    const d = swVersuch(() => swOeffne(a5.dir, a5.hex));
+    pruefe('integrity_check ist ok',
+      swVersuch(() => d.pragma('integrity_check', { simple: true })) === 'ok',
+      String(swVersuch(() => d.pragma('integrity_check', { simple: true }))));
     pruefe('Und der Bestand ist Feld fuer Feld derselbe wie vorher',
-      swAbdruck(d) === a5abdruck, 'der Bestand hat sich veraendert');
+      swVersuch(() => swAbdruck(d)) === a5abdruck, 'der Bestand hat sich veraendert');
     pruefe('Und der Abbruch hat weder Marke noch Protokollzeile hinterlassen',
-      d.prepare("SELECT COUNT(*) n FROM settings WHERE key = 'schluesselGewechseltAm'").get().n === 0 &&
-      d.prepare('SELECT COUNT(*) n FROM sicherheitsprotokoll').get().n === 0,
-      JSON.stringify(d.prepare('SELECT * FROM sicherheitsprotokoll').all()));
-    d.close();
+      swVersuch(() => d.prepare(
+        "SELECT COUNT(*) n FROM settings WHERE key = 'schluesselGewechseltAm'").get().n) === 0 &&
+      swVersuch(() => d.prepare('SELECT COUNT(*) n FROM sicherheitsprotokoll').get().n) === 0,
+      JSON.stringify(swVersuch(() => d.prepare('SELECT * FROM sicherheitsprotokoll').all())));
+    swVersuch(() => d.close());
   }
 
   /* ---- Zu wenig Platz --------------------------------------------------- */
@@ -19657,30 +19687,30 @@ function pruefeSchluesselwechsel() {
   /* ---- Was der Wechsel nicht anfasst ------------------------------------ */
   gruppe('Der Schluesselwechsel: was er nicht anfasst');
 
-  const d7 = swOeffne(a4.dir, envNeu);
+  const d7 = swVersuch(() => swOeffne(a4.dir, envNeu));
   pruefe('Das Verfahren bleibt: cipher steht weiterhin auf sqlcipher',
-    String(d7.pragma('cipher', { simple: true })).includes('sqlcipher'),
-    String(d7.pragma('cipher', { simple: true })));
+    String(swVersuch(() => d7.pragma('cipher', { simple: true }))).includes('sqlcipher'),
+    String(swVersuch(() => d7.pragma('cipher', { simple: true }))));
   pruefe('Die Datei heisst weiterhin katalog.sqlite',
     fs.existsSync(path.join(a4.dir, 'katalog.sqlite')));
   pruefe('Der Bestand ist Feld fuer Feld derselbe wie vor dem Wechsel',
-    swAbdruck(d7, SW_EIGENE) === a4.abdruck, 'der Bestand hat sich veraendert');
+    swVersuch(() => swAbdruck(d7, SW_EIGENE)) === a4.abdruck,
+    'der Bestand hat sich veraendert');
   /* KEIN SCHEMA: dieselben Tabellen wie vorher, keine dazu, keine weg. Die
      Frage nach einem sechsten Migrationsblock ist damit beantwortet und nicht
      bloss behauptet. */
-  const tabellenNach = d7.prepare(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
-    .all().map(t => t.name);
+  const TABELLEN = "SELECT name FROM sqlite_master WHERE type='table' " +
+    "AND name NOT LIKE 'sqlite_%' ORDER BY name";
+  const tabellenNach = swVersuch(() => d7.prepare(TABELLEN).all().map(t => t.name), []);
   const a4frisch = swAnlage('vergleich', hexNeu());
-  const dv = swOeffne(a4frisch.dir, a4frisch.hex);
-  const tabellenFrisch = dv.prepare(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
-    .all().map(t => t.name);
-  dv.close();
+  const dv = swVersuch(() => swOeffne(a4frisch.dir, a4frisch.hex));
+  const tabellenFrisch = swVersuch(() => dv.prepare(TABELLEN).all().map(t => t.name), []);
+  swVersuch(() => dv.close());
+  // ERST DER GEGENSTAND: zwei leere Listen waeren gleich und belegten nichts.
   pruefe('Und das Schema ist dasselbe wie das einer frischen Anlage',
-    gleich(tabellenNach, tabellenFrisch),
+    tabellenFrisch.length > 5 && gleich(tabellenNach, tabellenFrisch),
     `nach dem Wechsel ${tabellenNach.length}, frisch ${tabellenFrisch.length}`);
-  d7.close();
+  swVersuch(() => d7.close());
 
   /* Der veraltete Umgebungswert ist die Lage, in der jemand den Wechsel ein
      zweites Mal faehrt, ohne die .env nachgezogen zu haben. Die Anlage laesst
