@@ -12191,6 +12191,29 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Datenbank. Nachgesehen wurde damals von Hand; hier steht es als Pruefung.
      GEZAEHLT WIRD AM PROZESS, nicht an einer Absicht: exitCode bzw.
      signalCode traegt erst dann etwas, wenn das Kind wirklich beendet ist. */
+  /* DIE LUECKE AUS GEGENPROBE W4. Der Rueckbau "beendeKind fragt nicht, ob das
+     Kind schon vorbei ist" blieb STUMM: ein gewoehnlicher Lauf laesst kein
+     Kind von selbst enden, und deshalb hat niemand gemerkt, dass das Warten
+     auf ein Ereignis aus der Vergangenheit FUER IMMER haengt. Genau daran sind
+     zwei Gegenproben stehengeblieben.
+     GEPRUEFT WIRD MIT EINEM ZEITWAECHTER, denn der Fehlerfall ist ein Haenger
+     und kein falscher Wert -- ohne ihn bliebe die Pruefung nicht rot, sondern
+     der ganze Lauf stuende still. */
+  {
+    const schonWeg = spawn(process.execPath, ['-e', 'process.exit(0)']);
+    await new Promise(r => schonWeg.on('exit', r));
+    pruefe('Der Aufbau steht: das Kind ist wirklich schon beendet',
+      schonWeg.exitCode !== null || schonWeg.signalCode !== null,
+      `exitCode ${schonWeg.exitCode}, signalCode ${schonWeg.signalCode}`);
+    let kam = false;
+    await Promise.race([
+      beendeKind(schonWeg).then(() => { kam = true; }),
+      new Promise(r => setTimeout(r, 3000))
+    ]);
+    pruefe('beendeKind kehrt auch bei einem SCHON beendeten Kind zurueck',
+      kam, 'es haengt -- ein on(exit) nach dem Ende feuert nie');
+  }
+
   const wlOffen = PRUEFLAGEN.filter(l => l.kind.exitCode === null && l.kind.signalCode === null);
   pruefe(`Der Lauf hat ${PRUEFLAGEN.length} eigene Server gestartet`,
     PRUEFLAGEN.length >= 35, `${PRUEFLAGEN.length} Prueflagen`);
@@ -19705,9 +19728,9 @@ function pruefeSchluesselwechsel() {
   const eingehaengt = spawnSync('mount', ['-t', 'tmpfs', '-o', 'size=16M', 'tmpfs', eng],
     { encoding: 'utf8' }).status === 0;
   if (!eingehaengt) {
-    uebersprungen += 3;
+    uebersprungen += 6;
     console.log('  ... uebersprungen: kein tmpfs einhaengbar (die Absage bei zu wenig Platz ' +
-                'braucht ein volles Dateisystem)');
+                'und der gescheiterte rekey brauchen ein volles Dateisystem)');
   } else {
     const engDir = path.join(eng, 'anlage');
     fs.mkdirSync(engDir);
@@ -19735,6 +19758,27 @@ function pruefeSchluesselwechsel() {
       fs.readFileSync(path.join(engDir, 'encryption.key'), 'utf8') === vorher);
     pruefe('Und die Datenbank oeffnet weiter mit ihrem bisherigen Schluessel',
       !swOeffnetNicht(engDir, engHex), 'der bisherige Schluessel oeffnet nicht mehr');
+    /* DIE LUECKE AUS GEGENPROBE 11. Der Rueckbau "die Rueckschaltung auf WAL
+       steht nicht mehr im finally" blieb STUMM: ein GELUNGENER Wechsel
+       unterscheidet nicht, ob sie im finally steht oder dahinter. Der
+       Unterschied zeigt sich nur, wenn der rekey mittendrin SCHEITERT -- und
+       das laesst sich einzig an einem vollen Dateisystem herstellen, denn
+       alles andere scheitert schon an der Umschaltung davor.
+       GEPRUEFT WIRD DESHALB HIER und nicht in der Journalgruppe: der
+       Gegenstand liegt an diesem tmpfs. */
+    const engJournal = swVersuch(() => swKurz(
+      "const { db, wechsleSchluessel } = require('./db');" +
+      "let gescheitert = false;" +
+      `try { wechsleSchluessel('${hexNeu()}'); } catch { gescheitert = true; }` +
+      "console.log(gescheitert + ' ' + db.pragma('journal_mode', { simple: true }));",
+      engDir, null), 'nichts');
+    pruefe('Ein rekey auf vollem Dateitraeger scheitert',
+      String(engJournal).startsWith('true'), String(engJournal));
+    pruefe('Und danach steht das Journal trotzdem wieder auf WAL',
+      String(engJournal).endsWith('wal'), String(engJournal));
+    pruefe('Und der bisherige Schluessel oeffnet weiterhin',
+      !swOeffnetNicht(engDir, engHex), 'der bisherige Schluessel oeffnet nicht mehr');
+
     try { fs.unlinkSync(path.join(eng, 'fuell')); } catch {}
     fs.rmSync(engDir, { recursive: true, force: true });
     spawnSync('umount', [eng]);
