@@ -1204,6 +1204,11 @@ die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
 enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
 Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
 
+**0.8.91 fasst die Datenbank nicht an** — keine Tabelle, keine Spalte; ein
+Downgrade auf 0.8.90 wäre eine reine Dateikopie. Die Sicherung bleibt trotzdem
+Pflicht, und beim **Schlüsselwechsel** ein zweites Mal: siehe den Abschnitt
+„Den Schlüssel wechseln".
+
 **Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Branchnamen
 an: aus `main` wird `kriterion-main`. Ohne das `mv` legt das folgende
 `cp -r kriterion-alt/data kriterion/data` den Bestand in einen Ordner, den

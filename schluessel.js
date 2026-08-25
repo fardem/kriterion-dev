@@ -287,6 +287,14 @@ async function befehlWechseln(optionen) {
     console.log(`\n    ${keyHex}\n`);
   }
   console.log('  Jetzt die Anlage starten und im Protokoll nachsehen, dass sie öffnet.');
+
+  /* SAUBER SCHLIESSEN, dieselbe Form wie beim Herunterfahren des Servers: die
+     WAL wird eingearbeitet, bevor der Prozess endet. schluessel.sh startet die
+     Anlage unmittelbar danach, und wer in genau diesem Augenblick das
+     Datenverzeichnis sichert, soll keinen Zustand mit offener WAL erwischen.
+     Der Abschluss darf nichts werfen -- der Wechsel ist an dieser Stelle
+     laengst gelungen. */
+  try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}
 }
 
 async function haupt() {
