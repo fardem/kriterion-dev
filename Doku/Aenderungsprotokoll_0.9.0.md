@@ -771,4 +771,4 @@ entschieden** (06).
 
 ---
 
-**0.9.0 — Fingerprint `FINGERPRINT_0_9_0`**
+**0.9.0 — Fingerprint `82dc8550`**

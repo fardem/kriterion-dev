@@ -177,7 +177,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.9.0 ist gebaut** — Fingerprint **`FINGERPRINT_0_9_0`**, 3192
+**0.9.0 ist gebaut** — Fingerprint **`82dc8550`**, 3192
 Prüfungen. **Erste Hälfte von Stufe I, und KEINE Datenbankstufe:** diese Runde
 bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf** markierten
 Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts** dazu.

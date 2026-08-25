@@ -1,6 +1,6 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 25. August 2026 · gebaut bis Version 0.9.0**
+**Konzeptpapier · Stand 25. August 2026 · gebaut bis Version 0.9.0 — Fingerprint `82dc8550`**
 (Stufen A bis **H** erledigt; **Stufe I ist zur Hälfte gebaut** — der Versand
 steht, die Selbstanmeldung folgt als 0.9.1. 0.8.1 war eine **Bereinigung**,
 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10 die Runde
