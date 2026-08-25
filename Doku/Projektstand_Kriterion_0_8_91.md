@@ -161,7 +161,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.91 ist gebaut** — Fingerprint **`FINGERPRINT_HIER`**, 3001
+**0.8.91 ist gebaut** — Fingerprint **`FINGERPRINT_HIER`**, 3006
 Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs und KEINE Datenbankstufe:**
 diese Runde bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf**
 markierten Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts**
@@ -3642,6 +3642,14 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     einen Vorgang, der scheitern kann, läuft jede Lesestelle danach über ein
     Auffangnetz.*
 
+    **Und die Kehrseite, aus derselben Runde:** eine Gegenprobe, die **keine**
+    Prüfung rot macht, sagt nicht „der Code ist richtig", sondern **„hier prüft
+    niemand"**. Elf Gegenproben mit null stummen sahen nach einem guten
+    Ergebnis aus; sieben nachgereichte brachten **zwei stumme**, und beide
+    waren eine echte Lücke (Änderungsprotokoll 0.8.91, Befund L). *Die Liste
+    der Rückbauten gehört gegen die Liste der neuen Verhaltensweisen gehalten,
+    nicht gegen ein Gefühl für die Zahl.*
+
 139. **Ein `on('exit')`, das nach dem Ende registriert wird, feuert nie.**
     `new Promise(r => { kind.on('exit', r); kind.kill(); })` wartet für immer,
     wenn das Kind schon von selbst geendet hat — **ohne CPU, ohne Meldung, und
@@ -3667,7 +3675,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3001 von 3001 bestanden** (0.8.91; **92 neue
+**Zuletzt: 3006 von 3006 bestanden** (0.8.91; **97 neue
 Prüfungen, 18 Gegenproben, zehn neue Gruppen**: „Der
 Schlüsselwechsel: der Rundlauf", „… die Umschaltung des Journals", „… der
 Dateifall und der env-Fall", „… kein Schlüssel, wo keiner hingehört", „… der
@@ -4372,7 +4380,7 @@ Nebenspuren und zwei Wächter über die eigenen Prüflagen.
 siebzehn, Formatnummer unverändert 10, keine neue Abhängigkeit.
 **Berichtigt:** es sind **sechs** Wege über **fünf** Routen hinter der zweiten
 Bestätigung, nicht sieben über sechs.
-3001 Prüfungen, 18 Gegenproben, Stolpersteine 134 bis 139.
+3006 Prüfungen, 18 Gegenproben, Stolpersteine 134 bis 139.
 
 **0.8.90 — „Schwere Eingriffe".** Keine Stufe des Mehrbenutzerbetriebs, aber
 eine Datenbankstufe ohne Migrationsblock. Die **zweite Bestätigung** vor sechs

@@ -523,7 +523,7 @@ an einer Stelle ab, an der die Prüfung darüber längst rot war.
 sind gleich.
 
 **Nachgestellt:** derselbe Rückbau färbt jetzt **18** Prüfungen namentlich rot,
-und der Lauf zählt seine 3001 zu Ende.
+und der Lauf zählt seine 3006 zu Ende.
 ### K. Zwei Gegenproben hingen — und dahinter lagen zwei Fehler, Stolperstein 139
 
 **Der zweite Gegenprobenlauf hat den unangenehmsten Fund der Runde gebracht,
@@ -557,6 +557,53 @@ Nachrechnung entzogen.
 Prüfstand und konnte erst auffallen, als zum ersten Mal zwei Läufe
 nebeneinander standen.*
 
+### L. Elf Gegenproben waren zu wenig — zwei stumme haben zwei Lücken gefunden
+
+**Die Runde ist mit elf Gegenproben angetreten und hat mit achtzehn geendet.**
+Der Anlass war eine Frage von außen: *reicht das?* In 0.8.90 waren es 24, und
+**zwei davon blieben stumm — beide waren ein Fund.** Elf mit **null** stummen
+ist kein beruhigendes Ergebnis, sondern ein dünnes: es heißt, dass die
+riskanten Rückbauten noch nicht gefahren waren.
+
+Gegen die Liste der neuen Verhaltensweisen gehalten, fehlten sieben:
+
+| # | Rückbau | erwartet |
+|---|---|---|
+| 10 | Der Dateifall schreibt die Schlüsseldatei nicht | rot |
+| 11 | Die Rückschaltung auf WAL steht nicht mehr im `finally` | **stumm** |
+| 12 | Eine mitgegebene `.env` wird im Dateifall nicht abgewiesen | rot |
+| 13 | Zwei aktive Schlüsselzeilen werden nicht abgewiesen | rot |
+| 14 | Die Karte „Sicherung" zeigt den Wechsel gar nicht mehr an | rot |
+| 15 | Die Fingerprintlage wird nicht mehr vermerkt | rot |
+| W4 | `beendeKind` fragt nicht, ob das Kind schon vorbei ist | **stumm** |
+
+**Beide Vorhersagen sind eingetroffen**, und beide stummen waren echte Lücken:
+
+**11 — die Rückschaltung im `finally`.** Ein **gelungener** Wechsel
+unterscheidet nicht, ob sie im `finally` steht oder dahinter. Der Unterschied
+zeigt sich nur, wenn der `rekey` **mittendrin scheitert** — und das ließ sich
+nur an einem **vollen Dateisystem** herstellen: alles andere (eine zweite
+Verbindung, eine offene Transaktion) scheitert schon an der Umschaltung
+**davor** und erreicht das `finally` nie. Die Prüfung steht deshalb in der
+tmpfs-Lage: *der `rekey` scheitert, und danach steht das Journal trotzdem
+wieder auf WAL, und der bisherige Schlüssel öffnet weiter.*
+
+**W4 — `beendeKind` ohne Vorabfrage.** Ein gewöhnlicher Lauf lässt kein Kind
+von selbst enden; deshalb hat niemand gemerkt, dass das Warten auf ein Ereignis
+aus der Vergangenheit **für immer** hängt — genau der Fehler aus Befund K.
+Geprüft wird jetzt mit einem **Zeitwächter**: der Fehlerfall ist ein Hänger und
+kein falscher Wert, und ohne ihn stünde nicht die Prüfung rot, sondern der
+ganze Lauf still.
+
+**Nachgestellt:** dieselben beiden Rückbauten färben jetzt genau die beiden
+neuen Prüfungen rot. Die Gegenprobentabelle unten ist der Lauf **nach** diesem
+Schluss.
+
+*Die Lehre ist nicht „mehr Gegenproben sind besser", sondern: **eine Gegenprobe,
+die keine Prüfung rot macht, sagt nicht „der Code ist richtig", sondern „hier
+prüft niemand"** — und deshalb ist die Liste gegen die Liste der neuen
+Verhaltensweisen zu halten, nicht gegen ein Gefühl für die Zahl.*
+
 ---
 
 ## 5. Der Prüfstand
@@ -570,15 +617,15 @@ nebeneinander standen.*
 | Der Schlüsselwechsel: der Dateifall und der env-Fall | 20 |
 | Der Schlüsselwechsel: kein Schlüssel, wo keiner hingehört | 12 |
 | Der Schlüsselwechsel: der Abbruch mittendrin | 7 |
-| Der Schlüsselwechsel: zu wenig Platz | 5 |
+| Der Schlüsselwechsel: zu wenig Platz | 8 |
 | Der Schlüsselwechsel: was er nicht anfasst | 6 |
 | Die Sicherung: zwei Schlüssel im Umlauf | 9 |
 | Die Portbasen und der Versatz | 8 |
-| Keine Prüflage lässt ihren Server zurück | 2 |
-| | **81** |
+| Keine Prüflage lässt ihren Server zurück | 4 |
+| | **86** |
 
 Dazu **11** Prüfungen in „Die Sicherung in der Oberfläche" für die drei Lagen
-des Wechsels und die Einzahl/Mehrzahl der Zählung — zusammen **92**.
+des Wechsels und die Einzahl/Mehrzahl der Zählung — zusammen **97**.
 
 *Die Gruppe „Die Sicherung auf Knopfdruck" ist dabei geteilt worden: die Marke
 bekommt ihre eigene Überschrift, die Prüflage läuft danach unter „… ,
@@ -628,7 +675,9 @@ das Schema nach dem Wechsel ist dasselbe wie das einer frischen Anlage, und
 ## 6. Gegenprobentabelle
 
 **18 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
-gefahren über `gegenprobe.js` mit vier Nebenspuren.
+gefahren über `gegenprobe.js` mit drei Nebenspuren. **Keine davon ist stumm** —
+die beiden, die es waren, stehen in Befund L, und ihre Lücken sind
+geschlossen.
 
 GEGENPROBENTABELLE_HIER
 
@@ -639,8 +688,8 @@ GEGENPROBENTABELLE_HIER
 | | |
 |---|---|
 | Vorher (0.8.90) | 2909 |
-| Nachher (0.8.91) | **3001** |
-| Neu | **92** |
+| Nachher (0.8.91) | **3006** |
+| Neu | **97** |
 | Gegenproben | **18** |
 
 ---
