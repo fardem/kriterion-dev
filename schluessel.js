@@ -278,7 +278,12 @@ async function befehlWechseln(optionen) {
   } else {
     console.log(`  ${path.join(DATA_DIR, 'encryption.key')} trägt den neuen Wert.`);
     console.log(ROT(`\n  DER ALTE WERT ÖFFNET ALLE SICHERUNGEN VON VOR ${zeitpunkt} UTC.`));
-    console.log(ROT('  Er steht ab jetzt nirgends mehr — nur noch in deinen alten Kopien:'));
+    /* Nicht "nirgends mehr": die Sicherung des Datenverzeichnisses, die
+       schluessel.sh vorher angelegt hat, traegt die alte Schluesseldatei mit.
+       Wer sie weglegt, legt den alten Schluessel mit weg -- und das ist die
+       einzige Stelle, an der er dann noch steht. */
+    console.log(ROT('  Er steht ab jetzt nur noch in der Sicherung, die vor dem Wechsel'));
+    console.log(ROT('  entstanden ist. Übernimm ihn in den Passwortspeicher:'));
     console.log(`\n    ${keyHex}\n`);
   }
   console.log('  Jetzt die Anlage starten und im Protokoll nachsehen, dass sie öffnet.');

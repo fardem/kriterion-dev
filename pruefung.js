@@ -198,6 +198,20 @@ function setzePasswortImBestand(datenVerzeichnis, name, passwort) {
     datenVerzeichnis);
 }
 
+/* EIN KIND BEENDEN UND AUF SEIN ENDE WARTEN. DIE ABFRAGE VORHER IST DER GANZE
+   PUNKT: ist der Prozess schon beendet, feuert 'exit' NIE wieder -- ein Warten
+   darauf haengt fuer immer, ohne CPU zu verbrauchen und ohne eine Meldung.
+   Genau daran sind zwei Gegenproben haengengeblieben: ihre Fingerprintlage
+   bekam den Port nicht, der Server endete sofort von selbst, und das
+   anschliessende Aufraeumen wartete auf ein Ereignis aus der Vergangenheit. */
+function beendeKind(kind) {
+  return new Promise(fertig => {
+    if (kind.exitCode !== null || kind.signalCode !== null) return fertig();
+    kind.on('exit', fertig);
+    kind.kill();
+  });
+}
+
 /* JEDE PRUEFLAGE MIT EIGENEM SERVER WIRD HIER VERMERKT -- Portbasis, gewaehlte
    Nummer und das Kind. Daran haengen die beiden Waechter am Ende des Laufs:
    der eine rechnet die Basen gegen die Sperrliste nach, der andere sieht nach,
@@ -243,7 +257,7 @@ function starteWeiterenServer(datenVerzeichnis, zusatz, portBasis) {
   })();
   return { bereit, ruf: rufB, protokoll: () => protokoll, basis,
            cookieLoeschen: () => { cookieB = ''; },
-           stopp: () => new Promise(r => { kindB.on('exit', r); kindB.kill(); }) };
+           stopp: () => beendeKind(kindB) };
 }
 
 let cookie = '';
@@ -577,14 +591,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Fetch-Spezifikation. Der Server laeuft dann und meldet es auch, nur
      kommt die Pruefung nicht an ihn heran ("bad port"). curl kommt durch,
      fetch nicht. */
-  let fingerprintPort = 6100;
+  /* AUCH DIESE LAGE GEHT UEBER PORT_VERSATZ. Sie startet ihre Server nicht
+     ueber starteWeiterenServer -- sie braucht eine KOPIE des Quelltextes als
+     Arbeitsverzeichnis --, und genau deshalb ist sie einmal am Versatz vorbei
+     gelaufen: drei Gegenproben griffen gleichzeitig nach 6100, zwei bekamen
+     ihn nicht, und ihre Server endeten sofort. Vermerkt wird sie trotzdem in
+     PRUEFLAGEN, damit beide Waechter am Ende auch sie ansehen. */
+  const FINGERPRINT_BASIS = 6100;
+  let fingerprintPort = FINGERPRINT_BASIS;
   async function fingerprintAus(verzeichnis) {
     const datenVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fingerprint-'));
-    const port = fingerprintPort++;
+    const port = (fingerprintPort++) + PORT_VERSATZ;
     const basis = `http://127.0.0.1:${port}`;
     const umgebung = { ...process.env, PORT: String(port), DATA_DIR: datenVerz, ENCRYPTION_KEY: KEY };
     delete umgebung.AUTH_RESET;
     const kindQ = spawn(process.execPath, ['server.js'], { cwd: verzeichnis, env: umgebung });
+    PRUEFLAGEN.push({ basis: FINGERPRINT_BASIS, port, kind: kindQ, verzeichnis: datenVerz });
     let prot = '';
     kindQ.stdout.on('data', d => { prot += d; });
     kindQ.stderr.on('data', d => { prot += d; });
@@ -602,7 +624,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       const st = await (await fetch(`${basis}/api/stats`, { headers: { cookie: cookieQ } })).json();
       return st.fingerprint;
     } finally {
-      await new Promise(r => { kindQ.on('exit', r); kindQ.kill(); });
+      await beendeKind(kindQ);
       fs.rmSync(datenVerz, { recursive: true, force: true });
     }
   }
@@ -12084,20 +12106,34 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const pbGesperrt = (von, breite) =>
     SPERRPORTS.filter(p => p >= von && p <= von + breite - 1);
 
+  /* Die Fingerprintlage zaehlt HOCH statt zu wuerfeln und braucht deshalb nur
+     so viele Nummern, wie sie Server startet. Sie bekommt trotzdem ihr eigenes
+     Fenster, damit der Waechter sie mitrechnet. */
+  const pbBreite = (basis) => (basis === FINGERPRINT_BASIS ? 10 : PORT_BREITE);
   const pbBasen = [...new Set(PRUEFLAGEN.map(l => l.basis))].sort((a, b) => a - b);
   /* ERST DER GEGENSTAND (Stolperstein 81): ein Waechter ueber null Basen ist
      gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTEN -- eine
      Prueflage, die still verschwindet, faellt sonst niemandem auf. */
   pruefe('Der Lauf hat seine Portbasen vermerkt',
-    pbBasen.length === 34 && PRUEFLAGEN.length >= 34,
+    pbBasen.length === 35 && PRUEFLAGEN.length >= 35,
     `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
 
+  /* JEDE STELLE, DIE EINEN SERVER STARTET, GEHT UEBER EINE DIESER BASEN. Der
+     Waechter zaehlt die Startstellen im Quelltext nach: der Hauptserver,
+     starteWeiterenServer und die Fingerprintlage. Wer eine vierte ergaenzt und
+     sie nicht vermerkt, faellt hier auf -- ihre Ports gingen sonst am Versatz
+     vorbei, und genau daran sind zwei Gegenproben haengengeblieben. */
+  const pbStarts = (fs.readFileSync(path.join(__dirname, 'pruefung.js'), 'utf8')
+    .match(/spawn\(process\.execPath, \['server\.js'\]/g) || []).length;
+  pruefe('Es gibt genau drei Stellen, die einen Server starten',
+    pbStarts === 3, `${pbStarts} Stellen`);
+
   const pbHeute = pbBasen
-    .map(b => [b, pbGesperrt(b, PORT_BREITE)])
+    .map(b => [b, pbGesperrt(b, pbBreite(b))])
     .filter(([, t]) => t.length);
   pruefe('Keine Portbasis deckt eine Nummer, die fetch() nicht anwaehlt',
     pbHeute.length === 0,
-    pbHeute.map(([b, t]) => `${b}–${b + PORT_BREITE - 1} trifft ${t.join(', ')}`).join(' · '));
+    pbHeute.map(([b, t]) => `${b}–${b + pbBreite(b) - 1} trifft ${t.join(', ')}`).join(' · '));
   const pbHaupt = pbGesperrt(HAUPT_BASIS, HAUPT_BREITE);
   pruefe('Und der Hauptserver ebenso wenig',
     pbHaupt.length === 0,
@@ -12107,7 +12143,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      faengt die naechste Spur genau dort an, wo die vorige aufhoert -- und der
      Hauptserver liegt UNTER der kleinsten Basis, also zaehlt er mit. */
   const pbUnten = Math.min(HAUPT_BASIS, ...pbBasen);
-  const pbOben = Math.max(...pbBasen.map(b => b + PORT_BREITE - 1),
+  const pbOben = Math.max(...pbBasen.map(b => b + pbBreite(b) - 1),
                           HAUPT_BASIS + HAUPT_BREITE - 1);
   const pbSpanne = pbOben - pbUnten + 1;
   pruefe('Der Versatz je Nebenspur ist groesser als die Spanne aller Basen',
@@ -12122,7 +12158,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   for (let spur = 1; spur < VERSATZ_SPUREN; spur++) {
     const v = spur * VERSATZ_STUFE;
     for (const b of [...pbBasen, HAUPT_BASIS]) {
-      const breite = b === HAUPT_BASIS ? HAUPT_BREITE : PORT_BREITE;
+      const breite = b === HAUPT_BASIS ? HAUPT_BREITE : pbBreite(b);
       const t = pbGesperrt(b + v, breite);
       if (t.length) pbSpurTreffer.push(`Spur ${spur}, Basis ${b} → ${t.join(', ')}`);
     }
@@ -12152,7 +12188,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      signalCode traegt erst dann etwas, wenn das Kind wirklich beendet ist. */
   const wlOffen = PRUEFLAGEN.filter(l => l.kind.exitCode === null && l.kind.signalCode === null);
   pruefe(`Der Lauf hat ${PRUEFLAGEN.length} eigene Server gestartet`,
-    PRUEFLAGEN.length >= 34, `${PRUEFLAGEN.length} Prueflagen`);
+    PRUEFLAGEN.length >= 35, `${PRUEFLAGEN.length} Prueflagen`);
   pruefe('Und jeder einzelne von ihnen ist beendet',
     wlOffen.length === 0,
     wlOffen.map(l => `Basis ${l.basis}, Port ${l.port}, PID ${l.kind.pid}`).join(' · '));
@@ -18558,8 +18594,12 @@ async function pruefeOberflaeche() {
       /2 Kopien stammen von vor dem Schlüsselwechsel/.test(teilsRot), teilsRot.slice(0, 300));
     pruefe('Und er nennt den Zeitpunkt des Wechsels',
       /21\.08\.2026/.test(teilsRot), teilsRot.slice(0, 300));
+    /* WO DER ALTE WERT LIEGT, HAENGT VOM FALL AB. Die Karte behauptet deshalb
+       nicht, er stehe in der .env -- sie sagt "kam er aus der .env" und nennt
+       den Weg, der ihn beim Wechsel genannt hat. Geprueft wird beides. */
     pruefe('Und wo der alte Wert zu finden ist',
-      /\.env/.test(teilsRot) && /Passwortspeicher/.test(teilsRot), teilsRot.slice(0, 400));
+      /kam er aus der \.env/.test(teilsRot) && /Passwortspeicher/.test(teilsRot),
+      teilsRot.slice(0, 400));
     pruefe('Die Zeile "Dateien am Ort" nennt die alten eigens',
       /2 mit dem alten Schlüssel/.test(siText(teils)), siText(teils).slice(0, 400));
 
@@ -18584,6 +18624,8 @@ async function pruefeOberflaeche() {
       /Keine dieser Kopien passt zum heutigen Schlüssel/.test(allesRot), allesRot.slice(0, 300));
     pruefe('Und sie sagt, was jetzt zu tun ist',
       /Sicher jetzt neu/.test(allesRot), allesRot.slice(0, 400));
+    pruefe('Und sie nennt den Weg, der den alten Wert kennt',
+      /schluessel\.sh/.test(allesRot), allesRot.slice(0, 400));
 
     // Und die Gegenlage: alle Kopien juenger als der Wechsel -> gruen, mit
     // dem Grund daneben statt eines blossen "alles gut".

@@ -6,6 +6,88 @@ ist. Die Einzelheiten stehen je Version in
 
 ---
 
+## 0.8.91 — Der Schlüssel lässt sich wechseln
+
+**Der Schlüssel der Datenbank lässt sich wechseln, ohne die Anlage neu
+aufzusetzen — und die Anlage sagt vorher, was danach von Hand zu tun ist.**
+Bisher galt: ein einmal gesetzter Schlüssel bleibt für immer. Wer ihn versehentlich
+weitergegeben hatte — etwa, weil er eine Weile als `data/encryption.key` neben der
+Datenbank lag und jemand das Verzeichnis kopiert hat —, konnte nichts dagegen
+tun. Das ändert sich.
+
+> **Lies das hier bitte ganz, bevor du den Wechsel fährst.** Er ist der
+> einzige Vorgang im ganzen Projekt, bei dem ein Fehler **alle Daten**
+> kostet. Wer ihn drückt, muss vorher wissen, was er danach von Hand tun muss.
+
+### Neu
+
+- **Der Schlüsselwechsel — auf dem Wirt, nicht in der Oberfläche.** Im
+  Projektverzeichnis:
+
+  ```bash
+  ./schluessel.sh zeigen       # Lage ansehen, ändert nichts
+  ./schluessel.sh wechseln     # anhalten, sichern, wechseln, starten
+  ```
+
+  Das Skript sichert erst die `.env`, hält die Anlage an, sichert das
+  Datenverzeichnis, wechselt den Schlüssel und trägt den neuen Wert dorthin
+  ein, **woher der alte kam**: in die `.env` oder in `data/encryption.key`.
+  Danach startet es die Anlage wieder.
+- **Der alte Wert geht nicht verloren.** In der `.env` bleibt er
+  **auskommentiert** über der neuen Zeile stehen — mit Datum, mit dem Namen
+  dessen, der gewechselt hat, und mit dem Satz, wofür er noch gut ist. **Alles
+  andere in der `.env` bleibt unangetastet**, Zeichen für Zeichen.
+- **Die Karte „Sicherung" markiert die alten Kopien.** Ab einem Wechsel sind
+  **zwei Schlüssel im Umlauf**: jede Sicherung von vorher öffnet sich nur noch
+  mit dem alten. Die Karte zählt sie und markiert sie rot. Ist auch die
+  **jüngste** Kopie älter als der Wechsel, sagt sie das deutlicher — dann passt
+  überhaupt keine zum heutigen Schlüssel, und es gehört sofort neu gesichert.
+- **Eine Zeile im Sicherheitsprotokoll.** „Schlüssel gewechselt", ohne
+  Handelnden, ohne Ziel, ohne Merkmal. **Sie nennt, DASS gewechselt wurde, nie
+  WOHIN** — ein Schlüssel steht in keiner Protokollzeile.
+
+### Was du danach von Hand tun musst
+
+- **Den alten Wert in den Passwortspeicher übernehmen**, bevor du die
+  auskommentierte Zeile aus der `.env` entfernst. **Er ist der einzige
+  Schlüssel zu allen Sicherungen, die vor dem Wechsel entstanden sind.**
+- **Neu sichern.** Erst danach liegt wieder eine Kopie da, die zur laufenden
+  Anlage gehört.
+- **Und wie immer:** `.env` und `data/` gehören nicht in dieselbe Ablage.
+
+### Was gleich bleibt
+
+- **Gewechselt wird der Schlüssel, nicht das Verfahren.** SQLCipher bleibt, die
+  Schlüssellänge bleibt, der Dateiname bleibt, das Schema bleibt.
+- **Niemand wird abgemeldet.** Der Datenbankschlüssel hängt an keinem Passwort;
+  offene Sitzungen laufen weiter.
+- **Am Eintrag ändert sich gar nichts.** Schreiben, bewerten, kommentieren,
+  Fotos und Dateien: alles wie bisher.
+- **Die Exportdatei behält ihr Format** (unverändert 10). Ein Schlüssel steht
+  nicht darin, und ein JSON-Export braucht auch keinen — er ist damit der
+  einzige Rückweg, der von der Schlüsselverwaltung nichts wissen muss.
+- **Es kommt keine neue Einstellung dazu** und keine neue Abhängigkeit.
+- **Die Datenbank bekommt weder Tabelle noch Spalte.** Diese Version ist
+  **keine** Datenbankstufe.
+
+### Beim Einspielen
+
+- **Wie immer: `docker compose down`, Daten kopieren, ZIP auspacken, `.env`
+  zurück, `up -d --build`.** Nichts an der `docker-compose.yml`.
+- **Die Sicherung des Datenverzeichnisses ist PFLICHT — und beim
+  Schlüsselwechsel ein zweites Mal.** Beim Einspielen wie immer; vor jedem
+  Wechsel noch einmal, **und die `.env` dazu**. Das Skript legt beides selbst
+  an, aber eine Sicherung neben dem Original ist keine.
+- **PROBIER DEN WECHSEL AN EINER WEGWERFANLAGE AUS.** Ein leeres Verzeichnis,
+  ein `docker compose up -d`, ein paar Einträge, dann `./schluessel.sh
+  wechseln` — und danach nachsehen, ob sie wieder aufgeht. Erst dann an der
+  echten.
+- **Bricht der Wechsel ab, ist das folgenlos:** die Datenbank behält ihren
+  bisherigen Schlüssel, es entsteht kein halber Zustand. Reicht der Platz
+  nicht, sagt das Skript vorher ab und rührt nichts an.
+
+---
+
 ## 0.8.90 — Schwere Eingriffe
 
 **Wer die Anlage als Ganzes anfasst, gibt sein Passwort noch einmal ein — und

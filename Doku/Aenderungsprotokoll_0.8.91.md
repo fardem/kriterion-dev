@@ -67,17 +67,18 @@ Hauptservers. Ohne die Variable bleibt alles, wie es war.
 
 | | |
 |---|---|
-| Basen im Lauf | **34** (der Auftrag sagte 29 — nachgezählt sind es 34) |
-| Spanne samt Breite | 3900–5959, also **2060** Nummern |
-| Kleinster brauchbarer Versatz | **2941** — alles darunter trifft 6000 bzw. 6566/6665–6669/6679/6697 |
-| Gewählt | **3000**, vier Spuren, höchste Nummer **14959** |
+| Basen im Lauf | **35** (der Auftrag sagte 29 — nachgezählt sind es 35, die Fingerprintlage eingeschlossen) |
+| Spanne samt Breite | 3900–6109, also **2210** Nummern |
+| Gewählt | **3000**, vier Spuren, höchste Nummer **15109** |
+| Treffer auf der Sperrliste, über alle vier Spuren | **keiner** |
 | Höchste Nummer unter dem flüchtigen Bereich | ja (ab 32768 vergibt der Kern selbst) |
 
-**`PRUEFLAGEN`** vermerkt jede Lage mit eigenem Server: Portbasis, gewählte
+**`PRUEFLAGEN`** vermerkt **jede** Lage mit eigenem Server — die Fingerprintlage
+eingeschlossen, die vorher an der Zählung vorbeilief: Portbasis, gewählte
 Nummer und das Kind. Daran hängen beide Wächter — *es ist eine Liste und kein
 Zähler: der Wächter soll sagen, WELCHE Lage liegengeblieben ist.*
 
-Dazu **acht neue Prüfgruppen** und die Erweiterung von „Die Sicherung in der
+Dazu **zehn neue Prüfgruppen** und die Erweiterung von „Die Sicherung in der
 Oberfläche"; Einzelheiten in Abschnitt 5.
 
 ### `schluessel.js` (neu, 311 Zeilen) — der Vorgang
@@ -391,12 +392,12 @@ beschrieben und seither unbemerkt geblieben. Die Basis liegt jetzt auf **5130**
 *Ein Wächter, der am Tag seiner Entstehung einen Bestandsfehler findet, ist die
 beste Begründung für einen Wächter.*
 
-### B. Es sind 34 Portbasen, nicht 29
+### B. Es sind 35 Portbasen, nicht 29
 
-Der Auftrag sagte 29. Nachgezählt am Quelltext sind es **34** — die Spanne
-4000–5959 stimmt. Die Zahl steht jetzt im Prüfstand und wird dort ausdrücklich
-geprüft, wie die 57 in `F_ROUTEN`: *eine Prüflage, die still verschwindet,
-fällt sonst niemandem auf.*
+Der Auftrag sagte 29. Nachgezählt am Quelltext sind es **34** — und mit der
+Fingerprintlage, die vorher an der Zählung vorbeilief (Befund K), **35**. Die
+Zahl steht jetzt im Prüfstand und wird dort ausdrücklich geprüft, wie die 57 in
+`F_ROUTEN`: *eine Prüflage, die still verschwindet, fällt sonst niemandem auf.*
 
 ### C. Neunzehn Basenpaare überlappen — gemeldet, nicht behoben
 
@@ -510,6 +511,39 @@ sind gleich.
 
 **Nachgestellt:** derselbe Rückbau färbt jetzt **18** Prüfungen namentlich rot,
 und der Lauf zählt seine 2998 zu Ende.
+### K. Zwei Gegenproben hingen — und dahinter lagen zwei Fehler, Stolperstein 139
+
+**Der zweite Gegenprobenlauf hat den unangenehmsten Fund der Runde gebracht,
+und ohne ihn wäre er unbemerkt geblieben.** Drei Rückbauten liefen
+nebeneinander; zwei standen nach Minuten still — **ohne CPU, ohne Meldung, von
+„läuft noch" nicht zu unterscheiden.**
+
+Dahinter lagen zwei Fehler, und beide sind alt:
+
+1. **Die Fingerprintlage ging als einzige am Portversatz vorbei.** Sie startet
+   ihre Server nicht über `starteWeiterenServer` — sie braucht eine **Kopie des
+   Quelltextes** als Arbeitsverzeichnis — und hatte deshalb ihre eigene, feste
+   Portzählung ab 6100. Drei Nebenspuren griffen gleichzeitig danach; zwei
+   bekamen ihn nicht, und ihre Server endeten sofort.
+2. **Ein `on('exit')`, das nach dem Ende registriert wird, feuert nie.** Das
+   Aufräumen lautete `new Promise(r => { kind.on('exit', r); kind.kill(); })` —
+   und wartete auf ein Ereignis aus der Vergangenheit. **Für immer.**
+
+Beides ist behoben: die Fingerprintlage rechnet den Versatz mit und wird in
+`PRUEFLAGEN` vermerkt (**35 Basen** statt 34), und `beendeKind()` fragt zuerst,
+ob das Kind schon vorbei ist. `starteWeiterenServer().stopp()` trug denselben
+Fehler und benutzt jetzt denselben Helfer.
+
+**Und der Wächter hat dazugelernt:** er zählt seit dieser Runde auch die
+**Startstellen** im Quelltext (`spawn(process.execPath, ['server.js']` — genau
+drei). *Eine Portbasis, die nicht über die vermerkte Liste läuft, wird von
+keinem Wächter gesehen* — und genau so hat sich die Fingerprintlage der
+Nachrechnung entzogen.
+
+*Das ist die Sorte Fehler, für die es Gegenproben gibt: er lag seit 0.8.10 im
+Prüfstand und konnte erst auffallen, als zum ersten Mal zwei Läufe
+nebeneinander standen.*
+
 ---
 
 ## 5. Der Prüfstand
@@ -518,19 +552,24 @@ und der Lauf zählt seine 2998 zu Ende.
 
 | Gruppe | Prüfungen |
 |---|---|
-| Der Schlüsselwechsel: der Rundlauf | 6 |
+| Der Schlüsselwechsel: der Rundlauf | 7 |
 | Der Schlüsselwechsel: die Umschaltung des Journals | 5 |
-| Der Schlüsselwechsel: der Dateifall und der env-Fall | 18 |
+| Der Schlüsselwechsel: der Dateifall und der env-Fall | 19 |
 | Der Schlüsselwechsel: kein Schlüssel, wo keiner hingehört | 12 |
-| Der Schlüsselwechsel: der Abbruch mittendrin | 6 |
+| Der Schlüsselwechsel: der Abbruch mittendrin | 7 |
 | Der Schlüsselwechsel: zu wenig Platz | 5 |
 | Der Schlüsselwechsel: was er nicht anfasst | 6 |
 | Die Sicherung: zwei Schlüssel im Umlauf | 9 |
-| Die Portbasen und der Versatz | 7 |
+| Die Portbasen und der Versatz | 8 |
 | Keine Prüflage lässt ihren Server zurück | 2 |
+| | **80** |
 
-Dazu **13** Prüfungen in „Die Sicherung in der Oberfläche" für die drei Lagen
-des Wechsels und die Einzahl/Mehrzahl der Zählung.
+Dazu **11** Prüfungen in „Die Sicherung in der Oberfläche" für die drei Lagen
+des Wechsels und die Einzahl/Mehrzahl der Zählung — zusammen **91**.
+
+*Die Gruppe „Die Sicherung auf Knopfdruck" ist dabei geteilt worden: die Marke
+bekommt ihre eigene Überschrift, die Prüflage läuft danach unter „… ,
+Fortsetzung" weiter. Ihre Zahl bleibt mit 81 dieselbe wie vorher.*
 
 ### Was mindestens hineingehört — und wo es steht
 
@@ -587,8 +626,8 @@ GEGENPROBENTABELLE_HIER
 | | |
 |---|---|
 | Vorher (0.8.90) | 2909 |
-| Nachher (0.8.91) | **PRUEFZAHL_HIER** |
-| Neu | **NEUZAHL_HIER** |
+| Nachher (0.8.91) | **3000** |
+| Neu | **91** |
 | Gegenproben | **11** |
 
 ---

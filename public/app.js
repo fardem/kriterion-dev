@@ -4352,21 +4352,27 @@ async function renderSystem() {
        niemand mehr.
        DIE SCHÄRFSTE LAGE BEKOMMT DEN SCHÄRFSTEN SATZ: ist auch die JÜNGSTE
        Kopie älter als der Wechsel, gibt es überhaupt keine, die zur laufenden
-       Anlage passt. Das ist etwas anderes als „ein paar alte liegen daneben". */
+       Anlage passt. Das ist etwas anderes als „ein paar alte liegen daneben".
+       WO DER ALTE WERT LIEGT, HÄNGT VOM FALL AB — in der `.env` nur dann, wenn
+       er von dort kam; im Dateifall steht er nach dem Wechsel nirgends mehr.
+       Die Karte weiß das nicht sicher und behauptet es deshalb nicht: sie
+       nennt den Weg, der ihn beim Wechsel genannt hat. */
     const wechsel = !d.gewechseltAm ? '' : (
       letzte && letzte.veraltet
         ? `<div class="warn-box" style="margin:0 0 12px"><strong>Keine dieser Kopien passt zum
              heutigen Schlüssel.</strong> Gewechselt wurde am ${esc(fmtDate(d.gewechseltAm))}; auch
              die jüngste Sicherung ist älter. Sie öffnet sich nur mit dem <strong>alten</strong>
-             Schlüssel — er steht auskommentiert in der <code>.env</code>.
+             Schlüssel — <code>./schluessel.sh</code> hat ihn beim Wechsel genannt und, wenn er aus
+             der <code>.env</code> kam, dort auskommentiert stehen lassen.
              <strong>Sicher jetzt neu</strong>, dann liegt wieder eine Kopie da, die zur laufenden
              Anlage gehört.</div>`
         : (d.veraltet
           ? `<div class="warn-box" style="margin:0 0 12px"><strong>${d.veraltet} ${d.veraltet === 1
                ? 'Kopie stammt' : 'Kopien stammen'} von vor dem Schlüsselwechsel</strong>
                (${esc(fmtDate(d.gewechseltAm))}). ${d.veraltet === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich
-               nur mit dem <strong>alten</strong> Schlüssel. Heb ihn auf — er steht auskommentiert in
-               der <code>.env</code> und gehört in den Passwortspeicher.</div>`
+               nur mit dem <strong>alten</strong> Schlüssel. <strong>Heb ihn auf</strong> — kam er aus
+               der <code>.env</code>, steht er dort auskommentiert; er gehört in den
+               Passwortspeicher.</div>`
           : `<div class="ok-box" style="margin:0 0 12px">Der Schlüssel wurde am
                ${esc(fmtDate(d.gewechseltAm))} gewechselt. Alle Kopien an diesem Ort sind
                jünger und passen zum heutigen Schlüssel.</div>`));
