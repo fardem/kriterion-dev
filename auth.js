@@ -1,5 +1,10 @@
 const crypto = require('crypto');
 const { db, ordneBestandZu } = require('./db');
+// Nur wegen istAdresse: die Frage "sieht das ueberhaupt nach einer Adresse
+// aus" wird an drei Stellen gestellt (Anlegen, eigener Zugang, Versand), und
+// drei Muster nebeneinander liefen auseinander. Die Antwort steht deshalb dort,
+// wo die Adresse gebraucht wird.
+const mail = require('./mail');
 
 /* EINE EINSTELLUNG, FUENF WIRKUNGEN.
 
@@ -200,11 +205,23 @@ async function legeErstenBenutzerAn(name, passwort) {
 // Zugang zu uebernehmen. Die Klemme am Anfang ist die einzige Schicht gegen
 // einen Aufruf ohne Benutzer-Id: better-sqlite3 buende eine fehlende Nummer
 // sonst still als NULL.
-async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort) {
+/* DIE ADRESSE GEHOERT DEM, DER SIE HAT -- deshalb steht sie HIER, am eigenen
+   Zugang, und nicht in der Zugangsverwaltung. Ein Admin, der eine BESTEHENDE
+   fremde Adresse umschreiben duerfte, boege die naechste Ruecksetzmail des
+   Betroffenen auf ein Postfach seiner Wahl; das ist der Weg an der
+   Rollenleiter vorbei, den es nicht geben darf. Beim ANLEGEN ist es ein
+   anderer Fall: dort gibt es noch niemanden, der sie setzen koennte, und ohne
+   sie hat die Einladungsmail keinen Empfaenger -- legeZugangAn nimmt sie
+   deshalb entgegen, aendereZugang danach nur noch der Betroffene selbst.
+   undefined HEISST "nicht angefasst", der leere String "loeschen". Ohne diese
+   Unterscheidung koennte eine Adresse nie wieder entfernt werden, und ein
+   Formular, das ein leeres Feld als "unveraendert" liest, ist genau die
+   stille Falle, die niemand bemerkt. */
+async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort, neueAdresse) {
   const id = Number(benutzerId);
   if (!Number.isInteger(id) || id <= 0)
     throw new Error('Ein Zugangswechsel braucht den angemeldeten Benutzer.');
-  const u = db.prepare('SELECT id, username, password_hash FROM users WHERE id = ?').get(id);
+  const u = db.prepare('SELECT id, username, password_hash, email FROM users WHERE id = ?').get(id);
   if (!u) throw new Error('Es ist noch kein Zugang eingerichtet.');
   if (!await pruefePasswort(String(altesPasswort || ''), u.password_hash))
     throw new Error('Das bisherige Passwort stimmt nicht.');
@@ -220,14 +237,29 @@ async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort
   if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE AND id != ?').get(name, u.id))
     throw new Error('Diesen Benutzernamen gibt es bereits.');
   const hash = wechselt ? await hashePasswort(neuesPasswort) : u.password_hash;
+  /* Die Adresse wird GEPRUEFT, bevor irgendetwas geschrieben wird -- eine
+     Absage, die den Namen schon gewechselt hat, waere schlimmer als keine. */
+  const adresseGemeint = neueAdresse !== undefined;
+  const adresse = adresseGemeint ? String(neueAdresse || '').trim() : null;
+  if (adresseGemeint && adresse && !mail.istAdresse(adresse))
+    throw new Error('Das ist keine gültige E-Mail-Adresse.');
   db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?').run(name, hash, u.id);
+  if (adresseGemeint)
+    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(adresse || null, u.id);
   /* Der eigene Zugang ist der erste Griff einer uebernommenen Sitzung: er
      sperrt den Richtigen aus. Ein Aufruf, der nichts bewegt, ist kein Vorgang
-     und schreibt deshalb auch keine Zeile. */
+     und schreibt deshalb auch keine Zeile.
+     DIE ADRESSE ZAEHLT MIT, seit sie ueberhaupt gesetzt werden kann: sie
+     entscheidet, WOHIN der naechste Ruecksetzlink geht, und das ist keine
+     Vorliebe. 'beides' hiess schon bisher "mehr als eines" -- mit dem dritten
+     Feld wird die Ableitung deshalb GEZAEHLT statt verschachtelt; drei
+     ineinandergeschobene Fragezeichen waeren beim vierten Feld unlesbar. */
   const umbenannt = name !== u.username;
-  const merkmal = wechselt && umbenannt ? 'beides' : wechselt ? 'passwort' : umbenannt ? 'name' : null;
+  const adresseNeu = adresseGemeint && (adresse || null) !== (u.email || null);
+  const bewegt = [umbenannt && 'name', wechselt && 'passwort', adresseNeu && 'adresse'].filter(Boolean);
+  const merkmal = bewegt.length > 1 ? 'beides' : bewegt[0] || null;
   if (merkmal) protokolliere('zugang.selbst', { wer: u.id, ziel: u.id, merkmal });
-  return { username: name, passwortGewechselt: wechselt };
+  return { username: name, passwortGewechselt: wechselt, email: adresseGemeint ? adresse : (u.email || '') };
 }
 
 /* --- Zugangsverwaltung --------------------------------------------------
@@ -275,19 +307,29 @@ const zahlEigentuemer = () => db.prepare(
    der nicht nach scrypt aussieht, ohnehin am Format ab. Zwei voneinander
    unabhaengige Gruende, beide nachgestellt. Eine Sperre, die es nicht gibt,
    kann nicht vergessen werden -- genau derselbe Griff wie beim Grabstein. */
-async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false, wer) {
+async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false, wer, adresse) {
   if (ohnePasswort === true) pruefeName(name);
   else pruefeVorgaben(name, passwort);
   if (!ROLLEN.includes(rolle)) throw new Error('Diese Rolle gibt es nicht.');
   const sauber = String(name).trim();
   if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(sauber))
     throw new Error('Diesen Benutzernamen gibt es bereits.');
+  /* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die Einladungsmail
+     keinen Empfaenger, und den Zugang gibt es in diesem Augenblick noch nicht,
+     also kann ihn auch niemand selbst eintragen. Alles Spaetere laeuft ueber
+     aendereZugang und damit ueber den Betroffenen -- die Begruendung steht
+     dort. Geprueft VOR dem Anlegen: ein Zugang, der steht, und eine Absage
+     daneben waeren zwei Aussagen ueber denselben Aufruf. */
+  const mailAdresse = String(adresse || '').trim();
+  if (mailAdresse && !mail.istAdresse(mailAdresse))
+    throw new Error('Das ist keine gültige E-Mail-Adresse.');
   const hash = ohnePasswort === true ? '' : await hashePasswort(passwort);
   const handelt = handelnder(wer);
-  const r = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)')
-    .run(sauber, hash, rolle);
+  const r = db.prepare('INSERT INTO users (username, password_hash, role, email) VALUES (?, ?, ?, ?)')
+    .run(sauber, hash, rolle, mailAdresse || null);
   protokolliere('zugang.neu', { wer: handelt, ziel: r.lastInsertRowid, merkmal: rolle });
-  return { id: r.lastInsertRowid, username: sauber, role: rolle, ohnePasswort: hash === '' };
+  return { id: r.lastInsertRowid, username: sauber, role: rolle,
+           ohnePasswort: hash === '', email: mailAdresse };
 }
 
 // Setzt ein Passwort ohne das bisherige zu kennen -- fuer den Admin, der es
@@ -687,6 +729,53 @@ const TOKEN_TAGE = 7;
 const TOKEN_SPUR_TAGE = 30;
 const TOKEN_ZWECKE = ['einladung', 'ruecksetzung'];
 
+/* --- Die Frist ab dem ersten Oeffnen, seit 0.9.0 ------------------------
+   SIEBEN TAGE SIND DIE FRIST FUER DAS LESEN DER MAIL, NICHT FUER DAS LIEGEN
+   DES LINKS. Solange niemand geoeffnet hat, ist nichts geschehen und die
+   sieben Tage laufen weiter. Ab dem ERSTEN Oeffnen ist der Link erwiesenermassen
+   angekommen -- und ab da hat er in einem fremden Postfach nichts mehr
+   verloren, wo er sechs Tage lang ein Passwortersatz waere.
+
+   WARUM DAS HIER BESSER TRAEGT ALS ANDERSWO: der uebliche Grund gegen kurze
+   Fristen an Einmal-Links sind Vorschaudienste -- Virenscanner und
+   Postfachvorschauen holen Links vorab und verbrennen sie, bevor ein Mensch
+   sie sieht. Der Schluessel steht hier im FRAGMENT (#/einladung/…), und ein
+   Fragment geht nie an den Server: ein Vorschaudienst holt die Seite und loest
+   die Frist damit gerade NICHT aus. Sie beginnt erst, wenn ein echter Browser
+   den Schluessel im Rumpf schickt.
+
+   INNERHALB DER FRIST DARF BELIEBIG OFT GEOEFFNET WERDEN, und das ist der
+   Punkt, an dem die Sache kippen wuerde: wer die Seite neu laedt, weil er
+   gerade keine Zeit hatte, darf nicht vor einem toten Link stehen. Deshalb
+   schreibt NUR DER ERSTE Aufruf herunter -- der zweite sieht einen Ablauf, der
+   naeher liegt als die Frist, und ruehrt ihn nicht an.
+
+   KEINE NEUE SPALTE UND DAMIT KEIN SECHSTER MIGRATIONSBLOCK: geschrieben wird
+   ablauf, die es laengst gibt. Der Preis, ehrlich benannt -- hinterher ist
+   nicht mehr zu sehen, OB ein Link schon einmal geoeffnet wurde, nur noch,
+   wann er ablaeuft. Eine eigene Spalte dafuer waere ein Block gewesen, und der
+   Gewinn haette ihn nicht getragen.
+
+   DIE ABSAGE BLEIBT DIE EINE aus 0.8.80: abgelaufen, verbraucht, erfunden,
+   Zugang gesperrt -- und jetzt auch "die Frist ist verstrichen". In jedem
+   dieser Faelle ist dasselbe zu tun, naemlich beim Admin einen neuen Link
+   holen. Eine eigene Meldung waere eine Auskunft an den, der raet. */
+const TOKEN_FRIST_MINUTEN = 15;
+
+// Liefert den Ablauf, der danach gilt -- fuer den Aufrufer, der ihn nennen
+// will. Schreibt HOECHSTENS herunter, nie hinauf: ein zweiter Aufruf darf die
+// Frist nicht verlaengern, sonst haelt sie ein Neuladen im Minutentakt offen.
+const setzeFrist = db.prepare(
+  `UPDATE tokens SET ablauf = datetime('now', ?)
+    WHERE hash = ? AND benutzt_am IS NULL AND ablauf > datetime('now', ?)`);
+function beginneTokenFrist(hash) {
+  const modifikator = `+${TOKEN_FRIST_MINUTEN} minutes`;
+  // ZWEI MODIFIKATOREN WAEREN ZWEI ARGUMENTE (Stolperstein 119) -- hier steht
+  // derselbe zweimal, einmal als neuer Wert und einmal als Schranke davor.
+  setzeFrist.run(modifikator, String(hash || ''), modifikator);
+  return TOKEN_FRIST_MINUTEN;
+}
+
 const tokenHash = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
 
 /* Dieselbe Bauform wie raeumePapierkorbAuf(): EINE Funktion, ZWEI
@@ -834,7 +923,7 @@ const VORGAENGE = [
    beabsichtigt. Wer einen Vorgang ergaenzt, ergaenzt hier oder nimmt null. */
 const MERKMALE = ['user', 'admin', 'eigentuemer', 'aktiv', 'gesperrt',
                   'einladung', 'ruecksetzung', 'merge', 'replace',
-                  'name', 'passwort', 'beides'];
+                  'name', 'passwort', 'adresse', 'beides'];
 
 // Eine Frist, laenger als die dreissig Tage von Papierkorb und Tokenspur: ein
 // Protokoll, das den Vorfall vergisst, bevor jemand ihn bemerkt, ist keins.
@@ -930,7 +1019,7 @@ function leseProtokoll(grenze = PROTOKOLL_GRENZE) {
    es fehlte nur bei den schweren Wegen.
 
    WARUM EINE FREIGABE UND NICHT DAS PASSWORT IM RUMPF DER HANDLUNG. Die
-   schoenere Form waere die zweite; sie geht an zwei der sechs Wege nicht auf:
+   schoenere Form waere die zweite; sie geht an zwei der sieben Wege nicht auf:
      * GET /api/export ist eine BROWSERNAVIGATION -- ein Rumpf ist dort
        baulich unmoeglich, und in die Adresse gehoert ein Passwort nie.
      * POST /api/import traegt seinen Waechter ausdruecklich VOR multer, damit
@@ -948,7 +1037,14 @@ function leseProtokoll(grenze = PROTOKOLL_GRENZE) {
    Zugang, und eine fuer Zugang 7 nicht Zugang 8.
    EINMAL GUELTIG: wer drei Zugaenge nacheinander entfernt, tippt dreimal. */
 const FREIGABE_MS = 120 * 1000;
-const BESTAETIGUNG_ZWECKE = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link'];
+/* SIEBEN WEGE UEBER SECHS ROUTEN seit 0.9.0 -- 'mail' kommt dazu. Wer den
+   Mailzugang setzt, entscheidet, ueber wessen Server JEDER kuenftige
+   Ruecksetzlink dieser Anlage laeuft; das trifft die Anlage als Ganzes und
+   liegt damit in derselben Zeile wie Export und Import.
+   (Bis 0.8.91 waren es sechs ueber fuenf. Die Zahl stand eine Runde lang
+   falsch in den Papieren -- Stolperstein 137 -- und ist mit Revision 20
+   berichtigt worden; hier zaehlt sie ab jetzt wieder hoch.) */
+const BESTAETIGUNG_ZWECKE = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link', 'mail'];
 /* DER SCHLUESSEL IST DIE GANZE BINDUNG: Sitzungstoken, Zweck und Ziel. Ein
    einziger Platz je Sitzung waere eine stille Falle -- eine Anfrage, die zwei
    Zwecke braucht (Rolle UND Passwort in einem Rumpf), verloere mit dem ersten
@@ -1053,8 +1149,8 @@ module.exports = {
   clientIp, checkThrottle, noteFailure, noteSuccess,
   // Meine Sitzungen und die Token; Rufer ist server.js.
   sitzungsKennung, sitzungenVon, beendeSitzung, beendeAndereSitzungen,
-  TOKEN_TAGE, TOKEN_SPUR_TAGE, TOKEN_ZWECKE, tokenHash,
-  raeumeTokensAuf, erzeugeToken, pruefeToken, loeseTokenEin,
+  TOKEN_TAGE, TOKEN_SPUR_TAGE, TOKEN_ZWECKE, TOKEN_FRIST_MINUTEN, tokenHash,
+  raeumeTokensAuf, erzeugeToken, pruefeToken, loeseTokenEin, beginneTokenFrist,
   // Das Sicherheitsprotokoll; Rufer sind server.js und zugang.js.
   VORGAENGE, MERKMALE, PROTOKOLL_TAGE, PROTOKOLL_GRENZE, VOM_WIRT,
   protokolliere, raeumeProtokollAuf, leseProtokoll,

@@ -10,6 +10,7 @@ const VERSION = require('./package.json').version;
 const sharp = require('sharp');
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria } = require('./db');
 const auth = require('./auth');
+const mail = require('./mail');
 
 const PORT = process.env.PORT || 3000;
 
@@ -53,6 +54,52 @@ const OEFFENTLICHE = auth.OEFFENTLICHE_ADRESSE;
 const linkAngabe = (klartext) => OEFFENTLICHE.adresse
   ? { link: `${OEFFENTLICHE.adresse}/#/einladung/${klartext}`, linkQuelle: 'einstellung' }
   : { link: null, linkQuelle: 'browser' };
+
+/* ---- Der Versand eines Tokenlinks, seit 0.9.0 ----
+   DER TOKEN ENTSTEHT ZUERST, DIE ANTWORT TRAEGT DEN LINK IMMER, UND DER
+   VERSAND IST EIN FELD DARIN. Das ist die bauliche Form des Satzes, der ueber
+   der ganzen Stufe steht: E-Mail ist eine Bequemlichkeit, keine Voraussetzung.
+   Schlaegt der Versand fehl, bricht nichts ab -- der Admin sieht
+   "Versand fehlgeschlagen" und daneben den Link zum Kopieren.
+
+   DREI WERTE, und mehr gibt es nicht:
+     'ok'              die Mail ist beim Server des Anbieters angenommen
+     'fehlgeschlagen'  es wurde versucht und ging schief
+     'aus'             es wurde gar nicht erst versucht
+   DER GRUND STEHT DANEBEN, weil 'aus' allein drei verschiedene Lagen deckt --
+   kein Mailzugang, keine oeffentliche Adresse, keine Adresse am Zugang. Ohne
+   ihn saehe der Admin, DASS nichts hinausging, und nicht, was er tun soll.
+
+   DIE OEFFENTLICHE ADRESSE IST PFLICHT FUER DEN VERSAND UND NICHT FUER DEN
+   START. Das ist eine engere Auslegung als der Wortlaut des Konzeptpapiers
+   ("ab Stufe I ist sie Pflicht"), und sie ist die einzig moegliche: ein
+   Startabbruch braeche jede vorhandene Installation beim Einspielen dieser
+   Version. Ohne sie wird nicht verschickt, die Karte sagt warum, und der Link
+   steht wie immer daneben -- beim Kopieren baut ihn der Browser des Admins
+   weiter selbst, wie seit 0.8.80.
+   UND AUS DEM HOST-KOPF WIRD AUCH HIER NICHTS ABGELEITET: eine verschickte
+   Mail waere die Stelle, an der ein gefaelschter Kopf am meisten wert waere. */
+async function versendeTokenLink(ziel, t) {
+  const zugang = mail.loeseAuf(getSetting(mail.SCHLUESSEL, null));
+  if (!mail.eingerichtet(zugang))
+    return { versand: 'aus', versandGrund: 'Es ist kein Mailzugang eingerichtet.' };
+  if (!OEFFENTLICHE.adresse)
+    return { versand: 'aus', versandGrund:
+      'Ohne OEFFENTLICHE_ADRESSE in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
+  if (!ziel.email)
+    return { versand: 'aus', versandGrund: 'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
+  const angaben = {
+    titel: getSetting('title_public', 'Bewertungskatalog'),
+    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${t.klartext}`,
+    tage: auth.TOKEN_TAGE, minuten: auth.TOKEN_FRIST_MINUTEN
+  };
+  const einladung = t.zweck === 'einladung';
+  const e = await mail.versende(zugang, ziel.email,
+    einladung ? `Dein Zugang zu „${angaben.titel}“` : `Neues Passwort für „${angaben.titel}“`,
+    einladung ? mail.textEinladung(angaben) : mail.textRuecksetzung(angaben));
+  return e.ok ? { versand: 'ok', versandGrund: '' }
+              : { versand: 'fehlgeschlagen', versandGrund: e.grund };
+}
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -316,10 +363,21 @@ app.post('/api/token/pruefen', async (req, res) => {
   if (!await tokenBremseFrei(req, res)) return;
   const t = auth.pruefeToken((req.body || {}).token);
   if (!t) { auth.noteFailure(ip, null); return res.status(400).json({ error: TOKEN_ABSAGE }); }
-  // Kein noteSuccess: geprueft ist noch nicht eingeloest.
+  /* HIER BEGINNT DIE FRIST AUS 0.9.0, und nur hier: dies ist die eine Stelle,
+     an der belegt ist, dass ein BROWSER den Schluessel in der Hand hat -- er
+     steht im Fragment und kommt nur von dort. Ab dem ersten Oeffnen hat der
+     Link in einem fremden Postfach nichts mehr verloren.
+     WEITERE AUFRUFE RUEHREN NICHTS AN: beginneTokenFrist schreibt nur
+     herunter, nie hinauf. Wer neu laedt, weil er gerade keine Zeit hatte,
+     steht deshalb nicht vor einem toten Link -- genau der Fall, an dem die
+     Sache sonst kippt.
+     NICHT in auth.pruefeToken: die Funktion wird auch von loeseTokenEin
+     gerufen, und das Einloesen darf die Frist nicht noch einmal anfassen.
+     Kein noteSuccess: geprueft ist noch nicht eingeloest. */
+  const minuten = auth.beginneTokenFrist(t.hash);
   res.json({
     username: t.username, ohnePasswort: t.ohnePasswort,
-    minPassword: auth.PASSWORT_MIN
+    minPassword: auth.PASSWORT_MIN, minuten
   });
 });
 
@@ -410,6 +468,13 @@ function nurEigentuemer(req, res, next) {
      passwort   PUT    /api/users/:id   (nur wenn passwort im Rumpf steht)
      entfernen  DELETE /api/users/:id
      link       POST   /api/users/:id/token
+     mail       PUT    /api/mail
+   MIT 0.9.0 KOMMT 'mail' DAZU -- sechs Wege ueber fuenf Routen werden sieben
+   ueber sechs. Wer den Mailzugang setzt, entscheidet, ueber wessen Server
+   jeder kuenftige Ruecksetzlink dieser Anlage laeuft.
+   (Die Zahl stand von 0.8.90 bis 0.8.91 falsch da -- Stolperstein 137. Sie ist
+   in Revision 20 des Projektstands nachgezaehlt worden und stimmt hier ab
+   0.9.0 wieder, diesmal aus dem richtigen Grund.)
    AUSDRUECKLICH NICHT DAHINTER: Sperren und Freigeben (umkehrbar, und ein
    gesperrter Zugang ist nicht die Anlage), das Anlegen eines Zugangs (es
    erzeugt einen neuen und nimmt niemandem etwas) und POST /api/setup (dort
@@ -517,16 +582,23 @@ const VERWEIGERT_SELBST_ZUGANG = 'Den eigenen Zugang ändert man unter „Zugang
 // Der angemeldete Benutzer, nicht der erste: ab dem zweiten Zugang saehe
 // sonst jeder den Namen des Eigentuemers.
 app.get('/api/account', (req, res) => {
-  res.json({ username: req.benutzer.username, minPassword: auth.PASSWORT_MIN });
+  // Die eigene Adresse steht hier und nirgends sonst: sie gehoert dem, der sie
+  // hat. GET /api/users liefert sie ausdruecklich NICHT mit -- ein Admin
+  // braucht fuer seine Arbeit die Zugaenge, nicht die Postfaecher.
+  res.json({ username: req.benutzer.username, minPassword: auth.PASSWORT_MIN,
+             email: auth.holeZugang(req.benutzer.id)?.email || '' });
 });
 
 app.put('/api/account', async (req, res) => {
-  const { oldPassword, username, newPassword } = req.body || {};
+  const { oldPassword, username, newPassword, email } = req.body || {};
   let ergebnis;
   try {
     // WESSEN Zugang. Ohne diese Angabe aenderte jeder den des Eigentuemers,
     // sobald er dessen Passwort raet.
-    ergebnis = await auth.aendereZugang(req.benutzer.id, oldPassword, username, newPassword);
+    // Die Adresse geht denselben Weg wie Name und Passwort -- hinter dem
+    // BISHERIGEN Passwort. Sie entscheidet, wohin der naechste Ruecksetzlink
+    // geht; eine uebernommene Sitzung soll sie nicht nebenbei umbiegen koennen.
+    ergebnis = await auth.aendereZugang(req.benutzer.id, oldPassword, username, newPassword, email);
   } catch (e) { return res.status(400).json({ error: e.message }); }
   // Alle anderen Sitzungen DIESES Benutzers fallen. Wer das Passwort wechselt,
   // will meist genau das; die eigene bleibt, sonst wuerde man sich selbst
@@ -681,7 +753,7 @@ app.get('/api/users/:id/bestand', nurAdmin, (req, res) => {
 // Admin offen, ohne dass irgendwo "Rolle" steht. Dieselbe Ueberlegung wie beim
 // Import, den eine Exportdatei sonst unter fremdem Namen schreiben liesse.
 app.post('/api/users', nurAdmin, async (req, res) => {
-  const { username, passwort, rolle, einladen } = req.body || {};
+  const { username, passwort, rolle, einladen, email } = req.body || {};
   const gewuenscht = rolle || 'user';
   if (gewuenscht !== 'user' && !istEigentuemer(req))
     return res.status(403).json({ error: VERWEIGERT_ROLLE });
@@ -691,10 +763,15 @@ app.post('/api/users', nurAdmin, async (req, res) => {
        Zugang dasteht, in den niemand hereinkommt und an den auch niemand mehr
        denkt. `einladen` muss ausdruecklich true sein -- ein vergessenes
        Passwortfeld scheitert weiter wie bisher. */
-    const angelegt = await auth.legeZugangAn(username, passwort, gewuenscht, einladen === true, req.benutzer.id);
+    const angelegt = await auth.legeZugangAn(username, passwort, gewuenscht, einladen === true,
+                                             req.benutzer.id, email);
     if (einladen !== true) return res.json(angelegt);
     const t = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);
-    res.json({ ...angelegt, token: t.klartext, zweck: t.zweck, tage: t.tage, ...linkAngabe(t.klartext) });
+    /* ERST DER TOKEN, DANN DER VERSAND, und die Reihenfolge ist die ganze
+       Zusage: der Link steht in der Antwort, egal was der Mailserver sagt. */
+    const v = await versendeTokenLink({ username: angelegt.username, email: angelegt.email }, t);
+    res.json({ ...angelegt, token: t.klartext, zweck: t.zweck, tage: t.tage,
+               minuten: auth.TOKEN_FRIST_MINUTEN, ...linkAngabe(t.klartext), ...v });
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
@@ -711,7 +788,7 @@ app.post('/api/users', nurAdmin, async (req, res) => {
    Server umbiegen.
    DAS IST DIE EINE ANTWORT, IN DER DER KLARTEXT STEHT. Danach steht er
    nirgends mehr -- auch nicht in der Datenbank. */
-app.post('/api/users/:id/token', nurAdmin, (req, res) => {
+app.post('/api/users/:id/token', nurAdmin, async (req, res) => {
   const ziel = zielZugangFrei(req, res, req.params.id);
   if (!ziel) return;
   /* DIE RECHTEFRAGE STEHT VOR DER BESTAETIGUNGSFRAGE, und das ist keine
@@ -721,9 +798,13 @@ app.post('/api/users/:id/token', nurAdmin, (req, res) => {
   const zweck = (req.body || {}).zweck || 'einladung';
   try {
     const t = auth.erzeugeToken(ziel.id, zweck, req.benutzer.id);
+    // Erst der Token, dann der Versand -- dieselbe Reihenfolge wie am Anlegen,
+    // und aus demselben Grund.
+    const v = await versendeTokenLink(ziel, t);
     res.json({ id: t.id, username: t.username, token: t.klartext,
-               zweck: t.zweck, tage: t.tage, ohnePasswort: t.ohnePasswort,
-               ...linkAngabe(t.klartext) });
+               zweck: t.zweck, tage: t.tage, minuten: auth.TOKEN_FRIST_MINUTEN,
+               ohnePasswort: t.ohnePasswort,
+               ...linkAngabe(t.klartext), ...v });
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
@@ -773,6 +854,112 @@ app.delete('/api/users/:id', nurAdmin, (req, res) => {
       beitraege: req.query.beitraege === '1'
     }, req.benutzer.id));
   } catch (e) { return res.status(400).json({ error: e.message }); }
+});
+
+/* ---- Der Mailversand, seit 0.9.0 ---------------------------------------
+   DREI ENDPUNKTE, EINE RECHTEZEILE: DER MAILZUGANG GEHOERT DEM EIGENTUEMER,
+   GANZ. Eintragen, einsehen und die Testmail ausloesen -- alles drei bei ihm,
+   und der Admin kommt an keines davon:
+     GET  /api/mail       nurEigentuemer. Lesend, deshalb KEIN Eintrag in
+                          F_ROUTEN, wie bei GET /api/stats.
+     PUT  /api/mail       nurEigentuemer, und zusaetzlich zweitbestaetigt.
+     POST /api/mail/test  nurEigentuemer -- an die EIGENE Adresse, sonst nirgends.
+
+   WARUM NICHT BEIM ADMIN, obwohl ER die Einladungen verschickt: der
+   SMTP-Server sieht jede Mail, die durch ihn geht, und jede traegt einen Link,
+   der ein Passwort setzt. Duerfte ein Admin ihn eintragen, liefe die
+   Ruecksetzmail des Eigentuemers ueber einen Server seiner Wahl -- der Weg an
+   der Rollenleiter vorbei, den es nicht geben darf. Ueber dem Eigentuemer
+   steht niemand; wer ohnehin exportieren und den Schluesselwert sehen darf,
+   gewinnt hier nichts dazu. Die Begruendung im Langen steht in mail.js.
+
+   WAS DER ADMIN STATTDESSEN BEKOMMT, und es ist genug: das Feld `versand`
+   samt Grund neben dem Link, in genau dem Augenblick, in dem es ihn angeht.
+   Er erfaehrt dort, DASS nichts hinausging und WARUM -- und der Link steht
+   daneben. Eine Karte, die ihm dasselbe schon vorher sagt, waere bequemer und
+   koennte ihm den Anbieter, den Server und den Benutzernamen des Eigentuemers
+   nennen; das ist der Tausch, der hier nicht gemacht wird.
+
+   DAS PASSWORT KOMMT AUS KEINER DIESER ANTWORTEN HERAUS, auch nicht aus der
+   des Eigentuemers: die Karte zeigt "gesetzt" oder "nicht gesetzt", und das
+   Formular schickt beim Speichern ein leeres Feld, wenn es unveraendert
+   bleiben soll. Ein Endpunkt, der es zurueckgaebe, waere die eine Stelle, an
+   der es ueber das Netz liefe, ohne dass es jemand gebraucht haette. */
+const MAILTEST_SCHLUESSEL = 'mailtestOk';
+
+/* Was die Karte sieht. DIE ANBIETERLISTE KOMMT MIT: der Server speichert einen
+   Schluessel, also muss die Oberflaeche die Namen von ihm bekommen -- eine
+   zweite Liste in app.js liefe beim naechsten Anbieter auseinander (dieselbe
+   Bauform wie bei den Suchanbietern).
+   DIE MARKE SAGT, OB DER LETZTE ERFOLGREICHE TEST NOCH ZUM HEUTIGEN ZUGANG
+   PASST. Ohne den Vergleich stuende "zuletzt getestet: gestern" auch dann da,
+   wenn seitdem der Anbieter gewechselt wurde -- eine Auskunft, die genau dann
+   falsch ist, wenn sie gebraucht wird. */
+function mailKarte() {
+  const roh = getSetting(mail.SCHLUESSEL, null);
+  const test = getSetting(MAILTEST_SCHLUESSEL, null);
+  const passt = Boolean(test && test.marke && test.marke === mail.marke(roh));
+  return {
+    ...mail.zustand(roh),
+    anbieterListe: mail.ANBIETER.map(a => ({ schluessel: a.schluessel, name: a.name })),
+    eingerichtet: mail.eingerichtet(roh),
+    // Der ZUSTAND der oeffentlichen Adresse, nicht die Adresse selbst -- die
+    // steht in der Karte "Zugaenge", wo der Link entsteht.
+    adresseGesetzt: Boolean(OEFFENTLICHE.adresse),
+    adresse: OEFFENTLICHE.adresse,
+    fristMinuten: auth.TOKEN_FRIST_MINUTEN,
+    getestetAm: passt ? test.am : null,
+    sekunden: Math.round(mail.VERSAND_MS / 1000)
+  };
+}
+
+app.get('/api/mail', nurEigentuemer, (req, res) => res.json(mailKarte()));
+
+app.put('/api/mail', nurEigentuemer, zweiteBestaetigungNoetig('mail'), (req, res) => {
+  let neu;
+  try { neu = mail.pruefeEingabe(req.body, getSetting(mail.SCHLUESSEL, null)); }
+  catch (e) { return res.status(400).json({ error: e.message }); }
+  putSetting.run(mail.SCHLUESSEL, JSON.stringify(neu));
+  /* DIE MARKE FAELLT MIT JEDER AENDERUNG. Sie belegt "mit DIESEN Werten ist
+     einmal wirklich eine Mail hinausgegangen"; nach einer Aenderung belegt sie
+     das nicht mehr, und eine stehengebliebene Marke waere eine Behauptung. */
+  putSetting.run(MAILTEST_SCHLUESSEL, JSON.stringify(null));
+  res.json(mailKarte());
+});
+
+/* Die Testmail geht AN DIE EIGENE ADRESSE DES ANFORDERNDEN und nirgendwo
+   sonst. Ein Knopf mit freiem Adressfeld waere ein offener Mailverteiler
+   hinter einer Anmeldung: die Anlage verschickte fuer jeden mit einem
+   Adminzugang fremde Post, und wer tausend Adressen durchprobieren will,
+   braeuchte dafuer nur einen Zugang und Geduld.
+   ES GIBT DESHALB KEIN ADRESSFELD -- weder im Rumpf, noch in der Abfrage,
+   noch als Kopf. Der Rumpf wird gar nicht angesehen; das ist die einzige Form,
+   in der "ein mitgegebenes Feld aendert nichts" baulich wahr ist statt
+   durchgesetzt.
+   HAT DER ZUGANG KEINE ADRESSE, WIRD ABGESAGT -- mit dem Weg dorthin, denn
+   die Absage ohne den Satz "trag sie unter Zugang ein" waere eine Sackgasse. */
+app.post('/api/mail/test', nurEigentuemer, async (req, res) => {
+  const eigener = auth.holeZugang(req.benutzer.id);
+  if (!eigener || !eigener.email) {
+    return res.status(400).json({ error:
+      'Für deinen Zugang ist keine E-Mail-Adresse hinterlegt. Trag sie im Systembereich ' +
+      'unter „Zugang“ ein — die Testmail geht ausschließlich an die eigene Adresse.' });
+  }
+  const roh = getSetting(mail.SCHLUESSEL, null);
+  if (!mail.eingerichtet(roh))
+    return res.status(400).json({ error: 'Es ist kein vollständiger Mailzugang eingerichtet.' });
+  const e = await mail.versende(roh, eigener.email,
+    `Testmail aus „${getSetting('title_public', 'Bewertungskatalog')}“`,
+    mail.textTest({ titel: getSetting('title_public', 'Bewertungskatalog'),
+                    username: eigener.username }));
+  if (e.ok) {
+    putSetting.run(MAILTEST_SCHLUESSEL,
+      JSON.stringify({ marke: mail.marke(roh), am: new Date().toISOString().slice(0, 19).replace('T', ' ') }));
+  }
+  // 200 AUCH BEIM FEHLSCHLAG: der Versuch ist gelaufen, und sein Ergebnis ist
+  // die Antwort. Ein 500 hiesse, die Anlage haette einen Fehler -- den hat der
+  // Mailserver. Die Oberflaeche liest `ok` und nicht den Statuscode.
+  res.json({ ok: e.ok, grund: e.grund, an: eigener.email, ...mailKarte() });
 });
 
 /* ---- Titel (nach der Anmeldung) ---- */
@@ -4036,6 +4223,27 @@ app.listen(PORT, () => {
   } else {
     console.log('[Kriterion] Oeffentliche Adresse: nicht gesetzt — ' +
       'den Einladungslink baut der Browser des Admins.');
+  }
+  /* Der Mailversand gehoert ins Protokoll, und zwar in derselben Form wie die
+     Adresse darueber: wer ihn eingerichtet glaubt und es nicht ist, sieht es
+     hier -- und nicht erst, wenn jemand auf eine Einladung wartet.
+     DAS PASSWORT STEHT HIER NICHT, auch nicht seine Laenge und nicht sein
+     letztes Zeichen. Die Zeile nennt Anbieter, Server und Absender; das genuegt
+     zum Nachsehen, ob der richtige Zugang geladen ist. Der Merksatz zu
+     Kontrollausgaben gilt hier in seiner schaerfsten Auslegung, wie beim
+     Schluesselwechsel: ein Geheimnis, das einmal im Containerprotokoll steht,
+     steht dort, bis es jemand loescht. */
+  {
+    const roh = getSetting(mail.SCHLUESSEL, null);
+    const z = mail.zustand(roh);
+    if (mail.eingerichtet(roh)) {
+      console.log(`[Kriterion] Mailversand: ${z.anbieterName} über ${z.server}:${z.port} ` +
+        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}.` +
+        (OEFFENTLICHE.adresse ? '' : ' Ohne OEFFENTLICHE_ADRESSE wird trotzdem nicht verschickt.'));
+    } else {
+      console.log('[Kriterion] Mailversand: nicht eingerichtet — Einladungs- und ' +
+        'Ruecksetzlinks stehen wie bisher im Verwaltungsbereich zum Kopieren.');
+    }
   }
   setTimeout(() => backfillVariants().then(maintainStorage).catch(e => console.error(e)), 1500);
 });

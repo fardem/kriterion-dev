@@ -102,7 +102,7 @@ sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9, 0.8.50 auf 10). Alles davon steht in
 Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_90.md` gepflegt und
+Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` gepflegt und
 nur dort; von seinen Stufen ist **allein Stufe I offen** — diese Runde hat
 daran nichts bewegt. **Das Konzeptpapier ist von 0.8.91 nicht berührt worden
 und behält seinen Dateinamen:** die Runde ist keine Stufe und rührt an keiner
@@ -2214,7 +2214,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_90.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -4893,7 +4893,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_90.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.

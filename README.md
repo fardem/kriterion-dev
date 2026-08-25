@@ -342,9 +342,22 @@ wieder — und was darin stand, wird geleert.
 > nur dem, für den er ist. Er wird **nur ein einziges Mal angezeigt**; ist er
 > weg, erzeugst du einen neuen.
 
-**Kriterion verschickt nichts.** Es baut keine Verbindung nach außen auf; der
-Link geht von Hand. Das ändert sich erst mit dem Mailversand in einer späteren
-Version.
+**Und seit 0.9.0 eine zweite Frist daneben: ab dem ersten Öffnen bleiben
+fünfzehn Minuten.** Die sieben Tage sind die Frist fürs *Lesen der Mail*, nicht
+fürs Liegenlassen des Links. Solange niemand geöffnet hat, ist nichts geschehen
+und die sieben Tage laufen weiter. Ab dem ersten Öffnen ist erwiesen, dass der
+Link angekommen ist — und dann hat er in einem fremden Postfach nichts mehr
+verloren. **Innerhalb der fünfzehn Minuten darf beliebig oft geöffnet und neu
+geladen werden**; nur der *erste* Aufruf startet die Uhr. Wer die Frist
+verstreichen lässt, holt sich einen neuen Link. Der Zugang selbst bleibt dabei
+stehen und trägt weiter „noch kein Passwort".
+
+Das Feld daneben ist **freiwillig**: trägst du eine **E-Mail-Adresse** ein,
+schickt die Anlage den Link zusätzlich dorthin — vorausgesetzt, ein Mailzugang
+ist eingerichtet (siehe **Mailversand**). Der Link steht trotzdem zum Kopieren
+da, auch wenn der Versand fehlschlägt. **Ändern darf die Adresse danach allein
+der Betreffende selbst**, im Systembereich unter „Zugang": sie entscheidet,
+wohin sein nächster Rücksetzlink geht, und das gehört nicht in fremde Hand.
 
 #### Ein Passwort zurücksetzen — ebenfalls zwei Wege
 
@@ -389,6 +402,75 @@ Netzwerkvertrauen, nicht über eine Vorliebe. Ein Admin kommt nicht an einen
 anderen Admin; dürfte er die öffentliche Adresse setzen, zeigte später jede
 verschickte Mail auf seinen Server. Der Systembereich **zeigt** sie, er setzt
 sie nicht.
+
+**Seit 0.9.0 ist sie Pflicht — für den Versand, nicht für den Start.** Ohne sie
+verschickt die Anlage keine Links: der Server wüsste nicht, worauf sie zeigen
+sollen, und aus dem `Host`-Kopf darf er es nicht ableiten. Der Start bricht
+deswegen **nicht** ab, und es fehlt auch nichts — die Links stehen wie bisher
+zum Kopieren da. Die Karte „Mailversand" markiert den fehlenden Wert rot und
+nennt den Grund.
+
+#### Mailversand — seit 0.9.0
+
+**E-Mail ist eine Bequemlichkeit, keine Voraussetzung.** Ohne Mailzugang läuft
+Kriterion vollständig, rein offline, und es fehlt keine Funktion: Einladungs-
+und Rücksetzlinks stehen im Verwaltungsbereich zum Kopieren, genau wie seit
+0.8.80. **Wer keinen Mailzugang einträgt, verliert nichts.** Mit Mailzugang
+gehen dieselben Links *zusätzlich* per Mail hinaus; schlägt das fehl, bricht
+nichts ab — im Kasten steht „Versand fehlgeschlagen" samt Grund, und der Link
+daneben.
+
+**Nur ausgehend.** Kein Empfang, kein offener Port, kein Abholen. Es gibt genau
+**zwei Anlässe** für eine Mail: den Tokenlink und die Testmail. Keine
+Benachrichtigungen, keine Zählpixel, kein HTML — reiner Text.
+
+**Der Mailzugang gehört dem Eigentümer, ganz.** Eintragen, einsehen und die
+Testmail auslösen liegen bei ihm; ein Admin kommt an keines davon. Der Grund
+ist die Rollenleiter: der SMTP-Server sieht **jede** Mail, die durch ihn geht,
+und jede trägt einen Link, der ein Passwort setzt. Dürfte ein Admin ihn
+eintragen, liefe die Rücksetzmail des Eigentümers über einen Server seiner
+Wahl. Über dem Eigentümer steht niemand — wer ohnehin exportieren und den
+Schlüsselwert sehen darf, gewinnt hier nichts dazu. Was der Admin bekommt, ist
+die Auskunft an der Stelle, an der sie ihn angeht: neben dem Link steht, ob
+etwas hinausging und warum nicht.
+
+Die Karte **„Mailversand"** im Systembereich fragt nach:
+
+| Feld | |
+|---|---|
+| **Anbieter** | GMX, Web.de, Gmail, Strato, IONOS oder „Eigener Server" |
+| **Server, Port, Verschlüsselung** | füllt die Vorlage; offen nur bei „Eigener Server" |
+| **Benutzername, Passwort** | dein Zugang beim Anbieter |
+| **Absenderadresse** | muss zum Konto gehören |
+
+**Das Passwort wird nie angezeigt** — die Karte sagt „gesetzt" oder „nicht
+gesetzt", nie die Länge, nie den Anfang, nie Sternchen mit der richtigen Zahl.
+Beim Speichern bedeutet ein leeres Passwortfeld „unverändert lassen". Es steht
+in der **verschlüsselten Datenbank**, nicht in der `.env`, und wandert weder in
+eine Exportdatei noch in eine Protokollzeile.
+
+Drei Hinweise, an denen die meisten Versuche scheitern:
+
+- **Gmail** verlangt Zwei-Faktor und ein **App-Passwort**; das Kontopasswort
+  wird abgewiesen.
+- **GMX** und **Web.de** verlangen, den Versand über fremde Programme im Konto
+  erst **freizuschalten**.
+- **Die Absenderadresse muss zum Konto gehören** — über GMX lässt sich nicht
+  als fremde Adresse senden.
+
+Und der Grund für die Vorlagen: **immer über den SMTP-Zugang eines Anbieters,
+nie unmittelbar vom Hausanschluss.** Dort fehlen rDNS und SPF/DKIM, und die
+Mail landet im besten Fall im Spam.
+
+**Der Testmail-Knopf geht ausschließlich an die Adresse deines eigenen
+Zugangs.** Es gibt kein Adressfeld daneben, und das ist Absicht: ein Knopf, der
+an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer
+Anmeldung. Hast du für deinen Zugang keine Adresse hinterlegt, sagt die Absage
+das und nennt den Weg — Systembereich, Karte „Zugang".
+
+Antwortet der Mailserver nicht, **bricht der Versuch nach zwanzig Sekunden ab**
+und die Antwort kommt trotzdem. Der Token entsteht dabei **zuerst**: der Link
+steht in jedem Fall da, egal was der Mailserver sagt.
 
 #### Meine Sitzungen
 
