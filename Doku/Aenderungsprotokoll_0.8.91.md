@@ -202,6 +202,19 @@ Vorgangsliste des Sicherheitsprotokolls.
 Eine Regel, `.sich-alt`, die den vorhandenen Rotton nimmt. **Kein neues
 Farbschema.**
 
+### `Doku/Changelog.md` — vier Blöcke statt drei, und das ist Absicht
+
+Die vorhandenen Einträge tragen **drei** Blöcke: „Neu", „Was gleich bleibt",
+„Beim Einspielen". Dieser trägt einen **vierten** dazwischen — **„Was du danach
+von Hand tun musst"**. Der Auftrag verlangte drei; die Abweichung steht hier,
+statt stillschweigend dazustehen.
+
+Der Grund ist der Gegenstand selbst: der Schlüsselwechsel ist der einzige
+Vorgang im Projekt, bei dem **nach** der Handlung noch etwas zu tun ist, das
+niemand vergessen darf — den alten Wert in den Passwortspeicher übernehmen und
+neu sichern. Zwischen „Neu" und „Was gleich bleibt" geht das unter; als eigener
+Block steht es dort, wo jemand es sucht.
+
 ### `.dockerignore`, `.env.example`, `package.json`
 
 `gegenprobe.js` und `schluessel.sh` gehören nicht ins Image. Die `.env.example`
