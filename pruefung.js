@@ -8544,6 +8544,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
       'das Geheimnis steht im Antwortkoerper');
     pruefe('Sie sagt nur, DASS eines gesetzt ist',
       gesetzt.inhalt?.passwortGesetzt === true, JSON.stringify(gesetzt.inhalt?.passwortGesetzt));
+    /* UND DASSELBE AN DER LESENDEN ANTWORT. Zwei Endpunkte sind zwei Stellen:
+       eine Gegenprobe, die das Passwort in GET /api/mail zurueckgab, blieb
+       stumm, weil nur die Antwort des SCHREIBENDEN Wegs durchsucht wurde.
+       Dieselbe Lehre wie bei den beiden Tokenrouten. */
+    const gelesen = await A.S.ruf('GET', '/api/mail');
+    pruefe('Auch die gelesene Karte traegt das Passwort NICHT',
+      gelesen.status === 200 && !JSON.stringify(gelesen.inhalt).includes(MAIL_GEHEIMNIS),
+      'das Geheimnis steht in der Antwort von GET /api/mail');
+    pruefe('Und auch sie sagt nur, DASS eines gesetzt ist',
+      gelesen.inhalt?.passwortGesetzt === true, JSON.stringify(gelesen.inhalt?.passwortGesetzt));
     /* Und die Gegenlage dazu: die Karte sagt es auch, wenn KEINES gesetzt ist.
        Ohne sie bliebe "passwortGesetzt" eine Behauptung, die immer wahr ist. */
     const leerA = await mailAnlage({}, 5260);
@@ -8641,6 +8651,29 @@ const freigabeHaupt = (zweck, ziel = null) =>
       ohneNeu.inhalt?.link === null && ohneNeu.inhalt?.linkQuelle === 'browser',
       JSON.stringify([ohneNeu.inhalt?.link, ohneNeu.inhalt?.linkQuelle]));
 
+    /* EIN ZUGANG OHNE ADRESSE -- an einer Anlage, an der der Versand STEHT.
+       Das ist die dritte der drei Lagen hinter `versand: 'aus'`, und sie hat
+       hier bis zu einer stummen Gegenprobe gefehlt: geprueft war sie nur in
+       der Oberflaeche, und dort gegen den Mock (Stolperstein 102, zum
+       vierten Mal). Der Unterschied ist keine Feinheit -- ohne die Klemme
+       liefe der Versuch bis zum Mailserver und kaeme als
+       'fehlgeschlagen' zurueck, und der Admin suchte den Fehler beim
+       Anbieter statt am Zugang. */
+    const ohneAdr = await A.S.ruf('POST', '/api/users', { username: 'egon', einladen: true });
+    pruefe('Ein Zugang ohne Adresse wird gar nicht erst beschickt',
+      ohneAdr.inhalt?.versand === 'aus', JSON.stringify(ohneAdr.inhalt?.versand));
+    pruefe('Und der Grund nennt die fehlende Adresse, nicht den Mailserver',
+      /keine E-Mail-Adresse hinterlegt/.test(ohneAdr.inhalt?.versandGrund || ''),
+      JSON.stringify(ohneAdr.inhalt?.versandGrund));
+    pruefe('Der Token entsteht auch dort, und der Link steht in der Antwort',
+      /^[0-9a-f]{64}$/.test(ohneAdr.inhalt?.token || '') && Boolean(ohneAdr.inhalt?.link),
+      JSON.stringify([ohneAdr.inhalt?.token, ohneAdr.inhalt?.link]));
+    await new Promise(r => setTimeout(r, 200));
+    // UND DER EMPFAENGER HAT NICHTS BEKOMMEN. Ohne diese Zeile bliebe offen,
+    // ob wirklich nichts hinausging oder nur das Feld anders heisst.
+    pruefe('Und der Empfaenger hat davon nichts gesehen',
+      E.briefe().length === 2, `${E.briefe().length} Briefe`);
+
     /* DER EMPFAENGER ANTWORTET MIT EINEM FEHLER. Der Token entsteht trotzdem,
        der Link steht da, und der GRUND steht daneben. */
     const F = smtpEmpfaenger('fehler');
@@ -8672,6 +8705,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     gruppe('Der Mailversand: die Frist wird gemessen, nicht behauptet');
 
+    /* JEDE MESSUNG LAEUFT UEBER EIN EIGENES AUFFANGNETZ, und das ist keine
+       Vorsicht, sondern Stolperstein 138: geprueft wird hier ein Vorgang, der
+       SCHEITERN kann -- und die Gegenprobe nimmt ihm absichtlich genau die
+       Frist weg, die ihn beendet. Ohne ein eigenes Netz haengt dann der
+       Prueflauf, statt eine Pruefung rot zu faerben, und der Rueckbau saehe
+       aus wie einer, den niemand bemerkt.
+       DIE GRENZE IST DAS DOPPELTE der Zusage: was darunter liegt, ist eine
+       Messung; was darueber liegt, ist ein Befund. */
+    const MESS_GRENZE_MS = 40 * 1000;
+    const mitNetz = async (versprechen) => {
+      let uhr;
+      const netz = new Promise(r => { uhr = setTimeout(() => r({ ueberfaellig: true }), MESS_GRENZE_MS); });
+      try { return await Promise.race([versprechen, netz]); }
+      finally { clearTimeout(uhr); }
+    };
+
     /* DREI LAGEN, UND SIE SIND VERSCHIEDEN -- ohne alle drei waere nicht
        belegt, WELCHE Frist traegt.
        'stumm'     gruesst nie: das faengt nodemailers greetingTimeout.
@@ -8687,11 +8736,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const StA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5440);
     await mailSetzen(StA.S, St);
     const t0 = Date.now();
-    const stNeu = await StA.S.ruf('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
+    const stNeu = await mitNetz(StA.S.ruf('POST', '/api/users',
+      { username: 'bert', einladen: true, email: 'bert@beispiel.de' }));
     const stDauer = Date.now() - t0;
     pruefe('Ein Empfaenger, der nicht gruesst, haelt die Antwort nicht laenger als 20 s auf',
-      stDauer < 21000, `gemessen ${stDauer} ms`);
+      !stNeu.ueberfaellig && stDauer < 21000,
+      stNeu.ueberfaellig ? `nach ${MESS_GRENZE_MS} ms keine Antwort` : `gemessen ${stDauer} ms`);
     pruefe('Und der Token ist trotzdem da',
       /^[0-9a-f]{64}$/.test(stNeu.inhalt?.token || '') && stNeu.inhalt?.versand === 'fehlgeschlagen',
       `${stNeu.inhalt?.versand} · ${stNeu.inhalt?.token}`);
@@ -8700,11 +8750,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const SwA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5500);
     await mailSetzen(SwA.S, Sw);
     const t1 = Date.now();
-    const swNeu = await SwA.S.ruf('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
+    const swNeu = await mitNetz(SwA.S.ruf('POST', '/api/users',
+      { username: 'bert', einladen: true, email: 'bert@beispiel.de' }));
     const swDauer = Date.now() - t1;
     pruefe('Ein Empfaenger, der gruesst und dann schweigt, ebenso wenig',
-      swDauer < 21000, `gemessen ${swDauer} ms`);
+      !swNeu.ueberfaellig && swDauer < 21000,
+      swNeu.ueberfaellig ? `nach ${MESS_GRENZE_MS} ms keine Antwort` : `gemessen ${swDauer} ms`);
     /* UND DIE UNTERGRENZE: dieser Fall darf nicht am GRUSS haengenbleiben.
        Bliebe er unter sieben Sekunden, haette ihn greetingTimeout gefangen. */
     pruefe('Und er kommt wirklich am Gruss vorbei',
@@ -8722,11 +8773,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const TrA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6490);
     await mailSetzen(TrA.S, Tr);
     const t2 = Date.now();
-    const trNeu = await TrA.S.ruf('POST', '/api/users',
-      { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
+    const trNeu = await mitNetz(TrA.S.ruf('POST', '/api/users',
+      { username: 'bert', einladen: true, email: 'bert@beispiel.de' }));
     const trDauer = Date.now() - t2;
     pruefe('Ein Empfaenger, der troepfelt, haelt die Antwort trotzdem nicht laenger als 20 s auf',
-      trDauer < 21000, `gemessen ${trDauer} ms`);
+      !trNeu.ueberfaellig && trDauer < 21000,
+      trNeu.ueberfaellig ? `nach ${MESS_GRENZE_MS} ms keine Antwort — die aeussere Schranke fehlt`
+                         : `gemessen ${trDauer} ms`);
     pruefe('Und auch er kommt an allen Fristen von nodemailer vorbei',
       trDauer > 7500, `gemessen ${trDauer} ms`);
     pruefe('Der Token ist auch dort da',
@@ -8857,8 +8910,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const tOhneAdresse = await TA.S.ruf('POST', '/api/mail/test', {});
     pruefe('Ohne eigene Adresse wird die Testmail abgesagt',
       tOhneAdresse.status === 400, `Status ${tOhneAdresse.status}`);
-    pruefe('Und die Absage nennt den Weg dorthin',
-      /Zugang/.test(tOhneAdresse.inhalt?.error || ''), JSON.stringify(tOhneAdresse.inhalt?.error));
+    /* DER WEG DORTHIN, und zwar der GANZE: das Wort "Zugang" allein genuegt
+       nicht -- es steht schon im ersten Satz der Absage ("Fuer deinen Zugang
+       ist keine Adresse hinterlegt"). Eine Gegenprobe, die den zweiten Satz
+       wegnahm, blieb deshalb stumm. Geprueft wird jetzt, was den Weg
+       ausmacht: WO die Adresse einzutragen ist. */
+    pruefe('Und die Absage nennt den Weg dorthin -- den Ort, nicht nur das Wort',
+      /Systembereich/.test(tOhneAdresse.inhalt?.error || '') &&
+      /„Zugang/.test(tOhneAdresse.inhalt?.error || ''),
+      JSON.stringify(tOhneAdresse.inhalt?.error));
     // Jetzt die eigene Adresse setzen -- ueber den eigenen Zugang, wie gebaut.
     const tKonto = await TA.S.ruf('PUT', '/api/account',
       { oldPassword: MAIL_PASSWORT_ANNA, username: 'anna', email: 'anna@beispiel.de' });
@@ -8893,6 +8953,32 @@ const freigabeHaupt = (zweck, ziel = null) =>
       T.briefe().filter(b => /boese\.net/.test(b.roh)).length);
     pruefe('Und die Marke steht danach in der Karte',
       Boolean(tMit.inhalt?.getestetAm), JSON.stringify(tMit.inhalt?.getestetAm));
+    /* DIE MARKE FAELLT MIT JEDER AENDERUNG AM ZUGANG, und das ist der Kern
+       ihrer Aussage: sie belegt "mit DIESEN Werten ist einmal wirklich eine
+       Mail hinausgegangen". Bliebe sie stehen, hiesse "zuletzt getestet:
+       gestern" auch nach einem Anbieterwechsel noch etwas -- eine Auskunft,
+       die genau dann falsch ist, wenn sie gebraucht wird.
+       GEPRUEFT WIRD AN EINER AENDERUNG, DIE NICHTS KAPUTT MACHT: derselbe
+       Empfaenger, nur ein anderer Absender. Waere der Zugang danach unbrauchbar,
+       liesse sich nicht unterscheiden, ob die Marke wegen der AENDERUNG fiel
+       oder weil nichts mehr geht. */
+    await mailFrei(TA.S);
+    const tNachAenderung = await TA.S.ruf('PUT', '/api/mail', {
+      anbieter: 'eigen', server: '127.0.0.1', port: T.port, sicher: false,
+      benutzer: MAIL_BENUTZER, passwort: '', absender: 'anders@beispiel.de'
+    });
+    pruefe('Die Aenderung geht durch', tNachAenderung.status === 200,
+      `Status ${tNachAenderung.status}`);
+    pruefe('Und die Marke ist danach weg',
+      tNachAenderung.inhalt?.getestetAm === null, JSON.stringify(tNachAenderung.inhalt?.getestetAm));
+    pruefe('Auch die gelesene Karte sagt jetzt "noch nie"',
+      (await TA.S.ruf('GET', '/api/mail')).inhalt?.getestetAm === null,
+      JSON.stringify((await TA.S.ruf('GET', '/api/mail')).inhalt?.getestetAm));
+    // Und der Zugang steht trotzdem: das leere Passwortfeld hat ihn nicht
+    // geleert, sondern unveraendert gelassen.
+    pruefe('Der Zugang ist dabei erhalten geblieben',
+      tNachAenderung.inhalt?.eingerichtet === true && tNachAenderung.inhalt?.passwortGesetzt === true,
+      JSON.stringify([tNachAenderung.inhalt?.eingerichtet, tNachAenderung.inhalt?.passwortGesetzt]));
 
     gruppe('Der Mailzugang: wer ihn setzen darf');
 
@@ -8952,11 +9038,40 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Ein mitgeschickter Server wird bei einer Vorlage nicht uebernommen',
       rGeschmuggelt.inhalt?.server === 'mail.gmx.net' && rGeschmuggelt.inhalt?.port === 587,
       JSON.stringify([rGeschmuggelt.inhalt?.server, rGeschmuggelt.inhalt?.port]));
+    /* UND DIE ZWEITE SCHICHT EINZELN. Die erste ist die Pruefung der Eingabe:
+       sie wirft die mitgeschickten Werte weg, bevor irgendetwas gespeichert
+       wird. Die zweite ist das Aufloesen beim LESEN: auch ein Wert, der schon
+       in der Datenbank steht, verliert gegen die Vorlage.
+       ZWEI SCHICHTEN SIND ZWEI STELLEN, und eine Gegenprobe auf die zweite
+       blieb stumm, weil die erste sie deckt. Hier wird die zweite eigens
+       gestellt -- der Wert wird von Hand in settings geschrieben, so wie er
+       aus einer aelteren Fassung stammen koennte. */
+    {
+      const d = oeffne(path.join(RA.dir, 'katalog.sqlite'));
+      try {
+        const roh = JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'mailzugang'").get().value);
+        d.prepare("UPDATE settings SET value = ? WHERE key = 'mailzugang'")
+          .run(JSON.stringify({ ...roh, server: 'boeser.beispiel.net', port: 2525, sicher: true }));
+      } finally { d.close(); }   // Stolperstein 134
+    }
+    const rGespeichert = await RA.S.ruf('GET', '/api/mail');
+    pruefe('Und auch ein GESPEICHERTER Wert verliert gegen die Vorlage',
+      rGespeichert.inhalt?.server === 'mail.gmx.net' && rGespeichert.inhalt?.port === 587 &&
+      rGespeichert.inhalt?.sicher === false,
+      JSON.stringify([rGespeichert.inhalt?.server, rGespeichert.inhalt?.port, rGespeichert.inhalt?.sicher]));
+    /* DIE BENANNTE ABSAGE, nicht irgendein 400. Eine Gegenprobe, die die
+       Klemme entfernte, blieb stumm: der naechste Griff lief dann in einen
+       TypeError, den die Route ebenfalls als 400 herausgab -- abgewiesen war
+       es also, nur aus dem falschen Grund und mit einer Meldung, die niemand
+       versteht. Geprueft wird deshalb der WORTLAUT. */
+    await mailFrei(RA.S);
+    const rErfunden = await RA.S.ruf('PUT', '/api/mail', { anbieter: 'erfunden',
+      benutzer: 'a', passwort: 'b', absender: 'a@b.de' });
     pruefe('Ein unbekannter Anbieter wird abgewiesen',
-      await (async () => { await mailFrei(RA.S);
-        return (await RA.S.ruf('PUT', '/api/mail', { anbieter: 'erfunden',
-          benutzer: 'a', passwort: 'b', absender: 'a@b.de' })).status === 400; })(),
-      'ein erfundener Anbieter kommt durch');
+      rErfunden.status === 400, `Status ${rErfunden.status}`);
+    pruefe('Und zwar mit der benannten Absage, nicht mit einem Fehler',
+      rErfunden.inhalt?.error === 'Diesen Anbieter gibt es nicht.',
+      JSON.stringify(rErfunden.inhalt?.error));
     // Die drei Hinweise haengen am Anbieter und kommen vom Server.
     pruefe('Der Hinweis zum Anbieter kommt vom Server',
       /fremde Programme/.test(rMitFrei.inhalt?.hinweis || ''),
@@ -18660,13 +18775,18 @@ async function pruefeOberflaeche() {
   pruefe('Und sie nennt den Grund der Bremse',
     /Zu viele Fehlversuche/.test(eiBremse.w.document.querySelector('.login-error')?.textContent || ''),
     eiBremse.w.document.querySelector('.login-error')?.textContent);
-  pruefe('Ein zweiter Anlauf steht als Knopf da',
-    !!eiBremse.w.document.getElementById('eb-neu'), 'kein Knopf');
+  const eiKnopf = eiBremse.w.document.getElementById('eb-neu');
+  pruefe('Ein zweiter Anlauf steht als Knopf da', !!eiKnopf, 'kein Knopf');
   {
+    /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81) -- und
+       hier ist es zugleich Stolperstein 103: eine Gegenprobe nimmt genau
+       diesen Knopf weg, und ein .dispatchEvent auf null riss den ganzen Lauf
+       ab, statt die Pruefungen darunter rot zu faerben. Wer einen Gegenstand
+       prueft, den eine Gegenprobe entfernen KANN, greift ihn ueber ein
+       Auffangnetz. */
     // Ein WIRKLICH zugestelltes Ereignis (Stolperstein 61), samt Durchlauf
     // der Event Loop -- ein Knopf ist erst geprueft, wenn er geklickt wurde.
-    eiBremse.w.document.getElementById('eb-neu')
-      .dispatchEvent(new eiBremse.w.MouseEvent('click', { bubbles: true }));
+    if (eiKnopf) eiKnopf.dispatchEvent(new eiBremse.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     pruefe('Und der zweite Anlauf fuehrt wirklich zum Formular',
       !!eiBremse.w.document.getElementById('ep') &&

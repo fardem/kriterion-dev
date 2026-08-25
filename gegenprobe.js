@@ -253,11 +253,16 @@ const RUECKBAUTEN = [
   },
   /* ---- Die Oberflaeche ---- */
   {
-    nr: '27', name: 'Die Karte "Mailversand" steht auch beim Admin',
+    /* GEZIELT AUF DEN ABRUF, nicht auf die Bedingung der Karte. Ein Rueckbau
+       allein an der Karte blieb stumm: mailstand ist beim Admin `null`, weil
+       er gar nicht erst geholt wird -- die Karte erschiene also trotzdem
+       nicht. DIE TRAGENDE ZEILE IST DER ABRUF, und der Rueckbau greift
+       deshalb dort. */
+    nr: '27', name: 'Der Mailzugang wird auch fuer den Admin geholt',
     datei: 'public/app.js',
-    suche: "jemals, faellt hier eine Karte auf null. */''}${EIGENTUEMER && mailstand ? `<div class=\"sys-card\">\n        <h3>Mailversand</h3>",
-    ersatz: "jemals, faellt hier eine Karte auf null. */''}${ADMIN && mailstand ? `<div class=\"sys-card\">\n        <h3>Mailversand</h3>",
-    erwartet: 'Die Karten des Systembereichs nach Rolle'
+    suche: "      EIGENTUEMER ? api('GET', '/api/mail') : null",
+    ersatz: "      ADMIN ? api('GET', '/api/mail') : null",
+    erwartet: 'Die Karten des Systembereichs nach Rolle (viele rot — der Abruf reisst den ganzen Bereich mit)'
   },
   {
     nr: '28', name: 'Der Versandzustand verschwindet aus dem Linkkasten',
@@ -296,11 +301,17 @@ const RUECKBAUTEN = [
     erwartet: 'Die Portbasen und der Versatz'
   },
   {
-    nr: 'W6', name: 'Der SMTP-Empfaenger raeumt seine Verbindungen nicht ab',
+    /* GEZIELT AUF DEN HORCHPOSTEN, nicht auf das Abraeumen der Verbindungen.
+       Der erste Anlauf nahm das Abraeumen weg -- dann HAENGT der Lauf am
+       close(), das auf offene Verbindungen wartet, und er lief in die
+       Zeitgrenze des Treibers, statt eine Pruefung rot zu faerben
+       (Stolperstein 138). So bleibt der Lauf ganz, die Empfaenger horchen
+       weiter, und genau der Waechter faerbt sich, der dafuer da ist. */
+    nr: 'W6', name: 'Der SMTP-Empfaenger hoert nicht auf zu horchen',
     datei: 'pruefung.js',
-    suche: '    for (const d of draehte) d.destroy();',
-    ersatz: '    // for (const d of draehte) d.destroy();',
-    erwartet: '(erwartet ABRISS — der Lauf haengt beim Aufraeumen)'
+    suche: '    server.close(() => r());',
+    ersatz: '    r();',
+    erwartet: 'Keine Prueflage laesst ihren Server zurueck'
   }
 ];
 
