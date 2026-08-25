@@ -30,7 +30,7 @@ oben. Abschnitt 2 begründet sie.
 
 ## 1. Was gebaut wurde, je Datei
 
-### `gegenprobe.js` (neu, 387 Zeilen) — W1
+### `gegenprobe.js` (neu, 445 Zeilen) — W1
 
 Der Gegenprobentreiber. **Die Rückbauten stehen als Liste ganz oben in der
 Datei** — dieselbe Bauform wie `F_ROUTEN` im Prüfstand: die Liste **ist** die
@@ -58,7 +58,7 @@ Name, Datei, gesuchten Text, Ersatz und die erwartete Prüfgruppe.
 * **Er läuft nicht in `npm test` mit.** Er fährt den vollen Prüflauf je
   Rückbau und gehört an das Ende einer Runde.
 
-### `pruefung.js` (+797/−14 Zeilen) — W2, W3 und die neuen Gruppen
+### `pruefung.js` (+932/−19 Zeilen) — W2, W3 und die neuen Gruppen
 
 **`PORT_VERSATZ`** wird auf jede Portbasis addiert, auch auf die des
 Hauptservers. Ohne die Variable bleibt alles, wie es war.
@@ -81,7 +81,7 @@ Zähler: der Wächter soll sagen, WELCHE Lage liegengeblieben ist.*
 Dazu **zehn neue Prüfgruppen** und die Erweiterung von „Die Sicherung in der
 Oberfläche"; Einzelheiten in Abschnitt 5.
 
-### `schluessel.js` (neu, 311 Zeilen) — der Vorgang
+### `schluessel.js` (neu, 324 Zeilen) — der Vorgang
 
 Zwei Befehle, `zeigen` und `wechseln`. Er läuft **im Container**, weil
 `PRAGMA rekey` SQLCipher braucht und die Bibliothek dort liegt.
@@ -111,7 +111,7 @@ Merksatz zu Kontrollausgaben nimmt sie ausdrücklich aus.
 **Am Ende die Spur:** die Marke `schluesselGewechseltAm` in `settings` und die
 Protokollzeile — beides **nach** dem Vorgang, wie überall.
 
-### `schluessel.sh` (neu, 144 Zeilen) — der Ablauf
+### `schluessel.sh` (neu, 151 Zeilen) — der Ablauf
 
 `zeigen` und `wechseln` auf dem Wirt. Die Reihenfolge ist der ganze Punkt:
 
@@ -136,7 +136,7 @@ stehen. Auf dem Wirt hätte sich dann **nichts** geändert, während die Datenba
 längst den neuen Schlüssel trüge. **Beim Durchsehen gefunden, nicht im
 Betrieb** — Docker läuft in der Umgebung dieser Runde nicht.
 
-### `keys.js` (+100/−2 Zeilen) — die Datei dieser Runde
+### `keys.js` (+116/−2 Zeilen) — die Datei dieser Runde
 
 `erzeugeSchluessel()`, `schreibeSchluesselDatei()`, `findeEnvZeile()` und
 `schreibeEnvZeile()`. **Der Server ruft nichts davon** — er liest seinen
@@ -522,7 +522,7 @@ an einer Stelle ab, an der die Prüfung darüber längst rot war.
 überhaupt eine Zeile dasteht. Dasselbe beim Schemavergleich: zwei leere Listen
 sind gleich.
 
-**Nachgestellt:** derselbe Rückbau färbt jetzt **18** Prüfungen namentlich rot,
+**Nachgestellt:** derselbe Rückbau färbt jetzt **19** Prüfungen namentlich rot,
 und der Lauf zählt seine 3006 zu Ende.
 ### K. Zwei Gegenproben hingen — und dahinter lagen zwei Fehler, Stolperstein 139
 
@@ -679,7 +679,26 @@ gefahren über `gegenprobe.js` mit drei Nebenspuren. **Keine davon ist stumm** �
 die beiden, die es waren, stehen in Befund L, und ihre Lücken sind
 geschlossen.
 
-GEGENPROBENTABELLE_HIER
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 01 | Die Umschaltung auf DELETE faellt weg | 19 Prüfungen, darunter „Der Wechsel laeuft durch" (5 Gruppen) |
+| 02 | Die Rueckschaltung auf WAL faellt weg | „Nach dem Wechsel steht es wieder auf WAL", „Und der Wechsel nennt beide Richtungen in seiner Meldung", „Und danach steht das Journal trotzdem wieder auf WAL" |
+| 03 | Der .env-Fall wird nicht mehr abgewiesen | 25 Prüfungen, darunter „Im .env-Fall wird OHNE die .env abgewiesen" (3 Gruppen) |
+| 04 | Die .env wird nicht mehr gegen den laufenden Wert gehalten | 21 Prüfungen, darunter „Und auch dabei wurde nichts gewechselt" (3 Gruppen) |
+| 05 | Die Platzpruefung faellt weg | „Bei zu wenig Platz kommt die Absage mit Begruendung" |
+| 06 | Die Protokollzeile wird nicht geschrieben | 4 Prüfungen, darunter „Genau eine Zeile im Sicherheitsprotokoll, und sie heisst schluessel" (Gruppe „Der Schluesselwechsel: kein Schluessel, wo keiner hingehoert") |
+| 07 | Die Marke schluesselGewechseltAm wird nicht gesetzt | „Die Marke schluesselGewechseltAm steht in settings" |
+| 08 | Der alte Wert wird in der .env nicht auskommentiert | „Der alte Wert steht auskommentiert darueber", „Alle uebrigen Zeilen stehen unveraendert und in derselben Reihenfolge" |
+| 09 | Die alten Sicherungen werden nicht mehr gezaehlt | „Von zwei Kopien ist genau die aeltere veraltet", „Liegt der Wechsel hinter allen, sind alle veraltet", „Die Grenze liegt genau am Zeitpunkt der Marke, in UTC gerechnet" |
+| 10 | Der Dateifall schreibt die Schluesseldatei nicht | 6 Prüfungen, darunter „Die Schluesseldatei traegt einen NEUEN 64-stelligen Wert" (3 Gruppen) |
+| 11 | Die Rueckschaltung auf WAL steht nicht mehr im finally | „Und danach steht das Journal trotzdem wieder auf WAL" |
+| 12 | Eine mitgegebene .env wird im Dateifall nicht abgewiesen | „Im Dateifall wird eine mitgegebene .env abgewiesen" |
+| 13 | Zwei aktive Schluesselzeilen in der .env werden nicht abgewiesen | 19 Prüfungen, darunter „Eine .env ohne AKTIVE Schluesselzeile wird abgewiesen" (3 Gruppen) |
+| 14 | Die Karte "Sicherung" zeigt den Wechsel gar nicht mehr an | 8 Prüfungen, darunter „Nach einem Wechsel nennt ein roter Kasten die Zahl der alten Kopien" (Gruppe „Die Sicherung in der Oberflaeche") |
+| 15 | Die Fingerprintlage wird nicht mehr vermerkt | „Der Lauf hat seine Portbasen vermerkt" |
+| W2 | Eine Portbasis liegt wieder auf der gesperrten 4045 | „Keine Portbasis deckt eine Nummer, die fetch() nicht anwaehlt" |
+| W3 | Eine Prueflage beendet ihren Server nicht | „Und jeder einzelne von ihnen ist beendet" |
+| W4 | beendeKind fragt nicht, ob das Kind schon vorbei ist | „beendeKind kehrt auch bei einem SCHON beendeten Kind zurueck" |
 
 ---
 
@@ -752,4 +771,4 @@ GEGENPROBENTABELLE_HIER
 
 ---
 
-**0.8.91 — Fingerprint `FINGERPRINT_HIER`**
+**0.8.91 — Fingerprint `a810f529`**

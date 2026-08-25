@@ -161,7 +161,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.91 ist gebaut** — Fingerprint **`FINGERPRINT_HIER`**, 3006
+**0.8.91 ist gebaut** — Fingerprint **`a810f529`**, 3006
 Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs und KEINE Datenbankstufe:**
 diese Runde bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf**
 markierten Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts**
