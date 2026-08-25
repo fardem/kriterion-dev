@@ -3922,6 +3922,38 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Wirkung wegnimmt statt den Mechanismus zu zerstören, wird rot statt zu
     hängen.
 
+147. **Eine Probe, die das Datenverzeichnis oder den Schlüssel ersetzt, belegt
+    nichts.** Der Schlüsselwechsel galt seit 0.8.91 als „läuft, aber am echten
+    Umfang unbestätigt". Der erste Anlauf, ihn zu bestätigen, löschte `data/`
+    und erzeugte einen frischen Schlüssel — und tauschte damit den Schlüssel
+    einer **leeren** Datenbank: Ansage „0,2 MB, rund 1 Sekunde", in
+    Millisekunden vorbei, danach „noch kein Zugang". Über 662 MB sagt das
+    nichts. **`data/` und `.env` gehören zusammen:** wer beides wegwirft, hat
+    keine Probe mehr, sondern eine neue Anlage; wer nur den Schlüssel ersetzt
+    und die Daten behält, bekommt eine Datenbank, die gar nicht mehr aufgeht —
+    dann scheitert schon der Start, nicht der Wechsel. *Eine Probe an einem
+    Bestand ist erst dann eine, wenn sie den echten Bestand trägt, samt seinem
+    Schlüssel.* Die README trug dazu nur Prosa; seit 0.9.0 steht dort ein
+    Rezept, das eine Kopie der echten Anlage nimmt, und daneben die vier
+    Zeilen, an denen sich ablesen lässt, ob die Probe etwas wert war.
+
+148. **Wer die echte `.env` in eine Probe kopiert, kopiert den laufenden
+    Schlüssel mit — und `schluessel.sh` druckt ihn.** Dass das Skript den
+    **alten** Wert im Klartext nennt, ist gewollt und in Abschnitt 3 begründet:
+    er öffnet ab dann nur noch die Sicherungen von vorher. An einer Probe, die
+    die echte `.env` trägt — und **nur die belegt etwas, siehe 147** —, ist
+    dieser „alte" Wert der **laufende** Schlüssel der echten Anlage. **Das ist
+    kein Fehler des Skripts, sondern eine Eigenschaft der Probe:** dieselbe
+    Zeile ist an einer Wegwerfanlage harmlos und an der Kopie der echten die
+    schärfste im ganzen Lauf. *Wer so probt, behandelt ihre Ausgabe wie den
+    Schlüssel selbst* — kein Gespräch, kein Papier, keine Zwischenablage, die
+    woanders landet. **Ist er doch abgeflossen, ist der Wechsel an der echten
+    Anlage die Antwort**, und der ist jetzt geprobt: elf Sekunden Stillstand.
+    Dazu gehört das Aufräumen, denn die Probe lässt zwei Dinge nebeneinander
+    liegen: `.env.vor-schluesselwechsel-…` und die Sicherung
+    `../kriterion-data-vor-schluesselwechsel-…` — Schlüssel neben Daten, genau
+    die Lage, gegen die Abschnitt 3 argumentiert.
+
 ---
 
 ## 7. Prüfstand
@@ -4620,36 +4652,69 @@ sind zwei Dinge:
   Verlust steht. *Das ist eine Ausgabe an einen Menschen am Terminal, keine
   Kontrollausgabe: sie steht in keinem Containerprotokoll und in keiner
   Protokollzeile, und der Prüfstand hält beides fest.*
-- **Der Schlüsselwechsel ist an einer Wegwerfanlage gefahren worden — aber an
-  einer LEEREN, und damit ist er weiter unbestätigt** (Stand 0.9.0). Der Lauf
-  ging durch: `.env` gesichert, Anlage angehalten, Datenverzeichnis gesichert,
-  Wechsel im Wegwerf-Container, `integrity_check: ok`, der alte Wert
-  auskommentiert in der `.env`, Neustart mit „Schluessel aus ENCRYPTION_KEY
-  geladen." **Die Ansage lautete dabei „0.2 MB, erwartete Dauer rund 1
-  Sekunden", und das Protokoll danach „noch kein Zugang".** Die Probe hatte
-  ihre Datenbank vorher gelöscht.
-  **Was sie damit belegt und was nicht:** belegt ist die HOSTSEITE, und sie war
-  die offene Frage aus 0.8.91 — `docker compose run --rm --no-deps` bei
-  gesetztem `container_name`, die Einhängung des Projektverzeichnisses, das
-  Nachziehen der `.env` über Umbenennen, Anhalten und Starten. **Nicht belegt
-  ist der Bestand am echten Umfang:** 662,5 MB, rund 13 Sekunden, 728,7 MB
-  Journal. *Dass ein Bestand den Wechsel überlebt, prüft der Prüfstand
-  ohnehin* — Feld für Feld über jede Tabelle, dazu der `kill -9` mitten hinein
-  an rund 60 MB. Was fehlt, ist genau die Kreuzung aus beidem.
-  **Warum die Probe leer war, und es ist kein Fehler am Skript:** wer `data/`
-  löscht und dazu einen frischen Schlüssel erzeugt, wechselt den Schlüssel
-  einer leeren Datenbank. Wer `data/` behält und trotzdem einen frischen
-  Schlüssel schreibt, bekommt eine Datenbank, die gar nicht mehr aufgeht — dann
-  scheitert nicht der Wechsel, sondern schon der Start. **`data/` und `.env`
-  gehören zusammen.** Der Weg in der README nimmt seit 0.9.0 deshalb eine
-  **Kopie der echten Anlage samt ihrer `.env`** und nennt die vier Zeilen, an
-  denen sich erkennen lässt, ob die Probe etwas wert war.
-  **`./schluessel.sh zeigen` ist auf der Anlage bereits gelaufen** und hat die
-  eine offene Frage beantwortet: `docker compose run --rm` kommt mit gesetztem
-  `container_name` klar — der Wegwerf-Container heißt
-  `kriterion-kriterion-run-<hash>`. Gemessen dabei: **662,5 MB** Datenbank,
-  **728,7 MB** gebraucht, **rund 13 Sekunden** angesagt. Die Rechnung aus
-  20 ms je MB geht auf.
+- **DER SCHLÜSSELWECHSEL IST BESTÄTIGT — an einer Kopie der echten Anlage, am
+  echten Umfang** (25. August 2026, Stand 0.9.0). Damit ist der letzte offene
+  Punkt aus 0.8.91 geschlossen. Die Probe lief an `kriterion-probe`, einer
+  Kopie **samt Datenverzeichnis und `.env`**, auf Port 3199. Gemessen:
+
+  | | |
+  |---|---|
+  | Ansage | **662,5 MB, erwartete Dauer rund 13 Sekunden** |
+  | Platzrechnung | 728,7 MB gebraucht, 856 571 MB frei |
+  | **Wirklich gedauert** | **10 592 ms** |
+  | Journal | `wal → DELETE → wal` |
+  | Danach | `integrity_check: ok` |
+  | Neustart | `Schluessel aus ENCRYPTION_KEY geladen.` · `Läuft auf Port 3000 — Eigentümer: <Name>` |
+
+  **Die Schätzung aus 20 ms je MB hält, und sie schätzt nach oben:** angesagt
+  waren 13,3 Sekunden, gebraucht wurden 10,6 — rund ein Viertel Reserve. Das
+  ist die richtige Richtung; eine Ansage, die zu kurz greift, wäre die
+  unangenehme.
+  **Was der Lauf belegt, und es ist beides:** die HOSTSEITE (der Wegwerf-Container
+  bei gesetztem `container_name`, die Einhängung des Projektverzeichnisses, das
+  Nachziehen der `.env` über Umbenennen, Anhalten und Starten) **und** den
+  Bestand am echten Umfang. *Dass ein Bestand den Wechsel Feld für Feld
+  übersteht, prüft der Prüfstand ohnehin* — dazu der `kill -9` mitten hinein an
+  rund 60 MB. Jetzt ist auch die Kreuzung aus beidem gefahren.
+
+- **Ein erster Anlauf davor belegte nichts, und das gehört festgehalten.** Er
+  lief an einer Probe, die ihr Datenverzeichnis vorher gelöscht und einen
+  frischen Schlüssel erzeugt hatte: Ansage „0,2 MB, erwartete Dauer rund 1
+  Sekunden", danach „noch kein Zugang". **Ein Wechsel an einer leeren Datenbank
+  ist in Millisekunden vorbei und sagt über 662 MB nichts.**
+  **Und warum es ohne das Löschen zunächst gar nicht lief, ist kein Fehler am
+  Skript:** wer `data/` behält und trotzdem einen frischen Schlüssel schreibt,
+  bekommt eine Datenbank, die gar nicht mehr aufgeht — dann scheitert nicht der
+  Wechsel, sondern schon der Start. **`data/` und `.env` gehören zusammen; wer
+  eines von beiden ersetzt, hat keine Probe mehr, sondern eine neue Anlage.**
+  Die README trug dazu nur Prosa und kein Rezept; seit 0.9.0 steht dort eines,
+  das eine Kopie der **echten** Anlage nimmt, samt der vier Zeilen, an denen
+  sich erkennen lässt, ob die Probe etwas wert war. **Stolperstein 147.**
+
+- **DER LAUFENDE SCHLÜSSEL DER ECHTEN ANLAGE IST DABEI SICHTBAR GEWORDEN und
+  gehört gewechselt.** Das Skript druckt den ALTEN Wert, damit er in den
+  Passwortspeicher wandert — an einer Probe, die eine Kopie der echten `.env`
+  trägt, ist dieser alte Wert der **laufende** Schlüssel der echten Anlage.
+  *Das ist kein Fehler des Skripts: an einer Wegwerfanlage mit eigenem
+  Schlüssel wäre der Ausdruck harmlos, und die Probe MUSS die echte `.env`
+  tragen, sonst belegt sie nichts.* **Wer die Probe so fährt, behandelt ihre
+  Ausgabe wie den Schlüssel selbst** — nicht in ein Gespräch, nicht in eine
+  Zwischenablage, die woanders landet. **Ist es doch geschehen, ist der Wechsel
+  an der echten Anlage die Antwort**, und er ist jetzt geprobt: elf Sekunden
+  Stillstand. **Stolperstein 148.**
+  Zum Aufräumen gehört außerdem: `.env.vor-schluesselwechsel-…` in der Probe
+  und die Sicherung `../kriterion-data-vor-schluesselwechsel-…` liegen
+  **nebeneinander** — Schlüssel und Daten in derselben Ablage, genau die Lage,
+  gegen die Abschnitt 3 argumentiert. Beides gehört nach der Probe weg.
+
+- **0.9.0 läuft auf der echten Anlage, und die Startzeile hat beim ersten Mal
+  getan, wofür sie gebaut ist:** `Mailversand: Eigener Server über
+  smtp.strato.de:587 (STARTTLS), Absender <Adresse>. Ohne OEFFENTLICHE_ADRESSE
+  wird trotzdem nicht verschickt.` Der Mailzugang steht, die öffentliche
+  Adresse fehlt — und die Anlage sagt es beim Start statt erst dann, wenn
+  jemand auf eine Einladung wartet. **Offen: `OEFFENTLICHE_ADRESSE` eintragen**;
+  die Anlage läuft hinter einem Proxy, eine Adresse von außen gibt es also.
+
 - **Dateien lassen die Datenbank wachsen.** Bei 50 MB je Stück lohnt
   gelegentlich ein Blick auf die Kennzahlen im Systembereich — und daran zu
   denken, dass die Sicherung entsprechend größer wird.
