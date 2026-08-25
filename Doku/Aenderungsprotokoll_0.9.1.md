@@ -429,7 +429,7 @@ zweite Hälfte, die vorher gar keinen hatte.
 *Die Lehre in einem Satz:* **eine Lage, die zwei Schranken zugleich reißt, prüft
 keine von beiden.**
 
-### Befund I — eine zweite stumme: die Längengrenze hatte keine Prüfung
+### Befund I — die Längengrenze hatte keine Prüfung
 
 **Rückbau 39 („Name und Adresse von außen sind wieder unbegrenzt lang") blieb
 ebenfalls stumm** — und hier fehlte die Prüfung schlicht. Die Grenze war beim
@@ -441,8 +441,46 @@ Antwort und legen **keine** Zeile an, und ein Name von genau 64 Zeichen geht
 durch — die Gegenlage, ohne die nur belegt wäre, dass überhaupt etwas
 abgewiesen wird.
 
-*Beide Befunde sind das, wofür die Gegenproben da sind:* **ein Rückbau, der
-keine Prüfung rot macht, ist ein Fund und kein Erfolg.**
+### Befund J — eine dritte stumme: die bestätigte Zeile war zu jung
+
+**Rückbau 41 („auch die BESTÄTIGTEN verfallen") blieb stumm** — und wieder lag
+es an der Prüflage. Sie machte nur die **unbestätigte** Zeile künstlich alt; die
+bestätigte war Sekunden alt und fiel deshalb unter gar keine Frist. Ein Rückbau,
+der `bestaetigt_am IS NULL` aus dem Aufräumen nimmt, konnte an ihr nichts
+anrichten.
+
+Nachgezogen: die bestätigte Zeile wird auf **72 Stunden** gealtert und muss
+danach **stehen bleiben** — und der Admin muss sie weiterhin sehen. *Eine
+Prüfung, deren Gegenstand die Bedingung gar nicht erreicht, kann nicht
+scheitern* — Stolperstein 81 an einer Zeitgrenze statt an einem fehlenden Wert.
+
+### Befund K — eine vierte stumme: der gekürzte Mailtext war nur am Bildschirm geprüft
+
+**Rückbau 66 („die gekürzte Zeile im Mailtext verliert eine Auskunft") blieb
+stumm.** Punkt 0 des Auftrags verlangt die Kürzung an **beiden** Stellen — auf
+der Einladungsseite und im Mailtext —, und geprüft war nur die erste. Der
+Brief wurde zwar auf „7 Tage" und „15 Minuten" angesehen, nicht aber auf den
+dritten Satz.
+
+Nachgezogen: der Brief muss alle **drei** Auskünfte tragen, und der Satz, der
+dasselbe ein zweites Mal sagte, darf **nicht** mehr darin stehen — dieselbe
+Doppelprüfung wie am Bildschirm.
+
+### Befund L — drei Läufe rissen ab, statt rot zu werden
+
+**Die Rückbauten 48, 56 und 58 nahmen den ganzen Lauf mit** (*„Cannot read
+properties of undefined"*). Der Grund ist derselbe in allen drei Fällen: die
+neuen Gruppen lasen an einzelnen Stellen `zeile[0].feld`, ohne dass die Zeile
+vorhanden sein musste — und ein Rückbau, der genau diese Zeile wegnimmt, lässt
+den Lauf dort abreißen.
+
+**Eine Gegenprobe, die den Lauf mitnimmt, sagt nichts darüber, welche Prüfung
+den Rückbau bemerkt hätte** — Stolperstein 138, und diesmal an der eigenen
+Arbeit. Jede Lesestelle in den neuen Gruppen läuft jetzt über ein Auffangnetz.
+
+*Alle sechs Befunde sind das, wofür die Gegenproben da sind:* **ein Rückbau, der
+keine Prüfung rot macht — oder den Lauf mitnimmt —, ist ein Fund und kein
+Erfolg.**
 
 ---
 

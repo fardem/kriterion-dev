@@ -8603,6 +8603,21 @@ const freigabeHaupt = (zweck, ziel = null) =>
       /15 Minuten/.test(b1.rumpf), b1.rumpf.slice(0, 400));
     pruefe('Sie nennt die sieben Tage',
       /7 Tage/.test(b1.rumpf), b1.rumpf.slice(0, 400));
+    /* GEKUERZT MIT 0.9.1 -- EIN SATZ WENIGER, NICHT EINE AUSKUNFT WENIGER.
+       Aus vier Zeilen werden drei; alle DREI Auskuenfte bleiben darin: die
+       Frist, dass Neuladen unschaedlich ist, und was danach zu tun ist.
+       DIE DRITTE HATTE VORHER GAR KEINE PRUEFUNG, und der Rueckbau darauf
+       blieb beim ersten Gegenprobenlauf dieser Runde STUMM. */
+    pruefe('Sie sagt, dass Neuladen in der Frist unschaedlich ist',
+      /neu laden darfst du darin beliebig oft/i.test(b1.rumpf), b1.rumpf.slice(0, 400));
+    pruefe('Und was danach zu tun ist',
+      /neuen Link vom Admin/.test(b1.rumpf), b1.rumpf.slice(0, 400));
+    /* UND SIE IST WIRKLICH KUERZER: der Satz, der dasselbe ein zweites Mal
+       sagte, steht nicht mehr da. Ohne diese Zeile bliebe die Kuerzung eine
+       Behauptung -- die drei Auskuenfte stuenden auch in der alten Fassung. */
+    pruefe('Der Satz, der dasselbe zweimal sagte, steht nicht mehr da',
+      !/Innerhalb dieser Zeit darfst du die Seite so oft neu laden/.test(b1.rumpf),
+      b1.rumpf.slice(0, 400));
     /* DAS PASSWORT STEHT IN KEINER MAIL. Der Mailserver sieht jede Zeile, die
        durch ihn geht -- ausgerechnet dort duerfte es am wenigsten stehen. */
     pruefe('Und das Mailpasswort steht in keinem Brief',
@@ -9486,7 +9501,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       regSql(hA.dir, 'SELECT token FROM sessions').length === hSitzungenVor,
       `vorher ${hSitzungenVor}, nachher ${regSql(hA.dir, 'SELECT token FROM sessions').length}`);
     pruefe('Die Zeile traegt jetzt einen Bestaetigungszeitpunkt',
-      Boolean(regSql(hA.dir, 'SELECT bestaetigt_am FROM anfragen')[0].bestaetigt_am),
+      Boolean((regSql(hA.dir, 'SELECT bestaetigt_am FROM anfragen')[0] || {}).bestaetigt_am),
       JSON.stringify(regSql(hA.dir, 'SELECT bestaetigt_am FROM anfragen')[0]));
     // Zweimal klicken ist unschaedlich -- wer neu laedt, soll nicht vor einer
     // Absage stehen.
@@ -9561,9 +9576,28 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Eine von 25 Stunden faellt -- zweite Aufrufstelle, die Karte',
       regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'dora'").length === 0,
       'sie steht noch da');
-    pruefe('Und die bestaetigte bleibt dabei stehen',
+    /* NUR DAS UNBESTAETIGTE VERFAELLT, und das wird an einer BESTAETIGTEN
+       ZEILE GLEICHEN ALTERS geprueft. Eine frische bestaetigte Zeile belegt
+       gar nichts: sie faellt ohnehin unter keine Frist, und ein Rueckbau, der
+       die Bedingung `bestaetigt_am IS NULL` aus dem Aufraeumen nimmt, bliebe
+       vollstaendig STUMM -- genau das ist beim ersten Gegenprobenlauf dieser
+       Runde passiert. Die bestaetigte Zeile wird deshalb ebenso alt gemacht. */
+    kurzlauf(
+      `const { db } = require('./db');` +
+      `db.prepare("UPDATE anfragen SET created_at = datetime('now', '-72 hours') ` +
+      `WHERE username = 'clara'").run(); console.log('gesetzt');`, hA.dir);
+    pruefe('Die bestaetigte Zeile ist jetzt drei Tage alt',
+      /^\d{4}-/.test((regSql(hA.dir,
+        "SELECT created_at FROM anfragen WHERE username = 'clara'")[0] || {}).created_at || ''),
+      JSON.stringify(regSql(hA.dir, "SELECT created_at, bestaetigt_am FROM anfragen WHERE username = 'clara'")));
+    await hA.S.ruf('GET', '/api/anfragen');
+    pruefe('Und sie bleibt trotzdem stehen -- eine bestaetigte Anfrage verfaellt NICHT',
       regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'clara'").length === 1,
       'die bestaetigte ist mitgefallen');
+    pruefe('Der Admin sieht sie unveraendert',
+      ((await hA.S.ruf('GET', '/api/anfragen')).inhalt.anfragen || [])
+        .some(a => a.username === 'clara'),
+      JSON.stringify((await hA.S.ruf('GET', '/api/anfragen')).inhalt.anfragen));
     /* DIE DRITTE AUFRUFSTELLE, und sie ist die besondere: sie steht VOR der
        Deckelpruefung. Ohne sie blockierten zwanzig laengst verfallene Zeilen
        die Selbstanmeldung noch einen weiteren Tag. Geprueft an einer Anfrage,
@@ -9714,8 +9748,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Eine Zeile anfrage.frei steht im Sicherheitsprotokoll',
       fFrei1.length === 1, JSON.stringify(fProtokoll.map(z => z.was)));
     pruefe('Sie nennt den handelnden Admin und den neuen Zugang als Nummern',
-      fFrei1[0].wer === 1 && fFrei1[0].ziel === fFrei.inhalt?.id, JSON.stringify(fFrei1[0]));
-    pruefe('Und sie traegt kein Merkmal', fFrei1[0].merkmal === null, JSON.stringify(fFrei1[0]));
+      (fFrei1[0] || {}).wer === 1 && (fFrei1[0] || {}).ziel === fFrei.inhalt?.id,
+      JSON.stringify(fFrei1[0]));
+    pruefe('Und sie traegt kein Merkmal',
+      fFrei1.length === 1 && fFrei1[0].merkmal === null, JSON.stringify(fFrei1[0]));
     pruefe('Daneben stehen zugang.neu und link.neu wie bei jedem anderen Zugang',
       fProtokoll.some(z => z.was === 'zugang.neu' && z.ziel === fFrei.inhalt?.id) &&
       fProtokoll.some(z => z.was === 'link.neu' && z.ziel === fFrei.inhalt?.id),
@@ -9829,9 +9865,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
       "SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll WHERE was = 'anfrage.ab'");
     pruefe('Die Protokollzeile anfrage.ab steht', abZeilen.length === 1,
       JSON.stringify(abZeilen));
-    pruefe('Sie nennt den handelnden Admin', abZeilen[0].wer === 1, JSON.stringify(abZeilen[0]));
+    pruefe('Sie nennt den handelnden Admin',
+      (abZeilen[0] || {}).wer === 1, JSON.stringify(abZeilen[0]));
     pruefe('Und traegt kein Ziel -- es gibt keinen Zugang, auf den es zeigen koennte',
-      abZeilen[0].ziel === null, JSON.stringify(abZeilen[0]));
+      abZeilen.length === 1 && abZeilen[0].ziel === null, JSON.stringify(abZeilen[0]));
     pruefe('Und der Name des Abgewiesenen steht NICHT darin',
       !JSON.stringify(regSql(hA.dir, 'SELECT * FROM sicherheitsprotokoll')).includes('konrad'),
       'der Name steht im Protokoll');
