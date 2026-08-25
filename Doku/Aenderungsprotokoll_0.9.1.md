@@ -563,7 +563,61 @@ unverändert **122** Pfade.
 
 ## 7. Gegenprobentabelle
 
-GEGENPROBENTABELLE-PLATZHALTER
+**40 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
+gefahren über `gegenprobe.js` mit vier Nebenspuren. **35 sind neu** (31 bis 67,
+ohne 45 — siehe Abweichung D), drei sind nachgezogen (07, 14 und 30 zielten auf
+Zeilen, die diese Runde verschoben hat), zwei sind die Wächter über den
+Prüfstand selbst.
+
+**Sieben Läufe waren beim ersten Mal stumm oder rissen ab, und jeder einzelne
+hat etwas gesagt** — vier echte Lücken in der Prüfung (36, 39, 41, 66) und drei
+Läufe, die abrissen statt rot zu werden (48, 56, 58). **Rückbau 36 riss danach
+ein zweites Mal ab, aus einem anderen Grund** (Befund L). Alles steht in den
+Befunden H bis L und ist abgearbeitet. **Die Tabelle unten ist der Stand
+DANACH: null stumm, null abgerissen.**
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 07 | Ohne oeffentliche Adresse wird trotzdem verschickt | „Ohne oeffentliche Adresse wird NICHT verschickt", „Und der Grund nennt die Einstellung", „Der Empfaenger hat wirklich nichts bekommen" |
+| 14 | Die Marke gilt auch nach einer Aenderung am Zugang weiter | 6 Prüfungen, darunter „Und die Marke ist danach weg" (3 Gruppen) |
+| 30 | Die Frist steht nicht mehr auf der Einladungsseite | „Die Einladungsseite nennt die Frist ab dem ersten Oeffnen", „Und sagt, dass Neuladen in dieser Zeit erlaubt ist", „Und was danach zu tun ist" |
+| 31 | Die Antwort verraet, dass still verworfen wurde | 4 Prüfungen, darunter „Und mit demselben Rumpf -- Byte fuer Byte" (3 Gruppen) |
+| 32 | Die Antwort wartet wieder auf den Mailserver | „Keine der fuenf Lagen wartet auf den Mailserver", „Es geht keine Absagemail hinaus -- Benachrichtigungen gibt es nicht" |
+| 33 | Der Schalter aus fuehrt zu einer eigenen Absage | „Die Anfrage bei ausgeschaltetem Schalter bekommt DIESELBE Antwort" |
+| 34 | Der Deckel faellt ganz weg | „Und sie wird still verworfen -- die Liste bleibt bei zwanzig", „Ihr Name steht in keiner Zeile", „Die Karte nennt den Stand gegen den Deckel" |
+| 35 | Der Deckel zaehlt nur die BESTAETIGTEN | „Und sie wird still verworfen -- die Liste bleibt bei zwanzig", „Ihr Name steht in keiner Zeile", „Die Karte nennt den Stand gegen den Deckel" |
+| 36 | Eine zweite Anfrage je Adresse geht durch | „Und wird still verworfen -- es entsteht keine zweite Zeile", „Und auch dabei bleibt es bei der einen Zeile", „Und keine von beiden hat eine Zeile angelegt" |
+| 37 | Ein vergebener Benutzername kommt in die Warteschlange | „Die Anfrage steht trotzdem in der Tabelle", „Und keine der vier stillen Lagen hat eine zweite angelegt" |
+| 38 | Eine vergebene Adresse ebenso | „Die Anfrage steht trotzdem in der Tabelle", „Und keine der vier stillen Lagen hat eine zweite angelegt" |
+| 39 | Name und Adresse von aussen sind wieder unbegrenzt lang | „Und keine von beiden hat eine Zeile angelegt" |
+| 40 | Unbestaetigte Anfragen verfallen nicht mehr | 4 Prüfungen, darunter „Eine von 25 Stunden faellt -- zweite Aufrufstelle, die Karte" (Gruppe „Die Selbstanmeldung: das Verfallen und das Aufraeumen") |
+| 41 | Auch die BESTAETIGTEN verfallen | 4 Prüfungen, darunter „Und sie bleibt trotzdem stehen -- eine bestaetigte Anfrage verfaellt NICHT" (Gruppe „Die Selbstanmeldung: das Verfallen und das Aufraeumen") |
+| 42 | Die Anfrageroute raeumt nicht mehr vor der Deckelpruefung auf | „Und sie geht durch, weil die Anfrageroute selbst aufgeraeumt hat", „Die neunzehn alten sind dabei gefallen" |
+| 43 | Der Schalter laesst sich ohne durchgekommene Testmail einschalten | 5 Prüfungen, darunter „Und die Karte sagt, dass der Versand nicht mehr traegt" (3 Gruppen) |
+| 44 | Der Schalter laesst sich ohne oeffentliche Adresse einschalten | „Und trotzdem laesst sich der Schalter nicht einschalten", „Denn ohne OEFFENTLICHE_ADRESSE traegt der Link in der Mail nicht", „Er bleibt danach aus" |
+| 46 | Ausschalten wird an dieselbe Bedingung gehaengt wie Einschalten | 4 Prüfungen, darunter „Ausschalten geht immer -- auch mit kaputtem Versand" (Gruppe „Die Selbstanmeldung: der Schalter aus") |
+| 47 | Der Schalter legt sich bei kaputtem Versand selbst um | „Der Schalter bleibt an, wenn der Versand kaputtgeht" |
+| 48 | Der Bestaetigungsschluessel steht im Klartext in der Tabelle | 46 Prüfungen, darunter „In der Tabelle steht nur der Hash, nie der Schluessel" (8 Gruppen) |
+| 49 | Die Bestaetigung nimmt jeden Schluessel an | 7 Prüfungen, darunter „Ein erfundener Schluessel wird abgewiesen" (2 Gruppen) |
+| 50 | Die Karte gibt den Hash der Anfrage mit heraus | „Der Bestaetigungsschluessel steht in der Antwort nicht" |
+| 51 | Die unbestaetigte Anfrage erscheint beim Admin | „Der Admin sieht davon nur die bestaetigte" |
+| 52 | Die unbestaetigte Anfrage laesst sich freischalten | 6 Prüfungen, darunter „Und sie laesst sich auch ueber ihre Nummer nicht freischalten" (3 Gruppen) |
+| 53 | Die Rolle kommt aus dem Rumpf der Anfrage | „Eine Rolle im Rumpf aendert nichts", „Alle drei stehen in der Datenbank als user", „Die Zahl der Eigentuemer und Admins hat sich nicht bewegt" |
+| 54 | Die Zeile bleibt nach der Freischaltung stehen | „Die Zeile in der Warteschlange ist weg", „Und die Antwort traegt die neue, leere Liste gleich mit" |
+| 55 | Die Freischaltung erzeugt keinen Token | 8 Prüfungen, darunter „Ein Einladungstoken kommt mit" (Gruppe „Die Selbstanmeldung: die Freischaltung") |
+| 56 | Die Protokollzeile der Freischaltung faellt weg | „Eine Zeile anfrage.frei steht im Sicherheitsprotokoll", „Sie nennt den handelnden Admin und den neuen Zugang als Nummern", „Und sie traegt kein Merkmal" |
+| 57 | Die Ablehnung entfernt die Zeile nicht | „Die Zeile ist weg", „Und die Antwort traegt die neue Liste gleich mit" |
+| 58 | Der Name des Abgewiesenen soll ins Protokoll | 4 Prüfungen, darunter „Die Protokollzeile anfrage.ab steht" (2 Gruppen) |
+| 59 | Die Anfrage selbst schreibt eine Protokollzeile | 4 Prüfungen, darunter „Eine Zeile anfrage.frei steht im Sicherheitsprotokoll" (2 Gruppen) |
+| 60 | Die Bremse fehlt an der Anfrageroute | „Die Anfrageroute ist damit ebenfalls gesperrt", „Und die Absage nennt die Wartezeit" |
+| 61 | Die Bremse fehlt an der Bestaetigungsroute | „Der elfte ist der erste gesperrte", „Der Uebergang liegt genau zwischen zehn und elf" |
+| 62 | Das Anfrageformular steht auch bei ausgeschaltetem Schalter da | „Ist die Selbstanmeldung aus, steht auf der Anmeldeseite kein Formular" |
+| 63 | Die Karte „Anfragen“ steht immer da | „Ist die Selbstanmeldung aus und nichts offen, fehlt die Karte "Anfragen"", „Und es sind dann achtzehn statt neunzehn", „Alle uebrigen achtzehn stehen unveraendert da" |
+| 64 | Die rote Zeile bei kaputtem Versand faellt weg | „Ist der Versand kaputt, steht die rote Zeile da", „Sie nennt den Grund des Servers", „Und sagt, dass der Schalter trotzdem an bleibt" |
+| 65 | Die Bestaetigungsseite meldet gleich an | 6 Prüfungen, darunter „Der Aufruf mit einem Bestaetigungslink fragt den Server nach ihm" (Gruppe „Die Bestaetigungsseite in der Oberflaeche") |
+| 66 | Die gekuerzte Zeile im Mailtext verliert eine Auskunft | „Und was danach zu tun ist" |
+| 67 | Derselbe Wunschname darf zweimal in der Warteschlange stehen | „Und auch dabei bleibt es bei der einen Zeile", „Und keine von beiden hat eine Zeile angelegt" |
+| W2 | Eine Portbasis liegt wieder auf der gesperrten 4045 | „Keine Portbasis deckt eine Nummer, die fetch() nicht anwaehlt" |
 
 ---
 
@@ -574,7 +628,7 @@ GEGENPROBENTABELLE-PLATZHALTER
 | Vorher (0.9.0) | 3192 |
 | Nachher (0.9.1) | **3400** |
 | Neu | **208** |
-| Gegenproben | **39** |
+| Gegenproben | **40** |
 
 ---
 
