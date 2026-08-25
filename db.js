@@ -363,6 +363,64 @@ CREATE TABLE IF NOT EXISTS tokens (
 -- Index keine Migration.
 CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
 
+/* DIE WARTESCHLANGE DER SELBSTANMELDUNG -- EINE ANFRAGE IST NOCH KEIN ZUGANG.
+   Das ist die tragende Grenze dieser Tabelle: hier steht, WER gefragt hat,
+   und sonst nichts. Kein Passwort, kein Recht, keine Rolle. Aus einer Zeile
+   wird ein Zugang erst, wenn ein Admin sie freischaltet -- und dann geht sie
+   denselben Weg wie jeder andere neue Zugang, ueber legeZugangAn und einen
+   Einladungstoken.
+
+   EINE EIGENE TABELLE UND KEIN DRITTER ZWECK IN tokens, und der Grund ist
+   baulich und nicht geschmacklich: tokens.user_id ist NOT NULL und zeigt auf
+   users. Eine Anfrage hat noch keinen Zugang, auf den sie zeigen koennte --
+   die Spalte nachtraeglich auf NULL zu oeffnen waere ein ALTER TABLE auf einer
+   bestehenden Spalte und damit ein Migrationsblock. Dazu bekaeme pruefeToken()
+   einen zweiten Zweig neben seinem JOIN auf users, und die Absage, die es
+   heute fuer alle Faelle gibt, muesste zwei Sachen zugleich bedeuten.
+
+   hash IST DERSELBE MECHANISMUS WIE BEIM TOKEN: 32 Zufallsbytes, gespeichert
+   wird nur SHA-256 ohne Salz. Die Begruendung steht am Schema von tokens und
+   gilt hier unveraendert -- der Wert wird NACHGESCHLAGEN, nicht verglichen.
+   ER IST TROTZDEM NICHT DER PRIMAERSCHLUESSEL, und das ist eine Entscheidung:
+   die Adminrouten sprechen eine Zeile ueber eine NUMMER an, und ein Geheimnis
+   hat in einem Pfad nichts verloren -- dort stuende es im Zugriffsprotokoll,
+   in der Verlaufsliste und womoeglich im Referrer. UNIQUE traegt den
+   Nachschlageweg genauso.
+
+   DER LINK IN DER BESTAETIGUNGSMAIL HAT KEINE PASSWORTKRAFT. Wer ihn anklickt,
+   setzt bestaetigt_am -- mehr nicht. Er legt keinen Zugang an, er setzt kein
+   Passwort, er meldet niemanden an. Deshalb steht in dieser Tabelle auch kein
+   password_hash und keine Rolle: was es nicht gibt, kann kein Weg hereinlassen.
+
+   username UND email SIND FREITEXT VON AUSSEN -- der einzige im ganzen Projekt,
+   der ueberhaupt gespeichert wird. Sie sind deshalb VOR dem Schreiben durch
+   dieselben Pruefungen gegangen wie ein echter Zugang (pruefeName) und eine
+   echte Adresse (mail.istAdresse): was nie ein Zugang werden koennte, kommt
+   gar nicht erst in die Warteschlange. Und sie gehen von hier aus NIE ins
+   Sicherheitsprotokoll -- die Tabelle daneben nimmt keinen Freitext.
+
+   KEIN FREMDSCHLUESSEL: es gibt niemanden, auf den er zeigen koennte.
+
+   bestaetigt_am NULL HEISST "noch nicht bestaetigt". Diese Zeilen erscheinen
+   beim Admin NICHT und verfallen nach ANFRAGE_STUNDEN; die bestaetigten warten
+   auf den Admin, so lange es dauert. Ein zweites Feld fuer den Zustand waere
+   eine zweite Wahrheit neben dem Zeitpunkt.
+
+   KEIN MIGRATIONSBLOCK, und das ist zum vierten Mal nachgestellt statt
+   abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS eine
+   fehlende TABELLE bei jedem Start an (Stolperstein 13 gilt der Spalte). Der
+   Pruefstand entfernt sie von Hand aus einer bestehenden Anlage, startet
+   einmal und sieht nach -- samt der Gegenlage, dass eine Spalte nicht
+   nachwaechst. Es bleibt bei fuenf markierten Bloecken. */
+CREATE TABLE IF NOT EXISTS anfragen (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  hash TEXT NOT NULL UNIQUE,
+  username TEXT NOT NULL,
+  email TEXT NOT NULL,
+  bestaetigt_am TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 /* DAS SICHERHEITSPROTOKOLL -- ES HAELT FEST, WER ZUGANG HATTE UND WER DIE
    ANLAGE ALS GANZES ANGEFASST HAT.
 

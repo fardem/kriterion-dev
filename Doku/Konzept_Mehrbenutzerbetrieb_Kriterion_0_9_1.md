@@ -1,26 +1,47 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 25. August 2026 · gebaut bis Version 0.9.0 — Fingerprint `82dc8550`**
-(Stufen A bis **H** erledigt; **Stufe I ist zur Hälfte gebaut** — der Versand
-steht, die Selbstanmeldung folgt als 0.9.1. 0.8.1 war eine **Bereinigung**,
+**Konzeptpapier · Stand 25. August 2026 · gebaut bis Version 0.9.1 — Fingerprint `FINGERPRINT-0-9-1`**
+(Stufen A bis **I** erledigt. 0.8.1 war eine **Bereinigung**,
 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10 die Runde
 **Werkzeug**, 0.8.20 die Runde **„Die Schotten dicht"**, 0.8.40 bis 0.8.71 vier
 weitere Runden, 0.8.91 den **Schlüsselwechsel** — alle keine Stufen.)
 
-**0.9.0 IST DIE ERSTE HÄLFTE VON STUFE I — „Der Server verschickt selbst".**
-Der Abbruchpunkt, den dieses Papier in Teil III seit Langem nennt (*„nach dem
-Versand, vor der Selbstregistrierung"*), ist gezogen worden: die Runde wurde
-mit dem Mailversand zu breit für einen Durchgang, und die Selbstanmeldung
-bekommt eine eigene Nummer. **Was gebaut ist, steht in Abschnitt 11; was
-offen bleibt, in Abschnitt 10.**
+# DER STUFENPLAN IST ABGEARBEITET
 
-**DREI ENTSCHEIDUNGEN DIESER RUNDE WEICHEN VOM ENTWURF AB** und gelten ab jetzt
-in der gebauten Form — sie stehen an ihren Abschnitten ausführlich:
+**Mit 0.9.1 ist Stufe I₂ gebaut, und damit ist Teil II dieses Papiers
+vollständig.** Es gibt keine offene Stufe mehr. Der Umbau vom
+Einzelplatzarchiv zum Mehrbenutzerbetrieb, der mit 0.6.0 begann, ist zu Ende
+geführt.
+
+**Was von diesem Papier ab jetzt gilt, sind die ENTSCHEIDUNGEN, nicht die
+Stufen.** Teil III ist Versionsgeschichte und wird nicht mehr fortgeschrieben;
+was dort steht, bleibt als Beleg stehen, wie und warum etwas gebaut wurde. Die
+Teile I und II gelten weiter, und zwar als Bindung: die **Rollenleiter**
+(`user` < `admin` < `eigentuemer`), der Satz **„ein Zustand, keine zweite
+Wahrheit"** aus Abschnitt 1, **„E-Mail ist eine Bequemlichkeit, keine
+Voraussetzung"**, die **eine** Absage am Token, die **immer gleiche Antwort**
+auf eine Anfrage, und der Satz, unter dem die letzte Stufe steht: **der Admin
+schaltet frei, immer**. Wer künftig etwas baut, das eine dieser Entscheidungen
+berührt, ändert nicht eine Stufe, sondern eine Zusage — und das gehört
+ausdrücklich entschieden, nicht nebenbei.
+
+**0.9.1 IST DIE ZWEITE HÄLFTE VON STUFE I — „die Selbstanmeldung".** Der
+Ablauf steht in Abschnitt 10, der dritte Mailanlass in Abschnitt 11. Wer einen
+Zugang haben will, kann von selbst danach fragen — und muss dabei belegen, dass
+ihm die Adresse gehört, bevor überhaupt ein Admin die Anfrage zu sehen bekommt.
+
+**0.9.0 WAR DIE ERSTE HÄLFTE VON STUFE I — „Der Server verschickt selbst".**
+Der Abbruchpunkt, den dieses Papier in Teil III seit Langem nannte (*„nach dem
+Versand, vor der Selbstregistrierung"*), ist damals gezogen worden.
+
+**DREI ENTSCHEIDUNGEN AUS 0.9.0 WEICHEN VOM ENTWURF AB** und gelten in der
+gebauten Form — sie stehen an ihren Abschnitten ausführlich:
 
 1. **Der Mailzugang liegt in der Oberfläche, nicht in der `.env`** — aber beim
    **Eigentümer**, nicht beim Admin (Abschnitt 11).
 2. **Die öffentliche Adresse ist Pflicht FÜR DEN VERSAND, nicht für den
-   Start** (Abschnitt 11).
+   Start** (Abschnitt 11). **Seit 0.9.1 ist sie außerdem Voraussetzung des
+   Schalters `registrierung`**, und zwar baulich.
 3. **Der Token bekommt eine zweite Frist:** ab dem ersten Öffnen bleiben
    fünfzehn Minuten (Abschnitt 10). Das ist der einzige Eingriff in den
    Tokenweg aus Stufe H.
@@ -163,8 +184,9 @@ Mehrbenutzerbetrieb gehören; sie stehen im Projektstand, Abschnitt 10. Die
 ersten drei davon — **0.8.40, die Gewichtung**, **0.8.50, Kurzvideos am
 Fotoplatz**, **0.8.60, „Was ist offen, was ist neu"** und **0.8.70,
 „Sicherung und Papierkorb"** — sind gebaut, dazu **0.8.71** als
-Berichtigungsrunde. **Stufe H ist mit 0.8.80 gebaut**; davor liegt für 0.8.90
-noch eine Runde, die nicht zum Mehrbenutzerbetrieb gehört, dann folgt Stufe I.
+Berichtigungsrunde. **Stufe H ist mit 0.8.80 gebaut**, dazwischen lag 0.8.90
+als Runde, die nicht zum Mehrbenutzerbetrieb gehört. **Stufe I ist mit 0.9.0
+und 0.9.1 gebaut, und damit ist der Stufenplan abgearbeitet.**
 
 **Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
 `HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
@@ -365,6 +387,21 @@ Schlüssel in `settings`, und `users.email` steht seit 0.6.0 im Schema — sie
 wurde bis dahin nur von keiner Stelle **geschrieben**. Die Frist ab dem ersten
 Öffnen kommt ohne eigene Spalte aus: geschrieben wird `tokens.ablauf`.
 
+**0.9.1 bringt EINE Tabelle und KEINE Spalte** — `anfragen (id, hash, username,
+email, bestaetigt_am, created_at)`, die Warteschlange der Selbstanmeldung.
+**Ohne Migrationsblock**: anders als eine Spalte legt `CREATE TABLE IF NOT
+EXISTS` eine fehlende Tabelle bei jedem Start an, und der Prüfstand stellt es an
+einer bestehenden Anlage nach, samt der Gegenlage an einer Spalte. Es bleibt bei
+**fünf** markierten Blöcken.
+`hash` ist hier **nicht** Primärschlüssel, anders als bei `tokens`: die
+Adminrouten sprechen eine Zeile über eine **Nummer** an, und ein Geheimnis hat
+in einem Pfad nichts verloren — dort stünde es im Zugriffsprotokoll, in der
+Verlaufsliste und womöglich im Referrer. `UNIQUE` trägt den Nachschlageweg
+genauso. **Kein Fremdschlüssel:** es gibt niemanden, auf den er zeigen könnte —
+eine Anfrage ist noch kein Zugang. `bestaetigt_am IS NULL` heißt „noch nicht
+bestätigt"; ein zweites Feld für den Zustand wäre eine zweite Wahrheit neben dem
+Zeitpunkt.
+
 **`tokens` ist gebaut (Stufe H, 0.8.80)** — und mit **einer Spalte mehr** als
 hier entworfen: `tokens (hash, user_id, zweck, ablauf, benutzt_am,
 created_at)`. `created_at` steht dazu, weil jede andere Tabelle des Schemas es
@@ -473,7 +510,7 @@ dafür ist der Schalter da, und beide Stellungen sind jederzeit umkehrbar.
 | `filters` — Filter- und Sortierwahl | `title_public`, `title_app` |
 | `schrift` — Schriftgröße | `vokabular` — elf Wörter |
 | `bloecke` — Anordnung und Einklappzustand | `tagsFreiAnlegen`, `kategorienFreiAnlegen` *(0.8.4)* |
-| `suchNamen` — Zahl der Anbieternamen | `registrierung` *(offen, 0.9.1)* |
+| `suchNamen` — Zahl der Anbieternamen | `registrierung` *(seit 0.9.1)* |
 | `linkZeilen` — sichtbare Linkzeilen | `mailzugang` *(0.9.0 — **beim Eigentümer**, nicht beim Admin)* |
 | `zeitleiste` — ein/aus | `suche`, `sucheEigene`, `sucheAktiv` |
 | | `mailtestOk` — die Marke der letzten erfolgreichen Testmail *(0.9.0)* |
@@ -550,45 +587,90 @@ Antwort — wer das sieht, ist angemeldet und sieht die Liste ohnehin. Für die
 Abschnitt 10: dort ist jede unterschiedliche Antwort ein Werkzeug zum
 Durchprobieren von Adressen.
 
-## 10. Registrierung und Tokens — Tokens erledigt in 0.8.80 und 0.9.0, Registrierung offen (0.9.1)
+## 10. Registrierung und Tokens — erledigt in 0.8.80, 0.9.0 und 0.9.1
 
 **Auf einen Schalter gekürzt, entschieden vor 0.8.0:** der Schalter
 „Mehrbenutzerbetrieb ein" widersprach Abschnitt 1 („ein Zustand, keine zweite
-Wahrheit", Stolperstein 47 in Reinform) und ist gestrichen. Es bleibt allein
-`registrierung`, und der gehört in die Stufe, die die Selbstanmeldung baut.
-Die geschlossene Gruppe entsteht von selbst — ist die Selbstanmeldung aus,
-legt nur der Admin an.
+Wahrheit", Stolperstein 47 in Reinform) und ist gestrichen. **Es bleibt allein
+`registrierung`, gebaut in 0.9.1 und ab Werk aus.** Die geschlossene Gruppe
+entsteht von selbst — ist die Selbstanmeldung aus, legt nur der Admin an, und
+es fehlt nichts.
 
 Ablauf der Selbstregistrierung: Der Anfragende gibt **nur** Benutzername und
 E-Mail-Adresse an, kein Passwort. Admin prüft und schaltet frei. Erst danach
 erzeugt der Server einen Token, und der Benutzer setzt über den Link sein
 Passwort selbst.
 
-**Entschieden für 0.9.1, und es ist ein Schritt mehr als hier entworfen: eine
+**GEBAUT IN 0.9.1, und es ist ein Schritt mehr als hier entworfen: eine
 Bestätigungsmail VOR der Freischaltung** (Double Opt-in). Sie schließt eine
 Lücke, die dieser Entwurf offen ließ: ohne sie kann jeder eine **fremde**
 Adresse in die Liste des Admins schreiben, und beim Freischalten schickte die
-Anlage einer Person, die nie gefragt hat, eine Mail mit Passwortkraft. Der
-Ablauf wird damit:
+Anlage einer Person, die nie gefragt hat, eine Mail mit Passwortkraft. **So ist
+es gebaut:**
 
-1. Anfrage mit Name und Adresse. **Die Antwort sieht immer gleich aus.**
-2. Die Anlage schickt sofort eine **Bestätigungsmail** — ein kurzer Link
-   **ohne** Passwortkraft. Wer ihn anklickt, sagt nur „ja, das bin ich".
-3. Erst die **bestätigte** Anfrage erscheint beim Admin. Unbestätigte verfallen.
+1. Anfrage mit Name und Adresse, kein Passwort. **Die Antwort sieht immer
+   gleich aus** — unbekannter Name, bekannter Name, bekannte Adresse, Deckel
+   erreicht, Schalter aus: gleicher Statuscode, gleicher Rumpf Byte für Byte.
+2. Die Anlage schickt eine **Bestätigungsmail** — ein kurzer Link **ohne**
+   Passwortkraft. Wer ihn anklickt, sagt nur „ja, das bin ich".
+3. Erst die **bestätigte** Anfrage erscheint beim Admin, in der Karte
+   **„Anfragen"**. Unbestätigte verfallen nach **24 Stunden** und werden nie
+   angezeigt.
 4. Der Admin schaltet frei → jetzt entsteht der Zugang samt Token, und die
-   Einladungsmail geht hinaus.
-5. Passwort setzen über den bekannten Weg aus Stufe H.
+   Einladungsmail geht hinaus. **Immer mit der Rolle `user`**, nie mit einer
+   anderen: die Route liest an keiner Stelle eine Rolle aus der Anfrage.
+5. Passwort setzen über den bekannten Weg aus Stufe H, **unverändert**.
 
 **Das macht drei Mailanlässe statt zwei** (Abschnitt 11) — und das ist die
 Ausnahme, die dort benannt gehört.
 
-**Und der Schalter `registrierung` wird an den funktionierenden Versand
-gekoppelt.** Ohne Mail läuft die Selbstanmeldung ins Leere: der Anfragende
-bekäme nie einen Link. Einschalten geht nur, wenn seit der letzten Änderung am
-Mailzugang eine Testmail durchgekommen ist; die Marke dafür (`mailtestOk`) ist
-in 0.9.0 schon gebaut. **Ausschalten geht immer**, und geht der Versand später
-kaputt, bleibt der Schalter an und die Karte sagt es rot — ein Schalter, der
-sich von selbst umlegt, wäre eine zweite Wahrheit.
+**Die Antwort wartet nicht auf den Versand, und das ist Teil der Zusage.** Ein
+Weg, der eine Mail verschickt, dauert Sekunden; einer, der still verwirft,
+dauert Millisekunden — aus dem Unterschied ließe sich ablesen, welcher gelaufen
+ist, und das Formular wäre doch wieder ein Werkzeug zum Durchprobieren, nur
+eben über die Uhr statt über den Rumpf. Deshalb: Zeile schreiben, antworten,
+dann verschicken. **Der Prüfstand misst das an einem Empfänger, der den Versand
+zwanzig Sekunden festhält** — nachgemessen, nicht behauptet.
+
+**Der Schalter `registrierung` ist an den funktionierenden Versand gekoppelt,
+und dafür braucht es ZWEI Dinge, nicht eines.** Ohne Mail läuft die
+Selbstanmeldung ins Leere: der Anfragende bekäme nie einen Link. Einschalten
+geht nur, wenn seit der letzten Änderung am Mailzugang eine **Testmail
+durchgekommen** ist (die Marke `mailtestOk` aus 0.9.0) **und
+`OEFFENTLICHE_ADRESSE` gesetzt ist**. Das zweite ist beim Bauen dazugekommen und
+nachgesehen statt angenommen: **die Testmail enthält keinen Link** und geht auch
+ohne die öffentliche Adresse durch — die Marke könnte grün sein, während jede
+Bestätigungsmail ohne brauchbaren Link hinausginge. **Ausschalten geht immer**,
+und geht der Versand später kaputt, bleibt der Schalter an und die Karte sagt es
+rot — ein Schalter, der sich von selbst umlegt, wäre eine zweite Wahrheit.
+
+**Der Deckel steht bei zwanzig und zählt bestätigte und unbestätigte
+zusammen.** Zählte er nur die bestätigten, füllte ein Angreifer die Tabelle mit
+Unbestätigten, ohne je eine Mail zu lesen. Die einundzwanzigste wird **still
+verworfen** — dieselbe Antwort, keine Zeile. **Dazu eine Schranke, die dieser
+Entwurf nicht nannte: je Adresse höchstens eine offene Anfrage.** Der Deckel
+begrenzt, was die Tabelle aufnimmt; ohne diese zweite Schranke wäre das Formular
+ein Weg, einer fremden Adresse beliebig viele Bestätigungsmails zu schicken. Der
+Preis, ehrlich benannt: geht die eine Mail verloren, wartet der Anfragende bis
+zum Verfall — eine andere Adresse trägt sofort.
+
+**Die neue Tabelle heißt `anfragen`** (der Entwurf nannte sie `registrierungen`)
+und trägt `id`, `hash`, `username`, `email`, `bestaetigt_am`, `created_at` —
+**ohne Migrationsblock**, `CREATE TABLE IF NOT EXISTS` legt sie bei jedem Start
+an. **`tokens` ist unberührt geblieben:** `tokens.user_id` ist `NOT NULL` und
+zeigt auf `users`, eine Anfrage hat noch keinen Zugang, und die Spalte
+nachträglich zu öffnen wäre ein `ALTER TABLE` auf einer bestehenden Spalte —
+also genau der Block, den diese Runde nicht haben sollte.
+
+**`F_ROUTEN` geht von 59 auf 64** — zwei Routen vor der Anmeldung
+(`POST /api/registrierung`, `POST /api/registrierung/bestaetigen`) und drei
+dahinter (`PUT /api/registrierung/schalter`, `POST /api/anfragen/:id/frei`,
+`DELETE /api/anfragen/:id`). `GET /api/anfragen` ist lesend und steht wie immer
+nicht dort. **Die Vorgänge im Sicherheitsprotokoll gehen von fünfzehn auf
+siebzehn** (`anfrage.frei`, `anfrage.ab`) — beide **ohne** den Namen des
+Anfragenden; Anfrage und Bestätigung schreiben ausdrücklich **keine** Zeile, sie
+wären die einzigen neben der gescheiterten Anmeldung, die ein Fremder auslösen
+kann.
 
 **Zwei Betriebsarten wird es NICHT geben.** Eine Lage, in der der geklickte
 Token allein freischaltet und kein Admin zusieht, wäre ein anderes Produkt:
@@ -671,12 +753,16 @@ die Oberfläche an der Stelle, an der er kopiert wird.** Der Schlüssel steht im
 **Fragment** der Adresse (`#/einladung/…`) und geht damit nie an den Server;
 das gilt in der Mail genauso.
 
-**Missbrauchsschutz — offen, 0.9.1:** Deckel auf offene Anfragen (Vorschlag:
-20), Zeitsperre pro IP. **Beides gehört zur Selbstanmeldung und ist in Stufe H
-ausdrücklich nicht gebaut worden**: dort legt nur der Admin an, und der ist
-angemeldet. Was in Stufe H sehr wohl greift, ist die vorhandene
-**Anmeldebremse** — auf den beiden Routen vor der Anmeldung, mit der IP-Hälfte
-unverändert und ohne Namenshälfte.
+**Missbrauchsschutz — gebaut in 0.9.1, und es sind DREI Dinge, die nicht
+dasselbe sind.** Der **Deckel** begrenzt, was die Tabelle aufnimmt (zwanzig).
+Die **Anmeldebremse** greift an beiden Routen vor der Anmeldung, mit
+unangetasteten Kennwerten und ohne Namenshälfte — der Wunschname geht
+ausdrücklich **nicht** in die Bremse, er ist geraten, und ein Zähler darauf wäre
+ein Werkzeug, einen erwünschten Namen auszusperren. Und die **immer gleiche
+Antwort** verhindert das Durchprobieren; sie ist die schwerste der drei, weil
+sie auch dann halten muss, wenn die Wege verschieden lang sind (siehe oben).
+**In Stufe H war nichts davon nötig**: dort legt nur der Admin an, und der ist
+angemeldet.
 
 **Der Mindestwert von zehn Zeichen** aus 0.5.0 gilt unverändert für jedes
 Passwort, das über einen Token gesetzt wird — in 0.8.80 an diesem Weg
@@ -691,7 +777,7 @@ richtige Weg ein **partieller Index**
 — der wirkt auf beiden Wegen gleich und lässt mehrere Zugänge ohne Adresse zu.
 Er gehört dann in dieselbe Stufe wie die Prüfung im Code, nicht davor.
 
-## 11. E-Mail — erledigt in 0.9.0
+## 11. E-Mail — erledigt in 0.9.0 und 0.9.1
 
 `nodemailer` — ohne Laufzeitabhängigkeiten, MIT-0, passend zur Linie von scrypt
 (Nodes eingebautes `crypto` statt einer Bibliothek). Nur ausgehend, kein offener
@@ -833,18 +919,29 @@ ist ein **Feld** in derselben Antwort — `versand: 'ok' | 'fehlgeschlagen' |
 keine Adresse am Zugang. Der Versand kann in dieser Anlage nichts mitreißen —
 die Versandfunktion **wirft nicht**, sie liefert ein Ergebnis.
 
-**Es gibt genau ZWEI Anlässe für eine Mail** — den Tokenlink und die Testmail.
-Keine Benachrichtigungen: nicht „jemand hat kommentiert", nicht „etwas ist
-offen". Wer das später will, bekommt eine eigene Runde und eine eigene
-Entscheidung darüber, wer zustimmt.
+**Es gibt genau DREI Anlässe für eine Mail** — den Tokenlink, die Testmail und
+seit 0.9.1 die Bestätigungsmail. Keine Benachrichtigungen: nicht „jemand hat
+kommentiert", nicht „etwas ist offen", und ausdrücklich auch keine Absagemail an
+einen abgelehnten Anfragenden. Wer das später will, bekommt eine eigene Runde
+und eine eigene Entscheidung darüber, wer zustimmt.
 
-**Mit 0.9.1 kommt ein DRITTER dazu, und er ist die benannte Ausnahme:** die
+**Der DRITTE ist die benannte Ausnahme, gebaut in 0.9.1:** die
 **Bestätigungsmail** der Selbstanmeldung. Sie trägt einen Link **ohne
 Passwortkraft** — wer ihn anklickt, sagt nur „ja, das bin ich" — und sie ist
 der Beleg, dass die Adresse dem Anfragenden gehört. Ohne sie könnte jeder eine
 **fremde** Adresse in die Liste des Admins schreiben, und beim Freischalten
 ginge einer Person, die nie gefragt hat, eine Mail mit Passwortkraft zu. Der
 Ablauf steht in Abschnitt 10. **Eine Benachrichtigung ist auch sie nicht.**
+
+**Sie ist der einzige Text der Anlage, der an jemanden gehen kann, der nichts
+angefordert hat**, und danach ist sie gebaut: der Satz *„warst du das nicht, ist
+nichts zu tun"* steht weit oben und nicht am Ende, der Text sagt ausdrücklich,
+dass der Link **keinen Zugang öffnet und kein Passwort setzt**, und er nennt,
+was danach kommt — ein Mensch entscheidet. Eine Mail, die zum Klicken auffordert,
+ohne zu sagen, was der Klick bewirkt, ist genau die Sorte Mail, vor der man
+Leute warnt. Der Schlüssel steht im **Fragment** (`#/bestaetigung/…`) und geht
+damit nie an den Server; ein Vorschaudienst, der Links im Postfach vorab abruft,
+holt nur die Seite und bestätigt gerade **nicht**.
 
 **Der Inhalt der Mail:** reiner Text, kein HTML, keine Bilder, keine Zählpixel,
 keine Anhänge. Eine Mail, die ein Passwortsetzen ankündigt, hat keinen Grund,
@@ -933,15 +1030,16 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | — | **0.8.31** | *Keine Stufe.* **Dieselbe Wende an den Dateien:** `user_id` an `attachments`, hochladen offen, löschen beim Hochladenden oder Admin, Name an der fremden Zeile, Formatnummer 7 → 8 — **erledigt** | klein |
 | **H** | **0.8.80** | **erledigt.** Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* Einzelheiten unten. | mittel |
 | **I₁** | **0.9.0** | **erledigt.** Mailversand mit Anbietervorlagen, öffentliche Adresse als Pflicht für den Versand, Testmail, Adresse am Zugang, Frist ab dem ersten Öffnen. **Der Abbruchpunkt ist gezogen worden** — er stand seit Langem hier. | groß |
-| **I₂** | 0.9.1 | Selbstanmeldung: Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung. | mittel |
+| **I₂** | **0.9.1** | **erledigt.** Selbstanmeldung: Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung. Neue Tabelle `anfragen`, **ohne Migrationsblock**; `F_ROUTEN` 59 → 64. | mittel |
 
-**MIT 0.9.0 IST DIE ERSTE HÄLFTE VON STUFE I GEBAUT.** Teil II dieses Papiers
-ist damit **bis auf die Selbstanmeldung** vollständig; mit 0.9.1 ist er es ganz.
-**Was von diesem Papier danach noch gilt, sind die ENTSCHEIDUNGEN, nicht die
+**MIT 0.9.1 IST STUFE I VOLLSTÄNDIG, UND DAMIT DER GANZE STUFENPLAN.** Teil II
+dieses Papiers ist abgearbeitet; es gibt keine offene Stufe mehr.
+**Was von diesem Papier ab jetzt gilt, sind die ENTSCHEIDUNGEN, nicht die
 Stufen** — die Rollenleiter, „ein Zustand, keine zweite Wahrheit", der Satz
 über E-Mail als Bequemlichkeit, die eine Absage am Token, die immer gleiche
-Antwort auf eine Registrierung. Die Stufenliste darunter ist ab dann
-Versionsgeschichte und wird nicht mehr fortgeschrieben.
+Antwort auf eine Anfrage und der Satz, unter dem die letzte Stufe steht: der
+Admin schaltet frei, immer. **Diese Stufenliste ist ab jetzt
+Versionsgeschichte und wird nicht mehr fortgeschrieben.**
 
 **G4 ist gebaut, und damit sind die Stufen A bis G vollständig.** **Zwischen
 G4 und H liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu",
@@ -951,8 +1049,9 @@ die Reihenfolge. **Alle vier — 0.8.40 (Gewichtung), 0.8.50 (Kurzvideos),
 0.8.60 („Offen/Neu") und 0.8.70 (Sicherung und Papierkorb) — sind gebaut, dazu
 0.8.71 als Berichtigungsrunde; als Nächstes 0.8.80, Stufe H.**
 
-Danach: Zwei-Faktor, Suche, dann 1.0.0. **Zwei Punkte hängen unmittelbar an
-Stufe I und gehören beim Bauen mitgedacht:** die Tokens aus H tragen auch die
+Danach: Zwei-Faktor, Suche, dann 1.0.0. **Keines davon ist eine Stufe dieses
+Papiers** — der Stufenplan ist mit 0.9.1 zu Ende. **Zwei Punkte hingen
+unmittelbar an Stufe I und gelten weiter:** die Tokens aus H tragen auch die
 Zwischenstufe der Zwei-Faktor-Anmeldung (0.9.10), und der Satz „E-Mail ist
 Bequemlichkeit, nie Voraussetzung" gilt dort **nicht** — ein zweiter Faktor
 über TOTP braucht ausdrücklich kein Netz und darf deshalb nie ausfallen.
@@ -1519,8 +1618,8 @@ jetzt fest. Einzelheiten und die vollständige Gegenprobentabelle stehen in
 ## Stufe H — erledigt in Version 0.8.80
 
 **„Einladung, Rücksetzung, Sitzungen."** Die erste Stufe seit G4; dazwischen
-lagen mit 0.8.40 bis 0.8.71 vier Runden, die nicht dazugehörten. **Damit ist
-allein Stufe I offen.**
+lagen mit 0.8.40 bis 0.8.71 vier Runden, die nicht dazugehörten. **Danach blieb
+allein Stufe I** — gebaut in 0.9.0 und 0.9.1.
 
 **Was gilt.** Ein Zugang bekommt sein Passwort **selbst**, über einen Link:
 

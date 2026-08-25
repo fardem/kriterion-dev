@@ -285,7 +285,7 @@ function kurzerGrund(e) {
   return roh.length > 120 ? roh.slice(0, 117) + '…' : roh;
 }
 
-/* ---- Die beiden Mailtexte ----
+/* ---- Die drei Mailtexte ----
    SIE STEHEN HIER UND NICHT IN server.js: der Text gehoert zur Sache, und
    zwei Ausfertigungen desselben Textes liefen auseinander.
    DER LINK STEHT IM FRAGMENT (#/einladung/…) UND GEHT DAMIT NIE AN DEN SERVER
@@ -303,9 +303,8 @@ function textEinladung({ titel, username, link, tage, minuten }) {
     link,
     '',
     `Der Link gilt ${tage} Tage und genau einmal.`,
-    `Sobald du ihn zum ersten Mal öffnest, hast du ${minuten} Minuten Zeit, das Passwort zu setzen.`,
-    'Innerhalb dieser Zeit darfst du die Seite so oft neu laden, wie du möchtest.',
-    'Danach gilt der Link nicht mehr, und der Admin muss dir einen neuen schicken.',
+    `Ab dem ersten Öffnen bleiben dir ${minuten} Minuten — neu laden darfst du darin beliebig oft.`,
+    'Danach brauchst du einen neuen Link vom Admin.',
     '',
     'Wer diesen Link hat, kommt herein — gib ihn an niemanden weiter.',
     '',
@@ -322,12 +321,45 @@ function textRuecksetzung({ titel, username, link, tage, minuten }) {
     link,
     '',
     `Der Link gilt ${tage} Tage und genau einmal.`,
-    `Sobald du ihn zum ersten Mal öffnest, hast du ${minuten} Minuten Zeit, das Passwort zu setzen.`,
-    'Innerhalb dieser Zeit darfst du die Seite so oft neu laden, wie du möchtest.',
-    'Danach gilt der Link nicht mehr, und der Admin muss dir einen neuen schicken.',
+    `Ab dem ersten Öffnen bleiben dir ${minuten} Minuten — neu laden darfst du darin beliebig oft.`,
+    'Danach brauchst du einen neuen Link vom Admin.',
     '',
     'Hast du das nicht angefordert, sag dem Admin Bescheid — dein bisheriges',
     'Passwort gilt unverändert weiter, solange der Link nicht benutzt wird.',
+    '',
+    'Diese Nachricht wurde automatisch verschickt. Antworten darauf liest niemand.'
+  ].join('\n');
+}
+
+/* DER DRITTE ANLASS, seit 0.9.1 -- und er ist die benannte Ausnahme von
+   "es gibt genau zwei". Eine Benachrichtigung ist er nicht.
+
+   ER IST DER EINZIGE TEXT, DER AN JEMANDEN GEHEN KANN, DER NICHTS ANGEFORDERT
+   HAT, und danach ist er gebaut: die Adresse hat ein Fremder eingetippt, und
+   ob sie ihm gehoert, ist ja gerade die Frage. Deshalb steht der Satz "dann
+   ist nichts zu tun" WEIT OBEN und nicht am Ende -- wer die Mail nicht
+   erwartet hat, soll ihn lesen, bevor er zum Link kommt.
+
+   DER LINK HAT KEINE PASSWORTKRAFT, und der Text sagt es ausdruecklich. Er
+   sagt auch, was danach kommt: ein Mensch entscheidet. Eine Mail, die nach
+   einem Klick verlangt, ohne zu sagen, was der Klick bewirkt, ist genau die
+   Sorte Mail, vor der man Leute warnt. */
+function textBestaetigung({ titel, username, link, stunden }) {
+  return [
+    `Hallo ${username},`,
+    '',
+    `für „${titel}“ wurde ein Zugang unter dieser Adresse angefragt.`,
+    '',
+    'Warst du das nicht, ist nichts zu tun: ohne den Link unten geschieht gar',
+    'nichts, und die Anfrage verfällt von selbst.',
+    '',
+    'Warst du es, bestätige damit, dass die Adresse dir gehört:',
+    link,
+    '',
+    `Der Link gilt ${stunden} Stunden.`,
+    'Er öffnet keinen Zugang und setzt kein Passwort — er sagt nur „ja, das bin ich“.',
+    'Über die Anfrage entscheidet danach ein Admin. Wird sie freigeschaltet,',
+    'bekommst du eine zweite Mail mit dem Link, über den du dein Passwort setzt.',
     '',
     'Diese Nachricht wurde automatisch verschickt. Antworten darauf liest niemand.'
   ].join('\n');
@@ -351,5 +383,5 @@ module.exports = {
   ANBIETER, HINWEISE, HINWEIS_IMMER, SCHLUESSEL,
   VERSAND_MS, VERBINDUNG_MS, GRUSS_MS,
   istAdresse, anbieterZu, loeseAuf, zustand, eingerichtet, pruefeEingabe, marke,
-  versende, textEinladung, textRuecksetzung, textTest
+  versende, textEinladung, textRuecksetzung, textBestaetigung, textTest
 };

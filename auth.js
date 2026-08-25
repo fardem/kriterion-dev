@@ -877,12 +877,164 @@ async function loeseTokenEin(klartext, neuesPasswort) {
   return { id: t.id, username: t.username, zweck: t.zweck };
 }
 
+/* --- Die Selbstanmeldung, seit 0.9.1 ------------------------------------
+   EINE ANFRAGE IST NOCH KEIN ZUGANG, und der Admin schaltet frei -- IMMER.
+   Es gibt keine Betriebsart, in der der geklickte Link allein hereinlaesst;
+   die waere ein anderes Produkt und die zweite Wahrheit daneben.
+
+   DER BESTAETIGUNGSLINK HAT KEINE PASSWORTKRAFT. Wer ihn anklickt, sagt "ja,
+   das bin ich" -- er belegt, dass die Adresse dem Anfragenden gehoert. Ohne
+   ihn koennte jeder eine FREMDE Adresse in die Liste des Admins schreiben,
+   und beim Freischalten ginge einer Person, die nie gefragt hat, eine Mail
+   mit Passwortkraft zu.
+
+   DER SCHLUESSEL GEHT DENSELBEN WEG WIE EIN TOKEN -- 32 Zufallsbytes,
+   gespeichert wird nur der Hash. tokenHash() wird dabei WIEDERVERWENDET und
+   nicht ein zweites Mal geschrieben: zwei Ausfertigungen derselben Rechnung
+   liefen beim naechsten Griff auseinander. */
+const ANFRAGE_STUNDEN = 24;
+/* WARUM DEUTLICH KUERZER ALS DIE SIEBEN TAGE DES EINLADUNGSLINKS: dort ist
+   geprueft, WER den Link bekommt -- ein Admin hat den Zugang angelegt. Hier
+   ist noch gar nichts geprueft; die Zeile steht auf nichts als der Behauptung
+   eines Fremden. Eine Anfrage, die einen Tag lang nicht bestaetigt wird, ist
+   entweder verirrt oder nie gewollt gewesen. */
+const ANFRAGE_DECKEL = 20;
+/* EINE LAENGENGRENZE, UND SIE GILT NUR HIER. Das ist die einzige Stelle im
+   ganzen Projekt, an der ein FREMDER etwas in die Datenbank schreibt -- ueberall
+   sonst steht ein angemeldeter Mensch davor. Ohne Grenze passte in jede der
+   zwanzig Zeilen, was der Rumpf hergibt (zwei Megabyte), und der Admin bekaeme
+   es in seiner Karte zu sehen.
+   SIE IST KEINE ZWEITE WAHRHEIT UEBER BENUTZERNAMEN: pruefeName bleibt
+   unveraendert, und ein Admin legt weiter an, was er will. Was hier begrenzt
+   wird, ist die EINGABE VON AUSSEN. 64 Zeichen sind mehr, als ein Name am
+   Bildschirm sinnvoll traegt; 254 ist die Laenge, die eine Mailadresse
+   ueberhaupt haben darf. */
+const ANFRAGE_NAME_MAX = 64;
+const ANFRAGE_MAIL_MAX = 254;
+
+/* Der Deckel zaehlt BESTAETIGTE UND UNBESTAETIGTE ZUSAMMEN. Zaehlte er nur
+   die bestaetigten, fuellte ein Angreifer die Tabelle mit Unbestaetigten,
+   ohne je eine Mail zu lesen -- und der Admin saehe davon nichts. */
+const qAnfragenZahl = db.prepare('SELECT COUNT(*) n FROM anfragen');
+const zaehleAnfragen = () => qAnfragenZahl.get().n;
+
+/* Dieselbe Bauform wie raeumeTokensAuf(), aber mit DREI Aufrufstellen statt
+   zweier -- Start, Karte und die Anfrageroute. Die dritte ist keine
+   Hauswirtschaft, sondern Teil der Entscheidung: sie steht VOR der
+   Deckelpruefung, sonst blockierten zwanzig laengst verfallene Zeilen die
+   Selbstanmeldung noch einen weiteren Tag.
+   GERAEUMT WIRD NUR DAS UNBESTAETIGTE. Eine bestaetigte Anfrage wartet auf den
+   Admin, so lange es dauert -- sie still verfallen zu lassen hiesse, jemanden
+   ohne Antwort stehen zu lassen, der alles getan hat, was von ihm verlangt war.
+   EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
+   (Stolperstein 119). */
+const delAnfragenAlt = db.prepare(
+  "DELETE FROM anfragen WHERE bestaetigt_am IS NULL AND created_at < datetime('now', ?)");
+function raeumeAnfragenAuf() {
+  const n = delAnfragenAlt.run(`-${ANFRAGE_STUNDEN} hours`).changes;
+  if (n) console.log(`[Kriterion] Selbstanmeldung: ${n} unbestaetigte Anfrage(n) aelter als ` +
+    `${ANFRAGE_STUNDEN} Stunden entfernt.`);
+  return n;
+}
+
+/* Legt eine Anfrage an und liefert den KLARTEXT des Bestaetigungsschluessels
+   -- oder null, wenn nichts entstehen soll.
+
+   NULL IST KEIN FEHLER UND KEINE ABSAGE, sondern die stille Verwerfung: der
+   Aufrufer schreibt in JEDEM Fall dieselbe Antwort. Wuerde hier geworfen,
+   muesste die Route den Fall unterscheiden -- und genau das ist die Auskunft,
+   die das Formular nicht geben darf. Fuenf Lagen enden hier bei null:
+   unbrauchbarer Name, unbrauchbare Adresse, Name schon vergeben, Adresse schon
+   vergeben, Deckel erreicht. Die sechste (Schalter aus) faellt schon an der
+   Route, bevor diese Funktion ueberhaupt gerufen wird.
+
+   JE ADRESSE HOECHSTENS EINE OFFENE ANFRAGE, und das ist eine Entscheidung
+   ueber den VERSAND, nicht ueber die Tabelle: der Deckel begrenzt, was
+   gespeichert wird, aber ohne diese Schranke waere das Formular ein Weg,
+   einer fremden Adresse beliebig viele Bestaetigungsmails zu schicken. Eine
+   Wiederholung wird still verworfen -- ohne neue Zeile UND ohne zweite Mail.
+   Der Preis, ehrlich benannt: geht die eine Mail verloren, wartet der
+   Anfragende bis zum Verfall. Eine andere Adresse traegt sofort.
+
+   DER NAME WIRD MIT pruefeName GEPRUEFT UND DIE ADRESSE MIT mail.istAdresse --
+   dieselben Pruefungen wie an einem echten Zugang. Was nie ein Zugang werden
+   koennte, kommt gar nicht erst in die Warteschlange; sonst stuende eine Zeile
+   in der Liste des Admins, die sich beim Freischalten nicht einloesen laesst.
+
+   VERGLICHEN WIRD OHNE RUECKSICHT AUF GROSS UND KLEIN, bei Namen wie bei
+   Adressen: users.username traegt COLLATE NOCASE, und zwei Adressen, die sich
+   nur in der Schreibweise unterscheiden, sind dasselbe Postfach. */
+const qAnfrageName = db.prepare('SELECT 1 FROM anfragen WHERE username = ? COLLATE NOCASE');
+const qAnfrageMail = db.prepare('SELECT 1 FROM anfragen WHERE email = ? COLLATE NOCASE');
+const qBenutzerMail = db.prepare('SELECT 1 FROM users WHERE email = ? COLLATE NOCASE');
+function legeAnfrageAn(name, adresse) {
+  const sauber = String(name || '').trim();
+  const post = String(adresse || '').trim();
+  if (sauber.length > ANFRAGE_NAME_MAX || post.length > ANFRAGE_MAIL_MAX) return null;
+  try { pruefeName(sauber); } catch { return null; }
+  if (!mail.istAdresse(post)) return null;
+  // Erst raeumen, dann zaehlen: der Deckel soll sich auf das beziehen, was
+  // wirklich noch offen ist.
+  raeumeAnfragenAuf();
+  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;
+  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(sauber)) return null;
+  if (qBenutzerMail.get(post)) return null;
+  if (qAnfrageName.get(sauber)) return null;
+  if (qAnfrageMail.get(post)) return null;
+  const klartext = crypto.randomBytes(32).toString('hex');
+  db.prepare('INSERT INTO anfragen (hash, username, email) VALUES (?, ?, ?)')
+    .run(tokenHash(klartext), sauber, post);
+  /* KEINE PROTOKOLLZEILE. Sie waere die einzige neben der gescheiterten
+     Anmeldung, die ein FREMDER ausloesen kann -- und damit die zweite Stelle,
+     an der sich die Tabelle von aussen vollschreiben liesse. Beim Anmelden
+     traegt die Bremse den Deckel; hier gaebe es keinen. Der Vorgang, auf den
+     es ankommt, ist ohnehin die Entscheidung des Admins, und die steht drin. */
+  return klartext;
+}
+
+/* Bestaetigt eine Anfrage. LIEFERT ja/nein UND NICHTS UEBER DIE ZEILE -- der
+   Bestaetigende weiss ja, was er angefragt hat, und wer den Schluessel nur
+   raet, soll aus der Antwort keinen Namen und keine Adresse ziehen.
+   EINE EINZIGE ABSAGE FUER ALLE FAELLE -- erfunden, verfallen, schon
+   bestaetigt, laengst freigeschaltet. Dieselbe Ueberlegung wie beim Token:
+   das Heilmittel ist in jedem Fall dasselbe, naemlich die Anfrage neu stellen.
+   ZWEIMAL KLICKEN IST UNSCHAEDLICH: bestaetigt_am wird nur gesetzt, wo es noch
+   leer ist, und der zweite Aufruf trifft dieselbe Zeile und meldet ebenfalls
+   Erfolg. Wer neu laedt, soll nicht vor einer Absage stehen. */
+const setzeBestaetigt = db.prepare(
+  `UPDATE anfragen SET bestaetigt_am = datetime('now')
+    WHERE hash = ? AND created_at > datetime('now', ?)`);
+function bestaetigeAnfrage(klartext) {
+  const t = String(klartext || '');
+  if (!t) return false;
+  // Erst raeumen: eine verfallene Zeile darf sich nicht nachtraeglich
+  // bestaetigen lassen, nur weil sie noch dasteht.
+  raeumeAnfragenAuf();
+  return setzeBestaetigt.run(tokenHash(t), `-${ANFRAGE_STUNDEN} hours`).changes > 0;
+}
+
+/* Was der Admin sieht: AUSSCHLIESSLICH DIE BESTAETIGTEN. Eine unbestaetigte
+   Anfrage erscheint nicht -- sonst stuende dort die Adresse eines Menschen,
+   der von der ganzen Sache nichts weiss, und der Admin koennte sie
+   freischalten. Genau die Luecke schliesst die Bestaetigungsmail.
+   DER SCHLUESSEL KOMMT HIER NIE HERAUS, auch nicht sein Hash: die Karte
+   braucht die Nummer, und mehr hat sie mit dem Geheimnis nicht zu tun. */
+const qAnfragen = db.prepare(
+  `SELECT id, username, email, created_at, bestaetigt_am
+     FROM anfragen WHERE bestaetigt_am IS NOT NULL ORDER BY bestaetigt_am ASC, id ASC`);
+const listeAnfragen = () => qAnfragen.all();
+const holeAnfrage = (id) => db.prepare(
+  'SELECT id, username, email, created_at, bestaetigt_am FROM anfragen WHERE id = ?')
+  .get(Number(id) || 0) || null;
+const entferneAnfrage = (id) =>
+  db.prepare('DELETE FROM anfragen WHERE id = ?').run(Number(id) || 0).changes > 0;
+
 /* --- Das Sicherheitsprotokoll -------------------------------------------
    ES HAELT FEST, WER ZUGANG HATTE UND WER DIE ANLAGE ALS GANZES ANGEFASST
    HAT -- und ausdruecklich nichts darueber, was jemand GESAGT hat. Die
    Begruendung zu Spalten und Grenzen steht am Schema in db.js.
 
-   FUENFZEHN VORGAENGE, und die Liste ist die Entscheidung. Was nicht darin
+   SIEBZEHN VORGAENGE, und die Liste ist die Entscheidung. Was nicht darin
    steht, steht mit Begruendung im Aenderungsprotokoll dieser Runde -- eine
    stillschweigend weggelassene Zeile waere von einer entschiedenen nicht zu
    unterscheiden.
@@ -907,6 +1059,22 @@ const VORGAENGE = [
   'zugang.neu', 'zugang.rolle', 'zugang.status', 'zugang.passwort',
   'zugang.weg', 'zugang.selbst',
   'link.neu', 'link.ein',
+  /* 'anfrage.frei' und 'anfrage.ab' seit 0.9.1 -- die Entscheidung des Admins
+     ueber eine Selbstanmeldung. GEPRUEFT, OB SIE DOPPELT SIND, und sie sind
+     es nicht: die Freischaltung erzeugt daneben zwar zugang.neu und link.neu,
+     aber KEINE der beiden sagt, dass der Zugang aus einer SELBSTANMELDUNG kam
+     statt aus der Hand des Admins -- und das ist genau die Frage, die diese
+     Runde ueberhaupt erst aufwirft. Die Ablehnung hinterlaesst ohne ihre Zeile
+     gar keine Spur: die Zeile in anfragen wird geloescht, und dann ist nicht
+     mehr zu sehen, dass jemand gefragt hat und abgewiesen wurde.
+     KEIN NAME UND KEINE ADRESSE, in keiner der beiden. anfrage.frei traegt den
+     neuen Zugang als ziel; anfrage.ab traegt gar keines -- es gibt keinen
+     Zugang, auf den es zeigen koennte, und der Name des Abgewiesenen ist
+     Freitext von aussen, den diese Tabelle nicht aufnimmt.
+     KEINE ZEILE FUER DIE ANFRAGE UND DIE BESTAETIGUNG: das waeren die einzigen
+     neben der gescheiterten Anmeldung, die ein Fremder ausloesen kann. Die
+     Begruendung steht bei legeAnfrageAn(). */
+  'anfrage.frei', 'anfrage.ab',
   /* 'schluessel' seit 0.8.91 -- der Wechsel des Datenbankschluessels. Er
      laeuft ueber schluessel.js auf dem Wirt und traegt deshalb IMMER das leere
      `wer` von dort: "ueber den Wirt". Ein Handelnder stuende hier nur als
@@ -1151,6 +1319,10 @@ module.exports = {
   sitzungsKennung, sitzungenVon, beendeSitzung, beendeAndereSitzungen,
   TOKEN_TAGE, TOKEN_SPUR_TAGE, TOKEN_ZWECKE, TOKEN_FRIST_MINUTEN, tokenHash,
   raeumeTokensAuf, erzeugeToken, pruefeToken, loeseTokenEin, beginneTokenFrist,
+  // Die Selbstanmeldung, 0.9.1; Rufer ist server.js.
+  ANFRAGE_STUNDEN, ANFRAGE_DECKEL, ANFRAGE_NAME_MAX, ANFRAGE_MAIL_MAX,
+  zaehleAnfragen, raeumeAnfragenAuf,
+  legeAnfrageAn, bestaetigeAnfrage, listeAnfragen, holeAnfrage, entferneAnfrage,
   // Das Sicherheitsprotokoll; Rufer sind server.js und zugang.js.
   VORGAENGE, MERKMALE, PROTOKOLL_TAGE, PROTOKOLL_GRENZE, VOM_WIRT,
   protokolliere, raeumeProtokollAuf, leseProtokoll,

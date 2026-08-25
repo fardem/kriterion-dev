@@ -107,8 +107,12 @@ const RUECKBAUTEN = [
   {
     nr: '07', name: 'Ohne oeffentliche Adresse wird trotzdem verschickt',
     datei: 'server.js',
-    suche: "  if (!OEFFENTLICHE.adresse)",
-    ersatz: "  if (false)",
+    /* SEIT 0.9.1 STEHT DIESELBE FRAGE ZWEIMAL im Quelltext -- einmal am
+       Versand des Tokenlinks und einmal in versandBereit(). Der Rueckbau
+       nimmt die Zeile am VERSAND, und die naechste Zeile macht ihn
+       eindeutig. */
+    suche: "  if (!OEFFENTLICHE.adresse)\n    return { versand: 'aus', versandGrund:",
+    ersatz: "  if (false)\n    return { versand: 'aus', versandGrund:",
     erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   {
@@ -163,8 +167,13 @@ const RUECKBAUTEN = [
        Rueckbau greift ihn an. */
     nr: '14', name: 'Die Marke gilt auch nach einer Aenderung am Zugang weiter',
     datei: 'server.js',
-    suche: "  const passt = Boolean(test && test.marke && test.marke === mail.marke(roh));",
-    ersatz: "  const passt = Boolean(test && test.marke);",
+    /* DER VERGLEICH IST SEIT 0.9.1 IN mailtestStand() GEZOGEN -- eine
+       Rechnung, zwei Rufer: die Karte und der Schalter der Selbstanmeldung.
+       Zwei Mechanismen fuer eine Zusage waeren einer zu viel
+       (Stolperstein 145), und deshalb faerbt dieser Rueckbau jetzt BEIDE
+       Seiten rot. */
+    suche: "  return test && test.marke && test.marke === mail.marke(roh) ? test : null;",
+    ersatz: "  return test || null;",
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   /* ---- Die Rollenleiter am Mailzugang ---- */
@@ -286,9 +295,277 @@ const RUECKBAUTEN = [
   {
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     datei: 'public/app.js',
-    suche: "        ${stand.minuten ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit.</strong>",
-    ersatz: "        ${false ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit.</strong>",
+    suche: "        ${stand.minuten ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit</strong> —",
+    ersatz: "        ${false ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit</strong> —",
     erwartet: 'Die Einladungsseite in der Oberflaeche'
+  },
+  /* ---- Die Selbstanmeldung: die immer gleiche Antwort ---- */
+  {
+    nr: '31', name: 'Die Antwort verraet, dass still verworfen wurde',
+    datei: 'server.js',
+    suche: "  res.json(ANFRAGE_ANTWORT);",
+    ersatz: "  res.json(klartext ? ANFRAGE_ANTWORT : { ok: false, error: 'Name oder Adresse ist schon vergeben.' });",
+    erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
+  },
+  {
+    /* DER RUECKBAU MACHT DIE ANTWORT LANGSAM, ER ENTFERNT SIE NICHT. Der
+       Versand steht danach ein zweites Mal da -- das stoert nicht, denn
+       geprueft wird die LAUFZEIT der Antwort, und die haengt am await davor.
+       Der troepfelnde Empfaenger haelt ihn zwanzig Sekunden fest. */
+    nr: '32', name: 'Die Antwort wartet wieder auf den Mailserver',
+    datei: 'server.js',
+    suche: "  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;",
+    ersatz: "  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;\n" +
+            "  if (klartext) await versendeBestaetigung(String(name).trim(), String(adresse).trim(), klartext).catch(() => {});",
+    erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
+  },
+  {
+    nr: '33', name: 'Der Schalter aus fuehrt zu einer eigenen Absage',
+    datei: 'server.js',
+    suche: "  const an = getSetting('registrierung', false) === true;",
+    ersatz: "  const an = getSetting('registrierung', false) === true;\n" +
+            "  if (!an) return res.status(403).json({ error: 'Die Selbstanmeldung ist ausgeschaltet.' });",
+    erwartet: 'Die Selbstanmeldung: der Schalter aus'
+  },
+  /* ---- Die Selbstanmeldung: der Deckel und die stille Verwerfung ---- */
+  {
+    nr: '34', name: 'Der Deckel faellt ganz weg',
+    datei: 'auth.js',
+    suche: "  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;",
+    ersatz: "  if (false) return null;",
+    erwartet: 'Die Selbstanmeldung: der Deckel'
+  },
+  {
+    nr: '35', name: 'Der Deckel zaehlt nur die BESTAETIGTEN',
+    datei: 'auth.js',
+    suche: "  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;",
+    ersatz: "  if (db.prepare('SELECT COUNT(*) n FROM anfragen WHERE bestaetigt_am IS NOT NULL').get().n >= ANFRAGE_DECKEL) return null;",
+    erwartet: 'Die Selbstanmeldung: der Deckel'
+  },
+  {
+    nr: '36', name: 'Eine zweite Anfrage je Adresse geht durch',
+    datei: 'auth.js',
+    suche: "  if (qAnfrageMail.get(post)) return null;",
+    ersatz: "  if (false) return null;",
+    erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
+  },
+  {
+    nr: '37', name: 'Ein vergebener Benutzername kommt in die Warteschlange',
+    datei: 'auth.js',
+    suche: "  if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(sauber)) return null;",
+    ersatz: "  if (false) return null;",
+    erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
+  },
+  {
+    nr: '38', name: 'Eine vergebene Adresse ebenso',
+    datei: 'auth.js',
+    suche: "  if (qBenutzerMail.get(post)) return null;",
+    ersatz: "  if (false) return null;",
+    erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
+  },
+  {
+    nr: '39', name: 'Name und Adresse von aussen sind wieder unbegrenzt lang',
+    datei: 'auth.js',
+    suche: "  if (sauber.length > ANFRAGE_NAME_MAX || post.length > ANFRAGE_MAIL_MAX) return null;",
+    ersatz: "  if (false) return null;",
+    erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
+  },
+  /* ---- Die Selbstanmeldung: das Verfallen ---- */
+  {
+    nr: '40', name: 'Unbestaetigte Anfragen verfallen nicht mehr',
+    datei: 'auth.js',
+    suche: "  const n = delAnfragenAlt.run(`-${ANFRAGE_STUNDEN} hours`).changes;",
+    ersatz: "  const n = 0;",
+    erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
+  },
+  {
+    nr: '41', name: 'Auch die BESTAETIGTEN verfallen',
+    datei: 'auth.js',
+    suche: "  \"DELETE FROM anfragen WHERE bestaetigt_am IS NULL AND created_at < datetime('now', ?)\");",
+    ersatz: "  \"DELETE FROM anfragen WHERE created_at < datetime('now', ?)\");",
+    erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
+  },
+  {
+    nr: '42', name: 'Die Anfrageroute raeumt nicht mehr vor der Deckelpruefung auf',
+    datei: 'auth.js',
+    suche: "  raeumeAnfragenAuf();\n  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;",
+    ersatz: "  if (zaehleAnfragen() >= ANFRAGE_DECKEL) return null;",
+    erwartet: 'Die Selbstanmeldung: das Verfallen und das Aufraeumen'
+  },
+  /* ---- Die Selbstanmeldung: der Schalter und seine Kopplung ---- */
+  {
+    nr: '43', name: 'Der Schalter laesst sich ohne durchgekommene Testmail einschalten',
+    datei: 'server.js',
+    suche: "  if (!mailtestStand(roh))",
+    ersatz: "  if (false)",
+    erwartet: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
+  },
+  {
+    nr: '44', name: 'Der Schalter laesst sich ohne oeffentliche Adresse einschalten',
+    datei: 'server.js',
+    suche: "      'Der Eigentümer der Anlage drückt sie in der Karte „Mailversand“.' };\n  if (!OEFFENTLICHE.adresse)",
+    ersatz: "      'Der Eigentümer der Anlage drückt sie in der Karte „Mailversand“.' };\n  if (false)",
+    erwartet: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
+  },
+  {
+    nr: '46', name: 'Ausschalten wird an dieselbe Bedingung gehaengt wie Einschalten',
+    datei: 'server.js',
+    suche: "  if (an) {\n    const b = versandBereit();",
+    ersatz: "  if (true) {\n    const b = versandBereit();",
+    erwartet: 'Die Selbstanmeldung: der Schalter aus'
+  },
+  {
+    nr: '47', name: 'Der Schalter legt sich bei kaputtem Versand selbst um',
+    datei: 'server.js',
+    suche: "    an: getSetting('registrierung', false) === true,\n    versandBereit: b.ok,",
+    ersatz: "    an: getSetting('registrierung', false) === true && b.ok,\n    versandBereit: b.ok,",
+    erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
+  },
+  /* ---- Die Selbstanmeldung: der Bestaetigungslink ---- */
+  {
+    nr: '48', name: 'Der Bestaetigungsschluessel steht im Klartext in der Tabelle',
+    datei: 'auth.js',
+    suche: "    .run(tokenHash(klartext), sauber, post);",
+    ersatz: "    .run(klartext, sauber, post);",
+    erwartet: 'Die Selbstanmeldung: die Bestaetigungsmail'
+  },
+  {
+    nr: '49', name: 'Die Bestaetigung nimmt jeden Schluessel an',
+    datei: 'auth.js',
+    suche: "  return setzeBestaetigt.run(tokenHash(t), `-${ANFRAGE_STUNDEN} hours`).changes > 0;",
+    ersatz: "  setzeBestaetigt.run(tokenHash(t), `-${ANFRAGE_STUNDEN} hours`); return true;",
+    erwartet: 'Die Selbstanmeldung: der Bestaetigungslink hat keine Passwortkraft'
+  },
+  {
+    nr: '50', name: 'Die Karte gibt den Hash der Anfrage mit heraus',
+    datei: 'auth.js',
+    suche: "  `SELECT id, username, email, created_at, bestaetigt_am\n     FROM anfragen WHERE bestaetigt_am IS NOT NULL",
+    ersatz: "  `SELECT id, username, email, created_at, bestaetigt_am, hash\n     FROM anfragen WHERE bestaetigt_am IS NOT NULL",
+    erwartet: 'Die Selbstanmeldung: die Freischaltung'
+  },
+  {
+    nr: '51', name: 'Die unbestaetigte Anfrage erscheint beim Admin',
+    datei: 'auth.js',
+    suche: "     FROM anfragen WHERE bestaetigt_am IS NOT NULL ORDER BY bestaetigt_am ASC, id ASC`);",
+    ersatz: "     FROM anfragen ORDER BY created_at ASC, id ASC`);",
+    erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
+  },
+  {
+    nr: '52', name: 'Die unbestaetigte Anfrage laesst sich freischalten',
+    datei: 'server.js',
+    suche: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a || !a.bestaetigt_am)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, t;",
+    ersatz: "  const a = auth.holeAnfrage(req.params.id);\n  if (!a)\n    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });\n  let angelegt, t;",
+    erwartet: 'Die Selbstanmeldung: die unbestaetigte Anfrage'
+  },
+  /* ---- Die Selbstanmeldung: Freischaltung, Ablehnung, Rolle ---- */
+  {
+    nr: '53', name: 'Die Rolle kommt aus dem Rumpf der Anfrage',
+    datei: 'server.js',
+    suche: "    angelegt = await auth.legeZugangAn(a.username, null, 'user', true, req.benutzer.id, a.email);",
+    ersatz: "    angelegt = await auth.legeZugangAn(a.username, null, (req.body || {}).rolle || 'user', true, req.benutzer.id, a.email);",
+    erwartet: 'Die Selbstanmeldung: die Rolle ist immer user'
+  },
+  {
+    nr: '54', name: 'Die Zeile bleibt nach der Freischaltung stehen',
+    datei: 'server.js',
+    suche: "  auth.entferneAnfrage(a.id);\n  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
+    ersatz: "  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
+    erwartet: 'Die Selbstanmeldung: die Freischaltung'
+  },
+  {
+    nr: '55', name: 'Die Freischaltung erzeugt keinen Token',
+    datei: 'server.js',
+    suche: "    t = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);",
+    ersatz: "    t = { klartext: 'x'.repeat(64), zweck: 'einladung', tage: 7, id: angelegt.id, username: angelegt.username };",
+    erwartet: 'Die Selbstanmeldung: die Freischaltung'
+  },
+  {
+    nr: '56', name: 'Die Protokollzeile der Freischaltung faellt weg',
+    datei: 'server.js',
+    suche: "  auth.protokolliere('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });",
+    ersatz: "  // auth.protokolliere('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });",
+    erwartet: 'Die Selbstanmeldung: die Freischaltung'
+  },
+  {
+    nr: '57', name: 'Die Ablehnung entfernt die Zeile nicht',
+    datei: 'server.js',
+    suche: "  auth.entferneAnfrage(a.id);\n  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id });",
+    ersatz: "  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id });",
+    erwartet: 'Die Selbstanmeldung: die Ablehnung'
+  },
+  {
+    /* DER NAME IN merkmal WIRD VON protokolliere() ABGEWIESEN -- MERKMALE ist
+       eine geschlossene Liste, und die Zeile entsteht dann GAR NICHT. Der
+       Rueckbau faerbt deshalb "die Protokollzeile steht" rot und nicht "der
+       Name steht nicht darin": genau so ist "kein Freitext von aussen"
+       BAULICH wahr statt durchgesetzt. */
+    nr: '58', name: 'Der Name des Abgewiesenen soll ins Protokoll',
+    datei: 'server.js',
+    suche: "  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id });",
+    ersatz: "  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id, merkmal: a.username });",
+    erwartet: 'Die Selbstanmeldung: die Ablehnung'
+  },
+  {
+    nr: '59', name: 'Die Anfrage selbst schreibt eine Protokollzeile',
+    datei: 'server.js',
+    suche: "  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;",
+    ersatz: "  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;\n" +
+            "  if (klartext) auth.protokolliere('anfrage.frei', { wer: 1 });",
+    erwartet: 'Die Selbstanmeldung: keine Zeile, die ein Fremder ausloesen kann'
+  },
+  /* ---- Die Selbstanmeldung: die Bremse ---- */
+  {
+    nr: '60', name: 'Die Bremse fehlt an der Anfrageroute',
+    datei: 'server.js',
+    suche: "app.post('/api/registrierung', async (req, res) => {\n  if (!await tokenBremseFrei(req, res)) return;",
+    ersatz: "app.post('/api/registrierung', async (req, res) => {",
+    erwartet: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
+  },
+  {
+    nr: '61', name: 'Die Bremse fehlt an der Bestaetigungsroute',
+    datei: 'server.js',
+    suche: "  const ip = auth.clientIp(req);\n  if (!await tokenBremseFrei(req, res)) return;\n  if (!auth.bestaetigeAnfrage((req.body || {}).schluessel)) {",
+    ersatz: "  const ip = auth.clientIp(req);\n  if (!auth.bestaetigeAnfrage((req.body || {}).schluessel)) {",
+    erwartet: 'Die Selbstanmeldung: die Bremse greift an beiden Routen'
+  },
+  /* ---- Die Selbstanmeldung in der Oberflaeche ---- */
+  {
+    nr: '62', name: 'Das Anfrageformular steht auch bei ausgeschaltetem Schalter da',
+    datei: 'public/app.js',
+    suche: "    ${REGISTRIERUNG ? `<p class=\"sub\" style=\"margin:14px 0 0\">Noch keinen Zugang?",
+    ersatz: "    ${true ? `<p class=\"sub\" style=\"margin:14px 0 0\">Noch keinen Zugang?",
+    erwartet: 'Die Anmeldeseite: das Anfrageformular'
+  },
+  {
+    nr: '63', name: 'Die Karte „Anfragen“ steht immer da',
+    datei: 'public/app.js',
+    suche: "        ADMIN && anfragen && (anfragen.an || anfragen.anfragen.length) ? `<div class=\"sys-card breit\">",
+    ersatz: "        ADMIN && anfragen ? `<div class=\"sys-card breit\">",
+    erwartet: 'Die Karten im Systembereich'
+  },
+  {
+    nr: '64', name: 'Die rote Zeile bei kaputtem Versand faellt weg',
+    datei: 'public/app.js',
+    suche: "        ${anfragen.an && !anfragen.versandBereit ? `<p class=\"warn-box\" id=\"anf-kaputt\"",
+    ersatz: "        ${false ? `<p class=\"warn-box\" id=\"anf-kaputt\"",
+    erwartet: 'Die Karte „Anfragen“'
+  },
+  {
+    nr: '65', name: 'Die Bestaetigungsseite meldet gleich an',
+    datei: 'public/app.js',
+    suche: "  const best = (location.hash || '').match(/^#\\/bestaetigung\\/([0-9a-f]{16,128})$/);\n  if (best) return showBestaetigung(best[1]);",
+    ersatz: "  const best = (location.hash || '').match(/^#\\/bestaetigung\\/([0-9a-f]{16,128})$/);\n  if (best) return showEinladung(best[1]);",
+    erwartet: 'Die Bestaetigungsseite in der Oberflaeche'
+  },
+  {
+    nr: '66', name: 'Die gekuerzte Zeile im Mailtext verliert eine Auskunft',
+    datei: 'mail.js',
+    /* DIE ZEILE STEHT ZWEIMAL -- in der Einladung und in der Ruecksetzung.
+       Genommen wird die der EINLADUNG; die naechsten Zeilen machen sie
+       eindeutig. */
+    suche: "    'Danach brauchst du einen neuen Link vom Admin.',\n    '',\n    'Wer diesen Link hat, kommt herein",
+    ersatz: "    '',\n    'Wer diesen Link hat, kommt herein",
+    erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {

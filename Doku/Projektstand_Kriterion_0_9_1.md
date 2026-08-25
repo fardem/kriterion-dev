@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 21 · Stand 25. August 2026 · gebaut: Version 0.9.0**
+**Kompakte Übergabe · Revision 22 · Stand 25. August 2026 · gebaut: Version 0.9.1**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,37 +8,53 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 21 ist.** Revision 20 trug 0.8.91 nach. Diese trägt **0.9.0**
-nach — **„Der Server verschickt selbst"**, und das ist die **erste Hälfte von
-Stufe I** des Mehrbenutzerbetriebs. Der Abbruchpunkt, den das Konzeptpapier
-seit Langem nennt (*„nach dem Versand, vor der Selbstregistrierung"*), ist
-gezogen worden; die **Selbstanmeldung wird 0.9.1**.
+**Was Revision 22 ist.** Revision 21 trug 0.9.0 nach. Diese trägt **0.9.1**
+nach — **„Stufe I₂: die Selbstanmeldung"**. **Damit ist der Stufenplan des
+Mehrbenutzerbetriebs abgearbeitet:** Teil II des Konzeptpapiers ist
+vollständig, und es gibt keine offene Stufe mehr.
 
-**0.9.0 in einem Satz: Einladungs- und Rücksetzlinks gehen per Mail hinaus —
-und wer keinen Mailzugang einträgt, verliert nichts.** Das ist die tragende
-Zusage, und sie ist baulich und nicht durchgesetzt: der Token entsteht
-**zuerst**, die Antwort trägt den Link **immer**, und das Ergebnis des Versands
-ist ein **Feld** darin (`versand`, dazu `versandGrund`). Die Versandfunktion in
-`mail.js` **wirft nicht** — sie liefert ein Ergebnis, und damit kann ein
-vergessenes `try` den Tokenweg gar nicht mitreißen.
+**0.9.1 in einem Satz: wer einen Zugang haben will, kann von selbst danach
+fragen — und muss dabei belegen, dass ihm die Adresse gehört, bevor überhaupt
+ein Admin die Anfrage zu sehen bekommt.** Der Satz, unter dem die ganze Runde
+steht: **niemand kommt herein, ohne dass ein Admin ihn hereinlässt.** Es gibt
+keine Betriebsart, in der ein geklickter Link allein freischaltet.
 
-**Was sich wirklich ändert, ist die Betriebsart.** Bis 0.8.91 hat die Anlage
-nur auf Anfragen geantwortet. Ab dieser Version baut sie von sich aus eine
-Verbindung zu einem fremden Server auf — ausgehend, zu genau einem Server, kein
-Empfang, kein offener Port.
+**Und der zweite Satz, der genauso trägt: die Anlage läuft ohne all das
+vollständig.** Ist die Selbstanmeldung aus — und ab Werk ist sie das —, legt
+eben nur der Admin an, genau wie seit 0.8.0. Es fehlt keine Funktion.
 
-**Der Mailzugang gehört dem EIGENTÜMER, ganz** — eintragen, einsehen und die
-Testmail auslösen. Ein Admin kommt an keines davon. *Das ist eine Abweichung
-vom Auftrag dieser Runde*, der die `.env` vorsah, und die Begründung des
-Auftrags trägt weiter — sie trifft nur den **Admin**: der SMTP-Server sieht jede
-Mail, und jede trägt einen Link, der ein Passwort setzt; dürfte ein Admin ihn
-eintragen, liefe die Rücksetzmail des Eigentümers über einen Server seiner Wahl.
-Über dem Eigentümer steht niemand. Zwei Dinge sprechen sogar dafür, und beide
-sind nachgesehen: das Mailpasswort liegt damit in der **verschlüsselten
-Datenbank** statt unverschlüsselt auf dem Wirt, und die **Exportdatei trägt es
-nicht**. **Es kommt damit keine neue `.env`-Zeile dazu.**
+**Der Ablauf, in fünf Schritten.** Anfrage mit Wunschname und Adresse, kein
+Passwort → **Bestätigungsmail** mit einem Link **ohne Passwortkraft** → erst die
+**bestätigte** Anfrage erscheint beim Admin → er schaltet frei (Zugang mit der
+Rolle `user`, nie mit einer anderen) oder lehnt ab → Passwort setzen über den
+Tokenweg aus 0.8.80, **unverändert**.
 
-**Drei Dinge, die der Auftrag nicht vorsah und die diese Runde gebraucht hat:**
+**Drei Schranken gegen den Missbrauch, und sie sind nicht dasselbe:** die
+**immer gleiche Antwort** (unbekannter Name, bekannter Name, bekannte Adresse,
+Deckel erreicht, Schalter aus — gleicher Statuscode, gleicher Rumpf Byte für
+Byte), der **Deckel** von zwanzig offenen Anfragen, und die **Anmeldebremse** an
+beiden Routen vor der Anmeldung. Die erste ist die schwerste: sie muss auch dann
+halten, wenn die Wege verschieden lang sind. Deshalb **wartet die Antwort nicht
+auf den Versand** — Zeile schreiben, antworten, dann verschicken —, und der
+Prüfstand **misst** das an einem Empfänger, der den Versand zwanzig Sekunden
+festhält.
+
+**Der Schalter braucht ZWEI Voraussetzungen, nicht eine.** Einschalten geht nur
+mit einer durchgekommenen **Testmail** *und* gesetzter **`OEFFENTLICHE_ADRESSE`**.
+Das zweite ist beim Bauen dazugekommen und nachgesehen statt angenommen: die
+Testmail enthält **keinen Link** und geht auch ohne die öffentliche Adresse
+durch — die Marke könnte grün sein, während jede Bestätigungsmail ohne
+brauchbaren Link hinausginge. **Ausschalten geht immer**, und geht der Versand
+später kaputt, **bleibt der Schalter an** und die Karte sagt es rot.
+
+**0.9.0 davor** war **„Der Server verschickt selbst"** — die erste Hälfte von
+Stufe I: Mailversand mit Anbietervorlagen, der Mailzugang beim **Eigentümer**
+(nicht beim Admin), die öffentliche Adresse als Pflicht für den Versand, die
+Testmail an die eigene Adresse, die Adresse am Zugang und die zweite Frist am
+Token — ab dem ersten Öffnen fünfzehn Minuten. **Der Versand ist inzwischen im
+Feld bestätigt**, Einzelheiten in Abschnitt 2.
+
+**Drei Dinge, die der Auftrag zu 0.9.0 nicht vorsah und die jene Runde gebraucht hat:**
 
 * **`users.email` wurde von KEINER Stelle im Projekt geschrieben.** Die Spalte
   stand seit 0.6.0 im Schema, wurde in `holeZugang` gelesen und in
@@ -60,33 +76,41 @@ nicht**. **Es kommt damit keine neue `.env`-Zeile dazu.**
   Absage (400) die Adresse; bei allem anderen bleibt der Schlüssel stehen und
   die Seite bietet einen zweiten Anlauf. Stolperstein **141**.
 
-**`F_ROUTEN` geht von 57 auf 59** (`PUT /api/mail`, `POST /api/mail/test`;
-`GET /api/mail` ist lesend und steht wie immer nicht dort), die Karten im
-Systembereich werden **achtzehn**, `BESTAETIGUNG_ZWECKE` geht von sechs auf
-**sieben** (`mail`), `MERKMALE` von zwölf auf **dreizehn** (`adresse`). **Die
-Vorgänge bleiben fünfzehn**, die Formatnummer bleibt **10**, das Vokabular
-bleibt bei **elf**, und es bleibt bei **fünf** markierten Migrationsblöcken:
-**0.9.0 ist KEINE Datenbankstufe** — der Mailzugang liegt in `settings`, und
-`users.email` gibt es seit 0.6.0.
+**Die Zahlen dieser Runde.** `F_ROUTEN` geht von 59 auf **64** — zwei Routen
+**vor** der Anmeldung (`POST /api/registrierung`,
+`POST /api/registrierung/bestaetigen`) und drei dahinter
+(`PUT /api/registrierung/schalter`, `POST /api/anfragen/:id/frei`,
+`DELETE /api/anfragen/:id`); `GET /api/anfragen` ist lesend und steht wie immer
+nicht dort. Die Karten im Systembereich werden **neunzehn** („Anfragen", beim
+**Admin**), die Vorgänge im Sicherheitsprotokoll gehen von fünfzehn auf
+**siebzehn** (`anfrage.frei`, `anfrage.ab`). **`MERKMALE` bleibt bei dreizehn**
+— keiner der beiden trägt eines —, **`BESTAETIGUNG_ZWECKE` bleibt bei sieben**,
+die Formatnummer bleibt **10**, das Vokabular bleibt bei **elf**.
 
-**Eine neue Laufzeitabhängigkeit, die erste seit Langem: `nodemailer`.**
-Nachgemessen statt geglaubt: Version 9.0.5, `npm ls --omit=dev` wächst um
+**0.9.1 IST EINE DATENBANKSTUFE — und trotzdem bleibt es bei fünf markierten
+Migrationsblöcken.** Es kommt **eine Tabelle** dazu (`anfragen`) und **keine
+Spalte**: anders als eine Spalte legt `CREATE TABLE IF NOT EXISTS` eine fehlende
+Tabelle bei jedem Start an. Der Prüfstand stellt es an einer bestehenden Anlage
+nach, samt der Gegenlage an einer Spalte. **Die Sicherung des Datenverzeichnisses
+ist deshalb im Einspielweg Pflicht.**
+
+**Keine neue Abhängigkeit, nicht eine.** `npm ls --omit=dev` steht unverändert
+bei **122 Pfaden**; `nodemailer` war die Ausnahme von 0.9.0 und bleibt es. **Und
+keine neue `.env`-Zeile** — der Schalter steht im Systembereich, nicht dort.
+
+**Eine neue Laufzeitabhängigkeit kam mit 0.9.0: `nodemailer`.**
+Nachgemessen statt geglaubt: Version 9.0.5, `npm ls --omit=dev` wuchs um
 **genau ein Paket** (121 → 122 Pfade), 776 KB, Lizenz `MIT-0` aus dem Paket
 selbst gelesen. Der Baum ist flach. Die Zahl steht im Prüfstand fest.
 
-**0.8.91 davor** war **„Der Schlüssel lässt sich wechseln"** — `schluessel.sh`
-samt `schluessel.js` auf dem Wirt, der fünfzehnte Vorgang `schluessel` im
-Sicherheitsprotokoll, die rote Markierung jeder Sicherung, die älter ist als
-der Wechsel, und dazu der Werkzeugpunkt davor: `gegenprobe.js`, `PORT_VERSATZ`
-und zwei Wächter über den Prüfstand selbst. Keine Stufe, keine Datenbankstufe.
-
-**Was davor liegt, steht in Abschnitt 9** — 0.8.90 brachte die zweite
+**Was davor liegt, steht in Abschnitt 9** — 0.8.91 machte den Schlüssel
+wechselbar, 0.8.90 brachte die zweite
 Bestätigung, das Sicherheitsprotokoll und die öffentliche Adresse, 0.8.80 war
 Stufe H mit Einladung, Rücksetzung und „Meine Sitzungen", 0.8.71 verlegte den
 Sicherungsort, 0.8.70 brachte Sicherung und Papierkorb, 0.8.60 machte „Offen"
 und „Neu seit" auffindbar, 0.8.40 gab jedem Kriterium ein Gewicht, 0.8.30 und
 0.8.31 gaben Links und Dateien einen Verfasser.
-**Damit ist der Mehrbenutzerbetrieb bis auf die Selbstanmeldung gebaut.**
+**Damit ist der Mehrbenutzerbetrieb vollständig gebaut.**
 Vollständig geblieben sind die Abschnitte 5 und 12 — Entscheidungen und
 Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht mehr
 berücksichtigt.
@@ -98,14 +122,13 @@ berücksichtigt.
 > Version wächst, wird irgendwann nicht mehr gelesen — und dann nützt es
 > niemandem mehr.
 
-**Für den Betrieb ändert sich mit 0.9.0 wenig, und nichts davon ist Pflicht.**
-Wer keine Mail will, spielt ein wie immer und merkt nichts. Wer sie will,
-trägt `OEFFENTLICHE_ADRESSE` in die `.env` ein (**ohne sie wird nicht
-verschickt**), füllt die Karte „Mailversand" aus und drückt die **Testmail**.
-**Es kommt kein neuer Wert in die `.env`**, und die `docker-compose.yml` ist
-unberührt. Die **Sicherung des Datenverzeichnisses bleibt im Einspielweg
-empfohlen wie immer** — Pflicht ist sie nicht, denn diese Runde ist keine
-Datenbankstufe. Einzelheiten in Abschnitt 2.
+**Für den Betrieb ändert sich mit 0.9.1 nichts, solange die Selbstanmeldung
+aus bleibt** — und ab Werk ist sie das. Wer sie will, braucht einen geprüften
+Mailzugang und `OEFFENTLICHE_ADRESSE`; ohne beides lässt sich der Schalter gar
+nicht erst einschalten. **Es kommt kein neuer Wert in die `.env`**, und die
+`docker-compose.yml` ist unberührt. **Die Sicherung des Datenverzeichnisses ist
+im Einspielweg PFLICHT** — es kommt eine Tabelle dazu. Einzelheiten in
+Abschnitt 2.
 
 **Für den Betrieb änderte sich mit 0.8.91 zweierlei.** Die **Sicherung des
 Datenverzeichnisses steht wieder als PFLICHT im Einspielweg** — und wer den
@@ -118,11 +141,12 @@ sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9, 0.8.50 auf 10). Alles davon steht in
 Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` gepflegt und
-nur dort; **offen ist allein die zweite Hälfte von Stufe I**, die
-Selbstanmeldung. **Das Konzeptpapier ist mit dieser Runde fortgeschrieben und
-umbenannt worden** — Abschnitt 11 steht auf dem, was gebaut ist, Abschnitt 10
-trägt die zweite Frist, und die Stufentabelle nennt I₁ als erledigt.
+Benutzer wurde in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` gepflegt;
+**mit dieser Runde ist der Stufenplan abgearbeitet, und es ist keine Stufe mehr
+offen.** Das Papier ist fortgeschrieben und umbenannt worden — Abschnitt 10
+steht auf dem, was gebaut ist, die Stufentabelle nennt I₂ als erledigt, und der
+Satz, der ab jetzt gilt, steht in seinem Kopf: **was von diesem Papier
+weitergilt, sind die Entscheidungen, nicht die Stufen.**
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
 > `admin` < `eigentuemer`. **Benutzer** schreibt eigene Beiträge. **Admin**
@@ -2388,7 +2412,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -5310,7 +5334,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.

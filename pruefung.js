@@ -1399,9 +1399,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // muss, minPassword nur, wie lang das Passwort sein soll -- beides nichts
   // ueber den Bestand. Der interne Titel darf hier unter keinen Umstaenden
   // stehen.
+  /* FUENF NAMEN SEIT 0.9.1: registrierung kommt dazu -- die Anmeldeseite muss
+     wissen, ob sie das Formular ueberhaupt zeigen soll. Der Wert sagt nichts
+     ueber den Bestand und nichts ueber einen Menschen; er sagt, ob diese
+     Anlage Anfragen annimmt, und das erfaehrt ohnehin jeder, der eine stellt.
+     Die Liste bleibt abgeschlossen, und ein sechster Name kommt nicht
+     stillschweigend dazu (Stolperstein 74: die Pruefung der Vorgaengerversion
+     ist die erste Betroffene). */
   pruefe('Vor der Anmeldung wird sonst nichts verraten',
-    gleich(Object.keys(cfg).sort(), ['minPassword', 'setupRequired', 'title', 'version']),
+    gleich(Object.keys(cfg).sort(),
+      ['minPassword', 'registrierung', 'setupRequired', 'title', 'version']),
     JSON.stringify(Object.keys(cfg)));
+  pruefe('Und der Schalter der Selbstanmeldung steht dort als ja/nein',
+    cfg.registrierung === false, JSON.stringify(cfg.registrierung));
   pruefe('Der interne Titel bleibt draussen',
     !JSON.stringify(cfg).includes('Intern') && !('appTitle' in cfg));
   pruefe('Die Kennzahlen nennen sie ebenfalls',
@@ -9095,6 +9105,842 @@ const freigabeHaupt = (zweck, ziel = null) =>
     }
   }
 
+  /* ================= Die Selbstanmeldung, 0.9.1 =================
+     DER ADMIN SCHALTET FREI -- IMMER. Alles hier steht unter diesem Satz: es
+     gibt keine Lage, in der der geklickte Link allein hereinlaesst.
+     GEPRUEFT WIRD AM ECHTEN SMTP-GESPRAECH, mit dem Empfaenger aus 0.9.0 und
+     ohne zweite Entwicklungsabhaengigkeit. "Die Mail ist hinausgegangen" heisst
+     ein Brief, den er aufgehoben hat. */
+  {
+    const REG_PASSWORT = 'annas-langes-wort-91';
+    const REG_MAILWORT = 'erfundenes-mailwort-' + crypto.randomBytes(4).toString('hex');
+    const regAnlage = async (zusatz, portBasis) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-reg-'));
+      const S = starteWeiterenServer(dir, zusatz, portBasis);
+      await S.bereit;
+      await S.ruf('POST', '/api/setup', { user: 'anna', password: REG_PASSWORT });
+      return { dir, S };
+    };
+    const regFrei = (S) => S.ruf('POST', '/api/bestaetigung',
+      { passwort: REG_PASSWORT, zweck: 'mail', ziel: null });
+    const regMailSetzen = async (S, empf) => {
+      await regFrei(S);
+      return S.ruf('PUT', '/api/mail', {
+        anbieter: 'eigen', server: '127.0.0.1', port: empf.port, sicher: false,
+        benutzer: 'kriterion@beispiel.de', passwort: REG_MAILWORT, absender: 'anlage@beispiel.de'
+      });
+    };
+    /* Mailzugang setzen, eigene Adresse eintragen, Testmail druecken. Ohne
+       alle drei laesst sich der Schalter gar nicht einschalten -- und genau
+       das ist die Kopplung, um die es geht. */
+    const regVersandStellen = async (S, empf) => {
+      await regMailSetzen(S, empf);
+      await S.ruf('PUT', '/api/account',
+        { oldPassword: REG_PASSWORT, username: 'anna', email: 'anna@beispiel.de' });
+      return S.ruf('POST', '/api/mail/test', {});
+    };
+    /* Der Bestaetigungsschluessel aus dem Brief AN EINE BESTIMMTE ADRESSE.
+       DEKODIERT, wie ein Empfaenger ihn liest: der Rumpf geht als
+       quoted-printable hinaus, und 64 Hexzeichen bekommen darin einen weichen
+       Umbruch (Stolperstein 143).
+       GESUCHT WIRD NACH EMPFAENGER UND NICHT "der letzte Brief": die
+       Bestaetigungsmails gehen NACH ihrer Antwort hinaus und koennen deshalb
+       in beliebiger Reihenfolge ankommen. Ein Griff auf den letzten waere von
+       der Uhr abhaengig statt von der Sache -- und roter Zufall ist schlimmer
+       als keine Pruefung. */
+    const regSchluessel = (empf, an) => {
+      const b = empf.briefe().filter(x =>
+        new RegExp(`^To: ${an.replace('.', '\\.')}$`, 'm').test(x.kopf) &&
+        /#\/bestaetigung\//.test(x.rumpf));
+      if (!b.length) return null;
+      const m = b[b.length - 1].rumpf.match(/#\/bestaetigung\/([0-9a-f]{64})/);
+      return m ? m[1] : null;
+    };
+    /* Wartet, bis der Brief an diese Adresse da ist -- statt fest zu schlafen.
+       DER VERSAND LAEUFT NACH DER ANTWORT, also ist die Antwort kein Beleg
+       dafuer, dass die Mail schon draussen ist. Eine feste Wartezeit waere
+       entweder zu kurz (roter Zufall) oder zu lang (jede Lage bezahlt sie). */
+    const regWarteAufBrief = async (empf, an, ms = 4000) => {
+      for (let i = 0; i < ms / 50; i++) {
+        const k = regSchluessel(empf, an);
+        if (k) return k;
+        await new Promise(r => setTimeout(r, 50));
+      }
+      return null;
+    };
+    const regSql = (dir, sql) => JSON.parse(kurzlauf(
+      `const { db } = require('./db'); console.log(JSON.stringify(db.prepare(${JSON.stringify(sql)}).all()));`,
+      dir));
+    // Ein roher Ruf OHNE Cookie: die Anfrageroute steht vor der Anmeldung, und
+    // verglichen wird der Antwortkoerper als Text, nicht ein Feld daraus.
+    const regRoh = async (S, pfad, koerper) => {
+      const t0 = process.hrtime.bigint();
+      const a = await fetch(S.basis + pfad, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(koerper)
+      });
+      const roh = await a.text();
+      return { status: a.status, roh, ms: Number(process.hrtime.bigint() - t0) / 1e6 };
+    };
+
+    gruppe('Die Selbstanmeldung: die immer gleiche Antwort');
+
+    const gOk = smtpEmpfaenger('ok');
+    const gTr = smtpEmpfaenger('troepfelt');
+    const gA = await regAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6700);
+    const gTest = await regVersandStellen(gA.S, gOk);
+    pruefe('Die Testmail dieser Anlage kommt durch', gTest.inhalt?.ok === true,
+      `${gTest.inhalt?.ok} · ${gTest.inhalt?.grund}`);
+    const gAn = await gA.S.ruf('PUT', '/api/registrierung/schalter', { an: true });
+    pruefe('Und damit laesst sich der Schalter einschalten',
+      gAn.status === 200 && gAn.inhalt?.an === true, JSON.stringify(gAn.inhalt));
+    // Ein bestehender Zugang mit Adresse -- fuer "Name vergeben" und
+    // "Adresse vergeben".
+    await gA.S.ruf('POST', '/api/users',
+      { username: 'bert', passwort: 'berts-langes-wort', email: 'bert@beispiel.de' });
+    /* JETZT AUF DEN TROEPFELNDEN UMSTELLEN. Ab hier haengt jeder Versand
+       zwanzig Sekunden -- und der Schalter bleibt trotzdem an. Beides wird
+       gebraucht: die Messung unten und die Zusage, dass er sich nicht von
+       selbst umlegt. */
+    await regMailSetzen(gA.S, gTr);
+    pruefe('Der Schalter bleibt an, wenn der Versand kaputtgeht',
+      (await gA.S.ruf('GET', '/api/anfragen')).inhalt?.an === true,
+      JSON.stringify((await gA.S.ruf('GET', '/api/anfragen')).inhalt?.an));
+    const gKaputt = (await gA.S.ruf('GET', '/api/anfragen')).inhalt;
+    pruefe('Und die Karte sagt, dass der Versand nicht mehr traegt',
+      gKaputt?.versandBereit === false && /Testmail/.test(gKaputt?.versandGrund || ''),
+      JSON.stringify([gKaputt?.versandBereit, gKaputt?.versandGrund]));
+
+    /* FUENF LAGEN, UND VERGLICHEN WIRD DER ROHE ANTWORTKOERPER -- nicht ein
+       Feld daraus. Ein Vergleich auf `ok === true` bliebe gruen, wenn daneben
+       ein Feld auftauchte, das die Lage verriete. */
+    const gLagen = [
+      ['unbekannter Name', { name: 'neuling', adresse: 'neuling@beispiel.de' }],
+      ['bekannter Name', { name: 'bert', adresse: 'ganz-anders@beispiel.de' }],
+      ['bekannte Adresse', { name: 'ganz-anders', adresse: 'bert@beispiel.de' }],
+      ['unbrauchbare Adresse', { name: 'dritter', adresse: 'keine-adresse' }],
+      ['schon offene Anfrage', { name: 'neuling', adresse: 'neuling@beispiel.de' }]
+    ];
+    const gE = [];
+    for (const [was, koerper] of gLagen) gE.push([was, await regRoh(gA.S, '/api/registrierung', koerper)]);
+    const REG_ANTWORT = gE[0][1].roh;
+    pruefe('Alle fuenf Lagen antworten mit demselben Statuscode',
+      gE.every(([, e]) => e.status === 200), gE.map(([w, e]) => `${w}: ${e.status}`).join(' · '));
+    pruefe('Und mit demselben Rumpf -- Byte fuer Byte',
+      gE.every(([, e]) => e.roh === REG_ANTWORT),
+      gE.map(([w, e]) => `${w}: ${e.roh.length} Zeichen`).join(' · '));
+    /* ERST DER GEGENSTAND (Stolperstein 81): ein leerer Rumpf waere in allen
+       fuenf Lagen gleich und belegte nichts. */
+    pruefe('Der Rumpf sagt ueberhaupt etwas -- und nennt den naechsten Schritt',
+      /Postfach/.test(REG_ANTWORT) && /Admin/.test(REG_ANTWORT), REG_ANTWORT.slice(0, 160));
+    pruefe('Und er verraet in keiner Lage, welche es war',
+      gE.every(([, e]) => !/vergeben|bereits|Deckel|unbekannt|ungültig|ungueltig/i.test(e.roh)),
+      REG_ANTWORT.slice(0, 160));
+    /* DIE LAUFZEITEN. Die erste Lage verschickt wirklich, und der Empfaenger
+       dahinter troepfelt zwanzig Sekunden. Die vier anderen verwerfen still.
+       Laege der Versand VOR der Antwort, stuende die erste zwanzig Sekunden
+       ueber den anderen.
+       DIE SCHRANKE IST GROSSZUEGIG UND TRAEGT TROTZDEM: eine halbe Sekunde ist
+       ein Vielfaches dessen, was diese Route braucht (gemessen: unter zehn
+       Millisekunden), und ein Vierzigstel dessen, was ein wartender Versand
+       kostete. */
+    pruefe('Keine der fuenf Lagen wartet auf den Mailserver',
+      gE.every(([, e]) => e.ms < 500), gE.map(([w, e]) => `${w}: ${Math.round(e.ms)} ms`).join(' · '));
+    /* UND DIE GEGENLAGE ZUR MESSUNG SELBST: der troepfelnde Empfaenger muss
+       ueberhaupt gehalten haben. Haette er sofort abgesagt, waere "keine
+       wartet" wahr, ohne etwas zu belegen -- gemessen waere dann ein Versand,
+       den es gar nicht gab (Stolperstein 81). */
+    await new Promise(r => setTimeout(r, 600));
+    pruefe('Der troepfelnde Empfaenger haelt den Versand dabei wirklich fest',
+      gTr.briefe().length === 0, `${gTr.briefe().length} Briefe angekommen`);
+    pruefe('Die Anfrage steht trotzdem in der Tabelle',
+      regSql(gA.dir, 'SELECT username, email FROM anfragen').length === 1,
+      JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM anfragen')));
+    pruefe('Und keine der vier stillen Lagen hat eine zweite angelegt',
+      regSql(gA.dir, 'SELECT username FROM anfragen').every(z => z.username === 'neuling'),
+      JSON.stringify(regSql(gA.dir, 'SELECT username FROM anfragen')));
+
+    gruppe('Die Selbstanmeldung: der Schalter aus');
+
+    pruefe('GET /api/config sagt, dass sie an ist',
+      (await gA.S.ruf('GET', '/api/config')).inhalt?.registrierung === true,
+      JSON.stringify((await gA.S.ruf('GET', '/api/config')).inhalt?.registrierung));
+    /* DIE LISTE IN /api/config BLEIBT ABGESCHLOSSEN. Sie steht vor der
+       Anmeldung; was hier dazukommt, sieht jeder, der die Adresse kennt.
+       FUENF NAMEN SEIT 0.9.1, und ein sechster kommt nicht stillschweigend --
+       dieselbe Bauform wie die Zahl in F_ROUTEN. */
+    pruefe('Und vor der Anmeldung wird sonst weiterhin nichts verraten',
+      gleich(Object.keys((await gA.S.ruf('GET', '/api/config')).inhalt).sort(),
+        ['minPassword', 'registrierung', 'setupRequired', 'title', 'version']),
+      JSON.stringify(Object.keys((await gA.S.ruf('GET', '/api/config')).inhalt)));
+    const gAus = await gA.S.ruf('PUT', '/api/registrierung/schalter', { an: false });
+    pruefe('Ausschalten geht immer -- auch mit kaputtem Versand',
+      gAus.status === 200 && gAus.inhalt?.an === false, JSON.stringify(gAus.inhalt?.an));
+    pruefe('Und GET /api/config sagt es',
+      (await gA.S.ruf('GET', '/api/config')).inhalt?.registrierung === false,
+      JSON.stringify((await gA.S.ruf('GET', '/api/config')).inhalt?.registrierung));
+    const gVorher = regSql(gA.dir, 'SELECT id FROM anfragen').length;
+    const gZu = await regRoh(gA.S, '/api/registrierung',
+      { name: 'waehrend-aus', adresse: 'aus@beispiel.de' });
+    /* DER SCHALTER AUS FUEHRT ZU DERSELBEN ANTWORT und nicht zu einer eigenen
+       Absage -- sonst waere er die eine Lage, an der sich die Antwort doch
+       unterscheidet, und die Route ein zweiter Weg, den Zustand abzufragen.
+       "Abweisen" heisst hier: es entsteht nichts. */
+    pruefe('Die Anfrage bei ausgeschaltetem Schalter bekommt DIESELBE Antwort',
+      gZu.status === 200 && gZu.roh === REG_ANTWORT, `${gZu.status} · ${gZu.roh.slice(0, 60)}`);
+    pruefe('Und es entsteht dabei keine Zeile',
+      regSql(gA.dir, 'SELECT id FROM anfragen').length === gVorher,
+      `vorher ${gVorher}, nachher ${regSql(gA.dir, 'SELECT id FROM anfragen').length}`);
+    /* UND DER SCHALTER LAESST SICH JETZT NICHT MEHR EINSCHALTEN. Das ist die
+       zweite Haelfte der Kopplung: die Marke der Testmail haengt am Hash ueber
+       den Zugang, und der hat sich beim Umstellen auf den troepfelnden
+       Empfaenger geaendert. Wer den Mailzugang anfasst, muss neu testen. */
+    const gWiederAn = await gA.S.ruf('PUT', '/api/registrierung/schalter', { an: true });
+    pruefe('Nach einer Aenderung am Mailzugang laesst er sich nicht mehr einschalten',
+      gWiederAn.status === 400, `Status ${gWiederAn.status}`);
+    pruefe('Und die Absage nennt die Testmail als Grund',
+      /Testmail/.test(gWiederAn.inhalt?.error || ''), JSON.stringify(gWiederAn.inhalt?.error));
+    pruefe('Er ist danach immer noch aus',
+      (await gA.S.ruf('GET', '/api/config')).inhalt?.registrierung === false,
+      JSON.stringify((await gA.S.ruf('GET', '/api/config')).inhalt?.registrierung));
+
+    gruppe('Die Selbstanmeldung: der Schalter braucht drei Dinge');
+
+    /* DREI VORAUSSETZUNGEN, EINZELN GEPRUEFT. Der Auftrag nannte nur die
+       Testmarke; die oeffentliche Adresse gehoert dazu, und der Grund ist
+       nachgesehen: die TESTMAIL ENTHAELT KEINEN LINK und geht auch ohne sie
+       durch. Die Marke kann gruen sein, waehrend jeder Versand mit
+       versand: 'aus' abbricht -- und dann laeuft die Selbstanmeldung genau in
+       die Leere, die die Kopplung verhindern soll. */
+    const iOk = smtpEmpfaenger('ok');
+    const iA = await regAnlage({}, 6760);
+    const iOhne = await iA.S.ruf('PUT', '/api/registrierung/schalter', { an: true });
+    pruefe('Ohne Mailzugang laesst er sich nicht einschalten', iOhne.status === 400,
+      `Status ${iOhne.status}`);
+    pruefe('Und die Absage nennt den Mailzugang',
+      /Mailzugang/.test(iOhne.inhalt?.error || ''), JSON.stringify(iOhne.inhalt?.error));
+    await regMailSetzen(iA.S, iOk);
+    const iOhneTest = await iA.S.ruf('PUT', '/api/registrierung/schalter', { an: true });
+    pruefe('Mit Mailzugang, aber ohne durchgekommene Testmail ebenso wenig',
+      iOhneTest.status === 400 && /Testmail/.test(iOhneTest.inhalt?.error || ''),
+      `${iOhneTest.status} · ${iOhneTest.inhalt?.error}`);
+    await iA.S.ruf('PUT', '/api/account',
+      { oldPassword: REG_PASSWORT, username: 'anna', email: 'anna@beispiel.de' });
+    const iTest = await iA.S.ruf('POST', '/api/mail/test', {});
+    pruefe('Die Testmail kommt hier durch -- ganz ohne oeffentliche Adresse',
+      iTest.inhalt?.ok === true, `${iTest.inhalt?.ok} · ${iTest.inhalt?.grund}`);
+    const iOhneAdresse = await iA.S.ruf('PUT', '/api/registrierung/schalter', { an: true });
+    pruefe('Und trotzdem laesst sich der Schalter nicht einschalten',
+      iOhneAdresse.status === 400, `Status ${iOhneAdresse.status}`);
+    pruefe('Denn ohne OEFFENTLICHE_ADRESSE traegt der Link in der Mail nicht',
+      /OEFFENTLICHE_ADRESSE/.test(iOhneAdresse.inhalt?.error || ''),
+      JSON.stringify(iOhneAdresse.inhalt?.error));
+    pruefe('Er bleibt danach aus',
+      (await iA.S.ruf('GET', '/api/anfragen')).inhalt?.an === false,
+      JSON.stringify((await iA.S.ruf('GET', '/api/anfragen')).inhalt?.an));
+
+    gruppe('Die Selbstanmeldung: die Bestaetigungsmail');
+
+    const hOk = smtpEmpfaenger('ok');
+    const hA = await regAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6820);
+    await regVersandStellen(hA.S, hOk);
+    await hA.S.ruf('PUT', '/api/registrierung/schalter', { an: true });
+    const hVorBriefe = hOk.briefe().length;
+    const hAnfrage = await regRoh(hA.S, '/api/registrierung',
+      { name: 'clara', adresse: 'clara@beispiel.de' });
+    pruefe('Die Anfrage wird angenommen', hAnfrage.status === 200 && hAnfrage.roh === REG_ANTWORT,
+      `${hAnfrage.status} · ${hAnfrage.roh.slice(0, 60)}`);
+    const hSchluessel = await regWarteAufBrief(hOk, 'clara@beispiel.de');
+    const hBriefe = hOk.briefe();
+    pruefe('Die Bestaetigungsmail geht am echten SMTP-Gespraech hinaus',
+      hBriefe.length === hVorBriefe + 1, `${hBriefe.length - hVorBriefe} neue Briefe`);
+    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81) -- und in
+       einer Gruppe ueber einen Vorgang, der scheitern KANN, laeuft jede
+       Lesestelle danach ueber ein Auffangnetz (Stolperstein 138): kommt der
+       Brief nicht, soll die Gruppe rot werden und nicht abreissen. */
+    const hBrief = hBriefe[hBriefe.length - 1] || { kopf: '', rumpf: '', roh: '' };
+    pruefe('Der Empfaenger ist die angefragte Adresse',
+      /^To: clara@beispiel\.de$/m.test(hBrief.kopf), hBrief.kopf.split('\n').slice(0, 4).join(' | '));
+    pruefe('Der Absender ist der eingetragene',
+      /^From: anlage@beispiel\.de$/m.test(hBrief.kopf), hBrief.kopf.split('\n').slice(0, 4).join(' | '));
+    pruefe('Der Betreff nennt die Bestaetigung',
+      /Best.tige deine Adresse/.test(Buffer.from(
+        (hBrief.kopf.match(/Subject: (.*)/) || ['', ''])[1], 'utf8').toString('utf8')) ||
+      /Best/.test(hBrief.kopf), hBrief.kopf.split('\n').find(z => /Subject/.test(z)) || '(kein Betreff)');
+    pruefe('Der Link steht im Rumpf und zeigt auf die oeffentliche Adresse',
+      hBrief.rumpf.includes(`https://kriterion.beispiel.de/#/bestaetigung/${hSchluessel}`),
+      hBrief.rumpf.split('\n').find(z => /bestaetigung/.test(z)) || '(keine Zeile mit Link)');
+    pruefe('Und er steht im FRAGMENT -- er geht damit nie an den Server',
+      /#\/bestaetigung\//.test(hBrief.rumpf), 'kein Fragment im Link');
+    /* DER TEXT SAGT, WAS DER LINK NICHT TUT. Eine Mail, die zum Klicken
+       auffordert, ohne zu sagen, was der Klick bewirkt, ist genau die Sorte
+       Mail, vor der man Leute warnt -- und diese hier kann an jemanden gehen,
+       der nichts angefordert hat. */
+    pruefe('Der Text sagt, dass der Link keinen Zugang oeffnet',
+      /öffnet keinen Zugang und setzt kein Passwort/.test(hBrief.rumpf),
+      hBrief.rumpf.slice(0, 200));
+    pruefe('Und was zu tun ist, wenn man nichts angefragt hat',
+      /ist nichts zu tun/.test(hBrief.rumpf), hBrief.rumpf.slice(0, 400));
+    pruefe('Und dass danach ein Admin entscheidet',
+      /entscheidet danach ein Admin/.test(hBrief.rumpf), hBrief.rumpf.slice(0, 400));
+    pruefe('Er ist reiner Text -- kein HTML im Brief',
+      !/<html|<body|Content-Type: text\/html/i.test(hBrief.roh), 'HTML im Brief');
+    // Der Schluessel selbst steht in der Datenbank NICHT im Klartext.
+    pruefe('In der Tabelle steht nur der Hash, nie der Schluessel',
+      Boolean(hSchluessel) && (regSql(hA.dir, 'SELECT hash FROM anfragen')[0] || {}).hash ===
+        crypto.createHash('sha256').update(String(hSchluessel)).digest('hex'),
+      JSON.stringify(regSql(hA.dir, 'SELECT hash FROM anfragen')[0]));
+    pruefe('Und der Klartext steht in KEINER Spalte dieser Zeile',
+      Boolean(hSchluessel) &&
+      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM anfragen')).includes(String(hSchluessel)),
+      'der Schluessel steht in der Tabelle');
+
+    gruppe('Die Selbstanmeldung: der Bestaetigungslink hat keine Passwortkraft');
+
+    /* WER IHN ANKLICKT, SAGT "ja, das bin ich" -- MEHR NICHT. Er legt keinen
+       Zugang an, er setzt kein Passwort, er meldet niemanden an. Geprueft wird
+       jedes der drei einzeln, und zwar am Zustand DANACH, nicht an der
+       Antwort: eine Antwort ohne Cookie belegt nicht, dass keine Sitzung
+       entstanden ist. */
+    const hZugaengeVor = regSql(hA.dir, 'SELECT id FROM users').length;
+    const hTokensVor = regSql(hA.dir, 'SELECT hash FROM tokens').length;
+    const hSitzungenVor = regSql(hA.dir, 'SELECT token FROM sessions').length;
+    const hBest = await fetch(hA.S.basis + '/api/registrierung/bestaetigen', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ schluessel: hSchluessel })
+    });
+    pruefe('Die Bestaetigung wird angenommen', hBest.status === 200, `Status ${hBest.status}`);
+    pruefe('Und die Antwort traegt keinen Sitzungscookie',
+      !hBest.headers.get('set-cookie'), String(hBest.headers.get('set-cookie')));
+    pruefe('Es ist dabei kein Zugang entstanden',
+      regSql(hA.dir, 'SELECT id FROM users').length === hZugaengeVor,
+      `vorher ${hZugaengeVor}, nachher ${regSql(hA.dir, 'SELECT id FROM users').length}`);
+    pruefe('Und kein Token',
+      regSql(hA.dir, 'SELECT hash FROM tokens').length === hTokensVor,
+      `vorher ${hTokensVor}, nachher ${regSql(hA.dir, 'SELECT hash FROM tokens').length}`);
+    pruefe('Und keine Sitzung',
+      regSql(hA.dir, 'SELECT token FROM sessions').length === hSitzungenVor,
+      `vorher ${hSitzungenVor}, nachher ${regSql(hA.dir, 'SELECT token FROM sessions').length}`);
+    pruefe('Die Zeile traegt jetzt einen Bestaetigungszeitpunkt',
+      Boolean(regSql(hA.dir, 'SELECT bestaetigt_am FROM anfragen')[0].bestaetigt_am),
+      JSON.stringify(regSql(hA.dir, 'SELECT bestaetigt_am FROM anfragen')[0]));
+    // Zweimal klicken ist unschaedlich -- wer neu laedt, soll nicht vor einer
+    // Absage stehen.
+    const hZweimal = await hA.S.ruf('POST', '/api/registrierung/bestaetigen',
+      { schluessel: hSchluessel });
+    pruefe('Zweimal bestaetigen ist unschaedlich', hZweimal.status === 200,
+      `Status ${hZweimal.status}`);
+    // Und ein erfundener Schluessel bekommt DIE EINE Absage.
+    const hErfunden = await hA.S.ruf('POST', '/api/registrierung/bestaetigen',
+      { schluessel: 'a'.repeat(64) });
+    pruefe('Ein erfundener Schluessel wird abgewiesen', hErfunden.status === 400,
+      `Status ${hErfunden.status}`);
+    pruefe('Und zwar mit der EINEN Absage, ohne eigenen Grund',
+      /gilt nicht mehr/.test(hErfunden.inhalt?.error || '') &&
+      !/erfunden|unbekannt|verfallen/i.test(hErfunden.inhalt?.error || ''),
+      JSON.stringify(hErfunden.inhalt?.error));
+    pruefe('Und sie nennt weder Namen noch Adresse',
+      !/clara/.test(JSON.stringify(hErfunden.inhalt)), JSON.stringify(hErfunden.inhalt));
+
+    gruppe('Die Selbstanmeldung: die unbestaetigte Anfrage');
+
+    /* SIE ERSCHEINT BEIM ADMIN NICHT -- sonst stuende dort die Adresse eines
+       Menschen, der von der ganzen Sache nichts weiss, und der Admin koennte
+       sie freischalten. Genau die Luecke schliesst die Bestaetigungsmail. */
+    await regRoh(hA.S, '/api/registrierung', { name: 'dora', adresse: 'dora@beispiel.de' });
+    await regWarteAufBrief(hOk, 'dora@beispiel.de');
+    const hKarte = (await hA.S.ruf('GET', '/api/anfragen')).inhalt;
+    pruefe('In der Tabelle stehen jetzt zwei Zeilen',
+      regSql(hA.dir, 'SELECT id FROM anfragen').length === 2,
+      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+    pruefe('Der Admin sieht davon nur die bestaetigte',
+      hKarte.anfragen.length === 1 && (hKarte.anfragen[0] || {}).username === 'clara',
+      JSON.stringify(hKarte.anfragen.map(a => a.username)));
+    pruefe('Der Deckel zaehlt trotzdem beide',
+      hKarte.belegt === 2, `${hKarte.belegt} von ${hKarte.deckel}`);
+    /* UND SIE LAESST SICH AUCH NICHT UEBER IHRE NUMMER FREISCHALTEN. Die Karte
+       zeigt sie nicht, aber eine Nummer laesst sich tippen -- die Route
+       verlaesst sich deshalb nicht auf die Karte. */
+    const hDoraId = (regSql(hA.dir, 'SELECT id, username FROM anfragen')
+      .find(z => z.username === 'dora') || { id: 0 }).id;
+    const hDoraFrei = await hA.S.ruf('POST', `/api/anfragen/${hDoraId}/frei`);
+    pruefe('Und sie laesst sich auch ueber ihre Nummer nicht freischalten',
+      hDoraFrei.status === 404, `Status ${hDoraFrei.status}`);
+    const hDoraAb = await hA.S.ruf('DELETE', `/api/anfragen/${hDoraId}`);
+    pruefe('Und ebenso wenig ablehnen', hDoraAb.status === 404, `Status ${hDoraAb.status}`);
+    pruefe('Sie steht danach unveraendert da',
+      regSql(hA.dir, 'SELECT id FROM anfragen').length === 2,
+      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+
+    gruppe('Die Selbstanmeldung: das Verfallen und das Aufraeumen');
+
+    /* NUR DAS UNBESTAETIGTE VERFAELLT. Eine bestaetigte Anfrage wartet auf den
+       Admin, so lange es dauert -- sie still verfallen zu lassen hiesse,
+       jemanden ohne Antwort stehen zu lassen, der alles getan hat, was von ihm
+       verlangt war.
+       GESTELLT WIRD DER ZUSTAND UEBER DIE DATENBANK, wie bei den Token: eine
+       Prueflage, die 24 Stunden wartet, ist keine. */
+    const hAlt = (stunden) => kurzlauf(
+      `const { db } = require('./db');` +
+      `db.prepare("UPDATE anfragen SET created_at = datetime('now', ?) WHERE username = 'dora'")` +
+      `.run('-${stunden} hours'); console.log('gesetzt');`, hA.dir);
+    hAlt(23);
+    pruefe('Die unbestaetigte Zeile liegt fuer die Fristprobe ueberhaupt vor',
+      regSql(hA.dir, "SELECT created_at FROM anfragen WHERE username = 'dora'").length === 1,
+      JSON.stringify(regSql(hA.dir, "SELECT created_at FROM anfragen WHERE username = 'dora'")));
+    await hA.S.ruf('GET', '/api/anfragen');
+    pruefe('Eine Anfrage von 23 Stunden bleibt stehen',
+      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'dora'").length === 1,
+      'sie ist schon weg');
+    hAlt(25);
+    await hA.S.ruf('GET', '/api/anfragen');
+    pruefe('Eine von 25 Stunden faellt -- zweite Aufrufstelle, die Karte',
+      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'dora'").length === 0,
+      'sie steht noch da');
+    pruefe('Und die bestaetigte bleibt dabei stehen',
+      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'clara'").length === 1,
+      'die bestaetigte ist mitgefallen');
+    /* DIE DRITTE AUFRUFSTELLE, und sie ist die besondere: sie steht VOR der
+       Deckelpruefung. Ohne sie blockierten zwanzig laengst verfallene Zeilen
+       die Selbstanmeldung noch einen weiteren Tag. Geprueft an einer Anfrage,
+       die den Deckel sonst NICHT mehr durchliesse. */
+    kurzlauf(
+      `const { db } = require('./db'); const s = db.prepare(` +
+      `"INSERT INTO anfragen (hash, username, email, created_at) VALUES (?, ?, ?, datetime('now','-48 hours'))");` +
+      `for (let i = 0; i < 19; i++) s.run('alt'+i, 'alter'+i, 'alt'+i+'@beispiel.de');` +
+      `console.log(db.prepare('SELECT COUNT(*) n FROM anfragen').get().n);`, hA.dir);
+    pruefe('Zwanzig Zeilen liegen vor -- der Deckel ist damit erreicht',
+      regSql(hA.dir, 'SELECT id FROM anfragen').length === 20,
+      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+    const hNachRaum = await regRoh(hA.S, '/api/registrierung',
+      { name: 'emil', adresse: 'emil@beispiel.de' });
+    pruefe('Die Anfrage bekommt dieselbe Antwort wie immer',
+      hNachRaum.status === 200 && hNachRaum.roh === REG_ANTWORT, hNachRaum.roh.slice(0, 60));
+    pruefe('Und sie geht durch, weil die Anfrageroute selbst aufgeraeumt hat',
+      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'emil'").length === 1,
+      JSON.stringify(regSql(hA.dir, 'SELECT username FROM anfragen').map(z => z.username)));
+    pruefe('Die neunzehn alten sind dabei gefallen',
+      regSql(hA.dir, 'SELECT id FROM anfragen').length === 2,
+      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+
+    gruppe('Die Selbstanmeldung: der Deckel');
+
+    /* ZWANZIG, UND ER ZAEHLT BESTAETIGTE UND UNBESTAETIGTE ZUSAMMEN. Zaehlte er
+       nur die bestaetigten, fuellte ein Angreifer die Tabelle mit
+       Unbestaetigten, ohne je eine Mail zu lesen -- und der Admin saehe davon
+       nichts.
+       DIE EINUNDZWANZIGSTE WIRD STILL VERWORFEN: gleiche Antwort, keine Zeile. */
+    kurzlauf(
+      `const { db } = require('./db'); db.prepare('DELETE FROM anfragen').run();` +
+      `const s = db.prepare('INSERT INTO anfragen (hash, username, email) VALUES (?, ?, ?)');` +
+      `for (let i = 0; i < 20; i++) s.run('deckel'+i, 'voll'+i, 'voll'+i+'@beispiel.de');` +
+      `console.log(db.prepare('SELECT COUNT(*) n FROM anfragen').get().n);`, hA.dir);
+    pruefe('Zwanzig frische Anfragen liegen vor',
+      regSql(hA.dir, 'SELECT id FROM anfragen').length === 20,
+      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+    const hDeckel = await regRoh(hA.S, '/api/registrierung',
+      { name: 'einundzwanzig', adresse: 'einundzwanzig@beispiel.de' });
+    pruefe('Die einundzwanzigste bekommt DIESELBE Antwort',
+      hDeckel.status === 200 && hDeckel.roh === REG_ANTWORT, hDeckel.roh.slice(0, 60));
+    pruefe('Und sie wird still verworfen -- die Liste bleibt bei zwanzig',
+      regSql(hA.dir, 'SELECT id FROM anfragen').length === 20,
+      `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
+    pruefe('Ihr Name steht in keiner Zeile',
+      !JSON.stringify(regSql(hA.dir, 'SELECT username FROM anfragen')).includes('einundzwanzig'),
+      'der Name steht doch da');
+    const hDeckelKarte = (await hA.S.ruf('GET', '/api/anfragen')).inhalt;
+    pruefe('Die Karte nennt den Stand gegen den Deckel',
+      hDeckelKarte.belegt === 20 && hDeckelKarte.deckel === 20,
+      `${hDeckelKarte.belegt} von ${hDeckelKarte.deckel}`);
+    // Platz schaffen, und die naechste geht wieder durch -- sonst belegte die
+    // Pruefung nur, dass gar nichts mehr geht.
+    kurzlauf(`const { db } = require('./db');` +
+      `db.prepare("DELETE FROM anfragen WHERE username = 'voll0'").run(); console.log('weg');`, hA.dir);
+    await regRoh(hA.S, '/api/registrierung', { name: 'zwanzigster', adresse: 'zwanzig@beispiel.de' });
+    pruefe('Unter dem Deckel geht die naechste wieder durch',
+      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'zwanzigster'").length === 1,
+      'sie ist nicht entstanden');
+
+    gruppe('Die Selbstanmeldung: die Freischaltung');
+
+    /* AUS DER ANFRAGE WIRD EIN ZUGANG MIT TOKEN, die Zeile ist weg, und die
+       Protokollzeilen stehen. Der Token oeffnet danach den Passwortweg aus
+       0.8.80 UNVERAENDERT -- geprueft wird der ganze Weg bis zum gesetzten
+       Passwort, nicht nur, dass ein Token entstanden ist. */
+    kurzlauf(`const { db } = require('./db'); db.prepare('DELETE FROM anfragen').run();` +
+      `console.log('leer');`, hA.dir);
+    const fVorBriefe = hOk.briefe().length;
+    await regRoh(hA.S, '/api/registrierung', { name: 'frieda', adresse: 'frieda@beispiel.de' });
+    const fSchluessel = await regWarteAufBrief(hOk, 'frieda@beispiel.de');
+    await hA.S.ruf('POST', '/api/registrierung/bestaetigen', { schluessel: fSchluessel });
+    const fKarte = (await hA.S.ruf('GET', '/api/anfragen')).inhalt;
+    pruefe('Die bestaetigte Anfrage steht beim Admin',
+      fKarte.anfragen.length === 1 && fKarte.anfragen[0].username === 'frieda',
+      JSON.stringify(fKarte.anfragen));
+    /* JEDE LESESTELLE DANACH UEBER EIN AUFFANGNETZ (Stolperstein 138): kommt
+       die Zeile nicht, soll die Gruppe rot werden und nicht abreissen -- eine
+       Gegenprobe, die den Lauf mitnimmt, sagt nichts darueber, welche Pruefung
+       den Rueckbau bemerkt haette. */
+    /* ZU JEDEM FELD, DAS DIE OBERFLAECHE LIEST, EINE PRUEFUNG AN DER ECHTEN
+       ANTWORT (Stolperstein 102) -- das ist die Quelle von vier stummen
+       Gegenproben der Vorrunde. Die Karte zeichnet Name, Adresse, den
+       Zeitpunkt der Anfrage und den der Bestaetigung. */
+    const fZeile = fKarte.anfragen[0] || {};
+    pruefe('Die Antwort traegt den Namen', fZeile.username === 'frieda', JSON.stringify(fZeile));
+    pruefe('Und die Adresse', fZeile.email === 'frieda@beispiel.de', JSON.stringify(fZeile));
+    pruefe('Und den Zeitpunkt der Anfrage',
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(fZeile.created_at || ''), JSON.stringify(fZeile));
+    pruefe('Und den der Bestaetigung',
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(fZeile.bestaetigt_am || ''), JSON.stringify(fZeile));
+    pruefe('Und eine Nummer, ueber die sie sich ansprechen laesst',
+      Number.isInteger(fZeile.id) && fZeile.id > 0, JSON.stringify(fZeile.id));
+    /* UND DER SCHLUESSEL KOMMT NICHT MIT -- weder im Klartext noch als Hash.
+       Die Karte braucht ihn nicht, und was sie nicht braucht, geht auch nicht
+       ueber das Netz. */
+    pruefe('Der Bestaetigungsschluessel steht in der Antwort nicht',
+      !('hash' in fZeile) && Boolean(fSchluessel) &&
+      !JSON.stringify(fKarte).includes(String(fSchluessel)),
+      JSON.stringify(Object.keys(fZeile)));
+    const fFrei = await hA.S.ruf('POST', `/api/anfragen/${fZeile.id || 0}/frei`);
+    pruefe('Die Freischaltung geht durch', fFrei.status === 200, `Status ${fFrei.status}`);
+    pruefe('Es entsteht ein Zugang mit dem angefragten Namen',
+      fFrei.inhalt?.username === 'frieda', JSON.stringify(fFrei.inhalt?.username));
+    pruefe('Und mit der angefragten Adresse',
+      fFrei.inhalt?.email === 'frieda@beispiel.de', JSON.stringify(fFrei.inhalt?.email));
+    pruefe('Er hat noch kein Passwort', fFrei.inhalt?.ohnePasswort === true,
+      JSON.stringify(fFrei.inhalt?.ohnePasswort));
+    pruefe('Ein Einladungstoken kommt mit',
+      /^[0-9a-f]{64}$/.test(fFrei.inhalt?.token || '') && fFrei.inhalt?.zweck === 'einladung',
+      JSON.stringify([fFrei.inhalt?.zweck, String(fFrei.inhalt?.token).length]));
+    pruefe('Und der fertige Link daneben',
+      fFrei.inhalt?.link === `https://kriterion.beispiel.de/#/einladung/${fFrei.inhalt?.token}`,
+      JSON.stringify(fFrei.inhalt?.link));
+    pruefe('Die Zeile in der Warteschlange ist weg',
+      regSql(hA.dir, 'SELECT id FROM anfragen').length === 0,
+      JSON.stringify(regSql(hA.dir, 'SELECT username FROM anfragen')));
+    pruefe('Und die Antwort traegt die neue, leere Liste gleich mit',
+      Array.isArray(fFrei.inhalt?.anfragen) && fFrei.inhalt.anfragen.length === 0,
+      JSON.stringify(fFrei.inhalt?.anfragen));
+    await new Promise(r => setTimeout(r, 800));
+    pruefe('Die Einladungsmail geht hinaus', fFrei.inhalt?.versand === 'ok',
+      `${fFrei.inhalt?.versand} · ${fFrei.inhalt?.versandGrund}`);
+    /* GESUCHT WIRD DER BRIEF MIT DIESEM LINK und nicht der letzte in der Liste:
+       die Bestaetigungsmails der vorigen Gruppen gehen NACH ihrer Antwort
+       hinaus und koennen deshalb jederzeit dazwischenfallen. Eine Pruefung auf
+       "genau zwei neue Briefe" waere von der Uhr abhaengig statt von der
+       Sache -- und roeter Zufall ist schlimmer als keine Pruefung. */
+    const fBriefe = hOk.briefe();
+    const fEinladung = fBriefe.filter(b => b.rumpf.includes(
+      `https://kriterion.beispiel.de/#/einladung/${fFrei.inhalt?.token}`));
+    pruefe('Genau ein Brief traegt den neuen Einladungslink',
+      fEinladung.length === 1, `${fEinladung.length} Briefe mit diesem Link ` +
+      `(${fBriefe.length - fVorBriefe} neue insgesamt)`);
+    pruefe('Und zwar an die angefragte Adresse',
+      fEinladung.length === 1 && /^To: frieda@beispiel\.de$/m.test(fEinladung[0].kopf),
+      (fEinladung[0]?.kopf || '').split('\n').slice(0, 4).join(' | '));
+    pruefe('Der Link steht dabei im Fragment und wird nicht abgeschnitten',
+      fEinladung.length === 1 && /#\/einladung\/[0-9a-f]{64}/.test(fEinladung[0].rumpf),
+      (fEinladung[0]?.rumpf || '').split('\n').find(z => /einladung/.test(z)) || '(keine Zeile)');
+    /* DIE PROTOKOLLZEILEN. anfrage.frei steht NEBEN zugang.neu und link.neu und
+       ist nicht doppelt: die beiden anderen sagen nicht, dass der Zugang aus
+       einer SELBSTANMELDUNG kam. */
+    const fProtokoll = regSql(hA.dir,
+      "SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll ORDER BY id");
+    const fFrei1 = fProtokoll.filter(z => z.was === 'anfrage.frei');
+    pruefe('Eine Zeile anfrage.frei steht im Sicherheitsprotokoll',
+      fFrei1.length === 1, JSON.stringify(fProtokoll.map(z => z.was)));
+    pruefe('Sie nennt den handelnden Admin und den neuen Zugang als Nummern',
+      fFrei1[0].wer === 1 && fFrei1[0].ziel === fFrei.inhalt?.id, JSON.stringify(fFrei1[0]));
+    pruefe('Und sie traegt kein Merkmal', fFrei1[0].merkmal === null, JSON.stringify(fFrei1[0]));
+    pruefe('Daneben stehen zugang.neu und link.neu wie bei jedem anderen Zugang',
+      fProtokoll.some(z => z.was === 'zugang.neu' && z.ziel === fFrei.inhalt?.id) &&
+      fProtokoll.some(z => z.was === 'link.neu' && z.ziel === fFrei.inhalt?.id),
+      JSON.stringify(fProtokoll.map(z => `${z.was}/${z.ziel}`)));
+    /* DER NAME DES ANFRAGENDEN STEHT IN KEINER ZEILE. Die Tabelle nimmt keinen
+       Freitext von aussen -- geprueft an JEDER Spalte JEDER Zeile, nicht nur
+       an der neuen. */
+    pruefe('Und der Name steht in KEINER Spalte KEINER Zeile',
+      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM sicherheitsprotokoll')).includes('frieda'),
+      'der Name steht im Protokoll');
+    pruefe('Die Adresse ebenso wenig',
+      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM sicherheitsprotokoll')).includes('beispiel.de'),
+      'die Adresse steht im Protokoll');
+    /* UND DER TOKENWEG AUS 0.8.80 IST UNVERAENDERT: pruefen, einloesen,
+       angemeldet. Ein eigener Weg fuer diesen Token waere ein zweiter
+       Mechanismus fuer dieselbe Sache. */
+    const fPruefen = await fetch(hA.S.basis + '/api/token/pruefen', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: fFrei.inhalt?.token })
+    });
+    const fPruefenInhalt = await fPruefen.json();
+    pruefe('Der Token oeffnet den Passwortweg aus 0.8.80',
+      fPruefen.status === 200 && fPruefenInhalt.username === 'frieda',
+      JSON.stringify(fPruefenInhalt));
+    pruefe('Und die Frist ab dem ersten Oeffnen gilt auch hier',
+      fPruefenInhalt.minuten === 15, JSON.stringify(fPruefenInhalt.minuten));
+    const fEin = await fetch(hA.S.basis + '/api/token/einloesen', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: fFrei.inhalt?.token, passwort: 'friedas-langes-wort' })
+    });
+    pruefe('Das Passwort laesst sich darueber setzen', fEin.status === 200, `Status ${fEin.status}`);
+    pruefe('Und wer einloest, ist damit gleich angemeldet',
+      Boolean(fEin.headers.get('set-cookie')), String(fEin.headers.get('set-cookie')).slice(0, 30));
+    const fAnmeldung = await fetch(hA.S.basis + '/api/login', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user: 'frieda', password: 'friedas-langes-wort' })
+    });
+    pruefe('Danach traegt die gewoehnliche Anmeldung', fAnmeldung.status === 200,
+      `Status ${fAnmeldung.status}`);
+
+    gruppe('Die Selbstanmeldung: die Rolle ist immer user');
+
+    /* AUS EINER ANFRAGE WIRD NIE ETWAS ANDERES ALS EIN BENUTZER, und das ist
+       baulich wahr und nicht durchgesetzt: die Route ruft legeZugangAn mit
+       fest verdrahtetem 'user' und liest an KEINER Stelle eine Rolle aus der
+       Anfrage. Geprueft in allen drei Formen -- Rumpf, Abfrage und Kopf --,
+       denn eine Zusage ueber "wird nicht gelesen" muss an jeder Stelle halten,
+       an der etwas hereinkommt. */
+    const rollenLage = async (name, adresse) => {
+      await regRoh(hA.S, '/api/registrierung', { name, adresse });
+      const s = await regWarteAufBrief(hOk, adresse);
+      await hA.S.ruf('POST', '/api/registrierung/bestaetigen', { schluessel: s });
+      const k = (await hA.S.ruf('GET', '/api/anfragen')).inhalt;
+      // Ein Auffangnetz statt eines Griffs ins Leere (Stolperstein 138): eine
+      // Nummer, die es nicht gibt, faerbt die Pruefung rot statt den Lauf
+      // abzureissen.
+      return (k.anfragen.find(a => a.username === name) || { id: 0 }).id;
+    };
+    const rRumpfId = await rollenLage('gustav', 'gustav@beispiel.de');
+    const rRumpf = await hA.S.ruf('POST', `/api/anfragen/${rRumpfId}/frei`,
+      { rolle: 'eigentuemer', role: 'admin' });
+    pruefe('Eine Rolle im Rumpf aendert nichts', rRumpf.inhalt?.role === 'user',
+      JSON.stringify(rRumpf.inhalt?.role));
+    const rAbfrageId = await rollenLage('heidi', 'heidi@beispiel.de');
+    const rAbfrage = await hA.S.ruf('POST', `/api/anfragen/${rAbfrageId}/frei?rolle=admin`, {});
+    pruefe('Eine Rolle in der Abfrage ebenso wenig', rAbfrage.inhalt?.role === 'user',
+      JSON.stringify(rAbfrage.inhalt?.role));
+    const rKopfId = await rollenLage('ida', 'ida@beispiel.de');
+    const rKopf = await mailRohRuf(hA.S, `/api/anfragen/${rKopfId}/frei`,
+      { 'x-rolle': 'eigentuemer' }, {});
+    pruefe('Und ein Kopf erst recht nicht', rKopf.inhalt?.role === 'user',
+      JSON.stringify(rKopf.inhalt?.role));
+    pruefe('Alle drei stehen in der Datenbank als user',
+      regSql(hA.dir, "SELECT username, role FROM users WHERE username IN ('gustav','heidi','ida')")
+        .every(z => z.role === 'user'),
+      JSON.stringify(regSql(hA.dir,
+        "SELECT username, role FROM users WHERE username IN ('gustav','heidi','ida')")));
+    /* UND DIE ROLLENLEITER BLEIBT HEIL: die Zahl der Eigentuemer und Admins
+       hat sich durch drei Freischaltungen nicht bewegt. */
+    pruefe('Die Zahl der Eigentuemer und Admins hat sich nicht bewegt',
+      regSql(hA.dir, "SELECT role FROM users WHERE role != 'user'").length === 1,
+      JSON.stringify(regSql(hA.dir, 'SELECT username, role FROM users')));
+
+    gruppe('Die Selbstanmeldung: die Ablehnung');
+
+    /* DIE ZEILE IST WEG, ES ENTSTEHT KEIN ZUGANG, und die Protokollzeile steht
+       -- ohne den Namen. Sie ist die einzige Spur, dass ueberhaupt jemand
+       gefragt hat; die Zeile in anfragen wird ja geloescht. */
+    const abId = await rollenLage('konrad', 'konrad@beispiel.de');
+    const abZugaengeVor = regSql(hA.dir, 'SELECT id FROM users').length;
+    const abBriefeVor = hOk.briefe().length;
+    const ab = await hA.S.ruf('DELETE', `/api/anfragen/${abId}`);
+    pruefe('Die Ablehnung geht durch', ab.status === 200, `Status ${ab.status}`);
+    pruefe('Die Zeile ist weg',
+      regSql(hA.dir, "SELECT id FROM anfragen WHERE username = 'konrad'").length === 0,
+      'sie steht noch da');
+    pruefe('Und die Antwort traegt die neue Liste gleich mit',
+      Array.isArray(ab.inhalt?.anfragen) &&
+      !ab.inhalt.anfragen.some(a => a.username === 'konrad'),
+      JSON.stringify(ab.inhalt?.anfragen));
+    pruefe('Es ist KEIN Zugang entstanden',
+      regSql(hA.dir, 'SELECT id FROM users').length === abZugaengeVor,
+      `vorher ${abZugaengeVor}, nachher ${regSql(hA.dir, 'SELECT id FROM users').length}`);
+    pruefe('Und der Name steht in keiner Benutzerzeile',
+      !JSON.stringify(regSql(hA.dir, 'SELECT username FROM users')).includes('konrad'),
+      JSON.stringify(regSql(hA.dir, 'SELECT username FROM users')));
+    await new Promise(r => setTimeout(r, 400));
+    pruefe('Es geht keine Absagemail hinaus -- Benachrichtigungen gibt es nicht',
+      hOk.briefe().length === abBriefeVor, `${hOk.briefe().length - abBriefeVor} neue Briefe`);
+    const abZeilen = regSql(hA.dir,
+      "SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll WHERE was = 'anfrage.ab'");
+    pruefe('Die Protokollzeile anfrage.ab steht', abZeilen.length === 1,
+      JSON.stringify(abZeilen));
+    pruefe('Sie nennt den handelnden Admin', abZeilen[0].wer === 1, JSON.stringify(abZeilen[0]));
+    pruefe('Und traegt kein Ziel -- es gibt keinen Zugang, auf den es zeigen koennte',
+      abZeilen[0].ziel === null, JSON.stringify(abZeilen[0]));
+    pruefe('Und der Name des Abgewiesenen steht NICHT darin',
+      !JSON.stringify(regSql(hA.dir, 'SELECT * FROM sicherheitsprotokoll')).includes('konrad'),
+      'der Name steht im Protokoll');
+
+    gruppe('Die Selbstanmeldung: keine Zeile, die ein Fremder ausloesen kann');
+
+    /* DIE GESCHEITERTE ANMELDUNG IST DIE EINZIGE ZEILE, DIE EIN FREMDER
+       AUSLOESEN KANN, und ihr Deckel ist die Bremse. Anfrage und Bestaetigung
+       kaemen ohne Deckel dazu -- deshalb schreiben sie nichts. */
+    kurzlauf(`const { db } = require('./db'); db.prepare('DELETE FROM sicherheitsprotokoll').run();` +
+      `db.prepare('DELETE FROM anfragen').run(); console.log('leer');`, hA.dir);
+    await regRoh(hA.S, '/api/registrierung', { name: 'ludwig', adresse: 'ludwig@beispiel.de' });
+    await hA.S.ruf('POST', '/api/registrierung/bestaetigen',
+      { schluessel: await regWarteAufBrief(hOk, 'ludwig@beispiel.de') });
+    await hA.S.ruf('POST', '/api/registrierung/bestaetigen', { schluessel: 'b'.repeat(64) });
+    pruefe('Anfrage, Bestaetigung und geratene Bestaetigung schreiben zusammen keine Zeile',
+      regSql(hA.dir, 'SELECT id FROM sicherheitsprotokoll').length === 0,
+      JSON.stringify(regSql(hA.dir, 'SELECT was FROM sicherheitsprotokoll')));
+    /* ERST DER GEGENSTAND (Stolperstein 81): die Tabelle muss ueberhaupt
+       beschreibbar sein. Waere sie es nicht, waere die Pruefung darueber gruen
+       und belegte nichts. */
+    const ludwigId = ((await hA.S.ruf('GET', '/api/anfragen')).inhalt
+      .anfragen.find(a => a.username === 'ludwig') || { id: 0 }).id;
+    await hA.S.ruf('DELETE', `/api/anfragen/${ludwigId}`);
+    pruefe('Die Entscheidung des Admins schreibt dagegen sehr wohl eine',
+      regSql(hA.dir, 'SELECT id FROM sicherheitsprotokoll').length === 1,
+      JSON.stringify(regSql(hA.dir, 'SELECT was FROM sicherheitsprotokoll')));
+
+    gruppe('Die Selbstanmeldung: die Bremse greift an beiden Routen');
+
+    /* GEFAHREN WIRD AUF DER ANLAGE AUS DER GRUPPE DAVOR, und zwar als LETZTES
+       auf ihr: die Zaehler der Anmeldebremse liegen im Arbeitsspeicher des
+       Prozesses, und zwoelf Fehlversuche vergiften jede weitere Lage auf
+       derselben Adresse. Ein eigener Server dafuer waere die saubere Form --
+       er kostet aber eine weitere Portbasis, und die Spanne aller Basen muss
+       unter dem Versatz je Nebenspur bleiben (Stolperstein 127; der Waechter
+       ueber die Portbasen hat genau das gefunden). Diese Anlage ist mit ihrer
+       Gruppe fertig, ihr Schalter ist aus, und es darf ohnehin nichts
+       entstehen -- damit ist sie die richtige.
+       BELEGT WIRD AM UEBERGANG, und die Schwelle wird NACHGERECHNET
+       (Stolperstein 124): checkThrottle liest den Zaehlerstand, BEVOR
+       noteFailure ihn erhoeht -- gesperrt wird ab dem ELFTEN Versuch.
+       DIE KENNWERTE SIND UNANGETASTET, und die Namenshaelfte faellt von selbst
+       weg: noteFailure legt bei leerem Namen gar keinen Zaehler an. */
+    const bA = iA;
+    const bStufen = [];
+    for (let i = 1; i <= 12; i++) {
+      const a = await fetch(bA.S.basis + '/api/registrierung/bestaetigen', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ schluessel: 'c'.repeat(64) })
+      });
+      bStufen.push(a.status);
+    }
+    pruefe('Der zehnte Bestaetigungsversuch wird noch beantwortet',
+      bStufen[9] === 400, `Versuch 10: ${bStufen[9]}`);
+    pruefe('Der elfte ist der erste gesperrte', bStufen[10] === 429, `Versuch 11: ${bStufen[10]}`);
+    pruefe('Der Uebergang liegt genau zwischen zehn und elf',
+      bStufen.slice(0, 10).every(s => s === 400) && bStufen.slice(10).every(s => s === 429),
+      JSON.stringify(bStufen));
+    /* UND DIE ANFRAGEROUTE LIEGT HINTER DERSELBEN BREMSE. Sie teilt sich den
+       Zaehler mit der Bestaetigungsroute und mit der Anmeldung -- ein eigener
+       waere ein zweiter Mechanismus fuer dieselbe Sache. */
+    const bAnfrage = await fetch(bA.S.basis + '/api/registrierung', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'waehrend-gesperrt', adresse: 'gesperrt@beispiel.de' })
+    });
+    pruefe('Die Anfrageroute ist damit ebenfalls gesperrt', bAnfrage.status === 429,
+      `Status ${bAnfrage.status}`);
+    pruefe('Und die Absage nennt die Wartezeit',
+      /Sekunden/.test(JSON.stringify(await bAnfrage.json())), 'keine Wartezeit genannt');
+    /* UND DIE GESPERRTEN VERSUCHE SCHREIBEN NICHTS -- weder in anfragen noch
+       ins Protokoll. */
+    pruefe('Es ist dabei keine Zeile entstanden',
+      regSql(bA.dir, 'SELECT id FROM anfragen').length === 0 &&
+      regSql(bA.dir, "SELECT id FROM sicherheitsprotokoll WHERE was LIKE 'anfrage%'").length === 0,
+      JSON.stringify(regSql(bA.dir, 'SELECT username FROM anfragen')));
+
+    gruppe('Die Selbstanmeldung: die Tabelle legt sich selbst an');
+
+    /* KEIN MIGRATIONSBLOCK -- und das ist zum vierten Mal NACHGESTELLT statt
+       abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS
+       eine fehlende TABELLE bei jedem Start an (Stolperstein 13 gilt der
+       Spalte). Traegt die Probe, bleibt es bei fuenf markierten
+       Migrationsbloecken.
+       GEARBEITET WIRD AN DER DATEI UND NICHT UEBER EINEN SERVER: kurzlauf
+       laedt db.js, und db.js legt das Schema beim Laden an -- eine Nachschau
+       ueber kurzlauf legte die Tabelle also selbst wieder an und belegte
+       nichts (Stolperstein 102 in seiner Form fuer den Pruefstand). */
+    {
+      const nDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-anfragentab-'));
+      kurzlauf(`require('./db'); console.log('da');`, nDir);
+      const nDatei = path.join(nDir, 'katalog.sqlite');
+      const nTabellen = () => {
+        const d = oeffne(nDatei);
+        const t = d.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+          .all().map(z => z.name);
+        d.close();
+        return t;
+      };
+      const nSpaltenVon = (tabelle) => {
+        const d = oeffne(nDatei);
+        const c = d.prepare(`PRAGMA table_info(${tabelle})`).all().map(x => x.name);
+        d.close();
+        return c;
+      };
+      pruefe('Eine frische Anlage traegt anfragen ohne Migration',
+        nTabellen().includes('anfragen'), JSON.stringify(nTabellen()));
+      const nFrisch = nSpaltenVon('anfragen');
+      pruefe('Und zwar mit genau ihren sechs Spalten',
+        gleich(nFrisch, ['id', 'hash', 'username', 'email', 'bestaetigt_am', 'created_at']),
+        JSON.stringify(nFrisch));
+      {
+        const d = oeffne(nDatei);
+        d.prepare("INSERT INTO anfragen (hash, username, email) VALUES ('abc', 'anna', 'a@b.de')").run();
+        d.exec('DROP TABLE anfragen');
+        d.close();
+      }
+      pruefe('Von Hand entfernt ist sie wirklich weg',
+        !nTabellen().includes('anfragen'), JSON.stringify(nTabellen()));
+      kurzlauf(`require('./db'); console.log('da');`, nDir);
+      pruefe('Ein einziger Start legt sie wieder an',
+        nTabellen().includes('anfragen'), JSON.stringify(nTabellen()));
+      pruefe('Und das Schema ist danach dasselbe wie in einer frischen Anlage',
+        gleich(nSpaltenVon('anfragen'), nFrisch), JSON.stringify(nSpaltenVon('anfragen')));
+      /* UND DIE ZUSAGE, DIE DER PRUEFSTAND DIESER RUNDE AUSDRUECKLICH GIBT:
+         das Schema einer GEWACHSENEN Anlage ist nach dem Start dasselbe wie
+         das einer frischen. Verglichen werden alle Tabellen, nicht nur die
+         neue -- eine Runde ohne Migrationsblock darf nirgends etwas
+         verschieben. */
+      const nGewachsen = nTabellen();
+      const nFrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-anfragenfrisch-'));
+      kurzlauf(`require('./db'); console.log('da');`, nFrischDir);
+      const nFrischTabellen = (() => {
+        const d = oeffne(path.join(nFrischDir, 'katalog.sqlite'));
+        const t = d.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+          .all().map(z => z.name);
+        d.close();
+        return t;
+      })();
+      pruefe('Das Schema der gewachsenen Anlage gleicht dem der frischen',
+        gleich(nGewachsen, nFrischTabellen),
+        `gewachsen: ${nGewachsen.join(' ')} · frisch: ${nFrischTabellen.join(' ')}`);
+      fs.rmSync(nFrischDir, { recursive: true, force: true });
+      /* DIE GEGENLAGE: eine SPALTE kommt nicht von selbst zurueck. Ohne sie
+         belegte die Probe oben nur, dass irgendetwas nachwaechst -- und nicht,
+         dass es gerade der Unterschied zwischen Tabelle und Spalte ist. */
+      {
+        const d = oeffne(nDatei);
+        d.exec('ALTER TABLE anfragen DROP COLUMN bestaetigt_am');
+        d.close();
+      }
+      pruefe('Die Spalte ist von Hand entfernt',
+        !nSpaltenVon('anfragen').includes('bestaetigt_am'), JSON.stringify(nSpaltenVon('anfragen')));
+      let nNachStart = [];
+      try {
+        kurzlauf(`require('./db'); console.log('da');`, nDir);
+        nNachStart = nSpaltenVon('anfragen');
+      } catch { nNachStart = ['(Start gescheitert)']; }
+      pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
+        !nNachStart.includes('bestaetigt_am'), JSON.stringify(nNachStart));
+      fs.rmSync(nDir, { recursive: true, force: true });
+    }
+
+    for (const l of [gOk, gTr, iOk, hOk]) await l.stopp();
+    // bA IST iA -- die Bremsprobe laeuft auf derselben Anlage. Ein zweiter
+    // Eintrag hier waere ein zweites Aufraeumen desselben Verzeichnisses.
+    for (const x of [gA, iA, hA]) {
+      await x.S.stopp();
+      fs.rmSync(x.dir, { recursive: true, force: true });
+    }
+  }
+
+
   /* ---------------------------------------------------------------- */
   gruppe('Der Waechter ueber den Quelltext');
 
@@ -9151,6 +9997,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
        ausgenommen. */
     ['POST',   '/api/token/pruefen',             'offen'],
     ['POST',   '/api/token/einloesen',           'offen'],
+    /* Die Selbstanmeldung, 0.9.1 -- die sechste und siebte offene schreibende
+       Route. Im Kopf steht keine Rechtefrage, und im Rumpf steht auch keine:
+       es DARF sie jeder. Was diese beiden begrenzt, ist etwas anderes -- der
+       Schalter, der Deckel, die Bremse und die immer gleiche Antwort.
+       BEIDE SIND POST, obwohl die zweite fast nur nachschlaegt. Derselbe Grund
+       wie bei den Tokenrouten darueber: der Schluessel gehoert in den RUMPF
+       und nicht in Pfad oder Abfrage. */
+    ['POST',   '/api/registrierung',             'offen'],
+    ['POST',   '/api/registrierung/bestaetigen', 'offen'],
     ['PUT',    '/api/account',                   'selbstbezug'],
     /* Meine Sitzungen, 0.8.80. 'selbstbezug' wie PUT /api/account, und aus
        demselben Grund: die Klemme ist nicht eine Rollenfrage im Rumpf, sondern
@@ -9187,6 +10042,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
        nicht angesehen. Deshalb steht hier auch keine Klemme im Rumpf: der
        Selbstbezug ist baulich und nicht abgefragt. */
     ['POST',   '/api/mail/test',                 'nurEigentuemer'],
+    /* Die Selbstanmeldung hinter der Anmeldung, 0.9.1 -- drei Routen, alle
+       beim ADMIN und nicht beim Eigentuemer: aus einer Anfrage wird nie etwas
+       anderes als ein Zugang mit der Rolle 'user', und den legt der Admin
+       ohnehin an. Die Rollenleiter wird dabei nicht beruehrt -- es gibt keinen
+       bestehenden Zugang, an den hier jemand herankaeme.
+       KEINE ZWEITE BESTAETIGUNG, und das ist entschieden: dieselbe Ueberlegung
+       wie bei POST /api/users -- es entsteht ein NEUER Zugang und nimmt
+       niemandem etwas.
+       GET /api/anfragen steht wie immer NICHT hier: lesend, auch mit Waechter. */
+    ['PUT',    '/api/registrierung/schalter',    'nurAdmin'],
+    ['POST',   '/api/anfragen/:id/frei',         'nurAdmin'],
+    ['DELETE', '/api/anfragen/:id',              'nurAdmin'],
     ['PUT',    '/api/titles',                    'nurAdmin'],
     ['PUT',    '/api/settings',                  'im Rumpf'],
     ['POST',   '/api/criteria',                  'nurAdmin'],
@@ -9311,10 +10178,40 @@ const freigabeHaupt = (zweck, ziel = null) =>
      eine Adresse entgegen und PUT /api/account setzt die eigene -- beide gibt
      es laengst, und ihre Rechtezeile hat sich nicht verschoben. Wer daraus
      neue Routen machte, verschoebe die Rechtefrage, ohne dass es hier
-     auffiele. */
-  pruefe('Und es sind jetzt genau 59 schreibende Routen',
-    F_ROUTEN.length === 59 && fGefunden.length === 59,
+     auffiele.
+     0.9.1 bewegt sie um FUENF: 59 werden 64. Zwei stehen VOR der Anmeldung
+     (POST /api/registrierung und POST /api/registrierung/bestaetigen), drei
+     dahinter (PUT /api/registrierung/schalter, POST /api/anfragen/:id/frei
+     und DELETE /api/anfragen/:id). GET /api/anfragen steht wie immer NICHT
+     hier, obwohl es einen Waechter traegt. */
+  pruefe('Und es sind jetzt genau 64 schreibende Routen',
+    F_ROUTEN.length === 64 && fGefunden.length === 64,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
+  /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
+     dieselbe Bauform wie F_ROUTEN und aus demselben Grund (Stolperstein 137):
+     eine Zahl in einem Papier ist eine Behauptung, eine Zahl im Pruefstand
+     ist ein Beleg. VORGAENGE waechst mit 0.9.1 von fuenfzehn auf siebzehn
+     (anfrage.frei und anfrage.ab); MERKMALE bleibt bei dreizehn, denn keiner
+     der beiden traegt eines, und BESTAETIGUNG_ZWECKE bleibt bei sieben. */
+  /* GELESEN WIRD DIE LAUFENDE LISTE, NICHT DER QUELLTEXT DANEBEN: ein Waechter
+     ueber den Quelltext faerbt sich am Warnschild statt an der Sache
+     (Stolperstein 106). auth.js oeffnet beim Laden die Datenbank und laeuft
+     deshalb in einem eigenen Prozess mit eigenem Verzeichnis. */
+  const fAuthDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-listen-'));
+  const fAuth = JSON.parse(kurzlauf(
+    `const a = require('./auth');` +
+    `console.log(JSON.stringify({ VORGAENGE: a.VORGAENGE, MERKMALE: a.MERKMALE,` +
+    ` BESTAETIGUNG_ZWECKE: a.BESTAETIGUNG_ZWECKE }));`, fAuthDir));
+  fs.rmSync(fAuthDir, { recursive: true, force: true });
+  pruefe('Es sind genau siebzehn Vorgaenge im Sicherheitsprotokoll',
+    fAuth.VORGAENGE.length === 17, `${fAuth.VORGAENGE.length}: ${fAuth.VORGAENGE.join(' ')}`);
+  pruefe('Und die beiden neuen heissen anfrage.frei und anfrage.ab',
+    fAuth.VORGAENGE.includes('anfrage.frei') && fAuth.VORGAENGE.includes('anfrage.ab'),
+    fAuth.VORGAENGE.join(' '));
+  pruefe('Es bleibt bei dreizehn Merkmalen', fAuth.MERKMALE.length === 13,
+    `${fAuth.MERKMALE.length}: ${fAuth.MERKMALE.join(' ')}`);
+  pruefe('Und bei sieben Zwecken der zweiten Bestaetigung',
+    fAuth.BESTAETIGUNG_ZWECKE.length === 7, fAuth.BESTAETIGUNG_ZWECKE.join(' '));
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
   const ZWEIT_WORT = 'zweiteBestaetigung';
@@ -13021,7 +13918,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTEN -- eine
      Prueflage, die still verschwindet, faellt sonst niemandem auf. */
   pruefe('Der Lauf hat seine Portbasen vermerkt',
-    pbBasen.length === 49 && PRUEFLAGEN.length >= 47,
+    pbBasen.length === 52 && PRUEFLAGEN.length >= 50,
     `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
@@ -13631,7 +14528,7 @@ const DOM_ANBIETER = [
    gebaut ist (Stolperstein 90). */
 function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
-  tokenBremse = 0,
+  tokenBremse = 0, registrierung = false, anfragenStand = null,
   kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
@@ -13674,6 +14571,22 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
      DIE ANBIETERLISTE KOMMT VOM SERVER, wie beim echten: die Oberflaeche
      baut das Auswahlfeld daraus. Eine Liste, die der Mock selbst erfindet,
      deckte genau die Serverseite zu, um die es geht (Stolperstein 102). */
+  /* Die Warteschlange der Prueflage, 0.9.1. VORGABE IST "AN, MIT ZWEI ZEILEN":
+     der interessantere Zustand ist der mit Inhalt. Die leere Lage und die mit
+     kaputtem Versand stellt eine Prueflage ueber anfragenStand -- ohne beide
+     bliebe die halbe Karte ungeprueft (Stolperstein 81). */
+  anfragenStand = anfragenStand || {
+    an: true, versandBereit: true, versandGrund: '', deckel: 20, stunden: 24,
+    anfragen: [
+      { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
+        created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' },
+      { id: 12, username: 'zweiter', email: 'zweiter@beispiel.de',
+        created_at: '2026-08-21 10:00:00', bestaetigt_am: '2026-08-21 10:30:00' }
+    ]
+  };
+  // belegt wird GERECHNET und nicht gestellt -- am echten Server zaehlt es die
+  // Zeilen, und ein Mock mit eigener Zahl deckte genau das zu.
+  const anfragenMock = () => ({ ...anfragenStand, belegt: anfragenStand.anfragen.length });
   const MAIL_VERWEIGERT = 'Das kann nur der Eigentümer der Anlage.';
   const MAIL_ANBIETER_MOCK = [
     { schluessel: 'gmx', name: 'GMX' }, { schluessel: 'web', name: 'Web.de' },
@@ -13967,7 +14880,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     gesendet.push({ methode: opt.method || 'GET', url, koerper: opt.body ? JSON.parse(opt.body) : null });
     const gib = (o, status = 200) => ({ ok: status < 400, status, json: async () => o });
     if (url === '/api/config') return gib({ title: 'Oeffentlich', version: require('./package.json').version,
-      setupRequired: einrichtung, minPassword: 10 });
+      setupRequired: einrichtung, minPassword: 10, registrierung });
     if (url === '/api/session') return gib({ authenticated: angemeldet });
     /* Der Weg VOR der Anmeldung. Zwei gueltige Schluessel, damit sich beide
        Anlaesse unterscheiden lassen -- einer zu einem Zugang OHNE Passwort
@@ -14033,6 +14946,68 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     if (url === '/api/mail' && (opt.method || 'GET') === 'GET') {
       if (einstellungen.istEigentuemer === false) return gib({ error: MAIL_VERWEIGERT }, 403);
       return gib(mailKarteMock());
+    }
+    /* ---- Die Selbstanmeldung, 0.9.1 ----
+       ER ANTWORTET WIE DER ECHTE SERVER (Stolperstein 90), und das heisst
+       hier vor allem: ER ZIEHT MIT. Freischalten und Ablehnen nehmen die Zeile
+       wirklich aus der Liste und geben die NEUE zurueck -- ein Mock, der
+       dieselbe Liste weiterliefert, machte "die Karte zeichnet sich neu" von
+       "die Karte blieb stehen" ununterscheidbar.
+       UND ER BRINGT NICHTS SELBST MIT, was die Pruefung belegen soll
+       (Stolperstein 102): der Schalterzustand und die Zeilen kommen aus dem,
+       was die Prueflage stellt, und die Karte liest sie aus der Antwort. */
+    /* Die beiden Routen VOR der Anmeldung. DIE ANTWORT AUF EINE ANFRAGE SIEHT
+       IMMER GLEICH AUS -- der Mock gibt deshalb IMMER dieselbe, gleichgueltig
+       was hereinkommt, genau wie der echte Server. Einer, der bei bekanntem
+       Namen etwas anderes saegte, machte die Oberflaechenpruefung blind fuer
+       genau den Fehler, um den es geht (Stolperstein 90).
+       DIE MELDUNG KOMMT VOM SERVER: die Oberflaeche zeigt, was sie bekommt,
+       und erfindet nichts daneben (Stolperstein 102). */
+    if (url === '/api/registrierung' && opt.method === 'POST') {
+      return gib({ ok: true, meldung:
+        'Danke. Konnte zu diesen Angaben eine Anfrage entstehen, liegt jetzt eine E-Mail in ' +
+        'deinem Postfach — bestätige darin, dass die Adresse dir gehört. Danach entscheidet ' +
+        'ein Admin, ob ein Zugang angelegt wird.' });
+    }
+    if (url === '/api/registrierung/bestaetigen' && opt.method === 'POST') {
+      // Ein gueltiger Schluessel und die EINE Absage fuer alles andere --
+      // wortgleich wie am echten Server.
+      const k = JSON.parse(opt.body || '{}').schluessel;
+      if (k === 'd'.repeat(64)) return gib({ ok: true });
+      return gib({ error:
+        'Dieser Bestätigungslink gilt nicht mehr. Stell die Anfrage bitte noch einmal.' }, 400);
+    }
+    if (url === '/api/anfragen' && (opt.method || 'GET') === 'GET') {
+      if (einstellungen.istAdmin === false) return gib({ error: 'Das darf nur ein Admin.' }, 403);
+      return gib(anfragenMock());
+    }
+    if (url === '/api/registrierung/schalter' && opt.method === 'PUT') {
+      if (einstellungen.istAdmin === false) return gib({ error: 'Das darf nur ein Admin.' }, 403);
+      const an = JSON.parse(opt.body || '{}').an === true;
+      if (an && !anfragenStand.versandBereit)
+        return gib({ error: 'Die Selbstanmeldung lässt sich ohne funktionierenden Versand nicht ' +
+          'einschalten. ' + anfragenStand.versandGrund }, 400);
+      anfragenStand.an = an;
+      return gib(anfragenMock());
+    }
+    if (/^\/api\/anfragen\/\d+\/frei$/.test(url) && opt.method === 'POST') {
+      const nr = Number(url.split('/')[3]);
+      const zeile = anfragenStand.anfragen.find(a => a.id === nr);
+      if (!zeile) return gib({ error: 'Diese Anfrage gibt es nicht.' }, 404);
+      anfragenStand.anfragen = anfragenStand.anfragen.filter(a => a.id !== nr);
+      // Die Rolle steht fest auf 'user' -- wie am echten Server, wo sie im
+      // Aufruf verdrahtet ist und aus keiner Anfrage gelesen wird.
+      return gib({ id: 90 + nr, username: zeile.username, email: zeile.email, role: 'user',
+        ohnePasswort: true, token: 'e'.repeat(64), zweck: 'einladung', tage: 7, minuten: 15,
+        link: `https://kriterion.beispiel.de/#/einladung/${'e'.repeat(64)}`,
+        linkQuelle: 'einstellung', versand: 'ok', versandGrund: '', ...anfragenMock() });
+    }
+    if (/^\/api\/anfragen\/\d+$/.test(url) && opt.method === 'DELETE') {
+      const nr = Number(url.split('/')[3]);
+      if (!anfragenStand.anfragen.some(a => a.id === nr))
+        return gib({ error: 'Diese Anfrage gibt es nicht.' }, 404);
+      anfragenStand.anfragen = anfragenStand.anfragen.filter(a => a.id !== nr);
+      return gib({ ok: true, ...anfragenMock() });
     }
     if (url === '/api/mail' && opt.method === 'PUT') {
       if (einstellungen.istEigentuemer === false) return gib({ error: MAIL_VERWEIGERT }, 403);
@@ -18432,8 +19407,8 @@ async function pruefeOberflaeche() {
     { id: 31, name: 'Alu', usage_count: 3, test_usage_count: 1 },
     { id: 32, name: 'Stahl', usage_count: 1, test_usage_count: 0 }
   ];
-  const baueSystem = async (rollen) => {
-    const d = baueDom(JSDOM, { tags: rTags,
+  const baueSystem = async (rollen, anfragenStand = null) => {
+    const d = baueDom(JSDOM, { tags: rTags, anfragenStand,
       einstellungen: { filters: null, benutzerZahl: 4, ...rollen } });
     await new Promise(r => setTimeout(r, 60));
     await d.w.renderSystem();
@@ -18454,16 +19429,22 @@ async function pruefeOberflaeche() {
      EIGENTUEMER -- nicht beim Admin, obwohl der die Einladungen verschickt.
      Der SMTP-Server sieht jede Mail, und jede traegt einen Link, der ein
      Passwort setzt; ein Admin, der ihn eintraegt, boege die Ruecksetzmail des
-     Eigentuemers auf einen Server seiner Wahl. */
+     Eigentuemers auf einen Server seiner Wahl.
+     NEUNZEHN SEIT 0.9.1: "Anfragen" kommt dazu, und sie steht beim ADMIN --
+     aus einer Anfrage wird nie etwas anderes als ein Zugang mit der Rolle
+     'user', und den legt der Admin ohnehin an. SIE IST NUR DA, WENN SIE ETWAS
+     ZU SAGEN HAT: der Schalter ist an oder es liegen Anfragen. Die Lage
+     darunter stellt den anderen Fall -- ohne beide bliebe die Bedingung
+     ungeprueft (Stolperstein 81). */
   const ALLE_KARTEN = ['Titel', 'Zugang', 'Meine Sitzungen', 'Kennzahlen', 'Mailversand',
     'Export', 'Import',
     'Sicherung', 'Papierkorb', 'Kategorien', 'Tags', 'Bewertungskriterien', 'Zugänge',
-    'Sicherheitsprotokoll', 'Darstellung', 'Links', 'Suchanbieter', 'Vokabular'];
-  pruefe('Die Eigentuemerin sieht alle achtzehn Karten',
+    'Anfragen', 'Sicherheitsprotokoll', 'Darstellung', 'Links', 'Suchanbieter', 'Vokabular'];
+  pruefe('Die Eigentuemerin sieht alle neunzehn Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
   // Die ZAHL ausdruecklich, wie bei F_ROUTEN: eine Karte, die still
   // verschwindet, faellt sonst niemandem auf.
-  pruefe('Und es sind wirklich achtzehn', ALLE_KARTEN.length === 18 && kEig.length === 18,
+  pruefe('Und es sind wirklich neunzehn', ALLE_KARTEN.length === 19 && kEig.length === 19,
     `${ALLE_KARTEN.length} erwartet, ${kEig.length} gezeichnet`);
 
   /* Die drei, die JEDEM bleiben -- und der Grund steht in jeder von ihnen:
@@ -18483,7 +19464,8 @@ async function pruefeOberflaeche() {
      Eigentuemerfrage. Dieselbe Bauform wie bei "Kategorien", "Tags" und
      "Bewertungskriterien": die Karte bleibt, die Bedienzeichen verschwinden.
      Dass die Knoepfe dem Admin fehlen, steht in der eigenen Gruppe darunter. */
-  for (const karte of ['Titel', 'Kennzahlen', 'Vokabular', 'Zugänge', 'Suchanbieter', 'Papierkorb']) {
+  for (const karte of ['Titel', 'Kennzahlen', 'Vokabular', 'Zugänge', 'Suchanbieter', 'Papierkorb',
+                       'Anfragen']) {
     pruefe(`Die Karte "${karte}" steht nur beim Admin`,
       kAdm.includes(karte) && !kUser.includes(karte),
       `Admin: ${kAdm.includes(karte)} · Benutzer: ${kUser.includes(karte)}`);
@@ -18493,6 +19475,30 @@ async function pruefeOberflaeche() {
       kEig.includes(karte) && !kAdm.includes(karte) && !kUser.includes(karte),
       `Eigentuemer: ${kEig.includes(karte)} · Admin: ${kAdm.includes(karte)}`);
   }
+  /* DIE ANDERE HAELFTE DER BEDINGUNG (Stolperstein 81): "Anfragen" ist nur da,
+     wenn der Schalter an ist ODER Anfragen offen sind. Ohne diese Lage bliebe
+     gruen, dass die Karte IMMER dasteht -- und die Bedingung waere nie
+     geprueft. */
+  const rAus = await baueSystem({ istAdmin: true, istEigentuemer: true },
+    { an: false, versandBereit: false, versandGrund: 'Es ist kein Mailzugang eingerichtet.',
+      deckel: 20, stunden: 24, anfragen: [] });
+  const kAus = kartenVon(rAus);
+  pruefe('Ist die Selbstanmeldung aus und nichts offen, fehlt die Karte "Anfragen"',
+    !kAus.includes('Anfragen'), kAus.join(' · '));
+  pruefe('Und es sind dann achtzehn statt neunzehn', kAus.length === 18,
+    `${kAus.length} gezeichnet`);
+  pruefe('Alle uebrigen achtzehn stehen unveraendert da',
+    gleich(kAus, ALLE_KARTEN.filter(k => k !== 'Anfragen')), kAus.join(' · '));
+  /* UND SIE IST AUCH DA, WENN DER SCHALTER AUS IST, ABER NOCH ANFRAGEN LIEGEN.
+     Sonst verschwaende ein Ausschalten die Warteschlange aus dem Blick, ohne
+     sie zu leeren -- und niemand koennte die offenen Anfragen mehr bescheiden. */
+  const rAusMitZeilen = await baueSystem({ istAdmin: true, istEigentuemer: true },
+    { an: false, versandBereit: true, versandGrund: '', deckel: 20, stunden: 24,
+      anfragen: [{ id: 11, username: 'neuling', email: 'neuling@beispiel.de',
+                   created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' }] });
+  pruefe('Bei ausgeschaltetem Schalter mit offenen Anfragen steht sie trotzdem',
+    kartenVon(rAusMitZeilen).includes('Anfragen'), kartenVon(rAusMitZeilen).join(' · '));
+
   for (const karte of ['Zugang', 'Meine Sitzungen', 'Darstellung', 'Links']) {
     pruefe(`Die Karte "${karte}" steht jedem, auch ohne Rolle`,
       kUser.includes(karte) && kEig.includes(karte), kUser.join(' · '));
@@ -18618,12 +19624,14 @@ async function pruefeOberflaeche() {
   /* Und ausdruecklich nicht alle: eine Kennzeichnung, die jede Kachel traegt,
      ist keine. SEIT 0.8.90 SIND ES ZWEI -- das Sicherheitsprotokoll ist die
      zweite, und zwar aus demselben Grund: eine Zeile je Vorgang braucht die
-     Breite. Beide werden namentlich genannt, sonst bliebe die Zahl gruen,
-     wenn eine andere Kachel die Klasse bekaeme. */
+     Breite. SEIT 0.9.1 SIND ES DREI: "Anfragen" traegt Name, Adresse und zwei
+     Zeitpunkte in einer Zeile und braucht sie genauso. Alle drei werden
+     namentlich genannt, sonst bliebe die Zahl gruen, wenn eine andere Kachel
+     die Klasse bekaeme. */
   const rBreite = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.breit')]
     .map(k => k.querySelector('h3')?.textContent.trim());
-  pruefe('Als eine von genau zweien, und beide namentlich',
-    gleich(rBreite, ['Zugänge', 'Sicherheitsprotokoll']), JSON.stringify(rBreite));
+  pruefe('Als eine von genau dreien, und alle drei namentlich',
+    gleich(rBreite, ['Zugänge', 'Anfragen', 'Sicherheitsprotokoll']), JSON.stringify(rBreite));
 
   const rCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
@@ -18755,8 +19763,23 @@ async function pruefeOberflaeche() {
   pruefe('Die Einladungsseite nennt die Frist ab dem ersten Oeffnen',
     /15 Minuten Zeit/.test(eiGut.w.document.body.textContent),
     eiGut.w.document.body.textContent.slice(0, 600));
+  /* GEKUERZT MIT 0.9.1 -- EIN SATZ WENIGER, NICHT EINE AUSKUNFT WENIGER.
+     Die Zeile stand ueber drei Saetze und war am Bildschirm zu breit; sie
+     traegt jetzt zwei. Alle DREI Auskuenfte muessen darin bleiben: die Frist,
+     dass Neuladen unschaedlich ist, und was danach zu tun ist. Ohne die
+     dritte Pruefung koennte eine spaetere Kuerzung genau die eine wegnehmen,
+     auf die es ankommt. */
   pruefe('Und sagt, dass Neuladen in dieser Zeit erlaubt ist',
-    /Neu laden darfst du in dieser Zeit/.test(eiGut.w.document.body.textContent),
+    /neu laden darfst du darin beliebig oft/i.test(eiGut.w.document.body.textContent),
+    eiGut.w.document.body.textContent.slice(0, 600));
+  pruefe('Und was danach zu tun ist',
+    /neuen Link vom\s+Admin/.test(eiGut.w.document.body.textContent),
+    eiGut.w.document.body.textContent.slice(0, 600));
+  /* UND SIE IST WIRKLICH KUERZER: der dritte Satz ist weg. Ohne diese Zeile
+     bliebe die Kuerzung eine Behauptung -- die drei Auskuenfte stuenden auch
+     in der alten, laengeren Fassung. */
+  pruefe('Und der Satz, der dasselbe zweimal sagte, steht nicht mehr da',
+    !/Seit dem ersten Öffnen läuft eine Frist/.test(eiGut.w.document.body.textContent),
     eiGut.w.document.body.textContent.slice(0, 600));
 
   /* ---- BEFUND G, behoben in 0.9.0 ----
@@ -18865,6 +19888,271 @@ async function pruefeOberflaeche() {
       'die Seite steht noch auf der Anmeldung');
   }
 
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Anmeldeseite: das Anfrageformular');
+
+  /* DAS FORMULAR STEHT NUR DA, WENN DER SERVER SAGT, DASS DIE SELBSTANMELDUNG
+     AN IST. Ein Formular, das ins Leere fuehrt, waere schlimmer als keines:
+     der Anfragende bekaeme dieselbe freundliche Antwort wie alle und wartete
+     auf eine Mail, die nie kommt.
+     DER SCHALTERZUSTAND KOMMT AUS /api/config UND WIRD HIER NICHT ERFUNDEN
+     (Stolperstein 102): der Mock antwortet mit dem, was die Prueflage stellt,
+     und die Serverseite dazu steht in der Gruppe "der Schalter aus". */
+  const sAus = baueDom(JSDOM, { angemeldet: false, registrierung: false });
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Ist die Selbstanmeldung aus, steht auf der Anmeldeseite kein Formular',
+    !sAus.w.document.getElementById('l-anfrage'), 'der Verweis steht da');
+  pruefe('Und die Anmeldemaske selbst ist unveraendert da',
+    Boolean(sAus.w.document.getElementById('lu') && sAus.w.document.getElementById('lp')),
+    'die Anmeldemaske fehlt');
+
+  const sAn = baueDom(JSDOM, { angemeldet: false, registrierung: true });
+  await new Promise(r => setTimeout(r, 80));
+  const sVerweis = sAn.w.document.getElementById('l-anfrage');
+  pruefe('Ist sie an, steht der Verweis "Zugang anfragen" da', Boolean(sVerweis),
+    'der Verweis fehlt');
+  pruefe('Und die Anmeldemaske steht weiterhin daneben',
+    Boolean(sAn.w.document.getElementById('lu')), 'die Anmeldemaske fehlt');
+  /* UEBER EIN WIRKLICH ZUGESTELLTES EREIGNIS (Stolperstein 61) -- ein
+     aufgerufener Behandler belegt nicht, dass ein Klick ankommt. */
+  sVerweis.dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 40));
+  const sName = sAn.w.document.getElementById('an-name');
+  const sMail = sAn.w.document.getElementById('an-mail');
+  pruefe('Der Klick fuehrt zum Formular mit Name und Adresse',
+    Boolean(sName && sMail), 'das Formular fehlt');
+  /* KEIN PASSWORTFELD. Der Anfragende gibt Namen und Adresse an, sonst nichts
+     -- sein Passwort waehlt er spaeter ueber den Einladungslink, und zwar erst,
+     wenn ein Admin ihn hereingelassen hat. */
+  pruefe('Und ohne jedes Passwortfeld',
+    sAn.w.document.querySelectorAll('.login-card input[type="password"]').length === 0,
+    `${sAn.w.document.querySelectorAll('.login-card input[type="password"]').length} Passwortfelder`);
+  pruefe('Die Laenge der Eingaben ist am Feld begrenzt',
+    sName.getAttribute('maxlength') === '64' && sMail.getAttribute('maxlength') === '254',
+    `${sName.getAttribute('maxlength')} / ${sMail.getAttribute('maxlength')}`);
+  sName.value = 'neuling';
+  sMail.value = 'neuling@beispiel.de';
+  sAn.w.document.getElementById('an-ab')
+    .dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 80));
+  const sGesendet = sAn.gesendet.find(x => x.url === '/api/registrierung');
+  pruefe('Das Abschicken geht an POST /api/registrierung',
+    Boolean(sGesendet) && sGesendet.methode === 'POST',
+    sAn.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
+  pruefe('Und zwar mit Name und Adresse im Rumpf',
+    sGesendet?.koerper?.name === 'neuling' && sGesendet?.koerper?.adresse === 'neuling@beispiel.de',
+    JSON.stringify(sGesendet?.koerper));
+  pruefe('Der Rumpf traegt sonst nichts -- keine Rolle, kein Passwort',
+    gleich(Object.keys(sGesendet?.koerper || {}).sort(), ['adresse', 'name']),
+    JSON.stringify(Object.keys(sGesendet?.koerper || {})));
+  /* DIE MELDUNG KOMMT VOM SERVER UND WIRD NICHT ERFUNDEN -- eine zweite
+     Ausfertigung in der Oberflaeche liefe beim naechsten Wort auseinander
+     (Stolperstein 102: der Mock bringt sie nicht selbst mit, er gibt zurueck,
+     was der echte Server gibt). */
+  const sDank = sAn.w.document.getElementById('an-dank');
+  pruefe('Danach steht die Dankseite da', Boolean(sDank), 'die Dankseite fehlt');
+  pruefe('Und sie zeigt genau die Meldung des Servers',
+    (sDank?.textContent || '').includes('Postfach') &&
+    (sDank?.textContent || '').includes('Admin'),
+    sDank?.textContent || '(leer)');
+  pruefe('Sie verraet nicht, ob der Name frei war',
+    !/vergeben|bereits|frei/i.test(sDank?.textContent || ''), sDank?.textContent || '');
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Bestaetigungsseite in der Oberflaeche');
+
+  /* DER SCHLUESSEL STEHT IM FRAGMENT (#/bestaetigung/…) und geht damit nie an
+     den Server -- dieselbe Bauform wie beim Einladungslink. Ein
+     Vorschaudienst, der Links im Postfach vorab abruft, holt nur die Seite und
+     bestaetigt gerade NICHT: der Browser schickt den Schluessel erst von hier
+     aus im Rumpf. */
+  const beGut = baueDom(JSDOM, { hash: `#/bestaetigung/${'d'.repeat(64)}` });
+  await new Promise(r => setTimeout(r, 90));
+  const beRuf = beGut.gesendet.find(x => x.url === '/api/registrierung/bestaetigen');
+  pruefe('Der Aufruf mit einem Bestaetigungslink fragt den Server nach ihm',
+    Boolean(beRuf) && beRuf.methode === 'POST',
+    beGut.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
+  pruefe('Und zwar mit dem Schluessel im Rumpf, nicht in der Adresse',
+    beRuf?.koerper?.schluessel === 'd'.repeat(64) &&
+    !beGut.gesendet.some(x => x.url.includes('d'.repeat(64))),
+    beGut.gesendet.map(x => x.url).join(' · '));
+  pruefe('Die Anmeldemaske wird dabei gar nicht erst gebaut',
+    !beGut.gesendet.some(x => x.url === '/api/session'),
+    beGut.gesendet.map(x => x.url).join(' · '));
+  pruefe('Die gute Antwort fuehrt zur Bestaetigungsseite',
+    Boolean(beGut.w.document.getElementById('best-gut')), 'die Seite fehlt');
+  pruefe('Und sie sagt, dass jetzt der Admin entscheidet',
+    /Admin/.test(beGut.w.document.getElementById('best-gut')?.textContent || ''),
+    beGut.w.document.getElementById('best-gut')?.textContent || '');
+  /* SIE MELDET NIEMANDEN AN, und das ist die Oberflaechenhaelfte der Zusage:
+     kein Weg von hier fuehrt weiter in die Anwendung, und der Schluessel
+     verlaesst die Adresse. */
+  pruefe('Die Seite bleibt die Anmeldeseite -- niemand ist damit angemeldet',
+    beGut.w.document.body.classList.contains('anmeldung'),
+    'die Oberflaeche hat sich aufgebaut');
+  pruefe('Und der Schluessel ist aus der Adresse verschwunden',
+    beGut.w.location.hash === '#/', beGut.w.location.hash);
+  pruefe('Es ist kein Passwortfeld entstanden',
+    beGut.w.document.querySelectorAll('input[type="password"]').length === 0,
+    `${beGut.w.document.querySelectorAll('input[type="password"]').length} Passwortfelder`);
+
+  const beTot = baueDom(JSDOM, { hash: `#/bestaetigung/${'9'.repeat(64)}` });
+  await new Promise(r => setTimeout(r, 90));
+  pruefe('Ein erfundener Schluessel fuehrt zur Absage',
+    /gilt nicht mehr/.test(beTot.w.document.querySelector('.login-error')?.textContent || ''),
+    beTot.w.document.querySelector('.login-error')?.textContent || '(keine Absage)');
+  pruefe('Und die Absage nennt weder Namen noch Adresse',
+    !/@/.test(beTot.w.document.querySelector('.login-error')?.textContent || ''),
+    beTot.w.document.querySelector('.login-error')?.textContent || '');
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Karte „Anfragen“');
+
+  /* ZU JEDEM FELD, DAS DIE OBERFLAECHE AUS DER ANTWORT LIEST, EINE PRUEFUNG AN
+     DER ECHTEN ANTWORT (Stolperstein 102) -- die steht in der Gruppe
+     "die Freischaltung" oben. Hier wird geprueft, was die Karte daraus MACHT.
+     JEDES BEDIENELEMENT UEBER EIN WIRKLICH ZUGESTELLTES EREIGNIS
+     (Stolperstein 61). */
+  const sKarteBau = async (stand) => {
+    const d = baueDom(JSDOM, { anfragenStand: stand,
+      einstellungen: { filters: null, istAdmin: true, istEigentuemer: true } });
+    await new Promise(r => setTimeout(r, 60));
+    await d.w.renderSystem();
+    await new Promise(r => setTimeout(r, 60));
+    return d;
+  };
+  const sKarteStand = () => ({ an: true, versandBereit: true, versandGrund: '', deckel: 20,
+    stunden: 24, anfragen: [
+      { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
+        created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' },
+      { id: 12, username: 'zweiter', email: 'zweiter@beispiel.de',
+        created_at: '2026-08-21 10:00:00', bestaetigt_am: '2026-08-21 10:30:00' }] });
+
+  const kA = await sKarteBau(sKarteStand());
+  const kZeilen = [...kA.w.document.querySelectorAll('#manfragen .mrow')];
+  pruefe('Die Karte listet die offenen Anfragen', kZeilen.length === 2,
+    `${kZeilen.length} Zeilen`);
+  pruefe('Jede Zeile nennt den Namen',
+    kZeilen.map(z => z.querySelector('.mname')?.textContent.trim()).join('|') === 'neuling|zweiter',
+    kZeilen.map(z => z.querySelector('.mname')?.textContent.trim()).join(' · '));
+  pruefe('Und die Adresse',
+    kZeilen[0].textContent.includes('neuling@beispiel.de'), kZeilen[0].textContent);
+  pruefe('Und beide Zeitpunkte -- Anfrage und Bestaetigung',
+    /gefragt/.test(kZeilen[0].textContent) && /bestätigt/.test(kZeilen[0].textContent),
+    kZeilen[0].textContent);
+  pruefe('Der Stand gegen den Deckel steht daneben',
+    /2 von höchstens 20/.test(kA.w.document.getElementById('anf-belegt')?.textContent || ''),
+    kA.w.document.getElementById('anf-belegt')?.textContent || '');
+  pruefe('Und der Zustand des Schalters',
+    /an/.test(kA.w.document.getElementById('anf-zustand')?.textContent || ''),
+    kA.w.document.getElementById('anf-zustand')?.textContent || '');
+
+  /* DIE FREISCHALTUNG UEBER EIN ZUGESTELLTES EREIGNIS, und das Bestaetigen
+     davor ist gestellt: confirm() gibt es in jsdom nicht von selbst. */
+  kA.w.confirm = () => true;
+  kZeilen[0].querySelector('.anf-frei')
+    .dispatchEvent(new kA.w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 80));
+  const kFrei = kA.gesendet.find(x => x.url === '/api/anfragen/11/frei');
+  pruefe('Der Knopf "Freischalten" ruft die Route mit der Nummer der Zeile',
+    Boolean(kFrei) && kFrei.methode === 'POST',
+    kA.gesendet.filter(x => /anfragen/.test(x.url)).map(x => `${x.methode} ${x.url}`).join(' · '));
+  pruefe('Und schickt dabei keine Rolle mit',
+    !JSON.stringify(kFrei?.koerper || {}).includes('rolle'), JSON.stringify(kFrei?.koerper));
+  /* DIE KARTE ZEICHNET SICH AUS DER ANTWORT NEU. Der Mock nimmt die Zeile
+     wirklich weg (Stolperstein 90) -- bliebe die Liste gleich, waere
+     "zeichnet sich neu" von "blieb stehen" nicht zu unterscheiden. */
+  pruefe('Die freigeschaltete Zeile verschwindet aus der Liste',
+    [...kA.w.document.querySelectorAll('#manfragen .mrow')].length === 1,
+    `${[...kA.w.document.querySelectorAll('#manfragen .mrow')].length} Zeilen`);
+  pruefe('Und der Stand gegen den Deckel zieht mit',
+    /1 von höchstens 20/.test(kA.w.document.getElementById('anf-belegt')?.textContent || ''),
+    kA.w.document.getElementById('anf-belegt')?.textContent || '');
+  /* DER EINLADUNGSLINK ERSCHEINT IN DER KARTE, in der der Knopf steht -- und
+     nicht in "Zugaenge", wo ihn niemand sucht. */
+  const kFeld = kA.w.document.querySelector('#anf-link #zug-link-feld');
+  pruefe('Der Einladungslink steht danach in der Karte "Anfragen"',
+    kFeld?.value === `https://kriterion.beispiel.de/#/einladung/${'e'.repeat(64)}`,
+    kFeld?.value || '(kein Feld)');
+  pruefe('Mit der Warnung, dass er ein Passwortersatz auf Zeit ist',
+    /Passwortersatz/.test(kA.w.document.getElementById('anf-link')?.textContent || ''),
+    kA.w.document.getElementById('anf-link')?.textContent?.slice(0, 120) || '');
+  pruefe('Und es steht nur EIN Linkkasten am Bildschirm',
+    kA.w.document.querySelectorAll('#zug-link-feld').length === 1,
+    `${kA.w.document.querySelectorAll('#zug-link-feld').length} Kaesten`);
+
+  const kAb = await sKarteBau(sKarteStand());
+  kAb.w.confirm = () => true;
+  [...kAb.w.document.querySelectorAll('#manfragen .mrow')][1].querySelector('.anf-ab')
+    .dispatchEvent(new kAb.w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Der Knopf "Ablehnen" ruft DELETE mit der Nummer der Zeile',
+    kAb.gesendet.some(x => x.methode === 'DELETE' && x.url === '/api/anfragen/12'),
+    kAb.gesendet.filter(x => /anfragen/.test(x.url)).map(x => `${x.methode} ${x.url}`).join(' · '));
+  pruefe('Die abgelehnte Zeile verschwindet',
+    [...kAb.w.document.querySelectorAll('#manfragen .mrow')]
+      .every(z => !/zweiter/.test(z.textContent)),
+    [...kAb.w.document.querySelectorAll('#manfragen .mrow')].map(z => z.textContent).join(' | '));
+  pruefe('Und es entsteht dabei kein Linkkasten -- es gibt keinen Zugang',
+    !kAb.w.document.querySelector('#anf-link #zug-link-feld'), 'ein Linkkasten steht da');
+
+  /* DER SCHALTER. Ausschalten geht immer; einschalten nur, wenn der Versand
+     traegt -- und die Oberflaeche stellt das nicht selbst fest, sie fragt den
+     Server und zeigt seine Absage. */
+  const kSch = await sKarteBau(sKarteStand());
+  kSch.w.document.getElementById('anf-schalter')
+    .dispatchEvent(new kSch.w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 80));
+  const kSchRuf = kSch.gesendet.find(x => x.url === '/api/registrierung/schalter');
+  pruefe('Der Schalter ruft PUT /api/registrierung/schalter',
+    Boolean(kSchRuf) && kSchRuf.methode === 'PUT',
+    kSch.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
+  pruefe('Und schickt den gewuenschten Zustand mit',
+    kSchRuf?.koerper?.an === false, JSON.stringify(kSchRuf?.koerper));
+  pruefe('Danach steht "aus" in der Karte',
+    /aus/.test(kSch.w.document.getElementById('anf-zustand')?.textContent || ''),
+    kSch.w.document.getElementById('anf-zustand')?.textContent || '');
+  pruefe('Und der Knopf bietet das Einschalten an',
+    /einschalten/.test(kSch.w.document.getElementById('anf-schalter')?.textContent || ''),
+    kSch.w.document.getElementById('anf-schalter')?.textContent || '');
+
+  /* DIE ROTE ZEILE: DER VERSAND IST KAPUTT, DER SCHALTER BLEIBT AN. Ein
+     Schalter, der sich selbst umlegt, stuende anders da, als der Mensch ihn
+     gestellt hat -- und niemand wuesste, wann das passiert ist. */
+  const kRot = await sKarteBau({ ...sKarteStand(), versandBereit: false,
+    versandGrund: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen.' });
+  pruefe('Ist der Versand kaputt, steht die rote Zeile da',
+    Boolean(kRot.w.document.getElementById('anf-kaputt')), 'die Zeile fehlt');
+  pruefe('Sie nennt den Grund des Servers',
+    /Testmail/.test(kRot.w.document.getElementById('anf-kaputt')?.textContent || ''),
+    kRot.w.document.getElementById('anf-kaputt')?.textContent || '');
+  pruefe('Und sagt, dass der Schalter trotzdem an bleibt',
+    /bleibt trotzdem an/.test(kRot.w.document.getElementById('anf-kaputt')?.textContent || ''),
+    kRot.w.document.getElementById('anf-kaputt')?.textContent || '');
+  pruefe('Der Schalter steht dabei weiterhin auf "an"',
+    /an/.test(kRot.w.document.getElementById('anf-zustand')?.textContent || ''),
+    kRot.w.document.getElementById('anf-zustand')?.textContent || '');
+  /* UND DIE GEGENLAGE (Stolperstein 81): bei heilem Versand steht die Zeile
+     NICHT da. Ohne sie belegte die Pruefung oben nur, dass die Zeile
+     ueberhaupt existiert. */
+  pruefe('Bei heilem Versand steht sie nicht da',
+    !kA.w.document.getElementById('anf-kaputt'), 'die Zeile steht auch dann da');
+
+  /* IST DER SCHALTER AUS UND DER VERSAND KAPUTT, laesst sich gar nicht erst
+     einschalten -- und die Karte sagt, was fehlt, statt einen Knopf
+     anzubieten, der nur absagt. */
+  const kNichtBereit = await sKarteBau({ an: false, versandBereit: false,
+    versandGrund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer der Anlage.',
+    deckel: 20, stunden: 24, anfragen: [
+      { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
+        created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' }] });
+  pruefe('Ohne Versand ist der Einschaltknopf gesperrt',
+    kNichtBereit.w.document.getElementById('anf-schalter')?.disabled === true,
+    String(kNichtBereit.w.document.getElementById('anf-schalter')?.disabled));
+  pruefe('Und die Karte sagt, was dafuer fehlt',
+    /Mailzugang/.test(kNichtBereit.w.document.getElementById('anf-nichtbereit')?.textContent || ''),
+    kNichtBereit.w.document.getElementById('anf-nichtbereit')?.textContent || '');
   /* ---------------------------------------------------------------- */
   gruppe('Meine Sitzungen in der Oberflaeche');
 
