@@ -19,7 +19,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
-const { spawn } = require('child_process');
+const { spawn, spawnSync, execFileSync } = require('child_process');
 const Database = require('better-sqlite3-multiple-ciphers');
 const anh = require('./anhaenge');
 
@@ -111,7 +111,31 @@ if (process.env.PRUEFRAHMEN_PROBE) {
 
 /* ================= Umgebung ================= */
 const KEY = crypto.randomBytes(32).toString('hex');
-const PORT = 3900 + Math.floor(Math.random() * 90);
+
+/* PORT_VERSATZ -- eine Zahl, die auf JEDE Portbasis dieses Laufs addiert wird.
+   Damit faehrt gegenprobe.js mehrere Rueckbauten NEBENEINANDER: jede Nebenspur
+   bekommt ihren eigenen Versatz, und die Spuren kommen sich nicht ins Gehege.
+   Ohne die Variable bleibt alles, wie es war -- der gewoehnliche Lauf setzt sie
+   nicht, und dann ist der Versatz null.
+
+   DIE ZAHL IST AUSGERECHNET, NICHT GESCHAETZT (Stolpersteine 64 und 127). Die
+   Gruppe "Die Portbasen und der Versatz" am Ende des Laufs rechnet sie nach:
+     * Der Versatz muss GROESSER sein als die Spanne aller Basen samt ihrer
+       Breite -- sonst laege eine Spur auf der naechsten.
+     * KEINE entstehende Nummer darf auf der Sperrliste von fetch() liegen. Der
+       Server liefe dort und meldete es auch; nur die Bereitschaftspruefung
+       kaeme nie an ihn heran, und der Lauf risse ab, statt eine Pruefung rot zu
+       faerben.
+   VERSATZ_STUFE ist der Wert, den gegenprobe.js je Nebenspur vervielfacht. Er
+   steht HIER und nicht dort: der Waechter, der ihn nachrechnet, liegt hier, und
+   zwei Zahlen an zwei Orten laufen auseinander. */
+const VERSATZ_STUFE = 3000;
+const VERSATZ_SPUREN = 4;
+const PORT_BREITE = 60;
+const HAUPT_BREITE = 90;
+const HAUPT_BASIS = 3900;
+const PORT_VERSATZ = Number(process.env.PORT_VERSATZ || 0);
+const PORT = HAUPT_BASIS + PORT_VERSATZ + Math.floor(Math.random() * HAUPT_BREITE);
 const BASIS = `http://127.0.0.1:${PORT}`;
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-pruefung-'));
 const NUTZER = 'pruefer', PASSWORT = 'pruef-passwort-' + crypto.randomBytes(4).toString('hex');
@@ -174,17 +198,29 @@ function setzePasswortImBestand(datenVerzeichnis, name, passwort) {
     datenVerzeichnis);
 }
 
+/* JEDE PRUEFLAGE MIT EIGENEM SERVER WIRD HIER VERMERKT -- Portbasis, gewaehlte
+   Nummer und das Kind. Daran haengen die beiden Waechter am Ende des Laufs:
+   der eine rechnet die Basen gegen die Sperrliste nach, der andere sieht nach,
+   ob wirklich jedes Kind beendet ist.
+   ES IST EINE LISTE UND KEIN ZAEHLER: der Waechter soll sagen, WELCHE Lage
+   liegengeblieben ist, nicht nur DASS eine. In 0.8.90 sind zwei neue Lagen mit
+   laufendem Server zurueckgeblieben, und aufgefallen ist es erst an einer
+   abgerissenen Gegenprobe -- ihre Ports haetten den naechsten Lauf vergiftet
+   (Stolperstein 122). */
+const PRUEFLAGEN = [];
+
 // Ein weiterer Server mit eigenem Datenverzeichnis, eigener Umgebung und
 // eigenem Cookie. Gebraucht fuer alle Prueflagen, die eine eigene Anlage
 // brauchen: frische Einrichtung, Rechte mit mehreren Zugaengen, Sperren.
 function starteWeiterenServer(datenVerzeichnis, zusatz, portBasis) {
-  const port = portBasis + Math.floor(Math.random() * 60);
+  const port = portBasis + PORT_VERSATZ + Math.floor(Math.random() * PORT_BREITE);
   const basis = `http://127.0.0.1:${port}`;
   let protokoll = '', cookieB = '';
   const umgebung = { ...process.env, PORT: String(port), DATA_DIR: datenVerzeichnis, ENCRYPTION_KEY: KEY };
   delete umgebung.AUTH_RESET;
   Object.assign(umgebung, zusatz);
   const kindB = spawn(process.execPath, ['server.js'], { cwd: __dirname, env: umgebung });
+  PRUEFLAGEN.push({ basis: portBasis, port, kind: kindB, verzeichnis: datenVerzeichnis });
   kindB.stdout.on('data', d => { protokoll += d; });
   kindB.stderr.on('data', d => { protokoll += d; });
   const rufB = async (methode, pfad, koerper) => {
@@ -225,8 +261,10 @@ async function ruf(methode, pfad, koerper) {
 const namen = (liste) => liste.map(c => c.name);
 
 /* ================= Die zweite Bestaetigung im Prueflauf =================
-   SEIT 0.8.90 VERLANGEN SIEBEN WEGE EINE FREIGABE: Export, Import, Rolle
-   vergeben, fremdes Passwort setzen, Zugang entfernen, Link erzeugen.
+   SEIT 0.8.90 VERLANGEN SECHS WEGE UEBER FUENF ROUTEN EINE FREIGABE: Export,
+   Import, Rolle vergeben, fremdes Passwort setzen, Zugang entfernen, Link
+   erzeugen. (Bis 0.8.91 stand hier "sieben ueber sechs" -- nachgezaehlt am
+   Quelltext sind es sechs ueber fuenf; PUT /api/users/:id traegt zwei davon.)
 
    Die Pruefungen, die etwas ANDERES pruefen -- das Vokabular in der
    Exportdatei, die Rollenleiter, den Grabstein --, sollen weiterhin ihren
@@ -4293,6 +4331,83 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d2.close();
   }
 
+  gruppe('Die Sicherung: zwei Schluessel im Umlauf');
+
+  /* ZWEI SCHLUESSEL IM UMLAUF -- seit 0.8.91. Wird der Schluessel gewechselt
+     (schluessel.js auf dem Wirt), bleiben die Sicherungen, die dann schon
+     dastehen, mit dem ALTEN verschluesselt. Die Marke schluesselGewechseltAm
+     steht in settings, und die Karte haelt sie gegen die Aenderungszeiten der
+     Dateien.
+     GEPRUEFT WIRD IN BEIDEN LAGEN -- vor und nach dem Wechsel -- und in DREI
+     Abstufungen: keine Marke, ein Teil veraltet, alles veraltet. Ohne die
+     erste Lage bliebe unbelegt, dass ohne Wechsel KEINE Kopie veraltet ist
+     und nicht etwa jede. */
+  {
+    const siSetzeMarke = (wert) => {
+      const d = oeffne(path.join(siDir, 'katalog.sqlite'));
+      d.pragma('busy_timeout = 4000');
+      if (wert === null) d.prepare("DELETE FROM settings WHERE key = 'schluesselGewechseltAm'").run();
+      else d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('schluesselGewechseltAm', ?)")
+        .run(JSON.stringify(wert));
+      d.close();
+    };
+    // Die Schreibweise der Anlage, in UTC -- dieselbe, die schluessel.js
+    // schreibt und die letzteSicherung() zurueckliest.
+    const alsMarke = (ms) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
+    // Die beiden Dateien liegen aus der Gruppe darueber auf 9 und 4 Tagen.
+    const jetzt = Date.now();
+
+    const ohne = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+    pruefe('Ohne Wechsel steht keine Marke in der Antwort',
+      ohne.inhalt?.gewechseltAm === null, JSON.stringify(ohne.inhalt?.gewechseltAm));
+    pruefe('Und dann ist KEINE Kopie veraltet -- nicht etwa jede',
+      ohne.inhalt?.veraltet === 0 && ohne.inhalt?.letzte?.veraltet === false,
+      JSON.stringify([ohne.inhalt?.veraltet, ohne.inhalt?.letzte?.veraltet]));
+
+    // Zwischen die beiden gelegt: die von vor 9 Tagen ist veraltet, die von
+    // vor 4 Tagen nicht.
+    siSetzeMarke(alsMarke(jetzt - 6 * 86400000));
+    const halb = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+    pruefe('Die Marke steht in der Antwort',
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(halb.inhalt?.gewechseltAm)),
+      JSON.stringify(halb.inhalt?.gewechseltAm));
+    pruefe('Von zwei Kopien ist genau die aeltere veraltet',
+      halb.inhalt?.veraltet === 1 && halb.inhalt?.zahl === 2,
+      JSON.stringify([halb.inhalt?.veraltet, halb.inhalt?.zahl]));
+    pruefe('Und die juengste ist es NICHT -- sie passt zum heutigen Schluessel',
+      halb.inhalt?.letzte?.veraltet === false, JSON.stringify(halb.inhalt?.letzte));
+
+    // Hinter beide gelegt: dann passt keine einzige mehr, und das ist die
+    // schaerfste Lage -- es gibt ueberhaupt keine brauchbare Kopie.
+    siSetzeMarke(alsMarke(jetzt - 3600000));
+    const ganz = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+    pruefe('Liegt der Wechsel hinter allen, sind alle veraltet',
+      ganz.inhalt?.veraltet === 2, JSON.stringify(ganz.inhalt?.veraltet));
+    pruefe('Und auch die juengste ist dann veraltet',
+      ganz.inhalt?.letzte?.veraltet === true, JSON.stringify(ganz.inhalt?.letzte));
+
+    /* DIE MARKE WIRD IN UTC GELESEN. Ohne das Z am Ende lese der Rechner die
+       Schreibweise der Anlage als ORTSZEIT, und die Grenze verschoebe sich um
+       den Zeitzonenabstand -- an einer Kopie, die eine Stunde alt ist, waere
+       das der Unterschied zwischen veraltet und nicht. */
+    siSetzeMarke(alsMarke(jetzt - 5 * 86400000));
+    const utc = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+    pruefe('Die Grenze liegt genau am Zeitpunkt der Marke, in UTC gerechnet',
+      utc.inhalt?.veraltet === 1, JSON.stringify([utc.inhalt?.gewechseltAm, utc.inhalt?.veraltet]));
+
+    // Ein unbrauchbarer Wert ist keine Marke -- und macht auch keine Kopie alt.
+    siSetzeMarke('das ist kein Zeitpunkt');
+    const kaputt = await siRuf('cookie-si-anna', 'GET', '/api/sicherung');
+    pruefe('Ein unlesbarer Wert gilt als keine Marke',
+      kaputt.inhalt?.gewechseltAm === null && kaputt.inhalt?.veraltet === 0,
+      JSON.stringify([kaputt.inhalt?.gewechseltAm, kaputt.inhalt?.veraltet]));
+    siSetzeMarke(null);
+  }
+
+  // Zurueck in die Gruppe, in der diese Prueflage steht: die Zeilen darunter
+  // gehoeren wieder zur Sicherung auf Knopfdruck.
+  gruppe('Die Sicherung auf Knopfdruck, Fortsetzung');
+
   /* EIN UNERREICHBARER ZIELORT LIEFERT KEINE AUSKUNFT -- und die Karte sagt
      GENAU DAS statt einer Zahl. Das ist der Preis der Entscheidung fuer das
      Dateisystem, und er gehoert belegt. */
@@ -7573,7 +7688,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* GEBUNDEN AN DEN ZWECK: eine Freigabe fuer den Export entfernt keinen
      Zugang. Ohne diese Bindung waere eine einzige Bestaetigung ein Freibrief
-     fuer alle sieben Wege. */
+     fuer alle sechs Wege. */
   const zbVorRolle = zbZeilen('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role;
   const zbFremderZweck = await zbRuf(zbAnna, 'PUT', `/api/users/${zbEmil}`, { rolle: 'admin' });
   pruefe('Eine Freigabe fuer den Export vergibt keine Rolle',
@@ -8040,8 +8155,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* Und die Gegenprobe zur Nachschau: /api/config antwortet ueberhaupt und
        traegt die Felder, die es tragen soll. Eine leere Antwort machte jede
        Verneinung darauf wahr (Stolperstein 81). */
+    /* Die Versionsnummer kommt aus package.json und steht hier NICHT als
+       Zahl: eine abgeschriebene Nummer faerbt diese Pruefung bei jeder Runde
+       rot, ohne je etwas ueber /api/config zu sagen. Geprueft ist, dass der
+       Endpunkt DIE Version der Anlage traegt -- nicht welche. */
     pruefe('Und /api/config traegt trotzdem seine bekannten Felder',
-      mitCfg.inhalt?.version === '0.8.90' && typeof mitCfg.inhalt?.title === 'string',
+      mitCfg.inhalt?.version === require('./package.json').version &&
+      typeof mitCfg.inhalt?.title === 'string',
       JSON.stringify(mitCfg.inhalt));
 
     /* DER UNBRAUCHBARE WERT: der Start meldet es laut und die Anlage laeuft
@@ -8990,7 +9110,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   }
 
   const SPRACH_QUELLEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
-                          'zugang.js', 'pruefung.js', 'public/app.js'];
+                          'zugang.js', 'schluessel.js', 'pruefung.js', 'gegenprobe.js',
+                          'public/app.js'];
   const sprachQuelltext = SPRACH_QUELLEN.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p)
@@ -9016,8 +9137,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      noch die halbe Anwendung an. Genau das ist beim Bauen dieser Gruppe an
      einer Gegenprobe aufgefallen -- der Rueckbau auf eine einzige Datei blieb
      stumm. Dieselbe Ueberlegung wie bei der Zahl in F_ROUTEN. */
-  pruefe('Der Sprachwaechter sieht alle acht Quelltextdateien an',
-    SPRACH_QUELLEN.length === 8 &&
+  pruefe('Der Sprachwaechter sieht alle zehn Quelltextdateien an',
+    SPRACH_QUELLEN.length === 10 &&
     SPRACH_QUELLEN.every(n => fs.existsSync(path.join(__dirname, n))),
     `${SPRACH_QUELLEN.length} Dateien, fehlend: ` +
     JSON.stringify(SPRACH_QUELLEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
@@ -11869,6 +11990,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---------------------------------------------------------------- */
   await pruefeOberflaeche();
   await pruefeErstanmeldung();
+  pruefeSchluesselwechsel();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -11939,6 +12061,102 @@ const freigabeHaupt = (zweck, ziel = null) =>
     `${schlussZahl.links} Links, ${schlussZahl.attachments} Dateien`);
   schluss.close();
 
+  /* ================= Der Pruefstand ueber sich selbst =================
+     Zwei Waechter, und beide sind aus 0.8.90 heraus entstanden: dort haben
+     verwaiste Server acht Gegenproben abreissen lassen, und eine Portbasis
+     liegt bis heute auf einer Nummer, die fetch() gar nicht anwaehlt. Sie
+     stehen am ENDE, weil beide erst dann etwas zu sagen haben. */
+
+  gruppe('Die Portbasen und der Versatz');
+
+  /* DIE SPERRLISTE VON fetch(). Sie steht in der Fetch-Spezifikation als "bad
+     ports" und ist in undici -- der Fetch-Umsetzung von Node -- eingebaut: ein
+     Aufruf auf eine dieser Nummern scheitert mit "bad port", noch bevor eine
+     Verbindung entsteht. Der Server LAEUFT dort und meldet es auch; nur die
+     Bereitschaftspruefung kommt nie an ihn heran, und der Lauf reisst ab, statt
+     eine Pruefung namentlich rot zu faerben. Genau das ist Stolperstein 127.
+     NUR DIE NUMMERN AB 1024 stehen hier: darunter liegt keine Portbasis dieses
+     Laufs, und die vollstaendige Liste waere laenger, ohne mehr zu sagen. */
+  const SPERRPORTS = [1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061,
+                      6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080];
+  // Ein Fenster ist gesperrt, sobald EINE seiner Nummern es ist -- gezogen wird
+  // zufaellig, und eine Zahl, die nur selten faellt, ist nicht harmlos.
+  const pbGesperrt = (von, breite) =>
+    SPERRPORTS.filter(p => p >= von && p <= von + breite - 1);
+
+  const pbBasen = [...new Set(PRUEFLAGEN.map(l => l.basis))].sort((a, b) => a - b);
+  /* ERST DER GEGENSTAND (Stolperstein 81): ein Waechter ueber null Basen ist
+     gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTEN -- eine
+     Prueflage, die still verschwindet, faellt sonst niemandem auf. */
+  pruefe('Der Lauf hat seine Portbasen vermerkt',
+    pbBasen.length === 34 && PRUEFLAGEN.length >= 34,
+    `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
+
+  const pbHeute = pbBasen
+    .map(b => [b, pbGesperrt(b, PORT_BREITE)])
+    .filter(([, t]) => t.length);
+  pruefe('Keine Portbasis deckt eine Nummer, die fetch() nicht anwaehlt',
+    pbHeute.length === 0,
+    pbHeute.map(([b, t]) => `${b}–${b + PORT_BREITE - 1} trifft ${t.join(', ')}`).join(' · '));
+  const pbHaupt = pbGesperrt(HAUPT_BASIS, HAUPT_BREITE);
+  pruefe('Und der Hauptserver ebenso wenig',
+    pbHaupt.length === 0,
+    `${HAUPT_BASIS}–${HAUPT_BASIS + HAUPT_BREITE - 1} trifft ${pbHaupt.join(', ')}`);
+
+  /* DER VERSATZ MUSS GROESSER SEIN ALS DIE SPANNE SAMT BREITE. Bei Gleichheit
+     faengt die naechste Spur genau dort an, wo die vorige aufhoert -- und der
+     Hauptserver liegt UNTER der kleinsten Basis, also zaehlt er mit. */
+  const pbUnten = Math.min(HAUPT_BASIS, ...pbBasen);
+  const pbOben = Math.max(...pbBasen.map(b => b + PORT_BREITE - 1),
+                          HAUPT_BASIS + HAUPT_BREITE - 1);
+  const pbSpanne = pbOben - pbUnten + 1;
+  pruefe('Der Versatz je Nebenspur ist groesser als die Spanne aller Basen',
+    VERSATZ_STUFE >= pbSpanne,
+    `Versatz ${VERSATZ_STUFE}, Spanne ${pbSpanne} (${pbUnten}–${pbOben})`);
+
+  /* JEDE SPUR EINZELN NACHGERECHNET, nicht nur die erste: die Sperrliste ist
+     nicht gleichmaessig verteilt -- 6000 trifft Spur 1, 6665 bis 6697 treffen
+     sie ebenfalls, und eine Rechnung, die nur eine Spur ansieht, belegt fuer
+     die anderen drei nichts. */
+  const pbSpurTreffer = [];
+  for (let spur = 1; spur < VERSATZ_SPUREN; spur++) {
+    const v = spur * VERSATZ_STUFE;
+    for (const b of [...pbBasen, HAUPT_BASIS]) {
+      const breite = b === HAUPT_BASIS ? HAUPT_BREITE : PORT_BREITE;
+      const t = pbGesperrt(b + v, breite);
+      if (t.length) pbSpurTreffer.push(`Spur ${spur}, Basis ${b} → ${t.join(', ')}`);
+    }
+  }
+  pruefe(`Alle ${VERSATZ_SPUREN} Nebenspuren bleiben von der Sperrliste frei`,
+    pbSpurTreffer.length === 0, pbSpurTreffer.join(' · '));
+  // Und die Gegenlage: der Waechter faengt ueberhaupt etwas. Ohne sie bliebe
+  // er gruen, wenn pbGesperrt() nie etwas faende (Stolperstein 81).
+  pruefe('Und der Waechter faengt eine gesperrte Nummer, wenn eine dasteht',
+    pbGesperrt(5990, PORT_BREITE).join() === '6000' &&
+    pbGesperrt(4000, PORT_BREITE).join() === '4045',
+    `${pbGesperrt(5990, PORT_BREITE)} / ${pbGesperrt(4000, PORT_BREITE)}`);
+  // Die hoechste entstehende Nummer bleibt unter dem fluechtigen Bereich, den
+  // der Kern selbst vergibt (ab 32768) -- sonst besetzte irgendwann eine
+  // fremde Verbindung genau die Nummer, auf die eine Prueflage wartet.
+  pruefe('Die hoechste Nummer aller Spuren bleibt unter 32768',
+    pbOben + (VERSATZ_SPUREN - 1) * VERSATZ_STUFE < 32768,
+    `hoechste Nummer ${pbOben + (VERSATZ_SPUREN - 1) * VERSATZ_STUFE}`);
+
+  gruppe('Keine Prueflage laesst ihren Server zurueck');
+
+  /* IN 0.8.90 HABEN ZWEI LAGEN IHRE SERVER ZURUECKGELASSEN, und aufgefallen
+     ist es erst, als eine Gegenprobe daran abriss: 48 verwaiste Prozesse
+     besetzten Ports, und der Prueflauf redete auf ihnen mit einer FREMDEN
+     Datenbank. Nachgesehen wurde damals von Hand; hier steht es als Pruefung.
+     GEZAEHLT WIRD AM PROZESS, nicht an einer Absicht: exitCode bzw.
+     signalCode traegt erst dann etwas, wenn das Kind wirklich beendet ist. */
+  const wlOffen = PRUEFLAGEN.filter(l => l.kind.exitCode === null && l.kind.signalCode === null);
+  pruefe(`Der Lauf hat ${PRUEFLAGEN.length} eigene Server gestartet`,
+    PRUEFLAGEN.length >= 34, `${PRUEFLAGEN.length} Prueflagen`);
+  pruefe('Und jeder einzelne von ihnen ist beendet',
+    wlOffen.length === 0,
+    wlOffen.map(l => `Basis ${l.basis}, Port ${l.port}, PID ${l.kind.pid}`).join(' · '));
+
   /* ---------------------------------------------------------------- */
   schlussBlock();
 
@@ -11959,7 +12177,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
 async function pruefeErstanmeldung() {
   gruppe('Erstanmeldung: frische Installation');
   const frischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-setup-'));
-  const B = starteWeiterenServer(frischDir, {}, 4000);
+  // 5130 und nicht 4000: die Basis 4000 deckt die Nummern 4000 bis 4059, und
+  // 4045 steht auf der Sperrliste von fetch() (Stolperstein 127). Eine von
+  // sechzig Ziehungen liess diese Lage unerreichbar werden und riss den Lauf
+  // ab, statt eine Pruefung rot zu faerben. 5130 bis 5189 liegt frei zwischen
+  // 5070 und 5200.
+  const B = starteWeiterenServer(frischDir, {}, 5130);
   await B.bereit;
 
   const cfgVor = await B.ruf('GET', '/api/config');
@@ -12451,7 +12674,10 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     imArbeitsverzeichnis: false,
     dbBytes: 52428800, dauerSekunden: 1, erreichbar: true, zahl: 2,
     letzte: { datei: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
-              am: '2026-08-20 03:00:00', tageHer: 3 }
+              am: '2026-08-20 03:00:00', tageHer: 3, veraltet: false },
+    // Seit 0.8.91: die Vorgabe ist "nie gewechselt". Die drei Lagen des
+    // Wechsels bekommen ihre eigenen Aufbauten in der Gruppe darunter.
+    gewechseltAm: null, veraltet: 0
   };
   const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   const kriterien = [
@@ -12732,8 +12958,13 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       sicherung.ort = ort;
       sicherung.pfad = ort ? `/sicherung/${ort}` : '/sicherung';
       sicherung.fehler = null;
+      // gewechseltAm und veraltet gehen MIT -- der echte Server breitet
+      // letzteSicherung() auch hier aus, und ein Mock, der sie weglaesst,
+      // liesse die Karte nach dem Speichern harmloser aussehen als die Lage.
       return gib({ ok: true, ort, pfad: sicherung.pfad, erreichbar: true,
-                   zahl: sicherung.zahl, letzte: sicherung.letzte });
+                   zahl: sicherung.zahl, letzte: sicherung.letzte,
+                   gewechseltAm: sicherung.gewechseltAm ?? null,
+                   veraltet: sicherung.veraltet ?? 0 });
     }
     if (url === '/api/sicherung' && opt.method === 'POST') {
       const datei = 'kriterion-2026-08-23-19-00-00.sqlite';
@@ -12741,7 +12972,9 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       sicherung.letzte = { datei, bytes: 52428800, am: '2026-08-23 19:00:00', tageHer: 0 };
       sicherung.erreichbar = true;
       return gib({ ok: true, datei, pfad: sicherung.pfad, bytes: 52428800, ms: 512,
-                   erreichbar: true, zahl: sicherung.zahl, letzte: sicherung.letzte });
+                   erreichbar: true, zahl: sicherung.zahl, letzte: sicherung.letzte,
+                   gewechseltAm: sicherung.gewechseltAm ?? null,
+                   veraltet: sicherung.veraltet ?? 0 });
     }
     /* Und die beiden Wege, die den Bestand WIRKLICH aendern (Stolperstein 90):
        ein Mock, der beim Zurueckholen zwar antwortet, aber dieselbe Liste
@@ -18281,6 +18514,88 @@ async function pruefeOberflaeche() {
       !!siInn.w.document.getElementById('sich-ort'));
   }
 
+
+  /* ZWEI SCHLUESSEL IM UMLAUF IN DER OBERFLAECHE -- seit 0.8.91.
+     DREI LAGEN, DREI AUFBAUTEN, und jede bekommt ihre Gegenlage: ohne Wechsel
+     steht gar kein Kasten da (eine Warnung, die immer dasteht, liest niemand
+     mehr), nach einem Wechsel mit brauchbarer Kopie ein gruener, und wenn auch
+     die juengste Kopie aelter ist als der Wechsel, ein roter mit dem
+     schaerferen Satz.
+     JEDES FELD, DAS DIE KARTE LIEST, IST OBEN AN DER ECHTEN ANTWORT GEPRUEFT
+     (Stolperstein 102): gewechseltAm, veraltet und letzte.veraltet stehen in
+     der Gruppe "Die Sicherung: zwei Schluessel im Umlauf". */
+  {
+    const siStandMit = (zusatz) => ({
+      eingerichtet: true, wurzel: '/sicherung', ort: 'taeglich', pfad: '/sicherung/taeglich',
+      imArbeitsverzeichnis: false, dbBytes: 52428800, dauerSekunden: 1,
+      erreichbar: true, zahl: 3,
+      letzte: { datei: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
+                am: '2026-08-20 03:00:00', tageHer: 3, veraltet: false },
+      gewechseltAm: null, veraltet: 0, ...zusatz
+    });
+    /* GESUCHT WIRD IM GEFALTETEN TEXT. textContent traegt die Zeilenumbrueche
+       und die Einrueckung der Vorlage mit; ein Waechter, der auf ein einzelnes
+       Leerzeichen prueft, faende den Satz nie und bliebe stumm gruen, sobald
+       jemand die Vorlage umbricht. */
+    const falte = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+    const siText = (d) => falte(siKarte(d)?.textContent);
+    const siKaesten = (d, klasse) =>
+      [...(siKarte(d)?.querySelectorAll('.' + klasse) || [])].map(k => falte(k.textContent));
+
+    // Ohne Wechsel: kein Kasten, kein Wort davon.
+    const ohne = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: siStandMit({}) });
+    pruefe('Ohne Wechsel steht nichts von zwei Schluesseln auf der Karte',
+      !/Schlüsselwechsel|alten Schlüssel|gewechselt/.test(siText(ohne)),
+      siText(ohne).slice(0, 300));
+
+    // Ein Teil veraltet: roter Kasten mit der Zahl und dem Verbleib des alten
+    // Werts.
+    const teils = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: siStandMit({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 2 }) });
+    const teilsRot = siKaesten(teils, 'warn-box').join(' ');
+    pruefe('Nach einem Wechsel nennt ein roter Kasten die Zahl der alten Kopien',
+      /2 Kopien stammen von vor dem Schlüsselwechsel/.test(teilsRot), teilsRot.slice(0, 300));
+    pruefe('Und er nennt den Zeitpunkt des Wechsels',
+      /21\.08\.2026/.test(teilsRot), teilsRot.slice(0, 300));
+    pruefe('Und wo der alte Wert zu finden ist',
+      /\.env/.test(teilsRot) && /Passwortspeicher/.test(teilsRot), teilsRot.slice(0, 400));
+    pruefe('Die Zeile "Dateien am Ort" nennt die alten eigens',
+      /2 mit dem alten Schlüssel/.test(siText(teils)), siText(teils).slice(0, 400));
+
+    // Genau eine alte Kopie -- die Einzahl gehoert geprueft, sonst steht dort
+    // "1 Kopien stammen".
+    const eine = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: siStandMit({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 1 }) });
+    pruefe('Bei genau einer alten Kopie steht die Einzahl da',
+      /1 Kopie stammt von vor dem Schlüsselwechsel/.test(siKaesten(eine, 'warn-box').join(' ')),
+      siKaesten(eine, 'warn-box').join(' ').slice(0, 300));
+
+    // Alles veraltet -- die schaerfste Lage: es gibt ueberhaupt keine
+    // brauchbare Kopie, und das ist eine ANDERE Aussage als "ein paar alte
+    // liegen daneben".
+    const alles = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: siStandMit({
+        gewechseltAm: '2026-08-22 08:00:00', veraltet: 3,
+        letzte: { datei: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
+                  am: '2026-08-20 03:00:00', tageHer: 3, veraltet: true } }) });
+    const allesRot = siKaesten(alles, 'warn-box').join(' ');
+    pruefe('Ist auch die juengste Kopie aelter, sagt die Karte GENAU DAS',
+      /Keine dieser Kopien passt zum heutigen Schlüssel/.test(allesRot), allesRot.slice(0, 300));
+    pruefe('Und sie sagt, was jetzt zu tun ist',
+      /Sicher jetzt neu/.test(allesRot), allesRot.slice(0, 400));
+
+    // Und die Gegenlage: alle Kopien juenger als der Wechsel -> gruen, mit
+    // dem Grund daneben statt eines blossen "alles gut".
+    const gruen = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { sicherungStand: siStandMit({ gewechseltAm: '2026-08-19 08:00:00', veraltet: 0 }) });
+    const gruenKasten = siKaesten(gruen, 'ok-box').join(' ');
+    pruefe('Sind alle Kopien juenger als der Wechsel, ist der Kasten gruen',
+      /Alle Kopien an diesem Ort sind jünger/.test(gruenKasten), gruenKasten.slice(0, 400));
+    pruefe('Und im gruenen Fall steht keine Warnung ueber alte Kopien da',
+      !/alten Schlüssel/.test(siText(gruen)), siText(gruen).slice(0, 300));
+  }
+
   /* DIE ROLLENTEILUNG STEHT AN BEIDEN KARTEN, nicht nur in den Dokumenten.
      Wer sie nebeneinander sieht, muss ohne Rueckfrage wissen, welche er
      will -- ein Satz je Karte, und beide werden hier geprueft. */
@@ -18909,4 +19224,472 @@ async function pruefeOberflaeche() {
       wEiner.document.getElementById('cmp-hint').textContent),
     wEiner.document.getElementById('cmp-hint').textContent);
   wEiner.close();
+}
+
+/* ================= Der Schluesselwechsel =================
+   GEWECHSELT WIRD BEI ANGEHALTENER ANLAGE, auf dem Wirt, ueber schluessel.js.
+   Genau so wird hier auch geprueft: kein Server, sondern echte Prozesse gegen
+   echte, verschluesselte Anlagen in Wegwerfverzeichnissen.
+
+   ES IST DER EINZIGE VORGANG IM PROJEKT, DER BEI FALSCHER HANDHABUNG ALLES
+   VERLIERT. Deshalb wird hier nicht nur geprueft, DASS er laeuft, sondern jede
+   Lage einzeln, in der er NICHT laufen darf -- und in jeder davon, dass die
+   Anlage danach unangetastet ist. */
+function pruefeSchluesselwechsel() {
+  const SW = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-schluessel-'));
+  const hexNeu = () => crypto.randomBytes(32).toString('hex');
+
+  /* Eine Anlage OHNE ENCRYPTION_KEY in der Umgebung: dann erzeugt loadKey()
+     einen und legt ihn als data/encryption.key ab -- das ist der DATEIFALL.
+     Mit gesetztem Wert ist es der .ENV-FALL. Dieselbe Unterscheidung, die
+     loadKey() trifft, und deshalb hier keine zweite. */
+  const swUmgebung = (verzeichnis, schluessel) => {
+    const u = { ...process.env, DATA_DIR: verzeichnis };
+    delete u.AUTH_RESET;
+    if (schluessel) u.ENCRYPTION_KEY = schluessel; else delete u.ENCRYPTION_KEY;
+    return u;
+  };
+
+  const swKurz = (code, verzeichnis, schluessel) =>
+    execFileSync(process.execPath, ['-e', code],
+      { cwd: __dirname, encoding: 'utf8', env: swUmgebung(verzeichnis, schluessel) })
+      .trim().split('\n').pop();
+
+  const swRuf = (args, verzeichnis, schluessel) => {
+    const r = spawnSync(process.execPath, ['schluessel.js', ...args],
+      { cwd: __dirname, encoding: 'utf8', env: swUmgebung(verzeichnis, schluessel), input: '' });
+    return { code: r.status, aus: (r.stdout || '') + (r.stderr || '') };
+  };
+
+  // Die beiden Tabellen, in die der Wechsel seine eigene Spur schreibt.
+  const SW_EIGENE = ['settings', 'sicherheitsprotokoll'];
+
+  const swOeffne = (verzeichnis, hex) => {
+    const d = new Database(path.join(verzeichnis, 'katalog.sqlite'));
+    d.pragma("cipher='sqlcipher'");
+    d.pragma(`key="x'${hex}'"`);
+    return d;
+  };
+
+  /* Der Bestand, Feld fuer Feld und Zeile fuer Zeile ueber ALLE Tabellen. Ein
+     Vergleich ueber COUNT(*) allein saehe einen vertauschten Inhalt nicht --
+     und genau das waere der Schaden, den ein halber Wechsel anrichtet. */
+  /* `ohne` nennt die Tabellen, in die der Wechsel SELBST schreibt: die Marke
+     in settings und seine Zeile im Sicherheitsprotokoll. Sie gehoeren nicht in
+     den Vergleich des BESTANDS -- dort waeren sie ein Unterschied, der genau
+     so beabsichtigt ist. Geprueft werden sie eigens, in ihrer eigenen Gruppe.
+     Beim ABBRUCH steht die Liste leer: dort darf sich nichts geaendert haben,
+     auch keine Marke. */
+  const swAbdruck = (d, ohne = []) => {
+    const teile = [];
+    const tabellen = d.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+      .all().filter(t => !ohne.includes(t.name));
+    for (const t of tabellen) {
+      const zeilen = d.prepare(`SELECT * FROM "${t.name}" ORDER BY rowid`).all();
+      teile.push(t.name + '=' + JSON.stringify(zeilen));
+    }
+    return crypto.createHash('sha256').update(teile.join(' ')).digest('hex');
+  };
+
+  /* Eine Anlage mit belastbarem Bestand. Angelegt ueber db.js, damit das
+     Schema dasselbe ist wie im Betrieb -- ein von Hand gebautes waere eine
+     zweite Wahrheit darueber, wie eine Anlage aussieht. */
+  const swAnlage = (name, schluessel) => {
+    const dir = path.join(SW, name);
+    fs.mkdirSync(dir);
+    swKurz("require('./db'); console.log('da');", dir, schluessel);
+    const hex = schluessel || fs.readFileSync(path.join(dir, 'encryption.key'), 'utf8').trim();
+    const d = swOeffne(dir, hex);
+    d.transaction(() => {
+      const item = d.prepare('INSERT INTO items (title, description) VALUES (?, ?)');
+      const komm = d.prepare('INSERT INTO comments (item_id, text) VALUES (?, ?)');
+      for (let i = 0; i < 120; i++) {
+        const id = item.run(`Eintrag ${i}`, `Beschreibung mit Umlauten aeoeue ${i}`).lastInsertRowid;
+        komm.run(id, `Kommentar ${i} zu Eintrag ${i}`);
+      }
+    })();
+    const abdruck = swAbdruck(d, SW_EIGENE);
+    const journal = d.pragma('journal_mode', { simple: true });
+    d.close();
+    return { dir, hex, abdruck, journal };
+  };
+
+  /* GESCHLOSSEN WIRD IMMER, auch im Fehlerfall. Eine offene Verbindung haelt
+     eine gemeinsame Sperre auf der Datei, und der naechste Wechsel scheitert
+     dann mit "database is locked" -- an einer Stelle, die aussieht wie ein
+     Befund am Code. Genau daran ist der erste Lauf dieser Gruppe gescheitert. */
+  const swOeffnetNicht = (verzeichnis, hex) => {
+    let d = null;
+    try {
+      d = swOeffne(verzeichnis, hex);
+      d.prepare('SELECT COUNT(*) n FROM items').get();
+      return false;
+    } catch { return true; }
+    finally { try { if (d) d.close(); } catch {} }
+  };
+
+  /* ---- Der Rundlauf ---------------------------------------------------- */
+  gruppe('Der Schluesselwechsel: der Rundlauf');
+
+  const a1 = swAnlage('rundlauf');
+  pruefe('Der Aufbau steht: eine Anlage im Dateifall, mit Bestand',
+    fs.existsSync(path.join(a1.dir, 'encryption.key')) && /^[0-9a-f]{64}$/.test(a1.hex) &&
+    a1.journal === 'wal',
+    `Schluessel ${a1.hex.length} Zeichen, journal ${a1.journal}`);
+
+  const w1 = swRuf(['wechseln', '--ja'], a1.dir, null);
+  pruefe('Der Wechsel laeuft durch', w1.code === 0, `Rueckgabe ${w1.code}\n${w1.aus.slice(-400)}`);
+  const a1neu = fs.readFileSync(path.join(a1.dir, 'encryption.key'), 'utf8').trim();
+  pruefe('Die Schluesseldatei traegt einen NEUEN 64-stelligen Wert',
+    /^[0-9a-f]{64}$/.test(a1neu) && a1neu !== a1.hex,
+    `${a1neu.length} Zeichen, gleich wie vorher: ${a1neu === a1.hex}`);
+
+  const d1 = swOeffne(a1.dir, a1neu);
+  pruefe('Mit dem NEUEN Schluessel oeffnet die Datei',
+    d1.prepare('SELECT COUNT(*) n FROM items').get().n === 120,
+    JSON.stringify(d1.prepare('SELECT COUNT(*) n FROM items').get()));
+  pruefe('Und integrity_check meldet ok',
+    d1.pragma('integrity_check', { simple: true }) === 'ok',
+    d1.pragma('integrity_check', { simple: true }));
+  pruefe('Der Bestand ist Feld fuer Feld derselbe',
+    swAbdruck(d1, SW_EIGENE) === a1.abdruck,
+    `${swAbdruck(d1, SW_EIGENE)} statt ${a1.abdruck}`);
+  pruefe('Mit dem ALTEN Schluessel oeffnet sie nicht mehr',
+    swOeffnetNicht(a1.dir, a1.hex), 'der alte Schluessel oeffnet noch');
+
+  /* ---- Die Umschaltung des Journals ------------------------------------ */
+  gruppe('Der Schluesselwechsel: die Umschaltung des Journals');
+
+  pruefe('Vor dem Wechsel stand das Journal auf WAL', a1.journal === 'wal', a1.journal);
+  pruefe('Nach dem Wechsel steht es wieder auf WAL',
+    d1.pragma('journal_mode', { simple: true }) === 'wal',
+    d1.pragma('journal_mode', { simple: true }));
+  pruefe('Und der Wechsel nennt beide Richtungen in seiner Meldung',
+    /journal stand auf wal .* DELETE .* wal/i.test(w1.aus), w1.aus.slice(-300));
+  d1.close();
+
+  /* DIE GEGENLAGE, und sie ist die wichtigste dieser Gruppe: OHNE die
+     Umschaltung laeuft rekey gar nicht. Nachgestellt an einer eigenen Anlage
+     statt behauptet -- genau der Befund, der die Form dieser Runde bestimmt
+     hat (Stolperstein 128). */
+  const a2 = swAnlage('journal', hexNeu());
+  const d2 = swOeffne(a2.dir, a2.hex);
+  d2.pragma('journal_mode = WAL');
+  let ohneMeldung = '', ohneLief = true;
+  try { d2.pragma(`rekey="x'${hexNeu()}'"`); }
+  catch (e) { ohneLief = false; ohneMeldung = e.message; }
+  pruefe('Ein rekey OHNE die Umschaltung scheitert namentlich',
+    !ohneLief && /rekeying is not supported in wal/i.test(ohneMeldung),
+    `gelaufen: ${ohneLief}, Meldung: ${ohneMeldung}`);
+  pruefe('Und die Datei ist danach unangetastet: der alte Schluessel oeffnet weiter',
+    d2.prepare('SELECT COUNT(*) n FROM items').get().n === 120);
+  d2.close();
+
+  /* ---- Der Dateifall und der .env-Fall, GETRENNT ------------------------ */
+  gruppe('Der Schluesselwechsel: der Dateifall und der env-Fall');
+
+  /* Der Dateifall ist oben schon gefahren -- hier steht die Aussage, die ihn
+     vom .env-Fall unterscheidet: er braucht KEINE .env und weist eine zurueck. */
+  const a3 = swAnlage('dateifall');
+  const envFremd = path.join(SW, 'fremd.env');
+  fs.writeFileSync(envFremd, `ENCRYPTION_KEY=${hexNeu()}\n`);
+  const w3 = swRuf(['wechseln', '--env', envFremd, '--ja'], a3.dir, null);
+  pruefe('Im Dateifall wird eine mitgegebene .env abgewiesen',
+    w3.code === 1 && /kommt gar nicht aus der Umgebung/.test(w3.aus), w3.aus.slice(0, 200));
+  pruefe('Und dabei wurde nichts gewechselt: die Schluesseldatei steht unveraendert',
+    fs.readFileSync(path.join(a3.dir, 'encryption.key'), 'utf8').trim() === a3.hex);
+
+  /* Der .env-Fall. Die Datei traegt bewusst eine AUSKOMMENTIERTE Zeile mit
+     demselben Namen: sie darf nicht getroffen werden. In der .env.example
+     stehen sechs solcher Zeilen. */
+  const envAlt = hexNeu();
+  const a4 = swAnlage('envfall', envAlt);
+  const envDatei = path.join(SW, 'anlage.env');
+  const envVorher =
+    '# Kopfzeile, die stehen bleibt\n' +
+    '# ENCRYPTION_KEY= steht hier auskommentiert und darf NICHT getroffen werden\n' +
+    `ENCRYPTION_KEY=${envAlt}\n` +
+    '\n' +
+    '# HINTER_PROXY=1\n' +
+    'OEFFENTLICHE_ADRESSE=https://beispiel.test\n';
+  fs.writeFileSync(envDatei, envVorher);
+
+  const w4ohne = swRuf(['wechseln', '--ja'], a4.dir, envAlt);
+  pruefe('Im .env-Fall wird OHNE die .env abgewiesen',
+    w4ohne.code === 1 && /kommt aus der Umgebung/.test(w4ohne.aus), w4ohne.aus.slice(0, 200));
+  pruefe('Und dabei wurde nichts gewechselt: der alte Schluessel oeffnet weiter',
+    !swOeffnetNicht(a4.dir, envAlt), 'der alte Schluessel oeffnet nicht mehr');
+  pruefe('Und die .env steht Zeichen fuer Zeichen unveraendert da',
+    fs.readFileSync(envDatei, 'utf8') === envVorher);
+
+  const w4fremd = swRuf(['wechseln', '--env', envFremd, '--ja'], a4.dir, envAlt);
+  pruefe('Eine .env mit einem FREMDEN Wert wird abgewiesen',
+    w4fremd.code === 1 && /anderen Wert/.test(w4fremd.aus), w4fremd.aus.slice(0, 200));
+  pruefe('Und auch dabei wurde nichts gewechselt',
+    !swOeffnetNicht(a4.dir, envAlt), 'der alte Schluessel oeffnet nicht mehr');
+
+  const envOhne = path.join(SW, 'ohne.env');
+  fs.writeFileSync(envOhne, '# ENCRYPTION_KEY=nur ein Kommentar\nHINTER_PROXY=1\n');
+  const w4leer = swRuf(['wechseln', '--env', envOhne, '--ja'], a4.dir, envAlt);
+  pruefe('Eine .env ohne AKTIVE Schluesselzeile wird abgewiesen',
+    w4leer.code === 1 && /0 aktive Zeilen/.test(w4leer.aus), w4leer.aus.slice(0, 200));
+
+  const envZwei = path.join(SW, 'zwei.env');
+  fs.writeFileSync(envZwei, `ENCRYPTION_KEY=${envAlt}\nENCRYPTION_KEY=${envAlt}\n`);
+  const w4zwei = swRuf(['wechseln', '--env', envZwei, '--ja'], a4.dir, envAlt);
+  pruefe('Und eine mit ZWEI aktiven Zeilen ebenfalls',
+    w4zwei.code === 1 && /2 aktive Zeilen/.test(w4zwei.aus), w4zwei.aus.slice(0, 200));
+
+  const w4 = swRuf(['wechseln', '--env', envDatei, '--wer', 'pruefstand', '--ja'], a4.dir, envAlt);
+  pruefe('Mit der richtigen .env laeuft der Wechsel durch',
+    w4.code === 0, `Rueckgabe ${w4.code}\n${w4.aus.slice(-400)}`);
+  const envNachher = fs.readFileSync(envDatei, 'utf8');
+  const envZeilen = envNachher.split('\n');
+  const envAktiv = envZeilen.filter(z => /^ENCRYPTION_KEY=/.test(z));
+  pruefe('Die .env traegt danach GENAU EINE aktive Schluesselzeile',
+    envAktiv.length === 1, JSON.stringify(envAktiv));
+  const envNeu = envAktiv[0].split('=')[1];
+  pruefe('Und die traegt einen neuen 64-stelligen Wert',
+    /^[0-9a-f]{64}$/.test(envNeu) && envNeu !== envAlt, envNeu);
+  pruefe('Der alte Wert steht auskommentiert darueber',
+    envZeilen.includes(`#ENCRYPTION_KEY=${envAlt}`), envNachher);
+  pruefe('Mit dem Satz daneben, wofuer er noch gut ist',
+    /ER OEFFNET ALLE SICHERUNGEN VON VOR DIESEM ZEITPUNKT/.test(envNachher));
+  pruefe('Und mit der Notiz, wer gewechselt hat',
+    /^# Abgeloest am \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} durch pruefstand \(schluessel\.js\)\.$/m
+      .test(envNachher), envZeilen.find(z => z.startsWith('# Abgeloest')));
+  /* JEDE ANDERE ZEILE BLEIBT ZEICHEN FUER ZEICHEN STEHEN -- die
+     auskommentierte Zeile mit demselben Namen eingeschlossen. Geprueft an der
+     GANZEN Datei und nicht an einer Stichprobe: was hier durchginge, waere
+     eine .env, die beim naechsten Start etwas anderes bedeutet. */
+  const envUebrig = envZeilen.filter(z =>
+    !/^ENCRYPTION_KEY=/.test(z) && !/^#ENCRYPTION_KEY=/.test(z) &&
+    !/^# (Abgeloest am|ER OEFFNET|bevor er im)/.test(z));
+  pruefe('Alle uebrigen Zeilen stehen unveraendert und in derselben Reihenfolge',
+    gleich(envUebrig, envVorher.split('\n').filter(z => !/^ENCRYPTION_KEY=/.test(z))),
+    JSON.stringify(envUebrig));
+  pruefe('Im .env-Fall entsteht KEINE Schluesseldatei neben der Datenbank',
+    !fs.existsSync(path.join(a4.dir, 'encryption.key')));
+  pruefe('Die Datei oeffnet mit dem neuen Wert aus der .env',
+    !swOeffnetNicht(a4.dir, envNeu), 'der neue Wert oeffnet nicht');
+  pruefe('Und mit dem alten nicht mehr',
+    swOeffnetNicht(a4.dir, envAlt), 'der alte Wert oeffnet noch');
+
+  /* ---- Was NICHT in einer Ausgabe steht -------------------------------- */
+  gruppe('Der Schluesselwechsel: kein Schluessel, wo keiner hingehoert');
+
+  /* DIE PROTOKOLLZEILE NENNT, DASS GEWECHSELT WURDE, NIE WOHIN. Geprueft am
+     VOLLSTAENDIGEN Zeileninhalt ueber ALLE Spalten ALLER Zeilen -- weder der
+     alte noch der neue Wert darf irgendwo auftauchen. */
+  const d4 = swOeffne(a4.dir, envNeu);
+  const alleZeilen = JSON.stringify(d4.prepare('SELECT * FROM sicherheitsprotokoll').all());
+  pruefe('Genau eine Zeile im Sicherheitsprotokoll, und sie heisst schluessel',
+    d4.prepare("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'schluessel'").get().n === 1,
+    alleZeilen);
+  pruefe('Sie traegt keinen Handelnden, kein Ziel und kein Merkmal',
+    d4.prepare("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'schluessel' " +
+      'AND wer IS NULL AND ziel IS NULL AND merkmal IS NULL').get().n === 1, alleZeilen);
+  pruefe('Der ALTE Schluessel steht in keiner Spalte keiner Zeile',
+    !alleZeilen.includes(envAlt), alleZeilen);
+  pruefe('Der NEUE Schluessel ebenso wenig',
+    !alleZeilen.includes(envNeu), alleZeilen);
+  /* Und die Gegenlage dazu: die Nachschau faengt ueberhaupt etwas. Ohne sie
+     bliebe sie gruen, wenn die Tabelle leer waere (Stolperstein 81). */
+  pruefe('Und die Nachschau faengt einen Wert, wenn einer dastuende',
+    JSON.stringify([{ merkmal: envAlt }]).includes(envAlt));
+
+  const marke = JSON.parse(
+    d4.prepare("SELECT value FROM settings WHERE key = 'schluesselGewechseltAm'").get().value);
+  pruefe('Die Marke schluesselGewechseltAm steht in settings',
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(marke), marke);
+  /* SIE IST KEIN SCHEMA. settings hat zwei Spalten und hatte sie vorher auch --
+     diese Runde bringt keine Tabelle und keine Spalte, also keinen sechsten
+     Migrationsblock. */
+  pruefe('Und sie ist eine Zeile in settings, kein Schema',
+    d4.prepare("SELECT COUNT(*) n FROM pragma_table_info('settings')").get().n === 2,
+    JSON.stringify(d4.prepare("SELECT name FROM pragma_table_info('settings')").all()));
+  d4.close();
+
+  /* IN DER AUSGABE DES WECHSELS steht der ALTE Wert -- absichtlich, denn er
+     oeffnet die Sicherungen von vorher und ist ab jetzt sonst nirgends mehr.
+     Der NEUE steht dort NICHT: er liegt in der Ablage, und wer ihn abschreiben
+     will, liest ihn dort. Das ist der Merksatz zu Kontrollausgaben in seiner
+     engsten Auslegung. */
+  pruefe('Die Ausgabe des Wechsels nennt den ALTEN Wert zum Aufheben',
+    w4.aus.includes(envAlt), w4.aus.slice(-300));
+  pruefe('Den NEUEN nennt sie nicht',
+    !w4.aus.includes(envNeu), w4.aus.slice(-300));
+  pruefe('Und im Dateifall ebenso: der alte ja, der neue nein',
+    w1.aus.includes(a1.hex) && !w1.aus.includes(a1neu), w1.aus.slice(-300));
+
+  /* WAS DER START INS CONTAINERPROTOKOLL SCHREIBT, wird angesehen. Das ist die
+     Ausgabe, die dauerhaft stehen bleibt -- anders als die eines Befehls, den
+     jemand von Hand auf dem Wirt tippt. */
+  const startAus = execFileSync(process.execPath, ['-e', "require('./db'); console.log('fertig');"],
+    { cwd: __dirname, encoding: 'utf8', env: swUmgebung(a4.dir, envNeu) });
+  pruefe('Der Start meldet die Herkunft des Schluessels',
+    /Schluessel aus ENCRYPTION_KEY geladen/.test(startAus), startAus.slice(0, 200));
+  pruefe('Und nennt dabei WEDER den alten NOCH den neuen Wert',
+    !startAus.includes(envAlt) && !startAus.includes(envNeu), startAus);
+
+  /* ---- Der Abbruch mittendrin ------------------------------------------ */
+  gruppe('Der Schluesselwechsel: der Abbruch mittendrin');
+
+  /* kill -9 MITTEN HINEIN. Dafuer muss der Wechsel lange genug dauern, um
+     getroffen zu werden -- bei 120 Zeilen sind es Millisekunden. Die Anlage
+     bekommt deshalb Bytes, bis der Wechsel messbar wird.
+     DIE DAUER WIRD GEMESSEN UND NICHT GERATEN: ist der Wechsel wider Erwarten
+     zu schnell, sagt die Pruefung GENAU DAS und bleibt nicht still gruen
+     (Stolperstein 81). */
+  const a5 = swAnlage('abbruch');
+  {
+    const d = swOeffne(a5.dir, a5.hex);
+    d.exec("INSERT INTO papierkorb (id, titel, inhalt) VALUES (1, 'Brocken', '{}')");
+    const ins = d.prepare('INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (1, ?, ?)');
+    // ZUFALLSBYTES, nicht Nullen: eine Datenbank voller Nullen komprimiert der
+    // Dateicache weg, und der Wechsel waere wieder zu schnell zum Treffen.
+    const brocken = crypto.randomBytes(1024 * 1024);
+    d.transaction(() => { for (let i = 0; i < 60; i++) ins.run(i, brocken); })();
+    d.pragma('wal_checkpoint(TRUNCATE)');
+    d.close();
+  }
+  /* HIER OHNE Ausnahmeliste: ein Abbruch darf GAR NICHTS hinterlassen, auch
+     keine Marke und keine Protokollzeile. */
+  const a5abdruck = (() => { const d = swOeffne(a5.dir, a5.hex); const x = swAbdruck(d); d.close(); return x; })();
+  const a5groesse = fs.statSync(path.join(a5.dir, 'katalog.sqlite')).size;
+
+  /* Erst messen, wie lange der Wechsel an dieser Groesse dauert -- an einer
+     KOPIE, damit die Anlage selbst unangetastet in den Abbruch geht. */
+  const a5probe = path.join(SW, 'abbruch-probe');
+  fs.cpSync(a5.dir, a5probe, { recursive: true });
+  const a5dauer = Number(swKurz(
+    "const { wechsleSchluessel } = require('./db');" +
+    `const t = Date.now(); wechsleSchluessel('${hexNeu()}'); console.log(Date.now() - t);`,
+    a5probe, null));
+  pruefe(`Der Wechsel an ${Math.round(a5groesse / 1048576)} MB dauert lange genug zum Treffen`,
+    a5dauer >= 150, `${a5dauer} ms -- zu kurz, der Abbruch traefe daneben`);
+
+  const a5neu = hexNeu();
+  const a5kind = spawnSync('sh', ['-c',
+    `"${process.execPath}" -e "require('./db').wechsleSchluessel('${a5neu}')" & ` +
+    `kind=$!; sleep ${(a5dauer / 3000).toFixed(3)}; kill -9 $kind 2>/dev/null; wait $kind; echo fertig`],
+    { cwd: __dirname, encoding: 'utf8', env: swUmgebung(a5.dir, null) });
+  pruefe('Der Wechsel wurde mit kill -9 unterbrochen',
+    /fertig/.test(a5kind.stdout || ''), JSON.stringify(a5kind.stdout));
+  pruefe('Danach oeffnet der ALTE Schluessel weiter',
+    !swOeffnetNicht(a5.dir, a5.hex), 'der alte Schluessel oeffnet nicht mehr');
+  pruefe('Der NEUE oeffnet nicht',
+    swOeffnetNicht(a5.dir, a5neu), 'der neue Schluessel oeffnet -- es gab einen halben Zustand');
+  {
+    const d = swOeffne(a5.dir, a5.hex);
+    pruefe('integrity_check ist ok', d.pragma('integrity_check', { simple: true }) === 'ok',
+      d.pragma('integrity_check', { simple: true }));
+    pruefe('Und der Bestand ist Feld fuer Feld derselbe wie vorher',
+      swAbdruck(d) === a5abdruck, 'der Bestand hat sich veraendert');
+    pruefe('Und der Abbruch hat weder Marke noch Protokollzeile hinterlassen',
+      d.prepare("SELECT COUNT(*) n FROM settings WHERE key = 'schluesselGewechseltAm'").get().n === 0 &&
+      d.prepare('SELECT COUNT(*) n FROM sicherheitsprotokoll').get().n === 0,
+      JSON.stringify(d.prepare('SELECT * FROM sicherheitsprotokoll').all()));
+    d.close();
+  }
+
+  /* ---- Zu wenig Platz --------------------------------------------------- */
+  gruppe('Der Schluesselwechsel: zu wenig Platz');
+
+  /* DIE ANSAGE STEHT IMMER: was der Wechsel an Platz braucht, rechnet
+     schluessel.js aus der Groesse der Datenbank -- das Journal waechst auf
+     ihre Groesse. Das laesst sich an jeder Anlage nachrechnen. */
+  const zeigen = swRuf(['zeigen'], a5.dir, null);
+  const zGross = Number((zeigen.aus.match(/Datenbank\s+([\d.]+) MB/) || [])[1]);
+  const zNoetig = Number((zeigen.aus.match(/Wechsel\s+([\d.]+) MB/) || [])[1]);
+  pruefe('zeigen nennt Groesse, Platzbedarf und Dauer',
+    zGross > 0 && zNoetig > 0 && /Erwartete Dauer\s+rund \d+ Sekunden/.test(zeigen.aus),
+    zeigen.aus);
+  pruefe('Und der Platzbedarf liegt ueber der Groesse der Datenbank',
+    zNoetig > zGross && zNoetig < zGross * 1.2, `${zNoetig} MB bei ${zGross} MB Datenbank`);
+
+  /* DIE ABSAGE SELBST braucht ein volles Dateisystem. Eines herzustellen
+     verlangt das Einhaengen eines tmpfs, und das darf nicht jeder. Geht es
+     nicht, wird die Lage AUSDRUECKLICH uebersprungen statt still ausgelassen:
+     eine Pruefung, die bei fehlendem Gegenstand gruen bleibt, kann gar nicht
+     scheitern (Stolperstein 81). */
+  const eng = path.join(SW, 'eng');
+  fs.mkdirSync(eng);
+  const eingehaengt = spawnSync('mount', ['-t', 'tmpfs', '-o', 'size=16M', 'tmpfs', eng],
+    { encoding: 'utf8' }).status === 0;
+  if (!eingehaengt) {
+    uebersprungen += 3;
+    console.log('  ... uebersprungen: kein tmpfs einhaengbar (die Absage bei zu wenig Platz ' +
+                'braucht ein volles Dateisystem)');
+  } else {
+    const engDir = path.join(eng, 'anlage');
+    fs.mkdirSync(engDir);
+    swKurz("require('./db'); console.log('da');", engDir, null);
+    const engHex = fs.readFileSync(path.join(engDir, 'encryption.key'), 'utf8').trim();
+    {
+      const d = swOeffne(engDir, engHex);
+      const ins = d.prepare('INSERT INTO items (title, description) VALUES (?, ?)');
+      d.transaction(() => { for (let i = 0; i < 600; i++) ins.run(`E${i}`, 'x'.repeat(600)); })();
+      d.pragma('wal_checkpoint(TRUNCATE)');
+      d.close();
+    }
+    /* Den Rest des Dateisystems zuschuetten, bis weniger frei ist, als das
+       Journal braucht -- aber genug fuer die WAL beim Oeffnen. */
+    const dbBytes = fs.statSync(path.join(engDir, 'katalog.sqlite')).size;
+    const s = fs.statfsSync(engDir);
+    const fuellen = Math.max(0, s.bsize * s.bavail - Math.floor(dbBytes * 0.6));
+    try { fs.writeFileSync(path.join(eng, 'fuell'), Buffer.alloc(fuellen)); } catch {}
+    const vorher = fs.readFileSync(path.join(engDir, 'encryption.key'), 'utf8');
+    const w6 = swRuf(['wechseln', '--ja'], engDir, null);
+    pruefe('Bei zu wenig Platz kommt die Absage mit Begruendung',
+      w6.code === 1 && /Zu wenig Platz/.test(w6.aus) && /Journal/.test(w6.aus),
+      `Rueckgabe ${w6.code}: ${w6.aus.slice(0, 300)}`);
+    pruefe('Und die Schluesseldatei ist unangetastet',
+      fs.readFileSync(path.join(engDir, 'encryption.key'), 'utf8') === vorher);
+    pruefe('Und die Datenbank oeffnet weiter mit ihrem bisherigen Schluessel',
+      !swOeffnetNicht(engDir, engHex), 'der bisherige Schluessel oeffnet nicht mehr');
+    try { fs.unlinkSync(path.join(eng, 'fuell')); } catch {}
+    fs.rmSync(engDir, { recursive: true, force: true });
+    spawnSync('umount', [eng]);
+  }
+
+  /* ---- Was der Wechsel nicht anfasst ------------------------------------ */
+  gruppe('Der Schluesselwechsel: was er nicht anfasst');
+
+  const d7 = swOeffne(a4.dir, envNeu);
+  pruefe('Das Verfahren bleibt: cipher steht weiterhin auf sqlcipher',
+    String(d7.pragma('cipher', { simple: true })).includes('sqlcipher'),
+    String(d7.pragma('cipher', { simple: true })));
+  pruefe('Die Datei heisst weiterhin katalog.sqlite',
+    fs.existsSync(path.join(a4.dir, 'katalog.sqlite')));
+  pruefe('Der Bestand ist Feld fuer Feld derselbe wie vor dem Wechsel',
+    swAbdruck(d7, SW_EIGENE) === a4.abdruck, 'der Bestand hat sich veraendert');
+  /* KEIN SCHEMA: dieselben Tabellen wie vorher, keine dazu, keine weg. Die
+     Frage nach einem sechsten Migrationsblock ist damit beantwortet und nicht
+     bloss behauptet. */
+  const tabellenNach = d7.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+    .all().map(t => t.name);
+  const a4frisch = swAnlage('vergleich', hexNeu());
+  const dv = swOeffne(a4frisch.dir, a4frisch.hex);
+  const tabellenFrisch = dv.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+    .all().map(t => t.name);
+  dv.close();
+  pruefe('Und das Schema ist dasselbe wie das einer frischen Anlage',
+    gleich(tabellenNach, tabellenFrisch),
+    `nach dem Wechsel ${tabellenNach.length}, frisch ${tabellenFrisch.length}`);
+  d7.close();
+
+  /* Der veraltete Umgebungswert ist die Lage, in der jemand den Wechsel ein
+     zweites Mal faehrt, ohne die .env nachgezogen zu haben. Die Anlage laesst
+     sich damit gar nicht erst oeffnen -- und das ist die richtige Antwort. */
+  const zweiter = swRuf(['wechseln', '--env', envDatei, '--ja'], a4.dir, envAlt);
+  pruefe('Ein zweiter Wechsel mit dem VERALTETEN Umgebungswert wird abgewiesen',
+    zweiter.code !== 0, `Rueckgabe ${zweiter.code}: ${zweiter.aus.slice(0, 200)}`);
+  pruefe('Und die .env steht dabei unveraendert da',
+    fs.readFileSync(envDatei, 'utf8') === envNachher);
+
+  fs.rmSync(SW, { recursive: true, force: true });
 }
