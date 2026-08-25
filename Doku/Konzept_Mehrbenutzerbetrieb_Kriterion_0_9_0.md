@@ -360,6 +360,11 @@ Block im Projekt. Wer von 0.8.20 kommt, fährt beide in einem Start. Nachgestell
 lässt sich nur **nullbar** nachrüsten (Projektstand, Stolperstein 105); für
 `links` war das ohnehin die richtige Form.
 
+**0.9.0 bringt keine Tabelle und keine Spalte.** Der Mailzugang liegt als ein
+Schlüssel in `settings`, und `users.email` steht seit 0.6.0 im Schema — sie
+wurde bis dahin nur von keiner Stelle **geschrieben**. Die Frist ab dem ersten
+Öffnen kommt ohne eigene Spalte aus: geschrieben wird `tokens.ablauf`.
+
 **`tokens` ist gebaut (Stufe H, 0.8.80)** — und mit **einer Spalte mehr** als
 hier entworfen: `tokens (hash, user_id, zweck, ablauf, benutzt_am,
 created_at)`. `created_at` steht dazu, weil jede andere Tabelle des Schemas es
@@ -468,9 +473,17 @@ dafür ist der Schalter da, und beide Stellungen sind jederzeit umkehrbar.
 | `filters` — Filter- und Sortierwahl | `title_public`, `title_app` |
 | `schrift` — Schriftgröße | `vokabular` — elf Wörter |
 | `bloecke` — Anordnung und Einklappzustand | `tagsFreiAnlegen`, `kategorienFreiAnlegen` *(0.8.4)* |
-| `suchNamen` — Zahl der Anbieternamen | `registrierung` *(Stufe I)* |
-| `linkZeilen` — sichtbare Linkzeilen | Mail-Einstellungen, öffentliche Adresse *(Stufe I)* |
+| `suchNamen` — Zahl der Anbieternamen | `registrierung` *(offen, 0.9.1)* |
+| `linkZeilen` — sichtbare Linkzeilen | `mailzugang` *(0.9.0 — **beim Eigentümer**, nicht beim Admin)* |
 | `zeitleiste` — ein/aus | `suche`, `sucheEigene`, `sucheAktiv` |
+| | `mailtestOk` — die Marke der letzten erfolgreichen Testmail *(0.9.0)* |
+
+**Der Mailzugang ist die eine Zeile in `settings`, die NICHT dem Admin
+gehört** — und die einzige Ausnahme von „global heißt Adminsache". Der Grund
+steht in Abschnitt 11: ein Admin, der den SMTP-Server setzt, böge die
+Rücksetzmail des Eigentümers auf einen Server seiner Wahl. **Die öffentliche
+Adresse steht ausdrücklich nicht in dieser Tabelle** — sie liegt in der `.env`
+und ist gar keine Einstellung im Sinne dieses Abschnitts.
 
 Das Vokabular bleibt global — es ist die Sprache der Anwendung, keine
 Ansichtssache. Blockanordnung und Einklappzustand liegen weiterhin **nicht**
@@ -551,6 +564,37 @@ E-Mail-Adresse an, kein Passwort. Admin prüft und schaltet frei. Erst danach
 erzeugt der Server einen Token, und der Benutzer setzt über den Link sein
 Passwort selbst.
 
+**Entschieden für 0.9.1, und es ist ein Schritt mehr als hier entworfen: eine
+Bestätigungsmail VOR der Freischaltung** (Double Opt-in). Sie schließt eine
+Lücke, die dieser Entwurf offen ließ: ohne sie kann jeder eine **fremde**
+Adresse in die Liste des Admins schreiben, und beim Freischalten schickte die
+Anlage einer Person, die nie gefragt hat, eine Mail mit Passwortkraft. Der
+Ablauf wird damit:
+
+1. Anfrage mit Name und Adresse. **Die Antwort sieht immer gleich aus.**
+2. Die Anlage schickt sofort eine **Bestätigungsmail** — ein kurzer Link
+   **ohne** Passwortkraft. Wer ihn anklickt, sagt nur „ja, das bin ich".
+3. Erst die **bestätigte** Anfrage erscheint beim Admin. Unbestätigte verfallen.
+4. Der Admin schaltet frei → jetzt entsteht der Zugang samt Token, und die
+   Einladungsmail geht hinaus.
+5. Passwort setzen über den bekannten Weg aus Stufe H.
+
+**Das macht drei Mailanlässe statt zwei** (Abschnitt 11) — und das ist die
+Ausnahme, die dort benannt gehört.
+
+**Und der Schalter `registrierung` wird an den funktionierenden Versand
+gekoppelt.** Ohne Mail läuft die Selbstanmeldung ins Leere: der Anfragende
+bekäme nie einen Link. Einschalten geht nur, wenn seit der letzten Änderung am
+Mailzugang eine Testmail durchgekommen ist; die Marke dafür (`mailtestOk`) ist
+in 0.9.0 schon gebaut. **Ausschalten geht immer**, und geht der Versand später
+kaputt, bleibt der Schalter an und die Karte sagt es rot — ein Schalter, der
+sich von selbst umlegt, wäre eine zweite Wahrheit.
+
+**Zwei Betriebsarten wird es NICHT geben.** Eine Lage, in der der geklickte
+Token allein freischaltet und kein Admin zusieht, wäre ein anderes Produkt:
+Kriterion ist ein Archiv für eine kleine Gruppe, kein Forum. Und zwei
+Betriebsarten wären genau die zweite Wahrheit, die Abschnitt 1 ausschließt.
+
 **Die Antwort auf eine Registrierung sieht immer gleich aus**, egal ob Name oder
 Adresse bereits existieren („Danke, die Anfrage liegt beim Admin").
 Andernfalls ist das Formular ein Werkzeug zum Durchprobieren von Adressen.
@@ -590,8 +634,9 @@ verstreicht — wer sie verpasst, holt einen neuen Link.
 gibt. Der Preis, ehrlich benannt — hinterher ist nicht mehr zu sehen, **ob** ein
 Link schon einmal geöffnet wurde, nur noch, wann er abläuft.
 
-**Fünf Stellen, an denen anders gebaut wurde als hier beschrieben** — sie
-gelten ab jetzt in dieser Form:
+**Sechs Stellen, an denen anders gebaut wurde als hier beschrieben** — sie
+gelten ab jetzt in dieser Form. Die sechste ist die Frist darüber, gebaut in
+0.9.0; die ersten fünf sind aus Stufe H:
 
 1. **SHA-256 ohne Salz, nicht scrypt.** Das Papier sagte nur „der Hash". scrypt
    schützt *ratbare* Geheimnisse; ein Token trägt 256 Bit aus dem
@@ -603,10 +648,12 @@ gelten ab jetzt in dieser Form:
    dasselbe beim **Sperren** und **Entfernen**. Das Papier sagte „einmal
    gültig" und meinte den einen Link; läge noch ein älterer in einem fremden
    Verlauf, setzte er hinterher ein zweites Mal ein Passwort.
-3. **Der Server gibt nur den Token heraus, nie den fertigen Link.** Die
-   vollständige Adresse baut der Browser des Admins aus `location`. Damit
-   stellt sich die Frage nach der öffentlichen Adresse aus Abschnitt 11 in
-   dieser Stufe gar nicht.
+3. **Der Server gibt nur den Token heraus, nie den fertigen Link** — *so galt
+   es in Stufe H*. **Seit 0.8.90 gibt er den fertigen Link heraus, wenn
+   `OEFFENTLICHE_ADRESSE` gesetzt ist** (`link` und `linkQuelle`), und **seit
+   0.9.0 braucht der Versand ihn**: beim Verschicken gibt es keinen Browser zu
+   fragen. Ist die Einstellung leer, baut der Browser des Admins ihn weiter aus
+   `location`, und es wird nicht verschickt.
 4. **Die Absage vor der Anmeldung ist EINE**, für abgelaufen, schon benutzt,
    erfunden und „Zugang gesperrt" — nicht weil eine Auskunft verschwiegen
    werden soll, sondern weil das **Heilmittel in jedem Fall dasselbe** ist.
@@ -789,9 +836,15 @@ die Versandfunktion **wirft nicht**, sie liefert ein Ergebnis.
 **Es gibt genau ZWEI Anlässe für eine Mail** — den Tokenlink und die Testmail.
 Keine Benachrichtigungen: nicht „jemand hat kommentiert", nicht „etwas ist
 offen". Wer das später will, bekommt eine eigene Runde und eine eigene
-Entscheidung darüber, wer zustimmt. *(Mit der Selbstanmeldung in 0.9.1 kommt
-ein dritter dazu: die Bestätigungsmail des Double Opt-in. Sie steht in
-Abschnitt 10.)*
+Entscheidung darüber, wer zustimmt.
+
+**Mit 0.9.1 kommt ein DRITTER dazu, und er ist die benannte Ausnahme:** die
+**Bestätigungsmail** der Selbstanmeldung. Sie trägt einen Link **ohne
+Passwortkraft** — wer ihn anklickt, sagt nur „ja, das bin ich" — und sie ist
+der Beleg, dass die Adresse dem Anfragenden gehört. Ohne sie könnte jeder eine
+**fremde** Adresse in die Liste des Admins schreiben, und beim Freischalten
+ginge einer Person, die nie gefragt hat, eine Mail mit Passwortkraft zu. Der
+Ablauf steht in Abschnitt 10. **Eine Benachrichtigung ist auch sie nicht.**
 
 **Der Inhalt der Mail:** reiner Text, kein HTML, keine Bilder, keine Zählpixel,
 keine Anhänge. Eine Mail, die ein Passwortsetzen ankündigt, hat keinen Grund,
