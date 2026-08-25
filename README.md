@@ -127,6 +127,11 @@ Gewechselt wird **auf dem Wirt**, im Projektverzeichnis:
 ./schluessel.sh wechseln     # anhalten, sichern, wechseln, starten
 ```
 
+> **„Keine Berechtigung"?** Dann fehlt dem Skript das Ausführungsrecht —
+> `python3 -m zipfile -e` im Einspielweg bringt es nicht mit. Einmal
+> `chmod +x schluessel.sh`, und es ist erledigt; ohne das Recht geht auch
+> `bash schluessel.sh zeigen`.
+
 **Warum nicht auf Knopfdruck in der Oberfläche?** Zwei Gründe. Der Anlass ist
 **einmalig** — ein dauerhafter Knopf für ein einmaliges Ereignis, und
 ausgerechnet der eine, der bei falscher Handhabung **alles** verliert, wäre ein
@@ -1188,7 +1193,17 @@ mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
 mv kriterion-alt/kriterion-sicherung kriterion/ 2>/dev/null   # nur bei Ort im Projekt
+chmod +x kriterion/schluessel.sh          # das ZIP bringt das Recht nicht mit
 cd kriterion && docker compose up -d --build
+```
+
+**Die `chmod`-Zeile ist nicht überflüssig.** `python3 -m zipfile -e` stellt
+**keine Ausführungsrechte** wieder her — anders als `unzip`, das es tut.
+Ohne sie antwortet `./schluessel.sh` mit „Keine Berechtigung". Es geht dann
+auch ohne das Recht:
+
+```bash
+bash schluessel.sh zeigen
 ```
 
 **Die vorletzte Zeile gilt nur, solange der Sicherungsort im

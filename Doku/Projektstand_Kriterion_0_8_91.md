@@ -161,7 +161,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.91 ist gebaut** — Fingerprint **`a810f529`**, 3006
+**0.8.91 ist gebaut** — Fingerprint **`a810f529`**, 3010
 Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs und KEINE Datenbankstufe:**
 diese Runde bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf**
 markierten Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts**
@@ -442,8 +442,15 @@ python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion               # GitHub hängt den Branchnamen an
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # OHNE DIESE ZEILE STARTET NICHTS
+chmod +x kriterion/schluessel.sh          # das ZIP bringt das Recht nicht mit
 cd kriterion && docker compose up -d --build
 ```
+
+**Die `chmod`-Zeile ist seit 0.8.91 im Weg, und sie ist nachgestellt:**
+`python3 -m zipfile -e` stellt **keine Ausführungsrechte** wieder her, `unzip`
+dagegen schon. Im Repo trägt `schluessel.sh` den Modus `100755`; auf dem Wirt
+kommt er ohne ihn an, und `./schluessel.sh` antwortet „Keine Berechtigung"
+(Stolperstein 140). Ohne das Recht geht `bash schluessel.sh`.
 
 **Seit 0.8.70 legt `docker compose` beim ersten Start ein zweites Verzeichnis
 an**: `../kriterion-sicherung` neben dem Projektordner. Dorthin schreibt die
@@ -3650,6 +3657,18 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     der Rückbauten gehört gegen die Liste der neuen Verhaltensweisen gehalten,
     nicht gegen ein Gefühl für die Zahl.*
 
+140. **`python3 -m zipfile -e` stellt keine Ausführungsrechte wieder her.**
+    `schluessel.sh` trägt im Repo den Modus `100755`; auf dem Wirt kam es ohne
+    das Recht an, und `./schluessel.sh` antwortete **„Keine Berechtigung"**.
+    Der Einspielweg packt das ZIP mit Pythons `zipfile` aus, und das schreibt
+    die Modusbits nicht zurück — **`unzip` tut es**, nachgestellt an beiden.
+    Der Weg trägt jetzt eine `chmod +x`-Zeile, und **ein Wächter hält beide
+    Hälften**: das Recht an der Datei **und** die Zeile im Einspielweg —
+    dieselbe Bauform wie bei Einhängung und `SICHERUNG_DIR` (Stolperstein 123).
+    *Ein Recht, das nur im Repo steht, ist auf dem Wirt keins.* Gefunden im
+    Betrieb, nicht im Prüfstand: der Prüfstand läuft im Arbeitsbaum, und dort
+    stimmt das Recht.
+
 139. **Ein `on('exit')`, das nach dem Ende registriert wird, feuert nie.**
     `new Promise(r => { kind.on('exit', r); kind.kill(); })` wartet für immer,
     wenn das Kind schon von selbst geendet hat — **ohne CPU, ohne Meldung, und
@@ -3675,15 +3694,16 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3006 von 3006 bestanden** (0.8.91; **97 neue
-Prüfungen, 18 Gegenproben, zehn neue Gruppen**: „Der
+**Zuletzt: 3010 von 3010 bestanden** (0.8.91; **101 neue
+Prüfungen, 18 Gegenproben, elf neue Gruppen**: „Der
 Schlüsselwechsel: der Rundlauf", „… die Umschaltung des Journals", „… der
 Dateifall und der env-Fall", „… kein Schlüssel, wo keiner hingehört", „… der
 Abbruch mittendrin", „… zu wenig Platz", „… was er nicht anfasst",
-„Die Sicherung: zwei Schlüssel im Umlauf" und die beiden Wächter über den
-Prüfstand selbst — „Die Portbasen und der Versatz" und „Keine Prüflage lässt
-ihren Server zurück"; dazu die Erweiterung von „Die Sicherung in der
-Oberfläche" um die drei Lagen des Wechsels.
+„Die Sicherung: zwei Schlüssel im Umlauf", „Das Skript auf dem Wirt ist
+ausführbar" und die beiden Wächter über den Prüfstand selbst — „Die Portbasen
+und der Versatz" und „Keine Prüflage lässt ihren Server zurück"; dazu die
+Erweiterung von „Die Sicherung in der Oberfläche" um die drei Lagen des
+Wechsels.
 
 **Der Schlüsselwechsel wird an echten Prozessen gegen echte, verschlüsselte
 Anlagen geprüft**, ohne Server: gewechselt wird bei angehaltener Anlage, und
@@ -4303,9 +4323,13 @@ sind zwei Dinge:
 - **Der Schlüsselwechsel steht bereit und ist an dieser Anlage noch nicht
   gefahren worden** (Stand 0.8.91). Der Anlass ist da — der Schlüssel lag bis
   zum 13. August 2025 neben der Datenbank (Abschnitt 3) —, und der Weg steht in
-  der README. **Vorher an einer Wegwerfanlage ausprobieren**, und `docker
-  compose run --rm` bei gesetztem `container_name` dabei mit ansehen: das ist
-  in der Umgebung, in der 0.8.91 gebaut wurde, nicht nachzustellen gewesen.
+  der README. **Vorher an einer Wegwerfanlage ausprobieren.**
+  **`./schluessel.sh zeigen` ist auf der Anlage bereits gelaufen** und hat die
+  eine offene Frage beantwortet: `docker compose run --rm` kommt mit gesetztem
+  `container_name` klar — der Wegwerf-Container heißt
+  `kriterion-kriterion-run-<hash>`. Gemessen dabei: **662,5 MB** Datenbank,
+  **728,7 MB** gebraucht, **rund 13 Sekunden** angesagt. Die Rechnung aus
+  20 ms je MB geht auf.
 - **Dateien lassen die Datenbank wachsen.** Bei 50 MB je Stück lohnt
   gelegentlich ein Blick auf die Kennzahlen im Systembereich — und daran zu
   denken, dass die Sicherung entsprechend größer wird.
@@ -4380,7 +4404,7 @@ Nebenspuren und zwei Wächter über die eigenen Prüflagen.
 siebzehn, Formatnummer unverändert 10, keine neue Abhängigkeit.
 **Berichtigt:** es sind **sechs** Wege über **fünf** Routen hinter der zweiten
 Bestätigung, nicht sieben über sechs.
-3006 Prüfungen, 18 Gegenproben, Stolpersteine 134 bis 139.
+3010 Prüfungen, 18 Gegenproben, Stolpersteine 134 bis 140.
 
 **0.8.90 — „Schwere Eingriffe".** Keine Stufe des Mehrbenutzerbetriebs, aber
 eine Datenbankstufe ohne Migrationsblock. Die **zweite Bestätigung** vor sechs

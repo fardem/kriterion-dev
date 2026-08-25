@@ -12183,6 +12183,39 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pbOben + (VERSATZ_SPUREN - 1) * VERSATZ_STUFE < 32768,
     `hoechste Nummer ${pbOben + (VERSATZ_SPUREN - 1) * VERSATZ_STUFE}`);
 
+  gruppe('Das Skript auf dem Wirt ist ausfuehrbar');
+
+  /* ZWEI HAELFTEN, DIE ZUSAMMENGEHOEREN -- dieselbe Bauform wie beim
+     Sicherungsort (Einhaengung und Variable).
+     BEFUND AUS DEM BETRIEB: schluessel.sh traegt im Repo den Modus 100755,
+     kam auf dem Wirt aber ohne das Ausfuehrungsrecht an. Der Einspielweg packt
+     das ZIP mit `python3 -m zipfile -e` aus, und das stellt KEINE Rechte
+     wieder her -- unzip dagegen schon. Nachgestellt statt geglaubt.
+     Deshalb wird BEIDES gehalten: das Recht an der Datei UND die chmod-Zeile
+     im Einspielweg. Faellt eine der beiden weg, antwortet ./schluessel.sh auf
+     dem Wirt mit "Keine Berechtigung" (Stolperstein 140). */
+  {
+    const wirtSkripte = ['schluessel.sh'];
+    pruefe('Der Lauf kennt das Skript auf dem Wirt',
+      wirtSkripte.every(n => fs.existsSync(path.join(__dirname, n))),
+      wirtSkripte.join(' · '));
+    const ohneRecht = wirtSkripte.filter(n => {
+      try { return (fs.statSync(path.join(__dirname, n)).mode & 0o111) === 0; }
+      catch { return true; }
+    });
+    pruefe('Es traegt das Ausfuehrungsrecht',
+      ohneRecht.length === 0, `ohne Recht: ${ohneRecht.join(' · ') || '—'}`);
+    /* Und die zweite Haelfte: der Einspielweg in der README zieht es nach.
+       Ohne sie steht das Recht zwar im Repo, kommt auf dem Wirt aber nicht an. */
+    const liesmich = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    pruefe('Der Einspielweg in der README zieht das Recht nach',
+      /chmod \+x kriterion\/schluessel\.sh/.test(liesmich),
+      'die Zeile "chmod +x kriterion/schluessel.sh" fehlt');
+    pruefe('Und er sagt, warum sie noetig ist',
+      /python3 -m zipfile -e[\s\S]{0,200}?Ausführungsrechte/.test(liesmich),
+      'der Grund steht nicht daneben');
+  }
+
   gruppe('Keine Prueflage laesst ihren Server zurueck');
 
   /* IN 0.8.90 HABEN ZWEI LAGEN IHRE SERVER ZURUECKGELASSEN, und aufgefallen

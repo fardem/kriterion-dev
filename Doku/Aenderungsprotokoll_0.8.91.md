@@ -78,7 +78,7 @@ eingeschlossen, die vorher an der Zählung vorbeilief: Portbasis, gewählte
 Nummer und das Kind. Daran hängen beide Wächter — *es ist eine Liste und kein
 Zähler: der Wächter soll sagen, WELCHE Lage liegengeblieben ist.*
 
-Dazu **zehn neue Prüfgruppen** und die Erweiterung von „Die Sicherung in der
+Dazu **elf neue Prüfgruppen** und die Erweiterung von „Die Sicherung in der
 Oberfläche"; Einzelheiten in Abschnitt 5.
 
 ### `schluessel.js` (neu, 324 Zeilen) — der Vorgang
@@ -523,7 +523,7 @@ an einer Stelle ab, an der die Prüfung darüber längst rot war.
 sind gleich.
 
 **Nachgestellt:** derselbe Rückbau färbt jetzt **19** Prüfungen namentlich rot,
-und der Lauf zählt seine 3006 zu Ende.
+und der Lauf zählt seine 3010 zu Ende.
 ### K. Zwei Gegenproben hingen — und dahinter lagen zwei Fehler, Stolperstein 139
 
 **Der zweite Gegenprobenlauf hat den unangenehmsten Fund der Runde gebracht,
@@ -604,6 +604,36 @@ die keine Prüfung rot macht, sagt nicht „der Code ist richtig", sondern „hi
 prüft niemand"** — und deshalb ist die Liste gegen die Liste der neuen
 Verhaltensweisen zu halten, nicht gegen ein Gefühl für die Zahl.*
 
+### M. „Keine Berechtigung" auf dem Wirt — Stolperstein 140
+
+**Gefunden im Betrieb, beim ersten Aufruf auf dem Server:**
+
+```
+./schluessel.sh zeigen
+-bash: ./schluessel.sh: Keine Berechtigung
+```
+
+`schluessel.sh` trägt im Repo den Modus **`100755`** — das Recht ist da. Es
+geht auf dem **Einspielweg** verloren: der packt das ZIP mit
+`python3 -m zipfile -e` aus, und **Pythons `zipfile` schreibt die Modusbits
+nicht zurück**. Nachgestellt an beiden Wegen: `unzip` erhält das Recht,
+`python3 -m zipfile -e` nicht.
+
+Behoben in drei Teilen:
+
+* Der **Einspielweg** trägt eine Zeile `chmod +x kriterion/schluessel.sh`, mit
+  dem Grund daneben — in der README **und** im Projektstand.
+* Die README nennt **`bash schluessel.sh`** als den Weg, der das Recht gar
+  nicht braucht, und beantwortet die Fehlermeldung wörtlich.
+* Ein **Wächter hält beide Hälften**: das Ausführungsrecht an der Datei **und**
+  die `chmod`-Zeile im Einspielweg samt Begründung. Dieselbe Bauform wie bei
+  Einhängung und `SICHERUNG_DIR` (Stolperstein 123) — zwei Angaben, die
+  zusammengehören und auseinanderlaufen können.
+
+*Der Prüfstand konnte das nicht finden: er läuft im Arbeitsbaum, und dort ist
+das Recht gesetzt. Der Wächter fängt jetzt den Fall, dass es im Repo verloren
+geht — den Fall auf dem Wirt fängt die `chmod`-Zeile.*
+
 ---
 
 ## 5. Der Prüfstand
@@ -621,11 +651,12 @@ Verhaltensweisen zu halten, nicht gegen ein Gefühl für die Zahl.*
 | Der Schlüsselwechsel: was er nicht anfasst | 6 |
 | Die Sicherung: zwei Schlüssel im Umlauf | 9 |
 | Die Portbasen und der Versatz | 8 |
+| Das Skript auf dem Wirt ist ausführbar | 4 |
 | Keine Prüflage lässt ihren Server zurück | 4 |
-| | **86** |
+| | **90** |
 
 Dazu **11** Prüfungen in „Die Sicherung in der Oberfläche" für die drei Lagen
-des Wechsels und die Einzahl/Mehrzahl der Zählung — zusammen **97**.
+des Wechsels und die Einzahl/Mehrzahl der Zählung — zusammen **101**.
 
 *Die Gruppe „Die Sicherung auf Knopfdruck" ist dabei geteilt worden: die Marke
 bekommt ihre eigene Überschrift, die Prüflage läuft danach unter „… ,
@@ -707,8 +738,8 @@ geschlossen.
 | | |
 |---|---|
 | Vorher (0.8.90) | 2909 |
-| Nachher (0.8.91) | **3006** |
-| Neu | **97** |
+| Nachher (0.8.91) | **3010** |
+| Neu | **101** |
 | Gegenproben | **18** |
 
 ---
@@ -751,11 +782,14 @@ geschlossen.
   vorhandenen Raum nicht aufgeht. **Wer es auflösen will, braucht entweder
   einen breiteren Raum oder eine schmalere Streuung als sechzig** — und das ist
   ein Umbau, kein Nachtrag.
-* **`docker compose run --rm` bei gesetztem `container_name` ist nicht
-  nachgestellt.** In der Umgebung, in der diese Runde gebaut wurde, läuft kein
-  Docker-Daemon. **Das gehört vor dem ersten echten Wechsel auf dem Server an
-  einer Wegwerfanlage geprüft**; `schluessel.sh` nennt den Rückfallweg nicht,
-  und er müsste dann nachgetragen werden.
+* ~~**`docker compose run --rm` bei gesetztem `container_name` ist nicht
+  nachgestellt.**~~ **Erledigt, auf der Anlage selbst.** `./schluessel.sh
+  zeigen` läuft dort durch; der Wegwerf-Container heißt
+  `kriterion-kriterion-run-<hash>` und kommt dem laufenden `kriterion` nicht in
+  die Quere. Ein Rückfallweg wird nicht gebraucht.
+  *Gemessen dabei, und die Rechnung geht auf:* 662,5 MB Datenbank, 728,7 MB
+  gebraucht (die Größe plus zehn Prozent), **rund 13 Sekunden** angesagt —
+  662,5 × 20 ms sind 13,25 s.
 * **Ein echter Teillauf im Prüfstand.** `pruefung.js` ist EIN Ablauf; der
   Namensfilter filtert die Ausgabe, nicht die Arbeit. W1 und W2 mildern das,
   sie beheben es nicht.
