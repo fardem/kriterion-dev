@@ -54,7 +54,12 @@ const gruppe = (name) => {
   stumm = FILTER !== '' && !name.toLowerCase().includes(FILTER.toLowerCase());
   if (stumm) { gruppenStill++; return; }
   gruppenGezeigt++;
-  console.log(`\n── ${name} ${'─'.repeat(Math.max(0, 58 - name.length))}`);
+  /* MINDESTENS ZWEI STRICHE, auch bei einem langen Namen. Eine Ueberschrift
+     von 58 Zeichen erzeugte sonst gar keinen -- und wer die Ausgabe liest
+     (gegenprobe.js tut das), erkennt die Zeile dann nicht als Gruppe und
+     schreibt die roten Punkte der VORIGEN zu. Genau das ist in der ersten
+     Gegenprobentabelle dieser Runde passiert. */
+  console.log(`\n── ${name} ${'─'.repeat(Math.max(2, 58 - name.length))}`);
 };
 function pruefe(name, bedingung, hinweis = '') {
   // Die Bedingung ist beim Aufruf laengst gerechnet -- der Filter nimmt die

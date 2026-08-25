@@ -225,7 +225,11 @@ function leseLauf(ausgabe) {
   const rot = [];
   let gruppe = '(vor der ersten Gruppe)';
   for (const zeile of ausgabe.split('\n')) {
-    const g = zeile.match(/^── (.+?) ─+\s*$/);
+    // ─* und nicht ─+: eine Ueberschrift, die die Zeile fuellt, traegt gar
+    // keinen Strich mehr. Der Pruefstand setzt seit dieser Runde mindestens
+    // zwei -- der Leser hier gibt sich trotzdem mit keinem zufrieden, denn er
+    // liest auch aeltere Ausgaben.
+    const g = zeile.match(/^── (.+?) ─*\s*$/);
     if (g) { gruppe = g[1]; continue; }
     const p = zeile.match(/^ {2}✗ (.+)$/);
     if (p) rot.push({ gruppe, name: p[1] });
