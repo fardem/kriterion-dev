@@ -86,8 +86,8 @@ const RUECKBAUTEN = [
   {
     nr: '05', name: 'Die aeussere Schranke ueber dem Versand faellt weg',
     datei: 'mail.js',
-    suche: "      await Promise.race([",
-    ersatz: "      await Promise.race([ new Promise(() => {}),",
+    suche: "        frist\n      ]);",
+    ersatz: "      ]);",
     erwartet: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
   {
@@ -95,7 +95,7 @@ const RUECKBAUTEN = [
     datei: 'mail.js',
     suche: "    connectionTimeout: VERBINDUNG_MS, greetingTimeout: GRUSS_MS, socketTimeout: VERSAND_MS,",
     ersatz: "",
-    erwartet: '(erwartet STUMM oder die Fristgruppe — die aeussere Schranke traegt allein)'
+    erwartet: '(erwartet STUMM — die aeussere Schranke traegt die Zusage allein; nodemailers Fristen sind der schnellere, nicht der tragende Weg)'
   },
   /* ---- Der Versand: die oeffentliche Adresse ---- */
   {

@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 20 · Stand 25. August 2026 · gebaut: Version 0.8.91**
+**Kompakte Übergabe · Revision 21 · Stand 25. August 2026 · gebaut: Version 0.9.0**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,81 +8,88 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 20 ist.** Revision 19 trug 0.8.90 nach. Diese trägt **0.8.91**
-nach — **„Der Schlüssel lässt sich wechseln"**, und das ist **keine Stufe des
-Mehrbenutzerbetriebs**: der ist mit Stufe H bis auf **Stufe I** gebaut, und die
-bleibt bei 0.9.0.
+**Was Revision 21 ist.** Revision 20 trug 0.8.91 nach. Diese trägt **0.9.0**
+nach — **„Der Server verschickt selbst"**, und das ist die **erste Hälfte von
+Stufe I** des Mehrbenutzerbetriebs. Der Abbruchpunkt, den das Konzeptpapier
+seit Langem nennt (*„nach dem Versand, vor der Selbstregistrierung"*), ist
+gezogen worden; die **Selbstanmeldung wird 0.9.1**.
 
-**0.8.91 in einem Satz: der Schlüssel der Datenbank lässt sich wechseln — auf
-dem Wirt, bei angehaltener Anlage, mit der `.env` in einem Zug.** Dazu ein
-Werkzeugpunkt, der vor dem Bau stand: ein **Gegenprobentreiber** im Repo, ein
-**Portversatz** für Nebenspuren im Prüfstand und ein **Wächter über die eigenen
-Prüflagen**.
+**0.9.0 in einem Satz: Einladungs- und Rücksetzlinks gehen per Mail hinaus —
+und wer keinen Mailzugang einträgt, verliert nichts.** Das ist die tragende
+Zusage, und sie ist baulich und nicht durchgesetzt: der Token entsteht
+**zuerst**, die Antwort trägt den Link **immer**, und das Ergebnis des Versands
+ist ein **Feld** darin (`versand`, dazu `versandGrund`). Die Versandfunktion in
+`mail.js` **wirft nicht** — sie liefert ein Ergebnis, und damit kann ein
+vergessenes `try` den Tokenweg gar nicht mitreißen.
 
-**Der Wechsel steht ausdrücklich NICHT in der Oberfläche, und das ist die
-tragende Entscheidung dieser Runde.** Der Auftrag sah einen Knopf im
-Systembereich vor, hinter der zweiten Bestätigung. Zwei Gründe haben das
-gedreht, und beide sind vor dem Bau besprochen worden:
+**Was sich wirklich ändert, ist die Betriebsart.** Bis 0.8.91 hat die Anlage
+nur auf Anfragen geantwortet. Ab dieser Version baut sie von sich aus eine
+Verbindung zu einem fremden Server auf — ausgehend, zu genau einem Server, kein
+Empfang, kein offener Port.
 
-* **Der Anlass ist einmalig, nicht wiederkehrend.** SQLCipher-Schlüssel altern
-  nicht; es gibt keine Ablauffrist und keine Rotationsvorschrift. Der eine
-  echte Anlass steht in Abschnitt 3: der Schlüssel lag bis zum 13. August 2025
-  **neben** der Datenbank, und jede Kopie von `data/` aus dieser Zeit öffnet
-  die heutige Datei. *Ein dauerhafter Knopf für ein einmaliges Ereignis — und
-  ausgerechnet der eine, der bei falscher Handhabung alles verliert — ist ein
-  schlechtes Tauschgeschäft.*
-* **Der Knopf könnte die Sache gar nicht zu Ende bringen.** Kommt der
-  Schlüssel aus der `.env`, kennt die Anlage den neuen Wert, erreicht die Datei
-  aber nicht: sie ist per `.dockerignore` nicht einmal im Image. Auf dem Wirt
-  liegt sie — dort werden Datenbank und `.env` **in einem Zug** nachgezogen.
+**Der Mailzugang gehört dem EIGENTÜMER, ganz** — eintragen, einsehen und die
+Testmail auslösen. Ein Admin kommt an keines davon. *Das ist eine Abweichung
+vom Auftrag dieser Runde*, der die `.env` vorsah, und die Begründung des
+Auftrags trägt weiter — sie trifft nur den **Admin**: der SMTP-Server sieht jede
+Mail, und jede trägt einen Link, der ein Passwort setzt; dürfte ein Admin ihn
+eintragen, liefe die Rücksetzmail des Eigentümers über einen Server seiner Wahl.
+Über dem Eigentümer steht niemand. Zwei Dinge sprechen sogar dafür, und beide
+sind nachgesehen: das Mailpasswort liegt damit in der **verschlüsselten
+Datenbank** statt unverschlüsselt auf dem Wirt, und die **Exportdatei trägt es
+nicht**. **Es kommt damit keine neue `.env`-Zeile dazu.**
 
-**Gebaut ist deshalb `schluessel.sh` samt `schluessel.js`** — dieselbe Teilung
-wie `zugang.js` neben `auth.js`: das Shell-Skript macht den Ablauf (anhalten,
-sichern, rufen, starten), das Node-Skript den Wechsel selbst im
-Wegwerf-Container. **Die Anlage steht dabei wirklich still**, und das ist keine
-Unbequemlichkeit, sondern eine Bedingung: ein laufender Server hält die Datei
-im WAL-Modus offen, und `PRAGMA rekey` läuft dort nicht (Stolperstein 128).
+**Drei Dinge, die der Auftrag nicht vorsah und die diese Runde gebraucht hat:**
 
-**Was in der Anlage selbst dazukommt, ist klein und trägt weit:** der
-fünfzehnte Vorgang `schluessel` im Sicherheitsprotokoll (ohne Handelnden, ohne
-Ziel, ohne Merkmal — *die Zeile nennt, DASS gewechselt wurde, nie WOHIN*), die
-Marke `schluesselGewechseltAm` in `settings` und die **rote Markierung jeder
-Sicherung, die älter ist als der Wechsel**. Letztere ist der wertvollste Teil:
-**ab einem Wechsel sind zwei Schlüssel im Umlauf**, und wer das nicht weiß,
-hält die alten Kopien im Ernstfall für defekt.
+* **`users.email` wurde von KEINER Stelle im Projekt geschrieben.** Die Spalte
+  stand seit 0.6.0 im Schema, wurde in `holeZugang` gelesen und in
+  `entferneZugang` geleert — mehr nicht. Ohne einen Schreibweg hätte die
+  Einladungsmail keinen Empfänger und die Testmail kein Ziel gehabt. Gebaut sind
+  **zwei** Wege und ausdrücklich kein dritter: beim **Anlegen**
+  (`POST /api/users`) und am **eigenen Zugang** (`PUT /api/account`, hinter dem
+  bisherigen Passwort). `PUT /api/users/:id` bekommt sie **nicht** — ein Admin,
+  der eine bestehende fremde Adresse umschreiben dürfte, böge den nächsten
+  Rücksetzlink des Betroffenen um.
+* **Die zweite Frist am Token:** ab dem **ersten Öffnen** bleiben **fünfzehn
+  Minuten**. Die sieben Tage sind die Frist fürs *Lesen der Mail*, nicht fürs
+  Liegen des Links. Gebaut ohne neue Spalte — geschrieben wird `tokens.ablauf`.
+  Der einzige Eingriff in den Tokenweg aus 0.8.80.
+* **Ein Befund aus dem Betrieb ist behoben:** eine **vorübergehende** Absage
+  (die 429 der Anmeldebremse) warf den Schlüssel aus der Adresse, und ein
+  gültiger Einladungslink sah danach tot aus. Nachgestellt an einem echten
+  Server: der Token galt unverändert weiter. Jetzt leert nur die **endgültige**
+  Absage (400) die Adresse; bei allem anderen bleibt der Schlüssel stehen und
+  die Seite bietet einen zweiten Anlauf. Stolperstein **141**.
 
-**`F_ROUTEN` bleibt bei 57**, die Karten im Systembereich bleiben **siebzehn**,
-die Formatnummer bleibt bei **10**, `BESTAETIGUNG_ZWECKE` bleibt bei **sechs**.
-Es gibt **keine neue Route, keinen neuen Bestätigungszweck, keine neue Tabelle
-und keine neue Spalte** — und damit auch **keinen sechsten Migrationsblock**.
-Keine neue Abhängigkeit, kein neuer Vokabeleintrag.
+**`F_ROUTEN` geht von 57 auf 59** (`PUT /api/mail`, `POST /api/mail/test`;
+`GET /api/mail` ist lesend und steht wie immer nicht dort), die Karten im
+Systembereich werden **achtzehn**, `BESTAETIGUNG_ZWECKE` geht von sechs auf
+**sieben** (`mail`), `MERKMALE` von zwölf auf **dreizehn** (`adresse`). **Die
+Vorgänge bleiben fünfzehn**, die Formatnummer bleibt **10**, das Vokabular
+bleibt bei **elf**, und es bleibt bei **fünf** markierten Migrationsblöcken:
+**0.9.0 ist KEINE Datenbankstufe** — der Mailzugang liegt in `settings`, und
+`users.email` gibt es seit 0.6.0.
 
-**Eine Zahl ist dabei berichtigt worden, und sie stand an drei Stellen falsch.**
-Revision 19 und das Änderungsprotokoll 0.8.90 sprachen von **„sieben Wegen über
-sechs Routen"**, die eine zweite Bestätigung verlangen. Nachgezählt am Quelltext
-sind es **sechs Wege über fünf Routen** — die Rechnung im Protokoll selbst
-(*„die sechs aus Abschnitt 11 minus dem Schlüsselwechsel, plus der Link"*)
-ergibt ebenfalls sechs. Die Zahl ist überall berichtigt; die Berichtigung steht
-als solche da.
+**Eine neue Laufzeitabhängigkeit, die erste seit Langem: `nodemailer`.**
+Nachgemessen statt geglaubt: Version 9.0.5, `npm ls --omit=dev` wächst um
+**genau ein Paket** (121 → 122 Pfade), 776 KB, Lizenz `MIT-0` aus dem Paket
+selbst gelesen. Der Baum ist flach. Die Zahl steht im Prüfstand fest.
 
-**0.8.90 davor** war **„Schwere Eingriffe"**: die **zweite Bestätigung** vor den
-schweren Wegen, das **Sicherheitsprotokoll** als Tabelle, in die sie schreibt,
-und die optionale **öffentliche Adresse** in der `.env`. Eine Datenbankstufe
-ohne Migrationsblock; `F_ROUTEN` ging von 56 auf 57, sechzehn Karten wurden
-siebzehn. Die tragende Frage war, wogegen das verteidigt: nicht gegen einen
-Fremden, sondern gegen eine **fremde offene Sitzung**. Daraus folgt, dass die
-Bestätigung **genau einmal** gilt, für **genau eine Handlung an genau einem
-Ziel**, und an **die Sitzung** gebunden ist, nicht an den Menschen.
+**0.8.91 davor** war **„Der Schlüssel lässt sich wechseln"** — `schluessel.sh`
+samt `schluessel.js` auf dem Wirt, der fünfzehnte Vorgang `schluessel` im
+Sicherheitsprotokoll, die rote Markierung jeder Sicherung, die älter ist als
+der Wechsel, und dazu der Werkzeugpunkt davor: `gegenprobe.js`, `PORT_VERSATZ`
+und zwei Wächter über den Prüfstand selbst. Keine Stufe, keine Datenbankstufe.
 
-**Was davor liegt, steht in Abschnitt 9** — 0.8.80 war Stufe H mit Einladung,
-Rücksetzung und „Meine Sitzungen", 0.8.71 verlegte den Sicherungsort,
-0.8.70 brachte Sicherung und Papierkorb, 0.8.60 machte „Offen" und „Neu seit"
-auffindbar, 0.8.50 stellte das Kurzvideo in dieselbe Reihe wie die Fotos,
-0.8.40 gab jedem Kriterium ein Gewicht, 0.8.30 und 0.8.31 gaben Links und
-Dateien einen Verfasser.
-**Damit ist der Mehrbenutzerbetrieb bis auf Stufe I gebaut.** Vollständig
-geblieben sind die Abschnitte 5 und 12 — Entscheidungen und Arbeitsweise.
-Bestände und Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
+**Was davor liegt, steht in Abschnitt 9** — 0.8.90 brachte die zweite
+Bestätigung, das Sicherheitsprotokoll und die öffentliche Adresse, 0.8.80 war
+Stufe H mit Einladung, Rücksetzung und „Meine Sitzungen", 0.8.71 verlegte den
+Sicherungsort, 0.8.70 brachte Sicherung und Papierkorb, 0.8.60 machte „Offen"
+und „Neu seit" auffindbar, 0.8.40 gab jedem Kriterium ein Gewicht, 0.8.30 und
+0.8.31 gaben Links und Dateien einen Verfasser.
+**Damit ist der Mehrbenutzerbetrieb bis auf die Selbstanmeldung gebaut.**
+Vollständig geblieben sind die Abschnitte 5 und 12 — Entscheidungen und
+Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht mehr
+berücksichtigt.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
 > trägt die **gebaute** Runde und die eine davor ausführlich; alles Ältere
@@ -91,7 +98,16 @@ Bestände und Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
 > Version wächst, wird irgendwann nicht mehr gelesen — und dann nützt es
 > niemandem mehr.
 
-**Für den Betrieb ändert sich mit 0.8.91 zweierlei.** Die **Sicherung des
+**Für den Betrieb ändert sich mit 0.9.0 wenig, und nichts davon ist Pflicht.**
+Wer keine Mail will, spielt ein wie immer und merkt nichts. Wer sie will,
+trägt `OEFFENTLICHE_ADRESSE` in die `.env` ein (**ohne sie wird nicht
+verschickt**), füllt die Karte „Mailversand" aus und drückt die **Testmail**.
+**Es kommt kein neuer Wert in die `.env`**, und die `docker-compose.yml` ist
+unberührt. Die **Sicherung des Datenverzeichnisses bleibt im Einspielweg
+empfohlen wie immer** — Pflicht ist sie nicht, denn diese Runde ist keine
+Datenbankstufe. Einzelheiten in Abschnitt 2.
+
+**Für den Betrieb änderte sich mit 0.8.91 zweierlei.** Die **Sicherung des
 Datenverzeichnisses steht wieder als PFLICHT im Einspielweg** — und wer den
 Schlüssel wechselt, braucht sie **doppelt**: davor, und die `.env` dazu. Das
 Skript nimmt beides ab, aber es ersetzt nicht die Kopie, die woanders liegt.
@@ -103,10 +119,10 @@ Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
 Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` gepflegt und
-nur dort; von seinen Stufen ist **allein Stufe I offen** — diese Runde hat
-daran nichts bewegt. **Das Konzeptpapier ist von 0.8.91 nicht berührt worden
-und behält seinen Dateinamen:** die Runde ist keine Stufe und rührt an keiner
-seiner Regeln.
+nur dort; **offen ist allein die zweite Hälfte von Stufe I**, die
+Selbstanmeldung. **Das Konzeptpapier ist mit dieser Runde fortgeschrieben und
+umbenannt worden** — Abschnitt 11 steht auf dem, was gebaut ist, Abschnitt 10
+trägt die zweite Frist, und die Stufentabelle nennt I₁ als erledigt.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
 > `admin` < `eigentuemer`. **Benutzer** schreibt eigene Beiträge. **Admin**
@@ -161,7 +177,37 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.91 ist gebaut** — Fingerprint **`a810f529`**, 3010
+**0.9.0 ist gebaut** — Fingerprint **`FINGERPRINT_0_9_0`**, 3180
+Prüfungen. **Erste Hälfte von Stufe I, und KEINE Datenbankstufe:** diese Runde
+bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf** markierten
+Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts** dazu.
+**Der Server verschickt Einladungs- und Rücksetzlinks selbst** — über
+`nodemailer`, nur ausgehend, über den SMTP-Zugang eines Anbieters. **Und wer
+keinen Mailzugang einträgt, verliert nichts:** die Links stehen weiter im
+Verwaltungsbereich zum Kopieren, und bei einem Fehlschlag steht der Grund
+daneben.
+**Der Mailzugang liegt in `settings` und gehört dem Eigentümer, ganz** —
+eintragen, einsehen und die Testmail auslösen; ein Admin kommt an keines davon.
+Das Setzen liegt hinter der **zweiten Bestätigung**. Das Passwort kommt aus
+keiner Antwort heraus: die Karte sagt „gesetzt" oder „nicht gesetzt".
+**Die Testmail geht an die eigene Adresse des Anfordernden und nirgendwo
+sonst** — es gibt kein Adressfeld daneben, und der Rumpf wird gar nicht
+angesehen.
+**Die öffentliche Adresse ist Pflicht FÜR DEN VERSAND, nicht für den Start.**
+Ohne sie wird nicht verschickt, die Karte sagt warum, und der Start läuft
+durch — ein Startabbruch bräche jede vorhandene Installation beim Einspielen.
+**`users.email` bekommt zwei Schreibwege** — beim Anlegen und am eigenen
+Zugang. Die Spalte stand seit 0.6.0 ungenutzt im Schema.
+**Der Token bekommt eine zweite Frist:** ab dem ersten Öffnen fünfzehn Minuten,
+geschrieben in `tokens.ablauf`, ohne neue Spalte.
+**`F_ROUTEN` geht von 57 auf 59**, die Karten werden **achtzehn**,
+`BESTAETIGUNG_ZWECKE` geht auf **sieben**, `MERKMALE` auf **dreizehn**. Die
+Vorgänge bleiben **fünfzehn**, die Formatnummer bleibt **10**.
+**Eine neue Laufzeitabhängigkeit:** `nodemailer` 9.0.5, MIT-0, **+1 Paket**,
+776 KB — nachgemessen, nicht geglaubt.
+33 Gegenproben, gefahren über `gegenprobe.js`.
+
+**0.8.91 davor** — Fingerprint **`a810f529`**, 3010
 Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs und KEINE Datenbankstufe:**
 diese Runde bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf**
 markierten Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts**
@@ -202,9 +248,10 @@ ohne Migrationsblock:** das Schema bekommt die Tabelle `sicherheitsprotokoll`
 (`id`, `am`, `was`, `wer`, `ziel`, `merkmal`) samt Index auf `am`. Zum dritten
 Mal an dieser Tabelle nachgestellt statt abgeschrieben. Es bleibt bei **fünf**
 markierten Blöcken, und unter „Vorgemerkt für 1.0" kommt **nichts** dazu.
-**Sechs schwere Wege über fünf Routen verlangen das Passwort ein zweites
+**Sechs schwere Wege über fünf Routen verlangten das Passwort ein zweites
 Mal** — Export, Import, Rolle vergeben, fremdes Passwort setzen, Link erzeugen,
-Zugang entfernen. Die Bestätigung kommt über `POST /api/bestaetigung` und liegt
+Zugang entfernen; **seit 0.9.0 sind es sieben über sechs**, der Mailzugang kam
+dazu. Die Bestätigung kommt über `POST /api/bestaetigung` und liegt
 danach als **Freigabe im Arbeitsspeicher**: gebunden an Sitzungstoken, Zweck
 und Ziel, gültig 120 Sekunden und **genau einmal**. Kein Schema, also kein
 sechster Migrationsblock.
@@ -463,7 +510,16 @@ Datenbankstufe ist sie der einzige Weg zurück — siehe oben. Sie gehört
 **zwischen** `docker compose down` und alles Weitere: eine Sicherung, die
 neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
 
-**Für 0.8.91 gilt sie als PFLICHT — und zwar DOPPELT.** Das Einspielen selbst
+**Für 0.9.0 gilt sie wie immer, aber nicht als PFLICHT.** Die Runde fasst
+**kein** Schema an — keine Tabelle, keine Spalte —, und ein Downgrade auf
+0.8.91 wäre eine reine Dateikopie. *Genau genommen stört es wenig: ein
+Mailzugang in `settings` interessiert eine ältere Version nicht, sie liest den
+Schlüssel schlicht nicht; die Exportdatei behält Format 10; und eine Adresse in
+`users.email` stand dort ohnehin schon im Schema. Was verloren ginge, ist der
+Versand selbst.* **Die Zeile bleibt trotzdem im Weg** — sie kostet nichts und
+ist der einzige Weg zurück, der ohne Fußnoten auskommt.
+
+**Für 0.8.91 galt sie als PFLICHT — und zwar DOPPELT.** Das Einspielen selbst
 ist harmlos: die Runde fasst **kein** Schema an, ein Downgrade auf 0.8.90 wäre
 eine reine Dateikopie. Die Pflicht kommt vom **Schlüsselwechsel**, und sie
 gilt an einem anderen Zeitpunkt:
@@ -662,10 +718,37 @@ Vergleich hat dort deshalb nichts mehr zu tun. *Zum Maßstab: `sessions.token`
 liegt im Klartext in der Tabelle — den Token zu hashen ist strenger als der
 Bestand, nicht lockerer.*
 
-**Der Weitergabeweg ist Teil der Bauform, keine Notlösung:** Mailversand ist
-Stufe I. Der Admin **kopiert den Link und gibt ihn weiter**. Damit ist er ein
-**Passwortersatz auf Zeit** und steht danach in einem fremden Verlauf — und
-genau das sagt die Oberfläche an der Stelle, an der er kopiert wird.
+**Der Weitergabeweg ist Teil der Bauform, keine Notlösung — und seit 0.9.0 gibt
+es zwei, die einander nicht ersetzen.** Ist ein Mailzugang eingetragen, geht der
+Link **zusätzlich** per Mail hinaus; ist keiner eingetragen, kopiert der Admin
+ihn und gibt ihn weiter, genau wie in Stufe H. **In beiden Fällen steht er im
+Verwaltungsbereich zum Kopieren**, und bei einem Fehlschlag steht der Grund
+daneben. Damit ist der Link ein **Passwortersatz auf Zeit** und steht nach der
+Weitergabe in einem fremden Verlauf — und das sagt die Oberfläche an der Stelle,
+an der er kopiert wird. Der Schlüssel steht im **Fragment** (`#/einladung/…`)
+und geht nie an den Server; das gilt in der Mail genauso.
+
+**DIE ZWEITE FRIST AM LINK — seit 0.9.0: ab dem ersten Öffnen fünfzehn
+Minuten.** Die sieben Tage sind die Frist fürs **Lesen der Mail**, nicht fürs
+Liegen des Links: solange niemand geöffnet hat, ist nichts geschehen. Ab dem
+ersten Öffnen ist erwiesen, dass der Link angekommen ist — und dann hat er in
+einem fremden Postfach nichts mehr verloren, wo er sechs Tage lang ein
+Passwortersatz wäre.
+*Was sie nicht leistet, und das gehört dazu:* sie schützt nicht gegen den, der
+das Postfach mitliest — der klickt zuerst. Sie macht seinen Zugriff
+**sichtbar**, weil der echte Empfänger vor einem toten Link steht.
+*Warum sie hier trägt und anderswo nicht:* der übliche Killer kurzer Fristen
+sind Vorschaudienste, die Links vorab abrufen. **Der Schlüssel steht im
+Fragment und geht nie an den Server** — ein Vorschaudienst holt nur die Seite
+und löst die Frist damit gerade **nicht** aus.
+*Drei Punkte, an denen sie kippen würde und die deshalb gebaut sind:*
+**innerhalb** der Frist darf beliebig oft geöffnet und neu geladen werden — nur
+der **erste** Aufruf schreibt herunter, und `beginneTokenFrist` schreibt
+ausschließlich **herunter**, nie hinauf; die **Absage bleibt die eine** und
+nennt die Frist nicht; und **der Zugang bleibt stehen**, wenn sie verstreicht.
+*Gebaut ohne neue Spalte:* geschrieben wird `tokens.ablauf`. Der Preis, ehrlich
+benannt — hinterher ist nicht mehr zu sehen, **ob** ein Link schon einmal
+geöffnet wurde.
 
 **Die Absage vor der Anmeldung ist EINE**, für abgelaufen, schon benutzt,
 erfunden und „Zugang gesperrt": *„Dieser Link gilt nicht mehr. Bitte beim Admin
@@ -766,8 +849,17 @@ Angemeldeten noch einmal:
 | Fremdes Passwort setzen | `PUT /api/users/:id` (nur mit `passwort` im Rumpf) |
 | Link erzeugen | `POST /api/users/:id/token` |
 | Zugang entfernen | `DELETE /api/users/:id` |
+| Mailzugang setzen | `PUT /api/mail` *(seit 0.9.0)* |
 
-> **Berichtigt mit 0.8.91.** Revision 19 und das Änderungsprotokoll 0.8.90
+> **Sieben Wege über sechs Routen seit 0.9.0.** `PUT /api/mail` kommt dazu: wer
+> den Mailzugang setzt, entscheidet, über wessen Server **jeder** künftige
+> Rücksetzlink dieser Anlage läuft. Das trifft die Anlage als Ganzes und liegt
+> damit in derselben Zeile wie Export und Import. Die Route steht ohnehin schon
+> hinter `nurEigentuemer` — die Bestätigung sagt nicht, **wer** darf, sondern
+> dass es damit noch nicht getan ist.
+
+> **Berichtigt mit 0.8.91 — und die Zahl stand danach eine Runde lang richtig
+> bei sechs über fünf.** Revision 19 und das Änderungsprotokoll 0.8.90
 > sprachen hier von *„sieben Wegen über sechs Routen"*. Nachgezählt am
 > Quelltext sind es **sechs über fünf**: `GET /api/export`, `POST /api/import`,
 > `POST /api/users/:id/token`, `DELETE /api/users/:id` und
@@ -778,6 +870,9 @@ Angemeldeten noch einmal:
 > **Der Schlüsselwechsel kommt ausdrücklich NICHT dazu:** er läuft seit 0.8.91
 > auf dem Wirt und kennt die zweite Bestätigung nicht — *Zugriff auf den Wirt
 > ist die Berechtigung*, dieselbe Linie wie bei `zugang.js`.
+> **Und die Testmail kommt ebenso wenig dazu** (0.9.0): sie verschickt an die
+> **eigene** Adresse und übergibt nichts — dieselbe Überlegung wie beim Sperren
+> und beim Anlegen eines Zugangs.
 
 **Wogegen das verteidigt, ist nicht der Fremde**, sondern eine **fremde offene
 Sitzung**. Deshalb ist die Bestätigung an **die Sitzung** gebunden und nicht an
@@ -895,6 +990,77 @@ zurück — dieselbe Form wie bei `AUTH_RESET` und beim fehlenden Sicherungsort.
 Anmeldung. **Sie gehört in die `.env` und nicht in `settings`**, dieselbe Linie
 wie `HINTER_PROXY`: sie entscheidet über Netzwerkvertrauen, nicht über eine
 Vorliebe. Der Systembereich **zeigt** sie, er setzt sie nicht.
+
+**SEIT 0.9.0 IST SIE PFLICHT — FÜR DEN VERSAND, NICHT FÜR DEN START.** Ohne sie
+wird **nicht verschickt**: der Server wüsste nicht, worauf der Link zeigen soll,
+und aus dem `Host`-Kopf darf er es nicht ableiten — eine verschickte Mail wäre
+genau die Stelle, an der ein gefälschter Kopf am meisten wert wäre. **Der Start
+bricht deswegen nicht ab**, und die Anlage bleibt vollständig; die Karte
+„Mailversand" markiert den fehlenden Wert rot und nennt den Grund. *Das ist eine
+engere Auslegung als der Wortlaut des Konzeptpapiers („ab Stufe I ist sie
+Pflicht") — wörtlich gelesen bräche der Start jede vorhandene Installation beim
+Einspielen, und genau das darf der Einspielweg nie tun. Die Abweichung ist im
+Konzeptpapier nachgezogen.*
+
+**DER MAILVERSAND — seit 0.9.0, und er gehört dem EIGENTÜMER.** Der Zugang
+(Anbieter, Server, Port, Verschlüsselung, Benutzer, Passwort, Absender) liegt
+als **ein** Schlüssel `mailzugang` in `settings` — ein Objekt, keine sechs
+Zeilen: sechs wären sechs Stellen, an denen ein halb geschriebener Zugang
+entstehen kann. Eintragen, einsehen und die Testmail auslösen liegen beim
+Eigentümer; **ein Admin kommt an keines davon**. Das Setzen liegt hinter der
+zweiten Bestätigung (`mail`, der siebte Zweck).
+**Warum nicht in der `.env`, wie es der Auftrag vorsah:** die Begründung des
+Auftrags trägt weiter, sie trifft nur den **Admin** — der SMTP-Server sieht jede
+Mail, und jede trägt einen Link, der ein Passwort setzt. Über dem Eigentümer
+steht niemand: wer ohnehin exportieren und den Schlüsselwert sehen darf, gewinnt
+hier nichts dazu. **Zwei Dinge sprechen sogar dafür, und beide sind
+nachgesehen:** das Mailpasswort liegt in der **verschlüsselten Datenbank** statt
+unverschlüsselt auf dem Wirt, und die **Exportdatei trägt es nicht** — der
+Export packt Einträge samt Anhängen, keine Einstellungen. **Damit wird die
+Ausnahme von der `.env`-Regel aus Abschnitt 11 NICHT gebraucht.**
+**Das Passwort kommt aus keiner Antwort heraus** — die Karte sagt „gesetzt" oder
+„nicht gesetzt", nie die Länge, nie der Anfang, nie Sternchen mit der richtigen
+Zahl; ein leeres Feld beim Speichern heißt „unverändert lassen". Es steht auch
+in **keiner** Protokollzeile und in **keiner** Kontrollausgabe; die Startzeile
+nennt Anbieter, Server und Absender, sonst nichts.
+**Die Testmail geht an die eigene Adresse des Anfordernden und nirgendwo
+sonst** — es gibt **kein** Adressfeld, weder im Rumpf noch in der Abfrage noch
+als Kopf, und der Rumpf wird gar nicht angesehen. Ein Knopf mit freiem
+Adressfeld wäre ein offener Mailverteiler hinter einer Anmeldung.
+**Die Frist des Versands ist zwanzig Sekunden**, hergeleitet und gemessen: ein
+SMTP-Gespräch über TLS sind rund acht Umläufe, bei schlechten 300 ms unter drei
+Sekunden. **Nodemailers eigene Fristen sind Fristen je Abschnitt und eine auf
+Untätigkeit** — `socketTimeout` läuft ab, wenn der Socket still liegt, und
+**jedes zugestellte Byte setzt es zurück**. Ein Empfänger, der alle drei
+Sekunden ein Byte schickt und nie antwortet, hält es damit ewig am Leben;
+nachgestellt: **nach 45 Sekunden hängt der Versand immer noch.** Nur ein
+Wettlauf über dem **ganzen** Versand ist eine Frist auf die Gesamtdauer, und der
+Prüfstand misst an genau diesem tröpfelnden Empfänger, dass sie es ist, die
+trägt. *Die drei darunter bleiben stehen — sie sind der schnellere Weg: ein
+toter Rechner scheitert nach sieben Sekunden statt nach zwanzig.*
+**Es gibt genau zwei Anlässe für eine Mail** — den Tokenlink und die Testmail.
+Keine Benachrichtigungen. Reiner Text, kein HTML, keine Zählpixel, keine
+Anhänge. **Kein Eintrag im Sicherheitsprotokoll für den Versand:** eine Zeile
+„Mail an X verschickt" wäre ein Zustellprotokoll, und die Adresse wäre Freitext
+von außen, den diese Tabelle nicht aufnimmt. Der Anlass steht schon drin
+(`link.neu`).
+
+**DIE ADRESSE AM ZUGANG — `users.email`, seit 0.9.0 überhaupt beschreibbar.**
+Die Spalte stand seit 0.6.0 im Schema und wurde von **keiner** Stelle des
+Projekts gefüllt; ohne einen Schreibweg hätte diese Runde weder einen Empfänger
+für die Einladung noch ein Ziel für die Testmail gehabt. Gebaut sind **zwei**
+Wege und ausdrücklich kein dritter:
+* **beim Anlegen** (`POST /api/users`) — den Zugang gibt es in diesem
+  Augenblick noch nicht, also kann ihn niemand selbst eintragen;
+* **danach allein der Betroffene** (`PUT /api/account`, hinter dem bisherigen
+  Passwort — dieselbe Schranke wie für Name und Passwort daneben).
+**`PUT /api/users/:id` bekommt sie NICHT**, und das ist entschieden, nicht
+vergessen: ein Admin, der eine **bestehende** fremde Adresse umschreiben dürfte,
+böge den nächsten Rücksetzlink des Betroffenen auf ein Postfach seiner Wahl.
+**`GET /api/users` liefert sie ebenfalls nicht mit** — ein Admin braucht für
+seine Arbeit die Zugänge, nicht die Postfächer. Die Adresse ist überall
+**freiwillig**; `undefined` heißt „nicht angefasst", der leere String „löschen".
+
 
 **Beim Entfernen eines Zugangs gehen seine Sitzungen, offenen Links, Favoriten
 und persönlichen Einstellungen ausdrücklich mit weg** — sie sagen niemandem
@@ -1101,7 +1267,7 @@ Klick gehört der Abspielsteuerung. Der Ausschnittmodus bleibt bedienbar und
 zeigt dort das Standbild. Alles davon ist **abgeleitet** aus `art` und `dauer`
 der Antwort, kein Schalter.
 
-**Systembereich: sechzehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
+**Systembereich: achtzehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
 die breite Kachel „Zugänge" lässt seit 0.8.6 keine Lücke mehr im Raster).
 Dem **Admin**: beide Titel, Kennzahlen, Kategorien und Tags umbenennen und
 löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
@@ -1111,7 +1277,15 @@ zurücksetzen **direkt oder über einen Link**, Rolle wechseln, entfernen),
 Karte „Suchanbieter" (Vorrat, Startanbieter, drei eigene),
 Vokabular aus elf Wörtern. Dem **Eigentümer** zusätzlich: Export mit/ohne
 Fotos, mit eigenem Häkchen für Dateien und eines für **Videos**, Import
-(ersetzen oder zusammenführen) und seit 0.8.70 die Karte **„Sicherung"**.
+(ersetzen oder zusammenführen), seit 0.8.70 die Karte **„Sicherung"**, seit
+0.8.90 das **„Sicherheitsprotokoll"** und seit 0.9.0 die Karte
+**„Mailversand"** — Anbieter, Zugangsdaten, Absender und der Testmail-Knopf.
+**Sie steht ausdrücklich NICHT beim Admin**, obwohl der die Einladungen
+verschickt: der SMTP-Server sieht jede Mail, und jede trägt einen Link, der ein
+Passwort setzt. Was der Admin bekommt, ist die Auskunft an der Stelle, an der
+sie ihn angeht — neben dem Link steht, ob etwas hinausging und warum nicht.
+**Das Adressfeld am eigenen Zugang** (0.9.0) steht dagegen in „Zugang" und
+damit **jedem**: die Adresse gehört dem, der sie hat.
 **Die Karte „Papierkorb" (seit 0.8.70) steht dem Admin** — aber als Liste, an
 der nur der Eigentümer die beiden Knöpfe sieht; dieselbe Bauform wie bei
 „Kategorien", „Tags" und „Bewertungskriterien".
@@ -3682,6 +3856,49 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     über die vermerkte Liste läuft, wird von keinem Wächter gesehen* — der
     Wächter zählt deshalb seit 0.8.91 auch die **Startstellen** im Quelltext.
 
+141. **Eine vorübergehende Absage darf den Schlüssel nicht wegwerfen.** Die
+    Einlöseseite leerte bis 0.8.91 bei **jedem** `!res.ok` die Adresse — auch
+    bei der `429` der Anmeldebremse. Wer sich vorher ein paarmal beim Anmelden
+    vertippt hatte und danach seinen **gültigen** Einladungslink anklickte, sah
+    eine Fehlermeldung, lud neu und stand auf der Anmeldeseite: **der Link war
+    nie tot, die Adresse war weg.** Am echten Server nachgestellt — dreimal
+    `pruefen` hintereinander gibt dreimal 200, der Token stirbt erst beim
+    Einlösen. *Wer aus einer Absage eine Handlung ableitet, unterscheidet
+    „jetzt gerade nicht" von „nie wieder" — und wirft nur im zweiten Fall
+    etwas weg.* Gefunden im Betrieb, nicht im Prüfstand: dort war die Bremse
+    an dieser Route geprüft, die **Folge** für die Adresse aber nicht.
+
+142. **Ein `net`-Server, der absichtlich schweigt, lässt sich nicht mit
+    `close()` beenden.** `server.close()` hört nur auf zu **horchen** und
+    wartet danach auf das Ende aller offenen Verbindungen. Die
+    Betriebsarten „schweigt" und „stumm" des SMTP-Empfängers halten ihre
+    Verbindung absichtlich offen — das `close()` darauf hängt **für immer,
+    ohne CPU und ohne Meldung**, und der Lauf steht still, statt eine Prüfung
+    rot zu färben. Genau das ist beim Bau dieser Runde passiert, und das
+    Fehlerbild war von „die Gruppe rechnet noch" nicht zu unterscheiden.
+    *Wer einen Horchposten beendet, räumt zuerst seine Verbindungen ab.*
+    Dasselbe Muster wie 139, eine Ebene tiefer: dort ein Kindprozess, hier ein
+    Socket.
+
+143. **Ein langer Link steht im rohen Brief umbrochen — und das ist richtig
+    so.** Der Rumpf einer Mail geht als `quoted-printable` hinaus, und dessen
+    Zeilen enden spätestens bei 76 Zeichen; eine Adresse mit einem
+    64-Zeichen-Schlüssel bekommt dabei einen **weichen** Umbruch (`=` am
+    Zeilenende). Jedes Mailprogramm setzt ihn beim Anzeigen wieder zusammen.
+    Eine Prüfung, die im **rohen** Text nach dem Schlüssel sucht, findet ihn
+    nicht — und der naheliegende Schluss („der Link fehlt in der Mail") ist
+    falsch. *Wer einen Brief prüft, prüft ihn wie ein Empfänger: dekodiert.*
+    Verwandt mit 90: der Mock muss sich verhalten wie die echte Gegenstelle,
+    und eine Gegenstelle, die nicht dekodiert, ist keine.
+
+144. **Eine Zeile, die beim START geschrieben wird, lässt sich nicht an einem
+    Server prüfen, der vor der Einstellung hochgekommen ist.** Die Startzeile
+    zum Mailversand nennt Anbieter, Server und Absender — an einer Prüflage,
+    die den Zugang erst **nach** dem Start einträgt, sagt sie zu Recht „nicht
+    eingerichtet", und die Prüfung war rot, obwohl der Code stimmte. *Wer eine
+    Startausgabe prüft, prüft sie an einem Neustart* — dort steht sie im
+    Betrieb schließlich auch.
+
 ---
 
 ## 7. Prüfstand
@@ -3694,7 +3911,49 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3010 von 3010 bestanden** (0.8.91; **101 neue
+**Zuletzt: 3180 von 3180 bestanden** (0.9.0; **170 neue Prüfungen, 33
+Gegenproben, neun neue Gruppen**: „Der Mailversand: das echte SMTP-Gespräch",
+„… das Offline-Prinzip in beide Richtungen", „… die Frist wird gemessen, nicht
+behauptet", „… die öffentliche Adresse ist Pflicht", „… das Passwort steht
+nirgends", „… die Testmail geht an die eigene Adresse", „Der Mailzugang: wer
+ihn setzen darf", „Der Token: die Frist ab dem ersten Öffnen", „Der
+Versandzustand neben dem Link", „Die eigene Adresse in der Karte ‚Zugang'" und
+„Die Karte ‚Mailversand'". Der Rest sind Erweiterungen vorhandener Gruppen:
+`F_ROUTEN` samt Zahl, die Kartenzahl, die Einladungsseite um Befund G und die
+beiden Wächter über den Prüfstand selbst.)
+
+**Der Versand wird am ECHTEN SMTP-Gespräch geprüft**, nicht an einer
+abgefangenen Funktion: ein **SMTP-Empfänger aus `net`** führt das Protokoll
+wirklich, und „angekommen" heißt ein Brief, den er aufgehoben hat. **Keine
+zweite Entwicklungsabhängigkeit.** Er kann fünf Betriebsarten — annehmen,
+mit 550 ablehnen, gar nicht grüßen, grüßen und danach schweigen, sofort
+auflegen —, denn ein Mock, der nur „ok" sagt, machte die Hälfte dieser Runde
+unprüfbar (Stolperstein 90). **Er dekodiert `quoted-printable`**, wie ein
+Empfänger es tut (Stolperstein 143), und seine Portbasis **6110** geht über
+dieselbe vermerkte Liste wie jede andere.
+
+**Die Frist wird GEMESSEN, nicht behauptet** — und mit einer **Untergrenze**,
+die den Beleg erst zu einem macht: der Empfänger, der grüßt und dann schweigt,
+muss über 7,5 Sekunden brauchen. Bliebe er darunter, hätte ihn eine von
+nodemailers eigenen Fristen gefangen, und über die äußere Schranke wäre nichts
+bewiesen.
+
+**Das Mailpasswort wird an vier Orten gesucht:** in **jeder Spalte jeder Zeile
+jeder Tabelle** (mit `settings.mailzugang` als benannter Ausnahme — dort muss
+es stehen), im Containerprotokoll des Starts, im Containerprotokoll des
+Versands und in jedem Antwortkörper. Dazu die Gegenlage, dass die Suche
+überhaupt etwas findet, wo etwas stehen muss (Stolperstein 81).
+
+**Kein Migrationsabschnitt — es gibt keinen Block.** 0.9.0 ist **keine
+Datenbankstufe**: keine Tabelle, keine Spalte. Der Mailzugang liegt in
+`settings`, `users.email` gibt es seit 0.6.0. Die vorhandene Probe („eine
+Spalte wächst nicht nach") bleibt unverändert stehen.
+
+**Die Zahl der Abhängigkeiten steht im Prüfstand fest** — `npm ls --omit=dev`
+liefert 122 Pfade statt 121, und `nodemailer` bringt keinen Unterbaum mit.
+Wächst der Baum später still, wird es namentlich rot.
+
+**Davor 3010 von 3010** (0.8.91; **101 neue
 Prüfungen, 18 Gegenproben, elf neue Gruppen**: „Der
 Schlüsselwechsel: der Rundlauf", „… die Umschaltung des Journals", „… der
 Dateifall und der env-Fall", „… kein Schlüssel, wo keiner hingehört", „… der
@@ -4147,6 +4406,8 @@ Ansicht, Zoom lädt das Original.
 | 0.8.71 | 17 | 6 | Stolperstein 123 |
 | 0.8.80 | Stufe H — alle vier Punkte (263) | 40 | Stolpersteine 124 bis 127 |
 | 0.8.90 | Protokoll, zweite Bestätigung, öffentliche Adresse (248) | 24 | Stolpersteine 128 bis 133 |
+| 0.8.91 | Schlüsselwechsel, Gegenprobentreiber, Portversatz (101) | 18 | Stolpersteine 134 bis 140, Befund L |
+| 0.9.0 | Mailversand, Adresse am Zugang, Frist ab dem ersten Öffnen (170) | 33 | Stolpersteine 141 bis 144 |
 
 **Aus 0.8.80 (Stufe H):** der **Rundlauf** ist die tragende Prüfung — einladen,
 Link, Formular, Passwort, Anmeldung, und **derselbe Link ein zweites Mal
@@ -4384,6 +4645,32 @@ sind zwei Dinge:
 ---
 
 ## 9. Versionsgeschichte
+
+**0.9.0 — „Der Server verschickt selbst".** **Erste Hälfte von Stufe I** des
+Mehrbenutzerbetriebs, und **keine Datenbankstufe**: keine Tabelle, keine
+Spalte, kein sechster Migrationsblock. Einladungs- und Rücksetzlinks gehen
+über **`nodemailer`** per Mail hinaus — nur ausgehend, über den SMTP-Zugang
+eines Anbieters, mit Vorlagen für GMX, Web.de, Gmail, Strato, IONOS und
+„eigener Server". **Und wer keinen Mailzugang einträgt, verliert nichts:** der
+Token entsteht zuerst, die Antwort trägt den Link immer, und der Versand ist
+ein **Feld** darin (`versand`, `versandGrund`).
+Der Mailzugang liegt in `settings` und gehört dem **Eigentümer**, ganz —
+eintragen, einsehen, testen; ein Admin kommt an keines davon. *Abweichung vom
+Auftrag, der die `.env` vorsah; die Begründung trifft den Admin, nicht den
+Eigentümer.* Die **Testmail** geht an die eigene Adresse und nirgendwo sonst.
+Die **öffentliche Adresse** wird Pflicht **für den Versand, nicht für den
+Start**. **`users.email` bekommt zwei Schreibwege** — beim Anlegen und am
+eigenen Zugang; die Spalte stand seit 0.6.0 ungenutzt im Schema. Der Token
+bekommt eine **zweite Frist**: ab dem ersten Öffnen fünfzehn Minuten,
+geschrieben in `tokens.ablauf`, ohne neue Spalte.
+**Behoben:** eine vorübergehende Absage (429) warf den Schlüssel aus der
+Adresse — ein gültiger Einladungslink sah danach tot aus (Stolperstein 141).
+`F_ROUTEN` geht von 57 auf 59, `BESTAETIGUNG_ZWECKE` von sechs auf sieben,
+`MERKMALE` von zwölf auf dreizehn, die Karten von siebzehn auf achtzehn; die
+Vorgänge bleiben fünfzehn, die Formatnummer 10, das Vokabular elf.
+**Eine neue Laufzeitabhängigkeit — die erste seit Langem:** `nodemailer` 9.0.5,
+MIT-0, +1 Paket, 776 KB, nachgemessen.
+3180 Prüfungen, 33 Gegenproben, Stolpersteine 141 bis 144.
 
 **0.8.91 — „Der Schlüssel lässt sich wechseln".** Keine Stufe des
 Mehrbenutzerbetriebs und **keine Datenbankstufe**: keine Tabelle, keine Spalte,
@@ -4798,7 +5085,8 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.80** | **Stufe H** — Tokens (**erledigt**) | Einladung und Rücksetzung über einen Link, dazu „Meine Sitzungen" | ja, **ohne Migrationsblock** | — |
 | **0.8.90** | Schwere Eingriffe (**erledigt**) | zweite Bestätigung, Sicherheitsprotokoll, öffentliche Adresse | ja, **ohne Migrationsblock** | — |
 | **0.8.91** | *(keine Stufe)* Der Schlüssel lässt sich wechseln | **gebaut** — `./schluessel.sh` auf dem Wirt: `PRAGMA rekey` samt Journalumschaltung, `.env`-Fall und Dateifall, die alten Sicherungen markiert. Dazu `gegenprobe.js`, `PORT_VERSATZ` und zwei Wächter über den Prüfstand | nein | — |
-| **0.9.0** | **Stufe I** — Mailversand und Selbstanmeldung | siehe Konzeptpapier | ja | — |
+| **0.9.0** | **Stufe I, erste Hälfte** — Mailversand (**erledigt**) | `nodemailer`, Anbietervorlagen, Testmail, öffentliche Adresse als Pflicht für den Versand, Adresse am Zugang, Frist ab dem ersten Öffnen | **nein** — keine Tabelle, keine Spalte | — |
+| **0.9.1** | **Stufe I, zweite Hälfte** — Selbstanmeldung | Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung | ja, **eine neue Tabelle ohne Migrationsblock** | — |
 | **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
 | **0.9.20** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen | ja | — |
 | **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
@@ -4844,10 +5132,15 @@ bleibt bei **sechs Wegen über fünf Routen**.
 **und seit 0.8.70 eine Vorgabe zum Papierkorb**: eine Datei über rund 950 MB
 passt nicht in eine Zelle und teilt sich auf mehrere `papierkorb_bytes.nr` auf.
 
-**Der Sprung auf 0.9.0 liegt auf Stufe I, und das mit Absicht:** bis dahin
-antwortet die Anlage nur auf Anfragen. Ab Stufe I baut sie **von sich aus**
-eine Verbindung zu einem fremden Server auf. Das ist die größte Änderung der
-Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
+**Der Sprung auf 0.9.0 lag auf Stufe I, und das mit Absicht — er ist gefahren.**
+Bis dahin antwortete die Anlage nur auf Anfragen; seit 0.9.0 baut sie **von sich
+aus** eine Verbindung zu einem fremden Server auf. Das ist die größte Änderung
+der Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
+**Der Abbruchpunkt, den das Konzeptpapier für Stufe I seit Langem nennt, ist
+gezogen worden** (*„nach dem Versand, vor der Selbstregistrierung"*): mit dem
+Mailversand, dem Schreibweg für `users.email` und der Frist ab dem ersten
+Öffnen wurde die Runde zu breit für einen Durchgang. Die Selbstanmeldung ist
+**0.9.1** und bringt die einzige neue Tabelle dieser Stufe.
 
 **Die Reihenfolge ist nicht beliebig.** Vier Bindungen:
 
@@ -4926,12 +5219,11 @@ damit alte Verweise stimmen.)*
    `F_ROUTEN` 51 → 56, Formatnummer unverändert. Einzelheiten in Abschnitt 5
    und in `Doku/Aenderungsprotokoll_0.8.80.md`.
 
-   *Dann:* **allein Stufe I (Mailversand und Selbstanmeldung) ist noch offen
-   und bleibt 0.9.0.** Sie erbt den Token dieser Runde unverändert; was hier an
-   Form entschieden wurde, gilt dort weiter. **Der Sprung auf 0.9.0 ist der
-   größte im ganzen Plan** — ab dort baut die Anlage von sich aus eine
-   Verbindung nach außen auf. Davor liegt mit **0.8.90** noch eine Runde, die
-   nicht zum Mehrbenutzerbetrieb gehört.
+   *Dann:* **Stufe I ist zur Hälfte gebaut.** Der **Mailversand** ist 0.9.0 —
+   ab dort baut die Anlage von sich aus eine Verbindung nach außen auf, und das
+   ist die größte Änderung der Betriebsart im ganzen Plan. Der Token aus dieser
+   Runde ist dabei unverändert geerbt worden, mit genau einer Ergänzung: der
+   **Frist ab dem ersten Öffnen**. **Offen bleibt die Selbstanmeldung, 0.9.1.**
 
    *Anmerkung, unverändert gültig:* eine Veröffentlichung setzt keinen
    Mehrbenutzerbetrieb voraus. „Für eine Person, dafür vollständig
@@ -5137,8 +5429,10 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
 
 - **Wer eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` im Prüfstand
   ein** — sonst wird der Lauf namentlich rot, und genau das ist der Zweck.
-  Die Liste (aktuell 56 Routen) ist die Stelle, an der die Rechtefrage
+  Die Liste (aktuell **59** Routen) ist die Stelle, an der die Rechtefrage
   gestellt wird; seit 0.8.0 kennt sie die vierte Art `'nurAdmin, im Rumpf'`.
+  *Die Zahl stand hier eine Runde lang bei 56, obwohl sie seit 0.8.90 bei 57
+  lag — Stolperstein 137, ein Papier war beim Nachziehen übersehen worden.*
 - **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — viermal
   angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
   `GET /api/stats`, seit 0.8.6 `GET /api/items/:id/stimmen`). **`GET /api/offen`
@@ -5158,6 +5452,14 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   in der Liste, obwohl alle drei einen Wächter tragen.
   **0.8.80 bewegt sie um fünf: 51 → 56** — drei für den Token, zwei für „Meine
   Sitzungen". `GET /api/sessions` steht wie immer **nicht** dort.
+  **0.8.90 bewegt sie um eine: 56 → 57** — `POST /api/bestaetigung`.
+  **0.8.91 bewegt sie nicht:** der Schlüsselwechsel läuft auf dem Wirt.
+  **0.9.0 bewegt sie um zwei: 57 → 59** — `PUT /api/mail` und
+  `POST /api/mail/test`; `GET /api/mail` steht wie immer **nicht** dort,
+  obwohl es einen Wächter trägt. **Und zwei Routen bewegen sie ausdrücklich
+  nicht, obwohl sie in dieser Runde etwas Neues tun:** `POST /api/users` nimmt
+  jetzt eine Adresse entgegen und `PUT /api/account` setzt die eigene — beide
+  gibt es längst, und ihre Rechtezeile hat sich nicht verschoben.
   **Zwei Besonderheiten dieser Runde gehören genannt:** `POST /api/token/pruefen`
   **liest nur** und steht trotzdem in der Liste — der Wächter sieht jedes
   `app.post(` an, und eine Route stillschweigend auszunehmen wäre genau die

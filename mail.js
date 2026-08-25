@@ -71,10 +71,16 @@ const HINWEIS_IMMER =
    weit unter dem, was Browser und Proxy von sich aus abbrechen.
 
    DIE AEUSSERE SCHRANKE IST DIE TRAGENDE, und sie ist keine Zierde neben den
-   drei Fristen darunter: die drei decken Verbindung, Gruss und einen
-   SCHWEIGENDEN Socket. Ein Empfaenger, der auf TCP-Ebene brav antwortet und
-   auf den Befehl nie, faellt durch alle drei hindurch. Deshalb liegt ueber
-   dem ganzen Versand ein Wettlauf, und DER haelt die Zusage. */
+   drei Fristen darunter -- der Unterschied ist NACHGESTELLT und nicht
+   geglaubt: die drei sind Fristen je ABSCHNITT und eine auf UNTAETIGKEIT.
+   socketTimeout laeuft ab, wenn der Socket still liegt; jedes zugestellte Byte
+   setzt es zurueck. Ein Empfaenger, der alle drei Sekunden EIN Byte schickt und
+   nie antwortet, haelt es damit ewig am Leben -- gemessen: nach 45 Sekunden
+   haengt der Versand immer noch. Nur ein Wettlauf ueber dem GANZEN Versand ist
+   eine Frist auf die Gesamtdauer, und DER haelt die Zusage.
+   DIE DREI DARUNTER BLEIBEN TROTZDEM STEHEN: sie sind der schnellere Weg. Ein
+   toter Rechner scheitert damit nach sieben Sekunden statt nach zwanzig, und
+   die Meldung nennt den Abschnitt, an dem es klemmte. */
 const VERSAND_MS = 20 * 1000;
 const VERBINDUNG_MS = 7 * 1000;
 const GRUSS_MS = 7 * 1000;

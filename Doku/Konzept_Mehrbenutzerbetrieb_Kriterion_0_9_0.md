@@ -759,10 +759,13 @@ Postfach seiner Wahl. Die Adresse ist überall **freiwillig**.
 vollständiges SMTP-Gespräch über TLS sind rund acht Umläufe — bei schlechten
 300 ms Umlaufzeit unter drei Sekunden; zwanzig gibt dem den achtfachen Abstand
 und bleibt weit unter dem, was Browser und Proxy von sich aus abbrechen.
-Nodemailers eigene Fristen decken den Fall nicht (Vorgabe: zwei Minuten für die
-Verbindung, dreißig Sekunden für den Gruß, **zehn Minuten** für den Socket);
-über dem Versand liegt deshalb eine **äußere Schranke**, und der Prüfstand misst
-an einem Empfänger, der grüßt und danach schweigt, dass sie es ist, die trägt.
+Nodemailers eigene Fristen sind Fristen je **Abschnitt** und eine auf
+**Untätigkeit**; `socketTimeout` wird von **jedem** zugestellten Byte
+zurückgesetzt. Ein Empfänger, der alle drei Sekunden eines schickt und nie
+antwortet, hält es ewig am Leben — nachgestellt: nach 45 Sekunden hängt der
+Versand immer noch. Über dem Versand liegt deshalb eine **äußere Schranke**,
+und der Prüfstand misst an genau diesem tröpfelnden Empfänger, dass sie es ist,
+die trägt.
 
 ### Der Punkt, der das Offline-Prinzip erhält
 

@@ -242,9 +242,13 @@ const PRUEFLAGEN = [];
      'ok'       nimmt an und hebt den Brief auf
      'fehler'   antwortet auf DATA mit 550
      'stumm'    gruesst gar nicht erst -- der Fall fuer die Verbindungsfrist
-     'schweigt' gruesst und antwortet danach auf NICHTS mehr; genau der Fall,
-                der durch nodemailers eigene Fristen hindurchfaellt und nur
-                von der aeusseren Schranke gehalten wird
+     'schweigt' gruesst und antwortet danach auf NICHTS mehr -- hier greift
+                nodemailers socketTimeout, denn der Socket liegt still
+     'troepfelt' gruesst und schickt danach alle drei Sekunden EIN Byte, ohne
+                je zu antworten. DAS IST DER FALL, DER DEN BELEG TRAEGT: jede
+                Zustellung setzt socketTimeout zurueck, also laeuft es NIE ab
+                -- nachgestellt, nach 45 Sekunden haengt der Versand noch
+                immer. Nur die AEUSSERE Schranke haelt ihn.
      'abbruch'  legt sofort auf
 
    DER ROHE BRIEF WIRD DEKODIERT AUFGEHOBEN. Der Rumpf geht als
@@ -288,6 +292,11 @@ function smtpEmpfaenger(art = 'ok') {
     let inDaten = false, puffer = '', brief = '';
     sock.write('220 kriterion-probe ESMTP\r\n');
     if (art === 'schweigt') return;
+    if (art === 'troepfelt') {
+      const tropfen = setInterval(() => { try { sock.write('2'); } catch {} }, 3000);
+      sock.on('close', () => clearInterval(tropfen));
+      return;
+    }
     sock.on('data', d => {
       puffer += d.toString();
       let i;
@@ -8551,6 +8560,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const briefe = E.briefe();
     pruefe('Der Empfaenger hat genau EINEN Brief bekommen', briefe.length === 1,
       `${briefe.length} Briefe`);
+    // (Ein zweiter kommt weiter unten dazu, an der zweiten Tokenroute.)
     const b1 = briefe[0] || { kopf: '', rumpf: '', roh: '' };
     pruefe('Der Empfaenger stimmt', /^To: bert@beispiel\.de$/m.test(b1.kopf), b1.kopf.slice(0, 200));
     pruefe('Der Absender stimmt', /^From: anlage@beispiel\.de$/m.test(b1.kopf), b1.kopf.slice(0, 200));
@@ -8585,6 +8595,33 @@ const freigabeHaupt = (zweck, ziel = null) =>
       JSON.stringify(neu.inhalt?.link));
     pruefe('Und die Antwort nennt die Frist als Zahl',
       neu.inhalt?.minuten === 15, JSON.stringify(neu.inhalt?.minuten));
+
+    /* DIESELBE FRAGE AN DER ZWEITEN TOKENROUTE, und sie steht hier, weil eine
+       Gegenprobe sie gefordert hat: der Rueckbau "der Link faellt aus der
+       Antwort, wenn der Versand traegt" blieb an POST /api/users/:id/token
+       VOLLSTAENDIG STUMM. Geprueft war der Link nur am ANLEGEN; die Oberflaeche
+       liest ihn zwar auch an dieser Route, aber gegen den Mock, und der bringt
+       das Feld selbst mit (Stolperstein 102, zum dritten Mal).
+       ZWEI ROUTEN SIND ZWEI STELLEN. Die eine deckt die andere nicht. */
+    const bertId = ((await A.S.ruf('GET', '/api/users')).inhalt?.zugaenge || [])
+      .find(z => z.username === 'bert')?.id;
+    pruefe('Der eingeladene Zugang steht in der Liste', Boolean(bertId), JSON.stringify(bertId));
+    await A.S.ruf('POST', '/api/bestaetigung',
+      { passwort: MAIL_PASSWORT_ANNA, zweck: 'link', ziel: bertId });
+    const zweit = await A.S.ruf('POST', `/api/users/${bertId}/token`, { zweck: 'einladung' });
+    pruefe('Auch die Tokenroute verschickt', zweit.inhalt?.versand === 'ok',
+      `${zweit.inhalt?.versand} · ${zweit.inhalt?.versandGrund}`);
+    pruefe('Und auch dort steht der Link trotzdem in der Antwort',
+      zweit.inhalt?.link === `https://kriterion.beispiel.de/#/einladung/${zweit.inhalt?.token}`,
+      JSON.stringify(zweit.inhalt?.link));
+    pruefe('Samt der Angabe, woher die Adresse kam',
+      zweit.inhalt?.linkQuelle === 'einstellung', JSON.stringify(zweit.inhalt?.linkQuelle));
+    pruefe('Und der Frist',
+      zweit.inhalt?.minuten === 15, JSON.stringify(zweit.inhalt?.minuten));
+    await new Promise(r => setTimeout(r, 300));
+    const zweitBrief = E.briefe()[1] || { rumpf: '' };
+    pruefe('Die zweite Mail traegt den zweiten Schluessel',
+      zweitBrief.rumpf.includes(zweit.inhalt?.token), zweitBrief.rumpf.slice(0, 300));
 
     gruppe('Der Mailversand: das Offline-Prinzip in beide Richtungen');
 
@@ -8635,12 +8672,17 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     gruppe('Der Mailversand: die Frist wird gemessen, nicht behauptet');
 
-    /* ZWEI SCHWEIGER, UND SIE SIND VERSCHIEDEN -- ohne beide waere nicht
+    /* DREI LAGEN, UND SIE SIND VERSCHIEDEN -- ohne alle drei waere nicht
        belegt, WELCHE Frist traegt.
-       'stumm' gruesst nie: das faengt nodemailers greetingTimeout.
-       'schweigt' gruesst und antwortet danach auf NICHTS: das faellt durch
-       alle drei Fristen von nodemailer hindurch, und nur die AEUSSERE
-       Schranke haelt es. Genau dafuer steht sie da. */
+       'stumm'     gruesst nie: das faengt nodemailers greetingTimeout.
+       'schweigt'  gruesst und schweigt: das faengt sein socketTimeout, denn
+                   der Socket liegt still.
+       'troepfelt' gruesst und schickt alle drei Sekunden EIN Byte: jede
+                   Zustellung setzt socketTimeout zurueck, also laeuft es NIE
+                   ab. NACHGESTELLT: ohne die aeussere Schranke haengt der
+                   Versand nach 45 Sekunden immer noch. DAS ist die Lage, die
+                   die aeussere Schranke rechtfertigt -- und die einzige, an
+                   der sich zeigen laesst, dass sie etwas tut. */
     const St = smtpEmpfaenger('stumm');
     const StA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5440);
     await mailSetzen(StA.S, St);
@@ -8663,15 +8705,36 @@ const freigabeHaupt = (zweck, ziel = null) =>
     const swDauer = Date.now() - t1;
     pruefe('Ein Empfaenger, der gruesst und dann schweigt, ebenso wenig',
       swDauer < 21000, `gemessen ${swDauer} ms`);
-    /* UND DIE UNTERGRENZE, die den Beleg erst zu einem macht: dieser Fall
-       DARF nicht am Gruss haengenbleiben. Bliebe er unter sieben Sekunden,
-       haette ihn eine von nodemailers Fristen gefangen -- und ueber die
-       aeussere Schranke waere nichts bewiesen. */
-    pruefe('Und er faellt wirklich durch die Fristen von nodemailer hindurch',
+    /* UND DIE UNTERGRENZE: dieser Fall darf nicht am GRUSS haengenbleiben.
+       Bliebe er unter sieben Sekunden, haette ihn greetingTimeout gefangen. */
+    pruefe('Und er kommt wirklich am Gruss vorbei',
       swDauer > 7500, `gemessen ${swDauer} ms -- unter 7,5 s haette der Gruss gehalten`);
     pruefe('Der Token ist auch hier da',
       /^[0-9a-f]{64}$/.test(swNeu.inhalt?.token || '') && Boolean(swNeu.inhalt?.link),
       JSON.stringify([swNeu.inhalt?.token, swNeu.inhalt?.link]));
+
+    /* UND DIE LAGE, DIE DIE AEUSSERE SCHRANKE ERST RECHTFERTIGT. Ein
+       Empfaenger, der troepfelt, setzt socketTimeout mit jedem Byte zurueck --
+       nachgestellt: ohne die aeussere Schranke haengt der Versand nach 45
+       Sekunden immer noch. Faellt sie weg, wird DIESE Prueflage rot und keine
+       andere. */
+    const Tr = smtpEmpfaenger('troepfelt');
+    const TrA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6490);
+    await mailSetzen(TrA.S, Tr);
+    const t2 = Date.now();
+    const trNeu = await TrA.S.ruf('POST', '/api/users',
+      { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
+    const trDauer = Date.now() - t2;
+    pruefe('Ein Empfaenger, der troepfelt, haelt die Antwort trotzdem nicht laenger als 20 s auf',
+      trDauer < 21000, `gemessen ${trDauer} ms`);
+    pruefe('Und auch er kommt an allen Fristen von nodemailer vorbei',
+      trDauer > 7500, `gemessen ${trDauer} ms`);
+    pruefe('Der Token ist auch dort da',
+      /^[0-9a-f]{64}$/.test(trNeu.inhalt?.token || '') && Boolean(trNeu.inhalt?.link),
+      JSON.stringify([trNeu.inhalt?.token, trNeu.inhalt?.link]));
+    pruefe('Und der Grund nennt die Frist',
+      /nicht rechtzeitig/.test(trNeu.inhalt?.versandGrund || ''),
+      JSON.stringify(trNeu.inhalt?.versandGrund));
 
     gruppe('Der Mailversand: die oeffentliche Adresse ist Pflicht');
 
@@ -8902,11 +8965,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
       /Absenderadresse muss zum Konto/.test(rMitFrei.inhalt?.hinweisImmer || ''),
       JSON.stringify(rMitFrei.inhalt?.hinweisImmer));
 
-    for (const l of [E, F, X, St, Sw, O, H, T]) await l.stopp();
+    for (const l of [E, F, X, St, Sw, Tr, O, H, T]) await l.stopp();
     // A ist oben beim Neustart schon gestoppt worden -- beendeKind fragt
     // vorher, ob das Kind schon vorbei ist (Stolperstein 139), ein zweiter
     // Aufruf haengt also nicht. Das Verzeichnis faellt hier trotzdem mit.
-    for (const x of [A, leerA, FA, XA, StA, SwA, OA, HA, TA, RA]) {
+    for (const x of [A, leerA, FA, XA, StA, SwA, TrA, OA, HA, TA, RA]) {
       await x.S.stopp();
       fs.rmSync(x.dir, { recursive: true, force: true });
     }
@@ -12838,7 +12901,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTEN -- eine
      Prueflage, die still verschwindet, faellt sonst niemandem auf. */
   pruefe('Der Lauf hat seine Portbasen vermerkt',
-    pbBasen.length === 48 && PRUEFLAGEN.length >= 46,
+    pbBasen.length === 49 && PRUEFLAGEN.length >= 47,
     `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
