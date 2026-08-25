@@ -9165,7 +9165,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        als keine Pruefung. */
     const regSchluessel = (empf, an) => {
       const b = empf.briefe().filter(x =>
-        new RegExp(`^To: ${an.replace('.', '\\.')}$`, 'm').test(x.kopf) &&
+        new RegExp(`^To: ${an.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'm').test(x.kopf) &&
         /#\/bestaetigung\//.test(x.rumpf));
       if (!b.length) return null;
       const m = b[b.length - 1].rumpf.match(/#\/bestaetigung\/([0-9a-f]{64})/);
@@ -9175,7 +9175,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        DER VERSAND LAEUFT NACH DER ANTWORT, also ist die Antwort kein Beleg
        dafuer, dass die Mail schon draussen ist. Eine feste Wartezeit waere
        entweder zu kurz (roter Zufall) oder zu lang (jede Lage bezahlt sie). */
-    const regWarteAufBrief = async (empf, an, ms = 4000) => {
+    const regWarteAufBrief = async (empf, an, ms = 15000) => {
       for (let i = 0; i < ms / 50; i++) {
         const k = regSchluessel(empf, an);
         if (k) return k;
@@ -9221,7 +9221,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der Schalter bleibt an, wenn der Versand kaputtgeht',
       (await gA.S.ruf('GET', '/api/anfragen')).inhalt?.an === true,
       JSON.stringify((await gA.S.ruf('GET', '/api/anfragen')).inhalt?.an));
-    const gKaputt = (await gA.S.ruf('GET', '/api/anfragen')).inhalt;
+    const gKaputt = (await gA.S.ruf('GET', '/api/anfragen')).inhalt || {};
     pruefe('Und die Karte sagt, dass der Versand nicht mehr traegt',
       gKaputt?.versandBereit === false && /Testmail/.test(gKaputt?.versandGrund || ''),
       JSON.stringify([gKaputt?.versandBereit, gKaputt?.versandGrund]));
@@ -9430,14 +9430,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Die Anfrage wird angenommen', hAnfrage.status === 200 && hAnfrage.roh === REG_ANTWORT,
       `${hAnfrage.status} · ${hAnfrage.roh.slice(0, 60)}`);
     const hSchluessel = await regWarteAufBrief(hOk, 'clara@beispiel.de');
-    const hBriefe = hOk.briefe();
+    /* GESUCHT WIRD DER BRIEF AN DIESE ADRESSE, nicht "einer mehr als vorher":
+       der Versand laeuft NACH der Antwort, und unter mehreren Nebenspuren
+       kommt er frueher oder spaeter an. Eine Pruefung auf ein Delta waere von
+       der Uhr abhaengig statt von der Sache (Stolperstein 151). */
+    const hBriefe = hOk.briefe().filter(b => /^To: clara@beispiel\.de$/m.test(b.kopf));
     pruefe('Die Bestaetigungsmail geht am echten SMTP-Gespraech hinaus',
-      hBriefe.length === hVorBriefe + 1, `${hBriefe.length - hVorBriefe} neue Briefe`);
+      hBriefe.length === 1, `${hBriefe.length} Briefe an clara, ` +
+      `${hOk.briefe().length - hVorBriefe} neue insgesamt`);
     /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81) -- und in
        einer Gruppe ueber einen Vorgang, der scheitern KANN, laeuft jede
        Lesestelle danach ueber ein Auffangnetz (Stolperstein 138): kommt der
        Brief nicht, soll die Gruppe rot werden und nicht abreissen. */
-    const hBrief = hBriefe[hBriefe.length - 1] || { kopf: '', rumpf: '', roh: '' };
+    const hBrief = hBriefe[0] || { kopf: '', rumpf: '', roh: '' };
     pruefe('Der Empfaenger ist die angefragte Adresse',
       /^To: clara@beispiel\.de$/m.test(hBrief.kopf), hBrief.kopf.split('\n').slice(0, 4).join(' | '));
     pruefe('Der Absender ist der eingetragene',
@@ -9528,13 +9533,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
        sie freischalten. Genau die Luecke schliesst die Bestaetigungsmail. */
     await regRoh(hA.S, '/api/registrierung', { name: 'dora', adresse: 'dora@beispiel.de' });
     await regWarteAufBrief(hOk, 'dora@beispiel.de');
-    const hKarte = (await hA.S.ruf('GET', '/api/anfragen')).inhalt;
+    const hKarte = (await hA.S.ruf('GET', '/api/anfragen')).inhalt || { anfragen: [] };
     pruefe('In der Tabelle stehen jetzt zwei Zeilen',
       regSql(hA.dir, 'SELECT id FROM anfragen').length === 2,
       `${regSql(hA.dir, 'SELECT id FROM anfragen').length} Zeilen`);
     pruefe('Der Admin sieht davon nur die bestaetigte',
-      hKarte.anfragen.length === 1 && (hKarte.anfragen[0] || {}).username === 'clara',
-      JSON.stringify(hKarte.anfragen.map(a => a.username)));
+      (hKarte.anfragen || []).length === 1 &&
+      ((hKarte.anfragen || [])[0] || {}).username === 'clara',
+      JSON.stringify((hKarte.anfragen || []).map(a => a.username)));
     pruefe('Der Deckel zaehlt trotzdem beide',
       hKarte.belegt === 2, `${hKarte.belegt} von ${hKarte.deckel}`);
     /* UND SIE LAESST SICH AUCH NICHT UEBER IHRE NUMMER FREISCHALTEN. Die Karte
@@ -9646,7 +9652,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Ihr Name steht in keiner Zeile',
       !JSON.stringify(regSql(hA.dir, 'SELECT username FROM anfragen')).includes('einundzwanzig'),
       'der Name steht doch da');
-    const hDeckelKarte = (await hA.S.ruf('GET', '/api/anfragen')).inhalt;
+    const hDeckelKarte = (await hA.S.ruf('GET', '/api/anfragen')).inhalt || {};
     pruefe('Die Karte nennt den Stand gegen den Deckel',
       hDeckelKarte.belegt === 20 && hDeckelKarte.deckel === 20,
       `${hDeckelKarte.belegt} von ${hDeckelKarte.deckel}`);
@@ -9671,9 +9677,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
     await regRoh(hA.S, '/api/registrierung', { name: 'frieda', adresse: 'frieda@beispiel.de' });
     const fSchluessel = await regWarteAufBrief(hOk, 'frieda@beispiel.de');
     await hA.S.ruf('POST', '/api/registrierung/bestaetigen', { schluessel: fSchluessel });
-    const fKarte = (await hA.S.ruf('GET', '/api/anfragen')).inhalt;
+    const fKarte = (await hA.S.ruf('GET', '/api/anfragen')).inhalt || { anfragen: [] };
     pruefe('Die bestaetigte Anfrage steht beim Admin',
-      fKarte.anfragen.length === 1 && fKarte.anfragen[0].username === 'frieda',
+      (fKarte.anfragen || []).length === 1 &&
+      ((fKarte.anfragen || [])[0] || {}).username === 'frieda',
       JSON.stringify(fKarte.anfragen));
     /* JEDE LESESTELLE DANACH UEBER EIN AUFFANGNETZ (Stolperstein 138): kommt
        die Zeile nicht, soll die Gruppe rot werden und nicht abreissen -- eine
@@ -9683,7 +9690,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        ANTWORT (Stolperstein 102) -- das ist die Quelle von vier stummen
        Gegenproben der Vorrunde. Die Karte zeichnet Name, Adresse, den
        Zeitpunkt der Anfrage und den der Bestaetigung. */
-    const fZeile = fKarte.anfragen[0] || {};
+    const fZeile = (fKarte.anfragen || [])[0] || {};
     pruefe('Die Antwort traegt den Namen', fZeile.username === 'frieda', JSON.stringify(fZeile));
     pruefe('Und die Adresse', fZeile.email === 'frieda@beispiel.de', JSON.stringify(fZeile));
     pruefe('Und den Zeitpunkt der Anfrage',
@@ -9804,11 +9811,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
       await regRoh(hA.S, '/api/registrierung', { name, adresse });
       const s = await regWarteAufBrief(hOk, adresse);
       await hA.S.ruf('POST', '/api/registrierung/bestaetigen', { schluessel: s });
-      const k = (await hA.S.ruf('GET', '/api/anfragen')).inhalt;
+      const k = (await hA.S.ruf('GET', '/api/anfragen')).inhalt || {};
       // Ein Auffangnetz statt eines Griffs ins Leere (Stolperstein 138): eine
       // Nummer, die es nicht gibt, faerbt die Pruefung rot statt den Lauf
       // abzureissen.
-      return (k.anfragen.find(a => a.username === name) || { id: 0 }).id;
+      return ((k.anfragen || []).find(a => a.username === name) || { id: 0 }).id;
     };
     const rRumpfId = await rollenLage('gustav', 'gustav@beispiel.de');
     const rRumpf = await hA.S.ruf('POST', `/api/anfragen/${rRumpfId}/frei`,
@@ -9890,8 +9897,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* ERST DER GEGENSTAND (Stolperstein 81): die Tabelle muss ueberhaupt
        beschreibbar sein. Waere sie es nicht, waere die Pruefung darueber gruen
        und belegte nichts. */
-    const ludwigId = ((await hA.S.ruf('GET', '/api/anfragen')).inhalt
-      .anfragen.find(a => a.username === 'ludwig') || { id: 0 }).id;
+    const ludwigId = ((((await hA.S.ruf('GET', '/api/anfragen')).inhalt || {})
+      .anfragen || []).find(a => a.username === 'ludwig') || { id: 0 }).id;
     await hA.S.ruf('DELETE', `/api/anfragen/${ludwigId}`);
     pruefe('Die Entscheidung des Admins schreibt dagegen sehr wohl eine',
       regSql(hA.dir, 'SELECT id FROM sicherheitsprotokoll').length === 1,

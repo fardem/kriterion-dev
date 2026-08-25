@@ -478,6 +478,19 @@ den Lauf dort abreißen.
 den Rückbau bemerkt hätte** — Stolperstein 138, und diesmal an der eigenen
 Arbeit. Jede Lesestelle in den neuen Gruppen läuft jetzt über ein Auffangnetz.
 
+**Beim zweiten Lauf riss Rückbau 36 immer noch ab**, und die Ursache war eine
+andere und lehrreichere: er ist der einzige Rückbau, der **zusätzliche
+Bestätigungsmails an den tröpfelnden Empfänger** entstehen lässt — jede davon
+hält eine Verbindung zwanzig Sekunden fest. Unter vier Nebenspuren reichten die
+vier Sekunden nicht mehr, die die Prüfung auf den Brief wartete. **Ein Rückbau
+kann also die Bedingungen verschieben, unter denen die Prüfung läuft.**
+Nachgezogen: die Wartezeit ist großzügig, und die Prüfung sucht **den Brief an
+diese Adresse** statt „einen mehr als vorher" — kein Delta mehr, das von der Uhr
+abhängt (Stolperstein 151, zum zweiten Mal in dieser Runde). *Nebenbei
+aufgefallen:* das Muster für die Empfängerzeile maskierte nur den **ersten**
+Punkt der Adresse — `String.replace` mit einem String ersetzt genau ein
+Vorkommen.
+
 *Alle sechs Befunde sind das, wofür die Gegenproben da sind:* **ein Rückbau, der
 keine Prüfung rot macht — oder den Lauf mitnimmt —, ist ein Fund und kein
 Erfolg.**
