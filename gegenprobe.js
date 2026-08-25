@@ -53,116 +53,244 @@ const { spawn, spawnSync } = require('child_process');
              ist eine NOTIZ und keine Bedingung: gemeldet wird, was wirklich
              rot wurde, und wenn das eine andere Gruppe ist, steht das da. */
 const RUECKBAUTEN = [
+  /* ---- Der Versand: das Offline-Prinzip ---- */
   {
-    nr: '01', name: 'Die Umschaltung auf DELETE faellt weg',
-    datei: 'db.js',
-    suche: "  db.pragma('journal_mode = DELETE');",
-    ersatz: "  // db.pragma('journal_mode = DELETE');",
-    erwartet: 'Der Schluesselwechsel: der Rundlauf'
-  },
-  {
-    nr: '02', name: 'Die Rueckschaltung auf WAL faellt weg',
-    datei: 'db.js',
-    suche: "    db.pragma('journal_mode = WAL');",
-    ersatz: "    // db.pragma('journal_mode = WAL');",
-    erwartet: 'Der Schluesselwechsel: die Umschaltung des Journals'
-  },
-  {
-    nr: '03', name: 'Der .env-Fall wird nicht mehr abgewiesen',
-    datei: 'schluessel.js',
-    suche: '  if (keyFromEnv && !optionen.env) {',
-    ersatz: '  if (false) {',
-    erwartet: 'Der Schluesselwechsel: der Dateifall und der env-Fall'
-  },
-  {
-    nr: '04', name: 'Die .env wird nicht mehr gegen den laufenden Wert gehalten',
-    datei: 'schluessel.js',
-    suche: '    if (treffer[0].wert.trim().toLowerCase() !== keyHex.toLowerCase()) {',
-    ersatz: '    if (false) {',
-    erwartet: 'Der Schluesselwechsel: der Dateifall und der env-Fall'
-  },
-  {
-    nr: '05', name: 'Die Platzpruefung faellt weg',
-    datei: 'schluessel.js',
-    suche: '  if (l.reicht === false) {',
-    ersatz: '  if (false) {',
-    erwartet: 'Der Schluesselwechsel: zu wenig Platz'
-  },
-  {
-    nr: '06', name: 'Die Protokollzeile wird nicht geschrieben',
-    datei: 'schluessel.js',
-    suche: "  auth.protokolliere('schluessel', { wer: auth.VOM_WIRT });",
-    ersatz: "  // auth.protokolliere('schluessel', { wer: auth.VOM_WIRT });",
-    erwartet: 'Der Schluesselwechsel: kein Schluessel, wo keiner hingehoert'
-  },
-  {
-    nr: '07', name: 'Die Marke schluesselGewechseltAm wird nicht gesetzt',
-    datei: 'schluessel.js',
-    suche: '  db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (\'schluesselGewechseltAm\', ?)")',
-    ersatz: '  db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (\'egalWasAnderes\', ?)")',
-    erwartet: 'Der Schluesselwechsel: kein Schluessel, wo keiner hingehoert'
-  },
-  {
-    nr: '08', name: 'Der alte Wert wird in der .env nicht auskommentiert',
-    datei: 'keys.js',
-    suche: '    `#ENCRYPTION_KEY=${alt}`,',
-    ersatz: '    `# (der alte Wert ist weg)`,',
-    erwartet: 'Der Schluesselwechsel: der Dateifall und der env-Fall'
-  },
-  {
-    nr: '09', name: 'Die alten Sicherungen werden nicht mehr gezaehlt',
+    nr: '01', name: 'Der Token entsteht erst NACH dem Versand',
     datei: 'server.js',
-    suche: '  const veraltet = marke ? dateien.filter(d => d.zeit < marke.ms).length : 0;',
-    ersatz: '  const veraltet = 0;',
-    erwartet: 'Die Sicherung: zwei Schluessel im Umlauf'
+    suche: "    const v = await versendeTokenLink(ziel, t);",
+    ersatz: "    const v = await versendeTokenLink(ziel, t); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
+    erwartet: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
   {
-    nr: '10', name: 'Der Dateifall schreibt die Schluesseldatei nicht',
-    datei: 'schluessel.js',
-    suche: '  else keys.schreibeSchluesselDatei(DATA_DIR, neu);',
-    ersatz: '  else { /* zurueckgebaut */ }',
-    erwartet: 'Der Schluesselwechsel: der Rundlauf'
+    nr: '02', name: 'Der Link faellt aus der Antwort, wenn der Versand traegt',
+    datei: 'server.js',
+    suche: "               ohnePasswort: t.ohnePasswort,\n               ...linkAngabe(t.klartext), ...v });",
+    ersatz: "               ohnePasswort: t.ohnePasswort,\n               ...(v.versand === 'ok' ? { link: null, linkQuelle: 'browser' } : linkAngabe(t.klartext)), ...v });",
+    erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
-    nr: '11', name: 'Die Rueckschaltung auf WAL steht nicht mehr im finally',
-    datei: 'db.js',
-    suche: '  } finally {\n' +
-           "    db.pragma('journal_mode = WAL');\n" +
-           '  }',
-    ersatz: '  } finally {\n' +
-            '    /* zurueckgebaut */\n' +
-            '  }\n' +
-            "  db.pragma('journal_mode = WAL');",
-    erwartet: 'Der Schluesselwechsel: die Umschaltung des Journals'
+    nr: '03', name: 'Das Feld versand faellt ganz weg',
+    datei: 'server.js',
+    suche: "  return e.ok ? { versand: 'ok', versandGrund: '' }",
+    ersatz: "  return e.ok ? {}",
+    erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   {
-    nr: '12', name: 'Eine mitgegebene .env wird im Dateifall nicht abgewiesen',
-    datei: 'schluessel.js',
-    suche: '  if (optionen.env && !keyFromEnv) {',
-    ersatz: '  if (false) {',
-    erwartet: 'Der Schluesselwechsel: der Dateifall und der env-Fall'
+    nr: '04', name: 'Der Grund faellt weg -- "aus" steht ohne Auskunft da',
+    datei: 'server.js',
+    suche: "    return { versand: 'aus', versandGrund: 'Es ist kein Mailzugang eingerichtet.' };",
+    ersatz: "    return { versand: 'aus' };",
+    erwartet: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
+  },
+  /* ---- Der Versand: die Frist ---- */
+  {
+    nr: '05', name: 'Die aeussere Schranke ueber dem Versand faellt weg',
+    datei: 'mail.js',
+    /* DER RUECKBAU MACHT DIE FRIST WIRKUNGSLOS, ER ENTFERNT SIE NICHT AUS DEM
+       WETTLAUF. Zwei Anlaeufe davor waren falsch, und der zweite lehrreich:
+       `frist` aus dem Promise.race zu streichen laesst die Zusage zwar fallen,
+       aber die Zusage wirft danach UNBEHANDELT -- der Server stirbt, und der
+       Lauf reisst ab, statt eine Pruefung rot zu faerben (Stolperstein 138).
+       So bleibt alles stehen, und nur die Wirkung faellt weg. */
+    suche: "      uhr = setTimeout(() => fehler(new Error('Der Mailserver hat nicht rechtzeitig geantwortet.')),",
+    ersatz: "      uhr = setTimeout(() => {},",
+    erwartet: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
   {
-    nr: '13', name: 'Zwei aktive Schluesselzeilen in der .env werden nicht abgewiesen',
-    datei: 'schluessel.js',
-    suche: '    if (treffer.length !== 1) {',
-    ersatz: '    if (false) {',
-    erwartet: 'Der Schluesselwechsel: der Dateifall und der env-Fall'
+    nr: '06', name: 'Die Fristen von nodemailer stehen wieder auf ihren Vorgaben',
+    datei: 'mail.js',
+    suche: "    connectionTimeout: VERBINDUNG_MS, greetingTimeout: GRUSS_MS, socketTimeout: VERSAND_MS,",
+    ersatz: "",
+    erwartet: '(erwartet STUMM — die aeussere Schranke traegt die Zusage allein; nodemailers Fristen sind der schnellere, nicht der tragende Weg)'
+  },
+  /* ---- Der Versand: die oeffentliche Adresse ---- */
+  {
+    nr: '07', name: 'Ohne oeffentliche Adresse wird trotzdem verschickt',
+    datei: 'server.js',
+    suche: "  if (!OEFFENTLICHE.adresse)",
+    ersatz: "  if (false)",
+    erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
   },
   {
-    nr: '14', name: 'Die Karte "Sicherung" zeigt den Wechsel gar nicht mehr an',
+    nr: '08', name: 'Die Adresse wird aus dem Host-Kopf abgeleitet',
+    datei: 'server.js',
+    suche: "    username: ziel.username, link: `${OEFFENTLICHE.adresse}/#/einladung/${t.klartext}`,",
+    ersatz: "    username: ziel.username, link: `https://${'HOSTKOPF'}/#/einladung/${t.klartext}`,",
+    erwartet: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
+  },
+  /* ---- Der Versand: der Empfaenger am Zugang ---- */
+  {
+    nr: '09', name: 'Ein Zugang ohne Adresse wird trotzdem beschickt',
+    datei: 'server.js',
+    suche: "  if (!ziel.email)",
+    ersatz: "  if (false)",
+    erwartet: 'Der Versandzustand neben dem Link'
+  },
+  {
+    nr: '10', name: 'Die Adresse laesst sich beim Anlegen nicht mehr mitgeben',
+    datei: 'auth.js',
+    suche: "    .run(sauber, hash, rolle, mailAdresse || null);",
+    ersatz: "    .run(sauber, hash, rolle, null);",
+    erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
+  },
+  {
+    nr: '11', name: 'Die eigene Adresse laesst sich nicht mehr setzen',
+    datei: 'auth.js',
+    suche: "    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(adresse || null, u.id);",
+    ersatz: "    db.prepare('UPDATE users SET email = email WHERE id = ?').run(u.id);",
+    erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
+  },
+  /* ---- Die Testmail ---- */
+  {
+    nr: '12', name: 'Die Testmail nimmt die Adresse aus dem Rumpf',
+    datei: 'server.js',
+    suche: "  const eigener = auth.holeZugang(req.benutzer.id);",
+    ersatz: "  const eigener = { ...auth.holeZugang(req.benutzer.id), email: (req.body || {}).an || auth.holeZugang(req.benutzer.id)?.email };",
+    erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
+  },
+  {
+    nr: '13', name: 'Die Absage ohne eigene Adresse nennt den Weg dorthin nicht',
+    datei: 'server.js',
+    suche: "      'unter „Zugang“ ein — die Testmail geht ausschließlich an die eigene Adresse.' });",
+    ersatz: "      'ein.' });",
+    erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
+  },
+  {
+    /* GEZIELT AUF DEN VERGLEICH, denn DER traegt die Zusage. Der erste Anlauf
+       nahm ein ausdrueckliches Loeschen der Marke weg und blieb stumm -- weil
+       der Hash ueber den Zugang die Arbeit ohnehin schon tat. Das Loeschen
+       war folgenlos und ist entfernt; es gibt jetzt EINEN Mechanismus, und der
+       Rueckbau greift ihn an. */
+    nr: '14', name: 'Die Marke gilt auch nach einer Aenderung am Zugang weiter',
+    datei: 'server.js',
+    suche: "  const passt = Boolean(test && test.marke && test.marke === mail.marke(roh));",
+    ersatz: "  const passt = Boolean(test && test.marke);",
+    erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
+  },
+  /* ---- Die Rollenleiter am Mailzugang ---- */
+  {
+    nr: '15', name: 'Der Mailzugang steht auch dem Admin offen',
+    datei: 'server.js',
+    suche: "app.put('/api/mail', nurEigentuemer, zweiteBestaetigungNoetig('mail'), (req, res) => {",
+    ersatz: "app.put('/api/mail', nurAdmin, zweiteBestaetigungNoetig('mail'), (req, res) => {",
+    erwartet: 'Der Mailzugang: wer ihn setzen darf'
+  },
+  {
+    nr: '16', name: 'Die Testmail steht auch dem Admin offen',
+    datei: 'server.js',
+    suche: "app.post('/api/mail/test', nurEigentuemer, async (req, res) => {",
+    ersatz: "app.post('/api/mail/test', nurAdmin, async (req, res) => {",
+    erwartet: 'Der Mailzugang: wer ihn setzen darf'
+  },
+  {
+    nr: '17', name: 'Die zweite Bestaetigung faellt am Mailzugang weg',
+    datei: 'server.js',
+    suche: "app.put('/api/mail', nurEigentuemer, zweiteBestaetigungNoetig('mail'), (req, res) => {",
+    ersatz: "app.put('/api/mail', nurEigentuemer, (req, res) => {",
+    erwartet: 'Der Mailzugang: wer ihn setzen darf'
+  },
+  /* ---- Das Passwort ---- */
+  {
+    nr: '18', name: 'Das Mailpasswort steht in der Antwort',
+    datei: 'server.js',
+    suche: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json(mailKarte()));",
+    ersatz: "app.get('/api/mail', nurEigentuemer, (req, res) => res.json({ ...mailKarte(), passwort: mail.loeseAuf(getSetting(mail.SCHLUESSEL, null)).passwort }));",
+    erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
+  },
+  {
+    nr: '19', name: 'Das Mailpasswort geht in die Kontrollausgabe',
+    datei: 'server.js',
+    suche: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}.` +",
+    ersatz: "        `(${z.sicher ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}, Passwort ${mail.loeseAuf(roh).passwort}.` +",
+    erwartet: 'Der Mailversand: das Passwort steht nirgends'
+  },
+  /* ---- Die Anbietervorlagen ---- */
+  {
+    nr: '20', name: 'Ein mitgeschickter Server ueberschreibt die Vorlage',
+    datei: 'mail.js',
+    suche: "  return { ...z, server: v.server, port: v.port, sicher: v.sicher };",
+    ersatz: "  return { ...z, server: z.server || v.server, port: z.port || v.port, sicher: z.sicher === true };",
+    erwartet: 'Der Mailzugang: wer ihn setzen darf'
+  },
+  {
+    nr: '21', name: 'Ein unbekannter Anbieter wird durchgelassen',
+    datei: 'mail.js',
+    suche: "  if (!v) throw new Error('Diesen Anbieter gibt es nicht.');",
+    ersatz: "  const vv = v;",
+    erwartet: 'Der Mailzugang: wer ihn setzen darf'
+  },
+  /* ---- Die Frist ab dem ersten Oeffnen ---- */
+  {
+    nr: '22', name: 'Das erste Oeffnen startet die Frist nicht',
+    datei: 'server.js',
+    suche: "  const minuten = auth.beginneTokenFrist(t.hash);",
+    ersatz: "  const minuten = auth.TOKEN_FRIST_MINUTEN;",
+    erwartet: 'Der Token: die Frist ab dem ersten Oeffnen'
+  },
+  {
+    nr: '23', name: 'Jedes Oeffnen schiebt die Frist weiter',
+    datei: 'auth.js',
+    suche: "    WHERE hash = ? AND benutzt_am IS NULL AND ablauf > datetime('now', ?)`);",
+    ersatz: "    WHERE hash = ? AND benutzt_am IS NULL AND ? IS NOT NULL`);",
+    erwartet: 'Der Token: die Frist ab dem ersten Oeffnen'
+  },
+  {
+    nr: '24', name: 'Die Absage nach der Frist bekommt einen eigenen Wortlaut',
+    datei: 'server.js',
+    suche: "const TOKEN_ABSAGE = 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.';",
+    ersatz: "const TOKEN_ABSAGE = 'Die Frist von 15 Minuten ist abgelaufen.';",
+    erwartet: 'Der Token: die Absage sieht immer gleich aus'
+  },
+  /* ---- Befund G: die voruebergehende Absage ---- */
+  {
+    nr: '25', name: 'Jede Absage wirft den Schluessel wieder aus der Adresse',
     datei: 'public/app.js',
-    suche: "    const wechsel = !d.gewechseltAm ? '' : (",
-    ersatz: "    const wechsel = true ? '' : (",
-    erwartet: 'Die Sicherung in der Oberflaeche'
+    suche: "    if (res.status === 400) {",
+    ersatz: "    if (!res.ok) {",
+    erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
   {
-    nr: '15', name: 'Die Fingerprintlage wird nicht mehr vermerkt',
-    datei: 'pruefung.js',
-    suche: '    PRUEFLAGEN.push({ basis: FINGERPRINT_BASIS, port, kind: kindQ, verzeichnis: datenVerz });',
-    ersatz: '    // PRUEFLAGEN.push({ basis: FINGERPRINT_BASIS, port, kind: kindQ, verzeichnis: datenVerz });',
-    erwartet: 'Die Portbasen und der Versatz'
+    nr: '26', name: 'Der zweite Anlauf nach der Bremse faellt weg',
+    datei: 'public/app.js',
+    suche: "    document.getElementById('eb-neu').onclick = () => showEinladung(schluessel);",
+    ersatz: "    document.getElementById('eb-neu').onclick = () => {};",
+    erwartet: 'Die Einladungsseite in der Oberflaeche'
   },
+  /* ---- Die Oberflaeche ---- */
+  {
+    /* GEZIELT AUF DEN ABRUF, nicht auf die Bedingung der Karte. Ein Rueckbau
+       allein an der Karte blieb stumm: mailstand ist beim Admin `null`, weil
+       er gar nicht erst geholt wird -- die Karte erschiene also trotzdem
+       nicht. DIE TRAGENDE ZEILE IST DER ABRUF, und der Rueckbau greift
+       deshalb dort. */
+    nr: '27', name: 'Der Mailzugang wird auch fuer den Admin geholt',
+    datei: 'public/app.js',
+    suche: "      EIGENTUEMER ? api('GET', '/api/mail') : null",
+    ersatz: "      ADMIN ? api('GET', '/api/mail') : null",
+    erwartet: 'Die Karten des Systembereichs nach Rolle (viele rot — der Abruf reisst den ganzen Bereich mit)'
+  },
+  {
+    nr: '28', name: 'Der Versandzustand verschwindet aus dem Linkkasten',
+    datei: 'public/app.js',
+    suche: "      ${versandZeile(d)}",
+    ersatz: "      ",
+    erwartet: 'Der Versandzustand neben dem Link'
+  },
+  {
+    nr: '29', name: 'Das Adressfeld am eigenen Zugang schickt nichts mehr mit',
+    datei: 'public/app.js',
+    suche: "        oldPassword: alt, username: name, newPassword: neu1, email: adresse",
+    ersatz: "        oldPassword: alt, username: name, newPassword: neu1",
+    erwartet: 'Die eigene Adresse in der Karte „Zugang“'
+  },
+  {
+    nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
+    datei: 'public/app.js',
+    suche: "        ${stand.minuten ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit.</strong>",
+    ersatz: "        ${false ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit.</strong>",
+    erwartet: 'Die Einladungsseite in der Oberflaeche'
+  },
+  /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
     datei: 'pruefung.js',
@@ -171,17 +299,23 @@ const RUECKBAUTEN = [
     erwartet: 'Die Portbasen und der Versatz'
   },
   {
-    nr: 'W4', name: 'beendeKind fragt nicht, ob das Kind schon vorbei ist',
+    nr: 'W5', name: 'Der SMTP-Empfaenger wird nicht mehr vermerkt',
     datei: 'pruefung.js',
-    suche: '    if (kind.exitCode !== null || kind.signalCode !== null) return fertig();',
-    ersatz: '    // if (kind.exitCode !== null || kind.signalCode !== null) return fertig();',
-    erwartet: '(erwartet STUMM — ein gewoehnlicher Lauf laesst kein Kind von selbst enden)'
+    suche: '  SMTP_LAGEN.push(lage);',
+    ersatz: '  // SMTP_LAGEN.push(lage);',
+    erwartet: 'Die Portbasen und der Versatz'
   },
   {
-    nr: 'W3', name: 'Eine Prueflage beendet ihren Server nicht',
+    /* GEZIELT AUF DEN HORCHPOSTEN, nicht auf das Abraeumen der Verbindungen.
+       Der erste Anlauf nahm das Abraeumen weg -- dann HAENGT der Lauf am
+       close(), das auf offene Verbindungen wartet, und er lief in die
+       Zeitgrenze des Treibers, statt eine Pruefung rot zu faerben
+       (Stolperstein 138). So bleibt der Lauf ganz, die Empfaenger horchen
+       weiter, und genau der Waechter faerbt sich, der dafuer da ist. */
+    nr: 'W6', name: 'Der SMTP-Empfaenger hoert nicht auf zu horchen',
     datei: 'pruefung.js',
-    suche: '  await ZJ.stopp();',
-    ersatz: '  // await ZJ.stopp();',
+    suche: '    server.close(() => r());',
+    ersatz: '    r();',
     erwartet: 'Keine Prueflage laesst ihren Server zurueck'
   }
 ];
@@ -322,7 +456,20 @@ function fahre(r, spur, stufe) {
     let ausgabe = '';
     kind.stdout.on('data', d => { ausgabe += d; });
     kind.stderr.on('data', d => { ausgabe += d; });
-    kind.on('exit', (code) => ende({ code, ...leseLauf(ausgabe) }));
+    /* EINE ZEITGRENZE JE RUECKBAU, seit 0.9.0. Ein Rueckbau kann den Prueflauf
+       nicht nur rot machen, sondern HAENGEN lassen -- und ein haengender Lauf
+       blockiert seine Spur fuer immer, ohne CPU und ohne Meldung. Genau das
+       tut der Rueckbau, der das Aufraeumen des SMTP-Empfaengers wegnimmt.
+       OHNE GRENZE STUENDE DER GANZE TREIBER STILL, und von aussen saehe es aus
+       wie ein besonders langer Lauf. Die Grenze ist grosszuegig: ein
+       vollstaendiger Lauf dauert rund sechs Minuten, die Grenze liegt beim Doppelten. */
+    const GRENZE_MS = 12 * 60 * 1000;
+    const uhr = setTimeout(() => { try { kind.kill('SIGKILL'); } catch {} }, GRENZE_MS);
+    kind.on('exit', (code, signal) => {
+      const ueberfaellig = Date.now() - beginn >= GRENZE_MS;
+      clearTimeout(uhr);
+      ende({ code, signal, ueberfaellig, ...leseLauf(ausgabe) });
+    });
   });
 }
 
@@ -339,7 +486,14 @@ async function fahreAlle(liste, spuren, stufe) {
       console.log(`  [Spur ${nr}] ${r.nr} — ${r.name}`);
       ergebnisse[i] = await fahre(r, nr, stufe);
       const e = ergebnisse[i];
-      const wort = e.fehler ? 'FEHLER' : (e.rot.length ? `${e.rot.length} rot` : 'STUMM');
+      /* EIN ABGERISSENER LAUF IST KEIN STUMMER. Beide zeigen null rote Punkte,
+         und sie sagen das Gegenteil: der eine, dass niemand prueft, der andere,
+         dass der Lauf gar nicht so weit gekommen ist (Stolperstein 138). Die
+         Tabelle unterscheidet sie seit jeher -- diese Zeile jetzt auch. */
+      const wort = e.fehler ? 'FEHLER'
+        : e.ueberfaellig ? 'ZEITGRENZE'
+        : !e.durchgelaufen ? 'ABGERISSEN'
+        : e.rot.length ? `${e.rot.length} rot` : 'STUMM';
       console.log(`  [Spur ${nr}] ${r.nr} fertig nach ${e.sekunden}s — ${wort}`);
     }
   };
@@ -358,6 +512,8 @@ function schreibeTabelle(ergebnisse) {
   for (const e of ergebnisse) {
     let rechts;
     if (e.fehler) rechts = `**RÜCKBAU GESCHEITERT** — ${e.fehler}`;
+    else if (e.ueberfaellig)
+      rechts = '**LAUF AN DER ZEITGRENZE ABGEBROCHEN** — er hängt, statt rot zu werden';
     else if (!e.durchgelaufen)
       rechts = `**LAUF ABGERISSEN** — ${e.abriss || `Code ${e.code}`}` +
                (e.rot.length ? ` (davor ${e.rot.length} rot)` : '');

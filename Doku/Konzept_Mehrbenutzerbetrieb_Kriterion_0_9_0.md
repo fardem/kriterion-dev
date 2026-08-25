@@ -1,17 +1,36 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 24. August 2026 · gebaut bis Version 0.8.90 — Fingerprint `aeb336bf`**
-(Stufen A bis **H** erledigt; **allein Stufe I ist offen**. 0.8.1 war eine
-**Bereinigung**, 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10
-die Runde **Werkzeug**, 0.8.20 die Runde **„Die Schotten dicht"**, 0.8.40 bis
-0.8.71 vier weitere Runden — alle keine Stufen.)
+**Konzeptpapier · Stand 25. August 2026 · gebaut bis Version 0.9.0 — Fingerprint `82dc8550`**
+(Stufen A bis **H** erledigt; **Stufe I ist zur Hälfte gebaut** — der Versand
+steht, die Selbstanmeldung folgt als 0.9.1. 0.8.1 war eine **Bereinigung**,
+0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10 die Runde
+**Werkzeug**, 0.8.20 die Runde **„Die Schotten dicht"**, 0.8.40 bis 0.8.71 vier
+weitere Runden, 0.8.91 den **Schlüsselwechsel** — alle keine Stufen.)
 
-**0.8.90 ist KEINE Stufe dieses Papiers** und ändert an keiner seiner Regeln
-etwas. „Schwere Eingriffe" liegt zwischen H und I und **arbeitet Stufe I an
+**0.9.0 IST DIE ERSTE HÄLFTE VON STUFE I — „Der Server verschickt selbst".**
+Der Abbruchpunkt, den dieses Papier in Teil III seit Langem nennt (*„nach dem
+Versand, vor der Selbstregistrierung"*), ist gezogen worden: die Runde wurde
+mit dem Mailversand zu breit für einen Durchgang, und die Selbstanmeldung
+bekommt eine eigene Nummer. **Was gebaut ist, steht in Abschnitt 11; was
+offen bleibt, in Abschnitt 10.**
+
+**DREI ENTSCHEIDUNGEN DIESER RUNDE WEICHEN VOM ENTWURF AB** und gelten ab jetzt
+in der gebauten Form — sie stehen an ihren Abschnitten ausführlich:
+
+1. **Der Mailzugang liegt in der Oberfläche, nicht in der `.env`** — aber beim
+   **Eigentümer**, nicht beim Admin (Abschnitt 11).
+2. **Die öffentliche Adresse ist Pflicht FÜR DEN VERSAND, nicht für den
+   Start** (Abschnitt 11).
+3. **Der Token bekommt eine zweite Frist:** ab dem ersten Öffnen bleiben
+   fünfzehn Minuten (Abschnitt 10). Das ist der einzige Eingriff in den
+   Tokenweg aus Stufe H.
+
+**0.8.90 war KEINE Stufe dieses Papiers** und änderte an keiner seiner Regeln
+etwas. „Schwere Eingriffe" lag zwischen H und I und **arbeitete Stufe I an
 einer Stelle vor**, die hier steht: die **öffentliche Adresse** aus Abschnitt 11
-ist gebaut, optional und leer als Vorgabe. Ab Stufe I ist sie **Pflicht**.
-Alles Übrige der Runde — die zweite Bestätigung und das Sicherheitsprotokoll —
-steht im Projektstand, nicht hier.
+wurde dort gebaut, optional und leer als Vorgabe. Alles Übrige der Runde — die
+zweite Bestätigung und das Sicherheitsprotokoll — steht im Projektstand, nicht
+hier.
 
 **0.8.80 ist Stufe H, „Einladung, Rücksetzung, Sitzungen"** — die erste Stufe
 seit G4 (0.8.30). Ein Zugang bekommt sein Passwort **selbst**, über einen Link
@@ -21,9 +40,10 @@ die Karte **„Meine Sitzungen"**. Das Schema bekommt die Tabelle `tokens`
 Die Stufe steht unten ausführlich, die **fünf Abweichungen vom Entwurf** in
 Abschnitt 10.
 
-**Damit fehlt nur noch Stufe I** — Mailversand und Selbstanmeldung, 0.9.0. Sie
-erbt den Token dieser Runde **unverändert**; was in Stufe H an Form entschieden
-wurde, gilt dort weiter.
+**Der Token aus Stufe H ist in 0.9.0 geerbt worden** — sieben Tage, genau
+einmal gültig, alle übrigen offenen Links fallen mit, SHA-256 ohne Salz, die
+**eine** Absage vor der Anmeldung. Dazugekommen ist allein die zweite Frist ab
+dem ersten Öffnen; sie nimmt nichts weg und steht in Abschnitt 10.
 
 **0.8.71 davor berührte den Mehrbenutzerbetrieb nicht und legte auch keine
 seiner Regeln neu aus.** „Der Sicherungsort zieht um" war eine
@@ -340,6 +360,11 @@ Block im Projekt. Wer von 0.8.20 kommt, fährt beide in einem Start. Nachgestell
 lässt sich nur **nullbar** nachrüsten (Projektstand, Stolperstein 105); für
 `links` war das ohnehin die richtige Form.
 
+**0.9.0 bringt keine Tabelle und keine Spalte.** Der Mailzugang liegt als ein
+Schlüssel in `settings`, und `users.email` steht seit 0.6.0 im Schema — sie
+wurde bis dahin nur von keiner Stelle **geschrieben**. Die Frist ab dem ersten
+Öffnen kommt ohne eigene Spalte aus: geschrieben wird `tokens.ablauf`.
+
 **`tokens` ist gebaut (Stufe H, 0.8.80)** — und mit **einer Spalte mehr** als
 hier entworfen: `tokens (hash, user_id, zweck, ablauf, benutzt_am,
 created_at)`. `created_at` steht dazu, weil jede andere Tabelle des Schemas es
@@ -448,9 +473,17 @@ dafür ist der Schalter da, und beide Stellungen sind jederzeit umkehrbar.
 | `filters` — Filter- und Sortierwahl | `title_public`, `title_app` |
 | `schrift` — Schriftgröße | `vokabular` — elf Wörter |
 | `bloecke` — Anordnung und Einklappzustand | `tagsFreiAnlegen`, `kategorienFreiAnlegen` *(0.8.4)* |
-| `suchNamen` — Zahl der Anbieternamen | `registrierung` *(Stufe I)* |
-| `linkZeilen` — sichtbare Linkzeilen | Mail-Einstellungen, öffentliche Adresse *(Stufe I)* |
+| `suchNamen` — Zahl der Anbieternamen | `registrierung` *(offen, 0.9.1)* |
+| `linkZeilen` — sichtbare Linkzeilen | `mailzugang` *(0.9.0 — **beim Eigentümer**, nicht beim Admin)* |
 | `zeitleiste` — ein/aus | `suche`, `sucheEigene`, `sucheAktiv` |
+| | `mailtestOk` — die Marke der letzten erfolgreichen Testmail *(0.9.0)* |
+
+**Der Mailzugang ist die eine Zeile in `settings`, die NICHT dem Admin
+gehört** — und die einzige Ausnahme von „global heißt Adminsache". Der Grund
+steht in Abschnitt 11: ein Admin, der den SMTP-Server setzt, böge die
+Rücksetzmail des Eigentümers auf einen Server seiner Wahl. **Die öffentliche
+Adresse steht ausdrücklich nicht in dieser Tabelle** — sie liegt in der `.env`
+und ist gar keine Einstellung im Sinne dieses Abschnitts.
 
 Das Vokabular bleibt global — es ist die Sprache der Anwendung, keine
 Ansichtssache. Blockanordnung und Einklappzustand liegen weiterhin **nicht**
@@ -517,7 +550,7 @@ Antwort — wer das sieht, ist angemeldet und sieht die Liste ohnehin. Für die
 Abschnitt 10: dort ist jede unterschiedliche Antwort ein Werkzeug zum
 Durchprobieren von Adressen.
 
-## 10. Registrierung und Tokens — Tokens erledigt in 0.8.80 (Stufe H), Registrierung offen (Stufe I)
+## 10. Registrierung und Tokens — Tokens erledigt in 0.8.80 und 0.9.0, Registrierung offen (0.9.1)
 
 **Auf einen Schalter gekürzt, entschieden vor 0.8.0:** der Schalter
 „Mehrbenutzerbetrieb ein" widersprach Abschnitt 1 („ein Zustand, keine zweite
@@ -531,6 +564,37 @@ E-Mail-Adresse an, kein Passwort. Admin prüft und schaltet frei. Erst danach
 erzeugt der Server einen Token, und der Benutzer setzt über den Link sein
 Passwort selbst.
 
+**Entschieden für 0.9.1, und es ist ein Schritt mehr als hier entworfen: eine
+Bestätigungsmail VOR der Freischaltung** (Double Opt-in). Sie schließt eine
+Lücke, die dieser Entwurf offen ließ: ohne sie kann jeder eine **fremde**
+Adresse in die Liste des Admins schreiben, und beim Freischalten schickte die
+Anlage einer Person, die nie gefragt hat, eine Mail mit Passwortkraft. Der
+Ablauf wird damit:
+
+1. Anfrage mit Name und Adresse. **Die Antwort sieht immer gleich aus.**
+2. Die Anlage schickt sofort eine **Bestätigungsmail** — ein kurzer Link
+   **ohne** Passwortkraft. Wer ihn anklickt, sagt nur „ja, das bin ich".
+3. Erst die **bestätigte** Anfrage erscheint beim Admin. Unbestätigte verfallen.
+4. Der Admin schaltet frei → jetzt entsteht der Zugang samt Token, und die
+   Einladungsmail geht hinaus.
+5. Passwort setzen über den bekannten Weg aus Stufe H.
+
+**Das macht drei Mailanlässe statt zwei** (Abschnitt 11) — und das ist die
+Ausnahme, die dort benannt gehört.
+
+**Und der Schalter `registrierung` wird an den funktionierenden Versand
+gekoppelt.** Ohne Mail läuft die Selbstanmeldung ins Leere: der Anfragende
+bekäme nie einen Link. Einschalten geht nur, wenn seit der letzten Änderung am
+Mailzugang eine Testmail durchgekommen ist; die Marke dafür (`mailtestOk`) ist
+in 0.9.0 schon gebaut. **Ausschalten geht immer**, und geht der Versand später
+kaputt, bleibt der Schalter an und die Karte sagt es rot — ein Schalter, der
+sich von selbst umlegt, wäre eine zweite Wahrheit.
+
+**Zwei Betriebsarten wird es NICHT geben.** Eine Lage, in der der geklickte
+Token allein freischaltet und kein Admin zusieht, wäre ein anderes Produkt:
+Kriterion ist ein Archiv für eine kleine Gruppe, kein Forum. Und zwei
+Betriebsarten wären genau die zweite Wahrheit, die Abschnitt 1 ausschließt.
+
 **Die Antwort auf eine Registrierung sieht immer gleich aus**, egal ob Name oder
 Adresse bereits existieren („Danke, die Anfrage liegt beim Admin").
 Andernfalls ist das Formular ein Werkzeug zum Durchprobieren von Adressen.
@@ -538,10 +602,41 @@ Andernfalls ist das Formular ein Werkzeug zum Durchprobieren von Adressen.
 **Token — erledigt in 0.8.80.** 32 Zufallsbytes, gespeichert wird nur der Hash,
 einmal gültig, Ablauf nach sieben Tagen, beim Einlösen alle Sitzungen dieses
 Benutzers beenden. **Ein Mechanismus, zwei Anlässe** — Einladung und
-Passwortrücksetzung. **Stufe I erbt ihn unverändert.**
+Passwortrücksetzung. **0.9.0 hat ihn geerbt**, mit genau einer Ergänzung.
 
-**Fünf Stellen, an denen anders gebaut wurde als hier beschrieben** — sie
-gelten ab jetzt in dieser Form:
+**Die zweite Frist — gebaut in 0.9.0, sechste Abweichung vom Entwurf.**
+Ab dem **ersten Öffnen** bleiben **fünfzehn Minuten**, um das Passwort zu
+setzen. Die Begründung ist die Trennung zweier Fragen, die das Papier bis dahin
+zusammengeworfen hat: **die sieben Tage sind die Frist fürs Lesen der Mail,
+nicht fürs Liegen des Links.** Solange niemand geöffnet hat, ist nichts
+geschehen. Ab dem ersten Öffnen ist erwiesen, dass der Link angekommen ist —
+und dann hat er in einem fremden Postfach nichts mehr verloren, wo er sechs
+Tage lang ein Passwortersatz wäre.
+
+*Was sie nicht leistet, und das gehört dazu:* sie schützt nicht gegen den, der
+das Postfach mitliest — der klickt zuerst. Sie macht seinen Zugriff
+**sichtbar**, weil der echte Empfänger vor einem toten Link steht.
+
+*Warum sie hier trägt und anderswo nicht:* der übliche Killer kurzer Fristen
+sind Vorschaudienste, die Links im Postfach vorab abrufen und sie verbrennen,
+bevor ein Mensch sie sieht. **Der Schlüssel steht im Fragment**
+(`#/einladung/…`) und geht nie an den Server; ein Vorschaudienst holt nur die
+Seite und löst die Frist damit gerade **nicht** aus. Sie beginnt erst, wenn ein
+echter Browser den Schlüssel im Rumpf schickt.
+
+*Drei Punkte, an denen sie kippen würde und die deshalb gebaut sind:*
+**innerhalb** der Frist darf beliebig oft geöffnet und neu geladen werden —
+nur der **erste** Aufruf schreibt herunter; die **Absage bleibt die eine** aus
+Stufe H und nennt die Frist nicht; und **der Zugang bleibt stehen**, wenn sie
+verstreicht — wer sie verpasst, holt einen neuen Link.
+
+*Gebaut ohne neue Spalte:* geschrieben wird `tokens.ablauf`, die es längst
+gibt. Der Preis, ehrlich benannt — hinterher ist nicht mehr zu sehen, **ob** ein
+Link schon einmal geöffnet wurde, nur noch, wann er abläuft.
+
+**Sechs Stellen, an denen anders gebaut wurde als hier beschrieben** — sie
+gelten ab jetzt in dieser Form. Die sechste ist die Frist darüber, gebaut in
+0.9.0; die ersten fünf sind aus Stufe H:
 
 1. **SHA-256 ohne Salz, nicht scrypt.** Das Papier sagte nur „der Hash". scrypt
    schützt *ratbare* Geheimnisse; ein Token trägt 256 Bit aus dem
@@ -553,10 +648,12 @@ gelten ab jetzt in dieser Form:
    dasselbe beim **Sperren** und **Entfernen**. Das Papier sagte „einmal
    gültig" und meinte den einen Link; läge noch ein älterer in einem fremden
    Verlauf, setzte er hinterher ein zweites Mal ein Passwort.
-3. **Der Server gibt nur den Token heraus, nie den fertigen Link.** Die
-   vollständige Adresse baut der Browser des Admins aus `location`. Damit
-   stellt sich die Frage nach der öffentlichen Adresse aus Abschnitt 11 in
-   dieser Stufe gar nicht.
+3. **Der Server gibt nur den Token heraus, nie den fertigen Link** — *so galt
+   es in Stufe H*. **Seit 0.8.90 gibt er den fertigen Link heraus, wenn
+   `OEFFENTLICHE_ADRESSE` gesetzt ist** (`link` und `linkQuelle`), und **seit
+   0.9.0 braucht der Versand ihn**: beim Verschicken gibt es keinen Browser zu
+   fragen. Ist die Einstellung leer, baut der Browser des Admins ihn weiter aus
+   `location`, und es wird nicht verschickt.
 4. **Die Absage vor der Anmeldung ist EINE**, für abgelaufen, schon benutzt,
    erfunden und „Zugang gesperrt" — nicht weil eine Auskunft verschwiegen
    werden soll, sondern weil das **Heilmittel in jedem Fall dasselbe** ist.
@@ -564,14 +661,17 @@ gelten ab jetzt in dieser Form:
    anderen Stelle.
 5. **`created_at` steht zusätzlich in der Tabelle** (siehe Abschnitt 4).
 
-**Wie der Link zum Empfänger kommt, ist Teil der Bauform:** Mailversand ist
-Stufe I, also **kopiert der Admin ihn und gibt ihn weiter**. Damit ist der Link
-ein **Passwortersatz auf Zeit** und steht nach der Weitergabe in einem fremden
-Verlauf — und **das sagt die Oberfläche an der Stelle, an der er kopiert
-wird.** Der Schlüssel steht im **Fragment** der Adresse (`#/einladung/…`) und
-geht damit nie an den Server.
+**Wie der Link zum Empfänger kommt — seit 0.9.0 auf zwei Wegen, und der zweite
+ersetzt den ersten nicht.** Ist ein Mailzugang eingetragen, geht der Link
+**zusätzlich** per Mail hinaus; der Admin sieht ihn trotzdem zum Kopieren, samt
+einer Zeile darüber, ob der Versand geklappt hat. Ist keiner eingetragen, ist
+alles wie in Stufe H. Damit ist der Link weiterhin ein **Passwortersatz auf
+Zeit** und steht nach der Weitergabe in einem fremden Verlauf — und **das sagt
+die Oberfläche an der Stelle, an der er kopiert wird.** Der Schlüssel steht im
+**Fragment** der Adresse (`#/einladung/…`) und geht damit nie an den Server;
+das gilt in der Mail genauso.
 
-**Missbrauchsschutz — offen, Stufe I:** Deckel auf offene Anfragen (Vorschlag:
+**Missbrauchsschutz — offen, 0.9.1:** Deckel auf offene Anfragen (Vorschlag:
 20), Zeitsperre pro IP. **Beides gehört zur Selbstanmeldung und ist in Stufe H
 ausdrücklich nicht gebaut worden**: dort legt nur der Admin an, und der ist
 angemeldet. Was in Stufe H sehr wohl greift, ist die vorhandene
@@ -591,11 +691,14 @@ richtige Weg ein **partieller Index**
 — der wirkt auf beiden Wegen gleich und lässt mehrere Zugänge ohne Adresse zu.
 Er gehört dann in dieselbe Stufe wie die Prüfung im Code, nicht davor.
 
-## 11. E-Mail
+## 11. E-Mail — erledigt in 0.9.0
 
 `nodemailer` — ohne Laufzeitabhängigkeiten, MIT-0, passend zur Linie von scrypt
 (Nodes eingebautes `crypto` statt einer Bibliothek). Nur ausgehend, kein offener
-Port.
+Port. **Gebaut und nachgemessen:** Version 9.0.5, `npm ls --omit=dev` wächst um
+**genau ein Paket**, 776 KB, Lizenz `MIT-0` aus dem Paket selbst gelesen. Die
+Zahl steht im Prüfstand fest — wächst der Baum später still, wird es namentlich
+rot.
 
 **Klarstellung zur Begrifflichkeit:** GMX, Google und Strato sind keine
 Alternativen zu nodemailer, sondern das, was man **mit** nodemailer einträgt.
@@ -605,51 +708,111 @@ nodemailer spricht SMTP und hat weder eigenen Versand noch eigene Adresse.
 Suchanbieter: GMX, Web.de, Gmail, Strato, IONOS füllen Server, Port und
 Verschlüsselung selbst aus; einzutragen sind nur Benutzer, Passwort und
 Absenderadresse. Bei „eigener Server" stehen alle Felder offen.
+**So gebaut** — und die Vorlage gewinnt: wer GMX gewählt hat, bekommt GMX, auch
+wenn ein anderer Server mitgeschickt wird. Wechselt ein Anbieter morgen den
+Port, kommt der neue aus dem Quelltext; eine Kopie in der Datenbank wäre
+eingefroren und liefe auseinander.
 
-Drei Hinweise gehören dabei in die Oberfläche:
+Drei Hinweise gehören dabei in die Oberfläche — **gebaut, und sie kommen vom
+Server**, nicht aus einer zweiten Liste in der Oberfläche:
 
 - **Gmail** braucht Zwei-Faktor und ein App-Passwort; das Kontopasswort wird
   abgewiesen.
-- **GMX** verlangt, den Versand über fremde Programme im Konto freizuschalten.
+- **GMX** und **Web.de** verlangen, den Versand über fremde Programme im Konto
+  freizuschalten.
 - **Die Absenderadresse muss zum Konto gehören** — man kann nicht als
   `kriterion@zuhause.local` über GMX senden.
 
 **Zustellbarkeit:** direkt vom Hausanschluss zu versenden scheitert an fehlender
 rDNS und SPF/DKIM. Deshalb immer über den SMTP-Zugang eines Anbieters.
 
-**Öffentliche Adresse:** Hinter dem Proxy weiß der Container nicht, wie er von
-außen heißt. Sie wird eine **Einstellung** und darf **niemals** aus dem
-`Host`-Kopf abgeleitet werden — sonst lässt sich ein Rücksetzlink über einen
-gefälschten Kopf auf einen fremden Server umbiegen.
-**In Stufe H stellte sich die Frage nicht**, und das ist der Grund: der Server
-gibt dort nur den Token heraus, die vollständige Adresse baut der Browser des
-Admins. **Ab Stufe I geht der Link über den Server hinaus**, und dann wird die
-Einstellung gebraucht: *wer den Link von Hand weitergibt, hat einen Browser,
-der die Adresse kennt; wer ihn verschicken lässt, hat keinen.*
+### Wo der Mailzugang liegt — ABWEICHUNG, entschieden in 0.9.0
 
-**Wo sie liegt, ist entschieden — und seit 0.8.90 gebaut:** in der **`.env`** als
+**Er liegt in der Oberfläche und NICHT in der `.env` — aber beim EIGENTÜMER.**
+Der Entwurf und der Auftrag zu dieser Runde sahen die `.env` vor, mit derselben
+Begründung wie bei der öffentlichen Adresse: der SMTP-Server sieht **jede**
+Mail, und jede trägt einen Link, der ein Passwort setzt; dürfte ein **Admin**
+ihn eintragen, liefe die Rücksetzmail des Eigentümers über einen Server seiner
+Wahl.
+
+**Die Begründung trägt — sie trifft aber den Admin, nicht den Eigentümer.**
+Über dem Eigentümer steht niemand: wer ohnehin den ganzen Bestand exportieren
+und den Schlüsselwert sehen darf, gewinnt durch einen umgebogenen Mailserver
+nichts dazu. Damit bleibt die Rollenleiter heil, und die Bedienung braucht
+keinen Zugriff auf den Wirt.
+
+**Zwei Dinge sprechen sogar dafür**, und beide sind nachgesehen und nicht
+angenommen: das Mailpasswort liegt damit in der **verschlüsselten Datenbank**
+statt unverschlüsselt auf dem Wirt, und die **Exportdatei trägt es nicht** —
+der Export packt Einträge samt Anhängen, keine Einstellungen.
+
+**Was daraus folgt und mitgebaut ist:** das Setzen liegt hinter der **zweiten
+Bestätigung** (`BESTAETIGUNG_ZWECKE` geht von sechs auf sieben), die Karte
+zeigt das Passwort **nie** — „gesetzt" oder „nicht gesetzt", nie die Länge, nie
+der Anfang, nie Sternchen mit der richtigen Zahl —, und ein leeres Passwortfeld
+beim Speichern heißt „unverändert lassen". **Ein Admin sieht die Karte gar
+nicht.** Was er stattdessen bekommt, ist die Auskunft an der Stelle, an der sie
+ihn angeht: neben dem Link steht, ob etwas hinausging und warum nicht.
+
+**Es kommt damit KEINE neue Zeile in die `.env`.** Die Ausnahme von der Regel
+„die `.env` trägt nur, was **vor** dem Öffnen der Datenbank lesbar sein muss"
+wird **nicht** gebraucht.
+
+### Öffentliche Adresse — Pflicht für den Versand, nicht für den Start
+
+Hinter dem Proxy weiß der Container nicht, wie er von außen heißt. Sie ist eine
+**Einstellung** und darf **niemals** aus dem `Host`-Kopf abgeleitet werden —
+sonst lässt sich ein Rücksetzlink über einen gefälschten Kopf auf einen fremden
+Server umbiegen. **In Stufe H stellte sich die Frage nicht**: der Server gab
+dort nur den Token heraus, die vollständige Adresse baute der Browser des
+Admins. **Ab 0.9.0 geht der Link über den Server hinaus**, und dann wird die
+Einstellung gebraucht: *wer den Link von Hand weitergibt, hat einen Browser, der
+die Adresse kennt; wer ihn verschicken lässt, hat keinen.*
+
+**Wo sie liegt, ist entschieden und seit 0.8.90 gebaut:** in der **`.env`** als
 `OEFFENTLICHE_ADRESSE`, **optional** — leer heißt „der Browser baut", wie in
 Stufe H. **Nicht** in `settings` und **nicht** in der Oberfläche einstellbar,
 und der Grund steht in der Rollenleiter: ein Admin kommt nicht an einen anderen
-Admin oder den Eigentümer. Dürfte er sie setzen, zeigte hier **jede verschickte
-Rücksetzmail** auf seinen Server — auch die des Eigentümers. Damit wäre die
-Einstellung genau der Weg an der Rollenleiter vorbei, den es nicht geben darf.
-Der Systembereich **zeigt** sie, dort wo der Link entsteht; setzen kann sie nur,
-wer an die `.env` kommt. Einzelheiten im Projektstand, Abschnitt 11.
+Admin oder den Eigentümer. Der Systembereich **zeigt** sie; setzen kann sie nur,
+wer an die `.env` kommt.
 
-**Gebaut in 0.8.90, und was Stufe I davon vorfindet:** Schema und Rechnername
-sind Pflicht, ein Pfad ist erlaubt, alles ab `?` und `#` wird abgewiesen; ein
-unbrauchbarer Wert bricht den Start **nicht** ab, sondern meldet sich laut und
-fällt auf den Browserweg zurück. Ist sie gesetzt, gibt der Server den fertigen
-Link heraus (`link` und `linkQuelle` in der Antwort der beiden Tokenrouten),
-und der Linkkasten sagt in einer Zeile darunter, **woher** die Adresse kam.
-**In `GET /api/config` steht sie nicht** — der Endpunkt liegt vor der Anmeldung.
-Stufe I braucht damit nur noch den einen Schritt: **sie wird dort Pflicht**,
-denn beim Versand gibt es keinen Browser zu fragen.
+**ABWEICHUNG, entschieden in 0.9.0.** Dieses Papier sagte „ab Stufe I ist sie
+**Pflicht**". Wörtlich gelesen hieße das: ohne sie startet die Anlage nicht.
+**Gebaut ist die engere Auslegung: Pflicht für den VERSAND, nicht für den
+Start.** Eine Anlage ohne Mail braucht sie nicht, und ein Startabbruch bräche
+**jede vorhandene Installation** beim Einspielen dieser Version — genau das, was
+der Einspielweg nie tun darf. Ohne sie wird **nicht verschickt**, die Karte sagt
+warum, und der Link steht wie immer daneben.
 
-**Zugangsdaten** in die `.env`, in der Oberfläche nur „gesetzt/nicht gesetzt".
-Dazu ein **Testmail-Knopf** — sonst fällt der Fehler erst auf, wenn jemand
-wartet.
+**Zugangsdaten** siehe oben. Dazu ein **Testmail-Knopf** — sonst fällt der
+Fehler erst auf, wenn jemand wartet. **Gebaut, und er geht an die eigene Adresse
+des Anfordernden und nirgendwo sonst:** ein Knopf mit freiem Adressfeld wäre ein
+offener Mailverteiler hinter einer Anmeldung. Es gibt deshalb **kein**
+Adressfeld — weder im Rumpf noch in der Abfrage noch als Kopf; der Rumpf wird
+gar nicht angesehen.
+
+**Die Adresse am Zugang — mitgebaut, weil der Versand sonst keinen Empfänger
+hätte.** `users.email` stand seit 0.6.0 im Schema und wurde von **keiner**
+Stelle des Projekts geschrieben. Gebaut sind zwei Schreibwege und ausdrücklich
+kein dritter: **beim Anlegen** (`POST /api/users`) darf der Admin eine Adresse
+mitgeben — den Zugang gibt es in diesem Augenblick noch nicht, also kann sie
+niemand selbst eintragen —, und **danach ändert sie allein der Betroffene**
+(`PUT /api/account`, hinter dem bisherigen Passwort). **`PUT /api/users/:id`
+bekommt sie ausdrücklich nicht:** ein Admin, der eine bestehende fremde Adresse
+umschreiben dürfte, böge den nächsten Rücksetzlink des Betroffenen auf ein
+Postfach seiner Wahl. Die Adresse ist überall **freiwillig**.
+
+**Die Frist des Versands: zwanzig Sekunden**, hergeleitet und gemessen. Ein
+vollständiges SMTP-Gespräch über TLS sind rund acht Umläufe — bei schlechten
+300 ms Umlaufzeit unter drei Sekunden; zwanzig gibt dem den achtfachen Abstand
+und bleibt weit unter dem, was Browser und Proxy von sich aus abbrechen.
+Nodemailers eigene Fristen sind Fristen je **Abschnitt** und eine auf
+**Untätigkeit**; `socketTimeout` wird von **jedem** zugestellten Byte
+zurückgesetzt. Ein Empfänger, der alle drei Sekunden eines schickt und nie
+antwortet, hält es ewig am Leben — nachgestellt: nach 45 Sekunden hängt der
+Versand immer noch. Über dem Versand liegt deshalb eine **äußere Schranke**,
+und der Prüfstand misst an genau diesem tröpfelnden Empfänger, dass sie es ist,
+die trägt.
 
 ### Der Punkt, der das Offline-Prinzip erhält
 
@@ -661,6 +824,38 @@ Damit läuft Kriterion mit abgeschaltetem Mailversand **vollständig**, rein
 offline, ohne dass eine Funktion fehlt. E-Mail ist eine Bequemlichkeit, keine
 Voraussetzung. Das ist die wichtigste Entwurfsentscheidung des ganzen Vorhabens
 — sie ist der Grund, warum der Umbau die Veröffentlichung nicht verschlechtert.
+
+**Gebaut in 0.9.0, und die Bauform ist der Beleg:** der Token entsteht
+**zuerst**, die Antwort trägt den Link **immer**, und das Ergebnis des Versands
+ist ein **Feld** in derselben Antwort — `versand: 'ok' | 'fehlgeschlagen' |
+'aus'`, dazu `versandGrund`, wo es nicht `'ok'` ist. Der Grund gehört dazu, weil
+`'aus'` allein drei Lagen deckt: kein Mailzugang, keine öffentliche Adresse,
+keine Adresse am Zugang. Der Versand kann in dieser Anlage nichts mitreißen —
+die Versandfunktion **wirft nicht**, sie liefert ein Ergebnis.
+
+**Es gibt genau ZWEI Anlässe für eine Mail** — den Tokenlink und die Testmail.
+Keine Benachrichtigungen: nicht „jemand hat kommentiert", nicht „etwas ist
+offen". Wer das später will, bekommt eine eigene Runde und eine eigene
+Entscheidung darüber, wer zustimmt.
+
+**Mit 0.9.1 kommt ein DRITTER dazu, und er ist die benannte Ausnahme:** die
+**Bestätigungsmail** der Selbstanmeldung. Sie trägt einen Link **ohne
+Passwortkraft** — wer ihn anklickt, sagt nur „ja, das bin ich" — und sie ist
+der Beleg, dass die Adresse dem Anfragenden gehört. Ohne sie könnte jeder eine
+**fremde** Adresse in die Liste des Admins schreiben, und beim Freischalten
+ginge einer Person, die nie gefragt hat, eine Mail mit Passwortkraft zu. Der
+Ablauf steht in Abschnitt 10. **Eine Benachrichtigung ist auch sie nicht.**
+
+**Der Inhalt der Mail:** reiner Text, kein HTML, keine Bilder, keine Zählpixel,
+keine Anhänge. Eine Mail, die ein Passwortsetzen ankündigt, hat keinen Grund,
+etwas nachzuladen. Sie nennt, wer die Anlage ist, wozu der Link dient, wie lange
+er gilt (sieben Tage), dass er **einmal** einlösbar ist und dass ab dem ersten
+Öffnen **fünfzehn Minuten** bleiben.
+
+**Kein Eintrag im Sicherheitsprotokoll für den Versand.** Eine Zeile „Mail an X
+verschickt" wäre ein Zustellprotokoll, kein Sicherheitsprotokoll — und die
+Adresse wäre Freitext von außen, den diese Tabelle ausdrücklich nicht aufnimmt.
+Der Anlass steht schon drin (`link.neu`).
 
 *Vorgemerkt, nicht eingeplant:* Falls SMTP am Anschluss gar nicht durchkommt
 (manche Anbieter sperren Port 587 ausgehend), wäre ein Versanddienst über HTTPS
@@ -737,7 +932,16 @@ Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
 | **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der **fremden** Zeile ab zwei Zugängen, Formatnummer 6 → 7 — **erledigt, Stufe G vollständig**, siehe unten | mittel |
 | — | **0.8.31** | *Keine Stufe.* **Dieselbe Wende an den Dateien:** `user_id` an `attachments`, hochladen offen, löschen beim Hochladenden oder Admin, Name an der fremden Zeile, Formatnummer 7 → 8 — **erledigt** | klein |
 | **H** | **0.8.80** | **erledigt.** Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* Einzelheiten unten. | mittel |
-| **I** | 0.9.0 | Mailversand mit Anbietervorlagen, öffentliche Adresse, Testmail, Selbstregistrierung mit Freischaltung. *Abbruchpunkt: nach dem Versand, vor der Selbstregistrierung.* | groß |
+| **I₁** | **0.9.0** | **erledigt.** Mailversand mit Anbietervorlagen, öffentliche Adresse als Pflicht für den Versand, Testmail, Adresse am Zugang, Frist ab dem ersten Öffnen. **Der Abbruchpunkt ist gezogen worden** — er stand seit Langem hier. | groß |
+| **I₂** | 0.9.1 | Selbstanmeldung: Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung. | mittel |
+
+**MIT 0.9.0 IST DIE ERSTE HÄLFTE VON STUFE I GEBAUT.** Teil II dieses Papiers
+ist damit **bis auf die Selbstanmeldung** vollständig; mit 0.9.1 ist er es ganz.
+**Was von diesem Papier danach noch gilt, sind die ENTSCHEIDUNGEN, nicht die
+Stufen** — die Rollenleiter, „ein Zustand, keine zweite Wahrheit", der Satz
+über E-Mail als Bequemlichkeit, die eine Absage am Token, die immer gleiche
+Antwort auf eine Registrierung. Die Stufenliste darunter ist ab dann
+Versionsgeschichte und wird nicht mehr fortgeschrieben.
 
 **G4 ist gebaut, und damit sind die Stufen A bis G vollständig.** **Zwischen
 G4 und H liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu",

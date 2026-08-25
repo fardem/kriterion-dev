@@ -6,6 +6,95 @@ ist. Die Einzelheiten stehen je Version in
 
 ---
 
+## 0.9.0 — Der Server verschickt selbst
+
+**Einladungs- und Rücksetzlinks gehen ab jetzt per Mail hinaus — und wer keinen
+Mailzugang einträgt, verliert nichts: die Links stehen weiter zum Kopieren da.**
+Das ist die tragende Zusage dieser Version und keine Nebenbemerkung. Eine Anlage
+ohne Mailzugang läuft nach dem Einspielen **genau so vollständig** wie vorher.
+
+> **Was sich wirklich ändert, ist die Betriebsart.** Bis 0.8.91 hat die Anlage
+> nur auf Anfragen geantwortet. Ab dieser Version baut sie von sich aus eine
+> Verbindung zu einem fremden Server auf — ausgehend, zu genau einem Server,
+> den du selbst einträgst. Kein Empfang, kein offener Port, kein Abholen.
+
+### Neu
+
+- **Der Mailzugang, in der Karte „Mailversand" im Systembereich.** Anbieter
+  auswählen (GMX, Web.de, Gmail, Strato, IONOS oder „Eigener Server"),
+  Benutzername, Passwort und Absenderadresse eintragen, fertig. Server, Port
+  und Verschlüsselung füllt die Vorlage.
+- **Die Karte gehört dem Eigentümer, ganz** — eintragen, einsehen und die
+  Testmail auslösen. Ein Admin kommt an keines davon, und der Grund ist die
+  Rollenleiter: der SMTP-Server sieht **jede** Mail, und jede trägt einen Link,
+  der ein Passwort setzt. Dürfte ein Admin ihn eintragen, liefe die Rücksetzmail
+  des Eigentümers über einen Server seiner Wahl.
+- **Ein Testmail-Knopf — an die eigene Adresse und nirgendwo sonst.** Es gibt
+  kein Adressfeld daneben, und das ist Absicht: ein Knopf, der an eine beliebige
+  Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung.
+- **Ein Adressfeld am Zugang.** Beim Anlegen kannst du eine E-Mail-Adresse
+  mitgeben — sonst hätte die Einladung keinen Empfänger. **Ändern darf sie
+  danach allein der Betreffende selbst**, im Systembereich unter „Zugang", hinter
+  seinem bisherigen Passwort. Sie ist überall **freiwillig**.
+- **Eine zweite Frist am Link: ab dem ersten Öffnen bleiben fünfzehn Minuten.**
+  Die sieben Tage sind die Frist fürs *Lesen der Mail*; solange niemand geöffnet
+  hat, läuft nichts. Ab dem ersten Öffnen ist der Link erwiesenermaßen
+  angekommen — und hat in einem fremden Postfach nichts mehr verloren.
+  **Innerhalb der fünfzehn Minuten darfst du beliebig oft öffnen und neu laden.**
+
+### Behoben
+
+- **Ein gültiger Einladungslink konnte tot aussehen.** Wer sich vorher ein
+  paarmal beim Anmelden vertippt hatte, lief beim Klick auf seinen Link in die
+  Anmeldebremse — und die Oberfläche warf den Schlüssel daraufhin aus der
+  Adresse. Nach dem Neuladen stand man auf der Anmeldeseite, und der Link schien
+  verbraucht. **Er war es nie.** Jetzt bleibt der Schlüssel bei einer
+  vorübergehenden Absage stehen, und die Seite bietet einen zweiten Anlauf an.
+
+### Was du danach von Hand tun musst
+
+- **Nichts** — solange du keine Mail willst. Ohne Mailzugang bleibt alles, wie
+  es war.
+- **Willst du Mail:** `OEFFENTLICHE_ADRESSE` in die `.env` eintragen (ohne sie
+  wird nicht verschickt), dann die Karte „Mailversand" ausfüllen und die
+  **Testmail** drücken. Dafür brauchst du eine Adresse an deinem eigenen Zugang.
+- **Drei Stolpersteine beim Anbieter**, an denen die meisten Versuche
+  scheitern: **Gmail** verlangt Zwei-Faktor und ein **App-Passwort**; **GMX**
+  und **Web.de** verlangen, den Versand über fremde Programme im Konto erst
+  **freizuschalten**; und **die Absenderadresse muss zum Konto gehören**.
+
+### Was gleich bleibt
+
+- **Der Tokenweg aus 0.8.80 im Übrigen unverändert:** sieben Tage, genau einmal
+  gültig, beim Einlösen fallen alle übrigen offenen Links und alle Sitzungen,
+  Mindestwert zehn Zeichen, **eine** Absage für alle Fälle.
+- **Der Link steht immer zum Kopieren da** — auch wenn der Versand gelingt,
+  und erst recht, wenn er fehlschlägt. Dann steht daneben, was schiefging.
+- **Keine Benachrichtigungsmails.** Es gibt genau **zwei** Anlässe für eine
+  Mail: den Tokenlink und die Testmail. Nicht „jemand hat kommentiert", nicht
+  „etwas ist offen".
+- **Reiner Text.** Kein HTML, keine Bilder, keine Zählpixel, keine Anhänge.
+- **Die Exportdatei behält ihr Format** (unverändert 10) — ein Mailzugang steht
+  nicht darin, und die Exportdatei trägt überhaupt keine Einstellungen.
+- **Die Datenbank bekommt weder Tabelle noch Spalte.** Diese Version ist
+  **keine** Datenbankstufe; der Mailzugang liegt in `settings`, und
+  `users.email` gibt es seit 0.6.0.
+- **Es kommt keine neue Zeile in die `.env`.** `OEFFENTLICHE_ADRESSE` gibt es
+  seit 0.8.90.
+
+### Beim Einspielen
+
+- **Wie immer: `docker compose down`, Daten kopieren, ZIP auspacken, `.env`
+  zurück, `up -d --build`.** Nichts an der `docker-compose.yml`.
+- **Eine neue Laufzeitabhängigkeit — die erste seit Langem:** `nodemailer`.
+  MIT-0, **ohne eigene Abhängigkeiten**, 776 KB; der Baum wächst um genau ein
+  Paket. Das `--build` holt sie mit.
+- **Die Selbstanmeldung ist noch nicht dabei.** Sie ist die zweite Hälfte dieser
+  Stufe und kommt als 0.9.1 — Formular vor der Anmeldung, Bestätigungsmail,
+  Warteschlange beim Admin, Freischaltung.
+
+---
+
 ## 0.8.91 — Der Schlüssel lässt sich wechseln
 
 **Der Schlüssel der Datenbank lässt sich wechseln, ohne die Anlage neu

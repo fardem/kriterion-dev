@@ -162,10 +162,52 @@ Erwartet wird „Schlüssel aus ENCRYPTION_KEY geladen." bzw. die Warnung, dass
 der Schlüssel neben der Datenbank liegt.
 
 > **PROBIER DEN WECHSEL AN EINER WEGWERFANLAGE AUS, bevor du ihn an der echten
-> fährst.** Ein leeres Verzeichnis, ein `docker compose up -d`, ein paar
-> Einträge, dann `./schluessel.sh wechseln` — und danach nachsehen, ob sie
-> wieder aufgeht. Es ist der einzige Vorgang im ganzen Projekt, bei dem ein
-> Fehler alles kostet.
+> fährst.** Es ist der einzige Vorgang im ganzen Projekt, bei dem ein Fehler
+> alles kostet.
+
+**Und die Probe muss an einem echten Bestand laufen, sonst belegt sie nichts.**
+Ein Wechsel an einer leeren Datenbank ist in Millisekunden vorbei und sagt über
+662 MB nichts. Die Probe unten nimmt deshalb eine **Kopie der echten Anlage** —
+mit ihrem Bestand **und ihrer `.env`**:
+
+```bash
+cd .../DockerAppData                       # eine Ebene über dem Projekt
+docker compose -f kriterion/docker-compose.yml stop    # ruhige Kopie, offene WAL vermeiden
+cp -a kriterion kriterion-probe
+docker compose -f kriterion/docker-compose.yml start   # die echte darf sofort weiterlaufen
+
+cd kriterion-probe
+rm -rf kriterion-sicherung .git .env.vor-*   # data BLEIBT. .env BLEIBT.
+sed -i 's/^    container_name: kriterion$/    container_name: kriterion-probe/' docker-compose.yml
+sed -i 's/"3100:3000"/"3199:3000"/' docker-compose.yml
+chmod +x schluessel.sh
+docker compose up -d --build
+# auf http://<server>:3199 anmelden — dieselben Zugänge, derselbe Bestand
+./schluessel.sh wechseln
+docker compose logs --tail 30 kriterion
+```
+
+> **`data/` und `.env` gehören zusammen — wer eines von beiden ersetzt, hat
+> keine Probe mehr, sondern eine neue Anlage.** Wird `data/` gelöscht und ein
+> frischer Schlüssel erzeugt, wechselt das Skript den Schlüssel einer **leeren**
+> Datenbank; das läuft durch und belegt nichts. Wird umgekehrt `data/` behalten
+> und trotzdem ein frischer Schlüssel geschrieben, geht die Datenbank **gar
+> nicht mehr auf** — dann scheitert nicht der Wechsel, sondern schon der Start.
+> `schluessel.sh` selbst stört sich an einem vorhandenen `data/` nicht.
+
+**Woran du erkennst, dass die Probe etwas wert war** — vier Zeilen, und alle
+vier müssen stimmen:
+
+| | erwartet |
+|---|---|
+| Ansage vor dem Wechsel | die **echte** Größe, z. B. `662.5 MB, erwartete Dauer rund 13 Sekunden` — nicht `0.2 MB` |
+| nach dem Wechsel | `integrity_check: ok` |
+| im Protokoll danach | `Läuft auf Port 3000 — Eigentümer: <dein Name>` — **nicht** „noch kein Zugang" |
+| im Browser auf `:3199` | Einträge, Fotos, Kommentare vollständig; Karte „Sicherung" markiert die alten Kopien rot |
+
+Danach die Probe wegräumen: `cd .. && docker compose -f kriterion-probe/docker-compose.yml down && rm -rf kriterion-probe`.
+**Die `.env` der Probe niemals an die echte Anlage zurückkopieren** — sie trägt
+einen Schlüssel, zu dem nur die Probedaten passen.
 
 ### Zwei Schlüssel im Umlauf — die unangenehmste Falle
 
@@ -342,9 +384,22 @@ wieder — und was darin stand, wird geleert.
 > nur dem, für den er ist. Er wird **nur ein einziges Mal angezeigt**; ist er
 > weg, erzeugst du einen neuen.
 
-**Kriterion verschickt nichts.** Es baut keine Verbindung nach außen auf; der
-Link geht von Hand. Das ändert sich erst mit dem Mailversand in einer späteren
-Version.
+**Und seit 0.9.0 eine zweite Frist daneben: ab dem ersten Öffnen bleiben
+fünfzehn Minuten.** Die sieben Tage sind die Frist fürs *Lesen der Mail*, nicht
+fürs Liegenlassen des Links. Solange niemand geöffnet hat, ist nichts geschehen
+und die sieben Tage laufen weiter. Ab dem ersten Öffnen ist erwiesen, dass der
+Link angekommen ist — und dann hat er in einem fremden Postfach nichts mehr
+verloren. **Innerhalb der fünfzehn Minuten darf beliebig oft geöffnet und neu
+geladen werden**; nur der *erste* Aufruf startet die Uhr. Wer die Frist
+verstreichen lässt, holt sich einen neuen Link. Der Zugang selbst bleibt dabei
+stehen und trägt weiter „noch kein Passwort".
+
+Das Feld daneben ist **freiwillig**: trägst du eine **E-Mail-Adresse** ein,
+schickt die Anlage den Link zusätzlich dorthin — vorausgesetzt, ein Mailzugang
+ist eingerichtet (siehe **Mailversand**). Der Link steht trotzdem zum Kopieren
+da, auch wenn der Versand fehlschlägt. **Ändern darf die Adresse danach allein
+der Betreffende selbst**, im Systembereich unter „Zugang": sie entscheidet,
+wohin sein nächster Rücksetzlink geht, und das gehört nicht in fremde Hand.
 
 #### Ein Passwort zurücksetzen — ebenfalls zwei Wege
 
@@ -390,6 +445,75 @@ anderen Admin; dürfte er die öffentliche Adresse setzen, zeigte später jede
 verschickte Mail auf seinen Server. Der Systembereich **zeigt** sie, er setzt
 sie nicht.
 
+**Seit 0.9.0 ist sie Pflicht — für den Versand, nicht für den Start.** Ohne sie
+verschickt die Anlage keine Links: der Server wüsste nicht, worauf sie zeigen
+sollen, und aus dem `Host`-Kopf darf er es nicht ableiten. Der Start bricht
+deswegen **nicht** ab, und es fehlt auch nichts — die Links stehen wie bisher
+zum Kopieren da. Die Karte „Mailversand" markiert den fehlenden Wert rot und
+nennt den Grund.
+
+#### Mailversand — seit 0.9.0
+
+**E-Mail ist eine Bequemlichkeit, keine Voraussetzung.** Ohne Mailzugang läuft
+Kriterion vollständig, rein offline, und es fehlt keine Funktion: Einladungs-
+und Rücksetzlinks stehen im Verwaltungsbereich zum Kopieren, genau wie seit
+0.8.80. **Wer keinen Mailzugang einträgt, verliert nichts.** Mit Mailzugang
+gehen dieselben Links *zusätzlich* per Mail hinaus; schlägt das fehl, bricht
+nichts ab — im Kasten steht „Versand fehlgeschlagen" samt Grund, und der Link
+daneben.
+
+**Nur ausgehend.** Kein Empfang, kein offener Port, kein Abholen. Es gibt genau
+**zwei Anlässe** für eine Mail: den Tokenlink und die Testmail. Keine
+Benachrichtigungen, keine Zählpixel, kein HTML — reiner Text.
+
+**Der Mailzugang gehört dem Eigentümer, ganz.** Eintragen, einsehen und die
+Testmail auslösen liegen bei ihm; ein Admin kommt an keines davon. Der Grund
+ist die Rollenleiter: der SMTP-Server sieht **jede** Mail, die durch ihn geht,
+und jede trägt einen Link, der ein Passwort setzt. Dürfte ein Admin ihn
+eintragen, liefe die Rücksetzmail des Eigentümers über einen Server seiner
+Wahl. Über dem Eigentümer steht niemand — wer ohnehin exportieren und den
+Schlüsselwert sehen darf, gewinnt hier nichts dazu. Was der Admin bekommt, ist
+die Auskunft an der Stelle, an der sie ihn angeht: neben dem Link steht, ob
+etwas hinausging und warum nicht.
+
+Die Karte **„Mailversand"** im Systembereich fragt nach:
+
+| Feld | |
+|---|---|
+| **Anbieter** | GMX, Web.de, Gmail, Strato, IONOS oder „Eigener Server" |
+| **Server, Port, Verschlüsselung** | füllt die Vorlage; offen nur bei „Eigener Server" |
+| **Benutzername, Passwort** | dein Zugang beim Anbieter |
+| **Absenderadresse** | muss zum Konto gehören |
+
+**Das Passwort wird nie angezeigt** — die Karte sagt „gesetzt" oder „nicht
+gesetzt", nie die Länge, nie den Anfang, nie Sternchen mit der richtigen Zahl.
+Beim Speichern bedeutet ein leeres Passwortfeld „unverändert lassen". Es steht
+in der **verschlüsselten Datenbank**, nicht in der `.env`, und wandert weder in
+eine Exportdatei noch in eine Protokollzeile.
+
+Drei Hinweise, an denen die meisten Versuche scheitern:
+
+- **Gmail** verlangt Zwei-Faktor und ein **App-Passwort**; das Kontopasswort
+  wird abgewiesen.
+- **GMX** und **Web.de** verlangen, den Versand über fremde Programme im Konto
+  erst **freizuschalten**.
+- **Die Absenderadresse muss zum Konto gehören** — über GMX lässt sich nicht
+  als fremde Adresse senden.
+
+Und der Grund für die Vorlagen: **immer über den SMTP-Zugang eines Anbieters,
+nie unmittelbar vom Hausanschluss.** Dort fehlen rDNS und SPF/DKIM, und die
+Mail landet im besten Fall im Spam.
+
+**Der Testmail-Knopf geht ausschließlich an die Adresse deines eigenen
+Zugangs.** Es gibt kein Adressfeld daneben, und das ist Absicht: ein Knopf, der
+an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer
+Anmeldung. Hast du für deinen Zugang keine Adresse hinterlegt, sagt die Absage
+das und nennt den Weg — Systembereich, Karte „Zugang".
+
+Antwortet der Mailserver nicht, **bricht der Versuch nach zwanzig Sekunden ab**
+und die Antwort kommt trotzdem. Der Token entsteht dabei **zuerst**: der Link
+steht in jedem Fall da, egal was der Mailserver sagt.
+
 #### Meine Sitzungen
 
 Die Karte **„Meine Sitzungen"** im Systembereich steht **jedem**, auch ohne
@@ -417,9 +541,9 @@ Links, Favoriten und persönliche Einstellungen gehen immer mit. Der Name
 
 **Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt.** Vor dem
 Export, dem Import, dem Vergeben einer Rolle, dem Setzen eines fremden
-Passworts, dem Erzeugen eines Links und dem Entfernen eines Zugangs fragt
-Kriterion nach **deinem eigenen Passwort** — in einem Fenster, das daneben
-schreibt, warum es fragt.
+Passworts, dem Erzeugen eines Links, dem Entfernen eines Zugangs und — seit
+0.9.0 — dem **Setzen des Mailzugangs** fragt Kriterion nach **deinem eigenen
+Passwort**, in einem Fenster, das daneben schreibt, warum es fragt.
 
 **Wogegen das schützt, ist nicht der Fremde:** der kommt ohne Passwort gar
 nicht herein. Es schützt gegen eine **fremde offene Anmeldung** — einen
@@ -436,7 +560,8 @@ Zugangs muss selbst bestätigen.
 **Was ausdrücklich nicht dahinter liegt:** einen Zugang **sperren oder
 freigeben** (das ist umkehrbar), einen Zugang **anlegen** (er ist neu und nimmt
 niemandem etwas), der eigene Zugang (dort ist das bisherige Passwort ohnehin
-Pflicht) und alles am Eintrag. **Ein zweiter Faktor ist es nicht** — gefragt
+Pflicht), die **Testmail** (sie geht an die eigene Adresse und übergibt nichts)
+und alles am Eintrag. **Ein zweiter Faktor ist es nicht** — gefragt
 wird dasselbe Passwort noch einmal.
 
 Auch hier gilt die Anmeldebremse: nach zehn falschen Bestätigungen von
@@ -1219,10 +1344,15 @@ die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
 enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
 Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
 
-**0.8.91 fasst die Datenbank nicht an** — keine Tabelle, keine Spalte; ein
-Downgrade auf 0.8.90 wäre eine reine Dateikopie. Die Sicherung bleibt trotzdem
-Pflicht, und beim **Schlüsselwechsel** ein zweites Mal: siehe den Abschnitt
-„Den Schlüssel wechseln".
+**0.9.0 fasst die Datenbank nicht an** — keine Tabelle, keine Spalte; ein
+Downgrade auf 0.8.91 wäre eine reine Dateikopie. Die Sicherungszeile bleibt
+trotzdem im Weg: sie kostet nichts und ist der einzige Rückweg, der ohne
+Fußnoten auskommt. **Es kommt auch keine neue Zeile in die `.env`** — der
+Mailzugang steht im Systembereich, nicht dort.
+
+**0.8.91 davor fasste sie ebenfalls nicht an.** Dort war die Sicherung
+trotzdem Pflicht, und beim **Schlüsselwechsel** ein zweites Mal: siehe den
+Abschnitt „Den Schlüssel wechseln".
 
 **Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Branchnamen
 an: aus `main` wird `kriterion-main`. Ohne das `mv` legt das folgende
@@ -1310,7 +1440,9 @@ Start eine leere Neuinstallation vermuten.
   Anbieternamen. Je Benutzer eine Zeile pro Schlüssel
 - `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
   `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
-  bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen
+  bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen.
+  **Die Adresse wird seit 0.9.0 überhaupt gefüllt** — beim Anlegen durch den
+  Admin, danach nur noch durch den Betreffenden selbst
 - `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer. In der Karte
   **„Meine Sitzungen"** sieht jeder seine eigenen; adressiert werden sie über
   eine **gerechnete Kennung**, nie über den Sitzungsschlüssel selbst
@@ -1371,7 +1503,8 @@ Passwort, Anmeldung, und **derselbe Link ein zweites Mal nicht** —, die
 Nachschau, dass der Link selbst in **keiner Spalte keiner Tabelle** steht, die
 sieben Tage an beiden Seiten, die Anmeldebremse vor der Anmeldung und „Meine
 Sitzungen" mit zwei Benutzern zu je zwei Sitzungen.
-**Seit 0.8.90 dazu jeder der sechs schweren Wege einzeln** — ohne Bestätigung
+**Seit 0.8.90 dazu jeder der schweren Wege einzeln** (sechs damals, seit 0.9.0
+sieben) — ohne Bestätigung
 abgewiesen, mit falschem Passwort abgewiesen, mit richtigem durch, und nach
 jeder Verweigerung die Nachschau in der Datenbank, dass nichts geschrieben
 wurde —, das Sicherheitsprotokoll mit einer Zeile je Vorgang und der Nachschau,
@@ -1386,6 +1519,20 @@ nicht mehr, Bestand Feld für Feld derselbe — dazu jede Lage, in der der Wechs
 gewechselt wurde. **Der Abbruch mit `kill -9` mitten hinein** wird an rund 60 MB
 nachgestellt, und die Dauer dafür wird **gemessen** statt geraten: ist der
 Wechsel zu schnell zum Treffen, sagt die Prüfung genau das.
+**Seit 0.9.0 dazu der Mailversand am echten SMTP-Gespräch** — ein
+SMTP-Empfänger aus Nodes `net` führt das Protokoll wirklich, und „angekommen"
+heißt ein Brief, den er aufgehoben hat. **Er kann scheitern**, und das ist der
+Punkt: annehmen, mit 550 ablehnen, gar nicht grüßen, grüßen und schweigen,
+tröpfeln, sofort auflegen. Geprüft werden das **Offline-Prinzip in beide
+Richtungen** (der Token entsteht auch dann, wenn der Versand fehlschlägt, und
+der Link steht in der Antwort), die **Frist von zwanzig Sekunden** — gemessen,
+nicht behauptet, und an einem tröpfelnden Empfänger, an dem nur die äußere
+Schranke greift —, dass **ohne die öffentliche Adresse nichts hinausgeht** und
+ein gefälschter `Host`-Kopf den Link nicht umbiegt, dass die **Testmail
+ausschließlich an die eigene Adresse** geht (auch mit einem mitgegebenen Feld in
+Rumpf, Abfrage oder Kopf), dass das **Mailpasswort in keiner Spalte, keiner
+Protokollzeile und keiner Antwort** steht, und dass die **Frist ab dem ersten
+Öffnen** wirklich nur beim ersten Öffnen schreibt.
 
 Die Dateien `pruefung.js` und `gegenprobe.js` sind per `.dockerignore`
 ausgeschlossen und landen nicht im Image.

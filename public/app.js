@@ -336,14 +336,48 @@ async function showEinladung(schluessel) {
       body: JSON.stringify({ token: schluessel })
     });
     stand = await res.json().catch(() => ({}));
-    // Gilt der Link nicht mehr, geht es auf die gewöhnliche Anmeldeseite --
-    // mit der Absage darüber. Die Adresse wird dabei geleert, damit ein
-    // Neuladen nicht denselben toten Link noch einmal versucht.
-    if (!res.ok) { location.hash = '#/'; return showLogin(stand.error || 'Dieser Link gilt nicht mehr.'); }
-  } catch { location.hash = '#/'; return showLogin('Server nicht erreichbar.'); }
+    /* EINE VORÜBERGEHENDE ABSAGE DARF DEN SCHLÜSSEL NICHT WEGWERFEN, und das
+       ist ein Befund aus dem Betrieb, kein Vorsichtsmaß: bis 0.8.91 leerte
+       JEDES `!res.ok` die Adresse — auch die 429 der Anmeldebremse. Wer sich
+       vorher ein paarmal beim Anmelden vertippt hatte und danach seinen
+       GÜLTIGEN Einladungslink anklickte, sah eine Fehlermeldung, lud neu und
+       stand auf der Anmeldeseite: der Link war nie tot, die Adresse war weg.
+       Nachgestellt an einem echten Server; der Link galt danach unverändert
+       weiter.
+       DESHALB WIRD NUR BEI DER ENDGÜLTIGEN ABSAGE GELEERT. Bei allem anderen
+       — Bremse, Serverfehler, kein Netz — bleibt der Schlüssel in der Adresse
+       stehen, und die Seite bietet an, es noch einmal zu versuchen. Neuladen
+       trägt dann ebenfalls wieder.
+       400 IST DIE ENDGÜLTIGE: es ist die EINE Absage aus 0.8.80 — abgelaufen,
+       verbraucht, erfunden, Zugang gesperrt, Frist verstrichen. In all diesen
+       Fällen hilft nur ein neuer Link. */
+    if (res.status === 400) {
+      location.hash = '#/';
+      return showLogin(stand.error || 'Dieser Link gilt nicht mehr.');
+    }
+    if (!res.ok) return spaeter(stand.error || 'Der Server hat den Link gerade nicht geprüft.');
+  } catch { return spaeter('Server nicht erreichbar.'); }
 
   const min = stand.minPassword || MIN_PASSWORT;
   zeichne();
+
+  /* Die Seite für eine VORÜBERGEHENDE Absage. Sie hält den Schlüssel fest und
+     bietet einen zweiten Anlauf an — ohne Neuladen, aber ein Neuladen tut es
+     auch, denn die Adresse steht noch. Bewusst KEIN Zeitgeber, der von selbst
+     wiederholt: die Bremse antwortet mit einer Wartezeit, und ein Browser,
+     der im Sekundentakt nachfragt, hält sie am Leben statt sie ablaufen zu
+     lassen. Der Mensch drückt, wenn er so weit ist. */
+  function spaeter(meldung) {
+    app.innerHTML = `<div class="login-screen"><div class="login-card">
+      ${MARK(34)}
+      <h1>${esc(TITLE_PUBLIC)}</h1>
+      <div class="login-error">${esc(meldung)}</div>
+      <p class="sub">Dein Link ist davon <strong>nicht</strong> betroffen — er gilt weiter.
+        Versuch es gleich noch einmal.</p>
+      <button class="btn btn-accent" id="eb-neu">Noch einmal versuchen</button>
+    </div></div>`;
+    document.getElementById('eb-neu').onclick = () => showEinladung(schluessel);
+  }
 
   function zeichne(errMsg) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
@@ -357,8 +391,15 @@ async function showEinladung(schluessel) {
         <input class="input" id="ep" type="password" autocomplete="new-password"></div>
       <div class="field"><label for="ep2">Passwort wiederholen</label>
         <input class="input" id="ep2" type="password" autocomplete="new-password"></div>
+      ${/* DIE FRIST GEHÖRT AN DIE STELLE, AN DER SIE LÄUFT. Sie beginnt mit
+            genau diesem Aufruf — vorher ist nichts geschehen, egal wie lange
+            die Mail im Postfach lag. Wer sie hier nicht liest, erfährt sie
+            erst an der Absage, und dann ist es zu spät. */''}
       <p class="sub" style="margin:0 0 4px">Mindestens ${min} Zeichen. Dieser Link gilt danach
-        nicht mehr, und alle bestehenden Anmeldungen dieses Zugangs werden beendet.</p>
+        nicht mehr, und alle bestehenden Anmeldungen dieses Zugangs werden beendet.
+        ${stand.minuten ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit.</strong>
+        Seit dem ersten Öffnen läuft eine Frist; danach musst du beim Admin einen neuen Link
+        holen. Neu laden darfst du in dieser Zeit, so oft du willst.` : ''}</p>
       <button class="btn btn-accent" id="eb">Passwort setzen</button>
     </div></div>`;
 
@@ -3628,7 +3669,7 @@ async function renderDetail(id) {
 /* ================= Systembereich ================= */
 async function renderSystem() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
-  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll;
+  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll, mailstand;
   try {
     /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
        stehen hinter dem Admin; ein Abruf, der zuverlaessig 403 ergibt, risse
@@ -3646,14 +3687,18 @@ async function renderSystem() {
        DIE EIGENEN ANMELDUNGEN GEHEN DENSELBEN WEG und stehen ohne Bedingung
        daneben: die Karte gehoert jedem, wie "Zugang" auch.
        DAS SICHERHEITSPROTOKOLL EBENSO, hinter dem Eigentuemer -- und HIER und
-       nicht spaeter aus der Karte heraus (Stolperstein 118). Es sind neun
-       Abrufe. */
-    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll] = await Promise.all([
+       nicht spaeter aus der Karte heraus (Stolperstein 118).
+       DER MAILVERSAND SEIT 0.9.0 GEHT DENSELBEN WEG, hinter dem EIGENTUEMER:
+       der Mailzugang gehoert ihm ganz -- eintragen, einsehen und testen. Der
+       Admin erfaehrt den Zustand dort, wo er ihn braucht, naemlich als Feld
+       `versand` neben dem Link. Es sind zehn Abrufe. */
+    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll, mailstand] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null,
       EIGENTUEMER ? api('GET', '/api/sicherung') : null, api('GET', '/api/sessions'),
-      EIGENTUEMER ? api('GET', '/api/sicherheitsprotokoll') : null
+      EIGENTUEMER ? api('GET', '/api/sicherheitsprotokoll') : null,
+      EIGENTUEMER ? api('GET', '/api/mail') : null
     ]);
   } catch (e) { if (e.message !== 'Sitzung abgelaufen') toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
@@ -3685,13 +3730,27 @@ async function renderSystem() {
         <div class="field"><label>Benutzername</label>
           <input class="input" id="acc-user" autocomplete="username" autocapitalize="off"
             spellcheck="false" value="${esc(zugang.username || '')}"></div>
+        ${/* DIE EIGENE ADRESSE STEHT HIER UND NICHT IN DER KARTE „ZUGÄNGE“:
+              sie gehört dem, der sie hat. Ein Admin, der eine bestehende
+              fremde Adresse umschreiben könnte, böge damit den nächsten
+              Rücksetzlink des Betroffenen auf ein Postfach seiner Wahl.
+              Sie steht hinter dem bisherigen Passwort wie Name und Passwort
+              daneben — aus demselben Grund. */''}
+        <div class="field"><label>E-Mail-Adresse <span class="hint">(freiwillig)</span></label>
+          <input class="input" id="acc-mail" type="email" autocomplete="email"
+            autocapitalize="off" spellcheck="false" value="${esc(zugang.email || '')}"
+            placeholder="noch keine hinterlegt"></div>
         <div class="field"><label>Bisheriges Passwort</label>
           <input class="input" id="acc-old" type="password" autocomplete="current-password"></div>
         <div class="field"><label>Neues Passwort</label>
           <input class="input" id="acc-new" type="password" autocomplete="new-password"></div>
         <div class="field"><label>Neues Passwort wiederholen</label>
           <input class="input" id="acc-new2" type="password" autocomplete="new-password"></div>
-        <p class="desc" style="margin:0 0 10px">Mindestens ${MIN_PASSWORT} Zeichen. Über die
+        <p class="desc" style="margin:0 0 10px">Die Adresse ist freiwillig. Sie wird für genau
+          zwei Dinge gebraucht: den Einladungs- oder Rücksetzlink per Mail und die Testmail
+          im Mailversand. <strong>Ohne sie fehlt nichts</strong> — der Link steht wie immer
+          zum Kopieren bereit.
+          Mindestens ${MIN_PASSWORT} Zeichen. Über die
           Oberfläche gibt es keine Wiederherstellung; vergessen heißt
           <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>
           auf dem Server.</p>
@@ -3744,7 +3803,88 @@ async function renderSystem() {
             nurEigentuemer. Die Groessenschaetzung liest aus den Kennzahlen --
             das geht nur auf, weil die Rollen eine LEITER sind: wer Eigentuemer
             ist, ist auch Admin, und dann steht stats. Faellt diese Leiter
-            jemals, faellt hier eine Karte auf null. */''}${EIGENTUEMER ? `<div class="sys-card">
+            jemals, faellt hier eine Karte auf null. */''}${EIGENTUEMER && mailstand ? `<div class="sys-card">
+        <h3>Mailversand</h3>
+        ${/* DIE ACHTZEHNTE KARTE, und sie gehört dem EIGENTÜMER — nicht dem
+              Admin, obwohl der die Einladungen verschickt. Der SMTP-Server
+              sieht jede Mail, und jede trägt einen Link, der ein Passwort
+              setzt; ein Admin, der ihn einträgt, böge damit die Rücksetzmail
+              des Eigentümers auf einen Server seiner Wahl. Über dem Eigentümer
+              steht niemand — die Rollenleiter bleibt heil.
+              DAS PASSWORT STEHT HIER NIE: „gesetzt“ oder „nicht gesetzt“, nie
+              die Länge, nie der Anfang, nie Sternchen mit der richtigen Zahl.
+              Aus jedem davon ließe sich etwas ableiten, und keines hilft dem,
+              der die Karte ansieht. */''}
+        <p class="desc"><strong>E-Mail ist eine Bequemlichkeit, keine Voraussetzung.</strong>
+          Ohne Mailzugang läuft die Anlage vollständig — Einladungs- und Rücksetzlinks stehen
+          dann wie bisher im Verwaltungsbereich zum Kopieren. Mit Mailzugang gehen sie
+          <em>zusätzlich</em> hinaus; schlägt das fehl, bricht nichts ab.</p>
+        <div class="kv"><span class="k">Zustand</span><span class="v">${mailstand.eingerichtet
+          ? '<strong class="mail-gut">eingerichtet</strong>'
+          : '<strong class="mail-aus">nicht eingerichtet</strong>'}</span></div>
+        <div class="kv"><span class="k">Passwort</span><span class="v">${mailstand.passwortGesetzt
+          ? 'gesetzt' : 'nicht gesetzt'}</span></div>
+        <div class="kv"><span class="k">Öffentliche Adresse</span><span class="v">${mailstand.adresseGesetzt
+          ? esc(mailstand.adresse)
+          : '<strong class="mail-aus">nicht gesetzt — es wird nicht verschickt</strong>'}</span></div>
+        <div class="kv"><span class="k">Zuletzt erfolgreich getestet</span><span class="v">${mailstand.getestetAm
+          ? esc(mailstand.getestetAm) : 'noch nie'}</span></div>
+        ${mailstand.adresseGesetzt ? '' : `<p class="warn-box" style="margin:10px 0 0">
+          <strong>Ohne <code>OEFFENTLICHE_ADRESSE</code> in der <code>.env</code> wird nichts
+          verschickt.</strong> Der Server wüsste sonst nicht, worauf der Link zeigen soll —
+          und aus dem <code>Host</code>-Kopf darf er es nicht ableiten: über einen gefälschten
+          Kopf ließe sich ein Rücksetzlink auf einen fremden Server umbiegen.</p>`}
+
+        <div class="field" style="margin-top:14px"><label for="mail-anbieter">Anbieter</label>
+          <select class="input" id="mail-anbieter">
+            <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
+            ${mailstand.anbieterListe.map(a => `<option value="${esc(a.schluessel)}"${
+              a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
+          </select></div>
+        ${/* Server, Port und Verschlüsselung stehen für die Vorlagen im
+              Quelltext und werden hier nur GEZEIGT. Wechselt ein Anbieter
+              morgen den Port, kommt der neue aus der Liste — eine Kopie in
+              der Datenbank wäre eingefroren und liefe auseinander. Nur bei
+              „Eigener Server“ sind die Felder offen. */''}
+        <div class="field"><label for="mail-server">Server</label>
+          <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
+            autocapitalize="off" spellcheck="false"></div>
+        <div class="row-in">
+          <div class="field" style="flex:1"><label for="mail-port">Port</label>
+            <input class="input" id="mail-port" type="number" min="1" max="65535"
+              value="${mailstand.port || ''}"></div>
+          <div class="field" style="flex:1"><label for="mail-sicher">Verschlüsselung</label>
+            <select class="input" id="mail-sicher">
+              <option value="starttls"${mailstand.sicher ? '' : ' selected'}>STARTTLS (meist 587)</option>
+              <option value="tls"${mailstand.sicher ? ' selected' : ''}>TLS von Anfang an (meist 465)</option>
+            </select></div>
+        </div>
+        <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
+          <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
+            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+        <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
+          <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
+            placeholder="${mailstand.passwortGesetzt ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
+        <div class="field"><label for="mail-absender">Absenderadresse</label>
+          <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
+            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+
+        <p class="desc" id="mail-hinweis">${mailstand.hinweis ? `<strong>${esc(mailstand.hinweis)}</strong><br>` : ''}
+          ${esc(mailstand.hinweisImmer)}</p>
+        <p class="desc">Immer über den SMTP-Zugang eines Anbieters, nie unmittelbar vom
+          Hausanschluss: dort fehlen rDNS und SPF/DKIM, und die Mail landet im besten Fall
+          im Spam.</p>
+        <div class="row-in">
+          <button class="btn btn-accent btn-sm" id="mail-save">Mailzugang speichern</button>
+          <button class="btn btn-sm" id="mail-test">Testmail an mich</button>
+        </div>
+        <p class="desc" style="margin:8px 0 0">Die Testmail geht <strong>ausschließlich an die
+          Adresse deines eigenen Zugangs</strong> — es gibt kein Adressfeld daneben, und zwar
+          mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener
+          Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der
+          Versuch nach ${mailstand.sekunden} Sekunden ab.</p>
+        <div id="mail-ergebnis"></div>
+      </div>` : ''}${EIGENTUEMER ? `<div class="sys-card">
         <h3>Export</h3>
         ${/* DIE ROLLENTEILUNG GEHOERT AN DIE KARTE, nicht nur in die Doku. Wer
              Export und Sicherung nebeneinander sieht, muss ohne Rueckfrage
@@ -3886,6 +4026,13 @@ async function renderSystem() {
           Passwort nie, und der Link gilt sieben Tage und genau einmal.</p>
         <div class="zug-neu">
           <input class="input input-sm" id="zug-name" placeholder="Benutzername"
+            autocomplete="off" autocapitalize="off" spellcheck="false">
+          ${/* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die
+                Einladungsmail keinen Empfänger, und den Zugang gibt es in
+                diesem Augenblick noch nicht, also kann sie auch niemand selbst
+                eintragen. Ändern darf sie danach allein der Betroffene, unter
+                „Zugang“. Freiwillig — ohne sie bleibt alles beim Kopieren. */''}
+          <input class="input input-sm" id="zug-mail" type="email" placeholder="E-Mail (freiwillig)"
             autocomplete="off" autocapitalize="off" spellcheck="false">
           <select class="input input-sm" id="zug-art">
             <option value="link">Er wählt sein Passwort selbst</option>
@@ -4039,16 +4186,21 @@ async function renderSystem() {
     const name = document.getElementById('acc-user').value.trim();
     const neu1 = document.getElementById('acc-new').value;
     const neu2 = document.getElementById('acc-new2').value;
+    const adresse = document.getElementById('acc-mail').value.trim();
     if (!alt) return toast('Bitte das bisherige Passwort angeben.', true);
     if (!name) return toast('Bitte einen Benutzernamen angeben.', true);
     if (neu1 !== neu2) return toast('Die beiden neuen Passwörter stimmen nicht überein.', true);
     if (neu1 && neu1.length < MIN_PASSWORT)
       return toast(`Das Passwort muss mindestens ${MIN_PASSWORT} Zeichen lang sein.`, true);
     try {
+      // Die Adresse geht IMMER mit, auch leer: der Server unterscheidet
+      // „nicht angefasst“ (Feld fehlt) von „löschen“ (leer). Das Formular
+      // zeigt den heutigen Wert an, also ist ein leeres Feld hier wirklich
+      // die Ansage, sie zu entfernen.
       const r = await api('PUT', '/api/account', {
-        oldPassword: alt, username: name, newPassword: neu1
+        oldPassword: alt, username: name, newPassword: neu1, email: adresse
       });
-      toast(r.passwortGewechselt ? 'Zugang geändert' : 'Benutzername geändert');
+      toast(r.passwortGewechselt ? 'Zugang geändert' : 'Zugang gespeichert');
       // Die Kopfzeile nennt den Namen. Ohne diese Zeile stuende dort bis zum
       // naechsten Laden der Seite der alte -- ladeEinstellungen() laeuft nur
       // beim Start.
@@ -4056,6 +4208,75 @@ async function renderSystem() {
       renderSystem();   // leert die Passwortfelder
     } catch (e) { toast(e.message, true); }
   };
+
+  /* --- Der Mailversand, seit 0.9.0 ---
+     NUR FUER DEN EIGENTUEMER; die Karte steht bei allen anderen gar nicht da,
+     und die Endpunkte darunter weisen sie ohnehin ab. Die Abfrage auf das
+     Element ist deshalb keine Zierde, sondern die Bedingung. */
+  const mailAnbieter = document.getElementById('mail-anbieter');
+  if (mailAnbieter && mailstand) {
+    const feld = (id) => document.getElementById('mail-' + id);
+    /* SERVER, PORT UND VERSCHLUESSELUNG GEHOEREN DER VORLAGE, ausser bei
+       "eigen". Sie werden gesperrt und nicht versteckt: wer GMX gewaehlt hat,
+       soll SEHEN, wohin die Anlage schickt -- ein leeres Feld waere eine
+       Auskunft weniger, kein Schutz mehr. */
+    const nachVorlage = () => {
+      const eigen = mailAnbieter.value === 'eigen';
+      const keiner = mailAnbieter.value === '';
+      for (const id of ['server', 'port', 'sicher']) feld(id).disabled = !eigen;
+      for (const id of ['benutzer', 'passwort', 'absender']) feld(id).disabled = keiner;
+      const h = document.getElementById('mail-hinweis');
+      if (h) h.hidden = keiner;
+    };
+    mailAnbieter.onchange = nachVorlage;
+    nachVorlage();
+
+    const mailErgebnis = (text, gut) => {
+      const box = document.getElementById('mail-ergebnis');
+      if (box) box.innerHTML = `<p class="warn-box ${gut ? 'mail-erfolg' : ''}"
+        style="margin:10px 0 0">${esc(text)}</p>`;
+    };
+
+    document.getElementById('mail-save').onclick = async () => {
+      const koerper = {
+        anbieter: mailAnbieter.value,
+        server: feld('server').value.trim(),
+        port: Number(feld('port').value),
+        sicher: feld('sicher').value === 'tls',
+        benutzer: feld('benutzer').value.trim(),
+        // LEER HEISST "unveraendert", nicht "loeschen": sonst muesste das
+        // Passwort bei jeder Aenderung am Absender neu getippt werden, und ein
+        // Formular, das ein Geheimnis fuer eine Nebensache verlangt, wird
+        // irgendwann mit einem falschen Wert gespeichert. Der Server hat
+        // dieselbe Regel; hier steht sie nur, weil das Feld hier steht.
+        passwort: feld('passwort').value,
+        absender: feld('absender').value.trim()
+      };
+      if (!await zweiteBestaetigung('mail', null, 'Mailzugang setzen',
+        'Über diesen Server läuft künftig JEDE Mail dieser Anlage — auch jeder ' +
+        'Link, der ein Passwort setzt.')) return;
+      try {
+        await api('PUT', '/api/mail', koerper);
+        toast('Mailzugang gespeichert');
+        renderSystem();   // zeichnet den Zustand neu und leert das Passwortfeld
+      } catch (e) { toast(e.message, true); }
+    };
+
+    document.getElementById('mail-test').onclick = async (e) => {
+      /* e.currentTarget IST NACH DEM ERSTEN await NULL (Stolperstein 61) --
+         der Knopf wird deshalb VOR dem Ruf festgehalten. */
+      const knopf = e.currentTarget;
+      knopf.disabled = true; knopf.textContent = 'Wird verschickt …';
+      try {
+        const r = await api('POST', '/api/mail/test', {});
+        mailErgebnis(r.ok
+          ? `Die Testmail ist an ${r.an} hinausgegangen. Kommt sie an, steht der Versand.`
+          : `Der Versand ist fehlgeschlagen: ${r.grund}`, r.ok);
+        if (r.ok) toast('Testmail verschickt');
+      } catch (err) { mailErgebnis(err.message, false); }
+      knopf.disabled = false; knopf.textContent = 'Testmail an mich';
+    };
+  }
 
   /* --- Meine Sitzungen ---
      Gezeichnet wird aus dem, was oben schon geholt wurde -- eine Karte, die
@@ -4889,6 +5110,32 @@ async function renderSystem() {
     ? 'aus der Einstellung <code>OEFFENTLICHE_ADRESSE</code>'
     : 'aus deinem Browser';
 
+  /* WAS DER VERSAND GEMACHT HAT, STEHT NEBEN DEM LINK UND NICHT ANSTELLE VON
+     IHM. Das ist die sichtbare Hälfte des Satzes, der über der ganzen Stufe
+     steht: E-Mail ist eine Bequemlichkeit, keine Voraussetzung. Schlägt der
+     Versand fehl, bricht nichts ab — der Link steht da wie immer, und
+     daneben steht, warum nichts hinausging.
+     DREI ZUSTÄNDE, DREI FARBEN, und der Grund wird MITGENANNT: „aus“ allein
+     deckt drei verschiedene Lagen ab, und ohne den Grund wüsste niemand,
+     welche davon gerade gilt. */
+  const versandZeile = (d) => {
+    /* DIE ADRESSE STEHT HIER NICHT, und das ist kein Versehen: an einem
+       BESTEHENDEN Zugang hat sie der Betroffene selbst eingetragen, und ein
+       Admin bekommt fremde Postfächer nicht zu sehen — GET /api/users liefert
+       sie aus demselben Grund nicht mit. Was der Admin wissen muss, ist, DASS
+       die Mail hinausging. */
+    if (d.versand === 'ok')
+      return `<p class="zug-versand zug-versand-ok">Die Mail ist an die hinterlegte Adresse
+        hinausgegangen. Der Link steht trotzdem hier — falls sie nicht ankommt.</p>`;
+    if (d.versand === 'fehlgeschlagen')
+      return `<p class="zug-versand zug-versand-fehl"><strong>Versand fehlgeschlagen</strong> —
+        ${esc(d.versandGrund || 'ohne Angabe')}. Gib den Link von Hand weiter.</p>`;
+    if (d.versand === 'aus')
+      return `<p class="zug-versand">Es wurde keine Mail verschickt: ${esc(d.versandGrund || '')}
+        Gib den Link von Hand weiter.</p>`;
+    return '';
+  };
+
   function zeigeLink(d) {
     const box = document.getElementById('zug-link');
     if (!box || !d || !d.token) return;
@@ -4899,12 +5146,15 @@ async function renderSystem() {
       <strong>${d.zweck === 'ruecksetzung' ? 'Link zum Zurücksetzen' : 'Einladungslink'}
       für „${esc(d.username || '')}“ — er wird nur dieses eine Mal angezeigt.</strong>
       Er ist bis dahin ein <strong>Passwortersatz</strong>: wer ihn hat, kommt herein und setzt
-      das Passwort. Er gilt <strong>${d.tage || 7} Tage</strong> und <strong>genau einmal</strong>.
+      das Passwort. Er gilt <strong>${d.tage || 7} Tage</strong> und <strong>genau einmal</strong>;
+      ab dem ersten Öffnen bleiben <strong>${d.minuten || 15} Minuten</strong>, um das Passwort
+      zu setzen.
       Nach der Weitergabe steht er in einem fremden Verlauf — gib ihn nur dem, für den er ist.
       <div class="zug-linkzeile"><input class="input input-sm" id="zug-link-feld" readonly
         value="${esc(adresse)}"><button class="btn btn-sm" id="zug-link-kopie">Kopieren</button></div>
       <p class="zug-linkherkunft" id="zug-link-herkunft">Dieser Link zeigt auf
         <code>${esc(new URL(adresse).origin)}</code> — <strong>${linkHerkunft(d)}</strong>.</p>
+      ${versandZeile(d)}
     </div>`;
     const feld = document.getElementById('zug-link-feld');
     feld.focus(); feld.select();
@@ -5090,9 +5340,11 @@ async function renderSystem() {
 
   if (zugAnlegen) zugAnlegen.onclick = async () => {
     const nameFeld = document.getElementById('zug-name');
+    const mailFeld = document.getElementById('zug-mail');
     const rolleFeld = document.getElementById('zug-rolle');
     const einladen = !zugArt || zugArt.value === 'link';
     const koerper = { username: nameFeld.value.trim() };
+    if (mailFeld && mailFeld.value.trim()) koerper.email = mailFeld.value.trim();
     if (einladen) koerper.einladen = true;
     else koerper.passwort = zugPass.value;
     if (rolleFeld) koerper.rolle = rolleFeld.value;
@@ -5100,6 +5352,7 @@ async function renderSystem() {
     try {
       const d = await api('POST', '/api/users', koerper);
       nameFeld.value = ''; zugPass.value = '';
+      if (mailFeld) mailFeld.value = '';
       toast(einladen ? 'Zugang angelegt — der Link steht unten' : 'Zugang angelegt');
       if (einladen) zeigeLink(d);
     } catch (e) { return toast(e.message, true); }

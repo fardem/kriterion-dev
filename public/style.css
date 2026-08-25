@@ -788,6 +788,22 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .zug-linkherkunft { margin: 8px 0 0; font-size: .82rem; line-height: 1.55; }
 .zug-linkherkunft code { font-family: var(--mono); font-size: .78rem; word-break: break-all; }
 
+/* Der Versandzustand NEBEN dem Link, seit 0.9.0 -- nie anstelle von ihm. Er
+   steht deshalb als eigene Zeile im selben Kasten und nicht als eigener
+   Kasten daneben: zwei Kaesten laesen sich als zwei Sachen, und es ist eine.
+   Der Fehlschlag ist rot, der Erfolg gruen, das Ausbleiben grau -- drei
+   Zustaende, drei Farben, und keiner davon nimmt dem Link den Platz weg. */
+.zug-versand { margin: 8px 0 0; font-size: .82rem; line-height: 1.55; color: var(--text-2); }
+.zug-versand-ok strong, .zug-versand-ok { color: var(--green); }
+.zug-versand-fehl strong { color: var(--red); }
+
+/* Die Karte "Mailversand". Zwei Woerter tragen die ganze Karte -- eingerichtet
+   oder nicht -- und stehen deshalb farbig da. */
+.mail-gut { color: var(--green); }
+.mail-aus { color: var(--red); }
+.mail-erfolg { background: var(--green-dim); border-color: rgba(63,211,154,.3); }
+.mail-erfolg strong { color: var(--green); }
+
 /* Das Sicherheitsprotokoll. Eine Zeile je Vorgang, die juengste oben; die
    Liste laeuft in sich und schiebt die Karte nicht auf. Auf schmalem Schirm
    bricht sie in zwei Zeilen statt seitlich zu scrollen. */
