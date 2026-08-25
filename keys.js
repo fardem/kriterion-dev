@@ -108,6 +108,16 @@ function findeEnvZeile(zeilen) {
    ausfuehren kann, kann sie auch setzen. Sie steht deshalb in der .env und
    ausdruecklich NICHT im Sicherheitsprotokoll -- dort traegt der Vorgang das
    leere `wer` von zugang.js, und das heisst "ueber den Wirt". */
+/* Die Notiz, WER gewechselt hat, landet in einer Datei, die beim naechsten
+   Start Zeile fuer Zeile gelesen wird. Ein Zeilenumbruch darin schoebe eine
+   erfundene Einstellung dazwischen -- deshalb bleibt vom Text nur, was in eine
+   Zeile gehoert, und er wird gekuerzt. Es ist ohnehin eine Notiz und keine
+   Feststellung. */
+function saubereNotiz(text) {
+  const s = String(text == null ? '' : text).replace(/[\r\n]+/g, ' ').trim();
+  return (s ? s.slice(0, 80) : 'unbekannt');
+}
+
 function schreibeEnvZeile(pfad, altHex, neuHex, wer, zeitpunkt) {
   if (!HEX_MUSTER.test(neuHex)) throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
   const roh = fs.readFileSync(pfad, 'utf8');
@@ -131,18 +141,24 @@ function schreibeEnvZeile(pfad, altHex, neuHex, wer, zeitpunkt) {
     throw new Error(`Die Zeile ENCRYPTION_KEY in ${pfad} traegt einen anderen Wert als den, ` +
       'mit dem diese Datenbank offen ist. Das ist nicht die .env dieser Anlage.');
   zeilen.splice(treffer[0].nr, 1,
-    `# Abgeloest am ${zeitpunkt} durch ${wer} (schluessel.js).`,
+    `# Abgeloest am ${zeitpunkt} durch ${saubereNotiz(wer)} (schluessel.js).`,
     '# ER OEFFNET ALLE SICHERUNGEN VON VOR DIESEM ZEITPUNKT -- nicht loeschen,',
     '# bevor er im Passwortspeicher steht.',
     `#ENCRYPTION_KEY=${alt}`,
     `ENCRYPTION_KEY=${neuHex}`);
-  // Danebenschreiben, dann umbenennen -- eine halbgeschriebene .env startet
-  // nichts mehr (Stolperstein 8).
+  /* Danebenschreiben, dann umbenennen -- eine halbgeschriebene .env startet
+     nichts mehr (Stolperstein 8).
+     DARAUS FOLGT EINE BEDINGUNG AN DEN AUFRUFER: die .env muss ueber ihr
+     VERZEICHNIS erreichbar sein, nicht als einzeln eingehaengte Datei. Eine
+     Datei-Einhaengung haengt am Inode; ein Umbenennen daneben tauscht den
+     Verzeichniseintrag und liesse die Einhaengung auf der alten Datei stehen.
+     schluessel.sh haengt deshalb das Projektverzeichnis ein und nicht die
+     Datei. */
   const werdend = pfad + '.wird';
   fs.writeFileSync(werdend, zeilen.join('\n'), { mode: 0o600 });
   fs.renameSync(werdend, pfad);
   return alt;
 }
 
-module.exports = { loadKey, HEX_MUSTER, erzeugeSchluessel,
+module.exports = { loadKey, HEX_MUSTER, erzeugeSchluessel, saubereNotiz,
                    schreibeSchluesselDatei, findeEnvZeile, schreibeEnvZeile };

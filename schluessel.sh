@@ -36,12 +36,19 @@ if [ ! -f docker-compose.yml ]; then
 fi
 
 # Ein Wegwerf-Container aus demselben Image. --rm, keine veroeffentlichten
-# Ports, und die .env als eigene Einhaengung -- im Image ist sie nicht
-# (.dockerignore), und der laufende Container soll sie auch weiterhin nicht
-# sehen.
+# Ports, und das PROJEKTVERZEICHNIS als eigene Einhaengung -- die .env ist im
+# Image nicht (.dockerignore), und der LAUFENDE Container soll sie auch
+# weiterhin nicht sehen.
+#
+# EINGEHAENGT WIRD DAS VERZEICHNIS UND NICHT DIE DATEI. Eine Datei-Einhaengung
+# haengt am Inode; schluessel.js schreibt die neue .env daneben und benennt sie
+# um (Stolperstein 8), und ein Umbenennen tauscht den Verzeichniseintrag --
+# die Einhaengung bliebe dann auf der alten Datei stehen, und auf dem Wirt
+# aendert sich nichts. Der Wegwerf-Container sieht das Projektverzeichnis
+# damit unter /app/wirt; er laeuft genau einen Befehl und wird danach entfernt.
 lauf() {
   docker compose run --rm --no-deps \
-    ${ENV_EINHAENGUNG:+-v "$PWD/.env:/app/.env.wirt:rw"} \
+    ${ENV_EINHAENGUNG:+-v "$PWD:/app/wirt:rw"} \
     ${NEUER_SCHLUESSEL:+-e "NEUER_SCHLUESSEL=$NEUER_SCHLUESSEL"} \
     kriterion node schluessel.js "$@"
 }
@@ -61,7 +68,7 @@ case "$BEFEHL" in
     ENV_EINHAENGUNG=""
     if [ -f .env ] && grep -qE '^[[:space:]]*ENCRYPTION_KEY[[:space:]]*=[[:space:]]*[0-9a-fA-F]{64}[[:space:]]*$' .env; then
       ENV_EINHAENGUNG="ja"
-      ENV_ARGUMENTE=(--env /app/.env.wirt)
+      ENV_ARGUMENTE=(--env /app/wirt/.env)
       echo "  Der Schluessel steht in der .env — sie wird nachgezogen."
     else
       echo "  In der .env steht kein Schluessel — er liegt als data/encryption.key"
