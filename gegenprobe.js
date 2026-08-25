@@ -86,8 +86,14 @@ const RUECKBAUTEN = [
   {
     nr: '05', name: 'Die aeussere Schranke ueber dem Versand faellt weg',
     datei: 'mail.js',
-    suche: "        frist\n      ]);",
-    ersatz: "      ]);",
+    /* DER RUECKBAU MACHT DIE FRIST WIRKUNGSLOS, ER ENTFERNT SIE NICHT AUS DEM
+       WETTLAUF. Zwei Anlaeufe davor waren falsch, und der zweite lehrreich:
+       `frist` aus dem Promise.race zu streichen laesst die Zusage zwar fallen,
+       aber die Zusage wirft danach UNBEHANDELT -- der Server stirbt, und der
+       Lauf reisst ab, statt eine Pruefung rot zu faerben (Stolperstein 138).
+       So bleibt alles stehen, und nur die Wirkung faellt weg. */
+    suche: "      uhr = setTimeout(() => fehler(new Error('Der Mailserver hat nicht rechtzeitig geantwortet.')),",
+    ersatz: "      uhr = setTimeout(() => {},",
     erwartet: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
   {
@@ -434,7 +440,20 @@ function fahre(r, spur, stufe) {
     let ausgabe = '';
     kind.stdout.on('data', d => { ausgabe += d; });
     kind.stderr.on('data', d => { ausgabe += d; });
-    kind.on('exit', (code) => ende({ code, ...leseLauf(ausgabe) }));
+    /* EINE ZEITGRENZE JE RUECKBAU, seit 0.9.0. Ein Rueckbau kann den Prueflauf
+       nicht nur rot machen, sondern HAENGEN lassen -- und ein haengender Lauf
+       blockiert seine Spur fuer immer, ohne CPU und ohne Meldung. Genau das
+       tut der Rueckbau, der das Aufraeumen des SMTP-Empfaengers wegnimmt.
+       OHNE GRENZE STUENDE DER GANZE TREIBER STILL, und von aussen saehe es aus
+       wie ein besonders langer Lauf. Die Grenze ist grosszuegig: ein
+       vollstaendiger Lauf dauert rund sechs Minuten, die Grenze liegt beim Doppelten. */
+    const GRENZE_MS = 12 * 60 * 1000;
+    const uhr = setTimeout(() => { try { kind.kill('SIGKILL'); } catch {} }, GRENZE_MS);
+    kind.on('exit', (code, signal) => {
+      const ueberfaellig = Date.now() - beginn >= GRENZE_MS;
+      clearTimeout(uhr);
+      ende({ code, signal, ueberfaellig, ...leseLauf(ausgabe) });
+    });
   });
 }
 
@@ -451,7 +470,14 @@ async function fahreAlle(liste, spuren, stufe) {
       console.log(`  [Spur ${nr}] ${r.nr} — ${r.name}`);
       ergebnisse[i] = await fahre(r, nr, stufe);
       const e = ergebnisse[i];
-      const wort = e.fehler ? 'FEHLER' : (e.rot.length ? `${e.rot.length} rot` : 'STUMM');
+      /* EIN ABGERISSENER LAUF IST KEIN STUMMER. Beide zeigen null rote Punkte,
+         und sie sagen das Gegenteil: der eine, dass niemand prueft, der andere,
+         dass der Lauf gar nicht so weit gekommen ist (Stolperstein 138). Die
+         Tabelle unterscheidet sie seit jeher -- diese Zeile jetzt auch. */
+      const wort = e.fehler ? 'FEHLER'
+        : e.ueberfaellig ? 'ZEITGRENZE'
+        : !e.durchgelaufen ? 'ABGERISSEN'
+        : e.rot.length ? `${e.rot.length} rot` : 'STUMM';
       console.log(`  [Spur ${nr}] ${r.nr} fertig nach ${e.sekunden}s — ${wort}`);
     }
   };
@@ -470,6 +496,8 @@ function schreibeTabelle(ergebnisse) {
   for (const e of ergebnisse) {
     let rechts;
     if (e.fehler) rechts = `**RÜCKBAU GESCHEITERT** — ${e.fehler}`;
+    else if (e.ueberfaellig)
+      rechts = '**LAUF AN DER ZEITGRENZE ABGEBROCHEN** — er hängt, statt rot zu werden';
     else if (!e.durchgelaufen)
       rechts = `**LAUF ABGERISSEN** — ${e.abriss || `Code ${e.code}`}` +
                (e.rot.length ? ` (davor ${e.rot.length} rot)` : '');
