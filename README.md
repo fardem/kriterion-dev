@@ -499,9 +499,9 @@ Links, Favoriten und persönliche Einstellungen gehen immer mit. Der Name
 
 **Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt.** Vor dem
 Export, dem Import, dem Vergeben einer Rolle, dem Setzen eines fremden
-Passworts, dem Erzeugen eines Links und dem Entfernen eines Zugangs fragt
-Kriterion nach **deinem eigenen Passwort** — in einem Fenster, das daneben
-schreibt, warum es fragt.
+Passworts, dem Erzeugen eines Links, dem Entfernen eines Zugangs und — seit
+0.9.0 — dem **Setzen des Mailzugangs** fragt Kriterion nach **deinem eigenen
+Passwort**, in einem Fenster, das daneben schreibt, warum es fragt.
 
 **Wogegen das schützt, ist nicht der Fremde:** der kommt ohne Passwort gar
 nicht herein. Es schützt gegen eine **fremde offene Anmeldung** — einen
@@ -518,7 +518,8 @@ Zugangs muss selbst bestätigen.
 **Was ausdrücklich nicht dahinter liegt:** einen Zugang **sperren oder
 freigeben** (das ist umkehrbar), einen Zugang **anlegen** (er ist neu und nimmt
 niemandem etwas), der eigene Zugang (dort ist das bisherige Passwort ohnehin
-Pflicht) und alles am Eintrag. **Ein zweiter Faktor ist es nicht** — gefragt
+Pflicht), die **Testmail** (sie geht an die eigene Adresse und übergibt nichts)
+und alles am Eintrag. **Ein zweiter Faktor ist es nicht** — gefragt
 wird dasselbe Passwort noch einmal.
 
 Auch hier gilt die Anmeldebremse: nach zehn falschen Bestätigungen von
@@ -1392,7 +1393,9 @@ Start eine leere Neuinstallation vermuten.
   Anbieternamen. Je Benutzer eine Zeile pro Schlüssel
 - `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
   `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
-  bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen
+  bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen.
+  **Die Adresse wird seit 0.9.0 überhaupt gefüllt** — beim Anlegen durch den
+  Admin, danach nur noch durch den Betreffenden selbst
 - `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer. In der Karte
   **„Meine Sitzungen"** sieht jeder seine eigenen; adressiert werden sie über
   eine **gerechnete Kennung**, nie über den Sitzungsschlüssel selbst
@@ -1453,7 +1456,8 @@ Passwort, Anmeldung, und **derselbe Link ein zweites Mal nicht** —, die
 Nachschau, dass der Link selbst in **keiner Spalte keiner Tabelle** steht, die
 sieben Tage an beiden Seiten, die Anmeldebremse vor der Anmeldung und „Meine
 Sitzungen" mit zwei Benutzern zu je zwei Sitzungen.
-**Seit 0.8.90 dazu jeder der sechs schweren Wege einzeln** — ohne Bestätigung
+**Seit 0.8.90 dazu jeder der schweren Wege einzeln** (sechs damals, seit 0.9.0
+sieben) — ohne Bestätigung
 abgewiesen, mit falschem Passwort abgewiesen, mit richtigem durch, und nach
 jeder Verweigerung die Nachschau in der Datenbank, dass nichts geschrieben
 wurde —, das Sicherheitsprotokoll mit einer Zeile je Vorgang und der Nachschau,
@@ -1468,6 +1472,20 @@ nicht mehr, Bestand Feld für Feld derselbe — dazu jede Lage, in der der Wechs
 gewechselt wurde. **Der Abbruch mit `kill -9` mitten hinein** wird an rund 60 MB
 nachgestellt, und die Dauer dafür wird **gemessen** statt geraten: ist der
 Wechsel zu schnell zum Treffen, sagt die Prüfung genau das.
+**Seit 0.9.0 dazu der Mailversand am echten SMTP-Gespräch** — ein
+SMTP-Empfänger aus Nodes `net` führt das Protokoll wirklich, und „angekommen"
+heißt ein Brief, den er aufgehoben hat. **Er kann scheitern**, und das ist der
+Punkt: annehmen, mit 550 ablehnen, gar nicht grüßen, grüßen und schweigen,
+tröpfeln, sofort auflegen. Geprüft werden das **Offline-Prinzip in beide
+Richtungen** (der Token entsteht auch dann, wenn der Versand fehlschlägt, und
+der Link steht in der Antwort), die **Frist von zwanzig Sekunden** — gemessen,
+nicht behauptet, und an einem tröpfelnden Empfänger, an dem nur die äußere
+Schranke greift —, dass **ohne die öffentliche Adresse nichts hinausgeht** und
+ein gefälschter `Host`-Kopf den Link nicht umbiegt, dass die **Testmail
+ausschließlich an die eigene Adresse** geht (auch mit einem mitgegebenen Feld in
+Rumpf, Abfrage oder Kopf), dass das **Mailpasswort in keiner Spalte, keiner
+Protokollzeile und keiner Antwort** steht, und dass die **Frist ab dem ersten
+Öffnen** wirklich nur beim ersten Öffnen schreibt.
 
 Die Dateien `pruefung.js` und `gegenprobe.js` sind per `.dockerignore`
 ausgeschlossen und landen nicht im Image.
