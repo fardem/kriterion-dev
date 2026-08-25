@@ -201,7 +201,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.9.1 ist gebaut** — Fingerprint **`FINGERPRINT-0-9-1`**, 3386
+**0.9.1 ist gebaut** — Fingerprint **`1b538f1f`**, 3400
 Prüfungen. **Zweite Hälfte von Stufe I, und damit ist der Stufenplan
 abgearbeitet.** **EINE DATENBANKSTUFE:** es kommt **eine Tabelle** dazu
 (`anfragen`) und **keine Spalte** — deshalb **kein Migrationsblock**, und es
@@ -233,7 +233,7 @@ im Sicherheitsprotokoll **siebzehn** (`anfrage.frei`, `anfrage.ab`, beide ohne
 den Namen des Anfragenden). `MERKMALE` bleibt **dreizehn**,
 `BESTAETIGUNG_ZWECKE` **sieben**, die Formatnummer **10**.
 **Keine neue Abhängigkeit und keine neue `.env`-Zeile.**
-38 Gegenproben, gefahren über `gegenprobe.js`.
+39 Gegenproben, gefahren über `gegenprobe.js`.
 
 **Der Mailversand aus 0.9.0 ist im Feld bestätigt.** Die erste echte
 Einladungsmail ist angekommen — Absender und Link stimmten, der Rumpf stand als
@@ -4258,7 +4258,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3386 von 3386 bestanden** (0.9.1; **194 neue Prüfungen, 38
+**Zuletzt: 3400 von 3400 bestanden** (0.9.1; **208 neue Prüfungen, 39
 Gegenproben, siebzehn neue Gruppen**: „Die Selbstanmeldung: die immer gleiche
 Antwort", „… der Schalter aus", „… der Schalter braucht drei Dinge",
 „… die Bestätigungsmail", „… der Bestätigungslink hat keine Passwortkraft",
@@ -5123,7 +5123,7 @@ die Vorgänge von fünfzehn auf **siebzehn** (`anfrage.frei`, `anfrage.ab`, beid
 ohne Namen); `MERKMALE` bleibt dreizehn, `BESTAETIGUNG_ZWECKE` sieben, die
 Formatnummer 10, das Vokabular elf. **Keine neue Abhängigkeit, keine neue
 `.env`-Zeile.**
-3386 Prüfungen, 38 Gegenproben, Stolpersteine 149 bis 154.
+3400 Prüfungen, 39 Gegenproben, Stolpersteine 149 bis 154.
 
 **0.9.0 — „Der Server verschickt selbst".** **Erste Hälfte von Stufe I** des
 Mehrbenutzerbetriebs, und **keine Datenbankstufe**: keine Tabelle, keine

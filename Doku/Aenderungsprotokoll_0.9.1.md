@@ -166,7 +166,7 @@ des Neuladens und der Weg danach stehen alle drei weiter darin.
 
 ### `pruefung.js`
 
-Siebzehn neue Gruppen, 194 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
+Siebzehn neue Gruppen, 208 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
 im DOM-Mock die fünf neuen Endpunkte samt `registrierung` in `/api/config` —
 und er **zieht mit**: Freischalten und Ablehnen nehmen die Zeile wirklich aus
 der Liste (Stolperstein 90) und bringen nichts selbst mit, was die Prüfung
@@ -174,7 +174,7 @@ belegen soll (Stolperstein 102).
 
 ### `gegenprobe.js`
 
-**36 neue Rückbauten** (31 bis 66, ohne 45 — siehe Befund D), dazu drei
+**36 neue Rückbauten** (31 bis 67, ohne 45 — siehe Befund D), dazu drei
 nachgezogene: 07 und 14 zielten auf Zeilen, die diese Runde verschoben hat, 30
 auf die gekürzte Zeile.
 
@@ -503,7 +503,7 @@ steht im Projektstand, Abschnitt 6.
 
 ## 6. Der Prüfstand
 
-**3386 von 3386 bestanden** — 194 neue Prüfungen, **siebzehn** neue Gruppen.
+**3400 von 3400 bestanden** — 208 neue Prüfungen, **siebzehn** neue Gruppen.
 
 | Gruppe | Was sie festhält |
 |---|---|
@@ -559,9 +559,9 @@ GEGENPROBENTABELLE-PLATZHALTER
 | | |
 |---|---|
 | Vorher (0.9.0) | 3192 |
-| Nachher (0.9.1) | **3386** |
-| Neu | **194** |
-| Gegenproben | **38** |
+| Nachher (0.9.1) | **3400** |
+| Neu | **208** |
+| Gegenproben | **39** |
 
 ---
 
@@ -621,4 +621,4 @@ GEGENPROBENTABELLE-PLATZHALTER
 
 ---
 
-**0.9.1 — Fingerprint `FINGERPRINT-0-9-1`**
+**0.9.1 — Fingerprint `1b538f1f`**
