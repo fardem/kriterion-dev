@@ -117,11 +117,65 @@ const RUECKBAUTEN = [
     erwartet: 'Die Sicherung: zwei Schluessel im Umlauf'
   },
   {
+    nr: '10', name: 'Der Dateifall schreibt die Schluesseldatei nicht',
+    datei: 'schluessel.js',
+    suche: '  else keys.schreibeSchluesselDatei(DATA_DIR, neu);',
+    ersatz: '  else { /* zurueckgebaut */ }',
+    erwartet: 'Der Schluesselwechsel: der Rundlauf'
+  },
+  {
+    nr: '11', name: 'Die Rueckschaltung auf WAL steht nicht mehr im finally',
+    datei: 'db.js',
+    suche: '  } finally {\n' +
+           "    db.pragma('journal_mode = WAL');\n" +
+           '  }',
+    ersatz: '  } finally {\n' +
+            '    /* zurueckgebaut */\n' +
+            '  }\n' +
+            "  db.pragma('journal_mode = WAL');",
+    erwartet: 'Der Schluesselwechsel: die Umschaltung des Journals'
+  },
+  {
+    nr: '12', name: 'Eine mitgegebene .env wird im Dateifall nicht abgewiesen',
+    datei: 'schluessel.js',
+    suche: '  if (optionen.env && !keyFromEnv) {',
+    ersatz: '  if (false) {',
+    erwartet: 'Der Schluesselwechsel: der Dateifall und der env-Fall'
+  },
+  {
+    nr: '13', name: 'Zwei aktive Schluesselzeilen in der .env werden nicht abgewiesen',
+    datei: 'schluessel.js',
+    suche: '    if (treffer.length !== 1) {',
+    ersatz: '    if (false) {',
+    erwartet: 'Der Schluesselwechsel: der Dateifall und der env-Fall'
+  },
+  {
+    nr: '14', name: 'Die Karte "Sicherung" zeigt den Wechsel gar nicht mehr an',
+    datei: 'public/app.js',
+    suche: "    const wechsel = !d.gewechseltAm ? '' : (",
+    ersatz: "    const wechsel = true ? '' : (",
+    erwartet: 'Die Sicherung in der Oberflaeche'
+  },
+  {
+    nr: '15', name: 'Die Fingerprintlage wird nicht mehr vermerkt',
+    datei: 'pruefung.js',
+    suche: '    PRUEFLAGEN.push({ basis: FINGERPRINT_BASIS, port, kind: kindQ, verzeichnis: datenVerz });',
+    ersatz: '    // PRUEFLAGEN.push({ basis: FINGERPRINT_BASIS, port, kind: kindQ, verzeichnis: datenVerz });',
+    erwartet: 'Die Portbasen und der Versatz'
+  },
+  {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
     datei: 'pruefung.js',
     suche: '  const B = starteWeiterenServer(frischDir, {}, 5130);',
     ersatz: '  const B = starteWeiterenServer(frischDir, {}, 4000);',
     erwartet: 'Die Portbasen und der Versatz'
+  },
+  {
+    nr: 'W4', name: 'beendeKind fragt nicht, ob das Kind schon vorbei ist',
+    datei: 'pruefung.js',
+    suche: '    if (kind.exitCode !== null || kind.signalCode !== null) return fertig();',
+    ersatz: '    // if (kind.exitCode !== null || kind.signalCode !== null) return fertig();',
+    erwartet: '(erwartet STUMM — ein gewoehnlicher Lauf laesst kein Kind von selbst enden)'
   },
   {
     nr: 'W3', name: 'Eine Prueflage beendet ihren Server nicht',

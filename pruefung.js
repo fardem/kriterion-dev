@@ -19532,6 +19532,15 @@ function pruefeSchluesselwechsel() {
     JSON.stringify(envUebrig));
   pruefe('Im .env-Fall entsteht KEINE Schluesseldatei neben der Datenbank',
     !fs.existsSync(path.join(a4.dir, 'encryption.key')));
+  /* DIE NOTIZ DARF DIE DATEI NICHT ZERLEGEN. Sie kommt vom Wirt und ist eine
+     Notiz, keine Feststellung -- ein Zeilenumbruch darin schoebe eine
+     erfundene Einstellung dazwischen, und die .env wird beim naechsten Start
+     Zeile fuer Zeile gelesen. Geprueft an der Zahl der Zeilen, die mit
+     "# Abgeloest" beginnen, und daran, dass keine andere Zeile dazugekommen
+     ist. */
+  const envZeilenMitNotiz = envZeilen.filter(z => z.startsWith('# Abgeloest'));
+  pruefe('Die Notiz steht in GENAU EINER Zeile',
+    envZeilenMitNotiz.length === 1, JSON.stringify(envZeilenMitNotiz));
   pruefe('Die Datei oeffnet mit dem neuen Wert aus der .env',
     !swOeffnetNicht(a4.dir, envNeu), 'der neue Wert oeffnet nicht');
   pruefe('Und mit dem alten nicht mehr',
