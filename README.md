@@ -1408,11 +1408,19 @@ die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
 enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
 Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
 
-**0.9.0 fasst die Datenbank nicht an** — keine Tabelle, keine Spalte; ein
-Downgrade auf 0.8.91 wäre eine reine Dateikopie. Die Sicherungszeile bleibt
-trotzdem im Weg: sie kostet nichts und ist der einzige Rückweg, der ohne
-Fußnoten auskommt. **Es kommt auch keine neue Zeile in die `.env`** — der
-Mailzugang steht im Systembereich, nicht dort.
+**0.9.1 FASST DIE DATENBANK AN** — es kommt die Tabelle `anfragen` dazu, die
+Warteschlange der Selbstanmeldung. Einen Migrationsschritt braucht sie nicht,
+eine fehlende Tabelle legt der Start selbst an; aber ein Downgrade ist damit
+keine reine Dateikopie mehr. **Die Sicherungszeile ist bei dieser Version
+Pflicht.** *Genau genommen stört ein Downgrade auf 0.9.0 wenig — eine
+zusätzliche Tabelle sieht eine ältere Version gar nicht an. Was verloren geht,
+sind die offenen Anfragen: sie bleiben stehen, aber niemand zeigt sie mehr.*
+**Es kommt keine neue Zeile in die `.env`** — der Schalter der Selbstanmeldung
+steht im Systembereich, nicht dort.
+
+**0.9.0 davor fasste die Datenbank nicht an** — keine Tabelle, keine Spalte;
+ein Downgrade auf 0.8.91 wäre eine reine Dateikopie gewesen. Auch dort kam
+keine neue `.env`-Zeile dazu: der Mailzugang steht im Systembereich.
 
 **0.8.91 davor fasste sie ebenfalls nicht an.** Dort war die Sicherung
 trotzdem Pflicht, und beim **Schlüsselwechsel** ein zweites Mal: siehe den
@@ -1597,6 +1605,19 @@ ausschließlich an die eigene Adresse** geht (auch mit einem mitgegebenen Feld i
 Rumpf, Abfrage oder Kopf), dass das **Mailpasswort in keiner Spalte, keiner
 Protokollzeile und keiner Antwort** steht, und dass die **Frist ab dem ersten
 Öffnen** wirklich nur beim ersten Öffnen schreibt.
+**Seit 0.9.1 dazu die Selbstanmeldung, vom Formular bis zum gesetzten
+Passwort** — und die schwerste Zusage darin wird **gemessen, nicht behauptet**:
+die fünf Lagen der Anfrage antworten mit demselben Statuscode und demselben
+Rumpf **Byte für Byte**, und **keine davon wartet auf den Mailserver**,
+nachgestellt an einem Empfänger, der den Versand zwanzig Sekunden festhält.
+Dazu die Bestätigungsmail am echten SMTP-Gespräch samt ihrem Link im Fragment,
+der Beleg, dass dieser Link **keinen Zugang, keinen Token und keine Sitzung**
+entstehen lässt, der Deckel (die einundzwanzigste wird still verworfen), das
+Verfallen an beiden Seiten, die Freischaltung mit der Rolle `user` **auch dann,
+wenn eine andere in Rumpf, Abfrage oder Kopf mitgeschickt wird**, die Ablehnung
+ohne Namen in der Protokollzeile, und dass die neue Tabelle sich an einer
+bestehenden Anlage beim Start selbst wieder anlegt — **eine Spalte dagegen
+nicht**.
 
 Die Dateien `pruefung.js` und `gegenprobe.js` sind per `.dockerignore`
 ausgeschlossen und landen nicht im Image.

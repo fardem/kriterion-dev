@@ -9260,6 +9260,70 @@ const freigabeHaupt = (zweck, ziel = null) =>
       regSql(gA.dir, 'SELECT username FROM anfragen').every(z => z.username === 'neuling'),
       JSON.stringify(regSql(gA.dir, 'SELECT username FROM anfragen')));
 
+    /* JE ADRESSE HOECHSTENS EINE OFFENE ANFRAGE -- UND JE NAME EBENSO, und
+       beide muessen EINZELN geprueft werden. Die Lage "schon offene Anfrage"
+       oben schickt Name UND Adresse noch einmal; sie faellt deshalb schon an
+       der ersten der beiden Schranken, und die zweite bliebe ungeprueft.
+       GENAU DAS HAT EINE STUMME GEGENPROBE GEZEIGT: der Rueckbau auf die
+       Adressschranke blieb vollstaendig gruen, weil die Namensschranke ihn
+       auffing. Ein Rueckbau, der keine Pruefung rot macht, ist ein Fund.
+       WARUM DIE ADRESSSCHRANKE UEBERHAUPT DA IST: der Deckel begrenzt, was die
+       TABELLE aufnimmt; ohne sie waere das Formular ein Weg, einer FREMDEN
+       Adresse beliebig viele Bestaetigungsmails zu schicken -- ein neuer Name
+       je Anfrage genuegte. */
+    const gGleicheAdresse = await regRoh(gA.S, '/api/registrierung',
+      { name: 'ganz-anderer-name', adresse: 'neuling@beispiel.de' });
+    pruefe('Dieselbe Adresse unter anderem Namen bekommt DIESELBE Antwort',
+      gGleicheAdresse.status === 200 && gGleicheAdresse.roh === REG_ANTWORT,
+      gGleicheAdresse.roh.slice(0, 60));
+    pruefe('Und wird still verworfen -- es entsteht keine zweite Zeile',
+      regSql(gA.dir, 'SELECT username FROM anfragen').length === 1,
+      JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM anfragen')));
+    const gGleicherName = await regRoh(gA.S, '/api/registrierung',
+      { name: 'neuling', adresse: 'ganz-andere@beispiel.de' });
+    pruefe('Derselbe Name unter anderer Adresse ebenso',
+      gGleicherName.status === 200 && gGleicherName.roh === REG_ANTWORT,
+      gGleicherName.roh.slice(0, 60));
+    pruefe('Und auch dabei bleibt es bei der einen Zeile',
+      regSql(gA.dir, 'SELECT username FROM anfragen').length === 1,
+      JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM anfragen')));
+    /* UND DIE GEGENLAGE ZU BEIDEN (Stolperstein 81): eine Anfrage mit NEUEM
+       Namen UND NEUER Adresse geht durch. Ohne sie belegten die vier Zeilen
+       darueber nur, dass gar nichts mehr entsteht. */
+    await regRoh(gA.S, '/api/registrierung',
+      { name: 'beides-neu', adresse: 'beides-neu@beispiel.de' });
+    pruefe('Neuer Name UND neue Adresse gehen dagegen durch',
+      regSql(gA.dir, "SELECT id FROM anfragen WHERE username = 'beides-neu'").length === 1,
+      JSON.stringify(regSql(gA.dir, 'SELECT username FROM anfragen').map(z => z.username)));
+
+    /* WAS VON AUSSEN HEREINKOMMT, IST BEGRENZT -- und zwar an der einzigen
+       Stelle im Projekt, an der ein FREMDER in die Datenbank schreibt. Ohne
+       Grenze passte in jede der zwanzig Zeilen, was der Rumpf hergibt (zwei
+       Megabyte), und der Admin bekaeme es in seiner Karte zu sehen.
+       DIE ANTWORT BLEIBT AUCH HIER DIESELBE: eine eigene Absage waere eine
+       sechste Lage, an der sich etwas unterscheidet. */
+    const gLang = await regRoh(gA.S, '/api/registrierung',
+      { name: 'x'.repeat(65), adresse: 'lang@beispiel.de' });
+    pruefe('Ein zu langer Name bekommt DIESELBE Antwort',
+      gLang.status === 200 && gLang.roh === REG_ANTWORT, gLang.roh.slice(0, 60));
+    const gLangMail = await regRoh(gA.S, '/api/registrierung',
+      { name: 'kurzgenug', adresse: 'y'.repeat(250) + '@beispiel.de' });
+    pruefe('Eine zu lange Adresse ebenso',
+      gLangMail.status === 200 && gLangMail.roh === REG_ANTWORT, gLangMail.roh.slice(0, 60));
+    pruefe('Und keine von beiden hat eine Zeile angelegt',
+      regSql(gA.dir, 'SELECT username FROM anfragen').length === 2,
+      JSON.stringify(regSql(gA.dir, 'SELECT username FROM anfragen').map(z => z.username.length)));
+    /* UND DIE GEGENLAGE ZUR GRENZE (Stolperstein 81): ein Name knapp DARUNTER
+       geht durch. Ohne sie belegte die Pruefung oben nur, dass ueberhaupt
+       etwas abgewiesen wird -- und nicht, dass die Grenze dort liegt, wo sie
+       liegen soll. */
+    const gKnapp = await regRoh(gA.S, '/api/registrierung',
+      { name: 'z'.repeat(64), adresse: 'knapp@beispiel.de' });
+    pruefe('Ein Name von genau 64 Zeichen geht dagegen durch',
+      gKnapp.status === 200 &&
+      regSql(gA.dir, 'SELECT username FROM anfragen').some(z => z.username === 'z'.repeat(64)),
+      JSON.stringify(regSql(gA.dir, 'SELECT username FROM anfragen').map(z => z.username.length)));
+
     gruppe('Die Selbstanmeldung: der Schalter aus');
 
     pruefe('GET /api/config sagt, dass sie an ist',

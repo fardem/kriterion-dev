@@ -364,6 +364,17 @@ const RUECKBAUTEN = [
     erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
+    /* DIE ZWEITE HAELFTE DERSELBEN SCHRANKE. Ohne sie bliebe der Rueckbau auf
+       die Adressschranke stumm -- die Namensschranke faengt jede Lage auf, in
+       der BEIDES noch einmal geschickt wird. Genau das ist beim ersten Lauf
+       dieser Runde passiert. */
+    nr: '67', name: 'Derselbe Wunschname darf zweimal in der Warteschlange stehen',
+    datei: 'auth.js',
+    suche: "  if (qAnfrageName.get(sauber)) return null;",
+    ersatz: "  if (false) return null;",
+    erwartet: 'Die Selbstanmeldung: die immer gleiche Antwort'
+  },
+  {
     nr: '39', name: 'Name und Adresse von aussen sind wieder unbegrenzt lang',
     datei: 'auth.js',
     suche: "  if (sauber.length > ANFRAGE_NAME_MAX || post.length > ANFRAGE_MAIL_MAX) return null;",
