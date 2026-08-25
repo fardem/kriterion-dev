@@ -4620,10 +4620,30 @@ sind zwei Dinge:
   Verlust steht. *Das ist eine Ausgabe an einen Menschen am Terminal, keine
   Kontrollausgabe: sie steht in keinem Containerprotokoll und in keiner
   Protokollzeile, und der Prüfstand hält beides fest.*
-- **Der Schlüsselwechsel steht bereit und ist an dieser Anlage noch nicht
-  gefahren worden** (Stand 0.8.91). Der Anlass ist da — der Schlüssel lag bis
-  zum 13. August 2025 neben der Datenbank (Abschnitt 3) —, und der Weg steht in
-  der README. **Vorher an einer Wegwerfanlage ausprobieren.**
+- **Der Schlüsselwechsel ist an einer Wegwerfanlage gefahren worden — aber an
+  einer LEEREN, und damit ist er weiter unbestätigt** (Stand 0.9.0). Der Lauf
+  ging durch: `.env` gesichert, Anlage angehalten, Datenverzeichnis gesichert,
+  Wechsel im Wegwerf-Container, `integrity_check: ok`, der alte Wert
+  auskommentiert in der `.env`, Neustart mit „Schluessel aus ENCRYPTION_KEY
+  geladen." **Die Ansage lautete dabei „0.2 MB, erwartete Dauer rund 1
+  Sekunden", und das Protokoll danach „noch kein Zugang".** Die Probe hatte
+  ihre Datenbank vorher gelöscht.
+  **Was sie damit belegt und was nicht:** belegt ist die HOSTSEITE, und sie war
+  die offene Frage aus 0.8.91 — `docker compose run --rm --no-deps` bei
+  gesetztem `container_name`, die Einhängung des Projektverzeichnisses, das
+  Nachziehen der `.env` über Umbenennen, Anhalten und Starten. **Nicht belegt
+  ist der Bestand am echten Umfang:** 662,5 MB, rund 13 Sekunden, 728,7 MB
+  Journal. *Dass ein Bestand den Wechsel überlebt, prüft der Prüfstand
+  ohnehin* — Feld für Feld über jede Tabelle, dazu der `kill -9` mitten hinein
+  an rund 60 MB. Was fehlt, ist genau die Kreuzung aus beidem.
+  **Warum die Probe leer war, und es ist kein Fehler am Skript:** wer `data/`
+  löscht und dazu einen frischen Schlüssel erzeugt, wechselt den Schlüssel
+  einer leeren Datenbank. Wer `data/` behält und trotzdem einen frischen
+  Schlüssel schreibt, bekommt eine Datenbank, die gar nicht mehr aufgeht — dann
+  scheitert nicht der Wechsel, sondern schon der Start. **`data/` und `.env`
+  gehören zusammen.** Der Weg in der README nimmt seit 0.9.0 deshalb eine
+  **Kopie der echten Anlage samt ihrer `.env`** und nennt die vier Zeilen, an
+  denen sich erkennen lässt, ob die Probe etwas wert war.
   **`./schluessel.sh zeigen` ist auf der Anlage bereits gelaufen** und hat die
   eine offene Frage beantwortet: `docker compose run --rm` kommt mit gesetztem
   `container_name` klar — der Wegwerf-Container heißt

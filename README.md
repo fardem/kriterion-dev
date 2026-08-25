@@ -162,10 +162,52 @@ Erwartet wird „Schlüssel aus ENCRYPTION_KEY geladen." bzw. die Warnung, dass
 der Schlüssel neben der Datenbank liegt.
 
 > **PROBIER DEN WECHSEL AN EINER WEGWERFANLAGE AUS, bevor du ihn an der echten
-> fährst.** Ein leeres Verzeichnis, ein `docker compose up -d`, ein paar
-> Einträge, dann `./schluessel.sh wechseln` — und danach nachsehen, ob sie
-> wieder aufgeht. Es ist der einzige Vorgang im ganzen Projekt, bei dem ein
-> Fehler alles kostet.
+> fährst.** Es ist der einzige Vorgang im ganzen Projekt, bei dem ein Fehler
+> alles kostet.
+
+**Und die Probe muss an einem echten Bestand laufen, sonst belegt sie nichts.**
+Ein Wechsel an einer leeren Datenbank ist in Millisekunden vorbei und sagt über
+662 MB nichts. Die Probe unten nimmt deshalb eine **Kopie der echten Anlage** —
+mit ihrem Bestand **und ihrer `.env`**:
+
+```bash
+cd .../DockerAppData                       # eine Ebene über dem Projekt
+docker compose -f kriterion/docker-compose.yml stop    # ruhige Kopie, offene WAL vermeiden
+cp -a kriterion kriterion-probe
+docker compose -f kriterion/docker-compose.yml start   # die echte darf sofort weiterlaufen
+
+cd kriterion-probe
+rm -rf kriterion-sicherung .git .env.vor-*   # data BLEIBT. .env BLEIBT.
+sed -i 's/^    container_name: kriterion$/    container_name: kriterion-probe/' docker-compose.yml
+sed -i 's/"3100:3000"/"3199:3000"/' docker-compose.yml
+chmod +x schluessel.sh
+docker compose up -d --build
+# auf http://<server>:3199 anmelden — dieselben Zugänge, derselbe Bestand
+./schluessel.sh wechseln
+docker compose logs --tail 30 kriterion
+```
+
+> **`data/` und `.env` gehören zusammen — wer eines von beiden ersetzt, hat
+> keine Probe mehr, sondern eine neue Anlage.** Wird `data/` gelöscht und ein
+> frischer Schlüssel erzeugt, wechselt das Skript den Schlüssel einer **leeren**
+> Datenbank; das läuft durch und belegt nichts. Wird umgekehrt `data/` behalten
+> und trotzdem ein frischer Schlüssel geschrieben, geht die Datenbank **gar
+> nicht mehr auf** — dann scheitert nicht der Wechsel, sondern schon der Start.
+> `schluessel.sh` selbst stört sich an einem vorhandenen `data/` nicht.
+
+**Woran du erkennst, dass die Probe etwas wert war** — vier Zeilen, und alle
+vier müssen stimmen:
+
+| | erwartet |
+|---|---|
+| Ansage vor dem Wechsel | die **echte** Größe, z. B. `662.5 MB, erwartete Dauer rund 13 Sekunden` — nicht `0.2 MB` |
+| nach dem Wechsel | `integrity_check: ok` |
+| im Protokoll danach | `Läuft auf Port 3000 — Eigentümer: <dein Name>` — **nicht** „noch kein Zugang" |
+| im Browser auf `:3199` | Einträge, Fotos, Kommentare vollständig; Karte „Sicherung" markiert die alten Kopien rot |
+
+Danach die Probe wegräumen: `cd .. && docker compose -f kriterion-probe/docker-compose.yml down && rm -rf kriterion-probe`.
+**Die `.env` der Probe niemals an die echte Anlage zurückkopieren** — sie trägt
+einen Schlüssel, zu dem nur die Probedaten passen.
 
 ### Zwei Schlüssel im Umlauf — die unangenehmste Falle
 
