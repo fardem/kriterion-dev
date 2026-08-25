@@ -156,11 +156,16 @@ const RUECKBAUTEN = [
     erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   {
-    nr: '14', name: 'Die Marke des Tests faellt bei einer Aenderung nicht mehr',
+    /* GEZIELT AUF DEN VERGLEICH, denn DER traegt die Zusage. Der erste Anlauf
+       nahm ein ausdrueckliches Loeschen der Marke weg und blieb stumm -- weil
+       der Hash ueber den Zugang die Arbeit ohnehin schon tat. Das Loeschen
+       war folgenlos und ist entfernt; es gibt jetzt EINEN Mechanismus, und der
+       Rueckbau greift ihn an. */
+    nr: '14', name: 'Die Marke gilt auch nach einer Aenderung am Zugang weiter',
     datei: 'server.js',
-    suche: "  putSetting.run(MAILTEST_SCHLUESSEL, JSON.stringify(null));",
-    ersatz: "",
-    erwartet: 'Die Karte „Mailversand“'
+    suche: "  const passt = Boolean(test && test.marke && test.marke === mail.marke(roh));",
+    ersatz: "  const passt = Boolean(test && test.marke);",
+    erwartet: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   /* ---- Die Rollenleiter am Mailzugang ---- */
   {

@@ -8953,11 +8953,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
       T.briefe().filter(b => /boese\.net/.test(b.roh)).length);
     pruefe('Und die Marke steht danach in der Karte',
       Boolean(tMit.inhalt?.getestetAm), JSON.stringify(tMit.inhalt?.getestetAm));
-    /* DIE MARKE FAELLT MIT JEDER AENDERUNG AM ZUGANG, und das ist der Kern
-       ihrer Aussage: sie belegt "mit DIESEN Werten ist einmal wirklich eine
-       Mail hinausgegangen". Bliebe sie stehen, hiesse "zuletzt getestet:
-       gestern" auch nach einem Anbieterwechsel noch etwas -- eine Auskunft,
-       die genau dann falsch ist, wenn sie gebraucht wird.
+    /* DIE MARKE GILT NUR ZU DEN WERTEN, MIT DENEN SIE ENTSTANDEN IST, und das
+       ist der Kern ihrer Aussage: sie belegt "mit DIESEN Werten ist einmal
+       wirklich eine Mail hinausgegangen". Bliebe sie stehen, hiesse "zuletzt
+       getestet: gestern" auch nach einem Anbieterwechsel noch etwas -- eine
+       Auskunft, die genau dann falsch ist, wenn sie gebraucht wird.
+       GETRAGEN WIRD DAS VOM HASH UEBER DEN ZUGANG und nicht von einem
+       ausdruecklichen Loeschen: der Vergleich faengt jede Aenderung, auch eine,
+       die auf einem anderen Weg in settings gelandet ist. Ein zweites Loeschen
+       daneben stand eine Runde lang da und war folgenlos -- eine Gegenprobe
+       darauf blieb stumm, und es ist entfernt.
        GEPRUEFT WIRD AN EINER AENDERUNG, DIE NICHTS KAPUTT MACHT: derselbe
        Empfaenger, nur ein anderer Absender. Waere der Zugang danach unbrauchbar,
        liesse sich nicht unterscheiden, ob die Marke wegen der AENDERUNG fiel
@@ -14041,7 +14046,11 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       mailStand.absender = String(k.absender || '');
       if (k.passwort) mailStand.passwortGesetzt = true;
       if (!mailStand.anbieter) mailStand.passwortGesetzt = false;
-      mailStand.getestetAm = null;   // die Marke faellt mit jeder Aenderung
+      /* DIE MARKE FAELLT, WEIL DER ZUGANG SICH GEAENDERT HAT -- so wie beim
+         echten Server, der sie ueber den Hash ueber den Zugang verwirft und
+         nicht ueber ein ausdrueckliches Loeschen. Ein Mock, der sie stehen liesse,
+         zeigte einen Zustand, den es nicht gibt (Stolperstein 90). */
+      mailStand.getestetAm = null;
       return gib(mailKarteMock());
     }
     if (url === '/api/mail/test' && opt.method === 'POST') {

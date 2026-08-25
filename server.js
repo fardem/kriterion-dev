@@ -920,10 +920,17 @@ app.put('/api/mail', nurEigentuemer, zweiteBestaetigungNoetig('mail'), (req, res
   try { neu = mail.pruefeEingabe(req.body, getSetting(mail.SCHLUESSEL, null)); }
   catch (e) { return res.status(400).json({ error: e.message }); }
   putSetting.run(mail.SCHLUESSEL, JSON.stringify(neu));
-  /* DIE MARKE FAELLT MIT JEDER AENDERUNG. Sie belegt "mit DIESEN Werten ist
-     einmal wirklich eine Mail hinausgegangen"; nach einer Aenderung belegt sie
-     das nicht mehr, und eine stehengebliebene Marke waere eine Behauptung. */
-  putSetting.run(MAILTEST_SCHLUESSEL, JSON.stringify(null));
+  /* DIE MARKE WIRD HIER AUSDRUECKLICH NICHT GELOESCHT, und das ist entschieden
+     und nicht vergessen. Sie belegt "mit DIESEN Werten ist einmal wirklich
+     eine Mail hinausgegangen", und dieser Beleg haengt am HASH UEBER DEN
+     ZUGANG, den mailKarte() unten nachrechnet: passt er nicht mehr, gilt die
+     Marke nicht mehr -- egal, wodurch sich der Zugang geaendert hat.
+     EIN ZWEITES LOESCHEN AN DIESER STELLE WAERE EINE ZWEITE WAHRHEIT UEBER
+     DIESELBE FRAGE. Es stand hier eine Runde lang und war folgenlos: eine
+     Gegenprobe, die es entfernte, blieb vollstaendig stumm -- der Vergleich
+     hatte die Arbeit ohnehin schon getan. Und der Vergleich kann mehr: er
+     faengt auch einen Wert, der auf einem anderen Weg in settings gelandet
+     ist. */
   res.json(mailKarte());
 });
 
