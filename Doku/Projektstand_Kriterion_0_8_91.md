@@ -161,7 +161,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.91 ist gebaut** — Fingerprint **`FINGERPRINT_HIER`**, 3000
+**0.8.91 ist gebaut** — Fingerprint **`FINGERPRINT_HIER`**, 3001
 Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs und KEINE Datenbankstufe:**
 diese Runde bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf**
 markierten Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts**
@@ -182,7 +182,7 @@ jüngste älter, sagt sie das schärfer: dann passt überhaupt keine.
 ohne Handelnden, ohne Ziel, ohne Merkmal.
 **`F_ROUTEN` bleibt bei 57**, die Formatnummer bleibt bei **10**,
 `BESTAETIGUNG_ZWECKE` bleibt bei **sechs**, die Karten bleiben **siebzehn**.
-11 Gegenproben, gefahren über den neuen Treiber `gegenprobe.js`.
+18 Gegenproben, gefahren über den neuen Treiber `gegenprobe.js`.
 
 **Dazu drei Werkzeuge, die vor dem Bau standen und keine ausgelieferte Datei
 anfassen:** `gegenprobe.js` fährt jeden Rückbau in einer eigenen Kopie aus
@@ -3667,8 +3667,8 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3000 von 3000 bestanden** (0.8.91; **91 neue
-Prüfungen, 11 Gegenproben, zehn neue Gruppen**: „Der
+**Zuletzt: 3001 von 3001 bestanden** (0.8.91; **92 neue
+Prüfungen, 18 Gegenproben, zehn neue Gruppen**: „Der
 Schlüsselwechsel: der Rundlauf", „… die Umschaltung des Journals", „… der
 Dateifall und der env-Fall", „… kein Schlüssel, wo keiner hingehört", „… der
 Abbruch mittendrin", „… zu wenig Platz", „… was er nicht anfasst",
@@ -4372,7 +4372,7 @@ Nebenspuren und zwei Wächter über die eigenen Prüflagen.
 siebzehn, Formatnummer unverändert 10, keine neue Abhängigkeit.
 **Berichtigt:** es sind **sechs** Wege über **fünf** Routen hinter der zweiten
 Bestätigung, nicht sieben über sechs.
-3000 Prüfungen, 11 Gegenproben, Stolpersteine 134 bis 139.
+3001 Prüfungen, 18 Gegenproben, Stolpersteine 134 bis 139.
 
 **0.8.90 — „Schwere Eingriffe".** Keine Stufe des Mehrbenutzerbetriebs, aber
 eine Datenbankstufe ohne Migrationsblock. Die **zweite Bestätigung** vor sechs

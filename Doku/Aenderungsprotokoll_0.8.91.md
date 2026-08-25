@@ -523,7 +523,7 @@ an einer Stelle ab, an der die Prüfung darüber längst rot war.
 sind gleich.
 
 **Nachgestellt:** derselbe Rückbau färbt jetzt **18** Prüfungen namentlich rot,
-und der Lauf zählt seine 2998 zu Ende.
+und der Lauf zählt seine 3001 zu Ende.
 ### K. Zwei Gegenproben hingen — und dahinter lagen zwei Fehler, Stolperstein 139
 
 **Der zweite Gegenprobenlauf hat den unangenehmsten Fund der Runde gebracht,
@@ -567,7 +567,7 @@ nebeneinander standen.*
 |---|---|
 | Der Schlüsselwechsel: der Rundlauf | 7 |
 | Der Schlüsselwechsel: die Umschaltung des Journals | 5 |
-| Der Schlüsselwechsel: der Dateifall und der env-Fall | 19 |
+| Der Schlüsselwechsel: der Dateifall und der env-Fall | 20 |
 | Der Schlüsselwechsel: kein Schlüssel, wo keiner hingehört | 12 |
 | Der Schlüsselwechsel: der Abbruch mittendrin | 7 |
 | Der Schlüsselwechsel: zu wenig Platz | 5 |
@@ -575,10 +575,10 @@ nebeneinander standen.*
 | Die Sicherung: zwei Schlüssel im Umlauf | 9 |
 | Die Portbasen und der Versatz | 8 |
 | Keine Prüflage lässt ihren Server zurück | 2 |
-| | **80** |
+| | **81** |
 
 Dazu **11** Prüfungen in „Die Sicherung in der Oberfläche" für die drei Lagen
-des Wechsels und die Einzahl/Mehrzahl der Zählung — zusammen **91**.
+des Wechsels und die Einzahl/Mehrzahl der Zählung — zusammen **92**.
 
 *Die Gruppe „Die Sicherung auf Knopfdruck" ist dabei geteilt worden: die Marke
 bekommt ihre eigene Überschrift, die Prüflage läuft danach unter „… ,
@@ -627,7 +627,7 @@ das Schema nach dem Wechsel ist dasselbe wie das einer frischen Anlage, und
 
 ## 6. Gegenprobentabelle
 
-**11 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
+**18 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
 gefahren über `gegenprobe.js` mit vier Nebenspuren.
 
 GEGENPROBENTABELLE_HIER
@@ -639,9 +639,9 @@ GEGENPROBENTABELLE_HIER
 | | |
 |---|---|
 | Vorher (0.8.90) | 2909 |
-| Nachher (0.8.91) | **3000** |
-| Neu | **91** |
-| Gegenproben | **11** |
+| Nachher (0.8.91) | **3001** |
+| Neu | **92** |
+| Gegenproben | **18** |
 
 ---
 
