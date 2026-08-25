@@ -4153,7 +4153,11 @@ async function renderSystem() {
     'link.ein': 'Link eingelöst',
     'export': 'Export gezogen',
     'import': 'Import eingespielt',
-    'sicherung': 'Sicherung geschrieben'
+    'sicherung': 'Sicherung geschrieben',
+    // Seit 0.8.91. Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
+    // traegt weder Ziel noch Merkmal, und der Handelnde ist immer leer:
+    // gewechselt wird auf dem Wirt.
+    'schluessel': 'Schlüssel gewechselt'
   };
   // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "gesperrt"
   // und "freigegeben" sind zwei verschiedene Aussagen und sollen auch zwei
@@ -4336,8 +4340,36 @@ async function renderSystem() {
           ? `<div class="kv"><span class="k">Letzte Sicherung</span><span class="v">vor ${letzte.tageHer} ${letzte.tageHer === 1 ? 'Tag' : 'Tagen'}</span></div>
              <div class="kv"><span class="k">Datei</span><span class="v"><code>${esc(letzte.datei)}</code></span></div>
              <div class="kv"><span class="k">Größe</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>
-             <div class="kv"><span class="k">Dateien am Ort</span><span class="v">${d.zahl || 0}</span></div>`
+             <div class="kv"><span class="k">Dateien am Ort</span><span class="v">${d.zahl || 0}${
+               d.veraltet ? ` <strong class="sich-alt">· ${d.veraltet} mit dem alten Schlüssel</strong>` : ''}</span></div>`
           : `<p class="desc" style="margin:0 0 12px">An diesem Ort liegt noch keine Sicherung.</p>`));
+
+    /* ZWEI SCHLUESSEL IM UMLAUF — seit 0.8.91. Wurde der Schlüssel gewechselt,
+       öffnen sich die Kopien von vorher nur noch mit dem ALTEN. Sie sind nicht
+       kaputt; sie brauchen einen anderen Schlüssel als die laufende Anlage.
+       DER KASTEN STEHT NUR DA, WENN ER ETWAS ZU SAGEN HAT: ohne Wechsel gibt
+       es keine zwei Schlüssel, und eine Warnung, die immer dasteht, liest
+       niemand mehr.
+       DIE SCHÄRFSTE LAGE BEKOMMT DEN SCHÄRFSTEN SATZ: ist auch die JÜNGSTE
+       Kopie älter als der Wechsel, gibt es überhaupt keine, die zur laufenden
+       Anlage passt. Das ist etwas anderes als „ein paar alte liegen daneben". */
+    const wechsel = !d.gewechseltAm ? '' : (
+      letzte && letzte.veraltet
+        ? `<div class="warn-box" style="margin:0 0 12px"><strong>Keine dieser Kopien passt zum
+             heutigen Schlüssel.</strong> Gewechselt wurde am ${esc(fmtDate(d.gewechseltAm))}; auch
+             die jüngste Sicherung ist älter. Sie öffnet sich nur mit dem <strong>alten</strong>
+             Schlüssel — er steht auskommentiert in der <code>.env</code>.
+             <strong>Sicher jetzt neu</strong>, dann liegt wieder eine Kopie da, die zur laufenden
+             Anlage gehört.</div>`
+        : (d.veraltet
+          ? `<div class="warn-box" style="margin:0 0 12px"><strong>${d.veraltet} ${d.veraltet === 1
+               ? 'Kopie stammt' : 'Kopien stammen'} von vor dem Schlüsselwechsel</strong>
+               (${esc(fmtDate(d.gewechseltAm))}). ${d.veraltet === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich
+               nur mit dem <strong>alten</strong> Schlüssel. Heb ihn auf — er steht auskommentiert in
+               der <code>.env</code> und gehört in den Passwortspeicher.</div>`
+          : `<div class="ok-box" style="margin:0 0 12px">Der Schlüssel wurde am
+               ${esc(fmtDate(d.gewechseltAm))} gewechselt. Alle Kopien an diesem Ort sind
+               jünger und passen zum heutigen Schlüssel.</div>`));
     /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
        ist die Frage, die vor allen anderen steht. Ein Ort im
        Arbeitsverzeichnis ist erlaubt und wird nicht abgewiesen -- er wird
@@ -4367,6 +4399,7 @@ async function renderSystem() {
       <button class="btn btn-sm" id="sich-ort-save">Zielort speichern</button>
       <div class="sys-teil"></div>
       ${stand}
+      ${wechsel}
       <p class="desc" style="margin:0 0 10px">Während die Kopie entsteht, <strong>steht die
         Anlage still</strong> — bei ${fmtBytes(d.dbBytes)} sind das etwa
         ${d.dauerSekunden} Sekunden.</p>
@@ -4376,8 +4409,12 @@ async function renderSystem() {
       const wert = document.getElementById('sich-ort').value;
       try {
         const r = await api('PUT', '/api/sicherung/ort', { ort: wert });
+        // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
+        // Kasten ueber die alten Sicherungen beim ersten Speichern des
+        // Zielorts, und die Karte saehe danach harmloser aus als die Lage ist.
         sicherung = { ...sicherung, ort: r.ort, pfad: r.pfad, fehler: null,
-                      erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl };
+                      erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
+                      gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
         toast('Zielort gespeichert');
         drawSicherung();
       } catch (e) { toast(e.message, true); }
@@ -4391,7 +4428,8 @@ async function renderSystem() {
       knopf.textContent = 'Sicherung läuft …';
       try {
         const r = await api('POST', '/api/sicherung');
-        sicherung = { ...sicherung, erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl };
+        sicherung = { ...sicherung, erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
+                      gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
         toast(`Sicherung geschrieben: ${r.datei} (${fmtBytes(r.bytes)})`);
         drawSicherung();
       } catch (err) {
