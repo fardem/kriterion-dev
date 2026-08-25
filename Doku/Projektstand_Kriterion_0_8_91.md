@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 19 · Stand 24. August 2026 · gebaut: Version 0.8.90**
+**Kompakte Übergabe · Revision 20 · Stand 25. August 2026 · gebaut: Version 0.8.91**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,53 +8,74 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 19 ist.** Revision 18 trug 0.8.80 nach. Diese trägt **0.8.90**
-nach — **„Schwere Eingriffe"**, und das ist **keine Stufe des
+**Was Revision 20 ist.** Revision 19 trug 0.8.90 nach. Diese trägt **0.8.91**
+nach — **„Der Schlüssel lässt sich wechseln"**, und das ist **keine Stufe des
 Mehrbenutzerbetriebs**: der ist mit Stufe H bis auf **Stufe I** gebaut, und die
-bleibt bei 0.9.0. Diese Runde liegt dazwischen und arbeitet ihr an einer Stelle
-vor.
+bleibt bei 0.9.0.
 
-**0.8.90 in einem Satz: wer die Anlage als Ganzes anfasst, gibt sein Passwort
-noch einmal ein — und was dabei geschieht, steht hinterher nachlesbar da.**
-Drei Dinge sind dazugekommen: die **zweite Bestätigung** vor sieben schweren
-Wegen, das **Sicherheitsprotokoll** als Tabelle, in die sie schreibt, und die
-optionale **öffentliche Adresse** in der `.env`. **Es ist eine Datenbankstufe** —
-das Schema bekommt die Tabelle `sicherheitsprotokoll` —, aber **ohne
-Migrationsblock**, wie schon 0.8.70 und 0.8.80: an dieser Tabelle zum dritten
-Mal nachgestellt, nicht abgeschrieben. Es bleibt bei **fünf** markierten Blöcken.
+**0.8.91 in einem Satz: der Schlüssel der Datenbank lässt sich wechseln — auf
+dem Wirt, bei angehaltener Anlage, mit der `.env` in einem Zug.** Dazu ein
+Werkzeugpunkt, der vor dem Bau stand: ein **Gegenprobentreiber** im Repo, ein
+**Portversatz** für Nebenspuren im Prüfstand und ein **Wächter über die eigenen
+Prüflagen**.
 
-**Die tragende Frage der Runde war, wogegen das eigentlich verteidigt.** Nicht
-gegen einen Fremden — der kommt ohne Passwort gar nicht herein. Sondern gegen
-eine **fremde offene Sitzung**: einen Bildschirm, der unbeaufsichtigt stehen
-blieb, einen gestohlenen Cookie, einen Rechner, an dem jemand anderes sitzt.
-`aendereZugang()` wendet dieses Prinzip seit 0.5.0 an; es fehlte nur bei den
-schweren Wegen. Daraus folgt alles Weitere: die Bestätigung gilt **genau
-einmal**, für **genau eine Handlung an genau einem Ziel**, und sie ist an **die
-Sitzung** gebunden, nicht an den Menschen.
+**Der Wechsel steht ausdrücklich NICHT in der Oberfläche, und das ist die
+tragende Entscheidung dieser Runde.** Der Auftrag sah einen Knopf im
+Systembereich vor, hinter der zweiten Bestätigung. Zwei Gründe haben das
+gedreht, und beide sind vor dem Bau besprochen worden:
 
-**Drei Entscheidungen, die vom Auftrag abweichen und begründet gehören.** Die
-Bestätigung reist **nicht im Rumpf der Handlung**, sondern kommt über eine
-eigene Route und liegt danach als kurzlebige **Freigabe im Arbeitsspeicher** —
-weil `GET /api/export` eine Browsernavigation ist (dort gibt es keinen Rumpf)
-und weil der Wächter vor `POST /api/import` ausdrücklich **vor multer** steht.
-Das Protokoll führt **keine Namensspalte**: sie wäre die eine Stelle im Projekt,
-die den Grabstein rückgängig macht. Und die **gescheiterte Anmeldung** steht
-darin — mit der Anmeldebremse als baulichem Deckel, denn sie ist die einzige
-Zeile, die ein Fremder auslösen kann.
+* **Der Anlass ist einmalig, nicht wiederkehrend.** SQLCipher-Schlüssel altern
+  nicht; es gibt keine Ablauffrist und keine Rotationsvorschrift. Der eine
+  echte Anlass steht in Abschnitt 3: der Schlüssel lag bis zum 13. August 2025
+  **neben** der Datenbank, und jede Kopie von `data/` aus dieser Zeit öffnet
+  die heutige Datei. *Ein dauerhafter Knopf für ein einmaliges Ereignis — und
+  ausgerechnet der eine, der bei falscher Handhabung alles verliert — ist ein
+  schlechtes Tauschgeschäft.*
+* **Der Knopf könnte die Sache gar nicht zu Ende bringen.** Kommt der
+  Schlüssel aus der `.env`, kennt die Anlage den neuen Wert, erreicht die Datei
+  aber nicht: sie ist per `.dockerignore` nicht einmal im Image. Auf dem Wirt
+  liegt sie — dort werden Datenbank und `.env` **in einem Zug** nachgezogen.
 
-**`F_ROUTEN` geht von 56 auf 57** und bekommt die neue Art `'zweitbestaetigt'`;
-sechzehn Karten im Systembereich werden **siebzehn**. Die Formatnummer bleibt
-bei **10** — weder das Protokoll noch die Bestätigung stehen im
-Austauschformat. Keine neue Abhängigkeit, kein neuer Vokabeleintrag.
+**Gebaut ist deshalb `schluessel.sh` samt `schluessel.js`** — dieselbe Teilung
+wie `zugang.js` neben `auth.js`: das Shell-Skript macht den Ablauf (anhalten,
+sichern, rufen, starten), das Node-Skript den Wechsel selbst im
+Wegwerf-Container. **Die Anlage steht dabei wirklich still**, und das ist keine
+Unbequemlichkeit, sondern eine Bedingung: ein laufender Server hält die Datei
+im WAL-Modus offen, und `PRAGMA rekey` läuft dort nicht (Stolperstein 128).
 
-**0.8.80 davor** war **Stufe H**, „Einladung, Rücksetzung, Sitzungen": ein
-Zugang bekommt sein Passwort **selbst**, über einen Link mit begrenzter
-Haltbarkeit (32 Zufallsbytes, gespeichert als SHA-256 ohne Salz, sieben Tage,
-genau einmal), derselbe Mechanismus trägt die Rücksetzung, und jeder sieht in
-der Karte **„Meine Sitzungen"**, wo er überall angemeldet ist. Ebenfalls eine
-Datenbankstufe ohne Migrationsblock; `F_ROUTEN` ging von 51 auf 56.
+**Was in der Anlage selbst dazukommt, ist klein und trägt weit:** der
+fünfzehnte Vorgang `schluessel` im Sicherheitsprotokoll (ohne Handelnden, ohne
+Ziel, ohne Merkmal — *die Zeile nennt, DASS gewechselt wurde, nie WOHIN*), die
+Marke `schluesselGewechseltAm` in `settings` und die **rote Markierung jeder
+Sicherung, die älter ist als der Wechsel**. Letztere ist der wertvollste Teil:
+**ab einem Wechsel sind zwei Schlüssel im Umlauf**, und wer das nicht weiß,
+hält die alten Kopien im Ernstfall für defekt.
 
-**Was davor liegt, steht in Abschnitt 9** — 0.8.71 verlegte den Sicherungsort,
+**`F_ROUTEN` bleibt bei 57**, die Karten im Systembereich bleiben **siebzehn**,
+die Formatnummer bleibt bei **10**, `BESTAETIGUNG_ZWECKE` bleibt bei **sechs**.
+Es gibt **keine neue Route, keinen neuen Bestätigungszweck, keine neue Tabelle
+und keine neue Spalte** — und damit auch **keinen sechsten Migrationsblock**.
+Keine neue Abhängigkeit, kein neuer Vokabeleintrag.
+
+**Eine Zahl ist dabei berichtigt worden, und sie stand an drei Stellen falsch.**
+Revision 19 und das Änderungsprotokoll 0.8.90 sprachen von **„sieben Wegen über
+sechs Routen"**, die eine zweite Bestätigung verlangen. Nachgezählt am Quelltext
+sind es **sechs Wege über fünf Routen** — die Rechnung im Protokoll selbst
+(*„die sechs aus Abschnitt 11 minus dem Schlüsselwechsel, plus der Link"*)
+ergibt ebenfalls sechs. Die Zahl ist überall berichtigt; die Berichtigung steht
+als solche da.
+
+**0.8.90 davor** war **„Schwere Eingriffe"**: die **zweite Bestätigung** vor den
+schweren Wegen, das **Sicherheitsprotokoll** als Tabelle, in die sie schreibt,
+und die optionale **öffentliche Adresse** in der `.env`. Eine Datenbankstufe
+ohne Migrationsblock; `F_ROUTEN` ging von 56 auf 57, sechzehn Karten wurden
+siebzehn. Die tragende Frage war, wogegen das verteidigt: nicht gegen einen
+Fremden, sondern gegen eine **fremde offene Sitzung**. Daraus folgt, dass die
+Bestätigung **genau einmal** gilt, für **genau eine Handlung an genau einem
+Ziel**, und an **die Sitzung** gebunden ist, nicht an den Menschen.
+
+**Was davor liegt, steht in Abschnitt 9** — 0.8.80 war Stufe H mit Einladung,
+Rücksetzung und „Meine Sitzungen", 0.8.71 verlegte den Sicherungsort,
 0.8.70 brachte Sicherung und Papierkorb, 0.8.60 machte „Offen" und „Neu seit"
 auffindbar, 0.8.50 stellte das Kurzvideo in dieselbe Reihe wie die Fotos,
 0.8.40 gab jedem Kriterium ein Gewicht, 0.8.30 und 0.8.31 gaben Links und
@@ -70,22 +91,22 @@ Bestände und Versionen vor 0.8.0 werden nicht mehr berücksichtigt.
 > Version wächst, wird irgendwann nicht mehr gelesen — und dann nützt es
 > niemandem mehr.
 
-**Für den Betrieb ändert sich mit 0.8.90 zweierlei.** Die **Sicherung des
-Datenverzeichnisses steht als PFLICHT im Einspielweg** — es ist eine
-Datenbankstufe, auch ohne Migrationsblock. Seit 0.8.70 gibt es sie auf
-Knopfdruck; das ist der bequemere der beiden Wege, **aber ohne die `.env` ist
-die Kopie wertlos**, denn sie ist verschlüsselt. Und die **`.env.example`
-bekommt einen neuen, optionalen Eintrag**: `OEFFENTLICHE_ADRESSE`, leer als
-Vorgabe — wer nichts tut, merkt nichts davon. Die `docker-compose.yml` ist
-**unberührt**. Die **Formatnummer der Exportdatei
-bleibt bei 10** (0.8.30 hob sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9, 0.8.50 auf
-10). Alles davon steht in Abschnitt 2.
+**Für den Betrieb ändert sich mit 0.8.91 zweierlei.** Die **Sicherung des
+Datenverzeichnisses steht wieder als PFLICHT im Einspielweg** — und wer den
+Schlüssel wechselt, braucht sie **doppelt**: davor, und die `.env` dazu. Das
+Skript nimmt beides ab, aber es ersetzt nicht die Kopie, die woanders liegt.
+Und die **`.env.example` bekommt einen erklärenden Abschnitt** zum Wechsel;
+**ein neuer Wert kommt nicht dazu**. Die `docker-compose.yml` ist
+**unberührt**. Die **Formatnummer der Exportdatei bleibt bei 10** (0.8.30 hob
+sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9, 0.8.50 auf 10). Alles davon steht in
+Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
 Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_8_90.md` gepflegt und
 nur dort; von seinen Stufen ist **allein Stufe I offen** — diese Runde hat
-daran nichts bewegt. **Der Schlüsselwechsel aus dem Auftrag 0.8.90 ist NICHT
-gebaut** und liegt auf **0.8.91**; der Grund steht in Abschnitt 10.
+daran nichts bewegt. **Das Konzeptpapier ist von 0.8.91 nicht berührt worden
+und behält seinen Dateinamen:** die Runde ist keine Stufe und rührt an keiner
+seiner Regeln.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
 > `admin` < `eigentuemer`. **Benutzer** schreibt eigene Beiträge. **Admin**
@@ -122,10 +143,14 @@ Node.js/Express, verschlüsselte SQLite-Datenbank (SQLCipher über
 `better-sqlite3-multiple-ciphers`), `sharp` für die Bildvarianten, Frontend
 ohne Framework, Auslieferung per Docker.
 
-17 Dateien. Darin `pruefung.js` — der Prüfstand, läuft über `npm test` —,
+20 Dateien. Darin `pruefung.js` — der Prüfstand, läuft über `npm test` —,
 `anhaenge.js` mit sämtlichen Auslieferungsregeln für angehängte Dateien
 (Abschnitt 5a) und `zugang.js`, der Befehl auf dem Wirt für Passwort und
-Zugänge.
+Zugänge. **Seit 0.8.91 drei dazu:** `gegenprobe.js` (der Gegenprobentreiber,
+läuft eigens und nicht über `npm test`) sowie `schluessel.sh` und
+`schluessel.js` — der Schlüsselwechsel, ebenfalls auf dem Wirt.
+**Keine davon steht im Fingerprint**: der Server lädt sie nicht und liefert sie
+nicht aus.
 
 **Das Projekt heißt „Kriterion", die Datenbankdatei weiterhin
 `katalog.sqlite`.** Der Dateiname ist kein Projektname und wandert bei keiner
@@ -136,26 +161,60 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.8.90 ist gebaut** — Fingerprint **`aeb336bf`**, 2909
+**0.8.91 ist gebaut** — Fingerprint **`a810f529`**, 3010
+Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs und KEINE Datenbankstufe:**
+diese Runde bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf**
+markierten Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts**
+dazu.
+**Der Schlüssel der Datenbank lässt sich wechseln** — über `./schluessel.sh
+wechseln` auf dem Wirt, bei angehaltener Anlage. Das Skript sichert `.env` und
+Datenverzeichnis, führt `PRAGMA rekey` in einem Wegwerf-Container aus und trägt
+den neuen Wert dorthin ein, woher der alte kam: in die `.env` (der alte bleibt
+**auskommentiert** darüber stehen) oder in `data/encryption.key`.
+**Der Wechsel steht ausdrücklich NICHT in der Oberfläche.** Der Anlass ist
+einmalig, und ein Knopf könnte den `.env`-Fall gar nicht zu Ende bringen — die
+Begründung steht im Kopf und in Abschnitt 5.
+**Zwei Schlüssel sind ab einem Wechsel im Umlauf.** Die Marke
+`schluesselGewechseltAm` steht in `settings`, und die Karte „Sicherung"
+markiert **jede Kopie rot, die älter ist als der Wechsel** — ist auch die
+jüngste älter, sagt sie das schärfer: dann passt überhaupt keine.
+**Das Sicherheitsprotokoll bekommt seinen fünfzehnten Vorgang**, `schluessel`,
+ohne Handelnden, ohne Ziel, ohne Merkmal.
+**`F_ROUTEN` bleibt bei 57**, die Formatnummer bleibt bei **10**,
+`BESTAETIGUNG_ZWECKE` bleibt bei **sechs**, die Karten bleiben **siebzehn**.
+18 Gegenproben, gefahren über den neuen Treiber `gegenprobe.js`.
+
+**Dazu drei Werkzeuge, die vor dem Bau standen und keine ausgelieferte Datei
+anfassen:** `gegenprobe.js` fährt jeden Rückbau in einer eigenen Kopie aus
+`git archive HEAD` und schreibt **eine** Tabelle; `PORT_VERSATZ` erlaubt
+mehrere Nebenspuren nebeneinander (Versatz **3000** je Spur, nachgerechnet
+gegen die Sperrliste von `fetch()`); und zwei Wächter am Ende jedes Laufs
+prüfen die Portbasen und dass **keine Prüflage ihren Server zurücklässt**.
+
+**Eine Zahl ist berichtigt:** es sind **sechs Wege über fünf Routen**, die eine
+zweite Bestätigung verlangen, nicht sieben über sechs. Revision 19 und das
+Änderungsprotokoll 0.8.90 sagten das Falsche; nachgezählt am Quelltext stimmt
+die Rechnung, die im Protokoll selbst daneben steht.
+
+**0.8.90 davor** — Fingerprint **`aeb336bf`**, 2909
 Prüfungen. **Keine Stufe des Mehrbenutzerbetriebs, aber eine Datenbankstufe
 ohne Migrationsblock:** das Schema bekommt die Tabelle `sicherheitsprotokoll`
 (`id`, `am`, `was`, `wer`, `ziel`, `merkmal`) samt Index auf `am`. Zum dritten
 Mal an dieser Tabelle nachgestellt statt abgeschrieben. Es bleibt bei **fünf**
 markierten Blöcken, und unter „Vorgemerkt für 1.0" kommt **nichts** dazu.
-**Sieben schwere Wege über sechs Routen verlangen das Passwort ein zweites
+**Sechs schwere Wege über fünf Routen verlangen das Passwort ein zweites
 Mal** — Export, Import, Rolle vergeben, fremdes Passwort setzen, Link erzeugen,
 Zugang entfernen. Die Bestätigung kommt über `POST /api/bestaetigung` und liegt
 danach als **Freigabe im Arbeitsspeicher**: gebunden an Sitzungstoken, Zweck
 und Ziel, gültig 120 Sekunden und **genau einmal**. Kein Schema, also kein
 sechster Migrationsblock.
-**Das Sicherheitsprotokoll hält vierzehn Vorgänge fest**, 180 Tage lang; die
-Frist ist der **einzige** Weg hinaus. Es sieht nur der Eigentümer.
+**Das Sicherheitsprotokoll hielt vierzehn Vorgänge fest** (seit 0.8.91
+fünfzehn), 180 Tage lang; die Frist ist der **einzige** Weg hinaus. Es sieht
+nur der Eigentümer.
 **`OEFFENTLICHE_ADRESSE` ist neu in der `.env`** und optional; leer heißt „wie
 bisher, der Browser baut".
-**`F_ROUTEN` geht von 56 auf 57**, die Formatnummer bleibt bei **10**.
+**`F_ROUTEN` ging von 56 auf 57**, die Formatnummer blieb bei **10**.
 24 Gegenproben.
-**Der Schlüsselwechsel, Punkt 3 des Auftrags, ist NICHT gebaut** — er liegt auf
-0.8.91 (Abschnitt 10).
 
 **0.8.80 davor** — Fingerprint **`a835ac92`**, 2661
 Prüfungen. **Stufe H des Mehrbenutzerbetriebs, und eine Datenbankstufe ohne
@@ -383,8 +442,15 @@ python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion               # GitHub hängt den Branchnamen an
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # OHNE DIESE ZEILE STARTET NICHTS
+chmod +x kriterion/schluessel.sh          # das ZIP bringt das Recht nicht mit
 cd kriterion && docker compose up -d --build
 ```
+
+**Die `chmod`-Zeile ist seit 0.8.91 im Weg, und sie ist nachgestellt:**
+`python3 -m zipfile -e` stellt **keine Ausführungsrechte** wieder her, `unzip`
+dagegen schon. Im Repo trägt `schluessel.sh` den Modus `100755`; auf dem Wirt
+kommt er ohne ihn an, und `./schluessel.sh` antwortet „Keine Berechtigung"
+(Stolperstein 140). Ohne das Recht geht `bash schluessel.sh`.
 
 **Seit 0.8.70 legt `docker compose` beim ersten Start ein zweites Verzeichnis
 an**: `../kriterion-sicherung` neben dem Projektordner. Dorthin schreibt die
@@ -397,8 +463,26 @@ Datenbankstufe ist sie der einzige Weg zurück — siehe oben. Sie gehört
 **zwischen** `docker compose down` und alles Weitere: eine Sicherung, die
 neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
 
-**Für 0.8.90 gilt sie als PFLICHT.** Die Runde fasst das Schema an — sie ist
-eine Datenbankstufe, auch ohne Migrationsblock —, und ein Downgrade ist damit
+**Für 0.8.91 gilt sie als PFLICHT — und zwar DOPPELT.** Das Einspielen selbst
+ist harmlos: die Runde fasst **kein** Schema an, ein Downgrade auf 0.8.90 wäre
+eine reine Dateikopie. Die Pflicht kommt vom **Schlüsselwechsel**, und sie
+gilt an einem anderen Zeitpunkt:
+
+* **Vor dem Einspielen** wie immer — `cp -r kriterion/data ./sicherung-data-…`.
+* **Vor jedem Schlüsselwechsel** noch einmal, und **die `.env` dazu**.
+  `./schluessel.sh wechseln` legt beides selbst an
+  (`.env.vor-schluesselwechsel-…` und `../kriterion-data-vor-schluesselwechsel-…`),
+  aber eine Sicherung, die neben dem Original liegt, ist keine. **Bricht der
+  Wechsel ab, stellt das Rollback-Journal den alten Stand her — geht das
+  Journal verloren, ist alles verloren.** Das ist der Grund für die Kopie,
+  nicht der Abbruch selbst.
+
+**UND DER SCHLÜSSELWECHSEL WIRD NICHT NEBENBEI AUSPROBIERT.** Wer ihn zum
+ersten Mal fährt, fährt ihn an einer Wegwerfanlage — der Befehl dazu steht in
+der README.
+
+**Für 0.8.90 galt sie, weil die Runde das Schema anfasst** — sie ist eine
+Datenbankstufe, auch ohne Migrationsblock —, und ein Downgrade ist damit
 keine reine Dateikopie mehr.
 *Genau genommen stört ein Downgrade auf 0.8.80 wenig: eine zusätzliche Tabelle
 sieht eine ältere Version gar nicht an, die Exportdatei behält Format 10, und
@@ -671,7 +755,7 @@ kein Eigentümer mehr anmelden kann. **`AUTH_RESET`, `AUTH_USER` und
 der Start sie als entfernbar.
 
 **WAS DIE ANLAGE ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTÄTIGT — seit
-0.8.90.** Sieben Wege über sechs Routen verlangen das Passwort des
+0.8.90.** **Sechs Wege über fünf Routen** verlangen das Passwort des
 Angemeldeten noch einmal:
 
 | Weg | Route |
@@ -682,6 +766,18 @@ Angemeldeten noch einmal:
 | Fremdes Passwort setzen | `PUT /api/users/:id` (nur mit `passwort` im Rumpf) |
 | Link erzeugen | `POST /api/users/:id/token` |
 | Zugang entfernen | `DELETE /api/users/:id` |
+
+> **Berichtigt mit 0.8.91.** Revision 19 und das Änderungsprotokoll 0.8.90
+> sprachen hier von *„sieben Wegen über sechs Routen"*. Nachgezählt am
+> Quelltext sind es **sechs über fünf**: `GET /api/export`, `POST /api/import`,
+> `POST /api/users/:id/token`, `DELETE /api/users/:id` und
+> `PUT /api/users/:id` — letztere trägt **zwei** Wege, Rolle und fremdes
+> Passwort. `BESTAETIGUNG_ZWECKE` hat sechs Einträge, und die Rechnung im
+> Änderungsprotokoll selbst (*„die sechs aus Abschnitt 11 minus dem
+> Schlüsselwechsel, plus der Link"*) ergibt ebenfalls sechs.
+> **Der Schlüsselwechsel kommt ausdrücklich NICHT dazu:** er läuft seit 0.8.91
+> auf dem Wirt und kennt die zweite Bestätigung nicht — *Zugriff auf den Wirt
+> ist die Berechtigung*, dieselbe Linie wie bei `zugang.js`.
 
 **Wogegen das verteidigt, ist nicht der Fremde**, sondern eine **fremde offene
 Sitzung**. Deshalb ist die Bestätigung an **die Sitzung** gebunden und nicht an
@@ -708,7 +804,7 @@ erst recht** — dort gibt es kein bisheriges Passwort.
 | Absage | *„Das Passwort stimmt nicht."* — **403**, nie 401 |
 
 **Warum nicht im Rumpf der Handlung selbst**, was die schönere Form wäre: an
-zwei der sieben Wege geht es nicht auf. `GET /api/export` ist eine
+zwei der sechs Wege geht es nicht auf. `GET /api/export` ist eine
 **Browsernavigation** — die Datei läuft damit an der Platte vorbei statt
 vollständig im Speicher zu stehen, und ein Rumpf ist dort baulich unmöglich.
 Und bei `POST /api/import` steht der Wächter ausdrücklich **vor multer**, damit
@@ -735,10 +831,13 @@ und wer die Anlage als Ganzes angefasst hat**. Es ist **kein
 Änderungsverlauf**: kein Eintragstitel, kein Kommentartext, keine Bewertung,
 keine Note. Dieselbe Trennlinie wie überall.
 
-**Vierzehn Vorgänge:** Anmeldung gelungen, Anmeldung gescheitert, Bestätigung
+**Fünfzehn Vorgänge:** Anmeldung gelungen, Anmeldung gescheitert, Bestätigung
 gescheitert, Zugang angelegt, Rolle vergeben, Zugang gesperrt/freigegeben,
 fremdes Passwort gesetzt, Zugang entfernt, eigener Zugang geändert, Link
-erzeugt, Link eingelöst, Export, Import, Sicherung.
+erzeugt, Link eingelöst, Export, Import, Sicherung — und seit 0.8.91
+**Schlüssel gewechselt**. Der fünfzehnte trägt weder Ziel noch Merkmal und
+immer ein leeres `wer`: gewechselt wird auf dem Wirt. *Er nennt, DASS
+gewechselt wurde, nie WOHIN.*
 
 | | |
 |---|---|
@@ -816,6 +915,16 @@ kopiert. **Auf dem Betriebssystem ist der Umzug erledigt:** der Wert steht seit
 dem 13. August in der `.env`, die Datei liegt nur noch als
 `encryption.key.abgeloest` daneben.
 
+> **DER WERT IST UMGEZOGEN, NICHT GEWECHSELT — und daraus folgt der eine echte
+> Anlass für einen Schlüsselwechsel, den diese Anlage hat.** Jede Kopie von
+> `data/`, die vor dem 13. August entstanden ist, enthält einen Schlüssel, der
+> die **heutige** Datei öffnet: jede Sicherung, jedes ZIP, jede Kopie auf einem
+> anderen Rechner. Genau die Falle, vor der die README seit jeher warnt, und
+> sie hat hier zugeschlagen. `encryption.key.abgeloest` zu löschen hilft nur
+> gegen **künftige** Kopien; die vorhandenen bleiben lesbar. **Ein
+> Schlüsselwechsel ist das einzige Mittel dagegen** — und er ist mit 0.8.91
+> gebaut, siehe unten.
+
 **Wann die `.env` gelesen wird — drei verschiedene Zeitpunkte:** `docker build`
 nie (sie ist per `.dockerignore` ausgeschlossen). `docker compose up -d` liest
 sie beim **Erzeugen** des Containers. Ein `docker restart` oder ein Neustart des
@@ -828,6 +937,87 @@ Zielort der Sicherung auf Knopfdruck: ihre Kopie ist verschlüsselt und ohne den
 Schlüssel wertlos. Ohne den Schlüssel sind die Daten endgültig
 verloren. Wer auf dem Wirt `docker inspect` ausführen darf, sieht den Schlüssel
 — kein neues Loch, dieselbe Person könnte auch die `.env` lesen.
+
+**DER SCHLÜSSEL LÄSST SICH WECHSELN — seit 0.8.91, auf dem Wirt.**
+
+```bash
+cd <projektverzeichnis>
+./schluessel.sh zeigen       # Lage ansehen, ändert nichts
+./schluessel.sh wechseln     # anhalten, sichern, wechseln, starten
+```
+
+**Es ist der einzige Vorgang im ganzen Projekt, der bei falscher Handhabung
+alles verliert** — und deshalb steht er dort und nicht in der Oberfläche. Die
+Begründung ist zweiteilig und gehört ausgeschrieben:
+
+* **Der Anlass ist einmalig, nicht wiederkehrend.** SQLCipher-Schlüssel altern
+  nicht; es gibt keine Ablauffrist, keine Rotationsvorschrift, keine
+  Prüfstelle. Ein Schlüssel wird gewechselt, wenn er in fremde Hand geraten
+  ist — und genau das ist hier einmal geschehen (siehe unten). Ein dauerhafter
+  Knopf für ein einmaliges Ereignis wäre ein schlechtes Tauschgeschäft.
+* **Ein Knopf könnte den `.env`-Fall gar nicht zu Ende bringen.** Die Anlage
+  kennt den neuen Wert, erreicht die Datei aber nicht: die `.env` ist per
+  `.dockerignore` nicht einmal im Image. Auf dem Wirt liegt sie — dort werden
+  Datenbank und `.env` **in einem Zug** nachgezogen.
+
+**DIE ANLAGE STEHT DABEI WIRKLICH STILL.** Ein laufender Server hält
+`katalog.sqlite` im **WAL-Modus** offen, und `PRAGMA rekey` läuft dort nicht
+(*„Rekeying is not supported in WAL journal mode."*, Stolperstein 128). Der
+Wechsel schaltet deshalb auf `DELETE`, wechselt und schaltet zurück — die
+Rückschaltung steht im `finally`, damit eine gescheiterte Anlage nicht im
+falschen Modus zurückbleibt. `schluessel.sh` hält die Anlage vorher an und
+startet sie hinterher.
+
+| | |
+|---|---|
+| Woher der neue Wert kommt | `openssl rand -hex 32` auf dem Wirt, an den Wegwerf-Container über die Umgebung |
+| Wohin er geschrieben wird | dorthin, **woher der alte kam** — `.env` oder `data/encryption.key` |
+| Der alte Wert in der `.env` | bleibt **auskommentiert** stehen, mit Datum, mit dem Namen dessen, der gewechselt hat, und mit dem Satz, wofür er noch gut ist |
+| Was sonst in der `.env` geschieht | **nichts.** Nur die eine aktive Zeile wird ersetzt; jede andere Zeile bleibt Zeichen für Zeichen stehen |
+| Dauer | rund **20 ms je MB** — dieselbe Zahl wie `SICHERUNG_MS_JE_MB` |
+| Platzbedarf | **die Größe der Datenbank**: das Rollback-Journal wächst auf sie. Reicht der Platz nicht, kommt die Absage **vorher** |
+| Abbruch mittendrin | **folgenlos**: das Rollback-Journal stellt den alten Stand her, der **alte** Schlüssel öffnet, der neue wird abgewiesen. **Kein halber Zustand** |
+| Journal verloren | **alles verloren** (`database disk image is malformed`) — *das* ist der Grund für die Sicherung davor |
+| Die Spur | `schluessel` im Sicherheitsprotokoll, **ohne** Handelnden, Ziel und Merkmal, und die Marke `schluesselGewechseltAm` in `settings` |
+| Sitzungen | fallen **nicht**. Ein Schlüsselwechsel ändert am Passwort nichts |
+
+**DER NAME IN DER `.env` IST EINE NOTIZ, KEINE FESTSTELLUNG.** `whoami` und
+`$SUDO_USER` kann setzen, wer den Befehl ausführen darf. Sie steht deshalb dort
+und ausdrücklich **nicht** im Sicherheitsprotokoll — dort trägt der Vorgang das
+leere `wer` von `zugang.js`, und das heißt „über den Wirt". Zwei Wahrheiten
+über denselben Vorgang wären schlechter als eine.
+
+**EINE PROTOKOLLZEILE NENNT, DASS GEWECHSELT WURDE, NIE WOHIN.** Der Merksatz
+aus Abschnitt 8 gilt hier schärfer als sonst irgendwo. Die eine Stelle, an der
+ein Schlüssel zum Abschreiben steht, ist der **Bildschirm des Wirts**: nach
+einem gelungenen Wechsel nennt das Skript den **alten** Wert — er öffnet ab
+jetzt nur noch die Sicherungen von vorher, und im Dateifall steht er sonst
+nirgends mehr. Den **neuen** nennt es **nicht**; der liegt in der Ablage. Nur
+wenn das Schreiben der Ablage scheitert, steht auch er da, laut und mit der
+Anweisung, ihn von Hand einzutragen — dann ist er das Einzige, was noch
+zwischen den Daten und ihrem Verlust steht.
+
+**ZWEI SCHLÜSSEL SIND AB DEM WECHSEL IM UMLAUF, und das ist die unangenehmste
+Falle des ganzen Projekts.** Jede Sicherung, die vorher entstanden ist, bleibt
+mit dem **alten** Schlüssel verschlüsselt. Sie ist nicht kaputt — sie braucht
+nur einen anderen Schlüssel als die laufende Anlage, und wer das nicht weiß,
+hält sie im Ernstfall für defekt. Dagegen stehen drei Dinge zusammen: die
+**Marke** in `settings`, die **rote Markierung jeder älteren Kopie** in der
+Karte „Sicherung" — ist auch die jüngste älter, sagt die Karte das schärfer,
+denn dann passt überhaupt keine — und der **auskommentierte alte Wert** in der
+`.env`. *Der JSON-Export bleibt davon unberührt: er braucht keinen Schlüssel
+und ist damit der einzige Rückweg ohne Schlüsselverwaltung.*
+
+**WAS DER WECHSEL NICHT ANFASST:** das Verfahren (`cipher='sqlcipher'` bleibt),
+die Schlüssellänge, den Dateinamen `katalog.sqlite`, das Schema, das
+Austauschformat, die Passwörter und die Sitzungen. Er wechselt den
+**Schlüssel**, sonst nichts.
+
+**`zugang.js` bekommt keinen Befehl `schluessel`.** Er hat noch nie eine Datei
+außerhalb der Datenbank angefasst, und die `.env` zu schreiben wäre ein neuer
+Charakter. Der Wechsel bekommt sein eigenes Paar Dateien — `schluessel.sh` für
+den Ablauf, `schluessel.js` für den Vorgang —, dieselbe Teilung wie `zugang.js`
+neben `auth.js`.
 
 **Zwei Titel**, beide im Systembereich gepflegt: Titel 1 steht auf der
 Anmeldeseite und ist für jeden sichtbar, der die Adresse aufruft — daher
@@ -1004,6 +1194,24 @@ Schlüssel. **Die Rollenteilung steht an beiden Karten:** `VACUUM INTO` ist der
 **Sicherungsweg**, der JSON-Export der **Austauschweg** — der überlebt einen
 Formatwechsel und braucht keinen Schlüssel, die Kopie ist dafür vollständig und
 konstant im Speicherbedarf.
+**Seit 0.8.91 markiert sie außerdem, welche Kopien noch mit dem ALTEN Schlüssel
+verschlüsselt sind.** Steht die Marke `schluesselGewechseltAm` in `settings`,
+zählt die Karte die Dateien am Zielort, die älter sind als der Wechsel, und
+nennt sie in der Zeile „Dateien am Ort" eigens. Drei Abstufungen, drei
+Aussagen — und der Kasten steht nur da, wenn er etwas zu sagen hat:
+
+| Lage | Was die Karte sagt |
+|---|---|
+| Nie gewechselt | **nichts.** Eine Warnung, die immer dasteht, liest niemand mehr |
+| Gewechselt, alle Kopien jünger | ein **grüner** Kasten mit dem Datum — und dem Grund, warum das gut ist |
+| Gewechselt, einige Kopien älter | ein **roter** Kasten mit der Zahl, dem Datum und dem Verbleib des alten Werts |
+| Gewechselt, auch die jüngste älter | ein **roter** Kasten mit dem schärferen Satz: *„Keine dieser Kopien passt zum heutigen Schlüssel"* — und der Aufforderung, jetzt neu zu sichern |
+
+*Die Marke kommt hier ausdrücklich aus `settings` und nicht aus dem
+Dateisystem — anders als „letzte Sicherung vor N Tagen". Der Zeitpunkt eines
+Wechsels ist ein **Vorgang** und hinterlässt keine Datei, an der er abzulesen
+wäre; die Änderungszeit einer Kopie ist dagegen die Sache selbst. Zwei
+verschiedene Fragen, zwei verschiedene Quellen.*
 
 **Das Sicherheitsprotokoll** (seit 0.8.90): eine **breite** Karte beim
 Eigentümer, unter „Zugänge". Sie zeigt die hundert jüngsten von insgesamt N
@@ -1015,7 +1223,7 @@ Systembereichs** geholt, wie jede andere Karte auch (Stolperstein 118).
 Einzelheiten in Abschnitt 3.
 
 **Die zweite Bestätigung** (seit 0.8.90): kein eigener Ort, sondern ein Fenster
-vor sieben Wegen — nach dem Muster von `confirmBox()`, mit einem Passwortfeld
+vor sechs Wegen — nach dem Muster von `confirmBox()`, mit einem Passwortfeld
 und dem Satz daneben, **warum** gefragt wird. Ein Passwortfeld ohne Begründung
 sieht aus wie eine Schikane. Welche Wege, steht in Abschnitt 3.
 
@@ -1059,7 +1267,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   läuft, **bevor** die Bestätigung geprüft wird. *Die umgekehrte Reihenfolge
   wäre ein Weg, an einer fremden Rolle zu prüfen, ob ein Passwort stimmt.*
 - **Die Bestätigung reist NICHT im Rumpf der Handlung** (seit 0.8.90). Die
-  schönere Form scheitert an zwei der sieben Wege: `GET /api/export` ist eine
+  schönere Form scheitert an zwei der sechs Wege: `GET /api/export` ist eine
   Browsernavigation (kein Rumpf möglich, und in die Adresse gehört ein Passwort
   nie), und der Wächter vor `POST /api/import` steht ausdrücklich **vor
   multer**. Die Freigabe kann beides, weil sie **vor** der Handlung steht und
@@ -2569,6 +2777,75 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   eigener Wächter über `public/app.js`, denn diese Datei **ist** der
   Bildschirm.
 
+### Der Schlüsselwechsel gehört auf den Wirt, nicht in die Oberfläche (0.8.91)
+
+Der Auftrag sah einen Knopf im Systembereich vor, hinter der zweiten
+Bestätigung. Gebaut ist stattdessen `./schluessel.sh wechseln` auf dem Wirt.
+**Zwei Gründe, und beide gelten weiter:**
+
+* **Der Anlass ist einmalig, nicht wiederkehrend.** SQLCipher-Schlüssel altern
+  nicht. Ein Schlüssel wird gewechselt, wenn er in fremde Hand geraten ist —
+  hier einmal geschehen, weil er bis zum 13. August 2025 neben der Datenbank
+  lag (Abschnitt 3). Ein dauerhafter Knopf für ein einmaliges Ereignis, und
+  ausgerechnet der eine, der bei falscher Handhabung **alles** verliert, ist
+  ein schlechtes Tauschgeschäft.
+* **Ein Knopf könnte den `.env`-Fall gar nicht zu Ende bringen.** Die Anlage
+  kennt den neuen Wert, erreicht die Datei aber nicht — sie ist per
+  `.dockerignore` nicht einmal im Image. Was ein Knopf dort anböte, wäre
+  Bauwerk um eine Lücke herum: ein Häkchen, ein rotes Fenster, ein Wert, der
+  bis zum Neustart abrufbar bleibt. Auf dem Wirt existiert die Lücke nicht.
+
+**Was daraus folgt und weitergilt:** *Wer eine Handlung baut, die außerhalb der
+Anlage etwas nachziehen muss, baut sie dort, wo beides erreichbar ist.* Und:
+*ein Vorgang, der genau einmal vorkommt, braucht keinen dauerhaften Ort in der
+Oberfläche.*
+
+**Der Preis ist benannt:** es gibt keine Rechtefrage vor dem Wechsel. *Zugriff
+auf den Wirt ist die Berechtigung* — dieselbe Linie wie bei `zugang.js`, und
+sie ist keine Notlösung, sondern seit 0.8.90 eine benannte Eigenschaft der
+Anlage.
+
+### Der alte Schlüssel ist kein Abfall (0.8.91)
+
+Nach einem Wechsel bleibt der alte Wert **auskommentiert** in der `.env`
+stehen, mit Datum und mit dem Satz, wofür er noch gut ist. **Er öffnet jede
+Sicherung, die vor dem Wechsel entstanden ist.** Wer ihn wegwirft, wirft die
+Sicherungen weg.
+
+Zwei Schlüssel in einer Datei sind gegenüber vorher nicht schlechter — vorher
+öffnete der eine alles —, aber die Aufbewahrung ist damit **sichtbar** statt
+still. Dagegen steht die rote Markierung in der Karte „Sicherung": sie zählt
+die Kopien, die älter sind als der Wechsel, und sagt es an der Stelle, an der
+jemand sie tatsächlich braucht.
+
+### Der Name in der `.env` ist eine Notiz, das Protokoll eine Feststellung (0.8.91)
+
+`./schluessel.sh` schreibt `whoami` bzw. `$SUDO_USER` neben den abgelösten
+Wert. **Das ist eine Notiz und keine Feststellung** — wer den Befehl ausführen
+darf, kann sie setzen. Sie steht deshalb dort und ausdrücklich **nicht** im
+Sicherheitsprotokoll: dort trägt der Vorgang `schluessel` das leere `wer` von
+`zugang.js`, und das heißt „über den Wirt". *Zwei Wahrheiten über denselben
+Vorgang wären schlechter als eine.*
+
+### Gegenproben laufen über einen Treiber, nicht von Hand (0.8.91)
+
+`gegenprobe.js` kennt seine Rückbauten als Liste ganz oben — dieselbe Bauform
+wie `F_ROUTEN`: die Liste **ist** die Entscheidung und steht dort, wo man sie
+sucht. Jeder Rückbau läuft in einer eigenen Kopie aus `git archive HEAD`
+(atomar gegen den Arbeitsbaum, Stolperstein 100), aufgeräumt wird über
+`/proc/<pid>/cwd` (Stolperstein 133), und **ein Rückbau, der keine einzige
+Prüfung rot macht, ist ein FUND** und wird als solcher gemeldet.
+
+**Er läuft nicht in `npm test` mit.** Er fährt den vollen Prüflauf je Rückbau
+und gehört an das Ende einer Runde, nicht an jeden Lauf.
+
+**`PORT_VERSATZ` erlaubt Nebenspuren, und die Zahl ist ausgerechnet, nicht
+geschätzt** (Stolpersteine 64 und 127): der Versatz von **3000** je Spur ist
+größer als die Spanne aller Basen samt Breite (2060), und keine der
+entstehenden Nummern liegt auf der Sperrliste von `fetch()`. **Ein Wächter am
+Ende jedes Laufs rechnet es nach** — und ein zweiter hält fest, dass keine
+Prüflage ihren Server zurücklässt.
+
 ## 5a. Die Sicherheitsregel für ausgelieferte Dateien
 
 **Keine gespeicherte Datei darf jemals so ausgeliefert werden, dass der
@@ -3321,6 +3598,90 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     derselben Runde ist die Regel auch in der eigenen Arbeit verletzt worden:
     zwei Prüflagen liefen nach `npm test` weiter.
 
+134. **Eine offene Leseverbindung sperrt den Schlüsselwechsel.** Eine Prüfung
+    öffnete die Datenbank, um zu sehen, ob der alte Schlüssel sie noch öffnet —
+    und schloss sie im Erfolgsfall nicht. Die Verbindung hielt eine gemeinsame
+    Sperre; der nächste Wechsel scheiterte mit `database is locked`, weil
+    `journal_mode = DELETE` eine ausschließliche Sperre braucht. Das Fehlerbild
+    sah aus wie ein Befund am Code und war eine Prüflage.
+    *Wo eine Prüfung eine Datenbank öffnet, schließt sie sie auch im
+    Fehlerfall — `finally`, nicht am Ende des guten Zweiges.* Verwandt mit 122,
+    aber eigenständig: dort bleibt ein Prozess stehen, hier ein Dateizugriff im
+    eigenen.
+
+135. **`textContent` trägt die Zeilenumbrüche der Vorlage mit.** Ein Wächter
+    über einen Satz in der Oberfläche prüfte auf ein einzelnes Leerzeichen —
+    im gerenderten Text stand dort ein Umbruch samt Einrückung, und die Prüfung
+    fand ihren eigenen Satz nicht. Sie war rot, obwohl die Karte richtig war;
+    umgekehrt wäre sie stumm geblieben, hätte jemand die Vorlage später
+    umbrochen. *Wer in gerendertem Text sucht, faltet die Leerzeichen vorher
+    zusammen.*
+
+136. **Ein Vergleich „Feld für Feld über alle Tabellen" sieht auch die Spur,
+    die der Vorgang selbst hinterlässt.** Der Rundlauf des Schlüsselwechsels
+    verglich den Bestand vor und nach dem Wechsel über **jede** Tabelle — und
+    war rot, weil der Wechsel seine Marke in `settings` und seine Zeile im
+    Sicherheitsprotokoll geschrieben hatte. Beides ist genau so beabsichtigt.
+    *Wer einen Bestand vor und nach einem Vorgang vergleicht, nennt die
+    Tabellen, in die der Vorgang selbst schreibt, ausdrücklich — und prüft sie
+    eigens.* Beim **Abbruch** bleibt die Liste dagegen leer: dort darf sich
+    nichts geändert haben, auch keine Marke.
+
+137. **Eine gezählte Zahl in einem Papier wandert von Runde zu Runde weiter,
+    bis jemand nachzählt.** „Sieben Wege über sechs Routen" stand im
+    Änderungsprotokoll 0.8.90, im Projektstand an zwei Stellen und als
+    Kommentar im Prüfstand. Es sind **sechs über fünf** — und die Rechnung
+    daneben im selben Absatz (*„die sechs … minus dem Schlüsselwechsel, plus
+    der Link"*) ergab das auch. Niemand hat sie gegen den Quelltext gehalten.
+    *Eine Zahl in einem Papier ist eine Behauptung. Wo eine im Prüfstand
+    festgenagelt werden kann — wie die 57 in `F_ROUTEN` —, gehört sie
+    dorthin; wo nicht, gehört sie beim Nachtragen nachgezählt.*
+
+138. **Wer einen Vorgang prüft, der scheitern KANN, prüft ihn so, dass das
+    Scheitern rot wird und nicht abreißt.** Die Gruppen zum Schlüsselwechsel
+    lesen nach dem Wechsel die Marke, die Protokollzeile und den Bestand. In
+    der Gegenprobe scheitert der Wechsel **absichtlich** — und dann ist die
+    Marke nicht da: `…get().value` warf, und der ganze Lauf brach ab. **Eine
+    Gegenprobe, die den Lauf mitnimmt, sagt nichts darüber, welche Prüfung den
+    Rückbau bemerkt hätte.** Stolperstein 103 in seiner unangenehmsten Form:
+    dort reißt eine Prüfzeile am eigenen Gegenstand ab, hier an einem
+    Gegenstand, den die Gegenprobe absichtlich wegnimmt. *In einer Gruppe über
+    einen Vorgang, der scheitern kann, läuft jede Lesestelle danach über ein
+    Auffangnetz.*
+
+    **Und die Kehrseite, aus derselben Runde:** eine Gegenprobe, die **keine**
+    Prüfung rot macht, sagt nicht „der Code ist richtig", sondern **„hier prüft
+    niemand"**. Elf Gegenproben mit null stummen sahen nach einem guten
+    Ergebnis aus; sieben nachgereichte brachten **zwei stumme**, und beide
+    waren eine echte Lücke (Änderungsprotokoll 0.8.91, Befund L). *Die Liste
+    der Rückbauten gehört gegen die Liste der neuen Verhaltensweisen gehalten,
+    nicht gegen ein Gefühl für die Zahl.*
+
+140. **`python3 -m zipfile -e` stellt keine Ausführungsrechte wieder her.**
+    `schluessel.sh` trägt im Repo den Modus `100755`; auf dem Wirt kam es ohne
+    das Recht an, und `./schluessel.sh` antwortete **„Keine Berechtigung"**.
+    Der Einspielweg packt das ZIP mit Pythons `zipfile` aus, und das schreibt
+    die Modusbits nicht zurück — **`unzip` tut es**, nachgestellt an beiden.
+    Der Weg trägt jetzt eine `chmod +x`-Zeile, und **ein Wächter hält beide
+    Hälften**: das Recht an der Datei **und** die Zeile im Einspielweg —
+    dieselbe Bauform wie bei Einhängung und `SICHERUNG_DIR` (Stolperstein 123).
+    *Ein Recht, das nur im Repo steht, ist auf dem Wirt keins.* Gefunden im
+    Betrieb, nicht im Prüfstand: der Prüfstand läuft im Arbeitsbaum, und dort
+    stimmt das Recht.
+
+139. **Ein `on('exit')`, das nach dem Ende registriert wird, feuert nie.**
+    `new Promise(r => { kind.on('exit', r); kind.kill(); })` wartet für immer,
+    wenn das Kind schon von selbst geendet hat — **ohne CPU, ohne Meldung, und
+    von „läuft noch" nicht zu unterscheiden.** Genau das ist passiert, als drei
+    Gegenproben nebeneinander liefen: ihre Fingerprintlage ging als einzige
+    **am Portversatz vorbei** (sie startet ihre Server nicht über
+    `starteWeiterenServer`), alle drei griffen nach 6100, zwei bekamen ihn
+    nicht, ihre Server endeten sofort — und das Aufräumen wartete auf ein
+    Ereignis aus der Vergangenheit. *Wer auf das Ende eines Kindes wartet,
+    fragt zuerst, ob es schon vorbei ist.* Und: *eine Portbasis, die nicht
+    über die vermerkte Liste läuft, wird von keinem Wächter gesehen* — der
+    Wächter zählt deshalb seit 0.8.91 auch die **Startstellen** im Quelltext.
+
 ---
 
 ## 7. Prüfstand
@@ -3333,7 +3694,42 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 2909 von 2909 bestanden** (0.8.90; **248 neue Prüfungen, 24
+**Zuletzt: 3010 von 3010 bestanden** (0.8.91; **101 neue
+Prüfungen, 18 Gegenproben, elf neue Gruppen**: „Der
+Schlüsselwechsel: der Rundlauf", „… die Umschaltung des Journals", „… der
+Dateifall und der env-Fall", „… kein Schlüssel, wo keiner hingehört", „… der
+Abbruch mittendrin", „… zu wenig Platz", „… was er nicht anfasst",
+„Die Sicherung: zwei Schlüssel im Umlauf", „Das Skript auf dem Wirt ist
+ausführbar" und die beiden Wächter über den Prüfstand selbst — „Die Portbasen
+und der Versatz" und „Keine Prüflage lässt ihren Server zurück"; dazu die
+Erweiterung von „Die Sicherung in der Oberfläche" um die drei Lagen des
+Wechsels.
+
+**Der Schlüsselwechsel wird an echten Prozessen gegen echte, verschlüsselte
+Anlagen geprüft**, ohne Server: gewechselt wird bei angehaltener Anlage, und
+genau so läuft die Prüfung. Der **Abbruch mit `kill -9`** braucht dafür eine
+Anlage, an der der Wechsel messbar dauert — rund 60 MB, gemessen statt geraten,
+und ist er wider Erwarten zu schnell, sagt die Prüfung **das** und bleibt nicht
+still grün. Die **Absage bei zu wenig Platz** braucht ein volles Dateisystem;
+lässt sich keines einhängen, wird die Lage **ausdrücklich übersprungen** statt
+still ausgelassen.
+
+**Kein Migrationsabschnitt** — es gibt keinen Block. Stattdessen steht die
+Probe selbst da: das Schema nach dem Wechsel ist dasselbe wie das einer
+frischen Anlage, und `settings` hat zwei Spalten wie vorher.
+
+**Zwei Wächter sehen dem Prüfstand bei der eigenen Arbeit zu**, beide aus den
+Befunden von 0.8.90 heraus. Der eine rechnet nach, dass keine Portbasis und
+keine Basis samt Versatz auf der Sperrliste von `fetch()` liegt (**35 Basen,
+vier Spuren, Versatz 3000**) — und er hat sofort einen Bestandsfehler gefunden:
+die Basis 4000 deckte die gesperrte **4045**, und eine von sechzig Ziehungen
+ließ die Lage „Erstanmeldung" unerreichbar werden. **Er zählt außerdem die
+Startstellen im Quelltext nach** — genau drei —, denn eine Portbasis, die nicht
+über die vermerkte Liste läuft, sähe er sonst gar nicht: die Fingerprintlage
+lief bis zu dieser Runde an ihr vorbei (Änderungsprotokoll, Befund K). Der
+andere hält fest, dass **jede** Prüflage ihren Server beendet.
+
+Davor 0.8.90 mit 2909 Prüfungen; **248 neue Prüfungen, 24
 Gegenproben, elf neue Gruppen**: „Das Sicherheitsprotokoll: die Tabelle legt
 sich selbst an", „… eine Zeile je Vorgang", „… kein Geheimnis in einer Zeile",
 „… die Frist an beiden Seiten", „… das Aufräumen an beiden Aufrufstellen",
@@ -3915,6 +4311,25 @@ sind zwei Dinge:
   `od -c`-Ausgabe beim Nachprüfen von 0.8.2. **Merksatz für die Zukunft:
   Kontrollausgaben laufen über die Länge und das letzte Zeichen, nie über den
   Inhalt.**
+  **Seit 0.8.91 hat der Merksatz eine benannte Ausnahme, und sie ist eng
+  gefasst:** `schluessel.sh` nennt nach einem gelungenen Wechsel den **alten**
+  Wert im Klartext — er öffnet ab dann nur noch die Sicherungen von vorher und
+  steht im Dateifall sonst nirgends mehr. Den **neuen** nennt es nicht; der
+  liegt in der Ablage. Und wenn das Schreiben der Ablage scheitert, steht auch
+  er da, laut — dann ist er das Einzige, was noch zwischen den Daten und ihrem
+  Verlust steht. *Das ist eine Ausgabe an einen Menschen am Terminal, keine
+  Kontrollausgabe: sie steht in keinem Containerprotokoll und in keiner
+  Protokollzeile, und der Prüfstand hält beides fest.*
+- **Der Schlüsselwechsel steht bereit und ist an dieser Anlage noch nicht
+  gefahren worden** (Stand 0.8.91). Der Anlass ist da — der Schlüssel lag bis
+  zum 13. August 2025 neben der Datenbank (Abschnitt 3) —, und der Weg steht in
+  der README. **Vorher an einer Wegwerfanlage ausprobieren.**
+  **`./schluessel.sh zeigen` ist auf der Anlage bereits gelaufen** und hat die
+  eine offene Frage beantwortet: `docker compose run --rm` kommt mit gesetztem
+  `container_name` klar — der Wegwerf-Container heißt
+  `kriterion-kriterion-run-<hash>`. Gemessen dabei: **662,5 MB** Datenbank,
+  **728,7 MB** gebraucht, **rund 13 Sekunden** angesagt. Die Rechnung aus
+  20 ms je MB geht auf.
 - **Dateien lassen die Datenbank wachsen.** Bei 50 MB je Stück lohnt
   gelegentlich ein Blick auf die Kennzahlen im Systembereich — und daran zu
   denken, dass die Sicherung entsprechend größer wird.
@@ -3970,8 +4385,29 @@ sind zwei Dinge:
 
 ## 9. Versionsgeschichte
 
+**0.8.91 — „Der Schlüssel lässt sich wechseln".** Keine Stufe des
+Mehrbenutzerbetriebs und **keine Datenbankstufe**: keine Tabelle, keine Spalte,
+kein sechster Migrationsblock. Der Schlüssel der Datenbank lässt sich wechseln
+— über **`./schluessel.sh wechseln`** auf dem Wirt, bei angehaltener Anlage,
+mit der `.env` in einem Zug. **Ausdrücklich nicht als Knopf in der
+Oberfläche**: der Anlass ist einmalig, und ein Knopf erreicht die `.env` nicht.
+`PRAGMA rekey` läuft nur mit `journal_mode = DELETE` davor; der alte Wert
+bleibt **auskommentiert** in der `.env` stehen, weil er die Sicherungen von
+vorher öffnet. Neu in der Anlage: der fünfzehnte Vorgang `schluessel` im
+Sicherheitsprotokoll (ohne Handelnden, Ziel und Merkmal), die Marke
+`schluesselGewechseltAm` in `settings` und die **rote Markierung jeder
+Sicherung, die älter ist als der Wechsel**.
+Dazu drei Werkzeuge, die keine ausgelieferte Datei anfassen: der
+Gegenprobentreiber **`gegenprobe.js`**, der Portversatz **`PORT_VERSATZ`** für
+Nebenspuren und zwei Wächter über die eigenen Prüflagen.
+`F_ROUTEN` bleibt bei 57, `BESTAETIGUNG_ZWECKE` bei sechs, die Karten bei
+siebzehn, Formatnummer unverändert 10, keine neue Abhängigkeit.
+**Berichtigt:** es sind **sechs** Wege über **fünf** Routen hinter der zweiten
+Bestätigung, nicht sieben über sechs.
+3010 Prüfungen, 18 Gegenproben, Stolpersteine 134 bis 140.
+
 **0.8.90 — „Schwere Eingriffe".** Keine Stufe des Mehrbenutzerbetriebs, aber
-eine Datenbankstufe ohne Migrationsblock. Die **zweite Bestätigung** vor sieben
+eine Datenbankstufe ohne Migrationsblock. Die **zweite Bestätigung** vor sechs
 schweren Wegen, das **Sicherheitsprotokoll** mit vierzehn Vorgängen und 180
 Tagen Frist, die optionale **öffentliche Adresse** in der `.env`.
 `F_ROUTEN` 56 → 57 samt der neuen Art `'zweitbestaetigt'`, sechzehn Karten
@@ -4361,7 +4797,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.71** | *(keine Stufe)* Der Sicherungsort zieht um | in das Projektverzeichnis, dazu die rot/grüne Anzeige, wie er liegt — benannt, nicht verboten | nein | — |
 | **0.8.80** | **Stufe H** — Tokens (**erledigt**) | Einladung und Rücksetzung über einen Link, dazu „Meine Sitzungen" | ja, **ohne Migrationsblock** | — |
 | **0.8.90** | Schwere Eingriffe (**erledigt**) | zweite Bestätigung, Sicherheitsprotokoll, öffentliche Adresse | ja, **ohne Migrationsblock** | — |
-| **0.8.91** | *(keine Stufe)* Der Schlüssel lässt sich wechseln | `PRAGMA rekey` samt Journalumschaltung, `.env`-Fall und Dateifall, die alten Sicherungen | nein | — |
+| **0.8.91** | *(keine Stufe)* Der Schlüssel lässt sich wechseln | **gebaut** — `./schluessel.sh` auf dem Wirt: `PRAGMA rekey` samt Journalumschaltung, `.env`-Fall und Dateifall, die alten Sicherungen markiert. Dazu `gegenprobe.js`, `PORT_VERSATZ` und zwei Wächter über den Prüfstand | nein | — |
 | **0.9.0** | **Stufe I** — Mailversand und Selbstanmeldung | siehe Konzeptpapier | ja | — |
 | **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
 | **0.9.20** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen | ja | — |
@@ -4385,7 +4821,8 @@ abgeschrieben, samt der Gegenlage, dass eine **Spalte** nicht nachwächst. Es
 bleibt bei **fünf** markierten Blöcken, und unter „Vorgemerkt für 1.0" kommt
 **nichts** dazu.
 
-**Als Nächstes 0.8.91 — der Schlüsselwechsel, und er ist eine eigene Runde.**
+**0.8.91 ist gebaut — der Schlüsselwechsel, und er ist eine eigene Runde
+geworden.**
 Er war Punkt 3 des Auftrags 0.8.90 und ist dort **bewusst herausgenommen
 worden**, mit drei Gründen: er ist der einzige Knopf im ganzen Projekt, der bei
 falscher Handhabung **alles** verliert; er hat beim Nachstellen seine Form
@@ -4394,10 +4831,14 @@ er braucht einen eigenen Einspielweg samt Wegwerfanlage auf dem Server. Die
 Runde 0.8.90 war mit Protokoll, Bestätigung und Adresse bereits so breit wie
 0.8.80. *Der Stufenplan trägt das ohne Verschiebung: die neun Nummern zwischen
 zwei Stufen sind genau dafür da, und 0.8.31 hat es schon einmal getragen.*
-**Was 0.8.90 ihm vorgearbeitet hat:** die zweite Bestätigung steht bereit — der
-Schlüsselwechsel bekommt sie als achten Weg —, und das Sicherheitsprotokoll
-bekommt seinen fünfzehnten Vorgang. *Eine Protokollzeile nennt, DASS gewechselt
-wurde, nie WOHIN.*
+**Gebaut ist er in einer anderen Form als geplant**, und die Abweichung ist vor
+dem Bau besprochen worden: **nicht als Knopf hinter der zweiten Bestätigung,
+sondern als Befehl auf dem Wirt.** Der Anlass ist einmalig, und ein Knopf
+könnte den `.env`-Fall gar nicht zu Ende bringen — die Begründung steht in
+Abschnitt 5. Vom Vorgearbeiteten aus 0.8.90 ist damit **eines** eingelöst: das
+Sicherheitsprotokoll hat seinen **fünfzehnten** Vorgang, und *eine
+Protokollzeile nennt, DASS gewechselt wurde, nie WOHIN.* Die zweite Bestätigung
+bleibt bei **sechs Wegen über fünf Routen**.
 **Teil I des Videopapiers ist mit 0.8.50 abgearbeitet;** Teil II bleibt auf
 1.1.0 und teilt mit Teil I keinen Code außer der Positivliste der Formate —
 **und seit 0.8.70 eine Vorgabe zum Papierkorb**: eine Datei über rund 950 MB
@@ -4884,9 +5325,12 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
 - **Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt** —
   **mit 0.8.90 eingelöst** (Abschnitt 3). Was davon als Regel weitergilt:
   *die Rechtefrage steht vor der Bestätigungsfrage*, und *eine Bestätigung ist
-  an die Sitzung gebunden, nicht an den Menschen*. **Der Schlüsselwechsel ist
-  der eine Weg der Liste, der noch fehlt** — er kommt mit 0.8.91 als achter
-  dazu und bekommt dabei keine neue Form, sondern die vorhandene.
+  an die Sitzung gebunden, nicht an den Menschen*. **Der Schlüsselwechsel war
+  der eine Weg der Liste, der fehlte — und er ist mit 0.8.91 anders eingelöst
+  worden als geplant:** nicht als siebter Weg hinter der Bestätigung, sondern
+  als Befehl auf dem Wirt. *Zugriff auf den Wirt ist die Berechtigung*, und im
+  `.env`-Fall könnte ein Knopf die Sache gar nicht zu Ende bringen. Die
+  Bestätigung bleibt damit bei **sechs Wegen über fünf Routen**.
 - **Wer eine Datei aus dem Bestand baut, denkt an die Stringgrenze**
   (seit 0.8.70). Eine Exportdatei ist **ein** String, und Node hält keinen über
   512 MB. Der volle Export hält mit den Schaltern dagegen, der Einzelexport mit

@@ -105,6 +105,101 @@ wie ein Schloss mit danebenliegendem Schlüssel.
 gibt keine Hintertür und keine Wiederherstellung. Wer den Schlüssel selbst
 setzt, muss ihn auch verwahren.
 
+**Ist es schon passiert?** Lag der Schlüssel eine Weile neben der Datenbank und
+wurde `data/` in dieser Zeit kopiert, öffnet diese Kopie die Datei bis heute —
+auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
+**Schlüsselwechsel**, und den gibt es seit 0.8.91: der Abschnitt darunter sagt,
+wie.
+
+## Den Schlüssel wechseln — seit 0.8.91
+
+Es gibt genau einen Anlass dafür: **der Schlüssel ist in fremde Hand geraten.**
+Der häufigste Weg dorthin ist der aus dem Abschnitt darüber — der Schlüssel lag
+eine Weile als `data/encryption.key` neben der Datenbank, und irgendjemand hat
+in dieser Zeit das Verzeichnis kopiert. Diese Kopie öffnet die Datei bis heute.
+**Ein Wechsel ist das einzige Mittel dagegen**; die alte Schlüsseldatei zu
+löschen hilft nur gegen künftige Kopien.
+
+Gewechselt wird **auf dem Wirt**, im Projektverzeichnis:
+
+```bash
+./schluessel.sh zeigen       # Lage ansehen, ändert nichts
+./schluessel.sh wechseln     # anhalten, sichern, wechseln, starten
+```
+
+> **„Keine Berechtigung"?** Dann fehlt dem Skript das Ausführungsrecht —
+> `python3 -m zipfile -e` im Einspielweg bringt es nicht mit. Einmal
+> `chmod +x schluessel.sh`, und es ist erledigt; ohne das Recht geht auch
+> `bash schluessel.sh zeigen`.
+
+**Warum nicht auf Knopfdruck in der Oberfläche?** Zwei Gründe. Der Anlass ist
+**einmalig** — ein dauerhafter Knopf für ein einmaliges Ereignis, und
+ausgerechnet der eine, der bei falscher Handhabung **alles** verliert, wäre ein
+schlechtes Tauschgeschäft. Und ein Knopf könnte die Sache gar nicht zu Ende
+bringen: steht der Schlüssel in der `.env`, kennt die Anwendung den neuen Wert,
+erreicht die Datei aber nicht — sie liegt auf dem Wirt und ist nicht einmal im
+Image. Dort werden Datenbank und `.env` **in einem Zug** nachgezogen.
+
+**Was das Skript tut, in dieser Reihenfolge:**
+
+1. `.env` sichern (`.env.vor-schluesselwechsel-…`)
+2. neuen Wert erzeugen (`openssl rand -hex 32`)
+3. die Anlage **anhalten** — ein laufender Server hält die Datenbank im
+   WAL-Modus offen, und der Wechsel braucht `journal_mode = DELETE`
+4. das Datenverzeichnis sichern (`../kriterion-data-vor-schluesselwechsel-…`)
+5. wechseln, in einem Wegwerf-Container
+6. **erst nach Erfolg** den neuen Wert eintragen — in die `.env` oder in
+   `data/encryption.key`, je nachdem, woher der alte kam
+7. die Anlage starten
+
+Danach ins Protokoll sehen:
+
+```bash
+docker compose logs --tail 30 kriterion
+```
+
+Erwartet wird „Schlüssel aus ENCRYPTION_KEY geladen." bzw. die Warnung, dass
+der Schlüssel neben der Datenbank liegt.
+
+> **PROBIER DEN WECHSEL AN EINER WEGWERFANLAGE AUS, bevor du ihn an der echten
+> fährst.** Ein leeres Verzeichnis, ein `docker compose up -d`, ein paar
+> Einträge, dann `./schluessel.sh wechseln` — und danach nachsehen, ob sie
+> wieder aufgeht. Es ist der einzige Vorgang im ganzen Projekt, bei dem ein
+> Fehler alles kostet.
+
+### Zwei Schlüssel im Umlauf — die unangenehmste Falle
+
+**Ab dem Wechsel gibt es zwei Schlüssel.** Jede Sicherung, die vorher entstanden
+ist, bleibt mit dem **alten** verschlüsselt. Sie ist nicht kaputt — sie braucht
+nur einen anderen Schlüssel als die laufende Anlage. Wer das nicht weiß, hält
+sie im Ernstfall für defekt und wirft sie weg.
+
+Dagegen stehen drei Dinge:
+
+* **Der alte Wert bleibt auskommentiert in der `.env` stehen**, mit Datum, mit
+  dem Namen dessen, der gewechselt hat, und mit dem Satz, wofür er noch gut
+  ist. **Nicht löschen, bevor er im Passwortspeicher steht.**
+* **Die Karte „Sicherung" markiert jede Kopie rot, die älter ist als der
+  Wechsel** — und wenn auch die jüngste älter ist, sagt sie das deutlicher:
+  dann passt überhaupt keine, und es gehört sofort neu gesichert.
+* **Der JSON-Export braucht keinen Schlüssel.** Er ist damit der einzige
+  Rückweg, der von der ganzen Schlüsselverwaltung nichts wissen muss.
+
+### Was der Wechsel nicht ist
+
+Er wechselt den **Schlüssel**, nicht das Verfahren: SQLCipher bleibt, die
+Schlüssellänge bleibt, `katalog.sqlite` bleibt, das Schema bleibt, die
+Passwörter bleiben, und **niemand wird abgemeldet** — der Datenbankschlüssel
+hängt an keinem Passwort.
+
+Bricht der Wechsel mitten hinein ab (Stromausfall, `kill -9`), ist das
+**folgenlos**: das Rollback-Journal stellt den alten Stand her, der **alte**
+Schlüssel öffnet weiter, der neue wird abgewiesen. Es entsteht kein halber
+Zustand. Geht dagegen das Journal verloren, ist alles verloren — **das** ist
+der Grund für die Sicherung davor, nicht der Abbruch selbst. Das Journal
+wächst dabei auf die Größe der Datenbank; reicht der Platz nicht, sagt das
+Skript vorher ab und rührt nichts an.
+
 ## Verschlüsselung
 
 Die **gesamte Datenbankdatei** ist verschlüsselt (SQLCipher, AES-256). Ohne
@@ -353,8 +448,11 @@ Der Systembereich zeigt dem **Eigentümer** eine Karte
 **„Sicherheitsprotokoll"**. Sie hält fest, **wer Zugang hatte und wer die
 Anlage als Ganzes angefasst hat**: Anmeldungen (gelungen und gescheitert),
 angelegte, gesperrte, freigegebene und entfernte Zugänge, vergebene Rollen,
-gesetzte Passwörter, erzeugte und eingelöste Links, Export, Import und
-Sicherung.
+gesetzte Passwörter, erzeugte und eingelöste Links, Export, Import,
+Sicherung — und seit 0.8.91 den **Schlüsselwechsel**. Der trägt weder Ziel noch
+Merkmal und keinen Handelnden: gewechselt wird auf dem Wirt. **Die Zeile nennt,
+DASS gewechselt wurde, nie WOHIN** — ein Schlüssel steht in keiner
+Protokollzeile.
 
 **Was dort nicht steht, ist der eigentliche Punkt.** Es ist **kein
 Änderungsverlauf**: kein Eintragstitel, kein Kommentartext, keine Bewertung,
@@ -719,7 +817,8 @@ Listen.
   oben steht, wie der Zielort liegt:** rot, wenn er im Projektverzeichnis
   liegt, mit dem Grund daneben; grün, wenn er außerhalb liegt. Abgewiesen wird
   keine der beiden Lagen — eine Sicherung am falschen Ort ist besser als
-  keine.
+  keine. **Seit 0.8.91 markiert sie außerdem jede Kopie rot, die noch mit dem
+  alten Schlüssel verschlüsselt ist** — falls je gewechselt wurde.
 - **Papierkorb** *(Admin sieht, Eigentümer handelt; seit 0.8.70)*: was in den
   letzten dreißig Tagen gelöscht wurde, mit Titel, Datum, Löschendem, der
   verbleibenden Frist und der Größe. **„Zurückholen"** legt einen **neuen**
@@ -1003,6 +1102,11 @@ vorher, wie lange es dauert; **während die Kopie entsteht, steht die Anlage
 still** (rund zehn bis zwanzig Millisekunden je Megabyte). Sie zeigt außerdem,
 wann zuletzt gesichert wurde — gelesen wird das am Zielort selbst, nicht aus
 einem Merker in der Datenbank.
+**Und seit 0.8.91 zeigt sie, welche Kopien noch mit dem alten Schlüssel
+verschlüsselt sind**, falls je gewechselt wurde: jede Kopie, die älter ist als
+der Wechsel, wird rot markiert. Ist auch die jüngste älter, sagt die Karte, dass
+überhaupt keine zum heutigen Schlüssel passt — dann gehört sofort neu gesichert.
+Einzelheiten im Abschnitt „Den Schlüssel wechseln".
 
 **Der Zielort wird eingehängt, nicht eingetippt.** Die `docker-compose.yml`
 bringt ihn mit:
@@ -1089,7 +1193,17 @@ mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
 mv kriterion-alt/kriterion-sicherung kriterion/ 2>/dev/null   # nur bei Ort im Projekt
+chmod +x kriterion/schluessel.sh          # das ZIP bringt das Recht nicht mit
 cd kriterion && docker compose up -d --build
+```
+
+**Die `chmod`-Zeile ist nicht überflüssig.** `python3 -m zipfile -e` stellt
+**keine Ausführungsrechte** wieder her — anders als `unzip`, das es tut.
+Ohne sie antwortet `./schluessel.sh` mit „Keine Berechtigung". Es geht dann
+auch ohne das Recht:
+
+```bash
+bash schluessel.sh zeigen
 ```
 
 **Die vorletzte Zeile gilt nur, solange der Sicherungsort im
@@ -1104,6 +1218,11 @@ hier und nicht in einer Fußnote.
 die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
 enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
 Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
+
+**0.8.91 fasst die Datenbank nicht an** — keine Tabelle, keine Spalte; ein
+Downgrade auf 0.8.90 wäre eine reine Dateikopie. Die Sicherung bleibt trotzdem
+Pflicht, und beim **Schlüsselwechsel** ein zweites Mal: siehe den Abschnitt
+„Den Schlüssel wechseln".
 
 **Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Branchnamen
 an: aus `main` wird `kriterion-main`. Ohne das `mv` legt das folgende
@@ -1252,7 +1371,7 @@ Passwort, Anmeldung, und **derselbe Link ein zweites Mal nicht** —, die
 Nachschau, dass der Link selbst in **keiner Spalte keiner Tabelle** steht, die
 sieben Tage an beiden Seiten, die Anmeldebremse vor der Anmeldung und „Meine
 Sitzungen" mit zwei Benutzern zu je zwei Sitzungen.
-**Seit 0.8.90 dazu jeder der sieben schweren Wege einzeln** — ohne Bestätigung
+**Seit 0.8.90 dazu jeder der sechs schweren Wege einzeln** — ohne Bestätigung
 abgewiesen, mit falschem Passwort abgewiesen, mit richtigem durch, und nach
 jeder Verweigerung die Nachschau in der Datenbank, dass nichts geschrieben
 wurde —, das Sicherheitsprotokoll mit einer Zeile je Vorgang und der Nachschau,
@@ -1260,6 +1379,25 @@ dass **kein Geheimnis in irgendeiner Spalte irgendeiner Zeile** steht, die
 Frist an beiden Seiten, das Aufräumen an **beiden** Aufrufstellen (die für den
 Start gegen einen echten Serverstart) und die öffentliche Adresse in beiden
 Zuständen.
+**Seit 0.8.91 dazu der Rundlauf des Schlüsselwechsels** an echten,
+verschlüsselten Anlagen: wechseln, mit dem neuen Schlüssel lesen, mit dem alten
+nicht mehr, Bestand Feld für Feld derselbe — dazu jede Lage, in der der Wechsel
+**nicht** laufen darf, und in jeder davon die Nachschau, dass wirklich nichts
+gewechselt wurde. **Der Abbruch mit `kill -9` mitten hinein** wird an rund 60 MB
+nachgestellt, und die Dauer dafür wird **gemessen** statt geraten: ist der
+Wechsel zu schnell zum Treffen, sagt die Prüfung genau das.
 
-Die Datei `pruefung.js` ist per `.dockerignore` ausgeschlossen und landet nicht
-im Image.
+Die Dateien `pruefung.js` und `gegenprobe.js` sind per `.dockerignore`
+ausgeschlossen und landen nicht im Image.
+
+**Die Gegenproben laufen über `gegenprobe.js`** — ein eigener Aufruf, nicht Teil
+von `npm test`:
+
+```bash
+node gegenprobe.js 3     # alle Rückbauten, drei Nebenspuren
+```
+
+Er baut jede geprüfte Sache **probeweise zurück**, in einer eigenen Kopie aus
+`git archive HEAD`, und schreibt eine Tabelle: welcher Rückbau welche Prüfungen
+namentlich rot gemacht hat. **Ein Rückbau, der keine einzige Prüfung rot macht,
+ist ein Fund** — dann prüft die Prüfung nicht, was sie zu prüfen vorgibt.

@@ -3707,10 +3707,36 @@ function pruefeOrt(roh) {
    gegen den Index in 0.6.2, und dort ist sie zugunsten der Sache entschieden
    worden. Der Preis steht daneben: ein unerreichbarer Zielort liefert keine
    Auskunft, und dann sagt die Karte GENAU DAS statt einer Zahl. */
+/* ZWEI SCHLUESSEL IM UMLAUF -- seit 0.8.91, und es ist die unangenehmste Falle
+   des ganzen Projekts. Wird der Schluessel der Datenbank gewechselt
+   (schluessel.js auf dem Wirt), bleiben die Sicherungen, die dann schon
+   dastehen, mit dem ALTEN Schluessel verschluesselt. Sie sind nicht kaputt --
+   sie brauchen nur einen anderen Schluessel als die laufende Anlage, und wer
+   das nicht weiss, haelt sie im Ernstfall fuer defekt.
+
+   Die Marke kommt aus settings und ist HIER ausdruecklich richtig, waehrend
+   "letzte Sicherung" aus dem Dateisystem kommt: der Zeitpunkt des Wechsels ist
+   ein VORGANG und hinterlaesst keine Datei, an der er abzulesen waere. Die
+   Aenderungszeit einer Kopie ist dagegen die Sache selbst. Zwei verschiedene
+   Fragen, zwei verschiedene Quellen.
+
+   VERGLICHEN WIRD IN UTC. Die Marke traegt die Schreibweise der Anlage
+   ("2026-08-23 19:56:01"), und das Z macht aus ihr einen eindeutigen
+   Zeitpunkt -- ohne es lese der Rechner sie als Ortszeit und die Grenze
+   verschoebe sich um den Zeitzonenabstand. */
+function wechselMarke() {
+  const roh = getSetting('schluesselGewechseltAm', null);
+  if (!roh) return null;
+  const ms = Date.parse(String(roh).replace(' ', 'T') + 'Z');
+  return Number.isFinite(ms) ? { am: roh, ms } : null;
+}
+
 function letzteSicherung(pfad) {
+  const marke = wechselMarke();
+  const gewechseltAm = marke ? marke.am : null;
   let namen;
   try { namen = fs.readdirSync(pfad); }
-  catch { return { erreichbar: false, letzte: null, zahl: 0 }; }
+  catch { return { erreichbar: false, letzte: null, zahl: 0, gewechseltAm, veraltet: 0 }; }
   const dateien = [];
   for (const n of namen) {
     if (!SICHERUNG_MUSTER.test(n)) continue;
@@ -3719,16 +3745,24 @@ function letzteSicherung(pfad) {
       if (st.isFile()) dateien.push({ name: n, zeit: st.mtimeMs, bytes: st.size });
     } catch { /* eine Datei, die zwischen readdir und stat verschwindet */ }
   }
-  if (!dateien.length) return { erreichbar: true, letzte: null, zahl: 0 };
+  // Ohne Wechsel ist KEINE Kopie veraltet -- und nicht etwa jede. Der
+  // Unterschied zwischen "es gab keinen Wechsel" und "alle sind veraltet" ist
+  // genau der, den diese Zeile haelt.
+  const veraltet = marke ? dateien.filter(d => d.zeit < marke.ms).length : 0;
+  if (!dateien.length)
+    return { erreichbar: true, letzte: null, zahl: 0, gewechseltAm, veraltet: 0 };
   dateien.sort((a, b) => b.zeit - a.zeit);
   const j = dateien[0];
-  return { erreichbar: true, zahl: dateien.length, letzte: {
+  return { erreichbar: true, zahl: dateien.length, gewechseltAm, veraltet, letzte: {
     datei: j.name, bytes: j.bytes,
     // Dieselbe Schreibweise wie jeder Zeitstempel der Anlage
     // ("2026-08-23 19:56:01", UTC): die Oberflaeche hat genau einen Weg, aus
     // einem Zeitstempel ein Datum zu machen, und der erwartet diese Form.
     am: new Date(j.zeit).toISOString().slice(0, 19).replace('T', ' '),
-    tageHer: Math.max(0, Math.floor((Date.now() - j.zeit) / 86400000))
+    tageHer: Math.max(0, Math.floor((Date.now() - j.zeit) / 86400000)),
+    // Auch die JUENGSTE Kopie kann aelter sein als der Wechsel -- dann ist
+    // ueberhaupt keine brauchbare da, und das ist die schaerfste Lage.
+    veraltet: Boolean(marke && j.zeit < marke.ms)
   } };
 }
 
@@ -3745,13 +3779,21 @@ app.get('/api/sicherung', nurEigentuemer, (req, res) => {
   // Die erwartete Dauer wird aus der Groesse gerechnet und VORHER genannt:
   // waehrend VACUUM INTO laeuft, steht die Anlage.
   const dauer = Math.max(1, Math.round(dbBytes / 1048576 * SICHERUNG_MS_JE_MB / 1000));
+  /* Die Marke steht auch dann in der Antwort, wenn der Zielort nicht erreichbar
+     ist: DASS gewechselt wurde, ist eine Aussage ueber die Anlage und haengt
+     nicht am Sicherungsort. Nur die ZAHL der veralteten Kopien haengt daran,
+     und die ist dann ehrlich null statt geraten. */
+  const marke = wechselMarke();
+  const gewechseltAm = marke ? marke.am : null;
   if (!lage.ein) return res.json({ eingerichtet: false, grund: lage.grund, ort,
-                                   dbBytes, dauerSekunden: dauer, erreichbar: false, letzte: null });
+                                   dbBytes, dauerSekunden: dauer, erreichbar: false, letzte: null,
+                                   gewechseltAm, veraltet: 0 });
   const ziel = pruefeOrt(ort);
   if (ziel.fehler) return res.json({ eingerichtet: true, wurzel: lage.wurzel, ort,
                                      imArbeitsverzeichnis: lage.imArbeitsverzeichnis,
                                      fehler: ziel.fehler, dbBytes, dauerSekunden: dauer,
-                                     erreichbar: false, letzte: null });
+                                     erreichbar: false, letzte: null,
+                                     gewechseltAm, veraltet: 0 });
   // Die Lage der WURZEL, nicht die des gewaehlten Unterverzeichnisses: sie ist
   // eine Eigenschaft der Einrichtung und aendert sich mit dem Zielort nicht.
   res.json({ eingerichtet: true, wurzel: lage.wurzel, ort, pfad: ziel.pfad,
