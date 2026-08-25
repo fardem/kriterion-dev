@@ -793,7 +793,7 @@ async function loeseTokenEin(klartext, neuesPasswort) {
    HAT -- und ausdruecklich nichts darueber, was jemand GESAGT hat. Die
    Begruendung zu Spalten und Grenzen steht am Schema in db.js.
 
-   VIERZEHN VORGAENGE, und die Liste ist die Entscheidung. Was nicht darin
+   FUENFZEHN VORGAENGE, und die Liste ist die Entscheidung. Was nicht darin
    steht, steht mit Begruendung im Aenderungsprotokoll dieser Runde -- eine
    stillschweigend weggelassene Zeile waere von einer entschiedenen nicht zu
    unterscheiden.
@@ -818,7 +818,16 @@ const VORGAENGE = [
   'zugang.neu', 'zugang.rolle', 'zugang.status', 'zugang.passwort',
   'zugang.weg', 'zugang.selbst',
   'link.neu', 'link.ein',
-  'export', 'import', 'sicherung'
+  /* 'schluessel' seit 0.8.91 -- der Wechsel des Datenbankschluessels. Er
+     laeuft ueber schluessel.js auf dem Wirt und traegt deshalb IMMER das leere
+     `wer` von dort: "ueber den Wirt". Ein Handelnder stuende hier nur als
+     Behauptung, denn wer den Befehl ausfuehren kann, koennte sie setzen.
+     DIE ZEILE NENNT, DASS GEWECHSELT WURDE, NIE WOHIN. Kein Merkmal, kein
+     Ziel, kein Wert -- weder der alte noch der neue. Das ist die schaerfste
+     Auslegung des Merksatzes zu Kontrollausgaben, und sie gilt hier ohne jede
+     Ausnahme: die eine Stelle, an der ein Schluessel zum Abschreiben steht,
+     ist der Bildschirm des Wirts, nicht diese Tabelle. */
+  'export', 'import', 'sicherung', 'schluessel'
 ];
 /* Die geschlossene Liste fuer merkmal. NICHTS ausserhalb davon kommt in die
    Tabelle -- damit ist "kein Freitext von aussen" baulich wahr und nicht bloss
@@ -921,7 +930,7 @@ function leseProtokoll(grenze = PROTOKOLL_GRENZE) {
    es fehlte nur bei den schweren Wegen.
 
    WARUM EINE FREIGABE UND NICHT DAS PASSWORT IM RUMPF DER HANDLUNG. Die
-   schoenere Form waere die zweite; sie geht an zwei der sieben Wege nicht auf:
+   schoenere Form waere die zweite; sie geht an zwei der sechs Wege nicht auf:
      * GET /api/export ist eine BROWSERNAVIGATION -- ein Rumpf ist dort
        baulich unmoeglich, und in die Adresse gehoert ein Passwort nie.
      * POST /api/import traegt seinen Waechter ausdruecklich VOR multer, damit

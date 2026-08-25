@@ -18,6 +18,40 @@ function open(file) {
   return db;
 }
 
+/* --- Den Schluessel der Datei wechseln -----------------------------------
+   GERUFEN WIRD DAS AUSSCHLIESSLICH VON schluessel.js AUF DEM WIRT, bei
+   angehaltener Anlage. Es steht hier, weil hier auch journal_mode gesetzt wird
+   -- und genau daran haengt der ganze Vorgang.
+
+   PRAGMA rekey LAEUFT IM WAL-MODUS NICHT: "Rekeying is not supported in WAL
+   journal mode." open() setzt WAL bei jedem Oeffnen, also muss der Wechsel
+   erst auf DELETE umschalten, wechseln und danach zurueckschalten. Nachgestellt
+   an 20 000 und an 200 000 Zeilen: danach integrity_check ok, Bestand
+   feldgleich, die Datei mit dem neuen Schluessel lesbar und mit dem alten nicht
+   mehr (Stolperstein 128).
+
+   DIE RUECKSCHALTUNG STEHT IM finally UND NICHT DAHINTER. Scheitert der
+   Wechsel, bliebe die Anlage sonst im DELETE-Modus zurueck -- sie liefe damit,
+   aber langsamer und mit anderem Sperrverhalten, und niemand saehe es.
+
+   EIN ABBRUCH MITTENDRIN IST FOLGENLOS, solange das Rollback-Journal ueberlebt:
+   danach oeffnet der ALTE Schluessel, integrity_check ist ok, der neue wird
+   abgewiesen. Es entsteht kein halber Zustand. Wird das Journal entfernt, ist
+   alles verloren -- DAS ist der Grund fuer die Sicherung davor, nicht der
+   Abbruch selbst. Das Journal waechst dabei auf die Groesse der Datenbank. */
+function wechsleSchluessel(neuHex) {
+  if (!/^[0-9a-fA-F]{64}$/.test(String(neuHex)))
+    throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
+  const vorher = db.pragma('journal_mode', { simple: true });
+  db.pragma('journal_mode = DELETE');
+  try {
+    db.pragma(`rekey="x'${String(neuHex).toLowerCase()}'"`);
+  } finally {
+    db.pragma('journal_mode = WAL');
+  }
+  return { vorher, nachher: db.pragma('journal_mode', { simple: true }) };
+}
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS product_categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -708,6 +742,7 @@ renumberCriteria();
 // Abschreiben zeigen kann. Ausgeliefert wird er nur hinter der Anmeldung und
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
+                   wechsleSchluessel,
                    renumberCriteria, ordneBestandZu, eigentuemerId,
                    // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
                    migration083,
