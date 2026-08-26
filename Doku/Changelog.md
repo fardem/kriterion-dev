@@ -33,7 +33,8 @@ keine Betriebsart, in der ein geklickter Link allein freischaltet.
   Schalter, der Stand gegen den Deckel und die Liste der **bestätigten**
   Anfragen mit Name, Adresse und beiden Zeitpunkten — je Zeile
   **Freischalten** oder **Ablehnen**. Unbestätigte Anfragen erscheinen dort
-  **nie** und verfallen nach 24 Stunden.
+  **nie** und verfallen nach 24 Stunden. **Die Karte steht immer da**, auch
+  solange die Selbstanmeldung aus ist — in ihr sitzt schließlich der Schalter.
 - **Freischalten legt einen Zugang mit der Rolle „Benutzer" an** — nie mit
   einer anderen — und erzeugt den Einladungslink, über den der Betreffende sein
   Passwort selbst setzt. Der Weg dahinter ist der bekannte aus 0.8.80,
@@ -47,8 +48,8 @@ keine Betriebsart, in der ein geklickter Link allein freischaltet.
 ### Was du danach von Hand tun musst
 
 - **Nichts** — solange du die Selbstanmeldung nicht willst. Sie ist aus.
-- **Willst du sie:** im Systembereich die Karte **„Anfragen"** öffnen und
-  einschalten. Das geht erst, wenn **zwei** Dinge stehen:
+- **Willst du sie:** im Systembereich die Karte **„Anfragen"** aufsuchen und
+  dort einschalten. Das geht erst, wenn **zwei** Dinge stehen:
   - ein **Mailzugang**, mit dem eine **Testmail wirklich durchgekommen** ist
     (Karte „Mailversand", nur für den Eigentümer der Anlage), und
   - **`OEFFENTLICHE_ADRESSE`** in der `.env` — sonst wüsste der Server nicht,

@@ -201,7 +201,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.9.1 ist gebaut** — Fingerprint **`1b538f1f`**, 3400
+**0.9.1 ist gebaut** — Fingerprint **`8f226ddc`**, 3400
 Prüfungen. **Zweite Hälfte von Stufe I, und damit ist der Stufenplan
 abgearbeitet.** **EINE DATENBANKSTUFE:** es kommt **eine Tabelle** dazu
 (`anfragen`) und **keine Spalte** — deshalb **kein Migrationsblock**, und es
@@ -1434,9 +1434,14 @@ Karte „Zugänge" (anlegen **mit Passwort oder mit Link**, sperren, Passwort
 zurücksetzen **direkt oder über einen Link**, Rolle wechseln, entfernen),
 seit 0.9.1 die Karte **„Anfragen"** — der Schalter der Selbstanmeldung, die
 Liste der bestätigten Anfragen und je Zeile Freischalten und Ablehnen.
-**Sie steht nur da, wenn sie etwas zu sagen hat:** der Schalter ist an, oder es
-liegen Anfragen. Eine Karte, die dauerhaft „aus, nichts offen" meldet, wäre eine
-Zeile Lärm neben achtzehn anderen. **Und sie steht beim Admin, nicht beim
+**Sie steht dem Admin IMMER**, auch wenn die Selbstanmeldung aus ist — und das
+ist eine Berichtigung aus dem Betrieb (Stolperstein 155). Zuerst war sie an die
+Bedingung „der Schalter ist an oder es liegen Anfragen" geknüpft, damit keine
+Karte dauerhaft „aus, nichts offen" meldet. Der Gedanke trägt nicht: **der
+Schalter steht in dieser Karte**, und solange sie fehlt, gibt es keinen Weg, ihn
+je einzuschalten. Sie bleibt in dieser Lage aber **kurz** — Überschrift, ein
+Satz, der Zustand und der Schalter; die Liste erscheint erst, wenn eine Anfrage
+vorliegt. **Und sie steht beim Admin, nicht beim
 Eigentümer** — aus einer Anfrage wird nie etwas anderes als ein Zugang mit der
 Rolle `user`, und den legt der Admin ohnehin an. Sie ist seit 0.9.1 die
 **dritte breite Kachel** neben „Zugänge" und „Sicherheitsprotokoll": Name,
@@ -4246,6 +4251,24 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     die keine von beiden reißt. Verwandt mit 138, aber die Ursache liegt eine
     Ebene tiefer: dort fehlt die Prüfung, hier verdeckt eine Prüfung die andere.
 
+155. **Ein Bedienelement, das seinen eigenen Zustand ein- und ausschaltet, darf
+    nicht an diesem Zustand hängen.** Die Karte „Anfragen" trug den Schalter der
+    Selbstanmeldung — und erschien selbst nur, wenn der Schalter an war oder
+    Anfragen vorlagen. An einer frisch eingespielten Anlage ist beides nicht der
+    Fall: **die Karte fehlt, also fehlt der Schalter, also bleibt die
+    Selbstanmeldung für immer aus.** Aufgefallen ist es erst im Betrieb, nach
+    dem Einspielen.
+    **Der Prüfstand konnte es nicht finden**, und das gehört dazu: er prüfte
+    genau das, was gebaut war — *„ist die Selbstanmeldung aus und nichts offen,
+    fehlt die Karte"* —, die Prüfung war grün, und die Gegenprobe färbte sie
+    ordentlich rot. Beides war richtig. **Was fehlte, war die Frage, ob sich der
+    Zustand von dort aus überhaupt verlassen lässt.**
+    *Wer eine Anzeige an eine Bedingung knüpft, sucht den Zustand, in dem die
+    Bedingung falsch ist, und fragt: komme ich von hier aus wieder heraus?*
+    Verwandt mit 47 („ein Zustand, keine zweite Wahrheit"), aber die andere
+    Richtung: dort steht ein Zustand doppelt da, hier ist einer nicht mehr zu
+    verlassen.
+
 ---
 
 ## 7. Prüfstand
@@ -5123,7 +5146,7 @@ die Vorgänge von fünfzehn auf **siebzehn** (`anfrage.frei`, `anfrage.ab`, beid
 ohne Namen); `MERKMALE` bleibt dreizehn, `BESTAETIGUNG_ZWECKE` sieben, die
 Formatnummer 10, das Vokabular elf. **Keine neue Abhängigkeit, keine neue
 `.env`-Zeile.**
-3400 Prüfungen, 40 Gegenproben, Stolpersteine 149 bis 154.
+3400 Prüfungen, 40 Gegenproben, Stolpersteine 149 bis 155.
 
 **0.9.0 — „Der Server verschickt selbst".** **Erste Hälfte von Stufe I** des
 Mehrbenutzerbetriebs, und **keine Datenbankstufe**: keine Tabelle, keine

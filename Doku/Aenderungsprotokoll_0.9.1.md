@@ -280,12 +280,18 @@ Antwort unverändert. Dazu die Schranke aus Abweichung C.
 
 **4 · Was sieht der Admin?** Eine **eigene Karte „Anfragen"** (achtzehn werden
 neunzehn) statt eines Anbaus an „Zugänge": die beiden Listen beantworten
-verschiedene Fragen — „wer darf sich anmelden" und „wer möchte es". Sie steht
-nur da, wenn der Schalter an ist **oder** Anfragen offen sind. Name, Adresse,
-Zeitpunkt der Anfrage, Zeitpunkt der Bestätigung, dazu Freischalten und
-Ablehnen; und weil sie bei ausgeschaltetem Schalter mit offenen Anfragen
-weitersteht, verschwindet die Warteschlange beim Ausschalten nicht aus dem
-Blick.
+verschiedene Fragen — „wer darf sich anmelden" und „wer möchte es". Name,
+Adresse, Zeitpunkt der Anfrage, Zeitpunkt der Bestätigung, dazu Freischalten und
+Ablehnen.
+
+**Sie steht dem Admin IMMER — und das ist gegen die Neigung des Auftrags
+entschieden, nachdem sie im Betrieb aufgefallen ist.** Der Auftrag schlug vor:
+*„die Karte ist nur da, wenn der Schalter an ist oder Anfragen offen sind"*, und
+so war sie zuerst gebaut. **Das ist eine Sackgasse:** der Schalter steht **in**
+dieser Karte, also gibt es, solange sie fehlt, keinen Weg, die Selbstanmeldung je
+einzuschalten. Sie bleibt in dieser Lage **kurz** — Überschrift, ein Satz, der
+Zustand und der Schalter; die Liste erscheint erst, wenn eine Anfrage vorliegt.
+Einzelheiten in Befund M.
 
 **5 · Wer darf freischalten?** **Jeder Admin.** Die Rollenleiter wird dabei
 nicht berührt, und das ist **baulich nachgeprüft** und nicht nur beabsichtigt:
@@ -495,6 +501,30 @@ Vorkommen.
 keine Prüfung rot macht — oder den Lauf mitnimmt —, ist ein Fund und kein
 Erfolg.**
 
+### Befund M — die Karte verdeckte ihren eigenen Schalter (aus dem Betrieb)
+
+**Nach dem Einspielen war die Karte „Anfragen" nicht zu finden — und sie konnte
+es auch nicht sein.** Sie war an die Bedingung aus dem Auftrag geknüpft (*„nur
+da, wenn der Schalter an ist oder Anfragen offen sind"*), und **der Schalter
+steht in ihr**. Bei einer frisch eingespielten Anlage ist die Selbstanmeldung
+aus und es liegt keine Anfrage vor: die Karte fehlt, also fehlt der Schalter,
+also bleibt die Selbstanmeldung aus. **Eine Bedingung, die ihren eigenen Ausweg
+verdeckt.**
+
+**Der Prüfstand hat es nicht gefunden, und er konnte es auch nicht** — er prüfte
+genau das, was gebaut war: *„ist die Selbstanmeldung aus und nichts offen, fehlt
+die Karte"*. Die Prüfung war grün, die Gegenprobe färbte sie rot, und beides war
+richtig. **Was fehlte, war die Frage, ob der Zustand von dort aus überhaupt
+verlassen werden kann.**
+
+**Gebaut ist jetzt: die Karte steht dem Admin immer.** Ist die Selbstanmeldung
+aus und nichts offen, bleibt sie **kurz** — Überschrift, ein Satz, der Zustand
+und der Schalter; die Liste erscheint erst mit der ersten Anfrage. Die Prüfung
+der Vorgängerfassung ist **umgedreht statt gelöscht** (Stolperstein 74), und
+daneben steht die, die den Befund festhält: **der Schalter muss in genau dieser
+Lage erreichbar sein.** Rückbau 63 zielt jetzt auf die alte Bedingung.
+Stolperstein **155**.
+
 ---
 
 ## 5. Neue Stolpersteine
@@ -511,6 +541,7 @@ steht im Projektstand, Abschnitt 6.
 | **152** | Eine neue Portbasis kann den **Versatz** zu klein machen, nicht nur eine gesperrte Nummer treffen. |
 | **153** | Zwei Kästen mit denselben festen Kennungen sind einer zu viel. |
 | **154** | Eine Lage, die zwei Schranken zugleich reißt, prüft keine von beiden. |
+| **155** | Ein Bedienelement, das seinen eigenen Zustand ein- und ausschaltet, darf nicht an diesem Zustand hängen. |
 
 ---
 
@@ -688,4 +719,4 @@ DANACH: null stumm, null abgerissen.**
 
 ---
 
-**0.9.1 — Fingerprint `1b538f1f`**
+**0.9.1 — Fingerprint `8f226ddc`**
