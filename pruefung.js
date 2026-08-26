@@ -10245,9 +10245,39 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Vektorliste machte die Zeile darueber wahr, ohne etwas zu belegen. */
     pruefe('Und die Liste der Vektoren ist wirklich gefuellt',
       ZF_VEKTOREN.length === 6 && ZF_VEKTOREN.every(([, s]) => s.length === 8));
-    pruefe('Der Vektor ueber 2^32 laeuft ueber die obere Haelfte des Zaehlers',
-      ZF.schrittZu(20000000000 * 1000) > 2 ** 32 / 30,
-      String(ZF.schrittZu(20000000000 * 1000)));
+    /* DIE OBERE HAELFTE DES ZAEHLERS ERREICHT KEIN TESTVEKTOR AUS RFC 6238 --
+       nachgerechnet statt angenommen: der groesste (T = 20 000 000 000) ergibt
+       den Zaehler 666 666 666 und liegt damit UNTER 2^32. Ueber die obere
+       Haelfte laeuft er erst ab dem Jahr 6053.
+       GEPRUEFT WIRD SIE TROTZDEM, und zwar gegen eine ZWEITE, UNABHAENGIGE
+       Bauform des Zaehlers: writeBigUInt64BE schreibt die acht Bytes in einem
+       Zug, zweifaktor.js schreibt sie in zwei Haelften. Stimmen beide Wege
+       ueberein, ist die Teilung richtig -- und das ist kein Vergleich der
+       Anlage mit sich selbst, sondern zweier verschiedener Wege. */
+    pruefe('Kein Testvektor aus RFC 6238 erreicht die obere Haelfte des Zaehlers',
+      ZF.schrittZu(20000000000 * 1000) < 2 ** 32,
+      `groesster Zaehler ${ZF.schrittZu(20000000000 * 1000)}, Grenze ${2 ** 32}`);
+    const zfHmacDirekt = (geheimBase32, zaehler) => {
+      const z = Buffer.alloc(8);
+      z.writeBigUInt64BE(BigInt(zaehler));
+      const h = require('crypto').createHmac('sha1', ZF.base32Dekodiere(geheimBase32))
+        .update(z).digest();
+      const o = h[h.length - 1] & 0x0f;
+      const bin = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
+      return String(bin % 10 ** ZF.ZIFFERN).padStart(ZF.ZIFFERN, '0');
+    };
+    const ZF_HOCH = [2 ** 32, 2 ** 32 + 1, 2 ** 33 + 7, 987654321012];
+    const zfHochFalsch = ZF_HOCH.filter(z =>
+      ZF.code(zfVektorGeheim, z) !== zfHmacDirekt(zfVektorGeheim, z));
+    pruefe('Ueber 2^32 rechnet die geteilte Schreibweise dasselbe wie writeBigUInt64BE',
+      zfHochFalsch.length === 0 && ZF_HOCH.every(z => z >= 2 ** 32),
+      zfHochFalsch.map(z => `${z}: ${ZF.code(zfVektorGeheim, z)} statt ` +
+        zfHmacDirekt(zfVektorGeheim, z)).join(' · '));
+    /* UND DIE GEGENLAGE ZUR PRUEFUNG SELBST (Stolperstein 81): stimmten die
+       beiden Wege IMMER ueberein, auch bei verschiedenen Zaehlern, belegte die
+       Zeile darueber nichts. */
+    pruefe('Und die beiden Wege unterscheiden sich sehr wohl bei verschiedenen Zaehlern',
+      zfHmacDirekt(zfVektorGeheim, 2 ** 32) !== zfHmacDirekt(zfVektorGeheim, 2 ** 32 + 1));
 
     /* DIE VIER KENNWERTE STEHEN FEST UND WERDEN AUSDRUECKLICH GEPRUEFT. SHA-256
        statt SHA-1, acht Ziffern statt sechs, sechzig Sekunden statt dreissig --
@@ -10360,19 +10390,34 @@ const freigabeHaupt = (zweck, ziel = null) =>
       const start = await zfS.ruf('POST', '/api/zweifaktor/start', { passwort });
       await zfRuhig();
       const zaehler = ZF.jetztSchritt();
+      /* AUFFANGNETZ (Stolperstein 138): gibt /start kein Geheimnis her, laeuft
+         alles Weitere trotzdem durch -- mit einem erfundenen Wert, der
+         zuverlaessig nicht traegt. Ohne das griffe schon die naechste Zeile
+         auf undefined und der Lauf risse ab. */
+      const geheim = (start.inhalt && start.inhalt.geheim) || 'A'.repeat(32);
       const an = await zfS.ruf('POST', '/api/zweifaktor/an',
-        { passwort, code: ZF.code(start.inhalt.geheim, zaehler) });
-      return { name, passwort, id: neu.inhalt.id, geheim: start.inhalt.geheim,
-               codes: an.inhalt.codes, zaehler, start, an };
+        { passwort, code: ZF.code(geheim, zaehler) });
+      return { name, passwort, id: (neu.inhalt || {}).id, geheim,
+               codes: (an.inhalt && an.inhalt.codes) || [], zaehler,
+               start: { status: start.status, inhalt: start.inhalt || {} },
+               an: { status: an.status, inhalt: an.inhalt || {} } };
     };
 
     // Anmeldung in zwei Schritten, mit einem Code fuer einen bestimmten
     // Zaehler. Liefert BEIDE Antworten -- die Lagen brauchen mal die eine,
     // mal die andere.
+    /* DAS AUFFANGNETZ IST DER GANZE PUNKT DIESER FUNKTION (Stolperstein 138).
+       Gibt Schritt 1 keinen Ausweis her -- weil ein Rueckbau die Verzweigung
+       entfernt hat --, liefert sie trotzdem ein `zwei` mit Status und Inhalt.
+       Ohne das griffe jede Lesestelle dahinter auf null, der Lauf RISSE AB und
+       zeigte keine einzige rote Pruefung. Genau das ist beim Bauen zweimal
+       passiert. Status 0 gibt es nicht, also faellt jede Erwartung darauf
+       ordentlich rot. */
     const zfAnmelden = async (z, zaehler, roh) => {
       await zfS.cookieLoeschen();
       const eins = await zfS.ruf('POST', '/api/login', { user: z.name, password: z.passwort });
-      if (!eins.inhalt || !eins.inhalt.ausweis) return { eins, zwei: null };
+      const leer = { status: 0, inhalt: { fehlt: 'Schritt 1 gab keinen Ausweis her' } };
+      if (!eins.inhalt || !eins.inhalt.ausweis) return { eins, zwei: leer };
       const code = roh !== undefined ? roh : ZF.code(z.geheim, zaehler);
       const zwei = await zfS.ruf('POST', '/api/login/zwei',
         { ausweis: eins.inhalt.ausweis, code });
@@ -10612,7 +10657,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Eine mitgeschickte fremde Nummer aendert nichts',
       zfFremdAus.status === 200, JSON.stringify(zfFremdAus.inhalt));
     pruefe('Und die Sitzung gehoert dem, dem der Ausweis gehoerte',
-      (await zfS.ruf('GET', '/api/account')).inhalt.username === zfC.name);
+      (await zfS.ruf('GET', '/api/account')).inhalt?.username === zfC.name);
 
     /* ---------------------------------------------------------------- */
     gruppe('Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort');
@@ -10687,9 +10732,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
       JSON.stringify(zfW2.zwei.inhalt));
     const zfW3 = await zfAnmelden(zfD, 0, zfD.codes[1]);
     pruefe('Ein anderer aus demselben Satz sehr wohl', zfW3.zwei.status === 200);
+    // Ueber ?. gelesen: nimmt ein Rueckbau das Feld aus der Antwort, soll die
+    // Pruefung ROT werden und der Lauf nicht abreissen (Stolperstein 138).
     pruefe('Und die Karte zaehlt herunter',
-      (await zfS.ruf('GET', '/api/account')).inhalt.zweifaktor.codesOffen === 6,
-      JSON.stringify((await zfS.ruf('GET', '/api/account')).inhalt.zweifaktor));
+      (await zfS.ruf('GET', '/api/account')).inhalt?.zweifaktor?.codesOffen === 6,
+      JSON.stringify((await zfS.ruf('GET', '/api/account')).inhalt?.zweifaktor));
     pruefe('Die verbrauchten Zeilen bleiben stehen, damit "von acht" wahr bleibt',
       zfSql(`SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ${zfD.id}`)[0].n === 8 &&
       zfSql(`SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ${zfD.id} AND benutzt_am IS NOT NULL`)[0].n === 2);
@@ -10732,9 +10779,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('In der Antwort auf das Bestaetigen steht es NICHT mehr',
       !JSON.stringify(zfE.an.inhalt).includes(zfE.geheim), JSON.stringify(zfE.an.inhalt));
     pruefe('Und in der Karte "Zugang" auch nicht -- auch nicht fuer den Eigentuemer',
-      !JSON.stringify((await zfS.ruf('GET', '/api/account')).inhalt).includes(zfE.geheim));
+      !JSON.stringify((await zfS.ruf('GET', '/api/account')).inhalt || {}).includes(zfE.geheim));
     pruefe('Ebenso wenig in den Einstellungen',
-      !JSON.stringify((await zfS.ruf('GET', '/api/settings')).inhalt).includes(zfE.geheim));
+      !JSON.stringify((await zfS.ruf('GET', '/api/settings')).inhalt || {}).includes(zfE.geheim));
     const zfZweitStart = await zfS.ruf('POST', '/api/zweifaktor/start',
       { passwort: zfE.passwort });
     pruefe('Ein zweiter Aufruf von /start an einem eingeschalteten Faktor wird abgewiesen',
@@ -12156,9 +12203,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return raus;
   }
 
+  /* zweifaktor.js SEIT 0.10.0 -- eine neue Quelltextdatei mit deutschen
+     Kommentaren, die der Waechter nicht saehe, stuende sie nicht hier. */
   const SPRACH_QUELLEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
-                          'zugang.js', 'schluessel.js', 'pruefung.js', 'gegenprobe.js',
-                          'public/app.js'];
+                          'zugang.js', 'schluessel.js', 'zweifaktor.js', 'pruefung.js',
+                          'gegenprobe.js', 'public/app.js'];
   const sprachQuelltext = SPRACH_QUELLEN.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p)
@@ -12171,7 +12220,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // anmeckert, meckert seine eigene Vorschrift an.
     .filter(n => !/^Auftrag_/.test(n))
     .map(n => path.join('Doku', n))
-    .concat(['README.md']);
+    /* CHANGELOG.md STEHT SEIT 0.10.0 IM WURZELVERZEICHNIS und war damit aus
+       dem Blick dieses Waechters gefallen -- als `Doku/Changelog.md` lag sie
+       vorher in der Sammlung oben. Sie ist deutsche Prosa fuer den Betreiber
+       und gehoert unter dieselbe Regel wie die README daneben. */
+    .concat(['README.md', 'CHANGELOG.md']);
   const sprachDoku = sprachDokuDateien.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p) ? sprachTreffer(nurProsa(fs.readFileSync(p, 'utf8')), n) : [];
@@ -12184,8 +12237,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      noch die halbe Anwendung an. Genau das ist beim Bauen dieser Gruppe an
      einer Gegenprobe aufgefallen -- der Rueckbau auf eine einzige Datei blieb
      stumm. Dieselbe Ueberlegung wie bei der Zahl in F_ROUTEN. */
-  pruefe('Der Sprachwaechter sieht alle zehn Quelltextdateien an',
-    SPRACH_QUELLEN.length === 10 &&
+  pruefe('Der Sprachwaechter sieht alle elf Quelltextdateien an',
+    SPRACH_QUELLEN.length === 11 &&
     SPRACH_QUELLEN.every(n => fs.existsSync(path.join(__dirname, n))),
     `${SPRACH_QUELLEN.length} Dateien, fehlend: ` +
     JSON.stringify(SPRACH_QUELLEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
@@ -12200,6 +12253,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     sprachKommentarZeilen > 1000, `${sprachKommentarZeilen} Zeilen`);
   pruefe('Und mindestens zehn Dokumente daneben',
     sprachDokuDateien.length >= 10, `${sprachDokuDateien.length} Dokumente`);
+  /* UND DIE BEIDEN IM WURZELVERZEICHNIS SIND NAMENTLICH DABEI. Die Zahl oben
+     allein saehe nicht, wenn ausgerechnet eine von ihnen herausfiele -- und
+     genau das ist mit CHANGELOG.md beim Umzug aus `Doku/` passiert. */
+  pruefe('Darunter namentlich README.md und CHANGELOG.md',
+    sprachDokuDateien.includes('README.md') && sprachDokuDateien.includes('CHANGELOG.md'),
+    sprachDokuDateien.filter(n => !n.startsWith('Doku')).join(' '));
   pruefe('Die Kommentare des Quelltextes benutzen die heutigen Fachwoerter',
     sprachQuelltext.length === 0, sprachQuelltext.slice(0, 12).join(' · '));
   pruefe('Die Dokumente ebenso',
@@ -21441,9 +21500,19 @@ async function pruefeOberflaeche() {
      GEDRUECKT WIRD PER dispatchEvent samt Durchlauf des Event Loops
      (Stolperstein 61): ein Fehler hinter einem await bliebe im nur gebauten
      DOM sonst grundsaetzlich unsichtbar. */
+  /* GEDRUECKT WIRD PER dispatchEvent SAMT DURCHLAUF DES EVENT LOOPS
+     (Stolperstein 61). FEHLT DAS ELEMENT, wird nicht geklickt und der Lauf
+     laeuft weiter -- die Pruefung darunter faellt dann rot, statt dass der
+     ganze Lauf an einem null abreisst (Stolperstein 138). */
   const zdKlick = async (w, el, ms = 80) => {
-    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    if (el) el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, ms));
+  };
+  // Dasselbe Auffangnetz fuer ein Eingabefeld.
+  const zfSetze = (w, id, wert) => {
+    const el = w.document.getElementById(id);
+    if (el) el.value = wert;
+    return Boolean(el);
   };
 
   const zdAnmelden = async (faktor) => {
@@ -21488,7 +21557,7 @@ async function pruefeOberflaeche() {
 
   // Ein falscher Code: die Seite bleibt stehen, nennt die Absage und geht mit
   // dem FRISCHEN Ausweis weiter -- ein Tippfehler kostet nicht das Passwort.
-  zdFeld.value = '000000';
+  zfSetze(zdMit.w, 'zf-code', '000000');
   await zdKlick(zdMit.w, zdMit.w.document.getElementById('zf-ab'));
   const zdFalsch = zdMit.gesendet.filter(g => g.url === '/api/login/zwei').pop();
   pruefe('Ein falscher Code laesst den Menschen auf dieser Seite',
@@ -21504,7 +21573,7 @@ async function pruefeOberflaeche() {
     zdFalsch?.koerper?.ausweis === 'ausweis-1', JSON.stringify(zdFalsch?.koerper));
 
   // Und jetzt der richtige.
-  zdMit.w.document.getElementById('zf-code').value = '123456';
+  zfSetze(zdMit.w, 'zf-code', '123456');
   await zdKlick(zdMit.w, zdMit.w.document.getElementById('zf-ab'));
   const zdRichtig = zdMit.gesendet.filter(g => g.url === '/api/login/zwei').pop();
   pruefe('Der zweite Anlauf nimmt den FRISCHEN Ausweis aus der Absage',
@@ -21517,7 +21586,7 @@ async function pruefeOberflaeche() {
   /* EIN WIEDERHERSTELLUNGSCODE TRAEGT AN DERSELBEN STELLE. Ohne diese Lage
      bliebe der Satz auf dem Bildschirm eine Behauptung. */
   const zdWieder = await zdAnmelden(true);
-  zdWieder.w.document.getElementById('zf-code').value = 'AAAAA-BBBBB';
+  zfSetze(zdWieder.w, 'zf-code', 'AAAAA-BBBBB');
   await zdKlick(zdWieder.w, zdWieder.w.document.getElementById('zf-ab'));
   pruefe('Ein Wiederherstellungscode traegt in demselben Feld',
     !zdWieder.w.document.querySelector('.login-card'),
@@ -21530,7 +21599,7 @@ async function pruefeOberflaeche() {
   const zdWeg = await zdAnmelden(true);
   zdWeg.w.showZweiterFaktor('erfundener-ausweis');
   await new Promise(r => setTimeout(r, 40));
-  zdWeg.w.document.getElementById('zf-code').value = '123456';
+  zfSetze(zdWeg.w, 'zf-code', '123456');
   await zdKlick(zdWeg.w, zdWeg.w.document.getElementById('zf-ab'));
   pruefe('Ein abgelaufener Ausweis fuehrt zurueck auf die Anmeldeseite',
     Boolean(zdWeg.w.document.getElementById('lp')) && !zdWeg.w.document.getElementById('zf-code'),
@@ -21609,12 +21678,14 @@ async function pruefeOberflaeche() {
     String(zkAus.w.document.getElementById('zf-geheim')?.compareDocumentPosition(zkZeile)));
 
   // Schritt 2: der Code aus der App.
-  zkAus.w.document.getElementById('zf-probe').value = '000000';
+  // Ueber ein Auffangnetz gesetzt: nimmt ein Rueckbau den Schritt weg, faellt
+  // die Pruefung darunter rot, statt den Lauf abzureissen (Stolperstein 138).
+  zfSetze(zkAus.w, 'zf-probe', '000000');
   await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-fertig'));
   await bestaetigeImDom(zkAus, 'chefins-wort-100');
   pruefe('Ein falscher Code schaltet nicht ein',
     Boolean(zkAus.w.document.getElementById('zf-probe')), 'die Seite ist gewechselt');
-  zkAus.w.document.getElementById('zf-probe').value = '123456';
+  zfSetze(zkAus.w, 'zf-probe', '123456');
   await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-fertig'));
   await bestaetigeImDom(zkAus, 'chefins-wort-100');
   pruefe('Mit richtigem Code steht der Zustand auf "an"',

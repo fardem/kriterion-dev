@@ -784,10 +784,15 @@ const RUECKBAUTEN = [
     /* EIN CODE GILT GENAU EINMAL -- und die Bedingung steht im UPDATE und
        nicht in einer Pruefung davor. Faellt sie weg, traegt derselbe Code
        beliebig oft, und wer ueber die Schulter sieht, hat dreissig Sekunden. */
+    /* DIE BEDINGUNG WIRD WIRKUNGSLOS GEMACHT, NICHT ENTFERNT. Der erste Anlauf
+       strich sie samt Platzhalter -- dann bekam die vorbereitete Anweisung drei
+       Werte fuer zwei Stellen, better-sqlite3 warf, der Server starb, und der
+       Lauf RISS AB, statt eine Pruefung rot zu faerben (Stolperstein 138). So
+       bleibt die Zahl der Platzhalter gleich und nur die Wirkung faellt weg. */
     nr: '89', name: 'Der verbrauchte Zaehler wird nicht mehr geprueft',
     datei: 'auth.js',
     suche: "    WHERE user_id = ? AND (letzter_zaehler IS NULL OR letzter_zaehler < ?)`);",
-    ersatz: "    WHERE user_id = ?`);",
+    ersatz: "    WHERE user_id = ? AND (letzter_zaehler IS NULL OR ? IS NOT NULL)`);",
     erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
   {
@@ -1014,10 +1019,19 @@ const RUECKBAUTEN = [
   },
   /* ---- Der zweite Faktor: die Tabellen und die Oberflaeche ---- */
   {
-    nr: '115', name: 'Die Tabelle zweifaktor wird nicht mehr angelegt',
+    /* GEZIELT AUF DEN INDEX UND NICHT AUF DIE TABELLEN. Ein Rueckbau, der die
+       DDL einer der beiden Tabellen wegnimmt, macht den Server
+       UNSTARTBAR -- auth.js bereitet seine Anweisungen beim Laden vor, und
+       "no such table" beendet den Prozess. Der Lauf risse dann ab, statt rot
+       zu werden (Stolperstein 138). Die Zusage "eine fehlende TABELLE waechst
+       nach" haelt der Pruefstand deshalb an einem echten Versuch statt an einer
+       Behauptung: er entfernt beide von Hand aus einer bestehenden Anlage,
+       startet einmal und sieht nach. Der INDEX daneben laesst sich gefahrlos
+       zuruecknehmen und traegt dieselbe Aussage ueber CREATE ... IF NOT EXISTS. */
+    nr: '115', name: 'Der Index auf zweifaktor_codes wird nicht mehr angelegt',
     datei: 'db.js',
-    suche: 'CREATE TABLE IF NOT EXISTS zweifaktor (',
-    ersatz: 'CREATE TABLE IF NOT EXISTS zweifaktor_alt (',
+    suche: 'CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id);',
+    ersatz: '',
     erwartet: 'Der zweite Faktor: die Tabellen legen sich selbst an'
   },
   {

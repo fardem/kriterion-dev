@@ -60,6 +60,20 @@ vorhandenen Namen, `node zugang.js entfernen <name>` legt einen Zugang still,
 Eigentümer nicht mehr anmeldet. Läuft der Container gar nicht erst an, tut es
 `docker compose run --rm kriterion node zugang.js …` ebenso.
 
+**Telefon weg und die Wiederherstellungscodes aufgebraucht?** Dann steht der
+zweite Faktor zwischen dem Zugang und seinem Inhaber, und auch dafür gibt es
+den Weg über den Server:
+
+```bash
+docker compose exec kriterion node zugang.js zweifaktor <name>
+```
+
+Er fragt vorher nach und **schaltet den zweiten Faktor nur AUS**; Passwort,
+Rolle und Bestand bleiben unangetastet. **Einschalten geht von dort
+ausdrücklich nicht** — dazu muss das Geheimnis auf das Telefon des Betroffenen,
+und wer es für ihn erzeugte, sperrte ihn aus. Einzelheiten im Abschnitt „Der
+zweite Faktor".
+
 Das setzt Zugriff auf den Server voraus und ist deshalb kein Umweg um die
 Anmeldung. **Der Zugang lässt sich über keine Umgebungsvariable setzen oder
 zurücksetzen** — `AUTH_RESET`, `AUTH_USER` und `AUTH_PASSWORD` werden nicht
@@ -279,6 +293,74 @@ ist.
 **Die zweite Bestätigung greift seit 0.8.90 auch hinter der Anmeldung** — vor
 jedem Weg, der die Anlage als Ganzes trifft. Was das ist und warum, steht
 unter „Rollen und Zugänge".
+
+### Der zweite Faktor — seit 0.10.0, freiwillig
+
+**Wer will, sichert seinen Zugang zusätzlich mit einem Code aus einer App auf
+seinem Telefon.** Der Code entsteht dort **ohne Netz**, aus einem Geheimnis und
+der Uhr, und ist alle dreißig Sekunden ein anderer. **Die Anlage schickt dafür
+nichts hinaus** — kein Code per Mail, kein Code per SMS.
+
+> **OHNE ZWEITEN FAKTOR LÄUFT DIE ANLAGE VOLLSTÄNDIG.** Er ist freiwillig und
+> steht je Zugang; ab Werk ist er aus. Wer ihn nicht einschaltet, merkt von
+> dieser Funktion nichts. **Und niemand kann ihn für einen anderen ein- oder
+> ausschalten** — auch der Eigentümer nicht.
+
+**Wo er eingeschaltet wird:** im Systembereich, in der Karte **„Zugang"** —
+dort, wo auch Name, Passwort und Adresse stehen. Der Zustand steht dort ohne
+Klick: „an seit …" oder „aus", dazu die Zahl der übrigen
+Wiederherstellungscodes.
+
+**Was auf dem Telefon zu tun ist**, in drei Schritten:
+
+1. Eine App installieren, die TOTP nach RFC 6238 kann — **Google
+   Authenticator**, Aegis, 1Password, die Passwörter-App von iOS. Alle rechnen
+   dasselbe; Kriterion bindet sich an den Standard, nicht an einen Anbieter.
+2. In der Karte „Zugang" auf **„Zweiten Faktor einschalten"** und das bisherige
+   Passwort eingeben. Es erscheint ein Schlüssel in **Vierergruppen**. Am
+   Telefon führt der Knopf **„In der App öffnen"** unmittelbar hinein; am
+   Rechner wird der Schlüssel von Hand in die App eingetragen — die Leerzeichen
+   gehören nicht dazu.
+3. Den **sechsstelligen Code**, den die App dann anzeigt, in das Feld darunter
+   eintragen und auf **„Einschalten"**. Erst damit ist er an: so ist belegt,
+   dass die App wirklich dasselbe rechnet.
+
+**Ab dann fragt die Anmeldung in zwei Schritten** — erst Passwort, dann Code.
+Ein Code gilt **genau einmal**; Uhren dürfen dabei um eine halbe Minute
+auseinanderlaufen. Dieselbe Frage steht danach auch vor den schweren Wegen
+(Export, Import, Rollen, fremde Passwörter) und beim Einlösen eines
+Rücksetzlinks.
+
+**Die Wiederherstellungscodes — und wohin sie gehören.** Beim Einschalten
+erscheinen **acht** Codes zu je zehn Zeichen. Sie werden **genau einmal**
+angezeigt und kommen nicht wieder: in der Datenbank steht nur ihr Hash. Jeder
+von ihnen trägt **genau einmal** und ersetzt dabei den Code aus der App.
+
+> **Schreib sie auf und leg sie dorthin, wo dein Telefon NICHT liegt.** Ein
+> Zettel in der Schreibtischschublade, ein Eintrag im Passwortspeicher auf
+> einem anderen Gerät — irgendwo, wo sie noch da sind, wenn das Telefon weg
+> ist. *Genau dafür sind sie da: ohne sie ist ein verlorenes Telefon ein
+> verlorener Zugang.*
+
+Die Karte nennt jederzeit, wie viele noch übrig sind, und sagt es deutlich,
+wenn es knapp wird. **Neue gibt es auf Knopfdruck** — hinter Passwort und einem
+gültigen Code; die alten verfallen dabei alle.
+
+**Und wenn Telefon und Codes weg sind:** dann hilft der Weg über den Server,
+derselbe wie beim vergessenen Passwort:
+
+```bash
+docker compose exec kriterion node zugang.js zweifaktor <name>
+```
+
+Er schaltet den zweiten Faktor **aus** und lässt Passwort, Rolle und Bestand in
+Ruhe. **Einschalten geht von dort nicht** — dazu müsste das Geheimnis auf ein
+fremdes Telefon, und das sperrte den Betroffenen aus.
+
+*Ein Hinweis zur Sicherung:* die Kopie über die Karte „Sicherung" enthält den
+gesamten Datenbestand und damit auch die Geheimnisse der zweiten Faktoren —
+verschlüsselt, wie Passwörter und Sitzungen auch. Der **JSON-Export** enthält
+sie nicht; er packt Einträge samt Anhängen, keine Zugänge.
 
 Wird Kriterion über einen Reverse Proxy nach außen gegeben, dann **nur über
 HTTPS** — sonst wandert das Passwort im Klartext durchs Netz. Und dann gehört

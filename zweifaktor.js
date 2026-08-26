@@ -95,7 +95,7 @@ const neuesGeheimnis = () => base32Kodiere(crypto.randomBytes(GEHEIM_BYTES));
 
 /* Der Schluessel am Bildschirm, in Vierergruppen. Zweiunddreissig Zeichen am
    Stueck sind der Weg, an dem Menschen aufgeben; acht Gruppen zu vier sind
-   dieselbe Zeichenkette und lassen sich nach jeder Gruppe abgleichen.
+   derselbe String und lassen sich nach jeder Gruppe abgleichen.
    DIE GRUPPEN SIND EINE ANZEIGE UND KEIN FORMAT: base32Dekodiere wirft die
    Trennzeichen wieder weg, und die Anlage speichert den Wert ohne sie. */
 const inVierergruppen = (s) => String(s || '').replace(/(.{4})(?=.)/g, '$1 ');
@@ -114,9 +114,10 @@ const jetztSchritt = () => schrittZu(Date.now());
    steht so in RFC 4226, Abschnitt 5.3: die letzten vier Bit des Hashs nennen
    den Anfang, dort werden vier Bytes gelesen, das oberste Bit faellt weg.
    Der Zaehler ist acht Bytes gross und wird in ZWEI Haelften geschrieben:
-   writeUInt32BE kann keine 64 Bit, und ein Zaehler ueber 2^32 ist ab dem Jahr
-   6053 der Normalfall. Der Testvektor T=20000000000 aus RFC 6238 laeuft genau
-   ueber diese Stelle -- er liegt darueber. */
+   writeUInt32BE kann keine 64 Bit. Ueber 2^32 laeuft der Zaehler erst ab dem
+   Jahr 6053 -- KEIN Testvektor aus RFC 6238 erreicht ihn, auch der groesste
+   (T = 20 000 000 000) nicht. Der Pruefstand haelt die obere Haelfte deshalb
+   gegen eine ZWEITE Bauform (writeBigUInt64BE) statt gegen ein Papier. */
 function code(geheimBase32, zaehler) {
   const geheim = base32Dekodiere(geheimBase32);
   if (!geheim || !geheim.length) return null;
@@ -171,7 +172,7 @@ function pruefeCode(geheimBase32, eingabe, jetzt = Date.now()) {
 /* ---- Die Zeile fuer die App ----
    otpauth:// IST DER STANDARD, an den sich jedes Pruefgeraet haelt. Auf einem
    Telefon oeffnet der Link Google Authenticator unmittelbar; am Rechner ist er
-   die Zeichenkette, die ein QR-Code ohnehin nur zeichnen wuerde.
+   der String, den ein QR-Code ohnehin nur zeichnen wuerde.
 
    DIE DREI KENNWERTE STEHEN AUSGESCHRIEBEN DARIN, obwohl sie die Vorgabe sind
    und weggelassen werden duerften. Sie stehen da, weil ein Pruefgeraet, das sie
