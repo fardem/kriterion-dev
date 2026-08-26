@@ -20077,6 +20077,26 @@ async function pruefeOberflaeche() {
     'keine Regel gefunden');
   pruefe('Und sie setzt den Knopf mit einer Linie ab',
     /border-top:/.test(sRegel), sRegel);
+  /* GEDAEMPFT, ABER ERKENNBAR EIN KNOPF, und die Grenze zwischen beidem ist
+     der Punkt: der Fuellgrund faellt weg, DIE UMRANDUNG BLEIBT. Ohne Rand saehe
+     er im Ruhezustand wieder wie ein Verweis aus -- und genau daran ist die
+     erste Fassung gescheitert. Beide Haelften werden geprueft, sonst bliebe
+     gruen, dass er ganz verschwindet. */
+  pruefe('Der Knopf traegt die gedaempfte Klasse',
+    sVerweis?.classList.contains('anmeld-zweitweg'), sVerweis?.className);
+  const sLeise = (sCss.match(/\.login-card \.anmeld-zweitweg \{[^}]*\}/) || [''])[0];
+  pruefe('Und die Regel dazu steht im Stylesheet', sLeise.length > 0,
+    'keine Regel gefunden');
+  pruefe('Sie nimmt ihm den Fuellgrund',
+    /background: *transparent/.test(sLeise), sLeise);
+  pruefe('Aber NICHT die Umrandung -- sonst waere er wieder ein Verweis',
+    !/border(-color)?: *(transparent|none|0)/.test(sLeise), sLeise);
+  /* UND DIE GEGENLAGE ZUR REGEL SELBST: die Grundklasse traegt die Umrandung
+     ueberhaupt. Ohne sie belegte die Zeile darueber nur, dass hier nichts
+     entfernt wird (Stolperstein 81). */
+  pruefe('Denn die Grundklasse .btn traegt eine',
+    /\.btn \{[^}]*border: *1px solid/.test(sCss),
+    (sCss.match(/\.btn \{[^}]*\}/) || [''])[0]);
   /* UEBER EIN WIRKLICH ZUGESTELLTES EREIGNIS (Stolperstein 61) -- ein
      aufgerufener Behandler belegt nicht, dass ein Klick ankommt. */
   sVerweis.dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));

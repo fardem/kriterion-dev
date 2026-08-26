@@ -564,8 +564,17 @@ const RUECKBAUTEN = [
        Groesse wie "Anmelden"; der Rueckbau macht wieder einen Verweis daraus. */
     nr: '68', name: 'Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes',
     datei: 'public/app.js',
-    suche: "      <button class=\"btn\" id=\"l-anfrage\">Zugang anfragen</button>",
+    suche: "      <button class=\"btn anmeld-zweitweg\" id=\"l-anfrage\">Zugang anfragen</button>",
     ersatz: "      <a href=\"#\" id=\"l-anfrage\">Zugang anfragen</a>",
+    erwartet: 'Die Anmeldeseite: das Anfrageformular'
+  },
+  {
+    /* DIE ANDERE HAELFTE VON 68: der Knopf wird so leise, dass er im
+       Ruhezustand keiner mehr ist. Der Rueckbau nimmt ihm die Umrandung. */
+    nr: '69', name: 'Der gedaempfte Knopf verliert auch seine Umrandung',
+    datei: 'public/style.css',
+    suche: "  background: transparent; color: var(--muted); font-weight: 500;",
+    ersatz: "  background: transparent; border-color: transparent; color: var(--muted); font-weight: 500;",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {

@@ -134,13 +134,27 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 .login-card .btn { width: 100%; margin-top: 10px; padding: 11px; }
 /* Der zweite Weg von der Anmeldeseite: Zugang anfragen. Er bekommt einen
-   eigenen Knopf in derselben Groesse wie "Anmelden" -- ein Verweis in der
+   eigenen Knopf in derselben GROESSE wie "Anmelden" -- ein Verweis in der
    Fusszeile wurde uebersehen. Er ist bewusst NICHT accent: zwei gleich laute
    Knoepfe nebeneinander sagen nicht mehr, welcher der gewoehnliche Weg ist.
    Die Trennlinie darueber setzt ihn ab, ohne ihn zu verstecken. */
 .login-card .anmeld-trenner {
   margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line);
   font-size: .87rem;
+}
+/* GEDAEMPFT, ABER ERKENNBAR EIN KNOPF -- und die Grenze zwischen beidem ist
+   der Punkt: die Umrandung bleibt, der Fuellgrund faellt weg. Damit ist er auf
+   den ersten Blick der ruhigere von zwei Knoepfen und auf den zweiten immer
+   noch einer. Ein btn-ghost waere zu weit gegangen: ohne Rand sieht er im
+   Ruhezustand wieder wie ein Verweis aus, und genau daran ist die erste
+   Fassung gescheitert.
+   BEIM UEBERFAHREN NIMMT ER DIE GEWOEHNLICHE KNOPFFARBE AN -- wer mit der Maus
+   hingeht, soll die Zusage sehen, dass hier etwas passiert. */
+.login-card .anmeld-zweitweg {
+  background: transparent; color: var(--muted); font-weight: 500;
+}
+.login-card .anmeld-zweitweg:hover {
+  background: var(--surface-2); border-color: #333b44; color: var(--text-2);
 }
 .login-error {
   background: var(--red-dim); border: 1px solid rgba(240,85,92,.34); color: var(--red);

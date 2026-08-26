@@ -290,7 +290,7 @@ function showLogin(errMsg) {
           nichts — sein Passwort wählt er später über den Einladungslink, und
           zwar erst, wenn ein Admin ihn hereingelassen hat. */''}
     ${REGISTRIERUNG ? `<p class="sub anmeld-trenner">Noch keinen Zugang?</p>
-      <button class="btn" id="l-anfrage">Zugang anfragen</button>` : ''}
+      <button class="btn anmeld-zweitweg" id="l-anfrage">Zugang anfragen</button>` : ''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
   if (REGISTRIERUNG) document.getElementById('l-anfrage').onclick = () => showAnfrage();
