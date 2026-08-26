@@ -15,13 +15,13 @@ bindenden Satz, und der steht unten unter Punkt 1. Alles Übrige ist zu
 entscheiden — deshalb hat dieser Auftrag mehr Fragen als der letzte und weniger
 Verweise.
 
-WORAUF SIE AUFSETZT: 0.9.1 ist gebaut und geschoben, Fingerprint `d629e78d`,
-**3432 Prüfungen**, 49 Gegenproben, `F_ROUTEN` bei **64**, Formatnummer **10**,
-**fünf** markierte Migrationsblöcke, Stolpersteine bis **155**, **neunzehn**
-Karten im Systembereich, elf Vokabulareinträge, **siebzehn** Vorgänge im
-Sicherheitsprotokoll, **dreizehn** Merkmale, `BESTAETIGUNG_ZWECKE` bei
-**sieben**. Laufzeitabhängigkeiten: `better-sqlite3-multiple-ciphers`,
-`express`, `multer`, `sharp`, `nodemailer`.
+WORAUF SIE AUFSETZT: 0.9.1 ist gebaut, geschoben und **nachgezogen**,
+Fingerprint `3cf1b093`, **3451 Prüfungen**, 58 Gegenproben, `F_ROUTEN` bei
+**64**, Formatnummer **10**, **fünf** markierte Migrationsblöcke, Stolpersteine
+bis **157**, **neunzehn** Karten im Systembereich, elf Vokabulareinträge,
+**siebzehn** Vorgänge im Sicherheitsprotokoll, **dreizehn** Merkmale,
+`BESTAETIGUNG_ZWECKE` bei **sieben**. Laufzeitabhängigkeiten:
+`better-sqlite3-multiple-ciphers`, `express`, `multer`, `sharp`, `nodemailer`.
 
 WAS SICH ÄNDERT, IN EINEM SATZ: Wer will, sichert seinen Zugang mit einem
 zweiten Faktor — einem Code aus einer App auf seinem Telefon, der ohne Netz
@@ -29,29 +29,43 @@ entsteht und alle dreißig Sekunden ein anderer ist.
 
 ---
 
-0. WAS AUS DEM FELD ZURÜCKKAM — FÜNF PUNKTE, DREI DAVON SIND ARBEIT.
+0. WAS AUS DEM FELD ZURÜCKKAM — FÜNF PUNKTE, EINER DAVON IST ARBEIT.
 
    * **Die Selbstanmeldung ist eingespielt.** Ob der ganze Weg — Anfrage,
      Bestätigungsmail, Freischaltung, Passwort — an der echten Anlage
      durchgelaufen ist, steht noch aus; **sobald er es ist, gehört das in den
      Projektstand, Abschnitt 2**, und nicht in dieses Papier.
-   * **Zwei Befunde aus dem Betrieb sind in 0.9.1 behoben worden** und stehen
-     dort als Befunde M und N: die Karte „Anfragen" verdeckte ihren eigenen
-     Schalter (Stolperstein 155), und der Weg zur Anfrage war ein Verweis in
-     einer Fußzeile und wurde übersehen. **Beides ist erledigt; hier steht es
-     nur, damit die Runde weiß, woher der Schwerpunkt kommt:** was ein Mensch
-     nicht findet, ist nicht gebaut.
-   * **DIE MARKE UND DER AKZENT LAUFEN AUSEINANDER.** Der hervorgehobene Strich
-     in `public/marke-dunkel.svg` und `public/favicon.svg` ist `#ffc531`,
-     `--accent` der Anlage ist `#ff7a1a`. Auf der Anmeldekarte stehen sie
-     übereinander. **Entscheide das und bau es**: entweder den Strich auf den
-     Akzent ziehen, oder die Abweichung stehen lassen und im Projektstand,
-     Abschnitt 5, als gewollt festhalten. **Was nicht geht, ist beides offen
-     lassen.**
-   * **`favicon.svg` und `marke-hell.svg` sind Byte für Byte identisch.** Zwei
-     Namen für dieselbe Datei sind eine Stelle, die auseinanderläuft. **Räum das
-     auf** — entweder eine Datei und ein Verweis darauf, oder ein Unterschied,
-     der einen zweiten Namen rechtfertigt.
+   * **Fünf Befunde aus dem Betrieb sind in 0.9.1 behoben worden**, alle an
+     derselben Karte, und sie stehen dort als Befunde M, N, P, Q und R: die
+     Karte „Anfragen" verdeckte ihren eigenen Schalter (Stolperstein 155); der
+     Weg zur Anfrage war ein Verweis in einer Fußzeile und wurde übersehen;
+     Marke und Name standen gestapelt statt nebeneinander; der Strich über dem
+     Anfrageknopf teilte die Karte in zwei; und `marke-hell.svg` lag Byte für
+     Byte als zweite Fassung von `favicon.svg` daneben. **Alles erledigt; hier
+     steht es nur, damit die Runde weiß, woher der Schwerpunkt kommt:** was ein
+     Mensch nicht findet, ist nicht gebaut — und **fünf Befunde an einer
+     einzigen Karte sind eine Aussage über den Prüfstand**, nicht über die
+     Karte. Er prüft, was gebaut ist, und findet deshalb nie, was fehlt.
+   * **DIE MARKE TRÄGT GOLD, NICHT DEN AKZENT — und das ist zu entscheiden.**
+     Die Frage stand in diesem Papier zunächst anders: der hervorgehobene
+     Strich in `public/marke-dunkel.svg` und `public/favicon.svg` sei `#ffc531`
+     und laufe damit aus der Farbwelt. **Nachgesehen: `#ffc531` ist genau
+     `--gold`** — die Farbe der Sterne, seit jeher der zweite Signalwert der
+     Anlage neben `--accent` (`#ff7a1a`). Die Marke läuft also nicht aus der
+     Farbwelt heraus, sie nimmt den zweiten Wert daraus.
+     **Damit ist es eine Gestaltungsfrage und keine Berichtigung.** Auf der
+     Anmeldekarte stehen jetzt drei warme Werte übereinander: Gold in der
+     Marke, `--accent-dim`/`--accent-line` am zweiten Weg, voller Akzent am
+     Anmeldeknopf. **Entscheide das und bau es**: entweder den Strich auf
+     `--accent` ziehen, oder Gold behalten und im Projektstand, Abschnitt 5,
+     als gewollt festhalten — *Gold ist die Farbe der Bewertung, und Kriterion
+     ist ein Bewertungsarchiv; dafür lässt sich etwas sagen.* **Was nicht geht,
+     ist beides offen lassen.**
+   * **`favicon.svg` und `marke-hell.svg` — ERLEDIGT.** Es liegt nur noch
+     `favicon.svg`; `marke-hell.svg` ist entfernt, in der Oberfläche war sie
+     nie geladen. Der Prüfstand hält jetzt allgemein fest, dass in `public/`
+     keine Datei zweimal unter zwei Namen liegt — verglichen über den Inhalt
+     (Stolperstein 157). **Nichts mehr zu tun.**
    * **Der Schlüsselwechsel auf der echten Anlage steht weiterhin aus.** Er
      braucht keine Runde und keinen Auftrag; das Ergebnis gehört in den
      Projektstand, Abschnitt 2. **Nicht Teil dieser Runde.**
@@ -89,8 +103,54 @@ entsteht und alle dreißig Sekunden ein anderer ist.
    * **Die Anmeldebremse greift auch am zweiten Faktor.** Sechs Ziffern sind
      eine Million; ungebremst ist das kein Faktor, sondern eine Verzögerung.
 
+   **DREI VORGABEN SIND INZWISCHEN GESETZT** — sie kamen als Antwort auf dieses
+   Papier und stehen damit nicht mehr zur Wahl:
+
+   * **DIE APP IST GOOGLE AUTHENTICATOR.** Sie kann genau das, was das
+     Konzeptpapier meint — RFC 6238, und zwar in der Standardform: **HMAC-SHA1,
+     sechs Ziffern, dreißig Sekunden, Base32-Geheimnis**. *Daraus folgt eine
+     Fessel, und sie ist die wichtigste dieser Runde:* **bau nichts Klügeres.**
+     SHA-256 statt SHA-1, acht Ziffern statt sechs, sechzig Sekunden statt
+     dreißig — jedes davon ist für sich besser und wird von Google
+     Authenticator **stillschweigend falsch** oder gar nicht gelesen. Wer davon
+     abweicht, sperrt genau die App aus, für die gebaut wird. **Die Werte
+     stehen fest und gehören als solche in den Quelltext, mit dem Grund
+     daneben.** *Und die Kehrseite gehört geprüft:* dieselben Werte sind
+     Vorgabe in jedem anderen Prüfgerät — Aegis, 1Password, iOS-Passwörter —,
+     die Anlage bindet sich also nicht an einen Anbieter, sondern an den
+     Standard.
+   * **ES GIBT EINEN QR-CODE.** Google Authenticator kennt zwei Wege hinein:
+     einen Code scannen oder den Base32-Schlüssel von Hand eintippen. **Der
+     zweite ist der Weg, an dem Menschen aufgeben** — zweiunddreißig Zeichen aus
+     einem Alphabet ohne 0, 1 und 8, auf einem Telefon. *Der Vorbehalt aus
+     diesem Papier gilt trotzdem weiter, und du nimmst ihn ernst:* **keine
+     Bibliothek, nicht eine** — also ein eigener Encoder, Reed-Solomon über
+     GF(256), Maskenwahl und Formatbits, einige hundert Zeilen. **Er ist die
+     einzige Stelle dieser Runde, die die Runde sprengen kann.**
+     *Drei Dinge machen ihn tragbar, und alle drei sind Bedingung:* er ist
+     **gegen bekannte Vorgaben prüfbar** (dieselbe Zeichenkette ergibt dieselbe
+     Matrix, weltweit); er **trägt nichts Sicherheitskritisches** — er zeichnet
+     eine Zeichenkette, die ohnehin auf der Seite steht; und **der abtippbare
+     Schlüssel steht immer daneben**, in Vierergruppen. *Der QR-Code ist die
+     Bequemlichkeit, der getippte Schlüssel ist die Zusage.* **Sag vor dem Bau,
+     wo der Encoder liegt und wie er geprüft wird** — und sag es ehrlich, wenn
+     er die Runde zu breit macht: dann fällt er heraus und bekommt eine eigene,
+     und das ist kein Rückschritt.
+   * **JEDER SCHALTET IHN FÜR SICH SELBST EIN.** Kein Admin schaltet ihn für
+     jemanden ein und keiner für jemanden aus. *Der Grund ist nicht Höflichkeit,
+     sondern Bauart:* **einschalten** kann nur, wer das Geheimnis auf sein
+     Telefon bekommt — ein Admin, der es für einen anderen täte, sperrte ihn
+     aus. **Ausschalten** darf nur der Betroffene, sonst wäre der zweite Faktor
+     an der Rollenleiter vorbei abschaltbar und sicherte nichts. **Der einzige
+     Weg daneben ist `zugang.js` auf dem Wirt** — dieselbe Linie wie beim
+     Schlüsselwechsel: was alles kann, läuft nicht über die Oberfläche.
+     *Ob ein Admin ihn später VERLANGEN kann, ist eine andere Frage und gehört
+     nicht in diese Runde.*
+
    **ACHT FRAGEN, DIE VOR DEN BAU GEHÖREN.** Zu jeder gehört ein Vorschlag von
-   dir und eine Begründung, nicht nur eine Wahl:
+   dir und eine Begründung, nicht nur eine Wahl. **Die drei Vorgaben oben
+   beantworten Teile davon schon** — was sie beantworten, wird nicht noch einmal
+   aufgemacht, und was sie offen lassen, steht weiter zur Entscheidung:
 
    * **Wo liegt das Geheimnis, und in welcher Form?** *Ich neige zu: eine eigene
      Tabelle*, nach dem Muster von `anfragen` — `CREATE TABLE IF NOT EXISTS`
@@ -101,12 +161,16 @@ entsteht und alle dreißig Sekunden ein anderer ist.
      ist der Unterschied zu Passwort und Token, und er gehört ausdrücklich
      benannt — die verschlüsselte Datenbank ist die einzige Schicht darüber.
      **Sag, was daraus für Export, Sicherung und Kontrollausgaben folgt.**
-   * **Wie kommt das Geheimnis auf das Telefon?** Ein QR-Code wäre bequem und
-     ist ohne Bibliothek ein eigener Encoder von einigen hundert Zeilen.
-     *Ich neige zu: in dieser Runde KEIN QR-Code* — die `otpauth://`-Zeile im
-     Klartext und das Base32-Geheimnis in Vierergruppen zum Abtippen. **Das ist
-     die Stelle, an der die Runde zu breit werden kann; sag es, wenn du das
-     anders siehst, und sag dann auch, was dafür herausfällt.**
+   * **Wie kommt das Geheimnis auf das Telefon?** **Entschieden: mit QR-Code**
+     (siehe oben). *Offen bleibt das Wie:* wo der Encoder liegt (eigene Datei
+     neben `bilder.js`? in `auth.js`?), ob er die **Matrix** liefert und die
+     Oberfläche sie als SVG zeichnet oder ob er das SVG selbst schreibt, und
+     **wie er geprüft wird** — Prüfvorgaben mit bekanntem Ergebnis, dazu die
+     Bauteile einzeln (Findemuster, Taktlinien, Formatbits) statt nur ein
+     Gesamtvergleich. **Und die Grenze gehört genannt:** eine `otpauth://`-Zeile
+     mit Anlagennamen und Zugangsnamen liegt bei rund achtzig Zeichen — sag,
+     welche Version und welche Fehlerkorrektur du nimmst und was passiert, wenn
+     ein langer Name darüber hinauswächst.
    * **Wie wird die Anmeldung zweistufig, ohne einen zweiten Zustand zu
      erzeugen?** Eine halbe Sitzung wäre eine zweite Wahrheit über
      „angemeldet" — genau das, was Abschnitt 1 des Konzeptpapiers ausschließt.
@@ -123,13 +187,13 @@ entsteht und alle dreißig Sekunden ein anderer ist.
      Server. **Das ist eine Sicherheitsfrage, keine Bequemlichkeitsfrage.**
      **Und der Sonderfall gehört mitentschieden:** ein Zugang ohne Passwort, der
      seinen ersten Link einlöst, kann noch keinen zweiten Faktor haben.
-   * **Wer darf ihn abschalten?** *Ich neige zu: allein der Betroffene selbst*,
-     hinter seinem Passwort **und** einem gültigen Code — ein Admin nicht, der
-     Eigentümer nicht. Sonst wäre der zweite Faktor an der Rollenleiter vorbei
-     abschaltbar, und dann sichert er nichts. **Der Notweg ist `zugang.js` auf
-     dem Wirt**, und wer dort hinkommt, hat ohnehin alles. Prüf, ob das mit den
-     bestehenden Wegen zusammengeht — besonders mit `PUT /api/users/:id`
-     (Passwort setzen) und `entferneZugang`.
+   * **Wer darf ihn abschalten?** **Entschieden: allein der Betroffene selbst**
+     (siehe oben), hinter seinem Passwort **und** einem gültigen Code. *Offen
+     bleibt, ob das mit den bestehenden Wegen zusammengeht* — besonders mit
+     `PUT /api/users/:id` (ein Admin setzt ein fremdes Passwort) und
+     `entferneZugang`. **Prüf das und sag es**: kann ein Admin heute über einen
+     dieser Wege einen fremden zweiten Faktor mittelbar loswerden? Wenn ja, ist
+     das die Lücke, und sie gehört in derselben Runde geschlossen.
    * **Die Wiederherstellungscodes.** Wie viele, wie lang, wie gespeichert, wie
      oft gültig? *Ich neige zu: acht Stück, gespeichert wie ein Token* —
      SHA-256 ohne Salz, denn sie sind Zufall und nicht ratbar; **jeder genau
@@ -195,15 +259,17 @@ entsteht und alle dreißig Sekunden ein anderer ist.
 LESEWEGE — WAS DU WIRKLICH BRAUCHST:
 
 * **Am Stück lesen:** dieser Auftrag, `Doku/Aenderungsprotokoll_0.9.1.md`
-  (Abschnitte 2 bis 5 — die Abweichungen, die Fragen, die Befunde und die
-  Stolpersteine 149 bis 155).
+  (Abschnitte 2 bis 5 — die Abweichungen, die Fragen, die Befunde A bis U und
+  die Stolpersteine 149 bis 157). **Die Befunde M bis U sind die aus dem
+  Betrieb; lies die zuerst.**
 * **Abschnittsweise, über die Überschriften angesteuert:** Projektstand
   Abschnitt 2 (Betriebsstand und Einspielweg), 3 (**der ganze Abschnitt** —
   Zugang, Tokens, Sitzungen, Anmeldebremse, zweite Bestätigung,
   Sicherheitsprotokoll, Selbstanmeldung), 4 (die Karten), 5 (Entscheidungen),
   6 (**Stolpersteine 13, 20, 47, 61, 74, 81, 90, 102, 106, 138, 145, 149 bis
-  155**), 7 (Prüfstand), 10 (der Plan bis 1.0), 12 (Arbeitsweise samt
-  Sprachregel).
+  157**), 7 (Prüfstand), 8 (offene Betriebspunkte), 10 (**der Fahrplan bis zur
+  Veröffentlichung** — er ist nach 0.9.1 festgelegt worden), 12 (Arbeitsweise
+  samt Sprachregel).
 * **Vom Konzeptpapier NUR den einen Satz** aus Teil III, der oben zitiert ist.
   **Das Papier ist mit 0.9.1 geschlossen** — siehe unten.
 * **Gezielt greppen, nie am Stück lesen:** `pruefung.js` (über 22 000 Zeilen).
@@ -342,10 +408,14 @@ BAUREGEL — datenbankverändernder Code wird rückbaufreundlich gebaut:
   kein Block. `CREATE TABLE IF NOT EXISTS` legt sie bei jedem Start an
   (Stolperstein 13).
 * Das Schema bleibt vollständige DDL in `db.js`.
-* Einmaliger Migrationscode stünde gebündelt in `migration0910()` mit der Marke
-  `// MIGRATION 0.9.x — ENTFAELLT MIT 1.0`. **Er wird voraussichtlich nicht
-  gebraucht — und wenn du meinst, doch, ist das ein Grund anzuhalten und zu
-  fragen, kein Grund, ihn einzubauen.**
+* Einmaliger Migrationscode stünde gebündelt in `migration0910()`. **Die Marke
+  darüber lautet weiterhin `// MIGRATION 0.9.x — ENTFAELLT MIT 1.0`** — sie ist
+  der Wortlaut, den alle fünf vorhandenen Blöcke tragen, und ein sechster mit
+  anderem Wortlaut wäre eine zweite Schreibweise für dieselbe Sache. *Dass die
+  Bereinigung nach dem neuen Fahrplan auf 0.9.60 liegt und nicht auf 1.0,
+  ändert daran nichts; die Marke ist ein Suchwort, kein Termin.* **Der Code
+  wird voraussichtlich nicht gebraucht — und wenn du meinst, doch, ist das ein
+  Grund anzuhalten und zu fragen, kein Grund, ihn einzubauen.**
 
 AM ENDE DES CHATS:
 
@@ -355,13 +425,14 @@ AM ENDE DES CHATS:
   sein, und `npm test` läuft ein letztes Mal gegen genau diesen Stand.
 * `Doku/Aenderungsprotokoll_0.9.10.md` liegt im Branch: was gebaut wurde je
   Datei, Abweichungen mit Begründung, neue Stolpersteine (**die Zählung setzt
-  bei 156 fort** — 149 bis 155 sind vergeben), die Gegenprobentabelle **aus
-  `gegenprobe.js`**, Prüfungszahlen vorher/nachher (vorher: **3432**),
+  bei 158 fort** — 149 bis 157 sind vergeben), die Gegenprobentabelle **aus
+  `gegenprobe.js`**, Prüfungszahlen vorher/nachher (vorher: **3451**),
   Offengebliebenes.
 * Die Zeile „0.9.10 — Fingerprint `…`" gehört ins Änderungsprotokoll, **ZULETZT
   gebildet**, nach der letzten Änderung an einer ausgelieferten Datei — die
   Versionsnummer in `package.json` eingeschlossen. **Und `public/` gehört
-  dazu**: seit 0.9.1 liegen dort drei SVG-Dateien, die mitzählen.
+  dazu**: seit 0.9.1 liegen dort **zwei** SVG-Dateien, die mitzählen —
+  `marke-dunkel.svg` und `favicon.svg`.
 * **Der Einspielweg dieser Runde nennt die Sicherung des Datenverzeichnisses
   als PFLICHT** — es ist eine Datenbankstufe. **Neue Zeilen in der `.env` gibt
   es voraussichtlich nicht**; sag es ausdrücklich, statt es offenzulassen.
@@ -406,15 +477,24 @@ ZUM VORMERKEN, NICHT IN DIESER RUNDE:
   nicht. Er läuft über `./schluessel.sh wechseln` auf dem Wirt und **braucht
   keine Runde und keinen Auftrag**; das Ergebnis gehört in den Projektstand,
   Abschnitt 2.
-* **0.9.20 — Suche und Bestand.** Volltextsuche, gespeicherte Ansichten,
-  Doppelerkennung samt Zusammenführen. **Eine Datenbankstufe.**
-* **Eine Runde für Fehlerbehebung und Nacharbeit.** Sie steht im Projektstand,
-  Abschnitt 10, ohne Nummer — 0.9.2 bis 0.9.9 sind frei. **Der Auftrag zu
-  0.9.1 nannte dafür irrtümlich 0.9.20**, und dort steht „Suche und Bestand".
-  Zwei verschiedene Dinge unter derselben Nummer; das ist beim Nachziehen des
-  Projektstands zu berichtigen.
-* **Ein QR-Code für das Geheimnis**, falls diese Runde ihn nicht bringt. Ein
-  eigener Encoder, ohne Bibliothek.
+* **DER FAHRPLAN BIS ZUR VERÖFFENTLICHUNG STEHT** — festgelegt nach 0.9.1 und
+  im Projektstand, Abschnitt 10, eingetragen:
+  **0.9.20 — Suche und Bestand** (Volltextsuche, gespeicherte Ansichten,
+  Doppelerkennung samt Zusammenführen; eine Datenbankstufe).
+  **0.9.30 — Fehlerbereinigung und Verbesserungen**; das ist die Runde, die
+  bisher ohne Nummer dastand. *Der Auftrag zu 0.9.1 nannte dafür irrtümlich
+  0.9.20, wo schon „Suche und Bestand" steht — berichtigt.*
+  **0.9.60 — vermutlich Bereinigung von Code und Datenbankstruktur**: die
+  Struktur wird als Grundlage festgeschrieben, Migrationscode fällt heraus,
+  **ab dort gibt es keinen Rückweg auf ältere Fassungen.** Das ist der Inhalt,
+  der bisher unter 1.0.0 stand.
+  **0.9.90 — die Veröffentlichung**, und nicht 1.0.0. *Warum 0.9.90 und nicht
+  0.9.9: sortiert wird zahlweise, und `0.9.9` läge damit VOR `0.9.10` — die
+  Veröffentlichung stünde in der Vergangenheit.*
+  **Was mit der Eins geschieht, ist offen** und steht in Abschnitt 8.
+* **Der QR-Encoder als eigene Runde**, falls er diese hier zu breit macht. Er
+  ist der eine Teil, bei dem das ausdrücklich erlaubt ist: der abtippbare
+  Schlüssel trägt den Weg auch ohne ihn.
 * **Ein Versanddienst über HTTPS**, falls SMTP am Anschluss nachweislich nicht
   durchkommt. Zweiter Weg im Code, ohne Bibliothek, mit `fetch`.
 * **Ein echter Teillauf im Prüfstand.** `pruefung.js` ist EIN Ablauf; der
@@ -422,6 +502,6 @@ ZUM VORMERKEN, NICHT IN DIESER RUNDE:
   `PORT_VERSATZ` mildern das, sie beheben es nicht.
 * **Der Zähler „Offen 7" in der Kopfzeile** aus 0.8.60 wird bei jedem
   Seitenaufbau gebraucht.
-* **1.0.0 — Bereinigung und Zusage.** Migrationscode raus, Absage an zu alte
-  Datenbanken, Abwärtskompatibilität wird zugesichert.
-* **Teil II des Videopapiers — große Dateien bis 2 GB**, beschlossen für 1.1.0.
+* **Teil II des Videopapiers — große Dateien bis 2 GB.** Es stand auf 1.1.0;
+  mit der Veröffentlichung auf 0.9.90 hängt seine Nummer an derselben
+  Entscheidung wie die Eins.

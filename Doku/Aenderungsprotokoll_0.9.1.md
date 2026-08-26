@@ -1,7 +1,16 @@
 # Änderungsprotokoll 0.9.1 — „Stufe I₂: die Selbstanmeldung"
 
-**Version 0.9.1 · gebaut am 25. August 2026 · zweite Hälfte von Stufe I des
-Mehrbenutzerbetriebs · Datenbankstufe, ohne Migrationsblock**
+**Version 0.9.1 · gebaut am 25. August 2026 · nachgezogen am 26. August 2026 ·
+zweite Hälfte von Stufe I des Mehrbenutzerbetriebs · Datenbankstufe, ohne
+Migrationsblock**
+
+> **DIESES PAPIER TRÄGT ZWEI STÄNDE.** Der eine ist der eingespielte:
+> Fingerprint `d629e78d`, 3432 Prüfungen, 49 Gegenproben, Stolpersteine bis
+> 155. Der andere ist der Stand nach der **Nacharbeit an der Anmeldeseite**,
+> die aus dem Betrieb zurückkam und ohne neue Versionsnummer gebaut wurde:
+> Fingerprint `3cf1b093`, 3451 Prüfungen, 58 Gegenproben, Stolpersteine bis
+> 157. **Die Befunde M bis U tragen sie**, und wo eine Zahl sich bewegt hat,
+> stehen beide da.
 
 **Mit dieser Runde ist der Stufenplan abgearbeitet.** Teil II des
 Konzeptpapiers ist vollständig; es gibt keine offene Stufe mehr. Was von jenem
@@ -164,25 +173,30 @@ des Neuladens und der Weg danach stehen alle drei weiter darin.
   Kasten wird geleert; die Kennungen darin sind feste Namen (Stolperstein 153).
 * **Die gekürzte Zeile auf der Einladungsseite.**
 
-### `public/marke-dunkel.svg`, `public/marke-hell.svg`, `public/favicon.svg` — neu
+### `public/marke-dunkel.svg`, `public/favicon.svg` — neu
 
 **Die Marke der Anlage ist seit dieser Runde eine ausgelieferte Datei** und
 kein eingebautes SVG mehr. Wer sie austauscht, tauscht eine Datei aus und fasst
-keinen Quelltext an. Drei Fassungen: **durchsichtig** (für die dunklen Flächen
-der Oberfläche), **mit Kachel** (für helle Flächen, Druck, fremde Seiten) und
-das **Favicon** für den Tab. Die Oberfläche nimmt die durchsichtige — eine
-mitgelieferte Kachel säße auf dunklem Grund als sichtbares Rechteck darauf.
+keinen Quelltext an. Zwei Fassungen: **durchsichtig** (für die dunklen Flächen
+der Oberfläche) und **mit Kachel** (für den Tab des Browsers, ein Lesezeichen,
+eine helle Seite). Die Oberfläche nimmt die durchsichtige — eine mitgelieferte
+Kachel säße auf dunklem Grund als sichtbares Rechteck darauf.
 
-**Die Farben stammen aus der eigenen Palette:** `#838c95` ist `--muted`,
-`#16191c` ist `--surface`.
+*Es lagen zunächst drei da:* `marke-hell.svg` war Byte für Byte `favicon.svg`.
+**Sie ist entfernt** — Befund R, Stolperstein 157.
 
-**Offen geblieben und benannt, nicht stillschweigend geändert:** der
-Akzentstrich der Marke ist `#ffc531`, `--accent` der Anlage ist `#ff7a1a` — zwei
-warme Töne, die nicht derselbe sind, und auf der Anmeldekarte stehen sie
-übereinander. Die Zeichnung ist unverändert übernommen; die Entscheidung darüber
-gehört dem, dem die Marke gehört. Ebenso benannt: `favicon.svg` und
-`marke-hell.svg` sind Byte für Byte identisch — zwei Namen für dieselbe Datei
-sind eine Stelle, die auseinanderlaufen kann.
+**Alle Farben stammen aus der eigenen Palette:** `#838c95` ist `--muted`,
+`#16191c` ist `--surface`, **und der hervorgehobene Strich `#ffc531` ist
+`--gold`** — die Farbe der Sterne. Die Marke läuft also nicht aus der Farbwelt
+heraus; sie nimmt deren zweiten Signalwert statt `--accent` (`#ff7a1a`).
+
+**Offen geblieben und benannt, nicht stillschweigend geändert:** ob der Strich
+Gold behält oder auf den Akzent gezogen wird. Auf der Anmeldekarte stehen jetzt
+drei warme Werte übereinander — Gold in der Marke, `--accent-dim`/`--accent-line`
+am zweiten Weg, voller Akzent am Anmeldeknopf. **Das ist eine Gestaltungsfrage,
+keine Berichtigung**; die Zeichnung ist unverändert übernommen, und die
+Entscheidung gehört dem, dem die Marke gehört. Sie steht als Arbeit im Auftrag
+0.9.10, Punkt 0. Siehe Befund U.
 
 ### `pruefung.js`
 
@@ -519,7 +533,8 @@ Vorkommen.
 
 *Alle sechs Befunde sind das, wofür die Gegenproben da sind:* **ein Rückbau, der
 keine Prüfung rot macht — oder den Lauf mitnimmt —, ist ein Fund und kein
-Erfolg.**
+Erfolg.** *In der Nacharbeit kam ein siebter dazu — Rückbau 80, siehe Abschnitt
+7.*
 
 ### Befund M — die Karte verdeckte ihren eigenen Schalter (aus dem Betrieb)
 
@@ -743,7 +758,10 @@ steht im Projektstand, Abschnitt 6.
 
 ## 6. Der Prüfstand
 
-**3432 von 3432 bestanden** — 240 neue Prüfungen, **achtzehn** neue Gruppen.
+**3451 von 3451 bestanden** — 259 neue Prüfungen, **neunzehn** neue Gruppen.
+*(Beim Einspielen waren es 3432 und achtzehn; die Nacharbeit an der
+Anmeldeseite — Befunde P bis S — hat neunzehn Prüfungen und die Gruppe „Die
+Markenzeile der Anmeldeseiten" gebracht.)*
 
 | Gruppe | Was sie festhält |
 |---|---|
@@ -764,12 +782,24 @@ steht im Projektstand, Abschnitt 6.
 | Die Anmeldeseite: das Anfrageformular | steht nur bei eingeschaltetem Schalter, kein Passwortfeld, der Rumpf trägt nur Name und Adresse |
 | Die Bestätigungsseite in der Oberfläche | Schlüssel im Rumpf, kein Passwortfeld, niemand ist angemeldet, die eine Absage |
 | Die Karte „Anfragen" | Liste, Freischalten und Ablehnen über **zugestellte** Ereignisse, die rote Zeile und ihre Gegenlage |
+| Die Markenzeile der Anmeldeseiten | *(aus der Nacharbeit)* im gebauten Baum: die Zeile, genau zwei Kinder, `IMG` vor `H1`, keine zweite Marke daneben, das Zeichen stumm |
 
 **Erweitert:** `F_ROUTEN` samt Zahl **64**; die geschlossenen Listen aus
 `auth.js` samt ihren Zahlen (siebzehn Vorgänge, dreizehn Merkmale, sieben
 Zwecke); die Schlüsselliste von `GET /api/config` (fünf Namen); die Kartenzahl
 **neunzehn** in beiden Lagen; die dritte breite Kachel; die gekürzten Zeilen auf
 der Einladungsseite.
+
+**Aus der Nacharbeit dazu, in „Die Marke der Anlage" und „Die Anmeldeseite:
+das Anfrageformular":** die Markenzeile in der **Quelle** (der Helfer legt sie
+an, das Paar steht genau **einmal** in `app.js`) und im **Stylesheet**
+(`display: flex`, `align-items: center`, eine Lücke, kein eigener Unterrand am
+h1); die Trennung **ohne Strich** samt gemessenem Abstand; die Färbung des
+zweiten Wegs **in beide Richtungen** — dass Farbe da ist und dass sie leise
+bleibt, wobei die Deckung beider Palettenwerte **gemessen** wird und unter 0,5
+liegen muss; und die allgemeine Zeile, dass in `public/` **keine Datei zweimal
+unter zwei Namen** liegt, samt ihrer Gegenlage, dass überhaupt Dateien darin
+liegen.
 
 **Kein Migrationsabschnitt — es gibt keinen Block.** Stattdessen die Probe
 selbst, und sie wird ausdrücklich gesagt: **das Schema einer gewachsenen Anlage
@@ -790,11 +820,13 @@ unverändert **122** Pfade.
 
 ## 7. Gegenprobentabelle
 
-**49 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
-gefahren über `gegenprobe.js` mit vier Nebenspuren. **42 sind neu** (31 bis 72,
+**58 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
+gefahren über `gegenprobe.js` mit vier Nebenspuren. **51 sind neu** (31 bis 81,
 ohne 45 — siehe Abweichung D), drei sind nachgezogen (07, 14 und 30 zielten auf
 Zeilen, die diese Runde verschoben hat), zwei sind die Wächter über den
-Prüfstand selbst.
+Prüfstand selbst. *Neun davon — 73 bis 81 — kommen aus der Nacharbeit an der
+Anmeldeseite; 69 und 70 sind dabei neu gezielt worden, weil die Zeilen, auf die
+sie zeigten, sich verschoben haben.*
 
 **Rückbau 63 ist nach der Berichtigung aus Befund M neu gezielt** und in einem
 eigenen Lauf gefahren: er stellt die alte, verdeckende Bedingung wieder her.
@@ -803,8 +835,17 @@ eigenen Lauf gefahren: er stellt die alte, verdeckende Bedingung wieder her.
 hat etwas gesagt** — vier echte Lücken in der Prüfung (36, 39, 41, 66) und drei
 Läufe, die abrissen statt rot zu werden (48, 56, 58). **Rückbau 36 riss danach
 ein zweites Mal ab, aus einem anderen Grund** (Befund L). Alles steht in den
-Befunden H bis L und ist abgearbeitet. **Die Tabelle unten ist der Stand
-DANACH: null stumm, null abgerissen.**
+Befunden H bis L und ist abgearbeitet.
+
+**In der Nacharbeit kam eine achte stumme dazu: Rückbau 80.** Er gibt der
+Überschrift in der Markenzeile ihren Unterrand zurück (`margin: 0 0 5px`), und
+kein einziger Punkt wurde rot. **Die Prüfung las nur den Anfang des Wertes** —
+`margin: *0` passte auf die Null davor und sah den Unterrand dahinter nicht.
+Gemessen wird jetzt der ganze Wert. *Das ist der achte Beleg dafür, wozu die
+Gegenproben da sind, und der erste, der eine Prüfung aus derselben Sitzung
+getroffen hat.*
+
+**Die Tabelle unten ist der Stand DANACH: null stumm, null abgerissen.**
 
 | # | Rückbau | Namentlich rot |
 |---|---|---|
@@ -848,6 +889,19 @@ DANACH: null stumm, null abgerissen.**
 | 66 | Die gekuerzte Zeile im Mailtext verliert eine Auskunft | „Und was danach zu tun ist" |
 | 67 | Derselbe Wunschname darf zweimal in der Warteschlange stehen | „Und auch dabei bleibt es bei der einen Zeile", „Und keine von beiden hat eine Zeile angelegt" |
 | 68 | Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes | „Und zwar als KNOPF, nicht als Verweis in einer Fusszeile", „Er traegt dieselbe Knopfklasse wie "Anmelden"" |
+| 69 | Der gedaempfte Knopf verliert auch seine Umrandung | „Und zieht die Umrandung in dieselbe Farbe", „Aber NICHT ohne Umrandung -- sonst waere er wieder ein Verweis" |
+| 70 | Die Oberflaeche nimmt die Marke MIT Kachel | „Die Oberflaeche laedt die Marke als Datei", „Und zwar die durchsichtige, nicht die mit Kachel" |
+| 71 | Die Marke heisst wieder wie die Kommentarknoepfe | 4 Prüfungen in 2 Gruppen, darunter „Die Marke traegt NICHT die Klasse der Kommentarknoepfe" |
+| 72 | Der Tab bekommt kein Favicon mehr | „Der Tab bekommt die Marke als Favicon" |
+| 73 | Der Strich ueber dem Anfrageknopf kommt zurueck | „Und sie tut das OHNE Strich", „Sondern mit einem Abstand, der groesser ist als jede Luecke davor" |
+| 74 | Und der Abstand, der ihn ersetzt, schrumpft auf nichts | „Sondern mit einem Abstand, der groesser ist als jede Luecke davor" |
+| 75 | Der Anfrageknopf verliert seine leichte Faerbung | „Sie faerbt ihn leicht ein statt ihn leer zu lassen", „Und zieht die Umrandung in dieselbe Farbe" |
+| 76 | Der Anfrageknopf wird so laut wie „Anmelden" | 3 Prüfungen, darunter „Er traegt NICHT den vollen Akzent des Anmeldeknopfs" |
+| 77 | Marke und Name stapeln sich wieder uebereinander | 7 Prüfungen in 2 Gruppen, darunter „Die Anmeldeseite traegt eine Markenzeile" |
+| 78 | Erst das Wort, dann das Zeichen | 6 Prüfungen in 2 Gruppen, darunter „Erst das Zeichen", „Dann das Wort" |
+| 79 | Die Markenzeile ist keine Zeile mehr | „Und das Stylesheet stellt sie wirklich nebeneinander", „Mit einer Luecke dazwischen" |
+| 80 | Die Ueberschrift in der Zeile traegt wieder einen Unterrand | „Und die Ueberschrift traegt darin keinen eigenen Unterrand" *(war beim ersten Lauf **stumm** — siehe oben)* |
+| 81 | Dieselbe Datei liegt wieder unter zwei Namen in public/ | „Und eine dritte Fassung liegt nicht mehr daneben", „In public/ liegt keine Datei zweimal unter zwei Namen" |
 | W2 | Eine Portbasis liegt wieder auf der gesperrten 4045 | „Keine Portbasis deckt eine Nummer, die fetch() nicht anwaehlt" |
 
 ---
@@ -857,9 +911,10 @@ DANACH: null stumm, null abgerissen.**
 | | |
 |---|---|
 | Vorher (0.9.0) | 3192 |
-| Nachher (0.9.1) | **3432** |
-| Neu | **240** |
-| Gegenproben | **49** |
+| Nachher (0.9.1, eingespielt) | 3432 |
+| Nachher (0.9.1 samt Nacharbeit) | **3451** |
+| Neu | **259** |
+| Gegenproben | **58** |
 
 ---
 
@@ -901,9 +956,19 @@ DANACH: null stumm, null abgerissen.**
   Bestätigung aus 0.8.90 ist die Stelle, an der er zusätzlich gefragt würde.
   **Der Satz „E-Mail ist Bequemlichkeit, nie Voraussetzung" trägt dort nicht:**
   ein zweiter Faktor braucht kein Netz und darf nie ausfallen.
-* **Eine Runde für Fehlerbehebung und Nacharbeit**, etwa auf 0.9.20. Der
-  Stufenplan ist durch; danach ist der richtige Zeitpunkt, das Aufgelaufene
-  abzuräumen statt weiterzubauen.
+* **Eine Runde für Fehlerbehebung und Nacharbeit — sie hat jetzt eine Nummer:
+  0.9.30.** *In diesem Papier stand zunächst „etwa auf 0.9.20"; dort liegt aber
+  schon „Suche und Bestand".* Der Fahrplan bis zur Veröffentlichung ist nach
+  dieser Runde festgelegt worden und steht im Projektstand, Abschnitt 10:
+  **0.9.20 Suche und Bestand, 0.9.30 Fehlerbereinigung, vermutlich 0.9.60 die
+  Bereinigung von Code und Datenbankstruktur — ab dort ohne Rückweg auf ältere
+  Fassungen —, und 0.9.90 die Veröffentlichung statt 1.0.0.**
+* **Die Farbe der Marke.** `#ffc531` ist `--gold` und nicht `--accent`; ob das
+  so bleibt, ist eine Gestaltungsfrage und steht als Arbeit im Auftrag 0.9.10,
+  Punkt 0. Siehe Befund U.
+* **Der abgerissene Prüflauf aus der Nacharbeit** (Befund T). Nicht
+  reproduziert in sechs Läufen danach, nicht wegerklärt; er steht im
+  Projektstand, Abschnitt 8.
 * **Ein Versanddienst über HTTPS**, falls SMTP am Anschluss nachweislich nicht
   durchkommt. Zweiter Weg im Code, ohne Bibliothek, mit `fetch`.
 * **Ein echter Teillauf im Prüfstand.** `pruefung.js` ist EIN Ablauf; der
@@ -919,4 +984,6 @@ DANACH: null stumm, null abgerissen.**
 
 ---
 
-**0.9.1 — Fingerprint `d629e78d`**
+**0.9.1 — Fingerprint `3cf1b093`**
+*(beim Einspielen `d629e78d`; die Nacharbeit an der Anmeldeseite hat ihn
+weitergedreht, ohne die Versionsnummer zu bewegen)*

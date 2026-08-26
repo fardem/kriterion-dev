@@ -92,6 +92,27 @@ keine Betriebsart, in der ein geklickter Link allein freischaltet.
 Anfrage verfällt von selbst. Die Mail sagt das auch — und sie sagt ausdrücklich,
 dass ihr Link keinen Zugang öffnet und kein Passwort setzt.
 
+### Nachgezogen nach dem Einspielen
+
+Aus dem Betrieb heraus, ohne neue Versionsnummer — **wer 0.9.1 schon fährt,
+holt sich das mit dem nächsten Einspielen**:
+
+- **Die Karte „Anfragen" steht dem Admin jetzt immer.** Sie war an die
+  Bedingung geknüpft, dass die Selbstanmeldung an ist oder Anfragen vorliegen —
+  und der Schalter sitzt in ihr. Frisch eingespielt war sie damit nicht zu
+  erreichen.
+- **Der Weg zur Anfrage ist ein Knopf** und nicht mehr ein Verweis in der
+  Fußzeile. Er wurde übersehen.
+- **Marke und Name stehen auf der Anmeldeseite nebeneinander** statt
+  übereinander — erst das Zeichen, dann „Kriterion", so wie in der Kopfzeile
+  nach der Anmeldung auch.
+- **Der Strich über „Zugang anfragen" ist weg.** Er lag quer durch eine Karte,
+  die sonst keine Linie kennt. Getrennt wird jetzt mit Abstand, und der Knopf
+  trägt dafür selbst eine ganz leichte Färbung — dieselbe Farbe wie „Anmelden",
+  nur leise.
+- **Eine Grafikdatei weniger.** `marke-hell.svg` war Byte für Byte
+  `favicon.svg`; sie ist entfernt.
+
 ---
 
 ## 0.9.0 — Der Server verschickt selbst
