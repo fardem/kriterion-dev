@@ -49,6 +49,10 @@ const { spawn, spawnSync } = require('child_process');
              wird als solcher gemeldet. Ein Rueckbau, der ins Leere greift,
              saehe sonst aus wie einer, der nichts bewirkt.
      ersatz  wodurch er ersetzt wird
+   Statt `suche`/`ersatz` darf ein Eintrag auch `kopie` tragen: dann wird
+   `datei` in der Kopie ein zweites Mal unter diesem Namen abgelegt. Damit
+   laesst sich eine entfernte Datei zurueckholen -- eine Textersetzung kann
+   das nicht, weil es dabei um die Datei geht und nicht um ihren Inhalt.
      erwartet  die Prueffgruppe, in der die roten Punkte erwartet werden. Sie
              ist eine NOTIZ und keine Bedingung: gemeldet wird, was wirklich
              rot wurde, und wenn das eine andere Gruppe ist, steht das da. */
@@ -573,8 +577,46 @@ const RUECKBAUTEN = [
        Ruhezustand keiner mehr ist. Der Rueckbau nimmt ihm die Umrandung. */
     nr: '69', name: 'Der gedaempfte Knopf verliert auch seine Umrandung',
     datei: 'public/style.css',
-    suche: "  background: transparent; color: var(--muted); font-weight: 500;",
-    ersatz: "  background: transparent; border-color: transparent; color: var(--muted); font-weight: 500;",
+    suche: "  background: var(--accent-dim); border-color: var(--accent-line);",
+    ersatz: "  background: var(--accent-dim); border-color: transparent;",
+    erwartet: 'Die Anmeldeseite: das Anfrageformular'
+  },
+  {
+    /* AUS DEM BETRIEB: die Trennlinie ueber dem Knopf lag quer durch eine
+       Karte, die sonst keine kennt. Sie ist weg, der Abstand traegt die
+       Trennung. Der Rueckbau holt den Strich zurueck. */
+    nr: '73', name: 'Der Strich ueber dem Anfrageknopf kommt zurueck',
+    datei: 'public/style.css',
+    suche: "  margin: 28px 0 0; font-size: .87rem;",
+    ersatz: "  margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line); font-size: .87rem;",
+    erwartet: 'Die Anmeldeseite: das Anfrageformular'
+  },
+  {
+    /* UND DIE ANDERE HAELFTE: ohne Strich UND ohne Abstand liefe der Knopf
+       mit dem Anmeldeknopf zusammen. */
+    nr: '74', name: 'Und der Abstand, der ihn ersetzt, schrumpft auf nichts',
+    datei: 'public/style.css',
+    suche: "  margin: 28px 0 0; font-size: .87rem;",
+    ersatz: "  margin: 10px 0 0; font-size: .87rem;",
+    erwartet: 'Die Anmeldeseite: das Anfrageformular'
+  },
+  {
+    /* DIE FAERBUNG FAELLT WEG. Ohne Linie darueber und ohne eigene Farbe
+       stuende ein grauer Knopf auf dunkelgrauem Grund. */
+    nr: '75', name: 'Der Anfrageknopf verliert seine leichte Faerbung',
+    datei: 'public/style.css',
+    suche: "  background: var(--accent-dim); border-color: var(--accent-line);",
+    ersatz: "  background: transparent; border-color: var(--line);",
+    erwartet: 'Die Anmeldeseite: das Anfrageformular'
+  },
+  {
+    /* UND DIE GEGENRICHTUNG: die Faerbung wird so laut wie der Anmeldeknopf.
+       Dann saessen zwei gleich laute Knoepfe uebereinander und die Seite
+       sagte nicht mehr, welcher der gewoehnliche Weg ist. */
+    nr: '76', name: 'Der Anfrageknopf wird so laut wie "Anmelden"',
+    datei: 'public/style.css',
+    suche: "  background: var(--accent-dim); border-color: var(--accent-line);",
+    ersatz: "  background: var(--accent); border-color: var(--accent);",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -603,10 +645,13 @@ const RUECKBAUTEN = [
   },
   /* ---- Die Marke der Anlage ---- */
   {
+    /* NEU GEZIELT: marke-hell.svg ist entfernt -- sie war Byte fuer Byte
+       favicon.svg. Der Rueckbau greift jetzt zur verbliebenen Fassung mit
+       Kachel, und die saesse auf dunklem Grund als sichtbares Rechteck. */
     nr: '70', name: 'Die Oberflaeche nimmt die Marke MIT Kachel',
     datei: 'public/app.js',
     suche: '<img class="marke" src="marke-dunkel.svg"',
-    ersatz: '<img class="marke" src="marke-hell.svg"',
+    ersatz: '<img class="marke" src="favicon.svg"',
     erwartet: 'Die Marke der Anlage'
   },
   {
@@ -623,6 +668,54 @@ const RUECKBAUTEN = [
     datei: 'public/index.html',
     suche: '<link rel="icon" href="favicon.svg" type="image/svg+xml">',
     ersatz: '',
+    erwartet: 'Die Marke der Anlage'
+  },
+  /* ---- Die Markenzeile der Anmeldeseiten ---- */
+  {
+    /* DER STAND VOR DER BERICHTIGUNG AUS DEM BETRIEB: Marke UEBER dem Namen.
+       Der Helfer legt dann keinen Kasten mehr an, und die beiden stapeln
+       sich wieder. */
+    nr: '77', name: 'Marke und Name stapeln sich wieder uebereinander',
+    datei: 'public/app.js',
+    suche: '  `<div class="login-marke">${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
+    ersatz: '  `${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>`;',
+    erwartet: 'Die Markenzeile der Anmeldeseiten'
+  },
+  {
+    /* DIE REIHENFOLGE KIPPT: erst das Wort, dann das Zeichen. Der Kasten
+       bleibt, also greift hier nur die Zeile, die die Reihenfolge prueft. */
+    nr: '78', name: 'Erst das Wort, dann das Zeichen',
+    datei: 'public/app.js',
+    suche: '  `<div class="login-marke">${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
+    ersatz: '  `<div class="login-marke"><h1>${esc(TITLE_PUBLIC)}</h1>${MARK(34)}</div>`;',
+    erwartet: 'Die Markenzeile der Anmeldeseiten'
+  },
+  {
+    /* DER KASTEN BLEIBT, DAS STYLESHEET STELLT IHN ABER NICHT MEHR
+       NEBENEINANDER. Zwei Bloecke untereinander sehen im Baum aus wie eine
+       Zeile -- deshalb prueft der Prueflauf beides. */
+    nr: '79', name: 'Die Markenzeile ist keine Zeile mehr',
+    datei: 'public/style.css',
+    suche: '  display: flex; align-items: center; gap: 11px; margin: 0 0 5px;',
+    ersatz: '  display: block; margin: 0 0 5px;',
+    erwartet: 'Die Marke der Anlage'
+  },
+  {
+    /* DIE UEBERSCHRIFT NIMMT IHREN UNTERRAND WIEDER MIT -- bei
+       align-items: center saesse sie damit um die halbe Hoehe zu hoch und
+       die Marke stuende schief daneben. */
+    nr: '80', name: 'Die Ueberschrift in der Zeile traegt wieder einen Unterrand',
+    datei: 'public/style.css',
+    suche: '.login-card .login-marke h1 { margin: 0; }',
+    ersatz: '.login-card .login-marke h1 { margin: 0 0 5px; }',
+    erwartet: 'Die Marke der Anlage'
+  },
+  {
+    /* DIE DOPPELTE DATEI KOMMT ZURUECK: favicon.svg noch einmal unter einem
+       zweiten Namen. Genau der Zustand, der aufgeraeumt wurde. */
+    nr: '81', name: 'Dieselbe Datei liegt wieder unter zwei Namen in public/',
+    datei: 'public/favicon.svg',
+    kopie: 'public/marke-hell.svg',
     erwartet: 'Die Marke der Anlage'
   },
   /* ---- Der Pruefstand ueber sich selbst ---- */
@@ -728,6 +821,22 @@ function raeumeAuf(pfad) {
 function baueZurueck(kopie, r) {
   const datei = path.join(kopie, r.datei);
   if (!fs.existsSync(datei)) throw new Error(`${r.datei} gibt es in der Kopie nicht.`);
+  /* DER ZWEITE RUECKBAUWEG: eine ENTFERNTE DATEI WIEDER HINLEGEN. Er ersetzt
+     keinen Text, sondern legt `datei` ein zweites Mal unter dem Namen `kopie`
+     ab. Gebraucht wird er fuer die Zeile, die haelt, dass in public/ keine
+     Datei zweimal unter zwei Namen liegt -- die laesst sich mit einer
+     Textersetzung nicht zurueckbauen, weil es dabei um die Datei selbst
+     geht und nicht um ihren Inhalt.
+     ER LIEGT ABSICHTLICH IM ZURUECK STATT DANEBEN: so faellt er unter
+     dieselbe Kopie, dieselbe Nachschau und dasselbe Aufraeumen wie jeder
+     andere -- der Arbeitsbaum wird auch hier NIE angefasst. */
+  if (r.kopie) {
+    const ziel = path.join(kopie, r.kopie);
+    if (fs.existsSync(ziel))
+      throw new Error(`${r.kopie} liegt schon da -- der Rueckbau haette nichts zu tun.`);
+    fs.copyFileSync(datei, ziel);
+    return;
+  }
   const text = fs.readFileSync(datei, 'utf8');
   const teile = text.split(r.suche);
   /* GENAU EINMAL. Keinmal heisst: der gesuchte Text steht so nicht mehr da --

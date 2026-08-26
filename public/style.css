@@ -123,7 +123,18 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   animation: rise .34s var(--ease) both;
 }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.login-card .marke { margin-bottom: 18px; }
+/* MARKE UND NAME IN EINER ZEILE, erst das Zeichen, dann das Wort. Dieselbe
+   Anordnung und dieselbe Luecke wie `.brand` in der Kopfzeile des
+   angemeldeten Bereichs -- die Anlage zeigt sich vor und nach der Anmeldung
+   gleich. Die 5px darunter sind die, die vorher das h1 trug: der Abstand von
+   der Marke zur Unterzeile bleibt derselbe, nur der Stapel faellt weg. */
+.login-card .login-marke {
+  display: flex; align-items: center; gap: 11px; margin: 0 0 5px;
+}
+/* Im Verbund traegt die Zeile den Abstand, nicht die Ueberschrift: ein
+   margin-bottom am h1 schoebe es bei align-items: center um die halbe Hoehe
+   nach oben und die Marke saesse schief daneben. */
+.login-card .login-marke h1 { margin: 0; }
 .login-card h1 { font-size: 1.53rem; font-weight: 640; letter-spacing: -.028em; margin: 0 0 5px; }
 .login-card .sub { color: var(--muted); font-size: .9rem; margin: 0 0 24px; }
 .field { margin-bottom: 14px; }
@@ -142,24 +153,41 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    eigenen Knopf in derselben GROESSE wie "Anmelden" -- ein Verweis in der
    Fusszeile wurde uebersehen. Er ist bewusst NICHT accent: zwei gleich laute
    Knoepfe nebeneinander sagen nicht mehr, welcher der gewoehnliche Weg ist.
-   Die Trennlinie darueber setzt ihn ab, ohne ihn zu verstecken. */
+
+   ABGESETZT WIRD ER ALLEIN MIT ABSTAND, NICHT MEHR MIT EINER LINIE. Der
+   Strich lag quer durch eine Karte, die sonst keine Linie kennt, und teilte
+   sie in zwei Haelften -- die Anmeldung sah danach aus wie zwei Karten in
+   einer. Der Abstand trennt genauso und schneidet nicht. Er ist mit 28px
+   groesser als jede andere Luecke in der Karte (24px zwischen Unterzeile und
+   Feldern) und damit selbst die Trennung. */
 .login-card .anmeld-trenner {
-  margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line);
-  font-size: .87rem;
+  margin: 28px 0 0; font-size: .87rem;
 }
 /* GEDAEMPFT, ABER ERKENNBAR EIN KNOPF -- und die Grenze zwischen beidem ist
-   der Punkt: die Umrandung bleibt, der Fuellgrund faellt weg. Damit ist er auf
-   den ersten Blick der ruhigere von zwei Knoepfen und auf den zweiten immer
-   noch einer. Ein btn-ghost waere zu weit gegangen: ohne Rand sieht er im
-   Ruhezustand wieder wie ein Verweis aus, und genau daran ist die erste
-   Fassung gescheitert.
-   BEIM UEBERFAHREN NIMMT ER DIE GEWOEHNLICHE KNOPFFARBE AN -- wer mit der Maus
-   hingeht, soll die Zusage sehen, dass hier etwas passiert. */
+   der Punkt. Er nimmt DIESELBE FARBE wie "Anmelden", nur ganz leise: den
+   Fuellgrund als --accent-dim (13% Deckung) und die Umrandung als
+   --accent-line (42%). Beides sind die Werte, mit denen die Anlage ueberall
+   sonst schon andeutet statt zu rufen -- der Fuellgrund ist derselbe, den ein
+   Feld im Fokus als Schein bekommt.
+
+   WARUM UEBERHAUPT FARBE: solange eine Linie ueber ihm lag, trug die Linie
+   die Trennung. Ohne sie muss der Knopf selbst zeigen, dass er einer ist und
+   wohin er gehoert. Grau auf dunkelgrau tut das nicht.
+   UND WARUM NUR SO WENIG: bei voller Deckung staenden zwei gleich laute
+   Knoepfe uebereinander, und die Seite sagte nicht mehr, welcher der
+   gewoehnliche Weg ist. Die Schrift bleibt deshalb --muted und nicht --accent.
+   Ein btn-ghost waere in die andere Richtung zu weit gegangen: ohne Rand
+   sieht er im Ruhezustand wieder wie ein Verweis aus, und genau daran ist die
+   erste Fassung gescheitert.
+   BEIM UEBERFAHREN ZIEHT DIE UMRANDUNG AUF DEN VOLLEN AKZENT AN, der
+   Fuellgrund bleibt, wo er ist -- wer mit der Maus hingeht, soll die Zusage
+   sehen, dass hier etwas passiert, ohne dass die Flaeche springt. */
 .login-card .anmeld-zweitweg {
-  background: transparent; color: var(--muted); font-weight: 500;
+  background: var(--accent-dim); border-color: var(--accent-line);
+  color: var(--muted); font-weight: 500;
 }
 .login-card .anmeld-zweitweg:hover {
-  background: var(--surface-2); border-color: #333b44; color: var(--text-2);
+  border-color: var(--accent); color: var(--text-2);
 }
 .login-error {
   background: var(--red-dim); border: 1px solid rgba(240,85,92,.34); color: var(--red);

@@ -1,6 +1,10 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
 **Konzeptpapier · Stand 25. August 2026 · gebaut bis Version 0.9.1 — Fingerprint `d629e78d`**
+*(Das ist der Stand beim Abschluss dieses Papiers. Die Anlage ist danach ohne
+neue Versionsnummer nachgezogen worden — Fingerprint jetzt `3cf1b093`; der
+laufende Stand steht im Projektstand, Abschnitt 2, und dieses Papier ist
+geschlossen.)*
 (Stufen A bis **I** erledigt. 0.8.1 war eine **Bereinigung**,
 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10 die Runde
 **Werkzeug**, 0.8.20 die Runde **„Die Schotten dicht"**, 0.8.40 bis 0.8.71 vier

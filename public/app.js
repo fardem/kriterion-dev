@@ -75,14 +75,34 @@ const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
 
    GENOMMEN WIRD DIE DURCHSICHTIGE FASSUNG: die Flaechen, auf denen sie steht,
    sind ohnehin dunkel, und eine mitgelieferte Kachel saesse dort als
-   sichtbares Rechteck darauf. marke-hell.svg bringt die Kachel mit und ist
-   fuer helle Flaechen gedacht -- gebraucht wird sie in dieser Oberflaeche
-   nicht, sie liegt fuer den Druck und fuer fremde Seiten daneben.
+   sichtbares Rechteck darauf. Die zweite Datei, favicon.svg, bringt die
+   Kachel mit und ist fuer fremde Flaechen gedacht -- den Reiter des Browsers,
+   ein Lesezeichen, eine helle Seite. ZWEI DATEIEN, NICHT DREI: es lag
+   zeitweise noch eine marke-hell.svg daneben, Byte fuer Byte dieselbe wie
+   favicon.svg. Zwei Namen fuer dieselbe Datei sind eine Stelle, die
+   auseinanderlaeuft, sobald jemand einen der beiden anfasst.
 
    alt="" UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem Namen
    der Anlage. Ein Vorleseprogramm saegte ihn sonst zweimal. */
 const MARK = (s = 30) =>
   `<img class="marke" src="marke-dunkel.svg" width="${s}" height="${s}" alt="">`;
+
+/* DIE MARKENZEILE DER ANMELDESEITEN: Marke UND Name in EINER Zeile, erst das
+   Zeichen, dann das Wort. Uebereinander gestapelt las sich das Paar als Bild
+   mit einer Ueberschrift darunter -- zwei Dinge. Nebeneinander ist es eines:
+   die Marke der Anlage, so wie sie in der Kopfzeile des angemeldeten
+   Bereichs auch schon steht (`.brand`, dieselbe Anordnung, dieselbe Luecke).
+
+   SIE STEHT EINMAL HIER UND WIRD NEUNMAL GERUFEN. Die neun Anmeldeseiten --
+   Einrichtung, Anmeldung, Anfrage, Dank, Bestaetigung zweimal, Einladung
+   dreimal -- trugen dasselbe Paar neunmal ausgeschrieben. Wer die Anordnung
+   aendert, aendert seither eine Stelle und nicht neun (Stolperstein 145).
+
+   34 UND NICHT 40: nebeneinander misst sich die Marke am Wort und nicht mehr
+   an der leeren Flaeche darueber. Der sichtbare Strich fuellt knapp zwei
+   Drittel der Kachel; bei 34 steht er damit etwa so hoch wie das K. */
+const MARKENZEILE = () =>
+  `<div class="login-marke">${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
 
 function splitUrl(u) {
   try {
@@ -239,8 +259,7 @@ function showSetup(errMsg) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(40)}
-    <h1>${esc(TITLE_PUBLIC)}</h1>
+    ${MARKENZEILE()}
     <p class="sub">Erste Einrichtung — Benutzername und Passwort wählen.</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
     <div class="field"><label for="su">Benutzername</label>
@@ -292,8 +311,7 @@ function showLogin(errMsg) {
   // nur den oeffentlichen Titel, sonst nichts.
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(40)}
-    <h1>${esc(TITLE_PUBLIC)}</h1>
+    ${MARKENZEILE()}
     <p class="sub">Bitte anmelden, um fortzufahren.</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
     <div class="field"><label for="lu">Benutzername</label>
@@ -354,8 +372,7 @@ function showAnfrage(errMsg, werte = {}) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(40)}
-    <h1>${esc(TITLE_PUBLIC)}</h1>
+    ${MARKENZEILE()}
     <p class="sub">Zugang anfragen. Ein Admin entscheidet darüber — und vorher bestätigst du
       per E-Mail, dass die Adresse dir gehört.</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
@@ -399,8 +416,7 @@ function showAnfrage(errMsg, werte = {}) {
 // eine zweite Ausfertigung hier liefe beim naechsten Wort auseinander.
 function showAnfrageDank(meldung) {
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(40)}
-    <h1>${esc(TITLE_PUBLIC)}</h1>
+    ${MARKENZEILE()}
     <p class="sub" id="an-dank">${esc(meldung || '')}</p>
     <p class="sub"><a href="#" id="an-zurueck2">Zurück zur Anmeldung</a></p>
   </div></div>`;
@@ -422,7 +438,7 @@ async function showBestaetigung(schluessel) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>
+    ${MARKENZEILE()}
     <p class="sub">Der Link wird geprüft …</p></div></div>`;
   document.title = TITLE_PUBLIC;
   let res, j = {};
@@ -445,8 +461,7 @@ async function showBestaetigung(schluessel) {
 
   function zeichne(gut, meldung, nochmal) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
-      ${MARK(40)}
-      <h1>${esc(TITLE_PUBLIC)}</h1>
+      ${MARKENZEILE()}
       ${gut ? `<p class="sub" id="best-gut"><strong>Danke — deine Adresse ist bestätigt.</strong>
         Die Anfrage liegt jetzt beim Admin. Wird sie freigeschaltet, bekommst du eine zweite
         E-Mail mit dem Link, über den du dein Passwort setzt.</p>`
@@ -486,7 +501,7 @@ async function showEinladung(schluessel) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>
+    ${MARKENZEILE()}
     <p class="sub">Der Link wird geprüft …</p></div></div>`;
   document.title = TITLE_PUBLIC;
 
@@ -531,8 +546,7 @@ async function showEinladung(schluessel) {
      lassen. Der Mensch drückt, wenn er so weit ist. */
   function spaeter(meldung) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
-      ${MARK(40)}
-      <h1>${esc(TITLE_PUBLIC)}</h1>
+      ${MARKENZEILE()}
       <div class="login-error">${esc(meldung)}</div>
       <p class="sub">Dein Link ist davon <strong>nicht</strong> betroffen — er gilt weiter.
         Versuch es gleich noch einmal.</p>
@@ -543,8 +557,7 @@ async function showEinladung(schluessel) {
 
   function zeichne(errMsg) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
-      ${MARK(40)}
-      <h1>${esc(TITLE_PUBLIC)}</h1>
+      ${MARKENZEILE()}
       <p class="sub">${stand.ohnePasswort
         ? `Willkommen, <strong>${esc(stand.username)}</strong> — bitte ein Passwort wählen.`
         : `Neues Passwort für <strong>${esc(stand.username)}</strong>.`}</p>

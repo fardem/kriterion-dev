@@ -201,8 +201,10 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.9.1 ist gebaut** — Fingerprint **`d629e78d`**, 3432
-Prüfungen. **Zweite Hälfte von Stufe I, und damit ist der Stufenplan
+**0.9.1 ist gebaut** — Fingerprint **`3cf1b093`**, 3451
+Prüfungen. *(Beim Einspielen stand er bei `d629e78d` und 3432 Prüfungen; die
+Nacharbeit an der Anmeldeseite — Befunde M bis U — hat ihn weitergedreht, ohne
+die Versionsnummer zu bewegen.)* **Zweite Hälfte von Stufe I, und damit ist der Stufenplan
 abgearbeitet.** **EINE DATENBANKSTUFE:** es kommt **eine Tabelle** dazu
 (`anfragen`) und **keine Spalte** — deshalb **kein Migrationsblock**, und es
 bleibt bei **fünf** markierten; unter „Vorgemerkt für 1.0" kommt **nichts**
@@ -233,7 +235,16 @@ im Sicherheitsprotokoll **siebzehn** (`anfrage.frei`, `anfrage.ab`, beide ohne
 den Namen des Anfragenden). `MERKMALE` bleibt **dreizehn**,
 `BESTAETIGUNG_ZWECKE` **sieben**, die Formatnummer **10**.
 **Keine neue Abhängigkeit und keine neue `.env`-Zeile.**
-49 Gegenproben, gefahren über `gegenprobe.js`.
+58 Gegenproben, gefahren über `gegenprobe.js`.
+
+**Die Anmeldeseite ist nach dem Einspielen dreimal nachgezogen worden**, aus
+dem Betrieb heraus und ohne neue Versionsnummer: **Marke und Name stehen
+nebeneinander** statt gestapelt, in einem Helfer für alle neun Anmeldeseiten;
+**der Strich über „Zugang anfragen" ist weg**, getrennt wird mit Abstand; und
+**der Knopf trägt dafür selbst eine ganz leichte Färbung** aus `--accent-dim`
+und `--accent-line`. Daneben liegt in `public/` **eine SVG weniger**:
+`marke-hell.svg` war Byte für Byte `favicon.svg` und ist entfernt. Einzelheiten
+in `Doku/Aenderungsprotokoll_0.9.1.md`, Befunde P bis U.
 
 **Der Mailversand aus 0.9.0 ist im Feld bestätigt.** Die erste echte
 Einladungsmail ist angekommen — Absender und Link stimmten, der Rumpf stand als
@@ -4269,6 +4280,32 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Richtung: dort steht ein Zustand doppelt da, hier ist einer nicht mehr zu
     verlassen.
 
+156. **Eine Verneinung über die eigene Quelle trifft auch die Stelle mit, die
+    die Sache richtig macht — gezählt wird, nicht verneint.** Die Anmeldeseiten
+    sollten Marke und Namen nicht mehr von Hand stapeln; geprüft wurde das
+    zunächst als *„das Muster `${MARK(…)}<h1>` steht nirgends in `app.js`"*.
+    **Es steht dort — im Helfer, der die beiden richtig zusammensetzt.** Die
+    Prüfung war rot, und sie hatte recht: die Verneinung schließt die eine
+    erlaubte Stelle mit ein.
+    *Wer über die eigene Quelle prüft, dass etwas nur an EINER Stelle steht,
+    zählt die Vorkommen und hält daneben fest, welche Stelle die richtige ist.*
+    Zwei Zeilen sagen dann zusammen, was eine Verneinung nicht sagen kann.
+    Verwandt mit 81 („erst der Gegenstand, dann die Eigenschaft"): auch dort
+    trägt erst das Paar aus zwei Zeilen die Aussage.
+
+157. **Zwei Namen für dieselbe Datei sind eine Stelle, die auseinanderläuft;
+    verglichen wird der Inhalt, nicht der Name.** `favicon.svg` und
+    `marke-hell.svg` lagen Byte für Byte gleich in `public/`. Solange niemand
+    sie anfasst, fällt das nicht auf; wer eine der beiden ändert, lässt die
+    andere zurück, und ab dann zeigt der Reiter des Browsers etwas anderes als
+    der Druck. **Der Name ist dabei das Täuschende:** zwei verschiedene Namen
+    sehen nach zwei verschiedenen Sachen aus.
+    *Der Prüfstand hält deshalb nicht nur den einen Fall fest, sondern die
+    allgemeine Form: in `public/` liegt keine Datei zweimal unter zwei Namen —
+    verglichen über den Inhalt.* Der Rückbau dazu brauchte einen zweiten
+    Rückbauweg im Treiber: eine entfernte Datei lässt sich nicht über eine
+    Textersetzung zurückholen.
+
 ---
 
 ## 7. Prüfstand
@@ -4281,8 +4318,8 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3432 von 3432 bestanden** (0.9.1; **240 neue Prüfungen, 49
-Gegenproben, siebzehn neue Gruppen**: „Die Selbstanmeldung: die immer gleiche
+**Zuletzt: 3451 von 3451 bestanden** (0.9.1 samt der Nacharbeit an der
+Anmeldeseite; **259 neue Prüfungen, 58 Gegenproben, achtzehn neue Gruppen**: „Die Selbstanmeldung: die immer gleiche
 Antwort", „… der Schalter aus", „… der Schalter braucht drei Dinge",
 „… die Bestätigungsmail", „… der Bestätigungslink hat keine Passwortkraft",
 „… die unbestätigte Anfrage", „… das Verfallen und das Aufräumen",
@@ -4290,11 +4327,23 @@ Antwort", „… der Schalter aus", „… der Schalter braucht drei Dinge",
 „… die Ablehnung", „… keine Zeile, die ein Fremder auslösen kann",
 „… die Bremse greift an beiden Routen", „… die Tabelle legt sich selbst an",
 „Die Anmeldeseite: das Anfrageformular", „Die Bestätigungsseite in der
-Oberfläche" und „Die Karte ‚Anfragen'". Der Rest sind Erweiterungen vorhandener
+Oberfläche", „Die Karte ‚Anfragen'" und — aus der Nacharbeit — „Die Markenzeile
+der Anmeldeseiten". Der Rest sind Erweiterungen vorhandener
 Gruppen: `F_ROUTEN` samt Zahl **64**, die geschlossenen Listen aus `auth.js`
 samt ihren Zahlen, die Schlüsselliste von `GET /api/config`, die Kartenzahl
 **neunzehn** in beiden Lagen, die dritte breite Kachel und die gekürzten Zeilen
 auf der Einladungsseite.)
+
+**Die Nacharbeit hat neunzehn Prüfungen gebracht und den Treiber erweitert.**
+Neu geprüft werden die Markenzeile — in der Quelle *und* im gebauten Baum —,
+die Trennung ohne Strich samt gemessenem Abstand, die Färbung des zweiten Wegs
+in beide Richtungen (dass Farbe da ist **und** dass sie leise bleibt; die
+Deckung wird **gemessen**, nicht gegen ein Muster gehalten) und die allgemeine
+Zeile, dass in `public/` **keine Datei zweimal unter zwei Namen** liegt.
+**`gegenprobe.js` kennt dafür einen zweiten Rückbauweg:** `kopie` legt eine
+Datei in der Kopie ein zweites Mal unter einem anderen Namen ab. Eine entfernte
+Datei lässt sich nicht über eine Textersetzung zurückholen — es geht um die
+Datei selbst und nicht um ihren Inhalt.
 
 **Die immer gleiche Antwort wird BYTEWEISE und mit der UHR geprüft.** Verglichen
 wird der rohe Antwortkörper der fünf Lagen, nicht ein Feld daraus — ein
@@ -4981,7 +5030,22 @@ sind zwei Dinge:
   dieselbe Angabe halten nur eine aktuell (vgl. Stolperstein 47).
 - **Versionsnummern brauchen drei Zahlen** (`0.6.10`, nicht `0.6.9b`) — die
   `package.json` lässt keine Buchstaben zu. Die führende Null sagt, dass sich
-  noch alles ändern darf; die Veröffentlichung bekäme `1.0.0`.
+  noch alles ändern darf. **Die Veröffentlichung liegt seit dem Fahrplan nach
+  0.9.1 auf `0.9.90` und nicht auf `1.0.0`** (Abschnitt 10) — was danach mit
+  der Eins geschieht, ist nicht entschieden.
+- **EIN PRÜFLAUF IST ABGERISSEN UND LIESS SICH NICHT WIEDERHOLEN.** Bei der
+  Nacharbeit an der Anmeldeseite riss einer von sieben Läufen in der **ersten**
+  Gruppe ab: *„Genau ein Zugang in der Datenbank"*, *„Und er ist Eigentümer"*,
+  *„Passwort liegt als scrypt-Hash"* — die Einrichtung davor war grün, ebenso
+  die Zeile, die vor der Einrichtung Einrichtungsbedarf meldet. **Ein
+  übriggebliebener Server aus einem früheren Lauf ist damit ausgeschlossen**
+  (seine Datenbank wäre nicht leer gewesen), und nachgesehen: es lief keiner.
+  **Sechs volle Läufe danach waren grün.** Der betroffene Weg ist von jener
+  Nacharbeit nicht angefasst worden. *Es fehlt die Auskunftszeile unter dem
+  roten Punkt — sie hätte gesagt, ob die Tabelle null oder zwei Zeilen trug;
+  die Ausgabe war beim ersten Durchgang gefiltert.* **Der Punkt bleibt offen:
+  nicht wegerklärt, sondern nicht reproduziert.** Wer ihn wiedersieht,
+  schreibt den Lauf vollständig mit.
 - **Noch zu erledigen, wenn nicht schon geschehen:** `AUTH_USER` und
   `AUTH_PASSWORD` aus der `.env` nehmen — sie werden nicht mehr gelesen (der
   Start meldet Reste), enthalten aber ein Klartextpasswort. Und das Passwort im
@@ -5146,7 +5210,16 @@ die Vorgänge von fünfzehn auf **siebzehn** (`anfrage.frei`, `anfrage.ab`, beid
 ohne Namen); `MERKMALE` bleibt dreizehn, `BESTAETIGUNG_ZWECKE` sieben, die
 Formatnummer 10, das Vokabular elf. **Keine neue Abhängigkeit, keine neue
 `.env`-Zeile.**
-3432 Prüfungen, 49 Gegenproben, Stolpersteine 149 bis 155.
+**Nach dem Einspielen dreimal nachgezogen, aus dem Betrieb heraus und ohne
+neue Versionsnummer:** die Karte „Anfragen" steht dem Admin jetzt **immer**
+(sie verdeckte ihren eigenen Schalter, Stolperstein 155); der Weg zur Anfrage
+ist ein **Knopf** statt eines Verweises in der Fußzeile; **Marke und Name
+stehen nebeneinander** statt gestapelt, in einem Helfer für alle neun
+Anmeldeseiten; **der Strich über dem Anfrageknopf ist weg**, getrennt wird mit
+Abstand, und der Knopf trägt dafür selbst eine ganz leichte Färbung. Daneben
+liegt in `public/` **eine SVG weniger** — `marke-hell.svg` war Byte für Byte
+`favicon.svg`.
+3451 Prüfungen, 58 Gegenproben, Stolpersteine 149 bis 157.
 
 **0.9.0 — „Der Server verschickt selbst".** **Erste Hälfte von Stufe I** des
 Mehrbenutzerbetriebs, und **keine Datenbankstufe**: keine Tabelle, keine
@@ -5591,7 +5664,9 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.9.1** | **Stufe I, zweite Hälfte** — Selbstanmeldung (**erledigt**) | Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung. **Damit ist der Stufenplan abgearbeitet.** | ja, **eine neue Tabelle ohne Migrationsblock** | — |
 | **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
 | **0.9.20** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen | ja | — |
-| **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
+| **0.9.30** | Fehlerbereinigung und Verbesserungen | die Runde für Befunde aus dem Betrieb und Nacharbeit an Gebautem — **sie hat jetzt eine Nummer** | offen | — |
+| **0.9.60** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur als Grundlage festgeschrieben, Absage an zu alte Datenbanken. **Ab hier gibt es keinen Rückweg auf ältere Fassungen** | ja | — |
+| **0.9.90** | **Veröffentlichung** | die Anlage geht heraus — Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
 **0.8.10 bis 0.8.90 sind gebaut** — Einzelheiten in Abschnitt 2 und
@@ -5644,6 +5719,34 @@ Mailversand, dem Schreibweg für `users.email` und der Frist ab dem ersten
 Öffnen wurde die Runde zu breit für einen Durchgang. **Die Selbstanmeldung ist
 mit 0.9.1 gebaut** und brachte die einzige neue Tabelle dieser Stufe,
 `anfragen`. **Damit ist der Stufenplan abgearbeitet.**
+
+### Der Fahrplan bis zur Veröffentlichung — festgelegt nach 0.9.1
+
+**Drei Entscheidungen, und sie verschieben das Ende des Plans.**
+
+- **0.9.30 ist die Runde für Fehlerbereinigung und Verbesserungen.** Sie stand
+  bisher hier ohne Nummer; *der Auftrag zu 0.9.1 nannte dafür irrtümlich
+  0.9.20, wo schon „Suche und Bestand" steht.* Das ist berichtigt.
+- **0.9.60 nimmt vermutlich die Bereinigung von Code und Datenbankstruktur
+  auf** — das, was bisher unter 1.0.0 stand. Sie legt die Struktur als
+  Grundlage des Projekts fest; **ab ihr gibt es keinen Rückweg auf ältere
+  Fassungen.** *Vermutlich* ist hier kein Füllwort: die Nummer ist gesetzt, die
+  Runde selbst ist noch nicht beschlossen.
+- **Veröffentlicht wird mit 0.9.90, nicht mit 1.0.0.** Die Anlage geht heraus,
+  bevor die Eins steht.
+
+**Warum 0.9.90 und nicht 0.9.9:** sortiert wird zahlweise, und danach liegt
+`0.9.9` **vor** `0.9.10` — also vor der Runde, die als nächste gebaut wird. Die
+Veröffentlichung stünde damit in der Vergangenheit. `0.9.90` reiht sich hinter
+0.9.60 ein, so wie 0.8.90 hinter 0.8.60 lag. **Die Zehnerschritte gelten also
+bis zum Schluss durch.**
+
+**Was mit 1.0.0 geschieht, ist offen** und steht in Abschnitt 8: die Zeile ist
+aus dem Plan herausgenommen, weil ihr Inhalt auf 0.9.60 und 0.9.90 verteilt
+ist. Ob die Eins danach überhaupt noch eine eigene Runde bekommt oder nur eine
+Nummer für den erreichten Stand ist, ist nicht entschieden. **1.1.0 — Teil II
+des Videopapiers — steht weiter da**, und die Frage nach seiner Nummer hängt an
+derselben Entscheidung.
 
 **Die Reihenfolge ist nicht beliebig.** Vier Bindungen:
 

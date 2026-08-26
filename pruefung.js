@@ -1181,7 +1181,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* SEIT 0.9.1 IST SIE EINE AUSGELIEFERTE DATEI und kein eingebautes SVG mehr.
      Wer sie austauscht, tauscht eine Datei aus und faesst keinen Quelltext an. */
   const mkVerz = path.join(__dirname, 'public');
-  const mkDateien = ['marke-dunkel.svg', 'marke-hell.svg', 'favicon.svg'];
+  const mkDateien = ['marke-dunkel.svg', 'favicon.svg'];
   for (const n of mkDateien) {
     pruefe(`${n} liegt in public/`, fs.existsSync(path.join(mkVerz, n)), 'die Datei fehlt');
   }
@@ -1207,9 +1207,34 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('marke-dunkel.svg bringt KEINE Kachel mit',
     !/<rect[^>]*fill=/.test(mkInhalt['marke-dunkel.svg'] || ''),
     (mkInhalt['marke-dunkel.svg'] || '').slice(0, 200));
-  pruefe('marke-hell.svg und favicon.svg bringen eine mit',
-    /<rect[^>]*fill=/.test(mkInhalt['marke-hell.svg'] || '') &&
+  pruefe('favicon.svg bringt eine mit',
     /<rect[^>]*fill=/.test(mkInhalt['favicon.svg'] || ''), 'keine Kachel');
+  /* ZWEI DATEIEN, NICHT DREI. Es lag eine dritte daneben, marke-hell.svg,
+     Byte fuer Byte dieselbe wie favicon.svg -- zwei Namen fuer dieselbe
+     Sache. Wer eine der beiden anfasst, laesst die andere zurueck, und ab
+     dann zeigt der Reiter etwas anderes als der Druck. Sie ist entfernt;
+     diese Zeile haelt sie entfernt. */
+  pruefe('Und eine dritte Fassung liegt nicht mehr daneben',
+    !fs.existsSync(path.join(mkVerz, 'marke-hell.svg')), 'marke-hell.svg ist wieder da');
+  /* UND DIE ALLGEMEINE FASSUNG DERSELBEN FRAGE, die den naechsten Fall auch
+     faengt: in public/ steht keine Datei zweimal unter zwei Namen. Verglichen
+     wird der Inhalt und nicht der Name -- der Name war ja gerade das
+     Taeuschende daran. */
+  const mkAlle = fs.readdirSync(mkVerz)
+    .filter(n => fs.statSync(path.join(mkVerz, n)).isFile());
+  const mkGesehen = new Map();
+  const mkDoppelt = [];
+  for (const n of mkAlle) {
+    const roh = fs.readFileSync(path.join(mkVerz, n)).toString('base64');
+    if (mkGesehen.has(roh)) mkDoppelt.push(`${mkGesehen.get(roh)} = ${n}`);
+    else mkGesehen.set(roh, n);
+  }
+  pruefe('In public/ liegt keine Datei zweimal unter zwei Namen',
+    mkDoppelt.length === 0, mkDoppelt.join(' \u00b7 '));
+  /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne diese
+     Zeile bliebe die vorige auch dann gruen, wenn public/ leer waere. */
+  pruefe('Und es liegen ueberhaupt Dateien darin', mkAlle.length >= 4,
+    `${mkAlle.length} Dateien`);
 
   const mkApp = fs.readFileSync(path.join(mkVerz, 'app.js'), 'utf8');
   pruefe('Die Oberflaeche laedt die Marke als Datei',
@@ -1218,7 +1243,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* SIE NIMMT DIE DURCHSICHTIGE. Die Flaechen der Oberflaeche sind dunkel;
      eine mitgelieferte Kachel saesse dort als sichtbares Rechteck darauf. */
   pruefe('Und zwar die durchsichtige, nicht die mit Kachel',
-    !/src="marke-hell\.svg"/.test(mkApp) && !/src="favicon\.svg"/.test(mkApp),
+    !/src="favicon\.svg"/.test(mkApp),
     'die Oberflaeche laedt eine Fassung mit Kachel');
   pruefe('Das eingebaute SVG der Marke ist verschwunden',
     !/<svg class="mark"/.test(mkApp), 'das alte SVG steht noch im Quelltext');
@@ -1234,6 +1259,48 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und das Stylesheet kennt beide getrennt',
     /\.marke \{[^}]*\}/.test(mkCss) && /\.mark \{[^}]*border-radius: 999px/.test(mkCss),
     'die beiden Regeln sind nicht getrennt');
+
+  /* MARKE UND NAME STEHEN NEBENEINANDER, NICHT UEBEREINANDER. Aus dem
+     Betrieb: gestapelt las sich das Paar als Bild mit einer Ueberschrift
+     darunter -- zwei Dinge statt einem.
+     GEPRUEFT WIRD DIE QUELLE UND NICHT NUR EINE SEITE: die Anordnung steht in
+     EINEM Helfer, und der wird von allen neun Anmeldeseiten gerufen. Die
+     Gegenlage dazu ist die Zeile darunter -- sie haelt fest, dass daneben
+     keine Seite das Paar wieder von Hand stapelt. */
+  pruefe('Marke und Name stehen in einer gemeinsamen Zeile',
+    /const MARKENZEILE = \(\) =>\s*`<div class="login-marke">\$\{MARK\(\d+\)\}<h1>/.test(mkApp),
+    (mkApp.match(/const MARKENZEILE =[\s\S]{0,140}/) || ['(kein Helfer)'])[0]);
+  /* UND ZWAR GENAU EINMAL IN DER GANZEN QUELLE. Zusammen mit der Zeile
+     darueber -- die eine Stelle steht im Helfer -- heisst das: keine der neun
+     Anmeldeseiten stapelt Marke und Namen daneben noch einmal von Hand. */
+  const mkPaare = mkApp.match(/\$\{MARK\(\d+\)\}\s*<h1>/g) || [];
+  pruefe('Und keine Anmeldeseite stapelt die beiden daneben noch von Hand',
+    mkPaare.length === 1, `das Paar steht ${mkPaare.length}-mal in der Quelle`);
+  /* UND DIE ZEILE IST WIRKLICH VOLLSTAENDIG: Zeichen, Wort, Schluss. Ohne
+     diese Zeile bliebe die vorige auch dann gruen, wenn hinter dem h1 noch
+     etwas Drittes im Kasten saesse. */
+  pruefe('Und in der Zeile steht nichts ausser den beiden',
+    /login-marke">\$\{MARK\(\d+\)\}<h1>\$\{esc\(TITLE_PUBLIC\)\}<\/h1><\/div>/.test(mkApp),
+    (mkApp.match(/<div class="login-marke">[\s\S]{0,90}/) || ['(keine Zeile)'])[0]);
+  /* UND DAS STYLESHEET STELLT SIE WIRKLICH NEBENEINANDER. Ohne diese Zeile
+     belegte die Quelle nur, dass beide in EINEM Kasten stehen -- gestapelt
+     saessen sie darin genauso (Stolperstein 81). */
+  const mkZeile = (mkCss.match(/\.login-card \.login-marke \{[^}]*\}/) || [''])[0];
+  pruefe('Und das Stylesheet stellt sie wirklich nebeneinander',
+    /display: *flex/.test(mkZeile) && /align-items: *center/.test(mkZeile), mkZeile);
+  pruefe('Mit einer Luecke dazwischen',
+    /gap: *\d/.test(mkZeile), mkZeile);
+  /* DIE UEBERSCHRIFT TRAEGT IN DER ZEILE KEINEN EIGENEN UNTERRAND. Mit einem
+     saesse sie bei align-items: center um die halbe Hoehe zu hoch und die
+     Marke stuende schief daneben. */
+  /* GEMESSEN WIRD DER GANZE WERT UND NICHT SEIN ANFANG. Die erste Fassung
+     dieser Zeile las `margin: *0` und war damit auch bei `margin: 0 0 5px`
+     noch gruen -- die Null davor passte, der Unterrand dahinter blieb
+     ungesehen. Gegenprobe 80 war deshalb stumm. */
+  const mkH1 = (mkCss.match(/\.login-card \.login-marke h1 \{[^}]*\}/) || [''])[0];
+  pruefe('Und die Ueberschrift traegt darin keinen eigenen Unterrand',
+    /margin: *0 *[;}]/.test(mkH1) && !/margin-bottom/.test(mkH1),
+    mkH1 || '(keine Regel)');
 
   const mkIndex = fs.readFileSync(path.join(mkVerz, 'index.html'), 'utf8');
   pruefe('Der Tab bekommt die Marke als Favicon',
@@ -20091,6 +20158,43 @@ async function pruefeOberflaeche() {
 
 
   /* ---------------------------------------------------------------- */
+  gruppe('Die Markenzeile der Anmeldeseiten');
+
+  /* AUS DEM BETRIEB: die Marke stand UEBER dem Namen der Anlage, und das Paar
+     las sich als Bild mit einer Ueberschrift darunter -- zwei Dinge statt
+     einem. Sie stehen jetzt nebeneinander.
+     GEPRUEFT WIRD DER GEBAUTE BAUM UND NICHT NUR DIE QUELLE (die Quellzeilen
+     dazu stehen in der Gruppe "Die Marke der Anlage"): die Quelle sagt, was
+     der Helfer schreibt, der Baum sagt, was auf der Seite steht. */
+  const mzDom = baueDom(JSDOM, { angemeldet: false, registrierung: false });
+  await new Promise(r => setTimeout(r, 80));
+  const mzZeile = mzDom.w.document.querySelector('.login-card .login-marke');
+  pruefe('Die Anmeldeseite traegt eine Markenzeile', Boolean(mzZeile),
+    'keine Zeile im Baum');
+  const mzKinder = mzZeile ? [...mzZeile.children] : [];
+  pruefe('Darin stehen genau zwei Dinge', mzKinder.length === 2,
+    mzKinder.map(e => e.tagName).join(' ') || '(leer)');
+  pruefe('Erst das Zeichen',
+    mzKinder[0]?.tagName === 'IMG' && mzKinder[0]?.classList.contains('marke'),
+    `${mzKinder[0]?.tagName} ${mzKinder[0]?.className || ''}`);
+  pruefe('Dann das Wort',
+    mzKinder[1]?.tagName === 'H1' && /\S/.test(mzKinder[1]?.textContent || ''),
+    `${mzKinder[1]?.tagName} ${JSON.stringify(mzKinder[1]?.textContent || '')}`);
+  /* UND DIE MARKE STEHT NICHT MEHR EIN ZWEITES MAL DANEBEN. Ohne diese Zeile
+     bliebe gruen, dass eine Seite die Zeile ANLEGT und die alte Marke
+     darueber stehen laesst -- dann saesse sie zweimal da. */
+  pruefe('Und ausserhalb der Zeile steht keine zweite Marke',
+    mzDom.w.document.querySelectorAll('.login-card .marke').length === 1,
+    `${mzDom.w.document.querySelectorAll('.login-card .marke').length} Marken in der Karte`);
+  /* DAS ZEICHEN BLEIBT STUMM: es steht unmittelbar neben dem Namen der
+     Anlage, ein Vorleseprogramm saegte ihn sonst zweimal. Nebeneinander ist
+     das noch dringender als gestapelt. */
+  pruefe('Das Zeichen bleibt fuer das Vorleseprogramm stumm',
+    mzKinder[0]?.getAttribute('alt') === '' && !mzKinder[0]?.getAttribute('title'),
+    `alt=${JSON.stringify(mzKinder[0]?.getAttribute('alt'))}`);
+  mzDom.w.close();
+
+  /* ---------------------------------------------------------------- */
   gruppe('Die Anmeldeseite: das Anfrageformular');
 
   /* DAS FORMULAR STEHT NUR DA, WENN DER SERVER SAGT, DASS DIE SELBSTANMELDUNG
@@ -20142,29 +20246,55 @@ async function pruefeOberflaeche() {
       sAn.w.Node.DOCUMENT_POSITION_FOLLOWING), 'er steht davor');
   pruefe('Und die Anmeldemaske steht weiterhin daneben',
     Boolean(sAn.w.document.getElementById('lu')), 'die Anmeldemaske fehlt');
-  /* DIE TRENNLINIE DARUEBER STEHT IM STYLESHEET (Stolperstein 81: erst der
-     Gegenstand, dann die Eigenschaft) -- ohne sie liefe der Knopf optisch mit
-     dem Anmeldeknopf zusammen. */
+  /* DIE TRENNUNG STEHT IM STYLESHEET (Stolperstein 81: erst der Gegenstand,
+     dann die Eigenschaft) -- ohne sie liefe der Knopf optisch mit dem
+     Anmeldeknopf zusammen. */
   const sCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
   const sRegel = (sCss.match(/\.login-card \.anmeld-trenner \{[^}]*\}/) || [''])[0];
   pruefe('Die Regel fuer die Trennung steht im Stylesheet', sRegel.length > 0,
     'keine Regel gefunden');
-  pruefe('Und sie setzt den Knopf mit einer Linie ab',
-    /border-top:/.test(sRegel), sRegel);
+  /* UND SIE TRENNT MIT ABSTAND STATT MIT EINEM STRICH. Die erste Fassung zog
+     eine Linie quer durch eine Karte, die sonst keine kennt; sie sah danach
+     aus wie zwei Karten in einer. Beide Haelften werden geprueft -- ohne die
+     zweite bliebe gruen, dass die Trennung ganz verschwindet. */
+  pruefe('Und sie tut das OHNE Strich',
+    !/border/.test(sRegel), sRegel);
+  pruefe('Sondern mit einem Abstand, der groesser ist als jede Luecke davor',
+    (Number((sRegel.match(/margin: *(\d+)px/) || [0, 0])[1]) || 0) > 24, sRegel);
   /* GEDAEMPFT, ABER ERKENNBAR EIN KNOPF, und die Grenze zwischen beidem ist
-     der Punkt: der Fuellgrund faellt weg, DIE UMRANDUNG BLEIBT. Ohne Rand saehe
-     er im Ruhezustand wieder wie ein Verweis aus -- und genau daran ist die
-     erste Fassung gescheitert. Beide Haelften werden geprueft, sonst bliebe
-     gruen, dass er ganz verschwindet. */
+     der Punkt. Solange eine Linie ueber ihm lag, trug die Linie die Trennung;
+     ohne sie muss er selbst zeigen, dass er einer ist -- also traegt er
+     dieselbe Farbe wie "Anmelden", nur ganz leise. BEIDE HAELFTEN WERDEN
+     GEPRUEFT: dass ueberhaupt Farbe da ist, und dass es die leise Fassung
+     bleibt. Ohne die zweite duerfte er so laut werden wie der Anmeldeknopf,
+     und die Seite sagte nicht mehr, welcher der gewoehnliche Weg ist. */
   pruefe('Der Knopf traegt die gedaempfte Klasse',
     sVerweis?.classList.contains('anmeld-zweitweg'), sVerweis?.className);
   const sLeise = (sCss.match(/\.login-card \.anmeld-zweitweg \{[^}]*\}/) || [''])[0];
   pruefe('Und die Regel dazu steht im Stylesheet', sLeise.length > 0,
     'keine Regel gefunden');
-  pruefe('Sie nimmt ihm den Fuellgrund',
-    /background: *transparent/.test(sLeise), sLeise);
-  pruefe('Aber NICHT die Umrandung -- sonst waere er wieder ein Verweis',
+  pruefe('Sie faerbt ihn leicht ein statt ihn leer zu lassen',
+    /background: *var\(--accent-dim\)/.test(sLeise), sLeise);
+  pruefe('Und zieht die Umrandung in dieselbe Farbe',
+    /border-color: *var\(--accent-line\)/.test(sLeise), sLeise);
+  /* DIE GEGENLAGE: die beiden Werte sind wirklich die leisen. --accent-dim
+     und --accent-line stehen in :root als Teildeckung; waeren sie voll
+     gesaettigt, saessen zwei gleich laute Knoepfe uebereinander. */
+  const sDeckung = ['--accent-dim', '--accent-line'].map(n => {
+    const t = (sCss.match(new RegExp(`${n}: *rgba\\([^)]*\\)`)) || [''])[0];
+    const a = t.match(/,\s*(0?\.\d+|0|1)\)/);
+    return { n, t, a: a ? Number(a[1]) : NaN };
+  });
+  pruefe('Und beide Werte sind wirklich nur angedeutet',
+    sDeckung.every(d => d.a > 0 && d.a < 0.5),
+    sDeckung.map(d => `${d.n} = ${d.t || '(fehlt)'}`).join(' '));
+  pruefe('Er traegt NICHT den vollen Akzent des Anmeldeknopfs',
+    !/background: *var\(--accent\)/.test(sLeise) && !/color: *var\(--accent\)/.test(sLeise),
+    sLeise);
+  pruefe('Und seine Schrift bleibt die leise',
+    /color: *var\(--muted\)/.test(sLeise), sLeise);
+  pruefe('Aber NICHT ohne Umrandung -- sonst waere er wieder ein Verweis',
     !/border(-color)?: *(transparent|none|0)/.test(sLeise), sLeise);
   /* UND DIE GEGENLAGE ZUR REGEL SELBST: die Grundklasse traegt die Umrandung
      ueberhaupt. Ohne sie belegte die Zeile darueber nur, dass hier nichts
