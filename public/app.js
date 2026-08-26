@@ -4208,21 +4208,30 @@ async function renderSystem() {
       ${/* DIE NEUNZEHNTE KARTE, seit 0.9.1 — und sie steht beim ADMIN, nicht
             beim Eigentümer: aus einer Anfrage wird nie etwas anderes als ein
             Zugang mit der Rolle „Benutzer“, und den legt der Admin ohnehin an.
-            SIE IST NUR DA, WENN SIE ETWAS ZU SAGEN HAT — der Schalter ist an
-            oder es liegen Anfragen. Eine Karte, die dauerhaft „aus, nichts
-            offen“ meldet, wäre eine Zeile Lärm in einem Bereich, in dem
-            achtzehn andere stehen.
+            SIE STEHT IMMER, AUCH WENN DIE SELBSTANMELDUNG AUS IST — und das
+            ist eine Berichtigung aus dem Betrieb. Zuerst war sie an die
+            Bedingung „der Schalter ist an oder es liegen Anfragen" geknüpft;
+            der Gedanke dahinter war, keine Karte zu zeigen, die dauerhaft
+            „aus, nichts offen" meldet. Er trägt nicht, denn DER SCHALTER STEHT
+            IN DIESER KARTE: solange sie fehlt, gibt es keinen Weg, ihn je
+            einzuschalten. Eine Bedingung, die ihren eigenen Ausweg verdeckt,
+            ist eine Sackgasse.
+            SIE BLEIBT TROTZDEM KURZ, wenn es nichts zu sagen gibt: Überschrift,
+            ein Satz, der Zustand und der Schalter — die Liste erscheint erst,
+            wenn eine Anfrage vorliegt.
             DER SCHALTER LEGT SICH NIE VON SELBST UM: geht der Versand kaputt,
             bleibt er an und die Zeile darunter wird rot. Ein Schalter, der
             sich selbst umlegt, stünde anders da, als der Mensch ihn gestellt
             hat — und niemand wüsste, wann das passiert ist. */''}${
-        ADMIN && anfragen && (anfragen.an || anfragen.anfragen.length) ? `<div class="sys-card breit">
+        ADMIN && anfragen ? `<div class="sys-card breit">
         <h3>Anfragen</h3>
         <p class="desc"><strong>Niemand kommt hier herein, ohne dass ein Admin ihn hereinlässt.</strong>
           Ist die Selbstanmeldung an, steht auf der Anmeldeseite ein Formular: Wunschname und
           E-Mail-Adresse, kein Passwort. Wer es abschickt, bekommt zuerst eine Mail und bestätigt
           damit, dass die Adresse ihm gehört — <strong>erst die bestätigte Anfrage erscheint
-          hier</strong>. Unbestätigte verfallen nach ${anfragen.stunden} Stunden.</p>
+          hier</strong>. Unbestätigte verfallen nach ${anfragen.stunden} Stunden.
+          ${anfragen.an ? '' : '<strong>Zurzeit ist sie aus</strong> — dann legt nur der Admin ' +
+            'Zugänge an, und es fehlt nichts.'}</p>
         <div class="kv"><span class="k">Selbstanmeldung</span><span class="v" id="anf-zustand">${
           anfragen.an ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>'
         }</span></div>
@@ -5403,7 +5412,11 @@ async function renderSystem() {
     }
     box.innerHTML = '';
     if (!stand.anfragen.length) {
-      box.innerHTML = '<span class="hint">Zurzeit liegt keine bestätigte Anfrage vor.</span>';
+      /* KURZ, ABER NICHT STUMM: wer die Karte ansieht, soll den Unterschied
+         zwischen „es liegt nichts vor" und „hier fehlt etwas" sehen. */
+      box.innerHTML = stand.an
+        ? '<span class="hint">Zurzeit liegt keine bestätigte Anfrage vor.</span>'
+        : '';
       return;
     }
     for (const a of stand.anfragen) {

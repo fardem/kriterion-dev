@@ -543,7 +543,8 @@ Funktion, und der Schalter steht ab Werk auf **aus**.
    ihn anklickt, sagt nur „ja, das bin ich". Er gilt **24 Stunden**.
 3. **Warteschlange.** Erst die **bestätigte** Anfrage erscheint beim Admin, in
    der Karte **„Anfragen"** im Systembereich. Unbestätigte verfallen nach 24
-   Stunden und werden nie angezeigt.
+   Stunden und werden nie angezeigt. **Die Karte steht dort immer** — auch wenn
+   die Selbstanmeldung aus ist; in ihr sitzt schließlich der Schalter.
 4. **Freischalten oder ablehnen.** Beim Freischalten entsteht ein Zugang mit
    der Rolle **Benutzer** — nie mit einer anderen — samt Einladungslink; beim
    Ablehnen verschwindet die Zeile, und es entsteht nichts.

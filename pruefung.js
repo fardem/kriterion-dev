@@ -19583,20 +19583,37 @@ async function pruefeOberflaeche() {
       kEig.includes(karte) && !kAdm.includes(karte) && !kUser.includes(karte),
       `Eigentuemer: ${kEig.includes(karte)} · Admin: ${kAdm.includes(karte)}`);
   }
-  /* DIE ANDERE HAELFTE DER BEDINGUNG (Stolperstein 81): "Anfragen" ist nur da,
-     wenn der Schalter an ist ODER Anfragen offen sind. Ohne diese Lage bliebe
-     gruen, dass die Karte IMMER dasteht -- und die Bedingung waere nie
-     geprueft. */
+  /* DIE KARTE "ANFRAGEN" STEHT AUCH DANN, WENN DIE SELBSTANMELDUNG AUS IST --
+     UND DAS IST EINE BERICHTIGUNG AUS DEM BETRIEB. Zuerst war sie an die
+     Bedingung "der Schalter ist an oder es liegen Anfragen" geknuepft. Der
+     Gedanke war, keine Karte zu zeigen, die dauerhaft "aus, nichts offen"
+     meldet; er traegt nicht, denn DER SCHALTER STEHT IN DIESER KARTE. Solange
+     sie fehlt, gibt es keinen Weg, ihn je einzuschalten -- eine Bedingung, die
+     ihren eigenen Ausweg verdeckt.
+     GEPRUEFT WIRD DESHALB DIE LAGE, IN DER SIE VORHER FEHLTE: Schalter aus,
+     nichts offen, kein Versand. Und ausdruecklich, dass der Schalter darin
+     erreichbar ist (Stolperstein 74: die Pruefung der Vorgaengerfassung ist die
+     erste Betroffene, und sie wird umgedreht statt geloescht). */
   const rAus = await baueSystem({ istAdmin: true, istEigentuemer: true },
     { an: false, versandBereit: false, versandGrund: 'Es ist kein Mailzugang eingerichtet.',
       deckel: 20, stunden: 24, anfragen: [] });
   const kAus = kartenVon(rAus);
-  pruefe('Ist die Selbstanmeldung aus und nichts offen, fehlt die Karte "Anfragen"',
-    !kAus.includes('Anfragen'), kAus.join(' · '));
-  pruefe('Und es sind dann achtzehn statt neunzehn', kAus.length === 18,
+  pruefe('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
+    kAus.includes('Anfragen'), kAus.join(' · '));
+  pruefe('Und es sind auch dann neunzehn', kAus.length === 19 && gleich(kAus, ALLE_KARTEN),
     `${kAus.length} gezeichnet`);
-  pruefe('Alle uebrigen achtzehn stehen unveraendert da',
-    gleich(kAus, ALLE_KARTEN.filter(k => k !== 'Anfragen')), kAus.join(' · '));
+  /* DER SCHALTER MUSS IN GENAU DIESER LAGE ERREICHBAR SEIN -- sonst ist die
+     Selbstanmeldung ueber die Oberflaeche gar nicht einzuschalten. Das ist die
+     Pruefung, die den Befund aus dem Betrieb festhaelt. */
+  pruefe('Und der Schalter steht darin -- sonst kaeme man nie an ihn heran',
+    Boolean(rAus.w.document.getElementById('anf-schalter')), 'der Schalter fehlt');
+  pruefe('Er bietet das Einschalten an',
+    /einschalten/.test(rAus.w.document.getElementById('anf-schalter')?.textContent || ''),
+    rAus.w.document.getElementById('anf-schalter')?.textContent || '');
+  /* Und die Karte bleibt in dieser Lage KURZ: keine Liste, wo nichts steht. */
+  pruefe('Die Liste bleibt dabei leer, statt eine Zeile zu erfinden',
+    (rAus.w.document.getElementById('manfragen')?.textContent || '').trim() === '',
+    rAus.w.document.getElementById('manfragen')?.textContent || '');
   /* UND SIE IST AUCH DA, WENN DER SCHALTER AUS IST, ABER NOCH ANFRAGEN LIEGEN.
      Sonst verschwaende ein Ausschalten die Warteschlange aus dem Blick, ohne
      sie zu leeren -- und niemand koennte die offenen Anfragen mehr bescheiden. */
@@ -19604,8 +19621,9 @@ async function pruefeOberflaeche() {
     { an: false, versandBereit: true, versandGrund: '', deckel: 20, stunden: 24,
       anfragen: [{ id: 11, username: 'neuling', email: 'neuling@beispiel.de',
                    created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' }] });
-  pruefe('Bei ausgeschaltetem Schalter mit offenen Anfragen steht sie trotzdem',
-    kartenVon(rAusMitZeilen).includes('Anfragen'), kartenVon(rAusMitZeilen).join(' · '));
+  pruefe('Bei ausgeschaltetem Schalter mit offenen Anfragen steht die Liste darin',
+    [...rAusMitZeilen.w.document.querySelectorAll('#manfragen .mrow')].length === 1,
+    `${[...rAusMitZeilen.w.document.querySelectorAll('#manfragen .mrow')].length} Zeilen`);
 
   for (const karte of ['Zugang', 'Meine Sitzungen', 'Darstellung', 'Links']) {
     pruefe(`Die Karte "${karte}" steht jedem, auch ohne Rolle`,

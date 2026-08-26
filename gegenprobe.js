@@ -548,10 +548,14 @@ const RUECKBAUTEN = [
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
-    nr: '63', name: 'Die Karte „Anfragen“ steht immer da',
+    /* DIE BEDINGUNG AUS DER ERSTEN FASSUNG, wiederhergestellt: die Karte
+       erscheint nur, wenn der Schalter an ist oder Anfragen offen sind. Das
+       ist die Sackgasse aus dem Betrieb -- der Schalter steht IN der Karte,
+       also gaebe es keinen Weg, ihn je einzuschalten. */
+    nr: '63', name: 'Die Karte „Anfragen“ verschwindet, solange der Schalter aus ist',
     datei: 'public/app.js',
-    suche: "        ADMIN && anfragen && (anfragen.an || anfragen.anfragen.length) ? `<div class=\"sys-card breit\">",
-    ersatz: "        ADMIN && anfragen ? `<div class=\"sys-card breit\">",
+    suche: "        ADMIN && anfragen ? `<div class=\"sys-card breit\">",
+    ersatz: "        ADMIN && anfragen && (anfragen.an || anfragen.anfragen.length) ? `<div class=\"sys-card breit\">",
     erwartet: 'Die Karten im Systembereich'
   },
   {
