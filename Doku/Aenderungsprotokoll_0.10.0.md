@@ -810,4 +810,10 @@ daneben:**
 
 ---
 
-**0.10.0 — Fingerprint `FINGERPRINT_0100`**
+**0.10.0 — Fingerprint `dc8c16f7`**
+*(gemessen, nicht gerechnet: an einem echten Server aus einem sauberen
+`git archive`-Export, über `GET /api/stats`, zweimal mit demselben Ergebnis.
+Zuletzt gebildet — nach der letzten Änderung an einer ausgelieferten Datei,
+die Versionsnummer in `package.json` eingeschlossen. Er deckt **dreizehn**
+Dateien: sieben geladene Module samt `package.json` und alles unter `public/`,
+wo seit 0.9.1 zwei SVG-Dateien liegen.)*

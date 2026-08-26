@@ -217,7 +217,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.10.0 ist gebaut** — Fingerprint **`FINGERPRINT_0100`**, 3676 Prüfungen.
+**0.10.0 ist gebaut** — Fingerprint **`dc8c16f7`**, 3676 Prüfungen.
 **Die erste Runde nach dem Stufenplan und die erste unter Semantic
 Versioning.** **EINE DATENBANKSTUFE:** es kommen **zwei Tabellen** dazu
 (`zweifaktor`, `zweifaktor_codes`) und **keine Spalte** — deshalb **kein
