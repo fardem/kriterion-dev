@@ -166,7 +166,7 @@ des Neuladens und der Weg danach stehen alle drei weiter darin.
 
 ### `pruefung.js`
 
-Siebzehn neue Gruppen, 210 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
+Siebzehn neue Gruppen, 219 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
 im DOM-Mock die fünf neuen Endpunkte samt `registrierung` in `/api/config` —
 und er **zieht mit**: Freischalten und Ablehnen nehmen die Zeile wirklich aus
 der Liste (Stolperstein 90) und bringen nichts selbst mit, was die Prüfung
@@ -174,7 +174,7 @@ belegen soll (Stolperstein 102).
 
 ### `gegenprobe.js`
 
-**36 neue Rückbauten** (31 bis 67, ohne 45 — siehe Befund D), dazu drei
+**37 neue Rückbauten** (31 bis 68, ohne 45 — siehe Abweichung D), dazu drei
 nachgezogene: 07 und 14 zielten auf Zeilen, die diese Runde verschoben hat, 30
 auf die gekürzte Zeile.
 
@@ -565,7 +565,7 @@ steht im Projektstand, Abschnitt 6.
 
 ## 6. Der Prüfstand
 
-**3402 von 3402 bestanden** — 210 neue Prüfungen, **siebzehn** neue Gruppen.
+**3411 von 3411 bestanden** — 219 neue Prüfungen, **siebzehn** neue Gruppen.
 
 | Gruppe | Was sie festhält |
 |---|---|
@@ -612,8 +612,8 @@ unverändert **122** Pfade.
 
 ## 7. Gegenprobentabelle
 
-**41 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
-gefahren über `gegenprobe.js` mit vier Nebenspuren. **35 sind neu** (31 bis 67,
+**43 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
+gefahren über `gegenprobe.js` mit vier Nebenspuren. **37 sind neu** (31 bis 68,
 ohne 45 — siehe Abweichung D), drei sind nachgezogen (07, 14 und 30 zielten auf
 Zeilen, die diese Runde verschoben hat), zwei sind die Wächter über den
 Prüfstand selbst.
@@ -678,9 +678,9 @@ DANACH: null stumm, null abgerissen.**
 | | |
 |---|---|
 | Vorher (0.9.0) | 3192 |
-| Nachher (0.9.1) | **3402** |
-| Neu | **210** |
-| Gegenproben | **41** |
+| Nachher (0.9.1) | **3411** |
+| Neu | **219** |
+| Gegenproben | **43** |
 
 ---
 
@@ -740,4 +740,4 @@ DANACH: null stumm, null abgerissen.**
 
 ---
 
-**0.9.1 — Fingerprint `8f226ddc`**
+**0.9.1 — Fingerprint `63b6bb59`**
