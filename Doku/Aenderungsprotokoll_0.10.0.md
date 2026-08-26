@@ -655,7 +655,93 @@ fünf Knöpfe in der Karte.
 
 ## 7. Gegenprobentabelle
 
-GEGENPROBENTABELLE_PLATZHALTER
+**42 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
+gefahren über `gegenprobe.js` mit vier Nebenspuren. **Alle 42 sind neu** —
+Nummern 82 bis 123; keiner der 81 vorhandenen Rückbauten musste neu gezielt
+werden, denn diese Runde hat keine Zeile verschoben, auf die einer zeigt.
+
+**Vier Läufe waren beim ersten Mal stumm oder rissen ab, und jeder einzelne hat
+etwas gesagt:**
+
+* **97 blieb STUMM** — und der Code war richtig. Die Zusage war gebaut und
+  nicht belegbar; siehe Befund F und Stolperstein 163. Die Route ist umgebaut,
+  die Prüfung neu geschnitten, und ein zweiter Rückbau (**123**) dreht jetzt
+  allein die Reihenfolge zurück.
+* **89 und 92 rissen ab** — der eine änderte die Zahl der Platzhalter einer
+  vorbereiteten Anweisung, der andere ließ die Prüfung auf ein `null` greifen.
+  Befund D, Stolperstein 161; behoben über einen wirkungslosen statt entfernten
+  Rückbau und über Auffangnetze an jeder Lesestelle der neuen Gruppen.
+* **86 blieb ohne Wirkung** und hat damit Befund E aufgedeckt: der größte
+  Testvektor aus RFC 6238 erreicht die obere Hälfte des Zählers gar nicht.
+* **100 und 113 rissen im zweiten Anlauf ab**, aus zwei verschiedenen Gründen:
+  eine ungeschützte Lesestelle (behoben) und ein **zu breiter Rückbau**.
+  *113 ließ die zweite Bestätigung für JEDEN Zugang scheitern — Export, Import,
+  Rollen —, und der Lauf riss in Gruppen ab, die mit dieser Runde nichts zu tun
+  haben. Ein Rückbau, der die halbe Prüfung mitnimmt, sagt ohnehin nichts
+  (Stolperstein 49).* Er zielt jetzt auf die Oberfläche, wo dieselbe Richtung
+  schmal zu prüfen ist. **Beide sind danach in einem eigenen Lauf gefahren
+  worden**; ihre Zeilen unten stammen daraus.
+
+**Zwei Zusagen haben bewusst KEINEN Rückbau, und der Grund steht jeweils
+daneben:**
+
+* **Die DDL der beiden neuen Tabellen.** Nähme man sie weg, stürbe der Server
+  beim Laden — `auth.js` bereitet seine Anweisungen dort vor —, und der Lauf
+  risse ab, statt rot zu werden. Gehalten wird die Zusage durch den **Versuch
+  selbst**: beide Tabellen werden von Hand entfernt, der Server startet einmal,
+  und beide sind wieder da. Der **Index** daneben trägt dieselbe Aussage über
+  `CREATE … IF NOT EXISTS` und ist als Rückbau **115** gefahren.
+* **Die zweite Bestätigung, andere Richtung** (sie fragt den Code auch ohne
+  Faktor) — aus dem Grund oben. Die Zusage trägt dort die Prüfung *„Ein Zugang
+  OHNE zweiten Faktor bestätigt weiterhin mit dem Passwort allein"*, die bei
+  genau dieser Änderung rot würde.
+
+**Die Tabelle unten ist der Stand DANACH: null stumm, null abgerissen.**
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 82 | Acht Ziffern statt sechs | „Der Code hat sechs Ziffern", „Sechs Ziffern sind ein Code aus der App", „Die otpauth-Zeile nennt Anlage, Zugang, Geheimnis und alle drei Kennwerte" |
+| 83 | SHA-256 statt SHA-1 | 4 Prüfungen, darunter „Alle 6 Testvektoren aus RFC 6238 stimmen" (Gruppe „Der zweite Faktor: die Rechnung gegen den Standard") |
+| 84 | Sechzig Sekunden statt dreissig | „Alle 6 Testvektoren aus RFC 6238 stimmen", „Der Schritt ist dreissig Sekunden", „Die otpauth-Zeile nennt Anlage, Zugang, Geheimnis und alle drei Kennwerte" |
+| 85 | Der Anfang des Abgreifens steht fest statt aus dem Hash zu kommen | „Alle 6 Testvektoren aus RFC 6238 stimmen", „Ueber 2^32 rechnet die geteilte Schreibweise dasselbe wie writeBigUInt64BE" |
+| 86 | Der Zaehler wird nur in seiner unteren Haelfte geschrieben | „Ueber 2^32 rechnet die geteilte Schreibweise dasselbe wie writeBigUInt64BE" |
+| 87 | Das Fenster wird auf zwei Schritte geweitet | 4 Prüfungen, darunter „Das Fenster ist genau eines nach vorn und eines zurueck" (2 Gruppen) |
+| 88 | Es gibt gar kein Nachbarfenster mehr | 10 Prüfungen, darunter „Das Fenster ist genau eines nach vorn und eines zurueck" (5 Gruppen) |
+| 89 | Der verbrauchte Zaehler wird nicht mehr geprueft | 4 Prüfungen, darunter „Der BESTAETIGENDE Code ist damit verbraucht" (Gruppe „Der zweite Faktor: ein Code gilt genau einmal") |
+| 90 | Der verbrauchte Zaehler wird gar nicht erst geschrieben | 5 Prüfungen, darunter „Der BESTAETIGENDE Code ist damit verbraucht" (Gruppe „Der zweite Faktor: ein Code gilt genau einmal") |
+| 91 | Der bestaetigende Code beim Einschalten zaehlt nicht als verbraucht | „Der BESTAETIGENDE Code ist damit verbraucht" |
+| 92 | Die Anmeldung meldet auch mit zweitem Faktor gleich an | 37 Prüfungen, darunter „Abmelden und mit Code wieder anmelden: Schritt 1 gibt keinen Cookie, sondern einen Ausweis" (9 Gruppen) |
+| 93 | Die Absage verraet, ob der Zugang einen zweiten Faktor hat | „Bei falschem Passwort sieht die Antwort aus wie immer -- Byte fuer Byte", „Kein Wort ueber den zweiten Faktor steht darin" |
+| 94 | Der Ausweis wird nicht verbraucht | „Auch die Absage auf einen verbrauchten Ausweis fuehrt zurueck an den Anfang" |
+| 95 | Der Ausweis bekommt eine eigene, laengere Frist | „Der Ausweis nennt seine Frist, und sie ist die der zweiten Bestaetigung" |
+| 96 | Die Benutzernummer im zweiten Schritt kommt aus dem Rumpf | „Eine mitgeschickte fremde Nummer aendert nichts", „Und die Sitzung gehoert dem, dem der Ausweis gehoerte" |
+| 97 | Die Bremse fehlt am zweiten Schritt | „Der ZWEITE SCHRITT selbst antwortet gesperrt mit 429, nicht mit einer Absage" |
+| 98 | Der Fehlversuch am zweiten Schritt wird nicht gezaehlt | „Der ZWEITE SCHRITT selbst antwortet gesperrt mit 429, nicht mit einer Absage", „Und die Sperre gilt ebenso fuer den ersten Schritt -- es ist dieselbe Bremse" |
+| 99 | Der erste Schritt setzt den Zaehler der Bremse wieder zurueck | „Der ZWEITE SCHRITT selbst antwortet gesperrt mit 429, nicht mit einer Absage", „Und die Sperre gilt ebenso fuer den ersten Schritt -- es ist dieselbe Bremse" |
+| 100 | Die Wiederherstellungscodes liegen im Klartext in der Tabelle | 26 Prüfungen, darunter „Ausschalten mit Passwort und gueltigem Code" (5 Gruppen) |
+| 101 | Ein Wiederherstellungscode wird nicht verbraucht | „Derselbe ein zweites Mal nicht" |
+| 102 | Es entstehen sieben Codes statt acht | 15 Prüfungen, darunter „Es sind acht Codes zu je zehn Zeichen, und keiner gleicht dem anderen" (5 Gruppen) |
+| 103 | Die alten Codes bleiben beim Erneuern stehen | „Mit beidem entstehen acht frische Codes", „Ein noch unbenutzter ALTER Code traegt danach nicht mehr" |
+| 104 | Das Geheimnis steht auch nach dem Bestaetigen in der Antwort | „In der Antwort auf das Bestaetigen steht es NICHT mehr" |
+| 105 | Die Karte "Zugang" gibt das Geheimnis mit heraus | „Und in der Karte "Zugang" auch nicht -- auch nicht fuer den Eigentuemer" |
+| 106 | Ein zweiter Start ueberschreibt einen laufenden zweiten Faktor | „Ein zweiter Aufruf von /start an einem eingeschalteten Faktor wird abgewiesen", „Und das Geheimnis steht danach unveraendert da" |
+| 107 | Der Tokenweg meldet wieder gleich an | „ABER es kommt kein Cookie -- der zweite Faktor wird verlangt", „Erst mit Code entsteht die Sitzung" |
+| 108 | Ein fremdes Passwort zu setzen raeumt den zweiten Faktor mit weg | 5 Prüfungen, darunter „Der zweite Faktor des Betroffenen steht danach unveraendert da" (Gruppe „Der zweite Faktor: ein Admin kommt an einen fremden nicht heran") |
+| 109 | Sperren raeumt den zweiten Faktor mit weg | „Sperren raeumt Sitzungen und Token -- den zweiten Faktor NICHT", „Und nach dem Freigeben verlangt die Anmeldung ihn weiterhin", „Auch der Eigentuemer hat keinen Weg an einen fremden Faktor" |
+| 110 | Ausschalten geht ohne Code | „Und zweifaktor.wieder fuer den verbrauchten Wiederherstellungscode" |
+| 111 | zugang.js schaltet den zweiten Faktor nicht mehr ab | 4 Prüfungen, darunter „Bei "ja" ist der zweite Faktor aus" (Gruppe „Der zweite Faktor: zugang.js auf dem Wirt") |
+| 112 | Die zweite Bestaetigung fragt den Code nicht mehr | „Mit zweitem Faktor genuegt das Passwort allein NICHT", „Und ein falscher Code ebenso wenig" |
+| 113 | Das Bestaetigungsfenster zeigt sein Codefeld immer | „Ohne zweiten Faktor steht dort kein Codefeld", „Und im Rumpf steht dann auch kein Feld code" |
+| 114 | Der Code wird VOR dem Passwort geprueft | „Mit beidem steht die Freigabe", „Und der Export laeuft damit durch", „Und der mitgeschickte Code ist dabei NICHT verbraucht worden" |
+| 115 | Der Index auf zweifaktor_codes wird nicht mehr angelegt | „Und der Index auf zweifaktor_codes(user_id) steht", „Der Index kommt dabei mit zurueck" |
+| 116 | Der Zustand faellt aus der Antwort der Karte "Zugang" | „Die Karte "Zugang" sieht den Zustand ohne einen zweiten Abruf", „Und die Karte zaehlt herunter" |
+| 117 | Die Zahl der uebrigen Wiederherstellungscodes faellt weg | „Und die Zahl der Wiederherstellungscodes steht daneben", „Und die Zahl steht wieder bei acht von acht", „Bei einem uebrigen Code sagt die Karte, dass es knapp wird" |
+| 118 | Der Kasten sagt nicht mehr, dass die Codes nicht wiederkommen | „Der Kasten sagt, dass sie nicht wiederkommen" |
+| 119 | Das Bestaetigungsfenster zeigt das Codefeld nie | „Mit zweitem Faktor traegt das Bestaetigungsfenster ein Codefeld", „Der Code geht wirklich mit" |
+| 120 | Die Anmeldeseite geht ueber den zweiten Schritt hinweg | 8 Prüfungen, darunter „Mit zweitem Faktor steht danach die Frage nach dem Code" (Gruppe „Die Anmeldeseite: der zweite Schritt") |
+| 121 | F_ROUTEN kennt den zweiten Schritt der Anmeldung nicht | „Der Pruefstand kennt jede schreibende Route", „Und es sind jetzt genau 64 schreibende Routen" |
+| 122 | Die Liste der Wiederherstellungscodes wird um einen gekuerzt | „Die acht Wiederherstellungscodes stehen da", „Danach stehen acht frische Codes da" |
+| 123 | Die Bremse steht wieder HINTER dem Ausweis | „Der ZWEITE SCHRITT selbst antwortet gesperrt mit 429, nicht mit einer Absage" |
 
 ---
 
