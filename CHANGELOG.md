@@ -46,6 +46,17 @@ ein Abschnitt mit Nummer und Datum.*
   nicht mehr `Doku/Changelog.md`. So findet sie, wer das Paket auspackt, ohne
   in `Doku/` zu suchen.
 
+### Added
+
+- **Der Weg zurück, wenn der Proxy ausfällt**, steht im README unter „Wenn der
+  Proxy ausfällt". Mit `HINTER_PROXY=1` kommt über `http://<server-ip>:3100`
+  niemand mehr herein — der Cookie trägt `Secure`, der Browser verwirft ihn.
+  *Die Anmeldung sieht dabei aus, als klappte sie:* der Server antwortet mit
+  200, erst der Browser wirft den Cookie weg, ohne Meldung. Fällt der Proxy
+  aus, gab es damit bisher gar keinen beschriebenen Weg mehr in die
+  Oberfläche. **Am Verhalten ändert sich nichts, es ist jetzt nur
+  aufgeschrieben** — samt dem Handgriff, der eine Minute dauert.
+
 ---
 
 ## 0.9.1 — Stufe I₂: die Selbstanmeldung

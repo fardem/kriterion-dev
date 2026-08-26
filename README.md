@@ -319,6 +319,41 @@ Zwei Dinge beim Umlegen:
 Der Start sagt im Protokoll, welche Lage gilt: `Hinter Proxy: an` oder
 `Hinter Proxy: aus`.
 
+**WENN DER PROXY AUSFÄLLT — der Weg zurück.** Fällt der Reverse Proxy aus,
+läuft ein Zertifikat ab oder klemmt der Name im DNS, dann gibt es mit
+`HINTER_PROXY=1` **gar keinen Weg mehr in die Oberfläche**: über HTTPS geht es
+nicht, weil der Proxy fehlt, und über `http://<server-ip>:3100` verwirft der
+Browser den Cookie. *Die Anmeldung sieht dabei aus, als klappte sie* — der
+Server antwortet mit 200 und setzt den Cookie; erst der Browser wirft ihn weg,
+stillschweigend und ohne Meldung, und die Seite fällt auf die Anmeldung
+zurück. **Im Protokoll des Servers steht davon nichts**, er hat seinen Teil ja
+getan.
+
+Der Ausweg braucht kein Werkzeug und dauert eine Minute — die Einstellung für
+die Dauer der Störung abschalten:
+
+```bash
+cd .../kriterion
+sed -i 's/^HINTER_PROXY=1/# HINTER_PROXY=1/' .env
+docker compose up -d
+```
+
+Danach geht `http://<server-ip>:3100` wieder. **Es meldet alle einmalig ab**,
+weil der Cookiename wechselt — kein Datenverlust, nur eine neue Anmeldung.
+Ist der Proxy repariert, die Zeile wieder scharf schalten und erneut starten;
+das meldet noch einmal ab.
+
+> **Solange die Einstellung aus ist, wird `X-Forwarded-For` nicht mehr
+> geglaubt.** Die Anmeldebremse zählt dann nach der tatsächlichen Verbindung —
+> hinter einem Proxy wäre das dessen Adresse für alle zusammen. **Deshalb nur
+> für die Dauer der Störung**, nicht als Dauerzustand.
+
+*Wer den Fall gar nicht erst haben will, richtet den Namen der Anlage auch im
+eigenen Netz auf den Proxy ein* (Eintrag im lokalen DNS oder in der
+`hosts`-Datei). Dann läuft auch der Weg von innen über HTTPS und der Cookie
+gilt. **Gegen einen ausgefallenen Proxy hilft das allerdings nicht** — dafür
+bleibt der Handgriff oben.
+
 **Was die Einstellung nicht ist:** eine Liste, wer den Kopf setzen darf. Bleibt
 der Port des Containers im eigenen Netz erreichbar, kann dort auch jemand von
 Hand einen Kopf mitschicken und die Bremse damit umgehen — ein gewöhnlicher

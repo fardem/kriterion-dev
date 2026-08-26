@@ -1645,11 +1645,17 @@ genau solche Runden; unter SemVer hätte keine davon eine freie Nummer gebraucht
   zu jeder Zeit auftreten", die öffentliche Schnittstelle ist ausdrücklich nicht
   als stabil zu betrachten.* Brüche laufen bis dahin über MINOR.
 - **Was entfernt wird, wird vorher angekündigt.** Erst eine Version, die es als
-  `Deprecated` führt, dann eine spätere, die es entfernt. **Das betrifft diesen
-  Plan unmittelbar:** 0.12.0 soll zu alten Datenbanken die Absage erteilen —
-  *diese Absage gehört als `Deprecated` schon in eine Version davor*, sonst
-  steht ein Betreiber vor einem Verzeichnis, das sich nicht mehr öffnet, und
-  hat es nirgends gelesen.
+  `Deprecated` führt, dann eine spätere, die es entfernt.
+  **AUSGENOMMEN IST DIE ABSAGE AN ALTE DATENBANKEN IN 0.12.0, und zwar
+  ausdrücklich entschieden:** es gibt zurzeit **genau eine Anlage und genau
+  einen Betreiber**, und der weiß es. Ein Ankündigungslauf für ein Publikum,
+  das es nicht gibt, wäre Papier ohne Leser. *Alles, was vor der Bereinigung
+  liegt, wird ab 0.12.0 nicht mehr berücksichtigt.*
+  **Diese Ausnahme endet in dem Augenblick, in dem die Anlage an jemand anderen
+  herausgeht.** Ab dann gibt es fremde Betreiber, ab dann ist ein Verzeichnis,
+  das sich nach einem Versionswechsel nicht mehr öffnet, deren Schaden und
+  nicht mehr eine eigene Entscheidung — und ab dann gilt die Regel darüber
+  ohne Ausnahme.
 - **Vorveröffentlichungen sind möglich und stehen zur Verfügung**, falls eine
   Runde in Etappen herausgeht: `1.0.0-rc.1` rangiert vor `1.0.0`.
 - **EINE VERÖFFENTLICHTE VERSION WIRD NIE VERÄNDERT.** Wer an einem
@@ -5183,6 +5189,33 @@ sind zwei Dinge:
   noch alles ändern darf. **Herausgeben lässt sich die Anlage mit jeder
   Nummer; `1.0.0` ist nicht das Herausgehen, sondern die Zusage** — ab da liegt
   die öffentliche Schnittstelle fest (Abschnitt 5 und Abschnitt 10).
+- **`HINTER_PROXY` IST EIN JA/NEIN, UND DIE ANLAGE IST INZWISCHEN BEIDES.** Seit
+  der Reverse Proxy davorsteht, kommt über `http://<server-ip>:3100` niemand
+  mehr herein: der Cookie trägt `Secure` und das Präfix `__Host-`, der Browser
+  verwirft ihn über eine unverschlüsselte Verbindung. **Gemessen, nicht
+  vermutet** — der Server antwortet mit **200** und setzt
+  `__Host-kriterion_session=…; Secure`; das Verwerfen geschieht allein im
+  Browser, stillschweigend, und im Serverprotokoll steht davon nichts.
+  *Das ist kein Fehler, sondern der Preis der Einstellung, und das README
+  sagt es an dieser Stelle auch.* **Der Mangel liegt woanders:** die eine
+  Einstellung bündelt **vier** Wirkungen — `X-Forwarded-For` glauben, `Secure`,
+  `__Host-`, HSTS — und die Anlage ist seit dem Proxy aus **zwei** Netzen
+  zugleich erreichbar. *Der Quelltext hat genau das vorhergesehen:* „Ist die
+  Anlage je aus mehreren Netzen gleichzeitig erreichbar, gehört das
+  nachgeliefert" (`auth.js`, Kopf).
+  **Was das im Ernstfall kostet:** fällt der Proxy aus oder läuft ein
+  Zertifikat ab, gibt es **gar keinen Weg mehr in die Oberfläche**. Die Daten
+  sind sicher und die Werkzeuge auf dem Wirt gehen weiter — lesen lässt sich
+  der Bestand nicht. **Der Handgriff dagegen steht seit dieser Runde im
+  README** („Wenn der Proxy ausfällt"): Einstellung für die Dauer der Störung
+  abschalten, neu starten.
+  **Die saubere Lösung ist eine Runde Arbeit und vorgemerkt:** `X-Forwarded-Proto`
+  lesen (wird bisher **nirgends** gelesen) und je Anfrage entscheiden — mit
+  **zwei Cookienamen**, nicht mit einem. *Ein Name mit bedingtem `Secure` gäbe
+  Sicherheit auf, statt Bequemlichkeit zu gewinnen:* wer im eigenen Netz eine
+  Klartextverbindung
+  verbiegen kann, setzte damit einen Cookie, den die HTTPS-Seite anschließend
+  auch annimmt — und genau dagegen gibt es das Präfix `__Host-`.
 - **Weicht der Fingerprint ab, nennt er nicht, WELCHE Datei es ist.** Der
   Handgriff dafür steht im README („Eine neue Version einspielen"): die
   Prüfsummen der zwölf Dateien nebeneinander, über die er geht. **Eine Zeile zu
