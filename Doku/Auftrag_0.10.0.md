@@ -3,8 +3,11 @@ Projektstand, Konzeptpapier, Ideenpapier, Videopapier und die
 Änderungsprotokolle stehen dort unter `Doku/`. Gearbeitet wird im Repo, nicht
 an einer Kopie.
 
-AUFTRAG: **Version 0.9.10 — „Der zweite Faktor."**
-**Die erste Runde nach dem Stufenplan.** Teil II des Konzeptpapiers ist mit
+AUFTRAG: **Version 0.10.0 — „Der zweite Faktor."**
+**Die erste Runde nach dem Stufenplan — und die erste unter Semantic
+Versioning.** *Sie hieß in einer früheren Fassung dieses Papiers 0.9.10; die
+Zehnerschritte des alten Schemas sind mit dieser Runde abgelöst, der Fahrplan
+ist umnummeriert. Was schon herausgegeben war, behält seine Nummer.* Teil II des Konzeptpapiers ist mit
 0.9.1 abgearbeitet; was jetzt kommt, ist keine Stufe mehr, sondern eine Runde
 wie 0.8.90 — sie steht im Projektstand, Abschnitt 10, nicht im Konzeptpapier.
 
@@ -15,10 +18,10 @@ bindenden Satz, und der steht unten unter Punkt 1. Alles Übrige ist zu
 entscheiden — deshalb hat dieser Auftrag mehr Fragen als der letzte und weniger
 Verweise.
 
-WORAUF SIE AUFSETZT: 0.9.1 ist gebaut, geschoben und **nachgezogen**,
-Fingerprint `3cf1b093`, **3451 Prüfungen**, 58 Gegenproben, `F_ROUTEN` bei
-**64**, Formatnummer **10**, **fünf** markierte Migrationsblöcke, Stolpersteine
-bis **157**, **neunzehn** Karten im Systembereich, elf Vokabulareinträge,
+WORAUF SIE AUFSETZT: 0.9.1 ist gebaut, geschoben, **nachgezogen und im Feld
+bestätigt**, Fingerprint `3cf1b093`, **3451 Prüfungen**, 58 Gegenproben,
+`F_ROUTEN` bei **64**, Formatnummer **10**, **fünf** markierte
+Migrationsblöcke, Stolpersteine bis **158**, **neunzehn** Karten im Systembereich, elf Vokabulareinträge,
 **siebzehn** Vorgänge im Sicherheitsprotokoll, **dreizehn** Merkmale,
 `BESTAETIGUNG_ZWECKE` bei **sieben**. Laufzeitabhängigkeiten:
 `better-sqlite3-multiple-ciphers`, `express`, `multer`, `sharp`, `nodemailer`.
@@ -66,6 +69,17 @@ entsteht und alle dreißig Sekunden ein anderer ist.
      nie geladen. Der Prüfstand hält jetzt allgemein fest, dass in `public/`
      keine Datei zweimal unter zwei Namen liegt — verglichen über den Inhalt
      (Stolperstein 157). **Nichts mehr zu tun.**
+   * **DER STAND IST IM FELD BESTÄTIGT — und der Fingerprint hat sich zum ersten
+     Mal bezahlt gemacht.** Die laufende Anlage meldete `fad3e5ed`, den Stand
+     keines Commits; Ursache war **eine Datei zu viel** — das entfernte
+     `public/marke-hell.svg` lag auf dem Wirt noch da. Nach dem Löschen meldet
+     sie `3cf1b093`. **Der Server lief die ganze Zeit einwandfrei und jede
+     Prüfung war grün** (Stolperstein 158). *Für diese Runde heißt das zweierlei:
+     der Ausgangsstand oben ist gemessen und nicht behauptet — und wenn du eine
+     Datei entfernst, gehört das in den Changelog, wo jemand es beim Einspielen
+     liest.* **Was der Fingerprint nicht sagt, ist WELCHE Datei abweicht; eine
+     Zeile dafür in der Karte „Anlage" ist für die Nacharbeitsrunde vorgemerkt
+     und NICHT Teil dieser Runde.**
    * **Der Schlüsselwechsel auf der echten Anlage steht weiterhin aus.** Er
      braucht keine Runde und keinen Auftrag; das Ergebnis gehört in den
      Projektstand, Abschnitt 2. **Nicht Teil dieser Runde.**
@@ -259,17 +273,21 @@ entsteht und alle dreißig Sekunden ein anderer ist.
 LESEWEGE — WAS DU WIRKLICH BRAUCHST:
 
 * **Am Stück lesen:** dieser Auftrag, `Doku/Aenderungsprotokoll_0.9.1.md`
-  (Abschnitte 2 bis 5 — die Abweichungen, die Fragen, die Befunde A bis U und
-  die Stolpersteine 149 bis 157). **Die Befunde M bis U sind die aus dem
+  (Abschnitte 2 bis 5 — die Abweichungen, die Fragen, die Befunde A bis V und
+  die Stolpersteine 149 bis 158). **Die Befunde M bis V sind die aus dem
   Betrieb; lies die zuerst.**
 * **Abschnittsweise, über die Überschriften angesteuert:** Projektstand
   Abschnitt 2 (Betriebsstand und Einspielweg), 3 (**der ganze Abschnitt** —
   Zugang, Tokens, Sitzungen, Anmeldebremse, zweite Bestätigung,
-  Sicherheitsprotokoll, Selbstanmeldung), 4 (die Karten), 5 (Entscheidungen),
-  6 (**Stolpersteine 13, 20, 47, 61, 74, 81, 90, 102, 106, 138, 145, 149 bis
-  157**), 7 (Prüfstand), 8 (offene Betriebspunkte), 10 (**der Fahrplan bis zur
-  Veröffentlichung** — er ist nach 0.9.1 festgelegt worden), 12 (Arbeitsweise
-  samt Sprachregel).
+  Sicherheitsprotokoll, Selbstanmeldung), 4 (die Karten), 5 (Entscheidungen —
+  **darin die beiden neuen Unterabschnitte zu Semantic Versioning und Keep a
+  Changelog samt der Erklärung, WAS bei Kriterion die öffentliche Schnittstelle
+  ist; die lies zuerst**), 6 (**Stolpersteine 13, 20, 47, 61, 74, 81, 90, 102,
+  106, 138, 145, 149 bis 158**), 7 (Prüfstand), 8 (offene Betriebspunkte),
+  10 (**der Fahrplan** — nach 0.9.1 festgelegt und auf SemVer umnummeriert),
+  12 (Arbeitsweise samt Sprachregel).
+* **`CHANGELOG.md` im Wurzelverzeichnis, nur den Kopf und `## [Unreleased]`** —
+  dort steht die Form, nach der dein Eintrag auszusehen hat.
 * **Vom Konzeptpapier NUR den einen Satz** aus Teil III, der oben zitiert ist.
   **Das Papier ist mit 0.9.1 geschlossen** — siehe unten.
 * **Gezielt greppen, nie am Stück lesen:** `pruefung.js` (über 22 000 Zeilen).
@@ -367,15 +385,63 @@ VORGEHEN — in dieser Reihenfolge:
 
 ---
 
+ZWEI RICHTLINIEN GELTEN AB DIESER RUNDE, UND SIE SIND KEINE FORMSACHE:
+
+**[Semantic Versioning 2.0.0](https://semver.org/lang/de/)** für die Nummern,
+**[Keep a Changelog 1.1.0](https://keepachangelog.com/de/1.1.0/)** für
+`CHANGELOG.md`. Beschlossen nach 0.9.1; der Wortlaut steht im Projektstand,
+Abschnitt 5. **0.10.0 ist die erste Runde danach — was sie hinterlässt, ist die
+Vorlage für alles Weitere.** Was das konkret verlangt:
+
+* **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.10.0 ist MINOR, weil eine neue
+  Funktion dazukommt und die vorhandene Schnittstelle unangetastet bleibt.
+  **Schreib den Grund ins Änderungsprotokoll**, in einem Satz. *Stellt sich beim
+  Bauen heraus, dass etwas an der öffentlichen Schnittstelle bricht — Schema,
+  Austauschformat, `.env`, die Werkzeuge auf dem Wirt —, ist das ein Grund
+  anzuhalten und zu fragen, nicht ein Grund, die Nummer stillschweigend anders
+  zu wählen.*
+* **NICHTS WIRD UNTER EINER SCHON HERAUSGEGEBENEN NUMMER NACHGESCHOBEN**
+  (SemVer, Punkt 3). Genau das ist bei 0.9.1 passiert: die Nacharbeit ging
+  unter derselben Nummer heraus, und der Fingerprint der laufenden Anlage war
+  danach nicht mehr zuzuordnen (Stolperstein 158). **Kommt nach 0.10.0 etwas
+  nach, heißt es 0.10.1.**
+* **`CHANGELOG.md` bekommt den ersten Eintrag der neuen Form.** Überschrift
+  `## [0.10.0] - <JJJJ-MM-TT>`, Datum nach ISO 8601, neueste Version oben.
+  Darunter die zutreffenden von **`Added` · `Changed` · `Deprecated` ·
+  `Removed` · `Fixed` · `Security`** — englisch, so wie die deutsche Fassung
+  der Form sie selbst führt, leere weggelassen. **Dahinter die beiden eigenen
+  Abschnitte**, die bleiben: „Was du danach von Hand tun musst" und „Was gleich
+  bleibt".
+* **DER ABSCHNITT `## [Unreleased]` WIRD MITGESCHRIEBEN, WÄHREND GEBAUT WIRD** —
+  nicht am Schluss aus dem Gedächtnis gefüllt. Beim Herausgeben wird daraus der
+  Abschnitt mit Nummer und Datum. *Er trägt zurzeit schon einen Eintrag: die
+  Umstellung selbst.*
+* **WAS DU ENTFERNST, STEHT UNTER `Removed` — UND EINEN SATZ WEITER UNTEN.**
+  Eine weggenommene Datei bleibt beim Einspielen über den alten Ordner liegen
+  und verschiebt den Fingerprint. Sie gehört deshalb **auch** nach „Was du
+  danach von Hand tun musst".
+* **DIE VERSION BEKOMMT EINEN GIT-TAG.** Das Repo trägt bis heute keinen
+  einzigen, und ohne Tags lassen sich die Versionen im Changelog nicht
+  verlinken — was die Form ausdrücklich verlangt. **`v0.10.0` auf den Commit,
+  der herausgeht**, und unten in `CHANGELOG.md` die Vergleichsverweise anlegen.
+  *Für die Versionen davor bleibt das Änderungsprotokoll das Ziel; rückwirkend
+  wird nichts getaggt.*
+* **KEIN COMMIT-PROTOKOLL ALS CHANGELOG.** Ein Commit dokumentiert die
+  Entwicklung des Quelltextes, ein Changelog-Eintrag die beachtenswerte
+  Änderung für den, der die Anlage betreibt.
+
+---
+
 REGELN:
 
 * Deutsch in Kommentaren, Oberfläche, Meldungen und im Gespräch — **mit der
   Sprachregel aus Abschnitt 12 des Projektstands.** `TOTP`, `Base32`,
-  `QR-Code` und `Token` sind Fachbegriffe und bleiben.
+  `QR-Code` und `Token` sind Fachbegriffe und bleiben. *Die sechs
+  Abschnittsnamen im Changelog bleiben englisch — siehe oben.*
 * IM CHAT KNAPP BLEIBEN. Kurze Sätze, kein Nacherzählen des eigenen Vorgehens.
   Was ich sehen muss: Entscheidungen, Rückfragen, Zahlen, Befunde.
-* Versionsnummer in `package.json` auf `0.9.10` setzen, `package-lock.json`
-  nachziehen (`npm install --package-lock-only`). **Nachgeprüft: `0.9.10`
+* Versionsnummer in `package.json` auf `0.10.0` setzen, `package-lock.json`
+  nachziehen (`npm install --package-lock-only`). **Nachgeprüft: `0.10.0`
   sortiert über `0.9.1`** — drei Zahlen, nicht vier.
 * **KEINE NEUE ABHÄNGIGKEIT, NICHT EINE** — auch keine für den Prüfstand.
   `nodemailer` war die Ausnahme einer Runde und bleibt es.
@@ -408,11 +474,11 @@ BAUREGEL — datenbankverändernder Code wird rückbaufreundlich gebaut:
   kein Block. `CREATE TABLE IF NOT EXISTS` legt sie bei jedem Start an
   (Stolperstein 13).
 * Das Schema bleibt vollständige DDL in `db.js`.
-* Einmaliger Migrationscode stünde gebündelt in `migration0910()`. **Die Marke
+* Einmaliger Migrationscode stünde gebündelt in `migration0100()`. **Die Marke
   darüber lautet weiterhin `// MIGRATION 0.9.x — ENTFAELLT MIT 1.0`** — sie ist
   der Wortlaut, den alle fünf vorhandenen Blöcke tragen, und ein sechster mit
   anderem Wortlaut wäre eine zweite Schreibweise für dieselbe Sache. *Dass die
-  Bereinigung nach dem neuen Fahrplan auf 0.9.60 liegt und nicht auf 1.0,
+  Bereinigung nach dem neuen Fahrplan auf 0.12.0 liegt und nicht auf 1.0,
   ändert daran nichts; die Marke ist ein Suchwort, kein Termin.* **Der Code
   wird voraussichtlich nicht gebraucht — und wenn du meinst, doch, ist das ein
   Grund anzuhalten und zu fragen, kein Grund, ihn einzubauen.**
@@ -423,16 +489,18 @@ AM ENDE DES CHATS:
   geschnittene Commits mit deutschen Meldungen.
 * Kein ZIP, kein Dateiversand. Vor dem letzten Push: `git status` muss leer
   sein, und `npm test` läuft ein letztes Mal gegen genau diesen Stand.
-* `Doku/Aenderungsprotokoll_0.9.10.md` liegt im Branch: was gebaut wurde je
+* `Doku/Aenderungsprotokoll_0.10.0.md` liegt im Branch: was gebaut wurde je
   Datei, Abweichungen mit Begründung, neue Stolpersteine (**die Zählung setzt
-  bei 158 fort** — 149 bis 157 sind vergeben), die Gegenprobentabelle **aus
+  bei 159 fort** — 149 bis 158 sind vergeben), die Gegenprobentabelle **aus
   `gegenprobe.js`**, Prüfungszahlen vorher/nachher (vorher: **3451**),
   Offengebliebenes.
-* Die Zeile „0.9.10 — Fingerprint `…`" gehört ins Änderungsprotokoll, **ZULETZT
+* Die Zeile „0.10.0 — Fingerprint `…`" gehört ins Änderungsprotokoll, **ZULETZT
   gebildet**, nach der letzten Änderung an einer ausgelieferten Datei — die
   Versionsnummer in `package.json` eingeschlossen. **Und `public/` gehört
   dazu**: seit 0.9.1 liegen dort **zwei** SVG-Dateien, die mitzählen —
-  `marke-dunkel.svg` und `favicon.svg`.
+  `marke-dunkel.svg` und `favicon.svg`. *Er geht über ALLES unter `public/` und
+  nicht über eine Liste erwarteter Namen; eine Datei zu viel bewegt ihn genauso
+  wie eine geänderte (Stolperstein 158).*
 * **Der Einspielweg dieser Runde nennt die Sicherung des Datenverzeichnisses
   als PFLICHT** — es ist eine Datenbankstufe. **Neue Zeilen in der `.env` gibt
   es voraussichtlich nicht**; sag es ausdrücklich, statt es offenzulassen.
@@ -450,7 +518,7 @@ ZUM SCHLUSS DIESER RUNDE — DOKUMENTE UND CHANGELOG:
   Abschnitt 5 um die Entscheidungen dieser Runde, Stolpersteine, Prüfstand,
   Versionsgeschichte, Abschnitt 10, Abschnitt 11). Der Projektstand trägt die
   Version im Dateinamen und wird umbenannt (`git mv` auf
-  `Projektstand_Kriterion_0_9_10.md`); alle Verweise sind nachzuziehen.
+  `Projektstand_Kriterion_0_10_0.md`); alle Verweise sind nachzuziehen.
 * **DAS KONZEPTPAPIER WIRD NICHT ANGEFASST UND NICHT UMBENANNT.** Es ist mit
   0.9.1 geschlossen: der Stufenplan ist abgearbeitet, und Zwei-Faktor ist keine
   Stufe davon. Sein Kopf sagt „gebaut bis Version 0.9.1", und das bleibt wahr —
@@ -462,8 +530,8 @@ ZUM SCHLUSS DIESER RUNDE — DOKUMENTE UND CHANGELOG:
   hingehören** — und **dass die Anlage ohne all das vollständig läuft**.
   Dazu der Notweg über `zugang.js`, an derselben Stelle wie das vergessene
   Passwort.
-* **`Doku/Changelog.md` bekommt einen Abschnitt für diese Runde** — drei Blöcke
-  wie bei den vorhandenen Einträgen. **Der Satz, der dort nicht fehlen darf:**
+* **`CHANGELOG.md` bekommt den ersten Eintrag nach der neuen Form** — siehe den
+  eigenen Punkt dazu weiter unten. **Der Satz, der dort nicht fehlen darf:**
   wer den zweiten Faktor nicht einschaltet, merkt von dieser Version nichts.
 * **Alles wird fertig gemacht — bis auf den Auftrag für die nächste Runde.**
   Den weise ich zum Schluss ausdrücklich an, wenn eingespielt und sauber
@@ -477,31 +545,31 @@ ZUM VORMERKEN, NICHT IN DIESER RUNDE:
   nicht. Er läuft über `./schluessel.sh wechseln` auf dem Wirt und **braucht
   keine Runde und keinen Auftrag**; das Ergebnis gehört in den Projektstand,
   Abschnitt 2.
-* **DER FAHRPLAN BIS ZUR VERÖFFENTLICHUNG STEHT** — festgelegt nach 0.9.1 und
-  im Projektstand, Abschnitt 10, eingetragen:
-  **0.9.20 — Suche und Bestand** (Volltextsuche, gespeicherte Ansichten,
+* **DER FAHRPLAN STEHT, UND ER IST AUF SEMVER UMNUMMERIERT** — im Projektstand,
+  Abschnitt 10:
+  **0.11.0 — Suche und Bestand** (Volltextsuche, gespeicherte Ansichten,
   Doppelerkennung samt Zusammenführen; eine Datenbankstufe).
-  **0.9.30 — Fehlerbereinigung und Verbesserungen**; das ist die Runde, die
-  bisher ohne Nummer dastand. *Der Auftrag zu 0.9.1 nannte dafür irrtümlich
-  0.9.20, wo schon „Suche und Bestand" steht — berichtigt.*
-  **0.9.60 — vermutlich Bereinigung von Code und Datenbankstruktur**: die
+  **0.11.x — Fehlerbereinigung und Verbesserungen**: die Runde, die lange ohne
+  Nummer dastand, bekommt jetzt gar keine geplante mehr, sondern die nächste
+  freie PATCH-Zahl — und so viele davon, wie sie braucht.
+  **0.12.0 — vermutlich Bereinigung von Code und Datenbankstruktur**: die
   Struktur wird als Grundlage festgeschrieben, Migrationscode fällt heraus,
-  **ab dort gibt es keinen Rückweg auf ältere Fassungen.** Das ist der Inhalt,
-  der bisher unter 1.0.0 stand.
-  **0.9.90 — die Veröffentlichung**, und nicht 1.0.0. *Warum 0.9.90 und nicht
-  0.9.9: sortiert wird zahlweise, und `0.9.9` läge damit VOR `0.9.10` — die
-  Veröffentlichung stünde in der Vergangenheit.*
-  **Was mit der Eins geschieht, ist offen** und steht in Abschnitt 8.
+  **ab dort gibt es keinen Rückweg auf ältere Fassungen.**
+  **1.0.0 — die Zusage.** *Herausgeben lässt sich die Anlage mit jeder Nummer;
+  1.0.0 ist nicht das Herausgehen, sondern der Punkt, ab dem die öffentliche
+  Schnittstelle festliegt.*
 * **Der QR-Encoder als eigene Runde**, falls er diese hier zu breit macht. Er
   ist der eine Teil, bei dem das ausdrücklich erlaubt ist: der abtippbare
   Schlüssel trägt den Weg auch ohne ihn.
 * **Ein Versanddienst über HTTPS**, falls SMTP am Anschluss nachweislich nicht
   durchkommt. Zweiter Weg im Code, ohne Bibliothek, mit `fetch`.
+* **Eine Zeile in der Karte „Anlage", die die abweichende Datei beim Namen
+  nennt.** Der Fingerprint sagt heute nur, DASS etwas abweicht. **Vorgemerkt für
+  die Nacharbeitsrunde**, nicht für diese hier.
 * **Ein echter Teillauf im Prüfstand.** `pruefung.js` ist EIN Ablauf; der
   Namensfilter filtert die Ausgabe, nicht die Arbeit. `gegenprobe.js` und
   `PORT_VERSATZ` mildern das, sie beheben es nicht.
 * **Der Zähler „Offen 7" in der Kopfzeile** aus 0.8.60 wird bei jedem
   Seitenaufbau gebraucht.
-* **Teil II des Videopapiers — große Dateien bis 2 GB.** Es stand auf 1.1.0;
-  mit der Veröffentlichung auf 0.9.90 hängt seine Nummer an derselben
-  Entscheidung wie die Eins.
+* **Teil II des Videopapiers — große Dateien bis 2 GB.** Eine neue Funktion,
+  also MINOR; die Nummer ergibt sich, wenn die Runde drankommt.

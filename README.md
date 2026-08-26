@@ -12,7 +12,10 @@ Node.js/Express, verschlüsselte SQLite-Datenbank, Frontend ohne Framework. Kein
 externen Schriftarten, kein CDN, keine Favicon-Abrufe — läuft vollständig
 offline im eigenen Netz.
 
-**Was eine Version mitbringt, steht kurzgefasst in `Doku/Changelog.md`.**
+**Was eine Version mitbringt, steht kurzgefasst in `CHANGELOG.md`.** Das Format
+folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
+Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/) —
+beides ab 0.10.0; die Einträge davor stehen in ihrer ursprünglichen Form.
 
 ## Einrichten
 
@@ -315,6 +318,41 @@ Zwei Dinge beim Umlegen:
 
 Der Start sagt im Protokoll, welche Lage gilt: `Hinter Proxy: an` oder
 `Hinter Proxy: aus`.
+
+**WENN DER PROXY AUSFÄLLT — der Weg zurück.** Fällt der Reverse Proxy aus,
+läuft ein Zertifikat ab oder klemmt der Name im DNS, dann gibt es mit
+`HINTER_PROXY=1` **gar keinen Weg mehr in die Oberfläche**: über HTTPS geht es
+nicht, weil der Proxy fehlt, und über `http://<server-ip>:3100` verwirft der
+Browser den Cookie. *Die Anmeldung sieht dabei aus, als klappte sie* — der
+Server antwortet mit 200 und setzt den Cookie; erst der Browser wirft ihn weg,
+stillschweigend und ohne Meldung, und die Seite fällt auf die Anmeldung
+zurück. **Im Protokoll des Servers steht davon nichts**, er hat seinen Teil ja
+getan.
+
+Der Ausweg braucht kein Werkzeug und dauert eine Minute — die Einstellung für
+die Dauer der Störung abschalten:
+
+```bash
+cd .../kriterion
+sed -i 's/^HINTER_PROXY=1/# HINTER_PROXY=1/' .env
+docker compose up -d
+```
+
+Danach geht `http://<server-ip>:3100` wieder. **Es meldet alle einmalig ab**,
+weil der Cookiename wechselt — kein Datenverlust, nur eine neue Anmeldung.
+Ist der Proxy repariert, die Zeile wieder scharf schalten und erneut starten;
+das meldet noch einmal ab.
+
+> **Solange die Einstellung aus ist, wird `X-Forwarded-For` nicht mehr
+> geglaubt.** Die Anmeldebremse zählt dann nach der tatsächlichen Verbindung —
+> hinter einem Proxy wäre das dessen Adresse für alle zusammen. **Deshalb nur
+> für die Dauer der Störung**, nicht als Dauerzustand.
+
+*Wer den Fall gar nicht erst haben will, richtet den Namen der Anlage auch im
+eigenen Netz auf den Proxy ein* (Eintrag im lokalen DNS oder in der
+`hosts`-Datei). Dann läuft auch der Weg von innen über HTTPS und der Cookie
+gilt. **Gegen einen ausgefallenen Proxy hilft das allerdings nicht** — dafür
+bleibt der Handgriff oben.
 
 **Was die Einstellung nicht ist:** eine Liste, wer den Kopf setzen darf. Bleibt
 der Port des Containers im eigenen Netz erreichbar, kann dort auch jemand von
@@ -1448,8 +1486,35 @@ kurze Prüfsumme über alles, was er lädt und ausliefert (`server.js`, `db.js`,
 unter `fingerprint` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen" im
 Systembereich. Der Wert steht zu jeder Version im Änderungsprotokoll
 (`Doku/Aenderungsprotokoll_<Version>.md`, Zeile „Fingerprint …"). Stimmt er nicht
-überein, ist der Dateisatz unvollständig eingespielt — dann hilft nur, ihn
+überein, ist der Dateisatz nicht der, der gemeint war — dann hilft nur, ihn
 vollständig erneut einzuspielen, nicht einzelne Dateien nachzuziehen.
+
+**UND ER SCHLÄGT IN BEIDE RICHTUNGEN AUS — auch bei einer Datei ZU VIEL.** Der
+Fingerprint geht über **alles**, was unter `public/` liegt, nicht über eine
+Liste erwarteter Namen. Nimmt eine Version eine Datei **weg** und wird über den
+alten Ordner ausgepackt statt in einen frischen, bleibt die weggenommene Datei
+liegen und zählt weiter mit: der Server läuft einwandfrei, die Oberfläche ist
+die neue, **und der Fingerprint ist trotzdem ein anderer.** Genau das ist beim
+Einspielen von 0.9.1 passiert — `public/marke-hell.svg` war entfernt worden und
+lag noch da.
+
+*Deshalb steht im Weg oben `mv kriterion kriterion-alt` und ein frisch
+entpacktes Verzeichnis:* er kopiert nicht über den alten Stand, er ersetzt ihn.
+Wer abkürzt und über den vorhandenen Ordner entpackt, bekommt genau diesen Fall.
+
+**Weicht der Fingerprint ab, findest du die Ursache so** — im Projektverzeichnis
+oder im Container (`docker compose exec kriterion sh`):
+
+```bash
+for f in anhaenge.js auth.js db.js keys.js mail.js package.json server.js public/*; do
+  printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
+done
+```
+
+Das sind **genau die Dateien, über die der Fingerprint geht**, und sonst keine.
+Steht eine Zeile zu viel da, ist das die Ursache; weicht eine Prüfsumme ab, ist
+es diese Datei. **Eine Zeile zu viel wiegt genauso schwer wie eine falsche** —
+löschen und `docker compose up -d --build`, denn der Quelltext steckt im Image.
 
 **Die `.env` liegt bewusst nicht im Paket** — sie enthält den Schlüssel und hat
 in einer verteilten Datei nichts verloren. Sie wandert deshalb mit dem alten
