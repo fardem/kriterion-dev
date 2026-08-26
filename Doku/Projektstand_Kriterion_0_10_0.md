@@ -1954,11 +1954,20 @@ Ab 0.10.0 gilt die feste Form:
 - **Für jede Version ein Eintrag.** Keine Version ohne Zeile im Changelog.
 - **Zurückgezogene Versionen** als `## [x.y.z] - JJJJ-MM-TT [YANKED]`,
   großgeschrieben, damit ein Mensch es bemerkt.
-- **Versionen sollen verlinkbar sein.** *Dafür fehlt bis jetzt die
-  Voraussetzung: das Repo trägt keinen einzigen Git-Tag.* **Ab 0.10.0 bekommt
-  jede herausgegebene Version einen Tag**, und die Vergleichsverweise am Ende
-  der Datei hängen daran. Für die Versionen davor bleibt das
-  Änderungsprotokoll das Ziel.
+- **Versionen sollen verlinkbar sein.** *Der Satz, der hier bis Revision 22
+  stand — „das Repo trägt keinen einzigen Git-Tag" —, ist beim Herausgeben von
+  0.10.0 als falsch aufgefallen und berichtigt:* **das Repo trägt vierzehn**,
+  von `0.8.3` bis `v0.8.91`. Sie sind nur **weder vollständig noch einheitlich**:
+  die Reihe bricht nach 0.8.91 ab (0.8.80, 0.8.90, 0.9.0 und 0.9.1 haben
+  keinen), und die Schreibweise wechselt — die zwölf älteren stehen ohne `v`,
+  die beiden jüngsten (`v0.8.71`, `v0.8.91`) mit.
+  **Ab 0.10.0 bekommt jede herausgegebene Version einen Tag, und zwar mit `v`**
+  — die Schreibweise der beiden jüngsten, damit die Reihe von dort aus
+  weiterläuft und nicht ein drittes Mal wechselt. Die Vergleichsverweise am
+  Ende der Datei hängen daran.
+  **RÜCKWIRKEND WIRD NICHTS GETAGGT UND NICHTS UMBENANNT** — ein Tag ist ein
+  Zeiger auf einen herausgegebenen Stand, und was einmal draußen war, bleibt,
+  wie es war. Für die Versionen davor bleibt das Änderungsprotokoll das Ziel.
 - **Die Datei heißt `CHANGELOG.md` und liegt im Wurzelverzeichnis**, nicht in
   `Doku/`. *Wer das Paket auspackt, findet sie dort, ohne zu suchen* — so
   empfiehlt es die Form selbst. Die ausführlichen Protokolle bleiben in `Doku/`.

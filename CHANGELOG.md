@@ -97,10 +97,12 @@ ein anderer ist.**
 - **Diese Datei heißt `CHANGELOG.md` und liegt im Wurzelverzeichnis**, nicht
   mehr `Doku/Changelog.md`. So findet sie, wer das Paket auspackt, ohne in
   `Doku/` zu suchen.
-- **Die Versionen bekommen ab hier einen Git-Tag.** Das Repo trug bis heute
-  keinen einzigen, und ohne Tags lassen sich die Versionen nicht verlinken.
-  `v0.10.0` steht auf dem Commit, der herausgeht; für die Versionen davor
-  bleibt das Änderungsprotokoll das Ziel.
+- **Die Versionen bekommen ab hier lückenlos einen Git-Tag, und zwar mit `v`.**
+  Vierzehn gibt es schon (`0.8.3` bis `v0.8.91`) — aber die Reihe bricht nach
+  0.8.91 ab, und die Schreibweise wechselt: die älteren ohne `v`, die beiden
+  jüngsten mit. **`v0.10.0` steht auf dem Commit, der herausgeht**, in der
+  Schreibweise der beiden jüngsten. Rückwirkend wird nichts getaggt und nichts
+  umbenannt; für die Versionen davor bleibt das Änderungsprotokoll das Ziel.
 
 ### Security
 
@@ -847,8 +849,10 @@ Verfasser ihres Eintrags zu.
 
 ---
 
-<!-- DIE VERGLEICHSVERWEISE. Sie hängen an den Git-Tags, und die gibt es erst
-     ab 0.10.0 — deshalb steht hier genau einer. Der nächste wird ein
-     Vergleich (`v0.10.0...v0.11.0`); für alles vor 0.10.0 bleibt das
-     Änderungsprotokoll in `Doku/` das Ziel. -->
+<!-- DIE VERGLEICHSVERWEISE. Sie hängen an den Git-Tags. Ältere Tags gibt es
+     zwar (0.8.3 bis v0.8.91), aber die Reihe ist lückenhaft und die
+     Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
+     0.10.0, deshalb steht hier genau einer. Der nächste wird ein Vergleich
+     (`v0.10.0...v0.11.0`); für alles davor bleibt das Änderungsprotokoll in
+     `Doku/` das Ziel. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0

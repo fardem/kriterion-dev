@@ -523,7 +523,32 @@ und prüfte etwas anderes, als die Zeile sagt.
 lehrreichere: bei Befund B war die Zusage gebrochen, hier war sie erfüllt und
 nur nicht belegbar.* Stolperstein 163.
 
-### Befund G — der Auftrag nennt für einen Schnitt eine Nummer aus dem alten Schema
+### Befund G — das Repo trägt vierzehn Git-Tags, nicht null
+
+**Der Projektstand sagte in Abschnitt 5: *„das Repo trägt keinen einzigen
+Git-Tag"*, und der Auftrag wiederholt den Satz.** Beim Setzen von `v0.10.0`
+ist er als falsch aufgefallen: `git ls-remote --tags` nennt **vierzehn**, von
+`0.8.3` bis `v0.8.91`.
+
+**Sie sind nur weder vollständig noch einheitlich**, und darin liegt der wahre
+Kern des Satzes: die Reihe **bricht nach 0.8.91 ab** — 0.8.80, 0.8.90, 0.9.0
+und 0.9.1 haben keinen —, und die **Schreibweise wechselt**: die zwölf älteren
+stehen ohne `v`, die beiden jüngsten mit.
+
+**Entschieden:** `v0.10.0` bekommt das `v` — die Schreibweise der beiden
+jüngsten, damit die Reihe von dort weiterläuft und nicht ein drittes Mal
+wechselt. **Rückwirkend wird nichts getaggt und nichts umbenannt:** ein Tag
+zeigt auf einen herausgegebenen Stand, und was einmal draußen war, bleibt, wie
+es war (Semantic Versioning, Punkt 3). Die Vergleichsverweise im Changelog
+hängen deshalb erst ab 0.10.0 an Tags; davor bleibt das Änderungsprotokoll das
+Ziel. Projektstand und Changelog sind berichtigt.
+
+*Die Lehre ist dieselbe wie bei Stolperstein 137 (die Zahl der zweitbestätigten
+Wege stand eine Runde lang falsch da): **eine Zahl in einem Papier ist eine
+Behauptung, bis jemand sie abfragt.** Hier hat es einen `git push` gekostet,
+das herauszufinden.*
+
+### Befund H — der Auftrag nennt für einen Schnitt eine Nummer aus dem alten Schema
 
 Der Auftrag sagt unter „Wird es zu viel für einen Durchgang": *„der Rest würde
 0.9.11."* **Unter Semantic Versioning ist der Rest eine neue Funktion und damit
@@ -531,7 +556,7 @@ MINOR**, nicht PATCH — er hieße 0.11.0 und schöbe „Suche und Bestand" weit
 Gegenstandslos, weil kein Schnitt gefahren wurde; hier festgehalten, damit die
 Zahl nicht später als Vorbild dient.
 
-### Befund H — der alte Fahrplan steht weiterhin im Änderungsprotokoll 0.9.1
+### Befund I — der alte Fahrplan steht weiterhin im Änderungsprotokoll 0.9.1
 
 `Doku/Aenderungsprotokoll_0.9.1.md`, Abschnitt 10, trägt noch die Nummern
 0.9.10, 0.9.20, 0.9.30, 0.9.60 und 0.9.90. **Das ist richtig so und bleibt:**
@@ -539,7 +564,7 @@ was einmal draußen war, wird nicht umgeschrieben (Semantic Versioning, Punkt 3)
 **Hier festgehalten, damit es niemand später „berichtigt".** Der geltende
 Fahrplan steht im Projektstand, Abschnitt 10.
 
-### Befund I — `CHANGELOG.md` war aus dem Blick des Sprachwächters gefallen
+### Befund J — `CHANGELOG.md` war aus dem Blick des Sprachwächters gefallen
 
 Der Sprachwächter sieht `Doku/*.md` und `README.md` an. **Als die Datei mit
 dieser Runde von `Doku/Changelog.md` ins Wurzelverzeichnis zog, fiel sie damit
@@ -556,7 +581,7 @@ verlangt — zwei Zeilen sagen zusammen, was eine nicht sagen kann
 *Verwandt mit Stolperstein 113 und mit der Zahl in `F_ROUTEN`: wer eine Liste
 prüft, prüft ihre Länge UND ihre Ränder.*
 
-### Befund J — am Konzeptpapier wird nichts falsch
+### Befund K — am Konzeptpapier wird nichts falsch
 
 **Nachgesehen, wie der Auftrag es verlangt.** Der eine bindende Satz aus Teil
 III trägt unverändert; der Kopf sagt „gebaut bis Version 0.9.1", und das bleibt
@@ -789,6 +814,19 @@ daneben:**
 
 ## 10. Offen geblieben
 
+* **Der Git-Tag `v0.10.0` liegt lokal und ist NICHT geschoben.** Der Push
+  scheitert an dieser Arbeitsumgebung mit `HTTP 403` — Branches gehen durch,
+  Tags nicht. Der Tag steht auf dem Commit, der herausgeht; er braucht einen
+  Push von einer Stelle mit den nötigen Rechten:
+
+  ```bash
+  git fetch origin claude/auftrag-0-10-0-3zgyht
+  git tag -a v0.10.0 <commit> -m "Kriterion 0.10.0 — Der zweite Faktor"
+  git push origin v0.10.0
+  ```
+
+  **Ohne ihn zeigt der Vergleichsverweis am Ende von `CHANGELOG.md` ins
+  Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
 * **Ob 0.10.0 im Feld läuft.** Eingespielt ist noch nichts. Der Rundlauf, der
   die Runde belegt — einschalten, abmelden, mit Code anmelden, einmal mit einem
   Wiederherstellungscode —, gehört danach in den Projektstand, Abschnitt 2.
