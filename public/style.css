@@ -892,6 +892,46 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Zahl der brauchbaren Kopien ist. Nimmt den vorhandenen Rotton, kein neuer. */
 .sich-alt { color: var(--red); }
 
+/* ---------- Der zweite Faktor, seit 0.10.0 ----------
+   DER ZUSTAND STEHT OHNE KLICK DA, und er steht farbig da: gruen fuer "an",
+   grau fuer "aus". Kein Rot -- ein ausgeschalteter zweiter Faktor ist kein
+   Fehler, sondern die Vorgabe, und ein roter Kasten, der bei jedem
+   ungesicherten Zugang dauerhaft dasteht, wird nach einer Woche nicht mehr
+   gelesen (dieselbe Ueberlegung wie bei den drei Abstufungen der Karte
+   "Sicherung"). */
+.zf-block { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+.zf-zustand { font-size: .87rem; line-height: 1.55; color: var(--text-2); }
+.zf-an strong { color: var(--green); }
+.zf-aus strong { color: var(--muted); }
+.zf-codestand { margin-top: 5px; }
+.zf-codestand strong { color: var(--text-2); }
+
+/* Der Schluessel wird ABGETIPPT, nicht gelesen: feste Schrift, weit gesperrt,
+   und er darf umbrechen -- auf einem schmalen Schirm sind acht Vierergruppen
+   sonst eine Zeile, die seitlich hinauslaeuft. */
+.zf-schluessel {
+  font-family: var(--mono); font-size: 1.02rem; letter-spacing: .08em;
+  margin: 10px 0 0; padding: 9px 11px; border-radius: var(--r-sm);
+  background: var(--bg); border: 1px solid var(--line); color: var(--text);
+  overflow-wrap: anywhere; user-select: all;
+}
+/* Der Link in die App ist ein Knopf und trotzdem ein <a> -- er muss eine
+   Adresse tragen, damit das Telefon die App oeffnet. Er bekommt deshalb hier
+   die Zeilenhoehe, die ein Knopf sonst von selbst hat. */
+.zf-einrichten a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+
+/* Die Wiederherstellungscodes. Sie werden ABGESCHRIEBEN, also feste Schrift und
+   Platz zwischen den Bloecken; das Raster bricht auf schmalem Schirm auf eine
+   Spalte um. */
+.zf-codeliste {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 6px 12px; margin: 10px 0 0;
+}
+.zf-codeliste span {
+  font-family: var(--mono); font-size: .95rem; letter-spacing: .04em;
+  color: var(--text); user-select: all;
+}
+
 /* ---------- Vollbild ---------- */
 .lightbox { position: fixed; inset: 0; z-index: 90; background: rgba(6,7,9,.97); display: flex; flex-direction: column; animation: fade .2s var(--ease) both; }
 .lb-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }

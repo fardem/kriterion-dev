@@ -718,6 +718,397 @@ const RUECKBAUTEN = [
     kopie: 'public/marke-hell.svg',
     erwartet: 'Die Marke der Anlage'
   },
+  /* ---- Der zweite Faktor: die Rechnung, 0.10.0 ----
+     DIE DREI KENNWERTE EINZELN. Jedes davon ist fuer sich das bessere
+     Verfahren und wird von Google Authenticator stillschweigend falsch
+     gelesen -- ein Rueckbau, der stumm bliebe, hiesse: die Anlage bindet sich
+     an nichts. */
+  {
+    nr: '82', name: 'Acht Ziffern statt sechs',
+    datei: 'zweifaktor.js',
+    suche: 'const ZIFFERN = 6;',
+    ersatz: 'const ZIFFERN = 8;',
+    erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
+  },
+  {
+    nr: '83', name: 'SHA-256 statt SHA-1',
+    datei: 'zweifaktor.js',
+    suche: "const VERFAHREN = 'sha1';",
+    ersatz: "const VERFAHREN = 'sha256';",
+    erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
+  },
+  {
+    nr: '84', name: 'Sechzig Sekunden statt dreissig',
+    datei: 'zweifaktor.js',
+    suche: 'const SCHRITT_SEKUNDEN = 30;',
+    ersatz: 'const SCHRITT_SEKUNDEN = 60;',
+    erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
+  },
+  {
+    /* DAS DYNAMISCHE ABGREIFEN AUS RFC 4226, Abschnitt 5.3. Ein fester Anfang
+       statt der letzten vier Bit sieht plausibel aus und ergibt weltweit
+       andere Codes -- die eine Stelle, an der eine eigene Umsetzung typisch
+       danebenliegt. */
+    nr: '85', name: 'Der Anfang des Abgreifens steht fest statt aus dem Hash zu kommen',
+    datei: 'zweifaktor.js',
+    suche: '  const o = h[h.length - 1] & 0x0f;',
+    ersatz: '  const o = 0;',
+    erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
+  },
+  {
+    /* DER ZAEHLER IST ACHT BYTES GROSS. Nur die untere Haelfte zu schreiben
+       stimmt bis zum Jahr 6053 -- und der Testvektor T = 20 000 000 000 liegt
+       darueber. Ohne ihn bliebe genau diese Zeile ungeprueft. */
+    nr: '86', name: 'Der Zaehler wird nur in seiner unteren Haelfte geschrieben',
+    datei: 'zweifaktor.js',
+    suche: "  z.writeUInt32BE(Math.floor(zaehler / 2 ** 32), 0);",
+    ersatz: "  z.writeUInt32BE(0, 0);",
+    erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
+  },
+  /* ---- Der zweite Faktor: das Fenster und die Wiederverwendung ---- */
+  {
+    nr: '87', name: 'Das Fenster wird auf zwei Schritte geweitet',
+    datei: 'zweifaktor.js',
+    suche: 'const FENSTER = 1;',
+    ersatz: 'const FENSTER = 2;',
+    erwartet: 'Der zweite Faktor: das Zeitfenster'
+  },
+  {
+    nr: '88', name: 'Es gibt gar kein Nachbarfenster mehr',
+    datei: 'zweifaktor.js',
+    suche: 'const FENSTER = 1;',
+    ersatz: 'const FENSTER = 0;',
+    erwartet: 'Der zweite Faktor: das Zeitfenster'
+  },
+  {
+    /* EIN CODE GILT GENAU EINMAL -- und die Bedingung steht im UPDATE und
+       nicht in einer Pruefung davor. Faellt sie weg, traegt derselbe Code
+       beliebig oft, und wer ueber die Schulter sieht, hat dreissig Sekunden. */
+    /* DIE BEDINGUNG WIRD WIRKUNGSLOS GEMACHT, NICHT ENTFERNT. Der erste Anlauf
+       strich sie samt Platzhalter -- dann bekam die vorbereitete Anweisung drei
+       Werte fuer zwei Stellen, better-sqlite3 warf, der Server starb, und der
+       Lauf RISS AB, statt eine Pruefung rot zu faerben (Stolperstein 138). So
+       bleibt die Zahl der Platzhalter gleich und nur die Wirkung faellt weg. */
+    nr: '89', name: 'Der verbrauchte Zaehler wird nicht mehr geprueft',
+    datei: 'auth.js',
+    suche: "    WHERE user_id = ? AND (letzter_zaehler IS NULL OR letzter_zaehler < ?)`);",
+    ersatz: "    WHERE user_id = ? AND (letzter_zaehler IS NULL OR ? IS NOT NULL)`);",
+    erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
+  },
+  {
+    nr: '90', name: 'Der verbrauchte Zaehler wird gar nicht erst geschrieben',
+    datei: 'auth.js',
+    suche: "    if (!verbraucheZaehler.run(zaehler, id, zaehler).changes) return null;\n    return 'app';",
+    ersatz: "    return 'app';",
+    erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
+  },
+  {
+    /* DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT. Ohne das truege er
+       unmittelbar danach ein zweites Mal -- und "genau einmal" waere an seiner
+       ERSTEN Anwendung falsch. */
+    nr: '91', name: 'Der bestaetigende Code beim Einschalten zaehlt nicht als verbraucht',
+    datei: 'auth.js',
+    suche: "    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?\n      WHERE user_id = ?`).run(zaehler, id);",
+    ersatz: "    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = NULL\n      WHERE user_id = ?`).run(id);",
+    erwartet: 'Der zweite Faktor: ein Code gilt genau einmal'
+  },
+  /* ---- Der zweite Faktor: die Anmeldung ---- */
+  {
+    nr: '92', name: 'Die Anmeldung meldet auch mit zweitem Faktor gleich an',
+    datei: 'server.js',
+    suche: "  if (auth.zweifaktorAn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });\n  }",
+    ersatz: "",
+    erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
+  },
+  {
+    /* DIE AUSKUNFT KOMMT ERST NACH RICHTIGEM PASSWORT. Vorgezogen waere die
+       Anmeldeseite ein Werkzeug zum Durchprobieren von Namen: "dieser hat
+       einen zweiten Faktor" hiesse "diesen Namen gibt es".
+       DER RUECKBAU SETZT DIE AUSKUNFT IN DIE ABSAGE, statt die Reihenfolge zu
+       drehen: so bleibt alles Uebrige stehen, und nur die eine Zusage faellt
+       weg (Stolperstein 138). */
+    nr: '93', name: 'Die Absage verraet, ob der Zugang einen zweiten Faktor hat',
+    datei: 'server.js',
+    suche: "    return res.status(401).json({ error: 'Benutzername oder Passwort stimmt nicht.' });",
+    ersatz: "    return res.status(401).json({ error: 'Benutzername oder Passwort stimmt nicht.',\n" +
+            "      zweifaktor: auth.zweifaktorAn((auth.holeBenutzerNachNamen(user) || {}).id) });",
+    erwartet: 'Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort'
+  },
+  {
+    nr: '94', name: 'Der Ausweis wird nicht verbraucht',
+    datei: 'auth.js',
+    suche: "  ausweise.delete(k);\n  return Date.now() <= a.bis ? a.id : null;",
+    ersatz: "  return Date.now() <= a.bis ? a.id : null;",
+    erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
+  },
+  {
+    /* DIE FRIST IST IM PRUEFLAUF NICHT ZU MESSEN -- zwei Minuten zu warten
+       waere eine Prueflage, die jeder Lauf bezahlt. Gehalten wird sie deshalb
+       ueber die ZAHL in der Antwort: der Ausweis nennt seine Sekunden, und sie
+       sind dieselben wie bei der Freigabe der zweiten Bestaetigung. Ein Wert,
+       eine Regel, eine Gegenprobe. */
+    nr: '95', name: 'Der Ausweis bekommt eine eigene, laengere Frist',
+    datei: 'auth.js',
+    suche: 'const ANMELDE_AUSWEIS_MS = FREIGABE_MS;',
+    ersatz: 'const ANMELDE_AUSWEIS_MS = 3600 * 1000;',
+    erwartet: 'Der zweite Faktor: der Rundlauf'
+  },
+  {
+    /* DIE BENUTZERNUMMER KOMMT AUS DEM AUSWEIS UND NIE AUS DEM RUMPF. Stuende
+       sie dort, waere das richtige Passwort EINES Zugangs die Eintrittskarte
+       fuer JEDEN anderen. */
+    nr: '96', name: 'Die Benutzernummer im zweiten Schritt kommt aus dem Rumpf',
+    datei: 'server.js',
+    suche: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
+    ersatz: "  const id = Number((req.body || {}).id) || auth.verbraucheAnmeldeAusweis(ausweis);",
+    erwartet: 'Der zweite Faktor: ohne Code kommt niemand herein'
+  },
+  /* ---- Der zweite Faktor: die Bremse ----
+     SECHS ZIFFERN SIND EINE MILLION; ungebremst ist das kein Faktor, sondern
+     eine Verzoegerung. Der zweite Schritt faellt NICHT von selbst in die
+     Bremse -- er ist eine eigene Route. */
+  {
+    nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
+    datei: 'server.js',
+    suche: "  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
+    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
+    erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
+  },
+  {
+    /* DIE REIHENFOLGE SELBST. Steht die Bremse hinter dem Ausweis, bekommt ein
+       gesperrter Aufrufer eine 401 ueber den Ausweis statt der 429 -- und ob
+       sie hier ueberhaupt gilt, waere von aussen nicht mehr zu sehen. Genau
+       daran ist die erste Fassung der Bremsprobe stumm geblieben. */
+    nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
+    datei: 'server.js',
+    suche: "  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.' });\n  }",
+    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.' });\n  }\n  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));",
+    erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
+  },
+  {
+    nr: '98', name: 'Der Fehlversuch am zweiten Schritt wird nicht gezaehlt',
+    datei: 'server.js',
+    suche: "  if (!auth.pruefeZweitenFaktor(id, code)) {\n    auth.noteFailure(ip, name);",
+    ersatz: "  if (!auth.pruefeZweitenFaktor(id, code)) {",
+    erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
+  },
+  {
+    /* DER BEFUND AUS DEM BAU DIESER RUNDE. Bis 0.10.0 stand noteSuccess
+       unmittelbar hinter der Passwortpruefung -- mit einem zweiten Schritt
+       dahinter loeschte der erste Ruf den Zaehler, den der zweite gerade
+       aufbaut, und die Bremse haette dort nie zugeschlagen. */
+    nr: '99', name: 'Der erste Schritt setzt den Zaehler der Bremse wieder zurueck',
+    datei: 'server.js',
+    suche: "  if (auth.zweifaktorAn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });\n  }\n  auth.noteSuccess(ip, user);",
+    ersatz: "  auth.noteSuccess(ip, user);\n  if (auth.zweifaktorAn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });\n  }",
+    erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
+  },
+  /* ---- Der zweite Faktor: die Wiederherstellungscodes ---- */
+  {
+    nr: '100', name: 'Die Wiederherstellungscodes liegen im Klartext in der Tabelle',
+    datei: 'auth.js',
+    suche: "    for (const k of klartexte) insCode.run(tokenHash(k), id);",
+    ersatz: "    for (const k of klartexte) insCode.run(k, id);",
+    erwartet: 'Der zweite Faktor: die Wiederherstellungscodes'
+  },
+  {
+    nr: '101', name: 'Ein Wiederherstellungscode wird nicht verbraucht',
+    datei: 'auth.js',
+    suche: "    WHERE hash = ? AND user_id = ? AND benutzt_am IS NULL`);",
+    ersatz: "    WHERE hash = ? AND user_id = ?`);",
+    erwartet: 'Der zweite Faktor: die Wiederherstellungscodes'
+  },
+  {
+    nr: '102', name: 'Es entstehen sieben Codes statt acht',
+    datei: 'zweifaktor.js',
+    suche: 'const WIEDER_ZAHL = 8;',
+    ersatz: 'const WIEDER_ZAHL = 7;',
+    erwartet: 'Der zweite Faktor: die Rechnung gegen den Standard'
+  },
+  {
+    nr: '103', name: 'Die alten Codes bleiben beim Erneuern stehen',
+    datei: 'auth.js',
+    suche: "    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(id);\n    // tokenHash() WIRD WIEDERVERWENDET",
+    ersatz: "    // tokenHash() WIRD WIEDERVERWENDET",
+    erwartet: 'Der zweite Faktor: die Wiederherstellungscodes'
+  },
+  /* ---- Der zweite Faktor: das Geheimnis ---- */
+  {
+    nr: '104', name: 'Das Geheimnis steht auch nach dem Bestaetigen in der Antwort',
+    datei: 'server.js',
+    suche: "    res.json(auth.schalteZweifaktorEin(req.benutzer.id, code, req.benutzer.id));",
+    ersatz: "    res.json({ ...auth.schalteZweifaktorEin(req.benutzer.id, code, req.benutzer.id),\n" +
+            "      geheim: db.prepare('SELECT geheim g FROM zweifaktor WHERE user_id = ?').get(req.benutzer.id).g });",
+    erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
+  },
+  {
+    nr: '105', name: 'Die Karte "Zugang" gibt das Geheimnis mit heraus',
+    datei: 'server.js',
+    suche: "             zweifaktor: auth.zweifaktorStand(req.benutzer.id) });",
+    ersatz: "             zweifaktor: { ...auth.zweifaktorStand(req.benutzer.id),\n" +
+            "               geheim: (db.prepare('SELECT geheim g FROM zweifaktor WHERE user_id = ?').get(req.benutzer.id) || {}).g } });",
+    erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
+  },
+  {
+    nr: '106', name: 'Ein zweiter Start ueberschreibt einen laufenden zweiten Faktor',
+    datei: 'auth.js',
+    suche: "  if (zweifaktorAn(id)) throw new Error('Der zweite Faktor ist bereits eingeschaltet.');",
+    ersatz: "",
+    erwartet: 'Der zweite Faktor: das Geheimnis kommt aus keiner Antwort'
+  },
+  /* ---- Der zweite Faktor: der Tokenweg und der Admin ---- */
+  {
+    /* DIE LUECKE, DIE DIESE RUNDE SCHLIESST: ohne diese Zeilen erzeugt ein
+       Admin einen Ruecksetzlink fuer einen fremden Zugang, oeffnet ihn selbst
+       und waere angemeldet -- am zweiten Faktor vorbei. */
+    nr: '107', name: 'Der Tokenweg meldet wieder gleich an',
+    datei: 'server.js',
+    suche: "  if (auth.zweifaktorAn(ergebnis.id)) {\n    return res.json({\n      ok: true, username: ergebnis.username, zweifaktor: true,\n      ...auth.erzeugeAnmeldeAusweis(ergebnis.id)\n    });\n  }",
+    ersatz: "",
+    erwartet: 'Der zweite Faktor: der Tokenweg aus 0.8.80 fragt ebenfalls'
+  },
+  {
+    nr: '108', name: 'Ein fremdes Passwort zu setzen raeumt den zweiten Faktor mit weg',
+    datei: 'auth.js',
+    suche: "async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {",
+    ersatz: "async function setzeNeuesPasswort(benutzerId, neuesPasswort, wer) {\n" +
+            "  db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(Number(benutzerId) || 0);",
+    erwartet: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
+  },
+  {
+    /* NAEHME DAS SPERREN DEN FAKTOR MIT, waere "sperren und wieder freigeben"
+       der Weg, an dem ein Admin einen FREMDEN zweiten Faktor abstreift. Der
+       Rueckbau baut genau die Zeile ein, die neben den beiden daneben
+       plausibel aussieht. */
+    nr: '109', name: 'Sperren raeumt den zweiten Faktor mit weg',
+    datei: 'auth.js',
+    suche: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('zugang.status'",
+    ersatz: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(u.id);\n  }\n  protokolliere('zugang.status'",
+    erwartet: 'Der zweite Faktor: ein Admin kommt an einen fremden nicht heran'
+  },
+  {
+    nr: '110', name: 'Ausschalten geht ohne Code',
+    datei: 'server.js',
+    suche: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))\n    return res.status(403).json({ error: auth.ZWEITER_FAKTOR_ABSAGE });\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
+    ersatz: "  if (!await eigenesPasswortStimmt(req, res, passwort)) return;\n  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);",
+    erwartet: 'Der zweite Faktor: der Rundlauf'
+  },
+  {
+    nr: '111', name: 'zugang.js schaltet den zweiten Faktor nicht mehr ab',
+    datei: 'zugang.js',
+    suche: "  auth.schalteZweifaktorAus(u.id, auth.VOM_WIRT);",
+    ersatz: "  // auth.schalteZweifaktorAus(u.id, auth.VOM_WIRT);",
+    erwartet: 'Der zweite Faktor: zugang.js auf dem Wirt'
+  },
+  /* ---- Der zweite Faktor: die zweite Bestaetigung ---- */
+  {
+    nr: '112', name: 'Die zweite Bestaetigung fragt den Code nicht mehr',
+    datei: 'server.js',
+    suche: "  if (auth.zweifaktorAn(req.benutzer.id) && !auth.pruefeZweitenFaktor(req.benutzer.id, code)) {",
+    ersatz: "  if (false) {",
+    erwartet: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
+  },
+  {
+    /* DIE ANDERE RICHTUNG -- und zwar an der OBERFLAECHE, nicht am Server.
+       Wer ihn nicht eingeschaltet hat, soll von dieser Runde nichts merken;
+       das Bestaetigungsfenster zeigt sein Codefeld deshalb nur, wenn der
+       Server es sagt. Hier steht es immer da.
+       AM SERVER GIBT ES DIESE RICHTUNG NICHT ALS RUECKBAU, und das ist
+       entschieden: liesse man die zweite Bestaetigung auch ohne Faktor nach
+       einem Code fragen, scheiterte sie fuer JEDEN Zugang -- Export, Import,
+       Rollen, fremde Passwoerter. Der Lauf reisst dann in Gruppen ab, die mit
+       dieser Runde nichts zu tun haben (Stolperstein 138), und ein Rueckbau,
+       der die halbe Pruefung mitnimmt, sagt ohnehin nichts (Stolperstein 49).
+       Die Zusage traegt dort die Pruefung "Ein Zugang OHNE zweiten Faktor
+       bestaetigt weiterhin mit dem Passwort allein" -- sie wuerde bei genau
+       dieser Aenderung rot. */
+    nr: '113', name: 'Das Bestaetigungsfenster zeigt sein Codefeld immer',
+    datei: 'public/app.js',
+    suche: "    : ''), ZWEIFAKTOR);",
+    ersatz: "    : ''), true);",
+    erwartet: 'Die Karte „Zugang“: der zweite Faktor'
+  },
+  {
+    /* DIE REIHENFOLGE: PASSWORT, DANN CODE. Umgekehrt erfuehre jemand ohne das
+       Passwort, ob am Zugang ein Faktor haengt. */
+    nr: '114', name: 'Der Code wird VOR dem Passwort geprueft',
+    datei: 'server.js',
+    suche: "  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!zeile || !await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) {",
+    ersatz: "  if (auth.zweifaktorAn(req.benutzer.id) && !auth.pruefeZweitenFaktor(req.benutzer.id, code))\n" +
+            "    return res.status(403).json({ error: auth.ZWEITER_FAKTOR_ABSAGE, zweifaktor: true });\n" +
+            "  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);\n  if (!zeile || !await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) {",
+    erwartet: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
+  },
+  /* ---- Der zweite Faktor: die Tabellen und die Oberflaeche ---- */
+  {
+    /* GEZIELT AUF DEN INDEX UND NICHT AUF DIE TABELLEN. Ein Rueckbau, der die
+       DDL einer der beiden Tabellen wegnimmt, macht den Server
+       UNSTARTBAR -- auth.js bereitet seine Anweisungen beim Laden vor, und
+       "no such table" beendet den Prozess. Der Lauf risse dann ab, statt rot
+       zu werden (Stolperstein 138). Die Zusage "eine fehlende TABELLE waechst
+       nach" haelt der Pruefstand deshalb an einem echten Versuch statt an einer
+       Behauptung: er entfernt beide von Hand aus einer bestehenden Anlage,
+       startet einmal und sieht nach. Der INDEX daneben laesst sich gefahrlos
+       zuruecknehmen und traegt dieselbe Aussage ueber CREATE ... IF NOT EXISTS. */
+    nr: '115', name: 'Der Index auf zweifaktor_codes wird nicht mehr angelegt',
+    datei: 'db.js',
+    suche: 'CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id);',
+    ersatz: '',
+    erwartet: 'Der zweite Faktor: die Tabellen legen sich selbst an'
+  },
+  {
+    nr: '116', name: 'Der Zustand faellt aus der Antwort der Karte "Zugang"',
+    datei: 'server.js',
+    suche: "             zweifaktor: auth.zweifaktorStand(req.benutzer.id) });",
+    ersatz: "             });",
+    erwartet: 'Die Karte „Zugang“: der zweite Faktor'
+  },
+  {
+    nr: '117', name: 'Die Zahl der uebrigen Wiederherstellungscodes faellt weg',
+    datei: 'public/app.js',
+    suche: "          <strong>noch ${stand.codesOffen} von ${stand.codesGesamt}</strong>",
+    ersatz: "          <strong>vorhanden</strong>",
+    erwartet: 'Die Karte „Zugang“: der zweite Faktor'
+  },
+  {
+    /* DER SATZ, DER DEN KASTEN TRAEGT. Codes, die einmal gezeigt werden, ohne
+       dass es dabeisteht, sind ein Zettel, den niemand abschreibt -- und beim
+       naechsten Aufbau der Karte sind sie fort. Derselbe Ernst wie beim
+       Einladungslink. */
+    nr: '118', name: 'Der Kasten sagt nicht mehr, dass die Codes nicht wiederkommen',
+    datei: 'public/app.js',
+    suche: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes — sie werden\n      nur dieses eine Mal angezeigt.</strong>",
+    ersatz: "    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes.</strong>",
+    erwartet: 'Die Karte „Zugang“: der zweite Faktor'
+  },
+  {
+    nr: '122', name: 'Die Liste der Wiederherstellungscodes wird um einen gekuerzt',
+    datei: 'public/app.js',
+    suche: "      <div class=\"zf-codeliste\">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>",
+    ersatz: "      <div class=\"zf-codeliste\">${codes.slice(1).map(c => `<span>${esc(c)}</span>`).join('')}</div>",
+    erwartet: 'Die Karte „Zugang“: der zweite Faktor'
+  },
+  {
+    nr: '119', name: 'Das Bestaetigungsfenster zeigt das Codefeld nie',
+    datei: 'public/app.js',
+    suche: "    : ''), ZWEIFAKTOR);",
+    ersatz: "    : ''), false);",
+    erwartet: 'Die Karte „Zugang“: der zweite Faktor'
+  },
+  {
+    nr: '120', name: 'Die Anmeldeseite geht ueber den zweiten Schritt hinweg',
+    datei: 'public/app.js',
+    suche: "      if (j.zweifaktor) return showZweiterFaktor(j.ausweis);",
+    ersatz: "",
+    erwartet: 'Die Anmeldeseite: der zweite Schritt'
+  },
+  {
+    nr: '121', name: 'F_ROUTEN kennt den zweiten Schritt der Anmeldung nicht',
+    datei: 'pruefung.js',
+    suche: "    ['POST',   '/api/login/zwei',                'offen'],",
+    ersatz: "",
+    erwartet: 'Der Waechter ueber den Quelltext'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',

@@ -32,30 +32,127 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 *Hier wird mitgeschrieben, während gebaut wird. Beim Herausgeben wird daraus
 ein Abschnitt mit Nummer und Datum.*
 
-### Changed
+---
 
-- **Versionsnummern folgen ab 0.10.0 Semantic Versioning 2.0.0**, dieses
-  Changelog ab derselben Version Keep a Changelog 1.1.0. Die Zehnerschritte des
-  alten Schemas entfallen: eine Nacharbeitsrunde bekommt die nächste
-  PATCH-Zahl statt einer freigehaltenen Nummer. **Der Plan ist entsprechend
-  umnummeriert** — aus 0.9.10 wird 0.10.0, aus 0.9.20 wird 0.11.0, und die
-  Zusage der Abwärtskompatibilität liegt auf 1.0.0. *Herausgeben lässt sich die
-  Anlage davon unabhängig mit jeder Nummer.* Einzelheiten im Projektstand,
-  Abschnitt 5 und Abschnitt 10.
-- **Diese Datei heißt jetzt `CHANGELOG.md` und liegt im Wurzelverzeichnis**,
-  nicht mehr `Doku/Changelog.md`. So findet sie, wer das Paket auspackt, ohne
-  in `Doku/` zu suchen.
+## [0.10.0] - 2026-08-26
+
+**Wer will, sichert seinen Zugang mit einem zweiten Faktor — einem Code aus
+einer App auf dem Telefon, der ohne Netz entsteht und alle dreißig Sekunden
+ein anderer ist.**
+
+> **WER DEN ZWEITEN FAKTOR NICHT EINSCHALTET, MERKT VON DIESER VERSION
+> NICHTS.** Er ist freiwillig und steht je Zugang; ab Werk ist er aus. Die
+> Anmeldung, die Einladungslinks, die zweite Bestätigung — alles bleibt Zug um
+> Zug, wie es war. Es fehlt keine Funktion.
 
 ### Added
 
+- **Ein zweiter Faktor über TOTP, in der Karte „Zugang".** Dort steht ohne
+  Klick, ob er an oder aus ist, seit wann, und wie viele
+  Wiederherstellungscodes noch übrig sind. Einschalten geht in zwei Schritten:
+  der Schlüssel wird in **Vierergruppen** angezeigt (daneben ein Verweis, der
+  auf dem Telefon die App unmittelbar öffnet), und erst ein gültiger Code aus
+  der App schaltet wirklich ein. So ist belegt, dass die App dasselbe rechnet —
+  ein Einschalten ohne diesen Beleg wäre ein Zugang, den niemand mehr öffnet.
+- **Acht Wiederherstellungscodes**, genau einmal angezeigt, jeder genau einmal
+  gültig. Sie ersetzen den Code aus der App und sind für den Fall da, dass das
+  Telefon weg ist. **Gehen die letzten zur Neige, gibt die Karte neue aus** —
+  hinter Passwort und einem gültigen Code.
 - **Der Weg zurück, wenn der Proxy ausfällt**, steht im README unter „Wenn der
   Proxy ausfällt". Mit `HINTER_PROXY=1` kommt über `http://<server-ip>:3100`
   niemand mehr herein — der Cookie trägt `Secure`, der Browser verwirft ihn.
   *Die Anmeldung sieht dabei aus, als klappte sie:* der Server antwortet mit
-  200, erst der Browser wirft den Cookie weg, ohne Meldung. Fällt der Proxy
-  aus, gab es damit bisher gar keinen beschriebenen Weg mehr in die
-  Oberfläche. **Am Verhalten ändert sich nichts, es ist jetzt nur
-  aufgeschrieben** — samt dem Handgriff, der eine Minute dauert.
+  200, erst der Browser wirft den Cookie weg, ohne Meldung. **Am Verhalten
+  ändert sich nichts, es ist jetzt nur aufgeschrieben** — samt dem Handgriff,
+  der eine Minute dauert.
+- **Die Anmeldung wird zweistufig**, aber nur für Zugänge mit zweitem Faktor:
+  erst Passwort, dann Code. Ein Tippfehler kostet dabei nicht das Passwort —
+  die Seite bleibt stehen und nimmt einen zweiten Anlauf.
+- **`node zugang.js zweifaktor <name>` auf dem Wirt** schaltet einen zweiten
+  Faktor **aus**. Der Notweg für den Fall, dass Telefon und Codes weg sind.
+  *Einschalten geht von dort ausdrücklich nicht: dazu muss das Geheimnis auf
+  das Telefon des Betroffenen, und wer es für ihn erzeugte, sperrte ihn aus.*
+  `node zugang.js liste` bekommt dafür eine Spalte **2FA**.
+
+### Changed
+
+- **Der Einladungs- und Rücksetzlink meldet nicht mehr unmittelbar an**, wenn
+  am Zugang ein zweiter Faktor hängt: nach dem Setzen des Passworts wird der
+  Code verlangt. **Für Zugänge ohne zweiten Faktor ändert sich nichts.**
+- **Die zweite Bestätigung fragt zusätzlich den Code** — ebenfalls nur bei
+  Zugängen, die ihn eingeschaltet haben. Sie verteidigt gegen eine übernommene
+  offene Anmeldung, und genau dort trägt ein zweiter Faktor am meisten.
+- **Versionsnummern folgen ab dieser Version [Semantic Versioning
+  2.0.0](https://semver.org/lang/de/)**, dieses Changelog [Keep a Changelog
+  1.1.0](https://keepachangelog.com/de/1.1.0/). Die Zehnerschritte des alten
+  Schemas entfallen: eine Nacharbeitsrunde bekommt die nächste PATCH-Zahl statt
+  einer freigehaltenen Nummer. **Der Plan ist entsprechend umnummeriert** — aus
+  0.9.10 wird diese 0.10.0, aus 0.9.20 wird 0.11.0, und die Zusage der
+  Abwärtskompatibilität liegt auf 1.0.0. *Herausgeben lässt sich die Anlage
+  davon unabhängig mit jeder Nummer.* Einzelheiten im Projektstand, Abschnitt 5
+  und Abschnitt 10.
+  **0.10.0 ist MINOR, weil eine neue Funktion dazukommt und die vorhandene
+  Schnittstelle unangetastet bleibt** — Datenverzeichnis, Austauschformat,
+  `.env` und die Werkzeuge auf dem Wirt.
+- **Diese Datei heißt `CHANGELOG.md` und liegt im Wurzelverzeichnis**, nicht
+  mehr `Doku/Changelog.md`. So findet sie, wer das Paket auspackt, ohne in
+  `Doku/` zu suchen.
+- **Die Versionen bekommen ab hier lückenlos einen Git-Tag, und zwar mit `v`.**
+  Vierzehn gibt es schon (`0.8.3` bis `v0.8.91`) — aber die Reihe bricht nach
+  0.8.91 ab, und die Schreibweise wechselt: die älteren ohne `v`, die beiden
+  jüngsten mit. **`v0.10.0` steht auf dem Commit, der herausgeht**, in der
+  Schreibweise der beiden jüngsten. Rückwirkend wird nichts getaggt und nichts
+  umbenannt; für die Versionen davor bleibt das Änderungsprotokoll das Ziel.
+
+### Security
+
+- **Der Rücksetzlink war der Weg am zweiten Faktor vorbei, und er ist
+  geschlossen.** Ein Admin kann für einen fremden Zugang einen Link erzeugen —
+  hätte er ihn selbst geöffnet, wäre er angemeldet gewesen, ohne je einen Code
+  zu brauchen. *Gefunden beim Bauen, nicht im Betrieb; ohne zweiten Faktor gab
+  es daran nichts zu schließen.*
+- **Sperren und Freigeben streift einen fremden zweiten Faktor nicht ab.** Das
+  Sperren räumt Sitzungen und offene Links; der zweite Faktor bleibt stehen —
+  sonst wäre „sperren und wieder freigeben" der Weg an der Rollenleiter vorbei.
+- **Die Anmeldebremse greift am zweiten Schritt**, mit unangetasteten
+  Kennwerten. Sechs Ziffern sind eine Million; ungebremst wäre das kein Faktor,
+  sondern eine Verzögerung.
+- **Die Auskunft „dieser Zugang hat einen zweiten Faktor" kommt erst nach
+  richtigem Passwort.** Bei falschem Passwort sieht die Antwort aus wie immer,
+  Byte für Byte — sonst wäre die Anmeldeseite ein Werkzeug zum Durchprobieren
+  von Namen.
+- **Das Geheimnis kommt aus keiner Antwort heraus, sobald es bestätigt ist** —
+  auch nicht an den Eigentümer. Die Karte sagt „an" oder „aus", nie den Wert.
+
+### Was du danach von Hand tun musst
+
+1. **Das Datenverzeichnis sichern — PFLICHT.** 0.10.0 ist eine Datenbankstufe:
+   es kommen **zwei Tabellen** dazu (`zweifaktor`, `zweifaktor_codes`). Sie
+   legen sich beim ersten Start selbst an; eine Kopie davor ist trotzdem der
+   Weg zurück.
+2. **Einspielen wie immer** — das Verzeichnis **ersetzen**, nicht darüber
+   entpacken. *Eine Datei zu viel verschiebt den Fingerprint genauso wie eine
+   fehlende.*
+3. **Nichts weiter.** Es kommt **keine neue `.env`-Zeile** dazu, die
+   `docker-compose.yml` ist unberührt, und es gibt nichts einzustellen: wer den
+   zweiten Faktor will, schaltet ihn selbst in der Karte „Zugang" ein.
+4. *Wer ihn einschaltet:* **die acht Wiederherstellungscodes aufschreiben und
+   dorthin legen, wo das Telefon nicht liegt.** Sie kommen nicht wieder.
+
+### Was gleich bleibt
+
+- **Ohne zweiten Faktor ist die Anlage vollständig** — dieselbe Linie wie beim
+  Mailversand und bei der Selbstanmeldung.
+- **Keine neue Abhängigkeit, nicht eine.** TOTP ist HMAC-SHA1 über einen
+  Zähler, und Node kann das seit jeher.
+- **Es wird nichts verschickt.** Kein Code per Mail, kein Code per SMS — der
+  zweite Faktor entsteht auf dem Telefon, aus einem Geheimnis und der Uhr.
+- **Kein Admin schaltet ihn für jemanden ein oder aus.** Nur der Betroffene
+  selbst — oder `zugang.js` auf dem Wirt.
+- **Die Anmeldebremse behält ihre Kennwerte**, der Tokenweg aus 0.8.80 seine
+  Fristen, das Austauschformat seine Nummer **10**, das Vokabular seine elf
+  Wörter, der Systembereich seine **neunzehn** Karten.
+- **Fünf markierte Migrationsblöcke**, unverändert.
 
 ---
 
@@ -749,3 +846,13 @@ eines Eintrags Dateien anhängen.
 vorher sichern. Beim ersten Start meldet das Protokoll einmalig
 `attachments um user_id ergaenzt`; vorhandene Dateien fallen dabei dem
 Verfasser ihres Eintrags zu.
+
+---
+
+<!-- DIE VERGLEICHSVERWEISE. Sie hängen an den Git-Tags. Ältere Tags gibt es
+     zwar (0.8.3 bis v0.8.91), aber die Reihe ist lückenhaft und die
+     Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
+     0.10.0, deshalb steht hier genau einer. Der nächste wird ein Vergleich
+     (`v0.10.0...v0.11.0`); für alles davor bleibt das Änderungsprotokoll in
+     `Doku/` das Ziel. -->
+[0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0

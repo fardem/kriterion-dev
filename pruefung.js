@@ -870,6 +870,32 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Kein Modul des Servers wird erst innerhalb einer Funktion geladen',
     spaetGeladen.length === 0, spaetGeladen.join(', '));
 
+  /* DER HANDGRIFF IM README NENNT DIESELBEN DATEIEN -- und das ist seit 0.10.0
+     geprueft statt gepflegt. Er steht dort, weil der Fingerprint sagt, DASS
+     etwas abweicht, und nicht WELCHE Datei (Stolperstein 158): wer ihn braucht,
+     braucht ihn im Ernstfall und merkt dann erst, dass er eine Datei zu wenig
+     aufzaehlt.
+     GEZAEHLT WIRD GEGEN DEN ABGELEITETEN GRAPHEN, nicht gegen eine zweite
+     gepflegte Liste -- die liefe beim naechsten Modul auseinander. `public/*`
+     und `package.json` stehen im Handgriff als Muster und werden hier eigens
+     verlangt: sie kommen aus dem Graphen nicht heraus. */
+  const readmeText = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+  const handgriff = (readmeText.match(/for f in ([^;]*?); do/s) || [, ''])[1]
+    .replace(/\\\s*\n\s*/g, ' ').trim().split(/\s+/).filter(Boolean);
+  pruefe('Der Handgriff im README steht ueberhaupt da',
+    handgriff.length > 5, handgriff.join(' ') || '(keine Zeile "for f in … ; do")');
+  const handgriffFehlt = imFingerprint.filter(n => !handgriff.includes(n));
+  pruefe('Und er nennt jedes Modul, ueber das der Fingerprint geht',
+    handgriffFehlt.length === 0,
+    `fehlt: ${handgriffFehlt.join(' ')} · genannt: ${handgriff.join(' ')}`);
+  const handgriffZuviel = handgriff.filter(n =>
+    n.endsWith('.js') && !imFingerprint.includes(n));
+  pruefe('Und keine Datei, ueber die er nicht geht',
+    handgriffZuviel.length === 0, handgriffZuviel.join(' '));
+  pruefe('Und package.json samt public/ stehen daneben',
+    handgriff.includes('package.json') && handgriff.includes('public/*'),
+    handgriff.join(' '));
+
   /* ---------------------------------------------------------------- */
   gruppe('Der Gruppenfilter');
 
@@ -10191,6 +10217,1029 @@ const freigabeHaupt = (zweck, ziel = null) =>
   }
 
 
+
+  /* ================= Der zweite Faktor, 0.10.0 =================
+     WER WILL, SICHERT SEINEN ZUGANG MIT EINEM CODE AUS EINER APP AUF SEINEM
+     TELEFON. Freiwillig, je Zugang -- und die Anlage laeuft ohne ihn
+     vollstaendig, genau wie ohne Mailversand und ohne Selbstanmeldung.
+
+     GEPRUEFT WIRD AN ECHTEN SERVERN UND ECHTEN CODES. Die Codes rechnet der
+     Pruefstand mit demselben Modul nach, das der Server benutzt -- das allein
+     belegte nichts (die Anlage pruefte sich selbst), und deshalb steht die
+     Gruppe mit den TESTVEKTOREN AUS RFC 6238 davor: erst ist belegt, dass die
+     Rechnung dem weltweiten Standard entspricht, dann erst wird sie benutzt.
+
+     JEDE LAGE BEKOMMT IHREN EIGENEN ZUGANG, und das ist kein Aufwand ohne
+     Grund: der verbrauchte Zaehler steht je Zugang, und zwei Lagen an einem
+     Zugang verdeckten einander (Stolperstein 154). */
+  {
+    const ZF = require('./zweifaktor');
+
+    gruppe('Der zweite Faktor: die Rechnung gegen den Standard');
+
+    /* DIE TESTVEKTOREN AUS RFC 6238, Anhang B -- Geheimnis "12345678901234567890"
+       als ASCII, HMAC-SHA1. SIE SIND DER GANZE PUNKT DIESER GRUPPE: eine
+       Rechnung, die nur gegen die eigene Rueckrechnung geprueft ist, kann
+       durchgehend falsch sein und trotzdem in sich stimmen. Diese sechs Werte
+       stehen in einem Papier, das die App auf dem Telefon genauso liest.
+       DER LETZTE (T = 20 000 000 000) LIEGT UEBER 2^32 und laeuft damit ueber
+       die obere Haelfte des acht Byte grossen Zaehlers -- die eine Stelle, an
+       der eine Umsetzung mit writeUInt32BE allein still falsch waere. */
+    const zfVektorGeheim = ZF.base32Kodiere(Buffer.from('12345678901234567890', 'ascii'));
+    pruefe('Das Testgeheimnis kodiert nach RFC 4648 zu GEZDGNBVGY3TQOJQ…',
+      zfVektorGeheim === 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', zfVektorGeheim);
+    pruefe('Und dekodiert Zeichen fuer Zeichen zurueck',
+      ZF.base32Dekodiere(zfVektorGeheim).toString('ascii') === '12345678901234567890',
+      String(ZF.base32Dekodiere(zfVektorGeheim)));
+    pruefe('Auch mit Leerzeichen und Bindestrichen, wie ein Mensch ihn abschreibt',
+      ZF.base32Dekodiere('GEZD GNBV GY3T-QOJQ GEZDGNBVGY3TQOJQ').toString('ascii')
+        === '12345678901234567890');
+    pruefe('Ein Zeichen ausserhalb des Alphabets ergibt null, keine Ausnahme',
+      ZF.base32Dekodiere('GEZ0GNBV') === null && ZF.base32Dekodiere('') === null);
+
+    const ZF_VEKTOREN = [
+      [59, '94287082'], [1111111109, '07081804'], [1111111111, '14050471'],
+      [1234567890, '89005924'], [2000000000, '69279037'], [20000000000, '65353130']
+    ];
+    const zfFalsch = ZF_VEKTOREN.filter(([t, soll]) =>
+      ZF.code(zfVektorGeheim, ZF.schrittZu(t * 1000)) !== soll.slice(-ZF.ZIFFERN));
+    pruefe(`Alle ${ZF_VEKTOREN.length} Testvektoren aus RFC 6238 stimmen`,
+      zfFalsch.length === 0,
+      zfFalsch.map(([t, s]) => `T=${t} soll ${s.slice(-ZF.ZIFFERN)}, ist ` +
+        ZF.code(zfVektorGeheim, ZF.schrittZu(t * 1000))).join(' · '));
+    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): eine leere
+       Vektorliste machte die Zeile darueber wahr, ohne etwas zu belegen. */
+    pruefe('Und die Liste der Vektoren ist wirklich gefuellt',
+      ZF_VEKTOREN.length === 6 && ZF_VEKTOREN.every(([, s]) => s.length === 8));
+    /* DIE OBERE HAELFTE DES ZAEHLERS ERREICHT KEIN TESTVEKTOR AUS RFC 6238 --
+       nachgerechnet statt angenommen: der groesste (T = 20 000 000 000) ergibt
+       den Zaehler 666 666 666 und liegt damit UNTER 2^32. Ueber die obere
+       Haelfte laeuft er erst ab dem Jahr 6053.
+       GEPRUEFT WIRD SIE TROTZDEM, und zwar gegen eine ZWEITE, UNABHAENGIGE
+       Bauform des Zaehlers: writeBigUInt64BE schreibt die acht Bytes in einem
+       Zug, zweifaktor.js schreibt sie in zwei Haelften. Stimmen beide Wege
+       ueberein, ist die Teilung richtig -- und das ist kein Vergleich der
+       Anlage mit sich selbst, sondern zweier verschiedener Wege. */
+    pruefe('Kein Testvektor aus RFC 6238 erreicht die obere Haelfte des Zaehlers',
+      ZF.schrittZu(20000000000 * 1000) < 2 ** 32,
+      `groesster Zaehler ${ZF.schrittZu(20000000000 * 1000)}, Grenze ${2 ** 32}`);
+    const zfHmacDirekt = (geheimBase32, zaehler) => {
+      const z = Buffer.alloc(8);
+      z.writeBigUInt64BE(BigInt(zaehler));
+      const h = require('crypto').createHmac('sha1', ZF.base32Dekodiere(geheimBase32))
+        .update(z).digest();
+      const o = h[h.length - 1] & 0x0f;
+      const bin = ((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
+      return String(bin % 10 ** ZF.ZIFFERN).padStart(ZF.ZIFFERN, '0');
+    };
+    const ZF_HOCH = [2 ** 32, 2 ** 32 + 1, 2 ** 33 + 7, 987654321012];
+    const zfHochFalsch = ZF_HOCH.filter(z =>
+      ZF.code(zfVektorGeheim, z) !== zfHmacDirekt(zfVektorGeheim, z));
+    pruefe('Ueber 2^32 rechnet die geteilte Schreibweise dasselbe wie writeBigUInt64BE',
+      zfHochFalsch.length === 0 && ZF_HOCH.every(z => z >= 2 ** 32),
+      zfHochFalsch.map(z => `${z}: ${ZF.code(zfVektorGeheim, z)} statt ` +
+        zfHmacDirekt(zfVektorGeheim, z)).join(' · '));
+    /* UND DIE GEGENLAGE ZUR PRUEFUNG SELBST (Stolperstein 81): stimmten die
+       beiden Wege IMMER ueberein, auch bei verschiedenen Zaehlern, belegte die
+       Zeile darueber nichts. */
+    pruefe('Und die beiden Wege unterscheiden sich sehr wohl bei verschiedenen Zaehlern',
+      zfHmacDirekt(zfVektorGeheim, 2 ** 32) !== zfHmacDirekt(zfVektorGeheim, 2 ** 32 + 1));
+
+    /* DIE VIER KENNWERTE STEHEN FEST UND WERDEN AUSDRUECKLICH GEPRUEFT. SHA-256
+       statt SHA-1, acht Ziffern statt sechs, sechzig Sekunden statt dreissig --
+       jedes davon liest Google Authenticator stillschweigend falsch oder gar
+       nicht. Wer davon abweicht, sperrt genau die App aus, fuer die gebaut ist;
+       eine Zahl im Quelltext, die keine Pruefung festhaelt, wandert. */
+    pruefe('Das Verfahren ist HMAC-SHA1', ZF.VERFAHREN === 'sha1', ZF.VERFAHREN);
+    pruefe('Der Code hat sechs Ziffern', ZF.ZIFFERN === 6, String(ZF.ZIFFERN));
+    pruefe('Der Schritt ist dreissig Sekunden', ZF.SCHRITT_SEKUNDEN === 30,
+      String(ZF.SCHRITT_SEKUNDEN));
+    pruefe('Das Fenster ist genau eines nach vorn und eines zurueck',
+      ZF.FENSTER === 1, String(ZF.FENSTER));
+    pruefe('Das Geheimnis hat zwanzig Bytes und damit 32 Base32-Zeichen ohne Fuellzeichen',
+      ZF.GEHEIM_BYTES === 20 && ZF.neuesGeheimnis().length === 32 &&
+      !ZF.neuesGeheimnis().includes('='), ZF.neuesGeheimnis());
+
+    /* DIE ZWEI FORMEN IN EINEM FELD. Sechs Ziffern sind ein Code aus der App,
+       zehn Zeichen ein Wiederherstellungscode -- und keine Eingabe darf beides
+       zugleich sein, sonst entschiede die Reihenfolge der Abfrage. */
+    pruefe('Sechs Ziffern sind ein Code aus der App',
+      ZF.istCodeform('012345') && !ZF.istCodeform('12345') && !ZF.istCodeform('0123456') &&
+      !ZF.istCodeform('abcdef') && !ZF.istCodeform(''));
+    const zfProbeCodes = ZF.neueWiederCodes();
+    pruefe('Und zehn Zeichen aus dem Alphabet ein Wiederherstellungscode',
+      zfProbeCodes.every(c => ZF.istWiederform(c)) &&
+      zfProbeCodes.every(c => ZF.istWiederform(ZF.wiederAnzeige(c))) &&
+      !ZF.istWiederform('012345') && !ZF.istWiederform(zfProbeCodes[0] + 'X'));
+    pruefe('Keine der beiden Formen ist zugleich die andere',
+      !ZF.istCodeform(zfProbeCodes[0]) && !ZF.istWiederform('012345'));
+    pruefe('Das Alphabet der Wiederherstellungscodes kennt kein 0, O, 1, I oder l',
+      !/[01OIl]/.test(ZF.WIEDER_ALPHABET), ZF.WIEDER_ALPHABET);
+    pruefe('Es sind acht Codes zu je zehn Zeichen, und keiner gleicht dem anderen',
+      zfProbeCodes.length === 8 && ZF.WIEDER_ZAHL === 8 && ZF.WIEDER_LAENGE === 10 &&
+      zfProbeCodes.every(c => c.length === 10) && new Set(zfProbeCodes).size === 8);
+    pruefe('Zwei Aufrufe liefern nie denselben Satz',
+      ZF.neueWiederCodes().join() !== ZF.neueWiederCodes().join());
+    pruefe('Der Schluessel wird in Vierergruppen angezeigt und laesst sich so zurueckdekodieren',
+      ZF.inVierergruppen(zfVektorGeheim).split(' ').length === 8 &&
+      ZF.base32Dekodiere(ZF.inVierergruppen(zfVektorGeheim)).toString('ascii')
+        === '12345678901234567890', ZF.inVierergruppen(zfVektorGeheim));
+
+    /* DAS FENSTER, an der reinen Rechnung und ohne Uhr des Servers -- hier
+       laesst sich der Zeitpunkt uebergeben, und deshalb steht die schaerfste
+       Fassung dieser Probe hier und nicht an einem Server. */
+    const zfT = 1111111111 * 1000, zfN = ZF.schrittZu(zfT);
+    pruefe('Ein Code aus dem laufenden Fenster traegt',
+      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN), zfT) === zfN);
+    pruefe('Einer aus dem Fenster davor ebenfalls',
+      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN - 1), zfT) === zfN - 1);
+    pruefe('Und einer aus dem Fenster danach auch',
+      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN + 1), zfT) === zfN + 1);
+    pruefe('Einer aus dem UEBERNAECHSTEN Fenster traegt nicht',
+      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN + 2), zfT) === null &&
+      ZF.pruefeCode(zfVektorGeheim, ZF.code(zfVektorGeheim, zfN - 2), zfT) === null);
+    pruefe('Ein Code, der nach nichts aussieht, traegt ebenfalls nicht',
+      ZF.pruefeCode(zfVektorGeheim, 'abcdef', zfT) === null &&
+      ZF.pruefeCode(zfVektorGeheim, '', zfT) === null &&
+      ZF.pruefeCode(zfVektorGeheim, '00000', zfT) === null);
+    /* DIE ZEILE, DIE DIE OTPAUTH-ZEILE ZUSAMMENHAELT. Sie traegt die drei
+       Kennwerte ausgeschrieben, obwohl sie die Vorgabe sind: ein Pruefgeraet,
+       das sie anders vorbelegt, laege sonst still daneben. */
+    const zfZeile = ZF.otpauthZeile('Kriterion', 'anna', zfVektorGeheim);
+    pruefe('Die otpauth-Zeile nennt Anlage, Zugang, Geheimnis und alle drei Kennwerte',
+      zfZeile.startsWith('otpauth://totp/') && zfZeile.includes('Kriterion%3Aanna') &&
+      zfZeile.includes(`secret=${zfVektorGeheim}`) && zfZeile.includes('issuer=Kriterion') &&
+      zfZeile.includes('algorithm=SHA1') && zfZeile.includes('digits=6') &&
+      zfZeile.includes('period=30'), zfZeile);
+    pruefe('Ein Anlagenname mit Doppelpunkt oder Leerzeichen wird maskiert',
+      !ZF.otpauthZeile('Werk Nord: Prüfung', 'anna', zfVektorGeheim)
+        .slice('otpauth://totp/'.length).includes(' '),
+      ZF.otpauthZeile('Werk Nord: Prüfung', 'anna', zfVektorGeheim));
+
+    /* ---------------------------------------------------------------- */
+
+    const ZF_PASSWORT = 'annas-langes-wort-100';
+    const zfDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-zweifaktor-'));
+    const zfS = starteWeiterenServer(zfDir, {}, 6600);
+    await zfS.bereit;
+    await zfS.ruf('POST', '/api/setup', { user: 'anna', password: ZF_PASSWORT });
+
+    const zfSql = (sql) => JSON.parse(kurzlauf(
+      `const { db } = require('./db'); console.log(JSON.stringify(db.prepare(${JSON.stringify(sql)}).all()));`,
+      zfDir));
+
+    /* WARTET, BIS IM LAUFENDEN FENSTER NOCH GENUG ZEIT IST. Der Pruefstand
+       rechnet Codes hier aus und schickt sie an einen Server, der SEINE Uhr
+       liest -- faellt die Grenze der dreissig Sekunden dazwischen, wird aus
+       einem Code fuer das uebernaechste Fenster einer fuers naechste, und eine
+       Pruefung wuerde zufaellig rot. Roter Zufall ist schlimmer als keine
+       Pruefung: er kostet Vertrauen in alle anderen (Stolperstein 151). */
+    const zfRuhig = async () => {
+      while (30000 - (Date.now() % 30000) < 9000) await new Promise(r => setTimeout(r, 200));
+    };
+
+    /* Legt einen Zugang mit eingeschaltetem zweitem Faktor an und liefert
+       alles, was die Lage danach braucht. JEDE LAGE IHREN EIGENEN -- der
+       verbrauchte Zaehler steht je Zugang, und zwei Lagen an einem Zugang
+       verdeckten einander.
+       DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT, deshalb liefert die
+       Funktion den Zaehler mit: die erste Anmeldung danach braucht einen
+       groesseren, und das ist kein Umweg, sondern genau die Zusage "ein Code
+       gilt genau einmal" an ihrer ersten Anwendung. */
+    const zfZugangMitFaktor = async (name) => {
+      const passwort = `${name}s-langes-wort-100`;
+      await zfS.cookieLoeschen();
+      await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
+      const neu = await zfS.ruf('POST', '/api/users', { username: name, passwort });
+      await zfS.cookieLoeschen();
+      await zfS.ruf('POST', '/api/login', { user: name, password: passwort });
+      const start = await zfS.ruf('POST', '/api/zweifaktor/start', { passwort });
+      await zfRuhig();
+      const zaehler = ZF.jetztSchritt();
+      /* AUFFANGNETZ (Stolperstein 138): gibt /start kein Geheimnis her, laeuft
+         alles Weitere trotzdem durch -- mit einem erfundenen Wert, der
+         zuverlaessig nicht traegt. Ohne das griffe schon die naechste Zeile
+         auf undefined und der Lauf risse ab. */
+      const geheim = (start.inhalt && start.inhalt.geheim) || 'A'.repeat(32);
+      const an = await zfS.ruf('POST', '/api/zweifaktor/an',
+        { passwort, code: ZF.code(geheim, zaehler) });
+      return { name, passwort, id: (neu.inhalt || {}).id, geheim,
+               codes: (an.inhalt && an.inhalt.codes) || [], zaehler,
+               start: { status: start.status, inhalt: start.inhalt || {} },
+               an: { status: an.status, inhalt: an.inhalt || {} } };
+    };
+
+    // Anmeldung in zwei Schritten, mit einem Code fuer einen bestimmten
+    // Zaehler. Liefert BEIDE Antworten -- die Lagen brauchen mal die eine,
+    // mal die andere.
+    /* DAS AUFFANGNETZ IST DER GANZE PUNKT DIESER FUNKTION (Stolperstein 138).
+       Gibt Schritt 1 keinen Ausweis her -- weil ein Rueckbau die Verzweigung
+       entfernt hat --, liefert sie trotzdem ein `zwei` mit Status und Inhalt.
+       Ohne das griffe jede Lesestelle dahinter auf null, der Lauf RISSE AB und
+       zeigte keine einzige rote Pruefung. Genau das ist beim Bauen zweimal
+       passiert. Status 0 gibt es nicht, also faellt jede Erwartung darauf
+       ordentlich rot. */
+    const zfAnmelden = async (z, zaehler, roh) => {
+      await zfS.cookieLoeschen();
+      const eins = await zfS.ruf('POST', '/api/login', { user: z.name, password: z.passwort });
+      const leer = { status: 0, inhalt: { fehlt: 'Schritt 1 gab keinen Ausweis her' } };
+      if (!eins.inhalt || !eins.inhalt.ausweis) return { eins, zwei: leer };
+      const code = roh !== undefined ? roh : ZF.code(z.geheim, zaehler);
+      const zwei = await zfS.ruf('POST', '/api/login/zwei',
+        { ausweis: eins.inhalt.ausweis, code });
+      return { eins, zwei };
+    };
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: der Rundlauf');
+
+    await zfRuhig();
+    const zfA = await zfZugangMitFaktor('bert');
+    pruefe('Einschalten Schritt 1 liefert ein Base32-Geheimnis von 32 Zeichen',
+      zfA.start.status === 200 && /^[A-Z2-7]{32}$/.test(zfA.start.inhalt.geheim || ''),
+      `${zfA.start.status} · ${zfA.start.inhalt?.geheim}`);
+    pruefe('Und daneben denselben Wert in Vierergruppen',
+      zfA.start.inhalt.gruppen.replace(/ /g, '') === zfA.start.inhalt.geheim,
+      zfA.start.inhalt.gruppen);
+    pruefe('Und die otpauth-Zeile mit dem oeffentlichen Titel der Anlage',
+      zfA.start.inhalt.zeile.includes('otpauth://totp/') &&
+      zfA.start.inhalt.zeile.includes('Bewertungskatalog') &&
+      zfA.start.inhalt.zeile.includes(zfA.start.inhalt.geheim), zfA.start.inhalt.zeile);
+    pruefe('Einschalten Schritt 2 nimmt den Code an und meldet "an"',
+      zfA.an.status === 200 && zfA.an.inhalt.an === true, JSON.stringify(zfA.an.inhalt));
+    pruefe('Und gibt genau acht Wiederherstellungscodes heraus',
+      Array.isArray(zfA.codes) && zfA.codes.length === 8 &&
+      zfA.codes.every(c => ZF.istWiederform(c)), JSON.stringify(zfA.codes?.length));
+    pruefe('Der Stand nennt acht von acht offen',
+      zfA.an.inhalt.codesOffen === 8 && zfA.an.inhalt.codesGesamt === 8,
+      `${zfA.an.inhalt.codesOffen}/${zfA.an.inhalt.codesGesamt}`);
+    const zfKarte = await zfS.ruf('GET', '/api/account');
+    pruefe('Die Karte "Zugang" sieht den Zustand ohne einen zweiten Abruf',
+      zfKarte.inhalt.zweifaktor?.an === true &&
+      typeof zfKarte.inhalt.zweifaktor.seit === 'string' &&
+      zfKarte.inhalt.zweifaktor.codesOffen === 8, JSON.stringify(zfKarte.inhalt.zweifaktor));
+    const zfEinst = await zfS.ruf('GET', '/api/settings');
+    pruefe('Und GET /api/settings sagt dem Bestaetigungsfenster, dass ein Code dazugehoert',
+      zfEinst.inhalt.zweifaktor === true, JSON.stringify(zfEinst.inhalt.zweifaktor));
+
+    await zfRuhig();
+    const zfRund = await zfAnmelden(zfA, ZF.jetztSchritt() + 1);
+    pruefe('Abmelden und mit Code wieder anmelden: Schritt 1 gibt keinen Cookie, sondern einen Ausweis',
+      zfRund.eins.status === 200 && zfRund.eins.inhalt.zweifaktor === true &&
+      typeof zfRund.eins.inhalt.ausweis === 'string' && !zfRund.eins.inhalt.ok,
+      JSON.stringify(zfRund.eins.inhalt));
+    /* DIE FRIST DES AUSWEISES WIRD UEBER DIE ZAHL GEHALTEN und nicht gemessen:
+       zwei Minuten zu warten waere eine Prueflage, die jeder Lauf bezahlt.
+       Sie ist DIESELBE wie die der Freigabe aus 0.8.90 -- ein Wert, eine
+       Regel, eine Gegenprobe. Zwei Zahlen an zwei Orten liefen auseinander. */
+    pruefe('Der Ausweis nennt seine Frist, und sie ist die der zweiten Bestaetigung',
+      zfRund.eins.inhalt.sekunden === 120, String(zfRund.eins.inhalt.sekunden));
+    pruefe('Und Schritt 2 meldet an',
+      zfRund.zwei.status === 200 && zfRund.zwei.inhalt.ok === true,
+      JSON.stringify(zfRund.zwei.inhalt));
+    pruefe('Danach ist die Sitzung wirklich da',
+      (await zfS.ruf('GET', '/api/session')).inhalt.authenticated === true);
+    /* KEINE HALBE SITZUNG: zwischen den beiden Schritten entsteht KEINE Zeile
+       in sessions. Sonst gaebe es eine zweite Wahrheit ueber "angemeldet",
+       und genau das schliesst Abschnitt 1 des Konzeptpapiers aus. */
+    {
+      await zfS.cookieLoeschen();
+      const vorher = zfSql('SELECT COUNT(*) n FROM sessions')[0].n;
+      const eins = await zfS.ruf('POST', '/api/login',
+        { user: zfA.name, password: zfA.passwort });
+      const zwischen = zfSql('SELECT COUNT(*) n FROM sessions')[0].n;
+      pruefe('Zwischen den beiden Schritten entsteht KEINE Sitzung',
+        zwischen === vorher && Boolean(eins.inhalt.ausweis), `${vorher} → ${zwischen}`);
+      pruefe('Und der Ausweis steht in keiner Tabelle -- er liegt im Arbeitsspeicher',
+        !JSON.stringify(zfSql('SELECT * FROM sessions')).includes(eins.inhalt.ausweis) &&
+        !JSON.stringify(zfSql('SELECT * FROM zweifaktor')).includes(eins.inhalt.ausweis));
+    }
+    // Ausschalten: hinter Passwort UND Code, und danach ist der Zugang wieder
+    // einstufig. Der letzte Wiederherstellungscode belegt hier den Faktor.
+    await zfAnmelden(zfA, 0, zfA.codes[7]);
+    const zfAus = await zfS.ruf('DELETE', '/api/zweifaktor',
+      { passwort: zfA.passwort, code: zfA.codes[6] });
+    pruefe('Ausschalten mit Passwort und gueltigem Code',
+      zfAus.status === 200 && zfAus.inhalt.an === false, JSON.stringify(zfAus.inhalt));
+    pruefe('Danach sind beide Zeilen fort',
+      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfA.id}`).length === 0 &&
+      zfSql(`SELECT * FROM zweifaktor_codes WHERE user_id = ${zfA.id}`).length === 0);
+    await zfS.cookieLoeschen();
+    const zfEinstufig = await zfS.ruf('POST', '/api/login',
+      { user: zfA.name, password: zfA.passwort });
+    pruefe('Und die Anmeldung geht wieder in einem Schritt',
+      zfEinstufig.status === 200 && zfEinstufig.inhalt.ok === true &&
+      !zfEinstufig.inhalt.zweifaktor, JSON.stringify(zfEinstufig.inhalt));
+    const zfProt = zfSql('SELECT was, wer, ziel FROM sicherheitsprotokoll ORDER BY id');
+    pruefe('Das Sicherheitsprotokoll traegt zweifaktor.an und zweifaktor.aus',
+      zfProt.some(z => z.was === 'zweifaktor.an' && z.ziel === zfA.id && z.wer === zfA.id) &&
+      zfProt.some(z => z.was === 'zweifaktor.aus' && z.ziel === zfA.id && z.wer === zfA.id),
+      zfProt.filter(z => z.was.startsWith('zweifaktor')).map(z => z.was).join(' '));
+    pruefe('Und zweifaktor.wieder fuer den verbrauchten Wiederherstellungscode',
+      zfProt.filter(z => z.was === 'zweifaktor.wieder').length === 2,
+      String(zfProt.filter(z => z.was === 'zweifaktor.wieder').length));
+
+    /* SOLANGE NICHT BESTAETIGT IST, VERLANGT DIE ANMELDUNG NICHTS. Sonst
+       sperrte ein abgebrochenes Einschalten den Zugang aus -- der Bildschirm
+       geschlossen, das Geheimnis nie in der App, und niemand kaeme mehr
+       herein. Geprueft an einer eigenen Lage, nicht am Zugang oben. */
+    {
+      await zfS.cookieLoeschen();
+      await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
+      await zfS.ruf('POST', '/api/users', { username: 'halb', passwort: 'halbs-langes-wort-100' });
+      await zfS.cookieLoeschen();
+      await zfS.ruf('POST', '/api/login', { user: 'halb', password: 'halbs-langes-wort-100' });
+      await zfS.ruf('POST', '/api/zweifaktor/start', { passwort: 'halbs-langes-wort-100' });
+      const hZeile = zfSql("SELECT user_id, bestaetigt_am FROM zweifaktor")
+        .find(z => z.bestaetigt_am === null);
+      pruefe('Nach Schritt 1 steht eine Zeile ohne bestaetigt_am da',
+        Boolean(hZeile), JSON.stringify(hZeile));
+      await zfS.cookieLoeschen();
+      const hAn = await zfS.ruf('POST', '/api/login',
+        { user: 'halb', password: 'halbs-langes-wort-100' });
+      pruefe('Ein angefangenes, nie bestaetigtes Einschalten sperrt niemanden aus',
+        hAn.status === 200 && !hAn.inhalt.zweifaktor && hAn.inhalt.ok === true,
+        JSON.stringify(hAn.inhalt));
+    }
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: ein Code gilt genau einmal');
+
+    await zfRuhig();
+    const zfB = await zfZugangMitFaktor('clara');
+    pruefe('Der BESTAETIGENDE Code ist damit verbraucht',
+      (await zfAnmelden(zfB, zfB.zaehler)).zwei.status === 401,
+      'derselbe Code, mit dem eingeschaltet wurde');
+    await zfRuhig();
+    const zfEinmal = ZF.jetztSchritt() + 1;
+    const zfErst = await zfAnmelden(zfB, zfEinmal);
+    pruefe('Ein frischer Code traegt', zfErst.zwei.status === 200,
+      JSON.stringify(zfErst.zwei.inhalt));
+    const zfZweit = await zfAnmelden(zfB, zfEinmal);
+    pruefe('Derselbe Code ein zweites Mal traegt NICHT',
+      zfZweit.zwei.status === 401, JSON.stringify(zfZweit.zwei.inhalt));
+    pruefe('Und die Absage nennt nicht, ob er falsch oder verbraucht war',
+      zfZweit.zwei.inhalt.error === 'Der Code stimmt nicht.', zfZweit.zwei.inhalt.error);
+    pruefe('Der verbrauchte Zaehler steht in der Zeile',
+      zfSql(`SELECT letzter_zaehler l FROM zweifaktor WHERE user_id = ${zfB.id}`)[0].l === zfEinmal,
+      JSON.stringify(zfSql(`SELECT letzter_zaehler l FROM zweifaktor WHERE user_id = ${zfB.id}`)));
+    /* SCHAERFER ALS "DERSELBE CODE NICHT ZWEIMAL": nach einer Anmeldung ist
+       auch das Fenster DAVOR tot. Der Zaehler muss echt groesser sein -- eine
+       Regel statt einer Liste verbrauchter Werte, die jemand raeumen muesste. */
+    const zfDavor = await zfAnmelden(zfB, zfEinmal - 1);
+    pruefe('Auch der Code aus dem Fenster DAVOR ist danach tot',
+      zfDavor.zwei.status === 401, JSON.stringify(zfDavor.zwei.inhalt));
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: das Zeitfenster');
+
+    /* GEPRUEFT WIRD AN VIER EIGENEN ZUGAENGEN und nicht an einem: sobald ein
+       Code getragen hat, steht der verbrauchte Zaehler im Weg, und die naechste
+       Lage praefte dann nicht mehr das Fenster, sondern die Wiederverwendung
+       (Stolperstein 154). */
+    await zfRuhig();
+    const zfW = { vor: await zfZugangMitFaktor('wvor'), nach: await zfZugangMitFaktor('wnach'),
+                  weit: await zfZugangMitFaktor('wweit'), zurueck: await zfZugangMitFaktor('wzur') };
+    await zfRuhig();
+    const zfJetzt = ZF.jetztSchritt();
+    /* DIE ZUGAENGE SIND IM LAUFENDEN FENSTER BESTAETIGT WORDEN, ihr Zaehler
+       steht also auf jetzt oder davor. Fuer "das Fenster davor traegt" braucht
+       es deshalb einen Zugang, dessen Zaehler noch tiefer liegt -- gebaut ist
+       das ueber das Zuruecksetzen der Zeile von Hand. Das ist Vorbereitung
+       einer Lage und keine Pruefung: die Zusage darueber steht in der Gruppe
+       davor und wird hier nicht noch einmal behauptet. */
+    kurzlauf(`const { db } = require('./db');` +
+      `db.prepare('UPDATE zweifaktor SET letzter_zaehler = NULL').run(); console.log('zurueck');`,
+      zfDir);
+    pruefe('Ein Code aus dem Fenster DAVOR traegt',
+      (await zfAnmelden(zfW.vor, zfJetzt - 1)).zwei.status === 200);
+    pruefe('Einer aus dem laufenden Fenster traegt',
+      (await zfAnmelden(zfW.nach, zfJetzt)).zwei.status === 200);
+    pruefe('Und einer aus dem Fenster DANACH traegt ebenfalls',
+      (await zfAnmelden(zfW.weit, zfJetzt + 1)).zwei.status === 200);
+    const zfUeber = await zfAnmelden(zfW.zurueck, zfJetzt + 2);
+    pruefe('Einer aus dem UEBERNAECHSTEN Fenster traegt nicht',
+      zfUeber.zwei.status === 401, JSON.stringify(zfUeber.zwei.inhalt));
+    const zfUnter = await zfAnmelden(zfW.zurueck, zfJetzt - 2);
+    pruefe('Und einer aus dem vorvorigen ebenso wenig',
+      zfUnter.zwei.status === 401, JSON.stringify(zfUnter.zwei.inhalt));
+    pruefe('Der abgewiesene Zugang kommt danach mit einem gueltigen Code herein',
+      (await zfAnmelden(zfW.zurueck, ZF.jetztSchritt())).zwei.status === 200);
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: ohne Code kommt niemand herein');
+
+    await zfRuhig();
+    const zfC = await zfZugangMitFaktor('dora');
+    await zfS.cookieLoeschen();
+    const zfNurWort = await zfS.ruf('POST', '/api/login',
+      { user: zfC.name, password: zfC.passwort });
+    pruefe('Richtiges Passwort allein setzt KEINEN Cookie',
+      zfNurWort.status === 200 && !zfNurWort.inhalt.ok &&
+      zfNurWort.inhalt.zweifaktor === true, JSON.stringify(zfNurWort.inhalt));
+    pruefe('Und damit ist niemand angemeldet',
+      (await zfS.ruf('GET', '/api/session')).inhalt.authenticated === false);
+    pruefe('Auch die geschuetzten Endpunkte bleiben zu',
+      (await zfS.ruf('GET', '/api/items')).status === 401);
+    const zfOhneAusweis = await zfS.ruf('POST', '/api/login/zwei',
+      { code: ZF.code(zfC.geheim, ZF.jetztSchritt()) });
+    pruefe('Ein Code OHNE Ausweis traegt nicht', zfOhneAusweis.status === 401,
+      JSON.stringify(zfOhneAusweis.inhalt));
+    const zfErfunden = await zfS.ruf('POST', '/api/login/zwei',
+      { ausweis: 'a'.repeat(64), code: ZF.code(zfC.geheim, ZF.jetztSchritt()) });
+    pruefe('Ein erfundener Ausweis ebenso wenig', zfErfunden.status === 401,
+      JSON.stringify(zfErfunden.inhalt));
+    /* DER AUSWEIS GILT GENAU EINMAL. Ohne das waere die eine Passwortprobe
+       eine beliebig oft nachnutzbare Eintrittskarte -- und der zweite Faktor
+       nur so lange etwas wert, wie niemand den Ausweis aufhebt. */
+    await zfRuhig();
+    const zfEinsB = await zfS.ruf('POST', '/api/login',
+      { user: zfC.name, password: zfC.passwort });
+    const zfAw = zfEinsB.inhalt.ausweis;
+    const zfNutz1 = await zfS.ruf('POST', '/api/login/zwei',
+      { ausweis: zfAw, code: ZF.code(zfC.geheim, ZF.jetztSchritt() + 1) });
+    pruefe('Der Ausweis traegt einmal', zfNutz1.status === 200);
+    await zfS.cookieLoeschen();
+    const zfNutz2 = await zfS.ruf('POST', '/api/login/zwei',
+      { ausweis: zfAw, code: ZF.code(zfC.geheim, ZF.jetztSchritt() + 1) });
+    pruefe('Und danach nie wieder', zfNutz2.status === 401, JSON.stringify(zfNutz2.inhalt));
+    pruefe('Auch die Absage auf einen verbrauchten Ausweis fuehrt zurueck an den Anfang',
+      !zfNutz2.inhalt.ausweis, JSON.stringify(zfNutz2.inhalt));
+    /* DIE BENUTZERNUMMER KOMMT AUS DEM AUSWEIS UND NIE AUS DEM RUMPF. Stuende
+       sie dort, waere das richtige Passwort EINES Zugangs die Eintrittskarte
+       fuer JEDEN anderen. Nachgestellt: dora holt sich einen Ausweis und
+       schreibt annas Nummer dazu. */
+    await zfRuhig();
+    await zfS.cookieLoeschen();
+    const zfFremd = await zfS.ruf('POST', '/api/login',
+      { user: zfC.name, password: zfC.passwort });
+    /* MIT EINEM WIEDERHERSTELLUNGSCODE und nicht mit einem aus der App: die
+       Zaehler dieses Zugangs sind in diesem Fenster verbraucht, und eine
+       Prueflage, die auf das naechste Fenster wartet, haengt dreissig Sekunden
+       an einer Frage, um die es hier gar nicht geht. */
+    const zfFremdAus = await zfS.ruf('POST', '/api/login/zwei',
+      { ausweis: zfFremd.inhalt.ausweis, id: 1, user: 'anna', benutzer: 1,
+        code: zfC.codes[0] });
+    pruefe('Eine mitgeschickte fremde Nummer aendert nichts',
+      zfFremdAus.status === 200, JSON.stringify(zfFremdAus.inhalt));
+    pruefe('Und die Sitzung gehoert dem, dem der Ausweis gehoerte',
+      (await zfS.ruf('GET', '/api/account')).inhalt?.username === zfC.name);
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort');
+
+    /* SONST WAERE DIE ANMELDESEITE EIN WERKZEUG ZUM DURCHPROBIEREN VON NAMEN:
+       "dieser hat einen zweiten Faktor" hiesse "diesen Namen gibt es".
+       VERGLICHEN WIRD DER ROHE ANTWORTKOERPER, nicht ein Feld daraus --
+       ein Vergleich auf ein einzelnes Feld bliebe gruen, wenn daneben eines
+       auftauchte, das die Lage verriete. Dieselbe Bauform wie bei der immer
+       gleichen Antwort der Selbstanmeldung. */
+    const zfRoh = async (koerper) => {
+      const a = await fetch(zfS.basis + '/api/login', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(koerper)
+      });
+      return { status: a.status, roh: await a.text() };
+    };
+    const zfMitFaktor = await zfRoh({ user: zfC.name, password: 'falsches-langes-wort' });
+    const zfOhneFaktor = await zfRoh({ user: 'anna', password: 'falsches-langes-wort' });
+    const zfUnbekannt = await zfRoh({ user: 'gibtesnicht', password: 'falsches-langes-wort' });
+    pruefe('Bei falschem Passwort sieht die Antwort aus wie immer -- Byte fuer Byte',
+      zfMitFaktor.roh === zfOhneFaktor.roh && zfOhneFaktor.roh === zfUnbekannt.roh,
+      `${zfMitFaktor.roh} | ${zfOhneFaktor.roh} | ${zfUnbekannt.roh}`);
+    pruefe('Und mit demselben Statuscode',
+      zfMitFaktor.status === 401 && zfOhneFaktor.status === 401 && zfUnbekannt.status === 401,
+      `${zfMitFaktor.status} ${zfOhneFaktor.status} ${zfUnbekannt.status}`);
+    pruefe('Kein Wort ueber den zweiten Faktor steht darin',
+      !/zweifaktor|ausweis|faktor|code/i.test(zfMitFaktor.roh), zfMitFaktor.roh);
+    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): die drei
+       Antworten oben waeren auch dann gleich, wenn die Anlage ueberhaupt nie
+       etwas ueber den Faktor sagte. Erst diese Zeile belegt, dass sie es bei
+       RICHTIGEM Passwort sehr wohl tut. */
+    const zfMitWort = await zfRoh({ user: zfC.name, password: zfC.passwort });
+    pruefe('Bei RICHTIGEM Passwort steht die Auskunft dann sehr wohl da',
+      zfMitWort.status === 200 && /"zweifaktor":true/.test(zfMitWort.roh), zfMitWort.roh);
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: die Wiederherstellungscodes');
+
+    await zfRuhig();
+    const zfD = await zfZugangMitFaktor('erik');
+    const zfDb = zfSql(`SELECT hash, benutzt_am FROM zweifaktor_codes WHERE user_id = ${zfD.id}`);
+    pruefe('Acht Zeilen stehen in der Tabelle', zfDb.length === 8, String(zfDb.length));
+    pruefe('Und jede traegt einen SHA-256, nicht den Klartext',
+      zfDb.every(z => /^[0-9a-f]{64}$/.test(z.hash)) &&
+      zfDb.every(z => z.benutzt_am === null), JSON.stringify(zfDb[0]));
+    /* DER KLARTEXT STEHT IN KEINER SPALTE KEINER ZEILE, und gesucht wird in
+       ALLEN Tabellen -- nicht nur in der einen, in der man ihn vermutet.
+       Dieselbe Bauform wie die Suche nach dem Mailpasswort in 0.9.0. */
+    const zfAlles = kurzlauf(
+      `const { db } = require('./db');` +
+      `const t = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();` +
+      `const raus = {};` +
+      `for (const x of t) raus[x.name] = db.prepare('SELECT * FROM ' + x.name).all();` +
+      `console.log(JSON.stringify(raus));`, zfDir);
+    const zfTreffer = zfD.codes.filter(c => zfAlles.includes(ZF.wiederNormal(c)));
+    pruefe('Kein Klartext eines Wiederherstellungscodes steht in irgendeiner Spalte',
+      zfTreffer.length === 0, zfTreffer.join(' '));
+    /* UND DIE GEGENLAGE ZUR SUCHE SELBST (Stolperstein 81): findet sie ueberhaupt
+       etwas, wo etwas stehen MUSS? Ohne diese Zeile bliebe die Zusage darueber
+       auch dann gruen, wenn die Suche nie etwas faende. */
+    pruefe('Und die Suche findet sehr wohl, was dort stehen muss',
+      zfAlles.includes(zfD.geheim) && zfAlles.includes('erik'),
+      'das Geheimnis und der Name stehen in der Datenbank -- so soll es sein');
+    // Jeder genau einmal.
+    await zfRuhig();
+    const zfW1 = await zfAnmelden(zfD, 0, zfD.codes[0]);
+    pruefe('Ein Wiederherstellungscode meldet an', zfW1.zwei.status === 200,
+      JSON.stringify(zfW1.zwei.inhalt));
+    const zfW2 = await zfAnmelden(zfD, 0, zfD.codes[0]);
+    pruefe('Derselbe ein zweites Mal nicht', zfW2.zwei.status === 401,
+      JSON.stringify(zfW2.zwei.inhalt));
+    const zfW3 = await zfAnmelden(zfD, 0, zfD.codes[1]);
+    pruefe('Ein anderer aus demselben Satz sehr wohl', zfW3.zwei.status === 200);
+    // Ueber ?. gelesen: nimmt ein Rueckbau das Feld aus der Antwort, soll die
+    // Pruefung ROT werden und der Lauf nicht abreissen (Stolperstein 138).
+    pruefe('Und die Karte zaehlt herunter',
+      (await zfS.ruf('GET', '/api/account')).inhalt?.zweifaktor?.codesOffen === 6,
+      JSON.stringify((await zfS.ruf('GET', '/api/account')).inhalt?.zweifaktor));
+    pruefe('Die verbrauchten Zeilen bleiben stehen, damit "von acht" wahr bleibt',
+      zfSql(`SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ${zfD.id}`)[0].n === 8 &&
+      zfSql(`SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ${zfD.id} AND benutzt_am IS NOT NULL`)[0].n === 2);
+    const zfErfundenW = await zfAnmelden(zfD, 0, 'ZZZZZZZZZZ');
+    pruefe('Ein erfundener Wiederherstellungscode traegt nicht',
+      zfErfundenW.zwei.status === 401, JSON.stringify(zfErfundenW.zwei.inhalt));
+    /* NEUE CODES, wenn die alten zur Neige gehen -- der Fall, den niemand
+       plant. Hinter Passwort UND gueltigem Code, und ein Wiederherstellungscode
+       zaehlt dabei als Beleg: genau dafuer ist er da. */
+    await zfAnmelden(zfD, 0, zfD.codes[2]);
+    const zfOhneCode = await zfS.ruf('POST', '/api/zweifaktor/codes',
+      { passwort: zfD.passwort });
+    pruefe('Neue Codes ohne gueltigen Code werden abgewiesen',
+      zfOhneCode.status === 403, JSON.stringify(zfOhneCode.inhalt));
+    const zfOhneWort = await zfS.ruf('POST', '/api/zweifaktor/codes',
+      { passwort: 'falsches-langes-wort', code: zfD.codes[3] });
+    pruefe('Und ohne richtiges Passwort ebenfalls',
+      zfOhneWort.status === 403, JSON.stringify(zfOhneWort.inhalt));
+    const zfNeu = await zfS.ruf('POST', '/api/zweifaktor/codes',
+      { passwort: zfD.passwort, code: zfD.codes[3] });
+    pruefe('Mit beidem entstehen acht frische Codes',
+      zfNeu.status === 200 && zfNeu.inhalt.codes.length === 8 &&
+      zfNeu.inhalt.codesOffen === 8 && zfNeu.inhalt.codesGesamt === 8,
+      JSON.stringify(zfNeu.inhalt.codesOffen));
+    /* AUFFANGNETZ (Stolperstein 138): gibt die Route keine Codes her -- weil
+       ein Rueckbau sie hat scheitern lassen --, laeuft die Zeile trotzdem
+       durch und faellt rot. Ohne das griff sie auf undefined, und der Lauf
+       riss ab, statt eine Pruefung namentlich rot zu machen. */
+    const zfNeueCodes = (zfNeu.inhalt && zfNeu.inhalt.codes) || [];
+    pruefe('Und keiner davon ist einer der alten',
+      zfNeueCodes.length === 8 && zfNeueCodes.every(c => !zfD.codes.includes(c)),
+      JSON.stringify(zfNeueCodes.length));
+    const zfAlt = await zfAnmelden(zfD, 0, zfD.codes[4]);
+    pruefe('Ein noch unbenutzter ALTER Code traegt danach nicht mehr',
+      zfAlt.zwei.status === 401, JSON.stringify(zfAlt.zwei.inhalt));
+    pruefe('Ein neuer sehr wohl',
+      (await zfAnmelden(zfD, 0, zfNeueCodes[0])).zwei.status === 200);
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: das Geheimnis kommt aus keiner Antwort');
+
+    await zfRuhig();
+    const zfE = await zfZugangMitFaktor('frida');
+    pruefe('Beim Einschalten steht es genau einmal in einer Antwort',
+      zfE.start.inhalt.geheim && zfE.start.inhalt.geheim.length === 32);
+    pruefe('In der Antwort auf das Bestaetigen steht es NICHT mehr',
+      !JSON.stringify(zfE.an.inhalt).includes(zfE.geheim), JSON.stringify(zfE.an.inhalt));
+    pruefe('Und in der Karte "Zugang" auch nicht -- auch nicht fuer den Eigentuemer',
+      !JSON.stringify((await zfS.ruf('GET', '/api/account')).inhalt || {}).includes(zfE.geheim));
+    pruefe('Ebenso wenig in den Einstellungen',
+      !JSON.stringify((await zfS.ruf('GET', '/api/settings')).inhalt || {}).includes(zfE.geheim));
+    const zfZweitStart = await zfS.ruf('POST', '/api/zweifaktor/start',
+      { passwort: zfE.passwort });
+    pruefe('Ein zweiter Aufruf von /start an einem eingeschalteten Faktor wird abgewiesen',
+      zfZweitStart.status === 400 &&
+      !JSON.stringify(zfZweitStart.inhalt).includes(zfE.geheim),
+      JSON.stringify(zfZweitStart.inhalt));
+    pruefe('Und das Geheimnis steht danach unveraendert da',
+      zfSql(`SELECT geheim FROM zweifaktor WHERE user_id = ${zfE.id}`)[0].geheim === zfE.geheim);
+    /* IN KEINER KONTROLLAUSGABE. Dieselbe Linie wie beim Mailpasswort aus
+       0.9.0: die Startzeile nennt, was laeuft, und kein Geheimnis. */
+    pruefe('Und in keiner Zeile der Serverausgabe',
+      !zfS.protokoll().includes(zfE.geheim) &&
+      !zfE.codes.some(c => zfS.protokoll().includes(ZF.wiederNormal(c))),
+      'Serverausgabe durchsucht');
+    // Der Eigentuemer sieht am fremden Zugang ohnehin nichts davon.
+    await zfS.cookieLoeschen();
+    await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
+    const zfListe = await zfS.ruf('GET', '/api/users');
+    pruefe('Die Karte "Zugaenge" nennt fremde Faktoren mit keinem Wort',
+      !JSON.stringify(zfListe.inhalt).includes(zfE.geheim) &&
+      !/zweifaktor/i.test(JSON.stringify(zfListe.inhalt)),
+      JSON.stringify(zfListe.inhalt.zugaenge?.[0]));
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: der Tokenweg aus 0.8.80 fragt ebenfalls');
+
+    /* OHNE DAS WAERE DER RUECKSETZLINK DER WEG DARAN VORBEI, und zwar fuer
+       genau den, gegen den er nicht schuetzen soll: ein Admin erzeugt einen
+       Link fuer einen fremden Zugang, oeffnet ihn selbst und waere angemeldet.
+       Das ist die Luecke, die diese Runde schliesst. */
+    await zfRuhig();
+    const zfF = await zfZugangMitFaktor('gustav');
+    await zfS.cookieLoeschen();
+    await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
+    await zfS.ruf('POST', '/api/bestaetigung',
+      { passwort: ZF_PASSWORT, zweck: 'link', ziel: zfF.id });
+    const zfLink = await zfS.ruf('POST', `/api/users/${zfF.id}/token`,
+      { zweck: 'ruecksetzung' });
+    pruefe('Der Admin bekommt einen Ruecksetzlink wie bisher',
+      zfLink.status === 200 && typeof zfLink.inhalt.token === 'string');
+    await zfS.cookieLoeschen();
+    const zfEin = await zfS.ruf('POST', '/api/token/einloesen',
+      { token: zfLink.inhalt.token, passwort: 'ein-ganz-neues-wort-100' });
+    pruefe('Das Passwort laesst sich damit setzen', zfEin.status === 200,
+      JSON.stringify(zfEin.inhalt));
+    pruefe('ABER es kommt kein Cookie -- der zweite Faktor wird verlangt',
+      zfEin.inhalt.zweifaktor === true && typeof zfEin.inhalt.ausweis === 'string' &&
+      (await zfS.ruf('GET', '/api/session')).inhalt.authenticated === false,
+      JSON.stringify(zfEin.inhalt));
+    const zfEinZwei = await zfS.ruf('POST', '/api/login/zwei',
+      { ausweis: zfEin.inhalt.ausweis, code: zfF.codes[0] });
+    pruefe('Erst mit Code entsteht die Sitzung',
+      zfEinZwei.status === 200 &&
+      (await zfS.ruf('GET', '/api/session')).inhalt.authenticated === true);
+    pruefe('Und das neue Passwort gilt -- der Link hat getan, wofuer er da war',
+      (await (async () => { await zfS.cookieLoeschen();
+        return zfS.ruf('POST', '/api/login',
+          { user: zfF.name, password: 'ein-ganz-neues-wort-100' }); })()).inhalt.zweifaktor === true);
+    /* DER SONDERFALL: ein Zugang, der seinen ERSTEN Link einloest, hat noch
+       kein Passwort -- und kann deshalb keinen bestaetigten Faktor haben.
+       Baulich wahr, und hier nachgestellt statt behauptet. */
+    await zfS.cookieLoeschen();
+    await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
+    const zfErstLink = await zfS.ruf('POST', '/api/users',
+      { username: 'neuling', einladen: true });
+    pruefe('Ein Zugang ohne Passwort entsteht mit Einladungslink',
+      zfErstLink.status === 200 && typeof zfErstLink.inhalt.token === 'string');
+    pruefe('Und er hat keinen zweiten Faktor -- einschalten setzt Anmeldung voraus',
+      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfErstLink.inhalt.id}`).length === 0);
+    await zfS.cookieLoeschen();
+    const zfErstEin = await zfS.ruf('POST', '/api/token/einloesen',
+      { token: zfErstLink.inhalt.token, passwort: 'neulings-langes-wort' });
+    pruefe('Der erste Link meldet deshalb gleich an, wie vor dieser Runde',
+      zfErstEin.status === 200 && !zfErstEin.inhalt.zweifaktor &&
+      (await zfS.ruf('GET', '/api/session')).inhalt.authenticated === true,
+      JSON.stringify(zfErstEin.inhalt));
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: ein Admin kommt an einen fremden nicht heran');
+
+    /* EINSCHALTEN KANN NUR, WER DAS GEHEIMNIS AUF SEIN TELEFON BEKOMMT;
+       AUSSCHALTEN DARF NUR DER BETROFFENE. Sonst waere der zweite Faktor an
+       der Rollenleiter vorbei abschaltbar und sicherte nichts.
+       ES GIBT GAR KEINE ADRESSE DAFUER, und das ist die staerkere Form: die
+       Nummer kommt aus req.benutzer. Geprueft wird trotzdem an den Wegen, die
+       es GIBT -- fremdes Passwort setzen, sperren und freigeben, Link. */
+    await zfRuhig();
+    const zfG = await zfZugangMitFaktor('helga');
+    await zfS.cookieLoeschen();
+    await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
+    const zfVorher = zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`);
+    await zfS.ruf('POST', '/api/bestaetigung',
+      { passwort: ZF_PASSWORT, zweck: 'passwort', ziel: zfG.id });
+    const zfFremdWort = await zfS.ruf('PUT', `/api/users/${zfG.id}`,
+      { passwort: 'vom-admin-gesetzt-100' });
+    pruefe('Ein Admin darf ein fremdes Passwort setzen, wie bisher',
+      zfFremdWort.status === 200, JSON.stringify(zfFremdWort.inhalt));
+    pruefe('Der zweite Faktor des Betroffenen steht danach unveraendert da',
+      gleich(zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`), zfVorher),
+      JSON.stringify(zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`)));
+    await zfS.cookieLoeschen();
+    const zfAdminRein = await zfS.ruf('POST', '/api/login',
+      { user: zfG.name, password: 'vom-admin-gesetzt-100' });
+    pruefe('Und der Admin kaeme mit dem selbst gesetzten Passwort nicht herein',
+      zfAdminRein.inhalt.zweifaktor === true && !zfAdminRein.inhalt.ok,
+      JSON.stringify(zfAdminRein.inhalt));
+    /* SPERREN UND FREIGEBEN STREIFT IHN NICHT AB. Das Sperren raeumt Sitzungen
+       und Token -- naehme es den Faktor mit, waere "sperren und wieder
+       freigeben" genau der Weg an der Rollenleiter vorbei, den es nicht geben
+       darf. Der Rueckbau dazu ist eine Zeile, und deshalb steht die Pruefung
+       hier. */
+    await zfS.cookieLoeschen();
+    await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
+    await zfS.ruf('PUT', `/api/users/${zfG.id}`, { status: 'gesperrt' });
+    pruefe('Sperren raeumt Sitzungen und Token -- den zweiten Faktor NICHT',
+      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`).length === 1 &&
+      zfSql(`SELECT * FROM zweifaktor_codes WHERE user_id = ${zfG.id}`).length === 8 &&
+      zfSql(`SELECT * FROM tokens WHERE user_id = ${zfG.id}`).length === 0,
+      JSON.stringify(zfSql(`SELECT user_id FROM zweifaktor WHERE user_id = ${zfG.id}`)));
+    await zfS.ruf('PUT', `/api/users/${zfG.id}`, { status: 'aktiv' });
+    pruefe('Und nach dem Freigeben verlangt die Anmeldung ihn weiterhin',
+      gleich(zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`), zfVorher));
+    // Es gibt keine Adresse, unter der ein Fremder gemeint sein koennte.
+    const zfKeinPfad = await zfS.ruf('DELETE', `/api/zweifaktor/${zfG.id}`,
+      { passwort: ZF_PASSWORT });
+    pruefe('Es gibt keine Route DELETE /api/zweifaktor/:id',
+      zfKeinPfad.status === 404, String(zfKeinPfad.status));
+    const zfSelbstAus = await zfS.ruf('DELETE', '/api/zweifaktor',
+      { passwort: ZF_PASSWORT, code: '000000' });
+    pruefe('Und der Admin schaltet ueber die eigene Route nur den EIGENEN ab -- den er nicht hat',
+      zfSelbstAus.status === 400, JSON.stringify(zfSelbstAus.inhalt));
+    /* UND DER EIGENTUEMER AUCH NICHT. Ohne diese Zeile bliebe offen, ob die
+       Sperre eine Rollenfrage ist -- sie ist keine, sie ist die Bauform. */
+    pruefe('Auch der Eigentuemer hat keinen Weg an einen fremden Faktor',
+      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`).length === 1);
+    // Entfernen nimmt ihn dagegen mit -- den Zugang gibt es danach nicht mehr.
+    await zfS.ruf('POST', '/api/bestaetigung',
+      { passwort: ZF_PASSWORT, zweck: 'entfernen', ziel: zfG.id });
+    await zfS.ruf('DELETE', `/api/users/${zfG.id}`);
+    pruefe('Beim ENTFERNEN eines Zugangs geht sein zweiter Faktor mit',
+      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfG.id}`).length === 0 &&
+      zfSql(`SELECT * FROM zweifaktor_codes WHERE user_id = ${zfG.id}`).length === 0);
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich');
+
+    /* SIE VERTEIDIGT GEGEN DIE UEBERNOMMENE OFFENE SITZUNG -- und genau dort
+       traegt ein zweiter Faktor am meisten: das Passwort mag mitgelesen sein,
+       das Telefon liegt woanders.
+       NUR BEI ZUGAENGEN, DIE IHN EINGESCHALTET HABEN. Wer ihn nicht will,
+       merkt von dieser Runde nichts, und das steht als eigene Zeile daneben. */
+    await zfRuhig();
+    const zfH = await zfZugangMitFaktor('ida');
+    await zfS.cookieLoeschen();
+    await zfS.ruf('POST', '/api/login', { user: 'anna', password: ZF_PASSWORT });
+    await zfS.ruf('PUT', `/api/users/${zfH.id}`, { rolle: 'eigentuemer' });
+    const zfRolleFrei = await zfS.ruf('POST', '/api/bestaetigung',
+      { passwort: ZF_PASSWORT, zweck: 'rolle', ziel: zfH.id });
+    pruefe('Ein Zugang OHNE zweiten Faktor bestaetigt weiterhin mit dem Passwort allein',
+      zfRolleFrei.status === 200 && zfRolleFrei.inhalt.ok === true,
+      JSON.stringify(zfRolleFrei.inhalt));
+    await zfS.ruf('PUT', `/api/users/${zfH.id}`, { rolle: 'eigentuemer' });
+    await zfAnmelden(zfH, 0, zfH.codes[0]);
+    const zfBestOhne = await zfS.ruf('POST', '/api/bestaetigung',
+      { passwort: zfH.passwort, zweck: 'export', ziel: null });
+    pruefe('Mit zweitem Faktor genuegt das Passwort allein NICHT',
+      zfBestOhne.status === 403 && zfBestOhne.inhalt.zweifaktor === true,
+      JSON.stringify(zfBestOhne.inhalt));
+    const zfBestFalsch = await zfS.ruf('POST', '/api/bestaetigung',
+      { passwort: zfH.passwort, zweck: 'export', ziel: null, code: '000000' });
+    pruefe('Und ein falscher Code ebenso wenig',
+      zfBestFalsch.status === 403, JSON.stringify(zfBestFalsch.inhalt));
+    const zfBestMit = await zfS.ruf('POST', '/api/bestaetigung',
+      { passwort: zfH.passwort, zweck: 'export', ziel: null, code: zfH.codes[1] });
+    pruefe('Mit beidem steht die Freigabe',
+      zfBestMit.status === 200 && zfBestMit.inhalt.ok === true,
+      JSON.stringify(zfBestMit.inhalt));
+    pruefe('Und der Export laeuft damit durch',
+      (await zfS.ruf('GET', '/api/export')).status === 200);
+    /* DIE REIHENFOLGE: PASSWORT, DANN CODE. Wer das Passwort nicht hat, soll
+       nicht erfahren, ob am Zugang ein Faktor haengt. */
+    const zfBestWort = await zfS.ruf('POST', '/api/bestaetigung',
+      { passwort: 'falsches-langes-wort', zweck: 'export', ziel: null, code: zfH.codes[2] });
+    pruefe('Bei falschem Passwort steht kein Wort ueber den Faktor in der Antwort',
+      zfBestWort.status === 403 && !zfBestWort.inhalt.zweifaktor &&
+      zfBestWort.inhalt.error === 'Das Passwort stimmt nicht.',
+      JSON.stringify(zfBestWort.inhalt));
+    pruefe('Und der mitgeschickte Code ist dabei NICHT verbraucht worden',
+      (await zfS.ruf('POST', '/api/bestaetigung',
+        { passwort: zfH.passwort, zweck: 'export', ziel: null, code: zfH.codes[2] })).status === 200);
+    // BESTAETIGUNG_ZWECKE bleibt bei sieben -- es kommt kein Zweck dazu,
+    // sondern eine zweite Frage an derselben Stelle.
+    const zfZweck = await zfS.ruf('POST', '/api/bestaetigung',
+      { passwort: zfH.passwort, zweck: 'zweifaktor', ziel: null, code: zfH.codes[3] });
+    pruefe('Es gibt keinen achten Zweck namens zweifaktor',
+      zfZweck.status === 400, JSON.stringify(zfZweck.inhalt));
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt');
+
+    /* SECHS ZIFFERN SIND EINE MILLION; ungebremst ist das kein Faktor, sondern
+       eine Verzoegerung. Die Bremse faellt am zweiten Schritt NICHT von selbst
+       an -- er ist eine eigene Route neben POST /api/login und liefe ohne
+       eigene Zeilen an checkThrottle vorbei. Genau das wird hier gemessen.
+       DIESE GRUPPE LAEUFT ZULETZT AN DIESEM SERVER: die harte Sperre gilt
+       fuenf Minuten je Adresse, und alles danach liefe in sie hinein. */
+    await zfRuhig();
+    const zfI = await zfZugangMitFaktor('jonas');
+    /* ERST DIE GEGENLAGE (Stolperstein 81): SOLANGE NICHT GESPERRT IST,
+       antwortet derselbe Ruf mit 401 ueber den Ausweis. Ohne sie belegte die
+       429 unten nur, dass diese Route ueberhaupt etwas sagt -- und nicht, dass
+       es die Bremse ist, die es sagt. */
+    const zfVorSperre = await zfS.ruf('POST', '/api/login/zwei',
+      { ausweis: 'f'.repeat(64), code: '000000' });
+    pruefe('Ungesperrt antwortet der zweite Schritt mit 401 ueber den Ausweis',
+      zfVorSperre.status === 401, `${zfVorSperre.status} · ${JSON.stringify(zfVorSperre.inhalt)}`);
+    /* NEUN DURCHGAENGE, AUSGERECHNET UND NICHT GERATEN: der Ruf darueber hat
+       bereits einen Fehlversuch gezaehlt, und die harte Sperre faellt beim
+       ZEHNTEN (HARD_LIMIT = 10, gelesen bevor er erhoeht wird). Neun weitere
+       machen zusammen zehn -- danach steht sie. Ein zehnter Durchgang liefe
+       schon in Schritt 1 in die Sperre, und die Zeile darunter praefte dann
+       etwas anderes, als sie sagt. */
+    const zfBremse = [];
+    for (let i = 0; i < 9; i++) {
+      await zfS.cookieLoeschen();
+      const eins = await zfS.ruf('POST', '/api/login',
+        { user: zfI.name, password: zfI.passwort });
+      if (!eins.inhalt || !eins.inhalt.ausweis) { zfBremse.push({ schritt: 1, status: eins.status }); continue; }
+      const zwei = await zfS.ruf('POST', '/api/login/zwei',
+        { ausweis: eins.inhalt.ausweis, code: '000000' });
+      zfBremse.push({ schritt: 2, status: zwei.status });
+    }
+    pruefe('Bis zur zehnten Fehleingabe wird abgewiesen, aber nicht gesperrt',
+      zfBremse.length === 9 && zfBremse.every(x => x.schritt === 2 && x.status === 401),
+      zfBremse.map(x => `${x.schritt}:${x.status}`).join(' '));
+    /* DIE ENTSCHEIDENDE ZEILE, UND SIE FRAGT DEN ZWEITEN SCHRITT UNMITTELBAR.
+       Die Schleife oben belegt sie NICHT: sobald die Sperre steht, faellt schon
+       Schritt 1 mit 429 aus, und ob Schritt 2 die Bremse ueberhaupt ansieht,
+       waere daran nicht zu unterscheiden. Genau daran ist die erste Fassung
+       dieser Gruppe stumm geblieben (Stolperstein 163).
+       GEFRAGT WIRD MIT EINEM ERFUNDENEN AUSWEIS: traegt die Bremse, kommt 429,
+       bevor der Ausweis ueberhaupt angesehen wird. Traegt sie nicht, kommt die
+       401 ueber den Ausweis -- und die Zeile faellt rot. */
+    const zfDirekt = await zfS.ruf('POST', '/api/login/zwei',
+      { ausweis: 'f'.repeat(64), code: '000000' });
+    pruefe('Der ZWEITE SCHRITT selbst antwortet gesperrt mit 429, nicht mit einer Absage',
+      zfDirekt.status === 429, `${zfDirekt.status} · ${JSON.stringify(zfDirekt.inhalt)}`);
+    pruefe('Und die Sperre gilt ebenso fuer den ersten Schritt -- es ist dieselbe Bremse',
+      (await zfS.ruf('POST', '/api/login',
+        { user: 'anna', password: ZF_PASSWORT })).status === 429);
+    /* JEDER FEHLSCHLAG SCHREIBT anmeldung.fehl UND KEINEN EIGENEN VORGANG:
+       eine gescheiterte zweite Stufe IST eine gescheiterte Anmeldung. */
+    const zfFehl = zfSql(
+      `SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'anmeldung.fehl' AND ziel = ${zfI.id}`);
+    /* NEUN, und nicht zehn: der Ruf mit dem erfundenen Ausweis scheitert, BEVOR
+       ein Zugang bekannt ist -- er zaehlt in der Bremse und schreibt keine
+       Zeile. Das ist richtig so: eine Protokollzeile ohne Ziel saegte nichts. */
+    pruefe('Und jeder Fehlschlag an einem bekannten Zugang steht als anmeldung.fehl im Protokoll',
+      zfFehl[0].n === 9, String(zfFehl[0].n));
+    pruefe('Ein eigener Vorgang fuer den falschen Code steht nirgends',
+      zfSql("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was LIKE 'zweifaktor.f%'")[0].n === 0);
+
+    await zfS.stopp();
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: zugang.js auf dem Wirt');
+
+    /* DER NOTWEG, UND ER SCHALTET NUR AUS. Ohne ihn waere "Telefon weg und
+       Wiederherstellungscodes verbraucht" ein Zustand ohne Ausweg.
+       AN EINEM ECHTEN PROZESS, nicht an einer abgefangenen Funktion -- der
+       Server ist dafuer angehalten, wie bei den uebrigen zugang.js-Proben. */
+    const zfBefehl = (args, eingabe = '') => {
+      const { execFileSync } = require('child_process');
+      const umgebung = { ...process.env, DATA_DIR: zfDir, ENCRYPTION_KEY: KEY };
+      delete umgebung.AUTH_RESET;
+      try {
+        return { code: 0, aus: execFileSync(process.execPath, ['zugang.js', ...args],
+          { cwd: __dirname, encoding: 'utf8', input: eingabe, env: umgebung }) };
+      } catch (e) {
+        return { code: e.status == null ? 1 : e.status, aus: (e.stdout || '') + (e.stderr || '') };
+      }
+    };
+    const zfListeAus = zfBefehl(['liste']);
+    pruefe('zugang.js liste nennt eine Spalte 2FA',
+      /2FA/.test(zfListeAus.aus) && /jonas\s+Benutzer\s+aktiv\s+an/.test(zfListeAus.aus),
+      zfListeAus.aus.split('\n').filter(z => /jonas|2FA/.test(z)).join(' | '));
+    pruefe('Und sie steht bei einem Zugang ohne Faktor auf aus',
+      /anna\s+Eigentümer\s+aktiv\s+aus/.test(zfListeAus.aus),
+      zfListeAus.aus.split('\n').filter(z => /anna/.test(z)).join(' | '));
+    pruefe('Ein Geheimnis steht in der Liste nicht',
+      !zfListeAus.aus.includes(zfI.geheim));
+    const zfNein = zfBefehl(['zweifaktor', 'jonas'], 'nein\n');
+    pruefe('zugang.js zweifaktor fragt nach und laesst bei "nein" alles stehen',
+      /Wirklich ausschalten/.test(zfNein.aus) && /Abgebrochen/.test(zfNein.aus) &&
+      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfI.id}`).length === 1,
+      zfNein.aus.trim().split('\n').pop());
+    pruefe('Und nennt vorher den Stand samt Zahl der uebrigen Codes',
+      /Eingeschaltet seit/.test(zfNein.aus) && /von 8 noch offen/.test(zfNein.aus),
+      zfNein.aus.split('\n').filter(z => /offen|seit/.test(z)).join(' | '));
+    const zfJa = zfBefehl(['zweifaktor', 'jonas'], 'ja\n');
+    pruefe('Bei "ja" ist der zweite Faktor aus',
+      zfJa.code === 0 && /ist ausgeschaltet/.test(zfJa.aus) &&
+      zfSql(`SELECT * FROM zweifaktor WHERE user_id = ${zfI.id}`).length === 0 &&
+      zfSql(`SELECT * FROM zweifaktor_codes WHERE user_id = ${zfI.id}`).length === 0,
+      zfJa.aus.trim().split('\n').pop());
+    pruefe('Das Passwort bleibt dabei unangetastet',
+      zfSql(`SELECT password_hash h FROM users WHERE id = ${zfI.id}`)[0].h.startsWith('scrypt'),
+      zfSql(`SELECT password_hash h FROM users WHERE id = ${zfI.id}`)[0].h.slice(0, 12));
+    /* DAS LEERE `wer` HEISST "UEBER DEN WIRT" -- daran ist der Notweg im
+       Protokoll zu erkennen, und ein eigenes Feld dafuer waere eine zweite
+       Wahrheit daneben. */
+    const zfWirt = zfSql(
+      `SELECT wer, ziel FROM sicherheitsprotokoll WHERE was = 'zweifaktor.aus' ORDER BY id DESC LIMIT 1`);
+    pruefe('Die Protokollzeile traegt das leere wer des Wirts',
+      zfWirt[0].wer === null && zfWirt[0].ziel === zfI.id, JSON.stringify(zfWirt[0]));
+    const zfNochmal = zfBefehl(['zweifaktor', 'jonas']);
+    pruefe('Ein zweiter Aufruf sagt, dass nichts zu tun ist',
+      zfNochmal.code === 0 && /keinen zweiten Faktor/.test(zfNochmal.aus),
+      zfNochmal.aus.trim());
+    pruefe('Und die Hilfe nennt den Befehl samt der Grenze "nur ausschalten"',
+      /zugang\.js zweifaktor/.test(zfBefehl([]).aus) &&
+      /EINSCHALTEN GEHT VON HIER AUS NICHT/.test(zfBefehl([]).aus));
+    pruefe('Einen Befehl zum EINSCHALTEN gibt es nicht',
+      zfBefehl(['zweifaktor', 'jonas', '--an']).code === 0 &&
+      /keinen zweiten Faktor/.test(zfBefehl(['zweifaktor', 'jonas', '--an']).aus));
+
+    /* ---------------------------------------------------------------- */
+    gruppe('Der zweite Faktor: die Tabellen legen sich selbst an');
+
+    /* KEIN MIGRATIONSBLOCK -- zum fuenften Mal NACHGESTELLT statt
+       abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS
+       eine fehlende TABELLE bei jedem Start an (Stolperstein 13 gilt der
+       Spalte). Traegt die Probe, bleibt es bei FUENF markierten Bloecken. */
+    {
+      const tDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-zftab-'));
+      kurzlauf(`require('./db'); console.log('da');`, tDir);
+      const tDatei = path.join(tDir, 'katalog.sqlite');
+      const tTabellen = () => {
+        const d = oeffne(tDatei);
+        const t = d.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+          .all().map(z => z.name);
+        d.close();
+        return t;
+      };
+      const tSpalten = (tabelle) => {
+        const d = oeffne(tDatei);
+        const c = d.prepare(`PRAGMA table_info(${tabelle})`).all().map(x => x.name);
+        d.close();
+        return c;
+      };
+      const tIndizes = () => {
+        const d = oeffne(tDatei);
+        const i = d.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY name")
+          .all().map(z => z.name);
+        d.close();
+        return i;
+      };
+      pruefe('Eine frische Anlage traegt beide Tabellen ohne Migration',
+        tTabellen().includes('zweifaktor') && tTabellen().includes('zweifaktor_codes'),
+        JSON.stringify(tTabellen().filter(n => n.startsWith('zweifaktor'))));
+      const tFrisch = tSpalten('zweifaktor'), tFrischC = tSpalten('zweifaktor_codes');
+      pruefe('zweifaktor traegt genau ihre fuenf Spalten',
+        gleich(tFrisch, ['user_id', 'geheim', 'bestaetigt_am', 'letzter_zaehler', 'created_at']),
+        JSON.stringify(tFrisch));
+      pruefe('Und zweifaktor_codes genau ihre vier',
+        gleich(tFrischC, ['hash', 'user_id', 'benutzt_am', 'created_at']), JSON.stringify(tFrischC));
+      pruefe('user_id ist der Primaerschluessel von zweifaktor -- ein Faktor je Zugang',
+        (() => { const d = oeffne(tDatei);
+          const pk = d.prepare('PRAGMA table_info(zweifaktor)').all().filter(x => x.pk).map(x => x.name);
+          d.close(); return gleich(pk, ['user_id']); })());
+      pruefe('Und der Index auf zweifaktor_codes(user_id) steht',
+        tIndizes().includes('idx_zweifaktor_codes_user'),
+        JSON.stringify(tIndizes().filter(n => n.includes('zweifaktor'))));
+      {
+        const d = oeffne(tDatei);
+        d.exec('DROP TABLE zweifaktor'); d.exec('DROP TABLE zweifaktor_codes');
+        d.close();
+      }
+      pruefe('Von Hand entfernt sind beide wirklich weg',
+        !tTabellen().some(n => n.startsWith('zweifaktor')), JSON.stringify(tTabellen()));
+      kurzlauf(`require('./db'); console.log('da');`, tDir);
+      pruefe('Ein einziger Start legt beide wieder an',
+        tTabellen().includes('zweifaktor') && tTabellen().includes('zweifaktor_codes'));
+      pruefe('Und das Schema ist danach dasselbe wie in einer frischen Anlage',
+        gleich(tSpalten('zweifaktor'), tFrisch) && gleich(tSpalten('zweifaktor_codes'), tFrischC));
+      pruefe('Der Index kommt dabei mit zurueck',
+        tIndizes().includes('idx_zweifaktor_codes_user'));
+      /* DIE GEGENLAGE: eine SPALTE kommt nicht von selbst zurueck. Ohne sie
+         belegte die Probe oben nur, dass irgendetwas nachwaechst -- und nicht,
+         dass es gerade der Unterschied zwischen Tabelle und Spalte ist. */
+      {
+        const d = oeffne(tDatei);
+        d.exec('ALTER TABLE zweifaktor DROP COLUMN letzter_zaehler');
+        d.close();
+      }
+      pruefe('Die Spalte ist von Hand entfernt',
+        !tSpalten('zweifaktor').includes('letzter_zaehler'), JSON.stringify(tSpalten('zweifaktor')));
+      let tNach = [];
+      try {
+        kurzlauf(`require('./db'); console.log('da');`, tDir);
+        tNach = tSpalten('zweifaktor');
+      } catch { tNach = ['(Start gescheitert)']; }
+      pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
+        !tNach.includes('letzter_zaehler'), JSON.stringify(tNach));
+      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein sechster mit
+         anderem Wortlaut waere eine zweite Schreibweise fuer dieselbe Sache. */
+      const tQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+      /* GEZAEHLT WERDEN DIE VERSCHIEDENEN MARKEN UND NICHT IHRE VORKOMMEN:
+         jede steht zweimal in db.js -- einmal ueber dem Block und einmal an
+         der Stelle, die ihn aufruft. Eine Zaehlung der Vorkommen saehe zehn
+         und meldete stumm die falsche Zahl (Stolperstein 156: gezaehlt wird,
+         was gemeint ist, nicht was dasteht). */
+      const tBloecke = [...new Set(
+        (tQuelle.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))];
+      pruefe('Es bleibt bei fuenf markierten Migrationsbloecken',
+        tBloecke.length === 5, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
+      pruefe('Und alle fuenf tragen denselben Wortlaut der Marke',
+        tBloecke.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBloecke.join(' · '));
+      pruefe('Und es gibt keinen Block fuer 0.10.0',
+        !/MIGRATION 0\.10/.test(tQuelle) && !/migration0100/.test(tQuelle));
+      fs.rmSync(tDir, { recursive: true, force: true });
+    }
+
+    fs.rmSync(zfDir, { recursive: true, force: true });
+  }
+
   /* ---------------------------------------------------------------- */
   gruppe('Der Waechter ueber den Quelltext');
 
@@ -10256,6 +11305,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
        und nicht in Pfad oder Abfrage. */
     ['POST',   '/api/registrierung',             'offen'],
     ['POST',   '/api/registrierung/bestaetigen', 'offen'],
+    /* Der zweite Schritt der Anmeldung, 0.10.0 -- die ACHTE offene schreibende
+       Route. Im Kopf steht keine Rechtefrage, also MUSS die Schranke im Rumpf
+       stehen, und sie heisst Ausweis UND Code: der Ausweis allein belegt nur,
+       dass jemand das Passwort kannte.
+       DIE BENUTZERNUMMER KOMMT AUS DEM AUSWEIS UND NIE AUS DEM RUMPF -- sonst
+       waere das richtige Passwort eines Zugangs die Eintrittskarte fuer jeden
+       anderen. Sie traegt trotzdem nicht 'selbstbezug': dort kommt die Nummer
+       aus req.benutzer, und hier ist noch niemand angemeldet. */
+    ['POST',   '/api/login/zwei',                'offen'],
     ['PUT',    '/api/account',                   'selbstbezug'],
     /* Meine Sitzungen, 0.8.80. 'selbstbezug' wie PUT /api/account, und aus
        demselben Grund: die Klemme ist nicht eine Rollenfrage im Rumpf, sondern
@@ -10267,6 +11325,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
        PUT /api/account: der Benutzer kommt aus req.benutzer und nie aus der
        Adresse -- wer bestaetigt, bestaetigt fuer sich. */
     ['POST',   '/api/bestaetigung',              'selbstbezug'],
+    /* Der zweite Faktor, 0.10.0 -- VIER Routen, alle 'selbstbezug'. Das ist
+       hier nicht bloss ordentlich, es ist die ganze Rechtefrage des Bereichs:
+       JEDER SCHALTET IHN FUER SICH SELBST EIN UND AUS. Die Nummer kommt aus
+       req.benutzer, und es gibt gar keine Adresse, unter der ein Fremder
+       gemeint waere -- ein nurAdmin daneben haette nichts zu entscheiden.
+       EIN ADMIN SCHALTET EINEN FREMDEN FAKTOR NICHT AB, und der Grund ist
+       baulich: kein Pfad, keine Nummer, kein Weg. Der einzige daneben ist
+       zugang.js auf dem Wirt. */
+    ['POST',   '/api/zweifaktor/start',          'selbstbezug'],
+    ['POST',   '/api/zweifaktor/an',             'selbstbezug'],
+    ['POST',   '/api/zweifaktor/codes',          'selbstbezug'],
+    ['DELETE', '/api/zweifaktor',                'selbstbezug'],
     /* ANLEGEN BRAUCHT KEINE ZWEITE BESTAETIGUNG, und das ist entschieden und
        nicht vergessen: es erzeugt einen NEUEN Zugang und nimmt niemandem
        etwas. Der Link an einem BESTEHENDEN Zugang ist der andere Fall. */
@@ -10435,7 +11505,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      und DELETE /api/anfragen/:id). GET /api/anfragen steht wie immer NICHT
      hier, obwohl es einen Waechter traegt. */
   pruefe('Und es sind jetzt genau 64 schreibende Routen',
-    F_ROUTEN.length === 64 && fGefunden.length === 64,
+    F_ROUTEN.length === 69 && fGefunden.length === 69,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
      dieselbe Bauform wie F_ROUTEN und aus demselben Grund (Stolperstein 137):
@@ -10453,11 +11523,26 @@ const freigabeHaupt = (zweck, ziel = null) =>
     `console.log(JSON.stringify({ VORGAENGE: a.VORGAENGE, MERKMALE: a.MERKMALE,` +
     ` BESTAETIGUNG_ZWECKE: a.BESTAETIGUNG_ZWECKE }));`, fAuthDir));
   fs.rmSync(fAuthDir, { recursive: true, force: true });
-  pruefe('Es sind genau siebzehn Vorgaenge im Sicherheitsprotokoll',
-    fAuth.VORGAENGE.length === 17, `${fAuth.VORGAENGE.length}: ${fAuth.VORGAENGE.join(' ')}`);
-  pruefe('Und die beiden neuen heissen anfrage.frei und anfrage.ab',
+  pruefe('Es sind genau zwanzig Vorgaenge im Sicherheitsprotokoll',
+    fAuth.VORGAENGE.length === 20, `${fAuth.VORGAENGE.length}: ${fAuth.VORGAENGE.join(' ')}`);
+  pruefe('Und die beiden aus 0.9.1 heissen anfrage.frei und anfrage.ab',
     fAuth.VORGAENGE.includes('anfrage.frei') && fAuth.VORGAENGE.includes('anfrage.ab'),
     fAuth.VORGAENGE.join(' '));
+  /* DIE DREI AUS 0.10.0. Der dritte ist der, auf den es ankommt: er sagt, dass
+     ein Wiederherstellungscode verbraucht wurde -- die einzige Zeile im ganzen
+     Protokoll, die auf ein verlorenes Telefon zeigt. */
+  pruefe('Und die drei aus 0.10.0 heissen zweifaktor.an, .aus und .wieder',
+    ['zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder']
+      .every(v => fAuth.VORGAENGE.includes(v)),
+    fAuth.VORGAENGE.join(' '));
+  /* UND KEIN VIERTER FUER DEN FALSCHEN CODE: eine gescheiterte zweite Stufe
+     IST eine gescheiterte Anmeldung und schreibt 'anmeldung.fehl'. Die
+     Verneinung steht neben der Zahl darueber und nicht an ihrer Stelle --
+     zwei Zeilen sagen zusammen, was eine allein nicht sagen kann
+     (Stolperstein 156). */
+  pruefe('Und es gibt keinen eigenen Vorgang fuer einen falschen Code',
+    !fAuth.VORGAENGE.some(v => /^zweifaktor\.(fehl|falsch)/.test(v)),
+    fAuth.VORGAENGE.filter(v => v.startsWith('zweifaktor')).join(' '));
   pruefe('Es bleibt bei dreizehn Merkmalen', fAuth.MERKMALE.length === 13,
     `${fAuth.MERKMALE.length}: ${fAuth.MERKMALE.join(' ')}`);
   pruefe('Und bei sieben Zwecken der zweiten Bestaetigung',
@@ -11175,9 +12260,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return raus;
   }
 
+  /* zweifaktor.js SEIT 0.10.0 -- eine neue Quelltextdatei mit deutschen
+     Kommentaren, die der Waechter nicht saehe, stuende sie nicht hier. */
   const SPRACH_QUELLEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
-                          'zugang.js', 'schluessel.js', 'pruefung.js', 'gegenprobe.js',
-                          'public/app.js'];
+                          'zugang.js', 'schluessel.js', 'zweifaktor.js', 'pruefung.js',
+                          'gegenprobe.js', 'public/app.js'];
   const sprachQuelltext = SPRACH_QUELLEN.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p)
@@ -11190,7 +12277,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // anmeckert, meckert seine eigene Vorschrift an.
     .filter(n => !/^Auftrag_/.test(n))
     .map(n => path.join('Doku', n))
-    .concat(['README.md']);
+    /* CHANGELOG.md STEHT SEIT 0.10.0 IM WURZELVERZEICHNIS und war damit aus
+       dem Blick dieses Waechters gefallen -- als `Doku/Changelog.md` lag sie
+       vorher in der Sammlung oben. Sie ist deutsche Prosa fuer den Betreiber
+       und gehoert unter dieselbe Regel wie die README daneben. */
+    .concat(['README.md', 'CHANGELOG.md']);
   const sprachDoku = sprachDokuDateien.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p) ? sprachTreffer(nurProsa(fs.readFileSync(p, 'utf8')), n) : [];
@@ -11203,8 +12294,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      noch die halbe Anwendung an. Genau das ist beim Bauen dieser Gruppe an
      einer Gegenprobe aufgefallen -- der Rueckbau auf eine einzige Datei blieb
      stumm. Dieselbe Ueberlegung wie bei der Zahl in F_ROUTEN. */
-  pruefe('Der Sprachwaechter sieht alle zehn Quelltextdateien an',
-    SPRACH_QUELLEN.length === 10 &&
+  pruefe('Der Sprachwaechter sieht alle elf Quelltextdateien an',
+    SPRACH_QUELLEN.length === 11 &&
     SPRACH_QUELLEN.every(n => fs.existsSync(path.join(__dirname, n))),
     `${SPRACH_QUELLEN.length} Dateien, fehlend: ` +
     JSON.stringify(SPRACH_QUELLEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
@@ -11219,6 +12310,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     sprachKommentarZeilen > 1000, `${sprachKommentarZeilen} Zeilen`);
   pruefe('Und mindestens zehn Dokumente daneben',
     sprachDokuDateien.length >= 10, `${sprachDokuDateien.length} Dokumente`);
+  /* UND DIE BEIDEN IM WURZELVERZEICHNIS SIND NAMENTLICH DABEI. Die Zahl oben
+     allein saehe nicht, wenn ausgerechnet eine von ihnen herausfiele -- und
+     genau das ist mit CHANGELOG.md beim Umzug aus `Doku/` passiert. */
+  pruefe('Darunter namentlich README.md und CHANGELOG.md',
+    sprachDokuDateien.includes('README.md') && sprachDokuDateien.includes('CHANGELOG.md'),
+    sprachDokuDateien.filter(n => !n.startsWith('Doku')).join(' '));
   pruefe('Die Kommentare des Quelltextes benutzen die heutigen Fachwoerter',
     sprachQuelltext.length === 0, sprachQuelltext.slice(0, 12).join(' · '));
   pruefe('Die Dokumente ebenso',
@@ -14168,7 +15265,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTEN -- eine
      Prueflage, die still verschwindet, faellt sonst niemandem auf. */
   pruefe('Der Lauf hat seine Portbasen vermerkt',
-    pbBasen.length === 52 && PRUEFLAGEN.length >= 50,
+    pbBasen.length === 53 && PRUEFLAGEN.length >= 50,
     `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
@@ -14741,12 +15838,18 @@ const DOM_PROTOKOLL = {
    Event Loops -- .click() genuegt nicht. Liefert false, wenn gar kein Dialog
    dasteht: eine Prueflage, die ihn erwartet und nicht bekommt, soll das sehen
    statt an einer Null zu zerbrechen (Stolperstein 103). */
-async function bestaetigeImDom(d, passwort = 'chefinnen-langes-wort', abbrechen = false) {
+async function bestaetigeImDom(d, passwort = 'chefinnen-langes-wort', abbrechen = false, code) {
   const feld = d.w.document.getElementById('best-pass');
   if (!feld) return false;
   const knopf = feld.closest('.modal')?.querySelector(abbrechen ? '[data-no]' : '[data-yes]');
   if (!knopf) return false;
   feld.value = passwort;
+  /* SEIT 0.10.0 KANN DASSELBE FENSTER EIN ZWEITES FELD TRAGEN -- aber nur bei
+     Zugaengen mit zweitem Faktor. Gefuellt wird es nur, wenn es dasteht: eine
+     Prueflage ohne Faktor soll hier nichts erfinden, sondern sehen, dass es
+     fehlt. */
+  const codeFeld = d.w.document.getElementById('best-code');
+  if (codeFeld && code !== undefined) codeFeld.value = code;
   knopf.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
   return true;
@@ -14778,7 +15881,8 @@ const DOM_ANBIETER = [
    gebaut ist (Stolperstein 90). */
 function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
-  tokenBremse = 0, registrierung = false, anfragenStand = null,
+  tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null,
+  zweifaktorCodes = null, anmeldeFaktor = false,
   kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
@@ -14837,6 +15941,23 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   // belegt wird GERECHNET und nicht gestellt -- am echten Server zaehlt es die
   // Zeilen, und ein Mock mit eigener Zahl deckte genau das zu.
   const anfragenMock = () => ({ ...anfragenStand, belegt: anfragenStand.anfragen.length });
+  /* ---- Der zweite Faktor im Mock, 0.10.0 ----
+     FESTE, ERFUNDENE WERTE. Der Prueflauf arbeitet nie mit einem echten
+     Geheimnis, und ein Code, der aus der Uhr entstuende, machte die Prueflage
+     von ihr abhaengig: hier geht es um die KARTE, nicht um die Rechnung. Die
+     steht in "Der zweite Faktor: die Rechnung gegen den Standard".
+     DER STAND IST VERAENDERLICH, weil der Mock mitziehen muss (Stolperstein
+     90): einschalten macht "an", ausschalten macht "aus". */
+  const ZF_MOCK_GEHEIM = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+  const ZF_MOCK_GRUPPEN = 'GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ';
+  const ZF_MOCK_ZEILE = 'otpauth://totp/Kriterion%3Achefin?secret=' + ZF_MOCK_GEHEIM +
+    '&issuer=Kriterion&algorithm=SHA1&digits=6&period=30';
+  const ZF_MOCK_CODE = '123456';
+  let zfStandMock = zweifaktorStand || { an: false, seit: null, codesOffen: 0, codesGesamt: 0 };
+  let zfAusweisMock = 'ausweis-1', zfAusweisZaehler = 1;
+  let zfCodesMock = zweifaktorCodes ||
+    ['AAAAA-BBBBB', 'CCCCC-DDDDD', 'EEEEE-FFFFF', 'GGGGG-HHHHH',
+     'JJJJJ-KKKKK', 'MMMMM-NNNNN', 'PPPPP-QQQQQ', 'RRRRR-SSSSS'];
   const MAIL_VERWEIGERT = 'Das kann nur der Eigentümer der Anlage.';
   const MAIL_ANBIETER_MOCK = [
     { schluessel: 'gmx', name: 'GMX' }, { schluessel: 'web', name: 'Web.de' },
@@ -15172,8 +16293,18 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        ueber eigeneAdresse leeren; ohne beide Zustaende liesse sich weder
        "die vorhandene steht im Feld" noch "die fehlende zeigt den Platzhalter"
        belegen. */
+    /* DER ZWEITE FAKTOR REIST SEIT 0.10.0 IN DIESER ANTWORT MIT, und der Mock
+       liefert ihn -- sonst bliebe der Block in der Karte "Zugang" leer und
+       jede Pruefung darauf blind (Stolperstein 102). Die Prueflage stellt
+       ueber zweifaktorStand den anderen Zustand; ohne beide liesse sich weder
+       "an seit ..." noch "aus" belegen.
+       DER MOCK BRINGT NICHT SELBST MIT, WAS DIE PRUEFUNG BELEGEN SOLL: was
+       hier steht, kommt aus der Prueflage und nicht aus der Oberflaeche --
+       und die Zusagen an der ECHTEN Serverantwort stehen in den Gruppen
+       "Der zweite Faktor: ..." weiter oben. */
     if (url === '/api/account' && (opt.method || 'GET') === 'GET')
-      return gib({ username: 'chefin', minPassword: 10, email: eigeneAdresse });
+      return gib({ username: 'chefin', minPassword: 10, email: eigeneAdresse,
+                   zweifaktor: zfStandMock });
     /* PUT auf den eigenen Zugang. DER MOCK ZIEHT WIRKLICH MIT (Stolperstein
        90): was die Karte schickt, ist danach der Stand -- sonst waere "die
        geaenderte Adresse steht danach im Feld" von "die Karte hat sich nicht
@@ -15183,6 +16314,71 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       if (k.email !== undefined) eigeneAdresse = String(k.email || '');
       return gib({ username: k.username || 'chefin',
                    passwortGewechselt: Boolean(k.newPassword), email: eigeneAdresse });
+    }
+    /* DIE ANMELDUNG IN ZWEI SCHRITTEN, 0.10.0. DER MOCK ANTWORTET WIE DER
+       ECHTE SERVER (Stolperstein 90): bei richtigem Passwort und
+       eingeschaltetem Faktor KEIN ok und kein Cookie, sondern ein Ausweis --
+       und bei falschem Code eine Absage MIT frischem Ausweis, genau wie der
+       Server sie schickt. Einer, der immer ok saegte, machte den ganzen
+       zweiten Schritt unpruefbar. */
+    if (url === '/api/login' && opt.method === 'POST') {
+      const k = JSON.parse(opt.body || '{}');
+      if (k.password !== 'chefins-wort-100')
+        return gib({ error: 'Benutzername oder Passwort stimmt nicht.' }, 401);
+      if (!anmeldeFaktor) return gib({ ok: true });
+      return gib({ zweifaktor: true, ausweis: zfAusweisMock, sekunden: 120 });
+    }
+    if (url === '/api/login/zwei' && opt.method === 'POST') {
+      const k = JSON.parse(opt.body || '{}');
+      if (k.ausweis !== zfAusweisMock)
+        return gib({ error: 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.' }, 401);
+      const eingabe = String(k.code || '');
+      if (eingabe !== ZF_MOCK_CODE && !zfCodesMock.includes(eingabe)) {
+        // DER ALTE AUSWEIS IST VERBRAUCHT, ein frischer liegt der Absage bei --
+        // sonst kostete ein Tippfehler das ganze Passwort noch einmal.
+        zfAusweisMock = 'ausweis-' + (++zfAusweisZaehler);
+        return gib({ error: 'Der Code stimmt nicht.', ausweis: zfAusweisMock, sekunden: 120 }, 401);
+      }
+      zfAusweisMock = 'ausweis-' + (++zfAusweisZaehler);
+      return gib({ ok: true });
+    }
+    /* ---- Der zweite Faktor, 0.10.0 ----
+       DER MOCK ZIEHT WIRKLICH MIT (Stolperstein 90): einschalten macht "an",
+       ausschalten macht "aus", und die Zahl der Wiederherstellungscodes
+       aendert sich. Ein Mock, der auf jedes Einschalten "ok" sagt und
+       denselben Stand zurueckgibt, machte "die Karte zeichnet sich neu" von
+       "die Karte blieb stehen" ununterscheidbar.
+       UND ER KANN SCHEITERN: ein falscher Code wird abgewiesen, sonst waere
+       der ganze Absagenzweig nie gelaufen. */
+    if (url === '/api/zweifaktor/start' && opt.method === 'POST') {
+      const k = JSON.parse(opt.body || '{}');
+      if (k.passwort !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
+      if (zfStandMock.an) return gib({ error: 'Der zweite Faktor ist bereits eingeschaltet.' }, 400);
+      return gib({ geheim: ZF_MOCK_GEHEIM, gruppen: ZF_MOCK_GRUPPEN,
+                   zeile: ZF_MOCK_ZEILE, ziffern: 6, sekunden: 30 });
+    }
+    if (url === '/api/zweifaktor/an' && opt.method === 'POST') {
+      const k = JSON.parse(opt.body || '{}');
+      if (k.passwort !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
+      if (String(k.code) !== ZF_MOCK_CODE) return gib({ error: 'Der Code stimmt nicht.' }, 400);
+      zfStandMock = { an: true, seit: '2026-08-26 10:00:00', codesOffen: 8, codesGesamt: 8 };
+      return gib({ ...zfStandMock, codes: zfCodesMock });
+    }
+    if (url === '/api/zweifaktor/codes' && opt.method === 'POST') {
+      const k = JSON.parse(opt.body || '{}');
+      if (k.passwort !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
+      if (String(k.code) !== ZF_MOCK_CODE) return gib({ error: 'Der Code stimmt nicht.' }, 403);
+      zfCodesMock = zfCodesMock.map((c, i) => `NEU${String(i)}A-BCDEF`);
+      zfStandMock = { ...zfStandMock, codesOffen: 8, codesGesamt: 8 };
+      return gib({ ...zfStandMock, codes: zfCodesMock });
+    }
+    if (url === '/api/zweifaktor' && opt.method === 'DELETE') {
+      const k = JSON.parse(opt.body || '{}');
+      if (!zfStandMock.an) return gib({ error: 'Der zweite Faktor ist nicht eingeschaltet.' }, 400);
+      if (k.passwort !== 'chefins-wort-100') return gib({ error: 'Das Passwort stimmt nicht.' }, 403);
+      if (String(k.code) !== ZF_MOCK_CODE) return gib({ error: 'Der Code stimmt nicht.' }, 403);
+      zfStandMock = { an: false, seit: null, codesOffen: 0, codesGesamt: 0 };
+      return gib({ ...zfStandMock });
     }
     /* ---- Der Mailversand, 0.9.0 ----
        DER MOCK ANTWORTET WIE DER ECHTE SERVER, und das heisst hier vor allem:
@@ -15303,7 +16499,11 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        Mock liefert ihn mit -- sonst bliebe die Kopfzeile leer und
        jede Pruefung darauf blind. Als Vorgabe DERSELBE Name wie unter
        /api/account; eine Prueflage kann ihn ueberschreiben. */
-    if (url === '/api/settings') return gib({ name: 'chefin', papierkorbTage: 30, ...einstellungen });
+    /* zweifaktor SEIT 0.10.0: daran haengt, ob das Bestaetigungsfenster ein
+       zweites Feld zeigt. Es kommt aus DEMSELBEN Stand wie die Karte -- eine
+       zweite Wahrheit im Mock waere genau der Fehler, den er finden soll. */
+    if (url === '/api/settings') return gib({ name: 'chefin', papierkorbTage: 30,
+      zweifaktor: zfStandMock.an === true, ...einstellungen });
     /* DER PAPIERKORB IM MOCK, und er muss BEIDE Zustaende koennen: gefuellt
        und leer. Eine Karte ohne Zeilen belegte nichts ueber die Zeilen, eine
        ohne den leeren Fall nichts ueber die Auskunft "hier liegt nichts"
@@ -20348,6 +21548,349 @@ async function pruefeOberflaeche() {
     !/vergeben|bereits|frei/i.test(sDank?.textContent || ''), sDank?.textContent || '');
 
   /* ---------------------------------------------------------------- */
+
+  gruppe('Die Anmeldeseite: der zweite Schritt');
+
+  /* WAS DER MENSCH SIEHT, IST DIE HAELFTE DIESER RUNDE. 0.9.1 hat zwei Befunde
+     aus dem Betrieb geliefert, und beide waren Oberflaeche -- eine Karte, die
+     ihren eigenen Schalter verdeckte, und ein Weg, der zu leise war.
+     GEDRUECKT WIRD PER dispatchEvent samt Durchlauf des Event Loops
+     (Stolperstein 61): ein Fehler hinter einem await bliebe im nur gebauten
+     DOM sonst grundsaetzlich unsichtbar. */
+  /* GEDRUECKT WIRD PER dispatchEvent SAMT DURCHLAUF DES EVENT LOOPS
+     (Stolperstein 61). FEHLT DAS ELEMENT, wird nicht geklickt und der Lauf
+     laeuft weiter -- die Pruefung darunter faellt dann rot, statt dass der
+     ganze Lauf an einem null abreisst (Stolperstein 138). */
+  const zdKlick = async (w, el, ms = 80) => {
+    if (el) el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, ms));
+  };
+  // Dasselbe Auffangnetz fuer ein Eingabefeld.
+  const zfSetze = (w, id, wert) => {
+    const el = w.document.getElementById(id);
+    if (el) el.value = wert;
+    return Boolean(el);
+  };
+
+  const zdAnmelden = async (faktor) => {
+    const d = baueDom(JSDOM, { angemeldet: false, anmeldeFaktor: faktor });
+    await new Promise(r => setTimeout(r, 80));
+    d.w.document.getElementById('lu').value = 'chefin';
+    d.w.document.getElementById('lp').value = 'chefins-wort-100';
+    await zdKlick(d.w, d.w.document.getElementById('lb'));
+    return d;
+  };
+
+  /* OHNE ZWEITEN FAKTOR AENDERT SICH NICHTS -- die Gegenlage steht zuerst.
+     Ohne sie belegte alles Folgende nur, dass es EINEN Weg gibt, und nicht,
+     dass der gewoehnliche unangetastet bleibt. */
+  const zdOhne = await zdAnmelden(false);
+  pruefe('Ohne zweiten Faktor fuehrt die Anmeldung wie bisher hinein',
+    !zdOhne.w.document.getElementById('zf-code') &&
+    !zdOhne.w.document.querySelector('.login-card'),
+    zdOhne.w.document.querySelector('.login-card') ? 'die Anmeldekarte steht noch da' : 'kein Codefeld');
+
+  const zdMit = await zdAnmelden(true);
+  const zdFeld = zdMit.w.document.getElementById('zf-code');
+  pruefe('Mit zweitem Faktor steht danach die Frage nach dem Code',
+    Boolean(zdFeld), 'das Codefeld fehlt');
+  pruefe('Und das Passwortfeld ist fort -- es ist ein zweiter SCHRITT, kein zweites Feld',
+    !zdMit.w.document.getElementById('lp'), 'das Passwortfeld steht noch da');
+  pruefe('Die Marke der Anlage steht auch hier',
+    Boolean(zdMit.w.document.querySelector('.login-marke')), 'keine Markenzeile');
+  /* DER WEG UEBER DEN WIEDERHERSTELLUNGSCODE STEHT DANEBEN, nicht hinter
+     einem Knopf: wer sein Telefon nicht hat, sucht ihn genau in diesem
+     Augenblick -- und findet ihn nicht, wenn er erst aufzuklappen waere. */
+  pruefe('Und der Hinweis auf die Wiederherstellungscodes steht ohne Klick da',
+    /Wiederherstellungscode/.test(zdMit.w.document.querySelector('.login-card')?.textContent || ''),
+    zdMit.w.document.querySelector('.login-card')?.textContent?.slice(-160));
+  pruefe('Ein Feld fuer BEIDE Formen, kein Umschalter daneben',
+    zdMit.w.document.querySelectorAll('.login-card input').length === 1,
+    String(zdMit.w.document.querySelectorAll('.login-card input').length));
+  /* DER AUSWEIS AUS SCHRITT 1 WIRD WIRKLICH MITGESCHICKT und nicht neu
+     erfunden -- er ist die einzige Verbindung zwischen den beiden Schritten. */
+  const zdEins = zdMit.gesendet.filter(g => g.url === '/api/login').pop();
+  pruefe('Schritt 1 ist wirklich gelaufen', Boolean(zdEins), JSON.stringify(zdEins));
+
+  // Ein falscher Code: die Seite bleibt stehen, nennt die Absage und geht mit
+  // dem FRISCHEN Ausweis weiter -- ein Tippfehler kostet nicht das Passwort.
+  zfSetze(zdMit.w, 'zf-code', '000000');
+  await zdKlick(zdMit.w, zdMit.w.document.getElementById('zf-ab'));
+  const zdFalsch = zdMit.gesendet.filter(g => g.url === '/api/login/zwei').pop();
+  pruefe('Ein falscher Code laesst den Menschen auf dieser Seite',
+    Boolean(zdMit.w.document.getElementById('zf-code')), 'die Seite ist gewechselt');
+  pruefe('Und nennt die Absage',
+    /Der Code stimmt nicht/.test(zdMit.w.document.querySelector('.login-error')?.textContent || ''),
+    zdMit.w.document.querySelector('.login-error')?.textContent || '(keine Absage)');
+  pruefe('Die Absage nennt nicht, ob er falsch oder abgelaufen war',
+    !/abgelaufen|verbraucht|zu spät|zu spaet/i.test(
+      zdMit.w.document.querySelector('.login-error')?.textContent || ''),
+    zdMit.w.document.querySelector('.login-error')?.textContent);
+  pruefe('Der erste Ausweis ist dabei mitgegangen',
+    zdFalsch?.koerper?.ausweis === 'ausweis-1', JSON.stringify(zdFalsch?.koerper));
+
+  // Und jetzt der richtige.
+  zfSetze(zdMit.w, 'zf-code', '123456');
+  await zdKlick(zdMit.w, zdMit.w.document.getElementById('zf-ab'));
+  const zdRichtig = zdMit.gesendet.filter(g => g.url === '/api/login/zwei').pop();
+  pruefe('Der zweite Anlauf nimmt den FRISCHEN Ausweis aus der Absage',
+    zdRichtig?.koerper?.ausweis === 'ausweis-2', JSON.stringify(zdRichtig?.koerper));
+  pruefe('Und mit richtigem Code fuehrt der Weg hinein',
+    !zdMit.w.document.getElementById('zf-code') &&
+    !zdMit.w.document.querySelector('.login-card'),
+    zdMit.w.document.querySelector('.login-card') ? 'die Karte steht noch da' : 'drin');
+
+  /* EIN WIEDERHERSTELLUNGSCODE TRAEGT AN DERSELBEN STELLE. Ohne diese Lage
+     bliebe der Satz auf dem Bildschirm eine Behauptung. */
+  const zdWieder = await zdAnmelden(true);
+  zfSetze(zdWieder.w, 'zf-code', 'AAAAA-BBBBB');
+  await zdKlick(zdWieder.w, zdWieder.w.document.getElementById('zf-ab'));
+  pruefe('Ein Wiederherstellungscode traegt in demselben Feld',
+    !zdWieder.w.document.querySelector('.login-card'),
+    zdWieder.w.document.querySelector('.login-card')?.textContent?.slice(0, 80));
+
+  /* IST DER AUSWEIS FORT, GEHT ES ZURUECK AN DEN ANFANG -- und zwar an einem
+     FELD und nicht an einem Statuscode: liegt der Absage ein frischer Ausweis
+     bei, war der Code falsch; liegt keiner bei, ist hier nichts mehr zu holen.
+     Nachgestellt mit einem Ausweis, den der Mock nicht kennt. */
+  const zdWeg = await zdAnmelden(true);
+  zdWeg.w.showZweiterFaktor('erfundener-ausweis');
+  await new Promise(r => setTimeout(r, 40));
+  zfSetze(zdWeg.w, 'zf-code', '123456');
+  await zdKlick(zdWeg.w, zdWeg.w.document.getElementById('zf-ab'));
+  pruefe('Ein abgelaufener Ausweis fuehrt zurueck auf die Anmeldeseite',
+    Boolean(zdWeg.w.document.getElementById('lp')) && !zdWeg.w.document.getElementById('zf-code'),
+    zdWeg.w.document.querySelector('.login-card')?.textContent?.slice(0, 100));
+  pruefe('Und sagt dort, dass von vorn angefangen werden muss',
+    /abgelaufen/.test(zdWeg.w.document.querySelector('.login-error')?.textContent || ''),
+    zdWeg.w.document.querySelector('.login-error')?.textContent || '(keine Meldung)');
+
+  /* UND DIE ANMELDESEITE SELBST BLEIBT UNANGETASTET: bei falschem Passwort
+     sieht sie aus wie vor dieser Runde, und von einem zweiten Faktor steht
+     dort kein Wort. */
+  const zdWort = baueDom(JSDOM, { angemeldet: false, anmeldeFaktor: true });
+  await new Promise(r => setTimeout(r, 80));
+  zdWort.w.document.getElementById('lu').value = 'chefin';
+  zdWort.w.document.getElementById('lp').value = 'falsches-wort-100';
+  await zdKlick(zdWort.w, zdWort.w.document.getElementById('lb'));
+  pruefe('Bei falschem Passwort bleibt es bei der gewohnten Absage',
+    /Benutzername oder Passwort/.test(
+      zdWort.w.document.querySelector('.login-error')?.textContent || '') &&
+    !zdWort.w.document.getElementById('zf-code'),
+    zdWort.w.document.querySelector('.login-error')?.textContent);
+  pruefe('Und kein Wort ueber einen zweiten Faktor steht auf der Seite',
+    !/zweiter Faktor|Code aus deiner App/i.test(
+      zdWort.w.document.querySelector('.login-card')?.textContent || ''),
+    zdWort.w.document.querySelector('.login-card')?.textContent?.slice(0, 120));
+
+  gruppe('Die Karte „Zugang“: der zweite Faktor');
+
+  /* KEINE NEUE KARTE -- es bleibt bei neunzehn. Der zweite Faktor steht dort,
+     wo Name, Passwort und Adresse stehen: beim eigenen Zugang. */
+  const zkAus = baueDom(JSDOM, { hash: '#/system' });
+  await new Promise(r => setTimeout(r, 60));
+  await zkAus.w.renderSystem();
+  await new Promise(r => setTimeout(r, 60));
+  const zkBlock = () => zkAus.w.document.getElementById('zf-block');
+  pruefe('Der Block steht in der Karte "Zugang" und nicht in einer eigenen',
+    Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === 'Zugang',
+    zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
+  pruefe('Und die Zahl der Karten bleibt bei neunzehn',
+    zkAus.w.document.querySelectorAll('.sys-card').length === 19,
+    String(zkAus.w.document.querySelectorAll('.sys-card').length));
+  /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
+     einem Knopf, den man erst druecken muss. */
+  pruefe('Der Zustand "aus" steht ohne Klick da',
+    /Zweiter Faktor: aus/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
+  pruefe('Und daneben der Knopf zum Einschalten',
+    Boolean(zkAus.w.document.getElementById('zf-an')), 'der Knopf fehlt');
+  pruefe('Zum Ausschalten steht dort keiner',
+    !zkAus.w.document.getElementById('zf-aus') && !zkAus.w.document.getElementById('zf-neue'));
+  pruefe('Und der Text nennt die Anlage als vollstaendig ohne ihn',
+    /[Ff]reiwillig/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 300));
+
+  // Einschalten, Schritt 1: hinter dem bisherigen Passwort.
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-an'));
+  pruefe('Einschalten fragt zuerst nach dem bisherigen Passwort',
+    Boolean(zkAus.w.document.getElementById('best-pass')), 'kein Passwortfenster');
+  pruefe('Und dort steht KEIN Codefeld -- es gibt noch keinen Code zu fragen',
+    !zkAus.w.document.getElementById('best-code'), 'ein Codefeld steht da');
+  await bestaetigeImDom(zkAus, 'chefins-wort-100');
+  pruefe('Danach steht der Schluessel in Vierergruppen da',
+    zkAus.w.document.getElementById('zf-geheim')?.textContent ===
+      'GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ',
+    zkAus.w.document.getElementById('zf-geheim')?.textContent);
+  pruefe('Und der Bildschirm sagt, dass er nur dieses eine Mal erscheint',
+    /nur dieses eine Mal/.test(
+      zkAus.w.document.querySelector('.zf-einrichten')?.textContent || ''),
+    zkAus.w.document.querySelector('.zf-einrichten')?.textContent?.slice(0, 140));
+  const zkZeile = zkAus.w.document.getElementById('zf-zeile');
+  pruefe('Daneben fuehrt ein Verweis unmittelbar in die App',
+    zkZeile?.getAttribute('href')?.startsWith('otpauth://totp/'),
+    zkZeile?.getAttribute('href'));
+  pruefe('Und er traegt dasselbe Geheimnis wie der abtippbare Schluessel',
+    zkZeile?.getAttribute('href')?.includes('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'));
+  pruefe('Der abtippbare Schluessel steht dabei OBEN -- er ist die Zusage, der Verweis die Bequemlichkeit',
+    zkAus.w.document.getElementById('zf-geheim')?.compareDocumentPosition(zkZeile) === 4,
+    String(zkAus.w.document.getElementById('zf-geheim')?.compareDocumentPosition(zkZeile)));
+
+  // Schritt 2: der Code aus der App.
+  // Ueber ein Auffangnetz gesetzt: nimmt ein Rueckbau den Schritt weg, faellt
+  // die Pruefung darunter rot, statt den Lauf abzureissen (Stolperstein 138).
+  zfSetze(zkAus.w, 'zf-probe', '000000');
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-fertig'));
+  await bestaetigeImDom(zkAus, 'chefins-wort-100');
+  pruefe('Ein falscher Code schaltet nicht ein',
+    Boolean(zkAus.w.document.getElementById('zf-probe')), 'die Seite ist gewechselt');
+  zfSetze(zkAus.w, 'zf-probe', '123456');
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-fertig'));
+  await bestaetigeImDom(zkAus, 'chefins-wort-100');
+  pruefe('Mit richtigem Code steht der Zustand auf "an"',
+    /Zweiter Faktor: an/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 120));
+  pruefe('Und die Zahl der Wiederherstellungscodes steht daneben',
+    /noch 8 von 8/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 200));
+
+  /* DIE CODES WERDEN GENAU EINMAL GEZEIGT, und der Bildschirm sagt es an
+     derselben Stelle -- mit demselben Ernst wie beim Einladungslink. */
+  const zkKasten = () => zkAus.w.document.getElementById('zf-codes');
+  pruefe('Die acht Wiederherstellungscodes stehen da',
+    zkKasten()?.querySelectorAll('.zf-codeliste span').length === 8,
+    String(zkKasten()?.querySelectorAll('.zf-codeliste span').length));
+  pruefe('Und zwar im selben Warnkasten wie der Einladungslink',
+    zkKasten()?.classList.contains('warn-box'), zkKasten()?.className);
+  pruefe('Der Kasten sagt, dass sie nicht wiederkommen',
+    /nur dieses eine Mal/.test(zkKasten()?.textContent || ''),
+    zkKasten()?.textContent?.slice(0, 140));
+  pruefe('Und wo sie hingehoeren -- nicht dorthin, wo das Telefon liegt',
+    /nicht.*liegt|nicht<\/strong> liegt/.test(zkKasten()?.textContent || ''),
+    zkKasten()?.textContent?.slice(0, 220));
+  pruefe('Er nennt den Notweg ueber den Wirt fuer den Fall, dass alles weg ist',
+    /zugang\.js zweifaktor/.test(zkKasten()?.textContent || ''),
+    zkKasten()?.textContent?.slice(-160));
+  // Und beim naechsten Aufbau der Karte sind sie fort.
+  await zkAus.w.renderSystem();
+  await new Promise(r => setTimeout(r, 60));
+  pruefe('Beim naechsten Aufbau der Karte sind sie fort',
+    !zkAus.w.document.getElementById('zf-codes'), 'die Codes stehen noch da');
+  pruefe('Der Zustand "an" steht dagegen weiterhin ohne Klick da',
+    /Zweiter Faktor: an/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
+  pruefe('Und das Geheimnis steht nirgends mehr auf dem Bildschirm',
+    !zkAus.w.document.body.textContent.includes('GEZDGNBVGY3TQOJQ'),
+    'das Geheimnis steht noch da');
+
+  /* NEUE CODES -- der Fall, den niemand plant. Hinter Passwort UND Code, und
+     das Fenster zeigt jetzt BEIDE Felder. */
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-neue'));
+  pruefe('Neue Codes fragen nach Passwort UND Code',
+    Boolean(zkAus.w.document.getElementById('best-pass')) &&
+    Boolean(zkAus.w.document.getElementById('best-code')), 'ein Feld fehlt');
+  await bestaetigeImDom(zkAus, 'chefins-wort-100', false, '123456');
+  pruefe('Danach stehen acht frische Codes da',
+    zkKasten()?.querySelectorAll('.zf-codeliste span').length === 8 &&
+    /NEU0A-BCDEF/.test(zkKasten()?.textContent || ''),
+    zkKasten()?.textContent?.slice(0, 120));
+  pruefe('Und die Zahl steht wieder bei acht von acht',
+    /noch 8 von 8/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 160));
+
+  // Ausschalten: Passwort und Code, danach wieder "aus".
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-aus'));
+  pruefe('Ausschalten fragt ebenfalls nach beidem',
+    Boolean(zkAus.w.document.getElementById('best-pass')) &&
+    Boolean(zkAus.w.document.getElementById('best-code')), 'ein Feld fehlt');
+  await bestaetigeImDom(zkAus, 'chefins-wort-100', false, '000000');
+  pruefe('Mit falschem Code bleibt er an',
+    /Zweiter Faktor: an/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
+  await zdKlick(zkAus.w, zkAus.w.document.getElementById('zf-aus'));
+  await bestaetigeImDom(zkAus, 'chefins-wort-100', false, '123456');
+  pruefe('Mit richtigem Code steht der Zustand wieder auf "aus"',
+    /Zweiter Faktor: aus/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
+  pruefe('Und der Knopf zum Einschalten steht wieder da',
+    Boolean(zkAus.w.document.getElementById('zf-an')) &&
+    !zkAus.w.document.getElementById('zf-aus'));
+
+  /* DIE WARNUNG, WENN ES KNAPP WIRD. Sie steht nur da, wenn sie etwas zu sagen
+     hat -- dieselbe Ueberlegung wie bei den drei Abstufungen der Karte
+     "Sicherung": eine Warnung, die immer dasteht, liest niemand mehr. */
+  const zkKnapp = baueDom(JSDOM, { hash: '#/system',
+    zweifaktorStand: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 1, codesGesamt: 8 } });
+  await new Promise(r => setTimeout(r, 60));
+  await zkKnapp.w.renderSystem();
+  await new Promise(r => setTimeout(r, 60));
+  const zkKnappText = zkKnapp.w.document.getElementById('zf-block')?.textContent || '';
+  pruefe('Bei einem uebrigen Code sagt die Karte, dass es knapp wird',
+    /noch 1 von 8/.test(zkKnappText) && /knapp/.test(zkKnappText),
+    zkKnappText.slice(0, 200));
+  pruefe('Und nennt den Tag, an dem er eingeschaltet wurde',
+    /2026-08-14/.test(zkKnappText), zkKnappText.slice(0, 120));
+  const zkVoll = baueDom(JSDOM, { hash: '#/system',
+    zweifaktorStand: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 8, codesGesamt: 8 } });
+  await new Promise(r => setTimeout(r, 60));
+  await zkVoll.w.renderSystem();
+  await new Promise(r => setTimeout(r, 60));
+  pruefe('Bei acht uebrigen steht die Warnung NICHT da',
+    !/knapp/.test(zkVoll.w.document.getElementById('zf-block')?.textContent || ''),
+    zkVoll.w.document.getElementById('zf-block')?.textContent?.slice(0, 200));
+
+  /* DAS BESTAETIGUNGSFENSTER FOLGT DEM SERVER UND NICHT EINER VERMUTUNG:
+     das Codefeld steht nur bei Zugaengen mit zweitem Faktor. Geprueft an
+     BEIDEN Zustaenden -- eine Karte, die nur den einen kennt, belegt den
+     anderen nicht (Stolperstein 81). */
+  const zkBest = baueDom(JSDOM, { hash: '#/system',
+    zweifaktorStand: { an: true, seit: '2026-08-14 10:00:00', codesOffen: 8, codesGesamt: 8 } });
+  await new Promise(r => setTimeout(r, 60));
+  await zkBest.w.renderSystem();
+  await new Promise(r => setTimeout(r, 60));
+  zkBest.w.zweiteBestaetigung('export', null, 'Export', 'Alles herunterladen');
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Mit zweitem Faktor traegt das Bestaetigungsfenster ein Codefeld',
+    Boolean(zkBest.w.document.getElementById('best-code')), 'kein Codefeld');
+  pruefe('Und sagt daneben, warum der Code dazugehoert',
+    /zweiten Faktor/.test(
+      zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
+    zkBest.w.document.querySelector('.modal .desc')?.textContent);
+  await bestaetigeImDom(zkBest, 'chefins-wort-100', false, '123456');
+  const zkBestRuf = zkBest.gesendet.filter(g => g.url === '/api/bestaetigung').pop();
+  pruefe('Der Code geht wirklich mit',
+    zkBestRuf?.koerper?.code === '123456' && zkBestRuf?.koerper?.passwort === 'chefins-wort-100',
+    JSON.stringify(zkBestRuf?.koerper));
+  const zkOhne = baueDom(JSDOM, { hash: '#/system' });
+  await new Promise(r => setTimeout(r, 60));
+  await zkOhne.w.renderSystem();
+  await new Promise(r => setTimeout(r, 60));
+  zkOhne.w.zweiteBestaetigung('export', null, 'Export', 'Alles herunterladen');
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Ohne zweiten Faktor steht dort kein Codefeld',
+    Boolean(zkOhne.w.document.getElementById('best-pass')) &&
+    !zkOhne.w.document.getElementById('best-code'), 'ein Codefeld steht da');
+  pruefe('Und auch der Zusatzsatz nicht',
+    !/zweiten Faktor/.test(
+      zkOhne.w.document.querySelector('.modal .desc')?.textContent || ''),
+    zkOhne.w.document.querySelector('.modal .desc')?.textContent);
+  await bestaetigeImDom(zkOhne, 'chefins-wort-100');
+  const zkOhneRuf = zkOhne.gesendet.filter(g => g.url === '/api/bestaetigung').pop();
+  pruefe('Und im Rumpf steht dann auch kein Feld code',
+    zkOhneRuf && zkOhneRuf.koerper.code === undefined, JSON.stringify(zkOhneRuf?.koerper));
+
+  /* DIE FARBEN DES ZUSTANDS -- erst das Vorhandensein, dann die Eigenschaft
+     (Stolperstein 81). Kein Rot fuer "aus": ein ausgeschalteter zweiter Faktor
+     ist kein Fehler, sondern die Vorgabe. */
+  const zfCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+    .replace(/\s+/g, ' ');
+  const zfRegel = (w) => (zfCss.match(new RegExp(w.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
+  pruefe('Der eingeschaltete Zustand traegt eine eigene Regel',
+    zfRegel('.zf-an strong').length > 0, zfRegel('.zf-an strong') || '(keine Regel)');
+  pruefe('Und sie faerbt gruen, nicht rot',
+    /--green/.test(zfRegel('.zf-an strong')), zfRegel('.zf-an strong'));
+  pruefe('Der ausgeschaltete Zustand ist grau und ausdruecklich nicht rot',
+    zfRegel('.zf-aus strong').length > 0 && /--muted/.test(zfRegel('.zf-aus strong')) &&
+    !/--red/.test(zfRegel('.zf-aus strong')), zfRegel('.zf-aus strong') || '(keine Regel)');
+  pruefe('Der Schluessel steht in fester Schrift und darf umbrechen',
+    /--mono/.test(zfRegel('.zf-schluessel')) &&
+    /overflow-wrap: anywhere/.test(zfRegel('.zf-schluessel')),
+    zfRegel('.zf-schluessel') || '(keine Regel)');
+  pruefe('Und die Codeliste ebenfalls in fester Schrift',
+    /--mono/.test(zfRegel('.zf-codeliste span')), zfRegel('.zf-codeliste span') || '(keine Regel)');
+
   gruppe('Die Bestaetigungsseite in der Oberflaeche');
 
   /* DER SCHLUESSEL STEHT IM FRAGMENT (#/bestaetigung/…) und geht damit nie an

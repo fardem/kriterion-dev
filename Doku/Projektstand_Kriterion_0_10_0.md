@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 22 · Stand 25. August 2026 · gebaut: Version 0.9.1**
+**Kompakte Übergabe · Revision 23 · Stand 26. August 2026 · gebaut: Version 0.10.0**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,20 +8,82 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 22 ist.** Revision 21 trug 0.9.0 nach. Diese trägt **0.9.1**
-nach — **„Stufe I₂: die Selbstanmeldung"**. **Damit ist der Stufenplan des
-Mehrbenutzerbetriebs abgearbeitet:** Teil II des Konzeptpapiers ist
-vollständig, und es gibt keine offene Stufe mehr.
+**Was Revision 23 ist.** Revision 22 trug 0.9.1 nach. Diese trägt **0.10.0**
+nach — **„Der zweite Faktor"**. Sie ist die **erste Runde nach dem Stufenplan**
+und die **erste unter Semantic Versioning**: keine Stufe des Konzeptpapiers
+mehr, sondern eine Runde wie 0.8.90.
 
-**0.9.1 in einem Satz: wer einen Zugang haben will, kann von selbst danach
-fragen — und muss dabei belegen, dass ihm die Adresse gehört, bevor überhaupt
-ein Admin die Anfrage zu sehen bekommt.** Der Satz, unter dem die ganze Runde
-steht: **niemand kommt herein, ohne dass ein Admin ihn hereinlässt.** Es gibt
-keine Betriebsart, in der ein geklickter Link allein freischaltet.
+**0.10.0 in einem Satz: wer will, sichert seinen Zugang mit einem zweiten
+Faktor — einem Code aus einer App auf seinem Telefon, der ohne Netz entsteht
+und alle dreißig Sekunden ein anderer ist.** Der Satz, unter dem die ganze
+Runde steht, kommt aus dem Konzeptpapier, Teil III: **ein zweiter Faktor über
+TOTP braucht ausdrücklich kein Netz und darf deshalb nie ausfallen** — „E-Mail
+ist Bequemlichkeit, nie Voraussetzung" trägt dort NICHT. Daraus folgt beides:
+**kein Code per Mail und kein Code per SMS**, und die
+**Wiederherstellungscodes** gehören in dieselbe Runde, denn ohne sie ist ein
+verlorenes Telefon ein verlorener Zugang.
 
 **Und der zweite Satz, der genauso trägt: die Anlage läuft ohne all das
-vollständig.** Ist die Selbstanmeldung aus — und ab Werk ist sie das —, legt
-eben nur der Admin an, genau wie seit 0.8.0. Es fehlt keine Funktion.
+vollständig.** Der zweite Faktor ist **freiwillig, je Zugang**, ab Werk aus —
+wer ihn nicht einschaltet, merkt von dieser Version nichts. Dieselbe Linie wie
+beim Mailversand und bei der Selbstanmeldung.
+
+**Drei Dinge sind dabei unverhandelbar und stehen so im Quelltext.** Der
+**Notweg über den Wirt bleibt** (`zugang.js` kann einen zweiten Faktor
+abnehmen, sonst wäre „niemand kommt mehr herein" ein Zustand ohne Ausweg);
+**keine neue Abhängigkeit, nicht eine** (TOTP ist HMAC-SHA1 über einen Zähler,
+und `crypto` kann das seit jeher); und die **Anmeldebremse greift auch am
+zweiten Faktor** — sechs Ziffern sind eine Million, ungebremst wäre das kein
+Faktor, sondern eine Verzögerung.
+
+**JEDER SCHALTET IHN FÜR SICH SELBST EIN UND AUS.** Der Grund ist nicht
+Höflichkeit, sondern Bauart: **einschalten** kann nur, wer das Geheimnis auf
+sein Telefon bekommt — ein Admin, der es für einen anderen täte, sperrte ihn
+aus. **Ausschalten** darf nur der Betroffene, sonst wäre der zweite Faktor an
+der Rollenleiter vorbei abschaltbar und sicherte nichts. Der einzige Weg
+daneben ist `zugang.js` auf dem Wirt.
+
+**Zwei Lücken sind beim Bauen aufgefallen und in derselben Runde geschlossen
+worden** (Stolpersteine 159 und 160): der **Rücksetzlink aus 0.8.80** war der
+Weg am zweiten Faktor vorbei, und **`noteSuccess` im ersten Anmeldeschritt**
+hätte den Zähler gelöscht, den der zweite Schritt aufbaut — die Bremse hätte
+dort nie zugeschlagen.
+
+**Die Zahlen dieser Runde.** `F_ROUTEN` geht von 64 auf **69** — eine Route
+**vor** der Anmeldung (`POST /api/login/zwei`) und vier dahinter
+(`POST /api/zweifaktor/start`, `.../an`, `.../codes`, `DELETE /api/zweifaktor`),
+alle vier der Art `selbstbezug`. Die Vorgänge im Sicherheitsprotokoll gehen von
+siebzehn auf **zwanzig** (`zweifaktor.an`, `zweifaktor.aus`,
+`zweifaktor.wieder`). **`MERKMALE` bleibt bei dreizehn**,
+**`BESTAETIGUNG_ZWECKE` bleibt bei sieben** — es kommt kein Zweck dazu, nur
+eine zweite Frage an derselben Stelle —, die Formatnummer bleibt **10**, das
+Vokabular bleibt bei **elf**, die Karten im Systembereich bleiben bei
+**neunzehn**. **`zugang.js` bekommt seinen vierten schreibenden Befehl.**
+
+**0.10.0 IST EINE DATENBANKSTUFE — und trotzdem bleibt es bei fünf markierten
+Migrationsblöcken.** Es kommen **zwei Tabellen** dazu (`zweifaktor`,
+`zweifaktor_codes`) und **keine Spalte**: anders als eine Spalte legt
+`CREATE TABLE IF NOT EXISTS` eine fehlende Tabelle bei jedem Start an. Der
+Prüfstand stellt es an einer bestehenden Anlage nach, samt der Gegenlage an
+einer Spalte. **Die Sicherung des Datenverzeichnisses ist deshalb im
+Einspielweg Pflicht.**
+
+**Keine neue Abhängigkeit, nicht eine.** `npm ls --omit=dev` steht unverändert
+bei **122 Pfaden**. **Und keine neue `.env`-Zeile** — es gibt nichts
+einzustellen: wer den zweiten Faktor will, schaltet ihn selbst ein.
+
+**Der QR-Code ist ausdrücklich NICHT Teil dieser Runde** und bekommt eine
+eigene (Abschnitt 10). Statt seiner steht der Base32-Schlüssel in
+**Vierergruppen** auf dem Bildschirm, daneben die `otpauth://`-Zeile als
+anklickbarer Verweis — auf einem Telefon öffnet der die App unmittelbar.
+*Der abtippbare Schlüssel ist die Zusage, der QR-Code wäre die Bequemlichkeit.*
+
+**0.9.1 davor** war **„Stufe I₂: die Selbstanmeldung"** — wer einen Zugang
+haben will, kann von selbst danach fragen und muss dabei belegen, dass ihm die
+Adresse gehört, bevor ein Admin die Anfrage zu sehen bekommt; **der Admin
+schaltet frei, immer**, und die Anlage läuft ohne all das vollständig. Damit
+ist der Stufenplan des Mehrbenutzerbetriebs abgearbeitet: Teil II des
+Konzeptpapiers ist vollständig, und es gibt keine offene Stufe mehr.
 
 **Der Ablauf, in fünf Schritten.** Anfrage mit Wunschname und Adresse, kein
 Passwort → **Bestätigungsmail** mit einem Link **ohne Passwortkraft** → erst die
@@ -47,61 +109,11 @@ durch — die Marke könnte grün sein, während jede Bestätigungsmail ohne
 brauchbaren Link hinausginge. **Ausschalten geht immer**, und geht der Versand
 später kaputt, **bleibt der Schalter an** und die Karte sagt es rot.
 
-**0.9.0 davor** war **„Der Server verschickt selbst"** — die erste Hälfte von
-Stufe I: Mailversand mit Anbietervorlagen, der Mailzugang beim **Eigentümer**
-(nicht beim Admin), die öffentliche Adresse als Pflicht für den Versand, die
-Testmail an die eigene Adresse, die Adresse am Zugang und die zweite Frist am
-Token — ab dem ersten Öffnen fünfzehn Minuten. **Der Versand ist inzwischen im
-Feld bestätigt**, Einzelheiten in Abschnitt 2.
-
-**Drei Dinge, die der Auftrag zu 0.9.0 nicht vorsah und die jene Runde gebraucht hat:**
-
-* **`users.email` wurde von KEINER Stelle im Projekt geschrieben.** Die Spalte
-  stand seit 0.6.0 im Schema, wurde in `holeZugang` gelesen und in
-  `entferneZugang` geleert — mehr nicht. Ohne einen Schreibweg hätte die
-  Einladungsmail keinen Empfänger und die Testmail kein Ziel gehabt. Gebaut sind
-  **zwei** Wege und ausdrücklich kein dritter: beim **Anlegen**
-  (`POST /api/users`) und am **eigenen Zugang** (`PUT /api/account`, hinter dem
-  bisherigen Passwort). `PUT /api/users/:id` bekommt sie **nicht** — ein Admin,
-  der eine bestehende fremde Adresse umschreiben dürfte, böge den nächsten
-  Rücksetzlink des Betroffenen um.
-* **Die zweite Frist am Token:** ab dem **ersten Öffnen** bleiben **fünfzehn
-  Minuten**. Die sieben Tage sind die Frist fürs *Lesen der Mail*, nicht fürs
-  Liegen des Links. Gebaut ohne neue Spalte — geschrieben wird `tokens.ablauf`.
-  Der einzige Eingriff in den Tokenweg aus 0.8.80.
-* **Ein Befund aus dem Betrieb ist behoben:** eine **vorübergehende** Absage
-  (die 429 der Anmeldebremse) warf den Schlüssel aus der Adresse, und ein
-  gültiger Einladungslink sah danach tot aus. Nachgestellt an einem echten
-  Server: der Token galt unverändert weiter. Jetzt leert nur die **endgültige**
-  Absage (400) die Adresse; bei allem anderen bleibt der Schlüssel stehen und
-  die Seite bietet einen zweiten Anlauf. Stolperstein **141**.
-
-**Die Zahlen dieser Runde.** `F_ROUTEN` geht von 59 auf **64** — zwei Routen
-**vor** der Anmeldung (`POST /api/registrierung`,
-`POST /api/registrierung/bestaetigen`) und drei dahinter
-(`PUT /api/registrierung/schalter`, `POST /api/anfragen/:id/frei`,
-`DELETE /api/anfragen/:id`); `GET /api/anfragen` ist lesend und steht wie immer
-nicht dort. Die Karten im Systembereich werden **neunzehn** („Anfragen", beim
-**Admin**), die Vorgänge im Sicherheitsprotokoll gehen von fünfzehn auf
-**siebzehn** (`anfrage.frei`, `anfrage.ab`). **`MERKMALE` bleibt bei dreizehn**
-— keiner der beiden trägt eines —, **`BESTAETIGUNG_ZWECKE` bleibt bei sieben**,
-die Formatnummer bleibt **10**, das Vokabular bleibt bei **elf**.
-
-**0.9.1 IST EINE DATENBANKSTUFE — und trotzdem bleibt es bei fünf markierten
-Migrationsblöcken.** Es kommt **eine Tabelle** dazu (`anfragen`) und **keine
-Spalte**: anders als eine Spalte legt `CREATE TABLE IF NOT EXISTS` eine fehlende
-Tabelle bei jedem Start an. Der Prüfstand stellt es an einer bestehenden Anlage
-nach, samt der Gegenlage an einer Spalte. **Die Sicherung des Datenverzeichnisses
-ist deshalb im Einspielweg Pflicht.**
-
-**Keine neue Abhängigkeit, nicht eine.** `npm ls --omit=dev` steht unverändert
-bei **122 Pfaden**; `nodemailer` war die Ausnahme von 0.9.0 und bleibt es. **Und
-keine neue `.env`-Zeile** — der Schalter steht im Systembereich, nicht dort.
-
-**Eine neue Laufzeitabhängigkeit kam mit 0.9.0: `nodemailer`.**
-Nachgemessen statt geglaubt: Version 9.0.5, `npm ls --omit=dev` wuchs um
-**genau ein Paket** (121 → 122 Pfade), 776 KB, Lizenz `MIT-0` aus dem Paket
-selbst gelesen. Der Baum ist flach. Die Zahl steht im Prüfstand fest.
+**0.9.0 davor** war **„Der Server verschickt selbst"** — Mailversand mit
+Anbietervorlagen, der Mailzugang beim Eigentümer, die öffentliche Adresse als
+Pflicht für den Versand und die zweite Frist am Token; **`nodemailer` war die
+eine neue Laufzeitabhängigkeit** und bleibt die Ausnahme — `npm ls --omit=dev`
+steht seither bei **122 Pfaden**.
 
 **Was davor liegt, steht in Abschnitt 9** — 0.8.91 machte den Schlüssel
 wechselbar, 0.8.90 brachte die zweite
@@ -122,13 +134,16 @@ berücksichtigt.
 > Version wächst, wird irgendwann nicht mehr gelesen — und dann nützt es
 > niemandem mehr.
 
-**Für den Betrieb ändert sich mit 0.9.1 nichts, solange die Selbstanmeldung
-aus bleibt** — und ab Werk ist sie das. Wer sie will, braucht einen geprüften
+**Für den Betrieb ändert sich mit 0.10.0 nichts, solange niemand den zweiten
+Faktor einschaltet** — und ab Werk tut das niemand. **Es kommt kein neuer Wert
+in die `.env`**, und die `docker-compose.yml` ist unberührt. **Die Sicherung des
+Datenverzeichnisses ist im Einspielweg PFLICHT** — es kommen zwei Tabellen dazu.
+Einzelheiten in Abschnitt 2.
+
+**Für den Betrieb änderte sich mit 0.9.1 nichts, solange die Selbstanmeldung aus
+blieb** — und ab Werk ist sie das. Wer sie will, braucht einen geprüften
 Mailzugang und `OEFFENTLICHE_ADRESSE`; ohne beides lässt sich der Schalter gar
-nicht erst einschalten. **Es kommt kein neuer Wert in die `.env`**, und die
-`docker-compose.yml` ist unberührt. **Die Sicherung des Datenverzeichnisses ist
-im Einspielweg PFLICHT** — es kommt eine Tabelle dazu. Einzelheiten in
-Abschnitt 2.
+nicht erst einschalten.
 
 **Für den Betrieb änderte sich mit 0.8.91 zweierlei.** Die **Sicherung des
 Datenverzeichnisses steht wieder als PFLICHT im Einspielweg** — und wer den
@@ -142,11 +157,12 @@ Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
 Benutzer wurde in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` gepflegt;
-**mit dieser Runde ist der Stufenplan abgearbeitet, und es ist keine Stufe mehr
-offen.** Das Papier ist fortgeschrieben und umbenannt worden — Abschnitt 10
-steht auf dem, was gebaut ist, die Stufentabelle nennt I₂ als erledigt, und der
-Satz, der ab jetzt gilt, steht in seinem Kopf: **was von diesem Papier
-weitergilt, sind die Entscheidungen, nicht die Stufen.**
+mit 0.9.1 ist der Stufenplan abgearbeitet, und es ist keine Stufe mehr offen.
+**DAS PAPIER IST MIT 0.9.1 GESCHLOSSEN UND WIRD SEITHER NICHT MEHR ANGEFASST
+UND NICHT UMBENANNT** — auch nicht mit 0.10.0. Sein Kopf sagt „gebaut bis
+Version 0.9.1", und das bleibt wahr: er beschreibt den Stand, bis zu dem das
+Papier trägt. **Der zweite Faktor ist keine Stufe daraus.** Was von diesem
+Papier weitergilt, sind die Entscheidungen, nicht die Stufen.
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
 > `admin` < `eigentuemer`. **Benutzer** schreibt eigene Beiträge. **Admin**
@@ -201,7 +217,51 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.9.1 ist gebaut** — Fingerprint **`3cf1b093`**, 3451
+**0.10.0 ist gebaut** — Fingerprint **`dc8c16f7`**, 3676 Prüfungen.
+**Die erste Runde nach dem Stufenplan und die erste unter Semantic
+Versioning.** **EINE DATENBANKSTUFE:** es kommen **zwei Tabellen** dazu
+(`zweifaktor`, `zweifaktor_codes`) und **keine Spalte** — deshalb **kein
+Migrationsblock**, und es bleibt bei **fünf** markierten; unter „Vorgemerkt für
+1.0" kommt **nichts** dazu. **Die Sicherung des Datenverzeichnisses ist im
+Einspielweg PFLICHT.**
+**Wer will, sichert seinen Zugang mit einem zweiten Faktor** — einem Code aus
+einer App auf seinem Telefon, TOTP nach RFC 6238: HMAC-SHA1, sechs Ziffern,
+dreißig Sekunden, Base32-Geheimnis. **Freiwillig, je Zugang, ab Werk aus.**
+**Die Anlage verschickt dafür nichts** — kein Code per Mail, kein Code per SMS.
+**Jeder schaltet ihn für sich selbst ein und aus**; kein Admin und kein
+Eigentümer kommt an einen fremden. Der einzige Weg daneben ist
+`node zugang.js zweifaktor <name>` auf dem Wirt, und der schaltet **nur aus**.
+**Acht Wiederherstellungscodes**, genau einmal gezeigt, jeder genau einmal
+gültig, gespeichert als SHA-256 ohne Salz. Die Karte nennt die Zahl der
+übrigen; neue gibt es hinter Passwort und gültigem Code.
+**Die Anmeldung wird zweistufig, aber nur für Zugänge mit Faktor.** Zwischen
+den Schritten liegt ein **Ausweis im Arbeitsspeicher** — 120 Sekunden, genau
+einmal gültig, kein Schema, keine Zeile. **Es entsteht keine halbe Sitzung.**
+**Ein Code gilt genau einmal**, das Fenster ist **±1**, und der angenommene
+Zeitschritt muss echt größer sein als der zuletzt verbrauchte.
+**Die Auskunft „dieser Zugang hat einen zweiten Faktor" kommt erst nach
+richtigem Passwort** — bei falschem sieht die Antwort aus wie immer, Byte für
+Byte. **Das Geheimnis kommt aus keiner Antwort heraus, sobald es bestätigt
+ist**, auch nicht an den Eigentümer.
+**Der Tokenweg aus 0.8.80 und die zweite Bestätigung aus 0.8.90 fragen
+ebenfalls** — der erste, weil er sonst der Weg daran vorbei wäre; die zweite,
+weil sie gegen die übernommene offene Sitzung verteidigt und ein zweiter Faktor
+genau dort am meisten trägt.
+**Die Anmeldebremse greift am zweiten Schritt**, mit unangetasteten Kennwerten.
+**`F_ROUTEN` geht von 64 auf 69**, die Vorgänge im Sicherheitsprotokoll auf
+**zwanzig** (`zweifaktor.an`, `zweifaktor.aus`, `zweifaktor.wieder`). Die
+Karten bleiben **neunzehn**, `MERKMALE` **dreizehn**, `BESTAETIGUNG_ZWECKE`
+**sieben**, die Formatnummer **10**, das Vokabular **elf**.
+**Keine neue Abhängigkeit und keine neue `.env`-Zeile.**
+42 Gegenproben, gefahren über `gegenprobe.js`.
+**Der QR-Code ist NICHT Teil dieser Runde** — statt seiner steht der Schlüssel
+in Vierergruppen und die `otpauth://`-Zeile als Verweis daneben.
+
+**Ob 0.10.0 im Feld läuft, steht noch aus.** Sobald es eingespielt und der
+Rundlauf einmal von Hand gefahren ist — einschalten, abmelden, mit Code
+anmelden, einmal mit einem Wiederherstellungscode —, gehört das hierher.
+
+**0.9.1 davor** — Fingerprint **`3cf1b093`**, 3451
 Prüfungen. *(Beim Einspielen stand er bei `d629e78d` und 3432 Prüfungen; die
 Nacharbeit an der Anmeldeseite — Befunde M bis U — hat ihn weitergedreht, ohne
 die Versionsnummer zu bewegen.)* **Zweite Hälfte von Stufe I, und damit ist der Stufenplan
@@ -1363,6 +1423,171 @@ Charakter. Der Wechsel bekommt sein eigenes Paar Dateien — `schluessel.sh` fü
 den Ablauf, `schluessel.js` für den Vorgang —, dieselbe Teilung wie `zugang.js`
 neben `auth.js`.
 
+**DER ZWEITE FAKTOR — seit 0.10.0, freiwillig, je Zugang.** Wer will, sichert
+seinen Zugang zusätzlich mit einem Code aus einer App auf seinem Telefon. Der
+Code entsteht dort **ohne Netz**, aus einem Geheimnis und der Uhr, und ist alle
+dreißig Sekunden ein anderer. **Der Satz, unter dem das steht, kommt aus dem
+Konzeptpapier, Teil III:** ein zweiter Faktor über TOTP braucht ausdrücklich
+kein Netz und darf deshalb nie ausfallen — *„E-Mail ist Bequemlichkeit, nie
+Voraussetzung" trägt dort NICHT.* Daraus folgt beides: **kein Code per Mail,
+kein Code per SMS**, die Anlage schickt dafür nichts hinaus — und die
+**Wiederherstellungscodes** gehören in dieselbe Runde, denn ein Ausfall des
+zweiten Faktors darf niemanden aussperren.
+
+**Ab Werk ist er aus, und ohne ihn läuft die Anlage vollständig** — dieselbe
+Linie wie beim Mailversand und bei der Selbstanmeldung.
+
+| | |
+|---|---|
+| Verfahren | **HMAC-SHA1**, RFC 6238 |
+| Länge | **sechs** Ziffern |
+| Schritt | **dreißig** Sekunden |
+| Geheimnis | **20 Zufallsbytes**, als 32 Zeichen Base32 (RFC 4648, ohne Füllzeichen) |
+| Fenster | **±1**, also je dreißig Sekunden Drift |
+| Wiederverwendung | **ein Code gilt genau einmal** — der Zeitschritt muss echt größer sein als der zuletzt verbrauchte |
+| Wo das Geheimnis liegt | Tabelle `zweifaktor`, **im Klartext** |
+| Wiederherstellungscodes | **acht**, je zehn Zeichen, **SHA-256 ohne Salz**, jeder **genau einmal** |
+
+**DIE VIER KENNWERTE STEHEN FEST, UND DAS IST DIE WICHTIGSTE FESSEL DIESER
+RUNDE.** SHA-256 statt SHA-1, acht Ziffern statt sechs, sechzig Sekunden statt
+dreißig — jedes davon ist für sich das bessere Verfahren, und jedes wird von
+**Google Authenticator stillschweigend falsch** oder gar nicht gelesen. Wer
+davon abweicht, sperrt genau die App aus, für die gebaut ist. *Und die
+Kehrseite ist nachgesehen statt angenommen:* dieselben Werte sind Vorgabe in
+jedem anderen Prüfgerät — Aegis, 1Password, iOS-Passwörter. **Die Anlage bindet
+sich nicht an einen Anbieter, sondern an den Standard.** Der Prüfstand hält das
+an den **sechs Testvektoren aus RFC 6238** fest und nicht an der eigenen
+Rückrechnung.
+
+**DAS GEHEIMNIS LIEGT IM KLARTEXT, und das ist der Unterschied zu Passwort und
+Token.** Ein Passwort wird *geprüft*, also genügt sein Hash; ein
+TOTP-Geheimnis wird *nachgerechnet*, also braucht die Anlage den Wert selbst.
+Es gibt dazu keine Bauform, die beides kann. **Die verschlüsselte Datenbank ist
+die einzige Schicht darüber.** Was daraus folgt, ausgeschrieben:
+
+* **Der JSON-Export trägt es nicht.** Er packt Einträge samt Anhängen, keine
+  Zugangstabellen — eine Exportdatei ist kein Weg am zweiten Faktor vorbei, und
+  ein Import bringt keinen herein. Die Formatnummer bleibt **10**.
+* **Die Sicherung über `VACUUM INTO` trägt es sehr wohl** — verschlüsselt, wie
+  Passwörter, Sitzungen und das Mailpasswort auch. Wer eine Kopie hat und den
+  Schlüssel dazu, hat die zweiten Faktoren mit.
+* **In eine Kontrollausgabe kommt es nie.** Der Prüfstand sucht es wie in 0.9.0
+  das Mailpasswort: in **jeder Spalte jeder Zeile jeder Tabelle** (mit
+  `zweifaktor.geheim` als benannter Ausnahme), im Startprotokoll und in **jedem
+  Antwortkörper** — samt der Gegenlage, dass die Suche überhaupt etwas findet.
+
+**JEDER SCHALTET IHN FÜR SICH SELBST EIN UND AUS.** Der Grund ist nicht
+Höflichkeit, sondern Bauart: **einschalten** kann nur, wer das Geheimnis auf
+sein Telefon bekommt — ein Admin, der es für einen anderen täte, sperrte ihn
+aus. **Ausschalten** darf nur der Betroffene, hinter Passwort **und** gültigem
+Code; sonst wäre der zweite Faktor an der Rollenleiter vorbei abschaltbar und
+sicherte nichts. Die vier Routen tragen die Art `selbstbezug`: die
+Benutzernummer kommt aus `req.benutzer`, und es gibt **gar keine Adresse**,
+unter der ein Fremder gemeint sein könnte.
+
+**EINSCHALTEN GEHT IN ZWEI SCHRITTEN, und der zweite ist der Beleg.**
+`POST /api/zweifaktor/start` erzeugt das Geheimnis und gibt es **einmal**
+heraus; `bestaetigt_am` bleibt dabei leer. Erst ein gültiger Code aus der App
+schaltet wirklich ein — so ist belegt, dass die App dasselbe rechnet. *Solange
+nicht bestätigt ist, verlangt die Anmeldung nichts:* sonst sperrte ein
+abgebrochenes Einschalten den Zugang aus. **Der bestätigende Code zählt dabei
+als verbraucht**, sonst wäre „genau einmal" an seiner ersten Anwendung falsch.
+
+**DIE ANMELDUNG WIRD ZWEISTUFIG, OHNE EINEN ZWEITEN ZUSTAND ZU ERZEUGEN.** Eine
+halbe Sitzung wäre eine zweite Wahrheit über „angemeldet"; `sessions` bleibt die
+eine Antwort darauf. Zwischen den Schritten liegt ein **Ausweis im
+Arbeitsspeicher**, nach dem Muster der Freigabe aus 0.8.90:
+
+| | |
+|---|---|
+| Woher | `POST /api/login` bei richtigem Passwort und eingeschaltetem Faktor |
+| Wo er liegt | im Arbeitsspeicher, neben `freigaben` und `attempts` |
+| Gebunden an | die **Benutzernummer** — sie kommt nie aus dem Rumpf |
+| Haltbarkeit | **120 Sekunden** — dieselbe Zahl wie `FREIGABE_MS` |
+| Gültigkeit | **genau einmal** |
+| Bei falschem Code | verbraucht; der Absage liegt ein **frischer** Ausweis bei |
+
+**Der frische Ausweis in der Absage ist eine Entscheidung über die Bedienung,
+und sie nimmt der Sicherheit nichts.** Ohne ihn stünde ein Mensch nach *einem*
+Tippfehler wieder vor dem Passwortfeld — und das trifft ausgerechnet den, der
+einen zehnstelligen Wiederherstellungscode vom Zettel abschreibt. *Nachgerechnet:*
+wer das Passwort kennt und Ziffern rät, käme ohne ihn genauso weit, er tippte
+das Passwort eben noch einmal. **Was den Versuch begrenzt, ist die Bremse und
+nicht die Frist.**
+
+**DIE AUSKUNFT „DIESER ZUGANG HAT EINEN ZWEITEN FAKTOR" KOMMT ERST NACH
+RICHTIGEM PASSWORT**, und das ist baulich wahr statt beabsichtigt: die Frage
+steht unterhalb von `pruefeAnmeldung`. Bei falschem Passwort ist die Antwort
+Byte für Byte die von vor dieser Runde — sonst wäre die Anmeldeseite ein
+Werkzeug zum Durchprobieren von **Namen**.
+
+**DER TOKENWEG AUS 0.8.80 FRAGT EBENFALLS, und das ist eine Sicherheitsfrage.**
+Ein Admin kann für einen fremden Zugang einen Rücksetzlink erzeugen; hätte er
+ihn selbst geöffnet, wäre er angemeldet gewesen, ohne je einen Code zu
+brauchen. **Das war die Lücke, und sie ist in derselben Runde geschlossen**
+(Stolperstein 159). Der Link setzt das Passwort weiterhin und verbraucht sich;
+was er nicht mehr tut, ist anmelden. *Der Sonderfall löst sich baulich:* ein
+Zugang, der seinen **ersten** Link einlöst, hat noch kein Passwort und kann
+deshalb keinen bestätigten Faktor haben — einschalten setzt eine Anmeldung
+voraus. Nachgestellt statt behauptet.
+
+**WAS EINEN FREMDEN ZWEITEN FAKTOR NICHT ANTASTET, und es ist entschieden:**
+`PUT /api/users/:id` mit `passwort` (ein Admin setzt ein fremdes Passwort —
+danach steht die Zeile unverändert da, und er käme trotzdem nicht herein) und
+**`setzeStatus`**. Das Sperren räumt Sitzungen und Token, **den zweiten Faktor
+ausdrücklich nicht**: nähme es ihn mit, wäre „sperren und wieder freigeben" der
+Weg, an dem ein Admin einen fremden Faktor abstreift. **`entferneZugang` nimmt
+ihn dagegen mit** — den Zugang gibt es danach nicht mehr, der Name wird frei,
+und wer ihn neu vergibt, bekommt eine neue Nummer.
+
+**DIE ANMELDEBREMSE GREIFT AM ZWEITEN SCHRITT, mit unangetasteten Kennwerten.**
+Sechs Ziffern sind eine Million; ungebremst wäre das kein Faktor, sondern eine
+Verzögerung. **Sie fällt dort nicht von selbst an** — `POST /api/login/zwei`
+ist eine eigene Route und liefe ohne eigene Zeilen an `checkThrottle` vorbei.
+Gezählt wird je Adresse **und** je Name; der Name ist über den Ausweis bekannt.
+**Und `noteSuccess` steht seit 0.10.0 hinter der Verzweigung, nicht davor:**
+ein halb gelungener Anmeldeversuch ist kein Erfolg, und der Ruf im ersten
+Schritt hätte sonst den Zähler gelöscht, den der zweite aufbaut (Stolperstein
+160).
+
+**DIE ABSAGE BEI FALSCHEM CODE IST EINE** und nennt nicht, ob er falsch, zu
+alt, aus dem übernächsten Fenster oder schon verbraucht war — dieselbe
+Überlegung wie beim Token aus 0.8.80: das Heilmittel ist in jedem Fall
+dasselbe, nämlich einen frischen Code ablesen.
+
+**DREI NEUE VORGÄNGE IM SICHERHEITSPROTOKOLL, und sie sind nicht doppelt:**
+`zweifaktor.an`, `zweifaktor.aus` und `zweifaktor.wieder`. Der dritte ist der,
+auf den es ankommt — er sagt, dass ein **Wiederherstellungscode verbraucht**
+wurde, und ist damit die einzige Zeile im ganzen Protokoll, die auf ein
+verlorenes Telefon zeigt. **Ein vierter für den falschen Code gibt es nicht:**
+eine gescheiterte zweite Stufe *ist* eine gescheiterte Anmeldung und schreibt
+`anmeldung.fehl`. **`MERKMALE` bleibt bei dreizehn.**
+
+**DER NOTWEG ÜBER DEN WIRT — und er schaltet nur AUS:**
+
+```bash
+docker compose exec kriterion node zugang.js zweifaktor <benutzername>
+```
+
+Er fragt vorher nach, nennt den Stand samt Zahl der übrigen
+Wiederherstellungscodes und lässt Passwort, Rolle und Bestand unangetastet. Die
+Protokollzeile trägt das **leere `wer`** — „über den Wirt", wie überall.
+**Einschalten geht von dort ausdrücklich nicht:** dazu müsste das Geheimnis auf
+das Telefon des Betroffenen, und wer es für ihn erzeugte, sperrte ihn aus.
+`node zugang.js liste` bekommt dafür eine Spalte **2FA**, die „an" oder „aus"
+sagt und nie mehr. **Damit hat `zugang.js` vier schreibende Befehle statt
+dreier**, und alle vier stehen im Sicherheitsprotokoll.
+
+**ZWEI TABELLEN, KEIN MIGRATIONSBLOCK.** `zweifaktor` trägt `user_id` als
+Primärschlüssel — ein Zugang hat einen zweiten Faktor oder keinen, und eine
+eigene Nummer erlaubte zwei Wahrheiten darüber, welches Geheimnis gilt.
+`zweifaktor_codes` ist die zweite, weil „jeder genau einmal" eine Eigenschaft
+der **Zeile** ist; eine Liste in einer Spalte brächte den Zustand „verbraucht"
+in eine zweite Form. Die verbrauchte Zeile **bleibt stehen**, sonst könnte die
+Karte nicht „noch 6 von 8" sagen. Geräumt wird **nicht nach einer Frist**,
+anders als bei Token und Anfragen: ein Wiederherstellungscode liegt auf einem
+Zettel und soll genau dann tragen, wenn das Telefon seit Monaten weg ist.
+
 **Zwei Titel**, beide im Systembereich gepflegt: Titel 1 steht auf der
 Anmeldeseite und ist für jeden sichtbar, der die Adresse aufruft — daher
 zurückhaltend wählen. Titel 2 erscheint erst nach der Anmeldung. Der Endpunkt
@@ -1483,7 +1708,15 @@ der nur der Eigentümer die beiden Knöpfe sieht; dieselbe Bauform wie bei
 „Kategorien", „Tags" und „Bewertungskriterien".
 **„Video" ist kein zwölfter Vokabeleintrag** und wird keiner — die elf bleiben
 elf. Es ist ein Wort über den Gegenstand, so wie „Foto" auch.
-**Jedem, auch ohne Rolle:** „Zugang" (eigener Name und Passwort),
+**Jedem, auch ohne Rolle:** „Zugang" (eigener Name, Passwort, Adresse und
+**seit 0.10.0 der zweite Faktor** — er steht dort und bekommt ausdrücklich
+KEINE eigene Karte, es bleibt bei neunzehn: dort stehen Name, Passwort und
+Adresse, und wer seinen Zugang sichern will, sucht ihn da, wo sein Zugang
+steht. Der Zustand steht **ohne Klick** da — „an seit …" oder „aus", dazu
+„noch 6 von 8" für die Wiederherstellungscodes, und ab zwei übrigen sagt die
+Karte deutlich, dass es knapp wird. Gefärbt wird **grün für an und grau für
+aus**; kein Rot — ein ausgeschalteter zweiter Faktor ist kein Fehler, sondern
+die Vorgabe, und eine Warnung, die immer dasteht, liest niemand mehr),
 **„Meine Sitzungen"** (seit 0.8.80 — wo dieser Zugang überall angemeldet ist,
 mit „alle anderen beenden"; **kein Systembereich für Admins**, sie zeigt nur
 die eigenen), „Darstellung" (Schriftgröße in fünf Stufen, Zeitleiste,
@@ -1721,11 +1954,20 @@ Ab 0.10.0 gilt die feste Form:
 - **Für jede Version ein Eintrag.** Keine Version ohne Zeile im Changelog.
 - **Zurückgezogene Versionen** als `## [x.y.z] - JJJJ-MM-TT [YANKED]`,
   großgeschrieben, damit ein Mensch es bemerkt.
-- **Versionen sollen verlinkbar sein.** *Dafür fehlt bis jetzt die
-  Voraussetzung: das Repo trägt keinen einzigen Git-Tag.* **Ab 0.10.0 bekommt
-  jede herausgegebene Version einen Tag**, und die Vergleichsverweise am Ende
-  der Datei hängen daran. Für die Versionen davor bleibt das
-  Änderungsprotokoll das Ziel.
+- **Versionen sollen verlinkbar sein.** *Der Satz, der hier bis Revision 22
+  stand — „das Repo trägt keinen einzigen Git-Tag" —, ist beim Herausgeben von
+  0.10.0 als falsch aufgefallen und berichtigt:* **das Repo trägt vierzehn**,
+  von `0.8.3` bis `v0.8.91`. Sie sind nur **weder vollständig noch einheitlich**:
+  die Reihe bricht nach 0.8.91 ab (0.8.80, 0.8.90, 0.9.0 und 0.9.1 haben
+  keinen), und die Schreibweise wechselt — die zwölf älteren stehen ohne `v`,
+  die beiden jüngsten (`v0.8.71`, `v0.8.91`) mit.
+  **Ab 0.10.0 bekommt jede herausgegebene Version einen Tag, und zwar mit `v`**
+  — die Schreibweise der beiden jüngsten, damit die Reihe von dort aus
+  weiterläuft und nicht ein drittes Mal wechselt. Die Vergleichsverweise am
+  Ende der Datei hängen daran.
+  **RÜCKWIRKEND WIRD NICHTS GETAGGT UND NICHTS UMBENANNT** — ein Tag ist ein
+  Zeiger auf einen herausgegebenen Stand, und was einmal draußen war, bleibt,
+  wie es war. Für die Versionen davor bleibt das Änderungsprotokoll das Ziel.
 - **Die Datei heißt `CHANGELOG.md` und liegt im Wurzelverzeichnis**, nicht in
   `Doku/`. *Wer das Paket auspackt, findet sie dort, ohne zu suchen* — so
   empfiehlt es die Form selbst. Die ausführlichen Protokolle bleiben in `Doku/`.
@@ -3269,6 +3511,86 @@ Satz auch nach „Was du danach von Hand tun musst".
   eigener Wächter über `public/app.js`, denn diese Datei **ist** der
   Bildschirm.
 
+### Die Marke trägt Gold, und das ist gewollt (0.10.0)
+
+Der hervorgehobene Strich in `public/marke-dunkel.svg` und `public/favicon.svg`
+ist `#ffc531` — **genau `--gold`**, die Farbe der Sterne und seit jeher der
+zweite Signalwert der Anlage neben `--accent` (`#ff7a1a`). Die Frage stand als
+Berichtigung im Auftrag zu 0.10.0 („die Marke läuft aus der Farbwelt"); beim
+Nachsehen war sie **keine**: die Marke läuft nicht heraus, sie nimmt den zweiten
+Wert daraus (Befund U des Änderungsprotokolls 0.9.1).
+
+**Entschieden ist: Gold bleibt.** Der Grund ist nicht Bequemlichkeit —
+`--accent` ist die Farbe der **Handlung** (Knöpfe, der eine Weg, der gedrückt
+werden soll), und eine Marke ist keine Handlung. **Gold ist die Farbe der
+Bewertung, und Kriterion ist ein Bewertungsarchiv.** Die drei warmen Werte auf
+der Anmeldekarte sind damit eine **Rangfolge und kein Zusammenstoß**: Gold für
+die Identität, `--accent-dim`/`--accent-line` für den leisen zweiten Weg,
+voller Akzent für den einen Knopf. *Wer das je ändert, ändert eine Aussage über
+die Anlage und nicht eine Farbe.*
+
+### Der zweite Faktor gehört dem Betroffenen, ganz (0.10.0)
+
+**Kein Admin schaltet ihn für jemanden ein, und keiner für jemanden aus.** Der
+Grund ist Bauart, nicht Höflichkeit: **einschalten** kann nur, wer das
+Geheimnis auf sein Telefon bekommt — ein Admin, der es für einen anderen täte,
+sperrte ihn aus. **Ausschalten** darf nur der Betroffene, sonst wäre der zweite
+Faktor an der Rollenleiter vorbei abschaltbar und sicherte nichts. **Es gibt
+deshalb gar keine Adresse dafür**: die vier Routen tragen die Art
+`selbstbezug`, und die Benutzernummer kommt aus `req.benutzer`. Der einzige Weg
+daneben ist `zugang.js` auf dem Wirt — dieselbe Linie wie beim
+Schlüsselwechsel: *was alles kann, läuft nicht über die Oberfläche.* **Und auch
+dort nur AUS.**
+
+*Ob ein Admin ihn später VERLANGEN kann, ist eine andere Frage und war in
+0.10.0 ausdrücklich nicht zu entscheiden.*
+
+### Sperren streift einen fremden zweiten Faktor nicht ab (0.10.0)
+
+`setzeStatus` räumt beim Sperren die Sitzungen **und die offenen Token** — ein
+Link, der eine frische Sperre überlebte, wäre ein Weg an ihr vorbei. **Den
+zweiten Faktor räumt es ausdrücklich NICHT mit**, und das ist die
+unangenehmere Hälfte derselben Überlegung: nähme es ihn mit, wäre „sperren und
+wieder freigeben" der Weg, an dem ein Admin einen **fremden** zweiten Faktor
+abstreift — und danach mit einem selbst gesetzten Passwort hereinkäme. Ein
+Sperren ist umkehrbar und nimmt niemandem etwas; der Faktor gehört dem
+Betroffenen und überlebt es. **`entferneZugang` nimmt ihn dagegen mit** — den
+Zugang gibt es danach nicht mehr. *Wer die Zeile je nach oben zieht, weil sie
+neben den beiden anderen so plausibel aussieht, öffnet genau diese Lücke;
+Rückbau 109 färbt sie rot.*
+
+### Das TOTP-Geheimnis liegt im Klartext, und es geht nicht anders (0.10.0)
+
+Ein Passwort wird **geprüft**, also genügt sein Hash. Ein TOTP-Geheimnis wird
+**nachgerechnet**, also braucht die Anlage den Wert selbst — es gibt dazu keine
+Bauform, die beides kann. **Die verschlüsselte Datenbank ist die einzige
+Schicht darüber**, und das gehört benannt statt weggeschrieben. Daraus folgt,
+ausgeschrieben in Abschnitt 3: der **JSON-Export trägt es nicht**, die
+**Sicherung sehr wohl**, und in eine **Kontrollausgabe kommt es nie**.
+*Wiederherstellungscodes sind der andere Fall und liegen deshalb als SHA-256
+ohne Salz da — sie werden verglichen, nicht nachgerechnet.*
+
+### Ein Code gilt genau einmal, und die Regel ist ein Zähler (0.10.0)
+
+Angenommen wird nur ein Zeitschritt, der **echt größer** ist als der zuletzt
+verbrauchte. Das ist schärfer als „derselbe Code nicht zweimal" — nach einer
+Anmeldung ist auch das Fenster **davor** tot —, dafür ist es **eine** Regel
+statt einer Liste verbrauchter Werte, die jemand räumen müsste. **Die Bedingung
+steht in der `WHERE`-Klausel des `UPDATE` und nicht in einer Prüfung davor:**
+zwischen Lesen und Schreiben läge sonst Platz für einen zweiten Aufruf mit
+demselben Code, und genau darauf zielt, wer über die Schulter sieht.
+
+### Die vier Kennwerte des zweiten Faktors sind eine Fessel, keine Wahl (0.10.0)
+
+HMAC-**SHA1**, **sechs** Ziffern, **dreißig** Sekunden, **Base32**. SHA-256,
+acht Ziffern oder sechzig Sekunden wären jedes für sich das bessere Verfahren —
+und jedes wird von **Google Authenticator stillschweigend falsch** oder gar
+nicht gelesen. Wer davon abweicht, sperrt genau die App aus, für die gebaut
+ist. **Die Werte stehen als Konstanten im Quelltext, mit dem Grund daneben**,
+und der Prüfstand nagelt jede einzeln fest. *Die Kehrseite ist nachgesehen: es
+sind dieselben Werte in Aegis, 1Password und den iOS-Passwörtern — gebunden
+wird an den Standard, nicht an einen Anbieter.*
+
 ### Der Schlüsselwechsel gehört auf den Wirt, nicht in die Oberfläche (0.8.91)
 
 Der Auftrag sah einen Knopf im Systembereich vor, hinter der zweiten
@@ -4462,6 +4784,86 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     README, und eine Zeile in der Karte „Anlage" ist für die nächste
     Nacharbeitsrunde vorgemerkt (Abschnitt 10).
 
+159. **Wer eine zweite Schranke vor die Anmeldung setzt, sucht ALLE Wege
+    dahinter — und einer davon ist der Rücksetzlink.** Der zweite Faktor aus
+    0.10.0 stand nach dem ersten Bau vor `POST /api/login` und sonst nirgends.
+    `POST /api/token/einloesen` meldete unverändert **gleich an**: ein Admin
+    erzeugt für einen fremden Zugang einen Rücksetzlink, öffnet ihn selbst,
+    setzt ein Passwort — und wäre drin gewesen, ohne je einen Code zu brauchen.
+    **Die Schranke hätte gegen jeden gehalten außer gegen den, der sie am
+    leichtesten umgeht.** *Wer eine Anmeldung verschärft, zählt die Stellen, an
+    denen eine SITZUNG entsteht, und nicht die, an denen ein Passwort geprüft
+    wird* — es sind drei (`/api/setup`, `/api/login`, `/api/token/einloesen`),
+    und `legeSitzungAn` nennt sie alle. Der Sonderfall „erster Link, noch kein
+    Passwort" löst sich dabei baulich und ist trotzdem nachgestellt worden:
+    einschalten setzt eine Anmeldung voraus, also kann ein Zugang ohne Passwort
+    keinen bestätigten Faktor haben.
+
+160. **Ein Erfolg, der noch keiner ist, darf den Zähler der Bremse nicht
+    löschen.** `POST /api/login` rief `noteSuccess` unmittelbar hinter der
+    Passwortprüfung — richtig, solange die Anmeldung mit dem Passwort fertig
+    war. Mit einem zweiten Schritt dahinter war es **die Lücke**: wer das
+    Passwort kennt und Ziffern rät, holt sich vor jedem Versuch einen frischen
+    Ausweis, und dieser Ruf löschte den Zähler, den der zweite Schritt gerade
+    aufgebaut hatte. **Die Bremse hätte dort nie zugeschlagen** — sechs Ziffern
+    wären eine Million ungebremste Versuche gewesen. Aufgefallen ist es an der
+    eigens dafür gebauten Prüfung: zwölf falsche Codes hintereinander ergaben
+    zwölfmal 401 und kein einziges 429.
+    *Wer einen Vorgang in zwei Schritte teilt, sieht nach, welche Zeilen ihn für
+    ABGESCHLOSSEN halten.* `noteSuccess` steht jetzt hinter der Verzweigung —
+    einmal für den einstufigen Weg, einmal im zweiten Schritt. **Eine halb
+    gelungene Anmeldung ist kein Erfolg.**
+
+161. **Ein Rückbau, der die Zahl der Platzhalter ändert, reißt den Lauf ab
+    statt ihn rot zu machen.** Der Rückbau auf „ein Code gilt genau einmal"
+    strich die Bedingung `letzter_zaehler < ?` samt ihrem Platzhalter aus dem
+    `UPDATE`. Die vorbereitete Anweisung bekam danach **drei Werte für zwei
+    Stellen**, better-sqlite3 warf, der Server starb — und der Lauf war nach
+    166 Sekunden **abgerissen**, ohne eine einzige rote Prüfung. Derselbe Fall
+    traf den Versuch, eine der beiden neuen **Tabellen** aus der DDL zu nehmen:
+    `auth.js` bereitet seine Anweisungen beim Laden vor, und „no such table"
+    beendet den Prozess, bevor irgendetwas geprüft ist.
+    *Ein Rückbau macht die Sache WIRKUNGSLOS, er entfernt sie nicht.* Die
+    Bedingung steht jetzt als `(letzter_zaehler IS NULL OR ? IS NOT NULL)` da —
+    dieselbe Form, dieselbe Zahl der Stellen, nur immer wahr; und statt der
+    Tabellen wird der **Index** daneben zurückgenommen, der dieselbe Aussage
+    über `CREATE … IF NOT EXISTS` trägt. Fortschreibung von 138, aber die
+    Ursache liegt eine Ebene tiefer: dort war der Rückbau zu **groß**, hier ist
+    er **formal unverträglich** mit dem Code, den er stehen lässt.
+
+162. **Ein Testvektor belegt nur, was er wirklich durchläuft — auch wenn seine
+    Zahl groß aussieht.** Der größte Vektor aus RFC 6238 (T = 20 000 000 000)
+    sah nach der Stelle aus, an der der achtbytige TOTP-Zähler über 2³² läuft;
+    im Quelltext stand das als Begründung neben der geteilten Schreibweise
+    (`writeUInt32BE` zweimal). **Nachgerechnet ist der Zähler dort 666 666 666
+    und liegt damit weit UNTER 2³².** Die obere Hälfte war also von keinem
+    einzigen Vektor berührt, und der Rückbau darauf blieb folgerichtig ohne
+    Wirkung. *Gehalten wird sie jetzt gegen eine ZWEITE Bauform statt gegen ein
+    Papier:* `writeBigUInt64BE` schreibt dieselben acht Bytes in einem Zug, und
+    beide Wege müssen für Zähler über 2³² dasselbe ergeben — samt der
+    Gegenlage, dass verschiedene Zähler auch verschiedene Codes ergeben.
+    Verwandt mit 81, aber die andere Richtung: dort fehlt der Gegenstand, hier
+    ist er da und trifft die Sache nicht.
+
+163. **Eine Schranke, die erst hinter einer anderen Absage steht, lässt sich
+    von außen nicht mehr belegen.** Der zweite Anmeldeschritt aus 0.10.0 hatte
+    die Anmeldebremse zunächst **hinter** dem Verbrauch des Ausweises: erst
+    Ausweis prüfen, dann Bremse fragen. Fachlich richtig — und **der Rückbau
+    darauf blieb vollständig STUMM.** Der Grund: sobald die Sperre steht, fällt
+    schon Schritt 1 mit 429 aus, und eine Prüfschleife über beide Schritte sieht
+    dieselbe 429 mit und ohne die Zeilen im zweiten. *Wer nur die Kette prüft,
+    prüft das schwächste Glied und nicht das gemeinte.*
+    **Zwei Dinge zusammen haben es behoben.** Die Bremse steht jetzt **ganz
+    vorn** in der Route, wie an `POST /api/login` und `POST /api/bestaetigung`
+    auch — ein gesperrter Aufrufer bekommt überall dieselbe 429 und nirgends
+    stattdessen eine Auskunft über seinen Ausweis. Und die Prüfung fragt den
+    zweiten Schritt **unmittelbar**, mit einem erfundenen Ausweis: trägt die
+    Bremse, kommt 429, bevor der Ausweis überhaupt angesehen wird; trägt sie
+    nicht, kommt die 401 über den Ausweis. **Dazu die Gegenlage vorher** —
+    ungesperrt antwortet derselbe Ruf mit 401 (Stolperstein 81).
+    *Die Reihenfolge ist damit nicht bloß aufgeräumt, sie ist die Bedingung
+    dafür, dass die Zusage überhaupt geprüft werden kann.*
+
 ---
 
 ## 7. Prüfstand
@@ -4474,7 +4876,80 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3451 von 3451 bestanden** (0.9.1 samt der Nacharbeit an der
+**Zuletzt: 3676 von 3676 bestanden** (0.10.0; **225 neue Prüfungen, 42
+Gegenproben, sechzehn neue Gruppen**: „Der zweite Faktor: die Rechnung gegen
+den Standard", „… der Rundlauf", „… ein Code gilt genau einmal", „… das
+Zeitfenster", „… ohne Code kommt niemand herein", „… die Auskunft kommt erst
+nach richtigem Passwort", „… die Wiederherstellungscodes", „… das Geheimnis
+kommt aus keiner Antwort", „… der Tokenweg aus 0.8.80 fragt ebenfalls", „… ein
+Admin kommt an einen fremden nicht heran", „… die zweite Bestätigung fragt
+zusätzlich", „… die Anmeldebremse greift am zweiten Schritt", „… `zugang.js`
+auf dem Wirt", „… die Tabellen legen sich selbst an", „Die Anmeldeseite: der
+zweite Schritt" und „Die Karte ‚Zugang': der zweite Faktor". Der Rest sind
+Erweiterungen vorhandener Gruppen: `F_ROUTEN` samt Zahl **69** und den fünf
+neuen Routen, die geschlossenen Listen aus `auth.js` samt ihren Zahlen — zwanzig
+Vorgänge, dreizehn Merkmale, sieben Zwecke —, und der Sprachwächter, der jetzt
+**elf** Quelltextdateien ansieht statt zehn — `zweifaktor.js` kommt dazu — und
+dazu **`CHANGELOG.md`**, die beim Umzug ins Wurzelverzeichnis aus seinem Blick
+gefallen war.)
+
+**DIE CODES WERDEN GEGEN DIE TESTVEKTOREN AUS RFC 6238 GEPRÜFT, nicht gegen die
+eigene Rechnung** — sonst prüfte die Anlage sich selbst. Alle sechs Vektoren
+stehen im Prüfstand, sechs- und achtstellig, dazu der Base32-Rundlauf gegen
+RFC 4648. **Und jeder der vier Kennwerte wird einzeln festgenagelt**: SHA-1,
+sechs Ziffern, dreißig Sekunden, ein Fenster — jede Abweichung davon sperrt
+Google Authenticator aus, und eine Zahl im Quelltext, die keine Prüfung
+festhält, wandert.
+
+**JEDE LAGE BEKOMMT IHREN EIGENEN ZUGANG**, und das ist kein Aufwand ohne
+Grund: der verbrauchte Zähler steht je Zugang, und zwei Lagen an einem Zugang
+verdeckten einander (Stolperstein 154). Das Zeitfenster läuft deshalb über
+**vier** Zugänge — davor, laufend, danach, übernächstes.
+
+**DER PRÜFSTAND WARTET AUF EIN RUHIGES FENSTER, statt fest zu schlafen.** Er
+rechnet Codes aus und schickt sie an einen Server, der SEINE Uhr liest; fiele
+die Grenze der dreißig Sekunden dazwischen, würde aus einem Code fürs
+übernächste Fenster einer fürs nächste, und eine Prüfung würde zufällig rot.
+*Roter Zufall ist schlimmer als keine Prüfung* (Stolperstein 151).
+
+**Kein Migrationsabschnitt — es gibt keinen Block.** 0.10.0 **ist** eine
+Datenbankstufe: `zweifaktor` und `zweifaktor_codes` kommen dazu. Eine fehlende
+**Tabelle** legt `CREATE TABLE IF NOT EXISTS` bei jedem Start an, und der
+Prüfstand entfernt beide von Hand aus einer bestehenden Anlage, startet einmal
+und sieht nach — samt der Gegenlage, dass eine **Spalte** nicht nachwächst, und
+der Zählung, dass es bei **fünf** markierten Blöcken bleibt. *Die DDL der
+beiden Tabellen hat bewusst keinen Rückbau: nähme man sie weg, stürbe der
+Server beim Laden, und der Lauf risse ab statt rot zu werden (Stolperstein
+161). Der Index daneben trägt dieselbe Aussage und lässt sich gefahrlos
+zurücknehmen.*
+
+**Der Handgriff im README steht seit 0.10.0 unter einem Wächter.** Er zählt die
+Dateien auf, über die der Fingerprint geht — der einzige Weg, eine abweichende
+Datei beim **Namen** zu nennen (Stolperstein 158). Geprüft wird er gegen den
+**abgeleiteten** Modulgraphen und in beide Richtungen; `package.json` und
+`public/*` sind eigens verlangt. *Mit `zweifaktor.js` hätte er sonst still eine
+Datei zu wenig genannt.*
+
+**Das Geheimnis wird an vier Orten gesucht** — in **jeder Spalte jeder Zeile
+jeder Tabelle** (mit `zweifaktor.geheim` als benannter Ausnahme), im
+Containerprotokoll, in jedem Antwortkörper und in der Karte des Eigentümers.
+Dieselbe Bauform wie beim Mailpasswort in 0.9.0, samt der Gegenlage, dass die
+Suche überhaupt etwas findet, wo etwas stehen muss (Stolperstein 81). **Für die
+Wiederherstellungscodes steht dieselbe Suche daneben** — ihr Klartext darf in
+keiner Spalte keiner Zeile stehen.
+
+**`zugang.js zweifaktor` wird an einem ECHTEN PROZESS geprüft**, mit geröhrter
+Eingabe und beantworteter Rückfrage, danach die Nachschau in der Datenbank —
+wie die drei Befehle daneben seit 0.8.90.
+
+**Die neue Portbasis ist 6600 und ausgerechnet, nicht geschätzt.** Bei 52
+vorhandenen Basen war sie das einzige freie Fenster ohne gesperrte Nummer: die
+Lücke 6550–6699 trägt 6566 darunter und 6665 darüber, 6600–6659 liegt sauber
+dazwischen. Sie liegt **innerhalb** der bestehenden Spanne, die deshalb bei
+2980 bleibt — der Wächter am Ende des Laufs rechnet beides nach, für alle vier
+Nebenspuren. **Es sind jetzt 53 Basen.**
+
+**Davor 3451 von 3451** (0.9.1 samt der Nacharbeit an der
 Anmeldeseite; **259 neue Prüfungen, 58 Gegenproben, achtzehn neue Gruppen**: „Die Selbstanmeldung: die immer gleiche
 Antwort", „… der Schalter aus", „… der Schalter braucht drei Dinge",
 „… die Bestätigungsmail", „… der Bestätigungslink hat keine Passwortkraft",
@@ -5031,6 +5506,8 @@ Ansicht, Zoom lädt das Original.
 | 0.8.90 | Protokoll, zweite Bestätigung, öffentliche Adresse (248) | 24 | Stolpersteine 128 bis 133 |
 | 0.8.91 | Schlüsselwechsel, Gegenprobentreiber, Portversatz (101) | 18 | Stolpersteine 134 bis 140, Befund L |
 | 0.9.0 | Mailversand, Adresse am Zugang, Frist ab dem ersten Öffnen (182) | 33 | Stolpersteine 141 bis 146, Befund L |
+| 0.9.1 | Selbstanmeldung samt Nacharbeit an der Anmeldeseite (259) | 58 | Stolpersteine 149 bis 158 |
+| 0.10.0 | Zweiter Faktor, Wiederherstellungscodes, zweistufige Anmeldung (225) | 42 | Stolpersteine 159 bis 163 |
 
 **Aus 0.8.80 (Stufe H):** der **Rundlauf** ist die tragende Prüfung — einladen,
 Link, Formular, Passwort, Anmeldung, und **derselbe Link ein zweites Mal
@@ -5184,6 +5661,15 @@ sind zwei Dinge:
 
 - **Der Betriebsstand steht in Abschnitt 2, nicht hier.** Zwei Stellen für
   dieselbe Angabe halten nur eine aktuell (vgl. Stolperstein 47).
+- **DER TAG `v0.10.0` IST GESETZT, ABER NICHT GESCHOBEN.** Er liegt auf dem
+  Commit, der herausgeht; der Push scheitert in der Arbeitsumgebung, in der
+  0.10.0 gebaut wurde, mit `HTTP 403` — Branches gehen durch, Tags nicht. Er
+  braucht einen Push von einer Stelle mit den nötigen Rechten:
+  `git tag -a v0.10.0 <commit> -m "…" && git push origin v0.10.0`.
+  **Ohne ihn zeigt der Vergleichsverweis am Ende von `CHANGELOG.md` ins
+  Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
+  *Dabei ist aufgefallen, dass das Repo schon vierzehn Tags trägt und nicht
+  keinen: Abschnitt 5, Unterabschnitt zum Changelog.*
 - **Versionsnummern brauchen drei Zahlen** (`0.6.10`, nicht `0.6.9b`) — die
   `package.json` lässt keine Buchstaben zu. Die führende Null sagt, dass sich
   noch alles ändern darf. **Herausgeben lässt sich die Anlage mit jeder
@@ -5383,6 +5869,35 @@ sind zwei Dinge:
 ---
 
 ## 9. Versionsgeschichte
+
+**0.10.0 — „Der zweite Faktor".** **Die erste Runde nach dem Stufenplan und die
+erste unter Semantic Versioning** — MINOR, weil eine neue Funktion dazukommt und
+die öffentliche Schnittstelle unangetastet bleibt. Eine **Datenbankstufe** —
+`zweifaktor` und `zweifaktor_codes` kommen dazu —, aber **ohne
+Migrationsblock**; es bleibt bei fünf markierten.
+**Wer will, sichert seinen Zugang mit einem Code aus einer App auf seinem
+Telefon** — TOTP nach RFC 6238, HMAC-SHA1, sechs Ziffern, dreißig Sekunden,
+Base32. **Freiwillig, je Zugang, ab Werk aus; ohne ihn läuft die Anlage
+vollständig.** Die Anlage verschickt dafür **nichts** — kein Code per Mail, kein
+Code per SMS. **Jeder schaltet ihn für sich selbst ein und aus**; der einzige
+Weg daneben ist `node zugang.js zweifaktor <name>` auf dem Wirt, und der
+schaltet nur AUS.
+**Acht Wiederherstellungscodes**, genau einmal gezeigt, jeder genau einmal
+gültig, als SHA-256 ohne Salz gespeichert; neue gibt es hinter Passwort und
+gültigem Code. **Die Anmeldung wird zweistufig**, mit einem Ausweis im
+Arbeitsspeicher (120 Sekunden, einmal gültig) — **keine halbe Sitzung**.
+**Der Tokenweg aus 0.8.80 und die zweite Bestätigung aus 0.8.90 fragen
+ebenfalls**; die Anmeldebremse greift am zweiten Schritt.
+**Zwei Lücken sind beim Bauen geschlossen worden** (Stolpersteine 159 und 160):
+der Rücksetzlink war der Weg am zweiten Faktor vorbei, und `noteSuccess` im
+ersten Schritt hätte den Zähler der Bremse gelöscht.
+`F_ROUTEN` 64 → **69**, Vorgänge siebzehn → **zwanzig**; `MERKMALE` **13**,
+`BESTAETIGUNG_ZWECKE` **7**, Karten **19**, Formatnummer **10**, Vokabular
+**11** — alles unverändert. **Keine neue Abhängigkeit, keine neue
+`.env`-Zeile.** **Der QR-Code ist nicht Teil dieser Runde** und bekommt eine
+eigene. 225 neue Prüfungen (3676), 42 Gegenproben. **Ab dieser Version trägt
+jede herausgegebene einen Git-Tag** (`v0.10.0`), und `CHANGELOG.md` folgt Keep
+a Changelog 1.1.0.
 
 **0.9.1 — „Stufe I₂: die Selbstanmeldung".** **Zweite Hälfte von Stufe I, und
 damit ist der Stufenplan des Mehrbenutzerbetriebs abgearbeitet.** Eine
@@ -5968,7 +6483,7 @@ behalten ihre Nummern — eine veröffentlichte Version wird nicht umgeschrieben
 
 | bisher geplant | jetzt |
 |---|---|
-| 0.9.10 Zwei-Faktor | **0.10.0** |
+| 0.9.10 Zwei-Faktor | **0.10.0 — gebaut** |
 | 0.9.20 Suche und Bestand | **0.11.0** |
 | 0.9.30 Fehlerbereinigung | **0.11.x**, PATCH-Reihe ohne feste Nummer |
 | 0.9.60 Bereinigung, kein Rückweg | **0.12.0** |
@@ -6129,6 +6644,31 @@ damit alte Verweise stimmen.)*
    **ein** String, und Node hält keinen über 512 MB. Genau daraus folgt auch
    die Bauform des Papierkorbs.
 
+### Der QR-Encoder — eigene Runde, aus 0.10.0 herausgenommen
+
+**Google Authenticator kennt zwei Wege hinein:** einen Code scannen oder den
+Base32-Schlüssel von Hand eintippen. **Der zweite ist der Weg, an dem Menschen
+aufgeben** — zweiunddreißig Zeichen auf einem Telefon. 0.10.0 gibt ihn deshalb
+in **Vierergruppen** aus und stellt die `otpauth://`-Zeile als anklickbaren
+Verweis daneben; auf dem Telefon öffnet der die App unmittelbar.
+
+**Der Encoder selbst ist herausgenommen worden, und das ist entschieden, nicht
+vergessen.** Ohne Bibliothek heißt er: Reed-Solomon über GF(256), Kapazitäts-
+und Blocktabellen je Version und Fehlerkorrekturstufe, Findemuster,
+Taktlinien, Alignment, Format- und Versionsbits, acht Masken mit Bewertung —
+mehrere hundert Zeilen. **Teuer ist dabei nicht das Bauen, sondern der Beweis:**
+die Zusage „dieselbe Zeichenfolge ergibt weltweit dieselbe Matrix" braucht ohne
+Bibliothek einen eigenen **Dekoder** im Prüfstand, also die doppelte Arbeit. Er
+war damit der einzige Teil der Runde ohne begrenzten Prüfaufwand — und *der
+abtippbare Schlüssel trägt den Weg auch ohne ihn.*
+
+**Was die eigene Runde zu entscheiden hat**, gemessen statt geschätzt: die
+`otpauth://`-Zeile ist **100 Zeichen** bei `Kriterion/faruk`, **117** bei
+`Bewertungskatalog/chefin` und **203** bei einem langen Anlagen- und
+Zugangsnamen. Im Bytemodus heißt das Version 5 bis 8 — und die Frage, was
+geschieht, wenn ein langer Titel über die Kapazität hinauswächst. *Die Antwort
+sollte sein: der Code fällt weg, und der Schlüssel steht allein da.*
+
 ### Vorgemerkt für 1.0
 
 *Aus 0.8.10 und 0.8.20 ist hier nichts dazugekommen — beide haben das Schema
@@ -6264,7 +6804,7 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
 
 - **Wer eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` im Prüfstand
   ein** — sonst wird der Lauf namentlich rot, und genau das ist der Zweck.
-  Die Liste (aktuell **64** Routen) ist die Stelle, an der die Rechtefrage
+  Die Liste (aktuell **69** Routen) ist die Stelle, an der die Rechtefrage
   gestellt wird; seit 0.8.0 kennt sie die vierte Art `'nurAdmin, im Rumpf'`.
   *Die Zahl stand hier eine Runde lang bei 56, obwohl sie seit 0.8.90 bei 57
   lag — Stolperstein 137, ein Papier war beim Nachziehen übersehen worden.*
@@ -6292,6 +6832,15 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   **0.9.0 bewegt sie um zwei: 57 → 59** — `PUT /api/mail` und
   `POST /api/mail/test`; `GET /api/mail` steht wie immer **nicht** dort,
   obwohl es einen Wächter trägt.
+  **0.10.0 bewegt sie um fünf: 64 → 69** — eine **vor** der Anmeldung
+  (`POST /api/login/zwei`) und vier dahinter (`POST /api/zweifaktor/start`,
+  `.../an`, `.../codes`, `DELETE /api/zweifaktor`). **Die vier dahinter tragen
+  alle die Art `selbstbezug`**, und das ist hier nicht bloß ordentlich, es ist
+  die ganze Rechtefrage des Bereichs: die Nummer kommt aus `req.benutzer`, und
+  es gibt gar keine Adresse, unter der ein Fremder gemeint sein könnte. **Die
+  offene trägt Ausweis UND Code als Schranke im Rumpf** — der Ausweis allein
+  belegt nur, dass jemand das Passwort kannte. `GET /api/account` und
+  `GET /api/settings` tragen den Zustand mit und stehen wie immer **nicht** dort.
   **0.9.1 bewegt sie um fünf: 59 → 64** — zwei **vor** der Anmeldung
   (`POST /api/registrierung`, `POST /api/registrierung/bestaetigen`) und drei
   dahinter (`PUT /api/registrierung/schalter`, `POST /api/anfragen/:id/frei`,

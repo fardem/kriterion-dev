@@ -5,6 +5,9 @@ const { db, ordneBestandZu } = require('./db');
 // drei Muster nebeneinander liefen auseinander. Die Antwort steht deshalb dort,
 // wo die Adresse gebraucht wird.
 const mail = require('./mail');
+/* Nur wegen der Rechnung: Base32, HMAC ueber den Zaehler, das Fenster. Alles,
+   was eine Zeile hat, steht hier -- dieselbe Teilung wie bei mail.js. */
+const zf = require('./zweifaktor');
 
 /* EINE EINSTELLUNG, FUENF WIRKUNGEN.
 
@@ -381,6 +384,12 @@ function setzeStatus(benutzerId, status, wer) {
   // Ruecksetzlink, der eine frische Sperre ueberlebte, waere ein Weg an ihr
   // vorbei: er setzt ein Passwort, und beim naechsten Freigeben stuende der
   // Zugang unter fremder Hand.
+  /* DER ZWEITE FAKTOR BLEIBT DABEI AUSDRUECKLICH STEHEN, und das ist keine
+     Vergesslichkeit neben den beiden Zeilen darueber. Naehme ihn das Sperren
+     mit, waere "sperren und wieder freigeben" der Weg, an dem ein Admin einen
+     FREMDEN zweiten Faktor abstreift -- und danach mit einem selbst gesetzten
+     Passwort hereinkaeme. Ein Sperren ist umkehrbar und nimmt niemandem etwas;
+     der Faktor gehoert dem Betroffenen und ueberlebt es. */
   if (status !== 'aktiv') {
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);
@@ -453,6 +462,14 @@ function entferneZugang(benutzerId, optionen = {}, wer) {
     db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM item_pins WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM user_settings WHERE user_id = ?').run(u.id);
+    /* DER ZWEITE FAKTOR GEHT MIT, aus demselben Grund wie die Token: die
+       Kaskade greift am Grabstein nie. HIER ist es richtig und beim SPERREN
+       ausdruecklich falsch -- dort bliebe der Zugang bestehen, und ein Admin
+       haette in "sperren und freigeben" einen Weg, einen fremden zweiten
+       Faktor abzustreifen. Hier gibt es den Zugang danach nicht mehr; der Name
+       wird frei, und wer ihn neu vergibt, bekommt eine neue Nummer. */
+    db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(u.id);
+    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(u.id);
     db.prepare("UPDATE users SET username = ?, password_hash = '', role = 'user', " +
                "status = 'geloescht', email = NULL WHERE id = ?")
       .run(grabsteinName(u.id), u.id);
@@ -1084,6 +1101,25 @@ const VORGAENGE = [
      Auslegung des Merksatzes zu Kontrollausgaben, und sie gilt hier ohne jede
      Ausnahme: die eine Stelle, an der ein Schluessel zum Abschreiben steht,
      ist der Bildschirm des Wirts, nicht diese Tabelle. */
+  /* 'zweifaktor.an', 'zweifaktor.aus' und 'zweifaktor.wieder' seit 0.10.0.
+     GEPRUEFT, OB SIE DOPPELT SIND, und sie sind es nicht: 'zugang.selbst' sagt,
+     dass jemand Name, Passwort oder Adresse geaendert hat -- der zweite Faktor
+     ist keines davon und laeuft ueber eine andere Route.
+     DER DRITTE IST DER, AUF DEN ES ANKOMMT: 'zweifaktor.wieder' heisst, dass
+     ein Wiederherstellungscode verbraucht wurde, und das ist die einzige
+     Zeile im ganzen Protokoll, die sagt, dass jemandem das Telefon abhanden
+     gekommen ist. Ohne sie liefe genau der Fall spurlos durch, der einen
+     Blick verdient.
+     KEIN VIERTER FUER DEN FALSCHEN CODE: eine gescheiterte zweite Stufe IST
+     eine gescheiterte Anmeldung und schreibt 'anmeldung.fehl'. Eine eigene
+     Zeile daneben waere eine zweite Wahrheit ueber denselben Vorgang -- und
+     sie stuende ausserdem hinter dem richtigen Passwort, also unter demselben
+     Deckel wie die Zeile, die es schon gibt.
+     KEIN NEUES MERKMAL. 'zweifaktor.an' und '.aus' tragen den Betroffenen als
+     wer UND als ziel; ein leeres wer heisst wie ueberall "ueber zugang.js auf
+     dem Wirt", und mehr ist ueber diese drei Vorgaenge nicht zu sagen. MERKMALE
+     bleibt bei dreizehn. */
+  'zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder',
   'export', 'import', 'sicherung', 'schluessel'
 ];
 /* Die geschlossene Liste fuer merkmal. NICHTS ausserhalb davon kommt in die
@@ -1258,6 +1294,262 @@ function verwirfFreigabe(token) {
   for (const k of freigaben.keys()) if (k.startsWith(vorn)) freigaben.delete(k);
 }
 
+/* --- Der zweite Faktor, seit 0.10.0 -------------------------------------
+   WER WILL, SICHERT SEINEN ZUGANG MIT EINEM CODE AUS EINER APP AUF SEINEM
+   TELEFON -- er entsteht ohne Netz und ist alle dreissig Sekunden ein anderer.
+   Die Rechnung steht in zweifaktor.js; hier stehen die Zeilen und die Regeln
+   darum herum. Die Begruendung zu Spalten und Kaskaden steht am Schema in db.js.
+
+   FREIWILLIG, JE ZUGANG, UND JEDER SCHALTET IHN FUER SICH SELBST EIN. Der Grund
+   ist nicht Hoeflichkeit, sondern Bauart: EINSCHALTEN kann nur, wer das
+   Geheimnis auf sein Telefon bekommt -- ein Admin, der es fuer einen anderen
+   taete, sperrte ihn aus. AUSSCHALTEN darf nur der Betroffene, sonst waere der
+   zweite Faktor an der Rollenleiter vorbei abschaltbar und sicherte nichts.
+   Der einzige Weg daneben ist zugang.js auf dem Wirt -- dieselbe Linie wie beim
+   Schluesselwechsel: was alles kann, laeuft nicht ueber die Oberflaeche.
+
+   DIE RECHTEFRAGE STEHT HIER AUSDRUECKLICH NICHT, wie bei erzeugeToken auch:
+   welche Nummer hereingereicht wird, entscheidet server.js an der Route -- und
+   dort kommt sie aus req.benutzer und nie aus dem Pfad. */
+const qZweifaktor = db.prepare(
+  'SELECT user_id, geheim, bestaetigt_am, letzter_zaehler FROM zweifaktor WHERE user_id = ?');
+const holeZweifaktor = (benutzerId) => qZweifaktor.get(Number(benutzerId) || 0) || null;
+
+/* DIE EINE FRAGE, AN DER ALLES HAENGT: verlangt dieser Zugang einen zweiten
+   Faktor? Sie sieht auf bestaetigt_am und nicht auf das Vorhandensein der
+   Zeile -- ein angefangenes, nie bestaetigtes Einschalten darf niemanden
+   aussperren. Genau daran kippte die Sache sonst: wer den Knopf drueckt, den
+   Bildschirm schliesst und sich neu anmeldet, stuende vor einer Frage, deren
+   Antwort auf keinem Telefon steht. */
+const zweifaktorAn = (benutzerId) => {
+  const z = holeZweifaktor(benutzerId);
+  return Boolean(z && z.bestaetigt_am);
+};
+
+const qCodesOffen = db.prepare(
+  'SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ? AND benutzt_am IS NULL');
+const qCodesGesamt = db.prepare('SELECT COUNT(*) n FROM zweifaktor_codes WHERE user_id = ?');
+
+/* WAS DIE KARTE SIEHT -- UND DAS GEHEIMNIS IST NIE DARIN. Dieselbe Linie wie
+   beim Mailpasswort: die Karte sagt "an" oder "aus", nie den Wert, nie die
+   Laenge, nie den Anfang. Was sie zusaetzlich sagt, ist die ZAHL der uebrigen
+   Wiederherstellungscodes -- "noch 6 von 8". Sie verraet nichts und ist das
+   Einzige, was rechtzeitig warnt, bevor der letzte verbraucht ist. */
+function zweifaktorStand(benutzerId) {
+  const id = Number(benutzerId) || 0;
+  const z = holeZweifaktor(id);
+  if (!z || !z.bestaetigt_am) return { an: false, seit: null, codesOffen: 0, codesGesamt: 0 };
+  return {
+    an: true, seit: z.bestaetigt_am,
+    codesOffen: qCodesOffen.get(id).n, codesGesamt: qCodesGesamt.get(id).n
+  };
+}
+
+/* DIE EINE ABSAGE. Falsch, abgelaufen, aus dem uebernaechsten Fenster, schon
+   verbraucht, ein erfundener Wiederherstellungscode -- alles dasselbe Wort.
+   Dieselbe Ueberlegung wie beim Token aus 0.8.80: das Heilmittel ist in jedem
+   dieser Faelle dasselbe, naemlich einen frischen Code vom Telefon ablesen.
+   "Der Code ist abgelaufen" waere ausserdem eine Auskunft an den, der raet --
+   er wuesste, dass er die richtige Ziffernfolge hat und nur zu spaet war. */
+const ZWEITER_FAKTOR_ABSAGE = 'Der Code stimmt nicht.';
+
+/* SCHRITT EINS: das Geheimnis entsteht und geht EINMAL ueber das Netz. Danach
+   nie wieder -- auch nicht an den Eigentuemer. Das ist die eine Antwort, in der
+   es steht, genau wie beim Token der Klartext.
+
+   NOCH IST NICHTS EINGESCHALTET: bestaetigt_am bleibt leer, bis ein Code aus
+   dem Telefon belegt, dass die App wirklich dasselbe rechnet. Ein Einschalten
+   ohne diesen Beleg waere ein Zugang, den niemand mehr oeffnet.
+
+   EIN ZWEITER AUFRUF ERSETZT DAS ANGEFANGENE GEHEIMNIS. Wer den Bildschirm
+   schliesst und neu beginnt, faengt neu an -- die halbe Zeile von vorhin haelt
+   nichts fest, was jemand braucht.
+   AN EINEM BESTAETIGTEN FAKTOR WIRD ABGEWIESEN: erst ausschalten. Sonst waere
+   dieser Knopf der Weg, einen laufenden zweiten Faktor aus einer uebernommenen
+   Sitzung heraus gegen einen eigenen zu tauschen -- und das Passwort davor
+   haette dagegen nichts ausgerichtet, denn es steht ja an beiden Wegen. */
+function beginneZweifaktor(benutzerId, anlagenName, benutzername) {
+  const id = Number(benutzerId) || 0;
+  if (zweifaktorAn(id)) throw new Error('Der zweite Faktor ist bereits eingeschaltet.');
+  const geheim = zf.neuesGeheimnis();
+  db.prepare(
+    `INSERT INTO zweifaktor (user_id, geheim, bestaetigt_am, letzter_zaehler)
+     VALUES (?, ?, NULL, NULL)
+     ON CONFLICT(user_id) DO UPDATE SET
+       geheim = excluded.geheim, bestaetigt_am = NULL, letzter_zaehler = NULL,
+       created_at = datetime('now')`
+  ).run(id, geheim);
+  return {
+    geheim, gruppen: zf.inVierergruppen(geheim),
+    zeile: zf.otpauthZeile(anlagenName, benutzername, geheim),
+    ziffern: zf.ZIFFERN, sekunden: zf.SCHRITT_SEKUNDEN
+  };
+}
+
+/* Legt WIEDER_ZAHL frische Codes an und liefert die KLARTEXTE genau einmal
+   zurueck -- danach stehen sie nirgends mehr, auch nicht in der Datenbank.
+   EINE TRANSAKTION: entweder sind die alten fort UND die neuen da, oder es hat
+   sich nichts bewegt. Ein halber Satz waere schlimmer als der alte. */
+const insCode = db.prepare(
+  'INSERT INTO zweifaktor_codes (hash, user_id) VALUES (?, ?)');
+function legeWiederCodesAn(benutzerId) {
+  const id = Number(benutzerId) || 0;
+  const klartexte = zf.neueWiederCodes();
+  db.transaction(() => {
+    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(id);
+    // tokenHash() WIRD WIEDERVERWENDET und nicht ein zweites Mal geschrieben:
+    // zwei Ausfertigungen derselben Rechnung liefen beim naechsten Griff
+    // auseinander. Dieselbe Ueberlegung wie bei der Selbstanmeldung.
+    for (const k of klartexte) insCode.run(tokenHash(k), id);
+  })();
+  return klartexte.map(zf.wiederAnzeige);
+}
+
+/* SCHRITT ZWEI: ein gueltiger Code aus dem Telefon schaltet ein. Erst hier
+   entstehen die Wiederherstellungscodes -- vorher waeren sie ein Zettel fuer
+   einen Faktor, den es womoeglich nie gibt.
+   DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT. Ohne das truege er unmittelbar
+   danach ein zweites Mal, naemlich an der ersten Anmeldung, und "ein Code gilt
+   genau einmal" waere an seiner ersten Anwendung falsch. */
+function schalteZweifaktorEin(benutzerId, eingabe, wer, jetzt = Date.now()) {
+  const id = Number(benutzerId) || 0;
+  const z = holeZweifaktor(id);
+  if (!z) throw new Error('Es ist kein zweiter Faktor angefangen.');
+  if (z.bestaetigt_am) throw new Error('Der zweite Faktor ist bereits eingeschaltet.');
+  const zaehler = zf.pruefeCode(z.geheim, eingabe, jetzt);
+  if (zaehler === null) throw new Error(ZWEITER_FAKTOR_ABSAGE);
+  db.prepare(
+    `UPDATE zweifaktor SET bestaetigt_am = datetime('now'), letzter_zaehler = ?
+      WHERE user_id = ?`).run(zaehler, id);
+  const codes = legeWiederCodesAn(id);
+  protokolliere('zweifaktor.an', { wer: handelnder(wer), ziel: id });
+  return { ...zweifaktorStand(id), codes };
+}
+
+/* Prueft einen zweiten Faktor UND verbraucht ihn in einem Zug. Liefert die ART
+   ('app' oder 'wieder') oder null.
+
+   ZWEI FORMEN, EIN FELD: sechs Ziffern sind ein Code aus der App, zehn Zeichen
+   ein Wiederherstellungscode. Der Mensch tippt in dasselbe Feld, und die Form
+   entscheidet -- ein Umschalter daneben waere eine Frage, die sich aus der
+   Eingabe schon beantwortet.
+
+   "GENAU EINMAL" STEHT IN DER BEDINGUNG DES UPDATE UND NICHT IN EINER PRUEFUNG
+   DAVOR. Zwischen Lesen und Schreiben laege sonst Platz fuer einen zweiten
+   Aufruf mit demselben Code -- und genau darauf zielt, wer ueber die Schulter
+   sieht. Bei .changes === 0 hat ein anderer ihn zuerst verbraucht, und das ist
+   dasselbe wie "gilt nicht".
+
+   DER ZAEHLER MUSS ECHT GROESSER SEIN als der zuletzt verbrauchte. Damit ist
+   nach einer Anmeldung auch das Fenster DAVOR tot, nicht nur der eine Code --
+   eine Regel statt einer Liste verbrauchter Werte, die jemand raeumen muesste. */
+const verbraucheZaehler = db.prepare(
+  `UPDATE zweifaktor SET letzter_zaehler = ?
+    WHERE user_id = ? AND (letzter_zaehler IS NULL OR letzter_zaehler < ?)`);
+const verbraucheWieder = db.prepare(
+  `UPDATE zweifaktor_codes SET benutzt_am = datetime('now')
+    WHERE hash = ? AND user_id = ? AND benutzt_am IS NULL`);
+function pruefeZweitenFaktor(benutzerId, eingabe, jetzt = Date.now()) {
+  const id = Number(benutzerId) || 0;
+  const z = holeZweifaktor(id);
+  if (!z || !z.bestaetigt_am) return null;
+  if (zf.istCodeform(eingabe)) {
+    const zaehler = zf.pruefeCode(z.geheim, eingabe, jetzt);
+    if (zaehler === null) return null;
+    if (!verbraucheZaehler.run(zaehler, id, zaehler).changes) return null;
+    return 'app';
+  }
+  if (zf.istWiederform(eingabe)) {
+    const hash = tokenHash(zf.wiederNormal(eingabe));
+    if (!verbraucheWieder.run(hash, id).changes) return null;
+    /* DIE EINZIGE ZEILE IM PROTOKOLL, DIE SAGT, DASS EIN TELEFON WEG IST. Sie
+       steht HIER und nicht an der Route: es gibt drei Rufer (Anmeldung,
+       Tokenweg, zweite Bestaetigung), und drei Ausfertigungen derselben Zeile
+       liefen auseinander. wer und ziel sind derselbe Mensch -- er handelt an
+       sich selbst, wie beim Einloesen eines Links. */
+    protokolliere('zweifaktor.wieder', { wer: id, ziel: id });
+    return 'wieder';
+  }
+  return null;
+}
+
+/* Frische Wiederherstellungscodes fuer den, der seine verbraucht hat. Hinter
+   Passwort UND gueltigem Code -- die Route stellt beides sicher.
+   DER FALL, DEN NIEMAND PLANT, IST DER LETZTE VERBRAUCHTE CODE. Ohne diesen Weg
+   bliebe dafuer nur zugang.js auf dem Wirt; mit ihm sieht der Betroffene an
+   der Karte, dass es eng wird ("noch 1 von 8"), und holt sich neue. */
+function erneuereWiederCodes(benutzerId) {
+  const id = Number(benutzerId) || 0;
+  if (!zweifaktorAn(id)) throw new Error('Der zweite Faktor ist nicht eingeschaltet.');
+  return legeWiederCodesAn(id);
+}
+
+/* Ausschalten. ALLEIN DER BETROFFENE -- oder zugang.js auf dem Wirt, und das
+   ist am leeren `wer` zu erkennen.
+   BEIDE TABELLEN IN EINER TRANSAKTION: ein Faktor ohne Codes oder Codes ohne
+   Faktor waeren beide ein halber Zustand.
+   LIEFERT ja/nein: war gar keiner an, ist nichts geschehen, und der Aufrufer
+   soll das sagen koennen. */
+function schalteZweifaktorAus(benutzerId, wer) {
+  const id = Number(benutzerId) || 0;
+  if (!holeZweifaktor(id)) return false;
+  db.transaction(() => {
+    db.prepare('DELETE FROM zweifaktor WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM zweifaktor_codes WHERE user_id = ?').run(id);
+  })();
+  protokolliere('zweifaktor.aus', { wer: handelnder(wer), ziel: id });
+  return true;
+}
+
+/* --- Der Ausweis zwischen den beiden Schritten der Anmeldung ------------
+   WIE WIRD DIE ANMELDUNG ZWEISTUFIG, OHNE EINEN ZWEITEN ZUSTAND ZU ERZEUGEN?
+   Eine halbe Sitzung waere eine zweite Wahrheit ueber "angemeldet" -- genau
+   das, was Abschnitt 1 des Konzeptpapiers ausschliesst. sessions bleibt die
+   EINE Antwort darauf, und vor dem zweiten Schritt entsteht dort keine Zeile.
+
+   GENOMMEN IST DIE BAUFORM DER FREIGABE AUS 0.8.90: ein kurzlebiger Wert im
+   Arbeitsspeicher, neben freigaben und attempts. Kein Schema, keine Zeile, kein
+   sechster Migrationsblock -- und er verfaellt von selbst. Ein Neustart als
+   Ruecksetzung ist hinnehmbar: er kostet ein zweites Tippen des Passworts.
+
+   DIESELBE FRIST WIE DIE FREIGABE, und das ist Absicht: ein Wert, eine Regel,
+   eine Gegenprobe. Zwei Minuten reichen, um einen Code vom Telefon abzulesen,
+   und sind kurz genug, dass ein liegengebliebener Ausweis nichts wert ist.
+
+   ER TRAEGT DIE BENUTZERNUMMER UND KOMMT NUR VON HIER. Der zweite Schritt liest
+   sie NIE aus dem Rumpf -- sonst waere der Ausweis eine Eintrittskarte fuer
+   einen beliebigen Zugang, und das richtige Passwort eines Zugangs oeffnete
+   jeden anderen. */
+const ANMELDE_AUSWEIS_MS = FREIGABE_MS;
+const ausweise = new Map(); // schluessel -> { id, bis }
+
+function erzeugeAnmeldeAusweis(benutzerId) {
+  const id = Number(benutzerId);
+  if (!Number.isInteger(id) || id <= 0) throw new Error('Ein Ausweis braucht einen Zugang.');
+  // Beim Anlegen einmal durchsehen. Die Karte waechst sonst mit jeder
+  // Anmeldung, die zwischen den beiden Schritten abgebrochen wird -- und wer
+  // sie fuellen will, braucht dafuer jedes Mal das richtige Passwort.
+  const jetzt = Date.now();
+  for (const [k, a] of ausweise) if (a.bis <= jetzt) ausweise.delete(k);
+  const schluessel = crypto.randomBytes(32).toString('hex');
+  ausweise.set(schluessel, { id, bis: jetzt + ANMELDE_AUSWEIS_MS });
+  return { ausweis: schluessel, sekunden: ANMELDE_AUSWEIS_MS / 1000 };
+}
+
+/* Prueft UND verbraucht in einem, wie verbraucheFreigabe. Zwei Funktionen --
+   eine, die nachsieht, und eine, die verbraucht -- waeren zwei Stellen, und die
+   Route, die die zweite vergisst, saehe von aussen genauso aus wie die richtige.
+   VERBRAUCHT WIRD AUCH DER ABGELAUFENE: sonst bliebe er liegen und ein zweiter
+   Versuch sagte dasselbe. */
+function verbraucheAnmeldeAusweis(schluessel) {
+  const k = String(schluessel || '');
+  if (!k) return null;
+  const a = ausweise.get(k);
+  if (a === undefined) return null;
+  ausweise.delete(k);
+  return Date.now() <= a.bis ? a.id : null;
+}
+
 // Liefert den Benutzer hinter dem Cookie oder null. Der JOIN ist die Aussage:
 // eine Sitzung ohne Benutzer gilt nicht. Im Betrieb kann es sie nicht geben --
 // beim Anlegen ist die Id Pflicht, bestehende wurden beim Migration nachgezogen,
@@ -1328,6 +1620,11 @@ module.exports = {
   protokolliere, raeumeProtokollAuf, leseProtokoll,
   // Die zweite Bestaetigung.
   BESTAETIGUNG_ZWECKE, FREIGABE_MS, erzeugeFreigabe, verbraucheFreigabe, verwirfFreigabe,
+  // Der zweite Faktor, 0.10.0; Rufer sind server.js und zugang.js.
+  ZWEITER_FAKTOR_ABSAGE, ANMELDE_AUSWEIS_MS,
+  zweifaktorAn, zweifaktorStand, beginneZweifaktor, schalteZweifaktorEin,
+  pruefeZweitenFaktor, erneuereWiederCodes, schalteZweifaktorAus,
+  erzeugeAnmeldeAusweis, verbraucheAnmeldeAusweis,
   holeBenutzer, holeBenutzerNachNamen, benutzerVorhanden, legeErstenBenutzerAn, aendereZugang,
   hashePasswort, pruefePasswort,
   // Zugangsverwaltung; Rufer sind server.js und zugang.js.

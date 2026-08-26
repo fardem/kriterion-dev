@@ -197,37 +197,72 @@ function confirmBox(title, text, confirmLabel = 'Löschen') {
 const BESTAETIGUNG_GRUND = 'Das trifft die Anlage als Ganzes. Damit eine fremde offene ' +
   'Anmeldung das nicht kann, bestätigst du es mit deinem Passwort.';
 
-function bestaetigungsFeld(titel, was) {
+/* SEIT 0.10.0 STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
+   zweiten Faktor eingeschaltet haben. Wer ihn nicht will, sieht denselben
+   Dialog wie vor dieser Runde.
+   DIE FRAGE, OB DAS FELD DASTEHT, KOMMT VOM SERVER (`zweifaktor` aus
+   GET /api/settings) und wird hier nie geraten. Ohne sie muesste der Dialog
+   den ersten Versuch absichtlich scheitern lassen, um zu erfahren, dass ein
+   Code fehlt -- und schriebe dabei bei JEDEM Vorgang eine Zeile
+   'bestaetigung.fehl' ins Sicherheitsprotokoll. */
+function passwortFenster(titel, was, grund, mitCode) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal"><h2>${esc(titel)}</h2>
       <p>${esc(was)}</p>
-      <p class="desc" style="margin:0">${esc(BESTAETIGUNG_GRUND)}</p>
+      ${grund ? `<p class="desc" style="margin:0">${esc(grund)}</p>` : ''}
       <div class="field" style="margin:0"><label>Dein Passwort</label>
         <input class="input" id="best-pass" type="password" autocomplete="current-password"></div>
+      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>Code aus deiner App</label>
+        <input class="input" id="best-code" inputmode="text" autocomplete="one-time-code"
+          autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
       <button class="btn btn-accent" data-yes>Bestätigen</button></div></div>`;
     document.body.appendChild(bd);
     const feld = bd.querySelector('#best-pass');
+    const codeFeld = bd.querySelector('#best-code');
+    const wert = () => ({ passwort: feld.value, ...(codeFeld ? { code: codeFeld.value } : {}) });
     const done = v => { bd.remove(); resolve(v); };
     bd.querySelector('[data-no]').onclick = () => done(null);
-    bd.querySelector('[data-yes]').onclick = () => done(feld.value);
+    bd.querySelector('[data-yes]').onclick = () => done(wert());
     bd.onclick = e => { if (e.target === bd) done(null); };
-    feld.addEventListener('keydown', e => { if (e.key === 'Enter') done(feld.value); });
+    for (const el of [feld, codeFeld]) {
+      if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') done(wert()); });
+    }
     const onKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey, true); done(null); } };
     document.addEventListener('keydown', onKey, true);
     feld.focus();
   });
 }
 
+/* Das Fenster der ZWEITEN BESTAETIGUNG. Ob das Codefeld dasteht, entscheidet
+   ZWEIFAKTOR und damit der Server -- die Oberflaeche raet es nie.
+   DER ZUSATZSATZ STEHT NUR DA, WENN DAS FELD DASTEHT: ein Grund fuer eine
+   Frage, die gar nicht gestellt wird, waere Verwirrung ohne Gegenwert. */
+const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
+  BESTAETIGUNG_GRUND + (ZWEIFAKTOR
+    ? ' Weil dein Zugang einen zweiten Faktor trägt, gehört der Code dazu — gerade hier hilft er am meisten.'
+    : ''), ZWEIFAKTOR);
+
+/* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, seit 0.10.0.
+   ES HAT EINEN EIGENEN NAMEN UND KEINEN SCHALTER AN bestaetigungsFeld: dort
+   haengt das Codefeld an ZWEIFAKTOR, hier am WEG. Beim Einschalten gibt es noch
+   keinen Code zu fragen, beim Ausschalten gehoert er dazu -- und beide Male ist
+   ZWEIFAKTOR die falsche Auskunft darueber.
+   OHNE BESTAETIGUNG_GRUND: der steht fuer "das trifft die Anlage als Ganzes",
+   und das trifft hier nicht zu -- es geht um den eigenen Zugang. Der Grund
+   kommt deshalb je Weg von der Aufrufstelle. */
+const bestaetigungsFeldFrei = (titel, was, mitCode) =>
+  passwortFenster(titel, was, '', mitCode === true);
+
 async function zweiteBestaetigung(zweck, ziel, titel, was) {
-  const passwort = await bestaetigungsFeld(titel, was);
+  const eingabe = await bestaetigungsFeld(titel, was);
   // null heisst abgebrochen -- ein Abbruch, der trotzdem handelt, waere der
   // schlimmere Fehler. Ein LEERES Feld ist keine Bestaetigung, sondern ein
   // falsches Passwort und geht als solches an den Server.
-  if (passwort === null) return false;
-  try { await api('POST', '/api/bestaetigung', { passwort, zweck, ziel: ziel ?? null }); }
+  if (eingabe === null) return false;
+  try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel: ziel ?? null }); }
   catch (e) { toast(e.message, true); return false; }
   return true;
 }
@@ -346,6 +381,12 @@ function showLogin(errMsg) {
         showLogin(j.error || 'Anmeldung fehlgeschlagen.');
         return;
       }
+      const j = await res.json().catch(() => ({}));
+      /* DER ZWEITE SCHRITT, seit 0.10.0. Der Server hat KEINEN Cookie
+         geschickt — es gibt noch keine Sitzung, und diese Seite hält auch
+         keine halbe: sie hält nur den Ausweis, den sie gleich wieder
+         hergibt. */
+      if (j.zweifaktor) return showZweiterFaktor(j.ausweis);
       location.hash = '#/';
       start();
     } catch { showLogin('Server nicht erreichbar.'); }
@@ -353,6 +394,66 @@ function showLogin(errMsg) {
   b.onclick = submit;
   [u, p].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
   u.focus();
+}
+
+/* Der zweite Schritt der Anmeldung, seit 0.10.0.
+
+   ES IST EINE SEITE UND KEIN ZUSTAND. Der Ausweis liegt in einer Variablen
+   dieser Funktion und sonst nirgends — nicht im Speicher des Browsers, nicht
+   in der Adresse. Wer neu lädt, steht wieder an der Anmeldung, und das ist
+   richtig so: der Ausweis gilt zwei Minuten und genau einmal.
+
+   EIN FELD FÜR BEIDE FORMEN. Sechs Ziffern aus der App oder ein
+   Wiederherstellungscode — der Server sieht der Eingabe an, was gemeint ist,
+   und ein Umschalter daneben wäre eine Frage, die sich aus dem Getippten schon
+   beantwortet.
+
+   DIE ABSAGE KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN: sie ist EINE und
+   nennt nicht, ob der Code falsch oder abgelaufen war. */
+function showZweiterFaktor(ausweis, errMsg) {
+  document.body.classList.add('anmeldung');
+  document.documentElement.style.fontSize = '';
+  app.innerHTML = `<div class="login-screen"><div class="login-card">
+    ${MARKENZEILE()}
+    <p class="sub">Noch der Code aus deiner App.</p>
+    ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
+    <div class="field"><label for="zf-code">Sechsstelliger Code</label>
+      <input class="input" id="zf-code" inputmode="text" autocomplete="one-time-code"
+        autocapitalize="characters" spellcheck="false" maxlength="16"></div>
+    <button class="btn btn-accent" id="zf-ab">Anmelden</button>
+    <p class="sub" style="margin:14px 0 0">Telefon nicht zur Hand? Hier trägt auch einer
+      deiner <strong>Wiederherstellungscodes</strong> — jeder von ihnen genau einmal.</p>
+  </div></div>`;
+  document.title = TITLE_PUBLIC;
+  const c = document.getElementById('zf-code'), b = document.getElementById('zf-ab');
+  const submit = async () => {
+    b.disabled = true; b.textContent = 'Anmelden …';
+    try {
+      const res = await fetch('/api/login/zwei', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ausweis, code: c.value })
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        /* DER SERVER ENTSCHEIDET, OB ES HIER WEITERGEHT — an einem FELD und
+           nicht an einem Statuscode: liegt der Absage ein frischer Ausweis
+           bei, war der Code falsch und ein zweiter Anlauf steht offen. Liegt
+           keiner bei (abgelaufene Anmeldung, Zugang inzwischen gesperrt, die
+           Bremse), ist hier nichts mehr zu holen und der Mensch gehört zurück
+           an den Anfang.
+           DEN ALTEN AUSWEIS WEITERZUVERWENDEN WÄRE FALSCH: er ist verbraucht,
+           auch nach einer Absage. */
+        if (j.ausweis) return showZweiterFaktor(j.ausweis, j.error || 'Der Code stimmt nicht.');
+        return showLogin(j.error || 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.');
+      }
+      location.hash = '#/';
+      start();
+    } catch { showZweiterFaktor(ausweis, 'Server nicht erreichbar.'); }
+  };
+  b.onclick = submit;
+  c.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  c.focus();
 }
 
 /* Die Selbstanmeldung: das Formular und die Antwort darauf, seit 0.9.1.
@@ -594,6 +695,12 @@ async function showEinladung(schluessel) {
           const j = await res.json().catch(() => ({}));
           return zeichne(j.error || 'Das Passwort konnte nicht gesetzt werden.');
         }
+        const j = await res.json().catch(() => ({}));
+        /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT, seit 0.10.0 — sonst wäre
+           der Rücksetzlink der Weg daran vorbei. Das Passwort IST gesetzt und
+           der Link verbraucht; was noch aussteht, ist die Anmeldung. Deshalb
+           wird die Adresse auch hier geleert. */
+        if (j.zweifaktor) { location.hash = '#/'; return showZweiterFaktor(j.ausweis); }
         // Angemeldet ist man damit schon -- der Server hat den Cookie
         // mitgeschickt. Die Adresse wird geleert: der Link ist verbraucht.
         location.hash = '#/';
@@ -1123,6 +1230,12 @@ let ZULETZT_GESEHEN = null;
    und Wolke bleiben, denn zuweisen darf immer jeder. */
 let TAGS_FREI = true;
 let KATEGORIEN_FREI = true;
+/* Ob DIESER Zugang einen zweiten Faktor traegt, seit 0.10.0. KOMMT VOM SERVER
+   und wird hier nie geraten: die Oberflaeche entscheidet damit nur, ob das
+   Bestaetigungsfenster ein zweites Feld zeigt. Wer den Wert von Hand auf false
+   setzt, bekommt ein Fenster ohne Codefeld -- und der Server weist die
+   Bestaetigung ab. Die Schranke liegt nicht hier. */
+let ZWEIFAKTOR = false;
 /* Die Frist des Papierkorbs. Sie kommt aus /api/settings und wird hier NICHT
    nachgebaut: die Zahl steht im Server an einer Stelle, und der Löschdialog
    nennt sie jedem — auch dem, der die Karte gar nicht sehen darf. Die 30
@@ -1155,6 +1268,7 @@ async function ladeEinstellungen() {
   if (EINSTELLUNGEN.kategorienFreiAnlegen !== undefined)
     KATEGORIEN_FREI = EINSTELLUNGEN.kategorienFreiAnlegen !== false;
   if (EINSTELLUNGEN.papierkorbTage) PAPIERKORB_TAGE = EINSTELLUNGEN.papierkorbTage;
+  ZWEIFAKTOR = EINSTELLUNGEN.zweifaktor === true;
   wendeSchriftAn();
 }
 
@@ -3936,6 +4050,18 @@ async function renderSystem() {
           <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>
           auf dem Server.</p>
         <button class="btn btn-accent btn-sm" id="acc-save">Zugang ändern</button>
+
+        ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE,
+              seit 0.10.0 — es bleibt bei neunzehn. Hier stehen Name, Passwort
+              und Adresse; wer seinen Zugang sichern will, sucht ihn dort, wo
+              sein Zugang steht. Eine zwanzigste Karte fände nur, wer schon
+              weiß, dass es sie gibt.
+              DER ZUSTAND STEHT OHNE KLICK DA — „an seit …“ oder „aus“, dazu
+              die Zahl der übrigen Wiederherstellungscodes. Er kommt aus
+              GET /api/account, das diese Karte ohnehin holt; ein Knopf, den
+              man erst drücken muss, um zu sehen, ob der Zugang gesichert ist,
+              wäre keine Auskunft. */''}
+        <div class="zf-block" id="zf-block"></div>
       </div>
 
       <div class="sys-card">
@@ -4443,6 +4569,158 @@ async function renderSystem() {
       renderSystem();   // leert die Passwortfelder
     } catch (e) { toast(e.message, true); }
   };
+
+  /* --- Der zweite Faktor in der Karte „Zugang“, seit 0.10.0 ---
+     DIESELBE BAUFORM WIE zeichneAnfragen(): der Stand kommt vom Server, die
+     Karte zeichnet sich nach jeder Handlung aus der ANTWORT der Handlung neu
+     und fragt nicht ein zweites Mal nach. Ein Server, der auf ein Einschalten
+     zwar „ok“ sagt, aber denselben Stand zurückgibt, fällt damit auf
+     (Stolperstein 90).
+     DER ANGEZEIGTE ZUSTAND KOMMT AUS DER ANTWORT UND WIRD HIER NIE GERATEN —
+     „an“, der Zeitpunkt und die Zahl der übrigen Codes stehen alle im Feld
+     `zweifaktor` von GET /api/account (Stolperstein 102). */
+  function zeichneZweifaktor(stand) {
+    const box = document.getElementById('zf-block');
+    if (!box || !stand) return;
+    box.innerHTML = stand.an ? `
+      <div class="zf-zustand zf-an">
+        <strong>Zweiter Faktor: an</strong> — seit ${esc(String(stand.seit || '').slice(0, 10))}.
+        Beim Anmelden fragt die Anlage zusätzlich nach dem Code aus deiner App.
+        <div class="zf-codestand">Wiederherstellungscodes:
+          <strong>noch ${stand.codesOffen} von ${stand.codesGesamt}</strong>${stand.codesOffen <= 2
+            ? ' — <strong>das wird knapp.</strong> Hol dir neue, solange du noch hereinkommst.' : ''}</div>
+      </div>
+      <div class="row-in" style="margin-top:10px">
+        <button class="btn btn-sm" id="zf-neue">Neue Wiederherstellungscodes</button>
+        <button class="btn btn-ghost btn-sm" id="zf-aus">Zweiten Faktor ausschalten</button>
+      </div>` : `
+      <div class="zf-zustand zf-aus"><strong>Zweiter Faktor: aus</strong> — zum Anmelden
+        genügt dein Passwort.</div>
+      <p class="desc" style="margin:8px 0 10px">Mit zweitem Faktor fragt die Anlage beim
+        Anmelden zusätzlich nach einem sechsstelligen Code aus einer App auf deinem Telefon
+        (Google Authenticator, Aegis, 1Password, iOS-Passwörter). Der Code entsteht
+        <strong>ohne Netz</strong> und ist alle 30 Sekunden ein anderer.
+        <strong>Freiwillig</strong> — und niemand außer dir kann ihn ein- oder ausschalten.</p>
+      <button class="btn btn-sm" id="zf-an">Zweiten Faktor einschalten</button>`;
+
+    /* Das Passwort wird an ALLEN Wegen verlangt, auch am Einschalten. Beim
+       Ausschalten leuchtet das ein; beim EINSCHALTEN ist es der weniger
+       offensichtliche und genauso wichtige Fall — eine übernommene offene
+       Anmeldung könnte sonst einen zweiten Faktor auf ein FREMDES Telefon
+       legen und dich damit aussperren. */
+    const frag = (titel, was, mitCode) => bestaetigungsFeldFrei(titel, was, mitCode);
+
+    amElement('zf-an', b => b.onclick = async () => {
+      const e = await frag('Zweiten Faktor einschalten',
+        'Zum Anfangen brauchst du dein bisheriges Passwort.', false);
+      if (e === null) return;
+      try { zeigeGeheimnis(await api('POST', '/api/zweifaktor/start', { passwort: e.passwort })); }
+      catch (err) { toast(err.message, true); }
+    });
+
+    amElement('zf-neue', b => b.onclick = async () => {
+      const e = await frag('Neue Wiederherstellungscodes',
+        'Die bisherigen verfallen dabei alle — auch die noch unbenutzten.', true);
+      if (e === null) return;
+      try {
+        const r = await api('POST', '/api/zweifaktor/codes', e);
+        zeichneZweifaktor(r);
+        zeigeWiederCodes(r.codes);
+        toast('Neue Wiederherstellungscodes');
+      } catch (err) { toast(err.message, true); }
+    });
+
+    amElement('zf-aus', b => b.onclick = async () => {
+      const e = await frag('Zweiten Faktor ausschalten',
+        'Danach genügt zum Anmelden wieder dein Passwort allein. Die Wiederherstellungscodes ' +
+        'fallen mit weg.', true);
+      if (e === null) return;
+      try {
+        zeichneZweifaktor(await api('DELETE', '/api/zweifaktor', e));
+        ZWEIFAKTOR = false;
+        toast('Zweiter Faktor ausgeschaltet');
+      } catch (err) { toast(err.message, true); }
+    });
+  }
+
+  /* Schritt eins am Bildschirm: der Schlüssel steht da, und zwar in
+     VIERERGRUPPEN — zweiunddreißig Zeichen am Stück sind der Weg, an dem
+     Menschen aufgeben. Daneben die `otpauth://`-Zeile als Link: auf einem
+     Telefon öffnet der die App unmittelbar.
+     DER SCHLÜSSEL IST DIE ZUSAGE, DER LINK IST DIE BEQUEMLICHKEIT. Deshalb
+     steht der abtippbare Wert oben und groß, nicht der Link. */
+  function zeigeGeheimnis(d) {
+    const box = document.getElementById('zf-block');
+    if (!box) return;
+    box.innerHTML = `
+      <div class="warn-box zf-einrichten">
+        <strong>Schritt 1 — diesen Schlüssel in deine App eintragen.</strong>
+        Er wird <strong>nur dieses eine Mal</strong> angezeigt; danach gibt ihn die Anlage
+        nie wieder heraus, auch dir nicht.
+        <div class="zf-schluessel" id="zf-geheim">${esc(d.gruppen)}</div>
+        <div class="row-in" style="margin:8px 0 0">
+          <button class="btn btn-sm" id="zf-kopie">Schlüssel kopieren</button>
+          <a class="btn btn-sm" id="zf-zeile" href="${esc(d.zeile)}">In der App öffnen</a>
+        </div>
+        <p class="desc" style="margin:10px 0 0">Am Telefon führt der Knopf rechts unmittelbar
+          in die App. Am Rechner trägst du den Schlüssel von Hand ein — die Leerzeichen
+          gehören nicht dazu.</p>
+      </div>
+      <div class="field" style="margin:12px 0 0"><label for="zf-probe">Schritt 2 — den
+        ${d.ziffern}-stelligen Code aus der App eintragen</label>
+        <input class="input" id="zf-probe" inputmode="numeric" autocomplete="one-time-code"
+          spellcheck="false" maxlength="6"></div>
+      <p class="desc" style="margin:0 0 10px">Erst damit ist der zweite Faktor eingeschaltet —
+        so ist belegt, dass deine App wirklich dasselbe rechnet.</p>
+      <div class="row-in">
+        <button class="btn btn-accent btn-sm" id="zf-fertig">Einschalten</button>
+        <button class="btn btn-ghost btn-sm" id="zf-abbruch">Abbrechen</button>
+      </div>`;
+    const feld = document.getElementById('zf-probe');
+    document.getElementById('zf-kopie').onclick = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(d.geheim).then(() => toast('Schlüssel kopiert'),
+          () => toast('Bitte von Hand abtippen.', true));
+      } else toast('Bitte von Hand abtippen.', true);
+    };
+    document.getElementById('zf-abbruch').onclick = () => renderSystem();
+    document.getElementById('zf-fertig').onclick = async () => {
+      const e = await bestaetigungsFeldFrei('Zweiten Faktor einschalten',
+        'Zum Einschalten noch einmal dein Passwort.', false);
+      if (e === null) return;
+      try {
+        const r = await api('POST', '/api/zweifaktor/an', { passwort: e.passwort, code: feld.value });
+        zeichneZweifaktor(r);
+        zeigeWiederCodes(r.codes);
+        ZWEIFAKTOR = true;
+        toast('Zweiter Faktor eingeschaltet');
+      } catch (err) { toast(err.message, true); }
+    };
+    feld.focus();
+  }
+
+  /* DIE WIEDERHERSTELLUNGSCODES WERDEN GENAU EINMAL GEZEIGT, und der Bildschirm
+     sagt es an derselben Stelle — mit demselben Ernst wie beim Einladungslink,
+     und im selben Kasten. Sie kommen danach nicht wieder: in der Datenbank
+     steht nur ihr SHA-256. */
+  function zeigeWiederCodes(codes) {
+    const box = document.getElementById('zf-block');
+    if (!box || !Array.isArray(codes)) return;
+    const kasten = document.createElement('div');
+    kasten.className = 'warn-box zf-codes';
+    kasten.id = 'zf-codes';
+    kasten.innerHTML = `<strong>Deine ${codes.length} Wiederherstellungscodes — sie werden
+      nur dieses eine Mal angezeigt.</strong>
+      Schreib sie auf und leg sie dorthin, wo dein Telefon <strong>nicht</strong> liegt.
+      Jeder von ihnen trägt <strong>genau einmal</strong> und ersetzt dabei den Code aus der App.
+      <div class="zf-codeliste">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
+      <p class="desc" style="margin:8px 0 0">Sind sie alle verbraucht und das Telefon weg,
+        hilft nur noch <code>docker compose exec kriterion node zugang.js zweifaktor
+        &lt;name&gt;</code> auf dem Server.</p>`;
+    box.appendChild(kasten);
+  }
+
+  zeichneZweifaktor(zugang.zweifaktor);
 
   /* --- Der Mailversand, seit 0.9.0 ---
      NUR FUER DEN EIGENTUEMER; die Karte steht bei allen anderen gar nicht da,
