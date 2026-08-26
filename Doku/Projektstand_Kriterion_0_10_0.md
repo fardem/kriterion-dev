@@ -4867,7 +4867,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3676 von 3676 bestanden** (0.10.0; **225 neue Prüfungen, 41
+**Zuletzt: 3676 von 3676 bestanden** (0.10.0; **225 neue Prüfungen, 42
 Gegenproben, sechzehn neue Gruppen**: „Der zweite Faktor: die Rechnung gegen
 den Standard", „… der Rundlauf", „… ein Code gilt genau einmal", „… das
 Zeitfenster", „… ohne Code kommt niemand herein", „… die Auskunft kommt erst
