@@ -166,7 +166,7 @@ des Neuladens und der Weg danach stehen alle drei weiter darin.
 
 ### `pruefung.js`
 
-Siebzehn neue Gruppen, 210 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
+Siebzehn neue Gruppen, 224 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
 im DOM-Mock die fünf neuen Endpunkte samt `registrierung` in `/api/config` —
 und er **zieht mit**: Freischalten und Ablehnen nehmen die Zeile wirklich aus
 der Liste (Stolperstein 90) und bringen nichts selbst mit, was die Prüfung
@@ -174,7 +174,7 @@ belegen soll (Stolperstein 102).
 
 ### `gegenprobe.js`
 
-**36 neue Rückbauten** (31 bis 67, ohne 45 — siehe Befund D), dazu drei
+**38 neue Rückbauten** (31 bis 69, ohne 45 — siehe Abweichung D), dazu drei
 nachgezogene: 07 und 14 zielten auf Zeilen, die diese Runde verschoben hat, 30
 auf die gekürzte Zeile.
 
@@ -525,6 +525,32 @@ daneben steht die, die den Befund festhält: **der Schalter muss in genau dieser
 Lage erreichbar sein.** Rückbau 63 zielt jetzt auf die alte Bedingung.
 Stolperstein **155**.
 
+### Befund N — der Weg zur Anfrage war zu leise (aus dem Betrieb)
+
+**Der Weg zur Selbstanmeldung stand als Verweis in der Fußzeile der
+Anmeldekarte** — *„Noch keinen Zugang? Zugang anfragen"* — und wurde übersehen.
+Er ist der **zweite Weg von dieser Seite** und sieht jetzt auch danach aus: ein
+**Knopf** unter „Anmelden", in derselben Größe, mit der Frage „Noch keinen
+Zugang?" darüber und einer Trennlinie dazwischen.
+
+**Nicht in der Betonung des Anmeldeknopfs**, und das ist entschieden: zwei
+gleich laute Knöpfe nebeneinander sagen nicht mehr, welcher der gewöhnliche Weg
+ist. Der Anmeldeknopf bleibt der einzige `btn-accent`.
+
+**Gedämpft, aber erkennbar ein Knopf — und die Grenze zwischen beidem ist der
+Punkt.** Der Füllgrund fällt weg, **die Umrandung bleibt**; beim Überfahren
+nimmt er die gewöhnliche Knopffarbe an. Ein `btn-ghost` wäre zu weit gegangen:
+ohne Rand sieht er im Ruhezustand wieder wie ein Verweis aus, und genau daran
+ist die erste Fassung gescheitert.
+
+Geprüft wird die **Art** des Elements, nicht sein Aussehen — `BUTTON` statt
+`A`, die Klasse `btn` und ausdrücklich **nicht** `btn-accent`, die Frage
+**vor** dem Knopf und der Knopf **hinter** dem Anmeldeknopf. Am Stylesheet wird
+**beides** festgehalten: dass ihm der Füllgrund genommen wird **und** dass ihm
+die Umrandung bleibt — samt der Gegenlage, dass die Grundklasse überhaupt eine
+trägt (Stolperstein 81). Rückbau **68** macht wieder einen Verweis daraus,
+Rückbau **69** nimmt ihm die Umrandung.
+
 ---
 
 ## 5. Neue Stolpersteine
@@ -547,7 +573,7 @@ steht im Projektstand, Abschnitt 6.
 
 ## 6. Der Prüfstand
 
-**3402 von 3402 bestanden** — 210 neue Prüfungen, **siebzehn** neue Gruppen.
+**3416 von 3416 bestanden** — 224 neue Prüfungen, **siebzehn** neue Gruppen.
 
 | Gruppe | Was sie festhält |
 |---|---|
@@ -594,8 +620,8 @@ unverändert **122** Pfade.
 
 ## 7. Gegenprobentabelle
 
-**41 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
-gefahren über `gegenprobe.js` mit vier Nebenspuren. **35 sind neu** (31 bis 67,
+**45 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
+gefahren über `gegenprobe.js` mit vier Nebenspuren. **38 sind neu** (31 bis 69,
 ohne 45 — siehe Abweichung D), drei sind nachgezogen (07, 14 und 30 zielten auf
 Zeilen, die diese Runde verschoben hat), zwei sind die Wächter über den
 Prüfstand selbst.
@@ -645,12 +671,13 @@ DANACH: null stumm, null abgerissen.**
 | 59 | Die Anfrage selbst schreibt eine Protokollzeile | 4 Prüfungen, darunter „Eine Zeile anfrage.frei steht im Sicherheitsprotokoll" (2 Gruppen) |
 | 60 | Die Bremse fehlt an der Anfrageroute | „Die Anfrageroute ist damit ebenfalls gesperrt", „Und die Absage nennt die Wartezeit" |
 | 61 | Die Bremse fehlt an der Bestaetigungsroute | „Der elfte ist der erste gesperrte", „Der Uebergang liegt genau zwischen zehn und elf" |
-| 62 | Das Anfrageformular steht auch bei ausgeschaltetem Schalter da | „Ist die Selbstanmeldung aus, steht auf der Anmeldeseite kein Formular" |
+| 62 | Das Anfrageformular steht auch bei ausgeschaltetem Schalter da | „Ist die Selbstanmeldung aus, steht auf der Anmeldeseite kein Formular", „Und auch die Frage darueber nicht" |
 | 63 | Die Karte „Anfragen“ verschwindet, solange der Schalter aus ist | 4 Prüfungen, darunter „Ist die Selbstanmeldung aus und nichts offen, steht die Karte ‚Anfragen' trotzdem" (Gruppe „Der Systembereich nach Rolle") |
 | 64 | Die rote Zeile bei kaputtem Versand faellt weg | „Ist der Versand kaputt, steht die rote Zeile da", „Sie nennt den Grund des Servers", „Und sagt, dass der Schalter trotzdem an bleibt" |
 | 65 | Die Bestaetigungsseite meldet gleich an | 6 Prüfungen, darunter „Der Aufruf mit einem Bestaetigungslink fragt den Server nach ihm" (Gruppe „Die Bestaetigungsseite in der Oberflaeche") |
 | 66 | Die gekuerzte Zeile im Mailtext verliert eine Auskunft | „Und was danach zu tun ist" |
 | 67 | Derselbe Wunschname darf zweimal in der Warteschlange stehen | „Und auch dabei bleibt es bei der einen Zeile", „Und keine von beiden hat eine Zeile angelegt" |
+| 68 | Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes | „Und zwar als KNOPF, nicht als Verweis in einer Fusszeile", „Er traegt dieselbe Knopfklasse wie "Anmelden"" |
 | W2 | Eine Portbasis liegt wieder auf der gesperrten 4045 | „Keine Portbasis deckt eine Nummer, die fetch() nicht anwaehlt" |
 
 ---
@@ -660,9 +687,9 @@ DANACH: null stumm, null abgerissen.**
 | | |
 |---|---|
 | Vorher (0.9.0) | 3192 |
-| Nachher (0.9.1) | **3402** |
-| Neu | **210** |
-| Gegenproben | **41** |
+| Nachher (0.9.1) | **3416** |
+| Neu | **224** |
+| Gegenproben | **45** |
 
 ---
 
@@ -722,4 +749,4 @@ DANACH: null stumm, null abgerissen.**
 
 ---
 
-**0.9.1 — Fingerprint `8f226ddc`**
+**0.9.1 — Fingerprint `46af7459`**

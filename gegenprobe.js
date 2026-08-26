@@ -543,8 +543,8 @@ const RUECKBAUTEN = [
   {
     nr: '62', name: 'Das Anfrageformular steht auch bei ausgeschaltetem Schalter da',
     datei: 'public/app.js',
-    suche: "    ${REGISTRIERUNG ? `<p class=\"sub\" style=\"margin:14px 0 0\">Noch keinen Zugang?",
-    ersatz: "    ${true ? `<p class=\"sub\" style=\"margin:14px 0 0\">Noch keinen Zugang?",
+    suche: "    ${REGISTRIERUNG ? `<p class=\"sub anmeld-trenner\">Noch keinen Zugang?</p>",
+    ersatz: "    ${true ? `<p class=\"sub anmeld-trenner\">Noch keinen Zugang?</p>",
     erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
@@ -557,6 +557,25 @@ const RUECKBAUTEN = [
     suche: "        ADMIN && anfragen ? `<div class=\"sys-card breit\">",
     ersatz: "        ADMIN && anfragen && (anfragen.an || anfragen.anfragen.length) ? `<div class=\"sys-card breit\">",
     erwartet: 'Die Karten im Systembereich'
+  },
+  {
+    /* AUS DEM BETRIEB: der Weg zur Selbstanmeldung stand als Verweis in einer
+       Fusszeile und wurde uebersehen. Er ist jetzt ein Knopf in derselben
+       Groesse wie "Anmelden"; der Rueckbau macht wieder einen Verweis daraus. */
+    nr: '68', name: 'Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes',
+    datei: 'public/app.js',
+    suche: "      <button class=\"btn anmeld-zweitweg\" id=\"l-anfrage\">Zugang anfragen</button>",
+    ersatz: "      <a href=\"#\" id=\"l-anfrage\">Zugang anfragen</a>",
+    erwartet: 'Die Anmeldeseite: das Anfrageformular'
+  },
+  {
+    /* DIE ANDERE HAELFTE VON 68: der Knopf wird so leise, dass er im
+       Ruhezustand keiner mehr ist. Der Rueckbau nimmt ihm die Umrandung. */
+    nr: '69', name: 'Der gedaempfte Knopf verliert auch seine Umrandung',
+    datei: 'public/style.css',
+    suche: "  background: transparent; color: var(--muted); font-weight: 500;",
+    ersatz: "  background: transparent; border-color: transparent; color: var(--muted); font-weight: 500;",
+    erwartet: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
     nr: '64', name: 'Die rote Zeile bei kaputtem Versand faellt weg',

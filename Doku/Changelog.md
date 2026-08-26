@@ -20,9 +20,12 @@ keine Betriebsart, in der ein geklickter Link allein freischaltet.
 
 ### Neu
 
-- **Ein Formular auf der Anmeldeseite — „Zugang anfragen".** Zwei Felder,
-  Wunschname und E-Mail-Adresse, **kein Passwortfeld**. Es erscheint nur, wenn
-  die Selbstanmeldung eingeschaltet ist.
+- **Ein zweiter Knopf auf der Anmeldeseite — „Zugang anfragen".** Er steht
+  unter „Anmelden", in derselben Größe, mit der Frage „Noch keinen Zugang?"
+  darüber — **ruhiger gehalten als der Anmeldeknopf**, damit klar bleibt,
+  welcher der gewöhnliche Weg ist. Das Formular dahinter hat zwei Felder, Wunschname und
+  E-Mail-Adresse, **kein Passwortfeld**. Beides erscheint nur, wenn die
+  Selbstanmeldung eingeschaltet ist.
 - **Eine Bestätigungsmail davor (Double Opt-in).** Wer das Formular abschickt,
   bekommt zuerst eine Mail mit einem kurzen Link. **Der Link öffnet keinen
   Zugang und setzt kein Passwort** — er sagt nur „ja, das bin ich", und er

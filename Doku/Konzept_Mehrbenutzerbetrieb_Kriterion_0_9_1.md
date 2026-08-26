@@ -1,6 +1,6 @@
 # Umbenennung und Mehrbenutzerbetrieb
 
-**Konzeptpapier · Stand 25. August 2026 · gebaut bis Version 0.9.1 — Fingerprint `8f226ddc`**
+**Konzeptpapier · Stand 25. August 2026 · gebaut bis Version 0.9.1 — Fingerprint `46af7459`**
 (Stufen A bis **I** erledigt. 0.8.1 war eine **Bereinigung**,
 0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10 die Runde
 **Werkzeug**, 0.8.20 die Runde **„Die Schotten dicht"**, 0.8.40 bis 0.8.71 vier

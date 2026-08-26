@@ -20028,7 +20028,9 @@ async function pruefeOberflaeche() {
   const sAus = baueDom(JSDOM, { angemeldet: false, registrierung: false });
   await new Promise(r => setTimeout(r, 80));
   pruefe('Ist die Selbstanmeldung aus, steht auf der Anmeldeseite kein Formular',
-    !sAus.w.document.getElementById('l-anfrage'), 'der Verweis steht da');
+    !sAus.w.document.getElementById('l-anfrage'), 'der Knopf steht da');
+  pruefe('Und auch die Frage darueber nicht',
+    !sAus.w.document.querySelector('.anmeld-trenner'), 'die Frage steht da');
   pruefe('Und die Anmeldemaske selbst ist unveraendert da',
     Boolean(sAus.w.document.getElementById('lu') && sAus.w.document.getElementById('lp')),
     'die Anmeldemaske fehlt');
@@ -20036,10 +20038,65 @@ async function pruefeOberflaeche() {
   const sAn = baueDom(JSDOM, { angemeldet: false, registrierung: true });
   await new Promise(r => setTimeout(r, 80));
   const sVerweis = sAn.w.document.getElementById('l-anfrage');
-  pruefe('Ist sie an, steht der Verweis "Zugang anfragen" da', Boolean(sVerweis),
-    'der Verweis fehlt');
+  pruefe('Ist sie an, steht der Weg "Zugang anfragen" da', Boolean(sVerweis),
+    'der Weg fehlt');
+  /* ER IST EIN KNOPF UND KEIN VERWEIS IN EINER FUSSZEILE -- eine Berichtigung
+     aus dem Betrieb: der Verweis wurde uebersehen. Ein Knopf in derselben
+     Groesse wie "Anmelden" ist der zweite Weg von dieser Seite und sieht auch
+     danach aus. Geprueft wird die ART des Elements, nicht sein Aussehen: das
+     Aussehen haengt am Stylesheet, die Art an der Oberflaeche. */
+  pruefe('Und zwar als KNOPF, nicht als Verweis in einer Fusszeile',
+    sVerweis?.tagName === 'BUTTON', String(sVerweis?.tagName));
+  pruefe('Er traegt dieselbe Knopfklasse wie "Anmelden"',
+    sVerweis?.classList.contains('btn'), sVerweis?.className);
+  /* UND ER IST NICHT DER LAUTERE VON BEIDEN: zwei gleich betonte Knoepfe sagen
+     nicht mehr, welcher der gewoehnliche Weg ist. */
+  pruefe('Aber nicht in der Betonung des Anmeldeknopfs',
+    !sVerweis?.classList.contains('btn-accent') &&
+    sAn.w.document.getElementById('lb')?.classList.contains('btn-accent'),
+    `${sVerweis?.className} · ${sAn.w.document.getElementById('lb')?.className}`);
+  /* DIE FRAGE STEHT UEBER DEM KNOPF, nicht daneben und nicht darin. */
+  const sFrage = sAn.w.document.querySelector('.anmeld-trenner');
+  pruefe('Darueber steht die Frage "Noch keinen Zugang?"',
+    /Noch keinen Zugang\?/.test(sFrage?.textContent || ''), sFrage?.textContent || '(fehlt)');
+  pruefe('Und sie steht wirklich VOR dem Knopf',
+    sFrage?.nextElementSibling === sVerweis,
+    String(sFrage?.nextElementSibling?.id || sFrage?.nextElementSibling?.tagName));
+  pruefe('Der Knopf steht unter dem Anmeldeknopf',
+    Boolean(sAn.w.document.getElementById('lb')?.compareDocumentPosition(sVerweis) &
+      sAn.w.Node.DOCUMENT_POSITION_FOLLOWING), 'er steht davor');
   pruefe('Und die Anmeldemaske steht weiterhin daneben',
     Boolean(sAn.w.document.getElementById('lu')), 'die Anmeldemaske fehlt');
+  /* DIE TRENNLINIE DARUEBER STEHT IM STYLESHEET (Stolperstein 81: erst der
+     Gegenstand, dann die Eigenschaft) -- ohne sie liefe der Knopf optisch mit
+     dem Anmeldeknopf zusammen. */
+  const sCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+    .replace(/\s+/g, ' ');
+  const sRegel = (sCss.match(/\.login-card \.anmeld-trenner \{[^}]*\}/) || [''])[0];
+  pruefe('Die Regel fuer die Trennung steht im Stylesheet', sRegel.length > 0,
+    'keine Regel gefunden');
+  pruefe('Und sie setzt den Knopf mit einer Linie ab',
+    /border-top:/.test(sRegel), sRegel);
+  /* GEDAEMPFT, ABER ERKENNBAR EIN KNOPF, und die Grenze zwischen beidem ist
+     der Punkt: der Fuellgrund faellt weg, DIE UMRANDUNG BLEIBT. Ohne Rand saehe
+     er im Ruhezustand wieder wie ein Verweis aus -- und genau daran ist die
+     erste Fassung gescheitert. Beide Haelften werden geprueft, sonst bliebe
+     gruen, dass er ganz verschwindet. */
+  pruefe('Der Knopf traegt die gedaempfte Klasse',
+    sVerweis?.classList.contains('anmeld-zweitweg'), sVerweis?.className);
+  const sLeise = (sCss.match(/\.login-card \.anmeld-zweitweg \{[^}]*\}/) || [''])[0];
+  pruefe('Und die Regel dazu steht im Stylesheet', sLeise.length > 0,
+    'keine Regel gefunden');
+  pruefe('Sie nimmt ihm den Fuellgrund',
+    /background: *transparent/.test(sLeise), sLeise);
+  pruefe('Aber NICHT die Umrandung -- sonst waere er wieder ein Verweis',
+    !/border(-color)?: *(transparent|none|0)/.test(sLeise), sLeise);
+  /* UND DIE GEGENLAGE ZUR REGEL SELBST: die Grundklasse traegt die Umrandung
+     ueberhaupt. Ohne sie belegte die Zeile darueber nur, dass hier nichts
+     entfernt wird (Stolperstein 81). */
+  pruefe('Denn die Grundklasse .btn traegt eine',
+    /\.btn \{[^}]*border: *1px solid/.test(sCss),
+    (sCss.match(/\.btn \{[^}]*\}/) || [''])[0]);
   /* UEBER EIN WIRKLICH ZUGESTELLTES EREIGNIS (Stolperstein 61) -- ein
      aufgerufener Behandler belegt nicht, dass ein Klick ankommt. */
   sVerweis.dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));

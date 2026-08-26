@@ -289,13 +289,11 @@ function showLogin(errMsg) {
           KEIN PASSWORTFELD. Der Anfragende gibt Namen und Adresse an, sonst
           nichts — sein Passwort wählt er später über den Einladungslink, und
           zwar erst, wenn ein Admin ihn hereingelassen hat. */''}
-    ${REGISTRIERUNG ? `<p class="sub" style="margin:14px 0 0">Noch keinen Zugang?
-      <a href="#" id="l-anfrage">Zugang anfragen</a></p>` : ''}
+    ${REGISTRIERUNG ? `<p class="sub anmeld-trenner">Noch keinen Zugang?</p>
+      <button class="btn anmeld-zweitweg" id="l-anfrage">Zugang anfragen</button>` : ''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
-  if (REGISTRIERUNG) {
-    document.getElementById('l-anfrage').onclick = (e) => { e.preventDefault(); showAnfrage(); };
-  }
+  if (REGISTRIERUNG) document.getElementById('l-anfrage').onclick = () => showAnfrage();
 
   const u = document.getElementById('lu'), p = document.getElementById('lp'), b = document.getElementById('lb');
   const submit = async () => {
