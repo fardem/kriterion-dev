@@ -827,9 +827,12 @@ daneben:**
 
   **Ohne ihn zeigt der Vergleichsverweis am Ende von `CHANGELOG.md` ins
   Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
-* **Ob 0.10.0 im Feld läuft.** Eingespielt ist noch nichts. Der Rundlauf, der
-  die Runde belegt — einschalten, abmelden, mit Code anmelden, einmal mit einem
-  Wiederherstellungscode —, gehört danach in den Projektstand, Abschnitt 2.
+* **Im Feld bestätigt — bis auf eine Zahl.** 0.10.0 ist eingespielt und läuft;
+  der zweite Faktor tut, was er soll. Das steht im Projektstand, Abschnitt 2.
+  **Offen bleibt der Fingerprint der laufenden Anlage:** der Branch misst
+  `dc8c16f7`, gemeldet ist der Wert vom Wirt nicht. *Bei 0.9.1 hat sich genau
+  dort eine Datei zu viel gezeigt, während jede Prüfung grün war* (Stolperstein
+  158).
 * **Der QR-Encoder als eigene Runde.** Begründung und Maße stehen in
   Abschnitt 2, Abweichung A, und im Projektstand, Abschnitt 10.
 * **Ob ein Admin den zweiten Faktor VERLANGEN kann.** Der Auftrag hat die Frage

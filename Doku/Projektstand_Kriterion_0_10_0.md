@@ -257,9 +257,11 @@ Karten bleiben **neunzehn**, `MERKMALE` **dreizehn**, `BESTAETIGUNG_ZWECKE`
 **Der QR-Code ist NICHT Teil dieser Runde** — statt seiner steht der Schlüssel
 in Vierergruppen und die `otpauth://`-Zeile als Verweis daneben.
 
-**Ob 0.10.0 im Feld läuft, steht noch aus.** Sobald es eingespielt und der
-Rundlauf einmal von Hand gefahren ist — einschalten, abmelden, mit Code
-anmelden, einmal mit einem Wiederherstellungscode —, gehört das hierher.
+**DER STAND IST IM FELD BESTÄTIGT.** 0.10.0 ist eingespielt und läuft; der
+zweite Faktor tut, was er soll. **Was noch aussteht, ist der Fingerprint der
+laufenden Anlage** — der Branch misst `dc8c16f7`, gemeldet ist der Wert vom Wirt
+nicht. *Bei 0.9.1 hat sich genau dort eine Datei zu viel gezeigt, während jede
+Prüfung grün war* (Befund V, Stolperstein 158); die Karte „Anlage" nennt ihn.
 
 **0.9.1 davor** — Fingerprint **`3cf1b093`**, 3451
 Prüfungen. *(Beim Einspielen stand er bei `d629e78d` und 3432 Prüfungen; die
