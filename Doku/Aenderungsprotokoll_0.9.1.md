@@ -600,6 +600,9 @@ ohne 45 — siehe Abweichung D), drei sind nachgezogen (07, 14 und 30 zielten au
 Zeilen, die diese Runde verschoben hat), zwei sind die Wächter über den
 Prüfstand selbst.
 
+**Rückbau 63 ist nach der Berichtigung aus Befund M neu gezielt** und in einem
+eigenen Lauf gefahren: er stellt die alte, verdeckende Bedingung wieder her.
+
 **Sieben Läufe waren beim ersten Mal stumm oder rissen ab, und jeder einzelne
 hat etwas gesagt** — vier echte Lücken in der Prüfung (36, 39, 41, 66) und drei
 Läufe, die abrissen statt rot zu werden (48, 56, 58). **Rückbau 36 riss danach
@@ -643,7 +646,7 @@ DANACH: null stumm, null abgerissen.**
 | 60 | Die Bremse fehlt an der Anfrageroute | „Die Anfrageroute ist damit ebenfalls gesperrt", „Und die Absage nennt die Wartezeit" |
 | 61 | Die Bremse fehlt an der Bestaetigungsroute | „Der elfte ist der erste gesperrte", „Der Uebergang liegt genau zwischen zehn und elf" |
 | 62 | Das Anfrageformular steht auch bei ausgeschaltetem Schalter da | „Ist die Selbstanmeldung aus, steht auf der Anmeldeseite kein Formular" |
-| 63 | Die Karte „Anfragen“ steht immer da | „Ist die Selbstanmeldung aus und nichts offen, fehlt die Karte "Anfragen"", „Und es sind dann achtzehn statt neunzehn", „Alle uebrigen achtzehn stehen unveraendert da" |
+| 63 | Die Karte „Anfragen“ verschwindet, solange der Schalter aus ist | 4 Prüfungen, darunter „Ist die Selbstanmeldung aus und nichts offen, steht die Karte ‚Anfragen' trotzdem" (Gruppe „Der Systembereich nach Rolle") |
 | 64 | Die rote Zeile bei kaputtem Versand faellt weg | „Ist der Versand kaputt, steht die rote Zeile da", „Sie nennt den Grund des Servers", „Und sagt, dass der Schalter trotzdem an bleibt" |
 | 65 | Die Bestaetigungsseite meldet gleich an | 6 Prüfungen, darunter „Der Aufruf mit einem Bestaetigungslink fragt den Server nach ihm" (Gruppe „Die Bestaetigungsseite in der Oberflaeche") |
 | 66 | Die gekuerzte Zeile im Mailtext verliert eine Auskunft | „Und was danach zu tun ist" |
