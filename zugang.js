@@ -7,14 +7,16 @@
  *   node zugang.js passwort <name>
  *   node zugang.js entfernen <name> [--eintraege] [--beitraege]
  *   node zugang.js eigentuemer <name>
+ *   node zugang.js zweifaktor <name>
  *
  * Die Vorgaenge selbst stehen in auth.js und werden von der Verwaltungskarte
  * genauso gerufen. Hier steht nur die Bedienung: einlesen, fragen, ausgeben.
  * ZUGRIFF AUF DEN WIRT IST DIE BERECHTIGUNG -- wer diesen Befehl ausfuehren
  * kann, koennte auch die .env lesen. Eine Rechtefrage waere hier eine Kulisse.
- * Das bleibt so -- ABER die drei schreibenden Befehle stehen im
+ * Das bleibt so -- ABER die VIER schreibenden Befehle stehen im
  * Sicherheitsprotokoll. Sonst haette der Notweg als einziger keine Spur, und
  * genau er ist der, den man hinterher nachlesen moechte.
+ * (Bis 0.9.1 waren es drei; 'zweifaktor' ist mit 0.10.0 dazugekommen.)
  */
 const readline = require('readline');
 const { db } = require('./db');
@@ -47,6 +49,14 @@ ${FETT('Kriterion — Zugangsverwaltung')}
   node zugang.js eigentuemer <name>
       Macht den Zugang zum Eigentuemer der Anlage. Der Notausgang, wenn sich
       der bisherige nicht mehr anmeldet.
+
+  node zugang.js zweifaktor <name>
+      Schaltet den zweiten Faktor AUS. Der Notausgang, wenn das Telefon weg
+      ist und auch die Wiederherstellungscodes aufgebraucht sind. Fragt vorher
+      nach; Passwort, Rolle und Bestand bleiben unangetastet.
+      EINSCHALTEN GEHT VON HIER AUS NICHT, und das ist Absicht: dazu muss das
+      Geheimnis auf das Telefon des Betroffenen, und wer es fuer ihn erzeugte,
+      sperrte ihn aus.
 `);
 }
 
@@ -110,12 +120,17 @@ function befehlListe() {
   const zeilen = auth.listeZugaenge();
   if (!zeilen.length) { console.log('Es ist noch kein Zugang eingerichtet.'); return; }
   const breite = Math.max(4, ...zeilen.map(z => z.username.length));
+  // Die Spalte "2FA" seit 0.10.0. Sie sagt AN oder AUS und nie mehr -- das
+  // Geheimnis steht auch hier nicht, und die Zahl der Wiederherstellungscodes
+  // gehoert an den einen Ort, an dem sie jemanden angeht: die Karte "Zugang"
+  // des Betroffenen und den Befehl `zweifaktor` daneben.
   console.log(`\n  ${'Nr'.padStart(3)}  ${'Name'.padEnd(breite)}  ${'Rolle'.padEnd(11)}  ` +
-              `${'Status'.padEnd(9)}  ${'Einträge'.padStart(8)}  Letzte Anmeldung`);
-  console.log('  ' + '─'.repeat(breite + 52));
+              `${'Status'.padEnd(9)}  ${'2FA'.padEnd(4)}  ${'Einträge'.padStart(8)}  Letzte Anmeldung`);
+  console.log('  ' + '─'.repeat(breite + 58));
   for (const z of zeilen) {
     console.log(`  ${String(z.id).padStart(3)}  ${z.username.padEnd(breite)}  ` +
       `${(ROLLENWORT[z.role] || z.role).padEnd(11)}  ${z.status.padEnd(9)}  ` +
+      `${(auth.zweifaktorAn(z.id) ? 'an' : 'aus').padEnd(4)}  ` +
       `${String(z.eintraege).padStart(8)}  ${z.last_login || '—'}`);
   }
   console.log(`\n  ${zeilen.length === 1 ? '1 Zugang' : zeilen.length + ' Zugänge'}, ` +
@@ -172,6 +187,36 @@ async function befehlEntfernen(name, optionen) {
   console.log(`"${ergebnis.name}" ist entfernt. Die Zeile bleibt als ${ergebnis.grabstein} stehen.`);
 }
 
+/* DER NOTWEG AM ZWEITEN FAKTOR, seit 0.10.0 -- UND ER SCHALTET NUR AUS.
+   Einschalten gaebe es hier nicht: das Geheimnis muesste auf das Telefon des
+   Betroffenen, und wer es fuer ihn erzeugte, sperrte ihn aus. Ausschalten
+   dagegen MUSS von hier aus gehen -- sonst waere "Telefon weg und
+   Wiederherstellungscodes verbraucht" ein Zustand ohne Ausweg, und genau
+   dagegen ist dieser Weg da.
+   ES IST KEIN UMWEG UM DIE ANMELDUNG: das Passwort bleibt unberuehrt, und wer
+   diesen Befehl ausfuehren kann, koennte ohnehin `passwort` setzen. */
+async function befehlZweifaktor(name) {
+  const u = findeZugang(name);
+  const stand = auth.zweifaktorStand(u.id);
+  if (!stand.an) {
+    console.log(`"${u.username}" hat keinen zweiten Faktor eingeschaltet. Nichts zu tun.`);
+    return;
+  }
+  console.log(`\nZweiten Faktor von "${u.username}" (Nummer ${u.id}, ` +
+    `${ROLLENWORT[u.role] || u.role}) ausschalten.`);
+  console.log(`  Eingeschaltet seit: ${stand.seit}`);
+  console.log(`  Wiederherstellungscodes: ${stand.codesOffen} von ${stand.codesGesamt} noch offen`);
+  console.log('  Danach genügt zum Anmelden wieder das Passwort allein.');
+  console.log('  Einschalten kann ihn nur der Betroffene selbst, in der Karte „Zugang“.');
+  const antwort = (await frage('\nWirklich ausschalten? [ja/nein] ')).trim().toLowerCase();
+  if (antwort !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
+  // VOM_WIRT statt einer Nummer: hier ist niemand angemeldet. Das leere `wer`
+  // im Protokoll heisst "ueber den Wirt" -- daran ist der Notweg zu erkennen.
+  auth.schalteZweifaktorAus(u.id, auth.VOM_WIRT);
+  console.log(`Der zweite Faktor von "${u.username}" ist ausgeschaltet. ` +
+    'Die Wiederherstellungscodes sind mit weggefallen.');
+}
+
 function befehlEigentuemer(name) {
   const u = findeZugang(name);
   try {
@@ -192,6 +237,7 @@ async function haupt() {
     case 'passwort': brauchtNamen(); await befehlPasswort(name); break;
     case 'entfernen': brauchtNamen(); await befehlEntfernen(name, optionen); break;
     case 'eigentuemer': brauchtNamen(); befehlEigentuemer(name); break;
+    case 'zweifaktor': brauchtNamen(); await befehlZweifaktor(name); break;
     default:
       if (befehl) console.error(ROT(`Unbekannter Befehl: ${befehl}`));
       hilfe();

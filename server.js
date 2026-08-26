@@ -380,9 +380,112 @@ app.post('/api/login', async (req, res) => {
         : 'Dieser Zugang ist gesperrt. Der Admin kann ihn wieder freigeben.'
     });
   }
+  /* DER ZWEITE FAKTOR, SEIT 0.10.0 -- UND HIER, NACH DER PASSWORTPRUEFUNG.
+     DIE AUSKUNFT "DIESER ZUGANG HAT EINEN ZWEITEN FAKTOR" KOMMT ERST NACH
+     RICHTIGEM PASSWORT, und das ist baulich wahr statt beabsichtigt: die Zeile
+     steht unterhalb von pruefeAnmeldung, und wer dort scheitert, hat die 401
+     von oben laengst bekommen -- Byte fuer Byte dieselbe wie vor dieser Runde.
+     Stuende die Frage weiter oben, waere die Anmeldeseite ein Werkzeug zum
+     Durchprobieren von NAMEN: "dieser hat einen Faktor" heisst "diesen Namen
+     gibt es".
+     KEIN COOKIE. Es entsteht KEINE Sitzung und damit auch keine halbe -- was
+     entsteht, ist ein Ausweis im Arbeitsspeicher, und sessions bleibt die eine
+     Wahrheit ueber "angemeldet". */
+  /* DER ZAEHLER DER BREMSE WIRD HIER NICHT ZURUECKGESETZT, und das ist ein
+     Befund aus dem Bau dieser Runde und kein Feinschliff. Bis 0.10.0 stand
+     noteSuccess unmittelbar hinter der Passwortpruefung -- richtig, solange
+     die Anmeldung mit dem Passwort fertig war. Mit einem zweiten Schritt
+     dahinter WAERE ES DIE LUECKE GEWESEN: wer das Passwort kennt und Ziffern
+     raet, holte sich vor jedem Versuch einen frischen Ausweis, und dieser Ruf
+     loeschte den Zaehler, den der zweite Schritt gerade aufgebaut hat. Die
+     Bremse haette nie zugeschlagen, und sechs Ziffern waeren eine Million
+     ungebremste Versuche gewesen.
+     ZURUECKGESETZT WIRD ERST, WENN JEMAND WIRKLICH DRIN IST -- unten in
+     dieser Route fuer den einstufigen Weg, und in POST /api/login/zwei fuer
+     den zweistufigen. Eine halb gelungene Anmeldung ist kein Erfolg. */
+  if (auth.zweifaktorAn(benutzer.id)) {
+    return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });
+  }
   auth.noteSuccess(ip, user);
   auth.pruneSessions();
   res.set('Set-Cookie', auth.sessionCookie(auth.legeSitzungAn(benutzer.id)));
+  res.json({ ok: true });
+});
+
+/* DER ZWEITE SCHRITT DER ANMELDUNG, seit 0.10.0.
+   DIE ACHTE ROUTE DER ART 'offen' -- im Kopf steht keine Rechtefrage, also MUSS
+   die Schranke im Rumpf stehen, und sie heisst Ausweis UND Code. Beide zusammen:
+   der Ausweis allein belegt nur, dass jemand das Passwort kannte.
+
+   DIE BENUTZERNUMMER KOMMT AUS DEM AUSWEIS UND NIE AUS DEM RUMPF. Stuende sie
+   dort, waere das richtige Passwort eines Zugangs die Eintrittskarte fuer jeden
+   anderen -- man tippte den eigenen Namen, bekaeme den Ausweis und schriebe
+   eine fremde Nummer hinein.
+
+   DIE ANMELDEBREMSE GREIFT HIER AUSDRUECKLICH, mit unangetasteten Kennwerten
+   und BEIDEN Haelften. Sie faellt an dieser Route nicht von selbst an: es ist
+   ein eigener Weg neben POST /api/login, und ohne diese Zeilen liefe er an
+   checkThrottle vorbei. Sechs Ziffern sind eine Million -- ungebremst waere das
+   kein Faktor, sondern eine Verzoegerung. Der NAME ist hier bekannt (er haengt
+   am Ausweis), also greift auch die verzoegernde Haelfte, genau wie bei
+   POST /api/login und anders als an den Tokenrouten.
+
+   DIE ABSAGE IST DIE EINE aus auth.js und nennt nicht, ob der Code falsch oder
+   abgelaufen war -- das Heilmittel ist in beiden Faellen dasselbe. */
+app.post('/api/login/zwei', async (req, res) => {
+  const ip = auth.clientIp(req);
+  const { ausweis, code } = req.body || {};
+  /* DER AUSWEIS WIRD ZUERST VERBRAUCHT, und zwar VOR der Bremse: er gilt genau
+     einmal, und ein gesperrter Aufrufer darf ihn nicht durch Warten am Leben
+     halten. Wer die Frist verstreichen laesst, faengt bei der Anmeldung an. */
+  const id = auth.verbraucheAnmeldeAusweis(ausweis);
+  if (!id) {
+    auth.noteFailure(ip, null);
+    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.' });
+  }
+  const zugang = auth.holeZugang(id);
+  const name = zugang ? zugang.username : null;
+  const t = auth.checkThrottle(ip, name);
+  if (t.blocked) {
+    return res.status(429).json({
+      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`
+    });
+  }
+  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
+  /* ZWEITE NACHSCHAU AUF DEN STATUS. Zwischen den beiden Schritten liegen bis
+     zu zwei Minuten, und in denen kann ein Admin gesperrt haben. Dieselbe
+     Meldung wie im ersten Schritt -- der Aufrufer hat sein Passwort ja bereits
+     belegt und darf deshalb erfahren, woran es liegt. */
+  if (!zugang || zugang.status !== 'aktiv') {
+    return res.status(403).json({ error: 'Dieser Zugang ist gesperrt. Der Admin kann ihn wieder freigeben.' });
+  }
+  if (!auth.pruefeZweitenFaktor(id, code)) {
+    auth.noteFailure(ip, name);
+    /* DIESELBE ZEILE WIE BEI EINEM FALSCHEN PASSWORT, und kein eigener Vorgang
+       daneben: eine gescheiterte zweite Stufe IST eine gescheiterte Anmeldung.
+       Sie steht hier und nicht in auth.pruefeZweitenFaktor -- die Funktion
+       hat drei Rufer, und an den beiden anderen ist das Scheitern keine
+       Anmeldung. */
+    auth.protokolliere('anmeldung.fehl', { wer: null, ziel: id });
+    /* EIN FRISCHER AUSWEIS LIEGT DER ABSAGE BEI, und das ist eine Entscheidung
+       ueber die Bedienung, die der Sicherheit nichts nimmt.
+       DER ALTE IST VERBRAUCHT -- "genau einmal" bleibt woertlich wahr. Ohne
+       den neuen stuende ein Mensch nach EINEM Tippfehler wieder vor dem
+       Passwortfeld, und das trifft ausgerechnet den, der einen zehnstelligen
+       Wiederherstellungscode vom Zettel abschreibt.
+       WAS DEN VERSUCH BEGRENZT, IST DIE BREMSE UND NICHT DIE FRIST. Nachgerechnet:
+       wer das Passwort kennt und Ziffern raet, kaeme ohne den neuen Ausweis
+       genauso weit -- er tippt das Passwort eben noch einmal, und die Bremse
+       zaehlt beides gleich. Zehn Versuche je Adresse und fuenf Minuten Sperre
+       stehen gegen eine Million Moeglichkeiten; der Unterschied liegt allein
+       beim Ehrlichen. */
+    return res.status(401).json({
+      error: auth.ZWEITER_FAKTOR_ABSAGE, ...auth.erzeugeAnmeldeAusweis(id)
+    });
+  }
+  auth.noteSuccess(ip, name);
+  auth.pruneSessions();
+  res.set('Set-Cookie', auth.sessionCookie(auth.legeSitzungAn(id)));
   res.json({ ok: true });
 });
 
@@ -471,6 +574,33 @@ app.post('/api/token/einloesen', async (req, res) => {
   try { ergebnis = await auth.loeseTokenEin(token, passwort); }
   catch (e) { auth.noteFailure(ip, null); return res.status(400).json({ error: e.message }); }
   auth.noteSuccess(ip, null);
+  /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT, SEIT 0.10.0 -- UND DAS IST EINE
+     SICHERHEITSFRAGE, KEINE BEQUEMLICHKEITSFRAGE.
+
+     OHNE DIESE ZEILEN WAERE DER RUECKSETZLINK DER WEG AM ZWEITEN FAKTOR VORBEI,
+     und zwar fuer genau den, gegen den er nicht schuetzen soll: ein Admin
+     erzeugt fuer einen fremden Zugang einen Link (POST /api/users/:id/token),
+     oeffnet ihn selbst, setzt ein Passwort -- und waere angemeldet. Derselbe
+     Weg steht ihm ueber PUT /api/users/:id mit `passwort` offen; DORT schliesst
+     ihn die Anmeldung, HIER muss er hier geschlossen werden. Ein zweiter Faktor,
+     der ueber die Rollenleiter abzustreifen ist, sichert nichts.
+     Der Link laeuft ausserdem ueber eine MAIL, also ueber einen fremden Server.
+
+     DER SONDERFALL LOEST SICH BAULICH: ein Zugang, der seinen ERSTEN Link
+     einloest, hat noch kein Passwort -- und kann deshalb keinen bestaetigten
+     Faktor haben, denn einschalten setzt eine Anmeldung voraus und die ein
+     Passwort. zweifaktorAn() ist dort schlicht falsch, und er kommt herein wie
+     bisher. Der Pruefstand stellt das nach, statt es zu behaupten.
+
+     DAS PASSWORT IST DABEI SCHON GESETZT und die alten Sitzungen sind gefallen.
+     Das ist richtig so: der Link hat getan, wofuer er da war. Was er NICHT
+     mehr tut, ist anmelden. */
+  if (auth.zweifaktorAn(ergebnis.id)) {
+    return res.json({
+      ok: true, username: ergebnis.username, zweifaktor: true,
+      ...auth.erzeugeAnmeldeAusweis(ergebnis.id)
+    });
+  }
   auth.pruneSessions();
   res.set('Set-Cookie', auth.sessionCookie(auth.legeSitzungAn(ergebnis.id)));
   res.json({ ok: true, username: ergebnis.username });
@@ -743,8 +873,15 @@ app.get('/api/account', (req, res) => {
   // Die eigene Adresse steht hier und nirgends sonst: sie gehoert dem, der sie
   // hat. GET /api/users liefert sie ausdruecklich NICHT mit -- ein Admin
   // braucht fuer seine Arbeit die Zugaenge, nicht die Postfaecher.
+  /* DER ZUSTAND DES ZWEITEN FAKTORS REIST HIER MIT, SEIT 0.10.0 -- und deshalb
+     kommt keine lesende Route dazu. Die Karte "Zugang" holt diese Antwort
+     ohnehin, und damit steht "an seit ..." oder "aus" da, OHNE dass jemand
+     erst einen Knopf druecken muss.
+     DAS GEHEIMNIS IST NIE DARIN, auch nicht fuer den Eigentuemer. Dieselbe
+     Linie wie beim Mailpasswort: die Karte sagt an oder aus, nie den Wert. */
   res.json({ username: req.benutzer.username, minPassword: auth.PASSWORT_MIN,
-             email: auth.holeZugang(req.benutzer.id)?.email || '' });
+             email: auth.holeZugang(req.benutzer.id)?.email || '',
+             zweifaktor: auth.zweifaktorStand(req.benutzer.id) });
 });
 
 app.put('/api/account', async (req, res) => {
@@ -799,6 +936,109 @@ app.delete('/api/sessions/:kennung', (req, res) => {
   res.json({ beendet: n });
 });
 
+/* ---- Der zweite Faktor, seit 0.10.0 ----
+   VIER SCHREIBENDE ROUTEN, ALLE DER ART 'selbstbezug': die Benutzernummer
+   kommt aus req.benutzer und steht in keinem Pfad. Das ist nicht bloss
+   ordentlich, es ist die ganze Rechtefrage dieses Bereichs -- JEDER SCHALTET
+   IHN FUER SICH SELBST EIN UND AUS, und es gibt keine Adresse, unter der ein
+   Fremder gemeint waere. Kein nurAdmin, kein nurEigentuemer, keine
+   Rollenleiter: sie haetten hier nichts zu entscheiden.
+
+   EINSCHALTEN GEHT IN ZWEI SCHRITTEN, und der zweite ist der Beleg:
+     POST /api/zweifaktor/start  erzeugt das Geheimnis und gibt es EINMAL heraus
+     POST /api/zweifaktor/an     nimmt einen Code aus der App entgegen und
+                                 schaltet ein -- erst hier entstehen die
+                                 Wiederherstellungscodes
+   Ein Schritt allein waere ein Zugang, den niemand mehr oeffnet: das Geheimnis
+   stuende in der Datenbank, ohne dass je belegt waere, dass es auch auf dem
+   Telefon angekommen ist.
+
+   ALLE VIER STEHEN HINTER DEM BISHERIGEN PASSWORT, auch das Einschalten. Beim
+   Ausschalten ist das offensichtlich; beim EINSCHALTEN ist es der weniger
+   offensichtliche und genauso wichtige Fall: eine uebernommene offene Sitzung
+   koennte sonst einen zweiten Faktor auf ein FREMDES Telefon legen und den
+   Eigentuemer damit aussperren. Dieselbe Schranke wie an PUT /api/account
+   nebenan, und aus verwandtem Grund.
+
+   DAS GEHEIMNIS KOMMT AUS KEINER ANTWORT HERAUS, SOBALD ES BESTAETIGT IST --
+   auch nicht an den Eigentuemer. POST /api/zweifaktor/start ist die eine
+   Antwort, in der es steht, wie beim Token der Klartext, und danach nie wieder. */
+
+// Das bisherige Passwort, an allen vier Wegen dieselbe Frage. Sie steht EINMAL
+// hier und nicht viermal daneben. true = weitermachen; bei false ist die
+// Antwort bereits geschrieben.
+// 403 und nicht 401: der Zugang gilt weiter, nur diese eine Handlung nicht --
+// dieselbe Ueberlegung wie bei der zweiten Bestaetigung.
+async function eigenesPasswortStimmt(req, res, passwort) {
+  const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
+  if (zeile && await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) return true;
+  res.status(403).json({ error: 'Das Passwort stimmt nicht.' });
+  return false;
+}
+
+/* Schritt eins. DER OEFFENTLICHE TITEL WIRD MITGEGEBEN, damit in der App
+   steht, wozu der Code gehoert -- er steht ohnehin auf der Anmeldeseite und
+   verraet nichts, was nicht jeder sieht, der die Adresse kennt. */
+app.post('/api/zweifaktor/start', async (req, res) => {
+  if (!await eigenesPasswortStimmt(req, res, (req.body || {}).passwort)) return;
+  try {
+    res.json(auth.beginneZweifaktor(req.benutzer.id,
+      getSetting('title_public', 'Bewertungskatalog'), req.benutzer.username));
+  } catch (e) { return res.status(400).json({ error: e.message }); }
+});
+
+/* Schritt zwei. HIER ENTSTEHEN DIE WIEDERHERSTELLUNGSCODES, und sie stehen in
+   dieser einen Antwort. Danach nirgends mehr -- auch nicht in der Datenbank,
+   dort liegt nur ihr SHA-256. Wer sie verliert, holt sich neue; wer beides
+   verliert, geht ueber zugang.js auf dem Wirt. */
+app.post('/api/zweifaktor/an', async (req, res) => {
+  const { passwort, code } = req.body || {};
+  if (!await eigenesPasswortStimmt(req, res, passwort)) return;
+  try {
+    res.json(auth.schalteZweifaktorEin(req.benutzer.id, code, req.benutzer.id));
+  } catch (e) { return res.status(400).json({ error: e.message }); }
+});
+
+/* Frische Wiederherstellungscodes -- der Fall, den niemand plant: der letzte
+   ist verbraucht. Hinter Passwort UND gueltigem Code, wie das Ausschalten:
+   wer neue Codes bekaeme, ohne den laufenden Faktor zu belegen, haette einen
+   Weg an ihm vorbei. Ein Wiederherstellungscode zaehlt dabei als Beleg -- genau
+   dafuer ist er da, und der letzte holt so die naechsten acht. */
+app.post('/api/zweifaktor/codes', async (req, res) => {
+  const { passwort, code } = req.body || {};
+  if (!await eigenesPasswortStimmt(req, res, passwort)) return;
+  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))
+    return res.status(403).json({ error: auth.ZWEITER_FAKTOR_ABSAGE });
+  try {
+    /* ERST DIE CODES, DANN DER STAND -- und die Reihenfolge ist keine
+       Geschmacksfrage. In einem Objektliteral wird von links nach rechts
+       ausgewertet: stuende zweifaktorStand() zuerst, meldete die Antwort die
+       Zahl von VOR dem Erneuern, und die Karte zeigte "noch 4 von 8" neben
+       acht frischen Codes. */
+    const codes = auth.erneuereWiederCodes(req.benutzer.id);
+    res.json({ ...auth.zweifaktorStand(req.benutzer.id), codes });
+  } catch (e) { return res.status(400).json({ error: e.message }); }
+});
+
+/* Ausschalten. PASSWORT UND GUELTIGER CODE -- das Passwort allein genuegte
+   nicht: gegen eine uebernommene Sitzung mit mitgelesenem Passwort ist der
+   Faktor ja gerade gebaut, und liesse er sich mit demselben Passwort abstreifen,
+   sicherte er nichts.
+   EIN ADMIN KOMMT HIER NICHT HEREIN, und es gibt auch keine Adresse, unter der
+   er es versuchen koennte: die Nummer kommt aus req.benutzer. Der einzige Weg
+   daneben ist zugang.js auf dem Wirt -- dieselbe Linie wie beim
+   Schluesselwechsel. */
+app.delete('/api/zweifaktor', async (req, res) => {
+  const { passwort, code } = req.body || {};
+  if (!auth.zweifaktorAn(req.benutzer.id))
+    return res.status(400).json({ error: 'Der zweite Faktor ist nicht eingeschaltet.' });
+  if (!await eigenesPasswortStimmt(req, res, passwort)) return;
+  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code))
+    return res.status(403).json({ error: auth.ZWEITER_FAKTOR_ABSAGE });
+  auth.schalteZweifaktorAus(req.benutzer.id, req.benutzer.id);
+  res.json({ ...auth.zweifaktorStand(req.benutzer.id) });
+});
+
 /* ---- Die Freigabe holen ----
    EINE ROUTE FUER ALLE SIEBEN WEGE. Sie prueft DASSELBE Passwort noch einmal,
    nicht ein zweites Geheimnis -- ein zweiter Faktor ist eine eigene Stufe.
@@ -826,7 +1066,7 @@ app.post('/api/bestaetigung', async (req, res) => {
     });
   }
   if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
-  const { passwort, zweck, ziel } = req.body || {};
+  const { passwort, zweck, ziel, code } = req.body || {};
   if (!auth.BESTAETIGUNG_ZWECKE.includes(zweck))
     return res.status(400).json({ error: 'Diesen Zweck gibt es nicht.' });
   const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
@@ -837,6 +1077,27 @@ app.post('/api/bestaetigung', async (req, res) => {
     // Passwort nicht -- genau der Fall, gegen den diese Runde gebaut ist.
     auth.protokolliere('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
     return res.status(403).json({ error: 'Das Passwort stimmt nicht.' });
+  }
+  /* SEIT 0.10.0 FRAGT DIESE STELLE ZUSAETZLICH DEN CODE -- aber NUR bei
+     Zugaengen, die einen zweiten Faktor eingeschaltet haben. Wer ihn nicht
+     will, merkt von dieser Runde nichts.
+
+     WARUM GERADE HIER: die zweite Bestaetigung verteidigt gegen die UEBERNOMMENE
+     OFFENE SITZUNG (Abschnitt 5 des Projektstands) -- ein Bildschirm, der
+     stehen blieb, ein gestohlener Cookie. Genau dort traegt ein zweiter Faktor
+     am meisten: das Passwort mag mitgelesen sein, das Telefon liegt woanders.
+
+     BESTAETIGUNG_ZWECKE BLEIBT BEI SIEBEN. Die Liste fuehrt ZWECKE, und es kommt
+     keiner dazu -- es ist eine zweite Frage an derselben Stelle, kein achter Weg.
+
+     DIE REIHENFOLGE IST PASSWORT, DANN CODE, und nicht umgekehrt: wer das
+     Passwort nicht hat, soll nicht erfahren, ob am Zugang ein Faktor haengt.
+     Und der Fehlschlag schreibt dieselbe Zeile wie oben -- 'bestaetigung.fehl'
+     ist der Vorgang, ob es am Passwort lag oder am Code. */
+  if (auth.zweifaktorAn(req.benutzer.id) && !auth.pruefeZweitenFaktor(req.benutzer.id, code)) {
+    auth.noteFailure(ip, name);
+    auth.protokolliere('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
+    return res.status(403).json({ error: auth.ZWEITER_FAKTOR_ABSAGE, zweifaktor: true });
   }
   auth.noteSuccess(ip, name);
   const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
@@ -1513,6 +1774,17 @@ app.get('/api/settings', (req, res) => res.json({
   // Vorhandenen bleibt in jedem Fall stehen.
   tagsFreiAnlegen: freiAnlegen('tagsFreiAnlegen'),
   kategorienFreiAnlegen: freiAnlegen('kategorienFreiAnlegen'),
+  /* SEIT 0.10.0: fragt die zweite Bestaetigung bei DIESEM Zugang zusaetzlich
+     den Code? Das Feld steht hier und nicht nur in GET /api/account, und aus
+     demselben Grund wie `name` darueber -- beide lesen denselben Zugang, es ist
+     also keine zweite Wahrheit. Gebraucht wird es ausserhalb des
+     Systembereichs: das Bestaetigungsfenster steht auch vor Export und Import,
+     und ohne diese Angabe muesste es den ersten Versuch absichtlich scheitern
+     lassen, um zu erfahren, dass ein Code fehlt -- eine Protokollzeile
+     'bestaetigung.fehl' bei jedem einzelnen Vorgang.
+     NUR EIN JA/NEIN. Weder das Geheimnis noch der Zeitpunkt noch die Zahl der
+     Wiederherstellungscodes -- die stehen in der Karte, wo sie hingehoeren. */
+  zweifaktor: auth.zweifaktorAn(req.benutzer.id),
   // Die Frist des Papierkorbs. Sie steht HIER und nicht nur in
   // GET /api/papierkorb: den Loeschdialog sieht jeder, die Karte nur der
   // Admin. Eine Zahl, die die Oberflaeche selbst mitbraechte, waere eine

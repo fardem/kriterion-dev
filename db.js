@@ -421,6 +421,115 @@ CREATE TABLE IF NOT EXISTS anfragen (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+/* DER ZWEITE FAKTOR -- ZWEI TABELLEN, UND SIE SIND NICHT DASSELBE.
+
+   FREIWILLIG, JE ZUGANG. Wer keine Zeile hat, hat keinen zweiten Faktor, und
+   fuer ihn ist die Anlage vollstaendig wie zuvor. Dieselbe Linie wie beim
+   Mailversand und bei der Selbstanmeldung -- nichts davon ist eine
+   Voraussetzung.
+
+   user_id IST DER PRIMAERSCHLUESSEL UND NICHT EINE SPALTE DANEBEN: ein Zugang
+   hat einen zweiten Faktor oder keinen. Eine eigene Nummer erlaubte zwei Zeilen
+   an einem Zugang, und damit zwei Wahrheiten darueber, welches Geheimnis gilt.
+
+   geheim LIEGT IM KLARTEXT, und das ist der Unterschied zu Passwort und Token
+   -- er gehoert ausdruecklich benannt und nicht weggeschrieben. Ein Passwort
+   wird GEPRUEFT, also genuegt sein Hash; ein TOTP-Geheimnis wird
+   NACHGERECHNET, also braucht die Anlage den Wert selbst. Es gibt dazu keine
+   Bauform, die beides kann. DIE VERSCHLUESSELTE DATENBANK IST DIE EINZIGE
+   SCHICHT DARUEBER. Was daraus folgt, steht im Projektstand, Abschnitt 3, und
+   in einem Satz hier: der JSON-Export traegt sie nicht (er packt Eintraege,
+   keine Zugangstabellen), die Sicherung ueber VACUUM INTO traegt sie sehr wohl
+   -- wie Sitzungen und Mailpasswort auch --, und in eine Kontrollausgabe kommt
+   sie nie.
+
+   bestaetigt_am NULL HEISST "angefangen, noch nicht bestaetigt". Es ist der
+   Zustand zwischen "Geheimnis erzeugt" und "die App rechnet nachweislich
+   dasselbe": erst ein gueltiger Code aus dem Telefon setzt den Zeitpunkt.
+   SOLANGE ER LEER IST, VERLANGT DIE ANMELDUNG NICHTS -- sonst sperrte ein
+   abgebrochenes Einschalten den Zugang aus. Ein zweites Feld fuer den Zustand
+   waere eine zweite Wahrheit neben dem Zeitpunkt, wie bei anfragen daneben.
+
+   letzter_zaehler IST DIE GANZE BAUFORM GEGEN WIEDERVERWENDUNG. Ein Code gilt
+   GENAU EINMAL: angenommen wird nur ein Zeitschritt, der ECHT GROESSER ist als
+   der zuletzt verbrauchte. Das ist etwas schaerfer als "derselbe Code nicht
+   zweimal" -- nach einer Anmeldung ist auch das Fenster davor tot --, dafuer
+   ist es EINE Regel und keine Liste verbrauchter Werte, die jemand raeumen
+   muesste. NULL heisst "noch keiner verbraucht".
+
+   KEIN CHECK, keine Laengengrenze auf geheim -- dieselbe Ueberlegung wie bei
+   users.status: die Menge der gueltigen Werte steht im Code, wo sie sich
+   aendern laesst, ohne die Tabelle neu zu bauen.
+
+   ON DELETE CASCADE: mit dem Zugang geht sein zweiter Faktor. Im Betrieb
+   greift die Kaskade nie -- ein Zugang wird zum Grabstein statt entfernt --,
+   deshalb raeumt entferneZugang() ihn ausdruecklich selbst mit weg.
+   UND setzeStatus() TUT DAS AUSDRUECKLICH NICHT, anders als bei den Token:
+   ein gesperrter Zugang behaelt seinen zweiten Faktor. Raeumte ihn das Sperren
+   mit, waere "sperren und wieder freigeben" der Weg, an dem ein Admin einen
+   FREMDEN zweiten Faktor abstreift -- und damit genau die Rollenleiter-Luecke,
+   gegen die diese Runde gebaut ist. */
+CREATE TABLE IF NOT EXISTS zweifaktor (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  geheim TEXT NOT NULL,
+  bestaetigt_am TEXT,
+  letzter_zaehler INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+/* DIE WIEDERHERSTELLUNGSCODES -- EINE ZEILE JE CODE, UND DAS IST DER GRUND
+   FUER DIE ZWEITE TABELLE.
+
+   "JEDER GENAU EINMAL" IST EINE EIGENSCHAFT DER ZEILE. Eine Liste in einer
+   Spalte neben dem Geheimnis waere kuerzer und braechte den Zustand
+   "verbraucht" in eine zweite Form -- entweder als geloeschter Listeneintrag
+   (dann ist nicht mehr zu sehen, wie viele es einmal waren) oder als Marke im
+   Text (dann steht ein Zustand in einem Feld, das keinen tragen soll). Eine
+   Zeile je Code ist dieselbe Bauform wie tokens, und dort traegt sie seit
+   0.8.80.
+
+   hash IST SHA-256 OHNE SALZ, wie beim Token und aus derselben Begruendung:
+   ein Wiederherstellungscode ist ZUFALL und nicht ratbar, da kauft die
+   Langsamkeit von scrypt nichts. Ohne Salz ist der Hash ein Schluessel -- die
+   Zeile wird ueber den Primaerschluessel GEFUNDEN statt gesucht, und ein
+   zeitunabhaengiger Vergleich hat dort nichts mehr zu tun.
+   DER KLARTEXT STEHT IN KEINER SPALTE KEINER ZEILE. Er entsteht einmal, wird
+   einmal gezeigt und ist danach fort -- wie der Token, wie der
+   Bestaetigungsschluessel der Selbstanmeldung.
+
+   benutzt_am BLEIBT STEHEN statt die Zeile zu loeschen: nur so kann die Karte
+   "noch 6 von 8" sagen. Eine geloeschte Zeile liesse die Zahl schrumpfen, und
+   aus "acht ausgegeben" wuerde still "sechs ausgegeben".
+
+   GERAEUMT WIRD NICHT NACH EINER FRIST, anders als bei Token und Anfragen.
+   Ein Wiederherstellungscode hat keine: er liegt auf einem Zettel und soll
+   genau dann tragen, wenn das Telefon seit Monaten weg ist. Weg kommen die
+   Zeilen nur, wenn neue erzeugt werden oder der Faktor abgeschaltet wird --
+   beides in einer Transaktion.
+
+   ON DELETE CASCADE aus demselben Grund wie oben; ein Code ohne Zugang oeffnet
+   nichts. */
+CREATE TABLE IF NOT EXISTS zweifaktor_codes (
+  hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  benutzt_am TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+-- Gefragt wird ueber den Hash (Primaerschluessel) ODER nach allen Codes EINES
+-- Zugangs -- die Zahl fuer die Karte, das Ersetzen, das Abschalten. Dieselbe
+-- Ueberlegung wie bei idx_tokens_user, und wie dort ist ein Index keine
+-- Migration: er fasst die Zeilenform nicht an und legt sich bei jedem Start
+-- selbst nach.
+CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id);
+
+/* KEIN MIGRATIONSBLOCK FUER DIE BEIDEN, und das ist zum fuenften Mal
+   nachgestellt statt abgeschrieben: anders als eine SPALTE legt
+   CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an
+   (Stolperstein 13 gilt der Spalte). Der Pruefstand entfernt beide von Hand
+   aus einer bestehenden Anlage, startet einmal und sieht nach -- samt der
+   Gegenlage, dass eine Spalte nicht nachwaechst. Es bleibt bei FUENF
+   markierten Bloecken. */
+
 /* DAS SICHERHEITSPROTOKOLL -- ES HAELT FEST, WER ZUGANG HATTE UND WER DIE
    ANLAGE ALS GANZES ANGEFASST HAT.
 
