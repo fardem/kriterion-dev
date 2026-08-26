@@ -5661,6 +5661,15 @@ sind zwei Dinge:
 
 - **Der Betriebsstand steht in Abschnitt 2, nicht hier.** Zwei Stellen für
   dieselbe Angabe halten nur eine aktuell (vgl. Stolperstein 47).
+- **DER TAG `v0.10.0` IST GESETZT, ABER NICHT GESCHOBEN.** Er liegt auf dem
+  Commit, der herausgeht; der Push scheitert in der Arbeitsumgebung, in der
+  0.10.0 gebaut wurde, mit `HTTP 403` — Branches gehen durch, Tags nicht. Er
+  braucht einen Push von einer Stelle mit den nötigen Rechten:
+  `git tag -a v0.10.0 <commit> -m "…" && git push origin v0.10.0`.
+  **Ohne ihn zeigt der Vergleichsverweis am Ende von `CHANGELOG.md` ins
+  Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
+  *Dabei ist aufgefallen, dass das Repo schon vierzehn Tags trägt und nicht
+  keinen: Abschnitt 5, Unterabschnitt zum Changelog.*
 - **Versionsnummern brauchen drei Zahlen** (`0.6.10`, nicht `0.6.9b`) — die
   `package.json` lässt keine Buchstaben zu. Die führende Null sagt, dass sich
   noch alles ändern darf. **Herausgeben lässt sich die Anlage mit jeder
