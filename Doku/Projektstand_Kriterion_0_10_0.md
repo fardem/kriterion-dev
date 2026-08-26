@@ -217,7 +217,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.10.0 ist gebaut** — Fingerprint **`FINGERPRINT_0100`**, 3671 Prüfungen.
+**0.10.0 ist gebaut** — Fingerprint **`FINGERPRINT_0100`**, 3676 Prüfungen.
 **Die erste Runde nach dem Stufenplan und die erste unter Semantic
 Versioning.** **EINE DATENBANKSTUFE:** es kommen **zwei Tabellen** dazu
 (`zweifaktor`, `zweifaktor_codes`) und **keine Spalte** — deshalb **kein
@@ -253,7 +253,7 @@ genau dort am meisten trägt.
 Karten bleiben **neunzehn**, `MERKMALE` **dreizehn**, `BESTAETIGUNG_ZWECKE`
 **sieben**, die Formatnummer **10**, das Vokabular **elf**.
 **Keine neue Abhängigkeit und keine neue `.env`-Zeile.**
-41 Gegenproben, gefahren über `gegenprobe.js`.
+42 Gegenproben, gefahren über `gegenprobe.js`.
 **Der QR-Code ist NICHT Teil dieser Runde** — statt seiner steht der Schlüssel
 in Vierergruppen und die `otpauth://`-Zeile als Verweis daneben.
 
@@ -4836,6 +4836,25 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Verwandt mit 81, aber die andere Richtung: dort fehlt der Gegenstand, hier
     ist er da und trifft die Sache nicht.
 
+163. **Eine Schranke, die erst hinter einer anderen Absage steht, lässt sich
+    von außen nicht mehr belegen.** Der zweite Anmeldeschritt aus 0.10.0 hatte
+    die Anmeldebremse zunächst **hinter** dem Verbrauch des Ausweises: erst
+    Ausweis prüfen, dann Bremse fragen. Fachlich richtig — und **der Rückbau
+    darauf blieb vollständig STUMM.** Der Grund: sobald die Sperre steht, fällt
+    schon Schritt 1 mit 429 aus, und eine Prüfschleife über beide Schritte sieht
+    dieselbe 429 mit und ohne die Zeilen im zweiten. *Wer nur die Kette prüft,
+    prüft das schwächste Glied und nicht das gemeinte.*
+    **Zwei Dinge zusammen haben es behoben.** Die Bremse steht jetzt **ganz
+    vorn** in der Route, wie an `POST /api/login` und `POST /api/bestaetigung`
+    auch — ein gesperrter Aufrufer bekommt überall dieselbe 429 und nirgends
+    stattdessen eine Auskunft über seinen Ausweis. Und die Prüfung fragt den
+    zweiten Schritt **unmittelbar**, mit einem erfundenen Ausweis: trägt die
+    Bremse, kommt 429, bevor der Ausweis überhaupt angesehen wird; trägt sie
+    nicht, kommt die 401 über den Ausweis. **Dazu die Gegenlage vorher** —
+    ungesperrt antwortet derselbe Ruf mit 401 (Stolperstein 81).
+    *Die Reihenfolge ist damit nicht bloß aufgeräumt, sie ist die Bedingung
+    dafür, dass die Zusage überhaupt geprüft werden kann.*
+
 ---
 
 ## 7. Prüfstand
@@ -4848,7 +4867,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3671 von 3671 bestanden** (0.10.0; **220 neue Prüfungen, 41
+**Zuletzt: 3676 von 3676 bestanden** (0.10.0; **225 neue Prüfungen, 41
 Gegenproben, sechzehn neue Gruppen**: „Der zweite Faktor: die Rechnung gegen
 den Standard", „… der Rundlauf", „… ein Code gilt genau einmal", „… das
 Zeitfenster", „… ohne Code kommt niemand herein", „… die Auskunft kommt erst
@@ -5479,7 +5498,7 @@ Ansicht, Zoom lädt das Original.
 | 0.8.91 | Schlüsselwechsel, Gegenprobentreiber, Portversatz (101) | 18 | Stolpersteine 134 bis 140, Befund L |
 | 0.9.0 | Mailversand, Adresse am Zugang, Frist ab dem ersten Öffnen (182) | 33 | Stolpersteine 141 bis 146, Befund L |
 | 0.9.1 | Selbstanmeldung samt Nacharbeit an der Anmeldeseite (259) | 58 | Stolpersteine 149 bis 158 |
-| 0.10.0 | Zweiter Faktor, Wiederherstellungscodes, zweistufige Anmeldung (220) | 41 | Stolpersteine 159 bis 162 |
+| 0.10.0 | Zweiter Faktor, Wiederherstellungscodes, zweistufige Anmeldung (225) | 42 | Stolpersteine 159 bis 163 |
 
 **Aus 0.8.80 (Stufe H):** der **Rundlauf** ist die tragende Prüfung — einladen,
 Link, Formular, Passwort, Anmeldung, und **derselbe Link ein zweites Mal
@@ -5858,7 +5877,7 @@ ersten Schritt hätte den Zähler der Bremse gelöscht.
 `BESTAETIGUNG_ZWECKE` **7**, Karten **19**, Formatnummer **10**, Vokabular
 **11** — alles unverändert. **Keine neue Abhängigkeit, keine neue
 `.env`-Zeile.** **Der QR-Code ist nicht Teil dieser Runde** und bekommt eine
-eigene. 220 neue Prüfungen (3671), 41 Gegenproben. **Ab dieser Version trägt
+eigene. 225 neue Prüfungen (3676), 42 Gegenproben. **Ab dieser Version trägt
 jede herausgegebene einen Git-Tag** (`v0.10.0`), und `CHANGELOG.md` folgt Keep
 a Changelog 1.1.0.
 

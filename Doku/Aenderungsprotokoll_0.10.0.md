@@ -30,7 +30,9 @@ vorhandenen ändert sich.
 
 **Zwei Lücken sind beim Bauen aufgefallen und in derselben Runde geschlossen
 worden** — Stolpersteine 159 und 160. Sie stehen in Abschnitt 4 als Befunde A
-und B, und sie sind der eigentliche Ertrag dieser Runde.
+und B, und sie sind der eigentliche Ertrag dieser Runde. **Ein dritter Befund
+kam aus der Gegenprobe** (F): eine Zusage, die gebaut war und sich trotzdem
+nicht belegen ließ.
 
 **Der QR-Code ist vor dem Bau herausgenommen worden**, mit Begründung und
 Zustimmung. Einzelheiten in Abschnitt 2, Abweichung A.
@@ -206,7 +208,7 @@ Befehlen" werden vier.
 
 ### `pruefung.js`
 
-**220 neue Prüfungen in sechzehn neuen Gruppen**, dazu die Erweiterungen an
+**225 neue Prüfungen in sechzehn neuen Gruppen**, dazu die Erweiterungen an
 `F_ROUTEN` (Zahl **69**, fünf neue Zeilen samt Art), an den geschlossenen
 Listen aus `auth.js` (zwanzig Vorgänge, dreizehn Merkmale, sieben Zwecke), am
 Wächter über die Portbasen (**53**) und am Sprachwächter (**elf**
@@ -215,7 +217,7 @@ die sechs neuen Endpunkte und **zieht wirklich mit**.
 
 ### `gegenprobe.js`
 
-**41 neue Rückbauten**, Nummern 82 bis 122.
+**42 neue Rückbauten**, Nummern 82 bis 123.
 
 ### `CHANGELOG.md`, `README.md`, `Doku/`
 
@@ -483,7 +485,45 @@ müssen für Zähler über 2³² dasselbe ergeben — samt der Gegenlage, dass
 verschiedene Zähler auch verschiedene Codes ergeben. Der Kommentar im Quelltext
 ist berichtigt. Stolperstein 162.
 
-### Befund F — der Auftrag nennt für einen Schnitt eine Nummer aus dem alten Schema
+### Befund F — die Bremse am zweiten Schritt war gebaut und trotzdem unbeweisbar
+
+**Rückbau 97 („die Bremse fehlt am zweiten Schritt") blieb vollständig
+STUMM** — und der Code war dabei richtig.
+
+**Die Ursache liegt in der Reihenfolge.** Die Route hatte die Bremse **hinter**
+dem Verbrauch des Ausweises: erst Ausweis prüfen, dann Bremse fragen. Fachlich
+vertretbar — aber sobald die Sperre steht, fällt schon **Schritt 1** mit 429
+aus, und eine Prüfschleife über beide Schritte sieht dieselbe 429 mit und ohne
+die Zeilen im zweiten. **Die Prüfung prüfte das schwächste Glied der Kette,
+nicht das gemeinte.** Und weil ein gesperrter Aufrufer mit erfundenem Ausweis
+eine 401 über den Ausweis bekam, war die Sperre am zweiten Schritt von außen
+überhaupt nicht mehr zu sehen.
+
+**Zwei Änderungen zusammen haben es behoben.** Die Bremse steht jetzt **ganz
+vorn** in der Route — dieselbe Reihenfolge wie an `POST /api/login` und
+`POST /api/bestaetigung`, und ein gesperrter Aufrufer bekommt überall dieselbe
+429. Gezählt wird dort mit der **IP-Hälfte**: der Name ist vor dem Ausweis nicht
+bekannt, und ihn aus dem Rumpf zu nehmen wäre genau die Nummer aus dem Rumpf,
+die es hier nicht geben darf. *Die harte Sperre hängt ohnehin allein an der
+Adresse; die verzögernde Namenshälfte hat der Aufrufer in Schritt 1 bereits
+bezahlt, und gefüttert werden unten weiterhin beide.*
+
+**Und die Prüfung fragt den zweiten Schritt jetzt unmittelbar**, mit einem
+erfundenen Ausweis: trägt die Bremse, kommt 429, bevor der Ausweis angesehen
+wird; trägt sie nicht, kommt die 401. **Dazu die Gegenlage vorher** —
+ungesperrt antwortet derselbe Ruf mit 401 (Stolperstein 81) — und ein zweiter
+Rückbau (123), der allein die **Reihenfolge** zurückdreht.
+
+**Die Zahl der Durchgänge ist dabei ausgerechnet, nicht geraten:** der Ruf der
+Gegenlage zählt bereits einen Fehlversuch, neun weitere machen zehn, und beim
+zehnten fällt die Sperre. Ein Durchgang mehr liefe schon in Schritt 1 hinein
+und prüfte etwas anderes, als die Zeile sagt.
+
+*Das ist der zweite Fund dieser Runde, der an der Bremse hängt — und der
+lehrreichere: bei Befund B war die Zusage gebrochen, hier war sie erfüllt und
+nur nicht belegbar.* Stolperstein 163.
+
+### Befund G — der Auftrag nennt für einen Schnitt eine Nummer aus dem alten Schema
 
 Der Auftrag sagt unter „Wird es zu viel für einen Durchgang": *„der Rest würde
 0.9.11."* **Unter Semantic Versioning ist der Rest eine neue Funktion und damit
@@ -491,7 +531,7 @@ MINOR**, nicht PATCH — er hieße 0.11.0 und schöbe „Suche und Bestand" weit
 Gegenstandslos, weil kein Schnitt gefahren wurde; hier festgehalten, damit die
 Zahl nicht später als Vorbild dient.
 
-### Befund G — der alte Fahrplan steht weiterhin im Änderungsprotokoll 0.9.1
+### Befund H — der alte Fahrplan steht weiterhin im Änderungsprotokoll 0.9.1
 
 `Doku/Aenderungsprotokoll_0.9.1.md`, Abschnitt 10, trägt noch die Nummern
 0.9.10, 0.9.20, 0.9.30, 0.9.60 und 0.9.90. **Das ist richtig so und bleibt:**
@@ -499,7 +539,7 @@ was einmal draußen war, wird nicht umgeschrieben (Semantic Versioning, Punkt 3)
 **Hier festgehalten, damit es niemand später „berichtigt".** Der geltende
 Fahrplan steht im Projektstand, Abschnitt 10.
 
-### Befund H — `CHANGELOG.md` war aus dem Blick des Sprachwächters gefallen
+### Befund I — `CHANGELOG.md` war aus dem Blick des Sprachwächters gefallen
 
 Der Sprachwächter sieht `Doku/*.md` und `README.md` an. **Als die Datei mit
 dieser Runde von `Doku/Changelog.md` ins Wurzelverzeichnis zog, fiel sie damit
@@ -516,7 +556,7 @@ verlangt — zwei Zeilen sagen zusammen, was eine nicht sagen kann
 *Verwandt mit Stolperstein 113 und mit der Zahl in `F_ROUTEN`: wer eine Liste
 prüft, prüft ihre Länge UND ihre Ränder.*
 
-### Befund I — am Konzeptpapier wird nichts falsch
+### Befund J — am Konzeptpapier wird nichts falsch
 
 **Nachgesehen, wie der Auftrag es verlangt.** Der eine bindende Satz aus Teil
 III trägt unverändert; der Kopf sagt „gebaut bis Version 0.9.1", und das bleibt
@@ -538,6 +578,8 @@ umbenannt worden.**
   statt ihn rot zu machen. *(Befund D, Fortschreibung von 138)*
 * **162** — Ein Testvektor belegt nur, was er wirklich durchläuft, auch wenn
   seine Zahl groß aussieht. *(Befund E)*
+* **163** — Eine Schranke, die erst hinter einer anderen Absage steht, lässt
+  sich von außen nicht mehr belegen. *(Befund F)*
 
 Der Wortlaut steht im Projektstand, Abschnitt 6.
 
@@ -622,9 +664,9 @@ GEGENPROBENTABELLE_PLATZHALTER
 | | |
 |---|---|
 | Vorher (0.9.1) | 3451 |
-| Nachher (0.10.0) | **3671** |
-| Neu | **220** |
-| Gegenproben | **41** |
+| Nachher (0.10.0) | **3676** |
+| Neu | **225** |
+| Gegenproben | **42** |
 
 ---
 

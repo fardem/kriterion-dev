@@ -11016,8 +11016,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
        fuenf Minuten je Adresse, und alles danach liefe in sie hinein. */
     await zfRuhig();
     const zfI = await zfZugangMitFaktor('jonas');
+    /* ERST DIE GEGENLAGE (Stolperstein 81): SOLANGE NICHT GESPERRT IST,
+       antwortet derselbe Ruf mit 401 ueber den Ausweis. Ohne sie belegte die
+       429 unten nur, dass diese Route ueberhaupt etwas sagt -- und nicht, dass
+       es die Bremse ist, die es sagt. */
+    const zfVorSperre = await zfS.ruf('POST', '/api/login/zwei',
+      { ausweis: 'f'.repeat(64), code: '000000' });
+    pruefe('Ungesperrt antwortet der zweite Schritt mit 401 ueber den Ausweis',
+      zfVorSperre.status === 401, `${zfVorSperre.status} · ${JSON.stringify(zfVorSperre.inhalt)}`);
+    /* NEUN DURCHGAENGE, AUSGERECHNET UND NICHT GERATEN: der Ruf darueber hat
+       bereits einen Fehlversuch gezaehlt, und die harte Sperre faellt beim
+       ZEHNTEN (HARD_LIMIT = 10, gelesen bevor er erhoeht wird). Neun weitere
+       machen zusammen zehn -- danach steht sie. Ein zehnter Durchgang liefe
+       schon in Schritt 1 in die Sperre, und die Zeile darunter praefte dann
+       etwas anderes, als sie sagt. */
     const zfBremse = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 9; i++) {
       await zfS.cookieLoeschen();
       const eins = await zfS.ruf('POST', '/api/login',
         { user: zfI.name, password: zfI.passwort });
@@ -11026,22 +11040,33 @@ const freigabeHaupt = (zweck, ziel = null) =>
         { ausweis: eins.inhalt.ausweis, code: '000000' });
       zfBremse.push({ schritt: 2, status: zwei.status });
     }
-    pruefe('Nach zehn falschen Codes sperrt die Bremse mit 429',
-      zfBremse.some(x => x.status === 429),
+    pruefe('Bis zur zehnten Fehleingabe wird abgewiesen, aber nicht gesperrt',
+      zfBremse.length === 9 && zfBremse.every(x => x.schritt === 2 && x.status === 401),
       zfBremse.map(x => `${x.schritt}:${x.status}`).join(' '));
-    pruefe('Und sie sperrt erst AB DEM ELFTEN Versuch, mit unangetasteten Kennwerten',
-      zfBremse.slice(0, 10).every(x => x.status === 401) &&
-      zfBremse.slice(10).every(x => x.status === 429),
-      zfBremse.map(x => x.status).join(' '));
-    pruefe('Die Sperre gilt danach auch fuer den ERSTEN Schritt -- es ist dieselbe Bremse',
+    /* DIE ENTSCHEIDENDE ZEILE, UND SIE FRAGT DEN ZWEITEN SCHRITT UNMITTELBAR.
+       Die Schleife oben belegt sie NICHT: sobald die Sperre steht, faellt schon
+       Schritt 1 mit 429 aus, und ob Schritt 2 die Bremse ueberhaupt ansieht,
+       waere daran nicht zu unterscheiden. Genau daran ist die erste Fassung
+       dieser Gruppe stumm geblieben (Stolperstein 163).
+       GEFRAGT WIRD MIT EINEM ERFUNDENEN AUSWEIS: traegt die Bremse, kommt 429,
+       bevor der Ausweis ueberhaupt angesehen wird. Traegt sie nicht, kommt die
+       401 ueber den Ausweis -- und die Zeile faellt rot. */
+    const zfDirekt = await zfS.ruf('POST', '/api/login/zwei',
+      { ausweis: 'f'.repeat(64), code: '000000' });
+    pruefe('Der ZWEITE SCHRITT selbst antwortet gesperrt mit 429, nicht mit einer Absage',
+      zfDirekt.status === 429, `${zfDirekt.status} · ${JSON.stringify(zfDirekt.inhalt)}`);
+    pruefe('Und die Sperre gilt ebenso fuer den ersten Schritt -- es ist dieselbe Bremse',
       (await zfS.ruf('POST', '/api/login',
         { user: 'anna', password: ZF_PASSWORT })).status === 429);
     /* JEDER FEHLSCHLAG SCHREIBT anmeldung.fehl UND KEINEN EIGENEN VORGANG:
        eine gescheiterte zweite Stufe IST eine gescheiterte Anmeldung. */
     const zfFehl = zfSql(
       `SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was = 'anmeldung.fehl' AND ziel = ${zfI.id}`);
-    pruefe('Und jeder Fehlschlag steht als anmeldung.fehl im Protokoll',
-      zfFehl[0].n === 10, String(zfFehl[0].n));
+    /* NEUN, und nicht zehn: der Ruf mit dem erfundenen Ausweis scheitert, BEVOR
+       ein Zugang bekannt ist -- er zaehlt in der Bremse und schreibt keine
+       Zeile. Das ist richtig so: eine Protokollzeile ohne Ziel saegte nichts. */
+    pruefe('Und jeder Fehlschlag an einem bekannten Zugang steht als anmeldung.fehl im Protokoll',
+      zfFehl[0].n === 9, String(zfFehl[0].n));
     pruefe('Ein eigener Vorgang fuer den falschen Code steht nirgends',
       zfSql("SELECT COUNT(*) n FROM sicherheitsprotokoll WHERE was LIKE 'zweifaktor.f%'")[0].n === 0);
 

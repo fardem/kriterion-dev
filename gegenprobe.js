@@ -870,8 +870,19 @@ const RUECKBAUTEN = [
   {
     nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
     datei: 'server.js',
-    suche: "  const t = auth.checkThrottle(ip, name);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));\n  /* ZWEITE NACHSCHAU AUF DEN STATUS.",
-    ersatz: "  /* ZWEITE NACHSCHAU AUF DEN STATUS.",
+    suche: "  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
+    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);",
+    erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
+  },
+  {
+    /* DIE REIHENFOLGE SELBST. Steht die Bremse hinter dem Ausweis, bekommt ein
+       gesperrter Aufrufer eine 401 ueber den Ausweis statt der 429 -- und ob
+       sie hier ueberhaupt gilt, waere von aussen nicht mehr zu sehen. Genau
+       daran ist die erste Fassung der Bremsprobe stumm geblieben. */
+    nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
+    datei: 'server.js',
+    suche: "  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));\n  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.' });\n  }",
+    ersatz: "  const id = auth.verbraucheAnmeldeAusweis(ausweis);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.' });\n  }\n  const t = auth.checkThrottle(ip, null);\n  if (t.blocked) {\n    return res.status(429).json({\n      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`\n    });\n  }\n  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));",
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {

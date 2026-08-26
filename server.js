@@ -435,9 +435,28 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/login/zwei', async (req, res) => {
   const ip = auth.clientIp(req);
   const { ausweis, code } = req.body || {};
-  /* DER AUSWEIS WIRD ZUERST VERBRAUCHT, und zwar VOR der Bremse: er gilt genau
-     einmal, und ein gesperrter Aufrufer darf ihn nicht durch Warten am Leben
-     halten. Wer die Frist verstreichen laesst, faengt bei der Anmeldung an. */
+  /* DIE BREMSE STEHT GANZ VORN -- dieselbe Reihenfolge wie an POST /api/login
+     und POST /api/bestaetigung. Ein gesperrter Aufrufer bekommt an JEDER
+     Stelle dieselbe 429 und nirgends stattdessen eine Auskunft ueber seinen
+     Ausweis.
+     UND SIE IST DIE EINZIGE FORM, IN DER SICH DIE ZUSAGE UEBERHAUPT BELEGEN
+     LAESST. Stuende sie hinter dem Ausweis, antwortete diese Route einem
+     gesperrten Aufrufer mit einer 401 ueber den Ausweis -- und ob die Sperre
+     hier ueberhaupt gilt, waere von aussen nicht mehr zu sehen: die 429 kaeme
+     dann immer schon aus Schritt 1. Genau daran ist die erste Fassung der
+     Bremsprobe STUMM geblieben (Stolperstein 163).
+     GEZAEHLT WIRD HIER MIT DER IP-HAELFTE, denn der Name ist vor dem Ausweis
+     nicht bekannt -- ihn aus dem Rumpf zu nehmen waere genau die Nummer aus
+     dem Rumpf, die es hier nicht geben darf. Die HARTE Sperre haengt ohnehin
+     allein an der Adresse; die verzoegernde Namenshaelfte hat der Aufrufer in
+     Schritt 1 bereits bezahlt. Gefuettert werden unten beide. */
+  const t = auth.checkThrottle(ip, null);
+  if (t.blocked) {
+    return res.status(429).json({
+      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`
+    });
+  }
+  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
   const id = auth.verbraucheAnmeldeAusweis(ausweis);
   if (!id) {
     auth.noteFailure(ip, null);
@@ -445,13 +464,6 @@ app.post('/api/login/zwei', async (req, res) => {
   }
   const zugang = auth.holeZugang(id);
   const name = zugang ? zugang.username : null;
-  const t = auth.checkThrottle(ip, name);
-  if (t.blocked) {
-    return res.status(429).json({
-      error: `Zu viele Fehlversuche. Bitte in ${t.retryInSec} Sekunden erneut versuchen.`
-    });
-  }
-  if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
   /* ZWEITE NACHSCHAU AUF DEN STATUS. Zwischen den beiden Schritten liegen bis
      zu zwei Minuten, und in denen kann ein Admin gesperrt haben. Dieselbe
      Meldung wie im ersten Schritt -- der Aufrufer hat sein Passwort ja bereits
