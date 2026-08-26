@@ -588,6 +588,137 @@ die Umrandung bleibt — samt der Gegenlage, dass die Grundklasse überhaupt ein
 trägt (Stolperstein 81). Rückbau **68** macht wieder einen Verweis daraus,
 Rückbau **69** nimmt ihm die Umrandung.
 
+### Befund P — die Marke stand über dem Namen statt daneben (aus dem Betrieb)
+
+**Auf jeder Anmeldeseite stand die Marke gestapelt über „Kriterion".** Das Paar
+las sich damit als **Bild mit einer Überschrift darunter** — zwei Dinge, wo eines
+gemeint ist. Im angemeldeten Bereich stand es die ganze Zeit richtig: `.brand`
+in der Kopfzeile setzt Zeichen und Wort **nebeneinander**, mit 11 px dazwischen.
+Die Anmeldeseite tat es als einzige anders.
+
+**Gebaut ist jetzt eine Markenzeile:** erst das Zeichen, dann das Wort, dieselbe
+Anordnung und dieselbe Lücke wie in der Kopfzeile. Die Anlage zeigt sich vor und
+nach der Anmeldung gleich.
+
+**Und sie steht an EINER Stelle.** Die neun Anmeldeseiten — Einrichtung,
+Anmeldung, Anfrage, Dank, Bestätigung zweimal, Einladung dreimal — trugen
+`${MARK(40)}` und `<h1>` neunmal ausgeschrieben nebeneinander. Sie rufen jetzt
+`MARKENZEILE()`; wer die Anordnung ändert, ändert eine Stelle und nicht neun
+(Stolperstein 145). *Die Größe ist dabei von 40 auf 34 gegangen: nebeneinander
+misst sich die Marke am Wort und nicht mehr an der leeren Fläche darüber.*
+
+Geprüft wird **beides** — die Quelle (der Helfer legt den Kasten an, das Paar
+steht **genau einmal** in `app.js`) und der gebaute Baum (in der Zeile stehen
+genau zwei Dinge, `IMG` vor `H1`, und außerhalb der Zeile steht keine zweite
+Marke). Dazu das Stylesheet: `display: flex`, `align-items: center`, eine Lücke,
+und die Überschrift ohne eigenen Unterrand — mit einem säße sie bei
+`align-items: center` um die halbe Höhe zu hoch und die Marke stünde schief
+daneben. Rückbauten **77** bis **80**.
+
+### Befund Q — der Strich teilte die Anmeldekarte in zwei (aus dem Betrieb)
+
+**Die Trennlinie aus Befund N lag quer durch eine Karte, die sonst keine Linie
+kennt.** Sie hat den zweiten Weg abgesetzt und dabei mehr getan als das: die
+Anmeldung sah danach aus wie **zwei Karten in einer**.
+
+**Der Strich ist weg; getrennt wird mit Abstand** — 28 px, mehr als jede andere
+Lücke in der Karte (24 px zwischen Unterzeile und Feldern). Der Abstand trennt
+genauso und schneidet nicht.
+
+**Damit stand aber der Knopf ohne Halt da.** Solange die Linie über ihm lag, trug
+**sie** die Trennung; ohne sie muss der Knopf selbst zeigen, dass er einer ist
+und wohin er gehört — und Grau auf Dunkelgrau tut das nicht. **Er trägt jetzt
+dieselbe Farbe wie „Anmelden", nur ganz leise:** `--accent-dim` im Füllgrund
+(13 % Deckung), `--accent-line` in der Umrandung (42 %). Beides sind die Werte,
+mit denen die Anlage überall sonst schon andeutet statt zu rufen; der Füllgrund
+ist derselbe, den ein Feld im Fokus als Schein bekommt.
+
+**Die Schrift bleibt `--muted` und nicht `--accent`** — bei voller Deckung
+stünden zwei gleich laute Knöpfe übereinander, und die Seite sagte nicht mehr,
+welcher der gewöhnliche Weg ist. Beim Überfahren zieht **nur die Umrandung** auf
+den vollen Akzent an; der Füllgrund bleibt, wo er ist, damit die Fläche nicht
+springt.
+
+Geprüft wird in beide Richtungen: dass überhaupt Farbe da ist, **und** dass es
+die leise bleibt — die Deckung beider Werte wird **gemessen** und muss unter 0,5
+liegen, statt ein Muster abzugleichen. Dazu, dass die Regel für die Trennung
+keinen Rand mehr trägt **und** dass ihr Abstand größer ist als jede Lücke davor.
+Rückbauten **73** bis **76**; **69** zielt auf die neue Fassung.
+
+### Befund R — dieselbe Datei lag unter zwei Namen
+
+**`favicon.svg` und `marke-hell.svg` waren Byte für Byte gleich.** Der Punkt
+stand als offene Arbeit im Auftrag 0.9.10; entschieden ist: **eine Datei, und
+zwar `favicon.svg`.** `marke-hell.svg` ist entfernt, in der Oberfläche war sie
+nie geladen.
+
+**Der Prüfstand hält jetzt mehr fest als den einen Fall.** Neben der Zeile, die
+die entfernte Datei entfernt hält, steht die allgemeine: **in `public/` liegt
+keine Datei zweimal unter zwei Namen** — verglichen wird der **Inhalt** und
+nicht der Name, denn der Name war ja gerade das Täuschende daran. Stolperstein
+**157**.
+
+**Der Gegenprobentreiber konnte das zunächst nicht zurückbauen.** Eine
+entfernte Datei lässt sich nicht über eine Textersetzung zurückholen — es geht
+um die Datei selbst und nicht um ihren Inhalt. Er kennt deshalb jetzt einen
+zweiten Rückbauweg: `kopie` legt `datei` in der Kopie ein zweites Mal unter dem
+angegebenen Namen ab. Er liegt **im** Treiber und nicht daneben, damit er unter
+dieselbe Kopie, dieselbe Nachschau und dasselbe Aufräumen fällt wie jeder
+andere — der Arbeitsbaum wird auch hier nie angefasst. Rückbau **81**.
+
+### Befund S — eine Verneinung über die eigene Quelle traf den Helfer mit
+
+**Die erste Fassung der Prüfung „keine Anmeldeseite stapelt die beiden noch von
+Hand" war rot, und zu Recht.** Sie las `app.js` und verneinte das Muster
+`${MARK(…)}<h1>` — **und genau dieses Muster steht im Helfer, der die Sache
+richtig macht.** Eine Verneinung über die eigene Quelle trifft die eine Stelle
+mit, an der der Text richtig stehen darf.
+
+**Zu zählen ist, nicht zu verneinen:** das Paar muss **genau einmal** in der
+Quelle stehen, und die Zeile darüber hält fest, dass diese eine Stelle der
+Helfer ist. Zusammen sagen die beiden genau das, was gemeint war. Stolperstein
+**156**.
+
+### Befund T — ein Lauf riss ab und ließ sich nicht wiederholen
+
+**Von sieben Läufen dieser Nacharbeit ist einer abgerissen** — in der **ersten**
+Gruppe, an drei Zeilen: *„Genau ein Zugang in der Datenbank"*, *„Und er ist
+Eigentümer"*, *„Passwort liegt als scrypt-Hash"*. Die Zeile davor —
+*„Die Einrichtung legt den ersten Zugang an"* — war **grün**, ebenso
+*„Vor der Einrichtung meldet /api/config Einrichtungsbedarf"*.
+
+**Das schließt den naheliegenden Verdacht aus.** Ein übriggebliebener Server aus
+einem früheren Lauf hätte auf `/api/config` **keinen** Einrichtungsbedarf
+gemeldet — seine Datenbank wäre nicht leer gewesen. Nachgesehen wurde
+außerdem: es lief kein fremder `server.js` mehr. Der Hauptport wird je Lauf
+zufällig aus 90 Nummern gezogen, das Datenverzeichnis ist ein frisches
+`mkdtemp`.
+
+**Wiederholen ließ es sich nicht:** sechs volle Läufe danach waren grün, alle
+sieben mit **3451 von 3451**. Der betroffene Weg — Einrichtung, `users`,
+`scrypt` — ist von dieser Nacharbeit **nicht angefasst**; geändert wurden
+`public/`, `pruefung.js` und `gegenprobe.js`.
+
+**Was fehlt, ist die Auskunftszeile des Laufs, und das ist mein Fehler:** die
+Ausgabe war beim ersten Durchgang gefiltert, und die Zeile unter dem roten
+Punkt hätte gesagt, ob die Tabelle **null** oder **zwei** Zeilen trug. Die
+späteren Läufe sind vollständig mitgeschrieben worden. **Der Befund bleibt
+offen und steht im Projektstand, Abschnitt 8** — er ist nicht wegerklärt,
+sondern nicht reproduziert.
+
+### Befund U — die Marke läuft nicht aus der Farbwelt, sie trägt Gold
+
+**Der Auftrag 0.9.10 nennt unter Punkt 0 einen Farbabgleich als Arbeit:** der
+hervorgehobene Strich der Marke sei `#ffc531`, `--accent` der Anlage
+`#ff7a1a`. **Beim Nachsehen ist `#ffc531` genau `--gold`** — die Farbe der
+Sterne, seit jeher der zweite Signalwert der Anlage neben Orange.
+
+**Damit ist die Frage eine andere als gestellt.** Die Marke läuft nicht aus der
+Farbwelt heraus; sie nimmt den zweiten Wert daraus. Die Wahl zwischen Gold und
+Akzent ist eine Gestaltungsfrage und keine Berichtigung — **entschieden wird
+sie in 0.9.10**, und der Auftrag ist entsprechend nachgezogen. Geändert wurde
+in dieser Nacharbeit **nichts** daran.
+
 ---
 
 ## 5. Neue Stolpersteine
@@ -605,6 +736,8 @@ steht im Projektstand, Abschnitt 6.
 | **153** | Zwei Kästen mit denselben festen Kennungen sind einer zu viel. |
 | **154** | Eine Lage, die zwei Schranken zugleich reißt, prüft keine von beiden. |
 | **155** | Ein Bedienelement, das seinen eigenen Zustand ein- und ausschaltet, darf nicht an diesem Zustand hängen. |
+| **156** | Eine Verneinung über die eigene Quelle trifft auch die Stelle mit, die die Sache richtig macht — gezählt wird, nicht verneint. |
+| **157** | Zwei Namen für dieselbe Datei sind eine Stelle, die auseinanderläuft; verglichen wird der Inhalt, nicht der Name. |
 
 ---
 

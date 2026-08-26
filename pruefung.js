@@ -1293,9 +1293,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* DIE UEBERSCHRIFT TRAEGT IN DER ZEILE KEINEN EIGENEN UNTERRAND. Mit einem
      saesse sie bei align-items: center um die halbe Hoehe zu hoch und die
      Marke stuende schief daneben. */
+  /* GEMESSEN WIRD DER GANZE WERT UND NICHT SEIN ANFANG. Die erste Fassung
+     dieser Zeile las `margin: *0` und war damit auch bei `margin: 0 0 5px`
+     noch gruen -- die Null davor passte, der Unterrand dahinter blieb
+     ungesehen. Gegenprobe 80 war deshalb stumm. */
+  const mkH1 = (mkCss.match(/\.login-card \.login-marke h1 \{[^}]*\}/) || [''])[0];
   pruefe('Und die Ueberschrift traegt darin keinen eigenen Unterrand',
-    /\.login-card \.login-marke h1 \{[^}]*margin: *0[;\s}]/.test(mkCss),
-    (mkCss.match(/\.login-card \.login-marke h1 \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    /margin: *0 *[;}]/.test(mkH1) && !/margin-bottom/.test(mkH1),
+    mkH1 || '(keine Regel)');
 
   const mkIndex = fs.readFileSync(path.join(mkVerz, 'index.html'), 'utf8');
   pruefe('Der Tab bekommt die Marke als Favicon',

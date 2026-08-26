@@ -201,8 +201,10 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.9.1 ist gebaut** — Fingerprint **`d629e78d`**, 3432
-Prüfungen. **Zweite Hälfte von Stufe I, und damit ist der Stufenplan
+**0.9.1 ist gebaut** — Fingerprint **`3cf1b093`**, 3451
+Prüfungen. *(Beim Einspielen stand er bei `d629e78d` und 3432 Prüfungen; die
+Nacharbeit an der Anmeldeseite — Befunde M bis U — hat ihn weitergedreht, ohne
+die Versionsnummer zu bewegen.)* **Zweite Hälfte von Stufe I, und damit ist der Stufenplan
 abgearbeitet.** **EINE DATENBANKSTUFE:** es kommt **eine Tabelle** dazu
 (`anfragen`) und **keine Spalte** — deshalb **kein Migrationsblock**, und es
 bleibt bei **fünf** markierten; unter „Vorgemerkt für 1.0" kommt **nichts**
@@ -233,7 +235,16 @@ im Sicherheitsprotokoll **siebzehn** (`anfrage.frei`, `anfrage.ab`, beide ohne
 den Namen des Anfragenden). `MERKMALE` bleibt **dreizehn**,
 `BESTAETIGUNG_ZWECKE` **sieben**, die Formatnummer **10**.
 **Keine neue Abhängigkeit und keine neue `.env`-Zeile.**
-49 Gegenproben, gefahren über `gegenprobe.js`.
+58 Gegenproben, gefahren über `gegenprobe.js`.
+
+**Die Anmeldeseite ist nach dem Einspielen dreimal nachgezogen worden**, aus
+dem Betrieb heraus und ohne neue Versionsnummer: **Marke und Name stehen
+nebeneinander** statt gestapelt, in einem Helfer für alle neun Anmeldeseiten;
+**der Strich über „Zugang anfragen" ist weg**, getrennt wird mit Abstand; und
+**der Knopf trägt dafür selbst eine ganz leichte Färbung** aus `--accent-dim`
+und `--accent-line`. Daneben liegt in `public/` **eine SVG weniger**:
+`marke-hell.svg` war Byte für Byte `favicon.svg` und ist entfernt. Einzelheiten
+in `Doku/Aenderungsprotokoll_0.9.1.md`, Befunde P bis U.
 
 **Der Mailversand aus 0.9.0 ist im Feld bestätigt.** Die erste echte
 Einladungsmail ist angekommen — Absender und Link stimmten, der Rumpf stand als
@@ -5591,7 +5602,9 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.9.1** | **Stufe I, zweite Hälfte** — Selbstanmeldung (**erledigt**) | Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung. **Damit ist der Stufenplan abgearbeitet.** | ja, **eine neue Tabelle ohne Migrationsblock** | — |
 | **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
 | **0.9.20** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen | ja | — |
-| **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
+| **0.9.30** | Fehlerbereinigung und Verbesserungen | die Runde für Befunde aus dem Betrieb und Nacharbeit an Gebautem — **sie hat jetzt eine Nummer** | offen | — |
+| **0.9.60** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur als Grundlage festgeschrieben, Absage an zu alte Datenbanken. **Ab hier gibt es keinen Rückweg auf ältere Fassungen** | ja | — |
+| **0.9.90** | **Veröffentlichung** | die Anlage geht heraus — Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
 | **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
 
 **0.8.10 bis 0.8.90 sind gebaut** — Einzelheiten in Abschnitt 2 und
@@ -5644,6 +5657,34 @@ Mailversand, dem Schreibweg für `users.email` und der Frist ab dem ersten
 Öffnen wurde die Runde zu breit für einen Durchgang. **Die Selbstanmeldung ist
 mit 0.9.1 gebaut** und brachte die einzige neue Tabelle dieser Stufe,
 `anfragen`. **Damit ist der Stufenplan abgearbeitet.**
+
+### Der Fahrplan bis zur Veröffentlichung — festgelegt nach 0.9.1
+
+**Drei Entscheidungen, und sie verschieben das Ende des Plans.**
+
+- **0.9.30 ist die Runde für Fehlerbereinigung und Verbesserungen.** Sie stand
+  bisher hier ohne Nummer; *der Auftrag zu 0.9.1 nannte dafür irrtümlich
+  0.9.20, wo schon „Suche und Bestand" steht.* Das ist berichtigt.
+- **0.9.60 nimmt vermutlich die Bereinigung von Code und Datenbankstruktur
+  auf** — das, was bisher unter 1.0.0 stand. Sie legt die Struktur als
+  Grundlage des Projekts fest; **ab ihr gibt es keinen Rückweg auf ältere
+  Fassungen.** *Vermutlich* ist hier kein Füllwort: die Nummer ist gesetzt, die
+  Runde selbst ist noch nicht beschlossen.
+- **Veröffentlicht wird mit 0.9.90, nicht mit 1.0.0.** Die Anlage geht heraus,
+  bevor die Eins steht.
+
+**Warum 0.9.90 und nicht 0.9.9:** sortiert wird zahlweise, und danach liegt
+`0.9.9` **vor** `0.9.10` — also vor der Runde, die als nächste gebaut wird. Die
+Veröffentlichung stünde damit in der Vergangenheit. `0.9.90` reiht sich hinter
+0.9.60 ein, so wie 0.8.90 hinter 0.8.60 lag. **Die Zehnerschritte gelten also
+bis zum Schluss durch.**
+
+**Was mit 1.0.0 geschieht, ist offen** und steht in Abschnitt 8: die Zeile ist
+aus dem Plan herausgenommen, weil ihr Inhalt auf 0.9.60 und 0.9.90 verteilt
+ist. Ob die Eins danach überhaupt noch eine eigene Runde bekommt oder nur eine
+Nummer für den erreichten Stand ist, ist nicht entschieden. **1.1.0 — Teil II
+des Videopapiers — steht weiter da**, und die Frage nach seiner Nummer hängt an
+derselben Entscheidung.
 
 **Die Reihenfolge ist nicht beliebig.** Vier Bindungen:
 
