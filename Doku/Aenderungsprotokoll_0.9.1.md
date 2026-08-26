@@ -525,6 +525,24 @@ daneben steht die, die den Befund festhält: **der Schalter muss in genau dieser
 Lage erreichbar sein.** Rückbau 63 zielt jetzt auf die alte Bedingung.
 Stolperstein **155**.
 
+### Befund N — der Weg zur Anfrage war zu leise (aus dem Betrieb)
+
+**Der Weg zur Selbstanmeldung stand als Verweis in der Fußzeile der
+Anmeldekarte** — *„Noch keinen Zugang? Zugang anfragen"* — und wurde übersehen.
+Er ist der **zweite Weg von dieser Seite** und sieht jetzt auch danach aus: ein
+**Knopf** unter „Anmelden", in derselben Größe, mit der Frage „Noch keinen
+Zugang?" darüber und einer Trennlinie dazwischen.
+
+**Nicht in der Betonung des Anmeldeknopfs**, und das ist entschieden: zwei
+gleich laute Knöpfe nebeneinander sagen nicht mehr, welcher der gewöhnliche Weg
+ist. Der Anmeldeknopf bleibt der einzige `btn-accent`.
+
+Geprüft wird die **Art** des Elements, nicht sein Aussehen — `BUTTON` statt
+`A`, die Klasse `btn` und ausdrücklich **nicht** `btn-accent`, die Frage
+**vor** dem Knopf und der Knopf **hinter** dem Anmeldeknopf. Das Aussehen hängt
+am Stylesheet, die Art an der Oberfläche. Rückbau **68** macht wieder einen
+Verweis daraus.
+
 ---
 
 ## 5. Neue Stolpersteine

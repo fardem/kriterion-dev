@@ -536,8 +536,10 @@ Funktion, und der Schalter steht ab Werk auf **aus**.
 
 **Der Weg, vom Formular bis zum Passwort:**
 
-1. **Anfrage.** Auf der Anmeldeseite steht „Zugang anfragen". Das Formular hat
-   zwei Felder — Wunschname und E-Mail-Adresse — und **kein Passwortfeld**.
+1. **Anfrage.** Auf der Anmeldeseite steht unter „Anmelden" ein zweiter Knopf:
+   **„Zugang anfragen"**, darüber die Frage „Noch keinen Zugang?". Das Formular
+   dahinter hat zwei Felder — Wunschname und E-Mail-Adresse — und **kein
+   Passwortfeld**.
 2. **Bestätigungsmail.** Die Anlage schickt einen kurzen Link an die
    angegebene Adresse. Er **öffnet keinen Zugang und setzt kein Passwort**; wer
    ihn anklickt, sagt nur „ja, das bin ich". Er gilt **24 Stunden**.
