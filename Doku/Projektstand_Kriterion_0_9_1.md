@@ -1621,6 +1621,126 @@ beim Ausliefern.
 
 Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
 
+### Versionsnummern folgen Semantic Versioning 2.0.0 (ab 0.10.0)
+
+**Beschlossen nach 0.9.1.** `https://semver.org/lang/de/`. Bis dahin trug das
+Projekt ein eigenes Schema: Zehnerschritte, damit zwischen zwei Stufen neun
+Nummern für Berichtigungsrunden frei bleiben. **Das war die Antwort auf ein
+Problem, das SemVer schon löst** — und besser: die dritte Zahl ist bei SemVer
+unbegrenzt, es kann also nie eng werden. *0.8.1, 0.8.6, 0.8.31 und 0.8.71 waren
+genau solche Runden; unter SemVer hätte keine davon eine freie Nummer gebraucht.*
+
+**Was das im Einzelnen heißt:**
+
+- **Dritte Zahl (PATCH) nur für abwärtskompatible Fehlerbehebungen.** Eine Runde,
+  die eine Funktion bringt, ist keine PATCH-Runde — auch dann nicht, wenn sie
+  klein ist.
+- **Zweite Zahl (MINOR) für neue, abwärtskompatible Funktionen.** PATCH springt
+  dabei auf 0 zurück. **Sie muss auch dann steigen, wenn etwas als `Deprecated`
+  markiert wird** — das Ankündigen einer Entfernung ist selbst ein Ereignis.
+  *Umfangreiche Änderungen an internem Code dürfen sie ebenfalls heben; müssen
+  aber nicht.*
+- **Erste Zahl (MAJOR) für Brüche.** *Solange die erste Zahl 0 ist, gilt Punkt 4
+  von SemVer selbst: in `0.y.z` können Änderungen „in jeder denkbaren Form und
+  zu jeder Zeit auftreten", die öffentliche Schnittstelle ist ausdrücklich nicht
+  als stabil zu betrachten.* Brüche laufen bis dahin über MINOR.
+- **Was entfernt wird, wird vorher angekündigt.** Erst eine Version, die es als
+  `Deprecated` führt, dann eine spätere, die es entfernt. **Das betrifft diesen
+  Plan unmittelbar:** 0.12.0 soll zu alten Datenbanken die Absage erteilen —
+  *diese Absage gehört als `Deprecated` schon in eine Version davor*, sonst
+  steht ein Betreiber vor einem Verzeichnis, das sich nicht mehr öffnet, und
+  hat es nirgends gelesen.
+- **Vorveröffentlichungen sind möglich und stehen zur Verfügung**, falls eine
+  Runde in Etappen herausgeht: `1.0.0-rc.1` rangiert vor `1.0.0`.
+- **EINE VERÖFFENTLICHTE VERSION WIRD NIE VERÄNDERT.** Wer an einem
+  ausgelieferten Stand etwas ändert, gibt eine **neue Nummer** heraus. Das ist
+  die Regel, gegen die diese Runde selbst verstoßen hat: die Nacharbeit an der
+  Anmeldeseite ging unter derselben 0.9.1 heraus, und genau daran ist der
+  Fingerprint der laufenden Anlage unlesbar geworden (Stolperstein 158).
+  **Ab 0.10.0 gibt es das nicht mehr.**
+- **Nummern, die einmal draußen waren, werden nicht umgeschrieben.** 0.8.31
+  bleibt 0.8.31. Umnummeriert wird nur der **Plan** — das ist noch nichts
+  veröffentlicht.
+
+**WAS BEI KRITERION DIE ÖFFENTLICHE SCHNITTSTELLE IST.** SemVer verlangt das
+ausdrücklich als Erstes: ohne sie ist „abwärtskompatibel" ein Wort ohne
+Gegenstand. Kriterion ist keine Bibliothek; wer es benutzt, betreibt es. **Die
+Schnittstelle ist deshalb das, worauf sich ein Betreiber über einen
+Versionswechsel hinweg verlässt:**
+
+1. **Das Datenverzeichnis** — das Schema der verschlüsselten Datenbank und die
+   Art der Verschlüsselung. Eine neue Fassung muss ein Verzeichnis der
+   vorherigen öffnen können.
+2. **Das Austauschformat** mit seiner Formatnummer (derzeit **10**). Was
+   exportiert wurde, muss sich wieder einlesen lassen.
+3. **Die Schlüssel in der `.env`** und ihre Bedeutung.
+4. **Die Werkzeuge auf dem Wirt** — `schluessel.sh` und `zugang.js` samt ihren
+   Unterbefehlen. Sie sind der Notausgang; wer sie ändert, ändert einen Weg, den
+   jemand im Ernstfall auswendig braucht.
+
+*Was ausdrücklich NICHT dazugehört:* die HTTP-Endpunkte unter `/api/`. Sie
+werden allein von der mitgelieferten Oberfläche gerufen, beide kommen aus
+demselben Image, und ihre Fassungen können sich deshalb nicht auseinander
+entwickeln. **Wer das je ändert — eine fremde Anwendung an `/api/` —, ändert
+diese Aufzählung mit.**
+
+**WARUM DANN NICHT SCHON 1.0.0?** SemVer beantwortet das in seinen häufigen
+Fragen deutlich: *„Wenn die Software schon in der Produktion verwendet wird,
+sollte sie bereits in Version 1.0.0 vorliegen."* Kriterion läuft in der
+Produktion. **Die Null bleibt trotzdem, und zwar aus einem benannten Grund:**
+die Schnittstelle oben ist noch nicht fest. 0.12.0 soll die Datenbankstruktur
+erst festschreiben und den Rückweg auf ältere Fassungen abschneiden — genau
+das, was Punkt 4 mit „Änderungen in jeder denkbaren Form" meint und was nach
+1.0.0 die Zwei kosten würde. *Die Null ist hier also keine Bescheidenheit,
+sondern eine Aussage: verlass dich noch nicht darauf.* **Sobald sie festliegt,
+kommt 1.0.0 — und nicht später.**
+
+### Das Changelog folgt Keep a Changelog 1.1.0 (ab 0.10.0)
+
+**Beschlossen nach 0.9.1.** `https://keepachangelog.com/de/1.1.0/`. Die Datei
+trug bisher eigene Überschriften je Version und lag als `CHANGELOG.md`.
+Ab 0.10.0 gilt die feste Form:
+
+- **Überschrift `## [<Version>] - <JJJJ-MM-TT>`**, Datum nach ISO 8601, neueste
+  Version oben.
+- **Ein Abschnitt `## [Unveröffentlicht]`** ganz oben, in dem mitgeschrieben
+  wird, während gebaut wird. Beim Herausgeben wird daraus die Version.
+- **Die sechs Arten von Änderungen**, und nur die, jeweils weggelassen wenn
+  leer: **`Added` · `Changed` · `Deprecated` · `Removed` · `Fixed` ·
+  `Security`**. *Sie bleiben englisch, so wie die deutsche Fassung von Keep a
+  Changelog sie selbst führt* — und das ist kein Bruch mit der Sprachregel aus
+  Abschnitt 12: deren Maßstab ist das Wort, das ein deutschsprachiger
+  Entwickler im Gespräch benutzt. Der Sprachwächter zielt auf zwölf übersetzte
+  Lehnwörter und nicht auf englische Fachbegriffe.
+- **Für jede Version ein Eintrag.** Keine Version ohne Zeile im Changelog.
+- **Zurückgezogene Versionen** als `## [x.y.z] - JJJJ-MM-TT [YANKED]`,
+  großgeschrieben, damit ein Mensch es bemerkt.
+- **Versionen sollen verlinkbar sein.** *Dafür fehlt bis jetzt die
+  Voraussetzung: das Repo trägt keinen einzigen Git-Tag.* **Ab 0.10.0 bekommt
+  jede herausgegebene Version einen Tag**, und die Vergleichsverweise am Ende
+  der Datei hängen daran. Für die Versionen davor bleibt das
+  Änderungsprotokoll das Ziel.
+- **Die Datei heißt `CHANGELOG.md` und liegt im Wurzelverzeichnis**, nicht in
+  `Doku/`. *Wer das Paket auspackt, findet sie dort, ohne zu suchen* — so
+  empfiehlt es die Form selbst. Die ausführlichen Protokolle bleiben in `Doku/`.
+- **Keine Commit-Protokolle als Changelog.** Ein Commit dokumentiert die
+  Entwicklung des Quelltextes, ein Changelog-Eintrag die beachtenswerte
+  Änderung für den, der die Anlage betreibt. *Das sind zwei verschiedene
+  Papiere, und in diesem Projekt waren sie es immer.*
+
+**ZWEI EIGENE ABSCHNITTE BLEIBEN, und das ist kein Verstoß** — die Form nennt
+sechs Arten, sie verbietet keine weiteren. Sie stehen **hinter** den sechs:
+
+- **„Was du danach von Hand tun musst"** — der Einspielweg dieser Version.
+- **„Was gleich bleibt"** — die Zusagen, die eine Runde ausdrücklich *nicht*
+  antastet.
+
+*Beide sind für einen Betreiber das Wertvollste am ganzen Papier, und keine der
+sechs Arten trägt sie.* **`Removed` bekommt dabei besonderes Gewicht:** eine
+weggenommene Datei bleibt beim Einspielen über den alten Ordner liegen und
+verschiebt den Fingerprint (Stolperstein 158). Was dort steht, gehört mit einem
+Satz auch nach „Was du danach von Hand tun musst".
+
 - **Die zweite Bestätigung ist an die SITZUNG gebunden, nicht an den Menschen**
   (seit 0.8.90). Verteidigt wird gegen eine **fremde offene Sitzung** — nicht
   gegen einen Fremden, der kommt ohne Passwort gar nicht herein. Eine zweite
@@ -4333,7 +4453,8 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     kopieren, und genau dafür ist das da.* Wer abkürzt und über den vorhandenen
     Ordner entpackt, bekommt diesen Fall. **Und was der Fingerprint weiterhin
     nicht sagt, ist WELCHE Datei abweicht** — dafür steht der Handgriff im
-    README, und eine Zeile in der Karte „Anlage" ist für 0.9.30 vorgemerkt.
+    README, und eine Zeile in der Karte „Anlage" ist für die nächste
+    Nacharbeitsrunde vorgemerkt (Abschnitt 10).
 
 ---
 
@@ -5059,15 +5180,15 @@ sind zwei Dinge:
   dieselbe Angabe halten nur eine aktuell (vgl. Stolperstein 47).
 - **Versionsnummern brauchen drei Zahlen** (`0.6.10`, nicht `0.6.9b`) — die
   `package.json` lässt keine Buchstaben zu. Die führende Null sagt, dass sich
-  noch alles ändern darf. **Die Veröffentlichung liegt seit dem Fahrplan nach
-  0.9.1 auf `0.9.90` und nicht auf `1.0.0`** (Abschnitt 10) — was danach mit
-  der Eins geschieht, ist nicht entschieden.
+  noch alles ändern darf. **Herausgeben lässt sich die Anlage mit jeder
+  Nummer; `1.0.0` ist nicht das Herausgehen, sondern die Zusage** — ab da liegt
+  die öffentliche Schnittstelle fest (Abschnitt 5 und Abschnitt 10).
 - **Weicht der Fingerprint ab, nennt er nicht, WELCHE Datei es ist.** Der
   Handgriff dafür steht im README („Eine neue Version einspielen"): die
   Prüfsummen der zwölf Dateien nebeneinander, über die er geht. **Eine Zeile zu
   viel wiegt dabei genauso schwer wie eine falsche** — genau das war der Fall
   aus Stolperstein 158. **Eine Zeile in der Karte „Anlage", die die abweichende
-  Datei beim Namen nennt, ist für 0.9.30 vorgemerkt.**
+  Datei beim Namen nennt, ist für die nächste Nacharbeitsrunde vorgemerkt.**
 - **EIN PRÜFLAUF IST ABGERISSEN UND LIESS SICH NICHT WIEDERHOLEN.** Bei der
   Nacharbeit an der Anmeldeseite riss einer von sieben Läufen in der **ersten**
   Gruppe ab: *„Genau ein Zugang in der Datenbank"*, *„Und er ist Eigentümer"*,
@@ -5671,16 +5792,24 @@ Formatnummer erneut (**8 → 9**, nachdem 0.8.31 die 8 belegt hat).
 seine eigenen Stufen im Konzeptpapier mit (G4, H, I); ihre Versionsnummern
 stehen unten mit drin, ihr Inhalt bleibt dort.
 
-**Die Nummern gehen in Zehnerschritten.** Die neun Nummern zwischen zwei
-Stufen bleiben für Berichtigungs- und Bereinigungsrunden frei — 0.8.1 und
-0.8.6 waren genau das und mussten sich in eine geplante Nummer drängen.
-**Mit 0.8.31 hat sich das zum ersten Mal ausgezahlt:** eine Runde, die
-sachlich zu einer bereits gebauten Stufe gehört, hat eine freie Nummer bekommen
-statt alles darüber zu verschieben. *Die Formatnummer rückt trotzdem weiter —
-sie hängt am Inhalt der Exportdatei, nicht an der Versionsnummer.*
-Nachgeprüft: `0.8.7.2` ist unbrauchbar (vier Zahlen sind kein gültiges
-Versionsschema, `npm version` lehnt sie ab), `0.8.10` und `0.8.75` gehen
-beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
+**BIS 0.9.1 GINGEN DIE NUMMERN IN ZEHNERSCHRITTEN, AB 0.10.0 GILT SEMVER.**
+Der Grund für die Zehnerschritte war, zwischen zwei Stufen neun Nummern für
+Berichtigungsrunden frei zu halten — 0.8.1 und 0.8.6 mussten sich noch in eine
+geplante Nummer drängen, mit 0.8.31 hat es sich zum ersten Mal ausgezahlt.
+**SemVer löst dasselbe Problem besser:** die dritte Zahl ist dort unbegrenzt,
+eine Nacharbeitsrunde bekommt einfach die nächste, und es kann nie eng werden.
+Die Regel steht in Abschnitt 5.
+
+**Die Tabelle unten trägt beide Zeitalter.** Was einmal draußen war, behält
+seine Nummer — 0.8.31 bleibt 0.8.31, umgeschrieben wird nichts. Umnummeriert
+ist allein der **Plan**, denn davon ist nichts veröffentlicht.
+
+*Die Formatnummer rückt unabhängig davon weiter — sie hängt am Inhalt der
+Exportdatei, nicht an der Versionsnummer.*
+Nachgeprüft für das alte Schema: `0.8.7.2` ist unbrauchbar (vier Zahlen sind
+kein gültiges Versionsschema, `npm version` lehnt sie ab), `0.8.10` und
+`0.8.75` gehen beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 <
+0.9.0 < 0.9.1 < 0.10.0`.
 
 | Version | Name | Was | Schema | Format |
 |---|---|---|---|---|
@@ -5698,12 +5827,13 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.91** | *(keine Stufe)* Der Schlüssel lässt sich wechseln | **gebaut** — `./schluessel.sh` auf dem Wirt: `PRAGMA rekey` samt Journalumschaltung, `.env`-Fall und Dateifall, die alten Sicherungen markiert. Dazu `gegenprobe.js`, `PORT_VERSATZ` und zwei Wächter über den Prüfstand | nein | — |
 | **0.9.0** | **Stufe I, erste Hälfte** — Mailversand (**erledigt**) | `nodemailer`, Anbietervorlagen, Testmail, öffentliche Adresse als Pflicht für den Versand, Adresse am Zugang, Frist ab dem ersten Öffnen | **nein** — keine Tabelle, keine Spalte | — |
 | **0.9.1** | **Stufe I, zweite Hälfte** — Selbstanmeldung (**erledigt**) | Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung. **Damit ist der Stufenplan abgearbeitet.** | ja, **eine neue Tabelle ohne Migrationsblock** | — |
-| **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
-| **0.9.20** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen | ja | — |
-| **0.9.30** | Fehlerbereinigung und Verbesserungen | die Runde für Befunde aus dem Betrieb und Nacharbeit an Gebautem — **sie hat jetzt eine Nummer** | offen | — |
-| **0.9.60** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur als Grundlage festgeschrieben, Absage an zu alte Datenbanken. **Ab hier gibt es keinen Rückweg auf ältere Fassungen** | ja | — |
-| **0.9.90** | **Veröffentlichung** | die Anlage geht heraus — Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
-| **1.1.0** | Große Dateien bis 2 GB | Teil II des Videopapiers | ja | — |
+| | | ***ab hier SemVer*** | | |
+| **0.10.0** | Zwei-Faktor | TOTP, QR-Code und Wiederherstellungscodes. *MINOR: neue Funktion* | ja | — |
+| **0.11.0** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen. *MINOR* | ja | — |
+| **0.11.x** | Fehlerbereinigung und Verbesserungen | die Runde für Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Sie bekommt keine geplante Nummer mehr, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht | in der Regel nein | — |
+| **0.12.0** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur als Grundlage festgeschrieben, Absage an zu alte Datenbanken. **Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **1.0.0** | **Die Zusage** | Abwärtskompatibilität wird zugesichert, die öffentliche Schnittstelle aus Abschnitt 5 steht fest. Dazu Vorgabewerte (Punkt 7) und Tastaturbedienung beim Sortieren | — | — |
+| **danach** | Große Dateien bis 2 GB | Teil II des Videopapiers. *MINOR nach 1.0.0, die Nummer ergibt sich* | ja | — |
 
 **0.8.10 bis 0.8.90 sind gebaut** — Einzelheiten in Abschnitt 2 und
 Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit 0.8.3** gefahren,
@@ -5756,33 +5886,47 @@ Mailversand, dem Schreibweg für `users.email` und der Frist ab dem ersten
 mit 0.9.1 gebaut** und brachte die einzige neue Tabelle dieser Stufe,
 `anfragen`. **Damit ist der Stufenplan abgearbeitet.**
 
-### Der Fahrplan bis zur Veröffentlichung — festgelegt nach 0.9.1
+### Der Fahrplan bis zur Zusage — festgelegt nach 0.9.1, umnummeriert auf SemVer
 
-**Drei Entscheidungen, und sie verschieben das Ende des Plans.**
+**Vier Entscheidungen, und sie verschieben das Ende des Plans.**
 
-- **0.9.30 ist die Runde für Fehlerbereinigung und Verbesserungen.** Sie stand
-  bisher hier ohne Nummer; *der Auftrag zu 0.9.1 nannte dafür irrtümlich
-  0.9.20, wo schon „Suche und Bestand" steht.* Das ist berichtigt.
-- **0.9.60 nimmt vermutlich die Bereinigung von Code und Datenbankstruktur
-  auf** — das, was bisher unter 1.0.0 stand. Sie legt die Struktur als
-  Grundlage des Projekts fest; **ab ihr gibt es keinen Rückweg auf ältere
-  Fassungen.** *Vermutlich* ist hier kein Füllwort: die Nummer ist gesetzt, die
-  Runde selbst ist noch nicht beschlossen.
-- **Veröffentlicht wird mit 0.9.90, nicht mit 1.0.0.** Die Anlage geht heraus,
-  bevor die Eins steht.
+- **Die Runde für Fehlerbereinigung und Verbesserungen bekommt keine geplante
+  Nummer mehr.** Sie stand hier lange ohne eine; *der Auftrag zu 0.9.1 nannte
+  dafür irrtümlich 0.9.20, wo schon „Suche und Bestand" steht.* **Unter SemVer
+  erübrigt sich die Frage:** eine Runde, die nur behebt, ist eine PATCH-Runde
+  und bekommt die nächste freie Zahl — 0.11.1, 0.11.2, so viele wie nötig.
+  *Bringt sie dabei doch eine Funktion mit, ist sie keine PATCH-Runde mehr,
+  sondern die nächste MINOR.*
+- **0.12.0 nimmt vermutlich die Bereinigung von Code und Datenbankstruktur
+  auf.** Sie legt die Struktur als Grundlage fest; **ab ihr gibt es keinen
+  Rückweg auf ältere Fassungen.** *Vermutlich* ist kein Füllwort: die Stelle im
+  Plan steht, die Runde selbst ist nicht beschlossen. *Ein Bruch wäre nach
+  SemVer sonst MAJOR — solange die erste Zahl 0 ist, läuft er über MINOR, und
+  genau dafür ist die Null da.*
+- **VERÖFFENTLICHEN UND DIE EINS SIND ZWEI VERSCHIEDENE DINGE, und SemVer
+  trennt sie.** Der Wunsch war: herausgeben, ohne auf die Eins zu warten. **Das
+  bleibt so, und es wird sogar einfacher** — unter SemVer ist Veröffentlichen
+  überhaupt kein Versionsereignis. Die Anlage darf mit **jeder** Nummer
+  herausgehen, auch mit 0.10.0. Was 1.0.0 hinzufügt, ist nicht das
+  Herausgehen, sondern **die Zusage**: ab da ist die öffentliche Schnittstelle
+  aus Abschnitt 5 festgelegt, und ein Bruch daran kostet die Zwei.
+- **Die alte Zeile „0.9.90 — Veröffentlichung" trug beides in einem**: das
+  Herausgehen *und* „Abwärtskompatibilität wird zugesichert". Sie ist deshalb
+  aufgeteilt. Das Herausgehen hängt an keiner Nummer mehr; die Zusage steht als
+  **1.0.0** am Ende des Plans.
 
-**Warum 0.9.90 und nicht 0.9.9:** sortiert wird zahlweise, und danach liegt
-`0.9.9` **vor** `0.9.10` — also vor der Runde, die als nächste gebaut wird. Die
-Veröffentlichung stünde damit in der Vergangenheit. `0.9.90` reiht sich hinter
-0.9.60 ein, so wie 0.8.90 hinter 0.8.60 lag. **Die Zehnerschritte gelten also
-bis zum Schluss durch.**
+**Umnummeriert ist nur, was noch nicht draußen war.** 0.9.1 und alles davor
+behalten ihre Nummern — eine veröffentlichte Version wird nicht umgeschrieben
+(Abschnitt 5). Der Plan dagegen ist bis dahin nur ein Plan.
 
-**Was mit 1.0.0 geschieht, ist offen** und steht in Abschnitt 8: die Zeile ist
-aus dem Plan herausgenommen, weil ihr Inhalt auf 0.9.60 und 0.9.90 verteilt
-ist. Ob die Eins danach überhaupt noch eine eigene Runde bekommt oder nur eine
-Nummer für den erreichten Stand ist, ist nicht entschieden. **1.1.0 — Teil II
-des Videopapiers — steht weiter da**, und die Frage nach seiner Nummer hängt an
-derselben Entscheidung.
+| bisher geplant | jetzt |
+|---|---|
+| 0.9.10 Zwei-Faktor | **0.10.0** |
+| 0.9.20 Suche und Bestand | **0.11.0** |
+| 0.9.30 Fehlerbereinigung | **0.11.x**, PATCH-Reihe ohne feste Nummer |
+| 0.9.60 Bereinigung, kein Rückweg | **0.12.0** |
+| 0.9.90 Veröffentlichung samt Zusage | Herausgeben: **jederzeit** · Zusage: **1.0.0** |
+| 1.1.0 Große Dateien | **nach 1.0.0**, Nummer ergibt sich |
 
 **Die Reihenfolge ist nicht beliebig.** Vier Bindungen:
 
@@ -6061,7 +6205,7 @@ Einträge, Tags in Mengen bearbeiten, Druckstylesheet, Fälligkeitsdatum an
 Aufgaben, Erwähnungen im Kommentar.
 
 *Herausgefallen, weil beschlossen:* Sicherung auf Anforderung und Endpunkt für
-den Gesundheitszustand (0.8.20 bzw. 0.8.70), Doppelerkennung (0.9.20).
+den Gesundheitszustand (0.8.20 bzw. 0.8.70), Doppelerkennung (0.11.0).
 
 ---
 

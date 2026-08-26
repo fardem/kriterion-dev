@@ -1,8 +1,50 @@
-# Änderungen
+# Changelog
 
-Kurzfassung für den Betrieb — was eine Version mitbringt und was zu beachten
-ist. Die Einzelheiten stehen je Version in
-`Doku/Aenderungsprotokoll_<Version>.md`.
+Alle beachtenswerten Änderungen an diesem Projekt werden in dieser Datei
+festgehalten — kurzgefasst für den Betrieb. Die Einzelheiten je Version stehen
+in `Doku/Aenderungsprotokoll_<Version>.md`.
+
+Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
+und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/de/).
+
+> **AB 0.10.0 GILT DIESE FORM, DAVOR NICHT.** Die Einträge bis einschließlich
+> 0.9.1 stehen so, wie sie geschrieben wurden — mit eigenen Überschriften und
+> ohne Datum. *Sie werden nicht umgeschrieben: was einmal draußen war, bleibt,
+> wie es war* (Semantic Versioning, Punkt 3). Wo die Form abweicht, ist der
+> Eintrag älter und nicht falsch.
+>
+> **Die Abschnittsnamen bleiben englisch** — `Added`, `Changed`, `Deprecated`,
+> `Removed`, `Fixed`, `Security` —, so wie die deutsche Fassung von Keep a
+> Changelog sie führt. *Das ist kein Bruch mit der Sprachregel des Projekts:
+> der Maßstab dort ist das Wort, das ein deutschsprachiger Entwickler im
+> Gespräch benutzt, und das sind hier diese sechs.* Leere Abschnitte werden
+> weggelassen.
+>
+> **Zwei eigene Abschnitte kommen dahinter und bleiben:** „Was du danach von
+> Hand tun musst" und „Was gleich bleibt". Sie sind für einen Betreiber das
+> Wertvollste hier, und keine der sechs Arten trägt sie.
+>
+> **Zurückgezogene Versionen** werden als `## [x.y.z] - JJJJ-MM-TT [YANKED]`
+> gekennzeichnet — großgeschrieben, damit ein Mensch es bemerkt.
+
+## [Unreleased]
+
+*Hier wird mitgeschrieben, während gebaut wird. Beim Herausgeben wird daraus
+ein Abschnitt mit Nummer und Datum.*
+
+### Changed
+
+- **Versionsnummern folgen ab 0.10.0 Semantic Versioning 2.0.0**, dieses
+  Changelog ab derselben Version Keep a Changelog 1.1.0. Die Zehnerschritte des
+  alten Schemas entfallen: eine Nacharbeitsrunde bekommt die nächste
+  PATCH-Zahl statt einer freigehaltenen Nummer. **Der Plan ist entsprechend
+  umnummeriert** — aus 0.9.10 wird 0.10.0, aus 0.9.20 wird 0.11.0, und die
+  Zusage der Abwärtskompatibilität liegt auf 1.0.0. *Herausgeben lässt sich die
+  Anlage davon unabhängig mit jeder Nummer.* Einzelheiten im Projektstand,
+  Abschnitt 5 und Abschnitt 10.
+- **Diese Datei heißt jetzt `CHANGELOG.md` und liegt im Wurzelverzeichnis**,
+  nicht mehr `Doku/Changelog.md`. So findet sie, wer das Paket auspackt, ohne
+  in `Doku/` zu suchen.
 
 ---
 

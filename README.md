@@ -12,7 +12,10 @@ Node.js/Express, verschlüsselte SQLite-Datenbank, Frontend ohne Framework. Kein
 externen Schriftarten, kein CDN, keine Favicon-Abrufe — läuft vollständig
 offline im eigenen Netz.
 
-**Was eine Version mitbringt, steht kurzgefasst in `Doku/Changelog.md`.**
+**Was eine Version mitbringt, steht kurzgefasst in `CHANGELOG.md`.** Das Format
+folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
+Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/) —
+beides ab 0.10.0; die Einträge davor stehen in ihrer ursprünglichen Form.
 
 ## Einrichten
 
