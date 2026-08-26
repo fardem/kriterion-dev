@@ -164,9 +164,29 @@ des Neuladens und der Weg danach stehen alle drei weiter darin.
   Kasten wird geleert; die Kennungen darin sind feste Namen (Stolperstein 153).
 * **Die gekürzte Zeile auf der Einladungsseite.**
 
+### `public/marke-dunkel.svg`, `public/marke-hell.svg`, `public/favicon.svg` — neu
+
+**Die Marke der Anlage ist seit dieser Runde eine ausgelieferte Datei** und
+kein eingebautes SVG mehr. Wer sie austauscht, tauscht eine Datei aus und fasst
+keinen Quelltext an. Drei Fassungen: **durchsichtig** (für die dunklen Flächen
+der Oberfläche), **mit Kachel** (für helle Flächen, Druck, fremde Seiten) und
+das **Favicon** für den Tab. Die Oberfläche nimmt die durchsichtige — eine
+mitgelieferte Kachel säße auf dunklem Grund als sichtbares Rechteck darauf.
+
+**Die Farben stammen aus der eigenen Palette:** `#838c95` ist `--muted`,
+`#16191c` ist `--surface`.
+
+**Offen geblieben und benannt, nicht stillschweigend geändert:** der
+Akzentstrich der Marke ist `#ffc531`, `--accent` der Anlage ist `#ff7a1a` — zwei
+warme Töne, die nicht derselbe sind, und auf der Anmeldekarte stehen sie
+übereinander. Die Zeichnung ist unverändert übernommen; die Entscheidung darüber
+gehört dem, dem die Marke gehört. Ebenso benannt: `favicon.svg` und
+`marke-hell.svg` sind Byte für Byte identisch — zwei Namen für dieselbe Datei
+sind eine Stelle, die auseinanderlaufen kann.
+
 ### `pruefung.js`
 
-Siebzehn neue Gruppen, 224 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
+Achtzehn neue Gruppen, 240 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
 im DOM-Mock die fünf neuen Endpunkte samt `registrierung` in `/api/config` —
 und er **zieht mit**: Freischalten und Ablehnen nehmen die Zeile wirklich aus
 der Liste (Stolperstein 90) und bringen nichts selbst mit, was die Prüfung
@@ -174,7 +194,7 @@ belegen soll (Stolperstein 102).
 
 ### `gegenprobe.js`
 
-**38 neue Rückbauten** (31 bis 69, ohne 45 — siehe Abweichung D), dazu drei
+**42 neue Rückbauten** (31 bis 72, ohne 45 — siehe Abweichung D), dazu drei
 nachgezogene: 07 und 14 zielten auf Zeilen, die diese Runde verschoben hat, 30
 auf die gekürzte Zeile.
 
@@ -525,6 +545,23 @@ daneben steht die, die den Befund festhält: **der Schalter muss in genau dieser
 Lage erreichbar sein.** Rückbau 63 zielt jetzt auf die alte Bedingung.
 Stolperstein **155**.
 
+### Befund O — `.mark` gab es zweimal, und die Marke trug es mit
+
+**Beim Einbau der neuen Marke ist aufgefallen, dass `.mark` in `style.css`
+zwei verschiedene Dinge benennt:** die Marke der Anlage (`color: var(--accent)`)
+und die kleinen Knöpfe am Kommentar — Anpinnen, Bericht, Aufgabe — mit Rahmen,
+rundem Füllgrund und kleiner Schrift.
+
+**Die Marke hat die zweite Regel stillschweigend mitgetragen.** Deshalb saß sie
+in einem Kästchen mit Rahmen, das niemand entworfen hat; auf dem Bildschirm der
+Anmeldeseite war es zu sehen, und es ist über Monate niemandem als Fehler
+aufgefallen — es sah nach Absicht aus.
+
+**Zwei Dinge mit demselben Namen sind eines zu viel.** Die Marke heißt jetzt
+`marke`, trägt nichts Fremdes mehr mit, und der Prüfstand hält beide Regeln
+getrennt fest. *Nebenbei:* die Umstellung von einem eingebauten SVG auf eine
+Datei hat den Fehler nicht verursacht — sie hat ihn sichtbar gemacht.
+
 ### Befund N — der Weg zur Anfrage war zu leise (aus dem Betrieb)
 
 **Der Weg zur Selbstanmeldung stand als Verweis in der Fußzeile der
@@ -573,7 +610,7 @@ steht im Projektstand, Abschnitt 6.
 
 ## 6. Der Prüfstand
 
-**3416 von 3416 bestanden** — 224 neue Prüfungen, **siebzehn** neue Gruppen.
+**3432 von 3432 bestanden** — 240 neue Prüfungen, **achtzehn** neue Gruppen.
 
 | Gruppe | Was sie festhält |
 |---|---|
@@ -620,8 +657,8 @@ unverändert **122** Pfade.
 
 ## 7. Gegenprobentabelle
 
-**45 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
-gefahren über `gegenprobe.js` mit vier Nebenspuren. **38 sind neu** (31 bis 69,
+**49 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
+gefahren über `gegenprobe.js` mit vier Nebenspuren. **42 sind neu** (31 bis 72,
 ohne 45 — siehe Abweichung D), drei sind nachgezogen (07, 14 und 30 zielten auf
 Zeilen, die diese Runde verschoben hat), zwei sind die Wächter über den
 Prüfstand selbst.
@@ -687,9 +724,9 @@ DANACH: null stumm, null abgerissen.**
 | | |
 |---|---|
 | Vorher (0.9.0) | 3192 |
-| Nachher (0.9.1) | **3416** |
-| Neu | **224** |
-| Gegenproben | **45** |
+| Nachher (0.9.1) | **3432** |
+| Neu | **240** |
+| Gegenproben | **49** |
 
 ---
 
@@ -749,4 +786,4 @@ DANACH: null stumm, null abgerissen.**
 
 ---
 
-**0.9.1 — Fingerprint `46af7459`**
+**0.9.1 — Fingerprint `d629e78d`**
