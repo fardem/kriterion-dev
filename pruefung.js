@@ -1176,6 +1176,81 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gewAus?.criteriaGewichte?.[gewRund[0].name] === 0.6, JSON.stringify(gewAus?.criteriaGewichte));
 
   /* ---------------------------------------------------------------- */
+  gruppe('Die Marke der Anlage');
+
+  /* SEIT 0.9.1 IST SIE EINE AUSGELIEFERTE DATEI und kein eingebautes SVG mehr.
+     Wer sie austauscht, tauscht eine Datei aus und faesst keinen Quelltext an. */
+  const mkVerz = path.join(__dirname, 'public');
+  const mkDateien = ['marke-dunkel.svg', 'marke-hell.svg', 'favicon.svg'];
+  for (const n of mkDateien) {
+    pruefe(`${n} liegt in public/`, fs.existsSync(path.join(mkVerz, n)), 'die Datei fehlt');
+  }
+  const mkInhalt = Object.fromEntries(mkDateien
+    .filter(n => fs.existsSync(path.join(mkVerz, n)))
+    .map(n => [n, fs.readFileSync(path.join(mkVerz, n), 'utf8')]));
+  /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): eine leere
+     Datei erfuellte jede Verneinung darunter. */
+  pruefe('Und jede traegt wirklich ein SVG',
+    mkDateien.every(n => /<svg[\s>]/.test(mkInhalt[n] || '')),
+    JSON.stringify(Object.fromEntries(mkDateien.map(n => [n, (mkInhalt[n] || '').length]))));
+  /* KEIN SKRIPT IN EINER AUSGELIEFERTEN GRAFIK. Sie kommt aus dem Projekt und
+     nicht von aussen -- geprueft wird es trotzdem, denn public/ wird
+     unveraendert ausgeliefert, und ein SVG kann Skript tragen. Abschnitt 5a
+     gilt den hochgeladenen Dateien; diese Zeile ist dieselbe Frage an die
+     eigenen. */
+  pruefe('Und keine davon traegt Skript',
+    mkDateien.every(n => !/<script|on\w+ *=|javascript:/i.test(mkInhalt[n] || '')),
+    mkDateien.filter(n => /<script|on\w+ *=|javascript:/i.test(mkInhalt[n] || '')).join(' '));
+  /* DIE DURCHSICHTIGE UND DIE MIT KACHEL SIND WIRKLICH VERSCHIEDEN. Ohne
+     diese Zeile blieben zwei gleiche Dateien unbemerkt -- und die Oberflaeche
+     traege dann eine sichtbare Kachel auf dunklem Grund. */
+  pruefe('marke-dunkel.svg bringt KEINE Kachel mit',
+    !/<rect[^>]*fill=/.test(mkInhalt['marke-dunkel.svg'] || ''),
+    (mkInhalt['marke-dunkel.svg'] || '').slice(0, 200));
+  pruefe('marke-hell.svg und favicon.svg bringen eine mit',
+    /<rect[^>]*fill=/.test(mkInhalt['marke-hell.svg'] || '') &&
+    /<rect[^>]*fill=/.test(mkInhalt['favicon.svg'] || ''), 'keine Kachel');
+
+  const mkApp = fs.readFileSync(path.join(mkVerz, 'app.js'), 'utf8');
+  pruefe('Die Oberflaeche laedt die Marke als Datei',
+    /<img class="marke" src="marke-dunkel\.svg"/.test(mkApp),
+    (mkApp.match(/const MARK =[\s\S]{0,160}/) || [''])[0]);
+  /* SIE NIMMT DIE DURCHSICHTIGE. Die Flaechen der Oberflaeche sind dunkel;
+     eine mitgelieferte Kachel saesse dort als sichtbares Rechteck darauf. */
+  pruefe('Und zwar die durchsichtige, nicht die mit Kachel',
+    !/src="marke-hell\.svg"/.test(mkApp) && !/src="favicon\.svg"/.test(mkApp),
+    'die Oberflaeche laedt eine Fassung mit Kachel');
+  pruefe('Das eingebaute SVG der Marke ist verschwunden',
+    !/<svg class="mark"/.test(mkApp), 'das alte SVG steht noch im Quelltext');
+
+  /* ZWEI DINGE MIT DEMSELBEN NAMEN SIND EINES ZU VIEL. `.mark` gibt es in
+     style.css fuer die kleinen Knoepfe am Kommentar -- Rahmen, runder
+     Fuellgrund. Die Marke hat das eine Zeit lang mitgetragen und sass deshalb
+     in einem Kaestchen, das niemand gewollt hat. Sie heisst jetzt `marke`. */
+  pruefe('Die Marke traegt NICHT die Klasse der Kommentarknoepfe',
+    !/class="mark"/.test(mkApp) && /class="marke"/.test(mkApp),
+    (mkApp.match(/class="marke?"/g) || []).join(' '));
+  const mkCss = fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8').replace(/\s+/g, ' ');
+  pruefe('Und das Stylesheet kennt beide getrennt',
+    /\.marke \{[^}]*\}/.test(mkCss) && /\.mark \{[^}]*border-radius: 999px/.test(mkCss),
+    'die beiden Regeln sind nicht getrennt');
+
+  const mkIndex = fs.readFileSync(path.join(mkVerz, 'index.html'), 'utf8');
+  pruefe('Der Tab bekommt die Marke als Favicon',
+    /<link rel="icon" href="favicon\.svg" type="image\/svg\+xml">/.test(mkIndex),
+    (mkIndex.match(/<link[^>]*icon[^>]*>/) || ['(keine Zeile)'])[0]);
+  /* UND SIE WIRD WIRKLICH AUSGELIEFERT -- eine Datei im Verzeichnis belegt
+     nicht, dass der Server sie herausgibt. */
+  const mkAntwort = await fetch(`${BASIS}/favicon.svg`);
+  pruefe('Und der Server liefert sie aus', mkAntwort.status === 200, `Status ${mkAntwort.status}`);
+  pruefe('Mit dem Typ, den ein Browser dafuer braucht',
+    /image\/svg\+xml/.test(mkAntwort.headers.get('content-type') || ''),
+    mkAntwort.headers.get('content-type'));
+  pruefe('Und mit nosniff wie jede andere Antwort auch',
+    mkAntwort.headers.get('x-content-type-options') === 'nosniff',
+    mkAntwort.headers.get('x-content-type-options'));
+
+  /* ---------------------------------------------------------------- */
   gruppe('Schriftgroessen im Stylesheet');
 
   const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');

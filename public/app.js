@@ -63,7 +63,26 @@ const ICON_PH = `<svg class="ph" width="42" height="42" viewBox="0 0 24 24" fill
 const ICON_OFFEN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5l2 2 3-3.5"/><path d="M3.5 13l2 2 3-3.5"/><path d="M3.5 19.5l2 2 3-3.5"/><path d="M12.5 6.5H21"/><path d="M12.5 13H21"/><path d="M12.5 19.5H21"/></svg>`;
 const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
-const MARK = (s = 30) => `<svg class="mark" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"/><path d="M12 2.8 L12 12 L20.2 7.4"/><path d="M20.2 16.6 L12 12 L20.2 7.4"/><path d="M12 21.2 L12 12 L3.8 16.6"/><path d="M3.8 7.4 L12 12 L3.8 16.6"/></svg>`;
+/* Die Marke der Anlage. SEIT 0.9.1 EINE AUSGELIEFERTE DATEI statt eines
+   eingebauten SVG, und das hat zwei Gruende. Der eine ist die Sache: eine
+   Marke gehoert dem Projekt und nicht einer Funktion in app.js -- wer sie
+   austauscht, tauscht eine Datei aus und faesst keinen Quelltext an. Der
+   andere ist ein Fehler, den sie mitgeschleppt hat: die Klasse `mark` gibt es
+   in style.css ZWEIMAL -- einmal fuer die Marke und einmal fuer die kleinen
+   Knoepfe am Kommentar (Anpinnen, Bericht, Aufgabe). Die zweite Regel gab der
+   Marke einen Rahmen und einen runden Fuellgrund, den niemand gewollt hat.
+   SIE HEISST DESHALB JETZT `marke` und traegt nichts von der anderen mit.
+
+   GENOMMEN WIRD DIE DURCHSICHTIGE FASSUNG: die Flaechen, auf denen sie steht,
+   sind ohnehin dunkel, und eine mitgelieferte Kachel saesse dort als
+   sichtbares Rechteck darauf. marke-hell.svg bringt die Kachel mit und ist
+   fuer helle Flaechen gedacht -- gebraucht wird sie in dieser Oberflaeche
+   nicht, sie liegt fuer den Druck und fuer fremde Seiten daneben.
+
+   alt="" UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem Namen
+   der Anlage. Ein Vorleseprogramm saegte ihn sonst zweimal. */
+const MARK = (s = 30) =>
+  `<img class="marke" src="marke-dunkel.svg" width="${s}" height="${s}" alt="">`;
 
 function splitUrl(u) {
   try {
@@ -220,7 +239,7 @@ function showSetup(errMsg) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(34)}
+    ${MARK(40)}
     <h1>${esc(TITLE_PUBLIC)}</h1>
     <p class="sub">Erste Einrichtung — Benutzername und Passwort wählen.</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
@@ -273,7 +292,7 @@ function showLogin(errMsg) {
   // nur den oeffentlichen Titel, sonst nichts.
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(34)}
+    ${MARK(40)}
     <h1>${esc(TITLE_PUBLIC)}</h1>
     <p class="sub">Bitte anmelden, um fortzufahren.</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
@@ -335,7 +354,7 @@ function showAnfrage(errMsg, werte = {}) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(34)}
+    ${MARK(40)}
     <h1>${esc(TITLE_PUBLIC)}</h1>
     <p class="sub">Zugang anfragen. Ein Admin entscheidet darüber — und vorher bestätigst du
       per E-Mail, dass die Adresse dir gehört.</p>
@@ -380,7 +399,7 @@ function showAnfrage(errMsg, werte = {}) {
 // eine zweite Ausfertigung hier liefe beim naechsten Wort auseinander.
 function showAnfrageDank(meldung) {
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(34)}
+    ${MARK(40)}
     <h1>${esc(TITLE_PUBLIC)}</h1>
     <p class="sub" id="an-dank">${esc(meldung || '')}</p>
     <p class="sub"><a href="#" id="an-zurueck2">Zurück zur Anmeldung</a></p>
@@ -403,7 +422,7 @@ async function showBestaetigung(schluessel) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1>
+    ${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>
     <p class="sub">Der Link wird geprüft …</p></div></div>`;
   document.title = TITLE_PUBLIC;
   let res, j = {};
@@ -426,7 +445,7 @@ async function showBestaetigung(schluessel) {
 
   function zeichne(gut, meldung, nochmal) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
-      ${MARK(34)}
+      ${MARK(40)}
       <h1>${esc(TITLE_PUBLIC)}</h1>
       ${gut ? `<p class="sub" id="best-gut"><strong>Danke — deine Adresse ist bestätigt.</strong>
         Die Anfrage liegt jetzt beim Admin. Wird sie freigeschaltet, bekommst du eine zweite
@@ -467,7 +486,7 @@ async function showEinladung(schluessel) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
-    ${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1>
+    ${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>
     <p class="sub">Der Link wird geprüft …</p></div></div>`;
   document.title = TITLE_PUBLIC;
 
@@ -512,7 +531,7 @@ async function showEinladung(schluessel) {
      lassen. Der Mensch drückt, wenn er so weit ist. */
   function spaeter(meldung) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
-      ${MARK(34)}
+      ${MARK(40)}
       <h1>${esc(TITLE_PUBLIC)}</h1>
       <div class="login-error">${esc(meldung)}</div>
       <p class="sub">Dein Link ist davon <strong>nicht</strong> betroffen — er gilt weiter.
@@ -524,7 +543,7 @@ async function showEinladung(schluessel) {
 
   function zeichne(errMsg) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
-      ${MARK(34)}
+      ${MARK(40)}
       <h1>${esc(TITLE_PUBLIC)}</h1>
       <p class="sub">${stand.ohnePasswort
         ? `Willkommen, <strong>${esc(stand.username)}</strong> — bitte ein Passwort wählen.`
@@ -1288,7 +1307,7 @@ async function renderList() {
 
   app.innerHTML = `<div class="shell">
     <div class="masthead">
-      <div class="brand">${MARK(28)}
+      <div class="brand">${MARK(32)}
         <div><h1>${esc(TITLE_APP)}</h1><div class="count" id="count"></div></div></div>
       <div class="search-box">
         <span class="ic">${ICON_SEARCH}</span>

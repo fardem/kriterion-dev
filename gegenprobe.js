@@ -601,6 +601,30 @@ const RUECKBAUTEN = [
     ersatz: "    '',\n    'Wer diesen Link hat, kommt herein",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
+  /* ---- Die Marke der Anlage ---- */
+  {
+    nr: '70', name: 'Die Oberflaeche nimmt die Marke MIT Kachel',
+    datei: 'public/app.js',
+    suche: '<img class="marke" src="marke-dunkel.svg"',
+    ersatz: '<img class="marke" src="marke-hell.svg"',
+    erwartet: 'Die Marke der Anlage'
+  },
+  {
+    /* DIE MARKE TRAEGT WIEDER DIE KLASSE DER KOMMENTARKNOEPFE -- und saesse
+       damit wieder in einem Kaestchen mit Rahmen und rundem Fuellgrund. */
+    nr: '71', name: 'Die Marke heisst wieder wie die Kommentarknoepfe',
+    datei: 'public/app.js',
+    suche: '<img class="marke" src="marke-dunkel.svg"',
+    ersatz: '<img class="mark" src="marke-dunkel.svg"',
+    erwartet: 'Die Marke der Anlage'
+  },
+  {
+    nr: '72', name: 'Der Tab bekommt kein Favicon mehr',
+    datei: 'public/index.html',
+    suche: '<link rel="icon" href="favicon.svg" type="image/svg+xml">',
+    ersatz: '',
+    erwartet: 'Die Marke der Anlage'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
