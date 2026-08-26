@@ -452,6 +452,15 @@ deswegen **nicht** ab, und es fehlt auch nichts — die Links stehen wie bisher
 zum Kopieren da. Die Karte „Mailversand" markiert den fehlenden Wert rot und
 nennt den Grund.
 
+**Und seit 0.9.1 ist sie die Voraussetzung der Selbstanmeldung — nicht eine
+Empfehlung daneben, sondern baulich:** der Schalter lässt sich ohne diesen Wert
+gar nicht erst einschalten. Der Grund ist nachgesehen und nicht angenommen: die
+**Testmail enthält keinen Link** und geht auch ohne die öffentliche Adresse
+anstandslos durch. Die Marke des Tests könnte also grün sein, während jede
+Bestätigungsmail ohne brauchbaren Link hinausginge — und genau dann liefe die
+Selbstanmeldung ins Leere. Wer sie nicht setzt, legt Zugänge weiterhin selbst
+an; es fehlt nichts.
+
 #### Mailversand — seit 0.9.0
 
 **E-Mail ist eine Bequemlichkeit, keine Voraussetzung.** Ohne Mailzugang läuft
@@ -513,6 +522,61 @@ das und nennt den Weg — Systembereich, Karte „Zugang".
 Antwortet der Mailserver nicht, **bricht der Versuch nach zwanzig Sekunden ab**
 und die Antwort kommt trotzdem. Der Token entsteht dabei **zuerst**: der Link
 steht in jedem Fall da, egal was der Mailserver sagt.
+
+#### Selbstanmeldung — seit 0.9.1
+
+**Niemand kommt durch die Selbstanmeldung herein, ohne dass ein Admin ihn
+hereinlässt.** Das ist der Satz, unter dem alles Weitere steht. Es gibt keine
+Betriebsart, in der ein geklickter Link allein freischaltet — Kriterion ist ein
+Archiv für eine kleine Gruppe, kein Forum.
+
+**Und die Anlage läuft ohne all das vollständig.** Ist die Selbstanmeldung aus,
+legt eben nur der Admin Zugänge an, genau wie seit 0.8.0. Es fehlt keine
+Funktion, und der Schalter steht ab Werk auf **aus**.
+
+**Der Weg, vom Formular bis zum Passwort:**
+
+1. **Anfrage.** Auf der Anmeldeseite steht „Zugang anfragen". Das Formular hat
+   zwei Felder — Wunschname und E-Mail-Adresse — und **kein Passwortfeld**.
+2. **Bestätigungsmail.** Die Anlage schickt einen kurzen Link an die
+   angegebene Adresse. Er **öffnet keinen Zugang und setzt kein Passwort**; wer
+   ihn anklickt, sagt nur „ja, das bin ich". Er gilt **24 Stunden**.
+3. **Warteschlange.** Erst die **bestätigte** Anfrage erscheint beim Admin, in
+   der Karte **„Anfragen"** im Systembereich. Unbestätigte verfallen nach 24
+   Stunden und werden nie angezeigt.
+4. **Freischalten oder ablehnen.** Beim Freischalten entsteht ein Zugang mit
+   der Rolle **Benutzer** — nie mit einer anderen — samt Einladungslink; beim
+   Ablehnen verschwindet die Zeile, und es entsteht nichts.
+5. **Passwort setzen.** Über den Einladungslink, auf dem bekannten Weg: sieben
+   Tage gültig, genau einmal, ab dem ersten Öffnen fünfzehn Minuten.
+
+**Zwei Dinge müssen stehen, bevor sich der Schalter überhaupt einschalten
+lässt** — und beides prüft die Anlage selbst, statt es zu empfehlen:
+
+- **Ein Mailzugang, mit dem eine Testmail wirklich durchgekommen ist.** Ändert
+  sich danach irgendetwas am Mailzugang, gilt der Beleg nicht mehr, und der
+  Schalter lässt sich erst nach einer neuen Testmail wieder einschalten.
+- **`OEFFENTLICHE_ADRESSE` in der `.env`.** Ohne sie wüsste der Server nicht,
+  worauf der Bestätigungslink zeigen soll. Die Testmail allein genügt als
+  Beleg **nicht**: sie enthält gar keinen Link und geht auch ohne diesen Wert
+  durch.
+
+**Ausschalten geht dagegen immer.** Und geht der Versand später kaputt, **bleibt
+der Schalter an** — die Karte sagt es in einer roten Zeile. Ein Schalter, der
+sich von selbst umlegt, stünde anders da, als ihr ihn gestellt habt, und
+niemand wüsste, wann das passiert ist.
+
+**Was die Selbstanmeldung nicht preisgibt:** die Antwort auf eine Anfrage sieht
+**immer gleich aus** — ob der Name frei war, ob er vergeben ist, ob die Adresse
+schon an einem Zugang hängt, ob gerade zwanzig Anfragen offen sind oder ob der
+Schalter aus ist. Andernfalls wäre das Formular ein bequemes Werkzeug, Namen und
+Adressen durchzuprobieren, und zwar ohne Passwort davor. Dazu greift dieselbe
+**Anmeldebremse** wie an der Anmeldung, und höchstens **zwanzig** Anfragen
+liegen gleichzeitig; die einundzwanzigste wird still verworfen.
+
+**Wer eine Bestätigungsmail bekommt, ohne etwas angefragt zu haben, muss nichts
+tun** — die Mail sagt das auch. Ohne den Klick geschieht nichts, und die Anfrage
+verfällt von selbst.
 
 #### Meine Sitzungen
 
@@ -1344,11 +1408,19 @@ die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
 enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
 Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
 
-**0.9.0 fasst die Datenbank nicht an** — keine Tabelle, keine Spalte; ein
-Downgrade auf 0.8.91 wäre eine reine Dateikopie. Die Sicherungszeile bleibt
-trotzdem im Weg: sie kostet nichts und ist der einzige Rückweg, der ohne
-Fußnoten auskommt. **Es kommt auch keine neue Zeile in die `.env`** — der
-Mailzugang steht im Systembereich, nicht dort.
+**0.9.1 FASST DIE DATENBANK AN** — es kommt die Tabelle `anfragen` dazu, die
+Warteschlange der Selbstanmeldung. Einen Migrationsschritt braucht sie nicht,
+eine fehlende Tabelle legt der Start selbst an; aber ein Downgrade ist damit
+keine reine Dateikopie mehr. **Die Sicherungszeile ist bei dieser Version
+Pflicht.** *Genau genommen stört ein Downgrade auf 0.9.0 wenig — eine
+zusätzliche Tabelle sieht eine ältere Version gar nicht an. Was verloren geht,
+sind die offenen Anfragen: sie bleiben stehen, aber niemand zeigt sie mehr.*
+**Es kommt keine neue Zeile in die `.env`** — der Schalter der Selbstanmeldung
+steht im Systembereich, nicht dort.
+
+**0.9.0 davor fasste die Datenbank nicht an** — keine Tabelle, keine Spalte;
+ein Downgrade auf 0.8.91 wäre eine reine Dateikopie gewesen. Auch dort kam
+keine neue `.env`-Zeile dazu: der Mailzugang steht im Systembereich.
 
 **0.8.91 davor fasste sie ebenfalls nicht an.** Dort war die Sicherung
 trotzdem Pflicht, und beim **Schlüsselwechsel** ein zweites Mal: siehe den
@@ -1533,6 +1605,19 @@ ausschließlich an die eigene Adresse** geht (auch mit einem mitgegebenen Feld i
 Rumpf, Abfrage oder Kopf), dass das **Mailpasswort in keiner Spalte, keiner
 Protokollzeile und keiner Antwort** steht, und dass die **Frist ab dem ersten
 Öffnen** wirklich nur beim ersten Öffnen schreibt.
+**Seit 0.9.1 dazu die Selbstanmeldung, vom Formular bis zum gesetzten
+Passwort** — und die schwerste Zusage darin wird **gemessen, nicht behauptet**:
+die fünf Lagen der Anfrage antworten mit demselben Statuscode und demselben
+Rumpf **Byte für Byte**, und **keine davon wartet auf den Mailserver**,
+nachgestellt an einem Empfänger, der den Versand zwanzig Sekunden festhält.
+Dazu die Bestätigungsmail am echten SMTP-Gespräch samt ihrem Link im Fragment,
+der Beleg, dass dieser Link **keinen Zugang, keinen Token und keine Sitzung**
+entstehen lässt, der Deckel (die einundzwanzigste wird still verworfen), das
+Verfallen an beiden Seiten, die Freischaltung mit der Rolle `user` **auch dann,
+wenn eine andere in Rumpf, Abfrage oder Kopf mitgeschickt wird**, die Ablehnung
+ohne Namen in der Protokollzeile, und dass die neue Tabelle sich an einer
+bestehenden Anlage beim Start selbst wieder anlegt — **eine Spalte dagegen
+nicht**.
 
 Die Dateien `pruefung.js` und `gegenprobe.js` sind per `.dockerignore`
 ausgeschlossen und landen nicht im Image.

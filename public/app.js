@@ -204,6 +204,12 @@ let TITLE_PUBLIC = 'Kriterion';
 let VERSION = '';   // kommt von /api/config, steht auch vor der Anmeldung
 let TITLE_APP = 'Kriterion';
 let MIN_PASSWORT = 10;   // Vorgabe des Servers, kommt mit /api/config
+/* Ob diese Anlage Anfragen annimmt. KOMMT VOM SERVER und wird hier nie
+   geraten: die Oberfläche zeigt das Formular, der Server entscheidet über die
+   Anfrage. Wer das Feld von Hand auf true setzt, bekommt ein Formular, dessen
+   Anfrage an derselben Antwort endet wie jede andere — die Schranke liegt
+   nicht hier. */
+let REGISTRIERUNG = false;
 
 /* Erste Einrichtung. Nennt den vorhandenen Bestand mit keinem Wort: die Seite
    steht vor der Anmeldung, dort gilt dieselbe Regel wie fuer den zweiten
@@ -276,8 +282,20 @@ function showLogin(errMsg) {
     <div class="field"><label for="lp">Passwort</label>
       <input class="input" id="lp" type="password" autocomplete="current-password"></div>
     <button class="btn btn-accent" id="lb">Anmelden</button>
+    ${/* DIE SELBSTANMELDUNG, seit 0.9.1 — und sie steht nur da, wenn der
+          Server sagt, dass sie an ist. Ein Formular, das ins Leere führt,
+          wäre schlimmer als keines: der Anfragende bekäme dieselbe freundliche
+          Antwort wie alle und wartete auf eine Mail, die nie kommt.
+          KEIN PASSWORTFELD. Der Anfragende gibt Namen und Adresse an, sonst
+          nichts — sein Passwort wählt er später über den Einladungslink, und
+          zwar erst, wenn ein Admin ihn hereingelassen hat. */''}
+    ${REGISTRIERUNG ? `<p class="sub" style="margin:14px 0 0">Noch keinen Zugang?
+      <a href="#" id="l-anfrage">Zugang anfragen</a></p>` : ''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
+  if (REGISTRIERUNG) {
+    document.getElementById('l-anfrage').onclick = (e) => { e.preventDefault(); showAnfrage(); };
+  }
 
   const u = document.getElementById('lu'), p = document.getElementById('lp'), b = document.getElementById('lb');
   const submit = async () => {
@@ -300,6 +318,133 @@ function showLogin(errMsg) {
   b.onclick = submit;
   [u, p].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
   u.focus();
+}
+
+/* Die Selbstanmeldung: das Formular und die Antwort darauf, seit 0.9.1.
+
+   ZWEI FELDER UND KEIN PASSWORT. Wer einen Zugang will, gibt seinen Wunschnamen
+   und seine Adresse an — mehr weiß die Anlage zu diesem Zeitpunkt nicht von
+   ihm, und mehr braucht sie auch nicht: das Passwort wählt er später selbst
+   über den Einladungslink, und den bekommt er erst, wenn ein Admin ihn
+   hereingelassen hat.
+
+   DIE ANTWORT KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN. Sie sieht in
+   jeder Lage gleich aus — unbekannter Name, bekannter Name, bekannte Adresse,
+   Deckel erreicht, Schalter aus —, und diese Seite darf daraus keine zweite
+   Auskunft machen. Deshalb steht hier kein „Name bereits vergeben" und kein
+   Unterschied im Aussehen; die Meldung wird gezeigt, wie sie ankommt. */
+function showAnfrage(errMsg, werte = {}) {
+  document.body.classList.add('anmeldung');
+  document.documentElement.style.fontSize = '';
+  app.innerHTML = `<div class="login-screen"><div class="login-card">
+    ${MARK(34)}
+    <h1>${esc(TITLE_PUBLIC)}</h1>
+    <p class="sub">Zugang anfragen. Ein Admin entscheidet darüber — und vorher bestätigst du
+      per E-Mail, dass die Adresse dir gehört.</p>
+    ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
+    <div class="field"><label for="an-name">Wunsch-Benutzername</label>
+      <input class="input" id="an-name" autocomplete="username" autocapitalize="off"
+        spellcheck="false" maxlength="64" value="${esc(werte.name || '')}"></div>
+    <div class="field"><label for="an-mail">E-Mail-Adresse</label>
+      <input class="input" id="an-mail" type="email" autocomplete="email" autocapitalize="off"
+        spellcheck="false" maxlength="254" value="${esc(werte.adresse || '')}"></div>
+    <button class="btn btn-accent" id="an-ab">Anfrage abschicken</button>
+    <p class="sub" style="margin:14px 0 0"><a href="#" id="an-zurueck">Zurück zur Anmeldung</a></p>
+  </div></div>`;
+  document.title = TITLE_PUBLIC;
+  const n = document.getElementById('an-name'), m = document.getElementById('an-mail'),
+        b = document.getElementById('an-ab');
+  document.getElementById('an-zurueck').onclick = (e) => { e.preventDefault(); showLogin(); };
+  const submit = async () => {
+    b.disabled = true; b.textContent = 'Abschicken …';
+    try {
+      const res = await fetch('/api/registrierung', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: n.value, adresse: m.value })
+      });
+      const j = await res.json().catch(() => ({}));
+      /* NUR DIE BREMSE UND DER AUSFALL FÜHREN ZURÜCK INS FORMULAR. Alles
+         andere endet auf derselben Dankseite — auch das, was der Server still
+         verworfen hat. Die Eingaben bleiben dabei stehen, damit ein zweiter
+         Anlauf nach einer 429 nicht am leeren Formular beginnt. */
+      if (!res.ok) return showAnfrage(j.error || 'Die Anfrage konnte gerade nicht gestellt werden.',
+        { name: n.value, adresse: m.value });
+      showAnfrageDank(j.meldung);
+    } catch { showAnfrage('Server nicht erreichbar.', { name: n.value, adresse: m.value }); }
+  };
+  b.onclick = submit;
+  [n, m].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
+  n.focus();
+}
+
+// Die Dankseite. DER TEXT KOMMT VOM SERVER, damit es ihn nur einmal gibt --
+// eine zweite Ausfertigung hier liefe beim naechsten Wort auseinander.
+function showAnfrageDank(meldung) {
+  app.innerHTML = `<div class="login-screen"><div class="login-card">
+    ${MARK(34)}
+    <h1>${esc(TITLE_PUBLIC)}</h1>
+    <p class="sub" id="an-dank">${esc(meldung || '')}</p>
+    <p class="sub"><a href="#" id="an-zurueck2">Zurück zur Anmeldung</a></p>
+  </div></div>`;
+  document.getElementById('an-zurueck2').onclick = (e) => { e.preventDefault(); showLogin(); };
+}
+
+/* Der Bestätigungslink aus der Selbstanmeldung.
+
+   ER HAT KEINE PASSWORTKRAFT, und diese Seite ist die bauliche Form davon: sie
+   setzt kein Passwort, sie meldet niemanden an, und danach steht man wieder
+   auf der Anmeldeseite. Sie schickt genau einen Aufruf ab und zeigt sein
+   Ergebnis.
+
+   DER SCHLÜSSEL STEHT IM FRAGMENT (#/bestaetigung/…) und geht damit nie an den
+   Server — dieselbe Bauform wie beim Einladungslink. Ein Vorschaudienst, der
+   Links im Postfach vorab abruft, holt nur die Seite und bestätigt gerade
+   NICHT: der Browser schickt den Schlüssel erst von hier aus im Rumpf. */
+async function showBestaetigung(schluessel) {
+  document.body.classList.add('anmeldung');
+  document.documentElement.style.fontSize = '';
+  app.innerHTML = `<div class="login-screen"><div class="login-card">
+    ${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1>
+    <p class="sub">Der Link wird geprüft …</p></div></div>`;
+  document.title = TITLE_PUBLIC;
+  let res, j = {};
+  try {
+    res = await fetch('/api/registrierung/bestaetigen', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schluessel })
+    });
+    j = await res.json().catch(() => ({}));
+  } catch {
+    /* KEIN NETZ IST KEINE ABSAGE. Wie bei der Einladungsseite bleibt der
+       Schlüssel in der Adresse stehen, und ein Neuladen trägt wieder. */
+    return zeichne(false, 'Server nicht erreichbar.', true);
+  }
+  if (!res.ok) return zeichne(false, j.error || 'Dieser Bestätigungslink gilt nicht mehr.',
+    res.status !== 400);
+  location.hash = '#/';
+  zeichne(true, '');
+
+  function zeichne(gut, meldung, nochmal) {
+    app.innerHTML = `<div class="login-screen"><div class="login-card">
+      ${MARK(34)}
+      <h1>${esc(TITLE_PUBLIC)}</h1>
+      ${gut ? `<p class="sub" id="best-gut"><strong>Danke — deine Adresse ist bestätigt.</strong>
+        Die Anfrage liegt jetzt beim Admin. Wird sie freigeschaltet, bekommst du eine zweite
+        E-Mail mit dem Link, über den du dein Passwort setzt.</p>`
+        : `<div class="login-error">${esc(meldung)}</div>
+        ${nochmal ? `<p class="sub">Dein Link ist davon <strong>nicht</strong> betroffen — er gilt
+          weiter.</p><button class="btn btn-accent" id="best-neu">Noch einmal versuchen</button>`
+          : ''}`}
+      <p class="sub" style="margin:14px 0 0"><a href="#" id="best-zurueck">Zur Anmeldung</a></p>
+    </div></div>`;
+    const neu = document.getElementById('best-neu');
+    if (neu) neu.onclick = () => showBestaetigung(schluessel);
+    document.getElementById('best-zurueck').onclick = (e) => {
+      e.preventDefault(); location.hash = '#/'; showLogin();
+    };
+  }
 }
 
 /* Der Link aus einer Einladung oder einer Rücksetzung.
@@ -397,9 +542,9 @@ async function showEinladung(schluessel) {
             erst an der Absage, und dann ist es zu spät. */''}
       <p class="sub" style="margin:0 0 4px">Mindestens ${min} Zeichen. Dieser Link gilt danach
         nicht mehr, und alle bestehenden Anmeldungen dieses Zugangs werden beendet.
-        ${stand.minuten ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit.</strong>
-        Seit dem ersten Öffnen läuft eine Frist; danach musst du beim Admin einen neuen Link
-        holen. Neu laden darfst du in dieser Zeit, so oft du willst.` : ''}</p>
+        ${stand.minuten ? `<br><strong>Du hast jetzt ${stand.minuten} Minuten Zeit</strong> —
+        neu laden darfst du darin beliebig oft. Danach brauchst du einen neuen Link vom
+        Admin.` : ''}</p>
       <button class="btn btn-accent" id="eb">Passwort setzen</button>
     </div></div>`;
 
@@ -3669,7 +3814,8 @@ async function renderDetail(id) {
 /* ================= Systembereich ================= */
 async function renderSystem() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
-  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll, mailstand;
+  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll, mailstand,
+      anfragen;
   try {
     /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
        stehen hinter dem Admin; ein Abruf, der zuverlaessig 403 ergibt, risse
@@ -3691,14 +3837,19 @@ async function renderSystem() {
        DER MAILVERSAND SEIT 0.9.0 GEHT DENSELBEN WEG, hinter dem EIGENTUEMER:
        der Mailzugang gehoert ihm ganz -- eintragen, einsehen und testen. Der
        Admin erfaehrt den Zustand dort, wo er ihn braucht, naemlich als Feld
-       `versand` neben dem Link. Es sind zehn Abrufe. */
-    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll, mailstand] = await Promise.all([
+       `versand` neben dem Link.
+       DIE SELBSTANMELDUNG SEIT 0.9.1 GEHT DENSELBEN WEG, hinter dem ADMIN:
+       aus einer Anfrage wird nie etwas anderes als ein Zugang mit der Rolle
+       user, und den legt der Admin ohnehin an. Es sind elf Abrufe. */
+    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll, mailstand,
+     anfragen] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null,
       EIGENTUEMER ? api('GET', '/api/sicherung') : null, api('GET', '/api/sessions'),
       EIGENTUEMER ? api('GET', '/api/sicherheitsprotokoll') : null,
-      EIGENTUEMER ? api('GET', '/api/mail') : null
+      EIGENTUEMER ? api('GET', '/api/mail') : null,
+      ADMIN ? api('GET', '/api/anfragen') : null
     ]);
   } catch (e) { if (e.message !== 'Sitzung abgelaufen') toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
@@ -4052,6 +4203,51 @@ async function renderSystem() {
         <p class="desc" style="margin:16px 0 0">Passwort vergessen und niemand kommt mehr herein?
           Auf dem Server hilft
           <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.</p>
+      </div>` : ''}
+
+      ${/* DIE NEUNZEHNTE KARTE, seit 0.9.1 — und sie steht beim ADMIN, nicht
+            beim Eigentümer: aus einer Anfrage wird nie etwas anderes als ein
+            Zugang mit der Rolle „Benutzer“, und den legt der Admin ohnehin an.
+            SIE IST NUR DA, WENN SIE ETWAS ZU SAGEN HAT — der Schalter ist an
+            oder es liegen Anfragen. Eine Karte, die dauerhaft „aus, nichts
+            offen“ meldet, wäre eine Zeile Lärm in einem Bereich, in dem
+            achtzehn andere stehen.
+            DER SCHALTER LEGT SICH NIE VON SELBST UM: geht der Versand kaputt,
+            bleibt er an und die Zeile darunter wird rot. Ein Schalter, der
+            sich selbst umlegt, stünde anders da, als der Mensch ihn gestellt
+            hat — und niemand wüsste, wann das passiert ist. */''}${
+        ADMIN && anfragen && (anfragen.an || anfragen.anfragen.length) ? `<div class="sys-card breit">
+        <h3>Anfragen</h3>
+        <p class="desc"><strong>Niemand kommt hier herein, ohne dass ein Admin ihn hereinlässt.</strong>
+          Ist die Selbstanmeldung an, steht auf der Anmeldeseite ein Formular: Wunschname und
+          E-Mail-Adresse, kein Passwort. Wer es abschickt, bekommt zuerst eine Mail und bestätigt
+          damit, dass die Adresse ihm gehört — <strong>erst die bestätigte Anfrage erscheint
+          hier</strong>. Unbestätigte verfallen nach ${anfragen.stunden} Stunden.</p>
+        <div class="kv"><span class="k">Selbstanmeldung</span><span class="v" id="anf-zustand">${
+          anfragen.an ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>'
+        }</span></div>
+        <div class="kv"><span class="k">Offene Anfragen</span><span class="v" id="anf-belegt">${
+          anfragen.belegt} von höchstens ${anfragen.deckel}</span></div>
+        ${anfragen.an && !anfragen.versandBereit ? `<p class="warn-box" id="anf-kaputt" style="margin:10px 0 0">
+          <strong>Der Versand trägt gerade nicht — die Selbstanmeldung bleibt trotzdem an.</strong>
+          ${esc(anfragen.versandGrund)} Solange das so ist, bekommt niemand eine Bestätigungsmail,
+          und es kann keine Anfrage entstehen. Der Schalter wird deshalb <em>nicht</em> von selbst
+          umgelegt: er steht so, wie ihr ihn gestellt habt.</p>` : ''}
+        ${!anfragen.an && !anfragen.versandBereit ? `<p class="desc" id="anf-nichtbereit">
+          <strong>Einschalten geht erst, wenn der Versand steht.</strong>
+          ${esc(anfragen.versandGrund)}</p>` : ''}
+        <div class="row-in" style="margin-top:10px">
+          <button class="btn btn-sm${anfragen.an ? '' : ' btn-accent'}" id="anf-schalter"${
+            !anfragen.an && !anfragen.versandBereit ? ' disabled' : ''}>${
+            anfragen.an ? 'Selbstanmeldung ausschalten' : 'Selbstanmeldung einschalten'}</button>
+        </div>
+        <div class="manage-list" id="manfragen" style="margin-top:14px"></div>
+        <div id="anf-link"></div>
+        <p class="desc" style="margin:16px 0 0"><strong>Freischalten</strong> legt einen Zugang mit
+          der Rolle <strong>Benutzer</strong> an — nie mit einer anderen — und erzeugt den
+          Einladungslink, über den der Betreffende sein Passwort selbst setzt.
+          <strong>Ablehnen</strong> entfernt die Anfrage; es entsteht kein Zugang, und es geht
+          keine Nachricht hinaus.</p>
       </div>` : ''}
 
       ${/* NUR DER EIGENTUEMER. Die Karte nennt Namen und Vorgaenge ueber andere
@@ -5136,9 +5332,24 @@ async function renderSystem() {
     return '';
   };
 
-  function zeigeLink(d) {
-    const box = document.getElementById('zug-link');
+  /* EINE FUNKTION, ZWEI RUFER seit 0.9.1 -- das Anlegen in der Karte
+     "Zugaenge" und das Freischalten in der Karte "Anfragen". Der Link ist in
+     beiden Faellen derselbe Gegenstand mit derselben Warnung daneben; zwei
+     Ausfertigungen liefen beim naechsten Satz auseinander. */
+  function zeigeLink(d, kasten = 'zug-link') {
+    const box = document.getElementById(kasten);
     if (!box || !d || !d.token) return;
+    /* DER ANDERE KASTEN WIRD GELEERT, und das ist keine Aufraeumarbeit: die
+       Kennungen darin sind feste Namen, und zwei Kaesten nebeneinander
+       ergaeben sie doppelt -- getElementById naehme dann den ersten, und der
+       Knopf "Kopieren" kopierte den falschen Link. Es steht immer hoechstens
+       EIN Link am Bildschirm, und das ist ohnehin richtig so. */
+    for (const anderer of ['zug-link', 'anf-link']) {
+      if (anderer !== kasten) {
+        const k = document.getElementById(anderer);
+        if (k) k.innerHTML = '';
+      }
+    }
     // Der Server gibt den fertigen Link nur heraus, wenn die Einstellung steht.
     // Sonst baut ihn der Browser wie bisher.
     const adresse = d.link || baueEinladungsAdresse(d.token);
@@ -5168,6 +5379,87 @@ async function renderSystem() {
       } else toast('Bitte von Hand kopieren — der Link ist markiert.', true);
     };
   }
+
+  /* Die Warteschlange der Selbstanmeldung, seit 0.9.1. DIESELBE BAUFORM WIE
+     zeichneZugaenge(): die Liste kommt vom Server, wird nach jeder Handlung
+     neu gezeichnet, und was nach dem await gebraucht wird, wird vorher geholt.
+     DIE ANTWORT DER HANDLUNG TRAEGT DIE NEUE LISTE MIT -- die Karte zeichnet
+     sich daraus neu und fragt nicht ein zweites Mal nach. Ein Mock, der auf
+     ein Loeschen zwar "ok" sagt, aber dieselbe Liste zurueckgibt, faellt damit
+     auf (Stolperstein 90). */
+  function zeichneAnfragen(stand) {
+    const box = document.getElementById('manfragen');
+    if (!box || !stand) return;
+    const dok = box.ownerDocument;
+    const zustand = document.getElementById('anf-zustand');
+    if (zustand) zustand.innerHTML = stand.an
+      ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>';
+    const belegt = document.getElementById('anf-belegt');
+    if (belegt) belegt.textContent = `${stand.belegt} von höchstens ${stand.deckel}`;
+    const schalter = document.getElementById('anf-schalter');
+    if (schalter) {
+      schalter.textContent = stand.an ? 'Selbstanmeldung ausschalten' : 'Selbstanmeldung einschalten';
+      schalter.disabled = !stand.an && !stand.versandBereit;
+    }
+    box.innerHTML = '';
+    if (!stand.anfragen.length) {
+      box.innerHTML = '<span class="hint">Zurzeit liegt keine bestätigte Anfrage vor.</span>';
+      return;
+    }
+    for (const a of stand.anfragen) {
+      const row = dok.createElement('div');
+      row.className = 'mrow zug';
+      row.dataset.mid = a.id;
+      /* NAME UND ADRESSE STEHEN HIER, und sie sind Freitext von aussen --
+         deshalb geht jedes Feld durch esc(). Es ist die einzige Stelle im
+         Systembereich, an der etwas steht, das ein Fremder getippt hat. */
+      row.innerHTML = `<span class="mname">${esc(a.username)}</span>
+        <span class="zug-rolle">${esc(a.email)}</span>
+        <span class="zug-status">gefragt ${esc(fmtDate(a.created_at))}</span>
+        <span class="mcount">bestätigt ${esc(fmtDate(a.bestaetigt_am))}</span>`;
+      const werkzeug = dok.createElement('span');
+      werkzeug.className = 'zug-akt';
+      werkzeug.innerHTML =
+        `<button class="mact anf-frei" title="Freischalten — legt einen Zugang an">✓</button>
+         <button class="mact rm anf-ab" title="Ablehnen — entfernt die Anfrage">✕</button>`;
+      row.appendChild(werkzeug);
+      werkzeug.querySelector('.anf-frei').onclick = async () => {
+        if (!confirm(`„${a.username}“ freischalten? Es entsteht ein Zugang mit der Rolle ` +
+          `„Benutzer“, und der Einladungslink geht an ${a.email}.`)) return;
+        try {
+          const d = await api('POST', `/api/anfragen/${a.id}/frei`);
+          toast('Freigeschaltet — der Link steht unten');
+          zeigeLink(d, 'anf-link');
+          zeichneAnfragen(d);
+          zeichneZugaenge();
+        } catch (e) { toast(e.message, true); }
+      };
+      werkzeug.querySelector('.anf-ab').onclick = async () => {
+        if (!confirm(`Anfrage von „${a.username}“ ablehnen? Die Zeile wird entfernt; ` +
+          `es entsteht kein Zugang, und es geht keine Nachricht hinaus.`)) return;
+        try {
+          const d = await api('DELETE', `/api/anfragen/${a.id}`);
+          toast('Anfrage abgelehnt');
+          zeichneAnfragen(d);
+        } catch (e) { toast(e.message, true); }
+      };
+      box.appendChild(row);
+    }
+  }
+  if (anfragen) zeichneAnfragen(anfragen);
+  const anfSchalter = document.getElementById('anf-schalter');
+  if (anfSchalter) anfSchalter.onclick = async () => {
+    // Vor dem await lesen: danach steht am Knopf schon der andere Text.
+    const neu = !(anfragen && anfragen.an);
+    try {
+      const d = await api('PUT', '/api/registrierung/schalter', { an: neu });
+      anfragen = d;
+      toast(neu ? 'Selbstanmeldung eingeschaltet' : 'Selbstanmeldung ausgeschaltet');
+      zeichneAnfragen(d);
+      const kaputt = document.getElementById('anf-kaputt');
+      if (kaputt && (!d.an || d.versandBereit)) kaputt.remove();
+    } catch (e) { toast(e.message, true); }
+  };
 
   async function zeichneZugaenge() {
     const box = document.getElementById('mzugaenge');
@@ -5460,6 +5752,7 @@ let einrichtungNoetig = false;
     if (cfg && cfg.version) VERSION = cfg.version;
     if (cfg && cfg.minPassword) MIN_PASSWORT = cfg.minPassword;
     if (cfg && cfg.setupRequired) einrichtungNoetig = true;
+    REGISTRIERUNG = Boolean(cfg && cfg.registrierung);
     zeigeVersion();
   } catch {}
   document.title = TITLE_PUBLIC;
@@ -5472,6 +5765,14 @@ let einrichtungNoetig = false;
      öffnet, in dem noch jemand angemeldet ist, meint trotzdem den Link. */
   const einl = (location.hash || '').match(/^#\/einladung\/([0-9a-f]{16,128})$/);
   if (einl) return showEinladung(einl[1]);
+  /* Der Bestätigungslink der Selbstanmeldung, seit 0.9.1 — an derselben
+     Stelle und aus demselben Grund wie der Einladungslink: wer ihn anklickt,
+     meint ihn, auch wenn im Browser noch jemand angemeldet ist. Er wird
+     ausdrücklich NICHT vom Schalter abhängig gemacht: wird die Selbstanmeldung
+     abgeschaltet, während eine Bestätigung unterwegs ist, soll der Link nicht
+     stumm auf der Anmeldeseite enden — der Server sagt dann, was gilt. */
+  const best = (location.hash || '').match(/^#\/bestaetigung\/([0-9a-f]{16,128})$/);
+  if (best) return showBestaetigung(best[1]);
   try {
     const s = await fetch('/api/session', { credentials: 'same-origin' }).then(r => r.json());
     if (s.authenticated) start(); else showLogin();

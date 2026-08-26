@@ -101,6 +101,73 @@ async function versendeTokenLink(ziel, t) {
               : { versand: 'fehlgeschlagen', versandGrund: e.grund };
 }
 
+/* ---- Der Beleg der letzten Testmail, seit 0.9.0 ------------------------
+   SIE BELEGT "mit DIESEN Werten ist einmal wirklich eine Mail hinausgegangen".
+   Der Beleg haengt am HASH UEBER DEN ZUGANG: aendert sich irgendetwas am
+   Zugang, passt die Marke nicht mehr, und zwar unabhaengig davon, auf welchem
+   Weg der Wert in settings gelandet ist.
+   SIE STEHT SEIT 0.9.1 HIER OBEN UND NICHT MEHR IN mailKarte(), weil sie
+   inzwischen ZWEI Leser hat -- die Karte und den Schalter der Selbstanmeldung.
+   ZWEI MECHANISMEN FUER EINE ZUSAGE SIND EINER ZU VIEL (Stolperstein 145):
+   deshalb eine Funktion und zwei Rufer, nicht zwei Rechnungen. */
+const MAILTEST_SCHLUESSEL = 'mailtestOk';
+function mailtestStand(roh) {
+  const test = getSetting(MAILTEST_SCHLUESSEL, null);
+  return test && test.marke && test.marke === mail.marke(roh) ? test : null;
+}
+
+/* ---- Kann diese Anlage ueberhaupt verschicken, seit 0.9.1 --------------
+   DREI VORAUSSETZUNGEN, UND ALLE DREI SIND NOETIG. Der Auftrag zu dieser Runde
+   nennt nur die Testmarke; das traegt nicht, und der Grund ist nachgesehen und
+   nicht angenommen: DIE TESTMAIL ENTHAELT KEINEN LINK und geht deshalb auch
+   ohne OEFFENTLICHE_ADRESSE anstandslos durch. Die Marke kann gruen sein,
+   waehrend versendeTokenLink() mit versand: 'aus' abbricht -- und dann ginge
+   die Bestaetigungsmail nie hinaus, und die Selbstanmeldung liefe genau in die
+   Leere, die die Kopplung verhindern soll.
+   DER GRUND STEHT DANEBEN, aus demselben Grund wie bei versandGrund: "nicht
+   bereit" allein sagt dem Admin nicht, was er tun soll. */
+function versandBereit() {
+  const roh = getSetting(mail.SCHLUESSEL, null);
+  if (!mail.eingerichtet(roh))
+    return { ok: false, grund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer der Anlage.' };
+  if (!mailtestStand(roh))
+    return { ok: false, grund: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen. ' +
+      'Der Eigentümer der Anlage drückt sie in der Karte „Mailversand“.' };
+  if (!OEFFENTLICHE.adresse)
+    return { ok: false, grund:
+      'Ohne OEFFENTLICHE_ADRESSE in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
+  return { ok: true, grund: '' };
+}
+
+/* ---- Die Bestaetigungsmail der Selbstanmeldung, seit 0.9.1 -------------
+   DER DRITTE MAILANLASS. Sie traegt einen Link OHNE Passwortkraft: wer ihn
+   anklickt, sagt nur "ja, das bin ich".
+
+   SIE WIRD GERUFEN, NACHDEM DIE ANTWORT SCHON GESCHRIEBEN IST, und das ist
+   keine Bequemlichkeit, sondern die Bedingung fuer die immer gleiche Antwort.
+   Ein Weg, der eine Mail verschickt, dauert Sekunden; einer, der still
+   verwirft, dauert Millisekunden -- und aus dem Unterschied liesse sich
+   ablesen, welcher der beiden gelaufen ist. Damit waere das Formular doch
+   wieder ein Werkzeug zum Durchprobieren von Namen und Adressen, nur eben
+   ueber die Uhr statt ueber den Rumpf. NACHGEMESSEN STATT BEHAUPTET: der
+   Pruefstand haelt beide Wege am troepfelnden Empfaenger gegeneinander.
+   DER ANFRAGENDE VERLIERT DABEI NICHTS: er erfaehrt ueber den Versand ohnehin
+   nichts, und erfahren duerfte er es auch nicht.
+
+   DER SCHLUESSEL STEHT IM FRAGMENT (#/bestaetigung/…) und geht damit nie an
+   den Server -- dieselbe Bauform wie beim Einladungslink, und hier zusaetzlich
+   wertvoll: ein Vorschaudienst, der Links im Postfach vorab abruft, holt nur
+   die Seite und bestaetigt damit gerade NICHT. */
+async function versendeBestaetigung(name, adresse, klartext) {
+  const zugang = mail.loeseAuf(getSetting(mail.SCHLUESSEL, null));
+  if (!mail.eingerichtet(zugang) || !OEFFENTLICHE.adresse) return { ok: false, grund: 'aus' };
+  const titel = getSetting('title_public', 'Bewertungskatalog');
+  return mail.versende(zugang, adresse, `Bestätige deine Adresse für „${titel}“`,
+    mail.textBestaetigung({ titel, username: name,
+      link: `${OEFFENTLICHE.adresse}/#/bestaetigung/${klartext}`,
+      stunden: auth.ANFRAGE_STUNDEN }));
+}
+
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 /* Gilt fuer die ganze Anwendung.
@@ -249,9 +316,17 @@ function reclaim() {
 app.get('/api/config', (req, res) => {
   // setupRequired sagt nur, DASS noch eingerichtet werden muss -- nie etwas
   // ueber den Bestand. Wer die Seite aufruft, saehe es ohnehin.
+  /* registrierung SEIT 0.9.1: die Anmeldeseite muss wissen, ob sie das
+     Formular ueberhaupt zeigen soll. Der Wert sagt nichts ueber den Bestand
+     und nichts ueber einen Menschen -- er sagt, ob diese Anlage Anfragen
+     annimmt, und das erfaehrt ohnehin jeder, der eine stellt.
+     DIE LISTE BLEIBT ABGESCHLOSSEN: was hier auftaucht, sieht jeder, der die
+     Adresse kennt. Der Pruefstand nagelt die Namen fest, und ein fuenfter
+     kommt nicht stillschweigend dazu. */
   res.json({
     title: getSetting('title_public', 'Bewertungskatalog'), version: VERSION,
-    setupRequired: !auth.benutzerVorhanden(), minPassword: auth.PASSWORT_MIN
+    setupRequired: !auth.benutzerVorhanden(), minPassword: auth.PASSWORT_MIN,
+    registrierung: getSetting('registrierung', false) === true
   });
 });
 
@@ -399,6 +474,89 @@ app.post('/api/token/einloesen', async (req, res) => {
   auth.pruneSessions();
   res.set('Set-Cookie', auth.sessionCookie(auth.legeSitzungAn(ergebnis.id)));
   res.json({ ok: true, username: ergebnis.username });
+});
+
+/* ---- Die Selbstanmeldung vor der Anmeldung, seit 0.9.1 ----
+   ZWEI SCHREIBENDE ROUTEN DER ART 'offen' KOMMEN HIER DAZU -- die sechste und
+   siebte neben setup, login, logout und den beiden Tokenrouten. Im Kopf steht
+   keine Rechtefrage, und im Rumpf steht auch keine: es DARF sie jeder. Was
+   diese beiden Routen begrenzt, ist etwas anderes -- der Schalter, der Deckel,
+   die Bremse und die immer gleiche Antwort.
+
+   BEIDE SIND POST, obwohl die zweite fast nur nachschlaegt. Derselbe Grund wie
+   bei /api/token/pruefen: der Schluessel gehoert in den RUMPF und nicht in
+   Pfad oder Abfrage, wo er im Zugriffsprotokoll, in der Verlaufsliste und
+   womoeglich im Referrer stuende.
+
+   DIE ANMELDEBREMSE GREIFT AN BEIDEN, mit unangetasteten Kennwerten und ohne
+   Namenshaelfte -- genau wie an den Tokenrouten. An der Anfrageroute ist sie
+   die Schranke gegen das massenhafte Stellen, an der Bestaetigungsroute die
+   gegen das Durchprobieren von Schluesseln. Der Benutzername der Anfrage geht
+   ausdruecklich NICHT in die Bremse: er ist geraten, und ein Zaehler darauf
+   waere ein Werkzeug, einen erwuenschten Namen auszusperren. */
+
+/* DIE EINE ANTWORT. Sie steht als Konstante da und wird an DREI Stellen
+   gegeben, damit sie gar nicht auseinanderlaufen kann -- Byte fuer Byte
+   dieselbe, ob der Name frei war, ob er vergeben war, ob die Adresse schon an
+   einem Zugang haengt, ob der Deckel erreicht ist oder ob der Schalter aus ist.
+   ANDERNFALLS WAERE DAS FORMULAR EIN WERKZEUG ZUM DURCHPROBIEREN von Namen und
+   Adressen, und zwar ein bequemeres als die Anmeldung: es steht ohne Passwort
+   davor.
+   SIE IST WAHR IN JEDEM DIESER FAELLE, und das ist mehr als eine
+   Geschmacksfrage. "Wir haben dir eine Mail geschickt" waere in fuenf von
+   sechs Lagen gelogen; der Satz unten sagt, was zu tun ist, ohne zu behaupten,
+   welche Lage vorliegt. */
+const ANFRAGE_ANTWORT = { ok: true, meldung:
+  'Danke. Konnte zu diesen Angaben eine Anfrage entstehen, liegt jetzt eine E-Mail in deinem ' +
+  'Postfach — bestätige darin, dass die Adresse dir gehört. Danach entscheidet ein Admin, ' +
+  'ob ein Zugang angelegt wird.' };
+
+app.post('/api/registrierung', async (req, res) => {
+  if (!await tokenBremseFrei(req, res)) return;
+  /* DER SCHALTER FUEHRT ZU DERSELBEN ANTWORT WIE ALLES ANDERE und nicht zu
+     einer Absage. Eine eigene Absage waere eine zweite Auskunftsstelle ueber
+     den Schalter neben /api/config -- und vor allem waere sie die eine Lage,
+     an der sich die Antwort doch unterscheidet. "Abgewiesen" heisst hier: es
+     entsteht nichts. Keine Zeile, keine Mail. */
+  const an = getSetting('registrierung', false) === true;
+  const { name, adresse } = req.body || {};
+  const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;
+  res.json(ANFRAGE_ANTWORT);
+  /* ERST DIE ANTWORT, DANN DER VERSAND. Die Begruendung steht bei
+     versendeBestaetigung(): ein Weg, der auf den Mailserver wartet, waere
+     an der Uhr von einem still verworfenen zu unterscheiden.
+     DAS AUFFANGNETZ IST KEINE ZIERDE: hier haengt kein Aufrufer mehr an der
+     Zusage, und eine unbehandelte Absage risse den ganzen Prozess mit.
+     mail.versende() wirft zwar nicht -- aber diese Stelle darf sich nicht
+     darauf verlassen muessen. */
+  if (klartext) {
+    versendeBestaetigung(String(name).trim(), String(adresse).trim(), klartext)
+      .catch(e => console.error('[Kriterion] Bestaetigungsmail:', e && e.message));
+  }
+});
+
+/* Die Bestaetigung. SIE LEGT KEINEN ZUGANG AN, SETZT KEIN PASSWORT UND MELDET
+   NIEMANDEN AN -- sie setzt einen Zeitpunkt in einer Zeile. Das ist die ganze
+   Wirkung des Links, und es ist der Grund, warum er in einem fremden Postfach
+   nichts anrichten kann.
+   ZWEI ANTWORTEN HIER, UND DAS IST KEIN WIDERSPRUCH ZUR EINEN OBEN: dort
+   raet jemand Namen, hier braeuchte er 256 Bit. Wer den Schluessel hat, weiss
+   ohnehin, was er angefragt hat; wer ihn nicht hat, erfaehrt aus der Absage
+   nichts als "nicht dieser". Die Absage ist DIE EINE fuer alle Faelle --
+   erfunden, verfallen, laengst freigeschaltet --, wie beim Token: das
+   Heilmittel ist jedesmal dasselbe, naemlich die Anfrage neu stellen.
+   DER NAME STEHT AUCH IN DER GUTEN ANTWORT NICHT. Er stuende sonst hinter
+   einem geratenen Schluessel. */
+app.post('/api/registrierung/bestaetigen', async (req, res) => {
+  const ip = auth.clientIp(req);
+  if (!await tokenBremseFrei(req, res)) return;
+  if (!auth.bestaetigeAnfrage((req.body || {}).schluessel)) {
+    auth.noteFailure(ip, null);
+    return res.status(400).json({ error:
+      'Dieser Bestätigungslink gilt nicht mehr. Stell die Anfrage bitte noch einmal.' });
+  }
+  auth.noteSuccess(ip, null);
+  res.json({ ok: true });
 });
 
 /* ================= Ab hier geschuetzt ================= */
@@ -885,7 +1043,6 @@ app.delete('/api/users/:id', nurAdmin, (req, res) => {
    Formular schickt beim Speichern ein leeres Feld, wenn es unveraendert
    bleiben soll. Ein Endpunkt, der es zurueckgaebe, waere die eine Stelle, an
    der es ueber das Netz liefe, ohne dass es jemand gebraucht haette. */
-const MAILTEST_SCHLUESSEL = 'mailtestOk';
 
 /* Was die Karte sieht. DIE ANBIETERLISTE KOMMT MIT: der Server speichert einen
    Schluessel, also muss die Oberflaeche die Namen von ihm bekommen -- eine
@@ -897,8 +1054,9 @@ const MAILTEST_SCHLUESSEL = 'mailtestOk';
    falsch ist, wenn sie gebraucht wird. */
 function mailKarte() {
   const roh = getSetting(mail.SCHLUESSEL, null);
-  const test = getSetting(MAILTEST_SCHLUESSEL, null);
-  const passt = Boolean(test && test.marke && test.marke === mail.marke(roh));
+  // Der Vergleich steht seit 0.9.1 in mailtestStand() weiter oben -- eine
+  // Rechnung, zwei Rufer (Stolperstein 145).
+  const test = mailtestStand(roh);
   return {
     ...mail.zustand(roh),
     anbieterListe: mail.ANBIETER.map(a => ({ schluessel: a.schluessel, name: a.name })),
@@ -908,8 +1066,13 @@ function mailKarte() {
     adresseGesetzt: Boolean(OEFFENTLICHE.adresse),
     adresse: OEFFENTLICHE.adresse,
     fristMinuten: auth.TOKEN_FRIST_MINUTEN,
-    getestetAm: passt ? test.am : null,
-    sekunden: Math.round(mail.VERSAND_MS / 1000)
+    getestetAm: test ? test.am : null,
+    sekunden: Math.round(mail.VERSAND_MS / 1000),
+    /* Die Folge der Testmarke fuer die Selbstanmeldung, seit 0.9.1: der
+       Eigentuemer soll an DIESER Karte sehen, was er dem Schalter des Admins
+       antut, wenn er den Mailzugang aendert. Es ist dieselbe Rechnung wie in
+       der Karte "Anfragen", nicht eine zweite daneben. */
+    registrierung: getSetting('registrierung', false) === true
   };
 }
 
@@ -967,6 +1130,120 @@ app.post('/api/mail/test', nurEigentuemer, async (req, res) => {
   // die Antwort. Ein 500 hiesse, die Anlage haette einen Fehler -- den hat der
   // Mailserver. Die Oberflaeche liest `ok` und nicht den Statuscode.
   res.json({ ok: e.ok, grund: e.grund, an: eigener.email, ...mailKarte() });
+});
+
+/* ---- Die Selbstanmeldung hinter der Anmeldung, seit 0.9.1 --------------
+   VIER ENDPUNKTE, EINE RECHTEZEILE: ADMIN. Sehen, schalten, freischalten,
+   ablehnen -- alles vier bei ihm:
+     GET    /api/anfragen           nurAdmin. Lesend, deshalb KEIN Eintrag in
+                                    F_ROUTEN, wie bei GET /api/stats.
+     PUT    /api/registrierung/schalter  nurAdmin.
+     POST   /api/anfragen/:id/frei  nurAdmin.
+     DELETE /api/anfragen/:id       nurAdmin.
+
+   WARUM ADMIN UND NICHT EIGENTUEMER, obwohl der Mailzugang dahinter dem
+   Eigentuemer gehoert: aus einer Anfrage wird NIE etwas anderes als ein
+   Zugang mit der Rolle 'user', und den legt der Admin ohnehin an. Die
+   Rollenleiter wird dabei nicht beruehrt -- es gibt keinen bestehenden Zugang,
+   an den hier jemand herankaeme. Was der Admin ueber den Mailzugang erfaehrt,
+   ist der Grund aus versandBereit(), und den erfaehrt er heute schon neben
+   jedem Link.
+
+   KEINE ZWEITE BESTAETIGUNG, und das ist entschieden und nicht vergessen:
+   dieselbe Ueberlegung wie bei POST /api/users -- es entsteht ein NEUER Zugang
+   und nimmt niemandem etwas. BESTAETIGUNG_ZWECKE bleibt bei sieben.
+
+   DER SCHALTER LEGT SICH NIE VON SELBST UM. Einschalten geht nur, wenn der
+   Versand wirklich bereit ist; AUSSCHALTEN GEHT IMMER. Und geht der Versand
+   spaeter kaputt, bleibt er an und die Karte sagt es rot -- ein Schalter, der
+   sich selbst umlegt, waere die zweite Wahrheit aus Abschnitt 1 des
+   Konzeptpapiers: die Anlage stuende dann anders da, als der Mensch sie
+   gestellt hat, und niemand koennte sagen, wann das passiert ist. */
+function anfragenKarte() {
+  const b = versandBereit();
+  return {
+    an: getSetting('registrierung', false) === true,
+    versandBereit: b.ok, versandGrund: b.grund,
+    anfragen: auth.listeAnfragen(),
+    deckel: auth.ANFRAGE_DECKEL, belegt: auth.zaehleAnfragen(),
+    stunden: auth.ANFRAGE_STUNDEN
+  };
+}
+
+app.get('/api/anfragen', nurAdmin, (req, res) => {
+  // Zweite Aufrufstelle des Aufraeumens; die erste steht beim Start, die
+  // dritte an der Anfrageroute selbst. Dieselbe Bauform wie bei
+  // raeumeTokensAuf() -- eine Anlage, die monatelang durchlaeuft, raeumte
+  // sonst monatelang nicht auf. Hauswirtschaft, keine Benutzerhandlung.
+  auth.raeumeAnfragenAuf();
+  res.json(anfragenKarte());
+});
+
+app.put('/api/registrierung/schalter', nurAdmin, (req, res) => {
+  const an = (req.body || {}).an === true;
+  /* NUR DAS EINSCHALTEN IST GEBUNDEN. Ein Schalter, der sich nicht mehr
+     ausschalten laesst, weil inzwischen der Mailzugang fehlt, waere eine
+     Falle: gerade dann will man ihn aus. */
+  if (an) {
+    const b = versandBereit();
+    if (!b.ok) return res.status(400).json({ error:
+      'Die Selbstanmeldung lässt sich ohne funktionierenden Versand nicht einschalten. ' + b.grund });
+  }
+  putSetting.run('registrierung', JSON.stringify(an));
+  res.json(anfragenKarte());
+});
+
+/* Die Freischaltung. AUS DER ANFRAGE WIRD EIN ZUGANG MIT DER ROLLE 'user' --
+   die Rolle steht hier fest im Aufruf und wird an KEINER Stelle aus der
+   Anfrage gelesen, weder aus dem Rumpf noch aus der Abfrage noch aus einem
+   Kopf. Damit ist "aus einer Anfrage wird nie etwas anderes als ein Benutzer"
+   baulich wahr statt durchgesetzt: ein Deckel, den es nicht gibt, kann nicht
+   vergessen werden.
+   NUR BESTAETIGTE ANFRAGEN. listeAnfragen() zeigt ohnehin nur sie, aber die
+   Route verlaesst sich nicht auf die Karte -- eine Nummer laesst sich tippen.
+   ERST DER ZUGANG, DANN DER TOKEN, DANN DIE ZEILE WEG. Die Reihenfolge ist die
+   Zusage: scheitert das Anlegen -- der Name kann zwischen Anfrage und
+   Freischaltung anderweitig vergeben worden sein --, bleibt die Anfrage
+   stehen, und der Admin bekommt die Meldung. Ein Weg, der die Zeile zuerst
+   loescht, verloere sie in genau diesem Fall.
+   UND DANN ERST DER VERSAND, wie am Anlegen und aus demselben Grund: der Link
+   steht in der Antwort, egal was der Mailserver sagt. */
+app.post('/api/anfragen/:id/frei', nurAdmin, async (req, res) => {
+  const a = auth.holeAnfrage(req.params.id);
+  if (!a || !a.bestaetigt_am)
+    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });
+  let angelegt, t;
+  try {
+    angelegt = await auth.legeZugangAn(a.username, null, 'user', true, req.benutzer.id, a.email);
+    t = auth.erzeugeToken(angelegt.id, 'einladung', req.benutzer.id);
+  } catch (e) { return res.status(400).json({ error: e.message }); }
+  auth.entferneAnfrage(a.id);
+  /* DIE ZEILE NENNT DEN NEUEN ZUGANG UND NICHT DEN NAMEN DES ANFRAGENDEN.
+     Sie sagt etwas, was zugang.neu und link.neu daneben nicht sagen: dass
+     dieser Zugang aus einer SELBSTANMELDUNG kam und nicht aus der Hand des
+     Admins. */
+  auth.protokolliere('anfrage.frei', { wer: req.benutzer.id, ziel: angelegt.id });
+  const v = await versendeTokenLink({ username: angelegt.username, email: angelegt.email }, t);
+  res.json({ ...angelegt, token: t.klartext, zweck: t.zweck, tage: t.tage,
+             minuten: auth.TOKEN_FRIST_MINUTEN, ...linkAngabe(t.klartext), ...v,
+             ...anfragenKarte() });
+});
+
+/* Die Ablehnung. DIE ZEILE IST WEG, UND ES ENTSTEHT NICHTS -- kein Zugang,
+   kein Token, keine Mail. Eine Absagemail waere eine Benachrichtigung, und die
+   gibt es in dieser Anlage nicht; sie waere ausserdem ein Weg, jemandem auf
+   Zuruf Post zu schicken.
+   DIE PROTOKOLLZEILE TRAEGT DEN NAMEN NICHT. Sie ist die einzige Spur, dass
+   ueberhaupt jemand gefragt hat -- die Zeile in anfragen wird ja geloescht --,
+   und sie haelt fest, WER abgelehnt hat und WANN. Mehr gehoert nicht hinein:
+   der Name des Abgewiesenen ist Freitext von aussen. */
+app.delete('/api/anfragen/:id', nurAdmin, (req, res) => {
+  const a = auth.holeAnfrage(req.params.id);
+  if (!a || !a.bestaetigt_am)
+    return res.status(404).json({ error: 'Diese Anfrage gibt es nicht.' });
+  auth.entferneAnfrage(a.id);
+  auth.protokolliere('anfrage.ab', { wer: req.benutzer.id });
+  res.json({ ok: true, ...anfragenKarte() });
 });
 
 /* ---- Titel (nach der Anmeldung) ---- */
@@ -3648,6 +3925,12 @@ auth.raeumeTokensAuf();
 // Und dasselbe fuer das Sicherheitsprotokoll: erste Aufrufstelle hier, zweite
 // an GET /api/sicherheitsprotokoll.
 auth.raeumeProtokollAuf();
+/* Und die unbestaetigten Anfragen, seit 0.9.1. DREI Aufrufstellen statt
+   zweier: hier, an GET /api/anfragen und -- das ist die besondere -- in
+   legeAnfrageAn() selbst, vor der Deckelpruefung. Die dritte ist keine
+   Hauswirtschaft, sondern Teil der Entscheidung: sonst blockierten zwanzig
+   laengst verfallene Zeilen die Selbstanmeldung noch einen weiteren Tag. */
+auth.raeumeAnfragenAuf();
 
 /* Der Weg hinein. EINE Transaktion, und das ist die Zusicherung der Runde:
    entweder liegt der Eintrag im Papierkorb UND ist geloescht, oder er steht

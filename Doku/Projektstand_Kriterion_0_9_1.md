@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 21 · Stand 25. August 2026 · gebaut: Version 0.9.0**
+**Kompakte Übergabe · Revision 22 · Stand 25. August 2026 · gebaut: Version 0.9.1**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,37 +8,53 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 21 ist.** Revision 20 trug 0.8.91 nach. Diese trägt **0.9.0**
-nach — **„Der Server verschickt selbst"**, und das ist die **erste Hälfte von
-Stufe I** des Mehrbenutzerbetriebs. Der Abbruchpunkt, den das Konzeptpapier
-seit Langem nennt (*„nach dem Versand, vor der Selbstregistrierung"*), ist
-gezogen worden; die **Selbstanmeldung wird 0.9.1**.
+**Was Revision 22 ist.** Revision 21 trug 0.9.0 nach. Diese trägt **0.9.1**
+nach — **„Stufe I₂: die Selbstanmeldung"**. **Damit ist der Stufenplan des
+Mehrbenutzerbetriebs abgearbeitet:** Teil II des Konzeptpapiers ist
+vollständig, und es gibt keine offene Stufe mehr.
 
-**0.9.0 in einem Satz: Einladungs- und Rücksetzlinks gehen per Mail hinaus —
-und wer keinen Mailzugang einträgt, verliert nichts.** Das ist die tragende
-Zusage, und sie ist baulich und nicht durchgesetzt: der Token entsteht
-**zuerst**, die Antwort trägt den Link **immer**, und das Ergebnis des Versands
-ist ein **Feld** darin (`versand`, dazu `versandGrund`). Die Versandfunktion in
-`mail.js` **wirft nicht** — sie liefert ein Ergebnis, und damit kann ein
-vergessenes `try` den Tokenweg gar nicht mitreißen.
+**0.9.1 in einem Satz: wer einen Zugang haben will, kann von selbst danach
+fragen — und muss dabei belegen, dass ihm die Adresse gehört, bevor überhaupt
+ein Admin die Anfrage zu sehen bekommt.** Der Satz, unter dem die ganze Runde
+steht: **niemand kommt herein, ohne dass ein Admin ihn hereinlässt.** Es gibt
+keine Betriebsart, in der ein geklickter Link allein freischaltet.
 
-**Was sich wirklich ändert, ist die Betriebsart.** Bis 0.8.91 hat die Anlage
-nur auf Anfragen geantwortet. Ab dieser Version baut sie von sich aus eine
-Verbindung zu einem fremden Server auf — ausgehend, zu genau einem Server, kein
-Empfang, kein offener Port.
+**Und der zweite Satz, der genauso trägt: die Anlage läuft ohne all das
+vollständig.** Ist die Selbstanmeldung aus — und ab Werk ist sie das —, legt
+eben nur der Admin an, genau wie seit 0.8.0. Es fehlt keine Funktion.
 
-**Der Mailzugang gehört dem EIGENTÜMER, ganz** — eintragen, einsehen und die
-Testmail auslösen. Ein Admin kommt an keines davon. *Das ist eine Abweichung
-vom Auftrag dieser Runde*, der die `.env` vorsah, und die Begründung des
-Auftrags trägt weiter — sie trifft nur den **Admin**: der SMTP-Server sieht jede
-Mail, und jede trägt einen Link, der ein Passwort setzt; dürfte ein Admin ihn
-eintragen, liefe die Rücksetzmail des Eigentümers über einen Server seiner Wahl.
-Über dem Eigentümer steht niemand. Zwei Dinge sprechen sogar dafür, und beide
-sind nachgesehen: das Mailpasswort liegt damit in der **verschlüsselten
-Datenbank** statt unverschlüsselt auf dem Wirt, und die **Exportdatei trägt es
-nicht**. **Es kommt damit keine neue `.env`-Zeile dazu.**
+**Der Ablauf, in fünf Schritten.** Anfrage mit Wunschname und Adresse, kein
+Passwort → **Bestätigungsmail** mit einem Link **ohne Passwortkraft** → erst die
+**bestätigte** Anfrage erscheint beim Admin → er schaltet frei (Zugang mit der
+Rolle `user`, nie mit einer anderen) oder lehnt ab → Passwort setzen über den
+Tokenweg aus 0.8.80, **unverändert**.
 
-**Drei Dinge, die der Auftrag nicht vorsah und die diese Runde gebraucht hat:**
+**Drei Schranken gegen den Missbrauch, und sie sind nicht dasselbe:** die
+**immer gleiche Antwort** (unbekannter Name, bekannter Name, bekannte Adresse,
+Deckel erreicht, Schalter aus — gleicher Statuscode, gleicher Rumpf Byte für
+Byte), der **Deckel** von zwanzig offenen Anfragen, und die **Anmeldebremse** an
+beiden Routen vor der Anmeldung. Die erste ist die schwerste: sie muss auch dann
+halten, wenn die Wege verschieden lang sind. Deshalb **wartet die Antwort nicht
+auf den Versand** — Zeile schreiben, antworten, dann verschicken —, und der
+Prüfstand **misst** das an einem Empfänger, der den Versand zwanzig Sekunden
+festhält.
+
+**Der Schalter braucht ZWEI Voraussetzungen, nicht eine.** Einschalten geht nur
+mit einer durchgekommenen **Testmail** *und* gesetzter **`OEFFENTLICHE_ADRESSE`**.
+Das zweite ist beim Bauen dazugekommen und nachgesehen statt angenommen: die
+Testmail enthält **keinen Link** und geht auch ohne die öffentliche Adresse
+durch — die Marke könnte grün sein, während jede Bestätigungsmail ohne
+brauchbaren Link hinausginge. **Ausschalten geht immer**, und geht der Versand
+später kaputt, **bleibt der Schalter an** und die Karte sagt es rot.
+
+**0.9.0 davor** war **„Der Server verschickt selbst"** — die erste Hälfte von
+Stufe I: Mailversand mit Anbietervorlagen, der Mailzugang beim **Eigentümer**
+(nicht beim Admin), die öffentliche Adresse als Pflicht für den Versand, die
+Testmail an die eigene Adresse, die Adresse am Zugang und die zweite Frist am
+Token — ab dem ersten Öffnen fünfzehn Minuten. **Der Versand ist inzwischen im
+Feld bestätigt**, Einzelheiten in Abschnitt 2.
+
+**Drei Dinge, die der Auftrag zu 0.9.0 nicht vorsah und die jene Runde gebraucht hat:**
 
 * **`users.email` wurde von KEINER Stelle im Projekt geschrieben.** Die Spalte
   stand seit 0.6.0 im Schema, wurde in `holeZugang` gelesen und in
@@ -60,33 +76,41 @@ nicht**. **Es kommt damit keine neue `.env`-Zeile dazu.**
   Absage (400) die Adresse; bei allem anderen bleibt der Schlüssel stehen und
   die Seite bietet einen zweiten Anlauf. Stolperstein **141**.
 
-**`F_ROUTEN` geht von 57 auf 59** (`PUT /api/mail`, `POST /api/mail/test`;
-`GET /api/mail` ist lesend und steht wie immer nicht dort), die Karten im
-Systembereich werden **achtzehn**, `BESTAETIGUNG_ZWECKE` geht von sechs auf
-**sieben** (`mail`), `MERKMALE` von zwölf auf **dreizehn** (`adresse`). **Die
-Vorgänge bleiben fünfzehn**, die Formatnummer bleibt **10**, das Vokabular
-bleibt bei **elf**, und es bleibt bei **fünf** markierten Migrationsblöcken:
-**0.9.0 ist KEINE Datenbankstufe** — der Mailzugang liegt in `settings`, und
-`users.email` gibt es seit 0.6.0.
+**Die Zahlen dieser Runde.** `F_ROUTEN` geht von 59 auf **64** — zwei Routen
+**vor** der Anmeldung (`POST /api/registrierung`,
+`POST /api/registrierung/bestaetigen`) und drei dahinter
+(`PUT /api/registrierung/schalter`, `POST /api/anfragen/:id/frei`,
+`DELETE /api/anfragen/:id`); `GET /api/anfragen` ist lesend und steht wie immer
+nicht dort. Die Karten im Systembereich werden **neunzehn** („Anfragen", beim
+**Admin**), die Vorgänge im Sicherheitsprotokoll gehen von fünfzehn auf
+**siebzehn** (`anfrage.frei`, `anfrage.ab`). **`MERKMALE` bleibt bei dreizehn**
+— keiner der beiden trägt eines —, **`BESTAETIGUNG_ZWECKE` bleibt bei sieben**,
+die Formatnummer bleibt **10**, das Vokabular bleibt bei **elf**.
 
-**Eine neue Laufzeitabhängigkeit, die erste seit Langem: `nodemailer`.**
-Nachgemessen statt geglaubt: Version 9.0.5, `npm ls --omit=dev` wächst um
+**0.9.1 IST EINE DATENBANKSTUFE — und trotzdem bleibt es bei fünf markierten
+Migrationsblöcken.** Es kommt **eine Tabelle** dazu (`anfragen`) und **keine
+Spalte**: anders als eine Spalte legt `CREATE TABLE IF NOT EXISTS` eine fehlende
+Tabelle bei jedem Start an. Der Prüfstand stellt es an einer bestehenden Anlage
+nach, samt der Gegenlage an einer Spalte. **Die Sicherung des Datenverzeichnisses
+ist deshalb im Einspielweg Pflicht.**
+
+**Keine neue Abhängigkeit, nicht eine.** `npm ls --omit=dev` steht unverändert
+bei **122 Pfaden**; `nodemailer` war die Ausnahme von 0.9.0 und bleibt es. **Und
+keine neue `.env`-Zeile** — der Schalter steht im Systembereich, nicht dort.
+
+**Eine neue Laufzeitabhängigkeit kam mit 0.9.0: `nodemailer`.**
+Nachgemessen statt geglaubt: Version 9.0.5, `npm ls --omit=dev` wuchs um
 **genau ein Paket** (121 → 122 Pfade), 776 KB, Lizenz `MIT-0` aus dem Paket
 selbst gelesen. Der Baum ist flach. Die Zahl steht im Prüfstand fest.
 
-**0.8.91 davor** war **„Der Schlüssel lässt sich wechseln"** — `schluessel.sh`
-samt `schluessel.js` auf dem Wirt, der fünfzehnte Vorgang `schluessel` im
-Sicherheitsprotokoll, die rote Markierung jeder Sicherung, die älter ist als
-der Wechsel, und dazu der Werkzeugpunkt davor: `gegenprobe.js`, `PORT_VERSATZ`
-und zwei Wächter über den Prüfstand selbst. Keine Stufe, keine Datenbankstufe.
-
-**Was davor liegt, steht in Abschnitt 9** — 0.8.90 brachte die zweite
+**Was davor liegt, steht in Abschnitt 9** — 0.8.91 machte den Schlüssel
+wechselbar, 0.8.90 brachte die zweite
 Bestätigung, das Sicherheitsprotokoll und die öffentliche Adresse, 0.8.80 war
 Stufe H mit Einladung, Rücksetzung und „Meine Sitzungen", 0.8.71 verlegte den
 Sicherungsort, 0.8.70 brachte Sicherung und Papierkorb, 0.8.60 machte „Offen"
 und „Neu seit" auffindbar, 0.8.40 gab jedem Kriterium ein Gewicht, 0.8.30 und
 0.8.31 gaben Links und Dateien einen Verfasser.
-**Damit ist der Mehrbenutzerbetrieb bis auf die Selbstanmeldung gebaut.**
+**Damit ist der Mehrbenutzerbetrieb vollständig gebaut.**
 Vollständig geblieben sind die Abschnitte 5 und 12 — Entscheidungen und
 Arbeitsweise. Bestände und Versionen vor 0.8.0 werden nicht mehr
 berücksichtigt.
@@ -98,14 +122,13 @@ berücksichtigt.
 > Version wächst, wird irgendwann nicht mehr gelesen — und dann nützt es
 > niemandem mehr.
 
-**Für den Betrieb ändert sich mit 0.9.0 wenig, und nichts davon ist Pflicht.**
-Wer keine Mail will, spielt ein wie immer und merkt nichts. Wer sie will,
-trägt `OEFFENTLICHE_ADRESSE` in die `.env` ein (**ohne sie wird nicht
-verschickt**), füllt die Karte „Mailversand" aus und drückt die **Testmail**.
-**Es kommt kein neuer Wert in die `.env`**, und die `docker-compose.yml` ist
-unberührt. Die **Sicherung des Datenverzeichnisses bleibt im Einspielweg
-empfohlen wie immer** — Pflicht ist sie nicht, denn diese Runde ist keine
-Datenbankstufe. Einzelheiten in Abschnitt 2.
+**Für den Betrieb ändert sich mit 0.9.1 nichts, solange die Selbstanmeldung
+aus bleibt** — und ab Werk ist sie das. Wer sie will, braucht einen geprüften
+Mailzugang und `OEFFENTLICHE_ADRESSE`; ohne beides lässt sich der Schalter gar
+nicht erst einschalten. **Es kommt kein neuer Wert in die `.env`**, und die
+`docker-compose.yml` ist unberührt. **Die Sicherung des Datenverzeichnisses ist
+im Einspielweg PFLICHT** — es kommt eine Tabelle dazu. Einzelheiten in
+Abschnitt 2.
 
 **Für den Betrieb änderte sich mit 0.8.91 zweierlei.** Die **Sicherung des
 Datenverzeichnisses steht wieder als PFLICHT im Einspielweg** — und wer den
@@ -118,11 +141,12 @@ sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9, 0.8.50 auf 10). Alles davon steht in
 Abschnitt 2.
 
 **Was als Nächstes ansteht, steht in Abschnitt 10.** Der Umbau auf mehrere
-Benutzer wird in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` gepflegt und
-nur dort; **offen ist allein die zweite Hälfte von Stufe I**, die
-Selbstanmeldung. **Das Konzeptpapier ist mit dieser Runde fortgeschrieben und
-umbenannt worden** — Abschnitt 11 steht auf dem, was gebaut ist, Abschnitt 10
-trägt die zweite Frist, und die Stufentabelle nennt I₁ als erledigt.
+Benutzer wurde in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` gepflegt;
+**mit dieser Runde ist der Stufenplan abgearbeitet, und es ist keine Stufe mehr
+offen.** Das Papier ist fortgeschrieben und umbenannt worden — Abschnitt 10
+steht auf dem, was gebaut ist, die Stufentabelle nennt I₂ als erledigt, und der
+Satz, der ab jetzt gilt, steht in seinem Kopf: **was von diesem Papier
+weitergilt, sind die Entscheidungen, nicht die Stufen.**
 
 > **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
 > `admin` < `eigentuemer`. **Benutzer** schreibt eigene Beiträge. **Admin**
@@ -177,10 +201,47 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.9.0 ist gebaut** — Fingerprint **`82dc8550`**, 3192
-Prüfungen. **Erste Hälfte von Stufe I, und KEINE Datenbankstufe:** diese Runde
-bringt **keine Tabelle und keine Spalte**. Es bleibt bei **fünf** markierten
-Migrationsblöcken, und unter „Vorgemerkt für 1.0" kommt **nichts** dazu.
+**0.9.1 ist gebaut** — Fingerprint **`1b538f1f`**, 3400
+Prüfungen. **Zweite Hälfte von Stufe I, und damit ist der Stufenplan
+abgearbeitet.** **EINE DATENBANKSTUFE:** es kommt **eine Tabelle** dazu
+(`anfragen`) und **keine Spalte** — deshalb **kein Migrationsblock**, und es
+bleibt bei **fünf** markierten; unter „Vorgemerkt für 1.0" kommt **nichts**
+dazu. **Die Sicherung des Datenverzeichnisses ist im Einspielweg PFLICHT.**
+**Wer einen Zugang haben will, kann von selbst danach fragen** — Formular auf
+der Anmeldeseite, Wunschname und Adresse, kein Passwort. **Und niemand kommt
+dadurch herein, ohne dass ein Admin ihn hereinlässt.**
+**Die Bestätigungsmail ist der dritte Mailanlass** und trägt einen Link **ohne
+Passwortkraft**: er legt keinen Zugang an, setzt kein Passwort und meldet
+niemanden an. Erst die **bestätigte** Anfrage erscheint beim Admin; unbestätigte
+verfallen nach **24 Stunden** und werden nie angezeigt.
+**Die Antwort auf eine Anfrage sieht immer gleich aus** — fünf Lagen, gleicher
+Statuscode, gleicher Rumpf Byte für Byte. **Sie wartet dafür nicht auf den
+Versand:** Zeile schreiben, antworten, dann verschicken; der Prüfstand misst es
+an einem Empfänger, der den Versand zwanzig Sekunden festhält.
+**Der Deckel steht bei zwanzig** und zählt bestätigte und unbestätigte
+zusammen; **je Adresse liegt höchstens eine offene Anfrage**. Die
+**Anmeldebremse** greift an beiden Routen vor der Anmeldung, mit unangetasteten
+Kennwerten.
+**Der Schalter `registrierung` lässt sich nur einschalten, wenn eine Testmail
+durchgekommen ist UND `OEFFENTLICHE_ADRESSE` gesetzt ist** — ausschalten geht
+immer, und geht der Versand später kaputt, bleibt er an und die Karte sagt es
+rot.
+**Aus einer Anfrage wird nie etwas anderes als ein Zugang mit der Rolle
+`user`** — die Route liest an keiner Stelle eine Rolle aus der Anfrage.
+**`F_ROUTEN` geht von 59 auf 64**, die Karten werden **neunzehn**, die Vorgänge
+im Sicherheitsprotokoll **siebzehn** (`anfrage.frei`, `anfrage.ab`, beide ohne
+den Namen des Anfragenden). `MERKMALE` bleibt **dreizehn**,
+`BESTAETIGUNG_ZWECKE` **sieben**, die Formatnummer **10**.
+**Keine neue Abhängigkeit und keine neue `.env`-Zeile.**
+40 Gegenproben, gefahren über `gegenprobe.js`.
+
+**Der Mailversand aus 0.9.0 ist im Feld bestätigt.** Die erste echte
+Einladungsmail ist angekommen — Absender und Link stimmten, der Rumpf stand als
+reiner Text da.
+
+**0.9.0 davor** — Fingerprint **`82dc8550`**, 3192
+Prüfungen. **Erste Hälfte von Stufe I, und KEINE Datenbankstufe:** jene Runde
+brachte **keine Tabelle und keine Spalte**.
 **Der Server verschickt Einladungs- und Rücksetzlinks selbst** — über
 `nodemailer`, nur ausgehend, über den SMTP-Zugang eines Anbieters. **Und wer
 keinen Mailzugang einträgt, verliert nichts:** die Links stehen weiter im
@@ -510,7 +571,20 @@ Datenbankstufe ist sie der einzige Weg zurück — siehe oben. Sie gehört
 **zwischen** `docker compose down` und alles Weitere: eine Sicherung, die
 neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
 
-**Für 0.9.0 gilt sie wie immer, aber nicht als PFLICHT.** Die Runde fasst
+**Für 0.9.1 gilt sie als PFLICHT.** Die Runde ist eine **Datenbankstufe**: es
+kommt die Tabelle `anfragen` dazu. Einen Migrationsblock braucht sie nicht —
+`CREATE TABLE IF NOT EXISTS` legt eine fehlende Tabelle bei jedem Start an —,
+aber ein Downgrade ist damit keine reine Dateikopie mehr.
+*Genau genommen stört ein Downgrade auf 0.9.0 wenig: eine zusätzliche Tabelle
+sieht eine ältere Version gar nicht an, die Exportdatei behält Format 10, und
+der Schalter `registrierung` in `settings` wird von ihr schlicht nicht gelesen.
+Was verloren geht, sind die offenen Anfragen — sie bleiben zwar stehen, aber
+niemand zeigt sie, und niemand kann sie mehr freischalten. Die Sicherung ist der
+Weg, der ohne diese Fußnoten auskommt.*
+**Es kommt dabei KEINE neue Zeile in die `.env`**, und die `docker-compose.yml`
+ist unberührt.
+
+**Für 0.9.0 galt sie wie immer, aber nicht als PFLICHT.** Die Runde fasst
 **kein** Schema an — keine Tabelle, keine Spalte —, und ein Downgrade auf
 0.8.91 wäre eine reine Dateikopie. *Genau genommen stört es wenig: ein
 Mailzugang in `settings` interessiert eine ältere Version nicht, sie liest den
@@ -755,6 +829,90 @@ erfunden und „Zugang gesperrt": *„Dieser Link gilt nicht mehr. Bitte beim Ad
 einen neuen anfordern."* Der Grund ist nicht bloß Verschwiegenheit — **das
 Heilmittel ist in jedem dieser Fälle dasselbe.** Was das kostet, gehört dazu:
 wer sich vertippt hat, unterscheidet das nicht von „abgelaufen".
+
+**DIE SELBSTANMELDUNG — seit 0.9.1 (Stufe I₂).** Wer einen Zugang haben will,
+kann von selbst danach fragen. **Der Admin schaltet frei, immer** — es gibt
+keine Betriebsart, in der der geklickte Link allein hereinlässt, und das ist
+keine Einstellung, sondern eine Entscheidung des Konzeptpapiers, Abschnitt 10.
+**Der Schalter `registrierung` steht ab Werk auf aus**, und ist er aus, legt nur
+der Admin an — es fehlt nichts.
+
+**Fünf Schritte:** Anfrage mit Wunschname und Adresse (kein Passwort) →
+**Bestätigungsmail** mit einem Link **ohne Passwortkraft** → erst die
+**bestätigte** Anfrage erscheint beim Admin, in der Karte „Anfragen" →
+Freischalten (Zugang mit der Rolle `user`, samt Einladungslink) oder Ablehnen →
+Passwort setzen über den Tokenweg aus 0.8.80, **unverändert**.
+
+**Der Bestätigungslink hat keine Passwortkraft, und das ist baulich wahr:** die
+Route setzt einen Zeitpunkt in einer Zeile, mehr nicht. Sie legt keinen Zugang
+an, setzt kein Passwort und schickt keinen Sitzungscookie — geprüft am Zustand
+danach, nicht an der Antwort. **Der Schlüssel geht denselben Weg wie ein
+Token:** 32 Zufallsbytes, gespeichert wird nur der SHA-256, und er steht im
+**Fragment** der Adresse (`#/bestaetigung/…`), geht also nie an den Server.
+
+**Die neue Tabelle heißt `anfragen`** — `id`, `hash`, `username`, `email`,
+`bestaetigt_am`, `created_at`, **ohne Migrationsblock**. `hash` ist hier
+**nicht** Primärschlüssel, anders als bei `tokens`: die Adminrouten sprechen
+eine Zeile über eine **Nummer** an, und ein Geheimnis hat in keinem Pfad etwas
+verloren. `tokens` blieb unberührt — `tokens.user_id` ist `NOT NULL`, eine
+Anfrage hat noch keinen Zugang, und die Spalte nachträglich zu öffnen wäre ein
+`ALTER TABLE` und damit ein Block.
+
+**Drei Schranken gegen den Missbrauch, und sie sind nicht dasselbe:**
+
+* **Die immer gleiche Antwort.** Unbekannter Name, bekannter Name, bekannte
+  Adresse, Deckel erreicht, Schalter aus — gleicher Statuscode, gleicher Rumpf
+  **Byte für Byte**. Andernfalls wäre das Formular ein Werkzeug zum
+  Durchprobieren von Namen und Adressen, und zwar ein bequemeres als die
+  Anmeldung: es steht ohne Passwort davor. **Sie ist die schwerste der drei**,
+  weil sie auch dann halten muss, wenn die Wege verschieden lang sind: eine
+  Anfrage, die eine Mail verschickt, dauert Sekunden; eine still verworfene
+  dauert Millisekunden. **Deshalb wartet die Antwort nicht auf den Versand** —
+  Zeile schreiben, antworten, dann verschicken. Der Prüfstand **misst** das an
+  einem Empfänger, der den Versand zwanzig Sekunden festhält.
+* **Der Deckel.** Zwanzig offene Anfragen, und er zählt **bestätigte und
+  unbestätigte zusammen** — sonst füllte ein Angreifer die Tabelle mit
+  Unbestätigten, ohne je eine Mail zu lesen. Die einundzwanzigste wird still
+  verworfen. **Dazu je Adresse höchstens eine offene Anfrage:** ohne diese
+  zweite Schranke wäre das Formular ein Weg, einer fremden Adresse beliebig
+  viele Bestätigungsmails zu schicken. Der Preis, ehrlich benannt: geht die
+  eine Mail verloren, wartet der Anfragende bis zum Verfall.
+* **Die Anmeldebremse**, an beiden Routen vor der Anmeldung, mit
+  unangetasteten Kennwerten und ohne Namenshälfte — genau wie an den beiden
+  Tokenrouten aus 0.8.80. **Der Wunschname geht ausdrücklich nicht in die
+  Bremse:** er ist geraten, und ein Zähler darauf wäre ein Werkzeug, einen
+  erwünschten Namen auszusperren.
+
+**Unbestätigte Anfragen verfallen nach 24 Stunden** — deutlich kürzer als die
+sieben Tage des Einladungslinks, denn hier ist noch nichts geprüft. **Nur die
+unbestätigten:** eine bestätigte wartet auf den Admin, so lange es dauert.
+Geräumt wird an **drei** Stellen — beim Start, beim Öffnen der Karte und **vor
+der Deckelprüfung**; die dritte ist keine Hauswirtschaft, sondern Teil der
+Entscheidung: sonst blockierten zwanzig längst verfallene Zeilen die
+Selbstanmeldung noch einen weiteren Tag.
+
+**Aus einer Anfrage wird nie etwas anderes als ein Zugang mit der Rolle
+`user`** — und das ist baulich wahr statt durchgesetzt: die Route ruft
+`legeZugangAn` mit fest verdrahtetem `'user'` und liest an **keiner** Stelle
+eine Rolle aus der Anfrage, weder aus Rumpf noch Abfrage noch Kopf. Ein Deckel,
+den es nicht gibt, kann nicht vergessen werden. **Freischalten darf jeder
+Admin**, ohne zweite Bestätigung — dieselbe Überlegung wie beim Anlegen: es
+entsteht ein neuer Zugang und nimmt niemandem etwas.
+
+**Zwei neue Vorgänge im Sicherheitsprotokoll, `anfrage.frei` und
+`anfrage.ab`** — beide **ohne** den Namen des Anfragenden. Sie sind nicht
+doppelt neben `zugang.neu` und `link.neu`: keine der beiden sagt, dass der
+Zugang aus einer **Selbstanmeldung** kam, und die Ablehnung hinterlässt ohne
+ihre Zeile gar keine Spur. **Anfrage und Bestätigung schreiben ausdrücklich
+nichts** — sie wären die einzigen Zeilen neben der gescheiterten Anmeldung, die
+ein Fremder auslösen kann, und anders als dort gäbe es keinen Deckel darüber.
+
+**Name und Adresse sind der einzige Freitext von außen, der überhaupt
+gespeichert wird.** Sie gehen deshalb durch dieselben Prüfungen wie an einem
+echten Zugang (`pruefeName`, `mail.istAdresse`) und tragen zusätzlich eine
+Längengrenze — 64 Zeichen für den Namen, 254 für die Adresse. Das ist keine
+zweite Wahrheit über Benutzernamen: ein Admin legt weiter an, was er will;
+begrenzt wird die **Eingabe von außen**.
 
 **Ein Zugang ohne Passwort trägt den leeren Hash** — dieselbe Sperre wie beim
 Grabstein, und es kommt **keine neue Klemme** dazu: `pruefeAnmeldung()` fällt
@@ -1267,13 +1425,22 @@ Klick gehört der Abspielsteuerung. Der Ausschnittmodus bleibt bedienbar und
 zeigt dort das Standbild. Alles davon ist **abgeleitet** aus `art` und `dauer`
 der Antwort, kein Schalter.
 
-**Systembereich: achtzehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
+**Systembereich: neunzehn Karten, und sie hängen an der Rolle** (seit 0.8.5;
 die breite Kachel „Zugänge" lässt seit 0.8.6 keine Lücke mehr im Raster).
 Dem **Admin**: beide Titel, Kennzahlen, Kategorien und Tags umbenennen und
 löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
 **gewichten**,
 Karte „Zugänge" (anlegen **mit Passwort oder mit Link**, sperren, Passwort
 zurücksetzen **direkt oder über einen Link**, Rolle wechseln, entfernen),
+seit 0.9.1 die Karte **„Anfragen"** — der Schalter der Selbstanmeldung, die
+Liste der bestätigten Anfragen und je Zeile Freischalten und Ablehnen.
+**Sie steht nur da, wenn sie etwas zu sagen hat:** der Schalter ist an, oder es
+liegen Anfragen. Eine Karte, die dauerhaft „aus, nichts offen" meldet, wäre eine
+Zeile Lärm neben achtzehn anderen. **Und sie steht beim Admin, nicht beim
+Eigentümer** — aus einer Anfrage wird nie etwas anderes als ein Zugang mit der
+Rolle `user`, und den legt der Admin ohnehin an. Sie ist seit 0.9.1 die
+**dritte breite Kachel** neben „Zugänge" und „Sicherheitsprotokoll": Name,
+Adresse und zwei Zeitpunkte brauchen die Breite.
 Karte „Suchanbieter" (Vorrat, Startanbieter, drei eigene),
 Vokabular aus elf Wörtern. Dem **Eigentümer** zusätzlich: Export mit/ohne
 Fotos, mit eigenem Häkchen für Dateien und eines für **Videos**, Import
@@ -2388,7 +2555,7 @@ Diese Punkte wirken beim Lesen des Codes womöglich seltsam. Sie sind Absicht:
   alle stünden im Weg. **Sie galt nur für getrennte Kataloge je Benutzer.** Für
   einen gemeinsamen Bestand mit mehreren Bewertern sind geteilte Kriterien kein
   Hindernis, sondern die Voraussetzung — ohne sie wäre kein Vergleich möglich.
-  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` in neun Stufen
+  Der Umbau ist in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` in neun Stufen
   entworfen; siehe Abschnitt 10 Punkt 5.
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -3018,7 +3185,63 @@ geschätzt** (Stolpersteine 64 und 127): der Versatz von **3000** je Spur ist
 größer als die Spanne aller Basen samt Breite (2060), und keine der
 entstehenden Nummern liegt auf der Sperrliste von `fetch()`. **Ein Wächter am
 Ende jedes Laufs rechnet es nach** — und ein zweiter hält fest, dass keine
-Prüflage ihren Server zurücklässt.
+Prüflage ihren Server zurücklässt. *In 0.9.1 hat der erste sich zum zweiten Mal
+bewährt: vier neue Prüflagen hatten die Spanne auf 3040 geschoben, und damit
+läge die erste Nebenspur auf der letzten Basis der Hauptspur (Stolperstein
+152).*
+
+### Der Admin schaltet frei, immer (0.9.1)
+
+**Es gibt keine Betriebsart, in der ein geklickter Link allein hereinlässt.**
+Eine solche Lage wäre ein anderes Produkt — Kriterion ist ein Archiv für eine
+kleine Gruppe, kein Forum —, und zwei Betriebsarten wären genau die zweite
+Wahrheit, die Abschnitt 1 des Konzeptpapiers ausschließt. Der
+Bestätigungsschritt davor ist deshalb **kein** Ersatz für die Entscheidung
+eines Menschen, sondern nur der Beleg, dass die Adresse dem Anfragenden gehört.
+
+**Und die Anlage läuft ohne die Selbstanmeldung vollständig.** Der Schalter
+steht ab Werk auf aus; dann legt nur der Admin an, wie seit 0.8.0. Das ist
+dieselbe Linie wie beim Mailversand: eine Funktion, die man nicht will, darf
+nichts kosten.
+
+### Die immer gleiche Antwort ist eine Zusage über den Rumpf UND über die Uhr (0.9.1)
+
+**Fünf Lagen, ein Statuscode, ein Rumpf Byte für Byte** — unbekannter Name,
+bekannter Name, bekannte Adresse, Deckel erreicht, Schalter aus. Ohne sie wäre
+das Formular ein Werkzeug zum Durchprobieren von Namen und Adressen, und zwar
+ein bequemeres als die Anmeldung: es steht ohne Passwort davor.
+
+**Die schwerere Hälfte ist die Laufzeit.** Ein Weg, der eine Mail verschickt,
+dauert Sekunden; einer, der still verwirft, dauert Millisekunden — und aus dem
+Unterschied ließe sich ablesen, welcher gelaufen ist. **Gebaut ist deshalb die
+Trennung: Zeile schreiben, antworten, dann verschicken.** Der Anfragende
+verliert dabei nichts, denn über den Versand erfährt er ohnehin nichts — und
+dürfte es auch nicht. **Gemessen, nicht behauptet:** der Prüfstand hält beide
+Wege an einem Empfänger gegeneinander, der den Versand zwanzig Sekunden
+festhält (Stolperstein 150).
+
+### Ein Schalter legt sich nie von selbst um (0.9.1)
+
+**Einschalten geht nur, wenn der Versand wirklich steht — ausschalten geht
+immer.** Und geht der Versand später kaputt, **bleibt der Schalter an**; die
+Karte sagt es in einer roten Zeile. Ein Schalter, der sich selbst umlegt,
+stünde anders da, als der Mensch ihn gestellt hat, und niemand könnte sagen,
+wann das passiert ist — das ist die zweite Wahrheit aus Abschnitt 1 in ihrer
+unangenehmsten Form, weil sie sich wie Fürsorge liest.
+
+**„Der Versand steht" heißt zwei Dinge, nicht eines:** eine durchgekommene
+Testmail *und* `OEFFENTLICHE_ADRESSE`. Die Testmail allein belegt es nicht —
+sie enthält gar keinen Link (Stolperstein 149).
+
+### Das Sicherheitsprotokoll nimmt auch von der Selbstanmeldung keinen Freitext (0.9.1)
+
+**Weder der gewünschte Name noch die Adresse stehen je in einer Protokollzeile.**
+`anfrage.frei` trägt die Nummer des neuen Zugangs, `anfrage.ab` gar kein Ziel —
+es gibt keinen Zugang, auf den es zeigen könnte. **Und Anfrage und Bestätigung
+schreiben überhaupt nichts:** sie wären die einzigen Zeilen neben der
+gescheiterten Anmeldung, die ein Fremder auslösen kann, und anders als dort gäbe
+es keinen Deckel darüber. Der Vorgang, auf den es ankommt, ist ohnehin die
+Entscheidung des Admins — und die steht drin.
 
 ## 5a. Die Sicherheitsregel für ausgelieferte Dateien
 
@@ -3954,6 +4177,75 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     `../kriterion-data-vor-schluesselwechsel-…` — Schlüssel neben Daten, genau
     die Lage, gegen die Abschnitt 3 argumentiert.
 
+149. **Eine Marke belegt nur, was sie wirklich durchlaufen hat.** Der Auftrag zu
+    0.9.1 wollte den Schalter der Selbstanmeldung an die Marke der Testmail
+    hängen — eine einzige Bedingung, und sie sah aus wie der ganze Beleg. Sie
+    ist es nicht: **die Testmail enthält keinen Link** und geht deshalb auch
+    ohne `OEFFENTLICHE_ADRESSE` anstandslos durch. Die Marke wäre grün gewesen,
+    während `versendeTokenLink()` bei jeder Bestätigungsmail mit
+    `versand: 'aus'` abgebrochen hätte — und die Selbstanmeldung liefe genau in
+    die Leere, gegen die die Kopplung gebaut war. *Wer eine Zusage an einen
+    Beleg hängt, sieht nach, welchen Weg der Beleg wirklich gegangen ist — nicht
+    nur, wie er heißt.* Der Schalter verlangt jetzt beides.
+
+150. **Eine Antwort, die überall gleich AUSSEHEN muss, muss überall gleich
+    lange DAUERN.** Fünf Lagen mit demselben Rumpf Byte für Byte sind kein
+    Schutz, wenn eine davon eine Mail verschickt und deshalb Sekunden braucht,
+    während die anderen in Millisekunden verwerfen: dann verrät die Uhr, was der
+    Rumpf verschweigt, und das Formular ist wieder ein Werkzeug zum
+    Durchprobieren. **Gebaut ist die Trennung: Zeile schreiben, antworten, dann
+    verschicken** — der Anfragende erfährt über den Versand ohnehin nichts.
+    *Und die Zusage wird gemessen, nicht behauptet:* der Prüfstand hält beide
+    Wege an einem Empfänger gegeneinander, der den Versand zwanzig Sekunden
+    festhält. Verwandt mit der Absage am Token, aber eine Ebene tiefer: dort
+    geht es um den Wortlaut, hier um die Laufzeit.
+
+151. **Wer eine Wirkung prüft, die NACH der Antwort eintritt, wartet nicht auf
+    die Uhr, sondern auf die Sache.** Seit 0.9.1 geht die Bestätigungsmail
+    hinaus, *nachdem* die Antwort geschrieben ist — die Antwort ist also kein
+    Beleg dafür, dass die Mail schon da ist. Eine Prüfung, die „achthundert
+    Millisekunden schlafen und dann den **letzten** Brief nehmen" sagte, war in
+    beide Richtungen falsch: sie wurde rot, wenn die Mail langsamer kam, und sie
+    nahm den falschen Brief, wenn eine ältere Lage dazwischenfiel. **Gesucht
+    wird jetzt nach Empfänger, und gewartet wird, bis der Brief da ist.**
+    *Roter Zufall ist schlimmer als keine Prüfung — er kostet Vertrauen in
+    alle anderen.*
+
+152. **Eine neue Portbasis kann nicht nur eine gesperrte Nummer treffen,
+    sondern den VERSATZ zu klein machen.** Vier neue Prüflagen schoben die
+    Spanne aller Basen auf 3040 — und `VERSATZ_STUFE` steht bei 3000. Damit
+    läge die erste Nebenspur auf der letzten Basis der Hauptspur, und zwei
+    Rückbauten kämen sich ins Gehege. **Der Wächter aus 0.8.91 hat es beim
+    ersten Lauf gefunden**, namentlich und mit beiden Zahlen. *Wer eine
+    Prüflage ergänzt, rechnet nicht nur ihre eigene Nummer nach, sondern die
+    Spanne aller.* Behoben, ohne die Zahl zu ändern: die Bremsprobe teilt sich
+    die Anlage der Gruppe davor, die dort ohnehin fertig ist. Fortschreibung
+    von 127.
+
+153. **Zwei Kästen mit denselben festen Kennungen sind einer zu viel.** Der
+    Einladungslink erscheint seit 0.9.1 an zwei Stellen — beim Anlegen in
+    „Zugänge" und beim Freischalten in „Anfragen". Dieselbe Funktion zeichnet
+    beide, und ihre Kennungen (`zug-link-feld`, `zug-link-kopie`) sind feste
+    Namen: stünden beide Kästen gleichzeitig da, nähme `getElementById` den
+    **ersten**, und der Knopf „Kopieren" kopierte den falschen Link. *Wer eine
+    Zeichenfunktion an einer zweiten Stelle wiederverwendet, prüft, ob ihre
+    Kennungen das aushalten.* Gebaut ist die einfachste Form: der andere Kasten
+    wird geleert, und es steht immer höchstens **ein** Link am Bildschirm — was
+    ohnehin richtig ist.
+
+154. **Eine Lage, die zwei Schranken zugleich reißt, prüft keine von beiden.**
+    Die Selbstanmeldung weist eine Anfrage still ab, wenn schon eine offene mit
+    demselben **Namen** ODER derselben **Adresse** dasteht — zwei Schranken,
+    zwei Gründe. Die Prüflage dafür schickte Name und Adresse in einem Zug noch
+    einmal; sie fiel damit an der ersten, und die zweite blieb **ungeprüft**.
+    Aufgefallen ist es erst an einer **stummen Gegenprobe**: der Rückbau auf die
+    Adressschranke blieb vollständig grün, weil die Namensschranke ihn auffing —
+    und ausgerechnet die Adressschranke ist die, die eine **fremde** Adresse vor
+    beliebig vielen Bestätigungsmails schützt. *Wer zwei Regeln nebeneinander
+    baut, prüft jede an einer Lage, die nur sie reißt* — und dazu die Gegenlage,
+    die keine von beiden reißt. Verwandt mit 138, aber die Ursache liegt eine
+    Ebene tiefer: dort fehlt die Prüfung, hier verdeckt eine Prüfung die andere.
+
 ---
 
 ## 7. Prüfstand
@@ -3966,7 +4258,39 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3192 von 3192 bestanden** (0.9.0; **182 neue Prüfungen, 33
+**Zuletzt: 3400 von 3400 bestanden** (0.9.1; **208 neue Prüfungen, 40
+Gegenproben, siebzehn neue Gruppen**: „Die Selbstanmeldung: die immer gleiche
+Antwort", „… der Schalter aus", „… der Schalter braucht drei Dinge",
+„… die Bestätigungsmail", „… der Bestätigungslink hat keine Passwortkraft",
+„… die unbestätigte Anfrage", „… das Verfallen und das Aufräumen",
+„… der Deckel", „… die Freischaltung", „… die Rolle ist immer user",
+„… die Ablehnung", „… keine Zeile, die ein Fremder auslösen kann",
+„… die Bremse greift an beiden Routen", „… die Tabelle legt sich selbst an",
+„Die Anmeldeseite: das Anfrageformular", „Die Bestätigungsseite in der
+Oberfläche" und „Die Karte ‚Anfragen'". Der Rest sind Erweiterungen vorhandener
+Gruppen: `F_ROUTEN` samt Zahl **64**, die geschlossenen Listen aus `auth.js`
+samt ihren Zahlen, die Schlüsselliste von `GET /api/config`, die Kartenzahl
+**neunzehn** in beiden Lagen, die dritte breite Kachel und die gekürzten Zeilen
+auf der Einladungsseite.)
+
+**Die immer gleiche Antwort wird BYTEWEISE und mit der UHR geprüft.** Verglichen
+wird der rohe Antwortkörper der fünf Lagen, nicht ein Feld daraus — ein
+Vergleich auf `ok === true` bliebe grün, wenn daneben ein Feld auftauchte, das
+die Lage verriete. **Und die Laufzeiten stehen daneben**, gemessen am
+tröpfelnden Empfänger aus 0.9.0: er hält den Versand zwanzig Sekunden fest, und
+keine der fünf Lagen darf darauf warten. **Samt der Gegenlage zur Messung
+selbst** — hätte er sofort abgesagt, wäre „keine wartet" wahr, ohne etwas zu
+belegen (Stolperstein 81).
+
+**Kein Migrationsabschnitt — es gibt keinen Block.** 0.9.1 **ist** eine
+Datenbankstufe: die Tabelle `anfragen` kommt dazu. Eine fehlende **Tabelle**
+legt `CREATE TABLE IF NOT EXISTS` bei jedem Start an, und der Prüfstand
+entfernt sie von Hand aus einer bestehenden Anlage, startet einmal und sieht
+nach — samt der Gegenlage, dass eine **Spalte** nicht nachwächst. **Ausdrücklich
+geprüft ist dazu: das Schema einer gewachsenen Anlage ist nach dem Start
+dasselbe wie das einer frischen.** Es bleibt bei fünf markierten Blöcken.
+
+**Davor 3192 von 3192** (0.9.0; **182 neue Prüfungen, 33
 Gegenproben, neun neue Gruppen**: „Der Mailversand: das echte SMTP-Gespräch",
 „… das Offline-Prinzip in beide Richtungen", „… die Frist wird gemessen, nicht
 behauptet", „… die öffentliche Adresse ist Pflicht", „… das Passwort steht
@@ -4770,6 +5094,37 @@ sind zwei Dinge:
 
 ## 9. Versionsgeschichte
 
+**0.9.1 — „Stufe I₂: die Selbstanmeldung".** **Zweite Hälfte von Stufe I, und
+damit ist der Stufenplan des Mehrbenutzerbetriebs abgearbeitet.** Eine
+**Datenbankstufe** — die Tabelle `anfragen` kommt dazu —, aber **ohne
+Migrationsblock**: `CREATE TABLE IF NOT EXISTS` legt eine fehlende Tabelle bei
+jedem Start an. Es bleibt bei fünf markierten Blöcken.
+**Wer einen Zugang haben will, kann von selbst danach fragen** — Formular auf
+der Anmeldeseite, Wunschname und Adresse, kein Passwort. **Und niemand kommt
+dadurch herein, ohne dass ein Admin ihn hereinlässt.** Vor der Warteschlange
+steht eine **Bestätigungsmail** (Double Opt-in), der dritte Mailanlass: ihr Link
+hat **keine Passwortkraft** — er legt keinen Zugang an, setzt kein Passwort und
+meldet niemanden an. Erst die **bestätigte** Anfrage erscheint beim Admin, in
+der neuen Karte **„Anfragen"**; unbestätigte verfallen nach 24 Stunden.
+**Die Antwort auf eine Anfrage sieht immer gleich aus** — fünf Lagen, Byte für
+Byte —, und sie **wartet dafür nicht auf den Versand**; die Laufzeiten werden
+gemessen, nicht behauptet. Dazu der **Deckel** von zwanzig (bestätigte und
+unbestätigte zusammen, je Adresse höchstens eine offene) und die
+**Anmeldebremse** an beiden Routen vor der Anmeldung.
+**Der Schalter `registrierung` verlangt zwei Dinge:** eine durchgekommene
+Testmail **und** `OEFFENTLICHE_ADRESSE`. *Das zweite ist beim Bauen
+dazugekommen — die Testmail enthält keinen Link und belegt die Adresse deshalb
+nicht (Stolperstein 149).* Ausschalten geht immer; geht der Versand kaputt,
+bleibt er an und die Karte sagt es rot.
+**Aus einer Anfrage wird nie etwas anderes als ein Zugang mit der Rolle
+`user`** — baulich, nicht durchgesetzt.
+`F_ROUTEN` geht von 59 auf **64**, die Karten von achtzehn auf **neunzehn**,
+die Vorgänge von fünfzehn auf **siebzehn** (`anfrage.frei`, `anfrage.ab`, beide
+ohne Namen); `MERKMALE` bleibt dreizehn, `BESTAETIGUNG_ZWECKE` sieben, die
+Formatnummer 10, das Vokabular elf. **Keine neue Abhängigkeit, keine neue
+`.env`-Zeile.**
+3400 Prüfungen, 40 Gegenproben, Stolpersteine 149 bis 154.
+
 **0.9.0 — „Der Server verschickt selbst".** **Erste Hälfte von Stufe I** des
 Mehrbenutzerbetriebs, und **keine Datenbankstufe**: keine Tabelle, keine
 Spalte, kein sechster Migrationsblock. Einladungs- und Rücksetzlinks gehen
@@ -5210,7 +5565,7 @@ beide, und sortiert wird zahlweise — `0.8.9 < 0.8.10 < 0.8.20 < 0.9.0`.
 | **0.8.90** | Schwere Eingriffe (**erledigt**) | zweite Bestätigung, Sicherheitsprotokoll, öffentliche Adresse | ja, **ohne Migrationsblock** | — |
 | **0.8.91** | *(keine Stufe)* Der Schlüssel lässt sich wechseln | **gebaut** — `./schluessel.sh` auf dem Wirt: `PRAGMA rekey` samt Journalumschaltung, `.env`-Fall und Dateifall, die alten Sicherungen markiert. Dazu `gegenprobe.js`, `PORT_VERSATZ` und zwei Wächter über den Prüfstand | nein | — |
 | **0.9.0** | **Stufe I, erste Hälfte** — Mailversand (**erledigt**) | `nodemailer`, Anbietervorlagen, Testmail, öffentliche Adresse als Pflicht für den Versand, Adresse am Zugang, Frist ab dem ersten Öffnen | **nein** — keine Tabelle, keine Spalte | — |
-| **0.9.1** | **Stufe I, zweite Hälfte** — Selbstanmeldung | Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung | ja, **eine neue Tabelle ohne Migrationsblock** | — |
+| **0.9.1** | **Stufe I, zweite Hälfte** — Selbstanmeldung (**erledigt**) | Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung. **Damit ist der Stufenplan abgearbeitet.** | ja, **eine neue Tabelle ohne Migrationsblock** | — |
 | **0.9.10** | Zwei-Faktor | TOTP und Wiederherstellungscodes | ja | — |
 | **0.9.20** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen | ja | — |
 | **1.0.0** | Bereinigung und Zusage | Migrationscode raus, Absage an zu alte Datenbanken, Vorgabewerte (Punkt 7), Tastaturbedienung beim Sortieren, Abwärtskompatibilität wird zugesichert | — | — |
@@ -5260,11 +5615,12 @@ passt nicht in eine Zelle und teilt sich auf mehrere `papierkorb_bytes.nr` auf.
 Bis dahin antwortete die Anlage nur auf Anfragen; seit 0.9.0 baut sie **von sich
 aus** eine Verbindung zu einem fremden Server auf. Das ist die größte Änderung
 der Betriebsart im ganzen Plan, größer als jede einzelne Funktion davor.
-**Der Abbruchpunkt, den das Konzeptpapier für Stufe I seit Langem nennt, ist
+**Der Abbruchpunkt, den das Konzeptpapier für Stufe I seit Langem nannte, ist
 gezogen worden** (*„nach dem Versand, vor der Selbstregistrierung"*): mit dem
 Mailversand, dem Schreibweg für `users.email` und der Frist ab dem ersten
-Öffnen wurde die Runde zu breit für einen Durchgang. Die Selbstanmeldung ist
-**0.9.1** und bringt die einzige neue Tabelle dieser Stufe.
+Öffnen wurde die Runde zu breit für einen Durchgang. **Die Selbstanmeldung ist
+mit 0.9.1 gebaut** und brachte die einzige neue Tabelle dieser Stufe,
+`anfragen`. **Damit ist der Stufenplan abgearbeitet.**
 
 **Die Reihenfolge ist nicht beliebig.** Vier Bindungen:
 
@@ -5310,7 +5666,7 @@ Stand**: was daraus gilt, steht ab jetzt hier.
 damit alte Verweise stimmen.)*
 
 5. **Mehrbenutzerbetrieb.** *Kein Anbau, ein Umbau.* **Dieser Punkt liegt
-   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_0.md` und wird
+   vollständig in `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` und wird
    nur noch dort gepflegt.** Die Stufen A bis F, G1, G2 und **G3** sind
    erledigt (0.6.0 bis 0.8.5); 0.8.1 (Bereinigung) und 0.8.6 (Berichtigungen
    aus dem Betrieb) waren keine Stufen.
@@ -5343,11 +5699,13 @@ damit alte Verweise stimmen.)*
    `F_ROUTEN` 51 → 56, Formatnummer unverändert. Einzelheiten in Abschnitt 5
    und in `Doku/Aenderungsprotokoll_0.8.80.md`.
 
-   *Dann:* **Stufe I ist zur Hälfte gebaut.** Der **Mailversand** ist 0.9.0 —
+   *Dann:* **Stufe I ist vollständig gebaut.** Der **Mailversand** ist 0.9.0 —
    ab dort baut die Anlage von sich aus eine Verbindung nach außen auf, und das
-   ist die größte Änderung der Betriebsart im ganzen Plan. Der Token aus dieser
-   Runde ist dabei unverändert geerbt worden, mit genau einer Ergänzung: der
-   **Frist ab dem ersten Öffnen**. **Offen bleibt die Selbstanmeldung, 0.9.1.**
+   ist die größte Änderung der Betriebsart im ganzen Plan. Der Token aus Stufe H
+   ist dabei unverändert geerbt worden, mit genau einer Ergänzung: der
+   **Frist ab dem ersten Öffnen**. **Die Selbstanmeldung ist 0.9.1** — Anfrage,
+   Bestätigungsmail, Warteschlange, Freischaltung. **Damit ist der Stufenplan
+   abgearbeitet; es ist keine Stufe mehr offen.**
 
    *Anmerkung, unverändert gültig:* eine Veröffentlichung setzt keinen
    Mehrbenutzerbetrieb voraus. „Für eine Person, dafür vollständig
@@ -5553,7 +5911,7 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
 
 - **Wer eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` im Prüfstand
   ein** — sonst wird der Lauf namentlich rot, und genau das ist der Zweck.
-  Die Liste (aktuell **59** Routen) ist die Stelle, an der die Rechtefrage
+  Die Liste (aktuell **64** Routen) ist die Stelle, an der die Rechtefrage
   gestellt wird; seit 0.8.0 kennt sie die vierte Art `'nurAdmin, im Rumpf'`.
   *Die Zahl stand hier eine Runde lang bei 56, obwohl sie seit 0.8.90 bei 57
   lag — Stolperstein 137, ein Papier war beim Nachziehen übersehen worden.*
@@ -5580,7 +5938,14 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   **0.8.91 bewegt sie nicht:** der Schlüsselwechsel läuft auf dem Wirt.
   **0.9.0 bewegt sie um zwei: 57 → 59** — `PUT /api/mail` und
   `POST /api/mail/test`; `GET /api/mail` steht wie immer **nicht** dort,
-  obwohl es einen Wächter trägt. **Und zwei Routen bewegen sie ausdrücklich
+  obwohl es einen Wächter trägt.
+  **0.9.1 bewegt sie um fünf: 59 → 64** — zwei **vor** der Anmeldung
+  (`POST /api/registrierung`, `POST /api/registrierung/bestaetigen`) und drei
+  dahinter (`PUT /api/registrierung/schalter`, `POST /api/anfragen/:id/frei`,
+  `DELETE /api/anfragen/:id`). `GET /api/anfragen` steht wie immer **nicht**
+  dort. **Und die beiden offenen tragen weder Klemme noch Wächter, und das ist
+  entschieden:** es *darf* sie jeder. Was sie begrenzt, ist etwas anderes — der
+  Schalter, der Deckel, die Bremse und die immer gleiche Antwort. **Und zwei Routen bewegen sie ausdrücklich
   nicht, obwohl sie in dieser Runde etwas Neues tun:** `POST /api/users` nimmt
   jetzt eine Adresse entgegen und `PUT /api/account` setzt die eigene — beide
   gibt es längst, und ihre Rechtezeile hat sich nicht verschoben.

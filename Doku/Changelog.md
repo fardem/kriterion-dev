@@ -6,6 +6,90 @@ ist. Die Einzelheiten stehen je Version in
 
 ---
 
+## 0.9.1 — Stufe I₂: die Selbstanmeldung
+
+**Wer einen Zugang haben will, kann von selbst danach fragen — und niemand
+kommt dadurch herein, ohne dass ein Admin ihn hereinlässt.** Das ist
+der Satz, unter dem diese Version steht, und er ist keine Einstellung: es gibt
+keine Betriebsart, in der ein geklickter Link allein freischaltet.
+
+> **Und die Anlage läuft ohne all das vollständig.** Der Schalter steht ab Werk
+> auf **aus**; dann legt eben nur der Admin Zugänge an, genau wie bisher. Es
+> fehlt keine Funktion, und wer die Selbstanmeldung nicht will, merkt von dieser
+> Version nichts.
+
+### Neu
+
+- **Ein Formular auf der Anmeldeseite — „Zugang anfragen".** Zwei Felder,
+  Wunschname und E-Mail-Adresse, **kein Passwortfeld**. Es erscheint nur, wenn
+  die Selbstanmeldung eingeschaltet ist.
+- **Eine Bestätigungsmail davor (Double Opt-in).** Wer das Formular abschickt,
+  bekommt zuerst eine Mail mit einem kurzen Link. **Der Link öffnet keinen
+  Zugang und setzt kein Passwort** — er sagt nur „ja, das bin ich", und er
+  belegt damit, dass die Adresse dem Anfragenden gehört. Er gilt **24 Stunden**.
+  Ohne diesen Schritt könnte jeder eine **fremde** Adresse in deine Liste
+  schreiben.
+- **Die Karte „Anfragen" im Systembereich, für Admins.** Dort steht der
+  Schalter, der Stand gegen den Deckel und die Liste der **bestätigten**
+  Anfragen mit Name, Adresse und beiden Zeitpunkten — je Zeile
+  **Freischalten** oder **Ablehnen**. Unbestätigte Anfragen erscheinen dort
+  **nie** und verfallen nach 24 Stunden.
+- **Freischalten legt einen Zugang mit der Rolle „Benutzer" an** — nie mit
+  einer anderen — und erzeugt den Einladungslink, über den der Betreffende sein
+  Passwort selbst setzt. Der Weg dahinter ist der bekannte aus 0.8.80,
+  unverändert: sieben Tage, genau einmal, ab dem ersten Öffnen fünfzehn Minuten.
+- **Ablehnen entfernt die Anfrage.** Es entsteht kein Zugang, und es geht
+  **keine** Nachricht hinaus — Benachrichtigungsmails gibt es in dieser Anlage
+  nicht.
+- **Zwei neue Zeilen im Sicherheitsprotokoll** — Freischaltung und Ablehnung,
+  beide **ohne** den Namen des Anfragenden.
+
+### Was du danach von Hand tun musst
+
+- **Nichts** — solange du die Selbstanmeldung nicht willst. Sie ist aus.
+- **Willst du sie:** im Systembereich die Karte **„Anfragen"** öffnen und
+  einschalten. Das geht erst, wenn **zwei** Dinge stehen:
+  - ein **Mailzugang**, mit dem eine **Testmail wirklich durchgekommen** ist
+    (Karte „Mailversand", nur für den Eigentümer der Anlage), und
+  - **`OEFFENTLICHE_ADRESSE`** in der `.env` — sonst wüsste der Server nicht,
+    worauf der Bestätigungslink zeigen soll. *Die Testmail allein genügt als
+    Beleg nicht: sie enthält gar keinen Link.*
+
+  Fehlt eines von beiden, sagt die Karte, was fehlt, und der Knopf bleibt
+  gesperrt.
+- **Die Sicherung des Datenverzeichnisses vor dem Einspielen ist PFLICHT** —
+  diese Version bringt eine neue Tabelle mit.
+- **Keine neue Zeile in der `.env`**, und die `docker-compose.yml` ist
+  unberührt.
+
+### Was gleich bleibt
+
+- **Der Admin entscheidet, immer.** Kein Betrieb, in dem der geklickte Link
+  allein hereinlässt.
+- **Die Antwort auf eine Anfrage sieht immer gleich aus** — ob der Name frei
+  war, ob er vergeben ist, ob die Adresse schon an einem Zugang hängt, ob
+  gerade zwanzig Anfragen offen sind oder ob der Schalter aus ist. Sonst wäre
+  das Formular ein bequemes Werkzeug, Namen und Adressen durchzuprobieren.
+- **Höchstens zwanzig offene Anfragen**, und je Adresse höchstens eine. Die
+  einundzwanzigste wird still verworfen.
+- **Dieselbe Anmeldebremse wie an der Anmeldung**, an beiden neuen Wegen vor
+  der Anmeldung.
+- **Ausschalten geht immer.** Und geht der Versand später kaputt, **bleibt der
+  Schalter an** — die Karte sagt es rot, statt sich stillschweigend umzulegen.
+- **Der Tokenweg aus 0.8.80 ist unverändert**, und der Mailversand aus 0.9.0
+  ebenso — es kommt nur ein dritter Anlass für eine Mail dazu.
+- **Reiner Text, kein HTML, keine Zählpixel**, auch in der Bestätigungsmail.
+- **Die Exportdatei behält ihr Format** (unverändert 10).
+- **Keine neue Abhängigkeit, nicht eine.**
+
+### Wenn du eine Bestätigungsmail bekommst, ohne etwas angefragt zu haben
+
+**Dann ist nichts zu tun.** Ohne den Klick geschieht gar nichts, und die
+Anfrage verfällt von selbst. Die Mail sagt das auch — und sie sagt ausdrücklich,
+dass ihr Link keinen Zugang öffnet und kein Passwort setzt.
+
+---
+
 ## 0.9.0 — Der Server verschickt selbst
 
 **Einladungs- und Rücksetzlinks gehen ab jetzt per Mail hinaus — und wer keinen
