@@ -166,7 +166,7 @@ des Neuladens und der Weg danach stehen alle drei weiter darin.
 
 ### `pruefung.js`
 
-Siebzehn neue Gruppen, 208 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
+Siebzehn neue Gruppen, 210 neue Prüfungen; Einzelheiten in Abschnitt 6. Dazu
 im DOM-Mock die fünf neuen Endpunkte samt `registrierung` in `/api/config` —
 und er **zieht mit**: Freischalten und Ablehnen nehmen die Zeile wirklich aus
 der Liste (Stolperstein 90) und bringen nichts selbst mit, was die Prüfung
@@ -547,7 +547,7 @@ steht im Projektstand, Abschnitt 6.
 
 ## 6. Der Prüfstand
 
-**3400 von 3400 bestanden** — 208 neue Prüfungen, **siebzehn** neue Gruppen.
+**3402 von 3402 bestanden** — 210 neue Prüfungen, **siebzehn** neue Gruppen.
 
 | Gruppe | Was sie festhält |
 |---|---|
@@ -594,7 +594,7 @@ unverändert **122** Pfade.
 
 ## 7. Gegenprobentabelle
 
-**40 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
+**41 Gegenproben, jede in einer eigenen Kopie aus `git archive HEAD`**,
 gefahren über `gegenprobe.js` mit vier Nebenspuren. **35 sind neu** (31 bis 67,
 ohne 45 — siehe Abweichung D), drei sind nachgezogen (07, 14 und 30 zielten auf
 Zeilen, die diese Runde verschoben hat), zwei sind die Wächter über den
@@ -657,9 +657,9 @@ DANACH: null stumm, null abgerissen.**
 | | |
 |---|---|
 | Vorher (0.9.0) | 3192 |
-| Nachher (0.9.1) | **3400** |
-| Neu | **208** |
-| Gegenproben | **40** |
+| Nachher (0.9.1) | **3402** |
+| Neu | **210** |
+| Gegenproben | **41** |
 
 ---
 

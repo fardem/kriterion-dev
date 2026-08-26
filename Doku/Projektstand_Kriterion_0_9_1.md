@@ -201,7 +201,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.9.1 ist gebaut** — Fingerprint **`8f226ddc`**, 3400
+**0.9.1 ist gebaut** — Fingerprint **`8f226ddc`**, 3402
 Prüfungen. **Zweite Hälfte von Stufe I, und damit ist der Stufenplan
 abgearbeitet.** **EINE DATENBANKSTUFE:** es kommt **eine Tabelle** dazu
 (`anfragen`) und **keine Spalte** — deshalb **kein Migrationsblock**, und es
@@ -233,7 +233,7 @@ im Sicherheitsprotokoll **siebzehn** (`anfrage.frei`, `anfrage.ab`, beide ohne
 den Namen des Anfragenden). `MERKMALE` bleibt **dreizehn**,
 `BESTAETIGUNG_ZWECKE` **sieben**, die Formatnummer **10**.
 **Keine neue Abhängigkeit und keine neue `.env`-Zeile.**
-40 Gegenproben, gefahren über `gegenprobe.js`.
+41 Gegenproben, gefahren über `gegenprobe.js`.
 
 **Der Mailversand aus 0.9.0 ist im Feld bestätigt.** Die erste echte
 Einladungsmail ist angekommen — Absender und Link stimmten, der Rumpf stand als
@@ -4281,7 +4281,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3400 von 3400 bestanden** (0.9.1; **208 neue Prüfungen, 40
+**Zuletzt: 3402 von 3402 bestanden** (0.9.1; **210 neue Prüfungen, 41
 Gegenproben, siebzehn neue Gruppen**: „Die Selbstanmeldung: die immer gleiche
 Antwort", „… der Schalter aus", „… der Schalter braucht drei Dinge",
 „… die Bestätigungsmail", „… der Bestätigungslink hat keine Passwortkraft",
@@ -5146,7 +5146,7 @@ die Vorgänge von fünfzehn auf **siebzehn** (`anfrage.frei`, `anfrage.ab`, beid
 ohne Namen); `MERKMALE` bleibt dreizehn, `BESTAETIGUNG_ZWECKE` sieben, die
 Formatnummer 10, das Vokabular elf. **Keine neue Abhängigkeit, keine neue
 `.env`-Zeile.**
-3400 Prüfungen, 40 Gegenproben, Stolpersteine 149 bis 155.
+3402 Prüfungen, 41 Gegenproben, Stolpersteine 149 bis 155.
 
 **0.9.0 — „Der Server verschickt selbst".** **Erste Hälfte von Stufe I** des
 Mehrbenutzerbetriebs, und **keine Datenbankstufe**: keine Tabelle, keine
