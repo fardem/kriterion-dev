@@ -870,6 +870,32 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Kein Modul des Servers wird erst innerhalb einer Funktion geladen',
     spaetGeladen.length === 0, spaetGeladen.join(', '));
 
+  /* DER HANDGRIFF IM README NENNT DIESELBEN DATEIEN -- und das ist seit 0.10.0
+     geprueft statt gepflegt. Er steht dort, weil der Fingerprint sagt, DASS
+     etwas abweicht, und nicht WELCHE Datei (Stolperstein 158): wer ihn braucht,
+     braucht ihn im Ernstfall und merkt dann erst, dass er eine Datei zu wenig
+     aufzaehlt.
+     GEZAEHLT WIRD GEGEN DEN ABGELEITETEN GRAPHEN, nicht gegen eine zweite
+     gepflegte Liste -- die liefe beim naechsten Modul auseinander. `public/*`
+     und `package.json` stehen im Handgriff als Muster und werden hier eigens
+     verlangt: sie kommen aus dem Graphen nicht heraus. */
+  const readmeText = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+  const handgriff = (readmeText.match(/for f in ([^;]*?); do/s) || [, ''])[1]
+    .replace(/\\\s*\n\s*/g, ' ').trim().split(/\s+/).filter(Boolean);
+  pruefe('Der Handgriff im README steht ueberhaupt da',
+    handgriff.length > 5, handgriff.join(' ') || '(keine Zeile "for f in … ; do")');
+  const handgriffFehlt = imFingerprint.filter(n => !handgriff.includes(n));
+  pruefe('Und er nennt jedes Modul, ueber das der Fingerprint geht',
+    handgriffFehlt.length === 0,
+    `fehlt: ${handgriffFehlt.join(' ')} · genannt: ${handgriff.join(' ')}`);
+  const handgriffZuviel = handgriff.filter(n =>
+    n.endsWith('.js') && !imFingerprint.includes(n));
+  pruefe('Und keine Datei, ueber die er nicht geht',
+    handgriffZuviel.length === 0, handgriffZuviel.join(' '));
+  pruefe('Und package.json samt public/ stehen daneben',
+    handgriff.includes('package.json') && handgriff.includes('public/*'),
+    handgriff.join(' '));
+
   /* ---------------------------------------------------------------- */
   gruppe('Der Gruppenfilter');
 

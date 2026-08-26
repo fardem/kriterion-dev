@@ -596,6 +596,15 @@ Ausweis heraus — genau wie der Server. **Und er bringt nicht selbst mit, was d
 Prüfung belegen soll** (Stolperstein 102): die Zusagen an der echten
 Serverantwort stehen in den vierzehn Servergruppen.
 
+**Der Handgriff im README wird jetzt geprüft statt gepflegt.** Er zählt die
+Dateien auf, über die der Fingerprint geht, und ist der einzige Weg, eine
+abweichende Datei beim **Namen** zu nennen (Stolperstein 158) — wer ihn
+braucht, braucht ihn im Ernstfall. **Mit `zweifaktor.js` hätte er eine Datei zu
+wenig genannt.** Der Wächter hält ihn gegen den **abgeleiteten** Modulgraphen
+und nicht gegen eine zweite gepflegte Liste, in beide Richtungen: keine fehlt,
+keine steht zu viel da, und `package.json` samt `public/*` sind eigens
+verlangt.
+
 **Gedrückt wird per `dispatchEvent` samt Durchlauf des Event Loops**
 (Stolperstein 61) — für den Anmeldeknopf, den zweiten Schritt und jeden der
 fünf Knöpfe in der Karte.

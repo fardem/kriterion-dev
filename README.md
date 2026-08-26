@@ -1531,15 +1531,27 @@ die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
 enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
 Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
 
-**0.9.1 FASST DIE DATENBANK AN** — es kommt die Tabelle `anfragen` dazu, die
+**0.10.0 FASST DIE DATENBANK AN** — es kommen **zwei** Tabellen dazu,
+`zweifaktor` und `zweifaktor_codes`. Einen Migrationsschritt brauchen sie
+nicht, eine fehlende Tabelle legt der Start selbst an; aber ein Downgrade ist
+damit keine reine Dateikopie mehr. **Die Sicherungszeile ist bei dieser Version
+Pflicht.** *Genau genommen stört ein Downgrade auf 0.9.1 wenig — zwei
+zusätzliche Tabellen sieht eine ältere Version gar nicht an. Was dabei
+geschieht, gehört aber gesagt:* **wer zurückgeht, hat plötzlich keinen zweiten
+Faktor mehr** — die ältere Fassung fragt ihn nicht ab, und die Zugänge stehen
+dann wieder allein hinter ihrem Passwort. **Es kommt keine neue Zeile in die
+`.env`**, und es gibt nichts einzustellen: wer den zweiten Faktor will,
+schaltet ihn selbst in der Karte „Zugang" ein.
+
+**0.9.1 davor fasste die Datenbank an** — es kam die Tabelle `anfragen` dazu, die
 Warteschlange der Selbstanmeldung. Einen Migrationsschritt braucht sie nicht,
 eine fehlende Tabelle legt der Start selbst an; aber ein Downgrade ist damit
 keine reine Dateikopie mehr. **Die Sicherungszeile ist bei dieser Version
 Pflicht.** *Genau genommen stört ein Downgrade auf 0.9.0 wenig — eine
 zusätzliche Tabelle sieht eine ältere Version gar nicht an. Was verloren geht,
 sind die offenen Anfragen: sie bleiben stehen, aber niemand zeigt sie mehr.*
-**Es kommt keine neue Zeile in die `.env`** — der Schalter der Selbstanmeldung
-steht im Systembereich, nicht dort.
+Auch dort kam keine neue `.env`-Zeile dazu — der Schalter der Selbstanmeldung
+steht im Systembereich.
 
 **0.9.0 davor fasste die Datenbank nicht an** — keine Tabelle, keine Spalte;
 ein Downgrade auf 0.8.91 wäre eine reine Dateikopie gewesen. Auch dort kam
@@ -1588,7 +1600,8 @@ Wer abkürzt und über den vorhandenen Ordner entpackt, bekommt genau diesen Fal
 oder im Container (`docker compose exec kriterion sh`):
 
 ```bash
-for f in anhaenge.js auth.js db.js keys.js mail.js package.json server.js public/*; do
+for f in anhaenge.js auth.js db.js keys.js mail.js package.json server.js \
+         zweifaktor.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```

@@ -4895,6 +4895,13 @@ Server beim Laden, und der Lauf risse ab statt rot zu werden (Stolperstein
 161). Der Index daneben trägt dieselbe Aussage und lässt sich gefahrlos
 zurücknehmen.*
 
+**Der Handgriff im README steht seit 0.10.0 unter einem Wächter.** Er zählt die
+Dateien auf, über die der Fingerprint geht — der einzige Weg, eine abweichende
+Datei beim **Namen** zu nennen (Stolperstein 158). Geprüft wird er gegen den
+**abgeleiteten** Modulgraphen und in beide Richtungen; `package.json` und
+`public/*` sind eigens verlangt. *Mit `zweifaktor.js` hätte er sonst still eine
+Datei zu wenig genannt.*
+
 **Das Geheimnis wird an vier Orten gesucht** — in **jeder Spalte jeder Zeile
 jeder Tabelle** (mit `zweifaktor.geheim` als benannter Ausnahme), im
 Containerprotokoll, in jedem Antwortkörper und in der Karte des Eigentümers.
