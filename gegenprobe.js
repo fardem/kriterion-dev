@@ -1009,13 +1009,24 @@ const RUECKBAUTEN = [
     erwartet: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
   },
   {
-    /* DIE ANDERE RICHTUNG: sie fragt ihn auch bei Zugaengen OHNE Faktor. Wer
-       ihn nicht will, soll von dieser Runde nichts merken. */
-    nr: '113', name: 'Die zweite Bestaetigung fragt den Code auch ohne Faktor',
-    datei: 'server.js',
-    suche: "  if (auth.zweifaktorAn(req.benutzer.id) && !auth.pruefeZweitenFaktor(req.benutzer.id, code)) {",
-    ersatz: "  if (!auth.pruefeZweitenFaktor(req.benutzer.id, code)) {",
-    erwartet: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
+    /* DIE ANDERE RICHTUNG -- und zwar an der OBERFLAECHE, nicht am Server.
+       Wer ihn nicht eingeschaltet hat, soll von dieser Runde nichts merken;
+       das Bestaetigungsfenster zeigt sein Codefeld deshalb nur, wenn der
+       Server es sagt. Hier steht es immer da.
+       AM SERVER GIBT ES DIESE RICHTUNG NICHT ALS RUECKBAU, und das ist
+       entschieden: liesse man die zweite Bestaetigung auch ohne Faktor nach
+       einem Code fragen, scheiterte sie fuer JEDEN Zugang -- Export, Import,
+       Rollen, fremde Passwoerter. Der Lauf reisst dann in Gruppen ab, die mit
+       dieser Runde nichts zu tun haben (Stolperstein 138), und ein Rueckbau,
+       der die halbe Pruefung mitnimmt, sagt ohnehin nichts (Stolperstein 49).
+       Die Zusage traegt dort die Pruefung "Ein Zugang OHNE zweiten Faktor
+       bestaetigt weiterhin mit dem Passwort allein" -- sie wuerde bei genau
+       dieser Aenderung rot. */
+    nr: '113', name: 'Das Bestaetigungsfenster zeigt sein Codefeld immer',
+    datei: 'public/app.js',
+    suche: "    : ''), ZWEIFAKTOR);",
+    ersatz: "    : ''), true);",
+    erwartet: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
     /* DIE REIHENFOLGE: PASSWORT, DANN CODE. Umgekehrt erfuehre jemand ohne das

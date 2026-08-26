@@ -10787,13 +10787,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
       zfNeu.status === 200 && zfNeu.inhalt.codes.length === 8 &&
       zfNeu.inhalt.codesOffen === 8 && zfNeu.inhalt.codesGesamt === 8,
       JSON.stringify(zfNeu.inhalt.codesOffen));
+    /* AUFFANGNETZ (Stolperstein 138): gibt die Route keine Codes her -- weil
+       ein Rueckbau sie hat scheitern lassen --, laeuft die Zeile trotzdem
+       durch und faellt rot. Ohne das griff sie auf undefined, und der Lauf
+       riss ab, statt eine Pruefung namentlich rot zu machen. */
+    const zfNeueCodes = (zfNeu.inhalt && zfNeu.inhalt.codes) || [];
     pruefe('Und keiner davon ist einer der alten',
-      zfNeu.inhalt.codes.every(c => !zfD.codes.includes(c)));
+      zfNeueCodes.length === 8 && zfNeueCodes.every(c => !zfD.codes.includes(c)),
+      JSON.stringify(zfNeueCodes.length));
     const zfAlt = await zfAnmelden(zfD, 0, zfD.codes[4]);
     pruefe('Ein noch unbenutzter ALTER Code traegt danach nicht mehr',
       zfAlt.zwei.status === 401, JSON.stringify(zfAlt.zwei.inhalt));
     pruefe('Ein neuer sehr wohl',
-      (await zfAnmelden(zfD, 0, zfNeu.inhalt.codes[0])).zwei.status === 200);
+      (await zfAnmelden(zfD, 0, zfNeueCodes[0])).zwei.status === 200);
 
     /* ---------------------------------------------------------------- */
     gruppe('Der zweite Faktor: das Geheimnis kommt aus keiner Antwort');
