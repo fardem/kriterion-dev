@@ -5189,6 +5189,20 @@ sind zwei Dinge:
   noch alles ändern darf. **Herausgeben lässt sich die Anlage mit jeder
   Nummer; `1.0.0` ist nicht das Herausgehen, sondern die Zusage** — ab da liegt
   die öffentliche Schnittstelle fest (Abschnitt 5 und Abschnitt 10).
+- **ZWEI DATEISÄTZE TRAGEN DIE NUMMER 0.9.1, UND DAS IST NICHT ENTSCHIEDEN.**
+  Das veröffentlichte 0.9.1 in `main` hat den Fingerprint `cb73399d`; die
+  laufende Anlage trägt `3cf1b093`. Dazwischen liegt die Nacharbeit an der
+  Marke und der Anmeldekarte — **Befund O** (die Klasse `.mark` war zweimal
+  vergeben, die Marke trug den Kasten der Kommentarknöpfe mit) und die Befunde
+  **P bis R**. *Befund M und N gehören dagegen bereits zum veröffentlichten
+  0.9.1.*
+  **Nach Semantic Versioning, Punkt 3, gehört darauf eine eigene Nummer:
+  `0.9.2`** — der Inhalt ist eine Fehlerbehebung und Aussehen, also PATCH.
+  Nötig wären `package.json`, ein `CHANGELOG.md`-Eintrag nach der neuen Form
+  mit Datum, die Zahlen in den Papieren und der Tag `v0.9.2`. **Es ist
+  vorgeschlagen und nicht beschlossen;** solange es offen ist, lässt sich der
+  Fingerprint der laufenden Anlage keiner veröffentlichten Nummer zuordnen —
+  und genau daran ist das Zuordnen schon einmal gescheitert (Stolperstein 158).
 - **`HINTER_PROXY` IST EIN JA/NEIN, UND DIE ANLAGE IST INZWISCHEN BEIDES.** Seit
   der Reverse Proxy davorsteht, kommt über `http://<server-ip>:3100` niemand
   mehr herein: der Cookie trägt `Secure` und das Präfix `__Host-`, der Browser
