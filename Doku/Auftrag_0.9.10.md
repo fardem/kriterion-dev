@@ -15,10 +15,10 @@ bindenden Satz, und der steht unten unter Punkt 1. Alles Übrige ist zu
 entscheiden — deshalb hat dieser Auftrag mehr Fragen als der letzte und weniger
 Verweise.
 
-WORAUF SIE AUFSETZT: 0.9.1 ist gebaut, geschoben und **nachgezogen**,
-Fingerprint `3cf1b093`, **3451 Prüfungen**, 58 Gegenproben, `F_ROUTEN` bei
-**64**, Formatnummer **10**, **fünf** markierte Migrationsblöcke, Stolpersteine
-bis **157**, **neunzehn** Karten im Systembereich, elf Vokabulareinträge,
+WORAUF SIE AUFSETZT: 0.9.1 ist gebaut, geschoben, **nachgezogen und im Feld
+bestätigt**, Fingerprint `3cf1b093`, **3451 Prüfungen**, 58 Gegenproben,
+`F_ROUTEN` bei **64**, Formatnummer **10**, **fünf** markierte
+Migrationsblöcke, Stolpersteine bis **158**, **neunzehn** Karten im Systembereich, elf Vokabulareinträge,
 **siebzehn** Vorgänge im Sicherheitsprotokoll, **dreizehn** Merkmale,
 `BESTAETIGUNG_ZWECKE` bei **sieben**. Laufzeitabhängigkeiten:
 `better-sqlite3-multiple-ciphers`, `express`, `multer`, `sharp`, `nodemailer`.
@@ -66,6 +66,17 @@ entsteht und alle dreißig Sekunden ein anderer ist.
      nie geladen. Der Prüfstand hält jetzt allgemein fest, dass in `public/`
      keine Datei zweimal unter zwei Namen liegt — verglichen über den Inhalt
      (Stolperstein 157). **Nichts mehr zu tun.**
+   * **DER STAND IST IM FELD BESTÄTIGT — und der Fingerprint hat sich zum ersten
+     Mal bezahlt gemacht.** Die laufende Anlage meldete `fad3e5ed`, den Stand
+     keines Commits; Ursache war **eine Datei zu viel** — das entfernte
+     `public/marke-hell.svg` lag auf dem Wirt noch da. Nach dem Löschen meldet
+     sie `3cf1b093`. **Der Server lief die ganze Zeit einwandfrei und jede
+     Prüfung war grün** (Stolperstein 158). *Für diese Runde heißt das zweierlei:
+     der Ausgangsstand oben ist gemessen und nicht behauptet — und wenn du eine
+     Datei entfernst, gehört das in den Changelog, wo jemand es beim Einspielen
+     liest.* **Was der Fingerprint nicht sagt, ist WELCHE Datei abweicht; eine
+     Zeile dafür in der Karte „Anlage" ist für 0.9.30 vorgemerkt und NICHT Teil
+     dieser Runde.**
    * **Der Schlüsselwechsel auf der echten Anlage steht weiterhin aus.** Er
      braucht keine Runde und keinen Auftrag; das Ergebnis gehört in den
      Projektstand, Abschnitt 2. **Nicht Teil dieser Runde.**
@@ -259,15 +270,15 @@ entsteht und alle dreißig Sekunden ein anderer ist.
 LESEWEGE — WAS DU WIRKLICH BRAUCHST:
 
 * **Am Stück lesen:** dieser Auftrag, `Doku/Aenderungsprotokoll_0.9.1.md`
-  (Abschnitte 2 bis 5 — die Abweichungen, die Fragen, die Befunde A bis U und
-  die Stolpersteine 149 bis 157). **Die Befunde M bis U sind die aus dem
+  (Abschnitte 2 bis 5 — die Abweichungen, die Fragen, die Befunde A bis V und
+  die Stolpersteine 149 bis 158). **Die Befunde M bis V sind die aus dem
   Betrieb; lies die zuerst.**
 * **Abschnittsweise, über die Überschriften angesteuert:** Projektstand
   Abschnitt 2 (Betriebsstand und Einspielweg), 3 (**der ganze Abschnitt** —
   Zugang, Tokens, Sitzungen, Anmeldebremse, zweite Bestätigung,
   Sicherheitsprotokoll, Selbstanmeldung), 4 (die Karten), 5 (Entscheidungen),
   6 (**Stolpersteine 13, 20, 47, 61, 74, 81, 90, 102, 106, 138, 145, 149 bis
-  157**), 7 (Prüfstand), 8 (offene Betriebspunkte), 10 (**der Fahrplan bis zur
+  158**), 7 (Prüfstand), 8 (offene Betriebspunkte), 10 (**der Fahrplan bis zur
   Veröffentlichung** — er ist nach 0.9.1 festgelegt worden), 12 (Arbeitsweise
   samt Sprachregel).
 * **Vom Konzeptpapier NUR den einen Satz** aus Teil III, der oben zitiert ist.
@@ -425,14 +436,16 @@ AM ENDE DES CHATS:
   sein, und `npm test` läuft ein letztes Mal gegen genau diesen Stand.
 * `Doku/Aenderungsprotokoll_0.9.10.md` liegt im Branch: was gebaut wurde je
   Datei, Abweichungen mit Begründung, neue Stolpersteine (**die Zählung setzt
-  bei 158 fort** — 149 bis 157 sind vergeben), die Gegenprobentabelle **aus
+  bei 159 fort** — 149 bis 158 sind vergeben), die Gegenprobentabelle **aus
   `gegenprobe.js`**, Prüfungszahlen vorher/nachher (vorher: **3451**),
   Offengebliebenes.
 * Die Zeile „0.9.10 — Fingerprint `…`" gehört ins Änderungsprotokoll, **ZULETZT
   gebildet**, nach der letzten Änderung an einer ausgelieferten Datei — die
   Versionsnummer in `package.json` eingeschlossen. **Und `public/` gehört
   dazu**: seit 0.9.1 liegen dort **zwei** SVG-Dateien, die mitzählen —
-  `marke-dunkel.svg` und `favicon.svg`.
+  `marke-dunkel.svg` und `favicon.svg`. *Er geht über ALLES unter `public/` und
+  nicht über eine Liste erwarteter Namen; eine Datei zu viel bewegt ihn genauso
+  wie eine geänderte (Stolperstein 158).*
 * **Der Einspielweg dieser Runde nennt die Sicherung des Datenverzeichnisses
   als PFLICHT** — es ist eine Datenbankstufe. **Neue Zeilen in der `.env` gibt
   es voraussichtlich nicht**; sag es ausdrücklich, statt es offenzulassen.
@@ -497,6 +510,9 @@ ZUM VORMERKEN, NICHT IN DIESER RUNDE:
   Schlüssel trägt den Weg auch ohne ihn.
 * **Ein Versanddienst über HTTPS**, falls SMTP am Anschluss nachweislich nicht
   durchkommt. Zweiter Weg im Code, ohne Bibliothek, mit `fetch`.
+* **Eine Zeile in der Karte „Anlage", die die abweichende Datei beim Namen
+  nennt.** Der Fingerprint sagt heute nur, DASS etwas abweicht. **Vorgemerkt für
+  0.9.30**, nicht für diese Runde.
 * **Ein echter Teillauf im Prüfstand.** `pruefung.js` ist EIN Ablauf; der
   Namensfilter filtert die Ausgabe, nicht die Arbeit. `gegenprobe.js` und
   `PORT_VERSATZ` mildern das, sie beheben es nicht.

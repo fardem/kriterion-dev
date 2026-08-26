@@ -1448,8 +1448,35 @@ kurze Prüfsumme über alles, was er lädt und ausliefert (`server.js`, `db.js`,
 unter `fingerprint` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen" im
 Systembereich. Der Wert steht zu jeder Version im Änderungsprotokoll
 (`Doku/Aenderungsprotokoll_<Version>.md`, Zeile „Fingerprint …"). Stimmt er nicht
-überein, ist der Dateisatz unvollständig eingespielt — dann hilft nur, ihn
+überein, ist der Dateisatz nicht der, der gemeint war — dann hilft nur, ihn
 vollständig erneut einzuspielen, nicht einzelne Dateien nachzuziehen.
+
+**UND ER SCHLÄGT IN BEIDE RICHTUNGEN AUS — auch bei einer Datei ZU VIEL.** Der
+Fingerprint geht über **alles**, was unter `public/` liegt, nicht über eine
+Liste erwarteter Namen. Nimmt eine Version eine Datei **weg** und wird über den
+alten Ordner ausgepackt statt in einen frischen, bleibt die weggenommene Datei
+liegen und zählt weiter mit: der Server läuft einwandfrei, die Oberfläche ist
+die neue, **und der Fingerprint ist trotzdem ein anderer.** Genau das ist beim
+Einspielen von 0.9.1 passiert — `public/marke-hell.svg` war entfernt worden und
+lag noch da.
+
+*Deshalb steht im Weg oben `mv kriterion kriterion-alt` und ein frisch
+entpacktes Verzeichnis:* er kopiert nicht über den alten Stand, er ersetzt ihn.
+Wer abkürzt und über den vorhandenen Ordner entpackt, bekommt genau diesen Fall.
+
+**Weicht der Fingerprint ab, findest du die Ursache so** — im Projektverzeichnis
+oder im Container (`docker compose exec kriterion sh`):
+
+```bash
+for f in anhaenge.js auth.js db.js keys.js mail.js package.json server.js public/*; do
+  printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
+done
+```
+
+Das sind **genau die Dateien, über die der Fingerprint geht**, und sonst keine.
+Steht eine Zeile zu viel da, ist das die Ursache; weicht eine Prüfsumme ab, ist
+es diese Datei. **Eine Zeile zu viel wiegt genauso schwer wie eine falsche** —
+löschen und `docker compose up -d --build`, denn der Quelltext steckt im Image.
 
 **Die `.env` liegt bewusst nicht im Paket** — sie enthält den Schlüssel und hat
 in einer verteilten Datei nichts verloren. Sie wandert deshalb mit dem alten

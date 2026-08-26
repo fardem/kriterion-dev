@@ -9,8 +9,10 @@ Migrationsblock**
 > 155. Der andere ist der Stand nach der **Nacharbeit an der Anmeldeseite**,
 > die aus dem Betrieb zurückkam und ohne neue Versionsnummer gebaut wurde:
 > Fingerprint `3cf1b093`, 3451 Prüfungen, 58 Gegenproben, Stolpersteine bis
-> 157. **Die Befunde M bis U tragen sie**, und wo eine Zahl sich bewegt hat,
-> stehen beide da.
+> 158. **Die Befunde M bis V tragen sie**, und wo eine Zahl sich bewegt hat,
+> stehen beide da. **Der zweite Stand ist im Feld bestätigt** — die laufende
+> Anlage meldet `3cf1b093`, nachdem eine liegengebliebene Datei entfernt war
+> (Befund V).
 
 **Mit dieser Runde ist der Stufenplan abgearbeitet.** Teil II des
 Konzeptpapiers ist vollständig; es gibt keine offene Stufe mehr. Was von jenem
@@ -734,13 +736,62 @@ Akzent ist eine Gestaltungsfrage und keine Berichtigung — **entschieden wird
 sie in 0.9.10**, und der Auftrag ist entsprechend nachgezogen. Geändert wurde
 in dieser Nacharbeit **nichts** daran.
 
+### Befund V — der Fingerprint hat im Feld etwas gefunden, das kein Test sehen kann
+
+**Nach dem Einspielen der Nacharbeit meldete die laufende Anlage `fad3e5ed`** —
+und das war der Stand keines einzigen Commits. Nachgemessen wurde nicht
+gerechnet: je ein echter Server aus einem sauberen `git archive`-Export, gefragt
+über `GET /api/stats`.
+
+| Stand | Fingerprint |
+|---|---|
+| Branchspitze mit der Nacharbeit | `3cf1b093` |
+| davor, Marke eingebaut | `d629e78d` |
+| `main` mit den hochgeladenen SVGs | `cb73399d` |
+| `main` davor | `46af7459` |
+| Knopf „Zugang anfragen" | `63b6bb59` |
+| Karte berichtigt | `8f226ddc` |
+| Selbstanmeldung gebaut | `1b538f1f` |
+| 0.9.0 | `82dc8550` |
+
+**Keiner davon war es.** Der Fingerprint deckt genau zwölf Dateien ab — sieben
+geladene Module samt `package.json` und alles unter `public/` —, und zwischen
+allen Ständen oben unterscheiden sich nur drei: `public/app.js`,
+`public/index.html`, `public/style.css`. Die Abweichung musste also in `public/`
+liegen.
+
+**Sie lag an einer Datei ZU VIEL.** `public/marke-hell.svg` war in dieser Runde
+entfernt worden und auf dem Wirt liegen geblieben. Nachgestellt: derselbe Export
+der Branchspitze, dieselbe Datei wieder hineingelegt — **`fad3e5ed`**, Zeichen
+für Zeichen. Nach dem Löschen auf dem Wirt meldete die Anlage `3cf1b093`.
+
+**Das ist der erste Fall, in dem der Fingerprint im Betrieb etwas gefunden hat,
+und er ist genau der Fall, für den es sonst nichts gibt.** Der Server lief
+einwandfrei, die Oberfläche war die neue, jede Prüfung im Prüfstand war grün —
+**der Prüfstand kann eine Datei zu viel auf einem fremden Wirt nicht sehen.**
+Der Fingerprint geht über **alles**, was unter `public/` liegt, und nicht über
+eine Liste erwarteter Namen; deshalb schlägt er in beide Richtungen aus. *Wäre
+er eine Liste, hätte er hier geschwiegen.*
+
+**Zwei Dinge sind daraus nachgezogen worden.** Im README stand bisher, ein
+abweichender Fingerprint heiße „der Dateisatz ist **unvollständig**
+eingespielt" — das deckt nur die eine Hälfte. Dort steht jetzt beides, samt
+dem Handgriff, der die Ursache in einem Zug nennt: die Prüfsummen der zwölf
+Dateien nebeneinander; **eine Zeile zu viel wiegt genauso schwer wie eine
+falsche.** Und Stolperstein **158** hält die allgemeine Form fest.
+
+*Was der Fingerprint weiterhin nicht sagt, ist WELCHE Datei abweicht.* Er sagt
+nur, dass etwas abweicht. Eine Zeile in der Karte „Anlage", die die abweichende
+Datei beim Namen nennt, ist als Arbeit für 0.9.30 vorgemerkt.
+
 ---
 
 ## 5. Neue Stolpersteine
 
 Die Zählung setzt bei **149** fort; 141 bis 148 sind vergeben. **154 kommt aus
-einer stummen Gegenprobe** und ist damit der beste Beleg dafür, wozu sie da sind. Der Wortlaut
-steht im Projektstand, Abschnitt 6.
+einer stummen Gegenprobe** und ist damit der beste Beleg dafür, wozu sie da sind;
+**158 kommt aus dem Betrieb** und ist der erste, den der Fingerprint gefunden
+hat. Der Wortlaut steht im Projektstand, Abschnitt 6.
 
 | Nr | Kern |
 |---|---|
@@ -753,6 +804,7 @@ steht im Projektstand, Abschnitt 6.
 | **155** | Ein Bedienelement, das seinen eigenen Zustand ein- und ausschaltet, darf nicht an diesem Zustand hängen. |
 | **156** | Eine Verneinung über die eigene Quelle trifft auch die Stelle mit, die die Sache richtig macht — gezählt wird, nicht verneint. |
 | **157** | Zwei Namen für dieselbe Datei sind eine Stelle, die auseinanderläuft; verglichen wird der Inhalt, nicht der Name. |
+| **158** | Ein Einspielweg, der Dateien kopiert, entfernt keine — eine gelöschte Datei bleibt auf dem Wirt liegen und läuft mit. |
 
 ---
 

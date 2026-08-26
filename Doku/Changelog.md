@@ -113,6 +113,14 @@ holt sich das mit dem nächsten Einspielen**:
 - **Eine Grafikdatei weniger.** `marke-hell.svg` war Byte für Byte
   `favicon.svg`; sie ist entfernt.
 
+> **ACHTUNG BEIM EINSPIELEN: diese Version NIMMT eine Datei WEG.** Wer über den
+> vorhandenen Ordner auspackt, statt ihn wie im README zu ersetzen, hat
+> `public/marke-hell.svg` danach immer noch liegen. Die Anlage läuft damit
+> einwandfrei — **aber der Fingerprint ist ein anderer**, weil er über alles
+> unter `public/` geht. Steht in der Karte „Kennzahlen" nicht `3cf1b093`, ist
+> das der erste Ort zum Nachsehen: Datei löschen und
+> `docker compose up -d --build`.
+
 ---
 
 ## 0.9.0 — Der Server verschickt selbst

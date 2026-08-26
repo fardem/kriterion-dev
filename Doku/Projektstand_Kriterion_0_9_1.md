@@ -244,7 +244,16 @@ nebeneinander** statt gestapelt, in einem Helfer für alle neun Anmeldeseiten;
 **der Knopf trägt dafür selbst eine ganz leichte Färbung** aus `--accent-dim`
 und `--accent-line`. Daneben liegt in `public/` **eine SVG weniger**:
 `marke-hell.svg` war Byte für Byte `favicon.svg` und ist entfernt. Einzelheiten
-in `Doku/Aenderungsprotokoll_0.9.1.md`, Befunde P bis U.
+in `Doku/Aenderungsprotokoll_0.9.1.md`, Befunde P bis V.
+
+**DER STAND IST IM FELD BESTÄTIGT — und der Fingerprint hat sich dabei zum
+ersten Mal bezahlt gemacht.** Die laufende Anlage meldete nach dem Einspielen
+`fad3e5ed`, den Stand keines einzigen Commits. Ursache war **eine Datei zu
+viel**: das entfernte `public/marke-hell.svg` lag auf dem Wirt noch da. Nach dem
+Löschen meldet sie **`3cf1b093`** — denselben Wert wie der Branch. *Der Server
+lief die ganze Zeit einwandfrei und jede Prüfung war grün; ein Prüfstand kann
+eine Datei zu viel auf einem fremden Wirt nicht sehen.* Befund V, Stolperstein
+**158**.
 
 **Der Mailversand aus 0.9.0 ist im Feld bestätigt.** Die erste echte
 Einladungsmail ist angekommen — Absender und Link stimmten, der Rumpf stand als
@@ -4306,6 +4315,26 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     Rückbauweg im Treiber: eine entfernte Datei lässt sich nicht über eine
     Textersetzung zurückholen.
 
+158. **Ein Einspielweg, der Dateien kopiert, entfernt keine — eine gelöschte
+    Datei bleibt auf dem Wirt liegen und läuft mit.** Nach dem Einspielen der
+    Nacharbeit meldete die Anlage `fad3e5ed`, und das war der Stand keines
+    einzigen Commits — nachgemessen an je einem echten Server aus einem
+    sauberen `git archive`-Export, für jeden Stand der Runde. Die Ursache war
+    **eine Datei zu viel**: `public/marke-hell.svg` war entfernt worden und lag
+    noch da. Nachgestellt: derselbe Export, dieselbe Datei wieder hineingelegt,
+    **derselbe Wert Zeichen für Zeichen.**
+    **Der Server lief dabei einwandfrei, und jede Prüfung war grün** — der
+    Prüfstand kann eine Datei zu viel auf einem fremden Wirt nicht sehen. Der
+    Fingerprint konnte es, weil er über **alles** unter `public/` geht und nicht
+    über eine Liste erwarteter Namen: *wäre er eine Liste, hätte er hier
+    geschwiegen.* **Er schlägt deshalb in beide Richtungen aus — bei einer Datei
+    zu wenig wie bei einer zu viel.**
+    *Der Einspielweg im README ersetzt das Verzeichnis, statt darüber zu
+    kopieren, und genau dafür ist das da.* Wer abkürzt und über den vorhandenen
+    Ordner entpackt, bekommt diesen Fall. **Und was der Fingerprint weiterhin
+    nicht sagt, ist WELCHE Datei abweicht** — dafür steht der Handgriff im
+    README, und eine Zeile in der Karte „Anlage" ist für 0.9.30 vorgemerkt.
+
 ---
 
 ## 7. Prüfstand
@@ -5033,6 +5062,12 @@ sind zwei Dinge:
   noch alles ändern darf. **Die Veröffentlichung liegt seit dem Fahrplan nach
   0.9.1 auf `0.9.90` und nicht auf `1.0.0`** (Abschnitt 10) — was danach mit
   der Eins geschieht, ist nicht entschieden.
+- **Weicht der Fingerprint ab, nennt er nicht, WELCHE Datei es ist.** Der
+  Handgriff dafür steht im README („Eine neue Version einspielen"): die
+  Prüfsummen der zwölf Dateien nebeneinander, über die er geht. **Eine Zeile zu
+  viel wiegt dabei genauso schwer wie eine falsche** — genau das war der Fall
+  aus Stolperstein 158. **Eine Zeile in der Karte „Anlage", die die abweichende
+  Datei beim Namen nennt, ist für 0.9.30 vorgemerkt.**
 - **EIN PRÜFLAUF IST ABGERISSEN UND LIESS SICH NICHT WIEDERHOLEN.** Bei der
   Nacharbeit an der Anmeldeseite riss einer von sieben Läufen in der **ersten**
   Gruppe ab: *„Genau ein Zugang in der Datenbank"*, *„Und er ist Eigentümer"*,
@@ -5219,7 +5254,8 @@ Anmeldeseiten; **der Strich über dem Anfrageknopf ist weg**, getrennt wird mit
 Abstand, und der Knopf trägt dafür selbst eine ganz leichte Färbung. Daneben
 liegt in `public/` **eine SVG weniger** — `marke-hell.svg` war Byte für Byte
 `favicon.svg`.
-3451 Prüfungen, 58 Gegenproben, Stolpersteine 149 bis 157.
+3451 Prüfungen, 58 Gegenproben, Stolpersteine 149 bis 158.
+**Der Stand ist im Feld bestätigt:** die laufende Anlage meldet `3cf1b093`.
 
 **0.9.0 — „Der Server verschickt selbst".** **Erste Hälfte von Stufe I** des
 Mehrbenutzerbetriebs, und **keine Datenbankstufe**: keine Tabelle, keine
