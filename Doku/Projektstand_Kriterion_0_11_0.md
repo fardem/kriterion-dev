@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 25 · Stand 27. August 2026 · gebaut: Version 0.11.0**
+**Kompakte Übergabe · Revision 26 · Stand 27. August 2026 · gebaut: Version 0.11.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -26,6 +26,17 @@ dort unter `Doku/`.
 > doppelt neben Abschnitt 9, und der Kopf ist ein Kopf und kein zweites
 > Changelog. **Die Abschnittsnummern 1 bis 12 samt 5a bleiben, wie sie waren** —
 > Quelltext, Prüfstand und die übrigen Papiere verweisen darauf.
+
+> **WAS REVISION 26 IST — DAS SAMMELBLATT.** Was Revision 25 mit den
+> Konzeptpapieren getan hat, tut diese Revision mit den beiden Sammelstellen:
+> `Roadmap.md` (neue Punkte) und `Ideen_und_Vorschlaege.md` (die Durchsicht von
+> 0.8.6) taten dasselbe und sind zu **`Doku/Fehler_und_Ideen.md`**
+> zusammengezogen. **Dort steht nur noch Offenes, und ohne Versionsnummer** —
+> erst wird gesammelt, zugeordnet wird später und in einem Zug. **Was gebaut
+> ist, steht dort gar nicht mehr**: was davon gilt, hier; wie es gebaut wurde,
+> im Änderungsprotokoll seiner Version. Auch die Liste „Ideen ohne Beschluss"
+> ist aus Abschnitt 10 dorthin gezogen — **in diesem Fahrplan steht nur, was
+> eine Nummer hat oder für 1.0 vorgemerkt ist.**
 
 **0.11.0 in einem Satz: die Suche zieht vom Browser auf den Server, wer oft
 dasselbe sucht, kann es sich merken — und wer denselben Gegenstand zweimal
@@ -62,8 +73,7 @@ Abschnitt 9.
 | `README.md` | die **Bedienung und der Betrieb**: einrichten, sichern, einspielen, wer was darf |
 | `Doku/Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md` | die **Herleitung** des abgearbeiteten Stufenplans — Historie, geschlossen |
 | `Doku/Konzept_Video_und_grosse_Dateien.md` | **Teil II, große Dateien bis 2 GB** — noch nicht gebaut |
-| `Doku/Roadmap.md` | **neue** Punkte aus dem Betrieb, ohne Nummer |
-| `Doku/Ideen_und_Vorschlaege.md` | die Durchsicht von damals — eine **Quelle**, kein Stand |
+| `Doku/Fehler_und_Ideen.md` | **Befunde, Fehler und Ideen — ohne Nummer.** Das Sammelblatt; es ersetzt seit Revision 26 `Roadmap.md` und `Ideen_und_Vorschlaege.md` |
 | `Doku/Auftrag_<Version>.md` | der Auftrag der **laufenden** Runde; er fällt weg, sobald die nächste beginnt |
 
 ---
@@ -4872,17 +4882,12 @@ und die legt `CREATE TABLE IF NOT EXISTS` bei jedem Start selbst an.*
   Fällt die Entscheidung früher, wird sie vorher final in die Dokumente
   eingearbeitet.
 
-**Ideen ohne Beschluss**, hier als Liste und sonst nirgends: Prüfung der
-Wiederherstellung, Anzeige des Speicherverbrauchs, PWA-Manifest, Vorlagen für
-Einträge, Tags in Mengen bearbeiten, Druckstylesheet, Fälligkeitsdatum an
-Aufgaben, Erwähnungen im Kommentar.
-
-*Herausgefallen, weil beschlossen:* Sicherung auf Anforderung und Endpunkt für
-den Gesundheitszustand (0.8.20 bzw. 0.8.70), Doppelerkennung (0.11.0).
-
-**Neue Punkte aus dem Betrieb stehen in `Doku/Roadmap.md`** — ohne Nummer und
-ohne Rangfolge, bis genug zusammengekommen sind. *Ein Punkt wandert von dort in
-diesen Fahrplan und von hier in ein Änderungsprotokoll.*
+**Ideen ohne Beschluss stehen hier nicht mehr.** Sie sind mit Revision 26 nach
+`Doku/Fehler_und_Ideen.md` gezogen — zusammen mit allem, was vorher in
+`Roadmap.md` und `Ideen_und_Vorschlaege.md` stand. **In diesem Fahrplan steht
+nur, was eine Nummer hat oder für 1.0 vorgemerkt ist**; alles ohne Nummer steht
+im Sammelblatt, und zwar nur dort. *Ein Punkt wandert von dort in diesen
+Fahrplan und von hier in ein Änderungsprotokoll — nie zurück.*
 
 ---
 
@@ -5121,4 +5126,10 @@ keine mehr.*
 - **Ein Papier trägt eine Sache, und nur eines trägt sie.** Was gebaut ist,
   steht in diesem Blatt; was ein Betreiber wissen muss, im Changelog; was
   wirklich gebaut wurde, im Änderungsprotokoll; wie man es bedient, in der
-  README. **Wer eine Zahl an zwei Orten pflegt, pflegt sie an einem nicht.**
+  README; **was noch offen ist, im Sammelblatt `Doku/Fehler_und_Ideen.md`** —
+  dort ohne Versionsnummer, bis es hier im Fahrplan eine bekommt. **Wer eine
+  Zahl an zwei Orten pflegt, pflegt sie an einem nicht.**
+- **Ein Punkt geht nur in eine Richtung.** Sammelblatt → Fahrplan →
+  Änderungsprotokoll → dieses Blatt. **Rückwärts wandert nichts**, und
+  Erledigtes bleibt im Sammelblatt nicht als durchgestrichene Zeile stehen: *ein
+  gestrichener Punkt sieht beim Lesen aus wie ein offener und wird mitgezählt.*
