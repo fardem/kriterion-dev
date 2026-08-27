@@ -111,7 +111,7 @@ const RUECKBAUTEN = [
   {
     nr: '07', name: 'Ohne oeffentliche Adresse wird trotzdem verschickt',
     datei: 'server.js',
-    /* SEIT 0.9.1 STEHT DIESELBE FRAGE ZWEIMAL im Quelltext -- einmal am
+    /* STEHT DIESELBE FRAGE ZWEIMAL im Quelltext -- einmal am
        Versand des Tokenlinks und einmal in versandBereit(). Der Rueckbau
        nimmt die Zeile am VERSAND, und die naechste Zeile macht ihn
        eindeutig. */
@@ -171,7 +171,7 @@ const RUECKBAUTEN = [
        Rueckbau greift ihn an. */
     nr: '14', name: 'Die Marke gilt auch nach einer Aenderung am Zugang weiter',
     datei: 'server.js',
-    /* DER VERGLEICH IST SEIT 0.9.1 IN mailtestStand() GEZOGEN -- eine
+    /* DER VERGLEICH IST IN mailtestStand() GEZOGEN -- eine
        Rechnung, zwei Rufer: die Karte und der Schalter der Selbstanmeldung.
        Zwei Mechanismen fuer eine Zusage waeren einer zu viel
        (Stolperstein 145), und deshalb faerbt dieser Rueckbau jetzt BEIDE
@@ -893,10 +893,9 @@ const RUECKBAUTEN = [
     erwartet: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
-    /* DER BEFUND AUS DEM BAU DIESER RUNDE. Bis 0.10.0 stand noteSuccess
-       unmittelbar hinter der Passwortpruefung -- mit einem zweiten Schritt
-       dahinter loeschte der erste Ruf den Zaehler, den der zweite gerade
-       aufbaut, und die Bremse haette dort nie zugeschlagen. */
+    /* Stuende noteSuccess unmittelbar hinter der Passwortpruefung, loeschte
+       der erste Schritt den Zaehler, den der zweite gerade aufbaut -- und die
+       Bremse schluege am zweiten Schritt nie zu. */
     nr: '99', name: 'Der erste Schritt setzt den Zaehler der Bremse wieder zurueck',
     datei: 'server.js',
     suche: "  if (auth.zweifaktorAn(benutzer.id)) {\n    return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });\n  }\n  auth.noteSuccess(ip, user);",
@@ -1554,7 +1553,7 @@ function fahre(r, spur, stufe) {
     let ausgabe = '';
     kind.stdout.on('data', d => { ausgabe += d; });
     kind.stderr.on('data', d => { ausgabe += d; });
-    /* EINE ZEITGRENZE JE RUECKBAU, seit 0.9.0. Ein Rueckbau kann den Prueflauf
+    /* EINE ZEITGRENZE JE RUECKBAU, . Ein Rueckbau kann den Prueflauf
        nicht nur rot machen, sondern HAENGEN lassen -- und ein haengender Lauf
        blockiert seine Spur fuer immer, ohne CPU und ohne Meldung. Genau das
        tut der Rueckbau, der das Aufraeumen des SMTP-Empfaengers wegnimmt.

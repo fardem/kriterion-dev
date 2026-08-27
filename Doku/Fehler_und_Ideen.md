@@ -46,6 +46,14 @@ nie zurück.*
 | `CHANGELOG.md` | je Version, was ein Betreiber wissen muss |
 | `Doku/Konzept_Video_und_grosse_Dateien.md` | **Teil II, große Dateien bis 2 GB** — ein beschlossenes Vorhaben mit eigenem Papier, im Fahrplan als „danach". *Steht deshalb nicht hier.* |
 
+## Die Marke „Claude"
+
+**An jedem Punkt steht eine Einschätzung, und sie ist ausdrücklich nur das:**
+`stark empfohlen` · `empfohlen` · `später` · `nicht empfohlen`. Sie kommt von
+Claude, nicht vom Betreiber, und sie ist **keine Entscheidung, keine Rangfolge
+und keine Zuordnung zu einer Runde** — dafür ist der Fahrplan da. Sie steht
+hier, damit beim Bündeln nicht jeder Punkt neu durchdacht werden muss.
+
 ## Die Form eines Punktes
 
 Jeder ausgearbeitete Punkt trägt dieselben sechs Überschriften. Nicht als
@@ -75,6 +83,8 @@ beim Bauen vergessen hat.**
 ## 1. Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung
 
 **Aufgefallen mit 0.11.0** — das Verhalten selbst ist älter.
+
+> **Claude: empfohlen** — aber nur Teil (a), der Trefferkontext.
 
 ### Woher
 
@@ -168,6 +178,8 @@ macht den einfachen Fall teurer, um den seltenen billiger zu machen.
 **Aufgefallen bei der Durchsicht zu 0.8.6; verschärft mit 0.8.31**, seit alle sechs
 Träger einen Verfasser haben — dieses Merkmal hat bis heute keinen.
 
+> **Claude: stark empfohlen** — die Anlage schreibt ihr Ergebnis nicht mit.
+
 ### Woher
 
 Aus der Durchsicht vom **21. August 2026** (damals Punkt 4.2), Stand 0.8.6.
@@ -260,6 +272,8 @@ gehört das Feld sichtbar in den Dialog und nicht in eine Nebenansicht.
 **Aufgefallen bei der Durchsicht zu 0.8.6; verschärft mit 0.8.50**, seit Videos bis
 20 MB in der Datenbank liegen.
 
+> **Claude: empfohlen** — (a) und (b). Der Strom in (c) nicht.
+
 ### Woher
 
 Aus der Durchsicht vom **21. August 2026** (damals Punkt 3.2), Stand 0.8.6.
@@ -344,6 +358,8 @@ schon einen zweiten Weg hat — es wäre Arbeit an der weniger wichtigen Hälfte
 
 **Aufgefallen bei der Durchsicht zu 0.8.6 und seither in jeder Runde größer
 geworden**, zuletzt mit 0.11.0.
+
+> **Claude: empfohlen** — beim nächsten Anfassen, nicht als Vorhaben.
 
 ### Woher
 
@@ -433,6 +449,8 @@ dieser Runde im Rücken.
 **Keine Version hat ihn ausgelöst** — die Lücke steckt in der Bauform der
 Kriterien und ist so alt wie sie.
 
+> **Claude: nicht empfohlen** — `ratings` hat je Benutzer eine Zeile.
+
 ### Woher
 
 Aus der Durchsicht vom **21. August 2026** (damals Punkt 4.7), Stand 0.8.6, und
@@ -504,6 +522,8 @@ für die verworfenen.*
 ## 6. Zwei Einträge zu einem machen
 
 **Nötig geworden mit 0.11.0** — dort ist es aus der Runde herausgenommen worden.
+
+> **Claude: später** — erst, wenn wirklich Doppel dastehen.
 
 ### Woher
 
@@ -584,6 +604,8 @@ genau deshalb ist es eine eigene Runde und kein Anhängsel.
 
 **Nötig geworden mit 0.10.0** — dort ist er vor dem Bau herausgenommen worden.
 
+> **Claude: nicht empfohlen** — der abtippbare Schlüssel trägt den Weg.
+
 ### Woher
 
 Aus der Runde „Zwei-Faktor", **0.10.0**. *Herausgenommen mit Begründung und
@@ -647,6 +669,8 @@ Prüflast — und diese Rechnung hat 0.10.0 schon einmal verloren.
 
 **Nötig geworden mit 0.8.20** (dort entstand die Einstellung) **und akut mit
 0.10.0** — seitdem steht der Reverse Proxy wirklich davor.
+
+> **Claude: stark empfohlen** — das einzige Betriebsrisiko auf der Liste.
 
 ### Woher
 
@@ -733,32 +757,34 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   `VACUUM INTO` der Hauptweg ist, gibt es eine Datei, die niemand je
   zurückgespielt hat — **eine Sicherung ohne Probe ist eine Vermutung.** Ein
   Weg, der eine Sicherungsdatei probeweise öffnet und den Bestand zählt, ohne
-  die laufende Datenbank anzufassen.
+  die laufende Datenbank anzufassen. *(Claude: stark empfohlen)*
 - **Anzeige des Speicherverbrauchs** *(0.8.31 für Dateien, verschärft mit
   0.8.50 für Videos)*. Wie viel Platz belegen Fotos, Videos, Anhänge — je
   Eintrag und in Summe. *Berührt Teil I, Punkt 3: dieselbe Zahl, anderer
-  Zweck.*
+  Zweck.* *(Claude: empfohlen — geht mit Punkt 3)*
 - **Die abweichende Datei beim Namen nennen** *(Fingerprint aus 0.8.10, akut
   mit 0.9.1)*. Der Fingerprint sagt heute nur, **dass** etwas abweicht, nicht
   **was**. Bei 0.9.1 hat sich dort eine Datei zu viel gezeigt (Stolperstein
   158), und der Handgriff dagegen steht bisher nur in der README. **Eine Zeile
-  in der Karte „Anlage" würde ihn ersetzen.**
+  in der Karte „Anlage" würde ihn ersetzen.** *(Claude: empfohlen)*
 - **Der Zähler „Offen 7" in der Kopfzeile** *(0.8.60)*. Er stand schon im
   Auftrag der Runde und ist dort ausdrücklich nicht gebaut worden: **er würde
   bei jedem Seitenaufbau gebraucht**, und die Frage, wie er nicht ständig neu
-  abgefragt wird, ist die eigentliche Arbeit.
+  abgefragt wird, ist die eigentliche Arbeit. *(Claude: nicht empfohlen)*
 - **Die Vorschau der Rangfolge im Systembereich** *(0.8.40)*. Sehen, wie sich
   die Spitze verschiebt, wenn man an einem Gewicht dreht. *Das ist es, was
   Gewichte im Alltag bedienbar macht* — es ist aber eine eigene Ansicht mit
-  eigenem Endpunkt.
+  eigenem Endpunkt. *(Claude: empfohlen)*
 - **Fälligkeitsdatum an Aufgaben** *(0.8.60)*. Die Aufgabenliste quer über alle
   Einträge gibt es seit der Ansicht „Offen"; ein Datum daran gibt es nicht.
+  *(Claude: empfohlen)*
 - **Nachladen beim Rollen** *(0.11.0)*. Der dritte Punkt der Übersichtsfrage —
   **und erst dann, wenn die ersten beiden gemessen zu wenig gebracht haben.**
   *Blättern mit Seitenzahlen nicht, nie: es zerschnitte die Suche.*
+  *(Claude: später — nur bei gemessenem Bedarf)*
 - **Ob ein Admin den zweiten Faktor verlangen kann** *(0.10.0)*. Der Auftrag
   hat die Frage ausdrücklich nicht gestellt; **sie ist offen und nicht
-  entschieden.**
+  entschieden.** *(Claude: nicht empfohlen — die Antwort ist nein)*
 - **Eindeutigkeit der Adresse** *(0.9.1)*. `users.email` hat bewusst **kein**
   `UNIQUE`: `ALTER TABLE` kann eines nicht nachrüsten, und die gewanderte und
   die frisch angelegte Datenbank wären damit verschieden gebaut. **Der richtige
@@ -770,55 +796,58 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   doppelte Adresse klar gesagt („Diese Adresse ist bereits vergeben") — wer das
   sieht, ist angemeldet und sieht die Liste ohnehin; **vor der Anmeldung gilt
   das Gegenteil**, dort ist jede unterschiedliche Antwort ein Werkzeug zum
-  Durchprobieren.
+  Durchprobieren. *(Claude: später — mit der Runde, die sie braucht)*
 - **Ein Versanddienst über HTTPS statt SMTP** *(0.9.0)*. Falls SMTP am
   Anschluss gar nicht durchkommt — manche Anbieter sperren Port 587 ausgehend —,
   wäre er der Ausweg: Brevo, Mailjet und Postmark haben Schnittstellen, die
   sich mit einem einfachen `fetch` bedienen lassen, **ganz ohne Bibliothek**.
   *Zweiter Weg im Code — erst bauen, wenn SMTP nachweislich scheitert.*
+  *(Claude: später)*
 - **Der angepinnte Block kann zur Wand werden** *(akut erst bei mehreren
   Zugängen)*. Bei vielen angepinnten Kommentaren mehrerer Leute wächst er über
   allem zusammen. **Wenn das im Betrieb stört, ist die Antwort NICHT eine
   Einschränkung des Anpinnens, sondern eine zweite Sortierstufe innerhalb des
-  angepinnten Blocks.** *Beobachten, nicht bauen.*
+  angepinnten Blocks.** *Beobachten, nicht bauen.* *(Claude: später)*
 - **Vorlagen für Einträge**, **Tags in Mengen bearbeiten**, **Druckstylesheet**,
   **PWA-Manifest** *(ohne Anlass, aus der Durchsicht zu 0.8.6)*. Nützlich, keins
   davon dringend; zu den letzten beiden steht in Teil III, warum sie weit unten
-  stehen.
+  stehen. *(Claude: nicht empfohlen)*
 - **Erwähnungen im Kommentar** *(seit es mehrere Zugänge gibt, spätestens
   0.9.1)*. `@name` in einem Kommentar, mit Benachrichtigung. *Setzt voraus, dass
   geklärt ist, wer wen sehen darf — Zugänge sehen einander heute nicht
   vollständig.*
+  *(Claude: nicht empfohlen — die Anlage hat keine Benachrichtigungen)*
 
 ### Am Prüfstand
 
 - **Ein echter Teillauf** *(Gruppenfilter seit 0.8.10)*. `pruefung.js` ist
   **ein** Ablauf; der Namensfilter filtert die **Ausgabe**, nicht die Arbeit.
   `gegenprobe.js` und `PORT_VERSATZ` mildern das, sie beheben es nicht.
+  *(Claude: nicht empfohlen — der Gruppenfilter trägt den Alltag)*
 - **Das Wartefenster von zwölf Sekunden** *(0.8.10)*. `starteWeiterenServer`
   wartet 120 × 100 ms auf `/api/config`; unter schwerer Nebenlast reicht das
   nicht, und der Lauf reißt mit „Zweitserver nicht erreichbar" ab. **Beobachtet
   in 0.8.10 und 0.8.30, beide Male neben einem gleichzeitigen Image-Bau.** Die
   Antwort wäre ein größeres Fenster **und** eine Meldung, die sagt, welcher
-  Zweitserver gemeint ist.
+  Zweitserver gemeint ist. *(Claude: empfohlen — klein)*
 - **Ein abgerissener Prüflauf, der sich nicht wiederholen ließ** *(0.9.1)*.
   Einer von sieben Läufen riss in der **ersten** Gruppe ab; ein übriggebliebener
   Server ist ausgeschlossen, sechs volle Läufe danach waren grün. *Es fehlte die
   Auskunftszeile unter dem roten Punkt — die Ausgabe war gefiltert.* **Nicht
   wegerklärt, sondern nicht reproduziert.** Wer ihn wiedersieht, schreibt den
-  Lauf vollständig mit.
+  Lauf vollständig mit. *(Claude: später — beobachten)*
 
 ### An den Nummern
 
 - **Zwei Dateisätze tragen die Nummer 0.9.1** *(0.9.1)*. Das veröffentlichte
   0.9.1 in `main` hat den Fingerprint `cb73399d`; die laufende Anlage trug
   `3cf1b093`. Dazwischen liegt die Nacharbeit an Marke und Anmeldekarte.
-  **Nach Semantic Versioning, Punkt 3, gehört darauf eine eigene Nummer:
-  `0.9.2`** — der Inhalt ist Fehlerbehebung und Aussehen, also PATCH. Nötig
-  wären `package.json`, ein Changelog-Eintrag mit Datum, die Zahlen in den
-  Papieren und der Tag `v0.9.2`. **Vorgeschlagen und nicht beschlossen;**
-  solange es offen ist, lässt sich jener Fingerprint keiner veröffentlichten
-  Nummer zuordnen.
+  **Eine Nummer `0.9.2` kommt dafür nicht mehr in Frage:** seither sind 0.10.0
+  und 0.11.0 herausgegangen, und die Anlage hat nur **eine** Reihe — eine Zahl,
+  die älter ist als das Laufende, spielt niemand ein. Offen bleibt allein die
+  Zuordnung: `3cf1b093` gehört zu keiner veröffentlichten Nummer.
+  *(Claude: nicht empfohlen — ein Satz im Changelog ordnet den Fingerprint dem
+  nachgearbeiteten 0.9.1 zu, das genügt)*
 
 ---
 

@@ -19,26 +19,20 @@ function open(file) {
 }
 
 /* --- Den Schluessel der Datei wechseln -----------------------------------
-   GERUFEN WIRD DAS AUSSCHLIESSLICH VON schluessel.js AUF DEM WIRT, bei
-   angehaltener Anlage. Es steht hier, weil hier auch journal_mode gesetzt wird
-   -- und genau daran haengt der ganze Vorgang.
+   Gerufen ausschliesslich von schluessel.js auf dem Wirt, bei angehaltener
+   Anlage. Es steht hier, weil hier auch journal_mode gesetzt wird.
 
-   PRAGMA rekey LAEUFT IM WAL-MODUS NICHT: "Rekeying is not supported in WAL
-   journal mode." open() setzt WAL bei jedem Oeffnen, also muss der Wechsel
-   erst auf DELETE umschalten, wechseln und danach zurueckschalten. Nachgestellt
-   an 20 000 und an 200 000 Zeilen: danach integrity_check ok, Bestand
-   feldgleich, die Datei mit dem neuen Schluessel lesbar und mit dem alten nicht
-   mehr (Stolperstein 128).
+   PRAGMA rekey LAEUFT IM WAL-MODUS NICHT ("Rekeying is not supported in WAL
+   journal mode"), und open() setzt WAL bei jedem Oeffnen -- also erst auf
+   DELETE umschalten, wechseln, zurueckschalten (Stolperstein 128). Die
+   Rueckschaltung steht im finally: scheitert der Wechsel, bliebe die Anlage
+   sonst still im DELETE-Modus zurueck.
 
-   DIE RUECKSCHALTUNG STEHT IM finally UND NICHT DAHINTER. Scheitert der
-   Wechsel, bliebe die Anlage sonst im DELETE-Modus zurueck -- sie liefe damit,
-   aber langsamer und mit anderem Sperrverhalten, und niemand saehe es.
-
-   EIN ABBRUCH MITTENDRIN IST FOLGENLOS, solange das Rollback-Journal ueberlebt:
-   danach oeffnet der ALTE Schluessel, integrity_check ist ok, der neue wird
-   abgewiesen. Es entsteht kein halber Zustand. Wird das Journal entfernt, ist
-   alles verloren -- DAS ist der Grund fuer die Sicherung davor, nicht der
-   Abbruch selbst. Das Journal waechst dabei auf die Groesse der Datenbank. */
+   EIN ABBRUCH MITTENDRIN IST FOLGENLOS, solange das Rollback-Journal
+   ueberlebt -- danach oeffnet der alte Schluessel, der neue wird abgewiesen,
+   es entsteht kein halber Zustand. Faellt das Journal weg, ist alles verloren:
+   DAS ist der Grund fuer die Sicherung davor. Es waechst auf die Groesse der
+   Datenbank. */
 function wechsleSchluessel(neuHex) {
   if (!/^[0-9a-fA-F]{64}$/.test(String(neuHex)))
     throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
@@ -311,44 +305,32 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
    im selben Vorgang: jemand setzt sein Passwort selbst, ueber einen Link mit
    begrenzter Haltbarkeit.
 
-   GESPEICHERT WIRD NUR DER HASH, und zwar SHA-256, einmal, OHNE Salz -- eine
-   bewusste Abweichung von der Linie des Projekts, das Passwoerter mit scrypt
-   absichtlich langsam rechnet. Der Grund ist der Gegenstand: scrypt schuetzt
-   RATBARE Geheimnisse, ein Token traegt 256 Bit aus dem Zufallsgenerator.
-   Mit Salz je Zeile muesste der Server bei jedem Einloeseversuch JEDE Zeile
-   einzeln durchrechnen -- auf einer Route, die VOR der Anmeldung steht, waere
-   das ein Hebel zum Lahmlegen. Ohne Salz ist der Hash ein Schluessel: die
-   Zeile wird ueber den Primaerschluessel GEFUNDEN statt gesucht. Ein
-   zeitunabhaengiger Vergleich hat hier deshalb nichts mehr zu tun -- es wird
-   nachgeschlagen, nicht verglichen.
-   Zum Vergleich, damit die Abweichung im richtigen Licht steht: sessions.token
-   steht im Klartext in der Tabelle. Den Hash zu speichern ist strenger als der
-   Bestand, nicht lockerer.
+   GESPEICHERT WIRD NUR DER HASH: SHA-256, einmal, OHNE Salz -- und das ist
+   strenger als der Bestand daneben, denn sessions.token steht im Klartext.
+   scrypt schuetzt RATBARE Geheimnisse; ein Token traegt 256 Zufallsbits. Ohne
+   Salz ist der Hash ein Schluessel: die Zeile wird ueber den
+   Primaerschluessel GEFUNDEN statt gesucht, ein zeitunabhaengiger Vergleich
+   hat hier nichts zu tun. Mit Salz je Zeile muesste eine Route VOR der
+   Anmeldung bei jedem Versuch jede Zeile durchrechnen.
 
-   zweck IST DIE FESTSTELLUNG EINES VORGANGS, so wie papierkorb.geloescht_von
-   -- welcher Knopf gedrueckt wurde. Daran haengt kein Recht, kein Filter und
-   kein Ablauf; der Text am Bildschirm leitet sich aus dem ZUSTAND ab (hat der
-   Zugang ueberhaupt schon ein Passwort), nicht aus dieser Spalte. Sonst
-   stuenden hier zwei Wahrheiten nebeneinander. Sie bleibt trotzdem stehen:
-   ein Vorgang mit zwei Anlaessen soll sagen koennen, welcher es war, und das
-   Sicherheitsprotokoll aus 0.8.90 wird sie brauchen.
-   KEIN CHECK auf der Spalte -- dieselbe Ueberlegung wie bei users.status: die
-   Liste der gueltigen Werte steht im Code und laesst sich dort erweitern,
-   ohne die Tabelle neu zu bauen.
+   zweck IST DIE FESTSTELLUNG EINES VORGANGS -- welcher Knopf gedrueckt wurde.
+   Daran haengt kein Recht, kein Filter und kein Ablauf; der Text am
+   Bildschirm leitet sich aus dem ZUSTAND ab (hat der Zugang schon ein
+   Passwort), nicht aus dieser Spalte.
 
    benutzt_am BLEIBT STEHEN statt die Zeile zu loeschen: es ist die einzige
-   Spur, dass eine Einladung angenommen wurde. Damit die Tabelle nicht ewig
-   waechst, raeumt raeumeTokensAuf() nach EINER Schwelle auf.
+   Spur, dass eine Einladung angenommen wurde. raeumeTokensAuf() haelt die
+   Tabelle klein.
 
-   created_at STEHT ZUSAETZLICH ZUM ENTWURF im Konzeptpapier. Aus ablauf minus
-   sieben Tage zurueckzurechnen waere richtig, solange die Frist nie wechselt
-   -- und ab dem Tag, an dem sie wechselt, still falsch.
+   created_at steht ausdruecklich da: aus ablauf minus sieben Tage
+   zurueckzurechnen waere richtig, bis die Frist wechselt -- und danach still
+   falsch.
 
-   ON DELETE CASCADE: ein Token ohne Benutzer oeffnet nichts. Im Betrieb greift
-   die Kaskade nie -- ein Zugang wird zum Grabstein statt entfernt zu werden --,
-   deshalb raeumen entferneZugang() und setzeStatus() die Token ausdruecklich
-   selbst mit weg. Ein offener Link auf einen gesperrten Zugang waere sonst
-   ein Weg zurueck an der Sperre vorbei. */
+   ON DELETE CASCADE: ein Token ohne Benutzer oeffnet nichts. Im Betrieb
+   greift die Kaskade nie -- ein Zugang wird zum Grabstein --, deshalb raeumen
+   entferneZugang() und setzeStatus() die Token ausdruecklich selbst mit weg.
+   Ein offener Link auf einen gesperrten Zugang waere sonst ein Weg an der
+   Sperre vorbei. */
 CREATE TABLE IF NOT EXISTS tokens (
   hash TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -364,54 +346,39 @@ CREATE TABLE IF NOT EXISTS tokens (
 CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
 
 /* DIE WARTESCHLANGE DER SELBSTANMELDUNG -- EINE ANFRAGE IST NOCH KEIN ZUGANG.
-   Das ist die tragende Grenze dieser Tabelle: hier steht, WER gefragt hat,
-   und sonst nichts. Kein Passwort, kein Recht, keine Rolle. Aus einer Zeile
-   wird ein Zugang erst, wenn ein Admin sie freischaltet -- und dann geht sie
-   denselben Weg wie jeder andere neue Zugang, ueber legeZugangAn und einen
-   Einladungstoken.
+   Hier steht, WER gefragt hat, und sonst nichts: kein Passwort, kein Recht,
+   keine Rolle. Ein Zugang wird daraus erst, wenn ein Admin freischaltet --
+   dann ueber legeZugangAn und einen Einladungstoken wie jeder andere.
 
    EINE EIGENE TABELLE UND KEIN DRITTER ZWECK IN tokens, und der Grund ist
-   baulich und nicht geschmacklich: tokens.user_id ist NOT NULL und zeigt auf
-   users. Eine Anfrage hat noch keinen Zugang, auf den sie zeigen koennte --
-   die Spalte nachtraeglich auf NULL zu oeffnen waere ein ALTER TABLE auf einer
-   bestehenden Spalte und damit ein Migrationsblock. Dazu bekaeme pruefeToken()
-   einen zweiten Zweig neben seinem JOIN auf users, und die Absage, die es
-   heute fuer alle Faelle gibt, muesste zwei Sachen zugleich bedeuten.
+   baulich: tokens.user_id ist NOT NULL und zeigt auf users. Eine Anfrage hat
+   noch keinen Zugang, auf den sie zeigen koennte.
 
-   hash IST DERSELBE MECHANISMUS WIE BEIM TOKEN: 32 Zufallsbytes, gespeichert
-   wird nur SHA-256 ohne Salz. Die Begruendung steht am Schema von tokens und
-   gilt hier unveraendert -- der Wert wird NACHGESCHLAGEN, nicht verglichen.
-   ER IST TROTZDEM NICHT DER PRIMAERSCHLUESSEL, und das ist eine Entscheidung:
-   die Adminrouten sprechen eine Zeile ueber eine NUMMER an, und ein Geheimnis
-   hat in einem Pfad nichts verloren -- dort stuende es im Zugriffsprotokoll,
-   in der Verlaufsliste und womoeglich im Referrer. UNIQUE traegt den
-   Nachschlageweg genauso.
+   hash IST DERSELBE MECHANISMUS WIE BEIM TOKEN (SHA-256 ohne Salz,
+   Begruendung dort). Er ist trotzdem NICHT der Primaerschluessel: die
+   Adminrouten sprechen eine Zeile ueber eine NUMMER an, und ein Geheimnis hat
+   in einem Pfad nichts verloren -- dort stuende es im Zugriffsprotokoll, in
+   der Verlaufsliste und womoeglich im Referrer.
 
-   DER LINK IN DER BESTAETIGUNGSMAIL HAT KEINE PASSWORTKRAFT. Wer ihn anklickt,
-   setzt bestaetigt_am -- mehr nicht. Er legt keinen Zugang an, er setzt kein
-   Passwort, er meldet niemanden an. Deshalb steht in dieser Tabelle auch kein
-   password_hash und keine Rolle: was es nicht gibt, kann kein Weg hereinlassen.
+   DER LINK IN DER BESTAETIGUNGSMAIL HAT KEINE PASSWORTKRAFT: er setzt
+   bestaetigt_am, mehr nicht. Deshalb steht hier kein password_hash und keine
+   Rolle -- was es nicht gibt, kann kein Weg hereinlassen.
 
-   username UND email SIND FREITEXT VON AUSSEN -- der einzige im ganzen Projekt,
-   der ueberhaupt gespeichert wird. Sie sind deshalb VOR dem Schreiben durch
-   dieselben Pruefungen gegangen wie ein echter Zugang (pruefeName) und eine
-   echte Adresse (mail.istAdresse): was nie ein Zugang werden koennte, kommt
-   gar nicht erst in die Warteschlange. Und sie gehen von hier aus NIE ins
-   Sicherheitsprotokoll -- die Tabelle daneben nimmt keinen Freitext.
-
-   KEIN FREMDSCHLUESSEL: es gibt niemanden, auf den er zeigen koennte.
+   username UND email SIND FREITEXT VON AUSSEN -- der einzige, der ueberhaupt
+   gespeichert wird. Sie gehen VOR dem Schreiben durch dieselben Pruefungen
+   wie ein echter Zugang (pruefeName, mail.istAdresse), und von hier aus NIE
+   ins Sicherheitsprotokoll.
 
    bestaetigt_am NULL HEISST "noch nicht bestaetigt". Diese Zeilen erscheinen
-   beim Admin NICHT und verfallen nach ANFRAGE_STUNDEN; die bestaetigten warten
-   auf den Admin, so lange es dauert. Ein zweites Feld fuer den Zustand waere
-   eine zweite Wahrheit neben dem Zeitpunkt.
+   beim Admin nicht und verfallen nach ANFRAGE_STUNDEN; die bestaetigten
+   warten, so lange es dauert. Ein zweites Feld fuer den Zustand waere eine
+   zweite Wahrheit neben dem Zeitpunkt.
 
-   KEIN MIGRATIONSBLOCK, und das ist zum vierten Mal nachgestellt statt
-   abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS eine
-   fehlende TABELLE bei jedem Start an (Stolperstein 13 gilt der Spalte). Der
-   Pruefstand entfernt sie von Hand aus einer bestehenden Anlage, startet
-   einmal und sieht nach -- samt der Gegenlage, dass eine Spalte nicht
-   nachwaechst. Es bleibt bei fuenf markierten Bloecken. */
+   KEIN FREMDSCHLUESSEL: es gibt niemanden, auf den er zeigen koennte.
+   KEIN MIGRATIONSBLOCK: anders als eine SPALTE legt
+   CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an
+   (Stolperstein 13 gilt der Spalte). Es bleibt bei fuenf markierten
+   Bloecken. */
 CREATE TABLE IF NOT EXISTS anfragen (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   hash TEXT NOT NULL UNIQUE,
@@ -422,53 +389,36 @@ CREATE TABLE IF NOT EXISTS anfragen (
 );
 
 /* DER ZWEITE FAKTOR -- ZWEI TABELLEN, UND SIE SIND NICHT DASSELBE.
-
-   FREIWILLIG, JE ZUGANG. Wer keine Zeile hat, hat keinen zweiten Faktor, und
-   fuer ihn ist die Anlage vollstaendig wie zuvor. Dieselbe Linie wie beim
-   Mailversand und bei der Selbstanmeldung -- nichts davon ist eine
-   Voraussetzung.
+   FREIWILLIG, JE ZUGANG: wer keine Zeile hat, hat keinen zweiten Faktor.
 
    user_id IST DER PRIMAERSCHLUESSEL UND NICHT EINE SPALTE DANEBEN: ein Zugang
-   hat einen zweiten Faktor oder keinen. Eine eigene Nummer erlaubte zwei Zeilen
-   an einem Zugang, und damit zwei Wahrheiten darueber, welches Geheimnis gilt.
+   hat einen zweiten Faktor oder keinen. Eine eigene Nummer erlaubte zwei
+   Zeilen an einem Zugang und damit zwei Wahrheiten darueber, welches
+   Geheimnis gilt.
 
-   geheim LIEGT IM KLARTEXT, und das ist der Unterschied zu Passwort und Token
-   -- er gehoert ausdruecklich benannt und nicht weggeschrieben. Ein Passwort
-   wird GEPRUEFT, also genuegt sein Hash; ein TOTP-Geheimnis wird
-   NACHGERECHNET, also braucht die Anlage den Wert selbst. Es gibt dazu keine
-   Bauform, die beides kann. DIE VERSCHLUESSELTE DATENBANK IST DIE EINZIGE
-   SCHICHT DARUEBER. Was daraus folgt, steht im Projektstand, Abschnitt 3, und
-   in einem Satz hier: der JSON-Export traegt sie nicht (er packt Eintraege,
-   keine Zugangstabellen), die Sicherung ueber VACUUM INTO traegt sie sehr wohl
-   -- wie Sitzungen und Mailpasswort auch --, und in eine Kontrollausgabe kommt
-   sie nie.
+   geheim LIEGT IM KLARTEXT, und das ist der Unterschied zu Passwort und
+   Token: ein Passwort wird GEPRUEFT, also genuegt sein Hash; ein
+   TOTP-Geheimnis wird NACHGERECHNET, also braucht die Anlage den Wert selbst.
+   DIE VERSCHLUESSELTE DATENBANK IST DIE EINZIGE SCHICHT DARUEBER
+   (Projektstand, Abschnitt 3). Der JSON-Export traegt es nicht, die Sicherung
+   ueber VACUUM INTO sehr wohl, eine Kontrollausgabe nie.
 
-   bestaetigt_am NULL HEISST "angefangen, noch nicht bestaetigt". Es ist der
-   Zustand zwischen "Geheimnis erzeugt" und "die App rechnet nachweislich
-   dasselbe": erst ein gueltiger Code aus dem Telefon setzt den Zeitpunkt.
-   SOLANGE ER LEER IST, VERLANGT DIE ANMELDUNG NICHTS -- sonst sperrte ein
-   abgebrochenes Einschalten den Zugang aus. Ein zweites Feld fuer den Zustand
-   waere eine zweite Wahrheit neben dem Zeitpunkt, wie bei anfragen daneben.
+   bestaetigt_am NULL HEISST "angefangen, noch nicht bestaetigt" -- erst ein
+   gueltiger Code aus dem Telefon setzt den Zeitpunkt. SOLANGE ER LEER IST,
+   VERLANGT DIE ANMELDUNG NICHTS, sonst sperrte ein abgebrochenes Einschalten
+   den Zugang aus.
 
-   letzter_zaehler IST DIE GANZE BAUFORM GEGEN WIEDERVERWENDUNG. Ein Code gilt
-   GENAU EINMAL: angenommen wird nur ein Zeitschritt, der ECHT GROESSER ist als
-   der zuletzt verbrauchte. Das ist etwas schaerfer als "derselbe Code nicht
-   zweimal" -- nach einer Anmeldung ist auch das Fenster davor tot --, dafuer
-   ist es EINE Regel und keine Liste verbrauchter Werte, die jemand raeumen
-   muesste. NULL heisst "noch keiner verbraucht".
+   letzter_zaehler IST DIE GANZE BAUFORM GEGEN WIEDERVERWENDUNG: angenommen
+   wird nur ein Zeitschritt, der ECHT GROESSER ist als der zuletzt
+   verbrauchte. Etwas schaerfer als "derselbe Code nicht zweimal" -- dafuer
+   EINE Regel statt einer Liste, die jemand raeumen muesste. NULL heisst
+   "noch keiner verbraucht".
 
-   KEIN CHECK, keine Laengengrenze auf geheim -- dieselbe Ueberlegung wie bei
-   users.status: die Menge der gueltigen Werte steht im Code, wo sie sich
-   aendern laesst, ohne die Tabelle neu zu bauen.
-
-   ON DELETE CASCADE: mit dem Zugang geht sein zweiter Faktor. Im Betrieb
-   greift die Kaskade nie -- ein Zugang wird zum Grabstein statt entfernt --,
-   deshalb raeumt entferneZugang() ihn ausdruecklich selbst mit weg.
-   UND setzeStatus() TUT DAS AUSDRUECKLICH NICHT, anders als bei den Token:
-   ein gesperrter Zugang behaelt seinen zweiten Faktor. Raeumte ihn das Sperren
-   mit, waere "sperren und wieder freigeben" der Weg, an dem ein Admin einen
-   FREMDEN zweiten Faktor abstreift -- und damit genau die Rollenleiter-Luecke,
-   gegen die diese Runde gebaut ist. */
+   ON DELETE CASCADE: mit dem Zugang geht sein zweiter Faktor; entferneZugang()
+   raeumt ihn ausdruecklich selbst mit weg.
+   UND setzeStatus() TUT DAS AUSDRUECKLICH NICHT: ein gesperrter Zugang
+   behaelt seinen zweiten Faktor. Sonst waere "sperren und wieder freigeben"
+   der Weg, an dem ein Admin einen FREMDEN zweiten Faktor abstreift. */
 CREATE TABLE IF NOT EXISTS zweifaktor (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   geheim TEXT NOT NULL,
@@ -478,37 +428,24 @@ CREATE TABLE IF NOT EXISTS zweifaktor (
 );
 
 /* DIE WIEDERHERSTELLUNGSCODES -- EINE ZEILE JE CODE, UND DAS IST DER GRUND
-   FUER DIE ZWEITE TABELLE.
+   FUER DIE ZWEITE TABELLE: "jeder genau einmal" ist eine Eigenschaft der
+   ZEILE. Eine Liste in einer Spalte braechte den Zustand "verbraucht" in eine
+   zweite Form -- als geloeschten Listeneintrag (dann ist nicht mehr zu sehen,
+   wie viele es einmal waren) oder als Marke im Text.
 
-   "JEDER GENAU EINMAL" IST EINE EIGENSCHAFT DER ZEILE. Eine Liste in einer
-   Spalte neben dem Geheimnis waere kuerzer und braechte den Zustand
-   "verbraucht" in eine zweite Form -- entweder als geloeschter Listeneintrag
-   (dann ist nicht mehr zu sehen, wie viele es einmal waren) oder als Marke im
-   Text (dann steht ein Zustand in einem Feld, das keinen tragen soll). Eine
-   Zeile je Code ist dieselbe Bauform wie tokens, und dort traegt sie seit
-   0.8.80.
+   hash IST SHA-256 OHNE SALZ, wie beim Token und aus derselben Begruendung.
+   DER KLARTEXT STEHT IN KEINER SPALTE KEINER ZEILE: er entsteht einmal, wird
+   einmal gezeigt und ist danach fort.
 
-   hash IST SHA-256 OHNE SALZ, wie beim Token und aus derselben Begruendung:
-   ein Wiederherstellungscode ist ZUFALL und nicht ratbar, da kauft die
-   Langsamkeit von scrypt nichts. Ohne Salz ist der Hash ein Schluessel -- die
-   Zeile wird ueber den Primaerschluessel GEFUNDEN statt gesucht, und ein
-   zeitunabhaengiger Vergleich hat dort nichts mehr zu tun.
-   DER KLARTEXT STEHT IN KEINER SPALTE KEINER ZEILE. Er entsteht einmal, wird
-   einmal gezeigt und ist danach fort -- wie der Token, wie der
-   Bestaetigungsschluessel der Selbstanmeldung.
+   benutzt_am BLEIBT STEHEN statt die Zeile zu loeschen -- nur so kann die
+   Karte "noch 6 von 8" sagen.
 
-   benutzt_am BLEIBT STEHEN statt die Zeile zu loeschen: nur so kann die Karte
-   "noch 6 von 8" sagen. Eine geloeschte Zeile liesse die Zahl schrumpfen, und
-   aus "acht ausgegeben" wuerde still "sechs ausgegeben".
+   GERAEUMT WIRD NICHT NACH EINER FRIST, anders als bei Token und Anfragen:
+   ein Wiederherstellungscode liegt auf einem Zettel und soll genau dann
+   tragen, wenn das Telefon seit Monaten weg ist. Weg kommen die Zeilen nur
+   beim Neuerzeugen oder Abschalten, beides in einer Transaktion.
 
-   GERAEUMT WIRD NICHT NACH EINER FRIST, anders als bei Token und Anfragen.
-   Ein Wiederherstellungscode hat keine: er liegt auf einem Zettel und soll
-   genau dann tragen, wenn das Telefon seit Monaten weg ist. Weg kommen die
-   Zeilen nur, wenn neue erzeugt werden oder der Faktor abgeschaltet wird --
-   beides in einer Transaktion.
-
-   ON DELETE CASCADE aus demselben Grund wie oben; ein Code ohne Zugang oeffnet
-   nichts. */
+   ON DELETE CASCADE aus demselben Grund wie oben. */
 CREATE TABLE IF NOT EXISTS zweifaktor_codes (
   hash TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -522,63 +459,43 @@ CREATE TABLE IF NOT EXISTS zweifaktor_codes (
 -- selbst nach.
 CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id);
 
-/* KEIN MIGRATIONSBLOCK FUER DIE BEIDEN, und das ist zum fuenften Mal
-   nachgestellt statt abgeschrieben: anders als eine SPALTE legt
+/* KEIN MIGRATIONSBLOCK FUER DIE BEIDEN: anders als eine SPALTE legt
    CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an
-   (Stolperstein 13 gilt der Spalte). Der Pruefstand entfernt beide von Hand
-   aus einer bestehenden Anlage, startet einmal und sieht nach -- samt der
-   Gegenlage, dass eine Spalte nicht nachwaechst. Es bleibt bei FUENF
-   markierten Bloecken. */
+   (Stolperstein 13 gilt der Spalte). Es bleibt bei FUENF markierten
+   Bloecken. */
 
 /* DAS SICHERHEITSPROTOKOLL -- ES HAELT FEST, WER ZUGANG HATTE UND WER DIE
    ANLAGE ALS GANZES ANGEFASST HAT.
 
    ES IST KEIN AENDERUNGSVERLAUF, und das ist die tragende Grenze: kein
-   Eintragstitel, kein Kommentartext, keine Bewertung, keine Note. Dieselbe
-   Trennlinie wie ueberall -- was die ANLAGE betrifft, nicht was jemand GESAGT
-   hat. Die Entscheidung gegen den Aenderungsverlauf gilt Inhalten und bleibt.
+   Eintragstitel, kein Kommentartext, keine Bewertung, keine Note. Was die
+   ANLAGE betrifft, nicht was jemand GESAGT hat.
 
-   KEIN MIGRATIONSBLOCK, und das ist zum dritten Mal nachgestellt statt
-   abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS eine
-   fehlende TABELLE bei jedem Start an (Stolperstein 13 gilt der Spalte). Der
-   Pruefstand entfernt sie von Hand aus einer bestehenden Anlage, startet
-   einmal und sieht nach -- samt der Gegenlage, dass eine Spalte nicht
-   nachwaechst. Es bleibt bei fuenf markierten Bloecken.
+   KEINE NAMENSSPALTE, obwohl sie verlockt: entferneZugang() ueberschreibt
+   username, und eine Kopie hier waere die eine Stelle im Projekt, die den
+   Grabstein rueckgaengig macht. Gespeichert werden Nummern.
 
-   KEINE NAMENSSPALTE, obwohl sie verlockt. entferneZugang() ueberschreibt
-   username; eine hier aufbewahrte Kopie waere die eine Stelle im Projekt, die
-   den Grabstein rueckgaengig macht. Gespeichert werden Nummern, aufgeloest
-   wird beim Anzeigen ueber denselben Weg wie ueberall -- ein entfernter Zugang
-   heisst "Geloeschter Benutzer 7".
-
-   wer UND ziel SIND DIE FESTSTELLUNG EINES VORGANGS, so wie
-   papierkorb.geloescht_von -- wer den Knopf gedrueckt hat und an wem. Daran
-   haengt kein Recht und kein Filter. Beide gehoeren deshalb ausdruecklich
-   NICHT in ordneBestandZu(): das Auffangnetz beantwortet, wem herrenloser
-   BESTAND zufaellt; hier stillschweigend den Eigentuemer einzusetzen machte
-   aus einer Feststellung eine Falschaussage. Es sind die achte und die neunte
-   Spalte dieser Art.
+   wer UND ziel SIND DIE FESTSTELLUNG EINES VORGANGS -- wer den Knopf
+   gedrueckt hat und an wem. Daran haengt kein Recht und kein Filter, und
+   beide gehoeren deshalb ausdruecklich NICHT in ordneBestandZu(): dort
+   stillschweigend den Eigentuemer einzusetzen machte aus einer Feststellung
+   eine Falschaussage.
 
    wer IS NULL HEISST "UEBER zugang.js AUF DEM WIRT" -- mit genau einer
-   Ausnahme, und die ist ueber was zu erkennen: bei einer gescheiterten
-   Anmeldung gibt es keinen angemeldeten Benutzer. Jeder andere Vorgang kommt
-   entweder ueber eine Route (dann steht wer) oder vom Wirt (dann nicht).
-   Ein eigenes Feld fuer die Herkunft waere eine zweite Wahrheit daneben.
+   Ausnahme, und die ist an der Spalte was zu erkennen: bei einer
+   gescheiterten Anmeldung gibt es keinen angemeldeten Benutzer.
 
    BEI EINER GESCHEITERTEN ANMELDUNG STEHT DER GETIPPTE NAME NIRGENDS. ziel
-   traegt die Nummer nur dann, wenn der Name einen vorhandenen Zugang traf --
+   traegt die Nummer nur, wenn der Name einen vorhandenen Zugang traf --
    sonst NULL. Freitext von aussen kommt in diese Tabelle nicht hinein; sonst
    landete frueher oder spaeter ein ins falsche Feld getipptes Passwort darin.
 
    merkmal TRAEGT AUSSCHLIESSLICH WERTE AUS EINER GESCHLOSSENEN LISTE im
-   Quelltext (MERKMALE in auth.js) -- die neue Rolle, der neue Status, der
-   Zweck des Links, die Betriebsart des Imports. Damit ist "in keiner Zeile
-   steht etwas, was dort nicht hingehoert" baulich wahr statt durchgesetzt.
-   KEIN CHECK auf der Spalte -- dieselbe Ueberlegung wie bei users.status.
+   Quelltext (MERKMALE in auth.js). Damit ist "in keiner Zeile steht etwas,
+   was dort nicht hingehoert" baulich wahr statt durchgesetzt.
 
    ON DELETE SET NULL statt CASCADE: mit dem Menschen verschwindet der Vorgang
-   nicht. Im Betrieb greift die Kaskade ohnehin nie, weil ein Zugang zum
-   Grabstein wird statt entfernt zu werden. */
+   nicht. */
 CREATE TABLE IF NOT EXISTS sicherheitsprotokoll (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   am TEXT NOT NULL DEFAULT (datetime('now')),
@@ -681,27 +598,20 @@ CREATE TABLE IF NOT EXISTS papierkorb_bytes (
 const db = open(DB_FILE);
 
 /* kkl() -- KLEINSCHREIBUNG NACH UNICODE, IN SQL EINGEHAENGT.
-   SQLite kennt lower(), aber es faltet AUSSCHLIESSLICH ASCII: lower('Ü') ist
-   'Ü', und dasselbe gilt fuer LIKE. Eine Suche darauf faende den Eintrag
-   "STICHSAEGE UEBERGROSS" bei der Eingabe "uebergross" nicht -- nachgestellt,
-   und mit Umlauten faellt der Treffer wirklich weg. Die Volltextsuche liefe
-   damit anders als die Suche im Browser vorher, und zwar unauffaellig.
-
-   toLowerCase() aus JS faltet nach Unicode und ist genau das, was der Browser
-   getan hat, als die Suche noch dort lief. Die Funktion steht deshalb hier und
-   nicht als zweite Formel im Server: die Klemme, die aus dem Suchtext
-   Kleinbuchstaben macht, gibt es genau einmal.
+   SQLites lower() faltet AUSSCHLIESSLICH ASCII: lower('Ü') bleibt
+   'Ü', und dasselbe gilt fuer LIKE. Eine Suche darauf faende
+   "STICHSAEGE UEBERGROSS" bei der Eingabe "uebergross" nicht -- unauffaellig,
+   und mit Umlauten faellt der Treffer wirklich weg. toLowerCase() aus JS
+   faltet nach Unicode; die Klemme, die aus dem Suchtext Kleinbuchstaben
+   macht, gibt es damit genau einmal.
 
    deterministic: gleicher Wert, gleiches Ergebnis, immer. Ohne die Angabe
-   verbietet SQLite den Aufruf in einem Index oder einer erzeugten Spalte, und
-   der Optimierer muss annehmen, die Funktion koenne bei jedem Aufruf etwas
-   anderes liefern.
+   verbietet SQLite den Aufruf in einem Index oder einer erzeugten Spalte.
 
    NULL WIRD ZUM LEEREN STRING und nicht zu NULL: instr(NULL, 'x') ist NULL,
-   und `NULL > 0` ist in SQL nie wahr -- eine fehlende Beschreibung waere damit
-   kein "kein Treffer", sondern ein Wert, mit dem sich nicht rechnen laesst.
-   Der leere String ist beides zugleich und braucht keine Sonderbehandlung an
-   jeder Aufrufstelle. */
+   und `NULL > 0` ist in SQL nie wahr -- eine fehlende Beschreibung waere
+   damit kein "kein Treffer", sondern ein Wert, mit dem sich nicht rechnen
+   laesst. */
 db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));
 
 db.exec(SCHEMA);

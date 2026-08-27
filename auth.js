@@ -14,47 +14,46 @@ const zf = require('./zweifaktor');
    Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung.
    X-Forwarded-For darf nur dort geglaubt werden, wo ausdruecklich eingestellt
    ist, dass ein Proxy davorsteht -- sonst setzt ihn der Aufrufer bei jedem
-   Versuch neu und bekommt bei jedem Versuch einen frischen Zaehler; die
-   Anmeldebremse je Adresse greift dann nie.
+   Versuch neu und bekommt einen frischen Zaehler; die Anmeldebremse je
+   Adresse greift dann nie.
 
    HINTER_PROXY=1 (an):  X-Forwarded-For wird gelesen, der Cookie traegt Secure
-                         und das Praefix __Host-, HSTS wird gesetzt.
-   fehlt (aus, Vorgabe): allein req.socket.remoteAddress. Der richtige Zustand
-                         fuer "direkt im Heimnetz, Port 3100".
+                         und das Praefix __Host-, HSTS wird gesetzt, und ein
+                         http:// in OEFFENTLICHE_ADRESSE meldet sich am Start.
+   fehlt (aus, Vorgabe): allein req.socket.remoteAddress -- richtig fuer
+                         "direkt im Heimnetz, Port 3100".
 
    Umgebungsvariable und nicht settings-Tabelle: sie entscheidet ueber
-   Netzwerkvertrauen, nicht ueber eine Vorliebe. Ein uebernommener
+   Netzwerkvertrauen, nicht ueber eine Vorliebe -- ein uebernommener
    Admin-Zugang koennte sie sonst selbst umlegen.
 
    EINE ADRESSLISTE, WER DEN KOPF SETZEN DARF, IST BEWUSST NICHT GEBAUT: die
-   Einstellung ist ein Ja/Nein, kein Adressbuch. Ist die Anlage je aus
-   mehreren Netzen gleichzeitig erreichbar, gehoert das nachgeliefert. */
+   Einstellung ist ein Ja/Nein. Ist die Anlage je aus mehreren Netzen
+   gleichzeitig erreichbar, gehoert das nachgeliefert. */
 const HINTER_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(process.env.HINTER_PROXY || '').trim());
 
 /* Der Cookiename haengt an der Einstellung: das Praefix __Host- ist eine
-   Zusage des Namens an den Browser -- nur ueber HTTPS gesetzt, ohne Domain,
-   mit Path=/ -- und ohne Secure verwuerfe der Browser den Cookie stillschweigend.
+   Zusage des Namens an den Browser -- nur ueber HTTPS, ohne Domain, mit
+   Path=/ -- und ohne Secure verwuerfe der Browser den Cookie stillschweigend.
    WER DIE EINSTELLUNG UMLEGT, MELDET DAMIT ALLE EINMALIG AB: der alte Name
    wird nicht mehr gelesen. Kein Datenverlust, nur eine neue Anmeldung. */
 const COOKIE_NAME = HINTER_PROXY ? '__Host-kriterion_session' : 'kriterion_session';
 
 /* --- Die oeffentliche Adresse -------------------------------------------
    SIE STEHT HIER UND NICHT IN server.js, weil sie dieselbe Sorte Einstellung
-   ist wie HINTER_PROXY darueber: sie entscheidet ueber NETZWERKVERTRAUEN und
-   nicht ueber eine Vorliebe, und sie gehoert deshalb in die .env und nicht in
-   settings -- ein uebernommener Admin-Zugang koennte sie sonst selbst umlegen.
-   GEBAUT wird der Link in server.js; hier steht nur, welcher Wert gilt.
+   ist wie HINTER_PROXY darueber: Netzwerkvertrauen, nicht Vorliebe -- also
+   .env und nicht settings. GEBAUT wird der Link in server.js; hier steht nur,
+   welcher Wert gilt.
 
    ALLES AB ? UND # WIRD ABGEWIESEN: das Fragment traegt bereits den
-   Schluessel des Links, und eine Abfrage haette an einer Adresse, aus der ein
-   Link gebaut wird, nichts zu suchen. Ein PFAD ist erlaubt -- die Anlage kann
-   unter einem Unterpfad haengen.
-   ZUGANGSDATEN IN DER ADRESSE WERDEN ABGEWIESEN: sie stuenden sonst in jedem
-   verschickten Link.
+   Schluessel des Links. Ein PFAD ist erlaubt -- die Anlage kann unter einem
+   Unterpfad haengen. ZUGANGSDATEN IN DER ADRESSE WERDEN ABGEWIESEN: sie
+   stuenden sonst in jedem verschickten Link.
+
    EIN UNBRAUCHBARER WERT BRICHT DEN START NICHT AB, sondern meldet sich laut
-   und faellt auf den Browserweg zurueck -- dieselbe Form wie bei AUTH_RESET
-   und beim fehlenden Sicherungsort. Ein Start, der an einem Tippfehler in
-   einer OPTIONALEN Einstellung abbricht, ist schlimmer als der Tippfehler. */
+   und faellt auf den Browserweg zurueck. Ein Start, der an einem Tippfehler
+   in einer OPTIONALEN Einstellung abbricht, ist schlimmer als der
+   Tippfehler. */
 function pruefeOeffentlicheAdresse(roh) {
   const wert = String(roh || '').trim();
   if (!wert) return { adresse: '', gesetzt: false };
@@ -134,10 +133,9 @@ const ROLLEN = ['user', 'admin', 'eigentuemer'];
 const ZUSTAENDE = ['aktiv', 'gesperrt', 'geloescht'];
 
 // Der Name eines geloeschten Zugangs. Der urspruengliche wird ueberschrieben
-// und ist damit wieder frei -- "die Beitraege bleiben stehen, aber ohne den
-// Namen" laesst sich nicht anders einhalten. Die Zahl ist die alte id, und
-// genau die steht auch in user_id: die Oberflaeche kann daraus
-// "Geloeschter Benutzer 7" bilden, ohne dass irgendwo ein Name aufbewahrt wird.
+// und ist damit wieder frei. Die Zahl ist die alte id, und genau die steht
+// auch in user_id -- die Oberflaeche bildet daraus "Geloeschter Benutzer 7",
+// ohne dass irgendwo ein Name aufbewahrt wird.
 const grabsteinName = (id) => `geloescht-${id}`;
 // Damit ein lebender Zugang nicht wie ein Grabstein aussehen kann. Der Preis
 // dieser Namensvergabe, ehrlich benannt: das Muster ist als Benutzername
@@ -154,9 +152,7 @@ const holeBenutzer = () =>
 
 // Der Kandidat zur Anmeldung. Die Spalte traegt COLLATE NOCASE, das Suchen
 // findet also auch eine abweichende Schreibweise -- entschieden wird trotzdem
-// erst danach mit safeEqual, und das vergleicht Zeichen fuer Zeichen. Damit
-// bleibt die Anmeldung genau so streng wie vorher; die Abfrage sucht nur den
-// Kandidaten heraus, den es vorher zwangslaeufig nur einmal gab.
+// erst danach mit safeEqual, Zeichen fuer Zeichen.
 const holeBenutzerNachNamen = (name) =>
   db.prepare('SELECT id, username, password_hash, role, status FROM users WHERE username = ?')
     .get(String(name || '')) || null;
@@ -211,15 +207,11 @@ async function legeErstenBenutzerAn(name, passwort) {
 /* DIE ADRESSE GEHOERT DEM, DER SIE HAT -- deshalb steht sie HIER, am eigenen
    Zugang, und nicht in der Zugangsverwaltung. Ein Admin, der eine BESTEHENDE
    fremde Adresse umschreiben duerfte, boege die naechste Ruecksetzmail des
-   Betroffenen auf ein Postfach seiner Wahl; das ist der Weg an der
-   Rollenleiter vorbei, den es nicht geben darf. Beim ANLEGEN ist es ein
-   anderer Fall: dort gibt es noch niemanden, der sie setzen koennte, und ohne
-   sie hat die Einladungsmail keinen Empfaenger -- legeZugangAn nimmt sie
-   deshalb entgegen, aendereZugang danach nur noch der Betroffene selbst.
+   Betroffenen auf ein Postfach seiner Wahl. Beim ANLEGEN ist es ein anderer
+   Fall -- dort gibt es noch niemanden, der sie setzen koennte, und ohne sie
+   hat die Einladungsmail keinen Empfaenger.
    undefined HEISST "nicht angefasst", der leere String "loeschen". Ohne diese
-   Unterscheidung koennte eine Adresse nie wieder entfernt werden, und ein
-   Formular, das ein leeres Feld als "unveraendert" liest, ist genau die
-   stille Falle, die niemand bemerkt. */
+   Unterscheidung koennte eine Adresse nie wieder entfernt werden. */
 async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort, neueAdresse) {
   const id = Number(benutzerId);
   if (!Number.isInteger(id) || id <= 0)
@@ -251,12 +243,9 @@ async function aendereZugang(benutzerId, altesPasswort, neuerName, neuesPasswort
     db.prepare('UPDATE users SET email = ? WHERE id = ?').run(adresse || null, u.id);
   /* Der eigene Zugang ist der erste Griff einer uebernommenen Sitzung: er
      sperrt den Richtigen aus. Ein Aufruf, der nichts bewegt, ist kein Vorgang
-     und schreibt deshalb auch keine Zeile.
-     DIE ADRESSE ZAEHLT MIT, seit sie ueberhaupt gesetzt werden kann: sie
-     entscheidet, WOHIN der naechste Ruecksetzlink geht, und das ist keine
-     Vorliebe. 'beides' hiess schon bisher "mehr als eines" -- mit dem dritten
-     Feld wird die Ableitung deshalb GEZAEHLT statt verschachtelt; drei
-     ineinandergeschobene Fragezeichen waeren beim vierten Feld unlesbar. */
+     und schreibt deshalb keine Zeile. Die Adresse zaehlt mit -- sie
+     entscheidet, WOHIN der naechste Ruecksetzlink geht. 'beides' heisst "mehr
+     als eines", deshalb wird GEZAEHLT statt verschachtelt. */
   const umbenannt = name !== u.username;
   const adresseNeu = adresseGemeint && (adresse || null) !== (u.email || null);
   const bewegt = [umbenannt && 'name', wechselt && 'passwort', adresseNeu && 'adresse'].filter(Boolean);
@@ -278,13 +267,10 @@ const holeZugang = (id) =>
 // Die Liste fuer die Verwaltungskarte. Die Zahl der Eintraege steht dabei, weil
 // sie die Entscheidung traegt -- genau wie der Verwendungszaehler neben dem
 // Loeschknopf der Kriterien.
-/* ohnePasswort WIRD AUS password_hash ABGELEITET UND NICHT AUS last_login.
-   Die beiden beantworten verschiedene Fragen: last_login IS NULL heisst "hat
-   sich noch nie angemeldet", und das ist NICHT dasselbe wie "kann sich nicht
-   anmelden". Die Karte braucht das Zweite, und das steht genau dort, wo auch
-   pruefeAnmeldung entscheidet -- kein Schema, keine zweite Wahrheit.
-   Der Grabstein traegt den leeren Hash ebenfalls; er ist ueber status
-   unterschieden und wird in der Karte nie als "eingeladen" gelesen.
+/* ohnePasswort WIRD AUS password_hash ABGELEITET UND NICHT AUS last_login:
+   last_login IS NULL heisst "hat sich noch nie angemeldet", und das ist nicht
+   dasselbe wie "kann sich nicht anmelden". Die Karte braucht das Zweite, und
+   es steht dort, wo auch pruefeAnmeldung entscheidet.
    AUSGELIEFERT WIRD DER HASH NICHT, nur die abgeleitete Frage darauf. */
 const listeZugaenge = () => db.prepare(
   `SELECT u.id, u.username, u.role, u.status, u.last_login, u.created_at,
@@ -301,15 +287,11 @@ const zahlEigentuemer = () => db.prepare(
 ).get().n;
 
 /* OHNE PASSWORT WIRD AUSDRUECKLICH VERLANGT, nie durch blosses Weglassen:
-   ohnePasswort === true ist die einzige Form. Ein vergessenes Feld scheitert
-   damit weiter an pruefeVorgaben, wie bisher -- sonst legte ein Fehler im
-   Aufrufer wortlos einen Zugang an, in den sich niemand anmelden kann und den
-   auch niemand vermisst.
-   DER LEERE HASH IST DIE SPERRE, und er ist keine neue: pruefeAnmeldung faellt
-   bei leerem Hash auf BLINDWERT zurueck, und pruefePasswort weist einen Wert,
-   der nicht nach scrypt aussieht, ohnehin am Format ab. Zwei voneinander
-   unabhaengige Gruende, beide nachgestellt. Eine Sperre, die es nicht gibt,
-   kann nicht vergessen werden -- genau derselbe Griff wie beim Grabstein. */
+   ohnePasswort === true ist die einzige Form. Sonst legte ein Fehler im
+   Aufrufer wortlos einen Zugang an, in den sich niemand anmelden kann.
+   DER LEERE HASH IST DIE SPERRE, und zwar doppelt: pruefeAnmeldung faellt bei
+   leerem Hash auf BLINDWERT zurueck, und pruefePasswort weist einen Wert, der
+   nicht nach scrypt aussieht, schon am Format ab. */
 async function legeZugangAn(name, passwort, rolle = 'user', ohnePasswort = false, wer, adresse) {
   if (ohnePasswort === true) pruefeName(name);
   else pruefeVorgaben(name, passwort);
@@ -503,19 +485,16 @@ if (process.env.AUTH_USER || process.env.AUTH_PASSWORD) {
 }
 
 // --- Bremse gegen Durchprobieren ---------------------------------------
-// Ohne Sperre laesst sich ein Passwort beliebig oft raten. Der Zaehler darf
-// im Arbeitsspeicher liegen; ein Neustart als Ruecksetzung ist hinnehmbar.
+// Ohne Sperre laesst sich ein Passwort beliebig oft raten. Der Zaehler darf im
+// Arbeitsspeicher liegen; ein Neustart als Ruecksetzung ist hinnehmbar.
 //
-// Gezaehlt wird ZWEIMAL -- je IP und je Benutzername.
-// Die IP-Bremse allein sieht verteiltes Raten gegen EINEN Namen nicht: zehn
-// Rechner mit je neun Versuchen bleiben unter jeder Schwelle.
+// Gezaehlt wird ZWEIMAL -- je IP und je Benutzername: die IP-Bremse allein
+// sieht verteiltes Raten gegen EINEN Namen nicht.
 //
-// DER NAME WIRD NUR VERZOEGERT, NIE GESPERRT, und das ist der ganze
-// Unterschied zur IP. Eine harte Namenssperre waere ein Werkzeug gegen fremde
-// Zugaenge: wer "faruk" kennt, sperrte ihn mit zehn falschen Passwoertern fuer
-// fuenf Minuten aus. Eine wachsende Verzoegerung bremst das Raten genauso und
-// laesst den Richtigen durch -- er wartet hoechstens vier Sekunden.
-// Die Kennwerte selbst sind unveraendert.
+// DER NAME WIRD NUR VERZOEGERT, NIE GESPERRT. Eine harte Namenssperre waere
+// ein Werkzeug GEGEN fremde Zugaenge: wer "faruk" kennt, sperrte ihn mit zehn
+// falschen Passwoertern aus. Eine wachsende Verzoegerung bremst das Raten
+// genauso und laesst den Richtigen durch -- hoechstens vier Sekunden.
 const attempts = new Map(); // 'ip:…' | 'name:…' -> { count, until }
 const SOFT_LIMIT = 5;    // ab hier verzoegerte Antwort
 const HARD_LIMIT = 10;   // ab hier gesperrt -- NUR bei der IP
@@ -532,14 +511,11 @@ function verzoegerung(count) {
 }
 
 /* Die Adresse des Aufrufers -- Grundlage der Anmeldebremse.
-
-   Ohne Proxy zaehlt allein die tatsaechliche Verbindung. Der Kopf wird nicht
-   einmal angesehen; er koennte nur luegen.
-
-   Mit Proxy zaehlt der LETZTE Eintrag der Kette und nicht der erste: ein
-   Proxy haengt die Gegenstelle, die er wirklich sieht, hinten an. Alles davor
-   kann der Aufrufer selbst hineingeschrieben haben -- genau der erste Eintrag
-   also, den die alte Fassung nahm. */
+   Ohne Proxy zaehlt allein die tatsaechliche Verbindung; der Kopf wird nicht
+   einmal angesehen, er koennte nur luegen. Mit Proxy zaehlt der LETZTE
+   Eintrag der Kette und nicht der erste: ein Proxy haengt die Gegenstelle,
+   die er wirklich sieht, hinten an -- alles davor kann der Aufrufer selbst
+   hineingeschrieben haben. */
 function clientIp(req) {
   if (HINTER_PROXY) {
     const kette = String(req.headers['x-forwarded-for'] || '')
@@ -601,14 +577,12 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(ba, bb);
 }
 
-// Liefert die Benutzerzeile oder null -- nicht mehr ja/nein. Die Sitzung muss
-// wissen, WER sich da angemeldet hat; sie hinterher ueber "der erste Benutzer"
-// zu erraten waere heute richtig und morgen falsch.
-// Der Status wird hier NICHT geprueft. Ein gesperrter Zugang soll
-// erfahren, dass er gesperrt ist -- das darf er
-// aber erst, wenn er sein Passwort richtig eingegeben hat. Sonst waere die
-// Meldung ein Werkzeug zum Durchprobieren von Benutzernamen. Die Entscheidung
-// faellt deshalb eine Ebene hoeher, in der Anmelderoute.
+// Liefert die Benutzerzeile oder null. Die Sitzung muss wissen, WER sich da
+// angemeldet hat.
+// DER STATUS WIRD HIER NICHT GEPRUEFT: ein gesperrter Zugang soll erfahren,
+// dass er gesperrt ist -- aber erst, wenn er sein Passwort richtig eingegeben
+// hat. Sonst waere die Meldung ein Werkzeug zum Durchprobieren von Namen. Die
+// Entscheidung faellt eine Ebene hoeher, in der Anmelderoute.
 async function pruefeAnmeldung(name, passwort) {
   const u = holeBenutzerNachNamen(name);
   // Auch ohne Zugang wird gerechnet, sonst verraet die Antwortzeit, ob der
@@ -665,18 +639,14 @@ function pruneSessions() {
    Der Token ist Primaerschluessel UND Geheimnis; in einem Pfad stuende er im
    Zugriffsprotokoll, in der Verlaufsliste und womoeglich im Referrer.
    Genommen ist eine KENNUNG, aus dem Token gerechnet und nirgends gespeichert:
-   der volle SHA-256, nicht die ersten Stellen. Kein Schema, keine sechste
-   Migration, nicht rueckwaerts aufloesbar -- und die Frage nach der
-   Eindeutigkeit stellt sich beim vollen Wert gar nicht erst, statt beim Lesen
-   geprueft werden zu muessen. Wer die Kennung kennt, kann damit nichts oeffnen;
-   loeschen darf sie ohnehin nur, wessen eigene Sitzung sie ist.
+   der volle SHA-256, nicht die ersten Stellen -- damit stellt sich die Frage
+   nach der Eindeutigkeit gar nicht erst. Wer die Kennung kennt, kann damit
+   nichts oeffnen.
 
    WAS DIE LISTE NICHT ENTHAELT, UND ZWAR ABSICHTLICH: keine IP-Adresse und
-   keinen Browserkopf. Die Anlage speichert beides heute nicht; das ist eine
-   Eigenschaft und kein Mangel und passt zu "laeuft offline im Heimnetz".
-   Damit kann die Karte "diese hier" von "alle anderen" trennen und die ZAHL
-   nennen -- und mehr braucht der Knopf daneben nicht. Ein Geraetename waere
-   eine neue Spalte und eine Datenschutzfrage dazu. */
+   keinen Browserkopf -- die Anlage speichert beides nicht. Die Karte kann
+   damit "diese hier" von "alle anderen" trennen und die ZAHL nennen, und mehr
+   braucht der Knopf daneben nicht. */
 const sitzungsKennung = (token) =>
   crypto.createHash('sha256').update(String(token)).digest('hex');
 
@@ -734,49 +704,33 @@ function beendeAndereSitzungen(benutzerId, eigenerToken) {
    sieben Tagen, beim Einloesen fallen alle Sitzungen dieses Benutzers.
    Die Begruendung zu Hash und Spalten steht am Schema in db.js.
 
-   WIE DER LINK ZUM EMPFAENGER KOMMT, IST TEIL DER BAUFORM UND KEINE
-   NOTLOESUNG: der Admin kopiert ihn und gibt ihn weiter. Mailversand ist eine
-   eigene Stufe. Daraus folgt alles Weitere -- der Link IST ein Passwortersatz
-   auf Zeit, er steht nach der Weitergabe in einem fremden Verlauf, und deshalb
-   ist er kurzlebig und gilt genau einmal. Die Oberflaeche sagt das an der
-   Stelle, an der er kopiert wird. */
+   DER LINK IST EIN PASSWORTERSATZ AUF ZEIT: er steht nach der Weitergabe in
+   einem fremden Verlauf, deshalb ist er kurzlebig und gilt genau einmal. Die
+   Oberflaeche sagt das an der Stelle, an der er kopiert wird. */
 const TOKEN_TAGE = 7;
 // Wie lange die BENUTZTE Zeile als Spur stehen bleibt, gerechnet ab Ablauf.
 // Eine Schwelle statt zweier: ein Wert, eine Regel, eine Gegenprobe.
 const TOKEN_SPUR_TAGE = 30;
 const TOKEN_ZWECKE = ['einladung', 'ruecksetzung'];
 
-/* --- Die Frist ab dem ersten Oeffnen, seit 0.9.0 ------------------------
+/* --- Die Frist ab dem ersten Oeffnen ------------------------------------
    SIEBEN TAGE SIND DIE FRIST FUER DAS LESEN DER MAIL, NICHT FUER DAS LIEGEN
-   DES LINKS. Solange niemand geoeffnet hat, ist nichts geschehen und die
-   sieben Tage laufen weiter. Ab dem ERSTEN Oeffnen ist der Link erwiesenermassen
-   angekommen -- und ab da hat er in einem fremden Postfach nichts mehr
-   verloren, wo er sechs Tage lang ein Passwortersatz waere.
+   DES LINKS. Solange niemand geoeffnet hat, laufen die sieben Tage weiter. Ab
+   dem ERSTEN Oeffnen ist der Link erwiesenermassen angekommen -- und hat in
+   einem fremden Postfach nichts mehr verloren.
 
-   WARUM DAS HIER BESSER TRAEGT ALS ANDERSWO: der uebliche Grund gegen kurze
-   Fristen an Einmal-Links sind Vorschaudienste -- Virenscanner und
-   Postfachvorschauen holen Links vorab und verbrennen sie, bevor ein Mensch
-   sie sieht. Der Schluessel steht hier im FRAGMENT (#/einladung/…), und ein
-   Fragment geht nie an den Server: ein Vorschaudienst holt die Seite und loest
-   die Frist damit gerade NICHT aus. Sie beginnt erst, wenn ein echter Browser
-   den Schluessel im Rumpf schickt.
+   WARUM DAS HIER TRAEGT: der uebliche Grund gegen kurze Fristen an
+   Einmal-Links sind Vorschaudienste, die Links vorab holen und verbrennen.
+   Der Schluessel steht im FRAGMENT (#/einladung/…), und ein Fragment geht nie
+   an den Server -- ein Vorschaudienst loest die Frist also gerade NICHT aus.
 
-   INNERHALB DER FRIST DARF BELIEBIG OFT GEOEFFNET WERDEN, und das ist der
-   Punkt, an dem die Sache kippen wuerde: wer die Seite neu laedt, weil er
-   gerade keine Zeit hatte, darf nicht vor einem toten Link stehen. Deshalb
-   schreibt NUR DER ERSTE Aufruf herunter -- der zweite sieht einen Ablauf, der
-   naeher liegt als die Frist, und ruehrt ihn nicht an.
+   INNERHALB DER FRIST DARF BELIEBIG OFT GEOEFFNET WERDEN: NUR DER ERSTE
+   Aufruf schreibt herunter, der zweite sieht einen Ablauf, der naeher liegt
+   als die Frist, und ruehrt ihn nicht an.
 
-   KEINE NEUE SPALTE UND DAMIT KEIN SECHSTER MIGRATIONSBLOCK: geschrieben wird
-   ablauf, die es laengst gibt. Der Preis, ehrlich benannt -- hinterher ist
-   nicht mehr zu sehen, OB ein Link schon einmal geoeffnet wurde, nur noch,
-   wann er ablaeuft. Eine eigene Spalte dafuer waere ein Block gewesen, und der
-   Gewinn haette ihn nicht getragen.
-
-   DIE ABSAGE BLEIBT DIE EINE aus 0.8.80: abgelaufen, verbraucht, erfunden,
-   Zugang gesperrt -- und jetzt auch "die Frist ist verstrichen". In jedem
-   dieser Faelle ist dasselbe zu tun, naemlich beim Admin einen neuen Link
-   holen. Eine eigene Meldung waere eine Auskunft an den, der raet. */
+   KEINE NEUE SPALTE: geschrieben wird ablauf, die es laengst gibt. Der Preis,
+   ehrlich benannt -- hinterher ist nicht mehr zu sehen, OB ein Link schon
+   einmal geoeffnet wurde, nur noch, wann er ablaeuft. */
 const TOKEN_FRIST_MINUTEN = 15;
 
 // Liefert den Ablauf, der danach gilt -- fuer den Aufrufer, der ihn nennen
@@ -839,15 +793,13 @@ function erzeugeToken(benutzerId, zweck, wer) {
 }
 
 /* Schlaegt den Token NACH -- er ist der Schluessel, nicht ein Wert, der
-   verglichen wird. Deshalb steht hier kein zeitunabhaengiger Vergleich: der
-   Primaerschluessel entscheidet, und die Laufzeit des Baums verriete nur, ob
-   ein Hash existiert -- wer den Hash bilden kann, hat den Token bereits.
-   EINE EINZIGE ABSAGE FUER ALLE FAELLE -- abgelaufen, schon benutzt, erfunden,
-   Zugang gesperrt oder Grabstein. Drei Meldungen waeren drei Auskuenfte an
-   jemanden, der raet, und dem Ehrlichen helfen sie nicht: das Heilmittel ist
-   in JEDEM dieser Faelle dasselbe, naemlich beim Admin einen neuen Link holen.
-   Was das kostet, ehrlich benannt: wer sich in der Adresse vertippt hat,
-   unterscheidet das nicht von "abgelaufen". Der naechste Schritt ist derselbe.
+   verglichen wird. Deshalb kein zeitunabhaengiger Vergleich: wer den Hash
+   bilden kann, hat den Token bereits.
+   EINE EINZIGE ABSAGE FUER ALLE FAELLE -- abgelaufen, schon benutzt,
+   erfunden, Zugang gesperrt, Frist verstrichen. Drei Meldungen waeren drei
+   Auskuenfte an jemanden, der raet, und dem Ehrlichen helfen sie nicht: das
+   Heilmittel ist jedes Mal dasselbe, naemlich beim Admin einen neuen Link
+   holen.
    Liefert die Benutzerzeile oder null -- nie ja/nein: der Aufrufer muss den
    Namen nennen koennen, sobald der Token traegt. VORHER nennt ihn niemand,
    sonst verriete ein geratener Token einen Benutzernamen. */
@@ -894,21 +846,17 @@ async function loeseTokenEin(klartext, neuesPasswort) {
   return { id: t.id, username: t.username, zweck: t.zweck };
 }
 
-/* --- Die Selbstanmeldung, seit 0.9.1 ------------------------------------
+/* --- Die Selbstanmeldung ------------------------------------------------
    EINE ANFRAGE IST NOCH KEIN ZUGANG, und der Admin schaltet frei -- IMMER.
-   Es gibt keine Betriebsart, in der der geklickte Link allein hereinlaesst;
-   die waere ein anderes Produkt und die zweite Wahrheit daneben.
+   Es gibt keine Betriebsart, in der der geklickte Link allein hereinlaesst.
 
-   DER BESTAETIGUNGSLINK HAT KEINE PASSWORTKRAFT. Wer ihn anklickt, sagt "ja,
-   das bin ich" -- er belegt, dass die Adresse dem Anfragenden gehoert. Ohne
-   ihn koennte jeder eine FREMDE Adresse in die Liste des Admins schreiben,
-   und beim Freischalten ginge einer Person, die nie gefragt hat, eine Mail
-   mit Passwortkraft zu.
+   DER BESTAETIGUNGSLINK HAT KEINE PASSWORTKRAFT: wer ihn anklickt, belegt,
+   dass die Adresse ihm gehoert. Ohne ihn koennte jeder eine FREMDE Adresse in
+   die Liste des Admins schreiben, und beim Freischalten ginge einer Person,
+   die nie gefragt hat, eine Mail mit Passwortkraft zu.
 
-   DER SCHLUESSEL GEHT DENSELBEN WEG WIE EIN TOKEN -- 32 Zufallsbytes,
-   gespeichert wird nur der Hash. tokenHash() wird dabei WIEDERVERWENDET und
-   nicht ein zweites Mal geschrieben: zwei Ausfertigungen derselben Rechnung
-   liefen beim naechsten Griff auseinander. */
+   DER SCHLUESSEL GEHT DENSELBEN WEG WIE EIN TOKEN -- 32 Zufallsbytes, nur der
+   Hash wird gespeichert; tokenHash() wird dabei WIEDERVERWENDET. */
 const ANFRAGE_STUNDEN = 24;
 /* WARUM DEUTLICH KUERZER ALS DIE SIEBEN TAGE DES EINLADUNGSLINKS: dort ist
    geprueft, WER den Link bekommt -- ein Admin hat den Zugang angelegt. Hier
@@ -916,16 +864,12 @@ const ANFRAGE_STUNDEN = 24;
    eines Fremden. Eine Anfrage, die einen Tag lang nicht bestaetigt wird, ist
    entweder verirrt oder nie gewollt gewesen. */
 const ANFRAGE_DECKEL = 20;
-/* EINE LAENGENGRENZE, UND SIE GILT NUR HIER. Das ist die einzige Stelle im
-   ganzen Projekt, an der ein FREMDER etwas in die Datenbank schreibt -- ueberall
-   sonst steht ein angemeldeter Mensch davor. Ohne Grenze passte in jede der
-   zwanzig Zeilen, was der Rumpf hergibt (zwei Megabyte), und der Admin bekaeme
-   es in seiner Karte zu sehen.
-   SIE IST KEINE ZWEITE WAHRHEIT UEBER BENUTZERNAMEN: pruefeName bleibt
-   unveraendert, und ein Admin legt weiter an, was er will. Was hier begrenzt
-   wird, ist die EINGABE VON AUSSEN. 64 Zeichen sind mehr, als ein Name am
-   Bildschirm sinnvoll traegt; 254 ist die Laenge, die eine Mailadresse
-   ueberhaupt haben darf. */
+/* EINE LAENGENGRENZE, UND SIE GILT NUR HIER: das ist die einzige Stelle im
+   Projekt, an der ein FREMDER etwas in die Datenbank schreibt. Ohne Grenze
+   passte in jede der zwanzig Zeilen, was der Rumpf hergibt (zwei Megabyte).
+   SIE IST KEINE ZWEITE WAHRHEIT UEBER BENUTZERNAMEN -- pruefeName bleibt
+   unveraendert, begrenzt wird die EINGABE VON AUSSEN. 254 ist die Laenge, die
+   eine Mailadresse ueberhaupt haben darf. */
 const ANFRAGE_NAME_MAX = 64;
 const ANFRAGE_MAIL_MAX = 254;
 
@@ -935,14 +879,12 @@ const ANFRAGE_MAIL_MAX = 254;
 const qAnfragenZahl = db.prepare('SELECT COUNT(*) n FROM anfragen');
 const zaehleAnfragen = () => qAnfragenZahl.get().n;
 
-/* Dieselbe Bauform wie raeumeTokensAuf(), aber mit DREI Aufrufstellen statt
-   zweier -- Start, Karte und die Anfrageroute. Die dritte ist keine
-   Hauswirtschaft, sondern Teil der Entscheidung: sie steht VOR der
-   Deckelpruefung, sonst blockierten zwanzig laengst verfallene Zeilen die
-   Selbstanmeldung noch einen weiteren Tag.
-   GERAEUMT WIRD NUR DAS UNBESTAETIGTE. Eine bestaetigte Anfrage wartet auf den
-   Admin, so lange es dauert -- sie still verfallen zu lassen hiesse, jemanden
-   ohne Antwort stehen zu lassen, der alles getan hat, was von ihm verlangt war.
+/* Dieselbe Bauform wie raeumeTokensAuf(), aber mit DREI Aufrufstellen --
+   Start, Karte und die Anfrageroute. Die dritte steht VOR der Deckelpruefung,
+   sonst blockierten zwanzig laengst verfallene Zeilen die Selbstanmeldung
+   noch einen weiteren Tag.
+   GERAEUMT WIRD NUR DAS UNBESTAETIGTE: eine bestaetigte Anfrage wartet auf
+   den Admin, so lange es dauert.
    EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
    (Stolperstein 119). */
 const delAnfragenAlt = db.prepare(
@@ -958,29 +900,22 @@ function raeumeAnfragenAuf() {
    -- oder null, wenn nichts entstehen soll.
 
    NULL IST KEIN FEHLER UND KEINE ABSAGE, sondern die stille Verwerfung: der
-   Aufrufer schreibt in JEDEM Fall dieselbe Antwort. Wuerde hier geworfen,
-   muesste die Route den Fall unterscheiden -- und genau das ist die Auskunft,
-   die das Formular nicht geben darf. Fuenf Lagen enden hier bei null:
-   unbrauchbarer Name, unbrauchbare Adresse, Name schon vergeben, Adresse schon
-   vergeben, Deckel erreicht. Die sechste (Schalter aus) faellt schon an der
-   Route, bevor diese Funktion ueberhaupt gerufen wird.
+   Aufrufer schreibt in JEDEM Fall dieselbe Antwort. Fuenf Lagen enden hier
+   bei null -- unbrauchbarer Name, unbrauchbare Adresse, Name schon vergeben,
+   Adresse schon vergeben, Deckel erreicht. Die sechste (Schalter aus) faellt
+   schon an der Route.
 
    JE ADRESSE HOECHSTENS EINE OFFENE ANFRAGE, und das ist eine Entscheidung
-   ueber den VERSAND, nicht ueber die Tabelle: der Deckel begrenzt, was
-   gespeichert wird, aber ohne diese Schranke waere das Formular ein Weg,
-   einer fremden Adresse beliebig viele Bestaetigungsmails zu schicken. Eine
-   Wiederholung wird still verworfen -- ohne neue Zeile UND ohne zweite Mail.
-   Der Preis, ehrlich benannt: geht die eine Mail verloren, wartet der
-   Anfragende bis zum Verfall. Eine andere Adresse traegt sofort.
+   ueber den VERSAND: ohne sie waere das Formular ein Weg, einer fremden
+   Adresse beliebig viele Bestaetigungsmails zu schicken. Der Preis, ehrlich
+   benannt -- geht die eine Mail verloren, wartet der Anfragende bis zum
+   Verfall.
 
-   DER NAME WIRD MIT pruefeName GEPRUEFT UND DIE ADRESSE MIT mail.istAdresse --
-   dieselben Pruefungen wie an einem echten Zugang. Was nie ein Zugang werden
-   koennte, kommt gar nicht erst in die Warteschlange; sonst stuende eine Zeile
-   in der Liste des Admins, die sich beim Freischalten nicht einloesen laesst.
-
-   VERGLICHEN WIRD OHNE RUECKSICHT AUF GROSS UND KLEIN, bei Namen wie bei
-   Adressen: users.username traegt COLLATE NOCASE, und zwei Adressen, die sich
-   nur in der Schreibweise unterscheiden, sind dasselbe Postfach. */
+   GEPRUEFT WIRD MIT pruefeName UND mail.istAdresse, wie an einem echten
+   Zugang: was nie ein Zugang werden koennte, kommt gar nicht erst in die
+   Warteschlange. VERGLICHEN WIRD OHNE RUECKSICHT AUF GROSS UND KLEIN -- zwei
+   Adressen, die sich nur in der Schreibweise unterscheiden, sind dasselbe
+   Postfach. */
 const qAnfrageName = db.prepare('SELECT 1 FROM anfragen WHERE username = ? COLLATE NOCASE');
 const qAnfrageMail = db.prepare('SELECT 1 FROM anfragen WHERE email = ? COLLATE NOCASE');
 const qBenutzerMail = db.prepare('SELECT 1 FROM users WHERE email = ? COLLATE NOCASE');
@@ -1051,8 +986,8 @@ const entferneAnfrage = (id) =>
    HAT -- und ausdruecklich nichts darueber, was jemand GESAGT hat. Die
    Begruendung zu Spalten und Grenzen steht am Schema in db.js.
 
-   SIEBZEHN VORGAENGE, und die Liste ist die Entscheidung. Was nicht darin
-   steht, steht mit Begruendung im Aenderungsprotokoll dieser Runde -- eine
+   ZWANZIG VORGAENGE, und die Liste ist die Entscheidung. Was nicht darin
+   steht, steht mit Begruendung im Aenderungsprotokoll seiner Runde -- eine
    stillschweigend weggelassene Zeile waere von einer entschiedenen nicht zu
    unterscheiden.
 
@@ -1076,23 +1011,17 @@ const VORGAENGE = [
   'zugang.neu', 'zugang.rolle', 'zugang.status', 'zugang.passwort',
   'zugang.weg', 'zugang.selbst',
   'link.neu', 'link.ein',
-  /* 'anfrage.frei' und 'anfrage.ab' seit 0.9.1 -- die Entscheidung des Admins
-     ueber eine Selbstanmeldung. GEPRUEFT, OB SIE DOPPELT SIND, und sie sind
-     es nicht: die Freischaltung erzeugt daneben zwar zugang.neu und link.neu,
-     aber KEINE der beiden sagt, dass der Zugang aus einer SELBSTANMELDUNG kam
-     statt aus der Hand des Admins -- und das ist genau die Frage, die diese
-     Runde ueberhaupt erst aufwirft. Die Ablehnung hinterlaesst ohne ihre Zeile
-     gar keine Spur: die Zeile in anfragen wird geloescht, und dann ist nicht
-     mehr zu sehen, dass jemand gefragt hat und abgewiesen wurde.
-     KEIN NAME UND KEINE ADRESSE, in keiner der beiden. anfrage.frei traegt den
-     neuen Zugang als ziel; anfrage.ab traegt gar keines -- es gibt keinen
-     Zugang, auf den es zeigen koennte, und der Name des Abgewiesenen ist
-     Freitext von aussen, den diese Tabelle nicht aufnimmt.
-     KEINE ZEILE FUER DIE ANFRAGE UND DIE BESTAETIGUNG: das waeren die einzigen
-     neben der gescheiterten Anmeldung, die ein Fremder ausloesen kann. Die
-     Begruendung steht bei legeAnfrageAn(). */
+  /* 'anfrage.frei' und 'anfrage.ab' -- die Entscheidung des Admins ueber
+     eine Selbstanmeldung. NICHT DOPPELT zu zugang.neu und link.neu: keine der
+     beiden sagt, dass der Zugang aus einer SELBSTANMELDUNG kam. Die Ablehnung
+     hinterliesse ohne ihre Zeile gar keine Spur.
+     KEIN NAME UND KEINE ADRESSE in beiden: anfrage.frei traegt den neuen
+     Zugang als ziel, anfrage.ab gar keines.
+     KEINE ZEILE FUER DIE ANFRAGE UND DIE BESTAETIGUNG -- das waeren die
+     einzigen neben der gescheiterten Anmeldung, die ein Fremder ausloesen
+     kann. */
   'anfrage.frei', 'anfrage.ab',
-  /* 'schluessel' seit 0.8.91 -- der Wechsel des Datenbankschluessels. Er
+  /* 'schluessel' -- der Wechsel des Datenbankschluessels. Er
      laeuft ueber schluessel.js auf dem Wirt und traegt deshalb IMMER das leere
      `wer` von dort: "ueber den Wirt". Ein Handelnder stuende hier nur als
      Behauptung, denn wer den Befehl ausfuehren kann, koennte sie setzen.
@@ -1101,24 +1030,14 @@ const VORGAENGE = [
      Auslegung des Merksatzes zu Kontrollausgaben, und sie gilt hier ohne jede
      Ausnahme: die eine Stelle, an der ein Schluessel zum Abschreiben steht,
      ist der Bildschirm des Wirts, nicht diese Tabelle. */
-  /* 'zweifaktor.an', 'zweifaktor.aus' und 'zweifaktor.wieder' seit 0.10.0.
-     GEPRUEFT, OB SIE DOPPELT SIND, und sie sind es nicht: 'zugang.selbst' sagt,
-     dass jemand Name, Passwort oder Adresse geaendert hat -- der zweite Faktor
-     ist keines davon und laeuft ueber eine andere Route.
-     DER DRITTE IST DER, AUF DEN ES ANKOMMT: 'zweifaktor.wieder' heisst, dass
-     ein Wiederherstellungscode verbraucht wurde, und das ist die einzige
-     Zeile im ganzen Protokoll, die sagt, dass jemandem das Telefon abhanden
-     gekommen ist. Ohne sie liefe genau der Fall spurlos durch, der einen
-     Blick verdient.
+  /* 'zweifaktor.an', 'zweifaktor.aus' und 'zweifaktor.wieder'.
+     DER DRITTE IST DER, AUF DEN ES ANKOMMT: ein verbrauchter
+     Wiederherstellungscode ist die einzige Zeile im ganzen Protokoll, die
+     sagt, dass jemandem das Telefon abhanden gekommen ist.
      KEIN VIERTER FUER DEN FALSCHEN CODE: eine gescheiterte zweite Stufe IST
-     eine gescheiterte Anmeldung und schreibt 'anmeldung.fehl'. Eine eigene
-     Zeile daneben waere eine zweite Wahrheit ueber denselben Vorgang -- und
-     sie stuende ausserdem hinter dem richtigen Passwort, also unter demselben
-     Deckel wie die Zeile, die es schon gibt.
-     KEIN NEUES MERKMAL. 'zweifaktor.an' und '.aus' tragen den Betroffenen als
-     wer UND als ziel; ein leeres wer heisst wie ueberall "ueber zugang.js auf
-     dem Wirt", und mehr ist ueber diese drei Vorgaenge nicht zu sagen. MERKMALE
-     bleibt bei dreizehn. */
+     eine gescheiterte Anmeldung und schreibt 'anmeldung.fehl'.
+     KEIN NEUES MERKMAL -- 'an' und 'aus' tragen den Betroffenen als wer UND
+     als ziel. MERKMALE bleibt bei dreizehn. */
   'zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder',
   'export', 'import', 'sicherung', 'schluessel'
 ];
@@ -1214,40 +1133,34 @@ function leseProtokoll(grenze = PROTOKOLL_GRENZE) {
   };
 }
 
-/* --- Die zweite Bestaetigung -------------------------------------------
+/* --- Die zweite Bestaetigung --------------------------------------------
    WAS DIE ANLAGE ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT.
-   Wogegen das verteidigt, ist nicht der Fremde -- der kommt ohne Passwort gar
-   nicht herein --, sondern die FREMDE OFFENE SITZUNG: ein Bildschirm, der
-   unbeaufsichtigt stehen blieb, ein gestohlener Cookie, ein Rechner, an dem
-   jemand anderes sitzt. aendereZugang() wendet dasselbe Prinzip seit 0.5.0 an;
-   es fehlte nur bei den schweren Wegen.
+   Verteidigt wird nicht gegen den Fremden -- der kommt ohne Passwort gar
+   nicht herein --, sondern gegen die FREMDE OFFENE SITZUNG.
 
-   WARUM EINE FREIGABE UND NICHT DAS PASSWORT IM RUMPF DER HANDLUNG. Die
-   schoenere Form waere die zweite; sie geht an zwei der sieben Wege nicht auf:
+   WARUM EINE FREIGABE UND NICHT DAS PASSWORT IM RUMPF DER HANDLUNG: an zwei
+   der sieben Wege geht das nicht.
      * GET /api/export ist eine BROWSERNAVIGATION -- ein Rumpf ist dort
        baulich unmoeglich, und in die Adresse gehoert ein Passwort nie.
-     * POST /api/import traegt seinen Waechter ausdruecklich VOR multer, damit
-       die bis zu 900 MB grosse Datei eines Fremden gar nicht erst eingelesen
-       wird. Ein Passwort im Multipart-Rumpf waere erst DANACH lesbar.
+     * POST /api/import traegt seinen Waechter VOR multer, damit die bis zu
+       900 MB grosse Datei eines Fremden gar nicht erst eingelesen wird. Ein
+       Passwort im Multipart-Rumpf waere erst DANACH lesbar.
    Die Freigabe kann beides, weil sie VOR der Handlung steht und nicht in ihr.
 
-   SIE BRAUCHT KEIN SCHEMA UND IST DESHALB KEIN SECHSTER MIGRATIONSBLOCK. Sie
-   liegt im Arbeitsspeicher, neben attempts und mit derselben Begruendung: ein
-   Neustart als Ruecksetzung ist hinnehmbar -- er kostet ein zweites Tippen.
+   SIE BRAUCHT KEIN SCHEMA und liegt im Arbeitsspeicher, neben attempts: ein
+   Neustart als Ruecksetzung kostet ein zweites Tippen.
 
-   GEBUNDEN AN DEN SITZUNGSTOKEN, nicht an den Benutzer. Eine zweite offene
-   Sitzung desselben Menschen muss selbst bestaetigen; genau darum geht es.
-   GEBUNDEN AN ZWECK UND ZIEL: eine Freigabe fuer den Export entfernt keinen
-   Zugang, und eine fuer Zugang 7 nicht Zugang 8.
-   EINMAL GUELTIG: wer drei Zugaenge nacheinander entfernt, tippt dreimal. */
+   GEBUNDEN AN DEN SITZUNGSTOKEN, nicht an den Benutzer -- eine zweite offene
+   Sitzung desselben Menschen muss selbst bestaetigen. GEBUNDEN AN ZWECK UND
+   ZIEL: eine Freigabe fuer den Export entfernt keinen Zugang.
+   EINMAL GUELTIG. */
 const FREIGABE_MS = 120 * 1000;
-/* SIEBEN WEGE UEBER SECHS ROUTEN seit 0.9.0 -- 'mail' kommt dazu. Wer den
+/* SIEBEN WEGE UEBER SECHS ROUTEN -- 'mail' kommt dazu. Wer den
    Mailzugang setzt, entscheidet, ueber wessen Server JEDER kuenftige
    Ruecksetzlink dieser Anlage laeuft; das trifft die Anlage als Ganzes und
    liegt damit in derselben Zeile wie Export und Import.
-   (Bis 0.8.91 waren es sechs ueber fuenf. Die Zahl stand eine Runde lang
-   falsch in den Papieren -- Stolperstein 137 -- und ist mit Revision 20
-   berichtigt worden; hier zaehlt sie ab jetzt wieder hoch.) */
+   Die Zahl steht im Projektstand und wird dort nachgezaehlt, nicht
+   abgeschrieben -- Stolperstein 137. */
 const BESTAETIGUNG_ZWECKE = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link', 'mail'];
 /* DER SCHLUESSEL IST DIE GANZE BINDUNG: Sitzungstoken, Zweck und Ziel. Ein
    einziger Platz je Sitzung waere eine stille Falle -- eine Anfrage, die zwei
@@ -1294,23 +1207,20 @@ function verwirfFreigabe(token) {
   for (const k of freigaben.keys()) if (k.startsWith(vorn)) freigaben.delete(k);
 }
 
-/* --- Der zweite Faktor, seit 0.10.0 -------------------------------------
+/* --- Der zweite Faktor ---------------------------------------------------
    WER WILL, SICHERT SEINEN ZUGANG MIT EINEM CODE AUS EINER APP AUF SEINEM
-   TELEFON -- er entsteht ohne Netz und ist alle dreissig Sekunden ein anderer.
-   Die Rechnung steht in zweifaktor.js; hier stehen die Zeilen und die Regeln
-   darum herum. Die Begruendung zu Spalten und Kaskaden steht am Schema in db.js.
+   TELEFON. Die Rechnung steht in zweifaktor.js; hier stehen die Zeilen und
+   die Regeln darum herum.
 
-   FREIWILLIG, JE ZUGANG, UND JEDER SCHALTET IHN FUER SICH SELBST EIN. Der Grund
-   ist nicht Hoeflichkeit, sondern Bauart: EINSCHALTEN kann nur, wer das
-   Geheimnis auf sein Telefon bekommt -- ein Admin, der es fuer einen anderen
-   taete, sperrte ihn aus. AUSSCHALTEN darf nur der Betroffene, sonst waere der
-   zweite Faktor an der Rollenleiter vorbei abschaltbar und sicherte nichts.
-   Der einzige Weg daneben ist zugang.js auf dem Wirt -- dieselbe Linie wie beim
-   Schluesselwechsel: was alles kann, laeuft nicht ueber die Oberflaeche.
+   FREIWILLIG, JE ZUGANG, UND JEDER SCHALTET IHN FUER SICH SELBST EIN -- nicht
+   aus Hoeflichkeit, sondern aus Bauart: EINSCHALTEN kann nur, wer das
+   Geheimnis auf sein Telefon bekommt; ein Admin, der es fuer einen anderen
+   taete, sperrte ihn aus. AUSSCHALTEN darf nur der Betroffene, sonst waere
+   der zweite Faktor an der Rollenleiter vorbei abschaltbar. Der einzige Weg
+   daneben ist zugang.js auf dem Wirt.
 
-   DIE RECHTEFRAGE STEHT HIER AUSDRUECKLICH NICHT, wie bei erzeugeToken auch:
-   welche Nummer hereingereicht wird, entscheidet server.js an der Route -- und
-   dort kommt sie aus req.benutzer und nie aus dem Pfad. */
+   DIE RECHTEFRAGE STEHT HIER AUSDRUECKLICH NICHT: welche Nummer
+   hereingereicht wird, entscheidet server.js an der Route. */
 const qZweifaktor = db.prepare(
   'SELECT user_id, geheim, bestaetigt_am, letzter_zaehler FROM zweifaktor WHERE user_id = ?');
 const holeZweifaktor = (benutzerId) => qZweifaktor.get(Number(benutzerId) || 0) || null;
@@ -1347,27 +1257,22 @@ function zweifaktorStand(benutzerId) {
 
 /* DIE EINE ABSAGE. Falsch, abgelaufen, aus dem uebernaechsten Fenster, schon
    verbraucht, ein erfundener Wiederherstellungscode -- alles dasselbe Wort.
-   Dieselbe Ueberlegung wie beim Token aus 0.8.80: das Heilmittel ist in jedem
+   Dieselbe Ueberlegung wie beim Token: das Heilmittel ist in jedem
    dieser Faelle dasselbe, naemlich einen frischen Code vom Telefon ablesen.
    "Der Code ist abgelaufen" waere ausserdem eine Auskunft an den, der raet --
    er wuesste, dass er die richtige Ziffernfolge hat und nur zu spaet war. */
 const ZWEITER_FAKTOR_ABSAGE = 'Der Code stimmt nicht.';
 
-/* SCHRITT EINS: das Geheimnis entsteht und geht EINMAL ueber das Netz. Danach
-   nie wieder -- auch nicht an den Eigentuemer. Das ist die eine Antwort, in der
-   es steht, genau wie beim Token der Klartext.
+/* SCHRITT EINS: das Geheimnis entsteht und geht EINMAL ueber das Netz --
+   danach nie wieder, auch nicht an den Eigentuemer.
 
    NOCH IST NICHTS EINGESCHALTET: bestaetigt_am bleibt leer, bis ein Code aus
-   dem Telefon belegt, dass die App wirklich dasselbe rechnet. Ein Einschalten
-   ohne diesen Beleg waere ein Zugang, den niemand mehr oeffnet.
+   dem Telefon belegt, dass die App dasselbe rechnet.
 
-   EIN ZWEITER AUFRUF ERSETZT DAS ANGEFANGENE GEHEIMNIS. Wer den Bildschirm
-   schliesst und neu beginnt, faengt neu an -- die halbe Zeile von vorhin haelt
-   nichts fest, was jemand braucht.
-   AN EINEM BESTAETIGTEN FAKTOR WIRD ABGEWIESEN: erst ausschalten. Sonst waere
-   dieser Knopf der Weg, einen laufenden zweiten Faktor aus einer uebernommenen
-   Sitzung heraus gegen einen eigenen zu tauschen -- und das Passwort davor
-   haette dagegen nichts ausgerichtet, denn es steht ja an beiden Wegen. */
+   EIN ZWEITER AUFRUF ERSETZT DAS ANGEFANGENE GEHEIMNIS. AN EINEM BESTAETIGTEN
+   FAKTOR WIRD ABGEWIESEN: erst ausschalten -- sonst waere dieser Knopf der
+   Weg, einen laufenden zweiten Faktor aus einer uebernommenen Sitzung heraus
+   gegen einen eigenen zu tauschen. */
 function beginneZweifaktor(benutzerId, anlagenName, benutzername) {
   const id = Number(benutzerId) || 0;
   if (zweifaktorAn(id)) throw new Error('Der zweite Faktor ist bereits eingeschaltet.');
@@ -1426,23 +1331,19 @@ function schalteZweifaktorEin(benutzerId, eingabe, wer, jetzt = Date.now()) {
   return { ...zweifaktorStand(id), codes };
 }
 
-/* Prueft einen zweiten Faktor UND verbraucht ihn in einem Zug. Liefert die ART
-   ('app' oder 'wieder') oder null.
+/* Prueft einen zweiten Faktor UND verbraucht ihn in einem Zug. Liefert die
+   ART ('app' oder 'wieder') oder null.
 
-   ZWEI FORMEN, EIN FELD: sechs Ziffern sind ein Code aus der App, zehn Zeichen
-   ein Wiederherstellungscode. Der Mensch tippt in dasselbe Feld, und die Form
-   entscheidet -- ein Umschalter daneben waere eine Frage, die sich aus der
-   Eingabe schon beantwortet.
+   ZWEI FORMEN, EIN FELD: sechs Ziffern sind ein Code aus der App, zehn
+   Zeichen ein Wiederherstellungscode. Die Form entscheidet -- ein Umschalter
+   daneben waere eine Frage, die sich aus der Eingabe schon beantwortet.
 
-   "GENAU EINMAL" STEHT IN DER BEDINGUNG DES UPDATE UND NICHT IN EINER PRUEFUNG
-   DAVOR. Zwischen Lesen und Schreiben laege sonst Platz fuer einen zweiten
-   Aufruf mit demselben Code -- und genau darauf zielt, wer ueber die Schulter
-   sieht. Bei .changes === 0 hat ein anderer ihn zuerst verbraucht, und das ist
-   dasselbe wie "gilt nicht".
+   "GENAU EINMAL" STEHT IN DER BEDINGUNG DES UPDATE UND NICHT IN EINER
+   PRUEFUNG DAVOR: zwischen Lesen und Schreiben laege sonst Platz fuer einen
+   zweiten Aufruf mit demselben Code.
 
-   DER ZAEHLER MUSS ECHT GROESSER SEIN als der zuletzt verbrauchte. Damit ist
-   nach einer Anmeldung auch das Fenster DAVOR tot, nicht nur der eine Code --
-   eine Regel statt einer Liste verbrauchter Werte, die jemand raeumen muesste. */
+   DER ZAEHLER MUSS ECHT GROESSER SEIN als der zuletzt verbrauchte -- damit ist
+   nach einer Anmeldung auch das Fenster DAVOR tot. */
 const verbraucheZaehler = db.prepare(
   `UPDATE zweifaktor SET letzter_zaehler = ?
     WHERE user_id = ? AND (letzter_zaehler IS NULL OR letzter_zaehler < ?)`);
@@ -1505,21 +1406,17 @@ function schalteZweifaktorAus(benutzerId, wer) {
    WIE WIRD DIE ANMELDUNG ZWEISTUFIG, OHNE EINEN ZWEITEN ZUSTAND ZU ERZEUGEN?
    Eine halbe Sitzung waere eine zweite Wahrheit ueber "angemeldet" -- genau
    das, was Abschnitt 1 des Konzeptpapiers ausschliesst. sessions bleibt die
-   EINE Antwort darauf, und vor dem zweiten Schritt entsteht dort keine Zeile.
+   EINE Antwort, und vor dem zweiten Schritt entsteht dort keine Zeile.
 
-   GENOMMEN IST DIE BAUFORM DER FREIGABE AUS 0.8.90: ein kurzlebiger Wert im
-   Arbeitsspeicher, neben freigaben und attempts. Kein Schema, keine Zeile, kein
-   sechster Migrationsblock -- und er verfaellt von selbst. Ein Neustart als
-   Ruecksetzung ist hinnehmbar: er kostet ein zweites Tippen des Passworts.
+   GENOMMEN IST DIE BAUFORM DER FREIGABE: ein kurzlebiger Wert im
+   Arbeitsspeicher, neben freigaben und attempts. Kein Schema, kein
+   Migrationsblock, und er verfaellt von selbst. DIESELBE FRIST WIE DIE
+   FREIGABE -- zwei Minuten reichen, um einen Code vom Telefon abzulesen.
 
-   DIESELBE FRIST WIE DIE FREIGABE, und das ist Absicht: ein Wert, eine Regel,
-   eine Gegenprobe. Zwei Minuten reichen, um einen Code vom Telefon abzulesen,
-   und sind kurz genug, dass ein liegengebliebener Ausweis nichts wert ist.
-
-   ER TRAEGT DIE BENUTZERNUMMER UND KOMMT NUR VON HIER. Der zweite Schritt liest
-   sie NIE aus dem Rumpf -- sonst waere der Ausweis eine Eintrittskarte fuer
-   einen beliebigen Zugang, und das richtige Passwort eines Zugangs oeffnete
-   jeden anderen. */
+   ER TRAEGT DIE BENUTZERNUMMER UND KOMMT NUR VON HIER. Der zweite Schritt
+   liest sie NIE aus dem Rumpf -- sonst waere der Ausweis eine Eintrittskarte
+   fuer einen beliebigen Zugang, und das richtige Passwort eines Zugangs
+   oeffnete jeden anderen. */
 const ANMELDE_AUSWEIS_MS = FREIGABE_MS;
 const ausweise = new Map(); // schluessel -> { id, bis }
 
@@ -1551,10 +1448,8 @@ function verbraucheAnmeldeAusweis(schluessel) {
 }
 
 // Liefert den Benutzer hinter dem Cookie oder null. Der JOIN ist die Aussage:
-// eine Sitzung ohne Benutzer gilt nicht. Im Betrieb kann es sie nicht geben --
-// beim Anlegen ist die Id Pflicht, bestehende wurden beim Migration nachgezogen,
-// und mit dem Benutzer gehen seine Sitzungen ueber die Kaskade mit. Bliebe doch
-// eine herrenlose Zeile liegen, waere sie ein Schluessel zu niemandem.
+// eine Sitzung ohne Benutzer gilt nicht -- bliebe doch eine herrenlose Zeile
+// liegen, waere sie ein Schluessel zu niemandem.
 // Nebenwirkung mit Absicht: der Zugriff frischt last_seen auf.
 function sitzungsBenutzer(token) {
   if (!token) return null;
@@ -1578,12 +1473,10 @@ const sessionCookie = (t) =>
 const clearCookie = () => `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax${SICHER}; Max-Age=0`;
 
 // req.benutzer ist ab hier fuer jeden geschuetzten Endpunkt gesetzt:
-// { id, username, role, status }. Genau EINE Abfrage je Anfrage: wer den
-// Benutzer braucht, nimmt req.benutzer und fragt die Datenbank nicht noch
-// einmal. Der Status wird hier durchgesetzt -- zweite von zwei Stellen neben
-// der Anmelderoute; ohne diese bliebe ein gerade gesperrter Zugang bis zum
-// Ablauf seines Cookies drin. 401 und nicht 403: der Zugang gilt nicht mehr,
-// die Oberflaeche gehoert auf die Anmeldeseite.
+// { id, username, role, status }. Genau EINE Abfrage je Anfrage.
+// Der Status wird hier durchgesetzt -- zweite von zwei Stellen neben der
+// Anmelderoute; ohne diese bliebe ein gerade gesperrter Zugang bis zum Ablauf
+// seines Cookies drin. 401 und nicht 403: der Zugang gilt nicht mehr.
 function requireAuth(req, res, next) {
   const token = parseCookies(req)[COOKIE_NAME];
   const benutzer = sitzungsBenutzer(token);
@@ -1611,7 +1504,7 @@ module.exports = {
   sitzungsKennung, sitzungenVon, beendeSitzung, beendeAndereSitzungen,
   TOKEN_TAGE, TOKEN_SPUR_TAGE, TOKEN_ZWECKE, TOKEN_FRIST_MINUTEN, tokenHash,
   raeumeTokensAuf, erzeugeToken, pruefeToken, loeseTokenEin, beginneTokenFrist,
-  // Die Selbstanmeldung, 0.9.1; Rufer ist server.js.
+  // Die Selbstanmeldung; Rufer ist server.js.
   ANFRAGE_STUNDEN, ANFRAGE_DECKEL, ANFRAGE_NAME_MAX, ANFRAGE_MAIL_MAX,
   zaehleAnfragen, raeumeAnfragenAuf,
   legeAnfrageAn, bestaetigeAnfrage, listeAnfragen, holeAnfrage, entferneAnfrage,
@@ -1620,7 +1513,7 @@ module.exports = {
   protokolliere, raeumeProtokollAuf, leseProtokoll,
   // Die zweite Bestaetigung.
   BESTAETIGUNG_ZWECKE, FREIGABE_MS, erzeugeFreigabe, verbraucheFreigabe, verwirfFreigabe,
-  // Der zweite Faktor, 0.10.0; Rufer sind server.js und zugang.js.
+  // Der zweite Faktor; Rufer sind server.js und zugang.js.
   ZWEITER_FAKTOR_ABSAGE, ANMELDE_AUSWEIS_MS,
   zweifaktorAn, zweifaktorStand, beginneZweifaktor, schalteZweifaktorEin,
   pruefeZweitenFaktor, erneuereWiederCodes, schalteZweifaktorAus,

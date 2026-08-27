@@ -4268,8 +4268,9 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   `main` hat den Fingerprint `cb73399d`; die laufende Anlage trug `3cf1b093`.
   Dazwischen liegt die Nacharbeit an Marke und Anmeldekarte. **Solange das so
   steht, lässt sich `3cf1b093` keiner veröffentlichten Nummer zuordnen** — das
-  ist der Betriebsstand. *Was daraus folgen könnte — eine Nummer `0.9.2` —,
-  steht als Vorschlag im Sammelblatt und ist nicht beschlossen.*
+  ist der Betriebsstand. *Eine eigene Nummer dafür kommt nicht mehr in Frage:
+  seit 0.10.0 und 0.11.0 wäre sie älter als das Laufende. Wie es aufgelöst
+  werden kann, steht im Sammelblatt.*
 
 ### Der Proxy, und was daran noch fehlt
 

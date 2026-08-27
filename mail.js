@@ -3,40 +3,36 @@ const nodemailer = require('nodemailer');
 
 /* ================= Der Mailversand =================
 
-   DIE ERSTE VERBINDUNG NACH DRAUSSEN. Bis 0.8.91 hat die Anlage nur auf
-   Anfragen geantwortet; ab hier baut sie von sich aus eine Verbindung zu einem
-   fremden Server auf. Das ist eine Aenderung der Betriebsart und nicht eine
-   weitere Funktion -- jede Entscheidung in dieser Datei steht unter dieser
+   DIE EINZIGE VERBINDUNG NACH DRAUSSEN. Die Anlage antwortet sonst nur auf
+   Anfragen; hier baut sie von sich aus eine Verbindung zu einem fremden
+   Server auf. Jede Entscheidung in dieser Datei steht unter dieser
    Ueberschrift.
 
-   UND DER SATZ, DER UEBER ALLEM STEHT: jeder Link, der verschickt wird, ist im
-   Verwaltungsbereich zusaetzlich zum Kopieren sichtbar. Schlaegt der Versand
-   fehl, bricht nichts ab. E-MAIL IST EINE BEQUEMLICHKEIT, KEINE VORAUSSETZUNG
-   -- eine Anlage ohne Mailzugang laeuft vollstaendig. Deshalb wirft in dieser
-   Datei NICHTS nach aussen: versende() liefert ein Ergebnis, nie eine
-   Ausnahme, und der Aufrufer schreibt seine Antwort ohnehin.
+   E-MAIL IST EINE BEQUEMLICHKEIT, KEINE VORAUSSETZUNG -- eine Anlage ohne
+   Mailzugang laeuft vollstaendig. Jeder Link, der verschickt wird, ist im
+   Verwaltungsbereich zusaetzlich zum Kopieren sichtbar; schlaegt der Versand
+   fehl, bricht nichts ab. Deshalb wirft in dieser Datei NICHTS nach aussen:
+   versende() liefert ein Ergebnis, nie eine Ausnahme.
 
-   NUR AUSGEHEND. Kein Empfang, kein offener Port, kein Abholen.
+   NUR AUSGEHEND: kein Empfang, kein offener Port, kein Abholen.
 
    IMMER UEBER DEN SMTP-ZUGANG EINES ANBIETERS, nie unmittelbar vom
-   Hausanschluss: dort fehlen rDNS und SPF/DKIM, und die Mail landet im besten
-   Fall im Spam. Deshalb die Vorlagen unten und kein eigener Versandweg. */
+   Hausanschluss -- dort fehlen rDNS und SPF/DKIM, und die Mail landet im
+   besten Fall im Spam. */
 
 /* ---- Die Anbietervorlagen ----
-   NACH DEM MUSTER DER SUCHANBIETER (server.js): eine gepflegte Liste im
-   Quelltext, kein Freitext. Der Server speichert einen Schluessel, also muss
-   er die Liste kennen -- eine Liste, eine Pruefung, eine Stelle.
+   Eine gepflegte Liste im Quelltext, kein Freitext: der Server speichert
+   einen Schluessel, also muss er die Liste kennen.
 
-   'eigen' STEHT MIT IN DER LISTE UND IST DOCH KEINE VORLAGE: dort traegt der
-   Eigentuemer Server, Port und Verschluesselung selbst ein. Es als Fehlen
-   eines Eintrags zu bauen waere eine zweite Wahrheit daneben -- die Frage
-   "welcher Anbieter" haette dann zwei Antwortarten.
+   'eigen' STEHT MIT IN DER LISTE UND IST DOCH KEINE VORLAGE -- dort traegt
+   der Eigentuemer Server, Port und Verschluesselung selbst ein. Es als Fehlen
+   eines Eintrags zu bauen haette der Frage "welcher Anbieter" zwei
+   Antwortarten gegeben.
 
-   PORT UND VERSCHLUESSELUNG GEHOEREN ZUSAMMEN und werden deshalb nicht
-   getrennt gepflegt: 465 ist von Anfang an verschluesselt (implizites TLS),
-   587 beginnt im Klartext und schaltet mit STARTTLS um. Ein Port ohne die
-   passende Angabe ergibt eine Verbindung, die entweder haengt oder im
-   Klartext bleibt. */
+   PORT UND VERSCHLUESSELUNG GEHOEREN ZUSAMMEN: 465 ist von Anfang an
+   verschluesselt (implizites TLS), 587 beginnt im Klartext und schaltet mit
+   STARTTLS um. Ein Port ohne die passende Angabe ergibt eine Verbindung, die
+   entweder haengt oder im Klartext bleibt. */
 const ANBIETER = [
   { schluessel: 'gmx',    name: 'GMX',           server: 'mail.gmx.net',       port: 587, sicher: false },
   { schluessel: 'web',    name: 'Web.de',        server: 'smtp.web.de',        port: 587, sicher: false },
@@ -60,53 +56,39 @@ const HINWEIS_IMMER =
   'Die Absenderadresse muss zum Konto gehören — über GMX lässt sich nicht als fremde Adresse senden.';
 
 /* ---- Die Frist ----
-   SMTP KANN MINUTENLANG NICHTS SAGEN, und nodemailers eigene Vorgaben sind
-   fuer einen Menschen vor dem Bildschirm unbrauchbar: zwei Minuten fuer die
-   Verbindung, dreissig Sekunden fuer den Gruss, ZEHN MINUTEN fuer den Socket.
+   SMTP KANN MINUTENLANG NICHTS SAGEN, und nodemailers Vorgaben sind fuer
+   einen Menschen vor dem Bildschirm unbrauchbar (bis zu zehn Minuten).
 
-   DIE ZAHL IST HERGELEITET, NICHT GERATEN. Ein vollstaendiges SMTP-Gespraech
-   ueber TLS sind rund acht Umlaeufe (Verbindung, TLS, Gruss, EHLO, AUTH,
-   MAIL FROM, RCPT TO, DATA/QUIT). Bei schlechten 300 ms Umlaufzeit ist das
-   unter drei Sekunden. VERSAND_MS gibt dem den achtfachen Abstand und bleibt
-   weit unter dem, was Browser und Proxy von sich aus abbrechen.
+   DIE ZAHL IST HERGELEITET: ein vollstaendiges SMTP-Gespraech ueber TLS sind
+   rund acht Umlaeufe; bei schlechten 300 ms sind das unter drei Sekunden.
+   VERSAND_MS gibt dem den achtfachen Abstand.
 
-   DIE AEUSSERE SCHRANKE IST DIE TRAGENDE, und sie ist keine Zierde neben den
-   drei Fristen darunter -- der Unterschied ist NACHGESTELLT und nicht
-   geglaubt: die drei sind Fristen je ABSCHNITT und eine auf UNTAETIGKEIT.
-   socketTimeout laeuft ab, wenn der Socket still liegt; jedes zugestellte Byte
-   setzt es zurueck. Ein Empfaenger, der alle drei Sekunden EIN Byte schickt und
-   nie antwortet, haelt es damit ewig am Leben -- gemessen: nach 45 Sekunden
-   haengt der Versand immer noch. Nur ein Wettlauf ueber dem GANZEN Versand ist
-   eine Frist auf die Gesamtdauer, und DER haelt die Zusage.
-   DIE DREI DARUNTER BLEIBEN TROTZDEM STEHEN: sie sind der schnellere Weg. Ein
-   toter Rechner scheitert damit nach sieben Sekunden statt nach zwanzig, und
-   die Meldung nennt den Abschnitt, an dem es klemmte. */
+   DIE AEUSSERE SCHRANKE IST DIE TRAGENDE, und der Unterschied ist
+   NACHGESTELLT: die drei Fristen darunter sind Fristen je ABSCHNITT und eine
+   auf UNTAETIGKEIT. socketTimeout laeuft ab, wenn der Socket still liegt --
+   ein Empfaenger, der alle drei Sekunden EIN Byte schickt, haelt ihn ewig am
+   Leben (gemessen: nach 45 Sekunden haengt der Versand noch). Nur ein
+   Wettlauf ueber dem GANZEN Versand ist eine Frist auf die Gesamtdauer.
+   DIE DREI DARUNTER BLEIBEN TROTZDEM STEHEN: sie sind der schnellere Weg und
+   nennen den Abschnitt, an dem es klemmte. */
 const VERSAND_MS = 20 * 1000;
 const VERBINDUNG_MS = 7 * 1000;
 const GRUSS_MS = 7 * 1000;
 
 /* ---- Was in settings liegt ----
    DER MAILZUGANG GEHOERT DEM EIGENTUEMER, NICHT DEM ADMIN, und das ist die
-   tragende Entscheidung dieser Datei. Der SMTP-Server sieht JEDE Mail, die
-   durch ihn geht, und jede dieser Mails traegt einen Link, der ein Passwort
-   setzt. Duerfte ein ADMIN den Server eintragen, liefe die Ruecksetzmail des
-   Eigentuemers ueber einen Server seiner Wahl -- genau der Weg an der
-   Rollenleiter vorbei, den es nicht geben darf. Ueber dem Eigentuemer steht
-   niemand: wer ohnehin den ganzen Bestand exportieren und den Schluesselwert
-   sehen darf, gewinnt durch einen umgebogenen Mailserver nichts dazu.
+   tragende Entscheidung dieser Datei: der SMTP-Server sieht JEDE Mail, und
+   jede traegt einen Link, der ein Passwort setzt. Duerfte ein ADMIN den
+   Server eintragen, liefe die Ruecksetzmail des Eigentuemers ueber einen
+   Server seiner Wahl.
 
-   ER LIEGT IN settings UND NICHT IN DER .env, und das ist eine Abweichung vom
-   Auftrag dieser Runde, ausdruecklich so entschieden. Die Begruendung ist
-   dieselbe wie fuer jede andere Adminsache in Abschnitt 11 des Projektstands:
-   die .env traegt, was VOR dem Oeffnen der Datenbank lesbar sein muss, und der
-   Mailzugang muss das nicht. Zwei Dinge kommen hinzu -- das Mailpasswort liegt
-   damit in der VERSCHLUESSELTEN Datenbank statt unverschluesselt auf dem Wirt,
-   und die Exportdatei traegt settings nicht mit (der Export packt Eintraege).
+   ER LIEGT IN settings UND NICHT IN DER .env: die .env traegt, was VOR dem
+   Oeffnen der Datenbank lesbar sein muss, und der Mailzugang muss das nicht.
+   Damit liegt das Mailpasswort in der VERSCHLUESSELTEN Datenbank, und die
+   Exportdatei traegt settings nicht mit.
 
-   DER SCHLUESSEL IST EINER UND NICHT SECHS: eine Zeile in settings mit einem
-   Objekt darin. Sechs Schluessel waeren sechs Stellen, an denen ein halb
-   geschriebener Zugang entstehen kann -- und ein Zugang mit Server, aber ohne
-   Passwort, ist kein Zustand, den es geben soll. */
+   DER SCHLUESSEL IST EINER UND NICHT SECHS: sechs waeren sechs Stellen, an
+   denen ein halb geschriebener Zugang entstehen kann. */
 const SCHLUESSEL = 'mailzugang';
 
 const LEER = { anbieter: '', server: '', port: 0, sicher: false, benutzer: '', passwort: '', absender: '' };
@@ -215,22 +197,19 @@ function marke(roh) {
 }
 
 /* ---- Der Versand selbst ----
-   LIEFERT EIN ERGEBNIS, WIRFT NIE. Das ist die bauliche Form des Satzes
-   "E-Mail ist eine Bequemlichkeit": ein Aufrufer, der ein try/catch vergisst,
+   LIEFERT EIN ERGEBNIS, WIRFT NIE: ein Aufrufer, der ein try/catch vergisst,
    koennte sonst den Tokenweg mitreissen -- und der Token ist die Sache, die
    auf jeden Fall entstehen muss.
 
-   REINER TEXT, KEIN HTML, KEINE BILDER, KEINE ANHAENGE. Eine Mail, die ein
-   Passwortsetzen ankuendigt, hat keinen Grund, etwas nachzuladen; ein
-   Zaehlpixel waere ausgerechnet dort eine Rueckmeldung an einen Dritten.
+   REINER TEXT, KEIN HTML, KEINE BILDER, KEINE ANHAENGE. Ein Zaehlpixel waere
+   ausgerechnet in einer Mail, die ein Passwortsetzen ankuendigt, eine
+   Rueckmeldung an einen Dritten.
 
-   DER LINK STEHT IM ROHEN BRIEF UMBROCHEN, UND DAS IST RICHTIG SO -- wer es
-   fuer einen Fehler haelt, macht es schlimmer. Der Rumpf geht als
-   quoted-printable hinaus, und dessen Zeilen enden spaetestens bei 76 Zeichen;
-   die Adresse ist mit dem Schluessel laenger und bekommt deshalb einen WEICHEN
-   Umbruch (`=` am Zeilenende). Jedes Mailprogramm setzt ihn beim Anzeigen
-   wieder zusammen -- nachgestellt, nicht geglaubt. Wer im Pruefstand am rohen
-   Brief nach dem Schluessel sucht, findet ihn deshalb nicht: dort wird
+   DER LINK STEHT IM ROHEN BRIEF UMBROCHEN, UND DAS IST RICHTIG SO: der Rumpf
+   geht als quoted-printable hinaus, dessen Zeilen enden bei 76 Zeichen, und
+   die Adresse bekommt deshalb einen WEICHEN Umbruch (`=` am Zeilenende). Jedes
+   Mailprogramm setzt ihn beim Anzeigen wieder zusammen. Wer im Pruefstand am
+   rohen Brief nach dem Schluessel sucht, findet ihn nicht -- dort wird
    dekodiert, wie ein Empfaenger es auch tut (Stolperstein 90). */
 function baueVersender(z) {
   return nodemailer.createTransport({
@@ -331,19 +310,16 @@ function textRuecksetzung({ titel, username, link, tage, minuten }) {
   ].join('\n');
 }
 
-/* DER DRITTE ANLASS, seit 0.9.1 -- und er ist die benannte Ausnahme von
-   "es gibt genau zwei". Eine Benachrichtigung ist er nicht.
+/* DER DRITTE ANLASS -- die benannte Ausnahme von "es gibt genau zwei", und
+   keine Benachrichtigung.
 
    ER IST DER EINZIGE TEXT, DER AN JEMANDEN GEHEN KANN, DER NICHTS ANGEFORDERT
-   HAT, und danach ist er gebaut: die Adresse hat ein Fremder eingetippt, und
-   ob sie ihm gehoert, ist ja gerade die Frage. Deshalb steht der Satz "dann
-   ist nichts zu tun" WEIT OBEN und nicht am Ende -- wer die Mail nicht
-   erwartet hat, soll ihn lesen, bevor er zum Link kommt.
+   HAT: die Adresse hat ein Fremder eingetippt, und ob sie ihm gehoert, ist ja
+   gerade die Frage. Deshalb steht der Satz "dann ist nichts zu tun" WEIT OBEN
+   und nicht am Ende.
 
-   DER LINK HAT KEINE PASSWORTKRAFT, und der Text sagt es ausdruecklich. Er
-   sagt auch, was danach kommt: ein Mensch entscheidet. Eine Mail, die nach
-   einem Klick verlangt, ohne zu sagen, was der Klick bewirkt, ist genau die
-   Sorte Mail, vor der man Leute warnt. */
+   DER LINK HAT KEINE PASSWORTKRAFT, und der Text sagt es ausdruecklich -- samt
+   dem, was danach kommt: ein Mensch entscheidet. */
 function textBestaetigung({ titel, username, link, stunden }) {
   return [
     `Hallo ${username},`,
