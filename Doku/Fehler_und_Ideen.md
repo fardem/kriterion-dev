@@ -842,13 +842,12 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 - **Zwei Dateisätze tragen die Nummer 0.9.1** *(0.9.1)*. Das veröffentlichte
   0.9.1 in `main` hat den Fingerprint `cb73399d`; die laufende Anlage trug
   `3cf1b093`. Dazwischen liegt die Nacharbeit an Marke und Anmeldekarte.
-  **Nach Semantic Versioning, Punkt 3, gehört darauf eine eigene Nummer:
-  `0.9.2`** — der Inhalt ist Fehlerbehebung und Aussehen, also PATCH. Nötig
-  wären `package.json`, ein Changelog-Eintrag mit Datum, die Zahlen in den
-  Papieren und der Tag `v0.9.2`. **Vorgeschlagen und nicht beschlossen;**
-  solange es offen ist, lässt sich jener Fingerprint keiner veröffentlichten
-  Nummer zuordnen.
-  *(Claude: nicht empfohlen — statt einer Nummer ein Satz im Changelog)*
+  **Eine Nummer `0.9.2` kommt dafür nicht mehr in Frage:** seither sind 0.10.0
+  und 0.11.0 herausgegangen, und die Anlage hat nur **eine** Reihe — eine Zahl,
+  die älter ist als das Laufende, spielt niemand ein. Offen bleibt allein die
+  Zuordnung: `3cf1b093` gehört zu keiner veröffentlichten Nummer.
+  *(Claude: nicht empfohlen — ein Satz im Changelog ordnet den Fingerprint dem
+  nachgearbeiteten 0.9.1 zu, das genügt)*
 
 ---
 
