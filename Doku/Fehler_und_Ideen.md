@@ -837,6 +837,50 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   wegerklärt, sondern nicht reproduziert.** Wer ihn wiedersieht, schreibt den
   Lauf vollständig mit. *(Claude: später — beobachten)*
 
+### Aus der Durchsicht für Telefon und Tablett
+
+*Kleinteiliges, das bei der Durchsicht gemessen und **bewusst stehen gelassen**
+wurde. Keines davon ist neu entstanden; jedes gab es vorher genauso.*
+
+- **Die Zeile einer Anmeldung läuft bei rund 1024 Pixeln aus ihrer Karte.**
+  Auf dem Telefon bricht sie seit der Durchsicht um; am Schreibtisch tut sie es
+  nicht, und in einem Fenster von 1024 Pixeln ist die Karte des Systembereichs
+  gerade schmal genug, dass die Zeile in ihrer eigenen Liste seitlich scrollt.
+  **Die Seite läuft nicht über** — es scrollt der Kasten, und das war vor der
+  Durchsicht genauso. Der saubere Weg wäre eine Behälterabfrage
+  (`@container`) statt einer Fensterabfrage: die Karte weiß dann selbst, wie
+  breit sie ist. *(Claude: empfohlen, aber als eigener Schritt — eine
+  Behälterabfrage ist ein neues Werkzeug im Stylesheet und gehört nicht
+  nebenbei hinein)*
+- **Eine Meldung kann auf dem Telefon die Vergleichsleiste verdecken.** Beide
+  sitzen unten, die Meldung liegt darüber. Sie steht 2,6 Sekunden und die
+  Leiste nur, solange etwas ausgewählt ist — der Fall ist selten und wieder
+  vorbei, bevor man ihn benennen kann. Der Fix wäre eine Abfrage `body:has(…)`.
+  *(Claude: später — der Aufwand steht nicht im Verhältnis)*
+- **Der Knopf „Vollbild" am Video sitzt auf einer ausgerechneten Textbreite**
+  (`right: 92px`, die Breite von „Ausschnitt" bei 100 Prozent Schrift). Bei
+  120 Prozent schieben sich die beiden Pillen übereinander. Der richtige Weg
+  ist ein gemeinsamer Behälter für die beiden statt zweier Abstände vom rechten
+  Rand. *(Claude: empfohlen — es ist eine kleine Umstellung im Markup)*
+- **Der Hinweis an der Zeitleiste kann auf schmalem Schirm hinauslaufen.** Er
+  steht mittig über seinem Punkt und bricht nicht um; am rechten Ende der Achse
+  ragt er hinaus. **Er erscheint nur beim Überfahren** — auf dem Finger gibt es
+  ihn gar nicht, dort öffnet die Berührung gleich den Eintrag. Es trifft also
+  nur ein schmales Fenster mit Maus. *(Claude: empfohlen — eine Deckelung der
+  Breite genügt)*
+- **Die Erklärung unter dem Ablegefeld spricht auf dem Telefon von Dingen, die
+  es dort nicht gibt** — „Klick aufs Foto", „mit Strg+V einfügen", „Blättern
+  mit ← →". Fünf Zeilen, von denen die Hälfte ins Leere geht, und sie stehen
+  zwischen dem Bild und der Beschreibung. **Das ist eine Frage an den Text und
+  nicht an das Stylesheet:** eine Fassung, die für beide gilt, wäre besser als
+  zwei Fassungen mit einer Weiche dazwischen. *(Claude: empfohlen)*
+- **Die Unteransichten haben keine Kopfzeile.** Eintrag, System, Offen und
+  Vergleich tragen nur „← Zurück zur Übersicht"; Suche, Menü und „+ Eintrag"
+  gibt es dort nicht. Am Schreibtisch fällt das kaum auf — auf einem Telefon
+  ist der Weg von einem Eintrag zur Suche zwei Griffe statt einem. **Eine
+  gemeinsame Kopfzeile für alle vier wäre der Umbau**, und er berührt vier
+  Aufbauten und deren Prüflagen. *(Claude: empfohlen, aber als eigene Runde)*
+
 ### An den Nummern
 
 - **Zwei Dateisätze tragen die Nummer 0.9.1** *(0.9.1)*. Das veröffentlichte

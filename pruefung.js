@@ -1467,6 +1467,145 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /\.lnum[^}]*min-width: *[0-9.]+em/.test(css));
 
   /* ---------------------------------------------------------------- */
+  gruppe('Handy und Tablett: die Staffel der Umbruchpunkte');
+
+  const indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+  const cssEng = css.replace(/\s+/g, ' ');
+
+  /* OHNE viewport-fit=cover IST JEDE ANGABE ZUR AUSSPARUNG EINE TOTE ZEILE:
+     env(safe-area-inset-*) liefert dann in jedem Browser null. Die beiden
+     gehoeren zusammen, und deshalb werden sie zusammen geprueft -- eine
+     Anlage, die Sicherheitsabstaende rechnet und den Bereich nie bekommt,
+     saehe aus wie eine, die es richtig macht. */
+  pruefe('Die Seite bekommt die ganze Flaeche, Aussparung eingeschlossen',
+    /<meta name="viewport"[^>]*viewport-fit=cover/.test(indexHtml),
+    (indexHtml.match(/<meta name="viewport"[^>]*>/) || ['(keine Zeile)'])[0]);
+  pruefe('Und das Stylesheet macht davon Gebrauch',
+    (cssEng.match(/env\(safe-area-inset-/g) || []).length >= 6,
+    String((cssEng.match(/env\(safe-area-inset-/g) || []).length));
+
+  /* Die Farbe der Browserleiste ist --bg und keine zweite Wahrheit. Ein
+     Meta-Element kann keine CSS-Variable lesen, also steht der Wert zweimal
+     da -- und genau deshalb wird er hier verglichen. */
+  const themeFarbe = (indexHtml.match(/<meta name="theme-color" content="([^"]+)"/) || [])[1];
+  const bgFarbe = (css.match(/--bg: *(#[0-9a-fA-F]+)/) || [])[1];
+  pruefe('Die Leiste des Browsers traegt die Farbe der Anlage',
+    !!themeFarbe && !!bgFarbe && themeFarbe.toLowerCase() === bgFarbe.toLowerCase(),
+    `${themeFarbe} gegen ${bgFarbe}`);
+
+  /* DREI UMBRUCHPUNKTE, MEHR NICHT -- und eine Deckelung dazu.
+     GEZAEHLT WIRD IN DEN BEDINGUNGEN DER MEDIENREGELN und nicht im ganzen
+     Stylesheet: `max-width` steht auch an gewoehnlichen Regeln (die
+     Anmeldekarte, der Dialog, das Suchfeld, die Schale), und die sind keine
+     Umbruchpunkte. Der erste Anlauf dieser Pruefung hat genau das verwechselt
+     und acht Zahlen gefunden, wo vier stehen.
+     DIE VIERTE ZAHL IST KEIN VIERTER UMBRUCHPUNKT: 960 ist die Deckelung der
+     Bedingung fuer das quer gehaltene Telefon -- sie haelt ein Tablett im
+     Querformat (1024 und mehr) davon fern und steht nie allein.
+     Die Zahl steht hier, damit ein wirklich neuer Umbruchpunkt auffaellt:
+     jede weitere Stelle ist ein weiterer Fall, den jemand im Kopf behalten
+     muss. 620 war einmal einer und ist mit dieser Runde verschwunden. */
+  const bedingungen = (css.match(/@media[^{]+\{/g) || []).join(' ');
+  const breiten = [...new Set((bedingungen.match(/max-width: *(\d+)px/g) || [])
+    .map(t => Number(t.match(/\d+/)[0])))].sort((a, b) => a - b);
+  pruefe('Es gibt genau drei Umbruchpunkte, dazu die Deckelung fuer quer',
+    breiten.join(',') === '700,860,960,1024', breiten.join(', '));
+  pruefe('Und 960 steht nie allein, sondern nur mit der Hoehe zusammen',
+    !/@media \(max-width: 960px\)/.test(bedingungen) &&
+    /\(max-height: 500px\) and \(max-width: 960px\)/.test(bedingungen),
+    bedingungen.slice(0, 200));
+
+  /* DIE BEDINGUNG "SCHMALER SCHIRM" STEHT ZWEIMAL -- im Stylesheet und in
+     app.js. Sie muss es: das Stylesheet entscheidet, WAS zu sehen ist, und
+     die Oberflaeche muss wissen, ob die Filter eingeklappt anfangen. Diese
+     Pruefung ist die Klammer darum: laufen die beiden auseinander, klappt die
+     Anlage Filter ein, deren Schalter gar nicht dasteht -- eine Liste, die
+     ohne sichtbaren Grund weniger zeigt. */
+  const schmalLiteral = (appQuelle.match(/const SCHMAL = '([^']+)'/) || [])[1];
+  pruefe('Die Oberflaeche kennt die Bedingung fuer den schmalen Schirm', !!schmalLiteral,
+    String(schmalLiteral));
+  pruefe('Und das Stylesheet benutzt woertlich dieselbe',
+    !!schmalLiteral && cssEng.includes('@media ' + schmalLiteral + ' {'),
+    String(schmalLiteral));
+
+  /* Die Grundstellung der neuen Bauteile MUSS vor den Medienregeln stehen:
+     gleiches Gewicht, spaetere Zeile gewinnt. Stuende sie dahinter, waere das
+     Menue auf dem Telefon dauerhaft unsichtbar und die vier Knoepfe daneben
+     dauerhaft in der Kopfzeile -- die Medienregel griffe nie. */
+  const grundContents = cssEng.indexOf('.mast-rest { display: contents; }');
+  const medienNone = cssEng.indexOf('.mast-rest { display: none;');
+  pruefe('Der Behaelter des Menues ist auf dem breiten Schirm nicht da',
+    grundContents >= 0, String(grundContents));
+  pruefe('Und seine Grundstellung steht VOR der Medienregel',
+    grundContents >= 0 && medienNone > grundContents, `${grundContents} gegen ${medienNone}`);
+
+  /* Der Kern der Runde: auf dem Telefon ist ein Block kein Kasten mehr,
+     sondern ein Abschnitt. Ohne diese Regel stehen Kaesten in Kaesten, und
+     die Kommentarkarte sitzt 36 Pixel weiter innen als der Bildbereich
+     darueber -- genau die Beschwerde, aus der diese Runde entstanden ist. */
+  pruefe('Auf dem Telefon verliert der Block seinen Rahmen',
+    /\.block \{ background: none; border: 0; border-top: 1px solid var\(--line\); border-radius: 0;/.test(cssEng),
+    (cssEng.match(/\.block \{ background: none;[^}]*\}/) || ['(keine Regel)'])[0]);
+  pruefe('Und die Karte des Systembereichs ebenso',
+    /\.sys-card \{ background: none; border: 0; border-top: 1px solid var\(--line\);/.test(cssEng));
+
+  /* minmax(0, 1fr) und NICHT 1fr. `1fr` heisst `minmax(auto, 1fr)`, und
+     `auto` laesst EINE lange Verwaltungszeile die ganze Spalte auf 404 Pixel
+     ziehen -- in einem Fenster von 390. Der Browser erweitert daraufhin still
+     den sichtbaren Bereich, und der ganze Systembereich steht rechts
+     angeschnitten da. Gemessen, nicht vermutet. */
+  pruefe('Die Spalte des Systembereichs darf auf null schrumpfen',
+    /\.sys-grid \{ grid-template-columns: minmax\(0, 1fr\); gap: 0; \}/.test(cssEng),
+    (cssEng.match(/\.sys-grid \{[^}]*\}/g) || []).join(' | '));
+
+  /* Die Groesse der Ziele haengt am ZEIGER und nicht an der Breite: ein
+     Tablett im Querformat ist breit UND wird mit dem Finger bedient. Stuenden
+     die Masse unter max-width, ginge genau dieses Geraet leer aus. */
+  const fingerBlock = (cssEng.match(/@media \(pointer: coarse\) \{.*?\n?/) || [''])[0];
+  pruefe('Es gibt einen eigenen Abschnitt fuer den Finger',
+    cssEng.includes('@media (pointer: coarse) {'), fingerBlock);
+  pruefe('Und der Symbolknopf misst darin 44 Pixel',
+    /@media \(pointer: coarse\) \{[^@]*\.icon-btn \{ width: 44px; height: 44px; \}/.test(cssEng));
+
+  /* KEIN HINEINZOOMEN BEIM TIPPEN. Ein Eingabefeld unter 16 Pixeln laesst
+     Safari auf dem iPhone die ganze Seite heranzoomen -- und wieder heraus
+     tut sie es nicht von selbst. Geprueft wird, dass die Untergrenze in einer
+     Funktion steht: eine blanke Pixelzahl waere ein zweites Grundmass neben
+     dem am Wurzelelement, und die Pruefung darueber faellt darauf. */
+  pruefe('Eingabefelder fallen auf dem Finger nicht unter die Zoomgrenze',
+    (cssEng.match(/font-size: max\(16px, 1rem\)/g) || []).length >= 2,
+    String((cssEng.match(/font-size: max\(16px, 1rem\)/g) || []).length));
+  pruefe('Und die kleinen Felder stehen ausdruecklich mit dabei',
+    /\.input, \.input-sm, \.ta, \.select, \.select-sm/.test(cssEng));
+
+  /* Jede Sichtbarkeit, die an :hover haengt, braucht ihr Gegenstueck fuer den
+     Finger. Vor dieser Runde fehlte es an drei Stellen -- und der Blaetterpfeil
+     am Bildbereich war damit auf einem Telefon ueberhaupt nicht zu sehen:
+     man sah das erste Foto und hatte keinen Weg zum zweiten. */
+  ['.vnav', '.vfocus', '.thumb .del'].forEach(w =>
+    pruefe(`Ohne Ueberfahren ist ${w} sichtbar`,
+      new RegExp('@media \\(hover: none\\) \\{ ' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{ opacity: 1; \\} \\}').test(cssEng),
+      cssEng.slice(Math.max(0, cssEng.indexOf(w)), cssEng.indexOf(w) + 80)));
+
+  /* Was sich beim Ueberfahren BEWEGT, bleibt auf dem Finger haengen: ein Tipp
+     setzt :hover, und niemand nimmt ihn wieder weg. Die Karte, die man einmal
+     angetippt hat, stuende danach dauerhaft drei Pixel hoeher als ihre
+     Nachbarinnen. */
+  pruefe('Der angehobene Zustand der Karte bleibt auf dem Finger nicht haengen',
+    /@media \(hover: none\) \{ \.card:hover \{ transform: none;/.test(cssEng),
+    (cssEng.match(/@media \(hover: none\) \{ \.card:hover[^}]*\}/) || ['(keine Regel)'])[0]);
+
+  /* Die Vergleichsleiste stand mittig ueber `transform: translateX(-50%)` --
+     und daneben `animation: rise ... both`, das auf `transform: none` endet
+     und diesen Wert stehen laesst. Eine laufende Bewegung schlaegt jede
+     gewoehnliche Zeile: die Leiste sass mit ihrer LINKEN Kante in der Mitte.
+     Die Mitte gehoert deshalb ins Layout und nicht in eine Eigenschaft, die
+     sich die Bewegung teilt. */
+  const leiste = (cssEng.match(/\.cmp-bar \{[^}]*\}/) || [''])[0];
+  pruefe('Die Vergleichsleiste steht wirklich mittig',
+    /margin: 0 auto/.test(leiste) && !/transform: translateX/.test(leiste), leiste);
+
+  /* ---------------------------------------------------------------- */
   gruppe('Einstellungen: Vokabular und Schriftgroesse');
 
   const vorgabe = (await ruf('GET', '/api/settings')).inhalt;
@@ -19207,6 +19346,78 @@ async function pruefeOberflaeche() {
   // Neben dem Knopf zum Abmelden, nicht irgendwo in der Zeile.
   pruefe('Sie steht unmittelbar vor dem Knopf zum Abmelden',
     eWer?.nextElementSibling?.id === 'out', eWer?.nextElementSibling?.id);
+
+  /* --- Das Menue hinter den drei Strichen ------------------------------
+     ES IST EIN MARKUP UND ZWEI GESTALTEN. Auf dem breiten Schirm traegt der
+     Behaelter `display: contents` und ist fuer das Layout gar nicht da --
+     seine vier Kinder stehen unmittelbar in der Kopfzeile, in derselben
+     Reihenfolge wie vor dieser Runde. Auf dem Telefon wird derselbe
+     Behaelter zur Tafel. Geprueft wird deshalb HIER, an derselben Prueflage
+     wie die Zeile darueber: dass die vier wirklich noch alle da sind und in
+     der richtigen Ordnung stehen. Waeren sie beim Drehen des Geraets
+     umgehaengt worden, waere genau das die Stelle, an der es auffiele.
+     jsdom rechnet kein Layout; ob die Tafel sichtbar IST, prueft das
+     Stylesheet in der Gruppe "Handy und Tablett". Hier geht es um das
+     Markup und um das Verhalten. */
+  const eTafel = eKopf.w.document.getElementById('mast-rest');
+  const eZeichen = eKopf.w.document.getElementById('menue');
+  pruefe('Die Kopfzeile traegt das Menuezeichen', !!eZeichen);
+  pruefe('Und einen Behaelter fuer die vier, die dahinter wandern', !!eTafel);
+  pruefe('Darin stehen Offen, System, der Name und das Abmelden -- in dieser Reihenfolge',
+    !!eTafel && [...eTafel.children].map(k => k.id).join(',') === 'offen,sys,wer,out',
+    eTafel ? [...eTafel.children].map(k => k.id).join(',') : '(kein Behaelter)');
+  /* Die beiden Symbolknoepfe tragen ihr Wort mit: in der Kopfzeile ist es
+     unsichtbar, in der Tafel steht es neben dem Zeichen. Ein Zeichen allein
+     in einer Liste erklaert sich nicht, und auf dem Finger gibt es kein
+     Ueberfahren, das den Titel zeigen koennte. */
+  pruefe('Die Symbolknoepfe bringen ihr Wort fuer die Tafel mit',
+    !!eTafel && eTafel.querySelectorAll('.mast-wort').length === 2,
+    String(eTafel?.querySelectorAll('.mast-wort').length));
+  pruefe('Das Zeichen sagt zu Beginn, dass nichts offen ist',
+    eZeichen?.getAttribute('aria-expanded') === 'false',
+    eZeichen?.getAttribute('aria-expanded'));
+  eZeichen?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
+  pruefe('Ein Druck oeffnet die Tafel',
+    eTafel?.classList.contains('offen') && eZeichen?.getAttribute('aria-expanded') === 'true',
+    `${eTafel?.className} / ${eZeichen?.getAttribute('aria-expanded')}`);
+  // Ein Klick daneben schliesst -- eine Tafel, die nur ihr eigener Knopf
+  // wieder zumacht, steht im Weg, sobald man sie versehentlich geoeffnet hat.
+  eKopf.w.document.getElementById('body')
+    ?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
+  pruefe('Und ein Klick daneben schliesst sie wieder',
+    !eTafel?.classList.contains('offen') && eZeichen?.getAttribute('aria-expanded') === 'false',
+    `${eTafel?.className} / ${eZeichen?.getAttribute('aria-expanded')}`);
+
+  /* --- Der Schalter ueber den Filtern ---------------------------------
+     Er klappt die vier Filterreihen weg. DIE ZAHL DANEBEN IST DER GRUND,
+     warum das ueberhaupt zulaessig ist: eingeklappt sieht man sonst nicht,
+     dass gefiltert wird -- und eine Liste, die ohne sichtbaren Grund
+     unvollstaendig ist, ist ein Fehler und keine Ansicht. */
+  const eSchalter = eKopf.w.document.getElementById('filter-auf');
+  const eFilter = eKopf.w.document.getElementById('filters');
+  pruefe('Ueber den Filtern steht ein Schalter', !!eSchalter);
+  pruefe('Ohne gesetzten Filter nennt er keine Zahl',
+    eSchalter?.querySelector('.fz')?.textContent === '' && !eSchalter?.classList.contains('aktiv'),
+    JSON.stringify(eSchalter?.querySelector('.fz')?.textContent));
+  eSchalter?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
+  pruefe('Ein Druck klappt die Filter weg',
+    eFilter?.classList.contains('zu') && eSchalter?.getAttribute('aria-expanded') === 'false',
+    `${eFilter?.className} / ${eSchalter?.getAttribute('aria-expanded')}`);
+  eSchalter?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
+  pruefe('Und der naechste holt sie zurueck',
+    !eFilter?.classList.contains('zu'), eFilter?.className);
+  // Und die Zahl folgt der Filterstellung. Ein Klick auf "Getestet" ist EIN
+  // greifender Filter; die Sortierung zaehlt ausdruecklich nicht mit, sie
+  // nimmt nichts weg.
+  [...eKopf.w.document.querySelectorAll('#filters .pill')]
+    .find(b => b.textContent.trim() === 'Getestet')
+    ?.dispatchEvent(new eKopf.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  const eSchalter2 = eKopf.w.document.getElementById('filter-auf');
+  pruefe('Die Zahl am Schalter folgt der Filterstellung',
+    /1 aktiv/.test(eSchalter2?.querySelector('.fz')?.textContent || '') &&
+    eSchalter2?.classList.contains('aktiv'),
+    JSON.stringify(eSchalter2?.querySelector('.fz')?.textContent));
   eKopf.w.close();
 
   /* Ein Benutzername ist Eingabe, keine Konstante -- spitze Klammern duerfen

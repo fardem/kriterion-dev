@@ -61,6 +61,12 @@ const ICON_PH = `<svg class="ph" width="42" height="42" viewBox="0 0 24 24" fill
 // Eine Liste mit Haken -- das Zeichen fuer "was ist noch offen". Es steht
 // neben dem Zahnrad und traegt dieselbe Groesse wie dieses.
 const ICON_OFFEN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5l2 2 3-3.5"/><path d="M3.5 13l2 2 3-3.5"/><path d="M3.5 19.5l2 2 3-3.5"/><path d="M12.5 6.5H21"/><path d="M12.5 13H21"/><path d="M12.5 19.5H21"/></svg>`;
+/* DREI STRICHE. Es gibt kein besseres Zeichen fuer "hier ist noch mehr" --
+   nicht weil es gut waere, sondern weil es jeder kennt. Es steht NUR auf dem
+   schmalen Schirm; das entscheidet das Stylesheet, nicht diese Zeile.
+   Dieselbe Strichstaerke und dasselbe viewBox wie die beiden Nachbarn in der
+   Kopfzeile -- sie sollen wie ein Satz aussehen und nicht wie drei Herkuenfte. */
+const ICON_MENUE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>`;
 const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
 /* Die Marke der Anlage. EINE AUSGELIEFERTE DATEI statt eines eingebauten
@@ -1172,6 +1178,19 @@ function wendeSchriftAn() {
   document.documentElement.style.fontSize = (15 * SCHRIFT / 100).toFixed(2) + 'px';
 }
 
+/* DER SCHMALE SCHIRM, ALS FRAGE AN DEN BROWSER.
+   SIE STEHT WOERTLICH SO AUCH IM STYLESHEET, und das ist die einzige Stelle
+   in der ganzen Anlage, an der eine Bedingung zweimal geschrieben steht. Es
+   geht nicht anders: das Stylesheet entscheidet, WAS zu sehen ist, und die
+   Oberflaeche muss wissen, ob die Filter beim Aufbau eingeklappt anfangen
+   sollen -- eine Frage, die nur der Browser beantworten kann. Wer eine der
+   beiden Zahlen aendert, aendert die andere mit; im Stylesheet steht dieselbe
+   Zeile unter der Ueberschrift "DAS TELEFON".
+   WARUM ZWEI BEDINGUNGEN: ein Telefon quer ist 850 bis 930 Pixel breit und
+   keine 500 hoch. Nach der Breite allein waere es ein Tablett. */
+const SCHMAL = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';
+const istSchmal = () => !!(window.matchMedia && window.matchMedia(SCHMAL).matches);
+
 /* ================= Zustand ================= */
 /* DIE VORGABESTELLUNG DER FILTER STEHT GENAU EINMAL -- sonst laufen die
    Abschriften auseinander, sobald jemand einen Filter ergaenzt. */
@@ -1616,12 +1635,39 @@ async function renderList() {
         <input class="input" id="q" placeholder="Suchen …" value="${esc(state.search)}">
         <button class="clr" id="qclr" title="Suche leeren" style="display:none">✕</button>
       </div>
-      <button class="icon-btn" id="offen" title="Offene ${esc(V.aufgabeMehrzahl)}">${ICON_OFFEN}</button>
-      <button class="icon-btn" id="sys" title="Systembereich">${ICON_SYS}</button>
-      <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>
-      <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>
+      ${/* DIE VIER, DIE AUF DEM TELEFON HINTER DAS ZEICHEN WANDERN, stehen in
+           einem eigenen Behaelter -- und sie stehen dort AUCH auf dem breiten
+           Schirm. Der Behaelter traegt dann `display: contents` und ist fuer
+           das Layout gar nicht da: seine Kinder sitzen unmittelbar in der
+           Kopfzeile, mit deren Abstaenden, in derselben Reihenfolge wie vor
+           dieser Runde.
+           EIN MARKUP, ZWEI GESTALTEN. Die Knoepfe beim Drehen des Geraets
+           umzuhaengen waere der andere Weg gewesen, und er waere der
+           schlechtere: jeder verschobene Knoten verliert seine Zusagen, und
+           es gibt keinen Ort, an dem sich das einmal richtig machen liesse.
+           WER ANGEMELDET IST, STEHT WEITERHIN UNMITTELBAR VOR DEM ABMELDEN.
+           Das ist keine Formsache: die Angabe erklaert den Knopf daneben, und
+           getrennt erklaerte sie nichts mehr. */''}
+      <div class="mast-rest" id="mast-rest">
+        <button class="icon-btn" id="offen" title="Offene ${esc(V.aufgabeMehrzahl)}">${ICON_OFFEN}<span class="mast-wort">Offene ${esc(V.aufgabeMehrzahl)}</span></button>
+        <button class="icon-btn" id="sys" title="Systembereich">${ICON_SYS}<span class="mast-wort">Systembereich</span></button>
+        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>
+        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>
+      </div>
       <button class="btn btn-accent" id="new">+ ${esc(V.sacheEinzahl)}</button>
+      ${/* Das Zeichen steht IM Markup hinter dem Anlegen-Knopf, damit es auf
+           dem Telefon rechts aussen sitzt -- dort, wo ein Menuezeichen
+           hingehoert. Auf dem breiten Schirm ist es unsichtbar, die Stelle im
+           Markup fuer die Tastatur aber trotzdem die letzte, und das ist
+           richtig: es fuehrt nirgendwohin, was nicht schon dasteht. */''}
+      <button class="icon-btn mast-menue" id="menue" aria-expanded="false"
+        aria-controls="mast-rest" aria-label="Menü öffnen" title="Menü">${ICON_MENUE}</button>
     </div>
+    ${/* Nur auf dem schmalen Schirm sichtbar. Die Zahl daneben nennt die
+         Filter, die gerade greifen -- ohne sie waere eine eingeklappte
+         Filterreihe eine Liste, die aus unerfindlichem Grund weniger zeigt. */''}
+    <button class="btn btn-sm filter-schalter" id="filter-auf"
+      aria-expanded="true" aria-controls="filters">Filter<span class="fz" id="filter-zahl"></span></button>
     <div class="filters" id="filters"></div>
     <div id="zeitleiste"></div>
     <div id="body"></div>
@@ -1641,9 +1687,79 @@ async function renderList() {
   qclr.onclick = () => { q.value = ''; state.search = ''; syncSuchknopf(); sucheAngestossen(); q.focus(); };
   syncSuchknopf();
 
+  /* ---- Die Tafel hinter dem Menuezeichen ----
+     Sie wird ueber EINE Klasse geoeffnet und geschlossen; ob sie ueberhaupt
+     eine Tafel ist oder als vier Knoepfe in der Kopfzeile steht, entscheidet
+     allein das Stylesheet. Die Oberflaeche weiss davon nichts und muss es
+     auch nicht wissen -- deshalb gibt es hier keine Abfrage der Fensterbreite
+     und nichts, was beim Drehen des Geraets nachgezogen werden muesste.
+     aria-expanded wird mitgefuehrt, weil das Zeichen sonst ein Knopf ohne
+     Auskunft waere: ein Vorleseprogramm saehe drei Striche und keinen
+     Zustand. */
+  const menue = document.getElementById('menue');
+  const tafel = document.getElementById('mast-rest');
+  const menueStellen = (auf) => {
+    tafel.classList.toggle('offen', auf);
+    menue.setAttribute('aria-expanded', auf ? 'true' : 'false');
+    menue.setAttribute('aria-label', auf ? 'Menü schließen' : 'Menü öffnen');
+  };
+  menue.onclick = () => menueStellen(!tafel.classList.contains('offen'));
+
+  /* EIN KLICK DANEBEN SCHLIESST, UND ESCAPE AUCH. Beides haengt am Dokument
+     und nicht an der Tafel: eine Tafel, die sich nur ueber ihren eigenen
+     Knopf schliessen laesst, steht im Weg, sobald man sie versehentlich
+     geoeffnet hat -- und das passiert auf einem Telefon staendig.
+     Der Klick auf das Zeichen selbst faellt heraus, sonst schloesse der
+     Behandler hier die Tafel im selben Zug wieder zu, in dem der Knopf sie
+     geoeffnet hat.
+     BEIDE WERDEN BEIM VERLASSEN DER ANSICHT ABGERAEUMT. app.innerHTML nimmt
+     die Elemente weg, die Zusagen am Dokument bleiben sonst liegen und
+     sammeln sich mit jedem Aufruf der Uebersicht. */
+  const menueDaneben = (e) => {
+    if (e.target.closest('#menue') || e.target.closest('#mast-rest')) return;
+    menueStellen(false);
+  };
+  const menueTaste = (e) => { if (e.key === 'Escape') menueStellen(false); };
+  document.addEventListener('click', menueDaneben);
+  document.addEventListener('keydown', menueTaste);
+
+  /* ---- Der Schalter ueber den Filtern ----
+     AUF DEM SCHMALEN SCHIRM FANGEN DIE FILTER EINGEKLAPPT AN. Vier Reihen mit
+     Beschriftungen und Pillen fuellten dort den ganzen ersten Bildschirm,
+     bevor der erste Eintrag zu sehen war -- und die Uebersicht ist die Liste,
+     nicht ihre Einstellung.
+     GEFRAGT WIRD DIESELBE BEDINGUNG WIE IM STYLESHEET (siehe SCHMAL): der
+     Schalter ist dort und nur dort sichtbar, wo hier eingeklappt wird. Ohne
+     die Frage saesse ein breites Fenster vor eingeklappten Filtern und
+     haette keinen sichtbaren Knopf, sie zu oeffnen. */
+  const filterKasten = document.getElementById('filters');
+  if (istSchmal()) filterKasten.classList.add('zu');
+  document.getElementById('filter-auf').onclick = () => {
+    const warZu = filterKasten.classList.contains('zu');
+    filterKasten.classList.toggle('zu');
+    /* BEIM AUFKLAPPEN WIRD NEU GEZEICHNET, beim Einklappen nicht.
+       Der Grund steht bei begrenzeWolke(): die Tagwolke wird auf eine Zeile
+       begrenzt, und die Zeilenhoehe wird an der ERSTEN Marke GEMESSEN statt
+       geraten -- sie haengt an der eingestellten Schriftgroesse. Ein
+       eingeklappter Kasten misst null, und begrenzeWolke() steigt dann
+       ausdruecklich aus, ohne etwas zu setzen. Waere die Wolke also beim
+       Aufbau der Ansicht hinter einem eingeklappten Filterbereich gezeichnet
+       worden, staende sie nach dem Aufklappen unbegrenzt da: alle Marken auf
+       einmal, und der Knopf "mehr" fehlte.
+       DAS IST DERSELBE ZWEITE WEG, den das Einklappen eines Blocks in der
+       Detailansicht ueber wolkeNeuzeichnen geht -- dieselbe Falle, dieselbe
+       Antwort. Beim Einklappen gibt es nichts zu messen und nichts zu holen. */
+    if (warZu) drawFilters();
+    else zeichneFilterSchalter();
+  };
+
   // "/" springt in die Suche
   document.addEventListener('keydown', listKeys);
-  window.addEventListener('hashchange', () => document.removeEventListener('keydown', listKeys), { once: true });
+  window.addEventListener('hashchange', () => {
+    document.removeEventListener('keydown', listKeys);
+    document.removeEventListener('click', menueDaneben);
+    document.removeEventListener('keydown', menueTaste);
+  }, { once: true });
 
   drawFilters(); drawBody();
   /* STAND SCHON EIN BEGRIFF IM FELD, wird er jetzt gefragt. Der Begriff
@@ -1659,6 +1775,43 @@ function listKeys(e) {
   if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
   if (document.querySelector('.backdrop')) return;
   if (e.key === '/') { e.preventDefault(); document.getElementById('q')?.focus(); }
+}
+
+/* WIE VIELE FILTER GERADE GREIFEN. Gezaehlt wird gegen FILTER_VORGABE und
+   nicht gegen eine zweite Liste -- die Vorgabe steht genau einmal, und wer
+   dort einen Filter ergaenzt, ergaenzt ihn hier mit.
+   DIE SORTIERUNG ZAEHLT AUSDRUECKLICH NICHT MIT. Die Zahl beantwortet die
+   eine Frage, die ein eingeklappter Filterbereich aufwirft: "warum sehe ich
+   nicht alles?" Eine andere Reihenfolge nimmt nichts weg, sie ordnet nur --
+   sie mitzuzaehlen hiesse, eine Vollstaendigkeit in Frage zu stellen, die
+   gar nicht angetastet ist.
+   Jeder gewaehlte Tag zaehlt einzeln: zwei Tags verkleinern die Menge
+   zweimal, und genau das soll die Zahl sagen. */
+function filterZahl() {
+  const f = state.filters, v = FILTER_VORGABE;
+  let n = 0;
+  if (f.tested !== v.tested) n++;
+  if (f.favorit) n++;
+  if (f.neu) n++;
+  if (f.categoryId != null) n++;
+  n += f.tagIds.length;
+  return n;
+}
+
+/* Der Schalter ueber den Filtern. Er wird bei jedem Neuzeichnen nachgefuehrt,
+   weil sich die Zahl mit jedem Klick auf eine Pille aendert -- und weil der
+   Schalter eingeklappt sonst eine veraltete Zahl truege, also genau dann
+   falsch waere, wenn er als einziger noch etwas sagt. */
+function zeichneFilterSchalter() {
+  const knopf = document.getElementById('filter-auf');
+  const box = document.getElementById('filters');
+  if (!knopf || !box) return;
+  const n = filterZahl();
+  const zu = box.classList.contains('zu');
+  knopf.querySelector('.fz').textContent = n ? `· ${n} aktiv` : '';
+  knopf.classList.toggle('aktiv', n > 0);
+  knopf.setAttribute('aria-expanded', zu ? 'false' : 'true');
+  knopf.title = zu ? 'Filter zeigen' : 'Filter einklappen';
 }
 
 function drawFilters() {
@@ -1881,6 +2034,11 @@ function drawFilters() {
     g5.appendChild(hin);
   }
   r5.appendChild(g5);
+
+  // Ganz zum Schluss, wenn state.filters steht: der Schalter nennt die Zahl
+  // der greifenden Filter, und die aendert sich mit jedem Klick auf eine
+  // Pille. Er steht ausserhalb von #filters und ueberlebt das Neuzeichnen.
+  zeichneFilterSchalter();
 }
 
 function drawBody() {
@@ -2008,13 +2166,39 @@ function drawZeitleiste(list) {
   });
 
   const jahre = box.querySelector('#zl-jahre');
-  jahresMarken(von, bis).forEach(m => {
+  const marken = jahresMarken(von, bis);
+  marken.forEach(m => {
     const s = document.createElement('span');
     s.className = 'zl-jahr';
     s.style.left = (m.anteil * 100) + '%';
     s.textContent = m.jahr;
     jahre.appendChild(s);
   });
+
+  /* NUR SO VIELE JAHRESZAHLEN, WIE NEBENEINANDER PASSEN.
+     Eine Marke je Jahr ist auf einem breiten Schirm richtig und auf einem
+     Telefon eine graue Wand: "2026" misst in der Festbreitenschrift rund 23
+     Pixel, die Achse ist dort 330 breit -- ab vierzehn Jahren stehen die
+     Zahlen uebereinander und keine einzige ist mehr zu lesen. Zwoelf lesbare
+     Jahreszahlen sagen mehr als dreissig unlesbare.
+     GEMESSEN, NICHT GERATEN: die Breite einer Zahl haengt an der
+     eingestellten Schriftgroesse (80 bis 120 Prozent). Deshalb werden erst
+     alle gebaut, dann wird die erste vermessen und dann wird ausgeduennt --
+     dasselbe Vorgehen wie in begrenzeWolke(), und aus demselben Grund.
+     Der Zwischenraum von einer halben Zahlbreite gehoert dazu: zwei
+     Jahreszahlen, die einander beruehren, sind eine achtstellige Zahl.
+     AUSGEDUENNT WIRD NUR DIE BESCHRIFTUNG. Die Punkte stehen alle da, wo sie
+     stehen -- an der Achse selbst aendert sich nichts, nur an ihrer
+     Beschriftung. Und bei einer Achse, die nichts zu verbergen hat (weniger
+     Jahre als Platz), ist der Schritt 1 und diese Rechnung folgenlos. */
+  const zahlBreite = jahre.firstElementChild ? jahre.firstElementChild.offsetWidth : 0;
+  const achsenBreite = jahre.clientWidth;
+  if (zahlBreite && achsenBreite && marken.length > 1) {
+    const passt = Math.max(1, Math.floor(achsenBreite / (zahlBreite * 1.5)));
+    const schritt = Math.ceil(marken.length / passt);
+    if (schritt > 1)
+      [...jahre.children].forEach((el, i) => { if (i % schritt) el.remove(); });
+  }
 }
 
 function zeigeHinweis(box, punkt, p) {
@@ -2777,7 +2961,19 @@ async function renderDetail(id) {
       </div>
 
       <div class="meta-col">
-        <div>
+        ${/* DER TITELBEREICH TRAEGT SEIT DIESER RUNDE EINEN NAMEN, und der
+             Name ist der ganze Zweck: auf einem Telefon steht er VOR dem
+             Bild. Ohne Klasse liesse er sich nicht ansprechen, und ohne
+             Ansprache muesste die Reihenfolge in app.js entschieden werden --
+             also von einem Aufbau, der die Fensterbreite gar nicht kennt.
+             WARUM DER TITEL NACH VORN GEHOERT: einspaltig steht sonst zuerst
+             das Bild, dann die Vorschaubilder, dann das Feld zum Hochladen
+             und dann sechs Zeilen Erklaerung dazu -- und erst danach erfaehrt
+             man, WELCHE Sache man da eigentlich ansieht. Auf einem breiten
+             Schirm faellt das nicht auf, weil beides nebeneinander steht.
+             Auf dem breiten Schirm aendert die Klasse nichts: sie traegt
+             dort keine einzige Regel. */''}
+        <div class="titel-kopf">
           <div class="title-line">
             <input class="title-in" id="title" value="${esc(item.title)}">
             <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${item.favorite ? 'Favorit entfernen' : 'Als Favorit markieren'}">${item.favorite ? '★' : '☆'}</button>
@@ -3149,6 +3345,48 @@ async function renderDetail(id) {
     document.removeEventListener('keydown', keyNav);
     document.removeEventListener('paste', onPaste);
   }, { once: true });
+
+  /* WISCHEN BLAETTERT, wie im Vollbild und mit denselben Massen (45 Pixel
+     waagerecht, und waagerecht muss deutlicher sein als senkrecht). Auf einem
+     Telefon ist der Wisch die Bewegung, die man ohne Nachdenken macht.
+     DIE PFEILE BLEIBEN TROTZDEM STEHEN -- sie sind seit dieser Runde auch auf
+     dem Finger sichtbar (siehe `@media (hover: none)` am `.vnav` im
+     Stylesheet). Der Wisch ist der bequeme Weg, der Pfeil der auffindbare;
+     eine Geste, die man nur durch Zufall entdeckt, ist keine Bedienung.
+     DIE ZUSAGEN HAENGEN AM BETRACHTER SELBST UND WERDEN GENAU EINMAL
+     GEGEBEN. drawViewer() ersetzt bei jedem Blaettern nur die KINDER von
+     #viewer; stuenden sie dort, kaeme mit jedem Bild ein weiteres Paar dazu,
+     und nach dem dritten Wisch spraenge die Ansicht um drei Bilder weiter.
+     Aus demselben Grund raeumt drawViewer() seine eigenen Zeigerbehandler von
+     Hand ab -- die hier sind die Ausnahme, weil sie nie ersetzt werden.
+     NICHT IM AUSSCHNITTMODUS: dort zieht der Finger den Rahmen des
+     Bildausschnitts, und ein Blaettern mittendrin verwuerfe die Einstellung.
+     passive: true, weil nichts verhindert wird: war der Wisch senkrecht
+     gemeint, scrollt die Seite weiter, als waere nichts gewesen. */
+  const buehne = document.getElementById('viewer');
+  const WISCH_WEG = 45;
+  let wischX = 0, wischY = 0, wischt = false;
+  buehne.addEventListener('touchstart', e => {
+    if (ausschnittModus || e.touches.length !== 1 || item.photos.length < 2) return;
+    /* NICHT AUF DEM ABSPIELER. Der steht als Kind im Bildbereich und bringt
+       seine eigene Steuerung mit -- Beruehrungen darauf steigen bis hierher
+       auf. Ohne diese Zeile ist jedes Ziehen am Schieberegler des Videos
+       zugleich ein Wisch: man will an eine andere Stelle im Film und landet
+       im naechsten Bild. Der Wisch gilt dem Blaettern zwischen Bildern, und
+       die Steuerung eines Videos ist kein Bild. */
+    if (e.target.closest('video')) return;
+    wischX = e.touches[0].clientX; wischY = e.touches[0].clientY; wischt = true;
+  }, { passive: true });
+  buehne.addEventListener('touchend', e => {
+    if (!wischt || ausschnittModus) return;
+    wischt = false;
+    const dx = e.changedTouches[0].clientX - wischX;
+    const dy = e.changedTouches[0].clientY - wischY;
+    if (Math.abs(dx) > WISCH_WEG && Math.abs(dx) > Math.abs(dy)) {
+      idx += dx < 0 ? 1 : -1;
+      drawViewer(); markThumb();
+    }
+  }, { passive: true });
 
   /* ---- Schalter ---- */
   function drawSwitches() {

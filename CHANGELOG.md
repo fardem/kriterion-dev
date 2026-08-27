@@ -41,6 +41,127 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 *Hier wird mitgeschrieben, während gebaut wird. Beim Herausgeben wird daraus
 ein Abschnitt mit Nummer und Datum.*
 
+**Die Oberfläche auf Telefon und Tablett — sie fühlt sich jetzt wie eine
+Anwendung an und nicht wie eine breite Seite, die man schmal gemacht hat.**
+
+> **AM SCHREIBTISCH ÄNDERT SICH NICHTS.** Nachgemessen und nicht behauptet: die
+> Übersicht ist bei 1100, 1280 und 1440 Pixeln **Pixel für Pixel dieselbe** wie
+> vorher. Auf der Detailseite gibt es genau **eine** gewollte Abweichung — die
+> zwei Pixel unter *Fixed*, erste Zeile. Es gibt keine zweite Oberfläche, keinen
+> zweiten Aufbau und keine Weiche nach der Kennung des Browsers.
+
+### Added
+
+- **Ein Menü hinter drei Strichen** in der Kopfzeile. Dahinter liegen offene
+  Aufgaben, Systembereich, wer angemeldet ist und das Abmelden. Draußen bleiben
+  die Suche (auf einem kleinen Bildschirm das wichtigste Bedienelement) und
+  „+ Eintrag" (der eine Weg, auf dem etwas Neues hereinkommt). Es schließt sich
+  beim Klick daneben und mit Escape. **Es gibt dasselbe Markup für beide
+  Gestalten:** auf dem breiten Schirm ist der Behälter für das Layout gar nicht
+  da, seine vier Kinder stehen unmittelbar in der Kopfzeile wie bisher.
+  *Das Menü bekommt auch ein Tablett, das mit dem Finger bedient wird — dort
+  passt die Kopfzeile mit Fingermaßen sonst nicht in eine Zeile.*
+- **Ein Schalter über den Filtern**, der die vier Filterreihen wegklappt und
+  **die Zahl der greifenden Filter nennt**. Auf dem Telefon fangen sie
+  eingeklappt an, auf dem Tablett offen. Die Sortierung zählt nicht mit: sie
+  nimmt nichts weg.
+- **Wischen blättert am Bildbereich** eines Eintrags, wie im Vollbild und mit
+  denselben Maßen. Die Pfeile bleiben trotzdem stehen.
+- **Die Aussparung des Geräts wird mitgerechnet** — Kopfzeile, Vollbild,
+  Meldungen, Vergleichsleiste und der Seitenrand. Dazu `viewport-fit=cover`
+  in der `index.html`.
+- **Die Leiste des Browsers nimmt die Farbe der Anlage** (`theme-color`).
+
+### Changed
+
+- **Auf dem Telefon ist ein Block kein Kasten mehr, sondern ein Abschnitt** —
+  ein Trennstrich darüber, ein Titel, der Inhalt. Damit bleibt genau **eine**
+  Kastenebene übrig, und die steht bündig unter dem Bild darüber. Vorher lagen
+  zwischen Bildschirmrand und erstem Buchstaben fünf Kanten und drei
+  Eckenradien; die Kommentarkarte saß 36 Pixel weiter innen als der Bildbereich.
+  *Dasselbe gilt für die Karten des Systembereichs.* Alles, was danach in
+  derselben Flucht steht, rundet mit **einem** Radius.
+- **Der Titel des Eintrags steht auf dem Telefon vor dem Bild.** Einspaltig kam
+  sonst zuerst das Foto, dann die Vorschaubilder, dann das Feld zum Hochladen
+  und sechs Zeilen Erklärung — und erst danach erfuhr man, welche Sache man
+  ansieht.
+- **Zwei Karten nebeneinander** in der Übersicht statt einer über die volle
+  Breite. Unter 334 Pixeln Fensterbreite fällt es von selbst auf eine zurück.
+  Auf dem Tablett sind es drei bis vier statt zwei.
+- **Dialoge steigen von unten auf** und liegen am unteren Rand an; die Knöpfe
+  stehen untereinander über die volle Breite, der eigentliche Vorgang oben.
+  Sie messen an der wirklich sichtbaren Fensterhöhe (`dvh`) und nicht an der
+  mitsamt Adressleiste.
+- **Der Kommentarkopf steht auf dem Telefon in zwei Zeilen**: oben Verfasser,
+  Zeitpunkt und die beiden Zeichen für Bearbeiten und Löschen, darunter die drei
+  Umschalter. In einer Zeile brach der Zeitpunkt mitten im Datum um.
+- **Berührungsziele richten sich nach dem Zeiger und nicht nach der Breite.**
+  Ein Tablett im Querformat ist breit *und* wird mit dem Finger bedient. Knöpfe,
+  Pillen, Sterne, Kreuze und die Punkte der Zeitleiste fallen unter
+  `pointer: coarse` größer aus; ein Zeigegerät sieht davon nichts.
+- **Eingabefelder fallen unter dem Finger nicht unter 16 Pixel.** Darunter zoomt
+  Safari auf dem iPhone beim Antippen die ganze Seite heran und wieder heraus
+  tut sie es nicht von selbst. *Wer die Schrift auf 80 Prozent stellt, bekommt
+  hier deshalb nicht ganz, was er wollte.*
+- **Die Jahreszahlen der Zeitleiste werden ausgedünnt**, wenn sie nicht
+  nebeneinander passen. Gemessen, nicht geraten — die Breite einer Zahl hängt an
+  der eingestellten Schriftgröße.
+- **Der Seitenrand ist auf dem Telefon 12 statt 24 Pixel.** 24 sind dort zwölf
+  Prozent der Breite, und sie stehen leer.
+- Das Sicherheitsprotokoll bricht unter derselben Bedingung um wie alles Übrige;
+  die eigene vierte Zahl (620 px) ist verschwunden. **Es gibt jetzt genau drei
+  Umbruchpunkte: 1024, 860 und 700.**
+
+### Fixed
+
+- **Ein Kommentar mit Art (Bericht, Aufgabe, Erledigt) verschob seinen Text um
+  zwei Pixel.** Die farbige Kante links ist 3 statt 1 Pixel breit und wächst bei
+  `border-box` nach innen; in einer gemischten Liste standen die Zeilenanfänge
+  abwechselnd auf zwei Linien. *Das ist die eine Stelle, an der sich am
+  Schreibtisch etwas ändert — und zwar zum Richtigen.*
+- **Die Vergleichsleiste stand nicht mittig.** Sie hing an
+  `transform: translateX(-50%)`, und daneben stand `animation: rise … both`;
+  `rise` endet auf `transform: none`, und eine laufende Bewegung schlägt in der
+  Rangfolge jede gewöhnliche Zeile. Nach 260 Millisekunden saß die Leiste also
+  mit ihrer **linken Kante** in der Mitte des Fensters.
+- **Der Systembereich lief auf dem Telefon rechts aus dem Bild.** Die einspaltige
+  Rasterspalte stand auf `1fr` — kurz für `minmax(auto, 1fr)` —, und `auto`
+  ließ eine einzige lange Verwaltungszeile die Spalte auf 404 Pixel ziehen, in
+  einem Fenster von 390. Der Browser erweiterte daraufhin still den sichtbaren
+  Bereich (gemessen: 421), und die Erklärungstexte standen mitten im Wort
+  angeschnitten da.
+- **Blätterpfeil, Ausschnittknopf und das Kreuz am Vorschaubild waren auf dem
+  Telefon unsichtbar** — sie hingen an `:hover`, und das gibt es dort nicht. Von
+  einem Eintrag mit mehreren Fotos sah man das erste und hatte keinen Weg zum
+  zweiten.
+- **Der angehobene Zustand einer Karte blieb auf dem Finger hängen.** Ein Tipp
+  setzt `:hover`, und niemand nimmt ihn wieder weg; wer aus dem Eintrag
+  zurückkam, sah eine Liste, in der genau eine Kachel schief stand.
+- **Die Zeile einer Anmeldung lief auf dem Telefon aus der Karte hinaus.**
+- **Reihen, die nicht umbrechen durften, brechen jetzt um:** die Knopfreihe unter
+  dem Kommentarfeld, die Kopfzeile eines Blocks, die Kennzahlenzeile der Karte.
+  Bei der Karte fallen dabei die Trennpunkte weg — ein Mittelpunkt am Zeilenende
+  trennt nichts mehr.
+- **Der graublaue Kasten, den Android bei jeder Berührung aufblitzen läßt**,
+  bleibt weg. Jeder Knopf dieser Anlage färbt sich selbst.
+- **Kein Warten mehr vor dem Klick** (`touch-action: manipulation`). Ausgenommen
+  ist das Vollbild: dort *ist* der zweite Tipp eine Bedeutung.
+- Das Vollbild reicht die Wischbewegung nicht mehr an die Seite dahinter weiter.
+- Die Vorschaureihe im Vollbild läßt sich bis zum ersten Bild scrollen.
+- Der lange Druck zum Umsortieren markiert keinen Text mehr.
+
+### Was du danach von Hand tun musst
+
+Nichts. Es ändert sich nur die Oberfläche; Datenbank, Austauschformat, die
+Schlüssel in der `.env` und die Werkzeuge auf dem Wirt sind unberührt.
+
+### Was gleich bleibt
+
+**Alles am Schreibtisch.** Dazu jede Bedienung, jeder Weg und jede Beschriftung:
+kein Bedienelement ist verschwunden, keines hat eine neue Bedeutung bekommen.
+Das Menü auf dem Telefon führt genau die vier Wege, die vorher in der Kopfzeile
+standen — an derselben Stelle im Markup und in derselben Reihenfolge.
+
 ---
 
 ## [0.11.0] - 2026-08-27
