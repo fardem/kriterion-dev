@@ -5223,6 +5223,36 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     schreibt daneben „zuletzt 4", und die Sortierung `testlast_desc` vergleicht
     Zahlen — beides hätte es verraten.
 
+170. **Eine Prüfung, die ein Feld ungeschützt liest, reißt den Lauf ab, wenn ein
+    Rückbau das Feld wegnimmt.** Die Zeile „Der Aufbau steht: ein Eintrag trägt
+    wirklich einen Testtag" las `vsMitTest.testDays.length`. Der Rückbau, der
+    `testDays` **gar nicht** mehr mitschickt, ließ den Zugriff werfen — und der
+    ganze Lauf riss ab, statt eine Prüfung rot zu färben. **Eine abgerissene
+    Gegenprobe belegt nichts:** sie sagt nicht, ob die Zusage geprüft ist, sie
+    sagt nur, dass niemand mehr weiterzählen konnte (Stolpersteine 138 und 161).
+    *Die Regel aus Stolperstein 81 gilt damit nicht nur für den Gegenstand,
+    sondern für jedes Feld, das eine Prüfung anfasst:* `(… || []).length` macht
+    aus dem Wurf ein `0 === 1`, und die Zeile sagt weiterhin dasselbe.
+
+171. **Ein Mock, der augenblicklich antwortet, kann eine Zusage über die
+    REIHENFOLGE nicht belegen.** Die Suche gibt jeder Anfrage eine laufende
+    Nummer, damit die Antwort auf „bo" die auf „bosch" nicht überschreibt. Der
+    Rückbau, der die Nummer entfernt, blieb **vollständig stumm** — der Mock
+    löste seine Antwort im selben Tick auf, und zwei Anfragen können sich dann
+    gar nicht überholen. **Die Zusage war gebaut und ließ sich nicht belegen.**
+    *Wer eine Aussage über Reihenfolge prüfen will, braucht eine stellbare
+    Verzögerung:* der Mock bekommt sie je Anfrage, und die Lage lässt die
+    ERSTE Antwort später eintreffen als die zweite.
+
+172. **Ein Zähler, der nur eine Teilmenge der Anfragen sieht, belegt nicht, dass
+    keine Anfrage entstand.** „Das Leeren der Suche kostet keine Anfrage" wurde
+    an der Zahl der Anfragen **mit `?q=`** gemessen. Der Rückbau, der beim
+    Leeren den ganzen Bestand neu holt, fragt `/api/items` **ohne** Parameter —
+    der Zähler bewegte sich nicht, und der Rückbau blieb stumm.
+    *Die Frage lautete „kostet es eine Anfrage" und nicht „kostet es eine
+    Suchanfrage".* Gezählt wird jetzt über alle Anfragen an die Liste. **Ein
+    Filter im Zähler ist eine stillschweigende Verengung der Zusage.**
+
 ---
 
 ## 7. Prüfstand

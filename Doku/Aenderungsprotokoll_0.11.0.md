@@ -526,8 +526,9 @@ bis 3140" trifft; das Fenster 3381–3400 fehlte darin.*
 
 ## 4. Befunde beim Bauen
 
-**Zehn Befunde. Vier davon berichtigen Zahlen oder Annahmen des Auftrags, zwei
-haben die Bauform entschieden, einer ist eine Lücke im Prüfstand.**
+**Dreizehn Befunde. Vier berichtigen Zahlen oder Annahmen des Auftrags, zwei
+haben die Bauform entschieden, und vier sind Lücken im Prüfstand — drei davon
+hat die Gegenprobe gefunden.**
 
 ### Befund A — der Auftrag lag beim Sitzungsbeginn nicht im Repo
 
@@ -644,12 +645,23 @@ von ihnen ist beendet" hält das fest. **Aber „eine Basis je Prüflage" war ni
 eine Trennung, sondern eine Buchführung**, und wer künftig zwei Lagen
 *gleichzeitig* offen hält, sollte das wissen.
 
+### Die drei Befunde aus der Gegenprobe
+
+Sie stehen ausgeschrieben in Abschnitt 8 und als Stolpersteine 170 bis 172 im
+Projektstand. **Kurz:** ein Rückbau riss den Lauf ab, weil eine Prüfung ein
+Feld ungeschützt las; zwei blieben stumm, weil der Mock augenblicklich
+antwortete und weil ein Zähler nur eine Teilmenge der Anfragen sah.
+**Alle drei waren echte Lücken im Prüfstand, keine Fehlalarme** — und der
+zweite ist der wertvollste: er hat eine Zusage aufgedeckt, die **gebaut und
+ungeprüft** war.
+
 ---
 
 ## 5. Neue Stolpersteine
 
 **Die Zählung setzt bei 164 fort; 159 bis 163 sind mit 0.10.0 vergeben.**
-Sechs Stück, ausgeschrieben im Projektstand, Abschnitt 6:
+Neun Stück, ausgeschrieben im Projektstand, Abschnitt 6 — **die letzten drei
+hat die Gegenprobe nachgefordert** (Abschnitt 8):
 
 | Nr. | Kurzfassung |
 |---:|---|
@@ -659,8 +671,17 @@ Sechs Stück, ausgeschrieben im Projektstand, Abschnitt 6:
 | **167** | Ein regulärer Ausdruck auf `body {` trifft `html, body {` zuerst. |
 | **168** | Zwei Rückbauten mit derselben Nummer sind im Namensfilter des Gegenprobentreibers nicht auseinanderzuhalten. |
 | **169** | Ein Feldname sagt nicht, was in dem Feld steht (`testLast` ist die letzte Note, kein Datum). |
+| **170** | Eine Prüfung, die ein Feld ungeschützt liest, reißt den Lauf ab, wenn ein Rückbau das Feld wegnimmt. |
+| **171** | Ein Mock, der augenblicklich antwortet, kann eine Zusage über die Reihenfolge nicht belegen. |
+| **172** | Ein Zähler, der nur eine Teilmenge der Anfragen sieht, belegt nicht, dass keine Anfrage entstand. |
 
-**166 ist der lehrreichste.** Eine Prüflage wollte warten, bis die Suche durch
+**171 ist der lehrreichste, und er kommt aus der Gegenprobe.** Eine Zusage über
+die *Reihenfolge* zweier Antworten lässt sich an einem Mock, der augenblicklich
+antwortet, überhaupt nicht prüfen — die beiden Anfragen können sich gar nicht
+überholen. Der Rückbau darauf blieb stumm, und damit war belegt: die Zeile war
+gebaut und ungeprüft. *Genau dafür gibt es die Gegenprobe.*
+
+**166 ist der zweitlehrreichste.** Eine Prüflage wollte warten, bis die Suche durch
 ist, und fragte `w.state.suchLaeuft`. `state` ist ein `const` auf oberster
 Ebene: `w.state` ist `undefined`, die Wartebedingung war sofort falsch, und die
 Schleife lief **nie** — sie sah aus wie eine Wartezeit und war keine.
@@ -837,6 +858,77 @@ sondern nur hoffen.
 
 **`warteSuche(w)`** — ein Wartehelfer, der auf die **sichtbare Wirkung**
 wartet und nicht auf eine Frist. Siehe Stolperstein 166.
+
+---
+
+## 8. Gegenprobentabelle
+
+**34 Rückbauten, gefahren über `gegenprobe.js` gegen einen committeten Stand** —
+jeder in einer eigenen Kopie aus `git archive HEAD`, der Arbeitsbaum bleibt
+unangetastet. Die Nummern laufen von **124 bis 157**; 125 Rückbauten werden
+**159**.
+
+**DREI FUNDE, UND ALLE DREI WAREN ECHT.** Der erste vollständige Lauf meldete
+einen **abgerissenen** und zwei **stumme** Rückbauten. Keiner davon war ein
+Fehlalarm — jeder hat eine Lücke im Prüfstand aufgedeckt:
+
+| Rückbau | Meldung | die Lücke | behoben |
+|---|---|---|---|
+| **137** — testDays fehlt immer | **LAUF ABGERISSEN** | „Der Aufbau steht: ein Eintrag trägt wirklich einen Testtag" las `vsMitTest.testDays.length` **ungeschützt**. Fällt das Feld weg, wirft der Zugriff — und der Lauf riss ab, statt eine Prüfung rot zu färben (Stolpersteine 138 und 161). | `(… \|\| []).length` — aus dem Wurf wird `0 === 1`, ein roter Punkt. Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81). |
+| **139** — die Reihenfolge der Antworten | **STUMM** | Der Mock antwortete **augenblicklich**; zwei Anfragen können sich dann gar nicht überholen. Die Zusage war gebaut und ließ sich **nicht belegen**. | Der Mock bekommt eine stellbare Bremse je Suchanfrage (`suchBremsen`), und eine neue Lage lässt die **erste** Antwort 400 ms später eintreffen als die zweite. |
+| **142** — das Leeren holt neu | **STUMM** | Der Zähler sah nur Anfragen mit `?q=`. Der Rückbau fragt aber `/api/items` **ohne** Parameter — die Zahl bewegte sich nicht. | Gezählt werden jetzt **alle** Anfragen an die Liste. Die Frage lautet „kostet das Leeren eine Anfrage", und die Antwort steht in dieser Zahl. |
+
+**Nach den drei Korrekturen: 0 stumm, 0 abgerissen.** Rückbau 137 färbt
+**sieben** Prüfungen rot, 139 und 142 je **eine** — und zwar genau die, die
+seine Zusage trägt.
+
+**Die Tabelle ist aus zwei Läufen zusammengesetzt, und das gehört gesagt.** Die
+27 unveränderten Zeilen stammen aus dem vollen Lauf gegen `e467a83`; die
+**sieben** Zeilen, die die berichtigten Lagen überhaupt berühren können (136 bis
+142), sind gegen `f1f41ea` **nachgefahren**. *Die übrigen 27 können sie nicht
+berühren: die neue Lage ist eine Lage am Bildschirm, und die geänderte Zeile
+liegt in einer Gruppe, die allein 136 und 137 anfassen.*
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 124 | Der Parameter q wird nicht mehr gelesen | 18 Prüfungen, darunter „Die Suche findet über den Titel" (Gruppe „Die Volltextsuche") |
+| 125 | searchText steht wieder in der Antwort | „searchText steht nicht mehr in der Antwort", „Die Antwort auf eine Suche trägt dieselben Felder" |
+| 126 | Die Suche sieht den Titel nicht mehr an | 11 Prüfungen, darunter „Die Suche findet über den Titel" (2 Gruppen) |
+| 127 | Und die Beschreibung nicht | „Die Suche findet über die Beschreibung", „Auch in der Beschreibung" |
+| 128 | Und den Namen der Kategorie nicht | „Die Suche findet über den Namen der Kategorie" |
+| 129 | Und die Tags am Eintrag nicht | „Die Suche findet über einen Tag am Eintrag" |
+| 130 | Und die Tags an den Testtagen nicht | „Suche findet Tags, die nur am Testtag hängen", „Die Suche findet über einen Tag am Testtag" |
+| 131 | Und die Adressen der Links nicht | 4 Prüfungen, darunter „Suchtexte werden mit durchsucht" (2 Gruppen) |
+| 132 | Und die Kommentartexte nicht | „Die Suche findet über den Text eines Kommentars" |
+| 133 | Die Kleinschreibung faltet nur noch ASCII | 6 Prüfungen, darunter „Die Suche findet über den Titel" (Gruppe „Die Volltextsuche") |
+| 134 | Der Titel wird wieder ueber LIKE gesucht -- Wildcards wirken | „Das Prozentzeichen wirkt als Text und nicht als Wildcard", „Der Unterstrich ebenso" |
+| 135 | Die Liste ohne Begriff verschweigt die abgelehnten Eintraege | „Der Aufbau steht: im Bestand liegt ein abgelehnter Eintrag", „Die Suche liefert nichts, was die Liste verschweigt" |
+| 136 | testDays kommt wieder immer mit | „Ausgeschaltet fehlt das Feld ganz", „Und die Suche antwortet in derselben Form" |
+| 137 | testDays fehlt immer, auch mit eingeschalteter Zeitleiste | 7 Prüfungen, darunter „Übersicht liefert die Testtage selbst, nicht nur die Anzahl" (4 Gruppen) |
+| 138 | Der Debounce faellt weg -- jeder Anschlag fragt | „Drei Anschlaege schnell hintereinander sind EINE Anfrage" |
+| 139 | Die Reihenfolge der Antworten wird nicht mehr geachtet | „Die spaeter eintreffende AELTERE Antwort ueberschreibt sie NICHT" |
+| 140 | Bei gescheiterter Suche wird die Liste leer | „Scheitert die Suche, bleibt die Liste stehen", „Und die Liste ist nicht leer und traegt keine Absage" |
+| 141 | Die Zaehlzeile nennt die Trefferzahl als Bestand | „Die Zaehlzeile nennt weiter den ganzen Bestand" |
+| 142 | Das Leeren holt den Bestand neu vom Server | „Leeren holt den Bestand ohne neue Anfrage" |
+| 143 | Die Ansichten sind kein persoenlicher Schluessel mehr | „server.js kennt genau die acht persoenlichen Schluessel", „Eine gespeicherte Ansicht überlebt Abmelden und Anmelden", „Ein gewöhnlicher Zugang darf eigene Ansichten speichern" |
+| 144 | Der Deckel fuer Ansichten faellt weg | „Die neunte wird abgewiesen", „Und die abgewiesene Liste hat nichts verändert" |
+| 145 | Zwei Ansichten duerfen wieder denselben Namen tragen | „Zwei mit demselben Namen ebenso — ohne Rücksicht auf die Schreibung" |
+| 146 | Die Ansichten werden geprueft, NACHDEM filters geschrieben ist | „Und sie hat die Filterstellung NICHT schon geschrieben" |
+| 147 | Das Speichern einer Ansicht raeumt die gemerkte Stellung weg | „Die Filterwahl ebenso", „Die eine gemerkte Filterstellung steht unverändert daneben" |
+| 148 | Der Suchbegriff faellt aus der gespeicherten Ansicht | „Und zwar samt Namen, Filterstellung UND Suchbegriff" |
+| 149 | Eine geloeschte Kategorie bleibt in der angewandten Ansicht stehen | „Und sie zeigt den Bestand statt einer leeren Liste" |
+| 150 | Der Titelvergleich achtet wieder auf Gross- und Kleinschreibung | „Und die Schreibung spielt dabei keine Rolle", „Sonderzeichen fallen beim Vergleich weg" |
+| 151 | Der Hinweis greift erst ab acht Zeichen | „Ab vier Zeichen nennt sie den aehnlichen Eintrag", „Und die Schreibung spielt dabei keine Rolle", „Sonderzeichen fallen beim Vergleich weg" |
+| 152 | Der Hinweis vergleicht nur die Trefferliste statt des Bestands | „Der Hinweis findet den Eintrag auch dann, wenn die Suche ihn ausblendet" |
+| 153 | Die durchsichtige Fassung traegt wieder Gold | „marke-dunkel.svg traegt den Akzent am hervorgehobenen Strich", „Und marke-dunkel.svg traegt nirgends mehr Gold" |
+| 154 | Die Fassung mit Kachel traegt wieder Gold | „favicon.svg traegt den Akzent am hervorgehobenen Strich", „Und favicon.svg traegt nirgends mehr Gold" |
+| 155 | Das viewBox umschliesst wieder die Kachel statt der Farbe | „Das viewBox der durchsichtigen Fassung umschliesst die Farbe" |
+| 156 | Die Hoehe der Marke steht wieder in Pixel | „Die Marke der Kopfzeile steht so hoch wie Titel und Zaehlzeile zusammen", „Und keine der beiden traegt daneben eine Hoehe in Pixel" |
+| 157 | Das Markup gibt die Marke wieder quadratisch an | 4 Prüfungen, darunter „Und das Markup traegt dasselbe Verhaeltnis" (2 Gruppen) |
+
+**Gelesen wird diese Tabelle so:** in der rechten Spalte steht, was **wirklich**
+rot wurde, und nicht, was erwartet war. Steht dort eine andere Gruppe als
+gedacht, ist das der Befund — nicht die Erwartung.
 
 ---
 
