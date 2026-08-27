@@ -13,6 +13,15 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 > wie es war* (Semantic Versioning, Punkt 3). Wo die Form abweicht, ist der
 > Eintrag älter und nicht falsch.
 >
+> **NACHGETRAGEN AM 27. AUGUST 2026: 0.8.6, 0.8.10, 0.8.20 UND 0.8.30.** Diese
+> vier Versionen hatten keinen Eintrag, obwohl es für jede ein
+> Änderungsprotokoll gibt — *„für jede Version ein Eintrag" ist die Regel, und
+> sie war an vier Stellen verletzt.* Für **0.8.5 und alles davor** steht am Ende
+> eine Sammelzeile je Version; damals gab es diese Datei noch nicht.
+> **Nachgetragen wird in der Form der Nachbarn, nicht in der neuen** — eine
+> dritte Form mitten in einer geschlossenen Reihe wäre schlechter als die Lücke.
+> *Und ohne Datum, aus demselben Grund: die Nachbarn tragen keines.*
+>
 > **Die Abschnittsnamen bleiben englisch** — `Added`, `Changed`, `Deprecated`,
 > `Removed`, `Fixed`, `Security` —, so wie die deutsche Fassung von Keep a
 > Changelog sie führt. *Das ist kein Bruch mit der Sprachregel des Projekts:
@@ -953,6 +962,247 @@ eines Eintrags Dateien anhängen.
 vorher sichern. Beim ersten Start meldet das Protokoll einmalig
 `attachments um user_id ergaenzt`; vorhandene Dateien fallen dabei dem
 Verfasser ihres Eintrags zu.
+
+
+---
+
+## 0.8.30 — Die Linkliste bekommt einen Verfasser
+
+**Wer einen Link einträgt, dem gehört die Zeile.** Bis dahin durfte nur der
+Verfasser eines Eintrags Links eintragen, sortieren und löschen — dieselbe
+Klemme wie für Titel und Beschreibung.
+
+### Neu
+
+- **Eintragen darf jeder.** Löschen darf, wer die Zeile eingetragen hat — oder
+  der Admin. Das ✕ steht nur dort, wo es auch gedrückt werden darf.
+- **Ab zwei Zugängen steht der Name an fremden Linkzeilen**, in Klammern hinter
+  Pfad bzw. Anbieternamen: `(chefin)`. **An den eigenen steht nichts** — er
+  stünde nur im Weg. *Daraus folgt ein Satz, den man kennen muss: „kein Name"
+  heißt bei mehreren Zugängen „vom Verfasser des Eintrags".* Das Datum steht im
+  Überfahrtext.
+- **Beide Löschdialoge zählen die Links jetzt mit** — der am Eintrag getrennt
+  nach eigen und fremd, der am Zugang als eigene Zeile. *Eine Zahl im Dialog,
+  die nichts bewirkt, wäre schlimmer als keine:* „Zugang entfernen" mit dem
+  Häkchen *seine Beiträge löschen* räumt die Links seitdem wirklich mit weg.
+- Export und Import tragen den Namen mit (**Austauschformat 7**).
+
+### Was gleich bleibt
+
+- **Das Umsortieren der Linkliste bleibt beim Verfasser des Eintrags** — die
+  Reihenfolge ändert keine Aussage und lässt sich zurücknehmen; dieselbe
+  Überlegung wie beim Anpinnen eines Kommentars.
+- **Ein gelöschter Link bekommt keinen Vermerk.** Er ist eine ganze Aussage, die
+  geht, kein Loch in einer bleibenden — der Eingriffsvermerk am Kommentar bleibt
+  auf den einen Fall begrenzt, für den er beschlossen wurde.
+- **Fotos bleiben, wo sie sind.** Sie gehören zum Eintrag selbst: das erste Foto
+  ist das Hauptbild und damit sein Gesicht in der Übersicht.
+- Ältere Exportdateien lassen sich weiterhin einspielen; ein Link aus einer
+  Datei der Formatnummer 6 fällt an den **Verfasser des Eintrags**.
+
+### Beim Einspielen
+
+- **Diese Version fasst die Datenbank an — `data` vorher sichern.** Es ist die
+  erste Datenbankstufe seit 0.8.3; ohne die Sicherung gibt es keinen Weg zurück
+  auf die vorige Version.
+- Beim ersten Start meldet das Protokoll einmalig
+  `links um user_id ergaenzt (Migration auf 0.8.30)`. **Vorhandene Links fallen
+  dabei dem Verfasser ihres Eintrags zu** — nicht dem Eigentümer der Anlage:
+  bis dahin *waren* die Links eines Eintrags die Sache seines Verfassers.
+- **Das Austauschformat steht jetzt auf 7.**
+
+---
+
+## 0.8.20 — Die Schotten dicht
+
+**Eine Runde, die nichts Neues kann und mehrere Löcher schließt.** Sie ändert an
+der Bedienung nichts — aber sie ändert, was die Anlage einem Aufrufer glaubt.
+
+### Neu
+
+- **Am Fotoplatz entscheidet ab jetzt der Inhalt, nicht die Angabe.** Beim
+  Hochladen wird abgewiesen, was **kein Rasterbild ist** — auch dann, wenn es
+  sich als Bild ausgibt; beim Ausliefern bestimmen die **ersten Bytes** den Typ.
+  *Bis dahin wurde der beim Hochladen gemeldete Typ aus der Datenbank wieder
+  ausgeliefert, und eine SVG-Datei besteht die Prüfung `image/…` anstandslos —
+  wer ihre Adresse direkt öffnete, bekam Skript im Ursprung der Anwendung.*
+- **Die Anwendung selbst bekommt eine `Content-Security-Policy`** — eine zweite
+  Verteidigung für denselben Fehler, und sie ist billig, weil die Oberfläche
+  nichts von außen nachlädt.
+- **`HINTER_PROXY` in der `.env` — neu und optional.** Sie ist ein Ja/Nein und
+  entscheidet über **fünf** Dinge auf einmal: ob `X-Forwarded-For` geglaubt
+  wird, den Cookienamen, `Secure` am Cookie, `Strict-Transport-Security` und den
+  Hinweis in der README. *Ohne sie wird der Kopf nicht einmal angesehen.*
+- **Der Container ist sichtbar gesund oder nicht.** Das Image trägt einen
+  `HEALTHCHECK`; `docker compose ps` zeigt `healthy`. *Vorher wusste Docker nur,
+  dass der Prozess läuft — ein Container in einer Neustartschleife sah von außen
+  gesund aus.*
+- **Ein Fehler-Handler nach Rang und sauberes Herunterfahren.** Eine Absage aus
+  Absicht sieht anders aus als eine Panne, und `docker compose down` schließt
+  die Datenbank ordentlich statt sie abzuschneiden.
+- Ein **Index auf `sessions.user_id`** — er rüstet sich bei jedem Start selbst
+  nach und ist deshalb **keine** Migration.
+
+### Was gleich bleibt
+
+- **Die Datenbank wird nicht angefasst**, und die Exportdatei behält ihr Format.
+- **An der Bedienung ändert sich nichts.** Die Oberfläche ist an keiner Stelle
+  angefasst worden — die Sicherheitsregel ist so geschnitten, dass sie zu ihr
+  passt, nicht umgekehrt.
+- **Vorhandene Fotos bleiben vorhanden.** `photos.mime_type` wird weiter
+  geschrieben und angezeigt; sie ist ab jetzt eine **Anzeige, keine
+  Ausliefergrundlage**.
+- **Bei Anhängen wird weiterhin bewusst nicht gefiltert** — eine Positivliste
+  wäre dort durch Umbenennen zu umgehen und wiegte in falscher Sicherheit. Die
+  Auslieferungsregeln bleiben, wie sie sind.
+
+### Beim Einspielen
+
+- **Nichts Besonderes.** Keine Datenbankstufe, keine neue Abhängigkeit; die
+  Sicherung von `data` ist Empfehlung.
+- **`HINTER_PROXY` bleibt leer, solange kein Reverse Proxy davorsteht.** Wer sie
+  setzt, muss zweierlei wissen: **es meldet alle einmalig ab** (der Cookiename
+  wechselt), und **die Anmeldung geht danach nur noch über HTTPS** — ein
+  direkter Aufruf von `http://<server-ip>:3100` käme nicht mehr herein.
+- **Eine SVG, die vor dieser Version als Foto hereingekommen ist, wird ab jetzt
+  heruntergeladen statt angezeigt.** Das ist gewollt: sie ist eine Webseite und
+  keine Grafik. Der Eintrag bleibt unangetastet.
+- Der Start meldet ab jetzt die Betriebsart: `Hinter Proxy: an` oder
+  `Hinter Proxy: aus`.
+
+---
+
+## 0.8.10 — Werkzeug
+
+**Eine Runde für den Bau, nicht für die Anlage.** Sie beantwortet die Frage, die
+sich nach jedem Einspielen stellt: *läuft wirklich der neue Dateisatz?*
+
+### Neu
+
+- **Der Fingerprint in der Karte „Kennzahlen".** Ein Wert über **alles**, was
+  der Server lädt und ausliefert. Stimmt er mit dem der Version überein, ist die
+  Kopie vollständig; stimmt er nicht, war sie es nicht oder es wurde nicht neu
+  gebaut. *Bis dahin gab es dafür nur eine Textstelle je Version, die man von
+  Hand suchen musste.* **Er schlägt in beide Richtungen aus** — bei einer Datei
+  zu wenig wie bei einer zu viel.
+- **Der Bau ist wiederholbar.** `package-lock.json` liegt jetzt im Repo, und das
+  Image baut mit `npm ci` statt `npm install`. *Ohne den Wechsel läge die Datei
+  da und würde beim Bauen übergangen — ein Merker, der nichts bewirkt.*
+- **`sharp` auf 0.35.3, das Image auf Node 22.**
+- **Der Prüfstand lässt sich in Gruppen aufrufen und läuft bei jedem Push.**
+
+### Was gleich bleibt
+
+- **An der Anlage ändert sich nichts** — keine Rolle, kein Recht, kein
+  Endpunkt, kein Schema, keine neue Einstellung. Die einzige sichtbare Änderung
+  ist die eine Zeile im Systembereich.
+- Die Exportdatei behält ihr Format.
+
+### Beim Einspielen
+
+- **Wie immer, und das `--build` ist diesmal wichtiger als sonst:** es holt die
+  festgeschriebenen Abhängigkeiten und das neue Node-Image.
+- **Keine Sicherungspflicht** — die Datenbank wird nicht angefasst.
+- **Danach lohnt der erste Blick auf den Fingerprint.** Er steht in der Karte
+  „Kennzahlen" und über `curl -s -b cookies.txt .../api/stats`; der erwartete
+  Wert steht im Änderungsprotokoll jeder Version.
+
+---
+
+## 0.8.6 — Berichtigungen aus dem Betrieb
+
+**Fünf Dinge, die beim Ansehen der vorigen Version aufgefallen sind.** Kein
+Schema, keine neue Route.
+
+### Neu
+
+- **Wer welchen Wert vergeben hat, sieht nur noch der Admin.** Die Sternzeile
+  zeigt den **eigenen Wert und den Schnitt** — mehr soll eine Bewertung nicht
+  aussagen. Die Namensliste ruft der Admin über den Knopf **„Wer hat bewertet"**
+  im Blockkopf auf; dort entfernt er auch eine fremde Bewertung. **Die Note
+  ändert er nicht.** *Der Knopf erscheint erst ab zwei Zugängen — bei einem wäre
+  die Ansicht der eigene Wert ein zweites Mal.*
+- **Die Linkliste wird abgeschnitten statt scrollbar.** Auf dem Finger scrollt
+  damit immer die Seite; der Weg zum Rest ist der Knopf „alle N anzeigen", den
+  es längst gibt.
+- **Die Lücke im Kartenraster ist weg.** Die breite Kachel „Zugänge" ließ je nach
+  Fensterbreite eine Lücke davor; das Raster zieht jetzt eine nachfolgende
+  schmale Karte selbst hinein.
+- **In der Kopfzeile steht, wer angemeldet ist** — neben „Abmelden", und **auch
+  bei einem einzigen Zugang**: das ist eine Aussage über einen selbst, nicht
+  über andere.
+- **„Angelegt von" nennt auch das Datum**, in derselben Form wie die Kopfzeile
+  eines Kommentars.
+
+### Was gleich bleibt
+
+- **Der Schnitt und die Zahl der Bewerter bleiben für jeden sichtbar** — sie
+  sind keine Aussage über eine Person.
+- **Am Löschweg für eine fremde Bewertung ändert sich nichts**; er ist nur
+  mitgewandert. *Wäre die Liste ersatzlos verschwunden, wäre er vom Bildschirm
+  aus unerreichbar geworden — die neue Ansicht ist deshalb kein Zusatz, sondern
+  die Bedingung.*
+- **Die Datenbank wird nicht angefasst**, und die Exportdatei behält ihr Format.
+
+### Beim Einspielen
+
+- **Nichts Besonderes.** Keine Datenbankstufe, keine neue Einstellung, keine
+  neue Abhängigkeit.
+
+---
+
+## Ältere Versionen — 0.8.5 und davor
+
+**Für diese Versionen gab es noch kein Changelog.** *Sie werden hier nicht
+nacherzählt: die Nummern stehen vollständig im Projektstand, Abschnitt 9, und
+was von ihnen als Regel weitergilt, in Abschnitt 5.* Die Zeile je Version ist
+die folgende — **damit keine Version ohne Eintrag bleibt**:
+
+| Version | Was |
+|---|---|
+| **0.8.5** | Der Systembereich lernt die Rechte: dreizehn Karten nach Rolle, Kennzahlen nur noch für den Admin, Karte „Links" in zwei geschnitten |
+| **0.8.4** | Eingriffsvermerk nennt die Rolle, „bearbeitet" an den Bildwegen des Verfassers, Zahlen am Kommentarblock, die beiden Anlegen-Schalter für Tags und Kategorien, Umschalter „meine/alle" im Vergleich |
+| **0.8.3** | Eingriffsvermerk am Kommentar (Datenbankstufe), Kennzeichnung eigener Kommentare, blaue Aufgabenmarke, Tagwolke klappt ganz auf |
+| **0.8.2** | Verfassernamen an Eintrag, Kommentar, Testtag und Bewertung; Löschdialog am Eintrag mit Zahlen; eine fremde Bewertung lässt sich löschen |
+| **0.8.1** | Bereinigung: aller Migrationscode entfernt, Schema als vollständige DDL. **Ab hier wird eine Datenbank aus 0.8.0 oder neuer vorausgesetzt** |
+| **0.8.0** | Karte „Zugänge", drei Rollen als Leiter, Sperren, Anmeldebremse je Name, **Löschen entwertet statt zu löschen**, `zugang.js` auf dem Wirt statt `AUTH_RESET` |
+| **0.7.2** | Rechteschicht serverseitig an jedem schreibenden Endpunkt; Export und Import nur für den Eigentümer |
+| **0.7.1** | Export und Import tragen Verfassernamen (Austauschformat 6) |
+| **0.7.0** | Eigene Sterne neben Schnitt und Bewerterzahl, zweistufiger Gesamtschnitt, Kriterien nur noch im Systembereich |
+| **0.6.6** | Am Eintrag heißt es „Favorit"; er sortiert nicht mehr vor und bekommt einen eigenen Filter |
+| **0.6.5** | Persönliche Einstellungen: Filterwahl, Schriftgröße, Blockanordnung und drei weitere gehören ab jetzt dem Einzelnen |
+| **0.6.4** | Berichtigung: der Favoriten-Knopf zeichnete sich nach dem Klick nicht neu |
+| **0.6.3** | Der Favorit steht je Benutzer; Anheften rührt das Änderungsdatum nicht mehr an |
+| **0.6.2** | Zwei Leute am selben Datum sind zwei Testtage; jeder hat seine eigene Bewertungszeile |
+| **0.6.1** | Eintrag, Kommentar und Testtag bekommen einen Verfasser |
+| **0.6.0** | Grundlage des Mehrbenutzerbetriebs: Rolle, Adresse, Status und letzte Anmeldung am Zugang |
+| **0.5.11** | Mehrere Suchanbieter je Suchzeile |
+| **0.5.10** | Umbenennung auf „Kriterion", ohne jede Funktionsänderung |
+| **0.5.9** | Erledigt-Zustand für Aufgaben |
+| **0.5.8** | Kriterien werden nur noch im Systembereich gelöscht |
+| **0.5.7** | Dritte Kommentarart: Aufgabe |
+| **0.5.6** | Zoom im Vollbild startet in der Mitte |
+| **0.5.5** | Kennzeichnung von Art und Anheftung am Kommentar |
+| **0.5.4** | Links im Kommentartext sind anklickbar |
+| **0.5.3** | Eine Suchzeile, die keine Adresse ist, führt zum Suchanbieter |
+| **0.5.2** | Innerhalb jeder Kommentargruppe steht das Älteste oben |
+| **0.5.1** | Der Ausschnitt-Modus ließ sich nicht verlassen |
+| **0.5.0** | Erstanmeldung; der Zugang liegt als Hash in der Datenbank statt in der Umgebung |
+| **0.4.10** | Versionsnummer auf der Anmeldeseite |
+| **0.4.9** | Sprung beim Bearbeiten der Beschreibung behoben |
+| **0.4.8** | Handy-Paket, zweiter Teil; die Filterwahl sprang beim Zurückgehen zurück |
+| **0.4.7** | Handy-Paket: Ziehen erst nach Halten, Zeilenaktionen als Zeichen, Schriftskala 80–120 |
+| **4.5** | Und/Oder-Verknüpfung der Tagfilter |
+| **4.4.2** | Dateizeilen reagieren als Ganzes auf einen Klick |
+| **4.4.1** | PDF-Vorschau blieb leer, Löschkreuz war unsichtbar |
+| **4.4** | Anhänge am Eintrag |
+| **4.3** | Tags an Testtagen, Zeitleiste, Blöcke anordnen, Tagwolken aufklappbar |
+| **4.2** | Schriftgröße einstellbar, anpassbares Vokabular |
+| **4.1** | Bewertungskriterien pflegen, mitwachsende Felder, Prüfstand |
+
+*Alles davor — 4.0 und älter — ist nicht mehr dokumentiert und wird nicht mehr
+berücksichtigt: eine Datenbank aus jener Zeit lässt sich seit 0.8.1 ohnehin
+nicht mehr übernehmen.*
 
 ---
 

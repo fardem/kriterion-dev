@@ -1,1937 +1,403 @@
-# Umbenennung und Mehrbenutzerbetrieb
+# Umbenennung und Mehrbenutzerbetrieb — das Werkbuch
 
-**Konzeptpapier · Stand 25. August 2026 · gebaut bis Version 0.9.1 — Fingerprint `d629e78d`**
-*(Das ist der Stand beim Abschluss dieses Papiers. Die Anlage ist danach ohne
-neue Versionsnummer nachgezogen worden — Fingerprint jetzt `3cf1b093`; der
-laufende Stand steht im Projektstand, Abschnitt 2, und dieses Papier ist
-geschlossen.)*
-(Stufen A bis **I** erledigt. 0.8.1 war eine **Bereinigung**,
-0.8.6 eine Runde **Berichtigungen aus dem Betrieb**, 0.8.10 die Runde
-**Werkzeug**, 0.8.20 die Runde **„Die Schotten dicht"**, 0.8.40 bis 0.8.71 vier
-weitere Runden, 0.8.91 den **Schlüsselwechsel** — alle keine Stufen.)
+**Konzeptpapier · geschlossen · gebaut bis Version 0.9.1 · zurückgeschnitten
+mit Revision 25 des Projektstands (27. August 2026)**
 
 # DER STUFENPLAN IST ABGEARBEITET
 
 **Mit 0.9.1 ist Stufe I₂ gebaut, und damit ist Teil II dieses Papiers
-vollständig.** Es gibt keine offene Stufe mehr. Der Umbau vom
-Einzelplatzarchiv zum Mehrbenutzerbetrieb, der mit 0.6.0 begann, ist zu Ende
-geführt.
+vollständig.** Es gibt keine offene Stufe mehr. Der Umbau vom Einzelplatzarchiv
+zum Mehrbenutzerbetrieb, der mit 0.6.0 begann, ist zu Ende geführt.
 
-**Was von diesem Papier ab jetzt gilt, sind die ENTSCHEIDUNGEN, nicht die
-Stufen.** Teil III ist Versionsgeschichte und wird nicht mehr fortgeschrieben;
-was dort steht, bleibt als Beleg stehen, wie und warum etwas gebaut wurde. Die
-Teile I und II gelten weiter, und zwar als Bindung: die **Rollenleiter**
-(`user` < `admin` < `eigentuemer`), der Satz **„ein Zustand, keine zweite
-Wahrheit"** aus Abschnitt 1, **„E-Mail ist eine Bequemlichkeit, keine
-Voraussetzung"**, die **eine** Absage am Token, die **immer gleiche Antwort**
-auf eine Anfrage, und der Satz, unter dem die letzte Stufe steht: **der Admin
-schaltet frei, immer**. Wer künftig etwas baut, das eine dieser Entscheidungen
-berührt, ändert nicht eine Stufe, sondern eine Zusage — und das gehört
-ausdrücklich entschieden, nicht nebenbei.
+> ## WAS HIER NOCH STEHT — UND WAS NICHT MEHR
+>
+> **Was gilt, steht seit Revision 25 im Projektstand, und nur dort.** Dieses
+> Papier hat bis dahin dieselben Regeln ein zweites Mal getragen; drei Orte für
+> dieselbe Frage sind zwei zu viel, und beim Nachziehen wird immer einer
+> vergessen — genau so ist Stolperstein 137 entstanden.
+>
+> **Umgezogen sind:**
+>
+> | war hier | steht jetzt |
+> |---|---|
+> | Teil II, Abschnitt 3 — die Rechtetabelle | README, „Wer was darf" (vollständiger als hier) |
+> | Teil II, Abschnitt 8 — global gegen persönlich | Projektstand, Abschnitt 3 (auf **acht** persönliche Schlüssel nachgezogen) |
+> | Teil IV — Nachträge zu Abschnitt 5 | Projektstand, Abschnitt 5 |
+> | Teil V — zu erwartende Stolpersteine, die offenen Auflagen | Projektstand, Abschnitt 11 |
+> | „Nachprüfen per SSH" | Projektstand, Abschnitt 8 |
+> | die offene Frage nach der Eindeutigkeit der Adresse | Projektstand, Abschnitt 10 |
+> | der Versanddienst über HTTPS, der angepinnte Block als Wand | Projektstand, Abschnitt 10 |
+>
+> **Was hier bleibt, ist die Herleitung:** der Entwurf, was beim Bauen anders
+> kam, und die Stufentabelle. *Für die Stufen A bis G3 ist dieses Papier der
+> **einzige** Ort, an dem die Abweichungen stehen — Änderungsprotokolle gibt es
+> erst ab 0.8.6.* **Ab 0.8.6 steht die Herleitung im Änderungsprotokoll der
+> jeweiligen Version, und hier nur noch eine Zeile.**
+>
+> **Die Abschnittsnummern bleiben, wie sie waren** — Quelltext und Prüfstand
+> verweisen auf „Abschnitt 1 des Konzeptpapiers", und ein Verweis, der ins Leere
+> zeigt, ist schlimmer als eine Zeile zu viel.
 
-**0.9.1 IST DIE ZWEITE HÄLFTE VON STUFE I — „die Selbstanmeldung".** Der
-Ablauf steht in Abschnitt 10, der dritte Mailanlass in Abschnitt 11. Wer einen
-Zugang haben will, kann von selbst danach fragen — und muss dabei belegen, dass
-ihm die Adresse gehört, bevor überhaupt ein Admin die Anfrage zu sehen bekommt.
+**DIE ENTSCHEIDUNGEN GELTEN WEITER, DIE STUFEN NICHT.** Was künftig etwas davon
+berührt, ändert **nicht eine Stufe, sondern eine Zusage** — und das gehört
+ausdrücklich entschieden, nicht nebenbei. Es sind sechs, und sie stehen
+ausgeschrieben im Projektstand:
 
-**0.9.0 WAR DIE ERSTE HÄLFTE VON STUFE I — „Der Server verschickt selbst".**
-Der Abbruchpunkt, den dieses Papier in Teil III seit Langem nannte (*„nach dem
-Versand, vor der Selbstregistrierung"*), ist damals gezogen worden.
-
-**DREI ENTSCHEIDUNGEN AUS 0.9.0 WEICHEN VOM ENTWURF AB** und gelten in der
-gebauten Form — sie stehen an ihren Abschnitten ausführlich:
-
-1. **Der Mailzugang liegt in der Oberfläche, nicht in der `.env`** — aber beim
-   **Eigentümer**, nicht beim Admin (Abschnitt 11).
-2. **Die öffentliche Adresse ist Pflicht FÜR DEN VERSAND, nicht für den
-   Start** (Abschnitt 11). **Seit 0.9.1 ist sie außerdem Voraussetzung des
-   Schalters `registrierung`**, und zwar baulich.
-3. **Der Token bekommt eine zweite Frist:** ab dem ersten Öffnen bleiben
-   fünfzehn Minuten (Abschnitt 10). Das ist der einzige Eingriff in den
-   Tokenweg aus Stufe H.
-
-**0.8.90 war KEINE Stufe dieses Papiers** und änderte an keiner seiner Regeln
-etwas. „Schwere Eingriffe" lag zwischen H und I und **arbeitete Stufe I an
-einer Stelle vor**, die hier steht: die **öffentliche Adresse** aus Abschnitt 11
-wurde dort gebaut, optional und leer als Vorgabe. Alles Übrige der Runde — die
-zweite Bestätigung und das Sicherheitsprotokoll — steht im Projektstand, nicht
-hier.
-
-**0.8.80 ist Stufe H, „Einladung, Rücksetzung, Sitzungen"** — die erste Stufe
-seit G4 (0.8.30). Ein Zugang bekommt sein Passwort **selbst**, über einen Link
-mit begrenzter Haltbarkeit; derselbe Mechanismus trägt die Rücksetzung. Dazu
-die Karte **„Meine Sitzungen"**. Das Schema bekommt die Tabelle `tokens`
-(Abschnitt 4), **ohne Migrationsblock**; **`F_ROUTEN` geht von 51 auf 56**.
-Die Stufe steht unten ausführlich, die **fünf Abweichungen vom Entwurf** in
-Abschnitt 10.
-
-**Der Token aus Stufe H ist in 0.9.0 geerbt worden** — sieben Tage, genau
-einmal gültig, alle übrigen offenen Links fallen mit, SHA-256 ohne Salz, die
-**eine** Absage vor der Anmeldung. Dazugekommen ist allein die zweite Frist ab
-dem ersten Öffnen; sie nimmt nichts weg und steht in Abschnitt 10.
-
-**0.8.71 davor berührte den Mehrbenutzerbetrieb nicht und legte auch keine
-seiner Regeln neu aus.** „Der Sicherungsort zieht um" war eine
-Berichtigungsrunde auf einer freien Nummer: kein Schema, keine Route, keine
-Rolle, kein Träger, kein neues Recht.
-
-**0.8.70 davor berührt den Mehrbenutzerbetrieb ebenfalls nicht — und legt
-dabei zwei seiner Regeln neu aus.** „Sicherung und Papierkorb" ist zwar wieder eine
-Datenbankstufe, aber keine Stufe dieses Papiers: keine Rolle, kein Träger, kein
-neues Recht. **`F_ROUTEN` geht von 47 auf 51** — zwei Routen für den
-Papierkorb, zwei für die Sicherung, alle vier hinter `nurEigentuemer`.
-
-Neu ausgelegt werden zwei Regeln:
-
-- **Auflage 20 („eine neue Spalte braucht die DDL *und* einen
-  Migrationsblock") gilt der SPALTE, nicht der TABELLE.** 0.8.70 ist die erste
-  Datenbankstufe **ohne** Migrationsblock: `CREATE TABLE IF NOT EXISTS` legt
-  eine fehlende Tabelle bei jedem Start an. Nachgestellt statt geglaubt, und
-  die Gegenlage steht daneben — eine von Hand entfernte Spalte kommt nicht von
-  selbst zurück. **Es bleibt bei fünf markierten Blöcken.**
-- **Auflage 18 (`OR REPLACE` und Kinderzeilen) ist zum sechsten Mal geprüft
-  und wieder nicht zutreffend.** Der Papierkorb legt Zeilen an und entfernt
-  sie, aber er ersetzt keine; das Wiederherstellen geht durch den **Import**,
-  der seine Regeln unverändert behält.
-
-Dazu ein Merksatz, der zu Auflage 19 gehört und sie schärft: **die
-Rechtefrage folgt der Schreibrichtung, nicht dem Gegenstand.** Der Papierkorb
-hält **fremde** Beiträge, und Wiederherstellen legt sie unter fremdem Namen
-wieder an — also gehört es hinter den **Eigentümer**, genau wie der Import.
-Nur das **Sehen** liegt beim Admin, und das ist harmlos: jeder angemeldete
-Zugang sieht jeden Titel ohnehin in der Übersicht.
+1. **Die Rollenleiter** `user` < `admin` < `eigentuemer` (Abschnitt 5.2).
+2. **„Ein Zustand, keine zweite Wahrheit"** — der Leitgedanke aus Abschnitt 1
+   dieses Papiers (Projektstand, Abschnitt 1).
+3. **„E-Mail ist eine Bequemlichkeit, keine Voraussetzung"** (Abschnitt 5.3) —
+   *und der Satz trägt beim zweiten Faktor ausdrücklich NICHT: TOTP braucht kein
+   Netz und darf deshalb nie ausfallen.*
+4. **Die EINE Absage am Token** (Abschnitt 5.3).
+5. **Die immer gleiche Antwort auf eine Anfrage** (Abschnitt 5.3).
+6. **Der Admin schaltet frei, immer** (Abschnitt 5.3).
 
 ---
 
-**0.8.60 davor berührte den Mehrbenutzerbetrieb ebenfalls nicht — und
-bestätigte dabei zwei seiner Regeln.** „Was ist offen, was ist neu" ist keine Datenbankstufe und
-keine Stufe dieses Papiers: keine Rolle, kein Recht, kein Träger, kein Schema.
-**`F_ROUTEN` blieb dort bei 47** — die Ansicht „Offen" ist eine lesende Route
-ohne Wächter, und der Erledigt-Haken geht über `PUT /api/comments/:id`, die es
-längst gibt.
+# Teil I — Umbenennung auf „Kriterion" — erledigt in 0.5.10
 
-Bestätigt werden zwei Regeln:
+Umbenannt sind Anzeigename, Paketname, Container- und Imagename und der Cookie
+(`kriterion_session`). **Die Datenbankdatei heißt weiterhin `katalog.sqlite`.**
+Das Risiko lag wie vorhergesagt im **Betriebsvorgang** (Ordnerwechsel, `.env`,
+alter Container am Port), nicht im Code.
 
-- **Der Erledigt-Haken am fremden Aufgabenkommentar bleibt bei „Verfasser oder
-  Admin".** „Löschen ja, umschreiben nein" gilt **Aussagen**; die Art eines
-  Kommentars ist ein **Merkmal**, und Merkmale darf der Admin seit 0.7.2
-  setzen. Die neue Ansicht schafft damit kein neues Recht, sie macht ein
-  vorhandenes erreichbar. Der Prüfstand belegt es mit **zwei Sitzungen** und
-  einem **Admin ohne Eigentümerrolle**: ein gewöhnlicher Benutzer bekommt 403
-  und danach steht die Art unverändert da.
-- **Der Merkzeitpunkt `zuletztGesehen` ist eine persönliche Einstellung** und
-  steht in `PERSOENLICHE_SCHLUESSEL` — dem siebten Eintrag dort. Genau dafür ist
-  `user_settings` in Stufe D gebaut worden: keine Schemaänderung, kein
-  Migrationsblock. **Und die Schranke aus 0.6.5 hat gehalten**, allerdings mit
-  einem Befund: sie wird erst bei einem Zugang **ohne** Adminrolle laut, weil
-  `PUT /api/settings` aus derselben Liste ableitet, was Adminsache ist
-  (Stolperstein 116).
+# Teil Ia — Mehrere Suchanbieter je Suchzeile — erledigt in 0.5.11
 
-Was der Mehrbenutzerbetrieb dabei sichtbar macht: **der Umschalter „meine /
-alle" erscheint erst ab zwei Zugängen**, abgeleitet über `mehrereBenutzer()`,
-und der **Verfassername steht nur dann an der Zeile** — dieselbe Schwelle wie
-überall. Der Filter „Neu seit …" dagegen erscheint **immer**: er ist eine
-Aussage über einen selbst, nicht über andere.
-
-**0.8.50 davor berührte den Mehrbenutzerbetrieb ebenfalls nicht — mit einer
-Ausnahme, und die bestätigt dieses Papier.** Kurzvideos am Fotoplatz sind eine
-Datenbankstufe, aber keine Stufe dieses Papiers: keine Rolle, kein Recht, kein
-neuer Träger. **Die Ausnahme ist eine neue schreibende Route** —
-`POST /api/items/:id/videos`, `F_ROUTEN` geht von **46 auf 47**. Sie steht
-hinter `nurEintragVerfasser`, also hinter **derselben Klemme wie der Fotoweg**,
-und begründet damit kein neues Recht: ein Video hängt am Eintrag und gehört
-seinem Verfasser, genau wie ein Foto. **Fotos und Videos sind weiterhin kein
-Träger** (Änderungsprotokoll 0.8.31, Abschnitt 7) — `photos` hat keine
-`user_id` und bekommt keine, und `ordneBestandZu()` kennt die Tabelle nicht.
-Der Prüfstand belegt die Route mit einem **echten Multipart-Upload**: ein
-Fremder bekommt 403, und danach steht keine Zeile in `photos`.
-
-**0.8.40 berührte den Mehrbenutzerbetrieb nicht.** Die Gewichtung der
-Bewertungskriterien ist eine Datenbankstufe, aber keine Stufe dieses Papiers:
-keine Rolle, kein Recht, kein Endpunkt, kein Träger. `F_ROUTEN` bleibt bei 46,
-und **keine Route wechselt ihre Art** — das Gewicht geht über
-`PUT /api/criteria/:id`, die längst hinter `nurAdmin` steht. Eine Sache berührt
-dieses Papier trotzdem, und sie bestätigt eine seiner Regeln: **das Gewicht ist
-ausdrücklich keine persönliche Einstellung.** Hätten zwei Leute verschiedene
-Gewichte, hätte derselbe Eintrag zwei verschiedene Gesamtschnitte — es gilt
-dieselbe Trennung wie seit 0.8.4 zwischen `settings` und `user_settings`.
-
-**Mit 0.8.31 sind Links UND Dateien beim Eintrager**, und damit ist der
-Mehrbenutzerbetrieb bis auf H und I gebaut. 0.8.31 ist **keine Stufe**,
-sondern eine Berichtigungsrunde: sie holt am sechsten Träger nach, was G4 am
-fünften entschieden hat — hochladen darf jeder, löschen der Hochladende oder
-der Admin, der Name steht nach derselben Regel an der Zeile, Formatnummer
-**7 → 8**. Der Ergebnisblock steht in Teil III unter G4.
-
-**Mit 0.8.30 ist Stufe G4 gebaut, und damit die letzte offene Stufe des
-Mehrbenutzerbetriebs vor H.** „Die Linkliste bekommt Verfasser": `links` trägt
-eine `user_id`, eintragen darf jeder, löschen der Eintrager oder der Admin,
-sortieren bleibt beim Eintragsverfasser, und ab zwei Zugängen steht an einer
-**fremden** Linkzeile der Name ihres Eintragers. Das kehrt eine Zeile der
-Rechtetabelle in Abschnitt 3 um und macht Links zum **fünften Träger** neben
-Eintrag, Kommentar, Testtag und Bewertung. Der Ergebnisblock steht in Teil III.
-
-**Weder 0.8.10 noch 0.8.20 haben den Mehrbenutzerbetrieb berührt.** 0.8.10
-ging an den Bau (Lockfile, `npm ci`, `sharp`, Node 22), an den Prüfstand
-(Gruppenfilter, Prüflauf bei jedem Push) und mit dem Versions-Fingerprint an eine
-einzige Zeile im Systembereich. 0.8.20 ging an die Absicherung: der Fotoweg
-liefert nie mehr den gemeldeten Typ, die Anwendung bekommt eine
-Sicherheitsregel, der Kopf `X-Forwarded-For` wird nur noch nach ausdrücklicher
-Einstellung geglaubt, der Fehler-Handler trennt Absicht von Panne, dazu
-sauberes Herunterfahren und ein Index auf `sessions.user_id`. Keine Rolle,
-kein Recht, kein Endpunkt, kein Schema — dieses Papier ändert sich durch
-beide nur in seinen Nummern.
-
-**Offen sind damit noch H (Tokens, 0.8.80) und I (Mailversand und
-Selbstanmeldung, 0.9.0).** Zwischen G4 und H liegen vier Stufen, die nicht zum
-Mehrbenutzerbetrieb gehören; sie stehen im Projektstand, Abschnitt 10. Die
-ersten drei davon — **0.8.40, die Gewichtung**, **0.8.50, Kurzvideos am
-Fotoplatz**, **0.8.60, „Was ist offen, was ist neu"** und **0.8.70,
-„Sicherung und Papierkorb"** — sind gebaut, dazu **0.8.71** als
-Berichtigungsrunde. **Stufe H ist mit 0.8.80 gebaut**, dazwischen lag 0.8.90
-als Runde, die nicht zum Mehrbenutzerbetrieb gehört. **Stufe I ist mit 0.9.0
-und 0.9.1 gebaut, und damit ist der Stufenplan abgearbeitet.**
-
-**Eines aus 0.8.20 wirkt bis in diese Stufe und weiter:** die Einstellung
-`HINTER_PROXY` entscheidet, ob `X-Forwarded-For` geglaubt wird — und an ihr
-hängen auch `Secure` am Sitzungscookie, `Strict-Transport-Security` und das
-Präfix `__Host-` am Cookienamen. Wer etwas an der Sitzung baut — Stufe H hat
-es mit „Meine Sitzungen" getan —, findet den Cookienamen deshalb **nicht** als feste
-String vor, sondern nimmt ihn aus `auth.COOKIE_NAME`. Im Betrieb steht
-die Einstellung auf der Vorgabe **aus**; sie gehört auf `1`, sobald Kriterion
-über den Proxy nach außen geht (Projektstand, Abschnitte 2 und 3).
-
-Dieses Papier trägt die Entwürfe der Stufen und was beim Bauen anders kam.
-Erledigtes steht seit der Bereinigung als **Ergebnisblock** — was gilt, mit
-Version und Abweichungen; die vollständigen Baupläne stehen in den älteren
-Ständen dieses Papiers. **Alles Offene steht vollständig.**
-
-> **Zum Wortgebrauch.** Drei Rollen, und sie sind eine **Leiter**: `user` <
-> `admin` < `eigentuemer`. **Benutzer** schreibt eigene Beiträge. **Admin**
-> verwaltet den gemeinsamen Bestand und legt Benutzer an, sperrt und löscht
-> sie — aber nicht seinesgleichen. **Eigentümer** ist alles davon, dazu:
-> Rollen vergeben, an andere Admins heran, Export, Import, Schlüsselwert. Die
-> Rolle ist ein **vergebbarer Rollenwert**, keine Ableitung aus der
-> Benutzernummer.
-> Durchgehend heißt es **Version** (nie „Fassung"), am Eintrag **Favorit**
-> (★), am Kommentar **angepinnt/Anpinnung** (📌), Bild-Renditionen heißen
-> **Variante**, und die einmalige Datenüberführung beim Start hieß
-> **Migration** — sie kommt seit 0.8.1 nur noch historisch vor.
+Bis zu **vier** Anbieternamen unter jeder Suchzeile; `sucheAktiv[0]` ist die
+**einzige Wahrheit** über den Startanbieter, und die Anbieterliste liegt im
+**Server**, nicht in `app.js`. *Alles Weitere im Projektstand, Abschnitt 5.6.*
 
 ---
 
-# Teil I — Umbenennung auf „Kriterion" — erledigt in Version 0.5.10
+# Teil II — Mehrbenutzerbetrieb: der Entwurf
 
-**Was gilt:** Das Projekt heißt Kriterion; umbenannt sind Anzeigename,
-Paketname, Container- und Imagename und der Cookie (`kriterion_session`). **Die
-Datenbankdatei heißt weiterhin `katalog.sqlite`** — der Dateiname ist kein
-Projektname und wandert bei keiner Umbenennung mit. Das Risiko lag wie
-vorhergesagt im Betriebsvorgang (Ordnerwechsel, `.env`, alter Container am
-Port), nicht im Code; der Umzug auf dem Server ist seit dem 13. August 2025
-erledigt.
-
----
-
-# Teil Ia — Mehrere Suchanbieter je Suchzeile — erledigt in Version 0.5.11
-
-**Was gilt:** Unter jeder Suchzeile stehen bis zu **vier** Anbieternamen
-(je höchstens 20 Zeichen); die Zeile selbst führt zum **Startanbieter**, der
-immer vorn steht und aussieht wie alle anderen. `sucheAktiv[0]` ist die
-**einzige Wahrheit** über den Startanbieter; die alte Einstellung `suche`
-wird beim Lesen abgeleitet, nie zurückgeschrieben. Ein gelöschter eigener
-Anbieter führt zur **Absage mit Meldung**, nie zum stillen Rückfall auf
-Google. Die Anbieterliste liegt im **Server**, nicht in `app.js`; Vorrat,
-eigene Anbieter und Startanbieter sind Sache des Admins, persönlich ist
-allein die Zahl der angezeigten Namen (`suchNamen`, seit 0.6.5).
-
----
-
-# Teil II — Mehrbenutzerbetrieb
+**Dreizehn Abschnitte, und alle sind gebaut.** Sie stehen hier als Gerüst, damit
+ältere Verweise aufgehen — was gilt, steht im Projektstand.
 
 ## 1. Leitgedanke
 
-**Ausgeschaltet sieht Kriterion aus wie heute.** Keine Namen an Kommentaren,
-keine Durchschnittsspalte neben den Sternen, keine Benutzerverwaltung, kein
-Registrieren-Knopf.
+**Ausgeschaltet sieht Kriterion aus wie vorher.** Keine Namen an Kommentaren,
+keine Durchschnittsspalte, keine Benutzerverwaltung, kein Registrieren-Knopf —
+und das **nicht über einen abgefragten Schalter, sondern aus der Zahl der
+aktiven Benutzer abgeleitet**. *Ein Zustand, keine zweite Wahrheit.*
 
-Umgesetzt wird das nicht über einen abgefragten Schalter, sondern **aus der Zahl
-der aktiven Benutzer abgeleitet**: bei genau einem entfällt die
-Durchschnittsspalte (`3,4 · 1` ist keine Information), der Verfassername und die
-Verwaltungskarte. Ein Zustand, keine zweite Wahrheit.
-
-Der Grund ist nicht Höflichkeit gegenüber dem Einzelbetrieb, sondern die
-Bedingung dafür, dass der Umbau die Veröffentlichung nicht verschlechtert. „Für
-eine Person, dafür vollständig verschlüsselt" bleibt ein vollwertiger
+**Der Grund ist nicht Höflichkeit gegenüber dem Einzelbetrieb, sondern die
+Bedingung dafür, dass der Umbau die Veröffentlichung nicht verschlechtert.**
+„Für eine Person, dafür vollständig verschlüsselt" bleibt ein vollwertiger
 Betriebszustand und kein halb ausgebauter.
+→ *Projektstand, Abschnitt 1.*
 
 ## 2. Rollen
 
-**Drei Rollen seit Version 0.8.0, und sie sind eine Leiter:**
-`user` < `admin` < `eigentuemer`.
-
-**Der Eigentümer ist ein Recht, keine Nummer.** Der Entwurf leitete ihn aus
-der kleinsten `id` ab; aus dem Betrieb kam die Entscheidung, das Recht
-**vergebbar** zu machen — zwei Leute sollen sich eine Anlage teilen können.
-Gebaut ist es als **dritter Wert in `role`**, nicht als Bit daneben: ein Bit
-ließe `role='user'` mit `eigentuemer=1` zu, also zwei Spalten, die beide
-sagen dürften, was jemand darf (Bauform der Stolpersteine 47 und 48). Als
-Leiter ist „ein Eigentümer ist immer auch Admin" **baulich wahr** statt eine
-Regel, die durchgesetzt werden muss. `MIN(id)` kommt in `server.js` nicht
-mehr vor; ein Wächter im Prüfstand zählt das nach.
-
-**Die Startregel** (seit 0.6.0, ersetzt in 0.8.0): *gibt es keinen
-Eigentümer, wird es der älteste Zugang, der schon Rechte hat — und erst wenn
-es auch keinen Admin gibt, der mit der kleinsten Nummer.* Der Zwischenschritt
-über den Admin ist keine Zierde: ohne ihn machte der nächste Start eine
-bewusste Herabstufung still rückgängig. Seit 0.8.1 bekommt der erste Zugang
-die Rolle direkt beim Anlegen; die Startregel bleibt als Auffangnetz.
-
-**Serverseitig durchgesetzt, nicht nur ausgegraut:** der **letzte aktive
-Eigentümer** darf nicht verschwinden — weder durch Herabstufen noch Sperren
-noch Löschen. Und **ein Admin kommt nicht an seinesgleichen**: an einen
-anderen Admin oder den Eigentümer kommt nur der Eigentümer.
+Drei Rollen als **Leiter** seit 0.8.0; der Eigentümer ist ein **vergebbares
+Recht, keine Nummer**. Dazu die Startregel, „ein Admin kommt nicht an
+seinesgleichen" und „der letzte aktive Eigentümer darf nicht verschwinden".
+→ *Projektstand, Abschnitt 5.2.*
 
 ## 3. Rechte
 
-| | Verfasser | anderer | Admin |
-|---|---|---|---|
-| alles sehen | ✔ | ✔ | ✔ |
-| Titel, Beschreibung, Fotos, Tags, Kategorie, abgelehnt, getestet | ✔ | — | ✔ |
-| Eintrag löschen | ✔ | — | ✔ |
-| **Link eintragen / Datei hochladen** *(0.8.30 / 0.8.31)* | ✔ | ✔ | ✔ |
-| **eigenen Link, eigene Datei löschen** | ✔ | ✔ | ✔ |
-| **fremden Link, fremde Datei löschen** | — | — | ✔ |
-| **Linkliste umsortieren** *(bleibt beim Eintrag)* | ✔ | — | ✔ |
-| Kommentar schreiben | ✔ | ✔ | ✔ |
-| eigenen Kommentar ändern/löschen | ✔ | — | ✔ (nur löschen) |
-| Art (Notiz/Bericht/Aufgabe/erledigt) und Anpinnung setzen | ✔ | — | ✔ |
-| fremden Kommentartext **ändern** | — | — | **—** |
-| eigene Bewertung, eigene Testtage | ✔ | ✔ | ✔ |
-| fremde Bewertung/Testtag löschen | — | — | ✔ |
-| fremde Bewertung/Testtagsnote **ändern** | — | — | **—** |
-| **sehen, wer welchen Wert vergeben hat** | — | — | ✔ (eigene Ansicht, seit 0.8.6) |
-| Favorit am Eintrag (★) | persönlich, jeder für sich | | |
-| Tags und Kategorien **zuweisen** | ✔ (nur am eigenen Eintrag) | — | ✔ |
-| Tags und Kategorien **anlegen** | abschaltbar, siehe Abschnitt 7 | | ✔ |
-| Tags und Kategorien umbenennen/löschen | — | — | ✔ |
-| Kriterien anlegen, umbenennen, sortieren, löschen | — | — | ✔ |
-| Vokabular, beide Titel, Benutzerverwaltung | — | — | ✔ |
-| Export, jeder Import, Schlüsselwert, Rollen vergeben | — | — | nur Eigentümer |
-
-Seit 0.7.2 zusätzlich entschieden: Tags am Testtag folgen dem Testtag und
-gehören nur seinem Verfasser; Bilder an einen Kommentar darf nur der
-Verfasser **anhängen**, löschen darf sie auch der Admin; eine **herrenlose**
-Zeile (`user_id IS NULL`) gehört dem Admin.
-
-**Linkzeile und Datei haben die Seite gewechselt** — die Linkzeile mit 0.8.30,
-die Datei mit 0.8.31. Beide standen bis dahin in
-der ersten Zeile dieser Tabelle, also beim Verfasser des Eintrags. Dahinter
-steht die Regel aus 0.8.4: *was an allen Einträgen aller Benutzer erscheint,
-gehört dem Admin; was nur dort erscheint, wo man es hinsetzt, gehört jedem.*
-Ein Link und eine Datei erscheinen nur dort, wo man sie hinsetzt.
-**Fotos bleiben ausdrücklich, wo sie sind:** das erste Foto ist das Hauptbild
-und damit das Gesicht des Eintrags, keine Beigabe.
-**Das Umsortieren ist ausdrücklich nicht mitgewandert:** es ändert keine
-Aussage und ist umkehrbar — dieselbe Überlegung wie beim Anpinnen eines
-Kommentars. Und **ein gelöschter Link bekommt keinen Vermerk**: er ist eine
-ganze Aussage, die geht, kein Loch in einer bleibenden.
-
-**Einen Eintrag zu löschen nimmt fremde Kommentare und Bewertungen mit.** Die
-Tabelle oben gibt das Löschen des Eintrags dem Verfasser; die Kaskade räumt dann
-alles ab, was andere daran geschrieben haben. Das ist richtig — ein Eintrag ohne
-Eintrag ergibt nichts —, aber es darf nicht wortlos geschehen. **Dieselbe
-Antwort wie beim Löschen eines Benutzers: der Dialog nennt die Zahlen**, und
-zwar getrennt nach eigen und fremd. **Erledigt in 0.8.2** über
-`GET /api/items/:id/bestand`; „fremd" meint dabei, was dem **Löschenden** fremd
-ist — löscht ein Admin einen fremden Eintrag, ist auch der Beitrag des
-Verfassers fremd, und genau das soll dastehen.
-
-**Kein Admin ändert fremde Bewertungen oder Kommentartexte.** Löschen ja,
-umschreiben nein. Eine fremde Aussage unter fremdem Namen verändern zu können
-ist die Art Funktion, die man später bereut. **Seit 0.8.2 gibt es den Löschweg
-auch für die einzelne fremde Bewertung** (`DELETE /api/ratings/:id`, hinter
-`darfAendern`); ein schreibender Weg auf denselben Pfad entsteht ausdrücklich
-nicht, und eine Prüfung am Quelltext hält das fest. **Seit 0.8.6 wird er aus
-der Adminansicht gerufen** statt aus einer Liste unter der Sternzeile — der
-Endpunkt selbst ist dabei unverändert geblieben.
-
-**Die Anpinnung am Kommentar bleibt beim Verfasser** (und beim Admin), obwohl
-sie auf die Sortierung aller Leser wirkt — `pinned DESC` steht ganz vorn in der
-Sortierregel. Sie gehört zur Aussage („das ist mein Fazit"), im Gegensatz zum
-Favoriten am Eintrag, der eine reine Merkhilfe ist und deshalb persönlich wird.
-*Beobachten:* Bei vielen angepinnten Kommentaren mehrerer Leute wächst der
-angepinnte Block zur Wand über allem. Wenn das im Betrieb stört, ist die Antwort
-**nicht** eine Einschränkung des Anpinnens, sondern eine zweite Sortierstufe
-innerhalb des angepinnten Blocks. Gehört nicht in dieses Vorhaben.
+Die Rechtetabelle stand hier; **sie steht jetzt vollständig in der README**
+(„Wer was darf"). Der Satz dahinter ist **löschen ja, umschreiben nein**, und
+die Regel, aus der sich die Zuständigkeiten ergeben, lautet: *was an allen
+Einträgen aller Benutzer erscheint, gehört dem Admin; was nur dort erscheint, wo
+man es hinsetzt, gehört jedem.*
+**Linkzeile und Datei haben die Seite gewechselt** (0.8.30 und 0.8.31); **Fotos
+bleiben ausdrücklich, wo sie sind** — das erste Foto ist das Gesicht des
+Eintrags. **Das Umsortieren ist nicht mitgewandert.**
+→ *README, „Wer was darf"; Projektstand, Abschnitt 5.2.*
 
 ## 4. Datenmodell
 
-**Alles bis auf `tokens` ist gebaut** (0.6.0 bis 0.6.5) und steht seit 0.8.1
-als vollständige DDL in `db.js` — das Schema dort ist die Wahrheit, nicht
-mehr dieses Papier. Die tragenden Entscheidungen: `sessions.user_id` mit
-`ON DELETE CASCADE` als Wurzel des Ganzen; `user_id` an `items`, `comments`,
-`test_days`, `ratings` und — seit 0.8.30 bzw. 0.8.31 — `links` und
-`attachments` mit **`ON DELETE SET NULL`** als Auffangnetz
-(`CASCADE` ließe einen Gelöschten den halben Bestand mitnehmen, gar keine
-Angabe ließe ein `DELETE` von Hand an der Fremdschlüsselverletzung
-scheitern); `UNIQUE` um `user_id` erweitert bei `ratings` und `test_days`;
-`item_pins` für den Favoriten; `user_settings` mit
-`ON DELETE CASCADE` und `PRIMARY KEY (user_id, key)` für die persönliche
-Hälfte.
-
-**Sechs Träger seit 0.8.31**, nicht mehr vier. `links.user_id` und
-`attachments.user_id` sind die beiden Spalten, die nachgerüstet werden mussten
-— mit `migration0830()` und `migration0831()`, dem zweiten und dritten markierten
-Block im Projekt. Wer von 0.8.20 kommt, fährt beide in einem Start. Nachgestellt dabei: eine Fremdschlüsselspalte
-lässt sich nur **nullbar** nachrüsten (Projektstand, Stolperstein 105); für
-`links` war das ohnehin die richtige Form.
-
-**0.9.0 bringt keine Tabelle und keine Spalte.** Der Mailzugang liegt als ein
-Schlüssel in `settings`, und `users.email` steht seit 0.6.0 im Schema — sie
-wurde bis dahin nur von keiner Stelle **geschrieben**. Die Frist ab dem ersten
-Öffnen kommt ohne eigene Spalte aus: geschrieben wird `tokens.ablauf`.
-
-**0.9.1 bringt EINE Tabelle und KEINE Spalte** — `anfragen (id, hash, username,
-email, bestaetigt_am, created_at)`, die Warteschlange der Selbstanmeldung.
-**Ohne Migrationsblock**: anders als eine Spalte legt `CREATE TABLE IF NOT
-EXISTS` eine fehlende Tabelle bei jedem Start an, und der Prüfstand stellt es an
-einer bestehenden Anlage nach, samt der Gegenlage an einer Spalte. Es bleibt bei
-**fünf** markierten Blöcken.
-`hash` ist hier **nicht** Primärschlüssel, anders als bei `tokens`: die
-Adminrouten sprechen eine Zeile über eine **Nummer** an, und ein Geheimnis hat
-in einem Pfad nichts verloren — dort stünde es im Zugriffsprotokoll, in der
-Verlaufsliste und womöglich im Referrer. `UNIQUE` trägt den Nachschlageweg
-genauso. **Kein Fremdschlüssel:** es gibt niemanden, auf den er zeigen könnte —
-eine Anfrage ist noch kein Zugang. `bestaetigt_am IS NULL` heißt „noch nicht
-bestätigt"; ein zweites Feld für den Zustand wäre eine zweite Wahrheit neben dem
-Zeitpunkt.
-
-**`tokens` ist gebaut (Stufe H, 0.8.80)** — und mit **einer Spalte mehr** als
-hier entworfen: `tokens (hash, user_id, zweck, ablauf, benutzt_am,
-created_at)`. `created_at` steht dazu, weil jede andere Tabelle des Schemas es
-trägt und weil „ablauf minus sieben Tage" ab dem Tag falsch wäre, an dem die
-Frist wechselt. `hash` ist der **Primärschlüssel**, `user_id` trägt
-`ON DELETE CASCADE` und einen eigenen Index. **Kein Migrationsblock** — an
-dieser Tabelle nachgestellt, nicht aus 0.8.70 abgeschrieben.
-Zur Adress-Eindeutigkeit siehe Abschnitt 10 — ein **partieller Index**, wenn
-sie gebraucht wird, nicht vorher; in Stufe H wurde sie nicht gebraucht, denn
-der Link geht von Hand.
+**Das Schema in `db.js` ist die Wahrheit, nicht mehr dieses Papier.** Die
+tragenden Entscheidungen: `sessions.user_id` mit `ON DELETE CASCADE` als Wurzel;
+`user_id` an sechs Trägern mit **`ON DELETE SET NULL`** als Auffangnetz; `UNIQUE`
+um `user_id` erweitert bei `ratings` und `test_days`; `item_pins` für den
+Favoriten; `user_settings` mit `PRIMARY KEY (user_id, key)`.
+**Nachgestellt dabei: eine Fremdschlüsselspalte lässt sich nur nullbar
+nachrüsten** (Stolperstein 105).
+→ *README, „Datenmodell"; Projektstand, Abschnitt 5.4.*
 
 ## 5. Die Bewertung — erledigt in 0.7.0
 
-**Was gilt:** Die Sterne zeigen die **eigene** Bewertung, anklickbar, Gold;
-rechts in gedämpfter Textfarbe der Schnitt aller und die Zahl der Bewerter:
-
-```
-Optische Erscheinung      ★★★★☆        3,4 · 5
-Verarbeitungsqualität     ★★★☆☆        4,1 · 6
-Funktionalität            ☆☆☆☆☆        2,8 · 4
-```
-
-Ein Bedienelement zeigt den Zustand, den es verändert — zeigten die Sterne
-den Schnitt, wirkte jeder Klick verschluckt. Die Bewerterzahl steht bewusst
-dabei: 4,8 aus einer Stimme heißt etwas anderes als 4,8 aus zwanzig.
-**Gesamtschnitt: erst je Kriterium über alle, dann über die Kriterien**,
-gerundet **einmal** am Ende — die Kopfzahl bleibt aus den Zeilen
-nachvollziehbar (nicht exakt nachrechenbar; wer Zehntel von Hand mittelt,
-kann um bis zu 0,05 danebenliegen). Es zählen nur Werte > 0.
-**Rücksetzen trifft ausschließlich die eigenen Werte** — Doppelklick das
-eigene Kriterium, der Knopf „Meine Bewertung zurücksetzen" die eigenen Werte
-des Eintrags.
-
-**Die Stimmenliste kam in 0.8.2 dazu und ist in 0.8.6 gewandert** — unter der
-Sternzeile stand je Kriterium, wer welchen Wert vergeben hat, für jeden
-sichtbar. Das ist mehr, als eine Bewertung aussagen soll: **der Schnitt und
-die eigene Zahl reichen.** Wer welchen Wert vergeben hat, sieht seitdem nur
-noch der **Admin in einer eigenen Ansicht**, die er über den Knopf „Wer hat
-bewertet" im Blockkopf ausdrücklich aufruft. Sie ist zugleich der **Löschweg**
-für eine fremde Bewertung — der hing am ✕ in der Stimmenzeile und ist
-mitgewandert. Siehe den Block „0.8.6" in Teil III.
+Die Sterne zeigen die **eigene** Bewertung, daneben der Schnitt aller und die
+**Zahl der Bewerter**. Gesamtschnitt: erst je Kriterium über alle, dann über die
+Kriterien, gerundet **einmal** am Ende. Rücksetzen trifft ausschließlich die
+eigenen Werte.
+*Die Stimmenliste kam in 0.8.2 dazu und ist in 0.8.6 in eine Adminansicht
+gewandert — der Schnitt und die eigene Zahl reichen.*
+→ *Projektstand, Abschnitt 5.5.*
 
 ## 6. Testtage, Zeitleiste, „Getestet" — erledigt in 0.7.0
 
-**Was gilt:** Der Sternwert eines Testtags gehört dem Eintragenden; im
-Blockkopf Schnitt und Anzahl über alle. Zwei Leute am selben Datum sind zwei
-Testtage (`UNIQUE(item_id, day, user_id)`). `testAvg`, `testCount`,
-`testLast` und die drei Testsortierungen laufen über alle Benutzer;
-**„`null`, nicht `0`"** bleibt, und **ein Testtag hat keine Null** — er fand
-statt und hat eine Note, oder er wird gelöscht. **Zeitleiste:** alle Punkte,
-die eigenen gefüllt, fremde als Ring; dazu die Verlaufskurve im Eintrag.
-
-**„Getestet" bleibt eine Eigenschaft des Eintrags** — *jemand* hat getestet,
-wie „abgelehnt". Damit gilt die serverseitige Sperre („lässt sich nicht
-abschalten, solange Testtage vorhanden sind") über alle Benutzer: **fremde
-Testtage können den eigenen Schalter blockieren.** Die Meldung muss das
-sagen, sonst wirkt der Schalter defekt.
+Zwei Leute am selben Datum sind **zwei Testtage**. `testAvg`, `testCount`,
+`testLast` und die drei Testsortierungen laufen über alle Benutzer; **„`null`,
+nicht `0`"** bleibt, und **ein Testtag hat keine Null**. **„Getestet" bleibt eine
+Eigenschaft des Eintrags** — damit können **fremde Testtage den eigenen Schalter
+blockieren**, und die Meldung muss das sagen.
+→ *Projektstand, Abschnitt 5.5.*
 
 ## 7. Wer darf was anlegen
 
-Die Regel, aus der sich alles ergibt:
+> **Was an allen Einträgen aller Benutzer erscheint, gehört dem Admin. Was nur
+> dort erscheint, wo man es hinsetzt, gehört jedem.**
 
-> **Was an allen Einträgen aller Benutzer erscheint, gehört dem Admin. Was
-> nur dort erscheint, wo man es hinsetzt, gehört jedem.**
-
-**Kriterien — erledigt in 0.7.0:** angelegt, umbenannt, sortiert und
-gelöscht wird ausschließlich im Systembereich, alle vier Wege hinter einem
-Wächter. Anlegen und Aufräumen gehören an dieselbe Stelle — wer Unordnung
-erzeugen kann, die nur einer aufräumen kann, erzeugt sie. *(Verworfen: ein
-Antragswesen.)*
-
-**Erledigt in Stufe G2, zweite Hälfte (0.8.4):**
-
-**Tags und Kategorien: anlegen darf jeder — abschaltbar.** Zwei getrennte
-globale Schalter im Verwaltungsbereich (`tagsFreiAnlegen`,
-`kategorienFreiAnlegen`), Vorgabe an, als Ableitung beim Lesen. Aus heißt:
-Auswahl aus dem Vorhandenen bleibt, nur die Zeile „+ neu anlegen" verschwindet.
-Zuweisen darf immer jeder, umbenennen und löschen bleibt wie heute im
-Systembereich. **Der Admin kommt am Schalter immer vorbei** — im Entwurf noch
-offen, beim Bauen entschieden: er räumt ohnehin auf, ein Schalter gegen sich
-selbst wäre schief.
-
-Der Unterschied zu den Kriterien: ein neuer Tag erscheint nur dort, wo man ihn
-hinsetzt. Ein neues Kriterium erscheint überall. **Deshalb ist es ein Schalter
-und keine feste Regel** — der Nutzen kommt erst mit dem dritten Zugang, wenn
-einer „Alu" und der nächste „Aluminium" tippt und nur der Admin aufräumen darf.
-
-**Der Sonderfall am Testtag**, der im Entwurf fehlte: dort gibt es keine
-Tagwolke, die Eingabe ist der einzige Zuweisungsweg. Sie bleibt stehen; ein
-unbekannter Name wird vom Server abgewiesen. Sonst nähme der Schalter das
-Zuweisen mit, und „Zuweisen darf immer jeder" gilt.
-
-**Die gewählte Stellung im Betrieb, seit 0.8.5 entschieden:** bei den
-**Kategorien** ist der Schalter **aus** — eine neue Kategorie legt nur der
-Admin an, am Eintrag bleibt das Auswahlfeld aus dem Vorhandenen. Bei den
-**Tags** ist er **an** — dort vergibt jeder einen neuen Namen unmittelbar am
-Eintrag. Im Systembereich sieht ein gewöhnlicher Benutzer seit 0.8.5 bei
-beiden nur noch die Liste; umbenannt und gelöscht wird dort weiterhin
-ausschließlich vom Admin. **Das ist eine Einstellung, kein Bau** — genau
-dafür ist der Schalter da, und beide Stellungen sind jederzeit umkehrbar.
+**Kriterien beim Admin** (0.7.0), **Tags und Kategorien bei allen — abschaltbar**
+(0.8.4). *Der Unterschied: ein neuer Tag erscheint nur dort, wo man ihn hinsetzt;
+ein neues Kriterium erscheint überall.* **Deshalb ist es ein Schalter und keine
+feste Regel** — der Nutzen kommt erst mit dem dritten Zugang, wenn einer „Alu"
+und der nächste „Aluminium" tippt.
+→ *Projektstand, Abschnitt 5.2 und 5.6.*
 
 ## 8. Einstellungen: global gegen persönlich — erledigt in 0.6.5
 
-| persönlich (`user_settings`) | global (`settings`, Admin) |
-|---|---|
-| `filters` — Filter- und Sortierwahl | `title_public`, `title_app` |
-| `schrift` — Schriftgröße | `vokabular` — elf Wörter |
-| `bloecke` — Anordnung und Einklappzustand | `tagsFreiAnlegen`, `kategorienFreiAnlegen` *(0.8.4)* |
-| `suchNamen` — Zahl der Anbieternamen | `registrierung` *(seit 0.9.1)* |
-| `linkZeilen` — sichtbare Linkzeilen | `mailzugang` *(0.9.0 — **beim Eigentümer**, nicht beim Admin)* |
-| `zeitleiste` — ein/aus | `suche`, `sucheEigene`, `sucheAktiv` |
-| | `mailtestOk` — die Marke der letzten erfolgreichen Testmail *(0.9.0)* |
-
-**Der Mailzugang ist die eine Zeile in `settings`, die NICHT dem Admin
-gehört** — und die einzige Ausnahme von „global heißt Adminsache". Der Grund
-steht in Abschnitt 11: ein Admin, der den SMTP-Server setzt, böge die
-Rücksetzmail des Eigentümers auf einen Server seiner Wahl. **Die öffentliche
-Adresse steht ausdrücklich nicht in dieser Tabelle** — sie liegt in der `.env`
-und ist gar keine Einstellung im Sinne dieses Abschnitts.
-
-Das Vokabular bleibt global — es ist die Sprache der Anwendung, keine
-Ansichtssache. Blockanordnung und Einklappzustand liegen weiterhin **nicht**
-im Export. Die Suchanbieter gingen abweichend vom ersten Entwurf global;
-persönlich ist allein `suchNamen`. Gegen ein erneutes globales Schreiben
-eines persönlichen Schlüssels steht eine Schranke in `putSetting`.
+Die Tabelle stand hier; **sie steht jetzt im Projektstand, Abschnitt 3**, und
+zwar auf dem heutigen Stand: **acht** persönliche Schlüssel statt sechs.
+**`mailzugang` ist die eine Zeile in `settings`, die nicht dem Admin gehört.**
+**Das Vokabular bleibt global** — es ist die Sprache der Anwendung, keine
+Ansichtssache.
 
 ## 9. Verwaltung
 
-**Gebaut in 0.8.0 (Stufe G1):** die Karte „Zugänge" im Systembereich (nur für
-Admins) — anlegen mit erstem Passwort, sperren und freigeben, Passwort
-zurücksetzen, Rolle wechseln (nur Eigentümer), entfernen. **„Sperren" ist
-wichtiger als Löschen** — Anmeldung blockiert, Inhalte bleiben. `status` ist
-an **zwei** Stellen durchgesetzt (Anmeldung und `requireAuth`, jede mit
-eigener Gegenprobe, Stolperstein 51); ein Gesperrter erfährt den Grund, aber
-erst **nach** dem richtigen Passwort.
-
-**Löschen entwertet, es löscht nicht — die wichtigste Abweichung der ganzen
-Stufe.** Die Zeile bleibt mit ihrer `id` stehen, `status` wird `geloescht`,
-der Hash geleert, der Name mit `geloescht-<id>` überschrieben und damit
-**freigegeben** (das Muster ist als Benutzername gesperrt, geprüft an beiden
-Wegen). Die Beiträge bleiben stehen und tragen künftig „Gelöschter
-Benutzer 7". Damit bleiben die `ON DELETE`-Klauseln unverändert und sind
-reines Auffangnetz für ein `DELETE` von Hand. *Statt einer Entscheidung gibt
-es zwei Häkchen* (Vorgabe: beide aus): **„seine Einträge löschen"** nimmt
-über die Kaskade auch **fremde** Kommentare, Bewertungen und Testtage daran
-mit; **„seine Beiträge in fremden Einträgen löschen"** trifft nur seine
-eigenen. Der Dialog nennt die Zahlen aus `GET /api/users/:id/bestand`.
-Sitzungen, Favoriten und persönliche Einstellungen gehen immer mit.
-
-**Anmeldebremse — erledigt in 0.8.0, mit berichtigter Begründung:** die
-IP-Bremse kann niemanden anderen aussperren; der echte Gewinn ist die Bremse
-**je Benutzername** gegen verteiltes Raten. **Der Name wird nur verzögert,
-nie hart gesperrt** — eine harte Namenssperre wäre ein Werkzeug gegen fremde
-Zugänge. Kennwerte unverändert (weich ab 5, hart ab 10, fünf Minuten, je IP).
-
-**`AUTH_RESET` — anders gelöst in 0.8.0:** nicht begrenzt, sondern durch
-**`zugang.js`** auf dem Wirt ersetzt (`liste`, `passwort`, `entfernen`,
-`eigentuemer`); die Umgebungsvariable wird beim Start **abgelehnt** und das
-Protokoll nennt den neuen Weg. So machen es Nextcloud, GitLab, Grafana,
-WordPress und Home Assistant auch: ein Befehl, ein Name, nur das Passwort.
-Damit entfällt das Rücksetz-Fenster ganz — und mit ihm der Einmalcode aus
-Stufe H, der nur existierte, um es zu schließen.
-
-**Gebaut in 0.8.80 (Stufe H):** die Karte „Zugänge" legt einen Zugang wahlweise
-**ohne Passwort** an und gibt dazu einen **Link** aus — die Wahl steht als
-**Auswahlfeld** im Formular, und das Passwortfeld erscheint nur zu der
-Betriebsart, in der es gilt. An jeder Zeile steht
-neben dem Schlüssel ein **Kettenglied**, das einen Einladungs- bzw.
-Rücksetzlink erzeugt. **Beide Wege bleiben nebeneinander, und die Karte
-bevorzugt den Link** — er übergibt das *Recht, ein Passwort zu setzen*, der
-Schlüssel übergibt ein *Passwort*, und der zweite kommt ohne den Browser des
-anderen aus. Eine Zeile ohne Passwort trägt „noch kein Passwort", abgeleitet
-aus dem leeren Hash und **nicht** aus `last_login`. Dazu die Karte
-**„Meine Sitzungen"** beim eigenen Zugang — für jeden, nicht für Admins.
-
-**Offen (I):**
-
-**Adressen doppelt vergeben: hinter der Anmeldung klar sagen, davor nicht.**
-Legt der Admin jemanden an oder ändert jemand seine eigene Adresse, ist
-„Diese Adresse ist bereits vergeben, bitte eine andere eintragen" die richtige
-Antwort — wer das sieht, ist angemeldet und sieht die Liste ohnehin. Für die
-**Selbstregistrierung** vor der Anmeldung gilt das Gegenteil, siehe
-Abschnitt 10: dort ist jede unterschiedliche Antwort ein Werkzeug zum
-Durchprobieren von Adressen.
+Gebaut in **0.8.0** (Karte „Zugänge", Sperren, **Löschen entwertet**,
+Anmeldebremse, `zugang.js` statt `AUTH_RESET`) und **0.8.80** (anlegen **ohne
+Passwort** samt Link, „Meine Sitzungen").
+**„Sperren" ist wichtiger als Löschen** — Anmeldung blockiert, Inhalte bleiben.
+→ *Projektstand, Abschnitt 3 und Abschnitt 5.2.*
 
 ## 10. Registrierung und Tokens — erledigt in 0.8.80, 0.9.0 und 0.9.1
 
 **Auf einen Schalter gekürzt, entschieden vor 0.8.0:** der Schalter
 „Mehrbenutzerbetrieb ein" widersprach Abschnitt 1 („ein Zustand, keine zweite
 Wahrheit", Stolperstein 47 in Reinform) und ist gestrichen. **Es bleibt allein
-`registrierung`, gebaut in 0.9.1 und ab Werk aus.** Die geschlossene Gruppe
-entsteht von selbst — ist die Selbstanmeldung aus, legt nur der Admin an, und
-es fehlt nichts.
+`registrierung`.**
 
-Ablauf der Selbstregistrierung: Der Anfragende gibt **nur** Benutzername und
-E-Mail-Adresse an, kein Passwort. Admin prüft und schaltet frei. Erst danach
-erzeugt der Server einen Token, und der Benutzer setzt über den Link sein
-Passwort selbst.
-
-**GEBAUT IN 0.9.1, und es ist ein Schritt mehr als hier entworfen: eine
-Bestätigungsmail VOR der Freischaltung** (Double Opt-in). Sie schließt eine
-Lücke, die dieser Entwurf offen ließ: ohne sie kann jeder eine **fremde**
-Adresse in die Liste des Admins schreiben, und beim Freischalten schickte die
-Anlage einer Person, die nie gefragt hat, eine Mail mit Passwortkraft. **So ist
-es gebaut:**
-
-1. Anfrage mit Name und Adresse, kein Passwort. **Die Antwort sieht immer
-   gleich aus** — unbekannter Name, bekannter Name, bekannte Adresse, Deckel
-   erreicht, Schalter aus: gleicher Statuscode, gleicher Rumpf Byte für Byte.
-2. Die Anlage schickt eine **Bestätigungsmail** — ein kurzer Link **ohne**
-   Passwortkraft. Wer ihn anklickt, sagt nur „ja, das bin ich".
-3. Erst die **bestätigte** Anfrage erscheint beim Admin, in der Karte
-   **„Anfragen"**. Unbestätigte verfallen nach **24 Stunden** und werden nie
-   angezeigt.
-4. Der Admin schaltet frei → jetzt entsteht der Zugang samt Token, und die
-   Einladungsmail geht hinaus. **Immer mit der Rolle `user`**, nie mit einer
-   anderen: die Route liest an keiner Stelle eine Rolle aus der Anfrage.
-5. Passwort setzen über den bekannten Weg aus Stufe H, **unverändert**.
-
-**Das macht drei Mailanlässe statt zwei** (Abschnitt 11) — und das ist die
-Ausnahme, die dort benannt gehört.
-
-**Die Antwort wartet nicht auf den Versand, und das ist Teil der Zusage.** Ein
-Weg, der eine Mail verschickt, dauert Sekunden; einer, der still verwirft,
-dauert Millisekunden — aus dem Unterschied ließe sich ablesen, welcher gelaufen
-ist, und das Formular wäre doch wieder ein Werkzeug zum Durchprobieren, nur
-eben über die Uhr statt über den Rumpf. Deshalb: Zeile schreiben, antworten,
-dann verschicken. **Der Prüfstand misst das an einem Empfänger, der den Versand
-zwanzig Sekunden festhält** — nachgemessen, nicht behauptet.
-
-**Der Schalter `registrierung` ist an den funktionierenden Versand gekoppelt,
-und dafür braucht es ZWEI Dinge, nicht eines.** Ohne Mail läuft die
-Selbstanmeldung ins Leere: der Anfragende bekäme nie einen Link. Einschalten
-geht nur, wenn seit der letzten Änderung am Mailzugang eine **Testmail
-durchgekommen** ist (die Marke `mailtestOk` aus 0.9.0) **und
-`OEFFENTLICHE_ADRESSE` gesetzt ist**. Das zweite ist beim Bauen dazugekommen und
-nachgesehen statt angenommen: **die Testmail enthält keinen Link** und geht auch
-ohne die öffentliche Adresse durch — die Marke könnte grün sein, während jede
-Bestätigungsmail ohne brauchbaren Link hinausginge. **Ausschalten geht immer**,
-und geht der Versand später kaputt, bleibt der Schalter an und die Karte sagt es
-rot — ein Schalter, der sich von selbst umlegt, wäre eine zweite Wahrheit.
-
-**Der Deckel steht bei zwanzig und zählt bestätigte und unbestätigte
-zusammen.** Zählte er nur die bestätigten, füllte ein Angreifer die Tabelle mit
-Unbestätigten, ohne je eine Mail zu lesen. Die einundzwanzigste wird **still
-verworfen** — dieselbe Antwort, keine Zeile. **Dazu eine Schranke, die dieser
-Entwurf nicht nannte: je Adresse höchstens eine offene Anfrage.** Der Deckel
-begrenzt, was die Tabelle aufnimmt; ohne diese zweite Schranke wäre das Formular
-ein Weg, einer fremden Adresse beliebig viele Bestätigungsmails zu schicken. Der
-Preis, ehrlich benannt: geht die eine Mail verloren, wartet der Anfragende bis
-zum Verfall — eine andere Adresse trägt sofort.
-
-**Die neue Tabelle heißt `anfragen`** (der Entwurf nannte sie `registrierungen`)
-und trägt `id`, `hash`, `username`, `email`, `bestaetigt_am`, `created_at` —
-**ohne Migrationsblock**, `CREATE TABLE IF NOT EXISTS` legt sie bei jedem Start
-an. **`tokens` ist unberührt geblieben:** `tokens.user_id` ist `NOT NULL` und
-zeigt auf `users`, eine Anfrage hat noch keinen Zugang, und die Spalte
-nachträglich zu öffnen wäre ein `ALTER TABLE` auf einer bestehenden Spalte —
-also genau der Block, den diese Runde nicht haben sollte.
-
-**`F_ROUTEN` geht von 59 auf 64** — zwei Routen vor der Anmeldung
-(`POST /api/registrierung`, `POST /api/registrierung/bestaetigen`) und drei
-dahinter (`PUT /api/registrierung/schalter`, `POST /api/anfragen/:id/frei`,
-`DELETE /api/anfragen/:id`). `GET /api/anfragen` ist lesend und steht wie immer
-nicht dort. **Die Vorgänge im Sicherheitsprotokoll gehen von fünfzehn auf
-siebzehn** (`anfrage.frei`, `anfrage.ab`) — beide **ohne** den Namen des
-Anfragenden; Anfrage und Bestätigung schreiben ausdrücklich **keine** Zeile, sie
-wären die einzigen neben der gescheiterten Anmeldung, die ein Fremder auslösen
-kann.
+**Ein Schritt mehr als hier entworfen: eine Bestätigungsmail VOR der
+Freischaltung** (Double Opt-in). Sie schließt eine Lücke, die der Entwurf offen
+ließ: **ohne sie kann jeder eine fremde Adresse in die Liste des Admins
+schreiben**, und beim Freischalten schickte die Anlage einer Person, die nie
+gefragt hat, eine Mail mit Passwortkraft.
 
 **Zwei Betriebsarten wird es NICHT geben.** Eine Lage, in der der geklickte
-Token allein freischaltet und kein Admin zusieht, wäre ein anderes Produkt:
-Kriterion ist ein Archiv für eine kleine Gruppe, kein Forum. Und zwei
-Betriebsarten wären genau die zweite Wahrheit, die Abschnitt 1 ausschließt.
+Token allein freischaltet und kein Admin zusieht, wäre ein anderes Produkt.
 
-**Die Antwort auf eine Registrierung sieht immer gleich aus**, egal ob Name oder
-Adresse bereits existieren („Danke, die Anfrage liegt beim Admin").
-Andernfalls ist das Formular ein Werkzeug zum Durchprobieren von Adressen.
-
-**Token — erledigt in 0.8.80.** 32 Zufallsbytes, gespeichert wird nur der Hash,
-einmal gültig, Ablauf nach sieben Tagen, beim Einlösen alle Sitzungen dieses
-Benutzers beenden. **Ein Mechanismus, zwei Anlässe** — Einladung und
-Passwortrücksetzung. **0.9.0 hat ihn geerbt**, mit genau einer Ergänzung.
-
-**Die zweite Frist — gebaut in 0.9.0, sechste Abweichung vom Entwurf.**
-Ab dem **ersten Öffnen** bleiben **fünfzehn Minuten**, um das Passwort zu
-setzen. Die Begründung ist die Trennung zweier Fragen, die das Papier bis dahin
-zusammengeworfen hat: **die sieben Tage sind die Frist fürs Lesen der Mail,
-nicht fürs Liegen des Links.** Solange niemand geöffnet hat, ist nichts
-geschehen. Ab dem ersten Öffnen ist erwiesen, dass der Link angekommen ist —
-und dann hat er in einem fremden Postfach nichts mehr verloren, wo er sechs
-Tage lang ein Passwortersatz wäre.
-
-*Was sie nicht leistet, und das gehört dazu:* sie schützt nicht gegen den, der
-das Postfach mitliest — der klickt zuerst. Sie macht seinen Zugriff
-**sichtbar**, weil der echte Empfänger vor einem toten Link steht.
-
-*Warum sie hier trägt und anderswo nicht:* der übliche Killer kurzer Fristen
-sind Vorschaudienste, die Links im Postfach vorab abrufen und sie verbrennen,
-bevor ein Mensch sie sieht. **Der Schlüssel steht im Fragment**
-(`#/einladung/…`) und geht nie an den Server; ein Vorschaudienst holt nur die
-Seite und löst die Frist damit gerade **nicht** aus. Sie beginnt erst, wenn ein
-echter Browser den Schlüssel im Rumpf schickt.
-
-*Drei Punkte, an denen sie kippen würde und die deshalb gebaut sind:*
-**innerhalb** der Frist darf beliebig oft geöffnet und neu geladen werden —
-nur der **erste** Aufruf schreibt herunter; die **Absage bleibt die eine** aus
-Stufe H und nennt die Frist nicht; und **der Zugang bleibt stehen**, wenn sie
-verstreicht — wer sie verpasst, holt einen neuen Link.
-
-*Gebaut ohne neue Spalte:* geschrieben wird `tokens.ablauf`, die es längst
-gibt. Der Preis, ehrlich benannt — hinterher ist nicht mehr zu sehen, **ob** ein
-Link schon einmal geöffnet wurde, nur noch, wann er abläuft.
-
-**Sechs Stellen, an denen anders gebaut wurde als hier beschrieben** — sie
-gelten ab jetzt in dieser Form. Die sechste ist die Frist darüber, gebaut in
-0.9.0; die ersten fünf sind aus Stufe H:
-
-1. **SHA-256 ohne Salz, nicht scrypt.** Das Papier sagte nur „der Hash". scrypt
-   schützt *ratbare* Geheimnisse; ein Token trägt 256 Bit aus dem
-   Zufallsgenerator. Mit Salz je Zeile wäre der Hash nicht **nachschlagbar** —
-   der Server müsste bei jedem Versuch jede Zeile durchrechnen, auf einer Route
-   **vor** der Anmeldung. Ohne Salz ist er ein Schlüssel; ein zeitunabhängiger
-   Vergleich hat dort deshalb nichts mehr zu tun.
-2. **Beim Einlösen fallen auch alle ÜBRIGEN offenen Links dieses Zugangs**, und
-   dasselbe beim **Sperren** und **Entfernen**. Das Papier sagte „einmal
-   gültig" und meinte den einen Link; läge noch ein älterer in einem fremden
-   Verlauf, setzte er hinterher ein zweites Mal ein Passwort.
-3. **Der Server gibt nur den Token heraus, nie den fertigen Link** — *so galt
-   es in Stufe H*. **Seit 0.8.90 gibt er den fertigen Link heraus, wenn
-   `OEFFENTLICHE_ADRESSE` gesetzt ist** (`link` und `linkQuelle`), und **seit
-   0.9.0 braucht der Versand ihn**: beim Verschicken gibt es keinen Browser zu
-   fragen. Ist die Einstellung leer, baut der Browser des Admins ihn weiter aus
-   `location`, und es wird nicht verschickt.
-4. **Die Absage vor der Anmeldung ist EINE**, für abgelaufen, schon benutzt,
-   erfunden und „Zugang gesperrt" — nicht weil eine Auskunft verschwiegen
-   werden soll, sondern weil das **Heilmittel in jedem Fall dasselbe** ist.
-   Das ist dieselbe Überlegung wie bei der Registrierungsantwort oben, an einer
-   anderen Stelle.
-5. **`created_at` steht zusätzlich in der Tabelle** (siehe Abschnitt 4).
-
-**Wie der Link zum Empfänger kommt — seit 0.9.0 auf zwei Wegen, und der zweite
-ersetzt den ersten nicht.** Ist ein Mailzugang eingetragen, geht der Link
-**zusätzlich** per Mail hinaus; der Admin sieht ihn trotzdem zum Kopieren, samt
-einer Zeile darüber, ob der Versand geklappt hat. Ist keiner eingetragen, ist
-alles wie in Stufe H. Damit ist der Link weiterhin ein **Passwortersatz auf
-Zeit** und steht nach der Weitergabe in einem fremden Verlauf — und **das sagt
-die Oberfläche an der Stelle, an der er kopiert wird.** Der Schlüssel steht im
-**Fragment** der Adresse (`#/einladung/…`) und geht damit nie an den Server;
-das gilt in der Mail genauso.
-
-**Missbrauchsschutz — gebaut in 0.9.1, und es sind DREI Dinge, die nicht
-dasselbe sind.** Der **Deckel** begrenzt, was die Tabelle aufnimmt (zwanzig).
-Die **Anmeldebremse** greift an beiden Routen vor der Anmeldung, mit
-unangetasteten Kennwerten und ohne Namenshälfte — der Wunschname geht
-ausdrücklich **nicht** in die Bremse, er ist geraten, und ein Zähler darauf wäre
-ein Werkzeug, einen erwünschten Namen auszusperren. Und die **immer gleiche
-Antwort** verhindert das Durchprobieren; sie ist die schwerste der drei, weil
-sie auch dann halten muss, wenn die Wege verschieden lang sind (siehe oben).
-**In Stufe H war nichts davon nötig**: dort legt nur der Admin an, und der ist
-angemeldet.
-
-**Der Mindestwert von zehn Zeichen** aus 0.5.0 gilt unverändert für jedes
-Passwort, das über einen Token gesetzt wird — in 0.8.80 an diesem Weg
-ausdrücklich geprüft.
-
-**Eindeutigkeit der Adresse — zu entscheiden, wenn sie gebraucht wird.**
-`users.email` hat bewusst **kein** `UNIQUE`: `ALTER TABLE` kann eines nicht
-nachrüsten, die gewanderte und die frisch angelegte Datenbank wären damit
-verschieden gebaut (0.6.0, Abweichung 5). Wird Eindeutigkeit gewollt, ist der
-richtige Weg ein **partieller Index**
-(`CREATE UNIQUE INDEX IF NOT EXISTS … ON users(email) WHERE email IS NOT NULL`)
-— der wirkt auf beiden Wegen gleich und lässt mehrere Zugänge ohne Adresse zu.
-Er gehört dann in dieselbe Stufe wie die Prüfung im Code, nicht davor.
+**Sechs Stellen wurden anders gebaut als hier beschrieben**, fünf aus Stufe H
+und eine aus 0.9.0 — sie stehen im Projektstand, Abschnitt 5.3:
+SHA-256 **ohne Salz** statt scrypt; beim Einlösen fallen **alle übrigen offenen
+Links**; der Server gibt den fertigen Link erst heraus, seit es eine öffentliche
+Adresse gibt; die Absage vor der Anmeldung ist **eine**; `created_at` steht
+zusätzlich in der Tabelle; und der Token bekam eine **zweite Frist ab dem ersten
+Öffnen**.
+→ *Projektstand, Abschnitt 3 und Abschnitt 5.3.*
 
 ## 11. E-Mail — erledigt in 0.9.0 und 0.9.1
 
-`nodemailer` — ohne Laufzeitabhängigkeiten, MIT-0, passend zur Linie von scrypt
-(Nodes eingebautes `crypto` statt einer Bibliothek). Nur ausgehend, kein offener
-Port. **Gebaut und nachgemessen:** Version 9.0.5, `npm ls --omit=dev` wächst um
-**genau ein Paket**, 776 KB, Lizenz `MIT-0` aus dem Paket selbst gelesen. Die
-Zahl steht im Prüfstand fest — wächst der Baum später still, wird es namentlich
-rot.
+`nodemailer` — ohne Laufzeitabhängigkeiten, MIT-0, passend zur Linie von scrypt.
+**Nur ausgehend, kein offener Port.** *Klarstellung zur Begrifflichkeit: GMX,
+Google und Strato sind keine Alternativen zu nodemailer, sondern das, was man
+**mit** nodemailer einträgt.* **Zustellbarkeit:** direkt vom Hausanschluss zu
+versenden scheitert an fehlender rDNS und SPF/DKIM — deshalb immer über den
+SMTP-Zugang eines Anbieters.
 
-**Klarstellung zur Begrifflichkeit:** GMX, Google und Strato sind keine
-Alternativen zu nodemailer, sondern das, was man **mit** nodemailer einträgt.
-nodemailer spricht SMTP und hat weder eigenen Versand noch eigene Adresse.
+**Drei Abweichungen vom Entwurf, alle in 0.9.0 entschieden:**
 
-**Auswahlliste mit Vorlagen plus „eigener Server"**, nach dem Muster der
-Suchanbieter: GMX, Web.de, Gmail, Strato, IONOS füllen Server, Port und
-Verschlüsselung selbst aus; einzutragen sind nur Benutzer, Passwort und
-Absenderadresse. Bei „eigener Server" stehen alle Felder offen.
-**So gebaut** — und die Vorlage gewinnt: wer GMX gewählt hat, bekommt GMX, auch
-wenn ein anderer Server mitgeschickt wird. Wechselt ein Anbieter morgen den
-Port, kommt der neue aus dem Quelltext; eine Kopie in der Datenbank wäre
-eingefroren und liefe auseinander.
+1. **Der Mailzugang liegt in der Oberfläche, nicht in der `.env`** — aber beim
+   **Eigentümer**, nicht beim Admin. *Die Begründung des Entwurfs trägt, sie
+   trifft nur den Admin: über dem Eigentümer steht niemand.*
+2. **Die öffentliche Adresse ist Pflicht FÜR DEN VERSAND, nicht für den Start.**
+   *Wörtlich gelesen bräche der Start jede vorhandene Installation beim
+   Einspielen — und genau das darf der Einspielweg nie tun.*
+3. **Der Token bekommt eine zweite Frist** (siehe Abschnitt 10).
 
-Drei Hinweise gehören dabei in die Oberfläche — **gebaut, und sie kommen vom
-Server**, nicht aus einer zweiten Liste in der Oberfläche:
-
-- **Gmail** braucht Zwei-Faktor und ein App-Passwort; das Kontopasswort wird
-  abgewiesen.
-- **GMX** und **Web.de** verlangen, den Versand über fremde Programme im Konto
-  freizuschalten.
-- **Die Absenderadresse muss zum Konto gehören** — man kann nicht als
-  `kriterion@zuhause.local` über GMX senden.
-
-**Zustellbarkeit:** direkt vom Hausanschluss zu versenden scheitert an fehlender
-rDNS und SPF/DKIM. Deshalb immer über den SMTP-Zugang eines Anbieters.
-
-### Wo der Mailzugang liegt — ABWEICHUNG, entschieden in 0.9.0
-
-**Er liegt in der Oberfläche und NICHT in der `.env` — aber beim EIGENTÜMER.**
-Der Entwurf und der Auftrag zu dieser Runde sahen die `.env` vor, mit derselben
-Begründung wie bei der öffentlichen Adresse: der SMTP-Server sieht **jede**
-Mail, und jede trägt einen Link, der ein Passwort setzt; dürfte ein **Admin**
-ihn eintragen, liefe die Rücksetzmail des Eigentümers über einen Server seiner
-Wahl.
-
-**Die Begründung trägt — sie trifft aber den Admin, nicht den Eigentümer.**
-Über dem Eigentümer steht niemand: wer ohnehin den ganzen Bestand exportieren
-und den Schlüsselwert sehen darf, gewinnt durch einen umgebogenen Mailserver
-nichts dazu. Damit bleibt die Rollenleiter heil, und die Bedienung braucht
-keinen Zugriff auf den Wirt.
-
-**Zwei Dinge sprechen sogar dafür**, und beide sind nachgesehen und nicht
-angenommen: das Mailpasswort liegt damit in der **verschlüsselten Datenbank**
-statt unverschlüsselt auf dem Wirt, und die **Exportdatei trägt es nicht** —
-der Export packt Einträge samt Anhängen, keine Einstellungen.
-
-**Was daraus folgt und mitgebaut ist:** das Setzen liegt hinter der **zweiten
-Bestätigung** (`BESTAETIGUNG_ZWECKE` geht von sechs auf sieben), die Karte
-zeigt das Passwort **nie** — „gesetzt" oder „nicht gesetzt", nie die Länge, nie
-der Anfang, nie Sternchen mit der richtigen Zahl —, und ein leeres Passwortfeld
-beim Speichern heißt „unverändert lassen". **Ein Admin sieht die Karte gar
-nicht.** Was er stattdessen bekommt, ist die Auskunft an der Stelle, an der sie
-ihn angeht: neben dem Link steht, ob etwas hinausging und warum nicht.
-
-**Es kommt damit KEINE neue Zeile in die `.env`.** Die Ausnahme von der Regel
-„die `.env` trägt nur, was **vor** dem Öffnen der Datenbank lesbar sein muss"
-wird **nicht** gebraucht.
-
-### Öffentliche Adresse — Pflicht für den Versand, nicht für den Start
-
-Hinter dem Proxy weiß der Container nicht, wie er von außen heißt. Sie ist eine
-**Einstellung** und darf **niemals** aus dem `Host`-Kopf abgeleitet werden —
-sonst lässt sich ein Rücksetzlink über einen gefälschten Kopf auf einen fremden
-Server umbiegen. **In Stufe H stellte sich die Frage nicht**: der Server gab
-dort nur den Token heraus, die vollständige Adresse baute der Browser des
-Admins. **Ab 0.9.0 geht der Link über den Server hinaus**, und dann wird die
-Einstellung gebraucht: *wer den Link von Hand weitergibt, hat einen Browser, der
-die Adresse kennt; wer ihn verschicken lässt, hat keinen.*
-
-**Wo sie liegt, ist entschieden und seit 0.8.90 gebaut:** in der **`.env`** als
-`OEFFENTLICHE_ADRESSE`, **optional** — leer heißt „der Browser baut", wie in
-Stufe H. **Nicht** in `settings` und **nicht** in der Oberfläche einstellbar,
-und der Grund steht in der Rollenleiter: ein Admin kommt nicht an einen anderen
-Admin oder den Eigentümer. Der Systembereich **zeigt** sie; setzen kann sie nur,
-wer an die `.env` kommt.
-
-**ABWEICHUNG, entschieden in 0.9.0.** Dieses Papier sagte „ab Stufe I ist sie
-**Pflicht**". Wörtlich gelesen hieße das: ohne sie startet die Anlage nicht.
-**Gebaut ist die engere Auslegung: Pflicht für den VERSAND, nicht für den
-Start.** Eine Anlage ohne Mail braucht sie nicht, und ein Startabbruch bräche
-**jede vorhandene Installation** beim Einspielen dieser Version — genau das, was
-der Einspielweg nie tun darf. Ohne sie wird **nicht verschickt**, die Karte sagt
-warum, und der Link steht wie immer daneben.
-
-**Zugangsdaten** siehe oben. Dazu ein **Testmail-Knopf** — sonst fällt der
-Fehler erst auf, wenn jemand wartet. **Gebaut, und er geht an die eigene Adresse
-des Anfordernden und nirgendwo sonst:** ein Knopf mit freiem Adressfeld wäre ein
-offener Mailverteiler hinter einer Anmeldung. Es gibt deshalb **kein**
-Adressfeld — weder im Rumpf noch in der Abfrage noch als Kopf; der Rumpf wird
-gar nicht angesehen.
-
-**Die Adresse am Zugang — mitgebaut, weil der Versand sonst keinen Empfänger
-hätte.** `users.email` stand seit 0.6.0 im Schema und wurde von **keiner**
-Stelle des Projekts geschrieben. Gebaut sind zwei Schreibwege und ausdrücklich
-kein dritter: **beim Anlegen** (`POST /api/users`) darf der Admin eine Adresse
-mitgeben — den Zugang gibt es in diesem Augenblick noch nicht, also kann sie
-niemand selbst eintragen —, und **danach ändert sie allein der Betroffene**
-(`PUT /api/account`, hinter dem bisherigen Passwort). **`PUT /api/users/:id`
-bekommt sie ausdrücklich nicht:** ein Admin, der eine bestehende fremde Adresse
-umschreiben dürfte, böge den nächsten Rücksetzlink des Betroffenen auf ein
-Postfach seiner Wahl. Die Adresse ist überall **freiwillig**.
-
-**Die Frist des Versands: zwanzig Sekunden**, hergeleitet und gemessen. Ein
-vollständiges SMTP-Gespräch über TLS sind rund acht Umläufe — bei schlechten
-300 ms Umlaufzeit unter drei Sekunden; zwanzig gibt dem den achtfachen Abstand
-und bleibt weit unter dem, was Browser und Proxy von sich aus abbrechen.
-Nodemailers eigene Fristen sind Fristen je **Abschnitt** und eine auf
-**Untätigkeit**; `socketTimeout` wird von **jedem** zugestellten Byte
-zurückgesetzt. Ein Empfänger, der alle drei Sekunden eines schickt und nie
-antwortet, hält es ewig am Leben — nachgestellt: nach 45 Sekunden hängt der
-Versand immer noch. Über dem Versand liegt deshalb eine **äußere Schranke**,
-und der Prüfstand misst an genau diesem tröpfelnden Empfänger, dass sie es ist,
-die trägt.
-
-### Der Punkt, der das Offline-Prinzip erhält
-
-**Jeder Link, der verschickt wird, ist im Verwaltungsbereich zusätzlich zum
-Kopieren sichtbar.** Schlägt der Versand fehl, bricht nichts ab: der Admin
-sieht „Versand fehlgeschlagen" und daneben den Link.
-
-Damit läuft Kriterion mit abgeschaltetem Mailversand **vollständig**, rein
-offline, ohne dass eine Funktion fehlt. E-Mail ist eine Bequemlichkeit, keine
-Voraussetzung. Das ist die wichtigste Entwurfsentscheidung des ganzen Vorhabens
-— sie ist der Grund, warum der Umbau die Veröffentlichung nicht verschlechtert.
-
-**Gebaut in 0.9.0, und die Bauform ist der Beleg:** der Token entsteht
-**zuerst**, die Antwort trägt den Link **immer**, und das Ergebnis des Versands
-ist ein **Feld** in derselben Antwort — `versand: 'ok' | 'fehlgeschlagen' |
-'aus'`, dazu `versandGrund`, wo es nicht `'ok'` ist. Der Grund gehört dazu, weil
-`'aus'` allein drei Lagen deckt: kein Mailzugang, keine öffentliche Adresse,
-keine Adresse am Zugang. Der Versand kann in dieser Anlage nichts mitreißen —
-die Versandfunktion **wirft nicht**, sie liefert ein Ergebnis.
-
-**Es gibt genau DREI Anlässe für eine Mail** — den Tokenlink, die Testmail und
-seit 0.9.1 die Bestätigungsmail. Keine Benachrichtigungen: nicht „jemand hat
-kommentiert", nicht „etwas ist offen", und ausdrücklich auch keine Absagemail an
-einen abgelehnten Anfragenden. Wer das später will, bekommt eine eigene Runde
-und eine eigene Entscheidung darüber, wer zustimmt.
-
-**Der DRITTE ist die benannte Ausnahme, gebaut in 0.9.1:** die
-**Bestätigungsmail** der Selbstanmeldung. Sie trägt einen Link **ohne
-Passwortkraft** — wer ihn anklickt, sagt nur „ja, das bin ich" — und sie ist
-der Beleg, dass die Adresse dem Anfragenden gehört. Ohne sie könnte jeder eine
-**fremde** Adresse in die Liste des Admins schreiben, und beim Freischalten
-ginge einer Person, die nie gefragt hat, eine Mail mit Passwortkraft zu. Der
-Ablauf steht in Abschnitt 10. **Eine Benachrichtigung ist auch sie nicht.**
-
-**Sie ist der einzige Text der Anlage, der an jemanden gehen kann, der nichts
-angefordert hat**, und danach ist sie gebaut: der Satz *„warst du das nicht, ist
-nichts zu tun"* steht weit oben und nicht am Ende, der Text sagt ausdrücklich,
-dass der Link **keinen Zugang öffnet und kein Passwort setzt**, und er nennt,
-was danach kommt — ein Mensch entscheidet. Eine Mail, die zum Klicken auffordert,
-ohne zu sagen, was der Klick bewirkt, ist genau die Sorte Mail, vor der man
-Leute warnt. Der Schlüssel steht im **Fragment** (`#/bestaetigung/…`) und geht
-damit nie an den Server; ein Vorschaudienst, der Links im Postfach vorab abruft,
-holt nur die Seite und bestätigt gerade **nicht**.
-
-**Der Inhalt der Mail:** reiner Text, kein HTML, keine Bilder, keine Zählpixel,
-keine Anhänge. Eine Mail, die ein Passwortsetzen ankündigt, hat keinen Grund,
-etwas nachzuladen. Sie nennt, wer die Anlage ist, wozu der Link dient, wie lange
-er gilt (sieben Tage), dass er **einmal** einlösbar ist und dass ab dem ersten
-Öffnen **fünfzehn Minuten** bleiben.
-
-**Kein Eintrag im Sicherheitsprotokoll für den Versand.** Eine Zeile „Mail an X
-verschickt" wäre ein Zustellprotokoll, kein Sicherheitsprotokoll — und die
-Adresse wäre Freitext von außen, den diese Tabelle ausdrücklich nicht aufnimmt.
-Der Anlass steht schon drin (`link.neu`).
-
-*Vorgemerkt, nicht eingeplant:* Falls SMTP am Anschluss gar nicht durchkommt
-(manche Anbieter sperren Port 587 ausgehend), wäre ein Versanddienst über HTTPS
-statt SMTP der Ausweg — Brevo, Mailjet, Postmark haben Schnittstellen, die sich
-mit einem einfachen `fetch` bedienen lassen, ganz ohne Bibliothek. Zweiter Weg im
-Code, erst bauen, wenn SMTP nachweislich scheitert.
+**Der Punkt, der das Offline-Prinzip erhält:** jeder Link, der verschickt wird,
+ist im Verwaltungsbereich **zusätzlich zum Kopieren sichtbar**. *Damit läuft
+Kriterion mit abgeschaltetem Mailversand vollständig, rein offline, ohne dass
+eine Funktion fehlt. **Das ist die wichtigste Entwurfsentscheidung des ganzen
+Vorhabens** — sie ist der Grund, warum der Umbau die Veröffentlichung nicht
+verschlechtert.*
+→ *Projektstand, Abschnitt 3.*
 
 ## 12. Export und Import — erledigt in 0.7.1 und 0.7.2
 
-**Was gilt:** Der Export nennt zu **jedem Eintrag, jeder Bewertung, jedem
-Kommentar, jedem Testtag und — seit 0.8.30 — jeder Linkzeile** den
-Verfassernamen (**fünf** Träger; der Eintrag fehlte im Entwurf, die Linkzeile
-kam mit Stufe G4 dazu). **Formatversion 7** seit 0.8.30, davor 6. Beim Import wird ein bekannter
-Name zugeordnet, alles andere fällt **laut gemeldet** an den Importierenden;
-**ein unbekannter Name legt keinen Zugang an**, die Anpinnung wandert nicht
-mit, geliefert wird der Name, nie die Id. Ältere Exportdateien bleiben
-lesbar. **Export und jeder Import gehören dem Eigentümer** (0.7.2). **Der
-ersetzende Import rührt `users`, `sessions` und `tokens` nicht an** — täte
-er es, würde er im schlimmsten Fall alle aussperren.
+Der Export nennt zu jedem Träger den **Verfassernamen**, nie die Id; ein
+unbekannter Name **legt keinen Zugang an**; die Anpinnung wandert nicht mit;
+ältere Dateien bleiben lesbar. **Export und jeder Import gehören dem
+Eigentümer.** **Der ersetzende Import rührt `users`, `sessions` und `tokens`
+nicht an** — täte er es, würde er im schlimmsten Fall alle aussperren.
+→ *Projektstand, Abschnitt 5.4.*
 
 ## 13. Was dabei aufgegeben wird
 
-Ein Schlüssel, eine Datenbank. Jeder Benutzer vertraut dem Betreiber mit allem,
-was er einträgt — lesbar ist alles, Rechtetabelle hin oder her. Bei einer
-selbstgehosteten Sache ist das normal, gehört aber in die README, sobald Fremde
-mitmachen. Verschlüsselung je Benutzer wäre ein Neubau, kein Anbau.
+**Ein Schlüssel, eine Datenbank.** Jeder Benutzer vertraut dem Betreiber mit
+allem, was er einträgt — lesbar ist alles, Rechtetabelle hin oder her. *Bei
+einer selbstgehosteten Sache ist das normal, gehört aber in die README, sobald
+Fremde mitmachen.* **Verschlüsselung je Benutzer wäre ein Neubau, kein Anbau.**
 
 **Abschalten:** Der Mehrbenutzerbetrieb lässt sich nur zurücknehmen, solange kein
 zweiter aktiver Benutzer existiert. Sonst würden fremde Inhalte herrenlos.
+→ *Projektstand, Abschnitt 5.2 und Abschnitt 10.*
 
 ---
 
-# Teil III — Stufen
+# Teil III — Die Stufen, und was beim Bauen anders kam
 
-Geschnitten nach **Arbeitsmenge je Thread**, nicht nach Sichtbarkeit. Jede
-Stufe muss in einem Chat abzuarbeiten sein. **Die Versionsnummern der offenen
-Stufen sind mit der Bereinigung 0.8.1 hochgerückt.**
+**Geschnitten nach Arbeitsmenge je Thread, nicht nach Sichtbarkeit.** *Jede
+Stufe muss in einem Chat abzuarbeiten sein* — diese Regel hat den ganzen Plan
+getragen und ist einmal ausdrücklich gegen eine gesparte Formatnummer
+abgewogen worden (Projektstand, Abschnitt 10).
 
-> **Neue Nummern für die offenen Stufen — G4 wird 0.8.30, H wird 0.8.80, I
-> bleibt 0.9.0.** Die Stufen des Umbaus stehen nicht mehr allein: der
-> Gesamtplan im Projektstand, Abschnitt 10, schiebt Runden dazwischen, die
-> nicht zum Mehrbenutzerbetrieb gehören (Werkzeug, Sicherheit, Gewichtung,
-> Kurzvideos, Sicherung). **Die Nummern gehen dort in Zehnerschritten**, damit
-> zwischen zwei Stufen neun Nummern für Berichtigungsrunden frei bleiben —
-> 0.8.1 und 0.8.6 waren genau das und mussten sich in eine geplante Nummer
-> drängen. **Mit 0.8.10 ist der Zehnerschritt zum ersten Mal wirklich
-> gebaut**, und die Sortierung `0.8.9 < 0.8.10 < 0.8.20` hat im Betrieb
-> gehalten.
->
-> **Der Inhalt der Stufen G4, H und I bleibt unverändert und wird weiter hier
-> gepflegt.** Nur ihre Nummern und ihre Nachbarn stehen im Projektstand.
+| | Version | Was |
+|---|---|---|
+| **A** | 0.6.0 | `users` um `role`/`email`/`status`/`last_login`, `sessions.user_id`, `req.benutzer` |
+| **B** | 0.6.1 | `user_id` an `items`, `comments`, `test_days` |
+| **C** | 0.6.2 | Tabellenneubau: `ratings` und `test_days` mit neuem UNIQUE |
+| **C2** | 0.6.3 | `item_pins` statt `items.favorite` |
+| — | 0.6.4 | *Keine Stufe.* Berichtigung am Favoriten-Knopf |
+| **D** | 0.6.5 | `user_settings`: sechs Schlüssel werden persönlich |
+| — | 0.6.6 | *Keine Stufe.* Am Eintrag heißt es **Favorit**, sortiert nicht mehr vor, eigener Filter |
+| **E** | 0.7.0 | Bewertungsanzeige, Testtage, Zeitleiste, Kriterien in den Systembereich |
+| **E2** | 0.7.1 | Export und Import mit Verfassernamen |
+| **F** | 0.7.2 | Rechteschicht serverseitig, Endpunkt für Endpunkt; dazu der Selbstbezug |
+| **G1** | 0.8.0 | Verwaltungskarte, Rollen, Sperren, Namensbremse, `zugang.js` |
+| — | 0.8.1 | *Keine Stufe.* **Bereinigung:** `legacy.js` und aller Migrationscode entfernt, Schema als DDL |
+| **G2a** | 0.8.2 | Verfassernamen an vier Trägern, Stimmenliste, Löschdialog am Eintrag |
+| **G2b** | 0.8.3 | Eingriffsvermerk am Kommentar, `mine` am Kommentar, blaue Aufgabenmarke |
+| **G2c** | 0.8.4 | Rest von G2: die beiden Anlegen-Schalter, die Vergleichsansicht, die Rolle im Vermerk |
+| **G3** | 0.8.5 | „Der Systembereich lernt die Rechte": Karten nach Rolle, `GET /api/stats` hinter den Admin |
+| — | 0.8.6 | *Keine Stufe.* Berichtigungen aus dem Betrieb |
+| — | 0.8.10 | *Keine Stufe.* **Werkzeug** — den Umbau nicht berührt |
+| — | 0.8.20 | *Keine Stufe.* **„Die Schotten dicht"** — den Umbau nicht berührt |
+| **G4** | 0.8.30 | „Die Linkliste bekommt Verfasser" — **Stufe G vollständig** |
+| — | 0.8.31 | *Keine Stufe.* Dieselbe Wende an den Dateien |
+| — | 0.8.40 bis 0.8.71 | *Keine Stufen.* Gewichtung, Kurzvideos, „Offen/Neu", Sicherung und Papierkorb, Sicherungsort |
+| **H** | 0.8.80 | Tokens für Einladung und Rücksetzung, dazu „Meine Sitzungen" |
+| — | 0.8.90, 0.8.91 | *Keine Stufen.* Schwere Eingriffe, Schlüsselwechsel |
+| **I₁** | 0.9.0 | Mailversand. **Der Abbruchpunkt ist gezogen worden** — er stand hier seit Langem |
+| **I₂** | 0.9.1 | Selbstanmeldung. **Damit ist der Stufenplan abgearbeitet.** |
 
-| | Version | Was | Umfang |
-|---|---|---|---|
-| **A** | 0.6.0 | `users` um `role`/`email`/`status`/`last_login`, `sessions.user_id`, `req.benutzer` — **erledigt**, siehe unten | klein |
-| **B** | 0.6.1 | `user_id` an `items`, `comments`, `test_days` — **erledigt**, siehe unten | mittel |
-| **C** | 0.6.2 | Tabellenneubau: `ratings` und `test_days` mit neuem UNIQUE — **erledigt**, siehe unten | mittel, riskant |
-| **C2** | 0.6.3 | `item_pins` statt `items.favorite` — **erledigt**, siehe unten | mittel |
-| — | 0.6.4 | *Keine Stufe.* Berichtigung: der Favoriten-Knopf zeichnete sich nach dem Klick nicht neu (Stolperstein 61) | winzig |
-| **D** | 0.6.5 | `user_settings`: sechs Schlüssel werden persönlich — **erledigt**, siehe unten | klein |
-| — | 0.6.6 | *Keine Stufe.* Am Eintrag heißt es **Favorit**, sortiert nicht mehr vor, eigener Filter „★ Favoriten". Der Filter liegt in `filters` und ist damit seit Stufe D persönlich | klein |
-| **E** | 0.7.0 | Bewertungsanzeige, Testtage, Zeitleiste, Kriterien in den Systembereich — **erledigt**, siehe unten | groß |
-| **E2** | 0.7.1 | Export und Import mit Verfassernamen — **erledigt**, siehe unten | mittel |
-| **F** | 0.7.2 | Rechteschicht serverseitig, Endpunkt für Endpunkt; dazu der Selbstbezug — **erledigt**, siehe unten | mittel |
-| **G1** | 0.8.0 | Verwaltungskarte, Rollen, Sperren, Namensbremse, `zugang.js` — **erledigt**, siehe unten | groß |
-| — | 0.8.1 | *Keine Stufe.* **Bereinigung:** `legacy.js` und aller Migrationscode entfernt, Schema als DDL, Prüfstand auf frische Anlagen (−102 Prüfungen), Kommentare und Vokabular vereinheitlicht, Dokumente eingedampft | mittel |
-| **G2a** | **0.8.2** | Verfassernamen an vier Trägern, Stimmenliste je Kriterium, Löschdialog am Eintrag, Endpunkt für fremde Bewertungen — **erledigt**, siehe unten | mittel |
-| **G2b** | **0.8.3** | Eingriffsvermerk am Kommentar, `mine` am Kommentar samt der Oberfläche dazu, blaue Aufgabenmarke, Tagwolke — **erledigt**, siehe unten | mittel |
-| **G2c** | **0.8.4** | Rest von G2: die beiden Anlegen-Schalter und die Vergleichsansicht; dazu die Rolle im Vermerk, `updated_at` bei den Bildwegen und die Zahlen am Kommentarblock — **erledigt, Stufe G2 vollständig**, siehe unten | mittel |
-| **G3** | **0.8.5** | „Der Systembereich lernt die Rechte": dreizehn Karten nach Rolle, `GET /api/stats` hinter den Admin, Karte „Links" in zwei geschnitten, Kachel „Zugänge" über die volle Breite, Trennlinien — **erledigt**, siehe unten | mittel |
-| — | **0.8.6** | *Keine Stufe.* **Berichtigungen aus dem Betrieb:** Bewertungsdetails nur noch für den Admin (eigener Endpunkt, Löschweg mitgewandert), Scrollen der Linkliste am Finger, Lücke im Kartenraster, Datum am Eintragsverfasser, „angemeldet als" in der Kopfzeile — **erledigt**, siehe unten | klein |
-| — | **0.8.10** | *Keine Stufe.* **Werkzeug:** `package-lock.json` eingecheckt und `npm ci` statt `npm install`, `sharp` auf 0.35.3, Image auf Node 22, Versions-Fingerprint über die ausgelieferten Dateien, Prüfstand in Gruppen aufrufbar und bei jedem Push — **erledigt**, den Umbau nicht berührt | klein |
-| — | **0.8.20** | *Keine Stufe.* **„Die Schotten dicht":** SVG am Fotoweg (Typ aus den ersten Bytes statt aus der Datenbank), Sicherheitsregel für die Anwendung selbst, `X-Forwarded-For` nur nach Einstellung samt `Secure`/HSTS/`__Host-`, Fehler-Handler nach Rang, sauberes Herunterfahren, Index auf `sessions.user_id` — **erledigt**, den Umbau nicht berührt | klein |
-| **G4** | **0.8.30** | „Die Linkliste bekommt Verfasser": `user_id` an `links`, jeder trägt ein, löschen darf Eintrager oder Admin, Name an der **fremden** Zeile ab zwei Zugängen, Formatnummer 6 → 7 — **erledigt, Stufe G vollständig**, siehe unten | mittel |
-| — | **0.8.31** | *Keine Stufe.* **Dieselbe Wende an den Dateien:** `user_id` an `attachments`, hochladen offen, löschen beim Hochladenden oder Admin, Name an der fremden Zeile, Formatnummer 7 → 8 — **erledigt** | klein |
-| **H** | **0.8.80** | **erledigt.** Tokens für Einladung und Rücksetzung, im Verwaltungsbereich zum Kopieren. Dazu **„Meine Sitzungen"** — sehen, wo man angemeldet ist, und einzelne Sitzungen beenden. *Der Einmalcode im Protokoll ist entfallen — siehe Stufe G1.* Einzelheiten unten. | mittel |
-| **I₁** | **0.9.0** | **erledigt.** Mailversand mit Anbietervorlagen, öffentliche Adresse als Pflicht für den Versand, Testmail, Adresse am Zugang, Frist ab dem ersten Öffnen. **Der Abbruchpunkt ist gezogen worden** — er stand seit Langem hier. | groß |
-| **I₂** | **0.9.1** | **erledigt.** Selbstanmeldung: Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung. Neue Tabelle `anfragen`, **ohne Migrationsblock**; `F_ROUTEN` 59 → 64. | mittel |
+**Die Stufen des Umbaus standen nie allein:** der Gesamtplan im Projektstand
+schiebt Runden dazwischen, die nicht dazugehören. **Die Nummern gingen bis 0.9.1
+in Zehnerschritten**, damit zwischen zwei Stufen neun Nummern für
+Berichtigungsrunden frei bleiben — *0.8.1 und 0.8.6 mussten sich noch in eine
+geplante Nummer drängen, mit 0.8.31 hat es sich zum ersten Mal ausgezahlt.*
+**Ab 0.10.0 gilt SemVer und löst dasselbe Problem besser.**
 
-**MIT 0.9.1 IST STUFE I VOLLSTÄNDIG, UND DAMIT DER GANZE STUFENPLAN.** Teil II
-dieses Papiers ist abgearbeitet; es gibt keine offene Stufe mehr.
-**Was von diesem Papier ab jetzt gilt, sind die ENTSCHEIDUNGEN, nicht die
-Stufen** — die Rollenleiter, „ein Zustand, keine zweite Wahrheit", der Satz
-über E-Mail als Bequemlichkeit, die eine Absage am Token, die immer gleiche
-Antwort auf eine Anfrage und der Satz, unter dem die letzte Stufe steht: der
-Admin schaltet frei, immer. **Diese Stufenliste ist ab jetzt
-Versionsgeschichte und wird nicht mehr fortgeschrieben.**
+## Was beim Bauen anders kam — Stufe A bis G3
 
-**G4 ist gebaut, und damit sind die Stufen A bis G vollständig.** **Zwischen
-G4 und H liegen vier weitere Stufen** (Gewichtung, Kurzvideos, „Offen/Neu",
-Sicherung und Papierkorb). Alle vier gehören nicht zum Mehrbenutzerbetrieb und
-stehen deshalb im Projektstand, Abschnitt 10 — zusammen mit der Begründung für
-die Reihenfolge. **Alle vier — 0.8.40 (Gewichtung), 0.8.50 (Kurzvideos),
-0.8.60 („Offen/Neu") und 0.8.70 (Sicherung und Papierkorb) — sind gebaut, dazu
-0.8.71 als Berichtigungsrunde; als Nächstes 0.8.80, Stufe H.**
+**Für diese Stufen ist dieses Papier der einzige Ort.** *Änderungsprotokolle gibt
+es erst ab 0.8.6; ab dort steht die Herleitung dort, und hier nur noch eine
+Zeile.*
 
-Danach: Zwei-Faktor, Suche, dann 1.0.0. **Keines davon ist eine Stufe dieses
-Papiers** — der Stufenplan ist mit 0.9.1 zu Ende. **Zwei Punkte hingen
-unmittelbar an Stufe I und gelten weiter:** die Tokens aus H tragen auch die
-Zwischenstufe der Zwei-Faktor-Anmeldung (0.9.10), und der Satz „E-Mail ist
-Bequemlichkeit, nie Voraussetzung" gilt dort **nicht** — ein zweiter Faktor
-über TOTP braucht ausdrücklich kein Netz und darf deshalb nie ausfallen.
+**A (0.6.0).** Bestehende Sitzungen wurden **nachgezogen statt gelöscht**; „gibt
+es keinen Admin, wird es der Eigentümer" schloss die Lücke, wer der erste Admin
+wird; die Durchsetzung von `status` wurde bewusst nach Stufe G verschoben; und
+**`email` bekam kein `UNIQUE`** — ein `ALTER TABLE` kann keines nachrüsten, die
+gewanderte und die frische Datenbank wären damit verschieden gebaut. *Die Frage
+ist bis heute offen (Projektstand, Abschnitt 10).*
 
-## Stufe A — erledigt in Version 0.6.0
+**B (0.6.1).** Die Migration brauchte **drei** Aufrufstellen statt einer;
+`test_day_tags` bekam **keine** eigene Spalte (der Verfasser folgt dem Testtag);
+der Verfasser wandert beim Ersetzen eines Testtags mit. **Seitdem kann der
+Prüfstand zwei echte Rufer nebeneinanderstellen** — das Muster jeder
+Rechteprüfung (Stolperstein 56).
 
-Gebaut wie entworfen: vier Spalten an `users`, `sessions.user_id` mit
-`ON DELETE CASCADE`, `req.benutzer` in `requireAuth`; drei Umbenennungen in
-`auth.js`, weil sich der Vertrag änderte (`legeSitzungAn`, `pruefeAnmeldung`,
-`sitzungsBenutzer`), `last_login` wird in `legeSitzungAn()` mitgeschrieben.
-**Abweichungen:** bestehende Sitzungen wurden nachgezogen statt gelöscht
-(Teil V Punkt 1); „gibt es keinen Admin, wird es der Eigentümer" schloss die
-Lücke, wer der erste Admin wird; die Durchsetzung von `status` wurde bewusst
-nach Stufe G verschoben; `email` bekam **kein** `UNIQUE` (ein partieller
-Index, falls je gebraucht — Abschnitt 10).
+**C (0.6.2).** Der Tabellenneubau lief in **einer** Transaktion, Reihenfolge
+`PRAGMA foreign_keys=OFF` → `BEGIN` → Umbau → `COMMIT` → `ON`. **Zwei Fallen,
+nachgestellt vor dem Bauen:** ein `DROP TABLE` ist bei scharfen Fremdschlüsseln
+ein `DELETE` (die Kaskade hätte die Tags lautlos mitgenommen), und
+`PRAGMA foreign_keys` ist **in einer Transaktion ein stiller No-op**. Dazu:
+`item_pins` wurde herausgelöst (→ C2), das `ON CONFLICT`-Ziel musste mitwandern,
+die Migration konnte am neuen UNIQUE scheitern (`UPDATE OR IGNORE`,
+Stolperstein 57), und **der Umbau erkannte seinen Bedarf am UNIQUE-Index, nicht
+an einer Marke.**
 
-## Stufe B — erledigt in Version 0.6.1
-
-`user_id` an `items`, `comments`, `test_days`; Zuweisung beim Anlegen;
-Bestand fiel dem ersten Benutzer zu. **Die eigentliche Entscheidung war
-`ON DELETE SET NULL`** (Teil II Abschnitt 4). **Abweichungen:** die Migration
-brauchte **drei** Aufrufstellen statt einer (Teil V Punkt 10; seit 0.8.1 sind
-es zwei — die `.env`-Übernahme ist entfallen); `test_day_tags` bekam keine
-eigene Spalte (der Verfasser folgt dem Testtag); der Verfasser wandert beim
-Ersetzen eines Testtags mit; `user_id` erscheint in den Antworten. Seitdem
-kann der Prüfstand **zwei echte Rufer** nebeneinanderstellen — das Muster
-jeder Rechteprüfung (Stolperstein 56).
-
-## Stufe C — der Tabellenneubau — erledigt in Version 0.6.2
-
-`ratings` und `test_days` neu angelegt mit `user_id` im UNIQUE, in einer
-Transaktion, Reihenfolge `PRAGMA foreign_keys=OFF` → `BEGIN` → Umbau →
-`COMMIT` → `ON`, die `id` der Testtage mitkopiert, geprüft an einem Bestand
-mit Tags an Testtagen. Die zwei Fallen, nachgestellt vor dem Bauen: **ein
-`DROP TABLE` ist bei scharfen Fremdschlüsseln ein `DELETE`** (die Kaskade
-hätte die Tags lautlos mitgenommen), und **`PRAGMA foreign_keys` ist in einer
-Transaktion ein stiller No-op**. **Abweichungen:** `item_pins` wurde
-herausgelöst (→ C2); das `ON CONFLICT`-Ziel musste mitwandern; die Migration
-konnte am neuen UNIQUE scheitern (`UPDATE OR IGNORE`, Stolperstein 57); der
-Umbau erkannte seinen Bedarf am UNIQUE-Index, nicht an einer Marke. Nebenbei:
-das Zurücksetzen der Bewertungen trifft seitdem nur die eigenen Werte.
-*Der Umbaucode selbst ist seit 0.8.1 entfernt; was bleibt, ist das Schema.*
-
-## Stufe C2 — `item_pins` statt `items.favorite` — erledigt in Version 0.6.3
-
-Der Favorit liegt je Benutzer in `item_pins` (`ON DELETE CASCADE` an beiden
-Fremdschlüsseln); `items.favorite` wurde geleert und bleibt als ungenutzte
-Spalte im Schema. Oberfläche, Stylesheet und `index.html` blieben
-unangetastet. **Abweichungen:** **Anpinnen rührt `updated_at` nicht an** —
-eine Merkhilfe ist keine Änderung am Eintrag; „ohne Vorgabewert" erwies sich
-als leere Zusicherung (Klemme nötig, Stolperstein 59); der Zeitstempelvergleich
-brauchte ein festes altes Datum (Stolperstein 60); die Momentaufnahme des
-Bestands muss früh genommen werden. **Nicht gebaut, ausdrücklich:** eine
+**C2 (0.6.3).** **Anpinnen rührt `updated_at` nicht an** — eine Merkhilfe ist
+keine Änderung am Eintrag. „Ohne Vorgabewert" erwies sich als **leere
+Zusicherung** (Klemme nötig, Stolperstein 59); der Zeitstempelvergleich brauchte
+ein festes altes Datum (Stolperstein 60). **Nicht gebaut, ausdrücklich:** eine
 Anzeige, wer außer mir angepinnt hat.
 
-## Stufe D — `user_settings` — erledigt in Version 0.6.5
+**D (0.6.5).** Die fehlende `ON DELETE`-Angabe im Entwurf war genau die Lücke aus
+Stolperstein 54. **`PERSOENLICHE_SCHLUESSEL` wurde von der Dokumentation zur
+Laufzeit-Schranke** in `putSetting`. *Teil V sagte neue Bedienelemente voraus —
+es gab keine, aber die vorhandenen Schalter schrieben in eine andere Tabelle,
+und genau das war der Anlass für die `dispatchEvent`-Prüfungen.*
 
-Die persönliche Hälfte steht (Tabelle in Teil II Abschnitt 8): eine Tabelle
-für alle Schlüssel, `PRIMARY KEY (user_id, key)`, `ON DELETE CASCADE` — die
-fehlende ON-DELETE-Angabe im Entwurf war genau die Lücke aus Stolperstein 54.
-**Abweichungen:** `PERSOENLICHE_SCHLUESSEL` wurde von der Dokumentation zur
-**Laufzeit-Schranke** in `putSetting` (kein persönlicher Schlüssel wird je
-wieder global geschrieben); die Liste stand zwangsläufig zweimal (seit 0.8.1
-nur noch einmal); Teil V Punkt 17 sagte neue Bedienelemente voraus — es gab
-keine, aber die vorhandenen Schalter schrieben in eine andere Tabelle, und
-genau das war der Anlass für die `dispatchEvent`-Prüfungen.
+**E (0.7.0/0.7.1).** **Die Doppel-JOIN-Warnung traf zu — an einer anderen Stelle
+als vorhergesagt** (`usage_count`, Stolperstein 67). Gerundet wird **einmal am
+Ende**; die Schwelle für die Durchschnittsspalte liegt **in der Oberfläche**;
+fremde Testtage werden in der Liste nicht gekennzeichnet, nur in der Zeitleiste.
+*Zwei Sätze in Abschnitt 5 des Projektstands wurden dabei widerrufen.*
 
-## Stufe E — die Trennung wird sichtbar — erledigt in 0.7.0 und 0.7.1
+**E2 (0.7.1).** **Vier** Träger statt drei — der Eintrag kam dazu. Dabei
+gefunden, älter als die Stufe: **`INSERT OR REPLACE` ist ein `DELETE` mit
+Nachspiel** (Stolperstein 70).
 
-Eigene Sterne neben Schnitt und Bewerterzahl, zweistufiger Gesamtschnitt,
-`mine` an Testtagen, Zeitleiste mit Ringen, Verlaufskurve, Kriterien in den
-Systembereich (alle vier Wege hinter einem Wächter). **Abweichungen:** die
-Doppel-JOIN-Warnung traf zu — an einer **anderen** Stelle als vorhergesagt
-(`usage_count`; Stolperstein 67); die Rundung einmal am Ende; die Schwelle
-für die Durchschnittsspalte liegt in der Oberfläche; fremde Testtage werden
-in der Liste nicht gekennzeichnet, nur in der Zeitleiste; zwei Sätze in
-Abschnitt 5 des Projektstands wurden widerrufen. **Offen geblieben und
-vermerkt (Entscheidung in G2):** die Vergleichsansicht hebt je Kriterium den
-besten **eigenen** Wert hervor, die Kopfzeile derselben Spalte zeigt den
-Schnitt über alle.
+**F (0.7.2).** Neun Abweichungen, die wichtigsten: **„Leitung" heißt seitdem
+Admin**, daneben steht der Eigentümer; **Export und Import gehören dem
+Eigentümer**, nicht dem Admin; zwei Endpunkte tragen zwei Rechteklassen in einem
+Rumpf; **die Note eines fremden Testtags ändert niemand**; bei den Bewertungen
+steht **ausdrücklich kein Wächter**; `aendereZugang()` behielt seinen Namen
+(Klemme statt Umbenennung). **Neu entstanden: der Wächter über den Quelltext** —
+`F_ROUTEN`, *die einzige Prüfung, die eine fehlende Entscheidung findet.*
 
-## Stufe E2 — Export und Import mit Verfassernamen — erledigt in Version 0.7.1
+**G1 (0.8.0).** Fünf Abweichungen: der Eigentümer ist ein **dritter Rollenwert**;
+**Löschen entwertet** (Grabstein, Name freigegeben); **`AUTH_RESET` ist durch
+`zugang.js` ersetzt** (der Einmalcode aus Stufe H entfällt ersatzlos); die
+**Namensbremse verzögert nur**; der Schalter „Mehrbenutzerbetrieb ein" ist
+gestrichen. Dazu die Regel, die beim Besprechen entstand: **ein Admin kommt nicht
+an seinesgleichen.**
+*Und eine Berichtigung aus 0.8.2:* der Ergebnisblock behauptete, für „Gelöschter
+Benutzer 7" liege in der Oberfläche alles bereit. **Das galt nur für die Karte
+„Zugänge"** — `GET /api/users` steht hinter `nurAdmin`, und für die Beiträge im
+Eintrag lag nichts bereit.
 
-**Vier** Träger statt drei (der Eintrag kam dazu; der fünfte, die Linkzeile,
-kam mit G4 in 0.8.30); unbekannte Namen werden **laut** gemeldet und fallen an
-den Importierenden; kein Zugang wird vom Import angelegt; der Favorit wandert
-nicht mit; Formatversion 6, seit 0.8.30 **7**. **Dabei
-gefunden, älter als die Stufe:** `INSERT OR REPLACE` ist ein `DELETE` mit
-Nachspiel — die Kinder gehen über die Kaskade mit (Stolperstein 70; Teil V
-Punkt 18 hält die Warnung für die Löschwege in G2 fest).
-
-## Stufe F — die Rechteschicht — erledigt in Version 0.7.2
-
-Jeder schreibende Endpunkt fragt serverseitig, wer etwas darf; bei einem
-einzigen Zugang verweigert nichts. **Abweichungen (die wichtigsten von
-neun):** „Leitung" heißt seitdem **Admin**, daneben steht der **Eigentümer**;
-**Export und Import gehören dem Eigentümer**, nicht dem Admin; zwei Endpunkte
-tragen zwei Rechteklassen in einem Rumpf; die Note eines fremden Testtags
-ändert niemand; Tags und Kategorie am Eintrag gehören dem Verfasser; bei den
-Bewertungen steht ausdrücklich kein Wächter (beide Wege treffen nur die
-eigene Zeile); `aendereZugang()` behielt seinen Namen (Klemme statt
-Umbenennung). **Neu entstanden: der Wächter über den Quelltext** — `F_ROUTEN`
-hält jede schreibende Route samt Absicherungsart gegen `server.js`, in beide
-Richtungen; er ist die einzige Prüfung, die eine **fehlende Entscheidung**
-findet. **Der Selbstbezug wurde hierher vorgezogen** und ist ganz entfernt:
-`GET /api/account` liest `req.benutzer`, `aendereZugang()` bekommt die
-Nummer übergeben, das `DELETE FROM sessions` trägt `AND user_id = ?` — drei
-Stellen, drei eigene Gegenproben. **Für G2 weiter offen:** der Vermerk, wenn
-der Admin ein fremdes Kommentarbild entfernt, und der Endpunkt, mit dem ein
-Admin eine fremde Bewertung löscht.
-
-## Stufe G1 — Verwaltung, Rollen, Sperren — erledigt in Version 0.8.0
-
-**Gebaut ist die erste Hälfte der Stufe G**, nach der Teilung aus dem
-Betrieb: 0.8.0 brachte den zweiten echten Zugang, G2 bringt die
-Verfassernamen auf den Bildschirm. Seitdem lässt sich die Rechteschicht aus
-0.7.2 von Hand gegenprüfen. **Fünf Abweichungen**, alle in Teil II an ihrer
-Stelle vermerkt: der Eigentümer ist ein **dritter Rollenwert** (`MIN(id)`
-kommt in `server.js` nicht mehr vor, ein Wächter zählt nach); **Löschen
-entwertet** (Grabstein, Name freigegeben, `ON DELETE`-Klauseln unverändert);
-**`AUTH_RESET` ist durch `zugang.js` ersetzt** (der Einmalcode aus Stufe H
-entfällt ersatzlos); die **Namensbremse verzögert nur**; der Schalter
-„Mehrbenutzerbetrieb ein" ist gestrichen. Dazu die Regel, die beim Besprechen
-entstand: **ein Admin kommt nicht an seinesgleichen.** Und der Preis, der
-genannt gehört: `geloescht-<zahl>` ist als Benutzername gesperrt, geprüft an
-beiden Wegen (Anlegen und Umbenennen).
-
-~~**Für Stufe G2 gilt daraus:** die Oberfläche hat mit `daten.ich`,
-`daten.darfRollen` und dem Grabstein-Status bereits alles, was sie braucht.~~
-**Berichtigt in 0.8.2:** das galt **nur** für die Karte „Zugänge". `GET
-/api/users` steht hinter `nurAdmin`; für die Beiträge im Eintrag lag nichts
-bereit, und die Auflösung Nummer → Verfasser musste eigens gebaut werden.
-Wer dort eine schreibende Route ergänzt, trägt sie in `F_ROUTEN` ein; die
-Liste (aktuell 47 Routen) kennt seit 0.8.0 eine vierte Art,
-`'nurAdmin, im Rumpf'`, für Routen, die hinter einem Wächter stehen **und**
-drinnen noch einmal unterscheiden.
-
-## Stufe G2, erste Hälfte — erledigt in Version 0.8.2
-
-**Was gilt.** Eintrag, Kommentar, Testtag und jede einzelne Bewertung nennen
-ihren Verfasser als Objekt `verfasser: { id, name, geloescht }`; die nackte
-`user_id` steht in keiner Antwort mehr. Gebaut aus **einer** Karte je Anfrage.
-Ein Grabstein liefert `name: null` — die Beschriftung „Gelöschter Benutzer 7"
-entsteht in `public/app.js`, an genau einem Ort, den auch die Karte „Zugänge"
-ruft; eine herrenlose Zeile heißt „Ohne Verfasser". Je Kriterium entsteht die
-**Stimmenliste** mit `id`, `wert`, `mine` und Verfasser aus einer eigenen
-gruppierten Abfrage — *bis 0.8.5 unter der Sternzeile für jeden, seit 0.8.6 in
-der Adminansicht.* **Bei genau einem aktiven Zugang bleibt
-davon alles aus**, abgeleitet aus `benutzerZahl` — kein Schalter, keine zweite
-Schwelle. Der **Löschdialog am Eintrag** liest seine Zahlen aus
-`GET /api/items/:id/bestand`, getrennt nach eigen und fremd aus Sicht des
-Löschenden. **`DELETE /api/ratings/:id`** entfernt eine einzelne fremde
-Bewertung, hinter `darfAendern`; die Note ändert niemand.
-
-**Abweichungen.** Das Feld heißt `verfasser`, nicht `author` — der Export-
-`author` ist eine blanke String, hier steht ein Objekt, und gleicher Name
-bei anderer Form wäre eine Falle. *Verworfen:* ein Endpunkt `GET /api/verfasser`
-— er legte die vollständige Zugangsliste jedem offen. Der **Grabsteinname
-verlässt den Server nicht** (`name: null`), weil er freigegeben ist und längst
-einem anderen gehören kann; beim Bauen war das zuerst falsch. Die
-**Stimmenliste** stand nicht im Entwurf und ist trotzdem nötig: ohne sie hätte
-der Löschweg für fremde Bewertungen keine Bedienung. Bei den Zahlen des Dialogs
-zählen nur Bewertungen mit **Wert > 0** — das weicht bewusst von
-`zaehleBestand()` ab, das ohne diese Bedingung zählt; dort lautet die Frage „was
-hängt an diesem Zugang", hier „was geht anderen verloren".
-
-**Berichtigung des Entwurfs.** Der Ergebnisblock zu Stufe G1 behauptete, für
-„Gelöschter Benutzer 7" liege alles bereit. Das galt **nur** für die Karte
-„Zugänge": `daten.ich` und `daten.darfRollen` kommen aus `GET /api/users`, und
-die Route steht hinter `nurAdmin`. Für die Beiträge im Eintrag lag nichts
-bereit. Und das genannte Muster heißt im Quelltext `verfasserName()` im
-**Export**; `verfasser()` im Import macht die Gegenrichtung.
-
-**Nicht gebaut, am Haltepunkt angehalten:** der Eingriffsvermerk am Kommentar,
-die beiden Anlegen-Schalter und die Vergleichsansicht — alle drei entschieden,
-siehe die zweite Hälfte unten.
-
-## Stufe G2, zweite Hälfte — erledigt in Version 0.8.3 und 0.8.4
-
-**Stufe G2 ist mit 0.8.4 vollständig.** Alle sieben Punkte der zweiten Hälfte
-gebaut, keiner offen. Details und Abweichungen im Projektstand, Abschnitt 5
-und Abschnitt 9.
-
-~~**Der Eingriffsvermerk am Kommentar.**~~ **Erledigt in 0.8.3.** Entschieden
-als **bewusste Ausnahme von „kein Änderungsverlauf"**, und die Begründung
-gehört mit ihm ins Dokument: er ist eine Aussage über den *jetzigen* Zustand —
-kein Wer, kein Wann, keine Kette. Gebaut wie entworfen: Spalte
-`images_removed INTEGER NOT NULL DEFAULT 0` an `comments` in der DDL,
-hochgezählt nur bei fremdem Eingriff, in der Antwort als `bilderEntfernt`, in
-der Kopfzeile als eigene Angabe, nie im Textfeld, nicht zurücksetzbar, nicht im
-Export, Formatnummer bleibt 6.
-**Abweichung:** der Satz „kein Migrationscode (die Vorgabe 0 greift für jede
-Bestandszeile)" war **falsch** — er galt für die Zeilen, nicht für die Spalte.
-`CREATE TABLE IF NOT EXISTS` rührt eine vorhandene Tabelle nicht an
-(Stolperstein 13), und seit 0.8.1 gibt es keinen Nachrüstweg mehr. 0.8.3 hat
-deshalb einen markierten Migrationsblock `migration083()` bekommen — vor dem Bauen
-nachgestellt, gemeldet und freigegeben. **Merksatz für jede weitere Spalte:
-DDL und Migrationsblock, nicht eines von beidem.**
-~~**Offen für 0.8.4:** der Vermerk nennt die Rolle.~~ **Erledigt in 0.8.4.**
-„2 Bilder vom Admin entfernt" — ohne eigenes Feld: wer beide Klemmen an
-`DELETE /api/comment-images/:id` passiert (`darfAendern`, dann ein anderer als
-der Verfasser), kann nur der Admin sein. Eine Prüfung am Quelltext bindet die
-Beschriftung an genau diese beiden Klemmen. **Der Vermerk bleibt für ALLE
-sichtbar:** das Loch ist für jeden Leser da, und ein Vermerk, den nur einer
-sieht, wäre eine Benachrichtigung — die hat Kriterion nicht.
-
-~~**Dazu für 0.8.4: `updated_at` bei den Bildwegen des Verfassers.**~~
-**Erledigt in 0.8.4.** Anhängen ist Bearbeiten, also ist Entfernen es auch —
-beide setzen jetzt „bearbeitet", aber nur der Verfasser selbst löst es aus. An
-der Löschroute gilt damit genau eines von beiden, gebaut als `if`/`else` um
-dieselbe Bedingung: der Vermerk beim Fremden, `updated_at` beim Verfasser, nie
-beides und nie keines. Der Eingriff des Admins setzt es nie. **Abweichung, im
-Auftrag nicht vorgesehen:** ein Ruf ohne Datei (`POST
-/api/comments/:id/images` ohne Anhang) setzt ebenfalls nichts — nichts
-angehängt heißt nicht bearbeitet. „Ein Merkmal umzuschalten ist keine
-Bearbeitung" bleibt unberührt.
-
-~~**Die beiden Anlegen-Schalter. Offen, Version 0.8.4.**~~ **Erledigt in
-0.8.4.** `tagsFreiAnlegen` und `kategorienFreiAnlegen`, global, Vorgabe an, als
-**Ableitung beim Lesen** — kein Migrationscode. Geschrieben über `PUT
-/api/settings`, dessen Adminprüfung bereits abgeleitet ist („was nicht
-persönlich ist, ist Adminsache"), also keine neue Route und keine zweite
-Liste. Drei Anlegewege bekommen die Klemme, jeweils **hinter** dem
-Nachschlagen des vorhandenen Namens — nur so bleibt „Zuweisen darf immer
-jeder" baulich wahr: `POST /api/product-categories`
-(`'offen'` → `'im Rumpf'`), `POST /api/items/:id/tags`
-(`'nurEintragVerfasser'` → `'nurEintragVerfasser, im Rumpf'`) und
-`POST /api/test-days/:id/tags` (schon `'im Rumpf'`). Der Import braucht keine:
-er gehört dem Eigentümer.
-**Der Sonderfall, der im Entwurf fehlte:** „Auswahl aus dem Vorhandenen bleibt,
-nur ‚+ neu anlegen' verschwindet" trägt an der Kategorie (die Auswahlliste
-bleibt) und an den Tags am Eintrag (die Wolke bleibt). **Am Testtag gibt es
-keine Wolke** — dort ist die Eingabe der einzige Zuweisungsweg und bleibt
-stehen; ein unbekannter Name wird vom Server mit sprechender Meldung
-abgewiesen, denn „Zuweisen darf immer jeder".
-**Zwei Abweichungen gegenüber dem Entwurf, beide vor dem Bauen gemeldet:**
+**G2 (0.8.2 bis 0.8.4).** Das Feld heißt **`verfasser`, nicht `author`** — der
+Export-`author` ist ein blanker String, hier steht ein Objekt. *Verworfen: ein
+Endpunkt `GET /api/verfasser` — er legte die vollständige Zugangsliste jedem
+offen.* Der **Grabsteinname verlässt den Server nicht**; beim Bauen war das
+zuerst falsch. Die **Stimmenliste** stand nicht im Entwurf und war trotzdem
+nötig: ohne sie hätte der Löschweg für fremde Bewertungen keine Bedienung.
+**Der Satz „kein Migrationscode nötig" war falsch** — er galt für die Zeilen,
+nicht für die Spalte; 0.8.3 hat deshalb `migration083()` bekommen, und daraus
+wurde der Merksatz: **DDL und Migrationsblock, nicht eines von beidem.**
 `findOrCreateTag()` musste in `findeTag()` und `legeTagAn()` zerlegt werden —
-ein gemeinsamer Helfer trüge die Klemme in seinem eigenen Rumpf statt in den
-Routenrümpfen, und der Wächter über den Quelltext fände sie dort nicht. Und
-der Entwurf schwieg dazu, ob der Admin ebenfalls am Schalter hängt — er tut es
-nicht: die Rechtetabelle (Abschnitt 3) gibt ihm für „Tags und Kategorien
-anlegen" ohnehin ein ✔, und ein Schalter, den er erst umlegen müsste, um selbst
-anzulegen, wäre eine Schranke gegen sich selbst.
+*ein gemeinsamer Helfer trüge die Klemme in seinem eigenen Rumpf, und der Wächter
+über den Quelltext fände sie dort nicht.*
 
-~~**Die Vergleichsansicht. Offen, Version 0.8.4.**~~ **Erledigt in 0.8.4.** Die
-seit 0.7.0 offene Frage ist gebaut: ein **Umschalter „meine / alle"**. Zwei
-Auflagen, ohne die er nichts löst — **die Kopfzeile schaltet mit** (sonst ist
-es derselbe Widerspruch mit einem Knopf davor), und er ist **Ansichtszustand
-im Speicher**, keine gespeicherte Einstellung, wie `linksOffen` und
-`wolkeOffen`. Bei genau einem Zugang erscheint er nicht. **Vorgabestellung
-„alle"**; die **Testtagzeile schaltet mit**, gezählt über `mine`. Die Zahl für
-„meine" bildet der **Klient**: bei einem Bewerter hat jedes Kriterium
-höchstens eine Stimme, Stufe 1 des Zweistufenmittels ist also der eigene Wert
-— kein zweiter Rechenweg im Server, aber ein zweiter Rundungsort für eine
-*andere* Zahl, kommentiert im Quelltext. *Verworfen wie entschieden:*
-durchgehend der Schnitt, durchgehend die eigenen Werte, beides nebeneinander.
+**G3 (0.8.5).** Es waren **nicht neun Karten, sondern zwölf** — und nach dem Bau
+dreizehn. **Die Karte „Links" ist in zwei geschnitten** worden, im Entwurf nicht
+bedacht: sie mischte als einzige Persönliches mit Adminsachen.
+**Die konkreteste Falle der Stufe ist eingetreten:** `renderSystem()` hängt seine
+Abrufe in **ein** `Promise.all` und verlässt den Rumpf, sobald einer scheitert —
+stünden die Kennzahlen hinter dem Admin und würden trotzdem abgerufen, bliebe
+der Systembereich für einen gewöhnlichen Benutzer **vollständig leer**. *Der
+Rückbau macht 19 Prüfungen rot.* **Was ausdrücklich nicht gebaut wurde:**
+„Ansicht für Vokabular und Titel gar nicht" — das Vokabular **ist** jede
+Beschriftung; **was verschwindet, sind die Karten, nicht die Daten.**
 
-~~**Neu für 0.8.4: Zahlen in der Kopfzeile des Kommentarblocks.**~~
-**Erledigt in 0.8.4.** Links und Dateien tragen ihren Hinweis, Kommentare als
-einziger Block trugen ihn nicht — aufgeklappt sah man nicht, wie viele es
-sind. Wortlaut: `12 Kommentare, davon 3 Berichte und 5 Aufgaben (2 Erledigt)`.
-**„Davon", nicht Mittelpunkte:** die Zahlen dahinter sind Teilmengen, keine
-Summanden, und die Klammer nistet die zweite Ebene ein — das Erledigte steckt
-**in** den Aufgaben, sonst schrumpfte die Zahl beim Abhaken. „Kommentar"
-bleibt eine **feste Beschriftung** und wird kein zwölftes Vokabelwort; die
-**Notiz** bleibt ungenannt, weil sie der Zustand ohne Markierung ist; die
-**Anpinnung** steht nicht in der Zeile, weil sie die zweite, unabhängige Achse
-ist. Derselbe volle Satz auch **eingeklappt** — bewusste Abweichung von den
-übrigen Blöcken, die dort eine sehr kurze Kurzfassung tragen.
-**Abweichung, im Entwurf nicht bedacht:** dafür bekam der Kommentarblock einen
-eigenen Hinweis (`#ccount`) statt die Kurzfassung `.bsumme` zu füllen — der
-Satz trägt selbst schon eine Klammer, verschachtelt wäre er unlesbar, und der
-Hinweis überlebt das Einklappen ohnehin von selbst.
+## Ab 0.8.6 — je eine Zeile
 
-**Die drei Funde aus dem Betrieb — alle drei erledigt in 0.8.3.**
-~~Die **Aufgabenmarke** ist orange, obwohl `.cmt.aufgabe` daneben längst blau
-ist.~~ Eine Zeile `.mark.aufg.on` in Blau; der Satz „Orange ist Art und
-Bedienung" ist damit **klargestellt, nicht widerrufen**: die Art hat drei
-Farben, und der Knopf trägt die Farbe der Kante, die er setzt.
-~~Der **Kommentar** bietet ✎, ✕, „+ Bild" und die drei Marken an jedem
-Kommentar an.~~ Der Server liefert `mine`; ✎ steht nur beim Verfasser, ✕ am
-Kommentar, ✕ am Bild und die Marken bei Verfasser oder Admin. **Abweichung:**
-„+ Bild" bekam **keine eigene Klemme** — es steht ausschließlich im
-Bearbeitenmodus und fällt mit ✎ baulich weg; eine zweite Klemme daneben ließe
-sich nicht gegenprüfen. Ausdrücklich bestätigt: **Anhängen ist Bearbeiten**,
-das darf auch der Admin nicht; entfernen darf er sehr wohl.
-~~Die **Tagwolke** klappt nur halb auf.~~ Zwei Wege, beide nötig und einzeln
-gegengeprüft: `begrenzeWolke()` bricht bei Höhe 0 ab, und das Aufklappen
-zeichnet die Wolke neu.
-
-
-## Stufe G3 — erledigt in Version 0.8.5
-
-**„Der Systembereich lernt die Rechte."** Gebaut wie entworfen, mit einer
-Erweiterung: es waren **nicht neun Karten, sondern zwölf** — und nach dem Bau
-sind es **dreizehn**.
-
-**Die Karten hängen jetzt an der Rolle.** Vorher hing genau eine daran.
-
-| Karte | steht |
+| Version | Wo die Herleitung steht |
 |---|---|
-| Titel, Kennzahlen, Kategorien, Tags, Bewertungskriterien, Zugänge, Suchanbieter, Vokabular | dem Admin |
-| Export, Import | dem Eigentümer |
-| **Zugang, Darstellung, Links** | **jedem, auch ohne Rolle** |
-
-Die drei letzten sind **Selbstbezug**: der eigene Zugang, die eigene
-Schriftgröße und Blockanordnung, die eigene Zahl sichtbarer Linkzeilen und
-Anbieternamen. Sie gehen niemanden sonst etwas an und hängen an keiner Rolle.
-
-**Kategorien, Tags und Kriterien bleiben für jeden stehen** — Zeilen sichtbar,
-Griff, ✎ und ✕ weg. *Wer nicht verwalten darf, darf trotzdem nachsehen:* die
-Namen sind die Auswahl, aus der jeder am Eintrag schöpft. Eine versteckte
-Karte nähme ihm die Übersicht über etwas, das er benutzt.
-
-**Die Karte „Links" ist in zwei geschnitten** — im Entwurf nicht bedacht. Sie
-mischte als einzige Karte Persönliches mit Adminsachen. Der Schnitt folgt
-genau der Trennung, die der Server seit 0.6.5 hält:
-
-- **„Links"** (jeder): sichtbare Linkzeilen, Zahl der Anbieternamen. Beides
-  persönlich.
-- **„Suchanbieter"** (Admin): Vorrat, Startanbieter, die drei eigenen
-  Anbieter. Alles global.
-
-*Der Admin kuratiert, der Benutzer bestimmt die Dichte* — dieser Satz stand
-schon in `server.js` und hat seit 0.8.5 seine Entsprechung auf dem Bildschirm.
-
-**`GET /api/stats` steht hinter `nurAdmin`.** Das nimmt „Die Kennzahlen selbst
-sieht weiterhin jeder" aus 0.7.2 zurück. Lesende Route, deshalb **kein**
-Eintrag in `F_ROUTEN` — die Zahl bleibt bei 46. Der Schlüsselwert in derselben
-Antwort bleibt eine **zweite, engere Klemme** am Eigentümer; die beiden decken
-einander nicht zu, eine eigene Gegenprobe belegt das.
-
-**Die konkreteste Falle der Stufe, und sie ist eingetreten.** `renderSystem()`
-hängt sechs Abrufe in **ein** `Promise.all` und verlässt den Rumpf mit
-`return`, sobald einer scheitert. Stünden die Kennzahlen hinter dem Admin und
-würden trotzdem abgerufen, bliebe der Systembereich für einen gewöhnlichen
-Benutzer **vollständig leer** — auch die drei Karten, die ihm zustehen. Der
-Abruf ist deshalb bedingt; ein `catch` daneben wäre eine zweite Schicht und
-verdeckte die erste in jeder Gegenprobe. Der Rückbau macht **19 Prüfungen**
-rot.
-
-**Dazu erledigt:** die veraltete `AUTH_RESET`-Zeile in der Karte „Zugang" (sie
-nennt jetzt `zugang.js`), die Kachel „Zugänge" über die volle Breite und
-dezente Trennlinien zwischen den Abschnitten der beiden Linkkarten.
-
-**Was ausdrücklich nicht gebaut wurde:** „Ansicht für Vokabular und Titel gar
-nicht". Das Vokabular **ist** jede Beschriftung, der interne Titel steht in der
-Header — beide werden weiter ausgeliefert. Was verschwindet, sind die
-**Karten**, nicht die Daten.
-
-**Zwei Prüfungen umgedreht statt gelöscht** (Auflage aus Stolperstein 74):
-„Die Kennzahlen selbst sieht weiterhin jeder" und „Tags und Kategorien bleiben
-unangetastet bedienbar". **Zwei neue Stolpersteine:** 87 (eine Prüflage, die
-nur die eine Hälfte einer Rollenleiter setzt) und 88 (wer eine Karte
-versteckt, muss ihre Behandler mitverstecken).
-
-## 0.8.6 — Berichtigungen aus dem Betrieb — erledigt in Version 0.8.6
-
-**Keine Stufe des Umbaus, eine Runde Nacharbeit.** Fünf Punkte, alle beim
-Ansehen von 0.8.5 aufgefallen. Kein Schema, kein Migrationscode.
-
-**Was gilt.** Die Sternzeile zeigt den **eigenen Wert und den Schnitt**, mehr
-nicht. Wer welchen Wert vergeben hat, sieht der **Admin in einer eigenen
-Ansicht**, die er über den Knopf **„Wer hat bewertet"** im Blockkopf aufruft —
-ein Dialog, kein Aufklapper an der Zeile. Der Knopf steht nur beim Admin und
-erst **ab zwei Zugängen**: bei einem wäre die Ansicht der eigene Wert ein
-zweites Mal. In der Ansicht trägt jede **fremde** Stimme ihr ✕; damit ist der
-Löschweg aus 0.8.2 mitgewandert. `DELETE /api/ratings/:id` ist **unverändert**
-geblieben, samt `darfAendern` und seiner Zeile in `F_ROUTEN`.
-Geliefert wird die Liste ebenfalls nicht mehr an jeden: `detail()` hängt keine
-`stimmen` mehr an die Kriterienzeilen, und der neue
-**`GET /api/items/:id/stimmen`** trägt `nurAdmin` in der Routenzeile. Lesende
-Route, also **kein** Eintrag in `F_ROUTEN` — das vierte Mal, dass dieses
-Muster angewandt wird; die Zahl bleibt bei 46. `avg` und `count` bleiben
-unangetastet: der Schnitt und die Zahl der Bewerter sind keine Aussage über
-eine Person.
-
-**Dazu erledigt.** `begrenzeLinks()` schneidet die Linkliste ab
-(`overflowY: hidden`) statt ihr einen eigenen Bildlauf zu geben — auf dem
-Finger scrollt damit immer die Seite, und der Weg zum Rest ist der Knopf „alle
-N anzeigen". `grid-auto-flow: dense` am `.sys-grid` schließt die Lücke vor der
-breiten Kachel „Zugänge", ohne die Reihenfolge im Quelltext anzufassen. Die
-Zeile „Angelegt von" nennt jetzt auch **wann**. Und in der Kopfzeile steht
-neben „Abmelden", **wer angemeldet ist** — auch bei einem einzigen Zugang.
-
-**Abweichungen.**
-- **Die Tagwolke war gar nicht betroffen.** `begrenzeWolke()` setzte seit jeher
-  `overflow: hidden`, nie `auto`. Nichts geändert; die Prüflage steht jetzt
-  trotzdem daneben, damit ein späterer Griff nach `auto` dort ebenso auffällt.
-- **Die Kopfzeile wird nur in der Übersicht gezeichnet.** Der Entwurf begründete
-  den Weg über `/api/settings` damit, dass die Kopfzeile auch beim
-  Direkteinstieg auf einen Eintrag entsteht — das stimmt nicht, die
-  Detailansicht hat nur „← Zurück". Die Entscheidung bleibt trotzdem: ein
-  Abruf weniger, und die Angabe hängt an `start()` statt an `loadAll()`.
-- **Der Aufrufknopf hängt an `ADMIN && mehrereBenutzer()`**, nicht nur an der
-  Rolle — beide Hälften mit eigener Prüflage.
-- **Im Dialog hängt das ✕ nur noch daran, ob die Stimme fremd ist.** Eine
-  zweite Rollenfrage darin wäre eine zweite Wahrheit und ließe sich nicht
-  gegenprüfen: den Dialog bekommt ohnehin nur der Admin.
-- **Der Endpunkt liefert keinen Kriterienname.** Reihenfolge und Name stehen im
-  geladenen Eintrag; zwei Quellen für denselben Namen wären zwei Wahrheiten.
-
-**Verworfen:** eine anonyme Werteliste („3 · 4 · 2" ohne Namen). Der Admin
-wüsste dann nicht, wessen Bewertung er entfernt, und für alle anderen wäre es
-eine Zahlenreihe ohne Aussage.
-
-**Drei Prüfungen umgedreht, vier serverseitige und sieben in der Oberfläche
-umgehängt, keine gelöscht** (Auflage aus Stolperstein 74). **Drei neue
-Stolpersteine:** 89 (zwei Dialoge übereinander teilen sich die Abbruchtaste),
-90 (ein Mock, dessen Antwort sich ändern soll, muss sie wirklich
-ändern) und 91 (eine Funktion, die selbst misst, ist im gebauten DOM nur an
-einer gestellten Höhe prüfbar).
-
-**Ausdrücklich nicht in dieser Runde, weil kein Bau nötig war:** dass „+ neue
-Kategorie" am Eintrag nur dem Admin offensteht. **Der Schalter dafür steht seit
-0.8.4 im Systembereich** — Häkchen bei „Kategorien" heraus, und die
-Anlegezeile verschwindet für jeden außer dem Admin; das Auswahlfeld aus dem
-Vorhandenen bleibt. Bei den **Tags** bleibt das Häkchen an. **Das ist eine
-Einstellung, keine Version.**
-
-## 0.8.10 — Werkzeug — erledigt in Version 0.8.10
-
-**Kein Block, und das ist die Auskunft.** 0.8.10 hat den Mehrbenutzerbetrieb
-an keiner Stelle berührt: keine Rolle, kein Recht, kein Endpunkt, kein Schema.
-`F_ROUTEN` blieb bei 46. Gebaut wurden der wiederholbare Bau, `sharp` und Node
-22, der Versions-Fingerprint und zwei Dinge am Prüfstand — was davon gilt, steht
-im Projektstand, Abschnitte 2, 5, 7 und 9.
-
-**Eines wirkt trotzdem hierher**, weil es jede kommende Stufe betrifft: der
-**Fingerprint** löst die Textstelle je Version ab, mit der bisher nachgeprüft
-wurde, ob wirklich der neue Dateisatz läuft (siehe „Nachprüfen per SSH"). Und
-er wird **zuletzt** gebildet, nach der letzten Änderung an einer
-ausgelieferten Datei — jede spätere Änderung macht die genannte Zeile falsch.
-
-## 0.8.20 — „Die Schotten dicht" — erledigt in Version 0.8.20
-
-**Kein Block, und das ist die Auskunft.** 0.8.20 hat den Mehrbenutzerbetrieb
-an keiner Stelle berührt: keine Rolle, kein Recht, kein Endpunkt, kein Schema.
-`F_ROUTEN` blieb bei 46. Was gebaut wurde und was davon gilt, steht im
-Projektstand, Abschnitte 2, 5, 5a, 7 und 9.
-
-**Zwei Dinge wirken trotzdem hierher**, weil sie jede kommende Stufe betreffen:
-
-- **Der Sitzungscookie heißt nicht mehr fest `kriterion_session`.** Bei
-  `HINTER_PROXY=1` heißt er `__Host-kriterion_session` und trägt `Secure`. Wer
-  etwas an der Sitzung baut, nimmt den Namen aus `auth.COOKIE_NAME` und
-  schreibt ihn nirgends ab. **In 0.8.80 hat das gehalten**, und seitdem steht
-  ein eigener Wächter davor: der Name kommt in keiner der sieben ausgelieferten
-  Dateien abgeschrieben vor und entsteht in `auth.js` genau einmal.
-- **Der ausgelieferte Typ kommt nie aus der Datenbank**, und ein Wächter im
-  Prüfstand hält das fest: keine Zeile in `server.js` setzt den Content-Type
-  selbst. Er wird namentlich rot, sobald jemand eine Auslieferung ergänzt.
-  **In 0.8.50 hat er gehalten:** der Videoweg liefert `inline` aus und geht
-  trotzdem durch `setzeBildHeader()`; keine Zeile in `server.js` ist
-  dazugekommen, die den Typ selbst setzt. Seitdem hat er eine Gegenprobe
-  neben sich.
-
-## Stufe G4 — erledigt in Version 0.8.30
-
-**„Die Linkliste bekommt Verfasser."** Bis 0.8.20 gehörten Links dem
-**Eintragsverfasser**: `POST /api/items/:id/links` stand hinter
-`nurEintragVerfasser`, ebenso Sortieren und Löschen. Jetzt darf **jeder**
-einen Link eintragen; löschen darf ihn der **Eintrager oder der Admin**, und
-ab zwei Zugängen steht sein Name an der Zeile.
-
-**Was gilt.** Die Rechte gehen in drei verschiedene Richtungen, und das ist
-die Entscheidung dieser Stufe:
-
-| Route | vorher | jetzt |
-|---|---|---|
-| `POST /api/items/:id/links` | `nurEintragVerfasser` | **offen**, schreibt `req.benutzer.id` |
-| `DELETE /api/links/:id` | `eintragFrei(…, l.item_id)` | **`darfAendern(req, l.user_id)`** |
-| `PUT /api/items/:id/link-order` | `nurEintragVerfasser` | **unverändert** |
-
-`links` trägt `user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`,
-nachgerüstet über `migration0830()` — den zweiten markierten Block im Projekt.
-**Die Bestandszeilen fallen an den Eintragsverfasser**, nicht an den
-Eigentümer: bis dahin *waren* die Links eines Eintrags die Sache seines
-Verfassers. `ordneBestandZu()` nimmt `links` trotzdem auf und antwortet dort
-weiterhin mit dem Eigentümer — das ist eine andere Frage zu einem anderen
-Zeitpunkt, und beide stehen im Quelltext nebeneinander erklärt.
-
-Export und Import nennen den Namen wie an den vier anderen Trägern; ein Link
-ist in der Datei ein Objekt aus `url` und `author`, **Formatnummer 6 → 7**.
-Der Import liest beide Formen. **Ein Link aus einer Datei der Formatnummer 6
-fällt an den Verfasser des Eintrags** — dieselbe Antwort wie beim Migration: die
-Datei sagt nichts anderes, als dass die Links zu diesem Eintrag gehören.
-
-**Der Name steht an der fremden Zeile, nicht an jeder — Abweichung vom
-Entwurf.** Der Entwurf sagte „ab zwei Zugängen steht sein Name an der Zeile".
-Gebaut ist es enger: **mehrere Zugänge und eine Zeile, die nicht vom Verfasser
-des Eintrags stammt.** Bei den vier anderen Trägern steht jede Zeile für sich;
-die Linkliste ist eine Liste vieler kurzer Zeilen, und ein Name an jeder wäre
-Rauschen. An der einen fremden ist er die Auskunft — „jemand anderes hat etwas
-beigesteuert". Daraus folgt ein Satz, den man kennen muss: **„kein Name" heißt
-bei mehreren Zugängen „vom Verfasser des Eintrags".**
-
-**Der Platz in der Zeile war der offene Punkt, und er hat eine Antwort
-gebraucht.** Die Zeile trägt Griff, Nummer, Domain, Pfad, bis zu vier
-Anbieternamen, Pfeil oder Lupe und das ✕. Der Name steht jetzt in der
-**zweiten** Zeile, **direkt hinter** Pfad bzw. Anbieternamen — nicht darunter,
-sonst wüchse die Zeile auf dem Handy auf drei Höhen. Beide sind ein Flex-Paar:
-der Pfad nimmt sich nur, was er braucht, und darf schrumpfen, **der Name
-nicht**. Ohne das fräße eine lange Adresse genau die Angabe weg, um
-derentwillen die Zeile ihn trägt.
-
-**Der Name steht in Klammern — `(chefin)` —, an beiden Zeilenarten gleich, und
-ohne Trennzeichen davor.** *Berichtigt aus dem Betrieb, siehe unten.* Ein
-Trennzeichen wäre an beiden falsch: in der Suchzeile bedeutet „ · " bereits
-„noch ein Anbieter, anklickbar", und ein Strich davor sieht aus wie ein
-abgerissener Satz. Die Klammer sagt von selbst, dass hier eine **Angabe über**
-die Zeile steht und kein weiterer Teil von ihr. Sie trägt außerdem jede Form,
-die `verfasserName()` liefert: `(chefin)`, `(Gelöschter Benutzer 4)`,
-`(Ohne Verfasser)`. **Ein Vorwort wie „von" täte das nicht** — „von Ohne
-Verfasser" ist kein Deutsch.
-
-> **Aus dem Betrieb berichtigt, noch vor dem Einspielen.** Gebaut war zuerst
-> ein Mittelpunkt an der Adresszeile und ein Gedankenstrich an der Suchzeile,
-> und der Pfad nahm sich die volle Breite (`flex: 1 1 auto`). Am Bildschirm
-> ergab das zweierlei Schaden: der Name stand ganz am **rechten Rand**, wo er
-> zu nichts mehr gehörte, und der Strich davor las sich wie ein Bruch. Beides
-> ist der Fall, den Abschnitt 7 des Projektstands meint — *was der Prüfstand
-> nicht kann, ist Aussehen.* Die Prüfungen waren grün und das Ergebnis
-> trotzdem unbrauchbar; es ist das dritte Mal (nach der leeren PDF-Vorschau
-> und dem unsichtbaren Löschkreuz, Stolpersteine 29 und 30).
-
-**Das Datum steht im Überfahrtext**, nicht in der Zeile. Auf einem
-Berührbildschirm ist es damit nicht erreichbar; bewusst getragen, der Name
-bleibt in beiden Fällen sichtbar.
-
-**Das ✕ folgt dem Recht, nicht der Anzeige.** Beides ist getrennt: ein Kreuz
-ohne Namen ist möglich, ein Name ohne Kreuz auch.
-
-**Kein Vermerk beim Löschen** — wie entworfen. Ein gelöschter Link ist eine
-ganze Aussage, die geht, kein Loch in einer bleibenden; der Eingriffsvermerk
-bleibt auf den einen Fall begrenzt, für den er beschlossen wurde.
-
-**Was daran hing und leicht übersehen worden wäre:** beide Löschdialoge
-zählten Beiträge auf und wären nach der Rechtewende nachweislich unvollständig
-gewesen. `GET /api/items/:id/bestand` nennt Links jetzt getrennt nach eigen
-und fremd; `auth.zaehleBestand()` kannte sie überhaupt nicht — ein Zugang mit
-zwanzig Links in fremden Einträgen sah dort leer aus. Und `entferneZugang()`
-räumt sie beim zweiten Häkchen wirklich mit weg: eine Zahl im Dialog, die
-nichts bewirkt, wäre schlimmer als keine.
-
-**Nachgeholt in 0.8.31: dieselbe Wende an den Dateien.** Der Entwurf sprach
-nur von Links, aber die Begründung — *was nur dort erscheint, wo man es
-hinsetzt, gehört jedem* — trifft eine Datei genauso. `attachments` bekommt
-`user_id` samt `migration0831()`, hochladen wird offen,
-`DELETE /api/attachments/:id` fragt nach der Datei, der Name steht nach
-derselben Regel an der Zeile (dort hinter der Größe, weil die Zeile einzeilig
-ist), **Formatnummer 7 → 8**. Der Wächter fiel dort **vor multer** weg — er
-hatte den zusätzlichen Zweck, die Datei eines Fremden gar nicht erst
-einzulesen, und diese Begründung ist mit der Rechtewende gegenstandslos.
-*Keine eigene Stufe: die Regel war entschieden, nur nicht gebaut.*
-
-**`F_ROUTEN` blieb bei 46 Routen, und nur EINE Art hat gewechselt** — der
-Auftrag nahm zwei an. Die Art `'im Rumpf'` sagt nur, *dass* eine Klemme
-dasteht, nicht *welche*; die Wende von `eintragFrei` auf `darfAendern` wäre
-für die Liste unsichtbar gewesen. Zwei eigene Quelltextprüfungen halten sie
-jetzt fest. Einzelheiten und die vollständige Gegenprobentabelle stehen in
-`Doku/Aenderungsprotokoll_0.8.30.md`.
-
-## Stufe H — erledigt in Version 0.8.80
-
-**„Einladung, Rücksetzung, Sitzungen."** Die erste Stufe seit G4; dazwischen
-lagen mit 0.8.40 bis 0.8.71 vier Runden, die nicht dazugehörten. **Danach blieb
-allein Stufe I** — gebaut in 0.9.0 und 0.9.1.
-
-**Was gilt.** Ein Zugang bekommt sein Passwort **selbst**, über einen Link:
-
-| | |
-|---|---|
-| Im Link | 32 Zufallsbytes, hexadezimal — im **Fragment** der Adresse |
-| Gespeichert | **nur der SHA-256**, ohne Salz; `hash` ist Primärschlüssel |
-| Haltbarkeit | sieben Tage |
-| Gültigkeit | genau einmal |
-| Beim Einlösen | alle Sitzungen **und alle übrigen offenen Links** dieses Zugangs fallen |
-| Beim Sperren/Entfernen | die offenen Links fallen mit |
-| Danach | die Zeile bleibt mit `benutzt_am` stehen, geräumt dreißig Tage nach Ablauf |
-
-**Die Abweichungen vom Entwurf stehen in Abschnitt 10** — fünf an der Zahl, und
-jede mit Begründung.
-
-**Fünf neue schreibende Routen, `F_ROUTEN` 51 → 56:**
-
-| Route | Art |
-|---|---|
-| `POST /api/token/pruefen` | **offen** — liest nur; POST, damit der Schlüssel im Rumpf bleibt |
-| `POST /api/token/einloesen` | **offen** |
-| `POST /api/users/:id/token` | `nurAdmin, im Rumpf` — `zielZugangFrei`, damit gilt die Rollenleiter |
-| `DELETE /api/sessions` | `selbstbezug` |
-| `DELETE /api/sessions/:kennung` | `selbstbezug` |
-
-**Kein vierter Zustand.** `ZUSTAENDE` bleibt bei `aktiv`, `gesperrt`,
-`geloescht`. „Noch kein Passwort" wird aus `password_hash = ''` abgeleitet —
-und **nicht** aus `last_login IS NULL`, denn das beantwortet „hat sich noch nie
-angemeldet". Ein Zugang ohne Passwort trägt den leeren Hash, dieselbe Sperre
-wie beim Grabstein, **ohne eine einzige neue Klemme**.
-
-**„Meine Sitzungen" — die zweite Hälfte der Stufe.** Jeder sieht beim eigenen
-Zugang, wo er überall angemeldet ist; ein **Admin sieht keine fremden**. Eine
-Sitzung wird über eine **gerechnete Kennung** adressiert — den vollen SHA-256
-ihres Tokens, nirgends gespeichert —, denn der Token ist Primärschlüssel *und*
-Geheimnis und darf in keiner Adresse stehen. **Ohne Gerätekennung:** die Anlage
-speichert weder IP noch Browserkopf, und die Karte sagt das offen; was sie
-trägt, ist die **Zahl** und der Knopf „alle anderen beenden".
-
-**`zugang.js` ist unberührt geblieben.** Es hat in 0.8.0 den Einmalcode dieser
-Stufe ersetzt (Abschnitt 9) und bleibt der Notweg, wenn niemand mehr
-hereinkommt.
-
-Einzelheiten und die vollständige Gegenprobentabelle stehen in
-`Doku/Aenderungsprotokoll_0.8.80.md`.
-
-## Nachprüfen per SSH
-
-Der zeitlose Kern; die stufenbezogenen Abfragen werden je Version im Gespräch
-mitgeliefert und stehen nicht mehr hier. Drei Ebenen, in dieser Reihenfolge:
-
-**1. Protokoll.** `docker compose logs --tail=50 kriterion`. Der Start meldet
-den Eigentümer und `.env`-Reste; fehlt nach einem Einspielen die erwartete
-Änderung, wurde der Container nicht neu gebaut (`--build` vergessen).
-
-**1a. Der Fingerprint** (seit 0.8.10) — die Antwort auf „läuft wirklich der neue
-Dateisatz". Die Versionsnummer aus `/api/config` sagt nichts über die übrigen
-Dateien; der Fingerprint deckt alles ab, was der Server lädt und ausliefert. Er
-steht hinter der Anmeldung, die deshalb in den Befehl gehört:
-
-```bash
-curl -s -c cookies.txt -X POST localhost:3100/api/login \
-  -H 'Content-Type: application/json' -d '{"user":"NAME","password":"..."}'
-curl -s -b cookies.txt localhost:3100/api/stats | head -c 60
-```
-
-Erwartet für 0.8.31: `{"version":"0.8.31","fingerprint":"1a801477",…`. Der Fingerprint
-jeder Version steht im Kopf des Projektstands und in ihrem
-Änderungsprotokoll. **Was er nicht abdeckt:** `zugang.js` — es liegt im
-Image, läuft aber nie im Server.
-
-**2. Datenbank von innen.** Sie ist verschlüsselt, `sqlite3` von außen
-scheitert — die passende Bibliothek liegt im Container:
-
-```bash
-docker compose exec kriterion node -e "
-  const db=require('./db').db;
-  for (const t of ['items','comments','test_days','ratings','links','attachments'])
-    console.log(t, '->', db.prepare('SELECT COUNT(*) n FROM '+t+' WHERE user_id IS NULL').get().n);
-"
-```
-
-**Sechs Träger, sechsmal `0` — das ist die zeitlose Form dieser Abfrage.** Sie
-war bis 0.8.20 auf `ratings` geschrieben; seit 0.8.30 gehört `links` dazu und
-seit 0.8.31 `attachments`. Die Schleife hat sich damit schon einmal
-ausgezahlt. Wer
-zusätzlich wissen will, ob eine Spalte überhaupt angekommen ist:
-`db.prepare('PRAGMA table_info(links)').all().map(c=>c.name)`.
-
-Der Augenschein ist hier nicht die Bestätigung, sondern die Abfrage: eine
-Datenbank, der beim Umbau etwas verlorengegangen ist, sieht in der Oberfläche
-vollständig aus.
-
-**3. Schnittstelle von außen** — der einzige Weg, der Rechte wirklich belegt.
-Zwei Sitzungen nebeneinander:
-
-```bash
-curl -s -c a.txt -X POST localhost:3100/api/login \
-  -H 'Content-Type: application/json' -d '{"user":"faruk","password":"..."}'
-curl -s -c b.txt -X POST localhost:3100/api/login \
-  -H 'Content-Type: application/json' -d '{"user":"gast","password":"..."}'
-curl -s -b b.txt -X DELETE localhost:3100/api/items/1     # muss 403 sein
-```
-
-„Darf nicht" muss einzeln belegt werden, mit einem echten zweiten Cookie. Der
-Prüfstand hat dasselbe Muster eingebaut (drei Sitzungen nebeneinander, dazu
-ein Admin **ohne** Eigentümerrolle); von Hand gegenzuprüfen bleibt es
-trotzdem — es ist die Stelle, an der ein Fehler still bleibt und trotzdem
-alles öffnet.
+| 0.8.6 · 0.8.10 · 0.8.20 | `Doku/Aenderungsprotokoll_<Version>.md` — **keine dieser Runden hat den Umbau berührt** |
+| **G4** 0.8.30 · 0.8.31 | `Doku/Aenderungsprotokoll_0.8.30.md` bzw. `_0.8.31.md`; *nur EINE Art wechselt in `F_ROUTEN`, nicht zwei — die Art `'im Rumpf'` sagt nicht, WELCHE Klemme dasteht* |
+| 0.8.40 bis 0.8.71 | die jeweiligen Änderungsprotokolle — keine Stufen |
+| **H** 0.8.80 | `Doku/Aenderungsprotokoll_0.8.80.md`; die fünf Abweichungen stehen in Abschnitt 10 dieses Papiers |
+| 0.8.90 · 0.8.91 | die jeweiligen Änderungsprotokolle — keine Stufen, aber 0.8.90 arbeitete Stufe I mit der **öffentlichen Adresse** vor |
+| **I₁** 0.9.0 · **I₂** 0.9.1 | `Doku/Aenderungsprotokoll_0.9.0.md` bzw. `_0.9.1.md` |
 
 ---
 
-# Teil IV — Nachträge zu Abschnitt 5
+# Was dieses Papier über sich selbst sagt
 
-Diese Punkte gehören nach Abschluss in „Entscheidungen, die nicht rückgängig
-gemacht werden sollen" des Projektstands; die durchgestrichenen früherer
-Stände sind übernommen und hier entfernt. Es bleiben — berichtigt auf den
-Stand 0.8.0 —:
+**Es wird nicht mehr fortgeschrieben und nicht umbenannt.** Sein Kopf sagt
+„gebaut bis Version 0.9.1", und das bleibt wahr: er beschreibt den Stand, bis zu
+dem das Papier trägt. **Der zweite Faktor, die Suche und alles danach sind keine
+Stufen daraus.**
 
-- **Kein Admin ändert fremde Bewertungen oder Kommentartexte** — löschen ja,
-  umschreiben nein. **Und er hängt auch nichts an** (0.8.3): Anhängen ist
-  Bearbeiten; wer etwas beizutragen hat, schreibt einen eigenen Kommentar.
-  Entfernen darf er, und genau dafür gibt es den Eingriffsvermerk.
-- **Was an allen Einträgen aller Benutzer erscheint, gehört dem Admin.** Was
-  nur dort erscheint, wo man es hinsetzt, gehört jedem. Daraus folgen:
-  Kriterien beim Admin (erledigt 0.7.0), Tags und Kategorien bei allen
-  (Schalter seit 0.8.4). **Links haben in Stufe G4 die Seite gewechselt**
-  (erledigt 0.8.30) und **Dateien in 0.8.31**: sie erscheinen nur dort, wo man
-  sie hinsetzt, und gehören damit jedem. *Das Umsortieren der Links ist nicht
-  mitgewandert — es ändert keine Aussage und ist umkehrbar.*
-  **Fotos sind ausdrücklich nicht gewandert:** das erste Foto ist das Hauptbild
-  und damit das Gesicht des Eintrags, keine Beigabe.
-- **E-Mail ist Bequemlichkeit, nie Voraussetzung.** Jeder verschickte Link
-  ist im Verwaltungsbereich zum Kopieren sichtbar.
-- **Die Antwort auf eine Registrierung verrät nichts über den Bestand.**
-- **Die öffentliche Adresse ist eine Einstellung, niemals der `Host`-Kopf.**
-- **Der ersetzende Import rührt `users`, `sessions` und `tokens` nicht an.**
-- **Der letzte aktive Eigentümer darf nicht verschwinden** — serverseitig
-  durchgesetzt. *(Bis 0.8.0 stand hier „der letzte Admin"; die Rolle darüber
-  hat die Regel geerbt.)*
-- **Der Eigentümer ist ein vergebbarer Rollenwert** (`eigentuemer`), keine
-  Ableitung aus der kleinsten `id`. *(Der ursprüngliche Punkt behauptete das
-  Gegenteil und ist in 0.8.0 umgestoßen worden — als Leiter `user` < `admin`
-  < `eigentuemer`, damit „ein Eigentümer ist immer auch Admin" baulich wahr
-  ist.)*
-- **Eine Rücksetzung entwertet einen Zugang, sie löscht ihn nicht** — und sie
-  schreibt keine Verfasser um. Seit 0.8.0 heißt der Weg `zugang.js` auf dem
-  Wirt; `AUTH_RESET` wird abgelehnt.
-- **Ein Eintrag, der gelöscht wird, nimmt fremde Beiträge mit** — deshalb
-  nennt der Dialog sie getrennt nach eigen und fremd, bevor er es tut.
-  *Erledigt in 0.8.2; „fremd" meint die Sicht des Löschenden.*
-- **Was nicht angezeigt werden darf, wird nicht geliefert** (seit 0.8.2). Ein
-  freigegebener Grabsteinname verlässt den Server nicht, auch wenn die
-  Oberfläche ihn ohnehin ignorieren würde. **Zum zweiten Mal angewandt in
-  0.8.6:** `detail()` hängt keine Stimmen mehr an die Kriterienzeilen — sonst
-  hinge die Regel daran, dass die Oberfläche mitspielt.
-- **Die Übersicht sortiert nach `updated_at`, und das gilt für alle.**
-  Schreibt jemand einen Kommentar, rückt der Eintrag auf jedem Bildschirm
-  nach oben. Das ist gewollt: die Liste zeigt, wo etwas geschieht, nicht wo
-  *ich* zuletzt war. Eine persönliche Reihenfolge wäre eine zweite Wahrheit
-  über denselben Bestand.
-- **`katalog.sqlite` behält seinen Namen.** Der Dateiname der Datenbank ist
-  kein Projektname und wandert bei keiner Umbenennung mit.
-- **Vorrat und Standard der Suchanbieter gehören dem Admin, die Zahl der
-  angezeigten Namen dem Benutzer.** Das Ziel des Zeilenklicks ist für alle
-  gleich.
-- **Der Standard steht immer vorn** — und sieht aus wie alle anderen. Die
-  Zeile muss weiterhin sagen, wohin der Klick geht.
-- **Höchstens vier Anbieternamen unter einer Suchzeile**, Name höchstens 20
-  Zeichen. Eine Handy-Entscheidung: die Zeile selbst ist das Hauptziel,
-  kleine Ziele daneben sind ab vier zu dicht.
-- **Der Name an einer Zeile steht nur, wo er eine Auskunft ist** (seit 0.8.30
-  am Link, seit 0.8.31 an der Datei): mehrere Zugänge **und** eine Zeile, die
-  nicht vom Verfasser des Eintrags stammt. Daraus folgt, dass „kein Name" bei mehreren Zugängen
-  „vom Verfasser des Eintrags" heißt. **Und der Name wird nie abgeschnitten** —
-  abgeschnitten wird der Pfad daneben.
-- **Ein Bedienzeichen folgt dem Recht, nicht der Anzeige** (seit 0.8.30, am ✕
-  der Linkzeile). Ein Kreuz ohne Namen ist möglich, ein Name ohne Kreuz auch.
-
-# Teil V — Zu erwartende Stolpersteine
-
-Vorgemerkt, damit sie beim Bauen nicht überraschen; Nummern werden vergeben,
-wenn sie eintreten. Eingetretene stehen seit der Bereinigung nur noch mit
-ihrem Merksatz; **die offenen Auflagen stehen vollständig.**
-
-1. *Eingetreten und erledigt in 0.6.0.* **Merksatz: eine Annahme über den
-   Bestand veraltet in dem Moment, in dem eine Version eingespielt wird.**
-   Vor jeder Datenüberführung gehört die Frage dazu, was auf dem Server
-   tatsächlich läuft — nicht, was beim Schreiben des Entwurfs lief.
-2. *Eingetreten und erledigt in 0.7.0 — an anderer Stelle als vorhergesagt.*
-   **Merksatz: eine vorhergesagte Falle ist eine Aussage über den Effekt,
-   nicht über den Ort** (Stolperstein 67).
-3. **Rechteprüfungen, die grün sind, ohne zu prüfen.** Eine Prüfung, die nur
-   den Erfolgsfall durchspielt, belegt kein Verbot. Jede Verweigerung braucht
-   ihre eigene Gegenprobe mit zweiter Sitzung.
-4. *(Betriebsvorgang der Umbenennung 0.5.10 — erledigt, ohne Fortwirkung.)*
-5. *(Ebenso.)*
-6. *Eingetreten und erledigt in 0.5.11.* **Merksatz: Maskierung nicht
-   vergessbar machen, sondern baulich unmöglich** (`textContent` statt
-   `innerHTML`).
-7. *Erledigt in 0.5.11.* **Merksatz: eine Ableitung beim Lesen statt einer
-   Rückschreibung — und die Gegenprobe muss den stillen Rückfall rot machen.**
-8. *In 0.7.2 vermieden statt eingetreten:* die Rechteschicht bekam **einen**
-   Ort je Frage, und der Quelltext-Wächter zählt nach. **Was doch zweimal
-   stand, war anderswo — Merksatz: eine Gegenprobe, die eine Reihenfolge
-   belegen soll, darf die Regel nicht wegnehmen, sonst belegt sie nur, dass
-   es die Regel überhaupt gibt** (Stolperstein 72).
-9. *Eingetreten und erledigt in 0.6.0* („gibt es keinen Admin, wird es der
-   Eigentümer"; seit 0.8.0 ersetzt durch die Eigentümer-Startregel).
-10. *Viermal eingetreten (0.6.0 bis 0.6.3).* **Merksatz: es genügt nicht zu
-    fragen, ob eine Regel beim Start läuft — man muss abzählen, auf wie
-    vielen Wegen der Auslöser entstehen kann.** Das trägt bis heute die zwei
-    Aufrufstellen von `ordneBestandZu()`.
-11. *Eingetreten und erledigt in 0.6.5.* **Merksatz: ein Schlüssel kann nicht
-    nur beim Lesen zwischen die Stühle fallen, sondern auch beim
-    Zurückschreiben** — dagegen steht die Schranke in `putSetting`.
-12. *Eingetreten und erledigt in 0.6.2.* **Merksatz: ein `DROP TABLE` ist bei
-    eingeschalteten Fremdschlüsseln ein `DELETE`, und `PRAGMA foreign_keys`
-    ist in einer Transaktion ein stiller No-op.**
-13. *Entschärft in 0.7.2* (alle drei „der erste Benutzer"-Stellen lesen
-    `req.benutzer`). **Merksatz: „hat keinen Vorgabewert" ist keine
-    Zusicherung, dass ein Fehler auffällt — das ist eine Aussage über die
-    Bibliothek und gehört nachgestellt** (Stolperstein 59).
-14. **Ein `UNIQUE` mit einer Spalte, die leer sein darf, ist löchrig — und
-    die Überführung, die sie füllt, kann daran scheitern.** `NULL` gilt im
-    UNIQUE als von allem verschieden; gelöst mit `UPDATE OR IGNORE`
-    (Stolperstein 57). **Betrifft jede weitere Spalte, die in einem UNIQUE
-    steht und nachgetragen wird, und ist bei jedem Löschweg mitzudenken, den
-    die Verwaltung bekommt.**
-15. **Ein Zeitstempel mit Sekundenauflösung belegt keine Änderung innerhalb
-    derselben Sekunde** (Stolperstein 60). **Betrifft jede folgende Stufe, in
-    der `updated_at` eine Rolle spielt.** Richtig ist, den Ausgangswert von
-    Hand auf ein festes, altes Datum zu setzen statt ihn von der Uhr zu
-    nehmen.
-16. *Eingehalten in 0.6.5.* **Merksatz: eine persönliche Einstellung ist eine
-    Aussage über niemanden außer sich selbst — zweite Spalte am Schlüssel,
-    keine Tabelle je Schlüssel.**
-17. **Ein Bedienelement ist erst geprüft, wenn ein Ereignis wirklich
-    zugestellt wurde** (Stolperstein 61). `.click()` oder der von Hand
-    gerufene Behandler genügen nicht. **Für jede folgende Stufe mit neuen
-    Bedienelementen — G2 bringt welche mit — gehört mindestens ein
-    `dispatchEvent` samt anschließendem Durchlauf des Event Loops
-    dazu.** Nicht „neues Bedienelement" ist der Anlass, sondern „geänderter
-    Weg hinter einem Bedienelement". Dazu die zweite Hälfte: **wo ein
-    Mock im Prüfstand die Antwort vereinfacht, verschwindet genau die
-    Prüfung, für die man ihn gebaut hat** — der falsche Server muss antworten
-    wie der echte. *In 0.8.2 und 0.8.3 beide Male eingehalten:* der
-    Mock liefert `verfasser`, `mine` und `bilderEntfernt` an allen
-    sechs Kommentaren, zwei davon mit **verschiedenen** Vermerkzahlen. Und: **ein Merkmal kann vollständig geprüft sein und
-    trotzdem an der falschen Stelle wirken** (Stolperstein 65) — zu einem
-    Merkmal in Sortierung oder Filter gehört eine Prüfung mit zwei
-    Sortierungen und einem Eintrag mit leerem Sortierwert.
-18. **`INSERT OR REPLACE` ist ein `DELETE` mit Nachspiel** (Stolperstein 70):
-    SQLite löscht die Zeile, die das `UNIQUE` verletzt, und über
-    `ON DELETE CASCADE` gehen deren Kinder mit — lautlos. **Betrifft jede
-    folgende Stufe, in der eine Tabelle mit Kindern über `OR REPLACE`
-    beschrieben wird.** Die Frage lautet dort nicht „welcher Wert gewinnt",
-    sondern „was hängt an der Zeile, die verschwindet".
-    *In 0.8.2 geprüft und nicht zutreffend:* die beiden neuen Löschwege sind
-    schlichte `DELETE`; an einer `ratings`-Zeile hängen keine Kinder, und die
-    einzige Kaskade im Umfeld ist die am Eintrag — genau die, die der Dialog
-    ankündigt.
-    *In 0.8.3 erneut geprüft und wieder nicht zutreffend:* an `comments`
-    schreibt nichts mit `OR REPLACE` oder `ON CONFLICT` (auch der Import nicht,
-    dort steht ein blankes `INSERT`), und der Zähler des Eingriffsvermerks ist
-    ein `UPDATE` auf eine bestehende Zeile.
-    *In 0.8.30 zum dritten Mal geprüft und wieder nicht zutreffend:* an `links`
-    hängen keine Kinder, und der Import schreibt sie mit blankem `INSERT`.
-    *In 0.8.40 zum vierten Mal geprüft und wieder nicht zutreffend:* an
-    `rating_criteria` hängen zwar Bewertungen, die Migration legt aber keine
-    Zeile an und entfernt keine.
-    *In 0.8.50 zum fünften Mal geprüft und wieder nicht zutreffend:* an
-    `photos` hängen keine Kinder, die Migration rüstet nur zwei Spalten nach, und
-    der Import schreibt Fotozeilen mit blankem `INSERT`.
-    *In 0.8.70 zum sechsten Mal geprüft und wieder nicht zutreffend:* der
-    Papierkorb serialisiert zwar einen ganzen Eintrag samt seiner Kinder,
-    **ersetzt** dabei aber nichts — er legt Zeilen an und entfernt sie, und
-    das Wiederherstellen geht durch den Import, der seine Regeln unverändert
-    behält.
-    **Die Auflage bleibt stehen.**
-19. *Eingetreten und erledigt in 0.7.2.* **Merksatz: der Import kann unter
-    fremdem Namen schreiben — deshalb gehört er (samt Export) hinter den
-    Eigentümer.**
-20. **Eine neue SPALTE braucht die DDL *und* einen Migrationsblock — eine neue
-    TABELLE nicht** (0.8.3 eingetreten, **0.8.30 zum zweiten Mal**,
-    **0.8.70 präzisiert**). `CREATE TABLE IF NOT EXISTS` rüstet eine Spalte in
-    einer vorhandenen Tabelle nicht nach (Stolperstein 13), und seit der
-    Bereinigung 0.8.1 gibt es dafür keinen anderen Weg. **Eine fehlende
-    Tabelle legt derselbe Befehl dagegen bei jedem Start an** — nachgestellt in
-    0.8.70, samt der Gegenlage an einer Spalte. Der Papierkorb ist deshalb die
-    erste Datenbankstufe ohne Migrationsblock.
-    *Aus 0.8.30 kommen zwei Auflagen dazu, und beide gelten für jede folgende
-    Datenbankstufe:* **erstens** ist die Frage, **wem** die Bestandszeilen
-    zufallen, eine eigene Entscheidung und nicht dieselbe wie die des
-    Auffangnetzes — hier fielen sie an den Eintragsverfasser, dort fallen sie
-    an den Eigentümer, und wer das nicht nebeneinander erklärt, hinterlässt
-    einen scheinbaren Widerspruch. **Zweitens** lässt sich eine
-    Fremdschlüsselspalte nur **nullbar** nachrüsten: SQLite lehnt jede andere
-    Vorgabe ab (Projektstand, Stolperstein 105). Wer eine `NOT NULL`-Spalte mit
-    `REFERENCES` braucht, braucht einen Tabellenneubau.
-    *In 0.8.31 zum zweiten Mal angewandt, und beide Auflagen haben getragen.*
-    **Dazu eine dritte, die dort dazukam:** liegen mehrere Migrationsblöcke
-    vor, gehört ein Prüflauf dazu, der sie **hintereinander in einem Start**
-    fährt — das ist die Lage, die im Betrieb wirklich vorkommt, und keiner der
-    einzelnen Abschnitte deckt sie ab.
-21. **Eine Prüfung, die bei fehlendem Gegenstand grün bleibt, kann gar nicht
-    scheitern** (Stolperstein 81). Erst das Vorhandensein prüfen, dann die
-    Eigenschaft. **Und ein Rückbau, der den Lauf abbricht, nennt keinen Namen**
-    (Stolperstein 82, Anwendung von 76) — dann gehört eine engere zweite
-    Gegenprobe daneben. Beide gelten für jede folgende Stufe.
+*Angefasst worden ist es seither genau einmal — mit Revision 25 des
+Projektstands, und zwar um es zu **kürzen**: was gebaut ist, steht dort. Das ist
+kein Widerspruch zu „wird nicht mehr angefasst", sondern dessen Einlösung — ein
+Papier, aus dem nichts mehr nachzuziehen ist, muss auch nicht mehr angefasst
+werden.*

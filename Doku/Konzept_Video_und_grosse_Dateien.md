@@ -1,48 +1,59 @@
-# Konzept — Videos und große Dateien
+# Konzept — Große Dateien bis 2 GB
 
-> ## ✅ TEIL I IST GEBAUT — Version 0.8.50
+**Konzeptpapier · Stand 27. August 2026 · Teil I gebaut in 0.8.50, Teil II
+offen.**
+
+> ## TEIL I IST GEBAUT UND STEHT NICHT MEHR HIER
 >
-> **Alles von Abschnitt 2 bis 9 ist umgesetzt.** Was dabei anders gebaut wurde
-> als hier beschrieben, steht **an jeder betroffenen Stelle** als eingerückter
-> Vermerk. Die verbindliche Fassung ist der Quelltext, dahinter der
-> Projektstand (Abschnitte 5, 5a und 9) und
+> **Kurzvideos am Fotoplatz sind seit 0.8.50 gebaut.** Was gilt, steht ab
+> Revision 25 des Projektstands **dort und nur dort** — Abschnitt 4
+> (Funktionsumfang), Abschnitt 5 (die Entscheidungen), Abschnitt 5a (die
+> Auslieferung) und Abschnitt 9 (was die Runde brachte). Die vollständige
+> Herleitung samt Gegenprobentabelle steht in
 > `Doku/Aenderungsprotokoll_0.8.50.md`.
 >
-> **Fünf Stellen weichen ab**, alle aus demselben Grund: das Papier ist vor
-> dem Bau geschrieben worden und kannte den heutigen Quelltext nicht ganz.
-> 1. Der ausgelieferte Typ kommt **nicht nach Endung**, sondern aus den ersten
->    Bytes — `photos` speichert keinen Dateinamen (Abschnitt 6).
-> 2. **`Accept-Ranges` wird geliefert**, nicht abgeschaltet (Abschnitt 6,
->    Punkt 5 gegen Abschnitt 10).
-> 3. Die Sicherheitsregel der Anwendung brauchte **`media-src 'self' blob:`**
->    — im Papier fehlt der Punkt ganz (Abschnitt 4).
-> 4. **Kein Videoplatz ohne Videodatei** im Export; stattdessen eine Marke in
->    der Datei und eine Meldung beim Einspielen (Abschnitt 9).
-> 5. Das **Standbild muss eigens in die Exportdatei** — sonst erzeugte der
->    Import die Varianten aus der Videodatei (im Papier nicht erwähnt).
+> **Der Entwurf ist hier entfernt, weil er sonst eine zweite Wahrheit wäre.**
+> Er ist vor dem Bau geschrieben worden und wich an fünf Stellen vom Gebauten
+> ab; solange beides nebeneinander stand, musste jede Zahl an zwei Orten
+> gepflegt werden — und genau daran ist Stolperstein 137 entstanden.
 >
-> **Teil II bleibt unverändert offen und steht weiterhin auf 1.1.0.**
+> **Wo die fünf Abweichungen jetzt stehen**, damit ältere Verweise auf die
+> Abschnitte dieses Papiers noch aufgehen:
+>
+> | hieß hier | wo es jetzt steht |
+> |---|---|
+> | 3 — Datenmodell, `art` und `dauer` | Projektstand, Abschnitt 4 („Was die vorhandenen Spalten bei einem Video bedeuten") |
+> | 3a — „Es gelten dieselben Regeln wie am Foto" | Projektstand, Abschnitt 4 und Abschnitt 5.7 („Fotos und Videos stehen in EINER Tabelle") |
+> | 4 — das Standbild ohne `ffmpeg` | Projektstand, Abschnitt 5.7 (`ffmpeg` kommt nicht ins Image; das Standbild belegt nichts) |
+> | 5/6 — Formate und Auslieferung | Projektstand, Abschnitt 5a (achte Schicht, Videoweg) |
+> | 9 — Export | Projektstand, Abschnitt 4 und Abschnitt 9 (Formatnummer 9 → 10, eigener Schalter) |
+>
+> **Die fünf Abweichungen selbst, in einem Satz:** der ausgelieferte Typ kommt
+> **nicht nach Endung**, sondern aus den ersten Bytes (`photos` speichert keinen
+> Dateinamen); **`Accept-Ranges` wird geliefert**, nicht abgeschaltet; die
+> Sicherheitsregel der Anwendung brauchte **`media-src 'self' blob:`**; **kein
+> Videoplatz ohne Videodatei** im Export, stattdessen eine Marke in der Datei;
+> und das **Standbild muss eigens in die Exportdatei**, sonst erzeugte der
+> Import die Varianten aus der Videodatei.
 
-**Teil I ist gebaut in 0.8.50 — also vor 1.0. Teil II steht auf 1.1.0.**
-Der Projektstand führte Videos bis dahin geschlossen als zurückgestellt („kein
-Verzicht, sondern ein eigener Bauabschnitt"); das stimmte nur für die eine
-Hälfte.
-
-Sprache wie in den übrigen neuen Papieren: gewöhnliches IT-Deutsch.
+**Dieses Papier trägt ab jetzt nur noch Teil II.** Sprache wie in den übrigen
+Papieren: gewöhnliches IT-Deutsch.
 
 ---
 
 ## 1. Es sind zwei Vorhaben, nicht eins
 
-Das ist die wichtigste Erkenntnis dieses Papiers, und sie steht deshalb vorn.
+Das war die wichtigste Erkenntnis dieses Papiers und steht deshalb weiter vorn —
+sie ist der Grund, warum Teil II eine eigene Runde ist und nicht ein Anbau an
+Teil I.
 
-| | **Kurzvideo** | **Große Datei** |
+| | **Kurzvideo** *(gebaut, 0.8.50)* | **Große Datei** *(offen)* |
 |---|---|---|
 | Wo | an der Stelle der Fotos | an der Stelle der Anhänge |
 | Größe | bis **20 MB** | bis **2 GB** |
 | Gespeichert | als BLOB **in** der Datenbank | als Datei **neben** der Datenbank |
 | Verschlüsselt | durch SQLCipher, wie alles | **eigens**, mit eigenem Verfahren |
-| Ausgeliefert | am Stück | in **Ranges** (Springen im Video) |
+| Ausgeliefert | am Stück, mit Ranges | in **Ranges** über eine Datei |
 | Hochgeladen | in einem Zug | **in Stücken** |
 | Im JSON-Export | möglich, aber abschaltbar | **unmöglich** |
 | Aufwand | überschaubar | ein eigener Bauabschnitt |
@@ -50,350 +61,28 @@ Das ist die wichtigste Erkenntnis dieses Papiers, und sie steht deshalb vorn.
 **Der Größenunterschied ist nicht der eigentliche Unterschied.** Er ist der
 Auslöser für vier bauliche Unterschiede — Speicherort, Verschlüsselung,
 Auslieferung und Hochladen —, und jeder einzelne davon zieht eigenen Code nach
-sich. Wer beides in einem Zug baut, baut zwei Dinge gleichzeitig und hat
-hinterher an keinem eine klare Regel.
+sich. *Wer beides in einem Zug baut, baut zwei Dinge gleichzeitig und hat
+hinterher an keinem eine klare Regel.*
 
-**Deshalb: zwei Versionen, und sie liegen bewusst weit auseinander.**
+**Warum Teil II nach 1.0.0 liegt.** Ab 1.0 wird Abwärtskompatibilität
+**zugesichert**. Teil I änderte `photos` — die Tabelle, in der jeder vorhandene
+Bestand liegt —, und so etwas gehört **vor** die Zusage. Teil II legt dagegen
+nur **Neues** daneben: ein vorhandener Anhang bleibt, wo er ist, und nur neue
+große Dateien gehen nach draußen. **Deshalb bricht Teil II die Zusage nicht.**
 
-| | Version | Warum dort |
-|---|---|---|
-| **Teil I** Kurzvideos | **0.8.50** | ändert eine **bestehende** Tabelle — das gehört vor die Zusage der Abwärtskompatibilität, nicht dahinter |
-| **Teil II** Große Dateien | **1.1.0** | legt **neue** Tabellen und einen zweiten Speicherort an, ohne den bisherigen anzurühren — bricht die Zusage deshalb nicht |
+*Das ist die Umkehrung des ersten Entwurfs, und der Grund gehört genannt: dort
+stand „beides nach 1.0, weil beides Datenmodell und Speicherort anfasst". Das
+Argument ist richtig, zeigt aber in die andere Richtung.*
 
-**Das ist die Umkehrung des ersten Entwurfs**, und der Grund dafür gehört
-genannt: dort stand „beides nach 1.0, weil beides Datenmodell und Speicherort
-anfasst". Das Argument ist richtig, zeigt aber in die andere Richtung. Ab 1.0
-wird Abwärtskompatibilität **zugesichert**. Eine Änderung an `photos` — der
-Tabelle, in der jeder vorhandene Bestand liegt — will man **vor** dieser
-Zusage machen, nicht unmittelbar danach. Teil II legt dagegen nur Neues
-daneben: ein vorhandener Anhang bleibt, wo er ist, und nur neue große Dateien
-gehen nach draußen.
+**Teil II lässt sich jederzeit vorziehen**, ohne dass an Teil I etwas anders
+gebaut werden müsste. Die beiden teilen sich **keinen Code**: der eine Weg legt
+BLOBs in die Datenbank, der andere Dateien daneben. Was sie teilen, ist allein
+die Positivliste der Formate — und die steht ohnehin an einer Stelle.
 
-> **Nachgetragen nach 0.8.40.** Die Formatnummer der Exportdatei steht
-> inzwischen auf **9** (0.8.30 hob sie auf 7, 0.8.31 auf 8, 0.8.40 auf 9); die
-> Kurzvideos gehen damit **9 → 10**. Der Stufenplan im Projektstand,
-> Abschnitt 10, führt die Zahlen.
-> **0.8.40 ist gebaut, damit ist diese Stufe die nächste.** Die Bindung
-> „0.8.20 vor 0.8.50" ist seit 0.8.20 erfüllt; der Wächter im Prüfstand, der
-> namentlich rot wird, sobald der Videoweg seinen Typ selbst setzt, steht
-> unverändert.
-
-**Zwei Bindungen an die Nachbarstufen:**
-
-- **0.8.20 muss vorher liegen — erledigt.** Der Videoweg liefert eine Datei
-  **inline** aus. Er durfte erst gebaut werden, wenn die Regel „der
-  ausgelieferte Typ kommt nie aus der Datenbank" auch am Fotoweg gilt — siehe
-  Abschnitt 6. Sie gilt seit 0.8.20, und ein Wächter im Prüfstand hält sie
-  fest: er wird namentlich rot, sobald der Videoweg seinen Typ selbst setzt.
-- **0.8.70 muss danach liegen.** Der Papierkorb dort serialisiert einen
-  Eintrag. Gibt es dann schon Videos, wird die Serialisierung **einmal**
-  gebaut statt einmal gebaut und einmal nachgezogen.
-
----
-
-# Teil I — Kurzvideos an der Stelle der Fotos
-
-## 2. Was es können soll
-
-Ein Video liegt **in derselben Reihe wie die Fotos**. Auf der Karte und in der
-Vorschauleiste erscheint ein Standbild mit einem Abspielzeichen; ein Klick
-spielt es ab. Ist es das erste Element, ist sein Standbild das Hauptbild des
-Eintrags.
-
-## 3. Datenmodell — dieselbe Tabelle, eine Spalte mehr
-
-```sql
--- photos traegt seit dieser Version zwei Arten. Der Tabellenname wandert
--- NICHT mit (dieselbe Regel wie bei katalog.sqlite): ein umbenannter Name
--- brauchte einen Tabellenneubau und braechte nichts.
-ALTER TABLE photos ADD COLUMN art TEXT NOT NULL DEFAULT 'bild';   -- 'bild' | 'video'
-ALTER TABLE photos ADD COLUMN dauer INTEGER;                      -- Sekunden, nur bei Video
-```
-
-> **Gebaut, mit einer Ergänzung.** Beide Spalten stehen in der vollständigen
-> DDL in `db.js`; nachgerüstet werden sie von `migration0850()`, dem fünften
-> markierten Block. **Der Block fragt jede Spalte EINZELN ab** — zwei
-> `ALTER TABLE` sind zwei Anweisungen, und scheitert die zweite, bleibt die
-> erste stehen (nachgestellt, Stolperstein 108). Ein Block mit einer einzigen
-> Abfrage ließe `dauer` nach einem abgebrochenen Lauf für immer fehlen.
-
-**Warum keine eigene Tabelle `videos`.** Fotos und Videos stehen in **einer**
-Reihenfolge — `sort_order` entscheidet, was das Hauptbild ist. Zwei Tabellen
-hießen: zwei sortierte Listen, die beim Anzeigen zusammengefügt werden müssen,
-und die Frage „was steht an erster Stelle" hätte zwei Quellen. Das ist die
-zweite Wahrheit in Reinform.
-
-Mit einer Spalte bleibt alles, was es schon gibt: das Ziehen zum Umsortieren,
-`sort_order`, `focus_x`/`focus_y` (sie wirken auf das Standbild), die
-Löschwege, die Kaskade am Eintrag.
-
-**Was die vorhandenen Spalten bei einem Video bedeuten:**
-
-| Spalte | bei `art = 'bild'` | bei `art = 'video'` |
-|---|---|---|
-| `data` | das Originalbild | die **Videodatei** |
-| `thumb` | Kachel 400 px | **Standbild** 400 px |
-| `medium` | 1600 px | **Standbild** 1600 px |
-| `focus_x`/`focus_y` | Ausschnitt der Kachel | dasselbe, am Standbild |
-| `dauer` | `NULL` | Sekunden |
-
-Damit funktionieren Kartenraster, Vorschauleiste und Sortierung **ohne eine
-einzige Änderung** — sie greifen ohnehin nur auf `thumb` und `sort_order` zu.
-
-> **Eine Stelle greift doch auf `data` zu, und sie wurde übersehen:**
-> `backfillVariants()` erzeugt beim Start fehlende Vorschaubilder **aus
-> `data`**. An einer Videozeile wären das die Videobytes — zwei leere
-> Varianten, ein überschriebenes Standbild und eine Zeile, die bei jedem Start
-> aufs Neue fällig ist. Der Nachrüster fasst seit 0.8.50 nur noch Bilder an
-> (Stolperstein 109).
-
-## 3a. Es gelten dieselben Regeln wie am Foto — alle
-
-Das ist keine Absichtserklärung, sondern eine **Folge der Bauform**: weil ein
-Video in derselben Tabelle steht wie ein Foto, greift jede vorhandene Regel
-von selbst. Nichts davon muss durchgesetzt werden, und nichts davon darf
-später eine Ausnahme bekommen.
-
-| | gilt am Video, weil |
-|---|---|
-| **Rechte** | Hinzufügen, Umsortieren und Löschen laufen über `nurEintragVerfasser` — dieselbe Klemme wie beim Foto. Wer den Eintrag ändern darf, darf Videos hinzufügen und entfernen; sonst niemand. |
-| **Kaskade** | `photos.item_id` hat `ON DELETE CASCADE`. Ein gelöschter Eintrag nimmt seine Videos mit, ohne dass irgendwo etwas ergänzt wird. |
-| **Reihenfolge** | `sort_order`, dasselbe Ziehen mit Maus und Finger, dieselbe 0,4-Sekunden-Schwelle. Steht ein Video vorn, ist sein Standbild das Hauptbild. |
-| **Löschdialog** | Der Dialog am Eintrag nennt die Zahlen. Videos zählen dort mit — als eigene Zeile, nicht als Fotos getarnt. |
-| **Kennzahlen** | Der Systembereich zählt Fotos; künftig Fotos **und** Videos, getrennt ausgewiesen. Die Datenbankgröße wächst sichtbar mit. |
-| **Verschlüsselung** | Ein Video liegt als BLOB in der Datenbank und ist damit von SQLCipher mit abgedeckt — wie jedes Foto, ohne eigenes Verfahren. |
-| **Sicherung** | `./data` deckt es ab. Der Satz in der README bleibt wortgleich wahr. |
-| **Auslieferung** | Positivliste nach Endung, `nosniff`, eigene Sicherheitsregel auf der Antwort — dieselben Schichten wie bei jeder anderen Datei, siehe Abschnitt 6. |
-
-> **Beim Bauen einzeln durchgegangen: fünf der acht Zeilen gelten wirklich von
-> selbst** — Kaskade, Reihenfolge, Verschlüsselung, Sicherung und, bis auf die
-> neue Route, die Rechte. **Drei gelten nicht von selbst und mussten gebaut
-> werden:** Löschdialog, Kennzahlen und die Auslieferung. Das Papier führt sie
-> hier auf, als griffen sie von allein; sie tun es nicht, und die Tabelle sagt
-> in ihren eigenen Zeilen auch schon das Gegenteil („als eigene Zeile",
-> „getrennt ausgewiesen"). **An der neuen Route ist ohnehin nichts
-> automatisch:** `nurEintragVerfasser` steht dort ausdrücklich.
-
-**Die einzige Stelle, an der ein Video sich anders verhält**, ist der Zoom im
-Vollbild: beim Bild geht der zweite Klick auf Originalgröße, beim Video gehört
-er der Abspielsteuerung. Siehe Abschnitt 8.
-
-## 4. Das Standbild — und warum dafür kein `ffmpeg` nötig ist
-
-**Das ist die Entscheidung, an der das ganze Vorhaben hängt.**
-
-Ein Standbild aus einem Video zu holen, heißt normalerweise: `ffmpeg`. Das ist
-ein Programm von rund hundert Megabyte, das ins Image müsste, mit eigener
-Angriffsfläche und eigenem Aktualisierungsbedarf. Für ein Projekt, das scrypt
-lieber aus Nodes eingebautem `crypto` nimmt als aus einer Bibliothek, wäre das
-ein Bruch.
-
-**Der Ausweg: das Standbild macht der Browser, bevor hochgeladen wird.**
-
-```js
-/* Ein Standbild aus dem gewaehlten Video ziehen -- im Browser, ohne dass der
-   Server das Video je oeffnen muesste. Der Browser kann alle Formate
-   abspielen, die er auch anzeigen wird; kann er es nicht, taugt das Video
-   ohnehin nicht fuer die Vorschau. */
-async function standbild(datei, sekunde = 1) {
-  const v = document.createElement('video');
-  v.preload = 'metadata'; v.muted = true;
-  v.src = URL.createObjectURL(datei);
-  await new Promise((ok, fehl) => { v.onloadedmetadata = ok; v.onerror = fehl; });
-  v.currentTime = Math.min(sekunde, (v.duration || 2) / 2);
-  await new Promise((ok, fehl) => { v.onseeked = ok; v.onerror = fehl; });
-  const c = document.createElement('canvas');
-  c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext('2d').drawImage(v, 0, 0);
-  URL.revokeObjectURL(v.src);
-  return { bild: await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85)),
-           dauer: Math.round(v.duration) || null };
-}
-```
-
-Hochgeladen werden dann **zwei Teile**: die Videodatei und ein JPEG. Der Server
-schickt das JPEG durch `sharp` und erzeugt daraus wie bei jedem Foto Kachel und
-mittlere Variante — **damit gilt für das Standbild dieselbe Regel wie für
-Kommentarbilder**: was `sharp` nicht als Bild lesen kann, kommt nicht herein.
-
-**Vier Folgen, alle gewollt:**
-
-1. **Keine neue Abhängigkeit.** Nicht eine.
-2. **Der Server öffnet nie ein Video.** Er speichert Bytes und liefert Bytes.
-   Die gesamte Klasse von Verwundbarkeiten in Video-Bibliotheken entfällt,
-   weil keine im Spiel ist.
-3. **Wer es nicht abspielen kann, kann es nicht hochladen** — und genau das ist
-   richtig: ein Videoplatz, der nicht abspielt, ist ein kaputter Platz. Wer
-   ein Format ablegen will, das der Browser nicht kann, nimmt den Anhang.
-4. **Das Standbild ist nicht überprüfbar.** Ein manipulierter Browser könnte ein
-   Standbild schicken, das nicht zum Video gehört. Das ist hinnehmbar — es ist
-   eine Vorschau, keine Aussage. Und es steht ausdrücklich hier, damit niemand
-   später glaubt, das Standbild belege etwas.
-
-**Wenn der Browser scheitert:** Upload trotzdem zulassen? **Nein.** Siehe
-Folge 3 — sonst entsteht ein Platz ohne Bild und ohne Abspielbarkeit, und
-niemand versteht, warum.
-
-> **Gebaut wie beschrieben — mit einem Punkt, den das Papier nicht kennt und
-> ohne den gar nichts hochladbar wäre.** Die Sicherheitsregel der Anwendung
-> lautete `default-src 'self'; img-src 'self' data: blob:; …` und hatte **kein
-> `media-src`**. Damit greift `default-src 'self'`, und eine `blob:`-Adresse
-> an einem `<video>` fällt unter `media-src`, nicht unter `img-src` — der
-> Browser verwirft sie **wortlos**. Im echten Chromium nachgemessen:
-> *„Refused to load media from blob:"*, `MEDIA_ELEMENT_ERROR` 4. Die Regel
-> trägt seit 0.8.50 `media-src 'self' blob:`; `'self'` trägt das Abspielen aus
-> der eigenen Anlage, `blob:` das Standbild vor dem Hochladen.
->
-> Zwei Kleinigkeiten am Beispielcode oben sind beim Bauen dazugekommen: ein
-> Video **ohne Bildmaße** (etwa eine reine Tonspur) ergäbe eine Zeichenfläche
-> der Größe null und damit gar kein Standbild, und `c.toBlob()` kann `null`
-> liefern. Beides wird abgefangen und als Meldung gezeigt.
-
-## 5. Welche Formate
-
-Eine Positivliste nach **Endung**, wie in `anhaenge.js`:
-
-| Endung | Typ | Anmerkung |
-|---|---|---|
-| `.mp4`, `.m4v` | `video/mp4` | H.264/AAC — läuft überall |
-| `.webm` | `video/webm` | VP8/VP9 — überall außer älterem Safari |
-| `.mov` | `video/quicktime` | **Grenzfall**, siehe unten |
-
-**`.mov` ist der Grenzfall, den die Praxis erzwingt:** jedes iPhone liefert
-`.mov`. Meist steckt darin H.264, das jeder Browser abspielen kann — aber nicht
-immer. Die Antwort ist **nicht**, es zu verbieten, sondern die Prüfung aus
-Abschnitt 4 entscheiden zu lassen: Kann der Browser des Hochladenden ein
-Standbild ziehen, spielt er es ab. Kann er es nicht, wird abgewiesen.
-
-**Alles Übrige — `.avi`, `.mkv`, `.wmv`, `.flv` — gehört an den Anhang**, nicht
-an den Fotoplatz. Dort wird es heruntergeladen, und das ist die ehrliche
-Antwort.
-
-## 6. Auslieferung — und der Befund, der hier nicht wiederkommen darf
-
-`GET /api/photos/:id/raw` liefert heute den **gespeicherten** `mime_type`
-zurück. Genau das ist Befund 2.1 aus dem Ideenpapier, und beim Video wäre es
-schlimmer: eine Videodatei wird **inline** eingebunden.
-
-**Die Regel für den Videoweg, ohne Ausnahme:**
-
-1. Der ausgelieferte Typ kommt **aus der Positivliste in Abschnitt 5**, nach
-   Endung — nie aus der Datenbank.
-2. Was nicht auf der Liste steht: `application/octet-stream` und
-   `Content-Disposition: attachment`.
-3. `X-Content-Type-Options: nosniff` (steht schon global).
-4. `Content-Security-Policy: default-src 'none'` auf der Antwort. **Das
-   verhindert das Abspielen nicht** — die Regel gilt dem, was *diese Antwort*
-   nachlädt, und ein Video lädt nichts nach. Eingebunden wird es von der Seite,
-   und dort entscheidet deren `media-src 'self'`.
-5. `Accept-Ranges: none` in Teil I — bei 20 MB lädt der Browser die Datei ganz
-   und springt darin selbst.
-
-> **Zwei Abweichungen, und beide sind nachgestellt.**
->
-> **Erstens: der Typ kommt aus den ersten Bytes, nicht nach Endung.** Punkt 1
-> oben ist am Fotoplatz nicht baubar — **`photos` speichert keinen
-> Dateinamen**, es gibt dort keine Endung. Der Fotoweg entscheidet seit 0.8.20
-> nach den ersten Bytes, und für ein Video geht das genauso: MP4, M4V und MOV
-> sind ISO-BMFF und tragen `ftyp` an Byte 4, WebM beginnt mit dem EBML-Kopf
-> `1A 45 DF A3`. An echten Dateien nachgestellt: eine im Browser aufgenommene
-> MP4 trägt `ftyp` mit der Marke `isom`, die WebM den erwarteten Kopf.
-> `typAusBytes()` erkennt seit 0.8.50 zusätzlich `video/mp4`, `video/webm` und
-> `video/quicktime`; die Endungsliste steht trotzdem in `anhaenge.js` und
-> trägt beide Richtungen — sie benennt die ausgelieferte Datei.
->
-> **Zweitens: Ranges werden geliefert.** Punkt 5 verlangt
-> `Accept-Ranges: none`, Abschnitt 10 sagt über denselben Gegenstand, iOS
-> Safari spiele ohne Ranges gar nicht ab. Beides kann nicht stimmen.
-> Entschieden wurde für die Ranges: der Blob liegt beim Lesen ohnehin ganz
-> im Arbeitsspeicher, ein `206` mit `Content-Range` ist ein Dutzend Zeilen, und
-> ein Video, das auf dem Handy nicht abspielt, ist genau der kaputte Platz, den
-> Abschnitt 4 vermeiden will. **Nur am Video und nur an der ganzen Datei** —
-> an einem Foto verschiebt sich kein Header. Ungültige Ranges bekommen
-> **416**.
->
-> **Punkt 4 ist bestätigt:** `default-src 'none'; sandbox` behindert das
-> Abspielen nicht. Im echten Chromium nachgestellt — eingebettet spielt es
-> durch, und direkt im Tab geöffnet ist der Bildschirmabzug mit und ohne
-> `sandbox` bytegleich.
-
-## 7. Was es kostet — gemessen
-
-20 MB als BLOB in der verschlüsselten Datenbank, auf dieser Maschine:
-
-| Größe | Schreiben | Lesen |
-|---|---|---|
-| 10 MB | 515 ms | 85 ms |
-| **20 MB** | **770 ms** | **124 ms** |
-| 50 MB | 2.201 ms | 533 ms |
-
-**Deshalb 20 MB und nicht 50.** Bei 50 MB steht der Prozess beim Lesen eine
-halbe Sekunde — und zwar mit dem gesamten Blob im Arbeitsspeicher, weil eine
-BLOB-Zeile nicht stückweise gelesen wird. Bei zwei Leuten gleichzeitig ist das
-spürbar. 20 MB reichen für ein bis zwei Minuten Handyvideo in vernünftiger
-Auflösung; wer mehr braucht, ist in Teil II richtig.
-
-## 8. Bedienung
-
-- **In der Vorschauleiste** trägt ein Video ein ▶ in der Ecke und, wenn
-  `dauer` bekannt ist, seine Länge (`0:42`).
-- **Im Vollbild** wird statt `<img>` ein `<video controls>` gezeigt. Das
-  Blättern mit ← → bleibt; beim Verlassen wird angehalten.
-- **Kein Zoom bei einem Video** — der zweite Klick, der beim Bild auf
-  Originalgröße geht, gehört beim Video der Abspielsteuerung.
-- **Auf der Karte** ändert sich nichts: dort steht das Standbild, wie ein Foto.
-  Ein Abspielzeichen darauf, sonst nichts — angespielt wird erst im Eintrag.
-- **Kein automatisches Abspielen**, nirgends.
-
-> **Gebaut, mit drei Ergänzungen.** *Angehalten wird nicht nur beim Verlassen,
-> sondern auch beim Blättern* — sonst spielt der Ton weiter, während man das
-> nächste Bild ansieht. *Der Zähler auf der Karte* nennt bei gemischtem
-> Bestand beide Zahlen („3 Fotos · 1 Video"), bei reinem Bestand das eine Wort.
-> *Der Ausschnittmodus bleibt am Videoplatz bedienbar* und zeigt dort das
-> Standbild: eingestellt wird die Kachel, und die gibt es am Video genauso.
-> Woran die Oberfläche ein Video erkennt, ist **allein `art` aus der
-> Antwort** — `qPhotos` liefert dafür `art` und `dauer` mit.
-
-## 9. Export
-
-Ein 20-MB-Video wird als Base64 zu **27 MB**. Zwanzig davon sind 540 MB in
-**einer** JSON-String — das reißt den Export, siehe Abschnitt 3.2 des
-Ideenpapiers.
-
-**Deshalb ein eigener Schalter, Vorgabe aus** — wie schon bei den Anhängen
-(`files=1`). Der Export enthält bei ausgeschaltetem Schalter den **Eintrag des
-Videos** (Name, Dauer, Reihenfolge) und sein **Standbild**, nur nicht die
-Videodatei. Beim Einspielen entsteht daraus ein Platz mit Standbild und dem
-Vermerk, dass die Datei fehlt.
-
-Das ist ehrlicher als beides andere: die Datei stillschweigend wegzulassen
-verlöre die Reihenfolge, und sie mitzunehmen ließe den Export scheitern.
-
-**Der eigentliche Sicherungsweg für Videos ist ohnehin nicht der Export**,
-sondern die Sicherung des Datenverzeichnisses (im Roadmap-Papier Stufe
-„Sicherung und Papierkorb").
-
-> **Der Platzhalter geht mit dem heutigen Schema nicht auf, und er ist nicht
-> gebaut worden.** `photos.data` ist `NOT NULL`. Ein Platz ohne Videodatei
-> müsste entweder das Standbild in `data` tragen — dann lieferte
-> `GET /api/photos/:id/raw` ein JPEG für eine Zeile, die `art = 'video'` sagt,
-> und der Abspieler bliebe schwarz —, oder `art` bekäme einen dritten Wert,
-> oder es käme eine weitere Spalte dazu. Alle drei kosten mehr, als der
-> gewonnene Platzhalter wert ist.
->
-> **Gebaut wurde: kein Videoeintrag ohne Videodatei — aber eine Marke in der
-> Datei.** Ohne den Schalter steht die Zeile mit `art`, `dauer` und Fokus in
-> der Exportdatei, **ohne Bytes**. Sie legt beim Einspielen keinen Platz an,
-> aber der Import kann dadurch **nennen**, wie viele Videos gefehlt haben —
-> `videosOhneDatei` in der Antwort und im Protokoll. Ohne die Marke wüsste er
-> es nicht, und der Verlust wäre still. **Der Preis steht in der Antwort:**
-> stand das Video an erster Stelle, wird danach das nächste Foto zum Hauptbild.
->
-> **Und ein Punkt, den das Papier gar nicht nennt: das Standbild muss eigens
-> in die Datei.** Der Import erzeugt die Varianten aus `data` — bei einem Video
-> also aus der Videodatei. Ohne das Feld `standbild_base64` wäre das Standbild
-> beim Einspielen verloren. Ein Video, dessen Standbild sich nicht durch
-> `sharp` lesen lässt, wird übergangen und genannt (`videosUnlesbar`).
+**Eine Vorgabe aus 0.8.70 gilt hier schon:** eine Exportdatei ist **ein** String,
+und Node hält keinen über 512 MB. Eine Datei über rund 950 MB passt deshalb auch
+nicht in eine Zelle und teilt sich auf mehrere `papierkorb_bytes.nr` auf
+(Projektstand, Abschnitt 5.4).
 
 ---
 
@@ -531,28 +220,18 @@ Drei Dinge, die dabei schiefgehen können und deshalb vorab geregelt gehören:
 
 ---
 
-## 15. Aufwand und Reihenfolge
+## 15. Aufwand
 
 | | Umfang | Was daran hängt |
 |---|---|---|
 | **Teil I — Kurzvideos** | mittel — **gebaut in 0.8.50** | zwei Spalten, ein Upload-Weg, Standbild im Browser, Abspieler im Vollbild, ein Export-Schalter |
 | **Teil II — Große Dateien** | **groß** | zweiter Speicherort, eigene Verschlüsselung, Range-Abfragen, stückweises Hochladen, Aufräumen, Platzprüfung |
 
-**Teil I ist für sich vollständig** und braucht von Teil II nichts. Wer nur
-kurze Videos an der Stelle der Fotos will — und das war der Ausgangswunsch —
-ist danach fertig.
-
-**Teil I ist mit 0.8.50 gebaut** — 146 neue Prüfungen, 30 Gegenproben, vier
-neue Stolpersteine. Der Aufwand „mittel" hat gestimmt.
-
-**Beschlossen: 0.8.50 für Teil I, 1.1.0 für Teil II.** Die Begründung steht in
-Abschnitt 1; sie hängt daran, dass Teil I eine bestehende Tabelle ändert und
-Teil II nur neue anlegt.
-
-**Teil II lässt sich jederzeit vorziehen**, ohne dass an Teil I etwas anders
-gebaut werden müsste. Die beiden teilen sich keinen Code: der eine Weg legt
-BLOBs in die Datenbank, der andere Dateien daneben. Was sie teilen, ist
-allein die Positivliste der Formate — und die steht ohnehin an einer Stelle.
+**Teil I war für sich vollständig** und brauchte von Teil II nichts. *Der
+Aufwand „mittel" hat gestimmt: 146 neue Prüfungen, 30 Gegenproben, vier neue
+Stolpersteine.* **Für Teil II ist „groß" die Schätzung, und sie ist nicht
+nachgemessen** — die einzige Zahl daran, die es schon gibt, ist die gemessene
+Sprungprobe aus Abschnitt 11.
 
 ## 16. Was ich ausdrücklich nicht vorschlage
 
