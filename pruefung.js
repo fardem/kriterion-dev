@@ -15398,13 +15398,36 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* DIE SUCHE LIEFERT NICHT MEHR ALS DIE LISTE. Sie liest dieselbe Tabelle
      ohne weitere Einschraenkung; ein Papierkorbeintrag steht gar nicht darin.
      GEPRUEFT WIRD DIE MENGE UND NICHT DIE BEHAUPTUNG: jede Trefferliste ist
-     eine Teilmenge der Liste ohne Parameter. */
+     eine Teilmenge der Liste ohne Parameter.
+
+     UND DER BESTAND MUSS DIE FRAGE UEBERHAUPT STELLEN KOENNEN. Die erste
+     Fassung dieser Zeile verglich zwei Mengen, die sich gar nicht
+     unterscheiden KONNTEN: der Bestand trug keinen abgelehnten Eintrag, und
+     ein Rueckbau, der die Liste ausgerechnet die abgelehnten verschweigen
+     laesst (Rueckbau 135), blieb deshalb vollstaendig STUMM. Das ist
+     Stolperstein 81 in seiner unangenehmen Fassung: nicht ein fehlender
+     Gegenstand, sondern ein Bestand, an dem die Eigenschaft nicht auftreten
+     kann. Ein ABGELEHNTER Eintrag gehoert deshalb vorher hinein -- er steht in
+     der Liste und muss darum auch in der Suche stehen. */
+  const vsAbgelehnt = await vsAnlegen('Abgelehnt Wummerklotz');
+  await ruf('PUT', `/api/items/${vsAbgelehnt.id}`, { rejected: true });
   const vsAlle = (await ruf('GET', '/api/items')).inhalt;
   const vsAlleIds = new Set(vsAlle.map(i => i.id));
+  pruefe('Der Aufbau steht: im Bestand liegt ein abgelehnter Eintrag',
+    vsAlle.some(i => i.id === vsAbgelehnt.id && i.rejected === true),
+    JSON.stringify(vsAlle.find(i => i.id === vsAbgelehnt.id)?.rejected));
+  const vsAbg = await vsNur('wummerklotz', vsAbgelehnt.id);
+  pruefe('Ein abgelehnter Eintrag steht in der Liste UND in der Suche',
+    vsAbg.ok, vsAbg.wie);
   const vsWeitest = await vsIds('e');
   pruefe('Die Suche liefert nichts, was die Liste verschweigt',
     vsWeitest.length > 0 && vsWeitest.every(id => vsAlleIds.has(id)),
     `${vsWeitest.filter(id => !vsAlleIds.has(id)).join(' ') || '—'} zusätzlich`);
+  // Und die Gegenrichtung an derselben Menge: der weiteste Begriff findet
+  // wirklich mehr als eine Handvoll -- eine Teilmenge aus null Zeilen waere
+  // jede Teilmenge.
+  pruefe('Und der weiteste Begriff trifft wirklich einen grossen Teil davon',
+    vsWeitest.length >= 5, `${vsWeitest.length} von ${vsAlle.length}`);
   const vsWeg = await vsAnlegen('Papierkorbprobe Zwirbelwurz');
   pruefe('Der Aufbau steht: der Eintrag ist vor dem Löschen zu finden',
     (await vsIds('zwirbelwurz')).includes(vsWeg.id));

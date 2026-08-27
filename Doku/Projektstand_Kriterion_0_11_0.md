@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 23 · Stand 26. August 2026 · gebaut: Version 0.10.0**
+**Kompakte Übergabe · Revision 24 · Stand 27. August 2026 · gebaut: Version 0.11.0**
 
 Dieses Blatt fasst ein langes Entwicklungsgespräch zusammen. Es genügt, um in
 einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
@@ -8,10 +8,43 @@ einem frischen Chat weiterzuarbeiten, ohne den alten Verlauf mitzuschleppen.
 Blatt, das Konzeptpapier und die Änderungsprotokolle liegen dort unter
 `Doku/`.
 
-**Was Revision 23 ist.** Revision 22 trug 0.9.1 nach. Diese trägt **0.10.0**
-nach — **„Der zweite Faktor"**. Sie ist die **erste Runde nach dem Stufenplan**
-und die **erste unter Semantic Versioning**: keine Stufe des Konzeptpapiers
-mehr, sondern eine Runde wie 0.8.90.
+**Was Revision 24 ist.** Revision 23 trug 0.10.0 nach. Diese trägt **0.11.0**
+nach — **„Suche und Bestand"**. Sie ist die **zweite Runde nach dem
+Stufenplan**, die zweite unter Semantic Versioning — und **die erste, die
+etwas Bestehendes umbaut, statt etwas Neues danebenzustellen.**
+
+**0.11.0 in einem Satz: die Suche zieht vom Browser auf den Server, wer oft
+dasselbe sucht, kann es sich merken — und wer denselben Gegenstand zweimal
+anlegt, erfährt es beim Tippen.**
+
+**Der Satz, unter dem die ganze Runde steht: die Suche findet dasselbe wie
+vorher, sie fragt nur den Server statt den Browser.** Dieselben sieben
+Quellen, dieselbe Schreibungsblindheit bis in die Umlaute, dieselben Treffer
+ab einem einzigen Zeichen, und ein Prozentzeichen bleibt ein Prozentzeichen.
+*Ein Umbau, der dem Benutzer etwas wegnimmt, wäre kein Gewinn, gleich wie viel
+er an Bytes spart.*
+
+**Was sie einbringt, ist gemessen und nicht behauptet.** An einem echten
+Bestand über die echten Routen, 1000 Einträge mit je vier Kommentaren:
+**2,50 MB → 0,52 MB** und **110 ms → 93 ms** je Blick in die Übersicht. Das
+Feld `searchText` war **73 Prozent** der Antwort.
+
+**Drei Dinge sind dabei unverhandelbar und stehen so im Quelltext.** **Kein
+FTS5 und kein Suchindex** — er kostete an 1000 Einträgen 5,17 MB bei 1,75 MB
+Nettotext und fände bei ein oder zwei Zeichen *still gar nichts*; **kein
+Schema** — die Runde legt keine Tabelle und keine Spalte an, und es läuft kein
+Migrationscode; und **keine neue Abhängigkeit, nicht eine**.
+
+**Was 0.11.0 NICHT enthält: das Zusammenführen zweier Einträge.** Der
+Fahrplan nannte Doppelerkennung *und* Zusammenführen in einer Zeile; der
+Schnitt liegt zwischen ihnen und ist ausdrücklich entschieden — die Gründe
+stehen in Abschnitt 10.
+
+---
+
+**Was Revision 23 war.** Revision 22 trug 0.9.1 nach, Revision 23 **0.10.0** —
+**„Der zweite Faktor"**, die erste Runde nach dem Stufenplan und die erste
+unter Semantic Versioning.
 
 **0.10.0 in einem Satz: wer will, sichert seinen Zugang mit einem zweiten
 Faktor — einem Code aus einer App auf seinem Telefon, der ohne Netz entsteht
@@ -217,7 +250,88 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.10.0 ist gebaut** — Fingerprint **`dc8c16f7`**, 3676 Prüfungen.
+**0.11.0 ist gebaut** — Fingerprint **`74c44ec0`**, 3811 Prüfungen.
+**Die zweite Runde nach dem Stufenplan — und die erste, die etwas Bestehendes
+umbaut.** **KEINE DATENBANKSTUFE:** es kommt **keine Tabelle** und **keine
+Spalte** dazu, es läuft **kein Migrationscode**, und es bleibt bei **fünf**
+markierten Blöcken; unter „Vorgemerkt für 1.0" kommt **nichts** dazu. *Die
+Sicherung des Datenverzeichnisses ist deshalb Empfehlung und nicht Pflicht.*
+
+**Die Suche zieht vom Browser auf den Server.** Bis 0.10.0 baute der Server je
+Eintrag ein Feld `searchText` aus sieben Quellen und schickte es mit; gefiltert
+wurde im Arbeitsspeicher des Browsers. Jetzt sucht der Server über
+`GET /api/items?q=…`, und das Feld entfällt.
+**GEMESSEN AN EINEM ECHTEN BESTAND ÜBER DIE ECHTEN ROUTEN**, 1000 Einträge mit
+je vier Kommentaren: **2,50 MB → 0,52 MB**, **110 ms → 93 ms**. `searchText`
+war **73 Prozent** der Antwort, `testDays` weitere sechs.
+**DIE SUCHE FINDET DASSELBE WIE VORHER** — dieselben sieben Quellen (Titel,
+Beschreibung, Kategoriename, Tags am Eintrag, Tags an Testtagen, Linkadressen,
+sämtliche Kommentartexte), dieselbe Schreibungsblindheit **bis in die
+Umlaute**, dieselben Treffer **ab einem einzigen Zeichen**.
+**Gesucht wird über `instr()` und nicht über `LIKE`.** In einem `LIKE '%…%'`
+wäre ein eingegebenes Prozentzeichen eine Wildcard und fände jeden Eintrag
+statt des einen, der eines trägt — nachgestellt: 1001 gegen 1 Treffer.
+`instr()` kennt keine Wildcards; der Suchbegriff ist dort Text **von Bauart**
+und nicht durch eine Klemme, die jemand vergessen kann.
+**Und die Kleinschreibung hängt als SQL-Funktion `kkl` daran** (`db.js`).
+SQLite faltet in `lower()` und `LIKE` **nur ASCII**: eine Suche nach
+„übergross" fände „ÜBERGROSS" sonst **nicht**. `toLowerCase()` aus JS ist
+genau das, was der Browser vorher tat.
+**KEIN FTS5, und das ist nachgerechnet.** Die eingebaute SQLite kann es
+(3.49.2, `trigram` legt an), es käme also keine Abhängigkeit dazu. Der
+Trigramm-Index kostet an 1000 Einträgen aber **5,17 MB bei 1,75 MB
+Nettotext** — fast das Dreifache dessen, was er indiziert —, bräuchte eine
+Auffrischung an sieben Schreibstellen, und **eine Abfrage mit einem oder zwei
+Zeichen scheitert dort nicht, sie liefert still null Treffer.**
+**`testDays` fällt aus der Listenantwort, wenn die Zeitleiste aus ist.** Aus
+der Liste liest das Feld genau eine Stelle der Oberfläche, und die läuft nur
+bei eingeschalteter Zeitleiste; die Kachel rechnet aus `testCount`, `testAvg`
+und `testLast`.
+**Am Bildschirm:** die Suche fragt frühestens **220 ms** nach dem letzten
+Anschlag, **ab dem ersten Zeichen**; jede Anfrage trägt eine laufende Nummer,
+damit sich zwei Antworten nicht überholen; während sie unterwegs ist, bleibt
+die alte Liste **gedämpft stehen**; scheitert sie, bleibt sie stehen und die
+Zählzeile sagt es. **Das Leeren der Suche kostet keine Anfrage.**
+
+**Gespeicherte Ansichten — bis zu acht je Zugang, in der Filterzeile.** Eine
+Ansicht merkt sich die ganze Filterstellung **samt Suchbegriff**. Sie liegen
+als **achter persönlicher Schlüssel** `ansichten` in `user_settings`, als
+JSON-Liste — **kein Schema, keine Migration**. *Die eine gemerkte Stellung von
+bisher (`filters`) bleibt daneben, was sie war: die zuletzt benutzte.*
+**Eine gelöschte Kategorie oder ein gelöschter Tag wird beim ANWENDEN
+übergangen, nicht beim Lesen** — ein Lesevorgang, der die Ansicht eines
+Menschen umschreibt, wäre schlimmer als eine Nummer, die ins Leere zeigt.
+Dieselbe Klemme räumt jetzt auch die eine gemerkte Stellung auf.
+
+**Doppelte Einträge werden beim Anlegen erkannt.** Eine Zeile „Ähnlich: …" mit
+Sprungmarken, **kein Dialog, keine Rückfrage, kein Blockieren**. Verglichen
+wird über **vier Zeichen**, Groß- und Kleinschreibung und Sonderzeichen fallen
+weg. **Keine Route:** die Titel liegen ohnehin im Browser — und verglichen wird
+der **ganze** Bestand, nicht die Trefferliste einer laufenden Suche.
+
+**Die Marke trägt den Akzent statt Gold und steht so hoch wie der Text
+daneben.** Eine Rücknahme aus 0.10.0, ausdrücklich gewollt; die Begründung
+steht in Abschnitt 5.
+
+**`F_ROUTEN` bleibt bei 69** — die Suche ist lesend, die Ansichten gehen über
+`PUT /api/settings`. Die Karten bleiben **neunzehn**, `VORGAENGE` **zwanzig**,
+`MERKMALE` **dreizehn**, `BESTAETIGUNG_ZWECKE` **sieben**, die Formatnummer
+**10**, das Vokabular **elf**. Die persönlichen Schlüssel gehen von sieben auf
+**acht**.
+**Keine neue Abhängigkeit und keine neue `.env`-Zeile.**
+34 Gegenproben, gefahren über `gegenprobe.js` — 125 Rückbauten werden 159.
+
+**Was 0.11.0 NICHT enthält: das Zusammenführen zweier Einträge.** Der Schnitt
+ist entschieden; die Gründe stehen in Abschnitt 10.
+
+**Ob 0.11.0 im Feld läuft, steht noch aus.** Sobald es eingespielt ist und der
+Rundlauf einmal von Hand gefahren wurde — nach einem Kommentartext suchen, eine
+Ansicht speichern und nach dem Abmelden wieder wählen, einen Doppeleintrag
+antippen und die Zeile „Ähnlich" sehen —, gehört das hierher.
+
+**0.10.0 davor** — Fingerprint **`dc8c16f7`**, 3676 Prüfungen.
+**IM FELD BESTÄTIGT:** der zweite Faktor ist eingespielt und tut, was er soll;
+die laufende Anlage meldet denselben Fingerprint wie der Branch.
 **Die erste Runde nach dem Stufenplan und die erste unter Semantic
 Versioning.** **EINE DATENBANKSTUFE:** es kommen **zwei Tabellen** dazu
 (`zweifaktor`, `zweifaktor_codes`) und **keine Spalte** — deshalb **kein
@@ -256,10 +370,6 @@ Karten bleiben **neunzehn**, `MERKMALE` **dreizehn**, `BESTAETIGUNG_ZWECKE`
 42 Gegenproben, gefahren über `gegenprobe.js`.
 **Der QR-Code ist NICHT Teil dieser Runde** — statt seiner steht der Schlüssel
 in Vierergruppen und die `otpauth://`-Zeile als Verweis daneben.
-
-**Ob 0.10.0 im Feld läuft, steht noch aus.** Sobald es eingespielt und der
-Rundlauf einmal von Hand gefahren ist — einschalten, abmelden, mit Code
-anmelden, einmal mit einem Wiederherstellungscode —, gehört das hierher.
 
 **0.9.1 davor** — Fingerprint **`3cf1b093`**, 3451
 Prüfungen. *(Beim Einspielen stand er bei `d629e78d` und 3432 Prüfungen; die
@@ -651,7 +761,26 @@ Datenbankstufe ist sie der einzige Weg zurück — siehe oben. Sie gehört
 **zwischen** `docker compose down` und alles Weitere: eine Sicherung, die
 neben einem laufenden Server entsteht, kann eine offene WAL enthalten.
 
-**Für 0.9.1 gilt sie als PFLICHT.** Die Runde ist eine **Datenbankstufe**: es
+**Für 0.11.0 gilt sie NICHT als Pflicht.** Die Runde fasst **kein** Schema an —
+keine Tabelle, keine Spalte, kein Migrationscode —, und ein Downgrade auf
+0.10.0 wäre eine reine Dateikopie. *Genau genommen stört es nichts: die
+gespeicherten Ansichten liegen als weiterer Schlüssel in `user_settings`, und
+eine ältere Fassung liest ihn schlicht nicht; die Exportdatei behält Format 10.
+Verloren gingen die Ansichten selbst — sie blieben stehen, aber niemand zeigte
+sie.* **Die Zeile bleibt trotzdem im Weg**, sie kostet nichts.
+**Es kommt KEINE neue Zeile in die `.env`**, und die `docker-compose.yml` ist
+unberührt.
+**Eine Sache gehört danach in den Blick, und sie ist harmlos:** die Marke hat
+sich geändert, und **zwei Dateien in `public/` sind damit andere**. Wer im
+Reiter des Browsers noch die alte Marke sieht, sieht einen zwischengespeicherten
+Stand und keine kaputte Anlage; ein hartes Neuladen räumt ihn weg. *Am
+Fingerprint ist die Änderung dagegen sofort zu sehen — er geht über ALLES in
+`public/`.*
+
+**Für 0.10.0 galt sie als PFLICHT.** Die Runde ist eine **Datenbankstufe**: es
+kommen die Tabellen `zweifaktor` und `zweifaktor_codes` dazu.
+
+**Für 0.9.1 galt sie als PFLICHT.** Die Runde ist eine **Datenbankstufe**: es
 kommt die Tabelle `anfragen` dazu. Einen Migrationsblock braucht sie nicht —
 `CREATE TABLE IF NOT EXISTS` legt eine fehlende Tabelle bei jedem Start an —,
 aber ein Downgrade ist damit keine reine Dateikopie mehr.
@@ -1606,6 +1735,33 @@ Verknüpfung Und/Oder umschaltbar); Sortierung nach Änderung, Bewertung, Titel
 und drei Testkennzahlen; Vergleich mehrerer Einträge; „★ Favoriten" als
 eigener, mit jedem Teststatus kombinierbarer Filter. Filter- und Sortierwahl
 werden serverseitig gespeichert.
+
+**Die Suche läuft seit 0.11.0 im SERVER** (`GET /api/items?q=…`) und nicht mehr
+im Browser. **Sie findet dasselbe wie vorher:** dieselben sieben Quellen, ohne
+Rücksicht auf Groß- und Kleinschreibung **bis in die Umlaute**, ab einem
+**einzigen** Zeichen, und `%` und `_` sind gewöhnliche Zeichen — man kann nach
+ihnen suchen. Gefragt wird **220 ms** nach dem letzten Anschlag, ab dem ersten
+Zeichen; während die Antwort unterwegs ist, bleibt die alte Liste **gedämpft
+stehen**, und scheitert sie, bleibt sie stehen und die Zählzeile sagt es. **Das
+Leeren der Suche kostet keine Anfrage.** *Die Übersicht ist dadurch um 73
+Prozent leichter geworden; das je Eintrag mitgeschickte Feld `searchText` gibt
+es nicht mehr.*
+
+**Gespeicherte Ansichten** (seit 0.11.0): bis zu **acht** benannte
+Filterstellungen je Zugang, als Knöpfe in der Filterzeile — **nicht** als eigene
+Karte im Systembereich. Eine Ansicht merkt sich die ganze Stellung **samt
+Suchbegriff**; ein Klick stellt beides wieder her, das Kreuz am Knopf entfernt
+sie. **Persönlich**, wie die eine gemerkte Stellung daneben, die bleibt, was sie
+war. *Zeigt eine Ansicht auf eine gelöschte Kategorie oder einen gelöschten Tag,
+wird die Nummer beim Anwenden übergangen — die Ansicht zeigt dann, was sie
+zeigen kann, statt leer zu bleiben.*
+
+**Ein Hinweis auf doppelte Einträge beim Anlegen** (seit 0.11.0): wer einen
+Titel tippt, sieht darunter eine Zeile *„Ähnlich: …"* mit Sprungmarken zu dem,
+was schon da ist. **Sie blockiert nichts und fragt nichts nach.** Verglichen
+wird über vier Zeichen, ohne Rücksicht auf Groß- und Kleinschreibung und
+Sonderzeichen, gegen den **ganzen** Bestand — auch, wenn eine Suche gerade
+einen Teil davon ausblendet.
 **Daneben „Neu seit …"** (seit 0.8.60) — derselbe Platz, dasselbe Muster: ein
 eigener Umschalter, mit allen übrigen Filtern kombinierbar, **persönlich**, mit
 der Zahl daneben (*„Neu seit 19.08. · 7"*). Er **filtert und sortiert nicht**.
@@ -3511,23 +3667,154 @@ Satz auch nach „Was du danach von Hand tun musst".
   eigener Wächter über `public/app.js`, denn diese Datei **ist** der
   Bildschirm.
 
-### Die Marke trägt Gold, und das ist gewollt (0.10.0)
+### Die Suche sucht im Server, über `instr()`, ohne Index (0.11.0)
 
-Der hervorgehobene Strich in `public/marke-dunkel.svg` und `public/favicon.svg`
-ist `#ffc531` — **genau `--gold`**, die Farbe der Sterne und seit jeher der
-zweite Signalwert der Anlage neben `--accent` (`#ff7a1a`). Die Frage stand als
-Berichtigung im Auftrag zu 0.10.0 („die Marke läuft aus der Farbwelt"); beim
-Nachsehen war sie **keine**: die Marke läuft nicht heraus, sie nimmt den zweiten
-Wert daraus (Befund U des Änderungsprotokolls 0.9.1).
+**Drei Entscheidungen in einer, und alle drei sind gemessen.**
 
-**Entschieden ist: Gold bleibt.** Der Grund ist nicht Bequemlichkeit —
-`--accent` ist die Farbe der **Handlung** (Knöpfe, der eine Weg, der gedrückt
-werden soll), und eine Marke ist keine Handlung. **Gold ist die Farbe der
-Bewertung, und Kriterion ist ein Bewertungsarchiv.** Die drei warmen Werte auf
-der Anmeldekarte sind damit eine **Rangfolge und kein Zusammenstoß**: Gold für
-die Identität, `--accent-dim`/`--accent-line` für den leisen zweiten Weg,
-voller Akzent für den einen Knopf. *Wer das je ändert, ändert eine Aussage über
-die Anlage und nicht eine Farbe.*
+**Erstens: der Server sucht, nicht der Browser.** Bis 0.10.0 baute der Server
+je Eintrag ein Feld `searchText` aus sieben Quellen und schickte es mit — an
+1000 Einträgen mit je vier Kommentaren **73 Prozent der Antwort**, 2,50 MB
+gegen 0,68 MB ohne. Dafür war die Suche augenblicklich, denn sie lief im
+Arbeitsspeicher. **Die Gegenrechnung ist nachgerechnet und nicht behauptet:**
+die Übersicht wird bei jedem Betreten neu geholt (es gibt keinen Takt und kein
+Nachladen), und sie kostet danach 0,52 MB statt 2,50 MB; eine entprellte Suche
+kostet ~15 ms und die Größe ihrer Treffer. *Es lohnt sich, selbst wenn jemand
+neunzig Mal je Besuch sucht.*
+
+**Zweitens: `instr()` und nicht `LIKE`.** In einem `LIKE '%…%'` sind `%` und
+`_` im **Suchbegriff** Wildcards: die Eingabe eines Prozentzeichens fände jeden
+Eintrag statt des einen, der eines trägt (nachgestellt: 1001 gegen 1 Treffer).
+Mit `ESCAPE` ließe sich das einfangen — aber `instr()` kennt gar keine
+Wildcards. **Der Suchbegriff ist dort Text von Bauart und nicht durch eine
+Klemme, die jemand vergessen kann.** *Das ist der ganze Grund; die
+Geschwindigkeit ist ein Nebenprodukt (1,9 ms bei einem häufigen Wort, 13,2 ms
+im schlechtesten Fall, wo alle sieben Quellen durchlaufen).*
+**Dazu gehört `kkl` in `db.js`**, eine in SQL eingehängte Kleinschreibung nach
+Unicode: ohne sie fände die Suche „ÜBERGROSS" bei der Eingabe „übergross" nicht
+(Stolperstein 164).
+
+**Drittens: kein FTS5 und kein Suchindex.** Die eingebaute SQLite kann es
+(3.49.2, `trigram` und `unicode61 remove_diacritics 2` legen beide an), es käme
+also **keine Abhängigkeit** dazu — und trotzdem nein. Der Trigramm-Index kostet
+an 1000 Einträgen **5,17 MB bei 1,75 MB Nettotext**, fast das Dreifache dessen,
+was er indiziert; er bräuchte eine Auffrischung an **sieben** Schreibstellen und
+einen Neuaufbau bei jedem Einspielen. **Und er ändert das Verhalten für den
+Menschen:** eine Abfrage mit einem oder zwei Zeichen scheitert nicht, sie
+liefert *still null Treffer* (Stolperstein 165). *Für eine Millisekunde nimmt
+man dem Benutzer nicht die Suche ab einem Zeichen weg.*
+
+**Der Suchtext wird nicht gespeichert.** Eine Spalte an `items` wäre der sechste
+Migrationsblock; eine eigene Tabelle wäre keiner, müsste aber bei jeder Änderung
+an sieben Stellen nachgezogen werden — **und eine vergessene Stelle ist eine
+zweite Wahrheit.** Die Suche fragt deshalb die sieben Quellen selbst.
+
+**Die Route ist dieselbe mit einem Parameter mehr** (`GET /api/items?q=…`) und
+damit **lesend**: sie steht **nicht** in `F_ROUTEN` — dieselbe Regel wie bei
+`GET /api/offen` und `GET /api/stats`. *Eine zweite Route für dieselbe Liste
+wären zwei Wege zu einer Menge.*
+
+**Und der Suchbegriff kommt nicht ins Sicherheitsprotokoll.** Freitext gehört
+dort nicht hinein, dieselbe Linie wie bei der Selbstanmeldung — und eine lesende
+Route schreibt ohnehin nichts. **Die Suche bekommt auch keine eigene Bremse:**
+sie steht hinter der Anmeldung, und die Anmeldebremse verteidigt gegen Fremde,
+nicht gegen Zugänge, die es schon gibt.
+
+### Die gespeicherten Ansichten liegen in `settings` und nicht in einer Tabelle (0.11.0)
+
+**Eine Ansicht ist kein Träger.** Eintrag, Kommentar, Testtag, Bewertung, Link
+und Datei sind Träger — sie haben einen Verfasser, eine Kaskade und ein Recht.
+Eine Ansicht ist eine gemerkte Einstellung, und sie hat genau die Form, die
+`filters` seit jeher hat. Sie liegt deshalb als **achter persönlicher
+Schlüssel** `ansichten` in `user_settings`, als JSON-Liste. **Damit kostet die
+Runde kein Schema und keinen Migrationscode:** eine Anlage aus 0.10.0 hat den
+Schlüssel nicht, und `getUserSetting` gibt die leere Liste als Vorgabe.
+
+**Der Preis steht dabei, statt weggeschrieben zu werden: JSON kennt keine
+Kaskade.** Wird eine Kategorie oder ein Tag gelöscht, bleibt die Nummer in der
+Ansicht stehen. **Übergangen wird sie beim ANWENDEN und nicht beim Lesen** —
+ein Lesevorgang, der die Ansicht eines Menschen umschreibt, ist schlimmer als
+eine Nummer, die ins Leere zeigt. *Dieselbe Klemme (`filterNormal` in
+`public/app.js`) räumt jetzt auch die eine gemerkte Stellung auf; sie ließ die
+Übersicht bisher leer aussehen, wenn ihre Kategorie gelöscht war.*
+
+**Der Suchbegriff gehört in die Ansicht.** Eine Ansicht „Bosch, ungetestet" ist
+ohne ihn die halbe Ansicht, und die Frage ist nicht, was technisch dazugehört,
+sondern **was ein Mensch erwartet, wenn er eine Ansicht anklickt**: das, was er
+beim Speichern vor sich hatte.
+
+**Acht, und der Grund ist die Zeile.** Die Ansichten stehen als Knöpfe in der
+Filterzeile; mehr als acht ist keine Zeile mehr, sondern eine Liste. *Dieselbe
+Zahl wie die Wiederherstellungscodes, und wie überall in dieser Anlage
+gedeckelt.* **Der Deckel kommt vom Server** und wird in der Oberfläche gesagt,
+statt den Knopf wortlos wegzulassen — ein Knopf, der einfach nicht mehr da ist,
+sieht aus wie ein Fehler.
+
+**Persönlich, ganz.** Eine geteilte Ansicht wäre ein neuer Träger und eine neue
+Rechtefrage. **Und `filters` bleibt, was es war:** die zuletzt benutzte
+Stellung, bei jeder Änderung stillschweigend überschrieben. Die Ansichten stehen
+daneben und ersetzen sie nicht.
+
+### Die Marke trug Gold — ZURÜCKGENOMMEN mit 0.11.0
+
+> **DIESER ABSCHNITT IST UMGESCHRIEBEN UND NICHT GELÖSCHT.** Eine
+> zurückgenommene Entscheidung mit dem Grund daneben ist mehr wert als eine
+> verschwundene: wer die Frage in zwei Jahren wieder stellt, soll sehen, dass
+> sie schon zweimal beantwortet wurde — und warum die zweite Antwort die erste
+> schlägt.
+
+**Was in 0.10.0 entschieden war.** Der hervorgehobene Strich in
+`public/marke-dunkel.svg` und `public/favicon.svg` war `#ffc531` — **genau
+`--gold`**, die Farbe der Sterne und seit jeher der zweite Signalwert der
+Anlage neben `--accent` (`#ff7a1a`). Die Frage stand als Berichtigung im
+Auftrag zu 0.10.0 („die Marke läuft aus der Farbwelt"); beim Nachsehen war sie
+**keine**: die Marke läuft nicht heraus, sie nimmt den zweiten Wert daraus
+(Befund U des Änderungsprotokolls 0.9.1). Entschieden war deshalb: Gold bleibt.
+Der Grund war nicht Bequemlichkeit — `--accent` ist die Farbe der **Handlung**,
+und eine Marke ist keine Handlung. **Gold ist die Farbe der Bewertung, und
+Kriterion ist ein Bewertungsarchiv.**
+
+**Warum das nicht trägt.** Die Entscheidung fiel **am Papier**. An der
+laufenden Anlage gesehen, stehen in der Kopfzeile **zwei warme Farben
+nebeneinander, die nichts voneinander wissen**: der hervorgehobene Strich in
+Gold, der Knopf „+ Maschine" eine Handbreit daneben in `--accent`. Es ist keine
+Rangfolge, wenn beide gleichzeitig im Blick liegen — es sind zwei Töne, die
+sich streiten. **Eine Farbe ist besser als zwei.**
+
+**Der Satz, der stehen bleibt: Gold ist die Farbe der Bewertung.** Er gilt
+weiter, für die Sterne, für die Punkte der Zeitleiste, für das Anheften.
+**Der Satz, der ihn schlägt: die Marke ist nicht die Bewertung — sie ist die
+Anlage.** Und die Anlage spricht in `--accent`.
+
+**Entschieden ist mit 0.11.0: der Strich trägt `--accent`**, in beiden Dateien.
+*Wer das je wieder ändert, ändert eine Aussage über die Anlage und nicht eine
+Farbe — und sollte es an der laufenden Anlage ansehen und nicht am Papier.*
+
+### Die Marke steht so hoch wie der Text daneben, und die Zahl ist ausgerechnet (0.11.0)
+
+**Die Kachel täuschte.** `MARK(32)` stand neben einem Stapel aus `h1`
+(1,23 rem) und `.count` (0,77 rem). Beide haben keine eigene Zeilenhöhe und
+erben die **1,55** des `body`: der Stapel misst **(1,23 + 0,77) × 1,55 =
+3,10 rem**, bei `html { font-size: 15px }` also **46,5 px**. Der gezeichnete
+Strich lief dagegen nur über **23 von 32** Einheiten des `viewBox` — nicht 20,
+wie die Pfadangaben `M8 6 V26` nahelegen: bei `stroke-width: 3` und
+`stroke-linecap: round` trägt die Farbe eine halbe Strichbreite über jedes Ende
+hinaus, von y=4.5 bis y=27.5. Sichtbar waren damit **23 px gegen 46,5 px** —
+die halbe Höhe, und genau das sieht man.
+
+**Entschieden ist: das `viewBox` der durchsichtigen Fassung umschließt die
+Farbe** (`6.5 4.5 19 23`). Damit ist die angegebene Höhe die gezeichnete, und
+der Weg wirkt überall, wo die Datei geladen wird — Kopfzeile und die neun
+Anmeldeseiten.
+**`favicon.svg` behält dagegen sein Quadrat samt Kachel.** Das ist die
+ausdrückliche Abweichung: es ist ein **Kachelsymbol**, die Kachel braucht ihren
+Rand, und 72 Prozent Füllung sind dort der übliche Schutzbereich. Ein enges
+`viewBox` schnitte die Kachel an.
+**Und die Größe steht im Stylesheet, in `rem`, nicht in den Attributen.** Die
+Anlage stellt die Schrift von 80 bis 120 Prozent (`wendeSchriftAn()` schraubt
+an `html`); eine festgeschriebene Pixelhöhe passte nur bei 100 Prozent zum Text
+daneben. Auf der Anmeldeseite steht **eine** Zeile daneben statt eines
+Stapels — `1,53 × 1,55 = 2,372 rem`. *Die Anmeldeseite ist damit
+mitentschieden und nicht mitgeschleift.*
 
 ### Der zweite Faktor gehört dem Betroffenen, ganz (0.10.0)
 
@@ -4864,6 +5151,78 @@ werden im Quelltext nicht mehr zitiert, wohl aber in Gesprächen.
     *Die Reihenfolge ist damit nicht bloß aufgeräumt, sie ist die Bedingung
     dafür, dass die Zusage überhaupt geprüft werden kann.*
 
+164. **SQLite faltet in `LIKE` und `lower()` nur ASCII — und es scheitert
+    nicht, es findet weniger.** Der naheliegende Weg für eine serverseitige
+    Suche ist `WHERE spalte LIKE '%…%'`; er ist schnell (0,62 ms an 1000
+    Einträgen gegen 11,4 ms für einen Durchlauf in JS) und **verhält sich
+    stillschweigend anders als vorher**: `lower('Ü')` ist `'Ü'`, und damit
+    findet die Eingabe „übergross" den Eintrag „STICHSÄGE ÜBERGROSS" **nicht**.
+    Nachgestellt: 0 Treffer statt 1, ohne Fehler, ohne Warnung.
+    *Der Unterschied fällt bei englischen Testdaten nie auf.* Behoben über eine
+    in SQL eingehängte Funktion `kkl` (`db.function` in `db.js`), die
+    `toLowerCase()` aus JS benutzt — genau das, was der Browser vorher getan
+    hat. Gegenprobe 132 nimmt ihr die Unicode-Hälfte weg und lässt ASCII
+    stehen; sie färbt genau die Umlautzeilen rot und keine andere.
+    **Die Lehre ist allgemeiner als der Fall:** wer eine Vergleichslogik von
+    einer Schicht in eine andere verlegt, verlegt sie in eine andere
+    Sprachdefinition. `includes()` in JS, `LIKE` in SQLite und `MATCH` in FTS5
+    sind drei verschiedene Zusagen darüber, was „gleich" heißt.
+
+165. **Ein FTS5-Trigramm-Index scheitert bei ein oder zwei Zeichen nicht — er
+    liefert still null Treffer.** Das war die Rechnung, die FTS5 in dieser
+    Runde aus dem Rennen genommen hat, und der Grund ist nicht die Größe des
+    Index (5,17 MB bei 1,75 MB Nettotext, fast das Dreifache), sondern das
+    Verhalten: `txt MATCH '"b"'` und `txt MATCH '"bo"'` werfen **keinen
+    Fehler**, sie geben eine leere Menge zurück. Die Suche fand vorher ab
+    **einem** Zeichen. Ein Umbau darauf hätte dem Benutzer etwas weggenommen,
+    und zwar an einer Stelle, an der niemand einen Fehler gesehen hätte —
+    sondern nur „findet nichts".
+    *Eine Schnittstelle, die bei zu kurzer Eingabe leer statt laut antwortet,
+    ist gefährlicher als eine, die scheitert.*
+
+166. **Ein `const` auf oberster Ebene eines klassischen Skripts landet NICHT am
+    `window`.** Eine Prüflage über die Oberfläche wollte warten, bis die Suche
+    durch ist, und fragte dazu `w.state.suchLaeuft`. `state` ist in
+    `public/app.js` ein `const` auf oberster Ebene: `w.state` ist
+    **`undefined`**, die Wartebedingung war damit sofort falsch, und die
+    Schleife lief **nie** — sie sah aus wie eine Wartezeit und war keine.
+    Aufgefallen ist es nur, weil die Zeile daneben trotzdem grün wurde.
+    *Funktionsdeklarationen landen am `window`, `const` und `let` nicht.* Die
+    Prüfung wartet jetzt auf die **sichtbare Wirkung** — solange gesucht wird,
+    steht „sucht …" in der Zählzeile. Das ist ohnehin die bessere Frage: es ist
+    der Zustand, den ein Mensch sieht.
+
+167. **Ein regulärer Ausdruck auf `body {` trifft `html, body {` zuerst.** Ein
+    Wächter sollte die Zeilenhöhe des `body` ablesen, um die Höhe der Marke
+    dagegen zu rechnen. `mkCss.match(/body \{[^}]*\}/)` fand den **ersten**
+    Treffer — und der ist im Stylesheet `html, body { ... }`, ein Block ohne
+    `line-height`. Ergebnis: `null`, und zwei Rechnungen darauf wurden rot mit
+    der Meldung „3.1rem gegen 0.000rem".
+    *Ein Selektor als Suchmuster trifft jeden Block, in dem er vorkommt, nicht
+    den, den man meint.* Der Wächter geht jetzt über **alle** `body`-Blöcke und
+    nimmt den, der die Zeilenhöhe wirklich setzt.
+
+168. **Zwei Rückbauten mit derselben Nummer sind im Namensfilter des
+    Gegenprobentreibers nicht auseinanderzuhalten.** Die neuen Rückbauten
+    dieser Runde sollten bei 123 fortsetzen — die höchste Nummer im Papier war
+    122. Im Quelltext lag aber schon eine **123**: die Liste ist nicht
+    monoton, spätere Runden haben Nummern zwischen älteren eingefügt.
+    `node gegenprobe.js 2 123 …` fuhr daraufhin **zwei verschiedene**
+    Rückbauten unter demselben Wort, und die Tabelle hätte zwei Zeilen mit
+    derselben Nummer getragen.
+    *Die höchste Nummer steht nicht am Ende der Liste.* Vor dem Nummerieren
+    wird gezählt, nicht geblättert — und die Nummern laufen jetzt von 124 bis
+    157.
+
+169. **Ein Feldname sagt nicht, was in dem Feld steht.** `testLast` in der
+    Listenantwort klingt nach „letzter Testtag" und trägt die **letzte
+    Tagesnote** — eine Zahl von 1 bis 5. Eine frisch geschriebene Prüfung
+    verglich sie mit `'2026-05-05'` und wurde rot, obwohl die Anlage richtig
+    antwortete. *Der Beleg für die Bedeutung eines Feldes steht an seiner
+    Entstehungsstelle (`testStats`) und nicht in seinem Namen;* die Kachel
+    schreibt daneben „zuletzt 4", und die Sortierung `testlast_desc` vergleicht
+    Zahlen — beides hätte es verraten.
+
 ---
 
 ## 7. Prüfstand
@@ -4876,7 +5235,26 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3676 von 3676 bestanden** (0.10.0; **225 neue Prüfungen, 42
+**Zuletzt: 3811 von 3811 bestanden** (0.11.0; **135 neue Prüfungen, 34
+Gegenproben, acht neue Gruppen**: „Die Volltextsuche", „searchText ist fort,
+und sonst nichts", „testDays hängt an der Zeitleiste", „Gespeicherte
+Ansichten", „Die Suche fragt den Server", „Gespeicherte Ansichten in der
+Oberfläche", „Doppelte Einträge beim Anlegen" und „Die Marke am Bildschirm".
+Der Rest sind Erweiterungen vorhandener Gruppen: „Die Marke der Anlage" um
+Farbe, `viewBox` und die **ausgerechnete** Höhe, die Liste der persönlichen
+Schlüssel von sieben auf **acht**, und der Wächter über die Migrationsblöcke um
+die Zeile, dass es **keinen für 0.11.0** gibt.
+**Der Mock antwortet auf `?q=` wie der echte Server** (Stolperstein 90) und
+trägt kein `searchText` mehr; er filtert dabei über den **Titel** und nicht über
+sieben Quellen — die sieben prüfen die Servergruppen an einer echten Datenbank,
+und ein Mock, der die Suche selbst nachbaute, belegte, was er selbst tut
+(Stolperstein 102). **Der Fehlerfall der Suche ist im Mock stellbar:** bis
+0.10.0 *konnte* sie nicht scheitern, und ohne diese Lage ließe sich der
+Rückfall nicht prüfen, sondern nur hoffen.
+**Es kommt keine neue Portbasis dazu** — die Spanne ist voll, und die Rechnung
+dazu steht oben.)
+
+**Davor: 3676 von 3676 bestanden** (0.10.0; **225 neue Prüfungen, 42
 Gegenproben, sechzehn neue Gruppen**: „Der zweite Faktor: die Rechnung gegen
 den Standard", „… der Rundlauf", „… ein Code gilt genau einmal", „… das
 Zeitfenster", „… ohne Code kommt niemand herein", „… die Auskunft kommt erst
@@ -4948,6 +5326,52 @@ Lücke 6550–6699 trägt 6566 darunter und 6665 darüber, 6600–6659 liegt sau
 dazwischen. Sie liegt **innerhalb** der bestehenden Spanne, die deshalb bei
 2980 bleibt — der Wächter am Ende des Laufs rechnet beides nach, für alle vier
 Nebenspuren. **Es sind jetzt 53 Basen.**
+
+### Die Spanne ist voll — und die naheliegende Ausweichmöglichkeit gibt es nicht (0.11.0)
+
+**0.11.0 nimmt keine neue Basis auf, und das ist eine Entscheidung und kein
+Zufall.** Die neuen Prüflagen brauchen keine eigene Anlage: die Suche und die
+Ansichten laufen am Hauptserver, die Persönlichkeit der Ansichten über eine
+vorhandene Mehrzugangslage, die Marke über Dateien. **Es bleibt bei 53 Basen
+und `VERSATZ_STUFE` bei 3000.**
+
+**Nachgerechnet steht es so:** die niedrigste Basis ist `HAUPT_BASIS` 3900, das
+höchste Fenster endet bei **6879**, die Spanne beträgt damit **2980** gegen
+eine Stufe von 3000 — **zwanzig Nummern Luft**, und ein Fenster ist 60 breit.
+**Oben passt keine neue Basis mehr dazu.**
+
+**Und die Ausweichmöglichkeit „in eine Lücke innerhalb der Spanne gehen" gibt
+es nicht.** Ausgezählt und nicht geschätzt: innerhalb der Spanne liegen zehn
+Lücken mit zusammen 430 freien Nummern, aber nur **drei** davon sind
+mindestens 60 breit — und **jedes** 60er-Fenster darin deckt eine gesperrte
+Nummer:
+
+| Lücke | Breite | woran jedes Fenster scheitert |
+|---|---:|---|
+| 3990–4099 | 110 | **4045** |
+| 5010–5069 | 60 | **5060, 5061** |
+| 5960–6019 | 60 | **6000** |
+
+Die übrigen sieben Lücken sind 10 bis 50 Nummern breit und damit für ein
+Fenster von 60 zu schmal.
+
+**Was bleibt, ist das Anheben der Stufe, und es geht genau einmal.** Mit einer
+neuen Basis **6880** wächst die Spanne auf 3040; brauchbar sind dann die Stufen
+**3040–3045, 3091–3140 und 3381–3400**. Alles dazwischen legt eine Nebenspur
+auf die Sperrliste — bei 3150 wandert Spur 1 der Basis 6880 auf 10030–10089
+und trifft **10080**. *Die obere Schranke „höchste Nummer aller Spuren unter
+32768" ist dabei nicht das Problem; die Sperrliste ist es.*
+
+**Daraus folgt: die heutige Aufteilung trägt noch EINE neue Prüflage mit
+eigener Basis, dann ist Schluss.** Wer danach eine braucht, muss die Fenster
+schmaler machen, Lagen zusammenlegen oder die Spuren anders legen. *Das ist
+kein Auftrag — aber es ist der Punkt, an dem der Prüfstand das nächste Mal
+anhält, und er soll niemanden überraschen.*
+
+*Nebenbei aufgefallen und ohne Handlungsbedarf:* **22 Fensterpaare überlappen
+heute schon** (4360/4380/4400/4420/4440 als Kette, 4940/4950 um 50 Nummern).
+Harmlos, weil die Lagen der Reihe nach laufen und jede am Ende beendet wird —
+aber „eine Basis je Prüflage" war nie eine Trennung, sondern eine Buchführung.
 
 **Davor 3451 von 3451** (0.9.1 samt der Nacharbeit an der
 Anmeldeseite; **259 neue Prüfungen, 58 Gegenproben, achtzehn neue Gruppen**: „Die Selbstanmeldung: die immer gleiche
@@ -5661,15 +6085,32 @@ sind zwei Dinge:
 
 - **Der Betriebsstand steht in Abschnitt 2, nicht hier.** Zwei Stellen für
   dieselbe Angabe halten nur eine aktuell (vgl. Stolperstein 47).
-- **DER TAG `v0.10.0` IST GESETZT, ABER NICHT GESCHOBEN.** Er liegt auf dem
-  Commit, der herausgeht; der Push scheitert in der Arbeitsumgebung, in der
-  0.10.0 gebaut wurde, mit `HTTP 403` — Branches gehen durch, Tags nicht. Er
-  braucht einen Push von einer Stelle mit den nötigen Rechten:
-  `git tag -a v0.10.0 <commit> -m "…" && git push origin v0.10.0`.
-  **Ohne ihn zeigt der Vergleichsverweis am Ende von `CHANGELOG.md` ins
-  Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
+- **DIE TAGS `v0.10.0` UND `v0.11.0` SIND GESETZT, ABER NICHT GESCHOBEN.**
+  Beide liegen auf dem Commit, der herausgeht; der Push scheitert in der
+  Arbeitsumgebung mit `HTTP 403` — **Branches gehen durch, Tags nicht.** Sie
+  brauchen einen Push von einer Stelle mit den nötigen Rechten:
+
+  ```bash
+  git push origin v0.10.0
+  git push origin v0.11.0
+  ```
+
+  *Liegen die Tags dort nicht mehr vor, entstehen sie mit*
+  `git tag -a v0.11.0 <commit> -m "…"` *auf den jeweiligen Commit.*
+  **Ohne sie zeigen die beiden Vergleichsverweise am Ende von `CHANGELOG.md`
+  ins Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
   *Dabei ist aufgefallen, dass das Repo schon vierzehn Tags trägt und nicht
   keinen: Abschnitt 5, Unterabschnitt zum Changelog.*
+- **DER RUNDLAUF FÜR 0.11.0 IST NOCH NICHT GEFAHREN.** Drei Handgriffe belegen
+  die Runde am laufenden Server, und sie gehören nach dem Einspielen einmal von
+  Hand gemacht: **nach einem Kommentartext suchen** und den Eintrag finden;
+  **eine Ansicht speichern, abmelden, anmelden, die Ansicht wählen**; und
+  **einen Doppeleintrag antippen**, die Zeile „Ähnlich" sehen. Das Ergebnis
+  gehört in Abschnitt 2.
+- **Der Fingerprint der laufenden Anlage nach 0.11.0 ist zu vergleichen.** Die
+  Marke hat zwei Dateien in `public/` verändert; der Wert muss sich also
+  bewegt haben — und er muss dem im Branch entsprechen. *Genau dort hat sich
+  bei 0.9.1 eine Datei zu viel gezeigt (Stolperstein 158).*
 - **Versionsnummern brauchen drei Zahlen** (`0.6.10`, nicht `0.6.9b`) — die
   `package.json` lässt keine Buchstaben zu. Die führende Null sagt, dass sich
   noch alles ändern darf. **Herausgeben lässt sich die Anlage mit jeder
@@ -5869,6 +6310,39 @@ sind zwei Dinge:
 ---
 
 ## 9. Versionsgeschichte
+
+**0.11.0 — „Suche und Bestand".** **Die zweite Runde nach dem Stufenplan — und
+die erste, die etwas Bestehendes umbaut, statt etwas Neues danebenzustellen.**
+MINOR, weil Funktionen dazukommen. *`searchText` fällt dabei aus der Antwort
+von `GET /api/items` heraus, und das ist eine Wegnahme — aber die HTTP-Endpunkte
+unter `/api/` gehören nach Abschnitt 5 ausdrücklich **nicht** zur öffentlichen
+Schnittstelle; sie werden allein von der mitgelieferten Oberfläche gerufen, und
+beide kommen aus demselben Image. Es ist damit kein Bruch im Sinne von SemVer.*
+**Keine Datenbankstufe:** keine Tabelle, keine Spalte, kein Migrationscode, und
+es bleibt bei fünf markierten Blöcken.
+
+**Die Suche zieht vom Browser auf den Server** — `GET /api/items?q=…`, dieselben
+sieben Quellen wie vorher, und das je Eintrag mitgeschickte Feld `searchText`
+entfällt. Gemessen an 1000 Einträgen mit je vier Kommentaren: **2,50 MB →
+0,52 MB** und **110 ms → 93 ms**; das Feld war **73 Prozent** der Antwort.
+**Die Suche findet dasselbe wie vorher** — bis in die Umlaute, ab einem
+einzigen Zeichen, und ein Prozentzeichen bleibt ein Prozentzeichen. Gesucht
+wird über `instr()` statt `LIKE` (keine Wildcards von Bauart) samt einer in
+SQL eingehängten Kleinschreibung nach Unicode. **Kein FTS5:** der
+Trigramm-Index kostete 5,17 MB bei 1,75 MB Nettotext und fände bei ein oder
+zwei Zeichen still gar nichts (Stolpersteine 164 und 165).
+**Gespeicherte Ansichten**, bis zu acht je Zugang, persönlich, samt
+Suchbegriff — als achter persönlicher Schlüssel in `user_settings`, ohne
+Schema. **Doppelte Einträge werden beim Anlegen erkannt**, als Zeile ohne
+Dialog und ohne eigene Route.
+**Die Marke trägt den Akzent statt Gold und steht so hoch wie der Text
+daneben** — eine Rücknahme aus 0.10.0, ausdrücklich gewollt und in Abschnitt 5
+umgeschrieben statt gelöscht.
+**Das Zusammenführen zweier Einträge ist ausdrücklich NICHT Teil dieser
+Runde** — der Schnitt liegt zwischen Doppelerkennung und Zusammenführen; die
+Gründe stehen in Abschnitt 10.
+`F_ROUTEN` bleibt bei **69**, `VORGAENGE` bei **zwanzig**, die Karten bei
+**neunzehn**. **3676 Prüfungen werden 3811**, 125 Rückbauten werden **159**.
 
 **0.10.0 — „Der zweite Faktor".** **Die erste Runde nach dem Stufenplan und die
 erste unter Semantic Versioning** — MINOR, weil eine neue Funktion dazukommt und
@@ -6390,12 +6864,57 @@ kein gültiges Versionsschema, `npm version` lehnt sie ab), `0.8.10` und
 | **0.9.0** | **Stufe I, erste Hälfte** — Mailversand (**erledigt**) | `nodemailer`, Anbietervorlagen, Testmail, öffentliche Adresse als Pflicht für den Versand, Adresse am Zugang, Frist ab dem ersten Öffnen | **nein** — keine Tabelle, keine Spalte | — |
 | **0.9.1** | **Stufe I, zweite Hälfte** — Selbstanmeldung (**erledigt**) | Formular vor der Anmeldung, Bestätigungsmail (Double Opt-in), Warteschlange beim Admin, Freischaltung und Ablehnung. **Damit ist der Stufenplan abgearbeitet.** | ja, **eine neue Tabelle ohne Migrationsblock** | — |
 | | | ***ab hier SemVer*** | | |
-| **0.10.0** | Zwei-Faktor | TOTP, QR-Code und Wiederherstellungscodes. *MINOR: neue Funktion* | ja | — |
-| **0.11.0** | Suche und Bestand | Volltextsuche, gespeicherte Ansichten, Doppelerkennung samt Zusammenführen. *MINOR* | ja | — |
+| **0.10.0** | Zwei-Faktor (**erledigt**) | TOTP und Wiederherstellungscodes. *MINOR: neue Funktion.* Der QR-Encoder wurde herausgenommen und ist vorgemerkt | ja | — |
+| **0.11.0** | Suche und Bestand (**erledigt**) | Volltextsuche im Server, gespeicherte Ansichten, Doppelerkennung. *MINOR.* **Das Zusammenführen ist herausgenommen** — siehe die Zeile darunter | **nein** | — |
+| **offen** | Zwei Einträge zu einem machen | das Zusammenführen aus der Zeile darüber, als eigene Runde. *MINOR, die Nummer ergibt sich* | nein — es bewegt vorhandene Zeilen | — |
 | **0.11.x** | Fehlerbereinigung und Verbesserungen | die Runde für Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Sie bekommt keine geplante Nummer mehr, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht | in der Regel nein | — |
 | **0.12.0** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur als Grundlage festgeschrieben, Absage an zu alte Datenbanken. **Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 | **1.0.0** | **Die Zusage** | Abwärtskompatibilität wird zugesichert, die öffentliche Schnittstelle aus Abschnitt 5 steht fest. Dazu Vorgabewerte (Punkt 7) und Tastaturbedienung beim Sortieren | — | — |
 | **danach** | Große Dateien bis 2 GB | Teil II des Videopapiers. *MINOR nach 1.0.0, die Nummer ergibt sich* | ja | — |
+
+### Warum das Zusammenführen aus 0.11.0 herausgenommen ist (0.11.0)
+
+Der Fahrplan nannte **Doppelerkennung und Zusammenführen in einer Zeile**. Es
+sind zwei Vorhaben, und sie sind verschieden schwer wie Tag und Nacht: die
+Doppelerkennung ist eine Zeile in einem Dialog **ohne Route und ohne Schema**,
+das Zusammenführen ist der **erste Eingriff der Anlage, der Zeilen zwischen
+zwei Eltern verschiebt** — unumkehrbar.
+
+**Was den Ausschlag gegeben hat, ist gezählt und nicht geschätzt.** An einem
+Eintrag hängen **acht** Tabellen (`photos`, `links`, `test_days`, `ratings`,
+`comments`, `item_tags`, `attachments`, `item_pins`). Der Auftrag zu 0.11.0
+rechnete mit **zwei** Eindeutigkeitsschranken, die beim Zusammenführen brechen;
+nachgesehen im Schema sind es **vier**:
+
+| Tabelle | Schranke | wann sie bricht |
+|---|---|---|
+| `ratings` | `UNIQUE(item_id, criterion_id, user_id)` | derselbe Mensch hat dasselbe Kriterium an beiden bewertet |
+| `test_days` | `UNIQUE(item_id, day, user_id)` | derselbe Mensch am selben Tag an beiden |
+| `item_tags` | `PRIMARY KEY (item_id, tag_id)` | **beide tragen denselben Tag** |
+| `item_pins` | `PRIMARY KEY (user_id, item_id)` | derselbe Mensch hat beide als Favorit |
+
+**`item_tags` ist dabei der Normalfall und nicht der Randfall:** zwei Einträge,
+die denselben Gegenstand beschreiben, tragen fast immer dieselben Tags. Ein
+schlichtes `UPDATE … SET item_id = ?` läuft dort auf einen Constraint-Fehler,
+und zwar beim ersten echten Doppeleintrag.
+
+**Dazu kommt der Papierkorb.** Er serialisiert einen Eintrag *samt allem, was
+daran hängt*. Nach dem Zusammenführen hängt am Verlierer **nichts** mehr — die
+Wiederherstellung gäbe eine leere Hülle zurück. *Das ist schlechter als gar
+kein Papierkorbeintrag, weil es aussieht wie eine Rettung und keine ist.*
+
+**Entschieden ist: der Schnitt liegt zwischen den beiden.** Suche, Ansichten
+und **Doppelerkennung** sind 0.11.0; das **Zusammenführen** bekommt eine eigene
+Runde samt eigener Route (`F_ROUTEN` 69 → 70, Art `nurAdmin` und
+`zweitbestaetigt`), einem Vorgang im Sicherheitsprotokoll (zwanzig → einundzwanzig)
+und einer Sicherung des Datenverzeichnisses als **Pflicht** im Einspielweg.
+
+**Was dagegen sprach und mitzudenken ist: eine Doppelerkennung ohne
+Zusammenführen ist ein Hinweis ohne Heilmittel.** Der Mensch sieht, dass er den
+Gegenstand zweimal hat, und kann nichts tun außer einen davon von Hand
+leerzuräumen. *Das ist tragbar, weil der Hinweis den zweiten Eintrag verhindert,
+bevor er entsteht — und das ist der Fall, der zählt. Es ist kein Ausschlussgrund,
+und es gehört in die Begründung.*
 
 **0.8.10 bis 0.8.90 sind gebaut** — Einzelheiten in Abschnitt 2 und
 Abschnitt 9. Mit 0.8.30 ist **die erste Datenbankstufe seit 0.8.3** gefahren,
@@ -6808,6 +7327,14 @@ was von ihnen als Regel weitergilt, steht in Abschnitt 5.
   gestellt wird; seit 0.8.0 kennt sie die vierte Art `'nurAdmin, im Rumpf'`.
   *Die Zahl stand hier eine Runde lang bei 56, obwohl sie seit 0.8.90 bei 57
   lag — Stolperstein 137, ein Papier war beim Nachziehen übersehen worden.*
+- **0.11.0 bewegt die Zahl NICHT und ist damit der bisher deutlichste Fall der
+  Regel darunter.** Die Volltextsuche läuft über `GET /api/items?q=…` —
+  **dieselbe** Route, ein Parameter mehr, und sie ist lesend. Die gespeicherten
+  Ansichten gehen über `PUT /api/settings`, das es längst gibt; ihre
+  Rechtezeile hat sich nicht verschoben, denn sie sind persönlich wie alles
+  andere unter `PERSOENLICHE_SCHLUESSEL`. *Wer aus dem Suchweg eine eigene
+  schreibende Route machte, verschöbe die Rechtefrage — und würde hier
+  namentlich rot.* **Es bleibt bei 69.**
 - **Ein lesender Endpunkt mit Wächter steht nicht in `F_ROUTEN`** — viermal
   angewandt (`GET /api/users/:id/bestand`, `GET /api/items/:id/bestand`,
   `GET /api/stats`, seit 0.8.6 `GET /api/items/:id/stimmen`). **`GET /api/offen`

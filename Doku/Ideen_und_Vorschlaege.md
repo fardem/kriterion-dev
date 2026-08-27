@@ -425,7 +425,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=20s \
 
 ## 3. Grenzen, die früher greifen als man denkt
 
-### 3.1 `/api/items` liefert bei jedem Blick in die Übersicht den ganzen Bestand
+### 3.1 `/api/items` liefert bei jedem Blick in die Übersicht den ganzen Bestand **[GEBAUT — 0.11.0]**
 
 **Was passiert.** Der Endpoint lädt **alle** Einträge, und je Eintrag: Fotos,
 Kategorie, Tags, Links, Anhangzahl, Bewertungsschnitt, Testkennzahlen, alle
@@ -506,11 +506,23 @@ Variante.
 
 ### 3.3 Zwei Funktionen sind zu groß geworden
 
-| Datei | Zeilen | Auffällig |
+> **DIE ZAHLEN IN DIESEM ABSCHNITT WAREN ÜBERHOLT UND SIND MIT 0.11.0
+> NACHGEZOGEN.** Dieses Papier ist **Quelle und nicht Stand**: es hält fest,
+> was aufgefallen ist, nicht, wie groß die Anlage heute ist. Wer eine aktuelle
+> Zahl braucht, findet sie im Projektstand. Die alten Zahlen — `public/app.js`
+> 3.857 Zeilen, `renderDetail()` 1.310, `renderSystem()` 825 — stammen aus der
+> Zeit vor 0.8.50 und kannten weder Videos noch Verfasser; sie stehen hier
+> nur, damit die Bewegung sichtbar bleibt.
+
+| Datei | Zeilen (0.11.0) | Auffällig |
 |---|---:|---|
-| `public/app.js` | 3.857 | `renderDetail()` ≈ **1.310 Zeilen**, `renderSystem()` ≈ **825 Zeilen** |
-| `server.js` | 2.416 | eine Datei, 46+ Routen |
-| `pruefung.js` | 8.683 | eine Datei, 1.429 Prüfungen |
+| `public/app.js` | 6.101 | `renderSystem()` ≈ **2.030 Zeilen**, `renderDetail()` ≈ **1.499 Zeilen** |
+| `server.js` | 4.823 | eine Datei, 69 schreibende Routen |
+| `pruefung.js` | 24.567 | eine Datei, 3.808 Prüfungen |
+
+**`renderSystem()` ist seit der ersten Messung auf das Zweieinhalbfache
+gewachsen** und damit die längste Funktion der Anlage — sie hat
+`renderDetail()` überholt, das damals die längste war.
 
 Der Code selbst ist gut — dicht kommentiert, klare Namen, jede Entscheidung
 begründet. Es ist die **Größe der Funktionen**, nicht ihre Qualität.
@@ -527,7 +539,7 @@ Die Blöcke sind in der Oberfläche ohnehin schon eigenständig — sie lassen s
 einzeln anordnen und einklappen. Die Struktur ist also schon da, sie steht
 nur nicht im Code.
 
-Dasselbe für `renderSystem()`: dreizehn Karten, dreizehn Funktionen.
+Dasselbe für `renderSystem()`: neunzehn Karten, neunzehn Funktionen.
 
 Für `pruefung.js` siehe 5.5.
 
@@ -851,7 +863,7 @@ für den schwierigen Teil ist schon geschrieben.
 >
 > Einzelheiten in `Doku/Aenderungsprotokoll_0.8.70.md`.
 
-### 4.6 Doppelte Einträge beim Anlegen erkennen **[SCHÄRFT]**
+### 4.6 Doppelte Einträge beim Anlegen erkennen **[GEBAUT — 0.11.0]**
 
 Steht im Projektstand als „Idee ohne Beschluss" (Doppelerkennung). Ich halte
 sie für deutlich wichtiger, als diese Einordnung nahelegt — aber nur im

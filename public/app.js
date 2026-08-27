@@ -1367,6 +1367,12 @@ async function loadAll() {
      `items` das, was gezeigt wird -- beim Betreten der Uebersicht dasselbe.
      Stand vorher ein Suchbegriff im Feld, wird er gleich darunter neu gefragt;
      bis die Antwort da ist, steht der ganze Bestand da und nicht nichts. */
+  /* `alle` und `items` zeigen hier auf DASSELBE Feld, und das ist gewollt: eine
+     Kopie von tausend Objekten waere Arbeit fuer nichts. Es traegt nur, solange
+     niemand `state.items` an der Stelle veraendert -- gefiltert und sortiert
+     wird ueber Kopien (`[...out].sort(...)` in visibleItems), und ein push oder
+     splice darauf gibt es nirgends. Wer je eines einbaut, veraendert damit auch
+     den ungefilterten Bestand. */
   state.alle = items; state.items = items; state.bestand = items.length;
   state.suchFehler = false;
   state.categories = categories; state.tags = tags; state.criteria = criteria;

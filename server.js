@@ -1768,7 +1768,7 @@ const zuletztGesehen = (benutzerId) => getUserSetting(benutzerId, 'zuletztGesehe
    Oberflaeche -- eine zweite Liste davon hier liefe auseinander, und `filters`
    liegt aus genau diesem Grund seit jeher ungeprueft in der Tabelle. Was der
    Server dafuer hart deckelt, ist der Platz: ohne Deckel waere ein
-   persoenlicher Schluessel ein Speicherfuellier. */
+   persoenlicher Schluessel ein Speicherfueller. */
 const ANSICHTEN_DECKEL = 8;
 const ANSICHT_NAME_LAENGE = 40;
 const ANSICHT_BEGRIFF_LAENGE = 200;
@@ -2590,7 +2590,7 @@ const qAnhangZahl = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id
 /* ================= Die Volltextsuche =================
    SIE SUCHT DIESELBEN SIEBEN QUELLEN, DIE VORHER IM FELD `searchText` STANDEN:
    Titel, Beschreibung, Kategoriename, Tags am Eintrag, Tags an Testtagen,
-   Linkadressen und samtliche Kommentartexte. Bis 0.10.0 baute der Server
+   Linkadressen und saemtliche Kommentartexte. Bis 0.10.0 baute der Server
    dieses Feld je Eintrag und schickte es mit; gesucht wurde damit im Browser.
    Das Feld war 73 Prozent der Antwort (gemessen: 2,50 MB von 1000 Eintraegen,
    0,68 MB ohne). Jetzt sucht der Server, und das Feld entfaellt.

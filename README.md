@@ -887,8 +887,30 @@ es zwei, beide im Systembereich einstellbar:
 ## Bedienung
 
 **Übersicht**
-- Die Suche greift auf Titel, Beschreibung, Kategorie, Tags, Linkadressen und
-  Kommentare zu. `/` springt ins Suchfeld.
+- **Die Suche greift auf sieben Quellen zu:** Titel, Beschreibung, Name der
+  Kategorie, Tags am Eintrag, **Tags an Testtagen**, Adressen der Links und
+  **sämtliche Kommentartexte**. `/` springt ins Suchfeld.
+  Groß- und Kleinschreibung spielt keine Rolle, auch bei Umlauten; ein
+  einzelnes Zeichen findet bereits. **Prozentzeichen und Unterstrich sind
+  gewöhnliche Zeichen** — man kann nach ihnen suchen.
+  *Seit 0.11.0 sucht der Server und nicht mehr der Browser.* Gefunden wird
+  dasselbe wie vorher; gefragt wird kurz nach dem letzten Anschlag, damit
+  nicht jeder Tastendruck über das Netz geht. Ist der Server einmal nicht
+  erreichbar, bleibt die zuletzt gezeigte Liste stehen und sagt es.
+- **Gespeicherte Ansichten** stehen als Knöpfe unter den Filtern. Wer eine
+  Kombination öfter braucht, stellt sie ein und drückt **„+ Ansicht
+  speichern"**; ein Klick auf den Knopf stellt sie wieder her. Gemerkt wird
+  die ganze Filterstellung **samt Suchbegriff** — eine Ansicht „Bosch,
+  ungetestet" wäre ohne ihn die halbe Ansicht. Das Kreuz am Knopf entfernt
+  sie wieder.
+  **Acht Stück je Zugang**, und sie sind **persönlich**: ein anderer Zugang
+  sieht sie nicht. *Wird eine Kategorie oder ein Tag gelöscht, auf die eine
+  Ansicht zeigt, wird die Nummer beim Anwenden übergangen — die Ansicht zeigt
+  dann, was sie zeigen kann, statt leer zu bleiben.*
+- **Beim Anlegen weist eine Zeile auf Ähnliches hin.** Wer einen Titel tippt,
+  sieht darunter *„Ähnlich: …"* mit Sprungmarken zu dem, was schon da ist —
+  gedacht für den Fall, dass zwei Menschen denselben Gegenstand eintragen.
+  **Sie blockiert nichts:** wer den Eintrag trotzdem will, legt ihn an.
 - Filter nach Status (Alles / Getestet / Ungetestet — die beiden letzten heißen
   so, wie es im Vokabular steht), Kategorie und Tags. Bei mehreren Tags legt der
   Umschalter neben der Beschriftung fest, wie sie verknüpft werden: **Und**
@@ -1531,7 +1553,20 @@ die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
 enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
 Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
 
-**0.10.0 FASST DIE DATENBANK AN** — es kommen **zwei** Tabellen dazu,
+**0.11.0 FASST DIE DATENBANK NICHT AN** — keine Tabelle, keine Spalte, kein
+Migrationsschritt. **Die Sicherungszeile ist bei dieser Version Empfehlung und
+nicht Pflicht**, und ein Downgrade auf 0.10.0 wäre eine reine Dateikopie.
+*Genau genommen stört es nichts:* die gespeicherten Ansichten liegen als
+weiterer Schlüssel in `user_settings`, und eine ältere Fassung liest ihn
+schlicht nicht — sie blieben stehen, aber niemand zeigte sie. **Es kommt keine
+neue Zeile in die `.env`**, und es gibt nichts einzustellen.
+**Eine Sache gehört danach in den Blick, und sie ist harmlos:** die Marke der
+Anlage hat sich geändert, und **zwei Dateien in `public/` sind damit andere**.
+Wer im Reiter des Browsers noch die alte Marke sieht, sieht einen
+zwischengespeicherten Stand und keine kaputte Anlage; ein hartes Neuladen
+(Strg+Umschalt+R) räumt ihn weg.
+
+**0.10.0 davor FASSTE DIE DATENBANK AN** — es kamen **zwei** Tabellen dazu,
 `zweifaktor` und `zweifaktor_codes`. Einen Migrationsschritt brauchen sie
 nicht, eine fehlende Tabelle legt der Start selbst an; aber ein Downgrade ist
 damit keine reine Dateikopie mehr. **Die Sicherungszeile ist bei dieser Version
@@ -1768,6 +1803,21 @@ ausschließlich an die eigene Adresse** geht (auch mit einem mitgegebenen Feld i
 Rumpf, Abfrage oder Kopf), dass das **Mailpasswort in keiner Spalte, keiner
 Protokollzeile und keiner Antwort** steht, und dass die **Frist ab dem ersten
 Öffnen** wirklich nur beim ersten Öffnen schreibt.
+**Seit 0.11.0 dazu die Volltextsuche, je eine Lage für jede der sieben
+Quellen** — mit erfundenen Suchwörtern, damit jede Trefferzahl **exakt** ist und
+nicht „mindestens einer": fällt eine Quelle aus der Abfrage, wird genau sie
+namentlich rot. Dazu die Schreibung samt **Umlauten in beide Richtungen**, ein
+Teilstring aus einem einzigen Zeichen, **Prozentzeichen und Unterstrich als
+Text samt der Gegenlage, dass man sie suchen kann**, und die Zusicherung, dass
+jede Trefferliste eine **Teilmenge** der Liste ohne Suchbegriff ist —
+nachgestellt an einem Eintrag, der vor dem Löschen gefunden wird und danach
+nicht mehr. **Feld für Feld gegen eine namentliche Liste** wird geprüft, dass
+`searchText` fort ist und **sonst nichts**, und dass `testDays` genau dann
+fehlt, wenn die Zeitleiste aus ist — samt der Nachschau, dass die Kachelzahlen
+trotzdem stimmen. Am Bildschirm: dass **drei Anschläge hintereinander EINE
+Anfrage** sind, dass der zuletzt getippte Begriff gewinnt, dass das Leeren
+ohne Anfrage auskommt und dass die Liste **stehenbleibt**, wenn die Suche
+scheitert.
 **Seit 0.9.1 dazu die Selbstanmeldung, vom Formular bis zum gesetzten
 Passwort** — und die schwerste Zusage darin wird **gemessen, nicht behauptet**:
 die fünf Lagen der Anfrage antworten mit demselben Statuscode und demselben
