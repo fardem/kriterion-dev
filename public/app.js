@@ -63,63 +63,43 @@ const ICON_PH = `<svg class="ph" width="42" height="42" viewBox="0 0 24 24" fill
 const ICON_OFFEN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5l2 2 3-3.5"/><path d="M3.5 13l2 2 3-3.5"/><path d="M3.5 19.5l2 2 3-3.5"/><path d="M12.5 6.5H21"/><path d="M12.5 13H21"/><path d="M12.5 19.5H21"/></svg>`;
 const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
-/* Die Marke der Anlage. SEIT 0.9.1 EINE AUSGELIEFERTE DATEI statt eines
-   eingebauten SVG, und das hat zwei Gruende. Der eine ist die Sache: eine
-   Marke gehoert dem Projekt und nicht einer Funktion in app.js -- wer sie
-   austauscht, tauscht eine Datei aus und faesst keinen Quelltext an. Der
-   andere ist ein Fehler, den sie mitgeschleppt hat: die Klasse `mark` gibt es
-   in style.css ZWEIMAL -- einmal fuer die Marke und einmal fuer die kleinen
-   Knoepfe am Kommentar (Anpinnen, Bericht, Aufgabe). Die zweite Regel gab der
-   Marke einen Rahmen und einen runden Fuellgrund, den niemand gewollt hat.
-   SIE HEISST DESHALB JETZT `marke` und traegt nichts von der anderen mit.
+/* Die Marke der Anlage. EINE AUSGELIEFERTE DATEI statt eines eingebauten
+   SVG: eine Marke gehoert dem Projekt und nicht einer Funktion in app.js --
+   wer sie austauscht, tauscht eine Datei aus und fasst keinen Quelltext an.
+   Die Klasse heisst `marke` und nicht `mark`: `mark` gibt es in style.css
+   bereits fuer die kleinen Knoepfe am Kommentar.
 
-   GENOMMEN WIRD DIE DURCHSICHTIGE FASSUNG: die Flaechen, auf denen sie steht,
-   sind ohnehin dunkel, und eine mitgelieferte Kachel saesse dort als
-   sichtbares Rechteck darauf. Die zweite Datei, favicon.svg, bringt die
-   Kachel mit und ist fuer fremde Flaechen gedacht -- den Reiter des Browsers,
-   ein Lesezeichen, eine helle Seite. ZWEI DATEIEN, NICHT DREI: es lag
-   zeitweise noch eine marke-hell.svg daneben, Byte fuer Byte dieselbe wie
-   favicon.svg. Zwei Namen fuer dieselbe Datei sind eine Stelle, die
-   auseinanderlaeuft, sobald jemand einen der beiden anfasst.
+   GENOMMEN WIRD DIE DURCHSICHTIGE FASSUNG -- die Flaechen, auf denen sie
+   steht, sind ohnehin dunkel. favicon.svg bringt die Kachel mit und ist fuer
+   fremde Flaechen gedacht: Reiter, Lesezeichen, helle Seite. ZWEI DATEIEN,
+   NICHT DREI.
 
    alt="" UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem Namen
-   der Anlage. Ein Vorleseprogramm saegte ihn sonst zweimal.
+   der Anlage -- ein Vorleseprogramm saegte ihn sonst zweimal.
 
    DAS viewBox DER DURCHSICHTIGEN FASSUNG UMSCHLIESST DIE FARBE UND NICHT DIE
-   KACHEL: `6.5 4.5 19 23`. Gezeichnet wird von y=6 bis y=26, aber bei
-   stroke-width 3 und stroke-linecap round traegt die Farbe eine halbe
-   Strichbreite darueber hinaus -- von 4.5 bis 27.5. Ein quadratisches viewBox
-   0 0 32 32 liess davon nur 23 von 32 Einheiten sichtbar; die Datei zeichnete
-   also 72 Prozent dessen, was sie belegte, und stand neben dem Text zu tief.
-   MIT DIESEM viewBox IST DIE ANGEGEBENE HOEHE DIE GEZEICHNETE HOEHE.
-   favicon.svg behaelt dagegen 0 0 32 32 samt Kachel: ein Kachelsymbol braucht
-   seinen Rand, und 72 Prozent sind dort der uebliche Schutzbereich.
+   KACHEL (`6.5 4.5 19 23`): bei stroke-width 3 und stroke-linecap round
+   traegt die Farbe eine halbe Strichbreite ueber die Zeichnung hinaus. Damit
+   ist die angegebene Hoehe die gezeichnete Hoehe. favicon.svg behaelt
+   0 0 32 32 samt Kachel -- ein Kachelsymbol braucht seinen Rand.
 
-   DIE WIRKLICHE GROESSE STEHT IM CSS, IN rem, UND NICHT HIER. Die Anlage
-   stellt die Schrift von 80 bis 120 Prozent; eine in Pixel festgeschriebene
-   Marke passte nur bei 100 Prozent zum Text daneben. Die Attribute hier
-   halten das Seitenverhaeltnis 19:23 und bewahren den Platz, bis das
-   Stylesheet greift -- sie sind der Rueckfall, nicht das Mass. */
+   DIE WIRKLICHE GROESSE STEHT IM CSS, IN rem: die Anlage stellt die Schrift
+   von 80 bis 120 Prozent. Die Attribute hier halten nur das Seitenverhaeltnis
+   und den Platz, bis das Stylesheet greift. */
 const MARK = (s = 30) =>
   `<img class="marke" src="marke-dunkel.svg" width="${Math.round(s * 19 / 23)}" height="${s}" alt="">`;
 
 /* DIE MARKENZEILE DER ANMELDESEITEN: Marke UND Name in EINER Zeile, erst das
-   Zeichen, dann das Wort. Uebereinander gestapelt las sich das Paar als Bild
-   mit einer Ueberschrift darunter -- zwei Dinge. Nebeneinander ist es eines:
-   die Marke der Anlage, so wie sie in der Kopfzeile des angemeldeten
-   Bereichs auch schon steht (`.brand`, dieselbe Anordnung, dieselbe Luecke).
+   Zeichen, dann das Wort -- dieselbe Anordnung wie `.brand` in der Kopfzeile
+   des angemeldeten Bereichs. Uebereinander gestapelt las sich das Paar als
+   zwei Dinge; nebeneinander ist es eines.
 
-   SIE STEHT EINMAL HIER UND WIRD NEUNMAL GERUFEN. Die neun Anmeldeseiten --
-   Einrichtung, Anmeldung, Anfrage, Dank, Bestaetigung zweimal, Einladung
-   dreimal -- trugen dasselbe Paar neunmal ausgeschrieben. Wer die Anordnung
-   aendert, aendert seither eine Stelle und nicht neun (Stolperstein 145).
+   SIE STEHT EINMAL HIER UND WIRD NEUNMAL GERUFEN (Stolperstein 145).
 
-   SIE MISST SICH AM WORT UND NICHT AN DER LEEREN FLAECHE DARUEBER -- dieselbe
-   Regel wie in der Kopfzeile des angemeldeten Bereichs: so hoch wie der Text
-   daneben, gemessen an dessen Zeilenhoehe. Hier ist der Text EINE Zeile
-   (1,53 rem bei Zeilenhoehe 1,55, also 2,372 rem); in der Kopfzeile sind es
-   zwei. Die Zahl steht im CSS, damit sie der eingestellten Schriftgroesse
-   folgt; 36 hier ist der Platzhalter bis dahin. */
+   SIE MISST SICH AM WORT UND NICHT AN DER LEEREN FLAECHE DARUEBER: so hoch
+   wie der Text daneben, gemessen an dessen Zeilenhoehe. Die Zahl steht im
+   CSS, damit sie der eingestellten Schriftgroesse folgt; 36 hier ist der
+   Platzhalter bis dahin. */
 const MARKENZEILE = () =>
   `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
 
@@ -159,22 +139,19 @@ function stars(value, onPick, onReset) {
   return w;
 }
 
-// Mitwachsendes Textfeld. Die Hoehe folgt dem Inhalt, das Feld zeigt also
-// immer den ganzen Text. Der Rahmen muss dazugerechnet werden, weil
+// Mitwachsendes Textfeld. Der Rahmen muss dazugerechnet werden, weil
 // box-sizing global auf border-box steht -- sonst bliebe eine Scrollleiste von
 // zwei Pixeln stehen. Das Element muss im Dokument haengen, sonst ist
-// scrollHeight null. Gibt die Messfunktion zurueck, damit sie sich auch nach
-// einem Wechsel des Inhalts von aussen ausloesen laesst.
+// scrollHeight null. Gibt die Messfunktion zurueck.
 function autoGrow(el) {
   if (!el) return () => {};
   el.classList.add('ta-auto');
   const fit = () => {
     // Der Zwischenschritt height:auto laesst ein hohes Feld auf zwei Zeilen
-    // zusammenfallen. Die Seite wird dadurch kurz viel kuerzer, und der Browser
-    // zieht die Bildlaufposition auf das neue Ende nach -- gibt sie danach aber
-    // nicht von selbst zurueck. Ergebnis waere ein Sprung nach oben bei jedem
-    // Tastendruck. Deshalb Position merken und noch im selben Durchlauf
-    // zuruecksetzen, bevor der Browser zeichnet.
+    // zusammenfallen; der Browser zieht die Bildlaufposition auf das neue Ende
+    // nach und gibt sie nicht von selbst zurueck -- Ergebnis waere ein Sprung
+    // bei jedem Tastendruck. Deshalb Position merken und noch im selben
+    // Durchlauf zuruecksetzen.
     const seite = document.scrollingElement || document.documentElement;
     const vorher = seite ? seite.scrollTop : 0;
     el.style.height = 'auto';
@@ -246,7 +223,7 @@ function nameBox(title, text, vorgabe = '', okLabel = 'Speichern', maxLaenge = 4
 const BESTAETIGUNG_GRUND = 'Das trifft die Anlage als Ganzes. Damit eine fremde offene ' +
   'Anmeldung das nicht kann, bestätigst du es mit deinem Passwort.';
 
-/* SEIT 0.10.0 STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
+/* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
    zweiten Faktor eingeschaltet haben. Wer ihn nicht will, sieht denselben
    Dialog wie vor dieser Runde.
    DIE FRAGE, OB DAS FELD DASTEHT, KOMMT VOM SERVER (`zweifaktor` aus
@@ -294,7 +271,7 @@ const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
     ? ' Weil dein Zugang einen zweiten Faktor trägt, gehört der Code dazu — gerade hier hilft er am meisten.'
     : ''), ZWEIFAKTOR);
 
-/* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, seit 0.10.0.
+/* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, .
    ES HAT EINEN EIGENEN NAMEN UND KEINEN SCHALTER AN bestaetigungsFeld: dort
    haengt das Codefeld an ZWEIFAKTOR, hier am WEG. Beim Einschalten gibt es noch
    keinen Code zu fragen, beim Ausschalten gehoert er dazu -- und beide Male ist
@@ -403,7 +380,7 @@ function showLogin(errMsg) {
     <div class="field"><label for="lp">Passwort</label>
       <input class="input" id="lp" type="password" autocomplete="current-password"></div>
     <button class="btn btn-accent" id="lb">Anmelden</button>
-    ${/* DIE SELBSTANMELDUNG, seit 0.9.1 — und sie steht nur da, wenn der
+    ${/* DIE SELBSTANMELDUNG — sie steht nur da, wenn der
           Server sagt, dass sie an ist. Ein Formular, das ins Leere führt,
           wäre schlimmer als keines: der Anfragende bekäme dieselbe freundliche
           Antwort wie alle und wartete auf eine Mail, die nie kommt.
@@ -431,7 +408,7 @@ function showLogin(errMsg) {
         return;
       }
       const j = await res.json().catch(() => ({}));
-      /* DER ZWEITE SCHRITT, seit 0.10.0. Der Server hat KEINEN Cookie
+      /* DER ZWEITE SCHRITT, . Der Server hat KEINEN Cookie
          geschickt — es gibt noch keine Sitzung, und diese Seite hält auch
          keine halbe: sie hält nur den Ausweis, den sie gleich wieder
          hergibt. */
@@ -445,20 +422,16 @@ function showLogin(errMsg) {
   u.focus();
 }
 
-/* Der zweite Schritt der Anmeldung, seit 0.10.0.
+/* Der zweite Schritt der Anmeldung.
 
    ES IST EINE SEITE UND KEIN ZUSTAND. Der Ausweis liegt in einer Variablen
    dieser Funktion und sonst nirgends — nicht im Speicher des Browsers, nicht
-   in der Adresse. Wer neu lädt, steht wieder an der Anmeldung, und das ist
-   richtig so: der Ausweis gilt zwei Minuten und genau einmal.
+   in der Adresse. Wer neu lädt, steht wieder an der Anmeldung.
 
-   EIN FELD FÜR BEIDE FORMEN. Sechs Ziffern aus der App oder ein
-   Wiederherstellungscode — der Server sieht der Eingabe an, was gemeint ist,
-   und ein Umschalter daneben wäre eine Frage, die sich aus dem Getippten schon
-   beantwortet.
+   EIN FELD FÜR BEIDE FORMEN: sechs Ziffern aus der App oder ein
+   Wiederherstellungscode — der Server sieht der Eingabe an, was gemeint ist.
 
-   DIE ABSAGE KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN: sie ist EINE und
-   nennt nicht, ob der Code falsch oder abgelaufen war. */
+   DIE ABSAGE KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN. */
 function showZweiterFaktor(ausweis, errMsg) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
@@ -505,19 +478,15 @@ function showZweiterFaktor(ausweis, errMsg) {
   c.focus();
 }
 
-/* Die Selbstanmeldung: das Formular und die Antwort darauf, seit 0.9.1.
+/* Die Selbstanmeldung: das Formular und die Antwort darauf.
 
-   ZWEI FELDER UND KEIN PASSWORT. Wer einen Zugang will, gibt seinen Wunschnamen
-   und seine Adresse an — mehr weiß die Anlage zu diesem Zeitpunkt nicht von
-   ihm, und mehr braucht sie auch nicht: das Passwort wählt er später selbst
-   über den Einladungslink, und den bekommt er erst, wenn ein Admin ihn
+   ZWEI FELDER UND KEIN PASSWORT. Das Passwort wählt der Anfragende später
+   selbst über den Einladungslink, und den bekommt er erst, wenn ein Admin ihn
    hereingelassen hat.
 
-   DIE ANTWORT KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN. Sie sieht in
-   jeder Lage gleich aus — unbekannter Name, bekannter Name, bekannte Adresse,
-   Deckel erreicht, Schalter aus —, und diese Seite darf daraus keine zweite
-   Auskunft machen. Deshalb steht hier kein „Name bereits vergeben" und kein
-   Unterschied im Aussehen; die Meldung wird gezeigt, wie sie ankommt. */
+   DIE ANTWORT KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN: sie sieht in
+   jeder Lage gleich aus, und diese Seite darf daraus keine zweite Auskunft
+   machen — kein „Name bereits vergeben", kein Unterschied im Aussehen. */
 function showAnfrage(errMsg, werte = {}) {
   document.body.classList.add('anmeldung');
   document.documentElement.style.fontSize = '';
@@ -631,20 +600,16 @@ async function showBestaetigung(schluessel) {
 
 /* Der Link aus einer Einladung oder einer Rücksetzung.
 
-   EIN ZUSTAND DIESER SEITE, KEINE ZWEITE DATEI. Eine zweite ausgelieferte
+   EIN ZUSTAND DIESER SEITE, KEINE ZWEITE DATEI: eine zweite ausgelieferte
    Seite hieße eine zweite Stelle für Kopfzeilen, für die
-   Content-Security-Policy und für die Sicherheitsregel der ausgelieferten
-   Dateien — drei Stellen, an denen etwas auseinanderlaufen kann, für ein
-   Formular mit zwei Feldern.
+   Content-Security-Policy und für die Sicherheitsregel.
 
    DER SCHLÜSSEL STEHT IM FRAGMENT DER ADRESSE (#/einladung/…), und das ist
-   der Grund für diese Bauform: ein Fragment geht nie an den Server. Es steht
-   damit in keinem Zugriffsprotokoll und in keinem Referrer. Der Browser
-   schickt es von hier aus im Rumpf.
+   der Grund für diese Bauform: ein Fragment geht nie an den Server und steht
+   damit in keinem Zugriffsprotokoll und in keinem Referrer.
 
-   DER NAME KOMMT ERST VOM SERVER, wenn der Link trägt. Vorher steht auf
-   dieser Seite nichts über den Zugang — sonst verriete ein geratener Link
-   einen Benutzernamen. */
+   DER NAME KOMMT ERST VOM SERVER, wenn der Link trägt — sonst verriete ein
+   geratener Link einen Benutzernamen. */
 async function showEinladung(schluessel) {
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
@@ -663,21 +628,16 @@ async function showEinladung(schluessel) {
       body: JSON.stringify({ token: schluessel })
     });
     stand = await res.json().catch(() => ({}));
-    /* EINE VORÜBERGEHENDE ABSAGE DARF DEN SCHLÜSSEL NICHT WEGWERFEN, und das
-       ist ein Befund aus dem Betrieb, kein Vorsichtsmaß: bis 0.8.91 leerte
-       JEDES `!res.ok` die Adresse — auch die 429 der Anmeldebremse. Wer sich
-       vorher ein paarmal beim Anmelden vertippt hatte und danach seinen
-       GÜLTIGEN Einladungslink anklickte, sah eine Fehlermeldung, lud neu und
-       stand auf der Anmeldeseite: der Link war nie tot, die Adresse war weg.
-       Nachgestellt an einem echten Server; der Link galt danach unverändert
-       weiter.
+    /* EINE VORÜBERGEHENDE ABSAGE DARF DEN SCHLÜSSEL NICHT WEGWERFEN. Leerte
+       JEDES `!res.ok` die Adresse, träfe es auch die 429 der Anmeldebremse:
+       wer sich vorher beim Anmelden vertippt hat und danach seinen GÜLTIGEN
+       Einladungslink anklickt, sähe eine Fehlermeldung, lüde neu und stünde
+       auf der Anmeldeseite -- der Link war nie tot, die Adresse war weg.
        DESHALB WIRD NUR BEI DER ENDGÜLTIGEN ABSAGE GELEERT. Bei allem anderen
-       — Bremse, Serverfehler, kein Netz — bleibt der Schlüssel in der Adresse
-       stehen, und die Seite bietet an, es noch einmal zu versuchen. Neuladen
-       trägt dann ebenfalls wieder.
-       400 IST DIE ENDGÜLTIGE: es ist die EINE Absage aus 0.8.80 — abgelaufen,
-       verbraucht, erfunden, Zugang gesperrt, Frist verstrichen. In all diesen
-       Fällen hilft nur ein neuer Link. */
+       -- Bremse, Serverfehler, kein Netz -- bleibt der Schlüssel in der
+       Adresse stehen.
+       400 IST DIE ENDGÜLTIGE: die EINE Absage für abgelaufen, verbraucht,
+       erfunden, Zugang gesperrt, Frist verstrichen. */
     if (res.status === 400) {
       location.hash = '#/';
       return showLogin(stand.error || 'Dieser Link gilt nicht mehr.');
@@ -745,7 +705,7 @@ async function showEinladung(schluessel) {
           return zeichne(j.error || 'Das Passwort konnte nicht gesetzt werden.');
         }
         const j = await res.json().catch(() => ({}));
-        /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT, seit 0.10.0 — sonst wäre
+        /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT, — sonst wäre
            der Rücksetzlink der Weg daran vorbei. Das Passwort IST gesetzt und
            der Link verbraucht; was noch aussteht, ist die Anmeldung. Deshalb
            wird die Adresse auch hier geleert. */
@@ -804,22 +764,18 @@ function ordneBloecke() {
 }
 
 /* Die Zahlen am Kommentarblock. GEBILDET AN EINEM ORT: derselbe Satz steht
-   aufgeklappt wie eingeklappt in der Kopfzeile, und zwei Bildungen liefen
-   frueher oder spaeter auseinander.
+   aufgeklappt wie eingeklappt in der Kopfzeile.
 
        12 Kommentare, davon 3 Berichte und 5 Aufgaben (2 Erledigt)
 
    DAVON, nicht Mittelpunkte: die Zahlen dahinter sind TEILMENGEN, keine
-   Summanden -- addiert ergaeben sie mehr Kommentare, als es gibt. Die Klammer
-   nistet die zweite Ebene ein: das Erledigte steckt IN den Aufgaben, sonst
-   schrumpfte die Zahl beim Abhaken.
-   Eine Gruppe mit null verschwindet ganz ("davon 0 Berichte" ist keine
-   Auskunft), ohne Erledigte faellt die Klammer weg, und ohne Kommentare bleibt
-   der Hinweis ganz leer -- wie bei den Links.
-   DIE NOTIZ BLEIBT UNGENANNT: sie ist der Zustand ohne Markierung und hat
-   weder eigenes Wort noch Knopf noch Kante; wer rechnen will, kommt selbst auf
-   sie. DIE ANPINNUNG STEHT NICHT IN DER ZEILE: sie ist die zweite,
-   unabhaengige Achse, und zwei Achsen in einer Zeile sind nicht mehr lesbar.
+   Summanden. Die Klammer nistet die zweite Ebene ein -- das Erledigte steckt
+   IN den Aufgaben, sonst schrumpfte die Zahl beim Abhaken.
+   Eine Gruppe mit null verschwindet ganz, ohne Erledigte faellt die Klammer
+   weg, und ohne Kommentare bleibt der Hinweis leer.
+   DIE NOTIZ BLEIBT UNGENANNT: sie ist der Zustand ohne Markierung.
+   DIE ANPINNUNG STEHT NICHT IN DER ZEILE: sie ist die zweite, unabhaengige
+   Achse, und zwei Achsen in einer Zeile sind nicht mehr lesbar.
    "Kommentar" ist eine FESTE Beschriftung und kein zwoelftes Vokabelwort --
    anders als Sache und Zeitpunkt verschiebt es sich nicht mit dem Gegenstand. */
 function kommentarZahlen(kommentare) {
@@ -997,13 +953,11 @@ function begrenzeWolke(box, zeilen) {
   const erste = box.firstElementChild;
   if (!erste) return false;
   const hoehe = erste.offsetHeight || 0;
-  // EIN EINGEKLAPPTER BLOCK MISST NULL. Seine Kinder stehen auf
-  // display: none, und aus der Hoehe 0 entstuende eine winzige feste
-  // maxHeight, die nach dem Aufklappen stehenbliebe -- die Wolke ginge nur
-  // halb auf. Also gar nichts setzen und Vorhandenes wegnehmen.
-  // ZWEITER WEG NOETIG: das Aufklappen zeichnet die Wolke neu
-  // (ruesteBloeckeAus). Dieser Weg haelt die falsche Hoehe fern, jener holt
-  // die richtige nach; einer allein laesst je einen Fall stehen.
+  // EIN EINGEKLAPPTER BLOCK MISST NULL: seine Kinder stehen auf
+  // display: none, und aus der Hoehe 0 entstuende eine feste maxHeight, die
+  // nach dem Aufklappen stehenbliebe. Also gar nichts setzen.
+  // ZWEITER WEG NOETIG: das Aufklappen zeichnet die Wolke neu -- dieser Weg
+  // haelt die falsche Hoehe fern, jener holt die richtige nach.
   if (!hoehe) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
   box.style.maxHeight = (zeilen * hoehe + (zeilen - 1) * WOLKE_LUECKE) + 'px';
   box.style.overflow = 'hidden';
@@ -1016,21 +970,16 @@ function begrenzeWolke(box, zeilen) {
 const wolkeOffen = { uebersicht: false, detail: false };
 
 // Wer die Wolke der Detailansicht neu zeichnen kann. Sie laesst sich nur
-// messen, wenn ihr Block offen ist -- klappt er auf, muss sie noch einmal
-// gezeichnet werden, und das kann nur die Detailansicht selbst.
-// Modulweit statt als Ereignis am Dokument: ein Behandler am bleibenden
-// Dokument ueberlebte jeden Neuaufbau und muesste von Hand abgeraeumt werden.
-// Geleert wird in route(), gesetzt in renderDetail() -- so zeigt sie nie auf
-// eine Ansicht, die es nicht mehr gibt.
+// messen, wenn ihr Block offen ist. Modulweit statt als Ereignis am Dokument:
+// ein Behandler am bleibenden Dokument ueberlebte jeden Neuaufbau. Geleert in
+// route(), gesetzt in renderDetail().
 let wolkeNeuzeichnen = null;
 
 /* ================= Vokabular und Darstellung ================= */
 // Die Oberflaeche benennt sich um, die Daten nicht. Alle Texte sind so
 // geschrieben, dass weder Beiwort noch Fall vorkommt -- sonst muesste man das
-// Geschlecht des eingetragenen Wortes kennen. Merksatz fuer spaetere Texte:
-// Plural im Nominativ und Akkusativ ist immer sicher ("die X"), Dativ Plural
-// haengt ein -n an ("bei allen Objekten") und Singular zieht Artikel nach sich.
-// Beides deshalb meiden.
+// Geschlecht des eingetragenen Wortes kennen. Merksatz: Plural im Nominativ
+// und Akkusativ ist immer sicher; Dativ Plural und Singular meiden.
 let V = {
   sacheEinzahl: 'Eintrag', sacheMehrzahl: 'Einträge',
   merkmalJa: 'Getestet', merkmalNein: 'Ungetestet',
@@ -1041,9 +990,7 @@ let V = {
 };
 
 // Weiterschaltung des Aufgabenknopfes: Notiz -> Aufgabe -> erledigt -> Notiz.
-// Eine Abfolge, kein Entweder-oder -- deshalb ein Knopf statt dreier. Der
-// Berichtsknopf bleibt daneben ein gewoehnlicher Umschalter. Aus einem Bericht
-// wird beim Druck eine Aufgabe, nicht gleich ein erledigtes Todo.
+// Eine Abfolge, kein Entweder-oder -- deshalb ein Knopf statt dreier.
 // Funktionsdeklaration, nicht const: sonst haengt sie nicht am window und der
 // Pruefstand kaeme nicht heran.
 function aufgabeWeiter(art) {
@@ -1137,21 +1084,16 @@ const sucheAdresse = (vorlage, text) => vorlage.replace('%s', encodeURIComponent
 
 /* ================= Links im Kommentartext ================= */
 // Erkennung und Knotenbau sind getrennt, und das mit Absicht: Schranke 2 kann
-// nicht anschlagen, solange Schranke 1 richtig ist -- die beiden verdecken
-// einander vollstaendig. Nur weil der Knotenbauer einzeln
-// aufrufbar ist, laesst sich ihm im Pruefstand unmittelbar ein javascript:
-// vorlegen und die zweite Schranke ueberhaupt gegenpruefen. Beides sind
-// Funktionsdeklarationen und haengen deshalb am window.
+// nicht anschlagen, solange Schranke 1 richtig ist. Nur weil der Knotenbauer
+// einzeln aufrufbar ist, laesst sich ihm im Pruefstand ein javascript:
+// vorlegen und die zweite Schranke ueberhaupt gegenpruefen.
 
 // Schranke 1. Nur ausdruecklich Geschriebenes gilt: http://, https:// und
-// www. ohne Schema. Ein blankes beispiel.de ausdruecklich nicht -- anders als
-// in der Linkliste, wo ein Wort zur Suche wird. Deutscher Fliesstext ist voll
-// von "z.B." und "usw.", jede Endungsregel produziert dort Fehltreffer.
-// javascript: kann hier gar nicht erst passen.
-// Der Anfang wird mitgefangen -- weiter unten wird nur noch gefragt, ob nach
-// ihm ueberhaupt etwas stehen blieb, nicht noch einmal, ob er erlaubt ist.
-// Sonst staende die Schemaentscheidung an zwei Stellen und Schranke 1 wuerde
-// sich in der Gegenprobe selbst verdecken.
+// www. ohne Schema. Ein blankes beispiel.de ausdruecklich nicht -- deutscher
+// Fliesstext ist voll von "z.B." und "usw.", jede Endungsregel produziert dort
+// Fehltreffer. javascript: kann hier gar nicht erst passen.
+// Der Anfang wird mitgefangen: weiter unten wird nur noch gefragt, ob nach ihm
+// etwas stehen blieb -- sonst staende die Schemaentscheidung an zwei Stellen.
 const KOMMENTAR_LINK = /(https?:\/\/|www\.)\S+/gi;
 
 // Nachlaufende Satzzeichen gehoeren nicht zur Adresse. Bei Klammern mit
@@ -1231,17 +1173,15 @@ function wendeSchriftAn() {
 }
 
 /* ================= Zustand ================= */
-/* DIE VORGABESTELLUNG DER FILTER STEHT GENAU EINMAL. Sie stand bis 0.10.0 an
-   zwei Stellen -- hier und in loadAll() --, und seit es gespeicherte Ansichten
-   gibt, waere sie an drei gestanden. Drei Abschriften derselben Vorgabe laufen
-   auseinander, sobald jemand einen Filter ergaenzt. */
+/* DIE VORGABESTELLUNG DER FILTER STEHT GENAU EINMAL -- sonst laufen die
+   Abschriften auseinander, sobald jemand einen Filter ergaenzt. */
 const FILTER_VORGABE = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'all',
                          favorit: false, neu: false, sort: 'updated_desc' };
 const state = {
   items: [], categories: [], tags: [], criteria: [],
   filters: { ...FILTER_VORGABE },
   search: '', compare: new Set(),
-  /* SEIT 0.11.0 SUCHT DER SERVER, und daraus folgen vier Felder.
+  /* SUCHT DER SERVER, und daraus folgen vier Felder.
      `alle` ist der ungefilterte Bestand aus dem letzten loadAll(). Er bleibt
      liegen, damit das LEEREN der Suche keine Anfrage kostet -- ohne ihn waere
      die haeufigste Handhabung der Suche (tippen, wieder loeschen) die
@@ -1260,13 +1200,10 @@ const state = {
 let EINSTELLUNGEN = null;
 
 // Abgeleitet, nicht eingestellt. BENUTZER_ZAHL entscheidet, ob die
-// Durchschnittsspalte ueberhaupt erscheint -- bei genau einem Zugang sagt
-// "3,4 · 1" nichts und bleibt weg. ADMIN steuert die Kriterienkarte im
-// Systembereich.
-// EIGENTUEMER steuert, was in der Karte "Zugaenge"
-// bedienbar ist -- Rollen vergeben und der Zugriff auf andere Admins. Der
-// Server verweigert beides ohnehin; das Feld erspart der Oberflaeche eine
-// zweite Wahrheit darueber, wem die Anlage gehoert.
+// Durchschnittsspalte ueberhaupt erscheint; ADMIN steuert die Kriterienkarte,
+// EIGENTUEMER, was in der Karte "Zugaenge" bedienbar ist. Der Server
+// verweigert beides ohnehin -- die Felder ersparen der Oberflaeche eine zweite
+// Wahrheit darueber, wem die Anlage gehoert.
 let BENUTZER_ZAHL = 1;
 let ADMIN = true;
 let EIGENTUEMER = true;
@@ -1297,7 +1234,7 @@ let ZULETZT_GESEHEN = null;
    und Wolke bleiben, denn zuweisen darf immer jeder. */
 let TAGS_FREI = true;
 let KATEGORIEN_FREI = true;
-/* Ob DIESER Zugang einen zweiten Faktor traegt, seit 0.10.0. KOMMT VOM SERVER
+/* Ob DIESER Zugang einen zweiten Faktor traegt, . KOMMT VOM SERVER
    und wird hier nie geraten: die Oberflaeche entscheidet damit nur, ob das
    Bestaetigungsfenster ein zweites Feld zeigt. Wer den Wert von Hand auf false
    setzt, bekommt ein Fenster ohne Codefeld -- und der Server weist die
@@ -1309,7 +1246,7 @@ let ZWEIFAKTOR = false;
    hier ist kein zweiter Wert, sondern der Rückfall für eine Antwort, die das
    Feld nicht kennt. */
 let PAPIERKORB_TAGE = 30;
-/* DIE GESPEICHERTEN ANSICHTEN, seit 0.11.0. Persoenlich, wie die eine gemerkte
+/* DIE GESPEICHERTEN ANSICHTEN, . Persoenlich, wie die eine gemerkte
    Filterstellung daneben -- und sie ERSETZEN diese nicht: `filters` bleibt die
    zuletzt benutzte Stellung und wird weiter bei jeder Aenderung
    ueberschrieben. Eine Ansicht wird nur auf Zuruf angewandt.
@@ -1383,22 +1320,18 @@ async function loadAll() {
 }
 
 /* EINE GESPEICHERTE FILTERSTELLUNG WIRD BEIM ANWENDEN ZURECHTGERUECKT, nicht
-   beim Speichern. Sie kommt aus zwei Quellen -- der einen gemerkten Stellung
-   und einer gespeicherten Ansicht -- und beide gehen durch DIESEN Weg; zwei
-   Wege waeren zwei Auslegungen desselben JSON.
+   beim Speichern. Sie kommt aus zwei Quellen -- der gemerkten Stellung und
+   einer gespeicherten Ansicht -- und beide gehen durch DIESEN Weg.
 
-   ERSTENS DIE FEHLENDEN FELDER. Eine Stellung aus einer aelteren Fassung kennt
-   `tagMode`, `favorit` oder `neu` nicht. Das Ausbreiten setzt ein fehlendes
-   Feld NICHT auf die Vorgabe zurueck, es laesst es weg -- und `undefined`
-   waere zwar falsch genug fuer den Filter, aber der Knopf zeichnete sich
-   daraus nicht sauber.
+   ERSTENS DIE FEHLENDEN FELDER: das Ausbreiten setzt ein fehlendes Feld nicht
+   auf die Vorgabe zurueck, es laesst es weg -- und `undefined` zeichnete den
+   Knopf nicht sauber.
 
-   ZWEITENS DIE NUMMERN, DIE ES NICHT MEHR GIBT. JSON kennt keine Kaskade: wird
-   eine Kategorie oder ein Tag geloescht, bleibt die Nummer in der gespeicherten
-   Stellung stehen. Ungeprueft filterte sie danach auf etwas, das niemand mehr
-   hat -- die Liste waere leer, und nichts sagte warum. Sie wird deshalb
-   uebergangen. UEBERGANGEN, NICHT ZURUECKGESCHRIEBEN: der gespeicherte Wert
-   bleibt, wie er ist. Ein Lesevorgang, der die Ansicht eines Menschen
+   ZWEITENS DIE NUMMERN, DIE ES NICHT MEHR GIBT. JSON kennt keine Kaskade:
+   eine geloeschte Kategorie bleibt als Nummer stehen und filterte danach auf
+   etwas, das niemand mehr hat -- die Liste waere leer, und nichts sagte
+   warum. UEBERGANGEN, NICHT ZURUECKGESCHRIEBEN: der gespeicherte Wert bleibt,
+   wie er ist. Ein Lesevorgang, der die Ansicht eines Menschen
    umschreibt, ist schlimmer als eine Nummer, die ins Leere zeigt. */
 function filterNormal(roh) {
   const f = { ...FILTER_VORGABE, ...(roh && typeof roh === 'object' ? roh : {}) };
@@ -1411,10 +1344,7 @@ function filterNormal(roh) {
 }
 
 /* ================= Die Suche fragt den Server =================
-   BIS 0.10.0 LIEF SIE IM ARBEITSSPEICHER DES BROWSERS: der Server schickte je
-   Eintrag ein Feld `searchText`, und ein filter() darauf war augenblicklich.
-   Das Feld war 73 Prozent der Antwort. Seit 0.11.0 sucht der Server, und
-   damit ist jeder Tastendruck eine Anfrage ueber das Netz. Drei Vorkehrungen
+   JEDER TASTENDRUCK IST EINE ANFRAGE UEBER DAS NETZ. Drei Vorkehrungen
    gehoeren dazu, und alle drei sind gebaut und nicht gehofft.
 
    ERSTENS DER DEBOUNCE: 220 ms, ab dem ERSTEN Zeichen. Eine Mindestzahl an
@@ -1481,20 +1411,15 @@ async function sucheAusfuehren() {
 
 /* ================= Die gespeicherten Ansichten =================
    EINE ANSICHT IST EINE FILTERSTELLUNG SAMT SUCHBEGRIFF, unter einem Namen.
-   Der Begriff gehoert dazu: eine Ansicht "Bosch, ungetestet" ist ohne ihn die
-   halbe Ansicht, und wer sie anklickt, erwartet das, was er beim Speichern vor
-   sich hatte.
+   Der Begriff gehoert dazu -- eine Ansicht "Bosch, ungetestet" ist ohne ihn
+   die halbe Ansicht.
 
-   SIE STEHEN IN DER FILTERZEILE UND NICHT IN EINER EIGENEN KARTE. Wer eine
-   Ansicht sucht, sucht sie dort, wo die Filter stehen -- eine Karte im
-   Systembereich waere der Ort fuer Einstellungen, und eine Ansicht ist keine.
+   SIE STEHEN IN DER FILTERZEILE UND NICHT IN EINER EIGENEN KARTE: wer eine
+   Ansicht sucht, sucht sie dort, wo die Filter stehen.
 
-   PERSOENLICH. Sie gehen ueber PUT /api/settings wie `filters`, und der Server
-   legt sie unter einem persoenlichen Schluessel ab; ein anderer Zugang sieht
-   sie nicht.
-
-   DIE GANZE LISTE WIRD GESCHICKT, nicht ein einzelner Eintrag: es ist ein
-   Schluessel mit einem Wert. */
+   PERSOENLICH, ueber PUT /api/settings wie `filters`. DIE GANZE LISTE WIRD
+   GESCHICKT, nicht ein einzelner Eintrag -- es ist ein Schluessel mit einem
+   Wert. */
 
 // Was gerade eingestellt ist, als Ansicht -- ohne den Namen, der kommt vom
 // Menschen.
@@ -1607,21 +1532,17 @@ function visibleItems(filter) {
      es keinen Bezugspunkt, und ein Filter, der dann alles zeigt, erklaert
      sich nicht -- die Filterzeile bietet ihn dort auch nicht an. */
   if (f.neu && ZULETZT_GESEHEN) out = out.filter(i => i.updated_at > ZULETZT_GESEHEN);
-  /* HIER STAND BIS 0.10.0 DIE SUCHE: ein filter() ueber das Feld searchText,
-     das der Server je Eintrag mitschickte. Das Feld war 73 Prozent der
-     Antwort. Gesucht wird jetzt ueber GET /api/items?q=..., und `state.items`
-     traegt bereits nur noch die Treffer -- eine zweite Suche hier waere eine
-     zweite Wahrheit ueber dieselbe Menge, und sie liefe auf einem Feld, das
-     es nicht mehr gibt. Die uebrigen Filter bleiben oertlich: sie rechnen mit
-     Feldern, die die Antwort ohnehin traegt, und kosten keine Anfrage. */
+  /* HIER WIRD NICHT GESUCHT: das macht GET /api/items?q=..., und
+     `state.items` traegt bereits nur noch die Treffer. Eine zweite Suche hier
+     waere eine zweite Wahrheit ueber dieselbe Menge. Die uebrigen Filter
+     bleiben oertlich -- sie rechnen mit Feldern, die die Antwort ohnehin
+     traegt, und kosten keine Anfrage. */
 
   out = [...out].sort((a, b) => {
-    // HIER STEHT BEWUSST KEINE Vorsortierung der Favoriten
-    // (kein `if (a.favorite !== b.favorite) ...` vor dem switch):
-    // sie schluege jede eingestellte Sortierung -- ein Favorit ohne Wertung
-    // stuende bei "Bewertung hoch nach niedrig" ganz oben, obwohl er dort ans
-    // Ende gehoert. Ein Favorit ist persoenlich und darf die gemeinsame Liste
-    // nicht umsortieren. Wer seine Favoriten sammeln will, nimmt den Filter.
+    // HIER STEHT BEWUSST KEINE Vorsortierung der Favoriten: sie schluege jede
+    // eingestellte Sortierung -- ein Favorit ohne Wertung stuende bei
+    // "Bewertung hoch nach niedrig" ganz oben. Ein Favorit ist persoenlich und
+    // darf die gemeinsame Liste nicht umsortieren.
     switch (f.sort) {
       case 'updated_asc': return a.updated_at.localeCompare(b.updated_at);
       case 'rating_desc': return (b.avgRating ?? -1) - (a.avgRating ?? -1);
@@ -1766,12 +1687,9 @@ function drawFilters() {
     b.onclick = () => { f.tested = v; redraw(); };
     g1.appendChild(b);
   });
-  // Eigener Umschalter, kein vierter Wert der Reihe davor. Die drei oben sind
-  // drei Zustaende EINES Merkmals -- genau einer gilt. Der Favorit ist davon
-  // unabhaengig und muss sich mit jedem von ihnen kombinieren lassen; als
-  // vierter Knopf ginge das nicht, ohne den Teststatus aufzugeben.
-  // Die Klasse `pill-sep` setzt ihn optisch ab, damit die Trennung sichtbar
-  // ist und niemand ihn fuer den vierten Zustand haelt.
+  // Eigener Umschalter, kein vierter Wert der Reihe davor: die drei oben sind
+  // drei Zustaende EINES Merkmals, der Favorit ist davon unabhaengig und muss
+  // sich mit jedem kombinieren lassen. `pill-sep` setzt ihn optisch ab.
   const bFav = document.createElement('button');
   bFav.className = 'pill pill-sep' + (f.favorit ? ' on' : '');
   bFav.id = 'f-fav';
@@ -1828,11 +1746,9 @@ function drawFilters() {
   // trotzdem.
   const r3 = row('Tags');
 
-  // Umschalter der Verknuepfung, direkt neben der Beschriftung. Er macht
-  // sichtbar, warum ein zweiter Tag das Ergebnis verkleinert statt es zu
-  // erweitern -- ohne ihn waere ein leeres Ergebnis raetselhaft. Gedaempft,
-  // solange weniger als zwei Tags gewaehlt sind: dann bewirkt er nichts, soll
-  // aber auffindbar bleiben, bevor man ihn braucht.
+  // Umschalter der Verknuepfung, direkt neben der Beschriftung: er macht
+  // sichtbar, warum ein zweiter Tag das Ergebnis verkleinert. Gedaempft,
+  // solange weniger als zwei Tags gewaehlt sind.
   const modusBox = document.createElement('div');
   modusBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' ruht');
   [['and', 'Und', 'Nur Einträge, die alle gewählten Tags tragen'],
@@ -2185,30 +2101,22 @@ function drawCompareBar() {
 }
 
 /* ================= Doppelte Eintraege beim Anlegen =================
-   BEI EINEM ZUGANG WEISS MAN, WAS MAN EINGETRAGEN HAT. Bei vier Zugaengen und
-   dreihundert Eintraegen legt der zweite Mensch dieselbe Maschine ein zweites
-   Mal an -- und dann stehen die Bewertungen an zwei Stellen. Eine Sache, zwei
-   Wahrheiten.
+   Bei vier Zugaengen und dreihundert Eintraegen legt der zweite Mensch
+   dieselbe Maschine ein zweites Mal an -- eine Sache, zwei Wahrheiten.
 
-   EINE ZEILE, KEIN DIALOG. Sie blockiert nichts, fragt nichts nach und
-   verlangt keine Entscheidung: wer denselben Gegenstand wirklich zweimal
-   anlegen will, tut es. Sie sagt nur, was schon da ist, mit Sprungmarken
-   dorthin.
+   EINE ZEILE, KEIN DIALOG. Sie blockiert nichts und verlangt keine
+   Entscheidung: sie sagt nur, was schon da ist, mit Sprungmarken dorthin.
 
-   KEINE ROUTE. Die Titel des ganzen Bestands liegen ohnehin im Browser
-   (state.alle) -- eine Anfrage dafuer waere eine Anfrage fuer eine Antwort,
-   die man schon hat.
-   GEFRAGT WIRD state.alle UND NICHT state.items: waehrend einer Suche traegt
-   `items` nur die Treffer, und dann fiele der Doppeleintrag genau dann nicht
-   auf, wenn man ihn beim Suchen nicht gefunden hat.
+   KEINE ROUTE: die Titel des ganzen Bestands liegen ohnehin im Browser.
+   GEFRAGT WIRD state.alle UND NICHT state.items -- waehrend einer Suche
+   traegt `items` nur die Treffer, und dann fiele der Doppeleintrag genau dann
+   nicht auf, wenn man ihn beim Suchen nicht gefunden hat.
 
-   VERGLICHEN WIRD UEBER VIERERGRUPPEN. Zwei Titel gelten als aehnlich, wenn
-   sie eine Folge von vier Zeichen teilen -- Gross- und Kleinschreibung und
-   alle Sonderzeichen vorher weggeraeumt. Vier, weil "GSR" und "18V" allein zu
-   viel faenden und weil jede laengere gemeinsame Folge eine Vierergruppe
-   enthaelt: die kurze Pruefung findet damit auch die lange.
-   TRIGRAMME ODER LEVENSHTEIN BRAUCHT ES NICHT. Titel sind kurz, und Menschen
-   tippen denselben Gegenstand aehnlich. */
+   VERGLICHEN WIRD UEBER VIERERGRUPPEN: zwei Titel gelten als aehnlich, wenn
+   sie eine Folge von vier Zeichen teilen -- Schreibung und Sonderzeichen
+   vorher weggeraeumt. Vier, weil "GSR" und "18V" allein zu viel faenden und
+   weil jede laengere gemeinsame Folge eine Vierergruppe enthaelt.
+   TRIGRAMME ODER LEVENSHTEIN BRAUCHT ES NICHT: Titel sind kurz. */
 const AEHNLICH_FENSTER = 4;
 const AEHNLICH_ZEIGE = 5;
 
@@ -2274,19 +2182,16 @@ function openCreate() {
 }
 
 /* ================= Offene Aufgaben quer über alle Einträge ================= */
-/* Aufgabenkommentare gibt es seit langem, samt Farbkante und Weiterschaltknopf
-   -- sichtbar waren sie aber nur, wenn man ihren Eintrag öffnet. Diese Ansicht
-   macht vorhandene Funktionalität erreichbar; sie kann nichts, was der
-   Kommentarblock nicht auch könnte.
+/* Diese Ansicht macht vorhandene Funktionalität erreichbar: Aufgaben samt
+   Farbkante und Weiterschaltknopf gibt es im Kommentarblock, sichtbar waren
+   sie aber nur im geöffneten Eintrag.
 
    SIE LIEST, SIE ORDNET NICHT UM. Die Reihenfolge kommt vom Server und ist
-   dieselbe wie in der Übersicht: updated_at des Eintrags absteigend, innerhalb
-   des Eintrags die älteste Aufgabe oben.
+   dieselbe wie in der Übersicht.
 
-   DIE ÜBERSCHRIFT KOMMT AUS DEM VOKABULAR. Wer seine Aufgaben „Mängel" nennt,
-   liest hier „Offene Mängel" -- eine Ansicht, die daneben „Aufgaben" schriebe,
-   wäre falsch beschriftet. Deshalb steht in dieser Funktion kein einziges der
-   elf einstellbaren Wörter fest. */
+   DIE ÜBERSCHRIFT KOMMT AUS DEM VOKABULAR: wer seine Aufgaben „Mängel" nennt,
+   liest hier „Offene Mängel". Deshalb steht in dieser Funktion kein einziges
+   der elf einstellbaren Wörter fest. */
 async function renderOffen() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
   let zeilen;
@@ -2476,16 +2381,12 @@ async function renderCompare() {
      Nur Werte ueber null zaehlen, wie ueberall: eine zurueckgesetzte Bewertung
      hinterlaesst eine Zeile mit 0, und die ist keine Stimme.
      DIESELBE FORMEL WIE gesamtSchnitt() IM SERVER, auf die eigene Menge
-     angewandt: gewichteter Mittelwert, Nenner nur ueber die Kriterien, die ICH
-     bewertet habe. Bliebe diese Stelle ungewichtet, zeigte der Umschalter
-     "meine / alle" zwei Zahlen nach zwei verschiedenen Formeln -- und niemand
-     koennte sagen, ob ein Unterschied von der anderen Bewertermenge kommt oder
-     von der fehlenden Gewichtung. Genau die zweite Wahrheit, die der Absatz
-     darueber vermeiden will.
-     Ein Kriterium ohne eigenen Wert bringt sein Gewicht NICHT in den Nenner --
-     dieselbe Falle wie im Server, hier bezogen auf "von mir bewertet" statt
-     auf "von irgendwem bewertet". Sonst laege die eigene Zahl unter der ueber
-     alle, ohne dass es an den Werten laege.
+     angewandt: gewichteter Mittelwert, Nenner nur ueber die Kriterien, die
+     ICH bewertet habe. Ungewichtet zeigte der Umschalter "meine / alle" zwei
+     Zahlen nach zwei verschiedenen Formeln.
+     Ein Kriterium ohne eigenen Wert bringt sein Gewicht NICHT in den Nenner
+     -- sonst laege die eigene Zahl unter der ueber alle, ohne dass es an den
+     Werten laege.
      ES SIND UND BLEIBEN GENAU ZWEI RECHENSTELLEN. Die Kachel der Uebersicht
      liest avgRating vom Server, und dabei bleibt es. */
   const eigenerSchnitt = (it) => {
@@ -2595,10 +2496,9 @@ function dauerText(s) {
   return `${Math.floor(n / 60)}:${String(Math.floor(n % 60)).padStart(2, '0')}`;
 }
 
-// Nach dem Zoom steht der Bildlauf auf 0/0 -- man sieht die linke obere Ecke
-// des Originals statt der Stelle, die man eben noch betrachtet hat. Erwartet
-// wird die Mitte. Eigene Funktionsdeklaration, weil der Pruefstand keine
-// Massen kennt (jsdom rechnet kein Layout) und ihr die Zahlen deshalb
+// Nach dem Zoom steht der Bildlauf auf 0/0 -- man saehe die linke obere Ecke
+// statt der Stelle, die man eben betrachtet hat. Eigene Funktionsdeklaration,
+// weil jsdom kein Layout rechnet und der Pruefstand ihr die Zahlen deshalb
 // unmittelbar vorlegen muss.
 function zentriereBuehne(buehne) {
   if (!buehne) return;
@@ -2742,12 +2642,10 @@ function openLightbox(photos, startIdx, title) {
 /* ================= Ziehen zum Umsortieren ================= */
 // Ein Aufruf fuer Vorschaubilder und Linkzeilen. Pointer-Events statt der
 // HTML5-Ziehschnittstelle, damit es auch mit dem Finger funktioniert.
-// handle: Ziehen beginnt nur an diesem Teil. Ohne Angabe zieht das ganze
-// Element, wie bisher bei Fotos, Links und Kriterien.
-// Halten, bevor auf dem Finger gezogen wird. Ohne das ist jede Wischbewegung
-// ueber einer Liste ein Umsortieren -- man kann dann nicht mehr scrollen und
-// muss eine freie Stelle suchen. Mit der Maus bleibt es bei der Schwelle von
-// wenigen Pixeln, dort gibt es kein Scrollen mit demselben Zeiger.
+// handle: Ziehen beginnt nur an diesem Teil.
+// Halten, bevor auf dem Finger gezogen wird -- ohne das ist jede Wischbewegung
+// ueber einer Liste ein Umsortieren. Mit der Maus bleibt es bei der Schwelle
+// von wenigen Pixeln.
 const HALTEZEIT = 400;      // Millisekunden, bis der Finger greift
 const WISCH_TOLERANZ = 8;   // bewegt er sich vorher weiter, war es Scrollen
 
@@ -4082,17 +3980,12 @@ async function renderDetail(id) {
       const verwalten = meins || ADMIN;
 
       /* DER EINGRIFFSVERMERK NENNT DIE ROLLE, NICHT DIE PERSON -- und dafuer
-         braucht es kein Feld in der Antwort. DELETE /api/comment-images/:id
-         steht hinter darfAendern (Verfasser ODER Admin), und hochgezaehlt wird
-         nur, wenn ein ANDERER als der Verfasser entfernt. Wer beide Klemmen
-         passiert, kann also nur der Admin sein; eine herrenlose Zeile laesst
-         ohnehin nur ihn durch. Kein Name, kein Zeitpunkt, keine Kette: eine
-         Rolle ist keine Person.
+         braucht es kein Feld in der Antwort: DELETE /api/comment-images/:id
+         steht hinter darfAendern, und hochgezaehlt wird nur, wenn ein ANDERER
+         als der Verfasser entfernt. Wer beide Klemmen passiert, kann nur der
+         Admin sein. Kein Name, kein Zeitpunkt, keine Kette.
          Der Satz ist nur so lange wahr, wie die Klemme dort steht -- eine
-         Pruefung am Quelltext bindet die Beschriftung an sie.
-
-         Markierungen links, Bearbeiten und Loeschen rechts. Die Reihenfolge in
-         der Liste macht der Server; hier wird nur umgeschaltet. */
+         Pruefung am Quelltext bindet die Beschriftung an sie. */
       el.innerHTML = `<div class="cmt-head">
           ${verwalten ? `<span class="marks">
             <button class="mark pin${c.pinned ? ' on' : ''}" title="Anpinnen — steht dann ganz oben">📌</button>
@@ -4362,21 +4255,13 @@ async function renderSystem() {
        Bewusst KEIN catch je Abruf daneben: die Bedingung hier ist die eine
        Stelle, an der die Frage gestellt wird. Ein Auffangnetz darunter
        verdeckte sie in jeder Gegenprobe. Es sind acht Abrufe.
-       DER PAPIERKORB UND DIE SICHERUNG GEHEN DENSELBEN WEG: jeder liegt
-       hinter der Rolle, hinter der auch seine Karte steht. Und beide werden
-       HIER geholt und nicht spaeter nachgeladen -- ein Nachladen liefe als
-       herrenlose Zusage weiter, auch wenn das Fenster laengst zu ist.
-       DIE EIGENEN ANMELDUNGEN GEHEN DENSELBEN WEG und stehen ohne Bedingung
-       daneben: die Karte gehoert jedem, wie "Zugang" auch.
-       DAS SICHERHEITSPROTOKOLL EBENSO, hinter dem Eigentuemer -- und HIER und
-       nicht spaeter aus der Karte heraus (Stolperstein 118).
-       DER MAILVERSAND SEIT 0.9.0 GEHT DENSELBEN WEG, hinter dem EIGENTUEMER:
-       der Mailzugang gehoert ihm ganz -- eintragen, einsehen und testen. Der
-       Admin erfaehrt den Zustand dort, wo er ihn braucht, naemlich als Feld
-       `versand` neben dem Link.
-       DIE SELBSTANMELDUNG SEIT 0.9.1 GEHT DENSELBEN WEG, hinter dem ADMIN:
-       aus einer Anfrage wird nie etwas anderes als ein Zugang mit der Rolle
-       user, und den legt der Admin ohnehin an. Es sind elf Abrufe. */
+       ALLE UEBRIGEN GEHEN DENSELBEN WEG: jeder Abruf liegt hinter der Rolle,
+       hinter der auch seine Karte steht -- Papierkorb beim Admin, Sicherung,
+       Sicherheitsprotokoll und Mailversand beim Eigentuemer, Anmeldungen und
+       Zugang bei jedem, die Selbstanmeldung beim Admin. Und alle werden HIER
+       geholt und nicht spaeter nachgeladen: ein Nachladen liefe als herrenlose
+       Zusage weiter, auch wenn das Fenster laengst zu ist (Stolperstein 118).
+       Es sind elf Abrufe. */
     [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll, mailstand,
      anfragen] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
@@ -4443,8 +4328,8 @@ async function renderSystem() {
           auf dem Server.</p>
         <button class="btn btn-accent btn-sm" id="acc-save">Zugang ändern</button>
 
-        ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE,
-              seit 0.10.0 — es bleibt bei neunzehn. Hier stehen Name, Passwort
+        ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE
+              — es bleibt bei neunzehn. Hier stehen Name, Passwort
               und Adresse; wer seinen Zugang sichern will, sucht ihn dort, wo
               sein Zugang steht. Eine zwanzigste Karte fände nur, wer schon
               weiß, dass es sie gibt.
@@ -4753,7 +4638,7 @@ async function renderSystem() {
           <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.</p>
       </div>` : ''}
 
-      ${/* DIE NEUNZEHNTE KARTE, seit 0.9.1 — und sie steht beim ADMIN, nicht
+      ${/* DIE NEUNZEHNTE KARTE — und sie steht beim ADMIN, nicht
             beim Eigentümer: aus einer Anfrage wird nie etwas anderes als ein
             Zugang mit der Rolle „Benutzer“, und den legt der Admin ohnehin an.
             SIE STEHT IMMER, AUCH WENN DIE SELBSTANMELDUNG AUS IST — und das
@@ -4962,7 +4847,7 @@ async function renderSystem() {
     } catch (e) { toast(e.message, true); }
   };
 
-  /* --- Der zweite Faktor in der Karte „Zugang“, seit 0.10.0 ---
+  /* --- Der zweite Faktor in der Karte „Zugang“ ---
      DIESELBE BAUFORM WIE zeichneAnfragen(): der Stand kommt vom Server, die
      Karte zeichnet sich nach jeder Handlung aus der ANTWORT der Handlung neu
      und fragt nicht ein zweites Mal nach. Ein Server, der auf ein Einschalten
@@ -5114,7 +4999,7 @@ async function renderSystem() {
 
   zeichneZweifaktor(zugang.zweifaktor);
 
-  /* --- Der Mailversand, seit 0.9.0 ---
+  /* --- Der Mailversand ---
      NUR FUER DEN EIGENTUEMER; die Karte steht bei allen anderen gar nicht da,
      und die Endpunkte darunter weisen sie ohnehin ab. Die Abfrage auf das
      Element ist deshalb keine Zierde, sondern die Bedingung. */
@@ -5280,7 +5165,7 @@ async function renderSystem() {
     'export': 'Export gezogen',
     'import': 'Import eingespielt',
     'sicherung': 'Sicherung geschrieben',
-    // Seit 0.8.91. Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
+    // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
     // traegt weder Ziel noch Merkmal, und der Handelnde ist immer leer:
     // gewechselt wird auf dem Wirt.
     'schluessel': 'Schlüssel gewechselt'
@@ -5470,7 +5355,7 @@ async function renderSystem() {
                d.veraltet ? ` <strong class="sich-alt">· ${d.veraltet} mit dem alten Schlüssel</strong>` : ''}</span></div>`
           : `<p class="desc" style="margin:0 0 12px">An diesem Ort liegt noch keine Sicherung.</p>`));
 
-    /* ZWEI SCHLUESSEL IM UMLAUF — seit 0.8.91. Wurde der Schlüssel gewechselt,
+    /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt,
        öffnen sich die Kopien von vorher nur noch mit dem ALTEN. Sie sind nicht
        kaputt; sie brauchen einen anderen Schlüssel als die laufende Anlage.
        DER KASTEN STEHT NUR DA, WENN ER ETWAS ZU SAGEN HAT: ohne Wechsel gibt
@@ -6041,7 +5926,7 @@ async function renderSystem() {
     return '';
   };
 
-  /* EINE FUNKTION, ZWEI RUFER seit 0.9.1 -- das Anlegen in der Karte
+  /* EINE FUNKTION, ZWEI RUFER -- das Anlegen in der Karte
      "Zugaenge" und das Freischalten in der Karte "Anfragen". Der Link ist in
      beiden Faellen derselbe Gegenstand mit derselben Warnung daneben; zwei
      Ausfertigungen liefen beim naechsten Satz auseinander. */
@@ -6089,7 +5974,7 @@ async function renderSystem() {
     };
   }
 
-  /* Die Warteschlange der Selbstanmeldung, seit 0.9.1. DIESELBE BAUFORM WIE
+  /* Die Warteschlange der Selbstanmeldung, . DIESELBE BAUFORM WIE
      zeichneZugaenge(): die Liste kommt vom Server, wird nach jeder Handlung
      neu gezeichnet, und was nach dem await gebraucht wird, wird vorher geholt.
      DIE ANTWORT DER HANDLUNG TRAEGT DIE NEUE LISTE MIT -- die Karte zeichnet
@@ -6478,7 +6363,7 @@ let einrichtungNoetig = false;
      öffnet, in dem noch jemand angemeldet ist, meint trotzdem den Link. */
   const einl = (location.hash || '').match(/^#\/einladung\/([0-9a-f]{16,128})$/);
   if (einl) return showEinladung(einl[1]);
-  /* Der Bestätigungslink der Selbstanmeldung, seit 0.9.1 — an derselben
+  /* Der Bestätigungslink der Selbstanmeldung, — an derselben
      Stelle und aus demselben Grund wie der Einladungslink: wer ihn anklickt,
      meint ihn, auch wenn im Browser noch jemand angemeldet ist. Er wird
      ausdrücklich NICHT vom Schalter abhängig gemacht: wird die Selbstanmeldung

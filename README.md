@@ -1,52 +1,133 @@
 # Kriterion
 
-Selbstgehostetes Bewertungsarchiv. Kein Verkauf, keine Cloud, keine Konten bei
-Dritten — Fotos, Kurzvideos, Bewertungen, Notizen und Linksammlungen bleiben auf
-dem eigenen Server.
+**Ein selbstgehostetes Archiv für Dinge, die man sammelt und beurteilt.**
+Geräte, Materialien, Modelle, Prototypen, Bezugsquellen — alles, wovon man
+mehrere hat und zwischen denen man sich irgendwann entscheiden muss.
 
-Gedacht für alles, was man sammelt und beurteilt: Geräte, Materialien, Modelle,
-Prototypen, Bezugsquellen. Die Oberfläche ist neutral gehalten und lässt sich
-über zwei frei wählbare Titel an den eigenen Zweck anpassen.
+Jeder Eintrag trägt Fotos und Kurzvideos, eine Bewertung nach frei gewählten
+Kriterien, Kommentare, Testtage, Links und Dateien. Man kann Einträge
+nebeneinanderstellen, vergleichen, filtern und durchsuchen.
 
-Node.js/Express, verschlüsselte SQLite-Datenbank, Frontend ohne Framework. Keine
-externen Schriftarten, kein CDN, keine Favicon-Abrufe — läuft vollständig
-offline im eigenen Netz.
+**Alles bleibt auf dem eigenen Server.** Kein Konto bei Dritten, keine Cloud,
+kein Verkauf, keine Telemetrie. Keine externen Schriftarten, kein CDN, keine
+Favicon-Abrufe — die Anwendung läuft vollständig offline im eigenen Netz.
+**Die Datenbank ist als Ganzes verschlüsselt** (SQLCipher, AES-256); Fotos und
+Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 
-**Was eine Version mitbringt, steht kurzgefasst in `CHANGELOG.md`.** Das Format
-folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die
-Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/) —
-beides ab 0.10.0; die Einträge davor stehen in ihrer ursprünglichen Form.
+---
 
-## Einrichten
+## Was du damit machen kannst
+
+| | |
+|---|---|
+| **Einträge anlegen** | Titel, Beschreibung, Kategorie, Tags — dazu Fotos, Kurzvideos bis 20 MB, Dateien bis 50 MB und eine Linkliste |
+| **Bewerten** | eigene Kriterien mit Sternen von 1 bis 5, je Kriterium ein **Gewicht** zwischen 0,2 und 2, daraus ein gewichteter Gesamtschnitt |
+| **Mitschreiben** | Kommentare in drei Arten — **Notiz**, **Bericht**, **Aufgabe** (mit Erledigt-Haken) —, dazu Bilder am Kommentar |
+| **Testtage führen** | datierte Einträge mit Note und Tags; sie sind die Zeitreihe, die Kriterienbewertung ist das gegenwärtige Urteil |
+| **Vergleichen** | mehrere Einträge nebeneinander, Kriterium für Kriterium |
+| **Suchen und filtern** | Volltextsuche über Titel, Beschreibung, Kategorie, Tags, Links und Kommentare; Filterstellungen lassen sich als **Ansicht** speichern |
+| **Den Überblick behalten** | „Offen" zeigt alle unerledigten Aufgaben über alle Einträge, „Neu seit …" alles seit dem letzten Besuch |
+| **Zu mehreren arbeiten** | Zugänge mit drei Rollen; jeder Beitrag trägt seinen Verfasser |
+| **Sichern** | verschlüsselte Kopie auf Knopfdruck, dazu ein JSON-Export, der ohne Schlüssel auskommt |
+
+## Ist das etwas für dich?
+
+**Ja, wenn du** einen kleinen Server oder ein NAS hast, auf dem Docker läuft,
+und einen Bestand pflegen willst, der dir gehört und dich überdauert.
+Kriterion ist für **eine Person oder eine Handvoll**, die einander kennen —
+eine Familie, eine Werkstatt, ein Verein.
+
+**Nein, wenn du** eine Anwendung für viele fremde Nutzer suchst, einen Shop,
+eine öffentliche Datenbank oder etwas, das ohne eigenen Server auskommt.
+
+**Und das solltest du vor der Entscheidung wissen:**
+
+* **Eine Anlage ist ein Sachgebiet.** Bewertungskriterien sind global und
+  erscheinen an **jedem** Eintrag. Wer Modelle *und* Werkzeuge *und*
+  Bezugsquellen sammeln will, betreibt besser zwei oder drei Anlagen mit je
+  eigenem Datenverzeichnis — sonst steht an jedem Eintrag die Kriterienliste
+  aller Sachgebiete.
+* **Ein Schlüssel, eine Datenbank.** Die Verschlüsselung schützt die Datei,
+  nicht die Benutzer voreinander: wer die Anlage betreibt, kann alles lesen,
+  was darin steht. Bei einer selbstgehosteten Sache ist das normal — es gehört
+  trotzdem gesagt, bevor Fremde mitmachen.
+* **Ohne den Schlüssel sind die Daten endgültig verloren.** Es gibt keine
+  Hintertür. Der Abschnitt „Der Schlüssel" weiter unten ist der wichtigste
+  in dieser Datei.
+* **E-Mail ist Bequemlichkeit, nie Voraussetzung.** Ohne Mailzugang läuft
+  alles weiter; nur Einladungs- und Rücksetzungslinks muss man dann selbst
+  weiterreichen.
+
+## Woraus es gebaut ist
+
+Node.js mit Express, SQLite über SQLCipher
+(`better-sqlite3-multiple-ciphers`), Bildverarbeitung mit `sharp`, Mailversand
+mit `nodemailer`. **Das Frontend kommt ohne Framework aus** — kein Build, keine
+Paketkette im Browser, eine Datei JavaScript und eine Datei CSS.
+
+Fünf Laufzeitabhängigkeiten, festgenagelt über `package-lock.json`.
+
+**Was eine Version mitbringt, steht in `CHANGELOG.md`.** Das Format folgt
+[Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionsnummern
+folgen [Semantic Versioning](https://semver.org/lang/de/).
+
+## Erstinstallation
+
+**Voraussetzungen:** ein Rechner mit Docker und Docker Compose — ein NAS, ein
+kleiner Server, ein Intel-N100-Kasten unter OpenMediaVault reicht völlig. Sonst
+nichts: Node.js, Übersetzer und Datenbank stecken im Image.
 
 ```bash
+python3 -m zipfile -e kriterion-main.zip .   # ZIP von GitHub
+mv kriterion-main kriterion                  # der Ordner heißt nach dem Branch
+cd kriterion
+chmod +x schluessel.sh                       # das ZIP bringt das Recht nicht mit
 cp .env.example .env
-nano .env                 # Zugangsdaten eintragen
 docker compose up -d --build
 ```
 
-Erreichbar unter `http://<server-ip>:3100`. Der Port steht unmittelbar in der
-`docker-compose.yml`.
+Erreichbar unter `http://<server-ip>:3100`. **Der Port steht in der
+`docker-compose.yml`**, nicht in der `.env`.
 
-**Beim ersten Aufruf im Browser** werden Benutzername und Passwort gesetzt. Es
-gibt keine voreingestellte Kennung, und in der `.env` steht kein Passwort — der
-Zugang liegt als scrypt-Hash in der verschlüsselten Datenbank. Mindestens zehn
-Zeichen, sonst keine Regeln.
+*Wer `git` auf dem Server hat, nimmt statt der ersten beiden Zeilen*
+`git clone https://github.com/fardem/kriterion.git` *— dann kommen auch die
+Ausführungsrechte mit, und das `chmod` entfällt.*
 
-Die `.env` enthält damit nur den Schlüssel und darf leer bleiben. Sie muss aber
-**vorhanden** sein: `docker compose` liest sie ein und bricht sonst ab, bevor
-der Container startet. Deshalb der Schritt `cp .env.example .env` oben. Die
-**Titel werden im Systembereich der Anwendung gepflegt**, nicht über die
-Umgebung.
+**Der Schritt `cp .env.example .env` ist Pflicht, auch wenn nichts darin steht.**
+`docker compose` liest die Datei ein und bricht sonst ab, bevor der Container
+startet. Alle Werte dürfen leer bleiben.
 
-Ein zweiter Eintrag ist möglich und in der Vorgabe **aus**: `HINTER_PROXY=1`,
-wenn Kriterion hinter einem Reverse Proxy betrieben wird. Was daran hängt,
-steht im Abschnitt „Anmeldung".
+**`--build` ist nicht optional**, auch beim ersten Mal nicht: der Quelltext
+steckt im Image, nicht im eingehängten Verzeichnis.
 
-**Passwort vergessen?** Der gewöhnliche Weg läuft seit 0.8.80 über die Karte
-„Zugänge": ein Admin erzeugt dort einen **Link zum Zurücksetzen**, und der
-Betreffende wählt sein Passwort selbst (siehe „Rollen und Zugänge"). Kommt
-**niemand mehr** herein, hilft der Weg auf dem Server, nicht die `.env`:
+### Der erste Zugang
+
+**Beim ersten Aufruf im Browser** werden Benutzername und Passwort gesetzt.
+Es gibt keine voreingestellte Kennung, und in der `.env` steht kein Passwort —
+der Zugang liegt als scrypt-Hash in der verschlüsselten Datenbank. Mindestens
+zehn Zeichen, sonst keine Regeln.
+
+**Dieser erste Zugang wird der Eigentümer.** Ihm gehören Export, Import,
+Rollenvergabe, der Mailzugang und der Schlüsselwert; alles Weitere steht unter
+„Rollen und Zugänge".
+
+### Was danach eingerichtet werden kann — und nichts davon muss
+
+| | wo | wofür |
+|---|---|---|
+| **Titel der Anlage** | Systembereich, Karte „Darstellung" | zwei frei wählbare Titel: einer über der Anmeldeseite, einer in der Anwendung |
+| **Bewertungskriterien** | Systembereich, Karte „Kriterien" | Name, Reihenfolge, Gewicht — sie erscheinen an jedem Eintrag |
+| **Vokabular** | Systembereich, Karte „Vokabular" | elf Wörter der Oberfläche umbenennen, etwa „Eintrag" → „Modell" |
+| **Weitere Zugänge** | Systembereich, Karte „Zugänge" | anlegen oder über einen Einladungslink einladen |
+| **Mailversand** | Systembereich, Karte „Mailversand" | nur für Einladungs- und Rücksetzlinks; ohne ihn läuft alles weiter |
+| **Sicherungsort** | `docker-compose.yml` | Vorgabe liegt im Projektverzeichnis; die empfohlene Lage ist daneben — siehe „Sichern" |
+| **Reverse Proxy** | `.env`, `HINTER_PROXY=1` | nur wenn die Anlage über einen Proxy und HTTPS nach außen geht — siehe „Anmeldung" |
+
+### Wenn niemand mehr hereinkommt
+
+Der gewöhnliche Weg läuft über die Karte „Zugänge": ein Admin erzeugt einen
+**Link zum Zurücksetzen**, und der Betreffende wählt sein Passwort selbst.
+Kommt **niemand mehr** herein, hilft der Weg auf dem Server — nicht die `.env`:
 
 ```bash
 docker compose exec kriterion node zugang.js passwort <name>
@@ -54,27 +135,20 @@ docker compose exec kriterion node zugang.js passwort <name>
 
 Das Passwort wird zweimal abgefragt und gleich dort gesetzt; alle Sitzungen
 dieses Zugangs fallen, Bestand und Rolle bleiben unangetastet — der
-Datenbankschlüssel hängt nicht am Passwort. `node zugang.js liste` zeigt die
-vorhandenen Namen, `node zugang.js entfernen <name>` legt einen Zugang still,
-`node zugang.js eigentuemer <name>` ist der Notausgang, wenn sich der bisherige
-Eigentümer nicht mehr anmeldet. Läuft der Container gar nicht erst an, tut es
+Datenbankschlüssel hängt nicht am Passwort.
+
+| Befehl | was er tut |
+|---|---|
+| `node zugang.js liste` | zeigt die vorhandenen Namen, ihre Rolle und ob der zweite Faktor an ist |
+| `node zugang.js passwort <name>` | setzt ein neues Passwort |
+| `node zugang.js zweifaktor <name>` | schaltet den zweiten Faktor **aus** — einschalten geht von dort ausdrücklich nicht |
+| `node zugang.js entfernen <name>` | legt einen Zugang still |
+| `node zugang.js eigentuemer <name>` | der Notausgang, wenn sich der bisherige Eigentümer nicht mehr anmeldet |
+
+Läuft der Container gar nicht erst an, tut es
 `docker compose run --rm kriterion node zugang.js …` ebenso.
 
-**Telefon weg und die Wiederherstellungscodes aufgebraucht?** Dann steht der
-zweite Faktor zwischen dem Zugang und seinem Inhaber, und auch dafür gibt es
-den Weg über den Server:
-
-```bash
-docker compose exec kriterion node zugang.js zweifaktor <name>
-```
-
-Er fragt vorher nach und **schaltet den zweiten Faktor nur AUS**; Passwort,
-Rolle und Bestand bleiben unangetastet. **Einschalten geht von dort
-ausdrücklich nicht** — dazu muss das Geheimnis auf das Telefon des Betroffenen,
-und wer es für ihn erzeugte, sperrte ihn aus. Einzelheiten im Abschnitt „Der
-zweite Faktor".
-
-Das setzt Zugriff auf den Server voraus und ist deshalb kein Umweg um die
+Das alles setzt Zugriff auf den Server voraus und ist deshalb kein Umweg um die
 Anmeldung. **Der Zugang lässt sich über keine Umgebungsvariable setzen oder
 zurücksetzen** — `AUTH_RESET`, `AUTH_USER` und `AUTH_PASSWORD` werden nicht
 gelesen. Stehen sie in der `.env`, meldet der Start sie als entfernbar; sie
@@ -108,15 +182,15 @@ Jedes Einspielen einer neuen Version erzeugt den Container neu und liest sie
 dabei erneut. Fehlt sie dann, öffnet sich die Datenbank nicht mehr.
 
 **Und jetzt der Punkt, an dem es in der Praxis schiefgeht:** Wer anschließend
-den kompletten Projektordner sichert, hat die `.env` mit in der Sicherung — und damit
-den Schlüssel wieder neben den Daten. Die Verschlüsselung ist dann so wirksam
+den kompletten Projektordner sichert, hat die `.env` mit in der Sicherung — und
+damit den Schlüssel wieder neben den Daten. Die Verschlüsselung ist dann so wirksam
 wie ein Schloss mit danebenliegendem Schlüssel.
 
 > **Merksatz:** `.env` und `data/` gehören **nicht** in dieselbe Sicherung.
 > Den Schlüssel getrennt aufbewahren, zum Beispiel im Passwortspeicher.
-> **Das gilt seit 0.8.70 auch für die Sicherung auf Knopfdruck:** ihre Kopie
-> ist verschlüsselt und ohne den Schlüssel wertlos — der Zielort ist deshalb
-> nicht der Ort für die `.env`.
+> **Das gilt auch für die Sicherung auf Knopfdruck:** ihre Kopie ist
+> verschlüsselt und ohne den Schlüssel wertlos — der Zielort ist deshalb nicht
+> der Ort für die `.env`.
 
 **Die Kehrseite:** Ohne den Schlüssel sind alle Daten endgültig verloren. Es
 gibt keine Hintertür und keine Wiederherstellung. Wer den Schlüssel selbst
@@ -125,139 +199,138 @@ setzt, muss ihn auch verwahren.
 **Ist es schon passiert?** Lag der Schlüssel eine Weile neben der Datenbank und
 wurde `data/` in dieser Zeit kopiert, öffnet diese Kopie die Datei bis heute —
 auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
-**Schlüsselwechsel**, und den gibt es seit 0.8.91: der Abschnitt darunter sagt,
-wie.
+**Schlüsselwechsel** — wie der geht, steht ganz am Ende dieser Datei.
 
-## Den Schlüssel wechseln — seit 0.8.91
+## Eine neuere Version über eine bestehende einspielen
 
-Es gibt genau einen Anlass dafür: **der Schlüssel ist in fremde Hand geraten.**
-Der häufigste Weg dorthin ist der aus dem Abschnitt darüber — der Schlüssel lag
-eine Weile als `data/encryption.key` neben der Datenbank, und irgendjemand hat
-in dieser Zeit das Verzeichnis kopiert. Diese Kopie öffnet die Datei bis heute.
-**Ein Wechsel ist das einzige Mittel dagegen**; die alte Schlüsseldatei zu
-löschen hilft nur gegen künftige Kopien.
-
-Gewechselt wird **auf dem Wirt**, im Projektverzeichnis:
+**Der Weg ersetzt das Verzeichnis, statt darüber zu kopieren.** Bestand
+(`data/`), Schlüssel (`.env`) und Sicherungen ziehen von Hand mit:
 
 ```bash
-./schluessel.sh zeigen       # Lage ansehen, ändert nichts
-./schluessel.sh wechseln     # anhalten, sichern, wechseln, starten
+cd .../kriterion && docker compose down
+cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)
+mv kriterion kriterion-alt
+python3 -m zipfile -e kriterion-main.zip .
+mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
+cp -r kriterion-alt/data kriterion/data
+cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
+mv kriterion-alt/kriterion-sicherung kriterion/ 2>/dev/null   # nur bei Ort im Projekt
+chmod +x kriterion/schluessel.sh          # das ZIP bringt das Recht nicht mit
+cd kriterion && docker compose up -d --build
 ```
 
-> **„Keine Berechtigung"?** Dann fehlt dem Skript das Ausführungsrecht —
-> `python3 -m zipfile -e` im Einspielweg bringt es nicht mit. Einmal
-> `chmod +x schluessel.sh`, und es ist erledigt; ohne das Recht geht auch
-> `bash schluessel.sh zeigen`.
+**Danach ins Protokoll sehen** (`docker compose logs kriterion`): dort muss
+„Schlüssel aus ENCRYPTION_KEY geladen" stehen. Steht stattdessen die Warnung
+über eine Schlüsseldatei neben den Daten, wurde die `.env` nicht gelesen —
+dann sofort anhalten und nachsehen, **bevor** etwas geschrieben wird.
 
-**Warum nicht auf Knopfdruck in der Oberfläche?** Zwei Gründe. Der Anlass ist
-**einmalig** — ein dauerhafter Knopf für ein einmaliges Ereignis, und
-ausgerechnet der eine, der bei falscher Handhabung **alles** verliert, wäre ein
-schlechtes Tauschgeschäft. Und ein Knopf könnte die Sache gar nicht zu Ende
-bringen: steht der Schlüssel in der `.env`, kennt die Anwendung den neuen Wert,
-erreicht die Datei aber nicht — sie liegt auf dem Wirt und ist nicht einmal im
-Image. Dort werden Datenbank und `.env` **in einem Zug** nachgezogen.
+### Warum jede Zeile so dasteht
 
-**Was das Skript tut, in dieser Reihenfolge:**
+**`docker compose down` vor der Sicherung.** Eine Kopie, die neben einem
+laufenden Server entsteht, kann eine offene WAL-Datei enthalten.
 
-1. `.env` sichern (`.env.vor-schluesselwechsel-…`)
-2. neuen Wert erzeugen (`openssl rand -hex 32`)
-3. die Anlage **anhalten** — ein laufender Server hält die Datenbank im
-   WAL-Modus offen, und der Wechsel braucht `journal_mode = DELETE`
-4. das Datenverzeichnis sichern (`../kriterion-data-vor-schluesselwechsel-…`)
-5. wechseln, in einem Wegwerf-Container
-6. **erst nach Erfolg** den neuen Wert eintragen — in die `.env` oder in
-   `data/encryption.key`, je nachdem, woher der alte kam
-7. die Anlage starten
+**Die Sicherungszeile.** Bei einer Version, die die Datenbank anfasst, ist sie
+kein guter Rat, sondern der einzige Weg zurück. Ob eine Version das tut, sagt
+`CHANGELOG.md` unter „Was du danach von Hand tun musst".
 
-Danach ins Protokoll sehen:
+**`mv kriterion kriterion-alt` und ein frisch entpacktes Verzeichnis.** Wer über
+den alten Ordner entpackt, behält Dateien, die die neue Version **weggenommen**
+hat. Der Server läuft dann einwandfrei, die Oberfläche ist die neue — **und der
+Fingerprint ist trotzdem ein anderer** (siehe unten).
+
+**Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Branchnamen
+an: aus `main` wird `kriterion-main`. Ohne das `mv` legt das folgende
+`cp -r kriterion-alt/data kriterion/data` den Bestand in einen Ordner, den
+`docker compose` nie ansieht.
+
+**Die `.env` liegt bewusst nicht im Paket** — sie enthält den Schlüssel und hat
+in einer verteilten Datei nichts verloren. Sie wandert mit dem alten Ordner nach
+`kriterion-alt` und muss von Hand zurück. Fehlt sie, bricht `docker compose` ab,
+bevor der Container entsteht; kaputt geht dabei nichts.
+
+> **Nicht mit `cp .env.example .env` behelfen.** Dieser Schritt gilt nur für
+> eine **neue, leere** Installation. Bei vorhandenem Bestand steht darin ein
+> leerer `ENCRYPTION_KEY`, der Start erzeugt einen **neuen** Schlüssel und legt
+> ihn als `data/encryption.key` ab — und die vorhandene Datenbank lässt sich
+> damit nicht mehr öffnen. Passiert es doch: `data/encryption.key` löschen und
+> die richtige `.env` aus `kriterion-alt` holen. Zerstört wird nichts, aber der
+> Container läuft bis dahin in einer Neustartschleife.
+
+**Die `mv`-Zeile für die Sicherungen gilt nur, solange der Sicherungsort im
+Projektverzeichnis liegt** — der Auslieferungszustand. Sie holt die vorhandenen
+Kopien aus dem umbenannten Ordner zurück; ohne sie bleiben sie in
+`kriterion-alt` liegen und verschwinden, sobald der weggeräumt wird. Genau davor
+warnt der rote Kasten in der Karte „Sicherung". Liegt der Ort außerhalb, ist die
+Zeile ohne Wirkung und stört nicht.
+
+**Die `chmod`-Zeile ist nicht überflüssig.** `python3 -m zipfile -e` stellt
+**keine Ausführungsrechte** wieder her — anders als `unzip`, das es tut. Ohne
+sie antwortet `./schluessel.sh` mit „Keine Berechtigung"; es geht dann auch
+`bash schluessel.sh zeigen`.
+
+**`--build` ist nicht optional.** Ohne es startet stillschweigend die alte
+Version weiter — der Quelltext steckt im Image, nicht im eingehängten
+Verzeichnis.
+
+### Prüfen, ob wirklich die neue Version läuft
+
+Die Versionsnummer allein genügt nicht:
 
 ```bash
-docker compose logs --tail 30 kriterion
+curl -s http://localhost:3100/api/config
 ```
 
-Erwartet wird „Schlüssel aus ENCRYPTION_KEY geladen." bzw. die Warnung, dass
-der Schlüssel neben der Datenbank liegt.
+Diese Zahl kommt aus der `package.json` und ist **keine Aussage über die
+übrigen Dateien**. Wurden `package.json` und `server.js` ersetzt,
+`public/app.js` aber nicht, zeigt die Fußzeile die neue Version, während die
+Oberfläche sich alt verhält.
 
-> **PROBIER DEN WECHSEL AN EINER WEGWERFANLAGE AUS, bevor du ihn an der echten
-> fährst.** Es ist der einzige Vorgang im ganzen Projekt, bei dem ein Fehler
-> alles kostet.
+**Dafür gibt es den Fingerprint.** Der Server bildet beim Start eine kurze
+Prüfsumme über alles, was er lädt und ausliefert, und meldet sie unter
+`fingerprint` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen" im
+Systembereich. Der Sollwert steht zu jeder Version im Änderungsprotokoll
+(`Doku/Aenderungsprotokoll_<Version>.md`, Zeile „Fingerprint …").
 
-**Und die Probe muss an einem echten Bestand laufen, sonst belegt sie nichts.**
-Ein Wechsel an einer leeren Datenbank ist in Millisekunden vorbei und sagt über
-662 MB nichts. Die Probe unten nimmt deshalb eine **Kopie der echten Anlage** —
-mit ihrem Bestand **und ihrer `.env`**:
+Stimmt er nicht überein, ist der Dateisatz nicht der, der gemeint war — dann
+hilft nur, ihn **vollständig** erneut einzuspielen, nicht einzelne Dateien
+nachzuziehen. **Er schlägt in beide Richtungen aus: auch eine Datei ZU VIEL
+ändert ihn**, denn er geht über alles unter `public/` und nicht über eine Liste
+erwarteter Namen.
+
+**Weicht er ab, findest du die Ursache so** — im Projektverzeichnis oder im
+Container (`docker compose exec kriterion sh`):
 
 ```bash
-cd .../DockerAppData                       # eine Ebene über dem Projekt
-docker compose -f kriterion/docker-compose.yml stop    # ruhige Kopie, offene WAL vermeiden
-cp -a kriterion kriterion-probe
-docker compose -f kriterion/docker-compose.yml start   # die echte darf sofort weiterlaufen
-
-cd kriterion-probe
-rm -rf kriterion-sicherung .git .env.vor-*   # data BLEIBT. .env BLEIBT.
-sed -i 's/^    container_name: kriterion$/    container_name: kriterion-probe/' docker-compose.yml
-sed -i 's/"3100:3000"/"3199:3000"/' docker-compose.yml
-chmod +x schluessel.sh
-docker compose up -d --build
-# auf http://<server>:3199 anmelden — dieselben Zugänge, derselbe Bestand
-./schluessel.sh wechseln
-docker compose logs --tail 30 kriterion
+for f in anhaenge.js auth.js db.js keys.js mail.js package.json server.js \
+         zweifaktor.js public/*; do
+  printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
+done
 ```
 
-> **`data/` und `.env` gehören zusammen — wer eines von beiden ersetzt, hat
-> keine Probe mehr, sondern eine neue Anlage.** Wird `data/` gelöscht und ein
-> frischer Schlüssel erzeugt, wechselt das Skript den Schlüssel einer **leeren**
-> Datenbank; das läuft durch und belegt nichts. Wird umgekehrt `data/` behalten
-> und trotzdem ein frischer Schlüssel geschrieben, geht die Datenbank **gar
-> nicht mehr auf** — dann scheitert nicht der Wechsel, sondern schon der Start.
-> `schluessel.sh` selbst stört sich an einem vorhandenen `data/` nicht.
+Das sind **genau die Dateien, über die der Fingerprint geht**, und sonst keine.
+Steht eine Zeile zu viel da, ist das die Ursache; weicht eine Prüfsumme ab, ist
+es diese Datei. Löschen bzw. ersetzen und `docker compose up -d --build`, denn
+der Quelltext steckt im Image.
 
-**Woran du erkennst, dass die Probe etwas wert war** — vier Zeilen, und alle
-vier müssen stimmen:
+*Ein Randfall, der wie ein Fehler aussieht und keiner ist:* ändert eine Version
+die Marke der Anlage, zeigt der Browser im Reiter noch die alte — ein hartes
+Neuladen (Strg+Umschalt+R) räumt den Zwischenspeicher weg.
 
-| | erwartet |
-|---|---|
-| Ansage vor dem Wechsel | die **echte** Größe, z. B. `662.5 MB, erwartete Dauer rund 13 Sekunden` — nicht `0.2 MB` |
-| nach dem Wechsel | `integrity_check: ok` |
-| im Protokoll danach | `Läuft auf Port 3000 — Eigentümer: <dein Name>` — **nicht** „noch kein Zugang" |
-| im Browser auf `:3199` | Einträge, Fotos, Kommentare vollständig; Karte „Sicherung" markiert die alten Kopien rot |
+### Wenn eine Version die Datenbank anfasst
 
-Danach die Probe wegräumen: `cd .. && docker compose -f kriterion-probe/docker-compose.yml down && rm -rf kriterion-probe`.
-**Die `.env` der Probe niemals an die echte Anlage zurückkopieren** — sie trägt
-einen Schlüssel, zu dem nur die Probedaten passen.
+**Eine fehlende Tabelle legt der Start selbst an**, dafür braucht es nichts.
+**Rüstet eine Version eine Spalte nach, sagt sie es im Protokoll** — etwa
+„links um user_id ergaenzt (Migration auf 0.8.30)". Die Zeile kommt genau
+einmal; beim nächsten Start ist sie weg, und das ist richtig so. Wer mehrere
+Versionen auf einmal überspringt, sieht entsprechend mehrere Zeilen.
 
-### Zwei Schlüssel im Umlauf — die unangenehmste Falle
+**Ein Downgrade ist dann keine reine Dateikopie mehr** — deshalb die Sicherung
+davor. Eine ältere Fassung sieht zusätzliche Tabellen und Spalten gar nicht an;
+was darin steht, bleibt stehen, aber niemand zeigt es mehr.
 
-**Ab dem Wechsel gibt es zwei Schlüssel.** Jede Sicherung, die vorher entstanden
-ist, bleibt mit dem **alten** verschlüsselt. Sie ist nicht kaputt — sie braucht
-nur einen anderen Schlüssel als die laufende Anlage. Wer das nicht weiß, hält
-sie im Ernstfall für defekt und wirft sie weg.
-
-Dagegen stehen drei Dinge:
-
-* **Der alte Wert bleibt auskommentiert in der `.env` stehen**, mit Datum, mit
-  dem Namen dessen, der gewechselt hat, und mit dem Satz, wofür er noch gut
-  ist. **Nicht löschen, bevor er im Passwortspeicher steht.**
-* **Die Karte „Sicherung" markiert jede Kopie rot, die älter ist als der
-  Wechsel** — und wenn auch die jüngste älter ist, sagt sie das deutlicher:
-  dann passt überhaupt keine, und es gehört sofort neu gesichert.
-* **Der JSON-Export braucht keinen Schlüssel.** Er ist damit der einzige
-  Rückweg, der von der ganzen Schlüsselverwaltung nichts wissen muss.
-
-### Was der Wechsel nicht ist
-
-Er wechselt den **Schlüssel**, nicht das Verfahren: SQLCipher bleibt, die
-Schlüssellänge bleibt, `katalog.sqlite` bleibt, das Schema bleibt, die
-Passwörter bleiben, und **niemand wird abgemeldet** — der Datenbankschlüssel
-hängt an keinem Passwort.
-
-Bricht der Wechsel mitten hinein ab (Stromausfall, `kill -9`), ist das
-**folgenlos**: das Rollback-Journal stellt den alten Stand her, der **alte**
-Schlüssel öffnet weiter, der neue wird abgewiesen. Es entsteht kein halber
-Zustand. Geht dagegen das Journal verloren, ist alles verloren — **das** ist
-der Grund für die Sicherung davor, nicht der Abbruch selbst. Das Journal
-wächst dabei auf die Größe der Datenbank; reicht der Platz nicht, sagt das
-Skript vorher ab und rührt nichts an.
+**Vorausgesetzt wird eine Datenbank aus Version 0.8.0 oder neuer.** Ein älterer
+Bestand wird nicht übernommen; er braucht den Zwischenschritt über 0.8.0, die
+letzte Version, die ihn noch lesen konnte.
 
 ## Verschlüsselung
 
@@ -282,7 +355,7 @@ Nach mehreren Fehlversuchen antwortet die Anmeldung verzögert, nach zehn
 Fehlversuchen von derselben Adresse für einige Minuten gar nicht mehr.
 Gezählt wird zusätzlich je Benutzername — dort wird nur verzögert, nie
 gesperrt: eine harte Namenssperre wäre ein Werkzeug *gegen* fremde Zugänge.
-**Dieselbe Bremse steht seit 0.8.80 vor dem Einlösen eines Einladungs- oder
+**Dieselbe Bremse steht vor dem Einlösen eines Einladungs- oder
 Rücksetzlinks** — dort ohne die Hälfte je Benutzername, denn ein Link nennt
 keinen. Was dabei abgewiesen wird — abgelaufen, schon eingelöst, erfunden, oder
 der Zugang ist gesperrt —, beantwortet die Anlage **immer gleich**: „Dieser
@@ -290,11 +363,11 @@ Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern." Der Grund ist
 nicht Geheimniskrämerei, sondern dass in allen vier Fällen dasselbe zu tun
 ist.
 
-**Die zweite Bestätigung greift seit 0.8.90 auch hinter der Anmeldung** — vor
+**Die zweite Bestätigung greift auch hinter der Anmeldung** — vor
 jedem Weg, der die Anlage als Ganzes trifft. Was das ist und warum, steht
 unter „Rollen und Zugänge".
 
-### Der zweite Faktor — seit 0.10.0, freiwillig
+### Der zweite Faktor, freiwillig
 
 **Wer will, sichert seinen Zugang zusätzlich mit einem Code aus einer App auf
 seinem Telefon.** Der Code entsteht dort **ohne Netz**, aus einem Geheimnis und
@@ -505,7 +578,7 @@ wieder — und was darin stand, wird geleert.
 > nur dem, für den er ist. Er wird **nur ein einziges Mal angezeigt**; ist er
 > weg, erzeugst du einen neuen.
 
-**Und seit 0.9.0 eine zweite Frist daneben: ab dem ersten Öffnen bleiben
+**Und eine zweite Frist daneben: ab dem ersten Öffnen bleiben
 fünfzehn Minuten.** Die sieben Tage sind die Frist fürs *Lesen der Mail*, nicht
 fürs Liegenlassen des Links. Solange niemand geöffnet hat, ist nichts geschehen
 und die sieben Tage laufen weiter. Ab dem ersten Öffnen ist erwiesen, dass der
@@ -544,7 +617,7 @@ nicht immer die, die der *Empfänger* benutzen soll. Wer über
 `http://192.168.1.50:3100` arbeitet und einen Link nach draußen gibt, gibt
 einen Link ins Leere.
 
-Dagegen steht seit 0.8.90 eine **optionale** Zeile in der `.env`:
+Dagegen steht eine **optionale** Zeile in der `.env`:
 
 ```bash
 OEFFENTLICHE_ADRESSE=https://kriterion.beispiel.de
@@ -566,14 +639,14 @@ anderen Admin; dürfte er die öffentliche Adresse setzen, zeigte später jede
 verschickte Mail auf seinen Server. Der Systembereich **zeigt** sie, er setzt
 sie nicht.
 
-**Seit 0.9.0 ist sie Pflicht — für den Versand, nicht für den Start.** Ohne sie
+**ist sie Pflicht — für den Versand, nicht für den Start.** Ohne sie
 verschickt die Anlage keine Links: der Server wüsste nicht, worauf sie zeigen
 sollen, und aus dem `Host`-Kopf darf er es nicht ableiten. Der Start bricht
 deswegen **nicht** ab, und es fehlt auch nichts — die Links stehen wie bisher
 zum Kopieren da. Die Karte „Mailversand" markiert den fehlenden Wert rot und
 nennt den Grund.
 
-**Und seit 0.9.1 ist sie die Voraussetzung der Selbstanmeldung — nicht eine
+**Und ist sie die Voraussetzung der Selbstanmeldung — nicht eine
 Empfehlung daneben, sondern baulich:** der Schalter lässt sich ohne diesen Wert
 gar nicht erst einschalten. Der Grund ist nachgesehen und nicht angenommen: die
 **Testmail enthält keinen Link** und geht auch ohne die öffentliche Adresse
@@ -582,12 +655,12 @@ Bestätigungsmail ohne brauchbaren Link hinausginge — und genau dann liefe die
 Selbstanmeldung ins Leere. Wer sie nicht setzt, legt Zugänge weiterhin selbst
 an; es fehlt nichts.
 
-#### Mailversand — seit 0.9.0
+#### Mailversand
 
 **E-Mail ist eine Bequemlichkeit, keine Voraussetzung.** Ohne Mailzugang läuft
 Kriterion vollständig, rein offline, und es fehlt keine Funktion: Einladungs-
-und Rücksetzlinks stehen im Verwaltungsbereich zum Kopieren, genau wie seit
-0.8.80. **Wer keinen Mailzugang einträgt, verliert nichts.** Mit Mailzugang
+und Rücksetzlinks stehen im Verwaltungsbereich zum Kopieren.
+**Wer keinen Mailzugang einträgt, verliert nichts.** Mit Mailzugang
 gehen dieselben Links *zusätzlich* per Mail hinaus; schlägt das fehl, bricht
 nichts ab — im Kasten steht „Versand fehlgeschlagen" samt Grund, und der Link
 daneben.
@@ -644,7 +717,7 @@ Antwortet der Mailserver nicht, **bricht der Versuch nach zwanzig Sekunden ab**
 und die Antwort kommt trotzdem. Der Token entsteht dabei **zuerst**: der Link
 steht in jedem Fall da, egal was der Mailserver sagt.
 
-#### Selbstanmeldung — seit 0.9.1
+#### Selbstanmeldung
 
 **Niemand kommt durch die Selbstanmeldung herein, ohne dass ein Admin ihn
 hereinlässt.** Das ist der Satz, unter dem alles Weitere steht. Es gibt keine
@@ -652,8 +725,8 @@ Betriebsart, in der ein geklickter Link allein freischaltet — Kriterion ist ei
 Archiv für eine kleine Gruppe, kein Forum.
 
 **Und die Anlage läuft ohne all das vollständig.** Ist die Selbstanmeldung aus,
-legt eben nur der Admin Zugänge an, genau wie seit 0.8.0. Es fehlt keine
-Funktion, und der Schalter steht ab Werk auf **aus**.
+legt eben nur der Admin Zugänge an. Es fehlt keine Funktion, und der Schalter
+steht ab Werk auf **aus**.
 
 **Der Weg, vom Formular bis zum Passwort:**
 
@@ -725,13 +798,13 @@ Zahlen) und *seine Beiträge in fremden Einträgen löschen*. Sitzungen, offene
 Links, Favoriten und persönliche Einstellungen gehen immer mit. Der Name
 `geloescht-<nummer>` ist als Benutzername gesperrt.
 
-#### Die zweite Bestätigung — seit 0.8.90
+#### Die zweite Bestätigung
 
 **Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt.** Vor dem
 Export, dem Import, dem Vergeben einer Rolle, dem Setzen eines fremden
-Passworts, dem Erzeugen eines Links, dem Entfernen eines Zugangs und — seit
-0.9.0 — dem **Setzen des Mailzugangs** fragt Kriterion nach **deinem eigenen
-Passwort**, in einem Fenster, das daneben schreibt, warum es fragt.
+Passworts, dem Erzeugen eines Links, dem Entfernen eines Zugangs und dem
+**Setzen des Mailzugangs** fragt Kriterion nach **deinem eigenen Passwort**, in
+einem Fenster, das daneben schreibt, warum es fragt.
 
 **Wogegen das schützt, ist nicht der Fremde:** der kommt ohne Passwort gar
 nicht herein. Es schützt gegen eine **fremde offene Anmeldung** — einen
@@ -755,14 +828,14 @@ wird dasselbe Passwort noch einmal.
 Auch hier gilt die Anmeldebremse: nach zehn falschen Bestätigungen von
 derselben Adresse ist für einige Minuten Ruhe.
 
-#### Das Sicherheitsprotokoll — seit 0.8.90
+#### Das Sicherheitsprotokoll
 
 Der Systembereich zeigt dem **Eigentümer** eine Karte
 **„Sicherheitsprotokoll"**. Sie hält fest, **wer Zugang hatte und wer die
 Anlage als Ganzes angefasst hat**: Anmeldungen (gelungen und gescheitert),
 angelegte, gesperrte, freigegebene und entfernte Zugänge, vergebene Rollen,
 gesetzte Passwörter, erzeugte und eingelöste Links, Export, Import,
-Sicherung — und seit 0.8.91 den **Schlüsselwechsel**. Der trägt weder Ziel noch
+Sicherung — und den **Schlüsselwechsel**. Der trägt weder Ziel noch
 Merkmal und keinen Handelnden: gewechselt wird auf dem Wirt. **Die Zeile nennt,
 DASS gewechselt wurde, nie WOHIN** — ein Schlüssel steht in keiner
 Protokollzeile.
@@ -894,7 +967,7 @@ es zwei, beide im Systembereich einstellbar:
   Groß- und Kleinschreibung spielt keine Rolle, auch bei Umlauten; ein
   einzelnes Zeichen findet bereits. **Prozentzeichen und Unterstrich sind
   gewöhnliche Zeichen** — man kann nach ihnen suchen.
-  *Seit 0.11.0 sucht der Server und nicht mehr der Browser.* Gefunden wird
+  *sucht der Server und nicht mehr der Browser.* Gefunden wird
   dasselbe wie vorher; gefragt wird kurz nach dem letzten Anschlag, damit
   nicht jeder Tastendruck über das Netz geht. Ist der Server einmal nicht
   erreichbar, bleibt die zuletzt gezeigte Liste stehen und sagt es.
@@ -937,7 +1010,7 @@ es zwei, beide im Systembereich einstellbar:
   lässt sich mit jedem Teststatus kombinieren. Ein Favorit ist persönlich
   und sortiert die gemeinsame Liste nicht um — wer seine Favoriten sammeln
   will, nimmt den Filter.
-- **„Neu seit …"** steht daneben und folgt demselben Muster (seit 0.8.60): er
+- **„Neu seit …"** steht daneben und folgt demselben Muster: er
   zeigt, was sich seit dem letzten Besuch getan hat, mit der Zahl daneben, und
   lässt sich mit Status, Kategorie und Tags frei kombinieren. Der Bezugspunkt
   ist persönlich und wird gesetzt, wenn man die Übersicht **verlässt** — solange
@@ -997,7 +1070,7 @@ es zwei, beide im Systembereich einstellbar:
   mehrere zusammen.
   Die **Aufgabe** steht ganz oben, damit sie auffällt. Ihr Knopf
   schaltet **weiter statt um**: Notiz → Aufgabe → erledigt → Notiz.
-  **Alle offenen Aufgaben auf einen Blick** zeigt seit 0.8.60 die Ansicht
+  **Alle offenen Aufgaben auf einen Blick** zeigt die Ansicht
   **„Offen"** — der Knopf dafür steht in der Kopfzeile neben dem Zahnrad. Sie
   listet alle nicht erledigten Aufgaben aus allen Einträgen, gruppiert nach
   Eintrag, mit Verfasser und Datum; ein Klick führt in den Eintrag, und abhaken
@@ -1091,11 +1164,11 @@ es zwei, beide im Systembereich einstellbar:
   mit Rückfrage. Beim Eintrag wird benannt, was dranhängt — **Fotos und Videos
   getrennt**, dazu **Links, Dateien,
   Kommentare, Bewertungen und Testtage getrennt nach eigenen und fremden**,
-  denn die fremden gehen über die Kaskade mit. **Seit 0.8.70 sagt der Dialog
+  denn die fremden gehen über die Kaskade mit. **sagt der Dialog
   dazu, dass der Eintrag dreißig Tage im Papierkorb liegt** und wer ihn von
   dort zurückholen kann — der Eigentümer der Anlage, nicht der, der hier
   klickt.
-- **„Diesen Eintrag als Datei"** *(Eigentümer, seit 0.8.70)*: derselbe Aufbau
+- **„Diesen Eintrag als Datei"** *(Eigentümer)*: derselbe Aufbau
   wie eine volle Exportdatei, nur mit einem Eintrag — samt Fotos, Videos,
   Dateien und Kommentarbildern.
 
@@ -1122,7 +1195,7 @@ Listen.
   siehe den Abschnitt „Rollen und Zugänge" oben *(Admin)*
 - **Meine Sitzungen** — wo dieser Zugang überall angemeldet ist, mit „alle
   anderen beenden" *(jeder; jeder sieht nur seine eigenen)*
-- **Sicherheitsprotokoll** *(Eigentümer, seit 0.8.90)*: wer Zugang hatte und
+- **Sicherheitsprotokoll** *(Eigentümer)*: wer Zugang hatte und
   wer die Anlage als Ganzes angefasst hat — 180 Tage lang, ohne einen Weg
   hinaus außer der Frist. Kein Änderungsverlauf, keine Adresse, keine
   Browserkennung.
@@ -1145,16 +1218,16 @@ Listen.
   Exportdatei, die noch gar kein Feld dafür hat, fallen an den **Verfasser des
   Eintrags** und nicht an den Einspielenden. Die Datei sagt ja nichts anderes,
   als dass sie zu diesem Eintrag gehören.
-- **Sicherung** *(Eigentümer, seit 0.8.70)*: eine vollständige, verschlüsselte
+- **Sicherung** *(Eigentümer)*: eine vollständige, verschlüsselte
   Kopie der Datenbank auf Knopfdruck — siehe den Abschnitt „Sichern" weiter
   unten. Die Karte nennt den eingerichteten Zielort, das Unterverzeichnis
   darunter, wann zuletzt gesichert wurde und wie lange es dauern wird. **Ganz
   oben steht, wie der Zielort liegt:** rot, wenn er im Projektverzeichnis
   liegt, mit dem Grund daneben; grün, wenn er außerhalb liegt. Abgewiesen wird
   keine der beiden Lagen — eine Sicherung am falschen Ort ist besser als
-  keine. **Seit 0.8.91 markiert sie außerdem jede Kopie rot, die noch mit dem
+  keine. **markiert sie außerdem jede Kopie rot, die noch mit dem
   alten Schlüssel verschlüsselt ist** — falls je gewechselt wurde.
-- **Papierkorb** *(Admin sieht, Eigentümer handelt; seit 0.8.70)*: was in den
+- **Papierkorb** *(Admin sieht, Eigentümer handelt;)*: was in den
   letzten dreißig Tagen gelöscht wurde, mit Titel, Datum, Löschendem, der
   verbleibenden Frist und der Größe. **„Zurückholen"** legt einen **neuen**
   Eintrag mit demselben Inhalt an — Fotos, Videos, Dateien, Kommentare,
@@ -1313,7 +1386,7 @@ haben. Die Verteidigung liegt in Schichten, damit kein einzelner Fehler genügt:
    vollständige `sandbox`. Daneben steht immer ein Verweis „In neuem Tab
    öffnen", falls ein Browser das Einbetten trotzdem verweigert.
 
-**Fotos folgen derselben Regel** — seit 0.8.20 und in beiden Richtungen. Beim
+**Fotos folgen derselben Regel** — und in beiden Richtungen. Beim
 **Hochladen** wird das Ergebnis geprüft, nicht die Angabe: was `sharp` nicht als
 JPEG, PNG, WebP, AVIF, GIF oder TIFF liest, wird abgewiesen. Eine SVG kommt
 damit gar nicht erst herein — sie bestand den alten Filter, weil sie sich
@@ -1325,21 +1398,21 @@ Ableitung braucht keine Datenüberführung. Die Spalte `photos.mime_type` bleibt
 stehen und wird weiter angezeigt; sie ist eine Anzeige, keine Grundlage der
 Auslieferung.
 
-**Videos gehen denselben Weg** (seit 0.8.50). Erkannt werden sie an den ersten
+**Videos gehen denselben Weg**. Erkannt werden sie an den ersten
 Bytes: MP4, M4V und MOV tragen den ISO-Kasten `ftyp`, WebM den EBML-Kopf. Nur
 diese drei Typen kommen herein und gehen `inline` heraus; jede andere Marke
 wird zum Herunterladen. Der Server **öffnet ein Video nie** — er liest zwölf
 Bytes, speichert den Rest und liefert ihn wieder aus. Das Standbild dagegen
 läuft durch dieselbe Prüfung wie jedes Foto.
 
-**Die Anwendung selbst hat ebenfalls eine `Content-Security-Policy`** (seit
-0.8.20, auf jeder Antwort): `default-src 'self'`, `script-src 'self'` ohne
+**Die Anwendung selbst hat ebenfalls eine `Content-Security-Policy`**, auf
+jeder Antwort: `default-src 'self'`, `script-src 'self'` ohne
 jedes eingebettete Skript, `frame-ancestors 'none'`, `base-uri 'none'`,
 `form-action 'none'`. `frame-src 'self'` trägt die PDF-Vorschau. Bei
 `style-src` steht `'unsafe-inline'`, und zwar nötigerweise: die Oberfläche
 setzt Abstände, Rasterspalten und den Fokuspunkt als `style="…"`-Attribut, und
 ohne die Freigabe verwirft der Browser jedes davon. Die tragende Zeile ist
-`script-src` — dort steht sie nicht. Seit 0.8.50 steht dort außerdem
+`script-src` — dort steht sie nicht. steht dort außerdem
 `media-src 'self' blob:`: `'self'` trägt das Abspielen aus der eigenen Anlage,
 `blob:` das Standbild vor dem Hochladen. Ohne die zweite Angabe verwirft der
 Browser die Adresse, an der die Oberfläche das Standbild zieht, und zwar
@@ -1430,14 +1503,14 @@ Gelöschter Platz wird automatisch freigegeben.
 | **Überlebt einen Formatwechsel** | nein | nein | ja |
 | **Server muss stehen** | nein | ja | nein |
 
-**Die Sicherung auf Knopfdruck** (seit 0.8.70) steht im Systembereich beim
+**Die Sicherung auf Knopfdruck** steht im Systembereich beim
 Eigentümer. Sie erzeugt über `VACUUM INTO` eine vollständige, verschlüsselte
 Kopie der Datenbank — konsistent, auch während gearbeitet wird. Die Karte nennt
 vorher, wie lange es dauert; **während die Kopie entsteht, steht die Anlage
 still** (rund zehn bis zwanzig Millisekunden je Megabyte). Sie zeigt außerdem,
 wann zuletzt gesichert wurde — gelesen wird das am Zielort selbst, nicht aus
 einem Merker in der Datenbank.
-**Und seit 0.8.91 zeigt sie, welche Kopien noch mit dem alten Schlüssel
+**Und zeigt sie, welche Kopien noch mit dem alten Schlüssel
 verschlüsselt sind**, falls je gewechselt wurde: jede Kopie, die älter ist als
 der Wechsel, wird rot markiert. Ist auch die jüngste älter, sagt die Karte, dass
 überhaupt keine zum heutigen Schlüssel passt — dann gehört sofort neu gesichert.
@@ -1497,184 +1570,25 @@ vorher blieb bei einem harten Ende eine offene WAL liegen. Wurde ein eigener
 
 **Der JSON-Export** ist der Austauschweg: unabhängig von Datenbankformat und
 Schlüssel, dafür unvollständig (Sitzungen, Einstellungen und die Blockanordnung
-fehlen) und mit der ganzen Datei im Arbeitsspeicher. Seit 0.8.70 lässt sich
+fehlen) und mit der ganzen Datei im Arbeitsspeicher. lässt sich
 auch **ein einzelner Eintrag** als Datei ziehen.
 
 > **Vor einer Version, die die Datenbank anfasst, ist die Sicherung Pflicht.**
-> Solche Versionen rüsten beim ersten Start eine Spalte nach; danach lässt sich
-> der Bestand nicht mehr ohne Weiteres auf die vorige Version zurückbringen.
-> Der Weg zurück ist dann die Sicherung, die **vor** dem Einspielen entstanden
-> ist — nicht das Zurückkopieren der alten Dateien. Welche Versionen das
-> betrifft, sagt das Änderungsprotokoll der jeweiligen Version; zuletzt
-> **0.8.30**, **0.8.31**, **0.8.40**, **0.8.50**, **0.8.70** und **0.8.80**.
-> **0.8.60 und 0.8.71 gehören ausdrücklich nicht dazu:** dort war die Sicherung
-> eine Empfehlung, und der Weg zurück eine reine Dateikopie.
-> *Der Sonderfall von 0.8.70 und 0.8.80: sie rüsten keine Spalte nach, sondern
-> legen neue Tabellen an. Eine ältere Version sieht die gar nicht an — was in
-> 0.8.70 aber im Papierkorb liegt, ist nach einem Downgrade unerreichbar, und
-> jeder Eintrag, der dann gelöscht wird, ist wieder endgültig weg. Bei 0.8.80
-> trifft es einen Zugang, der über einen Link angelegt und noch nicht eingelöst
-> wurde: er hat kein Passwort, und eine ältere Version kann ihm keinen neuen
-> Link geben — dort hilft nur `node zugang.js passwort <name>`.*
-
-## Eine neue Version einspielen
-
-```bash
-cd .../kriterion && docker compose down
-cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # Pflicht bei Datenbankstufen
-mv kriterion kriterion-alt
-python3 -m zipfile -e kriterion-main.zip .
-mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
-cp -r kriterion-alt/data kriterion/data
-cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
-mv kriterion-alt/kriterion-sicherung kriterion/ 2>/dev/null   # nur bei Ort im Projekt
-chmod +x kriterion/schluessel.sh          # das ZIP bringt das Recht nicht mit
-cd kriterion && docker compose up -d --build
-```
-
-**Die `chmod`-Zeile ist nicht überflüssig.** `python3 -m zipfile -e` stellt
-**keine Ausführungsrechte** wieder her — anders als `unzip`, das es tut.
-Ohne sie antwortet `./schluessel.sh` mit „Keine Berechtigung". Es geht dann
-auch ohne das Recht:
-
-```bash
-bash schluessel.sh zeigen
-```
-
-**Die vorletzte Zeile gilt nur, solange der Sicherungsort im
-Projektverzeichnis liegt** — der Auslieferungszustand. Sie holt die
-vorhandenen Sicherungen aus dem umbenannten Ordner zurück; ohne sie bleiben
-sie in `kriterion-alt` liegen und verschwinden, sobald der weggeräumt wird.
-Genau davor warnt der rote Kasten in der Karte „Sicherung". Liegt der Ort
-außerhalb, ist die Zeile ohne Wirkung und stört nicht — deshalb steht sie
-hier und nicht in einer Fußnote.
-
-**Die Sicherungszeile steht bewusst hinter `docker compose down`.** Eine Kopie,
-die neben einem laufenden Server entsteht, kann eine offene WAL-Datei
-enthalten. Und sie ist bei einer Version, die die Datenbank anfasst, keine
-Empfehlung, sondern der einzige Weg zurück — siehe den Abschnitt „Sichern".
-
-**0.11.0 FASST DIE DATENBANK NICHT AN** — keine Tabelle, keine Spalte, kein
-Migrationsschritt. **Die Sicherungszeile ist bei dieser Version Empfehlung und
-nicht Pflicht**, und ein Downgrade auf 0.10.0 wäre eine reine Dateikopie.
-*Genau genommen stört es nichts:* die gespeicherten Ansichten liegen als
-weiterer Schlüssel in `user_settings`, und eine ältere Fassung liest ihn
-schlicht nicht — sie blieben stehen, aber niemand zeigte sie. **Es kommt keine
-neue Zeile in die `.env`**, und es gibt nichts einzustellen.
-**Eine Sache gehört danach in den Blick, und sie ist harmlos:** die Marke der
-Anlage hat sich geändert, und **zwei Dateien in `public/` sind damit andere**.
-Wer im Reiter des Browsers noch die alte Marke sieht, sieht einen
-zwischengespeicherten Stand und keine kaputte Anlage; ein hartes Neuladen
-(Strg+Umschalt+R) räumt ihn weg.
-
-**0.10.0 davor FASSTE DIE DATENBANK AN** — es kamen **zwei** Tabellen dazu,
-`zweifaktor` und `zweifaktor_codes`. Einen Migrationsschritt brauchen sie
-nicht, eine fehlende Tabelle legt der Start selbst an; aber ein Downgrade ist
-damit keine reine Dateikopie mehr. **Die Sicherungszeile ist bei dieser Version
-Pflicht.** *Genau genommen stört ein Downgrade auf 0.9.1 wenig — zwei
-zusätzliche Tabellen sieht eine ältere Version gar nicht an. Was dabei
-geschieht, gehört aber gesagt:* **wer zurückgeht, hat plötzlich keinen zweiten
-Faktor mehr** — die ältere Fassung fragt ihn nicht ab, und die Zugänge stehen
-dann wieder allein hinter ihrem Passwort. **Es kommt keine neue Zeile in die
-`.env`**, und es gibt nichts einzustellen: wer den zweiten Faktor will,
-schaltet ihn selbst in der Karte „Zugang" ein.
-
-**0.9.1 davor fasste die Datenbank an** — es kam die Tabelle `anfragen` dazu, die
-Warteschlange der Selbstanmeldung. Einen Migrationsschritt braucht sie nicht,
-eine fehlende Tabelle legt der Start selbst an; aber ein Downgrade ist damit
-keine reine Dateikopie mehr. **Die Sicherungszeile ist bei dieser Version
-Pflicht.** *Genau genommen stört ein Downgrade auf 0.9.0 wenig — eine
-zusätzliche Tabelle sieht eine ältere Version gar nicht an. Was verloren geht,
-sind die offenen Anfragen: sie bleiben stehen, aber niemand zeigt sie mehr.*
-Auch dort kam keine neue `.env`-Zeile dazu — der Schalter der Selbstanmeldung
-steht im Systembereich.
-
-**0.9.0 davor fasste die Datenbank nicht an** — keine Tabelle, keine Spalte;
-ein Downgrade auf 0.8.91 wäre eine reine Dateikopie gewesen. Auch dort kam
-keine neue `.env`-Zeile dazu: der Mailzugang steht im Systembereich.
-
-**0.8.91 davor fasste sie ebenfalls nicht an.** Dort war die Sicherung
-trotzdem Pflicht, und beim **Schlüsselwechsel** ein zweites Mal: siehe den
-Abschnitt „Den Schlüssel wechseln".
-
-**Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Branchnamen
-an: aus `main` wird `kriterion-main`. Ohne das `mv` legt das folgende
-`cp -r kriterion-alt/data kriterion/data` den Bestand in einen Ordner, den
-`docker compose` nie ansieht.
-
-**`--build` ist nicht optional.** Ohne es startet stillschweigend die alte
-Version weiter — der Quelltext steckt im Image, nicht im eingehängten
-Verzeichnis. Welche Version wirklich läuft, sagt
-`curl -s http://localhost:3100/api/config`. Diese Zahl kommt allerdings aus der
-`package.json` und ist **keine Aussage über die übrigen Dateien**: wurden
-`package.json` und `server.js` ersetzt, `public/app.js` aber nicht, zeigt der
-Footer die neue Version, während die Oberfläche sich alt verhält.
-
-**Seit 0.8.10 gibt es dafür einen Fingerprint.** Der Server bildet beim Start eine
-kurze Prüfsumme über alles, was er lädt und ausliefert (`server.js`, `db.js`,
-`auth.js`, `keys.js`, `anhaenge.js`, `package.json`, `public/`), und meldet sie
-unter `fingerprint` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen" im
-Systembereich. Der Wert steht zu jeder Version im Änderungsprotokoll
-(`Doku/Aenderungsprotokoll_<Version>.md`, Zeile „Fingerprint …"). Stimmt er nicht
-überein, ist der Dateisatz nicht der, der gemeint war — dann hilft nur, ihn
-vollständig erneut einzuspielen, nicht einzelne Dateien nachzuziehen.
-
-**UND ER SCHLÄGT IN BEIDE RICHTUNGEN AUS — auch bei einer Datei ZU VIEL.** Der
-Fingerprint geht über **alles**, was unter `public/` liegt, nicht über eine
-Liste erwarteter Namen. Nimmt eine Version eine Datei **weg** und wird über den
-alten Ordner ausgepackt statt in einen frischen, bleibt die weggenommene Datei
-liegen und zählt weiter mit: der Server läuft einwandfrei, die Oberfläche ist
-die neue, **und der Fingerprint ist trotzdem ein anderer.** Genau das ist beim
-Einspielen von 0.9.1 passiert — `public/marke-hell.svg` war entfernt worden und
-lag noch da.
-
-*Deshalb steht im Weg oben `mv kriterion kriterion-alt` und ein frisch
-entpacktes Verzeichnis:* er kopiert nicht über den alten Stand, er ersetzt ihn.
-Wer abkürzt und über den vorhandenen Ordner entpackt, bekommt genau diesen Fall.
-
-**Weicht der Fingerprint ab, findest du die Ursache so** — im Projektverzeichnis
-oder im Container (`docker compose exec kriterion sh`):
-
-```bash
-for f in anhaenge.js auth.js db.js keys.js mail.js package.json server.js \
-         zweifaktor.js public/*; do
-  printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
-done
-```
-
-Das sind **genau die Dateien, über die der Fingerprint geht**, und sonst keine.
-Steht eine Zeile zu viel da, ist das die Ursache; weicht eine Prüfsumme ab, ist
-es diese Datei. **Eine Zeile zu viel wiegt genauso schwer wie eine falsche** —
-löschen und `docker compose up -d --build`, denn der Quelltext steckt im Image.
-
-**Die `.env` liegt bewusst nicht im Paket** — sie enthält den Schlüssel und hat
-in einer verteilten Datei nichts verloren. Sie wandert deshalb mit dem alten
-Ordner nach `kriterion-alt` und muss von Hand zurückgeholt werden. Fehlt sie,
-bricht `docker compose` ab, bevor der Container entsteht; kaputt geht dabei
-nichts.
-
-> **Nicht mit `cp .env.example .env` behelfen.** Dieser Schritt gilt nur für
-> eine **neue, leere** Installation. Bei vorhandenem Bestand steht darin ein
-> leerer `ENCRYPTION_KEY`, der Start erzeugt einen **neuen** Schlüssel und legt
-> ihn als `data/encryption.key` ab — und die vorhandene Datenbank lässt sich
-> damit nicht mehr öffnen. Passiert es doch: `data/encryption.key` löschen und
-> die richtige `.env` aus `kriterion-alt` holen. Zerstört wird nichts, aber der
-> Container läuft bis dahin in einer Neustartschleife.
-
-Nach dem Start im Protokoll nachsehen, ob „Schlüssel aus ENCRYPTION_KEY
-geladen" dasteht (`docker compose logs kriterion`). Steht dort stattdessen die
-Warnung über eine Schlüsseldatei neben den Daten, wurde die `.env` nicht
-gelesen — dann sofort anhalten und nachsehen, bevor etwas geschrieben wird.
-
-**Rüstet eine Version eine Spalte nach, sagt sie es im selben Protokoll** —
-etwa „links um user_id ergaenzt (Migration auf 0.8.30)" oder „rating_criteria um
-gewicht ergaenzt (Migration auf 0.8.40)". Die Zeile kommt genau einmal; beim
-nächsten Start ist sie weg, und das ist richtig so. Wer mehrere Versionen auf
-einmal überspringt, sieht entsprechend mehrere Zeilen.
-
-**Vorausgesetzt wird eine Datenbank aus Version 0.8.0 oder neuer.** Ein
-älterer Bestand wird nicht übernommen; er braucht den Zwischenschritt über
-0.8.0, die letzte Version, die ihn noch lesen konnte.
+> Ob eine Version das tut, sagt `CHANGELOG.md` unter „Was du danach von Hand
+> tun musst", und ausführlich das Änderungsprotokoll der Version.
+>
+> **Rüstet sie eine Spalte nach**, lässt sich der Bestand danach nicht mehr
+> ohne Weiteres auf die vorige Version zurückbringen. Der Weg zurück ist dann
+> die Sicherung, die **vor** dem Einspielen entstanden ist — nicht das
+> Zurückkopieren der alten Dateien.
+>
+> **Legt sie nur eine neue Tabelle an**, sieht eine ältere Version die gar
+> nicht an — und genau das ist die Falle: was darin steht, ist nach einem
+> Downgrade **unerreichbar, ohne dass irgendetwas danach aussieht.** Was im
+> Papierkorb liegt, ist dann nicht wiederherstellbar; ein Zugang, der über
+> einen Link angelegt und noch nicht eingelöst wurde, hat kein Passwort und
+> bekommt von der älteren Version auch keinen neuen Link — dort hilft nur
+> `node zugang.js passwort <name>`.
 
 ## Datenmodell
 
@@ -1707,28 +1621,28 @@ Start eine leere Neuinstallation vermuten.
   (Vorrat, eigene Anbieter, Startanbieter) und die beiden Schalter, wer neue
   Tags und Kategorien anlegen darf. Sache des Admins
 - `user_settings` — die **persönliche** Hälfte, **acht** Schlüssel: die zuletzt
-  benutzte Filterwahl, die **gespeicherten Ansichten** (seit 0.11.0), der
-  Bezugspunkt für „Neu seit …" (seit 0.8.60), Schriftgröße, Blockanordnung,
+  benutzte Filterwahl, die **gespeicherten Ansichten**, der
+  Bezugspunkt für „Neu seit …", Schriftgröße, Blockanordnung,
   sichtbare Linkzeilen, Zeitleiste und die Zahl der Anbieternamen. Je Benutzer
   eine Zeile pro Schlüssel
 - `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
   `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
   bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen.
-  **Die Adresse wird seit 0.9.0 überhaupt gefüllt** — beim Anlegen durch den
+  **Die Adresse wird überhaupt gefüllt** — beim Anlegen durch den
   Admin, danach nur noch durch den Betreffenden selbst
 - `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer. In der Karte
   **„Meine Sitzungen"** sieht jeder seine eigenen; adressiert werden sie über
   eine **gerechnete Kennung**, nie über den Sitzungsschlüssel selbst
-- `tokens` — Einladungs- und Rücksetzlinke (seit 0.8.80). **Gespeichert ist nur
+- `tokens` — Einladungs- und Rücksetzlinke. **Gespeichert ist nur
   der SHA-256 des Links, nie er selbst**; dazu Benutzer, Anlass, Ablauf und
   wann er eingelöst wurde. Sieben Tage haltbar, einmal gültig; abgelaufene
   Zeilen räumt die Anlage nach dreißig Tagen selbst weg
-- `anfragen` — die **Warteschlange der Selbstanmeldung** (seit 0.9.1):
+- `anfragen` — die **Warteschlange der Selbstanmeldung**:
   Wunschname, Adresse, der SHA-256 des Bestätigungslinks und der Zeitpunkt der
   Bestätigung. **Unbestätigte verfallen nach 24 Stunden** und erscheinen beim
   Admin nie; eine bestätigte wartet, so lange es dauert. Höchstens zwanzig
   offene, je Adresse eine
-- `zweifaktor` / `zweifaktor_codes` — der **zweite Faktor** (seit 0.10.0), je
+- `zweifaktor` / `zweifaktor_codes` — der **zweite Faktor**, je
   Zugang höchstens einer. Das TOTP-Geheimnis liegt dort **im Klartext** — es
   wird nachgerechnet und nicht geprüft, deshalb geht es nicht anders; die
   verschlüsselte Datenbank ist die einzige Schicht darüber. Die acht
@@ -1738,13 +1652,13 @@ Start eine leere Neuinstallation vermuten.
   Wiederherstellungscode soll genau dann tragen, wenn das Telefon seit Monaten
   weg ist
 - `sicherheitsprotokoll` — **wer Zugang hatte und wer die Anlage als Ganzes
-  angefasst hat** (seit 0.8.90). Eine Zeile je Vorgang: Zeitpunkt, was, wer, an
+  angefasst hat**. Eine Zeile je Vorgang: Zeitpunkt, was, wer, an
   wem und ein kurzes Merkmal aus einer festen Liste — **kein Freitext, keine
   Namen, keine Adresse**. Beide Benutzerspalten halten einen **Vorgang** fest,
   keine Zugehörigkeit; ein leeres `wer` heißt „über `zugang.js` auf dem Wirt",
   außer bei einer gescheiterten Anmeldung. 180 Tage haltbar, und die Frist ist
   der einzige Weg hinaus
-- `papierkorb` / `papierkorb_bytes` — der **Papierkorb** (seit 0.8.70). Eine
+- `papierkorb` / `papierkorb_bytes` — der **Papierkorb**. Eine
   Zeile je gelöschtem Eintrag: Zeitpunkt, Löschender, Titel und das ganze Paket
   im Austauschformat; die Bytes (Fotos, Videos, Dateien, Kommentarbilder)
   liegen daneben in der zweiten Tabelle, eine Zeile je Datei. **Keine
@@ -1755,7 +1669,7 @@ Start eine leere Neuinstallation vermuten.
   `ratings.user_id` / `links.user_id` / `attachments.user_id` — der Verfasser,
   an sechs Trägern. `papierkorb.geloescht_von` sieht aus wie ein siebter, ist
   aber keiner: es hält fest, **wer gelöscht hat**, so wie ein Zeitstempel
-  festhält, wann — daran hängt kein Recht. Dasselbe gilt seit 0.8.90 für
+  festhält, wann — daran hängt kein Recht. Dasselbe gilt für
   `sicherheitsprotokoll.wer` und `.ziel`.
   `ON DELETE SET NULL` ist das Auffangnetz für ein `DELETE` von Hand: die
   Anwendung selbst entfernt keine Benutzerzeile, und herrenloser Bestand fällt
@@ -1779,19 +1693,18 @@ Anhänge, **Fotos und Videos** — samt echtem Upload einer SVG sowie einer echt
 MP4- und WebM-Datei und Kontrolle des ausgelieferten Bytestroms —, die
 Range-Auslieferung samt ihrer Absagen, die Anmeldebremse in beiden
 Proxy-Lagen sowie die mitwachsenden Textfelder im echten DOM.
-**Seit 0.8.70 dazu der Rundlauf des Papierkorbs** — ein Eintrag mit Foto,
+**Dazu der Rundlauf des Papierkorbs** — ein Eintrag mit Foto,
 Video, Dateien, Kommentaren aller Arten, Bewertungen und Testtagen mehrerer
 Verfasser wird gelöscht, zurückgeholt und Feld für Feld gegen den
 Ausgangsstand gehalten — und **die Sicherung an einer echten Anlage**: die
 Kopie entsteht, ist ohne Schlüssel nicht lesbar, mit Schlüssel vollständig, und
 jeder abgewiesene Zielort hinterlässt nachweislich keine Datei.
-**Seit 0.8.80 dazu der Rundlauf des Einladungslinks** — anlegen, Link, Formular,
+**Dazu der Rundlauf des Einladungslinks** — anlegen, Link, Formular,
 Passwort, Anmeldung, und **derselbe Link ein zweites Mal nicht** —, die
 Nachschau, dass der Link selbst in **keiner Spalte keiner Tabelle** steht, die
 sieben Tage an beiden Seiten, die Anmeldebremse vor der Anmeldung und „Meine
 Sitzungen" mit zwei Benutzern zu je zwei Sitzungen.
-**Seit 0.8.90 dazu jeder der schweren Wege einzeln** (sechs damals, seit 0.9.0
-sieben) — ohne Bestätigung
+**Dazu jeder der sieben schweren Wege einzeln** — ohne Bestätigung
 abgewiesen, mit falschem Passwort abgewiesen, mit richtigem durch, und nach
 jeder Verweigerung die Nachschau in der Datenbank, dass nichts geschrieben
 wurde —, das Sicherheitsprotokoll mit einer Zeile je Vorgang und der Nachschau,
@@ -1799,14 +1712,14 @@ dass **kein Geheimnis in irgendeiner Spalte irgendeiner Zeile** steht, die
 Frist an beiden Seiten, das Aufräumen an **beiden** Aufrufstellen (die für den
 Start gegen einen echten Serverstart) und die öffentliche Adresse in beiden
 Zuständen.
-**Seit 0.8.91 dazu der Rundlauf des Schlüsselwechsels** an echten,
+**Dazu der Rundlauf des Schlüsselwechsels** an echten,
 verschlüsselten Anlagen: wechseln, mit dem neuen Schlüssel lesen, mit dem alten
 nicht mehr, Bestand Feld für Feld derselbe — dazu jede Lage, in der der Wechsel
 **nicht** laufen darf, und in jeder davon die Nachschau, dass wirklich nichts
 gewechselt wurde. **Der Abbruch mit `kill -9` mitten hinein** wird an rund 60 MB
 nachgestellt, und die Dauer dafür wird **gemessen** statt geraten: ist der
 Wechsel zu schnell zum Treffen, sagt die Prüfung genau das.
-**Seit 0.9.0 dazu der Mailversand am echten SMTP-Gespräch** — ein
+**Dazu der Mailversand am echten SMTP-Gespräch** — ein
 SMTP-Empfänger aus Nodes `net` führt das Protokoll wirklich, und „angekommen"
 heißt ein Brief, den er aufgehoben hat. **Er kann scheitern**, und das ist der
 Punkt: annehmen, mit 550 ablehnen, gar nicht grüßen, grüßen und schweigen,
@@ -1820,7 +1733,7 @@ ausschließlich an die eigene Adresse** geht (auch mit einem mitgegebenen Feld i
 Rumpf, Abfrage oder Kopf), dass das **Mailpasswort in keiner Spalte, keiner
 Protokollzeile und keiner Antwort** steht, und dass die **Frist ab dem ersten
 Öffnen** wirklich nur beim ersten Öffnen schreibt.
-**Seit 0.11.0 dazu die Volltextsuche, je eine Lage für jede der sieben
+**Dazu die Volltextsuche, je eine Lage für jede der sieben
 Quellen** — mit erfundenen Suchwörtern, damit jede Trefferzahl **exakt** ist und
 nicht „mindestens einer": fällt eine Quelle aus der Abfrage, wird genau sie
 namentlich rot. Dazu die Schreibung samt **Umlauten in beide Richtungen**, ein
@@ -1835,7 +1748,7 @@ trotzdem stimmen. Am Bildschirm: dass **drei Anschläge hintereinander EINE
 Anfrage** sind, dass der zuletzt getippte Begriff gewinnt, dass das Leeren
 ohne Anfrage auskommt und dass die Liste **stehenbleibt**, wenn die Suche
 scheitert.
-**Seit 0.9.1 dazu die Selbstanmeldung, vom Formular bis zum gesetzten
+**Dazu die Selbstanmeldung, vom Formular bis zum gesetzten
 Passwort** — und die schwerste Zusage darin wird **gemessen, nicht behauptet**:
 die fünf Lagen der Anfrage antworten mit demselben Statuscode und demselben
 Rumpf **Byte für Byte**, und **keine davon wartet auf den Mailserver**,
@@ -1863,3 +1776,134 @@ Er baut jede geprüfte Sache **probeweise zurück**, in einer eigenen Kopie aus
 `git archive HEAD`, und schreibt eine Tabelle: welcher Rückbau welche Prüfungen
 namentlich rot gemacht hat. **Ein Rückbau, der keine einzige Prüfung rot macht,
 ist ein Fund** — dann prüft die Prüfung nicht, was sie zu prüfen vorgibt.
+
+## Den Schlüssel wechseln
+
+Es gibt genau einen Anlass dafür: **der Schlüssel ist in fremde Hand geraten.**
+Der häufigste Weg dorthin ist der aus dem Abschnitt darüber — der Schlüssel lag
+eine Weile als `data/encryption.key` neben der Datenbank, und irgendjemand hat
+in dieser Zeit das Verzeichnis kopiert. Diese Kopie öffnet die Datei bis heute.
+**Ein Wechsel ist das einzige Mittel dagegen**; die alte Schlüsseldatei zu
+löschen hilft nur gegen künftige Kopien.
+
+Gewechselt wird **auf dem Wirt**, im Projektverzeichnis:
+
+```bash
+./schluessel.sh zeigen       # Lage ansehen, ändert nichts
+./schluessel.sh wechseln     # anhalten, sichern, wechseln, starten
+```
+
+> **„Keine Berechtigung"?** Dann fehlt dem Skript das Ausführungsrecht —
+> `python3 -m zipfile -e` im Einspielweg bringt es nicht mit. Einmal
+> `chmod +x schluessel.sh`, und es ist erledigt; ohne das Recht geht auch
+> `bash schluessel.sh zeigen`.
+
+**Warum nicht auf Knopfdruck in der Oberfläche?** Zwei Gründe. Der Anlass ist
+**einmalig** — ein dauerhafter Knopf für ein einmaliges Ereignis, und
+ausgerechnet der eine, der bei falscher Handhabung **alles** verliert, wäre ein
+schlechtes Tauschgeschäft. Und ein Knopf könnte die Sache gar nicht zu Ende
+bringen: steht der Schlüssel in der `.env`, kennt die Anwendung den neuen Wert,
+erreicht die Datei aber nicht — sie liegt auf dem Wirt und ist nicht einmal im
+Image. Dort werden Datenbank und `.env` **in einem Zug** nachgezogen.
+
+**Was das Skript tut, in dieser Reihenfolge:**
+
+1. `.env` sichern (`.env.vor-schluesselwechsel-…`)
+2. neuen Wert erzeugen (`openssl rand -hex 32`)
+3. die Anlage **anhalten** — ein laufender Server hält die Datenbank im
+   WAL-Modus offen, und der Wechsel braucht `journal_mode = DELETE`
+4. das Datenverzeichnis sichern (`../kriterion-data-vor-schluesselwechsel-…`)
+5. wechseln, in einem Wegwerf-Container
+6. **erst nach Erfolg** den neuen Wert eintragen — in die `.env` oder in
+   `data/encryption.key`, je nachdem, woher der alte kam
+7. die Anlage starten
+
+Danach ins Protokoll sehen:
+
+```bash
+docker compose logs --tail 30 kriterion
+```
+
+Erwartet wird „Schlüssel aus ENCRYPTION_KEY geladen." bzw. die Warnung, dass
+der Schlüssel neben der Datenbank liegt.
+
+> **PROBIER DEN WECHSEL AN EINER WEGWERFANLAGE AUS, bevor du ihn an der echten
+> fährst.** Es ist der einzige Vorgang im ganzen Projekt, bei dem ein Fehler
+> alles kostet.
+
+**Und die Probe muss an einem echten Bestand laufen, sonst belegt sie nichts.**
+Ein Wechsel an einer leeren Datenbank ist in Millisekunden vorbei und sagt über
+662 MB nichts. Die Probe unten nimmt deshalb eine **Kopie der echten Anlage** —
+mit ihrem Bestand **und ihrer `.env`**:
+
+```bash
+cd .../DockerAppData                       # eine Ebene über dem Projekt
+docker compose -f kriterion/docker-compose.yml stop    # ruhige Kopie, offene WAL vermeiden
+cp -a kriterion kriterion-probe
+docker compose -f kriterion/docker-compose.yml start   # die echte darf sofort weiterlaufen
+
+cd kriterion-probe
+rm -rf kriterion-sicherung .git .env.vor-*   # data BLEIBT. .env BLEIBT.
+sed -i 's/^    container_name: kriterion$/    container_name: kriterion-probe/' docker-compose.yml
+sed -i 's/"3100:3000"/"3199:3000"/' docker-compose.yml
+chmod +x schluessel.sh
+docker compose up -d --build
+# auf http://<server>:3199 anmelden — dieselben Zugänge, derselbe Bestand
+./schluessel.sh wechseln
+docker compose logs --tail 30 kriterion
+```
+
+> **`data/` und `.env` gehören zusammen — wer eines von beiden ersetzt, hat
+> keine Probe mehr, sondern eine neue Anlage.** Wird `data/` gelöscht und ein
+> frischer Schlüssel erzeugt, wechselt das Skript den Schlüssel einer **leeren**
+> Datenbank; das läuft durch und belegt nichts. Wird umgekehrt `data/` behalten
+> und trotzdem ein frischer Schlüssel geschrieben, geht die Datenbank **gar
+> nicht mehr auf** — dann scheitert nicht der Wechsel, sondern schon der Start.
+> `schluessel.sh` selbst stört sich an einem vorhandenen `data/` nicht.
+
+**Woran du erkennst, dass die Probe etwas wert war** — vier Zeilen, und alle
+vier müssen stimmen:
+
+| | erwartet |
+|---|---|
+| Ansage vor dem Wechsel | die **echte** Größe, z. B. `662.5 MB, erwartete Dauer rund 13 Sekunden` — nicht `0.2 MB` |
+| nach dem Wechsel | `integrity_check: ok` |
+| im Protokoll danach | `Läuft auf Port 3000 — Eigentümer: <dein Name>` — **nicht** „noch kein Zugang" |
+| im Browser auf `:3199` | Einträge, Fotos, Kommentare vollständig; Karte „Sicherung" markiert die alten Kopien rot |
+
+Danach die Probe wegräumen: `cd .. && docker compose -f kriterion-probe/docker-compose.yml down && rm -rf kriterion-probe`.
+**Die `.env` der Probe niemals an die echte Anlage zurückkopieren** — sie trägt
+einen Schlüssel, zu dem nur die Probedaten passen.
+
+### Zwei Schlüssel im Umlauf — die unangenehmste Falle
+
+**Ab dem Wechsel gibt es zwei Schlüssel.** Jede Sicherung, die vorher entstanden
+ist, bleibt mit dem **alten** verschlüsselt. Sie ist nicht kaputt — sie braucht
+nur einen anderen Schlüssel als die laufende Anlage. Wer das nicht weiß, hält
+sie im Ernstfall für defekt und wirft sie weg.
+
+Dagegen stehen drei Dinge:
+
+* **Der alte Wert bleibt auskommentiert in der `.env` stehen**, mit Datum, mit
+  dem Namen dessen, der gewechselt hat, und mit dem Satz, wofür er noch gut
+  ist. **Nicht löschen, bevor er im Passwortspeicher steht.**
+* **Die Karte „Sicherung" markiert jede Kopie rot, die älter ist als der
+  Wechsel** — und wenn auch die jüngste älter ist, sagt sie das deutlicher:
+  dann passt überhaupt keine, und es gehört sofort neu gesichert.
+* **Der JSON-Export braucht keinen Schlüssel.** Er ist damit der einzige
+  Rückweg, der von der ganzen Schlüsselverwaltung nichts wissen muss.
+
+### Was der Wechsel nicht ist
+
+Er wechselt den **Schlüssel**, nicht das Verfahren: SQLCipher bleibt, die
+Schlüssellänge bleibt, `katalog.sqlite` bleibt, das Schema bleibt, die
+Passwörter bleiben, und **niemand wird abgemeldet** — der Datenbankschlüssel
+hängt an keinem Passwort.
+
+Bricht der Wechsel mitten hinein ab (Stromausfall, `kill -9`), ist das
+**folgenlos**: das Rollback-Journal stellt den alten Stand her, der **alte**
+Schlüssel öffnet weiter, der neue wird abgewiesen. Es entsteht kein halber
+Zustand. Geht dagegen das Journal verloren, ist alles verloren — **das** ist
+der Grund für die Sicherung davor, nicht der Abbruch selbst. Das Journal
+wächst dabei auf die Größe der Datenbank; reicht der Platz nicht, sagt das
+Skript vorher ab und rührt nichts an.

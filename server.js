@@ -15,70 +15,50 @@ const mail = require('./mail');
 const PORT = process.env.PORT || 3000;
 
 /* ---- Die oeffentliche Adresse ----
-   SEIT 0.8.80 BAUT DER BROWSER DES ADMINS DEN EINLADUNGSLINK aus location.
-   Das ist sicher, braucht keine Einstellung und bleibt die Vorgabe -- "laeuft
-   im Heimnetz" soll ohne Konfiguration auskommen. Es hat genau eine
-   Bruchstelle: die Adresse, unter der der Admin zugreift, ist nicht immer die,
-   die der Empfaenger benutzen soll. Wer ueber http://192.168.1.50:3100
-   arbeitet und einen Link nach draussen gibt, gibt einen Link ins Leere.
+   OHNE SIE BAUT DER BROWSER DES ADMINS DEN EINLADUNGSLINK aus location. Das
+   ist die Vorgabe und braucht keine Einstellung; es hat genau eine
+   Bruchstelle -- die Adresse, unter der der Admin zugreift, ist nicht immer
+   die, die der Empfaenger benutzen soll.
 
    SIE GEHOERT IN DIE .env UND NICHT IN settings, dieselbe Linie wie
-   HINTER_PROXY: sie entscheidet ueber Netzwerkvertrauen, nicht ueber eine
-   Vorliebe. Der Hebel liegt in der Rollenleiter -- ein Admin kommt nicht an
-   einen anderen Admin oder den Eigentuemer. Duerfte er die oeffentliche
-   Adresse setzen, zeigte ab Stufe I jede verschickte Ruecksetzmail auf seinen
-   Server, auch die, die sich der Eigentuemer selbst anfordert. Der
-   Systembereich ZEIGT sie deshalb, er setzt sie nicht.
+   HINTER_PROXY: Netzwerkvertrauen, nicht Vorliebe. Ein Admin kommt nicht an
+   einen anderen Admin -- duerfte er die oeffentliche Adresse setzen, zeigte
+   jede verschickte Ruecksetzmail auf seinen Server. Der Systembereich ZEIGT
+   sie deshalb, er setzt sie nicht.
 
-   AUS DEM HOST-KOPF WIRD WEITERHIN NICHTS ABGELEITET. Ueber einen gefaelschten
-   Kopf liesse sich ein Link sonst auf einen fremden Server umbiegen -- die
-   Einstellung ist die eine Stelle, an der jemand mit Zugriff auf den Wirt es
-   sagt, und sonst niemand.
+   AUS DEM HOST-KOPF WIRD NICHTS ABGELEITET: ueber einen gefaelschten Kopf
+   liesse sich ein Link sonst auf einen fremden Server umbiegen.
 
-   ALLES AB ? UND # WIRD ABGEWIESEN: das Fragment traegt bereits den
-   Schluessel, und eine Abfrage haette an einer Adresse, aus der ein Link
-   gebaut wird, nichts zu suchen. Ein PFAD ist erlaubt -- die Anlage kann unter
-   einem Unterpfad haengen.
-   EIN UNBRAUCHBARER WERT BRICHT DEN START NICHT AB, sondern meldet sich laut
-   und faellt auf den Browserweg zurueck -- dieselbe Form wie bei AUTH_RESET
-   und beim fehlenden Sicherungsort. Ein Start, der an einem Tippfehler in
-   einer OPTIONALEN Einstellung abbricht, ist schlimmer als der Tippfehler. */
+   Zur Form (was ? und # angeht, und warum ein unbrauchbarer Wert den Start
+   nicht abbricht) siehe auth.js, wo der Wert gelesen wird. */
 const OEFFENTLICHE = auth.OEFFENTLICHE_ADRESSE;
 
 /* Was die Antwort ueber den Link sagt. IST DIE EINSTELLUNG LEER, GIBT DER
-   SERVER KEINEN LINK HERAUS -- der Browser baut ihn weiter selbst, und die
+   SERVER KEINEN LINK HERAUS -- der Browser baut ihn selbst, und die
    Oberflaeche sagt daneben, woher die Adresse kam. Zwei Felder statt eines:
-   aus einem fehlenden Link laesst sich "aus dem Browser" zwar erraten, aber
-   eine Oberflaeche, die aus einer Abwesenheit eine Aussage macht, ist genau
-   die zweite Wahrheit, die hier nicht entstehen soll. */
+   aus einer Abwesenheit eine Aussage zu machen waere die zweite Wahrheit. */
 const linkAngabe = (klartext) => OEFFENTLICHE.adresse
   ? { link: `${OEFFENTLICHE.adresse}/#/einladung/${klartext}`, linkQuelle: 'einstellung' }
   : { link: null, linkQuelle: 'browser' };
 
-/* ---- Der Versand eines Tokenlinks, seit 0.9.0 ----
+/* ---- Der Versand eines Tokenlinks ----
    DER TOKEN ENTSTEHT ZUERST, DIE ANTWORT TRAEGT DEN LINK IMMER, UND DER
-   VERSAND IST EIN FELD DARIN. Das ist die bauliche Form des Satzes, der ueber
-   der ganzen Stufe steht: E-Mail ist eine Bequemlichkeit, keine Voraussetzung.
-   Schlaegt der Versand fehl, bricht nichts ab -- der Admin sieht
-   "Versand fehlgeschlagen" und daneben den Link zum Kopieren.
+   VERSAND IST EIN FELD DARIN -- die bauliche Form des Satzes "E-Mail ist eine
+   Bequemlichkeit, keine Voraussetzung". Schlaegt der Versand fehl, bricht
+   nichts ab: der Admin sieht "Versand fehlgeschlagen" und daneben den Link.
 
    DREI WERTE, und mehr gibt es nicht:
      'ok'              die Mail ist beim Server des Anbieters angenommen
      'fehlgeschlagen'  es wurde versucht und ging schief
      'aus'             es wurde gar nicht erst versucht
-   DER GRUND STEHT DANEBEN, weil 'aus' allein drei verschiedene Lagen deckt --
-   kein Mailzugang, keine oeffentliche Adresse, keine Adresse am Zugang. Ohne
-   ihn saehe der Admin, DASS nichts hinausging, und nicht, was er tun soll.
+   DER GRUND STEHT DANEBEN, weil 'aus' drei Lagen deckt -- kein Mailzugang,
+   keine oeffentliche Adresse, keine Adresse am Zugang. Ohne ihn saehe der
+   Admin, DASS nichts hinausging, und nicht, was er tun soll.
 
    DIE OEFFENTLICHE ADRESSE IST PFLICHT FUER DEN VERSAND UND NICHT FUER DEN
-   START. Das ist eine engere Auslegung als der Wortlaut des Konzeptpapiers
-   ("ab Stufe I ist sie Pflicht"), und sie ist die einzig moegliche: ein
-   Startabbruch braeche jede vorhandene Installation beim Einspielen dieser
-   Version. Ohne sie wird nicht verschickt, die Karte sagt warum, und der Link
-   steht wie immer daneben -- beim Kopieren baut ihn der Browser des Admins
-   weiter selbst, wie seit 0.8.80.
-   UND AUS DEM HOST-KOPF WIRD AUCH HIER NICHTS ABGELEITET: eine verschickte
-   Mail waere die Stelle, an der ein gefaelschter Kopf am meisten wert waere. */
+   START: ein Startabbruch braeche jede vorhandene Installation. Ohne sie wird
+   nicht verschickt, die Karte sagt warum, und der Browser des Admins baut den
+   Link beim Kopieren weiter selbst. */
 async function versendeTokenLink(ziel, t) {
   const zugang = mail.loeseAuf(getSetting(mail.SCHLUESSEL, null));
   if (!mail.eingerichtet(zugang))
@@ -101,31 +81,22 @@ async function versendeTokenLink(ziel, t) {
               : { versand: 'fehlgeschlagen', versandGrund: e.grund };
 }
 
-/* ---- Der Beleg der letzten Testmail, seit 0.9.0 ------------------------
-   SIE BELEGT "mit DIESEN Werten ist einmal wirklich eine Mail hinausgegangen".
-   Der Beleg haengt am HASH UEBER DEN ZUGANG: aendert sich irgendetwas am
-   Zugang, passt die Marke nicht mehr, und zwar unabhaengig davon, auf welchem
-   Weg der Wert in settings gelandet ist.
-   SIE STEHT SEIT 0.9.1 HIER OBEN UND NICHT MEHR IN mailKarte(), weil sie
-   inzwischen ZWEI Leser hat -- die Karte und den Schalter der Selbstanmeldung.
-   ZWEI MECHANISMEN FUER EINE ZUSAGE SIND EINER ZU VIEL (Stolperstein 145):
-   deshalb eine Funktion und zwei Rufer, nicht zwei Rechnungen. */
+/* ---- Der Beleg der letzten Testmail --------------------------------------
+   SIE BELEGT "mit DIESEN Werten ist einmal wirklich eine Mail hinausgegangen"
+   und haengt am HASH UEBER DEN ZUGANG: aendert sich etwas daran, passt die
+   Marke nicht mehr. Eine Funktion und zwei Rufer, nicht zwei Rechnungen
+   (Stolperstein 145). */
 const MAILTEST_SCHLUESSEL = 'mailtestOk';
 function mailtestStand(roh) {
   const test = getSetting(MAILTEST_SCHLUESSEL, null);
   return test && test.marke && test.marke === mail.marke(roh) ? test : null;
 }
 
-/* ---- Kann diese Anlage ueberhaupt verschicken, seit 0.9.1 --------------
-   DREI VORAUSSETZUNGEN, UND ALLE DREI SIND NOETIG. Der Auftrag zu dieser Runde
-   nennt nur die Testmarke; das traegt nicht, und der Grund ist nachgesehen und
-   nicht angenommen: DIE TESTMAIL ENTHAELT KEINEN LINK und geht deshalb auch
-   ohne OEFFENTLICHE_ADRESSE anstandslos durch. Die Marke kann gruen sein,
-   waehrend versendeTokenLink() mit versand: 'aus' abbricht -- und dann ginge
-   die Bestaetigungsmail nie hinaus, und die Selbstanmeldung liefe genau in die
-   Leere, die die Kopplung verhindern soll.
-   DER GRUND STEHT DANEBEN, aus demselben Grund wie bei versandGrund: "nicht
-   bereit" allein sagt dem Admin nicht, was er tun soll. */
+/* ---- Kann diese Anlage ueberhaupt verschicken --------------------------
+   DREI VORAUSSETZUNGEN, UND ALLE DREI SIND NOETIG. Die Testmarke allein
+   traegt nicht: DIE TESTMAIL ENTHAELT KEINEN LINK und geht auch ohne
+   OEFFENTLICHE_ADRESSE durch -- die Marke waere gruen, und die
+   Bestaetigungsmail ginge nie hinaus. Der Grund steht daneben. */
 function versandBereit() {
   const roh = getSetting(mail.SCHLUESSEL, null);
   if (!mail.eingerichtet(roh))
@@ -139,24 +110,18 @@ function versandBereit() {
   return { ok: true, grund: '' };
 }
 
-/* ---- Die Bestaetigungsmail der Selbstanmeldung, seit 0.9.1 -------------
+/* ---- Die Bestaetigungsmail der Selbstanmeldung -------------------------
    DER DRITTE MAILANLASS. Sie traegt einen Link OHNE Passwortkraft: wer ihn
    anklickt, sagt nur "ja, das bin ich".
 
-   SIE WIRD GERUFEN, NACHDEM DIE ANTWORT SCHON GESCHRIEBEN IST, und das ist
-   keine Bequemlichkeit, sondern die Bedingung fuer die immer gleiche Antwort.
-   Ein Weg, der eine Mail verschickt, dauert Sekunden; einer, der still
-   verwirft, dauert Millisekunden -- und aus dem Unterschied liesse sich
-   ablesen, welcher der beiden gelaufen ist. Damit waere das Formular doch
-   wieder ein Werkzeug zum Durchprobieren von Namen und Adressen, nur eben
-   ueber die Uhr statt ueber den Rumpf. NACHGEMESSEN STATT BEHAUPTET: der
-   Pruefstand haelt beide Wege am troepfelnden Empfaenger gegeneinander.
-   DER ANFRAGENDE VERLIERT DABEI NICHTS: er erfaehrt ueber den Versand ohnehin
-   nichts, und erfahren duerfte er es auch nicht.
+   SIE WIRD GERUFEN, NACHDEM DIE ANTWORT SCHON GESCHRIEBEN IST -- Bedingung
+   fuer die immer gleiche Antwort. Ein Weg, der eine Mail verschickt, dauert
+   Sekunden; einer, der still verwirft, Millisekunden, und aus dem Unterschied
+   liesse sich ablesen, welcher gelaufen ist. Der Pruefstand haelt beide Wege
+   am troepfelnden Empfaenger gegeneinander.
 
-   DER SCHLUESSEL STEHT IM FRAGMENT (#/bestaetigung/…) und geht damit nie an
-   den Server -- dieselbe Bauform wie beim Einladungslink, und hier zusaetzlich
-   wertvoll: ein Vorschaudienst, der Links im Postfach vorab abruft, holt nur
+   DER SCHLUESSEL STEHT IM FRAGMENT (#/bestaetigung/…) und geht nie an den
+   Server: ein Vorschaudienst, der Links im Postfach vorab abruft, holt nur
    die Seite und bestaetigt damit gerade NICHT. */
 async function versendeBestaetigung(name, adresse, klartext) {
   const zugang = mail.loeseAuf(getSetting(mail.SCHLUESSEL, null));
@@ -173,23 +138,20 @@ app.use(express.json({ limit: '2mb' }));
 /* Gilt fuer die ganze Anwendung.
    nosniff: der Browser darf den Typ nie selbst erraten.
    Die Sicherheitsregel ist die zweite Verteidigung hinter der Ableitung des
-   Typs am Fotoweg -- zwei Schichten fuer denselben Fehler. Sie ist hier
-   billig, weil die Oberflaeche nichts von aussen nachlaedt und kein
-   onclick= in einem String kennt.
+   Typs am Fotoweg -- zwei Schichten fuer denselben Fehler.
+
    'unsafe-inline' bei style-src ist NOETIG und keine Nachlaessigkeit: die
    Oberflaeche setzt Randabstaende, Rasterspalten und den Fokuspunkt als
-   style="..."-Attribut, und eine Sicherheitsregel ohne diese Freigabe
-   verwirft ausnahmslos jedes davon. script-src bleibt streng -- dort liegt
-   die Wirkung. frame-src 'self' traegt die PDF-Vorschau, die ein iframe auf
-   den eigenen Ursprung einbindet.
-   media-src TRAEGT DIE VIDEOS, und beide Angaben sind noetig. 'self' erlaubt
-   das Abspielen aus der eigenen Anlage. blob: erlaubt das Standbild VOR dem
-   Hochladen: die Oberflaeche haengt die gewaehlte Datei als blob:-Adresse an
-   ein <video>, um einen Einzelbild daraus zu ziehen. Eine blob:-Adresse an
+   style="..."-Attribut, und ohne die Freigabe verwirft der Browser jedes
+   davon. script-src bleibt streng -- dort liegt die Wirkung.
+   frame-src 'self' traegt die PDF-Vorschau.
+
+   media-src TRAEGT DIE VIDEOS, und beide Angaben sind noetig: 'self' fuer das
+   Abspielen, blob: fuer das Standbild VOR dem Hochladen (die Oberflaeche
+   haengt die gewaehlte Datei als blob: an ein <video>). Eine blob:-Adresse an
    einem <video> faellt unter media-src, nicht unter img-src -- ohne die
-   Freigabe verwirft der Browser sie WORTLOS, und es liesse sich ueberhaupt
-   kein Video hochladen (im echten Chromium nachgemessen: "Refused to load
-   media from blob:", MEDIA_ELEMENT_ERROR 4).
+   Freigabe verwirft der Browser sie WORTLOS.
+
    Strict-Transport-Security nur hinter dem Proxy: im Heimnetz auf Port 3100
    spricht niemand HTTPS, und ein gesetzter Kopf sperrte die Anlage aus. */
 const CSP_ANWENDUNG =
@@ -216,12 +178,10 @@ const upload = multer({
       : cb(Object.assign(new Error('Nur Bilddateien sind erlaubt'), { status: 400 }))
 });
 
-/* Was als Foto hereinkommt, muss ein Rasterbild sein -- und zwar dem INHALT
-   nach. sharp liest auch SVG anstandslos und macht daraus brauchbare
-   Vorschaubilder; der Upload saehe also normal aus, und die Datei laege
-   danach als Skripttraeger in der Datenbank. Dieselbe Regel gilt bei den
-   Bildern in Kommentaren seit jeher, dort ueber die Neukodierung.
-   Die Liste ist die aus dem Ideenpapier; svg fehlt darin mit Absicht. */
+/* Was als Foto hereinkommt, muss ein Rasterbild sein -- dem INHALT nach.
+   sharp liest auch SVG anstandslos: der Upload saehe normal aus, und die
+   Datei laege danach als Skripttraeger in der Datenbank. svg fehlt in der
+   Liste mit Absicht. */
 const RASTER_FORMATE = ['jpeg', 'png', 'webp', 'avif', 'gif', 'tiff'];
 async function rasterBild(buf) {
   try {
@@ -231,13 +191,11 @@ async function rasterBild(buf) {
 }
 
 const touch = db.prepare(`UPDATE items SET updated_at = datetime('now') WHERE id = ?`);
-/* "bearbeitet" am Kommentar. EINE Stelle fuer beide Bildwege -- anhaengen und
-   entfernen sind dieselbe Aussage ueber denselben Menschen, und zwei Anweisungen
-   desselben Wortlauts liefen frueher oder spaeter auseinander.
+/* "bearbeitet" am Kommentar. EINE Stelle fuer beide Bildwege -- anhaengen
+   und entfernen sind dieselbe Aussage ueber denselben Menschen.
    updated_at ist eine Aussage UEBER DEN VERFASSER: nur er loest es aus. Der
-   Eingriff eines Admins setzt es nie -- sonst saehe seine Loeschung aus wie eine
-   Bearbeitung durch den Verfasser. Am Kommentartext steht dieselbe Regel
-   ausgeschrieben in PUT /api/comments/:id. */
+   Eingriff eines Admins setzt es nie, sonst saehe seine Loeschung aus wie
+   eine Bearbeitung durch den Verfasser. */
 const kommentarBearbeitet = db.prepare(`UPDATE comments SET updated_at = datetime('now') WHERE id = ?`);
 const getSetting = (k, fallback) => {
   const r = db.prepare('SELECT value FROM settings WHERE key = ?').get(k);
@@ -316,13 +274,10 @@ function reclaim() {
 app.get('/api/config', (req, res) => {
   // setupRequired sagt nur, DASS noch eingerichtet werden muss -- nie etwas
   // ueber den Bestand. Wer die Seite aufruft, saehe es ohnehin.
-  /* registrierung SEIT 0.9.1: die Anmeldeseite muss wissen, ob sie das
-     Formular ueberhaupt zeigen soll. Der Wert sagt nichts ueber den Bestand
-     und nichts ueber einen Menschen -- er sagt, ob diese Anlage Anfragen
-     annimmt, und das erfaehrt ohnehin jeder, der eine stellt.
-     DIE LISTE BLEIBT ABGESCHLOSSEN: was hier auftaucht, sieht jeder, der die
-     Adresse kennt. Der Pruefstand nagelt die Namen fest, und ein fuenfter
-     kommt nicht stillschweigend dazu. */
+  /* registrierung: die Anmeldeseite muss wissen, ob sie das Formular zeigen
+     soll. Der Wert sagt nichts ueber Bestand oder Menschen.
+     DIE LISTE BLEIBT ABGESCHLOSSEN -- was hier auftaucht, sieht jeder, der
+     die Adresse kennt; der Pruefstand nagelt die Namen fest. */
   res.json({
     title: getSetting('title_public', 'Bewertungskatalog'), version: VERSION,
     setupRequired: !auth.benutzerVorhanden(), minPassword: auth.PASSWORT_MIN,
@@ -367,12 +322,10 @@ app.post('/api/login', async (req, res) => {
     return res.status(401).json({ error: 'Benutzername oder Passwort stimmt nicht.' });
   }
   /* Erste von zwei Stellen: ein gesperrter Zugang kommt nicht herein.
-     ERST HIER, nach der Passwortpruefung, und das ist der ganze Punkt: ein
-     gesperrter Zugang soll erfahren, dass er gesperrt ist -- sonst liest sich
-     das wie ein falsches Passwort und der Betroffene probiert weiter, bis die
-     Bremse zuschlaegt. Vor der Pruefung waere dieselbe Meldung ein Werkzeug
-     zum Durchprobieren von Namen.
-     Kein noteFailure: das Passwort war richtig, es ist kein Fehlversuch. */
+     ERST HIER, nach der Passwortpruefung: ein gesperrter Zugang soll
+     erfahren, dass er gesperrt ist. Vor der Pruefung waere dieselbe Meldung
+     ein Werkzeug zum Durchprobieren von Namen.
+     Kein noteFailure -- das Passwort war richtig. */
   if (benutzer.status !== 'aktiv') {
     return res.status(403).json({
       error: benutzer.status === 'geloescht'
@@ -380,29 +333,19 @@ app.post('/api/login', async (req, res) => {
         : 'Dieser Zugang ist gesperrt. Der Admin kann ihn wieder freigeben.'
     });
   }
-  /* DER ZWEITE FAKTOR, SEIT 0.10.0 -- UND HIER, NACH DER PASSWORTPRUEFUNG.
+  /* DER ZWEITE FAKTOR -- UND HIER, NACH DER PASSWORTPRUEFUNG.
      DIE AUSKUNFT "DIESER ZUGANG HAT EINEN ZWEITEN FAKTOR" KOMMT ERST NACH
-     RICHTIGEM PASSWORT, und das ist baulich wahr statt beabsichtigt: die Zeile
-     steht unterhalb von pruefeAnmeldung, und wer dort scheitert, hat die 401
-     von oben laengst bekommen -- Byte fuer Byte dieselbe wie vor dieser Runde.
-     Stuende die Frage weiter oben, waere die Anmeldeseite ein Werkzeug zum
-     Durchprobieren von NAMEN: "dieser hat einen Faktor" heisst "diesen Namen
-     gibt es".
-     KEIN COOKIE. Es entsteht KEINE Sitzung und damit auch keine halbe -- was
-     entsteht, ist ein Ausweis im Arbeitsspeicher, und sessions bleibt die eine
-     Wahrheit ueber "angemeldet". */
-  /* DER ZAEHLER DER BREMSE WIRD HIER NICHT ZURUECKGESETZT, und das ist ein
-     Befund aus dem Bau dieser Runde und kein Feinschliff. Bis 0.10.0 stand
-     noteSuccess unmittelbar hinter der Passwortpruefung -- richtig, solange
-     die Anmeldung mit dem Passwort fertig war. Mit einem zweiten Schritt
-     dahinter WAERE ES DIE LUECKE GEWESEN: wer das Passwort kennt und Ziffern
-     raet, holte sich vor jedem Versuch einen frischen Ausweis, und dieser Ruf
-     loeschte den Zaehler, den der zweite Schritt gerade aufgebaut hat. Die
-     Bremse haette nie zugeschlagen, und sechs Ziffern waeren eine Million
-     ungebremste Versuche gewesen.
-     ZURUECKGESETZT WIRD ERST, WENN JEMAND WIRKLICH DRIN IST -- unten in
-     dieser Route fuer den einstufigen Weg, und in POST /api/login/zwei fuer
-     den zweistufigen. Eine halb gelungene Anmeldung ist kein Erfolg. */
+     RICHTIGEM PASSWORT, und das ist baulich wahr statt beabsichtigt: die
+     Zeile steht unterhalb von pruefeAnmeldung. Stuende die Frage weiter oben,
+     waere die Anmeldeseite ein Werkzeug zum Durchprobieren von NAMEN --
+     "dieser hat einen Faktor" heisst "diesen Namen gibt es".
+     KEIN COOKIE: es entsteht keine Sitzung und damit auch keine halbe. Was
+     entsteht, ist ein Ausweis im Arbeitsspeicher. */
+  /* DER ZAEHLER DER BREMSE WIRD HIER NICHT ZURUECKGESETZT. Stuende
+     noteSuccess unmittelbar hinter der Passwortpruefung, holte sich, wer das
+     Passwort kennt, vor jedem Rateversuch einen frischen Ausweis -- und
+     dieser Ruf loeschte den Zaehler, den der zweite Schritt gerade aufbaut.
+     ZURUECKGESETZT WIRD ERST, WENN JEMAND WIRKLICH DRIN IST. */
   if (auth.zweifaktorAn(benutzer.id)) {
     return res.json({ zweifaktor: true, ...auth.erzeugeAnmeldeAusweis(benutzer.id) });
   }
@@ -412,44 +355,36 @@ app.post('/api/login', async (req, res) => {
   res.json({ ok: true });
 });
 
-/* DER ZWEITE SCHRITT DER ANMELDUNG, seit 0.10.0.
-   DIE ACHTE ROUTE DER ART 'offen' -- im Kopf steht keine Rechtefrage, also MUSS
-   die Schranke im Rumpf stehen, und sie heisst Ausweis UND Code. Beide zusammen:
-   der Ausweis allein belegt nur, dass jemand das Passwort kannte.
+/* DER ZWEITE SCHRITT DER ANMELDUNG.
+   DIE ACHTE ROUTE DER ART 'offen' -- im Kopf steht keine Rechtefrage, also
+   MUSS die Schranke im Rumpf stehen, und sie heisst Ausweis UND Code: der
+   Ausweis allein belegt nur, dass jemand das Passwort kannte.
 
    DIE BENUTZERNUMMER KOMMT AUS DEM AUSWEIS UND NIE AUS DEM RUMPF. Stuende sie
-   dort, waere das richtige Passwort eines Zugangs die Eintrittskarte fuer jeden
-   anderen -- man tippte den eigenen Namen, bekaeme den Ausweis und schriebe
-   eine fremde Nummer hinein.
+   dort, waere das richtige Passwort eines Zugangs die Eintrittskarte fuer
+   jeden anderen.
 
-   DIE ANMELDEBREMSE GREIFT HIER AUSDRUECKLICH, mit unangetasteten Kennwerten
-   und BEIDEN Haelften. Sie faellt an dieser Route nicht von selbst an: es ist
+   DIE ANMELDEBREMSE GREIFT HIER AUSDRUECKLICH, mit BEIDEN Haelften: es ist
    ein eigener Weg neben POST /api/login, und ohne diese Zeilen liefe er an
-   checkThrottle vorbei. Sechs Ziffern sind eine Million -- ungebremst waere das
-   kein Faktor, sondern eine Verzoegerung. Der NAME ist hier bekannt (er haengt
-   am Ausweis), also greift auch die verzoegernde Haelfte, genau wie bei
-   POST /api/login und anders als an den Tokenrouten.
+   checkThrottle vorbei. Sechs Ziffern sind eine Million -- ungebremst waere
+   das kein Faktor, sondern eine Verzoegerung.
 
-   DIE ABSAGE IST DIE EINE aus auth.js und nennt nicht, ob der Code falsch oder
-   abgelaufen war -- das Heilmittel ist in beiden Faellen dasselbe. */
+   DIE ABSAGE IST DIE EINE aus auth.js und nennt nicht, ob der Code falsch
+   oder abgelaufen war. */
 app.post('/api/login/zwei', async (req, res) => {
   const ip = auth.clientIp(req);
   const { ausweis, code } = req.body || {};
-  /* DIE BREMSE STEHT GANZ VORN -- dieselbe Reihenfolge wie an POST /api/login
-     und POST /api/bestaetigung. Ein gesperrter Aufrufer bekommt an JEDER
-     Stelle dieselbe 429 und nirgends stattdessen eine Auskunft ueber seinen
-     Ausweis.
-     UND SIE IST DIE EINZIGE FORM, IN DER SICH DIE ZUSAGE UEBERHAUPT BELEGEN
-     LAESST. Stuende sie hinter dem Ausweis, antwortete diese Route einem
-     gesperrten Aufrufer mit einer 401 ueber den Ausweis -- und ob die Sperre
-     hier ueberhaupt gilt, waere von aussen nicht mehr zu sehen: die 429 kaeme
-     dann immer schon aus Schritt 1. Genau daran ist die erste Fassung der
-     Bremsprobe STUMM geblieben (Stolperstein 163).
-     GEZAEHLT WIRD HIER MIT DER IP-HAELFTE, denn der Name ist vor dem Ausweis
-     nicht bekannt -- ihn aus dem Rumpf zu nehmen waere genau die Nummer aus
-     dem Rumpf, die es hier nicht geben darf. Die HARTE Sperre haengt ohnehin
-     allein an der Adresse; die verzoegernde Namenshaelfte hat der Aufrufer in
-     Schritt 1 bereits bezahlt. Gefuettert werden unten beide. */
+  /* DIE BREMSE STEHT GANZ VORN -- dieselbe Reihenfolge wie an
+     POST /api/login und POST /api/bestaetigung: ein gesperrter Aufrufer
+     bekommt an JEDER Stelle dieselbe 429 und nirgends stattdessen eine
+     Auskunft ueber seinen Ausweis.
+     UND SIE IST DIE EINZIGE FORM, IN DER SICH DIE ZUSAGE BELEGEN LAESST:
+     stuende sie hinter dem Ausweis, waere von aussen nicht mehr zu sehen, ob
+     die Sperre hier ueberhaupt gilt -- die 429 kaeme dann immer schon aus
+     Schritt 1. Genau daran ist die erste Fassung der Bremsprobe STUMM
+     geblieben (Stolperstein 163).
+     GEZAEHLT WIRD MIT DER IP-HAELFTE, denn der Name ist vor dem Ausweis nicht
+     bekannt. Die HARTE Sperre haengt ohnehin allein an der Adresse. */
   const t = auth.checkThrottle(ip, null);
   if (t.blocked) {
     return res.status(429).json({
@@ -479,18 +414,11 @@ app.post('/api/login/zwei', async (req, res) => {
        hat drei Rufer, und an den beiden anderen ist das Scheitern keine
        Anmeldung. */
     auth.protokolliere('anmeldung.fehl', { wer: null, ziel: id });
-    /* EIN FRISCHER AUSWEIS LIEGT DER ABSAGE BEI, und das ist eine Entscheidung
-       ueber die Bedienung, die der Sicherheit nichts nimmt.
-       DER ALTE IST VERBRAUCHT -- "genau einmal" bleibt woertlich wahr. Ohne
-       den neuen stuende ein Mensch nach EINEM Tippfehler wieder vor dem
-       Passwortfeld, und das trifft ausgerechnet den, der einen zehnstelligen
-       Wiederherstellungscode vom Zettel abschreibt.
-       WAS DEN VERSUCH BEGRENZT, IST DIE BREMSE UND NICHT DIE FRIST. Nachgerechnet:
-       wer das Passwort kennt und Ziffern raet, kaeme ohne den neuen Ausweis
-       genauso weit -- er tippt das Passwort eben noch einmal, und die Bremse
-       zaehlt beides gleich. Zehn Versuche je Adresse und fuenf Minuten Sperre
-       stehen gegen eine Million Moeglichkeiten; der Unterschied liegt allein
-       beim Ehrlichen. */
+    /* EIN FRISCHER AUSWEIS LIEGT DER ABSAGE BEI. Der alte ist verbraucht --
+       "genau einmal" bleibt woertlich wahr. Ohne den neuen stuende ein Mensch
+       nach EINEM Tippfehler wieder vor dem Passwortfeld.
+       WAS DEN VERSUCH BEGRENZT, IST DIE BREMSE UND NICHT DIE FRIST: wer raet,
+       tippt das Passwort eben noch einmal. */
     return res.status(401).json({
       error: auth.ZWEITER_FAKTOR_ABSAGE, ...auth.erzeugeAnmeldeAusweis(id)
     });
@@ -514,21 +442,18 @@ app.get('/api/session', (req, res) => {
 });
 
 /* ---- Der Token vor der Anmeldung ----
-   ZWEI SCHREIBENDE ROUTEN DER ART 'offen' KOMMEN HIER DAZU -- die vierte und
-   fuenfte neben setup, login und logout. Im Kopf steht keine Rechtefrage, also
-   MUSS die Schranke im Rumpf stehen, und sie heisst Token.
+   ZWEI SCHREIBENDE ROUTEN DER ART 'offen' -- im Kopf steht keine Rechtefrage,
+   also MUSS die Schranke im Rumpf stehen, und sie heisst Token.
 
-   BEIDE SIND POST, obwohl die erste nur LIEST. Das ist kein Versehen: der
-   Token gehoert in den RUMPF und nicht in Pfad oder Abfrage, wo er im
-   Zugriffsprotokoll, in der Verlaufsliste und womoeglich im Referrer stuende.
-   Der Waechter ueber den Quelltext sieht jedes app.post( an, deshalb steht die
-   lesende hier mit in F_ROUTEN -- mit dieser Begruendung daneben.
+   BEIDE SIND POST, obwohl die erste nur LIEST: der Token gehoert in den RUMPF
+   und nicht in Pfad oder Abfrage, wo er im Zugriffsprotokoll, in der
+   Verlaufsliste und womoeglich im Referrer stuende. Der Waechter ueber den
+   Quelltext sieht jedes app.post( an, deshalb steht die lesende mit in
+   F_ROUTEN.
 
-   DIE ANMELDEBREMSE GREIFT AN BEIDEN. Ohne sie waeren sie ein Werkzeug zum
-   Durchprobieren. Beim Token gibt es keinen Benutzernamen: die IP-Haelfte
-   greift unveraendert, die Namenshaelfte faellt von selbst weg -- noteFailure
-   legt bei leerem Namen gar keinen Zaehler an. Die Kennwerte sind
-   unangetastet. */
+   DIE ANMELDEBREMSE GREIFT AN BEIDEN. Beim Token gibt es keinen
+   Benutzernamen: die IP-Haelfte greift, die Namenshaelfte faellt von selbst
+   weg -- noteFailure legt bei leerem Namen gar keinen Zaehler an. */
 const TOKEN_ABSAGE = 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.';
 
 // true = weitermachen. Bei false ist die Antwort bereits geschrieben.
@@ -553,17 +478,14 @@ app.post('/api/token/pruefen', async (req, res) => {
   if (!await tokenBremseFrei(req, res)) return;
   const t = auth.pruefeToken((req.body || {}).token);
   if (!t) { auth.noteFailure(ip, null); return res.status(400).json({ error: TOKEN_ABSAGE }); }
-  /* HIER BEGINNT DIE FRIST AUS 0.9.0, und nur hier: dies ist die eine Stelle,
-     an der belegt ist, dass ein BROWSER den Schluessel in der Hand hat -- er
-     steht im Fragment und kommt nur von dort. Ab dem ersten Oeffnen hat der
-     Link in einem fremden Postfach nichts mehr verloren.
+  /* HIER BEGINNT DIE FRIST, und nur hier: dies ist die eine Stelle, an der
+     belegt ist, dass ein BROWSER den Schluessel in der Hand hat -- er steht im
+     Fragment und kommt nur von dort.
      WEITERE AUFRUFE RUEHREN NICHTS AN: beginneTokenFrist schreibt nur
-     herunter, nie hinauf. Wer neu laedt, weil er gerade keine Zeit hatte,
-     steht deshalb nicht vor einem toten Link -- genau der Fall, an dem die
-     Sache sonst kippt.
-     NICHT in auth.pruefeToken: die Funktion wird auch von loeseTokenEin
-     gerufen, und das Einloesen darf die Frist nicht noch einmal anfassen.
-     Kein noteSuccess: geprueft ist noch nicht eingeloest. */
+     herunter, nie hinauf. Wer neu laedt, steht deshalb nicht vor einem toten
+     Link.
+     NICHT in auth.pruefeToken: die wird auch von loeseTokenEin gerufen, und
+     das Einloesen darf die Frist nicht noch einmal anfassen. */
   const minuten = auth.beginneTokenFrist(t.hash);
   res.json({
     username: t.username, ohnePasswort: t.ohnePasswort,
@@ -571,13 +493,11 @@ app.post('/api/token/pruefen', async (req, res) => {
   });
 });
 
-/* Das Einloesen. Der Mindestwert von zehn Zeichen gilt unveraendert -- der Weg
-   dorthin ist neu, die Regel nicht; sie steht in auth.loeseTokenEin an
-   derselben Stelle wie fuer jeden anderen Weg.
-   ANGEMELDET WIRD GLEICH MIT, dieselbe Ueberlegung wie bei /api/setup: ein
-   zweites Formular unmittelbar nach dem ersten waere nur eine Huerde ohne
-   Gewinn -- das Passwort wurde ja gerade hier gewaehlt. Die Sitzung entsteht
-   NACH dem Einloesen, also nachdem alle bisherigen gefallen sind. */
+/* Das Einloesen. Der Mindestwert von zehn Zeichen gilt unveraendert; die
+   Regel steht in auth.loeseTokenEin.
+   ANGEMELDET WIRD GLEICH MIT, wie bei /api/setup: das Passwort wurde ja
+   gerade hier gewaehlt. Die Sitzung entsteht NACH dem Einloesen, also
+   nachdem alle bisherigen gefallen sind. */
 app.post('/api/token/einloesen', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenBremseFrei(req, res)) return;
@@ -586,27 +506,23 @@ app.post('/api/token/einloesen', async (req, res) => {
   try { ergebnis = await auth.loeseTokenEin(token, passwort); }
   catch (e) { auth.noteFailure(ip, null); return res.status(400).json({ error: e.message }); }
   auth.noteSuccess(ip, null);
-  /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT, SEIT 0.10.0 -- UND DAS IST EINE
+  /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT -- UND DAS IST EINE
      SICHERHEITSFRAGE, KEINE BEQUEMLICHKEITSFRAGE.
 
-     OHNE DIESE ZEILEN WAERE DER RUECKSETZLINK DER WEG AM ZWEITEN FAKTOR VORBEI,
-     und zwar fuer genau den, gegen den er nicht schuetzen soll: ein Admin
-     erzeugt fuer einen fremden Zugang einen Link (POST /api/users/:id/token),
-     oeffnet ihn selbst, setzt ein Passwort -- und waere angemeldet. Derselbe
-     Weg steht ihm ueber PUT /api/users/:id mit `passwort` offen; DORT schliesst
-     ihn die Anmeldung, HIER muss er hier geschlossen werden. Ein zweiter Faktor,
-     der ueber die Rollenleiter abzustreifen ist, sichert nichts.
-     Der Link laeuft ausserdem ueber eine MAIL, also ueber einen fremden Server.
+     OHNE DIESE ZEILEN WAERE DER RUECKSETZLINK DER WEG AM ZWEITEN FAKTOR
+     VORBEI: ein Admin erzeugt fuer einen fremden Zugang einen Link, oeffnet
+     ihn selbst, setzt ein Passwort -- und waere angemeldet. Ein zweiter
+     Faktor, der ueber die Rollenleiter abzustreifen ist, sichert nichts. Der
+     Link laeuft ausserdem ueber einen fremden Server.
 
-     DER SONDERFALL LOEST SICH BAULICH: ein Zugang, der seinen ERSTEN Link
-     einloest, hat noch kein Passwort -- und kann deshalb keinen bestaetigten
-     Faktor haben, denn einschalten setzt eine Anmeldung voraus und die ein
-     Passwort. zweifaktorAn() ist dort schlicht falsch, und er kommt herein wie
-     bisher. Der Pruefstand stellt das nach, statt es zu behaupten.
+     DER SONDERFALL LOEST SICH BAULICH: wer seinen ERSTEN Link einloest, hat
+     noch kein Passwort -- und kann deshalb keinen bestaetigten Faktor haben,
+     denn einschalten setzt eine Anmeldung voraus. zweifaktorAn() ist dort
+     schlicht falsch.
 
-     DAS PASSWORT IST DABEI SCHON GESETZT und die alten Sitzungen sind gefallen.
-     Das ist richtig so: der Link hat getan, wofuer er da war. Was er NICHT
-     mehr tut, ist anmelden. */
+     DAS PASSWORT IST DABEI SCHON GESETZT und die alten Sitzungen sind
+     gefallen: der Link hat getan, wofuer er da war. Was er NICHT mehr tut,
+     ist anmelden. */
   if (auth.zweifaktorAn(ergebnis.id)) {
     return res.json({
       ok: true, username: ergebnis.username, zweifaktor: true,
@@ -618,36 +534,30 @@ app.post('/api/token/einloesen', async (req, res) => {
   res.json({ ok: true, username: ergebnis.username });
 });
 
-/* ---- Die Selbstanmeldung vor der Anmeldung, seit 0.9.1 ----
-   ZWEI SCHREIBENDE ROUTEN DER ART 'offen' KOMMEN HIER DAZU -- die sechste und
-   siebte neben setup, login, logout und den beiden Tokenrouten. Im Kopf steht
-   keine Rechtefrage, und im Rumpf steht auch keine: es DARF sie jeder. Was
-   diese beiden Routen begrenzt, ist etwas anderes -- der Schalter, der Deckel,
-   die Bremse und die immer gleiche Antwort.
+/* ---- Die Selbstanmeldung vor der Anmeldung ----
+   ZWEI SCHREIBENDE ROUTEN DER ART 'offen'. Im Kopf steht keine Rechtefrage,
+   und im Rumpf steht auch keine: es DARF sie jeder. Was diese beiden Routen
+   begrenzt, ist etwas anderes -- der Schalter, der Deckel, die Bremse und die
+   immer gleiche Antwort.
 
-   BEIDE SIND POST, obwohl die zweite fast nur nachschlaegt. Derselbe Grund wie
-   bei /api/token/pruefen: der Schluessel gehoert in den RUMPF und nicht in
-   Pfad oder Abfrage, wo er im Zugriffsprotokoll, in der Verlaufsliste und
-   womoeglich im Referrer stuende.
+   BEIDE SIND POST, obwohl die zweite fast nur nachschlaegt: der Schluessel
+   gehoert in den RUMPF und nicht in Pfad oder Abfrage.
 
-   DIE ANMELDEBREMSE GREIFT AN BEIDEN, mit unangetasteten Kennwerten und ohne
-   Namenshaelfte -- genau wie an den Tokenrouten. An der Anfrageroute ist sie
-   die Schranke gegen das massenhafte Stellen, an der Bestaetigungsroute die
-   gegen das Durchprobieren von Schluesseln. Der Benutzername der Anfrage geht
-   ausdruecklich NICHT in die Bremse: er ist geraten, und ein Zaehler darauf
-   waere ein Werkzeug, einen erwuenschten Namen auszusperren. */
+   DIE ANMELDEBREMSE GREIFT AN BEIDEN, ohne Namenshaelfte. An der Anfrageroute
+   ist sie die Schranke gegen das massenhafte Stellen, an der
+   Bestaetigungsroute die gegen das Durchprobieren von Schluesseln. Der
+   Benutzername der Anfrage geht ausdruecklich NICHT in die Bremse: er ist
+   geraten, und ein Zaehler darauf waere ein Werkzeug, einen erwuenschten
+   Namen auszusperren. */
 
 /* DIE EINE ANTWORT. Sie steht als Konstante da und wird an DREI Stellen
    gegeben, damit sie gar nicht auseinanderlaufen kann -- Byte fuer Byte
    dieselbe, ob der Name frei war, ob er vergeben war, ob die Adresse schon an
-   einem Zugang haengt, ob der Deckel erreicht ist oder ob der Schalter aus ist.
-   ANDERNFALLS WAERE DAS FORMULAR EIN WERKZEUG ZUM DURCHPROBIEREN von Namen und
-   Adressen, und zwar ein bequemeres als die Anmeldung: es steht ohne Passwort
-   davor.
-   SIE IST WAHR IN JEDEM DIESER FAELLE, und das ist mehr als eine
-   Geschmacksfrage. "Wir haben dir eine Mail geschickt" waere in fuenf von
-   sechs Lagen gelogen; der Satz unten sagt, was zu tun ist, ohne zu behaupten,
-   welche Lage vorliegt. */
+   einem Zugang haengt, ob der Deckel erreicht ist oder ob der Schalter aus
+   ist. ANDERNFALLS WAERE DAS FORMULAR EIN WERKZEUG ZUM DURCHPROBIEREN, und
+   zwar ein bequemeres als die Anmeldung: es steht ohne Passwort davor.
+   SIE IST WAHR IN JEDEM DIESER FAELLE -- "wir haben dir eine Mail geschickt"
+   waere in fuenf von sechs Lagen gelogen. */
 const ANFRAGE_ANTWORT = { ok: true, meldung:
   'Danke. Konnte zu diesen Angaben eine Anfrage entstehen, liegt jetzt eine E-Mail in deinem ' +
   'Postfach — bestätige darin, dass die Adresse dir gehört. Danach entscheidet ein Admin, ' +
@@ -664,31 +574,22 @@ app.post('/api/registrierung', async (req, res) => {
   const { name, adresse } = req.body || {};
   const klartext = an ? auth.legeAnfrageAn(name, adresse) : null;
   res.json(ANFRAGE_ANTWORT);
-  /* ERST DIE ANTWORT, DANN DER VERSAND. Die Begruendung steht bei
-     versendeBestaetigung(): ein Weg, der auf den Mailserver wartet, waere
-     an der Uhr von einem still verworfenen zu unterscheiden.
-     DAS AUFFANGNETZ IST KEINE ZIERDE: hier haengt kein Aufrufer mehr an der
-     Zusage, und eine unbehandelte Absage risse den ganzen Prozess mit.
-     mail.versende() wirft zwar nicht -- aber diese Stelle darf sich nicht
-     darauf verlassen muessen. */
+  /* ERST DIE ANTWORT, DANN DER VERSAND (Begruendung bei
+     versendeBestaetigung): ein Weg, der auf den Mailserver wartet, waere an
+     der Uhr von einem still verworfenen zu unterscheiden.
+     DAS AUFFANGNETZ IST KEINE ZIERDE -- hier haengt kein Aufrufer mehr an der
+     Zusage. */
   if (klartext) {
     versendeBestaetigung(String(name).trim(), String(adresse).trim(), klartext)
       .catch(e => console.error('[Kriterion] Bestaetigungsmail:', e && e.message));
   }
 });
 
-/* Die Bestaetigung. SIE LEGT KEINEN ZUGANG AN, SETZT KEIN PASSWORT UND MELDET
-   NIEMANDEN AN -- sie setzt einen Zeitpunkt in einer Zeile. Das ist die ganze
-   Wirkung des Links, und es ist der Grund, warum er in einem fremden Postfach
-   nichts anrichten kann.
-   ZWEI ANTWORTEN HIER, UND DAS IST KEIN WIDERSPRUCH ZUR EINEN OBEN: dort
-   raet jemand Namen, hier braeuchte er 256 Bit. Wer den Schluessel hat, weiss
-   ohnehin, was er angefragt hat; wer ihn nicht hat, erfaehrt aus der Absage
-   nichts als "nicht dieser". Die Absage ist DIE EINE fuer alle Faelle --
-   erfunden, verfallen, laengst freigeschaltet --, wie beim Token: das
-   Heilmittel ist jedesmal dasselbe, naemlich die Anfrage neu stellen.
-   DER NAME STEHT AUCH IN DER GUTEN ANTWORT NICHT. Er stuende sonst hinter
-   einem geratenen Schluessel. */
+/* Die Bestaetigung. SIE LEGT KEINEN ZUGANG AN, SETZT KEIN PASSWORT UND
+   MELDET NIEMANDEN AN -- sie setzt einen Zeitpunkt in einer Zeile.
+   ZWEI ANTWORTEN HIER, kein Widerspruch zur einen oben: dort raet jemand
+   Namen, hier braeuchte er 256 Bit. Die Absage ist DIE EINE fuer alle Faelle.
+   DER NAME STEHT AUCH IN DER GUTEN ANTWORT NICHT. */
 app.post('/api/registrierung/bestaetigen', async (req, res) => {
   const ip = auth.clientIp(req);
   if (!await tokenBremseFrei(req, res)) return;
@@ -705,36 +606,25 @@ app.post('/api/registrierung/bestaetigen', async (req, res) => {
 app.use('/api', auth.requireAuth);
 
 /* ================= Rechte ================================================
-   EIN Ort fuer die Regel, mehrere Eingaenge: stuende die Rollenfrage zweimal
-   im Quelltext, liefen die Stellen auseinander und keine Gegenprobe belegte
-   mehr etwas. Deshalb steht sie GENAU EINMAL, naemlich in der Adminfrage
-   unten; ein Waechter im Pruefstand zaehlt die Vorkommen und wird bei zweien
-   rot.
+   EIN Ort fuer die Regel, mehrere Eingaenge. Sie steht GENAU EINMAL, naemlich
+   in der Adminfrage unten; ein Waechter im Pruefstand zaehlt die Vorkommen.
 
    Drei Rollen als Leiter -- user < admin < eigentuemer:
-     Benutzer    -- role = 'user'. Schreibt eigene Beitraege, sonst nichts.
-     Admin       -- role = 'admin'. Verwaltet: Kriterien, Tags, Kategorien,
-                    Titel, Vokabular, Suchanbieter. Loescht fremde Beitraege.
-                    Legt BENUTZER an, sperrt und loescht sie -- an einen Admin
-                    oder Eigentuemer kommt er nicht.
-     Eigentuemer -- role = 'eigentuemer'. Alles vom Admin, dazu: Rollen
-                    vergeben, an Admins ran, und was die Anlage als GANZES
-                    betrifft -- Export, Import, Schluesselwert.
-   Der Eigentuemer ist ein vergebbares Recht, keine Nummer; die Begruendung
-   fuer einen dritten Rollenwert statt eines zweiten Feldes steht in db.js am
-   Schema.
+     Benutzer    -- schreibt eigene Beitraege, sonst nichts.
+     Admin       -- verwaltet Kriterien, Tags, Kategorien, Titel, Vokabular,
+                    Suchanbieter; loescht fremde Beitraege; legt BENUTZER an,
+                    sperrt und loescht sie -- an einen Admin oder Eigentuemer
+                    kommt er nicht.
+     Eigentuemer -- alles vom Admin, dazu Rollen vergeben, an Admins ran, und
+                    was die Anlage als GANZES betrifft: Export, Import,
+                    Schluesselwert.
 
-   Vier Fragen, vier Antworten -- und keine davon steht ein zweites Mal:
-     Adminfrage / Eigentuemerfrage -- wer ist der Anfragende
-     darfAendern-Frage             -- Verfasser ODER Admin
-     nurSelbst-Frage               -- Verfasser, und ausdruecklich der Admin NICHT
+   Vier Fragen, und keine steht ein zweites Mal: Adminfrage,
+   Eigentuemerfrage, darfAendern (Verfasser ODER Admin), nurSelbst (Verfasser,
+   der Admin ausdruecklich NICHT).
 
-   Solange nur ein Zugang besteht, verweigert nichts davon etwas: der Einzige
-   ist Eigentuemer und Admin zugleich.
-   Der Reihenfolge wegen: die Eigentuemerfrage steht ZUERST, weil die
-   Adminfrage sie ruft. Damit ist "ein Eigentuemer ist immer auch Admin"
-   baulich wahr und keine Regel, die irgendwo durchgesetzt werden muesste.
-   Beide fragen nur req.benutzer -- keine Datenbankabfrage je Anfrage. */
+   Die Eigentuemerfrage steht ZUERST, weil die Adminfrage sie ruft -- damit
+   ist "ein Eigentuemer ist immer auch Admin" baulich wahr. */
 function istEigentuemer(req) { return req.benutzer.role === 'eigentuemer'; }
 function istAdmin(req) { return req.benutzer.role === 'admin' || istEigentuemer(req); }
 
@@ -756,10 +646,8 @@ function nurEigentuemer(req, res, next) {
 }
 
 /* ---- Die zweite Bestaetigung ----
-   WAS DIE ANLAGE ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT. Die
-   Grenze ist nicht "gefaehrlich", sondern dieselbe, an der schon die
-   Eigentuemerrolle liegt. Verteidigt wird gegen eine FREMDE OFFENE SITZUNG --
-   nicht gegen einen Fremden, der kommt ohne Passwort gar nicht herein.
+   WAS DIE ANLAGE ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT.
+   Verteidigt wird gegen eine FREMDE OFFENE SITZUNG.
 
    SIEBEN WEGE UEBER SECHS ROUTEN, und PUT /api/users/:id traegt zwei davon:
      export     GET    /api/export
@@ -769,21 +657,14 @@ function nurEigentuemer(req, res, next) {
      entfernen  DELETE /api/users/:id
      link       POST   /api/users/:id/token
      mail       PUT    /api/mail
-   MIT 0.9.0 KOMMT 'mail' DAZU -- sechs Wege ueber fuenf Routen werden sieben
-   ueber sechs. Wer den Mailzugang setzt, entscheidet, ueber wessen Server
-   jeder kuenftige Ruecksetzlink dieser Anlage laeuft.
-   (Die Zahl stand von 0.8.90 bis 0.8.91 falsch da -- Stolperstein 137. Sie ist
-   in Revision 20 des Projektstands nachgezaehlt worden und stimmt hier ab
-   0.9.0 wieder, diesmal aus dem richtigen Grund.)
-   AUSDRUECKLICH NICHT DAHINTER: Sperren und Freigeben (umkehrbar, und ein
-   gesperrter Zugang ist nicht die Anlage), das Anlegen eines Zugangs (es
-   erzeugt einen neuen und nimmt niemandem etwas) und POST /api/setup (dort
+
+   AUSDRUECKLICH NICHT DAHINTER: Sperren und Freigeben (umkehrbar), das
+   Anlegen eines Zugangs (es nimmt niemandem etwas) und POST /api/setup (dort
    gibt es kein bisheriges Passwort).
 
-   DIE REGEL STEHT GENAU EINMAL, hier. Zwei Formen desselben Aufrufs, weil die
-   Wege verschieden ankommen: der Waechter fuer die Routenzeile -- er MUSS es
-   sein, wo multer dahinter steht -- und die Frage im Rumpf, wo erst der Rumpf
-   sagt, ob ueberhaupt bestaetigt werden muss. */
+   ZWEI FORMEN DESSELBEN AUFRUFS: der Waechter fuer die Routenzeile -- er MUSS
+   es sein, wo multer dahinter steht -- und die Frage im Rumpf, wo erst der
+   Rumpf sagt, ob ueberhaupt bestaetigt werden muss. */
 const VERWEIGERT_BESTAETIGUNG = 'Dafür ist dein Passwort nötig — bitte noch einmal bestätigen.';
 
 // true = weitermachen. Bei false ist die Antwort bereits geschrieben.
@@ -823,19 +704,11 @@ function nurSelbst(req, verfasserId) {
 
 /* Wer einen NEUEN Namen anlegen darf -- Tag oder Kategorie. Zwei globale
    Schalter, Vorgabe an, ABGELEITET BEIM LESEN: ein Schluessel, der nicht in
-   settings steht, gilt als eingeschaltet. Damit braucht kein Bestand angefasst
-   zu werden, es entsteht kein Migrationscode, und zu 1.0 ist nichts
-   zurueckzubauen.
-   Der Unterschied zu den Kriterien: ein neuer Tag erscheint nur dort, wo man
-   ihn hinsetzt, ein neues Kriterium ueberall. Deshalb ein Schalter und keine
-   feste Regel -- der Nutzen kommt erst mit dem dritten Zugang, wenn einer
-   "Alu" und der naechste "Aluminium" tippt und nur der Admin aufraeumen darf.
-   DER ADMIN KOMMT IMMER DURCH: ihm gehoert das Umbenennen und Loeschen, und
-   ein Schalter, den er erst umlegen muesste, um selbst etwas anzulegen, waere
-   eine Schranke gegen sich selbst.
-   DIE KLEMME SITZT AN JEDEM ANLEGEWEG HINTER DEM NACHSCHLAGEN DES VORHANDENEN
-   NAMENS -- nur so bleibt "Zuweisen darf immer jeder" baulich wahr statt eine
-   Behauptung. */
+   settings steht, gilt als eingeschaltet -- damit kein Migrationscode.
+   DER ADMIN KOMMT IMMER DURCH: ein Schalter, den er erst umlegen muesste,
+   waere eine Schranke gegen sich selbst.
+   DIE KLEMME SITZT HINTER DEM NACHSCHLAGEN DES VORHANDENEN NAMENS -- nur so
+   bleibt "Zuweisen darf immer jeder" baulich wahr. */
 const freiAnlegen = (schluessel) => getSetting(schluessel, true) !== false;
 function darfAnlegen(req, schluessel) {
   return istAdmin(req) || freiAnlegen(schluessel);
@@ -885,12 +758,9 @@ app.get('/api/account', (req, res) => {
   // Die eigene Adresse steht hier und nirgends sonst: sie gehoert dem, der sie
   // hat. GET /api/users liefert sie ausdruecklich NICHT mit -- ein Admin
   // braucht fuer seine Arbeit die Zugaenge, nicht die Postfaecher.
-  /* DER ZUSTAND DES ZWEITEN FAKTORS REIST HIER MIT, SEIT 0.10.0 -- und deshalb
-     kommt keine lesende Route dazu. Die Karte "Zugang" holt diese Antwort
-     ohnehin, und damit steht "an seit ..." oder "aus" da, OHNE dass jemand
-     erst einen Knopf druecken muss.
-     DAS GEHEIMNIS IST NIE DARIN, auch nicht fuer den Eigentuemer. Dieselbe
-     Linie wie beim Mailpasswort: die Karte sagt an oder aus, nie den Wert. */
+  /* DER ZUSTAND DES ZWEITEN FAKTORS REIST HIER MIT -- deshalb kommt keine
+     lesende Route dazu: die Karte "Zugang" holt diese Antwort ohnehin.
+     DAS GEHEIMNIS IST NIE DARIN, auch nicht fuer den Eigentuemer. */
   res.json({ username: req.benutzer.username, minPassword: auth.PASSWORT_MIN,
              email: auth.holeZugang(req.benutzer.id)?.email || '',
              zweifaktor: auth.zweifaktorStand(req.benutzer.id) });
@@ -917,13 +787,9 @@ app.put('/api/account', async (req, res) => {
 });
 
 /* ---- Meine Sitzungen ----
-   PERSOENLICH, KEIN SYSTEMBEREICH FUER ADMINS: die Karte steht beim eigenen
-   Zugang, neben "Passwort aendern". EIN ADMIN SIEHT KEINE FREMDEN SITZUNGEN --
-   fuer den Ernstfall gibt es das Sperren, und setzeStatus loescht sie bereits
-   mit. Ein zweiter Weg dorthin waere Stolperstein 47.
-   Beide schreibenden Routen tragen die Art 'selbstbezug': sie sind baulich auf
-   die eigenen Zeilen begrenzt, weil user_id aus req.benutzer kommt und nicht
-   aus der Adresse -- dieselbe Form wie bei PUT /api/account.
+   PERSOENLICH: EIN ADMIN SIEHT KEINE FREMDEN SITZUNGEN -- fuer den Ernstfall
+   gibt es das Sperren, und setzeStatus loescht sie mit.
+   Beide schreibenden Routen tragen die Art 'selbstbezug'.
    DIE FESTE ROUTE STEHT VOR DER PLATZHALTERROUTE (Stolperstein 11). */
 app.get('/api/sessions', (req, res) => {
   const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
@@ -948,33 +814,25 @@ app.delete('/api/sessions/:kennung', (req, res) => {
   res.json({ beendet: n });
 });
 
-/* ---- Der zweite Faktor, seit 0.10.0 ----
+/* ---- Der zweite Faktor ----
    VIER SCHREIBENDE ROUTEN, ALLE DER ART 'selbstbezug': die Benutzernummer
-   kommt aus req.benutzer und steht in keinem Pfad. Das ist nicht bloss
-   ordentlich, es ist die ganze Rechtefrage dieses Bereichs -- JEDER SCHALTET
-   IHN FUER SICH SELBST EIN UND AUS, und es gibt keine Adresse, unter der ein
-   Fremder gemeint waere. Kein nurAdmin, kein nurEigentuemer, keine
-   Rollenleiter: sie haetten hier nichts zu entscheiden.
+   kommt aus req.benutzer und steht in keinem Pfad. Das ist die ganze
+   Rechtefrage dieses Bereichs -- JEDER SCHALTET IHN FUER SICH SELBST EIN UND
+   AUS, und es gibt keine Adresse, unter der ein Fremder gemeint waere.
 
    EINSCHALTEN GEHT IN ZWEI SCHRITTEN, und der zweite ist der Beleg:
      POST /api/zweifaktor/start  erzeugt das Geheimnis und gibt es EINMAL heraus
      POST /api/zweifaktor/an     nimmt einen Code aus der App entgegen und
                                  schaltet ein -- erst hier entstehen die
                                  Wiederherstellungscodes
-   Ein Schritt allein waere ein Zugang, den niemand mehr oeffnet: das Geheimnis
-   stuende in der Datenbank, ohne dass je belegt waere, dass es auch auf dem
-   Telefon angekommen ist.
+   Ein Schritt allein waere ein Zugang, den niemand mehr oeffnet.
 
-   ALLE VIER STEHEN HINTER DEM BISHERIGEN PASSWORT, auch das Einschalten. Beim
-   Ausschalten ist das offensichtlich; beim EINSCHALTEN ist es der weniger
-   offensichtliche und genauso wichtige Fall: eine uebernommene offene Sitzung
-   koennte sonst einen zweiten Faktor auf ein FREMDES Telefon legen und den
-   Eigentuemer damit aussperren. Dieselbe Schranke wie an PUT /api/account
-   nebenan, und aus verwandtem Grund.
+   ALLE VIER STEHEN HINTER DEM BISHERIGEN PASSWORT, auch das Einschalten: eine
+   uebernommene offene Sitzung koennte sonst einen zweiten Faktor auf ein
+   FREMDES Telefon legen und den Eigentuemer aussperren.
 
    DAS GEHEIMNIS KOMMT AUS KEINER ANTWORT HERAUS, SOBALD ES BESTAETIGT IST --
-   auch nicht an den Eigentuemer. POST /api/zweifaktor/start ist die eine
-   Antwort, in der es steht, wie beim Token der Klartext, und danach nie wieder. */
+   auch nicht an den Eigentuemer. */
 
 // Das bisherige Passwort, an allen vier Wegen dieselbe Frage. Sie steht EINMAL
 // hier und nicht viermal daneben. true = weitermachen; bei false ist die
@@ -1034,12 +892,9 @@ app.post('/api/zweifaktor/codes', async (req, res) => {
 
 /* Ausschalten. PASSWORT UND GUELTIGER CODE -- das Passwort allein genuegte
    nicht: gegen eine uebernommene Sitzung mit mitgelesenem Passwort ist der
-   Faktor ja gerade gebaut, und liesse er sich mit demselben Passwort abstreifen,
-   sicherte er nichts.
-   EIN ADMIN KOMMT HIER NICHT HEREIN, und es gibt auch keine Adresse, unter der
-   er es versuchen koennte: die Nummer kommt aus req.benutzer. Der einzige Weg
-   daneben ist zugang.js auf dem Wirt -- dieselbe Linie wie beim
-   Schluesselwechsel. */
+   Faktor ja gerade gebaut.
+   EIN ADMIN KOMMT HIER NICHT HEREIN: die Nummer kommt aus req.benutzer. Der
+   einzige Weg daneben ist zugang.js auf dem Wirt. */
 app.delete('/api/zweifaktor', async (req, res) => {
   const { passwort, code } = req.body || {};
   if (!auth.zweifaktorAn(req.benutzer.id))
@@ -1053,21 +908,16 @@ app.delete('/api/zweifaktor', async (req, res) => {
 
 /* ---- Die Freigabe holen ----
    EINE ROUTE FUER ALLE SIEBEN WEGE. Sie prueft DASSELBE Passwort noch einmal,
-   nicht ein zweites Geheimnis -- ein zweiter Faktor ist eine eigene Stufe.
-   Die Art 'selbstbezug': der Benutzer kommt aus req.benutzer und nie aus der
-   Adresse. Wer bestaetigt, bestaetigt fuer sich.
+   nicht ein zweites Geheimnis. Die Art 'selbstbezug': der Benutzer kommt aus
+   req.benutzer und nie aus der Adresse -- wer bestaetigt, bestaetigt fuer sich.
 
-   DIE ANMELDEBREMSE GREIFT, dieselbe wie ueberall und mit unangetasteten
-   Kennwerten. Ohne sie waere diese Route ein Weg, ein Passwort ungebremst
-   durchzuprobieren -- und zwar HINTER der Anmeldung, wo niemand hinsieht.
-   Gezaehlt wird je Adresse UND je Name; der Name steht hier fest, es ist der
-   des Angemeldeten.
+   DIE ANMELDEBREMSE GREIFT, dieselbe wie ueberall. Ohne sie waere diese Route
+   ein Weg, ein Passwort ungebremst durchzuprobieren -- und zwar HINTER der
+   Anmeldung, wo niemand hinsieht.
 
-   DIE ABSAGE IST KLAR UND DEUTLICH, und der Unterschied zu den Token aus
-   0.8.80 gehoert benannt: dort wusste der Server nicht, wer fragt, und die
-   eine verschleierte Absage schuetzte vor dem Durchprobieren. Hier ist der
-   Fragende angemeldet und namentlich bekannt -- eine verschleierte Absage
-   schuetzte niemanden und verwirrte nur. */
+   DIE ABSAGE IST KLAR UND DEUTLICH, anders als an den Tokenrouten: dort weiss
+   der Server nicht, wer fragt, hier ist der Fragende angemeldet und
+   namentlich bekannt -- eine verschleierte Absage schuetzte niemanden. */
 app.post('/api/bestaetigung', async (req, res) => {
   const ip = auth.clientIp(req);
   const name = req.benutzer.username;
@@ -1090,22 +940,15 @@ app.post('/api/bestaetigung', async (req, res) => {
     auth.protokolliere('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
     return res.status(403).json({ error: 'Das Passwort stimmt nicht.' });
   }
-  /* SEIT 0.10.0 FRAGT DIESE STELLE ZUSAETZLICH DEN CODE -- aber NUR bei
-     Zugaengen, die einen zweiten Faktor eingeschaltet haben. Wer ihn nicht
-     will, merkt von dieser Runde nichts.
-
-     WARUM GERADE HIER: die zweite Bestaetigung verteidigt gegen die UEBERNOMMENE
-     OFFENE SITZUNG (Abschnitt 5 des Projektstands) -- ein Bildschirm, der
-     stehen blieb, ein gestohlener Cookie. Genau dort traegt ein zweiter Faktor
-     am meisten: das Passwort mag mitgelesen sein, das Telefon liegt woanders.
-
-     BESTAETIGUNG_ZWECKE BLEIBT BEI SIEBEN. Die Liste fuehrt ZWECKE, und es kommt
-     keiner dazu -- es ist eine zweite Frage an derselben Stelle, kein achter Weg.
-
-     DIE REIHENFOLGE IST PASSWORT, DANN CODE, und nicht umgekehrt: wer das
-     Passwort nicht hat, soll nicht erfahren, ob am Zugang ein Faktor haengt.
-     Und der Fehlschlag schreibt dieselbe Zeile wie oben -- 'bestaetigung.fehl'
-     ist der Vorgang, ob es am Passwort lag oder am Code. */
+  /* FRAGT DIESE STELLE ZUSAETZLICH DEN CODE -- aber NUR bei Zugaengen, die
+     einen zweiten Faktor eingeschaltet haben.
+     WARUM GERADE HIER: die zweite Bestaetigung verteidigt gegen die
+     UEBERNOMMENE OFFENE SITZUNG, und genau dort traegt ein zweiter Faktor am
+     meisten -- das Passwort mag mitgelesen sein, das Telefon liegt woanders.
+     BESTAETIGUNG_ZWECKE BLEIBT BEI SIEBEN: es ist eine zweite Frage an
+     derselben Stelle, kein achter Weg.
+     DIE REIHENFOLGE IST PASSWORT, DANN CODE: wer das Passwort nicht hat, soll
+     nicht erfahren, ob am Zugang ein Faktor haengt. */
   if (auth.zweifaktorAn(req.benutzer.id) && !auth.pruefeZweitenFaktor(req.benutzer.id, code)) {
     auth.noteFailure(ip, name);
     auth.protokolliere('bestaetigung.fehl', { wer: req.benutzer.id, ziel: req.benutzer.id });
@@ -1119,18 +962,12 @@ app.post('/api/bestaetigung', async (req, res) => {
 });
 
 /* ---- Das Sicherheitsprotokoll ----
-   NUR DER EIGENTUEMER. Es nennt Namen und Vorgaenge ueber andere Zugaenge;
-   ein Admin, der es liest, saehe die Verwaltungsvorgaenge des Eigentuemers
-   ueber ihn selbst. Dieselbe Zeile wie Export, Import und der Schluesselwert
-   -- ein Admin verwaltet den Bestand, er sieht nicht die Anlage.
-   Lesend, deshalb kein Eintrag in F_ROUTEN.
-   ES GIBT KEINEN WEG HINAUS AUSSER DER FRIST. Eine Loeschroute waere ein
-   Protokoll, das der Betroffene selbst wegraeumen kann -- also keins.
-   ZWEITE AUFRUFSTELLE DES AUFRAEUMENS; die erste steht beim Start. Dieselbe
-   Bauform wie bei raeumePapierkorbAuf() und raeumeTokensAuf(): eine Anlage,
-   die ein halbes Jahr durchlaeuft, raeumte sonst ein halbes Jahr lang nicht
-   auf. Hauswirtschaft, keine Benutzerhandlung -- die Liste schreibender
-   Routen bleibt unberuehrt. */
+   NUR DER EIGENTUEMER: es nennt Vorgaenge ueber andere Zugaenge, und ein
+   Admin saehe darin die Verwaltungsvorgaenge des Eigentuemers ueber ihn
+   selbst. Lesend, deshalb kein Eintrag in F_ROUTEN.
+   ES GIBT KEINEN WEG HINAUS AUSSER DER FRIST -- eine Loeschroute waere ein
+   Protokoll, das der Betroffene selbst wegraeumen kann.
+   ZWEITE AUFRUFSTELLE DES AUFRAEUMENS; die erste steht beim Start. */
 app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
   auth.raeumeProtokollAuf();
   res.json(auth.leseProtokoll());
@@ -1206,19 +1043,11 @@ app.post('/api/users', nurAdmin, async (req, res) => {
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
-/* Der Link fuer einen VORHANDENEN Zugang -- einladen (wenn der erste Link
-   abgelaufen ist) oder zuruecksetzen. Dieselbe Rechtezeile wie die drei
-   Verwaltungsrouten daneben: zielZugangFrei entscheidet, und damit gilt die
-   Rollenleiter auch hier -- ein Admin laedt keinen Eigentuemer ein und kommt
-   nicht an seinesgleichen.
-   DER SERVER GIBT NUR DEN TOKEN HERAUS, NICHT DEN LINK. Die vollstaendige
-   Adresse baut der Browser des Admins aus location -- er steht ja bereits an
-   der richtigen. Damit stellt sich die Frage nach einer oeffentlichen Adresse
-   in dieser Stufe gar nicht, und aus dem Host-Kopf wird nichts abgeleitet;
-   ueber einen gefaelschten Kopf liesse sich ein Link sonst auf einen fremden
-   Server umbiegen.
-   DAS IST DIE EINE ANTWORT, IN DER DER KLARTEXT STEHT. Danach steht er
-   nirgends mehr -- auch nicht in der Datenbank. */
+/* Der Link fuer einen VORHANDENEN Zugang -- einladen oder zuruecksetzen.
+   zielZugangFrei entscheidet, damit gilt die Rollenleiter auch hier.
+   DER SERVER GIBT NUR DEN TOKEN HERAUS, NICHT DEN LINK: die Adresse baut der
+   Browser des Admins aus location. Aus dem Host-Kopf wird nichts abgeleitet.
+   DAS IST DIE EINE ANTWORT, IN DER DER KLARTEXT STEHT. */
 app.post('/api/users/:id/token', nurAdmin, async (req, res) => {
   const ziel = zielZugangFrei(req, res, req.params.id);
   if (!ziel) return;
@@ -1239,14 +1068,14 @@ app.post('/api/users/:id/token', nurAdmin, async (req, res) => {
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
-// Rolle, Status und Passwort. Drei Rechteklassen in einem Rumpf, alle vor dem
-// ersten Schreiben geprueft:
-//   Rolle    -- nur der Eigentuemer, und auch am eigenen Zugang (sich selbst
-//               herabstufen ist erlaubt, solange ein anderer Eigentuemer bleibt;
-//               das haelt auth.setzeRolle fest).
+// Rolle, Status und Passwort. Drei Rechteklassen in einem Rumpf, alle vor
+// dem ersten Schreiben geprueft:
+//   Rolle    -- nur der Eigentuemer, auch am eigenen Zugang (sich selbst
+//               herabstufen ist erlaubt, solange ein anderer Eigentuemer
+//               bleibt; das haelt auth.setzeRolle fest).
 //   Status   -- Admin an Benutzern, Eigentuemer an allen, nie am eigenen.
-//   Passwort -- dieselbe Regel wie Status. Das EIGENE laeuft ueber
-//               PUT /api/account, wo das bisherige Passwort verlangt wird.
+//   Passwort -- dieselbe Regel wie Status; das EIGENE laeuft ueber
+//               PUT /api/account.
 app.put('/api/users/:id', nurAdmin, async (req, res) => {
   const { rolle, status, passwort } = req.body || {};
   const nurRolle = rolle !== undefined && status === undefined && passwort === undefined;
@@ -1287,47 +1116,28 @@ app.delete('/api/users/:id', nurAdmin, (req, res) => {
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
-/* ---- Der Mailversand, seit 0.9.0 ---------------------------------------
+/* ---- Der Mailversand ----------------------------------------------------
    DREI ENDPUNKTE, EINE RECHTEZEILE: DER MAILZUGANG GEHOERT DEM EIGENTUEMER,
-   GANZ. Eintragen, einsehen und die Testmail ausloesen -- alles drei bei ihm,
-   und der Admin kommt an keines davon:
-     GET  /api/mail       nurEigentuemer. Lesend, deshalb KEIN Eintrag in
-                          F_ROUTEN, wie bei GET /api/stats.
-     PUT  /api/mail       nurEigentuemer, und zusaetzlich zweitbestaetigt.
-     POST /api/mail/test  nurEigentuemer -- an die EIGENE Adresse, sonst nirgends.
+   GANZ -- eintragen, einsehen, Testmail.
+     GET  /api/mail       nurEigentuemer. Lesend, kein F_ROUTEN.
+     PUT  /api/mail       nurEigentuemer und zweitbestaetigt.
+     POST /api/mail/test  nurEigentuemer -- an die EIGENE Adresse.
 
    WARUM NICHT BEIM ADMIN, obwohl ER die Einladungen verschickt: der
-   SMTP-Server sieht jede Mail, die durch ihn geht, und jede traegt einen Link,
-   der ein Passwort setzt. Duerfte ein Admin ihn eintragen, liefe die
-   Ruecksetzmail des Eigentuemers ueber einen Server seiner Wahl -- der Weg an
-   der Rollenleiter vorbei, den es nicht geben darf. Ueber dem Eigentuemer
-   steht niemand; wer ohnehin exportieren und den Schluesselwert sehen darf,
-   gewinnt hier nichts dazu. Die Begruendung im Langen steht in mail.js.
+   SMTP-Server sieht jede Mail, und jede traegt einen Link, der ein Passwort
+   setzt. Der Admin bekommt stattdessen das Feld `versand` samt Grund neben
+   dem Link -- in genau dem Augenblick, in dem es ihn angeht.
 
-   WAS DER ADMIN STATTDESSEN BEKOMMT, und es ist genug: das Feld `versand`
-   samt Grund neben dem Link, in genau dem Augenblick, in dem es ihn angeht.
-   Er erfaehrt dort, DASS nichts hinausging und WARUM -- und der Link steht
-   daneben. Eine Karte, die ihm dasselbe schon vorher sagt, waere bequemer und
-   koennte ihm den Anbieter, den Server und den Benutzernamen des Eigentuemers
-   nennen; das ist der Tausch, der hier nicht gemacht wird.
+   DAS PASSWORT KOMMT AUS KEINER DIESER ANTWORTEN HERAUS. */
 
-   DAS PASSWORT KOMMT AUS KEINER DIESER ANTWORTEN HERAUS, auch nicht aus der
-   des Eigentuemers: die Karte zeigt "gesetzt" oder "nicht gesetzt", und das
-   Formular schickt beim Speichern ein leeres Feld, wenn es unveraendert
-   bleiben soll. Ein Endpunkt, der es zurueckgaebe, waere die eine Stelle, an
-   der es ueber das Netz liefe, ohne dass es jemand gebraucht haette. */
-
-/* Was die Karte sieht. DIE ANBIETERLISTE KOMMT MIT: der Server speichert einen
-   Schluessel, also muss die Oberflaeche die Namen von ihm bekommen -- eine
-   zweite Liste in app.js liefe beim naechsten Anbieter auseinander (dieselbe
-   Bauform wie bei den Suchanbietern).
+/* Was die Karte sieht. DIE ANBIETERLISTE KOMMT MIT: der Server speichert
+   einen Schluessel, also muss die Oberflaeche die Namen von ihm bekommen.
    DIE MARKE SAGT, OB DER LETZTE ERFOLGREICHE TEST NOCH ZUM HEUTIGEN ZUGANG
-   PASST. Ohne den Vergleich stuende "zuletzt getestet: gestern" auch dann da,
-   wenn seitdem der Anbieter gewechselt wurde -- eine Auskunft, die genau dann
-   falsch ist, wenn sie gebraucht wird. */
+   PASST -- ohne den Vergleich stuende "zuletzt getestet: gestern" auch nach
+   einem Anbieterwechsel da. */
 function mailKarte() {
   const roh = getSetting(mail.SCHLUESSEL, null);
-  // Der Vergleich steht seit 0.9.1 in mailtestStand() weiter oben -- eine
+  // Der Vergleich steht in mailtestStand() weiter oben -- eine
   // Rechnung, zwei Rufer (Stolperstein 145).
   const test = mailtestStand(roh);
   return {
@@ -1341,7 +1151,7 @@ function mailKarte() {
     fristMinuten: auth.TOKEN_FRIST_MINUTEN,
     getestetAm: test ? test.am : null,
     sekunden: Math.round(mail.VERSAND_MS / 1000),
-    /* Die Folge der Testmarke fuer die Selbstanmeldung, seit 0.9.1: der
+    /* Die Folge der Testmarke fuer die Selbstanmeldung, : der
        Eigentuemer soll an DIESER Karte sehen, was er dem Schalter des Admins
        antut, wenn er den Mailzugang aendert. Es ist dieselbe Rechnung wie in
        der Karte "Anfragen", nicht eine zweite daneben. */
@@ -1356,31 +1166,17 @@ app.put('/api/mail', nurEigentuemer, zweiteBestaetigungNoetig('mail'), (req, res
   try { neu = mail.pruefeEingabe(req.body, getSetting(mail.SCHLUESSEL, null)); }
   catch (e) { return res.status(400).json({ error: e.message }); }
   putSetting.run(mail.SCHLUESSEL, JSON.stringify(neu));
-  /* DIE MARKE WIRD HIER AUSDRUECKLICH NICHT GELOESCHT, und das ist entschieden
-     und nicht vergessen. Sie belegt "mit DIESEN Werten ist einmal wirklich
-     eine Mail hinausgegangen", und dieser Beleg haengt am HASH UEBER DEN
-     ZUGANG, den mailKarte() unten nachrechnet: passt er nicht mehr, gilt die
-     Marke nicht mehr -- egal, wodurch sich der Zugang geaendert hat.
-     EIN ZWEITES LOESCHEN AN DIESER STELLE WAERE EINE ZWEITE WAHRHEIT UEBER
-     DIESELBE FRAGE. Es stand hier eine Runde lang und war folgenlos: eine
-     Gegenprobe, die es entfernte, blieb vollstaendig stumm -- der Vergleich
-     hatte die Arbeit ohnehin schon getan. Und der Vergleich kann mehr: er
-     faengt auch einen Wert, der auf einem anderen Weg in settings gelandet
-     ist. */
+  /* DIE MARKE WIRD HIER AUSDRUECKLICH NICHT GELOESCHT: sie haengt am HASH
+     UEBER DEN ZUGANG, den mailKarte() nachrechnet -- passt er nicht mehr,
+     gilt sie nicht mehr. Ein zweites Loeschen waere eine zweite Wahrheit
+     ueber dieselbe Frage. */
   res.json(mailKarte());
 });
 
 /* Die Testmail geht AN DIE EIGENE ADRESSE DES ANFORDERNDEN und nirgendwo
-   sonst. Ein Knopf mit freiem Adressfeld waere ein offener Mailverteiler
-   hinter einer Anmeldung: die Anlage verschickte fuer jeden mit einem
-   Adminzugang fremde Post, und wer tausend Adressen durchprobieren will,
-   braeuchte dafuer nur einen Zugang und Geduld.
-   ES GIBT DESHALB KEIN ADRESSFELD -- weder im Rumpf, noch in der Abfrage,
-   noch als Kopf. Der Rumpf wird gar nicht angesehen; das ist die einzige Form,
-   in der "ein mitgegebenes Feld aendert nichts" baulich wahr ist statt
-   durchgesetzt.
-   HAT DER ZUGANG KEINE ADRESSE, WIRD ABGESAGT -- mit dem Weg dorthin, denn
-   die Absage ohne den Satz "trag sie unter Zugang ein" waere eine Sackgasse. */
+   sonst -- ein Knopf mit freiem Adressfeld waere ein offener Mailverteiler
+   hinter einer Anmeldung. ES GIBT DESHALB KEIN ADRESSFELD: der Rumpf wird gar
+   nicht angesehen. Ohne Adresse am Zugang wird abgesagt, mit dem Weg dorthin. */
 app.post('/api/mail/test', nurEigentuemer, async (req, res) => {
   const eigener = auth.holeZugang(req.benutzer.id);
   if (!eigener || !eigener.email) {
@@ -1405,33 +1201,17 @@ app.post('/api/mail/test', nurEigentuemer, async (req, res) => {
   res.json({ ok: e.ok, grund: e.grund, an: eigener.email, ...mailKarte() });
 });
 
-/* ---- Die Selbstanmeldung hinter der Anmeldung, seit 0.9.1 --------------
-   VIER ENDPUNKTE, EINE RECHTEZEILE: ADMIN. Sehen, schalten, freischalten,
-   ablehnen -- alles vier bei ihm:
-     GET    /api/anfragen           nurAdmin. Lesend, deshalb KEIN Eintrag in
-                                    F_ROUTEN, wie bei GET /api/stats.
-     PUT    /api/registrierung/schalter  nurAdmin.
-     POST   /api/anfragen/:id/frei  nurAdmin.
-     DELETE /api/anfragen/:id       nurAdmin.
+/* ---- Die Selbstanmeldung hinter der Anmeldung ---------------------------
+   VIER ENDPUNKTE, EINE RECHTEZEILE: ADMIN -- sehen, schalten, freischalten,
+   ablehnen. GET /api/anfragen ist lesend und steht nicht in F_ROUTEN.
 
-   WARUM ADMIN UND NICHT EIGENTUEMER, obwohl der Mailzugang dahinter dem
-   Eigentuemer gehoert: aus einer Anfrage wird NIE etwas anderes als ein
-   Zugang mit der Rolle 'user', und den legt der Admin ohnehin an. Die
-   Rollenleiter wird dabei nicht beruehrt -- es gibt keinen bestehenden Zugang,
-   an den hier jemand herankaeme. Was der Admin ueber den Mailzugang erfaehrt,
-   ist der Grund aus versandBereit(), und den erfaehrt er heute schon neben
-   jedem Link.
+   WARUM ADMIN UND NICHT EIGENTUEMER: aus einer Anfrage wird NIE etwas
+   anderes als ein Zugang mit der Rolle 'user', und den legt der Admin ohnehin
+   an. KEINE ZWEITE BESTAETIGUNG, aus demselben Grund wie bei POST /api/users.
 
-   KEINE ZWEITE BESTAETIGUNG, und das ist entschieden und nicht vergessen:
-   dieselbe Ueberlegung wie bei POST /api/users -- es entsteht ein NEUER Zugang
-   und nimmt niemandem etwas. BESTAETIGUNG_ZWECKE bleibt bei sieben.
-
-   DER SCHALTER LEGT SICH NIE VON SELBST UM. Einschalten geht nur, wenn der
-   Versand wirklich bereit ist; AUSSCHALTEN GEHT IMMER. Und geht der Versand
-   spaeter kaputt, bleibt er an und die Karte sagt es rot -- ein Schalter, der
-   sich selbst umlegt, waere die zweite Wahrheit aus Abschnitt 1 des
-   Konzeptpapiers: die Anlage stuende dann anders da, als der Mensch sie
-   gestellt hat, und niemand koennte sagen, wann das passiert ist. */
+   DER SCHALTER LEGT SICH NIE VON SELBST UM: einschalten geht nur bei
+   bereitem Versand, AUSSCHALTEN GEHT IMMER. Geht der Versand spaeter kaputt,
+   bleibt er an und die Karte sagt es rot. */
 function anfragenKarte() {
   const b = versandBereit();
   return {
@@ -1467,20 +1247,10 @@ app.put('/api/registrierung/schalter', nurAdmin, (req, res) => {
 });
 
 /* Die Freischaltung. AUS DER ANFRAGE WIRD EIN ZUGANG MIT DER ROLLE 'user' --
-   die Rolle steht hier fest im Aufruf und wird an KEINER Stelle aus der
-   Anfrage gelesen, weder aus dem Rumpf noch aus der Abfrage noch aus einem
-   Kopf. Damit ist "aus einer Anfrage wird nie etwas anderes als ein Benutzer"
-   baulich wahr statt durchgesetzt: ein Deckel, den es nicht gibt, kann nicht
-   vergessen werden.
-   NUR BESTAETIGTE ANFRAGEN. listeAnfragen() zeigt ohnehin nur sie, aber die
-   Route verlaesst sich nicht auf die Karte -- eine Nummer laesst sich tippen.
-   ERST DER ZUGANG, DANN DER TOKEN, DANN DIE ZEILE WEG. Die Reihenfolge ist die
-   Zusage: scheitert das Anlegen -- der Name kann zwischen Anfrage und
-   Freischaltung anderweitig vergeben worden sein --, bleibt die Anfrage
-   stehen, und der Admin bekommt die Meldung. Ein Weg, der die Zeile zuerst
-   loescht, verloere sie in genau diesem Fall.
-   UND DANN ERST DER VERSAND, wie am Anlegen und aus demselben Grund: der Link
-   steht in der Antwort, egal was der Mailserver sagt. */
+   die Rolle steht fest im Aufruf und wird an KEINER Stelle aus der Anfrage
+   gelesen. NUR BESTAETIGTE ANFRAGEN, denn eine Nummer laesst sich tippen.
+   ERST DER ZUGANG, DANN DER TOKEN, DANN DIE ZEILE WEG -- scheitert das
+   Anlegen, bleibt die Anfrage stehen. Und dann erst der Versand. */
 app.post('/api/anfragen/:id/frei', nurAdmin, async (req, res) => {
   const a = auth.holeAnfrage(req.params.id);
   if (!a || !a.bestaetigt_am)
@@ -1503,13 +1273,10 @@ app.post('/api/anfragen/:id/frei', nurAdmin, async (req, res) => {
 });
 
 /* Die Ablehnung. DIE ZEILE IST WEG, UND ES ENTSTEHT NICHTS -- kein Zugang,
-   kein Token, keine Mail. Eine Absagemail waere eine Benachrichtigung, und die
-   gibt es in dieser Anlage nicht; sie waere ausserdem ein Weg, jemandem auf
-   Zuruf Post zu schicken.
-   DIE PROTOKOLLZEILE TRAEGT DEN NAMEN NICHT. Sie ist die einzige Spur, dass
-   ueberhaupt jemand gefragt hat -- die Zeile in anfragen wird ja geloescht --,
-   und sie haelt fest, WER abgelehnt hat und WANN. Mehr gehoert nicht hinein:
-   der Name des Abgewiesenen ist Freitext von aussen. */
+   kein Token, keine Mail. Eine Absagemail waere eine Benachrichtigung, und
+   ein Weg, jemandem auf Zuruf Post zu schicken.
+   DIE PROTOKOLLZEILE TRAEGT DEN NAMEN NICHT: sie haelt fest, WER abgelehnt
+   hat und WANN -- der Name des Abgewiesenen ist Freitext von aussen. */
 app.delete('/api/anfragen/:id', nurAdmin, (req, res) => {
   const a = auth.holeAnfrage(req.params.id);
   if (!a || !a.bestaetigt_am)
@@ -1597,10 +1364,8 @@ const zeitleisteAn = (benutzerId) => getUserSetting(benutzerId, 'zeitleiste', tr
 // Fuer Linkzeilen, die keine Adresse sind. Gespeichert wird eine Vorlage mit
 // %s als Platzhalter; der Rohtext bleibt roh in der Datenbank, deshalb folgen
 // vorhandene Suchzeilen einem spaeteren Anbieterwechsel von selbst.
-//
 // Die Liste steht hier und nicht in app.js: der Server speichert Schluessel,
-// also muss er die Liste kennen. Eine Liste, eine Pruefung, eine Stelle --
-// doppelt gehaltene Vorgaben pruefen sich nur halb.
+// also muss er die Liste kennen.
 const SUCHANBIETER = [
   { schluessel: 'google',    name: 'Google',       vorlage: 'https://www.google.com/search?q=%s' },
   { schluessel: 'bing',      name: 'Bing',         vorlage: 'https://www.bing.com/search?q=%s' },
@@ -1717,10 +1482,8 @@ function schreibeVorrat(standard, aktive) {
 }
 
 // Zahl der Namen unter einer Suchzeile -- persoenlich, als einzige der vier
-// Sucheinstellungen. Vorrat, eigene Anbieter und Startanbieter
-// bleiben global und Sache des Admins: der Admin kuratiert, der
-// Benutzer bestimmt die Dichte. Das Ziel des Zeilenklicks ist damit fuer alle
-// gleich -- bei einem gemeinsamen Bestand richtig.
+// Sucheinstellungen. Vorrat, eigene Anbieter und Startanbieter bleiben global
+// und Sache des Admins: der Admin kuratiert, der Benutzer bestimmt die Dichte.
 const suchNamen = (benutzerId) => {
   const n = Number(getUserSetting(benutzerId, 'suchNamen', 2));
   return SUCHNAMEN_STUFEN.includes(n) ? n : 2;
@@ -1742,33 +1505,15 @@ const zuletztGesehen = (benutzerId) => getUserSetting(benutzerId, 'zuletztGesehe
 
 /* --- Die gespeicherten Ansichten -----------------------------------------
    MEHRERE BENANNTE FILTERSTELLUNGEN NEBEN DER EINEN, DIE ES SCHON GIBT.
-   `filters` bleibt, was es war: die zuletzt benutzte Stellung, bei jeder
-   Aenderung stillschweigend ueberschrieben. Die Ansichten stehen daneben und
-   werden nur auf Zuruf gelesen -- wer 0.10.0 fuhr, behaelt seine Stellung, und
-   es braucht keinen Migrationscode: `ansichten` ist ein neuer Schluessel, und
-   eine Anlage ohne ihn bekommt die leere Liste als Vorgabe.
+   `filters` bleibt die zuletzt benutzte Stellung; die Ansichten stehen
+   daneben und werden nur auf Zuruf gelesen. PERSOENLICH, GANZ.
 
-   PERSOENLICH, GANZ -- dieselbe Linie wie filters, bloecke und zeitleiste.
-   Eine geteilte Ansicht waere ein neuer Traeger samt neuer Rechtefrage.
+   IN settings UND NICHT IN EINER EIGENEN TABELLE. Der Preis steht dabei:
+   JSON kennt keine Kaskade, eine geloeschte Kategorie bleibt als Nummer
+   stehen -- uebergangen wird das beim ANWENDEN und nicht beim Lesen.
 
-   IN settings UND NICHT IN EINER EIGENEN TABELLE: es ist genau die Form, die
-   `filters` schon hat, und eine Ansicht ist kein Traeger wie Eintrag,
-   Kommentar, Testtag, Bewertung, Link oder Datei. Der Preis steht dabei: JSON
-   kennt keine Kaskade, eine geloeschte Kategorie bleibt darin als Nummer
-   stehen. Uebergangen wird das beim ANWENDEN und nicht beim Lesen -- ein
-   Lesevorgang, der die Ansicht eines Menschen umschreibt, ist schlimmer als
-   eine Nummer, die ins Leere zeigt.
-
-   DER SUCHBEGRIFF GEHOERT DAZU. Eine Ansicht "Bosch, ungetestet" ist ohne ihn
-   die halbe Ansicht, und wer sie anklickt, erwartet das, was er beim Speichern
-   vor sich hatte.
-
-   GEPRUEFT WIRD DIE FORM, NICHT DER INHALT DER FILTERSTELLUNG. Deckel, Name
-   und Groesse ja; welche Sortierungen und welche Nummern es gibt, weiss die
-   Oberflaeche -- eine zweite Liste davon hier liefe auseinander, und `filters`
-   liegt aus genau diesem Grund seit jeher ungeprueft in der Tabelle. Was der
-   Server dafuer hart deckelt, ist der Platz: ohne Deckel waere ein
-   persoenlicher Schluessel ein Speicherfueller. */
+   DER SUCHBEGRIFF GEHOERT DAZU. GEPRUEFT WIRD DIE FORM, NICHT DER INHALT:
+   Deckel, Name und Groesse ja, welche Nummern es gibt weiss die Oberflaeche. */
 const ANSICHTEN_DECKEL = 8;
 const ANSICHT_NAME_LAENGE = 40;
 const ANSICHT_BEGRIFF_LAENGE = 200;
@@ -1781,24 +1526,17 @@ const ansichten = (benutzerId) => {
 // Die Antwort mischt beide Haelften; die Oberflaeche merkt davon nichts.
 // Persoenlich sind filters, ansichten, schrift, bloecke, linkZeilen,
 // zeitleiste und suchNamen; global bleiben vokabular und die drei
-// Sucheinstellungen (suche, sucheEigene, sucheAktiv). Fuer zwei Benutzer sieht
-// dieselbe Antwort deshalb an sieben Stellen verschieden aus und an allen
-// uebrigen gleich.
-// Dazu drei abgeleitete Angaben, keine Einstellungen -- sie stehen in keiner
-// der beiden Haelften und lassen sich nicht schreiben:
-//   benutzerZahl: bei genau einem Zugang entfaellt die Durchschnittsspalte,
-//     "3,4 · 1" ist keine Information. Geliefert wird die ZAHL, die Schwelle
-//     entscheidet die Oberflaeche -- sonst stuende sie an zwei Orten.
-//     Gezaehlt werden nur ZUGAENGE, DIE ES NOCH GIBT: ein Grabstein ist kein
-//     zweiter Bewerter, und die Durchschnittsspalte haengt an dieser Zahl.
-//   Adminfrage: die Verwaltungskarten halten sich danach. Kommt aus
-//     req.benutzer, ausdruecklich NICHT aus holeBenutzer() -- das lieferte den
-//     ERSTEN Benutzer, nicht den angemeldeten.
-//   Eigentuemerfrage: die Kachel fuer Export und Import bekommt nur zu sehen,
-//     wem die Anlage gehoert. Der Server verweigert beides ohnehin; das Feld
-//     erspart der Oberflaeche eine zweite Wahrheit darueber.
-// Sie haengen hier, weil ladeEinstellungen() beim Start ohnehin laeuft, auch
-// beim Direkteinstieg auf einen Eintrag.
+// Sucheinstellungen.
+// Dazu drei ABGELEITETE Angaben, keine Einstellungen -- sie lassen sich nicht
+// schreiben:
+//   benutzerZahl: bei genau einem Zugang entfaellt die Durchschnittsspalte.
+//     Geliefert wird die ZAHL, die Schwelle entscheidet die Oberflaeche.
+//     Gezaehlt werden nur ZUGAENGE, DIE ES NOCH GIBT -- ein Grabstein ist kein
+//     zweiter Bewerter.
+//   Adminfrage: kommt aus req.benutzer, ausdruecklich NICHT aus holeBenutzer()
+//     -- das lieferte den ERSTEN Benutzer, nicht den angemeldeten.
+//   Eigentuemerfrage: erspart der Oberflaeche eine zweite Wahrheit darueber,
+//     wem die Anlage gehoert.
 const qBenutzerZahl = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status != 'geloescht'");
 
 app.get('/api/settings', (req, res) => res.json({
@@ -1830,16 +1568,11 @@ app.get('/api/settings', (req, res) => res.json({
   // Vorhandenen bleibt in jedem Fall stehen.
   tagsFreiAnlegen: freiAnlegen('tagsFreiAnlegen'),
   kategorienFreiAnlegen: freiAnlegen('kategorienFreiAnlegen'),
-  /* SEIT 0.10.0: fragt die zweite Bestaetigung bei DIESEM Zugang zusaetzlich
-     den Code? Das Feld steht hier und nicht nur in GET /api/account, und aus
-     demselben Grund wie `name` darueber -- beide lesen denselben Zugang, es ist
-     also keine zweite Wahrheit. Gebraucht wird es ausserhalb des
-     Systembereichs: das Bestaetigungsfenster steht auch vor Export und Import,
-     und ohne diese Angabe muesste es den ersten Versuch absichtlich scheitern
-     lassen, um zu erfahren, dass ein Code fehlt -- eine Protokollzeile
-     'bestaetigung.fehl' bei jedem einzelnen Vorgang.
-     NUR EIN JA/NEIN. Weder das Geheimnis noch der Zeitpunkt noch die Zahl der
-     Wiederherstellungscodes -- die stehen in der Karte, wo sie hingehoeren. */
+  /* Fragt die zweite Bestaetigung bei DIESEM Zugang zusaetzlich den Code?
+     Gebraucht wird es ausserhalb des Systembereichs -- das
+     Bestaetigungsfenster steht auch vor Export und Import, und ohne die
+     Angabe muesste es den ersten Versuch absichtlich scheitern lassen.
+     NUR EIN JA/NEIN. */
   zweifaktor: auth.zweifaktorAn(req.benutzer.id),
   // Die Frist des Papierkorbs. Sie steht HIER und nicht nur in
   // GET /api/papierkorb: den Loeschdialog sieht jeder, die Karte nur der
@@ -1849,27 +1582,20 @@ app.get('/api/settings', (req, res) => res.json({
 }));
 
 app.put('/api/settings', (req, res) => {
-  /* Die Antwort mischt zwei Haelften, die Rechte auch. Persoenliche
-     Schluessel schreibt jeder fuer sich, alles andere -- Vokabular und
-     Suchanbieter -- gehoert dem Admin: der Admin kuratiert, der Benutzer
-     bestimmt die Dichte.
-     ABGELEITET AUS EINER LISTE, nicht aus einer zweiten: was nicht persoenlich
-     ist, ist Adminsache -- auch jeder Schluessel, der spaeter dazukommt. Eine
-     zweite Liste daneben liefe auseinander.
-     GEPRUEFT VOR DEM ERSTEN SCHREIBEN: eine Absage, die die persoenliche
-     Haelfte schon geschrieben hat, waere schlimmer als gar keine. */
+  /* Die Antwort mischt zwei Haelften, die Rechte auch: persoenliche
+     Schluessel schreibt jeder fuer sich, Vokabular und Suchanbieter gehoeren
+     dem Admin. ABGELEITET AUS EINER LISTE -- was nicht persoenlich ist, ist
+     Adminsache, auch jeder Schluessel, der spaeter dazukommt.
+     GEPRUEFT VOR DEM ERSTEN SCHREIBEN. */
   const fremd = Object.keys(req.body || {}).filter(k => !PERSOENLICHE_SCHLUESSEL.includes(k));
   if (fremd.length && !istAdmin(req))
     return res.status(403).json({ error: VERWEIGERT_ADMIN });
 
   /* DIE ANSICHTEN WERDEN HIER GEPRUEFT UND ERST WEITER UNTEN GESCHRIEBEN --
-     VOR dem ersten putUserSetting dieses Rumpfes, aus demselben Grund wie die
-     Rechtefrage darueber: eine Absage, die `filters` schon geschrieben hat,
-     waere schlimmer als gar keine.
-     GEPRUEFT WIRD DIE GANZE LISTE AUF EINMAL, nicht eine Ansicht je Anfrage.
-     Es ist EIN Schluessel mit EINEM Wert; ein Weg, der einzelne Eintraege
-     darin aendert, braeuchte eine Nummer je Ansicht und damit einen Traeger,
-     der keiner ist. */
+     VOR dem ersten putUserSetting: eine Absage, die `filters` schon
+     geschrieben hat, waere schlimmer als gar keine.
+     GEPRUEFT WIRD DIE GANZE LISTE AUF EINMAL -- es ist EIN Schluessel mit
+     EINEM Wert. */
   let ansichtenText = null;
   if (req.body.ansichten !== undefined) {
     const ein = Array.isArray(req.body.ansichten) ? req.body.ansichten : [];
@@ -1941,14 +1667,11 @@ app.put('/api/settings', (req, res) => {
   if (req.body.zeitleiste !== undefined)
     putUserSetting(req.benutzer.id, 'zeitleiste', JSON.stringify(!!req.body.zeitleiste));
   /* DER MERKZEITPUNKT KOMMT VON DER SERVERUHR, NIE VOM AUFRUFER. Was der
-     Aufrufer schickt, ist ein Signal ("ich habe die Uebersicht verlassen") und
-     keine Feststellung -- eine mitgeschickte Zeit waere eine Behauptung, mit
-     der sich jeder Bestand nach Belieben als ungesehen erklaeren liesse.
-     UND SIE WIRD UM EINE SEKUNDE NACHGESTELLT. datetime('now') loest nur
-     Sekunden auf: entstuende ein Kommentar in DERSELBEN Sekunde, in der jemand
-     die Uebersicht verlaesst, traege sein Eintrag genau diesen Zeitstempel und
-     gaelte danach nie als neu. Die Sekunde zurueck macht das Fenster
-     harmlos -- lieber einen Eintrag zweimal zeigen als einen verschlucken. */
+     Aufrufer schickt, ist ein Signal ("ich habe die Uebersicht verlassen")
+     und keine Feststellung -- eine mitgeschickte Zeit waere eine Behauptung.
+     UND SIE WIRD UM EINE SEKUNDE NACHGESTELLT: datetime('now') loest nur
+     Sekunden auf, und ein Kommentar aus DERSELBEN Sekunde gaelte sonst nie
+     als neu. Lieber einen Eintrag zweimal zeigen als einen verschlucken. */
   if (req.body.zuletztGesehen !== undefined)
     putUserSetting(req.benutzer.id, 'zuletztGesehen',
       JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
@@ -2016,18 +1739,15 @@ app.put('/api/settings', (req, res) => {
 
 /* --- Das Gewicht eines Kriteriums ----------------------------------------
    DER GUELTIGE BEREICH STEHT GENAU HIER. Zwei Schreibwege fuehren darauf --
-   die Verwaltung und der Import; stuende die Spanne an beiden, liefen sie
-   irgendwann auseinander. Aus demselben Grund steht sie auch NICHT als CHECK
-   in der DDL: das waere eine dritte Stelle fuer dieselbe Grenze, und sie
-   meldete sich nicht als Absage mit Meldung, sondern als abgebrochene
-   Schreibung.
-   NUR POSITIVE WERTE, und die Untergrenze ist keine Geschmacksfrage: bei 0
-   waere der Nenner eines Eintrags, an dem nur dieses Kriterium bewertet ist,
-   null. Ein negatives Gewicht kehrte die Aussage um -- eine gute Note zoege
-   den Schnitt nach unten -- und braeche zugleich die Zusicherung, dass der
-   Gesamtschnitt zwischen 1 und 5 liegt.
-   In der Schnittstelle steht eine ZAHL, kein Text: das Komma ist eine Sache
-   der Anzeige und hat hier nichts verloren. */
+   Verwaltung und Import; stuende die Spanne an beiden, liefen sie auseinander.
+   Aus demselben Grund steht sie NICHT als CHECK in der DDL: das waere eine
+   dritte Stelle, und sie meldete sich nicht als Absage, sondern als
+   abgebrochene Schreibung.
+   NUR POSITIVE WERTE: bei 0 waere der Nenner eines Eintrags, an dem nur
+   dieses Kriterium bewertet ist, null. Ein negatives Gewicht kehrte die
+   Aussage um und braeche die Zusicherung, dass der Gesamtschnitt zwischen 1
+   und 5 liegt.
+   In der Schnittstelle steht eine ZAHL, kein Text. */
 const GEWICHT_MIN = 0.2, GEWICHT_MAX = 2.0;
 
 /* ABGEWIESEN WIRD, WAS ETWAS ANDERES BEDEUTET -- GERUNDET WIRD, WAS DASSELBE
@@ -2051,20 +1771,15 @@ function gueltigesGewicht(roh) {
 // "zwischen 0.2 und 2" waere ein Punkt mitten in einem deutschen Satz.
 const zahl = (n) => String(n).replace('.', ',');
 
-// Die Reihenfolge ist frei bestimmbar und gilt ueberall gleich: Detailansicht
-// und Vergleich lesen beide aus derselben Sortierung.
+// Die Reihenfolge ist frei bestimmbar und gilt ueberall gleich.
 //
-// COUNT(DISTINCT r.item_id), nicht COUNT(*). Die Oberflaeche
-// beschriftet diese Zahl mit dem Vokabelwort fuer Eintraege ("3 Eintraege") --
-// und ab dem zweiten Bewerter sind Zeile und Eintrag nicht mehr dasselbe. Ein
-// Kriterium, das drei Leute an EINEM Eintrag bewertet haben, meldete sonst
-// drei. Die Zahl steht in der Verwaltungskarte neben dem Loeschknopf, also
+// COUNT(DISTINCT r.item_id), nicht COUNT(*): die Oberflaeche beschriftet diese
+// Zahl mit dem Vokabelwort fuer Eintraege, und ab dem zweiten Bewerter sind
+// Zeile und Eintrag nicht mehr dasselbe. Sie steht neben dem Loeschknopf, also
 // genau dort, wo sie die Entscheidung tragen soll.
-// Die Bedingung value > 0 bleibt: ein zurueckgesetztes Kriterium hinterlaesst
-// eine Zeile mit 0, und die ist keine Verwendung.
-// gewicht steht mit in der Liste: die Verwaltungskarte zeichnet daraus ihr
-// Eingabefeld, und ohne die Angabe stuende dort bei jedem Neuaufbau wieder
-// die Vorgabe statt des gespeicherten Werts.
+// value > 0 bleibt: ein zurueckgesetztes Kriterium ist keine Verwendung.
+// gewicht steht mit in der Liste -- ohne die Angabe stuende im Eingabefeld bei
+// jedem Neuaufbau wieder die Vorgabe.
 const qCriteria = db.prepare(`
   SELECT c.id, c.name, c.sort_order, c.gewicht, c.created_at,
          (SELECT COUNT(DISTINCT r.item_id) FROM ratings r
@@ -2073,16 +1788,11 @@ const qCriteria = db.prepare(`
 
 /* --- Die Kriterien gehoeren dem Admin -------------------------------------
    Was an allen Eintraegen aller Benutzer erscheint, gehoert dem Admin: ein
-   neues Kriterium erscheint sofort an jedem Eintrag auf jedem Bildschirm, ein
-   geloeschtes nimmt ueberall die vergebenen Sterne mit. Deshalb liegen alle
-   vier Wege hier hinter derselben Klemme -- anlegen, umbenennen, sortieren,
-   loeschen.
-
-   EIN benannter Waechter fuer vier Routen, nicht vier Abfragen. Er steht oben
-   im Rechteblock hinter requireAuth und deckt von dort aus auch Titel, Tags
-   und Kategorien mit ab -- die Regel steht nicht ein zweites Mal da.
-   Solange nur ein Zugang besteht, verweigert er nichts: der Einzige ist immer
-   auch Admin. */
+   neues Kriterium erscheint sofort an jedem Eintrag, ein geloeschtes nimmt
+   ueberall die vergebenen Sterne mit. Alle vier Wege liegen deshalb hinter
+   derselben Klemme -- anlegen, umbenennen, sortieren, loeschen.
+   EIN benannter Waechter fuer vier Routen, nicht vier Abfragen; er deckt von
+   oben aus auch Titel, Tags und Kategorien mit ab. */
 
 app.get('/api/criteria', (req, res) => res.json(qCriteria.all()));
 
@@ -2207,11 +1917,9 @@ app.delete('/api/tags/:id', nurAdmin, (req, res) => {
 
 /* Nachschlagen und Anlegen sind ZWEI Schritte, weil die Klemme dazwischen
    gehoert: einen VORHANDENEN Tag zuzuweisen darf immer jeder, nur ein neuer
-   Name haengt am Schalter. Ein gemeinsamer Helfer, der beides in einem Zug
-   taete, truege die Klemme in seinem eigenen Rumpf -- und dann liesse sich an
-   keinem der beiden Wege noch gegenpruefen, dass sie dort wirklich wirkt.
-   Der Import geht an beiden vorbei: er gehoert dem Eigentuemer und legt seine
-   Tags selbst an. */
+   Name haengt am Schalter. Ein gemeinsamer Helfer truege die Klemme in
+   seinem eigenen Rumpf, und dann liesse sie sich nirgends gegenpruefen.
+   Der Import geht an beiden vorbei. */
 function findeTag(name) {
   return db.prepare('SELECT * FROM tags WHERE name = ? COLLATE NOCASE').get(name.trim());
 }
@@ -2252,16 +1960,11 @@ app.delete('/api/items/:id/tags/:tagId', nurEintragVerfasser, (req, res) => {
 const qAttachments = db.prepare(`SELECT id, filename, mime_type, size, sort_order, created_at, user_id
   FROM attachments WHERE item_id = ? ORDER BY sort_order, id`);
 // Reihenfolge durchgaengig chronologisch, in Gruppen: Angepinntes zuerst
-// (Anpinnen schlaegt die Art), dann Aufgaben, dann Berichte, dann Notizen.
-// Innerhalb jeder Gruppe steht das Aelteste oben. Der gemischte Block der
-// Angepinnten bleibt einer: dort entscheidet allein das Alter, nicht die Art.
-// Zwei Bloecke mit gegenlaeufiger Zeitrichtung laesen sich schlechter; wer
-// sein aktuelles Fazit oben haben will, pinnt es an.
+// (Anpinnen schlaegt die Art), dann Aufgaben, Berichte, Notizen. Innerhalb
+// jeder Gruppe steht das Aelteste oben; der Block der Angepinnten bleibt einer.
 // Sortiert wird nach id, nicht nach created_at: innerhalb eines Eintrags
-// stimmen beide immer ueberein -- auch nach einem Import, der stets einen
-// neuen Eintrag anlegt und dessen Kommentare in Dateireihenfolge schreibt.
-// created_at kommt dagegen ungeprueft aus der Datei und hat nur
-// Sekundenaufloesung.
+// stimmen beide immer ueberein, und created_at kommt bei einem Import
+// ungeprueft aus der Datei und hat nur Sekundenaufloesung.
 const qCommentsRoh = db.prepare(`
   SELECT * FROM comments WHERE item_id = ?
   ORDER BY pinned DESC,
@@ -2277,23 +1980,12 @@ const qCommentImages = db.prepare(
   'SELECT id, filename, sort_order FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id');
 
 /* --- Aus einer Nummer wird ein Verfasser ----------------------------------
-   EIN Ort, der das tut; die Gegenrichtung -- aus einem Namen eine Nummer --
-   steht im Import und hat aus demselben Grund genau einen.
-
-   Geliefert wird ein OBJEKT und nicht der blosse Name: ein Grabstein hat
-   keinen Namen mehr, seine Zeile traegt geloescht-<nr>. Die Oberflaeche bildet
-   daraus "Geloeschter Benutzer 7". So bleibt das Muster geloescht-<zahl> in
-   auth.js und wandert nicht in einen zweiten Quelltext, wo beide Stellen
-   auseinanderlaufen koennten.
-   Eine HERRENLOSE Zeile (user_id IS NULL) bekommt ausdruecklich null; das Feld
-   fehlt nie, sonst waere "diese Zeile hat keinen Verfasser" von "diese Antwort
-   kennt das Feld noch nicht" nicht zu unterscheiden.
-
-   Die Karte wird EINMAL je Anfrage gebaut und durchgereicht statt je Zeile
-   nachzuschlagen: die Uebersicht traegt Eintraege und Testtage zugleich.
-   Fuer die Karte steht hier bewusst KEINE Klemme wie bei benutzerId. Ein
-   fehlendes Argument faellt hier von selbst laut auf -- `karte.get` gibt es
-   dann nicht. Still wird nur eine fehlende SQL-Bindung. */
+   EIN Ort, der das tut; die Gegenrichtung steht im Import.
+   Geliefert wird ein OBJEKT und nicht der blosse Name: ein Grabstein traegt
+   geloescht-<nr>, und die Oberflaeche bildet daraus "Geloeschter Benutzer 7".
+   Eine HERRENLOSE Zeile bekommt ausdruecklich null -- das Feld fehlt nie,
+   sonst waere "kein Verfasser" von "Feld unbekannt" nicht zu unterscheiden.
+   Die Karte wird EINMAL je Anfrage gebaut und durchgereicht. */
 const qVerfasserZeilen = db.prepare('SELECT id, username, status FROM users');
 function verfasserKarte() {
   const m = new Map();
@@ -2309,15 +2001,12 @@ function verfasserKarte() {
 }
 const verfasserAus = (karte, id) => (id == null ? null : (karte.get(id) || null));
 
-/* Jeder Kommentar sagt, ob er MIR gehoert -- dasselbe Muster wie am Testtag
-   und an der Stimme. Daran haengen fuenf Bedienelemente auf dem Bildschirm,
-   und ohne diese Angabe muesste die Oberflaeche aus dem Verfasserobjekt
-   zurueckrechnen, wem eine Zeile gehoert. Das waere eine zweite Wahrheit --
-   und bei einem Grabstein (name: null) ginge es gar nicht.
-   KEIN VORGABEWERT fuer benutzerId, und die Klemme darunter ist deshalb keine
-   Zierde: better-sqlite3 bindet ein fehlendes Argument still als NULL, und
-   `null === null` waere hier obendrein wahr -- eine vergessene Aufrufstelle
-   erklaerte also wortlos jede herrenlose Zeile zur eigenen. */
+/* Jeder Kommentar sagt, ob er MIR gehoert -- daran haengen fuenf
+   Bedienelemente. Ohne die Angabe muesste die Oberflaeche aus dem
+   Verfasserobjekt zurueckrechnen, und bei einem Grabstein ginge das nicht.
+   KEIN VORGABEWERT fuer benutzerId: better-sqlite3 bindet ein fehlendes
+   Argument still als NULL, und `null === null` waere hier wahr -- eine
+   vergessene Aufrufstelle erklaerte jede herrenlose Zeile zur eigenen. */
 function qComments(itemId, benutzerId, karte) {
   if (benutzerId == null) throw new Error('qComments() ohne Benutzer aufgerufen');
   const liste = qCommentsRoh.all(itemId);
@@ -2346,24 +2035,12 @@ const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM 
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
 /* --- Schnitt und Anzahl je Kriterium --------------------------------------
    EINE Abfrage, gruppiert -- ausdruecklich KEIN zweiter JOIN AUF `ratings`
-   neben den, der in detail() die eigene Sternzeile holt. Zwei JOINs auf
-   DIESELBE Tabelle vervielfachen sich: drei Bewerter an einem Kriterium
-   ergaeben dreimal dieselbe Zeile, und der Schnitt daraus waere zwar zufaellig
-   richtig, der Zaehler aber neunfach. Deshalb hier gruppiert und drueben per
-   Map angehaengt.
-   DER JOIN AUF `rating_criteria` DARUNTER IST ETWAS ANDERES und faellt nicht
-   unter diese Warnung: er trifft ueber criterion_id genau eine Zeile, die
-   Zeilenzahl bleibt. c.gewicht steht zusaetzlich im GROUP BY, damit die
-   Abfrage nicht auf SQLites Nachsicht gegenueber freien Spalten angewiesen
-   ist.
-   DAS GEWICHT REIST AN DER SCHNITTZEILE MIT, statt beim Rechnen separat
-   nachgeschlagen zu werden. Das ist der Grund fuer den JOIN: so kann der
-   Nenner des Gesamtschnitts gar nicht aus einer anderen Menge entstehen als
-   der Zaehler. Wer eine Zeile hat, hat ihr Gewicht; wer keine hat, hat auch
-   keins im Nenner.
-   Gezaehlt und gemittelt wird ueber Werte > 0, wie ueberall: ein
-   zurueckgesetztes Kriterium hinterlaesst eine Zeile mit 0, und die ist keine
-   Stimme. */
+   neben dem in detail(): zwei JOINs auf DIESELBE Tabelle vervielfachen sich,
+   drei Bewerter ergaeben einen neunfachen Zaehler. Der JOIN auf
+   `rating_criteria` trifft dagegen genau eine Zeile.
+   DAS GEWICHT REIST AN DER SCHNITTZEILE MIT -- so kann der Nenner des
+   Gesamtschnitts gar nicht aus einer anderen Menge entstehen als der Zaehler.
+   Gezaehlt wird ueber Werte > 0: eine zurueckgesetzte Zeile ist keine Stimme. */
 const qSchnittJeKriterium = db.prepare(`
   SELECT r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,
          c.gewicht
@@ -2377,18 +2054,10 @@ function schnitteJeKriterium(itemId) {
   return m;
 }
 
-/* Wer welchen Wert vergeben hat -- je Kriterium eine Liste. Wieder eine EIGENE
-   Abfrage und kein dritter JOIN neben den beiden darueber; die Begruendung
-   steht bei qSchnittJeKriterium und gilt hier genauso.
-   Nur Werte > 0, wie ueberall: ein zurueckgesetztes Kriterium hinterlaesst
-   eine Zeile mit 0, und die ist keine Stimme.
-   Die id steht mit dabei, weil sie der einzige Weg zu einer einzelnen fremden
-   Bewertung ist -- ohne sie waere DELETE /api/ratings/:id vom Bildschirm aus
-   nicht erreichbar.
-   `mine` statt der Verfassernummer zum Vergleichen: dieselbe Ueberlegung wie
-   am Testtag -- die Oberflaeche soll nicht selbst ausrechnen muessen, wem eine
-   Zeile gehoert. Am eigenen Wert steht deshalb kein Loeschkreuz; dafuer gibt
-   es die Sterne und den Ruecksetzer. */
+/* Wer welchen Wert vergeben hat -- je Kriterium eine Liste. Wieder eine
+   EIGENE Abfrage, Begruendung bei qSchnittJeKriterium. Nur Werte > 0.
+   Die id steht mit dabei: ohne sie waere DELETE /api/ratings/:id vom
+   Bildschirm aus nicht erreichbar. `mine` statt der Verfassernummer. */
 const qStimmenRoh = db.prepare(`
   SELECT id, criterion_id, user_id, value FROM ratings
    WHERE item_id = ? AND value > 0 ORDER BY criterion_id, id`);
@@ -2407,37 +2076,23 @@ function stimmenJeKriterium(itemId, benutzerId, karte) {
 }
 
 // Gesamtschnitt: erst je Kriterium ueber alle Benutzer, dann ueber die
-// Kriterien. NICHT flach ueber alle Bewertungszeilen -- sonst zaehlte ein
-// Kriterium, das drei Leute bewertet haben, dreifach gegen eines, das nur
-// einer bewertet hat, und die Kopfzahl waere aus den angezeigten Zeilenwerten
-// nicht mehr nachvollziehbar.
-// Der zweite Schritt ist ein GEWICHTETER Mittelwert. Bei Gewicht 1 ueberall
-// ist er rechnerisch derselbe wie ein ungewichteter -- Zaehler und Nenner
-// bekommen denselben Faktor.
+// Kriterien -- NICHT flach ueber alle Bewertungszeilen. Sonst zaehlte ein
+// Kriterium, das drei Leute bewertet haben, dreifach gegen eines mit einem
+// Bewerter, und die Kopfzahl waere aus den angezeigten Zeilenwerten nicht
+// mehr nachvollziehbar. Der zweite Schritt ist ein GEWICHTETER Mittelwert.
 //
 // DER NENNER SUMMIERT NUR DIE GEWICHTE DER BEWERTETEN KRITERIEN. Das ist die
 // eine Stelle, an der ein naheliegender Griff alles kippt: ein Nenner ueber
-// ALLE Kriterien -- etwa SELECT SUM(gewicht) FROM rating_criteria -- drueckte
-// einen Eintrag unter 1. Ein Eintrag mit einem einzigen bewerteten Kriterium
-// (Wert 3, Gewicht 0,2) und zwei unbewerteten a Gewicht 2 ergaebe dort 0,14
-// statt 3,0.
-// Die Antwort darauf ist baulich, nicht sorgfaeltig: Zaehler und Nenner
-// entstehen in DERSELBEN Schleife aus DERSELBEN Menge, und das Gewicht kommt
-// an der Schnittzeile mit (siehe qSchnittJeKriterium). Eine zweite Quelle gibt
-// es hier gar nicht.
-// Weil jeder Kriterienwert in [1,5] liegt und jedes Gewicht groesser als null
-// ist, liegt auch das Ergebnis in [1,5]. Das ist eine Eigenschaft des
-// gewichteten Mittels -- eine Konvexkombination --, keine Regel, die hier
-// durchgesetzt wuerde. Es gibt keinen Deckel, der vergessen werden koennte.
-// Gerundet wird GENAU EINMAL, hier am Ende. Je Kriterium vorzurunden und dann
-// zu mitteln waere ein zweiter Rundungsort fuer dieselbe Zahl -- SQL und
-// JavaScript muessten dafuer gleich runden. Der Preis ist bekannt und steht im
-// Konzept: wer die angezeigten Zehntel von Hand mittelt, kann um bis zu 0,05
-// danebenliegen; mit Gewichten ist die Kopfzahl durch blosses Mitteln der
-// Zeilen ohnehin nicht mehr nachzurechnen -- deshalb steht das Gewicht an der
-// Zeile.
-// Bei EINEM Benutzer liefert das Zweistufenmittel dasselbe wie ein flaches --
-// jedes Kriterium hat dann hoechstens eine Stimme.
+// ALLE Kriterien drueckte einen Eintrag unter 1 -- ein Eintrag mit einem
+// bewerteten Kriterium (Wert 3, Gewicht 0,2) und zwei unbewerteten a 2 ergaebe
+// 0,14 statt 3,0. Die Antwort darauf ist baulich: Zaehler und Nenner entstehen
+// in DERSELBEN Schleife aus DERSELBEN Menge.
+//
+// Weil jeder Wert in [1,5] liegt und jedes Gewicht groesser null ist, liegt
+// auch das Ergebnis in [1,5] -- eine Eigenschaft des gewichteten Mittels, kein
+// Deckel, der vergessen werden koennte.
+// GERUNDET WIRD GENAU EINMAL, hier am Ende: je Kriterium vorzurunden waere ein
+// zweiter Rundungsort fuer dieselbe Zahl.
 function gesamtSchnitt(karte) {
   let zaehler = 0, nenner = 0;
   for (const z of karte.values()) { zaehler += z.schnitt * z.gewicht; nenner += z.gewicht; }
@@ -2453,13 +2108,10 @@ const qTestDayTags = db.prepare(`SELECT t.id, t.name FROM tags t
   ORDER BY t.name COLLATE NOCASE`);
 // Jeder Testtag sagt, ob er MIR gehoert -- die Zeitleiste zeichnet die
 // eigenen Punkte gefuellt und fremde als Ring. Geliefert wird "mine", nicht
-// die user_id: eine Id in der Antwort waere eine Angabe ueber eine Person,
-// die niemand liest.
-// KEIN VORGABEWERT fuer benutzerId, und die Klemme darunter ist deshalb keine
-// Zierde -- dieselbe Begruendung wie bei detail():
-// better-sqlite3 bindet ein fehlendes Argument still als NULL, und
-// "user_id = NULL" ist in SQL nie wahr. Ohne die Klemme lieferte eine
-// vergessene Aufrufstelle wortlos lauter fremde Punkte.
+// die user_id.
+// KEIN VORGABEWERT fuer benutzerId: better-sqlite3 bindet ein fehlendes
+// Argument still als NULL, und "user_id = NULL" ist in SQL nie wahr -- eine
+// vergessene Aufrufstelle lieferte wortlos lauter fremde Punkte.
 function qTestDays(itemId, benutzerId, karte) {
   if (benutzerId == null) throw new Error('qTestDays() ohne Benutzer aufgerufen');
   const tage = qTestDaysRoh.all(itemId);
@@ -2492,14 +2144,10 @@ function testStats(id) {
 const qMeinPin = db.prepare('SELECT 1 FROM item_pins WHERE user_id = ? AND item_id = ?');
 
 // detail() braucht den Benutzer: "favorite" heisst "habe ICH als Favorit
-// markiert", nicht "ist Favorit" -- dieselbe Antwort sieht fuer zwei Leute
-// verschieden aus.
-//
-// KEIN VORGABEWERT, und die Klemme darunter ist deshalb keine Zierde:
-// better-sqlite3 bindet ein FEHLENDES Argument still als NULL -- nur zu
-// WENIGE Argumente werfen. Ein Aufruf ohne Benutzer faende also nie einen
-// Favoriten und lieferte ueberall wortlos favorite: false, statt aufzufallen.
-// Die Klemme ist die EINZIGE Schicht darunter, nicht die zweite.
+// markiert" -- dieselbe Antwort sieht fuer zwei Leute verschieden aus.
+// KEIN VORGABEWERT: better-sqlite3 bindet ein FEHLENDES Argument still als
+// NULL (nur zu WENIGE werfen). Ein Aufruf ohne Benutzer lieferte ueberall
+// wortlos favorite: false. Die Klemme ist die EINZIGE Schicht darunter.
 function detail(id, benutzerId) {
   if (benutzerId == null) throw new Error('detail() ohne Benutzer aufgerufen');
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(id);
@@ -2524,14 +2172,11 @@ function detail(id, benutzerId) {
     preview: anh.vorschauArt(a2.filename),
     mine: a2.user_id === benutzerId, verfasser: verfasserAus(karte, a2.user_id)
   }));
-  /* Die Linkzeile sagt wie Kommentar, Testtag und Stimme, wem sie gehoert.
-     `mine` steht daneben, weil daran das Loeschkreuz haengt -- die Oberflaeche
-     soll das nicht aus dem Verfasserobjekt zurueckrechnen muessen; bei einem
-     Grabstein ginge das gar nicht, der hat keinen Namen mehr.
-     created_at bleibt in der Antwort: es traegt den Ueberfahrtext der Zeile.
-     WER DEN NAMEN ZEIGT, entscheidet die Oberflaeche -- ein Verfassername ist
-     keine Auskunft, die zurueckgehalten werden muesste; er steht an den vier
-     anderen Traegern ohnehin in jeder Antwort. */
+  /* Die Linkzeile sagt wie Kommentar, Testtag und Stimme, wem sie gehoert --
+     an `mine` haengt das Loeschkreuz, und bei einem Grabstein liesse es sich
+     aus dem Verfasserobjekt nicht zurueckrechnen.
+     created_at bleibt in der Antwort: es traegt den Ueberfahrtext.
+     WER DEN NAMEN ZEIGT, entscheidet die Oberflaeche. */
   it.links = qLinks.all(id).map(l => ({
     id: l.id, url: l.url, sort_order: l.sort_order, created_at: l.created_at,
     mine: l.user_id === benutzerId, verfasser: verfasserAus(karte, l.user_id)
@@ -2539,35 +2184,25 @@ function detail(id, benutzerId) {
   it.tags = qTags.all(id);
   it.testDays = qTestDays(id, benutzerId, karte);
   it.comments = qComments(id, benutzerId, karte);
-  // Die eigene Sterne-Zeile. Ohne die Bedingung auf user_id
-  // vervielfacht der LEFT JOIN das Kriterium -- bei zwei Bewertern kaeme jedes
-  // Kriterium zweimal, und das Widget zeigte zwei Reihen Sterne fuer dieselbe
-  // Sache. Ein Bedienelement zeigt den Zustand, den es veraendert; der Schnitt
-  // ueber alle steht daneben in avg und count -- angehaengt aus
-  // einer gruppierten Abfrage, nicht aus einem zweiten JOIN.
+  // Die eigene Sterne-Zeile. Ohne die Bedingung auf user_id vervielfacht der
+  // LEFT JOIN das Kriterium -- bei zwei Bewertern zeigte das Widget zwei
+  // Reihen Sterne fuer dieselbe Sache. Ein Bedienelement zeigt den Zustand,
+  // den es veraendert; der Schnitt ueber alle steht daneben in avg und count.
   // gewicht steht an jeder Zeile: die Oberflaeche zeichnet daraus die Marke
-  // ×1,5 hinter dem Namen, und der Vergleich rechnet in der Stellung "meine"
-  // damit -- ohne das Feld liefe dort eine ungewichtete Zahl neben einer
-  // gewichteten.
+  // ×1,5, und der Vergleich rechnet in der Stellung "meine" damit.
   it.ratings = db.prepare(`
     SELECT c.id AS criterion_id, c.name, c.gewicht, COALESCE(r.value, 0) AS value
     FROM rating_criteria c LEFT JOIN ratings r
       ON r.criterion_id = c.id AND r.item_id = ? AND r.user_id = ?
     ORDER BY c.sort_order, c.id`).all(id, benutzerId);
-  // Neben der eigenen Zeile stehen Schnitt und Zahl der Bewerter
-  // ueber alle. Angehaengt aus der gruppierten Abfrage, nicht aus einem
-  // zweiten JOIN -- siehe die Bemerkung bei qSchnittJeKriterium.
-  // Ein Kriterium, das niemand bewertet hat, bekommt avg: null und count: 0;
-  // die Oberflaeche zeigt dort nichts.
+  // Neben der eigenen Zeile stehen Schnitt und Zahl der Bewerter ueber alle
+  // -- angehaengt aus der gruppierten Abfrage, nicht aus einem zweiten JOIN.
+  // Ein Kriterium, das niemand bewertet hat, bekommt avg: null und count: 0.
   const schnitte = schnitteJeKriterium(id);
-  // WER WELCHEN WERT VERGEBEN HAT, STEHT HIER AUSDRUECKLICH NICHT. Diese
+  // WER WELCHEN WERT VERGEBEN HAT, STEHT HIER AUSDRUECKLICH NICHT: diese
   // Antwort geht an jeden, und eine Angabe darueber, wie eine EINZELNE PERSON
-  // bewertet hat, ist mehr, als eine Bewertung aussagen soll. Was nicht
-  // angezeigt werden darf, wird nicht geliefert -- sonst haengt die Regel
-  // daran, dass die Oberflaeche mitspielt.
-  // Die Liste holt der Admin ueber GET /api/items/:id/stimmen.
-  // avg und count bleiben: der Schnitt und die Zahl der Bewerter sind keine
-  // Aussage ueber eine Person.
+  // bewertet hat, ist mehr, als eine Bewertung aussagen soll. Die Liste holt
+  // der Admin ueber GET /api/items/:id/stimmen. avg und count bleiben.
   for (const r of it.ratings) {
     const z = schnitte.get(r.criterion_id);
     r.avg = z ? Math.round(z.schnitt * 10) / 10 : null;
@@ -2588,52 +2223,36 @@ const qAlleItems = db.prepare('SELECT * FROM items ORDER BY updated_at DESC');
 const qAnhangZahl = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?');
 
 /* ================= Die Volltextsuche =================
-   SIE SUCHT DIESELBEN SIEBEN QUELLEN, DIE VORHER IM FELD `searchText` STANDEN:
-   Titel, Beschreibung, Kategoriename, Tags am Eintrag, Tags an Testtagen,
-   Linkadressen und saemtliche Kommentartexte. Bis 0.10.0 baute der Server
-   dieses Feld je Eintrag und schickte es mit; gesucht wurde damit im Browser.
-   Das Feld war 73 Prozent der Antwort (gemessen: 2,50 MB von 1000 Eintraegen,
-   0,68 MB ohne). Jetzt sucht der Server, und das Feld entfaellt.
+   SIE SUCHT SIEBEN QUELLEN: Titel, Beschreibung, Kategoriename, Tags am
+   Eintrag, Tags an Testtagen, Linkadressen und saemtliche Kommentartexte.
 
    instr() UND NICHT LIKE, UND DAS IST DER KERN DER SACHE. `LIKE '%…%'` liest
    `%` und `_` im Suchbegriff als Wildcards: die Eingabe eines einzelnen
-   Prozentzeichens faende JEDEN Eintrag statt des einen, der eines traegt.
-   Mit ESCAPE liesse sich das einfangen, aber instr() kennt gar keine
-   Wildcards -- der Suchbegriff ist dort Text, von Bauart und nicht durch eine
-   Klemme, die jemand vergessen kann. Nachgestellt an 1001 Eintraegen: LIKE
-   ungeschuetzt 1001 Treffer, instr() einer, wie vorher im Browser.
+   Prozentzeichens faende JEDEN Eintrag statt des einen, der eines traegt. Mit
+   ESCAPE liesse sich das einfangen, aber instr() kennt gar keine Wildcards --
+   der Suchbegriff ist dort Text von Bauart und nicht durch eine Klemme, die
+   jemand vergessen kann. Nachgestellt an 1001 Eintraegen: LIKE ungeschuetzt
+   1001 Treffer, instr() einer.
 
-   KEIN FTS5, UND DAS IST NACHGERECHNET. Die eingebaute SQLite kann es
-   (3.49.2, trigram legt an), es kaeme also keine Abhaengigkeit dazu. An 1000
-   Eintraegen mit 1,75 MB Suchtext kostet der Trigramm-Index aber 5,17 MB --
-   das Dreifache des Textes, den er indiziert -- und braeuchte eine
-   Auffrischung an sieben Schreibstellen. Vor allem AENDERT ER DAS VERHALTEN:
-   eine Trigramm-Abfrage mit einem oder zwei Zeichen scheitert nicht, sie
-   liefert STILL NULL Treffer. Vorher fand ein einzelnes Zeichen. Ein Index,
-   der eine Millisekunde spart und dem Benutzer die Suche ab einem Zeichen
-   nimmt, ist kein Gewinn.
+   KEIN FTS5, UND DAS IST NACHGERECHNET. Die eingebaute SQLite kann es, es
+   kaeme also keine Abhaengigkeit dazu. An 1000 Eintraegen mit 1,75 MB
+   Suchtext kostet der Trigramm-Index aber 5,17 MB -- das Dreifache des
+   Textes -- und braeuchte eine Auffrischung an sieben Schreibstellen. Vor
+   allem AENDERT ER DAS VERHALTEN: eine Trigramm-Abfrage mit einem oder zwei
+   Zeichen scheitert nicht, sie liefert STILL NULL Treffer.
 
    DIE SIEBEN QUELLEN STEHEN ALS SIEBEN ODER-GLIEDER DA und nicht als
    zusammengesetzter Text. SQLite bricht die Kette beim ersten Treffer ab: ein
-   haeufiges Wort im Titel kostet 1,9 ms, ein seltener Begriff, der alle sieben
-   durchlaeuft, 13,2 ms. Ein vorher zusammengesetzter Text kostete immer den
-   ganzen Durchlauf.
+   haeufiges Wort im Titel kostet 1,9 ms, ein seltener Begriff, der alle
+   sieben durchlaeuft, 13,2 ms.
 
-   DIE ROUTE BLEIBT DIESELBE, mit einem Parameter mehr. Sie ist lesend und
-   steht deshalb NICHT in F_ROUTEN -- dieselbe Regel wie bei GET /api/offen.
-   UND SIE TRIFFT DIESELBE MENGE WIE DIE LISTE OHNE PARAMETER: gelesen wird
-   dieselbe Tabelle `items` ohne jede weitere Einschraenkung. Der Papierkorb
-   liegt nicht darin (das Loeschen entfernt die Zeile in derselben
-   Transaktion), Entwuerfe gibt es nicht, und ein abgelehnter Eintrag steht in
-   der Liste und darum auch in der Suche. Die Suche ist damit kein neuer Zugang
-   zu fremden Kommentaren -- sie sagt nur, WELCHE Eintraege einen Text tragen,
-   und die Antwort enthaelt die Kommentartexte selbst so wenig wie vorher.
+   DIE ROUTE IST LESEND und steht deshalb NICHT in F_ROUTEN. SIE TRIFFT
+   DIESELBE MENGE WIE DIE LISTE OHNE PARAMETER: gelesen wird dieselbe Tabelle
+   `items` ohne weitere Einschraenkung. Die Suche ist damit kein neuer Zugang
+   zu fremden Kommentaren -- sie sagt nur, WELCHE Eintraege einen Text tragen.
 
-   DER SUCHBEGRIFF GEHT NICHT INS SICHERHEITSPROTOKOLL. Freitext gehoert dort
-   nicht hinein, und eine lesende Route schreibt ohnehin nichts.
-
-   KEINE EIGENE BREMSE. Die Route steht hinter der Anmeldung; die Anmeldebremse
-   verteidigt gegen Fremde und nicht gegen Zugaenge, die es schon gibt. */
+   DER SUCHBEGRIFF GEHT NICHT INS SICHERHEITSPROTOKOLL, und eine eigene Bremse
+   gibt es nicht: die Route steht hinter der Anmeldung. */
 const qVolltext = db.prepare(`
   SELECT i.id FROM items i
   LEFT JOIN product_categories c ON c.id = i.product_category_id
@@ -2663,14 +2282,11 @@ app.get('/api/items', (req, res) => {
     const treffer = volltextTreffer(begriff);
     rows = rows.filter(r => treffer.has(r.id));
   }
-  /* DIE ZEITLEISTE EINMAL FUER DIE GANZE LISTE GEFRAGT, nicht je Eintrag: es
-     ist eine persoenliche Einstellung und aendert sich innerhalb einer Antwort
-     nicht. Ist sie aus, faellt `testDays` aus der Antwort -- das sind gemessen
-     weitere 6 Prozent. AUS DER LISTENANTWORT LIEST DAS FELD GENAU EINE STELLE
-     DER OBERFLAECHE, zeitleistePunkte(), und die laeuft nur bei
-     eingeschalteter Zeitleiste. Die Kachel rechnet aus testCount, testAvg und
-     testLast und nicht daraus; der Vergleich holt seine Testtage aus
-     GET /api/items/:id. Beide bleiben also richtig. */
+  /* DIE ZEITLEISTE EINMAL FUER DIE GANZE LISTE GEFRAGT, nicht je Eintrag:
+     eine persoenliche Einstellung aendert sich innerhalb einer Antwort nicht.
+     Ist sie aus, faellt `testDays` aus der Antwort -- gemessen 6 Prozent.
+     AUS DER LISTENANTWORT LIEST DAS FELD GENAU EINE STELLE, zeitleistePunkte();
+     Kachel und Vergleich rechnen aus anderen Feldern. */
   const zeitleiste = zeitleisteAn(req.benutzer.id);
   // Eine Abfrage fuer die ganze Liste statt einer je Zeile. Die
   // Sortierung bleibt updated_at fuer alle -- die Uebersicht zeigt, wo etwas
@@ -2740,17 +2356,12 @@ app.put('/api/items/:id', (req, res) => {
   const b = req.body || {};
 
   /* DIESE ROUTE TRAEGT ZWEI RECHTEKLASSEN IN EINEM RUMPF, und das ist
-     kein Schoenheitsfehler, sondern verlangt: `favorite` ist persoenlich --
-     jeder setzt seinen eigenen Favoriten an jedem Eintrag, auch an einem
-     fremden (item_pins). Alles andere gehoert dem Verfasser und dem Admin.
-     Deshalb sitzt die Klemme hier und nicht als Waechter vor der Route.
-     UND SIE SITZT VOR DEM ERSTEN SCHREIBEN: der Favorit eine Bildschirmseite
-     weiter unten ist der erste Schreibvorgang; eine Absage, die ihn schon
-     ausgefuehrt hat, waere schlimmer als gar keine.
-     Zur Gegenprobe gehoeren BEIDE Richtungen -- die Klemme ganz weg macht die
-     Verweigerung rot und muss den Favoriten gruen lassen, die Klemme ueber die
-     ganze Route macht den Favoriten rot. Nur zusammen belegen sie die
-     Ausnahme. */
+     verlangt: `favorite` ist persoenlich -- jeder setzt seinen eigenen an
+     jedem Eintrag, auch an einem fremden (item_pins). Alles andere gehoert
+     dem Verfasser und dem Admin. Deshalb sitzt die Klemme hier und nicht als
+     Waechter vor der Route.
+     UND SIE SITZT VOR DEM ERSTEN SCHREIBEN: eine Absage, die den Favoriten
+     schon gesetzt hat, waere schlimmer als gar keine. */
   const nurVerfasserFelder = NUR_VERFASSER_FELDER.filter(f => b[f] !== undefined);
   if (nurVerfasserFelder.length && !darfAendern(req, it.user_id))
     return res.status(403).json({ error: VERWEIGERT_EINTRAG });
@@ -2771,16 +2382,12 @@ app.put('/api/items/:id', (req, res) => {
     }
   }
 
-  // Der Favorit ist KEINE Spalte von items und laeuft deshalb
-  // nicht durch die Klemme darunter. Zwei Folgen, beide gewollt:
-  //   1. Er trifft nur den eigenen Platz. Ohne die Bedingung auf user_id
-  //      setzten und nahmen sich alle gegenseitig die Favoriten.
-  //   2. ER RUEHRT updated_at NICHT AN: als Spalte liefe er mit durch das
-  //      UPDATE und schoebe den Eintrag in JEDER Uebersicht nach oben. Das
-  //      steht quer zu "die Liste zeigt, wo etwas geschieht, nicht wo ICH
-  //      zuletzt war" -- ein persoenlicher Favorit ist genau Letzteres. Wer
-  //      hier ein touch.run() hinsetzt, macht die eigene Ablage zur Nachricht
-  //      an alle.
+  // Der Favorit ist KEINE Spalte von items und laeuft deshalb nicht durch die
+  // Klemme darunter. Zwei Folgen, beide gewollt:
+  //   1. Er trifft nur den eigenen Platz.
+  //   2. ER RUEHRT updated_at NICHT AN: als Spalte schoebe er den Eintrag in
+  //      JEDER Uebersicht nach oben -- wer hier ein touch.run() hinsetzt,
+  //      macht die eigene Ablage zur Nachricht an alle.
   if (b.favorite !== undefined) {
     if (b.favorite) db.prepare('INSERT OR IGNORE INTO item_pins (user_id, item_id) VALUES (?, ?)')
       .run(req.benutzer.id, req.params.id);
@@ -2802,28 +2409,13 @@ app.put('/api/items/:id', (req, res) => {
   res.json(detail(req.params.id, req.benutzer.id));
 });
 
-/* Die Zahlen fuer den Loeschdialog am Eintrag -- dieselbe Bauform wie
-   GET /api/users/:id/bestand. Lesend, deshalb kein Eintrag in F_ROUTEN; der
-   Waechter steht trotzdem davor, denn wer nicht loeschen darf, braucht die
-   Zahlen nicht.
-
-   GETRENNT NACH EIGEN UND FREMD AUS SICHT DES LOESCHENDEN. Die Frage, die der
-   Dialog beantworten muss, lautet "was nehme ich ANDEREN weg" -- nicht "was
-   gehoert dem Verfasser". Loescht ein Admin einen fremden Eintrag, sind auch
-   die Beitraege des Verfassers fremd, und genau das soll dastehen.
-
-   IS NOT statt !=, weil user_id leer sein darf: eine herrenlose Zeile ist eine
-   fremde und fiele bei != aus dem Vergleich heraus.
-
-   NUR NOCH DIE FOTOS STEHEN MIT EINER ZAHL DA. Sie haengen am Eintrag und
-   gehoeren damit seinem Verfasser. Links (0.8.30) und Dateien (0.8.31) koennen
-   fremd sein und gehoeren deshalb auf dieselbe Seite wie Kommentar, Bewertung
-   und Testtag.
-
-   value > 0 bei den Bewertungen: eine zurueckgesetzte Zeile steht mit 0 in der
-   Tabelle und ist keine Stimme -- dieselbe Bedingung wie beim Schnitt, bei der
-   Stimmenliste und beim Verwendungszaehler der Kriterien. Die Zahl im Dialog
-   und die Namen darunter im Bewertungsblock muessen dasselbe meinen. */
+/* Die Zahlen fuer den Loeschdialog am Eintrag. Lesend, deshalb kein Eintrag
+   in F_ROUTEN; der Waechter steht trotzdem davor.
+   GETRENNT NACH EIGEN UND FREMD AUS SICHT DES LOESCHENDEN: die Frage lautet
+   "was nehme ich ANDEREN weg". IS NOT statt !=, weil user_id leer sein darf.
+   NUR DIE FOTOS STEHEN MIT EINER EIGENEN ZAHL DA -- sie haengen am Eintrag;
+   Links und Dateien koennen fremd sein.
+   value > 0: eine zurueckgesetzte Zeile ist keine Stimme. */
 app.get('/api/items/:id/bestand', nurEintragVerfasser, (req, res) => {
   const id = req.params.id, ich = req.benutzer.id;
   const eins = (sql, ...w) => db.prepare(sql).get(...w).n;
@@ -2884,14 +2476,11 @@ app.post('/api/items/:id/photos', nurEintragVerfasser, upload.array('photos', 40
 });
 
 /* ---- Videos ----
- * EIGENE ROUTE, nicht die Fotoroute erweitert. Deren fileFilter auf ^image\/
- * ist eine grobe erste Schranke, die nichts traegt -- aber sie zu lockern
- * naehme sie dem Fotoweg mit ab, und eine Route truege zwei Gestalten.
+ * EIGENE ROUTE, nicht die Fotoroute erweitert: deren fileFilter auf ^image\/
+ * zu lockern naehme sie dem Fotoweg mit ab.
  * ZWEI TEILE IN EINEM VORGANG: die Videodatei und ein JPEG. Das Standbild
  * erzeugt der Browser des Hochladenden ueber <video> und <canvas>; der Server
- * oeffnet nie ein Video und braucht deshalb kein ffmpeg. Wer ein Video nicht
- * abspielen kann, kann kein Standbild daraus ziehen und laedt es nicht hoch --
- * und das ist richtig: ein Videoplatz, der nicht abspielt, ist ein kaputter.
+ * oeffnet nie ein Video und braucht deshalb kein ffmpeg.
  */
 // 20 MB und nicht 50, und die Zahl ist gemessen: 50 MB kosten beim Lesen aus
 // der verschluesselten Datenbank eine halbe Sekunde -- mit dem ganzen Blob im
@@ -2960,18 +2549,12 @@ app.post('/api/items/:id/videos', nurEintragVerfasser,
     } catch (e) { next(e); }
   });
 
-/* Der ausgelieferte Typ kommt aus den ersten Bytes, nie aus photos.mime_type.
-   Die Spalte ist eine Angabe des Hochladenden: sie wird gespeichert und
-   angezeigt, sie entscheidet aber nicht, was der Browser mit der Antwort
-   macht. Damit ist auch geschuetzt, was schon in der Datenbank liegt -- eine
-   Ableitung braucht keinen Migration. Dieselbe Regel wie bei den Anhaengen,
-   siehe anhaenge.js. Bei einem Video ist der Blob je nach Groesse etwas
-   anderes: mit size= das Standbild, ohne die Videodatei -- und der Erkenner
-   sieht das den Bytes an, ohne dass hier etwas unterschieden wird.
-
-   BEREICHE NUR AM VIDEO UND NUR AN DER GANZEN DATEI. An einem Foto aendert
-   sich damit keine einzige Header -- das ist Absicht und wird geprueft:
-   diese Runde darf an der Auslieferung vorhandener Fotos nichts aendern. */
+/* Der ausgelieferte Typ kommt aus den ersten Bytes, nie aus photos.mime_type:
+   die Spalte ist eine Angabe des Hochladenden. Damit ist auch geschuetzt, was
+   schon in der Datenbank liegt -- dieselbe Regel wie in anhaenge.js.
+   Bei einem Video ist der Blob je nach Groesse etwas anderes: mit size= das
+   Standbild, ohne die Videodatei; der Erkenner sieht das den Bytes an.
+   BEREICHE NUR AM VIDEO UND NUR AN DER GANZEN DATEI. */
 app.get('/api/photos/:id/raw', (req, res) => {
   const p = db.prepare('SELECT * FROM photos WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).end();
@@ -3173,12 +2756,9 @@ app.put('/api/items/:id/link-order', nurEintragVerfasser, (req, res) => {
 });
 
 /* LOESCHEN DARF DER EINTRAGER ODER DER ADMIN. Gefragt wird nach der ZEILE
-   (darfAendern), nicht mehr nach dem Eintrag: wer einen Link in einen fremden
-   Eintrag setzt, muss ihn auch wieder herausnehmen koennen, und der Verfasser
-   des Eintrags ist dafuer der Falsche. Herrenlose Zeilen faengt darfAendern
-   ab -- sie gehoeren dem Admin. Ein geloeschter Link bekommt ausdruecklich
-   KEINEN Vermerk: er ist eine ganze Aussage, die geht, kein Loch in einer
-   bleibenden. */
+   (darfAendern), nicht nach dem Eintrag: wer einen Link in einen fremden
+   Eintrag setzt, muss ihn auch wieder herausnehmen koennen. Ein geloeschter
+   Link bekommt KEINEN Vermerk -- er ist eine ganze Aussage, die geht. */
 app.delete('/api/links/:id', (req, res) => {
   const l = db.prepare('SELECT * FROM links WHERE id = ?').get(req.params.id);
   if (!l) return res.status(404).json({ error: 'Nicht gefunden' });
@@ -3282,14 +2862,12 @@ app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
 });
 
 /* ---- Bewertungen ---- */
-// Hier steht bewusst KEIN Waechter. Beide Wege treffen baulich nur die
-// eigene Zeile -- das ON CONFLICT trifft (item_id, criterion_id, user_id), das
-// DELETE traegt "AND user_id = ?". Eine Klemme daneben waere eine
-// zweite Wahrheit ueber dieselbe Sache und liesse sich
-// obendrein nicht gegenpruefen: ihr Rueckbau bliebe stumm, weil die
-// Eindeutigkeitsregel den Fall ohnehin verhindert.
-// Fremde Bewertungen einzeln zu loeschen hat keinen Endpunkt; sie fallen nur
-// mit dem Eintrag oder mit dem Zugang ihres Verfassers.
+// Hier steht bewusst KEIN Waechter: beide Wege treffen baulich nur die eigene
+// Zeile -- das ON CONFLICT trifft (item_id, criterion_id, user_id), das DELETE
+// traegt "AND user_id = ?". Eine Klemme daneben waere eine zweite Wahrheit und
+// liesse sich obendrein nicht gegenpruefen.
+// Fremde Bewertungen einzeln zu loeschen laeuft ueber
+// DELETE /api/ratings/:id.
 app.put('/api/items/:id/ratings', (req, res) => {
   const v = Math.max(0, Math.min(5, Number(req.body.value) || 0));
   // Die eigene Bewertung. Konfliktziel und UNIQUE in db.js gehoeren
@@ -3313,41 +2891,22 @@ app.delete('/api/items/:id/ratings', (req, res) => {
 });
 
 /* Wer welchen Wert vergeben hat -- die Ansicht des Admins.
-   NUR DER ADMIN. Wer wie bewertet hat, ist eine Angabe ueber einzelne
-   Personen; die Sternzeile am Eintrag zeigt deshalb nur noch den eigenen Wert
-   und den Schnitt. Diese Liste ruft der Admin ausdruecklich auf.
-   Lesende Route, also KEIN Eintrag in der Liste der schreibenden Routen -- der
-   Waechter davor ist derselbe wie bei GET /api/stats und
-   GET /api/items/:id/bestand.
-   Sie ist zugleich die VORAUSSETZUNG DES LOESCHWEGS: ohne die id gaebe es vom
-   Bildschirm aus keinen Weg zu einer einzelnen fremden Bewertung, und
-   DELETE /api/ratings/:id waere unerreichbar.
-   Der Benutzer wird durchgereicht, weil stimmenJeKriterium() ihn braucht --
-   `mine` unterscheidet die eigene Stimme von den fremden, und am eigenen Wert
-   steht kein Loeschkreuz.
-   Nur Kriterien MIT Stimmen stehen in der Antwort; den Namen je Kriterium
-   liefert sie nicht, den hat die Oberflaeche aus dem Eintrag. Zwei Quellen
-   fuer denselben Namen waeren zwei Wahrheiten.
-   KEINE SCHWELLE bei einem einzigen Zugang: der Server liefert, die
-   Oberflaeche entscheidet ueber mehrereBenutzer(), ob sie den Aufruf ueberhaupt
-   anbietet -- dieselbe Aufteilung wie bei der Durchschnittsspalte. */
+   NUR DER ADMIN: wer wie bewertet hat, ist eine Angabe ueber einzelne
+   Personen. Lesend, also kein Eintrag in F_ROUTEN.
+   Sie ist zugleich die VORAUSSETZUNG DES LOESCHWEGS -- ohne die id gaebe es
+   vom Bildschirm aus keinen Weg zu einer einzelnen fremden Bewertung.
+   Nur Kriterien MIT Stimmen; den Namen hat die Oberflaeche aus dem Eintrag. */
 app.get('/api/items/:id/stimmen', nurAdmin, (req, res) => {
   const stimmen = stimmenJeKriterium(req.params.id, req.benutzer.id, verfasserKarte());
   res.json([...stimmen].map(([criterion_id, liste]) => ({ criterion_id, stimmen: liste })));
 });
 
-/* Eine EINZELNE fremde Bewertung entfernen -- der Weg, den es bis hierher
-   nicht gab: eine fremde Zeile fiel nur mit dem Eintrag oder mit dem Zugang
-   ihres Verfassers.
-   Die beiden Wege darueber brauchen keine Klemme, weil sie baulich nur die
-   eigene Zeile treffen. HIER ist eine noetig, denn hier steht eine fremde
-   Nummer in der Adresse.
+/* Eine EINZELNE fremde Bewertung entfernen. Die beiden Wege darueber
+   brauchen keine Klemme, weil sie baulich nur die eigene Zeile treffen; HIER
+   steht eine fremde Nummer in der Adresse.
    darfAendern und nicht nurSelbst: loeschen darf der Admin. Ein Weg, den
-   fremden WERT zu aendern, entsteht damit ausdruecklich nicht -- die Note ist
-   die Aussage der Zeile, genau wie beim Testtag. Loeschen ja, umschreiben
-   nein.
-   An einer Bewertungszeile haengt nichts; die einzige Kaskade in diesem Umfeld
-   ist die am Eintrag, und die kuendigt der Loeschdialog an. */
+   fremden WERT zu aendern, entsteht ausdruecklich nicht -- die Note ist die
+   Aussage der Zeile. Loeschen ja, umschreiben nein. */
 app.delete('/api/ratings/:id', (req, res) => {
   const r = db.prepare('SELECT id, item_id, user_id FROM ratings WHERE id = ?').get(req.params.id);
   if (!r) return res.status(404).json({ error: 'Nicht gefunden' });
@@ -3433,16 +2992,11 @@ app.put('/api/comments/:id', (req, res) => {
   if (!c) return res.status(404).json({ error: 'Nicht gefunden' });
 
   /* DIE ZWEITE ROUTE MIT ZWEI RECHTEKLASSEN IN EINEM RUMPF.
-       TEXT       -- nur der Verfasser. AUCH DER ADMIN NICHT. Eine fremde
-                     Aussage unter fremdem Namen zu veraendern ist die Art
-                     Funktion, die man spaeter bereut.
+       TEXT          -- nur der Verfasser, AUCH DER ADMIN NICHT.
        ART/ANPINNUNG -- Verfasser oder Admin. Die Anpinnung wirkt auf die
-                     Sortierung fuer ALLE ("pinned DESC" steht ganz vorn), und
-                     bei vielen angepinnten Kommentaren mehrerer Leute braucht
-                     jemand ein Mittel dagegen. Sie aendert keine Aussage und
-                     ist jederzeit umkehrbar.
-     Beide Fragen stehen VOR dem ersten UPDATE: sonst waere ein abgelehnter
-     Ruf, der Text und Anpinnung zugleich schickt, zur Haelfte ausgefuehrt. */
+                        Sortierung fuer ALLE, aendert aber keine Aussage und
+                        ist jederzeit umkehrbar.
+     Beide Fragen stehen VOR dem ersten UPDATE. */
   if (req.body.text !== undefined && !nurSelbst(req, c.user_id))
     return res.status(403).json({ error: VERWEIGERT_SELBST });
   if ((req.body.kind !== undefined || req.body.pinned !== undefined) && !darfAendern(req, c.user_id))
@@ -3504,22 +3058,17 @@ app.delete('/api/comment-images/:id', (req, res) => {
   if (!b) return res.status(404).json({ error: 'Nicht gefunden' });
   if (!darfAendern(req, b.user_id)) return res.status(403).json({ error: VERWEIGERT_SELBST });
   db.prepare('DELETE FROM comment_images WHERE id = ?').run(b.id);
-  /* HIER GILT GENAU EINES VON BEIDEN, NIE BEIDES UND NIE KEINES -- deshalb ein
-     if/else und nicht zwei Bedingungen nebeneinander.
+  /* HIER GILT GENAU EINES VON BEIDEN, NIE BEIDES UND NIE KEINES -- deshalb
+     ein if/else und nicht zwei Bedingungen nebeneinander.
 
-     DER EINGRIFFSVERMERK. Hochgezaehlt NUR, wenn ein anderer als der
-     Verfasser entfernt -- wer bei sich aufraeumt, greift in keine fremde
-     Aussage ein. Eine HERRENLOSE Zeile (user_id IS NULL) hat keinen
-     Verfasser, also ist jeder Entfernende ein anderer; die Bedingung faellt
-     dort von selbst richtig aus.
-     Nicht zuruecksetzbar: es gibt keinen Weg, der die Zahl je verkleinert.
-     Ein blankes UPDATE auf die eine Zeile -- kein OR REPLACE, an einem
-     Kommentar haengen Bilder, und die duerfen dabei nicht mitgehen.
+     DER EINGRIFFSVERMERK wird NUR hochgezaehlt, wenn ein anderer als der
+     Verfasser entfernt. Eine HERRENLOSE Zeile hat keinen Verfasser, also ist
+     jeder Entfernende ein anderer. Nicht zuruecksetzbar. Ein blankes UPDATE
+     auf die eine Zeile -- kein OR REPLACE, an einem Kommentar haengen Bilder.
 
-     "BEARBEITET" dagegen im anderen Zweig: Entfernen ist Bearbeiten, genau wie
-     Anhaengen. Es steht nur dem Verfasser zu -- traege der Kommentar nach dem
-     Eingriff eines Admins "bearbeitet", saehe die fremde Loeschung aus wie
-     seine eigene Bearbeitung. */
+     "BEARBEITET" im anderen Zweig: Entfernen ist Bearbeiten, und es steht nur
+     dem Verfasser zu -- sonst saehe die fremde Loeschung aus wie seine eigene
+     Bearbeitung. */
   if (b.user_id !== req.benutzer.id)
     db.prepare('UPDATE comments SET images_removed = images_removed + 1 WHERE id = ?').run(b.comment_id);
   else
@@ -3555,24 +3104,11 @@ app.delete('/api/comments/:id', (req, res) => {
 
 /* ---- Offene Aufgaben quer ueber alle Eintraege ---------------------------
    Eine LESENDE Route ohne Waechter: wer angemeldet ist, sieht die Kommentare
-   ohnehin in jedem Eintrag. Sie steht deshalb in keiner Liste schreibender
-   Routen -- und der Haken wird auch nicht hier gesetzt, sondern ueber
-   PUT /api/comments/:id, das es laengst gibt.
-
-   DIESELBE BEDINGUNG WIE IN DER DETAILANSICHT: dort steht `c.kind === 'task'`,
-   hier `kind = 'task'`. Die Art ist EIN Wert -- 'task' ist die offene und
-   'done' die erledigte Aufgabe. Wer hier `kind != 'done'` schriebe, naehme
-   Notizen und Berichte mit; wer eine zweite Schreibweise erfindet, hat zwei
-   Ausdruecke fuer dieselbe Frage, und die laufen auseinander.
-
-   SORTIERT WIE DIE UEBERSICHT: updated_at des Eintrags absteigend, innerhalb
-   des Eintrags nach id -- also aelteste Aufgabe oben, wie im Kommentarblock.
-   Die Gruppierung macht die Oberflaeche; sie bricht auf den Wechsel der
-   Eintragsnummer um und braucht keine zweite Reihenfolge dafuer.
-
-   `mine` haengt an JEDER Zeile, wie am Kommentar im Eintrag: daran haengt der
-   Haken. Die Oberflaeche rechnet nicht aus dem Verfasserobjekt zurueck, wem
-   eine Zeile gehoert -- bei einem Grabstein ginge das gar nicht. */
+   ohnehin in jedem Eintrag. Der Haken laeuft ueber PUT /api/comments/:id.
+   DIESELBE BEDINGUNG WIE IN DER DETAILANSICHT (`kind = 'task'`): wer
+   `kind != 'done'` schriebe, naehme Notizen und Berichte mit.
+   SORTIERT WIE DIE UEBERSICHT; die Gruppierung macht die Oberflaeche.
+   `mine` haengt an JEDER Zeile -- daran haengt der Haken. */
 const qOffeneAufgaben = db.prepare(`
   SELECT c.id, c.text, c.created_at, c.user_id, c.item_id, i.title, i.updated_at
     FROM comments c JOIN items i ON i.id = c.item_id
@@ -3590,13 +3126,10 @@ app.get('/api/offen', (req, res) => {
 
 /* ---- Kennzahlen ---- */
 // NUR DER ADMIN. Die Zahlen sagen, wie gross der Bestand und wie belegt die
-// Datenbank ist -- das ist eine Aussage ueber die Anlage als Ganzes und nicht
-// ueber den Einzelnen. Lesende Route, deshalb steht sie in keiner Liste
-// schreibender Routen; der Waechter davor ist derselbe wie bei
-// GET /api/users/:id/bestand.
+// Datenbank ist -- eine Aussage ueber die Anlage als Ganzes. Lesend, deshalb
+// kein Eintrag in F_ROUTEN.
 // Der Schluesselwert weiter unten im Rumpf bleibt eine ZWEITE, engere Klemme:
-// den bekommt weiterhin nur der Eigentuemer. Zusammenlegen liesse sich das
-// nicht -- es sind zwei verschiedene Fragen an dieselbe Antwort.
+// den bekommt nur der Eigentuemer.
 app.get('/api/stats', nurAdmin, (req, res) => {
   let dbBytes = 0;
   try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
@@ -3644,31 +3177,25 @@ app.get('/api/stats', nurAdmin, (req, res) => {
 /* ================= Das Austauschformat =================
 
    EINE ABBILDUNG JE EINTRAG, und sie steht hier statt mitten in der
-   Exportroute. Gerufen wird sie an drei Stellen: der volle Export, der
-   Einzelexport und der Papierkorb. Zwei Rechenwege fuer dieselbe Datei laufen
-   auseinander -- und ausgerechnet die Runde, die das Wiederherstellen baut,
-   haette damit den Fehler eingebaut, den sie verhindern soll.
+   Exportroute: gerufen wird sie an drei Stellen -- voller Export,
+   Einzelexport, Papierkorb. Zwei Rechenwege fuer dieselbe Datei liefen
+   auseinander.
 
-   DIE BYTES GEHEN UEBER EINEN TRICHTER, nicht ueber ein festes Feld. Zwei
-   Formen, ein Weg:
+   DIE BYTES GEHEN UEBER EINEN TRICHTER, nicht ueber ein festes Feld:
      Exportdatei -- Base64 im Feld <name>_base64. Die Datei ist EIN String.
      Papierkorb  -- eine NUMMER im Feld <name>_ref; die Bytes liegen daneben
                     in papierkorb_bytes, als Bytes.
-   Der Grund ist gemessen und keine Vorsicht: ein Eintrag darf zwanzig Videos
-   zu je 20 MB tragen. Als Base64 sind das 533 MB in EINEM
-   String, und Node haelt keinen String ueber 512 MB
-   (MAX_STRING_LENGTH = 536.870.888); JSON.stringify antwortet mit
-   "RangeError: Invalid string length". Ein Papierkorb, der stumpf alles
+   Der Grund ist gemessen: ein Eintrag darf zwanzig Videos zu je 20 MB tragen.
+   Als Base64 sind das 533 MB in EINEM String, und Node haelt keinen String
+   ueber 512 MB (MAX_STRING_LENGTH = 536.870.888) -- JSON.stringify antwortet
+   mit "RangeError: Invalid string length". Ein Papierkorb, der stumpf alles
    einpackt, risse an genau dem Eintrag, den zu verlieren am meisten wehtut.
-   Zippen hilft dagegen NICHT -- der String entsteht vor dem Zippen. */
+   Zippen hilft dagegen NICHT: der String entsteht vor dem Zippen. */
 
 // Die Formatnummer ist eine AUSSAGE, keine Bedingung: weder der Import noch
 // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
 // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
 // Fallunterscheidung nach Nummer steht. Sie steht an genau einer Stelle.
-// 10 statt 9, seit die Fotozeilen ihre Art und die Videos ihre Dauer und ihr
-// Standbild mitnehmen. Eine Datei mit EINEM Eintrag ist dieselbe Form wie eine
-// mit hundert; der Einzelexport bewegt die Nummer deshalb nicht.
 const AUSTAUSCH_FORMAT = 10;
 
 // Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
@@ -3700,28 +3227,22 @@ function bytesAus(o, name, quelle) {
 }
 
 /* EINE Karte von der Id auf den Namen, einmal je Aufruf gebaut und an vier
-   Stellen benutzt -- statt vier LEFT JOINs auf users. Ein Ort, der aus einer
-   Id einen Namen macht; die Gegenrichtung im Import hat aus demselben Grund
-   ebenfalls genau einen.
-   Der Name wird geliefert, NICHT die Id: eine nackte Id liest niemand, und sie
-   waere in einer Datei, die das Haus verlaesst, eine Angabe ueber eine Person
-   ohne jeden Nutzen. Wo eine Zeile herrenlos ist (ON DELETE SET NULL), steht
-   ausdruecklich null -- das Feld fehlt nie, damit sich "kein Verfasser" von
-   "altes Dateiformat" unterscheiden laesst. */
+   Stellen benutzt -- statt vier LEFT JOINs auf users.
+   Der Name wird geliefert, NICHT die Id: eine nackte Id waere in einer Datei,
+   die das Haus verlaesst, eine Angabe ueber eine Person ohne jeden Nutzen.
+   Eine herrenlose Zeile steht ausdruecklich als null da. */
 function verfasserNamen() {
   const namen = new Map(db.prepare('SELECT id, username FROM users').all().map(u => [u.id, u.username]));
   return (id) => (id == null ? null : (namen.get(id) || null));
 }
 
-/* Die Lage, in der ein Paket entsteht: wessen Favoriten gelten, wie die Bytes
-   hinausgehen und welche Schalter stehen. `pins` ist die Menge der Favoriten
-   DESSEN, DER ZIEHT -- dieselbe Bedeutung wie im Feld favorite der
-   Schnittstelle.
+/* Die Lage, in der ein Paket entsteht: wessen Favoriten gelten, wie die
+   Bytes hinausgehen und welche Schalter stehen. `pins` ist die Menge der
+   Favoriten DESSEN, DER ZIEHT.
    BEWUSST: der Verfasser kommt zu Eintrag, Bewertung, Kommentar und Testtag,
-   NICHT zum Favoriten. Er ist eine Aussage ueber einen Eintrag und nicht sein
-   Inhalt; eine Liste fremder Favoriten in der Datei waere Ablage, kein
-   Bestand. HINZUNEHMENDE FOLGE, und sie gehoert gesagt: beim Wiederherstellen
-   aus dem Papierkorb kommen die Favoriten ANDERER nicht zurueck. */
+   NICHT zum Favoriten -- er ist eine Aussage ueber einen Eintrag und nicht
+   sein Inhalt. Folge: beim Wiederherstellen aus dem Papierkorb kommen die
+   Favoriten ANDERER nicht zurueck. */
 function paketLage(benutzerId, schalter = {}) {
   return {
     verfasserName: verfasserNamen(),
@@ -3823,14 +3344,10 @@ function exportUmschlag(items) {
   // Feld lassen sich weiterhin einspielen.
   const kritZeilen = db.prepare('SELECT name, gewicht FROM rating_criteria ORDER BY sort_order, id').all();
   /* Die Gewichte kommen als EIGENES Feld daneben, criteria bleibt eine Liste
-     von Namen. Auf Objekte umzustellen brauchte nur einen Buchstaben mehr,
-     liefe aber in einer aelteren Anlage durch String() und ergaebe dort ein
-     Kriterium namens "[object Object]". Ein zusaetzliches Feld ignoriert sie
-     dagegen wortlos -- Rueckwaertskompatibilitaet ist zugesichert, und die
-     Gegenrichtung ist hier fast geschenkt.
-     NUR ABWEICHUNGEN. Ein Kriterium mit Gewicht 1 taucht gar nicht auf --
-     dieselbe Regel wie bei der Anzeige, und ein ungewichteter Bestand ergibt
-     damit eine Datei, die zeichengleich zu der vor dieser Version ist. */
+     von Namen: auf Objekte umgestellt liefe eine aeltere Anlage durch String()
+     und bekaeme ein Kriterium namens "[object Object]". Ein zusaetzliches
+     Feld ignoriert sie dagegen wortlos.
+     NUR ABWEICHUNGEN -- ein Kriterium mit Gewicht 1 taucht gar nicht auf. */
   const criteriaGewichte = {};
   for (const c of kritZeilen) if (c.gewicht !== 1) criteriaGewichte[c.name] = c.gewicht;
   return { exported_at: new Date().toISOString(), title, version: AUSTAUSCH_FORMAT,
@@ -3870,15 +3387,12 @@ function austauschBytes(itemId, schalter) {
 // den Bildschirm, nicht fuer die Mitnahme.
 // HINZUNEHMENDE FOLGE, und sie gehoert in den Betrieb: ein Admin ohne
 // Eigentuemerrecht kann keine Sicherung mehr ziehen.
-/* DIE ZWEITE BESTAETIGUNG ALS WAECHTER, und hier gab es gar keine Wahl: der
-   Knopf loest eine BROWSERNAVIGATION aus (window.location), damit die Datei an
-   der Platte vorbeilaeuft statt vollstaendig im Speicher zu stehen. Ein Rumpf
-   ist dort baulich unmoeglich, und in die Adresse gehoert ein Passwort nie --
-   dort stuende es im Zugriffsprotokoll, in der Verlaufsliste und womoeglich im
-   Referrer.
-   LESEND, DESHALB KEIN EINTRAG IN F_ROUTEN -- die Liste ist die Stelle fuer
-   schreibende Routen. Die Klemme bekommt deshalb eine eigene Quelltextpruefung
-   daneben; ohne sie waere sie die einzige der sieben, die niemand zaehlt. */
+/* DIE ZWEITE BESTAETIGUNG ALS WAECHTER, und hier gab es keine Wahl: der
+   Knopf loest eine BROWSERNAVIGATION aus, damit die Datei an der Platte
+   vorbeilaeuft. Ein Rumpf ist dort baulich unmoeglich, und in die Adresse
+   gehoert ein Passwort nie.
+   LESEND, DESHALB KEIN EINTRAG IN F_ROUTEN -- die Klemme bekommt dafuer eine
+   eigene Quelltextpruefung daneben. */
 app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req, res) => {
   const schalter = {
     mitFotos: req.query.photos !== '0',
@@ -3899,15 +3413,12 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
 });
 
 /* ---- Ein einzelner Eintrag als Datei ----
- * Lesend, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht trotzdem
- * davor, und zwar derselbe wie am vollen Export.
+ * Lesend, deshalb kein Eintrag in F_ROUTEN -- der Waechter davor ist derselbe
+ * wie am vollen Export.
  * WARUM NICHT MILDER: eine Datei mit EINEM Eintrag nennt genauso die Namen
  * ihrer Verfasser und kann beim Einspielen genauso unter fremdem Namen
- * schreiben. Die Frage "was kann jemand mit dieser Datei tun" hat dieselbe
- * Antwort wie beim vollen Export, und die Antwort haengt nicht an der Zahl der
- * Eintraege.
- * ALLES GEHT MIT, ohne Schalter: bei einem Eintrag ist die Datei die Sache
- * selbst und keine Auswahl daraus. Wo sie zu gross wuerde, steht eine Absage.
+ * schreiben.
+ * ALLES GEHT MIT, ohne Schalter. Wo sie zu gross wuerde, steht eine Absage.
  */
 app.get('/api/items/:id/export', nurEigentuemer, (req, res) => {
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
@@ -4027,30 +3538,14 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
   // Dateieinspielung laesst sie liegen.
   const neueIds = [];
 
-  /* EIN Ort, der aus einem Namen eine Id macht -- die Gegenrichtung
-     zur Karte im Export. Die Regel:
-     ein genannter Name, den es gibt, wird zugeordnet; alles andere faellt
-     an den Einspielenden. Aeltere Dateien nennen gar keinen Namen und
-     landen deshalb vollstaendig beim Einspielenden.
-
-     EIN UNBEKANNTER NAME LEGT KEINEN ZUGANG AN. Taete er es, waere eine
-     Exportdatei ein Weg an der Verwaltung und am Passwort vorbei:
-     ein Zugang ohne Hash, den niemand angelegt hat.
-
-     EIN GRABSTEIN WIRD GEFUNDEN: ein entfernter Zugang bleibt als Zeile in
-     users stehen und traegt den Namen "geloescht-<nr>". Ein Beitrag, dessen
-     Verfasser inzwischen entfernt wurde, kommt deshalb WIEDER AM GRABSTEIN AN
-     und heisst auf dem Bildschirm weiterhin "Gelöschter Benutzer <nr>". Erst
-     wenn auch die Grabsteinzeile fort ist, faellt der Beitrag an den
-     Einspielenden -- und wird dann genannt.
-
-     Das Suchen laeuft ueber die Spalte username, und die traegt COLLATE
-     NOCASE -- die Gross- und Kleinschreibung entscheidet also nicht, und
-     zwar an derselben Spalte wie bei der Anmeldung. Ein NACHLAUFENDES
-     LEERZEICHEN trifft die Spalte dagegen nicht, deshalb das trim().
-
-     Der Zwischenspeicher haelt auch den Fehlgriff fest -- sonst fragte eine
-     Datei mit tausend Zeilen desselben unbekannten Namens tausendmal. */
+  /* EIN Ort, der aus einem Namen eine Id macht -- die Gegenrichtung zur
+     Karte im Export. Ein genannter Name, den es gibt, wird zugeordnet; alles
+     andere faellt an den Einspielenden.
+     EIN UNBEKANNTER NAME LEGT KEINEN ZUGANG AN -- sonst waere eine
+     Exportdatei ein Weg an Verwaltung und Passwort vorbei.
+     EIN GRABSTEIN WIRD GEFUNDEN, solange seine Zeile in users steht.
+     Gesucht wird ueber username (COLLATE NOCASE); ein nachlaufendes
+     Leerzeichen trifft die Spalte nicht, deshalb das trim(). */
   const namensSpeicher = new Map();
   const unbekannteNamen = new Set();
   let zugeordnet = 0;
@@ -4071,15 +3566,12 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
     return id;
   };
 
-  /* Die Gewichte aus der Datei, einmal aufbereitet -- und ausdruecklich
-     AUSSERHALB der Transaktion, weil die Antwort unten die verworfenen
-     nennen muss. Der Schluessel steht klein geschrieben, weil critByName()
-     ueber COLLATE NOCASE sucht -- sonst faende "Verarbeitung" das Gewicht zu
-     "verarbeitung" nicht.
+  /* Die Gewichte aus der Datei, einmal aufbereitet -- ausdruecklich
+     AUSSERHALB der Transaktion, weil die Antwort unten die verworfenen nennen
+     muss. Der Schluessel steht klein, weil critByName() ueber COLLATE NOCASE
+     sucht.
      EIN UNGUELTIGES GEWICHT BRICHT NICHT AB, sondern faellt auf 1,0 und wird
-     genannt. Eine ganze Einspielung an einem Zahlenwert scheitern zu lassen
-     waere unverhaeltnismaessig -- dieselbe Haltung wie bei einem unbekannten
-     Verfassernamen. */
+     genannt. */
   const dateiGewichte = new Map();
   const verworfeneGewichte = new Set();
   const rohGewichte = payload.criteriaGewichte;
@@ -4169,16 +3661,13 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
       // darf also nicht der eintragsuebergreifende
       // Zaehler in stats sein und nicht der Index der Rohliste, aus der
       // Leerzeilen herausfallen.
-      /* ZWEI FORMEN, EINE SCHLEIFE. Bis Formatnummer 6 war ein Link eine
-         nackte String, ab 7 ein Objekt mit url und author. Eine alte
-         Datei ist kein Fehler, sondern der Normalfall nach einem
-         Downgrade.
+      /* ZWEI FORMEN, EINE SCHLEIFE: bis Formatnummer 6 ist ein Link ein
+         nackter String, ab 7 ein Objekt mit url und author. Eine alte Datei
+         ist kein Fehler.
          WEM EIN LINK AUS EINER DATEI DER FORMATNUMMER 6 GEHOERT: dem
-         Verfasser DES EINTRAGS -- dieselbe Antwort wie beim Migration und aus
-         demselben Grund. Die Datei sagt nichts anderes, als dass die Links
-         zu diesem Eintrag gehoeren; "unbekannter Name" traefe es nicht, es
-         steht ja keiner da. Deshalb wird hier verfasser() NICHT gefragt,
-         sondern die schon ermittelte Nummer des Eintrags genommen. */
+         Verfasser DES EINTRAGS. Die Datei sagt nichts anderes; "unbekannter
+         Name" traefe es nicht, es steht ja keiner da. Deshalb wird hier
+         verfasser() NICHT gefragt. */
       let lpos = 0;
       (it.links || []).forEach((eintrag) => {
         const roh = (eintrag && typeof eintrag === 'object') ? eintrag.url : eintrag;
@@ -4261,15 +3750,11 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
   reclaim();
 
   /* Die laute Haelfte. Ein Name, den es nicht gibt, faellt an den
-     Einspielenden -- das ist die entworfene Regel und trotzdem der stillste
-     denkbare Vorgang: beim Einspielen einer Mehrbenutzersicherung in eine
-     frische Anlage zieht der gesamte Bestand wortlos um, und zwei Zeilen zur
-     selben Sache fallen dabei ueber OR REPLACE zusammen. Deshalb steht die
-     Liste in der Antwort UND im Protokoll -- die Antwort fuer den Pruefstand
-     und die Abfrage von Hand, das Protokoll fuer den Betrieb, wo die
-     Nachschau ohnehin mit "docker compose logs" anfaengt.
-     Der Ausweg steht in der Zeile selbst: die fehlenden Zugaenge anlegen und
-     noch einmal einspielen. */
+     Einspielenden -- die entworfene Regel und trotzdem der stillste denkbare
+     Vorgang: beim Einspielen einer Mehrbenutzersicherung in eine frische
+     Anlage zieht der gesamte Bestand wortlos um. Deshalb steht die Liste in
+     der Antwort UND im Protokoll. Der Ausweg steht in der Zeile selbst: die
+     fehlenden Zugaenge anlegen und noch einmal einspielen. */
   const unbekannt = [...unbekannteNamen].sort();
   if (unbekannt.length)
     console.log(`[Kriterion] Import: unbekannte Verfasser dem Einspielenden zugeordnet ` +
@@ -4299,15 +3784,13 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
 }
 
 /* Nur der Eigentuemer. EINE EXPORTDATEI KANN UNTER FREMDEM NAMEN SCHREIBEN:
-   sie nennt zu jedem Eintrag, jeder Bewertung, jedem Kommentar und jedem
-   Testtag einen Verfasser, und der Import ordnet sie einem vorhandenen Zugang
-   zu. Das Umschreiben fremder Beitraege ist dem Admin ausdruecklich verboten
-   -- ueber einen offenen Import waere genau das fuer jeden moeglich, ohne
-   dass irgendwo "aendern" steht.
-   Der Waechter steht VOR multer: eine bis zu 900 MB grosse Datei eines Fremden
-   soll gar nicht erst eingelesen werden.
-   BEIDE MODI, nicht nur "ersetzen": das Zusammenfuehren legt genauso Zeilen
-   unter fremdem Namen an, es wirft nur nichts weg. */
+   sie nennt zu jedem Beitrag einen Verfasser, und der Import ordnet ihn einem
+   vorhandenen Zugang zu. Das Umschreiben fremder Beitraege ist dem Admin
+   ausdruecklich verboten -- ueber einen offenen Import waere genau das fuer
+   jeden moeglich.
+   Der Waechter steht VOR multer: eine bis zu 900 MB grosse Datei eines
+   Fremden soll gar nicht erst eingelesen werden.
+   BEIDE MODI, nicht nur "ersetzen". */
 /* DIE ZWEITE BESTAETIGUNG STEHT VOR multer, aus demselben Grund wie der
    Waechter darueber: eine bis zu 900 MB grosse Datei soll gar nicht erst
    eingelesen werden, wenn die Handlung ohnehin abgewiesen wird. Ein Passwort
@@ -4335,18 +3818,16 @@ app.post('/api/import', nurEigentuemer, zweiteBestaetigungNoetig('import'),
 /* ================= Der Papierkorb =================
 
    Beim Loeschen eines Eintrags wird er im vorhandenen Austauschformat
-   serialisiert und als EINE Zeile abgelegt -- in DERSELBEN Transaktion wie das
-   Loeschen. Danach laeuft die Kaskade wie bisher.
+   serialisiert und als EINE Zeile abgelegt -- in DERSELBEN Transaktion wie
+   das Loeschen. Danach laeuft die Kaskade wie bisher.
 
-   KEINE BESTEHENDE ABFRAGE AENDERT SICH. items bekommt keine Spalte, kein
-   WHERE bekommt einen Zusatz. Ein geloeschter Eintrag ist wirklich weg -- er
-   liegt nur zusaetzlich noch als Paket daneben. Die Begruendung dieser Bauform
-   steht in db.js an der Tabelle.
+   KEINE BESTEHENDE ABFRAGE AENDERT SICH: items bekommt keine Spalte, kein
+   WHERE einen Zusatz. Ein geloeschter Eintrag ist wirklich weg -- er liegt
+   nur zusaetzlich als Paket daneben.
 
-   ZWEI LOESCHWEGE FUELLEN IHN AUSDRUECKLICH NICHT, und das gehoert gesagt:
-   "Zugang entfernen" mit dem Haekchen "Eintraege mitnehmen" (das steckt in
-   auth.js, und auth.js darf von der Abbildung in server.js nichts wissen --
-   die Abhaengigkeit laeuft andersherum) und der ERSETZENDE Import (er
+   ZWEI LOESCHWEGE FUELLEN IHN AUSDRUECKLICH NICHT: "Zugang entfernen" mit dem
+   Haekchen "Eintraege mitnehmen" (das steckt in auth.js, und auth.js darf von
+   der Abbildung in server.js nichts wissen) und der ERSETZENDE Import (er
    verdoppelte sonst die ganze bisherige Anlage in den Papierkorb). */
 
 const PAPIERKORB_TAGE = 30;
@@ -4360,15 +3841,12 @@ const qPapierkorbBytes = db.prepare(
 const delPapierkorbAlt = db.prepare(
   "DELETE FROM papierkorb WHERE geloescht_am < datetime('now', ?)");
 
-/* ZWEI AUFRUFSTELLEN, beide noetig -- dieselbe Bauform wie bei
-   ordneBestandZu(): beim Start und beim Oeffnen der Karte. Eine Anlage, die
-   drei Monate durchlaeuft, raeumte sonst drei Monate lang nicht auf, und die
-   Karte zeigte Zeilen, die es laengst nicht mehr geben duerfte.
-   HINZUNEHMENDE FOLGE, und sie gehoert benannt: damit schreibt eine LESENDE
-   Route. Das ist Hauswirtschaft und keine Benutzerhandlung -- die Liste
-   schreibender Routen bleibt davon unberuehrt. Wiederholbar und im Normalfall
-   stumm.
-   Die Bytes fallen ueber ON DELETE CASCADE mit. */
+/* ZWEI AUFRUFSTELLEN, beide noetig -- beim Start und beim Oeffnen der Karte.
+   Eine Anlage, die drei Monate durchlaeuft, raeumte sonst drei Monate lang
+   nicht auf.
+   HINZUNEHMENDE FOLGE: damit schreibt eine LESENDE Route. Das ist
+   Hauswirtschaft und keine Benutzerhandlung -- die Liste schreibender Routen
+   bleibt unberuehrt. Die Bytes fallen ueber ON DELETE CASCADE mit. */
 function raeumePapierkorbAuf() {
   const n = delPapierkorbAlt.run(`-${PAPIERKORB_TAGE} days`).changes;
   if (n) console.log(`[Kriterion] Papierkorb: ${n} Zeile(n) aelter als ` +
@@ -4384,7 +3862,7 @@ auth.raeumeTokensAuf();
 // Und dasselbe fuer das Sicherheitsprotokoll: erste Aufrufstelle hier, zweite
 // an GET /api/sicherheitsprotokoll.
 auth.raeumeProtokollAuf();
-/* Und die unbestaetigten Anfragen, seit 0.9.1. DREI Aufrufstellen statt
+/* Und die unbestaetigten Anfragen, . DREI Aufrufstellen statt
    zweier: hier, an GET /api/anfragen und -- das ist die besondere -- in
    legeAnfrageAn() selbst, vor der Deckelpruefung. Die dritte ist keine
    Hauswirtschaft, sondern Teil der Entscheidung: sonst blockierten zwanzig
@@ -4416,17 +3894,13 @@ function inDenPapierkorb(itemId, wer) {
 }
 
 /* Die Liste. LESEND, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht
-   trotzdem davor, wie bei GET /api/stats und GET /api/items/:id/bestand.
+   trotzdem davor.
    WARUM DER ADMIN SIE SEHEN DARF: er darf jeden Eintrag loeschen und sieht in
-   der Uebersicht ohnehin jeden Titel -- "alles sehen darf jeder" gilt hier
-   fuer den Bildschirm. Der Papierkorb zeigt ihm nichts, was er vor dem
-   Loeschen nicht schon sah.
+   der Uebersicht ohnehin jeden Titel. Der Papierkorb zeigt ihm nichts, was er
+   vor dem Loeschen nicht schon sah.
    GEHANDELT WIRD TROTZDEM NUR VOM EIGENTUEMER: Wiederherstellen legt Zeilen
-   unter FREMDEM Namen an -- Kommentare, Bewertungen und Testtage anderer sind
-   ueber die Kaskade mit hineingewandert. Das ist naeher am Import als am
-   Loeschen, und der steht hinter nurEigentuemer. Dieselbe Bauform wie bei den
-   Karten "Kategorien", "Tags" und "Bewertungskriterien": Liste fuer jeden
-   Berechtigten, Bedienzeichen nur dort, wo gedrueckt werden darf. */
+   unter FREMDEM Namen an -- das ist naeher am Import als am Loeschen, und der
+   steht hinter nurEigentuemer. */
 const qPapierkorb = db.prepare(`SELECT p.id, p.titel, p.geloescht_am, p.geloescht_von,
     (SELECT COUNT(*) FROM papierkorb_bytes b WHERE b.papierkorb_id = p.id) AS dateien,
     length(p.inhalt) + COALESCE(
@@ -4456,16 +3930,11 @@ app.get('/api/papierkorb', nurAdmin, (req, res) => {
   });
 });
 
-/* Wiederherstellen. Es legt einen NEUEN Eintrag an und stellt nicht den alten
-   zurueck -- die alte Nummer ist weg, und daran haengt nichts mehr. Genau das
-   kann der Import schon, und deshalb geht der Weg durch ihn.
-
+/* Wiederherstellen. Es legt einen NEUEN Eintrag an und stellt nicht den
+   alten zurueck -- die alte Nummer ist weg, und daran haengt nichts mehr.
+   Genau das kann der Import schon, deshalb geht der Weg durch ihn.
    WAS AUS DEN VERFASSERN WIRD, steht damit fest und wird hier nicht neu
-   erfunden: ein genannter Name, den es gibt, wird zugeordnet -- ein GRABSTEIN
-   ebenfalls, denn seine Zeile in users steht noch. Erst wenn auch sie fort
-   ist, faellt der Beitrag an den Wiederherstellenden und wird in der Antwort
-   genannt. Eine herrenlose Zeile (author: null) faellt ebenso an ihn.
-
+   erfunden -- auch ein GRABSTEIN wird gefunden, solange seine Zeile steht.
    WAS NICHT ZURUECKKOMMT und benannt gehoert: die Favoriten ANDERER (favorite
    heisst "habe ICH markiert") und der Eingriffsvermerk am Kommentar -- beides
    steht in keiner Exportdatei, und der Papierkorb ist eine. */
@@ -4561,21 +4030,14 @@ const liegtIn = (innen, aussen) => innen === aussen || innen.startsWith(aussen +
    Sicherungsort NEBEN der Anwendung oder ausserhalb?
 
    EINE SICHERUNG IM ARBEITSVERZEICHNIS IST DIE BEQUEME, NICHT DIE SICHERE
-   LAGE. Sie ueberlebt kein Umbenennen des Projektverzeichnisses, kein
-   versehentliches Loeschen desselben, und sie liegt auf derselben Platte wie
-   das Original. Sie ist trotzdem erlaubt: eine Sicherung am falschen Ort ist
-   besser als keine, und wer sie so will, soll sie bekommen -- er soll nur
-   nicht glauben, sie sei am richtigen Ort.
+   LAGE -- sie ueberlebt kein Umbenennen und liegt auf derselben Platte wie
+   das Original. Sie ist trotzdem erlaubt; der Betreiber soll nur nicht
+   glauben, sie sei am richtigen Ort.
 
-   DIE AUSSAGE TRAEGT NUR, WEIL DIE EINHAENGUNG DIE LAGE SPIEGELT. Der Prozess
-   sieht den Wirt nicht; er liest seinen eigenen Pfad. Was unter ./ eingehaengt
-   wird, gehoert deshalb unter das Anwendungsverzeichnis, was daneben liegen
-   soll, daneben -- und genau das steht in der docker-compose.yml daneben
-   geschrieben. Wer den Schnitt anders legt, nimmt dieser Anzeige ihre
-   Grundlage.
-
-   Aufgeloest wie jeder andere Pfad hier: ein Vergleich zweier Strings
-   beantwortet die Frage nicht, sobald ein Symlink im Spiel ist. */
+   DIE AUSSAGE TRAEGT NUR, WEIL DIE EINHAENGUNG DIE LAGE SPIEGELT: der Prozess
+   sieht den Wirt nicht, er liest seinen eigenen Pfad. Was unter ./ eingehaengt
+   wird, gehoert unter das Anwendungsverzeichnis -- so steht es in der
+   docker-compose.yml. Aufgeloest wie jeder Pfad hier, wegen der Symlinks. */
 const ANWENDUNG_DIR = (() => {
   try { return fs.realpathSync(__dirname); } catch { return path.resolve(__dirname); }
 })();
@@ -4643,23 +4105,18 @@ function pruefeOrt(roh) {
    gegen den Index in 0.6.2, und dort ist sie zugunsten der Sache entschieden
    worden. Der Preis steht daneben: ein unerreichbarer Zielort liefert keine
    Auskunft, und dann sagt die Karte GENAU DAS statt einer Zahl. */
-/* ZWEI SCHLUESSEL IM UMLAUF -- seit 0.8.91, und es ist die unangenehmste Falle
-   des ganzen Projekts. Wird der Schluessel der Datenbank gewechselt
-   (schluessel.js auf dem Wirt), bleiben die Sicherungen, die dann schon
-   dastehen, mit dem ALTEN Schluessel verschluesselt. Sie sind nicht kaputt --
-   sie brauchen nur einen anderen Schluessel als die laufende Anlage, und wer
-   das nicht weiss, haelt sie im Ernstfall fuer defekt.
+/* ZWEI SCHLUESSEL IM UMLAUF -- die unangenehmste Falle des ganzen Projekts.
+   Wird der Schluessel der Datenbank gewechselt (schluessel.js auf dem Wirt),
+   bleiben die vorhandenen Sicherungen mit dem ALTEN verschluesselt. Sie sind
+   nicht kaputt -- sie brauchen nur einen anderen Schluessel, und wer das
+   nicht weiss, haelt sie im Ernstfall fuer defekt.
 
-   Die Marke kommt aus settings und ist HIER ausdruecklich richtig, waehrend
-   "letzte Sicherung" aus dem Dateisystem kommt: der Zeitpunkt des Wechsels ist
-   ein VORGANG und hinterlaesst keine Datei, an der er abzulesen waere. Die
-   Aenderungszeit einer Kopie ist dagegen die Sache selbst. Zwei verschiedene
-   Fragen, zwei verschiedene Quellen.
+   Die Marke kommt aus settings und ist HIER richtig, waehrend "letzte
+   Sicherung" aus dem Dateisystem kommt: der Zeitpunkt des Wechsels ist ein
+   VORGANG und hinterlaesst keine Datei.
 
-   VERGLICHEN WIRD IN UTC. Die Marke traegt die Schreibweise der Anlage
-   ("2026-08-23 19:56:01"), und das Z macht aus ihr einen eindeutigen
-   Zeitpunkt -- ohne es lese der Rechner sie als Ortszeit und die Grenze
-   verschoebe sich um den Zeitzonenabstand. */
+   VERGLICHEN WIRD IN UTC -- ohne das Z lese der Rechner die Marke als
+   Ortszeit, und die Grenze verschoebe sich um den Zeitzonenabstand. */
 function wechselMarke() {
   const roh = getSetting('schluesselGewechseltAm', null);
   if (!roh) return null;
@@ -4810,19 +4267,11 @@ app.post('/api/sicherung', nurEigentuemer, (req, res) => {
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 /* Der letzte Fehler-Handler. Zwei Regeln:
-
    Ein Fehler, den der Server ABSICHTLICH wirft, traegt eine Markierung
-   (err.status) und behaelt damit seinen Rang und seine Meldung. Multer-Fehler
-   -- "Datei zu gross", "zu viele Dateien" -- sind ebenfalls echte 400 und
-   behalten ihre Meldung.
-
+   (err.status) und behaelt Rang und Meldung; Multer-Fehler ebenso.
    Alles Uebrige ist ein Fehler DES SERVERS und wird 500 mit festem Text: ein
-   SQL-Fehler nennt Tabellen und Spalten, ein sharp-Absturz den Pfad. Was
-   nicht angezeigt werden soll, wird auch nicht geliefert; die Einzelheiten
-   stehen im Protokoll, und dort gehoeren sie hin.
-
-   400 fuer alles war irrefuehrend: "du hast falsch gefragt" ist etwas anderes
-   als "bei mir ist etwas kaputt", und der Unterschied faellt beim Suchen an. */
+   SQL-Fehler nennt Tabellen und Spalten, ein sharp-Absturz den Pfad. Die
+   Einzelheiten stehen im Protokoll, und dort gehoeren sie hin. */
 app.use((err, req, res, next) => {
   console.error(err);
   const rang = err.status || err.statusCode || (err instanceof multer.MulterError ? 400 : 500);
@@ -4872,29 +4321,20 @@ async function maintainStorage() {
 
 /* ---- Versions-Fingerprint ---- */
 // Die Versionsnummer kommt aus der package.json und sagt NICHTS ueber die
-// uebrigen Dateien: wurden package.json und server.js ersetzt, public/app.js
-// aber nicht, zeigt die Fusszeile die neue Version, waehrend die Oberflaeche
-// sich alt verhaelt. Der Fingerprint ist die Aussage, die die Versionsnummer nicht
-// machen kann -- er aendert sich, sobald IRGENDEINE der beteiligten Dateien
-// anders ist. Ein halb eingespielter Dateisatz zeigt damit einen Fingerprint, der
-// zu keiner Version gehoert.
+// uebrigen Dateien. Der Fingerprint ist die Aussage, die sie nicht machen kann:
+// er aendert sich, sobald IRGENDEINE der beteiligten Dateien anders ist -- ein
+// halb eingespielter Dateisatz zeigt damit einen Wert, der zu keiner Version
+// gehoert.
 //
 // DIE LISTE WIRD ABGELEITET, NICHT GEPFLEGT, und zwar aus dem, was der Server
 // wirklich tut: alles unter public/ liefert express.static aus, alles in
 // require.cache unterhalb dieses Verzeichnisses fuehrt er aus. Eine zweite,
-// gepflegte Liste hiesse zwei Wahrheiten ueber dieselbe Sache und liefe
-// frueher oder spaeter auseinander.
-//
-// Damit kann die Falle gar nicht erst entstehen: pruefung.js und Doku/ liegen
-// im Repo, aber NICHT im Image (.dockerignore). Ein Fingerprint, der sie
-// mitzaehlte, waere im Container ein anderer als auf der Platte und damit
-// wertlos. Der Server laedt sie nicht und liefert sie nicht aus -- sie koennen
-// also nicht hineingeraten, ohne dass jemand sie ausdruecklich hereinholt.
+// gepflegte Liste liefe auseinander -- und pruefung.js und Doku/ koennen so
+// gar nicht erst hineingeraten (sie liegen nicht im Image).
 //
 // DIE GRENZE, DIE DARAUS FOLGT, IST ABSICHT: zugang.js liegt im Image, wird
-// aber nur von Hand aufgerufen und nie vom Server geladen. Es steht deshalb
-// nicht im Fingerprint. Der Fingerprint sagt, WELCHER SERVER LAEUFT, nicht welches
-// Werkzeug danebenliegt.
+// aber nur von Hand aufgerufen und steht deshalb nicht im Fingerprint. Er
+// sagt, WELCHER SERVER LAEUFT.
 function dateienUnter(verzeichnis) {
   const raus = [];
   for (const e of fs.readdirSync(verzeichnis, { withFileTypes: true })) {
@@ -4973,15 +4413,11 @@ app.listen(PORT, () => {
     console.log('[Kriterion] Oeffentliche Adresse: nicht gesetzt — ' +
       'den Einladungslink baut der Browser des Admins.');
   }
-  /* Der Mailversand gehoert ins Protokoll, und zwar in derselben Form wie die
-     Adresse darueber: wer ihn eingerichtet glaubt und es nicht ist, sieht es
-     hier -- und nicht erst, wenn jemand auf eine Einladung wartet.
-     DAS PASSWORT STEHT HIER NICHT, auch nicht seine Laenge und nicht sein
-     letztes Zeichen. Die Zeile nennt Anbieter, Server und Absender; das genuegt
-     zum Nachsehen, ob der richtige Zugang geladen ist. Der Merksatz zu
-     Kontrollausgaben gilt hier in seiner schaerfsten Auslegung, wie beim
-     Schluesselwechsel: ein Geheimnis, das einmal im Containerprotokoll steht,
-     steht dort, bis es jemand loescht. */
+  /* Der Mailversand gehoert ins Protokoll, in derselben Form wie die Adresse
+     darueber: wer ihn eingerichtet glaubt und es nicht ist, sieht es hier.
+     DAS PASSWORT STEHT HIER NICHT, auch nicht seine Laenge. Die Zeile nennt
+     Anbieter, Server und Absender -- ein Geheimnis, das einmal im
+     Containerprotokoll steht, steht dort, bis es jemand loescht. */
   {
     const roh = getSetting(mail.SCHLUESSEL, null);
     const z = mail.zustand(roh);

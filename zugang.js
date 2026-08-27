@@ -16,7 +16,6 @@
  * Das bleibt so -- ABER die VIER schreibenden Befehle stehen im
  * Sicherheitsprotokoll. Sonst haette der Notweg als einziger keine Spur, und
  * genau er ist der, den man hinterher nachlesen moechte.
- * (Bis 0.9.1 waren es drei; 'zweifaktor' ist mit 0.10.0 dazugekommen.)
  */
 const readline = require('readline');
 const { db } = require('./db');
@@ -120,7 +119,7 @@ function befehlListe() {
   const zeilen = auth.listeZugaenge();
   if (!zeilen.length) { console.log('Es ist noch kein Zugang eingerichtet.'); return; }
   const breite = Math.max(4, ...zeilen.map(z => z.username.length));
-  // Die Spalte "2FA" seit 0.10.0. Sie sagt AN oder AUS und nie mehr -- das
+  // Die Spalte "2FA" . Sie sagt AN oder AUS und nie mehr -- das
   // Geheimnis steht auch hier nicht, und die Zahl der Wiederherstellungscodes
   // gehoert an den einen Ort, an dem sie jemanden angeht: die Karte "Zugang"
   // des Betroffenen und den Befehl `zweifaktor` daneben.
@@ -187,7 +186,7 @@ async function befehlEntfernen(name, optionen) {
   console.log(`"${ergebnis.name}" ist entfernt. Die Zeile bleibt als ${ergebnis.grabstein} stehen.`);
 }
 
-/* DER NOTWEG AM ZWEITEN FAKTOR, seit 0.10.0 -- UND ER SCHALTET NUR AUS.
+/* DER NOTWEG AM ZWEITEN FAKTOR -- UND ER SCHALTET NUR AUS.
    Einschalten gaebe es hier nicht: das Geheimnis muesste auf das Telefon des
    Betroffenen, und wer es fuer ihn erzeugte, sperrte ihn aus. Ausschalten
    dagegen MUSS von hier aus gehen -- sonst waere "Telefon weg und

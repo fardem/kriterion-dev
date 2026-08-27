@@ -3,31 +3,21 @@ const crypto = require('crypto');
 /* ================= Der zweite Faktor — die reine Rechnung =================
 
    TOTP NACH RFC 6238. Ein Code entsteht auf dem Telefon aus einem Geheimnis
-   und der Uhr, ohne Netz. Das ist der ganze Unterschied zum Mailversand: dort
-   gilt "E-Mail ist Bequemlichkeit, nie Voraussetzung", weil ein fremder Server
-   ausfallen darf. Hier faellt nichts aus, weil nichts hinausgeht -- die Anlage
-   verschickt fuer den zweiten Faktor NICHTS, weder Code noch Nachricht.
+   und der Uhr, OHNE NETZ -- die Anlage verschickt fuer den zweiten Faktor
+   nichts, weder Code noch Nachricht.
 
-   DIESE DATEI KENNT KEINE DATENBANK. Sie rechnet: Base32 hin und zurueck, HMAC
-   ueber einen Zaehler, der Vergleich ueber ein Fenster. Alles, was eine Zeile
-   hat -- das Geheimnis, die verbrauchten Zaehler, die Wiederherstellungscodes
-   --, steht in auth.js, wo die uebrigen Zugangstabellen stehen. Dieselbe
-   Teilung wie mail.js neben auth.js: der Vorgang hier, die Zeile dort.
-
-   KEINE NEUE ABHAENGIGKEIT. TOTP ist HMAC-SHA1 ueber einen Zaehler, und crypto
-   kann das seit jeher.
+   DIESE DATEI KENNT KEINE DATENBANK. Sie rechnet: Base32 hin und zurueck,
+   HMAC ueber einen Zaehler, der Vergleich ueber ein Fenster. Alles, was eine
+   Zeile hat, steht in auth.js -- dieselbe Teilung wie mail.js daneben.
+   KEINE NEUE ABHAENGIGKEIT: TOTP ist HMAC-SHA1 ueber einen Zaehler.
 
    DIE VIER KENNWERTE STEHEN FEST, UND DAS IST DIE WICHTIGSTE FESSEL DIESER
-   DATEI. SHA-256 statt SHA-1, acht Ziffern statt sechs, sechzig Sekunden statt
-   dreissig -- jedes davon ist fuer sich das bessere Verfahren, und jedes wird
-   von Google Authenticator STILLSCHWEIGEND FALSCH oder gar nicht gelesen. Die
-   App zeigt dann Codes an, die nie stimmen, und niemand sieht, warum. Wer von
-   diesen Werten abweicht, sperrt genau die App aus, fuer die gebaut wird.
-
-   UND DIE KEHRSEITE, NACHGESEHEN STATT ANGENOMMEN: dieselben vier Werte sind
-   die Vorgabe in jedem anderen Pruefgeraet -- Aegis, 1Password, iOS-Passwoerter.
-   Die Anlage bindet sich damit nicht an einen Anbieter, sondern an den
-   Standard. */
+   DATEI. SHA-256 statt SHA-1, acht Ziffern statt sechs, sechzig Sekunden
+   statt dreissig -- jedes davon ist fuer sich das bessere Verfahren, und
+   jedes wird von Google Authenticator STILLSCHWEIGEND FALSCH oder gar nicht
+   gelesen. Wer davon abweicht, sperrt genau die App aus, fuer die gebaut
+   wird. Dieselben vier Werte sind die Vorgabe in jedem anderen Pruefgeraet --
+   die Bindung gilt dem Standard, nicht einem Anbieter. */
 const VERFAHREN = 'sha1';
 const ZIFFERN = 6;
 const SCHRITT_SEKUNDEN = 30;
@@ -44,12 +34,10 @@ const FENSTER = 1;
 const GEHEIM_BYTES = 20;
 
 /* ---- Base32, RFC 4648 ----
-   WARUM UEBERHAUPT BASE32 UND NICHT HEXADEZIMAL, WIE BEIM TOKEN: weil das
-   Geheimnis hier ABGETIPPT wird. Der Token steht in einem Link und sieht kein
-   Auge; dieser Wert steht auf dem Bildschirm und wird auf einem Telefon
-   eingegeben. Base32 ist das Alphabet, das Google Authenticator liest, und es
-   kennt kein kleines l, keine 0 und keine 1 -- die drei Zeichen, an denen sich
-   ein Mensch beim Abtippen vertut.
+   WARUM BASE32 UND NICHT HEXADEZIMAL WIE BEIM TOKEN: weil das Geheimnis hier
+   ABGETIPPT wird. Base32 ist das Alphabet, das Google Authenticator liest,
+   und es kennt kein kleines l, keine 0 und keine 1 -- die drei Zeichen, an
+   denen sich ein Mensch vertut.
    GEPRUEFT WIRD GEGEN DEN TESTVEKTOR AUS RFC 4648, nicht gegen die eigene
    Rueckrechnung: ein Kodierer, der zu seinem eigenen Dekodierer passt, kann
    trotzdem ein Alphabet verschoben haben. */
@@ -110,14 +98,13 @@ const inVierergruppen = (s) => String(s || '').replace(/(.{4})(?=.)/g, '$1 ');
 const schrittZu = (msSeitEpoche) => Math.floor(msSeitEpoche / 1000 / SCHRITT_SEKUNDEN);
 const jetztSchritt = () => schrittZu(Date.now());
 
-/* Der Code zu EINEM Zaehler. Das dynamische Abgreifen ("dynamic truncation")
-   steht so in RFC 4226, Abschnitt 5.3: die letzten vier Bit des Hashs nennen
-   den Anfang, dort werden vier Bytes gelesen, das oberste Bit faellt weg.
-   Der Zaehler ist acht Bytes gross und wird in ZWEI Haelften geschrieben:
-   writeUInt32BE kann keine 64 Bit. Ueber 2^32 laeuft der Zaehler erst ab dem
-   Jahr 6053 -- KEIN Testvektor aus RFC 6238 erreicht ihn, auch der groesste
-   (T = 20 000 000 000) nicht. Der Pruefstand haelt die obere Haelfte deshalb
-   gegen eine ZWEITE Bauform (writeBigUInt64BE) statt gegen ein Papier. */
+/* Der Code zu EINEM Zaehler. Das dynamische Abgreifen steht so in RFC 4226,
+   Abschnitt 5.3: die letzten vier Bit des Hashs nennen den Anfang, dort
+   werden vier Bytes gelesen, das oberste Bit faellt weg.
+   Der Zaehler ist acht Bytes gross und wird in ZWEI Haelften geschrieben --
+   writeUInt32BE kann keine 64 Bit. Ueber 2^32 laeuft er erst ab dem Jahr
+   6053, kein Testvektor erreicht ihn; der Pruefstand haelt die obere Haelfte
+   deshalb gegen eine ZWEITE Bauform (writeBigUInt64BE). */
 function code(geheimBase32, zaehler) {
   const geheim = base32Dekodiere(geheimBase32);
   if (!geheim || !geheim.length) return null;
@@ -135,25 +122,20 @@ function code(geheimBase32, zaehler) {
 // deshalb genuegt EIN Eingabefeld fuer beide.
 const istCodeform = (eingabe) => new RegExp(`^\\d{${ZIFFERN}}$`).test(String(eingabe || '').trim());
 
-/* Prueft einen Code gegen das Fenster und liefert den ZAEHLER, der getragen hat
-   -- oder null.
+/* Prueft einen Code gegen das Fenster und liefert den ZAEHLER, der getragen
+   hat -- oder null.
 
-   DER ZAEHLER UND NICHT ja/nein, und das ist die ganze Bauform gegen
-   Wiederverwendung: der Aufrufer schreibt ihn weg und nimmt beim naechsten Mal
-   nur noch etwas GROESSERES an. Ein blosses ja/nein zwaenge ihn, den Schritt
-   selbst nachzurechnen -- eine zweite Rechnung neben dieser, und die liefe
-   beim naechsten Griff auseinander.
+   DER ZAEHLER UND NICHT ja/nein: der Aufrufer schreibt ihn weg und nimmt beim
+   naechsten Mal nur noch etwas GROESSERES an. Ein blosses ja/nein zwaenge ihn,
+   den Schritt selbst nachzurechnen -- eine zweite Rechnung neben dieser.
 
-   NACH steht VOR: geprueft wird von hinten nach vorn, damit bei zwei passenden
-   Fenstern der spaetere gewinnt. Zwei koennen nur passen, wenn zwei Zaehler
-   denselben Code ergeben -- das ist bei einer Million Moeglichkeiten selten und
-   nicht unmoeglich, und dann ist der spaetere der richtige.
+   NACH steht VOR: geprueft wird von hinten nach vorn, damit bei zwei
+   passenden Fenstern der spaetere gewinnt.
 
-   ZEITUNABHAENGIG VERGLICHEN, anders als beim Token. Dort ist der Hash ein
-   Primaerschluessel und wird NACHGESCHLAGEN; hier wird wirklich verglichen, und
-   sechs Ziffern sind kurz genug, dass eine Laufzeit ueber Stellen etwas sagen
-   koennte. timingSafeEqual verlangt gleiche Laenge -- die ist hier durch
-   istCodeform bereits sicher, und die Klemme steht trotzdem da. */
+   ZEITUNABHAENGIG VERGLICHEN, anders als beim Token: dort ist der Hash ein
+   Primaerschluessel und wird NACHGESCHLAGEN, hier wird wirklich verglichen,
+   und sechs Ziffern sind kurz genug, dass eine Laufzeit etwas sagen
+   koennte. */
 function pruefeCode(geheimBase32, eingabe, jetzt = Date.now()) {
   const getippt = String(eingabe || '').trim();
   if (!istCodeform(getippt)) return null;
@@ -171,21 +153,16 @@ function pruefeCode(geheimBase32, eingabe, jetzt = Date.now()) {
 
 /* ---- Die Zeile fuer die App ----
    otpauth:// IST DER STANDARD, an den sich jedes Pruefgeraet haelt. Auf einem
-   Telefon oeffnet der Link Google Authenticator unmittelbar; am Rechner ist er
-   der String, den ein QR-Code ohnehin nur zeichnen wuerde.
+   Telefon oeffnet der Link die App unmittelbar; am Rechner ist er der String,
+   den ein QR-Code ohnehin nur zeichnen wuerde.
 
-   DIE DREI KENNWERTE STEHEN AUSGESCHRIEBEN DARIN, obwohl sie die Vorgabe sind
-   und weggelassen werden duerften. Sie stehen da, weil ein Pruefgeraet, das sie
-   ANDERS vorbelegt, sonst still danebenliegt -- und weil der Mensch, der die
-   Zeile liest, sehen soll, worauf er sich einlaesst.
+   DIE DREI KENNWERTE STEHEN AUSGESCHRIEBEN DARIN, obwohl sie die Vorgabe
+   sind: ein Pruefgeraet, das sie ANDERS vorbelegt, laege sonst still daneben.
 
-   DER ANLAGENNAME KOMMT AUS DEM OEFFENTLICHEN TITEL, damit in der App steht,
-   wozu der Code gehoert. Er ist Eingabe aus dem Systembereich und wird deshalb
-   maskiert -- encodeURIComponent, nicht bloss ein Ersetzen von Doppelpunkten.
-   DIE LAENGE, GEMESSEN STATT GESCHAETZT: rund hundert Zeichen bei kurzen Namen,
-   zweihundert bei sehr langen. Fuer einen Link ist das ohne Belang; fuer den
-   QR-Code, der spaeter danebentritt, ist es die Frage nach der Version, und
-   deshalb steht die Zahl hier und nicht erst dort. */
+   DER ANLAGENNAME KOMMT AUS DEM OEFFENTLICHEN TITEL und ist Eingabe aus dem
+   Systembereich -- deshalb encodeURIComponent, nicht bloss ein Ersetzen von
+   Doppelpunkten. Die Zeile misst rund hundert Zeichen bei kurzen Namen und
+   zweihundert bei sehr langen. */
 function otpauthZeile(anlage, benutzername, geheimBase32) {
   const kennung = encodeURIComponent(`${anlage}:${benutzername}`);
   return `otpauth://totp/${kennung}?secret=${geheimBase32}` +
@@ -194,22 +171,17 @@ function otpauthZeile(anlage, benutzername, geheimBase32) {
 }
 
 /* ---- Die Wiederherstellungscodes ----
-   OHNE SIE IST EIN VERLORENES TELEFON EIN VERLORENER ZUGANG. Deshalb gehoeren
-   sie in dieselbe Runde wie der zweite Faktor und nicht in eine spaetere.
+   OHNE SIE IST EIN VERLORENES TELEFON EIN VERLORENER ZUGANG.
 
-   ACHT STUECK, ZEHN ZEICHEN. Zehn Zeichen aus diesem Alphabet sind rund
-   fuenfzig Bit -- weit jenseits dessen, was eine Bremse von zehn Versuchen je
-   Adresse und fuenf Minuten Sperre je durchlaesst. Acht Stueck sind mehr, als
-   ein Mensch je braucht, und wenig genug, dass er sie auf einen Zettel
-   schreibt.
+   ACHT STUECK, ZEHN ZEICHEN -- rund fuenfzig Bit, weit jenseits dessen, was
+   eine Bremse von zehn Versuchen je Adresse durchlaesst. Acht sind mehr, als
+   ein Mensch je braucht, und wenig genug fuer einen Zettel.
 
-   EIN EIGENES ALPHABET UND NICHT BASE32: hier wird nichts dekodiert, es wird
-   nur verglichen. Also faellt alles heraus, was sich beim Abschreiben
-   verwechseln laesst -- 0/O, 1/I/l. Uebrig bleiben 32 Zeichen, und dass es
-   zufaellig ebenfalls 32 sind, ist kein Zusammenhang.
-
-   DIE GRUPPEN SIND EINE ANZEIGE UND KEIN FORMAT, wie beim Schluessel oben:
-   gespeichert und verglichen wird ohne sie. */
+   EIN EIGENES ALPHABET UND NICHT BASE32: hier wird nichts dekodiert, nur
+   verglichen. Also faellt heraus, was sich beim Abschreiben verwechseln
+   laesst -- 0/O, 1/I/l.
+   DIE GRUPPEN SIND EINE ANZEIGE UND KEIN FORMAT: gespeichert und verglichen
+   wird ohne sie. */
 const WIEDER_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const WIEDER_ZAHL = 8;
 const WIEDER_LAENGE = 10;
