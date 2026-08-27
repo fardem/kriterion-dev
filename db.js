@@ -679,6 +679,31 @@ CREATE TABLE IF NOT EXISTS papierkorb_bytes (
 `;
 
 const db = open(DB_FILE);
+
+/* kkl() -- KLEINSCHREIBUNG NACH UNICODE, IN SQL EINGEHAENGT.
+   SQLite kennt lower(), aber es faltet AUSSCHLIESSLICH ASCII: lower('Ü') ist
+   'Ü', und dasselbe gilt fuer LIKE. Eine Suche darauf faende den Eintrag
+   "STICHSAEGE UEBERGROSS" bei der Eingabe "uebergross" nicht -- nachgestellt,
+   und mit Umlauten faellt der Treffer wirklich weg. Die Volltextsuche liefe
+   damit anders als die Suche im Browser vorher, und zwar unauffaellig.
+
+   toLowerCase() aus JS faltet nach Unicode und ist genau das, was der Browser
+   getan hat, als die Suche noch dort lief. Die Funktion steht deshalb hier und
+   nicht als zweite Formel im Server: die Klemme, die aus dem Suchtext
+   Kleinbuchstaben macht, gibt es genau einmal.
+
+   deterministic: gleicher Wert, gleiches Ergebnis, immer. Ohne die Angabe
+   verbietet SQLite den Aufruf in einem Index oder einer erzeugten Spalte, und
+   der Optimierer muss annehmen, die Funktion koenne bei jedem Aufruf etwas
+   anderes liefern.
+
+   NULL WIRD ZUM LEEREN STRING und nicht zu NULL: instr(NULL, 'x') ist NULL,
+   und `NULL > 0` ist in SQL nie wahr -- eine fehlende Beschreibung waere damit
+   kein "kein Treffer", sondern ein Wert, mit dem sich nicht rechnen laesst.
+   Der leere String ist beides zugleich und braucht keine Sonderbehandlung an
+   jeder Aufrufstelle. */
+db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));
+
 db.exec(SCHEMA);
 
 // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0

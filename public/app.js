@@ -1377,8 +1377,13 @@ function visibleItems(filter) {
      es keinen Bezugspunkt, und ein Filter, der dann alles zeigt, erklaert
      sich nicht -- die Filterzeile bietet ihn dort auch nicht an. */
   if (f.neu && ZULETZT_GESEHEN) out = out.filter(i => i.updated_at > ZULETZT_GESEHEN);
-  const q = state.search.trim().toLowerCase();
-  if (q) out = out.filter(i => (i.searchText || '').includes(q));
+  /* HIER STAND BIS 0.10.0 DIE SUCHE: ein filter() ueber das Feld searchText,
+     das der Server je Eintrag mitschickte. Das Feld war 73 Prozent der
+     Antwort. Gesucht wird jetzt ueber GET /api/items?q=..., und `state.items`
+     traegt bereits nur noch die Treffer -- eine zweite Suche hier waere eine
+     zweite Wahrheit ueber dieselbe Menge, und sie liefe auf einem Feld, das
+     es nicht mehr gibt. Die uebrigen Filter bleiben oertlich: sie rechnen mit
+     Feldern, die die Antwort ohnehin traegt, und kosten keine Anfrage. */
 
   out = [...out].sort((a, b) => {
     // HIER STEHT BEWUSST KEINE Vorsortierung der Favoriten
@@ -1479,16 +1484,23 @@ async function renderList() {
     showLogin();
   };
   const q = document.getElementById('q'), qclr = document.getElementById('qclr');
-  const syncClr = () => { qclr.style.display = q.value ? 'block' : 'none'; };
-  q.oninput = () => { state.search = q.value; syncClr(); drawBody(); };
-  qclr.onclick = () => { q.value = ''; state.search = ''; syncClr(); drawBody(); q.focus(); };
-  syncClr();
+  // Getippt wird oertlich, gesucht ueber den Debounce. Das Leeren geht ohne
+  // Anfrage durch -- der ungefilterte Bestand liegt in state.alle.
+  q.oninput = () => { state.search = q.value; syncSuchknopf(); sucheAngestossen(); };
+  qclr.onclick = () => { q.value = ''; state.search = ''; syncSuchknopf(); sucheAngestossen(); q.focus(); };
+  syncSuchknopf();
 
   // "/" springt in die Suche
   document.addEventListener('keydown', listKeys);
   window.addEventListener('hashchange', () => document.removeEventListener('keydown', listKeys), { once: true });
 
   drawFilters(); drawBody();
+  /* STAND SCHON EIN BEGRIFF IM FELD, wird er jetzt gefragt. Der Begriff
+     ueberlebt den Weg in einen Eintrag und zurueck (state.search), die
+     Trefferliste tut das nicht -- loadAll() hat gerade den ganzen Bestand
+     gesetzt. Ohne diese Zeile stuende im Feld ein Begriff und daneben die
+     ungefilterte Liste. */
+  if (state.search.trim()) sucheAusfuehren();
 }
 
 function listKeys(e) {
@@ -1698,7 +1710,10 @@ function drawBody() {
     return;
   }
   const grid = document.createElement('div');
-  grid.className = 'grid';
+  /* WAEHREND DIE SUCHE LAEUFT, BLEIBT DIE ALTE LISTE STEHEN und wird nur
+     gedaempft. Eine Liste, die zwischen zwei Tastendruecken leer wird, ist
+     schlechter als eine, die einen Augenblick alt ist. */
+  grid.className = 'grid' + (state.suchLaeuft ? ' sucht' : '');
   list.forEach(it => grid.appendChild(card(it)));
   body.appendChild(grid);
   drawCompareBar();

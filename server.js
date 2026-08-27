@@ -2489,9 +2489,99 @@ function detail(id, benutzerId) {
 }
 
 const qMeinePins = db.prepare('SELECT item_id FROM item_pins WHERE user_id = ?');
+const qAlleItems = db.prepare('SELECT * FROM items ORDER BY updated_at DESC');
+/* VORBEREITET UND NICHT JE EINTRAG UEBERSETZT. Beide Abfragen standen in der
+   Schleife darunter und wurden damit einmal je Eintrag uebersetzt. Gemessen an
+   1000 Eintraegen: 24,2 ms so, 11,5 ms vorbereitet. Die uebrigen Abfragen der
+   Schleife (qPhotos, qTags, qLinks) stehen aus demselben Grund laengst
+   oben. */
+const qAnhangZahl = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?');
+
+/* ================= Die Volltextsuche =================
+   SIE SUCHT DIESELBEN SIEBEN QUELLEN, DIE VORHER IM FELD `searchText` STANDEN:
+   Titel, Beschreibung, Kategoriename, Tags am Eintrag, Tags an Testtagen,
+   Linkadressen und samtliche Kommentartexte. Bis 0.10.0 baute der Server
+   dieses Feld je Eintrag und schickte es mit; gesucht wurde damit im Browser.
+   Das Feld war 73 Prozent der Antwort (gemessen: 2,50 MB von 1000 Eintraegen,
+   0,68 MB ohne). Jetzt sucht der Server, und das Feld entfaellt.
+
+   instr() UND NICHT LIKE, UND DAS IST DER KERN DER SACHE. `LIKE '%…%'` liest
+   `%` und `_` im Suchbegriff als Wildcards: die Eingabe eines einzelnen
+   Prozentzeichens faende JEDEN Eintrag statt des einen, der eines traegt.
+   Mit ESCAPE liesse sich das einfangen, aber instr() kennt gar keine
+   Wildcards -- der Suchbegriff ist dort Text, von Bauart und nicht durch eine
+   Klemme, die jemand vergessen kann. Nachgestellt an 1001 Eintraegen: LIKE
+   ungeschuetzt 1001 Treffer, instr() einer, wie vorher im Browser.
+
+   KEIN FTS5, UND DAS IST NACHGERECHNET. Die eingebaute SQLite kann es
+   (3.49.2, trigram legt an), es kaeme also keine Abhaengigkeit dazu. An 1000
+   Eintraegen mit 1,75 MB Suchtext kostet der Trigramm-Index aber 5,17 MB --
+   das Dreifache des Textes, den er indiziert -- und braeuchte eine
+   Auffrischung an sieben Schreibstellen. Vor allem AENDERT ER DAS VERHALTEN:
+   eine Trigramm-Abfrage mit einem oder zwei Zeichen scheitert nicht, sie
+   liefert STILL NULL Treffer. Vorher fand ein einzelnes Zeichen. Ein Index,
+   der eine Millisekunde spart und dem Benutzer die Suche ab einem Zeichen
+   nimmt, ist kein Gewinn.
+
+   DIE SIEBEN QUELLEN STEHEN ALS SIEBEN ODER-GLIEDER DA und nicht als
+   zusammengesetzter Text. SQLite bricht die Kette beim ersten Treffer ab: ein
+   haeufiges Wort im Titel kostet 1,9 ms, ein seltener Begriff, der alle sieben
+   durchlaeuft, 13,2 ms. Ein vorher zusammengesetzter Text kostete immer den
+   ganzen Durchlauf.
+
+   DIE ROUTE BLEIBT DIESELBE, mit einem Parameter mehr. Sie ist lesend und
+   steht deshalb NICHT in F_ROUTEN -- dieselbe Regel wie bei GET /api/offen.
+   UND SIE TRIFFT DIESELBE MENGE WIE DIE LISTE OHNE PARAMETER: gelesen wird
+   dieselbe Tabelle `items` ohne jede weitere Einschraenkung. Der Papierkorb
+   liegt nicht darin (das Loeschen entfernt die Zeile in derselben
+   Transaktion), Entwuerfe gibt es nicht, und ein abgelehnter Eintrag steht in
+   der Liste und darum auch in der Suche. Die Suche ist damit kein neuer Zugang
+   zu fremden Kommentaren -- sie sagt nur, WELCHE Eintraege einen Text tragen,
+   und die Antwort enthaelt die Kommentartexte selbst so wenig wie vorher.
+
+   DER SUCHBEGRIFF GEHT NICHT INS SICHERHEITSPROTOKOLL. Freitext gehoert dort
+   nicht hinein, und eine lesende Route schreibt ohnehin nichts.
+
+   KEINE EIGENE BREMSE. Die Route steht hinter der Anmeldung; die Anmeldebremse
+   verteidigt gegen Fremde und nicht gegen Zugaenge, die es schon gibt. */
+const qVolltext = db.prepare(`
+  SELECT i.id FROM items i
+  LEFT JOIN product_categories c ON c.id = i.product_category_id
+  WHERE instr(kkl(i.title), :q) > 0
+     OR instr(kkl(i.description), :q) > 0
+     OR instr(kkl(c.name), :q) > 0
+     OR EXISTS (SELECT 1 FROM item_tags it JOIN tags t ON t.id = it.tag_id
+                WHERE it.item_id = i.id AND instr(kkl(t.name), :q) > 0)
+     OR EXISTS (SELECT 1 FROM test_days d JOIN test_day_tags dt ON dt.test_day_id = d.id
+                JOIN tags tt ON tt.id = dt.tag_id
+                WHERE d.item_id = i.id AND instr(kkl(tt.name), :q) > 0)
+     OR EXISTS (SELECT 1 FROM links l WHERE l.item_id = i.id AND instr(kkl(l.url), :q) > 0)
+     OR EXISTS (SELECT 1 FROM comments k WHERE k.item_id = i.id AND instr(kkl(k.text), :q) > 0)`);
+
+/* DER BEGRIFF WIRD GENAU SO ZUGESCHNITTEN WIE VORHER IM BROWSER: aussen
+   getrimmt, klein geschrieben. Ein Begriff, von dem danach nichts uebrig ist,
+   ist KEINE Suche und keine Suche ohne Treffer -- die Liste bleibt dann die
+   ganze Liste. Zurueck kommt eine Menge von Nummern und keine Reihenfolge:
+   sortiert wird die Liste selbst, an einer Stelle. */
+const volltextBegriff = (roh) => (typeof roh === 'string' ? roh.trim().toLowerCase() : '');
+const volltextTreffer = (begriff) => new Set(qVolltext.all({ q: begriff }).map(r => r.id));
 
 app.get('/api/items', (req, res) => {
-  const rows = db.prepare('SELECT * FROM items ORDER BY updated_at DESC').all();
+  let rows = qAlleItems.all();
+  const begriff = volltextBegriff(req.query.q);
+  if (begriff) {
+    const treffer = volltextTreffer(begriff);
+    rows = rows.filter(r => treffer.has(r.id));
+  }
+  /* DIE ZEITLEISTE EINMAL FUER DIE GANZE LISTE GEFRAGT, nicht je Eintrag: es
+     ist eine persoenliche Einstellung und aendert sich innerhalb einer Antwort
+     nicht. Ist sie aus, faellt `testDays` aus der Antwort -- das sind gemessen
+     weitere 6 Prozent. AUS DER LISTENANTWORT LIEST DAS FELD GENAU EINE STELLE
+     DER OBERFLAECHE, zeitleistePunkte(), und die laeuft nur bei
+     eingeschalteter Zeitleiste. Die Kachel rechnet aus testCount, testAvg und
+     testLast und nicht daraus; der Vergleich holt seine Testtage aus
+     GET /api/items/:id. Beide bleiben also richtig. */
+  const zeitleiste = zeitleisteAn(req.benutzer.id);
   // Eine Abfrage fuer die ganze Liste statt einer je Zeile. Die
   // Sortierung bleibt updated_at fuer alle -- die Uebersicht zeigt, wo etwas
   // geschieht, nicht wo ich zuletzt war. Nach vorn zieht der eigene Favorit
@@ -2518,24 +2608,19 @@ app.get('/api/items', (req, res) => {
     it.tags = qTags.all(it.id);
     const links = qLinks.all(it.id);
     it.linkCount = links.length;
-    it.attachmentCount = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(it.id).n;
+    it.attachmentCount = qAnhangZahl.get(it.id).n;
     // Dieselbe Rechnung wie in detail(), ueber denselben Helfer. Zwei
     // Rechenwege fuer die Kachel und die Zeile daneben waeren zwei Wahrheiten
     // ueber dieselbe Zahl.
     it.avgRating = gesamtSchnitt(schnitteJeKriterium(it.id));
     Object.assign(it, testStats(it.id));
     // Die Zeitleiste braucht die Testtage selbst, nicht nur ihre Anzahl --
-    // und dazu, wem sie gehoeren.
-    it.testDays = qTestDays(it.id, req.benutzer.id, karte);
-    // Ein zusammengefasstes Suchfeld statt der vollstaendigen Kommentarstruktur:
-    // damit findet die Suche auch Kommentare, ohne sie einzeln mitzuschicken.
-    // Tags an Testtagen stehen hier mit drin: der Filter kennt sie nicht, die
-    // Suche soll sie trotzdem finden.
-    const comments = db.prepare('SELECT text FROM comments WHERE item_id = ?').all(it.id).map(c => c.text);
-    const tagTags = it.testDays.flatMap(d => d.tags.map(t => t.name));
-    it.searchText = [it.title, it.description, it.category ? it.category.name : '',
-      ...it.tags.map(t => t.name), ...tagTags, ...links.map(l => l.url), ...comments]
-      .join(' \u0001 ').toLowerCase();
+    // und dazu, wem sie gehoeren. Ohne sie braucht die Liste sie nicht.
+    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);
+    /* DIE BESCHREIBUNG FAELLT AUS DER LISTE, WIE BISHER. Sie stand nie in
+       dieser Antwort -- gebraucht wurde sie allein zum Bilden des Suchfelds,
+       und das gibt es nicht mehr. Die Kachel zeigt keine Beschreibung; wer sie
+       will, holt den Eintrag. */
     delete it.description;
   }
   res.json(rows);

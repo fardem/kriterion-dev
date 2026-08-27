@@ -280,6 +280,14 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 
 /* ---------- Kartenraster ---------- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+/* WAEHREND DIE SUCHE UNTERWEGS IST, bleibt die alte Liste stehen und wird nur
+   gedaempft -- eine Liste, die zwischen zwei Tastendruecken leer wird, ist
+   schlechter als eine, die einen Augenblick alt ist. Kein Ladebalken und kein
+   Kreisel: die Zaehlzeile sagt daneben schon "sucht …", und ein zweites
+   Zeichen fuer dieselbe Auskunft ist eines zu viel.
+   Der Uebergang laeuft in eine Richtung schnell und aus ihr langsam zurueck:
+   bei einer Antwort unter 120 ms sieht man das Daempfen gar nicht erst. */
+.grid.sucht { opacity: .5; transition: opacity .12s ease-in .12s; }
 .card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
   overflow: hidden; display: flex; flex-direction: column; position: relative;

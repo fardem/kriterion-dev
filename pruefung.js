@@ -1614,9 +1614,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Übersicht liefert die Testtage selbst, nicht nur die Anzahl',
     Array.isArray(suchbar.testDays) && suchbar.testDays[0].day === '2026-07-01');
   await ruf('POST', `/api/test-days/${tag1.id}/tags`, { name: 'Nurhier' });
-  const suchbar2 = (await ruf('GET', '/api/items')).inhalt.find(i => i.id === tt.id);
+  /* SEIT 0.11.0 SUCHT DER SERVER. Bis 0.10.0 stand hier eine Frage an das Feld
+     `searchText` der Listenantwort; das Feld gibt es nicht mehr. Gefragt wird
+     jetzt die Route selbst -- und das ist die bessere Frage: sie belegt, was
+     ein Mensch bekommt, und nicht, was in einem Hilfsfeld steht. */
+  const suchbar2 = (await ruf('GET', '/api/items?q=nurhier')).inhalt;
   pruefe('Suche findet Tags, die nur am Testtag hängen',
-    suchbar2.searchText.includes('nurhier'));
+    suchbar2.some(i => i.id === tt.id),
+    `${suchbar2.length} Treffer: ${suchbar2.map(i => i.title).join(' · ')}`);
   const nurhier = (await ruf('GET', '/api/tags')).inhalt.find(t => t.name === 'Nurhier');
   pruefe('Solcher Tag hat null Einträge und fällt damit aus der Filterwolke',
     nurhier.usage_count === 0 && nurhier.test_usage_count === 1);
@@ -1747,9 +1752,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     JSON.stringify(lkDetail.links.map(l => l.url)));
   pruefe('Leere Eingabe wird weiterhin abgewiesen',
     (await ruf('POST', `/api/items/${lk.id}/links`, { url: '   ' })).status === 400);
+  // Gefragt wird die Suchroute und nicht ein Feld der Listenantwort: seit
+  // 0.11.0 sucht der Server, und `searchText` gibt es nicht mehr.
+  const lkSuche = (await ruf('GET', '/api/items?q=handbuch%203000')).inhalt;
   pruefe('Suchtexte werden mit durchsucht',
-    (await ruf('GET', '/api/items')).inhalt
-      .find(i => i.id === lk.id).searchText.includes('handbuch 3000'));
+    lkSuche.some(i => i.id === lk.id),
+    `${lkSuche.length} Treffer`);
 
   // Export und Import fuehren durch dieselbe Regel. Eine alte Exportdatei
   // traegt ueberall ein Schema und darf sich deshalb nicht veraendern.
@@ -2621,7 +2629,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const dFehlend = dSoll.filter(k => !persoenlichDa(k, 1));
   pruefe('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dFalschGlobal.length === 0, `global gefunden: ${JSON.stringify(dFalschGlobal)}`);
-  pruefe('Alle sieben stehen beim Benutzer, der sie gesetzt hat',
+  pruefe('Alle acht stehen beim Benutzer, der sie gesetzt hat',
     dFehlend.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dFehlend)}`);
   pruefe('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('sucheAktiv') && !persoenlichDa('sucheAktiv', 1),
@@ -11338,6 +11346,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
         tBloecke.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBloecke.join(' · '));
       pruefe('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tQuelle) && !/migration0100/.test(tQuelle));
+      /* UND KEINEN FUER 0.11.0. Die Runde braucht keinen: die Volltextsuche
+         liest vorhandene Spalten, die gespeicherten Ansichten liegen als
+         weiterer persoenlicher Schluessel in user_settings, und ein neuer
+         Schluessel dort ist kein Schema -- eine Anlage ohne ihn bekommt beim
+         Lesen die leere Liste als Vorgabe. Steht hier je einer, ist die
+         Zusage "kein Schema" gebrochen, und das soll auffallen. */
+      pruefe('Und keinen fuer 0.11.0',
+        !/MIGRATION 0\.11/.test(tQuelle) && !/migration0110/.test(tQuelle));
       fs.rmSync(tDir, { recursive: true, force: true });
     }
 
@@ -11608,7 +11624,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
      dahinter (PUT /api/registrierung/schalter, POST /api/anfragen/:id/frei
      und DELETE /api/anfragen/:id). GET /api/anfragen steht wie immer NICHT
      hier, obwohl es einen Waechter traegt. */
-  pruefe('Und es sind jetzt genau 64 schreibende Routen',
+  /* 0.11.0 bewegt sie NICHT. Die Volltextsuche laeuft ueber
+     GET /api/items?q=... -- dieselbe Route, ein Parameter mehr, und sie ist
+     LESEND; dieselbe Regel wie bei GET /api/offen und GET /api/stats. Die
+     gespeicherten Ansichten gehen ueber PUT /api/settings, das es laengst
+     gibt, und ihre Rechtezeile hat sich nicht verschoben: sie sind
+     persoenlich wie alles andere unter PERSOENLICHE_SCHLUESSEL. Wer aus dem
+     Suchweg eine eigene schreibende Route machte, wird hier namentlich rot. */
+  pruefe('Und es sind jetzt genau 69 schreibende Routen',
     F_ROUTEN.length === 69 && fGefunden.length === 69,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
@@ -15986,7 +16009,7 @@ const DOM_ANBIETER = [
 function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
   tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null,
-  zweifaktorCodes = null, anmeldeFaktor = false,
+  zweifaktorCodes = null, anmeldeFaktor = false, suchFehler = false,
   kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
@@ -16301,7 +16324,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: 3, testCount: 2, testAvg: 4, testLast: 4,
-    updated_at: '2026-08-01 10:00:00', searchText: 'beispiel'
+    updated_at: '2026-08-01 10:00:00'
   }];
   /* Der Bestand fuer die Ansicht "Offen". EIGENE Zeilen neben beispiel.comments,
      und zwar aus ZWEI Eintraegen -- an einem einzigen liesse sich die
@@ -16755,6 +16778,24 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     if (/^\/api\/users\/\d+\/bestand$/.test(url))
       return gib({ username: 'bert', eintraege: 2, fremdKommentare: 3, fremdBewertungen: 1,
                    fremdTesttage: 0, kommentare: 4, bewertungen: 2, testtage: 1 });
+    /* GET /api/items?q=... -- der Suchweg, seit 0.11.0. ER STEHT VOR DEM FALL
+       OHNE PARAMETER, sonst faenge der Vergleich auf Gleichheit ihn nie und
+       die Oberflaeche bekaeme auf jede Suche den ganzen Bestand.
+       DER MOCK FILTERT UEBER DEN TITEL UND NICHT UEBER SIEBEN QUELLEN. Die
+       sieben pruefen die Servergruppen an einer echten Datenbank; hier geht es
+       um die Oberflaeche -- dass sie fragt, dass sie zeichnet, was zurueckkommt,
+       und dass sie beim Scheitern stehenbleibt. Ein Mock, der die Suche selbst
+       nachbaute, belegte genau das, was er selbst tut (Stolperstein 102).
+       DER FEHLERFALL IST STELLBAR. Bis 0.10.0 KONNTE die Suche nicht
+       scheitern -- sie lief im Arbeitsspeicher. Ohne diese Lage liesse sich
+       der Rueckfall nicht pruefen, sondern nur hoffen. */
+    if (url.startsWith('/api/items?q=')) {
+      if (suchFehler) return gib({ error: 'Die Suche ist gerade nicht erreichbar.' }, 500);
+      const qRoh = decodeURIComponent(url.slice('/api/items?q='.length));
+      const qMock = qRoh.trim().toLowerCase();
+      const quelle = uebersichtItems || uebersicht;
+      return gib(qMock ? quelle.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : quelle);
+    }
     if (url === '/api/items') return gib(uebersichtItems || uebersicht);
     /* Ein ZWEITER Eintrag, nur fuer den Vergleich: dort holt die Ansicht
        mehrere Detailantworten nebeneinander. Ohne ihn faende sie fuer die
@@ -16892,6 +16933,33 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   // die auf dem Bildschirm gar nicht stehen.
   w.document.head.appendChild(skript);
   return { w, gesendet, kriterien, beispiel, stimmenAntwort };
+}
+
+/* WARTEN, BIS DIE SUCHE DURCH IST. Sie laeuft seit 0.11.0 ueber einen Debounce
+   von 220 ms und danach ueber eine Anfrage; ein Vergleich unmittelbar nach
+   oninput() saehe den Stand von vorher und waere gruen, ohne etwas zu belegen.
+
+   GEWARTET WIRD AUF DIE SICHTBARE WIRKUNG UND NICHT AUF EINEN INNEREN WERT.
+   `state` in app.js ist ein const auf oberster Ebene und liegt damit NICHT am
+   window -- eine Frage nach w.state.suchLaeuft waere immer undefined und die
+   Schleife liefe nie, ohne dass es auffiele. Gefragt wird deshalb die
+   Zaehlzeile: solange gesucht wird, steht dort "sucht …". Das ist ausserdem
+   genau der Zustand, den ein Mensch sieht.
+
+   ZUERST DER DEBOUNCE. Vor 220 ms ist gar nichts unterwegs, und "sucht …"
+   stuende auch dann nicht da, wenn die Suche gleich losliefe -- eine Schleife
+   ohne diese Frist waere sofort fertig und belegte nichts. */
+const SUCH_WARTE_DEBOUNCE = 300;
+async function warteSuche(w, grenzeMs = 3000) {
+  await new Promise(r => setTimeout(r, SUCH_WARTE_DEBOUNCE));
+  const bis = Date.now() + grenzeMs;
+  while (Date.now() < bis) {
+    const z = w.document.getElementById('count');
+    if (!z || !/sucht/.test(z.textContent)) break;
+    await new Promise(r => setTimeout(r, 20));
+  }
+  // Eine Runde durch den Event Loop, damit das Neuzeichnen durch ist.
+  await new Promise(r => setTimeout(r, 20));
 }
 
 async function pruefeOberflaeche() {
@@ -17358,7 +17426,7 @@ async function pruefeOberflaeche() {
     id: i + 1, title: 'Stück ' + (i + 1), rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: 3, testCount: proEintrag, testAvg: 4, testLast: 4,
-    updated_at: '2026-08-01 10:00:00', searchText: 'stück ' + (i + 1),
+    updated_at: '2026-08-01 10:00:00',
     testDays: Array.from({ length: proEintrag }, (_, k) => ({
       id: i * 10 + k, day: `202${3 + (i % 3)}-0${1 + k}-15`, rating: (i % 5) + 1 }))
   }));
@@ -17405,16 +17473,23 @@ async function pruefeOberflaeche() {
   erster.onpointerenter({ pointerType: 'touch' });
   pruefe('Auf dem Finger erscheint kein Hinweis', !zlBox().querySelector('.zl-hinweis'));
 
-  // Folgt den Filtern: die Suche schneidet die sichtbaren Eintraege zusammen,
-  // danach unterschreitet die Zeitleiste ihre Schwelle und verschwindet.
+  /* Folgt den Filtern: die Suche schneidet die sichtbaren Eintraege zusammen,
+     danach unterschreitet die Zeitleiste ihre Schwelle und verschwindet.
+     SEIT 0.11.0 MIT WARTEZEIT DAVOR. Die Suche fragt den Server und laeuft
+     ueber einen Debounce von 220 ms; ein Vergleich unmittelbar nach oninput()
+     saehe noch den alten Stand und waere gruen, ohne etwas zu belegen. Das
+     Leeren braucht sie nicht -- es geht ohne Anfrage durch. */
   const suchfeld = wviel.document.getElementById('q');
   suchfeld.value = 'Stück 1';
   suchfeld.oninput();
+  await warteSuche(wviel);
   pruefe('Zeitleiste folgt der Suche', zlBox().innerHTML === '',
     `${zlBox().querySelectorAll('.zl-punkt').length} Punkte`);
   suchfeld.value = '';
   suchfeld.oninput();
-  pruefe('Ohne Suche kommt sie zurück', zlBox().querySelectorAll('.zl-punkt').length === 6);
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Ohne Suche kommt sie zurück', zlBox().querySelectorAll('.zl-punkt').length === 6,
+    `${zlBox().querySelectorAll('.zl-punkt').length} Punkte`);
 
   const zielId = punkte[0].dataset.item;
   zlBox().querySelector('.zl-punkt').onclick();
@@ -17549,7 +17624,7 @@ async function pruefeOberflaeche() {
     id, title: titel, rejected: false, tested: false, favorite: false, category: null,
     tags, mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
     testCount: null, testAvg: null, testLast: null, testDays: [],
-    updated_at: '2026-08-01 10:00:00', searchText: titel.toLowerCase()
+    updated_at: '2026-08-01 10:00:00'
   });
   const bestand = [
     mitTags(1, 'Grün und schwer', [T.gruen, T.schwer]),
@@ -17680,7 +17755,7 @@ async function pruefeOberflaeche() {
     id, title: titel, rejected: false, tested: id % 2 === 0, favorite: favorit,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: wertung, testCount: null, testAvg: null, testLast: null, testDays: [],
-    updated_at: '2026-08-01 10:00:00', searchText: titel.toLowerCase()
+    updated_at: '2026-08-01 10:00:00'
   });
   // "Zeta ohne Wertung" ist Favorit und hat KEINE Wertung -- genau der Fall
   // aus dem Betrieb. Bei "Bewertung hoch nach niedrig" gehoert er ans Ende,
@@ -18087,7 +18162,7 @@ async function pruefeOberflaeche() {
     id, title: titel, rejected: false, tested: false, favorite: false, category: null,
     tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
     testCount: null, testAvg: null, testLast: null, testDays: [],
-    updated_at: stand, searchText: titel.toLowerCase(), ...extra
+    updated_at: stand, ...extra
   });
   const nsBestand = [
     nsEintrag(1, 'Alpha alt', '2026-08-01 10:00:00', { tested: true, category: nsKat }),
@@ -18548,11 +18623,11 @@ async function pruefeOberflaeche() {
     { id: 1, title: 'Mit Tag', rejected: false, tested: false, favorite: false, category: null,
       tags: [{ id: 1, name: 'Grün' }], mainPhoto: null, photoCount: 0, linkCount: 0,
       avgRating: null, testCount: null, testAvg: null, testLast: null, testDays: [],
-      updated_at: '2026-08-01 10:00:00', searchText: 'mit tag' },
+      updated_at: '2026-08-01 10:00:00' },
     { id: 2, title: 'Ohne Tag', rejected: false, tested: false, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
       avgRating: null, testCount: null, testAvg: null, testLast: null, testDays: [],
-      updated_at: '2026-08-01 10:00:00', searchText: 'ohne tag' }
+      updated_at: '2026-08-01 10:00:00' }
   ];
   const fTags = [{ id: 1, name: 'Grün', usage_count: 1, test_usage_count: 0 }];
   // Gespeicherter Stand beim Laden der Seite: kein Filter.
@@ -19105,7 +19180,7 @@ async function pruefeOberflaeche() {
     id: i + 1, title: 'S' + i, rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: 3, testCount: 1, testAvg: 4, testLast: 4,
-    updated_at: '2026-08-01 10:00:00', searchText: 's',
+    updated_at: '2026-08-01 10:00:00',
     testDays: [{ id: i, day: `202${3 + (i % 3)}-01-15`, rating: 3, mine: i > 1 }]
   }));
   const eZl = baueDom(JSDOM, { uebersichtItems: eZlItems,
@@ -19148,7 +19223,7 @@ async function pruefeOberflaeche() {
     id: i + 1, title: 'S' + i, rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: 3, testCount: 1, testAvg: 4, testLast: 4,
-    updated_at: '2026-08-01 10:00:00', searchText: 's',
+    updated_at: '2026-08-01 10:00:00',
     testDays: [{ id: i, day: `202${3 + (i % 3)}-01-15`, rating: 3 }]
   }));
   const zlAn = baueDom(JSDOM, { uebersichtItems: zlItems,
@@ -20599,7 +20674,7 @@ async function pruefeOberflaeche() {
     id: 1, title: 'Kartenprobe', rejected: false, tested: false, favorite: false,
     category: null, tags: [], mainPhoto: { id: 5, art: mainArt, focus_x: 50, focus_y: 50 },
     photoCount: f, videoCount: v, linkCount: 0, avgRating: 3, testCount: 0,
-    updated_at: '2026-08-01 10:00:00', searchText: 'kartenprobe'
+    updated_at: '2026-08-01 10:00:00'
   }];
   const vKarte = async (mainArt, f, v) => {
     const d = baueDom(JSDOM, { uebersichtItems: vKartenBestand(mainArt, f, v) });
@@ -20741,7 +20816,7 @@ async function pruefeOberflaeche() {
   const fokusDom = baueDom(JSDOM, {
     uebersichtItems: [{ id: 1, title: 'Mit Fokus', rejected: false, tested: false, favorite: false,
       category: null, tags: [], photoCount: 1, linkCount: 0, avgRating: null, testCount: null,
-      testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00', searchText: 'x', testDays: [],
+      testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00', testDays: [],
       mainPhoto: { id: 5, focus_x: 10, focus_y: 90 } }]
   });
   await new Promise(r => setTimeout(r, 80));
@@ -23977,10 +24052,10 @@ async function pruefeOberflaeche() {
   const zweiKarten = [
     { id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3, testCount: 1,
-      testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00', searchText: 'beispiel' },
+      testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00' },
     { id: 2, title: 'Zweites', rejected: false, tested: false, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 2.5, testCount: 3,
-      testAvg: 4, testLast: 3, updated_at: '2026-08-01 10:00:00', searchText: 'zweites' }
+      testAvg: 4, testLast: 3, updated_at: '2026-08-01 10:00:00' }
   ];
   const oeffneVergleich = async (benutzerZahl) => {
     const dom = baueDom(JSDOM, { hash: '', uebersichtItems: zweiKarten, zweiterEintrag: zweit,
