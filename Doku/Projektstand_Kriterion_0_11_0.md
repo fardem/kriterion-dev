@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 26 · Stand 27. August 2026 · gebaut: Version 0.11.0**
+**Kompakte Übergabe · Revision 27 · Stand 27. August 2026 · gebaut: Version 0.11.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -27,16 +27,21 @@ dort unter `Doku/`.
 > Changelog. **Die Abschnittsnummern 1 bis 12 samt 5a bleiben, wie sie waren** —
 > Quelltext, Prüfstand und die übrigen Papiere verweisen darauf.
 
-> **WAS REVISION 26 IST — DAS SAMMELBLATT.** Was Revision 25 mit den
-> Konzeptpapieren getan hat, tut diese Revision mit den beiden Sammelstellen:
-> `Roadmap.md` (neue Punkte) und `Ideen_und_Vorschlaege.md` (die Durchsicht von
-> 0.8.6) taten dasselbe und sind zu **`Doku/Fehler_und_Ideen.md`**
-> zusammengezogen. **Dort steht nur noch Offenes, und ohne Versionsnummer** —
-> erst wird gesammelt, zugeordnet wird später und in einem Zug. **Was gebaut
-> ist, steht dort gar nicht mehr**: was davon gilt, hier; wie es gebaut wurde,
-> im Änderungsprotokoll seiner Version. Auch die Liste „Ideen ohne Beschluss"
-> ist aus Abschnitt 10 dorthin gezogen — **in diesem Fahrplan steht nur, was
-> eine Nummer hat oder für 1.0 vorgemerkt ist.**
+> **WAS DIE REVISIONEN 26 UND 27 SIND — DAS SAMMELBLATT.** Was Revision 25 mit
+> den Konzeptpapieren getan hat, tun diese beiden mit allem Offenen.
+> `Roadmap.md` und `Ideen_und_Vorschlaege.md` taten dasselbe und sind zu
+> **`Doku/Fehler_und_Ideen.md`** zusammengezogen; **Revision 27 hat dann
+> zusammengetragen, was noch verstreut lag** — die drei Zeilen ohne Nummer aus
+> dem Fahrplan (Zusammenführen, QR-Encoder, `X-Forwarded-Proto`), die offenen
+> Entscheidungen ohne Runde und die Bauwünsche aus den „Offen geblieben"-Teilen
+> der Änderungsprotokolle.
+> **Dort steht nur noch Offenes, und ohne Versionsnummer** — erst wird
+> gesammelt, zugeordnet wird später und in einem Zug. *Jeder Punkt sagt aber,
+> **welche Version ihn nötig gemacht hat**: Herkunft statt Zuordnung.*
+> **Was gebaut ist, steht dort gar nicht mehr**: was davon gilt, hier; wie es
+> gebaut wurde, im Änderungsprotokoll seiner Version.
+> **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
+> vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
 **0.11.0 in einem Satz: die Suche zieht vom Browser auf den Server, wer oft
 dasselbe sucht, kann es sich merken — und wer denselben Gegenstand zweimal
@@ -957,6 +962,7 @@ könnte sie sonst selbst umlegen. Vorgabe ist **aus**; **im Betrieb steht sie au
 | Cookiename | `kriterion_session` | `__Host-kriterion_session` |
 | `Secure` am Cookie | nein | ja |
 | `Strict-Transport-Security` | nein | `max-age=31536000` |
+| `http://` in `OEFFENTLICHE_ADRESSE` | wird hingenommen | **Warnung beim Start**, keine Absage |
 | richtig für | direkt im Heimnetz, Port 3100 | Betrieb hinter einem Proxy, HTTPS |
 
 **Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung.**
@@ -2675,10 +2681,11 @@ Sie ist die Schicht, die beim Befund am Fotoweg **mitgegriffen hätte** — zwei
 Verteidigungen für denselben Fehler, und billig, weil die Oberfläche nichts von
 außen nachlädt. `frame-src 'self'` trägt die PDF-Vorschau. **`'unsafe-inline'`
 bei `style-src` ist nötig und keine Nachlässigkeit:** die Oberfläche setzt an
-36 Stellen `style="…"`-Attribute, und im echten Chromium nachgemessen verwirft
-der Browser ohne die Freigabe **jedes einzelne** — die Seite lädt, sie sieht
-falsch aus (Stolperstein 96). Die tragende Zeile ist `script-src`; dort steht
-sie nicht, und der Prüfstand hält das fest.
+**81** Stellen `style="…"`-Attribute (bei 0.8.20 waren es 36 — *die Zahl wächst
+mit jeder Runde und ist am 27. August 2026 neu gezählt*), und im echten Chromium
+nachgemessen verwirft der Browser ohne die Freigabe **jedes einzelne** — die
+Seite lädt, sie sieht falsch aus (Stolperstein 96). Die tragende Zeile ist
+`script-src`; dort steht sie nicht, und der Prüfstand hält das fest.
 
 **Der Fotoweg (seit 0.8.20).** Er hielt sich bis dahin an keinen der Punkte 1
 und 8: `GET /api/photos/:id/raw` lieferte `photos.mime_type` aus, und der
@@ -4257,15 +4264,12 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   Marke hat zwei Dateien in `public/` verändert; der Wert muss sich also bewegt
   haben — und er muss `74c44ec0` sein. *Genau dort hat sich bei 0.9.1 eine Datei
   zu viel gezeigt (Stolperstein 158).*
-- **ZWEI DATEISÄTZE TRAGEN DIE NUMMER 0.9.1, UND DAS IST NICHT ENTSCHIEDEN.**
-  Das veröffentlichte 0.9.1 in `main` hat den Fingerprint `cb73399d`; die
-  laufende Anlage trug `3cf1b093`. Dazwischen liegt die Nacharbeit an Marke und
-  Anmeldekarte. **Nach Semantic Versioning, Punkt 3, gehört darauf eine eigene
-  Nummer: `0.9.2`** — der Inhalt ist Fehlerbehebung und Aussehen, also PATCH.
-  Nötig wären `package.json`, ein Changelog-Eintrag mit Datum, die Zahlen in den
-  Papieren und der Tag `v0.9.2`. **Es ist vorgeschlagen und nicht beschlossen;**
-  solange es offen ist, lässt sich jener Fingerprint keiner veröffentlichten
-  Nummer zuordnen.
+- **ZWEI DATEISÄTZE TRAGEN DIE NUMMER 0.9.1.** Das veröffentlichte 0.9.1 in
+  `main` hat den Fingerprint `cb73399d`; die laufende Anlage trug `3cf1b093`.
+  Dazwischen liegt die Nacharbeit an Marke und Anmeldekarte. **Solange das so
+  steht, lässt sich `3cf1b093` keiner veröffentlichten Nummer zuordnen** — das
+  ist der Betriebsstand. *Was daraus folgen könnte — eine Nummer `0.9.2` —,
+  steht als Vorschlag im Sammelblatt und ist nicht beschlossen.*
 
 ### Der Proxy, und was daran noch fehlt
 
@@ -4277,11 +4281,12 @@ setzt den Cookie; das Verwerfen geschieht allein im Browser, stillschweigend,
 und im Serverprotokoll steht davon nichts. *Das ist kein Fehler, sondern der
 Preis der Einstellung.*
 
-**Der Mangel liegt woanders:** die eine Einstellung bündelt **vier** Wirkungen —
-`X-Forwarded-For` glauben, `Secure`, `__Host-`, HSTS — und die Anlage ist seit
-dem Proxy aus **zwei** Netzen zugleich erreichbar. *Der Quelltext hat genau das
-vorhergesehen:* „Ist die Anlage je aus mehreren Netzen gleichzeitig erreichbar,
-gehört das nachgeliefert" (`auth.js`, Kopf).
+**Der Mangel liegt woanders:** die eine Einstellung bündelt **fünf** Wirkungen —
+`X-Forwarded-For` glauben, `Secure`, `__Host-`, HSTS und die Startwarnung bei
+`http://` (Abschnitt 3) — und die Anlage ist seit dem Proxy aus **zwei** Netzen
+zugleich erreichbar. *Der Quelltext hat genau das vorhergesehen:* „Ist die
+Anlage je aus mehreren Netzen gleichzeitig erreichbar, gehört das
+nachgeliefert" (`auth.js`, Kopf).
 
 **Was das im Ernstfall kostet:** fällt der Proxy aus oder läuft ein Zertifikat
 ab, gibt es **gar keinen Weg mehr in die Oberfläche**. Die Daten sind sicher und
@@ -4289,12 +4294,10 @@ die Werkzeuge auf dem Wirt gehen weiter — lesen lässt sich der Bestand nicht.
 **Der Handgriff dagegen steht in der README** („Wenn der Proxy ausfällt"):
 Einstellung für die Dauer der Störung abschalten, neu starten.
 
-**Die saubere Lösung ist eine Runde Arbeit und vorgemerkt:**
-`X-Forwarded-Proto` lesen (wird bisher **nirgends** gelesen) und je Anfrage
-entscheiden — **mit zwei Cookienamen, nicht mit einem.** *Ein Name mit bedingtem
-`Secure` gäbe Sicherheit auf, statt Bequemlichkeit zu gewinnen:* wer im eigenen
-Netz eine Klartextverbindung verbiegen kann, setzte damit einen Cookie, den die
-HTTPS-Seite anschließend auch annimmt — und genau dagegen gibt es `__Host-`.
+**Die saubere Lösung ist eine Runde Arbeit und steht ausgearbeitet im
+Sammelblatt** (`Doku/Fehler_und_Ideen.md`): `X-Forwarded-Proto` lesen — es wird
+bisher **nirgends** gelesen — und je Anfrage entscheiden, **mit zwei
+Cookienamen, nicht mit einem.**
 
 **Die Portfreigabe 3100 bleibt daneben offen, und das ist als tragbar
 eingestuft.** Wer im Heimnetz steht, kann den Proxy umgehen und
@@ -4310,17 +4313,8 @@ ist in 0.8.20 ausdrücklich nicht gebaut worden und wäre der dritte Weg.*
 - **Weicht der Fingerprint ab, nennt er nicht, WELCHE Datei es ist.** Der
   Handgriff dafür steht in der README („Eine neue Version einspielen"): die
   Prüfsummen der Dateien nebeneinander, über die er geht. **Eine Datei zu viel
-  wiegt dabei genauso schwer wie eine falsche.** **Eine Zeile in der Karte
-  „Anlage", die die abweichende Datei beim Namen nennt, ist für die nächste
-  Nacharbeitsrunde vorgemerkt.**
-- **EIN PRÜFLAUF IST ABGERISSEN UND LIESS SICH NICHT WIEDERHOLEN.** Bei der
-  Nacharbeit an der Anmeldeseite riss einer von sieben Läufen in der **ersten**
-  Gruppe ab. **Ein übriggebliebener Server aus einem früheren Lauf ist
-  ausgeschlossen** (seine Datenbank wäre nicht leer gewesen), und nachgesehen:
-  es lief keiner. **Sechs volle Läufe danach waren grün.** *Es fehlt die
-  Auskunftszeile unter dem roten Punkt — die Ausgabe war beim ersten Durchgang
-  gefiltert.* **Der Punkt bleibt offen: nicht wegerklärt, sondern nicht
-  reproduziert.** Wer ihn wiedersieht, schreibt den Lauf vollständig mit.
+  wiegt dabei genauso schwer wie eine falsche.** *Was daraus gebaut werden
+  könnte, steht im Sammelblatt.*
 - **`OEFFENTLICHE_ADRESSE` eintragen**, falls noch nicht geschehen. Die Anlage
   läuft hinter einem Proxy, eine Adresse von außen gibt es also. **Ohne sie wird
   nicht verschickt**, und die Selbstanmeldung lässt sich gar nicht erst
@@ -4348,6 +4342,11 @@ ist in 0.8.20 ausdrücklich nicht gebaut worden und wäre der dritte Weg.*
   Quelltext. **Offen davor:** die Vorgabewerte (Abschnitt 10, Punkt 7).
 - **Der Container ist seit 0.8.20 sichtbar gesund oder nicht.** Das Image trägt
   einen `HEALTHCHECK` gegen `/api/config`; `docker compose ps` zeigt `healthy`.
+
+**Hier stehen nur Handgriffe am laufenden Betrieb.** *Was daraus zu bauen wäre —
+die Zeile in der Karte „Anlage", der abgerissene Prüflauf aus der Nacharbeit zu
+0.9.1, das Wartefenster von zwölf Sekunden —, steht in
+`Doku/Fehler_und_Ideen.md` und nur dort.*
 
 ### Erledigt, aber die Lehre bleibt
 
@@ -4687,9 +4686,6 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | | | ***ab hier SemVer*** | | |
 | **0.10.0** | Zwei-Faktor | TOTP und Wiederherstellungscodes. *MINOR.* Der QR-Encoder wurde herausgenommen | ja | — |
 | **0.11.0** | Suche und Bestand | Volltextsuche im Server, gespeicherte Ansichten, Doppelerkennung. *MINOR.* **Das Zusammenführen ist herausgenommen** | **nein** | — |
-| **offen** | Zwei Einträge zu einem machen | das Zusammenführen aus der Zeile darüber, als eigene Runde. *MINOR, die Nummer ergibt sich* | nein — es bewegt vorhandene Zeilen | — |
-| **offen** | Der QR-Encoder | eigene Runde, siehe unten. *MINOR* | nein | — |
-| **offen** | `X-Forwarded-Proto` und zwei Cookienamen | die saubere Lösung des Ja/Nein aus Abschnitt 8. *MINOR* | nein | — |
 | **0.11.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht | in der Regel nein | — |
 | **0.12.0** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 | **1.0.0** | **Die Zusage** | Abwärtskompatibilität wird zugesichert, die öffentliche Schnittstelle aus Abschnitt 5 steht fest. Dazu die Vorgabewerte und die Tastaturbedienung beim Sortieren | — | — |
@@ -4721,95 +4717,35 @@ Schnittstelle festgelegt, und ein Bruch daran kostet die Zwei. *Die alte Zeile
   Nachhinein bestätigt: 0.8.40 allein brauchte 125 neue Prüfungen und 30
   Gegenproben.*
 
-### Warum das Zusammenführen aus 0.11.0 herausgenommen ist
+### Was aus einer Runde herausgenommen wurde — und wo es jetzt steht
 
-Der Fahrplan nannte **Doppelerkennung und Zusammenführen in einer Zeile**. Es
-sind zwei Vorhaben, und sie sind verschieden schwer wie Tag und Nacht: die
-Doppelerkennung ist eine Zeile in einem Dialog **ohne Route und ohne Schema**,
-das Zusammenführen ist der **erste Eingriff der Anlage, der Zeilen zwischen zwei
-Eltern verschiebt** — unumkehrbar.
+**Zwei Vorhaben sind vor dem Bau aus ihrer Runde genommen worden, jeweils mit
+Begründung und Maßen.** Beide haben **keine Nummer** und stehen deshalb nicht
+mehr in diesem Fahrplan, sondern **ausgearbeitet in `Doku/Fehler_und_Ideen.md`**
+— *ein Punkt ohne Nummer gehört ins Sammelblatt, sonst steht er an zwei Orten.*
 
-**Was den Ausschlag gegeben hat, ist gezählt und nicht geschätzt.** An einem
-Eintrag hängen **acht** Tabellen. Der Auftrag rechnete mit **zwei**
-Eindeutigkeitsschranken, die beim Zusammenführen brechen; nachgesehen im Schema
-sind es **vier**:
-
-| Tabelle | Schranke | wann sie bricht |
+| Vorhaben | herausgenommen aus | warum, in einem Satz |
 |---|---|---|
-| `ratings` | `UNIQUE(item_id, criterion_id, user_id)` | derselbe Mensch hat dasselbe Kriterium an beiden bewertet |
-| `test_days` | `UNIQUE(item_id, day, user_id)` | derselbe Mensch am selben Tag an beiden |
-| `item_tags` | `PRIMARY KEY (item_id, tag_id)` | **beide tragen denselben Tag** |
-| `item_pins` | `PRIMARY KEY (user_id, item_id)` | derselbe Mensch hat beide als Favorit |
+| **Zwei Einträge zu einem machen** | 0.11.0 | vier Eindeutigkeitsschranken über acht Tabellen, dazu der Papierkorb — es ist der erste Eingriff, der Zeilen zwischen zwei Eltern verschiebt |
+| **Der QR-Encoder** | 0.10.0 | ohne Bibliothek mehrere hundert Zeilen, und der Beweis bräuchte einen eigenen Dekoder im Prüfstand |
 
-**`item_tags` ist dabei der Normalfall und nicht der Randfall:** zwei Einträge,
-die denselben Gegenstand beschreiben, tragen fast immer dieselben Tags. Ein
-schlichtes `UPDATE … SET item_id = ?` läuft dort auf einen Constraint-Fehler,
-und zwar beim ersten echten Doppeleintrag.
+**Was hier bleibt, weil es der Stand ist:** die Doppelerkennung aus 0.11.0 ist
+ein **Hinweis ohne Heilmittel** — sie verhindert den zweiten Eintrag, bevor er
+entsteht, und kann nichts tun, wenn er doch dasteht. *Das ist tragbar und war
+kein Ausschlussgrund.* Und der zweite Faktor kommt ohne QR-Code aus: der
+Base32-Schlüssel steht in Vierergruppen auf dem Bildschirm, daneben die
+`otpauth://`-Zeile als anklickbarer Verweis (Abschnitt 3).
 
-**Dazu kommt der Papierkorb.** Er serialisiert einen Eintrag *samt allem, was
-daran hängt*. Nach dem Zusammenführen hängt am Verlierer **nichts** mehr — die
-Wiederherstellung gäbe eine leere Hülle zurück. *Das ist schlechter als gar kein
-Papierkorbeintrag, weil es aussieht wie eine Rettung und keine ist.*
+### Offene Entscheidungen stehen nicht mehr hier
 
-**Entschieden ist: der Schnitt liegt zwischen den beiden.** Das Zusammenführen
-bekommt eine eigene Runde samt eigener Route (`F_ROUTEN` 69 → 70, Art `nurAdmin`
-und `zweitbestaetigt`), einem Vorgang im Sicherheitsprotokoll (zwanzig →
-einundzwanzig) und einer Sicherung des Datenverzeichnisses als **Pflicht**.
+**Was keine Nummer hat, steht im Sammelblatt** `Doku/Fehler_und_Ideen.md` — die
+Eindeutigkeit der Adresse samt partiellem Index, der Versanddienst über HTTPS
+statt SMTP, der angepinnte Block, der zur Wand werden kann, und alles Übrige.
+*Jeder Punkt dort sagt, welche Version ihn nötig gemacht hat.*
 
-**Was dagegen sprach und mitzudenken ist: eine Doppelerkennung ohne
-Zusammenführen ist ein Hinweis ohne Heilmittel.** *Das ist tragbar, weil der
-Hinweis den zweiten Eintrag verhindert, bevor er entsteht — und das ist der
-Fall, der zählt. Es ist kein Ausschlussgrund, und es gehört in die Begründung.*
-
-### Der QR-Encoder — eigene Runde, aus 0.10.0 herausgenommen
-
-**Google Authenticator kennt zwei Wege hinein:** einen Code scannen oder den
-Base32-Schlüssel von Hand eintippen. **Der zweite ist der Weg, an dem Menschen
-aufgeben** — zweiunddreißig Zeichen auf einem Telefon.
-
-**Der Encoder ist herausgenommen worden, und das ist entschieden, nicht
-vergessen.** Ohne Bibliothek heißt er: Reed-Solomon über GF(256), Kapazitäts-
-und Blocktabellen je Version und Fehlerkorrekturstufe, Findemuster, Taktlinien,
-Alignment, Format- und Versionsbits, acht Masken mit Bewertung — mehrere hundert
-Zeilen. **Teuer ist dabei nicht das Bauen, sondern der Beweis:** die Zusage
-„dieselbe Zeichenfolge ergibt weltweit dieselbe Matrix" braucht ohne Bibliothek
-einen eigenen **Dekoder** im Prüfstand, also die doppelte Arbeit. *Er war damit
-der einzige Teil der Runde ohne begrenzten Prüfaufwand — und der abtippbare
-Schlüssel trägt den Weg auch ohne ihn.*
-
-**Was die eigene Runde zu entscheiden hat**, gemessen statt geschätzt: die
-`otpauth://`-Zeile ist **100 Zeichen** bei `Kriterion/faruk`, **117** bei
-`Bewertungskatalog/chefin` und **203** bei einem langen Anlagen- und
-Zugangsnamen. Im Bytemodus heißt das Version 5 bis 8 — und die Frage, was
-geschieht, wenn ein langer Titel über die Kapazität hinauswächst. *Die Antwort
-sollte sein: der Code fällt weg, und der Schlüssel steht allein da.*
-
-### Offene Entscheidungen, die keine Runde haben
-
-- **Eindeutigkeit der Adresse — zu entscheiden, wenn sie gebraucht wird.**
-  `users.email` hat bewusst **kein** `UNIQUE`: `ALTER TABLE` kann eines nicht
-  nachrüsten, und die gewanderte und die frisch angelegte Datenbank wären damit
-  verschieden gebaut. **Wird Eindeutigkeit gewollt, ist der richtige Weg ein
-  partieller Index** —
-  `CREATE UNIQUE INDEX IF NOT EXISTS … ON users(email) WHERE email IS NOT NULL` —,
-  der wirkt auf beiden Wegen gleich und lässt mehrere Zugänge ohne Adresse zu.
-  **Er gehört dann in dieselbe Runde wie die Prüfung im Code, nicht davor.**
-  *Dazu gehört die zweite Hälfte, die schon entworfen ist:* **hinter der
-  Anmeldung wird eine doppelte Adresse klar gesagt** („Diese Adresse ist bereits
-  vergeben") — wer das sieht, ist angemeldet und sieht die Liste ohnehin; **vor
-  der Anmeldung gilt das Gegenteil**, dort ist jede unterschiedliche Antwort ein
-  Werkzeug zum Durchprobieren.
-- **Ein Versanddienst über HTTPS statt SMTP — vorgemerkt, nicht eingeplant.**
-  Falls SMTP am Anschluss gar nicht durchkommt (manche Anbieter sperren Port 587
-  ausgehend), wäre er der Ausweg: Brevo, Mailjet und Postmark haben
-  Schnittstellen, die sich mit einem einfachen `fetch` bedienen lassen, **ganz
-  ohne Bibliothek**. *Zweiter Weg im Code — erst bauen, wenn SMTP nachweislich
-  scheitert.*
-- **Der angepinnte Block kann zur Wand werden.** Bei vielen angepinnten
-  Kommentaren mehrerer Leute wächst er über allem zusammen. **Wenn das im
-  Betrieb stört, ist die Antwort NICHT eine Einschränkung des Anpinnens,
-  sondern eine zweite Sortierstufe innerhalb des angepinnten Blocks.**
-  *Beobachten, nicht bauen.*
+**In diesem Fahrplan steht nur, was eine Nummer hat oder für 1.0 vorgemerkt
+ist.** Ein Punkt wandert vom Sammelblatt hierher und von hier in ein
+Änderungsprotokoll — nie zurück.
 
 ### Vorgemerkt für 1.0
 
@@ -4884,7 +4820,8 @@ und die legt `CREATE TABLE IF NOT EXISTS` bei jedem Start selbst an.*
 
 **Ideen ohne Beschluss stehen hier nicht mehr.** Sie sind mit Revision 26 nach
 `Doku/Fehler_und_Ideen.md` gezogen — zusammen mit allem, was vorher in
-`Roadmap.md` und `Ideen_und_Vorschlaege.md` stand. **In diesem Fahrplan steht
+`Roadmap.md` und `Ideen_und_Vorschlaege.md` stand, und mit Revision 27 alles
+Übrige hinterher. **In diesem Fahrplan steht
 nur, was eine Nummer hat oder für 1.0 vorgemerkt ist**; alles ohne Nummer steht
 im Sammelblatt, und zwar nur dort. *Ein Punkt wandert von dort in diesen
 Fahrplan und von hier in ein Änderungsprotokoll — nie zurück.*

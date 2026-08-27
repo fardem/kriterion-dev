@@ -16,6 +16,12 @@ Aufschreiben schon eine Nummer daneben setzt, entscheidet über eine Runde, ohne
 die anderen Punkte gesehen zu haben.* Auch keine Rangfolge: die Reihenfolge
 unten ist die des Auffallens und sonst nichts.
 
+**Eine Nummer steht trotzdem an jedem Punkt — die falsche Richtung.** Jeder
+Punkt sagt, **welche Version ihn nötig gemacht hat**: woher er kommt, nicht wohin
+er soll. *Das ist Herkunft und keine Zuordnung.* Ein Punkt aus 0.8.6, der seit
+fünf Runden mitläuft, sieht anders aus als einer von gestern — und diesen
+Unterschied verliert eine Liste ohne Herkunft sofort.
+
 **2. WAS GEBAUT IST, STEHT HIER NICHT MEHR — nicht einmal als erledigte Zeile.**
 Es steht an genau zwei Orten: **was davon gilt**, im Projektstand; **wie es
 gebaut wurde und was dabei anders kam**, im Änderungsprotokoll seiner Version.
@@ -38,6 +44,7 @@ nie zurück.*
 | Projektstand, sonst | **der Stand**: was gebaut ist und was bindet |
 | `Doku/Aenderungsprotokoll_<Version>.md` | je Runde, **was wirklich gebaut wurde** — und nur dort |
 | `CHANGELOG.md` | je Version, was ein Betreiber wissen muss |
+| `Doku/Konzept_Video_und_grosse_Dateien.md` | **Teil II, große Dateien bis 2 GB** — ein beschlossenes Vorhaben mit eigenem Papier, im Fahrplan als „danach". *Steht deshalb nicht hier.* |
 
 ## Die Form eines Punktes
 
@@ -66,6 +73,8 @@ beim Bauen vergessen hat.**
 # Teil I — Ausgearbeitete Punkte
 
 ## 1. Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung
+
+**Aufgefallen mit 0.11.0** — das Verhalten selbst ist älter.
 
 ### Woher
 
@@ -156,6 +165,9 @@ macht den einfachen Fall teurer, um den seltenen billiger zu machen.
 
 ## 2. Aus „abgelehnt" wird eine Entscheidung
 
+**Aufgefallen bei der Durchsicht zu 0.8.6; verschärft mit 0.8.31**, seit alle sechs
+Träger einen Verfasser haben — dieses Merkmal hat bis heute keinen.
+
 ### Woher
 
 Aus der Durchsicht vom **21. August 2026** (damals Punkt 4.2), Stand 0.8.6.
@@ -245,6 +257,9 @@ gehört das Feld sichtbar in den Dialog und nicht in eine Nebenansicht.
 
 ## 3. Export und Import laufen vollständig durch den Arbeitsspeicher
 
+**Aufgefallen bei der Durchsicht zu 0.8.6; verschärft mit 0.8.50**, seit Videos bis
+20 MB in der Datenbank liegen.
+
 ### Woher
 
 Aus der Durchsicht vom **21. August 2026** (damals Punkt 3.2), Stand 0.8.6.
@@ -326,6 +341,9 @@ schon einen zweiten Weg hat — es wäre Arbeit an der weniger wichtigen Hälfte
 ---
 
 ## 4. Zwei Funktionen sind zu groß geworden
+
+**Aufgefallen bei der Durchsicht zu 0.8.6 und seither in jeder Runde größer
+geworden**, zuletzt mit 0.11.0.
 
 ### Woher
 
@@ -412,6 +430,9 @@ dieser Runde im Rücken.
 
 ## 5. „Entfällt" am einzelnen Kriterium — mit Vorbehalt
 
+**Keine Version hat ihn ausgelöst** — die Lücke steckt in der Bauform der
+Kriterien und ist so alt wie sie.
+
 ### Woher
 
 Aus der Durchsicht vom **21. August 2026** (damals Punkt 4.7), Stand 0.8.6, und
@@ -480,31 +501,324 @@ für die verworfenen.*
 
 ---
 
+## 6. Zwei Einträge zu einem machen
+
+**Nötig geworden mit 0.11.0** — dort ist es aus der Runde herausgenommen worden.
+
+### Woher
+
+Der Fahrplan nannte **Doppelerkennung und Zusammenführen in einer Zeile**. Beim
+Zählen im Schema, **27. August 2026**, hat sich gezeigt, dass es zwei Vorhaben
+sind. Gebaut wurde das erste, das zweite ist herausgefallen — *entschieden, nicht
+vergessen* (Änderungsprotokoll 0.11.0, Abweichung zum Auftrag).
+
+### Was auffiel
+
+**Seit 0.11.0 sagt die Anlage beim Anlegen, dass es den Gegenstand schon gibt.
+Sie kann aber nichts dagegen tun, wenn er doch zweimal dasteht.** Ein Hinweis
+ohne Heilmittel.
+
+### Was es nicht ist
+
+**Kein Fehler und keine Lücke in 0.11.0.** Der Hinweis verhindert den zweiten
+Eintrag, **bevor** er entsteht, und das ist der Fall, der zählt. Was fehlt, ist
+die Reparatur für die Fälle davor.
+
+**Und es ist ausdrücklich keine kleine Ergänzung.** Es wäre **der erste Eingriff
+der Anlage, der Zeilen zwischen zwei Eltern verschiebt** — unumkehrbar. An einem
+Eintrag hängen **acht** Tabellen.
+
+### Was gebaut werden könnte
+
+**a) Die vier Eindeutigkeitsschranken, die dabei brechen** — gezählt im Schema,
+nicht geschätzt (der Auftrag rechnete mit zweien):
+
+| Tabelle | Schranke | wann sie bricht |
+|---|---|---|
+| `ratings` | `UNIQUE(item_id, criterion_id, user_id)` | derselbe Mensch hat dasselbe Kriterium an beiden bewertet |
+| `test_days` | `UNIQUE(item_id, day, user_id)` | derselbe Mensch am selben Tag an beiden |
+| `item_tags` | `PRIMARY KEY (item_id, tag_id)` | **beide tragen denselben Tag** |
+| `item_pins` | `PRIMARY KEY (user_id, item_id)` | derselbe Mensch hat beide als Favorit |
+
+**`item_tags` ist dabei der Normalfall und nicht der Randfall:** zwei Einträge,
+die denselben Gegenstand beschreiben, tragen fast immer dieselben Tags. Ein
+schlichtes `UPDATE … SET item_id = ?` läuft dort **beim ersten echten
+Doppeleintrag** auf einen Constraint-Fehler.
+
+**b) Eine eigene Route** — `F_ROUTEN` **69 → 70**, Art `nurAdmin` und
+`zweitbestaetigt` —, **ein Vorgang im Sicherheitsprotokoll** (`VORGAENGE`
+**20 → 21**) und **eine Sicherung des Datenverzeichnisses als Pflicht**, nicht
+als Empfehlung.
+
+### Offene Entscheidungen
+
+* **Was geschieht mit dem Papierkorb?** Er serialisiert einen Eintrag *samt
+  allem, was daran hängt*. Nach dem Zusammenführen hängt am Verlierer **nichts**
+  mehr — die Wiederherstellung gäbe eine leere Hülle zurück. *Das ist schlechter
+  als gar kein Papierkorbeintrag, weil es aussieht wie eine Rettung und keine
+  ist.* Entweder der Verlierer wandert **vor** dem Verschieben in den
+  Papierkorb, oder der Weg sagt ausdrücklich, dass es keinen Rückweg gibt.
+* **Was passiert bei einer brechenden Schranke — überspringen oder abbrechen?**
+  Überspringen heißt: der Tag ist schon da, die Zeile fällt weg. Abbrechen
+  heißt: der Normalfall geht nie durch. *Bei `item_tags` und `item_pins` ist
+  Überspringen richtig; bei `ratings` und `test_days` ist es eine Aussage über
+  einen Menschen und gehört ihm gezeigt.*
+* **Wer gewinnt bei Titel, Beschreibung, Kategorie und Merkmalen?** Der ältere
+  Eintrag, der neuere, oder wählt der Admin je Feld?
+* **Darf der Verfasser zusammenführen oder nur der Admin?** Der Eingriff trifft
+  auch fremde Zeilen — *das spricht für `nurAdmin`, wie oben angesetzt.*
+
+### Was es anfasst
+
+Acht Tabellen, eine neue Route mit zwei Klemmen, das Sicherheitsprotokoll, den
+Papierkorb, die Oberfläche, Prüfungen und Gegenproben. **Kein Schema** — es
+bewegt vorhandene Zeilen, es legt keine neuen Spalten an.
+
+**Was dagegen spricht:** nichts ist kaputt, und der Hinweis aus 0.11.0 trägt den
+Alltag. **Dagegen spricht aber nicht, dass es teuer ist** — es ist teuer, und
+genau deshalb ist es eine eigene Runde und kein Anhängsel.
+
+---
+
+## 7. Der QR-Encoder für den zweiten Faktor
+
+**Nötig geworden mit 0.10.0** — dort ist er vor dem Bau herausgenommen worden.
+
+### Woher
+
+Aus der Runde „Zwei-Faktor", **0.10.0**. *Herausgenommen mit Begründung und
+Maßen, nicht vergessen* (Änderungsprotokoll 0.10.0, Abweichung A).
+
+### Was auffiel
+
+**Google Authenticator kennt zwei Wege hinein:** einen Code scannen oder den
+Base32-Schlüssel von Hand eintippen. **Der zweite ist der Weg, an dem Menschen
+aufgeben** — zweiunddreißig Zeichen auf einem Telefon.
+
+Heute steht der Schlüssel in **Vierergruppen** auf dem Bildschirm, daneben die
+`otpauth://`-Zeile als anklickbarer Verweis. *Auf einem Telefon öffnet der die
+App unmittelbar — das trägt den Weg, aber nur dort.* Wer am Rechner sitzt und
+das Telefon in der Hand hat, tippt.
+
+### Was es nicht ist
+
+**Keine Auslassung und keine Abkürzung.** Ohne Bibliothek heißt ein QR-Encoder:
+Reed-Solomon über GF(256), Kapazitäts- und Blocktabellen je Version und
+Fehlerkorrekturstufe, Findemuster, Taktlinien, Alignment, Format- und
+Versionsbits, acht Masken mit Bewertung — mehrere hundert Zeilen.
+
+**Teuer ist dabei nicht das Bauen, sondern der Beweis.** Die Zusage „dieselbe
+Zeichenfolge ergibt weltweit dieselbe Matrix" braucht ohne Bibliothek einen
+eigenen **Dekoder** im Prüfstand, also die doppelte Arbeit. *Er war damit der
+einzige Teil der Runde ohne begrenzten Prüfaufwand.*
+
+### Was gebaut werden könnte
+
+Der Encoder selbst, dazu der Dekoder im Prüfstand. **Gemessen statt geschätzt:**
+die `otpauth://`-Zeile ist **100 Zeichen** bei `Kriterion/faruk`, **117** bei
+`Bewertungskatalog/chefin` und **203** bei einem langen Anlagen- und
+Zugangsnamen. Im Bytemodus heißt das **Version 5 bis 8**.
+
+### Offene Entscheidungen
+
+* **Was geschieht, wenn ein langer Titel über die Kapazität hinauswächst?**
+  *Die Antwort sollte sein: der Code fällt weg, und der Schlüssel steht allein
+  da* — nicht: ein abgeschnittener Code, den ein Telefon annimmt und der ein
+  falsches Geheimnis trägt.
+* **Eine Bibliothek statt Eigenbau?** Sie nähme den Dekoder und den halben
+  Aufwand — und stünde gegen „keine Abhängigkeit, die niemand liest". *Die Frage
+  ist nicht beantwortet, sie ist nur bisher nicht gestellt worden.*
+* **Wo steht der Code — nur beim Einschalten oder auch danach?** Danach hieße:
+  das Geheimnis liegt erneut auf dem Bildschirm.
+
+### Was es anfasst
+
+Die Karte „Zugang" im Systembereich, den Einschaltweg des zweiten Faktors, den
+Prüfstand (Encoder **und** Dekoder). **Kein Schema, keine Route, kein
+Austauschformat.**
+
+**Was dagegen spricht:** **der abtippbare Schlüssel trägt den Weg auch ohne
+ihn.** Es ist Bequemlichkeit, gemessen an mehreren hundert Zeilen mit doppelter
+Prüflast — und diese Rechnung hat 0.10.0 schon einmal verloren.
+
+---
+
+## 8. Der Proxy ist ein Ja/Nein, die Anlage ist beides
+
+**Nötig geworden mit 0.8.20** (dort entstand die Einstellung) **und akut mit
+0.10.0** — seitdem steht der Reverse Proxy wirklich davor.
+
+### Woher
+
+Aus dem Betrieb. `HINTER_PROXY` steht seit **0.10.0** auf `1`; festgehalten im
+Projektstand, Abschnitt 2. *Der Quelltext hat den Fall vorhergesehen:* „Ist die
+Anlage je aus mehreren Netzen gleichzeitig erreichbar, gehört das nachgeliefert"
+(`auth.js`, Kopf) — geschrieben **0.8.20**, eingetreten **0.10.0**.
+
+### Was auffiel
+
+**Die eine Einstellung bündelt fünf Wirkungen** — `X-Forwarded-For` glauben,
+`Secure`, `__Host-`, HSTS und die Startwarnung bei `http://` in
+`OEFFENTLICHE_ADRESSE` — **und die Anlage ist inzwischen aus zwei Netzen
+zugleich erreichbar.**
+
+Über `http://<server-ip>:3100` kommt damit niemand mehr herein: der Server
+antwortet mit **200** und setzt den Cookie, der Browser verwirft ihn
+stillschweigend, und im Serverprotokoll steht davon nichts. **Gemessen, nicht
+vermutet.**
+
+### Was es nicht ist
+
+**Kein Fehler, sondern der Preis der Einstellung** — und ein Handgriff dagegen
+steht in der README („Wenn der Proxy ausfällt"): Einstellung abschalten, neu
+starten.
+
+**Was es kostet, gehört trotzdem gesagt:** fällt der Proxy aus oder läuft ein
+Zertifikat ab, gibt es **gar keinen Weg mehr in die Oberfläche**. Die Daten sind
+sicher und die Werkzeuge auf dem Wirt gehen weiter — lesen lässt sich der
+Bestand nicht.
+
+### Was gebaut werden könnte
+
+**a) `X-Forwarded-Proto` lesen** (wird bisher **nirgends** gelesen) und je
+Anfrage entscheiden — **mit zwei Cookienamen, nicht mit einem.**
+
+**b) Was NICHT gebaut werden soll: ein Name mit bedingtem `Secure`.** Das gäbe
+Sicherheit auf, statt Bequemlichkeit zu gewinnen: wer im eigenen Netz eine
+Klartextverbindung verbiegen kann, setzte damit einen Cookie, den die
+HTTPS-Seite anschließend auch annimmt — **und genau dagegen gibt es `__Host-`.**
+
+**c) Der dritte Weg, falls (a) zu teuer wird: eine Adressliste, wer den Kopf
+setzen darf.** In **0.8.20** ausdrücklich nicht gebaut, weil die Einstellung ein
+Ja/Nein sein sollte. *Sie ist inzwischen die Antwort auf die zweite Hälfte des
+Problems — die Portfreigabe 3100 —, nicht auf die erste.*
+
+### Offene Entscheidungen
+
+* **Umlegen meldet alle einmalig ab**, weil das Präfix `__Host-` den Namen
+  wörtlich verlangt. Bei zwei Namen nebeneinander gilt das nicht mehr — *ist das
+  ein Gewinn oder verliert man damit einen ehrlichen Schnitt?*
+* **Gilt HSTS dann nur auf dem HTTPS-Weg?** Es muss, sonst sperrt der Kopf den
+  Heimnetzweg aus, den (a) gerade offenhalten soll.
+* **Bleibt die Portfreigabe 3100 offen?** Heute ist sie als tragbar eingestuft:
+  wer im Heimnetz steht, kann den Proxy umgehen und `X-Forwarded-For` selbst
+  setzen, die Anmeldebremse ließe sich so aushebeln. *Ein gewöhnlicher Browser
+  tut das nicht, ein absichtlicher Aufruf schon.* **Wer sie schließen will**,
+  hängt Kriterion in das Netz des Proxys und lässt die Freigabe fallen.
+
+### Was es anfasst
+
+`auth.js` (Cookiename, `Secure`, HSTS), die Adressermittlung, den Prüfstand
+(beide Wege statt einem), README. **Kein Schema.**
+
+**Was dagegen spricht:** es ist eine Runde Arbeit für einen Fall, der heute
+funktioniert — *und einen Handgriff hat, wenn er ausfällt.* **Dagegen steht,
+dass der Handgriff einen Menschen am Wirt braucht, genau dann, wenn nichts
+mehr geht.**
+---
+
 # Teil II — Gesammelt, ohne Ausarbeitung
 
 **Zeilen, keine Punkte.** Wer eine davon bauen will, arbeitet sie vorher in die
 sechs Überschriften aus Teil I aus — *und stellt dabei regelmäßig fest, dass
 die Hälfte davon schon beantwortet ist.*
 
-- **Prüfung der Wiederherstellung.** Eine Sicherung, die nie zurückgespielt
-  wurde, ist eine Vermutung. Ein Weg, der eine Sicherungsdatei probeweise
-  öffnet und den Bestand zählt, ohne die laufende Datenbank anzufassen.
-- **Anzeige des Speicherverbrauchs.** Wie viel Platz belegen Fotos, Videos,
-  Anhänge — je Eintrag und in Summe. *Berührt Punkt 3 in Teil I: dieselbe
-  Zahl, anderer Zweck.*
-- **PWA-Manifest.** Ein Icon auf dem Startbildschirm. *Siehe Teil III — der
-  Gewinn ist klein.*
-- **Vorlagen für Einträge.** Ein neuer Eintrag beginnt mit vorbelegten
-  Kategorien, Tags und Kriterien.
-- **Tags in Mengen bearbeiten.** Ein Tag an vielen Einträgen zugleich setzen
-  oder entfernen.
-- **Druckstylesheet.** Ein Eintrag oder ein Vergleich auf Papier, ohne
-  Bedienelemente.
-- **Fälligkeitsdatum an Aufgaben.** Die Aufgabenliste quer über alle Einträge
-  gibt es seit 0.8.60; ein Datum daran gibt es nicht.
-- **Erwähnungen im Kommentar.** `@name` in einem Kommentar, mit
-  Benachrichtigung. *Setzt voraus, dass geklärt ist, wer wen sehen darf —
-  Zugänge sehen einander heute nicht vollständig.*
+**Hinter jeder Zeile steht, welche Version sie nötig gemacht hat.** *Das ist
+keine Zuordnung zu einer Runde, sondern Herkunft: eine Idee ohne Anlass ist
+schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
+
+### Aus dem Betrieb und aus den Runden
+
+- **Prüfung der Wiederherstellung** *(0.8.70)*. Seit die Sicherung über
+  `VACUUM INTO` der Hauptweg ist, gibt es eine Datei, die niemand je
+  zurückgespielt hat — **eine Sicherung ohne Probe ist eine Vermutung.** Ein
+  Weg, der eine Sicherungsdatei probeweise öffnet und den Bestand zählt, ohne
+  die laufende Datenbank anzufassen.
+- **Anzeige des Speicherverbrauchs** *(0.8.31 für Dateien, verschärft mit
+  0.8.50 für Videos)*. Wie viel Platz belegen Fotos, Videos, Anhänge — je
+  Eintrag und in Summe. *Berührt Teil I, Punkt 3: dieselbe Zahl, anderer
+  Zweck.*
+- **Die abweichende Datei beim Namen nennen** *(Fingerprint aus 0.8.10, akut
+  mit 0.9.1)*. Der Fingerprint sagt heute nur, **dass** etwas abweicht, nicht
+  **was**. Bei 0.9.1 hat sich dort eine Datei zu viel gezeigt (Stolperstein
+  158), und der Handgriff dagegen steht bisher nur in der README. **Eine Zeile
+  in der Karte „Anlage" würde ihn ersetzen.**
+- **Der Zähler „Offen 7" in der Kopfzeile** *(0.8.60)*. Er stand schon im
+  Auftrag der Runde und ist dort ausdrücklich nicht gebaut worden: **er würde
+  bei jedem Seitenaufbau gebraucht**, und die Frage, wie er nicht ständig neu
+  abgefragt wird, ist die eigentliche Arbeit.
+- **Die Vorschau der Rangfolge im Systembereich** *(0.8.40)*. Sehen, wie sich
+  die Spitze verschiebt, wenn man an einem Gewicht dreht. *Das ist es, was
+  Gewichte im Alltag bedienbar macht* — es ist aber eine eigene Ansicht mit
+  eigenem Endpunkt.
+- **Fälligkeitsdatum an Aufgaben** *(0.8.60)*. Die Aufgabenliste quer über alle
+  Einträge gibt es seit der Ansicht „Offen"; ein Datum daran gibt es nicht.
+- **Nachladen beim Rollen** *(0.11.0)*. Der dritte Punkt der Übersichtsfrage —
+  **und erst dann, wenn die ersten beiden gemessen zu wenig gebracht haben.**
+  *Blättern mit Seitenzahlen nicht, nie: es zerschnitte die Suche.*
+- **Ob ein Admin den zweiten Faktor verlangen kann** *(0.10.0)*. Der Auftrag
+  hat die Frage ausdrücklich nicht gestellt; **sie ist offen und nicht
+  entschieden.**
+- **Eindeutigkeit der Adresse** *(0.9.1)*. `users.email` hat bewusst **kein**
+  `UNIQUE`: `ALTER TABLE` kann eines nicht nachrüsten, und die gewanderte und
+  die frisch angelegte Datenbank wären damit verschieden gebaut. **Der richtige
+  Weg ist ein partieller Index** —
+  `CREATE UNIQUE INDEX IF NOT EXISTS … ON users(email) WHERE email IS NOT NULL` —,
+  der auf beiden Wegen gleich wirkt und mehrere Zugänge ohne Adresse zulässt.
+  **Er gehört in dieselbe Runde wie die Prüfung im Code, nicht davor.**
+  *Die zweite Hälfte ist schon entworfen:* hinter der Anmeldung wird eine
+  doppelte Adresse klar gesagt („Diese Adresse ist bereits vergeben") — wer das
+  sieht, ist angemeldet und sieht die Liste ohnehin; **vor der Anmeldung gilt
+  das Gegenteil**, dort ist jede unterschiedliche Antwort ein Werkzeug zum
+  Durchprobieren.
+- **Ein Versanddienst über HTTPS statt SMTP** *(0.9.0)*. Falls SMTP am
+  Anschluss gar nicht durchkommt — manche Anbieter sperren Port 587 ausgehend —,
+  wäre er der Ausweg: Brevo, Mailjet und Postmark haben Schnittstellen, die
+  sich mit einem einfachen `fetch` bedienen lassen, **ganz ohne Bibliothek**.
+  *Zweiter Weg im Code — erst bauen, wenn SMTP nachweislich scheitert.*
+- **Der angepinnte Block kann zur Wand werden** *(akut erst bei mehreren
+  Zugängen)*. Bei vielen angepinnten Kommentaren mehrerer Leute wächst er über
+  allem zusammen. **Wenn das im Betrieb stört, ist die Antwort NICHT eine
+  Einschränkung des Anpinnens, sondern eine zweite Sortierstufe innerhalb des
+  angepinnten Blocks.** *Beobachten, nicht bauen.*
+- **Vorlagen für Einträge**, **Tags in Mengen bearbeiten**, **Druckstylesheet**,
+  **PWA-Manifest** *(ohne Anlass, aus der Durchsicht zu 0.8.6)*. Nützlich, keins
+  davon dringend; zu den letzten beiden steht in Teil III, warum sie weit unten
+  stehen.
+- **Erwähnungen im Kommentar** *(seit es mehrere Zugänge gibt, spätestens
+  0.9.1)*. `@name` in einem Kommentar, mit Benachrichtigung. *Setzt voraus, dass
+  geklärt ist, wer wen sehen darf — Zugänge sehen einander heute nicht
+  vollständig.*
+
+### Am Prüfstand
+
+- **Ein echter Teillauf** *(Gruppenfilter seit 0.8.10)*. `pruefung.js` ist
+  **ein** Ablauf; der Namensfilter filtert die **Ausgabe**, nicht die Arbeit.
+  `gegenprobe.js` und `PORT_VERSATZ` mildern das, sie beheben es nicht.
+- **Das Wartefenster von zwölf Sekunden** *(0.8.10)*. `starteWeiterenServer`
+  wartet 120 × 100 ms auf `/api/config`; unter schwerer Nebenlast reicht das
+  nicht, und der Lauf reißt mit „Zweitserver nicht erreichbar" ab. **Beobachtet
+  in 0.8.10 und 0.8.30, beide Male neben einem gleichzeitigen Image-Bau.** Die
+  Antwort wäre ein größeres Fenster **und** eine Meldung, die sagt, welcher
+  Zweitserver gemeint ist.
+- **Ein abgerissener Prüflauf, der sich nicht wiederholen ließ** *(0.9.1)*.
+  Einer von sieben Läufen riss in der **ersten** Gruppe ab; ein übriggebliebener
+  Server ist ausgeschlossen, sechs volle Läufe danach waren grün. *Es fehlte die
+  Auskunftszeile unter dem roten Punkt — die Ausgabe war gefiltert.* **Nicht
+  wegerklärt, sondern nicht reproduziert.** Wer ihn wiedersieht, schreibt den
+  Lauf vollständig mit.
+
+### An den Nummern
+
+- **Zwei Dateisätze tragen die Nummer 0.9.1** *(0.9.1)*. Das veröffentlichte
+  0.9.1 in `main` hat den Fingerprint `cb73399d`; die laufende Anlage trug
+  `3cf1b093`. Dazwischen liegt die Nacharbeit an Marke und Anmeldekarte.
+  **Nach Semantic Versioning, Punkt 3, gehört darauf eine eigene Nummer:
+  `0.9.2`** — der Inhalt ist Fehlerbehebung und Aussehen, also PATCH. Nötig
+  wären `package.json`, ein Changelog-Eintrag mit Datum, die Zahlen in den
+  Papieren und der Tag `v0.9.2`. **Vorgeschlagen und nicht beschlossen;**
+  solange es offen ist, lässt sich jener Fingerprint keiner veröffentlichten
+  Nummer zuordnen.
 
 ---
 
@@ -530,9 +844,9 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
   die offen dokumentiert ist: **jeder Benutzer vertraut dem Betreiber mit
   allem.** Für eine selbstgehostete Anlage ist das die richtige Abwägung, und
   sie gehört in die README statt in den Quelltext.
-- **Ein Framework im Frontend.** Kein Framework heißt: keine
-  Build-Kette, keine 400 Pakete, kein Ablaufdatum. *Siehe Teil I, Punkt 4
-  — die Antwort auf große Funktionen sind kleinere Funktionen.*
+- **Ein Framework im Frontend.** Kein Framework heißt: keine Build-Kette, keine
+  400 Pakete, kein Ablaufdatum. *Siehe Teil I, Punkt 4 — die Antwort auf große
+  Funktionen sind kleinere Funktionen.*
 - **PWA-Manifest.** Für eine Anlage im eigenen Netz ohne Offline-Anspruch ist
   der Gewinn das Icon auf dem Startbildschirm und sonst wenig. Steht in Teil II,
   bewusst weit unten.
@@ -548,3 +862,15 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
   deshalb der Absatz** (Projektstand, Abschnitt 10), nicht der Umbau.
 - **Wortgrenzensuche statt Teilstring.** Siehe Teil I, Punkt 1 (d): In einem
   Katalog voller Typnummern verschwiege sie still Treffer.
+- **Ein Cookiename mit bedingtem `Secure`.** Der billige Weg an Teil I, Punkt 8
+  vorbei — und der falsche: er gäbe Sicherheit auf, statt Bequemlichkeit zu
+  gewinnen. Wer im eigenen Netz eine Klartextverbindung verbiegen kann, setzte
+  damit einen Cookie, den die HTTPS-Seite anschließend auch annimmt — **und
+  genau dagegen gibt es `__Host-`.**
+- **Ein dreiwertiger Zustand statt `rejected`.** *offen / genommen / verworfen*
+  klingt vollständiger, ist aber ein Neubau — und „genommen" ist bei einem
+  Bewertungsarchiv gar nicht immer die Gegenfrage zu „abgelehnt". Siehe Teil I,
+  Punkt 2 (d).
+- **`pruefung.js` in Dateien zerlegen.** Die Prüflagen bauen aufeinander auf;
+  der Gruppenfilter aus 0.8.10 macht die Datei bedienbar, ohne sie zu teilen.
+  *Was dort wirklich fehlt, ist ein echter Teillauf — Teil II, „Am Prüfstand".*

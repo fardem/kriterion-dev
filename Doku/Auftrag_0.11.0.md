@@ -1,3 +1,14 @@
+> **DIESER AUFTRAG IST ABGEARBEITET — 0.11.0 IST GEBAUT.** Er steht hier als
+> Beleg, was verlangt war; **was daraus wurde, steht im Änderungsprotokoll
+> 0.11.0.** Zwei Stellen sind seit Revision 26 der Papiere überholt und binden
+> nicht mehr:
+>
+> * **Das Ideenpapier `Doku/Ideen_und_Vorschlaege.md` gibt es nicht mehr.** Es
+>   ist mit `Roadmap.md` zu **`Doku/Fehler_und_Ideen.md`** zusammengezogen.
+> * **Die Liste „ZUM VORMERKEN" am Ende ist abgelöst.** Alles Offene daraus
+>   steht im Sammelblatt, jeder Punkt mit der Version, die ihn nötig gemacht
+>   hat. *Wer wissen will, was noch offen ist, liest dort und nicht hier.*
+
 Projekt Kriterion. Quelltext und Dokumente liegen im Repo `fardem/kriterion`;
 Projektstand, Konzeptpapier, Ideenpapier, Videopapier und die
 Änderungsprotokolle stehen dort unter `Doku/`. Gearbeitet wird im Repo, nicht
