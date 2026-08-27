@@ -844,8 +844,8 @@ wartet und nicht auf eine Frist. Siehe Stolperstein 166.
 
 | | vorher (0.10.0) | nachher (0.11.0) |
 |---|---:|---:|
-| Prüfungen | **3676** | **3811** |
-| davon neu | — | **135** |
+| Prüfungen | **3676** | **3815** |
+| davon neu | — | **139** |
 | Rückbauten in `gegenprobe.js` | 125 | **159** |
 | davon neu | — | **34** |
 | Portbasen | 53 | **53** |
@@ -878,8 +878,9 @@ wartet und nicht auf eine Frist. Siehe Stolperstein 166.
    persönlichen Schlüssel in einer zweiten Lage, und eine an einer falschen
    Erwartung in einer frisch geschriebenen Prüfung (Stolperstein 169).
    Danach **3806 von 3807**, eine rot — die Zeilenzahl eines zweiten Zugangs.
-   Danach **3808 von 3808**. Die Gegenprobe hat danach noch
-   drei Zeilen nachgefordert (siehe Abschnitt 8, Fund) — **3811**.
+   Danach **3808 von 3808**. Die Gegenprobe hat danach in zwei Anläufen
+   sieben weitere Zeilen nachgefordert (Abschnitt 8, die drei Funde) —
+   **3811**, dann **3815**.
 3. **Nach den Papieren und der Versionsnummer** — unverändert grün.
 4. **Zum Schluss gegen genau den Stand, der geschoben wird** — siehe die Zeile
    unter der Tabelle.

@@ -15493,9 +15493,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Mit eingeschalteter Zeitleiste steht testDays in der Antwort',
     vsMitZl.every(i => Array.isArray(i.testDays)), 'nicht überall');
   const vsMitTest = vsMitZl.find(i => i.id === vsTagTag.id);
+  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81) -- und hier
+     ist es keine Formsache: die erste Fassung las `vsMitTest.testDays.length`
+     ungeschuetzt. Ein Rueckbau, der das Feld GAR NICHT mehr mitschickt
+     (Rueckbau 137), liess den Lauf damit ABREISSEN statt rot zu werden
+     (Stolpersteine 138 und 161). Mit `|| []` wird aus 0 === 1 ein roter Punkt,
+     und die Zeile sagt weiterhin dasselbe. */
   pruefe('Der Aufbau steht: ein Eintrag trägt wirklich einen Testtag',
-    vsMitTest && vsMitTest.testDays.length === 1 && vsMitTest.testCount === 1,
-    JSON.stringify(vsMitTest && { n: vsMitTest.testDays.length, c: vsMitTest.testCount }));
+    !!vsMitTest && (vsMitTest.testDays || []).length === 1 && vsMitTest.testCount === 1,
+    JSON.stringify(vsMitTest && { n: (vsMitTest.testDays || []).length, c: vsMitTest.testCount }));
 
   await ruf('PUT', '/api/settings', { zeitleiste: false });
   const vsOhneZl = (await ruf('GET', '/api/items')).inhalt;
@@ -16400,7 +16406,7 @@ const DOM_ANBIETER = [
 function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
   tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null,
-  zweifaktorCodes = null, anmeldeFaktor = false, suchFehler = false,
+  zweifaktorCodes = null, anmeldeFaktor = false, suchFehler = false, suchBremsen = null,
   kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
@@ -16747,6 +16753,8 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       item: { id: 2, title: 'Zweites' }, mine: false, verfasser: vGrab }
   ];
   const gesendet = [];
+  // Zaehler fuer suchBremsen -- welche Suchanfrage gerade hinausgeht.
+  let suchBremse = 0;
 
   /* jsdom kennt <video> als Element, aber nicht seine Methoden: pause() und
      load() melden sich als jsdomError. Das ist Laerm, kein Befund -- die
@@ -17185,7 +17193,19 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       const qRoh = decodeURIComponent(url.slice('/api/items?q='.length));
       const qMock = qRoh.trim().toLowerCase();
       const quelle = uebersichtItems || uebersicht;
-      return gib(qMock ? quelle.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : quelle);
+      const antwort = gib(qMock ? quelle.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : quelle);
+      /* EINE STELLBARE VERZOEGERUNG JE ANFRAGE, seit 0.11.0. Ohne sie antwortet
+         der Mock augenblicklich, und dann koennen sich zwei Anfragen gar nicht
+         ueberholen -- der Rueckbau auf die laufende Nummer in
+         sucheAusfuehren() blieb deshalb STUMM (Rueckbau 139). `suchBremsen` ist
+         eine Liste von Millisekunden, eine je Suchanfrage in der Reihenfolge,
+         in der sie hinausgehen: [400, 0] laesst die ERSTE spaeter ankommen als
+         die zweite. Ohne die Angabe bleibt alles, wie es war. */
+      if (Array.isArray(suchBremsen)) {
+        const ms = suchBremsen[suchBremse++] || 0;
+        if (ms > 0) return new Promise(r => setTimeout(() => r(antwort), ms));
+      }
+      return antwort;
     }
     if (url === '/api/items') return gib(uebersichtItems || uebersicht);
     /* Ein ZWEITER Eintrag, nur fuer den Vergleich: dort holt die Ansicht
@@ -24674,18 +24694,62 @@ async function pruefeOberflaeche() {
   /* DAS LEEREN GEHT OHNE ANFRAGE. Der ungefilterte Bestand liegt in state.alle;
      ihn ein zweites Mal zu holen waere die haeufigste Handhabung der Suche --
      tippen, wieder loeschen -- als die teuerste. */
-  const suVorLeeren = suSuchfragen().length;
+  /* GEZAEHLT WERDEN ALLE ANFRAGEN AN DIE LISTE, nicht nur die mit `?q=`. Die
+     erste Fassung zaehlte allein die Suchanfragen -- ein Rueckbau, der beim
+     Leeren den ganzen Bestand NEU holt (Rueckbau 142), fragt aber
+     `/api/items` OHNE Parameter, und der Zaehler bewegte sich nicht: der
+     Rueckbau blieb STUMM. Die Frage lautet „kostet das Leeren eine Anfrage",
+     und die Antwort steht in der Zahl ALLER Listenanfragen. */
+  const suListenfragen = () => suDom.gesendet.filter(g => String(g.url).startsWith('/api/items'));
+  const suVorLeeren = suListenfragen().length;
   const suKreuz = su.document.getElementById('qclr');
   pruefe('Das Kreuz zum Leeren steht da, solange etwas im Feld steht',
     suKreuz.style.display === 'block', suKreuz.style.display);
   suKreuz.dispatchEvent(new su.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  await new Promise(r => setTimeout(r, 120));
   pruefe('Leeren holt den Bestand ohne neue Anfrage',
-    suSuchfragen().length === suVorLeeren, `${suSuchfragen().length - suVorLeeren} zusaetzlich`);
+    suListenfragen().length === suVorLeeren,
+    `${suListenfragen().length - suVorLeeren} zusaetzlich: ` +
+      JSON.stringify(suListenfragen().slice(suVorLeeren).map(g => g.url)));
   pruefe('Und die ganze Liste steht wieder da',
     suKarten().length === 6, `${suKarten().length} Karten`);
   pruefe('Und das Kreuz ist wieder fort', suKreuz.style.display === 'none', suKreuz.style.display);
   su.close();
+
+  /* ---- Zwei Antworten ueberholen sich ----
+     DIE ANTWORT AUF "makita" DARF DIE AUF "bosch" NICHT UEBERSCHREIBEN. Jede
+     Anfrage traegt eine laufende Nummer, und nur die hoechste darf schreiben.
+     GEPRUEFT AN EINEM MOCK, DER DIE ERSTE ANTWORT BREMST: ohne die Bremse
+     antwortet er augenblicklich, die beiden koennen sich gar nicht ueberholen,
+     und der Rueckbau auf die laufende Nummer blieb STUMM -- er war gebaut und
+     liess sich nicht belegen.
+     Die Anschlaege liegen ueber dem Debounce auseinander, damit BEIDE Anfragen
+     wirklich hinausgehen; die erste kommt 400 ms spaeter zurueck als die
+     zweite. */
+  const uhDom = baueDom(JSDOM, { uebersichtItems: suBestand, suchBremsen: [400, 0] });
+  const uh = uhDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const uhKarten = () => [...uh.document.querySelectorAll('.card-title')].map(k => k.textContent);
+  const uhFeld = uh.document.getElementById('q');
+  uhFeld.value = 'makita';
+  uhFeld.dispatchEvent(new uh.Event('input'));
+  await new Promise(r => setTimeout(r, 300));          // Debounce durch, Anfrage 1 unterwegs
+  uhFeld.value = 'bosch';
+  uhFeld.dispatchEvent(new uh.Event('input'));
+  await new Promise(r => setTimeout(r, 300));          // Debounce durch, Anfrage 2 sofort da
+  const uhSuchfragen = uhDom.gesendet.filter(g => String(g.url).startsWith('/api/items?q='));
+  pruefe('Der Aufbau steht: beide Suchanfragen sind wirklich hinausgegangen',
+    uhSuchfragen.length === 2, JSON.stringify(uhSuchfragen.map(g => g.url)));
+  pruefe('Und die zweite ist zuerst zurueck: die Liste zeigt ihren Treffer',
+    gleich(uhKarten(), ['Bosch Akkuschrauber']), JSON.stringify(uhKarten()));
+  await new Promise(r => setTimeout(r, 500));          // jetzt kommt Anfrage 1 nach
+  pruefe('Die spaeter eintreffende AELTERE Antwort ueberschreibt sie NICHT',
+    gleich(uhKarten(), ['Bosch Akkuschrauber']), JSON.stringify(uhKarten()));
+  // Und die Zaehlzeile sagt nicht mehr "sucht ..." -- es ist nichts mehr offen.
+  pruefe('Und danach steht die Zaehlzeile still',
+    !/sucht/.test(uh.document.getElementById('count').textContent),
+    uh.document.getElementById('count').textContent);
+  uh.close();
 
   /* ---- Der Rueckfall, wenn die Suche scheitert ----
      BIS 0.10.0 KONNTE SIE NICHT SCHEITERN -- sie lief im Arbeitsspeicher. Ab

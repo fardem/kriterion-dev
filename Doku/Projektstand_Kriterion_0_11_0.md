@@ -250,7 +250,7 @@ vermuten (Abschnitt 5).
 
 ## 2. Betriebsstand
 
-**0.11.0 ist gebaut** — Fingerprint **`74c44ec0`**, 3811 Prüfungen.
+**0.11.0 ist gebaut** — Fingerprint **`74c44ec0`**, 3815 Prüfungen.
 **Die zweite Runde nach dem Stufenplan — und die erste, die etwas Bestehendes
 umbaut.** **KEINE DATENBANKSTUFE:** es kommt **keine Tabelle** und **keine
 Spalte** dazu, es läuft **kein Migrationscode**, und es bleibt bei **fünf**
@@ -5235,7 +5235,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
 außerhalb des Docker-Images).
 
-**Zuletzt: 3811 von 3811 bestanden** (0.11.0; **135 neue Prüfungen, 34
+**Zuletzt: 3815 von 3815 bestanden** (0.11.0; **139 neue Prüfungen, 34
 Gegenproben, acht neue Gruppen**: „Die Volltextsuche", „searchText ist fort,
 und sonst nichts", „testDays hängt an der Zeitleiste", „Gespeicherte
 Ansichten", „Die Suche fragt den Server", „Gespeicherte Ansichten in der
@@ -6342,7 +6342,7 @@ umgeschrieben statt gelöscht.
 Runde** — der Schnitt liegt zwischen Doppelerkennung und Zusammenführen; die
 Gründe stehen in Abschnitt 10.
 `F_ROUTEN` bleibt bei **69**, `VORGAENGE` bei **zwanzig**, die Karten bei
-**neunzehn**. **3676 Prüfungen werden 3811**, 125 Rückbauten werden **159**.
+**neunzehn**. **3676 Prüfungen werden 3815**, 125 Rückbauten werden **159**.
 
 **0.10.0 — „Der zweite Faktor".** **Die erste Runde nach dem Stufenplan und die
 erste unter Semantic Versioning** — MINOR, weil eine neue Funktion dazukommt und
