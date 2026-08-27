@@ -83,9 +83,25 @@ const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
    auseinanderlaeuft, sobald jemand einen der beiden anfasst.
 
    alt="" UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem Namen
-   der Anlage. Ein Vorleseprogramm saegte ihn sonst zweimal. */
+   der Anlage. Ein Vorleseprogramm saegte ihn sonst zweimal.
+
+   DAS viewBox DER DURCHSICHTIGEN FASSUNG UMSCHLIESST DIE FARBE UND NICHT DIE
+   KACHEL: `6.5 4.5 19 23`. Gezeichnet wird von y=6 bis y=26, aber bei
+   stroke-width 3 und stroke-linecap round traegt die Farbe eine halbe
+   Strichbreite darueber hinaus -- von 4.5 bis 27.5. Ein quadratisches viewBox
+   0 0 32 32 liess davon nur 23 von 32 Einheiten sichtbar; die Datei zeichnete
+   also 72 Prozent dessen, was sie belegte, und stand neben dem Text zu tief.
+   MIT DIESEM viewBox IST DIE ANGEGEBENE HOEHE DIE GEZEICHNETE HOEHE.
+   favicon.svg behaelt dagegen 0 0 32 32 samt Kachel: ein Kachelsymbol braucht
+   seinen Rand, und 72 Prozent sind dort der uebliche Schutzbereich.
+
+   DIE WIRKLICHE GROESSE STEHT IM CSS, IN rem, UND NICHT HIER. Die Anlage
+   stellt die Schrift von 80 bis 120 Prozent; eine in Pixel festgeschriebene
+   Marke passte nur bei 100 Prozent zum Text daneben. Die Attribute hier
+   halten das Seitenverhaeltnis 19:23 und bewahren den Platz, bis das
+   Stylesheet greift -- sie sind der Rueckfall, nicht das Mass. */
 const MARK = (s = 30) =>
-  `<img class="marke" src="marke-dunkel.svg" width="${s}" height="${s}" alt="">`;
+  `<img class="marke" src="marke-dunkel.svg" width="${Math.round(s * 19 / 23)}" height="${s}" alt="">`;
 
 /* DIE MARKENZEILE DER ANMELDESEITEN: Marke UND Name in EINER Zeile, erst das
    Zeichen, dann das Wort. Uebereinander gestapelt las sich das Paar als Bild
@@ -98,11 +114,14 @@ const MARK = (s = 30) =>
    dreimal -- trugen dasselbe Paar neunmal ausgeschrieben. Wer die Anordnung
    aendert, aendert seither eine Stelle und nicht neun (Stolperstein 145).
 
-   34 UND NICHT 40: nebeneinander misst sich die Marke am Wort und nicht mehr
-   an der leeren Flaeche darueber. Der sichtbare Strich fuellt knapp zwei
-   Drittel der Kachel; bei 34 steht er damit etwa so hoch wie das K. */
+   SIE MISST SICH AM WORT UND NICHT AN DER LEEREN FLAECHE DARUEBER -- dieselbe
+   Regel wie in der Kopfzeile des angemeldeten Bereichs: so hoch wie der Text
+   daneben, gemessen an dessen Zeilenhoehe. Hier ist der Text EINE Zeile
+   (1,53 rem bei Zeilenhoehe 1,55, also 2,372 rem); in der Kopfzeile sind es
+   zwei. Die Zahl steht im CSS, damit sie der eingestellten Schriftgroesse
+   folgt; 36 hier ist der Platzhalter bis dahin. */
 const MARKENZEILE = () =>
-  `<div class="login-marke">${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
+  `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
 
 function splitUrl(u) {
   try {

@@ -87,7 +87,15 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Knoepfe am Kommentar -- Rahmen, runder Fuellgrund, kleine Schrift. Die Marke
    hat das eine Zeit lang mitgetragen und sass deshalb in einem Kaestchen, das
    niemand gewollt hat. Zwei Dinge mit demselben Namen sind eines zu viel. */
-.marke { flex-shrink: 0; display: block; }
+/* DIE MARKE TRAEGT IHRE GROESSE IN rem UND NICHT IN PIXEL. Die Anlage stellt
+   die Schrift von 80 bis 120 Prozent (wendeSchriftAn() schraubt an `html`);
+   eine festgeschriebene Pixelhoehe passte nur bei 100 Prozent zum Text
+   daneben. Gemessen wird an der ZEILENHOEHE des Textes und nicht an seiner
+   Schriftgroesse -- eine Marke steht neben einer Zeile, nicht neben einem
+   Buchstaben. Die Breite folgt dem Seitenverhaeltnis der Datei; `width: auto`
+   schlaegt dabei das Attribut im Markup, das nur den Platz bewahrt, bis
+   dieses Stylesheet greift. */
+.marke { flex-shrink: 0; display: block; width: auto; }
 
 /* ---------- Schaltflaechen ---------- */
 .btn {
@@ -135,6 +143,9 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    margin-bottom am h1 schoebe es bei align-items: center um die halbe Hoehe
    nach oben und die Marke saesse schief daneben. */
 .login-card .login-marke h1 { margin: 0; }
+/* Dieselbe Regel wie in der Kopfzeile, nur steht hier EINE Zeile daneben und
+   kein Stapel: 1,53 rem x Zeilenhoehe 1,55 = 2,372 rem. */
+.login-card .login-marke .marke { height: 2.372rem; }
 .login-card h1 { font-size: 1.53rem; font-weight: 640; letter-spacing: -.028em; margin: 0 0 5px; }
 .login-card .sub { color: var(--muted); font-size: .9rem; margin: 0 0 24px; }
 .field { margin-bottom: 14px; }
@@ -207,6 +218,12 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .brand { display: flex; align-items: center; gap: 11px; margin-right: auto; min-width: 0; }
 .brand h1 { font-size: 1.23rem; font-weight: 620; letter-spacing: -.028em; margin: 0; }
 .brand .count { font-size: .77rem; color: var(--faint); font-family: var(--mono); }
+/* SO HOCH WIE DER STAPEL DANEBEN. Titel (1,23 rem) und Zaehlzeile (0,77 rem)
+   haben keine eigene Zeilenhoehe und erben die 1,55 des body; der Stapel misst
+   damit (1,23 + 0,77) x 1,55 = 3,10 rem. Die Zahl steht hier ausgerechnet und
+   nicht geschaetzt -- wer eine der beiden Schriftgroessen aendert, aendert
+   diese Zeile mit. */
+.brand .marke { height: 3.1rem; }
 /* Wer gerade angemeldet ist, neben dem Knopf zum Abmelden. Keine neue Farbe:
    .hint gibt es laengst und bedeutet dort schon "Auskunft, kein
    Bedienelement". Umbrechen darf die Angabe nicht -- sie stuende sonst

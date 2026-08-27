@@ -1343,6 +1343,110 @@ const freigabeHaupt = (zweck, ziel = null) =>
     mkAntwort.headers.get('x-content-type-options') === 'nosniff',
     mkAntwort.headers.get('x-content-type-options'));
 
+  /* ---- Die Farbe, seit 0.11.0 ----
+     DER HERVORGEHOBENE STRICH TRAEGT DEN AKZENT UND NICHT MEHR GOLD. In der
+     Kopfzeile standen zwei warme Farben nebeneinander, die nichts voneinander
+     wussten: der Strich in --gold, der Knopf daneben in --accent. Eine Farbe
+     ist besser als zwei. Gold bleibt die Farbe der BEWERTUNG; die Marke ist
+     nicht die Bewertung, sie ist die Anlage.
+     GEPRUEFT AN BEIDEN DATEIEN UND NICHT AN EINER: sie liegen getrennt, und
+     wer eine anfasst, laesst die andere zurueck -- ab dann zeigt der Reiter
+     etwas anderes als die Kopfzeile. */
+  const MK_AKZENT = '#ff7a1a', MK_GOLD = '#ffc531', MK_GRAU = '#838c95';
+  for (const n of mkDateien) {
+    pruefe(`${n} traegt den Akzent am hervorgehobenen Strich`,
+      new RegExp(`<path d="M8 16 H24" stroke="${MK_AKZENT}"`).test(mkInhalt[n] || ''),
+      (mkInhalt[n] || '').split('\n').find(z => z.includes('M8 16')) || '(keine Zeile)');
+    pruefe(`Und ${n} traegt nirgends mehr Gold`,
+      !(mkInhalt[n] || '').includes(MK_GOLD), MK_GOLD + ' steht noch darin');
+  }
+  // Der Rest der Marke bleibt grau -- die Runde aendert EINEN Strich und nicht
+  // das Zeichen.
+  for (const n of mkDateien) {
+    const grau = ((mkInhalt[n] || '').match(new RegExp(MK_GRAU, 'g')) || []).length;
+    pruefe(`Und die drei uebrigen Striche in ${n} bleiben grau`, grau === 3, `${grau} statt 3`);
+  }
+
+  /* ---- Die Hoehe, seit 0.11.0 ----
+     DAS viewBox DER DURCHSICHTIGEN FASSUNG UMSCHLIESST DIE FARBE. Gezeichnet
+     wird von y=6 bis y=26, aber bei stroke-width 3 und stroke-linecap round
+     traegt die Farbe eine halbe Strichbreite darueber hinaus: von 4.5 bis
+     27.5, also 23 von 32 Einheiten. Im quadratischen viewBox 0 0 32 32 zeichnete
+     die Datei damit nur 72 Prozent ihrer eigenen Hoehe und stand neben dem Text
+     zu tief. Mit dem engen viewBox ist die angegebene Hoehe die gezeichnete. */
+  pruefe('Das viewBox der durchsichtigen Fassung umschliesst die Farbe',
+    /viewBox="6\.5 4\.5 19 23"/.test(mkInhalt['marke-dunkel.svg'] || ''),
+    (mkInhalt['marke-dunkel.svg'] || '').match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
+  /* UND favicon.svg BEHAELT SEIN QUADRAT. Es ist ein Kachelsymbol: die Kachel
+     braucht ihren Rand, und 72 Prozent sind dort der uebliche Schutzbereich.
+     Ein enges viewBox schnitte die Kachel an. */
+  pruefe('Und die Fassung mit Kachel behaelt ihr Quadrat',
+    /viewBox="0 0 32 32"/.test(mkInhalt['favicon.svg'] || ''),
+    (mkInhalt['favicon.svg'] || '').match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
+
+  /* DIE HOEHE STEHT IM CSS UND IN rem, NICHT IN PIXEL. Die Anlage stellt die
+     Schrift von 80 bis 120 Prozent; eine festgeschriebene Pixelhoehe passte
+     nur bei 100 Prozent zum Text daneben.
+     UND SIE IST AUSGERECHNET: Titel (1,23 rem) und Zaehlzeile (0,77 rem) haben
+     keine eigene Zeilenhoehe und erben die 1,55 des body -- der Stapel misst
+     (1,23 + 0,77) x 1,55 = 3,10 rem. Auf der Anmeldeseite steht EINE Zeile
+     daneben: 1,53 x 1,55 = 2,372 rem. Die Zahlen werden hier NACHGERECHNET und
+     nicht abgeschrieben; verstellt jemand eine der Schriftgroessen, faellt es
+     hier auf. */
+  const mkZahl = (regel, feld) => {
+    const r = (mkCss.match(new RegExp(regel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
+    const m = r.match(new RegExp(feld + ': *([\\d.]+)rem'));
+    return m ? Number(m[1]) : null;
+  };
+  const mkGroesse = (wahl) => {
+    const r = (mkCss.match(new RegExp(wahl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
+    const m = r.match(/font-size: *([\d.]+)rem/);
+    return m ? Number(m[1]) : null;
+  };
+  /* GENOMMEN WIRD DER body-BLOCK, DER DIE ZEILENHOEHE WIRKLICH SETZT. Im
+     Stylesheet steht `html, body { ... }` VOR `body { ... }`, und der erste
+     Treffer auf "body {" ist damit der falsche -- er kennt keine
+     Zeilenhoehe. */
+  const mkZeilenhoehe = (() => {
+    for (const b of (mkCss.match(/body \{[^}]*\}/g) || [])) {
+      const m = b.match(/line-height: *([\d.]+)/);
+      if (m) return Number(m[1]);
+    }
+    return null;
+  })();
+  pruefe('Der Aufbau steht: die Zeilenhoehe des body ist ablesbar',
+    mkZeilenhoehe === 1.55, `${mkZeilenhoehe}`);
+  const mkTitel = mkGroesse('.brand h1'), mkZaehl = mkGroesse('.brand .count');
+  pruefe('Und die beiden Schriftgroessen des Stapels ebenso',
+    mkTitel === 1.23 && mkZaehl === 0.77, `${mkTitel} / ${mkZaehl}`);
+  const mkMarkeHoch = mkZahl('.brand .marke', 'height');
+  pruefe('Die Marke der Kopfzeile steht so hoch wie Titel und Zaehlzeile zusammen',
+    mkMarkeHoch !== null
+      && Math.abs(mkMarkeHoch - (mkTitel + mkZaehl) * mkZeilenhoehe) < 0.011,
+    `${mkMarkeHoch}rem gegen ${((mkTitel + mkZaehl) * mkZeilenhoehe).toFixed(3)}rem`);
+  const mkLoginGross = mkGroesse('.login-card h1');
+  const mkLoginHoch = mkZahl('.login-card .login-marke .marke', 'height');
+  pruefe('Und die der Anmeldeseite so hoch wie die eine Zeile daneben',
+    mkLoginHoch !== null && mkLoginGross !== null
+      && Math.abs(mkLoginHoch - mkLoginGross * mkZeilenhoehe) < 0.011,
+    `${mkLoginHoch}rem gegen ${(mkLoginGross * mkZeilenhoehe).toFixed(3)}rem`);
+  /* KEINE PIXELHOEHE DANEBEN. Eine zweite Angabe in px schluege die rem-Zeile
+     je nach Reihenfolge und macht die Rechnung darueber wertlos. */
+  pruefe('Und keine der beiden traegt daneben eine Hoehe in Pixel',
+    !/\.brand \.marke \{[^}]*height: *\d+px/.test(mkCss)
+      && !/\.login-marke \.marke \{[^}]*height: *\d+px/.test(mkCss),
+    'eine Pixelhoehe steht daneben');
+  /* DIE BREITE FOLGT DEM SEITENVERHAELTNIS. Ohne `width: auto` schluege das
+     Attribut aus dem Markup zu und die Marke waere verzerrt. */
+  pruefe('Die Breite folgt dem Seitenverhaeltnis der Datei',
+    /\.marke \{[^}]*width: *auto/.test(mkCss),
+    (mkCss.match(/\.marke \{[^}]*\}/) || ['(keine Regel)'])[0]);
+  // Und das Markup traegt dasselbe Verhaeltnis, damit nichts springt, bevor
+  // das Stylesheet greift.
+  pruefe('Und das Markup traegt dasselbe Verhaeltnis',
+    /width="\$\{Math\.round\(s \* 19 \/ 23\)\}" height="\$\{s\}"/.test(mkApp),
+    (mkApp.match(/const MARK =[\s\S]{0,200}/) || [''])[0]);
+
   /* ---------------------------------------------------------------- */
   gruppe('Schriftgroessen im Stylesheet');
 
