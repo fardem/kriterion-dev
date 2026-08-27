@@ -1202,7 +1202,11 @@ Vermerk über entfernte Kommentarbilder.
 **vollständige, verschlüsselte** Kopie der Datenbank — samt Sitzungen,
 Einstellungen und den Geheimnissen der zweiten Faktoren, ohne den Schlüssel
 unlesbar. **Während die Kopie entsteht, steht die Anlage still**; die Karte sagt
-es vorher mit einer Schätzung (rund 20 ms je MB), dazu „letzte Sicherung vor N
+es vorher mit einer Schätzung (`SICHERUNG_MS_JE_MB = 20`). *Gemessen sind rund
+**10** ms je MB; die Ansage ist bewusst **verdoppelt** — der Betrieb läuft auf
+einem N100, und eine zu niedrige Ansage ist schlimmer als eine zu hohe. An der
+Probe des Schlüsselwechsels hat sich das bestätigt: angesagt 13,3 Sekunden,
+gebraucht 10,6 (Abschnitt 8).*, dazu „letzte Sicherung vor N
 Tagen" (aus dem **Dateisystem**, nicht aus einem Merker) und den Hinweis auf den
 Schlüssel. **Die Rollenteilung steht an beiden Karten:** `VACUUM INTO` ist der
 **Sicherungsweg**, der JSON-Export der **Austauschweg**.
