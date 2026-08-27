@@ -1109,6 +1109,269 @@ const RUECKBAUTEN = [
     ersatz: "",
     erwartet: 'Der Waechter ueber den Quelltext'
   },
+  /* ---- Die Volltextsuche: der Weg ueberhaupt ---- */
+  {
+    nr: '124', name: 'Der Parameter q wird nicht mehr gelesen',
+    datei: 'server.js',
+    suche: "  const begriff = volltextBegriff(req.query.q);",
+    ersatz: "  const begriff = '';",
+    erwartet: 'Die Volltextsuche'
+  },
+  {
+    nr: '125', name: 'searchText steht wieder in der Antwort',
+    datei: 'server.js',
+    suche: "    delete it.description;",
+    ersatz: "    it.searchText = (it.title || '').toLowerCase();\n    delete it.description;",
+    erwartet: 'searchText ist fort, und sonst nichts'
+  },
+  /* ---- Die sieben Quellen, einzeln ----
+     JEDES GLIED WIRD WIRKUNGSLOS GEMACHT, NICHT ENTFERNT: `0 > 1` an seiner
+     Stelle laesst die ODER-Kette ganz und nimmt genau eine Quelle heraus. Ein
+     geloeschtes Glied riss die Kette auseinander, und SQLite scheiterte an der
+     Abfrage -- der Lauf faerbte dann nicht eine Pruefung rot, er stuerzte
+     (Stolperstein 138). */
+  {
+    nr: '126', name: 'Die Suche sieht den Titel nicht mehr an',
+    datei: 'server.js',
+    suche: "  WHERE instr(kkl(i.title), :q) > 0",
+    ersatz: "  WHERE 0 > 1",
+    erwartet: 'Die Volltextsuche'
+  },
+  {
+    nr: '127', name: 'Und die Beschreibung nicht',
+    datei: 'server.js',
+    suche: "     OR instr(kkl(i.description), :q) > 0",
+    ersatz: "     OR 0 > 1",
+    erwartet: 'Die Volltextsuche'
+  },
+  {
+    nr: '128', name: 'Und den Namen der Kategorie nicht',
+    datei: 'server.js',
+    suche: "     OR instr(kkl(c.name), :q) > 0",
+    ersatz: "     OR 0 > 1",
+    erwartet: 'Die Volltextsuche'
+  },
+  {
+    nr: '129', name: 'Und die Tags am Eintrag nicht',
+    datei: 'server.js',
+    suche: "                WHERE it.item_id = i.id AND instr(kkl(t.name), :q) > 0)",
+    ersatz: "                WHERE it.item_id = i.id AND 0 > 1)",
+    erwartet: 'Die Volltextsuche'
+  },
+  {
+    nr: '130', name: 'Und die Tags an den Testtagen nicht',
+    datei: 'server.js',
+    suche: "                WHERE d.item_id = i.id AND instr(kkl(tt.name), :q) > 0)",
+    ersatz: "                WHERE d.item_id = i.id AND 0 > 1)",
+    erwartet: 'Die Volltextsuche'
+  },
+  {
+    nr: '131', name: 'Und die Adressen der Links nicht',
+    datei: 'server.js',
+    suche: "     OR EXISTS (SELECT 1 FROM links l WHERE l.item_id = i.id AND instr(kkl(l.url), :q) > 0)",
+    ersatz: "     OR EXISTS (SELECT 1 FROM links l WHERE l.item_id = i.id AND 0 > 1)",
+    erwartet: 'Die Volltextsuche'
+  },
+  {
+    nr: '132', name: 'Und die Kommentartexte nicht',
+    datei: 'server.js',
+    suche: "     OR EXISTS (SELECT 1 FROM comments k WHERE k.item_id = i.id AND instr(kkl(k.text), :q) > 0)",
+    ersatz: "     OR EXISTS (SELECT 1 FROM comments k WHERE k.item_id = i.id AND 0 > 1)",
+    erwartet: 'Die Volltextsuche'
+  },
+  /* ---- Die Schreibung und die Wildcards ---- */
+  {
+    /* GENAU DIE UNICODE-HAELFTE FAELLT WEG, nicht die Kleinschreibung selbst:
+       ASCII wird weiter gefaltet, Umlaute nicht -- also genau das Verhalten,
+       das SQLite mit lower() und LIKE von Haus aus hat. Ein Rueckbau, der
+       toLowerCase() ganz entfernte, machte auch jede ASCII-Suche rot und sagte
+       damit nichts mehr ueber die Umlaute. */
+    nr: '133', name: 'Die Kleinschreibung faltet nur noch ASCII',
+    datei: 'db.js',
+    suche: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).toLowerCase()));",
+    ersatz: "db.function('kkl', { deterministic: true }, (s) => (s === null ? '' : String(s).replace(/[A-Z]/g, (c) => c.toLowerCase())));",
+    erwartet: 'Die Volltextsuche'
+  },
+  {
+    nr: '134', name: 'Der Titel wird wieder ueber LIKE gesucht -- Wildcards wirken',
+    datei: 'server.js',
+    suche: "  WHERE instr(kkl(i.title), :q) > 0",
+    ersatz: "  WHERE kkl(i.title) LIKE '%' || :q || '%'",
+    erwartet: 'Die Volltextsuche'
+  },
+  {
+    /* DIE LISTE VERSCHWEIGT ETWAS, DAS DIE SUCHE ZEIGT -- die Richtung, auf
+       die es ankommt. Der Papierkorb steht gar nicht in `items`; die schaerfste
+       erreichbare Lage ist deshalb eine Liste, die weniger zeigt als die
+       Suche. */
+    nr: '135', name: 'Die Liste ohne Begriff verschweigt die abgelehnten Eintraege',
+    datei: 'server.js',
+    suche: "  let rows = qAlleItems.all();",
+    ersatz: "  let rows = qAlleItems.all();\n  if (!volltextBegriff(req.query.q)) rows = rows.filter(r => !r.rejected);",
+    erwartet: 'Die Volltextsuche'
+  },
+  /* ---- testDays und die Zeitleiste ---- */
+  {
+    nr: '136', name: 'testDays kommt wieder immer mit',
+    datei: 'server.js',
+    suche: "    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
+    ersatz: "    it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
+    erwartet: 'testDays haengt an der Zeitleiste'
+  },
+  {
+    nr: '137', name: 'testDays fehlt immer, auch mit eingeschalteter Zeitleiste',
+    datei: 'server.js',
+    suche: "    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
+    ersatz: "    if (false) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
+    erwartet: 'testDays haengt an der Zeitleiste'
+  },
+  /* ---- Die Suche am Bildschirm ---- */
+  {
+    nr: '138', name: 'Der Debounce faellt weg -- jeder Anschlag fragt',
+    datei: 'public/app.js',
+    suche: "  suchUhr = setTimeout(() => { suchUhr = null; sucheAusfuehren(); }, SUCH_VERZOEGERUNG);",
+    ersatz: "  sucheAusfuehren();",
+    erwartet: 'Die Suche fragt den Server'
+  },
+  {
+    nr: '139', name: 'Die Reihenfolge der Antworten wird nicht mehr geachtet',
+    datei: 'public/app.js',
+    suche: "    if (lauf !== suchLauf) return;          // eine neuere Anfrage ist unterwegs",
+    ersatz: "",
+    erwartet: 'Die Suche fragt den Server'
+  },
+  {
+    nr: '140', name: 'Bei gescheiterter Suche wird die Liste leer',
+    datei: 'public/app.js',
+    suche: "    state.suchLaeuft = false; state.suchFehler = true;",
+    ersatz: "    state.suchLaeuft = false; state.suchFehler = true; state.items = [];",
+    erwartet: 'Die Suche fragt den Server'
+  },
+  {
+    nr: '141', name: 'Die Zaehlzeile nennt die Trefferzahl als Bestand',
+    datei: 'public/app.js',
+    suche: "    let z = `${state.bestand} ${vSache(state.bestand)}`",
+    ersatz: "    let z = `${state.items.length} ${vSache(state.items.length)}`",
+    erwartet: 'Die Suche fragt den Server'
+  },
+  {
+    nr: '142', name: 'Das Leeren holt den Bestand neu vom Server',
+    datei: 'public/app.js',
+    suche: "    state.items = state.alle;\n    state.suchLaeuft = false; state.suchFehler = false;",
+    ersatz: "    state.items = await api('GET', '/api/items');\n    state.suchLaeuft = false; state.suchFehler = false;",
+    erwartet: 'Die Suche fragt den Server'
+  },
+  /* ---- Die gespeicherten Ansichten ---- */
+  {
+    nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
+    datei: 'server.js',
+    suche: "                                'zuletztGesehen', 'ansichten'];",
+    ersatz: "                                'zuletztGesehen'];",
+    erwartet: 'Gespeicherte Ansichten'
+  },
+  {
+    nr: '144', name: 'Der Deckel fuer Ansichten faellt weg',
+    datei: 'server.js',
+    suche: "    if (ein.length > ANSICHTEN_DECKEL)",
+    ersatz: "    if (false)",
+    erwartet: 'Gespeicherte Ansichten'
+  },
+  {
+    nr: '145', name: 'Zwei Ansichten duerfen wieder denselben Namen tragen',
+    datei: 'server.js',
+    suche: "      if (namen.has(schluessel))",
+    ersatz: "      if (false)",
+    erwartet: 'Gespeicherte Ansichten'
+  },
+  {
+    nr: '146', name: 'Die Ansichten werden geprueft, NACHDEM filters geschrieben ist',
+    datei: 'server.js',
+    suche: "  let ansichtenText = null;",
+    ersatz: "  let ansichtenText = null;\n  if (req.body.filters !== undefined)\n    putUserSetting(req.benutzer.id, 'filters', JSON.stringify(req.body.filters));",
+    erwartet: 'Gespeicherte Ansichten'
+  },
+  {
+    nr: '147', name: 'Das Speichern einer Ansicht raeumt die gemerkte Stellung weg',
+    datei: 'server.js',
+    suche: "  if (ansichtenText !== null)\n    putUserSetting(req.benutzer.id, 'ansichten', ansichtenText);",
+    ersatz: "  if (ansichtenText !== null) {\n    putUserSetting(req.benutzer.id, 'ansichten', ansichtenText);\n    putUserSetting(req.benutzer.id, 'filters', 'null');\n  }",
+    erwartet: 'Gespeicherte Ansichten'
+  },
+  {
+    nr: '148', name: 'Der Suchbegriff faellt aus der gespeicherten Ansicht',
+    datei: 'public/app.js',
+    suche: "const ansichtAusZustand = () => ({ filters: { ...state.filters }, q: state.search.trim() });",
+    ersatz: "const ansichtAusZustand = () => ({ filters: { ...state.filters }, q: '' });",
+    erwartet: 'Gespeicherte Ansichten in der Oberflaeche'
+  },
+  {
+    nr: '149', name: 'Eine geloeschte Kategorie bleibt in der angewandten Ansicht stehen',
+    datei: 'public/app.js',
+    suche: "  if (f.categoryId != null && !state.categories.some(c => c.id === f.categoryId)) f.categoryId = null;",
+    ersatz: "",
+    erwartet: 'Gespeicherte Ansichten in der Oberflaeche'
+  },
+  /* ---- Die Doppelerkennung ---- */
+  {
+    nr: '150', name: 'Der Titelvergleich achtet wieder auf Gross- und Kleinschreibung',
+    datei: 'public/app.js',
+    suche: "const titelKern = (t) => String(t || '').toLowerCase().replace(",
+    ersatz: "const titelKern = (t) => String(t || '').replace(",
+    erwartet: 'Doppelte Eintraege beim Anlegen'
+  },
+  {
+    nr: '151', name: 'Der Hinweis greift erst ab acht Zeichen',
+    datei: 'public/app.js',
+    suche: "const AEHNLICH_FENSTER = 4;",
+    ersatz: "const AEHNLICH_FENSTER = 8;",
+    erwartet: 'Doppelte Eintraege beim Anlegen'
+  },
+  {
+    nr: '152', name: 'Der Hinweis vergleicht nur die Trefferliste statt des Bestands',
+    datei: 'public/app.js',
+    suche: "  for (const it of state.alle) {",
+    ersatz: "  for (const it of state.items) {",
+    erwartet: 'Doppelte Eintraege beim Anlegen'
+  },
+  /* ---- Die Marke ---- */
+  {
+    nr: '153', name: 'Die durchsichtige Fassung traegt wieder Gold',
+    datei: 'public/marke-dunkel.svg',
+    suche: '<path d="M8 16 H24" stroke="#ff7a1a"/>',
+    ersatz: '<path d="M8 16 H24" stroke="#ffc531"/>',
+    erwartet: 'Die Marke der Anlage'
+  },
+  {
+    /* DIESELBE ZEILE IN DER ANDEREN DATEI, und das ist kein Doppel: die
+       beiden liegen getrennt, und wer eine anfasst, laesst die andere
+       zurueck. Genau dafuer stehen hier zwei Rueckbauten. */
+    nr: '154', name: 'Die Fassung mit Kachel traegt wieder Gold',
+    datei: 'public/favicon.svg',
+    suche: '<path d="M8 16 H24" stroke="#ff7a1a"/>',
+    ersatz: '<path d="M8 16 H24" stroke="#ffc531"/>',
+    erwartet: 'Die Marke der Anlage'
+  },
+  {
+    nr: '155', name: 'Das viewBox umschliesst wieder die Kachel statt der Farbe',
+    datei: 'public/marke-dunkel.svg',
+    suche: 'viewBox="6.5 4.5 19 23" width="19" height="23"',
+    ersatz: 'viewBox="0 0 32 32" width="32" height="32"',
+    erwartet: 'Die Marke der Anlage'
+  },
+  {
+    nr: '156', name: 'Die Hoehe der Marke steht wieder in Pixel',
+    datei: 'public/style.css',
+    suche: '.brand .marke { height: 3.1rem; }',
+    ersatz: '.brand .marke { height: 46px; }',
+    erwartet: 'Die Marke der Anlage'
+  },
+  {
+    nr: '157', name: 'Das Markup gibt die Marke wieder quadratisch an',
+    datei: 'public/app.js',
+    suche: '`<img class="marke" src="marke-dunkel.svg" width="${Math.round(s * 19 / 23)}" height="${s}" alt="">`;',
+    ersatz: '`<img class="marke" src="marke-dunkel.svg" width="${s}" height="${s}" alt="">`;',
+    erwartet: 'Die Marke der Anlage'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',

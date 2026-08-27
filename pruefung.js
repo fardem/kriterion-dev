@@ -1343,6 +1343,110 @@ const freigabeHaupt = (zweck, ziel = null) =>
     mkAntwort.headers.get('x-content-type-options') === 'nosniff',
     mkAntwort.headers.get('x-content-type-options'));
 
+  /* ---- Die Farbe, seit 0.11.0 ----
+     DER HERVORGEHOBENE STRICH TRAEGT DEN AKZENT UND NICHT MEHR GOLD. In der
+     Kopfzeile standen zwei warme Farben nebeneinander, die nichts voneinander
+     wussten: der Strich in --gold, der Knopf daneben in --accent. Eine Farbe
+     ist besser als zwei. Gold bleibt die Farbe der BEWERTUNG; die Marke ist
+     nicht die Bewertung, sie ist die Anlage.
+     GEPRUEFT AN BEIDEN DATEIEN UND NICHT AN EINER: sie liegen getrennt, und
+     wer eine anfasst, laesst die andere zurueck -- ab dann zeigt der Reiter
+     etwas anderes als die Kopfzeile. */
+  const MK_AKZENT = '#ff7a1a', MK_GOLD = '#ffc531', MK_GRAU = '#838c95';
+  for (const n of mkDateien) {
+    pruefe(`${n} traegt den Akzent am hervorgehobenen Strich`,
+      new RegExp(`<path d="M8 16 H24" stroke="${MK_AKZENT}"`).test(mkInhalt[n] || ''),
+      (mkInhalt[n] || '').split('\n').find(z => z.includes('M8 16')) || '(keine Zeile)');
+    pruefe(`Und ${n} traegt nirgends mehr Gold`,
+      !(mkInhalt[n] || '').includes(MK_GOLD), MK_GOLD + ' steht noch darin');
+  }
+  // Der Rest der Marke bleibt grau -- die Runde aendert EINEN Strich und nicht
+  // das Zeichen.
+  for (const n of mkDateien) {
+    const grau = ((mkInhalt[n] || '').match(new RegExp(MK_GRAU, 'g')) || []).length;
+    pruefe(`Und die drei uebrigen Striche in ${n} bleiben grau`, grau === 3, `${grau} statt 3`);
+  }
+
+  /* ---- Die Hoehe, seit 0.11.0 ----
+     DAS viewBox DER DURCHSICHTIGEN FASSUNG UMSCHLIESST DIE FARBE. Gezeichnet
+     wird von y=6 bis y=26, aber bei stroke-width 3 und stroke-linecap round
+     traegt die Farbe eine halbe Strichbreite darueber hinaus: von 4.5 bis
+     27.5, also 23 von 32 Einheiten. Im quadratischen viewBox 0 0 32 32 zeichnete
+     die Datei damit nur 72 Prozent ihrer eigenen Hoehe und stand neben dem Text
+     zu tief. Mit dem engen viewBox ist die angegebene Hoehe die gezeichnete. */
+  pruefe('Das viewBox der durchsichtigen Fassung umschliesst die Farbe',
+    /viewBox="6\.5 4\.5 19 23"/.test(mkInhalt['marke-dunkel.svg'] || ''),
+    (mkInhalt['marke-dunkel.svg'] || '').match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
+  /* UND favicon.svg BEHAELT SEIN QUADRAT. Es ist ein Kachelsymbol: die Kachel
+     braucht ihren Rand, und 72 Prozent sind dort der uebliche Schutzbereich.
+     Ein enges viewBox schnitte die Kachel an. */
+  pruefe('Und die Fassung mit Kachel behaelt ihr Quadrat',
+    /viewBox="0 0 32 32"/.test(mkInhalt['favicon.svg'] || ''),
+    (mkInhalt['favicon.svg'] || '').match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
+
+  /* DIE HOEHE STEHT IM CSS UND IN rem, NICHT IN PIXEL. Die Anlage stellt die
+     Schrift von 80 bis 120 Prozent; eine festgeschriebene Pixelhoehe passte
+     nur bei 100 Prozent zum Text daneben.
+     UND SIE IST AUSGERECHNET: Titel (1,23 rem) und Zaehlzeile (0,77 rem) haben
+     keine eigene Zeilenhoehe und erben die 1,55 des body -- der Stapel misst
+     (1,23 + 0,77) x 1,55 = 3,10 rem. Auf der Anmeldeseite steht EINE Zeile
+     daneben: 1,53 x 1,55 = 2,372 rem. Die Zahlen werden hier NACHGERECHNET und
+     nicht abgeschrieben; verstellt jemand eine der Schriftgroessen, faellt es
+     hier auf. */
+  const mkZahl = (regel, feld) => {
+    const r = (mkCss.match(new RegExp(regel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
+    const m = r.match(new RegExp(feld + ': *([\\d.]+)rem'));
+    return m ? Number(m[1]) : null;
+  };
+  const mkGroesse = (wahl) => {
+    const r = (mkCss.match(new RegExp(wahl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
+    const m = r.match(/font-size: *([\d.]+)rem/);
+    return m ? Number(m[1]) : null;
+  };
+  /* GENOMMEN WIRD DER body-BLOCK, DER DIE ZEILENHOEHE WIRKLICH SETZT. Im
+     Stylesheet steht `html, body { ... }` VOR `body { ... }`, und der erste
+     Treffer auf "body {" ist damit der falsche -- er kennt keine
+     Zeilenhoehe. */
+  const mkZeilenhoehe = (() => {
+    for (const b of (mkCss.match(/body \{[^}]*\}/g) || [])) {
+      const m = b.match(/line-height: *([\d.]+)/);
+      if (m) return Number(m[1]);
+    }
+    return null;
+  })();
+  pruefe('Der Aufbau steht: die Zeilenhoehe des body ist ablesbar',
+    mkZeilenhoehe === 1.55, `${mkZeilenhoehe}`);
+  const mkTitel = mkGroesse('.brand h1'), mkZaehl = mkGroesse('.brand .count');
+  pruefe('Und die beiden Schriftgroessen des Stapels ebenso',
+    mkTitel === 1.23 && mkZaehl === 0.77, `${mkTitel} / ${mkZaehl}`);
+  const mkMarkeHoch = mkZahl('.brand .marke', 'height');
+  pruefe('Die Marke der Kopfzeile steht so hoch wie Titel und Zaehlzeile zusammen',
+    mkMarkeHoch !== null
+      && Math.abs(mkMarkeHoch - (mkTitel + mkZaehl) * mkZeilenhoehe) < 0.011,
+    `${mkMarkeHoch}rem gegen ${((mkTitel + mkZaehl) * mkZeilenhoehe).toFixed(3)}rem`);
+  const mkLoginGross = mkGroesse('.login-card h1');
+  const mkLoginHoch = mkZahl('.login-card .login-marke .marke', 'height');
+  pruefe('Und die der Anmeldeseite so hoch wie die eine Zeile daneben',
+    mkLoginHoch !== null && mkLoginGross !== null
+      && Math.abs(mkLoginHoch - mkLoginGross * mkZeilenhoehe) < 0.011,
+    `${mkLoginHoch}rem gegen ${(mkLoginGross * mkZeilenhoehe).toFixed(3)}rem`);
+  /* KEINE PIXELHOEHE DANEBEN. Eine zweite Angabe in px schluege die rem-Zeile
+     je nach Reihenfolge und macht die Rechnung darueber wertlos. */
+  pruefe('Und keine der beiden traegt daneben eine Hoehe in Pixel',
+    !/\.brand \.marke \{[^}]*height: *\d+px/.test(mkCss)
+      && !/\.login-marke \.marke \{[^}]*height: *\d+px/.test(mkCss),
+    'eine Pixelhoehe steht daneben');
+  /* DIE BREITE FOLGT DEM SEITENVERHAELTNIS. Ohne `width: auto` schluege das
+     Attribut aus dem Markup zu und die Marke waere verzerrt. */
+  pruefe('Die Breite folgt dem Seitenverhaeltnis der Datei',
+    /\.marke \{[^}]*width: *auto/.test(mkCss),
+    (mkCss.match(/\.marke \{[^}]*\}/) || ['(keine Regel)'])[0]);
+  // Und das Markup traegt dasselbe Verhaeltnis, damit nichts springt, bevor
+  // das Stylesheet greift.
+  pruefe('Und das Markup traegt dasselbe Verhaeltnis',
+    /width="\$\{Math\.round\(s \* 19 \/ 23\)\}" height="\$\{s\}"/.test(mkApp),
+    (mkApp.match(/const MARK =[\s\S]{0,200}/) || [''])[0]);
+
   /* ---------------------------------------------------------------- */
   gruppe('Schriftgroessen im Stylesheet');
 
@@ -1510,9 +1614,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Übersicht liefert die Testtage selbst, nicht nur die Anzahl',
     Array.isArray(suchbar.testDays) && suchbar.testDays[0].day === '2026-07-01');
   await ruf('POST', `/api/test-days/${tag1.id}/tags`, { name: 'Nurhier' });
-  const suchbar2 = (await ruf('GET', '/api/items')).inhalt.find(i => i.id === tt.id);
+  /* SEIT 0.11.0 SUCHT DER SERVER. Bis 0.10.0 stand hier eine Frage an das Feld
+     `searchText` der Listenantwort; das Feld gibt es nicht mehr. Gefragt wird
+     jetzt die Route selbst -- und das ist die bessere Frage: sie belegt, was
+     ein Mensch bekommt, und nicht, was in einem Hilfsfeld steht. */
+  const suchbar2 = (await ruf('GET', '/api/items?q=nurhier')).inhalt;
   pruefe('Suche findet Tags, die nur am Testtag hängen',
-    suchbar2.searchText.includes('nurhier'));
+    suchbar2.some(i => i.id === tt.id),
+    `${suchbar2.length} Treffer: ${suchbar2.map(i => i.title).join(' · ')}`);
   const nurhier = (await ruf('GET', '/api/tags')).inhalt.find(t => t.name === 'Nurhier');
   pruefe('Solcher Tag hat null Einträge und fällt damit aus der Filterwolke',
     nurhier.usage_count === 0 && nurhier.test_usage_count === 1);
@@ -1643,9 +1752,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     JSON.stringify(lkDetail.links.map(l => l.url)));
   pruefe('Leere Eingabe wird weiterhin abgewiesen',
     (await ruf('POST', `/api/items/${lk.id}/links`, { url: '   ' })).status === 400);
+  // Gefragt wird die Suchroute und nicht ein Feld der Listenantwort: seit
+  // 0.11.0 sucht der Server, und `searchText` gibt es nicht mehr.
+  const lkSuche = (await ruf('GET', '/api/items?q=handbuch%203000')).inhalt;
   pruefe('Suchtexte werden mit durchsucht',
-    (await ruf('GET', '/api/items')).inhalt
-      .find(i => i.id === lk.id).searchText.includes('handbuch 3000'));
+    lkSuche.some(i => i.id === lk.id),
+    `${lkSuche.length} Treffer`);
 
   // Export und Import fuehren durch dieselbe Regel. Eine alte Exportdatei
   // traegt ueberall ein Schema und darf sich deshalb nicht veraendern.
@@ -2289,9 +2401,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
       .map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean).sort();
   };
   const dListeSrv = listeAus(srvQuelle, 'PERSOENLICHE_SCHLUESSEL');
-  const dSoll = ['bloecke', 'filters', 'linkZeilen', 'schrift', 'suchNamen', 'zeitleiste',
-                 'zuletztGesehen'];
-  pruefe('server.js kennt genau die sieben persoenlichen Schluessel',
+  /* ACHT SEIT 0.11.0: `ansichten` kommt dazu, die gespeicherten
+     Filterstellungen. Sie sind persoenlich wie `filters` daneben und aus
+     demselben Grund -- eine geteilte Ansicht waere ein neuer Traeger samt
+     neuer Rechtefrage. `filters` bleibt, was es war, die zuletzt benutzte
+     Stellung; die Ansichten stehen daneben und ersetzen sie nicht. */
+  const dSoll = ['ansichten', 'bloecke', 'filters', 'linkZeilen', 'schrift', 'suchNamen',
+                 'zeitleiste', 'zuletztGesehen'];
+  pruefe('server.js kennt genau die acht persoenlichen Schluessel',
     gleich(dListeSrv, dSoll), JSON.stringify(dListeSrv));
 
   /* Der Waechter ueber den Quelltext. Dieselbe Ueberlegung wie bei detail()
@@ -2381,6 +2498,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
     { schrift: 80, linkZeilen: 3, suchNamen: 1 });
   await dRuf('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
   await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { filters: { tested: 'no' } });
+  // Der achte persoenliche Schluessel seit 0.11.0. Er gehoert in DIESE Lage,
+  // weil die Pruefung unten alle Schluessel aus dSoll in user_settings
+  // wiederfinden will -- ein Schluessel, der nie geschrieben wurde, fehlte
+  // dort und saehe aus wie einer, der in der falschen Haelfte landet.
+  /* NUR DER ERSTE SETZT SIE, ausdruecklich. Die Pruefung weiter unten zaehlt
+     die Zeilen des ZWEITEN und haelt damit fest, dass bei ihm nichts steht,
+     was er nicht selbst gesetzt hat -- eine gespeicherte Ansicht des einen
+     darf beim anderen nicht auftauchen. */
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings',
+    { ansichten: [{ name: 'Meine Sicht', q: 'eins', filters: { tested: 'yes' } }] });
   const dEins = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt;
   const dZwei = (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt;
 
@@ -2517,7 +2644,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const dFehlend = dSoll.filter(k => !persoenlichDa(k, 1));
   pruefe('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dFalschGlobal.length === 0, `global gefunden: ${JSON.stringify(dFalschGlobal)}`);
-  pruefe('Alle sieben stehen beim Benutzer, der sie gesetzt hat',
+  pruefe('Alle acht stehen beim Benutzer, der sie gesetzt hat',
     dFehlend.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dFehlend)}`);
   pruefe('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('sucheAktiv') && !persoenlichDa('sucheAktiv', 1),
@@ -2529,12 +2656,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
     !['suche', 'sucheAktiv', 'sucheEigene', 'vokabular', 'title_app', 'title_public']
       .some(k => persoenlichDa(k, 1)),
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 1').all()));
-  // Der Zweite hat vier Schluessel selbst gesetzt und seit 0.8.60 den
-  // Merkzeitpunkt dazu -- fuenf. Was er NICHT gesetzt hat, steht auch nicht
-  // bei ihm; genau darum geht es hier.
+  /* Der Zweite hat vier Schluessel selbst gesetzt und seit 0.8.60 den
+     Merkzeitpunkt dazu -- fuenf. Was er NICHT gesetzt hat, steht auch nicht
+     bei ihm; genau darum geht es hier.
+     SEIT 0.11.0 TRAEGT DAS AUCH DIE GESPEICHERTEN ANSICHTEN: der Erste hat
+     eine, der Zweite keine, und die Zahl bleibt trotzdem fuenf. Waeren sie
+     versehentlich global, stuenden sie hier als sechste Zeile. */
   pruefe('Die beiden Benutzer teilen sich keine Zeile',
     dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 5,
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 2').all()));
+  pruefe('Und die gespeicherte Ansicht des Ersten steht nicht beim Zweiten',
+    persoenlichDa('ansichten', 1) && !persoenlichDa('ansichten', 2),
+    `beim Ersten ${persoenlichDa('ansichten', 1)}, beim Zweiten ${persoenlichDa('ansichten', 2)}`);
   dDb.close();
 
   /* Die Kaskade an user_settings.user_id. Die Anwendung entfernt keine
@@ -11234,6 +11367,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
         tBloecke.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBloecke.join(' · '));
       pruefe('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tQuelle) && !/migration0100/.test(tQuelle));
+      /* UND KEINEN FUER 0.11.0. Die Runde braucht keinen: die Volltextsuche
+         liest vorhandene Spalten, die gespeicherten Ansichten liegen als
+         weiterer persoenlicher Schluessel in user_settings, und ein neuer
+         Schluessel dort ist kein Schema -- eine Anlage ohne ihn bekommt beim
+         Lesen die leere Liste als Vorgabe. Steht hier je einer, ist die
+         Zusage "kein Schema" gebrochen, und das soll auffallen. */
+      pruefe('Und keinen fuer 0.11.0',
+        !/MIGRATION 0\.11/.test(tQuelle) && !/migration0110/.test(tQuelle));
       fs.rmSync(tDir, { recursive: true, force: true });
     }
 
@@ -11504,7 +11645,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
      dahinter (PUT /api/registrierung/schalter, POST /api/anfragen/:id/frei
      und DELETE /api/anfragen/:id). GET /api/anfragen steht wie immer NICHT
      hier, obwohl es einen Waechter traegt. */
-  pruefe('Und es sind jetzt genau 64 schreibende Routen',
+  /* 0.11.0 bewegt sie NICHT. Die Volltextsuche laeuft ueber
+     GET /api/items?q=... -- dieselbe Route, ein Parameter mehr, und sie ist
+     LESEND; dieselbe Regel wie bei GET /api/offen und GET /api/stats. Die
+     gespeicherten Ansichten gehen ueber PUT /api/settings, das es laengst
+     gibt, und ihre Rechtezeile hat sich nicht verschoben: sie sind
+     persoenlich wie alles andere unter PERSOENLICHE_SCHLUESSEL. Wer aus dem
+     Suchweg eine eigene schreibende Route machte, wird hier namentlich rot. */
+  pruefe('Und es sind jetzt genau 69 schreibende Routen',
     F_ROUTEN.length === 69 && fGefunden.length === 69,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
@@ -15151,6 +15299,382 @@ const freigabeHaupt = (zweck, ziel = null) =>
     (await ruf('GET', '/api/stats')).inhalt.attachmentCount === 0);
 
   /* ---------------------------------------------------------------- */
+  gruppe('Die Volltextsuche');
+
+  /* JE EINE LAGE FUER JEDE DER SIEBEN QUELLEN DES SUCHTEXTS. Die Suchwoerter
+     sind ERFUNDEN und kommen im uebrigen Bestand nicht vor -- damit ist jede
+     Trefferzahl EXAKT und nicht "mindestens einer". Eine Suche, die zufaellig
+     etwas anderes mitfindet, faerbte diese Gruppe sonst nie rot.
+     ALLE SIEBEN EINZELN, keine Sammelpruefung: faellt eine Quelle aus der
+     Abfrage, soll GENAU SIE namentlich rot werden. */
+  const vsKat = (await ruf('POST', '/api/product-categories',
+    { name: 'Vollkategorie' })).inhalt;
+  const vsAnlegen = async (titel, beschr = '') =>
+    (await ruf('POST', '/api/items', { title: titel, description: beschr })).inhalt;
+
+  const vsTitel = await vsAnlegen('STICHSÄGE ÜBERGROSS');
+  const vsBeschr = await vsAnlegen('Volltext zwei', 'darin steht MÜNCHENQUELLE');
+  const vsKatE = await vsAnlegen('Volltext drei');
+  await ruf('PUT', `/api/items/${vsKatE.id}`, { productCategoryId: vsKat.id });
+  const vsTag = await vsAnlegen('Volltext vier');
+  await ruf('POST', `/api/items/${vsTag.id}/tags`, { name: 'Grünspanig' });
+  const vsTagTag = await vsAnlegen('Volltext fünf');
+  const vsTd = await ruf('POST', `/api/items/${vsTagTag.id}/test-days`,
+    { day: '2026-05-05', rating: 4 });
+  await ruf('POST', `/api/test-days/${vsTd.inhalt.testDays[0].id}/tags`, { name: 'Nebelfeucht' });
+  const vsLink = await vsAnlegen('Volltext sechs');
+  await ruf('POST', `/api/items/${vsLink.id}/links`, { url: 'https://beispiel.test/xyzzyquux' });
+  const vsKomm = await vsAnlegen('Volltext sieben');
+  await sendeKommentar(vsKomm.id, { text: 'im Kommentar steht Quastenflosser' });
+  const vsProzent = await vsAnlegen('Rabatt 50 % sicher');
+  const vsUnter = await vsAnlegen('Datei_mit_Strich');
+
+  const vsSuche = async (q) => (await ruf('GET', `/api/items?q=${encodeURIComponent(q)}`)).inhalt;
+  const vsIds = async (q) => (await vsSuche(q) || []).map(i => i.id);
+  // Genau einer, und zwar der erwartete. Zwei Fragen in einer Zeile, weil eine
+  // Trefferliste mit dem richtigen Eintrag UND drei falschen daneben keine
+  // richtige Antwort ist.
+  const vsNur = async (q, id) => {
+    const t = await vsIds(q);
+    return { ok: t.length === 1 && t[0] === id, wie: `${t.length} Treffer: ${t.join(' ')}` };
+  };
+
+  for (const [was, wort, ziel] of [
+    ['den Titel', 'stichsäge', () => vsTitel.id],
+    ['die Beschreibung', 'münchenquelle', () => vsBeschr.id],
+    ['den Namen der Kategorie', 'vollkategorie', () => vsKatE.id],
+    ['einen Tag am Eintrag', 'grünspanig', () => vsTag.id],
+    ['einen Tag am Testtag', 'nebelfeucht', () => vsTagTag.id],
+    ['die Adresse eines Links', 'xyzzyquux', () => vsLink.id],
+    ['den Text eines Kommentars', 'quastenflosser', () => vsKomm.id]
+  ]) {
+    const r = await vsNur(wort, ziel());
+    pruefe(`Die Suche findet über ${was}`, r.ok, r.wie);
+  }
+
+  /* DIE SCHREIBUNG SPIELT KEINE ROLLE, AUCH BEI UMLAUTEN. Das ist die Zeile,
+     die den Bauweg festhaelt: SQLite faltet in LIKE und lower() nur ASCII, ein
+     LIKE-Weg faende "ÜBERGROSS" bei der Eingabe "übergross" NICHT. Die
+     Anlage haengt deshalb eine Kleinschreibung nach Unicode in SQL ein.
+     Ohne diese Pruefung faellt der Rueckbau darauf gar nicht auf. */
+  const vsUml = await vsNur('übergross', vsTitel.id);
+  pruefe('Und zwar ohne Rücksicht auf Groß- und Kleinschreibung — auch bei Umlauten',
+    vsUml.ok, vsUml.wie);
+  const vsUmlGross = await vsNur('ÜBERGROSS', vsTitel.id);
+  pruefe('In beide Richtungen', vsUmlGross.ok, vsUmlGross.wie);
+  const vsBeschrGross = await vsNur('MÜNCHENQUELLE', vsBeschr.id);
+  pruefe('Auch in der Beschreibung', vsBeschrGross.ok, vsBeschrGross.wie);
+
+  /* EIN EINZELNES ZEICHEN FINDET WEITERHIN. Bis 0.10.0 lief die Suche als
+     includes() im Browser und fand ab EINEM Zeichen; wer daraus einen
+     Trigramm-Index machte, naehme dem Benutzer das weg -- und zwar still, denn
+     eine Trigramm-Abfrage mit einem Zeichen scheitert nicht, sie liefert null
+     Treffer. Geprueft an einem Zeichen, das nur EIN Eintrag traegt. */
+  const vsEins = await vsNur('ü', vsTitel.id);
+  pruefe('Ein Teilstring aus einem einzigen Zeichen findet weiterhin',
+    // 'ü' steht in ÜBERGROSS und in MÜNCHENQUELLE und in Grünspanig -- also
+    // nicht vsNur, sondern die drei ausdruecklich.
+    (await vsIds('ü')).length >= 3, `${(await vsIds('ü')).length} Treffer`);
+  const vsZwei = await vsNur('xy', vsLink.id);
+  pruefe('Und einer aus zwei Zeichen ebenso', vsZwei.ok, vsZwei.wie);
+
+  /* PROZENT UND UNTERSTRICH SIND TEXT UND KEINE WILDCARDS. In einem
+     LIKE '%…%' waere ein eingegebenes Prozentzeichen ein Platzhalter und
+     faende ALLES. Die Anlage sucht deshalb ueber instr(), das keine
+     Wildcards kennt -- von Bauart und nicht durch eine Klemme, die jemand
+     vergessen kann. */
+  const vsPz = await vsNur('%', vsProzent.id);
+  pruefe('Das Prozentzeichen wirkt als Text und nicht als Wildcard', vsPz.ok, vsPz.wie);
+  const vsUs = await vsNur('_', vsUnter.id);
+  pruefe('Der Unterstrich ebenso', vsUs.ok, vsUs.wie);
+  /* UND DIE GEGENLAGE: man muss die beiden auch SUCHEN koennen. Eine
+     Vorabbereinigung, die sie einfach wegwirft, machte die zwei Zeilen
+     darueber ebenfalls gruen und naehme dem Benutzer trotzdem etwas weg. */
+  const vsPzText = await vsNur('50 %', vsProzent.id);
+  pruefe('Und man kann das Prozentzeichen wirklich suchen', vsPzText.ok, vsPzText.wie);
+  const vsUsText = await vsNur('_mit_', vsUnter.id);
+  pruefe('Und den Unterstrich auch', vsUsText.ok, vsUsText.wie);
+
+  /* DIE SUCHE LIEFERT NICHT MEHR ALS DIE LISTE. Sie liest dieselbe Tabelle
+     ohne weitere Einschraenkung; ein Papierkorbeintrag steht gar nicht darin.
+     GEPRUEFT WIRD DIE MENGE UND NICHT DIE BEHAUPTUNG: jede Trefferliste ist
+     eine Teilmenge der Liste ohne Parameter.
+
+     UND DER BESTAND MUSS DIE FRAGE UEBERHAUPT STELLEN KOENNEN. Die erste
+     Fassung dieser Zeile verglich zwei Mengen, die sich gar nicht
+     unterscheiden KONNTEN: der Bestand trug keinen abgelehnten Eintrag, und
+     ein Rueckbau, der die Liste ausgerechnet die abgelehnten verschweigen
+     laesst (Rueckbau 135), blieb deshalb vollstaendig STUMM. Das ist
+     Stolperstein 81 in seiner unangenehmen Fassung: nicht ein fehlender
+     Gegenstand, sondern ein Bestand, an dem die Eigenschaft nicht auftreten
+     kann. Ein ABGELEHNTER Eintrag gehoert deshalb vorher hinein -- er steht in
+     der Liste und muss darum auch in der Suche stehen. */
+  const vsAbgelehnt = await vsAnlegen('Abgelehnt Wummerklotz');
+  await ruf('PUT', `/api/items/${vsAbgelehnt.id}`, { rejected: true });
+  const vsAlle = (await ruf('GET', '/api/items')).inhalt;
+  const vsAlleIds = new Set(vsAlle.map(i => i.id));
+  pruefe('Der Aufbau steht: im Bestand liegt ein abgelehnter Eintrag',
+    vsAlle.some(i => i.id === vsAbgelehnt.id && i.rejected === true),
+    JSON.stringify(vsAlle.find(i => i.id === vsAbgelehnt.id)?.rejected));
+  const vsAbg = await vsNur('wummerklotz', vsAbgelehnt.id);
+  pruefe('Ein abgelehnter Eintrag steht in der Liste UND in der Suche',
+    vsAbg.ok, vsAbg.wie);
+  const vsWeitest = await vsIds('e');
+  pruefe('Die Suche liefert nichts, was die Liste verschweigt',
+    vsWeitest.length > 0 && vsWeitest.every(id => vsAlleIds.has(id)),
+    `${vsWeitest.filter(id => !vsAlleIds.has(id)).join(' ') || '—'} zusätzlich`);
+  // Und die Gegenrichtung an derselben Menge: der weiteste Begriff findet
+  // wirklich mehr als eine Handvoll -- eine Teilmenge aus null Zeilen waere
+  // jede Teilmenge.
+  pruefe('Und der weiteste Begriff trifft wirklich einen grossen Teil davon',
+    vsWeitest.length >= 5, `${vsWeitest.length} von ${vsAlle.length}`);
+  const vsWeg = await vsAnlegen('Papierkorbprobe Zwirbelwurz');
+  pruefe('Der Aufbau steht: der Eintrag ist vor dem Löschen zu finden',
+    (await vsIds('zwirbelwurz')).includes(vsWeg.id));
+  await ruf('DELETE', `/api/items/${vsWeg.id}`);
+  pruefe('Ein Eintrag im Papierkorb wird nicht mehr gefunden',
+    (await vsIds('zwirbelwurz')).length === 0,
+    `${(await vsIds('zwirbelwurz')).length} Treffer`);
+
+  // Ein Begriff, von dem nach dem Trimmen nichts uebrig ist, ist KEINE Suche
+  // ohne Treffer, sondern gar keine Suche.
+  pruefe('Ein Begriff aus lauter Leerzeichen ist keine Suche',
+    (await vsIds('   ')).length === vsAlle.length,
+    `${(await vsIds('   ')).length} statt ${vsAlle.length}`);
+  pruefe('Ein leerer Begriff ebenso',
+    (await vsIds('')).length === vsAlle.length);
+  // Aussen getrimmt wird wie vorher im Browser: derselbe Zuschnitt, damit
+  // dieselbe Eingabe dieselbe Menge trifft.
+  const vsTrim = await vsNur('  xyzzyquux  ', vsLink.id);
+  pruefe('Der Begriff wird außen getrimmt', vsTrim.ok, vsTrim.wie);
+
+  /* ---------------------------------------------------------------- */
+  gruppe('searchText ist fort, und sonst nichts');
+
+  /* FELD FUER FELD GEGEN DIE ALTE ANTWORT. Die Liste hat bis 0.10.0 je Eintrag
+     ein zusammengesetztes Feld `searchText` mitgeschickt -- gemessen 73
+     Prozent der Antwort. Es faellt weg. WAS NICHT WEGFALLEN DARF, steht hier
+     namentlich: eine Antwort, aus der still ein zweites Feld verschwindet,
+     macht die Kachel falsch, ohne dass eine Pruefung rot wird. */
+  const vsFelder = new Set(Object.keys(vsAlle[0] || {}));
+  const VS_ERWARTET = ['id', 'title', 'created_at', 'updated_at', 'tested', 'rejected',
+    'product_category_id', 'verfasser', 'favorite', 'mainPhoto', 'photoCount', 'videoCount',
+    'category', 'tags', 'linkCount', 'attachmentCount', 'avgRating', 'testCount', 'testAvg',
+    'testLast', 'testDays'];
+  pruefe('Der Aufbau steht: die Liste ist nicht leer', vsAlle.length > 0, `${vsAlle.length}`);
+  pruefe('searchText steht nicht mehr in der Antwort',
+    vsAlle.every(i => i.searchText === undefined),
+    JSON.stringify([...vsFelder]));
+  pruefe('Und kein anderes Feld ist dabei verschwunden',
+    VS_ERWARTET.every(f => vsFelder.has(f)),
+    'fehlt: ' + VS_ERWARTET.filter(f => !vsFelder.has(f)).join(' '));
+  // Auch nicht in der Antwort auf eine SUCHE: sie ist dieselbe Form, und ein
+  // zweiter Zuschnitt dafuer waere eine zweite Wahrheit ueber dieselbe Liste.
+  const vsTrefferFelder = new Set(Object.keys((await vsSuche('volltext'))[0] || {}));
+  pruefe('Die Antwort auf eine Suche trägt dieselben Felder',
+    VS_ERWARTET.every(f => vsTrefferFelder.has(f)) && !vsTrefferFelder.has('searchText'),
+    JSON.stringify([...vsTrefferFelder]));
+  // Und die Beschreibung bleibt draussen, wie bisher: sie stand nie in der
+  // Liste, und das Wegfallen des Suchfelds darf sie nicht hereinholen.
+  pruefe('Die Beschreibung bleibt aus der Liste heraus',
+    vsAlle.every(i => i.description === undefined));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('testDays hängt an der Zeitleiste');
+
+  /* DAS FELD KOSTET GEMESSEN 6 PROZENT DER ANTWORT und wird nur von der
+     Zeitleiste gebraucht. Ist sie aus, faellt es weg.
+     UND DIE ZAHLEN DER KACHEL BLEIBEN TROTZDEM RICHTIG -- das ist Stolperstein
+     102 in Reinform: zu jedem Feld, das die Oberflaeche aus der Antwort liest,
+     gehoert eine Pruefung an der echten Antwort. Die Kachel rechnet aus
+     testCount, testAvg und testLast; wer sie aus testDays rechnete, machte sie
+     genau bei dem still falsch, der die Zeitleiste abgeschaltet hat. */
+  const vsMitZl = (await ruf('GET', '/api/items')).inhalt;
+  pruefe('Mit eingeschalteter Zeitleiste steht testDays in der Antwort',
+    vsMitZl.every(i => Array.isArray(i.testDays)), 'nicht überall');
+  const vsMitTest = vsMitZl.find(i => i.id === vsTagTag.id);
+  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81) -- und hier
+     ist es keine Formsache: die erste Fassung las `vsMitTest.testDays.length`
+     ungeschuetzt. Ein Rueckbau, der das Feld GAR NICHT mehr mitschickt
+     (Rueckbau 137), liess den Lauf damit ABREISSEN statt rot zu werden
+     (Stolpersteine 138 und 161). Mit `|| []` wird aus 0 === 1 ein roter Punkt,
+     und die Zeile sagt weiterhin dasselbe. */
+  pruefe('Der Aufbau steht: ein Eintrag trägt wirklich einen Testtag',
+    !!vsMitTest && (vsMitTest.testDays || []).length === 1 && vsMitTest.testCount === 1,
+    JSON.stringify(vsMitTest && { n: (vsMitTest.testDays || []).length, c: vsMitTest.testCount }));
+
+  await ruf('PUT', '/api/settings', { zeitleiste: false });
+  const vsOhneZl = (await ruf('GET', '/api/items')).inhalt;
+  pruefe('Ausgeschaltet fehlt das Feld ganz',
+    vsOhneZl.every(i => i.testDays === undefined), 'es steht noch da');
+  const vsOhneTest = vsOhneZl.find(i => i.id === vsTagTag.id);
+  /* testLast IST DIE LETZTE NOTE UND KEIN DATUM -- die Kachel schreibt
+     "zuletzt 4", und die Sortierung testlast_desc vergleicht Zahlen. */
+  pruefe('Und die Kachelzahlen bleiben trotzdem richtig',
+    vsOhneTest && vsOhneTest.testCount === 1 && vsOhneTest.testAvg === 4
+      && vsOhneTest.testLast === 4,
+    JSON.stringify(vsOhneTest && { c: vsOhneTest.testCount, a: vsOhneTest.testAvg, l: vsOhneTest.testLast }));
+  pruefe('Auch der Detailweg liefert die Testtage weiter',
+    Array.isArray((await ruf('GET', `/api/items/${vsTagTag.id}`)).inhalt.testDays),
+    'die Detailansicht hat sie verloren');
+  // Und die Suche haelt sich an dieselbe Einstellung -- eine Antwort, die je
+  // nach Parameter anders geformt ist, waere zwei Formen fuer eine Liste.
+  pruefe('Und die Suche antwortet in derselben Form',
+    (await vsSuche('volltext')).every(i => i.testDays === undefined),
+    'die Suche liefert testDays trotz ausgeschalteter Zeitleiste');
+  await ruf('PUT', '/api/settings', { zeitleiste: true });
+  pruefe('Wieder eingeschaltet ist es zurück',
+    (await ruf('GET', '/api/items')).inhalt.every(i => Array.isArray(i.testDays)));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Gespeicherte Ansichten');
+
+  /* SIE STEHEN IN settings UNTER EINEM PERSOENLICHEN SCHLUESSEL und brauchen
+     kein Schema. Die eine gemerkte Filterstellung daneben bleibt, was sie war:
+     die zuletzt benutzte. */
+  const vaStellung = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'untested',
+                       favorit: false, neu: false, sort: 'title_asc' };
+  await ruf('PUT', '/api/settings', { filters: vaStellung });
+  const vaVorher = (await ruf('GET', '/api/settings')).inhalt;
+  pruefe('Der Aufbau steht: eine gemerkte Filterstellung liegt vor',
+    vaVorher.filters && vaVorher.filters.tested === 'untested',
+    JSON.stringify(vaVorher.filters));
+  pruefe('Eine Anlage ohne gespeicherte Ansichten liefert die leere Liste',
+    Array.isArray(vaVorher.ansichten) && vaVorher.ansichten.length === 0,
+    JSON.stringify(vaVorher.ansichten));
+  pruefe('Und der Deckel kommt vom Server', vaVorher.ansichtenDeckel === 8,
+    JSON.stringify(vaVorher.ansichtenDeckel));
+
+  const vaEine = { name: 'Ungetestet, nach Titel', q: 'volltext', filters: vaStellung };
+  const vaSchreib = await ruf('PUT', '/api/settings', { ansichten: [vaEine] });
+  pruefe('Eine Ansicht lässt sich speichern', vaSchreib.status === 200,
+    `${vaSchreib.status} ${JSON.stringify(vaSchreib.inhalt).slice(0, 120)}`);
+  const vaNachher = (await ruf('GET', '/api/settings')).inhalt;
+  pruefe('Sie kommt vollständig zurück',
+    vaNachher.ansichten.length === 1 && vaNachher.ansichten[0].name === vaEine.name
+      && vaNachher.ansichten[0].filters.sort === 'title_asc',
+    JSON.stringify(vaNachher.ansichten));
+  /* DER SUCHBEGRIFF GEHOERT DAZU. Eine Ansicht "Bosch, ungetestet" waere ohne
+     ihn die halbe Ansicht -- und ein Mensch, der sie anklickt, erwartet das,
+     was er beim Speichern vor sich hatte. */
+  pruefe('Und der Suchbegriff steht mit darin',
+    vaNachher.ansichten[0].q === 'volltext', JSON.stringify(vaNachher.ansichten[0].q));
+  /* DIE EINE GEMERKTE STELLUNG BLEIBT UNANGETASTET. Wer 0.10.0 fuhr, hat eine,
+     und sie ist seine. Sie darf beim Einspielen nicht verschwinden und beim
+     Speichern einer Ansicht auch nicht. */
+  pruefe('Die eine gemerkte Filterstellung steht unverändert daneben',
+    vaNachher.filters && vaNachher.filters.tested === 'untested'
+      && vaNachher.filters.sort === 'title_asc',
+    JSON.stringify(vaNachher.filters));
+
+  // Der Deckel. Acht gehen, neun nicht -- und die abgewiesene Liste darf
+  // nichts veraendert haben (geprueft VOR dem ersten Schreiben).
+  const vaAcht = Array.from({ length: 8 }, (_, i) => ({ name: 'Ansicht ' + i, q: '', filters: {} }));
+  pruefe('Acht Ansichten gehen durch',
+    (await ruf('PUT', '/api/settings', { ansichten: vaAcht })).status === 200);
+  const vaNeun = [...vaAcht, { name: 'Ansicht 8', q: '', filters: {} }];
+  const vaZuViel = await ruf('PUT', '/api/settings', { ansichten: vaNeun });
+  pruefe('Die neunte wird abgewiesen', vaZuViel.status === 400, `${vaZuViel.status}`);
+  pruefe('Und die abgewiesene Liste hat nichts verändert',
+    (await ruf('GET', '/api/settings')).inhalt.ansichten.length === 8);
+  const vaOhneName = await ruf('PUT', '/api/settings',
+    { ansichten: [{ q: 'x', filters: {} }] });
+  pruefe('Eine Ansicht ohne Namen wird abgewiesen', vaOhneName.status === 400,
+    `${vaOhneName.status}`);
+  const vaLeerName = await ruf('PUT', '/api/settings',
+    { ansichten: [{ name: '   ', q: '', filters: {} }] });
+  pruefe('Ein Name aus Leerzeichen ebenso', vaLeerName.status === 400, `${vaLeerName.status}`);
+  const vaDoppelt = await ruf('PUT', '/api/settings',
+    { ansichten: [{ name: 'Gleich', q: '', filters: {} }, { name: 'GLEICH', q: '', filters: {} }] });
+  pruefe('Zwei mit demselben Namen ebenso — ohne Rücksicht auf die Schreibung',
+    vaDoppelt.status === 400, `${vaDoppelt.status}`);
+  /* UND DIE ABSAGE KOMMT VOR DEM ERSTEN SCHREIBEN. Eine Anfrage, die eine
+     gueltige Filterstellung UND eine unmoegliche Ansichtenliste traegt, darf
+     die Stellung nicht geschrieben haben -- eine Absage, die die halbe Arbeit
+     schon getan hat, ist schlimmer als gar keine (Stolperstein 154 in der
+     Fassung fuer zwei Felder EINER Anfrage). */
+  const vaVorAbsage = (await ruf('GET', '/api/settings')).inhalt.filters;
+  const vaBeides = await ruf('PUT', '/api/settings', {
+    filters: { ...vaStellung, sort: 'rating_desc' },
+    ansichten: [{ q: 'ohne namen', filters: {} }]
+  });
+  pruefe('Der Aufbau steht: die Anfrage mit beiden Feldern wird abgewiesen',
+    vaBeides.status === 400, `${vaBeides.status}`);
+  pruefe('Und sie hat die Filterstellung NICHT schon geschrieben',
+    JSON.stringify((await ruf('GET', '/api/settings')).inhalt.filters) === JSON.stringify(vaVorAbsage),
+    JSON.stringify((await ruf('GET', '/api/settings')).inhalt.filters));
+
+  /* EINE ANSICHT MIT EINER GELOESCHTEN KATEGORIE ODER EINEM GELOESCHTEN TAG.
+     JSON kennt keine Kaskade -- die Nummer bleibt stehen. Der SERVER wirft
+     deshalb nichts und raeumt auch nichts weg: er gibt zurueck, was
+     gespeichert wurde. Uebergangen wird beim ANWENDEN, in der Oberflaeche;
+     ein Lesevorgang, der die Ansicht eines Menschen umschreibt, waere
+     schlimmer als eine Nummer, die ins Leere zeigt. */
+  const vaKat = (await ruf('POST', '/api/product-categories', { name: 'Bald weg' })).inhalt;
+  const vaTag = (await ruf('POST', `/api/items/${vsTag.id}/tags`, { name: 'Baldweg' })).inhalt;
+  const vaTagId = (await ruf('GET', '/api/tags')).inhalt.find(t => t.name === 'Baldweg').id;
+  await ruf('PUT', '/api/settings', { ansichten: [{ name: 'Mit Fremdnummern', q: '',
+    filters: { ...vaStellung, categoryId: vaKat.id, tagIds: [vaTagId] } }] });
+  await ruf('DELETE', `/api/product-categories/${vaKat.id}`);
+  await ruf('DELETE', `/api/tags/${vaTagId}`);
+  const vaNachLoeschen = await ruf('GET', '/api/settings');
+  pruefe('Eine Ansicht mit gelöschter Kategorie wirft nichts',
+    vaNachLoeschen.status === 200, `${vaNachLoeschen.status}`);
+  pruefe('Und der Server gibt sie unverändert zurück — er räumt nichts weg',
+    vaNachLoeschen.inhalt.ansichten[0].filters.categoryId === vaKat.id
+      && gleich(vaNachLoeschen.inhalt.ansichten[0].filters.tagIds, [vaTagId]),
+    JSON.stringify(vaNachLoeschen.inhalt.ansichten[0].filters));
+
+  /* PERSOENLICH, GANZ. Ein zweiter Zugang sieht sie nicht -- und das ist keine
+     Frage der Oberflaeche, sondern des Servers: der Schluessel steht in
+     PERSOENLICHE_SCHLUESSEL und damit in user_settings. */
+  await ruf('PUT', '/api/settings', { ansichten: [{ name: 'Nur meine', q: 'geheim', filters: {} }] });
+  const vaZweiter = await ruf('POST', '/api/users',
+    { username: 'ansichtsleser', passwort: 'ansichts-wort-1234', rolle: 'user' });
+  pruefe('Der Aufbau steht: ein zweiter Zugang ist angelegt',
+    vaZweiter.status === 200, `${vaZweiter.status} ${JSON.stringify(vaZweiter.inhalt).slice(0, 120)}`);
+  let vaKeks = '';
+  const vaRuf = async (methode, pfad, koerper) => {
+    const opt = { method: methode, headers: {} };
+    if (vaKeks) opt.headers.cookie = vaKeks;
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(BASIS + pfad, opt);
+    const setz = a.headers.get('set-cookie');
+    if (setz) vaKeks = setz.split(';')[0];
+    let inhalt = null;
+    try { inhalt = await a.json(); } catch {}
+    return { status: a.status, inhalt };
+  };
+  const vaAnmeldung = await vaRuf('POST', '/api/login',
+    { user: 'ansichtsleser', password: 'ansichts-wort-1234' });
+  pruefe('Und er meldet sich an', vaAnmeldung.status === 200, `${vaAnmeldung.status}`);
+  const vaFremd = (await vaRuf('GET', '/api/settings')).inhalt;
+  pruefe('Ein anderer Zugang sieht die Ansichten NICHT',
+    Array.isArray(vaFremd.ansichten) && vaFremd.ansichten.length === 0,
+    JSON.stringify(vaFremd.ansichten));
+  /* UND SIE UEBERLEBEN ABMELDEN UND ANMELDEN. Sie liegen in der Datenbank und
+     nicht in der Sitzung -- ohne diese Zeile bliebe das eine Behauptung. */
+  await vaRuf('PUT', '/api/settings', { ansichten: [{ name: 'Seine eigene', q: '', filters: {} }] });
+  await vaRuf('POST', '/api/logout');
+  await vaRuf('POST', '/api/login', { user: 'ansichtsleser', password: 'ansichts-wort-1234' });
+  const vaNachWieder = (await vaRuf('GET', '/api/settings')).inhalt;
+  pruefe('Eine gespeicherte Ansicht überlebt Abmelden und Anmelden',
+    vaNachWieder.ansichten.length === 1 && vaNachWieder.ansichten[0].name === 'Seine eigene',
+    JSON.stringify(vaNachWieder.ansichten));
+  pruefe('Und die des ersten Zugangs sind davon unberührt',
+    (await ruf('GET', '/api/settings')).inhalt.ansichten[0].name === 'Nur meine');
+  /* EIN GEWOEHNLICHER ZUGANG DARF SIE SETZEN. Sie sind persoenlich; waeren sie
+     versehentlich nicht in PERSOENLICHE_SCHLUESSEL, verlangte der Server hier
+     Adminrecht -- und das faellt sonst niemandem auf, solange nur der Admin
+     probiert. */
+  pruefe('Ein gewöhnlicher Zugang darf eigene Ansichten speichern',
+    (await vaRuf('PUT', '/api/settings',
+      { ansichten: [{ name: 'Zweite eigene', q: '', filters: {} }] })).status === 200);
+
+  /* ---------------------------------------------------------------- */
   await pruefeOberflaeche();
   await pruefeErstanmeldung();
   pruefeSchluesselwechsel();
@@ -15882,7 +16406,7 @@ const DOM_ANBIETER = [
 function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
   tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null,
-  zweifaktorCodes = null, anmeldeFaktor = false,
+  zweifaktorCodes = null, anmeldeFaktor = false, suchFehler = false, suchBremsen = null,
   kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
@@ -16197,7 +16721,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: 3, testCount: 2, testAvg: 4, testLast: 4,
-    updated_at: '2026-08-01 10:00:00', searchText: 'beispiel'
+    updated_at: '2026-08-01 10:00:00'
   }];
   /* Der Bestand fuer die Ansicht "Offen". EIGENE Zeilen neben beispiel.comments,
      und zwar aus ZWEI Eintraegen -- an einem einzigen liesse sich die
@@ -16229,6 +16753,8 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       item: { id: 2, title: 'Zweites' }, mine: false, verfasser: vGrab }
   ];
   const gesendet = [];
+  // Zaehler fuer suchBremsen -- welche Suchanfrage gerade hinausgeht.
+  let suchBremse = 0;
 
   /* jsdom kennt <video> als Element, aber nicht seine Methoden: pause() und
      load() melden sich als jsdomError. Das ist Laerm, kein Befund -- die
@@ -16651,6 +17177,36 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     if (/^\/api\/users\/\d+\/bestand$/.test(url))
       return gib({ username: 'bert', eintraege: 2, fremdKommentare: 3, fremdBewertungen: 1,
                    fremdTesttage: 0, kommentare: 4, bewertungen: 2, testtage: 1 });
+    /* GET /api/items?q=... -- der Suchweg, seit 0.11.0. ER STEHT VOR DEM FALL
+       OHNE PARAMETER, sonst faenge der Vergleich auf Gleichheit ihn nie und
+       die Oberflaeche bekaeme auf jede Suche den ganzen Bestand.
+       DER MOCK FILTERT UEBER DEN TITEL UND NICHT UEBER SIEBEN QUELLEN. Die
+       sieben pruefen die Servergruppen an einer echten Datenbank; hier geht es
+       um die Oberflaeche -- dass sie fragt, dass sie zeichnet, was zurueckkommt,
+       und dass sie beim Scheitern stehenbleibt. Ein Mock, der die Suche selbst
+       nachbaute, belegte genau das, was er selbst tut (Stolperstein 102).
+       DER FEHLERFALL IST STELLBAR. Bis 0.10.0 KONNTE die Suche nicht
+       scheitern -- sie lief im Arbeitsspeicher. Ohne diese Lage liesse sich
+       der Rueckfall nicht pruefen, sondern nur hoffen. */
+    if (url.startsWith('/api/items?q=')) {
+      if (suchFehler) return gib({ error: 'Die Suche ist gerade nicht erreichbar.' }, 500);
+      const qRoh = decodeURIComponent(url.slice('/api/items?q='.length));
+      const qMock = qRoh.trim().toLowerCase();
+      const quelle = uebersichtItems || uebersicht;
+      const antwort = gib(qMock ? quelle.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : quelle);
+      /* EINE STELLBARE VERZOEGERUNG JE ANFRAGE, seit 0.11.0. Ohne sie antwortet
+         der Mock augenblicklich, und dann koennen sich zwei Anfragen gar nicht
+         ueberholen -- der Rueckbau auf die laufende Nummer in
+         sucheAusfuehren() blieb deshalb STUMM (Rueckbau 139). `suchBremsen` ist
+         eine Liste von Millisekunden, eine je Suchanfrage in der Reihenfolge,
+         in der sie hinausgehen: [400, 0] laesst die ERSTE spaeter ankommen als
+         die zweite. Ohne die Angabe bleibt alles, wie es war. */
+      if (Array.isArray(suchBremsen)) {
+        const ms = suchBremsen[suchBremse++] || 0;
+        if (ms > 0) return new Promise(r => setTimeout(() => r(antwort), ms));
+      }
+      return antwort;
+    }
     if (url === '/api/items') return gib(uebersichtItems || uebersicht);
     /* Ein ZWEITER Eintrag, nur fuer den Vergleich: dort holt die Ansicht
        mehrere Detailantworten nebeneinander. Ohne ihn faende sie fuer die
@@ -16788,6 +17344,33 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   // die auf dem Bildschirm gar nicht stehen.
   w.document.head.appendChild(skript);
   return { w, gesendet, kriterien, beispiel, stimmenAntwort };
+}
+
+/* WARTEN, BIS DIE SUCHE DURCH IST. Sie laeuft seit 0.11.0 ueber einen Debounce
+   von 220 ms und danach ueber eine Anfrage; ein Vergleich unmittelbar nach
+   oninput() saehe den Stand von vorher und waere gruen, ohne etwas zu belegen.
+
+   GEWARTET WIRD AUF DIE SICHTBARE WIRKUNG UND NICHT AUF EINEN INNEREN WERT.
+   `state` in app.js ist ein const auf oberster Ebene und liegt damit NICHT am
+   window -- eine Frage nach w.state.suchLaeuft waere immer undefined und die
+   Schleife liefe nie, ohne dass es auffiele. Gefragt wird deshalb die
+   Zaehlzeile: solange gesucht wird, steht dort "sucht …". Das ist ausserdem
+   genau der Zustand, den ein Mensch sieht.
+
+   ZUERST DER DEBOUNCE. Vor 220 ms ist gar nichts unterwegs, und "sucht …"
+   stuende auch dann nicht da, wenn die Suche gleich losliefe -- eine Schleife
+   ohne diese Frist waere sofort fertig und belegte nichts. */
+const SUCH_WARTE_DEBOUNCE = 300;
+async function warteSuche(w, grenzeMs = 3000) {
+  await new Promise(r => setTimeout(r, SUCH_WARTE_DEBOUNCE));
+  const bis = Date.now() + grenzeMs;
+  while (Date.now() < bis) {
+    const z = w.document.getElementById('count');
+    if (!z || !/sucht/.test(z.textContent)) break;
+    await new Promise(r => setTimeout(r, 20));
+  }
+  // Eine Runde durch den Event Loop, damit das Neuzeichnen durch ist.
+  await new Promise(r => setTimeout(r, 20));
 }
 
 async function pruefeOberflaeche() {
@@ -17254,7 +17837,7 @@ async function pruefeOberflaeche() {
     id: i + 1, title: 'Stück ' + (i + 1), rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: 3, testCount: proEintrag, testAvg: 4, testLast: 4,
-    updated_at: '2026-08-01 10:00:00', searchText: 'stück ' + (i + 1),
+    updated_at: '2026-08-01 10:00:00',
     testDays: Array.from({ length: proEintrag }, (_, k) => ({
       id: i * 10 + k, day: `202${3 + (i % 3)}-0${1 + k}-15`, rating: (i % 5) + 1 }))
   }));
@@ -17301,16 +17884,23 @@ async function pruefeOberflaeche() {
   erster.onpointerenter({ pointerType: 'touch' });
   pruefe('Auf dem Finger erscheint kein Hinweis', !zlBox().querySelector('.zl-hinweis'));
 
-  // Folgt den Filtern: die Suche schneidet die sichtbaren Eintraege zusammen,
-  // danach unterschreitet die Zeitleiste ihre Schwelle und verschwindet.
+  /* Folgt den Filtern: die Suche schneidet die sichtbaren Eintraege zusammen,
+     danach unterschreitet die Zeitleiste ihre Schwelle und verschwindet.
+     SEIT 0.11.0 MIT WARTEZEIT DAVOR. Die Suche fragt den Server und laeuft
+     ueber einen Debounce von 220 ms; ein Vergleich unmittelbar nach oninput()
+     saehe noch den alten Stand und waere gruen, ohne etwas zu belegen. Das
+     Leeren braucht sie nicht -- es geht ohne Anfrage durch. */
   const suchfeld = wviel.document.getElementById('q');
   suchfeld.value = 'Stück 1';
   suchfeld.oninput();
+  await warteSuche(wviel);
   pruefe('Zeitleiste folgt der Suche', zlBox().innerHTML === '',
     `${zlBox().querySelectorAll('.zl-punkt').length} Punkte`);
   suchfeld.value = '';
   suchfeld.oninput();
-  pruefe('Ohne Suche kommt sie zurück', zlBox().querySelectorAll('.zl-punkt').length === 6);
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('Ohne Suche kommt sie zurück', zlBox().querySelectorAll('.zl-punkt').length === 6,
+    `${zlBox().querySelectorAll('.zl-punkt').length} Punkte`);
 
   const zielId = punkte[0].dataset.item;
   zlBox().querySelector('.zl-punkt').onclick();
@@ -17445,7 +18035,7 @@ async function pruefeOberflaeche() {
     id, title: titel, rejected: false, tested: false, favorite: false, category: null,
     tags, mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
     testCount: null, testAvg: null, testLast: null, testDays: [],
-    updated_at: '2026-08-01 10:00:00', searchText: titel.toLowerCase()
+    updated_at: '2026-08-01 10:00:00'
   });
   const bestand = [
     mitTags(1, 'Grün und schwer', [T.gruen, T.schwer]),
@@ -17576,7 +18166,7 @@ async function pruefeOberflaeche() {
     id, title: titel, rejected: false, tested: id % 2 === 0, favorite: favorit,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: wertung, testCount: null, testAvg: null, testLast: null, testDays: [],
-    updated_at: '2026-08-01 10:00:00', searchText: titel.toLowerCase()
+    updated_at: '2026-08-01 10:00:00'
   });
   // "Zeta ohne Wertung" ist Favorit und hat KEINE Wertung -- genau der Fall
   // aus dem Betrieb. Bei "Bewertung hoch nach niedrig" gehoert er ans Ende,
@@ -17983,7 +18573,7 @@ async function pruefeOberflaeche() {
     id, title: titel, rejected: false, tested: false, favorite: false, category: null,
     tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
     testCount: null, testAvg: null, testLast: null, testDays: [],
-    updated_at: stand, searchText: titel.toLowerCase(), ...extra
+    updated_at: stand, ...extra
   });
   const nsBestand = [
     nsEintrag(1, 'Alpha alt', '2026-08-01 10:00:00', { tested: true, category: nsKat }),
@@ -18444,11 +19034,11 @@ async function pruefeOberflaeche() {
     { id: 1, title: 'Mit Tag', rejected: false, tested: false, favorite: false, category: null,
       tags: [{ id: 1, name: 'Grün' }], mainPhoto: null, photoCount: 0, linkCount: 0,
       avgRating: null, testCount: null, testAvg: null, testLast: null, testDays: [],
-      updated_at: '2026-08-01 10:00:00', searchText: 'mit tag' },
+      updated_at: '2026-08-01 10:00:00' },
     { id: 2, title: 'Ohne Tag', rejected: false, tested: false, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
       avgRating: null, testCount: null, testAvg: null, testLast: null, testDays: [],
-      updated_at: '2026-08-01 10:00:00', searchText: 'ohne tag' }
+      updated_at: '2026-08-01 10:00:00' }
   ];
   const fTags = [{ id: 1, name: 'Grün', usage_count: 1, test_usage_count: 0 }];
   // Gespeicherter Stand beim Laden der Seite: kein Filter.
@@ -19001,7 +19591,7 @@ async function pruefeOberflaeche() {
     id: i + 1, title: 'S' + i, rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: 3, testCount: 1, testAvg: 4, testLast: 4,
-    updated_at: '2026-08-01 10:00:00', searchText: 's',
+    updated_at: '2026-08-01 10:00:00',
     testDays: [{ id: i, day: `202${3 + (i % 3)}-01-15`, rating: 3, mine: i > 1 }]
   }));
   const eZl = baueDom(JSDOM, { uebersichtItems: eZlItems,
@@ -19044,7 +19634,7 @@ async function pruefeOberflaeche() {
     id: i + 1, title: 'S' + i, rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
     avgRating: 3, testCount: 1, testAvg: 4, testLast: 4,
-    updated_at: '2026-08-01 10:00:00', searchText: 's',
+    updated_at: '2026-08-01 10:00:00',
     testDays: [{ id: i, day: `202${3 + (i % 3)}-01-15`, rating: 3 }]
   }));
   const zlAn = baueDom(JSDOM, { uebersichtItems: zlItems,
@@ -20495,7 +21085,7 @@ async function pruefeOberflaeche() {
     id: 1, title: 'Kartenprobe', rejected: false, tested: false, favorite: false,
     category: null, tags: [], mainPhoto: { id: 5, art: mainArt, focus_x: 50, focus_y: 50 },
     photoCount: f, videoCount: v, linkCount: 0, avgRating: 3, testCount: 0,
-    updated_at: '2026-08-01 10:00:00', searchText: 'kartenprobe'
+    updated_at: '2026-08-01 10:00:00'
   }];
   const vKarte = async (mainArt, f, v) => {
     const d = baueDom(JSDOM, { uebersichtItems: vKartenBestand(mainArt, f, v) });
@@ -20637,7 +21227,7 @@ async function pruefeOberflaeche() {
   const fokusDom = baueDom(JSDOM, {
     uebersichtItems: [{ id: 1, title: 'Mit Fokus', rejected: false, tested: false, favorite: false,
       category: null, tags: [], photoCount: 1, linkCount: 0, avgRating: null, testCount: null,
-      testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00', searchText: 'x', testDays: [],
+      testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00', testDays: [],
       mainPhoto: { id: 5, focus_x: 10, focus_y: 90 } }]
   });
   await new Promise(r => setTimeout(r, 80));
@@ -23873,10 +24463,10 @@ async function pruefeOberflaeche() {
   const zweiKarten = [
     { id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3, testCount: 1,
-      testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00', searchText: 'beispiel' },
+      testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00' },
     { id: 2, title: 'Zweites', rejected: false, tested: false, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 2.5, testCount: 3,
-      testAvg: 4, testLast: 3, updated_at: '2026-08-01 10:00:00', searchText: 'zweites' }
+      testAvg: 4, testLast: 3, updated_at: '2026-08-01 10:00:00' }
   ];
   const oeffneVergleich = async (benutzerZahl) => {
     const dom = baueDom(JSDOM, { hash: '', uebersichtItems: zweiKarten, zweiterEintrag: zweit,
@@ -24036,6 +24626,440 @@ async function pruefeOberflaeche() {
       wEiner.document.getElementById('cmp-hint').textContent),
     wEiner.document.getElementById('cmp-hint').textContent);
   wEiner.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Suche fragt den Server');
+
+  /* SEIT 0.11.0 IST JEDER TASTENDRUCK EINE ANFRAGE. Geprueft wird deshalb
+     nicht nur, DASS gefiltert wird, sondern dass die Oberflaeche fragt, dass
+     sie den Debounce einhaelt, dass sie zeichnet, was zurueckkommt, und dass
+     sie beim Scheitern stehenbleibt.
+     JEDES EREIGNIS WIRD WIRKLICH ZUGESTELLT (Stolperstein 61): dispatchEvent
+     samt Durchlauf des Event Loops, nicht der von Hand gerufene Behandler. */
+  const suBestand = Array.from({ length: 6 }, (_, i) => ({
+    id: i + 1, title: i === 0 ? 'Bosch Akkuschrauber' : 'Makita ' + (i + 1),
+    rejected: false, tested: true, favorite: false, category: null, tags: [],
+    mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
+    testCount: 0, testAvg: null, testLast: null, testDays: [],
+    updated_at: '2026-08-01 10:00:00'
+  }));
+  const suDom = baueDom(JSDOM, { uebersichtItems: suBestand });
+  const su = suDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const suKarten = () => [...su.document.querySelectorAll('.card-title')].map(k => k.textContent);
+  const suZaehl = () => su.document.getElementById('count').textContent;
+  const suSuchfragen = () => suDom.gesendet.filter(g => String(g.url).startsWith('/api/items?q='));
+
+  pruefe('Der Aufbau steht: die Uebersicht zeigt den ganzen Bestand',
+    suKarten().length === 6, `${suKarten().length} Karten`);
+  pruefe('Und ohne Suche wurde keine Suchanfrage geschickt',
+    suSuchfragen().length === 0, JSON.stringify(suSuchfragen().map(g => g.url)));
+
+  const suFeld = su.document.getElementById('q');
+  suFeld.value = 'bosch';
+  suFeld.dispatchEvent(new su.Event('input'));
+  await warteSuche(su);
+  pruefe('Tippen schickt eine Suchanfrage an den Server',
+    suSuchfragen().length === 1, JSON.stringify(suSuchfragen().map(g => g.url)));
+  pruefe('Und der Begriff steht darin, richtig verpackt',
+    suSuchfragen()[0].url === '/api/items?q=bosch', suSuchfragen()[0]?.url);
+  pruefe('Gezeichnet wird, was zurueckkam',
+    gleich(suKarten(), ['Bosch Akkuschrauber']), JSON.stringify(suKarten()));
+  /* DIE ZAEHLZEILE NENNT DEN GANZEN BESTAND und nicht die Trefferzahl: waehrend
+     einer Suche traegt state.items nur die Treffer, und "1 Sache" waere eine
+     falsche Auskunft ueber einen Bestand von sechs. */
+  pruefe('Die Zaehlzeile nennt weiter den ganzen Bestand',
+    /6 /.test(suZaehl()) && /1 sichtbar/.test(suZaehl()), suZaehl());
+
+  /* DER DEBOUNCE. Drei Anschlaege schnell hintereinander sind EINE Anfrage --
+     ohne ihn waeren es drei, und auf einem Raspberry Pi ueber WLAN merkt man
+     jede einzelne. */
+  const suVorher = suSuchfragen().length;
+  for (const wort of ['mak', 'maki', 'makita']) {
+    suFeld.value = wort;
+    suFeld.dispatchEvent(new su.Event('input'));
+    await new Promise(r => setTimeout(r, 25));
+  }
+  await warteSuche(su);
+  pruefe('Drei Anschlaege schnell hintereinander sind EINE Anfrage',
+    suSuchfragen().length === suVorher + 1,
+    `${suSuchfragen().length - suVorher} Anfragen: ` +
+      JSON.stringify(suSuchfragen().slice(suVorher).map(g => g.url)));
+  pruefe('Und gefragt wird der ZULETZT getippte Begriff',
+    suSuchfragen()[suSuchfragen().length - 1].url === '/api/items?q=makita',
+    suSuchfragen()[suSuchfragen().length - 1].url);
+  pruefe('Gezeichnet werden dessen Treffer',
+    suKarten().length === 5, JSON.stringify(suKarten()));
+
+  /* DAS LEEREN GEHT OHNE ANFRAGE. Der ungefilterte Bestand liegt in state.alle;
+     ihn ein zweites Mal zu holen waere die haeufigste Handhabung der Suche --
+     tippen, wieder loeschen -- als die teuerste. */
+  /* GEZAEHLT WERDEN ALLE ANFRAGEN AN DIE LISTE, nicht nur die mit `?q=`. Die
+     erste Fassung zaehlte allein die Suchanfragen -- ein Rueckbau, der beim
+     Leeren den ganzen Bestand NEU holt (Rueckbau 142), fragt aber
+     `/api/items` OHNE Parameter, und der Zaehler bewegte sich nicht: der
+     Rueckbau blieb STUMM. Die Frage lautet „kostet das Leeren eine Anfrage",
+     und die Antwort steht in der Zahl ALLER Listenanfragen. */
+  const suListenfragen = () => suDom.gesendet.filter(g => String(g.url).startsWith('/api/items'));
+  const suVorLeeren = suListenfragen().length;
+  const suKreuz = su.document.getElementById('qclr');
+  pruefe('Das Kreuz zum Leeren steht da, solange etwas im Feld steht',
+    suKreuz.style.display === 'block', suKreuz.style.display);
+  suKreuz.dispatchEvent(new su.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 120));
+  pruefe('Leeren holt den Bestand ohne neue Anfrage',
+    suListenfragen().length === suVorLeeren,
+    `${suListenfragen().length - suVorLeeren} zusaetzlich: ` +
+      JSON.stringify(suListenfragen().slice(suVorLeeren).map(g => g.url)));
+  pruefe('Und die ganze Liste steht wieder da',
+    suKarten().length === 6, `${suKarten().length} Karten`);
+  pruefe('Und das Kreuz ist wieder fort', suKreuz.style.display === 'none', suKreuz.style.display);
+  su.close();
+
+  /* ---- Zwei Antworten ueberholen sich ----
+     DIE ANTWORT AUF "makita" DARF DIE AUF "bosch" NICHT UEBERSCHREIBEN. Jede
+     Anfrage traegt eine laufende Nummer, und nur die hoechste darf schreiben.
+     GEPRUEFT AN EINEM MOCK, DER DIE ERSTE ANTWORT BREMST: ohne die Bremse
+     antwortet er augenblicklich, die beiden koennen sich gar nicht ueberholen,
+     und der Rueckbau auf die laufende Nummer blieb STUMM -- er war gebaut und
+     liess sich nicht belegen.
+     Die Anschlaege liegen ueber dem Debounce auseinander, damit BEIDE Anfragen
+     wirklich hinausgehen; die erste kommt 400 ms spaeter zurueck als die
+     zweite. */
+  const uhDom = baueDom(JSDOM, { uebersichtItems: suBestand, suchBremsen: [400, 0] });
+  const uh = uhDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const uhKarten = () => [...uh.document.querySelectorAll('.card-title')].map(k => k.textContent);
+  const uhFeld = uh.document.getElementById('q');
+  uhFeld.value = 'makita';
+  uhFeld.dispatchEvent(new uh.Event('input'));
+  await new Promise(r => setTimeout(r, 300));          // Debounce durch, Anfrage 1 unterwegs
+  uhFeld.value = 'bosch';
+  uhFeld.dispatchEvent(new uh.Event('input'));
+  await new Promise(r => setTimeout(r, 300));          // Debounce durch, Anfrage 2 sofort da
+  const uhSuchfragen = uhDom.gesendet.filter(g => String(g.url).startsWith('/api/items?q='));
+  pruefe('Der Aufbau steht: beide Suchanfragen sind wirklich hinausgegangen',
+    uhSuchfragen.length === 2, JSON.stringify(uhSuchfragen.map(g => g.url)));
+  pruefe('Und die zweite ist zuerst zurueck: die Liste zeigt ihren Treffer',
+    gleich(uhKarten(), ['Bosch Akkuschrauber']), JSON.stringify(uhKarten()));
+  await new Promise(r => setTimeout(r, 500));          // jetzt kommt Anfrage 1 nach
+  pruefe('Die spaeter eintreffende AELTERE Antwort ueberschreibt sie NICHT',
+    gleich(uhKarten(), ['Bosch Akkuschrauber']), JSON.stringify(uhKarten()));
+  // Und die Zaehlzeile sagt nicht mehr "sucht ..." -- es ist nichts mehr offen.
+  pruefe('Und danach steht die Zaehlzeile still',
+    !/sucht/.test(uh.document.getElementById('count').textContent),
+    uh.document.getElementById('count').textContent);
+  uh.close();
+
+  /* ---- Der Rueckfall, wenn die Suche scheitert ----
+     BIS 0.10.0 KONNTE SIE NICHT SCHEITERN -- sie lief im Arbeitsspeicher. Ab
+     dieser Runde schon, und dann bleibt stehen, was da ist. Eine Liste, die
+     bei einer 500 leer wird, ist das Schlimmste von beidem: sie sieht aus wie
+     "nichts gefunden" und ist "nicht gefragt". */
+  const suKaputt = baueDom(JSDOM, { uebersichtItems: suBestand, suchFehler: true });
+  const sk = suKaputt.w;
+  await new Promise(r => setTimeout(r, 80));
+  const skKarten = () => [...sk.document.querySelectorAll('.card-title')].map(k => k.textContent);
+  pruefe('Der Aufbau steht: die Liste ist zunaechst vollstaendig',
+    skKarten().length === 6, `${skKarten().length}`);
+  const skFeld = sk.document.getElementById('q');
+  skFeld.value = 'bosch';
+  skFeld.dispatchEvent(new sk.Event('input'));
+  await warteSuche(sk);
+  pruefe('Scheitert die Suche, bleibt die Liste stehen',
+    skKarten().length === 6, `${skKarten().length} Karten`);
+  pruefe('Und die Zaehlzeile sagt es',
+    /nicht erreichbar/.test(sk.document.getElementById('count').textContent),
+    sk.document.getElementById('count').textContent);
+  pruefe('Und die Liste ist nicht leer und traegt keine Absage',
+    !/Keine Treffer|Noch nichts erfasst/.test(sk.document.getElementById('body').textContent),
+    sk.document.getElementById('body').textContent.slice(0, 80));
+  sk.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Gespeicherte Ansichten in der Oberflaeche');
+
+  const ansBestand = suBestand;
+  const ansDom = baueDom(JSDOM, {
+    uebersichtItems: ansBestand,
+    einstellungen: { filters: null, ansichten: [], ansichtenDeckel: 8 }
+  });
+  const ansW = ansDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const ansZeile = () => [...ansW.document.querySelectorAll('.frow')]
+    .find(r => r.querySelector('.eyebrow')?.textContent === 'Ansichten');
+  const ansPillen = () => [...(ansZeile()?.querySelectorAll('.pill') || [])]
+    .map(b => b.textContent.replace('✕', '').trim());
+  const ansSettings = () => ansDom.gesendet.filter(g => g.url === '/api/settings' && g.methode === 'PUT');
+
+  /* SIE STEHEN BEI DEN FILTERN und nicht in einer eigenen Karte: wer eine
+     Ansicht sucht, sucht sie dort, wo die Filter stehen. Es bleibt bei
+     neunzehn Karten im Systembereich. */
+  pruefe('Die Ansichten stehen in der Filterzeile', !!ansZeile(), 'keine Zeile „Ansichten"');
+  pruefe('Und die Zeile steht auch leer da, mit dem Knopf zum Speichern',
+    ansPillen().length === 1 && /Ansicht speichern/.test(ansPillen()[0]),
+    JSON.stringify(ansPillen()));
+
+  // Erst etwas einstellen, damit die Ansicht auch etwas zu merken hat.
+  const ansFav = ansW.document.getElementById('f-fav');
+  ansFav.dispatchEvent(new ansW.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  const ansSuchfeld = ansW.document.getElementById('q');
+  ansSuchfeld.value = 'makita';
+  ansSuchfeld.dispatchEvent(new ansW.Event('input'));
+  await warteSuche(ansW);
+
+  const ansVorSpeichern = ansSettings().length;
+  ansW.document.getElementById('ansicht-neu')
+    .dispatchEvent(new ansW.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  const ansNameFeld = ansW.document.getElementById('nb-name');
+  pruefe('Der Knopf fragt nach einem Namen', !!ansNameFeld, 'kein Namensfeld');
+  ansNameFeld.value = 'Favoriten, Makita';
+  ansNameFeld.closest('.modal').querySelector('[data-yes]')
+    .dispatchEvent(new ansW.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 60));
+  const ansGeschickt = ansSettings().slice(ansVorSpeichern).find(g => g.koerper && g.koerper.ansichten);
+  pruefe('Speichern schickt die Ansicht an den Server', !!ansGeschickt,
+    JSON.stringify(ansSettings().slice(ansVorSpeichern).map(g => Object.keys(g.koerper || {}))));
+  pruefe('Und zwar samt Namen, Filterstellung UND Suchbegriff',
+    ansGeschickt && ansGeschickt.koerper.ansichten[0].name === 'Favoriten, Makita'
+      && ansGeschickt.koerper.ansichten[0].q === 'makita'
+      && ansGeschickt.koerper.ansichten[0].filters.favorit === true,
+    JSON.stringify(ansGeschickt && ansGeschickt.koerper.ansichten));
+  pruefe('Und die Zeile zeigt sie danach',
+    ansPillen().some(t => t === 'Favoriten, Makita'), JSON.stringify(ansPillen()));
+  ansW.close();
+
+  /* ---- Eine Ansicht waehlen ----
+     GEPRUEFT WIRD DIE WIRKUNG UND NICHT DER KLICK: danach stehen Filter UND
+     Suchfeld auf dem Gespeicherten, und die Suche ist gelaufen. */
+  const awDom = baueDom(JSDOM, {
+    uebersichtItems: ansBestand,
+    einstellungen: { filters: null, ansichtenDeckel: 8, ansichten: [
+      { name: 'Nur Bosch', q: 'bosch', filters: { categoryId: null, tagIds: [], tagMode: 'and',
+        tested: 'all', favorit: false, neu: false, sort: 'title_asc' } }
+    ] }
+  });
+  const aw = awDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const awPille = () => [...aw.document.querySelectorAll('.frow .pill')]
+    .find(b => b.textContent.replace('✕', '').trim() === 'Nur Bosch');
+  pruefe('Eine gespeicherte Ansicht steht als Knopf da', !!awPille(), 'kein Knopf');
+  pruefe('Und sie ist zunaechst nicht die geltende',
+    !awPille().classList.contains('on'), awPille().className);
+  awPille().dispatchEvent(new aw.MouseEvent('click', { bubbles: true }));
+  await warteSuche(aw);
+  pruefe('Der Klick setzt den Suchbegriff ins Feld',
+    aw.document.getElementById('q').value === 'bosch',
+    aw.document.getElementById('q').value);
+  pruefe('Und sucht damit',
+    awDom.gesendet.some(g => g.url === '/api/items?q=bosch'),
+    JSON.stringify(awDom.gesendet.filter(g => String(g.url).startsWith('/api/items?q=')).map(g => g.url)));
+  pruefe('Und die Sortierung steht auf der gespeicherten',
+    aw.document.getElementById('f-sort').value === 'title_asc',
+    aw.document.getElementById('f-sort').value);
+  pruefe('Und der Knopf ist danach als geltend markiert',
+    awPille().classList.contains('on'), awPille().className);
+  pruefe('Und das Kreuz zum Leeren steht da, weil ein Begriff im Feld steht',
+    aw.document.getElementById('qclr').style.display === 'block',
+    aw.document.getElementById('qclr').style.display);
+
+  /* ---- Eine Ansicht loeschen ----
+     DAS KREUZ LIEGT IM KNOPF und muss den Klick anhalten -- ohne das wuerde
+     die Ansicht im selben Zug angewandt und geloescht. */
+  const awVorher = awDom.gesendet.filter(g => g.url === '/api/settings' && g.methode === 'PUT').length;
+  awPille().querySelector('.an-weg').dispatchEvent(new aw.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  const awFrage = aw.document.querySelector('.backdrop .modal');
+  pruefe('Das Kreuz fragt vorher nach', !!awFrage && /löschen/.test(awFrage.textContent),
+    awFrage ? awFrage.textContent.slice(0, 60) : 'kein Dialog');
+  awFrage.querySelector('[data-yes]').dispatchEvent(new aw.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 60));
+  const awWeg = awDom.gesendet.filter(g => g.url === '/api/settings' && g.methode === 'PUT')
+    .slice(awVorher).find(g => g.koerper && g.koerper.ansichten);
+  pruefe('Und schickt danach die gekuerzte Liste',
+    awWeg && awWeg.koerper.ansichten.length === 0,
+    JSON.stringify(awWeg && awWeg.koerper.ansichten));
+  pruefe('Und der Knopf ist fort', !awPille(), 'er steht noch da');
+  aw.close();
+
+  /* ---- Der Deckel ----
+     ER WIRD GESAGT UND NICHT DURCH EINEN FEHLENDEN KNOPF ANGEDEUTET: ein Knopf,
+     der einfach nicht mehr da ist, sieht aus wie ein Fehler. */
+  const adDom = baueDom(JSDOM, {
+    uebersichtItems: ansBestand,
+    einstellungen: { filters: null, ansichtenDeckel: 8,
+      ansichten: Array.from({ length: 8 }, (_, i) => ({ name: 'A' + i, q: '', filters: {} })) }
+  });
+  const ad = adDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Bei vollem Deckel steht kein Knopf zum Speichern mehr da',
+    !ad.document.getElementById('ansicht-neu'), 'der Knopf steht da');
+  pruefe('Aber es steht da, WARUM',
+    /8 sind das Höchste/.test([...ad.document.querySelectorAll('.frow')]
+      .find(r => r.querySelector('.eyebrow')?.textContent === 'Ansichten')?.textContent || ''),
+    [...ad.document.querySelectorAll('.frow')]
+      .find(r => r.querySelector('.eyebrow')?.textContent === 'Ansichten')?.textContent || '(keine Zeile)');
+  ad.close();
+
+  /* ---- Eine Ansicht mit geloeschter Kategorie ----
+     JSON KENNT KEINE KASKADE. Uebergangen wird beim ANWENDEN, und es wirft
+     nichts: die Ansicht zeigt, was sie zeigen kann. */
+  const agDom = baueDom(JSDOM, {
+    uebersichtItems: ansBestand,
+    einstellungen: { filters: null, ansichtenDeckel: 8, ansichten: [
+      { name: 'Mit Fremdnummern', q: '', filters: { categoryId: 999, tagIds: [998],
+        tagMode: 'and', tested: 'all', favorit: false, neu: false, sort: 'title_asc' } }
+    ] }
+  });
+  const ag = agDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const agPille = () => [...ag.document.querySelectorAll('.frow .pill')]
+    .find(b => b.textContent.replace('✕', '').trim() === 'Mit Fremdnummern');
+  pruefe('Der Aufbau steht: die Ansicht mit fremden Nummern steht da', !!agPille(), 'kein Knopf');
+  agPille().dispatchEvent(new ag.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 80));
+  pruefe('Eine Ansicht mit geloeschter Kategorie wirft nichts',
+    !!ag.document.getElementById('body'), 'die Ansicht ist zerbrochen');
+  /* UND SIE ZEIGT NICHT NICHTS. Ungeprueft filterte die Nummer auf eine
+     Kategorie, die niemand mehr hat -- die Liste waere leer, und nichts sagte
+     warum. */
+  pruefe('Und sie zeigt den Bestand statt einer leeren Liste',
+    ag.document.querySelectorAll('.card-title').length === 6,
+    `${ag.document.querySelectorAll('.card-title').length} Karten`);
+  pruefe('Und die uebrige Stellung der Ansicht gilt trotzdem',
+    ag.document.getElementById('f-sort').value === 'title_asc',
+    ag.document.getElementById('f-sort').value);
+  ag.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Doppelte Eintraege beim Anlegen');
+
+  /* EINE ZEILE, KEIN DIALOG. Sie blockiert nichts und fragt nichts nach.
+     KEINE ROUTE: die Titel liegen ohnehin im Browser. */
+  const dpBestand = [
+    { id: 1, title: 'Bosch GSR 18V-60', rejected: false, tested: false, favorite: false,
+      category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
+      testCount: null, testAvg: null, testLast: null, testDays: [],
+      updated_at: '2026-08-01 10:00:00' },
+    { id: 2, title: 'Makita DDF485', rejected: false, tested: false, favorite: false,
+      category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
+      testCount: null, testAvg: null, testLast: null, testDays: [],
+      updated_at: '2026-08-01 10:00:00' }
+  ];
+  const dpDom = baueDom(JSDOM, { uebersichtItems: dpBestand });
+  const dp = dpDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  dp.document.getElementById('new').dispatchEvent(new dp.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  const dpTitel = dp.document.getElementById('nt');
+  const dpZeile = () => dp.document.getElementById('nt-aehnlich');
+  pruefe('Der Aufbau steht: der Anlegen-Dialog hat eine Zeile dafuer', !!dpZeile(), 'keine Zeile');
+  pruefe('Und sie ist zunaechst leer', dpZeile().innerHTML === '', dpZeile().innerHTML);
+
+  const dpTippe = async (wert) => {
+    dpTitel.value = wert;
+    dpTitel.dispatchEvent(new dp.Event('input'));
+    await new Promise(r => setTimeout(r, 20));
+  };
+  await dpTippe('bos');
+  pruefe('Unter vier Zeichen sagt sie nichts', dpZeile().innerHTML === '', dpZeile().textContent);
+  await dpTippe('bosch');
+  pruefe('Ab vier Zeichen nennt sie den aehnlichen Eintrag',
+    /Ähnlich/.test(dpZeile().textContent) && /Bosch GSR 18V-60/.test(dpZeile().textContent),
+    dpZeile().textContent);
+  pruefe('Und die Schreibung spielt dabei keine Rolle',
+    (await dpTippe('BOSCH')) === undefined && /Bosch GSR 18V-60/.test(dpZeile().textContent),
+    dpZeile().textContent);
+  /* SONDERZEICHEN FALLEN WEG: "gsr18v" trifft "GSR 18V-60" -- Leerzeichen und
+     Strich sind kein Unterschied, den ein Mensch beim Tippen meint. */
+  await dpTippe('gsr18v');
+  pruefe('Sonderzeichen fallen beim Vergleich weg',
+    /Bosch GSR 18V-60/.test(dpZeile().textContent), dpZeile().textContent);
+  await dpTippe('Etwas ganz anderes');
+  pruefe('Ein Titel ohne Aehnlichkeit laesst die Zeile leer',
+    dpZeile().innerHTML === '', dpZeile().textContent);
+
+  // Sie traegt eine Sprungmarke, und die schliesst den Dialog.
+  await dpTippe('bosch gsr');
+  const dpMarke = dpZeile().querySelector('a[href="#/item/1"]');
+  pruefe('Die Zeile traegt eine Sprungmarke zum Eintrag', !!dpMarke,
+    dpZeile().innerHTML.slice(0, 120));
+  /* UND SIE BLOCKIERT NICHTS. Das ist die Zeile, auf die es ankommt: kein
+     Knopf ist gesperrt, keine Rueckfrage steht davor. */
+  pruefe('Und sie blockiert das Anlegen nicht',
+    !dp.document.getElementById('ns').disabled
+      && !dp.document.getElementById('ns').hasAttribute('disabled'),
+    dp.document.getElementById('ns').outerHTML.slice(0, 90));
+  const dpVorher = dpDom.gesendet.filter(g => g.url === '/api/items' && g.methode === 'POST').length;
+  dp.document.getElementById('ns').dispatchEvent(new dp.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 60));
+  pruefe('Trotz des Hinweises wird wirklich angelegt',
+    dpDom.gesendet.filter(g => g.url === '/api/items' && g.methode === 'POST').length === dpVorher + 1,
+    'der Hinweis hat es verhindert');
+  dp.close();
+
+  /* WAEHREND EINER SUCHE WIRD DER GANZE BESTAND VERGLICHEN und nicht die
+     Trefferliste. Sonst fiele der Doppeleintrag genau dann nicht auf, wenn man
+     ihn beim Suchen nicht gefunden hat -- und das ist der haeufigste Fall. */
+  const dsDom = baueDom(JSDOM, { uebersichtItems: dpBestand });
+  const ds = dsDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const dsFeld = ds.document.getElementById('q');
+  dsFeld.value = 'makita';
+  dsFeld.dispatchEvent(new ds.Event('input'));
+  await warteSuche(ds);
+  pruefe('Der Aufbau steht: die Suche hat den Bosch aus der Liste geschnitten',
+    ds.document.querySelectorAll('.card-title').length === 1,
+    `${ds.document.querySelectorAll('.card-title').length} Karten`);
+  ds.document.getElementById('new').dispatchEvent(new ds.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  const dsTitel = ds.document.getElementById('nt');
+  dsTitel.value = 'bosch gsr';
+  dsTitel.dispatchEvent(new ds.Event('input'));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Der Hinweis findet den Eintrag auch dann, wenn die Suche ihn ausblendet',
+    /Bosch GSR 18V-60/.test(ds.document.getElementById('nt-aehnlich').textContent),
+    ds.document.getElementById('nt-aehnlich').textContent);
+  ds.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Marke am Bildschirm');
+
+  /* SIE STEHT IN DER KOPFZEILE UND AUF DEN ANMELDESEITEN, und beide laden
+     DIESELBE Datei. Die Farbe und das viewBox pruefen die Dateien selbst
+     (Gruppe "Die Marke der Anlage"); hier geht es darum, dass die Oberflaeche
+     sie ueberhaupt so einbaut. */
+  const mbDom = baueDom(JSDOM, { uebersichtItems: suBestand });
+  const mb = mbDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const mbMarke = mb.document.querySelector('.masthead .brand img.marke');
+  pruefe('Die Kopfzeile traegt die Marke als Datei', !!mbMarke,
+    mb.document.querySelector('.masthead .brand')?.innerHTML.slice(0, 120) || '(keine Kopfzeile)');
+  pruefe('Und zwar die durchsichtige Fassung',
+    mbMarke.getAttribute('src') === 'marke-dunkel.svg', mbMarke.getAttribute('src'));
+  /* DAS SEITENVERHAELTNIS DER ATTRIBUTE FOLGT DEM GEZEICHNETEN STRICH, 19:23.
+     Ein Quadrat hier liesse die Marke bis zum Greifen des Stylesheets zu
+     breit stehen und danach springen. */
+  const mbB = Number(mbMarke.getAttribute('width')), mbH = Number(mbMarke.getAttribute('height'));
+  pruefe('Und die Attribute tragen das Verhaeltnis 19:23',
+    mbB === Math.round(mbH * 19 / 23), `${mbB}x${mbH}`);
+  pruefe('Und sie ist nicht mehr quadratisch angegeben', mbB !== mbH, `${mbB}x${mbH}`);
+  mb.close();
+
+  const mlDom = baueDom(JSDOM, { angemeldet: false });
+  const ml = mlDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const mlMarke = ml.document.querySelector('.login-marke img.marke');
+  pruefe('Die Anmeldeseite traegt sie ebenso', !!mlMarke,
+    ml.document.querySelector('.login-card')?.innerHTML.slice(0, 120) || '(keine Karte)');
+  pruefe('Und aus derselben Datei',
+    mlMarke && mlMarke.getAttribute('src') === 'marke-dunkel.svg', mlMarke?.getAttribute('src'));
+  const mlB = Number(mlMarke.getAttribute('width')), mlH = Number(mlMarke.getAttribute('height'));
+  pruefe('Und auch dort im Verhaeltnis 19:23',
+    mlB === Math.round(mlH * 19 / 23), `${mlB}x${mlH}`);
+  ml.close();
 }
 
 /* ================= Der Schluesselwechsel =================

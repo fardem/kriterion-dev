@@ -34,6 +34,113 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.11.0] - 2026-08-27
+
+**Die Suche zieht vom Browser auf den Server, wer oft dasselbe sucht, kann es
+sich merken — und wer denselben Gegenstand zweimal anlegt, erfährt es beim
+Tippen.**
+
+> **DIE SUCHE FINDET AB DIESER VERSION DASSELBE WIE VORHER. Sie fragt nur den
+> Server statt den Browser.** Dieselben sieben Quellen, dieselbe
+> Schreibungsblindheit bis in die Umlaute, dieselben Treffer ab einem einzigen
+> Zeichen, und ein Prozentzeichen bleibt ein Prozentzeichen. Was sich ändert,
+> ist die Antwortgröße: die Übersicht ist um **73 Prozent** leichter geworden.
+
+### Added
+
+- **Volltextsuche im Server**, über `GET /api/items?q=…`. Gesucht wird in
+  **sieben Quellen**: Titel, Beschreibung, Name der Kategorie, Tags am Eintrag,
+  Tags an Testtagen, Adressen der Links und **sämtliche Kommentartexte**.
+- **Gespeicherte Ansichten** — bis zu **acht** benannte Filterstellungen je
+  Zugang, in der Filterzeile. Eine Ansicht merkt sich die ganze Stellung
+  **samt Suchbegriff**: eine Ansicht „Bosch, ungetestet" wäre ohne ihn die
+  halbe Ansicht. Sie sind **persönlich**; ein anderer Zugang sieht sie nicht.
+  *Die eine gemerkte Stellung von bisher bleibt daneben, was sie war — die
+  zuletzt benutzte.*
+- **Ein Hinweis auf doppelte Einträge beim Anlegen.** Wer einen Titel tippt,
+  sieht darunter eine Zeile *„Ähnlich: …"* mit Sprungmarken zu dem, was schon
+  da ist. **Sie blockiert nichts und fragt nichts nach.** Verglichen wird über
+  vier Zeichen, ohne Rücksicht auf Groß- und Kleinschreibung und Sonderzeichen.
+
+### Changed
+
+- **Die Übersicht ist deutlich leichter geworden.** Gemessen an einem echten
+  Bestand von 1000 Einträgen mit je vier Kommentaren: **2,50 MB → 0,52 MB**,
+  **110 ms → 93 ms**. Bei 300 Einträgen 0,75 MB → 0,16 MB.
+- **Die Suche fragt den Server frühestens 220 ms nach dem letzten Anschlag** —
+  drei schnelle Anschläge sind eine Anfrage, nicht drei. **Ab dem ersten
+  Zeichen**, wie bisher. *Während sie unterwegs ist, bleibt die alte Liste
+  gedämpft stehen; scheitert sie, bleibt sie stehen und die Zählzeile sagt es.
+  Das Leeren der Suche kostet keine Anfrage.*
+- **`GET /api/items` liefert `testDays` nur noch, wenn die Zeitleiste
+  eingeschaltet ist.** Die Kachelzahlen sind davon unberührt.
+- **Die Marke trägt den Akzent statt Gold, und sie steht so hoch wie der Text
+  daneben.** Das ist eine Rücknahme aus 0.10.0 und ausdrücklich gewollt: in der
+  Kopfzeile standen zwei warme Farben nebeneinander, die nichts voneinander
+  wussten. *Gold bleibt die Farbe der Bewertung — die Marke ist nicht die
+  Bewertung, sie ist die Anlage.* Geändert sind **zwei Dateien in `public/`**:
+  `marke-dunkel.svg` und `favicon.svg`. **Der Reiter des Browsers zeigt die
+  alte Marke unter Umständen noch eine Weile** — das ist ein
+  zwischengespeicherter Stand und keine kaputte Anlage.
+- **Die Liste bereitet zwei Abfragen einmal vor statt je Eintrag.** An 1000
+  Einträgen: 24,2 ms → 11,5 ms.
+
+### Removed
+
+- **`searchText` steht nicht mehr in der Antwort von `GET /api/items`.** Das
+  Feld war ein je Eintrag zusammengesetzter Suchtext und machte **73 Prozent**
+  der Antwort aus; gesucht wird jetzt im Server. *Es ist KEINE Datei entfernt
+  worden — es bleibt beim Einspielen also nichts liegen.*
+
+### Fixed
+
+- **Eine gemerkte Filterstellung, die auf eine gelöschte Kategorie oder einen
+  gelöschten Tag zeigte, ließ die Übersicht leer aussehen.** Die Nummer wird
+  jetzt beim Anwenden übergangen. *Übergangen, nicht zurückgeschrieben: der
+  gespeicherte Wert bleibt, wie er ist.*
+- **Eine Beschriftung im Prüfstand nannte 64 schreibende Routen, wo 69 geprüft
+  wurden.** Wäre die Zeile rot geworden, hätte sie die falsche Zahl genannt.
+
+### Was du danach von Hand tun musst
+
+1. **Einspielen wie immer** — das Verzeichnis **ersetzen**, nicht darüber
+   entpacken.
+2. **Das Datenverzeichnis muss nicht gesichert werden.** *0.11.0 ist **keine
+   Datenbankstufe**:* es kommt keine Tabelle und keine Spalte dazu, und es
+   läuft kein Migrationscode. Eine Kopie vor dem Einspielen schadet trotzdem
+   nie.
+3. **Es kommt keine neue `.env`-Zeile dazu**, die `docker-compose.yml` ist
+   unberührt, und es gibt nichts einzustellen.
+4. **Wer im Reiter des Browsers noch die alte Marke sieht**, sieht einen
+   zwischengespeicherten Stand. Ein harter Neuladen (Strg+Umschalt+R) räumt ihn
+   weg; von selbst tut es der Browser auch, nur später.
+
+### Was gleich bleibt
+
+- **Die Suche findet dasselbe wie vorher.** Dieselben sieben Quellen, dieselbe
+  Schreibungsblindheit bis in die Umlaute, dieselben Treffer ab einem einzigen
+  Zeichen. **Ein Prozentzeichen und ein Unterstrich sind Text und keine
+  Wildcards** — und man kann beide auch suchen.
+- **Kein FTS5 und kein Suchindex.** Die eingebaute SQLite könnte es; der
+  Trigramm-Index kostete an 1000 Einträgen aber 5,17 MB bei 1,75 MB Nettotext,
+  bräuchte eine Auffrischung an sieben Schreibstellen — und eine Abfrage mit
+  einem oder zwei Zeichen fände dort **still gar nichts**.
+- **Keine neue Abhängigkeit, nicht eine.**
+- **Kein Schema, keine Migration.** Es bleibt bei **fünf** markierten
+  Migrationsblöcken.
+- **69 schreibende Routen.** Die Suche ist lesend; die Ansichten gehen über
+  `PUT /api/settings`, das es längst gibt.
+- **Der Suchbegriff kommt nicht ins Sicherheitsprotokoll.** Es bleibt bei
+  **zwanzig** Vorgängen und **dreizehn** Merkmalen.
+- **Die Suche bekommt keine eigene Bremse** — sie steht hinter der Anmeldung,
+  und die Anmeldebremse verteidigt gegen Fremde.
+- **Die Ansichten stehen bei den Filtern**, nicht in einer eigenen Karte: der
+  Systembereich behält seine **neunzehn** Karten.
+- Das Austauschformat behält seine Nummer **10**, das Vokabular seine **elf**
+  Wörter, `BESTAETIGUNG_ZWECKE` seine **sieben** Zwecke.
+
+---
+
 ## [0.10.0] - 2026-08-26
 
 **Wer will, sichert seinen Zugang mit einem zweiten Faktor — einem Code aus
@@ -852,7 +959,11 @@ Verfasser ihres Eintrags zu.
 <!-- DIE VERGLEICHSVERWEISE. Sie hängen an den Git-Tags. Ältere Tags gibt es
      zwar (0.8.3 bis v0.8.91), aber die Reihe ist lückenhaft und die
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
-     0.10.0, deshalb steht hier genau einer. Der nächste wird ein Vergleich
-     (`v0.10.0...v0.11.0`); für alles davor bleibt das Änderungsprotokoll in
-     `Doku/` das Ziel. -->
+     0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
+     0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` ist angelegt,
+     aber NICHT geschoben — der Push scheitert in der Arbeitsumgebung an
+     HTTP 403 (Branches gehen durch, Tags nicht). Solange das so ist, zeigt
+     der zweite Verweis darunter ins Leere. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
+[0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0

@@ -83,9 +83,25 @@ const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
    auseinanderlaeuft, sobald jemand einen der beiden anfasst.
 
    alt="" UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem Namen
-   der Anlage. Ein Vorleseprogramm saegte ihn sonst zweimal. */
+   der Anlage. Ein Vorleseprogramm saegte ihn sonst zweimal.
+
+   DAS viewBox DER DURCHSICHTIGEN FASSUNG UMSCHLIESST DIE FARBE UND NICHT DIE
+   KACHEL: `6.5 4.5 19 23`. Gezeichnet wird von y=6 bis y=26, aber bei
+   stroke-width 3 und stroke-linecap round traegt die Farbe eine halbe
+   Strichbreite darueber hinaus -- von 4.5 bis 27.5. Ein quadratisches viewBox
+   0 0 32 32 liess davon nur 23 von 32 Einheiten sichtbar; die Datei zeichnete
+   also 72 Prozent dessen, was sie belegte, und stand neben dem Text zu tief.
+   MIT DIESEM viewBox IST DIE ANGEGEBENE HOEHE DIE GEZEICHNETE HOEHE.
+   favicon.svg behaelt dagegen 0 0 32 32 samt Kachel: ein Kachelsymbol braucht
+   seinen Rand, und 72 Prozent sind dort der uebliche Schutzbereich.
+
+   DIE WIRKLICHE GROESSE STEHT IM CSS, IN rem, UND NICHT HIER. Die Anlage
+   stellt die Schrift von 80 bis 120 Prozent; eine in Pixel festgeschriebene
+   Marke passte nur bei 100 Prozent zum Text daneben. Die Attribute hier
+   halten das Seitenverhaeltnis 19:23 und bewahren den Platz, bis das
+   Stylesheet greift -- sie sind der Rueckfall, nicht das Mass. */
 const MARK = (s = 30) =>
-  `<img class="marke" src="marke-dunkel.svg" width="${s}" height="${s}" alt="">`;
+  `<img class="marke" src="marke-dunkel.svg" width="${Math.round(s * 19 / 23)}" height="${s}" alt="">`;
 
 /* DIE MARKENZEILE DER ANMELDESEITEN: Marke UND Name in EINER Zeile, erst das
    Zeichen, dann das Wort. Uebereinander gestapelt las sich das Paar als Bild
@@ -98,11 +114,14 @@ const MARK = (s = 30) =>
    dreimal -- trugen dasselbe Paar neunmal ausgeschrieben. Wer die Anordnung
    aendert, aendert seither eine Stelle und nicht neun (Stolperstein 145).
 
-   34 UND NICHT 40: nebeneinander misst sich die Marke am Wort und nicht mehr
-   an der leeren Flaeche darueber. Der sichtbare Strich fuellt knapp zwei
-   Drittel der Kachel; bei 34 steht er damit etwa so hoch wie das K. */
+   SIE MISST SICH AM WORT UND NICHT AN DER LEEREN FLAECHE DARUEBER -- dieselbe
+   Regel wie in der Kopfzeile des angemeldeten Bereichs: so hoch wie der Text
+   daneben, gemessen an dessen Zeilenhoehe. Hier ist der Text EINE Zeile
+   (1,53 rem bei Zeilenhoehe 1,55, also 2,372 rem); in der Kopfzeile sind es
+   zwei. Die Zahl steht im CSS, damit sie der eingestellten Schriftgroesse
+   folgt; 36 hier ist der Platzhalter bis dahin. */
 const MARKENZEILE = () =>
-  `<div class="login-marke">${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
+  `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;
 
 function splitUrl(u) {
   try {
@@ -182,6 +201,36 @@ function confirmBox(title, text, confirmLabel = 'Löschen') {
     const onKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey, true); done(false); } };
     document.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-yes]').focus();
+  });
+}
+
+/* EIN NAME WIRD GEFRAGT -- nach dem Muster von confirmBox() und ausdruecklich
+   KEIN prompt(): das steht am oberen Rand des Fensters, sieht in keinem
+   Browser wie diese Anlage aus und laesst sich nicht beschriften.
+   Liefert den getrimmten Namen oder null bei Abbruch. Ein leerer Name ist ein
+   Abbruch: eine Ansicht ohne Namen liesse sich nicht wiederfinden. */
+function nameBox(title, text, vorgabe = '', okLabel = 'Speichern', maxLaenge = 40) {
+  return new Promise(resolve => {
+    const bd = document.createElement('div');
+    bd.className = 'backdrop';
+    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p class="hint">${esc(text)}</p>
+      <div class="field"><input class="input" id="nb-name" maxlength="${maxLaenge}"
+        value="${esc(vorgabe)}" placeholder="Name der Ansicht"></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
+      <button class="btn btn-accent" data-yes>${esc(okLabel)}</button></div></div>`;
+    document.body.appendChild(bd);
+    const feld = bd.querySelector('#nb-name');
+    const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
+    const nimm = () => { const w = feld.value.trim(); done(w || null); };
+    bd.querySelector('[data-no]').onclick = () => done(null);
+    bd.querySelector('[data-yes]').onclick = nimm;
+    bd.onclick = e => { if (e.target === bd) done(null); };
+    const onKey = e => {
+      if (e.key === 'Escape') done(null);
+      else if (e.key === 'Enter' && document.activeElement === feld) nimm();
+    };
+    document.addEventListener('keydown', onKey, true);
+    feld.focus(); feld.select();
   });
 }
 
@@ -1182,10 +1231,28 @@ function wendeSchriftAn() {
 }
 
 /* ================= Zustand ================= */
+/* DIE VORGABESTELLUNG DER FILTER STEHT GENAU EINMAL. Sie stand bis 0.10.0 an
+   zwei Stellen -- hier und in loadAll() --, und seit es gespeicherte Ansichten
+   gibt, waere sie an drei gestanden. Drei Abschriften derselben Vorgabe laufen
+   auseinander, sobald jemand einen Filter ergaenzt. */
+const FILTER_VORGABE = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'all',
+                         favorit: false, neu: false, sort: 'updated_desc' };
 const state = {
   items: [], categories: [], tags: [], criteria: [],
-  filters: { categoryId: null, tagIds: [], tagMode: 'and', tested: 'all', favorit: false, sort: 'updated_desc' },
+  filters: { ...FILTER_VORGABE },
   search: '', compare: new Set(),
+  /* SEIT 0.11.0 SUCHT DER SERVER, und daraus folgen vier Felder.
+     `alle` ist der ungefilterte Bestand aus dem letzten loadAll(). Er bleibt
+     liegen, damit das LEEREN der Suche keine Anfrage kostet -- ohne ihn waere
+     die haeufigste Handhabung der Suche (tippen, wieder loeschen) die
+     teuerste. `items` ist, was gerade gezeigt wird: entweder `alle` oder die
+     Antwort auf einen Suchbegriff.
+     `bestand` ist die Zahl des GANZEN Bestands fuer die Zaehlzeile. Ohne sie
+     stuende dort waehrend einer Suche die Trefferzahl als Gesamtzahl -- "3
+     Sachen · 3 sichtbar", und der Bestand von 300 waere verschwunden.
+     `suchLaeuft` und `suchFehler` sind Ansichtszustand und keine Einstellung:
+     beim naechsten Aufruf steht wieder die Vorgabe. */
+  alle: [], bestand: 0, suchLaeuft: false, suchFehler: false,
 };
 
 // Die Einstellungen werden einmal beim Start geholt -- auch beim Direkteinstieg
@@ -1242,6 +1309,15 @@ let ZWEIFAKTOR = false;
    hier ist kein zweiter Wert, sondern der Rückfall für eine Antwort, die das
    Feld nicht kennt. */
 let PAPIERKORB_TAGE = 30;
+/* DIE GESPEICHERTEN ANSICHTEN, seit 0.11.0. Persoenlich, wie die eine gemerkte
+   Filterstellung daneben -- und sie ERSETZEN diese nicht: `filters` bleibt die
+   zuletzt benutzte Stellung und wird weiter bei jeder Aenderung
+   ueberschrieben. Eine Ansicht wird nur auf Zuruf angewandt.
+   DER DECKEL KOMMT VOM SERVER. Er steht dort an einer Stelle und wird hier
+   nicht nachgebaut; die 8 ist der Rueckfall fuer eine Antwort, die das Feld
+   nicht kennt. */
+let ANSICHTEN = [];
+let ANSICHTEN_DECKEL = 8;
 const darfTagAnlegen = () => ADMIN || TAGS_FREI;
 const darfKategorieAnlegen = () => ADMIN || KATEGORIEN_FREI;
 
@@ -1256,6 +1332,8 @@ async function ladeEinstellungen() {
   uebernimmBloecke(EINSTELLUNGEN.bloecke);
   if (EINSTELLUNGEN.linkZeilen) LINKZEILEN = EINSTELLUNGEN.linkZeilen;
   if (EINSTELLUNGEN.zeitleiste !== undefined) ZEITLEISTE_AN = EINSTELLUNGEN.zeitleiste !== false;
+  if (Array.isArray(EINSTELLUNGEN.ansichten)) ANSICHTEN = EINSTELLUNGEN.ansichten;
+  if (EINSTELLUNGEN.ansichtenDeckel) ANSICHTEN_DECKEL = EINSTELLUNGEN.ansichtenDeckel;
   // Ausdruecklich nur beim ERSTEN Laden. ladeEinstellungen() laeuft nur in
   // start(); ein spaeterer Aufruf duerfte den Bezugszeitpunkt nicht mehr
   // nachziehen, sonst verschwaende die Menge unter dem Zeiger.
@@ -1285,27 +1363,198 @@ async function loadAll() {
     api('GET', '/api/items'), api('GET', '/api/product-categories'), api('GET', '/api/tags'),
     api('GET', '/api/criteria'), api('GET', '/api/titles')
   ]);
-  state.items = items; state.categories = categories; state.tags = tags; state.criteria = criteria;
+  /* DER UNGEFILTERTE BESTAND KOMMT HIER UND NUR HIER. `alle` ist die Quelle,
+     `items` das, was gezeigt wird -- beim Betreten der Uebersicht dasselbe.
+     Stand vorher ein Suchbegriff im Feld, wird er gleich darunter neu gefragt;
+     bis die Antwort da ist, steht der ganze Bestand da und nicht nichts. */
+  /* `alle` und `items` zeigen hier auf DASSELBE Feld, und das ist gewollt: eine
+     Kopie von tausend Objekten waere Arbeit fuer nichts. Es traegt nur, solange
+     niemand `state.items` an der Stelle veraendert -- gefiltert und sortiert
+     wird ueber Kopien (`[...out].sort(...)` in visibleItems), und ein push oder
+     splice darauf gibt es nirgends. Wer je eines einbaut, veraendert damit auch
+     den ungefilterten Bestand. */
+  state.alle = items; state.items = items; state.bestand = items.length;
+  state.suchFehler = false;
+  state.categories = categories; state.tags = tags; state.criteria = criteria;
   TITLE_APP = titles.appTitle; TITLE_PUBLIC = titles.publicTitle;
   document.title = TITLE_APP;
   const settings = EINSTELLUNGEN;
-  if (settings && settings.filters) {
-    state.filters = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'all',
-                      favorit: false, neu: false, sort: 'updated_desc', ...settings.filters };
-    if (!Array.isArray(state.filters.tagIds)) state.filters.tagIds = [];
-    // Aeltere gespeicherte Filter kennen tagMode nicht -- sie bekommen die
-    // Vorgabe. Alles ausser 'or' gilt als 'and'.
-    if (state.filters.tagMode !== 'or') state.filters.tagMode = 'and';
-    // Dasselbe fuer den Favoritenfilter. Ein aelterer gespeicherter Filter
-    // kennt das Feld nicht; das Ausbreiten oben setzt es dann NICHT
-    // auf die Vorgabe zurueck, sondern laesst es weg -- und `undefined` waere
-    // zwar falsch genug fuer die Filterzeile, aber der Knopf zeichnete sich
-    // daraus nicht sauber. Deshalb ausdruecklich auf einen Wahrheitswert
-    // bringen.
-    state.filters.favorit = state.filters.favorit === true;
-    // Und dasselbe fuer den neuen Umschalter, aus demselben Grund.
-    state.filters.neu = state.filters.neu === true;
+  if (settings && settings.filters) state.filters = filterNormal(settings.filters);
+}
+
+/* EINE GESPEICHERTE FILTERSTELLUNG WIRD BEIM ANWENDEN ZURECHTGERUECKT, nicht
+   beim Speichern. Sie kommt aus zwei Quellen -- der einen gemerkten Stellung
+   und einer gespeicherten Ansicht -- und beide gehen durch DIESEN Weg; zwei
+   Wege waeren zwei Auslegungen desselben JSON.
+
+   ERSTENS DIE FEHLENDEN FELDER. Eine Stellung aus einer aelteren Fassung kennt
+   `tagMode`, `favorit` oder `neu` nicht. Das Ausbreiten setzt ein fehlendes
+   Feld NICHT auf die Vorgabe zurueck, es laesst es weg -- und `undefined`
+   waere zwar falsch genug fuer den Filter, aber der Knopf zeichnete sich
+   daraus nicht sauber.
+
+   ZWEITENS DIE NUMMERN, DIE ES NICHT MEHR GIBT. JSON kennt keine Kaskade: wird
+   eine Kategorie oder ein Tag geloescht, bleibt die Nummer in der gespeicherten
+   Stellung stehen. Ungeprueft filterte sie danach auf etwas, das niemand mehr
+   hat -- die Liste waere leer, und nichts sagte warum. Sie wird deshalb
+   uebergangen. UEBERGANGEN, NICHT ZURUECKGESCHRIEBEN: der gespeicherte Wert
+   bleibt, wie er ist. Ein Lesevorgang, der die Ansicht eines Menschen
+   umschreibt, ist schlimmer als eine Nummer, die ins Leere zeigt. */
+function filterNormal(roh) {
+  const f = { ...FILTER_VORGABE, ...(roh && typeof roh === 'object' ? roh : {}) };
+  f.tagIds = (Array.isArray(f.tagIds) ? f.tagIds : []).filter(id => state.tags.some(t => t.id === id));
+  if (f.categoryId != null && !state.categories.some(c => c.id === f.categoryId)) f.categoryId = null;
+  if (f.tagMode !== 'or') f.tagMode = 'and';
+  f.favorit = f.favorit === true;
+  f.neu = f.neu === true;
+  return f;
+}
+
+/* ================= Die Suche fragt den Server =================
+   BIS 0.10.0 LIEF SIE IM ARBEITSSPEICHER DES BROWSERS: der Server schickte je
+   Eintrag ein Feld `searchText`, und ein filter() darauf war augenblicklich.
+   Das Feld war 73 Prozent der Antwort. Seit 0.11.0 sucht der Server, und
+   damit ist jeder Tastendruck eine Anfrage ueber das Netz. Drei Vorkehrungen
+   gehoeren dazu, und alle drei sind gebaut und nicht gehofft.
+
+   ERSTENS DER DEBOUNCE: 220 ms, ab dem ERSTEN Zeichen. Eine Mindestzahl an
+   Zeichen waere die eine Wegnahme, die diese Runde nicht machen darf -- ein
+   einzelnes Zeichen fand vorher, also findet es weiter. 220 ms liegen ueber
+   dem Tastenabstand eines schnellen Schreibers (er fasst damit die meisten
+   Anschlaege zusammen) und unter der Schwelle, an der Tippen zu haken
+   beginnt. DAS LEEREN LAEUFT OHNE Debounce und ohne Anfrage: der ungefilterte
+   Bestand liegt in state.alle.
+
+   ZWEITENS DIE REIHENFOLGE. Zwei Anfragen koennen sich ueberholen; die
+   Antwort auf "bo" darf die auf "bosch" nicht ueberschreiben. Jede Anfrage
+   bekommt eine laufende Nummer, und nur die jeweils hoechste darf schreiben.
+   Ohne diese Nummer zeigte die Liste gelegentlich das Ergebnis eines
+   Suchbegriffs, der nicht mehr im Feld steht -- selten, unerklaerlich und
+   nicht nachstellbar.
+
+   DRITTENS DER RUECKFALL. Vorher KONNTE die Suche nicht scheitern, jetzt
+   schon. Scheitert sie, bleibt stehen, was da ist, und die Zaehlzeile sagt es
+   einmal. EINE ERSATZSUCHE IM BROWSER GIBT ES AUSDRUECKLICH NICHT: sie haette
+   die Kommentare nicht und faende damit weniger -- zwei Antworten auf
+   dieselbe Frage, und die schlechtere ohne Kennzeichen. */
+const SUCH_VERZOEGERUNG = 220;
+let suchUhr = null;
+let suchLauf = 0;
+
+/* Das Kreuz zum Leeren steht nur da, wenn etwas zu leeren ist. Der Helfer
+   liest das FELD und nicht state.search: er wird auch gerufen, nachdem eine
+   gespeicherte Ansicht das Feld gesetzt hat, und dann ist das Feld die
+   Wahrheit. */
+function syncSuchknopf() {
+  const q = document.getElementById('q'), c = document.getElementById('qclr');
+  if (q && c) c.style.display = q.value ? 'block' : 'none';
+}
+
+/* Der Begriff wird genau so zugeschnitten wie im Server: aussen getrimmt.
+   Kleingeschrieben wird dort -- die Anfrage traegt, was der Mensch getippt
+   hat, und der Vergleich ist an einer Stelle. */
+async function sucheAusfuehren() {
+  const begriff = state.search.trim();
+  const lauf = ++suchLauf;
+  if (!begriff) {
+    // Ohne Begriff ist der ganze Bestand die Antwort, und der liegt schon da.
+    state.items = state.alle;
+    state.suchLaeuft = false; state.suchFehler = false;
+    drawFilters(); drawBody();
+    return;
   }
+  state.suchLaeuft = true;
+  drawBody();
+  try {
+    const treffer = await api('GET', `/api/items?q=${encodeURIComponent(begriff)}`);
+    if (lauf !== suchLauf) return;          // eine neuere Anfrage ist unterwegs
+    state.items = treffer;
+    state.suchLaeuft = false; state.suchFehler = false;
+  } catch (e) {
+    if (lauf !== suchLauf) return;
+    if (e.message === 'Sitzung abgelaufen') return;   // die Anmeldeseite kommt
+    // Stehen bleibt, was da ist. Die Zaehlzeile sagt es.
+    state.suchLaeuft = false; state.suchFehler = true;
+  }
+  drawFilters(); drawBody();
+}
+
+/* ================= Die gespeicherten Ansichten =================
+   EINE ANSICHT IST EINE FILTERSTELLUNG SAMT SUCHBEGRIFF, unter einem Namen.
+   Der Begriff gehoert dazu: eine Ansicht "Bosch, ungetestet" ist ohne ihn die
+   halbe Ansicht, und wer sie anklickt, erwartet das, was er beim Speichern vor
+   sich hatte.
+
+   SIE STEHEN IN DER FILTERZEILE UND NICHT IN EINER EIGENEN KARTE. Wer eine
+   Ansicht sucht, sucht sie dort, wo die Filter stehen -- eine Karte im
+   Systembereich waere der Ort fuer Einstellungen, und eine Ansicht ist keine.
+
+   PERSOENLICH. Sie gehen ueber PUT /api/settings wie `filters`, und der Server
+   legt sie unter einem persoenlichen Schluessel ab; ein anderer Zugang sieht
+   sie nicht.
+
+   DIE GANZE LISTE WIRD GESCHICKT, nicht ein einzelner Eintrag: es ist ein
+   Schluessel mit einem Wert. */
+
+// Was gerade eingestellt ist, als Ansicht -- ohne den Namen, der kommt vom
+// Menschen.
+const ansichtAusZustand = () => ({ filters: { ...state.filters }, q: state.search.trim() });
+
+/* GESCHICKT UND DANN ERST UEBERNOMMEN. Der Deckel und die Namensgleichheit
+   entscheidet der Server; scheitert es dort, bleibt die oertliche Liste, wie
+   sie war, und die Meldung steht da. Die umgekehrte Reihenfolge zeigte eine
+   Ansicht, die es nicht gibt. */
+async function ansichtenSchicken(liste) {
+  try {
+    await api('PUT', '/api/settings', { ansichten: liste });
+    ANSICHTEN = liste;
+    if (EINSTELLUNGEN) EINSTELLUNGEN.ansichten = liste;
+    return true;
+  } catch (e) { toast(e.message, true); return false; }
+}
+
+async function ansichtSpeichern() {
+  if (ANSICHTEN.length >= ANSICHTEN_DECKEL)
+    return toast(`Mehr als ${ANSICHTEN_DECKEL} Ansichten gibt es nicht.`, true);
+  const name = await nameBox('Ansicht speichern',
+    'Filter und Suchbegriff werden unter diesem Namen gemerkt.', '', 'Speichern');
+  if (!name) return;
+  // Derselbe Vergleich wie im Server, und aus demselben Grund: der Name ist
+  // das Einzige, woran ein Mensch zwei Ansichten auseinanderhaelt.
+  if (ANSICHTEN.some(a => a.name.toLowerCase() === name.toLowerCase()))
+    return toast(`„${name}" gibt es schon.`, true);
+  if (await ansichtenSchicken([...ANSICHTEN, { name, ...ansichtAusZustand() }])) {
+    toast('Gespeichert');
+    drawFilters();
+  }
+}
+
+async function ansichtLoeschen(name) {
+  if (!await confirmBox('Ansicht löschen?', `„${name}" wird aus der Liste entfernt.`)) return;
+  if (await ansichtenSchicken(ANSICHTEN.filter(a => a.name !== name))) drawFilters();
+}
+
+/* ANGEWANDT WIRD OERTLICH UND SOFORT. Die Stellung geht durch filterNormal()
+   -- dort werden geloeschte Kategorien und Tags uebergangen, statt auf etwas
+   zu filtern, das niemand mehr hat. Der Begriff geht in das Feld UND in den
+   Zustand: stuende er nur im Zustand, zeigte das Feld daneben etwas anderes.
+   GESUCHT WIRD OHNE Debounce: es ist ein Klick und kein Tippen. */
+function ansichtAnwenden(a) {
+  state.filters = filterNormal(a.filters);
+  state.search = typeof a.q === 'string' ? a.q : '';
+  const feld = document.getElementById('q');
+  if (feld) feld.value = state.search;
+  syncSuchknopf();
+  saveFilters();
+  if (suchUhr) { clearTimeout(suchUhr); suchUhr = null; }
+  sucheAusfuehren();
+}
+
+// Der Debounce. Beim Leeren sofort -- dort ist keine Anfrage im Spiel.
+function sucheAngestossen() {
+  if (suchUhr) clearTimeout(suchUhr);
+  if (!state.search.trim()) { suchUhr = null; sucheAusfuehren(); return; }
+  suchUhr = setTimeout(() => { suchUhr = null; sucheAusfuehren(); }, SUCH_VERZOEGERUNG);
 }
 
 // Fehlender Wert ist nicht Null: Eintraege ohne Testtage stehen bei den
@@ -1358,8 +1607,13 @@ function visibleItems(filter) {
      es keinen Bezugspunkt, und ein Filter, der dann alles zeigt, erklaert
      sich nicht -- die Filterzeile bietet ihn dort auch nicht an. */
   if (f.neu && ZULETZT_GESEHEN) out = out.filter(i => i.updated_at > ZULETZT_GESEHEN);
-  const q = state.search.trim().toLowerCase();
-  if (q) out = out.filter(i => (i.searchText || '').includes(q));
+  /* HIER STAND BIS 0.10.0 DIE SUCHE: ein filter() ueber das Feld searchText,
+     das der Server je Eintrag mitschickte. Das Feld war 73 Prozent der
+     Antwort. Gesucht wird jetzt ueber GET /api/items?q=..., und `state.items`
+     traegt bereits nur noch die Treffer -- eine zweite Suche hier waere eine
+     zweite Wahrheit ueber dieselbe Menge, und sie liefe auf einem Feld, das
+     es nicht mehr gibt. Die uebrigen Filter bleiben oertlich: sie rechnen mit
+     Feldern, die die Antwort ohnehin traegt, und kosten keine Anfrage. */
 
   out = [...out].sort((a, b) => {
     // HIER STEHT BEWUSST KEINE Vorsortierung der Favoriten
@@ -1460,16 +1714,23 @@ async function renderList() {
     showLogin();
   };
   const q = document.getElementById('q'), qclr = document.getElementById('qclr');
-  const syncClr = () => { qclr.style.display = q.value ? 'block' : 'none'; };
-  q.oninput = () => { state.search = q.value; syncClr(); drawBody(); };
-  qclr.onclick = () => { q.value = ''; state.search = ''; syncClr(); drawBody(); q.focus(); };
-  syncClr();
+  // Getippt wird oertlich, gesucht ueber den Debounce. Das Leeren geht ohne
+  // Anfrage durch -- der ungefilterte Bestand liegt in state.alle.
+  q.oninput = () => { state.search = q.value; syncSuchknopf(); sucheAngestossen(); };
+  qclr.onclick = () => { q.value = ''; state.search = ''; syncSuchknopf(); sucheAngestossen(); q.focus(); };
+  syncSuchknopf();
 
   // "/" springt in die Suche
   document.addEventListener('keydown', listKeys);
   window.addEventListener('hashchange', () => document.removeEventListener('keydown', listKeys), { once: true });
 
   drawFilters(); drawBody();
+  /* STAND SCHON EIN BEGRIFF IM FELD, wird er jetzt gefragt. Der Begriff
+     ueberlebt den Weg in einen Eintrag und zurueck (state.search), die
+     Trefferliste tut das nicht -- loadAll() hat gerade den ganzen Bestand
+     gesetzt. Ohne diese Zeile stuende im Feld ein Begriff und daneben die
+     ungefilterte Liste. */
+  if (state.search.trim()) sucheAusfuehren();
 }
 
 function listKeys(e) {
@@ -1633,6 +1894,10 @@ function drawFilters() {
   // Sortierung, gruppiert
   const r4 = row('Sortieren');
   const sel = document.createElement('select');
+  // Eine Kennung wie am Favoritenknopf daneben: ohne sie liesse sich die
+  // Sortierung nur ueber ihre Klasse ansprechen, und die tragen alle
+  // Auswahlfelder der Anlage.
+  sel.id = 'f-sort';
   sel.className = 'select';
   sel.innerHTML = `
     <optgroup label="Änderung">
@@ -1655,19 +1920,79 @@ function drawFilters() {
   sel.value = f.sort;
   sel.onchange = () => { f.sort = sel.value; saveFilters(); drawBody(); };
   r4.appendChild(sel);
+
+  /* ---- Die gespeicherten Ansichten ----
+     GANZ UNTEN UND NICHT GANZ OBEN: sie sind die Zusammenfassung der Zeilen
+     darueber, und man liest sie, nachdem man weiss, was einstellbar ist.
+     Die Zeile steht auch LEER da, mit dem Knopf zum Speichern -- ohne ihn
+     erfuehre niemand, dass es Ansichten gibt. */
+  const r5 = row('Ansichten');
+  const g5 = document.createElement('div'); g5.className = 'pills';
+  /* WELCHE ANSICHT GERADE GILT, wird verglichen und nicht gemerkt: ein
+     gemerkter Zeiger auf "die aktive Ansicht" liefe auseinander, sobald jemand
+     einen Filter von Hand verstellt. Verglichen wird die zurechtgerueckte
+     Stellung samt Begriff -- sonst gaelte eine Ansicht mit einer geloeschten
+     Kategorie nie als aktiv, obwohl sie genau das zeigt, was sie zeigen kann. */
+  const jetzt = JSON.stringify({ filters: filterNormal(state.filters), q: state.search.trim() });
+  ANSICHTEN.forEach(a => {
+    const b = document.createElement('button');
+    const gleich = JSON.stringify({ filters: filterNormal(a.filters),
+                                    q: typeof a.q === 'string' ? a.q.trim() : '' }) === jetzt;
+    b.className = 'pill' + (gleich ? ' on' : '');
+    b.innerHTML = `<span>${esc(a.name)}</span><span class="an-weg" title="Ansicht löschen">✕</span>`;
+    b.onclick = () => ansichtAnwenden(a);
+    // Das Kreuz liegt IM Knopf und muss deshalb den Klick anhalten -- sonst
+    // wuerde die Ansicht im selben Zug angewandt und geloescht.
+    b.querySelector('.an-weg').onclick = e => {
+      e.preventDefault(); e.stopPropagation(); ansichtLoeschen(a.name);
+    };
+    g5.appendChild(b);
+  });
+  if (ANSICHTEN.length < ANSICHTEN_DECKEL) {
+    const bNeu = document.createElement('button');
+    bNeu.className = 'pill' + (ANSICHTEN.length ? ' pill-sep' : '');
+    bNeu.id = 'ansicht-neu';
+    bNeu.textContent = '+ Ansicht speichern';
+    bNeu.title = 'Filter und Suchbegriff unter einem Namen merken';
+    bNeu.onclick = ansichtSpeichern;
+    g5.appendChild(bNeu);
+  } else {
+    // Der Deckel wird GESAGT und nicht durch einen fehlenden Knopf angedeutet:
+    // ein Knopf, der einfach nicht mehr da ist, sieht aus wie ein Fehler.
+    const hin = document.createElement('span');
+    hin.className = 'hint hint-sm';
+    hin.textContent = `${ANSICHTEN_DECKEL} sind das Höchste — eine löschen, dann geht die nächste.`;
+    g5.appendChild(hin);
+  }
+  r5.appendChild(g5);
 }
 
 function drawBody() {
   const body = document.getElementById('body');
   if (!body) return;
   const list = visibleItems();
+  /* DIE ZAEHLZEILE NENNT DEN GANZEN BESTAND, nicht die Trefferzahl der Suche:
+     `state.bestand` und nicht `state.items.length`. Waehrend einer Suche traegt
+     `items` nur die Treffer, und "3 Sachen" waere dann eine falsche Auskunft
+     ueber den Bestand.
+     UND SIE IST DER ORT FUER DEN ZUSTAND DER SUCHE. Ein eigener Kasten daneben
+     waere ein zweiter Platz fuer dieselbe Auskunft; hier steht sie da, wo
+     ohnehin die Zahlen stehen. */
   const cnt = document.getElementById('count');
-  if (cnt) cnt.textContent = `${state.items.length} ${vSache(state.items.length)}` +
-    (list.length !== state.items.length ? ` · ${list.length} sichtbar` : '');
+  if (cnt) {
+    let z = `${state.bestand} ${vSache(state.bestand)}` +
+      (list.length !== state.bestand ? ` · ${list.length} sichtbar` : '');
+    if (state.suchLaeuft) z += ' · sucht …';
+    else if (state.suchFehler) z += ' · Suche nicht erreichbar, gezeigt wird der letzte Stand';
+    cnt.textContent = z;
+  }
 
   drawZeitleiste(list);
   body.innerHTML = '';
-  if (!state.items.length) {
+  // GEFRAGT WIRD DER BESTAND UND NICHT DIE GEZEIGTE MENGE: eine Suche ohne
+  // Treffer ist kein leerer Bestand, und "Noch nichts erfasst" waere dort die
+  // falsche Auskunft. Die Absage darunter ist die richtige.
+  if (!state.bestand) {
     body.innerHTML = `<div class="empty"><h2>Noch nichts erfasst</h2>
       <p>Oben rechts anlegen — Fotos, Kategorie, Bewertung und ${esc(V.zeitpunktMehrzahl)} folgen danach.</p></div>`;
     return;
@@ -1679,7 +2004,10 @@ function drawBody() {
     return;
   }
   const grid = document.createElement('div');
-  grid.className = 'grid';
+  /* WAEHREND DIE SUCHE LAEUFT, BLEIBT DIE ALTE LISTE STEHEN und wird nur
+     gedaempft. Eine Liste, die zwischen zwei Tastendruecken leer wird, ist
+     schlechter als eine, die einen Augenblick alt ist. */
+  grid.className = 'grid' + (state.suchLaeuft ? ' sucht' : '');
   list.forEach(it => grid.appendChild(card(it)));
   body.appendChild(grid);
   drawCompareBar();
@@ -1856,11 +2184,60 @@ function drawCompareBar() {
   document.body.appendChild(bar);
 }
 
+/* ================= Doppelte Eintraege beim Anlegen =================
+   BEI EINEM ZUGANG WEISS MAN, WAS MAN EINGETRAGEN HAT. Bei vier Zugaengen und
+   dreihundert Eintraegen legt der zweite Mensch dieselbe Maschine ein zweites
+   Mal an -- und dann stehen die Bewertungen an zwei Stellen. Eine Sache, zwei
+   Wahrheiten.
+
+   EINE ZEILE, KEIN DIALOG. Sie blockiert nichts, fragt nichts nach und
+   verlangt keine Entscheidung: wer denselben Gegenstand wirklich zweimal
+   anlegen will, tut es. Sie sagt nur, was schon da ist, mit Sprungmarken
+   dorthin.
+
+   KEINE ROUTE. Die Titel des ganzen Bestands liegen ohnehin im Browser
+   (state.alle) -- eine Anfrage dafuer waere eine Anfrage fuer eine Antwort,
+   die man schon hat.
+   GEFRAGT WIRD state.alle UND NICHT state.items: waehrend einer Suche traegt
+   `items` nur die Treffer, und dann fiele der Doppeleintrag genau dann nicht
+   auf, wenn man ihn beim Suchen nicht gefunden hat.
+
+   VERGLICHEN WIRD UEBER VIERERGRUPPEN. Zwei Titel gelten als aehnlich, wenn
+   sie eine Folge von vier Zeichen teilen -- Gross- und Kleinschreibung und
+   alle Sonderzeichen vorher weggeraeumt. Vier, weil "GSR" und "18V" allein zu
+   viel faenden und weil jede laengere gemeinsame Folge eine Vierergruppe
+   enthaelt: die kurze Pruefung findet damit auch die lange.
+   TRIGRAMME ODER LEVENSHTEIN BRAUCHT ES NICHT. Titel sind kurz, und Menschen
+   tippen denselben Gegenstand aehnlich. */
+const AEHNLICH_FENSTER = 4;
+const AEHNLICH_ZEIGE = 5;
+
+// Kleinbuchstaben, Ziffern und Buchstaben mit Zeichen darauf bleiben; alles
+// andere faellt weg. "Bosch GSR 18V-60" wird zu "boschgsr18v60".
+const titelKern = (t) => String(t || '').toLowerCase().replace(/[^0-9a-zäöüßàáâãèéêëìíîïòóôõùúûñç]+/g, '');
+
+function aehnlicheEintraege(titel) {
+  const kern = titelKern(titel);
+  if (kern.length < AEHNLICH_FENSTER) return [];
+  const fenster = [];
+  for (let i = 0; i + AEHNLICH_FENSTER <= kern.length; i++)
+    fenster.push(kern.slice(i, i + AEHNLICH_FENSTER));
+  const treffer = [];
+  for (const it of state.alle) {
+    const k = titelKern(it.title);
+    if (k.length < AEHNLICH_FENSTER) continue;
+    if (fenster.some(f => k.includes(f))) treffer.push(it);
+    if (treffer.length >= AEHNLICH_ZEIGE) break;
+  }
+  return treffer;
+}
+
 function openCreate() {
   const bd = document.createElement('div');
   bd.className = 'backdrop';
   bd.innerHTML = `<div class="modal"><h2>${esc(V.sacheEinzahl)} anlegen</h2>
-    <div class="field"><label>Titel</label><input class="input" id="nt" placeholder="Wie soll es heißen?"></div>
+    <div class="field"><label>Titel</label><input class="input" id="nt" placeholder="Wie soll es heißen?">
+      <div class="hint hint-sm aehnlich" id="nt-aehnlich"></div></div>
     <div class="field"><label>Kurzbeschreibung</label><textarea class="ta" id="nd" placeholder="Worum geht es?"></textarea></div>
     <div class="modal-acts"><button class="btn btn-ghost" id="nc">Abbrechen</button>
     <button class="btn btn-accent" id="ns">Anlegen</button></div></div>`;
@@ -1868,8 +2245,23 @@ function openCreate() {
   const close = () => bd.remove();
   bd.onclick = e => { if (e.target === bd) close(); };
   document.getElementById('nc').onclick = close;
+  const nt = document.getElementById('nt');
+  const zeile = document.getElementById('nt-aehnlich');
+  // Die Zeile wird bei jedem Anschlag neu gebildet. Sie rechnet oertlich und
+  // braucht deshalb keinen Debounce -- bei dreihundert Titeln sind es
+  // dreihundert includes() auf einer Handvoll Vierergruppen.
+  const zeichneAehnlich = () => {
+    const treffer = aehnlicheEintraege(nt.value);
+    if (!treffer.length) { zeile.innerHTML = ''; return; }
+    // Die Sprungmarken schliessen den Dialog: ein offener Kasten ueber dem
+    // Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
+    zeile.innerHTML = 'Ähnlich: ' + treffer
+      .map(it => `<a href="#/item/${it.id}" data-zu>${esc(it.title)}</a>`).join(', ');
+    zeile.querySelectorAll('[data-zu]').forEach(a => { a.onclick = () => close(); });
+  };
+  nt.addEventListener('input', zeichneAehnlich);
   const save = async () => {
-    const title = document.getElementById('nt').value.trim();
+    const title = nt.value.trim();
     if (!title) return toast('Titel fehlt', true);
     try {
       const it = await api('POST', '/api/items', { title, description: document.getElementById('nd').value.trim() });
@@ -1877,8 +2269,8 @@ function openCreate() {
     } catch (e) { toast(e.message, true); }
   };
   document.getElementById('ns').onclick = save;
-  document.getElementById('nt').addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
-  document.getElementById('nt').focus();
+  nt.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+  nt.focus();
 }
 
 /* ================= Offene Aufgaben quer über alle Einträge ================= */
