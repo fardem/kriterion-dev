@@ -1705,9 +1705,11 @@ Start eine leere Neuinstallation vermuten.
 - `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchanbieter
   (Vorrat, eigene Anbieter, Startanbieter) und die beiden Schalter, wer neue
   Tags und Kategorien anlegen darf. Sache des Admins
-- `user_settings` — die **persönliche** Hälfte: Filterwahl, Schriftgröße,
-  Blockanordnung, sichtbare Linkzeilen, Zeitleiste und die Zahl der
-  Anbieternamen. Je Benutzer eine Zeile pro Schlüssel
+- `user_settings` — die **persönliche** Hälfte, **acht** Schlüssel: die zuletzt
+  benutzte Filterwahl, die **gespeicherten Ansichten** (seit 0.11.0), der
+  Bezugspunkt für „Neu seit …" (seit 0.8.60), Schriftgröße, Blockanordnung,
+  sichtbare Linkzeilen, Zeitleiste und die Zahl der Anbieternamen. Je Benutzer
+  eine Zeile pro Schlüssel
 - `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
   `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
   bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen.
@@ -1720,6 +1722,20 @@ Start eine leere Neuinstallation vermuten.
   der SHA-256 des Links, nie er selbst**; dazu Benutzer, Anlass, Ablauf und
   wann er eingelöst wurde. Sieben Tage haltbar, einmal gültig; abgelaufene
   Zeilen räumt die Anlage nach dreißig Tagen selbst weg
+- `anfragen` — die **Warteschlange der Selbstanmeldung** (seit 0.9.1):
+  Wunschname, Adresse, der SHA-256 des Bestätigungslinks und der Zeitpunkt der
+  Bestätigung. **Unbestätigte verfallen nach 24 Stunden** und erscheinen beim
+  Admin nie; eine bestätigte wartet, so lange es dauert. Höchstens zwanzig
+  offene, je Adresse eine
+- `zweifaktor` / `zweifaktor_codes` — der **zweite Faktor** (seit 0.10.0), je
+  Zugang höchstens einer. Das TOTP-Geheimnis liegt dort **im Klartext** — es
+  wird nachgerechnet und nicht geprüft, deshalb geht es nicht anders; die
+  verschlüsselte Datenbank ist die einzige Schicht darüber. Die acht
+  **Wiederherstellungscodes** stehen daneben als SHA-256 ohne Salz, jeder genau
+  einmal gültig; eine verbrauchte Zeile bleibt stehen, damit die Karte „noch 6
+  von 8" sagen kann. **Geräumt wird hier nichts nach einer Frist** — ein
+  Wiederherstellungscode soll genau dann tragen, wenn das Telefon seit Monaten
+  weg ist
 - `sicherheitsprotokoll` — **wer Zugang hatte und wer die Anlage als Ganzes
   angefasst hat** (seit 0.8.90). Eine Zeile je Vorgang: Zeitpunkt, was, wer, an
   wem und ein kurzes Merkmal aus einer festen Liste — **kein Freitext, keine
