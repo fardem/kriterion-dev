@@ -262,7 +262,7 @@ const putSetting = { run: (k, v) => {
 // Schranke oben gelesen -- eine Liste, die nur der Pruefstand ansieht, loescht
 // der Naechste als unbenutzt weg.
 const PERSOENLICHE_SCHLUESSEL = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleiste', 'suchNamen',
-                                'zuletztGesehen'];
+                                'zuletztGesehen', 'ansichten'];
 
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
@@ -1740,11 +1740,50 @@ const schriftgroesse = (benutzerId) => {
    beim ersten Klick alles zeigt, erklaert sich nicht. */
 const zuletztGesehen = (benutzerId) => getUserSetting(benutzerId, 'zuletztGesehen', null);
 
+/* --- Die gespeicherten Ansichten -----------------------------------------
+   MEHRERE BENANNTE FILTERSTELLUNGEN NEBEN DER EINEN, DIE ES SCHON GIBT.
+   `filters` bleibt, was es war: die zuletzt benutzte Stellung, bei jeder
+   Aenderung stillschweigend ueberschrieben. Die Ansichten stehen daneben und
+   werden nur auf Zuruf gelesen -- wer 0.10.0 fuhr, behaelt seine Stellung, und
+   es braucht keinen Migrationscode: `ansichten` ist ein neuer Schluessel, und
+   eine Anlage ohne ihn bekommt die leere Liste als Vorgabe.
+
+   PERSOENLICH, GANZ -- dieselbe Linie wie filters, bloecke und zeitleiste.
+   Eine geteilte Ansicht waere ein neuer Traeger samt neuer Rechtefrage.
+
+   IN settings UND NICHT IN EINER EIGENEN TABELLE: es ist genau die Form, die
+   `filters` schon hat, und eine Ansicht ist kein Traeger wie Eintrag,
+   Kommentar, Testtag, Bewertung, Link oder Datei. Der Preis steht dabei: JSON
+   kennt keine Kaskade, eine geloeschte Kategorie bleibt darin als Nummer
+   stehen. Uebergangen wird das beim ANWENDEN und nicht beim Lesen -- ein
+   Lesevorgang, der die Ansicht eines Menschen umschreibt, ist schlimmer als
+   eine Nummer, die ins Leere zeigt.
+
+   DER SUCHBEGRIFF GEHOERT DAZU. Eine Ansicht "Bosch, ungetestet" ist ohne ihn
+   die halbe Ansicht, und wer sie anklickt, erwartet das, was er beim Speichern
+   vor sich hatte.
+
+   GEPRUEFT WIRD DIE FORM, NICHT DER INHALT DER FILTERSTELLUNG. Deckel, Name
+   und Groesse ja; welche Sortierungen und welche Nummern es gibt, weiss die
+   Oberflaeche -- eine zweite Liste davon hier liefe auseinander, und `filters`
+   liegt aus genau diesem Grund seit jeher ungeprueft in der Tabelle. Was der
+   Server dafuer hart deckelt, ist der Platz: ohne Deckel waere ein
+   persoenlicher Schluessel ein Speicherfuellier. */
+const ANSICHTEN_DECKEL = 8;
+const ANSICHT_NAME_LAENGE = 40;
+const ANSICHT_BEGRIFF_LAENGE = 200;
+const ANSICHTEN_ZEICHEN = 8000;
+const ansichten = (benutzerId) => {
+  const w = getUserSetting(benutzerId, 'ansichten', []);
+  return Array.isArray(w) ? w : [];
+};
+
 // Die Antwort mischt beide Haelften; die Oberflaeche merkt davon nichts.
-// Persoenlich sind filters, schrift, bloecke, linkZeilen, zeitleiste und
-// suchNamen; global bleiben vokabular und die drei Sucheinstellungen (suche,
-// sucheEigene, sucheAktiv). Fuer zwei Benutzer sieht dieselbe Antwort deshalb
-// an sechs Stellen verschieden aus und an allen uebrigen gleich.
+// Persoenlich sind filters, ansichten, schrift, bloecke, linkZeilen,
+// zeitleiste und suchNamen; global bleiben vokabular und die drei
+// Sucheinstellungen (suche, sucheEigene, sucheAktiv). Fuer zwei Benutzer sieht
+// dieselbe Antwort deshalb an sieben Stellen verschieden aus und an allen
+// uebrigen gleich.
 // Dazu drei abgeleitete Angaben, keine Einstellungen -- sie stehen in keiner
 // der beiden Haelften und lassen sich nicht schreiben:
 //   benutzerZahl: bei genau einem Zugang entfaellt die Durchschnittsspalte,
@@ -1772,6 +1811,11 @@ app.get('/api/settings', (req, res) => res.json({
   istAdmin: istAdmin(req),
   istEigentuemer: istEigentuemer(req),
   filters: getUserSetting(req.benutzer.id, 'filters', null),
+  ansichten: ansichten(req.benutzer.id),
+  // Der Deckel kommt vom Server, damit die Zahl an einer Stelle steht: die
+  // Oberflaeche laesst danach den Knopf zum Speichern weg, und der Server
+  // verweigert es ohnehin.
+  ansichtenDeckel: ANSICHTEN_DECKEL,
   vokabular: vokabular(),
   schrift: schriftgroesse(req.benutzer.id),
   bloecke: bloecke(req.benutzer.id),
@@ -1818,8 +1862,53 @@ app.put('/api/settings', (req, res) => {
   if (fremd.length && !istAdmin(req))
     return res.status(403).json({ error: VERWEIGERT_ADMIN });
 
+  /* DIE ANSICHTEN WERDEN HIER GEPRUEFT UND ERST WEITER UNTEN GESCHRIEBEN --
+     VOR dem ersten putUserSetting dieses Rumpfes, aus demselben Grund wie die
+     Rechtefrage darueber: eine Absage, die `filters` schon geschrieben hat,
+     waere schlimmer als gar keine.
+     GEPRUEFT WIRD DIE GANZE LISTE AUF EINMAL, nicht eine Ansicht je Anfrage.
+     Es ist EIN Schluessel mit EINEM Wert; ein Weg, der einzelne Eintraege
+     darin aendert, braeuchte eine Nummer je Ansicht und damit einen Traeger,
+     der keiner ist. */
+  let ansichtenText = null;
+  if (req.body.ansichten !== undefined) {
+    const ein = Array.isArray(req.body.ansichten) ? req.body.ansichten : [];
+    if (ein.length > ANSICHTEN_DECKEL)
+      return res.status(400).json({
+        error: `Mehr als ${ANSICHTEN_DECKEL} gespeicherte Ansichten gibt es nicht.`
+      });
+    const sauber = [];
+    const namen = new Set();
+    for (const a of ein) {
+      const name = a && typeof a.name === 'string'
+        ? a.name.trim().slice(0, ANSICHT_NAME_LAENGE) : '';
+      // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst recht
+      // nicht, sonst sucht man die Ansicht spaeter in der Liste.
+      if (!name)
+        return res.status(400).json({ error: 'Eine gespeicherte Ansicht braucht einen Namen.' });
+      /* ZWEI ANSICHTEN MIT DEMSELBEN NAMEN SIND EINE ZU VIEL: der Name ist
+         das Einzige, woran ein Mensch sie auseinanderhaelt. Verglichen wird
+         ohne Ruecksicht auf Gross- und Kleinschreibung -- "Bosch" und "bosch"
+         nebeneinander waeren dieselbe Falle mit einem Buchstaben Abstand. */
+      const schluessel = name.toLowerCase();
+      if (namen.has(schluessel))
+        return res.status(400).json({ error: `„${name}" gibt es schon.` });
+      namen.add(schluessel);
+      sauber.push({
+        name,
+        q: a && typeof a.q === 'string' ? a.q.slice(0, ANSICHT_BEGRIFF_LAENGE) : '',
+        filters: a && a.filters && typeof a.filters === 'object' ? a.filters : null
+      });
+    }
+    ansichtenText = JSON.stringify(sauber);
+    if (ansichtenText.length > ANSICHTEN_ZEICHEN)
+      return res.status(400).json({ error: 'Die gespeicherten Ansichten sind zu umfangreich.' });
+  }
+
   if (req.body.filters !== undefined)
     putUserSetting(req.benutzer.id, 'filters', JSON.stringify(req.body.filters));
+  if (ansichtenText !== null)
+    putUserSetting(req.benutzer.id, 'ansichten', ansichtenText);
   if (req.body.vokabular !== undefined) {
     const ein = req.body.vokabular || {};
     const sauber = {};
@@ -1914,6 +2003,7 @@ app.put('/api/settings', (req, res) => {
   for (const k of ['tagsFreiAnlegen', 'kategorienFreiAnlegen'])
     if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
   res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vokabular: vokabular(),
+             ansichten: ansichten(req.benutzer.id), ansichtenDeckel: ANSICHTEN_DECKEL,
              schrift: schriftgroesse(req.benutzer.id), bloecke: bloecke(req.benutzer.id),
              linkZeilen: linkZeilen(req.benutzer.id), zeitleiste: zeitleisteAn(req.benutzer.id),
              suche: suchvorlage(), suchAnbieter: suchAnbieter(),

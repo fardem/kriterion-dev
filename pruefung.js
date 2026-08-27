@@ -2401,9 +2401,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
       .map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean).sort();
   };
   const dListeSrv = listeAus(srvQuelle, 'PERSOENLICHE_SCHLUESSEL');
-  const dSoll = ['bloecke', 'filters', 'linkZeilen', 'schrift', 'suchNamen', 'zeitleiste',
-                 'zuletztGesehen'];
-  pruefe('server.js kennt genau die sieben persoenlichen Schluessel',
+  /* ACHT SEIT 0.11.0: `ansichten` kommt dazu, die gespeicherten
+     Filterstellungen. Sie sind persoenlich wie `filters` daneben und aus
+     demselben Grund -- eine geteilte Ansicht waere ein neuer Traeger samt
+     neuer Rechtefrage. `filters` bleibt, was es war, die zuletzt benutzte
+     Stellung; die Ansichten stehen daneben und ersetzen sie nicht. */
+  const dSoll = ['ansichten', 'bloecke', 'filters', 'linkZeilen', 'schrift', 'suchNamen',
+                 'zeitleiste', 'zuletztGesehen'];
+  pruefe('server.js kennt genau die acht persoenlichen Schluessel',
     gleich(dListeSrv, dSoll), JSON.stringify(dListeSrv));
 
   /* Der Waechter ueber den Quelltext. Dieselbe Ueberlegung wie bei detail()
@@ -2493,6 +2498,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
     { schrift: 80, linkZeilen: 3, suchNamen: 1 });
   await dRuf('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
   await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { filters: { tested: 'no' } });
+  // Der achte persoenliche Schluessel seit 0.11.0. Er gehoert in DIESE Lage,
+  // weil die Pruefung unten alle Schluessel aus dSoll in user_settings
+  // wiederfinden will -- ein Schluessel, der nie geschrieben wurde, fehlte
+  // dort und saehe aus wie einer, der in der falschen Haelfte landet.
+  /* NUR DER ERSTE SETZT SIE, ausdruecklich. Die Pruefung weiter unten zaehlt
+     die Zeilen des ZWEITEN und haelt damit fest, dass bei ihm nichts steht,
+     was er nicht selbst gesetzt hat -- eine gespeicherte Ansicht des einen
+     darf beim anderen nicht auftauchen. */
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings',
+    { ansichten: [{ name: 'Meine Sicht', q: 'eins', filters: { tested: 'yes' } }] });
   const dEins = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt;
   const dZwei = (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt;
 
@@ -2641,12 +2656,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
     !['suche', 'sucheAktiv', 'sucheEigene', 'vokabular', 'title_app', 'title_public']
       .some(k => persoenlichDa(k, 1)),
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 1').all()));
-  // Der Zweite hat vier Schluessel selbst gesetzt und seit 0.8.60 den
-  // Merkzeitpunkt dazu -- fuenf. Was er NICHT gesetzt hat, steht auch nicht
-  // bei ihm; genau darum geht es hier.
+  /* Der Zweite hat vier Schluessel selbst gesetzt und seit 0.8.60 den
+     Merkzeitpunkt dazu -- fuenf. Was er NICHT gesetzt hat, steht auch nicht
+     bei ihm; genau darum geht es hier.
+     SEIT 0.11.0 TRAEGT DAS AUCH DIE GESPEICHERTEN ANSICHTEN: der Erste hat
+     eine, der Zweite keine, und die Zahl bleibt trotzdem fuenf. Waeren sie
+     versehentlich global, stuenden sie hier als sechste Zeile. */
   pruefe('Die beiden Benutzer teilen sich keine Zeile',
     dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 5,
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 2').all()));
+  pruefe('Und die gespeicherte Ansicht des Ersten steht nicht beim Zweiten',
+    persoenlichDa('ansichten', 1) && !persoenlichDa('ansichten', 2),
+    `beim Ersten ${persoenlichDa('ansichten', 1)}, beim Zweiten ${persoenlichDa('ansichten', 2)}`);
   dDb.close();
 
   /* Die Kaskade an user_settings.user_id. Die Anwendung entfernt keine
