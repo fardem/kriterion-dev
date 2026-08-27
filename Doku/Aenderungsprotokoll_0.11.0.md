@@ -1011,18 +1011,20 @@ nach dem dritten kamen und ein Lauf dagegen billiger ist als eine Annahme.*
 
 ## 11. Offen geblieben
 
-- **DIE TAGS `v0.10.0` UND `v0.11.0` SIND GESETZT, ABER NICHT GESCHOBEN.** Der
-  Push scheitert in der Arbeitsumgebung mit `HTTP 403` — **Branches gehen
-  durch, Tags nicht.** Sie brauchen einen Push von einer Stelle mit den nötigen
-  Rechten:
+- **DER TAG `v0.11.0` IST GESETZT, ABER NICHT GESCHOBEN.** Der Push scheitert
+  in der Arbeitsumgebung unverändert mit `HTTP 403` — **Branches gehen durch,
+  Tags nicht.** Er braucht einen Push von einer Stelle mit den nötigen Rechten:
 
   ```bash
-  git push origin v0.10.0
   git push origin v0.11.0
   ```
 
-  **Wirkung: die beiden Vergleichsverweise am Ende von `CHANGELOG.md` zeigen
+  **Wirkung: der Vergleichsverweis `[0.11.0]` am Ende von `CHANGELOG.md` zeigt
   ins Leere.** An der Anlage ändert es nichts.
+  *`v0.10.0` dagegen liegt inzwischen am Remote — nachgesehen mit
+  `git ls-remote --tags origin`, er zeigt auf `f1dc213`. Der offene Punkt aus
+  0.10.0 hat sich damit erledigt, und das Repo trägt **fünfzehn** Tags statt
+  vierzehn.*
 - **Der Rundlauf für 0.11.0 am laufenden Server steht aus.** Drei Handgriffe
   belegen die Runde: nach einem **Kommentartext** suchen und den Eintrag
   finden; eine **Ansicht** speichern, abmelden, anmelden, die Ansicht wählen;

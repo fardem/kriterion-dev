@@ -961,8 +961,9 @@ Verfasser ihres Eintrags zu.
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     ACHTUNG: der Tag `v0.11.0` ist angelegt, aber wie `v0.10.0` NICHT
-     geschoben — der Push scheitert in der Arbeitsumgebung an HTTP 403.
-     Solange das so ist, zeigt der Verweis darunter ins Leere. -->
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` ist angelegt,
+     aber NICHT geschoben — der Push scheitert in der Arbeitsumgebung an
+     HTTP 403 (Branches gehen durch, Tags nicht). Solange das so ist, zeigt
+     der zweite Verweis darunter ins Leere. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
 [0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0

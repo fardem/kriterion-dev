@@ -6115,22 +6115,24 @@ sind zwei Dinge:
 
 - **Der Betriebsstand steht in Abschnitt 2, nicht hier.** Zwei Stellen für
   dieselbe Angabe halten nur eine aktuell (vgl. Stolperstein 47).
-- **DIE TAGS `v0.10.0` UND `v0.11.0` SIND GESETZT, ABER NICHT GESCHOBEN.**
-  Beide liegen auf dem Commit, der herausgeht; der Push scheitert in der
-  Arbeitsumgebung mit `HTTP 403` — **Branches gehen durch, Tags nicht.** Sie
-  brauchen einen Push von einer Stelle mit den nötigen Rechten:
+- **`v0.10.0` LIEGT INZWISCHEN AM REMOTE — der offene Punkt aus 0.10.0 hat sich
+  erledigt.** Nachgesehen mit `git ls-remote --tags origin`: der Tag zeigt auf
+  `f1dc213`, den Commit, mit dem 0.10.0 herausging. **Das Repo trägt damit
+  fünfzehn Tags**, nicht mehr vierzehn. *Der Vergleichsverweis `[0.10.0]` am
+  Ende von `CHANGELOG.md` trägt also.*
+- **DER TAG `v0.11.0` IST GESETZT, ABER NICHT GESCHOBEN.** Er liegt auf dem
+  Commit, der herausgeht; der Push scheitert in der Arbeitsumgebung
+  unverändert mit `HTTP 403` — **Branches gehen durch, Tags nicht.** Er braucht
+  einen Push von einer Stelle mit den nötigen Rechten:
 
   ```bash
-  git push origin v0.10.0
   git push origin v0.11.0
   ```
 
-  *Liegen die Tags dort nicht mehr vor, entstehen sie mit*
-  `git tag -a v0.11.0 <commit> -m "…"` *auf den jeweiligen Commit.*
-  **Ohne sie zeigen die beiden Vergleichsverweise am Ende von `CHANGELOG.md`
+  *Liegt der Tag dort nicht mehr vor, entsteht er mit*
+  `git tag -a v0.11.0 <commit> -m "…"` *auf den Commit, der herausgeht.*
+  **Ohne ihn zeigt der Vergleichsverweis `[0.11.0]` am Ende von `CHANGELOG.md`
   ins Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
-  *Dabei ist aufgefallen, dass das Repo schon vierzehn Tags trägt und nicht
-  keinen: Abschnitt 5, Unterabschnitt zum Changelog.*
 - **DER RUNDLAUF FÜR 0.11.0 IST NOCH NICHT GEFAHREN.** Drei Handgriffe belegen
   die Runde am laufenden Server, und sie gehören nach dem Einspielen einmal von
   Hand gemacht: **nach einem Kommentartext suchen** und den Eintrag finden;
