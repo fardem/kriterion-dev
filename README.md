@@ -383,6 +383,7 @@ Eine Einstellung, fünf Wirkungen:
 | Sitzungscookie | `kriterion_session` | `__Host-kriterion_session` |
 | `Secure` am Cookie | nein | ja |
 | `Strict-Transport-Security` | nein | `max-age=31536000` |
+| `http://` in `OEFFENTLICHE_ADRESSE` | wird hingenommen | **Warnung beim Start**, keine Absage |
 | richtig für | direkt im Heimnetz, Port 3100 | Betrieb hinter einem Proxy, HTTPS |
 
 Der **letzte** Eintrag der Kette und nicht der erste: ein Proxy hängt die

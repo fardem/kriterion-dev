@@ -25,8 +25,8 @@ zum Mehrbenutzerbetrieb, der mit 0.6.0 begann, ist zu Ende geführt.
 > | Teil IV — Nachträge zu Abschnitt 5 | Projektstand, Abschnitt 5 |
 > | Teil V — zu erwartende Stolpersteine, die offenen Auflagen | Projektstand, Abschnitt 11 |
 > | „Nachprüfen per SSH" | Projektstand, Abschnitt 8 |
-> | die offene Frage nach der Eindeutigkeit der Adresse | Projektstand, Abschnitt 10 |
-> | der Versanddienst über HTTPS, der angepinnte Block als Wand | Projektstand, Abschnitt 10 |
+> | die offene Frage nach der Eindeutigkeit der Adresse | `Doku/Fehler_und_Ideen.md`, Teil II *(bis Revision 26 im Projektstand, Abschnitt 10)* |
+> | der Versanddienst über HTTPS, der angepinnte Block als Wand | `Doku/Fehler_und_Ideen.md`, Teil II *(ebenso)* |
 >
 > **Was hier bleibt, ist die Herleitung:** der Entwurf, was beim Bauen anders
 > kam, und die Stufentabelle. *Für die Stufen A bis G3 ist dieses Papier der
@@ -293,7 +293,7 @@ es keinen Admin, wird es der Eigentümer" schloss die Lücke, wer der erste Admi
 wird; die Durchsetzung von `status` wurde bewusst nach Stufe G verschoben; und
 **`email` bekam kein `UNIQUE`** — ein `ALTER TABLE` kann keines nachrüsten, die
 gewanderte und die frische Datenbank wären damit verschieden gebaut. *Die Frage
-ist bis heute offen (Projektstand, Abschnitt 10).*
+ist bis heute offen — sie steht in `Doku/Fehler_und_Ideen.md`, Teil II.*
 
 **B (0.6.1).** Die Migration brauchte **drei** Aufrufstellen statt einer;
 `test_day_tags` bekam **keine** eigene Spalte (der Verfasser folgt dem Testtag);
