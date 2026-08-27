@@ -2178,11 +2178,60 @@ function drawCompareBar() {
   document.body.appendChild(bar);
 }
 
+/* ================= Doppelte Eintraege beim Anlegen =================
+   BEI EINEM ZUGANG WEISS MAN, WAS MAN EINGETRAGEN HAT. Bei vier Zugaengen und
+   dreihundert Eintraegen legt der zweite Mensch dieselbe Maschine ein zweites
+   Mal an -- und dann stehen die Bewertungen an zwei Stellen. Eine Sache, zwei
+   Wahrheiten.
+
+   EINE ZEILE, KEIN DIALOG. Sie blockiert nichts, fragt nichts nach und
+   verlangt keine Entscheidung: wer denselben Gegenstand wirklich zweimal
+   anlegen will, tut es. Sie sagt nur, was schon da ist, mit Sprungmarken
+   dorthin.
+
+   KEINE ROUTE. Die Titel des ganzen Bestands liegen ohnehin im Browser
+   (state.alle) -- eine Anfrage dafuer waere eine Anfrage fuer eine Antwort,
+   die man schon hat.
+   GEFRAGT WIRD state.alle UND NICHT state.items: waehrend einer Suche traegt
+   `items` nur die Treffer, und dann fiele der Doppeleintrag genau dann nicht
+   auf, wenn man ihn beim Suchen nicht gefunden hat.
+
+   VERGLICHEN WIRD UEBER VIERERGRUPPEN. Zwei Titel gelten als aehnlich, wenn
+   sie eine Folge von vier Zeichen teilen -- Gross- und Kleinschreibung und
+   alle Sonderzeichen vorher weggeraeumt. Vier, weil "GSR" und "18V" allein zu
+   viel faenden und weil jede laengere gemeinsame Folge eine Vierergruppe
+   enthaelt: die kurze Pruefung findet damit auch die lange.
+   TRIGRAMME ODER LEVENSHTEIN BRAUCHT ES NICHT. Titel sind kurz, und Menschen
+   tippen denselben Gegenstand aehnlich. */
+const AEHNLICH_FENSTER = 4;
+const AEHNLICH_ZEIGE = 5;
+
+// Kleinbuchstaben, Ziffern und Buchstaben mit Zeichen darauf bleiben; alles
+// andere faellt weg. "Bosch GSR 18V-60" wird zu "boschgsr18v60".
+const titelKern = (t) => String(t || '').toLowerCase().replace(/[^0-9a-zäöüßàáâãèéêëìíîïòóôõùúûñç]+/g, '');
+
+function aehnlicheEintraege(titel) {
+  const kern = titelKern(titel);
+  if (kern.length < AEHNLICH_FENSTER) return [];
+  const fenster = [];
+  for (let i = 0; i + AEHNLICH_FENSTER <= kern.length; i++)
+    fenster.push(kern.slice(i, i + AEHNLICH_FENSTER));
+  const treffer = [];
+  for (const it of state.alle) {
+    const k = titelKern(it.title);
+    if (k.length < AEHNLICH_FENSTER) continue;
+    if (fenster.some(f => k.includes(f))) treffer.push(it);
+    if (treffer.length >= AEHNLICH_ZEIGE) break;
+  }
+  return treffer;
+}
+
 function openCreate() {
   const bd = document.createElement('div');
   bd.className = 'backdrop';
   bd.innerHTML = `<div class="modal"><h2>${esc(V.sacheEinzahl)} anlegen</h2>
-    <div class="field"><label>Titel</label><input class="input" id="nt" placeholder="Wie soll es heißen?"></div>
+    <div class="field"><label>Titel</label><input class="input" id="nt" placeholder="Wie soll es heißen?">
+      <div class="hint hint-sm aehnlich" id="nt-aehnlich"></div></div>
     <div class="field"><label>Kurzbeschreibung</label><textarea class="ta" id="nd" placeholder="Worum geht es?"></textarea></div>
     <div class="modal-acts"><button class="btn btn-ghost" id="nc">Abbrechen</button>
     <button class="btn btn-accent" id="ns">Anlegen</button></div></div>`;
@@ -2190,8 +2239,23 @@ function openCreate() {
   const close = () => bd.remove();
   bd.onclick = e => { if (e.target === bd) close(); };
   document.getElementById('nc').onclick = close;
+  const nt = document.getElementById('nt');
+  const zeile = document.getElementById('nt-aehnlich');
+  // Die Zeile wird bei jedem Anschlag neu gebildet. Sie rechnet oertlich und
+  // braucht deshalb keinen Debounce -- bei dreihundert Titeln sind es
+  // dreihundert includes() auf einer Handvoll Vierergruppen.
+  const zeichneAehnlich = () => {
+    const treffer = aehnlicheEintraege(nt.value);
+    if (!treffer.length) { zeile.innerHTML = ''; return; }
+    // Die Sprungmarken schliessen den Dialog: ein offener Kasten ueber dem
+    // Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
+    zeile.innerHTML = 'Ähnlich: ' + treffer
+      .map(it => `<a href="#/item/${it.id}" data-zu>${esc(it.title)}</a>`).join(', ');
+    zeile.querySelectorAll('[data-zu]').forEach(a => { a.onclick = () => close(); });
+  };
+  nt.addEventListener('input', zeichneAehnlich);
   const save = async () => {
-    const title = document.getElementById('nt').value.trim();
+    const title = nt.value.trim();
     if (!title) return toast('Titel fehlt', true);
     try {
       const it = await api('POST', '/api/items', { title, description: document.getElementById('nd').value.trim() });
@@ -2199,8 +2263,8 @@ function openCreate() {
     } catch (e) { toast(e.message, true); }
   };
   document.getElementById('ns').onclick = save;
-  document.getElementById('nt').addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
-  document.getElementById('nt').focus();
+  nt.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+  nt.focus();
 }
 
 /* ================= Offene Aufgaben quer über alle Einträge ================= */

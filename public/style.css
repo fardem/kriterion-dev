@@ -270,6 +270,24 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Filterknopf ist Bedienung. Der Stern steht im Text, nicht in der Farbe. */
 .pill-sep { margin-left: 14px; }
 .pill .n { opacity: .55; margin-left: 4px; font-size: .7rem; }
+/* Das Kreuz an einer gespeicherten Ansicht. Es liegt IM Knopf -- ein Knopf im
+   Knopf gibt es in HTML nicht --, ist deshalb ein span und traegt seinen
+   Klickfaenger in JS. Gedaempft, damit es nicht mit dem Namen um
+   Aufmerksamkeit streitet; rot erst unter dem Zeiger, wie ueberall beim
+   Entfernen. */
+.pill .an-weg { margin-left: 8px; opacity: .45; font-size: .78rem; }
+.pill .an-weg:hover { opacity: 1; color: var(--red); }
+.pill.on .an-weg { opacity: .6; }
+
+/* Die Zeile "Ähnlich: …" unter dem Titelfeld im Anlegen-Dialog. Sie ist eine
+   Auskunft und keine Warnung: kein Rot, kein Rahmen, kein Zeichen davor --
+   .hint sagt in dieser Anlage schon "Auskunft, kein Bedienelement". Der Platz
+   entsteht erst, wenn etwas darin steht; ein leerer Streifen unter dem Feld
+   verschoebe den Dialog bei jedem Anschlag. */
+.aehnlich { margin-top: 6px; }
+.aehnlich:empty { display: none; }
+.aehnlich a { color: var(--text-2); text-decoration: underline; text-decoration-color: var(--line); }
+.aehnlich a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .select {
   padding: 6px 10px; border-radius: var(--r-sm);
   border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: .83rem;
