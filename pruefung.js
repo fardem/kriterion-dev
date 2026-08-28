@@ -1601,6 +1601,51 @@ const freigabeHaupt = (zweck, ziel = null) =>
     (cssEng.match(/@media \(hover: none\) \{ \.thumb \.del[^}]*\}/) || ['(keine Regel)'])[0]);
   pruefe('Am Zeigegeraet bleibt es beim Ueberfahren',
     /\.thumb:hover \.del \{ opacity: 1; \}/.test(cssEng));
+  /* UND EINE DRITTE, DIE DEN UNTERSCHIED FESTHAELT, AUF DEN ES ANKOMMT:
+     `display: none` und nicht `opacity: 0`. Die beiden sehen auf einem
+     Bildschirmfoto gleich aus und sind es nicht -- eine Flaeche mit
+     `opacity: 0` steht weiterhin im Trefferbaum und nimmt jede Beruehrung an.
+     Genau das war der Fehler, der aus dem Betrieb gemeldet wurde: nicht dass
+     man das Kreuz SIEHT, sondern dass man es TRIFFT.
+     NACHGEMESSEN IM BROWSER (der Pruefstand kann es nicht, jsdom rechnet kein
+     Layout): document.elementFromPoint auf die Ecke, in der das Kreuz sass,
+     liefert auf dem Finger `.thumb` und am Zeigegeraet `.del`. Diese Zeile
+     haelt fest, woran das haengt. */
+  pruefe('Und zwar herausgenommen, nicht nur unsichtbar gemacht',
+    !/@media \(hover: none\) \{ \.thumb \.del \{ (opacity|visibility)/.test(cssEng),
+    (cssEng.match(/@media \(hover: none\) \{ \.thumb \.del[^}]*\}/) || ['(keine Regel)'])[0]);
+
+  /* ---- DIE VORSCHAUREIHE FUELLT AUF DEM TELEFON DIE BREITE ----
+     62 Pixel feste Kachelbreite in einem umbrechenden Kasten heisst: die
+     Spaltenzahl ist eine Treppe ueber der Fensterbreite, und was nicht mehr
+     hineinpasst, bleibt als Streifen rechts liegen. Gemessen: bei einem
+     Kasten von 336 Pixeln (Fenster 360) waren es 67 leere Pixel -- ein
+     Fuenftel der Breite --, weil die fuenfte Kachel an ZWEI Pixeln scheitert.
+     Ein Raster verteilt den Rest IN die Spalten. */
+  const kachelRaster = (cssEng.match(/\.thumbs \{ display: grid;[^}]*\}/) || [''])[0];
+  pruefe('Die Vorschaureihe steht auf dem Telefon als Raster',
+    /grid-template-columns: repeat\(auto-fill, minmax\(60px, 1fr\)\);/.test(kachelRaster),
+    kachelRaster || '(keine Rasterregel)');
+  /* auto-fit STATT auto-fill WAERE DER STILLE FEHLER: mit genug Kacheln sehen
+     die beiden gleich aus, und bei WENIGEN klappt auto-fit die leeren Spalten
+     zusammen -- ein Eintrag mit zwei Fotos bekaeme zwei Kacheln von 180
+     Pixeln. Die Reihe saehe dann bei jedem Eintrag anders aus. */
+  pruefe('Und zwar mit auto-fill, das die leeren Spalten offenhaelt',
+    !!kachelRaster && !/auto-fit/.test(kachelRaster), kachelRaster);
+  /* Sobald die Breite gerechnet wird, MUSS die Hoehe ihr folgen -- sonst
+     stuende an der Kachel eine feste Hoehe von 62 neben einer Breite von 72,
+     und aus dem Quadrat wuerde ein liegendes Rechteck. */
+  pruefe('Und die Kachel gibt dafuer ihre festen Masse ab und bleibt quadratisch',
+    /\.thumb \{ width: auto; height: auto; aspect-ratio: 1\/1; \}/.test(cssEng),
+    (cssEng.match(/\.thumb \{ width: auto[^}]*\}/) || ['(keine Regel)'])[0]);
+  /* DIE GRUNDREGEL BLEIBT, WIE SIE WAR, und das ist die Gegenrichtung: am
+     Schreibtisch aendert sich nichts, und das haengt daran, dass die 62
+     Pixel dort unangetastet stehen. Nachgemessen ist es auch -- die
+     Eintragsseite ist bei 1100, 1280 und 1440 Pixeln Pixel fuer Pixel
+     dieselbe --, aber eine Messung von Hand faerbt nichts rot. */
+  pruefe('Am Schreibtisch bleibt die Kachel bei ihren festen 62 Pixeln',
+    /\.thumb \{ width: 62px; height: 62px;/.test(cssEng),
+    (cssEng.match(/\.thumb \{ width: 62px[^;]*;[^;]*;/) || ['(keine Regel)'])[0]);
 
   /* Der Papierkorb am grossen Bild ist der Weg, den das Kreuz freigemacht hat.
      Er steht ABGESETZT von den beiden Knoepfen davor: die stellen etwas ein,

@@ -2220,6 +2220,74 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      mitsamt der Adressleiste, die beim Scrollen verschwindet. */
   .viewer { max-height: 64vh; max-height: 64dvh; }
 
+  /* ---- Die Vorschaureihe unter dem Bild ----
+     62 PIXEL FEST IN EINEM UMBRECHENDEN KASTEN: das ist eine Kachelbreite,
+     die nicht weiss, wie breit das Fenster ist. Auf einem 360 Pixel breiten
+     Telefon misst der Kasten 336 -- Fenster minus zweimal Seitenrand --, und
+     die fuenfte Kachel scheitert an ZWEI Pixeln: fuenfmal 62 und viermal 7
+     Abstand ergeben 338. Was stehen bleibt, sind vier Kacheln und ein leerer
+     Streifen von 67 Pixeln rechts, ein Fuenftel der Breite. Der Bildbereich
+     darueber reicht bis an beide Kanten, die Reihe darunter hoert vorher auf
+     -- und genau das sieht man. Bei 428 Pixeln sind es 66 leere Pixel neben
+     fuenf Kacheln.
+
+     DASSELBE MITTEL WIE BEIM KARTENRASTER DER UEBERSICHT. Ein Raster zaehlt
+     seine Spalten selbst aus und verteilt den Rest IN die Spalten, statt ihn
+     rechts liegen zu lassen. Die Kachel hat damit keine feste Breite mehr,
+     sondern eine Untergrenze; links und rechts steht danach derselbe Rand,
+     naemlich der Seitenrand der Schale und sonst nichts. Es braucht dafuer
+     keinen vierten Umbruchpunkt: die Spaltenzahl faellt aus der Breite, und
+     die Breite ist genau die Achse, an der in dieser Anlage das Layout
+     haengt.
+
+     WARUM 60 UND NICHT 62 ALS UNTERGRENZE. Die Zahl entscheidet allein
+     darueber, WANN eine Spalte dazukommt; wie breit die Kachel dann wirklich
+     wird, rechnet das Raster aus, und schmaler als die Untergrenze wird sie
+     nie. Damit die fuenfte Kachel auf das schmalste gebraeuchliche Telefon
+     passt, darf die Untergrenze hoechstens 61,6 messen. Genau auf diese Kante
+     gelegt waere sie der naechste Fehler mit Ansage: ein Pixel mehr
+     Seitenrand, ein Pixel mehr Abstand, und die fuenfte Kachel ist wieder
+     weg, ohne dass jemand die Vorschaureihe angefasst haette. 60 laesst acht
+     Pixel Luft und bleibt eine Zahl, die man sich merkt.
+     DER PREIS STEHT DANEBEN UND WIRD NICHT VERSCHWIEGEN: an drei
+     Kastenbreiten -- 328, 395 und 462 -- trifft die Kachel ihre Untergrenze
+     und misst dort 60 statt 62 Pixel. Zwei Pixel weniger, und immer noch weit
+     ueber dem Fingermass von 44.
+
+     GERECHNET UND IM BROWSER NACHGEMESSEN (Kasten = Fenster minus 24):
+       336 -> 5 Spalten zu 61,6   (vorher 4 zu 62, 67 Pixel leer)
+       366 -> 5 Spalten zu 67,6   (vorher 5 zu 62, 28 Pixel leer)
+       388 -> 5 Spalten zu 72,0   (vorher 5 zu 62, 50 Pixel leer)
+       404 -> 6 Spalten zu 61,5   (vorher 5 zu 62, 66 Pixel leer)
+     Rest rechts in allen vier Faellen: null.
+
+     auto-fill UND NICHT auto-fit. Die beiden sehen gleich aus, solange genug
+     Kacheln da sind, und gehen bei WENIGEN auseinander: auto-fit klappt die
+     leeren Spalten zusammen und verteilt ihren Platz auf die vorhandenen. Ein
+     Eintrag mit zwei Fotos bekaeme auf 366 Pixeln damit zwei Kacheln von
+     179,5 Pixeln, und die Reihe saehe bei jedem Eintrag anders aus als beim
+     naechsten. Die Vorschau ist eine Reihe gleich grosser Marken; wie gross
+     sie sind, darf an der Breite des Schirms haengen und nicht daran, wie
+     viele Fotos jemand hochgeladen hat.
+
+     UND DIE KACHEL BLEIBT QUADRATISCH. Die Hoehe stand bisher als zweite
+     feste Zahl neben der Breite; sobald die Breite rechnet, muss die Hoehe
+     ihr folgen. `height: auto` ist dabei keine Zutat, sondern die Bedingung:
+     neben einer festen Hoehe von 62 bliebe das Verhaeltnis wirkungslos, und
+     aus der Kachel wuerde ein liegendes Rechteck. `width: auto` ebenso -- ein
+     Rasterkind mit fester Breite nimmt seine Spur nicht an und stuende mit 62
+     Pixeln in einer 72 Pixel breiten Spalte, den Rest wieder daneben.
+
+     WAS DAS AM ZIEHEN AENDERT, und es aendert etwas: bisher lag rechts in
+     jeder vollen Zeile ein toter Streifen, auf dem ein Finger sicher keine
+     Kachel griff. Den gibt es nicht mehr -- die Zeile ist lueckenlos Kachel.
+     Wer auf der Reihe aufsetzt und laenger als die Haltezeit ruhig liegen
+     bleibt, greift jetzt an jeder Stelle eine. Das ist die gewollte Folge des
+     Auftrags, die Breite auszunutzen, und die Wischtoleranz faengt weiterhin
+     jeden Finger ab, der sich VOR Ablauf der Haltezeit bewegt. */
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
+  .thumb { width: auto; height: auto; aspect-ratio: 1/1; }
+
   /* ---- Dialoge: das Blatt von unten ----
      Ein Dialog in der Mitte des Schirms ist die Bauform eines Fensters auf
      einem Schreibtisch. Auf einem Telefon ist die Mitte die Stelle, an die

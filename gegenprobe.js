@@ -1454,6 +1454,61 @@ const RUECKBAUTEN = [
     ersatz: '.vweg { margin-left: 0; }',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
+  /* UNSICHTBAR IST NICHT DASSELBE WIE UNANTASTBAR, und genau darauf kam der
+     Befund aus dem Betrieb heraus. Dieser Rueckbau macht das Kreuz an der
+     Kachel wieder durchsichtig statt es herauszunehmen: auf einem
+     Bildschirmfoto sieht das Ergebnis richtig aus, unter dem Daumen ist es
+     der alte Fehler. Wenn dafuer keine Zeile rot wird, sichert der Pruefstand
+     nur das Aussehen und nicht das Verhalten. */
+  {
+    nr: '166', name: 'Das Kreuz an der Kachel wird nur durchsichtig, nicht herausgenommen',
+    datei: 'public/style.css',
+    suche: '@media (hover: none) { .thumb .del { display: none; } }',
+    ersatz: '@media (hover: none) { .thumb .del { opacity: 0; } }',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* Die Rasterregel faellt weg -- die Kachelreihe steht wieder als
+     umbrechender Flexkasten da, mit fester Kachelbreite und dem Streifen
+     rechts. */
+  {
+    nr: '167', name: 'Die Vorschaureihe faellt auf den umbrechenden Kasten zurueck',
+    datei: 'public/style.css',
+    suche: '  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }\n',
+    ersatz: '',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* auto-fit statt auto-fill: mit zwoelf Fotos faellt das gar nicht auf, mit
+     zweien werden aus zwei Kacheln zwei Kachelplatten. Ein Rueckbau, den man
+     an einem vollen Eintrag nicht sieht -- deshalb steht er hier. */
+  {
+    nr: '168', name: 'Die leeren Spalten klappen zusammen (auto-fit)',
+    datei: 'public/style.css',
+    suche: 'grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));',
+    ersatz: 'grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* Die Kachel behaelt ihre feste Hoehe, waehrend die Breite rechnet: aus dem
+     Quadrat wird ein liegendes Rechteck, und object-fit beschneidet das Foto
+     anders. Sieht nicht kaputt aus, ist aber falsch. */
+  {
+    nr: '169', name: 'Die Kachel behaelt ihre feste Hoehe und wird zum Rechteck',
+    datei: 'public/style.css',
+    suche: '  .thumb { width: auto; height: auto; aspect-ratio: 1/1; }\n',
+    ersatz: '',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* UND EINER IN DIE GEGENRICHTUNG: die Grundregel der Kachel wird angefasst.
+     Sie gilt am Schreibtisch, und dort soll sich nichts aendern -- ein
+     Rueckbau, der die 62 Pixel verschiebt, muss auffallen. Sonst haenge die
+     Zusage allein an einem Pixelvergleich von Hand, und der faerbt nichts
+     rot. */
+  {
+    nr: '170', name: 'Die Grundgroesse der Kachel verrutscht',
+    datei: 'public/style.css',
+    suche: '  width: 62px; height: 62px; border-radius: 8px; overflow: hidden;',
+    ersatz: '  width: 66px; height: 66px; border-radius: 8px; overflow: hidden;',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
