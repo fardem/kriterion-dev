@@ -1509,6 +1509,113 @@ const RUECKBAUTEN = [
     ersatz: '  width: 66px; height: 66px; border-radius: 8px; overflow: hidden;',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
+  /* ---- 0.12.3: der Export sagt seine Groesse an ---- */
+  /* DIE SIEBEN HIER ZIELEN AUF DIE RECHNUNG UND AUF DIE KLEMME, nicht auf die
+     Anzeige daneben: eine Zahl, die falsch gerechnet wird, faellt am
+     Bildschirm nicht auf -- sie sieht genauso aus wie eine richtige. */
+  {
+    nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
+    datei: 'server.js',
+    suche: '  return t.fotos + t.videos + t.anhaenge + t.kommentarbilder + austauschUmschlagBytes(itemId);',
+    ersatz: '  return t.fotos + t.videos + t.anhaenge + t.kommentarbilder;',
+    erwartet: 'Die Exportgroesse sagt sich an'
+  },
+  {
+    /* DIE SUMME UEBER ALLE BLOB-SPALTEN IST DIE NAHELIEGENDE UND FALSCHE
+       RECHNUNG: photos.thumb geht nie in die Datei. Faellt hier keine
+       Pruefung rot, warnt die Anlage irgendwann zu frueh -- und eine Warnung,
+       die zu frueh kommt, wird weggeklickt. */
+    nr: '172', name: 'Die Vorschaubilder werden mitgezaehlt, obwohl sie nie mitgehen',
+    datei: 'server.js',
+    suche: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE art != 'video'${und('item_id')}`));",
+    ersatz: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE art != 'video'${und('item_id')}`));",
+    erwartet: 'Videos: Kennzahlen und Austausch'
+  },
+  {
+    nr: '173', name: 'Der Export baut erst und sagt danach ab',
+    datei: 'server.js',
+    suche: '  const gross = austauschBytes(null, schalter);\n  if (gross > AUSTAUSCH_MAX)',
+    ersatz: '  const gross = 0;\n  if (gross > AUSTAUSCH_MAX)',
+    erwartet: 'Videos: Kennzahlen und Austausch'
+  },
+  {
+    nr: '174', name: 'Der Warnwert liegt auf der Grenze statt darunter',
+    datei: 'server.js',
+    suche: 'const AUSTAUSCH_WARN = 300 * 1024 * 1024;',
+    ersatz: 'const AUSTAUSCH_WARN = AUSTAUSCH_MAX;',
+    erwartet: 'Die Exportgroesse sagt sich an'
+  },
+  {
+    /* DER VIDEOSCHALTER HAENGT AM FOTOSCHALTER, wie in eintragAlsPaket(). Ohne
+       diese Bindung naennte die Karte eine Groesse, die kein Knopf erzeugen
+       kann -- und das faellt an keiner einzelnen Zahl auf. */
+    nr: '175', name: 'Die Videos zaehlen auch ohne Fotos mit',
+    datei: 'public/app.js',
+    suche: '    + (s.mitFotos && s.mitVideos ? (ex.videos || 0) : 0)',
+    ersatz: '    + (s.mitVideos ? (ex.videos || 0) : 0)',
+    erwartet: 'Die Exportgroesse sagt sich an'
+  },
+  /* ---- 0.12.3: die Anzeige zieht nach ---- */
+  {
+    nr: '176', name: 'Die Kachel zeichnet wieder alles, auch was niemand sieht',
+    datei: 'public/style.css',
+    suche: '  content-visibility: auto;\n  contain-intrinsic-size: auto 400px;',
+    ersatz: '  contain-intrinsic-size: auto 400px;',
+    erwartet: 'Die Anzeige zieht nach — 0.12.3'
+  },
+  {
+    /* OHNE DAS WORT auto GILT DIE SCHAETZUNG FUER IMMER, und der Rollbalken
+       springt bei jeder Kachel, die anders hoch ist als geschaetzt. Der
+       Rueckbau nimmt genau dieses Wort weg -- die Regel bleibt sonst stehen
+       und saehe von aussen unveraendert aus. */
+    nr: '177', name: 'Die geschaetzte Kachelhoehe gilt fuer immer statt nur bis zum ersten Zeichnen',
+    datei: 'public/style.css',
+    suche: '  contain-intrinsic-size: auto 400px;',
+    ersatz: '  contain-intrinsic-size: 400px;',
+    erwartet: 'Die Anzeige zieht nach — 0.12.3'
+  },
+  {
+    nr: '178', name: 'Der angepinnte Bericht traegt wieder zwei Farben',
+    datei: 'public/style.css',
+    suche: '.cmt.pinned.bericht {\n  border-top-color: var(--accent);',
+    ersatz: '.cmt.pinned.bericht {\n  border-top-color: var(--gold-line);',
+    erwartet: 'Die Anzeige zieht nach — 0.12.3'
+  },
+  {
+    /* DER KASTEN STEHT IM AUFBAU VOR DER WOLKE, und daran haengt alles: die
+       Zeile bricht um, und ein Geschwister DAHINTER rutscht auf eine eigene
+       Zeile. Genau das war der Befund. Die CSS-Regel bliebe dabei stehen und
+       saehe richtig aus. */
+    nr: '179', name: 'Der Verweis rutscht wieder hinter die Wolke',
+    datei: 'public/app.js',
+    suche: '  if (rechts.childElementCount) r3.insertBefore(rechts, g3);',
+    ersatz: '  if (rechts.childElementCount) r3.appendChild(rechts);',
+    erwartet: 'Die Anzeige zieht nach — 0.12.3'
+  },
+  {
+    nr: '180', name: 'Die offenen Aufgaben werden gezaehlt statt abgezogen',
+    datei: 'public/app.js',
+    suche: "    + (fertig ? ` (${aufgaben - fertig} offen, ${fertig} ${V.aufgabeErledigt})` : ''));",
+    ersatz: "    + (fertig ? ` (${zaehle('task')} offen, ${fertig} ${V.aufgabeErledigt})` : ''));",
+    erwartet: 'Kommentare in der Oberflaeche'
+  },
+  {
+    /* DAS FELD NIMMT BEIDE FORMEN. Eine Beschriftung, die eine davon
+       ausschliesst, ist fuer die Haelfte der Faelle falsch -- und sie sieht
+       dabei vollkommen unauffaellig aus. */
+    nr: '181', name: 'Das Codefeld fragt wieder nach der App statt nach dem Verfahren',
+    datei: 'public/app.js',
+    suche: '<label>Code des zweiten Faktors</label>',
+    ersatz: '<label>Code aus deiner App</label>',
+    erwartet: 'Die Karte „Zugang“: der zweite Faktor'
+  },
+  {
+    nr: '182', name: 'Der Sprungknopf springt, klappt den Block aber nicht auf',
+    datei: 'public/app.js',
+    suche: "    if (BLOECKE.zu.includes('kommentare')) {",
+    ersatz: '    if (false) {',
+    erwartet: 'Kommentare in der Oberflaeche'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
