@@ -135,8 +135,8 @@ will, sieht hier nach und geht dann zur Nummer.
 | Art | Punkte in Teil I | dazu in Teil II |
 |---|---|---|
 | **Fehler** | 3 *(Export bricht ab)* | — |
-| **Verbesserung** | 1, 4, 8, 12, 13, 15 | „offen" in der Kommentar-Kopfzeile · Kommentar schreiben ohne Scrollen · Kennzahlen: Version und Verfahren |
-| **Neue Funktion** | 2, 5, 6, 7, 9, 11 | — |
+| **Verbesserung** | 1, 4, 8, 12, 13, 15 | „offen" in der Kommentar-Kopfzeile · Kommentar schreiben ohne Rollen · Kennzahlen: Version und Verfahren · der Zähler „Offen 7" |
+| **Neue Funktion** | 2, 5, 6, 7, 9, 11, 16 | Erwähnungen im Kommentar · die Vorschau der Rangfolge |
 | **Design** | 10, 14 | ⌀ und Anzahl am Kriterium · Import und Export in einer Kachel · die Versionszeile · „mehr" frisst eine Zeile |
 
 **Und die zweite Achse, weil sie beim Bündeln die wichtigere ist:**
@@ -144,7 +144,7 @@ will, sieht hier nach und geht dann zur Nummer.
 | Einschätzung | Punkte |
 |---|---|
 | **stark empfohlen** | 2, 3, 8, 9, 11, 12, 13 |
-| **empfohlen** | 1, 4, 10, 14, 15 |
+| **empfohlen** | 1, 4, 10, 14, 15, 16 |
 | **später** | 6 |
 | **nicht empfohlen** | 5, 7 |
 
@@ -1572,6 +1572,170 @@ jedes Bild der Anlage läuft.*
 
 ---
 
+---
+
+## 16. Die Glocke: was andere an meinen Sachen getan haben
+
+**Aufgefallen im Betrieb, 28. August 2026.** Der Anlass ist der
+Mehrbenutzerbetrieb: seit es fremde Kommentare und fremde Bewertungen gibt,
+erfährt man von ihnen nur durch Nachsehen.
+
+> **Art: Neue Funktion** · **Claude: empfohlen** für die schlanke Fassung, **nicht empfohlen** für eine Benachrichtigungstabelle, **später** für den Lesestand je Meldung.
+> **Draußen üblich:** Instagram, Facebook und GitHub führen alle eine
+> **Benachrichtigungstabelle** mit Lesestand je Zeile — *weil sie müssen: bei
+> Millionen Zugängen ist eine Zählung je Seitenaufbau undenkbar.* Kleine
+> selbstgehostete Anlagen rechnen sie statt dessen aus einem einzigen
+> Zeitstempel aus. **Bei einer Handvoll Zugänge ist die kleine Fassung nicht
+> die ärmere, sondern die richtige.**
+
+### Woher
+
+Aus dem Betrieb, **28. August 2026**. Der Wunsch: **eine Glocke in der
+Kopfzeile**, dort wo „+ Eintrag" und „Abmelden" stehen — zunächst für den
+Desktop. Ein **oranger Punkt** daran, wenn an den **eigenen** Einträgen etwas
+Neues geschehen ist: fremde Kommentare, fremde Bewertungen. Ein Klick öffnet
+die Liste. *„Also wie bei Instagram oder Facebook."*
+
+### Was auffiel
+
+**Die Anlage kennt heute nur eine Richtung: hinsehen.** Es gibt „Neu seit
+meinem letzten Besuch" als Filter über den **ganzen** Bestand — aber nichts,
+was sagt: *an DEINEN Sachen hat sich etwas getan.* Wer drei Einträge unter
+hundert hat, findet das im Filter nicht wieder.
+
+**Der Platz dafür ist da und passt.** In `.mast-rest` stehen bereits zwei
+Zeichenknöpfe derselben Bauart — „Offene Aufgaben" und „Systembereich" — und
+das Menü auf dem Telefon nimmt sie ohne Zutun mit auf: *ein Markup, zwei
+Gestalten* (0.12.0). **Eine dritte Glocke daneben kostet keine eigene
+Telefonfassung.**
+
+### Was es nicht ist
+
+**Kein Fehler, sondern eine neue Fähigkeit** — und zwar eine, die den Charakter
+der Anlage ändert. *Das gehört benannt: bis heute steht in Teil II an der Zeile
+„Erwähnungen im Kommentar" die Absage `die Anlage hat keine
+Benachrichtigungen`.* **Wird die Glocke gebaut, verliert diese Absage ihre
+Grundlage** — die beiden Zeilen hängen zusammen und gehören zusammen
+entschieden.
+
+**Und es ist der zweite Anlauf auf eine Frage, die schon einmal verneint
+wurde.** In Teil II steht seit 0.8.60 „Der Zähler ‚Offen 7' in der Kopfzeile",
+abgelehnt mit: *„er würde bei jedem Seitenaufbau gebraucht, und die Frage, wie
+er nicht ständig neu abgefragt wird, ist die eigentliche Arbeit."* **Dieselbe
+Frage stellt die Glocke — und diesmal gibt es eine Antwort, siehe (b).**
+
+### Was gebaut werden könnte
+
+**a) Ein eigener Zeitstempel — und das ist die Entscheidung, an der alles
+hängt.** Es liegt nahe, `zuletztGesehen` wiederzuverwenden. **Es wäre falsch.**
+Dieser Wert wird gesetzt, wenn man die **Übersicht verlässt** (`merkeGesehen()`,
+`app.js:1623`). Eine Glocke daran gehängt **löschte sich selbst, bevor man sie
+anklicken kann**: man betritt die Übersicht, sieht den Punkt, geht in einen
+Eintrag — und der Punkt ist fort, ohne dass man gelesen hätte, was er meinte.
+
+**Zwei Bedeutungen, ein Wert — das ist Stolperstein 47.** Die Glocke braucht
+ihren eigenen Zeitstempel, und er wird gesetzt, **wenn die Tafel geöffnet
+wird**, nicht beim Verlassen einer Ansicht.
+
+**b) Die Zahl reist mit einer Antwort mit, die es ohnehin gibt.** Kein eigener
+Endpunkt, der im Hintergrund gefragt wird, und **kein Nachfragen im Takt**. Die
+Zählung hängt sich an `GET /api/settings` oder an die Listenantwort — beide
+laufen beim Betreten der Übersicht ohnehin. **Damit ist die Frage aus 0.8.60
+beantwortet:** die Zahl kostet nichts Zusätzliches, weil sie keine eigene
+Anfrage ist.
+
+*Der Preis, ehrlich benannt: die Glocke aktualisiert sich nicht, während man
+auf der Seite sitzt.* **Für eine Anlage mit einer Handvoll Zugänge ist das
+richtig** — bei Instagram wäre es falsch, dort geschieht im Sekundentakt etwas.
+
+**c) Der orange Punkt, ohne Zahl.** `--accent` ist die Signalfarbe der Anlage,
+und ein Punkt ohne Zahl braucht keine genaue Zählung — nur die Antwort „gibt es
+etwas oder nicht". *Eine Zahl bringt die Frage nach „99+" mit und die nach
+ihrer Genauigkeit; ein Punkt bringt keine.*
+
+**d) Was in der Tafel steht — und die Klemme, die niemand erraten würde.**
+
+| Ereignis | Was die Glocke sagen darf |
+|---|---|
+| fremder **Kommentar** an meinem Eintrag | **mit Namen** — ein Kommentar trägt seinen Verfasser ohnehin offen |
+| fremde **Bewertung** an meinem Eintrag | **nur die Zahl, niemals wer** |
+| fremder **Testtag**, **Link**, **Datei** an meinem Eintrag | mit Namen — sie tragen ihren Verfasser wie der Kommentar |
+
+**Warum die Bewertung anders liegt, steht wörtlich im Quelltext**
+(`server.js:2202`):
+
+> „**WER WELCHEN WERT VERGEBEN HAT, STEHT HIER AUSDRÜCKLICH NICHT:** diese
+> Antwort geht an jeden, und eine Angabe darüber, wie eine EINZELNE PERSON
+> bewertet hat, ist mehr, als eine Bewertung aussagen soll."
+
+Die Liste „Wer hat bewertet" ist **nur für den Admin**. **Eine Glocke, die
+‚Chefin hat deinen Eintrag bewertet' meldet, hebelt genau diese Entscheidung
+aus** — und zwar an der Stelle, an der es am wenigsten auffällt. *„Deine
+Einträge haben drei neue Bewertungen" ist dagegen einwandfrei.*
+
+**e) Eigenes zählt nie mit.** Mein eigener Kommentar an meinem eigenen Eintrag
+läutet nicht. *Das ist der Fehler, den jede erste Fassung dieser Funktion
+macht, und er fällt erst auf, wenn er nervt.*
+
+**f) Was NICHT gebaut werden soll: eine Benachrichtigungstabelle.** Eine Zeile
+je Ereignis, mit Lesestand — das ist der Weg der großen Anbieter, und er bringt
+mit: eine Schreiboperation an jedem Kommentar und jeder Bewertung, einen
+Aufräumer, eine Kaskade beim Löschen von Einträgen und Zugängen, und einen
+Migrationsblock. **Alles davon für eine Zahl, die sich aus vorhandenen
+Zeitstempeln errechnen lässt.**
+
+### Offene Entscheidungen
+
+* **Was ist „meins"?** Nur Einträge, die ich verfasst habe — oder auch solche,
+  an denen ich mitgeschrieben habe? *Vorschlag: nur die eigenen Einträge. Wer
+  irgendwo einmal kommentiert hat, bekäme sonst Meldungen über einen Eintrag,
+  der ihn nicht mehr interessiert, und die Glocke wird zur Wand.*
+* **Werden Bearbeitungen mitgezählt oder nur Neues?** Ein fremder Kommentar,
+  der geändert wird, trägt `updated_at`. *Vorschlag: nur Neues — sonst läutet
+  jeder Tippfehler ein zweites Mal.*
+* **Wie lange zurück?** Ohne Grenze zeigt die Tafel beim ersten Öffnen den
+  ganzen Bestand. **Beim allerersten Mal gibt es keinen Bezugspunkt** — dieselbe
+  Lage wie bei „Neu seit meinem letzten Besuch", und dort greift der Filter
+  ausdrücklich gar nicht. *Vorschlag: dieselbe Antwort — ohne gespeicherten Wert
+  keine Glocke.*
+* **Führt ein Klick in der Tafel zum Eintrag?** *Vorschlag: ja, und das ist der
+  halbe Gewinn* — eine Meldung, die man nicht anspringen kann, ist eine
+  Mitteilung ohne Weg.
+* **Löscht das Öffnen der Tafel alles auf einmal?** Bei einem Zeitstempel geht
+  es nicht anders. **Der Lesestand je Meldung ist die Fassung danach**, und er
+  braucht dann doch eine Tabelle — *deshalb steht er hier als „später" und nicht
+  als Teil der ersten Runde.*
+* **Und die Frage, die vor allen anderen steht: gilt das auch auf dem Telefon?**
+  Der Wunsch nennt den Desktop. **Die Kopfzeile ist aber eine — was in
+  `.mast-rest` steht, wandert auf dem Telefon von selbst ins Menü.** Eine
+  Glocke, die es nur am Desktop gibt, wäre eine Weiche nach Gerät, und die hat
+  0.12.0 ausdrücklich vermieden. *Vorschlag: sie gilt für beide, und das kostet
+  nichts.*
+
+### Was es anfasst
+
+Die Kopfzeile, eine Tafel, ein persönlicher Einstellungsschlüssel
+(`glockeGesehen` in `PERSOENLICHE_SCHLUESSEL`), eine Zählabfrage über
+`comments`, `ratings`, `test_days`, `links` und `attachments` mit einem JOIN auf
+die eigenen Einträge, dazu Prüfungen und Gegenproben. **Kein Schema, keine neue
+Tabelle, kein Migrationsblock** — `user_settings` trägt den Zeitstempel wie
+`zuletztGesehen` auch.
+
+**Was dagegen spricht — und es ist mehr als bei den anderen Punkten:**
+
+**Erstens ist es eine Fähigkeit, die die Anlage bewusst nicht hatte.** Die
+Absage an den Erwähnungen stützt sich darauf. Wer die Glocke baut, sollte diese
+Zeile im selben Zug neu beurteilen statt sie stehenzulassen.
+
+**Zweitens ist eine Glocke ein Versprechen.** Wer sie sieht, verlässt sich
+darauf — und eine Glocke, die nur beim Betreten der Übersicht nachrechnet,
+hält es nur ungefähr. *Das ist tragbar, aber es gehört an die Tafel geschrieben
+und nicht verschwiegen.*
+
+**Drittens ist der Nutzen an die Zahl der Zugänge gebunden.** Bei zwei
+Menschen, die miteinander reden, meldet sie, was man ohnehin weiß. **Sie lohnt
+ab dem Punkt, an dem jemand mitschreibt, mit dem man nicht täglich spricht.**
+
 # Teil II — Gesammelt, ohne Ausarbeitung
 
 **Zeilen, keine Punkte.** Wer eine davon bauen will, arbeitet sie vorher in die
@@ -1598,10 +1762,16 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   **was**. Bei 0.9.1 hat sich dort eine Datei zu viel gezeigt (Stolperstein
   158), und der Handgriff dagegen steht bisher nur in der README. **Eine Zeile
   in der Karte „Anlage" würde ihn ersetzen.** *(Claude: empfohlen)*
-- **Der Zähler „Offen 7" in der Kopfzeile** *(0.8.60)*. Er stand schon im
-  Auftrag der Runde und ist dort ausdrücklich nicht gebaut worden: **er würde
-  bei jedem Seitenaufbau gebraucht**, und die Frage, wie er nicht ständig neu
-  abgefragt wird, ist die eigentliche Arbeit. *(Claude: nicht empfohlen)*
+- **Der Zähler „Offen 7" in der Kopfzeile** *(0.8.60)*. **Art: Verbesserung.**
+  Er stand schon im Auftrag der Runde und ist dort ausdrücklich nicht gebaut
+  worden: **er würde bei jedem Seitenaufbau gebraucht**, und die Frage, wie er
+  nicht ständig neu abgefragt wird, ist die eigentliche Arbeit.
+  **Punkt 16 beantwortet genau diese Frage** — die Zahl reist mit einer
+  Antwort mit, die es ohnehin gibt, statt eine eigene Anfrage zu sein. *Wer die
+  Glocke baut, hat den Weg für diesen Zähler gleich mitgebaut; er säße im selben
+  Knopf daneben.*
+  *(Claude: nicht empfohlen für sich allein — aber empfohlen als Anhängsel an
+  Punkt 16, falls der kommt)*
 - **Die Vorschau der Rangfolge im Systembereich** *(0.8.40, erneut gewünscht
   28. August 2026)*. **Art: Neue Funktion.** Sehen, wie sich die Spitze
   verschiebt, wenn man an einem Gewicht dreht. *Das ist es, was Gewichte im
@@ -1647,10 +1817,17 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   davon dringend; zu den letzten beiden steht in Teil III, warum sie weit unten
   stehen. *(Claude: nicht empfohlen)*
 - **Erwähnungen im Kommentar** *(seit es mehrere Zugänge gibt, spätestens
-  0.9.1)*. `@name` in einem Kommentar, mit Benachrichtigung. *Setzt voraus, dass
-  geklärt ist, wer wen sehen darf — Zugänge sehen einander heute nicht
-  vollständig.*
-  *(Claude: nicht empfohlen — die Anlage hat keine Benachrichtigungen)*
+  0.9.1)*. **Art: Neue Funktion.** `@name` in einem Kommentar, mit
+  Benachrichtigung. *Setzt voraus, dass geklärt ist, wer wen sehen darf —
+  Zugänge sehen einander heute nicht vollständig.*
+  **Die Absage stand bis zum 28. August 2026 auf einem Bein, und das Bein
+  wackelt jetzt:** sie lautete *„die Anlage hat keine Benachrichtigungen"* —
+  und **Punkt 16 baut genau die.** *Wird die Glocke gebaut, gehört diese Zeile
+  im selben Zug neu beurteilt und nicht stehengelassen; das Ziel der Meldung
+  wäre dann da, und übrig bliebe allein die Frage, wer wen sehen darf.*
+  *(Claude: weiterhin nicht empfohlen — aber die Begründung ist ab Punkt 16
+  eine andere · Draußen üblich: Erwähnungen setzen überall eine
+  Benachrichtigung voraus, nie umgekehrt)*
 
 
 ### Kleines aus dem Betrieb, 28. August 2026
@@ -1898,3 +2075,16 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
   fest ausgerechneter Freiraum. **Genau daran hing 0.12.1 schon einmal**
   (`right: 92px`, Befund A): die Anlage stellt die Schrift von 80 bis 120
   Prozent, und eine ausgerechnete Breite kann dabei nur falsch werden.
+- **Eine Benachrichtigungstabelle mit Lesestand je Meldung.** Der Weg der
+  großen Anbieter — und für eine Handvoll Zugänge der falsche: eine
+  Schreiboperation an jedem Kommentar und jeder Bewertung, ein Aufräumer, zwei
+  Kaskaden und ein Migrationsblock, **für eine Zahl, die sich aus vorhandenen
+  Zeitstempeln errechnen lässt.** Siehe Teil I, Punkt 16 (f).
+- **Eine Glocke, die nennt, WER bewertet hat.** Sie hebelte die Entscheidung
+  aus, dass eine einzelne Bewertung anonym bleibt (`server.js:2202`, die Liste
+  „Wer hat bewertet" ist nur für den Admin) — und zwar an der Stelle, an der es
+  am wenigsten auffällt. **Die Zahl ja, der Name nie.**
+- **Eine Glocke nur für den Desktop.** Was in `.mast-rest` steht, wandert auf
+  dem Telefon von selbst ins Menü — *ein Markup, zwei Gestalten* (0.12.0). Eine
+  Fassung nur für ein Gerät wäre eine Weiche nach Gerät, und genau die hat
+  0.12.0 ausdrücklich vermieden.
