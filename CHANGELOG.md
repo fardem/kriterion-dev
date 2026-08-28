@@ -43,6 +43,265 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.12.2] - 2026-08-28
+
+**Die Vorschaureihe unter dem Bild füllt auf dem Telefon die Breite** — sie hörte
+rechts früher auf als der Bildbereich darüber. *Zweiter Befund aus dem Betrieb,
+am selben Tag und am selben Gerät wie der erste.*
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.12.2 ist **PATCH**: eine
+> Kachelreihe, die die Breite nicht ausnutzt, ist ein Fehler und kein fehlendes
+> Bedienelement. **Es kommt nichts hinzu, was vorher nicht ging**, es
+> verschwindet nichts, und keine Bedienung ändert ihre Bedeutung.
+> *0.12.1 war schon vergeben — die Zahl wird nicht zweimal benutzt.*
+
+> **AM SCHREIBTISCH ÄNDERT SICH NICHTS, UND DAS IST NACHGEMESSEN.** Die
+> Eintragsseite ist bei 1100, 1280 und 1440 Pixeln **Pixel für Pixel dieselbe**
+> wie unter 0.12.1. Was der Vergleich sonst fand, waren zwei Zeitstempel und ein
+> Zähler zwischen zwei Läufen.
+
+### Fixed
+
+- **Die Vorschaureihe ließ auf dem Telefon einen Streifen rechts leer.** Die
+  Kachel misst 62 Pixel fest, und in einem umbrechenden Kasten ist die
+  Spaltenzahl damit eine Treppe über der Fensterbreite: was nicht mehr
+  hineinpasst, bleibt als Rest liegen. **Auf einem 360 Pixel breiten Telefon
+  scheiterte die fünfte Kachel an ZWEI Pixeln** — fünf brauchen 338, der Kasten
+  misst 336 —, und übrig blieben **67 leere Pixel, ein Fünftel der Breite.**
+  Der Bildbereich darüber reicht bis an beide Kanten; die Reihe darunter hörte
+  vorher auf, und genau das sah man.
+  **Jetzt zählt ein Raster die Spalten selbst aus und verteilt den Rest in die
+  Spalten.** Links und rechts steht danach derselbe Rand — der Seitenrand der
+  Seite und sonst nichts. Gemessen mit zwölf Fotos:
+
+  | Kasten | vorher | nachher | Rest rechts |
+  |---|---|---|---|
+  | 336 px *(Fenster 360)* | 4+4+4 zu 62 | **5+5+2 zu 61,6** | 67 → **0** |
+  | 366 px *(Fenster 390)* | 5+5+2 zu 62 | **5+5+2 zu 67,6** | 28 → **0** |
+  | 388 px *(Fenster 412)* | 5+5+2 zu 62 | **5+5+2 zu 72,0** | 50 → **0** |
+  | 404 px *(Fenster 428)* | 5+5+2 zu 62 | **6+6 zu 61,5** | 66 → **0** |
+
+  *Bei 428 Pixeln fällt dadurch eine ganze Zeile weg.* Die Kachel wächst also
+  mit dem Schirm, statt fest zu stehen — **beides zusammen ist der Punkt: mehr
+  Kacheln, wo sie hineinpassen, und größere, wo nicht.**
+
+### Changed
+
+- **Die Kachel gibt auf dem Telefon ihre festen Maße ab und hält das Quadrat
+  über das Seitenverhältnis.** Sobald die Breite gerechnet wird, muss die Höhe
+  ihr folgen; eine feste Höhe von 62 neben einer Breite von 72 wäre ein
+  liegendes Rechteck.
+
+### Was gleich bleibt
+
+**Alles am Schreibtisch** — dort behält die Kachel ihre festen 62 Pixel und die
+Reihe ihren bisherigen Umbruch. **Das Umsortieren per Ziehen bleibt, wie es
+war**, mit dem langen Druck auf dem Finger; von Hand im echten Browser geprüft,
+bei 360, 390 und 1440 Pixeln, mit Finger und mit Maus, und die neue Reihenfolge
+übersteht das Neuladen. **Das Löschkreuz steht unverändert am Zeigegerät auf der
+Kachel und auf dem Berührungsbildschirm nirgends** — dort wird am großen Bild
+gelöscht, seit 0.12.1.
+
+---
+
+## [0.12.1] - 2026-08-28
+
+**Gelöscht wird am großen Bild und nicht mehr an der Vorschaukachel** — ein
+Befund aus dem Betrieb, am Tag nach 0.12.0 auf einem echten Telefon gefunden.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.12.1 ist **PATCH**, weil
+> **nichts hinzukommt, was vorher nicht ging**. Löschen konnte man ein Foto
+> schon vorher; es steht jetzt an einer Stelle, an der man es nicht aus
+> Versehen trifft. **Keine neue Fähigkeit, keine neue Route, keine
+> Datenbankstufe, keine neue Abhängigkeit.** *Der Server ist unberührt.*
+
+> **DAS KREUZ AN DER KACHEL VERSCHWINDET NUR AUF DEM BERÜHRUNGSBILDSCHIRM.**
+> Am Zeigegerät bleibt es, wo es war — dort gibt es kein Danebentippen, und ein
+> Klick aus der Reihe heraus ist der kürzere Weg. *Das ist der eine Punkt, an
+> dem sich die beiden Geräte in der Bedienung wirklich unterscheiden.*
+
+### Changed
+
+- **Die Knöpfe am Bildbereich stehen in einer Reihe oben rechts und tragen
+  Zeichen statt Wörter:** Ausschnitt (die zwei ineinandergeschobenen Winkel, wie
+  in jedem Fotoprogramm), beim Video Vollbild — und **abgesetzt davon der
+  Papierkorb**. Der Abstand ist nicht Zierde: die beiden davor stellen etwas
+  ein, der dritte nimmt etwas weg. *Dieselben 14 Pixel wie beim Favoritenfilter
+  in der Filterzeile.* **Auf beiden Geräten dieselbe Reihe an derselben Stelle;
+  verschieden sind nur Größe und Sichtbarkeit** — am Schreibtisch klein und beim
+  Überfahren, auf dem Finger dauerhaft und 44 Pixel je Knopf.
+- **Auf dem Berührungsbildschirm trägt die Vorschaukachel kein Löschkreuz
+  mehr.** Sie kann dort noch antippen und, nach kurzem Halten, verschieben —
+  **der lange Druck bleibt unverändert das Umsortieren.**
+
+### Fixed
+
+- **Das Löschkreuz auf der Vorschaukachel lag auf dem Weg des Daumens.** Mit
+  Fingermaßen maß es 27 Pixel auf einer Kachel von 62 — ein Fünftel der Fläche,
+  und zwar in der Ecke, auf der der Daumen aufsetzt, wenn er über die Reihe
+  wischt. Wer ein Bild auswählen wollte, bekam die Rückfrage zum Löschen.
+  **Im Feld gefunden, nicht am Schreibtisch.**
+- **Der Knopf „Vollbild" am Video saß auf einer ausgerechneten Textbreite**
+  (`right: 92px` — die Breite des Wortes „Ausschnitt" bei 100 Prozent Schrift).
+  Die Anlage stellt die Schrift von 80 bis 120 Prozent, und bei 120 schoben sich
+  die beiden Knöpfe übereinander. Eine Reihe braucht die Zahl nicht.
+- **Das Feld zum Hochladen stand auf dem Telefon dauerhaft so da, als zöge
+  gerade jemand eine Datei darüber.** Sein Überfahrzustand ist buchstäblich
+  derselbe wie sein Arbeitszustand — beide in einer Regel —, und auf dem Finger
+  bleibt ein Überfahren hängen. Die eine Rückmeldung, die es zu geben hat, sagte
+  damit nichts mehr.
+
+### Was du danach von Hand tun musst
+
+Nichts. Es ändert sich nur die Oberfläche; Datenbank, Austauschformat, die
+Schlüssel in der `.env` und die Werkzeuge auf dem Wirt sind unberührt.
+
+### Was gleich bleibt
+
+**Der lange Druck auf einer Vorschaukachel greift und verschiebt**, wie seit
+0.12.0. **Am Schreibtisch bleibt jeder Weg, den es gab** — das Kreuz an der
+Kachel eingeschlossen; der Papierkorb am großen Bild kommt daneben. Was die
+beiden Knöpfe des Bildbereichs tun, ist unverändert; sie heißen nur nicht mehr
+in Wörtern, sondern zeigen es. *Ihre Beschriftung steht weiterhin da — im
+`title` und als `aria-label`.*
+
+---
+
+## [0.12.0] - 2026-08-28
+
+**Die Oberfläche auf Telefon und Tablett — sie fühlt sich jetzt wie eine
+Anwendung an und nicht wie eine breite Seite, die man schmal gemacht hat.**
+
+> **AM SCHREIBTISCH ÄNDERT SICH NICHTS.** Nachgemessen und nicht behauptet: die
+> Übersicht ist bei 1100, 1280 und 1440 Pixeln **Pixel für Pixel dieselbe** wie
+> vorher. Auf der Detailseite gibt es genau **eine** gewollte Abweichung — die
+> zwei Pixel unter *Fixed*, erste Zeile. Es gibt keine zweite Oberfläche, keinen
+> zweiten Aufbau und keine Weiche nach der Kennung des Browsers.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.12.0 ist **MINOR**, weil
+> Funktionen dazukommen — ein Menü, ein Schalter über den Filtern, das Wischen
+> am Bildbereich. **Weggenommen wird nichts:** kein Bedienelement verschwindet,
+> keines bekommt eine neue Bedeutung, und was auf dem Telefon hinter das
+> Menüzeichen wandert, steht am Schreibtisch weiter da, wo es stand.
+> *Das Datenverzeichnis, das Austauschformat (Nummer 10), die Schlüssel in der
+> `.env` und die Werkzeuge auf dem Wirt sind alle vier unberührt.* **Keine
+> Datenbankstufe, keine neue Abhängigkeit, keine neue `.env`-Zeile, keine neue
+> Route.**
+
+### Added
+
+- **Ein Menü hinter drei Strichen** in der Kopfzeile. Dahinter liegen offene
+  Aufgaben, Systembereich, wer angemeldet ist und das Abmelden. Draußen bleiben
+  die Suche (auf einem kleinen Bildschirm das wichtigste Bedienelement) und
+  „+ Eintrag" (der eine Weg, auf dem etwas Neues hereinkommt). Es schließt sich
+  beim Klick daneben und mit Escape. **Es gibt dasselbe Markup für beide
+  Gestalten:** auf dem breiten Schirm ist der Behälter für das Layout gar nicht
+  da, seine vier Kinder stehen unmittelbar in der Kopfzeile wie bisher.
+  *Das Menü bekommt auch ein Tablett, das mit dem Finger bedient wird — dort
+  passt die Kopfzeile mit Fingermaßen sonst nicht in eine Zeile.*
+- **Ein Schalter über den Filtern**, der die vier Filterreihen wegklappt und
+  **die Zahl der greifenden Filter nennt**. Auf dem Telefon fangen sie
+  eingeklappt an, auf dem Tablett offen. Die Sortierung zählt nicht mit: sie
+  nimmt nichts weg.
+- **Wischen blättert am Bildbereich** eines Eintrags, wie im Vollbild und mit
+  denselben Maßen. Die Pfeile bleiben trotzdem stehen.
+- **Die Aussparung des Geräts wird mitgerechnet** — Kopfzeile, Vollbild,
+  Meldungen, Vergleichsleiste und der Seitenrand. Dazu `viewport-fit=cover`
+  in der `index.html`.
+- **Die Leiste des Browsers nimmt die Farbe der Anlage** (`theme-color`).
+
+### Changed
+
+- **Auf dem Telefon ist ein Block kein Kasten mehr, sondern ein Abschnitt** —
+  ein Trennstrich darüber, ein Titel, der Inhalt. Damit bleibt genau **eine**
+  Kastenebene übrig, und die steht bündig unter dem Bild darüber. Vorher lagen
+  zwischen Bildschirmrand und erstem Buchstaben fünf Kanten und drei
+  Eckenradien; die Kommentarkarte saß 36 Pixel weiter innen als der Bildbereich.
+  *Dasselbe gilt für die Karten des Systembereichs.* Alles, was danach in
+  derselben Flucht steht, rundet mit **einem** Radius.
+- **Der Titel des Eintrags steht auf dem Telefon vor dem Bild.** Einspaltig kam
+  sonst zuerst das Foto, dann die Vorschaubilder, dann das Feld zum Hochladen
+  und sechs Zeilen Erklärung — und erst danach erfuhr man, welche Sache man
+  ansieht.
+- **Zwei Karten nebeneinander** in der Übersicht statt einer über die volle
+  Breite. Unter 334 Pixeln Fensterbreite fällt es von selbst auf eine zurück.
+  Auf dem Tablett sind es drei bis vier statt zwei.
+- **Dialoge steigen von unten auf** und liegen am unteren Rand an; die Knöpfe
+  stehen untereinander über die volle Breite, der eigentliche Vorgang oben.
+  Sie messen an der wirklich sichtbaren Fensterhöhe (`dvh`) und nicht an der
+  mitsamt Adressleiste.
+- **Der Kommentarkopf steht auf dem Telefon in zwei Zeilen**: oben Verfasser,
+  Zeitpunkt und die beiden Zeichen für Bearbeiten und Löschen, darunter die drei
+  Umschalter. In einer Zeile brach der Zeitpunkt mitten im Datum um.
+- **Berührungsziele richten sich nach dem Zeiger und nicht nach der Breite.**
+  Ein Tablett im Querformat ist breit *und* wird mit dem Finger bedient. Knöpfe,
+  Pillen, Sterne, Kreuze und die Punkte der Zeitleiste fallen unter
+  `pointer: coarse` größer aus; ein Zeigegerät sieht davon nichts.
+- **Eingabefelder fallen unter dem Finger nicht unter 16 Pixel.** Darunter zoomt
+  Safari auf dem iPhone beim Antippen die ganze Seite heran und wieder heraus
+  tut sie es nicht von selbst. *Wer die Schrift auf 80 Prozent stellt, bekommt
+  hier deshalb nicht ganz, was er wollte.*
+- **Die Jahreszahlen der Zeitleiste werden ausgedünnt**, wenn sie nicht
+  nebeneinander passen. Gemessen, nicht geraten — die Breite einer Zahl hängt an
+  der eingestellten Schriftgröße.
+- **Der Seitenrand ist auf dem Telefon 12 statt 24 Pixel.** 24 sind dort zwölf
+  Prozent der Breite, und sie stehen leer.
+- Das Sicherheitsprotokoll bricht unter derselben Bedingung um wie alles Übrige;
+  die eigene vierte Zahl (620 px) ist verschwunden. **Es gibt jetzt genau drei
+  Umbruchpunkte: 1024, 860 und 700.**
+
+### Fixed
+
+- **Ein Kommentar mit Art (Bericht, Aufgabe, Erledigt) verschob seinen Text um
+  zwei Pixel.** Die farbige Kante links ist 3 statt 1 Pixel breit und wächst bei
+  `border-box` nach innen; in einer gemischten Liste standen die Zeilenanfänge
+  abwechselnd auf zwei Linien. *Das ist die eine Stelle, an der sich am
+  Schreibtisch etwas ändert — und zwar zum Richtigen.*
+- **Die Vergleichsleiste stand nicht mittig.** Sie hing an
+  `transform: translateX(-50%)`, und daneben stand `animation: rise … both`;
+  `rise` endet auf `transform: none`, und eine laufende Bewegung schlägt in der
+  Rangfolge jede gewöhnliche Zeile. Nach 260 Millisekunden saß die Leiste also
+  mit ihrer **linken Kante** in der Mitte des Fensters.
+- **Der Systembereich lief auf dem Telefon rechts aus dem Bild.** Die einspaltige
+  Rasterspalte stand auf `1fr` — kurz für `minmax(auto, 1fr)` —, und `auto`
+  ließ eine einzige lange Verwaltungszeile die Spalte auf 404 Pixel ziehen, in
+  einem Fenster von 390. Der Browser erweiterte daraufhin still den sichtbaren
+  Bereich (gemessen: 421), und die Erklärungstexte standen mitten im Wort
+  angeschnitten da.
+- **Blätterpfeil, Ausschnittknopf und das Kreuz am Vorschaubild waren auf dem
+  Telefon unsichtbar** — sie hingen an `:hover`, und das gibt es dort nicht. Von
+  einem Eintrag mit mehreren Fotos sah man das erste und hatte keinen Weg zum
+  zweiten.
+- **Der angehobene Zustand einer Karte blieb auf dem Finger hängen.** Ein Tipp
+  setzt `:hover`, und niemand nimmt ihn wieder weg; wer aus dem Eintrag
+  zurückkam, sah eine Liste, in der genau eine Kachel schief stand.
+- **Die Zeile einer Anmeldung lief auf dem Telefon aus der Karte hinaus.**
+- **Reihen, die nicht umbrechen durften, brechen jetzt um:** die Knopfreihe unter
+  dem Kommentarfeld, die Kopfzeile eines Blocks, die Kennzahlenzeile der Karte.
+  Bei der Karte fallen dabei die Trennpunkte weg — ein Mittelpunkt am Zeilenende
+  trennt nichts mehr.
+- **Der graublaue Kasten, den Android bei jeder Berührung aufblitzen lässt**,
+  bleibt weg. Jeder Knopf dieser Anlage färbt sich selbst.
+- **Kein Warten mehr vor dem Klick** (`touch-action: manipulation`). Ausgenommen
+  ist das Vollbild: dort *ist* der zweite Tipp eine Bedeutung.
+- Das Vollbild reicht die Wischbewegung nicht mehr an die Seite dahinter weiter.
+- Die Vorschaureihe im Vollbild lässt sich bis zum ersten Bild scrollen.
+- Der lange Druck zum Umsortieren markiert keinen Text mehr.
+
+### Was du danach von Hand tun musst
+
+Nichts. Es ändert sich nur die Oberfläche; Datenbank, Austauschformat, die
+Schlüssel in der `.env` und die Werkzeuge auf dem Wirt sind unberührt.
+
+### Was gleich bleibt
+
+**Alles am Schreibtisch.** Dazu jede Bedienung, jeder Weg und jede Beschriftung:
+kein Bedienelement ist verschwunden, keines hat eine neue Bedeutung bekommen.
+Das Menü auf dem Telefon führt genau die vier Wege, die vorher in der Kopfzeile
+standen — an derselben Stelle im Markup und in derselben Reihenfolge.
+
+---
+
 ## [0.11.0] - 2026-08-27
 
 **Die Suche zieht vom Browser auf den Server, wer oft dasselbe sucht, kann es
@@ -1211,9 +1470,12 @@ nicht mehr übernehmen.*
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` ist angelegt,
-     aber NICHT geschoben — der Push scheitert in der Arbeitsumgebung an
-     HTTP 403 (Branches gehen durch, Tags nicht). Solange das so ist, zeigt
-     der zweite Verweis darunter ins Leere. -->
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0`, `v0.12.0`,
+     `v0.12.1` UND `v0.12.2` sind angelegt, aber NICHT geschoben — der Push
+     scheitert in der Arbeitsumgebung an HTTP 403 (Branches gehen durch, Tags
+     nicht). Solange das so ist, zeigen die vier Verweise darunter ins Leere. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
 [0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0
+[0.12.0]: https://github.com/fardem/kriterion/compare/v0.11.0...v0.12.0
+[0.12.1]: https://github.com/fardem/kriterion/compare/v0.12.0...v0.12.1
+[0.12.2]: https://github.com/fardem/kriterion/compare/v0.12.1...v0.12.2

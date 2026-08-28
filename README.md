@@ -1288,7 +1288,125 @@ Listen.
   Gesamtschnitte. Wer nicht verwalten darf, sieht das Gewicht trotzdem: es
   erklärt die Zahl, die an jedem Eintrag steht.
 
-## Auf dem Handy
+## Auf dem Handy und auf dem Tablett
+
+**Es ist eine Anlage und keine zweite Oberfläche.** Es gibt keinen zweiten
+Aufbau, keine Weiche nach der Kennung des Browsers und keine Handy-Adresse. Was
+sich ändert, entscheidet der Browser anhand von zwei Fragen — und die beiden
+werden nie vermischt:
+
+- **Die Breite entscheidet über das Layout.** Wie viele Spalten ein Raster
+  trägt, ob die Kopfzeile umbricht, ob ein Kasten seinen Rahmen behält. Ein
+  Tablett am Standfuß und ein kleines Fenster auf dem Schreibtisch sind
+  derselbe Fall.
+- **Der Zeiger entscheidet über die Größe der Ziele.** Ein Finger ist rund
+  zehnmal so breit, wie ein Mauszeiger spitz ist. Ein Tablett im Querformat ist
+  breit **und** wird mit dem Finger bedient; wer die Zielgröße an die Breite
+  hinge, ließe genau dieses Gerät leer ausgehen.
+
+Es gibt **drei Umbruchpunkte**, mehr nicht: **1024 px** (Tablett — engeres
+Polster, dichtere Raster), **860 px** (die Detailansicht wird einspaltig) und
+**700 px** (Telefon). Die Telefonregel fragt zusätzlich nach der **Höhe**: quer
+gehalten ist ein Telefon 850 bis 930 Pixel breit und keine 500 hoch — nach der
+Breite allein wäre es ein Tablett und bekäme eine Kopfzeile, die ein Drittel der
+Höhe frißt, die es gar nicht hat.
+
+### Die Kopfzeile
+
+Auf dem Telefon stehen dort **zwei Zeilen**: oben Marke, Titel, der Knopf zum
+Anlegen und ein Menüzeichen, darunter die Suche über die volle Breite. Alles
+Übrige — offene Aufgaben, Systembereich, wer angemeldet ist, Abmelden — liegt
+**hinter dem Zeichen**.
+
+**Die Suche bleibt draußen**, weil sie auf einem kleinen Bildschirm das
+wichtigste Bedienelement ist: Filter und Tagwolke sieht man dort nicht auf einen
+Blick, die Suche findet trotzdem. **„+ Eintrag" bleibt draußen**, weil er der
+eine Weg ist, auf dem etwas Neues in die Anlage kommt.
+
+**Dasselbe Menü bekommt auch ein Tablett, das mit dem Finger bedient wird** —
+dort passt die Kopfzeile mit Fingermaßen sonst nicht in eine Zeile. Ein Fenster
+von 1024 Pixeln auf einem Schreibtisch behält die Kopfzeile, die es immer hatte.
+
+Die Tafel schließt sich beim Klick daneben und mit Escape. Ein Menü, das nur
+sein eigener Knopf wieder zumacht, steht im Weg, sobald man es versehentlich
+geöffnet hat.
+
+### Die Filter
+
+Sie stehen auf dem Telefon **eingeklappt** und öffnen sich auf einen Druck. Vier
+Reihen mit Beschriftung und beliebig vielen Pillen füllten dort sonst den ganzen
+ersten Bildschirm, bevor der erste Eintrag zu sehen war — und die Übersicht ist
+die Liste, nicht ihre Einstellung.
+
+**Der Schalter nennt die Zahl der greifenden Filter**, und das ist der Grund,
+warum Einklappen überhaupt zulässig ist: eingeklappt sieht man sonst nicht, dass
+gefiltert wird, und eine Liste, die ohne sichtbaren Grund unvollständig ist, ist
+ein Fehler und keine Ansicht. Die Sortierung zählt nicht mit — sie nimmt nichts
+weg, sie ordnet nur. **Der Zustand ist Ansichtszustand und keine Einstellung:**
+beim nächsten Aufruf steht wieder die Vorgabe.
+
+Auf einem Tablett steht der Schalter ebenfalls da, die Filter fangen dort aber
+**offen** an. Dort ist Platz, und was vorher sichtbar war, soll nicht ohne Not
+verschwinden.
+
+### Die Kästen — Kaffeesatz und Kartenstapel
+
+Bis 0.11.0 war jeder Block eine Karte: eigener Untergrund, eigener Rahmen, eigene
+Ecke, eigener Innenabstand. **Worin** die Karte stand, war schon die Seite;
+**was** darin stand, waren wieder Kästen. Auf 390 Pixeln lagen damit fünf Kanten
+und drei verschiedene Eckenradien zwischen dem Bildschirmrand und dem ersten
+Buchstaben — und der Bildbereich saß am Seitenrand, die Kommentarkarte 36 Pixel
+weiter innen.
+
+**Auf dem Telefon ist ein Block deshalb kein Kasten mehr, sondern ein
+Abschnitt:** ein Trennstrich darüber, ein Titel, der Inhalt. Er steht auf der
+Seite und nicht auf einer Karte. Damit bleibt genau **eine** Kastenebene übrig —
+die Kommentarkarte, die Linkzeile, die Dateizeile —, und die steht auf voller
+Breite, bündig unter dem Bild darüber. Dieselbe Kante, dieselbe Flucht, **eine**
+Ordnung. Alles, was in dieser Flucht steht, rundet mit demselben Radius.
+
+Das ist kein neuer Gedanke, es ist der vorhandene: *ein Merkmal, ein Zeichen.*
+
+### Was sonst noch anders ist
+
+- **Der Titel steht vor dem Bild.** Einspaltig kam sonst zuerst das Foto, dann
+  die Vorschaubilder, dann das Feld zum Hochladen und dann sechs Zeilen
+  Erklärung — und erst danach erfuhr man, *welche* Sache man da ansieht.
+- **Zwei Karten nebeneinander** statt einer. Eine Karte über die volle Breite
+  war nicht einmal zwei Karten je Bildschirm; ein Bestand von dreißig Einträgen
+  war damit eine Wischstrecke.
+- **Dialoge steigen von unten auf** und liegen am unteren Rand an. Die Mitte des
+  Schirms ist die Stelle, an die der Daumen am schlechtesten kommt. Die Knöpfe
+  stehen untereinander über die volle Breite, der eigentliche Vorgang oben.
+- **Am Bildbereich blättert ein Wisch**, wie im Vollbild. Die Pfeile bleiben
+  trotzdem stehen: der Wisch ist der bequeme Weg, der Pfeil der auffindbare.
+  Auf der Abspielsteuerung eines Videos blättert er nicht.
+- **Gelöscht wird am großen Bild und nicht an der Vorschaukachel.** Oben rechts
+  im Bildbereich steht eine Reihe von Zeichen: Ausschnitt, beim Video Vollbild,
+  und abgesetzt davon der Papierkorb. *Die Kachelreihe darunter trägt auf dem
+  Finger keine Zerstörung mehr* — sie kann antippen und, nach kurzem Halten,
+  verschieben, und sonst nichts. Mit der Maus bleibt das Kreuz an der Kachel, wo
+  es war; dort gibt es kein Danebentippen.
+- **Die Vorschaureihe füllt die Breite.** Sie steht als Raster, das seine
+  Spalten selbst auszählt: passen fünf Kacheln hinein, stehen dort fünf; passen
+  nur vier, werden die vier größer. **Links und rechts bleibt derselbe Rand wie
+  überall auf der Seite**, und die Reihe endet bündig unter dem Bild darüber.
+  *Vorher stand die Kachel fest auf 62 Pixeln, und was nicht mehr hineinpasste,
+  blieb als Streifen rechts liegen — auf einem 360 Pixel breiten Telefon ein
+  Fünftel der Breite, weil die fünfte Kachel an zwei Pixeln scheiterte.* Am
+  Schreibtisch bleibt die Kachel bei ihren 62 Pixeln.
+- **Eingabefelder fallen nicht unter 16 Pixel.** Darunter zoomt Safari auf dem
+  iPhone beim Antippen die ganze Seite heran und wieder heraus tut sie es nicht
+  von selbst. Wer die Schrift auf 80 Prozent stellt, bekommt hier deshalb nicht
+  ganz, was er wollte — aber eine Seite, die bei jedem Tastendruck springt, hat
+  er noch weniger gewollt.
+- **Die Aussparung des Geräts wird mitgerechnet** — Kopfzeile, Vollbild,
+  Meldungen und die Vergleichsleiste. Auf jedem Gerät ohne Aussparung ändert das
+  nichts.
+- **Die Leiste des Browsers nimmt die Farbe der Anlage.** Ein hellerer Streifen
+  über der dunklen Seite ist das, was eine Seite wie eine Seite aussehen läßt.
+
+### Berühren, halten, wischen
 
 Sortieren und Scrollen teilen sich auf einem Berührungsbildschirm denselben
 Zeiger. Deshalb gilt: **mit der Maus wird sofort gezogen, mit dem Finger erst
@@ -1306,6 +1424,20 @@ Zeilenaktionen sind überall Zeichen (`✎` bearbeiten, `✕` löschen), nicht m
 Text und mal Zeichen. Auf schmalen Bildschirmen passt Text nicht in die
 Kopfzeile, und uneinheitlich sieht es ohnehin schlechter aus.
 
+**Die Vorschaukachel ist davon die eine Ausnahme, und sie ist begründet.** Ihr
+Kreuz maß mit Fingermaßen 27 Pixel auf einer Kachel von 62 — ein Fünftel der
+Fläche, und zwar in der Ecke, auf der der Daumen aufsetzt, wenn er über die
+Reihe wischt. **Eine Zeile ist breit und wird von oben nach unten gelesen; eine
+Kachelreihe ist schmal und wird quer durchgewischt.** Das Kreuz sitzt dort also
+nicht neben dem Weg des Fingers, sondern darauf. Es steht deshalb auf dem
+Berührungsbildschirm nicht mehr da.
+
+**Es steht dort nicht nur unsichtbar, sondern gar nicht** — der Unterschied ist
+der ganze Punkt. Eine Fläche, die man nur durchsichtig macht, nimmt weiterhin
+jede Berührung an; sie sieht richtig aus und verhält sich falsch. *Nachgemessen:
+fragt man den Browser, was an der Ecke liegt, in der das Kreuz saß, nennt er auf
+dem Finger die Kachel und mit der Maus das Kreuz.*
+
 Im Vollbild **zoomt mit der Maus ein Klick, mit dem Finger erst der zweite
 Tipp** innerhalb einer knappen Sekunde. Ein einzelner Tipp tut nichts —
 Schließen wäre bei jedem versehentlichen Antippen zu hart. Die Pfeile zum
@@ -1316,6 +1448,20 @@ Bild aus dem Bild.
 **Nach dem Zoom steht die Mitte des Bildes im Blick**, nicht die linke obere
 Ecke, und in jede Richtung lässt sich schieben. Ist das Original kleiner als die
 Fläche, sitzt es mittig statt oben links.
+
+**Was beim Überfahren erscheint, steht auf dem Finger dauerhaft da** — Kreuze,
+Stifte, Blätterpfeile, der Knopf für den Bildausschnitt. Ohne diese Ausnahme gibt
+es die Funktion auf einem Telefon schlicht nicht: es gibt dort kein Überfahren.
+**Und was sich beim Überfahren bewegt, bewegt sich auf dem Finger nicht.** Ein
+Tipp setzt diesen Zustand, und niemand nimmt ihn wieder weg; die Karte, die man
+einmal angetippt hat, stünde sonst dauerhaft drei Pixel höher als ihre
+Nachbarinnen.
+
+**Ein Tipp löst sofort aus.** Ohne besondere Angabe hält der Browser jede
+Berührung eines Knopfes rund 300 Millisekunden zurück, weil daraus noch ein
+Doppeltipp zum Vergrößern werden könnte — auf einer Seite mit `width=device-width`
+gibt es den nicht mehr, die Wartezeit bliebe trotzdem. **Im Vollbild ist der
+zweite Tipp ausgenommen**: dort *ist* er eine Bedeutung, er zoomt aufs Original.
 
 ## Vokabular
 

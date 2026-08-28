@@ -60,6 +60,15 @@ html { font-size: 15px; }
 html, body {
   margin: 0; padding: 0;
   background: var(--bg); color: var(--text);
+  /* DER GRAUBLAUE KASTEN, DEN ANDROID BEI JEDER BERUEHRUNG AUFBLITZEN LAESST,
+     bleibt weg. Er ist die Ruecksicht des Browsers auf Seiten ohne eigene
+     Zustaende -- diese Anlage hat welche: jeder Knopf, jede Pille und jede
+     Zeile faerbt sich selbst, und der fremde Kasten legt sich mit eigener
+     Farbe und eigener Ecke darueber. Zwei Rueckmeldungen fuer eine Beruehrung
+     sind eine zu viel, und die fremde kennt weder --accent noch --r-sm.
+     ER WIRD NICHT ERSATZLOS GENOMMEN: :active und die Zustandsregeln der
+     Bedienelemente bleiben, wo sie sind. */
+  -webkit-tap-highlight-color: transparent;
 }
 body {
   font-family: var(--sans); font-size: 1rem; line-height: 1.55;
@@ -423,6 +432,21 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   color: var(--text); font-size: 1.27rem; transition: all .16s var(--ease); opacity: 0;
 }
 .viewer:hover .vnav { opacity: 1; }
+/* AUF DEM FINGER GIBT ES KEIN UEBERFAHREN, und ohne diese Zeile gab es auf
+   dem Telefon ueberhaupt keine Pfeile: der Betrachter zeigte das erste Bild
+   und sonst nichts, weil der einzige Weg zum naechsten unsichtbar blieb.
+   Dieselbe Regel wie bei den Loeschkreuzen an den Zeilen, den Stiften in den
+   Verwaltungslisten und den Kreuzen an den Kommentarbildern -- jede
+   Sichtbarkeit, die an :hover haengt, braucht ihr Gegenstueck.
+   DIE NACHBARREGELN WERDEN HIER BEWUSST NICHT BEIM WAEHLERNAMEN GENANNT. Der
+   Prueflauf sucht die Einblendregel der Loeschkreuze mit einem Ausdruck ueber
+   den ROHEN Text des Stylesheets und nimmt Kommentare nicht aus; ein hier
+   ausgeschriebener Waehler steht weiter oben in der Datei als die Regel selbst
+   und wird statt ihrer gefunden. Derselbe Grund wie bei der Schriftgroesse im
+   Fingerabschnitt weiter unten.
+   GEWISCHT WIRD ZUSAETZLICH (siehe app.js, drawViewer): der Wisch ist der
+   bequeme Weg, die Pfeile sind der auffindbare. */
+@media (hover: none) { .vnav { opacity: 1; } }
 .vnav:hover { background: var(--accent); border-color: var(--accent); color: #14161a; transform: translateY(-50%) scale(1.07); }
 .vnav.prev { left: 10px; } .vnav.next { right: 10px; }
 .vcount {
@@ -464,6 +488,20 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 }
 .lb-thumb { position: relative; }
 .thumb:hover .del { opacity: 1; }
+/* AUF DEM FINGER TRAEGT DIE VORSCHAUKACHEL KEIN KREUZ MEHR.
+   Es hat dort einmal gestanden, und das war ein Fehler mit Ansage: die Kachel
+   misst 62 Pixel, das Kreuz mit Fingermassen 27 -- ein Fuenftel der Flaeche,
+   in genau der Ecke, auf der der Daumen aufsetzt, wenn er ueber die Reihe
+   wischt. Die Reihe las sich damit nicht mehr als vier Bilder, sondern als
+   vier Loeschknoepfe, und wer eines auswaehlen wollte, bekam eine Rueckfrage.
+   DIE KACHEL BEHAELT GENAU ZWEI AUFGABEN, UND BEIDE SIND HARMLOS: antippen
+   zeigt, langes Druecken verschiebt. Geloescht wird am grossen Bild, wo man
+   sieht, was man entfernt (`.vweg`).
+   AM ZEIGEGERAET BLEIBT DAS KREUZ, WO ES WAR. Dort gibt es kein Danebentippen,
+   und ein Klick aus der Reihe heraus ist der kuerzere Weg. Das ist der eine
+   Punkt, an dem sich die beiden Geraete wirklich unterscheiden -- und er steht
+   hier, damit niemand ihn fuer ein Versehen haelt. */
+@media (hover: none) { .thumb .del { display: none; } }
 .thumb .del:hover { background: var(--red); color: #fff; }
 
 .drop {
@@ -742,8 +780,21 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .danger-row { display: flex; justify-content: flex-end; margin-top: 16px; }
 
 /* ---------- Vergleich ---------- */
+/* MITTIG UEBER DIE RAENDER UND DIE AUTOMATISCHEN AUSSENABSTAENDE, NICHT
+   UEBER transform. Vorher stand hier `left: 50%; transform: translateX(-50%)`
+   -- und daneben `animation: rise ... both`. `rise` endet auf
+   `transform: none`, und `animation-fill-mode: both` laesst diesen Wert nach
+   dem Ablauf STEHEN. Eine laufende Bewegung schlaegt in der Rangfolge jede
+   gewoehnliche Zeile: die Verschiebung um die halbe eigene Breite war damit
+   ab dem 260. Millisekunde weg, und die Leiste sass mit ihrer LINKEN KANTE
+   in der Mitte des Fensters statt mittig darin. Auf einem breiten Schirm sah
+   das nach Absicht aus, auf einem schmalen lief sie rechts hinaus.
+   Mit `left: 0; right: 0; margin: 0 auto` steht die Mitte im Layout und nicht
+   in einer Eigenschaft, die sich die Bewegung teilt. `rise` bewegt dann nur
+   noch, wozu es gedacht ist: die Leiste kommt von unten herein. */
 .cmp-bar {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 20px; left: 0; right: 0;
+  width: max-content; max-width: calc(100% - 24px); margin: 0 auto;
   background: var(--surface-3); border: 1px solid var(--line); color: var(--text);
   border-radius: 999px; padding: 8px 9px 8px 19px;
   display: flex; align-items: center; gap: 13px; box-shadow: var(--sh-lg); z-index: 40; font-size: .9rem;
@@ -914,7 +965,14 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .prot-was { font-weight: 560; }
 .prot-wer, .prot-ziel { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
 .prot-merkmal { color: var(--muted); font-size: .8rem; }
-@media (max-width: 620px) {
+/* DIESELBE BEDINGUNG WIE DER GANZE ABSCHNITT "DAS TELEFON" weiter unten --
+   vorher stand hier 620px, eine eigene vierte Zahl neben den drei Stellen der
+   Staffel. Zwischen 620 und 700 Pixeln stand die Zeile damit noch in fuenf
+   Spalten, waehrend die Karte um sie herum laengst umgebrochen war; auf einem
+   quer gehaltenen Telefon (breit, aber niedrig) blieb es sogar ganz bei fuenf.
+   Eine Zahl weniger heisst hier: ein Fall weniger, den niemand mehr im Kopf
+   haben muss. */
+@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {
   .prot-zeile { grid-template-columns: 1fr auto; }
   .prot-zeit { grid-column: 1 / -1; }
 }
@@ -976,7 +1034,12 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 }
 
 /* ---------- Vollbild ---------- */
-.lightbox { position: fixed; inset: 0; z-index: 90; background: rgba(6,7,9,.97); display: flex; flex-direction: column; animation: fade .2s var(--ease) both; }
+/* overscroll-behavior: contain haelt die Wischbewegung IM Vollbild. Ohne die
+   Zeile scrollt ein Wisch am oberen oder unteren Ende die Seite DAHINTER
+   weiter -- man schliesst das Bild und steht an einer voellig anderen Stelle
+   der Liste. `body.lb-open { overflow: hidden }` weiter unten allein reicht
+   dafuer nicht: es haelt den Bildlauf an, nicht die Weiterreichung. */
+.lightbox { position: fixed; inset: 0; z-index: 90; background: rgba(6,7,9,.97); display: flex; flex-direction: column; overscroll-behavior: contain; animation: fade .2s var(--ease) both; }
 .lb-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
 .lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; user-select: none; -webkit-user-drag: none; }
 /* flex-start ist Absicht und muss bleiben: ein zentriertes Flex-Kind, das
@@ -989,7 +1052,14 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* Der Abspieler im Vollbild traegt seine eigene Steuerung; ein Zeigerzoom
    waere hier ein zweiter Griff auf denselben Klick. */
 .lb-stage video { max-width: 100%; max-height: 100%; object-fit: contain; background: #000; }
-.lb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; flex-shrink: 0; }
+/* DIE AUSSPARUNG DES GERAETS WIRD MITGERECHNET. Das Vollbild liegt ueber der
+   ganzen Flaeche -- mit `viewport-fit=cover` in der index.html gehoert dazu
+   auch der Streifen unter der Statusleiste und ueber dem Bedienbalken. Ohne
+   diese beiden Zeilen liegt der Schliessknopf oben unter der Uhr und die
+   Vorschaureihe unten unter dem Griffbalken.
+   Auf jedem Geraet ohne Aussparung -- und auf jedem Schreibtisch -- ist
+   env(...) null, und es bleibt bei 14 und 18 Pixeln wie bisher. */
+.lb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); flex-shrink: 0; }
 .lb-title { font-size: .93rem; color: var(--text-2); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .lb-count { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
@@ -1006,7 +1076,15 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .lb-nav { position: absolute; z-index: 4; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%; background: rgba(20,23,27,.86); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.11); display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 1.53rem; transition: all .16s var(--ease); }
 .lb-nav:hover { background: var(--accent); border-color: var(--accent); color: #14161a; transform: translateY(-50%) scale(1.07); }
 .lb-nav.prev { left: 16px; } .lb-nav.next { right: 16px; }
-.lb-strip { display: flex; gap: 7px; padding: 12px 18px 18px; overflow-x: auto; justify-content: center; flex-shrink: 0; }
+/* `safe center` STEHT ZWEIMAL DA, UND DAS IST ABSICHT: mittig ist richtig,
+   solange die Reihe hineinpasst -- passt sie nicht, schiebt `center` die
+   ersten Bilder ueber den linken Rand hinaus, und dorthin laesst sich nicht
+   scrollen: der Bildlauf beginnt bei null, und null liegt schon rechts vom
+   ersten Bild. Bei zwanzig Fotos waeren die ersten fuenf unerreichbar.
+   `safe` nimmt die Zentrierung genau dann zurueck, wenn sie etwas
+   abschneiden wuerde. Ein Browser, der das Wort nicht kennt, verwirft die
+   zweite Zeile und behaelt die erste -- also den Stand von vorher. */
+.lb-strip { display: flex; gap: 7px; padding: 12px 18px 18px; padding-bottom: calc(18px + env(safe-area-inset-bottom)); overflow-x: auto; overscroll-behavior-x: contain; justify-content: center; justify-content: safe center; flex-shrink: 0; }
 .lb-thumb { width: 56px; height: 56px; border-radius: 6px; overflow: hidden; flex-shrink: 0; border: 2px solid transparent; opacity: .5; transition: all .15s var(--ease); }
 .lb-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .lb-thumb.on { opacity: 1; border-color: var(--accent); }
@@ -1015,13 +1093,15 @@ body.lb-open { overflow: hidden; }
 
 /* ---------- Dialoge ---------- */
 .backdrop { position: fixed; inset: 0; background: rgba(6,7,9,.74); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 22px; z-index: 60; animation: fade .18s var(--ease) both; }
-.modal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 24px; width: 100%; max-width: 460px; box-shadow: var(--sh-lg); display: flex; flex-direction: column; gap: 13px; max-height: 88vh; overflow-y: auto; animation: rise .24s var(--ease) both; }
+.modal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 24px; width: 100%; max-width: 460px; box-shadow: var(--sh-lg); display: flex; flex-direction: column; gap: 13px; max-height: 88vh; max-height: 88dvh; overflow-y: auto; animation: rise .24s var(--ease) both; }
 .modal h2 { font-size: 1.27rem; font-weight: 640; letter-spacing: -.022em; margin: 0; }
 .modal p { margin: 0; color: var(--muted); font-size: .93rem; line-height: 1.6; }
 .modal .ta { min-height: 74px; }
 .modal-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
 
-.toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--surface-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px; border-radius: 999px; font-size: .9rem; z-index: 120; box-shadow: var(--sh-lg); animation: pop 2.6s forwards; max-width: 82vw; text-align: center; }
+/* Ueber dem Bedienbalken des Telefons und nicht darunter -- sonst steht die
+   Meldung zur Haelfte hinter dem Griffstreifen. */
+.toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px; border-radius: 999px; font-size: .9rem; z-index: 120; box-shadow: var(--sh-lg); animation: pop 2.6s forwards; max-width: 82vw; text-align: center; }
 .toast.err { background: var(--red); border-color: var(--red); color: #fff; }
 @keyframes pop { 0% { opacity: 0; transform: translate(-50%, 8px); } 8% { opacity: 1; transform: translate(-50%, 0); } 84% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -4px); } }
 
@@ -1099,26 +1179,61 @@ body.lb-open { overflow: hidden; }
 .thumb.griffbereit, .lrow.griffbereit, .mrow.griffbereit, .block.griffbereit { border-radius: var(--r-sm); }
 
 /* ================= Bildausschnitt der Vorschau ================= */
-.vfocus {
+/* EINE REIHE OBEN RECHTS, und darin sitzen alle Knoepfe des Bildbereichs.
+   VORHER STAND JEDER EINZELN AM RAND, und der Vollbildknopf trug dafuer die
+   Zahl 92 -- das war die Breite des Wortes "Ausschnitt" bei 100 Prozent
+   Schrift. Die Anlage stellt die Schrift aber von 80 bis 120 Prozent, und bei
+   120 schoben sich die beiden Knoepfe uebereinander. Eine Flexreihe mit einer
+   Luecke braucht diese Zahl nicht und kann deshalb auch nicht falsch werden.
+   DIE REIHE STEHT AUF BEIDEN GERAETEN AN DERSELBEN STELLE. Was sich zwischen
+   Zeigegeraet und Finger unterscheidet, ist ihre Sichtbarkeit und ihre
+   Groesse -- am Schreibtisch erscheint sie beim Ueberfahren und ist klein, auf
+   dem Finger steht sie dauerhaft da und misst 44 Pixel je Knopf
+   (Fingerabschnitt weiter unten).
+   OBEN RECHTS UND NICHT UNTEN: die Blaetterpfeile liegen in der Mitte der
+   beiden Seitenkanten, der Zaehler unten in der Mitte, und ueber die Mitte
+   laeuft der Wisch. Die obere rechte Ecke ist die einzige, die von keiner
+   Geste beruehrt wird -- und ein Papierkorb gehoert aus dem Daumenbereich
+   heraus und nicht hinein. */
+.vtools {
   position: absolute; top: 10px; right: 10px; z-index: 3;
-  padding: 5px 10px; border-radius: 999px; font-size: .73rem; font-weight: 500;
-  background: rgba(8,10,12,.78); border: 1px solid var(--line); color: var(--text-2);
-  opacity: 0; transition: opacity .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+  display: flex; align-items: center; gap: 6px;
+  opacity: 0; transition: opacity .15s var(--ease);
 }
-.viewer:hover .vfocus, .vfocus.on { opacity: 1; }
-.vfocus:hover { color: var(--text); border-color: #3a434c; }
+.viewer:hover .vtools { opacity: 1; }
+/* Ohne diese Zeile gaebe es die drei Knoepfe auf einem Telefon gar nicht --
+   dort wird nichts ueberfahren. Dieselbe Regel wie am Blaetterpfeil. */
+@media (hover: none) { .vtools { opacity: 1; } }
+/* Der Ausschnittmodus ist ein ZUSTAND und kein Ueberfahren: solange er laeuft,
+   steht die Reihe da, auch wenn der Zeiger laengst woanders ist. Sonst
+   verschwaende der einzige Weg wieder heraus.
+   DIE KLASSE SITZT AN DER REIHE UND NICHT AM KNOPF, und deshalb braucht es
+   hier kein `:has`. Das waere der naheliegende Griff -- der Zustand haengt ja
+   am Kind -- und er waere der schlechtere: ein Browser, der `:has` nicht
+   kennt, verwirft die ganze Regel, und dann verschwaende die Reihe mitsamt dem
+   einzigen Weg aus dem Ausschnittmodus heraus, sobald der Zeiger fortgeht.
+   drawViewer() setzt die Klasse; das kann kein Browser missverstehen. */
+.vtools.offen { opacity: 1; }
+
+.vfocus, .vfull, .vweg {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 999px;
+  background: rgba(8,10,12,.78); border: 1px solid var(--line); color: var(--text-2);
+  transition: color .15s var(--ease), border-color .15s var(--ease),
+              background .15s var(--ease);
+}
+.vfocus:hover, .vfull:hover, .vweg:hover { color: var(--text); border-color: #3a434c; }
 .vfocus.on { color: var(--accent); border-color: var(--accent); }
-/* Derselbe Knopf eine Handbreit weiter links -- nur am Videoplatz, wo der Klick
-   auf die Flaeche der Abspielsteuerung gehoert. Am Foto gibt es ihn nicht.
-   Er bleibt sichtbar, auch ohne Ueberfahren: mit dem Finger gibt es kein
-   Ueberfahren, und ohne ihn kaeme man von dort gar nicht ins Vollbild. */
-.vfull {
-  position: absolute; top: 10px; right: 92px; z-index: 3;
-  padding: 5px 10px; border-radius: 999px; font-size: .73rem; font-weight: 500;
-  background: rgba(8,10,12,.78); border: 1px solid var(--line); color: var(--text-2);
-  transition: color .15s var(--ease), border-color .15s var(--ease);
-}
-.vfull:hover { color: var(--text); border-color: #3a434c; }
+/* DER PAPIERKORB STEHT ABGESETZT. Die beiden davor stellen etwas ein, dieser
+   hier nimmt etwas weg -- ohne den Abstand liest er sich als dritte
+   Einstellung. Dieselben 14 Pixel wie bei `.pill-sep` in der Filterzeile, und
+   aus demselben Grund.
+   ROT ERST IM UEBERFAHREN UND IM DIALOG, nicht im Ruhezustand: eine dauerhaft
+   rote Flaeche auf jedem Foto waere ein Alarm, der nach einer Woche nicht mehr
+   gelesen wird. Rot bleibt in dieser Anlage dem Zerstoeren vorbehalten, und es
+   soll etwas bedeuten, wenn es auftaucht. */
+.vweg { margin-left: 14px; }
+.vweg:hover { color: var(--red); border-color: var(--red); background: var(--red-dim); }
 /* Im Ausschnitt-Modus zieht der Zeiger den Rahmen, statt das Vollbild zu oeffnen. */
 .viewer.focus-mode { cursor: crosshair; touch-action: none; }
 .viewer.focus-mode img { cursor: crosshair; }
@@ -1204,6 +1319,17 @@ body.lb-open { overflow: hidden; }
    Deklaration im selben :root waere still: die spaetere gewinnt, und je nach
    Reihenfolge faerbt man damit unbemerkt die halbe Oberflaeche um. */
 .cmt.erledigt { border-left: 3px solid var(--green); }
+/* DIE KANTE DARF DEN TEXT NICHT VERSCHIEBEN. Ein Kommentar mit Art traegt
+   links 3px statt 1px; box-sizing steht global auf border-box, der Rand
+   waechst also nach innen, und der Text saesse zwei Pixel weiter rechts als
+   im Kommentar darunter. Bei einem einzelnen Kasten faellt das nicht auf --
+   in einer Liste aus Notizen, Berichten und Aufgaben stehen die Zeilenanfaenge
+   dann abwechselnd auf zwei Linien, und auf einem schmalen Schirm ist das
+   genau die Unruhe, die man sieht, ohne sie benennen zu koennen.
+   Der Innenabstand gibt die zwei Pixel zurueck: 10 + 3 = 12 + 1. Die Kante
+   bleibt 3px breit -- sie ist das Merkmal, sie soll auffallen; nur der Text
+   bleibt, wo er ist. */
+.cmt.bericht, .cmt.aufgabe, .cmt.erledigt { padding-left: 10px; }
 /* Der Aufgabenknopf hat zwei eingeschaltete Zustaende. Ohne eigene Farbe
    unterschieden sie sich nur im Wort.
    Beide Zeilen sind Ausnahmen von .mark.on (orange) und stehen hier
@@ -1268,7 +1394,8 @@ body.lb-open { overflow: hidden; }
    sichtbar. Mittig unter dem Inhalt statt fest in der Ecke -- so ueberlappt sie
    garantiert nichts, auch nicht auf schmalen Bildschirmen. */
 .version-zeile {
-  margin: 0 0 26px; padding: 0 20px; text-align: center;
+  margin: 0 0 26px; margin-bottom: calc(26px + env(safe-area-inset-bottom));
+  padding: 0 20px; text-align: center;
   font-family: var(--mono); font-size: .67rem; color: var(--faint);
   user-select: none;
 }
@@ -1335,3 +1462,873 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
    positiv abgeschlossen ist. */
 .off-zeile.erledigt .off-text { text-decoration: line-through; color: var(--faint); }
 .off-zeile.erledigt .off-haken { color: var(--green); }
+
+/* ================================================================
+   DER SCHMALE SCHIRM
+   ================================================================
+   Bis hierher steht im Stylesheet EINE Anlage, und sie ist fuer ein breites
+   Fenster gebaut. Was folgt, nimmt ihr nichts weg: keine Regel oben wurde
+   veraendert, jede hier unten greift erst unter einer Bedingung. Wer am
+   Schreibtisch sitzt, sieht dieselbe Anlage wie vorher -- Zeile fuer Zeile
+   dieselbe.
+
+   ZWEI ACHSEN, UND SIE WERDEN NICHT VERMISCHT. Das ist die tragende
+   Entscheidung dieses Abschnitts, und ohne sie wird jede Medienregel zum
+   Ratespiel:
+
+     DIE BREITE ENTSCHEIDET UEBER DAS LAYOUT.  Wie viele Spalten ein Raster
+     traegt, ob die Kopfzeile umbricht, ob ein Kasten seinen Rahmen behaelt --
+     das haengt am Platz und an sonst nichts. Ein Tablett am Standfuss und ein
+     kleines Fenster auf dem Schreibtisch sind derselbe Fall.
+
+     DER ZEIGER ENTSCHEIDET UEBER DIE GROESSE DER ZIELE.  Wie gross ein Knopf
+     sein muss, haengt daran, WOMIT gezielt wird -- ein Finger ist rund
+     zehnmal so breit wie ein Mauszeiger spitz ist. Ein Tablett im Querformat
+     ist breit UND wird mit dem Finger bedient; wer die Zielgroesse an die
+     Breite haengte, liesse genau dieses Geraet leer ausgehen.
+
+   Deshalb stehen die Zielgroessen unter `pointer: coarse` und nicht unter
+   `max-width`. `pointer` fragt nach dem HAUPTZEIGER: ein Rechner mit
+   Beruehrungsbildschirm und Maus meldet `fine` und bleibt unberuehrt.
+
+   DIE STAFFEL DER UMBRUECHE -- drei Stellen, mehr nicht:
+
+     1024px  DAS TABLETT. Engeres Aussenpolster, dichtere Raster. Sonst
+             nichts: ein Tablett hat Platz, es hat nur weniger davon.
+      860px  DIE DETAILANSICHT WIRD EINSPALTIG. Diesen Umbruch gibt es schon
+             seit langem, er steht weiter oben bei `.detail` und bleibt
+             unangetastet.
+      700px  DAS TELEFON. Hier faellt die Entscheidung: Hamburgermenue,
+             Kaesten ohne Rahmen, Filter eingeklappt.
+
+   UND WARUM DIE TELEFONREGEL ZWEI BEDINGUNGEN TRAEGT
+   (`(max-width: 700px), (max-height: 500px) and (max-width: 960px)`):
+   ein Telefon quer ist 850 bis 930 Pixel breit und nur 390 bis 430 hoch. Nach
+   der Breite allein waere es ein Tablett -- und bekaeme eine Kopfzeile, die
+   ein Drittel der Hoehe frisst, die es gar nicht hat. Die zweite Bedingung
+   fragt deshalb nach der HOEHE und deckelt die Breite bei 960: ein Tablett im
+   Querformat (1024 und mehr) faellt nicht darunter, ein Telefon im Querformat
+   schon.
+
+   WAS HIER AUSDRUECKLICH NICHT PASSIERT: keine zweite Oberflaeche, kein
+   zweiter Aufbau in app.js, kein Geraeteraten ueber die Kennung des Browsers.
+   Es ist EINE Anlage, und sie ordnet sich nach dem Platz, den sie bekommt.
+   ================================================================ */
+
+/* ---------------------------------------------------------------
+   DIE GRUNDSTELLUNG DER NEUEN BAUTEILE
+   ---------------------------------------------------------------
+   SIE STEHT VOR DEN MEDIENREGELN UND NICHT DAHINTER, und das ist keine
+   Ordnungsfrage: `.mast-rest { display: none }` in einer Medienregel und
+   `.mast-rest { display: contents }` danach haben dasselbe Gewicht, und bei
+   gleichem Gewicht gewinnt die spaetere Zeile -- die Medienregel griffe nie.
+   Wer hier etwas ergaenzt, ergaenzt es oberhalb der Medienregeln. */
+
+/* Auf dem breiten Schirm ist der Behaelter des Menues nicht da: seine Kinder
+   stehen unmittelbar in der Kopfzeile, mit deren Abstaenden und deren
+   Umbruch. Ohne `display: contents` saessen die vier in einem eigenen
+   Flex-Kasten, und die Kopfzeile saehe anders aus als vor dieser Runde.
+   Und das Zeichen selbst hat auf dem breiten Schirm nichts zu tun: dort
+   stehen alle vier Knoepfe ohnehin nebeneinander. */
+.mast-rest { display: contents; }
+.mast-menue { display: none; }
+/* Das Wort im Symbolknopf gibt es nur in der Tafel; in der Kopfzeile traegt
+   der Knopf sein Zeichen und seinen Titel. */
+.mast-wort { display: none; }
+/* Der Schalter ueber den Filtern gehoert dem Telefon. Auf dem breiten Schirm
+   stehen die Filter da, wo sie hingehoeren -- eingeklappt waeren sie dort ein
+   Griff ohne Grund. */
+.filter-schalter { display: none; align-items: center; gap: 7px; margin-bottom: 14px; }
+.filter-schalter .fz { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
+.filter-schalter.aktiv { border-color: var(--accent-line); color: var(--text); }
+.filter-schalter.aktiv .fz { color: var(--accent); }
+
+/* ---------------------------------------------------------------
+   DIE SUCHE IN DER ZWEITEN ZEILE -- nur schmal, nicht nur niedrig
+   ---------------------------------------------------------------
+   DIESE EINE REGEL FRAGT NUR NACH DER BREITE und gehoert deshalb nicht in den
+   Telefonblock, der auch das quer gehaltene Telefon erfasst.
+   Quer ist ein Telefon 850 Pixel breit und keine 400 hoch: dort ist waagerecht
+   reichlich Platz und senkrecht keiner. Eine Suche, die sich dort eine eigene
+   Zeile nimmt, macht die Kopfzeile von 86 auf 124 Pixel hoch -- ein knappes
+   Drittel des ganzen Bildschirms, und das fuer nichts: neben Marke, Knopf und
+   Zeichen waeren noch ueber 400 Pixel frei gewesen.
+   Hochkant ist es umgekehrt: dort passt die Suche neben nichts, und die
+   zweite Zeile ist der einzige Weg, sie in voller Breite zu zeigen.
+   `order: 3` schiebt sie hinter alles Uebrige, `flex-basis: 100%` erzwingt
+   die eigene Zeile -- ohne das eine saesse sie vorn, ohne das andere neben
+   dem Menuezeichen. */
+@media (max-width: 700px) {
+  .search-box { order: 3; flex: 1 1 100%; max-width: none; }
+}
+
+/* Das Blatt kommt von unten herein und nicht aus der Mitte heraus: `rise`
+   waere hier die falsche Bewegung -- es hebt an, wo dieses Blatt schiebt. */
+@keyframes blatt { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+/* ---------------------------------------------------------------
+   DER ZEIGER: was mit dem Finger getroffen werden muss
+   ---------------------------------------------------------------
+   Richtmass sind 44 Pixel in jeder Richtung. Das ist keine gegriffene Zahl,
+   sondern die Breite einer Fingerkuppe auf dem Glas; darunter trifft man das
+   Nachbarelement mit.
+   ERREICHT WIRD SIE UEBER DEN INNENABSTAND, nicht ueber die Schrift. Ein
+   groesser gesetzter Knopf traegt lautere Schrift, und laut soll hier nichts
+   werden -- er soll nur groesser zu treffen sein. Die Schriftgroessen bleiben
+   deshalb, wo sie stehen. */
+@media (pointer: coarse) {
+  .btn { padding: 12px 17px; }
+  .btn-sm { padding: 10px 14px; }
+  .icon-btn { width: 44px; height: 44px; }
+  .pill { padding: 10px 15px; }
+  /* Der Und/Oder-Umschalter bleibt kleiner als die Pillen daneben: er ist
+     eine Einstellung ZU der Reihe und nicht ein Glied darin. */
+  .pill-mode { padding: 7px 12px; }
+  .chip { padding: 7px 12px; }
+  .chip button { padding: 3px 5px; }
+  /* DIE KLEINE MARKE AM TESTTAG BLEIBT DIE KLEINE MARKE. `.chip-xs` traegt
+     dasselbe Gewicht wie `.chip` (je eine Klasse), und bei gleichem Gewicht
+     gewinnt die spaetere Zeile -- die Regel darueber haette die Marken am
+     Testtag stillschweigend so gross gemacht wie die im Eintrag, obwohl sie
+     ausdruecklich kleiner sein sollen: sie stehen mitten in einer Zeile.
+     Sie wachsen mit, aber weniger. */
+  .chip-xs { padding: 4px 9px; }
+  .select { padding: 9px 12px; }
+  .link-btn { padding: 7px 3px; }
+  .mark { padding: 8px 12px; }
+  .abtn { padding: 7px 12px; }
+  .sanb .sstart { padding: 6px 12px; }
+  .switch { padding: 10px 15px; }
+  .pin-btn { padding: 8px; }
+  .off-haken { padding: 6px 9px; }
+  .ttag-add { padding: 5px 9px; }
+  /* DREI KLASSEN UND EIN ELEMENT schlagen die eine Klasse von `.select`
+     darueber -- dasselbe Muster wie bei der kleinen Marke und dem Kreuz an
+     einer fremden Stimme. Das Rollenfeld in der Zugangsliste waere sonst als
+     einziges Auswahlfeld der Anlage bei 20 Pixeln geblieben. */
+  .mrow.zug select.zug-r { padding: 6px 9px; }
+  /* Das Kreuz an einer gespeicherten Ansicht liegt IM Knopf und ist deshalb
+     ein span -- `button { padding: 0 }` greift dort gar nicht, es hatte
+     ueberhaupt kein Polster und war ein Ziel von der Groesse des Zeichens.
+     Es sitzt dazu unmittelbar neben dem Hauptziel derselben Pille: wer die
+     Ansicht anwenden will und danebentrifft, loescht sie. */
+  .pill .an-weg { padding: 5px 4px; margin-left: 6px; }
+
+  /* Die Kreuze und Stifte an den Zeilen. Sie stehen auf dem Finger ohnehin
+     dauerhaft da (die Regeln `hover: none` weiter oben); hier bekommen sie
+     zusaetzlich eine Flaeche, auf der sie zu treffen sind. */
+  .xdel { padding: 8px 10px; }
+  /* ZWEI KLASSEN SCHLAGEN EINE, AUCH IN EINER MEDIENREGEL. Eine Medienregel
+     aendert am Gewicht eines Waehlers nichts -- `.rstimme .xdel` (zwei
+     Klassen) gewinnt weiter gegen `.xdel` (eine), und das Kreuz an einer
+     fremden Stimme waere als einziges der ganzen Anlage bei 18 Pixeln
+     geblieben. Es steht deshalb ausgeschrieben da.
+     Kleiner als die uebrigen Kreuze bleibt es trotzdem: es sitzt in einer
+     Zeile aus lauter kurzen Namen, und ein Ziel von 44 Pixeln zwischen zwei
+     Namen risse die Zeile auseinander. */
+  .rstimme .xdel { padding: 6px 8px; }
+  .mrow .mact { padding: 9px 11px; }
+  .arow .adl { padding: 9px 11px; }
+  /* Die beiden am Kommentarkopf hatten ueberhaupt keinen Innenabstand und
+     waren damit rund elf Pixel gross -- das kleinste Ziel der ganzen Anlage. */
+  .cmt-head button { padding: 8px 10px; }
+  .cmt-head .acts, .cmt-head .marks { gap: 2px; }
+  /* Die runden Kreuze auf den Bildkacheln. 19 Pixel trifft niemand. */
+  .cmt-img .del, .thumb .del { width: 27px; height: 27px; }
+  .thumb .del { border-radius: 0 0 0 9px; }
+
+  /* Der Haken zum Vergleichen sitzt in der Kartenfussleiste und liegt in
+     einem Verweis: wer ihn verfehlt, oeffnet den Eintrag. Deshalb faellt er
+     hier deutlicher aus als sonst. */
+  .pick-box { width: 28px; height: 28px; }
+
+  /* DIE STERNE. Fuenf Ziele in einer Reihe, und sie sind das wichtigste
+     Bedienelement der ganzen Anlage -- danebengetroffen heisst hier: einen
+     falschen Wert vergeben. Sie werden groesser gesetzt UND bekommen Flaeche
+     zwischen sich; die Reihe misst damit rund 150 statt 100 Pixel. */
+  .star { font-size: 1.45rem; }
+  .stars { gap: 3px; }
+  .stars .star { padding: 5px 4px; }
+
+  /* Die Punkte der Zeitleiste. Neun Pixel sind mit der Maus genau richtig und
+     mit dem Finger nicht zu treffen. Der Rand bleibt bei 1.5px -- er
+     unterscheidet eigene von fremden Punkten und darf nicht mitwachsen. */
+  .zl-punkt { width: 12px; height: 12px; margin: 0 0 -6px -6px; }
+
+  /* Im Vollbild ist Platz, und dort zielt man auf ein Bild, das man gerade
+     ansieht -- die Knoepfe duerfen deshalb deutlich groesser stehen. */
+  .lb-btn { width: 42px; height: 42px; }
+  .lb-nav { width: 54px; height: 54px; }
+  .lb-thumb { width: 62px; height: 62px; }
+  .vnav { width: 44px; height: 44px; }
+  /* Die Reihe am Bildbereich. 30 Pixel sind mit der Maus reichlich und mit dem
+     Finger zu wenig -- und einer der drei loescht. */
+  .vfocus, .vfull, .vweg { width: 44px; height: 44px; }
+
+  /* DER LANGE DRUCK ZIEHT, ER MARKIERT NICHT. makeSortable() laesst den
+     Finger nach 0,4 Sekunden greifen -- genau in dieser Zeit bietet ein
+     Telefon von sich aus die Textmarkierung samt Lupe an, und beides
+     zusammen ergibt einen Griff, der eine halbe Zeile blau faerbt.
+     Nur die Zeilen, die WIRKLICH gezogen werden, stehen hier; der Text im
+     Kommentar bleibt selbstverstaendlich markierbar. */
+  .thumb, .lrow, .mrow.drag, .block-head-x { -webkit-user-select: none; user-select: none; }
+
+  /* KEINE WARTEZEIT VOR DEM KLICK. Ohne diese Zeile haelt der Browser jede
+     Beruehrung eines Knopfes rund 300 Millisekunden zurueck, weil daraus noch
+     ein Doppeltipp zum Vergroessern werden koennte. Auf einer Seite mit
+     `width=device-width` gibt es diesen Doppeltipp nicht mehr -- die Wartezeit
+     bleibt trotzdem und laesst jede Bedienung zaeh wirken.
+     AUSDRUECKLICH NICHT AM VOLLBILD: dort IST der zweite Tipp eine Bedeutung
+     (er zoomt aufs Original), und `manipulation` naehme sie weg. */
+  .btn, .icon-btn, .pill, .mark, .switch, .chip, .pick-box, .star,
+  .abtn, .link-btn, .xdel, .off-haken, .pin-btn, .vnav, .vfocus, .vfull,
+  .cmt-head button, .mrow .mact, .arow .adl { touch-action: manipulation; }
+
+  /* ---- KEIN HINEINZOOMEN BEIM TIPPEN ----
+     Ein Eingabefeld mit weniger als 16 Pixel Schriftgroesse laesst Safari auf
+     dem iPhone die GANZE SEITE hineinzoomen, sobald das Feld den Fokus
+     bekommt -- und wieder heraus tut sie es nicht von selbst. Man tippt einen
+     Buchstaben und sitzt danach in einer Seite, die anderthalbmal zu gross
+     ist. Es gibt dagegen genau zwei Mittel: die Seite gegen Zoomen sperren
+     (das nimmt jedem, der schlecht sieht, das letzte Hilfsmittel -- kommt
+     nicht in Frage) oder die Felder gross genug setzen.
+
+     max(...) UND KEINE BLANKE PIXELZAHL: die Anlage stellt die Schrift von 80
+     bis 120 Prozent. Bei 100 Prozent und darunter greift die feste
+     Untergrenze, ab 107 Prozent waechst das Feld mit der Einstellung weiter.
+     Wer klein stellt, bekommt hier also nicht ganz, was er wollte -- aber
+     eine Seite, die bei jedem Tastendruck springt, hat er noch weniger
+     gewollt.
+     DAS IST DIE EINE STELLE, AN DER EINE PIXELZAHL IN EINER SCHRIFTGROESSE
+     VORKOMMT, und sie steht als Untergrenze in einer Funktion, nicht als
+     Wert. Eine blanke Pixelzahl waere ein zweites Grundmass neben dem einen
+     am Wurzelelement -- und der Prueflauf zaehlt genau das nach ("Nur noch
+     eine feste Schriftgroesse: das Grundmass"). Er zaehlt dabei ueber den
+     ROHEN Text des Stylesheets und nimmt Kommentare nicht aus: wer hier eine
+     solche Angabe auch nur ERWAEHNT, laesst die Pruefung scheitern. Deshalb
+     steht sie in diesem Absatz nirgends ausgeschrieben.
+
+     JEDER WAEHLER STEHT AUSGESCHRIEBEN DA. `.input-sm`, `.select-sm` und die
+     Felder in den Verwaltungszeilen tragen ihre Groesse in Regeln mit
+     hoeherem Gewicht oder weiter unten im Stylesheet -- eine Sammelregel auf
+     `.input` allein liesse genau die kleinsten Felder ungedeckt, und das sind
+     die, um die es geht. */
+  .input, .input-sm, .ta, .select, .select-sm, .title-in,
+  .sanb-slot .input, .zug-linkzeile .input,
+  .mrow input.medit, .mrow .mgew-feld, .mrow.zug select.zug-r,
+  .test-add input[type=date] { font-size: max(16px, 1rem); }
+  /* Dasselbe, nur traegt die Regel oben ein !important und ist anders nicht
+     zu erreichen. */
+  .ttag-in { font-size: max(16px, 1rem) !important; }
+}
+
+/* ---------------------------------------------------------------
+   DER HAENGENGEBLIEBENE ZUSTAND
+   ---------------------------------------------------------------
+   AUF EINEM BERUEHRUNGSSCHIRM SETZT EIN TIPP :hover -- UND NIEMAND NIMMT IHN
+   WIEDER WEG. Es gibt kein "der Zeiger geht wieder fort"; der Zustand bleibt,
+   bis irgendwo anders hingetippt wird. Wo :hover nur eine Farbe aendert, ist
+   das hinnehmbar. Wo er BEWEGT, ist es ein sichtbarer Fehler: die Karte, die
+   man einmal angetippt hat, steht danach dauerhaft drei Pixel hoeher als ihre
+   Nachbarinnen und wirft einen Schatten, den keine andere wirft. Wer aus dem
+   Eintrag zurueckkommt, sieht eine Liste, in der genau eine Kachel schief
+   steht -- und findet keinen Weg, das wieder geradezuruecken.
+   HIER STEHT DESHALB NUR, WAS SICH BEWEGT ODER ABHEBT. Reine Farbwechsel
+   bleiben, wo sie sind: sie sagen "hier war ich gerade", und das ist auf
+   einem Telefon eher nuetzlich als stoerend. */
+@media (hover: none) {
+  .card:hover { transform: none; }
+  /* :not(.picked) IST HIER KEIN BEIWERK, SONDERN DER GANZE PUNKT. Eine
+     ausgewaehlte Karte traegt ihre Auswahl ueber genau diese beiden
+     Eigenschaften -- Rahmen in Akzentfarbe und ein Ring darum
+     (`.card.picked`). Beide Waehler wiegen zwei Klassen; bei gleichem Gewicht
+     gewinnt die spaetere Zeile, und das ist die hier unten. Ohne den
+     Ausschluss nahm diese Regel der Karte, die man gerade angetippt hatte,
+     ihre eigene Auswahl wieder weg: das Kaestchen stand auf orange, die Karte
+     sah aus wie jede andere. Nachgemessen am Bildschirm, nicht vermutet. */
+  .card:hover:not(.picked) { box-shadow: none; border-color: var(--line); }
+  .card:hover .card-img img { transform: none; }
+  .stars .star:hover { transform: none; }
+  .pin-btn:hover { transform: none; }
+  .zl-punkt:hover { transform: none; opacity: .68; }
+  /* DAS ABLEGEFELD. Sein Ueberfahrzustand ist BUCHSTAEBLICH derselbe wie sein
+     Arbeitszustand: `.drop:hover` und `.drop.over` stehen in einer Regel und
+     faerben beide den Rand, die Schrift und den Grund in den Akzent. Auf dem
+     Finger bleibt das Ueberfahren haengen -- und damit steht das Feld
+     dauerhaft so da, als zoege gerade jemand eine Datei darueber. Die eine
+     Rueckmeldung, die es zu geben hat, sagt dann nichts mehr.
+     `:not(.over)` NIMMT NUR DAS UEBERFAHREN ZURUECK: waehrend wirklich etwas
+     darueber liegt, faerbt sich das Feld weiterhin. Ohne den Ausschluss haette
+     die Zeile hier den Arbeitszustand gleich mit abgeraeumt -- beide Waehler
+     wiegen zwei Klassen, und die spaetere gewinnt. */
+  .drop:hover:not(.over) {
+    border-color: var(--line); color: var(--muted); background: var(--surface);
+  }
+
+  /* Die beiden Blaetterpfeile. Ihr Ueberfahrzustand ist der volle Akzent --
+     angetippt blieben sie orange stehen, bis man irgendwo anders hintippt,
+     und ein Pfeil, der als einziger leuchtet, sieht aus wie eine Auswahl.
+     DIE MITTE BLEIBT: sie haengt am transform, und ein blankes `none` schoebe
+     den Pfeil um die halbe eigene Hoehe nach unten. */
+  .vnav:hover {
+    transform: translateY(-50%);
+    background: rgba(14,16,18,.82); border-color: rgba(255,255,255,.12);
+    color: var(--text);
+  }
+  .lb-nav:hover {
+    transform: translateY(-50%);
+    background: rgba(20,23,27,.86); border-color: rgba(255,255,255,.11);
+    color: var(--text);
+  }
+}
+
+/* ---------------------------------------------------------------
+   DAS TABLETT: bis 1024 Pixel
+   ---------------------------------------------------------------
+   Wenig, und mit Absicht wenig. Ein Tablett hat Platz -- es hat nur weniger
+   davon als ein Schreibtisch. Was hier steht, gewinnt Breite zurueck und
+   stellt die Raster dichter; die Bauform bleibt dieselbe. */
+@media (max-width: 1024px) {
+  .shell { padding: 0 18px 84px; }
+  /* Aus zwei sehr breiten Karten werden drei gut lesbare: bei 768 Pixeln
+     ergaben 240 als Mindestbreite genau zwei Spalten von je 344 Pixeln --
+     Karten, die breiter sind als hoch, obwohl ihr Bild quadratisch ist. */
+  .grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .sys-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .detail { gap: 22px; }
+}
+
+/* ---------------------------------------------------------------
+   DIE EINGEKLAPPTE KOPFZEILE: Telefon UND Tablett mit Finger
+   ---------------------------------------------------------------
+   DREI BEDINGUNGEN, EIN ODER. Die ersten beiden sind das Telefon (hoch und
+   quer, siehe unten). Die dritte ist der Fall, an dem sich zeigt, warum die
+   Breite allein nicht reicht:
+
+     EIN TABLETT IM HOCHFORMAT IST 834 PIXEL BREIT UND WIRD MIT DEM FINGER
+     BEDIENT. Die Kopfzeile trug dort Marke, Titel, Zaehlzeile, ein Suchfeld
+     von 320 Pixeln, zwei Symbolknoepfe, den Satz "Angemeldet als ...",
+     "Abmelden" und "+ Eintrag" -- mit den Fingermassen aus dem Abschnitt
+     darueber zusammen ueber 900 Pixel. Sie brach um, und "+ Eintrag" sass
+     danach allein in einer zweiten Zeile weit links: es sah kaputt aus.
+
+   `(max-width: 1024px) and (pointer: coarse)` trifft genau diesen Fall und
+   NUR ihn. Ein Fenster von 1024 Pixeln auf einem Schreibtisch meldet
+   `pointer: fine`, behaelt die kleineren Masse und damit die Kopfzeile, die
+   es vor dieser Runde hatte -- dort aendert sich nichts.
+
+   WAS AUF DEM TABLETT ANDERS BLEIBT ALS AUF DEM TELEFON: die Suche steht
+   weiterhin in derselben Zeile (sie passt), die Filter fangen aufgeklappt an
+   (es ist Platz da), und die Bloecke behalten ihre Kaesten. Eingeklappt wird
+   hier nur, was sonst umbraeche. */
+@media (max-width: 700px), (max-height: 500px) and (max-width: 960px),
+       (max-width: 1024px) and (pointer: coarse) {
+  /* DAS MENUE.
+     Es liegt IM Markup der Kopfzeile und wird nicht dorthin geschoben: auf
+     dem breiten Schirm traegt `.mast-rest` ein `display: contents` und ist
+     damit fuer das Layout gar nicht da -- seine Kinder stehen in der
+     Kopfzeile, als gaebe es den Behaelter nicht. Hier wird derselbe Behaelter
+     zur Tafel. EIN Markup, zwei Gestalten, kein Verschieben von Knoten und
+     damit auch nichts, was beim Drehen des Geraets kaputtgehen kann.
+     Sie haengt an `.masthead`, und das geht auf, weil `position: sticky`
+     bereits ein Bezugssystem aufspannt -- ein zusaetzliches
+     `position: relative` waere hier wirkungslos und stuende nur da. */
+  .mast-rest {
+    display: none;
+    position: absolute; top: 100%; right: 0; z-index: 30;
+    flex-direction: column; align-items: stretch; gap: 2px;
+    min-width: 208px; max-width: min(290px, calc(100vw - 24px));
+    margin-top: 7px; padding: 7px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r); box-shadow: var(--sh-lg);
+    animation: rise .16s var(--ease) both;
+  }
+  .mast-rest.offen { display: flex; }
+  /* In der Tafel ist jeder Eintrag eine Zeile ueber die volle Breite: die
+     Symbolknoepfe verlieren ihr Quadrat, die Knoepfe ihren Rahmen. Ein Rahmen
+     um jede Zeile ergaebe Kaesten in einem Kasten -- dieselbe Ueberlegung wie
+     bei den Bloecken weiter unten. */
+  .mast-rest .icon-btn, .mast-rest .btn {
+    width: 100%; height: auto; justify-content: flex-start; gap: 11px;
+    padding: 12px 12px; border-color: transparent; background: none;
+    border-radius: var(--r-sm); white-space: nowrap;
+  }
+  .mast-rest .icon-btn:hover, .mast-rest .btn:hover { background: var(--surface-3); }
+  /* Das Wort neben dem Zeichen. In der Kopfzeile traegt der Knopf nur sein
+     Symbol und erklaert sich ueber den Titel beim Ueberfahren -- auf dem
+     Finger gibt es kein Ueberfahren, in einer Tafel ist Platz, und ein
+     Zeichen allein in einer Liste erklaert sich nicht. */
+  .mast-rest .mast-wort { display: inline; }
+  /* Wer angemeldet ist, steht ueber dem Abmelden und ist Auskunft, kein
+     Bedienelement: eigene Zeile, kein Rahmen, leiser Trennstrich darueber.
+     Umbrechen darf sie hier ausdruecklich -- in der Kopfzeile stuende sie
+     sonst zwischen zwei Knoepfen, in der Tafel steht sie fuer sich. */
+  .mast-rest .wer {
+    white-space: normal; padding: 10px 12px 6px; margin-top: 5px;
+    border-top: 1px solid var(--line-2);
+  }
+  .mast-menue { display: inline-flex; }
+
+  /* DER SCHALTER UEBER DEN FILTERN STEHT HIER UND NICHT ERST BEIM TELEFON.
+     Die vier Filterreihen sind auf einem Tablett im Hochformat ueber 600
+     Pixel hoch -- mehr als die halbe Bildschirmhoehe, bevor der erste
+     Eintrag zu sehen ist.
+     ER STEHT DA, ER GREIFT ABER NICHT VON SELBST: eingeklappt ANGEFANGEN wird
+     nur auf dem Telefon (das entscheidet istSchmal() in app.js, mit derselben
+     Bedingung wie der Telefonblock unten). Auf einem Tablett und in einem
+     schmalen Fenster stehen die Filter weiterhin offen da -- dort ist Platz,
+     und was vorher sichtbar war, soll nicht ohne Not verschwinden. Neu ist
+     allein die Moeglichkeit, sie wegzuklappen. */
+  .filter-schalter { display: inline-flex; }
+  .filters.zu { display: none; }
+}
+
+/* ---------------------------------------------------------------
+   DAS TELEFON
+   --------------------------------------------------------------- */
+@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {
+
+  /* ---- Der Rand der Seite ----
+     24 Pixel links und rechts sind auf einem 390 Pixel breiten Telefon
+     zwoelf Prozent der Breite, und sie stehen leer. Zwoelf Pixel reichen
+     voellig: sie halten den Text von der Kante, und das ist ihre einzige
+     Aufgabe.
+     env(safe-area-inset-*) traegt die Aussparung des Geraets nach -- quer
+     liegend schiebt sie die Seite an einer Seite ein Stueck herein. Ohne
+     `viewport-fit=cover` in der index.html ist der Wert null, und die Regel
+     tut dann genau das, was ohne sie geschaehe. */
+  .shell {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  /* ---- Die Kopfzeile ----
+     Vorher standen dort SIEBEN Dinge nebeneinander: Marke, Titel, Zaehlzeile,
+     Suchfeld, zwei Symbolknoepfe, der Satz "Angemeldet als ...", "Abmelden"
+     und "+ Eintrag". Auf einem Telefon brach das in vier Zeilen um und nahm
+     ein Drittel des Bildschirms ein, bevor der erste Eintrag zu sehen war --
+     und die Kopfzeile klebt beim Scrollen oben fest, das Drittel blieb also
+     weg.
+     JETZT SIND ES ZWEI ZEILEN: oben die Marke, der Knopf zum Anlegen und das
+     Hamburgerzeichen; darunter die Suche ueber die volle Breite. Alles
+     Uebrige liegt hinter dem Zeichen.
+     WARUM DIE SUCHE DRAUSSEN BLEIBT: sie ist auf einem kleinen Bildschirm das
+     wichtigste Bedienelement der Anlage -- Filter und Wolke sieht man dort
+     nicht auf einen Blick, die Suche findet trotzdem. Sie hinter zwei Griffe
+     zu legen waere die falsche Ersparnis.
+     WARUM "+ Eintrag" DRAUSSEN BLEIBT: er ist der eine Weg, auf dem etwas
+     Neues in die Anlage kommt. Ein Menue davor kostet bei jedem Eintrag einen
+     zusaetzlichen Griff. */
+  .masthead {
+    gap: 8px;
+    padding: 10px 0 11px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    margin-bottom: 15px;
+  }
+  /* `flex: 1 1 0` UND NICHT DAS VORGEGEBENE `0 1 auto`. Das ist der
+     Unterschied zwischen einer Kopfzeile in zwei Zeilen und einer in drei:
+     ein Flex-Kasten mit Umbruch stellt seine Kinder erst mit ihrer
+     INHALTSBREITE nebeneinander und schiebt das erste, das nicht mehr passt,
+     in die naechste Zeile -- er schrumpft NICHT vorher. Der Markenname
+     "Kriterion" ist kurz, ein selbst vergebener Titel kann es nicht sein: bei
+     "Model Bewertungen" nahm die Marke 200 Pixel, "+ Eintrag" und das
+     Menuezeichen passten nicht mehr daneben, und das Zeichen sass allein in
+     einer eigenen Zeile.
+     Mit der Ausgangsbreite null nimmt die Marke, was uebrig bleibt, nachdem
+     die beiden Knoepfe ihren Platz haben -- und ein zu langer Titel wird
+     abgeschnitten statt jemanden zu verdraengen. ABGESCHNITTEN WIRD DER
+     TITEL UND NICHT DER KNOPF: der Titel steht auf jeder Seite und ist
+     Auskunft, die Knoepfe stehen nur hier und sind Bedienung. */
+  .brand { gap: 9px; flex: 1 1 0; }
+  .brand .count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-box { min-width: 0; }
+
+  /* ---- Die Filter ----
+     Vier Reihen mit Beschriftung und beliebig vielen Pillen -- Status,
+     Favoriten, Neu seit, jede Kategorie, die Tagwolke, Und/Oder, Sortierung,
+     gespeicherte Ansichten. Auf dem Telefon fuellte das den ganzen ersten
+     Bildschirm, und darunter fing die Liste erst an.
+     SIE SIND DESHALB EINGEKLAPPT, NICHT WEG. Der Schalter darueber sagt, wie
+     viele gerade greifen; wer filtern will, klappt auf. Der Zustand ist
+     Ansichtszustand und keine Einstellung -- beim naechsten Aufruf steht
+     wieder die Vorgabe, wie beim Umschalter "meine / alle".
+     Und die Beschriftung steht ueber der Reihe statt daneben: 7,25 em sind
+     auf 366 Pixeln fast ein Drittel der Breite, und sie stehen leer, sobald
+     das Wort kuerzer ist. Der Schalter selbst steht weiter oben, im
+     gemeinsamen Block mit der Tafel -- er gehoert dem Tablett genauso. */
+  .filters { gap: 9px; margin-bottom: 16px; }
+  .frow { flex-direction: column; align-items: stretch; gap: 6px; }
+  .frow > .eyebrow { min-width: 0; }
+
+  /* ---- Das Kartenraster ----
+     240 Pixel Mindestbreite ergaben auf dem Telefon genau EINE Spalte: eine
+     Karte von 366 mal ueber 400 Pixeln, also nicht einmal zwei Karten je
+     Bildschirm. Ein Bestand von dreissig Eintraegen war damit eine
+     Wischstrecke. Zwei Spalten zeigen zehn Karten auf derselben Flaeche, und
+     das quadratische Bild bleibt gross genug, um die Sache zu erkennen.
+     `auto-fill` mit 150 als Mindestmass braucht dafuer keinen zweiten
+     Umbruchpunkt: unter 320 Pixeln Breite faellt es von selbst auf eine
+     Spalte zurueck. */
+  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card-body { padding: 9px 11px 11px; gap: 5px; }
+  .card-title { font-size: .95rem; }
+  /* Drei Angaben in einer 165 Pixel breiten Karte. Sie muessen umbrechen --
+     ohne Umbruch stehen sie ueber den Rand hinaus.
+     UND MIT DEM UMBRUCH FALLEN DIE TRENNPUNKTE WEG: ein Mittelpunkt trennt
+     zwei Angaben in EINER Zeile; steht er am Zeilenende, trennt er nichts
+     mehr und sieht aus wie ein vergessenes Zeichen ("4 Testtage · ⌀ 3,5 ·"
+     und darunter "zuletzt 04.03."). Der Abstand trennt hier genauso gut, und
+     er hoert am Zeilenende von selbst auf. */
+  .card-test { flex-wrap: wrap; gap: 3px 9px; }
+  .card-test .sep { display: none; }
+  .empty { padding: 44px 16px; }
+
+  /* ---- DIE KAESTEN ----
+     Das ist der Kern dieses ganzen Abschnitts.
+
+     BISHER WAR JEDER BLOCK EINE KARTE: eigener Untergrund, eigener Rahmen von
+     einem Pixel, eigene Ecke von elf, dazu 17 Pixel Innenabstand. Und WORIN
+     die Karte stand, war schon die Seite; WAS darin stand, waren wieder
+     Kaesten -- eine Kommentarkarte mit eigenem Rahmen, eigener Ecke von
+     sieben und eigenem Innenabstand von zwoelf. Auf einem breiten Schirm ist
+     das eine ruhige Staffelung. Auf 390 Pixeln ist es Folgendes:
+
+         |  Seitenrand 24  |  Rahmen 1  |  Innen 17  |  Rahmen 1  |  Innen 12
+         |  ... hier steht der Text, 280 von 390 Pixeln ...
+
+     Fuenf Kanten zwischen dem Bildschirmrand und dem ersten Buchstaben, und
+     drei verschiedene Eckenradien darin. Genau daher kommt der Eindruck, die
+     Kommentare seien "anders gross als der Bildbereich und haetten dickere
+     Rahmen": der Bildbereich sitzt am Seitenrand, der Kommentar 36 Pixel
+     weiter innen -- und das Auge sieht zwei Ordnungen, wo eine gemeint war.
+
+     DIE ANTWORT IST NICHT, DIE RAHMEN DUENNER ZU MACHEN, sondern EINE EBENE
+     WEGZUNEHMEN. Der Block ist auf dem Telefon kein Kasten mehr, sondern ein
+     ABSCHNITT: ein Trennstrich darueber, ein Titel, der Inhalt. Er steht auf
+     der Seite und nicht auf einer Karte. Damit bleibt genau eine Kastenebene
+     uebrig -- die Kommentarkarte, die Linkzeile, die Dateizeile --, und die
+     steht auf voller Breite, buendig unter dem Bild darueber. Dieselbe Kante,
+     dieselbe Flucht, eine Ordnung.
+
+     Das ist kein neuer Gedanke, es ist der vorhandene: "Ein Merkmal, ein
+     Zeichen. Zwei schwache Signale fuer dieselbe Sache machen es nicht
+     deutlicher, nur unruhiger." Untergrund UND Rahmen UND Ecke UND Abstand
+     sagten viermal dasselbe -- dass hier ein Block anfaengt. Der Strich sagt
+     es einmal.
+     KEIN ABSCHNITT OHNE STRICH DARUEBER, AUCH DER ERSTE NICHT. Ueber ihm
+     steht der Bildbereich, und zwischen dem Bild und dem ersten Abschnitt
+     gehoert dieselbe Kante wie zwischen zwei Abschnitten. */
+  .block {
+    background: none;
+    border: 0; border-top: 1px solid var(--line);
+    border-radius: 0;
+    padding: 16px 0 20px;
+  }
+  #blocks-seite { gap: 0; }
+  .block-wide { margin-top: 0; }
+  .block.zu { padding-bottom: 16px; }
+  /* Der Block schrumpft beim Ziehen auf seine Kopfzeile -- und die muss
+     hineinpassen. Bei border-box zaehlen die Innenabstaende mit: 16 + 16 von
+     46 lassen 14 Pixel fuer eine Zeile, die 21 braucht. Die 52 sind
+     ausgerechnet, nicht geschaetzt: 16 + 21 (0,7 rem x 1,55, die Beschriftung
+     im Kopf) + 16 = 53, abgerundet auf die naechste gerade Zahl. */
+  .block.dragging { max-height: 52px; padding-top: 16px; padding-bottom: 16px; }
+
+  /* EINE ECKE FUER ALLES, WAS IN DERSELBEN FLUCHT STEHT.
+     Seit die Bloecke ihren Rahmen verloren haben, stehen Bildbereich,
+     Ablegefeld, Kommentarkarten, Linkzeilen und Dateizeilen alle auf
+     derselben senkrechten Linie und ueber dieselbe Breite. Damit faellt auf,
+     was vorher nicht auffiel: der Bildbereich rundet mit 11 Pixeln, alles
+     darunter mit 7. Zwei Radien in einer Flucht liest man als zwei Ordnungen
+     -- und genau das ist die Beschwerde, um die es in dieser Runde geht.
+     GENOMMEN WIRD DER GROESSERE. Der Bildbereich ist das Stueck, an dem sich
+     alles ausrichtet; ihn kleiner zu runden hiesse, die Hauptsache der
+     Nebensache anzugleichen.
+     UND DAS ABLEGEFELD BEKOMMT DIESELBE STRICHSTAERKE. 1,5 Pixel gestrichelt
+     standen unmittelbar unter 1 Pixel durchgezogen -- auf einem breiten
+     Schirm zwei Kaesten nebeneinander, auf dem Telefon zwei Kanten
+     uebereinander, und die untere die dickere. Gestrichelt bleibt es: das ist
+     das Merkmal ("hier darf etwas hinein"), die Staerke war es nie. */
+  .viewer, .drop, .ta, .cmt, .lrow, .trow, .arow, .mrow, .off-gruppe,
+  .apreview, .vok-probe, .warn-box, .ok-box, .sanb, .empty, .zl {
+    border-radius: var(--r);
+  }
+  /* NICHT MITGEFASST SIND .keyline UND .zf-schluessel: die beiden liegen
+     nachweislich INNERHALB eines Hinweiskastens und sind Einsaetze, keine
+     Kaesten in der Flucht. Ein Einsatz mit derselben Ecke wie sein Behaelter
+     sieht aus, als sei einer von beiden zu viel. Sie behalten die kleinere. */
+  /* Der leere Zustand steht an der Stelle des Kartenrasters -- er ersetzt es
+     -- und nimmt deshalb dessen Masse: 1 Pixel wie eine Karte, nicht 1,5. */
+  .drop, .empty { border-width: 1px; }
+
+  /* Dieselbe Bauform im Systembereich. Dort waren es sogar 20 Pixel
+     Innenabstand je Karte.
+     `minmax(0, 1fr)` UND NICHT `1fr` -- die beiden sind NICHT dasselbe, und
+     der Unterschied kostete hier 38 Pixel. `1fr` ist die Kurzform von
+     `minmax(auto, 1fr)`, und `auto` als Untergrenze heisst: die Spalte darf
+     nie schmaler werden als der schmalste unteilbare Inhalt, den irgendeine
+     Karte darin traegt. EINE Karte mit einer langen Verwaltungszeile zog die
+     Spalte damit auf 404 Pixel -- und weil alle Karten in derselben Spalte
+     stehen, wurden ALLE 404 breit, in einem Fenster von 390. Der Browser
+     erweitert daraufhin still den sichtbaren Bereich (gemessen: 421 statt
+     390), und der ganze Systembereich stand rechts angeschnitten da: der
+     Text der Erklaerungen lief mitten im Wort aus dem Bild.
+     Die ausdrueckliche Untergrenze null nimmt der Spalte dieses Vetorecht.
+     Was dann wirklich zu breit ist, laeuft in seiner eigenen Zeile ueber und
+     laesst sich dort beheben -- statt die ganze Seite mitzuziehen. */
+  .sys-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .sys-card {
+    background: none;
+    border: 0; border-top: 1px solid var(--line);
+    border-radius: 0;
+    padding: 18px 0 22px;
+  }
+  /* HIER OHNE STRICH -- anders als beim ersten Block im Eintrag, und das ist
+     kein Widerspruch, sondern derselbe Satz: ein Strich trennt zwei
+     Abschnitte. Ueber dem ersten Block steht der Bildbereich, also ein
+     Abschnitt; ueber der ersten Karte steht die Ueberschrift der Seite samt
+     ihrer Unterzeile, und die trennt sich selbst. */
+  .sys-grid > .sys-card:first-child { border-top: 0; padding-top: 4px; }
+  /* Zwei Spalten Formularfelder auf 366 Pixeln sind zwei zu schmale Spalten. */
+  .vok-grid { grid-template-columns: 1fr; }
+
+  /* Die Listen, die in sich scrollen, tun das jetzt selten genug, dass die
+     Wischbewegung fast immer die Seite bewegt -- 62 Prozent der Fensterhoehe
+     fassen auf einem Telefon mehr Zeilen als die festen 280 bis 380 Pixel.
+     Ganz aufheben laesst sich der eigene Bildlauf nicht: ein
+     Sicherheitsprotokoll mit zweihundert Zeilen machte die Karte sonst
+     unbrauchbar lang. */
+  .manage-list, .prot-liste, .test-scroll, .atext { max-height: 62vh; max-height: 62dvh; }
+
+  /* ---- Die Detailansicht: DER TITEL STEHT VOR DEM BILD ----
+     Das ist die einzige Umstellung der Reihenfolge in dieser ganzen Runde.
+
+     ZUERST WIRD DIE SPALTE AUFGELOEST, und die Zeile dafuer steht hier auch
+     deshalb, weil sie einen Fall abdeckt, den der alte Umbruch bei 860px
+     nicht kennt: ein grosses Telefon quer ist 932 Pixel breit -- breit genug
+     fuer zwei Spalten und mit 430 Pixeln zu niedrig fuer irgendetwas.
+     `display: contents` an der Seitenspalte loest ihre beiden Kinder aus ihr
+     heraus: statt zweier Spalten stehen dann DREI Stuecke untereinander --
+     Bildbereich, Titelbereich, Bloecke. Erst dadurch laesst sich der
+     Titelbereich ueberhaupt einzeln umsortieren; als Kind der Seitenspalte
+     saesse er in einem Kasten fest, den man nur als Ganzes verschieben kann.
+     `order: -1` zieht ihn davor. Alles Uebrige behaelt seine Reihenfolge:
+     gleicher Wert heisst Reihenfolge des Markups.
+     UND DIE TASTATURFOLGE BLEIBT DIE DES MARKUPS -- sie laeuft damit einmal
+     anders als das Auge liest. Das ist der Preis, und er ist hier vertretbar:
+     es geht um EIN Stueck, das nach vorn rueckt, und der Titel ist ein
+     Eingabefeld, das man ansteuert, nicht eines, an dem man vorbeimuss. */
+  .detail { display: flex; flex-direction: column; gap: 16px; }
+  .meta-col { display: contents; }
+  .titel-kopf { order: -1; }
+  .title-in { font-size: 1.32rem; }
+  .back { margin: 12px 0 14px; }
+  /* MIT DER FENSTERHOEHE UND NICHT MIT EINER FESTEN ZAHL. Der Telefonblock
+     greift nach seiner eigenen Bedingung auch quer, und quer ist ein Telefon
+     390 bis 430 Pixel HOCH -- eine Vorschau von 420 Pixeln waere dort der
+     ganze Bildschirm und die Zeile darueber nicht mehr zu sehen. */
+  .apreview img { max-height: min(340px, 56dvh); }
+  .apreview iframe { height: 420px; height: min(420px, 62dvh); }
+
+  /* ---- WAS IN EINER ZEILE STAND UND IN KEINE ZEILE PASST ----
+     Diese Reihen tragen alle `display: flex` OHNE `flex-wrap`. Auf einem
+     breiten Schirm ist das richtig: sie sollen in einer Zeile stehen, und sie
+     tun es. Auf 366 Pixeln stehen sie ueber den Rand hinaus -- ein Knopf, der
+     rechts abgeschnitten ist, laesst sich weder lesen noch treffen.
+     Umbrechen statt schrumpfen: ein "Kommentar hinzufügen", das auf die
+     halbe Breite gequetscht wird, ist unleserlich, und zwei Zeilen kosten
+     nichts, was auf einem Telefon knapp waere. Senkrecht ist dort Platz. */
+  .block-head { flex-wrap: wrap; row-gap: 6px; }
+  /* Der Fuellwert schiebt die Knoepfe nach rechts, solange sie in dieselbe
+     Zeile passen -- bricht die Reihe um, faengt die zweite Zeile links an
+     und nicht in der Mitte. */
+  .block-head .label { flex: 1 1 auto; }
+  /* DER KOMMENTARKOPF STEHT IN ZWEI ZEILEN.
+     In einer Zeile trug er: drei Umschalter (Anpinnen, Bericht, Aufgabe),
+     Verfasser und Zeitpunkt, und rechts Bearbeiten und Loeschen. Auf einem
+     breiten Schirm ist das eine bequeme Zeile. Auf 340 Pixeln passte davon
+     nur der Anfang: der Zeitpunkt brach mitten im Datum um ("27.08.2026," /
+     "22:52"), und die Umschalter -- auf dem Finger notgedrungen groesser --
+     waren lauter als der Kommentar, zu dem sie gehoeren.
+     JETZT OBEN, WAS DIE ZEILE BESCHREIBT (wer, wann, und rechts die beiden
+     Zeichen fuer Bearbeiten und Loeschen), DARUNTER, WAS SIE VERAENDERT. Das
+     ist dieselbe Trennung, die die Anlage ueberall macht -- Auskunft und
+     Bedienelement stehen nicht durcheinander --, sie wird hier nur senkrecht
+     statt waagerecht gezogen.
+     Die Umschalter fallen dabei eine Spur kleiner aus als sonst auf dem
+     Finger: in einer eigenen Zeile stehen sie frei, und daneben liegt nichts,
+     das man versehentlich traefe. */
+  .cmt-head { flex-wrap: wrap; row-gap: 7px; }
+  .cmt-head .cmt-when { order: 1; }
+  .cmt-head .acts { order: 2; }
+  .cmt-head .marks { order: 3; flex-basis: 100%; }
+  .cmt-head .mark { padding: 6px 11px; }
+  /* DIE BEWERTUNGSZEILE. Ein langer Kriterienname stand ueber den Rand
+     hinaus: `.rrow` bricht nicht um, und der Name traegt weder eine
+     Mindestbreite null noch eine Ellipse. Er darf jetzt umbrechen -- ein
+     abgeschnittener Kriterienname waere schlechter als ein zweizeiliger,
+     denn die Sterne daneben beziehen sich auf genau ihn. */
+  .rrow .rname { min-width: 0; overflow-wrap: anywhere; }
+
+  /* DIE DATEIZEILE UND DIE TESTTAGZEILE brechen um, statt zu quetschen. An
+     der Datei hingen sieben Stuecke in einer Zeile; dem Dateinamen blieben
+     116 von 344 Pixeln, und abgeschnitten wurde ausgerechnet das Ende --
+     also die Endung, an der man die Datei erkennt.
+     OBEN, WAS DIE ZEILE IST UND WAS MAN MIT IHR TUN KANN; DARUNTER, WIE GROSS
+     UND VON WEM. Dieselbe Aufteilung wie am Kommentarkopf und an der Zeile
+     einer Anmeldung -- dreimal dasselbe Bild, damit man es einmal lernt. */
+  .arow { flex-wrap: wrap; row-gap: 2px; }
+  .arow .aname { flex: 1 1 auto; }
+  .arow .asize, .arow .avon { order: 2; }
+  .arow .asize { margin-left: auto; }
+  .trow { flex-wrap: wrap; row-gap: 4px; }
+
+  .cmt-form-row { flex-wrap: wrap; row-gap: 8px; }
+  .cmt-form-row .btn { flex: 1 1 auto; }
+  .cmt-edit .acts { flex-wrap: wrap; }
+  .cmt-edit .acts .btn { flex: 1 1 auto; }
+  .card-foot { flex-wrap: wrap; row-gap: 5px; }
+  .apdf-hint { row-gap: 6px; }
+
+  /* DIE ZEILE EINER ANMELDUNG BRICHT UM. Sie traegt vier Stuecke: was fuer
+     eine Anmeldung es ist, wann sie begann, wann sie zuletzt gesehen wurde,
+     und das Kreuz zum Beenden. Die beiden Zeitangaben stehen mit
+     `flex-shrink: 0` da -- sie sollen nicht mitten im Datum abgeschnitten
+     werden, und das ist richtig. Auf 342 Pixeln lief die Zeile deshalb
+     seitlich aus der Karte hinaus.
+     OBEN, WAS DIE ZEILE IST UND WAS MAN MIT IHR TUN KANN; DARUNTER, WANN.
+     Dieselbe Trennung wie am Kommentarkopf, und aus demselben Grund. */
+  .mrow.sitz { flex-wrap: wrap; row-gap: 2px; }
+  .mrow.sitz .mname { flex: 1 1 auto; }
+  .mrow.sitz .zug-akt { order: 1; }
+  .mrow.sitz .sitz-zeit { order: 2; flex: 1 1 auto; }
+
+  /* Ein langer Titel der Anlage schoebe sonst den Knopf zum Anlegen und das
+     Menuezeichen aus der Kopfzeile. Abgeschnitten wird der Titel: er steht
+     auf jeder Seite, die beiden Knoepfe stehen nur hier. */
+  .brand { min-width: 0; }
+  .brand > div { min-width: 0; }
+  .brand h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Quer gehalten ist ein Telefon 430 Pixel hoch. Ein Bildbereich im
+     Verhaeltnis 4:3 waere dort ueber 600 Pixel hoch -- man saehe das Bild und
+     sonst nichts, und muesste zum Titel des Eintrags scrollen. Die Deckelung
+     laesst das Verhaeltnis fahren, nicht das Bild: es steht mit
+     object-fit: contain darin und wird nur kleiner, nie beschnitten.
+     dvh und nicht vh, mit vh als Rueckfall davor: vh misst das Fenster
+     mitsamt der Adressleiste, die beim Scrollen verschwindet. */
+  .viewer { max-height: 64vh; max-height: 64dvh; }
+
+  /* ---- Die Vorschaureihe unter dem Bild ----
+     62 PIXEL FEST IN EINEM UMBRECHENDEN KASTEN: das ist eine Kachelbreite,
+     die nicht weiss, wie breit das Fenster ist. Auf einem 360 Pixel breiten
+     Telefon misst der Kasten 336 -- Fenster minus zweimal Seitenrand --, und
+     die fuenfte Kachel scheitert an ZWEI Pixeln: fuenfmal 62 und viermal 7
+     Abstand ergeben 338. Was stehen bleibt, sind vier Kacheln und ein leerer
+     Streifen von 67 Pixeln rechts, ein Fuenftel der Breite. Der Bildbereich
+     darueber reicht bis an beide Kanten, die Reihe darunter hoert vorher auf
+     -- und genau das sieht man. Bei 428 Pixeln sind es 66 leere Pixel neben
+     fuenf Kacheln.
+
+     DASSELBE MITTEL WIE BEIM KARTENRASTER DER UEBERSICHT. Ein Raster zaehlt
+     seine Spalten selbst aus und verteilt den Rest IN die Spalten, statt ihn
+     rechts liegen zu lassen. Die Kachel hat damit keine feste Breite mehr,
+     sondern eine Untergrenze; links und rechts steht danach derselbe Rand,
+     naemlich der Seitenrand der Schale und sonst nichts. Es braucht dafuer
+     keinen vierten Umbruchpunkt: die Spaltenzahl faellt aus der Breite, und
+     die Breite ist genau die Achse, an der in dieser Anlage das Layout
+     haengt.
+
+     WARUM 60 UND NICHT 62 ALS UNTERGRENZE. Die Zahl entscheidet allein
+     darueber, WANN eine Spalte dazukommt; wie breit die Kachel dann wirklich
+     wird, rechnet das Raster aus, und schmaler als die Untergrenze wird sie
+     nie. Damit die fuenfte Kachel auf das schmalste gebraeuchliche Telefon
+     passt, darf die Untergrenze hoechstens 61,6 messen. Genau auf diese Kante
+     gelegt waere sie der naechste Fehler mit Ansage: ein Pixel mehr
+     Seitenrand, ein Pixel mehr Abstand, und die fuenfte Kachel ist wieder
+     weg, ohne dass jemand die Vorschaureihe angefasst haette. 60 laesst acht
+     Pixel Luft und bleibt eine Zahl, die man sich merkt.
+     DER PREIS STEHT DANEBEN UND WIRD NICHT VERSCHWIEGEN: an drei
+     Kastenbreiten -- 328, 395 und 462 -- trifft die Kachel ihre Untergrenze
+     und misst dort 60 statt 62 Pixel. Zwei Pixel weniger, und immer noch weit
+     ueber dem Fingermass von 44.
+
+     GERECHNET UND IM BROWSER NACHGEMESSEN (Kasten = Fenster minus 24):
+       336 -> 5 Spalten zu 61,6   (vorher 4 zu 62, 67 Pixel leer)
+       366 -> 5 Spalten zu 67,6   (vorher 5 zu 62, 28 Pixel leer)
+       388 -> 5 Spalten zu 72,0   (vorher 5 zu 62, 50 Pixel leer)
+       404 -> 6 Spalten zu 61,5   (vorher 5 zu 62, 66 Pixel leer)
+     Rest rechts in allen vier Faellen: null.
+
+     auto-fill UND NICHT auto-fit. Die beiden sehen gleich aus, solange genug
+     Kacheln da sind, und gehen bei WENIGEN auseinander: auto-fit klappt die
+     leeren Spalten zusammen und verteilt ihren Platz auf die vorhandenen. Ein
+     Eintrag mit zwei Fotos bekaeme auf 366 Pixeln damit zwei Kacheln von
+     179,5 Pixeln, und die Reihe saehe bei jedem Eintrag anders aus als beim
+     naechsten. Die Vorschau ist eine Reihe gleich grosser Marken; wie gross
+     sie sind, darf an der Breite des Schirms haengen und nicht daran, wie
+     viele Fotos jemand hochgeladen hat.
+
+     UND DIE KACHEL BLEIBT QUADRATISCH. Die Hoehe stand bisher als zweite
+     feste Zahl neben der Breite; sobald die Breite rechnet, muss die Hoehe
+     ihr folgen. `height: auto` ist dabei keine Zutat, sondern die Bedingung:
+     neben einer festen Hoehe von 62 bliebe das Verhaeltnis wirkungslos, und
+     aus der Kachel wuerde ein liegendes Rechteck. `width: auto` ebenso -- ein
+     Rasterkind mit fester Breite nimmt seine Spur nicht an und stuende mit 62
+     Pixeln in einer 72 Pixel breiten Spalte, den Rest wieder daneben.
+
+     WAS DAS AM ZIEHEN AENDERT, und es aendert etwas: bisher lag rechts in
+     jeder vollen Zeile ein toter Streifen, auf dem ein Finger sicher keine
+     Kachel griff. Den gibt es nicht mehr -- die Zeile ist lueckenlos Kachel.
+     Wer auf der Reihe aufsetzt und laenger als die Haltezeit ruhig liegen
+     bleibt, greift jetzt an jeder Stelle eine. Das ist die gewollte Folge des
+     Auftrags, die Breite auszunutzen, und die Wischtoleranz faengt weiterhin
+     jeden Finger ab, der sich VOR Ablauf der Haltezeit bewegt. */
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
+  .thumb { width: auto; height: auto; aspect-ratio: 1/1; }
+
+  /* ---- Dialoge: das Blatt von unten ----
+     Ein Dialog in der Mitte des Schirms ist die Bauform eines Fensters auf
+     einem Schreibtisch. Auf einem Telefon ist die Mitte die Stelle, an die
+     der Daumen am schlechtesten kommt, und der untere Rand die, an die er am
+     besten kommt -- deshalb steigt das Blatt von unten auf und sitzt dort.
+     ES BEHAELT SEINE OBEREN ECKEN und verliert die unteren: es liegt am Rand
+     an, es schwebt nicht davor. Der untere Rahmen faellt aus demselben Grund
+     weg -- eine Kante, hinter der nichts mehr kommt, ist keine.
+     dvh statt vh, und die vh-Zeile bleibt als Rueckfall davor stehen: vh
+     misst das Fenster mitsamt der Adressleiste, die beim Scrollen
+     verschwindet -- ein Dialog nach vh ist auf dem Telefon zuverlaessig ein
+     Stueck zu hoch. */
+  .backdrop { padding: 0; align-items: flex-end; }
+  .modal {
+    max-width: none; width: 100%;
+    /* Links, rechts und unten liegt das Blatt am Glas an -- eine Kante,
+       hinter der nichts mehr kommt, ist keine. Oben bleibt sie: dort liegt
+       die Seite dahinter. */
+    border-left: 0; border-right: 0; border-bottom: 0;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    padding: 20px 16px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    max-height: 92vh; max-height: 92dvh;
+    animation: blatt .24s var(--ease) both;
+  }
+  /* Die Knopfreihe untereinander und ueber die volle Breite -- zwei Knoepfe
+     nebeneinander sind auf 350 Pixeln zwei schmale Knoepfe.
+     column-reverse und nicht column: im Markup steht "Abbrechen" zuerst, weil
+     es dort links stehen soll. Untereinander gehoert der eigentliche Vorgang
+     nach OBEN, unter den Daumen, und das Abbrechen darunter. */
+  .modal-acts { flex-direction: column-reverse; gap: 8px; margin-top: 10px; }
+  .modal-acts .btn { width: 100%; }
+
+  /* ---- Die Vergleichsleiste ----
+     Sie schwebte mittig als Pille. Auf dem Telefon nimmt sie die volle Breite
+     ueber dem unteren Rand -- so ist sie mit dem Daumen zu erreichen und
+     verdeckt keine halbe Karte. */
+  .cmp-bar {
+    left: 12px; right: 12px; width: auto; max-width: none;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    border-radius: var(--r); padding: 9px 10px 9px 15px;
+    justify-content: space-between;
+  }
+}

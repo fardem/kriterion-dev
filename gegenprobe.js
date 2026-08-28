@@ -1371,6 +1371,144 @@ const RUECKBAUTEN = [
     ersatz: '`<img class="marke" src="marke-dunkel.svg" width="${s}" height="${s}" alt="">`;',
     erwartet: 'Die Marke der Anlage'
   },
+  /* ---- Telefon und Tablett (0.12.0) ----
+     SECHS RUECKBAUTEN UND NICHT MEHR. Sie sind auf die tragenden Zusagen der
+     Runde gerichtet und ersetzen den vollen Lauf nicht -- was sie decken und
+     was nicht, steht im Aenderungsprotokoll 0.12.0, Abschnitt 5.
+     DREI DAVON GREIFEN AM STYLESHEET UND KEINE AM LAYOUT: der Prueflauf
+     rechnet auf jsdom kein Layout, er kann nur pruefen, dass eine Regel
+     dasteht. Ein Rueckbau, der eine Regel entfernt, ist damit genau das, was
+     sich hier belegen laesst -- und mehr behauptet die Pruefung auch nicht. */
+  {
+    nr: '158', name: 'Die Spalte des Systembereichs darf sich wieder aufblaehen',
+    datei: 'public/style.css',
+    suche: '.sys-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }',
+    ersatz: '.sys-grid { grid-template-columns: 1fr; gap: 0; }',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    nr: '159', name: 'Die Bedingung in app.js laeuft von der im Stylesheet weg',
+    datei: 'public/app.js',
+    suche: "const SCHMAL = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';",
+    ersatz: "const SCHMAL = '(max-width: 640px)';",
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    nr: '160', name: 'Der Behaelter des Menues steht auch am breiten Schirm im Weg',
+    datei: 'public/style.css',
+    suche: '.mast-rest { display: contents; }',
+    ersatz: '.mast-rest { display: flex; }',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    nr: '161', name: 'Die Seite bekommt die Aussparung nicht mehr',
+    datei: 'public/index.html',
+    suche: '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
+    ersatz: '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    nr: '162', name: 'Der Blaetterpfeil verschwindet auf dem Finger wieder',
+    datei: 'public/style.css',
+    suche: '@media (hover: none) { .vnav { opacity: 1; } }',
+    ersatz: '',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* DER ERSTE ANLAUF DIESES RUECKBAUS HAT DEN LAUF ABGERISSEN, und das belegt
+     nichts (Stolpersteine 138, 161 und 170). Er nahm dem Menuezeichen seine
+     Kennung; `document.getElementById('menue')` gab daraufhin null zurueck, und
+     `menue.onclick = ...` warf, BEVOR eine einzige Zusicherung lief -- die
+     ganze Prueflage fiel zusammen, und der Bericht sagte "abgerissen" statt
+     eine Zeile rot zu faerben.
+     ER GREIFT DESHALB JETZT DA, WO DIE ZUSICHERUNG HINSIEHT: er vertauscht in
+     der Tafel den Namen des Angemeldeten mit dem Abmelden. Das wirft nichts,
+     und es trifft ZWEI Zusagen auf einmal -- die Reihenfolge der vier in der
+     Tafel und die aeltere Zeile, dass die Angabe unmittelbar vor dem Knopf
+     steht, den sie erklaert. */
+  {
+    nr: '163', name: 'Der Name des Angemeldeten rutscht hinter das Abmelden',
+    datei: 'public/app.js',
+    suche: '        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>\n        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>',
+    ersatz: '        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>\n        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>',
+    erwartet: 'Mehrbenutzer-Anzeigen in der Oberflaeche'
+  },
+  /* DAS KREUZ AN DER KACHEL WAR EIN FUND AUS DEM FELD, kein Einfall am
+     Schreibtisch: beim Durchwischen der Kachelleiste hat der Daumen es
+     getroffen und ein Foto geloescht. Es ist auf dem Finger weg -- und weil
+     ein Weglassen sich nicht von einem Vergessen unterscheiden laesst, muss
+     der Rueckbau es zurueckholen koennen. */
+  {
+    nr: '164', name: 'Das Kreuz kehrt auf die Vorschaukachel zurueck',
+    datei: 'public/style.css',
+    suche: '@media (hover: none) { .thumb .del { display: none; } }',
+    ersatz: '',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* Und der Abstand, der das Wegnehmen vom Einstellen trennt. Ohne ihn
+     stehen Ausschnitt und Papierkorb Schulter an Schulter -- genau die Lage,
+     die das Kreuz an der Kachel so gefaehrlich gemacht hat. */
+  {
+    nr: '165', name: 'Der Papierkorb rueckt an die Einstellknoepfe heran',
+    datei: 'public/style.css',
+    suche: '.vweg { margin-left: 14px; }',
+    ersatz: '.vweg { margin-left: 0; }',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* UNSICHTBAR IST NICHT DASSELBE WIE UNANTASTBAR, und genau darauf kam der
+     Befund aus dem Betrieb heraus. Dieser Rueckbau macht das Kreuz an der
+     Kachel wieder durchsichtig statt es herauszunehmen: auf einem
+     Bildschirmfoto sieht das Ergebnis richtig aus, unter dem Daumen ist es
+     der alte Fehler. Wenn dafuer keine Zeile rot wird, sichert der Pruefstand
+     nur das Aussehen und nicht das Verhalten. */
+  {
+    nr: '166', name: 'Das Kreuz an der Kachel wird nur durchsichtig, nicht herausgenommen',
+    datei: 'public/style.css',
+    suche: '@media (hover: none) { .thumb .del { display: none; } }',
+    ersatz: '@media (hover: none) { .thumb .del { opacity: 0; } }',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* Die Rasterregel faellt weg -- die Kachelreihe steht wieder als
+     umbrechender Flexkasten da, mit fester Kachelbreite und dem Streifen
+     rechts. */
+  {
+    nr: '167', name: 'Die Vorschaureihe faellt auf den umbrechenden Kasten zurueck',
+    datei: 'public/style.css',
+    suche: '  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }\n',
+    ersatz: '',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* auto-fit statt auto-fill: mit zwoelf Fotos faellt das gar nicht auf, mit
+     zweien werden aus zwei Kacheln zwei Kachelplatten. Ein Rueckbau, den man
+     an einem vollen Eintrag nicht sieht -- deshalb steht er hier. */
+  {
+    nr: '168', name: 'Die leeren Spalten klappen zusammen (auto-fit)',
+    datei: 'public/style.css',
+    suche: 'grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));',
+    ersatz: 'grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* Die Kachel behaelt ihre feste Hoehe, waehrend die Breite rechnet: aus dem
+     Quadrat wird ein liegendes Rechteck, und object-fit beschneidet das Foto
+     anders. Sieht nicht kaputt aus, ist aber falsch. */
+  {
+    nr: '169', name: 'Die Kachel behaelt ihre feste Hoehe und wird zum Rechteck',
+    datei: 'public/style.css',
+    suche: '  .thumb { width: auto; height: auto; aspect-ratio: 1/1; }\n',
+    ersatz: '',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* UND EINER IN DIE GEGENRICHTUNG: die Grundregel der Kachel wird angefasst.
+     Sie gilt am Schreibtisch, und dort soll sich nichts aendern -- ein
+     Rueckbau, der die 62 Pixel verschiebt, muss auffallen. Sonst haenge die
+     Zusage allein an einem Pixelvergleich von Hand, und der faerbt nichts
+     rot. */
+  {
+    nr: '170', name: 'Die Grundgroesse der Kachel verrutscht',
+    datei: 'public/style.css',
+    suche: '  width: 62px; height: 62px; border-radius: 8px; overflow: hidden;',
+    ersatz: '  width: 66px; height: 66px; border-radius: 8px; overflow: hidden;',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',

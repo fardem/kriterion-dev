@@ -2,7 +2,21 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- viewport-fit=cover UEBERGIBT DIE GANZE FLAECHE, Aussparung und
+     Bedienbalken eingeschlossen. Ohne diese Angabe bleiben env(safe-area-inset-*)
+     im Stylesheet auf null, und die Kopfzeile der Anlage liesse sich nicht unter
+     die Statusleiste eines Telefons schieben -- sie laege darunter. Was dadurch
+     unter die Aussparung geraet, holt das Stylesheet mit genau diesen
+     Einrueckungen zurueck; ohne beides zusammen ist die Angabe hier ein
+     Schaden und kein Gewinn. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- DIE FARBE DER BROWSERLEISTE. Sie ist --bg aus dem Stylesheet und keine
+     zweite Wahrheit: steht hier ein anderer Wert, sitzt ueber der dunklen Seite
+     ein hellerer Streifen, und genau der laesst eine Seite wie eine Seite
+     aussehen statt wie eine Anwendung. Sie steht als Zeichenfolge da, weil ein
+     Meta-Element keine CSS-Variable lesen kann -- wer --bg aendert, aendert
+     diese Zeile mit. -->
+<meta name="theme-color" content="#0e1012">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark">
 <title>Kriterion</title>
