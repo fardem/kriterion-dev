@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 28 · Stand 28. August 2026 · gebaut: Version 0.12.0**
+**Kompakte Übergabe · Revision 29 · Stand 28. August 2026 · gebaut: Version 0.12.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,11 +43,13 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
-**0.12.0 in einem Satz: die Oberfläche fühlt sich auf dem Telefon wie eine
-Anwendung an und nicht mehr wie eine breite Seite, die man schmal gemacht hat.**
-Es ist die dritte Runde nach dem Stufenplan, die dritte unter Semantic
-Versioning — und die erste, die den Server überhaupt nicht anfasst. Alles
-Weitere in Abschnitt 2 und Abschnitt 9.
+**0.12.1 in einem Satz: gelöscht wird am großen Bild und nicht mehr an der
+Vorschaukachel.** Nacharbeit an 0.12.0, gefunden im Betrieb auf einem echten
+Telefon — *PATCH, weil nichts hinzukommt, was vorher nicht ging*. Die Runde
+davor, 0.12.0, hat die Oberfläche auf Telefon und Tablett zu einer Anwendung
+gemacht statt zu einer breit gebauten Seite, die man schmal gemacht hat; sie ist
+zugleich die erste, die den Server überhaupt nicht anfasst — **und 0.12.1 fasst
+ihn ebenso wenig an.** Alles Weitere in Abschnitt 2 und Abschnitt 9.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
 > trägt die **gebaute** Runde in einem Satz und sonst nichts Versionsbezogenes.
@@ -124,31 +126,47 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.12.0** — Fingerprint **`192734a2`**, **3848 Prüfungen**, **sechs
-Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
+**Gebaut ist 0.12.1** — Fingerprint **`2e3f2e0b`**, **3851 Prüfungen**,
+**zwei Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
+*0.12.1 ist die Nacharbeit an 0.12.0: gelöscht wird am großen Bild und nicht
+mehr an der Vorschaukachel.* **PATCH — nichts kommt hinzu, was vorher nicht
+ging.**
 **KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein Migrationscode; es
 bleibt bei **fünf** markierten Migrationsblöcken. *Die
 Sicherung des Datenverzeichnisses ist deshalb Empfehlung und nicht Pflicht.*
 Was die Runde bringt, steht in Abschnitt 9.
 
-**Was 0.12.0 für den Betrieb bedeutet: nichts.** Keine neue `.env`-Zeile, die
-`docker-compose.yml` unberührt, nichts einzustellen — und **der Server ist
-überhaupt nicht angefasst**: `server.js`, `db.js`, `auth.js`, `keys.js`,
-`mail.js`, `anhaenge.js`, `zweifaktor.js` und `zugang.js` sind Zeile für Zeile
-dieselben. Bewegt haben sich **drei Dateien in `public/`**, dazu `package.json`
-samt Lockfile für die Nummer. *Wer im Browser noch die alte Oberfläche sieht,
+**Was 0.12.0 und 0.12.1 für den Betrieb bedeuten: nichts.** Keine neue
+`.env`-Zeile, die `docker-compose.yml` unberührt, nichts einzustellen — und
+**der Server ist in beiden Runden überhaupt nicht angefasst**: `server.js`,
+`db.js`, `auth.js`, `keys.js`, `mail.js`, `anhaenge.js`, `zweifaktor.js` und
+`zugang.js` sind Zeile für Zeile dieselben. Bewegt haben sich **drei Dateien in
+`public/`** (in 0.12.1 zwei davon), dazu `package.json` samt Lockfile für die
+Nummer. *Wer im Browser noch die alte Oberfläche sieht,
 sieht einen zwischengespeicherten Stand und keine kaputte Anlage; ein hartes
 Neuladen räumt ihn weg.*
 
 **Am Schreibtisch ändert sich nichts, und das ist nachgemessen.** Die Übersicht
 ist bei 1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe wie unter 0.11.0;
 die einzige gewollte Abweichung sind zwei Pixel im Kommentarblock
-(Änderungsprotokoll 0.12.0, Befund C).
+(Änderungsprotokoll 0.12.0, Befund C). **0.12.1 nimmt am Schreibtisch nichts
+weg** — das Löschkreuz an der Vorschaukachel bleibt dort, wo es war; der
+Papierkorb am großen Bild kommt daneben. Was sich dort ändert, sind die zwei
+Knöpfe des Bildbereichs: sie tragen Zeichen statt Wörter und stehen in einer
+Reihe.
 
 **IM FELD BESTÄTIGT IST 0.12.0.** Die Runde ist eingespielt, und die laufende
 Anlage meldet denselben Fingerprint wie der Branch: **`192734a2`**. *Der
 Dateisatz auf dem Wirt ist damit genau der, der gemeint war — einen Befund wie
 bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es nicht.*
+
+**UND DIESE BESTÄTIGUNG HAT SOFORT ETWAS GEBRACHT: 0.12.1 IST EIN BEFUND AUS
+DEM BETRIEB.** Einen Tag nach dem Einspielen kam vom laufenden Gerät die
+Rückmeldung, dass das Löschkreuz an der Vorschaukachel beim Durchwischen zu
+leicht zu treffen ist — 27 Pixel auf einer Kachel von 62, in der Ecke, auf der
+der Daumen aufsetzt. *Das hat kein Prüfstand gefunden und keine Geräteemulation:
+es hat ein Daumen gefunden.* **Genau dafür steht der Rundlauf von Hand
+weiter unten.**
 
 **Was noch aussteht, sind die Rundläufe von Hand.** Der Fingerprint sagt, dass
 die richtigen Dateien liegen; er sagt nichts darüber, ob sich die Anlage
@@ -174,7 +192,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.12.0** | **`192734a2`** | 3848 |
+| **0.12.1** | **`2e3f2e0b`** | 3851 |
+| 0.12.0 | `192734a2` | 3848 |
 | 0.11.0 | `74c44ec0` | 3815 |
 | 0.10.0 | `dc8c16f7` | 3676 |
 | 0.9.1 | `3cf1b093` | 3451 |
@@ -1279,7 +1298,7 @@ in der Oberfläche und eine Meldung im Server. Unter der Haube ändert sich
 nichts. **„Video", „Gewicht" und „Kommentar" sind ausdrücklich keine weiteren
 Vokabeleinträge.**
 
-### Telefon und Tablett (seit 0.12.0)
+### Telefon und Tablett (seit 0.12.0, nachgearbeitet mit 0.12.1)
 
 **Es ist EINE Anlage.** Kein zweiter Aufbau, keine Weiche nach der Kennung des
 Browsers, keine Handy-Adresse. Was sich ändert, entscheidet der Browser über
@@ -1316,10 +1335,32 @@ Tablett im Querformat davon fern und **steht nie allein**.
 - **Eingabefelder fallen nicht unter 16 Pixel** — darunter zoomt Safari auf dem
   iPhone beim Antippen die ganze Seite heran. *Wer die Schrift auf 80 Prozent
   stellt, bekommt hier deshalb nicht ganz, was er wollte.*
+- **Die Vorschaukachel trägt kein Löschkreuz** (seit 0.12.1). Sie kann dort
+  antippen und, nach kurzem Halten, verschieben — sonst nichts. **Gelöscht
+  wird am großen Bild**, mit dem Papierkorb in der Knopfreihe oben rechts.
+  *Grund: 27 Pixel Kreuz auf einer Kachel von 62, und zwar in der Ecke, auf
+  der der Daumen aufsetzt, wenn er quer über die Reihe wischt. Eine
+  Kachelreihe wird durchgewischt, eine Zeile wird angetippt — dieselbe
+  Anordnung ist in der einen Gestalt richtig und in der anderen falsch.*
+  **Am Zeigegerät bleibt das Kreuz, wo es war**; dort gibt es kein
+  Danebentippen. Das ist der **einzige** Punkt, an dem sich die beiden
+  Geräte in der Bedienung wirklich unterscheiden.
+
+**Die Knöpfe am Bildbereich stehen in einer Reihe oben rechts** (seit 0.12.1)
+und tragen Zeichen statt Wörter: Ausschnitt, beim Video Vollbild, und
+**abgesetzt davon der Papierkorb** — die beiden davor stellen etwas ein, der
+dritte nimmt etwas weg. **Auf beiden Geräten dieselbe Reihe an derselben
+Stelle**; verschieden sind nur Größe (30 gegen 44 Pixel) und Sichtbarkeit
+(beim Überfahren gegen dauerhaft), und beide hängen am Zeiger. *Oben rechts,
+weil die Blätterpfeile mittig an den Seitenkanten liegen, der Zähler unten in
+der Mitte und über die Mitte der Wisch läuft: die obere rechte Ecke ist die
+einzige, die keine Geste berührt.*
 
 **Was gleich bleibt: alles am Schreibtisch.** Kein Bedienelement verschwindet,
 keines bekommt eine neue Bedeutung. **Nachgemessen:** die Übersicht ist bei
-1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe wie unter 0.11.0.
+1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe wie unter 0.11.0. *Auch
+0.12.1 nimmt dort nichts weg — das Kreuz an der Kachel bleibt, der Papierkorb
+kommt daneben.*
 
 **Wer angemeldet ist, steht in der Kopfzeile** (seit 0.8.6), neben „Abmelden" —
 **auch bei einem einzigen Zugang**: das ist eine Aussage über einen selbst,
@@ -3985,6 +4026,50 @@ Version, in der sie entstanden sind.*
     Layout (`left: 0; right: 0; margin: 0 auto`) und nicht in eine Eigenschaft,
     die sich Regel und Bewegung teilen.
 
+177. **Ein Überfahrzustand, der DERSELBE ist wie ein bedeutungstragender
+    Zustand, ist der gefährlichere von beiden.** `.drop:hover` und `.drop.over`
+    stehen in einer Regel und färben beide den Rand, die Schrift und den Grund
+    in den Akzent. Auf dem Finger bleibt ein `:hover` hängen — das Ablegefeld
+    stand damit dauerhaft so da, als zöge gerade jemand eine Datei darüber, und
+    **die eine Rückmeldung, die es zu geben hat, sagte nichts mehr.**
+    **Die Durchsicht für 0.12.0 hat ihn nicht gefunden, und der Grund ist die
+    Lehre:** sie ist die hängenbleibenden Überfahrzustände durchgegangen, aber
+    sie hat nach solchen gesucht, die etwas **bewegen** (`transform`). Dieses
+    Feld bewegt nichts, es färbt sich nur um — und zwar in genau die Farbe, die
+    einen echten Zustand bedeutet. *Ein hängengebliebenes Anheben sieht man
+    sofort; eine hängengebliebene Rückmeldung sieht aus wie eine Rückmeldung.*
+    **Wer `:hover` auf dem Finger zurücknimmt, braucht `:not()` für den echten
+    Zustand daneben** — sonst räumt die Rücknahme ihn gleich mit ab; beide
+    Wähler wiegen zwei Klassen, und die spätere gewinnt.
+
+178. **Eine Anordnung, die in einer Zeile richtig ist, kann in einer Kachel
+    falsch sein.** Das Löschkreuz sitzt in dieser Anlage überall oben rechts —
+    in der Linkliste, in der Dateiliste, am Kommentar. In der Vorschaureihe saß
+    es dort ebenfalls, und dort war es falsch: **eine Zeile ist breit und wird
+    angetippt, eine Kachelreihe ist schmal und wird quer durchgewischt.** Der
+    Daumen fährt über sie hinweg und setzt an ihrem Rand auf — genau dort, wo
+    das Kreuz stand (27 von 62 Pixeln, ein Fünftel der Fläche).
+    **Ein Muster über die ganze Oberfläche zu ziehen, ist erst dann Einheit,
+    wenn es je Gestalt geprüft ist.** *Gefunden hat das kein Prüfstand und keine
+    Geräteemulation, sondern ein Daumen im Betrieb — einen Tag nach dem
+    Einspielen von 0.12.0.*
+
+179. **Wer den Gegenprobentreiber abschießt, schießt seine Server nicht mit
+    ab.** Ein versehentlich gestarteter voller Lauf wurde mit `pkill` auf den
+    Treiber beendet und seine Wegwerfverzeichnisse gelöscht — **acht
+    `node server.js` liefen danach weiter** und hielten ihre Ports. Der nächste
+    Prüflauf meldete daraufhin **14 rote Zeilen rund um Mailversand und
+    Selbstanmeldung**; die erste sagte nur `undefined · undefined`, die zweite
+    „Nicht angemeldet". *Das sieht wie ein Fehler in der Sache aus und ist einer
+    in der Umgebung.*
+    **Die Zusicherung „keine Prüflage lässt ihren Server zurück" greift hier
+    nicht** — sie zählt die Server **des laufenden Prüflaufs**, und die
+    Hinterlassenschaft stammt aus einem anderen Prozess. *Nach einem
+    abgebrochenen Gegenprobenlauf gehört deshalb `ps` dazu und nicht nur `rm`.*
+    **Ein Prüflauf, der rot wird, ohne dass die Sache sich geändert hat, ist
+    zuerst eine Frage an die Maschine** — nachgezählt, aufgeräumt, neu gefahren:
+    3851 von 3851.
+
 ---
 
 ## 7. Prüfstand
@@ -3998,10 +4083,11 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 3848 von 3848 bestanden** (0.12.0) — 33 neue Prüfungen, **eine neue
-Gruppe** („Handy und Tablett: die Staffel der Umbruchpunkte"). *Die Gegenproben
-dieser Runde stehen in Abschnitt 8: sie sind auf die neuen Zusagen beschränkt
-und nicht der volle Lauf über alle 159 Rückbauten.*
+**Stand: 3851 von 3851 bestanden** (0.12.1) — drei neue Prüfungen in der Gruppe
+„Handy und Tablett: die Staffel der Umbruchpunkte", die 0.12.0 angelegt hat.
+*0.12.0 hat sie mit 33 Prüfungen eröffnet.* Die Gegenproben beider Runden stehen
+in Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht**
+der volle Lauf über alle **167** Rückbauten.
 
 ### Was abgedeckt ist
 
@@ -4335,7 +4421,8 @@ eine Buchführung.*
 | 0.9.1 | Selbstanmeldung samt Nacharbeit (259) | 58 | Stolpersteine 149 bis 158 |
 | 0.10.0 | Zweiter Faktor, Wiederherstellungscodes, zweistufige Anmeldung (225) | 42 | Stolpersteine 159 bis 163 |
 | 0.11.0 | Suche im Server, gespeicherte Ansichten, Doppelerkennung (139) | 34 | Stolpersteine 164 bis 172 |
-| **0.12.0** | **Telefon und Tablett (33)** | **6, nur auf die neuen Zusagen** | **Stolpersteine 173 bis 176** |
+| 0.12.0 | Telefon und Tablett (33) | 6, nur auf die neuen Zusagen | Stolpersteine 173 bis 176 |
+| **0.12.1** | **Der Papierkorb wandert ans große Bild (3)** | **2, nur auf die neuen Zusagen** | **Stolpersteine 177 bis 179** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -4351,20 +4438,21 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **DIE TAGS `v0.11.0` UND `v0.12.0` SIND GESETZT, ABER NICHT GESCHOBEN.** Sie
-  liegen auf den Commits, die herausgehen; der Push scheitert in der
-  Arbeitsumgebung mit `HTTP 403` — **Branches gehen durch, Tags nicht.** Sie
-  brauchen einen Push von einer Stelle mit den nötigen Rechten:
+- **DIE TAGS `v0.11.0`, `v0.12.0` UND `v0.12.1` SIND GESETZT, ABER NICHT
+  GESCHOBEN.** Sie liegen auf den Commits, die herausgehen; der Push scheitert
+  in der Arbeitsumgebung mit `HTTP 403` — **Branches gehen durch, Tags nicht.**
+  Sie brauchen einen Push von einer Stelle mit den nötigen Rechten:
 
   ```bash
-  git push origin v0.11.0 v0.12.0
+  git push origin v0.11.0 v0.12.0 v0.12.1
   ```
 
   *Liegt ein Tag dort nicht mehr vor, entsteht er mit*
-  `git tag -a v0.12.0 <commit> -m "…"`. **Ohne sie zeigen die Vergleichsverweise
-  `[0.11.0]` und `[0.12.0]` am Ende von `CHANGELOG.md` ins Leere** — das ist die
-  einzige Wirkung; an der Anlage ändert es nichts. *`v0.10.0` liegt am Remote
-  und trägt; das Repo hat damit **sechzehn** Tags.*
+  `git tag -a v0.12.1 <commit> -m "…"`. **Ohne sie zeigen die
+  Vergleichsverweise `[0.11.0]`, `[0.12.0]` und `[0.12.1]` am Ende von
+  `CHANGELOG.md` ins Leere** — das ist die einzige Wirkung; an der Anlage ändert
+  es nichts. *`v0.10.0` liegt am Remote und trägt; das Repo hat damit
+  **siebzehn** Tags.*
 - **DIE RUNDLÄUFE FÜR 0.11.0 UND 0.12.0 SIND NOCH NICHT GEFAHREN.** Für 0.11.0
   belegen drei Handgriffe die Runde am laufenden Server: **nach einem
   Kommentartext suchen** und den Eintrag finden; **eine Ansicht speichern,
@@ -4376,17 +4464,23 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   wurde in einem Browser mit Geräteemulation, und die stimmt in Maßen und
   Medienregeln; sie sagt nichts darüber, wie sich ein Finger auf Glas anfühlt.*
   Die Ergebnisse gehören in Abschnitt 2.
+  **Dieser Handgriff hat sich bereits bezahlt gemacht:** er hat den Befund
+  geliefert, aus dem 0.12.1 geworden ist (Stolperstein 178). **Für 0.12.1 ist er
+  deshalb erneut zu fahren**, und zwar an derselben Stelle: über die
+  Vorschaureihe eines Eintrags mit mehreren Fotos wischen — *es darf dabei
+  nichts mehr zu löschen geben* —, dann am großen Bild den Papierkorb drücken.
 - ~~**Der Fingerprint der laufenden Anlage ist zu vergleichen.**~~ **ERLEDIGT:**
   die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
-- **DIE GEGENPROBE ZU 0.12.0 IST AUF DIE NEUEN ZUSAGEN BESCHRÄNKT.** Sechs
-  Rückbauten decken die tragenden davon ab, **und keiner blieb stumm**; **der
-  volle Lauf über alle 165 Rückbauten ist nicht gefahren** — er fährt den ganzen Prüflauf je Rückbau und
-  hätte in der Arbeitsumgebung Stunden gebraucht. *Das ist eine Verengung
+- **DIE GEGENPROBEN ZU 0.12.0 UND 0.12.1 SIND AUF DIE NEUEN ZUSAGEN
+  BESCHRÄNKT.** Sechs Rückbauten in 0.12.0 und zwei in 0.12.1 decken die
+  tragenden davon ab, **und keiner blieb stumm**; **der volle Lauf über alle
+  167 Rückbauten ist nicht gefahren** — er fährt den ganzen Prüflauf je Rückbau
+  und hätte in der Arbeitsumgebung Stunden gebraucht. *Das ist eine Verengung
   gegenüber 0.11.0 (34 Gegenproben) und steht hier, damit sie nicht als
-  vollständiger Lauf gelesen wird.* Das Ergebnis der fünf steht im
-  Änderungsprotokoll 0.12.0.
+  vollständiger Lauf gelesen wird.* Die Ergebnisse stehen in den
+  Änderungsprotokollen 0.12.0 und 0.12.1.
 - **Eine Layoutprobe fehlt dem Prüfstand.** Die Überlaufmessung über sieben
   Fenstergrößen und der Pixelvergleich der Breitbildansicht liefen von Hand in
   einem echten Browser. **Der Prüfstand läuft auf `jsdom` und rechnet kein
@@ -4522,7 +4616,7 @@ curl -s -c cookies.txt -X POST localhost:3100/api/login \
 curl -s -b cookies.txt localhost:3100/api/stats | head -c 60
 ```
 
-Erwartet für 0.12.0: `{"version":"0.12.0","fingerprint":"192734a2",…`.
+Erwartet für 0.12.1: `{"version":"0.12.1","fingerprint":"2e3f2e0b",…`.
 **Was er nicht abdeckt:** `zugang.js`, `schluessel.js` und `gegenprobe.js` — sie
 liegen im Image, laufen aber nie im Server.
 
@@ -4570,6 +4664,34 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.12.1 — „Der Papierkorb wandert ans große Bild"
+
+**Nacharbeit an 0.12.0, und der Befund kam aus dem Betrieb.** PATCH, weil
+**nichts hinzukommt, was vorher nicht ging**: ein Foto löschen ging schon
+vorher; es geht jetzt an einer Stelle, an der man es nicht aus Versehen trifft.
+*Keine Datenbankstufe, keine neue Route, keine neue Abhängigkeit, keine neue
+`.env`-Zeile — und der Server erneut unberührt.*
+
+**Der Befund, nachgemessen:** das Löschkreuz an der Vorschaukachel maß mit
+Fingermaßen 27 Pixel auf einer Kachel von 62 — **ein Fünftel der Fläche, und
+zwar in der Ecke, auf der der Daumen aufsetzt, wenn er quer über die Reihe
+wischt.** Die Reihe las sich damit nicht mehr als vier Bilder, sondern als vier
+Löschknöpfe.
+
+**Gebaut:** die drei Knöpfe des Bildbereichs stehen in einer Reihe oben rechts
+und tragen Zeichen statt Wörter — Ausschnitt, beim Video Vollbild, **abgesetzt
+davon der neue Papierkorb**. Auf dem Berührungsbildschirm trägt die Kachel kein
+Kreuz mehr; **am Zeigegerät bleibt es, wo es war**. *Der lange Druck bleibt
+unverändert das Umsortieren — ausdrücklich so entschieden.*
+
+**Zwei vorbestehende Fehler nebenbei:** `.vfull` saß auf `right: 92px` (der
+Breite des Wortes „Ausschnitt" bei 100 Prozent Schrift) und schob sich bei 120
+Prozent über den Nachbarn; und das Ablegefeld stand auf dem Finger dauerhaft im
+Arbeitszustand, weil sein Überfahrzustand buchstäblich derselbe ist
+(Stolperstein 177).
+
+*Einzelheiten im Änderungsprotokoll 0.12.1.*
 
 ### 0.12.0 — „Telefon und Tablett"
 
@@ -4833,7 +4955,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.10.0** | Zwei-Faktor | TOTP und Wiederherstellungscodes. *MINOR.* Der QR-Encoder wurde herausgenommen | ja | — |
 | **0.11.0** | Suche und Bestand | Volltextsuche im Server, gespeicherte Ansichten, Doppelerkennung. *MINOR.* **Das Zusammenführen ist herausgenommen** | **nein** | — |
 | **0.12.0** | Telefon und Tablett | Zwei Achsen, drei Umbruchpunkte, ein Menü, ein Filterschalter — und eine Kastenebene weniger. *MINOR.* **Der Server ist unberührt** | **nein** | — |
-| **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht | in der Regel nein | — |
+| **0.12.1** | Der Papierkorb wandert ans große Bild | Das Löschkreuz verlässt auf dem Finger die Vorschaukachel; die Knöpfe des Bildbereichs stehen in einer Reihe. *PATCH.* **Befund aus dem Betrieb** — die erste vergebene Zahl aus der Zeile darunter | **nein** | — |
+| **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1 ist die erste davon* | in der Regel nein | — |
 | **0.13.0** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 
 > **DIE BEREINIGUNG STAND HIER ALS 0.12.0 UND HEISST JETZT 0.13.0.** Sie ist

@@ -1,7 +1,8 @@
 # Änderungsprotokoll 0.12.1 — „Der Papierkorb wandert ans große Bild"
 
-**Version 0.12.1 · gebaut am 28. August 2026 · Nacharbeit an 0.12.0, gefunden im
-Betrieb · KEINE Datenbankstufe, kein Migrationsblock, der Server unberührt**
+**Version 0.12.1 · gebaut am 28. August 2026 · Fingerprint `2e3f2e0b` ·
+Nacharbeit an 0.12.0, gefunden im Betrieb · KEINE Datenbankstufe, kein
+Migrationsblock, der Server unberührt**
 
 **Ein Befund aus dem Feld und nicht vom Schreibtisch.** 0.12.0 war eingespielt
 und der Fingerprint `192734a2` bestätigt; einen Tag später kam die Rückmeldung
@@ -26,7 +27,7 @@ Fehlerbereinigung und Verbesserungen, die nächste freie PATCH-Zahl" vor.*
 2. [Die Entscheidung: was wohin wandert](#2-die-entscheidung-was-wohin-wandert)
 3. [Was gebaut wurde, je Datei](#3-was-gebaut-wurde-je-datei)
 4. [Zwei Fehler, nebenbei gefunden](#4-zwei-fehler-nebenbei-gefunden)
-5. [Ein eigener Fehler im Bauen](#5-ein-eigener-fehler-im-bauen)
+5. [Eigene Fehler im Bauen](#5-eigene-fehler-im-bauen)
 6. [Der Prüfstand](#6-der-prüfstand)
 7. [Prüfungszahlen](#7-prüfungszahlen)
 8. [Was ausdrücklich nicht passiert ist](#8-was-ausdrücklich-nicht-passiert-ist)
@@ -240,7 +241,9 @@ optisch nicht auf, er entwertet eine Rückmeldung. *Steht als Stolperstein 177.*
 
 ---
 
-## 5. Ein eigener Fehler im Bauen
+## 5. Eigene Fehler im Bauen
+
+### Der Zustand hing am Kind, gebraucht hat ihn die Mutter
 
 **Der Ausschnittknopf trug seinen Zustand, die Reihe brauchte ihn.** Der erste
 Entwurf hielt die Reihe im Ausschnittmodus über `.viewer:has(.vfocus.on)`
@@ -252,6 +255,24 @@ verschwindet der einzige Weg aus dem Ausschnittmodus heraus.
 *Ersetzt durch eine Klasse `offen`, die `drawViewer()` setzt.* **Wo ein Zustand
 ohnehin in JavaScript entsteht, gehört er an das Element, das ihn braucht, und
 nicht in einen Wähler, der ihn errät.**
+
+### Und ein Prüflauf, der aus der Umgebung heraus rot wurde
+
+Der Schlusslauf über die fertige Nummer meldete **14 rote Zeilen** rund um
+Mailversand und Selbstanmeldung — die erste nur mit `undefined · undefined`, die
+zweite mit „Nicht angemeldet". **An der Sache hatte sich nichts geändert.**
+
+Die Ursache lag daneben: ein versehentlich gestarteter voller Gegenprobenlauf
+war vorher mit `pkill` auf den Treiber beendet und seine Wegwerfverzeichnisse
+gelöscht worden — **acht `node server.js` liefen danach weiter und hielten ihre
+Ports.** *Die Zusicherung „keine Prüflage lässt ihren Server zurück" greift dort
+nicht: sie zählt die Server des laufenden Prüflaufs, und diese stammten aus
+einem anderen Prozess.*
+
+Aufgeräumt, neu gefahren: **3851 von 3851**. **Ein Prüflauf, der rot wird, ohne
+dass sich die Sache geändert hat, ist zuerst eine Frage an die Maschine.**
+*Steht als Stolperstein 179 — nach einem abgebrochenen Gegenprobenlauf gehört
+`ps` dazu und nicht nur `rm`.*
 
 ---
 
@@ -277,12 +298,20 @@ zweite Zeile in die Gegenrichtung macht daraus eine Entscheidung.*
 
 Zwei neue Rückbauten, und beide zielen auf genau das, was diese Runde zusagt:
 
-| # | Rückbau | Namentlich rot |
-|---|---|---|
-| 164 | Das Kreuz kehrt auf die Vorschaukachel zurück | „Auf dem Finger trägt die Vorschaukachel kein Kreuz mehr" |
-| 165 | Der Papierkorb rückt an die Einstellknöpfe heran | „Am Bildbereich gibt es einen Papierkorb" |
+| # | Rückbau | Was er zurücknimmt | Namentlich rot |
+|---|---|---|---|
+| 164 | Das Kreuz kehrt auf die Vorschaukachel zurück | die Zeile `@media (hover: none) { .thumb .del { display: none } }` fällt weg | „Auf dem Finger trägt die Vorschaukachel kein Kreuz mehr" |
+| 165 | Der Papierkorb rückt an die Einstellknöpfe heran | `margin-left: 14px` wird `0` | „Am Bildbereich gibt es einen Papierkorb" |
 
-*Das Ergebnis steht in Abschnitt 7.*
+**Beide gefahren, beide getroffen, keiner stumm.** Je 3850 von 3851 bestanden,
+je **eine** rote Zeile, und beide Male genau die erwartete — in der erwarteten
+Gruppe. *328 und 329 Sekunden, in zwei Nebenspuren, jede in einer eigenen Kopie
+aus `git archive HEAD`.*
+
+**Dass 165 überhaupt greift, ist der Punkt an ihm.** Ein Abstand sieht wie
+Zierde aus, und eine Zusicherung auf eine Zierde wäre Ballast. Hier ist er es
+nicht: **er ist die Trennung zwischen Einstellen und Wegnehmen** — dieselbe
+Trennung, deren Fehlen den Befund aus Abschnitt 1 überhaupt erzeugt hat.
 
 **Was sie nicht decken:** die Größe der Knöpfe unter `pointer: coarse` und die
 Lage der Reihe. Beides ist gemessen — im Browser, an drei Fenstern — und nicht
