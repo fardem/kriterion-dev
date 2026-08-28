@@ -1282,7 +1282,17 @@ const istSchmal = () => !!(window.matchMedia && window.matchMedia(SCHMAL).matche
 /* ================= Zustand ================= */
 /* DIE VORGABESTELLUNG DER FILTER STEHT GENAU EINMAL -- sonst laufen die
    Abschriften auseinander, sobald jemand einen Filter ergaenzt. */
-const FILTER_VORGABE = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'all',
+/* "Ohne Kategorie" ist ein WERT DIESER LISTE und kein Sonderfall daneben --
+   deshalb steht er in derselben Auswahl wie jede Kategorie und laesst sich mit
+   ihnen zusammen anklicken. Ein Wort und keine Nummer: Nummern sind
+   Kategorienummern, und eine erfundene (0 oder -1) waere irgendwann eine echte.
+   ER STEHT IM GESPEICHERTEN JSON und muss deshalb stabil bleiben. */
+const KATEGORIE_OHNE = 'ohne';
+/* SEIT 0.13.0 EINE LISTE UND KEINE EINZELNE NUMMER. Der Filter traegt mehrere
+   Kategorien zugleich, und die Verknuepfung ist ein ODER -- nie ein UND:
+   `product_category_id` ist EINE Spalte, ein Eintrag traegt also genau eine
+   Kategorie, und "Datentraeger UND Produkt" waere garantiert leer. */
+const FILTER_VORGABE = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                          favorit: false, neu: false, sort: 'updated_desc' };
 const state = {
   items: [], categories: [], tags: [], criteria: [],
@@ -1443,7 +1453,35 @@ async function loadAll() {
 function filterNormal(roh) {
   const f = { ...FILTER_VORGABE, ...(roh && typeof roh === 'object' ? roh : {}) };
   f.tagIds = (Array.isArray(f.tagIds) ? f.tagIds : []).filter(id => state.tags.some(t => t.id === id));
-  if (f.categoryId != null && !state.categories.some(c => c.id === f.categoryId)) f.categoryId = null;
+  /* DIE UEBERSETZUNG DER ALTEN FORM, an genau dieser einen Stelle. Vor 0.13.0
+     stand in einer gespeicherten Ansicht EIN Kategoriewert (`categoryId`).
+     Ohne diese Zeilen verloeren alle vorhandenen Ansichten ihre Kategorie --
+     still und ohne Meldung, weil das Ausbreiten oben ein unbekanntes Feld
+     einfach stehenlaesst und `categoryIds` auf der leeren Vorgabe bliebe.
+     HIER UND NICHT AN JEDER LESESTELLE: filterNormal ist der Ort, an dem eine
+     gespeicherte Stellung zurechtgerueckt wird; ein zweiter Weg daneben liefe
+     auseinander.
+     DER GESPEICHERTE WERT WIRD NICHT ZURUECKGESCHRIEBEN -- gelesen wird er
+     uebersetzt, in der Ablage bleibt er, wie er ist. Dieselbe Linie wie bei
+     den Nummern, die es nicht mehr gibt: ein Lesevorgang, der die Ansicht
+     eines Menschen umschreibt, ist schlimmer als ein alter Wert. */
+  if (!Array.isArray(f.categoryIds))
+    f.categoryIds = f.categoryId != null ? [f.categoryId] : [];
+  else if (f.categoryId != null && !f.categoryIds.length) f.categoryIds = [f.categoryId];
+  // Das alte Feld faellt aus der zurechtgerueckten Stellung heraus: sie wird
+  // Zeichen fuer Zeichen mit der aktuellen verglichen (welche Ansicht gerade
+  // gilt), und ein mitgeschlepptes Feld liesse jede alte Ansicht als "nicht
+  // aktiv" erscheinen, obwohl sie genau das zeigt, was sie zeigen soll.
+  delete f.categoryId;
+  /* NUMMERN, DIE ES NICHT MEHR GIBT, FALLEN WEG -- und der Rest bleibt stehen.
+     Bis 0.12.4 fiel eine Ansicht mit geloeschter Kategorie ganz auf "Alle"
+     zurueck; mit einer Liste faellt sie auf den REST zurueck, und das ist der
+     bessere Ausgang: von drei gewaehlten Kategorien soll eine geloeschte nicht
+     die beiden anderen mitnehmen.
+     "Ohne" BLEIBT IMMER STEHEN: es ist kein Kategoriewert und trotzdem
+     gueltig. */
+  f.categoryIds = [...new Set(f.categoryIds)].filter(v =>
+    v === KATEGORIE_OHNE || state.categories.some(c => c.id === v));
   if (f.tagMode !== 'or') f.tagMode = 'and';
   f.favorit = f.favorit === true;
   f.neu = f.neu === true;
@@ -1617,7 +1655,14 @@ function passtZuTags(item, tagIds, modus) {
 function visibleItems(filter) {
   const f = filter || state.filters;
   let out = state.items;
-  if (f.categoryId != null) out = out.filter(i => i.category && i.category.id === f.categoryId);
+  /* EIN ODER UEBER DIE GEWAEHLTEN KATEGORIEN, niemals ein UND: ein Eintrag
+     traegt genau eine Kategorie, ein Schnitt waere also immer leer. Gebaut
+     wird die Vereinigung -- beide Gruppen zugleich in der Liste.
+     "OHNE" IST EIN WERT DIESER LISTE: ein Eintrag ohne Kategorie war ueber
+     keine einzelne Kategorie erreichbar, und die Zahlen verrieten die Luecke,
+     ohne sie zeigen zu koennen. */
+  if (f.categoryIds.length) out = out.filter(i =>
+    f.categoryIds.includes(i.category ? i.category.id : KATEGORIE_OHNE));
   // UND ist die Vorgabe: mit zwei Tags will man fast immer den Schnitt
   // ("gruen UND schwer"), nicht die Vereinigung.
   if (f.tagIds.length) out = out.filter(i => passtZuTags(i, f.tagIds, f.tagMode));
@@ -1881,7 +1926,13 @@ function filterZahl() {
   if (f.tested !== v.tested) n++;
   if (f.favorit) n++;
   if (f.neu) n++;
-  if (f.categoryId != null) n++;
+  /* DREI GEWAEHLTE KATEGORIEN ZAEHLEN ALS EIN FILTER und nicht als drei --
+     anders als die Tags eine Zeile tiefer, und der Unterschied ist die
+     Verknuepfung. Jeder zusaetzliche Tag verkleinert die Menge (UND), jede
+     zusaetzliche Kategorie vergroessert sie (ODER). Die Zahl beantwortet die
+     eine Frage "warum sehe ich nicht alles?"; eine Drei fuer etwas, das die
+     Liste gerade WEITER macht, gaebe darauf die falsche Antwort. */
+  if (f.categoryIds.length) n++;
   n += f.tagIds.length;
   return n;
 }
@@ -1915,6 +1966,17 @@ function drawFilters() {
     r.innerHTML = `<span class="eyebrow">${label}</span>`;
     box.appendChild(r);
     return r;
+  };
+  /* EINE ZWEITE BESCHRIFTUNG IN DERSELBEN ZEILE -- und sie ist das Gegenstueck
+     zur ersten und keine Ueberschrift ueber dem, was dahinter steht. Deshalb
+     ohne die Beschriftungsspalte (`min-width`) und mit einem Abstand davor:
+     die erste haelt die Spalte, die zweite laeuft mit. */
+  const zweiteBeschriftung = (zeile, text) => {
+    const e = document.createElement('span');
+    e.className = 'eyebrow eyebrow-mit';
+    e.textContent = text;
+    zeile.appendChild(e);
+    return e;
   };
 
   // Merkmal (Vorgabe: Teststatus). Beschriftung generisch, weil das Wort
@@ -1952,33 +2014,88 @@ function drawFilters() {
      uebrigen Filtern. Eine Gesamtzahl daneben widerspraeche der Liste,
      sobald ein zweiter Filter an ist. */
   if (ZULETZT_GESEHEN) {
+    const neuZahl = visibleItems({ ...f, neu: true }).length;
+    /* NULL TREFFER WERDEN GEDAEMPFT, genau wie bei den Tags -- dieselbe Sache
+       darf nicht zwei Verhalten haben (Stolperstein 47, im Kleinen). Die Pille
+       stand bisher in voller Helligkeit da und fuehrte garantiert auf eine
+       leere Liste.
+       NUR SOLANGE SIE NICHT GESETZT IST: ist der Filter an, sagt die Zahl null
+       nicht "hier gibt es nichts zu holen", sondern "genau das siehst du
+       gerade" -- und eine gedaempfte Pille im gesetzten Zustand waere eine
+       Auskunft ueber den eigenen Klick.
+       ANKLICKBAR BLEIBT SIE, wie die Tags: man sieht nur vorher, dass die
+       Liste leer wuerde. */
+    const leer = !f.neu && neuZahl === 0;
     const bNeu = document.createElement('button');
-    bNeu.className = 'pill pill-sep' + (f.neu ? ' on' : '');
+    bNeu.className = 'pill pill-sep' + (f.neu ? ' on' : '') + (leer ? ' leer' : '');
     bNeu.id = 'f-neu';
     bNeu.innerHTML = `Neu seit ${esc(fmtTagKurz(ZULETZT_GESEHEN))}`
-      + `<span class="n">${visibleItems({ ...f, neu: true }).length}</span>`;
-    bNeu.title = f.neu ? 'Alle Einträge zeigen'
+      + `<span class="n">${neuZahl}</span>`;
+    bNeu.title = leer ? 'Zusammen mit der aktuellen Auswahl kein Treffer'
+      : f.neu ? 'Alle Einträge zeigen'
       : `Nur was sich seit ${fmtDate(ZULETZT_GESEHEN)} getan hat`;
     bNeu.onclick = () => { f.neu = !f.neu; redraw(); };
     g1.appendChild(bNeu);
   }
   r1.appendChild(g1);
 
-  // Kategorie
+  /* ---- Kategorie ----
+     MEHRERE ZUGLEICH, UND ES IST EIN ODER. Die Zeile bekommt deshalb
+     ausdruecklich KEIN Und/Oder wie die Tagzeile darunter: bei den Tags ist die
+     Wahl echt, weil ein Eintrag viele Tags traegt; hier gibt es nur Oder, denn
+     `product_category_id` ist eine einzelne Spalte. Ein Umschalter, dessen eine
+     Haelfte garantiert null Treffer liefert, ist schlimmer als keiner -- und er
+     ist auch nicht dadurch zu retten, dass man ihn daempft.
+     "ALLE" BLEIBT EINE PILLE, obwohl die Tagzeile stattdessen "zuruecksetzen"
+     am rechten Ende traegt. Der Unterschied ist nicht Nachlaessigkeit, sondern
+     der Ort: die Kategorien sind eine kurze, geschlossene, immer sichtbare
+     Liste, in der "alles" ein nennbarer Zustand ist und seinen festen Platz
+     behaelt. Die Tagwolke ist offen und lang; ein dauernd hervorgehobenes
+     "Alle" an ihrem Anfang laese sich als Tag. Und "zuruecksetzen" kaeme und
+     ginge, waehrend "Alle" immer an derselben Stelle steht. */
   const r2 = row('Kategorie');
   const g2 = document.createElement('div'); g2.className = 'pills';
+  // Ein Klick auf einen Wert nimmt ihn dazu oder wieder heraus -- dieselbe
+  // Handhabung wie bei den Tags, und die Zeile verhaelt sich damit wie jene.
+  const katUm = (wert) => {
+    f.categoryIds = f.categoryIds.includes(wert)
+      ? f.categoryIds.filter(x => x !== wert) : [...f.categoryIds, wert];
+    redraw();
+  };
   const all = document.createElement('button');
-  all.className = 'pill' + (f.categoryId == null ? ' on' : '');
+  all.className = 'pill' + (f.categoryIds.length ? '' : ' on');
   all.textContent = 'Alle';
-  all.onclick = () => { f.categoryId = null; redraw(); };
+  all.onclick = () => { f.categoryIds = []; redraw(); };
   g2.appendChild(all);
   state.categories.forEach(c => {
     const b = document.createElement('button');
-    b.className = 'pill' + (f.categoryId === c.id ? ' on' : '');
+    b.className = 'pill' + (f.categoryIds.includes(c.id) ? ' on' : '');
     b.innerHTML = `${esc(c.name)}<span class="n">${c.usage_count}</span>`;
-    b.onclick = () => { f.categoryId = f.categoryId === c.id ? null : c.id; redraw(); };
+    b.onclick = () => katUm(c.id);
     g2.appendChild(b);
   });
+  /* "OHNE" AM ENDE DER ZEILE, mit eigener Zahl. Der Anlass: der Kopf sagte 12
+     Eintraege, die Kategorien 1 + 9 = 10 -- zwei Eintraege waren ueber keine
+     einzelne Kategorie erreichbar. Die Zahlen verrieten die Luecke, zu sehen
+     bekam man sie trotzdem nicht.
+     DIE ZAHL RECHNET DER BROWSER, wie die an "Neu seit ..." -- state.alle
+     traegt den ganzen Bestand, der Server wird dafuer nicht gefragt. Und sie
+     zaehlt ueber den GANZEN Bestand wie die usage_count der Kategorien daneben:
+     zwei Zahlen in einer Zeile muessen dasselbe meinen.
+     SIE STEHT NUR DA, WENN ES SIE GIBT -- eine Pille mit garantierter Null
+     waere ein Bedienelement fuer nichts. Ist sie einmal gewaehlt und faellt der
+     letzte Eintrag ohne Kategorie weg, bleibt sie stehen: sonst verschwaende
+     der eigene Filter unter der Hand. */
+  const ohneZahl = state.alle.filter(i => !i.category).length;
+  if (ohneZahl || f.categoryIds.includes(KATEGORIE_OHNE)) {
+    const b = document.createElement('button');
+    b.className = 'pill pill-sep' + (f.categoryIds.includes(KATEGORIE_OHNE) ? ' on' : '');
+    b.id = 'f-kat-ohne';
+    b.innerHTML = `Ohne<span class="n">${ohneZahl}</span>`;
+    b.title = 'Einträge, die keiner Kategorie zugeordnet sind';
+    b.onclick = () => katUm(KATEGORIE_OHNE);
+    g2.appendChild(b);
+  }
   r2.appendChild(g2);
 
   // Tags
@@ -2034,20 +2151,22 @@ function drawFilters() {
   // Eine Zeile, Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
   // abgeschnitten ist.
   const beschnitten = begrenzeWolke(g3, wolkeOffen.uebersicht ? 0 : 1);
-  /* DIE BEIDEN VERWEISE STEHEN AM RECHTEN ENDE DER ERSTEN ZEILE -- dort, wo
-     TAGS und Und/Oder stehen und rechts ohnehin nichts steht. Als Geschwister
-     HINTER der Wolke rutschten sie auf eine eigene Zeile und kosteten so viel
-     Platz wie eine ganze Reihe Tags.
-     DIE EINTRAGSSEITE MACHT ES SCHON SO (`.wolke-kopf`, `space-between`), und
-     genau deshalb faellt es dort nicht auf. Dieselbe Sache war an zwei Stellen
-     verschieden gebaut -- Stolperstein 47, im Kleinen.
-     SIE STEHEN IM DOM VOR DER WOLKE UND NICHT DAHINTER: die Zeile bricht um,
-     und die Reihenfolge im Aufbau entscheidet, auf welcher Zeile etwas landet.
-     Gemessen wird die Wolke trotzdem vorher -- begrenzeWolke() braucht sie im
-     Dokument, und ob "mehr" ueberhaupt dasteht, haengt an seiner Antwort.
-     ZUSAMMEN IN EINEM KASTEN und nicht zweimal `margin-left: auto`: zwei
-     Elemente mit je einer selbsttaetigen Aussenkante teilen sich den freien
-     Platz und stuenden auseinandergezogen da.
+  /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche Geschwister
+     -- und seit 0.13.0 ist das wieder die natuerliche Reihenfolge: "mehr"
+     gehoert hinter das, was es aufklappt.
+     WARUM DAS FRUEHER NICHT GING: der Kasten trug `margin-left: auto`. Eine
+     selbsttaetige Aussenkante frisst den gesamten freien Platz der ersten
+     Zeile -- die Wolke KANN daneben nicht stehen, sie rutscht immer darunter,
+     und die Tagzeile kostete zwei Zeilen statt einer. Jetzt ist die Wolke ein
+     Flex-Element (`flex: 1 1 0`, `min-width: 0`) und nimmt den Platz, der
+     uebrig ist; die Verweise stehen daneben.
+     DER PREIS IST BEKANNT UND ANGENOMMEN: die Wolke verliert rund 230 px, also
+     etwa drei sichtbare Tags. "mehr" faengt sie -- und die erste Zeile war
+     vorher zu drei Vierteln leer.
+     GEMESSEN WIRD DIE WOLKE VORHER: begrenzeWolke() braucht sie im Dokument,
+     und ob "mehr" ueberhaupt dasteht, haengt an seiner Antwort.
+     ZUSAMMEN IN EINEM KASTEN und nicht zwei einzelne Geschwister: die beiden
+     gehoeren zusammen und sollen bei einem Umbruch nicht auseinanderfallen.
      KEIN AUSGERECHNETER FREIRAUM. Die Wolke wird beschnitten (`max-height`,
      `overflow: hidden`), ein Verweis IN ihr wuerde mitabgeschnitten -- und
      eine feste Breite daneben ist genau der Fehler, an dem 0.12.1 schon einmal
@@ -2068,11 +2187,15 @@ function drawFilters() {
     c.onclick = () => { f.tagIds = []; redraw(); };
     rechts.appendChild(c);
   }
-  // Ein leerer Kasten bliebe als Flex-Element stehen und schoebe die Wolke
-  // um eine Luecke nach rechts.
-  if (rechts.childElementCount) r3.insertBefore(rechts, g3);
+  // Ein leerer Kasten bliebe als Flex-Element stehen und naehme der Wolke
+  // eine Luecke weg.
+  if (rechts.childElementCount) r3.appendChild(rechts);
 
-  // Sortierung, gruppiert
+  /* SORTIEREN UND ANSICHTEN TEILEN SICH EINE ZEILE -- gemessen brauchen sie
+     322 und 237 px von 1232, sie passen mit Abstand.
+     DER SCHLIMMSTE FALL IST HARMLOS: stehen einmal acht gespeicherte Ansichten
+     da (ANSICHTEN_DECKEL), bricht die Zeile um und sieht aus wie vorher. Nichts
+     wird abgeschnitten, nichts geht verloren. */
   const r4 = row('Sortieren');
   const sel = document.createElement('select');
   // Eine Kennung wie am Favoritenknopf daneben: ohne sie liesse sich die
@@ -2106,8 +2229,12 @@ function drawFilters() {
      GANZ UNTEN UND NICHT GANZ OBEN: sie sind die Zusammenfassung der Zeilen
      darueber, und man liest sie, nachdem man weiss, was einstellbar ist.
      Die Zeile steht auch LEER da, mit dem Knopf zum Speichern -- ohne ihn
-     erfuehre niemand, dass es Ansichten gibt. */
-  const r5 = row('Ansichten');
+     erfuehre niemand, dass es Ansichten gibt.
+     SEIT 0.13.0 IN DERSELBEN ZEILE WIE DIE SORTIERUNG: sie ist dieselbe Sorte
+     Bedienung -- was gezeigt wird, aendert sie nicht -- und beide brauchten je
+     eine ganze Zeile fuer ein Auswahlfeld und ein paar Pillen. */
+  const r5 = r4;
+  zweiteBeschriftung(r5, 'Ansichten');
   const g5 = document.createElement('div'); g5.className = 'pills';
   /* WELCHE ANSICHT GERADE GILT, wird verglichen und nicht gemerkt: ein
      gemerkter Zeiger auf "die aktive Ansicht" liefe auseinander, sobald jemand
@@ -5658,6 +5785,16 @@ async function renderSystem() {
     'zugang.selbst': 'Eigener Zugang geändert',
     'link.neu': 'Link erzeugt',
     'link.ein': 'Link eingelöst',
+    /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. Sie fielen auf den Rueckfall `|| z.was`
+       und standen als roher Schluessel am Bildschirm -- "anfrage.frei" statt
+       eines Wortes. Zwanzig Vorgaenge und vierzehn Woerter: der Filter dieser
+       Runde macht die Luecke unuebersehbar, gefehlt hat sie seit 0.9.1 und
+       0.10.0. */
+    'anfrage.frei': 'Anfrage freigegeben',
+    'anfrage.ab': 'Anfrage abgelehnt',
+    'zweifaktor.an': 'Zweiter Faktor eingeschaltet',
+    'zweifaktor.aus': 'Zweiter Faktor ausgeschaltet',
+    'zweifaktor.wieder': 'Wiederherstellungscode verbraucht',
     'export': 'Export gezogen',
     'import': 'Import eingespielt',
     'sicherung': 'Sicherung geschrieben',
@@ -5996,7 +6133,7 @@ async function renderSystem() {
         `verlassen — mit allen Fotos, allen Anhängen und den Namen aller Verfasser.`);
       if (!ok) return;
       b.disabled = true;
-      b.textContent = 'Freigegeben — jeden Teil einzeln laden';
+      b.textContent = 'Bestätigt — jetzt jeden Teil laden';
       kasten.querySelectorAll('.ex-teil-lad').forEach(k => { k.disabled = false; });
     });
 
