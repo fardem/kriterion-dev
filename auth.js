@@ -1043,10 +1043,16 @@ const VORGAENGE = [
 ];
 /* Die geschlossene Liste fuer merkmal. NICHTS ausserhalb davon kommt in die
    Tabelle -- damit ist "kein Freitext von aussen" baulich wahr und nicht bloss
-   beabsichtigt. Wer einen Vorgang ergaenzt, ergaenzt hier oder nimmt null. */
+   beabsichtigt. Wer einen Vorgang ergaenzt, ergaenzt hier oder nimmt null.
+   'teil' SEIT 0.13.0 UND OHNE NUMMER: 0.12.4 schrieb "teil 1/5" hierher, und
+   weil das kein Merkmal aus dieser Liste ist, fiel die GANZE Zeile weg -- ein
+   Bestand, der in fuenf Teilen hinausging, hinterliess im Protokoll nichts.
+   Die geschlossene Liste hat also gehalten, was sie zusagt; falsch war die
+   Aufrufstelle. DIE NUMMER DES TEILS STEHT IM DATEINAMEN und gehoert nicht
+   hierher: sie waere Freitext, und genau den gibt es in dieser Spalte nicht. */
 const MERKMALE = ['user', 'admin', 'eigentuemer', 'aktiv', 'gesperrt',
                   'einladung', 'ruecksetzung', 'merge', 'replace',
-                  'name', 'passwort', 'adresse', 'beides'];
+                  'name', 'passwort', 'adresse', 'beides', 'teil'];
 
 // Eine Frist, laenger als die dreissig Tage von Papierkorb und Tokenspur: ein
 // Protokoll, das den Vorfall vergisst, bevor jemand ihn bemerkt, ist keins.

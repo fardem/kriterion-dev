@@ -331,24 +331,27 @@ const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
 const bestaetigungsFeldFrei = (titel, was, mitCode) =>
   passwortFenster(titel, was, '', mitCode === true);
 
-/* EINE ABFRAGE, MEHRERE FREIGABEN. Ein Bestand, der in fuenf Teilen hinausgeht,
-   braucht fuenf Freigaben -- eine Freigabe wird verbraucht, und fuenf mit
-   demselben Ziel waeren EINE -- der Schluessel ist Sitzung, Zweck und Ziel.
-   ZUSAMMENGEFASST WIRD DIE EINGABE UND NICHT DIE PRUEFUNG: jede einzelne
-   Freigabe geht mit dem Passwort an den Server und wird dort gegen den Hash
-   gehalten. Der Mensch tippt einmal, geprueft wird n-mal.
-   REIHUM UND NICHT NEBENEINANDER: die Anmeldebremse zaehlt je Adresse, und
-   fuenf gleichzeitige Anfragen mit demselben Passwort saehen aus wie ein
-   Versuch, sie zu umgehen.
-   BRICHT EINE AB, BRECHEN ALLE AB -- eine halbe Freigabe waere ein Export, der
-   mitten in der Reihe stehenbleibt und dessen Grund niemand sieht. */
+/* EINE ABFRAGE, EINE ANFRAGE, MEHRERE FREIGABEN. Ein Bestand, der in fuenf
+   Teilen hinausgeht, braucht fuenf Freigaben -- eine Freigabe wird verbraucht,
+   und fuenf mit demselben Ziel waeren EINE; der Schluessel ist Sitzung, Zweck
+   und Ziel.
+   ALLE ZIELE IN EINER ANFRAGE, und das ist die ganze Sache: ein Code des
+   zweiten Faktors gilt GENAU EINMAL. Wer dieselbe Eingabe n-mal an den Server
+   schickt, bekommt einmal 200 und n-1 mal "Der Code stimmt nicht" -- richtig
+   gemeldet und trotzdem irrefuehrend, denn der Code war richtig und
+   verbraucht. Fuer das Passwort gilt das nicht: es laeuft gegen einen Hash und
+   laesst sich beliebig oft vergleichen. Der Unterschied ist die Stelle, an der
+   ein n-facher Aufruf kippt.
+   NEBENHER FAELLT DAMIT DREIERLEI WEG: n-1 Zeilen 'bestaetigung.fehl' ueber
+   den Eigentuemer selbst, n-1 Fehlschlaege in der Anmeldebremse (bei elf
+   Teilen griff die harte Sperre), und der verbrannte Wiederherstellungscode.
+   WAS BLEIBT: das Laden eines Teils verbraucht genau eine Freigabe. Was
+   zusammengefasst wird, ist die ABFRAGE und nicht die Schranke. */
 async function zweiteBestaetigungMehrfach(zweck, ziele, titel, was) {
   const eingabe = await bestaetigungsFeld(titel, was);
   if (eingabe === null) return false;
-  for (const ziel of ziele) {
-    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }
-    catch (e) { toast(e.message, true); return false; }
-  }
+  try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziele }); }
+  catch (e) { toast(e.message, true); return false; }
   return true;
 }
 
@@ -5817,8 +5820,18 @@ async function renderSystem() {
             disabled>↓ Laden</button>
           <span class="pk-meta">${esc(fmtBytes(t.bytes))}</span>
         </div>`).join('')}</div>
-      <div class="row-in" style="margin-top:10px"><button class="btn btn-accent btn-sm" id="ex-frei">
-        Alle ${n} Teile freigeben</button></div>
+      ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. "Alle n Teile
+           freigeben" war das Wort aus dem Maschinenraum -- aus dem Betrieb kam
+           die Frage "was ist mit freigeben gemeint?" zurueck. Derselbe Fehler
+           wie "Code aus deiner App" in 0.12.3.
+           WAS EIN MENSCH WISSEN MUSS, sind zwei Dinge: dass EINMAL gefragt
+           wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
+           Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
+      <p class="hint hint-sm" style="margin:10px 2px 6px">Ein Export nimmt den Bestand
+        mit aus dem Haus. Deshalb fragt die Anlage einmal nach deinem Passwort${ZWEIFAKTOR
+          ? ' und dem Code deines zweiten Faktors' : ''} — danach lädst du jeden Teil selbst.</p>
+      <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
+        Einmal bestätigen, dann ${n === 1 ? 'den Teil' : `alle ${n} Teile`} laden</button></div>
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
            Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
            welcher Reihenfolge und mit welchem Knopf sie hineingehen. */''}
@@ -5827,8 +5840,8 @@ async function renderSystem() {
         <strong>Zusammenführen</strong>. Nur zum Weitergeben einzelner
         ${esc(V.sacheMehrzahl)} genügt der Teil, der sie enthält.</p>` : ''}`;
 
-    /* FREIGEGEBEN WIRD EINMAL FUER ALLE, GEPRUEFT WIRD JE TEIL. Ohne das
-       muesste das Passwort je Datei getippt werden -- bei fünf Teilen fünfmal. */
+    /* GEFRAGT WIRD EINMAL, GEPRUEFT WIRD JE TEIL. Ohne das muesste das Passwort
+       je Datei getippt werden -- bei fünf Teilen fünfmal. */
     amElement('ex-frei', b => b.onclick = async () => {
       const ok = await zweiteBestaetigungMehrfach('export', plan.teile.map(t => t.nr),
         'Export bestätigen',
