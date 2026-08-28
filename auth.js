@@ -9,35 +9,85 @@ const mail = require('./mail');
    was eine Zeile hat, steht hier -- dieselbe Teilung wie bei mail.js. */
 const zf = require('./zweifaktor');
 
-/* EINE EINSTELLUNG, FUENF WIRKUNGEN.
+/* EINE EINSTELLUNG, ZWEI WIRKUNGEN -- BIS 0.12.4 WAREN ES FUENF.
 
    Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung.
-   X-Forwarded-For darf nur dort geglaubt werden, wo ausdruecklich eingestellt
-   ist, dass ein Proxy davorsteht -- sonst setzt ihn der Aufrufer bei jedem
-   Versuch neu und bekommt einen frischen Zaehler; die Anmeldebremse je
-   Adresse greift dann nie.
+   X-Forwarded-For und X-Forwarded-Proto duerfen nur dort geglaubt werden, wo
+   ausdruecklich eingestellt ist, dass ein Proxy davorsteht -- sonst setzt der
+   Aufrufer den einen bei jedem Versuch neu und bekommt einen frischen Zaehler
+   (die Anmeldebremse je Adresse greift dann nie) und den anderen, um sich als
+   HTTPS auszugeben.
 
-   HINTER_PROXY=1 (an):  X-Forwarded-For wird gelesen, der Cookie traegt Secure
-                         und das Praefix __Host-, HSTS wird gesetzt, und ein
+   HINTER_PROXY=1 (an):  die beiden Koepfe werden ueberhaupt angesehen, und ein
                          http:// in OEFFENTLICHE_ADRESSE meldet sich am Start.
-   fehlt (aus, Vorgabe): allein req.socket.remoteAddress -- richtig fuer
-                         "direkt im Heimnetz, Port 3100".
+   fehlt (aus, Vorgabe): kein Kopf wird angesehen -- allein
+                         req.socket.remoteAddress, und jede Anfrage gilt als
+                         Klartext. Richtig fuer "direkt im Heimnetz, Port 3100".
+
+   WAS NICHT MEHR AN IHR HAENGT: Cookiename, Secure und HSTS. Die drei
+   entscheidet seit 0.13.0 die EINZELNE ANFRAGE ueber X-Forwarded-Proto, und
+   der Grund ist der Betrieb: die Anlage ist aus zwei Netzen zugleich
+   erreichbar, und eine Einstellung je Prozess kann immer nur einen davon
+   bedienen. Mit HINTER_PROXY=1 kam ueber http://<server-ip>:3100 niemand mehr
+   herein -- der Server antwortete mit 200, der Browser verwarf den
+   Secure-Cookie stillschweigend, und im Serverprotokoll stand davon nichts.
 
    Umgebungsvariable und nicht settings-Tabelle: sie entscheidet ueber
    Netzwerkvertrauen, nicht ueber eine Vorliebe -- ein uebernommener
    Admin-Zugang koennte sie sonst selbst umlegen.
 
-   EINE ADRESSLISTE, WER DEN KOPF SETZEN DARF, IST BEWUSST NICHT GEBAUT: die
-   Einstellung ist ein Ja/Nein. Ist die Anlage je aus mehreren Netzen
-   gleichzeitig erreichbar, gehoert das nachgeliefert. */
+   EINE ADRESSLISTE, WER DEN KOPF SETZEN DARF, IST WEITERHIN NICHT GEBAUT, und
+   das ist eine Entscheidung und kein Uebersehen: sie ist die Antwort auf die
+   OFFENE PORTFREIGABE 3100 und nicht auf die zwei Netze. Solange der Port im
+   eigenen Netz offen steht, kann dort jemand X-Forwarded-For selbst setzen und
+   die Anmeldebremse umgehen -- ein gewoehnlicher Browser tut das nicht, ein
+   absichtlicher Aufruf schon. Sie gehoert in eine eigene Runde, weil sie eine
+   neue .env-Zeile braucht und eine falsch gesetzte Liste die Bremse auf die
+   Adresse des Proxys zieht: ein einziger Angreifer sperrte damit fuenf Minuten
+   lang ALLE aus. In eine Runde, die den Zugang offenhalten soll, gehoert kein
+   neuer Weg, ihn zu verlieren. */
 const HINTER_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(process.env.HINTER_PROXY || '').trim());
 
-/* Der Cookiename haengt an der Einstellung: das Praefix __Host- ist eine
-   Zusage des Namens an den Browser -- nur ueber HTTPS, ohne Domain, mit
-   Path=/ -- und ohne Secure verwuerfe der Browser den Cookie stillschweigend.
-   WER DIE EINSTELLUNG UMLEGT, MELDET DAMIT ALLE EINMALIG AB: der alte Name
-   wird nicht mehr gelesen. Kein Datenverlust, nur eine neue Anmeldung. */
-const COOKIE_NAME = HINTER_PROXY ? '__Host-kriterion_session' : 'kriterion_session';
+/* KAM DIESE ANFRAGE UEBER DEN PROXY? Die eine Frage, an der seit 0.13.0
+   Cookiename, Secure und HSTS haengen -- je Anfrage und nicht je Prozess.
+   DER LETZTE EINTRAG DER KETTE und nicht der erste, aus demselben Grund wie
+   bei der Adresse: was davor steht, kann der Aufrufer selbst hineingeschrieben
+   haben; was der naechste Proxy anhaengt, sieht er wirklich.
+   NUR MIT HINTER_PROXY: ohne die Einstellung steht kein Proxy davor, und dann
+   ist der Kopf nichts als eine Behauptung.
+   OHNE req.socket UND OHNE req.protocol: diese Frage sieht ausschliesslich in
+   die Kopfzeilen. Sie wird auch aus requireAuth heraus gestellt, und dort
+   reicht der Pruefstand ein req herein, das nur `headers` traegt. */
+function ueberProxy(req) {
+  if (!HINTER_PROXY) return false;
+  const kette = String((req && req.headers && req.headers['x-forwarded-proto']) || '')
+    .split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+  return kette.length > 0 && kette[kette.length - 1] === 'https';
+}
+
+/* ZWEI NAMEN NEBENEINANDER, UND KEIN NAME MIT BEDINGTEM Secure.
+   Das Praefix __Host- ist eine Zusage des Namens an den Browser -- nur ueber
+   HTTPS gesetzt, ohne Domain, mit Path=/ -- und ohne Secure verwuerfe der
+   Browser den Cookie stillschweigend. Der Heimnetzweg kann diese Zusage nicht
+   halten und bekommt deshalb einen EIGENEN Namen ohne beides.
+
+   EIN NAME MIT BEDINGTEM Secure WAERE DER FEHLER, den diese Runde ausdruecklich
+   nicht baut: wer im eigenen Netz eine Klartextverbindung verbiegen kann,
+   setzte damit einen Cookie, den die HTTPS-Seite anschliessend AUCH annaehme --
+   und genau dagegen gibt es __Host-.
+
+   GELESEN WIRD JE ANFRAGE GENAU EIN NAME und nicht beide nacheinander. Das ist
+   dieselbe Zusage von der Lesestelle her: ein Klartextcookie geht auch an die
+   HTTPS-Seite (er traegt kein Secure), und wer ihn dort gelten liesse, haette
+   __Host- fuer nichts. WER DIE EINSTELLUNG UMLEGT, MELDET DAMIT WEITERHIN ALLE
+   EINMALIG AB, die ueber HTTPS kommen: ihr Name wird dann nicht mehr gelesen.
+
+   DER NAME ENTSTEHT GENAU EINMAL; der sichere wird daraus gebaut. Ein zweites
+   Literal daneben liefe auseinander, und ein Waechter im Pruefstand haelt
+   genau das fest. */
+const COOKIE_NAME = 'kriterion_session';
+const COOKIE_SICHER = `__Host-${COOKIE_NAME}`;
+const cookieName = (req) => ueberProxy(req) ? COOKIE_SICHER : COOKIE_NAME;
 
 /* --- Die oeffentliche Adresse -------------------------------------------
    SIE STEHT HIER UND NICHT IN server.js, weil sie dieselbe Sorte Einstellung
@@ -1469,14 +1519,31 @@ function sitzungsBenutzer(token) {
   return b;
 }
 
-// Secure haengt an derselben Einstellung wie der gelesene Kopf: wer hinter
-// einem Proxy betreibt, hat HTTPS und soll den Cookie nie im Klartext schicken.
-// Ohne Proxy darf es NICHT gesetzt werden -- der Browser verwuerfe den Cookie
-// bei http://<adresse>:3100, und niemand kaeme mehr herein.
-const SICHER = HINTER_PROXY ? '; Secure' : '';
-const sessionCookie = (t) =>
-  `${COOKIE_NAME}=${t}; HttpOnly; Path=/; SameSite=Lax${SICHER}; Max-Age=${SESSION_DAYS * 86400}`;
-const clearCookie = () => `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax${SICHER}; Max-Age=0`;
+/* Secure haengt am NAMEN und nicht mehr an der Einstellung: __Host- IMMER mit
+   Secure, der Heimnetzname NIE. Ueber http verwuerfe der Browser einen
+   Secure-Cookie stillschweigend, und niemand kaeme herein; ueber https ohne
+   Secure gaebe der Name seine Zusage auf. Zwei Namen, zwei Wege, eine Regel je
+   Weg -- und keine Bedingung, die man falsch stellen kann. */
+const sessionCookie = (req, t) =>
+  `${cookieName(req)}=${t}; HttpOnly; Path=/; SameSite=Lax` +
+  `${ueberProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;
+/* GELOESCHT WERDEN BEIDE NAMEN, nicht nur der des eigenen Wegs. Wer sich
+   abmeldet, meint diesen Browser und nicht diese Verbindungsart -- ein
+   stehengebliebener Cookie des anderen Wegs waere ein Zugang, den niemand mehr
+   erwartet. Der Browser wendet an, was er anwenden kann: eine
+   Secure-Loeschzeile ueber http laesst er liegen, und dort gibt es diesen
+   Cookie ohnehin nicht. */
+const clearCookie = () => [
+  `${COOKIE_SICHER}=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0`,
+  `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`
+];
+
+/* DER SITZUNGSTOKEN DIESER ANFRAGE -- der EINE Leseweg. Erzeugen und
+   Verbrauchen einer Freigabe, die Sitzungsliste, "alle anderen beenden" und
+   die Rechteschranke haengen alle daran; zwei Lesewege nebeneinander liefen
+   auseinander, und der Unterschied faellt erst auf, wenn eine Freigabe nicht
+   passt oder jemand sich selbst hinauswirft. */
+const sitzungsToken = (req) => parseCookies(req)[cookieName(req)];
 
 // req.benutzer ist ab hier fuer jeden geschuetzten Endpunkt gesetzt:
 // { id, username, role, status }. Genau EINE Abfrage je Anfrage.
@@ -1484,7 +1551,7 @@ const clearCookie = () => `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax${SICH
 // Anmelderoute; ohne diese bliebe ein gerade gesperrter Zugang bis zum Ablauf
 // seines Cookies drin. 401 und nicht 403: der Zugang gilt nicht mehr.
 function requireAuth(req, res, next) {
-  const token = parseCookies(req)[COOKIE_NAME];
+  const token = sitzungsToken(req);
   const benutzer = sitzungsBenutzer(token);
   if (!benutzer) {
     return res.status(401).json({ error: 'Nicht angemeldet' });
@@ -1502,7 +1569,8 @@ function requireAuth(req, res, next) {
 }
 
 module.exports = {
-  COOKIE_NAME, HINTER_PROXY, PASSWORT_MIN, SESSION_DAYS,
+  COOKIE_NAME, COOKIE_SICHER, cookieName, sitzungsToken, ueberProxy,
+  HINTER_PROXY, PASSWORT_MIN, SESSION_DAYS,
   OEFFENTLICHE_ADRESSE, pruefeOeffentlicheAdresse, parseCookies, pruefeAnmeldung, legeSitzungAn, destroySession,
   sitzungsBenutzer, pruneSessions, sessionCookie, clearCookie, requireAuth,
   clientIp, checkThrottle, noteFailure, noteSuccess,
