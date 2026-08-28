@@ -121,7 +121,7 @@ Rollenvergabe, der Mailzugang und der Schlüsselwert; alles Weitere steht unter
 | **Weitere Zugänge** | Systembereich, Karte „Zugänge" | anlegen oder über einen Einladungslink einladen |
 | **Mailversand** | Systembereich, Karte „Mailversand" | nur für Einladungs- und Rücksetzlinks; ohne ihn läuft alles weiter |
 | **Sicherungsort** | `docker-compose.yml` | Vorgabe liegt im Projektverzeichnis; die empfohlene Lage ist daneben — siehe „Sichern" |
-| **Reverse Proxy** | `.env`, `HINTER_PROXY=1` | nur wenn die Anlage über einen Proxy und HTTPS nach außen geht — siehe „Anmeldung" |
+| **Reverse Proxy** | `.env`, `HINTER_PROXY=1` | nur wenn die Anlage über einen Proxy und HTTPS nach außen geht. **Der Weg über `http://<server-ip>:3100` bleibt daneben offen** — siehe „Anmeldung" |
 
 ### Wenn niemand mehr hereinkommt
 
@@ -448,14 +448,12 @@ eine Feststellung, sondern eine Behauptung** — wer ihn bei jedem Anmeldeversuc
 liefe ins Leere. Geglaubt wird er deshalb nur, wo ausdrücklich eingestellt ist,
 dass ein Proxy davorsteht.
 
-Eine Einstellung, fünf Wirkungen:
+Eine Einstellung, zwei Wirkungen:
 
 | | `HINTER_PROXY` fehlt (Vorgabe) | `HINTER_PROXY=1` |
 |---|---|---|
+| `X-Forwarded-For` und `X-Forwarded-Proto` | werden **nicht angesehen** | werden gelesen |
 | Adresse des Aufrufers | die tatsächliche Verbindung | der **letzte** Eintrag aus `X-Forwarded-For` |
-| Sitzungscookie | `kriterion_session` | `__Host-kriterion_session` |
-| `Secure` am Cookie | nein | ja |
-| `Strict-Transport-Security` | nein | `max-age=31536000` |
 | `http://` in `OEFFENTLICHE_ADRESSE` | wird hingenommen | **Warnung beim Start**, keine Absage |
 | richtig für | direkt im Heimnetz, Port 3100 | Betrieb hinter einem Proxy, HTTPS |
 
@@ -463,59 +461,58 @@ Der **letzte** Eintrag der Kette und nicht der erste: ein Proxy hängt die
 Gegenstelle, die er wirklich sieht, hinten an — alles davor kann der Aufrufer
 selbst hineingeschrieben haben.
 
-Zwei Dinge beim Umlegen:
-
-- **Es meldet alle einmalig ab.** Das Präfix `__Host-` verlangt den Cookienamen
-  wörtlich; der alte Name wird nicht mehr gelesen. Kein Datenverlust, nur eine
-  neue Anmeldung.
-- **Danach geht die Anmeldung nur noch über HTTPS.** Der `Secure`-Cookie wird
-  über `http://` vom Browser verworfen — ein direkter Aufruf von
-  `http://<server-ip>:3100` käme nicht mehr herein.
-
 Der Start sagt im Protokoll, welche Lage gilt: `Hinter Proxy: an` oder
 `Hinter Proxy: aus`.
 
-**WENN DER PROXY AUSFÄLLT — der Weg zurück.** Fällt der Reverse Proxy aus,
-läuft ein Zertifikat ab oder klemmt der Name im DNS, dann gibt es mit
-`HINTER_PROXY=1` **gar keinen Weg mehr in die Oberfläche**: über HTTPS geht es
-nicht, weil der Proxy fehlt, und über `http://<server-ip>:3100` verwirft der
-Browser den Cookie. *Die Anmeldung sieht dabei aus, als klappte sie* — der
-Server antwortet mit 200 und setzt den Cookie; erst der Browser wirft ihn weg,
-stillschweigend und ohne Meldung, und die Seite fällt auf die Anmeldung
-zurück. **Im Protokoll des Servers steht davon nichts**, er hat seinen Teil ja
-getan.
+#### Beide Wege zugleich — seit 0.13.0
 
-Der Ausweg braucht kein Werkzeug und dauert eine Minute — die Einstellung für
-die Dauer der Störung abschalten:
+**Bis 0.12.4 hingen drei weitere Dinge an dieser Einstellung: der Name des
+Sitzungscookies, `Secure` und `Strict-Transport-Security`.** Das hatte eine
+unangenehme Folge: mit `HINTER_PROXY=1` kam über `http://<server-ip>:3100`
+niemand mehr herein. Der Server antwortete mit 200 und setzte den Cookie, der
+Browser verwarf ihn stillschweigend, und die Seite fiel auf die Anmeldung
+zurück — **im Protokoll des Servers stand davon nichts.**
 
-```bash
-cd .../kriterion
-sed -i 's/^HINTER_PROXY=1/# HINTER_PROXY=1/' .env
-docker compose up -d
-```
+**Seit 0.13.0 entscheidet die einzelne Anfrage**, und zwar am Kopf
+`X-Forwarded-Proto`, den der Proxy setzt:
 
-Danach geht `http://<server-ip>:3100` wieder. **Es meldet alle einmalig ab**,
-weil der Cookiename wechselt — kein Datenverlust, nur eine neue Anmeldung.
-Ist der Proxy repariert, die Zeile wieder scharf schalten und erneut starten;
-das meldet noch einmal ab.
+| | über den Proxy (HTTPS) | direkt, `http://<server-ip>:3100` |
+|---|---|---|
+| Sitzungscookie | `__Host-kriterion_session` | `kriterion_session` |
+| `Secure` | ja | nein |
+| `Strict-Transport-Security` | `max-age=31536000` | nein |
 
-> **Solange die Einstellung aus ist, wird `X-Forwarded-For` nicht mehr
-> geglaubt.** Die Anmeldebremse zählt dann nach der tatsächlichen Verbindung —
-> hinter einem Proxy wäre das dessen Adresse für alle zusammen. **Deshalb nur
-> für die Dauer der Störung**, nicht als Dauerzustand.
+**Beide Wege stehen damit offen, mit derselben Einstellung.** Du kannst dich
+über HTTPS anmelden und im selben Browser über das Heimnetz — beide Sitzungen
+gelten nebeneinander, und ein Abmelden beendet beide.
 
-*Wer den Fall gar nicht erst haben will, richtet den Namen der Anlage auch im
+**Warum zwei Namen und nicht ein Name ohne `Secure`:** das Präfix `__Host-` ist
+eine Zusage an den Browser — nur über HTTPS gesetzt, ohne Domain, mit `Path=/`.
+Ein einzelner Name ohne diese Zusage ließe sich aus dem eigenen Netz über eine
+verbogene Klartextverbindung setzen, und die HTTPS-Seite nähme ihn an. **Jede
+Anfrage liest deshalb genau einen der beiden Namen** — der Heimnetzcookie gilt
+auf der HTTPS-Seite nicht und umgekehrt.
+
+**Das Umlegen von `HINTER_PROXY` meldet weiterhin alle einmalig ab, die über
+HTTPS kommen** — ihr Cookiename wird dann nicht mehr gelesen. Kein
+Datenverlust, nur eine neue Anmeldung.
+
+**FÄLLT DER PROXY AUS, IST NICHTS ZU TUN.** Läuft ein Zertifikat ab oder klemmt
+der Name im DNS, geht `http://<server-ip>:3100` von selbst — ohne `.env`, ohne
+Neustart, ohne Menschen am Server. *Bis 0.12.4 stand hier ein Handgriff, der
+die Einstellung für die Dauer der Störung abschaltete; er wird nicht mehr
+gebraucht.*
+
+*Wer den Umweg gar nicht erst haben will, richtet den Namen der Anlage auch im
 eigenen Netz auf den Proxy ein* (Eintrag im lokalen DNS oder in der
-`hosts`-Datei). Dann läuft auch der Weg von innen über HTTPS und der Cookie
-gilt. **Gegen einen ausgefallenen Proxy hilft das allerdings nicht** — dafür
-bleibt der Handgriff oben.
+`hosts`-Datei). Dann läuft auch der Weg von innen über HTTPS.
 
 **Was die Einstellung nicht ist:** eine Liste, wer den Kopf setzen darf. Bleibt
 der Port des Containers im eigenen Netz erreichbar, kann dort auch jemand von
-Hand einen Kopf mitschicken und die Bremse damit umgehen — ein gewöhnlicher
-Browser tut das nicht, ein absichtlicher Aufruf schon. Wer das ausschließen
-will, gibt den Port nicht mehr im Netz frei, sondern lässt allein den Proxy
-heran.
+Hand einen `X-Forwarded-For` mitschicken und die Anmeldebremse damit umgehen —
+ein gewöhnlicher Browser tut das nicht, ein absichtlicher Aufruf schon. Wer das
+ausschließen will, gibt den Port nicht mehr im Netz frei, sondern lässt allein
+den Proxy heran — dann läuft auch der Weg von innen über den Proxy.
 
 #### Gescheiterte Anmeldungen aussperren — mit dem, was schon da ist
 
@@ -533,7 +530,8 @@ Zugriffsprotokoll stehen.** Ein CrowdSec-Szenario auf `POST /api/login`, das
 auf 401, 403 und 429 achtet, sperrt die Adresse damit heute — es liest das
 Protokoll des Proxys, nicht das der Anlage. *Das ist auch die richtige Stelle:
 hinter dem Proxy sieht Kriterion ohnehin nur dessen Adresse, solange
-`HINTER_PROXY` nicht gesetzt ist.*
+`HINTER_PROXY` nicht gesetzt ist — und mit der Einstellung nur das, was im Kopf
+steht. Der Proxy schreibt auf, was er wirklich gesehen hat.*
 
 **Die Rotation des Containerprotokolls ist Dockers Sache**, nicht Kriterions.
 Vier Zeilen in der `docker-compose.yml`, und die Datei wächst nicht mehr
@@ -889,6 +887,17 @@ Name wird nirgends aufbewahrt. Und ein Vorgang über den Server
 wegräumen lässt, wäre keins. Das Wort meint hier nicht `docker compose logs`;
 das heißt in dieser Anleitung weiterhin schlicht *Protokoll*.
 
+**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**, jede mit ihrer
+Zahl: **Alle · Gescheitert · Anmeldungen · Zugänge · Zweiter Faktor ·
+Bestand**. Die Karte zeigt die **hundert jüngsten** Zeilen — mit einer Ansicht
+sind es die hundert jüngsten **dieser Art**, und damit findet man die
+gescheiterten Versuche auch dann, wenn viel anderes dazwischensteht. *„Gescheitert"
+umfasst die gescheiterte Anmeldung und die gescheiterte zweite Bestätigung: in
+beiden Fällen konnte jemand an der Tür nicht belegen, wer er ist.*
+**Die Namen in den Zeilen sind anklickbar** und springen zur Karte „Zugänge".
+Ein getippter Name, der an keinen Zugang traf, steht als „unbekannter Name" da
+und bleibt Text — er wird nirgends gespeichert.
+
 ### Wer was darf
 
 Am einzelnen Eintrag gilt:
@@ -1023,13 +1032,19 @@ es zwei, beide im Systembereich einstellbar:
   so, wie es im Vokabular steht), Kategorie und Tags. Bei mehreren Tags legt der
   Umschalter neben der Beschriftung fest, wie sie verknüpft werden: **Und**
   (Vorgabe) zeigt nur Einträge, die alle gewählten Tags tragen, **Oder** solche
-  mit mindestens einem. Die Wahl bleibt bestehen, bis man sie ändert. Im
-  Und-Modus werden Tags gedämpft dargestellt, die zusammen mit der aktuellen
-  Auswahl keinen Treffer mehr ergäben — anklickbar bleiben sie.
+  mit mindestens einem. Die Wahl bleibt bestehen, bis man sie ändert. Gedämpft
+  dargestellt wird jede Pille, die zusammen mit der aktuellen Auswahl keinen
+  Treffer mehr ergäbe — anklickbar bleibt sie.
   Die Tagwolke zeigt eine Zeile, nach Häufigkeit sortiert und
   mit den aktiven Filtern vorn; der Rest klappt auf. Tags, die nur an Testtagen
   hängen, stehen nicht darin — dort lieferten sie null Treffer. Die Suche
   findet sie trotzdem.
+- **Mehrere Kategorien zugleich** *(seit 0.13.0)*: ein Klick nimmt eine dazu,
+  ein zweiter nimmt sie wieder heraus, **„Alle"** räumt die Auswahl weg. **Es
+  ist immer ein Oder** — ein Eintrag trägt genau eine Kategorie, ein „und" wäre
+  garantiert leer; die Zeile hat deshalb keinen Umschalter. Am Ende steht
+  **„Ohne"** mit eigener Zahl: Einträge, die keiner Kategorie zugeordnet sind
+  und über keine einzelne Kategorie zu finden wären.
 - **Zeitleiste der Testtage** zwischen Filterleiste und Kartenraster: waagerecht
   die Zeit, senkrecht die Tagesnote, ein Punkt je Testtag. Überfahren zeigt
   Titel, Datum und Note, ein Klick öffnet den Eintrag. Sie richtet sich nach den
@@ -1226,7 +1241,12 @@ Listen.
   **Eigentümer**.
 - **Zugänge** verwalten — anlegen mit Passwort **oder mit Link**, sperren,
   Passwort zurücksetzen **direkt oder mit Link**, Rolle wechseln, entfernen;
-  siehe den Abschnitt „Rollen und Zugänge" oben *(Admin)*
+  siehe den Abschnitt „Rollen und Zugänge" oben *(Admin)*.
+  **Gelöschte Zugänge stehen seit 0.13.0 in einem eigenen Fenster** hinter dem
+  Knopf „Gelöschte Zugänge (n)" — sie sind kein Zugang mehr, den man verwalten
+  kann, und die Liste bleibt damit kurz. *Der Löschdialog nennt jetzt auch den
+  umkehrbaren Weg: **sperren** weist die Anmeldung ab, lässt aber den Namen und
+  den Bestand stehen und lässt sich jederzeit zurücknehmen.*
 - **Meine Sitzungen** — wo dieser Zugang überall angemeldet ist, mit „alle
   anderen beenden" *(jeder; jeder sieht nur seine eigenen)*
 - **Sicherheitsprotokoll** *(Eigentümer)*: wer Zugang hatte und
@@ -1789,6 +1809,12 @@ auch **ein einzelner Eintrag** als Datei ziehen.
 > exportieren" schreibt so viele vollständige Exportdateien, wie es braucht,
 > und der vorhandene Import nimmt sie mit „Zusammenführen" wieder auf. *Die
 > Grenze gilt weiterhin je Datei — sie gilt nur nicht mehr für den Bestand.*
+>
+> **Seit 0.13.0 wird dabei EINMAL bestätigt** — Passwort und, wenn der Zugang
+> einen zweiten Faktor trägt, **ein** Code. Danach lädst du jeden Teil selbst.
+> *Bis dahin fragte der Knopf einmal und schickte dieselbe Eingabe je Teil an
+> den Server; ein Code des zweiten Faktors gilt aber genau einmal, und damit
+> ging der Weg mit eingeschaltetem Faktor überhaupt nicht.*
 >
 > **Für eine Kopie zum Zurückspielen bleibt die Sicherung der kürzere Weg** —
 > ein Griff statt n, und sie braucht dabei keinen nennenswerten
