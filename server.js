@@ -677,10 +677,20 @@ function zweiteBestaetigung(req, res, zweck, ziel = null) {
   return false;
 }
 
-// Dieselbe Frage als Waechter in der Routenzeile. Das Ziel kommt aus der
-// Adresse -- bei Export und Import gibt es keins.
+/* Dieselbe Frage als Waechter in der Routenzeile. Das Ziel kommt aus der
+   Adresse -- beim vollen Export und beim Import gibt es keins.
+   SEIT 0.12.4 ZAEHLT DIE ABFRAGE MIT, und zwar nur `teil`: ein Bestand, der in
+   fuenf Teilen hinausgeht, braucht fuenf Freigaben, sonst muesste der Mensch
+   sein Passwort fuenfmal tippen. Eine Freigabe wird verbraucht (auth.js), und
+   fuenf mit demselben Ziel waeren EINE -- der Schluessel ist Token, Zweck und
+   Ziel.
+   DIE SCHRANKE WIRD DAMIT NICHT MILDER: jeder Teil braucht seine eigene, eine
+   Freigabe fuer Teil 1 laesst Teil 2 nicht durch, und jede einzelne wird am
+   Server gegen das Passwort geprueft. Was zusammengefasst wird, ist die
+   EINGABE und nicht die Pruefung. */
 const zweiteBestaetigungNoetig = (zweck) => (req, res, next) => {
-  const ziel = req.params.id === undefined ? null : req.params.id;
+  const ziel = req.params.id !== undefined ? req.params.id
+             : (req.query && req.query.teil !== undefined ? req.query.teil : null);
   if (zweiteBestaetigung(req, res, zweck, ziel)) next();
 };
 
@@ -3483,6 +3493,135 @@ function austauschUmschlagBytes(itemId) {
   return text + form;
 }
 
+/* ---- Der Export in Teilen ----------------------------------------------
+   WOZU. Bei genuegend Fotos gibt es die eine Datei nicht: 760 MB gegen Nodes
+   512 MB, gemessen an der laufenden Anlage am 28. August 2026. Der Export sagt
+   das seit 0.12.3 sauber an -- und liefert seither nichts mehr.
+
+   WARUM TEILE UND NICHT EIN STROM. Ein Strom loeste den Weg HINAUS und liesse
+   den Weg ZURUECK zu: der Import liest die Datei ueber readAsText() im Browser
+   und buffer.toString('utf8') am Server, beides ein einziger String. Eine
+   gestreamte Datei koennte diese Anlage nicht wieder einspielen.
+   JEDER TEIL IST DAGEGEN EINE VOLLSTAENDIGE EXPORTDATEI -- derselbe Umschlag,
+   dieselbe Formatnummer, nur weniger Eintraege darin. Der vorhandene Import
+   nimmt sie mit "Zusammenfuehren" wieder auf, ohne eine Zeile Aenderung.
+   ES GIBT DAMIT KEIN NEUES FORMAT und keinen zweiten Leser.
+
+   GESCHNITTEN WIRD AN EINTRAGSGRENZEN, nie mitten in einem Eintrag: ein halber
+   Eintrag waere kein gueltiger Export, und der Import muesste zwei Teile
+   kennen, um ihn zu verstehen. Genau das soll nicht entstehen.
+
+   DIE GRENZEN SIND EINTRAGSNUMMERN UND KEINE POSITIONEN. Wer zwischen dem Plan
+   und dem Herunterladen einen Eintrag anlegt, verschoebe sonst jedes Fenster
+   dahinter -- ein Eintrag fiele heraus, ein anderer kaeme zweimal. Ueber
+   `von`/`bis` bleibt jedes Fenster das, was der Plan genannt hat. */
+const AUSTAUSCH_TEIL_MAX = 999;
+
+/* Die Groesse JE EINTRAG, in EINER Abfrage statt in zehn je Eintrag.
+   Bei tausend Eintraegen waeren es sonst zehntausend vorbereitete Anweisungen,
+   und der Plan braeuchte laenger als der Export.
+   GEZAEHLT WIRD DASSELBE WIE IN austauschTeile() -- rohe Bytes; der
+   Base64-Aufschlag und der Umschlag kommen danach in JS dazu, aus denselben
+   Konstanten. So steht der Faktor an einem Ort, auch wenn die Abfrage eine
+   andere ist. Eine Pruefung haelt beide Summen gegeneinander. */
+const qTeilGroessen = db.prepare(`
+  SELECT i.id,
+    COALESCE((SELECT SUM(length(p.data)) FROM photos p
+               WHERE p.item_id = i.id AND p.art != 'video'), 0) AS foto,
+    COALESCE((SELECT SUM(length(p.data) + COALESCE(length(p.medium), length(p.thumb), 0))
+                FROM photos p WHERE p.item_id = i.id AND p.art = 'video'), 0) AS video,
+    COALESCE((SELECT SUM(length(a.data)) FROM attachments a WHERE a.item_id = i.id), 0) AS anhang,
+    COALESCE((SELECT SUM(length(ci.data)) FROM comment_images ci
+                JOIN comments c ON c.id = ci.comment_id WHERE c.item_id = i.id), 0) AS kbild,
+    length(COALESCE(i.title,'')) + length(COALESCE(i.description,'')) AS text,
+    COALESCE((SELECT SUM(length(c.text)) FROM comments c WHERE c.item_id = i.id), 0) AS ktext,
+    COALESCE((SELECT SUM(length(t.name)) FROM item_tags it JOIN tags t ON t.id = it.tag_id
+               WHERE it.item_id = i.id), 0) AS tagtext,
+    COALESCE((SELECT SUM(length(l.url)) FROM links l WHERE l.item_id = i.id), 0) AS linktext,
+    (SELECT COUNT(*) FROM comments c WHERE c.item_id = i.id) AS nk,
+    (SELECT COUNT(*) FROM ratings r WHERE r.item_id = i.id) AS nb,
+    (SELECT COUNT(*) FROM test_days d WHERE d.item_id = i.id) AS nz,
+    (SELECT COUNT(*) FROM photos p WHERE p.item_id = i.id) AS nf,
+    (SELECT COUNT(*) FROM attachments a WHERE a.item_id = i.id) AS nd,
+    i.title AS titel
+  FROM items i ORDER BY i.id`);
+
+// Was EIN Eintrag in der Datei kostet -- Blobs nach Schalter, Text und Form
+// immer. Dieselbe Rechnung wie austauschBytes(), nur aus einer fertigen Zeile.
+function teilBytes(z, schalter) {
+  const base64 = (n) => Math.round(n * 4 / 3);
+  let n = 0;
+  if (schalter.mitFotos) n += z.foto;
+  if (schalter.mitFotos && schalter.mitVideos) n += z.video;
+  if (schalter.mitDateien) n += z.anhang + z.kbild;
+  return base64(n) + z.text + z.ktext + z.tagtext + z.linktext
+    + UMSCHLAG_JE.eintrag + z.nk * UMSCHLAG_JE.kommentar + z.nb * UMSCHLAG_JE.bewertung
+    + z.nz * UMSCHLAG_JE.zeitpunkt + z.nf * UMSCHLAG_JE.foto + z.nd * UMSCHLAG_JE.datei;
+}
+
+/* Der Schnittplan. Er sagt, WIE VIELE Teile es gibt und WELCHE Eintraege in
+   jeden gehoeren -- und er nennt die Eintraege, die in keinen Teil passen.
+
+   EIN EINTRAG, DER FUER SICH ALLEIN ZU GROSS IST, KANN NICHT GESCHNITTEN
+   WERDEN. Zwanzig Videos zu je 20 MB sind als Base64 533 MB in EINEM Eintrag,
+   und ein Eintrag ist die kleinste Einheit, die der Import versteht. Er wird
+   deshalb NICHT stillschweigend uebergangen, sondern namentlich genannt: wer
+   ihn sieht, weiss, dass er die Videos abwaehlen oder diesen einen Eintrag von
+   Hand behandeln muss. Ein stiller Verlust waere der schlimmere Ausgang.
+
+   DER ZIELWERT IST AUSTAUSCH_WARN und nicht AUSTAUSCH_MAX: die Teilgroesse ist
+   eine Schaetzung wie jede andere hier, und ein Teil, der die harte Grenze
+   streift, waere genau der Fall, den diese Runde beseitigen soll.
+
+   ER LAESST SICH KLEINER STELLEN, aber nicht groesser. Wer seine Teile auf
+   einen Datentraeger oder durch eine Hochladegrenze bringen muss, braucht
+   kleinere; groesser darf niemand, denn oberhalb von AUSTAUSCH_WARN baute die
+   Anlage Teile, vor denen sie im selben Atemzug warnt.
+   DIE UNTERGRENZE IST NICHT ZIERDE: bei einem Zielwert unter einem Megabyte
+   entstuenden bei tausend Eintraegen tausend Dateien, und der Import waere
+   tausend Handgriffe. */
+const AUSTAUSCH_TEIL_MIN = 1024 * 1024;
+function austauschPlan(schalter, zielWunsch) {
+  const zielGroesse = Math.min(AUSTAUSCH_WARN,
+    Math.max(AUSTAUSCH_TEIL_MIN, Number(zielWunsch) > 0 ? Number(zielWunsch) : AUSTAUSCH_WARN));
+  const zeilen = qTeilGroessen.all();
+  const grund = austauschUmschlagRahmen();
+  const teile = [];
+  const zuGross = [];
+  let offen = null;
+  for (const z of zeilen) {
+    const b = teilBytes(z, schalter);
+    if (grund + b > AUSTAUSCH_MAX) { zuGross.push({ id: z.id, titel: z.titel, bytes: grund + b }); continue; }
+    // Ein neuer Teil, sobald dieser Eintrag den laufenden ueber den Zielwert
+    // hoebe. Der erste Eintrag eroeffnet immer -- sonst entstuende ein leerer.
+    if (!offen || offen.bytes + b > zielGroesse) {
+      offen = { nr: teile.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: grund };
+      teile.push(offen);
+    }
+    offen.bis = z.id;
+    offen.anzahl++;
+    offen.bytes += b;
+  }
+  return { teile, zuGross,
+           gesamt: teile.reduce((n, t) => n + t.bytes, 0),
+           zielGroesse, vorgabe: AUSTAUSCH_WARN, kleinstes: AUSTAUSCH_TEIL_MIN,
+           grenze: AUSTAUSCH_MAX, string: AUSTAUSCH_STRING };
+}
+
+/* Was der Umschlag OHNE Eintraege kostet -- Titel, Zeitstempel, Formatnummer
+   und die Kriterienliste. Er faellt in JEDEM Teil an, nicht einmal: jeder Teil
+   ist eine vollstaendige Datei. Bei einer Handvoll Kriterien sind das ein paar
+   hundert Bytes, und genau deshalb steht er hier und wird nicht geschaetzt. */
+function austauschUmschlagRahmen() {
+  const title = getSetting('title_app', 'Kriterion');
+  const kritZeilen = db.prepare('SELECT name, gewicht FROM rating_criteria ORDER BY sort_order, id').all();
+  return JSON.stringify({ exported_at: new Date().toISOString(), title, version: AUSTAUSCH_FORMAT,
+                          criteria: kritZeilen.map(c => c.name),
+                          criteriaGewichte: Object.fromEntries(
+                            kritZeilen.filter(c => c.gewicht !== 1).map(c => [c.name, c.gewicht])),
+                          items: [] }).length;
+}
+
 /* Wie viele Bytes eine Datei traegt, BEVOR sie gebaut wird -- als eine Zahl.
    Der Umschlag gehoert dazu: eine Absage, die nur die Blobs zaehlt, laesst
    genau die Datei durch, die am Umschlag zerbricht. */
@@ -3504,6 +3643,20 @@ function austauschBytes(itemId, schalter) {
    gehoert ein Passwort nie.
    LESEND, DESHALB KEIN EINTRAG IN F_ROUTEN -- die Klemme bekommt dafuer eine
    eigene Quelltextpruefung daneben. */
+/* Der Schnittplan. LESEND UND OHNE ZWEITE BESTAETIGUNG -- es verlaesst nichts
+   das Haus: die Antwort nennt Nummern, Groessen und die Titel der Eintraege,
+   die zu gross sind, und die sieht der Eigentuemer ohnehin an jeder Kachel.
+   DIE BESTAETIGUNG STEHT AN DEN TEILEN SELBST, und das ist die richtige
+   Stelle: dort gehen die Bytes hinaus.
+   Lesend, deshalb kein Eintrag in F_ROUTEN. */
+app.get('/api/export/plan', nurEigentuemer, (req, res) => {
+  res.json(austauschPlan({
+    mitFotos: req.query.photos !== '0',
+    mitDateien: req.query.files === '1',
+    mitVideos: req.query.videos === '1'
+  }, req.query.ziel));
+});
+
 app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req, res) => {
   const schalter = {
     mitFotos: req.query.photos !== '0',
@@ -3528,17 +3681,37 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
      AUSTAUSCH_MAX ist die Grenze, hinter der es keine Datei mehr gibt.
      KEIN STROM: hier wird nichts umgebaut, was funktioniert. Der Weg an der
      Grenze vorbei steht in der Meldung und heisst Sicherung. */
+  /* DAS FENSTER. Ohne `von`/`bis` ist es der ganze Bestand -- der Weg von
+     0.12.3 und davor, Zeile fuer Zeile derselbe. Mit ihnen ist es ein Teil,
+     und dann traegt der Dateiname seine Nummer.
+     GEPRUEFT WIRD BEIDES EINZELN, denn eine halbe Angabe ist ein Fehler und
+     kein Vollexport: wer `von` schickt und `bis` vergisst, bekaeme sonst
+     stillschweigend alles. */
+  const zahl = (w) => { const n = Number(w); return Number.isInteger(n) && n > 0 ? n : null; };
+  const von = zahl(req.query.von), bis = zahl(req.query.bis);
+  const teil = zahl(req.query.teil), teile = zahl(req.query.teile);
+  const alsTeil = von !== null || bis !== null || teil !== null || teile !== null;
+  if (alsTeil && (von === null || bis === null || teil === null || teile === null))
+    return res.status(400).json({ error: 'Ein Teilexport braucht von, bis, teil und teile.' });
+  if (alsTeil && (von > bis || teil > teile || teile > AUSTAUSCH_TEIL_MAX))
+    return res.status(400).json({ error: 'Die Angaben zum Teilexport passen nicht zusammen.' });
+
   const gross = austauschBytes(null, schalter);
-  if (gross > AUSTAUSCH_MAX)
+  if (!alsTeil && gross > AUSTAUSCH_MAX)
     return res.status(413).json({ error:
       `Dieser Export wäre rund ${Math.round(gross / 1048576)} MB groß. Eine Exportdatei ist ` +
       `ein einziger Text, und der kann nicht größer als ${Math.round(AUSTAUSCH_STRING / 1048576)} MB ` +
       `werden. Nimm die Sicherung — sie schreibt den ganzen Bestand und braucht dafür keinen ` +
       `nennenswerten Arbeitsspeicher.` });
   const lage = paketLage(req.benutzer.id, schalter);
-  const items = db.prepare('SELECT * FROM items ORDER BY id').all().map(it => eintragAlsPaket(it, lage));
-  auth.protokolliere('export', { wer: req.benutzer.id });
-  res.set('Content-Disposition', `attachment; filename="${exportName('')}"`);
+  const items = (alsTeil
+    ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(von, bis)
+    : db.prepare('SELECT * FROM items ORDER BY id').all()).map(it => eintragAlsPaket(it, lage));
+  // Ein Teil steht als solcher im Protokoll -- sonst saehe ein Bestand, der in
+  // fuenf Teilen hinausgeht, aus wie fuenf volle Exporte.
+  auth.protokolliere('export', { wer: req.benutzer.id, merkmal: alsTeil ? `teil ${teil}/${teile}` : null });
+  res.set('Content-Disposition',
+    `attachment; filename="${exportName(alsTeil ? `-teil-${teil}-von-${teile}` : '')}"`);
   /* DAS NETZ UNTER DER SCHAETZUNG. Die Absage oben rechnet, sie misst nicht --
      faellt sie zu niedrig aus, wirft `res.json` genau hier. Express baut den
      String VOR dem Kopf und vor dem Senden; die Antwort ist an dieser Stelle

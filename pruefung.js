@@ -25717,7 +25717,18 @@ async function pruefeOberflaeche() {
   pruefe('Der Knopf bleibt trotzdem da und bleibt bedienbar',
     !!exG.document.getElementById('ex-yes') && !exG.document.getElementById('ex-yes').disabled);
   pruefe('Und die Warnung sagt das auch',
-    /Knopf bleibt/.test(warnText), warnText.slice(0, 260));
+    /Der Knopf oben bleibt trotzdem/.test(warnText), warnText.slice(0, 260));
+  /* --- 0.12.4: und sie nennt den Weg, der wirklich hilft ---
+     Ein Hinweis, der nur sagt, was NICHT geht, laesst jemanden mit einem
+     kaputten Knopf zurueck. Seit 0.12.4 gibt es die Antwort, und sie gehoert
+     in denselben Kasten. */
+  /* Der Text bricht im Aufbau um; verglichen wird deshalb mit
+     zusammengezogenen Leerzeichen und nicht Zeile fuer Zeile. */
+  const warnGlatt = warnText.replace(/\s+/g, ' ');
+  pruefe('Und sie nennt den Weg in Teilen als die Antwort',
+    /In Teilen exportieren/.test(warnGlatt), warnGlatt.slice(0, 400));
+  pruefe('Und die Sicherung als den kürzeren Weg zum Zurückspielen',
+    /Sicherung/.test(warnGlatt), warnGlatt.slice(0, 400));
   /* ZWEI FAELLE, UND SIE SAGEN VERSCHIEDENES. Solange der Weg ohne Fotos unter
      der Marke bleibt, ist er der Ausweg und die Warnung nennt ihn als solchen.
      Reisst er sie mit, waere derselbe Satz eine Falschaussage: wer dann zum
