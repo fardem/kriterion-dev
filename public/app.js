@@ -5085,11 +5085,15 @@ async function renderSystem() {
         <h3>Zugänge</h3>
         <p class="desc">Wer sich anmelden darf. <strong>Sperren ist in den meisten Fällen das,
           was man eigentlich will</strong> — die Anmeldung wird abgewiesen, die Beiträge bleiben
-          unangetastet stehen.
+          unangetastet stehen, und der Name bleibt vergeben.
           ${EIGENTUEMER
             ? `Als Eigentümer der Anlage vergibst du Rollen und kommst auch an andere Admins.`
             : `Rollen vergibt der Eigentümer der Anlage; an einen anderen Admin kommst du nicht.`}</p>
         <div class="manage-list" id="mzugaenge"></div>
+        ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
+             nichts geloescht wurde -- gefuellt wird sie von
+             zeichneGrabsteinKnopf(), sobald die Liste vom Server da ist. */''}
+        <div class="row-in" id="zug-weg-zeile" style="margin-top:8px"></div>
 
         <p class="desc" style="margin:16px 0 8px">Woher der neue Zugang sein Passwort bekommt,
           steht als <strong>Wahl im Formular</strong> — das Feld daneben erscheint nur, wenn es
@@ -5193,6 +5197,11 @@ async function renderSystem() {
         <p class="desc">Die Zeilen bleiben <strong>${protokoll.tage} Tage</strong> stehen und werden
           danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Sicherheitsprotokoll,
           das sich wegräumen lässt, wäre keins.</p>
+        ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
+             dieser Anlage -- man waehlt, bevor man liest. Gezeichnet wird sie
+             aus einer geschlossenen Liste; die Auswahl geht an den Server,
+             denn die Liste darunter traegt nur die hundert juengsten Zeilen. */''}
+        <div class="pills" id="protokoll-filter" style="margin:0 0 12px"></div>
         <div class="prot-liste" id="protokoll-liste"></div>
         <p class="hint hint-sm" id="protokoll-fuss" style="margin:10px 2px 0"></p>
       </div>` : ''}
@@ -5665,11 +5674,25 @@ async function renderSystem() {
     : (VORGANGSWORT[z.was] || z.was);
   // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
   // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
+  /* EIN MERKMAL OHNE WORT VERSCHWINDET SPURLOS -- merkmalsWort() faellt still
+     auf den leeren String zurueck, und genau deshalb ist bis 0.12.4 niemandem
+     aufgefallen, dass Woerter fehlten.
+     'teil' KAM MIT 0.13.0 DAZU: ohne das Wort waere ein Teilexport von einem
+     vollen nicht zu unterscheiden -- und das war der Grund, aus dem er
+     ueberhaupt ein Merkmal traegt.
+     'adresse' FEHLTE seit 0.9.1, und 'beides' war seither falsch beschriftet:
+     es heisst am Server "mehr als eines" und kann Name, Passwort und Adresse
+     in jeder Mischung meinen -- "Name und Passwort" behauptete zwei bestimmte.
+     'aktiv' UND 'gesperrt' STEHEN HIER AUSDRUECKLICH NICHT: ihr Wort traegt
+     schon der Vorgang ("Zugang gesperrt" / "Zugang freigegeben"), und zweimal
+     dasselbe in einer Zeile ist eines zu viel. Ein Waechter im Pruefstand
+     nimmt genau diese beiden aus und verlangt fuer jedes uebrige ein Wort. */
   const MERKMALSWORT = {
     user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer',
     einladung: 'Einladung', ruecksetzung: 'Rücksetzung',
     merge: 'zusammengeführt', replace: 'ersetzend',
-    name: 'Name', passwort: 'Passwort', beides: 'Name und Passwort'
+    name: 'Name', passwort: 'Passwort', adresse: 'Adresse',
+    beides: 'mehreres', teil: 'in Teilen'
   };
   const merkmalsWort = (z) => (z.was === 'zugang.status' ? '' : (MERKMALSWORT[z.merkmal] || ''));
 
@@ -5686,34 +5709,158 @@ async function renderSystem() {
     return verfasserName({ id: z.ziel, name: z.zielName, geloescht: z.zielName == null });
   };
 
+  /* DIE ANSICHTEN DES PROTOKOLLS. Die Schluessel kommen aus auth.js
+     (PROTOKOLL_GRUPPEN), die Woerter stehen hier -- dieselbe Teilung wie bei
+     den Vorgaengen selbst.
+     "GESCHEITERT" HEISST NICHT "gescheiterte Anmeldungen": die Gruppe traegt
+     auch die gescheiterte zweite Bestaetigung, und beide sagen dasselbe --
+     jemand konnte an der Tuer nicht belegen, wer er ist. Ein Name, der nur die
+     Haelfte nennt, waere falsch. */
+  const PROTOKOLL_ANSICHT = [
+    ['', 'Alle'],
+    ['gescheitert', 'Gescheitert'],
+    ['anmeldungen', 'Anmeldungen'],
+    ['zugaenge', 'Zugänge'],
+    ['zweifaktor', 'Zweiter Faktor'],
+    ['bestand', 'Bestand']
+  ];
+  const PROTOKOLL_ANSICHT_HILFE = {
+    '': 'Alle Vorgänge, die jüngsten zuerst',
+    gescheitert: 'Gescheiterte Anmeldungen und gescheiterte Bestätigungen',
+    anmeldungen: 'Gelungene Anmeldungen',
+    zugaenge: 'Angelegt, gesperrt, entfernt, Rollen, Links und Anfragen',
+    zweifaktor: 'Ein- und ausgeschaltet, verbrauchte Wiederherstellungscodes',
+    bestand: 'Export, Import, Sicherung und Schlüsselwechsel'
+  };
+  // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
+  // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
+  let protokollGruppe = '';
+
+  /* DER SPRUNG ZUM ZUGANG. Er klappt nichts auf -- die Karte "Zugaenge" steht
+     im selben Bereich -- und hebt die Zeile kurz hervor, damit man sie in
+     einer langen Liste wiederfindet.
+     WER DAS PROTOKOLL SIEHT, IST EIGENTUEMER UND DAMIT IMMER AUCH ADMIN: die
+     Karte "Zugaenge" ist also da. Trotzdem abgefangen -- zeichneZugaenge()
+     laedt fuer sich, und beim allerersten Aufbau kann die Zeile noch fehlen.
+     Ein stiller Klick, der nichts tut, waere der schlechtere Ausgang.
+     scrollIntoView MIT `?.`: jsdom kennt es nicht, und ein Prueflauf, der an
+     einer Anzeigefunktion abreisst, faerbt keine Pruefung rot (Stolperstein 138). */
+  function springeZuZugang(id) {
+    const zeile = document.querySelector(`#mzugaenge .mrow[data-mid="${Number(id) || 0}"]`);
+    if (!zeile) return toast('Diesen Zugang gibt es in der Liste nicht mehr.', true);
+    zeile.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    zeile.classList.add('mrow-blitz');
+    setTimeout(() => zeile.classList.remove('mrow-blitz'), 1600);
+  }
+
+  /* EIN NAME WIRD ZUM KNOPF, wenn er eine Nummer hat -- und nur dann.
+     "unbekannter Name" hat keine: er ist der getippte Name eines Versuchs, der
+     an keinen Zugang traf, und es gaebe nichts, wohin er springen koennte. Ein
+     Knopf, der ins Leere fuehrt, ist schlimmer als Text. */
+  const protNamensFeld = (dok, klasse, text, id, davor = '') => {
+    const feld = dok.createElement('span');
+    feld.className = klasse;
+    if (!text) return feld;
+    // Der Pfeil steht VOR dem Knopf und nicht in ihm: er gehoert der Zeile und
+    // ist kein Teil des Namens, auf den man klickt.
+    if (davor) feld.appendChild(dok.createTextNode(davor));
+    if (id == null) { feld.appendChild(dok.createTextNode(text)); return feld; }
+    const b = dok.createElement('button');
+    b.className = 'link-btn prot-sprung';
+    b.dataset.mid = String(id);
+    b.textContent = text;
+    b.title = 'Zu diesem Zugang springen';
+    b.onclick = () => springeZuZugang(id);
+    feld.appendChild(b);
+    return feld;
+  };
+
+  function zeichneProtokollFilter(d) {
+    const box = document.getElementById('protokoll-filter');
+    if (!box) return;
+    const zahlen = (d && d.zahlen && typeof d.zahlen === 'object') ? d.zahlen : {};
+    box.innerHTML = '';
+    for (const [schluessel, wort] of PROTOKOLL_ANSICHT) {
+      const b = document.createElement('button');
+      const n = Number(zahlen[schluessel || 'alle']) || 0;
+      /* GEDAEMPFT BEI NULL, wie jede Pille in dieser Lage (Stolperstein 47):
+         eine Ansicht ohne Zeilen fuehrt garantiert auf eine leere Liste.
+         Anklickbar bleibt sie -- man sieht nur vorher, dass nichts kommt. */
+      const leer = n === 0 && protokollGruppe !== schluessel;
+      b.className = 'pill' + (protokollGruppe === schluessel ? ' on' : '') + (leer ? ' leer' : '');
+      b.dataset.gruppe = schluessel;
+      b.innerHTML = `${esc(wort)}<span class="n">${n}</span>`;
+      b.title = PROTOKOLL_ANSICHT_HILFE[schluessel] || '';
+      b.onclick = () => protokollNeu(schluessel);
+      box.appendChild(b);
+    }
+  }
+
+  /* NACHGELADEN WIRD BEIM KLICK, und zwar NUR diese Karte -- dieselbe Bauform
+     wie sitzungenNeu() und papierkorbNeu(). Ein Neuaufbau des ganzen
+     Systembereichs leerte die Passwortfelder daneben.
+     GEFRAGT WIRD DER SERVER UND NICHT DIE GEHOLTEN HUNDERT ZEILEN: der Filter
+     soll die hundert juengsten DIESER Art zeigen und nicht die dieser Art unter
+     den hundert juengsten aller Arten. Genau das war der Befund. */
+  async function protokollNeu(gruppe) {
+    protokollGruppe = gruppe || '';
+    let d;
+    try {
+      d = await api('GET', '/api/sicherheitsprotokoll' +
+        (protokollGruppe ? `?gruppe=${encodeURIComponent(protokollGruppe)}` : ''));
+    } catch (e) {
+      const box = document.getElementById('protokoll-liste');
+      if (box) box.innerHTML = `<p class="hint">${esc(e.message)}</p>`;
+      return;
+    }
+    zeichneProtokoll(d);
+  }
+
   function zeichneProtokoll(d) {
     const box = document.getElementById('protokoll-liste');
     const fuss = document.getElementById('protokoll-fuss');
     if (!box) return;
+    const dok = box.ownerDocument;
+    zeichneProtokollFilter(d);
     const zeilen = (d && Array.isArray(d.zeilen)) ? d.zeilen : [];
     if (!zeilen.length) {
-      box.innerHTML = `<p class="hint">Noch kein Vorgang festgehalten.</p>`;
+      /* ZWEI LEERE FAELLE, ZWEI SAETZE. "Noch kein Vorgang festgehalten" waere
+         unter einem Filter eine Falschaussage: es gibt Vorgaenge, nur keinen
+         dieser Art. */
+      box.innerHTML = protokollGruppe
+        ? `<p class="hint">Kein Vorgang dieser Art in den letzten ${esc(String(d && d.tage || ''))} Tagen.</p>`
+        : `<p class="hint">Noch kein Vorgang festgehalten.</p>`;
       if (fuss) fuss.textContent = '';
       return;
     }
     box.innerHTML = '';
     for (const z of zeilen) {
-      const zeile = document.createElement('div');
+      const zeile = dok.createElement('div');
       zeile.className = 'prot-zeile';
       zeile.dataset.was = z.was;
       const wen = protZiel(z), merk = merkmalsWort(z);
-      zeile.innerHTML = `<span class="prot-zeit">${esc(fmtDate(z.am))}</span>
-        <span class="prot-was">${esc(vorgangsWort(z))}</span>
-        <span class="prot-wer">${esc(protHandelnder(z))}</span>
-        <span class="prot-ziel">${wen ? '→ ' + esc(wen) : ''}</span>
-        <span class="prot-merkmal">${merk ? esc(merk) : ''}</span>`;
+      const zeit = dok.createElement('span');
+      zeit.className = 'prot-zeit'; zeit.textContent = fmtDate(z.am);
+      const was = dok.createElement('span');
+      was.className = 'prot-was'; was.textContent = vorgangsWort(z);
+      zeile.appendChild(zeit); zeile.appendChild(was);
+      // Der Handelnde ist anklickbar, wenn er eine Nummer hat -- "—" und
+      // "ueber zugang.js auf dem Wirt" haben keine.
+      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z),
+        z.wer != null ? z.wer : null));
+      zeile.appendChild(protNamensFeld(dok, 'prot-ziel', wen,
+        z.ziel != null ? z.ziel : null, '→ '));
+      const mfeld = dok.createElement('span');
+      mfeld.className = 'prot-merkmal'; mfeld.textContent = merk || '';
+      zeile.appendChild(mfeld);
       box.appendChild(zeile);
     }
     if (fuss) {
       const gesamt = Number(d.gesamt) || zeilen.length;
+      const art = protokollGruppe ? ' dieser Art' : '';
       fuss.textContent = gesamt > zeilen.length
-        ? `Die ${zeilen.length} jüngsten von ${gesamt} Vorgängen.`
-        : `${gesamt} ${gesamt === 1 ? 'Vorgang' : 'Vorgänge'}.`;
+        ? `Die ${zeilen.length} jüngsten von ${gesamt} Vorgängen${art}.`
+        : `${gesamt} ${gesamt === 1 ? 'Vorgang' : 'Vorgänge'}${art}.`;
     }
   }
   zeichneProtokoll(protokoll);
@@ -6700,14 +6847,22 @@ async function renderSystem() {
     catch (e) { if (box.isConnected) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`; return; }
     if (!box.isConnected) return;
     box.innerHTML = '';
-    for (const z of daten.zugaenge) {
-      const grabstein = z.status === 'geloescht';
+    /* GRABSTEINE STEHEN NICHT MEHR ZWISCHEN DEN LEBENDEN. Sie sind kein
+       Zugang, den man verwalten kann -- kein Werkzeug, keine Rolle, kein
+       Passwort --, und sie wachsen mit jeder Löschung. Sie stehen deshalb in
+       einem eigenen Fenster; das Vorbild ist "Wer hat bewertet".
+       DIE ERKENNUNG BLEIBT DIE EINE: `status === 'geloescht'`. Kein zweiter
+       Test am Namen -- der geht gar nicht hinaus.
+       DER SERVER GIBT SIE WEITERHIN MIT. Getrennt wird in der Oberfläche; die
+       Antwort der Route bleibt, wie sie ist. */
+    zugGrabsteine = daten.zugaenge.filter(z => z.status === 'geloescht');
+    for (const z of daten.zugaenge.filter(z => z.status !== 'geloescht')) {
       const selbst = z.id === daten.ich;
       // Genau die Regel des Servers, einmal hier: an einen Admin oder den
       // Eigentuemer kommt nur der Eigentuemer.
-      const darf = !grabstein && !selbst && (z.role === 'user' ? true : daten.darfRollen);
+      const darf = !selbst && (z.role === 'user' ? true : daten.darfRollen);
       const row = dok.createElement('div');
-      row.className = 'mrow zug' + (grabstein ? ' zug-weg' : '') + (z.status === 'gesperrt' ? ' zug-sperr' : '');
+      row.className = 'mrow zug' + (z.status === 'gesperrt' ? ' zug-sperr' : '');
       row.dataset.mid = z.id;
       // Dieselbe Beschriftung wie an jedem Beitrag im Eintrag -- eine
       // Funktion, zwei Rufer. Stuende die Bildung des Grabsteinnamens hier ein
@@ -6715,10 +6870,11 @@ async function renderSystem() {
       /* "Noch kein Passwort" steht NICHT als vierter Zustand in der Datenbank:
          ZUSTAENDE hat drei, und jede Stelle, die status liest, kennt sie. Es
          ist abgeleitet aus dem leeren Hash — genau dem Wert, über den auch die
-         Anmeldung entscheidet. Am Grabstein wird es nie angezeigt: der trägt
-         denselben leeren Hash, ist aber über status unterschieden. */
-      const wartet = !grabstein && z.ohnePasswort;
-      row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: grabstein }))}${
+         Anmeldung entscheidet. Am Grabstein kann es gar nicht mehr erscheinen:
+         der steht seit 0.13.0 in einem eigenen Fenster, und dort trägt keine
+         Zeile diese Angabe. */
+      const wartet = z.ohnePasswort;
+      row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: false }))}${
           selbst ? ' <span class="zug-ich">(du)</span>' : ''}</span>
         <span class="zug-rolle">${esc(ROLLENWORT[z.role] || z.role)}</span>
         <span class="zug-status">${esc(STATUSWORT[z.status] || z.status)}${
@@ -6813,9 +6969,20 @@ async function renderSystem() {
             `${b.kommentare} Kommentare, ${b.bewertungen} Bewertungen, ${b.testtage} ${vZeit(b.testtage)}, ` +
             `${b.links} Links, ${b.dateien} Dateien.\n\n` +
             `OK = mitlöschen.\nAbbrechen = stehen lassen.`);
-          if (!confirm(`„${z.username}“ jetzt entfernen? Das lässt sich nicht rückgängig machen.`)) return;
+          /* DER SATZ, DER DEN UMKEHRBAREN WEG NENNT. Bis 0.12.4 sagte der
+             Dialog, dass es nicht rückgängig zu machen ist und dass der Name
+             frei wird -- er sagte NICHT, dass es daneben einen Weg gibt, der
+             beides nicht tut. Die Rückholfrist ist zur Hälfte längst gebaut,
+             sie heißt nur anders: sperren.
+             ER STEHT AN BEIDEN STELLEN, hier und im Passwortfenster darunter --
+             zwei aufeinanderfolgende Fenster, die Verschiedenes sagen, sind
+             schlimmer als eines. */
+          if (!confirm(`„${z.username}“ jetzt entfernen? Das lässt sich nicht rückgängig machen.\n\n` +
+            `Nur vorübergehend aussperren? Dann sperren statt entfernen — das ist umkehrbar, ` +
+            `und der Name bleibt.`)) return;
           if (!await zweiteBestaetigung('entfernen', z.id, 'Zugang entfernen',
-            `„${z.username}“ wird stillgelegt; der Name wird frei.`)) return;
+            `„${z.username}“ wird stillgelegt; der Name wird frei. Nur vorübergehend aussperren? ` +
+            `Dann sperren statt entfernen — das ist umkehrbar, und der Name bleibt.`)) return;
           try {
             await api('DELETE', `/api/users/${z.id}?eintraege=${eintraegeWeg ? 1 : 0}&beitraege=${beitraegeWeg ? 1 : 0}`);
             toast('Zugang entfernt');
@@ -6823,6 +6990,77 @@ async function renderSystem() {
           zeichneZugaenge();
         };
       }
+      box.appendChild(row);
+    }
+    if (!daten.zugaenge.some(z => z.status !== 'geloescht'))
+      box.innerHTML = `<span class="hint">Kein Zugang.</span>`;
+    zeichneGrabsteinKnopf();
+  }
+
+  /* --- Gelöschte Zugänge, im eigenen Fenster ---
+     REINE OBERFLÄCHE. Das Vorbild steht im Projekt: der Dialog "Wer hat
+     bewertet" -- Hintergrund, Fenster, ein erklärender Satz, eine Liste, ein
+     Knopf zum Schließen.
+     DER KNOPF STEHT NUR DA, WENN ES ETWAS ZU ZEIGEN GIBT. Ein Knopf, der ein
+     leeres Fenster öffnet, ist ein Knopf zu viel; die Zahl daneben sagt schon,
+     was darin steht. */
+  let zugGrabsteine = [];
+  function zeichneGrabsteinKnopf() {
+    const zeile = document.getElementById('zug-weg-zeile');
+    if (!zeile) return;
+    zeile.innerHTML = '';
+    if (!zugGrabsteine.length) return;
+    const n = zugGrabsteine.length;
+    const b = zeile.ownerDocument.createElement('button');
+    b.className = 'btn btn-ghost btn-sm';
+    b.id = 'zug-weg-auf';
+    b.textContent = `Gelöschte Zugänge (${n})`;
+    b.title = 'Die Grabsteine der entfernten Zugänge ansehen';
+    b.onclick = zeigeGrabsteine;
+    zeile.appendChild(b);
+  }
+
+  function zeigeGrabsteine() {
+    const dok = document;
+    const bd = dok.createElement('div');
+    bd.className = 'backdrop';
+    bd.innerHTML = `<div class="modal" id="grabstein-modal"><h2>Gelöschte Zugänge</h2>
+      <p>Ein entfernter Zugang wird zum <strong>Grabstein</strong>: der Name ist frei geworden,
+      und was er geschrieben hat, trägt seither „Gelöschter Benutzer &lt;Nummer&gt;“.
+      <strong>Der ursprüngliche Name steht hier nicht</strong> — die Anlage bewahrt ihn nirgends
+      auf, denn der Grabstein IST das Löschen. Zurückholen lässt sich ein Zugang nicht;
+      <strong>sperren</strong> ist der umkehrbare Weg.</p>
+      <div class="manage-list" id="grabsteinliste"></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
+    dok.body.appendChild(bd);
+    const zu = () => { bd.remove(); dok.removeEventListener('keydown', onKey, true); };
+    /* Escape schliesst nur den OBERSTEN Dialog -- dieselbe Regel wie bei
+       "Wer hat bewertet": aus diesem Fenster heraus geht keiner auf, aber ein
+       Horcher, der jeden Hintergrund schliesst, waere eine Falle fuer den
+       naechsten, der einen dazubaut. */
+    const onKey = e => {
+      if (e.key !== 'Escape') return;
+      if ([...dok.querySelectorAll('.backdrop')].pop() !== bd) return;
+      zu();
+    };
+    dok.addEventListener('keydown', onKey, true);
+    bd.querySelector('[data-no]').onclick = zu;
+    bd.onclick = e => { if (e.target === bd) zu(); };
+    const box = bd.querySelector('#grabsteinliste');
+    if (!zugGrabsteine.length) {
+      box.innerHTML = `<span class="hint">Es wurde noch kein Zugang entfernt.</span>`;
+      return;
+    }
+    for (const z of zugGrabsteine) {
+      const row = dok.createElement('div');
+      row.className = 'mrow zug zug-weg';
+      row.dataset.mid = z.id;
+      // Dieselbe Beschriftung wie ueberall: eine Funktion, zwei Rufer. Stuende
+      // die Bildung des Grabsteinnamens hier ein zweites Mal, liefen die
+      // Stellen auseinander.
+      row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: true }))}</span>
+        <span class="zug-status">${esc(STATUSWORT.geloescht)}</span>
+        <span class="mcount">${z.eintraege} ${esc(vSache(z.eintraege))}</span>`;
       box.appendChild(row);
     }
   }

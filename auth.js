@@ -1171,19 +1171,74 @@ function raeumeProtokollAuf() {
    einen JOIN und nicht aus der Tabelle -- ein Grabstein liefert dabei null,
    und daraus macht die Oberflaeche "Geloeschter Benutzer <nr>", genau wie an
    jedem Beitrag im Eintrag. */
-const qProtokoll = db.prepare(
+/* DIE GRUPPEN DES FILTERS -- eine geschlossene Liste ueber einer geschlossenen
+   Liste. Sie steht hier und nicht in der Oberflaeche: die Auswahl geht an den
+   SERVER, denn die Karte holt die hundert JUENGSTEN Zeilen. Ein Filter, der
+   erst im Browser greift, durchsuchte nur diese hundert -- und genau darin
+   findet man die gescheiterten Anmeldungen nicht, weil sie zwischen allem
+   anderen stehen. Das war der Befund.
+   JEDER VORGANG STEHT IN GENAU EINER GRUPPE, und ein Waechter im Pruefstand
+   rechnet das nach: ein neuer Vorgang, der in keiner steht, waere unter keiner
+   Ansicht zu finden -- ausser unter "alle", und dort sucht ihn niemand.
+   DIE WOERTER AM BILDSCHIRM STEHEN IN DER OBERFLAECHE, wie bei den Vorgaengen
+   selbst: hier stehen Schluessel und Zuordnung, dort die deutsche Beschriftung. */
+const PROTOKOLL_GRUPPEN = {
+  // Die Ansicht, um die es geht: wer an der Tuer gescheitert ist. Beide Zeilen
+  // sagen dasselbe -- jemand konnte nicht belegen, wer er ist.
+  gescheitert: ['anmeldung.fehl', 'bestaetigung.fehl'],
+  anmeldungen: ['anmeldung.ok'],
+  zugaenge: ['zugang.neu', 'zugang.rolle', 'zugang.status', 'zugang.passwort',
+             'zugang.weg', 'zugang.selbst', 'link.neu', 'link.ein',
+             'anfrage.frei', 'anfrage.ab'],
+  zweifaktor: ['zweifaktor.an', 'zweifaktor.aus', 'zweifaktor.wieder'],
+  bestand: ['export', 'import', 'sicherung', 'schluessel']
+};
+
+const PROT_SPALTEN =
   `SELECT p.id, p.am, p.was, p.wer, p.ziel, p.merkmal,
           CASE WHEN uw.status = 'geloescht' THEN NULL ELSE uw.username END AS werName,
           CASE WHEN uz.status = 'geloescht' THEN NULL ELSE uz.username END AS zielName
      FROM sicherheitsprotokoll p
      LEFT JOIN users uw ON uw.id = p.wer
-     LEFT JOIN users uz ON uz.id = p.ziel
-    ORDER BY p.id DESC LIMIT ?`);
+     LEFT JOIN users uz ON uz.id = p.ziel`;
+const qProtokoll = db.prepare(`${PROT_SPALTEN} ORDER BY p.id DESC LIMIT ?`);
+/* JE GRUPPE EINE VORBEREITETE ABFRAGE, beim Laden gebaut. Die Fragezeichen
+   entstehen aus der GESCHLOSSENEN Liste und nie aus einer Anfrage; die Werte
+   werden gebunden und nicht in den String geschrieben (Stolperstein 119). */
+const qProtokollGruppe = Object.fromEntries(Object.entries(PROTOKOLL_GRUPPEN).map(([k, arten]) =>
+  [k, db.prepare(`${PROT_SPALTEN} WHERE p.was IN (${arten.map(() => '?').join(',')})` +
+                 ' ORDER BY p.id DESC LIMIT ?')]));
 const qProtokollZahl = db.prepare('SELECT COUNT(*) n FROM sicherheitsprotokoll');
-function leseProtokoll(grenze = PROTOKOLL_GRENZE) {
+const qProtokollJeArt = db.prepare('SELECT was, COUNT(*) n FROM sicherheitsprotokoll GROUP BY was');
+
+/* WELCHE GRUPPE WIE VIELE ZEILEN HAT -- die Zahlen an den Filterpillen. Sie
+   zaehlen ueber die GANZE Tabelle und nicht ueber die geholten hundert: eine
+   Zahl, die nur ihren eigenen Ausschnitt zaehlt, sagt genau das nicht, was man
+   von ihr wissen will. */
+function protokollZahlen() {
+  const jeArt = Object.fromEntries(qProtokollJeArt.all().map(z => [z.was, z.n]));
+  const raus = { alle: 0 };
+  for (const [k, arten] of Object.entries(PROTOKOLL_GRUPPEN))
+    raus[k] = arten.reduce((n, a) => n + (jeArt[a] || 0), 0);
+  raus.alle = Object.values(jeArt).reduce((n, x) => n + x, 0);
+  return raus;
+}
+
+/* `gruppe` ist ein Schluessel aus PROTOKOLL_GRUPPEN oder null fuer alle. Ein
+   unbekannter Wert wird HIER nicht abgefangen -- die Route weist ihn ab, denn
+   ein stillschweigendes "dann eben alles" saehe aus wie ein Erfolg. */
+function leseProtokoll(grenze = PROTOKOLL_GRENZE, gruppe = null) {
+  const zeilen = gruppe
+    ? qProtokollGruppe[gruppe].all(...PROTOKOLL_GRUPPEN[gruppe], grenze)
+    : qProtokoll.all(grenze);
+  const zahlen = protokollZahlen();
   return {
-    zeilen: qProtokoll.all(grenze),
-    gesamt: qProtokollZahl.get().n,
+    zeilen,
+    // Die Zahl der Zeilen DIESER Ansicht -- sonst stuende unter einer
+    // gefilterten Liste die Gesamtzahl aller Vorgaenge und widerspraeche ihr.
+    gesamt: gruppe ? zahlen[gruppe] : qProtokollZahl.get().n,
+    zahlen,
+    gruppe: gruppe || null,
     tage: PROTOKOLL_TAGE,
     grenze
   };
@@ -1583,7 +1638,7 @@ module.exports = {
   zaehleAnfragen, raeumeAnfragenAuf,
   legeAnfrageAn, bestaetigeAnfrage, listeAnfragen, holeAnfrage, entferneAnfrage,
   // Das Sicherheitsprotokoll; Rufer sind server.js und zugang.js.
-  VORGAENGE, MERKMALE, PROTOKOLL_TAGE, PROTOKOLL_GRENZE, VOM_WIRT,
+  VORGAENGE, MERKMALE, PROTOKOLL_TAGE, PROTOKOLL_GRENZE, PROTOKOLL_GRUPPEN, VOM_WIRT,
   protokolliere, raeumeProtokollAuf, leseProtokoll,
   // Die zweite Bestaetigung.
   BESTAETIGUNG_ZWECKE, FREIGABE_MS, erzeugeFreigabe, verbraucheFreigabe, verwirfFreigabe,

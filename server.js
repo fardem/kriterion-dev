@@ -1034,7 +1034,17 @@ app.post('/api/bestaetigung', async (req, res) => {
    ZWEITE AUFRUFSTELLE DES AUFRAEUMENS; die erste steht beim Start. */
 app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
   auth.raeumeProtokollAuf();
-  res.json(auth.leseProtokoll());
+  /* DIE AUSWAHL GEHT AN DEN SERVER und nicht an den Browser: die Karte holt
+     die hundert JUENGSTEN Zeilen, und darin findet man die gescheiterten
+     Anmeldungen nicht -- sie stehen zwischen allem anderen. Mit der Auswahl
+     sind es die hundert juengsten DIESER Art.
+     EIN UNBEKANNTER SCHLUESSEL IST EIN 400 und nicht stillschweigend "alles":
+     ein Tippfehler saehe sonst aus wie ein Erfolg.
+     LESEND WIE VORHER -- F_ROUTEN bleibt bei 69. */
+  const gruppe = req.query.gruppe;
+  if (gruppe !== undefined && !Object.prototype.hasOwnProperty.call(auth.PROTOKOLL_GRUPPEN, gruppe))
+    return res.status(400).json({ error: 'Diese Ansicht gibt es nicht.' });
+  res.json(auth.leseProtokoll(auth.PROTOKOLL_GRENZE, gruppe));
 });
 
 /* ---- Zugaenge verwalten ----
