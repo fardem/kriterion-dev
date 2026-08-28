@@ -4796,7 +4796,8 @@ app.listen(PORT, () => {
       // Widerspruch, aber kein Verlust: ein falscher Link ist ein toter Link.
       // Eine Absage waere hier haerter als der Schaden.
       console.warn('[Kriterion] Hinter einem Proxy und trotzdem http:// in ' +
-        'OEFFENTLICHE_ADRESSE — der Cookie traegt Secure, ueber http kommt niemand herein.');
+        'OEFFENTLICHE_ADRESSE — verschickte Links fuehren dann am Proxy vorbei ' +
+        'und ohne HTTPS ins Haus.');
     }
   } else {
     console.log('[Kriterion] Oeffentliche Adresse: nicht gesetzt — ' +
