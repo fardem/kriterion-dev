@@ -125,8 +125,9 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 ## 2. Betriebsstand
 
 **Gebaut ist 0.12.0** — Fingerprint **`192734a2`**, **3848 Prüfungen**, **sechs
-Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8). **KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein
-Migrationscode; es bleibt bei **fünf** markierten Migrationsblöcken. *Die
+Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
+**KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein Migrationscode; es
+bleibt bei **fünf** markierten Migrationsblöcken. *Die
 Sicherung des Datenverzeichnisses ist deshalb Empfehlung und nicht Pflicht.*
 Was die Runde bringt, steht in Abschnitt 9.
 
@@ -144,17 +145,25 @@ ist bei 1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe wie unter 0.11.0;
 die einzige gewollte Abweichung sind zwei Pixel im Kommentarblock
 (Änderungsprotokoll 0.12.0, Befund C).
 
-**Ob 0.11.0 und 0.12.0 im Feld laufen, steht noch aus.** Für 0.11.0 ist es der
-Rundlauf von Hand — nach einem Kommentartext suchen, eine Ansicht speichern und
-nach dem Abmelden wieder wählen, einen Doppeleintrag antippen und die Zeile
-„Ähnlich" sehen. **Für 0.12.0 kommt eines dazu, das nur ein echtes Gerät
-beantwortet:** die Anlage einmal auf einem Telefon und einmal auf einem Tablett
-öffnen. *Gemessen wurde in einem Browser mit Geräteemulation — das ist nicht
-dasselbe wie ein Finger auf Glas.* Die Ergebnisse gehören hierher
-(Abschnitt 8).
+**IM FELD BESTÄTIGT IST 0.12.0.** Die Runde ist eingespielt, und die laufende
+Anlage meldet denselben Fingerprint wie der Branch: **`192734a2`**. *Der
+Dateisatz auf dem Wirt ist damit genau der, der gemeint war — einen Befund wie
+bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es nicht.*
 
-**IM FELD BESTÄTIGT IST 0.10.0** — die laufende Anlage meldete denselben
-Fingerprint wie der Branch (`dc8c16f7`), und der zweite Faktor tut, was er soll.
+**Was noch aussteht, sind die Rundläufe von Hand.** Der Fingerprint sagt, dass
+die richtigen Dateien liegen; er sagt nichts darüber, ob sich die Anlage
+bedienen lässt. Für **0.11.0** sind es drei Handgriffe — nach einem
+Kommentartext suchen, eine Ansicht speichern und nach dem Abmelden wieder
+wählen, einen Doppeleintrag antippen und die Zeile „Ähnlich" sehen. **Für
+0.12.0 kommt einer dazu, den nur ein echtes Gerät beantwortet:** die Anlage
+einmal auf einem Telefon und einmal auf einem Tablett öffnen. *Gemessen wurde in
+einem Browser mit Geräteemulation, und die stimmt in Maßen und Medienregeln —
+sie sagt nichts darüber, wie sich ein Finger auf Glas anfühlt.* Die Ergebnisse
+gehören hierher (Abschnitt 8).
+
+**Und 0.10.0 war davor im Feld bestätigt** — die laufende Anlage meldete
+denselben Fingerprint wie der Branch (`dc8c16f7`), und der zweite Faktor tut,
+was er soll.
 **Der Mailversand aus 0.9.0 ist ebenfalls bestätigt** (die erste echte
 Einladungsmail kam an, Absender und Link stimmten, der Rumpf stand als reiner
 Text da). **Und bei 0.9.1 hat sich der Fingerprint zum ersten Mal bezahlt
@@ -4367,13 +4376,13 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   wurde in einem Browser mit Geräteemulation, und die stimmt in Maßen und
   Medienregeln; sie sagt nichts darüber, wie sich ein Finger auf Glas anfühlt.*
   Die Ergebnisse gehören in Abschnitt 2.
-- **Die Fingerprints der laufenden Anlage sind zu vergleichen.** Für 0.11.0 muss
-  er `74c44ec0` sein, für 0.12.0 **`192734a2`**. Drei Dateien in `public/` und
-  die `package.json` sind andere geworden; der Wert **musste** sich bewegen.
-  *Genau dort hat sich bei 0.9.1 eine Datei zu viel gezeigt (Stolperstein 158).*
+- ~~**Der Fingerprint der laufenden Anlage ist zu vergleichen.**~~ **ERLEDIGT:**
+  die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
+  Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
+  ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
 - **DIE GEGENPROBE ZU 0.12.0 IST AUF DIE NEUEN ZUSAGEN BESCHRÄNKT.** Sechs
-  Rückbauten decken die tragenden davon ab; **der volle Lauf über alle 165
-  Rückbauten ist nicht gefahren** — er fährt den ganzen Prüflauf je Rückbau und
+  Rückbauten decken die tragenden davon ab, **und keiner blieb stumm**; **der
+  volle Lauf über alle 165 Rückbauten ist nicht gefahren** — er fährt den ganzen Prüflauf je Rückbau und
   hätte in der Arbeitsumgebung Stunden gebraucht. *Das ist eine Verengung
   gegenüber 0.11.0 (34 Gegenproben) und steht hier, damit sie nicht als
   vollständiger Lauf gelesen wird.* Das Ergebnis der fünf steht im

@@ -40,6 +40,11 @@ vergessen; und die normale Webansicht darf sich nicht verschlechtern.* **Es gibt
 deshalb keinen Abschnitt „Die Fragen aus dem Auftrag, beantwortet"** — es gab
 keine. Was statt dessen als Prüfung der Zusagen gilt, steht in Abschnitt 5.
 
+**IM FELD BESTÄTIGT.** Die Runde ist eingespielt, und die laufende Anlage meldet
+**`192734a2`** — denselben Wert, den der Branch misst. *Damit gibt es keinen
+Befund wie bei 0.9.1, wo sich eine Datei zu viel auf dem Wirt gezeigt hat
+(Stolperstein 158).*
+
 **0.12.0 — Fingerprint `192734a2`.** ZULETZT gebildet, nach der letzten Änderung
 an einer ausgelieferten Datei — die Versionsnummer in der `package.json`
 eingeschlossen, denn der Server lädt sie und sie zählt damit mit. *Er musste
@@ -410,16 +415,30 @@ Quelltext. *Der Prüflauf hätte es auch gefunden; der Browser war schneller.*
 ### Die Gegenprobe — sechs Rückbauten, und was sie NICHT decken
 
 **Ein Rückbau, der keine einzige Prüfung rot macht, ist ein Fund und kein
-Erfolg.** Sechs sind gefahren, auf die tragenden neuen Zusagen gerichtet:
+Erfolg.** Sechs sind gefahren, auf die tragenden neuen Zusagen gerichtet —
+**keiner blieb stumm:**
 
-| Nr. | Was zurückgebaut wird | Muss rot machen |
+| Nr. | Was zurückgebaut wird | Namentlich rot |
 |---|---|---|
-| 158 | `minmax(0, 1fr)` wird wieder `1fr` | Handy und Tablett |
-| 159 | die Bedingung in `app.js` läuft von der im Stylesheet weg | Handy und Tablett |
-| 160 | der Behälter des Menüs steht auch am breiten Schirm im Weg | Handy und Tablett |
-| 161 | `viewport-fit=cover` fällt weg | Handy und Tablett |
-| 162 | der Blätterpfeil verschwindet auf dem Finger wieder | Handy und Tablett |
-| 163 | das Menüzeichen fällt aus der Kopfzeile | Mehrbenutzer-Anzeigen |
+| 158 | `minmax(0, 1fr)` wird wieder `1fr` | „Die Spalte des Systembereichs darf auf null schrumpfen" |
+| 159 | die Bedingung in `app.js` läuft von der im Stylesheet weg | „Und das Stylesheet benutzt wörtlich dieselbe" |
+| 160 | der Behälter des Menüs steht auch am breiten Schirm im Weg | „Der Behälter des Menues ist auf dem breiten Schirm nicht da" **und** „Und seine Grundstellung steht VOR der Medienregel" |
+| 161 | `viewport-fit=cover` fällt weg | „Die Seite bekommt die ganze Fläche, Aussparung eingeschlossen" |
+| 162 | der Blätterpfeil verschwindet auf dem Finger wieder | „Ohne Überfahren ist .vnav sichtbar" |
+| 163 | der Name des Angemeldeten rutscht hinter das Abmelden | „Sie steht unmittelbar vor dem Knopf zum Abmelden" **und** „Darin stehen Offen, System, der Name und das Abmelden — in dieser Reihenfolge" |
+
+**UND EINER MUSSTE UMGEBAUT WERDEN, weil sein erster Anlauf den Lauf abgerissen
+hat.** Rückbau 163 nahm zuerst dem Menüzeichen seine Kennung. Damit gab
+`document.getElementById('menue')` null zurück und `menue.onclick = …` warf —
+**bevor eine einzige Zusicherung lief.** Die ganze Prüflage fiel zusammen, und
+der Bericht meldete „ABGERISSEN" statt eine Zeile rot zu färben. *Eine
+abgerissene Gegenprobe belegt nichts* (Stolpersteine 138, 161 und 170): sie
+sagt nicht, ob die Zusage geprüft ist, sie sagt nur, dass niemand mehr
+weiterzählen konnte.
+**Er greift jetzt da, wo die Zusicherung hinsieht** — er vertauscht in der
+Tafel zwei Kinder. Das wirft nichts und trifft zwei Zusagen auf einmal, darunter
+die ältere Zeile, dass die Angabe unmittelbar vor dem Knopf steht, den sie
+erklärt.
 
 **WAS SIE AUSDRÜCKLICH NICHT DECKEN, und das gehört genauso hierher:**
 
