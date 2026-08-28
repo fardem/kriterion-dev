@@ -4795,20 +4795,49 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   dem Pfad, der fremde Dateien annimmt und unter fremden Namen schreibt.** Eine
   eigene Runde mit eigener Prüflage, und keine Beifracht.
 
-- **DIE TAGS `v0.11.0` BIS `v0.12.4` SIND GESETZT, ABER NICHT GESCHOBEN.** Sie liegen auf den Commits, die herausgehen;
-  der Push scheitert in der Arbeitsumgebung mit `HTTP 403` — **Branches gehen
-  durch, Tags nicht.** Erneut versucht am 28. August 2026, dasselbe Bild. Sie
-  brauchen einen Push von einer Stelle mit den nötigen Rechten:
+- **DIE TAGS `v0.11.0` BIS `v0.12.4` FEHLEN AM REMOTE — UND DER GRUND STAND
+  BIS 0.12.4 FALSCH HIER.** Es ist **kein** Problem der GitHub-Rechte, und ein
+  „Push von einer Stelle mit den nötigen Rechten" ist nicht der Punkt.
+
+  **Nachgemessen am 28. August 2026, in einer Sitzung, am selben Commit:**
+
+  | Anfrage | Antwort |
+  |---|---|
+  | `GET /info/refs?service=git-receive-pack` | **200**, mit `X-Github-Request-Id` |
+  | `POST /git-receive-pack`, `refs/tags/…` *(beschriftet)* | **403** |
+  | `POST /git-receive-pack`, `refs/tags/…` *(leicht)* | **403** |
+  | `POST /git-receive-pack`, `refs/heads/…` | **200**, Branch angelegt |
+
+  **Die 403 trägt keinen einzigen GitHub-Header** — kein
+  `X-Github-Request-Id`, kein `Cache-Control`, nichts. *Die 200 davor trägt sie
+  alle.* **GitHub hat die Anfrage nie gesehen.** Sie wird vom Git-Proxy der
+  Arbeitsumgebung abgewiesen, in der Claude läuft, und die Klemme hängt allein
+  an der **Ref-Art**: `refs/heads/*` geht durch, `refs/tags/*` nicht. *Dass das
+  `info/refs` für `git-receive-pack` mit 200 antwortet, belegt zugleich, dass
+  das Schreibrecht am Repo besteht.*
+
+  **DARAUS FOLGT: DIE TAGS MÜSSEN VOM RECHNER DES BETREIBERS KOMMEN** — nicht
+  weil dort mehr Rechte lägen, sondern weil dort kein Proxy dazwischensteht.
+  Im eigenen Klon:
 
   ```bash
-  git push origin v0.11.0 v0.12.0 v0.12.1 v0.12.2 v0.12.3 v0.12.4
+  git fetch origin
+  git tag -a v0.11.0 e467a83 -m "Kriterion 0.11.0"
+  git tag -a v0.12.0 c8410a2 -m "Kriterion 0.12.0"
+  git tag -a v0.12.1 d15f501 -m "Kriterion 0.12.1"
+  git tag -a v0.12.2 c85e56e -m "Kriterion 0.12.2"
+  git push origin v0.11.0 v0.12.0 v0.12.1 v0.12.2
   ```
 
-  *Liegt ein Tag dort nicht mehr vor, entsteht er mit*
-  `git tag -a v0.12.2 <commit> -m "…"`. **Ohne sie zeigen die
-  Vergleichsverweise `[0.11.0]` bis `[0.12.2]` am Ende von `CHANGELOG.md` ins
+  **Diese vier liegen auf `main` und lassen sich sofort setzen.** `v0.12.3`
+  (`09873558`) und `v0.12.4` (`9f7b0f7f`) liegen bisher nur auf dem
+  Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
+  danach auf dieselben Commits; wer ihn quetscht, setzt sie auf die dabei
+  entstehenden — die alten sind von `main` aus dann nicht mehr erreichbar.*
+
+  **Ohne die Tags zeigen die Vergleichsverweise am Ende von `CHANGELOG.md` ins
   Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
-  *`v0.10.0` liegt am Remote und trägt; das Repo hat damit **achtzehn** Tags.*
+  *`v0.10.0` liegt am Remote und trägt.*
 - **DIE RUNDLÄUFE FÜR 0.11.0 UND 0.12.0 SIND NOCH NICHT GEFAHREN.** Für 0.11.0
   belegen drei Handgriffe die Runde am laufenden Server: **nach einem
   Kommentartext suchen** und den Eintrag finden; **eine Ansicht speichern,

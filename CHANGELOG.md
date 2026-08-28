@@ -1656,12 +1656,16 @@ nicht mehr übernehmen.*
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0`, `v0.12.0`,
-     `v0.12.1`, `v0.12.2`, `v0.12.3` UND `v0.12.4` sind angelegt, aber NICHT geschoben —
-     der Push scheitert in der Arbeitsumgebung an HTTP 403 (Branches gehen
-     durch, Tags nicht). Erneut versucht am 28. August 2026 mit demselben
-     Ergebnis. Solange das so ist, zeigen die sechs Verweise darunter ins
-     Leere. -->
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` bis `v0.12.4`
+     fehlen am Remote; solange das so ist, zeigen die Verweise darunter ins
+     Leere.
+     DER GRUND IST SEIT 0.12.4 BEKANNT UND WAR VORHER FALSCH NOTIERT: es ist
+     KEIN Problem der GitHub-Rechte. Der Git-Proxy der Arbeitsumgebung, in der
+     Claude laeuft, weist `POST /git-receive-pack` mit `refs/tags/*` mit 403
+     ab -- ohne einen einzigen GitHub-Header, GitHub sieht die Anfrage nie.
+     `refs/heads/*` geht durch dieselbe Route ohne weiteres durch.
+     Die Tags muessen deshalb vom Rechner des Betreibers gesetzt werden; die
+     Befehle stehen im Projektstand, Abschnitt 8. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
 [0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0
 [0.12.0]: https://github.com/fardem/kriterion/compare/v0.11.0...v0.12.0

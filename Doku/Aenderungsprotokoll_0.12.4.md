@@ -421,8 +421,16 @@ Rundlauf, nicht an der Schnittstelle.
   woanders bekommt.*
 - **Der volle Gegenprobenlauf** über alle 195 Rückbauten steht seit fünf Runden
   aus. Die neun neuen sind auf Vorhandensein geprüft, aber nicht gefahren.
-- **Der Git-Tag `v0.12.4`** wird angelegt; ob er sich schieben lässt, steht im
-  Betriebsstand — bei `v0.11.0` bis `v0.12.3` scheiterte es an `HTTP 403`.
+- **Der Git-Tag `v0.12.4` ist angelegt und lässt sich aus dieser Umgebung nicht
+  schieben — und in dieser Runde ist zum ersten Mal nachgemessen worden, warum.**
+  Es ist **kein** Problem der GitHub-Rechte: `GET /info/refs?service=git-receive-pack`
+  antwortet mit **200** samt `X-Github-Request-Id`, ein Branchpush auf denselben
+  Commit geht durch, und nur `POST /git-receive-pack` mit `refs/tags/*` bekommt
+  **403 — ohne einen einzigen GitHub-Header.** *GitHub sieht die Anfrage nie;
+  der Git-Proxy der Arbeitsumgebung weist sie ab, und zwar nach der Ref-Art.*
+  **Die Befehle für den Rechner des Betreibers stehen im Projektstand,
+  Abschnitt 8.** *Bis 0.12.3 stand hier „Push von einer Stelle mit den nötigen
+  Rechten" — das war die falsche Diagnose und hat fünf Runden lang gehalten.*
 - **Die Zahl der Teile bei echtem Bestand ist noch nicht gesehen.** Bei 760 MB
   und 300 MB je Teil sollten es **drei** sein. *Das gehört nach dem Einspielen
   abgelesen und hier nachgetragen — zusammen mit der Antwort auf die eine
