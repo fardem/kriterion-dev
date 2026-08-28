@@ -15115,9 +15115,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* DIE GRENZEN GEHEN MIT. Ohne sie muesste die Oberflaeche 300 MB und die
      Stringgrenze selbst kennen -- und dann staende dieselbe Zahl an zwei
      Orten und liefe irgendwann auseinander. */
-  pruefe('Und beide Grenzen dazu, damit die Oberflaeche sie nicht selbst kennt',
-    exStats?.export?.warnAb === 300 * 1024 * 1024 && exStats?.export?.grenze > 4e8,
-    JSON.stringify({ warnAb: exStats?.export?.warnAb, grenze: exStats?.export?.grenze }));
+  pruefe('Und alle drei Grenzen dazu, damit die Oberflaeche sie nicht selbst kennt',
+    exStats?.export?.warnAb === 300 * 1024 * 1024 && exStats?.export?.grenze > 4e8 &&
+    exStats?.export?.string === require('buffer').constants.MAX_STRING_LENGTH,
+    JSON.stringify(exStats?.export && { warnAb: exStats.export.warnAb,
+      grenze: exStats.export.grenze, string: exStats.export.string }));
+  /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen: wo
+     gewarnt wird, wo abgesagt wird, und wie lang ein Text ueberhaupt werden
+     kann. Nur die letzte ist eine Tatsache; die beiden anderen sind
+     Entscheidungen. */
+  pruefe('Und sie stehen in dieser Ordnung: warnen, absagen, Tatsache',
+    exStats?.export?.warnAb < exStats?.export?.grenze &&
+    exStats?.export?.grenze < exStats?.export?.string,
+    JSON.stringify(exStats?.export && [exStats.export.warnAb, exStats.export.grenze, exStats.export.string]));
   pruefe('Der Warnwert liegt deutlich unter der Grenze — das ist die Luft der Schaetzung',
     exStats?.export?.warnAb < exStats?.export?.grenze * 0.75,
     `${exStats?.export?.warnAb} gegen ${exStats?.export?.grenze}`);
@@ -25606,7 +25616,7 @@ async function pruefeOberflaeche() {
   const MB = 1024 * 1024;
   const exKlein = { umschlag: 1 * MB, fotos: 10 * MB, videos: 4 * MB,
                     anhaenge: 2 * MB, kommentarbilder: 1 * MB,
-                    warnAb: 300 * MB, grenze: 483183799 };
+                    warnAb: 300 * MB, grenze: 483183799, string: 536870888 };
   const dEx = await exBau(exKlein);
   const exW = dEx.w;
   const exText = (id) => exW.document.getElementById(id)?.textContent || '';
@@ -25680,7 +25690,7 @@ async function pruefeOberflaeche() {
      nichts: eine Warnung, die es gar nicht gibt, faellt auch nicht auf. */
   const exGross = { umschlag: 20 * MB, fotos: 900 * MB, videos: 200 * MB,
                     anhaenge: 400 * MB, kommentarbilder: 10 * MB,
-                    warnAb: 300 * MB, grenze: 483183799 };
+                    warnAb: 300 * MB, grenze: 483183799, string: 536870888 };
   const dExG = await exBau(exGross);
   const exG = dExG.w;
   const warnText = exG.document.getElementById('ex-warn')?.textContent || '';
@@ -25688,9 +25698,17 @@ async function pruefeOberflaeche() {
   pruefe('Sie nennt die erwartete Groesse',
     warnText.includes(exG.fmtBytes(920 * MB)), warnText.slice(0, 160));
   /* ZU NENNEN IST DIE ZAHL, BEI DER ES KIPPT -- nicht die, bei der es
-     unbequem wird. Der Schwellwert steht in keiner Meldung. */
+     unbequem wird. Und die ist NICHT unsere Marge, sondern Nodes Stringgrenze:
+     `grenze` ist die Zahl, ab der die Route absagt, und die traegt Luft fuer
+     die Schaetzung. **Eine Meldung, die unsere Marge als Tatsache ausgibt,
+     sagt die Unwahrheit** -- ein Text kann sehr wohl groesser werden als
+     460,8 MB, nur eben nicht groesser als 512. Der Schwellwert und die Marge
+     stehen in keiner Meldung. */
   pruefe('Und die Grenze, an der es wirklich kippt',
-    warnText.includes(exG.fmtBytes(exGross.grenze)), warnText.slice(0, 200));
+    warnText.includes(exG.fmtBytes(exGross.string)), warnText.slice(0, 220));
+  pruefe('Und zwar Nodes Stringgrenze und nicht unsere Marge davor',
+    !warnText.includes(exG.fmtBytes(exGross.grenze)) &&
+    !warnText.includes(exG.fmtBytes(exGross.warnAb)), warnText.slice(0, 220));
   pruefe('Sie verweist auf die Sicherung als den anderen Weg',
     /Sicherung/.test(warnText), warnText.slice(0, 200));
   /* GEWARNT WIRD, VERWEIGERT NICHT. Ein Knopf, der bei einer SCHAETZUNG

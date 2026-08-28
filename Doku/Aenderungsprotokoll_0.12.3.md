@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.12.3 — „Der Export sagt Bescheid, und die Anzeige zieht nach"
 
-**Version 0.12.3 · gebaut am 28. August 2026 · Fingerprint `b635dd98` ·
+**Version 0.12.3 · gebaut am 28. August 2026 · Fingerprint `0d04b540` ·
 Erste Runde aus dem neuen Fahrplan · KEINE Datenbankstufe, kein
 Migrationsblock, keine neue Formatnummer, keine neue Zeile in der `.env`,
 keine neue Abhängigkeit**
@@ -487,17 +487,25 @@ Testtag.** Das Telefon ist vierfach gedrosselt (`Emulation.setCPUThrottlingRate`
 sonst misst ein Wirt mit vier Kernen etwas, das kein Telefon je erlebt. Sieben
 Läufe je Lage, Mittelwert:
 
-| Schirm | | Layout | Stil | erzwungenes Layout |
+| Schirm | | Layout | Stil | erzwungenes Layout *(Median / Ausschlag)* |
 |---|---|---:|---:|---:|
-| **Telefon** 390 × 844, 4× | ohne | **397 ms** | 563 ms | bis 72 ms |
-| | mit | **168 ms** | 462 ms | 0–1 ms |
-| **Desktop** 1440 × 900 | ohne | 88 ms | 141 ms | 13 ms |
-| | mit | 78 ms | 191 ms | 18 ms |
+| **Telefon** 390 × 844, 4× | ohne | **397 ms** | 563 ms | 0 ms / **72 ms** |
+| | mit | **168 ms** | 462 ms | 0 ms / 1 ms |
+| **Desktop** 1440 × 900 | ohne | 88 ms | 141 ms | 13 ms / 15 ms |
+| | mit | 78 ms | 191 ms | 18 ms / 22 ms |
 
-**AUF DEM TELEFON HALBIERT SICH DIE AUFBAUZEIT** — 397 auf 168 ms, und ein
-erzwungenes Layout kostet danach nichts mehr statt bis zu 72 ms. Ein zweiter
+*Layout, Stil und Skript sind kumulativ seit dem Laden der Seite und kommen aus
+`Performance.getMetrics` über CDP; das erzwungene Layout ist ein eigener
+`offsetHeight` am Raster, unmittelbar nachdem die Kacheln im Dokument stehen.*
+
+**AUF DEM TELEFON HALBIERT SICH DIE AUFBAUZEIT** — 397 auf 168 ms. Ein zweiter
 Lauf mit fünf Runden kam auf 361 → 186 ms; die Richtung ist in beiden dieselbe
 und der Abstand deutlich größer als die Streuung.
+**Und der Ausschlag beim erzwungenen Layout ist die zweite Hälfte des
+Befundes:** ohne die Regel kostete einer von sieben Läufen 72 ms an einer
+einzigen Stelle, mit ihr keiner mehr als eine Millisekunde. *Der Median sagt
+dazu nichts — genau solche einzelnen Spitzen sind es, die man auf dem Gerät als
+Hänger bemerkt.*
 
 **AM DESKTOP ÄNDERT SICH IM RAUSCHEN NICHTS**, und beim Stil kostet es sogar
 etwas (141 → 191 ms). *Das ist kein Widerspruch, sondern die Erwartung:* wo
@@ -530,11 +538,11 @@ Version in den Kennzahlen und ist dort abzulesen; siehe
 
 | | vorher | nachher |
 |---|---:|---:|
-| Prüfungen | **3856** | **3952** |
-| davon grün | 3855 | **3952** |
+| Prüfungen | **3856** | **3954** |
+| davon grün | 3855 | **3954** |
 
 *3946 nach dem Bauen, 3952 nach dem Schließen der drei Funde aus den
-Gegenproben (Abschnitt 10).*
+Gegenproben (Abschnitt 10), 3954 nach der Durchsicht am Ende (unten).*
 
 **Der Branch kam mit einer roten Prüfung an, und sie stand nicht im Auftrag.**
 Der Sprachwächter fand in `Doku/Fehler_und_Ideen.md:618` das Wort
@@ -733,6 +741,21 @@ Bedingung dafür, dass `npm test` gegen diesen Stand grün läuft.*
 
 **7. Die Beschriftung am zweiten Faktor stand nicht im Auftrag.** Sie kam aus
 dem Gespräch, während gebaut wurde; siehe [Abschnitt 5](#5-der-elfte-punkt-die-beschriftung-am-zweiten-faktor).
+
+**8. Drei Grenzen statt zwei — aus einer Durchsicht am Ende der Runde.** Die
+Warnung an der Karte nannte zunächst `AUSTAUSCH_MAX` als die Zahl, „ab der es
+kippt". **Das ist falsch, und es fiel erst beim Nebeneinanderlegen der Texte
+auf:** `AUSTAUSCH_MAX` ist *unsere Marge* (90 % der Stringgrenze, mit Luft für
+die Schätzung), während die Route in ihrer Meldung 512 MB nannte — *dieselbe
+Sache, zwei Zahlen.* **Ein Text kann sehr wohl größer werden als 460,8 MB, nur
+eben nicht größer als 512.**
+`/api/stats` liefert deshalb jetzt **drei** Werte: `warnAb` (wo gewarnt wird),
+`grenze` (wo abgesagt wird) und `string` (wie lang ein Text in Node überhaupt
+werden kann). **Genannt wird in jeder Meldung die letzte** — sie ist die
+einzige, die eine Tatsache ist; die beiden anderen sind Entscheidungen. *Und
+die getippte 512 ist damit auch aus den beiden Serverantworten verschwunden,
+die Einzelexport-Absage eingeschlossen: die Zahl kommt aus Node und steht an
+einem Ort.*
 
 ---
 

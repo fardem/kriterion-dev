@@ -130,7 +130,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.12.3** — Fingerprint **`b635dd98`**, **3952 Prüfungen**,
+**Gebaut ist 0.12.3** — Fingerprint **`0d04b540`**, **3954 Prüfungen**,
 **zwölf Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
 *0.12.3 ist die erste Runde aus dem Fahrplan: der Export sagt seine Größe an,
 und neun Punkte an der Oberfläche ziehen nach.* **PATCH — nichts kommt hinzu,
@@ -183,7 +183,7 @@ einen Befund wie bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es
 nicht.* **Davor war es 0.12.0** mit `192734a2`.
 
 > **FÜR 0.12.3 STEHT DIE BESTÄTIGUNG NOCH AUS**, und sie hat diesmal eine Zahl
-> im Gepäck: der Fingerprint des Branches ist **`b635dd98`**, und die Karte
+> im Gepäck: der Fingerprint des Branches ist **`0d04b540`**, und die Karte
 > **Kennzahlen** trägt neu die Zeile **„Export, alles"**. *Beides gehört beim
 > ersten Öffnen abgelesen — der Fingerprint gegen den Wert oben, die
 > Exportgröße gegen 512 MB.*
@@ -2074,9 +2074,12 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   Nebentabelle; es gibt keine, die ohne auskommt.
 - **Die Größe wird ANGESAGT, bevor sie gebaut wird — und zwar an beiden Enden**
   (seit 0.12.3). Zwei Zahlen mit zwei Aufgaben, und sie dürfen nicht dieselbe
-  sein: `AUSTAUSCH_MAX` (`MAX_STRING_LENGTH × 0,9`) ist **gemessen** und sagt,
-  wo der String zerbricht; `AUSTAUSCH_WARN` (**300 MB**) ist **geschätzt** und
-  sagt, wo jemand besser die Sicherung nimmt. **Die Luft dazwischen ist der
+  sein — genauer: **drei**. `AUSTAUSCH_STRING` (`MAX_STRING_LENGTH`, rund
+  512 MB) ist die **Tatsache**: so lang kann ein Text in Node überhaupt werden.
+  `AUSTAUSCH_MAX` (90 % davon) ist die **Marge**, ab der die Route absagt;
+  `AUSTAUSCH_WARN` (**300 MB**) ist der **Warnwert**, ab dem ein Hinweis steht.
+  **Genannt wird in jeder Meldung die erste** — eine Meldung, die unsere Marge
+  als Tatsache ausgibt, sagt die Unwahrheit. **Die Luft dazwischen ist der
   Preis der Schätzung** — sie deckt den Umschlag, die Base64-Rundung und den
   Text, den keine Blob-Spalte trägt. *Gewarnt wird an der Karte, abgesagt wird
   an der Route, und abgesagt wird VOR dem Bau: ein Knopf, der nach zwei Minuten
@@ -4303,7 +4306,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 3952 von 3952 bestanden** (0.12.3) — **96 neue Prüfungen**, davon zwei
+**Stand: 3954 von 3954 bestanden** (0.12.3) — **98 neue Prüfungen**, davon zwei
 neue Gruppen („Die Exportgröße sagt sich an", „Die Anzeige zieht nach — 0.12.3")
 und Erweiterungen in vier vorhandenen. Die Gegenproben stehen in Abschnitt 8:
 sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf
@@ -4669,7 +4672,7 @@ eine Buchführung.*
 | 0.12.0 | Telefon und Tablett (33) | 6, nur auf die neuen Zusagen | Stolpersteine 173 bis 176 |
 | 0.12.1 | Der Papierkorb wandert ans große Bild (3) | 2, nur auf die neuen Zusagen | Stolpersteine 177 bis 179 |
 | 0.12.2 | Die Kachelreihe füllt die Breite (5) | 5, nur auf die neuen Zusagen | Stolpersteine 180 und 181 |
-| **0.12.3** | **Exportgröße und neun Anzeigepunkte (96)** | **12, nur auf die neuen Zusagen** | **Stolpersteine 182 bis 186; drei Rückbauten deckten Lücken auf** |
+| **0.12.3** | **Exportgröße und neun Anzeigepunkte (98)** | **12, nur auf die neuen Zusagen** | **Stolpersteine 182 bis 186; drei Rückbauten deckten Lücken auf** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -4952,7 +4955,7 @@ dasselbe Feld nimmt auch einen Wiederherstellungscode entgegen, und der kommt
 von einem Zettel.*
 
 **Kein Schema, keine Formatnummer, keine `.env`-Zeile, keine Abhängigkeit,
-`F_ROUTEN` unverändert bei 69.** 3856 → **3952 Prüfungen**, 172 → **184
+`F_ROUTEN` unverändert bei 69.** 3856 → **3954 Prüfungen**, 172 → **184
 Rückbauten**. *Drei Rückbauten haben Lücken im Prüfstand aufgedeckt; alle drei
 sind im selben Zug geschlossen worden.*
 

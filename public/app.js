@@ -5715,7 +5715,7 @@ async function renderSystem() {
       kasten.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
         <strong>Export mit Fotos: rund ${esc(fmtBytes(mit))}.</strong>
         Eine Exportdatei ist ein einziger Text, und der kann nicht größer als
-        ${esc(fmtBytes(ex.grenze))} werden — ${auchOhne
+        ${esc(fmtBytes(ex.string))} werden — ${auchOhne
           ? `auch ohne Fotos bleiben noch rund ${esc(fmtBytes(ohne))}.`
           : `ohne Fotos bleiben rund ${esc(fmtBytes(ohne))}.`}
         <p style="margin:9px 0 0">Für eine vollständige Kopie ist die Karte
@@ -6755,7 +6755,7 @@ async function renderSystem() {
 async function importGroesseGeprueft(file, grenzen) {
   const warnAb = grenzen && grenzen.warnAb;
   if (!warnAb || file.size <= warnAb) return true;
-  const grenze = grenzen.grenze;
+  const grenze = grenzen.string;
   return confirmBox('Diese Datei ist sehr groß',
     `Die Datei misst ${fmtBytes(file.size)}. Zum Einspielen wird sie als ein einziger Text ` +
     `gelesen, und der kann nicht größer als ${fmtBytes(grenze)} werden — darüber bricht der ` +

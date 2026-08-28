@@ -3174,7 +3174,14 @@ app.get('/api/stats', nurAdmin, (req, res) => {
     export: {
       umschlag: austauschUmschlagBytes(null),
       ...austauschTeile(null, { mitFotos: true, mitDateien: true, mitVideos: true }),
-      warnAb: AUSTAUSCH_WARN, grenze: AUSTAUSCH_MAX
+      /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen:
+         `warnAb`  ab hier steht ein Hinweis -- geschaetzt, nimmt nichts weg.
+         `grenze`  ab hier sagt die Route ab -- unsere Marge, mit Luft davor.
+         `string`  so lang kann ein Text in Node ueberhaupt werden -- gemessen.
+         GENANNT WIRD IN JEDER MELDUNG DIE LETZTE. Die beiden anderen sind
+         unsere Entscheidungen; nur `string` ist eine Tatsache, und eine
+         Meldung, die unsere Marge als Tatsache ausgibt, sagt die Unwahrheit. */
+      warnAb: AUSTAUSCH_WARN, grenze: AUSTAUSCH_MAX, string: AUSTAUSCH_STRING
     },
     itemCount: db.prepare('SELECT COUNT(*) n FROM items').get().n,
     commentCount: db.prepare('SELECT COUNT(*) n FROM comments').get().n,
@@ -3218,7 +3225,8 @@ const AUSTAUSCH_FORMAT = 10;
 // Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
 // hier und nicht als Zahl im Rumpf: der Wert kommt aus Node und nicht aus
 // einer Schaetzung.
-const AUSTAUSCH_MAX = Math.floor(require('buffer').constants.MAX_STRING_LENGTH * 0.9);
+const AUSTAUSCH_STRING = require('buffer').constants.MAX_STRING_LENGTH;
+const AUSTAUSCH_MAX = Math.floor(AUSTAUSCH_STRING * 0.9);
 
 /* Der Wert, ab dem die Anlage WARNT -- deutlich unter der Grenze, an der sie
    ABSAGT. Die beiden Zahlen haben verschiedene Aufgaben und duerfen deshalb
@@ -3524,8 +3532,9 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
   if (gross > AUSTAUSCH_MAX)
     return res.status(413).json({ error:
       `Dieser Export wäre rund ${Math.round(gross / 1048576)} MB groß. Eine Exportdatei ist ` +
-      `ein einziger Text, und der kann nicht größer als 512 MB werden. Nimm die Sicherung — ` +
-      `sie schreibt den ganzen Bestand und braucht dafür keinen nennenswerten Arbeitsspeicher.` });
+      `ein einziger Text, und der kann nicht größer als ${Math.round(AUSTAUSCH_STRING / 1048576)} MB ` +
+      `werden. Nimm die Sicherung — sie schreibt den ganzen Bestand und braucht dafür keinen ` +
+      `nennenswerten Arbeitsspeicher.` });
   const lage = paketLage(req.benutzer.id, schalter);
   const items = db.prepare('SELECT * FROM items ORDER BY id').all().map(it => eintragAlsPaket(it, lage));
   auth.protokolliere('export', { wer: req.benutzer.id });
@@ -3542,8 +3551,9 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
     res.removeHeader('Content-Disposition');
     res.status(413).json({ error:
       `Dieser Export ist zu groß geworden. Eine Exportdatei ist ein einziger Text, und der ` +
-      `kann nicht größer als 512 MB werden. Nimm die Sicherung — sie schreibt den ganzen ` +
-      `Bestand und braucht dafür keinen nennenswerten Arbeitsspeicher.` });
+      `kann nicht größer als ${Math.round(AUSTAUSCH_STRING / 1048576)} MB werden. Nimm die ` +
+      `Sicherung — sie schreibt den ganzen Bestand und braucht dafür keinen nennenswerten ` +
+      `Arbeitsspeicher.` });
   }
 });
 
@@ -3563,7 +3573,7 @@ app.get('/api/items/:id/export', nurEigentuemer, (req, res) => {
   if (gross > AUSTAUSCH_MAX)
     return res.status(413).json({ error: `Dieser ${vokabular().sacheEinzahl} ist als Datei zu groß ` +
       `(rund ${Math.round(gross / 1048576)} MB). Eine Exportdatei ist ein einziger Text, und der kann ` +
-      `nicht größer als 512 MB werden.` });
+      `nicht größer als ${Math.round(AUSTAUSCH_STRING / 1048576)} MB werden.` });
   const paket = eintragAlsPaket(it, paketLage(req.benutzer.id, schalter));
   res.set('Content-Disposition', `attachment; filename="${exportName('-' + it.id)}"`);
   res.json(exportUmschlag([paket]));

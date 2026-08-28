@@ -79,7 +79,9 @@ aufgefallen sind, sind richtiggestellt.
   Aufstellung, die erklären soll, wovon die Datenbank so groß ist.
 - **Ein Hinweis an der Exportkarte ab 300 MB**, mit Verweis auf die Sicherung
   als den anderen Weg. **Gewarnt wird, verweigert nicht** — die Zahl ist eine
-  Schätzung, und wer weiß, was er tut, soll es versuchen dürfen.
+  Schätzung, und wer weiß, was er tut, soll es versuchen dürfen. *Genannt wird
+  im Hinweis die Zahl, bei der es wirklich kippt: 512 MB, Nodes Grenze für einen
+  einzelnen Text.*
 - **Der Import fragt vor dem Einlesen nach**, wenn die Datei sehr groß ist.
   Dort steht die Größe ja vorher fest.
 - **Ein Sprungknopf `+ Kommentar`** im Kopf des Kommentarblocks. Bei vierzig

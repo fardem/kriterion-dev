@@ -1243,7 +1243,7 @@ Listen.
   **Die Karte nennt die erwartete Dateigröße, bevor der Knopf gedrückt wird**,
   und die Zahl folgt den Häkchen. Ab **300 MB** steht ein Hinweis darunter:
   eine Exportdatei ist ein **einziger Text**, und der kann nicht größer als
-  512 MB werden. **Gewarnt wird, verweigert nicht** — die Zahl ist eine
+  512 MB werden — das ist Nodes Grenze für einen String und keine Einstellung. **Gewarnt wird, verweigert nicht** — die Zahl ist eine
   Schätzung, und wer weiß, was er tut, soll es versuchen dürfen. Wird sie
   wirklich gerissen, sagt die Anlage ab, **bevor** sie anfängt zu bauen,
   statt nach zwei Minuten mit einem Speicherfehler abzubrechen. Für eine
