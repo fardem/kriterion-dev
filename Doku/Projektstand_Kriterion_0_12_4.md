@@ -5438,7 +5438,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT — und im Feld hat sich der Punkt als eingetretener Fehler bestätigt: 760 MB gegen 512.** Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
 | **0.13.0** | Zwei Netze, ein Zugang | `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu die gescheiterten Anmeldungen im Protokoll auffindbar, die Zeile für CrowdSec, und zwei Handgriffe an gelöschten Zugängen. *MINOR.* **Kein Schema** | nein | — |
 | **0.14.0** | Die Entscheidung wird mitgeschrieben | `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie muss vor die Bereinigung** | ja, **sechster Block** | 10 → 11 |
-| **0.15.0** | Der Systembereich, die Glocke und die Auskunft | Neunzehn Karten werden Abschnitte mit eigener Adresse, `renderSystem()` wird dabei zerlegt. Dazu die Glocke mit dem Punkt, der Zähler „Offen 7" und die Gewichtung, die sich selbst erklärt. *MINOR.* **Die größte Umbaufläche des Plans** | nein | — |
+| **0.15.0** | Der Systembereich, die Glocke und die Auskunft | Neunzehn Karten werden Abschnitte mit eigener Adresse, `renderSystem()` wird dabei zerlegt. Dazu die Glocke mit dem Punkt, der Zähler „Offen 7" und die Gewichtung, die sich selbst erklärt. **Und aus dem Betrieb: Löschen in der Zoomansicht.** *MINOR.* **Die größte Umbaufläche des Plans** | nein | — |
 | **0.16.0** | Die Suche wird nachvollziehbar | Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
 | **0.17.0** | Bereinigung — der Bruch | *(War als 0.13.0 vorgemerkt.)* Migrationscode raus — **jetzt sechs Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 
@@ -6076,6 +6076,9 @@ gehört das Feld sichtbar in den Dialog und nicht in eine Nebenansicht.
 ### 0.15.0 — „Der Systembereich, die Glocke und die Auskunft" · *MINOR*
 
 **Ausgearbeitet aus dem Sammelblatt:** Nr. 10, Nr. 4, Nr. 11, Nr. 16
+**Dazu ein Punkt, der nicht aus dem Sammelblatt kommt:** Löschen in der
+Zoomansicht, aus dem Betrieb am 28. August 2026 — *hierher gelegt, weil 0.13.0
+mit sechs Punkten voll war und 0.14.0 als Schema-Runde keine Beifracht trägt.*
 
 
 #### Der Systembereich bekommt Abschnitte
@@ -6586,6 +6589,89 @@ ab dem Punkt, an dem jemand mitschreibt, mit dem man nicht täglich spricht.**
   ist etwas anderes und steht als Punkt 11 in Teil I.*
   *(Claude: empfohlen · Draußen üblich: ein Rechner zum Ausprobieren neben den
   Einstellungen, die er erklärt — nicht in einer Hilfeseite daneben)*
+
+---
+
+#### Löschen in der Zoomansicht
+
+*(aus dem Betrieb, nicht aus dem Sammelblatt)*
+
+**Aufgefallen im Betrieb, 28. August 2026.**
+
+> **Art: Verbesserung** · **Claude: empfohlen** — klein im Umfang, aber sie gibt
+> einer reinen Anzeige zum ersten Mal einen Schreibweg. *Draußen üblich: die
+> Vollbildansicht trägt dieselben Werkzeuge wie die Ansicht darunter — wer ein
+> Bild groß betrachtet, erwartet dort auch den Papierkorb.*
+
+### Woher
+
+Aus dem Betrieb. Der Wunsch, wörtlich: *„Desktopansicht: Löschen auch bei
+Zoom ansicht."* **Auf Nachfrage: auf dem Telefon ebenso.**
+
+### Was auffiel
+
+Die Zoomansicht (`openLightbox`, `public/app.js`) trägt oben genau drei Dinge —
+**Zähler, Lupe, Schließen**. Kein Löschen. Wer ein Bild groß betrachtet und es
+wegwerfen will, muss **schließen, es in der Reihe wiederfinden und dort
+löschen**.
+
+**Eine Vermutung aus dem Betrieb ist dabei zu berichtigen**, und der Unterschied
+ist der Kern des Punktes: *„das müssten wir beim Telefon schon eingebaut haben,
+da dort Löschen auf Thumbs aus Versehen passieren konnte."* **Der Ersatz ist
+gebaut, aber an einer anderen Stelle.** Als 0.12.1 das Kreuz von den
+Vorschaukacheln nahm, kam es an das **große Bild auf der Eintragsseite**
+(`.vweg`, 44 × 44 px auf dem Telefon) — nicht in die Zoomansicht. *Die
+Zoomansicht hat nie eine gehabt.* Auf dem Telefon ist `.vweg` damit heute der
+**einzige** Weg: `@media (hover: none)` blendet das Kreuz an den Kacheln ganz
+aus.
+
+### Was gebaut werden könnte
+
+**Ein Löschknopf in der Werkzeugleiste oben**, neben Lupe und Schließen, für das
+Bild, das gerade zu sehen ist. **Auf Desktop und Telefon** — auf dem Telefon ist
+er sogar mehr wert, weil es dort bisher nur einen Weg gibt.
+
+**AUF DIE VORSCHAULEISTE UNTEN GEHÖRT ER NICHT.** Das ist genau die Lehre aus
+0.12.1, und sie steht im Quelltext am `.vweg`-Knopf: auf einer Kachel von 62 px
+war das Kreuz 27 px groß — *„die Reihe las sich nicht mehr als vier Bilder,
+sondern als vier Löschknöpfe"*, und zwar in der Ecke, auf der der Daumen beim
+Wischen aufsetzt. **Oben gilt stattdessen die Regel, die dort schon steht: man
+löscht, was man ansieht.**
+
+### Was es nicht ist
+
+**Kein neuer Löschweg am Server.** `DELETE /api/photos/:id` und
+`DELETE /api/comment-images/:id` gibt es beide; `F_ROUTEN` bleibt unberührt.
+
+### Offene Entscheidungen
+
+* **Zweierlei Bilder in derselben Ansicht.** Die Zoomansicht zeigt Fotos am
+  Eintrag **und** Bilder aus Kommentaren (`quelle === 'kommentar'`). Zwei
+  Löschwege, **zwei verschiedene Rechte**: beim Foto entscheidet, wem der
+  Eintrag gehört, beim Kommentarbild `darfAendern` über den Verfasser des
+  Kommentars. **Ein Knopf, der immer dasteht, wäre bei der Hälfte der Fälle eine
+  Absage.** *Entscheide, ob er sich versteckt oder ob die Absage getragen wird —
+  und begründe es.*
+* **Die Escape-Reihenfolge, und sie ist eine Falle.** Zoomansicht und
+  `confirmBox` horchen **beide** in der Abfangphase am Dokument
+  (`addEventListener('keydown', …, true)`), und die Zoomansicht ist zuerst
+  registriert. Ihr Handler ruft `stopPropagation()` — **Escape schlösse also die
+  Zoomansicht statt die Rückfrage**, und die Rückfrage bliebe stehen. *Heute
+  kann das nicht auftreten, weil es in der Zoomansicht nichts zu bestätigen
+  gibt. Mit dem Knopf tritt es sofort auf.*
+* **Der Rückweg zur Seite dahinter.** `openLightbox(photos, startIdx, title)`
+  bekommt eine Bilderliste und sonst nichts — sie weiß von `item`, `drawViewer`
+  und `drawThumbs` nichts. **Nach dem Löschen muss die Seite dahinter
+  nachziehen.** *Das ist der eigentliche Eingriff: eine Anzeige bekommt einen
+  Schreibweg.*
+* **Das letzte Bild.** Wird es gelöscht, hat die Zoomansicht nichts mehr zu
+  zeigen und **muss sich selbst schließen**.
+
+### Was es anfasst
+
+`public/app.js` (`openLightbox` und die drei Aufrufstellen), `public/style.css`
+(der Knopf in `.lb-tools`, Größe für den Daumen). **Kein Server, kein Schema,
+keine neue Route.**
 
 ---
 

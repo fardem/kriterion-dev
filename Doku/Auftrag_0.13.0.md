@@ -516,6 +516,7 @@ hereinkommt** — nicht die Daten sind in Gefahr, sondern der Zugang zu ihnen.
    |---|---|---|
    | `rejected_at`, `rejected_grund`, `rejected_von` | **0.14.0** | **Schema und Formatnummer** — eine Schema-Runde verträgt keine Beifracht |
    | Systembereich in Abschnitte, `renderSystem()` zerlegen, Glocke, Gewichtung | **0.15.0** | die größte Umbaufläche des Plans |
+   | Löschen in der Zoomansicht | **0.15.0** | **hierher gelegt, weil diese Runde voll ist** — aus dem Betrieb, 28. August 2026 |
    | Trefferkontext in der Suche | **0.16.0** | eigene Prüflage gegen `innerHTML` |
    | Migrationscode raus, Absage an alte Datenbanken | **0.17.0** | **muss NACH 0.14.0**, sonst überlebt deren Block den Rückbau |
 
