@@ -857,11 +857,6 @@ wurde. Keines davon ist neu entstanden; jedes gab es vorher genauso.*
   Leiste nur, solange etwas ausgewählt ist — der Fall ist selten und wieder
   vorbei, bevor man ihn benennen kann. Der Fix wäre eine Abfrage `body:has(…)`.
   *(Claude: später — der Aufwand steht nicht im Verhältnis)*
-- **Der Knopf „Vollbild" am Video sitzt auf einer ausgerechneten Textbreite**
-  (`right: 92px`, die Breite von „Ausschnitt" bei 100 Prozent Schrift). Bei
-  120 Prozent schieben sich die beiden Pillen übereinander. Der richtige Weg
-  ist ein gemeinsamer Behälter für die beiden statt zweier Abstände vom rechten
-  Rand. *(Claude: empfohlen — es ist eine kleine Umstellung im Markup)*
 - **Der Hinweis an der Zeitleiste kann auf schmalem Schirm hinauslaufen.** Er
   steht mittig über seinem Punkt und bricht nicht um; am rechten Ende der Achse
   ragt er hinaus. **Er erscheint nur beim Überfahren** — auf dem Finger gibt es

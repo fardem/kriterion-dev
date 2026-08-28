@@ -67,6 +67,23 @@ const ICON_OFFEN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
    Dieselbe Strichstaerke und dasselbe viewBox wie die beiden Nachbarn in der
    Kopfzeile -- sie sollen wie ein Satz aussehen und nicht wie drei Herkuenfte. */
 const ICON_MENUE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>`;
+/* DIE DREI ZEICHEN AM BILDBEREICH. Sie ersetzen die Woerter "Ausschnitt" und
+   "Vollbild" -- und der Papierkorb ist neu.
+   WARUM ZEICHEN UND NICHT WOERTER: sie liegen AUF dem Bild und nicht daneben.
+   Ein Wort dort verdeckt Bildflaeche in der Breite des laengsten Wortes, und
+   es zwang die Anlage zu einer ausgerechneten Zahl -- der Vollbildknopf sass
+   auf `right: 92px`, und das waren die 92 Pixel, die "Ausschnitt" bei 100
+   Prozent Schrift misst. Bei 120 Prozent schoben sich die beiden uebereinander.
+   Drei gleich grosse Quadrate in einer Reihe brauchen diese Zahl nicht.
+   DER AUSSCHNITT IST DAS ZEICHEN, DAS JEDES FOTOPROGRAMM DAFUER FUEHRT: zwei
+   ineinandergeschobene rechte Winkel. Es ist nicht huebscher als ein Wort, es
+   ist bekannt -- und das ist bei einem Zeichen der ganze Punkt.
+   ALLE DREI IN DERSELBEN STRICHSTAERKE UND DEMSELBEN viewBox wie die Zeichen
+   der Kopfzeile. Sie sollen wie ein Satz aussehen und nicht wie drei
+   Herkuenfte. */
+const ICON_AUSSCHNITT = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v13a2 2 0 0 0 2 2h13"/><path d="M2 7h13a2 2 0 0 1 2 2v13"/></svg>`;
+const ICON_VOLLBILD = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6"/><path d="M15 21h6v-6"/><path d="M21 9V3h-6"/><path d="M3 15v6h6"/></svg>`;
+const ICON_PAPIERKORB = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12.6A1.5 1.5 0 0 0 8.9 21h6.2a1.5 1.5 0 0 0 1.5-1.4L17.5 7"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
 const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
 /* Die Marke der Anlage. EINE AUSGELIEFERTE DATEI statt eines eingebauten
@@ -2957,6 +2974,7 @@ async function renderDetail(id) {
           Klick aufs Foto öffnet die Vollbildansicht, am Video der Knopf „Vollbild".
           Blättern mit ← → oder den Pfeilen.
           Das erste Element ist das Hauptbild; Reihenfolge per Ziehen ändern.
+          Gelöscht wird mit dem Papierkorb über dem Bild.
           Videos bis 20 MB, als MP4, WebM oder MOV — das Standbild erzeugt der Browser.</p>
       </div>
 
@@ -3100,12 +3118,26 @@ async function renderDetail(id) {
              src="/api/photos/${ps[idx].id}/raw"></video>`
         : `<img src="/api/photos/${ps[idx].id}/raw?size=medium" alt="" title="Für Vollbild klicken">`) + `
       ${idx === 0 ? `<span class="main-flag">Hauptbild</span>` : ''}
-      ${/* NUR am Videoplatz. Beim Foto oeffnet der Klick aufs Bild das
-           Vollbild; am Video gehoert der Klick der Abspielsteuerung, und ohne
-           diesen Knopf gaebe es von einem reinen Videobestand aus gar keinen
-           Weg hinein. Ein zweiter Knopf am Foto waere dagegen nur Beiwerk. */''}
-      ${zeigtVideo ? `<button class="vfull" title="Vollbild öffnen">Vollbild</button>` : ''}
-      <button class="vfocus${ausschnittModus ? ' on' : ''}" title="Bildausschnitt der Vorschau festlegen">Ausschnitt</button>
+      ${/* EINE REIHE UND NICHT DREI AUSGERECHNETE ABSTAENDE. Die Knoepfe
+           standen vorher einzeln am rechten Rand, und der Vollbildknopf trug
+           dafuer die Zahl 92 -- die Breite des Wortes "Ausschnitt" bei 100
+           Prozent Schrift. Bei 120 Prozent schoben sie sich uebereinander.
+           Eine Flexreihe braucht die Zahl nicht.
+           DER VOLLBILDKNOPF NUR AM VIDEOPLATZ. Beim Foto oeffnet der Klick
+           aufs Bild das Vollbild; am Video gehoert der Klick der
+           Abspielsteuerung, und ohne diesen Knopf kaeme man von einem reinen
+           Videobestand aus gar nicht hinein.
+           DER PAPIERKORB STEHT ABGESETZT, mit einer groesseren Luecke davor.
+           Dieselbe Ueberlegung wie beim Favoritenfilter in der Filterzeile:
+           die beiden davor stellen etwas ein, dieser hier nimmt etwas weg.
+           Ohne den Abstand liest er sich als dritte Einstellung. */''}
+      <div class="vtools${ausschnittModus ? ' offen' : ''}">
+        <button class="vfocus${ausschnittModus ? ' on' : ''}" title="Bildausschnitt der Vorschau festlegen"
+          aria-label="Bildausschnitt der Vorschau festlegen">${ICON_AUSSCHNITT}</button>
+        ${zeigtVideo ? `<button class="vfull" title="Vollbild öffnen" aria-label="Vollbild öffnen">${ICON_VOLLBILD}</button>` : ''}
+        <button class="vweg" title="${istVideo(ps[idx]) ? 'Video' : 'Foto'} löschen"
+          aria-label="${istVideo(ps[idx]) ? 'Video' : 'Foto'} löschen">${ICON_PAPIERKORB}</button>
+      </div>
       ${ps.length > 1 ? `<button class="vnav prev" title="Vorheriges (←)">‹</button>
         <button class="vnav next" title="Nächstes (→)">›</button>
         <span class="vcount">${idx + 1} / ${ps.length}</span>` : ''}`;
@@ -3117,6 +3149,29 @@ async function renderDetail(id) {
       ausschnittModus = !ausschnittModus;
       drawViewer();
       if (ausschnittModus) toast('Klicken oder ziehen legt den Bildausschnitt fest');
+    };
+    /* GELOESCHT WIRD AM GROSSEN BILD, und das ist der Kern dieser Aenderung.
+       Vorher sass ein Kreuz auf jeder Vorschaukachel. Auf dem Finger stand es
+       dauerhaft da und war 27 Pixel gross -- auf einer Kachel von 62 Pixeln
+       ein Fuenftel der Flaeche, und zwar genau in der Ecke, auf der der Daumen
+       aufsetzt, wenn er ueber die Reihe wischt. Die Reihe las sich damit nicht
+       mehr als vier Bilder, sondern als vier Loeschknoepfe.
+       DIE VORSCHAUREIHE TRAEGT DESHALB AUF DEM FINGER KEINE ZERSTOERUNG MEHR
+       (das entscheidet das Stylesheet). Sie behaelt genau zwei Aufgaben, und
+       beide sind harmlos: antippen zeigt, langes Druecken verschiebt.
+       Hier dagegen ist das Bild gross und der Zaehler daneben sagt, welches es
+       ist -- man loescht, was man ansieht. Dasselbe Bild, das eine Kamera
+       zeigt, wenn man dort den Papierkorb drueckt. */
+    v.querySelector('.vweg').onclick = async () => {
+      const foto = ps[idx];
+      const wort = istVideo(foto) ? 'Video' : 'Foto';
+      if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird unwiderruflich entfernt.`)) return;
+      try {
+        await api('DELETE', `/api/photos/${foto.id}`);
+        item = await api('GET', `/api/items/${id}`);
+        if (idx >= item.photos.length) idx = Math.max(0, item.photos.length - 1);
+        drawViewer(); drawThumbs();
+      } catch (err) { toast(err.message, true); }
     };
     if (ausschnittModus && bild) ruesteAusschnittAus(v, bild, ps[idx]);
     if (ps.length > 1) {

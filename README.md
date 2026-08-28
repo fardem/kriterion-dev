@@ -1381,6 +1381,12 @@ Das ist kein neuer Gedanke, es ist der vorhandene: *ein Merkmal, ein Zeichen.*
 - **Am Bildbereich blättert ein Wisch**, wie im Vollbild. Die Pfeile bleiben
   trotzdem stehen: der Wisch ist der bequeme Weg, der Pfeil der auffindbare.
   Auf der Abspielsteuerung eines Videos blättert er nicht.
+- **Gelöscht wird am großen Bild und nicht an der Vorschaukachel.** Oben rechts
+  im Bildbereich steht eine Reihe von Zeichen: Ausschnitt, beim Video Vollbild,
+  und abgesetzt davon der Papierkorb. *Die Kachelreihe darunter trägt auf dem
+  Finger keine Zerstörung mehr* — sie kann antippen und, nach kurzem Halten,
+  verschieben, und sonst nichts. Mit der Maus bleibt das Kreuz an der Kachel, wo
+  es war; dort gibt es kein Danebentippen.
 - **Eingabefelder fallen nicht unter 16 Pixel.** Darunter zoomt Safari auf dem
   iPhone beim Antippen die ganze Seite heran und wieder heraus tut sie es nicht
   von selbst. Wer die Schrift auf 80 Prozent stellt, bekommt hier deshalb nicht
@@ -1409,6 +1415,14 @@ sonst die Wischbewegung ab.
 Zeilenaktionen sind überall Zeichen (`✎` bearbeiten, `✕` löschen), nicht mal
 Text und mal Zeichen. Auf schmalen Bildschirmen passt Text nicht in die
 Kopfzeile, und uneinheitlich sieht es ohnehin schlechter aus.
+
+**Die Vorschaukachel ist davon die eine Ausnahme, und sie ist begründet.** Ihr
+Kreuz maß mit Fingermaßen 27 Pixel auf einer Kachel von 62 — ein Fünftel der
+Fläche, und zwar in der Ecke, auf der der Daumen aufsetzt, wenn er über die
+Reihe wischt. **Eine Zeile ist breit und wird von oben nach unten gelesen; eine
+Kachelreihe ist schmal und wird quer durchgewischt.** Das Kreuz sitzt dort also
+nicht neben dem Weg des Fingers, sondern darauf. Es steht deshalb auf dem
+Berührungsbildschirm nicht mehr da.
 
 Im Vollbild **zoomt mit der Maus ein Klick, mit dem Finger erst der zweite
 Tipp** innerhalb einer knappen Sekunde. Ein einzelner Tipp tut nichts —

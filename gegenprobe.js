@@ -1432,6 +1432,28 @@ const RUECKBAUTEN = [
     ersatz: '        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>\n        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>',
     erwartet: 'Mehrbenutzer-Anzeigen in der Oberflaeche'
   },
+  /* DAS KREUZ AN DER KACHEL WAR EIN FUND AUS DEM FELD, kein Einfall am
+     Schreibtisch: beim Durchwischen der Kachelleiste hat der Daumen es
+     getroffen und ein Foto geloescht. Es ist auf dem Finger weg -- und weil
+     ein Weglassen sich nicht von einem Vergessen unterscheiden laesst, muss
+     der Rueckbau es zurueckholen koennen. */
+  {
+    nr: '164', name: 'Das Kreuz kehrt auf die Vorschaukachel zurueck',
+    datei: 'public/style.css',
+    suche: '@media (hover: none) { .thumb .del { display: none; } }',
+    ersatz: '',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* Und der Abstand, der das Wegnehmen vom Einstellen trennt. Ohne ihn
+     stehen Ausschnitt und Papierkorb Schulter an Schulter -- genau die Lage,
+     die das Kreuz an der Kachel so gefaehrlich gemacht hat. */
+  {
+    nr: '165', name: 'Der Papierkorb rueckt an die Einstellknoepfe heran',
+    datei: 'public/style.css',
+    suche: '.vweg { margin-left: 14px; }',
+    ersatz: '.vweg { margin-left: 0; }',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',

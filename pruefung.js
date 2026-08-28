@@ -1582,10 +1582,36 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Finger. Vor dieser Runde fehlte es an drei Stellen -- und der Blaetterpfeil
      am Bildbereich war damit auf einem Telefon ueberhaupt nicht zu sehen:
      man sah das erste Foto und hatte keinen Weg zum zweiten. */
-  ['.vnav', '.vfocus', '.thumb .del'].forEach(w =>
+  ['.vnav', '.vtools'].forEach(w =>
     pruefe(`Ohne Ueberfahren ist ${w} sichtbar`,
       new RegExp('@media \\(hover: none\\) \\{ ' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{ opacity: 1; \\} \\}').test(cssEng),
       cssEng.slice(Math.max(0, cssEng.indexOf(w)), cssEng.indexOf(w) + 80)));
+
+  /* UND EINE, DIE IN DIE ANDERE RICHTUNG ZEIGT. Das Kreuz an der
+     Vorschaukachel stand auf dem Finger einmal dauerhaft da -- 27 Pixel auf
+     einer Kachel von 62, ein Fuenftel der Flaeche, und zwar in der Ecke, auf
+     der der Daumen beim Wischen aufsetzt. Es ist dort WEG, und das ist keine
+     Nachlaessigkeit, sondern der Punkt: die Kachel traegt keine Zerstoerung
+     mehr, geloescht wird am grossen Bild.
+     GEPRUEFT WIRD BEIDES -- dass es auf dem Finger verschwindet UND dass es am
+     Zeigegeraet bleibt. Ohne die zweite Zeile liesse sich das Kreuz ueberall
+     entfernen, ohne dass jemand es merkt. */
+  pruefe('Auf dem Finger traegt die Vorschaukachel kein Kreuz mehr',
+    /@media \(hover: none\) \{ \.thumb \.del \{ display: none; \} \}/.test(cssEng),
+    (cssEng.match(/@media \(hover: none\) \{ \.thumb \.del[^}]*\}/) || ['(keine Regel)'])[0]);
+  pruefe('Am Zeigegeraet bleibt es beim Ueberfahren',
+    /\.thumb:hover \.del \{ opacity: 1; \}/.test(cssEng));
+
+  /* Der Papierkorb am grossen Bild ist der Weg, den das Kreuz freigemacht hat.
+     Er steht ABGESETZT von den beiden Knoepfen davor: die stellen etwas ein,
+     er nimmt etwas weg. Dieselben 14 Pixel wie beim Favoritenfilter. */
+  pruefe('Am Bildbereich gibt es einen Papierkorb',
+    /\.vweg \{ margin-left: 14px; \}/.test(cssEng),
+    (cssEng.match(/\.vweg[^{]*\{[^}]*\}/g) || ['(keine Regel)'])[0]);
+  /* Die Reihe macht die ausgerechnete Zahl ueberfluessig, an der sich die
+     beiden Knoepfe bei grosser Schrift uebereinandergeschoben haben. */
+  pruefe('Und der Vollbildknopf haengt nicht mehr an einer ausgerechneten Breite',
+    !/right: 92px/.test(cssEng), (cssEng.match(/[^;{]*right: 92px[^;}]*/) || [''])[0]);
 
   /* Was sich beim Ueberfahren BEWEGT, bleibt auf dem Finger haengen: ein Tipp
      setzt :hover, und niemand nimmt ihn wieder weg. Die Karte, die man einmal

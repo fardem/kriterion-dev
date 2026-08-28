@@ -488,8 +488,20 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 }
 .lb-thumb { position: relative; }
 .thumb:hover .del { opacity: 1; }
-/* Das Kreuz am Vorschaubild, wie ueberall sonst: auf dem Finger steht es da. */
-@media (hover: none) { .thumb .del { opacity: 1; } }
+/* AUF DEM FINGER TRAEGT DIE VORSCHAUKACHEL KEIN KREUZ MEHR.
+   Es hat dort einmal gestanden, und das war ein Fehler mit Ansage: die Kachel
+   misst 62 Pixel, das Kreuz mit Fingermassen 27 -- ein Fuenftel der Flaeche,
+   in genau der Ecke, auf der der Daumen aufsetzt, wenn er ueber die Reihe
+   wischt. Die Reihe las sich damit nicht mehr als vier Bilder, sondern als
+   vier Loeschknoepfe, und wer eines auswaehlen wollte, bekam eine Rueckfrage.
+   DIE KACHEL BEHAELT GENAU ZWEI AUFGABEN, UND BEIDE SIND HARMLOS: antippen
+   zeigt, langes Druecken verschiebt. Geloescht wird am grossen Bild, wo man
+   sieht, was man entfernt (`.vweg`).
+   AM ZEIGEGERAET BLEIBT DAS KREUZ, WO ES WAR. Dort gibt es kein Danebentippen,
+   und ein Klick aus der Reihe heraus ist der kuerzere Weg. Das ist der eine
+   Punkt, an dem sich die beiden Geraete wirklich unterscheiden -- und er steht
+   hier, damit niemand ihn fuer ein Versehen haelt. */
+@media (hover: none) { .thumb .del { display: none; } }
 .thumb .del:hover { background: var(--red); color: #fff; }
 
 .drop {
@@ -1167,29 +1179,61 @@ body.lb-open { overflow: hidden; }
 .thumb.griffbereit, .lrow.griffbereit, .mrow.griffbereit, .block.griffbereit { border-radius: var(--r-sm); }
 
 /* ================= Bildausschnitt der Vorschau ================= */
-.vfocus {
+/* EINE REIHE OBEN RECHTS, und darin sitzen alle Knoepfe des Bildbereichs.
+   VORHER STAND JEDER EINZELN AM RAND, und der Vollbildknopf trug dafuer die
+   Zahl 92 -- das war die Breite des Wortes "Ausschnitt" bei 100 Prozent
+   Schrift. Die Anlage stellt die Schrift aber von 80 bis 120 Prozent, und bei
+   120 schoben sich die beiden Knoepfe uebereinander. Eine Flexreihe mit einer
+   Luecke braucht diese Zahl nicht und kann deshalb auch nicht falsch werden.
+   DIE REIHE STEHT AUF BEIDEN GERAETEN AN DERSELBEN STELLE. Was sich zwischen
+   Zeigegeraet und Finger unterscheidet, ist ihre Sichtbarkeit und ihre
+   Groesse -- am Schreibtisch erscheint sie beim Ueberfahren und ist klein, auf
+   dem Finger steht sie dauerhaft da und misst 44 Pixel je Knopf
+   (Fingerabschnitt weiter unten).
+   OBEN RECHTS UND NICHT UNTEN: die Blaetterpfeile liegen in der Mitte der
+   beiden Seitenkanten, der Zaehler unten in der Mitte, und ueber die Mitte
+   laeuft der Wisch. Die obere rechte Ecke ist die einzige, die von keiner
+   Geste beruehrt wird -- und ein Papierkorb gehoert aus dem Daumenbereich
+   heraus und nicht hinein. */
+.vtools {
   position: absolute; top: 10px; right: 10px; z-index: 3;
-  padding: 5px 10px; border-radius: 999px; font-size: .73rem; font-weight: 500;
-  background: rgba(8,10,12,.78); border: 1px solid var(--line); color: var(--text-2);
-  opacity: 0; transition: opacity .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+  display: flex; align-items: center; gap: 6px;
+  opacity: 0; transition: opacity .15s var(--ease);
 }
-.viewer:hover .vfocus, .vfocus.on { opacity: 1; }
-/* Und derselbe Grund wie beim Blaetterpfeil: ohne diese Zeile liesse sich der
-   Bildausschnitt auf einem Telefon gar nicht einstellen. */
-@media (hover: none) { .vfocus { opacity: 1; } }
-.vfocus:hover { color: var(--text); border-color: #3a434c; }
+.viewer:hover .vtools { opacity: 1; }
+/* Ohne diese Zeile gaebe es die drei Knoepfe auf einem Telefon gar nicht --
+   dort wird nichts ueberfahren. Dieselbe Regel wie am Blaetterpfeil. */
+@media (hover: none) { .vtools { opacity: 1; } }
+/* Der Ausschnittmodus ist ein ZUSTAND und kein Ueberfahren: solange er laeuft,
+   steht die Reihe da, auch wenn der Zeiger laengst woanders ist. Sonst
+   verschwaende der einzige Weg wieder heraus.
+   DIE KLASSE SITZT AN DER REIHE UND NICHT AM KNOPF, und deshalb braucht es
+   hier kein `:has`. Das waere der naheliegende Griff -- der Zustand haengt ja
+   am Kind -- und er waere der schlechtere: ein Browser, der `:has` nicht
+   kennt, verwirft die ganze Regel, und dann verschwaende die Reihe mitsamt dem
+   einzigen Weg aus dem Ausschnittmodus heraus, sobald der Zeiger fortgeht.
+   drawViewer() setzt die Klasse; das kann kein Browser missverstehen. */
+.vtools.offen { opacity: 1; }
+
+.vfocus, .vfull, .vweg {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 999px;
+  background: rgba(8,10,12,.78); border: 1px solid var(--line); color: var(--text-2);
+  transition: color .15s var(--ease), border-color .15s var(--ease),
+              background .15s var(--ease);
+}
+.vfocus:hover, .vfull:hover, .vweg:hover { color: var(--text); border-color: #3a434c; }
 .vfocus.on { color: var(--accent); border-color: var(--accent); }
-/* Derselbe Knopf eine Handbreit weiter links -- nur am Videoplatz, wo der Klick
-   auf die Flaeche der Abspielsteuerung gehoert. Am Foto gibt es ihn nicht.
-   Er bleibt sichtbar, auch ohne Ueberfahren: mit dem Finger gibt es kein
-   Ueberfahren, und ohne ihn kaeme man von dort gar nicht ins Vollbild. */
-.vfull {
-  position: absolute; top: 10px; right: 92px; z-index: 3;
-  padding: 5px 10px; border-radius: 999px; font-size: .73rem; font-weight: 500;
-  background: rgba(8,10,12,.78); border: 1px solid var(--line); color: var(--text-2);
-  transition: color .15s var(--ease), border-color .15s var(--ease);
-}
-.vfull:hover { color: var(--text); border-color: #3a434c; }
+/* DER PAPIERKORB STEHT ABGESETZT. Die beiden davor stellen etwas ein, dieser
+   hier nimmt etwas weg -- ohne den Abstand liest er sich als dritte
+   Einstellung. Dieselben 14 Pixel wie bei `.pill-sep` in der Filterzeile, und
+   aus demselben Grund.
+   ROT ERST IM UEBERFAHREN UND IM DIALOG, nicht im Ruhezustand: eine dauerhaft
+   rote Flaeche auf jedem Foto waere ein Alarm, der nach einer Woche nicht mehr
+   gelesen wird. Rot bleibt in dieser Anlage dem Zerstoeren vorbehalten, und es
+   soll etwas bedeuten, wenn es auftaucht. */
+.vweg { margin-left: 14px; }
+.vweg:hover { color: var(--red); border-color: var(--red); background: var(--red-dim); }
 /* Im Ausschnitt-Modus zieht der Zeiger den Rahmen, statt das Vollbild zu oeffnen. */
 .viewer.focus-mode { cursor: crosshair; touch-action: none; }
 .viewer.focus-mode img { cursor: crosshair; }
@@ -1617,6 +1661,9 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .lb-nav { width: 54px; height: 54px; }
   .lb-thumb { width: 62px; height: 62px; }
   .vnav { width: 44px; height: 44px; }
+  /* Die Reihe am Bildbereich. 30 Pixel sind mit der Maus reichlich und mit dem
+     Finger zu wenig -- und einer der drei loescht. */
+  .vfocus, .vfull, .vweg { width: 44px; height: 44px; }
 
   /* DER LANGE DRUCK ZIEHT, ER MARKIERT NICHT. makeSortable() laesst den
      Finger nach 0,4 Sekunden greifen -- genau in dieser Zeit bietet ein
@@ -1704,6 +1751,20 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .stars .star:hover { transform: none; }
   .pin-btn:hover { transform: none; }
   .zl-punkt:hover { transform: none; opacity: .68; }
+  /* DAS ABLEGEFELD. Sein Ueberfahrzustand ist BUCHSTAEBLICH derselbe wie sein
+     Arbeitszustand: `.drop:hover` und `.drop.over` stehen in einer Regel und
+     faerben beide den Rand, die Schrift und den Grund in den Akzent. Auf dem
+     Finger bleibt das Ueberfahren haengen -- und damit steht das Feld
+     dauerhaft so da, als zoege gerade jemand eine Datei darueber. Die eine
+     Rueckmeldung, die es zu geben hat, sagt dann nichts mehr.
+     `:not(.over)` NIMMT NUR DAS UEBERFAHREN ZURUECK: waehrend wirklich etwas
+     darueber liegt, faerbt sich das Feld weiterhin. Ohne den Ausschluss haette
+     die Zeile hier den Arbeitszustand gleich mit abgeraeumt -- beide Waehler
+     wiegen zwei Klassen, und die spaetere gewinnt. */
+  .drop:hover:not(.over) {
+    border-color: var(--line); color: var(--muted); background: var(--surface);
+  }
+
   /* Die beiden Blaetterpfeile. Ihr Ueberfahrzustand ist der volle Akzent --
      angetippt blieben sie orange stehen, bis man irgendwo anders hintippt,
      und ein Pfeil, der als einziger leuchtet, sieht aus wie eine Auswahl.

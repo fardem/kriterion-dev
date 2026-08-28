@@ -43,6 +43,69 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.12.1] - 2026-08-28
+
+**Gelöscht wird am großen Bild und nicht mehr an der Vorschaukachel** — ein
+Befund aus dem Betrieb, am Tag nach 0.12.0 auf einem echten Telefon gefunden.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.12.1 ist **PATCH**, weil
+> **nichts hinzukommt, was vorher nicht ging**. Löschen konnte man ein Foto
+> schon vorher; es steht jetzt an einer Stelle, an der man es nicht aus
+> Versehen trifft. **Keine neue Fähigkeit, keine neue Route, keine
+> Datenbankstufe, keine neue Abhängigkeit.** *Der Server ist unberührt.*
+
+> **DAS KREUZ AN DER KACHEL VERSCHWINDET NUR AUF DEM BERÜHRUNGSBILDSCHIRM.**
+> Am Zeigegerät bleibt es, wo es war — dort gibt es kein Danebentippen, und ein
+> Klick aus der Reihe heraus ist der kürzere Weg. *Das ist der eine Punkt, an
+> dem sich die beiden Geräte in der Bedienung wirklich unterscheiden.*
+
+### Changed
+
+- **Die Knöpfe am Bildbereich stehen in einer Reihe oben rechts und tragen
+  Zeichen statt Wörter:** Ausschnitt (die zwei ineinandergeschobenen Winkel, wie
+  in jedem Fotoprogramm), beim Video Vollbild — und **abgesetzt davon der
+  Papierkorb**. Der Abstand ist nicht Zierde: die beiden davor stellen etwas
+  ein, der dritte nimmt etwas weg. *Dieselben 14 Pixel wie beim Favoritenfilter
+  in der Filterzeile.* **Auf beiden Geräten dieselbe Reihe an derselben Stelle;
+  verschieden sind nur Größe und Sichtbarkeit** — am Schreibtisch klein und beim
+  Überfahren, auf dem Finger dauerhaft und 44 Pixel je Knopf.
+- **Auf dem Berührungsbildschirm trägt die Vorschaukachel kein Löschkreuz
+  mehr.** Sie kann dort noch antippen und, nach kurzem Halten, verschieben —
+  **der lange Druck bleibt unverändert das Umsortieren.**
+
+### Fixed
+
+- **Das Löschkreuz auf der Vorschaukachel lag auf dem Weg des Daumens.** Mit
+  Fingermaßen maß es 27 Pixel auf einer Kachel von 62 — ein Fünftel der Fläche,
+  und zwar in der Ecke, auf der der Daumen aufsetzt, wenn er über die Reihe
+  wischt. Wer ein Bild auswählen wollte, bekam die Rückfrage zum Löschen.
+  **Im Feld gefunden, nicht am Schreibtisch.**
+- **Der Knopf „Vollbild" am Video saß auf einer ausgerechneten Textbreite**
+  (`right: 92px` — die Breite des Wortes „Ausschnitt" bei 100 Prozent Schrift).
+  Die Anlage stellt die Schrift von 80 bis 120 Prozent, und bei 120 schoben sich
+  die beiden Knöpfe übereinander. Eine Reihe braucht die Zahl nicht.
+- **Das Feld zum Hochladen stand auf dem Telefon dauerhaft so da, als zöge
+  gerade jemand eine Datei darüber.** Sein Überfahrzustand ist buchstäblich
+  derselbe wie sein Arbeitszustand — beide in einer Regel —, und auf dem Finger
+  bleibt ein Überfahren hängen. Die eine Rückmeldung, die es zu geben hat, sagte
+  damit nichts mehr.
+
+### Was du danach von Hand tun musst
+
+Nichts. Es ändert sich nur die Oberfläche; Datenbank, Austauschformat, die
+Schlüssel in der `.env` und die Werkzeuge auf dem Wirt sind unberührt.
+
+### Was gleich bleibt
+
+**Der lange Druck auf einer Vorschaukachel greift und verschiebt**, wie seit
+0.12.0. **Am Schreibtisch bleibt jeder Weg, den es gab** — das Kreuz an der
+Kachel eingeschlossen; der Papierkorb am großen Bild kommt daneben. Was die
+beiden Knöpfe des Bildbereichs tun, ist unverändert; sie heißen nur nicht mehr
+in Wörtern, sondern zeigen es. *Ihre Beschriftung steht weiterhin da — im
+`title` und als `aria-label`.*
+
+---
+
 ## [0.12.0] - 2026-08-28
 
 **Die Oberfläche auf Telefon und Tablett — sie fühlt sich jetzt wie eine
@@ -1346,10 +1409,11 @@ nicht mehr übernehmen.*
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` UND `v0.12.0`
-     sind angelegt, aber NICHT geschoben — der Push scheitert in der
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0`, `v0.12.0` UND
+     `v0.12.1` sind angelegt, aber NICHT geschoben — der Push scheitert in der
      Arbeitsumgebung an HTTP 403 (Branches gehen durch, Tags nicht). Solange
-     das so ist, zeigen die beiden Verweise darunter ins Leere. -->
+     das so ist, zeigen die drei Verweise darunter ins Leere. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
 [0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0
 [0.12.0]: https://github.com/fardem/kriterion/compare/v0.11.0...v0.12.0
+[0.12.1]: https://github.com/fardem/kriterion/compare/v0.12.0...v0.12.1
