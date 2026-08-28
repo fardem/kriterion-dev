@@ -3147,6 +3147,11 @@ app.get('/api/stats', nurAdmin, (req, res) => {
   const pk = db.prepare(`SELECT COUNT(*) AS n,
       COALESCE(SUM(length(inhalt)),0) + COALESCE((SELECT SUM(length(daten)) FROM papierkorb_bytes),0) AS o
     FROM papierkorb`).get();
+  /* Kommentarbilder standen bisher in keiner Zeile. Sie liegen als Blob in
+     derselben Datei wie Fotos und Anhaenge, gehen mit dem Dateischalter in den
+     Export -- und fehlten damit ausgerechnet in der Aufstellung, die erklaeren
+     soll, wovon die Datenbank so gross ist. */
+  const ci = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) + COALESCE(SUM(length(thumb)),0) AS o FROM comment_images').get();
   res.json({
     version: VERSION,
     // Der Fingerprint steht hier und nicht in /api/config: er ist dieselbe Art
@@ -3159,6 +3164,18 @@ app.get('/api/stats', nurAdmin, (req, res) => {
     videoCount: vi.n, videoBytes: vi.o,
     attachmentCount: an.n, attachmentBytes: an.o,
     papierkorbCount: pk.n, papierkorbBytes: pk.o,
+    commentImageCount: ci.n, commentImageBytes: ci.o,
+    /* DIE ERWARTETE EXPORTGROESSE, je Schalter getrennt. Sie steht hier als
+       AUFTEILUNG und nicht als eine Summe: die Karte darunter hat drei
+       Schalter, und wer nur eine Gesamtzahl bekaeme, koennte an keinem
+       einzelnen Knopf sagen, was er auslöst.
+       DIE GRENZEN GEHEN MIT. Ohne sie muesste die Oberflaeche 300 MB und
+       512 MB selbst kennen, und dann staende dieselbe Zahl an zwei Orten. */
+    export: {
+      umschlag: austauschUmschlagBytes(null),
+      ...austauschTeile(null, { mitFotos: true, mitDateien: true, mitVideos: true }),
+      warnAb: AUSTAUSCH_WARN, grenze: AUSTAUSCH_MAX
+    },
     itemCount: db.prepare('SELECT COUNT(*) n FROM items').get().n,
     commentCount: db.prepare('SELECT COUNT(*) n FROM comments').get().n,
     linkCount: db.prepare('SELECT COUNT(*) n FROM links').get().n,
@@ -3202,6 +3219,18 @@ const AUSTAUSCH_FORMAT = 10;
 // hier und nicht als Zahl im Rumpf: der Wert kommt aus Node und nicht aus
 // einer Schaetzung.
 const AUSTAUSCH_MAX = Math.floor(require('buffer').constants.MAX_STRING_LENGTH * 0.9);
+
+/* Der Wert, ab dem die Anlage WARNT -- deutlich unter der Grenze, an der sie
+   ABSAGT. Die beiden Zahlen haben verschiedene Aufgaben und duerfen deshalb
+   nicht dieselbe sein:
+     AUSTAUSCH_MAX  ist gemessen -- daran zerbricht der String.
+     AUSTAUSCH_WARN ist geschaetzt -- davor soll jemand die Sicherung nehmen.
+   DIE LUFT DAZWISCHEN IST DER PREIS DER SCHAETZUNG. Sie deckt den Umschlag,
+   die Base64-Rundung auf ein Vielfaches von vier und den Text, den keine
+   Blob-Spalte traegt. Wer bei 300 MB gewarnt wird, hat noch rund 180 MB
+   Spielraum, bevor es wirklich kippt -- und wer die Warnung wegklickt, bekommt
+   seine Datei trotzdem. */
+const AUSTAUSCH_WARN = 300 * 1024 * 1024;
 
 // Der Trichter der Exportdatei. Base64 blaeht um ein Drittel auf, und das ist
 // der Preis dafuer, dass eine Textdatei Bytes tragen kann.
@@ -3362,22 +3391,96 @@ function exportName(zusatz) {
   return `${slug}-export${zusatz}-${new Date().toISOString().slice(0, 10)}.json`;
 }
 
-/* Wie viele Bytes eine Datei traegt, BEVOR sie gebaut wird. Base64 kostet ein
-   Drittel Aufschlag; wer darueber liegt, bekommt eine Absage statt eines
-   Abrisses. Eine Ansage ist besser als ein RangeError im Protokoll. */
-function austauschBytes(itemId, schalter) {
-  const eins = (sql, ...w) => db.prepare(sql).get(...w).n || 0;
-  let n = 0;
+/* WAS DER EXPORT AN BYTES WIRKLICH SCHREIBT -- je Art getrennt und vor dem
+   ersten Handgriff. Base64 kostet ein Drittel Aufschlag; wer darueber liegt,
+   bekommt eine Ansage statt eines Abrisses.
+
+   MIT `itemId === null` GEHT DIESELBE RECHNUNG UEBER DEN GANZEN BESTAND. Das
+   ist kein Beiwerk, sondern der Grund fuer die Bauform: die Kennzahlen, die
+   Warnung am Knopf und die Absage am Einzelexport muessen dieselbe Zahl
+   nennen. Zwei Rechenwege fuer dieselbe Auskunft liefen auseinander, und dann
+   warnte die Karte bei einer Groesse, die die Route nicht kennt.
+
+   GEZAEHLT WIRD, WAS IN DIE DATEI GEHT -- NICHT, WAS IN DER DATENBANK LIEGT:
+   `photos.thumb` geht nie mit, `comment_images.thumb` ebenso wenig, und beim
+   Video steht neben den Daten das Standbild (`medium`, ersatzweise `thumb`).
+   Eine Summe ueber alle Blob-Spalten faellt deshalb zu hoch aus, und eine
+   Warnung, die zu frueh kommt, wird weggeklickt. */
+function austauschTeile(itemId, schalter) {
+  const nurEiner = itemId !== null;
+  const werte = nurEiner ? [itemId] : [];
+  const eins = (sql) => db.prepare(sql).get(...werte).n || 0;
+  // Der Zusatz haengt an der Spalte, weil das Kommentarbild ueber den
+  // Kommentar an den Eintrag kommt und nicht unmittelbar.
+  const und = (spalte) => nurEiner ? ` AND ${spalte} = ?` : '';
+  const wo = (spalte) => nurEiner ? ` WHERE ${spalte} = ?` : '';
+  const base64 = (n) => Math.round(n * 4 / 3);
+  const teile = { fotos: 0, videos: 0, anhaenge: 0, kommentarbilder: 0 };
   if (schalter.mitFotos)
-    n += eins("SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE item_id = ? AND art != 'video'", itemId);
+    teile.fotos = base64(eins(
+      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE art != 'video'${und('item_id')}`));
+  /* Der Videoschalter haengt am Fotoschalter, wie in eintragAlsPaket(): ohne
+     Fotos wird die Liste gar nicht erst gebaut, und der Haken an den Videos
+     bliebe eine Angabe ohne Wirkung. */
   if (schalter.mitFotos && schalter.mitVideos)
-    n += eins("SELECT COALESCE(SUM(length(data)+COALESCE(length(medium),0)),0) n FROM photos WHERE item_id = ? AND art = 'video'", itemId);
+    teile.videos = base64(eins(
+      `SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) n
+         FROM photos WHERE art = 'video'${und('item_id')}`));
   if (schalter.mitDateien) {
-    n += eins('SELECT COALESCE(SUM(length(data)),0) n FROM attachments WHERE item_id = ?', itemId);
-    n += eins(`SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
-               JOIN comments c ON c.id = ci.comment_id WHERE c.item_id = ?`, itemId);
+    teile.anhaenge = base64(eins(
+      `SELECT COALESCE(SUM(length(data)),0) n FROM attachments${wo('item_id')}`));
+    // Kommentarbilder folgen dem Schalter der Dateien -- dort und hier.
+    teile.kommentarbilder = base64(eins(
+      `SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
+         JOIN comments c ON c.id = ci.comment_id${wo('c.item_id')}`));
   }
-  return Math.round(n * 4 / 3);
+  return teile;
+}
+
+/* DER UMSCHLAG -- alles, was die Datei traegt und keine Blob-Spalte ist.
+   Er steht getrennt, weil er als einziger Teil auch dann anfaellt, wenn jeder
+   Schalter aus ist: ein Export "ohne Fotos" ist nicht null Bytes gross.
+
+   ZWEI ANTEILE, und sie werden verschieden gewonnen:
+     der TEXT wird gemessen -- Titel, Beschreibung, Kommentare, Tags, Adressen;
+     die FORM wird geschaetzt -- Feldnamen, Klammern, Anfuehrungszeichen.
+   Die Form je Datensatz ist knapp gerechnet, aber sie ist abzaehlbar: ein
+   Eintrag traegt rund zwanzig Feldnamen, ein Kommentar sieben, eine Bewertung
+   drei. DIE ZAHLEN SIND OBERGRENZEN JE DATENSATZ und keine Messung; sie
+   stehen hier beieinander, damit niemand sie im Rumpf sucht. */
+const UMSCHLAG_JE = { eintrag: 320, kommentar: 150, bewertung: 70, zeitpunkt: 90, foto: 110, datei: 130 };
+function austauschUmschlagBytes(itemId) {
+  const nurEiner = itemId !== null;
+  const werte = nurEiner ? [itemId] : [];
+  const eins = (sql) => db.prepare(sql).get(...werte).n || 0;
+  const wo = (spalte) => nurEiner ? ` WHERE ${spalte} = ?` : '';
+  /* Die Tags gehen NICHT ueber die Vorratstabelle, sondern ueber die
+     Verknuepfung: derselbe Name steht an zwanzig Eintraegen und kostet in der
+     Datei zwanzigmal Platz. Ueber `tags` gezaehlt faellt er einmal an, und
+     die Schaetzung waere bei einem stark verschlagworteten Bestand zu klein. */
+  const text =
+      eins(`SELECT COALESCE(SUM(length(COALESCE(title,'')) + length(COALESCE(description,''))),0) n
+              FROM items${wo('id')}`)
+    + eins(`SELECT COALESCE(SUM(length(COALESCE(text,''))),0) n FROM comments${wo('item_id')}`)
+    + eins(`SELECT COALESCE(SUM(length(t.name)),0) n FROM item_tags it
+              JOIN tags t ON t.id = it.tag_id${wo('it.item_id')}`)
+    + eins(`SELECT COALESCE(SUM(length(url)),0) n FROM links${wo('item_id')}`);
+  const form =
+      eins(`SELECT COUNT(*) n FROM items${wo('id')}`) * UMSCHLAG_JE.eintrag
+    + eins(`SELECT COUNT(*) n FROM comments${wo('item_id')}`) * UMSCHLAG_JE.kommentar
+    + eins(`SELECT COUNT(*) n FROM ratings${wo('item_id')}`) * UMSCHLAG_JE.bewertung
+    + eins(`SELECT COUNT(*) n FROM test_days${wo('item_id')}`) * UMSCHLAG_JE.zeitpunkt
+    + eins(`SELECT COUNT(*) n FROM photos${wo('item_id')}`) * UMSCHLAG_JE.foto
+    + eins(`SELECT COUNT(*) n FROM attachments${wo('item_id')}`) * UMSCHLAG_JE.datei;
+  return text + form;
+}
+
+/* Wie viele Bytes eine Datei traegt, BEVOR sie gebaut wird -- als eine Zahl.
+   Der Umschlag gehoert dazu: eine Absage, die nur die Blobs zaehlt, laesst
+   genau die Datei durch, die am Umschlag zerbricht. */
+function austauschBytes(itemId, schalter) {
+  const t = austauschTeile(itemId, schalter);
+  return t.fotos + t.videos + t.anhaenge + t.kommentarbilder + austauschUmschlagBytes(itemId);
 }
 
 /* ---- Export ---- */
@@ -3405,11 +3508,43 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
        Export risse. Vorgabe deshalb aus. */
     mitVideos: req.query.videos === '1'
   };
+  /* DIE ABSAGE STEHT VOR DEM BAU, nicht hinter dem Abbruch -- dieselbe Bauform
+     wie am Einzelexport eine Seite weiter unten. Vorher lief dieser Weg bis in
+     `JSON.stringify` hinein und kam mit `RangeError: Invalid string length`
+     zurueck: eine 500 nach zwei Minuten, mit einem Spitzenverbrauch, den
+     niemand gebraucht hat. Ein Knopf, der so abbricht, sieht aus wie ein
+     kaputtes Programm; er ist aber eine erreichte Grenze, und der Unterschied
+     liegt allein darin, ob die Anlage es vorher sagt.
+     GEWARNT WIRD AN DER KARTE, ABGESAGT WIRD HIER. Die beiden Zahlen haben
+     verschiedene Aufgaben: AUSTAUSCH_WARN nimmt niemandem etwas weg,
+     AUSTAUSCH_MAX ist die Grenze, hinter der es keine Datei mehr gibt.
+     KEIN STROM: hier wird nichts umgebaut, was funktioniert. Der Weg an der
+     Grenze vorbei steht in der Meldung und heisst Sicherung. */
+  const gross = austauschBytes(null, schalter);
+  if (gross > AUSTAUSCH_MAX)
+    return res.status(413).json({ error:
+      `Dieser Export wäre rund ${Math.round(gross / 1048576)} MB groß. Eine Exportdatei ist ` +
+      `ein einziger Text, und der kann nicht größer als 512 MB werden. Nimm die Sicherung — ` +
+      `sie schreibt den ganzen Bestand und braucht dafür keinen nennenswerten Arbeitsspeicher.` });
   const lage = paketLage(req.benutzer.id, schalter);
   const items = db.prepare('SELECT * FROM items ORDER BY id').all().map(it => eintragAlsPaket(it, lage));
   auth.protokolliere('export', { wer: req.benutzer.id });
   res.set('Content-Disposition', `attachment; filename="${exportName('')}"`);
-  res.json(exportUmschlag(items));
+  /* DAS NETZ UNTER DER SCHAETZUNG. Die Absage oben rechnet, sie misst nicht --
+     faellt sie zu niedrig aus, wirft `res.json` genau hier. Express baut den
+     String VOR dem Kopf und vor dem Senden; die Antwort ist an dieser Stelle
+     also noch unberuehrt und kann die Absage nachreichen.
+     DER DATEIKOPF MUSS DABEI WIEDER WEG -- sonst laedt der Browser die
+     Fehlermeldung als Exportdatei herunter. */
+  try { res.json(exportUmschlag(items)); }
+  catch (e) {
+    if (!(e instanceof RangeError)) throw e;
+    res.removeHeader('Content-Disposition');
+    res.status(413).json({ error:
+      `Dieser Export ist zu groß geworden. Eine Exportdatei ist ein einziger Text, und der ` +
+      `kann nicht größer als 512 MB werden. Nimm die Sicherung — sie schreibt den ganzen ` +
+      `Bestand und braucht dafür keinen nennenswerten Arbeitsspeicher.` });
+  }
 });
 
 /* ---- Ein einzelner Eintrag als Datei ----

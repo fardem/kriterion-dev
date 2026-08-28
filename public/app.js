@@ -32,6 +32,24 @@ function fmtBytes(b) {
 }
 const today = () => new Date().toLocaleDateString('sv-SE');
 
+/* WIE GROSS DIE EXPORTDATEI WIRD -- gerechnet aus den Teilen, die der Server
+   in `stats.export` liefert. Der Umschlag faellt IMMER an: ein Export "ohne
+   Fotos" ist nicht null Bytes gross, und eine Anzeige, die das behauptet,
+   waere die falsche Beruhigung.
+   Der Videoschalter haengt am Fotoschalter -- genau wie am Server, wo die
+   Fotoliste ohne ihn gar nicht erst gebaut wird. Ohne diese Bindung naennte
+   die Karte eine Zahl, die kein Knopf erzeugen kann. */
+function exportSumme(ex, s) {
+  if (!ex) return 0;
+  return (ex.umschlag || 0)
+    + (s.mitFotos ? (ex.fotos || 0) : 0)
+    + (s.mitFotos && s.mitVideos ? (ex.videos || 0) : 0)
+    + (s.mitDateien ? (ex.anhaenge || 0) + (ex.kommentarbilder || 0) : 0);
+}
+// Alles eingeschaltet -- die Zahl fuer die Kennzahlen, wo kein Schalter steht.
+const exportGesamt = (stats) => exportSumme(stats && stats.export,
+  { mitFotos: true, mitDateien: true, mitVideos: true });
+
 async function api(method, url, body, isForm = false) {
   const opts = { method, credentials: 'same-origin' };
   if (body !== undefined) {
@@ -263,7 +281,14 @@ function passwortFenster(titel, was, grund, mitCode) {
       ${grund ? `<p class="desc" style="margin:0">${esc(grund)}</p>` : ''}
       <div class="field" style="margin:0"><label>Dein Passwort</label>
         <input class="input" id="best-pass" type="password" autocomplete="current-password"></div>
-      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>Code aus deiner App</label>
+      ${/* DAS FELD NENNT DAS VERFAHREN UND NICHT DAS GERAET. "Code aus deiner
+           App" war zweimal falsch: es fragt nach der Herkunft statt nach der
+           Sache, und es stimmt fuer die Haelfte der Faelle nicht -- hier traegt
+           auch ein Wiederherstellungscode, und der kommt von einem Zettel.
+           EIN FELD FUER BEIDE FORMEN, wie an der Anmeldung: der Server sieht
+           der Eingabe an, was gemeint ist (istCodeform gegen istWiederform).
+           Deshalb darf die Beschriftung keine von beiden ausschliessen. */''}
+      ${mitCode ? `<div class="field" style="margin:10px 0 0"><label>Code des zweiten Faktors</label>
         <input class="input" id="best-code" inputmode="text" autocomplete="one-time-code"
           autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
@@ -291,7 +316,8 @@ function passwortFenster(titel, was, grund, mitCode) {
    Frage, die gar nicht gestellt wird, waere Verwirrung ohne Gegenwert. */
 const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
   BESTAETIGUNG_GRUND + (ZWEIFAKTOR
-    ? ' Weil dein Zugang einen zweiten Faktor trägt, gehört der Code dazu — gerade hier hilft er am meisten.'
+    ? ' Weil dein Zugang einen zweiten Faktor trägt, gehört sein Code dazu — gerade hier hilft ' +
+      'er am meisten. Hast du ihn nicht zur Hand, trägt auch ein Wiederherstellungscode.'
     : ''), ZWEIFAKTOR);
 
 /* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, .
@@ -460,9 +486,12 @@ function showZweiterFaktor(ausweis, errMsg) {
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${MARKENZEILE()}
-    <p class="sub">Noch der Code aus deiner App.</p>
+    <p class="sub">Noch der zweite Faktor.</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
-    <div class="field"><label for="zf-code">Sechsstelliger Code</label>
+    ${/* Nicht "Sechsstelliger Code": hier traegt auch ein Wiederherstellungscode,
+         und der hat zehn Zeichen. Die Beschriftung nennt deshalb das Verfahren,
+         die Zeile darunter nennt den zweiten Weg. */''}
+    <div class="field"><label for="zf-code">Code des zweiten Faktors</label>
       <input class="input" id="zf-code" inputmode="text" autocomplete="one-time-code"
         autocapitalize="characters" spellcheck="false" maxlength="16"></div>
     <button class="btn btn-accent" id="zf-ab">Anmelden</button>
@@ -4659,8 +4688,25 @@ async function renderSystem() {
              sonst wundert sich jemand ueber eine Datenbank, die nach dem
              Aufraeumen groesser ist als vorher. Die Zeile steht UEBER der
              Datenbankgroesse, weil sie ein Teil von ihr ist. */''}
+        ${/* Kommentarbilder standen bisher in keiner Zeile, obwohl sie als Blob
+             in derselben Datei liegen wie Fotos und Anhaenge. Wer sich fragt,
+             wovon die Datenbank so gross ist, soll die Antwort vollstaendig
+             finden und nicht bei einem Rest stehenbleiben. */''}
+        <div class="kv"><span class="k">Kommentarbilder</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
         <div class="kv"><span class="k">Papierkorb</span><span class="v">${stats.papierkorbCount || 0} · ${fmtBytes(stats.papierkorbBytes)}</span></div>
         <div class="kv"><span class="k">Datenbank</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
+        ${/* DIE ZWEITE GROESSENANGABE, und sie beantwortet eine andere Frage als
+             die Zeile darueber. Die Datenbankgroesse sagt, wie viel Platz die
+             Anlage auf der Platte braucht; sie traegt Indizes, das
+             Sicherheitsprotokoll und freie Seiten aus Geloeschtem. Die
+             Exportgroesse sagt, wie gross die Datei wird, die das Haus
+             verlaesst -- Base64 statt Bytes, dafuer ohne alles, was nicht
+             mitgeht. Die beiden Zahlen sind darum verschieden, und dass die
+             obere die untere ueberschreiten kann, ist kein Fehler.
+             ALLES EINGERECHNET: Fotos, Videos, Dateien, Kommentarbilder. Am
+             Knopf steht darunter, was die eingeschalteten Schalter davon
+             wirklich mitnehmen. */''}
+        ${exportGesamt(stats) ? `<div class="kv"><span class="k">Export, alles</span><span class="v">≈ ${fmtBytes(exportGesamt(stats))}</span></div>` : ''}
         ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann: ob die
              Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
              Einspielen wird er gegen die Zeile im Aenderungsprotokoll
@@ -4772,20 +4818,37 @@ async function renderSystem() {
         <p class="desc">Schreibt den gesamten Bestand in eine Datei. Mit Fotos wird sie deutlich
           größer, weil Bilder als Text kodiert werden müssen — rechne mit rund einem Drittel
           Aufschlag auf ${fmtBytes(stats.photoBytes)}.</p>
+        ${/* DIE ZAHLEN AN DEN KNOEPFEN SIND LEBENDIG. Sie standen bisher fest im
+             Text und rechneten dabei jede fuer sich -- die Haekchen darunter
+             aenderten die Datei, aber keine Zahl. Wer beide Haekchen setzte,
+             fand nirgends, was dabei herauskommt.
+             GERECHNET WIRD AN EINER STELLE, in exportSumme(); die Warnung
+             darunter liest dieselbe Zahl. Zwei Rechenwege naennten frueher oder
+             spaeter zwei Groessen fuer dieselbe Datei. */''}
         <div class="row-in">
-          <button class="btn btn-accent btn-sm" id="ex-yes">Mit Fotos (~${fmtBytes(Math.round(stats.photoBytes * 1.34))})</button>
-          <button class="btn btn-sm" id="ex-no">Ohne Fotos</button>
+          <button class="btn btn-accent btn-sm" id="ex-yes">Mit Fotos (~<span id="ex-gr-yes">…</span>)</button>
+          <button class="btn btn-sm" id="ex-no">Ohne Fotos (~<span id="ex-gr-no">…</span>)</button>
         </div>
         <label class="ex-files"><input type="checkbox" id="ex-files">
-          Angehängte Dateien mitnehmen (~${fmtBytes(Math.round(stats.attachmentBytes * 1.34))})</label>
+          Angehängte Dateien mitnehmen (+${fmtBytes((stats.export?.anhaenge || 0) + (stats.export?.kommentarbilder || 0))})</label>
         ${/* Eigener Schalter, Vorgabe aus. Ohne ihn bleibt der Platz des Videos
              in der Datei vermerkt, die Datei selbst fehlt -- der Import sagt
              dann, wie viele es waren. Stand ein Video an erster Stelle, wird
              danach das naechste Foto zum Hauptbild. */''}
         <label class="ex-files"><input type="checkbox" id="ex-videos">
-          Videos mitnehmen (~${fmtBytes(Math.round(stats.videoBytes * 1.34))})</label>
+          Videos mitnehmen (+${fmtBytes(stats.export?.videos || 0)})</label>
         ${stats.videoCount ? `<p class="hint hint-sm" style="margin:6px 2px 0">
           Ohne Häkchen bleiben die Videos zurück; die Einträge nennen sie, die Dateien fehlen.</p>` : ''}
+        ${/* DER HINWEIS STEHT VOR DEM KNOPF UND NICHT HINTER DEM ABBRUCH. Ein
+             Export, der nach zwei Minuten mit einem Speicherfehler aufgibt,
+             sieht aus wie ein kaputtes Programm; er ist aber eine erreichte
+             Grenze, und der Unterschied liegt allein darin, ob die Anlage es
+             vorher sagt.
+             GEWARNT WIRD, VERWEIGERT NICHT. Die Zahl ist eine Schaetzung, und
+             eine Schaetzung darf niemandem den Export wegnehmen, dessen Datei
+             am Ende doch gepasst haette. Wer die Grenze wirklich reisst,
+             bekommt sie von der Route gesagt -- mit derselben Rechnung. */''}
+        <div id="ex-warn"></div>
       </div>
 
       <div class="sys-card">
@@ -5155,7 +5218,7 @@ async function renderSystem() {
     box.innerHTML = stand.an ? `
       <div class="zf-zustand zf-an">
         <strong>Zweiter Faktor: an</strong> — seit ${esc(String(stand.seit || '').slice(0, 10))}.
-        Beim Anmelden fragt die Anlage zusätzlich nach dem Code aus deiner App.
+        Beim Anmelden fragt die Anlage zusätzlich nach dem Code des zweiten Faktors.
         <div class="zf-codestand">Wiederherstellungscodes:
           <strong>noch ${stand.codesOffen} von ${stand.codesGesamt}</strong>${stand.codesOffen <= 2
             ? ' — <strong>das wird knapp.</strong> Hol dir neue, solange du noch hereinkommst.' : ''}</div>
@@ -5541,10 +5604,50 @@ async function renderSystem() {
   amElement('ex-yes', b => b.onclick = () => exportLos(true));
   amElement('ex-no', b => b.onclick = () => exportLos(false));
 
+  /* DIE GROESSEN AN DEN KNOEPFEN, und sie folgen den Haekchen. Gerufen wird
+     einmal beim Zeichnen und danach bei jeder Aenderung -- eine Zahl, die nur
+     beim Aufbau stimmt, ist schlimmer als keine.
+     GEWARNT WIRD FUER DIE ZAHL, DIE GROESSER IST: die beiden Knoepfe stehen
+     nebeneinander, und ein Hinweis, der nur fuer einen von ihnen gilt, muss
+     sagen, fuer welchen. Deshalb nennt er den Fall beim Namen. */
+  function exportZahlen() {
+    // `stats` bleibt null, wer nicht Admin ist -- und diese Funktion laeuft
+    // beim Zeichnen IMMER, nicht nur im Zweig des Eigentuemers.
+    const ex = stats && stats.export;
+    if (!ex) return;
+    const schalter = {
+      mitDateien: !!document.getElementById('ex-files')?.checked,
+      mitVideos: !!document.getElementById('ex-videos')?.checked
+    };
+    const mit = exportSumme(ex, { ...schalter, mitFotos: true });
+    const ohne = exportSumme(ex, { ...schalter, mitFotos: false });
+    amElement('ex-gr-yes', e => e.textContent = fmtBytes(mit));
+    amElement('ex-gr-no', e => e.textContent = fmtBytes(ohne));
+    amElement('ex-warn', kasten => {
+      if (mit <= ex.warnAb) { kasten.innerHTML = ''; return; }
+      // „Auch ohne Fotos" ist der schlimmere Fall und gehoert deshalb gesagt:
+      // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
+      const auchOhne = ohne > ex.warnAb;
+      kasten.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
+        <strong>Export mit Fotos: rund ${esc(fmtBytes(mit))}.</strong>
+        Eine Exportdatei ist ein einziger Text, und der kann nicht größer als
+        ${esc(fmtBytes(ex.grenze))} werden — ${auchOhne
+          ? `auch ohne Fotos bleiben noch rund ${esc(fmtBytes(ohne))}.`
+          : `ohne Fotos bleiben rund ${esc(fmtBytes(ohne))}.`}
+        <p style="margin:9px 0 0">Für eine vollständige Kopie ist die Karte
+        <strong>Sicherung</strong> der richtige Weg: sie schreibt den ganzen Bestand und
+        braucht dafür keinen nennenswerten Arbeitsspeicher. <strong>Der Knopf bleibt
+        trotzdem</strong> — die Zahl ist eine Schätzung, und wer weiß, was er tut, soll
+        es versuchen dürfen.</p></div>`;
+    });
+  }
+  for (const id of ['ex-files', 'ex-videos']) amElement(id, e => e.addEventListener('change', exportZahlen));
+  exportZahlen();
+
   amElement('imp', imp => imp.onchange = e => {
     const file = e.target.files[0];
     e.target.value = '';
-    if (file) askImport(file);
+    if (file) askImport(file, stats && stats.export);
   });
 
   /* --- Papierkorb --- */
@@ -6557,7 +6660,27 @@ async function renderSystem() {
   }
 }
 
-function askImport(file) {
+/* DER BILLIGERE DER BEIDEN FAELLE: beim Import steht die Groesse VOR dem
+   Einlesen fest. Der Export muss sie schaetzen, hier steht sie an der Datei.
+   UND SIE GEHOERT VOR DAS EINLESEN, nicht dahinter: readAsText() macht aus
+   der Datei EINEN String, und ueber Nodes wie ueber V8s Stringgrenze bricht
+   das ab -- der Dialog sagte danach "Die Datei ließ sich nicht als Export
+   lesen", und das ist die falsche Auskunft. Sie klingt nach einer kaputten
+   Datei; in Wahrheit ist sie zu gross.
+   GEWARNT WIRD, VERWEIGERT NICHT -- dieselbe Regel wie am Export. */
+async function importGroesseGeprueft(file, grenzen) {
+  const warnAb = grenzen && grenzen.warnAb;
+  if (!warnAb || file.size <= warnAb) return true;
+  const grenze = grenzen.grenze;
+  return confirmBox('Diese Datei ist sehr groß',
+    `Die Datei misst ${fmtBytes(file.size)}. Zum Einspielen wird sie als ein einziger Text ` +
+    `gelesen, und der kann nicht größer als ${fmtBytes(grenze)} werden — darüber bricht der ` +
+    `Import ab, ohne etwas zu ändern. Für eine vollständige Wiederherstellung ist die ` +
+    `Sicherung der richtige Weg.`,
+    'Trotzdem versuchen');
+}
+
+function askImport(file, grenzen) {
   let info = null;
   const reader = new FileReader();
   reader.onload = () => {
@@ -6568,7 +6691,9 @@ function askImport(file) {
     } catch { info = null; }
     show();
   };
-  reader.readAsText(file);
+  // Erst fragen, dann lesen. Andersherum stuende der Browser schon minutenlang
+  // an der Datei, bevor die Warnung ueberhaupt erscheinen koennte.
+  importGroesseGeprueft(file, grenzen).then(weiter => { if (weiter) reader.readAsText(file); });
 
   function show() {
     const bd = document.createElement('div');

@@ -615,7 +615,7 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
   der Tabelle.** *Und CrowdSec braucht ihn nicht — es sperrt nach Adresse.*
   Siehe Fahrplan 0.13.0, „Gescheiterte Anmeldungen" (b).
 - **Die Adresse des Aufrufers im Sicherheitsprotokoll.** Dasselbe, und dazu:
-  die Tabelle trägt Nummern aus geschlossenen Listen, nicht Zeichenketten von
+  die Tabelle trägt Nummern aus geschlossenen Listen, nicht Strings von
   außen. Die Adresse gehört ins Containerprotokoll, wo sie gelesen wird.
 - **Eine Protokollzeile für den ausgebremsten Fall — in der Tabelle.** Sie ist
   die einzige Zeile, die ein Fremder auslösen kann, und die Bremse ist ihr
