@@ -20,8 +20,8 @@ Zwecke der zweiten Bestätigung. Laufzeitabhängigkeiten:
 WAS SICH ÄNDERT, IN EINEM SATZ: Der Export in Teilen wird wieder benutzbar — mit
 eingeschaltetem zweitem Faktor ist er es heute nicht —, die Anlage ist danach
 über HTTPS **und** über das Heimnetz erreichbar statt nur über den Weg, den eine
-einzige Einstellung gerade offenhält, und drei kleinere Punkte ziehen mit —
-zwei am Zugang, einer an der Filterleiste.
+einzige Einstellung gerade offenhält, und vier kleinere Punkte ziehen mit —
+zwei am Zugang, zwei an der Filterleiste.
 
 **DIESE RUNDE HAT EIN BETRIEBSRISIKO IM KERN, UND DAS UNTERSCHEIDET SIE VON DEN
 LETZTEN VIER.** 0.12.1 bis 0.12.4 waren Befunde aus dem Betrieb, alle PATCH —
@@ -408,22 +408,10 @@ hereinkommt** — nicht die Daten sind in Gefahr, sondern der Zugang zu ihnen.
    Zusammenlegungen. *Fällt dir beim Bauen auf, dass (a) ohne sie viel einfacher
    wäre: sag es, bau es nicht.*
 
-   **(e) „Ohne Kategorie" als Filter — NICHT in dieser Runde.** Der Befund steht
-   und ist echt: der Kopf sagt 12 Einträge, die Kategorien sagen 1 + 9 = 10.
-   **Zwei Einträge sind über die Kategoriezeile nicht erreichbar** — „Alle" zeigt
-   sie, keine Kategorie zeigt sie. *Die Zahlen an den Pillen verraten die Lücke
-   sogar; sie zu addieren ist Sache des Lesers, und das ist der Fehler.*
-   **DER SERVER HAT DAMIT NICHTS ZU TUN** — die erste Einschätzung sagte etwas
-   anderes und war falsch: gefiltert wird ohnehin im Browser über `state.alle`,
-   und die Zahl daneben rechnet sich dort wie die an „Neu seit …". Es sind drei
-   Stellen in `public/app.js` — `visibleItems`, `drawFilters`, und **die dritte
-   ist die Falle:** `filterNormal` setzt mit
-   `if (f.categoryId != null && !state.categories.some(...)) f.categoryId = null`
-   jeden unbekannten Kategoriewert auf „Alle" zurück. *Eine gespeicherte Ansicht
-   „Ohne Kategorie" verwandelte sich damit stillschweigend in „Alle".*
-   **Trotzdem nicht hier:** es ist ein neuer Filterzustand mit Wirkung auf
-   gespeicherte Ansichten, und diese Runde macht die Leiste nur schmaler.
-   *Es steht als Zeile in Teil II des Sammelblatts und wartet dort.*
+   **(e) „Ohne Kategorie" wird gebaut — aber in Punkt 6 und nicht hier.** Der
+   Anlass stammt aus demselben Bild: der Kopf sagt 12 Einträge, die Kategorien
+   sagen 1 + 9 = 10. *Er gehört zur Kategoriezeile und nicht zur Höhe der
+   Leiste, deshalb steht er dort.*
 
    **(f) UND DIE ALTE DOPPELUNG WIRD DAMIT ZUR ENTSCHEIDUNG — das ist der Teil,
    den man beim Bauen übersieht.** Teil II des Sammelblatts trägt seit 0.12.3 die
@@ -450,7 +438,77 @@ hereinkommt** — nicht die Daten sind in Gefahr, sondern der Zugang zu ihnen.
 
 ---
 
-6. WAS DIESE RUNDE NICHT ANFASST — UND DAS IST DER GRÖSSERE TEIL DER LISTE.
+6. DIE KATEGORIEZEILE: MEHRERE AUF EINMAL, UND „OHNE" ALS EIGENE GRUPPE.
+
+   **Aus dem Betrieb, 28. August 2026.** *Oberfläche wie Punkt 5 und keine Zeile
+   am Server — aber sie fasst einen GESPEICHERTEN Wert an, und darin liegt die
+   ganze Sorgfalt dieses Punktes.*
+
+   **ZWEI WÜNSCHE, EINE ÄNDERUNG.** Heute trägt der Filter genau eine Kategorie
+   (`f.categoryId` — eine Zahl, oder `null` für „Alle"). Künftig trägt er eine
+   **Liste**, und „ohne Kategorie" ist ein Eintrag dieser Liste wie jeder andere.
+   *Damit sind beide Wünsche dieselbe Änderung und nicht zwei.*
+
+   **(a) MEHRERE KATEGORIEN ZUGLEICH — UND ES IST EIN ODER, NIEMALS EIN UND.**
+   Ein Eintrag hat **genau eine** Kategorie: `product_category_id` ist in `db.js`
+   eine einzelne Spalte, kein Beutel wie bei den Tags. **„Datenträger UND
+   Produkt" wäre deshalb immer leer** — es kann keinen Eintrag geben, der beides
+   trägt. Gebaut wird die Vereinigung: beide Gruppen zugleich in der Liste.
+   **DIE ZEILE BEKOMMT DESHALB KEIN UND/ODER.** Bei den Tags ist die Wahl echt,
+   weil ein Eintrag viele Tags trägt; hier gibt es nur Oder. *Ein Umschalter,
+   dessen eine Hälfte garantiert null Treffer liefert, ist schlimmer als keiner
+   — und er ist auch nicht dadurch zu retten, dass man ihn dämpft.*
+
+   **(b) „OHNE" ALS PILLE MIT EIGENER ZAHL,** am Ende der Zeile. Der Anlass: der
+   Kopf sagte 12 Einträge, die Kategorien 1 + 9 = 10. **Zwei Einträge waren über
+   keine einzelne Kategorie erreichbar** — die Zahlen verrieten die Lücke, zu
+   sehen bekam man sie trotzdem nicht.
+   *Sie ist kein Sonderfall, sondern ein Wert in derselben Liste:* „Produkt" und
+   „Ohne" zusammen angeklickt zeigt die neun und die zwei.
+   **Die Zahl rechnet sich im Browser** wie die an „Neu seit …" — `state.alle`
+   trägt den ganzen Bestand, der Server wird dafür nicht gefragt.
+
+   **DER HAKEN, UND ER IST DER GANZE AUFWAND: DIE GESPEICHERTEN ANSICHTEN.** In
+   ihnen steht heute EIN Kategoriewert. Sie liegen als JSON beim Server, der sie
+   unbesehen durchreicht — *keine Schlüsselliste, dort ist nichts nachzuziehen.*
+   **Beim Einlesen muss übersetzt werden, an genau einer Stelle:**
+   `filterNormal`. Dort steht heute
+   `if (f.categoryId != null && !state.categories.some(...)) f.categoryId = null`
+   — **diese Zeile wirft jeden Wert weg, den sie nicht kennt.** Ohne Übersetzung
+   verlören alle vorhandenen Ansichten ihre Kategorie, still und ohne Meldung.
+   *Und „ohne" muss sie stehenlassen: es ist kein Kategoriewert und trotzdem
+   gültig.*
+   **DIE ÜBERSETZUNG GEHÖRT AN DIE EINE STELLE UND NICHT AN JEDE LESESTELLE** —
+   `filterNormal` ist der Ort, an dem eine gespeicherte Stellung zurechtgerückt
+   wird; ein zweiter Weg daneben liefe auseinander.
+
+   **ACHT STELLEN IN `public/app.js`, gezählt und nicht geschätzt:**
+   `FILTER_VORGABE`, `filterNormal`, `visibleItems`, der Zähler in
+   `zeichneFilterSchalter` und vier in `drawFilters`. **Sieben Stellen im
+   Prüfstand** fassen `categoryId` an und ziehen mit.
+
+   **WAS ZU ENTSCHEIDEN IST — dreierlei, und keines davon stillschweigend:**
+
+   * **Zählt die Filterzahl drei gewählte Kategorien als einen Filter oder als
+     drei?** Heute zählt `categoryId != null` als einer. *Entscheide und
+     begründe.*
+   * **Bleibt „Alle" eine Pille?** Bei den Tags gibt es keine — dort steht
+     „zurücksetzen" am rechten Ende. Nach dieser Änderung verhalten sich beide
+     Zeilen gleich und sehen verschieden aus. *Beides ist vertretbar,
+     auseinanderlaufen lassen nicht.*
+   * **Was zeigt eine Ansicht, deren Kategorie inzwischen gelöscht ist?** Heute
+     fällt sie ganz auf „Alle" zurück. Mit einer Liste kann sie auf den **Rest**
+     zurückfallen — *das ist der bessere Ausgang, aber sag ihn ausdrücklich.*
+
+   **DIE PRÜFUNG, DIE HIER FEHLEN WÜRDE:** eine gespeicherte Ansicht in der
+   **alten** Form — ein einzelner Kategoriewert — muss nach dem Einlesen
+   dieselbe Liste zeigen wie vorher. **Eine Prüflage, die nur die neue Form
+   kennt, belegt darüber nichts.** *Dieselbe Lehre wie in Punkt 1: der Schalter,
+   den keine Lage jemals einschaltet.*
+
+---
+
+7. WAS DIESE RUNDE NICHT ANFASST — UND DAS IST DER GRÖSSERE TEIL DER LISTE.
 
    Der Fahrplan hat noch vier Runden. **Drei davon sind nicht diese.**
 
@@ -476,7 +534,7 @@ hereinkommt** — nicht die Daten sind in Gefahr, sondern der Zugang zu ihnen.
 
 ---
 
-7. DIE ZAHLEN AM ENDE.
+8. DIE ZAHLEN AM ENDE.
 
    * **Beide Wege, gemessen und nicht behauptet:** eine Anmeldung über HTTPS
      **und** eine über `http://<server-ip>:3100`, jeweils bis zur stehenden
@@ -503,8 +561,9 @@ DIE NUMMER:
   erreichbar sein. Das ist keine Fehlerbereinigung, sondern eine Fähigkeit, die
   es vorher nicht gab.
   **Sieh trotzdem genau hin:** *wenn am Ende nur die Reparatur, der Satz im
-  Löschdialog, der Filter an der Karte und die Filterleiste übrig sind, weil
-  Punkt 2 zu groß wurde, dann heißt die Runde 0.12.5 und ist PATCH.* **Sag es
+  Löschdialog, der Filter an der Karte und die beiden Punkte an der
+  Filterleiste übrig sind, weil Punkt 2 zu groß wurde, dann heißt die Runde
+  0.12.5 und ist PATCH.* **Sag es
   mit Begründung.**
 * **NICHTS WIRD UNTER EINER SCHON HERAUSGEGEBENEN NUMMER NACHGESCHOBEN.** Kommt
   nach 0.13.0 etwas nach, heißt es 0.13.1.
@@ -564,8 +623,10 @@ REGELN:
   Namen bekämen — und genau das wäre der Fehler aus (b).
 * **Wird es zu viel für einen Durchgang, sag es, sobald du es kommen siehst —
   nicht hinterher.** Der Schnitt liegt zwischen Punkt 3 und Punkt 2 — die
-  Punkte 3 bis 5 sind die billigen, **Punkt 1 steht außerhalb**: er repariert
-  Laufendes und wird nie geschnitten.
+  Punkte 3 bis 6 sind die billigen, **Punkt 1 steht außerhalb**: er repariert
+  Laufendes und wird nie geschnitten. *Fällt Punkt 5, fällt Punkt 6 mit: beide
+  fassen `drawFilters` an, und zweimal hintereinander dieselbe Funktion
+  umzubauen ist teurer als einmal.*
 
 BAUREGEL — datenbankverändernder Code wird rückbaufreundlich gebaut:
 
@@ -574,7 +635,8 @@ BAUREGEL — datenbankverändernder Code wird rückbaufreundlich gebaut:
   FORMATNUMMER.** Punkt 1 fasst eine vorhandene Route und die Oberfläche an,
   Punkt 2 Cookies und Kopfzeilen, Punkt 3 die Karte und die Leseroute, Punkt 4
   einen Dialogtext und ein Fenster, Punkt 5 das Stilblatt und den Aufbau der
-  Filterleiste. **Wenn das nach
+  Filterleiste, Punkt 6 die Form eines gespeicherten Filterwerts — **kein
+  Schema, aber gespeicherte Daten; lies dort genau.** **Wenn das nach
   deiner Durchsicht nicht stimmt, ist das ein Grund anzuhalten und zu fragen.**
 * Das Schema bleibt vollständige DDL in `db.js`.
 * **`F_ROUTEN` bleibt bei 69**, solange keine schreibende Route dazukommt.
@@ -590,7 +652,7 @@ AM ENDE DES CHATS:
   Datei, Abweichungen mit Begründung, neue Stolpersteine (**die Zählung setzt
   bei 191 fort** — 190 ist vergeben), die Gegenprobentabelle **aus
   `gegenprobe.js`**, Prüfungszahlen vorher/nachher (vorher: **3992**),
-  Offengebliebenes. **Und die Messwerte aus Abschnitt 7.**
+  Offengebliebenes. **Und die Messwerte aus Abschnitt 8.**
 * Die Zeile „0.13.0 — Fingerprint `…`" gehört ins Änderungsprotokoll, **ZULETZT
   gebildet**, nach der letzten Änderung an einer ausgelieferten Datei — die
   Versionsnummer in `package.json` eingeschlossen. **Und `public/` gehört dazu**:
