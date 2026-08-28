@@ -1653,6 +1653,38 @@ und ein Punkt ohne Zahl braucht keine genaue Zählung — nur die Antwort „gib
 etwas oder nicht". *Eine Zahl bringt die Frage nach „99+" mit und die nach
 ihrer Genauigkeit; ein Punkt bringt keine.*
 
+**c2) Zwei Knöpfe, zwei Zeichen — und das ist entschieden.** *Aus dem Betrieb
+kam am 28. August 2026 der Vorschlag, die Glocke an die Stelle des Knopfes
+„Offene Aufgaben" zu setzen und beides in eine Tafel zu legen: oben die
+persönlichen Neuigkeiten, eine Trennlinie, darunter die offenen Aufgaben.*
+**Verworfen am selben Tag, vom Betreiber, nach den beiden Befunden unten.**
+
+| Knopf | Zeichen | Was es sagt | Wann es weggeht |
+|---|---|---|---|
+| **Glocke** | **Punkt** in `--accent` | etwas ist geschehen | beim **Lesen** |
+| **„Offen"** | **Zahl** — `Offen 7` | so viel liegt an | beim **Erledigen** |
+
+**Der erste Befund steht in einer Zeile SQL.** `GET /api/offen` hat **keinen
+Benutzerfilter** (`WHERE c.kind = 'task'`, `server.js:3113`) — die Liste zeigt
+die offenen Aufgaben **aller**, jede Zeile trägt nur ein `mine` zur Anzeige.
+**In einer Tafel wäre die obere Hälfte „über mich" und die untere „über alle".**
+
+**Der zweite ist der tragende.** Eine Neuigkeit verschwindet, wenn man sie
+**gelesen** hat; eine Aufgabe erst, wenn man sie **erledigt** hat. *Ein Zeichen
+für beides geht nie ganz weg — und ein Punkt, der immer da ist, wird nach einer
+Woche nicht mehr gesehen.*
+
+**Der Knopf „Offen" verschwindet damit nicht, er wird besser:** die Zahl daran
+ist die Zeile **„Der Zähler ‚Offen 7' in der Kopfzeile"** aus Teil II, die seit
+0.8.60 auf ihren Weg wartet. **Sie bekommt ihn hier** — die Zählung reist mit
+derselben Antwort mit wie die der Glocke, siehe (b).
+
+**Und eine Ausnahme gehört dazu, sonst fällt etwas zwischen die beiden:** eine
+**fremde Aufgabe an einem eigenen Eintrag** ist eine Neuigkeit und gehört in die
+Glocke — *auch wenn dieselbe Aufgabe daneben in der Zahl steht. Das ist keine
+Doppelung: das eine sagt „jemand hat das eben angelegt", das andere „es ist noch
+offen".*
+
 **d) Was in der Tafel steht — und die Klemme, die niemand erraten würde.**
 
 | Ereignis | Was die Glocke sagen darf |
@@ -1705,41 +1737,6 @@ Zeitstempeln errechnen lässt.**
   es nicht anders. **Der Lesestand je Meldung ist die Fassung danach**, und er
   braucht dann doch eine Tabelle — *deshalb steht er hier als „später" und nicht
   als Teil der ersten Runde.*
-* **Ersetzt die Glocke den Knopf „Offene Aufgaben"?** *Aus dem Betrieb kam der
-  Vorschlag, beides in eine Tafel zu legen — oben die persönlichen Neuigkeiten,
-  darunter eine Trennlinie, unten die offenen Aufgaben.* **Der Befund, der die
-  Frage entscheidet, steht in einer Zeile SQL:** `GET /api/offen` hat **keinen
-  Benutzerfilter** (`WHERE c.kind = 'task'`, `server.js:3113`). Die Liste zeigt
-  die offenen Aufgaben **aller**; jede Zeile trägt nur ein `mine` zur Anzeige.
-  **Die obere Hälfte wäre damit „über mich", die untere „über alle" — zwei
-  Zugehörigkeiten in einem Kasten.**
-
-  **Dazu ein zweiter Unterschied, und er ist der tragende:** eine Neuigkeit
-  verschwindet, wenn man sie **gelesen** hat; eine Aufgabe verschwindet, wenn
-  man sie **erledigt** hat. *Ein Zeichen, das beides meint, geht nie ganz weg —
-  und ein Punkt, der immer da ist, wird nach einer Woche nicht mehr gesehen.*
-
-  **Draußen legt es niemand zusammen.** Instagram hat nur Aktivität; Facebook
-  hat Glocke, Messenger und Anfragen als **getrennte** Zeichen; GitHub trennt
-  die Glocke von „Assigned to me"; Jira und Linear trennen Glocke und „Meine
-  Vorgänge". *Was GitHub dabei bestätigt: seine Glocke trägt einen **schlichten
-  Punkt ohne Zahl** — genau die Form, die der Betrieb sich wünscht.*
-
-  **Vorschlag: zwei Knöpfe, zwei verschiedene Zeichen.** Die Glocke trägt den
-  **Punkt** (etwas ist geschehen, geht weg beim Lesen); der Knopf „Offen"
-  bleibt und bekommt seine **Zahl** (so viel liegt an, geht weg beim Erledigen)
-  — *das ist zugleich die Zeile „Der Zähler ‚Offen 7'" aus Teil II.* **Eine
-  fremde Aufgabe an einem eigenen Eintrag ist dabei eine Neuigkeit und gehört
-  trotzdem in die Glocke.**
-
-* **Falls es doch eine Tafel wird: dann muss sie durchgehend „über mich"
-  heißen.** Oben „Neu für dich" — **nur diese Hälfte trägt den Punkt**;
-  Trennlinie; unten „Offen an deinen Einträgen", also **nur** Aufgaben an
-  eigenen Einträgen oder von einem selbst, **ohne Punkt**, weil es ein Zustand
-  ist. Ganz unten ein Verweis *„Alle offenen Aufgaben ansehen →"* auf die
-  gemeinsame Ansicht. *So wie GitHubs „See all notifications" — die geteilte
-  Liste ist einen Klick weiter und nicht in der Tafel.*
-
 * **Und die Frage, die vor allen anderen steht: gilt das auch auf dem Telefon?**
   Der Wunsch nennt den Desktop. **Die Kopfzeile ist aber eine — was in
   `.mast-rest` steht, wandert auf dem Telefon von selbst ins Menü.** Eine
@@ -1749,10 +1746,12 @@ Zeitstempeln errechnen lässt.**
 
 ### Was es anfasst
 
-Die Kopfzeile, eine Tafel, ein persönlicher Einstellungsschlüssel
-(`glockeGesehen` in `PERSOENLICHE_SCHLUESSEL`), eine Zählabfrage über
-`comments`, `ratings`, `test_days`, `links` und `attachments` mit einem JOIN auf
-die eigenen Einträge, dazu Prüfungen und Gegenproben. **Kein Schema, keine neue
+Die Kopfzeile — **die Glocke als dritter Zeichenknopf neben „Offen" und
+„Systembereich", und die Zahl am Knopf „Offen"** —, eine Tafel, ein
+persönlicher Einstellungsschlüssel (`glockeGesehen` in
+`PERSOENLICHE_SCHLUESSEL`), eine Zählabfrage über `comments`, `ratings`,
+`test_days`, `links` und `attachments` mit einem JOIN auf die eigenen Einträge,
+eine zweite über die offenen Aufgaben, dazu Prüfungen und Gegenproben. **Kein Schema, keine neue
 Tabelle, kein Migrationsblock** — `user_settings` trägt den Zeitstempel wie
 `zuletztGesehen` auch.
 
@@ -1802,11 +1801,15 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   worden: **er würde bei jedem Seitenaufbau gebraucht**, und die Frage, wie er
   nicht ständig neu abgefragt wird, ist die eigentliche Arbeit.
   **Punkt 16 beantwortet genau diese Frage** — die Zahl reist mit einer
-  Antwort mit, die es ohnehin gibt, statt eine eigene Anfrage zu sein. *Wer die
-  Glocke baut, hat den Weg für diesen Zähler gleich mitgebaut; er säße im selben
-  Knopf daneben.*
-  *(Claude: nicht empfohlen für sich allein — aber empfohlen als Anhängsel an
-  Punkt 16, falls der kommt)*
+  Antwort mit, die es ohnehin gibt, statt eine eigene Anfrage zu sein.
+  **Und seit dem 28. August 2026 ist er ein Teil davon:** der Betreiber hat
+  entschieden, dass die Glocke den Knopf „Offen" **nicht** ersetzt, sondern
+  neben ihm steht — **die Glocke trägt den Punkt, dieser Knopf die Zahl**
+  (Punkt 16, Teil c2). *Er wird damit nicht mehr für sich allein gebaut,
+  sondern fällt in derselben Runde an.*
+  *(Claude: empfohlen — als Teil von Punkt 16 · Draußen üblich: eine Zahl für
+  einen Zustand, ein Punkt für ein Ereignis; die beiden Zeichen werden nicht
+  vertauscht)*
 - **Die Vorschau der Rangfolge im Systembereich** *(0.8.40, erneut gewünscht
   28. August 2026)*. **Art: Neue Funktion.** Sehen, wie sich die Spitze
   verschiebt, wenn man an einem Gewicht dreht. *Das ist es, was Gewichte im
