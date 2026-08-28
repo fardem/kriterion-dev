@@ -1,6 +1,6 @@
 # Fehler und Ideen
 
-**Das Sammelblatt · Stand 27. August 2026**
+**Das Sammelblatt · Stand 28. August 2026**
 
 **Hier stehen Befunde aus dem Betrieb, Fehler und Ideen — Punkt für Punkt, in
 der Reihenfolge, in der sie aufgefallen sind.** Es ist die Zusammenführung der
@@ -46,13 +46,59 @@ nie zurück.*
 | `CHANGELOG.md` | je Version, was ein Betreiber wissen muss |
 | `Doku/Konzept_Video_und_grosse_Dateien.md` | **Teil II, große Dateien bis 2 GB** — ein beschlossenes Vorhaben mit eigenem Papier, im Fahrplan als „danach". *Steht deshalb nicht hier.* |
 
-## Die Marke „Claude"
+## Drei Angaben am Kopf jedes Punktes
 
-**An jedem Punkt steht eine Einschätzung, und sie ist ausdrücklich nur das:**
-`stark empfohlen` · `empfohlen` · `später` · `nicht empfohlen`. Sie kommt von
-Claude, nicht vom Betreiber, und sie ist **keine Entscheidung, keine Rangfolge
-und keine Zuordnung zu einer Runde** — dafür ist der Fahrplan da. Sie steht
-hier, damit beim Bündeln nicht jeder Punkt neu durchdacht werden muss.
+**Jeder Punkt trägt drei Angaben, und keine davon ist eine Entscheidung.**
+
+### 1. Die Art — was für eine Sache das ist
+
+`Fehler` · `Verbesserung` · `Neue Funktion` · `Design`
+
+**Sie sagt, was der Punkt IST, und nicht, wie wichtig er ist.** Ein Fehler ist
+etwas, das nicht tut, was es soll; eine Verbesserung macht etwas Vorhandenes
+besser; eine neue Funktion kann die Anlage danach etwas, was sie vorher nicht
+konnte; Design ist eine Frage der Darstellung und der Bedienung, nicht des
+Verhaltens. *Die Grenze zwischen den letzten beiden ist manchmal dünn — dann
+entscheidet die Frage: „Könnte die Anlage danach etwas Neues?"*
+
+**Die Art ordnet NICHT um.** Die Punkte stehen unten weiter in der Reihenfolge,
+in der sie aufgefallen sind — das ist Regel 1, und sie gilt. Wer nach Art
+suchen will, nimmt die Übersicht am Anfang von Teil I.
+
+### 2. Die Einschätzung von Claude
+
+`stark empfohlen` · `empfohlen` · `später` · `nicht empfohlen`
+
+**Es ist eine Bemerkung und ausdrücklich nur das.** Sie kommt von Claude, nicht
+vom Betreiber, und sie ist **keine Entscheidung, keine Rangfolge und keine
+Zuordnung zu einer Runde** — dafür ist der Fahrplan da. Sie steht hier, damit
+beim Bündeln nicht jeder Punkt neu durchdacht werden muss.
+
+### 3. Draußen üblich — wie andere es machen
+
+**Ein Satz, der sagt, wer es draußen wie löst — und keine Note.** Eine Zahl oder
+ein Sternchen wäre erfundene Genauigkeit; ein Name ist nachprüfbar. *Was sich
+anderswo bewährt hat, muss hier nicht neu erfunden werden — und wo bewusst
+davon abgewichen wird, steht der Grund an Ort und Stelle.*
+
+**Sie darf auch dagegen sprechen.** Wenn draußen alle etwas anders machen als
+hier vorgeschlagen, gehört das genauso in die Zeile wie die Bestätigung.
+
+## Ein Wort für das große Gerät: „Desktop"
+
+**Es heißt Desktop und nicht Schreibtisch** — festgelegt am 28. August 2026, und
+zwar für **alle lebenden Papiere**: dieses Blatt, den Projektstand und die
+README. *Vorher standen dort vierunddreißig „Schreibtisch"; sie sind
+umgestellt.*
+
+**Die Änderungsprotokolle bleiben, wie sie sind.** Sie halten fest, was zu ihrer
+Zeit gebaut wurde, und ein Papier, dessen Wortlaut sich nachträglich ändert, ist
+keine Aufzeichnung mehr. *Wer dort „Schreibtisch" liest, liest das richtige
+Wort seiner Runde.*
+
+**Eine Stelle in der README bleibt ebenfalls stehen, und das ist kein
+Versehen:** die „Schreibtischschublade", in der ein Zettel mit dem Schlüssel
+liegt. Dort ist ein echter Schreibtisch gemeint und kein Gerät.
 
 ## Die Form eines Punktes
 
@@ -80,11 +126,44 @@ beim Bauen vergessen hat.**
 
 # Teil I — Ausgearbeitete Punkte
 
+## Übersicht nach Art
+
+**Diese Tabelle ordnet nicht um, sie zeigt nur.** Die Punkte stehen darunter
+weiter in der Reihenfolge, in der sie aufgefallen sind — wer nach Art suchen
+will, sieht hier nach und geht dann zur Nummer.
+
+| Art | Punkte in Teil I | dazu in Teil II |
+|---|---|---|
+| **Fehler** | 3 *(Export bricht ab)* | — |
+| **Verbesserung** | 1, 4, 8, 12, 13, 15 | „offen" in der Kommentar-Kopfzeile · Kommentar schreiben ohne Scrollen · Kennzahlen: Version und Verfahren |
+| **Neue Funktion** | 2, 5, 6, 7, 9, 11 | — |
+| **Design** | 10, 14 | ⌀ und Anzahl am Kriterium · Import und Export in einer Kachel · die Versionszeile · „mehr" frisst eine Zeile |
+
+**Und die zweite Achse, weil sie beim Bündeln die wichtigere ist:**
+
+| Einschätzung | Punkte |
+|---|---|
+| **stark empfohlen** | 2, 3, 8, 9, 11, 12, 13 |
+| **empfohlen** | 1, 4, 10, 14, 15 |
+| **später** | 6 |
+| **nicht empfohlen** | 5, 7 |
+
+*Mehrere Punkte zerfallen in Teile mit verschiedener Einschätzung — die Tabelle
+nennt die des stärksten Teils, und mehrere davon tragen daneben ein
+ausdrückliches „nicht empfohlen" für einen anderen Teil. **Die Aufteilung steht
+am Punkt, und sie ist dort der eigentliche Inhalt.***
+
+---
+
 ## 1. Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung
 
 **Aufgefallen mit 0.11.0** — das Verhalten selbst ist älter.
 
-> **Claude: empfohlen** — aber nur Teil (a), der Trefferkontext.
+> **Art: Verbesserung** · **Claude: empfohlen** — aber nur Teil (a), der Trefferkontext.
+> **Draußen üblich:** Trefferkontext mit hervorgehobener Fundstelle ist der
+> Normalfall (GitHub-Codesuche, Confluence, Zendesk); der Suchbereich als
+> Häkchen hinter „Erweitert" ebenso. **Teilstring statt Wortgrenze ist dagegen
+> die Ausnahme** — dass sie hier richtig ist, liegt an den Typnummern.
 
 ### Woher
 
@@ -178,7 +257,10 @@ macht den einfachen Fall teurer, um den seltenen billiger zu machen.
 **Aufgefallen bei der Durchsicht zu 0.8.6; verschärft mit 0.8.31**, seit alle sechs
 Träger einen Verfasser haben — dieses Merkmal hat bis heute keinen.
 
-> **Claude: stark empfohlen** — die Anlage schreibt ihr Ergebnis nicht mit.
+> **Art: Neue Funktion** · **Claude: stark empfohlen** — die Anlage schreibt ihr Ergebnis nicht mit.
+> **Draußen üblich:** Wer eine Entscheidung festhält, hält immer drei Dinge
+> fest — **wann, warum, wer**. Jira, GitHub und jedes Freigabewerkzeug machen
+> es so; ein Häkchen ohne diese drei gilt draußen als unvollständig.
 
 ### Woher
 
@@ -270,9 +352,14 @@ gehört das Feld sichtbar in den Dialog und nicht in eine Nebenansicht.
 ## 3. Export und Import laufen vollständig durch den Arbeitsspeicher
 
 **Aufgefallen bei der Durchsicht zu 0.8.6; verschärft mit 0.8.50**, seit Videos bis
-20 MB in der Datenbank liegen.
+20 MB in der Datenbank liegen. **Am 28. August 2026 aus einem Vorsorgepunkt ein
+eingetretener geworden** — siehe „Der Stand im Feld" unten.
 
-> **Claude: empfohlen** — (a) und (b). Der Strom in (c) nicht.
+> **Art: Fehler** · **Claude: stark empfohlen** — (a) und (b), und zwar jetzt. Der Strom in (c) weiterhin nicht.
+> **Draußen üblich:** Große Ausgaben werden **nie** in einem Zug im Speicher
+> gebaut — sie werden gestreamt (`JSONL`, ein Datensatz je Zeile) oder als
+> Auftrag im Hintergrund erzeugt und zum Abholen bereitgelegt (GitLab, Discourse,
+> Google Takeout). **Und alle drei sagen die erwartete Größe vorher an.**
 
 ### Woher
 
@@ -297,10 +384,52 @@ Größe.
 *Seit 0.8.50 gibt es Videos bis 20 MB je Stück. Die Grenze ist damit näher
 gerückt, nicht weiter weg.*
 
+### Der Stand im Feld — 28. August 2026
+
+**Der Betreiber nennt seinen Bestand: rund 973 Bilder, Datenbankdatei rund
+660 MB.** Damit steht die Rechnung, die dieser Punkt seit 0.8.6 vorsorglich
+aufmacht, zum ersten Mal mit echten Zahlen da:
+
+| | |
+|---|---:|
+| Datenbankdatei | **660 MB** |
+| als Base64, plus ein Drittel | **≈ 880 MB** |
+| Nodes Grenze für **einen** String | **≈ 512 MB** |
+
+**Der Export dürfte damit heute schon mit `Invalid string length` abbrechen.**
+*Das ist kein „irgendwann", das ist jetzt — und deshalb steht an diesem Punkt
+seit heute `Fehler` und nicht mehr `Verbesserung`.*
+
+**Was daran gerechnet und was gemessen ist, gehört auseinandergehalten.** Die
+660 MB sind die **Dateigröße**, und die trägt auch Indizes, das
+Sicherheitsprotokoll und freie Seiten aus Gelöschtem — die Schätzung fällt
+damit **zu hoch** aus. Die ehrliche Zahl ist die Summe über die Blob-Spalten,
+und sie ist eine Abfrage:
+
+```sql
+SELECT (SELECT COALESCE(SUM(length(data)),0) FROM photos)
+     + (SELECT COALESCE(SUM(length(thumb)),0) FROM photos)
+     + (SELECT COALESCE(SUM(length(medium)),0) FROM photos)
+     + (SELECT COALESCE(SUM(length(data)),0) FROM attachments)
+     + (SELECT COALESCE(SUM(length(data)),0) FROM comment_images)
+     + (SELECT COALESCE(SUM(length(thumb)),0) FROM comment_images) AS blob_bytes;
+```
+
+**Diese Zahl mal vier Drittel gegen 512 MB — das ist der Befund.** Sie gehört
+ohnehin gebaut, denn sie ist genau die Grundlage, die Teil (a) unten braucht.
+*Fällt sie unter die Grenze, ist der Punkt wieder eine Verbesserung; fällt sie
+darüber, ist der Export kaputt und niemand hat es bemerkt, weil ihn niemand
+gebraucht hat.*
+
 ### Was es nicht ist
 
 **Keine Fehlkonstruktion, sondern eine Grenze, die niemand gezogen hat.** Und
 sie trifft ausgerechnet die Funktion, die als Sicherungsnetz gedacht ist.
+
+**Seit dem 28. August aber auch kein Vorsorgepunkt mehr.** Ein Knopf, der bei
+diesem Bestand abbricht, ist ein Fehler und keine erreichte Grenze — *der
+Unterschied liegt allein darin, ob die Anlage es vorher sagt.* Genau das ist
+Teil (b).
 
 **Kein Fall mehr für „der Export muss das können".** Seit 0.8.70 ist
 `VACUUM INTO` der Hauptweg der Sicherung und der Export der **Austauschweg** —
@@ -359,30 +488,43 @@ schon einen zweiten Weg hat — es wäre Arbeit an der weniger wichtigen Hälfte
 **Aufgefallen bei der Durchsicht zu 0.8.6 und seither in jeder Runde größer
 geworden**, zuletzt mit 0.11.0.
 
-> **Claude: empfohlen** — beim nächsten Anfassen, nicht als Vorhaben.
+> **Art: Verbesserung** · **Claude: empfohlen** — beim nächsten Anfassen, nicht als Vorhaben.
+> **Draußen üblich:** Eine harte Zeilengrenze im Prüflauf ist verbreitet und
+> gilt als zweischneidig — sie wird bei der ersten ehrlichen Ausnahme
+> abgeschaltet. **Was sich hält, ist das Messen ohne Abweisen**: die Zahl steht
+> im Bericht, und wer sie wachsen sieht, greift ein.
 
 ### Woher
 
 Aus der Durchsicht vom **21. August 2026** (damals Punkt 3.3), Stand 0.8.6 —
 und **seither jedes Mal größer geworden**. Die Zahlen unten sind am
-**27. August 2026** neu gemessen, Stand 0.11.0.
+**28. August 2026** neu gemessen, Stand 0.12.2.
 
 ### Was auffiel
 
-| Datei | Zeilen bei 0.8.6 | Zeilen bei 0.11.0 |
-|---|---:|---:|
-| `public/app.js` | 3.857 | **6.493** |
-| `server.js` | — | **4.998** (eine Datei, 69 schreibende Routen) |
-| `pruefung.js` | — | **25.591** (eine Datei, 3.815 Prüfungen) |
+| Datei | bei 0.8.6 | bei 0.11.0 | bei 0.12.2 |
+|---|---:|---:|---:|
+| `public/app.js` | 3.857 | 6.493 | **6.671** |
+| `public/style.css` | — | 1.337 | **2.334** |
+| `server.js` | — | 4.998 | **4.434** (69 schreibende Routen) |
+| `pruefung.js` | — | 25.591 | **25.873** (3.815+ Prüfungen) |
 
-| Funktion in `public/app.js` | bei 0.8.6 | bei 0.11.0 |
-|---|---:|---:|
-| `renderSystem()` | 825 | **2.030** |
-| `renderDetail()` | 1.310 | **1.499** |
+| Funktion in `public/app.js` | bei 0.8.6 | bei 0.11.0 | bei 0.12.2 |
+|---|---:|---:|---:|
+| `renderSystem()` | 825 | 2.030 | **2.022** |
+| `renderDetail()` | 1.310 | 1.499 | **1.586** |
 
 **`renderSystem()` ist auf das Zweieinhalbfache gewachsen** und damit die
 längste Funktion der Anlage — sie hat `renderDetail()` überholt, das bei der
 ersten Messung noch die längste war.
+
+**Und seit 0.12.2 steht ein zweiter Name in der Tabelle, der vorher fehlte:
+`public/style.css` hat sich in einer einzigen Runde fast verdoppelt** —
+1.337 auf 2.334 Zeilen, gewachsen um den Abschnitt für Telefon und Tablett. Es
+ist damit **die am schnellsten wachsende ausgelieferte Datei der Anlage**, und
+dieser Punkt hat sie bis heute nicht beobachtet. *Ein Stylesheet lässt sich
+nicht in Funktionen zerlegen — die Frage nach seiner Größe ist eine andere und
+gehört ausdrücklich noch nicht beantwortet. Gemessen wird sie ab jetzt.*
 
 ### Was es nicht ist
 
@@ -449,7 +591,11 @@ dieser Runde im Rücken.
 **Keine Version hat ihn ausgelöst** — die Lücke steckt in der Bauform der
 Kriterien und ist so alt wie sie.
 
-> **Claude: nicht empfohlen** — `ratings` hat je Benutzer eine Zeile.
+> **Art: Neue Funktion** · **Claude: nicht empfohlen** — `ratings` hat je Benutzer eine Zeile.
+> **Draußen üblich:** „nicht zutreffend" wird durchweg **am Gegenstand**
+> geführt und nicht an der Stimme des Bewertenden — bei Umfragewerkzeugen ist
+> es eine Eigenschaft der Frage, nicht der Antwort. *Genau daran scheitert der
+> Punkt hier: die Bewertung hängt am Benutzer.*
 
 ### Woher
 
@@ -523,7 +669,11 @@ für die verworfenen.*
 
 **Nötig geworden mit 0.11.0** — dort ist es aus der Runde herausgenommen worden.
 
-> **Claude: später** — erst, wenn wirklich Doppel dastehen.
+> **Art: Neue Funktion** · **Claude: später** — erst, wenn wirklich Doppel dastehen.
+> **Draußen üblich:** Zusammenführen gilt überall als **unumkehrbarer
+> Verwaltungseingriff** — nur für Admins, mit Sicherung davor und einem
+> Protokolleintrag danach (Jira, Bugzilla, Discourse, MediaWiki). Und alle
+> geben dem Verlierer einen Grabstein, statt ihn spurlos zu entfernen.
 
 ### Woher
 
@@ -604,7 +754,11 @@ genau deshalb ist es eine eigene Runde und kein Anhängsel.
 
 **Nötig geworden mit 0.10.0** — dort ist er vor dem Bau herausgenommen worden.
 
-> **Claude: nicht empfohlen** — der abtippbare Schlüssel trägt den Weg.
+> **Art: Neue Funktion** · **Claude: nicht empfohlen** — der abtippbare Schlüssel trägt den Weg.
+> **Draußen üblich:** **Niemand schreibt einen QR-Encoder selbst.** Es wird
+> ausnahmslos eine Bibliothek genommen (`qrcode`, `qrcode-generator`) — und
+> genau deshalb kommt die Frage nach dem eigenen Dekoder draußen gar nicht erst
+> auf. *Hier ist sie die ganze Rechnung.*
 
 ### Woher
 
@@ -670,7 +824,11 @@ Prüflast — und diese Rechnung hat 0.10.0 schon einmal verloren.
 **Nötig geworden mit 0.8.20** (dort entstand die Einstellung) **und akut mit
 0.10.0** — seitdem steht der Reverse Proxy wirklich davor.
 
-> **Claude: stark empfohlen** — das einzige Betriebsrisiko auf der Liste.
+> **Art: Verbesserung** · **Claude: stark empfohlen** — das einzige Betriebsrisiko auf der Liste.
+> **Draußen üblich:** `X-Forwarded-Proto` je Anfrage lesen ist der Normalweg —
+> Express nennt ihn `trust proxy`, und `req.protocol` folgt ihm dann von selbst.
+> **Und die Adressliste, wer den Kopf setzen darf, gehört dort ausdrücklich
+> dazu:** ohne sie ist der Kopf eine Behauptung des Aufrufers.
 
 ### Woher
 
@@ -739,6 +897,679 @@ Problems — die Portfreigabe 3100 —, nicht auf die erste.*
 funktioniert — *und einen Handgriff hat, wenn er ausfällt.* **Dagegen steht,
 dass der Handgriff einen Menschen am Wirt braucht, genau dann, wenn nichts
 mehr geht.**
+
+---
+
+## 9. Gescheiterte Anmeldungen: sichtbar machen, und eine Zeile für CrowdSec
+
+**Aufgefallen im Betrieb, 28. August 2026** — der Betreiber setzt einen
+CrowdSec-Container vor die Anlage und findet nichts, was der lesen könnte.
+
+> **Art: Neue Funktion** · **Claude: stark empfohlen** für (a) und (d), **empfohlen** für (c), **nicht empfohlen** für (b).
+> **Draußen üblich:** **fail2ban und CrowdSec lesen ausnahmslos Logdateien,
+> niemals Datenbanken** — und sie sperren nach **Adresse**, nicht nach Namen.
+> Der getippte Benutzername ist für sie ohne Wert. *Das entscheidet diesen
+> Punkt fast allein.*
+
+### Woher
+
+Aus dem Betrieb, **28. August 2026**. Der Wunsch war: gescheiterte Anmeldungen
+im Sicherheitsprotokoll auflisten — **samt der getippten Benutzernamen**,
+anklickbar, gleich ob ausgebremst, falsches Passwort oder gesperrt —, dazu eine
+Rotation und ein Beispiel für die CrowdSec-Einrichtung.
+
+### Was auffiel
+
+**Die Hälfte davon gibt es schon, die andere Hälfte an einer anderen Stelle als
+gedacht.**
+
+`anmeldung.fehl` **wird längst mitgeschrieben** (`auth.js:603`), und der falsche
+zweite Faktor schreibt dieselbe Zeile (`server.js:416`). `ziel` trägt die
+Zugangsnummer, **wenn der getippte Name einen vorhandenen Zugang traf** — sonst
+`NULL`, und die Karte zeigt dort „unbekannter Name".
+
+**Was wirklich fehlt, ist zweierlei, und die beiden haben nichts miteinander zu
+tun:**
+
+1. **Man findet sie nicht.** Die Karte holt die hundert jüngsten Zeilen, alle
+   Vorgangsarten gemischt, ohne Filter. Wer nach Fehlversuchen sucht, blättert.
+2. **Es gibt nichts zu parsen.** Kriterion schreibt bei einer gescheiterten
+   Anmeldung **nichts** nach stdout — nachgesehen, `auth.js` und `server.js`
+   kennen keine solche Zeile. **CrowdSec hat hier heute keine Grundlage.**
+
+### Was es nicht ist
+
+**Kein fehlendes Mitschreiben.** Und ausdrücklich **kein Fall für den getippten
+Namen in der Protokolltabelle** — das steht gegen zwei festgeschriebene
+Entscheidungen, von denen eine als **Zusage im Kartentext** steht:
+
+> „Ebenso wenig Adresse oder Browserkennung: **die Anlage speichert beides
+> nicht.**"
+
+Und der Grund für „kein Freitext" steht am Schema in `db.js`, wörtlich: *„sonst
+landete früher oder später ein ins falsche Feld getipptes Passwort darin."*
+**Das ist keine Vorsicht auf Verdacht** — Facebook, Twitter und GitHub haben
+genau so Klartextpasswörter in ihren Protokollen gefunden.
+
+**Auch die Ausnahme „gleich ob ausgebremst" ist keine Lücke, sondern der
+Deckel.** Der ausgebremste Fall schreibt absichtlich nichts: die Bremse ist das
+Einzige, was verhindert, dass ein Fremder die Tabelle vollschreibt. Nähme man
+sie heraus, wäre die einzige von außen auslösbare Zeile ohne Obergrenze.
+
+### Was gebaut werden könnte
+
+**a) Ein Filter an der Karte, und die Namen anklickbar.** Nach Vorgangsart
+filtern, „gescheiterte Anmeldungen" als eigene Ansicht, und ein Klick auf den
+Zugang springt zu ihm. *Klein, ändert kein Schema, nimmt niemandem etwas weg.*
+
+**b) Was NICHT gebaut werden soll: Name oder Adresse in die Protokolltabelle.**
+Siehe oben. Die Tabelle trägt Nummern aus geschlossenen Listen; das ist baulich
+wahr und nicht bloß beabsichtigt.
+
+**c) Eine maschinenlesbare Zeile nach stdout.** Fester, versionierter Aufbau mit
+Zeitstempel, Adresse und einem Grundcode — **ohne den getippten Namen**, weil
+CrowdSec ihn nicht braucht und die Doktrin ihn nicht hergibt. Dazu ein
+`parsers/`- und ein `scenarios/`-Beispiel in der README.
+
+**d) Und zuerst der Weg ohne eine Zeile Code — er könnte (c) ganz ersparen.**
+Die Antworten der Anmelderoute sind **bereits sauber unterscheidbar**:
+
+| Fall | Antwort |
+|---|---|
+| Name oder Passwort falsch | **401** |
+| ausgebremst | **429** |
+| Passwort richtig, Zugang gesperrt | **403** |
+
+Der Betreiber betreibt **Nginx Proxy Manager**, und dessen Zugriffsprotokoll
+sieht jede dieser Antworten. **Ein CrowdSec-Szenario auf `POST /api/login` mit
+401/403/429 sperrt die Adresse heute**, ohne dass an Kriterion irgendetwas
+geändert wird. *Das gehört als Beispiel in die README — und erst wenn es
+nachweislich nicht reicht, kommt (c).*
+
+**e) Rotation ist zweimal schon beantwortet, an beiden Enden.** Das
+Sicherheitsprotokoll räumt sich selbst (`PROTOKOLL_TAGE = 180`, beim Start und
+beim Öffnen der Karte), und für das Containerprotokoll ist Docker zuständig:
+vier Zeilen `logging:` in der `docker-compose.yml`. **Beides gehört in die
+README, nicht in den Code.**
+
+### Offene Entscheidungen
+
+* **Bekommt der ausgebremste Fall eine stdout-Zeile?** In der Tabelle
+  ausdrücklich nicht — im Protokoll wäre er dagegen nützlich, denn er sagt
+  CrowdSec, dass hier jemand wirklich durchprobiert. *Vorschlag: ja, und genau
+  darin liegt der Unterschied zwischen den beiden Ablagen.*
+* **Wie fest ist „fester Aufbau"?** Ein Logformat, das jemand parst, ist eine
+  **Zusage**. Wer es später ändert, bricht fremde Einrichtungen — das gehört
+  gesagt, bevor die erste Zeile geschrieben wird.
+* **Steht der getippte Name wenigstens im Containerprotokoll?** *Vorschlag:
+  nein.* Es ist dieselbe Gefahr an einem anderen Ort, und CrowdSec hat nichts
+  davon.
+* **Trägt die Zeile die Adresse aus `X-Forwarded-For`?** Nur wenn
+  `HINTER_PROXY` an ist — sonst stünde dort die Adresse des Proxys, und die
+  Sperre träfe den Proxy. *Das hängt unmittelbar an Punkt 8.*
+
+### Was es anfasst
+
+Für (a): die Karte im Systembereich und die Leseroute. Für (c): eine
+Ausgabestelle in `auth.js`, der Prüfstand, README. Für (d) und (e): **nur die
+README.** **Kein Schema, keine neue Abhängigkeit.**
+
+**Was dagegen spricht:** an (a), (d) und (e) nichts. Gegen (c) spricht, dass
+(d) es womöglich erledigt — *und eine Zeile, die niemand liest, ist eine Zusage,
+die man trotzdem halten muss.*
+
+---
+
+## 10. Der Systembereich bekommt Abschnitte
+
+**Aufgefallen im Betrieb, 28. August 2026** — verschärft mit 0.12.0, seit die
+neunzehn Karten auf dem Telefon in **einer** Spalte untereinander stehen.
+
+> **Art: Design** · **Claude: empfohlen** — und ausdrücklich gemeinsam mit Punkt 4.
+> **Draußen üblich:** Einstellungen mit seitlicher Abschnittsleiste und **einer
+> eigenen Adresse je Abschnitt** — GitLab, GitHub, Nextcloud, Discourse. *Die
+> eine Falle, in die alle einmal getreten sind, ist die fehlende Adresse: ohne
+> sie lässt sich keine Einstellung verlinken und die Zurück-Taste bricht.*
+
+### Woher
+
+Aus dem Betrieb, **28. August 2026**. Der Wunsch: den Systembereich aufteilen —
+Persönliches, Datenbank (Sicherung, Export, Zugänge, Anmeldungen,
+Sicherheitsprotokoll) und so fort.
+
+### Was auffiel
+
+**Neunzehn Karten in einer flachen Reihe**, und `renderSystem()` ist mit
+**2.022 Zeilen** die längste Funktion der Anlage. Am Desktop stehen sie in
+mehreren Spalten; seit 0.12.0 stehen sie auf dem Telefon **alle untereinander**,
+und der Weg von „Titel" bis „Vokabular" ist entsprechend lang.
+
+### Was es nicht ist
+
+**Kein Fehler.** Und **kein zweiter Vorschlag neben Punkt 4, sondern dessen
+Anlass.** Punkt 4 sagt seit der ersten Durchsicht: *„Bei `renderSystem()`:
+neunzehn Karten, neunzehn Funktionen"* — und dazu die Auflage, **nicht** als
+eigenes Umbauvorhaben, sondern *„auf dem Weg zu etwas anderem"*. **Dieser Punkt
+ist dieser Weg.** Wer die Abschnitte baut, zerlegt die Funktion dabei ohnehin.
+
+### Was gebaut werden könnte
+
+**a) Vier oder fünf Abschnitte statt einer Reihe.** Ein Vorschlag, der der
+Rechteleiter folgt und nicht dem Zufall:
+
+| Abschnitt | Karten |
+|---|---|
+| **Persönlich** | Zugang, Meine Sitzungen, Darstellung |
+| **Bestand** | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
+| **Zugänge** | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
+| **Datenbank** | Kennzahlen, Sicherung, Export und Import |
+| **Anlage** | Titel |
+
+**b) Eine Adresse je Abschnitt** — `#/system/datenbank`. Die Anlage hat die
+Adressform bereits (`#/item/12`).
+
+**c) Export und Import in EINE Karte** (siehe Teil II). Sie stehen ohnehin
+nebeneinander; in einem Abschnitt „Datenbank" gehören sie zusammen. **Mit einem
+Vorbehalt: der Import ersetzt Bestand, der Export liest nur.** Zusammengelegt
+darf der Import nicht einen Klick näher rücken.
+
+### Offene Entscheidungen
+
+* **Was geschieht mit einem Abschnitt, der für eine Rolle leer bleibt?** Die
+  Karten hängen an `ADMIN ?` und `EIGENTUEMER ?`. Ein leerer Reiter wäre
+  schlechter als keiner. *Vorschlag: ein Abschnitt ohne sichtbare Karte
+  erscheint nicht.*
+* **Reiter oder eine Leiste an der Seite?** Auf dem Telefon trägt eine Leiste
+  an der Seite nicht — dort wäre es eine Liste, die in den Abschnitt hinein
+  führt. **Das ist dann fast dieselbe Frage wie „die Unteransichten haben keine
+  Kopfzeile" in Teil II.**
+* **Merkt sich die Anlage den zuletzt offenen Abschnitt?** *Vorschlag: nein —
+  die Adresse tut es schon, und ein gemerkter Zustand wäre eine zweite
+  Wahrheit daneben.*
+
+### Was es anfasst
+
+`renderSystem()` samt seinen neunzehn Blöcken, die Adressauflösung, das
+Stylesheet, Prüfungen. **Kein Schema, keine Route, keine Rechteänderung** — die
+Karten behalten ihre Klemmen, sie stehen nur woanders.
+
+**Was dagegen spricht:** es ist die größte Umbaufläche auf dieser Liste. *Und
+genau deshalb steht daneben, dass Punkt 4 ohnehin darauf wartet — die Arbeit
+fällt einmal an, nicht zweimal.*
+
+---
+
+## 11. Die Gewichtung erklärt sich nicht
+
+**Aufgefallen im Betrieb, 28. August 2026.** Das Wort „gewichtet" steht seit
+0.8.40 da und sagt nicht, was es bedeutet.
+
+> **Art: Neue Funktion** · **Claude: stark empfohlen** für (a) — bester Erklärungsgewinn je Zeile auf dieser Liste.
+> **Draußen üblich:** „Erklär mir diese Zahl" **am Ort der Zahl und mit den
+> echten Werten**, nicht mit einem erfundenen Beispiel — Stripes
+> Gebührenaufschlüsselung, Grafanas Query Inspector, jede Steuersoftware.
+> *Ein allgemeines Rechenbeispiel liest niemand zweimal; die eigene Rechnung
+> schon.*
+
+### Woher
+
+Aus dem Betrieb, **28. August 2026**. Der Wunsch: das Wort „gewichtet" am
+Eintrag anklickbar machen, mit Formel und Rechenbeispielen — und im
+Systembereich etwas zum Ausprobieren.
+
+### Was auffiel
+
+Am Eintrag steht **„⌀ 4,2 gewichtet"**, und an einer Kriterienzeile steht
+**„×1,5"**. Beides ist richtig und beides erklärt sich nicht. Wer wissen will,
+wie aus den Sternen die Kopfzahl wird, findet es nirgends — **auch nicht in der
+Karte, in der die Gewichte eingestellt werden.**
+
+*Und das Wort ist bereits klüger, als es aussieht:* „gewichtet" ist
+**abgeleitet** und kein Schalter (`app.js:3350`) — es steht nur da, wenn
+wirklich ein Gewicht ungleich 1 in die Rechnung eingegangen ist.
+
+### Was es nicht ist
+
+**Kein Rechenfehler und keine fehlende Funktion.** Die Rechnung ist da, sauber
+und an einer Stelle. **Es fehlt die Auskunft darüber**, und das ist eine Frage
+der Darstellung — mit einer Ausnahme: Teil (b) ist wirklich eine neue Ansicht.
+
+### Was gebaut werden könnte
+
+**a) Klick auf „gewichtet" öffnet einen Kasten mit DIESER Rechnung.** Nicht mit
+einem erfundenen Beispiel, sondern mit den Zahlen des Eintrags, der gerade
+offen ist:
+
+> Bedienbarkeit **4** × 1,5 = 6,0
+> Preis **3** × 1,0 = 3,0
+> Optik **5** × 0,5 = 2,5
+> ——————————
+> 11,5 ÷ 3,0 (Summe der Gewichte) = **3,83**
+
+*Alles darin steht der Ansicht bereits zur Verfügung* — `item.ratings` trägt
+Wert, Schnitt und Gewicht je Kriterium.
+
+**b) Ein Rechner im Systembereich — und der ist nicht neu.** In Teil II steht
+seit 0.8.40 die Zeile **„Die Vorschau der Rangfolge im Systembereich"**: an
+einem Gewicht drehen und sehen, wie sich die Spitze verschiebt. **Das ist
+dasselbe Vorhaben**, nur von der anderen Seite beschrieben. Ein zweiter Rechner
+daneben wären zwei Wahrheiten über dieselbe Rechnung.
+
+**c) Was NICHT gebaut werden soll: eine Formel in Prosa in der README.** Sie
+steht dann dort, wo niemand sie sucht, und veraltet still, sobald die Rechnung
+sich ändert. *Die Erklärung gehört an die Zahl.*
+
+### Offene Entscheidungen
+
+* **Was zeigt der Kasten bei „meine / alle"?** Der Umschalter rechnet zwei
+  verschiedene Nenner — **der Kasten muss zeigen, welcher gerade gilt**, sonst
+  erklärt er die falsche Zahl.
+* **Und was bei einem Kriterium, das niemand bewertet hat?** Es fällt aus dem
+  Nenner heraus. *Das ist genau die Stelle, an der die meisten Leute die
+  Rechnung falsch raten — es gehört sichtbar in den Kasten, nicht weggelassen.*
+* **Auch an der Kachel oder nur in der Detailansicht?** Auf der Kachel steht
+  dieselbe Zahl ohne das Wort. *Vorschlag: nur in der Detailansicht — auf der
+  Kachel fehlt der Platz und der Anlass.*
+
+### Was es anfasst
+
+Die Detailansicht, ein Kasten, das Stylesheet. Für (b) zusätzlich der
+Systembereich und ein Endpunkt. **Kein Schema, keine Route für (a).**
+
+**Was dagegen spricht:** an (a) nichts — es ist eine Anzeige über eine Rechnung,
+die es längst gibt. Bei (b) spricht dagegen, dass es **eine eigene Ansicht mit
+eigenem Endpunkt** ist und damit eine eigene Runde.
+
+---
+
+## 12. Gelöschte Zugänge, und der Weg zurück
+
+**Aufgefallen im Betrieb, 28. August 2026** — seit es mehrere Zugänge gibt und
+der erste gelöscht wurde.
+
+> **Art: Verbesserung** · **Claude: stark empfohlen** für (b), **empfohlen** für (a), **nicht empfohlen** für (c), **später** für (d).
+> **Draußen üblich:** **Sperren und Löschen sind überall zwei getrennte
+> Vorgänge** — GitHub, GitLab, Google Workspace, Discourse. Und die Gnadenfrist
+> von dreißig Tagen gibt es dort **ausnahmslos bei Selbstlöschung**; eine
+> Löschung durch den Admin wirkt überall sofort, und der Name wird
+> anonymisiert statt aufbewahrt.
+
+### Woher
+
+Aus dem Betrieb, **28. August 2026**. Der Wunsch war dreiteilig: gelöschte
+Zugänge aus der normalen Liste heraus in ein eigenes Fenster; eine
+Rückholfrist von dreißig Tagen; und in der Liste der Gelöschten **den
+ursprünglichen Namen lesen können** — *„was nützt mir ‚Gelöschte 5', wenn ich
+nicht sehe, wer das war?"*
+
+### Was auffiel
+
+`entferneZugang()` überschreibt beim Löschen `username` mit `geloescht-<id>`,
+leert den Hash, setzt die Rolle zurück und entfernt die Adresse. **Der
+ursprüngliche Name ist danach nirgends mehr** — und die Grabsteine stehen
+zwischen den lebenden Zugängen in derselben Liste.
+
+### Was es nicht ist
+
+**Der Ursprungsname ist keine Auslassung, sondern eine Entscheidung — und sie
+ist zweimal festgeschrieben.** Am Schema in `db.js` steht wörtlich, warum das
+Sicherheitsprotokoll keine Namensspalte hat: *„entferneZugang() überschreibt
+username, und eine Kopie hier wäre die eine Stelle im Projekt, die den Grabstein
+rückgängig macht."*
+
+**Zwei harte Gründe stehen dahinter, und beide sind nicht wegzudiskutieren:**
+
+1. **Der Name wird zur Neuvergabe frei.** Ein aufbewahrter alter Name kollidiert
+   früher oder später mit einem lebenden Zugang, der ihn inzwischen trägt.
+2. **Der Grabstein IST die Anonymisierung** — genau das, was Artikel 17 DSGVO
+   verlangt. Wer den Namen aufbewahrt, hat nicht gelöscht.
+
+**Und die Rückholfrist ist zur Hälfte schon gebaut, nur heißt sie anders.** Der
+umkehrbare Weg ist **sperren**: die Anmeldung wird abgewiesen, die laufende
+Sitzung fällt, **der Name bleibt, der Bestand bleibt**, und der Admin kann es
+jederzeit zurücknehmen. *Was fehlt, ist nicht der Mechanismus — es ist der Satz,
+der ihn im Löschdialog nennt.*
+
+### Was gebaut werden könnte
+
+**a) Gelöschte Zugänge raus aus der Liste, in ein eigenes Fenster.** Das Vorbild
+steht im Projekt: der Dialog **„Wer hat bewertet"**. *Reine Oberfläche.*
+
+**b) Der Löschdialog nennt den umkehrbaren Weg.** Heute sagt er
+„unwiderruflich" und „der Name wird frei" — er sagt **nicht**, dass es
+daneben einen Weg gibt, der beides nicht tut. Ein Satz:
+
+> *„Nur vorübergehend aussperren? Dann **sperren** statt entfernen — das ist
+> umkehrbar, und der Name bleibt."*
+
+**Ein Satz gegen eine unumkehrbare Fehlbedienung.** *Das ist der billigste Punkt
+mit dem größten Schaden dahinter, und deshalb steht er hier über allen anderen.*
+
+**c) Was NICHT gebaut werden soll: der Ursprungsname am Grabstein.** Siehe oben,
+zwei Gründe.
+
+**d) Die Rückholfrist von dreißig Tagen.** Baubar — aber sie ist ein eigener
+Zustand zwischen „aktiv" und „gelöscht", mit eigenem Aufräumer, und sie
+überschneidet sich mit „gesperrt".
+
+### Offene Entscheidungen
+
+*Die folgenden gelten nur, falls (d) trotz (b) gewollt ist:*
+
+* **Bleibt der Name in den dreißig Tagen gesperrt oder frei?** Frei heißt: die
+  Rückholung kann an einem inzwischen vergebenen Namen scheitern.
+* **Wer räumt ab?** Dieselbe Bauform wie Papierkorb, Token und
+  Sicherheitsprotokoll: eine Funktion, zwei Aufrufstellen.
+* **Darf ein Admin die Frist überspringen?** Draußen gibt es die Frist nur bei
+  Selbstlöschung. *Wer sie hier auch dem Admin auferlegt, baut etwas, das es
+  sonst nirgends gibt — das muss man wollen.*
+* **Und die Frage, die alles davor entscheidet: was genau soll die Frist, was
+  „sperren" nicht schon kann?**
+
+### Was es anfasst
+
+Für (a) und (b): die Karte „Zugänge" und zwei Dialogtexte. **Kein Schema.** Für
+(d): eine Spalte, ein Migrationsblock, ein Aufräumer, das Sicherheitsprotokoll
+und die Rechteprüfung an drei Routen.
+
+**Was dagegen spricht:** an (a) und (b) nichts. Gegen (c) spricht die Doktrin
+und das Gesetz. Gegen (d) spricht, dass es einen zweiten Weg für etwas baut,
+das es schon gibt — *und zwei Wege zum selben Ziel laufen auseinander.*
+
+---
+
+## 13. Nur zeichnen, was zu sehen ist
+
+**Aufgefallen im Betrieb, 28. August 2026** — verschärft mit 0.12.0, seit die
+Kacheln auf dem Telefon einspaltig untereinander stehen.
+
+*Dieser Punkt stand bis heute als Zeile in Teil II („Nachladen beim Rollen",
+0.11.0). Er hat genug Inhalt bekommen, um hier zu stehen — **und die Antwort
+fällt anders aus, als die Zeile vermuten ließ.***
+
+> **Art: Verbesserung** · **Claude: stark empfohlen** für (a), **später** für (b), **nicht empfohlen** für (c).
+> **Draußen üblich:** Für lange Listen ist **Fensterung** der Konsens, nicht
+> Blättern — react-window, TanStack Virtual. **`content-visibility: auto` ist
+> derselbe Gedanke ohne Bibliothek**, seit 2024 in allen großen Browsern, und
+> passt damit zu einer Anlage ohne Build-Kette.
+
+### Woher
+
+Aus dem Betrieb, **28. August 2026**. Der Wunsch: beim Öffnen nur laden, was auf
+den Schirm passt, plus eine Vorratsseite — **und zwar dem eingeschalteten
+Filter folgend**, nicht irgendwelche Einträge. Dazu die Fragen: was geschieht
+mit Einträgen, die gerade nicht mehr angezeigt werden? Endloses Rollen oder
+Seiten? Wie viele Kacheln je Seite?
+
+### Was auffiel
+
+**Nachgemessen, und die Zahlen ändern die Frage.**
+
+`GET /api/items` liefert weiterhin **alle** Einträge — seit 0.11.0 aber
+schlank: **0,52 MB und 93 ms bei 1000 Einträgen**, vorher 2,50 MB und 110 ms
+(Änderungsprotokoll 0.11.0, Abschnitt „Die ehrliche Gegenrechnung").
+
+**Und die Arbeitsteilung ist entscheidend:** die **Suche** läuft am Server;
+**alle übrigen Filter und alle elf Sortierungen laufen örtlich** über
+`visibleItems()` (`app.js:1510`) auf der vollständigen Liste im Speicher.
+
+### Was es nicht ist
+
+**Kein Ladeproblem — ein Zeichenproblem.** Bei 0,52 MB ist nicht das Holen
+teuer, sondern das, was der Browser daraus baut: tausend Kacheln, jede mit
+Bild, Sternen, Tags und Zeitleiste. *Auf dem Telefon ist das spürbar, am
+Desktop kaum.*
+
+**Und ausdrücklich kein Fall für Blättern am Server.** Es hieße, sechs Filter
+und elf Sortierungen an den Server zu verlegen — **und es zerschlüge zwei
+Dinge, die den ganzen Bestand brauchen**: die Zahlen an der Filterzeile („wie
+viele blieben übrig, wenn ich diesen Umschalter noch drücke") und die gedämpften
+Tags in der Wolke.
+
+**Die Frage nach den ausgeblendeten Einträgen löst sich damit auf.** *„Was
+machen wir mit Einträgen, die durch eine vorhergehende Aktion geladen wurden und
+gerade nicht angezeigt werden?"* — **nichts.** Sie werden gar nicht geladen und
+gar nicht entladen; sie stehen im Speicher, und nur der Aufbau der Seite wird
+begrenzt. Es gibt nichts wegzuwerfen.
+
+**Ebenso die Forderung „dem Filter folgen": sie ist bereits erfüllt.**
+`visibleItems()` **ist** die gefilterte und sortierte Liste. Wer ihre ersten N
+zeichnet, folgt dem Filter zwangsläufig.
+
+### Was gebaut werden könnte
+
+**a) `content-visibility: auto` an der Kachel, mit `contain-intrinsic-size`.**
+Zwei Zeilen im Stylesheet, **kein JavaScript**, keine Änderung an Route, Suche,
+Filter oder Sortierung. Der Browser überspringt Layout und Zeichnen für alles
+außerhalb des Bildes und holt es nach, sobald es hereinrollt. *Die
+`contain-intrinsic-size` ist die geschätzte Kachelhöhe — ohne sie springt der
+Rollbalken.*
+
+**b) Später, und nur bei gemessenem Bedarf: nachladen beim Rollen.** Ein
+Beobachter am Listenende (`IntersectionObserver`) hängt die nächsten N aus
+`visibleItems()` an. **Erst dann, wenn (a) gemessen zu wenig gebracht hat.**
+
+**c) Was NICHT gebaut werden soll: Blättern mit Seitenzahlen.** Steht schon
+zweimal im Blatt, in Teil II und in Teil III: *es zerschnitte die Suche.* Man
+sucht im ganzen Bestand und nicht auf Seite 3.
+
+### Offene Entscheidungen
+
+* **Wie hoch ist eine Kachel?** `contain-intrinsic-size` braucht eine Zahl, und
+  sie ist auf Telefon und Desktop verschieden. **Zu klein geschätzt springt der
+  Rollbalken, zu groß bleibt Leerraum unter der Liste.**
+* **Wird überhaupt gemessen, bevor (b) kommt?** *Die Zahl, die zählt, ist die
+  Zeit bis zur ersten sichtbaren Kachel auf dem Telefon — nicht die Zeit der
+  Antwort.* Ohne diese Messung ist (b) Arbeit auf Verdacht.
+* **Wenn (b) kommt: wie viele je Nachschub?** Draußen üblich ist **ein
+  Schirmvoll mal drei** als erster Wurf und ein Schirmvoll je Nachschub. *Mit
+  (a) stellt sich die Frage womöglich gar nicht.*
+
+### Was es anfasst
+
+Für (a): **das Stylesheet, sonst nichts.** Für (b) zusätzlich `drawBody()` und
+eine Prüfung. **Kein Schema, keine Route, keine Antwort ändert sich.**
+
+**Was dagegen spricht:** gegen (a) nichts — es ist der billigste messbare
+Gewinn auf dieser Liste. Gegen (b) spricht, dass es einen Zustand einführt
+(„wie viele sind gerade gezeichnet"), den es heute nicht gibt, und dass jede
+Sortierung und jeder Filter ihn zurücksetzen muss.
+
+---
+
+## 14. Ein Kasten, eine Farbe — die Kennzeichnung am Kommentar
+
+**Aufgefallen im Betrieb, 28. August 2026.** Die Bauform ist älter; sie stammt
+aus der Runde, die das Anpinnen gebracht hat.
+
+> **Art: Design** · **Claude: empfohlen** — die Regel wird dabei einfacher, nicht komplizierter.
+> **Draußen üblich:** **Farbe für die Art, Form für den Zustand** ist die
+> übliche Aufteilung — GitHub färbt Etiketten und rahmt Angepinntes, Trello und
+> Todoist ebenso. *Zwei Farben an einem Kasten gelten überall als das, was sie
+> sind: eine Kollision.*
+
+### Woher
+
+Aus dem Betrieb, **28. August 2026**, mit einem Bildschirmfoto: *„ich finde die
+Mischung der Farben innerhalb eines Rahmens nicht gut."*
+
+### Was auffiel
+
+Ein Kommentar trägt heute **zwei Merkmale auf zwei getrennten Kanälen**, und
+der Quelltext sagt es ausdrücklich so (`style.css:1345`): *„Zwei Merkmale, zwei
+Kanäle, die sich nie ins Gehege kommen: die linke Kante gehört allein der Art,
+die drei übrigen Kanten allein der Anpinnung."*
+
+| | heute |
+|---|---|
+| linke Kante, 3px | die **Art** — orange (Bericht), blau (Aufgabe), grün (erledigt), neutral (Notiz) |
+| die drei übrigen Kanten, 1px | die **Anpinnung** — Gold |
+
+**Ein angepinnter Bericht trägt damit orange und gold gleichzeitig.** Der
+Gedanke dahinter ist sauber; das Ergebnis am Bildschirm ist ein Kasten mit zwei
+Farben.
+
+### Was es nicht ist
+
+**Kein Fehler.** Es ist eine Bauform, die genau das tut, was sie soll — und
+deren Preis erst sichtbar wird, wenn beide Merkmale zugleich auftreten. *Der
+Quelltext hat den Fall vorhergesehen und für richtig gehalten; der Betrieb
+sieht ihn anders.*
+
+**Und es ist keine Verkomplizierung.** Die neue Regel hat **weniger** Fälle als
+die alte: heute muss man wissen, welche Kante was bedeutet — künftig sagt die
+Farbe die Art und die Form die Anpinnung.
+
+### Was gebaut werden könnte
+
+**Die Regel: Farbe = Art, Form = Anpinnung — und die dicke linke Kante bleibt,
+wo sie ist.**
+
+| | nicht angepinnt | angepinnt |
+|---|---|---|
+| **Bericht** | dicke **orange** Linie links *(wie bisher)* | dieselbe **dicke orange Linie links**, dazu die drei übrigen Kanten dünn in **Orange** |
+| **Aufgabe** | dicke **blaue** Linie links *(wie bisher)* | dieselbe **dicke blaue Linie links**, dazu die drei übrigen Kanten dünn in **Blau** |
+| **Erledigt** | dicke **grüne** Linie links *(wie bisher)* | dieselbe **dicke grüne Linie links**, dazu die drei übrigen Kanten dünn in **Grün** |
+| **Notiz** | nichts *(wie bisher)* | **alle vier** Kanten dünn in **Gold** |
+
+**Zwei Sätze, und sie sagen alles:**
+
+1. **Die linke Kante gehört weiterhin allein der Art** — sie ändert weder Farbe
+   noch Breite, ob angepinnt oder nicht.
+2. **Angepinnt heißt: die drei übrigen Kanten nehmen dieselbe Farbe an** — und
+   bei einer Notiz, die keine eigene Farbe hat, wird der ganze Rahmen golden.
+
+**Gold kommt danach an genau einer Stelle vor: an der angepinnten Notiz.** Und
+kein Kasten trägt je zwei Farben.
+
+**Und die Falle, die bei einer naheliegenderen Fassung entstünde, entsteht hier
+nicht.** Würde die linke Kante beim Anpinnen von 3px auf 1px dünn, müsste
+`padding-left` von 10 auf 12 zurück — sonst begännen die Zeilen angepinnter und
+nicht angepinnter Kommentare in derselben Liste **auf zwei verschiedenen
+Linien** (Befund C aus 0.12.0, nur andersherum). **Weil die dicke Kante bleibt,
+verschiebt sich kein Text**: die drei Arten behalten `padding-left: 10px`, die
+Notiz behält ihre 12 — bei ihr werden nur vorhandene 1px-Kanten umgefärbt, genau
+wie heute schon beim Anpinnen. *Es ändert sich keine einzige Breite, nur die
+Farbe.*
+
+### Offene Entscheidungen
+
+* **Verliert das Anpinnen damit seine eigene Farbe?** Ja — und das ist der
+  Zweck. **Erkennbar bleibt es an zwei anderen Zeichen**: am 📌 in der Kopfzeile
+  und daran, dass Angepinntes oben steht. *Die Farbe war nie das einzige
+  Signal, und deshalb kostet der Wechsel nichts.*
+* **Wie dünn ist „dünn"?** Die vorhandenen Kanten sind 1px, und dabei sollte es
+  bleiben: **jede andere Zahl verschiebt den Text und macht aus einer reinen
+  Farbänderung eine Ausrichtungsfrage.**
+* **Was ist mit dem Aufgabenknopf?** Er trägt heute die Farbe des Zustands, den
+  er setzt (`.mark.aufg.on` blau, `.on.fertig` grün). **Das bleibt richtig** und
+  wird durch die neue Regel sogar stimmiger.
+* **Und der angepinnte Block als Ganzes?** In Teil II steht: *„der angepinnte
+  Block kann zur Wand werden."* Vier verschiedene Rahmenfarben untereinander
+  könnten das verstärken. **Beobachten, nicht vorher entscheiden.**
+
+### Was es anfasst
+
+**Nur das Stylesheet** — vier Regeln statt einer, und die Prüflage, die die
+Kennzeichnung nachsieht. **Keine Breite ändert sich, kein Innenabstand, kein
+Schema, keine Route, kein Quelltext in `app.js`.**
+
+**Was dagegen spricht:** die heutige Bauform ist im Quelltext ausführlich
+begründet, und diese Begründung wird damit ungültig — *sie gehört ersetzt und
+nicht gelöscht, sonst baut sie jemand in zwei Jahren wieder ein.*
+
+---
+
+## 15. Die Bildablage: das Original und zwei Ableitungen — an einer Stelle
+
+**Aufgefallen im Betrieb, 28. August 2026**, aus der Frage nach der Größe der
+Datenbank.
+
+> **Art: Verbesserung** · **Claude: empfohlen** für (c), **später** für (b), **nicht empfohlen** für (a).
+> **Draußen üblich:** **Das Original wird nicht angefasst.** Immich, Nextcloud
+> Photos und Piwigo rechnen ausnahmslos Ableitungen daneben und lassen die
+> hochgeladene Datei unverändert. *Eine verlustbehaftete Umwandlung des
+> Originals gilt draußen als Datenverlust, nicht als Optimierung.*
+
+### Woher
+
+Aus dem Betrieb, **28. August 2026**. Die Frage war: *973 Bilder, 660 MB — ist
+das groß oder normal? Und landet ein mit Strg+V eingefügtes Bild als BMP in der
+Datenbank? Ließe sich die dann durch Umwandlung nach JPEG verkleinern?*
+
+### Was auffiel
+
+**Die Antwort auf die Frage lautet: normal, und es ist kein BMP.** Rund 680 kB
+je Bild, und darin stecken **drei** Fassungen. Browser legen Bilder aus der
+Zwischenablage als **PNG** ab — die Windows-Zwischenablage hält intern eine
+DIB, der Browser reicht sie als PNG weiter.
+
+**Beim Nachsehen kam etwas anderes heraus, und das ist der eigentliche Punkt:
+die beiden Bildwege der Anlage speichern verschieden, und nirgends steht,
+warum.**
+
+| Weg | Was in der Datenbank landet |
+|---|---|
+| Foto am **Eintrag** (`photos`) | **das Original unverändert**, dazu 1600px- und 400px-JPEG |
+| Bild im **Kommentar** (`comment_images`) | **nur** 1600px- und 400px-JPEG — kein Original |
+
+Am Eintrag wird `f.buffer` mit dem gemeldeten Typ gespeichert (`server.js:2471`);
+im Kommentar geht jede Datei durch `kodiereKommentarBild()` und kommt als JPEG
+heraus. **Zwei Regeln für dieselbe Sache.**
+
+### Was es nicht ist
+
+**Kein Fehler, und keine der beiden Regeln ist falsch.** Am Eintrag hat das
+Original einen Zweck: das Vollbild zeigt es (`app.js:2484` fragt ohne
+`?size=`). Im Kommentar gibt es kein Vollbild in diesem Sinn.
+
+**Es ist auch kein Speicherproblem.** 660 MB sind für 973 Bilder unauffällig.
+**Was daran hängt, ist etwas anderes: der Export** — und der steht als Punkt 3
+mit eigener Rechnung da.
+
+**Was es ist: eine unaufgeschriebene Asymmetrie.** Wer in einem halben Jahr
+fragt „warum ist das eine Bild schärfer als das andere", findet die Antwort
+heute nur im Quelltext.
+
+### Was gebaut werden könnte
+
+**a) Was NICHT gebaut werden soll: die vorhandenen Originale nach JPEG
+umwandeln.** Verlustbehaftet und unumkehrbar — und bei einem **Bildschirmfoto
+ist PNG die bessere Wahl**: scharfe Kanten und Text leiden unter JPEG sichtbar.
+Eine Umwandlung über den ganzen Bestand träfe genau die Bilder, denen sie
+schadet.
+
+**b) Später, wenn Platz wirklich knapp wird: die Ableitungen auf WebP.**
+Rund 30 Prozent kleiner bei gleicher Güte, **ohne das Original anzufassen**,
+und `sharp` kann es ohne neue Abhängigkeit. *Es berührt die Auslieferung
+(`setzeBildHeader`) und ist deshalb keine reine Rechenänderung.*
+
+**c) Der Unterschied gehört aufgeschrieben.** Ein Absatz am Quelltext beider
+Wege und eine Zeile im Projektstand. *Das ist der Teil, der heute wirklich
+fehlt.*
+
+### Offene Entscheidungen
+
+* **Soll das Kommentarbild künftig auch sein Original behalten?** Es wäre
+  einheitlich — und es vergrößerte die Datenbank an der Stelle, an der die
+  meisten Bilder anfallen. *Vorschlag: nein, aber die Begründung aufschreiben.*
+* **Wenn (b) kommt: AVIF statt WebP?** Kleiner, aber langsamer zu rechnen und
+  in älteren Browsern nicht überall da. *Für eine Anlage, die zehn Jahre laufen
+  soll, ist WebP die sichere Wahl.*
+* **Und die Frage, die Punkt 3 stellt und hier beantwortet werden müsste:**
+  zählt die Größenschätzung für den Export das Original **und** beide
+  Ableitungen? *Sie muss — im Export steckt alles drei.*
+
+### Was es anfasst
+
+Für (c): zwei Kommentare und eine Zeile im Projektstand. **Sonst nichts.** Für
+(b): `makeVariants()`, `kodiereKommentarBild()`, die Auslieferung, die
+Prüflagen. **Kein Schema in beiden Fällen.**
+
+**Was dagegen spricht:** gegen (c) nichts. Gegen (b) spricht, dass nichts
+klemmt — *es ist eine Ersparnis ohne Not, und sie fasst den Weg an, über den
+jedes Bild der Anlage läuft.*
+
 ---
 
 # Teil II — Gesammelt, ohne Ausarbeitung
@@ -771,17 +1602,20 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   Auftrag der Runde und ist dort ausdrücklich nicht gebaut worden: **er würde
   bei jedem Seitenaufbau gebraucht**, und die Frage, wie er nicht ständig neu
   abgefragt wird, ist die eigentliche Arbeit. *(Claude: nicht empfohlen)*
-- **Die Vorschau der Rangfolge im Systembereich** *(0.8.40)*. Sehen, wie sich
-  die Spitze verschiebt, wenn man an einem Gewicht dreht. *Das ist es, was
-  Gewichte im Alltag bedienbar macht* — es ist aber eine eigene Ansicht mit
-  eigenem Endpunkt. *(Claude: empfohlen)*
+- **Die Vorschau der Rangfolge im Systembereich** *(0.8.40, erneut gewünscht
+  28. August 2026)*. **Art: Neue Funktion.** Sehen, wie sich die Spitze
+  verschiebt, wenn man an einem Gewicht dreht. *Das ist es, was Gewichte im
+  Alltag bedienbar macht* — es ist aber eine eigene Ansicht mit eigenem
+  Endpunkt. **Aus dem Betrieb kam derselbe Wunsch von der anderen Seite:** ein
+  Feld, in das man Werte eingibt oder Sterne anklickt, mit dem Rechenweg mit
+  und ohne Gewichtung daneben. **Das ist dieselbe Ansicht** — sie gehört hier
+  gebaut und nicht ein zweites Mal daneben. *Die Erklärung am einzelnen Eintrag
+  ist etwas anderes und steht als Punkt 11 in Teil I.*
+  *(Claude: empfohlen · Draußen üblich: ein Rechner zum Ausprobieren neben den
+  Einstellungen, die er erklärt — nicht in einer Hilfeseite daneben)*
 - **Fälligkeitsdatum an Aufgaben** *(0.8.60)*. Die Aufgabenliste quer über alle
   Einträge gibt es seit der Ansicht „Offen"; ein Datum daran gibt es nicht.
   *(Claude: empfohlen)*
-- **Nachladen beim Rollen** *(0.11.0)*. Der dritte Punkt der Übersichtsfrage —
-  **und erst dann, wenn die ersten beiden gemessen zu wenig gebracht haben.**
-  *Blättern mit Seitenzahlen nicht, nie: es zerschnitte die Suche.*
-  *(Claude: später — nur bei gemessenem Bedarf)*
 - **Ob ein Admin den zweiten Faktor verlangen kann** *(0.10.0)*. Der Auftrag
   hat die Frage ausdrücklich nicht gestellt; **sie ist offen und nicht
   entschieden.** *(Claude: nicht empfohlen — die Antwort ist nein)*
@@ -818,6 +1652,92 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   vollständig.*
   *(Claude: nicht empfohlen — die Anlage hat keine Benachrichtigungen)*
 
+
+### Kleines aus dem Betrieb, 28. August 2026
+
+*Sieben Zeilen aus derselben Durchsicht. Keine davon braucht die sechs
+Überschriften — **jede ist eine Anzeige oder eine Anordnung und keine
+Entscheidung.***
+
+- **Das Durchschnittszeichen und die Anzahl am Kriterium.** **Art: Design.**
+  Rechts an der Kriterienzeile steht heute `4,2 · 3` (`app.js:3690`). Die
+  Kopfzahl darüber schreibt bereits `⌀ 4,2 gewichtet` — **die Zeile darunter
+  sollte dieselbe Form sprechen:** `⌀ 4,2 (3)`. Das ⌀ ist die Hausform, die
+  Klammer sagt „so viele Stimmen". Dazu ein `title` im Klartext, denn ein
+  Symbol allein liest kein Vorleseprogramm vor.
+  *(Claude: empfohlen · Draußen üblich: Klammern für die Stimmenzahl ist
+  praktisch universal — Amazon, IMDb, Steam)*
+- **„Offen" fehlt in der Kopfzeile der Kommentare.** **Art: Verbesserung.**
+  Dort steht heute *„12 Kommentare, davon 3 Berichte und 5 Aufgaben
+  (2 Erledigt)"*. **Was fehlt, ist die Zahl, auf die es im Alltag ankommt:**
+  `5 Aufgaben (3 offen, 2 erledigt)`. Die Verschachtelung bleibt dabei wahr —
+  das Erledigte steckt weiterhin **in** den Aufgaben. *Die Klammer erscheint
+  nur, wenn überhaupt etwas erledigt ist, sonst stünde da „5 Aufgaben
+  (5 offen)".*
+  *(Claude: empfohlen · Draußen üblich: offen und erledigt nebeneinander, wie
+  GitHubs „3 Open / 2 Closed")*
+- **Kommentar schreiben, ohne ans Ende zu rollen.** **Art: Verbesserung.** Das
+  Formular sitzt unter der Liste; bei vierzig Kommentaren ist das weit, und auf
+  dem Telefon ist die Liste einspaltig und damit noch länger. **Ein
+  Sprungknopf im Blockkopf** (`+ Kommentar`) kostet zwei Zeilen — er sitzt in
+  genau der Kopfzeile, die auch die Zeile darüber anfasst. **Ausdrücklich kein
+  zweites Formular im Dialog:** das vorhandene trägt Bilder-Einfügen,
+  Anpinnen, Art-Umschalter und Mitwachsen, und ein zweites davon wären zwei
+  Wahrheiten über dasselbe Formular.
+  *(Claude: empfohlen für den Sprungknopf, nicht empfohlen für den Dialog ·
+  Draußen üblich: GitHub und GitLab lassen das Formular unten und springen hin;
+  Discourse nimmt einen mitfahrenden Schreibbalken — alle drei mit **einem**
+  Formular)*
+- **Die Kennzahlen nennen die Version nicht.** **Art: Verbesserung.**
+  `/api/stats` **liefert `version` bereits** — die Karte zeigt es nur nicht.
+  Dazu, was der Betrieb „Nerd-Angaben" nennt und was im Quelltext längst
+  feststeht: **SQLCipher** über `better-sqlite3-multiple-ciphers`, Schlüssel
+  **256 Bit roh** (`PRAGMA key = x'…'`, also ohne Schlüsselableitung), Journal
+  **WAL**, Passwörter **scrypt**. **Ein Vorbehalt gehört dazu:** Verfahrensnamen
+  sind unbedenklich, **Paketversionen weniger** — sie sagen, welche Lücke passt.
+  *Verfahren nennen, Version der Bibliothek nicht.*
+  *(Claude: empfohlen · Draußen üblich: eine „Über"-Karte mit Version und
+  Kryptoverfahren ist Standard — Nextcloud, Vaultwarden; Paketversionen halten
+  die meisten zurück)*
+- **Import und Export in einer Kachel.** **Art: Design.** Sie stehen ohnehin
+  nebeneinander (Karte 6 und 7). **Der eine Vorbehalt: Export ist lesend,
+  Import ersetzt Bestand.** Zusammengelegt darf der Import nicht einen Klick
+  näher rücken — die zweite Bestätigung bleibt, und der Importknopf gehört
+  optisch untergeordnet. *Geht mit Punkt 10.*
+  *(Claude: empfohlen · Draußen üblich: „Import/Export" als ein Abschnitt ist
+  verbreitet, und die zerstörende Hälfte wird durchweg als sekundär gezeichnet)*
+- **Die Versionszeile: das Zeichen davor, der Abstand darunter.** **Art:
+  Design.** Zwei Hälften, beide klein. **Das Zeichen gibt es schon** —
+  `marke-dunkel.svg` ist die Fassung ohne dunkle Kachel, und `app.js:90` hat
+  dafür bereits einen Helfer; in `zeigeVersion()` ist es ein Aufruf. **Der
+  Abstand ist ein Befund vom Telefon und nicht vom Desktop:** die Zeile steht
+  auf `margin-bottom: calc(26px + env(safe-area-inset-bottom))`, und auf der
+  Anmeldeseite drückt der Flex-Aufbau von `body.anmeldung` sie ohnehin ans
+  untere Ende — die 26 Pixel und der Streifen für den Home-Indikator kommen
+  obendrauf. *Beobachtet vor 0.12.0, seither größer geworden; am Desktop passt
+  er.*
+  *(Claude: empfohlen · Draußen üblich: Zeichen und Version in der Fußzeile ist
+  Standard; das Bild bekommt `alt=""` und eine Größe in `em`, damit es mit der
+  Schrift mitwächst)*
+- **„mehr" frisst in der Übersicht eine ganze Zeile.** **Art: Design.** In der
+  Filterzeile „Tags" steht der Verweis **„mehr"** unter der Tagwolke und kostet
+  so viel Platz wie eine ganze Reihe Tags. **Auf der Eintragsseite passt es —
+  und der Grund ist, dass dieselbe Sache dort anders gebaut ist:** dort sitzt
+  „mehr" in der Beschriftungszeile über der Wolke (`.wolke-kopf`,
+  `space-between`), hier als Geschwister hinter der Wolke in einer Zeile, die
+  umbricht. **Die Übersicht könnte tun, was die Eintragsseite tut:** „mehr" mit
+  `margin-left: auto` ans rechte Ende der Zeile mit **TAGS** und **Und / Oder**,
+  die ohnehin da und rechts leer ist. **Ausdrücklich NICHT: „mehr" in die Wolke
+  legen und rechts Platz freihalten** — die Wolke wird beschnitten
+  (`max-height` und `overflow: hidden`), der Verweis würde mit abgeschnitten,
+  und ein fest ausgerechneter Freiraum ist genau der Fehler, an dem 0.12.1 schon
+  einmal hing (`right: 92px`, Befund A). *Später denkbar: `+7` statt „mehr" —
+  das setzt voraus, dass die überzähligen Tags weggeblendet statt beschnitten
+  werden.* **Und der Nebenbefund gehört dazu: dieselbe Wolke wird an zwei
+  Stellen verschieden gebaut** — Stolperstein 47, im Kleinen.
+  *(Claude: empfohlen · Draußen üblich: Chips mit einem `+N` am Ende der Reihe —
+  GitHub Topics, Jira-Labels, die Empfängerzeile in Gmail; alle blenden weg
+  statt zu beschneiden, und alle nennen die Zahl)*
 ### Am Prüfstand
 
 - **Ein echter Teillauf** *(Gruppenfilter seit 0.8.10)*. `pruefung.js` ist
@@ -843,7 +1763,7 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 wurde. Keines davon ist neu entstanden; jedes gab es vorher genauso.*
 
 - **Die Zeile einer Anmeldung läuft bei rund 1024 Pixeln aus ihrer Karte.**
-  Auf dem Telefon bricht sie seit der Durchsicht um; am Schreibtisch tut sie es
+  Auf dem Telefon bricht sie seit der Durchsicht um; am Desktop tut sie es
   nicht, und in einem Fenster von 1024 Pixeln ist die Karte des Systembereichs
   gerade schmal genug, dass die Zeile in ihrer eigenen Liste seitlich scrollt.
   **Die Seite läuft nicht über** — es scrollt der Kasten, und das war vor der
@@ -871,7 +1791,7 @@ wurde. Keines davon ist neu entstanden; jedes gab es vorher genauso.*
   zwei Fassungen mit einer Weiche dazwischen. *(Claude: empfohlen)*
 - **Die Unteransichten haben keine Kopfzeile.** Eintrag, System, Offen und
   Vergleich tragen nur „← Zurück zur Übersicht"; Suche, Menü und „+ Eintrag"
-  gibt es dort nicht. Am Schreibtisch fällt das kaum auf — auf einem Telefon
+  gibt es dort nicht. Am Desktop fällt das kaum auf — auf einem Telefon
   ist der Weg von einem Eintrag zur Suche zwei Griffe statt einem. **Eine
   gemeinsame Kopfzeile für alle vier wäre der Umbau**, und er berührt vier
   Aufbauten und deren Prüflagen. *(Claude: empfohlen, aber als eigene Runde)*
@@ -904,10 +1824,13 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
 - **Bericht an einen Testtag binden.** Ebenfalls naheliegend, und ebenfalls
   schon entschieden: *„Ein Bericht ist an keinen Testtag gebunden; er fasst
   meist mehrere zusammen."* Eine Verknüpfung würde ihn nur einengen.
-- **Blättern in der Übersicht.** Es würde die Suche zerschneiden — man sucht
-  im ganzen Bestand und nicht auf Seite 3. Nachladen beim Rollen, falls
-  überhaupt. *Die Grenze, die dahinter stand, ist mit 0.11.0 ohnehin gefallen:
-  die Übersicht lädt nicht mehr den ganzen Bestand.*
+- **Blättern in der Übersicht mit Seitenzahlen.** Es würde die Suche
+  zerschneiden — man sucht im ganzen Bestand und nicht auf Seite 3. **Seit dem
+  28. August 2026 kommt ein zweiter Grund dazu, und er ist der härtere:** alle
+  Filter und alle elf Sortierungen laufen örtlich, und die Zahlen an der
+  Filterzeile wie die gedämpften Tags brauchen den **ganzen** Bestand. Blättern
+  am Server nähme ihnen die Grundlage. *Die Antwort ist Fensterung und nicht
+  Blättern — Teil I, Punkt 13.*
 - **Verschlüsselung je Benutzer.** „Ein Neubau, kein Anbau" — mit der Folge,
   die offen dokumentiert ist: **jeder Benutzer vertraut dem Betreiber mit
   allem.** Für eine selbstgehostete Anlage ist das die richtige Abwägung, und
@@ -942,3 +1865,36 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
 - **`pruefung.js` in Dateien zerlegen.** Die Prüflagen bauen aufeinander auf;
   der Gruppenfilter aus 0.8.10 macht die Datei bedienbar, ohne sie zu teilen.
   *Was dort wirklich fehlt, ist ein echter Teillauf — Teil II, „Am Prüfstand".*
+
+**Aus der Durchsicht vom 28. August 2026** — sieben davon sind aus den neuen
+Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
+
+- **Der getippte Benutzername im Sicherheitsprotokoll.** Er steht gegen die
+  Zusage im Kartentext (*„die Anlage speichert beides nicht"*) und gegen den
+  Grund am Schema: **ein ins falsche Feld getipptes Passwort landete damit in
+  der Tabelle.** *Und CrowdSec braucht ihn nicht — es sperrt nach Adresse.*
+  Siehe Teil I, Punkt 9 (b).
+- **Die Adresse des Aufrufers im Sicherheitsprotokoll.** Dasselbe, und dazu:
+  die Tabelle trägt Nummern aus geschlossenen Listen, nicht Zeichenketten von
+  außen. Die Adresse gehört ins Containerprotokoll, wo sie gelesen wird.
+- **Eine Protokollzeile für den ausgebremsten Fall — in der Tabelle.** Sie ist
+  die einzige Zeile, die ein Fremder auslösen kann, und die Bremse ist ihr
+  Deckel. *Im Containerprotokoll ist sie dagegen richtig und nützlich; das ist
+  der Unterschied zwischen den beiden Ablagen.*
+- **Der ursprüngliche Name am gelöschten Zugang.** Zwei harte Gründe: der Name
+  wird zur Neuvergabe frei und kollidierte irgendwann mit einem lebenden
+  Zugang, und **der Grabstein IST die Anonymisierung** — Artikel 17 DSGVO. Wer
+  den Namen aufbewahrt, hat nicht gelöscht. Siehe Teil I, Punkt 12 (c).
+- **Die vorhandenen Bildoriginale nach JPEG umwandeln.** Verlustbehaftet und
+  unumkehrbar — und bei einem Bildschirmfoto ist PNG die bessere Wahl. Eine
+  Umwandlung über den ganzen Bestand träfe genau die Bilder, denen sie schadet.
+  *Draußen fasst niemand das Original an.* Siehe Teil I, Punkt 15 (a).
+- **Ein zweites Kommentarformular in einem Dialogfenster.** Das vorhandene
+  trägt Bilder-Einfügen, Anpinnen, Art-Umschalter und Mitwachsen; ein zweites
+  davon wären zwei Wahrheiten über dasselbe Formular. **Ein Sprungknopf tut
+  dasselbe für zwei Zeilen.**
+- **„mehr" in die Tagwolke legen und rechts Platz freihalten.** Die Wolke wird
+  beschnitten, der Verweis würde mitabgeschnitten — und der Ausweg wäre ein
+  fest ausgerechneter Freiraum. **Genau daran hing 0.12.1 schon einmal**
+  (`right: 92px`, Befund A): die Anlage stellt die Schrift von 80 bis 120
+  Prozent, und eine ausgerechnete Breite kann dabei nur falsch werden.

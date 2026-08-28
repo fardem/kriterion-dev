@@ -150,10 +150,10 @@ Nummer. *Wer im Browser noch die alte Oberfläche sieht,
 sieht einen zwischengespeicherten Stand und keine kaputte Anlage; ein hartes
 Neuladen räumt ihn weg.*
 
-**Am Schreibtisch ändert sich nichts, und das ist nachgemessen.** Die Übersicht
+**Am Desktop ändert sich nichts, und das ist nachgemessen.** Die Übersicht
 ist bei 1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe wie unter 0.11.0;
 die einzige gewollte Abweichung sind zwei Pixel im Kommentarblock
-(Änderungsprotokoll 0.12.0, Befund C). **0.12.1 nimmt am Schreibtisch nichts
+(Änderungsprotokoll 0.12.0, Befund C). **0.12.1 nimmt am Desktop nichts
 weg** — das Löschkreuz an der Vorschaukachel bleibt dort, wo es war; der
 Papierkorb am großen Bild kommt daneben. Was sich dort ändert, sind die zwei
 Knöpfe des Bildbereichs: sie tragen Zeichen statt Wörter und stehen in einer
@@ -1349,7 +1349,7 @@ Tablett im Querformat davon fern und **steht nie allein**.
   rechts liegen: auf einem 360 Pixel breiten Telefon 67 Pixel, ein Fünftel der
   Breite, weil die fünfte Kachel an ZWEI Pixeln scheiterte.* **Die Kachel wächst
   damit mit dem Schirm** (61,5 bis 72 Pixel im gebräuchlichen Band) statt fest
-  zu stehen. Am Schreibtisch bleibt sie bei ihren 62.
+  zu stehen. Am Desktop bleibt sie bei ihren 62.
 - **Die Vorschaukachel trägt kein Löschkreuz** (seit 0.12.1). Sie kann dort
   antippen und, nach kurzem Halten, verschieben — sonst nichts. **Gelöscht
   wird am großen Bild**, mit dem Papierkorb in der Knopfreihe oben rechts.
@@ -1375,7 +1375,7 @@ weil die Blätterpfeile mittig an den Seitenkanten liegen, der Zähler unten in
 der Mitte und über die Mitte der Wisch läuft: die obere rechte Ecke ist die
 einzige, die keine Geste berührt.*
 
-**Was gleich bleibt: alles am Schreibtisch.** Kein Bedienelement verschwindet,
+**Was gleich bleibt: alles am Desktop.** Kein Bedienelement verschwindet,
 keines bekommt eine neue Bedeutung. **Nachgemessen:** die Übersicht ist bei
 1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe wie unter 0.11.0. *Auch
 0.12.1 nimmt dort nichts weg — das Kreuz an der Kachel bleibt, der Papierkorb
@@ -4760,7 +4760,7 @@ Spalten verteilt; die Kachel gibt dafür ihre festen Maße ab und hält das Quad
 null**, und die Kachel wächst mit dem Schirm (61,5 bis 72 Pixel im gebräuchlichen
 Band). Bei 428 Pixeln fällt dadurch eine ganze Zeile weg.
 
-**Am Schreibtisch ändert sich nichts, und das ist nachgemessen:** die
+**Am Desktop ändert sich nichts, und das ist nachgemessen:** die
 Eintragsseite ist bei 1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe. **Das
 Umsortieren trägt weiter** — von Hand im echten Browser geprüft, weil der
 Prüfstand den Ziehweg der Kachelreihe gar nicht abdeckt.
@@ -4808,7 +4808,7 @@ Aufbau, keine Weiche nach der Kennung des Browsers, keine Handy-Adresse. Was
 sich ändert, entscheidet der Browser über zwei Fragen — **die Breite über das
 Layout, der Zeiger über die Größe der Ziele.**
 
-**Und der zweite Satz trägt genauso: am Schreibtisch ändert sich nichts.**
+**Und der zweite Satz trägt genauso: am Desktop ändert sich nichts.**
 Nachgemessen und nicht behauptet: die Übersicht ist bei 1100, 1280 und 1440
 Pixeln **Pixel für Pixel dieselbe** wie unter 0.11.0. Die einzige gewollte
 Abweichung sind zwei Pixel im Kommentarblock.

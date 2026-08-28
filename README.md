@@ -1297,7 +1297,7 @@ werden nie vermischt:
 
 - **Die Breite entscheidet über das Layout.** Wie viele Spalten ein Raster
   trägt, ob die Kopfzeile umbricht, ob ein Kasten seinen Rahmen behält. Ein
-  Tablett am Standfuß und ein kleines Fenster auf dem Schreibtisch sind
+  Tablett am Standfuß und ein kleines Fenster auf dem Desktop sind
   derselbe Fall.
 - **Der Zeiger entscheidet über die Größe der Ziele.** Ein Finger ist rund
   zehnmal so breit, wie ein Mauszeiger spitz ist. Ein Tablett im Querformat ist
@@ -1325,7 +1325,7 @@ eine Weg ist, auf dem etwas Neues in die Anlage kommt.
 
 **Dasselbe Menü bekommt auch ein Tablett, das mit dem Finger bedient wird** —
 dort passt die Kopfzeile mit Fingermaßen sonst nicht in eine Zeile. Ein Fenster
-von 1024 Pixeln auf einem Schreibtisch behält die Kopfzeile, die es immer hatte.
+von 1024 Pixeln auf einem Desktop behält die Kopfzeile, die es immer hatte.
 
 Die Tafel schließt sich beim Klick daneben und mit Escape. Ein Menü, das nur
 sein eigener Knopf wieder zumacht, steht im Weg, sobald man es versehentlich
@@ -1394,7 +1394,7 @@ Das ist kein neuer Gedanke, es ist der vorhandene: *ein Merkmal, ein Zeichen.*
   *Vorher stand die Kachel fest auf 62 Pixeln, und was nicht mehr hineinpasste,
   blieb als Streifen rechts liegen — auf einem 360 Pixel breiten Telefon ein
   Fünftel der Breite, weil die fünfte Kachel an zwei Pixeln scheiterte.* Am
-  Schreibtisch bleibt die Kachel bei ihren 62 Pixeln.
+  Desktop bleibt die Kachel bei ihren 62 Pixeln.
 - **Eingabefelder fallen nicht unter 16 Pixel.** Darunter zoomt Safari auf dem
   iPhone beim Antippen die ganze Seite heran und wieder heraus tut sie es nicht
   von selbst. Wer die Schrift auf 80 Prozent stellt, bekommt hier deshalb nicht
