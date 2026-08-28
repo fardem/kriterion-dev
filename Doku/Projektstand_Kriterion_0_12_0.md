@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 27 · Stand 27. August 2026 · gebaut: Version 0.11.0**
+**Kompakte Übergabe · Revision 28 · Stand 28. August 2026 · gebaut: Version 0.12.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,12 +43,11 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
-**0.11.0 in einem Satz: die Suche zieht vom Browser auf den Server, wer oft
-dasselbe sucht, kann es sich merken — und wer denselben Gegenstand zweimal
-anlegt, erfährt es beim Tippen.** Es ist die zweite Runde nach dem Stufenplan,
-die zweite unter Semantic Versioning — und die erste, die etwas Bestehendes
-umbaut, statt etwas Neues danebenzustellen. Alles Weitere in Abschnitt 2 und
-Abschnitt 9.
+**0.12.0 in einem Satz: die Oberfläche fühlt sich auf dem Telefon wie eine
+Anwendung an und nicht mehr wie eine breite Seite, die man schmal gemacht hat.**
+Es ist die dritte Runde nach dem Stufenplan, die dritte unter Semantic
+Versioning — und die erste, die den Server überhaupt nicht anfasst. Alles
+Weitere in Abschnitt 2 und Abschnitt 9.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
 > trägt die **gebaute** Runde in einem Satz und sonst nichts Versionsbezogenes.
@@ -125,25 +124,33 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.11.0** — Fingerprint **`74c44ec0`**, **3815 Prüfungen**, 34
-Gegenproben. **KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein
+**Gebaut ist 0.12.0** — Fingerprint **`192734a2`**, **3848 Prüfungen**, **sechs
+Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8). **KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein
 Migrationscode; es bleibt bei **fünf** markierten Migrationsblöcken. *Die
 Sicherung des Datenverzeichnisses ist deshalb Empfehlung und nicht Pflicht.*
 Was die Runde bringt, steht in Abschnitt 9.
 
-**Was 0.11.0 für den Betrieb bedeutet.** Es kommt **keine neue `.env`-Zeile**
-dazu, die `docker-compose.yml` ist unberührt, und es gibt nichts einzustellen.
-**Eine Sache gehört danach in den Blick, und sie ist harmlos:** die Marke hat
-sich geändert, und **zwei Dateien in `public/` sind damit andere**. Wer im
-Reiter des Browsers noch die alte Marke sieht, sieht einen zwischengespeicherten
-Stand und keine kaputte Anlage; ein hartes Neuladen räumt ihn weg. *Am
-Fingerprint ist die Änderung dagegen sofort zu sehen — er geht über ALLES in
-`public/`.*
+**Was 0.12.0 für den Betrieb bedeutet: nichts.** Keine neue `.env`-Zeile, die
+`docker-compose.yml` unberührt, nichts einzustellen — und **der Server ist
+überhaupt nicht angefasst**: `server.js`, `db.js`, `auth.js`, `keys.js`,
+`mail.js`, `anhaenge.js`, `zweifaktor.js` und `zugang.js` sind Zeile für Zeile
+dieselben. Bewegt haben sich **drei Dateien in `public/`**, dazu `package.json`
+samt Lockfile für die Nummer. *Wer im Browser noch die alte Oberfläche sieht,
+sieht einen zwischengespeicherten Stand und keine kaputte Anlage; ein hartes
+Neuladen räumt ihn weg.*
 
-**Ob 0.11.0 im Feld läuft, steht noch aus.** Der Rundlauf von Hand — nach einem
-Kommentartext suchen, eine Ansicht speichern und nach dem Abmelden wieder
-wählen, einen Doppeleintrag antippen und die Zeile „Ähnlich" sehen — gehört
-nach dem Einspielen einmal gefahren; das Ergebnis gehört hierher
+**Am Schreibtisch ändert sich nichts, und das ist nachgemessen.** Die Übersicht
+ist bei 1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe wie unter 0.11.0;
+die einzige gewollte Abweichung sind zwei Pixel im Kommentarblock
+(Änderungsprotokoll 0.12.0, Befund C).
+
+**Ob 0.11.0 und 0.12.0 im Feld laufen, steht noch aus.** Für 0.11.0 ist es der
+Rundlauf von Hand — nach einem Kommentartext suchen, eine Ansicht speichern und
+nach dem Abmelden wieder wählen, einen Doppeleintrag antippen und die Zeile
+„Ähnlich" sehen. **Für 0.12.0 kommt eines dazu, das nur ein echtes Gerät
+beantwortet:** die Anlage einmal auf einem Telefon und einmal auf einem Tablett
+öffnen. *Gemessen wurde in einem Browser mit Geräteemulation — das ist nicht
+dasselbe wie ein Finger auf Glas.* Die Ergebnisse gehören hierher
 (Abschnitt 8).
 
 **IM FELD BESTÄTIGT IST 0.10.0** — die laufende Anlage meldete denselben
@@ -158,7 +165,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.11.0** | **`74c44ec0`** | 3815 |
+| **0.12.0** | **`192734a2`** | 3848 |
+| 0.11.0 | `74c44ec0` | 3815 |
 | 0.10.0 | `dc8c16f7` | 3676 |
 | 0.9.1 | `3cf1b093` | 3451 |
 | 0.9.0 | `82dc8550` | 3192 |
@@ -211,7 +219,7 @@ Datenbankstufe ist ein Downgrade **keine reine Dateikopie mehr**.
 | 0.8.90 | Tabelle `sicherheitsprotokoll` | **keiner** | Pflicht |
 | 0.9.1 | Tabelle `anfragen` | **keiner** | Pflicht |
 | 0.10.0 | Tabellen `zweifaktor`, `zweifaktor_codes` | **keiner** | Pflicht |
-| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · **0.11.0** | — | — | Empfehlung |
+| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · **0.12.0** | — | — | Empfehlung |
 
 *Die Spalte „Sicherung" ist eine rückblickende Einordnung. **Als Regel steht sie
 erst seit 0.8.30 im Einspielweg** — 0.8.3 lag davor, und damals war der Rückweg
@@ -1262,6 +1270,48 @@ in der Oberfläche und eine Meldung im Server. Unter der Haube ändert sich
 nichts. **„Video", „Gewicht" und „Kommentar" sind ausdrücklich keine weiteren
 Vokabeleinträge.**
 
+### Telefon und Tablett (seit 0.12.0)
+
+**Es ist EINE Anlage.** Kein zweiter Aufbau, keine Weiche nach der Kennung des
+Browsers, keine Handy-Adresse. Was sich ändert, entscheidet der Browser über
+zwei Fragen, und die beiden werden nirgends vermischt: **die Breite entscheidet
+über das Layout, der Zeiger über die Größe der Ziele.**
+
+**Drei Umbruchpunkte, mehr nicht:** **1024 px** (Tablett — engeres Polster,
+dichtere Raster), **860 px** (die Detailansicht wird einspaltig, gibt es seit
+langem) und **700 px** (Telefon). Die Telefonregel fragt zusätzlich nach der
+**Höhe** — quer gehalten ist ein Telefon 850 bis 930 Pixel breit und keine 500
+hoch; nach der Breite allein wäre es ein Tablett. Die Deckelung bei 960 hält ein
+Tablett im Querformat davon fern und **steht nie allein**.
+
+**Was auf dem schmalen Schirm anders ist:**
+
+- **Die Kopfzeile steht in zwei Zeilen** — oben Marke, „+ Eintrag" und ein
+  Menüzeichen, darunter die Suche über die volle Breite. Offene Aufgaben,
+  Systembereich, „Angemeldet als …" und Abmelden liegen hinter dem Zeichen.
+  **Ein Markup, zwei Gestalten:** am breiten Schirm trägt der Behälter
+  `display: contents` und ist für das Layout gar nicht da. *Dasselbe Menü
+  bekommt ein Tablett, das mit dem Finger bedient wird — dort passt die
+  Kopfzeile mit Fingermaßen sonst nicht in eine Zeile.*
+- **Die Filter sind eingeklappt** und der Schalter darüber nennt die Zahl der
+  greifenden Filter. *Ohne die Zahl wäre eine eingeklappte Filterreihe eine
+  Liste, die ohne sichtbaren Grund weniger zeigt.* Auf dem Tablett steht der
+  Schalter ebenfalls da, die Filter fangen dort aber **offen** an.
+- **Ein Block ist kein Kasten mehr, sondern ein Abschnitt** — ein Trennstrich
+  darüber, ein Titel, der Inhalt. Damit bleibt **eine** Kastenebene übrig, und
+  die steht bündig unter dem Bild. Dasselbe gilt für die Karten des
+  Systembereichs. Alles in derselben Flucht rundet mit einem Radius.
+- **Der Titel des Eintrags steht vor dem Bild**, zwei Karten stehen
+  nebeneinander statt einer, Dialoge steigen von unten auf, am Bildbereich
+  blättert ein Wisch, und die Aussparung des Geräts wird mitgerechnet.
+- **Eingabefelder fallen nicht unter 16 Pixel** — darunter zoomt Safari auf dem
+  iPhone beim Antippen die ganze Seite heran. *Wer die Schrift auf 80 Prozent
+  stellt, bekommt hier deshalb nicht ganz, was er wollte.*
+
+**Was gleich bleibt: alles am Schreibtisch.** Kein Bedienelement verschwindet,
+keines bekommt eine neue Bedeutung. **Nachgemessen:** die Übersicht ist bei
+1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe wie unter 0.11.0.
+
 **Wer angemeldet ist, steht in der Kopfzeile** (seit 0.8.6), neben „Abmelden" —
 **auch bei einem einzigen Zugang**: das ist eine Aussage über einen selbst,
 nicht über andere.
@@ -1302,8 +1352,9 @@ genau solche Runden; unter SemVer hätte keine davon eine freie Nummer gebraucht
   zu jeder Zeit auftreten".* Brüche laufen bis dahin über MINOR.
 - **Was entfernt wird, wird vorher angekündigt.** Erst eine Version, die es als
   `Deprecated` führt, dann eine spätere, die es entfernt.
-  **AUSGENOMMEN IST DIE ABSAGE AN ALTE DATENBANKEN IN 0.12.0, ausdrücklich
-  entschieden:** es gibt zurzeit **genau eine Anlage und genau einen
+  **AUSGENOMMEN IST DIE ABSAGE AN ALTE DATENBANKEN IN 0.13.0** *(vorgemerkt
+  als 0.12.0, seit die Nummer an „Telefon und Tablett" ging — Abschnitt 10)*,
+  **ausdrücklich entschieden:** es gibt zurzeit **genau eine Anlage und genau einen
   Betreiber**, und der weiß es. Ein Ankündigungslauf für ein Publikum, das es
   nicht gibt, wäre Papier ohne Leser. **Diese Ausnahme endet in dem Augenblick,
   in dem die Anlage an jemand anderen herausgeht.**
@@ -3877,6 +3928,54 @@ Version, in der sie entstanden sind.*
     Suchanfrage".* Gezählt wird jetzt über alle Anfragen an die Liste. **Ein
     Filter im Zähler ist eine stillschweigende Verengung der Zusage.**
 
+173. **Eine Probe, die ihren Maßstab vom Prüfling bezieht, kann nicht
+    scheitern.** Die Überlaufprobe für den schmalen Schirm verglich jedes
+    Element gegen `window.innerWidth` — und genau der war das Problem: läuft
+    etwas seitlich hinaus, **erweitert der Browser den sichtbaren Bereich
+    still** (gemessen: 421 statt der angeforderten 390). Die Probe meldete
+    deshalb „sauber", während die Seite sichtbar angeschnitten dastand; erst
+    der Vergleich gegen die **angeforderte** Fensterbreite brachte es heraus.
+    *Das ist Stolperstein 81 in einer neuen Fassung — nicht ein fehlender
+    Gegenstand, sondern ein Maßstab, der sich mit dem Fehler mitbewegt.*
+    **Der Maßstab muss von außen kommen und darf nicht aus dem Prüfling
+    stammen.**
+
+174. **Eine Medienregel ändert am Gewicht eines Selektors nichts.** Der
+    Fingerabschnitt hebt die Ziele über `.xdel`, `.chip` und `.select` — und
+    verfehlte damit `.rstimme .xdel`, `.chip-xs` und `.mrow.zug select.zug-r`:
+    zwei Klassen schlagen eine, **auch aus einer Medienregel heraus**. Die drei
+    kleinsten Ziele der Anlage wären als einzige klein geblieben.
+    *Umgekehrt genauso:* eine neue Regel mit gleichem Gewicht, die weiter unten
+    steht, **nimmt der älteren still ihre Wirkung** — so hat der Rücknehmer für
+    hängengebliebene Überfahrzustände der ausgewählten Karte ihren Rahmen
+    genommen (`.card:hover` gegen `.card.picked`, beide zwei Klassen).
+    **Wer im Stylesheet unten etwas ergänzt, muss oben nachsehen, was denselben
+    Wähler trägt.**
+
+175. **Der Prüfstand liest den ROHEN Text der ausgelieferten Dateien —
+    Kommentare eingeschlossen.** Zwei Prüfungen dieser Runde sind an einem
+    Kommentar gescheitert und nicht an einer Regel: „Nur noch eine feste
+    Schriftgröße" fand eine ausgeschriebene Pixelangabe in einer Begründung,
+    und die Suche nach der Einblendregel der Löschkreuze fand einen
+    ausgeschriebenen Wähler, der weiter oben in der Datei stand als die Regel
+    selbst. **Beide Male hatte der Prüfstand recht** — er kann nicht wissen, ob
+    eine Zeichenfolge in einer Regel oder in einer Erklärung steht.
+    *Wer eine Regel begründet, die eine Prüfung am Text festnagelt, schreibt sie
+    im Kommentar nicht aus.* Beide Stellen tragen jetzt einen Satz, der genau
+    das sagt.
+
+176. **`animation-fill-mode: both` lässt den letzten Zwischenwert stehen — und
+    eine laufende Bewegung schlägt jede gewöhnliche Zeile.** `.cmp-bar` stand
+    mittig über `transform: translateX(-50%)` und trug daneben
+    `animation: rise … both`; `rise` endet auf `transform: none`. Nach 260
+    Millisekunden war die Zentrierung weg, und die Leiste saß mit ihrer linken
+    Kante in der Mitte des Fensters — **seit es die Leiste gibt, auf jedem
+    Schirm.** *Aufgefallen ist es erst, als dieselbe Regel auf einem schmalen
+    Schirm sichtbar hinauslief.*
+    **Was eine Bewegung anfasst, gehört ihr allein.** Die Mitte gehört ins
+    Layout (`left: 0; right: 0; margin: 0 auto`) und nicht in eine Eigenschaft,
+    die sich Regel und Bewegung teilen.
+
 ---
 
 ## 7. Prüfstand
@@ -3890,8 +3989,10 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 3815 von 3815 bestanden** (0.11.0) — 139 neue Prüfungen, **34
-Gegenproben**, acht neue Gruppen.
+**Stand: 3848 von 3848 bestanden** (0.12.0) — 33 neue Prüfungen, **eine neue
+Gruppe** („Handy und Tablett: die Staffel der Umbruchpunkte"). *Die Gegenproben
+dieser Runde stehen in Abschnitt 8: sie sind auf die neuen Zusagen beschränkt
+und nicht der volle Lauf über alle 159 Rückbauten.*
 
 ### Was abgedeckt ist
 
@@ -4224,7 +4325,8 @@ eine Buchführung.*
 | 0.9.0 | Mailversand, Adresse am Zugang, zweite Frist (182) | 33 | Stolpersteine 141 bis 148 |
 | 0.9.1 | Selbstanmeldung samt Nacharbeit (259) | 58 | Stolpersteine 149 bis 158 |
 | 0.10.0 | Zweiter Faktor, Wiederherstellungscodes, zweistufige Anmeldung (225) | 42 | Stolpersteine 159 bis 163 |
-| **0.11.0** | **Suche im Server, gespeicherte Ansichten, Doppelerkennung (139)** | **34** | **Stolpersteine 164 bis 172** |
+| 0.11.0 | Suche im Server, gespeicherte Ansichten, Doppelerkennung (139) | 34 | Stolpersteine 164 bis 172 |
+| **0.12.0** | **Telefon und Tablett (33)** | **6, nur auf die neuen Zusagen** | **Stolpersteine 173 bis 176** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -4240,30 +4342,48 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **DER TAG `v0.11.0` IST GESETZT, ABER NICHT GESCHOBEN.** Er liegt auf dem
-  Commit, der herausgeht; der Push scheitert in der Arbeitsumgebung mit
-  `HTTP 403` — **Branches gehen durch, Tags nicht.** Er braucht einen Push von
-  einer Stelle mit den nötigen Rechten:
+- **DIE TAGS `v0.11.0` UND `v0.12.0` SIND GESETZT, ABER NICHT GESCHOBEN.** Sie
+  liegen auf den Commits, die herausgehen; der Push scheitert in der
+  Arbeitsumgebung mit `HTTP 403` — **Branches gehen durch, Tags nicht.** Sie
+  brauchen einen Push von einer Stelle mit den nötigen Rechten:
 
   ```bash
-  git push origin v0.11.0
+  git push origin v0.11.0 v0.12.0
   ```
 
-  *Liegt der Tag dort nicht mehr vor, entsteht er mit*
-  `git tag -a v0.11.0 <commit> -m "…"`. **Ohne ihn zeigt der Vergleichsverweis
-  `[0.11.0]` am Ende von `CHANGELOG.md` ins Leere** — das ist die einzige
-  Wirkung; an der Anlage ändert es nichts. *`v0.10.0` liegt am Remote und trägt;
-  das Repo hat damit **fünfzehn** Tags.*
-- **DER RUNDLAUF FÜR 0.11.0 IST NOCH NICHT GEFAHREN.** Drei Handgriffe belegen
-  die Runde am laufenden Server und gehören nach dem Einspielen einmal von Hand
-  gemacht: **nach einem Kommentartext suchen** und den Eintrag finden; **eine
-  Ansicht speichern, abmelden, anmelden, die Ansicht wählen**; und **einen
-  Doppeleintrag antippen**, die Zeile „Ähnlich" sehen. Das Ergebnis gehört in
-  Abschnitt 2.
-- **Der Fingerprint der laufenden Anlage nach 0.11.0 ist zu vergleichen.** Die
-  Marke hat zwei Dateien in `public/` verändert; der Wert muss sich also bewegt
-  haben — und er muss `74c44ec0` sein. *Genau dort hat sich bei 0.9.1 eine Datei
-  zu viel gezeigt (Stolperstein 158).*
+  *Liegt ein Tag dort nicht mehr vor, entsteht er mit*
+  `git tag -a v0.12.0 <commit> -m "…"`. **Ohne sie zeigen die Vergleichsverweise
+  `[0.11.0]` und `[0.12.0]` am Ende von `CHANGELOG.md` ins Leere** — das ist die
+  einzige Wirkung; an der Anlage ändert es nichts. *`v0.10.0` liegt am Remote
+  und trägt; das Repo hat damit **sechzehn** Tags.*
+- **DIE RUNDLÄUFE FÜR 0.11.0 UND 0.12.0 SIND NOCH NICHT GEFAHREN.** Für 0.11.0
+  belegen drei Handgriffe die Runde am laufenden Server: **nach einem
+  Kommentartext suchen** und den Eintrag finden; **eine Ansicht speichern,
+  abmelden, anmelden, die Ansicht wählen**; und **einen Doppeleintrag
+  antippen**, die Zeile „Ähnlich" sehen.
+  **Für 0.12.0 kommt ein Handgriff dazu, den nur ein echtes Gerät beantwortet:**
+  die Anlage einmal auf einem Telefon und einmal auf einem Tablett öffnen — das
+  Menü, die Filter, ein Eintrag mit mehreren Fotos, ein Kommentar. *Gemessen
+  wurde in einem Browser mit Geräteemulation, und die stimmt in Maßen und
+  Medienregeln; sie sagt nichts darüber, wie sich ein Finger auf Glas anfühlt.*
+  Die Ergebnisse gehören in Abschnitt 2.
+- **Die Fingerprints der laufenden Anlage sind zu vergleichen.** Für 0.11.0 muss
+  er `74c44ec0` sein, für 0.12.0 **`192734a2`**. Drei Dateien in `public/` und
+  die `package.json` sind andere geworden; der Wert **musste** sich bewegen.
+  *Genau dort hat sich bei 0.9.1 eine Datei zu viel gezeigt (Stolperstein 158).*
+- **DIE GEGENPROBE ZU 0.12.0 IST AUF DIE NEUEN ZUSAGEN BESCHRÄNKT.** Sechs
+  Rückbauten decken die tragenden davon ab; **der volle Lauf über alle 165
+  Rückbauten ist nicht gefahren** — er fährt den ganzen Prüflauf je Rückbau und
+  hätte in der Arbeitsumgebung Stunden gebraucht. *Das ist eine Verengung
+  gegenüber 0.11.0 (34 Gegenproben) und steht hier, damit sie nicht als
+  vollständiger Lauf gelesen wird.* Das Ergebnis der fünf steht im
+  Änderungsprotokoll 0.12.0.
+- **Eine Layoutprobe fehlt dem Prüfstand.** Die Überlaufmessung über sieben
+  Fenstergrößen und der Pixelvergleich der Breitbildansicht liefen von Hand in
+  einem echten Browser. **Der Prüfstand läuft auf `jsdom` und rechnet kein
+  Layout** — er kann am Stylesheet prüfen, dass eine Regel dasteht, nicht, dass
+  sie trägt. *Beides gehört in den Prüflauf, und dafür braucht er etwas, das
+  Layout rechnet.*
 - **ZWEI DATEISÄTZE TRAGEN DIE NUMMER 0.9.1.** Das veröffentlichte 0.9.1 in
   `main` hat den Fingerprint `cb73399d`; die laufende Anlage trug `3cf1b093`.
   Dazwischen liegt die Nacharbeit an Marke und Anmeldekarte. **Solange das so
@@ -4393,7 +4513,7 @@ curl -s -c cookies.txt -X POST localhost:3100/api/login \
 curl -s -b cookies.txt localhost:3100/api/stats | head -c 60
 ```
 
-Erwartet für 0.11.0: `{"version":"0.11.0","fingerprint":"74c44ec0",…`.
+Erwartet für 0.12.0: `{"version":"0.12.0","fingerprint":"192734a2",…`.
 **Was er nicht abdeckt:** `zugang.js`, `schluessel.js` und `gegenprobe.js` — sie
 liegen im Image, laufen aber nie im Server.
 
@@ -4442,58 +4562,74 @@ in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstof
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
 
-### 0.11.0 — „Suche und Bestand"
+### 0.12.0 — „Telefon und Tablett"
 
-**Die zweite Runde nach dem Stufenplan — und die erste, die etwas Bestehendes
-umbaut, statt etwas Neues danebenzustellen.** MINOR, weil Funktionen
-dazukommen. *`searchText` fällt dabei aus der Antwort von `GET /api/items`
-heraus, und das ist eine Wegnahme — aber die HTTP-Endpunkte unter `/api/`
-gehören nach Abschnitt 5 ausdrücklich **nicht** zur öffentlichen Schnittstelle.
-Es ist damit kein Bruch im Sinne von SemVer.* **Keine Datenbankstufe.**
+**Die dritte Runde nach dem Stufenplan — und die erste, die den Server
+überhaupt nicht anfasst.** MINOR, weil Funktionen dazukommen: ein Menü, ein
+Schalter über den Filtern, das Wischen am Bildbereich. **Weggenommen wird
+nichts.** *Keine Datenbankstufe, keine neue Route, keine neue Abhängigkeit,
+keine neue `.env`-Zeile.*
 
-**Und der Satz, der die Runde von ihrer Vorgängerin unterscheidet: diese Runde
-konnte die Anlage verschlechtern.** Der zweite Faktor aus 0.10.0 konnte nichts
-kaputtmachen; wer ihn nicht einschaltete, merkte nichts. **Die Suche merkt jeder,
-sofort, bei jedem Tastendruck.** Deshalb sind Debounce, Reihenfolge der Antworten
-und der Rückfall bei gescheiterter Anfrage **gebaut und geprüft, nicht gehofft.**
+**Der Satz, unter dem alles steht: es bleibt EINE Anlage.** Kein zweiter
+Aufbau, keine Weiche nach der Kennung des Browsers, keine Handy-Adresse. Was
+sich ändert, entscheidet der Browser über zwei Fragen — **die Breite über das
+Layout, der Zeiger über die Größe der Ziele.**
 
-- **Die Suche zieht vom Browser auf den Server** — `GET /api/items?q=…`,
-  dieselben sieben Quellen, und das je Eintrag mitgeschickte Feld `searchText`
-  entfällt. Gemessen an 1000 Einträgen mit je vier Kommentaren: **2,50 MB →
-  0,52 MB** und **110 ms → 93 ms**; das Feld war **73 Prozent** der Antwort.
-  **Die Suche findet dasselbe wie vorher** — bis in die Umlaute, ab einem
-  einzigen Zeichen, und ein Prozentzeichen bleibt ein Prozentzeichen. Gesucht
-  wird über `instr()` statt `LIKE`, samt einer in SQL eingehängten
-  Kleinschreibung nach Unicode. **Kein FTS5** (Stolpersteine 164 und 165).
-- **`testDays` fällt aus der Listenantwort, wenn die Zeitleiste aus ist** — aus
-  der Liste liest das Feld genau eine Stelle der Oberfläche. Die Kachel rechnet
-  aus `testCount`, `testAvg` und `testLast`.
-- **Gespeicherte Ansichten**, bis zu acht je Zugang, persönlich, samt
-  Suchbegriff — als achter persönlicher Schlüssel in `user_settings`, **ohne
-  Schema**.
-- **Doppelte Einträge werden beim Anlegen erkannt**, als Zeile ohne Dialog und
-  ohne eigene Route.
-- **Die Marke trägt den Akzent statt Gold und steht so hoch wie der Text
-  daneben** — eine Rücknahme aus 0.10.0, ausdrücklich gewollt und in Abschnitt 5
-  umgeschrieben statt gelöscht.
-- **Behoben:** eine gemerkte Filterstellung, die auf eine gelöschte Kategorie
-  oder einen gelöschten Tag zeigte, ließ die Übersicht leer aussehen; und eine
-  Beschriftung im Prüfstand nannte 64 schreibende Routen, wo 69 geprüft wurden.
-- **Die Liste bereitet zwei Abfragen einmal vor statt je Eintrag** — an 1000
-  Einträgen 24,2 ms → 11,5 ms.
+**Und der zweite Satz trägt genauso: am Schreibtisch ändert sich nichts.**
+Nachgemessen und nicht behauptet: die Übersicht ist bei 1100, 1280 und 1440
+Pixeln **Pixel für Pixel dieselbe** wie unter 0.11.0. Die einzige gewollte
+Abweichung sind zwei Pixel im Kommentarblock.
 
-**Was 0.11.0 NICHT enthält: das Zusammenführen zweier Einträge.** Der Fahrplan
-nannte Doppelerkennung *und* Zusammenführen in einer Zeile; der Schnitt liegt
-zwischen ihnen und ist ausdrücklich entschieden (Abschnitt 10).
+- **Der Kern: eine Ebene weniger.** Auf dem Telefon lagen zwischen dem
+  Bildschirmrand und dem ersten Buchstaben eines Kommentars **fünf Kanten und
+  drei Eckenradien**; der Bildbereich saß am Seitenrand, die Kommentarkarte 36
+  Pixel weiter innen. **Ein Block ist dort jetzt kein Kasten mehr, sondern ein
+  Abschnitt** — damit bleibt eine Kastenebene übrig, bündig unter dem Bild, mit
+  einem Radius. Dasselbe im Systembereich.
+- **Ein Menü hinter drei Strichen**, mit demselben Markup in beiden Gestalten
+  (`display: contents` am breiten Schirm). **Auch für ein Tablett, das mit dem
+  Finger bedient wird** — dort passte die Kopfzeile mit Fingermaßen nicht in
+  eine Zeile.
+- **Ein Schalter über den Filtern** mit der Zahl der greifenden Filter; auf dem
+  Telefon fangen sie eingeklappt an, auf dem Tablett offen.
+- **Der Titel vor dem Bild, zwei Karten nebeneinander, Dialoge von unten,
+  Wischen am Bildbereich**, die Aussparung des Geräts, die Browserleiste in der
+  Farbe der Anlage, und Eingabefelder, die nicht unter 16 Pixel fallen.
+- **Behoben, und alle drei gab es vorher schon:** die Vergleichsleiste stand
+  nicht mittig (`animation … both` überschrieb die Zentrierung); der
+  Systembereich lief auf dem Telefon rechts aus dem Bild (`1fr` statt
+  `minmax(0, 1fr)`); und ein Kommentar mit Art verschob seinen Text um zwei
+  Pixel.
+
+**Was 0.12.0 NICHT enthält: eine gemeinsame Kopfzeile für die Unteransichten.**
+Eintrag, System, Offen und Vergleich tragen weiterhin nur „← Zurück"; das
+berührte vier Aufbauten und deren Prüflagen und ist eine eigene Runde
+(Sammelblatt).
+
+**Und was diese Runde ausdrücklich NICHT tut: etwas festschreiben.** Die zwei
+Achsen sind die Bauweise dieser Runde und stehen im Stylesheet und im
+Änderungsprotokoll — **nicht in Abschnitt 5.** *Ausdrücklich so entschieden.*
 
 `F_ROUTEN` bleibt bei **69**, `VORGAENGE` bei **zwanzig**, `MERKMALE` bei
 **dreizehn**, `BESTAETIGUNG_ZWECKE` bei **sieben**, die Karten bei
-**neunzehn**, die Formatnummer bei **10**, das Vokabular bei **elf**. Die
-persönlichen Schlüssel gehen von sieben auf **acht**. **Keine neue Abhängigkeit
-und keine neue `.env`-Zeile.** **3676 Prüfungen werden 3815**, 125 Rückbauten
-werden **159**.
+**neunzehn**, die Formatnummer bei **10**, das Vokabular bei **elf**, die
+persönlichen Schlüssel bei **acht**. **3815 Prüfungen werden 3848**, 159
+Rückbauten werden **165**.
 
 ### Die Runden davor — je ein Absatz
+
+**0.11.0 — „Suche und Bestand".** Die zweite Runde unter Semantic Versioning
+und die erste, die etwas Bestehendes umbaut, statt etwas Neues danebenzustellen;
+**keine Datenbankstufe**. Die Suche zieht vom Browser in den Server
+(`GET /api/items?q=…`, dieselben sieben Quellen, `instr()` statt `LIKE`, **kein
+FTS5** — Stolpersteine 164 und 165), `searchText` fällt aus der Listenantwort:
+**2,50 MB → 0,52 MB**, das Feld war 73 Prozent der Antwort. Dazu **gespeicherte
+Ansichten** (bis zu acht je Zugang, persönlich, samt Suchbegriff, ohne Schema)
+und ein Hinweis auf **doppelte Einträge** beim Anlegen — als Zeile ohne Dialog
+und ohne eigene Route. **Das Zusammenführen zweier Einträge ist herausgenommen**
+(vier Eindeutigkeitsschranken, Abschnitt 10). Die Marke trägt seither den Akzent
+statt Gold. `F_ROUTEN` bleibt **69**; persönliche Schlüssel sieben → **acht**.
+**3676 Prüfungen werden 3815**, 125 Rückbauten werden **159**.
 
 **0.10.0 — „Der zweite Faktor".** Die erste Runde nach dem Stufenplan und die
 erste unter Semantic Versioning; **Datenbankstufe ohne Migrationsblock**
@@ -4687,8 +4823,17 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | | | ***ab hier SemVer*** | | |
 | **0.10.0** | Zwei-Faktor | TOTP und Wiederherstellungscodes. *MINOR.* Der QR-Encoder wurde herausgenommen | ja | — |
 | **0.11.0** | Suche und Bestand | Volltextsuche im Server, gespeicherte Ansichten, Doppelerkennung. *MINOR.* **Das Zusammenführen ist herausgenommen** | **nein** | — |
-| **0.11.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht | in der Regel nein | — |
-| **0.12.0** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **0.12.0** | Telefon und Tablett | Zwei Achsen, drei Umbruchpunkte, ein Menü, ein Filterschalter — und eine Kastenebene weniger. *MINOR.* **Der Server ist unberührt** | **nein** | — |
+| **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht | in der Regel nein | — |
+| **0.13.0** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+
+> **DIE BEREINIGUNG STAND HIER ALS 0.12.0 UND HEISST JETZT 0.13.0.** Sie ist
+> nicht verschoben worden, weil jemand sie später wollte — **die Nummer war
+> vorgemerkt und nicht vergeben**, und dazwischen ist eine Runde gebaut worden,
+> die Funktionen bringt und damit nach der eigenen Regel MINOR ist. *Eine
+> vorgemerkte Zahl bindet nicht; was eine Runde enthält, entscheidet ihre
+> Nummer.* Der Eintrag steht deshalb ausdrücklich hier und ist nicht still
+> umnummeriert worden.
 | **1.0.0** | **Die Zusage** | Abwärtskompatibilität wird zugesichert, die öffentliche Schnittstelle aus Abschnitt 5 steht fest. Dazu die Vorgabewerte und die Tastaturbedienung beim Sortieren | — | — |
 | **danach** | Große Dateien bis 2 GB | Teil II des Videopapiers. *MINOR nach 1.0.0* | ja | — |
 

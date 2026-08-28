@@ -41,6 +41,10 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 *Hier wird mitgeschrieben, während gebaut wird. Beim Herausgeben wird daraus
 ein Abschnitt mit Nummer und Datum.*
 
+---
+
+## [0.12.0] - 2026-08-28
+
 **Die Oberfläche auf Telefon und Tablett — sie fühlt sich jetzt wie eine
 Anwendung an und nicht wie eine breite Seite, die man schmal gemacht hat.**
 
@@ -49,6 +53,16 @@ Anwendung an und nicht wie eine breite Seite, die man schmal gemacht hat.**
 > vorher. Auf der Detailseite gibt es genau **eine** gewollte Abweichung — die
 > zwei Pixel unter *Fixed*, erste Zeile. Es gibt keine zweite Oberfläche, keinen
 > zweiten Aufbau und keine Weiche nach der Kennung des Browsers.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.12.0 ist **MINOR**, weil
+> Funktionen dazukommen — ein Menü, ein Schalter über den Filtern, das Wischen
+> am Bildbereich. **Weggenommen wird nichts:** kein Bedienelement verschwindet,
+> keines bekommt eine neue Bedeutung, und was auf dem Telefon hinter das
+> Menüzeichen wandert, steht am Schreibtisch weiter da, wo es stand.
+> *Das Datenverzeichnis, das Austauschformat (Nummer 10), die Schlüssel in der
+> `.env` und die Werkzeuge auf dem Wirt sind alle vier unberührt.* **Keine
+> Datenbankstufe, keine neue Abhängigkeit, keine neue `.env`-Zeile, keine neue
+> Route.**
 
 ### Added
 
@@ -1332,9 +1346,10 @@ nicht mehr übernehmen.*
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` ist angelegt,
-     aber NICHT geschoben — der Push scheitert in der Arbeitsumgebung an
-     HTTP 403 (Branches gehen durch, Tags nicht). Solange das so ist, zeigt
-     der zweite Verweis darunter ins Leere. -->
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` UND `v0.12.0`
+     sind angelegt, aber NICHT geschoben — der Push scheitert in der
+     Arbeitsumgebung an HTTP 403 (Branches gehen durch, Tags nicht). Solange
+     das so ist, zeigen die beiden Verweise darunter ins Leere. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
 [0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0
+[0.12.0]: https://github.com/fardem/kriterion/compare/v0.11.0...v0.12.0

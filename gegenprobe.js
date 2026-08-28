@@ -1371,6 +1371,56 @@ const RUECKBAUTEN = [
     ersatz: '`<img class="marke" src="marke-dunkel.svg" width="${s}" height="${s}" alt="">`;',
     erwartet: 'Die Marke der Anlage'
   },
+  /* ---- Telefon und Tablett (0.12.0) ----
+     SECHS RUECKBAUTEN UND NICHT MEHR. Sie sind auf die tragenden Zusagen der
+     Runde gerichtet und ersetzen den vollen Lauf nicht -- was sie decken und
+     was nicht, steht im Aenderungsprotokoll 0.12.0, Abschnitt 5.
+     DREI DAVON GREIFEN AM STYLESHEET UND KEINE AM LAYOUT: der Prueflauf
+     rechnet auf jsdom kein Layout, er kann nur pruefen, dass eine Regel
+     dasteht. Ein Rueckbau, der eine Regel entfernt, ist damit genau das, was
+     sich hier belegen laesst -- und mehr behauptet die Pruefung auch nicht. */
+  {
+    nr: '158', name: 'Die Spalte des Systembereichs darf sich wieder aufblaehen',
+    datei: 'public/style.css',
+    suche: '.sys-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }',
+    ersatz: '.sys-grid { grid-template-columns: 1fr; gap: 0; }',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    nr: '159', name: 'Die Bedingung in app.js laeuft von der im Stylesheet weg',
+    datei: 'public/app.js',
+    suche: "const SCHMAL = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';",
+    ersatz: "const SCHMAL = '(max-width: 640px)';",
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    nr: '160', name: 'Der Behaelter des Menues steht auch am breiten Schirm im Weg',
+    datei: 'public/style.css',
+    suche: '.mast-rest { display: contents; }',
+    ersatz: '.mast-rest { display: flex; }',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    nr: '161', name: 'Die Seite bekommt die Aussparung nicht mehr',
+    datei: 'public/index.html',
+    suche: '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
+    ersatz: '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    nr: '162', name: 'Der Blaetterpfeil verschwindet auf dem Finger wieder',
+    datei: 'public/style.css',
+    suche: '@media (hover: none) { .vnav { opacity: 1; } }',
+    ersatz: '',
+    erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    nr: '163', name: 'Das Menuezeichen faellt aus der Kopfzeile',
+    datei: 'public/app.js',
+    suche: '<button class="icon-btn mast-menue" id="menue" aria-expanded="false"',
+    ersatz: '<button class="icon-btn mast-menue" id="menue-weg" aria-expanded="false"',
+    erwartet: 'Mehrbenutzer-Anzeigen in der Oberflaeche'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
