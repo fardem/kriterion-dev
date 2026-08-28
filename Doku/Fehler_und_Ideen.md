@@ -1705,6 +1705,41 @@ Zeitstempeln errechnen lässt.**
   es nicht anders. **Der Lesestand je Meldung ist die Fassung danach**, und er
   braucht dann doch eine Tabelle — *deshalb steht er hier als „später" und nicht
   als Teil der ersten Runde.*
+* **Ersetzt die Glocke den Knopf „Offene Aufgaben"?** *Aus dem Betrieb kam der
+  Vorschlag, beides in eine Tafel zu legen — oben die persönlichen Neuigkeiten,
+  darunter eine Trennlinie, unten die offenen Aufgaben.* **Der Befund, der die
+  Frage entscheidet, steht in einer Zeile SQL:** `GET /api/offen` hat **keinen
+  Benutzerfilter** (`WHERE c.kind = 'task'`, `server.js:3113`). Die Liste zeigt
+  die offenen Aufgaben **aller**; jede Zeile trägt nur ein `mine` zur Anzeige.
+  **Die obere Hälfte wäre damit „über mich", die untere „über alle" — zwei
+  Zugehörigkeiten in einem Kasten.**
+
+  **Dazu ein zweiter Unterschied, und er ist der tragende:** eine Neuigkeit
+  verschwindet, wenn man sie **gelesen** hat; eine Aufgabe verschwindet, wenn
+  man sie **erledigt** hat. *Ein Zeichen, das beides meint, geht nie ganz weg —
+  und ein Punkt, der immer da ist, wird nach einer Woche nicht mehr gesehen.*
+
+  **Draußen legt es niemand zusammen.** Instagram hat nur Aktivität; Facebook
+  hat Glocke, Messenger und Anfragen als **getrennte** Zeichen; GitHub trennt
+  die Glocke von „Assigned to me"; Jira und Linear trennen Glocke und „Meine
+  Vorgänge". *Was GitHub dabei bestätigt: seine Glocke trägt einen **schlichten
+  Punkt ohne Zahl** — genau die Form, die der Betrieb sich wünscht.*
+
+  **Vorschlag: zwei Knöpfe, zwei verschiedene Zeichen.** Die Glocke trägt den
+  **Punkt** (etwas ist geschehen, geht weg beim Lesen); der Knopf „Offen"
+  bleibt und bekommt seine **Zahl** (so viel liegt an, geht weg beim Erledigen)
+  — *das ist zugleich die Zeile „Der Zähler ‚Offen 7'" aus Teil II.* **Eine
+  fremde Aufgabe an einem eigenen Eintrag ist dabei eine Neuigkeit und gehört
+  trotzdem in die Glocke.**
+
+* **Falls es doch eine Tafel wird: dann muss sie durchgehend „über mich"
+  heißen.** Oben „Neu für dich" — **nur diese Hälfte trägt den Punkt**;
+  Trennlinie; unten „Offen an deinen Einträgen", also **nur** Aufgaben an
+  eigenen Einträgen oder von einem selbst, **ohne Punkt**, weil es ein Zustand
+  ist. Ganz unten ein Verweis *„Alle offenen Aufgaben ansehen →"* auf die
+  gemeinsame Ansicht. *So wie GitHubs „See all notifications" — die geteilte
+  Liste ist einen Klick weiter und nicht in der Tafel.*
+
 * **Und die Frage, die vor allen anderen steht: gilt das auch auf dem Telefon?**
   Der Wunsch nennt den Desktop. **Die Kopfzeile ist aber eine — was in
   `.mast-rest` steht, wandert auf dem Telefon von selbst ins Menü.** Eine
@@ -2088,3 +2123,9 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
   dem Telefon von selbst ins Menü — *ein Markup, zwei Gestalten* (0.12.0). Eine
   Fassung nur für ein Gerät wäre eine Weiche nach Gerät, und genau die hat
   0.12.0 ausdrücklich vermieden.
+- **Neuigkeiten und offene Aufgaben unter einem Zeichen.** Naheliegend, und aus
+  zwei Gründen falsch: `GET /api/offen` hat **keinen Benutzerfilter** — die
+  Liste ist gemeinsam, die Neuigkeiten sind persönlich —, und **eine Neuigkeit
+  geht weg, wenn man sie liest, eine Aufgabe erst, wenn man sie erledigt.** Ein
+  Punkt, der beides meint, geht nie ganz weg. *Draußen trennt es jeder:
+  Instagram, Facebook, GitHub, Jira, Linear.* Siehe Teil I, Punkt 16.
