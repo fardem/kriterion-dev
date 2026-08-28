@@ -20,8 +20,8 @@ Zwecke der zweiten Bestätigung. Laufzeitabhängigkeiten:
 WAS SICH ÄNDERT, IN EINEM SATZ: Der Export in Teilen wird wieder benutzbar — mit
 eingeschaltetem zweitem Faktor ist er es heute nicht —, die Anlage ist danach
 über HTTPS **und** über das Heimnetz erreichbar statt nur über den Weg, den eine
-einzige Einstellung gerade offenhält, und zwei kleinere Punkte am Zugang ziehen
-mit.
+einzige Einstellung gerade offenhält, und drei kleinere Punkte ziehen mit —
+zwei am Zugang, einer an der Filterleiste.
 
 **DIESE RUNDE HAT EIN BETRIEBSRISIKO IM KERN, UND DAS UNTERSCHEIDET SIE VON DEN
 LETZTEN VIER.** 0.12.1 bis 0.12.4 waren Befunde aus dem Betrieb, alle PATCH —
@@ -335,7 +335,112 @@ hereinkommt** — nicht die Daten sind in Gefahr, sondern der Zugang zu ihnen.
 
 ---
 
-5. WAS DIESE RUNDE NICHT ANFASST — UND DAS IST DER GRÖSSERE TEIL DER LISTE.
+5. DIE FILTERLEISTE KOSTET ZWEI ZEILEN ZU VIEL — NACHGEMESSEN, NICHT GESCHÄTZT.
+
+   **Aus dem Betrieb, 28. August 2026, mit einem Bild dazu.** *Reine
+   Oberfläche, hängt an keinem anderen Punkt und lässt sich jederzeit
+   herausnehmen.*
+
+   **DER BEFUND.** Bei 1359 px Fenster (1232 px Inhalt) ist die Leiste
+   **229 px** hoch — fünf Zeilen, und rechts bleibt frei:
+
+   | Zeile | Höhe | frei rechts |
+   |---|---|---|
+   | Status | 31 px | 713 px |
+   | Kategorie | 31 px | 884 px |
+   | Tags | 64 px | 0 px |
+   | Sortieren | 31 px | 910 px |
+   | Ansichten | 31 px | 995 px |
+
+   **Vier von fünf Zeilen sind zu mehr als der Hälfte leer**, nur die Tagwolke
+   füllt die Breite. Die Leiste ist als *eine Steuergruppe = eine Zeile* gebaut,
+   und jede Zeile kostet 41 px — ob vier Pillen darin stehen oder ein einzelnes
+   Auswahlfeld. **Ziel sind 147 px**, also 82 px weniger; mit dem Abstand
+   darunter fällt der Weg bis zum ersten Eintrag von 253 auf 171 px.
+
+   **ZU BAUEN IST (a), (b) UND (c):**
+
+   **(a) DIE TAGZEILE WIRD EINE ZEILE:** Beschriftung, Und/Oder, Wolke, und am
+   Ende „mehr" und „zurücksetzen".
+   **Warum das heute nicht geht, und das ist der Kern:** `.frow-rechts` trägt
+   `margin-left: auto`. Eine selbsttätige Außenkante frisst den gesamten freien
+   Platz der ersten Zeile — **die Wolke KANN dort nicht danebenstehen**, sie
+   rutscht immer darunter. Sie steht im Aufbau absichtlich hinter den Verweisen,
+   damit „mehr" nicht eine ganze Tagreihe kostet: *der Grund ist richtig, nur
+   die Lösung ist zu teuer.*
+   **Der Weg:** die Wolke wird ein Flex-Element (`flex: 1 1 0`, `min-width: 0`),
+   die Verweise stehen als gewöhnliche Geschwister **dahinter**, die
+   selbsttätige Kante entfällt. Damit wird die Reihenfolge im Aufbau wieder die
+   natürliche — und der lange Kommentar darüber, warum sie es nicht ist, fällt
+   mit weg.
+   **KEINE AUSGERECHNETE BREITE, an keiner Stelle.** Das war Befund A aus
+   0.12.1 (`right: 92px`), und die Anlage stellt die Schrift von 80 bis 120
+   Prozent — jede feste Zahl kann dabei nur falsch werden.
+   `begrenzeWolke()` bleibt unangetastet: es misst die Höhe **einer** Zeile und
+   fragt `scrollHeight > clientHeight`. Beides gilt auch für eine schmalere
+   Wolke. *Prüf es trotzdem nach, statt es zu glauben.*
+   **DER PREIS IST BEKANNT UND ANGENOMMEN:** die Wolke verliert rund 230 px,
+   das sind etwa **drei sichtbare Tags**; „mehr" fängt sie. *Die erste Zeile ist
+   heute zu 73 Prozent leer — der Tausch geht klar zugunsten der Höhe aus.*
+
+   **(b) SORTIEREN UND ANSICHTEN TEILEN SICH EINE ZEILE.** Gemessen brauchen sie
+   **322** und **237** px von 1232 — sie passen mit Abstand.
+   **Der schlimmste Fall ist harmlos:** stehen einmal acht gespeicherte Ansichten
+   da (`ANSICHTEN_DECKEL`), bricht die Zeile um und sieht aus wie heute. Nichts
+   wird abgeschnitten, nichts geht verloren.
+   *Zwei Beschriftungen in einer Zeile — sieh zu, dass die zweite nicht wie eine
+   Überschrift über den Ansichten aussieht, sondern wie das Gegenstück zur
+   ersten.*
+
+   **(c) „NEU SEIT …" MIT NULL TREFFERN WIRD GEDÄMPFT.** Heute steht die Pille in
+   voller Helligkeit da und führt garantiert auf eine leere Liste. **Tags in
+   genau derselben Lage werden gedämpft** — `.pill-tag.leer`, `opacity: .34`,
+   dazu der Hinweis „Zusammen mit der aktuellen Auswahl kein Treffer".
+   **Dieselbe Sache, zwei Verhalten** (Stolperstein 47, im Kleinen). *Die Zahl
+   steht schon da und wird schon gerechnet; es fehlt die Klasse und der
+   Hinweis.*
+
+   **WAS AUSDRÜCKLICH NICHT GEBAUT WIRD:**
+
+   **(d) Die Beschriftungsspalte bleibt.** Sie wegzunehmen gäbe 86 px je Zeile
+   zurück und wäre der größere Hebel — **entschieden dagegen:** die Leiste wird
+   ohne sie schwerer zu überfliegen, und es ist ein anderer Eingriff als zwei
+   Zusammenlegungen. *Fällt dir beim Bauen auf, dass (a) ohne sie viel einfacher
+   wäre: sag es, bau es nicht.*
+
+   **(e) „Ohne Kategorie" als Filter — NICHT in dieser Runde.** Der Befund steht
+   und ist echt: der Kopf sagt 12 Einträge, die Kategorien sagen 1 + 9 = 10.
+   **Zwei Einträge sind über die Kategoriezeile nicht erreichbar** — „Alle" zeigt
+   sie, keine Kategorie zeigt sie. Das ist Filterlogik und Serverarbeit und keine
+   Zeilenersparnis; *es steht als Zeile in Teil II des Sammelblatts und wartet
+   dort.*
+
+   **(f) UND DIE ALTE DOPPELUNG WIRD DAMIT ZUR ENTSCHEIDUNG — das ist der Teil,
+   den man beim Bauen übersieht.** Teil II des Sammelblatts trägt seit 0.12.3 die
+   Zeile *„Dieselbe Tagwolke ist an zwei Stellen verschieden gebaut"*:
+   Eintragsseite `.wolke-kopf` mit `space-between`, Übersicht als Kind der
+   Filterzeile mit `margin-left: auto`. Dort steht wörtlich: **„Solange beide
+   dasselbe tun, ist es eine Doppelung und kein Fehler; sobald eine von beiden
+   sich ändert, ist es einer."** *(a) ändert genau eine von beiden.*
+   **Also gehört entschieden und begründet:** zieht die Eintragsseite mit, oder
+   bleibt sie stehen? Bleibt sie, steht der Grund im Änderungsprotokoll und die
+   Zeile im Sammelblatt wird nachgezogen. **Stillschweigend auseinanderlaufen
+   lassen ist der eine Ausgang, den es nicht gibt.**
+
+   **NACHHER WIRD WIEDER GEMESSEN**, mit demselben Fenster: 229 px vorher, rund
+   147 px nachher. **Sag die Zahl, statt zu sagen, es sehe besser aus.**
+
+   **DER PRÜFSTAND KANN DIESE ZEILEN NICHT SEHEN.** `jsdom` rechnet kein Layout —
+   das steht seit 0.12.3 als offener Punkt im Sammelblatt und trifft hier zum
+   zweiten Mal zu. **Was sich prüfen lässt, ist der Aufbau:** dass Wolke und
+   Verweise Geschwister in EINER `.frow` sind, dass im Stilblatt keine
+   ausgerechnete Breite steht, und dass die Pille mit null Treffern ihre Klasse
+   und ihren Hinweis bekommt. *Prüf, was da ist; behaupte nicht, was du nicht
+   messen kannst.*
+
+---
+
+6. WAS DIESE RUNDE NICHT ANFASST — UND DAS IST DER GRÖSSERE TEIL DER LISTE.
 
    Der Fahrplan hat noch vier Runden. **Drei davon sind nicht diese.**
 
@@ -361,7 +466,7 @@ hereinkommt** — nicht die Daten sind in Gefahr, sondern der Zugang zu ihnen.
 
 ---
 
-6. DIE ZAHLEN AM ENDE.
+7. DIE ZAHLEN AM ENDE.
 
    * **Beide Wege, gemessen und nicht behauptet:** eine Anmeldung über HTTPS
      **und** eine über `http://<server-ip>:3100`, jeweils bis zur stehenden
@@ -372,6 +477,8 @@ hereinkommt** — nicht die Daten sind in Gefahr, sondern der Zugang zu ihnen.
      nicht belegt.*
    * **Die Nachlese zu 0.12.4** aus Abschnitt 0: Zahl der Teile, Dateigrößen
      gegen die Ansage, und ob ein Teil sich einspielen ließ.
+   * **Die Filterleiste bei 1359 px Fenster, vorher und nachher.** Vorher:
+     **229 px** in fünf Zeilen. *Erwartet werden rund 147 px in drei.*
    * **Prüfungszahlen vorher/nachher.** Vorher: **3992**.
    * **Gegenproben.** Vorher: **195 Rückbauten.** *Der volle Lauf steht seit
      fünf Runden aus; wenn er in dieser Runde läuft, schreib es auf.*
@@ -386,8 +493,9 @@ DIE NUMMER:
   erreichbar sein. Das ist keine Fehlerbereinigung, sondern eine Fähigkeit, die
   es vorher nicht gab.
   **Sieh trotzdem genau hin:** *wenn am Ende nur die Reparatur, der Satz im
-  Löschdialog und der Filter an der Karte übrig sind, weil Punkt 2 zu groß
-  wurde, dann heißt die Runde 0.12.5 und ist PATCH.* **Sag es mit Begründung.**
+  Löschdialog, der Filter an der Karte und die Filterleiste übrig sind, weil
+  Punkt 2 zu groß wurde, dann heißt die Runde 0.12.5 und ist PATCH.* **Sag es
+  mit Begründung.**
 * **NICHTS WIRD UNTER EINER SCHON HERAUSGEGEBENEN NUMMER NACHGESCHOBEN.** Kommt
   nach 0.13.0 etwas nach, heißt es 0.13.1.
 * **`CHANGELOG.md` bekommt den Eintrag `## [0.13.0] - <JJJJ-MM-TT>`**, Datum
@@ -445,8 +553,9 @@ REGELN:
   sagt, dass ein Cookie gesetzt wurde, bliebe grün, wenn beide Wege denselben
   Namen bekämen — und genau das wäre der Fehler aus (b).
 * **Wird es zu viel für einen Durchgang, sag es, sobald du es kommen siehst —
-  nicht hinterher.** Der Schnitt liegt zwischen Punkt 3 und Punkt 2 —
-  **Punkt 1 steht außerhalb**, er repariert Laufendes und wird nie geschnitten.
+  nicht hinterher.** Der Schnitt liegt zwischen Punkt 3 und Punkt 2 — die
+  Punkte 3 bis 5 sind die billigen, **Punkt 1 steht außerhalb**: er repariert
+  Laufendes und wird nie geschnitten.
 
 BAUREGEL — datenbankverändernder Code wird rückbaufreundlich gebaut:
 
@@ -454,7 +563,8 @@ BAUREGEL — datenbankverändernder Code wird rückbaufreundlich gebaut:
   die Antwort vorbehaltlich da: KEIN SCHEMA, KEIN MIGRATIONSBLOCK, KEINE
   FORMATNUMMER.** Punkt 1 fasst eine vorhandene Route und die Oberfläche an,
   Punkt 2 Cookies und Kopfzeilen, Punkt 3 die Karte und die Leseroute, Punkt 4
-  einen Dialogtext und ein Fenster. **Wenn das nach
+  einen Dialogtext und ein Fenster, Punkt 5 das Stilblatt und den Aufbau der
+  Filterleiste. **Wenn das nach
   deiner Durchsicht nicht stimmt, ist das ein Grund anzuhalten und zu fragen.**
 * Das Schema bleibt vollständige DDL in `db.js`.
 * **`F_ROUTEN` bleibt bei 69**, solange keine schreibende Route dazukommt.
@@ -470,7 +580,7 @@ AM ENDE DES CHATS:
   Datei, Abweichungen mit Begründung, neue Stolpersteine (**die Zählung setzt
   bei 191 fort** — 190 ist vergeben), die Gegenprobentabelle **aus
   `gegenprobe.js`**, Prüfungszahlen vorher/nachher (vorher: **3992**),
-  Offengebliebenes. **Und die Messwerte aus Abschnitt 6.**
+  Offengebliebenes. **Und die Messwerte aus Abschnitt 7.**
 * Die Zeile „0.13.0 — Fingerprint `…`" gehört ins Änderungsprotokoll, **ZULETZT
   gebildet**, nach der letzten Änderung an einer ausgelieferten Datei — die
   Versionsnummer in `package.json` eingeschlossen. **Und `public/` gehört dazu**:

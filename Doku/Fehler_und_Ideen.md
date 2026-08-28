@@ -144,7 +144,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | Runde | Was daraus geworden ist |
 |---|---|
 | **0.12.3** *PATCH* — **GEBAUT am 28. August 2026** | Export durch den Arbeitsspeicher · nur zeichnen, was zu sehen ist · ein Kasten, eine Farbe · Speicherverbrauch · ⌀ und Anzahl · „offen" in der Kopfzeile · Kommentar ohne Rollen · Versionszeile · „mehr" frisst eine Zeile. **Was gebaut wurde, steht im Änderungsprotokoll 0.12.3; was daraus herausgenommen wurde, in Abschnitt 10a.** |
-| **0.13.0** *MINOR* | Der Proxy ist ein Ja/Nein · gescheiterte Anmeldungen und CrowdSec · gelöschte Zugänge und der Weg zurück. **Dazu ein Befund aus dem Betrieb vom 28. August 2026, der nicht aus dem Fahrplan kommt:** der Export in Teilen ist mit eingeschaltetem zweitem Faktor unbenutzbar — er schickt denselben Code je Teil, und ein Code gilt genau einmal. *Er steht als Punkt 1 im Auftrag 0.13.0 und wird dort zuerst gebaut.* |
+| **0.13.0** *MINOR* | Der Proxy ist ein Ja/Nein · gescheiterte Anmeldungen und CrowdSec · gelöschte Zugänge und der Weg zurück. **Dazu ein Befund aus dem Betrieb vom 28. August 2026, der nicht aus dem Fahrplan kommt:** der Export in Teilen ist mit eingeschaltetem zweitem Faktor unbenutzbar — er schickt denselben Code je Teil, und ein Code gilt genau einmal. *Er steht als Punkt 1 im Auftrag 0.13.0 und wird dort zuerst gebaut.* **Dazu die Filterleiste** — zwei Zeilen zu viel, nachgemessen: 229 px in fünf Zeilen, davon vier zu mehr als der Hälfte leer. *Punkt 5 desselben Auftrags.* |
 | **0.14.0** *MINOR, Schema* | Aus „abgelehnt" wird eine Entscheidung |
 | **0.15.0** *MINOR* | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · Vorschau der Rangfolge |
 | **0.16.0** *MINOR* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
@@ -421,6 +421,15 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 
 ### Aus dem Betrieb und aus den Runden
 
+- **Einträge ohne Kategorie sind über die Kategoriezeile nicht erreichbar**
+  *(0.12.4, aus dem Betrieb am 28. August 2026)*. Der Kopf sagte 12 Einträge,
+  die Kategorien sagten 1 + 9 = 10. **Zwei Einträge waren nur über „Alle" zu
+  sehen und über keine einzelne Kategorie** — es fehlt die Pille „Ohne", mit
+  ihrer Zahl wie die anderen. *Die Zahlen daneben stimmen und verraten die
+  Lücke sogar; sie zu addieren ist aber Sache des Lesers, und das ist der
+  Fehler.* **Filterlogik und Serverarbeit**, deshalb keine Beifracht in einer
+  Runde, die die Leiste nur schmaler macht — beim Zusammenlegen der Zeilen in
+  0.13.0 ausdrücklich abgewählt. *(Claude: empfohlen, eigene kleine Runde)*
 - **Dieselbe Tagwolke ist an zwei Stellen verschieden gebaut** *(0.12.3)*.
   Auf der Eintragsseite sitzt „mehr" in einer eigenen Kopfzeile (`.wolke-kopf`,
   `space-between`), in der Übersicht als Kind der Filterzeile mit
