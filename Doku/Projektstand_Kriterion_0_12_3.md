@@ -142,13 +142,15 @@ nicht Pflicht.* **Keine neue Zeile in der `.env`, keine neue Abhängigkeit,
 `F_ROUTEN` unverändert bei 69.**
 Was die Runde bringt, steht in Abschnitt 9.
 
-> **DER EINE PUNKT, DER NACH DEM EINSPIELEN ABZULESEN IST.** Die Karte
-> **Kennzahlen** trägt seit dieser Version die Zeile **„Export, alles"**. Sie
-> beantwortet, ob der Export bei diesem Bestand vorher überhaupt noch gelaufen
-> wäre: *liegt sie über 512 MB, war er kaputt und niemand hat es bemerkt, weil
-> ihn niemand gebraucht hat.* **Die Zahl gehört ins Änderungsprotokoll
-> nachgetragen, sobald sie dasteht** — sie ist der einzige Messwert dieser
-> Runde, der ohne den Wirt nicht zu gewinnen war.
+> **UND DIE ZAHL IST DA: 760 MB.** Die Karte **Kennzahlen** trägt seit dieser
+> Version die Zeile **„Export, alles"**; am 28. August 2026 hat die laufende
+> Anlage sie gemeldet. **Gegen Nodes Grenze von 512 MB heißt das: der Export
+> war kaputt** — nicht gefährdet, kaputt, und niemand hat es bemerkt, weil ihn
+> niemand gebraucht hat.
+> **Diese Runde hat die Ansage gelöst, nicht die Grenze.** Der Austauschweg
+> fällt für diesen Bestand aus, und der Import ist aus demselben Grund genauso
+> zu. **Die Sicherung über `VACUUM INTO` ist davon unberührt** und bleibt der
+> Weg für die vollständige Kopie. *Der offene Punkt steht in Abschnitt 8.*
 
 **Was 0.12.3 für den Betrieb bedeutet: nichts einzustellen.** Keine neue
 `.env`-Zeile, die `docker-compose.yml` unberührt, kein Schema. **Der Server ist
@@ -4688,12 +4690,26 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **DIE ZAHL AUS DEN KENNZAHLEN IST ABZULESEN.** Die Karte trägt seit 0.12.3
-  die Zeile **„Export, alles"**. Sie beantwortet, ob der Export bei diesem
-  Bestand vorher überhaupt noch gelaufen wäre — *über 512 MB war er kaputt, und
-  niemand hat es bemerkt, weil ihn niemand gebraucht hat.* **Die Zahl gehört ins
-  Änderungsprotokoll 0.12.3 nachgetragen**, und wenn sie darüber liegt, gehört
-  die Art des Punktes im Fahrplan von `Verbesserung` auf `Fehler` gestellt.
+- **DER AUSTAUSCHWEG IST AUSGEFALLEN — GEMESSEN, NICHT VERMUTET.** Die Karte
+  „Kennzahlen" meldet **760 MB** gegen Nodes Grenze von 512 MB; der Exportknopf
+  sagt seit 0.12.3 sauber ab, aber er liefert nichts mehr. **Und der Import ist
+  aus demselben Grund genauso zu** — er liest die Datei über `readAsText()` im
+  Browser und `buffer.toString('utf8')` am Server, beides ein einziger String.
+  *Selbst eine Datei, die irgendwie entstünde, ließe sich von dieser Anlage
+  nicht wieder einspielen.*
+  **Die Sicherung über `VACUUM INTO` ist davon unberührt** und bleibt der Weg
+  für die vollständige Kopie; was fehlt, ist Umzug, Archiv und Weitergabe.
+  **Zwei Antworten stehen zur Wahl:**
+
+  | | löst den Weg hinaus | löst den Weg zurück | Aufwand |
+  |---|---|---|---|
+  | **Export als Strom** *(Teil c, seit 0.8.6 zurückgestellt)* | ja | **nein** — der Import bräuchte einen eigenen, zeilenweisen Leser | Umbau der Exportroute samt Gegenproben |
+  | **Export in mehreren vollständigen Teildateien** | ja | **ja** — der vorhandene Import nimmt sie mit „Zusammenführen" auf | kein neues Format, kein neuer Leser |
+
+  *Entschieden ist nichts.* **Die zweite ist die kleinere und die einzige, die
+  beide Richtungen löst;** die erste gibt eine einzige Datei statt mehrerer.
+  Der Auftrag 0.12.3 verlangt an dieser Stelle ausdrücklich, anzuhalten und zu
+  fragen, statt (c) mitzunehmen.
 
 - **DIE TAGS `v0.11.0`, `v0.12.0`, `v0.12.1`, `v0.12.2` UND `v0.12.3` SIND
   GESETZT, ABER NICHT GESCHOBEN.** Sie liegen auf den Commits, die herausgehen;
@@ -5279,7 +5295,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.12.1** | Der Papierkorb wandert ans große Bild | Das Löschkreuz verlässt auf dem Finger die Vorschaukachel; die Knöpfe des Bildbereichs stehen in einer Reihe. *PATCH.* **Befund aus dem Betrieb** — die erste vergebene Zahl aus der Zeile darunter | **nein** | — |
 | **0.12.2** | Die Kachelreihe füllt die Breite | Die Vorschaureihe steht auf dem Telefon als Raster und lässt rechts nichts mehr leer. *PATCH.* **Zweiter Befund aus dem Betrieb**, am selben Tag und am selben Gerät | **nein** | — |
 | **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1, 0.12.2 und 0.12.3 sind die ersten drei* | in der Regel nein | — |
-| **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT.** Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
+| **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT — und im Feld hat sich der Punkt als eingetretener Fehler bestätigt: 760 MB gegen 512.** Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
 | **0.13.0** | Zwei Netze, ein Zugang | `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu die gescheiterten Anmeldungen im Protokoll auffindbar, die Zeile für CrowdSec, und zwei Handgriffe an gelöschten Zugängen. *MINOR.* **Kein Schema** | nein | — |
 | **0.14.0** | Die Entscheidung wird mitgeschrieben | `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie muss vor die Bereinigung** | ja, **sechster Block** | 10 → 11 |
 | **0.15.0** | Der Systembereich, die Glocke und die Auskunft | Neunzehn Karten werden Abschnitte mit eigener Adresse, `renderSystem()` wird dabei zerlegt. Dazu die Glocke mit dem Punkt, der Zähler „Offen 7" und die Gewichtung, die sich selbst erklärt. *MINOR.* **Die größte Umbaufläche des Plans** | nein | — |

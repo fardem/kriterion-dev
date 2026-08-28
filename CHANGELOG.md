@@ -57,16 +57,19 @@ aufgefallen sind, sind richtiggestellt.
 > *Die Kennzahlen bekommen eine Zahl, die es vorher nicht gab — das ist eine
 > Anzeige über vorhandene Daten und keine neue Fähigkeit.*
 
-> **OB DER EXPORT BEI DIESEM BESTAND VORHER ABGEBROCHEN IST, IST NOCH NICHT
-> GEMESSEN.** Die Rechnung, die es beantwortet, ist genau die, die diese Runde
-> gebaut hat: **Systembereich → Kennzahlen → „Export, alles"**. Die Zahl steht
-> dort ab dem ersten Start dieser Version. *Liegt sie über 512 MB, war der
-> Export kaputt und niemand hat es bemerkt, weil ihn niemand gebraucht hat;
-> liegt sie darunter, war diese Runde Vorsorge.* **Die Schätzung aus der
-> Dateigröße — 660 MB als Base64, also rund 880 MB — fällt dabei ausdrücklich
-> zu hoch aus:** die Datei trägt Indizes, das Sicherheitsprotokoll und freie
-> Seiten aus Gelöschtem, und die Vorschaubilder gehen gar nicht mit in den
-> Export.
+> **GEMESSEN AM 28. AUGUST 2026, AN DER LAUFENDEN ANLAGE: 760 MB.** Damit ist
+> die Frage beantwortet, die dieser Punkt seit 0.8.6 offenließ — **der Export
+> war kaputt, und niemand hat es bemerkt, weil ihn niemand gebraucht hat.**
+> Nicht „hätte irgendwann"; er brach ab, sobald jemand den Knopf drückte.
+> *Die Schätzung aus der Dateigröße lag mit rund 880 MB zu hoch, wie erwartet:
+> die Datei trägt Indizes, das Sicherheitsprotokoll und freie Seiten aus
+> Gelöschtem, und die Vorschaubilder gehen gar nicht mit in den Export.*
+> **Was diese Version daran ändert, ist die Ansage und nicht die Grenze.** Der
+> Export bleibt bei diesem Bestand unbenutzbar — er sagt es jetzt in einem Satz,
+> statt nach zwei Minuten mit einem Speicherfehler abzubrechen. **Für eine
+> vollständige Kopie ist die Karte „Sicherung" der Weg.** *Dass der
+> Austauschweg damit für diesen Bestand ausfällt, ist ein offener Punkt und
+> keine Lösung — siehe Änderungsprotokoll 0.12.3, „Offen geblieben".*
 
 ### Added
 
