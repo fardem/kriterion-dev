@@ -130,7 +130,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.12.3** — Fingerprint **`PLATZHALTER`**, **3946 Prüfungen**,
+**Gebaut ist 0.12.3** — Fingerprint **`b635dd98`**, **3952 Prüfungen**,
 **zwölf Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
 *0.12.3 ist die erste Runde aus dem Fahrplan: der Export sagt seine Größe an,
 und neun Punkte an der Oberfläche ziehen nach.* **PATCH — nichts kommt hinzu,
@@ -4289,7 +4289,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 3946 von 3946 bestanden** (0.12.3) — **90 neue Prüfungen**, davon zwei
+**Stand: 3952 von 3952 bestanden** (0.12.3) — **96 neue Prüfungen**, davon zwei
 neue Gruppen („Die Exportgröße sagt sich an", „Die Anzeige zieht nach — 0.12.3")
 und Erweiterungen in vier vorhandenen. Die Gegenproben stehen in Abschnitt 8:
 sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf
@@ -4655,7 +4655,7 @@ eine Buchführung.*
 | 0.12.0 | Telefon und Tablett (33) | 6, nur auf die neuen Zusagen | Stolpersteine 173 bis 176 |
 | 0.12.1 | Der Papierkorb wandert ans große Bild (3) | 2, nur auf die neuen Zusagen | Stolpersteine 177 bis 179 |
 | 0.12.2 | Die Kachelreihe füllt die Breite (5) | 5, nur auf die neuen Zusagen | Stolpersteine 180 und 181 |
-| **0.12.3** | **Exportgröße und neun Anzeigepunkte (90)** | **12, nur auf die neuen Zusagen** | **Stolpersteine 182 bis 186; ein Rückbau blieb STUMM** |
+| **0.12.3** | **Exportgröße und neun Anzeigepunkte (96)** | **12, nur auf die neuen Zusagen** | **Stolpersteine 182 bis 186; drei Rückbauten deckten Lücken auf** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -4938,9 +4938,9 @@ dasselbe Feld nimmt auch einen Wiederherstellungscode entgegen, und der kommt
 von einem Zettel.*
 
 **Kein Schema, keine Formatnummer, keine `.env`-Zeile, keine Abhängigkeit,
-`F_ROUTEN` unverändert bei 69.** 3856 → **3946 Prüfungen**, 172 → **184
-Rückbauten**. *Ein Rückbau blieb STUMM und hat eine Lücke im Prüfstand
-aufgedeckt; sie ist im selben Zug geschlossen worden.*
+`F_ROUTEN` unverändert bei 69.** 3856 → **3952 Prüfungen**, 172 → **184
+Rückbauten**. *Drei Rückbauten haben Lücken im Prüfstand aufgedeckt; alle drei
+sind im selben Zug geschlossen worden.*
 
 ### 0.12.2 — „Die Kachelreihe füllt die Breite"
 

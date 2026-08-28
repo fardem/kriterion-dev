@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.12.3 — „Der Export sagt Bescheid, und die Anzeige zieht nach"
 
-**Version 0.12.3 · gebaut am 28. August 2026 · Fingerprint `PLATZHALTER` ·
+**Version 0.12.3 · gebaut am 28. August 2026 · Fingerprint `b635dd98` ·
 Erste Runde aus dem neuen Fahrplan · KEINE Datenbankstufe, kein
 Migrationsblock, keine neue Formatnummer, keine neue Zeile in der `.env`,
 keine neue Abhängigkeit**
@@ -77,6 +77,15 @@ vollständig.
 > die Blob-Spalten, und das ist etwas anderes als die Summe über das, was
 > geschrieben wird. **Gebaut ist deshalb die zweite.** Näheres unter
 > [Abweichungen](#11-abweichungen-vom-auftrag-mit-begründung).
+
+> **DIE ZEILE OBEN IST ZULETZT GEBILDET**, nach der letzten Änderung an einer
+> ausgelieferten Datei — `package.json` eingeschlossen. Sie geht über **alles**
+> in `public/` und nicht über eine Liste erwarteter Namen: **eine Datei zu viel
+> bewegt sie genauso wie eine geänderte** (Stolperstein 158). Abgefragt ist sie
+> am laufenden Server über `GET /api/stats`, nicht nachgerechnet.
+> *`pruefung.js` und `gegenprobe.js` gehen nicht ein — sie werden vom Server nie
+> geladen und liegen nicht in `public/`. Der Wert bewegt sich deshalb nicht mehr,
+> wenn nur noch am Prüfstand oder an den Papieren gearbeitet wird.*
 
 **DER GIT-TAG SCHEITERT WEITERHIN.** `v0.12.3` ist angelegt und der Push am
 28. August 2026 erneut versucht: **`error: RPC failed; HTTP 403`**, dasselbe
@@ -521,8 +530,11 @@ Version in den Kennzahlen und ist dort abzulesen; siehe
 
 | | vorher | nachher |
 |---|---:|---:|
-| Prüfungen | **3856** | **3946** |
-| davon grün | 3855 | **3946** |
+| Prüfungen | **3856** | **3952** |
+| davon grün | 3855 | **3952** |
+
+*3946 nach dem Bauen, 3952 nach dem Schließen der drei Funde aus den
+Gegenproben (Abschnitt 10).*
 
 **Der Branch kam mit einer roten Prüfung an, und sie stand nicht im Auftrag.**
 Der Sprachwächter fand in `Doku/Fehler_und_Ideen.md:618` das Wort
@@ -585,9 +597,72 @@ lesende Route.
 **Vorher: 172 Rückbauten. Nachher: 184.** Zwölf sind dazugekommen — `171` bis
 `182` —, und sie zielen auf die **Rechnung** und auf die **Klemme**, nicht auf
 die Anzeige daneben: *eine Zahl, die falsch gerechnet wird, sieht am Bildschirm
-genauso aus wie eine richtige.*
+genauso aus wie eine richtige.* **Drei von ihnen haben eine Lücke aufgedeckt,
+und alle drei sind im selben Zug geschlossen worden.**
 
-<!-- GEGENPROBENTABELLE -->
+**Der erste Lauf über die zwölf, drei Nebenspuren, rund 340 Sekunden je
+Rückbau.** Erwartet ist eine Notiz, gemeldet wird, was wirklich rot wurde:
+
+| Nr | Rückbau | Datei | rot geworden |
+|---|---|---|---:|
+| **171** | Der Umschlag fällt weg | `server.js` | **STUMM — ein FUND** |
+| 172 | Die Vorschaubilder werden mitgezählt | `server.js` | 2 |
+| 173 | Der Export baut erst und sagt danach ab | `server.js` | 1 |
+| 174 | Der Warnwert liegt auf der Grenze | `server.js` | 2 |
+| 175 | Die Videos zählen auch ohne Fotos mit | `public/app.js` | 2 |
+| 176 | Die Kachel zeichnet wieder alles | `public/style.css` | 1 |
+| 177 | Die geschätzte Kachelhöhe gilt für immer | `public/style.css` | 2 |
+| 178 | Der angepinnte Bericht trägt wieder zwei Farben | `public/style.css` | 3 |
+| 179 | Der Verweis rutscht wieder hinter die Wolke | `public/app.js` | 1 |
+| **180** | Die offenen Aufgaben werden gezählt statt abgezogen | `public/app.js` | **0 — ein FUND** |
+| 181 | Das Codefeld fragt wieder nach der App | `public/app.js` | 2 |
+| **182** | Der Sprungknopf klappt den Block nicht auf | `public/app.js` | **0 — ein FUND** |
+
+### Drei Funde, und alle drei sind geschlossen
+
+**Ein Rückbau, der keine einzige Prüfung rot macht, ist ein Fund — nicht ein
+Erfolg.** Der Treiber meldete nur **171** als STUMM; **180 und 182 sahen
+gedeckt aus, waren es aber nicht.** *Beide hatten genau einen roten Punkt, und
+der kam vom Sprachwächter — an einem Wort in einem Dokument, das mit dem
+Rückbau nichts zu tun hatte.* **Ein unbeteiligter roter Punkt maskiert einen
+stummen Rückbau**, und das ist der eigentliche Nebenbefund dieses Laufs.
+
+**171 — der Umschlag.** `austauschBytes()` ohne `austauschUmschlagBytes()` ist
+am Verhalten nicht zu fassen: der Umschlag fällt erst ins Gewicht, wenn die
+Summe nahe an `AUSTAUSCH_MAX` liegt, und das wären rund 460 MB Prüflage. Die
+Kennzahlen lesen den Umschlag getrennt und merkten davon nichts. **Geschlossen
+mit einem Quelltextwächter** — dieselbe Bauform, die der Prüfstand für die
+Rechtezeile am Export schon führt —, dazu der Beleg, dass der Einzelexport
+dieselbe Rechnung liest.
+
+**180 — der Rückbau war rechnerisch ein No-op.** Ersetzt wurde
+`aufgaben - fertig` durch `zaehle('task')`, und das ist **dasselbe**:
+`aufgaben` zählt `task` und `done`, `fertig` zählt `done`, die Differenz **ist**
+die Zahl der `task`-Zeilen. *Ein Rückbau, der nichts verändert, sieht aus wie
+eine Lücke im Prüfstand und ist keine — er ist eine Lücke im Rückbau.*
+**Geschlossen, indem er jetzt die Verschachtelung selbst zurückbaut:** die
+Gesamtzahl statt der offenen.
+
+**182 — die Prüflage hatte den Block schon offen.** Die Zeile *„Der Block
+bleibt dabei offen"* konnte nicht scheitern, weil er es ohnehin war
+(Stolperstein 81, in seiner reinsten Form). **Geschlossen mit einer zweiten
+Lage:** die Prüfung klappt den Block erst zu und drückt dann den Knopf.
+
+*Nach dem Schließen stehen 3952 Prüfungen; die drei Rückbauten sind noch einmal
+gefahren worden.*
+
+> **DER LAUF IST NICHT ÜBER ALLE 184 GEGANGEN.** Er fährt je Rückbau den vollen
+> Prüflauf; bei rund 340 Sekunden und drei Nebenspuren wären das über zwanzig
+> Stunden. **Gefahren sind die zwölf neuen** — das belegt, dass die neuen
+> Prüfungen rot werden können, und nicht, dass die alten es noch tun. *Der volle
+> Lauf steht damit seit vier Runden aus und bleibt ein offener Punkt.*
+>
+> **UND EINE EINSCHRÄNKUNG DER METHODE GEHÖRT DAZU:** `gegenprobe.js` baut seine
+> Kopie über `git archive HEAD`, und HEAD ist während des Laufs weitergerückt —
+> die Papiere sind zwischendurch committet worden. **Der geprüfte Quelltext war
+> in allen zwölf Läufen derselbe**, die Dokumente daneben nicht. *Genau daher
+> kommt der rote Sprachwächter in den späteren Läufen: er sah ein Wort, das erst
+> in diesem Lauf entstanden ist.*
 
 > **DER VOLLE LAUF ÜBER ALLE 184 IST AUCH IN DIESER RUNDE NICHT GEFAHREN.** Er
 > fährt je Rückbau den vollen Prüflauf; bei rund 330 Sekunden je Lauf und drei
