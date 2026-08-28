@@ -1414,11 +1414,22 @@ const RUECKBAUTEN = [
     ersatz: '',
     erwartet: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
+  /* DER ERSTE ANLAUF DIESES RUECKBAUS HAT DEN LAUF ABGERISSEN, und das belegt
+     nichts (Stolpersteine 138, 161 und 170). Er nahm dem Menuezeichen seine
+     Kennung; `document.getElementById('menue')` gab daraufhin null zurueck, und
+     `menue.onclick = ...` warf, BEVOR eine einzige Zusicherung lief -- die
+     ganze Prueflage fiel zusammen, und der Bericht sagte "abgerissen" statt
+     eine Zeile rot zu faerben.
+     ER GREIFT DESHALB JETZT DA, WO DIE ZUSICHERUNG HINSIEHT: er vertauscht in
+     der Tafel den Namen des Angemeldeten mit dem Abmelden. Das wirft nichts,
+     und es trifft ZWEI Zusagen auf einmal -- die Reihenfolge der vier in der
+     Tafel und die aeltere Zeile, dass die Angabe unmittelbar vor dem Knopf
+     steht, den sie erklaert. */
   {
-    nr: '163', name: 'Das Menuezeichen faellt aus der Kopfzeile',
+    nr: '163', name: 'Der Name des Angemeldeten rutscht hinter das Abmelden',
     datei: 'public/app.js',
-    suche: '<button class="icon-btn mast-menue" id="menue" aria-expanded="false"',
-    ersatz: '<button class="icon-btn mast-menue" id="menue-weg" aria-expanded="false"',
+    suche: '        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>\n        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>',
+    ersatz: '        <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>\n        <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>',
     erwartet: 'Mehrbenutzer-Anzeigen in der Oberflaeche'
   },
   /* ---- Der Pruefstand ueber sich selbst ---- */
