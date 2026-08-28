@@ -15183,6 +15183,33 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der Export bleibt eine Antwort und wird kein Strom',
       !/res\.write\(|createReadStream|pipe\(/.test(rumpf),
       rumpf.replace(/\s+/g, ' ').slice(0, 200));
+    /* DIE ABSAGE MUSS DEN UMSCHLAG MITRECHNEN, sonst laesst sie genau die
+       Datei durch, die an ihm zerbricht.
+       WARUM AM QUELLTEXT UND NICHT AM VERHALTEN: der Umschlag faellt erst ins
+       Gewicht, wenn die Summe nahe an AUSTAUSCH_MAX liegt -- das waeren rund
+       460 MB Prueflage. Ein Rueckbau, der `austauschUmschlagBytes(itemId)` aus
+       `austauschBytes()` nimmt, blieb deshalb STUMM (Gegenprobe 171): die
+       Kennzahlen lesen den Umschlag getrennt und merkten davon nichts.
+       Der Waechter schliesst genau diese Luecke. */
+    pruefe('Und die Absage rechnet den Umschlag mit',
+      /return t\.fotos \+ t\.videos \+ t\.anhaenge \+ t\.kommentarbilder \+ austauschUmschlagBytes\(itemId\);/
+        .test(fQuelle),
+      (fQuelle.match(/return t\.fotos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
+    /* Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er auf
+       einen Namen zielt, den es gar nicht mehr gibt. */
+    pruefe('Der Waechter zielt auf eine Rechnung, die es wirklich gibt',
+      /function austauschUmschlagBytes\(itemId\)/.test(fQuelle) &&
+      /function austauschBytes\(itemId, schalter\)/.test(fQuelle),
+      'eine der beiden Rechnungen heisst anders');
+    /* DIESELBE FRAGE AM EINZELEXPORT: dort steht die Absage seit den Videos,
+       und sie liest dieselbe Rechnung. Ohne diese Zeile bliebe offen, ob der
+       Umschlag nur an EINEM der beiden Wege ankommt. */
+    {
+      const einzel = (fQuelle.match(/app\.get\('\/api\/items\/:id\/export'[\s\S]*?\n\}\);/) || [''])[0];
+      pruefe('Der Einzelexport misst mit derselben Rechnung wie der volle',
+        /austauschBytes\(it\.id, schalter\)/.test(einzel) && /AUSTAUSCH_MAX/.test(einzel),
+        einzel.replace(/\s+/g, ' ').slice(0, 200) || '(keine Route)');
+    }
   }
 
   /* ---------------------------------------------------------------- */
@@ -20785,6 +20812,26 @@ async function pruefeOberflaeche() {
       wb.document.activeElement?.id || '(nichts)');
     pruefe('Der Block bleibt dabei offen',
       !feld.closest('.block').classList.contains('zu'), feld.closest('.block').className);
+
+    /* UND DERSELBE KLICK AM EINGEKLAPPTEN BLOCK. Ohne diese Lage belegte die
+       Zeile darueber nichts: der Block war in der Prueflage ohnehin offen, und
+       ein Rueckbau, der das Aufklappen herausnimmt, blieb dabei stumm
+       (Gegenprobe 182). Ein eingeklappter Block stellt seine Kinder auf
+       display: none -- ein Sprung auf ein unsichtbares Feld landete irgendwo. */
+    const cjBlock = feld.closest('.block');
+    wb.document.querySelector('[data-block="kommentare"] .block-head')
+      .onclick({ target: wb.document.querySelector('[data-block="kommentare"] .label') });
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Die Prueflage bekommt den Block wirklich zu',
+      cjBlock.classList.contains('zu'), cjBlock.className);
+    gerollt = 0;
+    wb.document.getElementById('cjump')
+      .dispatchEvent(new wb.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Der Sprungknopf klappt einen geschlossenen Block zuerst auf',
+      !cjBlock.classList.contains('zu'), cjBlock.className);
+    pruefe('Und rollt danach trotzdem ans Feld',
+      gerollt === 1, `${gerollt}`);
   }
   pruefe('Beides ist unterscheidbar, nicht dasselbe',
     kmts[0].className !== kmts[1].className);

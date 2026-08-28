@@ -525,8 +525,9 @@ Version in den Kennzahlen und ist dort abzulesen; siehe
 | davon grün | 3855 | **3946** |
 
 **Der Branch kam mit einer roten Prüfung an, und sie stand nicht im Auftrag.**
-Der Sprachwächter fand `Doku/Fehler_und_Ideen.md:618` „Zeichenkette" statt
-„String" — hereingekommen mit dem letzten Merge in den Sammelblatt-Text, also
+Der Sprachwächter fand in `Doku/Fehler_und_Ideen.md:618` das Wort
+`Zeichenkette` statt `String` — hereingekommen mit dem letzten Merge in den
+Sammelblatt-Text, also
 **nach** 0.12.2 und ohne dass ein Lauf sie gesehen hätte. Ein Wort, und der
 Branch war wieder grün. *Der Auftrag nennt als Ausgangswert 3856 Prüfungen; das
 ist die Zahl der Prüfungen und nicht die der bestandenen.*

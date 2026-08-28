@@ -1593,10 +1593,17 @@ const RUECKBAUTEN = [
     erwartet: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
-    nr: '180', name: 'Die offenen Aufgaben werden gezaehlt statt abgezogen',
+    /* NICHT `zaehle('task')` ALS ERSATZ: das ist DASSELBE. `aufgaben` zaehlt
+       task UND done, `fertig` zaehlt done -- die Differenz IST die Zahl der
+       task-Zeilen. Der erste Anlauf hat genau das versucht und blieb stumm,
+       weil er gar nichts veraenderte. **Ein Rueckbau, der rechnerisch ein
+       No-op ist, sieht aus wie eine Luecke im Pruefstand und ist keine.**
+       Zurueckgebaut wird deshalb die Verschachtelung selbst: die Gesamtzahl
+       statt der offenen. */
+    nr: '180', name: 'Die Klammer nennt die Gesamtzahl statt der offenen',
     datei: 'public/app.js',
     suche: "    + (fertig ? ` (${aufgaben - fertig} offen, ${fertig} ${V.aufgabeErledigt})` : ''));",
-    ersatz: "    + (fertig ? ` (${zaehle('task')} offen, ${fertig} ${V.aufgabeErledigt})` : ''));",
+    ersatz: "    + (fertig ? ` (${aufgaben} offen, ${fertig} ${V.aufgabeErledigt})` : ''));",
     erwartet: 'Kommentare in der Oberflaeche'
   },
   {

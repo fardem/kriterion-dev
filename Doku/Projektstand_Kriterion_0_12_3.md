@@ -4296,8 +4296,9 @@ sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf
 über alle **184** Rückbauten.
 
 > **DER BRANCH KAM MIT EINER ROTEN PRÜFUNG AN, UND SIE STAND IN KEINEM
-> AUFTRAG.** Der Sprachwächter fand in `Doku/Fehler_und_Ideen.md` „Zeichenkette"
-> statt „String" — hereingekommen mit einem Merge in den Sammelblatt-Text,
+> AUFTRAG.** Der Sprachwächter fand in `Doku/Fehler_und_Ideen.md` das Wort
+> `Zeichenkette` statt `String` — hereingekommen mit einem Merge in den
+> Sammelblatt-Text,
 > **nach** 0.12.2 und ohne dass ein Lauf sie gesehen hätte. *Ein Papier, das
 > zwischen zwei Runden ohne Lauf geändert wird, kann den Prüfstand rot machen,
 > ohne dass es jemand bemerkt.* Behoben mit 0.12.3.

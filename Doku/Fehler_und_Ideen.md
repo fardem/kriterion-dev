@@ -525,7 +525,7 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 - **Ein Papier, das zwischen zwei Runden ohne Lauf geändert wird, kann den
   Prüfstand rot machen, ohne dass es jemand bemerkt** *(0.12.3)*. Der
   Sprachwächter sieht auch die Dokumente an. Ein Merge in `Fehler_und_Ideen.md`
-  nach 0.12.2 brachte „Zeichenkette" statt „String" herein; der Branch war
+  nach 0.12.2 brachte `Zeichenkette` statt `String` herein; der Branch war
   danach rot und niemand hat es gesehen, weil zwischen Merge und nächster Runde
   kein Lauf lag. *(Claude: empfohlen — der Prüflauf bei jedem Push gibt es seit
   0.8.10; hier hat er entweder nicht gegriffen oder niemand hat hingesehen. Das
