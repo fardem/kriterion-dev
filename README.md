@@ -1246,9 +1246,24 @@ Listen.
   512 MB werden — das ist Nodes Grenze für einen String und keine Einstellung. **Gewarnt wird, verweigert nicht** — die Zahl ist eine
   Schätzung, und wer weiß, was er tut, soll es versuchen dürfen. Wird sie
   wirklich gerissen, sagt die Anlage ab, **bevor** sie anfängt zu bauen,
-  statt nach zwei Minuten mit einem Speicherfehler abzubrechen. Für eine
-  vollständige Kopie ist die **Sicherung** der Weg; sie braucht dafür keinen
-  nennenswerten Arbeitsspeicher.
+  statt nach zwei Minuten mit einem Speicherfehler abzubrechen.
+- **Export in Teilen** *(Eigentümer, seit 0.12.4)* — der Weg, wenn die eine
+  Datei nicht mehr geht. Die Anlage rechnet aus, wie viele Teile es braucht,
+  und **jeder Teil ist eine vollständige Exportdatei**: derselbe Umschlag,
+  dieselbe Formatnummer, nur weniger Einträge darin. **Geschnitten wird
+  zwischen Einträgen, nie mitten hinein.**
+  **Zum Einspielen: Teil 1 mit „Ersetzen", alle übrigen der Reihe nach mit
+  „Zusammenführen".** Es ist derselbe Import wie immer — es gibt kein neues
+  Format und keinen zweiten Weg hinein.
+  **Die Teilgröße ist wählbar** (50 bis 300 MB), nach oben aber gedeckelt:
+  darüber baute die Anlage Teile, vor denen sie im selben Atemzug warnt.
+  **Das Passwort wird einmal gefragt und je Teil geprüft** — eine Freigabe
+  für Teil 1 lässt Teil 2 nicht durch.
+  **Ein Eintrag, der schon für sich allein über der Grenze liegt**, passt in
+  keinen Teil und wird **namentlich genannt** statt still übergangen; ohne das
+  Häkchen an den Videos wird er meist klein genug.
+  *Für eine Kopie zum Zurückspielen bleibt die **Sicherung** der kürzere Weg —
+  ein Griff statt n.*
 - **Import** einer Exportdatei, wahlweise *ersetzen* oder *zusammenführen* —
   ebenfalls nur für den Eigentümer, und zwar in beiden Fällen: eine
   Exportdatei kann Beiträge **unter fremdem Namen** anlegen.
@@ -1762,15 +1777,23 @@ Schlüssel, dafür unvollständig (Sitzungen, Einstellungen und die Blockanordnu
 fehlen) und mit der ganzen Datei im Arbeitsspeicher. lässt sich
 auch **ein einzelner Eintrag** als Datei ziehen.
 
-> **Und daran hat er seine Grenze.** Die Datei ist ein einziger Text, und
+> **Und daran hat die EINE Datei ihre Grenze.** Sie ist ein einziger Text, und
 > länger als **512 MB** kann ein Text in Node nicht werden — Fotos und Videos
 > stecken als Base64 darin und kosten dabei ein Drittel Aufschlag. Die Karte
 > **Export** rechnet das vorher aus und warnt ab **300 MB**; darüber sagt die
-> Anlage ab, bevor sie anfängt. **Für große Bestände ist deshalb die Sicherung
-> der Weg und nicht der Export** — sie schreibt über `VACUUM INTO` und braucht
-> dabei keinen nennenswerten Arbeitsspeicher. Beim **Import** gilt dieselbe
-> Grenze, dort aber vorab sichtbar: die Dateigröße steht ja fest, und die
-> Anlage fragt nach, bevor sie zu lesen anfängt.
+> Anlage ab, bevor sie anfängt. Beim **Import** gilt dieselbe Grenze, dort aber
+> vorab sichtbar: die Dateigröße steht ja fest, und die Anlage fragt nach,
+> bevor sie zu lesen anfängt.
+>
+> **Seit 0.12.4 ist das kein Ende mehr, sondern ein Schnitt:** „In Teilen
+> exportieren" schreibt so viele vollständige Exportdateien, wie es braucht,
+> und der vorhandene Import nimmt sie mit „Zusammenführen" wieder auf. *Die
+> Grenze gilt weiterhin je Datei — sie gilt nur nicht mehr für den Bestand.*
+>
+> **Für eine Kopie zum Zurückspielen bleibt die Sicherung der kürzere Weg** —
+> ein Griff statt n, und sie braucht dabei keinen nennenswerten
+> Arbeitsspeicher. Der Export ist der **Austauschweg**: er überlebt einen
+> Formatwechsel und braucht keinen Schlüssel.
 
 > **Vor einer Version, die die Datenbank anfasst, ist die Sicherung Pflicht.**
 > Ob eine Version das tut, sagt `CHANGELOG.md` unter „Was du danach von Hand

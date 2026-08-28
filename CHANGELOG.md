@@ -43,6 +43,75 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.12.4] - 2026-08-28
+
+**Der Export geht in Teilen** — die Antwort auf das, was 0.12.3 gemessen hat:
+**760 MB gegen Nodes Grenze von 512 MB.** Der Knopf sagte seither sauber ab und
+lieferte nichts mehr; jetzt liefert er wieder.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.12.4 ist **PATCH**, und die
+> Frage dahinter ist eine echte: *kann die Anlage danach etwas, was sie vorher
+> nicht konnte?* **Streng genommen ja** — einen Bestand über 512 MB ausführen.
+> **Gezählt wird sie trotzdem als Fehlerbereinigung**, weil die Fähigkeit nicht
+> neu ist, sondern zurückkommt: der Export war der Austauschweg, seit es ihn
+> gibt, und er ist an einer Grenze ausgefallen, die niemand gezogen hat.
+> *Der Fahrplan sieht für genau diesen Fall die Zeile „0.12.x —
+> Fehlerbereinigung und Verbesserungen, die nächste freie PATCH-Zahl" vor.*
+> **Kein Schema, kein neues Austauschformat, keine neue `.env`-Zeile, keine
+> neue Abhängigkeit.**
+
+> **WARUM TEILE UND NICHT EIN STROM.** Ein gestreamter Export hätte nur den Weg
+> **hinaus** gelöst. Der Import liest die Datei über `readAsText()` im Browser
+> und `buffer.toString('utf8')` am Server — **beides ein einziger String, und
+> damit dieselbe Grenze in der Gegenrichtung.** Eine gestreamte Datei könnte
+> diese Anlage nicht wieder einspielen. **Teile lösen beide Richtungen**, und
+> zwar ohne ein neues Format und ohne einen zweiten Leser.
+
+### Added
+
+- **„In Teilen exportieren" an der Exportkarte.** Die Anlage rechnet aus, wie
+  viele Teile es braucht, und zeigt jeden mit Nummer, Anzahl und Größe.
+  **Jeder Teil ist eine vollständige Exportdatei** — derselbe Umschlag,
+  dieselbe Formatnummer **10**, nur weniger Einträge darin. **Geschnitten wird
+  zwischen Einträgen, nie mitten hinein.**
+- **Die Teilgröße ist wählbar**, 50 bis 300 MB. Nach oben gedeckelt: darüber
+  baute die Anlage Teile, vor denen sie im selben Atemzug warnt.
+- **Ein Eintrag, der schon für sich allein über der Grenze liegt, wird
+  namentlich genannt** statt still übergangen — *ein stiller Verlust wäre der
+  schlimmere Ausgang.* Ohne das Häkchen an den Videos wird er meist klein genug.
+
+### Changed
+
+- **Das Passwort wird einmal gefragt und je Teil geprüft.** Zusammengefasst
+  wird die Eingabe und nicht die Prüfung: jede Freigabe geht einzeln an den
+  Server, und **eine Freigabe für Teil 1 lässt Teil 2 nicht durch.**
+- **Der Hinweis ab 300 MB nennt jetzt den Weg, der hilft**, statt nur zu sagen,
+  was nicht geht.
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Kein Schema, keine Migration, keine neue Zeile in der `.env`, keine
+neue Abhängigkeit.
+
+**Und so geht ein Bestand hinaus, der zu groß für eine Datei ist:**
+
+1. Systembereich → **Export** → *In Teilen exportieren*, Teilgröße wählen.
+2. **Alle Teile freigeben** — einmal das Passwort (und den zweiten Faktor).
+3. Jeden Teil einzeln laden. Der Dateiname trägt seine Nummer.
+4. Zum Einspielen: **Teil 1 mit „Ersetzen", alle übrigen der Reihe nach mit
+   „Zusammenführen".**
+
+### Was gleich bleibt
+
+**Der Import** — Zeile für Zeile derselbe. Er weiß von Teilen nichts und muss
+es auch nicht: er sieht n gewöhnliche Exportdateien. **Das Austauschformat**
+bleibt bei **10**, ältere Dateien lassen sich weiterhin einspielen. **Der volle
+Export ohne Teilangabe** läuft unverändert wie in 0.12.3. **Die Sicherung über
+`VACUUM INTO`** ist unangetastet und bleibt für eine Kopie zum Zurückspielen
+der kürzere Weg — ein Griff statt n.
+
+---
+
 ## [0.12.3] - 2026-08-28
 
 **Der Export sagt, wie groß er wird, bevor er versucht wird** — und neun
@@ -1588,10 +1657,10 @@ nicht mehr übernehmen.*
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
      `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0`, `v0.12.0`,
-     `v0.12.1`, `v0.12.2` UND `v0.12.3` sind angelegt, aber NICHT geschoben —
+     `v0.12.1`, `v0.12.2`, `v0.12.3` UND `v0.12.4` sind angelegt, aber NICHT geschoben —
      der Push scheitert in der Arbeitsumgebung an HTTP 403 (Branches gehen
      durch, Tags nicht). Erneut versucht am 28. August 2026 mit demselben
-     Ergebnis. Solange das so ist, zeigen die fünf Verweise darunter ins
+     Ergebnis. Solange das so ist, zeigen die sechs Verweise darunter ins
      Leere. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
 [0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0
@@ -1599,3 +1668,4 @@ nicht mehr übernehmen.*
 [0.12.1]: https://github.com/fardem/kriterion/compare/v0.12.0...v0.12.1
 [0.12.2]: https://github.com/fardem/kriterion/compare/v0.12.1...v0.12.2
 [0.12.3]: https://github.com/fardem/kriterion/compare/v0.12.2...v0.12.3
+[0.12.4]: https://github.com/fardem/kriterion/compare/v0.12.3...v0.12.4

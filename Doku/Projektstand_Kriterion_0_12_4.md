@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 31 · Stand 28. August 2026 · gebaut: Version 0.12.3**
+**Kompakte Übergabe · Revision 32 · Stand 28. August 2026 · gebaut: Version 0.12.4**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -130,11 +130,11 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.12.3** — Fingerprint **`0d04b540`**, **3954 Prüfungen**,
-**zwölf Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
-*0.12.3 ist die erste Runde aus dem Fahrplan: der Export sagt seine Größe an,
-und neun Punkte an der Oberfläche ziehen nach.* **PATCH — nichts kommt hinzu,
-was vorher nicht ging.**
+**Gebaut ist 0.12.4** — Fingerprint **`PLATZHALTER`**, **3992 Prüfungen**,
+**einundzwanzig Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
+*0.12.4 ist die Antwort auf das, was 0.12.3 gemessen hat: der Export geht in
+Teilen, und jeder Teil ist eine vollständige Exportdatei.* **PATCH — die
+Fähigkeit ist nicht neu, sie kommt zurück.**
 **KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein Migrationscode; es
 bleibt bei **fünf** markierten Migrationsblöcken, und das Austauschformat bleibt
 bei **10**. *Die Sicherung des Datenverzeichnisses ist deshalb Empfehlung und
@@ -142,15 +142,24 @@ nicht Pflicht.* **Keine neue Zeile in der `.env`, keine neue Abhängigkeit,
 `F_ROUTEN` unverändert bei 69.**
 Was die Runde bringt, steht in Abschnitt 9.
 
-> **UND DIE ZAHL IST DA: 760 MB.** Die Karte **Kennzahlen** trägt seit dieser
-> Version die Zeile **„Export, alles"**; am 28. August 2026 hat die laufende
-> Anlage sie gemeldet. **Gegen Nodes Grenze von 512 MB heißt das: der Export
-> war kaputt** — nicht gefährdet, kaputt, und niemand hat es bemerkt, weil ihn
-> niemand gebraucht hat.
-> **Diese Runde hat die Ansage gelöst, nicht die Grenze.** Der Austauschweg
-> fällt für diesen Bestand aus, und der Import ist aus demselben Grund genauso
-> zu. **Die Sicherung über `VACUUM INTO` ist davon unberührt** und bleibt der
-> Weg für die vollständige Kopie. *Der offene Punkt steht in Abschnitt 8.*
+> **DIE ZAHL AUS DEM FELD WAR 760 MB, UND SIE HAT DIESE RUNDE AUSGELÖST.** Die
+> Karte **Kennzahlen** trägt seit 0.12.3 die Zeile **„Export, alles"**; am
+> 28. August 2026 hat die laufende Anlage sie gemeldet. **Gegen Nodes Grenze
+> von 512 MB heißt das: der Export war kaputt** — nicht gefährdet, kaputt, und
+> niemand hat es bemerkt, weil ihn niemand gebraucht hat.
+> **0.12.3 hat die Ansage gelöst, 0.12.4 die Grenze.** Der Export geht seither
+> in Teilen, und jeder Teil ist eine vollständige Exportdatei, die der
+> vorhandene Import mit „Zusammenführen" wieder aufnimmt. *Die Grenze gilt
+> weiterhin je Datei — sie gilt nur nicht mehr für den Bestand.*
+> **Die Sicherung über `VACUUM INTO` ist davon unberührt** und bleibt für eine
+> Kopie zum Zurückspielen der kürzere Weg.
+
+**Was 0.12.4 für den Betrieb bedeutet: einen neuen Knopf und sonst nichts.**
+Kein Schema, keine `.env`-Zeile, keine neue Abhängigkeit, `F_ROUTEN`
+unverändert bei 69. **Wer einen Bestand über 512 MB hat, findet den Weg
+hinaus unter Systembereich → Export → „In Teilen exportieren"**; der
+Einspielweg steht an der Karte. *Der volle Export ohne Teilangabe läuft
+unverändert wie in 0.12.3.*
 
 **Was 0.12.3 für den Betrieb bedeutet: nichts einzustellen.** Keine neue
 `.env`-Zeile, die `docker-compose.yml` unberührt, kein Schema. **Der Server ist
@@ -1247,10 +1256,15 @@ Dateien und eines für **Videos**, Import (ersetzen oder zusammenführen), die
 Karte **„Sicherung"**, das **„Sicherheitsprotokoll"** und die Karte
 **„Mailversand"**.
 **Die Exportkarte nennt seit 0.12.3 die erwartete Dateigröße, und die Zahlen
-folgen den Häkchen.** Ab **300 MB** steht ein Hinweis darunter, mit Verweis auf
-die Sicherung als den anderen Weg — *gewarnt wird, verweigert nicht.* **Der
-Import fragt vor dem Einlesen nach**, wenn die Datei sehr groß ist; dort steht
-die Größe ja vorher fest. Näheres in Abschnitt 5.4. **Letztere steht ausdrücklich NICHT beim Admin**, obwohl der
+folgen den Häkchen.** Ab **300 MB** steht ein Hinweis darunter — *gewarnt wird,
+verweigert nicht.* **Der Import fragt vor dem Einlesen nach**, wenn die Datei
+sehr groß ist; dort steht die Größe ja vorher fest.
+**Seit 0.12.4 steht darunter der Weg, der hilft: „In Teilen exportieren".** Die
+Anlage rechnet den Schnitt aus und zeigt jeden Teil mit Nummer, Anzahl und
+Größe; **das Passwort wird einmal gefragt und je Teil geprüft.** Eingespielt
+wird Teil 1 mit „Ersetzen" und alle übrigen mit „Zusammenführen" — der
+Einspielweg steht an der Karte und nicht nur in der README. Näheres in
+Abschnitt 5.4. **Letztere steht ausdrücklich NICHT beim Admin**, obwohl der
 die Einladungen verschickt — was er bekommt, ist die Auskunft an der Stelle, an
 der sie ihn angeht: neben dem Link steht, ob etwas hinausging und warum nicht.
 
@@ -2097,11 +2111,29 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   (Stolperstein 182). Gerechnet wird an **einem** Ort — `austauschTeile()`,
   wahlweise über einen Eintrag oder über den ganzen Bestand: die Kennzahlen, die
   Warnung an der Karte und die Absage an der Route müssen dieselbe Zahl nennen.
-- **Der Export bleibt eine Antwort und wird kein Strom** (entschieden 0.12.3).
-  Er wäre ein Umbau an einer Stelle, die nachweislich funktioniert, und
-  `VACUUM INTO` ist seit 0.8.70 ohnehin der Hauptweg für die vollständige
-  Kopie. *Die Aufgabe ist damit schon verteilt; was fehlte, war nicht ein
-  größerer Puffer, sondern dass die Anlage es sagt.*
+- **Der Export bleibt eine Antwort und wird kein Strom** (entschieden 0.12.3,
+  **bestätigt 0.12.4 mit einem zweiten Grund**). Er wäre ein Umbau an einer
+  Stelle, die funktioniert — **und er löste nur die Hälfte:** der Import liest
+  die Datei über `readAsText()` im Browser und `buffer.toString('utf8')` am
+  Server, beides ein einziger String. **Eine gestreamte Datei könnte diese
+  Anlage nicht wieder einspielen**, und ein Austauschweg, der nur hinaus führt,
+  ist ein halber (Stolperstein 190).
+- **Was zu groß für eine Datei ist, geht in TEILEN hinaus — und jeder Teil ist
+  eine vollständige Exportdatei** (seit 0.12.4). Derselbe Umschlag, dieselbe
+  Formatnummer, nur weniger Einträge darin. **Der vorhandene Import nimmt sie
+  mit „Zusammenführen" wieder auf, ohne dass an ihm eine Zeile geändert wurde**
+  — es gibt kein neues Format und keinen zweiten Leser.
+  **GESCHNITTEN WIRD AN EINTRAGSGRENZEN, NIE MITTEN HINEIN:** der Eintrag ist
+  die kleinste Einheit, die der Import versteht, und damit auch die kleinste,
+  die ein Teil tragen kann. **DIE GRENZEN SIND EINTRAGSNUMMERN UND KEINE
+  POSITIONEN** — wer zwischen Plan und Herunterladen einen Eintrag anlegt,
+  verschöbe sonst jedes Fenster dahinter (Stolperstein 188).
+  **Ein Eintrag, der schon für sich allein über der Grenze liegt, wird
+  namentlich genannt** statt still übergangen.
+- **Die Teilgröße ist wählbar, aber nur nach unten** (seit 0.12.4). Nach oben
+  deckelt `AUSTAUSCH_WARN`: darüber baute die Anlage Teile, vor denen sie im
+  selben Atemzug warnt. *Wer seine Teile auf einen Datenträger oder durch eine
+  Hochladegrenze bringen muss, braucht kleinere.*
 - **Die Abbildung je Eintrag und der Deserialisierer stehen je genau einmal**
   (seit 0.8.70). Drei Stellen rufen `eintragAlsPaket()` und zwei `spieleEin()`;
   ein Wächter hält beide Zahlen fest. *Zwei Rechenwege für dieselbe Datei laufen
@@ -4295,6 +4327,51 @@ Version, in der sie entstanden sind.*
     Beschriftung, die für die Hälfte der Fälle falsch ist, fällt keinem auf, der
     zur anderen Hälfte gehört.*
 
+187. **Eine Prüflage mehr kann eine Zahl kippen, die mit ihr nichts zu tun
+    hat.** Der Rundlauf des Teilexports braucht **zwei** Anlagen; damit wuchs
+    die Spanne aller Portbasen von 2980 auf 3100 — und über einen Wächter, der
+    seit jeher verlangt, dass der **Versatz je Nebenspur größer ist als diese
+    Spanne**, riss damit die Gegenprobe. *Bei Gleichheit fängt die nächste Spur
+    genau dort an, wo die vorige aufhört.*
+    **UND ES LIESS SICH NICHT DURCH EINE KLEINERE BASIS UMGEHEN:** unterhalb
+    der vorhandenen Basen war kein Fenster von 60 Nummern mehr frei — die
+    Lücken tragen entweder zu wenig Platz oder eine Nummer von der Sperrliste
+    von `fetch()` (4045, 5060/5061, 6000). **WÄCHST DIE SPANNE, WÄCHST DER
+    VERSATZ MIT**, und weil beide Zahlen an einem Ort stehen und gegeneinander
+    geprüft werden, hat es genau eine Zeile gekostet. *Hätten sie an zwei Orten
+    gestanden, wäre der Fehler erst in einer Gegenprobe aufgefallen — und dort
+    sieht er aus wie ein zufällig abgerissener Lauf.*
+
+188. **Ein Fenster über Positionen ist etwas anderes als ein Fenster über
+    Nummern, und der Unterschied zeigt sich erst unter Nebenläufigkeit.** „Die
+    zweiten dreihundert Einträge" ist eine Aussage über den Bestand **zum
+    Zeitpunkt der Frage**; `von=318&bis=640` ist eine über die Einträge selbst.
+    **Zwischen dem Plan und dem letzten Teil liegen Minuten**, und in dieser
+    Zeit kann jemand anlegen oder löschen. **BEI POSITIONEN VERSCHIEBT DAS
+    JEDES FENSTER DAHINTER** — einer fällt heraus, ein anderer kommt zweimal,
+    und beides fällt erst beim Einspielen auf. *Wer einen Bestand in Stücken
+    ausgibt, nummeriert die Stücke nach dem, was darin steht, und nicht nach
+    ihrer Reihenfolge.*
+
+189. **Eine Prüflage ohne Bytes kann einen Schnitt nach Größe nicht prüfen.**
+    Der erste Anlauf lief gegen einen Bestand aus Titeln und Kommentaren:
+    **immer genau ein Teil**, und die halbe Gruppe blieb grün, ohne etwas zu
+    belegen. **DER GEGENSTAND MUSS DIE EIGENSCHAFT TRAGEN, die geprüft wird**
+    — Stolperstein 81 in neuer Kleidung: hier fehlte nicht der Gegenstand,
+    sondern seine Größe. *Genommen wurden Anhänge und nicht Fotos: sie gehen
+    als Bytes hinein und als Bytes wieder heraus, ohne durch die
+    Bildverarbeitung zu laufen. Damit misst die Lage den Schnitt und nicht
+    `sharp`.*
+
+190. **Ein Weg, der nur hinaus führt, ist ein halber Austauschweg — und die
+    Gegenrichtung ist leicht zu übersehen, weil sie an einer anderen Stelle
+    klemmt.** Der Export baut den String in `JSON.stringify`; der Import baut
+    ihn in `readAsText()` und `buffer.toString('utf8')`. **Es ist dieselbe
+    Grenze, sie steht nur woanders**, und wer nur die eine sieht, baut einen
+    Strom und hält das Problem für gelöst. **WER EINEN AUSTAUSCHWEG ANFASST,
+    PRÜFT BEIDE RICHTUNGEN, BEVOR ER SICH FÜR EINE LÖSUNG ENTSCHEIDET** — und
+    am besten an einem echten Rundlauf, nicht an der Schnittstelle.
+
 ---
 
 ## 7. Prüfstand
@@ -4308,11 +4385,20 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 3954 von 3954 bestanden** (0.12.3) — **98 neue Prüfungen**, davon zwei
-neue Gruppen („Die Exportgröße sagt sich an", „Die Anzeige zieht nach — 0.12.3")
-und Erweiterungen in vier vorhandenen. Die Gegenproben stehen in Abschnitt 8:
-sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf
-über alle **184** Rückbauten.
+**Stand: 3992 von 3992 bestanden** (0.12.4) — **38 neue Prüfungen** in der
+Gruppe „Der Export in Teilen", davon der **Rundlauf** als Kern: zwei Anlagen,
+sechs Teile hinaus, sechs hinein, Vergleich Feld für Feld. *Das ist die
+Bedingung, unter der der Betreiber diesen Weg bestellt hat, und sie gehört
+nicht in ein Papier, sondern in den Lauf.* Die Gegenproben stehen in
+Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht**
+der volle Lauf über alle **195** Rückbauten.
+
+> **DIE PRÜFLAGE TRÄGT ECHTE BYTES, und das ist kein Zufall.** Ein Bestand ohne
+> Bytes ergäbe immer genau einen Teil, und die halbe Gruppe bliebe grün, ohne
+> etwas zu belegen (Stolperstein 189). Genommen wurden **Anhänge und nicht
+> Fotos**: sie gehen als Bytes hinein und als Bytes wieder heraus, ohne durch
+> die Bildverarbeitung zu laufen — damit misst die Lage den Schnitt und nicht
+> `sharp`.
 
 > **DER BRANCH KAM MIT EINER ROTEN PRÜFUNG AN, UND SIE STAND IN KEINEM
 > AUFTRAG.** Der Sprachwächter fand in `Doku/Fehler_und_Ideen.md` das Wort
@@ -4674,7 +4760,8 @@ eine Buchführung.*
 | 0.12.0 | Telefon und Tablett (33) | 6, nur auf die neuen Zusagen | Stolpersteine 173 bis 176 |
 | 0.12.1 | Der Papierkorb wandert ans große Bild (3) | 2, nur auf die neuen Zusagen | Stolpersteine 177 bis 179 |
 | 0.12.2 | Die Kachelreihe füllt die Breite (5) | 5, nur auf die neuen Zusagen | Stolpersteine 180 und 181 |
-| **0.12.3** | **Exportgröße und neun Anzeigepunkte (98)** | **12, nur auf die neuen Zusagen** | **Stolpersteine 182 bis 186; drei Rückbauten deckten Lücken auf** |
+| 0.12.3 | Exportgröße und neun Anzeigepunkte (98) | 12, nur auf die neuen Zusagen | Stolpersteine 182 bis 186; drei Rückbauten deckten Lücken auf |
+| **0.12.4** | **Der Export in Teilen (38), mit dem Rundlauf als Kern** | **9, angelegt und auf Greifen geprüft, nicht gefahren** | **Stolpersteine 187 bis 190** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -4690,35 +4777,28 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **DER AUSTAUSCHWEG IST AUSGEFALLEN — GEMESSEN, NICHT VERMUTET.** Die Karte
-  „Kennzahlen" meldet **760 MB** gegen Nodes Grenze von 512 MB; der Exportknopf
-  sagt seit 0.12.3 sauber ab, aber er liefert nichts mehr. **Und der Import ist
-  aus demselben Grund genauso zu** — er liest die Datei über `readAsText()` im
-  Browser und `buffer.toString('utf8')` am Server, beides ein einziger String.
-  *Selbst eine Datei, die irgendwie entstünde, ließe sich von dieser Anlage
-  nicht wieder einspielen.*
-  **Die Sicherung über `VACUUM INTO` ist davon unberührt** und bleibt der Weg
-  für die vollständige Kopie; was fehlt, ist Umzug, Archiv und Weitergabe.
-  **Zwei Antworten stehen zur Wahl:**
+- **DER AUSTAUSCHWEG IST WIEDER DA — ABER AM ECHTEN BESTAND NOCH NICHT
+  GESEHEN.** 0.12.4 schneidet ihn in Teile; bei 760 MB und 300 MB je Teil
+  sollten es **drei** sein. **Das gehört nach dem Einspielen abgelesen** —
+  Systembereich → Export → „In Teilen exportieren" —, und dazu die eine Frage,
+  die zählt: **ob der Rundlauf auch am echten Bestand stimmt.** *Gefahren ist
+  er an drei Prüflagen, die größte mit 1000 Einträgen; die echte trägt Videos
+  und Kommentarbilder in anderen Größen.*
+- **Der Import liest die Datei weiterhin als einen String.** Für Teile reicht
+  das — jeder ist klein genug. **Eine einzelne Datei über 512 MB lässt sich
+  weiterhin nicht einspielen**, gleich woher sie kommt. *Das trifft niemanden,
+  der mit dieser Anlage exportiert hat; es trifft, wer eine solche Datei von
+  woanders bekommt.* **Der Weg dahin wäre ein zeilenweiser Leser für JSON — auf
+  dem Pfad, der fremde Dateien annimmt und unter fremden Namen schreibt.** Eine
+  eigene Runde mit eigener Prüflage, und keine Beifracht.
 
-  | | löst den Weg hinaus | löst den Weg zurück | Aufwand |
-  |---|---|---|---|
-  | **Export als Strom** *(Teil c, seit 0.8.6 zurückgestellt)* | ja | **nein** — der Import bräuchte einen eigenen, zeilenweisen Leser | Umbau der Exportroute samt Gegenproben |
-  | **Export in mehreren vollständigen Teildateien** | ja | **ja** — der vorhandene Import nimmt sie mit „Zusammenführen" auf | kein neues Format, kein neuer Leser |
-
-  *Entschieden ist nichts.* **Die zweite ist die kleinere und die einzige, die
-  beide Richtungen löst;** die erste gibt eine einzige Datei statt mehrerer.
-  Der Auftrag 0.12.3 verlangt an dieser Stelle ausdrücklich, anzuhalten und zu
-  fragen, statt (c) mitzunehmen.
-
-- **DIE TAGS `v0.11.0`, `v0.12.0`, `v0.12.1`, `v0.12.2` UND `v0.12.3` SIND
-  GESETZT, ABER NICHT GESCHOBEN.** Sie liegen auf den Commits, die herausgehen;
+- **DIE TAGS `v0.11.0` BIS `v0.12.4` SIND GESETZT, ABER NICHT GESCHOBEN.** Sie liegen auf den Commits, die herausgehen;
   der Push scheitert in der Arbeitsumgebung mit `HTTP 403` — **Branches gehen
   durch, Tags nicht.** Erneut versucht am 28. August 2026, dasselbe Bild. Sie
   brauchen einen Push von einer Stelle mit den nötigen Rechten:
 
   ```bash
-  git push origin v0.11.0 v0.12.0 v0.12.1 v0.12.2 v0.12.3
+  git push origin v0.11.0 v0.12.0 v0.12.1 v0.12.2 v0.12.3 v0.12.4
   ```
 
   *Liegt ein Tag dort nicht mehr vor, entsteht er mit*
@@ -4939,6 +5019,33 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.12.4 — „Der Export geht in Teilen"
+
+**PATCH · 28. August 2026 · ausgelöst durch eine Messung im Feld.**
+
+**0.12.3 hat gemessen, 0.12.4 antwortet.** Die laufende Anlage meldete beim
+Druck auf den Exportknopf **760 MB gegen Nodes Grenze von 512 MB**. Der Export
+sagte das seither sauber an — und lieferte nichts mehr.
+
+**Jetzt geht er in Teilen, und jeder Teil ist eine vollständige Exportdatei:**
+derselbe Umschlag, dieselbe Formatnummer 10, nur weniger Einträge darin.
+**Geschnitten wird zwischen Einträgen, nie mitten hinein**, und die Grenzen sind
+Eintragsnummern und keine Positionen. **Der vorhandene Import nimmt die Teile
+mit „Zusammenführen" wieder auf, ohne dass an ihm eine Zeile geändert wurde.**
+
+**Der Strom wurde erneut verworfen, und diesmal mit einem zweiten Grund:** er
+hätte nur den Weg hinaus gelöst. Der Import liest die Datei als einen String —
+dieselbe Grenze, nur andersherum. *Teile lösen beide Richtungen.*
+
+**Das Passwort wird einmal gefragt und je Teil geprüft**; eine Freigabe für
+Teil 1 lässt Teil 2 nicht durch. **Ein Eintrag, der schon für sich allein über
+der Grenze liegt, wird namentlich genannt** statt still übergangen.
+
+**Kein Schema, kein neues Austauschformat, keine `.env`-Zeile, keine
+Abhängigkeit, `F_ROUTEN` unverändert bei 69.** 3954 → **3992 Prüfungen**,
+184 → **195 Rückbauten**. *Der Rundlauf läuft als Prüfung mit: zwei Anlagen,
+sechs Teile hinaus, sechs hinein, Feld für Feld verglichen.*
 
 ### 0.12.3 — „Der Export sagt Bescheid, und die Anzeige zieht nach"
 
@@ -5294,7 +5401,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.12.0** | Telefon und Tablett | Zwei Achsen, drei Umbruchpunkte, ein Menü, ein Filterschalter — und eine Kastenebene weniger. *MINOR.* **Der Server ist unberührt** | **nein** | — |
 | **0.12.1** | Der Papierkorb wandert ans große Bild | Das Löschkreuz verlässt auf dem Finger die Vorschaukachel; die Knöpfe des Bildbereichs stehen in einer Reihe. *PATCH.* **Befund aus dem Betrieb** — die erste vergebene Zahl aus der Zeile darunter | **nein** | — |
 | **0.12.2** | Die Kachelreihe füllt die Breite | Die Vorschaureihe steht auf dem Telefon als Raster und lässt rechts nichts mehr leer. *PATCH.* **Zweiter Befund aus dem Betrieb**, am selben Tag und am selben Gerät | **nein** | — |
-| **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1, 0.12.2 und 0.12.3 sind die ersten drei* | in der Regel nein | — |
+| **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1 bis 0.12.4 sind die ersten vier* | in der Regel nein | — |
+| **0.12.4** | Der Export geht in Teilen | **GEBAUT.** Die Antwort auf die 760 MB: n vollständige Exportdateien statt einer, die es nicht geben kann. *PATCH.* **Kein Schema, kein neues Format, keine Zeile am Import** | nein | — |
 | **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT — und im Feld hat sich der Punkt als eingetretener Fehler bestätigt: 760 MB gegen 512.** Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
 | **0.13.0** | Zwei Netze, ein Zugang | `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu die gescheiterten Anmeldungen im Protokoll auffindbar, die Zeile für CrowdSec, und zwei Handgriffe an gelöschten Zugängen. *MINOR.* **Kein Schema** | nein | — |
 | **0.14.0** | Die Entscheidung wird mitgeschrieben | `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie muss vor die Bereinigung** | ja, **sechster Block** | 10 → 11 |
