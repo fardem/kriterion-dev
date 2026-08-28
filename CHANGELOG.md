@@ -43,6 +43,67 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.12.2] - 2026-08-28
+
+**Die Vorschaureihe unter dem Bild füllt auf dem Telefon die Breite** — sie hörte
+rechts früher auf als der Bildbereich darüber. *Zweiter Befund aus dem Betrieb,
+am selben Tag und am selben Gerät wie der erste.*
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.12.2 ist **PATCH**: eine
+> Kachelreihe, die die Breite nicht ausnutzt, ist ein Fehler und kein fehlendes
+> Bedienelement. **Es kommt nichts hinzu, was vorher nicht ging**, es
+> verschwindet nichts, und keine Bedienung ändert ihre Bedeutung.
+> *0.12.1 war schon vergeben — die Zahl wird nicht zweimal benutzt.*
+
+> **AM SCHREIBTISCH ÄNDERT SICH NICHTS, UND DAS IST NACHGEMESSEN.** Die
+> Eintragsseite ist bei 1100, 1280 und 1440 Pixeln **Pixel für Pixel dieselbe**
+> wie unter 0.12.1. Was der Vergleich sonst fand, waren zwei Zeitstempel und ein
+> Zähler zwischen zwei Läufen.
+
+### Fixed
+
+- **Die Vorschaureihe ließ auf dem Telefon einen Streifen rechts leer.** Die
+  Kachel misst 62 Pixel fest, und in einem umbrechenden Kasten ist die
+  Spaltenzahl damit eine Treppe über der Fensterbreite: was nicht mehr
+  hineinpasst, bleibt als Rest liegen. **Auf einem 360 Pixel breiten Telefon
+  scheiterte die fünfte Kachel an ZWEI Pixeln** — fünf brauchen 338, der Kasten
+  misst 336 —, und übrig blieben **67 leere Pixel, ein Fünftel der Breite.**
+  Der Bildbereich darüber reicht bis an beide Kanten; die Reihe darunter hörte
+  vorher auf, und genau das sah man.
+  **Jetzt zählt ein Raster die Spalten selbst aus und verteilt den Rest in die
+  Spalten.** Links und rechts steht danach derselbe Rand — der Seitenrand der
+  Seite und sonst nichts. Gemessen mit zwölf Fotos:
+
+  | Kasten | vorher | nachher | Rest rechts |
+  |---|---|---|---|
+  | 336 px *(Fenster 360)* | 4+4+4 zu 62 | **5+5+2 zu 61,6** | 67 → **0** |
+  | 366 px *(Fenster 390)* | 5+5+2 zu 62 | **5+5+2 zu 67,6** | 28 → **0** |
+  | 388 px *(Fenster 412)* | 5+5+2 zu 62 | **5+5+2 zu 72,0** | 50 → **0** |
+  | 404 px *(Fenster 428)* | 5+5+2 zu 62 | **6+6 zu 61,5** | 66 → **0** |
+
+  *Bei 428 Pixeln fällt dadurch eine ganze Zeile weg.* Die Kachel wächst also
+  mit dem Schirm, statt fest zu stehen — **beides zusammen ist der Punkt: mehr
+  Kacheln, wo sie hineinpassen, und größere, wo nicht.**
+
+### Changed
+
+- **Die Kachel gibt auf dem Telefon ihre festen Maße ab und hält das Quadrat
+  über das Seitenverhältnis.** Sobald die Breite gerechnet wird, muss die Höhe
+  ihr folgen; eine feste Höhe von 62 neben einer Breite von 72 wäre ein
+  liegendes Rechteck.
+
+### Was gleich bleibt
+
+**Alles am Schreibtisch** — dort behält die Kachel ihre festen 62 Pixel und die
+Reihe ihren bisherigen Umbruch. **Das Umsortieren per Ziehen bleibt, wie es
+war**, mit dem langen Druck auf dem Finger; von Hand im echten Browser geprüft,
+bei 360, 390 und 1440 Pixeln, mit Finger und mit Maus, und die neue Reihenfolge
+übersteht das Neuladen. **Das Löschkreuz steht unverändert am Zeigegerät auf der
+Kachel und auf dem Berührungsbildschirm nirgends** — dort wird am großen Bild
+gelöscht, seit 0.12.1.
+
+---
+
 ## [0.12.1] - 2026-08-28
 
 **Gelöscht wird am großen Bild und nicht mehr an der Vorschaukachel** — ein
@@ -219,12 +280,12 @@ Anwendung an und nicht wie eine breite Seite, die man schmal gemacht hat.**
   dem Kommentarfeld, die Kopfzeile eines Blocks, die Kennzahlenzeile der Karte.
   Bei der Karte fallen dabei die Trennpunkte weg — ein Mittelpunkt am Zeilenende
   trennt nichts mehr.
-- **Der graublaue Kasten, den Android bei jeder Berührung aufblitzen läßt**,
+- **Der graublaue Kasten, den Android bei jeder Berührung aufblitzen lässt**,
   bleibt weg. Jeder Knopf dieser Anlage färbt sich selbst.
 - **Kein Warten mehr vor dem Klick** (`touch-action: manipulation`). Ausgenommen
   ist das Vollbild: dort *ist* der zweite Tipp eine Bedeutung.
 - Das Vollbild reicht die Wischbewegung nicht mehr an die Seite dahinter weiter.
-- Die Vorschaureihe im Vollbild läßt sich bis zum ersten Bild scrollen.
+- Die Vorschaureihe im Vollbild lässt sich bis zum ersten Bild scrollen.
 - Der lange Druck zum Umsortieren markiert keinen Text mehr.
 
 ### Was du danach von Hand tun musst
@@ -1409,11 +1470,12 @@ nicht mehr übernehmen.*
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0`, `v0.12.0` UND
-     `v0.12.1` sind angelegt, aber NICHT geschoben — der Push scheitert in der
-     Arbeitsumgebung an HTTP 403 (Branches gehen durch, Tags nicht). Solange
-     das so ist, zeigen die drei Verweise darunter ins Leere. -->
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0`, `v0.12.0`,
+     `v0.12.1` UND `v0.12.2` sind angelegt, aber NICHT geschoben — der Push
+     scheitert in der Arbeitsumgebung an HTTP 403 (Branches gehen durch, Tags
+     nicht). Solange das so ist, zeigen die vier Verweise darunter ins Leere. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
 [0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0
 [0.12.0]: https://github.com/fardem/kriterion/compare/v0.11.0...v0.12.0
 [0.12.1]: https://github.com/fardem/kriterion/compare/v0.12.0...v0.12.1
+[0.12.2]: https://github.com/fardem/kriterion/compare/v0.12.1...v0.12.2

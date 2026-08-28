@@ -1387,6 +1387,14 @@ Das ist kein neuer Gedanke, es ist der vorhandene: *ein Merkmal, ein Zeichen.*
   Finger keine Zerstörung mehr* — sie kann antippen und, nach kurzem Halten,
   verschieben, und sonst nichts. Mit der Maus bleibt das Kreuz an der Kachel, wo
   es war; dort gibt es kein Danebentippen.
+- **Die Vorschaureihe füllt die Breite.** Sie steht als Raster, das seine
+  Spalten selbst auszählt: passen fünf Kacheln hinein, stehen dort fünf; passen
+  nur vier, werden die vier größer. **Links und rechts bleibt derselbe Rand wie
+  überall auf der Seite**, und die Reihe endet bündig unter dem Bild darüber.
+  *Vorher stand die Kachel fest auf 62 Pixeln, und was nicht mehr hineinpasste,
+  blieb als Streifen rechts liegen — auf einem 360 Pixel breiten Telefon ein
+  Fünftel der Breite, weil die fünfte Kachel an zwei Pixeln scheiterte.* Am
+  Schreibtisch bleibt die Kachel bei ihren 62 Pixeln.
 - **Eingabefelder fallen nicht unter 16 Pixel.** Darunter zoomt Safari auf dem
   iPhone beim Antippen die ganze Seite heran und wieder heraus tut sie es nicht
   von selbst. Wer die Schrift auf 80 Prozent stellt, bekommt hier deshalb nicht
@@ -1423,6 +1431,12 @@ Reihe wischt. **Eine Zeile ist breit und wird von oben nach unten gelesen; eine
 Kachelreihe ist schmal und wird quer durchgewischt.** Das Kreuz sitzt dort also
 nicht neben dem Weg des Fingers, sondern darauf. Es steht deshalb auf dem
 Berührungsbildschirm nicht mehr da.
+
+**Es steht dort nicht nur unsichtbar, sondern gar nicht** — der Unterschied ist
+der ganze Punkt. Eine Fläche, die man nur durchsichtig macht, nimmt weiterhin
+jede Berührung an; sie sieht richtig aus und verhält sich falsch. *Nachgemessen:
+fragt man den Browser, was an der Ecke liegt, in der das Kreuz saß, nennt er auf
+dem Finger die Kachel und mit der Maus das Kreuz.*
 
 Im Vollbild **zoomt mit der Maus ein Klick, mit dem Finger erst der zweite
 Tipp** innerhalb einer knappen Sekunde. Ein einzelner Tipp tut nichts —

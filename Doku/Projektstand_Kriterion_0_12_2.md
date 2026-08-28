@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 29 · Stand 28. August 2026 · gebaut: Version 0.12.1**
+**Kompakte Übergabe · Revision 30 · Stand 28. August 2026 · gebaut: Version 0.12.2**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,9 +43,12 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
-**0.12.1 in einem Satz: gelöscht wird am großen Bild und nicht mehr an der
-Vorschaukachel.** Nacharbeit an 0.12.0, gefunden im Betrieb auf einem echten
-Telefon — *PATCH, weil nichts hinzukommt, was vorher nicht ging*. Die Runde
+**0.12.2 in einem Satz: die Vorschaureihe füllt auf dem Telefon die Breite.**
+Zweiter Befund aus dem Betrieb, am selben Tag und am selben Gerät wie der erste —
+*PATCH, weil eine Reihe, die die Breite nicht ausnutzt, ein Fehler ist und kein
+fehlendes Bedienelement*. Die Runde davor, 0.12.1, hat das Löschen ans große Bild
+gebracht und es von der Vorschaukachel genommen, ebenfalls PATCH und ebenfalls
+aus dem Betrieb. Die Runde
 davor, 0.12.0, hat die Oberfläche auf Telefon und Tablett zu einer Anwendung
 gemacht statt zu einer breit gebauten Seite, die man schmal gemacht hat; sie ist
 zugleich die erste, die den Server überhaupt nicht anfasst — **und 0.12.1 fasst
@@ -126,11 +129,12 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.12.1** — Fingerprint **`2e3f2e0b`**, **3851 Prüfungen**,
-**zwei Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
-*0.12.1 ist die Nacharbeit an 0.12.0: gelöscht wird am großen Bild und nicht
-mehr an der Vorschaukachel.* **PATCH — nichts kommt hinzu, was vorher nicht
-ging.**
+**Gebaut ist 0.12.2** — Fingerprint **`e30a19c1`**, **3856 Prüfungen**,
+**fünf Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
+*0.12.2 ist die zweite Nacharbeit an 0.12.0: die Vorschaureihe füllt auf dem
+Telefon die Breite.* **PATCH — nichts kommt hinzu, was vorher nicht ging.**
+*Die einzige ausgelieferte Datei, die sich bewegt, ist `public/style.css`; nicht
+einmal `public/app.js` wird angefasst.*
 **KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein Migrationscode; es
 bleibt bei **fünf** markierten Migrationsblöcken. *Die
 Sicherung des Datenverzeichnisses ist deshalb Empfehlung und nicht Pflicht.*
@@ -192,7 +196,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.12.1** | **`2e3f2e0b`** | 3851 |
+| **0.12.2** | **`e30a19c1`** | 3856 |
+| 0.12.1 | `2e3f2e0b` | 3851 |
 | 0.12.0 | `192734a2` | 3848 |
 | 0.11.0 | `74c44ec0` | 3815 |
 | 0.10.0 | `dc8c16f7` | 3676 |
@@ -1335,6 +1340,16 @@ Tablett im Querformat davon fern und **steht nie allein**.
 - **Eingabefelder fallen nicht unter 16 Pixel** — darunter zoomt Safari auf dem
   iPhone beim Antippen die ganze Seite heran. *Wer die Schrift auf 80 Prozent
   stellt, bekommt hier deshalb nicht ganz, was er wollte.*
+- **Die Vorschaureihe füllt die Breite** (seit 0.12.2). Sie steht als Raster,
+  das seine Spalten aus der Breite auszählt (`auto-fill`, Untergrenze 60 px);
+  die Kachel gibt dafür ihre festen Maße ab und hält das Quadrat über das
+  Seitenverhältnis. **Links und rechts steht danach derselbe Rand — der
+  Seitenrand der Seite und sonst nichts.** *Vorher stand die Kachel fest auf
+  62 Pixeln in einem umbrechenden Kasten, und was nicht mehr hineinpasste, blieb
+  rechts liegen: auf einem 360 Pixel breiten Telefon 67 Pixel, ein Fünftel der
+  Breite, weil die fünfte Kachel an ZWEI Pixeln scheiterte.* **Die Kachel wächst
+  damit mit dem Schirm** (61,5 bis 72 Pixel im gebräuchlichen Band) statt fest
+  zu stehen. Am Schreibtisch bleibt sie bei ihren 62.
 - **Die Vorschaukachel trägt kein Löschkreuz** (seit 0.12.1). Sie kann dort
   antippen und, nach kurzem Halten, verschieben — sonst nichts. **Gelöscht
   wird am großen Bild**, mit dem Papierkorb in der Knopfreihe oben rechts.
@@ -1345,6 +1360,10 @@ Tablett im Querformat davon fern und **steht nie allein**.
   **Am Zeigegerät bleibt das Kreuz, wo es war**; dort gibt es kein
   Danebentippen. Das ist der **einzige** Punkt, an dem sich die beiden
   Geräte in der Bedienung wirklich unterscheiden.
+  *`display: none` und nicht `opacity: 0`: eine durchsichtige Fläche steht
+  weiterhin im Trefferbaum und nimmt jede Berührung an. Nachgemessen —
+  `elementFromPoint` auf die Kreuzecke liefert auf dem Finger die Kachel, am
+  Zeigegerät das Kreuz.*
 
 **Die Knöpfe am Bildbereich stehen in einer Reihe oben rechts** (seit 0.12.1)
 und tragen Zeichen statt Wörter: Ausschnitt, beim Video Vollbild, und
@@ -4069,6 +4088,51 @@ Version, in der sie entstanden sind.*
     **Ein Prüflauf, der rot wird, ohne dass die Sache sich geändert hat, ist
     zuerst eine Frage an die Maschine** — nachgezählt, aufgeräumt, neu gefahren:
     3851 von 3851.
+    **UND ES GEHT IN BEIDE RICHTUNGEN, das hat 0.12.2 nachgeliefert.** Dort
+    wurde umgekehrt WÄHREND eines laufenden Gegenprobenlaufs aufgeräumt — ein
+    `kill` auf `server.js`, gedacht für zwei eigene Server, der die Prüfserver
+    der Gegenprobe mit erwischte; zwei Rückbauten rissen mit „fetch failed" ab
+    und mussten neu gefahren werden.
+    **DIE URSACHE IST BEIDE MALE DIESELBE: die Prozesse der Gegenprobe und die
+    eigenen sind am Namen nicht zu unterscheiden.** Wer `server.js` abschießt,
+    trifft alles, was gerade so heißt. *Vor einem `kill` gehört deshalb die
+    Frage dazu, ob nebenan ein Lauf offen ist — und nach einem abgebrochenen
+    Lauf die Frage, was von ihm stehen geblieben ist.*
+
+180. **Eine feste Kachelbreite in einem umbrechenden Kasten macht die
+    Spaltenzahl zu einer Treppe über der Fensterbreite — und den Rest zum
+    Zufall der Gerätebreite.** Die Vorschaureihe stand auf 62 Pixeln fest; was
+    rechts liegen blieb, war `(Kasten + Abstand) mod (Kachel + Abstand)` und
+    schwankte zwischen 28 und 67 Pixeln, je nachdem, welches Telefon jemand in
+    der Hand hielt. **Auf dem gemeldeten Gerät scheiterte die fünfte Kachel an
+    ZWEI Pixeln** — 338 gebraucht, 336 da —, und dafür standen 67 leer, ein
+    Fünftel der Breite.
+    **WER EINE BREITE FESTSCHREIBT, SCHREIBT DEN REST NICHT MIT FEST, SONDERN
+    GIBT IHN AUS DER HAND.** Ein Raster mit `auto-fill` zählt die Spalten aus
+    der Breite aus und verteilt den Rest IN die Spalten; die Zahl in `minmax`
+    entscheidet dann nur noch, WANN eine Spalte dazukommt, und nicht, wie breit
+    die Kachel wird. *Dieselbe Entscheidung war beim Kartenraster der Übersicht
+    längst gefallen und dort auch begründet — die Kachelreihe war die Stelle, an
+    der sie noch nicht angekommen war.*
+    **Der Preis gehört dazu und wird nicht verschwiegen:** der Verlauf ist eine
+    Säge und keine Gerade. Unmittelbar vor einer Stufe ist die Kachel am
+    größten, unmittelbar danach am kleinsten — auf einem breiteren Gerät können
+    also kleinere Kacheln stehen als auf einem schmaleren. Das lässt sich nicht
+    wegrechnen, nur erklären.
+
+181. **Unsichtbar ist nicht dasselbe wie unantastbar, und ein Bildschirmfoto
+    unterscheidet die beiden nicht.** `opacity: 0` nimmt eine Fläche aus dem
+    Bild, aber nicht aus dem Trefferbaum: sie nimmt weiterhin jede Berührung an.
+    `display: none` nimmt beides. **Genau darauf lief der Befund aus 0.12.1
+    hinaus** — nicht dass man das Löschkreuz an der Kachel *sieht*, sondern dass
+    man es *trifft*.
+    **EINE ZUSICHERUNG AUF DAS AUSSEHEN IST HIER KEINE AUF DAS VERHALTEN.** Der
+    Prüfstand kann den Unterschied nicht messen: `jsdom` rechnet kein Layout, und
+    `elementFromPoint` ist dort eine Attrappe. Er kann nur festhalten, WELCHE
+    Eigenschaft dasteht — und er tut es seit 0.12.2 ausdrücklich: die Regel darf
+    nicht auf `opacity` oder `visibility` lauten, und ein Rückbau prüft die
+    Prüfung. *Nachgemessen wurde es im echten Browser: `elementFromPoint` auf die
+    Kreuzecke liefert auf dem Finger die Kachel und am Zeigegerät das Kreuz.*
 
 ---
 
@@ -4083,11 +4147,20 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 3851 von 3851 bestanden** (0.12.1) — drei neue Prüfungen in der Gruppe
+**Stand: 3856 von 3856 bestanden** (0.12.2) — fünf neue Prüfungen in der Gruppe
 „Handy und Tablett: die Staffel der Umbruchpunkte", die 0.12.0 angelegt hat.
-*0.12.0 hat sie mit 33 Prüfungen eröffnet.* Die Gegenproben beider Runden stehen
-in Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht**
-der volle Lauf über alle **167** Rückbauten.
+*0.12.0 hat sie mit 33 Prüfungen eröffnet, 0.12.1 hat drei ergänzt.* Die
+Gegenproben aller drei Runden stehen in Abschnitt 8: sie sind auf die jeweils
+neuen Zusagen beschränkt und **nicht** der volle Lauf über alle **172**
+Rückbauten.
+
+> **WAS DER PRÜFSTAND AN DER VORSCHAUREIHE NICHT KANN, und es steht hier, damit
+> niemand es für gedeckt hält:** den Ziehweg der Kacheln prüft er überhaupt
+> nicht. `jsdom` rechnet kein Layout — `getBoundingClientRect()` gibt lauter
+> Nullen zurück, `elementFromPoint` ist an vier Stellen eine Attrappe, und keine
+> Prüfung schickt einen Zeiger auf eine Kachel. **Ein Bruch am Umsortieren der
+> Fotos fiele nicht rot auf.** Vorbestehend; der Nachweis lief in 0.12.2 von Hand
+> im echten Browser, mit Finger und mit Maus, bei 360, 390 und 1440 Pixeln.
 
 ### Was abgedeckt ist
 
@@ -4422,7 +4495,8 @@ eine Buchführung.*
 | 0.10.0 | Zweiter Faktor, Wiederherstellungscodes, zweistufige Anmeldung (225) | 42 | Stolpersteine 159 bis 163 |
 | 0.11.0 | Suche im Server, gespeicherte Ansichten, Doppelerkennung (139) | 34 | Stolpersteine 164 bis 172 |
 | 0.12.0 | Telefon und Tablett (33) | 6, nur auf die neuen Zusagen | Stolpersteine 173 bis 176 |
-| **0.12.1** | **Der Papierkorb wandert ans große Bild (3)** | **2, nur auf die neuen Zusagen** | **Stolpersteine 177 bis 179** |
+| 0.12.1 | Der Papierkorb wandert ans große Bild (3) | 2, nur auf die neuen Zusagen | Stolpersteine 177 bis 179 |
+| **0.12.2** | **Die Kachelreihe füllt die Breite (5)** | **5, nur auf die neuen Zusagen** | **Stolpersteine 180 und 181** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -4438,21 +4512,20 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **DIE TAGS `v0.11.0`, `v0.12.0` UND `v0.12.1` SIND GESETZT, ABER NICHT
-  GESCHOBEN.** Sie liegen auf den Commits, die herausgehen; der Push scheitert
-  in der Arbeitsumgebung mit `HTTP 403` — **Branches gehen durch, Tags nicht.**
-  Sie brauchen einen Push von einer Stelle mit den nötigen Rechten:
+- **DIE TAGS `v0.11.0`, `v0.12.0`, `v0.12.1` UND `v0.12.2` SIND GESETZT, ABER
+  NICHT GESCHOBEN.** Sie liegen auf den Commits, die herausgehen; der Push
+  scheitert in der Arbeitsumgebung mit `HTTP 403` — **Branches gehen durch, Tags
+  nicht.** Sie brauchen einen Push von einer Stelle mit den nötigen Rechten:
 
   ```bash
-  git push origin v0.11.0 v0.12.0 v0.12.1
+  git push origin v0.11.0 v0.12.0 v0.12.1 v0.12.2
   ```
 
   *Liegt ein Tag dort nicht mehr vor, entsteht er mit*
-  `git tag -a v0.12.1 <commit> -m "…"`. **Ohne sie zeigen die
-  Vergleichsverweise `[0.11.0]`, `[0.12.0]` und `[0.12.1]` am Ende von
-  `CHANGELOG.md` ins Leere** — das ist die einzige Wirkung; an der Anlage ändert
-  es nichts. *`v0.10.0` liegt am Remote und trägt; das Repo hat damit
-  **siebzehn** Tags.*
+  `git tag -a v0.12.2 <commit> -m "…"`. **Ohne sie zeigen die
+  Vergleichsverweise `[0.11.0]` bis `[0.12.2]` am Ende von `CHANGELOG.md` ins
+  Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
+  *`v0.10.0` liegt am Remote und trägt; das Repo hat damit **achtzehn** Tags.*
 - **DIE RUNDLÄUFE FÜR 0.11.0 UND 0.12.0 SIND NOCH NICHT GEFAHREN.** Für 0.11.0
   belegen drei Handgriffe die Runde am laufenden Server: **nach einem
   Kommentartext suchen** und den Eintrag finden; **eine Ansicht speichern,
@@ -4464,23 +4537,25 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   wurde in einem Browser mit Geräteemulation, und die stimmt in Maßen und
   Medienregeln; sie sagt nichts darüber, wie sich ein Finger auf Glas anfühlt.*
   Die Ergebnisse gehören in Abschnitt 2.
-  **Dieser Handgriff hat sich bereits bezahlt gemacht:** er hat den Befund
-  geliefert, aus dem 0.12.1 geworden ist (Stolperstein 178). **Für 0.12.1 ist er
-  deshalb erneut zu fahren**, und zwar an derselben Stelle: über die
-  Vorschaureihe eines Eintrags mit mehreren Fotos wischen — *es darf dabei
-  nichts mehr zu löschen geben* —, dann am großen Bild den Papierkorb drücken.
+  **Dieser Handgriff hat sich zweimal bezahlt gemacht:** er hat die Befunde
+  geliefert, aus denen 0.12.1 und 0.12.2 geworden sind (Stolpersteine 178 und
+  180). **Für beide ist er erneut zu fahren**, und zwar an derselben Stelle:
+  einen Eintrag mit mehreren Fotos öffnen, über die Vorschaureihe wischen —
+  *es darf dabei nichts mehr zu löschen geben, und die Reihe soll bis an den
+  rechten Rand reichen* —, eine Kachel lange drücken und verschieben, dann am
+  großen Bild den Papierkorb drücken.
 - ~~**Der Fingerprint der laufenden Anlage ist zu vergleichen.**~~ **ERLEDIGT:**
   die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
-- **DIE GEGENPROBEN ZU 0.12.0 UND 0.12.1 SIND AUF DIE NEUEN ZUSAGEN
-  BESCHRÄNKT.** Sechs Rückbauten in 0.12.0 und zwei in 0.12.1 decken die
-  tragenden davon ab, **und keiner blieb stumm**; **der volle Lauf über alle
-  167 Rückbauten ist nicht gefahren** — er fährt den ganzen Prüflauf je Rückbau
-  und hätte in der Arbeitsumgebung Stunden gebraucht. *Das ist eine Verengung
-  gegenüber 0.11.0 (34 Gegenproben) und steht hier, damit sie nicht als
+- **DIE GEGENPROBEN ZU 0.12.0, 0.12.1 UND 0.12.2 SIND AUF DIE NEUEN ZUSAGEN
+  BESCHRÄNKT.** Sechs Rückbauten in 0.12.0, zwei in 0.12.1 und fünf in 0.12.2
+  decken die tragenden davon ab, **und keiner blieb stumm**; **der volle Lauf
+  über alle 172 Rückbauten ist nicht gefahren** — er fährt den ganzen Prüflauf je
+  Rückbau und hätte in der Arbeitsumgebung Stunden gebraucht. *Das ist eine
+  Verengung gegenüber 0.11.0 (34 Gegenproben) und steht hier, damit sie nicht als
   vollständiger Lauf gelesen wird.* Die Ergebnisse stehen in den
-  Änderungsprotokollen 0.12.0 und 0.12.1.
+  Änderungsprotokollen 0.12.0 bis 0.12.2.
 - **Eine Layoutprobe fehlt dem Prüfstand.** Die Überlaufmessung über sieben
   Fenstergrößen und der Pixelvergleich der Breitbildansicht liefen von Hand in
   einem echten Browser. **Der Prüfstand läuft auf `jsdom` und rechnet kein
@@ -4616,7 +4691,7 @@ curl -s -c cookies.txt -X POST localhost:3100/api/login \
 curl -s -b cookies.txt localhost:3100/api/stats | head -c 60
 ```
 
-Erwartet für 0.12.1: `{"version":"0.12.1","fingerprint":"2e3f2e0b",…`.
+Erwartet für 0.12.2: `{"version":"0.12.2","fingerprint":"e30a19c1",…`.
 **Was er nicht abdeckt:** `zugang.js`, `schluessel.js` und `gegenprobe.js` — sie
 liegen im Image, laufen aber nie im Server.
 
@@ -4664,6 +4739,33 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.12.2 — „Die Kachelreihe füllt die Breite"
+
+**Zweite Nacharbeit an 0.12.0, und wieder kam der Befund aus dem Betrieb.**
+PATCH: eine Reihe, die die Breite nicht ausnutzt, ist ein Fehler und kein
+fehlendes Bedienelement. *Die einzige ausgelieferte Datei, die sich bewegt, ist
+`public/style.css` — nicht einmal `public/app.js` wird angefasst.*
+
+**Der Befund, nachgemessen:** die Vorschaukachel stand fest auf 62 Pixeln in
+einem umbrechenden Kasten. Auf einem 360 Pixel breiten Telefon scheiterte die
+fünfte Kachel an **zwei** Pixeln — fünf brauchen 338, der Kasten misst 336 —, und
+**67 Pixel blieben rechts leer, ein Fünftel der Breite.** Der Bildbereich darüber
+reicht bis an beide Kanten; die Reihe darunter hörte vorher auf.
+
+**Gebaut:** die Reihe steht im Telefonabschnitt als Raster, das seine Spalten aus
+der Breite auszählt (`auto-fill`, Untergrenze 60 px) und den Rest **in** die
+Spalten verteilt; die Kachel gibt dafür ihre festen Maße ab und hält das Quadrat
+über das Seitenverhältnis. **Der Rest rechts ist danach in jeder vollen Zeile
+null**, und die Kachel wächst mit dem Schirm (61,5 bis 72 Pixel im gebräuchlichen
+Band). Bei 428 Pixeln fällt dadurch eine ganze Zeile weg.
+
+**Am Schreibtisch ändert sich nichts, und das ist nachgemessen:** die
+Eintragsseite ist bei 1100, 1280 und 1440 Pixeln Pixel für Pixel dieselbe. **Das
+Umsortieren trägt weiter** — von Hand im echten Browser geprüft, weil der
+Prüfstand den Ziehweg der Kachelreihe gar nicht abdeckt.
+
+*Einzelheiten im Änderungsprotokoll 0.12.2.*
 
 ### 0.12.1 — „Der Papierkorb wandert ans große Bild"
 
@@ -4956,7 +5058,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.11.0** | Suche und Bestand | Volltextsuche im Server, gespeicherte Ansichten, Doppelerkennung. *MINOR.* **Das Zusammenführen ist herausgenommen** | **nein** | — |
 | **0.12.0** | Telefon und Tablett | Zwei Achsen, drei Umbruchpunkte, ein Menü, ein Filterschalter — und eine Kastenebene weniger. *MINOR.* **Der Server ist unberührt** | **nein** | — |
 | **0.12.1** | Der Papierkorb wandert ans große Bild | Das Löschkreuz verlässt auf dem Finger die Vorschaukachel; die Knöpfe des Bildbereichs stehen in einer Reihe. *PATCH.* **Befund aus dem Betrieb** — die erste vergebene Zahl aus der Zeile darunter | **nein** | — |
-| **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1 ist die erste davon* | in der Regel nein | — |
+| **0.12.2** | Die Kachelreihe füllt die Breite | Die Vorschaureihe steht auf dem Telefon als Raster und lässt rechts nichts mehr leer. *PATCH.* **Zweiter Befund aus dem Betrieb**, am selben Tag und am selben Gerät | **nein** | — |
+| **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1 und 0.12.2 sind die ersten beiden* | in der Regel nein | — |
 | **0.13.0** | *(vermutlich)* Bereinigung von Code und Datenbankstruktur | Migrationscode raus, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 
 > **DIE BEREINIGUNG STAND HIER ALS 0.12.0 UND HEISST JETZT 0.13.0.** Sie ist
