@@ -15099,6 +15099,92 @@ const freigabeHaupt = (zweck, ziel = null) =>
       `${vStats?.photoCount}/${nBild} Fotos, ${vStats?.videoCount}/${nVideo} Videos`);
   }
 
+  /* --- 0.12.3: die erwartete Exportgroesse steht in denselben Kennzahlen ---
+     ZWEI FRAGEN, ZWEI ZAHLEN. `dbBytes` sagt, wie viel Platz die Anlage auf
+     der Platte braucht -- samt Indizes, Sicherheitsprotokoll und freien Seiten
+     aus Geloeschtem. `export` sagt, wie gross die Datei wird, die das Haus
+     verlaesst: Base64 statt Bytes, dafuer ohne alles, was nicht mitgeht.
+     Dass die eine die andere ueberschreiten kann, ist kein Fehler. */
+  const exStats = (await ruf('GET', '/api/stats')).inhalt;
+  // ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne
+  // dieses Feld blieben alle Pruefungen darunter auf undefined stehen.
+  pruefe('Die Kennzahlen nennen die Teile der Exportgroesse',
+    exStats?.export && ['umschlag', 'fotos', 'videos', 'anhaenge', 'kommentarbilder']
+      .every(k => typeof exStats.export[k] === 'number'),
+    JSON.stringify(exStats?.export));
+  /* DIE GRENZEN GEHEN MIT. Ohne sie muesste die Oberflaeche 300 MB und die
+     Stringgrenze selbst kennen -- und dann staende dieselbe Zahl an zwei
+     Orten und liefe irgendwann auseinander. */
+  pruefe('Und beide Grenzen dazu, damit die Oberflaeche sie nicht selbst kennt',
+    exStats?.export?.warnAb === 300 * 1024 * 1024 && exStats?.export?.grenze > 4e8,
+    JSON.stringify({ warnAb: exStats?.export?.warnAb, grenze: exStats?.export?.grenze }));
+  pruefe('Der Warnwert liegt deutlich unter der Grenze — das ist die Luft der Schaetzung',
+    exStats?.export?.warnAb < exStats?.export?.grenze * 0.75,
+    `${exStats?.export?.warnAb} gegen ${exStats?.export?.grenze}`);
+  pruefe('Der Umschlag faellt an, auch ohne jeden Blob',
+    exStats?.export?.umschlag > 0, String(exStats?.export?.umschlag));
+  {
+    /* GEZAEHLT WIRD, WAS DER EXPORT WIRKLICH SCHREIBT -- nicht, was in der
+       Datenbank liegt. `photos.thumb` geht nie mit, `comment_images.thumb`
+       ebenso wenig, und beim Video steht neben den Daten das Standbild.
+       Eine Summe ueber ALLE Blob-Spalten faellt deshalb zu hoch aus, und eine
+       Warnung, die zu frueh kommt, wird weggeklickt. Die Gegenrechnung steht
+       hier und rechnet aus der Datenbank nach. */
+    const d = oeffne(path.join(DATA, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    const eins = (sql) => d.prepare(sql).get().n || 0;
+    const b64 = (n) => Math.round(n * 4 / 3);
+    const fotoRoh = eins("SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE art != 'video'");
+    const thumbRoh = eins("SELECT COALESCE(SUM(length(thumb)),0) n FROM photos WHERE art != 'video'");
+    const kbRoh = eins('SELECT COALESCE(SUM(length(data)),0) n FROM comment_images');
+    d.close();
+    pruefe('Die Fotogroesse ist die Base64-Groesse der Daten, nicht der Bytes',
+      exStats?.export?.fotos === b64(fotoRoh),
+      `${exStats?.export?.fotos} gegen ${b64(fotoRoh)}`);
+    // Und die Gegenprobe zur Gegenrechnung: gaebe es keine Vorschaubilder,
+    // liesse sich nicht zeigen, dass sie NICHT mitgezaehlt werden.
+    pruefe('Es gibt ueberhaupt Vorschaubilder, an denen sich das zeigen laesst',
+      thumbRoh > 0, String(thumbRoh));
+    pruefe('Und die Vorschaubilder sind NICHT eingerechnet — sie gehen nie mit',
+      exStats?.export?.fotos < b64(fotoRoh + thumbRoh),
+      `${exStats?.export?.fotos} gegen ${b64(fotoRoh + thumbRoh)}`);
+    pruefe('Die Kommentarbilder zaehlen zu den Dateien und nicht zu den Fotos',
+      exStats?.export?.kommentarbilder === b64(kbRoh),
+      `${exStats?.export?.kommentarbilder} gegen ${b64(kbRoh)}`);
+    pruefe('Und sie stehen jetzt auch als eigene Zeile in den Kennzahlen',
+      typeof exStats?.commentImageCount === 'number' && typeof exStats?.commentImageBytes === 'number',
+      JSON.stringify({ n: exStats?.commentImageCount, o: exStats?.commentImageBytes }));
+  }
+  /* DIE ABSAGE STEHT VOR DEM BAU, nicht hinter dem Abbruch. Ein Bestand, der
+     die Grenze wirklich reisst, laesst sich hier nicht herstellen -- das
+     waeren 460 MB Prueflage. Geprueft wird deshalb am Quelltext, dass die
+     Klemme ueberhaupt DAVOR steht: dieselbe Bauform, die der Waechter fuer
+     die Rechtezeile am Export schon fuehrt. */
+  {
+    const rumpf = (fQuelle.match(/app\.get\('\/api\/export'[\s\S]*?\n\}\);/) || [''])[0];
+    pruefe('Die Exportroute steht ueberhaupt da', rumpf.length > 200, String(rumpf.length));
+    pruefe('Sie misst ihre Groesse, bevor sie baut',
+      rumpf.indexOf('austauschBytes') > 0 &&
+      rumpf.indexOf('austauschBytes') < rumpf.indexOf('eintragAlsPaket'),
+      `${rumpf.indexOf('austauschBytes')} gegen ${rumpf.indexOf('eintragAlsPaket')}`);
+    pruefe('Und sagt ab, statt am String zu zerbrechen',
+      /AUSTAUSCH_MAX\)?\s*\n?\s*return res\.status\(413\)/.test(rumpf) ||
+      /> AUSTAUSCH_MAX/.test(rumpf) && /413/.test(rumpf),
+      rumpf.replace(/\s+/g, ' ').slice(0, 240));
+    /* DAS NETZ BLEIBT DARUNTER: die Absage rechnet, sie misst nicht. Faellt
+       die Schaetzung zu niedrig aus, wirft JSON.stringify -- und dann muss
+       auch der Dateikopf wieder weg, sonst laedt der Browser die Meldung als
+       Exportdatei herunter. */
+    pruefe('Und faengt den Wurf ab, falls die Schaetzung zu niedrig war',
+      /RangeError/.test(rumpf) && /removeHeader\('Content-Disposition'\)/.test(rumpf),
+      rumpf.replace(/\s+/g, ' ').slice(-240));
+    /* KEIN STROM. Er steht im Fahrplan als (c) und ausdruecklich nicht in
+       dieser Runde: ein Umbau an einer Stelle, die nachweislich funktioniert. */
+    pruefe('Der Export bleibt eine Antwort und wird kein Strom',
+      !/res\.write\(|createReadStream|pipe\(/.test(rumpf),
+      rumpf.replace(/\s+/g, ' ').slice(0, 200));
+  }
+
   /* ---------------------------------------------------------------- */
   gruppe('Videos: Auslieferung (Sicherheitsregel)');
 
@@ -20663,6 +20749,43 @@ async function pruefeOberflaeche() {
     !kmts[2].classList.contains('bericht'));
   pruefe('Angepinntes ist optisch erkennbar',
     kmts[0].classList.contains('pinned') && !kmts[1].classList.contains('pinned'));
+
+  /* --- 0.12.3: der Sprungknopf im Blockkopf ---
+     DAS FORMULAR SITZT UNTER DER LISTE, und bei vierzig Kommentaren ist der
+     Weg dorthin weit. Der Knopf springt hin -- er baut ausdruecklich KEIN
+     zweites Formular: das vorhandene traegt Bilder-Einfuegen, Anpinnen,
+     Art-Umschalter und Mitwachsen, und ein zweites davon waeren zwei
+     Wahrheiten ueber dasselbe Formular. */
+  const cjKopf = wb.document.getElementById('cjump');
+  pruefe('Im Blockkopf der Kommentare steht ein Sprungknopf',
+    !!cjKopf, wb.document.querySelector('[data-block="kommentare"] .block-head')?.innerHTML.slice(0, 200));
+  pruefe('Und zwar in genau der Kopfzeile, die auch die Zahlen traegt',
+    !!cjKopf && cjKopf.closest('.block-head') === wb.document.getElementById('ccount')?.closest('.block-head'),
+    cjKopf?.closest('.block-head')?.className);
+  /* ALS BUTTON UND NICHT ALS VERWEIS: kopf.onclick nimmt jeden Klick auf ein
+     `button` aus, und ohne das klappte der Sprung den Block im selben
+     Atemzug ein. */
+  pruefe('Er ist ein Knopf — sonst klappte der Klick den Block gleich mit ein',
+    cjKopf?.tagName === 'BUTTON', cjKopf?.tagName);
+  pruefe('Es entsteht dabei kein zweites Schreibfeld',
+    wb.document.querySelectorAll('#ctext').length === 1,
+    String(wb.document.querySelectorAll('#ctext').length));
+  {
+    /* Der Klick fuehrt wirklich ans Feld. scrollIntoView gibt es in jsdom
+       nicht -- es wird gestellt und dabei gezaehlt, sonst risse der Klick den
+       Lauf ab und die Pruefung sagte nichts (Stolperstein 138). */
+    const feld = wb.document.getElementById('ctext');
+    let gerollt = 0;
+    feld.scrollIntoView = () => { gerollt++; };
+    feld.blur();
+    cjKopf?.dispatchEvent(new wb.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Der Klick rollt zum Schreibfeld', gerollt === 1, `${gerollt}`);
+    pruefe('Und setzt den Zeiger hinein', wb.document.activeElement === feld,
+      wb.document.activeElement?.id || '(nichts)');
+    pruefe('Der Block bleibt dabei offen',
+      !feld.closest('.block').classList.contains('zu'), feld.closest('.block').className);
+  }
   pruefe('Beides ist unterscheidbar, nicht dasselbe',
     kmts[0].className !== kmts[1].className);
 
@@ -22522,6 +22645,17 @@ async function pruefeOberflaeche() {
   pruefe('Ein Feld fuer BEIDE Formen, kein Umschalter daneben',
     zdMit.w.document.querySelectorAll('.login-card input').length === 1,
     String(zdMit.w.document.querySelectorAll('.login-card input').length));
+  /* --- 0.12.3: und die Beschriftung schliesst keine der beiden Formen aus ---
+     "Sechsstelliger Code" war fuer den Wiederherstellungscode falsch -- der
+     hat zehn Zeichen -- und "aus deiner App" fuer ihn ebenso: er kommt von
+     einem Zettel. Die Beschriftung nennt deshalb das Verfahren, und der
+     Hinweis darunter nennt den zweiten Weg. */
+  const zdLabel = zdMit.w.document.querySelector('label[for="zf-code"]')?.textContent || '';
+  pruefe('Die Beschriftung nennt das Verfahren und keine Zeichenzahl',
+    /Code des zweiten Faktors/.test(zdLabel) && !/[Ss]echsstellig/.test(zdLabel), zdLabel);
+  pruefe('Und die Seite spricht nirgends mehr von einer App',
+    !/\bApp\b/i.test(zdMit.w.document.querySelector('.login-card')?.textContent || ''),
+    (zdMit.w.document.querySelector('.login-card')?.textContent || '').replace(/\s+/g, ' ').slice(0, 200));
   /* DER AUSWEIS AUS SCHRITT 1 WIRD WIRKLICH MITGESCHICKT und nicht neu
      erfunden -- er ist die einzige Verbindung zwischen den beiden Schritten. */
   const zdEins = zdMit.gesendet.filter(g => g.url === '/api/login').pop();
@@ -22761,6 +22895,26 @@ async function pruefeOberflaeche() {
     Boolean(zkBest.w.document.getElementById('best-code')), 'kein Codefeld');
   pruefe('Und sagt daneben, warum der Code dazugehoert',
     /zweiten Faktor/.test(
+      zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
+    zkBest.w.document.querySelector('.modal .desc')?.textContent);
+  /* --- 0.12.3: die Beschriftung nennt das VERFAHREN, nicht das Geraet ---
+     "Code aus deiner App" war zweimal falsch. Es fragte nach der Herkunft
+     statt nach der Sache -- und es stimmte fuer die Haelfte der Faelle nicht:
+     dasselbe Feld nimmt auch einen Wiederherstellungscode entgegen, und der
+     kommt von einem Zettel. Der Server sieht der Eingabe an, was gemeint ist
+     (istCodeform gegen istWiederform); die Beschriftung darf deshalb keine
+     der beiden Formen ausschliessen. */
+  const zkLabel = [...zkBest.w.document.querySelectorAll('.modal .field label')]
+    .map(l => l.textContent);
+  pruefe('Das Codefeld nennt das Verfahren',
+    zkLabel.some(t => /Code des zweiten Faktors/.test(t)), JSON.stringify(zkLabel));
+  pruefe('Und keine Beschriftung im Fenster spricht mehr von einer App',
+    !zkLabel.some(t => /App/i.test(t)), JSON.stringify(zkLabel));
+  /* IM DIALOG STAND DER ZWEITE WEG BISHER NIRGENDS. An der Anmeldung steht er
+     seit jeher darunter; hier fehlte er, und wer sein Telefon nicht zur Hand
+     hatte, sah nur ein Feld, das er nicht fuellen konnte. */
+  pruefe('Und der zweite Weg steht daneben, wie an der Anmeldung',
+    /Wiederherstellungscode/.test(
       zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
     zkBest.w.document.querySelector('.modal .desc')?.textContent);
   await bestaetigeImDom(zkBest, 'chefins-wort-100', false, '123456');
