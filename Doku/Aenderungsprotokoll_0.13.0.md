@@ -925,6 +925,24 @@ entstehen — sie stehen im Chat als Befehle mit erwartetem Ergebnis:
 * **Der Teilexport ist am echten Bestand noch nicht gesehen.** Er ist an
   Prüflagen gefahren, die größte mit 1000 Einträgen; der echte Bestand trägt
   Videos und Kommentarbilder in anderen Größen.
+* **EIN KAPUTTER COOKIEWERT LEGT JEDE ANFRAGE DIESES BROWSERS LAHM — ein
+  Befund aus dem Gegenlesen, und er ist ÄLTER als diese Runde.**
+  `parseCookies()` (`auth.js`) ruft `decodeURIComponent()` auf jeden Wert, und
+  das wirft bei einer unvollständigen Prozentfolge einen `URIError`:
+
+  ```
+  Cookie: kriterion_session=%   →   URIError: URI malformed
+  ```
+
+  **Die Funktion sieht ALLE Cookies des Hosts an, nicht nur die eigenen** —
+  ein fremder Cookie mit einem `%` im Wert genügt. `requireAuth` ruft sie bei
+  jeder geschützten Anfrage; der Fehler-Handler macht daraus eine 500, und
+  dieser eine Browser kommt nicht mehr herein, bis jemand den Cookie löscht.
+  **Die Zeile stammt aus Commit `158b6d9` und ist von 0.13.0 nicht berührt** —
+  nachgesehen, nicht vermutet.
+  *Nicht in dieser Runde geändert: sie fasst eine ausgelieferte Datei an, und
+  der Fingerprint dieser Version steht. Der Weg wäre klein — die Schleife
+  überspringt einen Wert, der sich nicht dekodieren lässt, statt abzubrechen.*
 * **Die Tags `v0.11.0` bis `v0.13.0` fehlen am Remote.** Der Git-Proxy der
   Arbeitsumgebung weist `POST /git-receive-pack` mit `refs/tags/*` ab; die
   Befehle stehen im Projektstand, Abschnitt 8.

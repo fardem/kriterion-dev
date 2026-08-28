@@ -5183,6 +5183,17 @@ Zugriffsprotokoll des Proxys, das dieselbe Auskunft schon gibt.*
 
 ### Offene Kleinigkeiten
 
+- **EIN KAPUTTER COOKIEWERT LEGT JEDE ANFRAGE DIESES BROWSERS LAHM.**
+  `parseCookies()` in `auth.js` ruft `decodeURIComponent()` auf jeden Wert; eine
+  unvollständige Prozentfolge (`kriterion_session=%`) wirft einen `URIError`.
+  **Die Funktion sieht ALLE Cookies des Hosts an** — ein fremder Cookie mit
+  einem `%` im Wert genügt —, und `requireAuth` ruft sie bei jeder geschützten
+  Anfrage: der Fehler-Handler macht daraus eine 500, und dieser Browser kommt
+  nicht mehr herein, bis der Cookie gelöscht ist. *Nachgestellt am 28. August
+  2026; die Zeile stammt aus Commit `158b6d9` und ist von 0.13.0 nicht
+  berührt.* **Der Weg wäre klein:** die Schleife überspringt einen Wert, der
+  sich nicht dekodieren lässt, statt abzubrechen. *Eine eigene, kleine Runde —
+  sie fasst eine ausgelieferte Datei an.*
 - **Weicht der Fingerprint ab, nennt er nicht, WELCHE Datei es ist.** Der
   Handgriff dafür steht in der README („Eine neue Version einspielen"): die
   Prüfsummen der Dateien nebeneinander, über die er geht. **Eine Datei zu viel
