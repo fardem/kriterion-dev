@@ -256,6 +256,15 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* ---------- Filter ---------- */
 .filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 .frow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* Die Verweise am rechten Ende der Filterzeile -- "mehr"/"weniger" und
+   "zuruecksetzen" an der Tagzeile. Sie stehen im Aufbau VOR der Wolke und
+   landen mit der selbsttaetigen linken Aussenkante am rechten Rand der ersten
+   Zeile; die Wolke bricht darunter um und bekommt die volle Breite.
+   EIN KASTEN FUER BEIDE: zwei Elemente mit je einem `margin-left: auto`
+   teilten sich den freien Platz und stuenden auseinandergezogen da.
+   KEINE AUSGERECHNETE BREITE, nirgends -- die Anlage stellt die Schrift von
+   80 bis 120 Prozent, und eine feste Zahl kann dabei nur falsch werden. */
+.frow-rechts { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 /* Die beiden folgenden Mindestbreiten fassen ausschliesslich Text und sind
    deshalb als einzige Layoutmasse in em -- sonst wird die Beschriftung bei
    grosser Schrift abgeschnitten. Alle uebrigen Masse bleiben in Pixeln. */
@@ -320,6 +329,32 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   overflow: hidden; display: flex; flex-direction: column; position: relative;
   transition: border-color .18s var(--ease), transform .18s var(--ease), box-shadow .18s var(--ease);
   animation: fade .3s var(--ease) both;
+  /* NUR ZEICHNEN, WAS ZU SEHEN IST. Der Browser ueberspringt Aufbau und
+     Zeichnen fuer jede Kachel ausserhalb des Bildes und holt beides nach,
+     sobald sie hereinrollt.
+
+     KEIN LADEPROBLEM, EIN ZEICHENPROBLEM: GET /api/items liefert seit 0.11.0
+     0,52 MB bei tausend Eintraegen. Teuer ist nicht das Holen, sondern das,
+     was der Browser daraus baut -- tausend Kacheln mit Bild, Sternen, Tags und
+     Zeitleiste. Deshalb steht hier zwei Zeilen Stylesheet und kein Nachladen
+     beim Rollen: es gaebe einen Zustand ("wie viele sind gerade gezeichnet"),
+     den jede der elf Sortierungen und jeder Filter zuruecksetzen muesste.
+     Und Blaettern mit Seitenzahlen zerschnitte die Suche -- man sucht im
+     ganzen Bestand und nicht auf Seite 3.
+
+     `auto` VOR DER ZAHL, UND DAS IST DER GANZE TRICK: der Browser merkt sich
+     die zuletzt WIRKLICH gezeichnete Hoehe und nimmt sie danach. Die Zahl
+     dahinter gilt nur bis zum ersten Zeichnen. Zu klein geraten springt der
+     Rollbalken, zu gross bleibt Leerraum unter der Liste -- mit `auto` gilt
+     beides nur fuer den ersten Aufbau und nie wieder.
+
+     DIE ZAHLEN SIND GEMESSEN UND NICHT GERATEN, an 250 Kacheln in Chromium:
+     390 px Schirm -> Kachel 178x305, 834 px -> 255x374, 1440 px -> 301x399.
+     Sie sind verschieden, weil das Bild quadratisch ist: die Kachelhoehe
+     haengt an der Spaltenbreite, und die steht in .grid. Deshalb bekommt
+     jede Rasterstufe ihre eigene Zahl. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
 }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 .card:hover { border-color: #3a434c; transform: translateY(-3px); box-shadow: var(--sh); }
@@ -1341,21 +1376,62 @@ body.lb-open { overflow: hidden; }
    Bedienelement zeigt den Zustand, den es veraendert. */
 .mark.aufg.on { color: var(--blue); border-color: var(--blue); }
 .mark.aufg.on.fertig { color: var(--green); border-color: var(--green); }
-/* Zwei Merkmale, zwei Kanaele, die sich nie ins Gehege kommen: die linke
-   Kante gehoert allein der Art, die drei uebrigen Kanten allein der
-   Anpinnung. Deshalb bleibt die linke Kante bei einer angepinnten Notiz
-   neutral -- sonst wechselte das Anpinnzeichen je nach Art die Stelle und
-   man muesste vier Faelle auswendig koennen statt zwei Regeln.
-   Nur die FARBE der ohnehin vorhandenen 1px-Kanten aendert sich: kein
-   zusaetzlicher Pixel, kein Umbruch, keine verschobene Zeile.
+/* FARBE SAGT DIE ART, FORM SAGT DIE ANPINNUNG -- eine Regel mit weniger
+   Faellen als die davor.
+
+   BIS 0.12.3 STAND HIER DAS GEGENTEIL, und es gehoert hergeschrieben statt
+   geloescht: "zwei Merkmale, zwei Kanaele, die sich nie ins Gehege kommen --
+   die linke Kante gehoert allein der Art, die drei uebrigen allein der
+   Anpinnung." Der Gedanke ist sauber, und sein Preis wurde erst sichtbar, wo
+   beide Merkmale zugleich auftreten: ein angepinnter Bericht trug orange und
+   gold nebeneinander, und ein Kasten mit zwei Farben liest sich als
+   Kollision. Die Entscheidung ist zurueckgenommen; ohne diesen Absatz baute
+   sie jemand in zwei Jahren wieder ein.
+
+   KEIN KASTEN TRAEGT NOCH ZWEI FARBEN: angepinnt heisst, die drei uebrigen
+   Kanten nehmen die Farbe der linken an. Eine Notiz hat keine eigene Farbe,
+   und bei ihr wird der ganze Rahmen golden -- damit bleibt Gold genau ein
+   Fall statt vier.
+
+   DIE LINKE KANTE AENDERT SICH NICHT, weder in Farbe noch in Breite, und das
+   ist der Grund, warum hier keine einzige Breite steht. Wuerde sie beim
+   Anpinnen von 3px auf 1px duenn, muesste `padding-left` von 10 auf 12
+   zurueck -- sonst begaennen die Zeilen angepinnter und nicht angepinnter
+   Kommentare in derselben Liste auf zwei verschiedenen Linien (Befund C aus
+   0.12.0, nur andersherum). Weil die dicke Kante bleibt, wird hier nur
+   umgefaerbt.
+
+   ERKENNBAR BLEIBT DIE ANPINNUNG AN ZWEI ANDEREN ZEICHEN: am 📌 in der
+   Kopfzeile und daran, dass Angepinntes oben steht. Die Farbe war nie das
+   einzige Signal, und deshalb kostet der Wechsel nichts.
+
    BEWUSST KEIN hellerer Untergrund dazu -- ein Merkmal, ein Zeichen. Zwei
    schwache Signale fuer dieselbe Sache machen es nicht deutlicher, nur
    unruhiger; sie erweckten den Eindruck, die Anpinnung sei gar nicht
-   gekennzeichnet. */
+   gekennzeichnet.
+
+   DIE REIHENFOLGE ENTSCHEIDET HIER NICHTS: die drei Arten tragen zwei
+   Klassen und schlagen die einzelne von .cmt.pinned ueber die Spezifitaet.
+   Die Notizregel steht deshalb zuerst und faellt fuer jede Art wieder weg. */
 .cmt.pinned {
   border-top-color: var(--gold-line);
   border-right-color: var(--gold-line);
   border-bottom-color: var(--gold-line);
+}
+.cmt.pinned.bericht {
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.cmt.pinned.aufgabe {
+  border-top-color: var(--blue);
+  border-right-color: var(--blue);
+  border-bottom-color: var(--blue);
+}
+.cmt.pinned.erledigt {
+  border-top-color: var(--green);
+  border-right-color: var(--green);
+  border-bottom-color: var(--green);
 }
 .cmt-head .marks { display: flex; gap: 4px; flex-shrink: 0; }
 .cmt-head .cmt-when { flex: 1; }
@@ -1398,7 +1474,25 @@ body.lb-open { overflow: hidden; }
   padding: 0 20px; text-align: center;
   font-family: var(--mono); font-size: .67rem; color: var(--faint);
   user-select: none;
+  /* Flex statt Textfluss, seit das Zeichen davorsteht: .marke ist ein Block
+     und saesse im Textfluss auf einer eigenen Zeile. Zentriert bleibt die
+     Zeile trotzdem -- nur entscheidet das jetzt justify-content. */
+  display: flex; align-items: center; justify-content: center; gap: .55em;
 }
+/* In em und nicht in px: die Zeile laeuft auf .67rem, und die Anlage stellt
+   die Schrift von 80 bis 120 Prozent. Das Zeichen waechst damit mit dem Wort
+   daneben statt daneben stehenzubleiben. */
+.version-zeile .marke { height: 1.5em; }
+/* DER ABSTAND DARUNTER IST EIN TELEFONBEFUND UND KEIN DESKTOPBEFUND, und
+   deshalb faellt er hier und nicht an der Zeile im Allgemeinen.
+   Auf der Anmeldeseite drueckt der Flex-Aufbau von body.anmeldung die Zeile
+   ohnehin ans untere Ende -- die 26 Pixel und der Streifen fuer den
+   Home-Indikator kommen obendrauf, und zusammen ist es zu viel. Im
+   angemeldeten Bereich steht die Zeile hinter dem Inhalt und braucht ihre
+   26 Pixel; dort bleibt alles, wie es war.
+   DER STREIFEN BLEIBT: er ist kein Abstand, sondern die Flaeche, in der das
+   Telefon seinen eigenen Balken zeichnet. */
+body.anmeldung .version-zeile { margin-bottom: calc(10px + env(safe-area-inset-bottom)); }
 /* Im Vollbild waere sie nur im Weg. */
 body.lb-open .version-zeile { display: none; }
 
@@ -1794,6 +1888,9 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      ergaben 240 als Mindestbreite genau zwei Spalten von je 344 Pixeln --
      Karten, die breiter sind als hoch, obwohl ihr Bild quadratisch ist. */
   .grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  /* Schmalere Spalte, quadratisches Bild, niedrigere Kachel -- gemessen bei
+     834 px Schirmbreite: 255x374. */
+  .card { contain-intrinsic-size: auto 375px; }
   .sys-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
   .detail { gap: 22px; }
 }
@@ -1960,6 +2057,12 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .filters { gap: 9px; margin-bottom: 16px; }
   .frow { flex-direction: column; align-items: stretch; gap: 6px; }
   .frow > .eyebrow { min-width: 0; }
+  /* In der Spalte steht der Kasten sonst UEBER der Wolke -- im Aufbau liegt er
+     davor, weil er am Desktop auf die erste Zeile gehoert. "mehr" gehoert
+     hinter das, was es aufklappt; `order` stellt das her, ohne den Aufbau ein
+     zweites Mal zu bauen. Die selbsttaetige Aussenkante wirkt hier ohnehin
+     nicht: in der Spalte gibt es rechts keinen freien Platz. */
+  .frow-rechts { order: 2; }
 
   /* ---- Das Kartenraster ----
      240 Pixel Mindestbreite ergaben auf dem Telefon genau EINE Spalte: eine
@@ -1971,6 +2074,8 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      Umbruchpunkt: unter 320 Pixeln Breite faellt es von selbst auf eine
      Spalte zurueck. */
   .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  /* Gemessen bei 390 px Schirmbreite: 178x305. */
+  .card { contain-intrinsic-size: auto 305px; }
   .card-body { padding: 9px 11px 11px; gap: 5px; }
   .card-title { font-size: .95rem; }
   /* Drei Angaben in einer 165 Pixel breiten Karte. Sie muessen umbrechen --

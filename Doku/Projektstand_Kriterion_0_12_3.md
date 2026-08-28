@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 30 · Stand 28. August 2026 · gebaut: Version 0.12.2**
+**Kompakte Übergabe · Revision 31 · Stand 28. August 2026 · gebaut: Version 0.12.3**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,16 +43,17 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
-**0.12.2 in einem Satz: die Vorschaureihe füllt auf dem Telefon die Breite.**
-Zweiter Befund aus dem Betrieb, am selben Tag und am selben Gerät wie der erste —
-*PATCH, weil eine Reihe, die die Breite nicht ausnutzt, ein Fehler ist und kein
-fehlendes Bedienelement*. Die Runde davor, 0.12.1, hat das Löschen ans große Bild
-gebracht und es von der Vorschaukachel genommen, ebenfalls PATCH und ebenfalls
-aus dem Betrieb. Die Runde
-davor, 0.12.0, hat die Oberfläche auf Telefon und Tablett zu einer Anwendung
-gemacht statt zu einer breit gebauten Seite, die man schmal gemacht hat; sie ist
-zugleich die erste, die den Server überhaupt nicht anfasst — **und 0.12.1 fasst
-ihn ebenso wenig an.** Alles Weitere in Abschnitt 2 und Abschnitt 9.
+**0.12.3 in einem Satz: der Export sagt, wie groß er wird, bevor er versucht
+wird — und neun Kleinigkeiten an der Oberfläche ziehen nach.** *PATCH, weil die
+Anlage danach nichts kann, was sie vorher nicht konnte: der Export exportiert
+weiterhin, er bricht nur nicht mehr wortlos ab.* **Es ist die erste Runde aus
+dem Fahrplan in Abschnitt 10a** und damit die erste seit 0.12.0, die wieder
+den Server anfasst. Die drei Runden davor waren eine Sache mit zwei
+Nachschlägen: 0.12.2 hat die Vorschaureihe auf dem Telefon die Breite füllen
+lassen, 0.12.1 das Löschen ans große Bild gebracht, und 0.12.0 hat die
+Oberfläche auf Telefon und Tablett zu einer Anwendung gemacht statt zu einer
+breit gebauten Seite, die man schmal gemacht hat. Alles Weitere in Abschnitt 2
+und Abschnitt 9.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
 > trägt die **gebaute** Runde in einem Satz und sonst nichts Versionsbezogenes.
@@ -129,16 +130,33 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.12.2** — Fingerprint **`e30a19c1`**, **3856 Prüfungen**,
-**fünf Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
-*0.12.2 ist die zweite Nacharbeit an 0.12.0: die Vorschaureihe füllt auf dem
-Telefon die Breite.* **PATCH — nichts kommt hinzu, was vorher nicht ging.**
-*Die einzige ausgelieferte Datei, die sich bewegt, ist `public/style.css`; nicht
-einmal `public/app.js` wird angefasst.*
+**Gebaut ist 0.12.3** — Fingerprint **`0d04b540`**, **3954 Prüfungen**,
+**zwölf Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
+*0.12.3 ist die erste Runde aus dem Fahrplan: der Export sagt seine Größe an,
+und neun Punkte an der Oberfläche ziehen nach.* **PATCH — nichts kommt hinzu,
+was vorher nicht ging.**
 **KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein Migrationscode; es
-bleibt bei **fünf** markierten Migrationsblöcken. *Die
-Sicherung des Datenverzeichnisses ist deshalb Empfehlung und nicht Pflicht.*
+bleibt bei **fünf** markierten Migrationsblöcken, und das Austauschformat bleibt
+bei **10**. *Die Sicherung des Datenverzeichnisses ist deshalb Empfehlung und
+nicht Pflicht.* **Keine neue Zeile in der `.env`, keine neue Abhängigkeit,
+`F_ROUTEN` unverändert bei 69.**
 Was die Runde bringt, steht in Abschnitt 9.
+
+> **DER EINE PUNKT, DER NACH DEM EINSPIELEN ABZULESEN IST.** Die Karte
+> **Kennzahlen** trägt seit dieser Version die Zeile **„Export, alles"**. Sie
+> beantwortet, ob der Export bei diesem Bestand vorher überhaupt noch gelaufen
+> wäre: *liegt sie über 512 MB, war er kaputt und niemand hat es bemerkt, weil
+> ihn niemand gebraucht hat.* **Die Zahl gehört ins Änderungsprotokoll
+> nachgetragen, sobald sie dasteht** — sie ist der einzige Messwert dieser
+> Runde, der ohne den Wirt nicht zu gewinnen war.
+
+**Was 0.12.3 für den Betrieb bedeutet: nichts einzustellen.** Keine neue
+`.env`-Zeile, die `docker-compose.yml` unberührt, kein Schema. **Der Server ist
+diesmal angefasst** — `server.js` bringt die Rechnung für die Exportgröße und
+die Absage davor —, aber nur lesend: `F_ROUTEN` bleibt bei 69, und keine
+Antwort verliert ein Feld. *Wer die CrowdSec-Zeile oder die Protokollrotation
+aus der README übernehmen will, tut das von Hand in seiner eigenen
+`docker-compose.yml`.*
 
 **Was 0.12.0 und 0.12.1 für den Betrieb bedeuten: nichts.** Keine neue
 `.env`-Zeile, die `docker-compose.yml` unberührt, nichts einzustellen — und
@@ -159,10 +177,16 @@ Papierkorb am großen Bild kommt daneben. Was sich dort ändert, sind die zwei
 Knöpfe des Bildbereichs: sie tragen Zeichen statt Wörter und stehen in einer
 Reihe.
 
-**IM FELD BESTÄTIGT IST 0.12.0.** Die Runde ist eingespielt, und die laufende
-Anlage meldet denselben Fingerprint wie der Branch: **`192734a2`**. *Der
-Dateisatz auf dem Wirt ist damit genau der, der gemeint war — einen Befund wie
-bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es nicht.*
+**IM FELD BESTÄTIGT IST 0.12.2** — Fingerprint **`e30a19c1`**, derselbe wie am
+Branch. *Der Dateisatz auf dem Wirt ist damit genau der, der gemeint war —
+einen Befund wie bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es
+nicht.* **Davor war es 0.12.0** mit `192734a2`.
+
+> **FÜR 0.12.3 STEHT DIE BESTÄTIGUNG NOCH AUS**, und sie hat diesmal eine Zahl
+> im Gepäck: der Fingerprint des Branches ist **`0d04b540`**, und die Karte
+> **Kennzahlen** trägt neu die Zeile **„Export, alles"**. *Beides gehört beim
+> ersten Öffnen abgelesen — der Fingerprint gegen den Wert oben, die
+> Exportgröße gegen 512 MB.*
 
 **UND DIESE BESTÄTIGUNG HAT SOFORT ETWAS GEBRACHT: 0.12.1 IST EIN BEFUND AUS
 DEM BETRIEB.** Einen Tag nach dem Einspielen kam vom laufenden Gerät die
@@ -1196,7 +1220,9 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 
 ### Systembereich — neunzehn Karten, und sie hängen an der Rolle
 
-**Dem Admin:** beide Titel, Kennzahlen, Kategorien und Tags umbenennen und
+**Dem Admin:** beide Titel, Kennzahlen (Umfang des Bestands je Art —
+**seit 0.12.3 auch die Kommentarbilder und die erwartete Exportgröße** —,
+Belegung der Datenbank und der Fingerprint), Kategorien und Tags umbenennen und
 löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
 **gewichten**, Karte **„Zugänge"** (anlegen mit Passwort oder mit Link, sperren,
 Passwort zurücksetzen direkt oder über einen Link, Rolle wechseln, entfernen),
@@ -1217,7 +1243,12 @@ Eigentümer die beiden Knöpfe sieht.
 **Dem Eigentümer zusätzlich:** Export mit/ohne Fotos, mit eigenem Häkchen für
 Dateien und eines für **Videos**, Import (ersetzen oder zusammenführen), die
 Karte **„Sicherung"**, das **„Sicherheitsprotokoll"** und die Karte
-**„Mailversand"**. **Letztere steht ausdrücklich NICHT beim Admin**, obwohl der
+**„Mailversand"**.
+**Die Exportkarte nennt seit 0.12.3 die erwartete Dateigröße, und die Zahlen
+folgen den Häkchen.** Ab **300 MB** steht ein Hinweis darunter, mit Verweis auf
+die Sicherung als den anderen Weg — *gewarnt wird, verweigert nicht.* **Der
+Import fragt vor dem Einlesen nach**, wenn die Datei sehr groß ist; dort steht
+die Größe ja vorher fest. Näheres in Abschnitt 5.4. **Letztere steht ausdrücklich NICHT beim Admin**, obwohl der
 die Einladungen verschickt — was er bekommt, ist die Auskunft an der Stelle, an
 der sie ihn angeht: neben dem Link steht, ob etwas hinausging und warum nicht.
 
@@ -2041,6 +2072,34 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   Nebentabelle. **Wer einen weiteren Weg ergänzt, der eine Datei aus dem Bestand
   baut, entscheidet sich für eine der drei Antworten** — Schalter, Absage oder
   Nebentabelle; es gibt keine, die ohne auskommt.
+- **Die Größe wird ANGESAGT, bevor sie gebaut wird — und zwar an beiden Enden**
+  (seit 0.12.3). Zwei Zahlen mit zwei Aufgaben, und sie dürfen nicht dieselbe
+  sein — genauer: **drei**. `AUSTAUSCH_STRING` (`MAX_STRING_LENGTH`, rund
+  512 MB) ist die **Tatsache**: so lang kann ein Text in Node überhaupt werden.
+  `AUSTAUSCH_MAX` (90 % davon) ist die **Marge**, ab der die Route absagt;
+  `AUSTAUSCH_WARN` (**300 MB**) ist der **Warnwert**, ab dem ein Hinweis steht.
+  **Genannt wird in jeder Meldung die erste** — eine Meldung, die unsere Marge
+  als Tatsache ausgibt, sagt die Unwahrheit. **Die Luft dazwischen ist der
+  Preis der Schätzung** — sie deckt den Umschlag, die Base64-Rundung und den
+  Text, den keine Blob-Spalte trägt. *Gewarnt wird an der Karte, abgesagt wird
+  an der Route, und abgesagt wird VOR dem Bau: ein Knopf, der nach zwei Minuten
+  mit einem Speicherfehler abbricht, sieht aus wie ein kaputtes Programm — er
+  ist aber eine erreichte Grenze, und der Unterschied liegt allein darin, ob die
+  Anlage es vorher sagt.* **Genannt wird in der Meldung die gemessene Zahl**:
+  zu nennen ist die, bei der es kippt, nicht die, bei der es unbequem wird.
+- **Geschätzt wird über das, was GESCHRIEBEN wird — nicht über die Blob-Spalten**
+  (seit 0.12.3). `photos.thumb` und `comment_images.thumb` gehen nie in eine
+  Exportdatei; beim Video steht neben den Daten das Standbild (`medium`,
+  ersatzweise `thumb`). **Eine Summe über alle Blob-Spalten fällt deshalb zu
+  hoch aus**, und eine Warnung, die zu früh kommt, wird weggeklickt
+  (Stolperstein 182). Gerechnet wird an **einem** Ort — `austauschTeile()`,
+  wahlweise über einen Eintrag oder über den ganzen Bestand: die Kennzahlen, die
+  Warnung an der Karte und die Absage an der Route müssen dieselbe Zahl nennen.
+- **Der Export bleibt eine Antwort und wird kein Strom** (entschieden 0.12.3).
+  Er wäre ein Umbau an einer Stelle, die nachweislich funktioniert, und
+  `VACUUM INTO` ist seit 0.8.70 ohnehin der Hauptweg für die vollständige
+  Kopie. *Die Aufgabe ist damit schon verteilt; was fehlte, war nicht ein
+  größerer Puffer, sondern dass die Anlage es sagt.*
 - **Die Abbildung je Eintrag und der Deserialisierer stehen je genau einmal**
   (seit 0.8.70). Drei Stellen rufen `eintragAlsPaket()` und zwei `spieleEin()`;
   ein Wächter hält beide Zahlen fest. *Zwei Rechenwege für dieselbe Datei laufen
@@ -2426,12 +2485,23 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   und einen freien Hinweis (immer sichtbar). Wer einem Block beide gibt, zeigt
   eingeklappt zweimal dasselbe; eine leere Kurzfassung erzeugt „()".
 - **Die Zahlen am Kommentarblock nennen Teilmengen, keine Summanden** (seit
-  0.8.4): „12 Kommentare, davon 3 Berichte und 5 Aufgaben (2 Erledigt)". Die
-  Klammer nistet die zweite Ebene ein — das Erledigte steckt **in** den
-  Aufgaben, sonst schrumpfte die Zahl beim Abhaken. Die **Notiz** bleibt
+  0.8.4): „12 Kommentare, davon 3 Berichte und 5 Aufgaben (3 offen,
+  2 Erledigt)". Die Klammer nistet die zweite Ebene ein — das Erledigte steckt
+  **in** den Aufgaben, sonst schrumpfte die Zahl beim Abhaken. **Die offenen
+  stehen voran und werden ABGEZOGEN, nicht gezählt** (seit 0.12.3):
+  `aufgaben - fertig` kann von der Summe nicht abweichen, eine zweite Zählung
+  über `kind = 'task'` schon. **Die Klammer erscheint nur, wenn überhaupt etwas
+  erledigt ist** — sonst stünde da „5 Aufgaben (5 offen)". Die **Notiz** bleibt
   ungenannt (sie ist der Zustand ohne Markierung), die **Anpinnung** steht nicht
   in der Zeile (zweite, unabhängige Achse). **Derselbe volle Satz auch
   eingeklappt** — bewusste Abweichung von Links und Dateien.
+- **Das Formular bleibt unten, und ein Sprungknopf führt hin** (seit 0.12.3).
+  `+ Kommentar` sitzt im Blockkopf, in genau der Kopfzeile mit den Zahlen.
+  **Ausdrücklich kein zweites Formular in einem Dialog:** das vorhandene trägt
+  Bilder-Einfügen, Anpinnen, Art-Umschalter und Mitwachsen, und ein zweites
+  davon wären zwei Wahrheiten über dasselbe Formular. *Als `button` und nicht
+  als Verweis — `kopf.onclick` nimmt Klicks auf ein `button` aus, sonst klappte
+  der Sprung den Block im selben Atemzug ein.*
 - **Eine eingeklappte Wolke ist nicht messbar, und dagegen braucht es zwei
   Wege** (seit 0.8.3). `begrenzeWolke()` bricht bei Höhe null **absichtlich** ab
   **und** das Aufklappen zeichnet die Wolke neu. Beide sind nötig und decken
@@ -2465,6 +2535,40 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
 - **Anpinnen schlägt die Art.** Ein angepinnter Kommentar steht ganz oben,
   gleich welcher Art. Der Block der Angepinnten bleibt dabei **einer**: dort
   entscheidet allein das Alter.
+- **Am Kommentar sagt die FARBE die Art und die FORM die Anpinnung** (seit
+  0.12.3). Die linke Kante gehört der Art und ändert weder Farbe noch Breite;
+  **angepinnt heißt, dass die drei übrigen Kanten dieselbe Farbe annehmen.**
+  Eine Notiz hat keine eigene Farbe — bei ihr wird der ganze Rahmen golden, und
+  damit ist Gold hier genau ein Fall statt vier. **Kein Kasten trägt zwei
+  Farben.**
+
+> #### Zwei Merkmale, zwei Kanäle — ZURÜCKGENOMMEN mit 0.12.3
+>
+> **Bis 0.12.2 galt das Gegenteil, und es war im Stylesheet ausführlich
+> begründet:** *„zwei Merkmale, zwei Kanäle, die sich nie ins Gehege kommen —
+> die linke Kante gehört allein der Art, die drei übrigen allein der
+> Anpinnung."* Die linke Kante trug die Art in ihrer Farbe, die drei übrigen
+> die Anpinnung in Gold.
+> **Der Gedanke ist sauber, und sein Preis wird erst dort sichtbar, wo beide
+> Merkmale zugleich auftreten:** ein angepinnter Bericht trug orange **und**
+> gold, und ein Kasten mit zwei Farben liest sich als Kollision und nicht als
+> zwei Aussagen. *Aus dem Betrieb, 28. August 2026, mit Bildschirmfoto: „ich
+> finde die Mischung der Farben innerhalb eines Rahmens nicht gut."*
+> **Die neue Regel hat WENIGER Fälle als die alte**, nicht mehr: vorher musste
+> man wissen, welche Kante was bedeutet; jetzt sagt die Farbe die Art und die
+> Form die Anpinnung.
+> **Erkennbar bleibt die Anpinnung an zwei anderen Zeichen** — am 📌 in der
+> Kopfzeile und daran, dass Angepinntes oben steht. *Die Farbe war nie das
+> einzige Signal, und deshalb kostet der Wechsel nichts.*
+> **Es ändert sich keine einzige Breite**, und das ist der Grund, warum die
+> dicke linke Kante bleibt: würde sie beim Anpinnen dünn, müsste `padding-left`
+> von 10 auf 12 zurück — sonst begännen die Zeilen angepinnter und nicht
+> angepinnter Kommentare auf zwei verschiedenen Linien (Befund C aus 0.12.0,
+> nur andersherum).
+> **Die alte Begründung steht im Stylesheet weiterhin da, als zurückgenommen
+> gekennzeichnet** — nicht gelöscht. *Eine zurückgenommene Entscheidung mit dem
+> Grund daneben ist mehr wert als eine verschwundene; ohne sie baut sie jemand
+> in zwei Jahren wieder ein.* Der Prüfstand hält fest, dass sie dasteht.
 - **Innerhalb jeder Gruppe steht das Älteste oben** (seit 0.5.2). Sortiert wird
   nach `id`, nicht nach `created_at`: innerhalb eines Eintrags stimmen beide
   immer überein, und der Wert in `created_at` kommt ungeprüft aus der Datei und
@@ -4134,6 +4238,61 @@ Version, in der sie entstanden sind.*
     Prüfung. *Nachgemessen wurde es im echten Browser: `elementFromPoint` auf die
     Kreuzecke liefert auf dem Finger die Kachel und am Zeigegerät das Kreuz.*
 
+182. **Eine Schätzung über Blob-Spalten ist etwas anderes als eine Schätzung
+    über das, was geschrieben wird — und die naheliegende ist die falsche.** Die
+    Summe über alle Blob-Spalten ist leicht zu tippen und sieht vollständig aus.
+    Sie zählt aber `photos.thumb` und `comment_images.thumb` mit, und beide gehen
+    nie in eine Exportdatei. **Bei einem Bestand aus vielen kleinen Bildern ist
+    das kein Rundungsfehler**, sondern ein spürbarer Anteil.
+    **WER EINE GRÖSSE VORHERSAGT, MUSS DIE QUELLE ZÄHLEN, DIE GESCHRIEBEN WIRD —
+    NICHT DIE, DIE DANEBEN LIEGT.** *Und der Preis des Fehlers ist nicht die
+    falsche Zahl, sondern die Warnung, die zu früh kommt: eine Warnung, die man
+    dreimal grundlos gesehen hat, klickt man beim vierten Mal weg.*
+
+183. **Zwei Zahlen mit zwei Aufgaben dürfen nicht dieselbe sein, auch wenn sie
+    dasselbe zu messen scheinen.** `AUSTAUSCH_WARN` und `AUSTAUSCH_MAX` sehen
+    beide aus wie „die Grenze". Die eine ist **gemessen** und sagt, wo der String
+    zerbricht; die andere ist **geschätzt** und sagt, wo jemand besser die
+    Sicherung nimmt. **Fielen sie zusammen, verlöre die Warnung ihren Zweck** —
+    sie käme genau dann, wenn es ohnehin nicht mehr geht. **DIE LUFT ZWISCHEN
+    BEIDEN IST DER PREIS DER SCHÄTZUNG und keine Bequemlichkeit.** *Genannt wird
+    in der Meldung trotzdem die gemessene: zu nennen ist die Zahl, bei der es
+    kippt, nicht die, bei der es unbequem wird.*
+
+184. **`content-visibility` lässt sich am Prüfstand nicht belegen, und das ist
+    kein Grund, es nicht zu prüfen — sondern einer, es dazuzuschreiben.** `jsdom`
+    misst jede Höhe als null; die Wirkung ist dort nachweislich unsichtbar. Was
+    bleibt, ist die Feststellung, **dass** die Regel dasteht — und die ist ohne
+    den Satz daneben gefährlicher als keine Prüfung: **eine grüne Zeile, die
+    aussieht wie ein Beleg, ist schlechter als eine Lücke, die man sieht.**
+    *Deshalb steht über der Gruppe ausdrücklich, was sie nicht zeigt, und die
+    Messung steht im Änderungsprotokoll statt im Prüfstand.* **Dasselbe traf 2f:**
+    „mehr" entsteht in `jsdom` nie, weil `begrenzeWolke()` bei Höhe null
+    aussteigt — geprüft wird deshalb über „zurücksetzen", das an der Auswahl
+    hängt und sich mit einem echten Klick herstellen lässt.
+
+185. **Wo eine Zeile umbricht, entscheidet die Reihenfolge im Aufbau — und keine
+    Regel im Stylesheet holt das zurück.** `margin-left: auto` schiebt ein
+    Element an das rechte Ende **seiner** Zeile; auf welcher Zeile es steht, hat
+    der Aufbau schon entschieden. Ein Verweis hinter einer Wolke, die die Breite
+    füllt, landet auf der nächsten Zeile — mit oder ohne Außenkante. **DIE
+    ANORDNUNG IST HIER EINE FRAGE DES AUFBAUS UND NICHT DES STYLESHEETS**, und
+    deshalb prüft der Prüfstand die Reihenfolge der Kindknoten und nicht nur die
+    Regel. *Für die Spaltenansicht auf dem Telefon stellt `order` sie wieder um —
+    dort gibt es rechts keinen freien Platz, und „mehr" gehört hinter das, was es
+    aufklappt.*
+
+186. **Ein Feld, das zwei Formen annimmt, darf keine von beiden in seiner
+    Beschriftung ausschließen.** „Code aus deiner App" und „Sechsstelliger Code"
+    waren beide für den Wiederherstellungscode falsch — er hat zehn Zeichen und
+    kommt von einem Zettel. **Der Quelltext wusste es besser als die
+    Oberfläche:** `istCodeform` und `istWiederform` stehen dort ausdrücklich als
+    Paar, *„damit EIN Eingabefeld beide Formen auseinanderhält"*. **WER EIN FELD
+    BESCHRIFTET, BESCHREIBT DAS VERFAHREN UND NICHT DAS GERÄT** — das Gerät kann
+    wechseln, das Verfahren nicht. *Und der Fehler ist unauffällig: eine
+    Beschriftung, die für die Hälfte der Fälle falsch ist, fällt keinem auf, der
+    zur anderen Hälfte gehört.*
+
 ---
 
 ## 7. Prüfstand
@@ -4147,12 +4306,28 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 3856 von 3856 bestanden** (0.12.2) — fünf neue Prüfungen in der Gruppe
-„Handy und Tablett: die Staffel der Umbruchpunkte", die 0.12.0 angelegt hat.
-*0.12.0 hat sie mit 33 Prüfungen eröffnet, 0.12.1 hat drei ergänzt.* Die
-Gegenproben aller drei Runden stehen in Abschnitt 8: sie sind auf die jeweils
-neuen Zusagen beschränkt und **nicht** der volle Lauf über alle **172**
-Rückbauten.
+**Stand: 3954 von 3954 bestanden** (0.12.3) — **98 neue Prüfungen**, davon zwei
+neue Gruppen („Die Exportgröße sagt sich an", „Die Anzeige zieht nach — 0.12.3")
+und Erweiterungen in vier vorhandenen. Die Gegenproben stehen in Abschnitt 8:
+sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf
+über alle **184** Rückbauten.
+
+> **DER BRANCH KAM MIT EINER ROTEN PRÜFUNG AN, UND SIE STAND IN KEINEM
+> AUFTRAG.** Der Sprachwächter fand in `Doku/Fehler_und_Ideen.md` das Wort
+> `Zeichenkette` statt `String` — hereingekommen mit einem Merge in den
+> Sammelblatt-Text,
+> **nach** 0.12.2 und ohne dass ein Lauf sie gesehen hätte. *Ein Papier, das
+> zwischen zwei Runden ohne Lauf geändert wird, kann den Prüfstand rot machen,
+> ohne dass es jemand bemerkt.* Behoben mit 0.12.3.
+
+> **WAS DER PRÜFSTAND AN `content-visibility` NICHT KANN — und es steht dort
+> auch so.** `jsdom` misst jede Höhe als null; die Wirkung ist dort
+> **nicht** nachweisbar. Der Prüfstand hält fest, **dass** die Regel dasteht,
+> dass sie `auto` trägt und dass jede Rasterstufe ihre eigene Zahl hat.
+> **Dass die Regel dasteht, ist keine Prüfung ihrer Wirkung**, und genau dieser
+> Satz steht als Kommentar über der Gruppe, damit niemand die grünen Punkte für
+> eine Messung hält. *Gemessen wurde in Chromium; die Zahlen stehen im
+> Änderungsprotokoll 0.12.3 (Stolperstein 184).*
 
 > **WAS DER PRÜFSTAND AN DER VORSCHAUREIHE NICHT KANN, und es steht hier, damit
 > niemand es für gedeckt hält:** den Ziehweg der Kacheln prüft er überhaupt
@@ -4496,7 +4671,8 @@ eine Buchführung.*
 | 0.11.0 | Suche im Server, gespeicherte Ansichten, Doppelerkennung (139) | 34 | Stolpersteine 164 bis 172 |
 | 0.12.0 | Telefon und Tablett (33) | 6, nur auf die neuen Zusagen | Stolpersteine 173 bis 176 |
 | 0.12.1 | Der Papierkorb wandert ans große Bild (3) | 2, nur auf die neuen Zusagen | Stolpersteine 177 bis 179 |
-| **0.12.2** | **Die Kachelreihe füllt die Breite (5)** | **5, nur auf die neuen Zusagen** | **Stolpersteine 180 und 181** |
+| 0.12.2 | Die Kachelreihe füllt die Breite (5) | 5, nur auf die neuen Zusagen | Stolpersteine 180 und 181 |
+| **0.12.3** | **Exportgröße und neun Anzeigepunkte (98)** | **12, nur auf die neuen Zusagen** | **Stolpersteine 182 bis 186; drei Rückbauten deckten Lücken auf** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -4512,13 +4688,21 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **DIE TAGS `v0.11.0`, `v0.12.0`, `v0.12.1` UND `v0.12.2` SIND GESETZT, ABER
-  NICHT GESCHOBEN.** Sie liegen auf den Commits, die herausgehen; der Push
-  scheitert in der Arbeitsumgebung mit `HTTP 403` — **Branches gehen durch, Tags
-  nicht.** Sie brauchen einen Push von einer Stelle mit den nötigen Rechten:
+- **DIE ZAHL AUS DEN KENNZAHLEN IST ABZULESEN.** Die Karte trägt seit 0.12.3
+  die Zeile **„Export, alles"**. Sie beantwortet, ob der Export bei diesem
+  Bestand vorher überhaupt noch gelaufen wäre — *über 512 MB war er kaputt, und
+  niemand hat es bemerkt, weil ihn niemand gebraucht hat.* **Die Zahl gehört ins
+  Änderungsprotokoll 0.12.3 nachgetragen**, und wenn sie darüber liegt, gehört
+  die Art des Punktes im Fahrplan von `Verbesserung` auf `Fehler` gestellt.
+
+- **DIE TAGS `v0.11.0`, `v0.12.0`, `v0.12.1`, `v0.12.2` UND `v0.12.3` SIND
+  GESETZT, ABER NICHT GESCHOBEN.** Sie liegen auf den Commits, die herausgehen;
+  der Push scheitert in der Arbeitsumgebung mit `HTTP 403` — **Branches gehen
+  durch, Tags nicht.** Erneut versucht am 28. August 2026, dasselbe Bild. Sie
+  brauchen einen Push von einer Stelle mit den nötigen Rechten:
 
   ```bash
-  git push origin v0.11.0 v0.12.0 v0.12.1 v0.12.2
+  git push origin v0.11.0 v0.12.0 v0.12.1 v0.12.2 v0.12.3
   ```
 
   *Liegt ein Tag dort nicht mehr vor, entsteht er mit*
@@ -4739,6 +4923,41 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.12.3 — „Der Export sagt Bescheid, und die Anzeige zieht nach"
+
+**PATCH · 28. August 2026 · die erste Runde aus dem Fahrplan (Abschnitt 10a).**
+
+**Zehn Punkte nebeneinander, die fast nichts miteinander zu tun haben** — einer
+ist ein Fehler, neun sind Anzeige. Dazu ein elfter aus dem Gespräch, während
+gebaut wurde.
+
+**Der Fehler:** `GET /api/export` baute einen JSON-String über den ganzen
+Bestand und lief bei genügend Fotos in `RangeError: Invalid string length` — eine
+**500 nach zwei Minuten**, nachdem der Speicher für den halben Bestand schon
+belegt war. *Am Einzelexport gab es die Klemme längst; am vollen fehlte sie.*
+**Jetzt rechnet die Anlage die Größe aus, bevor sie baut**: die Kennzahlen
+nennen sie, die Exportkarte nennt sie je Häkchen und warnt ab 300 MB, die Route
+sagt an der harten Grenze ab, und der Import fragt vor dem Einlesen nach.
+*Gewarnt wird, verweigert nicht — die Zahl ist eine Schätzung.* **Der Export als
+Strom wurde ausdrücklich nicht gebaut.**
+
+**Die neun an der Oberfläche:** `content-visibility` an der Kachel (**auf dem
+Telefon fällt die Aufbauzeit von 397 auf 168 ms**, an 1000 Kacheln gemessen);
+ein angepinnter Kommentar trägt nur noch **eine** Farbe; `⌀ 4,2 (3)` statt
+`4,2 · 3`; die offenen Aufgaben in der Kopfzeile; ein Sprungknopf zum
+Schreibfeld; „mehr" ans rechte Ende der Tags-Zeile; das Zeichen vor der
+Versionszeile und ihr Abstand auf der Anmeldeseite.
+
+**Der elfte:** die Frage nach dem zweiten Faktor nennt das **Verfahren** und
+nicht das Gerät. *„Code aus deiner App" war für die Hälfte der Fälle falsch —
+dasselbe Feld nimmt auch einen Wiederherstellungscode entgegen, und der kommt
+von einem Zettel.*
+
+**Kein Schema, keine Formatnummer, keine `.env`-Zeile, keine Abhängigkeit,
+`F_ROUTEN` unverändert bei 69.** 3856 → **3954 Prüfungen**, 172 → **184
+Rückbauten**. *Drei Rückbauten haben Lücken im Prüfstand aufgedeckt; alle drei
+sind im selben Zug geschlossen worden.*
 
 ### 0.12.2 — „Die Kachelreihe füllt die Breite"
 
@@ -5059,8 +5278,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.12.0** | Telefon und Tablett | Zwei Achsen, drei Umbruchpunkte, ein Menü, ein Filterschalter — und eine Kastenebene weniger. *MINOR.* **Der Server ist unberührt** | **nein** | — |
 | **0.12.1** | Der Papierkorb wandert ans große Bild | Das Löschkreuz verlässt auf dem Finger die Vorschaukachel; die Knöpfe des Bildbereichs stehen in einer Reihe. *PATCH.* **Befund aus dem Betrieb** — die erste vergebene Zahl aus der Zeile darunter | **nein** | — |
 | **0.12.2** | Die Kachelreihe füllt die Breite | Die Vorschaureihe steht auf dem Telefon als Raster und lässt rechts nichts mehr leer. *PATCH.* **Zweiter Befund aus dem Betrieb**, am selben Tag und am selben Gerät | **nein** | — |
-| **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1 und 0.12.2 sind die ersten beiden* | in der Regel nein | — |
-| **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird — **der Export bricht heute ab und niemand hat es bemerkt.** Dazu neun Anzeigepunkte aus derselben Durchsicht. *PATCH.* **Kein Server außer der Kennzahl, kein Schema** | nein | — |
+| **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1, 0.12.2 und 0.12.3 sind die ersten drei* | in der Regel nein | — |
+| **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT.** Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
 | **0.13.0** | Zwei Netze, ein Zugang | `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu die gescheiterten Anmeldungen im Protokoll auffindbar, die Zeile für CrowdSec, und zwei Handgriffe an gelöschten Zugängen. *MINOR.* **Kein Schema** | nein | — |
 | **0.14.0** | Die Entscheidung wird mitgeschrieben | `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie muss vor die Bereinigung** | ja, **sechster Block** | 10 → 11 |
 | **0.15.0** | Der Systembereich, die Glocke und die Auskunft | Neunzehn Karten werden Abschnitte mit eigener Adresse, `renderSystem()` wird dabei zerlegt. Dazu die Glocke mit dem Punkt, der Zähler „Offen 7" und die Gewichtung, die sich selbst erklärt. *MINOR.* **Die größte Umbaufläche des Plans** | nein | — |
@@ -5258,416 +5477,37 @@ einem machen" und „Der QR-Encoder", dazu der ganze Teil II und Teil III.
 
 ---
 
-### 0.12.3 — „Der Export sagt Bescheid, und die Anzeige zieht nach" · *PATCH*
+### 0.12.3 — GEBAUT, herausgegeben am 28. August 2026
 
-**Ausgearbeitet aus dem Sammelblatt:** Nr. 3, Nr. 13, Nr. 14
+**Die Ausarbeitung steht nicht mehr hier.** Was gebaut ist, steht im
+Änderungsprotokoll 0.12.3 und im Stand — *ein Punkt wandert vom Sammelblatt in
+den Fahrplan und von dort in ein Änderungsprotokoll, nie zurück.*
 
+**Was die Runde gebracht hat, in drei Zeilen:** der Export sagt seine Größe an,
+bevor er versucht wird (Sammelblatt Nr. 3); die Kachelliste zeichnet nur noch,
+was zu sehen ist (Nr. 13); und ein angepinnter Kommentar trägt nur noch eine
+Farbe (Nr. 14). Dazu die sechs Kleinigkeiten aus Teil II und die Beschriftung
+am zweiten Faktor.
 
-#### Export und Import laufen vollständig durch den Arbeitsspeicher
+**WAS AUS DIESER RUNDE HERAUSGENOMMEN WURDE UND WO ES JETZT STEHT:**
 
-*(stand als Punkt 3 im Sammelblatt)*
-
-**Aufgefallen bei der Durchsicht zu 0.8.6; verschärft mit 0.8.50**, seit Videos bis
-20 MB in der Datenbank liegen. **Am 28. August 2026 aus einem Vorsorgepunkt ein
-eingetretener geworden** — siehe „Der Stand im Feld" unten.
-
-> **Art: Fehler** · **Claude: stark empfohlen** — (a) und (b), und zwar jetzt. Der Strom in (c) weiterhin nicht.
-> **Draußen üblich:** Große Ausgaben werden **nie** in einem Zug im Speicher
-> gebaut — sie werden gestreamt (`JSONL`, ein Datensatz je Zeile) oder als
-> Auftrag im Hintergrund erzeugt und zum Abholen bereitgelegt (GitLab, Discourse,
-> Google Takeout). **Und alle drei sagen die erwartete Größe vorher an.**
-
-### Woher
-
-Aus der Durchsicht vom **21. August 2026** (damals Punkt 3.2), Stand 0.8.6.
-**Am Quelltext seither unverändert** — `GET /api/export` antwortet weiterhin
-mit `res.json(exportUmschlag(items))`, der Import nimmt bis **900 MB** über
-`multer.memoryStorage()` entgegen.
-
-### Was auffiel
-
-Der Export baut **einen** JSON-String, in dem jedes Foto, jedes Video und jeder
-Anhang als Base64 steckt — Aufschlag: ein Drittel — und schickt ihn in einem
-Zug.
-
-Bei einem Bestand mit 300 Fotos aus einer Systemkamera (8–12 MB je Stück) sind
-das mehrere Gigabyte in einem einzigen String. **Node bricht dann mit
-`Invalid string length` ab**; die Grenze für einen einzelnen String liegt bei
-etwa 512 MB. Beim Import kommt die Datei zusätzlich als Puffer **und** als
-geparstes Objekt in den Speicher, also grob das Zwei- bis Dreifache ihrer
-Größe.
-
-*Seit 0.8.50 gibt es Videos bis 20 MB je Stück. Die Grenze ist damit näher
-gerückt, nicht weiter weg.*
-
-### Der Stand im Feld — 28. August 2026
-
-**Der Betreiber nennt seinen Bestand: rund 973 Bilder, Datenbankdatei rund
-660 MB.** Damit steht die Rechnung, die dieser Punkt seit 0.8.6 vorsorglich
-aufmacht, zum ersten Mal mit echten Zahlen da:
-
-| | |
-|---|---:|
-| Datenbankdatei | **660 MB** |
-| als Base64, plus ein Drittel | **≈ 880 MB** |
-| Nodes Grenze für **einen** String | **≈ 512 MB** |
-
-**Der Export dürfte damit heute schon mit `Invalid string length` abbrechen.**
-*Das ist kein „irgendwann", das ist jetzt — und deshalb steht an diesem Punkt
-seit heute `Fehler` und nicht mehr `Verbesserung`.*
-
-**Was daran gerechnet und was gemessen ist, gehört auseinandergehalten.** Die
-660 MB sind die **Dateigröße**, und die trägt auch Indizes, das
-Sicherheitsprotokoll und freie Seiten aus Gelöschtem — die Schätzung fällt
-damit **zu hoch** aus. Die ehrliche Zahl ist die Summe über die Blob-Spalten,
-und sie ist eine Abfrage:
-
-```sql
-SELECT (SELECT COALESCE(SUM(length(data)),0) FROM photos)
-     + (SELECT COALESCE(SUM(length(thumb)),0) FROM photos)
-     + (SELECT COALESCE(SUM(length(medium)),0) FROM photos)
-     + (SELECT COALESCE(SUM(length(data)),0) FROM attachments)
-     + (SELECT COALESCE(SUM(length(data)),0) FROM comment_images)
-     + (SELECT COALESCE(SUM(length(thumb)),0) FROM comment_images) AS blob_bytes;
-```
-
-**Diese Zahl mal vier Drittel gegen 512 MB — das ist der Befund.** Sie gehört
-ohnehin gebaut, denn sie ist genau die Grundlage, die Teil (a) unten braucht.
-*Fällt sie unter die Grenze, ist der Punkt wieder eine Verbesserung; fällt sie
-darüber, ist der Export kaputt und niemand hat es bemerkt, weil ihn niemand
-gebraucht hat.*
-
-### Was es nicht ist
-
-**Keine Fehlkonstruktion, sondern eine Grenze, die niemand gezogen hat.** Und
-sie trifft ausgerechnet die Funktion, die als Sicherungsnetz gedacht ist.
-
-**Seit dem 28. August aber auch kein Vorsorgepunkt mehr.** Ein Knopf, der bei
-diesem Bestand abbricht, ist ein Fehler und keine erreichte Grenze — *der
-Unterschied liegt allein darin, ob die Anlage es vorher sagt.* Genau das ist
-Teil (b).
-
-**Kein Fall mehr für „der Export muss das können".** Seit 0.8.70 ist
-`VACUUM INTO` der Hauptweg der Sicherung und der Export der **Austauschweg** —
-die Aufgabe ist also schon verteilt. Was hier fehlt, ist nicht ein größerer
-Puffer, sondern **dass die Anlage es sagt, bevor der Knopf gedrückt wird.**
-
-### Was gebaut werden könnte
-
-**a) Die Kennzahlen nennen die erwartete Exportgröße.** *Der kleinste Teil und
-der mit dem größten Gewinn.* Der Systembereich zeigt heute die Größe der
-Datenbank (`fs.statSync(DB_FILE).size` nach einem `wal_checkpoint`). Daneben
-gehört eine zweite Zahl: **Datenbankgröße mal vier Drittel plus Umschlag.**
-
-**b) Ein Hinweis ab einem Schwellwert.** *„Export mit Fotos: rund 2,1 GB — das
-übersteigt, was in einem Zug erzeugt werden kann. Nimm die Sicherung."* Mit
-Verweis auf den anderen Weg. **Ein Knopf, der nach zwei Minuten mit einem
-Speicherfehler abbricht, ist die schlechteste Variante** — er sieht aus wie ein
-kaputtes Programm und ist eine erreichte Grenze.
-
-**c) Erst danach, und nur wenn es sich wirklich stellt: der Export als Stream.**
-Die Einträge einzeln geschrieben statt in einem String gesammelt. Das ist ein
-Umbau an einer Stelle, die heute nachweislich funktioniert, und er lohnt sich
-nur, wenn (a) und (b) den Fall nicht schon abfangen.
-
-### Offene Entscheidungen
-
-* **Welcher Schwellwert?** 512 MB ist die harte Grenze des Strings. Ein
-  Warnwert deutlich darunter — **300 MB** — lässt Luft für den Umschlag und die
-  Base64-Rundung. *Zu nennen ist die Zahl, bei der es kippt, nicht die, bei der
-  es unbequem wird.*
-* **Warnt die Anlage nur, oder verweigert sie?** Verweigern schützt vor dem
-  Abbruch, nimmt aber jemandem den Export weg, der weiß, was er tut. *Vorschlag:
-  warnen, und den Knopf trotzdem lassen.*
-* **Ist die Dateigröße der Datenbank überhaupt die richtige Grundlage?** Es
-  liegt alles darin — Fotos, Videos, Anhänge, Kommentarbilder —, aber die Datei
-  trägt auch Indizes, das Sicherheitsprotokoll und **freie Seiten aus
-  Gelöschtem**, das ohne `VACUUM` nicht schrumpft. **Die Schätzung fiele damit
-  zu hoch aus**, und eine Warnung, die zu früh kommt, wird weggeklickt. *Die
-  ehrlichere Grundlage wäre eine Summe über die Blob-Spalten.*
-* **Gilt derselbe Hinweis beim Import?** Dort ist die Dateigröße vorher bekannt
-  — die Grenze könnte also *vor* dem Hochladen genannt werden statt danach.
-
-### Was es anfasst
-
-Die Kennzahlen im Systembereich, der Exportknopf, README. **Kein Schema, kein
-Austauschformat.** Für (c) zusätzlich die Exportroute und ihre Gegenproben.
-
-**Was dagegen spricht:** (a) und (b) sind unstrittig. Bei (c) spricht dagegen,
-dass ein Stream die Sicherung **nicht** ersetzt und die Anlage für die Sicherung
-schon einen zweiten Weg hat — es wäre Arbeit an der weniger wichtigen Hälfte.
-
-#### Nur zeichnen, was zu sehen ist
-
-*(stand als Punkt 13 im Sammelblatt)*
-
-**Aufgefallen im Betrieb, 28. August 2026** — verschärft mit 0.12.0, seit die
-Kacheln auf dem Telefon einspaltig untereinander stehen.
-
-*Dieser Punkt stand bis heute als Zeile in Teil II („Nachladen beim Rollen",
-0.11.0). Er hat genug Inhalt bekommen, um hier zu stehen — **und die Antwort
-fällt anders aus, als die Zeile vermuten ließ.***
-
-> **Art: Verbesserung** · **Claude: stark empfohlen** für (a), **später** für (b), **nicht empfohlen** für (c).
-> **Draußen üblich:** Für lange Listen ist **Fensterung** der Konsens, nicht
-> Blättern — react-window, TanStack Virtual. **`content-visibility: auto` ist
-> derselbe Gedanke ohne Bibliothek**, seit 2024 in allen großen Browsern, und
-> passt damit zu einer Anlage ohne Build-Kette.
-
-### Woher
-
-Aus dem Betrieb, **28. August 2026**. Der Wunsch: beim Öffnen nur laden, was auf
-den Schirm passt, plus eine Vorratsseite — **und zwar dem eingeschalteten
-Filter folgend**, nicht irgendwelche Einträge. Dazu die Fragen: was geschieht
-mit Einträgen, die gerade nicht mehr angezeigt werden? Endloses Rollen oder
-Seiten? Wie viele Kacheln je Seite?
-
-### Was auffiel
-
-**Nachgemessen, und die Zahlen ändern die Frage.**
-
-`GET /api/items` liefert weiterhin **alle** Einträge — seit 0.11.0 aber
-schlank: **0,52 MB und 93 ms bei 1000 Einträgen**, vorher 2,50 MB und 110 ms
-(Änderungsprotokoll 0.11.0, Abschnitt „Die ehrliche Gegenrechnung").
-
-**Und die Arbeitsteilung ist entscheidend:** die **Suche** läuft am Server;
-**alle übrigen Filter und alle elf Sortierungen laufen örtlich** über
-`visibleItems()` (`app.js:1510`) auf der vollständigen Liste im Speicher.
-
-### Was es nicht ist
-
-**Kein Ladeproblem — ein Zeichenproblem.** Bei 0,52 MB ist nicht das Holen
-teuer, sondern das, was der Browser daraus baut: tausend Kacheln, jede mit
-Bild, Sternen, Tags und Zeitleiste. *Auf dem Telefon ist das spürbar, am
-Desktop kaum.*
-
-**Und ausdrücklich kein Fall für Blättern am Server.** Es hieße, sechs Filter
-und elf Sortierungen an den Server zu verlegen — **und es zerschlüge zwei
-Dinge, die den ganzen Bestand brauchen**: die Zahlen an der Filterzeile („wie
-viele blieben übrig, wenn ich diesen Umschalter noch drücke") und die gedämpften
-Tags in der Wolke.
-
-**Die Frage nach den ausgeblendeten Einträgen löst sich damit auf.** *„Was
-machen wir mit Einträgen, die durch eine vorhergehende Aktion geladen wurden und
-gerade nicht angezeigt werden?"* — **nichts.** Sie werden gar nicht geladen und
-gar nicht entladen; sie stehen im Speicher, und nur der Aufbau der Seite wird
-begrenzt. Es gibt nichts wegzuwerfen.
-
-**Ebenso die Forderung „dem Filter folgen": sie ist bereits erfüllt.**
-`visibleItems()` **ist** die gefilterte und sortierte Liste. Wer ihre ersten N
-zeichnet, folgt dem Filter zwangsläufig.
-
-### Was gebaut werden könnte
-
-**a) `content-visibility: auto` an der Kachel, mit `contain-intrinsic-size`.**
-Zwei Zeilen im Stylesheet, **kein JavaScript**, keine Änderung an Route, Suche,
-Filter oder Sortierung. Der Browser überspringt Layout und Zeichnen für alles
-außerhalb des Bildes und holt es nach, sobald es hereinrollt. *Die
-`contain-intrinsic-size` ist die geschätzte Kachelhöhe — ohne sie springt der
-Rollbalken.*
-
-**b) Später, und nur bei gemessenem Bedarf: nachladen beim Rollen.** Ein
-Beobachter am Listenende (`IntersectionObserver`) hängt die nächsten N aus
-`visibleItems()` an. **Erst dann, wenn (a) gemessen zu wenig gebracht hat.**
-
-**c) Was NICHT gebaut werden soll: Blättern mit Seitenzahlen.** Steht schon
-zweimal im Blatt, in Teil II und in Teil III: *es zerschnitte die Suche.* Man
-sucht im ganzen Bestand und nicht auf Seite 3.
-
-### Offene Entscheidungen
-
-* **Wie hoch ist eine Kachel?** `contain-intrinsic-size` braucht eine Zahl, und
-  sie ist auf Telefon und Desktop verschieden. **Zu klein geschätzt springt der
-  Rollbalken, zu groß bleibt Leerraum unter der Liste.**
-* **Wird überhaupt gemessen, bevor (b) kommt?** *Die Zahl, die zählt, ist die
-  Zeit bis zur ersten sichtbaren Kachel auf dem Telefon — nicht die Zeit der
-  Antwort.* Ohne diese Messung ist (b) Arbeit auf Verdacht.
-* **Wenn (b) kommt: wie viele je Nachschub?** Draußen üblich ist **ein
-  Schirmvoll mal drei** als erster Wurf und ein Schirmvoll je Nachschub. *Mit
-  (a) stellt sich die Frage womöglich gar nicht.*
-
-### Was es anfasst
-
-Für (a): **das Stylesheet, sonst nichts.** Für (b) zusätzlich `drawBody()` und
-eine Prüfung. **Kein Schema, keine Route, keine Antwort ändert sich.**
-
-**Was dagegen spricht:** gegen (a) nichts — es ist der billigste messbare
-Gewinn auf dieser Liste. Gegen (b) spricht, dass es einen Zustand einführt
-(„wie viele sind gerade gezeichnet"), den es heute nicht gibt, und dass jede
-Sortierung und jeder Filter ihn zurücksetzen muss.
-
-#### Ein Kasten, eine Farbe — die Kennzeichnung am Kommentar
-
-*(stand als Punkt 14 im Sammelblatt)*
-
-**Aufgefallen im Betrieb, 28. August 2026.** Die Bauform ist älter; sie stammt
-aus der Runde, die das Anpinnen gebracht hat.
-
-> **Art: Design** · **Claude: empfohlen** — die Regel wird dabei einfacher, nicht komplizierter.
-> **Draußen üblich:** **Farbe für die Art, Form für den Zustand** ist die
-> übliche Aufteilung — GitHub färbt Etiketten und rahmt Angepinntes, Trello und
-> Todoist ebenso. *Zwei Farben an einem Kasten gelten überall als das, was sie
-> sind: eine Kollision.*
-
-### Woher
-
-Aus dem Betrieb, **28. August 2026**, mit einem Bildschirmfoto: *„ich finde die
-Mischung der Farben innerhalb eines Rahmens nicht gut."*
-
-### Was auffiel
-
-Ein Kommentar trägt heute **zwei Merkmale auf zwei getrennten Kanälen**, und
-der Quelltext sagt es ausdrücklich so (`style.css:1345`): *„Zwei Merkmale, zwei
-Kanäle, die sich nie ins Gehege kommen: die linke Kante gehört allein der Art,
-die drei übrigen Kanten allein der Anpinnung."*
-
-| | heute |
-|---|---|
-| linke Kante, 3px | die **Art** — orange (Bericht), blau (Aufgabe), grün (erledigt), neutral (Notiz) |
-| die drei übrigen Kanten, 1px | die **Anpinnung** — Gold |
-
-**Ein angepinnter Bericht trägt damit orange und gold gleichzeitig.** Der
-Gedanke dahinter ist sauber; das Ergebnis am Bildschirm ist ein Kasten mit zwei
-Farben.
-
-### Was es nicht ist
-
-**Kein Fehler.** Es ist eine Bauform, die genau das tut, was sie soll — und
-deren Preis erst sichtbar wird, wenn beide Merkmale zugleich auftreten. *Der
-Quelltext hat den Fall vorhergesehen und für richtig gehalten; der Betrieb
-sieht ihn anders.*
-
-**Und es ist keine Verkomplizierung.** Die neue Regel hat **weniger** Fälle als
-die alte: heute muss man wissen, welche Kante was bedeutet — künftig sagt die
-Farbe die Art und die Form die Anpinnung.
-
-### Was gebaut werden könnte
-
-**Die Regel: Farbe = Art, Form = Anpinnung — und die dicke linke Kante bleibt,
-wo sie ist.**
-
-| | nicht angepinnt | angepinnt |
+| herausgenommen | steht jetzt | warum |
 |---|---|---|
-| **Bericht** | dicke **orange** Linie links *(wie bisher)* | dieselbe **dicke orange Linie links**, dazu die drei übrigen Kanten dünn in **Orange** |
-| **Aufgabe** | dicke **blaue** Linie links *(wie bisher)* | dieselbe **dicke blaue Linie links**, dazu die drei übrigen Kanten dünn in **Blau** |
-| **Erledigt** | dicke **grüne** Linie links *(wie bisher)* | dieselbe **dicke grüne Linie links**, dazu die drei übrigen Kanten dünn in **Grün** |
-| **Notiz** | nichts *(wie bisher)* | **alle vier** Kanten dünn in **Gold** |
+| **Der Export als Strom** *(Teil c)* | nirgends — **verworfen** | Umbau an einer Stelle, die nachweislich funktioniert; `VACUUM INTO` ist seit 0.8.70 ohnehin der Hauptweg. **Als Entscheidung in Abschnitt 5.4 festgehalten.** |
+| **Nachladen beim Rollen** *(2a, Teil b)* | **erledigt durch die Messung** | Der Fahrplan sah es *„erst dann, wenn (a) gemessen zu wenig gebracht hat"* vor. **Es hat genug gebracht** — 397 → 168 ms auf dem Telefon. |
+| **Blättern mit Seitenzahlen** *(2a, Teil c)* | nirgends — **verworfen, endgültig** | zerschnitte die Suche; alle Filter und alle elf Sortierungen laufen örtlich über den ganzen Bestand. |
+| **Version und Verfahren in den Kennzahlen** *(2i)* | **0.15.0** | gehört zum Umbau des Systembereichs, nicht zu einer Zahl daneben. |
+| **Die eigene Ausgabezeile nach stdout** | **0.13.0** | hängt an der richtigen Adressermittlung — ohne den Proxy-Punkt sperrte CrowdSec den Proxy statt den Angreifer. |
+| **Die doppelt gebaute Tagwolke** *(Nebenbefund aus 2f)* | **Sammelblatt, Teil II** | die beiden Zeilen tragen Verschiedenes; eine gemeinsame Bauform müsste beides können. Eigene Runde, keine Beifracht. |
 
-**Zwei Sätze, und sie sagen alles:**
-
-1. **Die linke Kante gehört weiterhin allein der Art** — sie ändert weder Farbe
-   noch Breite, ob angepinnt oder nicht.
-2. **Angepinnt heißt: die drei übrigen Kanten nehmen dieselbe Farbe an** — und
-   bei einer Notiz, die keine eigene Farbe hat, wird der ganze Rahmen golden.
-
-**Gold kommt danach an genau einer Stelle vor: an der angepinnten Notiz.** Und
-kein Kasten trägt je zwei Farben.
-
-**Und die Falle, die bei einer naheliegenderen Fassung entstünde, entsteht hier
-nicht.** Würde die linke Kante beim Anpinnen von 3px auf 1px dünn, müsste
-`padding-left` von 10 auf 12 zurück — sonst begännen die Zeilen angepinnter und
-nicht angepinnter Kommentare in derselben Liste **auf zwei verschiedenen
-Linien** (Befund C aus 0.12.0, nur andersherum). **Weil die dicke Kante bleibt,
-verschiebt sich kein Text**: die drei Arten behalten `padding-left: 10px`, die
-Notiz behält ihre 12 — bei ihr werden nur vorhandene 1px-Kanten umgefärbt, genau
-wie heute schon beim Anpinnen. *Es ändert sich keine einzige Breite, nur die
-Farbe.*
-
-### Offene Entscheidungen
-
-* **Verliert das Anpinnen damit seine eigene Farbe?** Ja — und das ist der
-  Zweck. **Erkennbar bleibt es an zwei anderen Zeichen**: am 📌 in der Kopfzeile
-  und daran, dass Angepinntes oben steht. *Die Farbe war nie das einzige
-  Signal, und deshalb kostet der Wechsel nichts.*
-* **Wie dünn ist „dünn"?** Die vorhandenen Kanten sind 1px, und dabei sollte es
-  bleiben: **jede andere Zahl verschiebt den Text und macht aus einer reinen
-  Farbänderung eine Ausrichtungsfrage.**
-* **Was ist mit dem Aufgabenknopf?** Er trägt heute die Farbe des Zustands, den
-  er setzt (`.mark.aufg.on` blau, `.on.fertig` grün). **Das bleibt richtig** und
-  wird durch die neue Regel sogar stimmiger.
-* **Und der angepinnte Block als Ganzes?** In Teil II steht: *„der angepinnte
-  Block kann zur Wand werden."* Vier verschiedene Rahmenfarben untereinander
-  könnten das verstärken. **Beobachten, nicht vorher entscheiden.**
-
-### Was es anfasst
-
-**Nur das Stylesheet** — vier Regeln statt einer, und die Prüflage, die die
-Kennzeichnung nachsieht. **Keine Breite ändert sich, kein Innenabstand, kein
-Schema, keine Route, kein Quelltext in `app.js`.**
-
-**Was dagegen spricht:** die heutige Bauform ist im Quelltext ausführlich
-begründet, und diese Begründung wird damit ungültig — *sie gehört ersetzt und
-nicht gelöscht, sonst baut sie jemand in zwei Jahren wieder ein.*
-
-#### Dazu, aus Teil II des Sammelblatts
-
-- **Anzeige des Speicherverbrauchs** *(0.8.31 für Dateien, verschärft mit
-  0.8.50 für Videos)*. Wie viel Platz belegen Fotos, Videos, Anhänge — je
-  Eintrag und in Summe. *Berührt Teil I, Punkt 3: dieselbe Zahl, anderer
-  Zweck.* *(Claude: empfohlen — geht mit Punkt 3)*
-- **Das Durchschnittszeichen und die Anzahl am Kriterium.** **Art: Design.**
-  Rechts an der Kriterienzeile steht heute `4,2 · 3` (`app.js:3690`). Die
-  Kopfzahl darüber schreibt bereits `⌀ 4,2 gewichtet` — **die Zeile darunter
-  sollte dieselbe Form sprechen:** `⌀ 4,2 (3)`. Das ⌀ ist die Hausform, die
-  Klammer sagt „so viele Stimmen". Dazu ein `title` im Klartext, denn ein
-  Symbol allein liest kein Vorleseprogramm vor.
-  *(Claude: empfohlen · Draußen üblich: Klammern für die Stimmenzahl ist
-  praktisch universal — Amazon, IMDb, Steam)*
-- **„Offen" fehlt in der Kopfzeile der Kommentare.** **Art: Verbesserung.**
-  Dort steht heute *„12 Kommentare, davon 3 Berichte und 5 Aufgaben
-  (2 Erledigt)"*. **Was fehlt, ist die Zahl, auf die es im Alltag ankommt:**
-  `5 Aufgaben (3 offen, 2 erledigt)`. Die Verschachtelung bleibt dabei wahr —
-  das Erledigte steckt weiterhin **in** den Aufgaben. *Die Klammer erscheint
-  nur, wenn überhaupt etwas erledigt ist, sonst stünde da „5 Aufgaben
-  (5 offen)".*
-  *(Claude: empfohlen · Draußen üblich: offen und erledigt nebeneinander, wie
-  GitHubs „3 Open / 2 Closed")*
-- **Kommentar schreiben, ohne ans Ende zu rollen.** **Art: Verbesserung.** Das
-  Formular sitzt unter der Liste; bei vierzig Kommentaren ist das weit, und auf
-  dem Telefon ist die Liste einspaltig und damit noch länger. **Ein
-  Sprungknopf im Blockkopf** (`+ Kommentar`) kostet zwei Zeilen — er sitzt in
-  genau der Kopfzeile, die auch die Zeile darüber anfasst. **Ausdrücklich kein
-  zweites Formular im Dialog:** das vorhandene trägt Bilder-Einfügen,
-  Anpinnen, Art-Umschalter und Mitwachsen, und ein zweites davon wären zwei
-  Wahrheiten über dasselbe Formular.
-  *(Claude: empfohlen für den Sprungknopf, nicht empfohlen für den Dialog ·
-  Draußen üblich: GitHub und GitLab lassen das Formular unten und springen hin;
-  Discourse nimmt einen mitfahrenden Schreibbalken — alle drei mit **einem**
-  Formular)*
-- **Die Versionszeile: das Zeichen davor, der Abstand darunter.** **Art:
-  Design.** Zwei Hälften, beide klein. **Das Zeichen gibt es schon** —
-  `marke-dunkel.svg` ist die Fassung ohne dunkle Kachel, und `app.js:90` hat
-  dafür bereits einen Helfer; in `zeigeVersion()` ist es ein Aufruf. **Der
-  Abstand ist ein Befund vom Telefon und nicht vom Desktop:** die Zeile steht
-  auf `margin-bottom: calc(26px + env(safe-area-inset-bottom))`, und auf der
-  Anmeldeseite drückt der Flex-Aufbau von `body.anmeldung` sie ohnehin ans
-  untere Ende — die 26 Pixel und der Streifen für den Home-Indikator kommen
-  obendrauf. *Beobachtet vor 0.12.0, seither größer geworden; am Desktop passt
-  er.*
-  *(Claude: empfohlen · Draußen üblich: Zeichen und Version in der Fußzeile ist
-  Standard; das Bild bekommt `alt=""` und eine Größe in `em`, damit es mit der
-  Schrift mitwächst)*
-- **„mehr" frisst in der Übersicht eine ganze Zeile.** **Art: Design.** In der
-  Filterzeile „Tags" steht der Verweis **„mehr"** unter der Tagwolke und kostet
-  so viel Platz wie eine ganze Reihe Tags. **Auf der Eintragsseite passt es —
-  und der Grund ist, dass dieselbe Sache dort anders gebaut ist:** dort sitzt
-  „mehr" in der Beschriftungszeile über der Wolke (`.wolke-kopf`,
-  `space-between`), hier als Geschwister hinter der Wolke in einer Zeile, die
-  umbricht. **Die Übersicht könnte tun, was die Eintragsseite tut:** „mehr" mit
-  `margin-left: auto` ans rechte Ende der Zeile mit **TAGS** und **Und / Oder**,
-  die ohnehin da und rechts leer ist. **Ausdrücklich NICHT: „mehr" in die Wolke
-  legen und rechts Platz freihalten** — die Wolke wird beschnitten
-  (`max-height` und `overflow: hidden`), der Verweis würde mit abgeschnitten,
-  und ein fest ausgerechneter Freiraum ist genau der Fehler, an dem 0.12.1 schon
-  einmal hing (`right: 92px`, Befund A). *Später denkbar: `+7` statt „mehr" —
-  das setzt voraus, dass die überzähligen Tags weggeblendet statt beschnitten
-  werden.* **Und der Nebenbefund gehört dazu: dieselbe Wolke wird an zwei
-  Stellen verschieden gebaut** — Stolperstein 47, im Kleinen.
-  *(Claude: empfohlen · Draußen üblich: Chips mit einem `+N` am Ende der Reihe —
-  GitHub Topics, Jira-Labels, die Empfängerzeile in Gmail; alle blenden weg
-  statt zu beschneiden, und alle nennen die Zahl)*
+**Die drei Zeilen für die README** (CrowdSec über das Zugriffsprotokoll des
+Proxys, die Protokollrotation über Docker, der Hinweis auf das sich selbst
+räumende Sicherheitsprotokoll) **standen unter 0.13.0 und sind hier
+mitgegangen** — sie fassen keinen Quelltext an. *Der Rest von 0.13.0 bleibt
+unangetastet.*
 
 ---
+
 
 ### 0.13.0 — „Zwei Netze, ein Zugang" · *MINOR*
 

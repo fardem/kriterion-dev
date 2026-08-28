@@ -43,6 +43,120 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.12.3] - 2026-08-28
+
+**Der Export sagt, wie groß er wird, bevor er versucht wird** — und neun
+Kleinigkeiten an der Oberfläche, die bei der Durchsicht vom 28. August
+aufgefallen sind, sind richtiggestellt.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.12.3 ist **PATCH**: die Anlage
+> kann danach nichts, was sie vorher nicht konnte. Der Export exportiert
+> weiterhin; er bricht nur nicht mehr wortlos ab. Die neun Anzeigepunkte nehmen
+> nichts weg und legen nichts an. **Keine neue Route, keine Datenbankstufe,
+> keine neue Abhängigkeit, keine neue Zeile in der `.env`.**
+> *Die Kennzahlen bekommen eine Zahl, die es vorher nicht gab — das ist eine
+> Anzeige über vorhandene Daten und keine neue Fähigkeit.*
+
+> **OB DER EXPORT BEI DIESEM BESTAND VORHER ABGEBROCHEN IST, IST NOCH NICHT
+> GEMESSEN.** Die Rechnung, die es beantwortet, ist genau die, die diese Runde
+> gebaut hat: **Systembereich → Kennzahlen → „Export, alles"**. Die Zahl steht
+> dort ab dem ersten Start dieser Version. *Liegt sie über 512 MB, war der
+> Export kaputt und niemand hat es bemerkt, weil ihn niemand gebraucht hat;
+> liegt sie darunter, war diese Runde Vorsorge.* **Die Schätzung aus der
+> Dateigröße — 660 MB als Base64, also rund 880 MB — fällt dabei ausdrücklich
+> zu hoch aus:** die Datei trägt Indizes, das Sicherheitsprotokoll und freie
+> Seiten aus Gelöschtem, und die Vorschaubilder gehen gar nicht mit in den
+> Export.
+
+### Added
+
+- **Die Kennzahlen nennen die erwartete Exportgröße** neben der Größe der
+  Datenbank. Zwei Fragen, zwei Zahlen: die eine sagt, wie viel Platz die Anlage
+  auf der Platte braucht, die andere, wie groß die Datei wird, die das Haus
+  verlässt. Dass die erste die zweite überschreiten kann, ist kein Fehler.
+- **Kommentarbilder haben eine eigene Zeile in den Kennzahlen.** Sie liegen als
+  Blob in derselben Datei wie Fotos und Anhänge und fehlten ausgerechnet in der
+  Aufstellung, die erklären soll, wovon die Datenbank so groß ist.
+- **Ein Hinweis an der Exportkarte ab 300 MB**, mit Verweis auf die Sicherung
+  als den anderen Weg. **Gewarnt wird, verweigert nicht** — die Zahl ist eine
+  Schätzung, und wer weiß, was er tut, soll es versuchen dürfen. *Genannt wird
+  im Hinweis die Zahl, bei der es wirklich kippt: 512 MB, Nodes Grenze für einen
+  einzelnen Text.*
+- **Der Import fragt vor dem Einlesen nach**, wenn die Datei sehr groß ist.
+  Dort steht die Größe ja vorher fest.
+- **Ein Sprungknopf `+ Kommentar`** im Kopf des Kommentarblocks. Bei vierzig
+  Kommentaren ist der Weg ans Formular unter der Liste weit.
+
+### Changed
+
+- **Ein angepinnter Kommentar trägt nur noch eine Farbe.** Bisher galt: linke
+  Kante in der Farbe der Art, die drei übrigen in Gold — ein angepinnter
+  Bericht war damit orange **und** gold. Künftig nehmen die drei übrigen Kanten
+  dieselbe Farbe an wie die linke; Gold bleibt der angepinnten Notiz, die keine
+  eigene Farbe hat. **Erkennbar bleibt die Anpinnung am 📌 und daran, dass
+  Angepinntes oben steht.** *Keine Breite und kein Innenabstand ändern sich.*
+- **Am Kriterium steht `⌀ 4,2 (3)` statt `4,2 · 3`** — dieselbe Form, die die
+  Kopfzahl darüber schon spricht, dazu der Klartext für Vorleseprogramme.
+- **Die Kopfzeile der Kommentare nennt die offenen Aufgaben:**
+  `5 Aufgaben (3 offen, 2 erledigt)`. Die Klammer erscheint nur, wenn überhaupt
+  etwas erledigt ist.
+- **„mehr" und „zurücksetzen" stehen am rechten Ende der Tags-Zeile** statt
+  darunter. Sie kosteten dort so viel Platz wie eine ganze Reihe Tags — auf der
+  Eintragsseite war dieselbe Sache längst so gebaut.
+- **Das Zeichen der Anlage steht vor der Versionszeile**, und der Abstand
+  darunter fällt auf der Anmeldeseite kleiner aus. *Ein Telefonbefund; am
+  Desktop bleibt es, wie es war.*
+- **Die Frage nach dem zweiten Faktor nennt das Verfahren und nicht das Gerät.**
+  Aus „Code aus deiner App" wird „Code des zweiten Faktors". **Dasselbe Feld
+  nimmt auch einen Wiederherstellungscode entgegen**, und der kommt von einem
+  Zettel — die alte Beschriftung war für die Hälfte der Fälle falsch. Im
+  Bestätigungsfenster steht der zweite Weg jetzt auch daneben; bisher stand er
+  dort nirgends.
+- **Die Kachelliste zeichnet nur noch, was zu sehen ist** (`content-visibility`).
+  Gemessen an 1000 Kacheln in Chromium: **auf dem Telefon fällt die Aufbauzeit
+  von 397 auf 168 ms**, am Desktop ändert sich im Rauschen nichts. *Kein
+  Nachladen beim Rollen und kein Blättern — beides zerschnitte die Suche oder
+  führte einen Zustand ein, den jeder Filter zurücksetzen müsste.*
+
+### Fixed
+
+- **Ein zu großer Export bricht nicht mehr wortlos ab.** Die Route rechnet ihre
+  Größe aus, **bevor** sie zu bauen anfängt, und sagt mit einer lesbaren Meldung
+  ab, statt nach zwei Minuten mit `RangeError: Invalid string length` in einen
+  Serverfehler zu laufen. *Ein Knopf, der so abbricht, sieht aus wie ein
+  kaputtes Programm; er ist aber eine erreichte Grenze — der Unterschied liegt
+  allein darin, ob die Anlage es vorher sagt.*
+- **Die Zahlen an den Exportknöpfen folgen den Häkchen.** Bisher standen dort
+  feste Werte aus dem Aufbau: wer Dateien und Videos ankreuzte, fand nirgends,
+  was dabei herauskommt.
+- **Die Schätzung zählt, was der Export wirklich schreibt.** Die Vorschaubilder
+  (`photos.thumb`, `comment_images.thumb`) gehen nie mit in die Datei; eine
+  Summe über alle Blob-Spalten fiele zu hoch aus, und eine Warnung, die zu früh
+  kommt, wird weggeklickt.
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Kein Schema, keine Migration, keine neue Zeile in der `.env`, keine
+neue Abhängigkeit. Einspielen wie in der README beschrieben, danach den
+Fingerprint in den Kennzahlen gegen die Zeile im Änderungsprotokoll halten.
+
+*Wer die CrowdSec-Zeile oder die Protokollrotation aus der README übernehmen
+will, tut das von Hand in seiner eigenen `docker-compose.yml` — die Anlage
+ändert dafür nichts.*
+
+### Was gleich bleibt
+
+**Das Austauschformat** — Formatnummer **10**, unverändert; ältere Exportdateien
+lassen sich weiterhin einspielen und diese Version schreibt weiterhin dasselbe.
+**Das Schema**, Zeile für Zeile. **Die Rechtezeile**: Export und Import gehören
+weiterhin allein dem Eigentümer. **Der Sicherungsweg** über `VACUUM INTO` ist
+unangetastet — und er ist für große Bestände der richtige. **Der Export als
+Strom wurde ausdrücklich nicht gebaut**: er ist ein Umbau an einer Stelle, die
+nachweislich funktioniert, und die Sicherung ist seit 0.8.70 ohnehin der
+Hauptweg.
+
+---
+
 ## [0.12.2] - 2026-08-28
 
 **Die Vorschaureihe unter dem Bild füllt auf dem Telefon die Breite** — sie hörte
@@ -1471,11 +1585,14 @@ nicht mehr übernehmen.*
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
      `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0`, `v0.12.0`,
-     `v0.12.1` UND `v0.12.2` sind angelegt, aber NICHT geschoben — der Push
-     scheitert in der Arbeitsumgebung an HTTP 403 (Branches gehen durch, Tags
-     nicht). Solange das so ist, zeigen die vier Verweise darunter ins Leere. -->
+     `v0.12.1`, `v0.12.2` UND `v0.12.3` sind angelegt, aber NICHT geschoben —
+     der Push scheitert in der Arbeitsumgebung an HTTP 403 (Branches gehen
+     durch, Tags nicht). Erneut versucht am 28. August 2026 mit demselben
+     Ergebnis. Solange das so ist, zeigen die fünf Verweise darunter ins
+     Leere. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
 [0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0
 [0.12.0]: https://github.com/fardem/kriterion/compare/v0.11.0...v0.12.0
 [0.12.1]: https://github.com/fardem/kriterion/compare/v0.12.0...v0.12.1
 [0.12.2]: https://github.com/fardem/kriterion/compare/v0.12.1...v0.12.2
+[0.12.3]: https://github.com/fardem/kriterion/compare/v0.12.2...v0.12.3

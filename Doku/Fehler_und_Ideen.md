@@ -143,7 +143,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 
 | Runde | Was daraus geworden ist |
 |---|---|
-| **0.12.3** *PATCH* | Export durch den Arbeitsspeicher · nur zeichnen, was zu sehen ist · ein Kasten, eine Farbe · Speicherverbrauch · ⌀ und Anzahl · „offen" in der Kopfzeile · Kommentar ohne Rollen · Versionszeile · „mehr" frisst eine Zeile |
+| **0.12.3** *PATCH* — **GEBAUT am 28. August 2026** | Export durch den Arbeitsspeicher · nur zeichnen, was zu sehen ist · ein Kasten, eine Farbe · Speicherverbrauch · ⌀ und Anzahl · „offen" in der Kopfzeile · Kommentar ohne Rollen · Versionszeile · „mehr" frisst eine Zeile. **Was gebaut wurde, steht im Änderungsprotokoll 0.12.3; was daraus herausgenommen wurde, in Abschnitt 10a.** |
 | **0.13.0** *MINOR* | Der Proxy ist ein Ja/Nein · gescheiterte Anmeldungen und CrowdSec · gelöschte Zugänge und der Weg zurück |
 | **0.14.0** *MINOR, Schema* | Aus „abgelehnt" wird eine Entscheidung |
 | **0.15.0** *MINOR* | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · Vorschau der Rangfolge |
@@ -421,6 +421,18 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 
 ### Aus dem Betrieb und aus den Runden
 
+- **Dieselbe Tagwolke ist an zwei Stellen verschieden gebaut** *(0.12.3)*.
+  Auf der Eintragsseite sitzt „mehr" in einer eigenen Kopfzeile (`.wolke-kopf`,
+  `space-between`), in der Übersicht als Kind der Filterzeile mit
+  `margin-left: auto`. **0.12.3 hat die Übersicht auf dasselbe Verhalten
+  gebracht, nicht auf dieselbe Bauform** — Stolperstein 47, im Kleinen.
+  *Zusammengeführt wurde bewusst nicht: die beiden Zeilen tragen Verschiedenes
+  (die Filterzeile trägt Und/Oder und die Auswahl, die Kopfzeile nur eine
+  Beschriftung), und eine gemeinsame Bauform müsste beides können.* **Solange
+  beide dasselbe tun, ist es eine Doppelung und kein Fehler; sobald eine von
+  beiden sich ändert, ist es einer.** *(Claude: später — eigene Runde, keine
+  Beifracht. Später denkbar: `+7` statt „mehr", was voraussetzt, dass die
+  überzähligen Tags weggeblendet statt beschnitten werden.)*
 - **Prüfung der Wiederherstellung** *(0.8.70)*. Seit die Sicherung über
   `VACUUM INTO` der Hauptweg ist, gibt es eine Datei, die niemand je
   zurückgespielt hat — **eine Sicherung ohne Probe ist eine Vermutung.** Ein
@@ -496,6 +508,28 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   Auskunftszeile unter dem roten Punkt — die Ausgabe war gefiltert.* **Nicht
   wegerklärt, sondern nicht reproduziert.** Wer ihn wiedersieht, schreibt den
   Lauf vollständig mit. *(Claude: später — beobachten)*
+- **`jsdom` misst nichts, und mit 0.12.3 trifft das zum ersten Mal eine
+  Eigenschaft, die AUSSCHLIESSLICH im Zeichnen wirkt** *(0.12.3)*. Bisher traf
+  der Mangel Ausrichtung, Trefferflächen und Umbruchpunkte — Dinge, die man
+  wenigstens an der Regel festmachen kann. **`content-visibility: auto` ist
+  dagegen nur als Wirkung überhaupt etwas**, und der Prüfstand kann nur
+  festhalten, dass die Regel dasteht. *Das ist keine Prüfung ihrer Wirkung, und
+  über der Gruppe steht ausdrücklich, dass sie es nicht ist.* **Dieselbe Stelle
+  hat einen zweiten Weg gekostet:** „mehr" an der Tagwolke entsteht in `jsdom`
+  nie, weil `begrenzeWolke()` bei Höhe null aussteigt — geprüft wird deshalb
+  über „zurücksetzen". *Die Messung ist mit einem echten Browser gefahren und
+  steht im Änderungsprotokoll 0.12.3.* **Was fehlt, ist ein Weg, solche
+  Messungen wiederholbar zu machen, ohne eine Abhängigkeit aufzunehmen.**
+  *(Claude: später — die Frage ist nicht das Werkzeug, sondern wo die Zahlen
+  hingehören)*
+- **Ein Papier, das zwischen zwei Runden ohne Lauf geändert wird, kann den
+  Prüfstand rot machen, ohne dass es jemand bemerkt** *(0.12.3)*. Der
+  Sprachwächter sieht auch die Dokumente an. Ein Merge in `Fehler_und_Ideen.md`
+  nach 0.12.2 brachte `Zeichenkette` statt `String` herein; der Branch war
+  danach rot und niemand hat es gesehen, weil zwischen Merge und nächster Runde
+  kein Lauf lag. *(Claude: empfohlen — der Prüflauf bei jedem Push gibt es seit
+  0.8.10; hier hat er entweder nicht gegriffen oder niemand hat hingesehen. Das
+  gehört nachgeprüft, bevor daraus eine neue Regel wird.)*
 
 ### Aus der Durchsicht für Telefon und Tablett
 
@@ -615,7 +649,7 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
   der Tabelle.** *Und CrowdSec braucht ihn nicht — es sperrt nach Adresse.*
   Siehe Fahrplan 0.13.0, „Gescheiterte Anmeldungen" (b).
 - **Die Adresse des Aufrufers im Sicherheitsprotokoll.** Dasselbe, und dazu:
-  die Tabelle trägt Nummern aus geschlossenen Listen, nicht Zeichenketten von
+  die Tabelle trägt Nummern aus geschlossenen Listen, nicht Strings von
   außen. Die Adresse gehört ins Containerprotokoll, wo sie gelesen wird.
 - **Eine Protokollzeile für den ausgebremsten Fall — in der Tabelle.** Sie ist
   die einzige Zeile, die ein Fremder auslösen kann, und die Bremse ist ihr

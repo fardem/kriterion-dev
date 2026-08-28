@@ -15099,6 +15099,129 @@ const freigabeHaupt = (zweck, ziel = null) =>
       `${vStats?.photoCount}/${nBild} Fotos, ${vStats?.videoCount}/${nVideo} Videos`);
   }
 
+  /* --- 0.12.3: die erwartete Exportgroesse steht in denselben Kennzahlen ---
+     ZWEI FRAGEN, ZWEI ZAHLEN. `dbBytes` sagt, wie viel Platz die Anlage auf
+     der Platte braucht -- samt Indizes, Sicherheitsprotokoll und freien Seiten
+     aus Geloeschtem. `export` sagt, wie gross die Datei wird, die das Haus
+     verlaesst: Base64 statt Bytes, dafuer ohne alles, was nicht mitgeht.
+     Dass die eine die andere ueberschreiten kann, ist kein Fehler. */
+  const exStats = (await ruf('GET', '/api/stats')).inhalt;
+  // ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne
+  // dieses Feld blieben alle Pruefungen darunter auf undefined stehen.
+  pruefe('Die Kennzahlen nennen die Teile der Exportgroesse',
+    exStats?.export && ['umschlag', 'fotos', 'videos', 'anhaenge', 'kommentarbilder']
+      .every(k => typeof exStats.export[k] === 'number'),
+    JSON.stringify(exStats?.export));
+  /* DIE GRENZEN GEHEN MIT. Ohne sie muesste die Oberflaeche 300 MB und die
+     Stringgrenze selbst kennen -- und dann staende dieselbe Zahl an zwei
+     Orten und liefe irgendwann auseinander. */
+  pruefe('Und alle drei Grenzen dazu, damit die Oberflaeche sie nicht selbst kennt',
+    exStats?.export?.warnAb === 300 * 1024 * 1024 && exStats?.export?.grenze > 4e8 &&
+    exStats?.export?.string === require('buffer').constants.MAX_STRING_LENGTH,
+    JSON.stringify(exStats?.export && { warnAb: exStats.export.warnAb,
+      grenze: exStats.export.grenze, string: exStats.export.string }));
+  /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen: wo
+     gewarnt wird, wo abgesagt wird, und wie lang ein Text ueberhaupt werden
+     kann. Nur die letzte ist eine Tatsache; die beiden anderen sind
+     Entscheidungen. */
+  pruefe('Und sie stehen in dieser Ordnung: warnen, absagen, Tatsache',
+    exStats?.export?.warnAb < exStats?.export?.grenze &&
+    exStats?.export?.grenze < exStats?.export?.string,
+    JSON.stringify(exStats?.export && [exStats.export.warnAb, exStats.export.grenze, exStats.export.string]));
+  pruefe('Der Warnwert liegt deutlich unter der Grenze — das ist die Luft der Schaetzung',
+    exStats?.export?.warnAb < exStats?.export?.grenze * 0.75,
+    `${exStats?.export?.warnAb} gegen ${exStats?.export?.grenze}`);
+  pruefe('Der Umschlag faellt an, auch ohne jeden Blob',
+    exStats?.export?.umschlag > 0, String(exStats?.export?.umschlag));
+  {
+    /* GEZAEHLT WIRD, WAS DER EXPORT WIRKLICH SCHREIBT -- nicht, was in der
+       Datenbank liegt. `photos.thumb` geht nie mit, `comment_images.thumb`
+       ebenso wenig, und beim Video steht neben den Daten das Standbild.
+       Eine Summe ueber ALLE Blob-Spalten faellt deshalb zu hoch aus, und eine
+       Warnung, die zu frueh kommt, wird weggeklickt. Die Gegenrechnung steht
+       hier und rechnet aus der Datenbank nach. */
+    const d = oeffne(path.join(DATA, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    const eins = (sql) => d.prepare(sql).get().n || 0;
+    const b64 = (n) => Math.round(n * 4 / 3);
+    const fotoRoh = eins("SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE art != 'video'");
+    const thumbRoh = eins("SELECT COALESCE(SUM(length(thumb)),0) n FROM photos WHERE art != 'video'");
+    const kbRoh = eins('SELECT COALESCE(SUM(length(data)),0) n FROM comment_images');
+    d.close();
+    pruefe('Die Fotogroesse ist die Base64-Groesse der Daten, nicht der Bytes',
+      exStats?.export?.fotos === b64(fotoRoh),
+      `${exStats?.export?.fotos} gegen ${b64(fotoRoh)}`);
+    // Und die Gegenprobe zur Gegenrechnung: gaebe es keine Vorschaubilder,
+    // liesse sich nicht zeigen, dass sie NICHT mitgezaehlt werden.
+    pruefe('Es gibt ueberhaupt Vorschaubilder, an denen sich das zeigen laesst',
+      thumbRoh > 0, String(thumbRoh));
+    pruefe('Und die Vorschaubilder sind NICHT eingerechnet — sie gehen nie mit',
+      exStats?.export?.fotos < b64(fotoRoh + thumbRoh),
+      `${exStats?.export?.fotos} gegen ${b64(fotoRoh + thumbRoh)}`);
+    pruefe('Die Kommentarbilder zaehlen zu den Dateien und nicht zu den Fotos',
+      exStats?.export?.kommentarbilder === b64(kbRoh),
+      `${exStats?.export?.kommentarbilder} gegen ${b64(kbRoh)}`);
+    pruefe('Und sie stehen jetzt auch als eigene Zeile in den Kennzahlen',
+      typeof exStats?.commentImageCount === 'number' && typeof exStats?.commentImageBytes === 'number',
+      JSON.stringify({ n: exStats?.commentImageCount, o: exStats?.commentImageBytes }));
+  }
+  /* DIE ABSAGE STEHT VOR DEM BAU, nicht hinter dem Abbruch. Ein Bestand, der
+     die Grenze wirklich reisst, laesst sich hier nicht herstellen -- das
+     waeren 460 MB Prueflage. Geprueft wird deshalb am Quelltext, dass die
+     Klemme ueberhaupt DAVOR steht: dieselbe Bauform, die der Waechter fuer
+     die Rechtezeile am Export schon fuehrt. */
+  {
+    const rumpf = (fQuelle.match(/app\.get\('\/api\/export'[\s\S]*?\n\}\);/) || [''])[0];
+    pruefe('Die Exportroute steht ueberhaupt da', rumpf.length > 200, String(rumpf.length));
+    pruefe('Sie misst ihre Groesse, bevor sie baut',
+      rumpf.indexOf('austauschBytes') > 0 &&
+      rumpf.indexOf('austauschBytes') < rumpf.indexOf('eintragAlsPaket'),
+      `${rumpf.indexOf('austauschBytes')} gegen ${rumpf.indexOf('eintragAlsPaket')}`);
+    pruefe('Und sagt ab, statt am String zu zerbrechen',
+      /AUSTAUSCH_MAX\)?\s*\n?\s*return res\.status\(413\)/.test(rumpf) ||
+      /> AUSTAUSCH_MAX/.test(rumpf) && /413/.test(rumpf),
+      rumpf.replace(/\s+/g, ' ').slice(0, 240));
+    /* DAS NETZ BLEIBT DARUNTER: die Absage rechnet, sie misst nicht. Faellt
+       die Schaetzung zu niedrig aus, wirft JSON.stringify -- und dann muss
+       auch der Dateikopf wieder weg, sonst laedt der Browser die Meldung als
+       Exportdatei herunter. */
+    pruefe('Und faengt den Wurf ab, falls die Schaetzung zu niedrig war',
+      /RangeError/.test(rumpf) && /removeHeader\('Content-Disposition'\)/.test(rumpf),
+      rumpf.replace(/\s+/g, ' ').slice(-240));
+    /* KEIN STROM. Er steht im Fahrplan als (c) und ausdruecklich nicht in
+       dieser Runde: ein Umbau an einer Stelle, die nachweislich funktioniert. */
+    pruefe('Der Export bleibt eine Antwort und wird kein Strom',
+      !/res\.write\(|createReadStream|pipe\(/.test(rumpf),
+      rumpf.replace(/\s+/g, ' ').slice(0, 200));
+    /* DIE ABSAGE MUSS DEN UMSCHLAG MITRECHNEN, sonst laesst sie genau die
+       Datei durch, die an ihm zerbricht.
+       WARUM AM QUELLTEXT UND NICHT AM VERHALTEN: der Umschlag faellt erst ins
+       Gewicht, wenn die Summe nahe an AUSTAUSCH_MAX liegt -- das waeren rund
+       460 MB Prueflage. Ein Rueckbau, der `austauschUmschlagBytes(itemId)` aus
+       `austauschBytes()` nimmt, blieb deshalb STUMM (Gegenprobe 171): die
+       Kennzahlen lesen den Umschlag getrennt und merkten davon nichts.
+       Der Waechter schliesst genau diese Luecke. */
+    pruefe('Und die Absage rechnet den Umschlag mit',
+      /return t\.fotos \+ t\.videos \+ t\.anhaenge \+ t\.kommentarbilder \+ austauschUmschlagBytes\(itemId\);/
+        .test(fQuelle),
+      (fQuelle.match(/return t\.fotos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
+    /* Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er auf
+       einen Namen zielt, den es gar nicht mehr gibt. */
+    pruefe('Der Waechter zielt auf eine Rechnung, die es wirklich gibt',
+      /function austauschUmschlagBytes\(itemId\)/.test(fQuelle) &&
+      /function austauschBytes\(itemId, schalter\)/.test(fQuelle),
+      'eine der beiden Rechnungen heisst anders');
+    /* DIESELBE FRAGE AM EINZELEXPORT: dort steht die Absage seit den Videos,
+       und sie liest dieselbe Rechnung. Ohne diese Zeile bliebe offen, ob der
+       Umschlag nur an EINEM der beiden Wege ankommt. */
+    {
+      const einzel = (fQuelle.match(/app\.get\('\/api\/items\/:id\/export'[\s\S]*?\n\}\);/) || [''])[0];
+      pruefe('Der Einzelexport misst mit derselben Rechnung wie der volle',
+        /austauschBytes\(it\.id, schalter\)/.test(einzel) && /AUSTAUSCH_MAX/.test(einzel),
+        einzel.replace(/\s+/g, ' ').slice(0, 200) || '(keine Route)');
+    }
+  }
+
   /* ---------------------------------------------------------------- */
   gruppe('Videos: Auslieferung (Sicherheitsregel)');
 
@@ -16615,7 +16738,7 @@ const DOM_ANBIETER = [
    gebaut ist (Stolperstein 90). */
 function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
-  tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null,
+  tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null, statsExport = null,
   zweifaktorCodes = null, anmeldeFaktor = false, suchFehler = false, suchBremsen = null,
   kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
@@ -17538,10 +17661,22 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
          Groesse aus videoBytes, die Kennzahlenkarte zeigt den Papierkorb als
          eigene Zeile. Ein Mock, der ein gelesenes Feld auslaesst, deckt die
          Serverseite zu (Stolperstein 90). */
+      /* `export` und die Kommentarbilder stehen hier seit 0.12.3, aus demselben
+         Grund wie die beiden Absaetze darueber: die Karten LESEN sie. Die
+         Exportkarte rechnet ihre Zahlen daraus und haengt die Warnung an
+         `warnAb`, die Kennzahlenkarte zeigt beide Zeilen. Ein Mock ohne diese
+         Felder liesse jede Pruefung daran blind laufen (Stolperstein 90) --
+         und er darf sie ausdruecklich nicht selbst ausrechnen, sonst belegte
+         die Prueflage ihre eigene Rechnung statt der des Servers
+         (Stolperstein 102). */
       return gib({ dbBytes: 1, photoCount: 0, photoBytes: 0, itemCount: 1,
         videoCount: 0, videoBytes: 0,
         commentCount: 0, linkCount: 0, testDayCount: 0, attachmentCount: 4, attachmentBytes: 6144,
         papierkorbCount: 2, papierkorbBytes: 2560,
+        commentImageCount: 3, commentImageBytes: 1536,
+        export: statsExport || { umschlag: 4096, fotos: 65536, videos: 32768,
+          anhaenge: 8192, kommentarbilder: 2048,
+          warnAb: 300 * 1024 * 1024, grenze: 483183799 },
         version: require('./package.json').version, fingerprint: 'a1b2c3d4',
         keyFromEnv: false, keyHex: 'ab'.repeat(32) });
     }
@@ -17850,7 +17985,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   const kzVok = wVok.document.getElementById('ccount');
   pruefe('Die Zahlen am Kommentarblock folgen dem Vokabular',
-    kzVok?.textContent === '6 Kommentare, davon 1 Notat und 2 ToDo’s (1 Done)',
+    kzVok?.textContent === '6 Kommentare, davon 1 Notat und 2 ToDo’s (1 offen, 1 Done)',
     kzVok ? kzVok.textContent : '(kein Hinweis)');
   pruefe('„Kommentar" bleibt dabei fest',
     /^6 Kommentare/.test(kzVok?.textContent || '') &&
@@ -19046,7 +19181,7 @@ async function pruefeOberflaeche() {
     `"${kommentare.querySelector('.bsumme').textContent}"`);
   pruefe('Und derselbe volle Satz steht weiterhin in der Kopfzeile',
     kommentare.querySelector('#ccount')?.textContent
-      === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 Erledigt)',
+      === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen, 1 Erledigt)',
     kommentare.querySelector('#ccount')?.textContent);
   // Wieder aufklappen, damit die Gruppen darunter denselben Aufbau vorfinden.
   kommentare.querySelector('.block-head').onclick({ target: kommentare.querySelector('.label') });
@@ -19303,8 +19438,26 @@ async function pruefeOberflaeche() {
   // Jede Zeile ihre eigene Zahl: gleiche Werte koennten nicht zeigen, ob die
   // Spalte ueberhaupt der richtigen Zeile zugeordnet ist.
   pruefe('Sie nennt Schnitt und Zahl der Bewerter je Zeile',
-    eSpalten[0]?.textContent === '3,4 · 5' && eSpalten[1]?.textContent === '4,1 · 2',
+    eSpalten[0]?.textContent === '⌀ 3,4 (5)' && eSpalten[1]?.textContent === '⌀ 4,1 (2)',
     JSON.stringify(eSpalten.map(z => z.textContent)));
+  /* --- 0.12.3: dieselbe Form wie die Kopfzahl darueber ---
+     DAS ⌀ IST DIE HAUSFORM: die Kopfzahl schreibt bereits "⌀ 4,2 gewichtet",
+     und zwei Formen fuer dieselbe Aussage sind eine zu viel.
+     UND DER KLARTEXT GEHOERT DAZU -- ein Symbol allein liest kein
+     Vorleseprogramm vor. Ohne die zweite Haelfte bliebe ein ersatzloses
+     Loeschen des title gruen. */
+  pruefe('Die Zeile spricht dieselbe Form wie die Kopfzahl darueber',
+    eSpalten.slice(0, 2).every(z => /^⌀ \d,\d \(\d+\)$/.test(z.textContent)),
+    JSON.stringify(eSpalten.map(z => z.textContent)));
+  pruefe('Und kein Mittelpunkt trennt die beiden Zahlen mehr',
+    !eSpalten.some(z => z.textContent.includes('·')),
+    JSON.stringify(eSpalten.map(z => z.textContent)));
+  pruefe('Das Zeichen wird im Klartext erklaert',
+    eSpalten[0]?.title === 'Durchschnitt 3,4 aus 5 Stimmen', eSpalten[0]?.title);
+  pruefe('Und die Einzahl steht auch dort',
+    eSpalten[1]?.title === 'Durchschnitt 4,1 aus 2 Stimmen', eSpalten[1]?.title);
+  pruefe('Ein Kriterium ohne Stimme bekommt keinen Klartext',
+    !eSpalten[2]?.title, eSpalten[2]?.title);
   pruefe('Der Schnitt steht mit Komma, nicht mit Punkt',
     !eSpalten.some(z => z.textContent.includes('.')),
     JSON.stringify(eSpalten.map(z => z.textContent)));
@@ -20633,6 +20786,63 @@ async function pruefeOberflaeche() {
     !kmts[2].classList.contains('bericht'));
   pruefe('Angepinntes ist optisch erkennbar',
     kmts[0].classList.contains('pinned') && !kmts[1].classList.contains('pinned'));
+
+  /* --- 0.12.3: der Sprungknopf im Blockkopf ---
+     DAS FORMULAR SITZT UNTER DER LISTE, und bei vierzig Kommentaren ist der
+     Weg dorthin weit. Der Knopf springt hin -- er baut ausdruecklich KEIN
+     zweites Formular: das vorhandene traegt Bilder-Einfuegen, Anpinnen,
+     Art-Umschalter und Mitwachsen, und ein zweites davon waeren zwei
+     Wahrheiten ueber dasselbe Formular. */
+  const cjKopf = wb.document.getElementById('cjump');
+  pruefe('Im Blockkopf der Kommentare steht ein Sprungknopf',
+    !!cjKopf, wb.document.querySelector('[data-block="kommentare"] .block-head')?.innerHTML.slice(0, 200));
+  pruefe('Und zwar in genau der Kopfzeile, die auch die Zahlen traegt',
+    !!cjKopf && cjKopf.closest('.block-head') === wb.document.getElementById('ccount')?.closest('.block-head'),
+    cjKopf?.closest('.block-head')?.className);
+  /* ALS BUTTON UND NICHT ALS VERWEIS: kopf.onclick nimmt jeden Klick auf ein
+     `button` aus, und ohne das klappte der Sprung den Block im selben
+     Atemzug ein. */
+  pruefe('Er ist ein Knopf — sonst klappte der Klick den Block gleich mit ein',
+    cjKopf?.tagName === 'BUTTON', cjKopf?.tagName);
+  pruefe('Es entsteht dabei kein zweites Schreibfeld',
+    wb.document.querySelectorAll('#ctext').length === 1,
+    String(wb.document.querySelectorAll('#ctext').length));
+  {
+    /* Der Klick fuehrt wirklich ans Feld. scrollIntoView gibt es in jsdom
+       nicht -- es wird gestellt und dabei gezaehlt, sonst risse der Klick den
+       Lauf ab und die Pruefung sagte nichts (Stolperstein 138). */
+    const feld = wb.document.getElementById('ctext');
+    let gerollt = 0;
+    feld.scrollIntoView = () => { gerollt++; };
+    feld.blur();
+    cjKopf?.dispatchEvent(new wb.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Der Klick rollt zum Schreibfeld', gerollt === 1, `${gerollt}`);
+    pruefe('Und setzt den Zeiger hinein', wb.document.activeElement === feld,
+      wb.document.activeElement?.id || '(nichts)');
+    pruefe('Der Block bleibt dabei offen',
+      !feld.closest('.block').classList.contains('zu'), feld.closest('.block').className);
+
+    /* UND DERSELBE KLICK AM EINGEKLAPPTEN BLOCK. Ohne diese Lage belegte die
+       Zeile darueber nichts: der Block war in der Prueflage ohnehin offen, und
+       ein Rueckbau, der das Aufklappen herausnimmt, blieb dabei stumm
+       (Gegenprobe 182). Ein eingeklappter Block stellt seine Kinder auf
+       display: none -- ein Sprung auf ein unsichtbares Feld landete irgendwo. */
+    const cjBlock = feld.closest('.block');
+    wb.document.querySelector('[data-block="kommentare"] .block-head')
+      .onclick({ target: wb.document.querySelector('[data-block="kommentare"] .label') });
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Die Prueflage bekommt den Block wirklich zu',
+      cjBlock.classList.contains('zu'), cjBlock.className);
+    gerollt = 0;
+    wb.document.getElementById('cjump')
+      .dispatchEvent(new wb.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Der Sprungknopf klappt einen geschlossenen Block zuerst auf',
+      !cjBlock.classList.contains('zu'), cjBlock.className);
+    pruefe('Und rollt danach trotzdem ans Feld',
+      gerollt === 1, `${gerollt}`);
+  }
   pruefe('Beides ist unterscheidbar, nicht dasselbe',
     kmts[0].className !== kmts[1].className);
 
@@ -20884,7 +21094,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 90));
   const kZaehl = kzDom.w.document.getElementById('ccount');
   pruefe('Der Kommentarblock traegt seine Zahlen in der Kopfzeile',
-    !!kZaehl && kZaehl.textContent === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 Erledigt)',
+    !!kZaehl && kZaehl.textContent === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen, 1 Erledigt)',
     kZaehl ? kZaehl.textContent : '(kein Hinweis)');
   pruefe('Und zwar dort, wo Links und Dateien ihren auch tragen',
     !!kZaehl && !!kZaehl.closest('.block-head') &&
@@ -20907,14 +21117,27 @@ async function pruefeOberflaeche() {
   pruefe('Ohne Erledigte faellt die Klammer weg',
     kz('note', 'task', 'task') === '3 Kommentare, davon 2 Aufgaben', kz('note', 'task', 'task'));
   pruefe('Das Erledigte steckt IN den Aufgaben, nicht daneben',
-    kz('task', 'task', 'done') === '3 Kommentare, davon 3 Aufgaben (1 Erledigt)',
+    kz('task', 'task', 'done') === '3 Kommentare, davon 3 Aufgaben (2 offen, 1 Erledigt)',
     kz('task', 'task', 'done'));
   pruefe('Ein erledigtes Todo allein ist immer noch eine Aufgabe',
-    kz('done') === '1 Kommentar, davon 1 Aufgabe (1 Erledigt)', kz('done'));
+    kz('done') === '1 Kommentar, davon 1 Aufgabe (0 offen, 1 Erledigt)', kz('done'));
   pruefe('Zwei Gruppen werden mit „und" verbunden, nicht mit einem Mittelpunkt',
     kz('report', 'report', 'task', 'done', 'note')
-      === '5 Kommentare, davon 2 Berichte und 2 Aufgaben (1 Erledigt)',
+      === '5 Kommentare, davon 2 Berichte und 2 Aufgaben (1 offen, 1 Erledigt)',
     kz('report', 'report', 'task', 'done', 'note'));
+  /* --- 0.12.3: die Zahl, nach der im Alltag gefragt wird ---
+     ABGEZOGEN UND NICHT GEZAEHLT: `aufgaben - fertig` kann von der Summe
+     nicht abweichen, eine zweite Zaehlung ueber kind='task' schon. Die
+     Prueflage haelt beides zusammen fest. */
+  pruefe('Die offenen Aufgaben stehen voran, vor den erledigten',
+    /\(3 offen, 2 Erledigt\)/.test(kz('task', 'task', 'task', 'done', 'done')),
+    kz('task', 'task', 'task', 'done', 'done'));
+  pruefe('Offen und erledigt ergeben zusammen die Zahl davor',
+    kz('task', 'task', 'task', 'done', 'done') === '5 Kommentare, davon 5 Aufgaben (3 offen, 2 Erledigt)',
+    kz('task', 'task', 'task', 'done', 'done'));
+  pruefe('Ohne Erledigte steht kein „(5 offen)" da — die Zahl davor sagt es schon',
+    kz('task', 'task', 'task') === '3 Kommentare, davon 3 Aufgaben',
+    kz('task', 'task', 'task'));
   pruefe('Bei einem einzigen greift ueberall die Einzahl',
     kz('report', 'task') === '2 Kommentare, davon 1 Bericht und 1 Aufgabe',
     kz('report', 'task'));
@@ -22479,6 +22702,17 @@ async function pruefeOberflaeche() {
   pruefe('Ein Feld fuer BEIDE Formen, kein Umschalter daneben',
     zdMit.w.document.querySelectorAll('.login-card input').length === 1,
     String(zdMit.w.document.querySelectorAll('.login-card input').length));
+  /* --- 0.12.3: und die Beschriftung schliesst keine der beiden Formen aus ---
+     "Sechsstelliger Code" war fuer den Wiederherstellungscode falsch -- der
+     hat zehn Zeichen -- und "aus deiner App" fuer ihn ebenso: er kommt von
+     einem Zettel. Die Beschriftung nennt deshalb das Verfahren, und der
+     Hinweis darunter nennt den zweiten Weg. */
+  const zdLabel = zdMit.w.document.querySelector('label[for="zf-code"]')?.textContent || '';
+  pruefe('Die Beschriftung nennt das Verfahren und keine Zeichenzahl',
+    /Code des zweiten Faktors/.test(zdLabel) && !/[Ss]echsstellig/.test(zdLabel), zdLabel);
+  pruefe('Und die Seite spricht nirgends mehr von einer App',
+    !/\bApp\b/i.test(zdMit.w.document.querySelector('.login-card')?.textContent || ''),
+    (zdMit.w.document.querySelector('.login-card')?.textContent || '').replace(/\s+/g, ' ').slice(0, 200));
   /* DER AUSWEIS AUS SCHRITT 1 WIRD WIRKLICH MITGESCHICKT und nicht neu
      erfunden -- er ist die einzige Verbindung zwischen den beiden Schritten. */
   const zdEins = zdMit.gesendet.filter(g => g.url === '/api/login').pop();
@@ -22718,6 +22952,26 @@ async function pruefeOberflaeche() {
     Boolean(zkBest.w.document.getElementById('best-code')), 'kein Codefeld');
   pruefe('Und sagt daneben, warum der Code dazugehoert',
     /zweiten Faktor/.test(
+      zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
+    zkBest.w.document.querySelector('.modal .desc')?.textContent);
+  /* --- 0.12.3: die Beschriftung nennt das VERFAHREN, nicht das Geraet ---
+     "Code aus deiner App" war zweimal falsch. Es fragte nach der Herkunft
+     statt nach der Sache -- und es stimmte fuer die Haelfte der Faelle nicht:
+     dasselbe Feld nimmt auch einen Wiederherstellungscode entgegen, und der
+     kommt von einem Zettel. Der Server sieht der Eingabe an, was gemeint ist
+     (istCodeform gegen istWiederform); die Beschriftung darf deshalb keine
+     der beiden Formen ausschliessen. */
+  const zkLabel = [...zkBest.w.document.querySelectorAll('.modal .field label')]
+    .map(l => l.textContent);
+  pruefe('Das Codefeld nennt das Verfahren',
+    zkLabel.some(t => /Code des zweiten Faktors/.test(t)), JSON.stringify(zkLabel));
+  pruefe('Und keine Beschriftung im Fenster spricht mehr von einer App',
+    !zkLabel.some(t => /App/i.test(t)), JSON.stringify(zkLabel));
+  /* IM DIALOG STAND DER ZWEITE WEG BISHER NIRGENDS. An der Anmeldung steht er
+     seit jeher darunter; hier fehlte er, und wer sein Telefon nicht zur Hand
+     hatte, sah nur ein Feld, das er nicht fuellen konnte. */
+  pruefe('Und der zweite Weg steht daneben, wie an der Anmeldung',
+    /Wiederherstellungscode/.test(
       zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
     zkBest.w.document.querySelector('.modal .desc')?.textContent);
   await bestaetigeImDom(zkBest, 'chefins-wort-100', false, '123456');
@@ -25342,6 +25596,321 @@ async function pruefeOberflaeche() {
   pruefe('Und auch dort im Verhaeltnis 19:23',
     mlB === Math.round(mlH * 19 / 23), `${mlB}x${mlH}`);
   ml.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Exportgroesse sagt sich an');
+
+  /* WAS HIER NICHT GEPRUEFT WERDEN KANN: dass die Datei am Ende wirklich so
+     gross wird. Das hiesse, sie zu bauen -- und genau das soll die Ansage ja
+     ersparen. Geprueft wird deshalb die RECHNUNG: dass jeder Schalter seinen
+     Teil beitraegt, dass der Umschlag immer anfaellt, und dass die Warnung an
+     derselben Zahl haengt wie die Absage. */
+  const exBau = async (statsExport) => {
+    const d = baueDom(JSDOM, { statsExport,
+      einstellungen: { filters: null, istAdmin: true, istEigentuemer: true } });
+    await new Promise(r => setTimeout(r, 60));
+    await d.w.renderSystem();
+    await new Promise(r => setTimeout(r, 40));
+    return d;
+  };
+  const MB = 1024 * 1024;
+  const exKlein = { umschlag: 1 * MB, fotos: 10 * MB, videos: 4 * MB,
+                    anhaenge: 2 * MB, kommentarbilder: 1 * MB,
+                    warnAb: 300 * MB, grenze: 483183799, string: 536870888 };
+  const dEx = await exBau(exKlein);
+  const exW = dEx.w;
+  const exText = (id) => exW.document.getElementById(id)?.textContent || '';
+
+  /* Die Rechnung selbst, an der Funktion und nicht ueber fuenf aufgebaute
+     Karten -- dieselbe Bauform wie bei kommentarZahlen(). */
+  const exS = (schalter) => exW.exportSumme(exKlein, schalter);
+  pruefe('Der Umschlag faellt auch ohne jeden Schalter an',
+    exS({}) === 1 * MB, `${exS({})}`);
+  pruefe('Mit Fotos kommen die Fotos dazu',
+    exS({ mitFotos: true }) === 11 * MB, `${exS({ mitFotos: true })}`);
+  pruefe('Die Dateien nehmen Anhaenge UND Kommentarbilder mit',
+    exS({ mitDateien: true }) === 4 * MB, `${exS({ mitDateien: true })}`);
+  /* Der Videoschalter haengt am Fotoschalter -- am Server wird die Fotoliste
+     ohne ihn gar nicht erst gebaut. Ohne diese Bindung naennte die Karte eine
+     Groesse, die kein Knopf erzeugen kann. */
+  pruefe('Videos ohne Fotos zaehlen nicht mit — so wie der Server sie nicht schreibt',
+    exS({ mitVideos: true }) === 1 * MB, `${exS({ mitVideos: true })}`);
+  pruefe('Mit Fotos zaehlen sie dagegen mit',
+    exS({ mitFotos: true, mitVideos: true }) === 15 * MB,
+    `${exS({ mitFotos: true, mitVideos: true })}`);
+  pruefe('Alles zusammen ist die Summe aller Teile',
+    exS({ mitFotos: true, mitVideos: true, mitDateien: true }) === 18 * MB,
+    `${exS({ mitFotos: true, mitVideos: true, mitDateien: true })}`);
+  pruefe('Ohne Angaben vom Server bleibt die Zahl null statt zu raten',
+    exW.exportSumme(null, { mitFotos: true }) === 0 &&
+    exW.exportSumme(undefined, { mitFotos: true }) === 0,
+    `${exW.exportSumme(null, { mitFotos: true })}`);
+
+  // Die Kennzahlen: die zweite Groessenangabe neben der Datenbankgroesse.
+  const exKv = [...exW.document.querySelectorAll('.sys-card .kv')]
+    .map(z => [z.querySelector('.k')?.textContent, z.querySelector('.v')?.textContent]);
+  const exZeile = (name) => (exKv.find(z => z[0] === name) || [])[1];
+  pruefe('Die Kennzahlen nennen die erwartete Exportgroesse',
+    /^≈ /.test(exZeile('Export, alles') || ''), exZeile('Export, alles'));
+  pruefe('Und sie ist die Summe ueber ALLE Teile, nicht die eines Knopfes',
+    exZeile('Export, alles') === '≈ ' + exW.fmtBytes(18 * MB), exZeile('Export, alles'));
+  pruefe('Die Datenbankgroesse steht weiterhin daneben — zwei Fragen, zwei Zahlen',
+    typeof exZeile('Datenbank') === 'string' && exZeile('Datenbank') !== exZeile('Export, alles'),
+    JSON.stringify([exZeile('Datenbank'), exZeile('Export, alles')]));
+  pruefe('Und die Kommentarbilder haben endlich ihre eigene Zeile',
+    /^3 · /.test(exZeile('Kommentarbilder') || ''), exZeile('Kommentarbilder'));
+
+  // Die Zahlen an den Knoepfen.
+  pruefe('Der Knopf „Mit Fotos" nennt seine Groesse',
+    exText('ex-gr-yes') === exW.fmtBytes(11 * MB), exText('ex-gr-yes'));
+  pruefe('Und „Ohne Fotos" die seine — nicht null, der Umschlag bleibt',
+    exText('ex-gr-no') === exW.fmtBytes(1 * MB), exText('ex-gr-no'));
+  pruefe('Unter dem Schwellwert steht keine Warnung',
+    exText('ex-warn').trim() === '', exText('ex-warn').slice(0, 80));
+
+  /* DIE HAEKCHEN AENDERN DIE DATEI, ALSO MUESSEN SIE DIE ZAHL AENDERN. Vorher
+     standen dort feste Zahlen aus dem Aufbau: wer beide Haekchen setzte, fand
+     nirgends, was dabei herauskommt. */
+  const exHaken = (id) => {
+    const el = exW.document.getElementById(id);
+    el.checked = true;
+    el.dispatchEvent(new exW.Event('change'));
+  };
+  exHaken('ex-files');
+  pruefe('Ein Haken an den Dateien hebt die Zahl am Knopf',
+    exText('ex-gr-yes') === exW.fmtBytes(14 * MB), exText('ex-gr-yes'));
+  exHaken('ex-videos');
+  pruefe('Und der Haken an den Videos noch einmal',
+    exText('ex-gr-yes') === exW.fmtBytes(18 * MB), exText('ex-gr-yes'));
+  pruefe('Ohne Fotos zaehlen die Videos dabei NICHT mit',
+    exText('ex-gr-no') === exW.fmtBytes(4 * MB), exText('ex-gr-no'));
+  exW.close();
+
+  /* Die Lage darueber -- und ohne sie belegte die Zeile „keine Warnung"
+     nichts: eine Warnung, die es gar nicht gibt, faellt auch nicht auf. */
+  const exGross = { umschlag: 20 * MB, fotos: 900 * MB, videos: 200 * MB,
+                    anhaenge: 400 * MB, kommentarbilder: 10 * MB,
+                    warnAb: 300 * MB, grenze: 483183799, string: 536870888 };
+  const dExG = await exBau(exGross);
+  const exG = dExG.w;
+  const warnText = exG.document.getElementById('ex-warn')?.textContent || '';
+  pruefe('Ueber dem Schwellwert steht die Warnung da', warnText.length > 40, warnText.slice(0, 80));
+  pruefe('Sie nennt die erwartete Groesse',
+    warnText.includes(exG.fmtBytes(920 * MB)), warnText.slice(0, 160));
+  /* ZU NENNEN IST DIE ZAHL, BEI DER ES KIPPT -- nicht die, bei der es
+     unbequem wird. Und die ist NICHT unsere Marge, sondern Nodes Stringgrenze:
+     `grenze` ist die Zahl, ab der die Route absagt, und die traegt Luft fuer
+     die Schaetzung. **Eine Meldung, die unsere Marge als Tatsache ausgibt,
+     sagt die Unwahrheit** -- ein Text kann sehr wohl groesser werden als
+     460,8 MB, nur eben nicht groesser als 512. Der Schwellwert und die Marge
+     stehen in keiner Meldung. */
+  pruefe('Und die Grenze, an der es wirklich kippt',
+    warnText.includes(exG.fmtBytes(exGross.string)), warnText.slice(0, 220));
+  pruefe('Und zwar Nodes Stringgrenze und nicht unsere Marge davor',
+    !warnText.includes(exG.fmtBytes(exGross.grenze)) &&
+    !warnText.includes(exG.fmtBytes(exGross.warnAb)), warnText.slice(0, 220));
+  pruefe('Sie verweist auf die Sicherung als den anderen Weg',
+    /Sicherung/.test(warnText), warnText.slice(0, 200));
+  /* GEWARNT WIRD, VERWEIGERT NICHT. Ein Knopf, der bei einer SCHAETZUNG
+     verschwindet, naehme jemandem den Export weg, dessen Datei am Ende
+     gepasst haette. */
+  pruefe('Der Knopf bleibt trotzdem da und bleibt bedienbar',
+    !!exG.document.getElementById('ex-yes') && !exG.document.getElementById('ex-yes').disabled);
+  pruefe('Und die Warnung sagt das auch',
+    /Knopf bleibt/.test(warnText), warnText.slice(0, 260));
+  /* ZWEI FAELLE, UND SIE SAGEN VERSCHIEDENES. Solange der Weg ohne Fotos unter
+     der Marke bleibt, ist er der Ausweg und die Warnung nennt ihn als solchen.
+     Reisst er sie mit, waere derselbe Satz eine Falschaussage: wer dann zum
+     zweiten Knopf greift, kommt nicht davon. Ohne beide Lagen bliebe die
+     Unterscheidung ungeprueft. */
+  pruefe('Bleibt der Weg ohne Fotos unter der Marke, nennt die Warnung ihn',
+    /ohne Fotos bleiben rund/.test(warnText) && !/auch ohne Fotos/.test(warnText),
+    warnText.slice(0, 260));
+  const exGHaken = exG.document.getElementById('ex-files');
+  exGHaken.checked = true;
+  exGHaken.dispatchEvent(new exG.Event('change'));
+  const warnText2 = exG.document.getElementById('ex-warn')?.textContent || '';
+  pruefe('Reisst auch der Weg ohne Fotos die Marke, steht es dabei',
+    /auch ohne Fotos/.test(warnText2), warnText2.slice(0, 260));
+  pruefe('Und die Warnung folgt den Haekchen wie die Zahlen am Knopf',
+    warnText2.includes(exG.fmtBytes(1330 * MB)), warnText2.slice(0, 200));
+  exG.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Anzeige zieht nach — 0.12.3');
+
+  const css123 = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
+  const regel123 = (wahl) => (css123.match(new RegExp(wahl.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
+
+  /* --- 2a: nur zeichnen, was zu sehen ist ---
+     WAS HIER AUSDRUECKLICH NICHT GEPRUEFT WIRD: die WIRKUNG. jsdom misst jede
+     Hoehe als null und kennt weder Layout noch Zeichnen; content-visibility
+     ist dort nachweislich nicht nachweisbar. Dass die Regel dasteht, ist
+     keine Pruefung ihrer Wirkung -- und dieser Satz steht hier, damit niemand
+     die gruenen Punkte darunter fuer eine Messung haelt. Gemessen wurde in
+     Chromium, und die Zahlen stehen im Aenderungsprotokoll 0.12.3. */
+  pruefe('Die Kachel ueberspringt, was ausserhalb des Bildes liegt',
+    /content-visibility: auto/.test(regel123('.card')), regel123('.card').slice(0, 200) || '(keine Regel)');
+  /* OHNE contain-intrinsic-size SPRINGT DER ROLLBALKEN: eine uebersprungene
+     Kachel misst sonst null, und die Liste schrumpft beim Rollen zusammen. */
+  pruefe('Und sie sagt dabei, wie hoch sie ungefaehr ist',
+    /contain-intrinsic-size: auto \d+px/.test(regel123('.card')),
+    (css123.match(/contain-intrinsic-size:[^;}]*/) || ['(nicht gesetzt)'])[0]);
+  /* `auto` VOR DER ZAHL IST DER GANZE TRICK: danach nimmt der Browser die
+     zuletzt WIRKLICH gezeichnete Hoehe, und die geschaetzte gilt nur bis zum
+     ersten Zeichnen. Ohne das Wort bliebe die Schaetzung fuer immer stehen. */
+  const alleIntrinsisch = css123.match(/contain-intrinsic-size:[^;}]*/g) || [];
+  pruefe('Jede Angabe traegt das Wort auto — sonst gaelte die Schaetzung fuer immer',
+    alleIntrinsisch.length >= 2 && alleIntrinsisch.every(z => /auto/.test(z)),
+    JSON.stringify(alleIntrinsisch));
+  /* DIE KACHELHOEHE IST AUF TELEFON UND DESKTOP VERSCHIEDEN, weil das Bild
+     quadratisch ist und die Spaltenbreite in .grid steht. Eine einzige Zahl
+     fuer beide waere auf einem der beiden Schirme falsch. */
+  pruefe('Und jede Rasterstufe bekommt ihre eigene Zahl',
+    new Set(alleIntrinsisch).size === alleIntrinsisch.length && alleIntrinsisch.length >= 3,
+    JSON.stringify(alleIntrinsisch));
+  // Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er nichts
+  // mehr ansieht.
+  pruefe('Der Waechter sieht wirklich die Kachelregel an',
+    /background: var\(--surface\)/.test(regel123('.card')), regel123('.card').slice(0, 120));
+  /* KEIN NACHLADEN BEIM ROLLEN, KEIN BLAETTERN. Beides steht im Fahrplan als
+     "spaeter" bzw. "gar nicht"; ein Beobachter am Listenende fuehrte einen
+     Zustand ein, den jede Sortierung und jeder Filter zuruecksetzen muesste. */
+  const app123 = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  pruefe('Und es kommt kein Nachladen beim Rollen dazu',
+    !/IntersectionObserver/.test(app123),
+    (app123.match(/.*IntersectionObserver.*/) || [''])[0].trim().slice(0, 120));
+
+  /* --- 2b: ein Kasten, eine Farbe --- */
+  const pinFarbe = (art, farbe) =>
+    ['border-top-color', 'border-right-color', 'border-bottom-color']
+      .every(k => new RegExp(k + ': var\\(--' + farbe + '\\)').test(regel123('.cmt.pinned.' + art)));
+  pruefe('Ein angepinnter Bericht traegt rundum seine eigene Farbe',
+    pinFarbe('bericht', 'accent'), regel123('.cmt.pinned.bericht') || '(keine Regel)');
+  pruefe('Eine angepinnte Aufgabe ebenso',
+    pinFarbe('aufgabe', 'blue'), regel123('.cmt.pinned.aufgabe') || '(keine Regel)');
+  pruefe('Und ein angepinntes Erledigt ebenso',
+    pinFarbe('erledigt', 'green'), regel123('.cmt.pinned.erledigt') || '(keine Regel)');
+  /* GOLD BLEIBT GENAU EIN FALL: die angepinnte Notiz hat keine eigene Farbe,
+     und nur bei ihr wird der ganze Rahmen golden. */
+  pruefe('Gold bleibt der angepinnten Notiz vorbehalten',
+    /var\(--gold-line\)/.test(regel123('.cmt.pinned')) &&
+    !['bericht', 'aufgabe', 'erledigt'].some(a => /gold-line/.test(regel123('.cmt.pinned.' + a))),
+    ['bericht', 'aufgabe', 'erledigt'].map(a => regel123('.cmt.pinned.' + a)).join(' | ').slice(0, 200));
+  /* KEIN KASTEN TRAEGT ZWEI FARBEN -- das ist der ganze Punkt der Runde. */
+  pruefe('Kein Kasten traegt noch zwei Farben zugleich',
+    ['bericht', 'aufgabe', 'erledigt'].every(a => {
+      const r = regel123('.cmt.pinned.' + a);
+      return (r.match(/var\(--[a-z-]+\)/g) || []).every((f, _, alle) => f === alle[0]);
+    }), '(Farben je Kasten)');
+  /* ES AENDERT SICH KEINE EINZIGE BREITE. Wuerde die linke Kante beim
+     Anpinnen duenn, muesste padding-left von 10 auf 12 zurueck -- sonst
+     begaennen die Zeilen auf zwei Linien (Befund C aus 0.12.0, andersherum). */
+  pruefe('Und keine Breite und kein Innenabstand aendern sich dabei',
+    !['', '.bericht', '.aufgabe', '.erledigt'].some(a =>
+      /border-left|border-width|border-(top|right|bottom)-width|padding/.test(regel123('.cmt.pinned' + a))),
+    ['', '.bericht', '.aufgabe', '.erledigt'].map(a => regel123('.cmt.pinned' + a)).join(' | ').slice(0, 240));
+  pruefe('Die linke Kante bleibt ungeruehrt bei der Art',
+    /border-left: 3px solid var\(--accent\)/.test(regel123('.cmt.bericht')),
+    regel123('.cmt.bericht'));
+  /* DIE ZURUECKGENOMMENE ENTSCHEIDUNG STEHT MIT DEM GRUND DANEBEN und wurde
+     nicht geloescht -- sonst baut sie jemand in zwei Jahren wieder ein. */
+  const cssRoh = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+  pruefe('Die alte Begruendung steht als zurueckgenommen da, nicht verschwunden',
+    /zwei Merkmale, zwei Kanaele/i.test(cssRoh) && /0\.12\.3/.test(cssRoh),
+    'die Begruendung fehlt');
+
+  /* --- 2f: „mehr" frisst keine Zeile mehr --- */
+  pruefe('Es gibt einen Kasten fuer das rechte Ende der Filterzeile',
+    /margin-left: auto/.test(regel123('.frow-rechts')), regel123('.frow-rechts') || '(keine Regel)');
+  /* KEINE AUSGERECHNETE BREITE, nirgends -- die Anlage stellt die Schrift von
+     80 bis 120 Prozent, und genau daran hing 0.12.1 schon einmal
+     (`right: 92px`, Befund A). */
+  pruefe('Und er rechnet keine Breite aus',
+    !/width|right:/.test(regel123('.frow-rechts')), regel123('.frow-rechts'));
+  const fzDom = baueDom(JSDOM, { tags: [
+    { id: 41, name: 'Alu', usage_count: 3 }, { id: 42, name: 'Stahl', usage_count: 2 },
+    { id: 43, name: 'Holz', usage_count: 1 }] });
+  const fzW = fzDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const fZeile = [...fzW.document.querySelectorAll('.frow')]
+    .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
+  pruefe('Die Tagzeile steht da', !!fZeile, '(keine Tagzeile)');
+  /* DER WEG ZUM VERWEIS GEHT UEBER DIE AUSWAHL, nicht ueber einen gesetzten
+     Zustand. "mehr" erscheint nur, wenn die Wolke wirklich beschnitten ist --
+     und in jsdom misst jede Hoehe null, begrenzeWolke() steigt dort
+     ausdruecklich aus. "zuruecksetzen" dagegen haengt an der Auswahl, und die
+     laesst sich mit einem echten Klick auf eine Marke herstellen. Ein von
+     Hand gesetzter Zustand naehme genau den Weg heraus, um den es geht. */
+  pruefe('Ohne Auswahl steht der Kasten gar nicht erst da',
+    !fZeile?.querySelector('.frow-rechts'), fZeile?.innerHTML.slice(0, 160));
+  fZeile?.querySelector('.pill-tag')?.click();
+  await new Promise(r => setTimeout(r, 40));
+  const fZeile2 = [...fzW.document.querySelectorAll('.frow')]
+    .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
+  const fRechts = fZeile2?.querySelector('.frow-rechts');
+  pruefe('Der Verweis sitzt im Kasten am rechten Ende und nicht hinter der Wolke',
+    !!fRechts && /zurücksetzen/.test(fRechts.textContent), fZeile2?.innerHTML.slice(0, 200));
+  /* DIE REIHENFOLGE IM AUFBAU ENTSCHEIDET, AUF WELCHER ZEILE ETWAS LANDET:
+     die Zeile bricht um, und ein Geschwister HINTER der Wolke rutscht auf
+     eine eigene Zeile. Genau das war der Befund. */
+  const fKinder = [...(fZeile2?.children || [])].map(k => k.className);
+  pruefe('Und er steht im Aufbau VOR der Wolke, sonst braeche die Zeile davor um',
+    fKinder.indexOf('frow-rechts') >= 0 &&
+    fKinder.indexOf('frow-rechts') < fKinder.findIndex(k => /cloud/.test(k)),
+    JSON.stringify(fKinder));
+  // Und wieder weg: ein leerer Kasten bliebe als Flex-Element stehen und
+  // schoebe die Wolke um eine Luecke nach rechts.
+  fRechts?.querySelector('.link-btn')?.click();
+  await new Promise(r => setTimeout(r, 40));
+  const fZeile3 = [...fzW.document.querySelectorAll('.frow')]
+    .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
+  pruefe('Faellt die Auswahl weg, verschwindet auch der Kasten wieder',
+    !fZeile3?.querySelector('.frow-rechts'), fZeile3?.innerHTML.slice(0, 160));
+  fzW.close();
+
+  /* --- 2g und 2h: die Versionszeile --- */
+  const vzDom = baueDom(JSDOM, {});
+  const vzW = vzDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const vzZeile = vzW.document.getElementById('version');
+  const vzMarke = vzZeile?.querySelector('img.marke');
+  pruefe('Die Versionszeile traegt das Zeichen davor', !!vzMarke, vzZeile?.innerHTML.slice(0, 160));
+  pruefe('Und zwar dieselbe Datei wie ueberall sonst',
+    vzMarke?.getAttribute('src') === 'marke-dunkel.svg', vzMarke?.getAttribute('src'));
+  /* alt="" UND KEIN TITEL: das Zeichen steht unmittelbar neben dem Namen der
+     Anlage, und ein Vorleseprogramm saegte ihn sonst zweimal. */
+  pruefe('Es sagt nichts vor — der Name steht daneben',
+    vzMarke?.getAttribute('alt') === '' && !vzMarke?.getAttribute('title'),
+    JSON.stringify([vzMarke?.getAttribute('alt'), vzMarke?.getAttribute('title')]));
+  pruefe('Der Name der Anlage steht weiterhin in der Zeile',
+    /^Kriterion \d/.test((vzZeile?.textContent || '').trim()), vzZeile?.textContent);
+  /* DIE GROESSE STEHT IM STYLESHEET UND IN em: die Zeile laeuft auf .67rem,
+     und die Anlage stellt die Schrift von 80 bis 120 Prozent. Eine feste
+     Pixelzahl bliebe stehen, waehrend die Schrift daneben mitwaechst. */
+  pruefe('Die Groesse steht im Stylesheet und waechst mit der Schrift',
+    /\.version-zeile \.marke \{ height: [\d.]+em; \}/.test(css123),
+    (css123.match(/\.version-zeile \.marke \{[^}]*\}/) || ['(keine Regel)'])[0]);
+  vzW.close();
+
+  /* 2h ist ein TELEFONBEFUND und kein Desktopbefund: auf der Anmeldeseite
+     drueckt der Flex-Aufbau von body.anmeldung die Zeile ohnehin ans untere
+     Ende, die 26 Pixel und der Streifen fuer den Home-Indikator kommen
+     obendrauf. Im angemeldeten Bereich bleibt alles, wie es war. */
+  const regelAnm = (css123.match(/body\.anmeldung \.version-zeile \{[^}]*\}/) || [''])[0];
+  pruefe('Der Abstand darunter faellt nur auf der Anmeldeseite kleiner aus',
+    /margin-bottom: calc\(\d+px \+ env\(safe-area-inset-bottom\)\)/.test(regelAnm),
+    regelAnm || '(keine Regel)');
+  pruefe('Und die Zeile im Allgemeinen behaelt ihre 26 Pixel',
+    /margin-bottom: calc\(26px \+ env\(safe-area-inset-bottom\)\)/.test(regel123('.version-zeile')),
+    regel123('.version-zeile').slice(0, 200));
+  /* DER STREIFEN BLEIBT: er ist kein Abstand, sondern die Flaeche, in der das
+     Telefon seinen eigenen Balken zeichnet. Ohne ihn saesse die Zeile
+     darunter. */
+  pruefe('Der Streifen fuer den Home-Indikator bleibt dabei erhalten',
+    /env\(safe-area-inset-bottom\)/.test(regelAnm), regelAnm);
+  pruefe('Und der neue Abstand ist wirklich kleiner als der alte',
+    Number((regelAnm.match(/calc\((\d+)px/) || [0, 99])[1]) < 26, regelAnm);
 }
 
 /* ================= Der Schluesselwechsel =================

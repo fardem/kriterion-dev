@@ -517,6 +517,40 @@ Browser tut das nicht, ein absichtlicher Aufruf schon. Wer das ausschließen
 will, gibt den Port nicht mehr im Netz frei, sondern lässt allein den Proxy
 heran.
 
+#### Gescheiterte Anmeldungen aussperren — mit dem, was schon da ist
+
+**Kriterion muss dafür keine Zeile ändern.** Die Anmelderoute antwortet
+bereits unterscheidbar, und das genügt einem Wächter davor:
+
+| Antwort | heißt |
+|---|---|
+| **401** | Name oder Passwort falsch |
+| **429** | ausgebremst — zu viele Versuche |
+| **403** | Passwort richtig, Zugang gesperrt |
+
+**Wer einen Reverse Proxy fährt, hat diese Antworten in dessen
+Zugriffsprotokoll stehen.** Ein CrowdSec-Szenario auf `POST /api/login`, das
+auf 401, 403 und 429 achtet, sperrt die Adresse damit heute — es liest das
+Protokoll des Proxys, nicht das der Anlage. *Das ist auch die richtige Stelle:
+hinter dem Proxy sieht Kriterion ohnehin nur dessen Adresse, solange
+`HINTER_PROXY` nicht gesetzt ist.*
+
+**Die Rotation des Containerprotokolls ist Dockers Sache**, nicht Kriterions.
+Vier Zeilen in der `docker-compose.yml`, und die Datei wächst nicht mehr
+unbegrenzt:
+
+```yaml
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+```
+
+**Das Sicherheitsprotokoll der Anlage räumt sich dagegen schon selbst** — es
+hält 180 Tage, geprüft beim Start und jedes Mal, wenn die Karte geöffnet wird.
+*Wer dafür eine Rotation sucht, soll sie nicht bauen: es gibt sie schon.*
+
 ### Rollen und Zugänge
 
 Drei Rollen, und sie sind eine Leiter: **Benutzer** < **Admin** <
@@ -1206,6 +1240,15 @@ Listen.
   enthält sie aber nicht, und der Import sagt beim Einspielen, wie viele
   gefehlt haben. Der eigentliche Sicherungsweg für Videos ist ohnehin nicht der
   Export, sondern die Sicherung des Verzeichnisses `data`.
+  **Die Karte nennt die erwartete Dateigröße, bevor der Knopf gedrückt wird**,
+  und die Zahl folgt den Häkchen. Ab **300 MB** steht ein Hinweis darunter:
+  eine Exportdatei ist ein **einziger Text**, und der kann nicht größer als
+  512 MB werden — das ist Nodes Grenze für einen String und keine Einstellung. **Gewarnt wird, verweigert nicht** — die Zahl ist eine
+  Schätzung, und wer weiß, was er tut, soll es versuchen dürfen. Wird sie
+  wirklich gerissen, sagt die Anlage ab, **bevor** sie anfängt zu bauen,
+  statt nach zwei Minuten mit einem Speicherfehler abzubrechen. Für eine
+  vollständige Kopie ist die **Sicherung** der Weg; sie braucht dafür keinen
+  nennenswerten Arbeitsspeicher.
 - **Import** einer Exportdatei, wahlweise *ersetzen* oder *zusammenführen* —
   ebenfalls nur für den Eigentümer, und zwar in beiden Fällen: eine
   Exportdatei kann Beiträge **unter fremdem Namen** anlegen.
@@ -1718,6 +1761,16 @@ vorher blieb bei einem harten Ende eine offene WAL liegen. Wurde ein eigener
 Schlüssel, dafür unvollständig (Sitzungen, Einstellungen und die Blockanordnung
 fehlen) und mit der ganzen Datei im Arbeitsspeicher. lässt sich
 auch **ein einzelner Eintrag** als Datei ziehen.
+
+> **Und daran hat er seine Grenze.** Die Datei ist ein einziger Text, und
+> länger als **512 MB** kann ein Text in Node nicht werden — Fotos und Videos
+> stecken als Base64 darin und kosten dabei ein Drittel Aufschlag. Die Karte
+> **Export** rechnet das vorher aus und warnt ab **300 MB**; darüber sagt die
+> Anlage ab, bevor sie anfängt. **Für große Bestände ist deshalb die Sicherung
+> der Weg und nicht der Export** — sie schreibt über `VACUUM INTO` und braucht
+> dabei keinen nennenswerten Arbeitsspeicher. Beim **Import** gilt dieselbe
+> Grenze, dort aber vorab sichtbar: die Dateigröße steht ja fest, und die
+> Anlage fragt nach, bevor sie zu lesen anfängt.
 
 > **Vor einer Version, die die Datenbank anfasst, ist die Sicherung Pflicht.**
 > Ob eine Version das tut, sagt `CHANGELOG.md` unter „Was du danach von Hand
