@@ -1326,6 +1326,15 @@ body.lb-open { overflow: hidden; }
   font-family: var(--mono); font-size: .77rem; line-height: 1.6; color: var(--text-2);
   white-space: pre-wrap; word-break: break-word;
 }
+/* Der Weg in Teilen. Er steht abgesetzt unter den beiden Knoepfen, mit einer
+   gestrichelten Linie darueber: es ist derselbe Export, aber ein anderer Weg
+   hinaus -- und wer die eine Datei bekommt, soll gar nicht erst hierher
+   schauen muessen.
+   `.row-in` gibt die Zeile mit dem Knopf, `.manage-list` die Liste darunter;
+   beide gibt es laengst, und eine dritte Bauform fuer dieselbe Sache waere
+   eine zu viel. */
+.ex-teile { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.ex-teile .mrow .mname { font-weight: 500; }
 .ex-files { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: .83rem; color: var(--muted); cursor: pointer; }
 .ex-files input { accent-color: var(--accent); }
 .apdf-hint { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 0; flex-wrap: wrap; }

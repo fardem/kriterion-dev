@@ -43,6 +43,75 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.12.4] - 2026-08-28
+
+**Der Export geht in Teilen** — die Antwort auf das, was 0.12.3 gemessen hat:
+**760 MB gegen Nodes Grenze von 512 MB.** Der Knopf sagte seither sauber ab und
+lieferte nichts mehr; jetzt liefert er wieder.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.12.4 ist **PATCH**, und die
+> Frage dahinter ist eine echte: *kann die Anlage danach etwas, was sie vorher
+> nicht konnte?* **Streng genommen ja** — einen Bestand über 512 MB ausführen.
+> **Gezählt wird sie trotzdem als Fehlerbereinigung**, weil die Fähigkeit nicht
+> neu ist, sondern zurückkommt: der Export war der Austauschweg, seit es ihn
+> gibt, und er ist an einer Grenze ausgefallen, die niemand gezogen hat.
+> *Der Fahrplan sieht für genau diesen Fall die Zeile „0.12.x —
+> Fehlerbereinigung und Verbesserungen, die nächste freie PATCH-Zahl" vor.*
+> **Kein Schema, kein neues Austauschformat, keine neue `.env`-Zeile, keine
+> neue Abhängigkeit.**
+
+> **WARUM TEILE UND NICHT EIN STROM.** Ein gestreamter Export hätte nur den Weg
+> **hinaus** gelöst. Der Import liest die Datei über `readAsText()` im Browser
+> und `buffer.toString('utf8')` am Server — **beides ein einziger String, und
+> damit dieselbe Grenze in der Gegenrichtung.** Eine gestreamte Datei könnte
+> diese Anlage nicht wieder einspielen. **Teile lösen beide Richtungen**, und
+> zwar ohne ein neues Format und ohne einen zweiten Leser.
+
+### Added
+
+- **„In Teilen exportieren" an der Exportkarte.** Die Anlage rechnet aus, wie
+  viele Teile es braucht, und zeigt jeden mit Nummer, Anzahl und Größe.
+  **Jeder Teil ist eine vollständige Exportdatei** — derselbe Umschlag,
+  dieselbe Formatnummer **10**, nur weniger Einträge darin. **Geschnitten wird
+  zwischen Einträgen, nie mitten hinein.**
+- **Die Teilgröße ist wählbar**, 50 bis 300 MB. Nach oben gedeckelt: darüber
+  baute die Anlage Teile, vor denen sie im selben Atemzug warnt.
+- **Ein Eintrag, der schon für sich allein über der Grenze liegt, wird
+  namentlich genannt** statt still übergangen — *ein stiller Verlust wäre der
+  schlimmere Ausgang.* Ohne das Häkchen an den Videos wird er meist klein genug.
+
+### Changed
+
+- **Das Passwort wird einmal gefragt und je Teil geprüft.** Zusammengefasst
+  wird die Eingabe und nicht die Prüfung: jede Freigabe geht einzeln an den
+  Server, und **eine Freigabe für Teil 1 lässt Teil 2 nicht durch.**
+- **Der Hinweis ab 300 MB nennt jetzt den Weg, der hilft**, statt nur zu sagen,
+  was nicht geht.
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Kein Schema, keine Migration, keine neue Zeile in der `.env`, keine
+neue Abhängigkeit.
+
+**Und so geht ein Bestand hinaus, der zu groß für eine Datei ist:**
+
+1. Systembereich → **Export** → *In Teilen exportieren*, Teilgröße wählen.
+2. **Alle Teile freigeben** — einmal das Passwort (und den zweiten Faktor).
+3. Jeden Teil einzeln laden. Der Dateiname trägt seine Nummer.
+4. Zum Einspielen: **Teil 1 mit „Ersetzen", alle übrigen der Reihe nach mit
+   „Zusammenführen".**
+
+### Was gleich bleibt
+
+**Der Import** — Zeile für Zeile derselbe. Er weiß von Teilen nichts und muss
+es auch nicht: er sieht n gewöhnliche Exportdateien. **Das Austauschformat**
+bleibt bei **10**, ältere Dateien lassen sich weiterhin einspielen. **Der volle
+Export ohne Teilangabe** läuft unverändert wie in 0.12.3. **Die Sicherung über
+`VACUUM INTO`** ist unangetastet und bleibt für eine Kopie zum Zurückspielen
+der kürzere Weg — ein Griff statt n.
+
+---
+
 ## [0.12.3] - 2026-08-28
 
 **Der Export sagt, wie groß er wird, bevor er versucht wird** — und neun
@@ -57,16 +126,19 @@ aufgefallen sind, sind richtiggestellt.
 > *Die Kennzahlen bekommen eine Zahl, die es vorher nicht gab — das ist eine
 > Anzeige über vorhandene Daten und keine neue Fähigkeit.*
 
-> **OB DER EXPORT BEI DIESEM BESTAND VORHER ABGEBROCHEN IST, IST NOCH NICHT
-> GEMESSEN.** Die Rechnung, die es beantwortet, ist genau die, die diese Runde
-> gebaut hat: **Systembereich → Kennzahlen → „Export, alles"**. Die Zahl steht
-> dort ab dem ersten Start dieser Version. *Liegt sie über 512 MB, war der
-> Export kaputt und niemand hat es bemerkt, weil ihn niemand gebraucht hat;
-> liegt sie darunter, war diese Runde Vorsorge.* **Die Schätzung aus der
-> Dateigröße — 660 MB als Base64, also rund 880 MB — fällt dabei ausdrücklich
-> zu hoch aus:** die Datei trägt Indizes, das Sicherheitsprotokoll und freie
-> Seiten aus Gelöschtem, und die Vorschaubilder gehen gar nicht mit in den
-> Export.
+> **GEMESSEN AM 28. AUGUST 2026, AN DER LAUFENDEN ANLAGE: 760 MB.** Damit ist
+> die Frage beantwortet, die dieser Punkt seit 0.8.6 offenließ — **der Export
+> war kaputt, und niemand hat es bemerkt, weil ihn niemand gebraucht hat.**
+> Nicht „hätte irgendwann"; er brach ab, sobald jemand den Knopf drückte.
+> *Die Schätzung aus der Dateigröße lag mit rund 880 MB zu hoch, wie erwartet:
+> die Datei trägt Indizes, das Sicherheitsprotokoll und freie Seiten aus
+> Gelöschtem, und die Vorschaubilder gehen gar nicht mit in den Export.*
+> **Was diese Version daran ändert, ist die Ansage und nicht die Grenze.** Der
+> Export bleibt bei diesem Bestand unbenutzbar — er sagt es jetzt in einem Satz,
+> statt nach zwei Minuten mit einem Speicherfehler abzubrechen. **Für eine
+> vollständige Kopie ist die Karte „Sicherung" der Weg.** *Dass der
+> Austauschweg damit für diesen Bestand ausfällt, ist ein offener Punkt und
+> keine Lösung — siehe Änderungsprotokoll 0.12.3, „Offen geblieben".*
 
 ### Added
 
@@ -1584,15 +1656,20 @@ nicht mehr übernehmen.*
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0`, `v0.12.0`,
-     `v0.12.1`, `v0.12.2` UND `v0.12.3` sind angelegt, aber NICHT geschoben —
-     der Push scheitert in der Arbeitsumgebung an HTTP 403 (Branches gehen
-     durch, Tags nicht). Erneut versucht am 28. August 2026 mit demselben
-     Ergebnis. Solange das so ist, zeigen die fünf Verweise darunter ins
-     Leere. -->
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` bis `v0.12.4`
+     fehlen am Remote; solange das so ist, zeigen die Verweise darunter ins
+     Leere.
+     DER GRUND IST SEIT 0.12.4 BEKANNT UND WAR VORHER FALSCH NOTIERT: es ist
+     KEIN Problem der GitHub-Rechte. Der Git-Proxy der Arbeitsumgebung, in der
+     Claude laeuft, weist `POST /git-receive-pack` mit `refs/tags/*` mit 403
+     ab -- ohne einen einzigen GitHub-Header, GitHub sieht die Anfrage nie.
+     `refs/heads/*` geht durch dieselbe Route ohne weiteres durch.
+     Die Tags muessen deshalb vom Rechner des Betreibers gesetzt werden; die
+     Befehle stehen im Projektstand, Abschnitt 8. -->
 [0.10.0]: https://github.com/fardem/kriterion/releases/tag/v0.10.0
 [0.11.0]: https://github.com/fardem/kriterion/compare/v0.10.0...v0.11.0
 [0.12.0]: https://github.com/fardem/kriterion/compare/v0.11.0...v0.12.0
 [0.12.1]: https://github.com/fardem/kriterion/compare/v0.12.0...v0.12.1
 [0.12.2]: https://github.com/fardem/kriterion/compare/v0.12.1...v0.12.2
 [0.12.3]: https://github.com/fardem/kriterion/compare/v0.12.2...v0.12.3
+[0.12.4]: https://github.com/fardem/kriterion/compare/v0.12.3...v0.12.4

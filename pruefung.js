@@ -134,7 +134,15 @@ const KEY = crypto.randomBytes(32).toString('hex');
    VERSATZ_STUFE ist der Wert, den gegenprobe.js je Nebenspur vervielfacht. Er
    steht HIER und nicht dort: der Waechter, der ihn nachrechnet, liegt hier, und
    zwei Zahlen an zwei Orten laufen auseinander. */
-const VERSATZ_STUFE = 3000;
+/* 3500 SEIT 0.12.4, VORHER 3000. Die Spanne aller Basen ist mit dem Rundlauf
+   des Teilexports auf 3100 gewachsen (zwei Anlagen: die Quelle und das Ziel),
+   und unterhalb der vorhandenen Basen war kein Fenster von 60 Nummern mehr
+   frei -- die Luecken tragen entweder zu wenig Platz oder eine Nummer von der
+   Sperrliste. WAECHST DIE SPANNE, WAECHST DER VERSATZ MIT; bei Gleichheit
+   fiele die naechste Spur genau auf die vorige. Der Waechter darunter rechnet
+   beides gegeneinander nach, und die hoechste entstehende Nummer bleibt mit
+   17499 weit unter 32768. */
+const VERSATZ_STUFE = 3500;
 const VERSATZ_SPUREN = 4;
 const PORT_BREITE = 60;
 const HAUPT_BREITE = 90;
@@ -16122,7 +16130,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTEN -- eine
      Prueflage, die still verschwindet, faellt sonst niemandem auf. */
   pruefe('Der Lauf hat seine Portbasen vermerkt',
-    pbBasen.length === 53 && PRUEFLAGEN.length >= 50,
+    pbBasen.length === 55 && PRUEFLAGEN.length >= 60,
     `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
@@ -25717,7 +25725,18 @@ async function pruefeOberflaeche() {
   pruefe('Der Knopf bleibt trotzdem da und bleibt bedienbar',
     !!exG.document.getElementById('ex-yes') && !exG.document.getElementById('ex-yes').disabled);
   pruefe('Und die Warnung sagt das auch',
-    /Knopf bleibt/.test(warnText), warnText.slice(0, 260));
+    /Der Knopf oben bleibt trotzdem/.test(warnText), warnText.slice(0, 260));
+  /* --- 0.12.4: und sie nennt den Weg, der wirklich hilft ---
+     Ein Hinweis, der nur sagt, was NICHT geht, laesst jemanden mit einem
+     kaputten Knopf zurueck. Seit 0.12.4 gibt es die Antwort, und sie gehoert
+     in denselben Kasten. */
+  /* Der Text bricht im Aufbau um; verglichen wird deshalb mit
+     zusammengezogenen Leerzeichen und nicht Zeile fuer Zeile. */
+  const warnGlatt = warnText.replace(/\s+/g, ' ');
+  pruefe('Und sie nennt den Weg in Teilen als die Antwort',
+    /In Teilen exportieren/.test(warnGlatt), warnGlatt.slice(0, 400));
+  pruefe('Und die Sicherung als den kürzeren Weg zum Zurückspielen',
+    /Sicherung/.test(warnGlatt), warnGlatt.slice(0, 400));
   /* ZWEI FAELLE, UND SIE SAGEN VERSCHIEDENES. Solange der Weg ohne Fotos unter
      der Marke bleibt, ist er der Ausweg und die Warnung nennt ihn als solchen.
      Reisst er sie mit, waere derselbe Satz eine Falschaussage: wer dann zum
@@ -25736,6 +25755,251 @@ async function pruefeOberflaeche() {
     warnText2.includes(exG.fmtBytes(1330 * MB)), warnText2.slice(0, 200));
   exG.close();
 
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Export in Teilen');
+
+  /* WOZU DIESE GRUPPE MEHR PRUEFT ALS DIE ANDEREN: der Betreiber hat den Weg
+     an EINE Bedingung gebunden -- "wenn es sich genauso ein und ausspielen
+     laesst". Eine Zusicherung auf die Schnittstelle allein waere hier zu
+     wenig; geprueft wird der RUNDLAUF, mit einer zweiten, frischen Anlage und
+     einem Vergleich Feld fuer Feld. */
+  const tlDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-teile-'));
+  const tlZielDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-teile-ziel-'));
+  /* 6880 UND 6940, UND SIE SIND NACHGESEHEN: 6700, 6760 und 6820 gehoeren der
+     Selbstanmeldung. Zwei Prueflagen auf derselben Basis wuerfeln aus demselben
+     Fenster und treffen einander irgendwann -- selten genug, dass es wie ein
+     Zufall aussaehe, und oft genug, dass es passiert. */
+  const tlA = starteWeiterenServer(tlDir, {}, 6880);
+  const tlB = starteWeiterenServer(tlZielDir, {}, 6940);
+  await tlA.bereit; await tlB.bereit;
+  const TL_WORT = 'teile-wort-4711';
+  for (const S of [tlA, tlB]) {
+    await S.ruf('POST', '/api/setup', { user: 'chefin', password: TL_WORT });
+    await S.ruf('POST', '/api/login', { user: 'chefin', password: TL_WORT });
+  }
+  const tlFrei = (S, zweck, ziel = null) =>
+    S.ruf('POST', '/api/bestaetigung', { passwort: TL_WORT, zweck, ziel });
+
+  /* DER BESTAND MUSS BYTES TRAGEN, sonst gibt es nichts zu schneiden. Die
+     Anhaenge liefern sie: sie gehen als Bytes hinein und als Bytes wieder
+     heraus, ohne durch die Bildverarbeitung zu laufen -- damit misst diese
+     Lage den SCHNITT und nicht sharp.
+     REICH GENUG, UM ETWAS ZU BELEGEN: Kommentare aller vier Arten, davon
+     angepinnte, dazu Links, Tags, Bewertungen und Testtage. Ein Rundlauf ueber
+     nackte Titel belegte nichts. */
+  const tlArten = ['note', 'report', 'task', 'done'];
+  const tlAnhang = Buffer.alloc(420 * 1024, 'x');
+  // Tags entstehen AM EINTRAG und nicht ueber eine eigene Route -- so, wie es
+  // die Oberflaeche auch tut.
+  const tlTagNamen = ['alu', 'stahl', 'holz'];
+  const tlKrit = (await tlA.ruf('GET', '/api/criteria')).inhalt;
+  for (let i = 1; i <= 6; i++) {
+    const it = (await tlA.ruf('POST', '/api/items',
+      { title: `Teilstueck ${i} - "Zitat" & <Klammer>`, description: `Text ${i} mit aeoeuess` })).inhalt;
+    await tlA.ruf('PUT', `/api/items/${it.id}`,
+      { tested: i % 2 === 0, rejected: i === 5, favorite: i % 3 === 0 });
+    for (const n of tlTagNamen.slice(0, 1 + (i % 3))) await tlA.ruf('POST', `/api/items/${it.id}/tags`, { name: n });
+    for (const c of tlKrit) await tlA.ruf('PUT', `/api/items/${it.id}/ratings/${c.id}`, { value: 1 + ((i + c.id) % 5) });
+    await tlA.ruf('POST', `/api/items/${it.id}/test-days`, { day: `2026-0${1 + (i % 7)}-0${1 + (i % 8)}`, rating: 1 + (i % 5) });
+    await tlA.ruf('POST', `/api/items/${it.id}/links`, { url: `https://beispiel.de/t/${i}` });
+    for (let c = 0; c < 4; c++) {
+      const fk = new FormData();
+      fk.append('text', `Kommentar ${c} an Stueck ${i} - mit <b>Markup</b>`);
+      fk.append('kind', tlArten[c]);
+      fk.append('pinned', c % 2 === 0 ? '1' : '0');
+      await fetch(`${tlA.basis}/api/items/${it.id}/comments`,
+        { method: 'POST', headers: { cookie: tlA.cookieWert() }, body: fk });
+    }
+    const fa = new FormData();
+    fa.append('files', new Blob([tlAnhang], { type: 'text/plain' }), `gross-${i}.txt`);
+    await fetch(`${tlA.basis}/api/items/${it.id}/attachments`,
+      { method: 'POST', headers: { cookie: tlA.cookieWert() }, body: fa });
+  }
+
+  /* --- Der Plan --- */
+  const tlSchalter = 'photos=1&files=1&videos=1';
+  const tlPlanRuf = (zusatz = '') => tlA.ruf('GET', `/api/export/plan?${tlSchalter}${zusatz}`);
+  const tlPlan = (await tlPlanRuf('&ziel=1048576')).inhalt;
+  pruefe('Der Plan schneidet den Bestand in mehrere Teile',
+    (tlPlan?.teile || []).length > 1, JSON.stringify((tlPlan?.teile || []).map(t => t.anzahl)));
+  /* GESCHNITTEN WIRD AN EINTRAGSGRENZEN, nie mitten hinein: ein halber Eintrag
+     waere kein gueltiger Export, und der Import muesste zwei Teile kennen, um
+     ihn zu verstehen. */
+  pruefe('Jeder Teil traegt ganze Eintraege und keiner ist leer',
+    tlPlan.teile.every(t => t.anzahl >= 1 && t.von <= t.bis));
+  pruefe('Die Fenster stossen aneinander und ueberlappen sich nicht',
+    tlPlan.teile.every((t, i) => i === 0 || t.von > tlPlan.teile[i - 1].bis),
+    JSON.stringify(tlPlan.teile.map(t => `${t.von}-${t.bis}`)));
+  pruefe('Und zusammen decken sie jeden Eintrag genau einmal',
+    tlPlan.teile.reduce((n, t) => n + t.anzahl, 0) === 6,
+    String(tlPlan.teile.reduce((n, t) => n + t.anzahl, 0)));
+  pruefe('Die Teile sind durchnummeriert, bei eins beginnend',
+    tlPlan.teile.every((t, i) => t.nr === i + 1), JSON.stringify(tlPlan.teile.map(t => t.nr)));
+  /* DER ZIELWERT LAESST SICH KLEINER STELLEN, ABER NICHT GROESSER: oberhalb
+     des Warnwerts baute die Anlage Teile, vor denen sie im selben Atemzug
+     warnt. Beide Richtungen einzeln, sonst belegte die eine die andere nicht. */
+  pruefe('Ein zu grosser Zielwert wird auf den Warnwert gedeckelt',
+    (await tlPlanRuf('&ziel=999999999')).inhalt.zielGroesse === tlPlan.vorgabe,
+    JSON.stringify((await tlPlanRuf('&ziel=999999999')).inhalt.zielGroesse));
+  pruefe('Und ein zu kleiner auf das kleinste zulaessige Mass',
+    (await tlPlanRuf('&ziel=1')).inhalt.zielGroesse === tlPlan.kleinstes,
+    JSON.stringify((await tlPlanRuf('&ziel=1')).inhalt.zielGroesse));
+  pruefe('Ohne Angabe gilt der Warnwert',
+    (await tlPlanRuf()).inhalt.zielGroesse === tlPlan.vorgabe);
+  // Ein groesserer Zielwert ergibt weniger Teile -- sonst schnitte der Plan
+  // nach etwas anderem als der Groesse.
+  pruefe('Ein groesserer Zielwert ergibt weniger Teile',
+    (await tlPlanRuf()).inhalt.teile.length < tlPlan.teile.length,
+    `${(await tlPlanRuf()).inhalt.teile.length} gegen ${tlPlan.teile.length}`);
+  /* DER PLAN VERLAESST DAS HAUS NICHT und braucht deshalb keine zweite
+     Bestaetigung -- die steht an den Teilen selbst. Er bleibt aber am
+     Eigentuemer: er nennt Titel und Groessen. */
+  pruefe('Der Plan kommt ohne zweite Bestaetigung',
+    (await tlPlanRuf()).status === 200);
+
+  /* --- Das Fenster am Export --- */
+  const tlN = tlPlan.teile.length;
+  const tlAdresse = (t) =>
+    `/api/export?${tlSchalter}&von=${t.von}&bis=${t.bis}&teil=${t.nr}&teile=${tlN}`;
+  /* EINE HALBE ANGABE IST EIN FEHLER UND KEIN VOLLEXPORT: wer `von` schickt
+     und `bis` vergisst, bekaeme sonst stillschweigend alles -- und merkte es
+     erst an der Dateigroesse. */
+  await tlFrei(tlA, 'export', 1);
+  pruefe('Eine halbe Angabe wird abgewiesen und nicht als Vollexport gelesen',
+    (await tlA.ruf('GET', `/api/export?${tlSchalter}&von=1&teil=1&teile=2`)).status === 400);
+  await tlFrei(tlA, 'export', 1);
+  pruefe('Und ein Fenster, dessen Ende vor dem Anfang liegt, ebenso',
+    (await tlA.ruf('GET', `/api/export?${tlSchalter}&von=9&bis=2&teil=1&teile=2`)).status === 400);
+
+  /* --- Die Freigabe je Teil --- */
+  /* EINE ABFRAGE, MEHRERE FREIGABEN -- aber jede fuer sich. Eine Freigabe fuer
+     Teil 1 darf Teil 2 NICHT durchlassen; sonst waere aus n Schranken eine
+     geworden. */
+  await tlFrei(tlA, 'export', 1);
+  pruefe('Eine Freigabe fuer Teil 1 laesst Teil 2 nicht durch',
+    (await tlA.ruf('GET', tlAdresse({ ...tlPlan.teile[1], nr: 2 }))).status === 403);
+  await tlFrei(tlA, 'export', 1);
+  const tlEins = await tlA.ruf('GET', tlAdresse(tlPlan.teile[0]));
+  pruefe('Mit der eigenen Freigabe geht der Teil durch', tlEins.status === 200,
+    `${tlEins.status}`);
+  pruefe('Und sie ist danach verbraucht',
+    (await tlA.ruf('GET', tlAdresse(tlPlan.teile[0]))).status === 403);
+  pruefe('Ohne Freigabe geht auch der volle Export nicht',
+    (await tlA.ruf('GET', `/api/export?${tlSchalter}`)).status === 403);
+
+  /* --- Jeder Teil ist eine vollstaendige Exportdatei --- */
+  const tlDateien = [];
+  for (const t of tlPlan.teile) {
+    await tlFrei(tlA, 'export', t.nr);
+    const a = await fetch(`${tlA.basis}${tlAdresse(t)}`, { headers: { cookie: tlA.cookieWert() } });
+    tlDateien.push({ kopf: a.headers.get('content-disposition') || '', text: await a.text() });
+  }
+  pruefe('Der Dateiname nennt Teil und Gesamtzahl',
+    tlDateien.every((d, i) => d.kopf.includes(`-teil-${i + 1}-von-${tlN}-`)),
+    tlDateien.map(d => d.kopf).join(' | '));
+  const tlPakete = tlDateien.map(d => { try { return JSON.parse(d.text); } catch { return null; } });
+  pruefe('Jeder Teil ist fuer sich gueltiges JSON', tlPakete.every(p => p && Array.isArray(p.items)));
+  /* DERSELBE UMSCHLAG UND DIESELBE FORMATNUMMER -- daran haengt, dass der
+     vorhandene Import sie ohne eine Zeile Aenderung annimmt. */
+  pruefe('Jeder Teil traegt denselben Umschlag wie ein voller Export',
+    tlPakete.every(p => p.version === tlPakete[0].version && p.title === tlPakete[0].title
+      && Array.isArray(p.criteria) && p.criteria.length === tlPakete[0].criteria.length),
+    JSON.stringify(tlPakete.map(p => [p.version, p.criteria?.length])));
+  pruefe('Und die Formatnummer ist unveraendert die zehn',
+    tlPakete.every(p => p.version === 10), JSON.stringify(tlPakete.map(p => p.version)));
+  pruefe('Zusammen tragen die Teile jeden Eintrag genau einmal',
+    tlPakete.reduce((n, p) => n + p.items.length, 0) === 6 &&
+    new Set(tlPakete.flatMap(p => p.items.map(i => i.title))).size === 6,
+    JSON.stringify(tlPakete.map(p => p.items.length)));
+  // Und die Schaetzung war keine Erfindung: die wirkliche Datei liegt in der
+  // Naehe der angesagten Groesse und ueber ihr nicht.
+  pruefe('Die angesagte Groesse trifft die wirkliche',
+    tlDateien.every((d, i) => d.text.length <= tlPlan.teile[i].bytes * 1.1
+                           && d.text.length >= tlPlan.teile[i].bytes * 0.7),
+    tlDateien.map((d, i) => `${d.text.length}/${tlPlan.teile[i].bytes}`).join(' '));
+  pruefe('Und kein Teil reisst die Grenze, an der es kippt',
+    tlDateien.every(d => d.text.length < tlPlan.string), JSON.stringify(tlPlan.string));
+
+  /* --- DER RUNDLAUF, und er ist die Bedingung ---------------------------- */
+  /* DIE AUFNAHME NIMMT ALLES, WAS DER EXPORT TRAEGT, UND NICHTS, WAS ER NICHT
+     TRAGEN KANN: keine Nummern (sie werden neu vergeben) und keinen Zeitpunkt
+     des Einspielens. Verglichen wird der Bestand als AUSSAGE, nicht als Datei. */
+  async function tlAufnahme(S) {
+    const liste = (await S.ruf('GET', '/api/items')).inhalt;
+    const raus = [];
+    for (const kurz of liste) {
+      const it = (await S.ruf('GET', `/api/items/${kurz.id}`)).inhalt;
+      raus.push([it.title, it.description, !!it.rejected, !!it.tested, !!it.favorite,
+        (it.tags || []).map(t => t.name).sort().join(','),
+        (it.links || []).map(l => l.url).sort().join(','),
+        (it.photos || []).length, (it.attachments || []).map(a => a.filename).sort().join(','),
+        (it.testDays || []).map(d => `${d.day}:${d.rating}`).sort().join(','),
+        (it.ratings || []).map(r => `${r.name}=${r.value}`).sort().join(','),
+        (it.comments || []).map(c => `${c.kind}|${c.pinned ? 'P' : '-'}|${c.text}`).sort().join('~')
+      ].join('#|#'));
+    }
+    return raus.sort();
+  }
+  const tlVorher = await tlAufnahme(tlA);
+  pruefe('Die Quelle traegt ueberhaupt einen Bestand', tlVorher.length === 6, String(tlVorher.length));
+  // Und er ist reich genug, um etwas zu belegen: ein Rundlauf ueber nackte
+  // Titel bliebe auch dann gruen, wenn Kommentare und Anhaenge verlorengingen.
+  pruefe('Und er traegt Kommentare, Anhaenge, Links und Bewertungen',
+    tlVorher.every(z => z.includes('Kommentar 0') && z.includes('gross-')
+                     && z.includes('https://') && z.includes('=')));
+
+  for (let i = 0; i < tlDateien.length; i++) {
+    await tlFrei(tlB, 'import', null);
+    const fd = new FormData();
+    fd.append('file', new Blob([tlDateien[i].text], { type: 'application/json' }), `teil-${i + 1}.json`);
+    fd.append('mode', i === 0 ? 'replace' : 'merge');
+    const a = await fetch(`${tlB.basis}/api/import`,
+      { method: 'POST', headers: { cookie: tlB.cookieWert() }, body: fd });
+    pruefe(`Teil ${i + 1} spielt sich ein`, a.status === 200, `${a.status}`);
+  }
+  const tlNachher = await tlAufnahme(tlB);
+  pruefe('Nach dem Einspielen aller Teile steht derselbe Bestand da',
+    tlNachher.length === tlVorher.length, `${tlNachher.length} gegen ${tlVorher.length}`);
+  /* FELD FUER FELD und nicht nur die Zahl: eine gleiche Anzahl bei anderem
+     Inhalt waere genau der Fehler, den niemand bemerkt. */
+  pruefe('Und zwar Feld fuer Feld derselbe',
+    tlNachher.join('') === tlVorher.join(''),
+    (tlNachher.find((z, i) => z !== tlVorher[i]) || '(keine Abweichung)').slice(0, 240));
+
+  /* --- Ein Eintrag, der in keinen Teil passt --- */
+  /* ER WIRD BEIM NAMEN GENANNT UND NICHT STILLSCHWEIGEND UEBERGANGEN. Ein
+     stiller Verlust waere der schlimmere Ausgang: wer ihn sieht, weiss, dass
+     er die Videos abwaehlen oder diesen einen Eintrag von Hand behandeln muss.
+     GEBAUT WIRD ER UEBER DIE DATENBANK und nicht ueber die Routen: 400 MB
+     durch multer zu schicken dauerte laenger als der ganze Lauf. */
+  {
+    const d = oeffne(path.join(tlDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    const it = d.prepare("INSERT INTO items (title, description, user_id) VALUES ('Der Riese', '', 1)").run();
+    // zeroblob() legt die Laenge an, ohne die Bytes zu schreiben -- length()
+    // sieht sie trotzdem, und genau darueber rechnet der Plan.
+    d.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+               VALUES (?, 'riese.bin', 'application/octet-stream', ?, zeroblob(?), 0, 1)`)
+      .run(it.lastInsertRowid, 400 * 1024 * 1024, 400 * 1024 * 1024);
+    d.close();
+    const p2 = (await tlPlanRuf('&ziel=1048576')).inhalt;
+    pruefe('Ein Eintrag, der fuer sich zu gross ist, steht namentlich da',
+      (p2.zuGross || []).length === 1 && p2.zuGross[0].titel === 'Der Riese',
+      JSON.stringify(p2.zuGross));
+    pruefe('Und er steckt in keinem Teil',
+      p2.teile.every(t => t.bis < it.lastInsertRowid || t.von > it.lastInsertRowid),
+      JSON.stringify(p2.teile.map(t => `${t.von}-${t.bis}`)) + ` Riese ${it.lastInsertRowid}`);
+    // Ohne die Dateien ist er klein genug -- der Hinweis an der Karte sagt
+    // genau das, und ohne diese Zeile waere er eine Behauptung.
+    const p3 = (await tlA.ruf('GET', '/api/export/plan?photos=1&ziel=1048576')).inhalt;
+    pruefe('Ohne die Dateien passt er wieder in einen Teil',
+      (p3.zuGross || []).length === 0, JSON.stringify(p3.zuGross));
+  }
+
+  tlA.stopp(); tlB.stopp();
+  fs.rmSync(tlDir, { recursive: true, force: true });
+  fs.rmSync(tlZielDir, { recursive: true, force: true });
   /* ---------------------------------------------------------------- */
   gruppe('Die Anzeige zieht nach — 0.12.3');
 

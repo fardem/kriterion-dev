@@ -331,6 +331,27 @@ const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
 const bestaetigungsFeldFrei = (titel, was, mitCode) =>
   passwortFenster(titel, was, '', mitCode === true);
 
+/* EINE ABFRAGE, MEHRERE FREIGABEN. Ein Bestand, der in fuenf Teilen hinausgeht,
+   braucht fuenf Freigaben -- eine Freigabe wird verbraucht, und fuenf mit
+   demselben Ziel waeren EINE -- der Schluessel ist Sitzung, Zweck und Ziel.
+   ZUSAMMENGEFASST WIRD DIE EINGABE UND NICHT DIE PRUEFUNG: jede einzelne
+   Freigabe geht mit dem Passwort an den Server und wird dort gegen den Hash
+   gehalten. Der Mensch tippt einmal, geprueft wird n-mal.
+   REIHUM UND NICHT NEBENEINANDER: die Anmeldebremse zaehlt je Adresse, und
+   fuenf gleichzeitige Anfragen mit demselben Passwort saehen aus wie ein
+   Versuch, sie zu umgehen.
+   BRICHT EINE AB, BRECHEN ALLE AB -- eine halbe Freigabe waere ein Export, der
+   mitten in der Reihe stehenbleibt und dessen Grund niemand sieht. */
+async function zweiteBestaetigungMehrfach(zweck, ziele, titel, was) {
+  const eingabe = await bestaetigungsFeld(titel, was);
+  if (eingabe === null) return false;
+  for (const ziel of ziele) {
+    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }
+    catch (e) { toast(e.message, true); return false; }
+  }
+  return true;
+}
+
 async function zweiteBestaetigung(zweck, ziel, titel, was) {
   const eingabe = await bestaetigungsFeld(titel, was);
   // null heisst abgebrochen -- ein Abbruch, der trotzdem handelt, waere der
@@ -4933,6 +4954,29 @@ async function renderSystem() {
              am Ende doch gepasst haette. Wer die Grenze wirklich reisst,
              bekommt sie von der Route gesagt -- mit derselben Rechnung. */''}
         <div id="ex-warn"></div>
+        ${/* DER WEG, WENN DIE EINE DATEI NICHT GEHT. Er steht IMMER da und
+             nicht erst hinter der Warnung: wer seine Teile auf einen
+             Datentraeger bringen oder durch eine Hochladegrenze schieben will,
+             braucht sie auch unterhalb des Schwellwerts.
+             DIE TEILGROESSE IST WAEHLBAR, NACH OBEN ABER GEDECKELT: oberhalb
+             des Warnwerts baute die Anlage Teile, vor denen sie im selben
+             Atemzug warnt. */''}
+        <div class="ex-teile">
+          <div class="row-in" style="align-items:baseline">
+            <button class="btn btn-sm" id="ex-plan">In Teilen exportieren</button>
+            <label class="hint hint-sm" style="display:flex;align-items:baseline;gap:6px">
+              höchstens
+              <select class="input input-sm" id="ex-ziel" style="width:auto">
+                <option value="52428800">50 MB</option>
+                <option value="104857600">100 MB</option>
+                <option value="209715200">200 MB</option>
+                <option value="314572800" selected>300 MB</option>
+              </select>
+              je Datei
+            </label>
+          </div>
+          <div id="ex-plan-out"></div>
+        </div>
       </div>
 
       <div class="sys-card">
@@ -5718,15 +5762,104 @@ async function renderSystem() {
         ${esc(fmtBytes(ex.string))} werden — ${auchOhne
           ? `auch ohne Fotos bleiben noch rund ${esc(fmtBytes(ohne))}.`
           : `ohne Fotos bleiben rund ${esc(fmtBytes(ohne))}.`}
-        <p style="margin:9px 0 0">Für eine vollständige Kopie ist die Karte
-        <strong>Sicherung</strong> der richtige Weg: sie schreibt den ganzen Bestand und
-        braucht dafür keinen nennenswerten Arbeitsspeicher. <strong>Der Knopf bleibt
-        trotzdem</strong> — die Zahl ist eine Schätzung, und wer weiß, was er tut, soll
-        es versuchen dürfen.</p></div>`;
+        <p style="margin:9px 0 0"><strong>Der Weg dafür steht darunter: „In Teilen
+        exportieren".</strong> Jeder Teil ist eine vollständige Exportdatei, und der Import
+        nimmt sie mit „Zusammenführen" wieder auf. Für eine Kopie zum Zurückspielen ist
+        die Karte <strong>Sicherung</strong> der kürzere Weg.</p>
+        <p style="margin:9px 0 0"><strong>Der Knopf oben bleibt trotzdem</strong> — die Zahl
+        ist eine Schätzung, und wer weiß, was er tut, soll es versuchen dürfen.</p></div>`;
     });
   }
   for (const id of ['ex-files', 'ex-videos']) amElement(id, e => e.addEventListener('change', exportZahlen));
   exportZahlen();
+
+  /* ---- Der Export in Teilen ----
+     JEDER TEIL IST EINE VOLLSTAENDIGE EXPORTDATEI. Der Import nimmt sie mit
+     „Zusammenführen" wieder auf, ohne dass an ihm eine Zeile geaendert wurde --
+     genau deshalb gibt es hier kein neues Format und keinen zweiten Leser.
+     GESCHNITTEN WIRD AM SERVER und nicht hier: dort liegen die Groessen, und
+     eine zweite Rechnung in der Oberflaeche liefe irgendwann auseinander. */
+  const teilSchalter = () => `photos=1` + mitDateien();
+  async function zeichneTeilplan() {
+    const kasten = document.getElementById('ex-plan-out');
+    if (!kasten) return;
+    const ziel = document.getElementById('ex-ziel')?.value || '';
+    kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">Wird gerechnet …</p>`;
+    let plan;
+    try { plan = await api('GET', `/api/export/plan?${teilSchalter()}&ziel=${encodeURIComponent(ziel)}`); }
+    catch (e) { kasten.innerHTML = `<p class="hint hint-sm">${esc(e.message)}</p>`; return; }
+
+    const n = (plan.teile || []).length;
+    if (!n && !(plan.zuGross || []).length) {
+      kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">Es gibt nichts zu exportieren.</p>`;
+      return;
+    }
+    /* EIN EINTRAG, DER FUER SICH ALLEIN ZU GROSS IST, WIRD BEIM NAMEN GENANNT
+       und nicht stillschweigend uebergangen. Ein stiller Verlust waere der
+       schlimmere Ausgang -- wer ihn sieht, weiss, dass er die Videos abwaehlen
+       oder diesen einen Eintrag von Hand behandeln muss. */
+    const zuGross = (plan.zuGross || []).length ? `<div class="warn-box" style="margin:10px 0 0">
+      <strong>${plan.zuGross.length} ${plan.zuGross.length === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}
+      ${plan.zuGross.length === 1 ? 'passt' : 'passen'} in keinen Teil</strong> — schon für sich allein
+      über der Grenze von ${esc(fmtBytes(plan.string))}. Sie fehlen in jeder Datei:
+      <ul style="margin:6px 0 0 18px">${plan.zuGross.map(z =>
+        `<li>${esc(z.titel)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
+      <p style="margin:8px 0 0">Ohne das Häkchen an den Videos werden sie meist klein genug.</p></div>` : '';
+
+    kasten.innerHTML = `${zuGross}
+      ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${n} ${n === 1 ? 'Teil' : 'Teile'}</strong>,
+        je höchstens ${esc(fmtBytes(plan.zielGroesse))}. <strong>Jeder Teil ist eine vollständige
+        Exportdatei</strong> — geschnitten wird zwischen ${esc(V.sacheMehrzahl)}, nie mitten hinein.</p>
+      <div class="manage-list" id="ex-teil-liste">${plan.teile.map(t => `
+        <div class="mrow">
+          <span class="mname">Teil ${t.nr} — ${t.anzahl} ${t.anzahl === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}</span>
+          <button class="mact ex-teil-lad" data-nr="${t.nr}" data-von="${t.von}" data-bis="${t.bis}"
+            disabled>↓ Laden</button>
+          <span class="pk-meta">${esc(fmtBytes(t.bytes))}</span>
+        </div>`).join('')}</div>
+      <div class="row-in" style="margin-top:10px"><button class="btn btn-accent btn-sm" id="ex-frei">
+        Alle ${n} Teile freigeben</button></div>
+      ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
+           Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
+           welcher Reihenfolge und mit welchem Knopf sie hineingehen. */''}
+      <p class="hint hint-sm" style="margin:10px 2px 0"><strong>Zum Einspielen:</strong>
+        Teil 1 mit <strong>Ersetzen</strong>, alle übrigen der Reihe nach mit
+        <strong>Zusammenführen</strong>. Nur zum Weitergeben einzelner
+        ${esc(V.sacheMehrzahl)} genügt der Teil, der sie enthält.</p>` : ''}`;
+
+    /* FREIGEGEBEN WIRD EINMAL FUER ALLE, GEPRUEFT WIRD JE TEIL. Ohne das
+       muesste das Passwort je Datei getippt werden -- bei fünf Teilen fünfmal. */
+    amElement('ex-frei', b => b.onclick = async () => {
+      const ok = await zweiteBestaetigungMehrfach('export', plan.teile.map(t => t.nr),
+        'Export bestätigen',
+        `Der Export schreibt den gesamten Bestand in ${n} ${n === 1 ? 'Datei' : 'Dateien'}, die das Haus ` +
+        `verlassen — mit allen Fotos, allen Anhängen und den Namen aller Verfasser.`);
+      if (!ok) return;
+      b.disabled = true;
+      b.textContent = 'Freigegeben — jeden Teil einzeln laden';
+      kasten.querySelectorAll('.ex-teil-lad').forEach(k => { k.disabled = false; });
+    });
+
+    /* JEDER KNOPF GILT GENAU EINMAL, weil die Freigabe verbraucht wird. Das
+       steht am Knopf und nicht in einer Fehlermeldung danach: ein zweiter
+       Klick bekaeme sonst eine 403, die wie ein Fehler aussieht. */
+    kasten.querySelectorAll('.ex-teil-lad').forEach(k => {
+      k.onclick = () => {
+        window.location = `/api/export?${teilSchalter()}` +
+          `&von=${k.dataset.von}&bis=${k.dataset.bis}&teil=${k.dataset.nr}&teile=${n}`;
+        k.disabled = true;
+        k.textContent = '✓ geladen';
+      };
+    });
+  }
+  amElement('ex-plan', b => b.onclick = zeichneTeilplan);
+  // Aendert sich ein Schalter oder die Teilgroesse, gilt der gezeichnete Plan
+  // nicht mehr -- ein stehengebliebener Plan naennte falsche Grenzen.
+  for (const id of ['ex-files', 'ex-videos', 'ex-ziel'])
+    amElement(id, e => e.addEventListener('change', () => {
+      const kasten = document.getElementById('ex-plan-out');
+      if (kasten) kasten.innerHTML = '';
+    }));
 
   amElement('imp', imp => imp.onchange = e => {
     const file = e.target.files[0];

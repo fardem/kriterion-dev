@@ -55,18 +55,39 @@ nachgerechnet über dieselben dreizehn Dateien, die `bildeFingerprint()` liest
 > (Stolperstein 158), der Server lief einwandfrei, jede Prüfung war grün — und
 > trotzdem stand auf dem Wirt ein Stand, den kein Commit hatte.
 
-**DIE BLOB-SUMME IST NICHT GEMESSEN, UND SIE KONNTE ES HIER NICHT SEIN.** Sie
-braucht die Datenbank des Betriebs, und die liegt auf dem Wirt. *Der Auftrag
-sagt an dieser Stelle selbst, wie sie zu gewinnen ist:* **„sie gehört gebaut und
-nicht einmal von Hand ausgerechnet."** Genau das ist Teil (a) — die Zahl steht
-ab dieser Version im Systembereich unter **Kennzahlen → „Export, alles"** und
-wird dort abgelesen, ohne dass jemand eine Abfrage tippt.
+**DIE BLOB-SUMME WAR BEIM BAUEN NICHT ZU MESSEN** — sie braucht die Datenbank
+des Betriebs, und die liegt auf dem Wirt. *Der Auftrag sagt an dieser Stelle
+selbst, wie sie zu gewinnen ist:* **„sie gehört gebaut und nicht einmal von
+Hand ausgerechnet."** Genau das ist Teil (a).
 
-**Was daran hängt:** ob Punkt 1 ein `Fehler` oder eine `Verbesserung` ist.
-Liegt die Zahl über 512 MB, war der Export kaputt und niemand hat es bemerkt,
-weil ihn niemand gebraucht hat. Liegt sie darunter, war diese Runde Vorsorge.
-**Gebaut gehört sie in beiden Fällen**, und deshalb steht die Runde hier
-vollständig.
+### Und dann kam sie zurück: 760 MB
+
+**Am 28. August 2026, unmittelbar nach dem Einspielen, meldete die laufende
+Anlage beim Druck auf den Exportknopf:**
+
+> *„Dieser Export wäre rund 760 MB groß. Eine Exportdatei ist ein einziger Text,
+> und der kann nicht größer als 512 MB werden. Nimm die Sicherung."*
+
+**Damit ist die Frage beantwortet, die dieser Punkt seit 0.8.6 offenließ.
+760 MB gegen 512 MB — der Export war KAPUTT**, nicht gefährdet. Die Art des
+Punktes steht damit endgültig auf `Fehler` und nicht auf `Verbesserung`, und
+zwar nicht als Einschätzung, sondern als Messung.
+
+**Die Vorhersage aus dem Auftrag hat gestimmt, und die Korrektur daran auch.**
+Der Auftrag rechnete aus der Dateigröße rund 880 MB und sagte dazu, die Zahl
+falle zu hoch aus. **Sie fiel zu hoch aus, um rund 120 MB** — die Datei trägt
+Indizes, das Sicherheitsprotokoll und freie Seiten aus Gelöschtem, und die
+Vorschaubilder gehen gar nicht mit. *Beide Sätze waren richtig: der Befund und
+der Vorbehalt.*
+
+> **WAS DIESE RUNDE DAMIT GELÖST HAT — UND WAS NICHT.** Gelöst ist die
+> **Ansage**: statt eines Speicherfehlers nach zwei Minuten steht ein Satz da,
+> bevor irgendetwas gebaut wird. **Nicht gelöst ist die Grenze.** Der Export
+> bleibt bei diesem Bestand unbenutzbar, und mit jedem Foto rückt er weiter
+> davon weg. *Der Auftrag hat diesen Fall vorgesehen: „Stellt sich beim Bauen
+> heraus, dass (a) und (b) den Fall nicht abfangen, ist das ein Grund
+> anzuhalten und zu fragen — kein Grund, (c) mitzunehmen."* **Der Fall ist
+> eingetreten**; siehe [Abschnitt 14](#14-offen-geblieben).
 
 > **DIE SCHÄTZUNG AUS DER DATEIGRÖSSE FÄLLT ZU HOCH AUS, UND ZWAR AUS ZWEI
 > GRÜNDEN.** Der Auftrag nennt einen: die Datei trägt Indizes, das
@@ -525,12 +546,18 @@ Fahrplan sieht es *erst dann* vor, *wenn (2a) gemessen zu wenig gebracht hat.*
 
 Siehe [2a](#2a--nur-zeichnen-was-zu-sehen-ist). 178 × 305, 255 × 374, 301 × 399 px.
 
-### Die Blob-Summe und die Exportgröße
+### Die Exportgröße der laufenden Anlage
 
-**Nicht gemessen** — sie braucht die Datenbank des Betriebs. Sie steht ab dieser
-Version in den Kennzahlen und ist dort abzulesen; siehe
-[Abschnitt 1](#1-was-vor-dem-ersten-handgriff-geprüft-wurde) und
-[Abschnitt 14](#14-offen-geblieben).
+| | |
+|---|---:|
+| Datenbankdatei *(Betreiberangabe)* | 660 MB |
+| daraus geschätzt, Base64 *(Auftrag)* | ≈ 880 MB |
+| **gemessen, was der Export wirklich schriebe** | **760 MB** |
+| Nodes Grenze für einen String | 512 MB |
+
+**Der Export war kaputt.** Die gemessene Zahl liegt 248 MB über der Grenze und
+120 MB unter der Schätzung aus der Dateigröße — beides wie vorhergesagt. Siehe
+[Abschnitt 1](#1-was-vor-dem-ersten-handgriff-geprüft-wurde).
 
 ---
 
@@ -841,11 +868,21 @@ Fälle falsch ist, fällt keinem auf, der zur anderen Hälfte gehört.*
 
 ## 14. Offen geblieben
 
-- **DIE BLOB-SUMME DER LAUFENDEN ANLAGE.** Sie entscheidet, ob Punkt 1 ein
-  eingetretener Fehler war oder Vorsorge. **Abzulesen im Systembereich unter
-  Kennzahlen → „Export, alles"**, sobald diese Version läuft. *Liegt sie über
-  512 MB, gehört die Art des Punktes im Fahrplan von `Verbesserung` auf `Fehler`
-  gestellt — und der Satz im CHANGELOG bekommt seine Zahl.*
+- **DER AUSTAUSCHWEG IST FÜR DIESEN BESTAND AUSGEFALLEN, UND DAS IST DER
+  GRÖSSTE OFFENE PUNKT DIESER RUNDE.** 760 MB gegen 512 MB: der Export sagt es
+  jetzt sauber, aber er liefert nichts mehr. **Und die Gegenrichtung ist
+  genauso zu** — der Import liest die Datei über `readAsText()` im Browser und
+  `buffer.toString('utf8')` am Server, beides ein einziger String. *Selbst eine
+  Datei, die irgendwie entstünde, ließe sich von dieser Anlage nicht wieder
+  einspielen.*
+  **Die Sicherung über `VACUUM INTO` bleibt der Weg für die vollständige
+  Kopie** und ist davon unberührt; was fehlt, ist der Weg für Umzug, Archiv und
+  Weitergabe. *Zwei Antworten stehen zur Wahl — der Export als Strom (Teil c,
+  bisher zurückgestellt) oder der Export in mehreren vollständigen Teildateien,
+  die der vorhandene Import mit „Zusammenführen" wieder aufnimmt. Die zweite
+  braucht kein neues Format und löst beide Richtungen.* **Entschieden ist
+  nichts; der Auftrag verlangt an dieser Stelle ausdrücklich, anzuhalten und zu
+  fragen.**
 - **Der Fingerprint der laufenden Anlage** ist nicht gegengeprüft worden — kein
   Zugriff auf den Wirt. Vor dem Einspielen gegen `e30a19c1` halten, danach gegen
   den Wert im Kopf dieses Papiers.

@@ -1623,6 +1623,93 @@ const RUECKBAUTEN = [
     ersatz: '    if (false) {',
     erwartet: 'Kommentare in der Oberflaeche'
   },
+  /* ---- 0.12.4: der Export in Teilen ---- */
+  /* SIE ZIELEN AUF DEN SCHNITT UND AUF DIE SCHRANKE. Ein Schnitt, der einen
+     Eintrag doppelt oder gar nicht vergibt, faellt am Bildschirm nicht auf --
+     erst beim Einspielen, und dann ist der Bestand schon falsch. */
+  {
+    nr: '183', name: 'Der Schnitt laesst die Fenster ueberlappen',
+    datei: 'server.js',
+    suche: '    offen.bis = z.id;\n    offen.anzahl++;',
+    ersatz: '    offen.bis = z.id + 1;\n    offen.anzahl++;',
+    erwartet: 'Der Export in Teilen'
+  },
+  {
+    /* OHNE DEN UMSCHLAG JE TEIL waere die Rechnung zu klein: jeder Teil traegt
+       Titel, Zeitstempel und die ganze Kriterienliste noch einmal. Bei vielen
+       kleinen Teilen ist das kein Rundungsfehler. */
+    nr: '184', name: 'Der Umschlag je Teil faellt aus der Rechnung',
+    datei: 'server.js',
+    suche: '      offen = { nr: teile.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: grund };',
+    ersatz: '      offen = { nr: teile.length + 1, von: z.id, bis: z.id, anzahl: 0, bytes: 0 };',
+    erwartet: 'Der Export in Teilen'
+  },
+  {
+    /* EIN EINTRAG, DER IN KEINEN TEIL PASST, DARF NICHT STILL VERSCHWINDEN.
+       Dieser Rueckbau uebergeht ihn wortlos -- genau der Ausgang, gegen den
+       die Meldung gebaut ist. */
+    nr: '185', name: 'Ein zu grosser Eintrag wird still uebergangen',
+    datei: 'server.js',
+    suche: "    if (grund + b > AUSTAUSCH_MAX) { zuGross.push({ id: z.id, titel: z.titel, bytes: grund + b }); continue; }",
+    ersatz: '    if (grund + b > AUSTAUSCH_MAX) { continue; }',
+    erwartet: 'Der Export in Teilen'
+  },
+  {
+    /* EINE HALBE FENSTERANGABE MUSS EIN FEHLER SEIN. Wer `von` schickt und
+       `bis` vergisst, bekaeme sonst stillschweigend den ganzen Bestand -- und
+       merkte es erst an der Dateigroesse. */
+    nr: '186', name: 'Eine halbe Fensterangabe geht als Vollexport durch',
+    datei: 'server.js',
+    suche: '  if (alsTeil && (von === null || bis === null || teil === null || teile === null))',
+    ersatz: '  if (false)',
+    erwartet: 'Der Export in Teilen'
+  },
+  {
+    /* AUS N SCHRANKEN WIRD SONST EINE. Die Freigabe haengt an Sitzung, Zweck
+       UND Ziel; faellt das Ziel weg, laesst eine einzige Bestaetigung jeden
+       Teil durch. */
+    nr: '187', name: 'Eine Freigabe gilt wieder fuer alle Teile',
+    datei: 'server.js',
+    suche: "             : (req.query && req.query.teil !== undefined ? req.query.teil : null);",
+    ersatz: '             : null;',
+    erwartet: 'Der Export in Teilen'
+  },
+  {
+    /* DER TEIL MUSS EIN FENSTER LESEN UND NICHT ALLES. Ohne die Klemme traegt
+       jeder Teil den ganzen Bestand -- fuenf Dateien, jede vollstaendig, und
+       der Import legte danach alles fuenfmal an. */
+    nr: '188', name: 'Jeder Teil traegt den ganzen Bestand',
+    datei: 'server.js',
+    suche: "    ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(von, bis)",
+    ersatz: "    ? db.prepare('SELECT * FROM items ORDER BY id').all()",
+    erwartet: 'Der Export in Teilen'
+  },
+  {
+    nr: '189', name: 'Die Teilgroesse laesst sich ueber den Warnwert stellen',
+    datei: 'server.js',
+    suche: '  const zielGroesse = Math.min(AUSTAUSCH_WARN,',
+    ersatz: '  const zielGroesse = Math.min(Number.MAX_SAFE_INTEGER,',
+    erwartet: 'Der Export in Teilen'
+  },
+  {
+    /* DER DATEINAME IST DIE EINZIGE STELLE, an der ein Mensch die Reihenfolge
+       ablesen kann. Fuenf gleichnamige Dateien im Ordner waeren nicht mehr
+       auseinanderzuhalten. */
+    nr: '190', name: 'Alle Teile heissen gleich',
+    datei: 'server.js',
+    suche: "    `attachment; filename=\"${exportName(alsTeil ? `-teil-${teil}-von-${teile}` : '')}\"`);",
+    ersatz: "    `attachment; filename=\"${exportName('')}\"`);",
+    erwartet: 'Der Export in Teilen'
+  },
+  {
+    /* EINE ABFRAGE, MEHRERE FREIGABEN -- und wenn die Oberflaeche nur eine
+       holt, bleibt der Export nach dem ersten Teil stehen. */
+    nr: '191', name: 'Die Oberflaeche holt nur eine Freigabe statt einer je Teil',
+    datei: 'public/app.js',
+    suche: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }",
+    ersatz: "  for (const ziel of ziele.slice(0, 1)) {\n    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }",
+    erwartet: 'Der Export in Teilen'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
