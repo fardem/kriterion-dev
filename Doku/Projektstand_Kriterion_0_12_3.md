@@ -150,6 +150,14 @@ Was die Runde bringt, steht in Abschnitt 9.
 > nachgetragen, sobald sie dasteht** — sie ist der einzige Messwert dieser
 > Runde, der ohne den Wirt nicht zu gewinnen war.
 
+**Was 0.12.3 für den Betrieb bedeutet: nichts einzustellen.** Keine neue
+`.env`-Zeile, die `docker-compose.yml` unberührt, kein Schema. **Der Server ist
+diesmal angefasst** — `server.js` bringt die Rechnung für die Exportgröße und
+die Absage davor —, aber nur lesend: `F_ROUTEN` bleibt bei 69, und keine
+Antwort verliert ein Feld. *Wer die CrowdSec-Zeile oder die Protokollrotation
+aus der README übernehmen will, tut das von Hand in seiner eigenen
+`docker-compose.yml`.*
+
 **Was 0.12.0 und 0.12.1 für den Betrieb bedeuten: nichts.** Keine neue
 `.env`-Zeile, die `docker-compose.yml` unberührt, nichts einzustellen — und
 **der Server ist in beiden Runden überhaupt nicht angefasst**: `server.js`,
@@ -169,10 +177,16 @@ Papierkorb am großen Bild kommt daneben. Was sich dort ändert, sind die zwei
 Knöpfe des Bildbereichs: sie tragen Zeichen statt Wörter und stehen in einer
 Reihe.
 
-**IM FELD BESTÄTIGT IST 0.12.0.** Die Runde ist eingespielt, und die laufende
-Anlage meldet denselben Fingerprint wie der Branch: **`192734a2`**. *Der
-Dateisatz auf dem Wirt ist damit genau der, der gemeint war — einen Befund wie
-bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es nicht.*
+**IM FELD BESTÄTIGT IST 0.12.2** — Fingerprint **`e30a19c1`**, derselbe wie am
+Branch. *Der Dateisatz auf dem Wirt ist damit genau der, der gemeint war —
+einen Befund wie bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es
+nicht.* **Davor war es 0.12.0** mit `192734a2`.
+
+> **FÜR 0.12.3 STEHT DIE BESTÄTIGUNG NOCH AUS**, und sie hat diesmal eine Zahl
+> im Gepäck: der Fingerprint des Branches ist **`b635dd98`**, und die Karte
+> **Kennzahlen** trägt neu die Zeile **„Export, alles"**. *Beides gehört beim
+> ersten Öffnen abgelesen — der Fingerprint gegen den Wert oben, die
+> Exportgröße gegen 512 MB.*
 
 **UND DIESE BESTÄTIGUNG HAT SOFORT ETWAS GEBRACHT: 0.12.1 IST EIN BEFUND AUS
 DEM BETRIEB.** Einen Tag nach dem Einspielen kam vom laufenden Gerät die
