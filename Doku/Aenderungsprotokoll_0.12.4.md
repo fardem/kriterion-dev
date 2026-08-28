@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.12.4 — „Der Export geht in Teilen"
 
-**Version 0.12.4 · gebaut am 28. August 2026 · Fingerprint `PLATZHALTER` ·
+**Version 0.12.4 · gebaut am 28. August 2026 · Fingerprint `ca991cf5` ·
 Nacharbeit an 0.12.3, ausgelöst durch eine Messung im Feld · KEINE
 Datenbankstufe, kein Migrationsblock, keine neue Formatnummer, keine neue Zeile
 in der `.env`, keine neue Abhängigkeit**

@@ -130,7 +130,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.12.4** — Fingerprint **`PLATZHALTER`**, **3992 Prüfungen**,
+**Gebaut ist 0.12.4** — Fingerprint **`ca991cf5`**, **3992 Prüfungen**,
 **einundzwanzig Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
 *0.12.4 ist die Antwort auf das, was 0.12.3 gemessen hat: der Export geht in
 Teilen, und jeder Teil ist eine vollständige Exportdatei.* **PATCH — die
@@ -193,11 +193,14 @@ Branch. *Der Dateisatz auf dem Wirt ist damit genau der, der gemeint war —
 einen Befund wie bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es
 nicht.* **Davor war es 0.12.0** mit `192734a2`.
 
-> **FÜR 0.12.3 STEHT DIE BESTÄTIGUNG NOCH AUS**, und sie hat diesmal eine Zahl
-> im Gepäck: der Fingerprint des Branches ist **`0d04b540`**, und die Karte
-> **Kennzahlen** trägt neu die Zeile **„Export, alles"**. *Beides gehört beim
-> ersten Öffnen abgelesen — der Fingerprint gegen den Wert oben, die
-> Exportgröße gegen 512 MB.*
+> **0.12.3 IST IM FELD GEWESEN und hat dabei genau das geliefert, wofür es
+> gebaut war: die Zahl 760 MB.** Der Fingerprint dieser Runde ist nicht
+> gegengeprüft worden — die Rückmeldung kam über die Meldung am Exportknopf.
+>
+> **FÜR 0.12.4 STEHT DIE BESTÄTIGUNG AUS.** Der Fingerprint des Branches ist
+> **`ca991cf5`**. *Abzulesen beim ersten Öffnen — und daneben, unter Export →
+> „In Teilen exportieren", wie viele Teile bei 300 MB herauskommen. Bei 760 MB
+> sollten es drei sein.*
 
 **UND DIESE BESTÄTIGUNG HAT SOFORT ETWAS GEBRACHT: 0.12.1 IST EIN BEFUND AUS
 DEM BETRIEB.** Einen Tag nach dem Einspielen kam vom laufenden Gerät die
