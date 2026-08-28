@@ -818,13 +818,19 @@ function ordneBloecke() {
 /* Die Zahlen am Kommentarblock. GEBILDET AN EINEM ORT: derselbe Satz steht
    aufgeklappt wie eingeklappt in der Kopfzeile.
 
-       12 Kommentare, davon 3 Berichte und 5 Aufgaben (2 Erledigt)
+       12 Kommentare, davon 3 Berichte und 5 Aufgaben (3 offen, 2 Erledigt)
 
    DAVON, nicht Mittelpunkte: die Zahlen dahinter sind TEILMENGEN, keine
    Summanden. Die Klammer nistet die zweite Ebene ein -- das Erledigte steckt
    IN den Aufgaben, sonst schrumpfte die Zahl beim Abhaken.
-   Eine Gruppe mit null verschwindet ganz, ohne Erledigte faellt die Klammer
-   weg, und ohne Kommentare bleibt der Hinweis leer.
+   DIE OFFENEN STEHEN VORAN, denn danach wird im Alltag gefragt. Sie werden
+   ABGEZOGEN und nicht gezaehlt: `aufgaben - fertig` kann nicht von der Summe
+   abweichen, eine zweite Zaehlung ueber `kind = 'task'` schon.
+   DIE KLAMMER ERSCHEINT NUR, WENN ETWAS ERLEDIGT IST. Sonst stuende dort
+   "5 Aufgaben (5 offen)" -- eine Zahl, die nichts hinzufuegt, weil die davor
+   schon dasselbe sagt.
+   Eine Gruppe mit null verschwindet ganz, und ohne Kommentare bleibt der
+   Hinweis leer.
    DIE NOTIZ BLEIBT UNGENANNT: sie ist der Zustand ohne Markierung.
    DIE ANPINNUNG STEHT NICHT IN DER ZEILE: sie ist die zweite, unabhaengige
    Achse, und zwei Achsen in einer Zeile sind nicht mehr lesbar.
@@ -842,7 +848,7 @@ function kommentarZahlen(kommentare) {
   const teile = [];
   if (berichte) teile.push(`${berichte} ${vBericht(berichte)}`);
   if (aufgaben) teile.push(`${aufgaben} ${vAufgabe(aufgaben)}`
-    + (fertig ? ` (${fertig} ${V.aufgabeErledigt})` : ''));
+    + (fertig ? ` (${aufgaben - fertig} offen, ${fertig} ${V.aufgabeErledigt})` : ''));
   return `${n} ${n === 1 ? 'Kommentar' : 'Kommentare'}`
     + (teile.length ? `, davon ${teile.join(' und ')}` : '');
 }
@@ -935,9 +941,21 @@ function ruesteBloeckeAus(item) {
 // Versionsnummer. Sie steht einmal im Grundgeruest, ausserhalb von #app --
 // damit ist sie auf jeder Ansicht sichtbar, ohne in vier Aufbauten gepflegt
 // werden zu muessen. Mittig unter dem Inhalt, damit sie nie etwas verdeckt.
+/* DIE VERSIONSZEILE, und das Zeichen davor ist ein Aufruf und kein zweites
+   Bild: MARK() liefert dieselbe durchsichtige Fassung, die auf allen neun
+   Anmeldeseiten steht (Stolperstein 145).
+   `alt=""` STECKT IN MARK() -- das Zeichen steht unmittelbar neben dem Namen
+   der Anlage, und ein Vorleseprogramm saegte ihn sonst zweimal.
+   DIE GROESSE STEHT IM STYLESHEET UND IN em: diese Zeile laeuft auf 0,67rem,
+   und die Anlage stellt die Schrift von 80 bis 120 Prozent. Eine feste
+   Pixelzahl bliebe bei jeder anderen Einstellung stehen, waehrend die Schrift
+   daneben mitwaechst.
+   Der Name geht durch esc(): er kommt zwar aus dem eigenen package.json und
+   nicht von aussen, aber innerHTML ist innerHTML. */
 function zeigeVersion() {
   const el = document.getElementById('version');
-  if (el) el.textContent = VERSION ? `Kriterion ${VERSION}` : '';
+  if (!el) return;
+  el.innerHTML = VERSION ? `${MARK()}<span>Kriterion ${esc(VERSION)}</span>` : '';
 }
 
 /* ================= Bilder in Kommentaren ================= */
@@ -1992,19 +2010,43 @@ function drawFilters() {
   // Eine Zeile, Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
   // abgeschnitten ist.
   const beschnitten = begrenzeWolke(g3, wolkeOffen.uebersicht ? 0 : 1);
+  /* DIE BEIDEN VERWEISE STEHEN AM RECHTEN ENDE DER ERSTEN ZEILE -- dort, wo
+     TAGS und Und/Oder stehen und rechts ohnehin nichts steht. Als Geschwister
+     HINTER der Wolke rutschten sie auf eine eigene Zeile und kosteten so viel
+     Platz wie eine ganze Reihe Tags.
+     DIE EINTRAGSSEITE MACHT ES SCHON SO (`.wolke-kopf`, `space-between`), und
+     genau deshalb faellt es dort nicht auf. Dieselbe Sache war an zwei Stellen
+     verschieden gebaut -- Stolperstein 47, im Kleinen.
+     SIE STEHEN IM DOM VOR DER WOLKE UND NICHT DAHINTER: die Zeile bricht um,
+     und die Reihenfolge im Aufbau entscheidet, auf welcher Zeile etwas landet.
+     Gemessen wird die Wolke trotzdem vorher -- begrenzeWolke() braucht sie im
+     Dokument, und ob "mehr" ueberhaupt dasteht, haengt an seiner Antwort.
+     ZUSAMMEN IN EINEM KASTEN und nicht zweimal `margin-left: auto`: zwei
+     Elemente mit je einer selbsttaetigen Aussenkante teilen sich den freien
+     Platz und stuenden auseinandergezogen da.
+     KEIN AUSGERECHNETER FREIRAUM. Die Wolke wird beschnitten (`max-height`,
+     `overflow: hidden`), ein Verweis IN ihr wuerde mitabgeschnitten -- und
+     eine feste Breite daneben ist genau der Fehler, an dem 0.12.1 schon einmal
+     hing (`right: 92px`, Befund A). Die Anlage stellt die Schrift von 80 bis
+     120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
+  const rechts = document.createElement('div');
+  rechts.className = 'frow-rechts';
   if (beschnitten || wolkeOffen.uebersicht) {
     const m = document.createElement('button');
     m.className = 'link-btn';
     m.textContent = wolkeOffen.uebersicht ? 'weniger' : 'mehr';
     m.onclick = () => { wolkeOffen.uebersicht = !wolkeOffen.uebersicht; drawFilters(); };
-    r3.appendChild(m);
+    rechts.appendChild(m);
   }
   if (f.tagIds.length) {
     const c = document.createElement('button');
     c.className = 'link-btn'; c.textContent = 'zurücksetzen';
     c.onclick = () => { f.tagIds = []; redraw(); };
-    r3.appendChild(c);
+    rechts.appendChild(c);
   }
+  // Ein leerer Kasten bliebe als Flex-Element stehen und schoebe die Wolke
+  // um eine Luecke nach rechts.
+  if (rechts.childElementCount) r3.insertBefore(rechts, g3);
 
   // Sortierung, gruppiert
   const r4 = row('Sortieren');
@@ -3098,7 +3140,18 @@ async function renderDetail(id) {
     </div>
 
     <div class="block block-wide" data-block="kommentare">
-      <div class="block-head"><span class="label">Kommentare</span><span class="hint" id="ccount"></span></div>
+      ${/* DER SPRUNGKNOPF, und er ist ein Sprung und kein zweites Formular.
+           Das vorhandene traegt Bilder-Einfuegen, Anpinnen, Art-Umschalter und
+           Mitwachsen; ein zweites davon im Dialog waeren zwei Wahrheiten ueber
+           dasselbe Formular, und die eine wuerde irgendwann vergessen.
+           ER SITZT IM KOPF, WEIL DAS FORMULAR UNTEN SITZT: bei vierzig
+           Kommentaren ist der Weg dorthin weit, und auf dem Telefon steht die
+           Liste einspaltig und ist damit noch laenger.
+           ALS BUTTON UND NICHT ALS VERWEIS -- kopf.onclick nimmt jeden Klick
+           auf ein `button` aus, und ohne das klappte der Sprung den Block im
+           selben Atemzug ein. */''}
+      <div class="block-head"><span class="label">Kommentare</span><span class="hint" id="ccount"></span>
+        <button class="link-btn" id="cjump" title="Zum Schreibfeld springen">+ Kommentar</button></div>
       <div class="cmts" id="cmts"></div>
       <div class="cmt-form">
         <textarea class="ta" id="ctext" placeholder="Notiz hinterlassen — Bilder mit Strg+V einfügen …"></textarea>
@@ -3716,7 +3769,19 @@ async function renderDetail(id) {
       if (mehrereBenutzer()) {
         const a = document.createElement('span');
         a.className = 'ravg';
-        a.textContent = r.avg ? `${r.avg.toFixed(1).replace('.', ',')} · ${r.count}` : '';
+        /* DIESELBE FORM WIE DIE KOPFZAHL DARUEBER, die bereits "⌀ 4,2
+           gewichtet" schreibt: das ⌀ ist die Hausform, die Klammer sagt
+           "so viele Stimmen". Der Mittelpunkt davor sagte weder das eine
+           noch das andere -- er trennte nur zwei Zahlen, die verschiedene
+           Dinge meinen.
+           DER KLARTEXT GEHOERT DAZU: ein Symbol allein liest kein
+           Vorleseprogramm vor, und "⌀ 4,2 (3)" bliebe fuer den, der es
+           vorgelesen bekommt, eine Folge von Zeichen. */
+        if (r.avg) {
+          const stimmen = `${r.count} ${r.count === 1 ? 'Stimme' : 'Stimmen'}`;
+          a.textContent = `⌀ ${r.avg.toFixed(1).replace('.', ',')} (${r.count})`;
+          a.title = `Durchschnitt ${r.avg.toFixed(1).replace('.', ',')} aus ${stimmen}`;
+        } else a.textContent = '';
         acts.append(a);
       }
       row.append(n, acts);
@@ -4476,6 +4541,25 @@ async function renderDetail(id) {
   document.getElementById('caufg').onclick =
     () => { neueArt = aufgabeWeiter(neueArt); drawNeuMarken(); };
   document.getElementById('cimg').onclick = () => waehleBilder(nimmBilder);
+
+  /* Der Sprung ans Schreibfeld. ZUERST AUFKLAPPEN, DANN SPRINGEN: ein
+     eingeklappter Block stellt seine Kinder auf display: none, und ein Sprung
+     auf ein unsichtbares Feld landete irgendwo. Der Zustand geht denselben Weg
+     wie beim Klick auf die Kopfzeile -- gespeichert und neu ausgeruestet, nicht
+     an der Klasse vorbei umgeschaltet.
+     scrollIntoView VOR focus(): focus() rollt von sich aus hart an den Rand,
+     die weiche Bewegung davor gibt dem Feld seinen Platz in der Mitte. */
+  document.getElementById('cjump').onclick = () => {
+    if (BLOECKE.zu.includes('kommentare')) {
+      BLOECKE.zu = BLOECKE.zu.filter(k => k !== 'kommentare');
+      speichereBloecke();
+      ruesteBloeckeAus(item);
+    }
+    const feld = document.getElementById('ctext');
+    if (!feld) return;
+    feld.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    feld.focus({ preventScroll: true });
+  };
   document.getElementById('ctext').addEventListener('paste', (e) => {
     const bilder = bilderAusZwischenablage(e);
     if (!bilder.length) return;   // Text weiterhin normal einfügen
