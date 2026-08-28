@@ -5,7 +5,9 @@ einer Kopie.
 
 AUFTRAG: **Version 0.13.0 — „Zwei Netze, ein Zugang."**
 **Eine MINOR-Runde, und sie ist die zweite aus dem Fahrplan** — Projektstand,
-Abschnitt 10a, dort steht jeder Punkt ausgearbeitet.
+Abschnitt 10a, dort stehen die Punkte 2 bis 4 ausgearbeitet. **Punkt 1 steht
+dort nicht:** er ist ein Befund aus dem Betrieb vom 28. August 2026 und kam nach
+dem Fahrplan dazu.
 
 WORAUF SIE AUFSETZT: 0.12.4 ist gebaut und geschoben, Fingerprint `ca991cf5`,
 **3992 Prüfungen**, **195 Rückbauten** in `gegenprobe.js`, `F_ROUTEN` bei
@@ -15,47 +17,59 @@ bis **190**, **neunzehn** Karten im Systembereich, **elf** Vokabulareinträge,
 Zwecke der zweiten Bestätigung. Laufzeitabhängigkeiten:
 `better-sqlite3-multiple-ciphers`, `express`, `multer`, `nodemailer`, `sharp`.
 
-WAS SICH ÄNDERT, IN EINEM SATZ: Die Anlage ist danach über HTTPS **und** über
-das Heimnetz erreichbar, statt nur über den Weg, den eine einzige Einstellung
-gerade offenhält — und zwei kleinere Punkte am Zugang ziehen mit.
+WAS SICH ÄNDERT, IN EINEM SATZ: Der Export in Teilen wird wieder benutzbar — mit
+eingeschaltetem zweitem Faktor ist er es heute nicht —, die Anlage ist danach
+über HTTPS **und** über das Heimnetz erreichbar statt nur über den Weg, den eine
+einzige Einstellung gerade offenhält, und zwei kleinere Punkte am Zugang ziehen
+mit.
 
 **DIESE RUNDE HAT EIN BETRIEBSRISIKO IM KERN, UND DAS UNTERSCHEIDET SIE VON DEN
-LETZTEN VIER.** 0.12.1 bis 0.12.4 waren Befunde aus dem Betrieb, alle PATCH.
-**Hier steht der einzige Punkt der ganzen Liste, bei dem ein Ausfall bedeutet,
-dass niemand mehr hereinkommt** — nicht die Daten sind in Gefahr, sondern der
-Zugang zu ihnen. *Der Schnitt, falls einer nötig wird, liegt zwischen Punkt 2
-und allem Übrigen.*
+LETZTEN VIER.** 0.12.1 bis 0.12.4 waren Befunde aus dem Betrieb, alle PATCH —
+**einer davon ist noch offen und fährt als Punkt 1 mit.** **In Punkt 2 steht der
+einzige Punkt der ganzen Liste, bei dem ein Ausfall bedeutet, dass niemand mehr
+hereinkommt** — nicht die Daten sind in Gefahr, sondern der Zugang zu ihnen.
+*Der Schnitt, falls einer nötig wird, liegt zwischen Punkt 3 und Punkt 2;
+**Punkt 1 wird nie geschnitten**, er repariert Laufendes.*
 
 ---
 
 0. WAS VOR DEM ERSTEN HANDGRIFF ZU TUN IST — VIER PUNKTE, UND DREI DAVON SIND
-   NACHLESE ZU 0.12.4.
+   NACHLESE ZU 0.12.4. **EINER IST BEIM SCHREIBEN DIESES AUFTRAGS SCHON
+   BEANTWORTET WORDEN.**
 
-   * **DER FINGERPRINT DER LAUFENDEN ANLAGE IST ZU BESTÄTIGEN.** Der Branch
-     misst `ca991cf5`. **Frag ihn an der laufenden Anlage ab, bevor du
-     irgendetwas baust** — Karte „Kennzahlen" im Systembereich. *Bei 0.9.1 hat
+   * **DER FINGERPRINT IST BESTÄTIGT — 28. August 2026.** Die laufende Anlage
+     meldet `ca991cf5`, der Branch misst dasselbe. **Damit steht fest, dass auf
+     dem Wirt genau der Stand liegt, den dieser Auftrag voraussetzt.** *Bei 0.9.1 hat
      sich dort eine Datei zu viel gezeigt (Stolperstein 158): der Server lief
      einwandfrei, jede Prüfung war grün, und trotzdem stand auf dem Wirt ein
      Stand, den kein Commit hatte.* **0.12.3 ist ohne diese Gegenprobe
      eingespielt worden** — das war eine Ausnahme und soll keine werden.
 
-   * **DER TEILEXPORT IST AM ECHTEN BESTAND NOCH NICHT GESEHEN.** Er ist an drei
-     Prüflagen gefahren, die größte mit 1000 Einträgen, und jedes Mal stimmte
-     der Rundlauf Feld für Feld. **Der echte Bestand trägt Videos und
-     Kommentarbilder in anderen Größen.** Zu tun ist genau dreierlei, und es
-     kostet zusammen zehn Minuten:
+   * **DER TEILEXPORT IST AM ECHTEN BESTAND NOCH NICHT GESEHEN — UND MIT
+     EINGESCHALTETEM ZWEITEM FAKTOR GEHT ER DERZEIT ÜBERHAUPT NICHT.** Er ist an
+     drei Prüflagen gefahren, die größte mit 1000 Einträgen, und jedes Mal
+     stimmte der Rundlauf Feld für Feld. **Der echte Bestand trägt Videos und
+     Kommentarbilder in anderen Größen.** *Warum er derzeit nicht geht, steht als
+     Punkt 1 — er wird deshalb zuerst gebaut.*
+
+     **Was JETZT geht, ohne eine Zeile Code:**
 
      1. Systembereich → Export → **In Teilen exportieren**, 300 MB. *Wie viele
         Teile? Bei 760 MB sollten es drei sein.* **Steht dort ein Eintrag unter
-        „passt in keinen Teil", nenn ihn mir.**
-     2. Alle Teile freigeben, alle laden. *Stimmen die Dateigrößen ungefähr mit
+        „passt in keinen Teil", nenn ihn mir.** Der Plan wird gerechnet, ohne
+        dass irgendetwas zu bestätigen wäre — dieser Schritt ist vom Fehler
+        nicht betroffen.
+
+     **Was ERST NACH PUNKT 1 geht:**
+
+     2. Alle Teile bestätigen, alle laden. *Stimmen die Dateigrößen ungefähr mit
         der Ansage?*
      3. **Und der eine Handgriff, der wirklich zählt:** einen Teil in eine
         Zweitanlage einspielen — nicht in die laufende. *Sag mir, ob dabei
         etwas fehlt.*
 
-     **Bis das gelaufen ist, ist 0.12.4 nicht bestätigt.** *Sag mir die Zahlen,
-     bevor du weiterbaust.*
+     **Bis 2 und 3 gelaufen sind, ist 0.12.4 nicht bestätigt.** *Schritt 1 sag
+     mir gleich; die beiden anderen, sobald Punkt 1 steht.*
 
    * **DIE TAGS SIND JETZT DEINE SACHE, UND DER GRUND IST GEKLÄRT.** Er stand
      fünf Runden lang falsch in den Papieren. **Es ist kein Problem der
@@ -79,7 +93,104 @@ und allem Übrigen.*
 
 ---
 
-1. DER PROXY IST EIN JA/NEIN, DIE ANLAGE IST BEIDES — DAS EINZIGE
+1. DER EXPORT IN TEILEN IST MIT EINGESCHALTETEM ZWEITEM FAKTOR UNBENUTZBAR —
+   EIN BEFUND AUS DEM BETRIEB, GEMELDET AM 28. AUGUST 2026.
+
+   **Das ist mein Fehler aus 0.12.4, und er steht seit dem Einspielen auf der
+   laufenden Anlage.** Er kommt zuerst: er ist klein, er ist geschlossen, und
+   **die Feldprüfung aus Abschnitt 0 hängt an ihm** — ohne ihn lässt sich der
+   Teilexport nicht einmal auslösen.
+
+   **WAS PASSIERT.** Der Knopf „Alle n Teile freigeben" fragt einmal nach
+   Passwort und Code und schickt dann **denselben Code n-mal** an
+   `POST /api/bestaetigung`, einmal je Teil. An einem laufenden Server
+   nachgestellt, drei Teile:
+
+   ```
+   Teil 1: 200  Freigabe erteilt
+   Teil 2: 403  Der Code stimmt nicht.
+   Teil 3: 403  Der Code stimmt nicht.
+   ```
+
+   **WARUM.** Ein Code des zweiten Faktors gilt **genau einmal** — das ist seine
+   ganze Zusage, und sie steht in der Bedingung des Schreibvorgangs
+   (`auth.js`, `verbraucheZaehler`: der Zähler muss echt größer sein als der
+   zuletzt verbrauchte). Der Kommentar an `zweiteBestaetigungMehrfach`
+   (`public/app.js`) sagt *„Der Mensch tippt einmal, geprüft wird n-mal"* —
+   **das stimmt fürs Passwort, das gegen einen Hash läuft und sich beliebig oft
+   vergleichen lässt, und für den zweiten Faktor stimmt es nicht.** Der
+   Unterschied ist beim Bauen übersehen worden.
+
+   **DIE MELDUNG IST WAHR UND TROTZDEM IRREFÜHREND:** der Code war richtig, er
+   war verbraucht. **Wer das liest, sucht den Fehler bei sich** — genau das ist
+   aus dem Betrieb zurückgekommen.
+
+   **WAS NEBENHER KAPUTTGEHT — alles nachgemessen und nicht erschlossen:**
+
+   * **Fehlalarme im eigenen Sicherheitsprotokoll.** Jeder Fehlschlag schreibt
+     `bestaetigung.fehl`. Drei Teile hinterlassen drei Zeilen über den
+     Eigentümer selbst — an genau der Karte, die Punkt 3 durchsuchbar macht.
+   * **Die Anmeldebremse zählt mit.** `SOFT_LIMIT` 5, `HARD_LIMIT` 10, Sperre
+     fünf Minuten je Adresse. Der erste Aufruf gelingt und setzt die Zähler
+     zurück, danach scheitern n−1 — **bei elf Teilen greift die harte Sperre.**
+     *Die laufende Sitzung bleibt davon stehen; was fünf Minuten lang nicht mehr
+     geht, ist eine Anmeldung oder eine Bestätigung von dieser Adresse.* **Wer
+     in diesem Fenster neu anmelden muss, kommt nicht herein.**
+   * **Ein Wiederherstellungscode wird verbrannt.** Wer statt des Codes einen
+     Zettelcode einträgt, verliert ihn beim ersten Aufruf endgültig, und die
+     übrigen scheitern trotzdem. **Ein Code weg, kein Export.**
+   * **Eine Freigabe bleibt liegen.** Teil 1 ist erteilt, dann bricht die
+     Oberfläche ab. Kein Loch — sie hängt an Sitzung, Zweck und Ziel und läuft
+     ab —, aber unsauber.
+
+   **NICHT BETROFFEN:** der einzelne Export. Eine Bestätigung, ein Ziel, ein
+   Code. **Und die Sicherung nicht**, sie kennt die zweite Bestätigung gar
+   nicht — das ist der Weg, der bis zur Reparatur offensteht.
+
+   **ZU BAUEN IST (a) UND (b):**
+
+   **(a) `POST /api/bestaetigung` LERNT DIE MEHRZAHL.** Eine Anfrage trägt alle
+   Teilnummern, das Passwort wird einmal geprüft, **der Code einmal
+   verbraucht**, und alle Freigaben kommen in einer Antwort zurück; die
+   Oberfläche schickt eine Anfrage statt n.
+   **Was dabei bleiben MUSS: das Laden eines Teils verbraucht genau eine
+   Freigabe.**
+   Das ist die Eigenschaft, auf die es ankommt — sie ist nicht das Problem und
+   darf nicht mit weggeräumt werden.
+   *Keine neue Route, die vorhandene lernt ein Feld dazu:* **`F_ROUTEN` bleibt
+   bei 69**, `BESTAETIGUNG_ZWECKE` bei **sieben**.
+   **Die Zahl der Ziele gehört begrenzt** — `AUSTAUSCH_TEIL_MAX` ist 999, und
+   eine Anfrage, die zehntausend Freigaben bestellt, darf nicht durchgehen.
+   **Doppelte Nummern sind ein 400** und keine stillschweigend halbierte
+   Bestellung.
+
+   **(b) DER KNOPF SAGT, WAS ER TUT.** „Alle 3 Teile freigeben" ist mein Wort
+   aus dem Maschinenraum; wer davorsitzt, liest daraus nichts — **die Frage
+   „was ist mit freigeben gemeint?" kam aus dem Betrieb.** Es ist derselbe
+   Fehler wie „Code aus deiner App" in 0.12.3: **die Mechanik benannt statt der
+   Handlung.** Gebraucht wird ein Text, der sagt, dass **einmal bestätigt und
+   danach jeder Teil einzeln geladen** wird — am Knopf, und ein Satz darüber,
+   warum überhaupt gefragt wird. *Formulier ihn und sag mir den Wortlaut; nimm
+   ihn nicht als gegeben hin, nur weil hier einer stünde.*
+
+   **WARUM DER PRÜFSTAND ES NICHT GEFANGEN HAT — und das ist der eigentliche
+   Befund.** Die Gruppe „Der Export in Teilen" fährt gegen einen Server **ohne
+   zweiten Faktor**. Dort ist das wiederholte Passwort harmlos. **Die
+   Einmaligkeit gibt es nur mit eingeschaltetem Faktor, und keine einzige der
+   38 Prüfungen stellt beides zusammen.** 3992 Prüfungen, und die eine
+   Kombination, an der es hängt, fehlt.
+
+   > **DIE NEUE PRÜFLAGE FÄHRT MIT EINGESCHALTETEM ZWEITEM FAKTOR** und holt
+   > **mehr als eine** Freigabe — eine Lage mit einem einzigen Teil bliebe grün
+   > und belegte nichts. **Und sie sieht nach, dass danach KEINE Zeile
+   > `bestaetigung.fehl` im Protokoll steht:** die Fehlalarme sind der Teil des
+   > Schadens, den sonst niemand sieht. *Der Rückbau dazu ist der Zusammenzug —
+   > fällt er weg und die Oberfläche fragt wieder je Teil, muss die Lage rot
+   > werden.*
+
+---
+
+2. DER PROXY IST EIN JA/NEIN, DIE ANLAGE IST BEIDES — DAS EINZIGE
    BETRIEBSRISIKO AUF DER LISTE.
 
    **Die Ausarbeitung steht im Projektstand, Abschnitt 10a, unter 0.13.0, „Der
@@ -144,7 +255,7 @@ und allem Übrigen.*
 
 ---
 
-2. GESCHEITERTE ANMELDUNGEN: SICHTBAR MACHEN.
+3. GESCHEITERTE ANMELDUNGEN: SICHTBAR MACHEN.
 
    **Ausgearbeitet im Projektstand, Abschnitt 10a.** *Zwei Teile dieses Punktes
    sind mit 0.12.3 schon gebaut und fallen hier weg:* das CrowdSec-Beispiel über
@@ -172,7 +283,7 @@ und allem Übrigen.*
    Einzige, was verhindert, dass ein Fremder die Tabelle vollschreibt.
 
    **(c) Eine maschinenlesbare Zeile nach stdout — und die Frage, ob sie
-   überhaupt noch gebraucht wird.** Sie hängt unmittelbar an Punkt 1: **ohne die
+   überhaupt noch gebraucht wird.** Sie hängt unmittelbar an Punkt 2: **ohne die
    richtige Adressermittlung sperrte CrowdSec den Proxy statt den Angreifer.**
    *Seit 0.12.3 steht der Weg ohne eine Zeile Code in der README, und er
    könnte (c) ganz ersparen.* **Prüf zuerst, ob er reicht** — und bau (c) nur,
@@ -185,7 +296,7 @@ und allem Übrigen.*
 
 ---
 
-3. GELÖSCHTE ZUGÄNGE, UND DER WEG ZURÜCK — EIN SATZ GEGEN EINE UNUMKEHRBARE
+4. GELÖSCHTE ZUGÄNGE, UND DER WEG ZURÜCK — EIN SATZ GEGEN EINE UNUMKEHRBARE
    FEHLBEDIENUNG.
 
    **Ausgearbeitet im Projektstand, Abschnitt 10a.**
@@ -224,7 +335,7 @@ und allem Übrigen.*
 
 ---
 
-4. WAS DIESE RUNDE NICHT ANFASST — UND DAS IST DER GRÖSSERE TEIL DER LISTE.
+5. WAS DIESE RUNDE NICHT ANFASST — UND DAS IST DER GRÖSSERE TEIL DER LISTE.
 
    Der Fahrplan hat noch vier Runden. **Drei davon sind nicht diese.**
 
@@ -250,11 +361,15 @@ und allem Übrigen.*
 
 ---
 
-5. DIE ZAHLEN AM ENDE.
+6. DIE ZAHLEN AM ENDE.
 
    * **Beide Wege, gemessen und nicht behauptet:** eine Anmeldung über HTTPS
      **und** eine über `http://<server-ip>:3100`, jeweils bis zur stehenden
-     Sitzung. *Ohne beide ist Punkt 1 nicht belegt.*
+     Sitzung. *Ohne beide ist Punkt 2 nicht belegt.*
+   * **Der Teilexport mit eingeschaltetem zweitem Faktor:** wie viele Teile,
+     **eine** Eingabe, wie viele geladene Dateien — und **keine** Zeile
+     `bestaetigung.fehl` im Protokoll danach. *Ohne diese Zahlen ist Punkt 1
+     nicht belegt.*
    * **Die Nachlese zu 0.12.4** aus Abschnitt 0: Zahl der Teile, Dateigrößen
      gegen die Ansage, und ob ein Teil sich einspielen ließ.
    * **Prüfungszahlen vorher/nachher.** Vorher: **3992**.
@@ -270,9 +385,9 @@ DIE NUMMER:
   etwas, was sie vorher nicht konnte?* **Ja** — über zwei Netze zugleich
   erreichbar sein. Das ist keine Fehlerbereinigung, sondern eine Fähigkeit, die
   es vorher nicht gab.
-  **Sieh trotzdem genau hin:** *wenn am Ende nur der Satz im Löschdialog und der
-  Filter an der Karte übrig sind, weil Punkt 1 zu groß wurde, dann heißt die
-  Runde 0.12.5 und ist PATCH.* **Sag es mit Begründung.**
+  **Sieh trotzdem genau hin:** *wenn am Ende nur die Reparatur, der Satz im
+  Löschdialog und der Filter an der Karte übrig sind, weil Punkt 2 zu groß
+  wurde, dann heißt die Runde 0.12.5 und ist PATCH.* **Sag es mit Begründung.**
 * **NICHTS WIRD UNTER EINER SCHON HERAUSGEGEBENEN NUMMER NACHGESCHOBEN.** Kommt
   nach 0.13.0 etwas nach, heißt es 0.13.1.
 * **`CHANGELOG.md` bekommt den Eintrag `## [0.13.0] - <JJJJ-MM-TT>`**, Datum
@@ -280,8 +395,11 @@ DIE NUMMER:
   `Changed` · `Deprecated` · `Removed` · `Fixed` · `Security`** — englisch, leere
   weggelassen. **Dahinter die beiden eigenen Abschnitte**: „Was du danach von
   Hand tun musst" und „Was gleich bleibt".
-  **Der Satz, der dort nicht fehlen darf:** dass das Umlegen alle einmalig
-  abmeldet — oder eben nicht, und warum.
+  **Zwei Sätze, die dort nicht fehlen dürfen:** dass das Umlegen alle einmalig
+  abmeldet — oder eben nicht, und warum; und unter `Fixed` der Teilexport, **mit
+  dem Hinweis, dass er mit eingeschaltetem zweitem Faktor seit 0.12.4 gar nicht
+  ging.** *Wer 0.12.4 im Einsatz hat, muss das lesen können, ohne den Fehler
+  selbst getroffen zu haben.*
 * **DER ABSCHNITT `## [Unreleased]` WIRD MITGESCHRIEBEN, WÄHREND GEBAUT WIRD** —
   nicht am Schluss aus dem Gedächtnis gefüllt.
 * **DIE VERSION BEKOMMT EINEN GIT-TAG**, `v0.13.0` auf den Commit, der
@@ -316,20 +434,27 @@ REGELN:
   (Stolperstein 189, aus 0.12.4): dort fehlte nicht der Gegenstand, sondern
   seine Größe. **Hier heißt das: eine Lage, die nur einen Weg kennt, belegt
   nichts über zwei.**
+* **Und eine Prüfgruppe, die einen Schalter nie einschaltet, belegt nichts über
+  den Zustand mit Schalter** (Punkt 1 dieser Runde): 38 Prüfungen auf den
+  Teilexport, alle ohne zweiten Faktor — **die Eigenschaft, an der er scheitert,
+  gibt es nur mit ihm.** *Diese Frage gehört an jede neue Gruppe: welcher
+  Schalter bleibt hier durchweg aus, und trägt er etwas zur Sache bei?*
 * **Ein Mock antwortet wie der echte Server** (Stolperstein 90), **und er
   liefert nicht selbst, was die Prüfung belegen soll** (Stolperstein 102).
 * **Der Cookiename ist die Prüfung, nicht die Absicht.** Eine Zeile, die nur
   sagt, dass ein Cookie gesetzt wurde, bliebe grün, wenn beide Wege denselben
   Namen bekämen — und genau das wäre der Fehler aus (b).
 * **Wird es zu viel für einen Durchgang, sag es, sobald du es kommen siehst —
-  nicht hinterher.** Der Schnitt liegt zwischen Punkt 2 und Punkt 1.
+  nicht hinterher.** Der Schnitt liegt zwischen Punkt 3 und Punkt 2 —
+  **Punkt 1 steht außerhalb**, er repariert Laufendes und wird nie geschnitten.
 
 BAUREGEL — datenbankverändernder Code wird rückbaufreundlich gebaut:
 
 * Zuerst die Frage, ob es den Code überhaupt braucht. **Für diese Runde steht
   die Antwort vorbehaltlich da: KEIN SCHEMA, KEIN MIGRATIONSBLOCK, KEINE
-  FORMATNUMMER.** Punkt 1 fasst Cookies und Kopfzeilen an, Punkt 2 die Karte
-  und die Leseroute, Punkt 3 einen Dialogtext und ein Fenster. **Wenn das nach
+  FORMATNUMMER.** Punkt 1 fasst eine vorhandene Route und die Oberfläche an,
+  Punkt 2 Cookies und Kopfzeilen, Punkt 3 die Karte und die Leseroute, Punkt 4
+  einen Dialogtext und ein Fenster. **Wenn das nach
   deiner Durchsicht nicht stimmt, ist das ein Grund anzuhalten und zu fragen.**
 * Das Schema bleibt vollständige DDL in `db.js`.
 * **`F_ROUTEN` bleibt bei 69**, solange keine schreibende Route dazukommt.
@@ -345,7 +470,7 @@ AM ENDE DES CHATS:
   Datei, Abweichungen mit Begründung, neue Stolpersteine (**die Zählung setzt
   bei 191 fort** — 190 ist vergeben), die Gegenprobentabelle **aus
   `gegenprobe.js`**, Prüfungszahlen vorher/nachher (vorher: **3992**),
-  Offengebliebenes. **Und die Messwerte aus Abschnitt 5.**
+  Offengebliebenes. **Und die Messwerte aus Abschnitt 6.**
 * Die Zeile „0.13.0 — Fingerprint `…`" gehört ins Änderungsprotokoll, **ZULETZT
   gebildet**, nach der letzten Änderung an einer ausgelieferten Datei — die
   Versionsnummer in `package.json` eingeschlossen. **Und `public/` gehört dazu**:
@@ -353,7 +478,7 @@ AM ENDE DES CHATS:
   Datei zu viel bewegt ihn genauso wie eine geänderte (Stolperstein 158).
 * **Diese Runde ist KEINE Datenbankstufe** — sag es ausdrücklich, statt es
   offenzulassen. **Ob es neue Zeilen in der `.env` gibt, hängt an deiner Antwort
-  auf die vierte Frage in Punkt 1** — sag es so oder so.
+  auf die vierte Frage in Punkt 2** — sag es so oder so.
 * Die Befehle zum Nachprüfen auf dem Server mit erwartetem Ergebnis — im Chat,
   nicht in den Dokumenten. **Darunter die zwei, die diese Runde belegen:** sich
   über HTTPS anmelden und angemeldet bleiben; und **im selben Browser** über
