@@ -427,9 +427,14 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   sehen und über keine einzelne Kategorie** — es fehlt die Pille „Ohne", mit
   ihrer Zahl wie die anderen. *Die Zahlen daneben stimmen und verraten die
   Lücke sogar; sie zu addieren ist aber Sache des Lesers, und das ist der
-  Fehler.* **Filterlogik und Serverarbeit**, deshalb keine Beifracht in einer
-  Runde, die die Leiste nur schmaler macht — beim Zusammenlegen der Zeilen in
-  0.13.0 ausdrücklich abgewählt. *(Claude: empfohlen, eigene kleine Runde)*
+  Fehler.* **Reine Filterlogik im Browser** — der Server
+  hat damit nichts zu tun: gefiltert wird über `state.alle`, und die Zahl
+  rechnet sich dort wie die an „Neu seit …". Drei Stellen in `public/app.js`,
+  und die dritte ist die Falle: `filterNormal` setzt jeden unbekannten
+  Kategoriewert auf „Alle" zurück und machte aus einer gespeicherten Ansicht
+  „Ohne" stillschweigend „Alle". *Beim Zusammenlegen der Filterzeilen in 0.13.0
+  ausdrücklich abgewählt: ein neuer Filterzustand ist keine Beifracht in einer
+  Runde, die nur die Höhe der Leiste angeht.* *(Claude: empfohlen, eigene kleine Runde)*
 - **Dieselbe Tagwolke ist an zwei Stellen verschieden gebaut** *(0.12.3)*.
   Auf der Eintragsseite sitzt „mehr" in einer eigenen Kopfzeile (`.wolke-kopf`,
   `space-between`), in der Übersicht als Kind der Filterzeile mit

@@ -411,9 +411,19 @@ hereinkommt** — nicht die Daten sind in Gefahr, sondern der Zugang zu ihnen.
    **(e) „Ohne Kategorie" als Filter — NICHT in dieser Runde.** Der Befund steht
    und ist echt: der Kopf sagt 12 Einträge, die Kategorien sagen 1 + 9 = 10.
    **Zwei Einträge sind über die Kategoriezeile nicht erreichbar** — „Alle" zeigt
-   sie, keine Kategorie zeigt sie. Das ist Filterlogik und Serverarbeit und keine
-   Zeilenersparnis; *es steht als Zeile in Teil II des Sammelblatts und wartet
-   dort.*
+   sie, keine Kategorie zeigt sie. *Die Zahlen an den Pillen verraten die Lücke
+   sogar; sie zu addieren ist Sache des Lesers, und das ist der Fehler.*
+   **DER SERVER HAT DAMIT NICHTS ZU TUN** — die erste Einschätzung sagte etwas
+   anderes und war falsch: gefiltert wird ohnehin im Browser über `state.alle`,
+   und die Zahl daneben rechnet sich dort wie die an „Neu seit …". Es sind drei
+   Stellen in `public/app.js` — `visibleItems`, `drawFilters`, und **die dritte
+   ist die Falle:** `filterNormal` setzt mit
+   `if (f.categoryId != null && !state.categories.some(...)) f.categoryId = null`
+   jeden unbekannten Kategoriewert auf „Alle" zurück. *Eine gespeicherte Ansicht
+   „Ohne Kategorie" verwandelte sich damit stillschweigend in „Alle".*
+   **Trotzdem nicht hier:** es ist ein neuer Filterzustand mit Wirkung auf
+   gespeicherte Ansichten, und diese Runde macht die Leiste nur schmaler.
+   *Es steht als Zeile in Teil II des Sammelblatts und wartet dort.*
 
    **(f) UND DIE ALTE DOPPELUNG WIRD DAMIT ZUR ENTSCHEIDUNG — das ist der Teil,
    den man beim Bauen übersieht.** Teil II des Sammelblatts trägt seit 0.12.3 die
