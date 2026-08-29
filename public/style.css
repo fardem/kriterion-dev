@@ -984,6 +984,30 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .cmp-best { color: var(--green); font-weight: 700; }
 
 /* ---------- Systembereich ---------- */
+/* DIE REITER DES SYSTEMBEREICHS -- EIN MARKUP, ZWEI GESTALTEN.
+   Auf dem breiten Schirm eine Reihe: die Abschnitte nebeneinander, der offene
+   traegt den Strich. Auf dem Telefon (Medienregel weiter unten) wird aus
+   derselben Reihe eine LISTE, die in den Abschnitt hinein fuehrt -- fuenf
+   Woerter nebeneinander brechen auf 366 Pixeln um, und ein Reiterstrich unter
+   einer umgebrochenen Reihe zeigt auf nichts.
+   DIESELBE UEBERLEGUNG WIE BEIM MENUE DER KOPFZEILE (0.12.0): kein Verschieben
+   von Knoten, keine Weiche nach Geraet, kein zweites Markup.
+   DER STRICH DER LEISTE UND DER DES OFFENEN REITERS LIEGEN AUFEINANDER --
+   daher `margin-bottom: -1px` am Reiter. Ohne das staenden zwei Linien
+   uebereinander, und die untere waere eine zu viel. */
+.sys-reiter {
+  display: flex; flex-wrap: wrap; gap: 2px;
+  margin: 0 0 20px; border-bottom: 1px solid var(--line);
+}
+.sys-reiter-k {
+  display: block; padding: 9px 14px 10px; margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  font-size: .9rem; font-weight: 550; color: var(--muted);
+  white-space: nowrap;
+  transition: color .15s var(--ease), border-color .15s var(--ease);
+}
+.sys-reiter-k:hover { color: var(--text); }
+.sys-reiter-k.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 620; }
 /* grid-auto-flow: dense zieht eine nachfolgende schmale Karte in die Luecke,
    die eine Karte ueber die volle Breite davor hinterlaesst. Eine feste
    Position taete das nicht: wie viele Karten in eine Zeile passen, haengt an
@@ -1003,6 +1027,20 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Textblock zusammen. Dieselbe Linienfarbe wie der Kartenrand, damit keine
    zweite Graustufe entsteht. */
 .sys-card .sys-teil { border-top: 1px solid var(--line); margin: 16px 0 8px; padding-top: 14px; }
+/* EINE UEBERSCHRIFT EINE STUFE UNTER DER KARTE. Sie steht dort, wo in einer
+   Karte zwei Dinge stehen, von denen eines dem anderen NACHGEORDNET ist --
+   heute der Import unter dem Export. Kleiner und leiser als das <h3> darueber:
+   waeren beide gleich gross, waere es keine Stufe, sondern eine zweite Karte
+   im selben Rahmen. */
+.sys-card .sys-unter {
+  font-size: .93rem; font-weight: 620; color: var(--text-2);
+  letter-spacing: -.012em; margin: 0 0 6px;
+}
+/* Das leise Ablagefeld. Der Import ist die zerstoerende Haelfte seiner Karte
+   und wird deshalb sekundaer gezeichnet -- gedaempfter Rand, kein eigener
+   Untergrund. Beim Ueberfahren kommt die Farbe zurueck: leise heisst nicht
+   versteckt. */
+.drop-leise { border-color: var(--line-2); background: none; }
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem; }
 .kv:last-child { border-bottom: none; }
 .kv .k { color: var(--muted); }
@@ -1243,6 +1281,12 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .lb-count { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
 .lb-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 1rem; transition: all .15s var(--ease); }
 .lb-btn:hover { background: var(--surface-3); color: var(--text); border-color: #363e47; }
+/* DER PAPIERKORB IM VOLLBILD steht abgesetzt und faerbt sich beim Ueberfahren
+   rot -- dieselbe Sprache wie jedes andere ✕, das etwas wegnimmt. Die Luecke
+   davor ist der ganze Punkt: neben dem Schliessenkreuz waere er die
+   gefaehrlichste Nachbarschaft der Anlage. */
+.lb-btn.weg { margin-left: 10px; }
+.lb-btn.weg:hover { color: var(--red); border-color: var(--red); background: var(--surface-3); }
 /* display: flex oben schlaegt das display:none, das der Browser einem
    hidden-Attribut mitgibt -- ohne eine Gegenregel bleibt der Zoomknopf stehen,
    wo er nichts tut: am Kommentarbild und seit 0.8.50 am Video. Ein Knopf, der
@@ -1276,6 +1320,32 @@ body.lb-open { overflow: hidden; }
 .modal p { margin: 0; color: var(--muted); font-size: .93rem; line-height: 1.6; }
 .modal .ta { min-height: 74px; }
 .modal-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+/* ---- Die Rechnung hinter der Kopfzahl ----
+   VIER SPALTEN, EIN RASTER: Kriterium, Note, Gewicht, Produkt. Die drei Zahlen
+   stehen rechtsbuendig und in der Schreibmaschinenschrift -- Zahlen, die
+   untereinander stehen und verglichen werden sollen, muessen an derselben
+   Stelle stehen.
+   Der Kasten darf breiter werden als ein Bestaetigungsfenster: eine Zeile
+   traegt einen Kriteriennamen und drei Zahlen. */
+/* ---- Die Tafel der Glocke ---- */
+.glockentafel { max-width: 520px; }
+/* Eine Zeile der Tafel ist ein LINK und traegt deshalb keinen eigenen
+   Zeigerwechsel -- .mrow bringt Raster und Trennlinie mit, der Rest ist
+   dieselbe Hervorhebung wie an jeder anderen anklickbaren Zeile. */
+.glocken-zeile { cursor: pointer; }
+.glocken-zeile:hover .mname { color: var(--accent); }
+.rechnung-modal { max-width: 540px; }
+.rechnung { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }
+.rz { display: contents; }
+.rz > span { padding: 6px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem; text-align: right; }
+.rz > span:first-child { text-align: left; color: var(--muted); }
+.rz > span:not(:first-child) { font-family: var(--mono); font-size: .83rem; }
+.rz-kopf > span { color: var(--faint); font-size: .74rem; text-transform: uppercase;
+  letter-spacing: .05em; border-bottom-color: var(--line); }
+.rz-kopf > span:not(:first-child) { font-family: inherit; font-size: .74rem; }
+.rz-summe > span { color: var(--text-2); }
+.rz-summe:first-of-type > span { border-top: 1px solid var(--line); }
+.rz-ergebnis > span { font-weight: 640; color: var(--text); border-bottom: 0; }
 
 /* Ueber dem Bedienbalken des Telefons und nicht darunter -- sonst steht die
    Meldung zur Haelfte hinter dem Griffstreifen. */
@@ -1794,6 +1864,27 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
    Flex-Kasten, und die Kopfzeile saehe anders aus als vor dieser Runde.
    Und das Zeichen selbst hat auf dem breiten Schirm nichts zu tun: dort
    stehen alle vier Knoepfe ohnehin nebeneinander. */
+/* ---- Die Glocke und die Zahl am Knopf „Offen" ----
+   DER PUNKT SITZT AM ZEICHEN UND NICHT DANEBEN: er gehoert zur Glocke, nicht
+   in die Reihe. Absolut gesetzt, damit er die Breite des Knopfes nicht
+   veraendert -- sonst rueckte die halbe Kopfzeile, sobald etwas Neues da ist.
+   `position: relative` am Knopf ist die Bezugsflaeche dafuer.
+   IN DER TAFEL AUF DEM TELEFON steht der Knopf ueber die volle Breite; der
+   Punkt bleibt am Zeichen und wandert nicht mit ans Ende der Zeile. */
+.icon-btn.glocke { position: relative; }
+.glocke-punkt {
+  position: absolute; top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 2px var(--surface);
+}
+/* Die Zahl am Knopf „Offen". Sie beschreibt einen ZUSTAND und ist deshalb eine
+   Zahl -- der Punkt an der Glocke meldet ein EREIGNIS und ist deshalb keiner.
+   Sie steht IM Knopf und nicht als Marke darauf: sie ist zu lesen, nicht bloss
+   zu bemerken. */
+.offen-zahl {
+  font-family: var(--mono); font-size: .7rem; font-weight: 600;
+  color: var(--accent); margin-left: 3px;
+}
 .mast-rest { display: contents; }
 .mast-menue { display: none; }
 /* Das Wort im Symbolknopf gibt es nur in der Tafel; in der Kopfzeile traegt
@@ -2127,6 +2218,11 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      Finger gibt es kein Ueberfahren, in einer Tafel ist Platz, und ein
      Zeichen allein in einer Liste erklaert sich nicht. */
   .mast-rest .mast-wort { display: inline; }
+  /* In der Tafel sitzt der Punkt am Zeichen ganz links, nicht in der Ecke
+     eines Quadrats, das es hier nicht mehr gibt. */
+  .mast-rest .glocke-punkt { top: 10px; left: 25px; right: auto; }
+  /* Und die Zahl rueckt hinter das Wort, nicht hinter das Zeichen. */
+  .mast-rest .offen-zahl { order: 3; margin-left: 4px; }
   /* Wer angemeldet ist, steht ueber dem Abmelden und ist Auskunft, kein
      Bedienelement: eigene Zeile, kein Rahmen, leiser Trennstrich darueber.
      Umbrechen darf sie hier ausdruecklich -- in der Kopfzeile stuende sie
@@ -2357,6 +2453,24 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      Die ausdrueckliche Untergrenze null nimmt der Spalte dieses Vetorecht.
      Was dann wirklich zu breit ist, laeuft in seiner eigenen Zeile ueber und
      laesst sich dort beheben -- statt die ganze Seite mitzuziehen. */
+  /* DIE REITER WERDEN ZUR LISTE. Jeder Abschnitt bekommt eine eigene Zeile
+     ueber die volle Breite -- dieselbe Gestalt wie das Menue der Kopfzeile in
+     dieser Breite, und aus demselben Grund: nebeneinander braechen fuenf
+     Woerter um, und der Strich unter dem offenen zeigte dann in die Luft.
+     DER OFFENE TRAEGT SEINE MARKE LINKS statt unten: an einer Liste ist der
+     linke Rand die Kante, an der man entlangliest. */
+  .sys-reiter {
+    display: block; border-bottom: 0; gap: 0;
+    margin: 0 0 4px; border-top: 1px solid var(--line);
+  }
+  .sys-reiter-k {
+    padding: 13px 0 13px 12px; margin-bottom: 0;
+    border-bottom: 1px solid var(--line);
+    border-left: 2px solid transparent;
+    white-space: normal;
+  }
+  .sys-reiter-k.on { border-left-color: var(--accent); border-bottom-color: var(--line); }
+
   .sys-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .sys-card {
     background: none;
