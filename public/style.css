@@ -255,7 +255,27 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 
 /* ---------- Filter ---------- */
 .filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-.frow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* AN DER GRUNDLINIE UND NICHT IN DER MITTE, seit 0.13.1. Eine Filterzeile ist
+   nicht immer einzeilig: die aufgeklappte Tagwolke wird drei, vier, fuenf
+   Zeilen hoch, und die Kategorien brechen bei grosser Schrift ebenfalls um.
+   `align-items: center` mittelte die Beschriftung, den Und/Oder-Umschalter und
+   die Verweise ueber die GANZE Hoehe -- sie sanken in die Mitte des Blocks und
+   standen neben nichts. Gemessen in Chromium bei aufgeklappter Wolke: 32 px zu
+   tief bei 80 Prozent Schrift, 36 px bei 100, 59 px bei 120.
+   GRUNDLINIE UND NICHT OBERKANTE. `flex-start` setzt die Kaesten buendig, die
+   Schrift darin aber nicht: die Beschriftung ist kleiner gesetzt als eine
+   Pille, und buendig oben sass sie 7 px zu hoch. Man muesste den Unterschied
+   mit einem Innenabstand ausgleichen -- also mit einer ausgerechneten Zahl,
+   und genau die kann bei 80 bis 120 Prozent Schrift nur falsch werden (Befund
+   A aus 0.12.1). `baseline` rechnet nichts aus: es legt die Schriftlinie der
+   Beschriftung auf die Schriftlinie der ersten Pillenzeile, und ein
+   Flex-Kasten reicht dafuer die Grundlinie seines ersten Kindes nach oben.
+   Gemessen bleibt der Rest unter einem Pixel: 0,4 / -0,8 / 0,0 px.
+   EINZEILIGE ZEILEN KOSTET ES NICHTS. Status, Kategorie und Sortieren messen
+   vorher wie nachher 27 / 31 / 35 px; die Beschriftung wandert dort um einen
+   halben Pixel. Auf dem schmalen Schirm gilt ohnehin `column` (siehe SCHMAL),
+   dort aendert sich gar nichts. */
+.frow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 /* Die Verweise am rechten Ende der Filterzeile -- "mehr"/"weniger" und
    "zuruecksetzen" an der Tagzeile. Sie stehen im Aufbau HINTER der Wolke, also
    dort, wo sie hingehoeren: "mehr" gehoert hinter das, was es aufklappt.
