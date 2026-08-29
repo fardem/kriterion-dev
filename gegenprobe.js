@@ -1946,6 +1946,27 @@ const RUECKBAUTEN = [
     ersatz: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; align-self: center; }',
     erwartet: 'Die Beschriftungen stehen oben — 0.13.1'
   },
+  /* ---- Der angepinnte Rahmen schliesst — 0.13.2 ---- */
+  {
+    /* DREI KANTEN STATT VIER -- der Befund selbst. Die angepinnte Notiz steht
+       wieder in drei goldenen und einer grauen Kante da. */
+    nr: '215', name: 'Die angepinnte Notiz bekommt ihre linke Kante nicht',
+    datei: 'public/style.css',
+    suche: '.cmt.pinned { border-color: var(--gold-line); }',
+    ersatz: '.cmt.pinned {\n  border-top-color: var(--gold-line);\n' +
+      '  border-right-color: var(--gold-line);\n  border-bottom-color: var(--gold-line);\n}',
+    erwartet: 'Der angepinnte Rahmen schliesst — 0.13.2'
+  },
+  {
+    /* DIE WIEDERHOLUNG FAELLT WEG, und damit schlaegt die spaetere Regel der
+       Anpinnung durch: der angepinnte Bericht bekaeme eine goldene linke
+       Kante neben drei orangen -- zwei Farben an einem Kasten. */
+    nr: '216', name: 'Der angepinnte Bericht verliert seine orange Kante an das Gold',
+    datei: 'public/style.css',
+    suche: '  border-bottom-color: var(--accent);\n  border-left-color: var(--accent);\n}',
+    ersatz: '  border-bottom-color: var(--accent);\n}',
+    erwartet: 'Der angepinnte Rahmen schliesst — 0.13.2'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
