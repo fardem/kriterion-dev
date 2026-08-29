@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 35 · Stand 29. August 2026 · gebaut: Version 0.13.2**
+**Kompakte Übergabe · Revision 36 · Stand 29. August 2026 · gebaut: Version 0.14.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,13 +43,14 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
-**0.13.2 in einem Satz: der Rahmen eines angepinnten Kommentars schließt jetzt
-wirklich — bei einer Notiz sind alle vier Kanten golden statt drei.** *PATCH,
-weil die Anlage danach nichts kann, was sie vorher nicht konnte: eine Kante
-bekommt die Farbe, die sie nach der Entscheidung aus 0.12.3 längst haben
-sollte.* **Die letzte Runde mit einer neuen Fähigkeit ist 0.13.0**, die zweite
-aus dem Fahrplan in Abschnitt 10a: die Anlage ist seither über zwei Netze
-zugleich erreichbar. Alles Weitere in Abschnitt 2 und Abschnitt 9.
+**0.14.0 in einem Satz: das Häkchen „abgelehnt" ist zu einer Aussage geworden —
+mit Datum, Grund und Verfasser.** *MINOR, weil die Anlage danach etwas kann,
+was sie vorher nicht konnte: ihr Ergebnis festhalten und nicht bloß den Weg
+dorthin.* **Es ist die dritte Runde aus dem Fahrplan in Abschnitt 10a und die
+erste Datenbankstufe seit 0.8.50** — drei Spalten an `items`, der sechste
+Migrationsblock, Austauschformat 11. **Vor dem Einspielen ist die Sicherung des
+Datenverzeichnisses Pflicht und nicht Empfehlung.** Alles Weitere in
+Abschnitt 2 und Abschnitt 9.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
 > trägt die **gebaute** Runde in einem Satz und sonst nichts Versionsbezogenes.
@@ -126,25 +127,43 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.13.2** — Fingerprint **`15188676`**, **4131 Prüfungen**,
-**218 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
-*0.13.2 schließt den Rahmen eines angepinnten Kommentars: bei einer Notiz waren
-drei Kanten golden und die linke grau.* **PATCH — die Anlage kann danach nichts,
-was sie vorher nicht konnte.**
+**Gebaut ist 0.14.0** — Fingerprint **`ca8bcf31`**, **4262 Prüfungen**,
+**249 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
+*0.14.0 macht aus dem Häkchen „abgelehnt" eine Aussage: wann, warum und von
+wem.* **MINOR — die Anlage hält seither ihr Ergebnis fest und nicht bloß den
+Weg dorthin.**
 
-*Davor, ebenfalls am 29. August: **0.13.1** (Fingerprint `ee00fdf2`, 4123
-Prüfungen) richtet die Beschriftungen der Filterleiste an der Grundlinie aus
-statt in der Mitte.*
+> **DIES IST EINE DATENBANKSTUFE.** Drei Spalten an `items`
+> (`rejected_at`, `rejected_grund`, `rejected_von`), **Migrationsblock
+> `MIGRATION 0.14.0`** — der **sechste**, und der erste seit 0.8.50 —, und das
+> **Austauschformat geht von 10 auf 11**. **DIE SICHERUNG DES
+> DATENVERZEICHNISSES IST VOR DEM EINSPIELEN PFLICHT UND NICHT EMPFEHLUNG.**
+> *Bei den fünf Runden davor stand dort „Empfehlung"; bei einem
+> Migrationsblock ist das falsch.*
+> **Eine Datei der Formatnummer 10 bleibt einspielbar** — die drei Felder
+> fehlen dann und bleiben leer. **Keine neue Zeile in der `.env`, keine neue
+> Abhängigkeit, `F_ROUTEN` unverändert bei 69.**
+
+**Was 0.14.0 für den Betrieb bedeutet: sichern, einspielen, fertig.** Der Block
+läuft beim ersten Start von selbst, nennt im Protokoll, was er getan hat, und
+ist danach stumm. **Er trägt in vorhandene Ablehnungen ausdrücklich nichts
+ein** — diese Anlage weiß nicht, wann und von wem sie getroffen wurden, und ein
+erfundener Wert wäre schlimmer als ein leerer. **Niemand wird abgemeldet.**
+
+*Davor, ebenfalls am 29. August: **0.13.2** (Fingerprint `15188676`, 4131
+Prüfungen) schließt den Rahmen eines angepinnten Kommentars, und **0.13.1**
+(Fingerprint `ee00fdf2`, 4123 Prüfungen) richtet die Beschriftungen der
+Filterleiste an der Grundlinie aus statt in der Mitte.*
 
 *Die Runde davor, **0.13.0** (Fingerprint `c1d2320d`, 4115 Prüfungen), macht die
 Anlage über zwei Netze zugleich erreichbar und repariert den Teilexport, der mit
 eingeschaltetem zweitem Faktor seit 0.12.4 gar nicht ging.*
-**KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein Migrationscode; es
-bleibt bei **fünf** markierten Migrationsblöcken, und das Austauschformat bleibt
-bei **10**. *Die Sicherung des Datenverzeichnisses ist deshalb Empfehlung und
-nicht Pflicht.* **Keine neue Zeile in der `.env`, keine neue Abhängigkeit,
-`F_ROUTEN` unverändert bei 69.**
-Was die Runde bringt, steht in Abschnitt 9.
+**0.13.0 WAR KEINE DATENBANKSTUFE** — und die vier Runden danach ebenso wenig:
+keine Tabelle, keine Spalte, kein Migrationscode; es blieb bei **fünf**
+markierten Migrationsblöcken und beim Austauschformat **10**. *Für jene fünf
+Runden war die Sicherung des Datenverzeichnisses deshalb Empfehlung und nicht
+Pflicht — **für 0.14.0 ist sie Pflicht**, siehe oben.*
+Was die Runden bringen, steht in Abschnitt 9.
 
 > **DER PREIS DER EINSTELLUNG IST BEZAHLT, NICHT MEHR GETRAGEN.** `HINTER_PROXY`
 > bündelte fünf Wirkungen und konnte damit immer nur ein Netz bedienen; über
@@ -269,7 +288,11 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.12.4** | **`ca991cf5`** | 3992 |
+| **0.14.0** | **`ca8bcf31`** | 4262 |
+| 0.13.2 | `15188676` | 4131 |
+| 0.13.1 | `ee00fdf2` | 4123 |
+| 0.13.0 | `c1d2320d` | 4115 |
+| 0.12.4 | `ca991cf5` | 3992 |
 | 0.12.3 | `0d04b540` | 3954 |
 | 0.12.2 | `e30a19c1` | 3856 |
 | 0.12.1 | `2e3f2e0b` | 3851 |
@@ -327,7 +350,8 @@ Datenbankstufe ist ein Downgrade **keine reine Dateikopie mehr**.
 | 0.8.90 | Tabelle `sicherheitsprotokoll` | **keiner** | Pflicht |
 | 0.9.1 | Tabelle `anfragen` | **keiner** | Pflicht |
 | 0.10.0 | Tabellen `zweifaktor`, `zweifaktor_codes` | **keiner** | Pflicht |
-| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · **0.12.0** | — | — | Empfehlung |
+| **0.14.0** | **Spalten `items.rejected_at`, `items.rejected_grund`, `items.rejected_von`** | **`migration0140()`** | **Pflicht** |
+| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · 0.12.0 · 0.12.1 · 0.12.2 · 0.12.3 · 0.12.4 · 0.13.0 · 0.13.1 · **0.13.2** | — | — | Empfehlung |
 
 *Die Spalte „Sicherung" ist eine rückblickende Einordnung. **Als Regel steht sie
 erst seit 0.8.30 im Einspielweg** — 0.8.3 lag davor, und damals war der Rückweg
@@ -336,20 +360,37 @@ noch das Zurückkopieren des alten Dateisatzes.*
 **Eine neue SPALTE braucht die DDL UND einen Migrationsblock, eine neue TABELLE
 nicht.** `CREATE TABLE IF NOT EXISTS` legt eine fehlende **Tabelle** bei jedem
 Start an, eine fehlende **Spalte** in einer vorhandenen Tabelle dagegen nie
-(Stolperstein 13). Deshalb bleibt es trotz zehn Datenbankstufen bei **fünf**
+(Stolperstein 13). Deshalb bleibt es trotz elf Datenbankstufen bei **sechs**
 markierten Blöcken; nachgestellt statt abgeschrieben, an jeder neuen Tabelle
 erneut, samt der Gegenlage an einer Spalte.
 
-**`migration0850()` fragt jede seiner beiden Spalten EINZELN ab.** Zwei
-`ALTER TABLE` sind zwei Anweisungen: scheitert die zweite, bleibt die erste
-stehen (Stolperstein 108). So heilt der nächste Start einen zerrissenen Stand.
+**`migration0850()` und `migration0140()` fragen jede ihrer Spalten EINZELN
+ab.** Zwei `ALTER TABLE` sind zwei Anweisungen: scheitert die zweite, bleibt die
+erste stehen (Stolperstein 108). So heilt der nächste Start einen zerrissenen
+Stand. **`migration0140()` legt seine drei zusätzlich in EINE `db.transaction()`**
+— die Transaktion verhindert den Riss, die Einzelabfrage überlebt ihn; nur das
+Zweite hilft gegen einen Riss aus einer früheren Version.
 **Wer von 0.8.20 kommt, fährt alle Blöcke in einem Start** — der Prüfstand fährt
 genau diesen Sprung.
+
+> **`ADD COLUMN … REFERENCES` VERHÄLT SICH WIE EIN FREMDSCHLÜSSEL AUS DER DDL** —
+> nachgemessen zu 0.14.0 an `items.rejected_von`: der Schlüssel steht in
+> `PRAGMA foreign_key_list`, `ON DELETE SET NULL` greift, eine unbekannte
+> Nummer wird abgewiesen, und das über eine geschlossene und wieder geöffnete
+> Verbindung hinweg. **Was NICHT geht, ist eine Vorgabe ungleich NULL daneben**
+> (Stolperstein 105) — **und selbst diese Absage hängt daran, ob die Tabelle
+> Zeilen hat** (Stolperstein 202). *An einer leeren Tabelle geht dieselbe
+> Anweisung durch; eine Migration, die nur dort gefahren wird, ist gar nicht
+> gefahren.*
 
 **Keine Migration verändert eine angezeigte Zahl oder Zeile.** Die
 Bestandszeilen bekommen ihren Wert aus dem `DEFAULT` der Spalte, nicht aus einem
 nachgeschobenen `UPDATE`: Gewicht 1,0 ist bitgleich zum ungewichteten Mittel,
-`art = 'bild'` ändert an keiner Auslieferung etwas.
+`art = 'bild'` ändert an keiner Auslieferung etwas. **`migration0140()` schreibt
+gar keinen Wert** — die drei Spalten bleiben leer, auch an einem Eintrag, der
+schon abgelehnt war. *Diese Anlage weiß nicht, wann und von wem das geschah;
+„abgelehnt am Tag der Einspielung von dem, der eingespielt hat" wäre die
+schlimmste Erfindung von allen, weil sie aussähe wie eine echte Angabe.*
 
 *Genau genommen ginge ein Downgrade oft auch ohne Sicherung: eine zusätzliche
 Spalte oder Tabelle stört eine ältere Fassung nicht, und die Exportdatei behält
@@ -360,6 +401,12 @@ noch nicht eingelöst wurde, kommt in einer älteren Fassung gar nicht mehr
 herein. **Die Sicherung ist der Weg, der ohne diese Fußnoten auskommt.***
 
 ### Der Weg zum Einspielen
+
+> **FÜR 0.14.0 IST DIE SICHERUNGSZEILE PFLICHT UND NICHT EMPFEHLUNG.** Diese
+> Version ist eine Datenbankstufe: sie rüstet drei Spalten an `items` nach.
+> **Ohne die Kopie gibt es keinen Rückweg**, denn ein Downgrade ist bei einer
+> Datenbankstufe keine reine Dateikopie mehr. *Die Zeile steht unten ohnehin im
+> Rezept — bei dieser Version wird sie nicht übersprungen.*
 
 Das Repo ist **privat**, der Server zieht deshalb nicht selbst — das ZIP kommt
 über „Download ZIP" von GitHub auf den Wirt. Der Pfad steht am laufenden
@@ -391,6 +438,20 @@ Ausführungsrechte** wieder her, `unzip` dagegen schon. Im Repo trägt
 **Die Sicherungszeile gehört ZWISCHEN `docker compose down` und alles Weitere** —
 eine Sicherung, die neben einem laufenden Server entsteht, kann eine offene WAL
 enthalten.
+
+**Nach dem Start von 0.14.0 gehört EIN Blick ins Protokoll dazu**
+(`docker compose logs kriterion`). Dort muss einmalig stehen:
+
+```
+[Kriterion] items um rejected_at, rejected_grund und rejected_von ergaenzt
+(Migration auf 0.14.0); <n> bereits abgelehnte Eintraege stehen ohne Datum,
+Grund und Verfasser da.
+```
+
+*Die Zahl am Ende sagt, wie viele Ablehnungen im Bestand von nun an sichtbar
+unvollständig dastehen — das ist gewollt und keine Panne: diese Anlage weiß
+nicht, wann und von wem sie getroffen wurden.* **Beim zweiten Start steht die
+Zeile nicht mehr da**; der Block ist wiederholbar und dann stumm.
 
 **Seit 0.8.70 legt `docker compose` beim ersten Start ein zweites Verzeichnis
 an**: `kriterion-sicherung`. Dorthin schreibt die Karte „Sicherung". Es gehört
@@ -1248,6 +1309,18 @@ Verfasser mit Namen, der Eintrag dazu **wann** er angelegt wurde. Ein entfernter
 Zugang erscheint als „Gelöschter Benutzer 7", eine Zeile ohne Verfasser als
 „Ohne Verfasser". **Bei genau einem aktiven Zugang bleibt davon alles aus.**
 
+**„Abgelehnt" ist seit 0.14.0 eine Aussage und kein Häkchen mehr:** *„Abgelehnt
+am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate."* Beim Einschalten
+erscheint **offen im Dialog** ein Feld für den Grund — freiwillig, eine Zeile,
+höchstens 200 Zeichen. **Jedes der drei darf fehlen**, und die Zeile setzt sich
+aus dem zusammen, was da ist; ist gar nichts bekannt (eine Ablehnung aus einer
+Anlage vor 0.14.0), bleibt sie weg — sie sagte sonst dasselbe wie der Schalter
+darüber. **Am Grabstein steht kein Name**, sondern die Nummer.
+**Beim Zurücknehmen wird nichts gelöscht:** Datum, Grund und Verfasser bleiben
+stehen, und beim erneuten Ablehnen steht die alte Begründung als Vorschlag im
+Feld. *„Getestet" bekommt bewusst nichts davon — es ist ein Zustand und keine
+Entscheidung.* **In der Kachelansicht bleibt die Marke, wie sie war.**
+
 **Die Bewertung sagt nur den eigenen Wert und den Schnitt** (seit 0.8.6). Wer
 welchen Wert vergeben hat, sieht der **Admin in einer eigenen Ansicht**, die er
 über „Wer hat bewertet" im Blockkopf aufruft; dort entfernt er auch eine fremde
@@ -1452,7 +1525,7 @@ bleibt eine Absage, der Ort im Arbeitsverzeichnis wird erlaubt und angezeigt.
 
 **Einen einzelnen Eintrag als Datei** (seit 0.8.70): `GET /api/items/:id/export`
 liefert dieselbe Form wie der volle Export, nur mit einem Eintrag —
-Formatnummer unverändert **10**. Wo die Datei die Stringgrenze sprengen würde,
+Formatnummer unverändert **11**. Wo die Datei die Stringgrenze sprengen würde,
 steht eine Absage mit Begründung statt eines Abrisses.
 
 **Vokabular:** Sache (Einzahl/Mehrzahl), Merkmal (erfüllt/nicht erfüllt),
@@ -1607,7 +1680,7 @@ Versionswechsel hinweg verlässt:**
 1. **Das Datenverzeichnis** — das Schema der verschlüsselten Datenbank und die
    Art der Verschlüsselung. Eine neue Fassung muss ein Verzeichnis der
    vorherigen öffnen können.
-2. **Das Austauschformat** mit seiner Formatnummer (derzeit **10**).
+2. **Das Austauschformat** mit seiner Formatnummer (derzeit **11**).
 3. **Die Schlüssel in der `.env`** und ihre Bedeutung.
 4. **Die Werkzeuge auf dem Wirt** — `schluessel.sh` und `zugang.js` samt ihren
    Unterbefehlen. Sie sind der Notausgang; wer sie ändert, ändert einen Weg, den
@@ -1782,6 +1855,18 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   **Kommentarbild löschen** darf er, **anhängen** nicht. *Der Preis: entfernt der
   Admin ein fremdes Bild, verschwindet es wortlos — der Vermerk dazu ist eine
   eigene Angabe am Kommentar und niemals sein Textfeld.*
+  **Seit 0.14.0 gilt dieselbe Regel an der Begründung einer Ablehnung:
+  zurücknehmen darf das Merkmal, wer den Eintrag ändern darf; umschreiben darf
+  die Begründung nur, wer sie getroffen hat.** *Das ist eine Verschärfung — bis
+  0.13.2 galt an diesen Feldern durchweg `darfAendern`.* **Die Klemme hat zwei
+  Hälften:** grob steht `rejectedGrund` in `NUR_VERFASSER_FELDER`, fein
+  entscheidet `nurSelbst` gegen `items.rejected_von`. **Zwei Fälle kommen durch,
+  und beide sind keine fremde Aussage:** wer gerade ablehnt, und wer eine
+  Begründung hinschreibt, wo noch keine steht — sonst bekäme eine Ablehnung aus
+  einer Anlage vor 0.14.0 nie eine (Stolperstein 204). *Der Weg über Aus und
+  wieder Ein bleibt offen und ist kein Loch: eine fremde Entscheidung
+  zurücknehmen darf, wer den Eintrag ändern darf; wer sie danach neu trifft,
+  trifft eine eigene.*
 - **Was an allen Einträgen aller Benutzer erscheint, gehört dem Admin; was nur
   dort erscheint, wo man es hinsetzt, gehört jedem** (seit 0.8.4). Daraus
   folgen: Kriterien beim Admin, Tags und Kategorien bei allen (abschaltbar),
@@ -2093,10 +2178,22 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   jeder weiteren erneut nachgestellt statt abgeschrieben).
 - **Ein Fremdschlüssel auf `users` gibt den Bestand frei, statt ihn
   mitzunehmen** (seit 0.6.1). Alle sechs Träger stehen auf
-  `ON DELETE SET NULL`. Die Alternativen sind beide falsch: `CASCADE` ließe
-  einen gelöschten Benutzer den halben Bestand mitnehmen, und gar keine Angabe
-  ließe ein `DELETE FROM users` von Hand an einer Fremdschlüsselverletzung
-  scheitern (Stolperstein 54).
+  `ON DELETE SET NULL`, und seit 0.14.0 kommt **`items.rejected_von`** dazu —
+  **sieben solche Spalten am Bestand.** *Es bleiben trotzdem sechs Träger:
+  `rejected_von` ist keine Eigentumsangabe, sondern der Name unter einer
+  Entscheidung an einer Zeile, die schon einen Verfasser hat.* Die
+  Alternativen sind beide falsch: `CASCADE` ließe einen gelöschten Benutzer den
+  halben Bestand mitnehmen, und gar keine Angabe ließe ein `DELETE FROM users`
+  von Hand an einer Fremdschlüsselverletzung scheitern (Stolperstein 54).
+  **Nachgerüstet über `ALTER TABLE … ADD COLUMN … REFERENCES` verhält er sich
+  wie einer aus der DDL** — zu 0.14.0 am Verhalten nachgemessen, nicht am Text.
+- **Die drei Angaben zu EINER Entscheidung werden zusammen geschrieben** (seit
+  0.14.0). Datum, Grund und Verfasser einer Ablehnung sind ein Satz; wer sie
+  einzeln setzt, bekommt den Satz der einen Person unter dem Namen der anderen
+  (Stolperstein 203). **Beim Zurücknehmen des Merkmals wird nichts gelöscht** —
+  eine Angabe, die niemand wiederherstellen kann, wird nicht weggeworfen, nur
+  weil ein Schalter umgelegt wird. **Und der Migrationsblock trägt nichts nach:**
+  was diese Anlage nicht weiß, erfindet sie nicht.
 - **Zwei Regeln für zwei Zeitpunkte sind keine zweite Wahrheit** (seit 0.8.30).
   `migration0830()` gibt die Bestandslinks dem **Eintragsverfasser**,
   `ordneBestandZu()` gibt später herrenlos gewordene Zeilen dem **Eigentümer**.
@@ -2168,7 +2265,9 @@ nichts mehr darin steht, was jemand nachziehen müsste.
 - **Die Formatnummer ist eine Aussage, keine Bedingung** (seit 0.7.1). Weder der
   Import noch die Oberfläche lesen sie; entschieden wird ausschließlich über das
   **Vorhandensein der Felder**. *Wer die Nummer je zur Bedingung macht, macht
-  aus einer Notiz eine zweite Wahrheit.*
+  aus einer Notiz eine zweite Wahrheit.* **Sie steht bei 11** (seit 0.14.0), und
+  **eine Datei jeder älteren Nummer bleibt einspielbar** — die Felder, die sie
+  nicht kennt, bleiben leer.
 - **Die Exportdatei nennt den Namen, nie die Id** (seit 0.7.1). Eine nackte
   `user_id` zeigt auf eine Zeilennummer in *einer bestimmten* Datenbank und ist
   woanders bedeutungslos; der Name ist die einzige Angabe, die zwei Anlagen
@@ -2973,6 +3072,26 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   bis 120 Prozent stellt (Befund A aus 0.12.1). *Der Prüfstand hält den Weg zu:
   ein `align-self`, `padding-top` oder `margin-top` an Beschriftung oder
   Verweisen macht eine Zeile rot.*
+- **Die Kriterienliste ist EIN Raster, und die Spalte mit dem Schnitt misst sich
+  an ihrer breitesten Zelle** (seit 0.14.0). `.rlist { display: grid;
+  grid-template-columns: 1fr auto auto }`, die Zeile ist `display: contents`.
+  **Damit beginnen alle Sternreihen an derselben Stelle** — auch die der Zeilen
+  ohne Bewertung und die neben einer dreistelligen Stimmenzahl.
+  **Vorher stand dort `min-width: 52px`.** Die Absicht war richtig, die **Zahl**
+  war falsch: eine feste Pixelzahl in einer Anlage, die ihre Schrift von 80 bis
+  120 Prozent stellt — dasselbe Muster wie Befund A aus 0.12.1. *Bei 80 Prozent
+  stimmte die leere Zeile zufällig, bei 120 klafften 26 px; und gegen die lange
+  Zahl half sie in keiner Größe.* **Im Stilblatt steht an dieser Spalte keine
+  Breite mehr, und es kann auch keine mehr hin** — der Prüfstand hält es fest.
+  *Der Preis ist bezahlt: die Trennlinie hängt nicht mehr an der Zeile, sondern
+  an den Zellen; sie stoßen dafür ohne Spaltenabstand aneinander und sind
+  gestreckt statt zentriert (Stolperstein 205).*
+  **Der Blick daneben ist getan:** die Ansicht „Wer hat bewertet" hat gar keine
+  Durchschnittsspalte, und der Vergleich stellt seine Werte rechtsbündig — das
+  Muster steht dort nicht.
+- **In der leeren Durchschnittsspalte steht kein Ersatztext** (seit 0.8.6,
+  bestätigt 0.14.0). Neben fünf leeren Sternen wäre „noch keine Bewertung"
+  dieselbe Aussage zweimal.
 - **Die Tagwolke füllt ab der zweiten Zeile NICHT den Platz unter „mehr" /
   „weniger"** (entschieden 0.13.1). Es ginge nur über Fließsatz: die Wolke
   müsste von `flex` auf `block` wechseln, die Marken auf `inline-block`, `gap`
@@ -4673,6 +4792,49 @@ Version, in der sie entstanden sind.*
     DIE PRÜFUNGEN, DIE SIE FESTHALTEN, UND NIMMT SIE MIT.** *Ein grüner Punkt
     sagt nur, dass etwas so ist wie beschrieben; er sagt nicht, ob die
     Beschreibung noch gilt.*
+202. **`ALTER TABLE … ADD COLUMN … REFERENCES` mit Vorgabe geht an einer LEEREN
+    Tabelle durch.** Nachgestellt an SQLite 3.49.2: die Absage aus
+    Stolperstein 105 — *„Cannot add a REFERENCES column with non-NULL default
+    value"* — hängt daran, ob die Tabelle **Zeilen hat**, nicht daran, ob sie je
+    welche hatte. An einer leeren geht dieselbe Anweisung durch, und der
+    Fremdschlüssel steht danach korrekt in `foreign_key_list`. *Daraus folgt die
+    Bauform jeder Migrationsprüflage: **eine Migration, die nur an einer leeren
+    Tabelle gefahren wird, ist gar nicht gefahren** — Stolperstein 189 für den
+    Migrationsblock.*
+203. **Drei Angaben zu EINER Entscheidung werden zusammen geschrieben oder gar
+    nicht.** Datum, Grund und Verfasser einer Ablehnung sind ein Satz. Wer sie
+    einzeln setzt, bekommt einen Zustand, den es in der Wirklichkeit nicht gibt:
+    den Satz der einen Person unter dem Namen der anderen, mit dem Datum einer
+    dritten Handlung. *Die Klemme, die das Umschreiben verbietet, hilft dagegen
+    nichts — sie sieht nur, WER schreibt, nicht WAS zusammengehört.*
+204. **`nurSelbst` auf ein Feld, dessen Verfasser leer sein kann, sperrt für
+    immer.** `nurSelbst(null)` ist für jeden falsch. Eine Klemme auf einen
+    Verfasser, den ein Migrationsblock **nicht** nachtragen kann, braucht deshalb
+    den Zweig *„steht noch keiner da, dann wird es der, der schreibt"* — sonst
+    bleibt der Bestand aus der Vorversion für immer unbearbeitbar. *Und die
+    grobe Klemme davor ist dann nicht optional: ohne sie stünde das Feld jedem
+    Angemeldeten offen.*
+205. **`display: contents` nimmt der Zeile ihren Kasten — und jede Regel, die
+    daran hing.** Ein Raster über mehrere Zeilen braucht Zellen im **selben**
+    Raster; die Zeile dazwischen muss verschwinden. Mit ihr verschwindet alles,
+    was am Zeilenkasten hing: Rahmen, Hintergrund, Innenabstand, Trennlinie.
+    *Sie neu zu ziehen ist kein Nacharbeiten, sondern Teil des Umbaus — und die
+    Zellen müssen dafür ohne Spaltenabstand aneinanderstoßen und gestreckt sein,
+    sonst wird aus einer Linie eine gestrichelte auf drei Höhen.*
+206. **Ein Rückbau kann eine Prüfung nicht röter machen, als sie schon ist.**
+    Die Gegenprobe meldet, WAS rot wird — nicht, **seit wann**. Eine Prüfung, die
+    schon ohne den Rückbau rot war, steht in seiner Tabelle wie ein Beleg da und
+    ist keiner. *So ist in 0.14.0 eine Prüflage durchgerutscht: der Aufbau nahm
+    einen Parameter nicht an, die Lage lief mit der falschen Zahl, und die
+    Prüfung war rot, ohne dass am Code etwas falsch war.* **Nur der volle Lauf
+    gegen den fertigen Stand findet das** — deshalb steht er am Ende jeder Runde,
+    und deshalb ersetzt keine Gegenprobe ihn.
+207. **Ein Wächter, der „keine Zahl" verlangt, trifft auch die Zahlen, die
+    bleiben dürfen.** Die Regel aus 0.14.0 lautet *„keine feste **Breite** mehr
+    an der Zahlenspalte"*. Als `!/\d+px/` geschrieben, färbte sie sich am
+    **Innenabstand** — der bleiben soll und muss, denn das Stilblatt sagt selbst:
+    *„Layoutmaße bleiben absichtlich in Pixeln"*. *Der Maßstab muss die
+    Eigenschaft benennen, nicht die Schreibweise.*
 
 ---
 
@@ -4687,14 +4849,27 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4131 von 4131 bestanden** (0.13.2) — **8 neue Prüfungen** in einer
-neuen Gruppe; 0.13.1 davor brachte ebenfalls 8, 0.13.0 brachte 123 in fünf. Die
-Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **218** Rückbauten.
+**Stand: 4262 von 4262 bestanden** (0.14.0) — **131 neue Prüfungen** in fünf
+neuen Gruppen; 0.13.2 davor brachte 8, 0.13.1 ebenfalls 8, 0.13.0 brachte 123 in
+fünf. Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen
+Zusagen beschränkt und **nicht** der volle Lauf über alle **249** Rückbauten.
 
-| neue Gruppe (0.13.2) | Prüfungen |
+| neue Gruppe (0.14.0) | Prüfungen |
 |---|---|
-| Der angepinnte Rahmen schliesst | 8 |
+| Der kaputte Cookiewert — 0.14.0 | 7 |
+| MIGRATION 0.14.0 — ENTFAELLT MIT 1.0 | 30 |
+| Die Entscheidung wird mitgeschrieben — 0.14.0 | 45 |
+| Die Aussage an der Marke — 0.14.0 | 26 |
+| Die Sternreihe steht auf einer Linie — 0.14.0 | 18 |
+| **zusammen** | **126** |
+
+*Die übrigen fünf der 131 stehen in vorhandenen Gruppen: „keine der dreizehn
+Spalten ist ein Zustand neben dem Papierkorb", „zu jedem markierten Block
+gehört eine Funktion" und die drei zum Rundlauf durch den Papierkorb. Dazu sind
+Zahlen in vorhandenen Gruppen nachgezogen:
+fünf → sechs Migrationsblöcke und Migrationsfunktionen, zehn → dreizehn Spalten
+an `items`, Formatnummer 10 → 11 an vier Stellen, 56 → 58 Portbasen, 218 → 249
+Rückbauten.*
 
 > **DREI PRÜFUNGEN AUS 0.12.0 UND 0.12.3 SIND MIT 0.13.2 NACHGEZOGEN.** Zwei
 > hielten die in 0.12.3 **zurückgenommene** Entscheidung fest und blieben grün,
@@ -4914,9 +5089,9 @@ beschränkt und **nicht** der volle Lauf über alle **218** Rückbauten.
 **Die Zahl der Abhängigkeiten steht im Prüfstand fest** — `npm ls --omit=dev`
 liefert **122 Pfade**. Wächst der Baum später still, wird es namentlich rot.
 
-### Die fünf Migrationsabschnitte — ENTFAELLT MIT 1.0
+### Die sechs Migrationsabschnitte — ENTFAELLT MIT 1.0
 
-**Es gibt fünf, und alle tragen dieselbe Marke.** Je Block wird nachgestellt:
+**Es gibt sechs, und alle tragen dieselbe Marke.** Je Block wird nachgestellt:
 die Spalte kommt dazu, die Bestandszeilen stehen auf der Vorgabe **aus dem
 `DEFAULT`** (am Quelltext nachgesehen, nicht aus einem `UPDATE`), ein zweiter
 Lauf bleibt **stumm**, und eine **frische** Anlage trägt die Spalte **ohne**
@@ -4929,9 +5104,10 @@ Migration.
 | 0.8.31 | dasselbe an `attachments` | `attachments` fällt **nicht** aus `ordneBestandZu()` mit |
 | 0.8.40 | Datenbank aus 0.8.31, drei Kriterien **mit Bewertungen** | **der gewichtete Gesamtschnitt ist nach der Migration derselbe wie der ungewichtete davor** |
 | 0.8.50 | Datenbank aus 0.8.40, `photos` **mit Fotos darin** | **jede der beiden Spalten wird EINZELN nachgerüstet** (zwei weitere Prüflagen, Stolperstein 108); es gibt **keinen `CHECK`** |
+| **0.14.0** | Datenbank aus 0.13.2, `items` **mit Einträgen darin, davon einer abgelehnt** | **jede der drei Spalten wird EINZELN nachgerüstet** (drei weitere Prüflagen); die drei bleiben **leer**, auch am abgelehnten Eintrag — **kein `UPDATE` im Block**; die drei `ALTER TABLE` laufen in **EINER Transaktion**; der **Fremdschlüssel** wird am Verhalten geprüft, migriert gegen frisch; und **beide Lagen zu Stolperstein 202**, leere Tabelle gegen Tabelle mit Zeilen |
 
 **Die Probe „Ein Sprung von 0.8.20 fährt ALLE Migrationen in einem Start" gehört
-allen fünf Blöcken.** Sie steht im Abschnitt von 0.8.31 und ist mit 0.8.50
+allen sechs Blöcken.** Sie steht im Abschnitt von 0.8.31 und ist mit 0.8.50
 **erweitert worden, nicht verdoppelt**. *Wer nur einen Block entfernt, muss sie
 umschreiben statt löschen.*
 
@@ -5109,7 +5285,11 @@ eine Buchführung.*
 | 0.12.1 | Der Papierkorb wandert ans große Bild (3) | 2, nur auf die neuen Zusagen | Stolpersteine 177 bis 179 |
 | 0.12.2 | Die Kachelreihe füllt die Breite (5) | 5, nur auf die neuen Zusagen | Stolpersteine 180 und 181 |
 | 0.12.3 | Exportgröße und neun Anzeigepunkte (98) | 12, nur auf die neuen Zusagen | Stolpersteine 182 bis 186; drei Rückbauten deckten Lücken auf |
-| **0.12.4** | **Der Export in Teilen (38), mit dem Rundlauf als Kern** | **9, angelegt und auf Greifen geprüft, nicht gefahren** | **Stolpersteine 187 bis 190** |
+| 0.12.4 | Der Export in Teilen (38), mit dem Rundlauf als Kern | 9, angelegt und auf Greifen geprüft, nicht gefahren | Stolpersteine 187 bis 190 |
+| 0.13.0 | Zwei Netze, Protokollfilter, Kategoriezeile (123) | 21 neue (193 → 214), nicht gefahren | Stolpersteine 191 bis 196 |
+| 0.13.1 | Die Beschriftungen stehen oben (8) | 2 neue (214 → 216) | Stolpersteine 197 und 198 |
+| 0.13.2 | Der angepinnte Rahmen schließt (0 netto; drei Zeilen nachgezogen) | 2 neue (216 → 218) | Stolpersteine 199 bis 201 |
+| **0.14.0** | **Die Entscheidung wird mitgeschrieben (131)** | **31 neue (218 → 249), alle einunddreißig gefahren** | **Stolpersteine 202 bis 207** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -5125,6 +5305,14 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **DER MIGRATIONSBLOCK 0.14.0 IST AM ECHTEN BESTAND NOCH NICHT GEFAHREN.** Er
+  ist am Prüfstand an einer nachgebauten Datenbank aus 0.13.2 belegt — einmal
+  ganz, je Spalte einzeln und zweimal hintereinander. **Am Wirt fehlt der
+  Beleg:** nach dem Einspielen einmal ins Protokoll sehen
+  (`docker compose logs kriterion`), dass die Zeile *„items um rejected_at,
+  rejected_grund und rejected_von ergaenzt"* dasteht und welche Zahl sie nennt —
+  und danach an einem Eintrag ablehnen, begründen und die Marke lesen.
+  *Die drei Befehle zum Nachprüfen stehen im Chat der Runde, nicht hier.*
 - **BEIDE WEGE SIND AM ECHTEN WIRT NOCH NICHT GEFAHREN.** Punkt 2 aus 0.13.0
   ist am Prüfstand belegt — beide Wege gegen denselben Server, der Cookiename
   je Anfrage. **Am Wirt fehlt der Beleg:** eine Anmeldung über HTTPS und eine
@@ -5149,7 +5337,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   dem Pfad, der fremde Dateien annimmt und unter fremden Namen schreibt.** Eine
   eigene Runde mit eigener Prüflage, und keine Beifracht.
 
-- **DIE TAGS `v0.11.0` BIS `v0.13.2` FEHLEN AM REMOTE — UND DER GRUND STAND
+- **DIE TAGS `v0.11.0` BIS `v0.14.0` FEHLEN AM REMOTE — UND DER GRUND STAND
   BIS 0.12.4 FALSCH HIER.** Es ist **kein** Problem der GitHub-Rechte, und ein
   „Push von einer Stelle mit den nötigen Rechten" ist nicht der Punkt.
 
@@ -5184,8 +5372,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   ```
 
   **Diese vier liegen auf `main` und lassen sich sofort setzen.** `v0.12.3`
-  (`09873558`), `v0.12.4` (`9f7b0f7f`), `v0.13.0`, `v0.13.1` und `v0.13.2`
-  liegen bisher nur auf einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
+  (`09873558`), `v0.12.4` (`9f7b0f7f`), `v0.13.0`, `v0.13.1`, `v0.13.2` und
+  `v0.14.0` liegen bisher nur auf einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
   danach auf dieselben Commits; wer ihn quetscht, setzt sie auf die dabei
   entstehenden — die alten sind von `main` aus dann nicht mehr erreichbar.*
 
@@ -5214,12 +5402,17 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ACHT RUNDEN AUS.** 218 Rückbauten zu
-  je einem vollen Prüflauf sind über zwanzig Stunden. **Auch in 0.13.2 ist er
-  nicht gefahren, und das ist keine Zusage mehr.** *Was 0.13.0 daran ändert, ist der
-  billige Teil: der Prüfstand rechnet jetzt bei jedem Lauf nach, dass jeder
-  Rückbau in seiner Datei überhaupt noch greift — drei taten es fünf Runden lang
-  nicht (Stolperstein 192).*
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT NEUN RUNDEN AUS.** 249 Rückbauten zu
+  je einem vollen Prüflauf sind bei 5 min 45 s je Lauf rund **23,9 Stunden**
+  hintereinander, in vier Nebenspuren rund sechs. **Auch in 0.14.0 ist er nicht
+  gefahren, und das ist keine Zusage mehr.** *Die Gründe stehen im
+  Änderungsprotokoll 0.14.0, Abschnitt 16; der wichtigste ist baulich:
+  `gegenprobe.js` zieht seine Kopie aus `git archive HEAD`, ein Commit mitten im
+  Lauf verschöbe die Grundlage.* **Gefahren sind die einunddreißig Rückbauten dieser
+  Runde, vollständig und in vier Nebenspuren.**
+  *Was 0.13.0 daran geändert hat, ist der billige Teil: der Prüfstand rechnet bei
+  jedem Lauf nach, dass jeder Rückbau in seiner Datei überhaupt noch greift —
+  drei taten es fünf Runden lang nicht (Stolperstein 192).*
 - **DIE GEGENPROBEN ZU 0.12.0, 0.12.1 UND 0.12.2 SIND AUF DIE NEUEN ZUSAGEN
   BESCHRÄNKT.** Sechs Rückbauten in 0.12.0, zwei in 0.12.1 und fünf in 0.12.2
   decken die tragenden davon ab, **und keiner blieb stumm**; **der volle Lauf
@@ -5429,6 +5622,49 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.14.0 — „Die Entscheidung wird mitgeschrieben"
+
+**MINOR · 29. August 2026 · die dritte Runde aus dem Fahrplan — und die erste
+Datenbankstufe seit 0.8.50.**
+
+**AUS DEM HÄKCHEN „ABGELEHNT" WIRD EINE AUSSAGE.** `items` bekommt drei Spalten
+— `rejected_at`, `rejected_grund` und `rejected_von` —, und die Marke liest sich
+danach als *„Abgelehnt am 14.03.2026, 09:12 von Anna — Lieferzeit über 6
+Monate."* Beim Einschalten steht das Feld für den Grund **offen im Dialog**;
+freiwillig, eine Zeile, höchstens 200 Zeichen. **Jedes der drei darf fehlen**,
+und die Zeile setzt sich aus dem zusammen, was da ist. **In der Kachelansicht
+bleibt die Marke, wie sie war.**
+
+**DIE KLEMME IST DIE EIGENTLICHE ENTSCHEIDUNG:** zurücknehmen darf das Merkmal,
+wer den Eintrag ändern darf; **umschreiben darf die Begründung nur, wer sie
+getroffen hat.** Das ist `nurSelbst` — und eine **Verschärfung** gegenüber
+0.13.2, wo an diesen Feldern durchweg `darfAendern` galt. *Der Weg über Aus und
+wieder Ein bleibt offen und ist kein Loch: wer eine fremde Entscheidung
+zurücknimmt und neu trifft, trifft eine eigene, mit eigenem Namen und eigenem
+Text.*
+
+**DER MIGRATIONSBLOCK IST DER TEIL, BEI DEM SORGFALT ZÄHLT** — der sechste, und
+der erste seit 0.8.50. Jede Spalte wird **einzeln** gefragt, alle drei
+`ALTER TABLE` laufen in **einer** Transaktion, und **kein `UPDATE` wird
+nachgeschoben**: eine Ablehnung aus einem Bestand vor dieser Version hat kein
+Datum, keinen Grund und keinen Verfasser, und ein erfundener Wert wäre schlimmer
+als ein leerer. **Das Austauschformat geht auf 11**; eine Datei der Nummer 10
+bleibt einspielbar. **Die Sicherung des Datenverzeichnisses ist vor dem
+Einspielen Pflicht.**
+
+**ZWEI BEFUNDE AUS DEM BETRIEB SIND MITGEFAHREN.** Erstens: `parseCookies()`
+rief `decodeURIComponent()` auf **jeden** Wert — ein fremder Cookie mit einem
+Prozentzeichen machte aus jeder geschützten Anfrage eine 500 und sperrte diesen
+Browser aus. Zweitens: die **Sternreihen der Kriterienliste** standen nicht auf
+einer Linie; Ursache war eine feste Pixelzahl (`min-width: 52px`) in einer
+Anlage, die ihre Schrift von 80 bis 120 Prozent stellt. **Die Liste ist jetzt
+ein Raster, und im Stilblatt steht dort keine Breite mehr** — gemessen: Spanne
+vorher 11,6 / 27,5 / 43,3 px, nachher **0,0 px** bei allen drei Schriftgrößen.
+
+**4131 → 4262 Prüfungen, 218 → 249 Rückbauten.** `F_ROUTEN` bleibt bei 69,
+`VORGAENGE` bei zwanzig, die Karten bei neunzehn, das Vokabular bei elf. **Keine
+neue Abhängigkeit, keine neue Zeile in der `.env`.**
 
 ### 0.13.2 — „Der Rahmen schließt"
 
@@ -5917,7 +6153,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.12.4** | Der Export geht in Teilen | **GEBAUT.** Die Antwort auf die 760 MB: n vollständige Exportdateien statt einer, die es nicht geben kann. *PATCH.* **Kein Schema, kein neues Format, keine Zeile am Import** | nein | — |
 | **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT — und im Feld hat sich der Punkt als eingetretener Fehler bestätigt: 760 MB gegen 512.** Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
 | **0.13.0** | Zwei Netze, ein Zugang | **GEBAUT.** `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu der reparierte Teilexport mit zweitem Faktor, ein Filter am Sicherheitsprotokoll, der Satz im Löschdialog samt eigenem Fenster für die Grabsteine, eine flachere Filterleiste und mehrere Kategorien zugleich. *MINOR.* **Kein Schema, keine `.env`-Zeile** | nein | — |
-| **0.14.0** | Die Entscheidung wird mitgeschrieben | `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie muss vor die Bereinigung** | ja, **sechster Block** | 10 → 11 |
+| **0.14.0** | Die Entscheidung wird mitgeschrieben | **GEBAUT.** `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. Mitgefahren sind zwei Befunde aus dem Betrieb: der kaputte Cookiewert und die Sternreihe der Kriterienliste. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie ist vor der Bereinigung gebaut** | ja, **sechster Block** | 10 → 11 |
 | **0.15.0** | Der Systembereich, die Glocke und die Auskunft | Neunzehn Karten werden Abschnitte mit eigener Adresse, `renderSystem()` wird dabei zerlegt. Dazu die Glocke mit dem Punkt, der Zähler „Offen 7" und die Gewichtung, die sich selbst erklärt. **Und aus dem Betrieb: Löschen in der Zoomansicht.** *MINOR.* **Die größte Umbaufläche des Plans** | nein | — |
 | **0.16.0** | Die Suche wird nachvollziehbar | Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
 | **0.17.0** | Bereinigung — der Bruch | *(War als 0.13.0 vorgemerkt.)* Migrationscode raus — **jetzt sechs Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
@@ -6101,8 +6337,8 @@ der Runde genauso bindend wie ihr Inhalt.* Wer sie hier wegließe, baute sie bei
 nächsten Anlauf.
 
 **ZWEITENS: die Reihenfolge hat genau eine harte Bindung, und alle anderen sind
-Bequemlichkeit.** Die harte ist 0.14.0 vor 0.17.0 (der sechste
-Migrationsblock, siehe oben). Die übrigen sind Schnitte nach dem, was eine Runde
+Bequemlichkeit.** Die harte war 0.14.0 vor 0.17.0 (der sechste
+Migrationsblock, siehe oben) — **sie ist mit 0.14.0 eingelöst**. Die übrigen sind Schnitte nach dem, was eine Runde
 anfasst — 0.13.0 bündelt alles an `auth.js`, 0.15.0 alles am Systembereich —,
 und sie lassen sich umlegen, ohne dass etwas bricht. *Der Unterschied gehört
 gesagt, sonst gilt später alles als bindend, was einmal in einer Tabelle stand.*
@@ -6176,107 +6412,29 @@ Protokollrotation über Docker, das sich selbst räumende Sicherheitsprotokoll)
 ---
 
 
-### 0.14.0 — „Die Entscheidung wird mitgeschrieben" · *MINOR*
+### 0.14.0 — GEBAUT, herausgegeben am 29. August 2026
 
-**Ausgearbeitet aus dem Sammelblatt:** Nr. 2
+**Die Ausarbeitung steht nicht mehr hier.** Was gebaut ist, steht im
+Änderungsprotokoll 0.14.0 und im Stand — *ein Punkt wandert vom Sammelblatt in
+den Fahrplan und von dort in ein Änderungsprotokoll, nie zurück.*
 
+**Was die Runde gebracht hat, in vier Zeilen:** das Häkchen „abgelehnt" trägt
+jetzt Datum, Grund und Verfasser (Sammelblatt Nr. 2); die Begründung darf nur
+umschreiben, wer sie getroffen hat; das Austauschformat steht auf 11, und eine
+Datei der Nummer 10 bleibt einspielbar. Dazu zwei Punkte, die nicht aus dem
+Fahrplan kamen, sondern aus dem Betrieb: ein kaputter fremder Cookiewert sperrte
+einen Browser aus, und die Sternreihen der Kriterienliste standen nicht auf
+einer Linie.
 
-#### Aus „abgelehnt" wird eine Entscheidung
+**Die vier offenen Entscheidungen, die hier standen, sind beantwortet** — im
+Änderungsprotokoll 0.14.0, Abschnitt 8, jede mit ihrer Begründung: der Grund
+bleibt beim Zurücknehmen **stehen**, er ist **freiwillig**, das Ablehnen bekommt
+**keine** Zeile im Sicherheitsprotokoll, und `tested_at` ist ausdrücklich **nicht**
+gebaut worden.
 
-*(stand als Punkt 2 im Sammelblatt)*
-
-**Aufgefallen bei der Durchsicht zu 0.8.6; verschärft mit 0.8.31**, seit alle sechs
-Träger einen Verfasser haben — dieses Merkmal hat bis heute keinen.
-
-> **Art: Neue Funktion** · **Claude: stark empfohlen** — die Anlage schreibt ihr Ergebnis nicht mit.
-> **Draußen üblich:** Wer eine Entscheidung festhält, hält immer drei Dinge
-> fest — **wann, warum, wer**. Jira, GitHub und jedes Freigabewerkzeug machen
-> es so; ein Häkchen ohne diese drei gilt draußen als unvollständig.
-
-### Woher
-
-Aus der Durchsicht vom **21. August 2026** (damals Punkt 4.2), Stand 0.8.6.
-**Seither unverändert offen** — `items` trägt bis heute `rejected INTEGER NOT
-NULL DEFAULT 0` und sonst nichts dazu.
-
-### Was auffiel
-
-Kriterion hält den ganzen Weg der Beurteilung fest — Fotos, Kriterien,
-Testtage, Kommentare, Aufgaben. **Das Ergebnis hält es nicht fest.** Es gibt
-`tested` und `rejected`, zwei Merkmale ohne Datum und ohne Begründung.
-
-In zwei Jahren steht an einem Eintrag ein Häkchen „abgelehnt" — und niemand
-weiß mehr, **warum** und **wann**. Die Begründung steckt vielleicht in einem
-von zwölf Kommentaren, vielleicht nirgends.
-
-### Was es nicht ist
-
-**Kein Fehler.** Es fehlt nichts, was einmal da war; es ist eine Stelle, an der
-das Archiv aufhört, kurz bevor es fertig ist. *Für eine Anlage, die existiert,
-um Entscheidungen vorzubereiten, ist ausgerechnet die Entscheidung das, was
-nicht mitgeschrieben wird.*
-
-**Und es ist ausdrücklich kein Fall für ein zweites Merkmal.** Ein Feld
-„Ergebnis" neben `rejected` wären zwei Wahrheiten über dieselbe Sache
-(Stolperstein 47). Das vorhandene Merkmal bekommt, was ihm fehlt — mehr nicht.
-
-### Was gebaut werden könnte
-
-**a) Zwei Spalten an `items`:**
-
-* `rejected_at` — wann.
-* `rejected_grund` — eine Zeile, warum.
-
-**b) Die Anzeige an der Marke „abgelehnt".** *„Abgelehnt am 14.03.2026 —
-Lieferzeit über 6 Monate."* Das Merkmal wird damit **zu einer Aussage, und
-Aussagen tragen in dieser Anlage ihren Verfasser**.
-
-**c) Und daraus folgt eine dritte Spalte und eine Klemme, die es heute so nicht
-gibt.** `rejected` steht in `NUR_VERFASSER_FELDER` und läuft damit über
-`darfAendern` — **Verfasser oder Admin**. Wer die Begründung hinschreibt, ist
-also nicht zwingend der Verfasser des Eintrags, und ohne `rejected_von` steht
-sie ohne Namen da.
-
-Die passende Klemme heißt dann: **zurücknehmen darf das Merkmal, wer den
-Eintrag ändern darf; umschreiben darf die Begründung nur, wer sie getroffen
-hat.** Das ist `nurSelbst`, angewandt auf ein neues Feld — die Regel ist da
-(„Löschen ja, umschreiben nein"), sie braucht die Zeile. *Und es ist eine
-Verschärfung gegenüber heute: aktuell gilt an diesen Feldern `darfAendern`.*
-
-**d) Was NICHT gebaut werden soll: ein dreiwertiger Zustand** *offen /
-genommen / verworfen*. Klingt vollständiger, ist aber ein Neubau: `rejected`
-müsste weg, jeder Filter und das Austauschformat müssten mit. Und „genommen"
-ist bei einem Bewertungsarchiv gar nicht immer die Gegenfrage zu „abgelehnt" —
-man lehnt ab, ohne dass etwas anderes genommen wird.
-
-### Offene Entscheidungen
-
-* **Wird `rejected_grund` beim Zurücknehmen des Merkmals gelöscht oder
-  behalten?** Behalten heißt: wer erneut ablehnt, sieht die alte Begründung
-  stehen. Löschen heißt: eine Angabe geht verloren, die niemand
-  wiederherstellen kann. *Ich neige zu behalten und beim erneuten Setzen zum
-  Überschreiben-Vorschlag.*
-* **Ist der Grund Pflicht?** Ein Pflichtfeld erzieht, ein freiwilliges bleibt
-  leer. *Vorschlag: freiwillig, aber das Feld steht offen im Dialog und nicht
-  hinter einem Aufklappen.*
-* **Gehören `tested_at` und ein Grund dort ebenso hin?** Die Symmetrie ist
-  verlockend — aber „getestet" ist ein Zustand und keine Entscheidung. **Wer
-  beides gleich behandelt, baut die Hälfte umsonst.**
-* **Wandert die Begründung ins Sicherheitsprotokoll?** Sie ist Inhalt und kein
-  Vorgang; **Freitext von außen kommt in diese Tabelle nicht hinein**
-  (Projektstand, Abschnitt 11). Also nein — der Vorgang ja, der Text nicht.
-
-### Was es anfasst
-
-Drei Spalten, ein Migrationsblock, ein Eingabefeld im Dialog, die Kachel, die
-Detailansicht, das Austauschformat (**die Formatnummer geht eins hoch**),
-`NUR_VERFASSER_FELDER` samt der neuen Klemme im Rumpf, Prüfungen, Gegenproben,
-README. **Klein — aber es fasst das Schema an**, und damit gilt Abschnitt 7:
-ein Migrationsblock, der zweimal laufen darf.
-
-**Was dagegen spricht:** nichts Grundsätzliches. Der einzige Einwand ist, dass
-ein Grund, den niemand ausfüllt, eine Spalte ist, die niemand liest — deshalb
-gehört das Feld sichtbar in den Dialog und nicht in eine Nebenansicht.
+**Es ist die erste Datenbankstufe seit 0.8.50** — damit ist die harte Bindung
+dieses Fahrplans eingelöst: der sechste Migrationsblock existiert, und 0.17.0
+kann ihn wegräumen.
 
 ---
 

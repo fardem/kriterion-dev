@@ -141,7 +141,11 @@ const KEY = crypto.randomBytes(32).toString('hex');
    Sperrliste. WAECHST DIE SPANNE, WAECHST DER VERSATZ MIT; bei Gleichheit
    fiele die naechste Spur genau auf die vorige. Der Waechter darunter rechnet
    beides gegeneinander nach, und die hoechste entstehende Nummer bleibt mit
-   17499 weit unter 32768. */
+   17679 weit unter 32768.
+   ZWEI BASEN MEHR SEIT 0.14.0 (7060 und 7120): die Prueflage zur Ablehnung
+   braucht eine Quelle und ein Ziel, weil der Rundlauf durch das
+   Austauschformat zwei Anlagen braucht. Die Spanne waechst damit auf 3280 und
+   bleibt unter dem Versatz. */
 const VERSATZ_STUFE = 3500;
 const VERSATZ_SPUREN = 4;
 const PORT_BREITE = 60;
@@ -2243,6 +2247,57 @@ const freigabeHaupt = (zweck, ziel = null) =>
   fs.rmSync(mwDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
+  /* ================= Der kaputte Cookiewert — 0.14.0 =================
+     parseCookies() sieht ALLE Cookies des Hosts an, nicht nur die eigenen.
+     decodeURIComponent('%') wirft, requireAuth ruft die Funktion bei jeder
+     geschuetzten Anfrage, und der Fehler-Handler machte daraus eine 500 --
+     dieser eine Browser kaeme nicht mehr herein.
+     EINE PRUEFLAGE MIT EINEM GUELTIGEN COOKIE BELEGT HIER NICHTS: sie braucht
+     den kaputten NEBEN dem gueltigen (Stolperstein 189 in neuer Gestalt). Und
+     der Massstab kommt nicht vom Pruefling -- dass der Wert wirklich
+     unlesbar ist, sagt decodeURIComponent selbst und nicht der Server. */
+  gruppe('Der kaputte Cookiewert — 0.14.0');
+
+  const kkWert = '%';
+  /* ERST DER GEGENSTAND (Stolperstein 81): ist der Wert dekodierbar, traegt
+     die ganze Gruppe darunter nichts. */
+  let kkBricht = false;
+  try { decodeURIComponent(kkWert); } catch { kkBricht = true; }
+  pruefe('Der gestellte Wert laesst sich wirklich nicht dekodieren', kkBricht,
+    `decodeURIComponent(${JSON.stringify(kkWert)}) ging durch`);
+  pruefe('Und die Prueflage haelt einen gueltigen Sitzungscookie in der Hand',
+    /^kriterion_session=.+/.test(cookie), JSON.stringify(cookie.slice(0, 24)));
+
+  // Zwei Cookies in EINEM Kopf, in beiden Reihenfolgen: der kaputte darf den
+  // gueltigen weder ueberholen noch verdecken.
+  const kkRuf = async (kopf) => {
+    const a = await fetch(`${BASIS}/api/criteria`, { headers: { cookie: kopf } });
+    return a.status;
+  };
+  const kkVorn = await kkRuf(`fremd=${kkWert}; ${cookie}`);
+  const kkHinten = await kkRuf(`${cookie}; fremd=${kkWert}`);
+  pruefe('Ein kaputter Cookie VOR dem eigenen sperrt nicht aus', kkVorn === 200, `Stand ${kkVorn}`);
+  pruefe('Und einer DAHINTER ebenso wenig', kkHinten === 200, `Stand ${kkHinten}`);
+  /* DIE GEGENLAGE: der kaputte Cookie wird UEBERGANGEN, nicht angenommen.
+     Ohne sie bliebe offen, ob die Anlage ihn womoeglich als Sitzung nimmt --
+     401 ist hier das richtige Ergebnis und 500 das falsche. */
+  const kkAllein = await kkRuf(`kriterion_session=${kkWert}`);
+  pruefe('Ein kaputter Wert am EIGENEN Namen gilt als keine Sitzung, nicht als Fehler',
+    kkAllein === 401, `Stand ${kkAllein}`);
+  // Der NAME bleibt roh -- er wird nie dekodiert, ein Prozentzeichen darin ist
+  // deshalb kein Fall fuer diese Schranke.
+  const kkName = await kkRuf(`fre%md=1; ${cookie}`);
+  pruefe('Ein Prozentzeichen im NAMEN ist gar kein Fall', kkName === 200, `Stand ${kkName}`);
+  /* WAS AUSDRUECKLICH NICHT GEBAUT WURDE, und deshalb hier steht
+     (Stolperstein 199): ein fremder Cookie ist kein Vorgang dieser Anlage. Er
+     hinterlaesst keine Zeile im Sicherheitsprotokoll. */
+  const kkProt = (await ruf('GET', '/api/sicherheitsprotokoll')).inhalt;
+  const kkZeilen = Array.isArray(kkProt) ? kkProt : (kkProt?.zeilen || []);
+  pruefe('Und er hinterlaesst keine Zeile im Sicherheitsprotokoll',
+    !kkZeilen.some(z => /cookie/i.test(JSON.stringify(z))),
+    JSON.stringify(kkZeilen.slice(0, 3)));
+
+  /* ---------------------------------------------------------------- */
   gruppe('Bestand am Benutzer');
 
   /* Belegt an der Datenbank: jede Zeile bekommt ihren Verfasser -- beim
@@ -3329,7 +3384,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await gSetz('Preis', 1); await gSetz('Kundendienst', 1);
   const eEinsF = mitFreigabe((m, p, k) => eRuf('cookie-e-eins', m, p, k), eWort);
   const gAus = (await eEinsF('GET', '/api/export?photos=0')).inhalt;
-  pruefe('Die Formatnummer steht auf 10', gAus?.version === 10, JSON.stringify(gAus?.version));
+  pruefe('Die Formatnummer steht auf 11', gAus?.version === 11, JSON.stringify(gAus?.version));
   pruefe('criteria bleibt eine Liste von Namen',
     Array.isArray(gAus?.criteria) && gAus.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gAus?.criteria));
@@ -3520,7 +3575,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  pruefe('Die Formatnummer der Datei steht auf 10', e2Aus?.version === 10, JSON.stringify(e2Aus?.version));
+  pruefe('Die Formatnummer der Datei steht auf 11', e2Aus?.version === 11, JSON.stringify(e2Aus?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
@@ -4027,15 +4082,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
         .all().map(z => z.name);
       pruefe('Und den Index auf das Datum, ebenfalls ohne Migration',
         idx.includes('idx_papierkorb_am'), JSON.stringify(idx));
-      /* UND DIE TRAGENDE REGEL DER RUNDE AN DER SCHMALSTEN STELLE: items
-         bekommt KEINE Spalte. Ein Zustand `geloescht` dort beruehrte jede
+      /* UND DIE TRAGENDE REGEL DER PAPIERKORBRUNDE AN DER SCHMALSTEN STELLE:
+         items bekommt KEINEN ZUSTAND. Ein `geloescht` dort beruehrte jede
          Abfrage im ganzen System. Gezaehlt wird gegen eine feste Liste, nicht
          gegen "enthaelt nicht geloescht" -- so faellt auch jede andere neue
-         Spalte auf. */
+         Spalte auf.
+         DREI SIND SEIT 0.14.0 DAZUGEKOMMEN, und sie sind ausdruecklich kein
+         Zustand: rejected_at, rejected_grund und rejected_von sagen, WANN,
+         WARUM und VON WEM das vorhandene Merkmal `rejected` gesetzt wurde. Sie
+         stehen in keiner Abfrage der Uebersicht und in keinem Filter. */
       const itemSpalten = d.prepare('PRAGMA table_info(items)').all().map(c => c.name);
-      pruefe('items traegt unveraendert genau seine zehn Spalten',
-        gleich(itemSpalten, ['id', 'title', 'description', 'rejected', 'tested', 'favorite',
+      pruefe('items traegt genau seine dreizehn Spalten',
+        gleich(itemSpalten, ['id', 'title', 'description', 'rejected', 'rejected_at',
+                             'rejected_grund', 'rejected_von', 'tested', 'favorite',
                              'product_category_id', 'created_at', 'updated_at', 'user_id']),
+        JSON.stringify(itemSpalten));
+      pruefe('Und keine davon ist ein Zustand neben dem Papierkorb',
+        !itemSpalten.some(n => /geloescht|deleted|papierkorb|status/i.test(n)),
         JSON.stringify(itemSpalten));
       d.close();
     }
@@ -4103,9 +4166,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // Ein zweiter Eintrag daneben. Ohne ihn liesse sich nicht sehen, dass das
     // Loeschen NUR den einen trifft.
     d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run('Bleibt stehen');
-    const itId = d.prepare(`INSERT INTO items (title, description, rejected, tested,
+    /* DIE ABLEHNUNG TRAEGT IHRE DREI ANGABEN, seit 0.14.0. Der Papierkorb legt
+       ein vollstaendiges Paket ab und spielt es ueber DENSELBEN Weg wieder ein
+       wie der Import -- ohne diese Zeilen bliebe unbelegt, dass Datum, Grund
+       und Ablehnender den Rundlauf ueberstehen.
+       ABGELEHNT HAT BERT (2) UND NICHT DIE EINSPIELENDE (anna, 1): faellt der
+       Name beim Wiederherstellen auf den Einspielenden zurueck, faellt das nur
+       so auf. */
+    const itId = d.prepare(`INSERT INTO items (title, description, rejected,
+        rejected_at, rejected_grund, rejected_von, tested,
         product_category_id, created_at, updated_at, user_id)
-      VALUES (?, ?, 1, 1, ?, '2026-01-02 03:04:05', '2026-02-03 04:05:06', 3)`)
+      VALUES (?, ?, 1, '2026-01-05 06:07:08', 'Lieferzeit über 6 Monate', 2, 1,
+        ?, '2026-01-02 03:04:05', '2026-02-03 04:05:06', 3)`)
       .run('Vollständig', 'Erste Zeile\nZweite Zeile', katId).lastInsertRowid;
     // Foto und Video in EINER Tabelle -- das Video ausdruecklich NICHT an
     // erster Stelle, sonst liesse sich das Hauptbild nicht unterscheiden.
@@ -4351,6 +4423,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pkNachher?.title === pkVorher.title && pkNachher?.description === pkVorher.description &&
     pkNachher?.rejected === pkVorher.rejected && pkNachher?.tested === pkVorher.tested,
     JSON.stringify({ t: pkNachher?.title, r: pkNachher?.rejected, g: pkNachher?.tested }));
+  /* ERST DER GEGENSTAND (Stolperstein 81): truege der Ausgangsstand keine
+     Ablehnung mit Angaben, verglichen die drei Zeilen darunter null mit null. */
+  pruefe('Der Ausgangsstand trug wirklich eine begruendete Ablehnung',
+    pkVorher.rejected === true && !!pkVorher.rejected_at && !!pkVorher.rejected_grund &&
+    pkVorher.rejectedVerfasser?.name === 'bert',
+    JSON.stringify({ at: pkVorher.rejected_at, grund: pkVorher.rejected_grund,
+                     wer: pkVorher.rejectedVerfasser }));
+  pruefe('Datum und Grund der Ablehnung ebenso',
+    pkNachher?.rejected_at === pkVorher.rejected_at &&
+    pkNachher?.rejected_grund === pkVorher.rejected_grund,
+    JSON.stringify([pkNachher?.rejected_at, pkNachher?.rejected_grund]));
+  /* UND DER ABLEHNENDE, und zwar der richtige: bert hat abgelehnt, anna hat
+     wiederhergestellt. Faellt der Name auf die Einspielende zurueck, steht
+     hier anna. */
+  pruefe('Und der Ablehnende ist wieder bert und nicht die Einspielende',
+    pkNachher?.rejectedVerfasser?.name === 'bert',
+    JSON.stringify(pkNachher?.rejectedVerfasser));
   pruefe('Die Zeitstempel ebenso',
     pkNachher?.created_at === pkVorher.created_at && pkNachher?.updated_at === pkVorher.updated_at,
     JSON.stringify([pkNachher?.created_at, pkNachher?.updated_at]));
@@ -4651,8 +4740,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der Einzelexport geht durch', einzeln.status === 200, JSON.stringify(einzeln.inhalt).slice(0, 200));
     pruefe('Er liefert genau EINEN Eintrag',
       einzeln.inhalt?.items?.length === 1, JSON.stringify(einzeln.inhalt?.items?.length));
-    pruefe('Die Formatnummer bleibt bei 10',
-      einzeln.inhalt?.version === 10, JSON.stringify(einzeln.inhalt?.version));
+    pruefe('Die Formatnummer bleibt bei 11',
+      einzeln.inhalt?.version === 11, JSON.stringify(einzeln.inhalt?.version));
     pruefe('Der Umschlag traegt dieselben Felder wie beim vollen Export',
       gleich(Object.keys(einzeln.inhalt || {}).sort(), Object.keys(voll.inhalt || {}).sort()),
       JSON.stringify(Object.keys(einzeln.inhalt || {})));
@@ -6670,6 +6759,385 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   await F.stopp();
   fs.rmSync(fDir, { recursive: true, force: true });
+
+  /* ================= Die Entscheidung wird mitgeschrieben — 0.14.0 =====
+     Das Haekchen "abgelehnt" wird zu einer Aussage: WANN, WARUM und VON WEM.
+     VIER ZUGAENGE, UND DAS IST DER PUNKT DIESER LAGE. Mit zwei liesse sich
+     "Verfasser des EINTRAGS" von "Verfasser der BEGRUENDUNG" gar nicht
+     unterscheiden, und jede Pruefung darauf bliebe gruen, auch wenn ueberall
+     darfAendern stuende:
+       anna  = kleinste id, Eigentuemerin und damit Admin -- der Admin, der
+               WEDER den Eintrag geschrieben NOCH die Begruendung getroffen
+               hat. An ihr faellt die Entscheidung dieser Runde.
+       bert  = gewoehnlicher Benutzer, VERFASSER DES EINTRAGS. An ihm faellt
+               die zweite Haelfte: er darf den Eintrag aendern und die
+               Begruendung trotzdem nicht umschreiben.
+       carla = Admin, DIE ABLEHNENDE. Sie darf einen fremden Eintrag ablehnen
+               und ist damit die Verfasserin der Begruendung.
+       dora  = gewoehnliche Benutzerin, an nichts beteiligt -- die Fremde.
+     ZU JEDER VERWEIGERUNG GEHOERT DER ERFOLGSFALL DANEBEN UND DIE NACHSCHAU
+     IN DER DATENBANK: ein 403, nach dem der Text trotzdem umgeschrieben ist,
+     waere das Schlimmste. */
+  gruppe('Die Entscheidung wird mitgeschrieben — 0.14.0');
+
+  const agDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-ablehnung-'));
+  kurzlauf(`require('./db'); console.log('da');`, agDir);
+  {
+    const d = oeffne(path.join(agDir, 'katalog.sqlite'));
+    for (const [n, r] of [['anna', 'eigentuemer'], ['bert', 'user'], ['carla', 'admin'], ['dora', 'user']])
+      d.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(n, 'x', r);
+    for (const [t, u] of [['cookie-ag-anna', 1], ['cookie-ag-bert', 2],
+                          ['cookie-ag-carla', 3], ['cookie-ag-dora', 4]])
+      d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Berts Saege', 2)").run();
+    /* Und ein zweiter Eintrag, der schon abgelehnt ist, ohne dass jemand
+       wuesste von wem -- genau der Stand, den der Migrationsblock hinterlaesst.
+       Ohne ihn bliebe der Zweig "es steht noch kein Verfasser da" ungeprueft,
+       und ein Bestand aus 0.13.2 bekaeme nie eine Begruendung. */
+    d.prepare("INSERT INTO items (title, rejected, user_id) VALUES ('Altbestand', 1, 2)").run();
+    d.close();
+  }
+  /* Anna zieht die Exportdatei und braucht dafuer die zweite Bestaetigung. Ein
+     Zugang mit password_hash = 'x' kommt daran nicht vorbei, und das ist
+     richtig so -- also bekommt sie ein echtes. */
+  const AG_WORT = 'ablehnung-pruefwort';
+  setzePasswortImBestand(agDir, 'anna', AG_WORT);
+  const AG = starteWeiterenServer(agDir, {}, 7060);
+  await AG.bereit;
+  const agRuf = async (wer, methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: `kriterion_session=${wer}` } };
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(AG.basis + pfad, opt);
+    let inhalt = null;
+    try { inhalt = await a.json(); } catch {}
+    return { status: a.status, inhalt };
+  };
+  // Die Nachschau geht IN DIE DATENBANK und nicht ueber die Antwort: eine
+  // Absage, nach der die Zeile trotzdem steht, waere sonst nicht zu sehen.
+  const agZeile = (id = 1) => {
+    const d = oeffne(path.join(agDir, 'katalog.sqlite'));
+    const z = d.prepare('SELECT rejected, rejected_at, rejected_grund, rejected_von FROM items WHERE id = ?').get(id);
+    d.close();
+    return z;
+  };
+
+  /* ERST DER GEGENSTAND (Stolperstein 81): steht am Eintrag noch gar nichts,
+     belegt keine Pruefung darunter etwas. */
+  pruefe('Der Eintrag ist zu Beginn nicht abgelehnt und traegt keine Angabe',
+    agZeile().rejected === 0 && agZeile().rejected_at === null &&
+    agZeile().rejected_grund === null && agZeile().rejected_von === null,
+    JSON.stringify(agZeile()));
+
+  // --- Carla lehnt Berts Eintrag ab, mit Begruendung ---
+  const agAb = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
+    { rejected: true, rejectedGrund: 'Lieferzeit über 6 Monate' });
+  pruefe('Die Adminin lehnt einen fremden Eintrag ab', agAb.status === 200,
+    JSON.stringify(agAb.inhalt?.error));
+  pruefe('Und die drei Angaben stehen zusammen in der Zeile',
+    agZeile().rejected === 1 && agZeile().rejected_von === 3 &&
+    agZeile().rejected_grund === 'Lieferzeit über 6 Monate' &&
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(agZeile().rejected_at || ''),
+    JSON.stringify(agZeile()));
+  /* DAS DATUM KOMMT VOM SERVER UND NIE AUS DEM RUMPF. Ein Rumpf, der es
+     mitschickt, darf es nicht setzen -- sonst truege jede Ablehnung das
+     Datum, das der Aufrufende hineinschreibt.
+     GEPRUEFT WIRD AM EINSCHALTEN und nicht an einer beliebigen Anfrage: NUR
+     dort schreibt der Server das Datum ueberhaupt. Eine Anfrage, die das
+     Merkmal gar nicht umlegt, laeuft an der Zeile vorbei -- die Pruefung
+     bliebe gruen, gleich was dort stuende, und die Gegenprobe dazu waere
+     stumm. Genau das ist beim ersten Anlauf passiert (Rueckbau 229). */
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejected: false });
+  const agDatumRumpf = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
+    { rejected: true, rejectedGrund: 'Lieferzeit über 6 Monate',
+      rejectedAt: '1999-01-01 00:00:00', rejected_at: '1999-01-01 00:00:00' });
+  pruefe('Das Einschalten geht durch', agDatumRumpf.status === 200,
+    JSON.stringify(agDatumRumpf.inhalt?.error));
+  pruefe('Ein Datum aus dem Rumpf wird nicht angenommen',
+    !/1999/.test(agZeile().rejected_at || ''), JSON.stringify(agZeile().rejected_at));
+  /* UND DER SERVER SETZT WIRKLICH DIE JETZIGE ZEIT. Ohne diese Haelfte bliebe
+     die Verneinung darueber auch dann gruen, wenn gar kein Datum geschrieben
+     wuerde -- und der Maßstab kommt nicht vom Pruefling: er wird hier
+     ausgerechnet, nicht abgefragt. */
+  {
+    const jetzt = new Date();
+    const heute = jetzt.toISOString().slice(0, 10);
+    const gestern = new Date(jetzt.getTime() - 86400000).toISOString().slice(0, 10);
+    const gesetzt = agZeile().rejected_at || '';
+    pruefe('Der Server setzt die jetzige Zeit',
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(gesetzt) &&
+      (gesetzt.startsWith(heute) || gesetzt.startsWith(gestern)),
+      `${JSON.stringify(gesetzt)} gegen ${heute}`);
+  }
+  /* UND EIN NACHGETRAGENER GRUND ERFINDET AUCH DANN KEIN DATUM, wenn eines im
+     Rumpf steht: die Zeile bleibt, wie sie war. */
+  const agVorDatum = agZeile().rejected_at;
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
+    { rejectedGrund: 'Lieferzeit über 6 Monate', rejectedAt: '1999-01-01 00:00:00' });
+  pruefe('Und ein Nachtrag ruehrt das Datum ueberhaupt nicht an',
+    agZeile().rejected_at === agVorDatum, JSON.stringify(agZeile().rejected_at));
+  /* UND DIE NUMMER DES ABLEHNENDEN AUCH NICHT. Sie kommt aus req.benutzer und
+     nie aus der Adresse oder dem Rumpf -- sonst waere jede Begruendung unter
+     fremdem Namen zu setzen, ohne dass eine Klemme etwas davon merkte. */
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedVon: 1, rejected_von: 1 });
+  pruefe('Und ein Verfasser aus dem Rumpf ebenso wenig',
+    agZeile().rejected_von === 3, JSON.stringify(agZeile().rejected_von));
+
+  // --- Die Antwort: Name statt Nummer, und nur in der Detailansicht ---
+  const agSicht = (await agRuf('cookie-ag-bert', 'GET', '/api/items/1')).inhalt;
+  pruefe('Die Antwort nennt den Ablehnenden als Verfasserobjekt',
+    agSicht?.rejectedVerfasser?.name === 'carla' && agSicht?.rejectedVerfasser?.geloescht === false,
+    JSON.stringify(agSicht?.rejectedVerfasser));
+  pruefe('Und die nackte Nummer geht nicht hinaus',
+    agSicht?.rejected_von === undefined, JSON.stringify(agSicht?.rejected_von));
+  pruefe('Datum und Grund stehen in der Antwort',
+    agSicht?.rejected_at === agZeile().rejected_at &&
+    agSicht?.rejected_grund === 'Lieferzeit über 6 Monate',
+    JSON.stringify([agSicht?.rejected_at, agSicht?.rejected_grund]));
+  /* IN DER KACHELANSICHT BLEIBT DIE MARKE, WIE SIE IST: ein Grund gehoert an
+     den Eintrag und nicht in eine Kachelreihe. Und rejected_von MUSS dort weg,
+     nicht nur darf -- es waere eine nackte Zugangsnummer in einer Antwort. */
+  const agListe = (await agRuf('cookie-ag-bert', 'GET', '/api/items')).inhalt;
+  pruefe('Die Uebersicht traegt weiterhin die Marke',
+    Array.isArray(agListe) && agListe.find(i => i.id === 1)?.rejected === true,
+    JSON.stringify(agListe?.find(i => i.id === 1)?.rejected));
+  pruefe('Aber keine der drei Angaben',
+    Array.isArray(agListe) && agListe.every(i =>
+      i.rejected_at === undefined && i.rejected_grund === undefined &&
+      i.rejected_von === undefined && i.rejectedVerfasser === undefined),
+    JSON.stringify(agListe?.find(i => i.id === 1)));
+
+  /* ---- DIE KLEMME. Umschreiben darf die Begruendung nur, wer sie getroffen
+     hat -- und das ist WEDER der Verfasser des Eintrags NOCH ein Admin. ---- */
+  const agFremd = async (wer) => {
+    const vorher = agZeile().rejected_grund;
+    const a = await agRuf(wer, 'PUT', '/api/items/1', { rejectedGrund: `Umgeschrieben von ${wer}` });
+    return { status: a.status, fehler: a.inhalt?.error, unveraendert: agZeile().rejected_grund === vorher };
+  };
+  const agAnna = await agFremd('cookie-ag-anna');
+  pruefe('Ein Admin, der weder Eintrag noch Begruendung geschrieben hat, wird abgewiesen',
+    agAnna.status === 403, JSON.stringify(agAnna));
+  pruefe('Und die Begruendung steht danach unveraendert da', agAnna.unveraendert,
+    JSON.stringify(agZeile().rejected_grund));
+  pruefe('Die Absage sagt, dass nur der Verfasser aendert',
+    /nur, wer es geschrieben hat/.test(agAnna.fehler || ''), agAnna.fehler);
+  const agBert = await agFremd('cookie-ag-bert');
+  pruefe('Der Verfasser DES EINTRAGS wird ebenso abgewiesen',
+    agBert.status === 403 && agBert.unveraendert, JSON.stringify(agBert));
+  const agDora = await agFremd('cookie-ag-dora');
+  pruefe('Und die Fremde erst recht',
+    agDora.status === 403 && agDora.unveraendert, JSON.stringify(agDora));
+  // Der Erfolgsfall daneben: die Verfasserin der Begruendung darf.
+  const agCarla = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
+    { rejectedGrund: 'Lieferzeit über 8 Monate' });
+  pruefe('Die Verfasserin der Begruendung schreibt sie um',
+    agCarla.status === 200 && agZeile().rejected_grund === 'Lieferzeit über 8 Monate',
+    JSON.stringify([agCarla.status, agZeile().rejected_grund]));
+
+  /* ---- ZURUECKNEHMEN DARF, WER DEN EINTRAG AENDERN DARF. Das ist die andere
+     Haelfte der Regel und ausdruecklich NICHT dieselbe Klemme: Bert hat die
+     Begruendung nicht geschrieben und nimmt das Merkmal trotzdem zurueck. ---- */
+  const agZurueck = await agRuf('cookie-ag-bert', 'PUT', '/api/items/1', { rejected: false });
+  pruefe('Der Verfasser des Eintrags nimmt die Ablehnung zurueck',
+    agZurueck.status === 200 && agZeile().rejected === 0, JSON.stringify(agZeile()));
+  /* UND DABEI WIRD NICHTS GELOESCHT. Eine Angabe, die niemand wiederherstellen
+     kann, wird nicht weggeworfen, nur weil ein Schalter umgelegt wird. */
+  pruefe('Datum, Grund und Verfasser bleiben dabei stehen',
+    agZeile().rejected_grund === 'Lieferzeit über 8 Monate' &&
+    agZeile().rejected_von === 3 && agZeile().rejected_at !== null,
+    JSON.stringify(agZeile()));
+  // Und die Fremde nimmt sie nicht zurueck -- die grobe Klemme steht weiter.
+  const agDoraZurueck = await agRuf('cookie-ag-dora', 'PUT', '/api/items/1', { rejected: true });
+  pruefe('Eine Fremde legt den Schalter nicht um',
+    agDoraZurueck.status === 403 && agZeile().rejected === 0, JSON.stringify(agZeile()));
+
+  /* ---- WER NEU ABLEHNT, TRIFFT EINE EIGENE ENTSCHEIDUNG: neues Datum, neuer
+     Name, neuer Text. Anna hat die alte Begruendung nicht umschreiben duerfen
+     -- eine EIGENE darf sie sehr wohl setzen. Das ist dieselbe Regel und kein
+     Loch: "Loeschen ja, umschreiben nein". ---- */
+  const agNeu = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1',
+    { rejected: true, rejectedGrund: 'Preis zu hoch' });
+  pruefe('Wer neu ablehnt, wird Verfasser der neuen Begruendung',
+    agNeu.status === 200 && agZeile().rejected_von === 1 &&
+    agZeile().rejected_grund === 'Preis zu hoch', JSON.stringify(agZeile()));
+  pruefe('Und danach darf die vorige Verfasserin nicht mehr umschreiben',
+    (await agFremd('cookie-ag-carla')).status === 403, JSON.stringify(agZeile()));
+  /* EIN EINSCHALTEN OHNE TEXT LAESST KEINEN FREMDEN SATZ STEHEN. Sonst truege
+     die neue Entscheidung den Satz der vorigen Person unter neuem Namen --
+     genau das, was die Klemme verhindern soll. */
+  await agRuf('cookie-ag-anna', 'PUT', '/api/items/1', { rejected: false });
+  const agOhneText = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejected: true });
+  pruefe('Ein Einschalten ohne Text uebernimmt den fremden Satz nicht',
+    agOhneText.status === 200 && agZeile().rejected_grund === '' && agZeile().rejected_von === 3,
+    JSON.stringify(agZeile()));
+
+  /* ---- DER BESTAND AUS 0.13.2: abgelehnt, aber ohne Verfasser. Ohne diesen
+     Zweig bekaeme eine Ablehnung aus einer aelteren Anlage NIE eine
+     Begruendung -- nurSelbst(null) ist fuer jeden falsch. Wer sie hinschreibt,
+     wird ihr Verfasser; die grobe Klemme steht trotzdem davor. ---- */
+  pruefe('Der Altbestand steht abgelehnt und ohne Verfasser da',
+    agZeile(2).rejected === 1 && agZeile(2).rejected_von === null &&
+    agZeile(2).rejected_at === null, JSON.stringify(agZeile(2)));
+  const agAltFremd = await agRuf('cookie-ag-dora', 'PUT', '/api/items/2', { rejectedGrund: 'Von der Fremden' });
+  pruefe('Eine Fremde traegt auch dort nichts nach',
+    agAltFremd.status === 403 && agZeile(2).rejected_grund === null, JSON.stringify(agZeile(2)));
+  const agAlt = await agRuf('cookie-ag-bert', 'PUT', '/api/items/2', { rejectedGrund: 'Nachgetragen' });
+  pruefe('Wer den Eintrag aendern darf, traegt die fehlende Begruendung nach',
+    agAlt.status === 200 && agZeile(2).rejected_grund === 'Nachgetragen' &&
+    agZeile(2).rejected_von === 2, JSON.stringify(agZeile(2)));
+  /* UND ERFINDET DABEI KEIN DATUM. Wann abgelehnt wurde, weiss diese Anlage
+     nicht; "am Tag des Nachtrags" waere eine Behauptung. */
+  pruefe('Und erfindet dabei kein Datum', agZeile(2).rejected_at === null,
+    JSON.stringify(agZeile(2).rejected_at));
+  pruefe('Danach gilt die Klemme auch dort',
+    (await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedGrund: 'Doch nicht' })).status === 403 &&
+    agZeile(2).rejected_grund === 'Nachgetragen', JSON.stringify(agZeile(2)));
+
+  /* ---- DER ZUSCHNITT DES TEXTES. Eine Zeile heisst eine Zeile: Weissraum
+     eingeebnet, aussen getrimmt, bei 200 Zeichen gekappt. Ohne das Einebnen
+     risse ein eingefuegter Absatz die Marke in der Oberflaeche. ---- */
+  await agRuf('cookie-ag-bert', 'PUT', '/api/items/2',
+    { rejectedGrund: '  Zwei\nZeilen   und   viel Raum  ' });
+  pruefe('Der Text wird auf eine Zeile eingeebnet und getrimmt',
+    agZeile(2).rejected_grund === 'Zwei Zeilen und viel Raum', JSON.stringify(agZeile(2).rejected_grund));
+  await agRuf('cookie-ag-bert', 'PUT', '/api/items/2', { rejectedGrund: 'x'.repeat(500) });
+  pruefe('Und bei 200 Zeichen gekappt',
+    agZeile(2).rejected_grund?.length === 200, `${agZeile(2).rejected_grund?.length} Zeichen`);
+
+  /* ---- DER RUNDLAUF DURCH DAS AUSTAUSCHFORMAT, Feld fuer Feld. Ein Format,
+     dessen Rundlauf nicht geprueft ist, ist eine Behauptung. ---- */
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
+    { rejected: true, rejectedGrund: 'Lieferzeit über 6 Monate' });
+  const agVorher = agZeile(1);
+  const agRufF = mitFreigabe((m, p, k) => agRuf('cookie-ag-anna', m, p, k), AG_WORT);
+  const agDatei = (await agRufF('GET', '/api/export?fotos=0')).inhalt;
+  const agPaket = agDatei?.items?.find(i => i.title === 'Berts Saege');
+  pruefe('Die Formatnummer der Datei steht auf 11', agDatei?.version === 11,
+    JSON.stringify(agDatei?.version));
+  pruefe('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
+    agPaket?.rejected_at === agVorher.rejected_at &&
+    agPaket?.rejected_grund === 'Lieferzeit über 6 Monate' &&
+    agPaket?.rejected_author === 'carla', JSON.stringify(agPaket && {
+      at: agPaket.rejected_at, grund: agPaket.rejected_grund, wer: agPaket.rejected_author }));
+  pruefe('Und ausdruecklich keine Nummer',
+    typeof agPaket?.rejected_author === 'string', JSON.stringify(agPaket?.rejected_author));
+  /* DIE DREI GEHEN AUCH MIT, WENN rejected FALSCH IST -- beim Zuruecknehmen
+     loescht der Server sie nicht, und eine Datei, die sie dann wegliesse,
+     naehme dem Ziel genau die Angabe, die die Quelle noch hat. */
+  const agPaketAus = agDatei?.items?.find(i => i.title === 'Altbestand');
+  await agRuf('cookie-ag-bert', 'PUT', '/api/items/2', { rejected: false });
+  const agDatei2 = (await agRufF('GET', '/api/export?fotos=0')).inhalt;
+  const agAusPaket = agDatei2?.items?.find(i => i.title === 'Altbestand');
+  pruefe('Auch ein zurueckgenommener Eintrag traegt seine Angaben in der Datei',
+    agAusPaket?.rejected === false && (agAusPaket?.rejected_grund || '').length === 200,
+    JSON.stringify({ r: agAusPaket?.rejected, len: (agAusPaket?.rejected_grund || '').length }));
+  // Und der Beleg, dass die Datei ueberhaupt beide Eintraege kennt.
+  pruefe('Die Datei kennt beide Eintraege', !!agPaket && !!agPaketAus,
+    JSON.stringify(agDatei?.items?.map(i => i.title)));
+
+  // Einspielen in eine ZWEITE, leere Anlage: dort gibt es carla auch, und der
+  // Name muss wieder auf sie treffen.
+  const agZielDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-ablehnung-ziel-'));
+  kurzlauf(`require('./db'); console.log('da');`, agZielDir);
+  {
+    const d = oeffne(path.join(agZielDir, 'katalog.sqlite'));
+    for (const [n, r] of [['anna', 'eigentuemer'], ['carla', 'admin']])
+      d.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(n, 'x', r);
+    d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-agz-anna', 1)").run();
+    d.close();
+  }
+  setzePasswortImBestand(agZielDir, 'anna', AG_WORT);
+  const AGZ = starteWeiterenServer(agZielDir, {}, 7120);
+  await AGZ.bereit;
+  const agzRuf = async (methode, pfad, koerper) => {
+    const opt = { method: methode, headers: { cookie: 'kriterion_session=cookie-agz-anna' } };
+    if (koerper !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(koerper);
+    }
+    const a = await fetch(AGZ.basis + pfad, opt);
+    let inhalt = null;
+    try { inhalt = await a.json(); } catch {}
+    return { status: a.status, inhalt };
+  };
+  /* Eingespielt wird als DATEI und nicht als JSON-Rumpf -- genauso, wie die
+     Oberflaeche es tut. Die Freigabe steht davor, weil multer sonst die ganze
+     Datei einlaese, bevor die Frage ueberhaupt gestellt waere. */
+  const agzEinspielen = async (objekt) => {
+    await agzRuf('POST', '/api/bestaetigung', { passwort: AG_WORT, zweck: 'import', ziel: null });
+    const grenze = '----pruefungag' + crypto.randomBytes(6).toString('hex');
+    const teil = (name, wert, dateiname) =>
+      `--${grenze}\r\nContent-Disposition: form-data; name="${name}"` +
+      (dateiname ? `; filename="${dateiname}"\r\nContent-Type: application/json` : '') +
+      `\r\n\r\n${wert}\r\n`;
+    const koerper = teil('mode', 'merge') + teil('file', JSON.stringify(objekt), 'export.json') +
+      `--${grenze}--\r\n`;
+    const a = await fetch(AGZ.basis + '/api/import', {
+      method: 'POST',
+      headers: { cookie: 'kriterion_session=cookie-agz-anna',
+                 'content-type': `multipart/form-data; boundary=${grenze}` },
+      body: koerper
+    });
+    return { status: a.status, inhalt: await a.json().catch(() => null) };
+  };
+  const agzEin = await agzEinspielen(agDatei);
+  pruefe('Die Datei laesst sich in eine zweite Anlage einspielen',
+    agzEin.status === 200, JSON.stringify(agzEin.inhalt?.error));
+  const agzSicht = ((await agzRuf('GET', '/api/items')).inhalt || [])
+    .find(i => i.title === 'Berts Saege');
+  const agzDetail = agzSicht ? (await agzRuf('GET', `/api/items/${agzSicht.id}`)).inhalt : null;
+  pruefe('Und die drei Angaben kommen Feld fuer Feld wieder heraus',
+    agzDetail?.rejected === true && agzDetail?.rejected_at === agVorher.rejected_at &&
+    agzDetail?.rejected_grund === 'Lieferzeit über 6 Monate' &&
+    agzDetail?.rejectedVerfasser?.name === 'carla',
+    JSON.stringify(agzDetail && { at: agzDetail.rejected_at, grund: agzDetail.rejected_grund,
+                                  wer: agzDetail.rejectedVerfasser }));
+
+  /* ---- EINE DATEI DER NUMMER 10 BLEIBT EINSPIELBAR. Dieselbe Zusage wie bei
+     jedem Formatsprung davor: die drei Felder fehlen dann und bleiben LEER.
+     Und der Ablehnende faellt ausdruecklich NICHT an den Einspielenden --
+     sonst waere jeder eingespielte Eintrag von ihm abgelehnt. ---- */
+  const agAlteDatei = { version: 10, title: 'Alt', criteria: [], items: [
+    { title: 'Aus Nummer zehn', rejected: true, tested: false, author: 'carla' },
+    { title: 'Offen aus Nummer zehn', rejected: false, tested: false, author: 'carla' }] };
+  const agzAlt = await agzEinspielen(agAlteDatei);
+  pruefe('Eine Datei der Formatnummer 10 laesst sich weiterhin einspielen',
+    agzAlt.status === 200, JSON.stringify(agzAlt.inhalt?.error));
+  const agzAltListe = (await agzRuf('GET', '/api/items')).inhalt || [];
+  const agzAltEintrag = agzAltListe.find(i => i.title === 'Aus Nummer zehn');
+  const agzAltDetail = agzAltEintrag ? (await agzRuf('GET', `/api/items/${agzAltEintrag.id}`)).inhalt : null;
+  pruefe('Die Marke kommt mit, die drei Felder bleiben leer',
+    agzAltDetail?.rejected === true && agzAltDetail?.rejected_at === null &&
+    agzAltDetail?.rejected_grund === null && agzAltDetail?.rejectedVerfasser === null,
+    JSON.stringify(agzAltDetail && { at: agzAltDetail.rejected_at, grund: agzAltDetail.rejected_grund,
+                                     wer: agzAltDetail.rejectedVerfasser }));
+  pruefe('Und der Ablehnende faellt nicht an den Einspielenden',
+    agzAltDetail?.rejectedVerfasser === null, JSON.stringify(agzAltDetail?.rejectedVerfasser));
+
+  await AGZ.stopp();
+  fs.rmSync(agZielDir, { recursive: true, force: true });
+
+  /* ---- EIN ENTFERNTER ZUGANG NIMMT NUR SEINEN NAMEN MIT. Der Grabstein
+     bleibt als Zeile stehen, und aus der Nummer wird "Geloeschter Benutzer 3"
+     -- der freigegebene Name geht nie hinaus. ---- */
+  {
+    const d = oeffne(path.join(agDir, 'katalog.sqlite'));
+    d.prepare("UPDATE users SET status = 'geloescht', username = 'geloescht-3' WHERE id = 3").run();
+    d.close();
+  }
+  const agGrab = (await agRuf('cookie-ag-bert', 'GET', '/api/items/1')).inhalt;
+  pruefe('Am Grabstein steht die Nummer und kein Name',
+    agGrab?.rejectedVerfasser?.geloescht === true && agGrab?.rejectedVerfasser?.name === null &&
+    agGrab?.rejectedVerfasser?.id === 3, JSON.stringify(agGrab?.rejectedVerfasser));
+  pruefe('Und der freigegebene Grabsteinname geht nicht hinaus',
+    !/geloescht-3/.test(JSON.stringify(agGrab)), 'geloescht-3 steht in der Antwort');
+  pruefe('Die Begruendung selbst bleibt dabei stehen',
+    agGrab?.rejected_grund === 'Lieferzeit über 6 Monate', JSON.stringify(agGrab?.rejected_grund));
+
+  await AG.stopp();
+  fs.rmSync(agDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   gruppe('Der Selbstbezug');
@@ -11569,8 +12037,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
       } catch { tNach = ['(Start gescheitert)']; }
       pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
         !tNach.includes('letzter_zaehler'), JSON.stringify(tNach));
-      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein sechster mit
-         anderem Wortlaut waere eine zweite Schreibweise fuer dieselbe Sache. */
+      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein siebter mit
+         anderem Wortlaut waere eine zweite Schreibweise fuer dieselbe Sache.
+         SECHS SEIT 0.14.0: die erste Schema-Runde seit 0.8.50. */
       const tQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
       /* GEZAEHLT WERDEN DIE VERSCHIEDENEN MARKEN UND NICHT IHRE VORKOMMEN:
          jede steht zweimal in db.js -- einmal ueber dem Block und einmal an
@@ -11579,9 +12048,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
          was gemeint ist, nicht was dasteht). */
       const tBloecke = [...new Set(
         (tQuelle.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))];
-      pruefe('Es bleibt bei fuenf markierten Migrationsbloecken',
-        tBloecke.length === 5, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
-      pruefe('Und alle fuenf tragen denselben Wortlaut der Marke',
+      pruefe('Es bleibt bei sechs markierten Migrationsbloecken',
+        tBloecke.length === 6, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
+      pruefe('Und alle sechs tragen denselben Wortlaut der Marke',
         tBloecke.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBloecke.join(' · '));
       pruefe('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tQuelle) && !/migration0100/.test(tQuelle));
@@ -12307,14 +12776,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
       "  const x = db.prepare('SELECT * FROM items WHERE geloescht = 0').all();")).length === 1,
     'der Waechter sieht den Zusatz nicht');
 
-  /* KEIN SECHSTER MIGRATIONSBLOCK. Die Probe aus der Gruppe "Der Papierkorb:
+  /* KEIN BLOCK FUER EINE TABELLE. Die Probe aus der Gruppe "Der Papierkorb:
      die Tabelle legt sich selbst an" hat es hergegeben: CREATE TABLE IF NOT
-     EXISTS legt eine fehlende TABELLE bei jedem Start an. Es bleibt bei fuenf
-     markierten Bloecken, und es kommt kein Eintrag unter "Vorgemerkt fuer 1.0"
-     dazu. Wer trotzdem einen anlegt, wird hier namentlich rot. */
+     EXISTS legt eine fehlende TABELLE bei jedem Start an -- eine SPALTE
+     dagegen nicht, und nur dafuer gibt es Migrationsbloecke.
+     SECHS SEIT 0.14.0, vorher fuenf: die Runde ruestet drei Spalten an items
+     nach und ist damit die erste Schema-Runde seit 0.8.50. Wer einen siebten
+     anlegt, wird hier namentlich rot -- und muss sagen, welche SPALTE er
+     nachruestet. */
   const fDbQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
   const fMigrationen = (fDbQuelle.match(/function migration0?\d+\(/g) || []);
-  pruefe('Es gibt genau fuenf Migrationsfunktionen', fMigrationen.length === 5,
+  pruefe('Es gibt genau sechs Migrationsfunktionen', fMigrationen.length === 6,
+    fMigrationen.join(' · '));
+  // Und jede markierte Marke hat ihre Funktion -- eine Marke ohne Block waere
+  // eine Ankuendigung, die nichts tut.
+  pruefe('Und zu jedem markierten Block gehoert eine Funktion',
+    fMigrationen.length ===
+      [...new Set((fDbQuelle.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))].length,
     fMigrationen.join(' · '));
   pruefe('Und keine davon heisst migration0870',
     !fDbQuelle.includes('migration0870'), 'migration0870 steht in db.js');
@@ -14490,6 +14968,256 @@ const freigabeHaupt = (zweck, ziel = null) =>
   fs.rmSync(u50Dir, { recursive: true, force: true });
   fs.rmSync(u50FrischDir, { recursive: true, force: true });
 
+  /* ================================================================
+     MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
+     verschwindet, steht beieinander und traegt dieselbe Marke.
+     DIE ERSTE SCHEMA-RUNDE SEIT 0.8.50, und der Block ruestet DREI Spalten
+     nach -- damit gilt Stolperstein 108 zum zweiten Mal, und diesmal mit
+     Transaktion.
+     ================================================================ */
+  gruppe('MIGRATION 0.14.0 — ENTFAELLT MIT 1.0');
+
+  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
+     aus 0.8.0 bis 0.13.2 -- dieselbe Anlage, nur ohne die drei Spalten an
+     items.
+     UND MIT EINTRAEGEN DARIN, davon einer ABGELEHNT: eine leere Tabelle
+     bewiese nichts darueber, was mit dem Bestand geschieht (Stolperstein 81)
+     -- und, wie diese Runde nachgemessen hat, nicht einmal etwas darueber, ob
+     das ALTER TABLE ueberhaupt durchgeht (Stolperstein 202). */
+  const u14Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0140-'));
+  const u14FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0140-'));
+  const u14Neu = ['rejected_at', 'rejected_grund', 'rejected_von'];
+  const u14Spalten = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(items)').all().map(c => c.name);
+    d.close();
+    return sp;
+  };
+  /* Abgefangen wie jede Lesestelle auf eine neue Spalte: fehlt sie, werden die
+     Pruefungen darunter rot, statt den Lauf abzureissen und KEINEN Namen zu
+     nennen (Stolperstein 103). */
+  const u14Zeilen = (verzeichnis = u14Dir) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    let z = [];
+    try {
+      z = d.prepare('SELECT id, title, rejected, rejected_at, rejected_grund, rejected_von FROM items ORDER BY id').all();
+    } catch { /* eine der Spalten fehlt -- die Pruefungen darunter werden rot */ }
+    d.close();
+    return z;
+  };
+  /* Eine Anlage aus 0.13.2 nachbauen: Tabellenneubau statt
+     ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
+     darueber -- SQLite prueft nach dem Entfernen den verbliebenen DDL-Text,
+     und der traegt hier Kommentare (Stolperstein 106). Ausserhalb jeder
+     Transaktion, sonst waere das PRAGMA ein stiller No-op (Stolperstein 12).
+     `welche` sagt, welche der drei Spalten die Prueflage NICHT hat -- damit
+     laesst sich belegen, dass jede EINZELN nachgeruestet wird. */
+  const u14Rueckbau = (verzeichnis, welche) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const zusatz = [
+      welche.includes('rejected_at') ? '' : 'rejected_at TEXT,',
+      welche.includes('rejected_grund') ? '' : 'rejected_grund TEXT,',
+      welche.includes('rejected_von') ? '' : 'rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL,'
+    ].join(' ');
+    d.pragma('foreign_keys = OFF');
+    d.exec(`
+      CREATE TABLE items_0132 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        rejected INTEGER NOT NULL DEFAULT 0,
+        ${zusatz}
+        tested INTEGER NOT NULL DEFAULT 0,
+        favorite INTEGER NOT NULL DEFAULT 0,
+        product_category_id INTEGER REFERENCES product_categories(id) ON DELETE SET NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+      );
+      INSERT INTO items_0132 (title, rejected, user_id)
+        VALUES ('Abgelehnter Altbestand', 1, 1), ('Offener Altbestand', 0, 1);
+      DROP TABLE items;
+      ALTER TABLE items_0132 RENAME TO items;
+    `);
+    d.close();
+  };
+
+  uLauf(u14Dir);
+  {
+    const d = oeffne(path.join(u14Dir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+    d.close();
+  }
+  u14Rueckbau(u14Dir, u14Neu);
+  pruefe('Die Prueflage traegt keine der drei Spalten',
+    u14Neu.every(n => !u14Spalten(u14Dir).includes(n)), u14Spalten(u14Dir).join(', '));
+  /* Und sie traegt wirklich Eintraege, davon einen abgelehnten -- ohne diese
+     Zeile stuende der Beleg unten auf null Zeilen und bliebe gruen, ohne etwas
+     zu belegen (Stolperstein 81). Eigene Abfrage, weil u14Zeilen() Spalten
+     liest, die es hier noch nicht gibt. */
+  {
+    const d = oeffne(path.join(u14Dir, 'katalog.sqlite'));
+    const z = d.prepare('SELECT COUNT(*) AS n, SUM(rejected) AS ab FROM items').get();
+    d.close();
+    pruefe('Und sie traegt zwei Eintraege, davon einen abgelehnten',
+      z.n === 2 && z.ab === 1, JSON.stringify(z));
+  }
+
+  const u14Ausgabe = uLauf(u14Dir);
+  pruefe('Die Migration ergaenzt alle drei Spalten im Bestand',
+    u14Neu.every(n => u14Spalten(u14Dir).includes(n)), u14Spalten(u14Dir).join(', '));
+  pruefe('Er sagt im Protokoll, was er getan hat',
+    /items um rejected_at, rejected_grund und rejected_von ergaenzt/.test(u14Ausgabe),
+    JSON.stringify(u14Ausgabe.trim()));
+  pruefe('Und er nennt dabei, wie viele Ablehnungen ohne Angaben dastehen',
+    /1 bereits abgelehnte Eintrag steht ohne Datum, Grund und Verfasser da/.test(u14Ausgabe),
+    JSON.stringify(u14Ausgabe.trim()));
+
+  /* DER KERN DIESES ABSCHNITTS. Die Bestandszeilen bleiben, und die drei
+     Spalten bleiben LEER -- auch an dem Eintrag, der schon abgelehnt war.
+     Ein nachgeschobenes UPDATE erfaende hier Angaben, die diese Anlage nicht
+     hat; "abgelehnt am Tag der Einspielung" waere die schlimmste davon. */
+  pruefe('Beide Bestandszeilen sind noch da',
+    u14Zeilen().length === 2, JSON.stringify(u14Zeilen().map(z => z.title)));
+  pruefe('Und alle drei Spalten stehen leer -- auch am abgelehnten Eintrag',
+    u14Zeilen().length === 2 &&
+    u14Zeilen().every(z => z.rejected_at === null && z.rejected_grund === null && z.rejected_von === null),
+    JSON.stringify(u14Zeilen()));
+  pruefe('Das Merkmal rejected selbst ist unangetastet geblieben',
+    u14Zeilen().map(z => z.rejected).join(',') === '1,0', JSON.stringify(u14Zeilen().map(z => z.rejected)));
+
+  /* Nachgestellt am Quelltext: kein UPDATE an items im Block, und die drei
+     ALTER TABLE laufen in EINER Transaktion (Stolperstein 108). */
+  {
+    const u14Quelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const u14Block = u14Quelle.slice(u14Quelle.indexOf('// MIGRATION 0.14.0'),
+                                     u14Quelle.indexOf('// ENDE MIGRATION 0.14.0'));
+    pruefe('Der Block schiebt kein UPDATE nach',
+      !/UPDATE\s+items/i.test(u14Block), JSON.stringify(u14Block.slice(0, 80)));
+    pruefe('Der Block fragt jede Spalte einzeln ab',
+      (u14Block.match(/spalten\.includes\(/g) || []).length === 3,
+      `${(u14Block.match(/spalten\.includes\(/g) || []).length} Abfragen`);
+    pruefe('Und die drei ALTER TABLE laufen in EINER Transaktion',
+      /db\.transaction\(/.test(u14Block) &&
+      (u14Block.match(/ALTER TABLE items ADD COLUMN/g) || []).length === 3,
+      JSON.stringify((u14Block.match(/db\.transaction\([^\n]*/g) || []).join(' | ')));
+    /* ordneBestandZu() wird ausdruecklich NICHT angefasst: dort geht es um
+       user_id und um die Frage, wem eine herrenlose Zeile gehoert.
+       rejected_von ist keine Eigentumsangabe, sondern der Name unter einer
+       Entscheidung -- sie dem Eigentuemer zuzuschieben setzte seinen Namen
+       unter eine fremde Aussage. */
+    const u14Auffang = u14Quelle.slice(u14Quelle.indexOf('function ordneBestandZu'),
+                                       u14Quelle.indexOf('ordneBestandZu();'));
+    pruefe('Das Auffangnetz kennt rejected_von nicht',
+      !u14Auffang.includes('rejected_von'), 'rejected_von steht in ordneBestandZu()');
+  }
+
+  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
+  const u14Zweitens = uLauf(u14Dir);
+  pruefe('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
+    !/items um /.test(u14Zweitens), JSON.stringify(u14Zweitens.trim()));
+  pruefe('Und die Zeilen sind dabei unangetastet geblieben',
+    u14Zeilen().length === 2 &&
+    u14Zeilen().every(z => z.rejected_at === null && z.rejected_von === null),
+    JSON.stringify(u14Zeilen()));
+
+  /* JEDE DER DREI SPALTEN WIRD EINZELN NACHGERUESTET -- nachgestellt, nicht
+     nur am Quelltext gelesen. Das ist der zerrissene Stand, den ein Block mit
+     einer einzigen Abfrage fuer immer stehen liesse. */
+  for (const fehlt of u14Neu) {
+    const daneben = u14Neu.filter(n => n !== fehlt);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `kriterion-u14-${fehlt}-`));
+    uLauf(dir);
+    {
+      const d = oeffne(path.join(dir, 'katalog.sqlite'));
+      d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+      d.close();
+    }
+    u14Rueckbau(dir, [fehlt]);
+    pruefe(`Die halbe Prueflage traegt ${daneben.join(' und ')}, aber nicht ${fehlt}`,
+      daneben.every(n => u14Spalten(dir).includes(n)) && !u14Spalten(dir).includes(fehlt),
+      u14Spalten(dir).join(', '));
+    const ausgabe = uLauf(dir);
+    pruefe(`Die Migration ruestet ${fehlt} einzeln nach`,
+      u14Spalten(dir).includes(fehlt) && new RegExp(`items um ${fehlt} ergaenzt`).test(ausgabe),
+      `${u14Spalten(dir).join(', ')} / ${JSON.stringify(ausgabe.trim())}`);
+    pruefe(`Und die Bestandszeilen stehen danach richtig da (${fehlt} fehlte)`,
+      u14Zeilen(dir).length === 2 &&
+      u14Zeilen(dir).every(z => z.rejected_at === null && z.rejected_grund === null && z.rejected_von === null),
+      JSON.stringify(u14Zeilen(dir)));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  /* Die frische Anlage bekommt die Spalten aus der DDL, nicht aus der
+     Migration. Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt
+     traegt -- und zu 1.0 faellt die Migration weg, die Spalten muessen
+     bleiben. */
+  const u14Frisch = uLauf(u14FrischDir);
+  pruefe('Eine frische Anlage traegt alle drei Spalten ohne Migration',
+    u14Neu.every(n => u14Spalten(u14FrischDir).includes(n)) && !/items um /.test(u14Frisch),
+    `${u14Spalten(u14FrischDir).join(', ')} / ${JSON.stringify(u14Frisch.trim())}`);
+
+  /* DER FREMDSCHLUESSEL, UND ZWAR AM VERHALTEN. Ein REFERENCES in einem
+     ALTER TABLE ... ADD COLUMN ist nicht selbstverstaendlich dasselbe wie
+     eines in der DDL (Stolperstein 105 stellt genau diese Frage fuer die
+     Vorgabe). Nachgemessen wird deshalb, was SQLite TUT: dass der Schluessel
+     dasteht, dass ON DELETE SET NULL greift und dass eine unbekannte Nummer
+     abgewiesen wird -- in der migrierten wie in der frischen Anlage. */
+  const u14Fk = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    d.pragma('foreign_keys = ON');
+    const eintrag = d.prepare('PRAGMA foreign_key_list(items)').all().find(f => f.from === 'rejected_von');
+    let gesetzt = null, fremd = 'angenommen';
+    try {
+      d.prepare("INSERT INTO users (id, username, password_hash) VALUES (777, 'fkprobe', 'x')").run();
+      d.prepare("INSERT INTO items (id, title, rejected, rejected_von) VALUES (777, 'FK-Probe', 1, 777)").run();
+      d.prepare('DELETE FROM users WHERE id = 777').run();
+      gesetzt = d.prepare('SELECT rejected_von FROM items WHERE id = 777').get().rejected_von;
+      try { d.prepare('UPDATE items SET rejected_von = 999 WHERE id = 777').run(); }
+      catch { fremd = 'abgewiesen'; }
+      d.prepare('DELETE FROM items WHERE id = 777').run();
+    } catch (e) { fremd = `Prueflage gescheitert: ${e.message}`; }
+    d.close();
+    return { ziel: eintrag?.table, beiLoeschung: eintrag?.on_delete, nachDemLoeschen: gesetzt, fremd };
+  };
+  const u14FkMigriert = u14Fk(u14Dir), u14FkFrisch = u14Fk(u14FrischDir);
+  pruefe('Migrierte und frische Anlage verhalten sich am Fremdschluessel gleich',
+    gleich(u14FkMigriert, u14FkFrisch),
+    `${JSON.stringify(u14FkMigriert)} gegen ${JSON.stringify(u14FkFrisch)}`);
+  pruefe('rejected_von zeigt auf users und gibt beim Loeschen frei',
+    u14FkMigriert.ziel === 'users' && u14FkMigriert.beiLoeschung === 'SET NULL',
+    JSON.stringify(u14FkMigriert));
+  pruefe('Ein entfernter Zugang laesst die Ablehnung stehen und nimmt nur den Namen mit',
+    u14FkMigriert.nachDemLoeschen === null, JSON.stringify(u14FkMigriert));
+  pruefe('Und eine Nummer, die es nicht gibt, wird abgewiesen',
+    u14FkMigriert.fremd === 'abgewiesen', JSON.stringify(u14FkMigriert.fremd));
+
+  /* STOLPERSTEIN 202, IN DIESER RUNDE NACHGEMESSEN UND NEU: die Absage aus
+     Stolperstein 105 haengt daran, ob die Tabelle ZEILEN HAT. An einer leeren
+     geht dasselbe ALTER TABLE durch. Das steht hier und nicht nur im Papier,
+     denn daraus folgt die Bauform der Prueflagen darueber: eine Migration, die
+     nur an einer leeren Tabelle gefahren wird, ist gar nicht gefahren. */
+  {
+    const d = oeffne(path.join(u14FrischDir, 'katalog.sqlite'));
+    const versuch = (sql) => { try { d.exec(sql); return 'geht'; } catch (e) { return e.message; } };
+    d.exec('CREATE TABLE p202_leer (id INTEGER PRIMARY KEY)');
+    d.exec('CREATE TABLE p202_voll (id INTEGER PRIMARY KEY)');
+    d.prepare('INSERT INTO p202_voll (id) VALUES (1)').run();
+    const spalte = ' ADD COLUMN v INTEGER NOT NULL DEFAULT 0 REFERENCES users(id) ON DELETE SET NULL';
+    const leer = versuch('ALTER TABLE p202_leer' + spalte);
+    const voll = versuch('ALTER TABLE p202_voll' + spalte);
+    d.exec('DROP TABLE p202_leer; DROP TABLE p202_voll');
+    d.close();
+    pruefe('An einer LEEREN Tabelle nimmt SQLite die Vorgabe am Fremdschluessel an',
+      leer === 'geht', JSON.stringify(leer));
+    pruefe('An einer Tabelle MIT Zeilen weist es dieselbe Anweisung ab',
+      /Cannot add a REFERENCES column with non-NULL default value/.test(voll), JSON.stringify(voll));
+  }
+
+  fs.rmSync(u14Dir, { recursive: true, force: true });
+  fs.rmSync(u14FrischDir, { recursive: true, force: true });
+
   /* ---------------------------------------------------------------- */
   gruppe('Anordnung der Blöcke');
 
@@ -16239,7 +16967,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTEN -- eine
      Prueflage, die still verschwindet, faellt sonst niemandem auf. */
   pruefe('Der Lauf hat seine Portbasen vermerkt',
-    pbBasen.length === 56 && PRUEFLAGEN.length >= 60,
+    pbBasen.length === 58 && PRUEFLAGEN.length >= 60,
     `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
@@ -16335,7 +17063,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
      gezaehlt waren es 193 -- 184 plus neun. */
-  pruefe('Es sind genau 218 Rueckbauten', gpListe.length === 218, `${gpListe.length}`);
+  pruefe('Es sind genau 249 Rueckbauten', gpListe.length === 249, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -16926,7 +17654,13 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
   tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null, statsExport = null,
   zweifaktorCodes = null, anmeldeFaktor = false, suchFehler = false, suchBremsen = null,
-  kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }] } = {}) {
+  kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }],
+  /* Die Ablehnung am Beispieleintrag, seit 0.14.0. Vorgabe ist "nicht
+     abgelehnt" -- so, wie der Eintrag bis dahin dastand; wer die Marke
+     braucht, reicht die drei Felder herein. Ausdruecklich EINZELN und nicht
+     als Schalter: die Lagen, um die es geht, unterscheiden sich gerade darin,
+     WELCHES der drei fehlt. */
+  ablehnung = null } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
   const { VirtualConsole } = require('jsdom');
@@ -17085,6 +17819,10 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     gewechseltAm: null, veraltet: 0
   };
   const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  /* Die dreistellige Stimmenzahl der zweiten Kriterienzeile. Sie steht als
+     Zahl an EINER Stelle: `count` in der Zeile und die Laenge der Stimmliste
+     muessen uebereinstimmen, und zwei getippte Zahlen liefen auseinander. */
+  const STIMMEN_VIELE = 128;
   const kriterien = [
     { id: 7, name: 'Zuerst', sort_order: 0, usage_count: 2, gewicht: kriterienGewichte[0] },
     { id: 8, name: 'Dann', sort_order: 1, usage_count: 0, gewicht: kriterienGewichte[1] },
@@ -17104,7 +17842,14 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   const vBoese = { id: 5, name: 'Verfasser <b id="boese-link">X</b>', geloescht: false };
   const beispiel = {
     id: 1, title: 'Beispiel', description: 'Eine Beschreibung.\nZweite Zeile.',
-    rejected: false, tested: true, favorite: false, category: null,
+    rejected: !!ablehnung, tested: true, favorite: false, category: null,
+    /* Der echte Server liefert die drei Felder IMMER aus -- leer, wenn nichts
+       dasteht. Ein Mock, der sie ganz weglaesst, machte "fehlt" von "leer"
+       ununterscheidbar und naehme genau die Pruefung weg, fuer die er gebaut
+       ist (Stolperstein 102). */
+    rejected_at: ablehnung?.at ?? null,
+    rejected_grund: ablehnung?.grund ?? null,
+    rejectedVerfasser: ablehnung?.verfasser ?? null,
     verfasser: vBert,
     /* ZWEI ZEILEN, UND SIE SIND VERSCHIEDENER ART -- ein Mock mit
        lauter Bildern naehme genau die Pruefungen weg, fuer die er hier
@@ -17209,9 +17954,15 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     // gewicht steht an JEDER Kriterienzeile -- der echte Server liefert es seit
     // 0.8.40, und ein Mock, der die Antwort vereinfacht, loescht
     // genau die Pruefung, fuer die er gebaut ist.
+    /* DREI ZEILEN, UND SIE SIND VERSCHIEDEN LANG -- das ist seit 0.14.0 keine
+       Zierde mehr, sondern der Gegenstand: die Sternreihen sollen an
+       derselben Stelle beginnen, und eine Prueflage, in der alle Zahlen gleich
+       lang sind, kann diesen Fehler gar nicht tragen (Stolperstein 189).
+       Deshalb steht hier eine DREISTELLIGE Stimmenzahl neben einer
+       einstelligen -- und die dritte Zeile hat gar keine. */
     ratings: kriterien.map((c, i) => ({
       criterion_id: c.id, name: c.name, value: eigeneWerte[i], gewicht: c.gewicht,
-      avg: [3.4, 4.1, null][i], count: [5, 2, 0][i] })),
+      avg: [3.4, 4.1, null][i], count: [5, STIMMEN_VIELE, 0][i] })),
     avgRating: 3, testCount: 1, testAvg: 4, testLast: 4,
     // Reine Anzeige, seit 0.8.6 in der Verfasserzeile. Ohne dieses Feld
     // zeichnete die Zeile ins Leere und jede Pruefung darauf waere blind.
@@ -17232,9 +17983,22 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       { id: 503, wert: 2, mine: false, verfasser: vGrab },
       { id: 504, wert: 4, mine: false, verfasser: null },
       { id: 505, wert: 4, mine: false, verfasser: { id: 3, name: 'carla', geloescht: false } }] },
+    /* DIE ZWEITE ZEILE TRAEGT ABSICHTLICH EINE DREISTELLIGE STIMMENZAHL.
+       Die Zusage seit 0.14.0 lautet, dass alle Sternreihen der Kriterienliste
+       an derselben Stelle beginnen -- und sie gilt fuer die leere Zelle
+       ebenso wie fuer eine ueberlange Zahl. Eine Prueflage, in der alle Zahlen
+       gleich lang sind, kann diesen Fehler gar nicht tragen (Stolperstein
+       189).
+       DIE LISTE WIRD WIRKLICH SO LANG, statt nur `count` hochzusetzen: ein
+       Mock, der sich hier widerspricht, macht jede Pruefung darauf wertlos
+       (Stolperstein 90). Die zwei benannten Stimmen stehen vorn, der Rest
+       zaehlt auf. */
     { criterion_id: 8, stimmen: [
       { id: 506, wert: 3, mine: true, verfasser: vChefin },
-      { id: 507, wert: 5, mine: false, verfasser: vBert }] }
+      { id: 507, wert: 5, mine: false, verfasser: vBert },
+      ...Array.from({ length: STIMMEN_VIELE - 2 }, (unused, i) => ({
+        id: 600 + i, wert: 4, mine: false,
+        verfasser: { id: 100 + i, name: `stimme${i}`, geloescht: false } }))] }
   ];
   const uebersicht = [{
     id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false,
@@ -17754,7 +18518,28 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        unterscheiden. Nur der Eintrag selbst, nicht seine Unterwege
        (/comments, /tags, /photos ...). */
     if (url === '/api/items/1' && opt.method === 'PUT') {
-      Object.assign(beispiel, JSON.parse(opt.body || '{}'));
+      const rumpf = JSON.parse(opt.body || '{}');
+      /* DIE DREI ANGABEN ZUR ABLEHNUNG SCHREIBT DER SERVER ZUSAMMEN, und der
+         Mock muss das nachmachen: die Oberflaeche schickt `rejectedGrund` und
+         bekommt `rejected_grund` samt Datum und Verfasserobjekt zurueck. Ein
+         Mock, der den Rumpf stur durchreicht, legte ein Feld in die Antwort,
+         das der echte Server nie liefert -- und die Marke bliebe leer, ohne
+         dass eine Pruefung rot wuerde (Stolperstein 90).
+         DAS DATUM IST FEST UND NICHT `jetzt`: eine Pruefung, die den
+         angezeigten Text vergleicht, braucht einen Wert, der sich nicht
+         zwischen zwei Zeilen des Prueflaufs bewegt. */
+      const schaltetEin = rumpf.rejected === true && !beispiel.rejected;
+      if (rumpf.rejected !== undefined) beispiel.rejected = !!rumpf.rejected;
+      if (schaltetEin) {
+        beispiel.rejected_at = '2026-08-29 09:12:00';
+        beispiel.rejectedVerfasser = vChefin;
+        beispiel.rejected_grund = String(rumpf.rejectedGrund ?? '').replace(/\s+/g, ' ').trim();
+      } else if (rumpf.rejectedGrund !== undefined) {
+        beispiel.rejected_grund = String(rumpf.rejectedGrund).replace(/\s+/g, ' ').trim();
+        if (!beispiel.rejectedVerfasser) beispiel.rejectedVerfasser = vChefin;
+      }
+      delete rumpf.rejected; delete rumpf.rejectedGrund;
+      Object.assign(beispiel, rumpf);
       return gib(beispiel);
     }
     /* VOR dem Sammelfall darunter: startsWith('/api/items/1') faenge diesen
@@ -19636,7 +20421,7 @@ async function pruefeOberflaeche() {
   // Jede Zeile ihre eigene Zahl: gleiche Werte koennten nicht zeigen, ob die
   // Spalte ueberhaupt der richtigen Zeile zugeordnet ist.
   pruefe('Sie nennt Schnitt und Zahl der Bewerter je Zeile',
-    eSpalten[0]?.textContent === '⌀ 3,4 (5)' && eSpalten[1]?.textContent === '⌀ 4,1 (2)',
+    eSpalten[0]?.textContent === '⌀ 3,4 (5)' && eSpalten[1]?.textContent === '⌀ 4,1 (128)',
     JSON.stringify(eSpalten.map(z => z.textContent)));
   /* --- 0.12.3: dieselbe Form wie die Kopfzahl darueber ---
      DAS ⌀ IST DIE HAUSFORM: die Kopfzahl schreibt bereits "⌀ 4,2 gewichtet",
@@ -19652,8 +20437,8 @@ async function pruefeOberflaeche() {
     JSON.stringify(eSpalten.map(z => z.textContent)));
   pruefe('Das Zeichen wird im Klartext erklaert',
     eSpalten[0]?.title === 'Durchschnitt 3,4 aus 5 Stimmen', eSpalten[0]?.title);
-  pruefe('Und die Einzahl steht auch dort',
-    eSpalten[1]?.title === 'Durchschnitt 4,1 aus 2 Stimmen', eSpalten[1]?.title);
+  pruefe('Und die zweite Zeile traegt ihren eigenen Klartext',
+    eSpalten[1]?.title === 'Durchschnitt 4,1 aus 128 Stimmen', eSpalten[1]?.title);
   pruefe('Ein Kriterium ohne Stimme bekommt keinen Klartext',
     !eSpalten[2]?.title, eSpalten[2]?.title);
   pruefe('Der Schnitt steht mit Komma, nicht mit Punkt',
@@ -26366,8 +27151,8 @@ async function pruefeOberflaeche() {
     tlPakete.every(p => p.version === tlPakete[0].version && p.title === tlPakete[0].title
       && Array.isArray(p.criteria) && p.criteria.length === tlPakete[0].criteria.length),
     JSON.stringify(tlPakete.map(p => [p.version, p.criteria?.length])));
-  pruefe('Und die Formatnummer ist unveraendert die zehn',
-    tlPakete.every(p => p.version === 10), JSON.stringify(tlPakete.map(p => p.version)));
+  pruefe('Und die Formatnummer ist unveraendert die elf',
+    tlPakete.every(p => p.version === 11), JSON.stringify(tlPakete.map(p => p.version)));
   pruefe('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPakete.reduce((n, p) => n + p.items.length, 0) === 6 &&
     new Set(tlPakete.flatMap(p => p.items.map(i => i.title))).size === 6,
@@ -27262,6 +28047,326 @@ async function pruefeOberflaeche() {
   pruefe('Die Anpinnung steht im Stilblatt HINTER den drei Arten',
     css123.indexOf('.cmt.pinned {') > css123.indexOf('.cmt.bericht {'),
     `pinned bei ${css123.indexOf('.cmt.pinned {')}, bericht bei ${css123.indexOf('.cmt.bericht {')}`);
+
+  /* ================= Die Aussage an der Marke — 0.14.0 =================
+     Aus dem Haekchen "abgelehnt" wird ein Satz: WANN, WARUM und VON WEM.
+     JEDES DER DREI DARF FEHLEN, und die Lagen unterscheiden sich gerade
+     darin -- eine Ablehnung aus einer Anlage vor 0.14.0 hat keines davon, ein
+     Grund ist freiwillig, und ein Zugang kann entfernt worden sein. Eine
+     Prueflage mit lauter vollstaendigen Angaben koennte die Zusage
+     "zusammengesetzt wird aus dem, was da ist" gar nicht tragen. */
+  gruppe('Die Aussage an der Marke — 0.14.0');
+
+  /* Die Zahl der Zugaenge ist ein PARAMETER und keine Konstante: die Gruppe
+     braucht beide Lagen -- mit mehreren Zugaengen steht der Name in der
+     Aussage, mit einem einzigen nicht. Vorgabe drei, weil das der Regelfall
+     dieser Gruppe ist. */
+  const amLage = async (ablehnung, benutzerZahl = 3) => {
+    const d = baueDom(JSDOM, { hash: '#/item/1', ablehnung,
+      einstellungen: { filters: null, benutzerZahl } });
+    await new Promise(r => setTimeout(r, 80));
+    return d;
+  };
+  const amText = (d) => d.w.document.getElementById('rej-marke');
+  const amFeld = (d) => d.w.document.getElementById('rej-grund');
+  const amZeile = (d) => d.w.document.getElementById('rej-grund-zeile');
+
+  // --- Nicht abgelehnt: weder Satz noch Feld ---
+  {
+    const d = await amLage(null);
+    pruefe('Ohne Ablehnung gibt es die Marke ueberhaupt',
+      !!amText(d) && !!amFeld(d), 'die Elemente fehlen im Aufbau');
+    pruefe('Und beide bleiben verborgen',
+      amText(d)?.hidden === true && amZeile(d)?.hidden === true,
+      JSON.stringify([amText(d)?.hidden, amZeile(d)?.hidden]));
+    d.w.close();
+  }
+
+  // --- Vollstaendig: Datum, Verfasser und Grund ---
+  {
+    const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Lieferzeit über 6 Monate',
+      verfasser: { id: 2, name: 'Anna', geloescht: false } });
+    pruefe('Die Marke wird zur Aussage: wann, von wem und warum',
+      amText(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate',
+      JSON.stringify(amText(d)?.textContent));
+    pruefe('Und sie steht sichtbar da', amText(d)?.hidden === false, JSON.stringify(amText(d)?.hidden));
+    /* DAS FELD STEHT OFFEN IM DIALOG und nicht hinter einem Aufklappen -- ein
+       Feld, das man erst suchen muss, bleibt leer. Nachgesehen wird der
+       Aufbau: kein <details>, kein eingeklappter Block darueber. */
+    pruefe('Das Feld fuer den Grund steht offen da',
+      amZeile(d)?.hidden === false && !amZeile(d)?.closest('details') &&
+      !amZeile(d)?.closest('.zu'), JSON.stringify(amZeile(d)?.hidden));
+    pruefe('Und es traegt die vorhandene Begruendung als Vorschlag',
+      amFeld(d)?.value === 'Lieferzeit über 6 Monate', JSON.stringify(amFeld(d)?.value));
+    pruefe('Der Schalter selbst sagt weiterhin nur "Abgelehnt"',
+      d.w.document.getElementById('sw-rej-t')?.textContent === 'Abgelehnt',
+      JSON.stringify(d.w.document.getElementById('sw-rej-t')?.textContent));
+    d.w.close();
+  }
+
+  // --- Der Grabstein: die Nummer, nie der freigegebene Name ---
+  {
+    const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
+      verfasser: { id: 4, name: null, geloescht: true } });
+    pruefe('Am Grabstein steht kein Name, sondern die Nummer',
+      /von Gelöschter Benutzer 4 —/.test(amText(d)?.textContent || ''),
+      JSON.stringify(amText(d)?.textContent));
+    d.w.close();
+  }
+
+  // --- Der Bestand aus 0.13.2: abgelehnt, aber ohne Datum und ohne Namen ---
+  {
+    const d = await amLage({ at: null, grund: 'Nachgetragen ohne Datum', verfasser: null });
+    pruefe('Fehlt beides, steht der Grund allein da',
+      amText(d)?.textContent === 'Nachgetragen ohne Datum' && amText(d)?.hidden === false,
+      JSON.stringify(amText(d)?.textContent));
+    pruefe('Und "von Ohne Verfasser" steht ausdruecklich nicht dabei',
+      !/Ohne Verfasser/.test(amText(d)?.textContent || ''), JSON.stringify(amText(d)?.textContent));
+    d.w.close();
+  }
+
+  // --- Gar nichts bekannt: die Zeile bleibt weg ---
+  {
+    const d = await amLage({ at: null, grund: null, verfasser: null });
+    pruefe('Ist gar nichts bekannt, bleibt die Zeile weg',
+      amText(d)?.hidden === true, JSON.stringify([amText(d)?.hidden, amText(d)?.textContent]));
+    /* Sie waere sonst "Abgelehnt" -- dasselbe, was der Schalter darueber
+       schon sagt. Dieselbe Aussage zweimal. */
+    pruefe('Das Feld steht trotzdem offen, damit sich etwas nachtragen laesst',
+      amZeile(d)?.hidden === false, JSON.stringify(amZeile(d)?.hidden));
+    d.w.close();
+  }
+
+  /* --- BEI GENAU EINEM ZUGANG FAELLT DER NAME WEG ---
+     DIE FRAGE AN JEDE NEUE GRUPPE: welcher Schalter bleibt hier durchweg aus,
+     und traegt er etwas zur Sache bei? Hier ist es `mehrereBenutzer()` -- und
+     er traegt: mit einem einzigen Zugang saende „von pruefer" nichts, wie an
+     jeder anderen Verfasserangabe auch.
+     DATUM UND GRUND BLEIBEN TROTZDEM STEHEN. Sie sind der Inhalt der
+     Entscheidung und keine Angabe ueber eine Person; faellt die ganze Zeile
+     weg, verliert eine Anlage mit einem Zugang genau das, wofuer diese Runde
+     gebaut ist. */
+  {
+    const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
+      verfasser: { id: 2, name: 'Anna', geloescht: false } }, 1);
+    pruefe('Bei einem einzigen Zugang steht der Name nicht dabei',
+      amText(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 — Zu teuer',
+      JSON.stringify(amText(d)?.textContent));
+    pruefe('Datum und Grund bleiben trotzdem stehen',
+      amText(d)?.hidden === false && /09:12/.test(amText(d)?.textContent || '') &&
+      /Zu teuer/.test(amText(d)?.textContent || ''), JSON.stringify(amText(d)?.textContent));
+    pruefe('Und das Feld fuer den Grund steht dort ebenso offen',
+      amZeile(d)?.hidden === false && amFeld(d)?.value === 'Zu teuer',
+      JSON.stringify([amZeile(d)?.hidden, amFeld(d)?.value]));
+    /* DIE GEGENLAGE, sonst belegt die Zeile darueber nichts: dieselbe Ablage
+       mit mehreren Zugaengen NENNT den Namen. */
+    const m = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
+      verfasser: { id: 2, name: 'Anna', geloescht: false } }, 3);
+    pruefe('Und mit mehreren Zugaengen steht er sehr wohl dabei',
+      amText(m)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Zu teuer',
+      JSON.stringify(amText(m)?.textContent));
+    d.w.close(); m.w.close();
+  }
+
+  // --- Freier Text bleibt Text: der Grund wird gesetzt, nicht gebaut ---
+  {
+    const d = await amLage({ at: null, grund: 'Kaputt <b id="boese-grund">X</b>', verfasser: null });
+    pruefe('Der Grund wird als Text gesetzt und nicht als Aufbau gelesen',
+      !d.w.document.getElementById('boese-grund') &&
+      /<b id=/.test(amText(d)?.textContent || ''), amText(d)?.innerHTML);
+    d.w.close();
+  }
+
+  /* --- UND JETZT WIRKLICH DRAUFDRUECKEN. Ein gebauter DOM zeigt nicht, was
+     beim Klicken hinausgeht. --- */
+  {
+    const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Alte Begründung',
+      verfasser: { id: 2, name: 'Anna', geloescht: false } });
+    const w = d.w;
+    const knopf = w.document.getElementById('sw-rej');
+    // Ausschalten: NUR das Merkmal geht hinaus, die Angaben bleiben.
+    knopf.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const ausRumpf = d.gesendet.filter(x => x.methode === 'PUT' && x.url === '/api/items/1').pop();
+    pruefe('Ein Ausschalten schickt nur das Merkmal',
+      gleich(Object.keys(ausRumpf?.koerper || {}), ['rejected']) &&
+      ausRumpf?.koerper?.rejected === false, JSON.stringify(ausRumpf?.koerper));
+    pruefe('Und Marke wie Feld verschwinden danach',
+      amText(d)?.hidden === true && amZeile(d)?.hidden === true,
+      JSON.stringify([amText(d)?.hidden, amZeile(d)?.hidden]));
+    /* WIEDER EINSCHALTEN: die alte Begruendung geht MIT hinaus. Ohne dieses
+       Feld finge jede erneute Ablehnung mit einer leeren Zeile an -- und die
+       Angabe, die beim Zuruecknehmen ausdruecklich stehen geblieben ist,
+       waere damit doch weg. */
+    knopf.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const einRumpf = d.gesendet.filter(x => x.methode === 'PUT' && x.url === '/api/items/1').pop();
+    pruefe('Ein Einschalten nimmt die alte Begruendung als Vorschlag mit',
+      einRumpf?.koerper?.rejected === true && einRumpf?.koerper?.rejectedGrund === 'Alte Begründung',
+      JSON.stringify(einRumpf?.koerper));
+    pruefe('Und sie steht danach im Feld zum Ueberschreiben',
+      amFeld(d)?.value === 'Alte Begründung', JSON.stringify(amFeld(d)?.value));
+
+    // Der Grund selbst: getippt, Feld verlassen, und erst dann geht er hinaus.
+    const vorher = d.gesendet.length;
+    amFeld(d).value = 'Preis zu hoch';
+    amFeld(d).dispatchEvent(new w.FocusEvent('blur'));
+    await new Promise(r => setTimeout(r, 40));
+    const grundRumpf = d.gesendet.filter(x => x.methode === 'PUT' && x.url === '/api/items/1').pop();
+    pruefe('Der getippte Grund geht beim Verlassen des Feldes hinaus',
+      d.gesendet.length > vorher && gleich(Object.keys(grundRumpf?.koerper || {}), ['rejectedGrund']) &&
+      grundRumpf?.koerper?.rejectedGrund === 'Preis zu hoch', JSON.stringify(grundRumpf?.koerper));
+    pruefe('Und die Marke sagt danach den neuen Satz',
+      /— Preis zu hoch$/.test(amText(d)?.textContent || ''), JSON.stringify(amText(d)?.textContent));
+    /* UNVERAENDERT WIRD NICHT GESCHICKT: sonst schoebe jedes Anklicken den
+       Eintrag ueber updated_at in jeder Uebersicht nach oben. */
+    const vorLeerlauf = d.gesendet.length;
+    amFeld(d).dispatchEvent(new w.FocusEvent('blur'));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein unveraendertes Feld schickt gar nichts',
+      d.gesendet.length === vorLeerlauf, JSON.stringify(d.gesendet.slice(vorLeerlauf)));
+    w.close();
+  }
+
+  /* --- IN DER KACHELANSICHT BLEIBT DIE MARKE, WIE SIE IST. Ein Grund gehoert
+     an den Eintrag und nicht in eine Kachelreihe; wer ihn dort hineinschreibt,
+     baut eine zweite Anzeige derselben Sache. --- */
+  {
+    const d = baueDom(JSDOM, { hash: '#/', einstellungen: { filters: null, benutzerZahl: 3 },
+      uebersichtItems: [{ id: 1, title: 'Beispiel', rejected: true, tested: false, favorite: false,
+        category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
+        testCount: 0, testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00' }] });
+    await new Promise(r => setTimeout(r, 80));
+    const karte = d.w.document.querySelector('.card');
+    pruefe('Die Kachel traegt weiterhin die Marke "abgelehnt"',
+      karte?.querySelector('.badge-rejected')?.textContent === 'abgelehnt',
+      JSON.stringify(karte?.querySelector('.badge-rejected')?.textContent));
+    pruefe('Und sonst nichts zur Ablehnung',
+      !/Abgelehnt am|Lieferzeit|rej-marke/.test(karte?.innerHTML || ''),
+      (karte?.innerHTML || '').slice(0, 200));
+    d.w.close();
+  }
+
+  /* ================= Die Sternreihe steht auf einer Linie — 0.14.0 =====
+     DER BEFUND WAR EIN BILD AUS DEM BETRIEB: in der Kriterienliste eines
+     Eintrags begannen die Sternreihen nicht an derselben Stelle. Eine Zeile,
+     die noch niemand bewertet hat, traegt rechts keine Zahl, und ihre Sterne
+     rutschten nach rechts; eine Zeile mit einer LANGEN Zahl schob ihre nach
+     links.
+     DIE URSACHE STAND SEIT LANGEM IM STILBLATT: `min-width: 52px` an
+     `.rrow .ravg`. Die Absicht war richtig, die ZAHL war falsch -- eine feste
+     Pixelzahl in einer Anlage, die ihre Schrift von 80 bis 120 Prozent
+     stellt. Dasselbe Muster wie Befund A aus 0.12.1 (`right: 92px`) und wie
+     die Ausrichtung, die 0.13.1 in Ordnung gebracht hat.
+     GEMESSEN WIRD HIER NICHT, sondern in Chromium: in jsdom ist jede Breite
+     null, und eine Probe, die dort misst, waere gruen ueber nichts. Die
+     Zahlen stehen im Aenderungsprotokoll 0.14.0. Dieser Lauf sichert die
+     Regel im Stilblatt und den AUFBAU -- dass die Oberflaeche die drei
+     Stuecke einer Zeile wirklich als Zellen EINES Rasters haengt. */
+  gruppe('Die Sternreihe steht auf einer Linie — 0.14.0');
+
+  /* ERST DER GEGENSTAND (Stolperstein 81): ohne die beiden schwierigen Zeilen
+     traegt keine Regel darunter einen Fall, auf den sie zutraefe. Die
+     Prueflage braucht eine Zeile OHNE Bewertung und eine mit LANGER Zahl --
+     sind alle Zahlen gleich lang, kann sie den Fehler gar nicht tragen
+     (Stolperstein 189). */
+  const slDom = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+  await new Promise(r => setTimeout(r, 80));
+  const slDoc = slDom.w.document;
+  const slKasten = slDoc.getElementById('ratings');
+  const slZeilen = [...(slKasten?.querySelectorAll('.rrow') || [])];
+  const slZahlen = slZeilen.map(z => z.querySelector('.ravg')?.textContent ?? '(keine Zelle)');
+  pruefe('Die Prueflage traegt drei Kriterienzeilen',
+    slZeilen.length === 3, `${slZeilen.length}`);
+  pruefe('Eine davon hat keine Bewertung und traegt trotzdem ihre Zelle',
+    slZahlen[2] === '', JSON.stringify(slZahlen));
+  pruefe('Und eine traegt eine dreistellige Stimmenzahl',
+    /\(\d{3}\)$/.test(slZahlen[1] || ''), JSON.stringify(slZahlen));
+  pruefe('Die beiden Zahlen sind wirklich verschieden lang',
+    (slZahlen[0] || '').length !== (slZahlen[1] || '').length, JSON.stringify(slZahlen));
+
+  /* DER AUFBAU. Die Spalte kann sich nur dann an ihrer breitesten Zelle
+     ausrichten, wenn alle Zellen im SELBEN Raster liegen: der KASTEN traegt
+     es, die Zeile wird zu display: contents, und die drei Stuecke sind
+     direkte Kinder der Zeile. Steckte .ravg wieder in .racts, waere sie nur
+     so breit wie ihr eigener Inhalt -- und der Fehler waere zurueck, ohne
+     dass eine Regel im Stilblatt sich geaendert haette. */
+  pruefe('Der Kasten der Kriterienliste traegt das Raster',
+    slKasten?.classList.contains('rlist'), JSON.stringify(slKasten?.className));
+  const slKinder = slZeilen.map(z => [...z.children].map(k => k.className));
+  pruefe('Jede Zeile haengt Name, Sterne und Zahl als drei direkte Kinder',
+    slKinder.every(k => k.length === 3 && k[0] === 'rname' && k[1] === 'racts' && k[2] === 'ravg'),
+    JSON.stringify(slKinder));
+  pruefe('Die Zahl steckt ausdruecklich NICHT mehr in den Sternen',
+    slZeilen.every(z => !z.querySelector('.racts .ravg')),
+    JSON.stringify(slZeilen.map(z => !!z.querySelector('.racts .ravg'))));
+  /* UND KEIN TEXT IN DER LEEREN ZELLE. Neben fuenf leeren Sternen waere
+     "noch keine Bewertung" dieselbe Aussage zweimal -- die Begruendung steht
+     seit jeher im Quelltext daneben und gilt weiter. */
+  pruefe('Die leere Zelle bleibt leer und bekommt keinen Ersatztext',
+    slZahlen[2] === '' && !slZeilen[2]?.querySelector('.ravg')?.title,
+    JSON.stringify([slZahlen[2], slZeilen[2]?.querySelector('.ravg')?.title]));
+  slDom.w.close();
+
+  /* DIE REGELN IM STILBLATT. Gepruefft wird die Wirkung und nicht der
+     Wortlaut: ein Raster ueber drei Spalten, eine Zeile ohne eigenen Kasten,
+     und an der Zahlenspalte KEINE Breite mehr. */
+  const slListe = regel123('.rlist'), slRow = regel123('.rrow'), slAvg = regel123('.rrow .ravg');
+  pruefe('Die Kriterienliste ist ein Raster ueber drei Spalten',
+    /display: grid/.test(slListe) && /grid-template-columns: 1fr auto auto/.test(slListe),
+    slListe || '(keine Regel)');
+  pruefe('Die Zeile ist kein eigener Kasten mehr, sondern gibt ihre Zellen frei',
+    /display: contents/.test(slRow), slRow || '(keine Regel)');
+  /* DER KERN: keine Zahl mehr an der Spalte. Weder eine Mindestbreite noch
+     irgendein anderes festes Mass -- die Spalte misst sich an ihrer
+     breitesten Zelle, und das ist der ganze Unterschied zu vorher. */
+  pruefe('Die Zahlenspalte traegt keine Mindestbreite mehr',
+    !/min-width/.test(slAvg), slAvg || '(keine Regel)');
+  /* UND UEBERHAUPT KEINE BREITE. Der Innenabstand bleibt in Pixeln, und das
+     ist richtig: er ist ein Abstand und keine Ausrichtung -- jede Zelle
+     bekommt denselben, bei 80 wie bei 120 Prozent. Das Stilblatt sagt es
+     selbst am Grundmass der Schrift: "Layoutmasse bleiben absichtlich in
+     Pixeln". Was hier nicht mehr stehen darf, ist eine BREITE. */
+  pruefe('Und ueberhaupt keine Breite',
+    !/(^|[^-])width:/.test(slAvg.replace('.rrow .ravg {', '')), slAvg || '(keine Regel)');
+  /* DIE GEGENPROBE ZUR REGEL: dass ueberhaupt noch eine Regel dasteht. Ohne
+     sie waeren die beiden Verneinungen darueber gruen an einer Zeile, die es
+     gar nicht mehr gibt (Stolperstein 81). */
+  pruefe('Es gibt die Regel ueberhaupt noch, und sie faerbt die Zahl gedaempft',
+    /var\(--muted\)/.test(slAvg) && /var\(--mono\)/.test(slAvg), slAvg || '(keine Regel)');
+
+  /* DIE TRENNLINIE IST DER PREIS DES RASTERS und deshalb geprueft: eine Zeile
+     mit display: contents ist kein Kasten mehr und kann keine tragen. Sie
+     wird an den ZELLEN gezogen, und die letzte Zeile bekommt keine. */
+  pruefe('Die Trennlinie wird an den Zellen gezogen, nicht an der Zeile',
+    /border-bottom: 1px solid var\(--line-2\)/.test(regel123('.rrow > \\*')) &&
+    !/border-bottom: 1px solid/.test(slRow),
+    `${regel123('.rrow > \\*') || '(keine Zellregel)'} || ${slRow}`);
+  pruefe('Und die letzte Zeile bekommt keine',
+    /border-bottom: none/.test(regel123('.rrow:last-of-type > \\*')),
+    regel123('.rrow:last-of-type > \\*') || '(keine Regel)');
+  /* UND KEIN SPALTENABSTAND AM RASTER: er risse die Trennlinie in Stuecke.
+     Der Abstand sitzt als Innenabstand IN den Zellen -- nachgemessen in
+     Chromium, die Zellkanten stossen ohne Luecke aneinander. */
+  pruefe('Das Raster traegt keinen Spaltenabstand -- die Linie bliebe sonst zerrissen',
+    !/gap/.test(slListe), slListe || '(keine Regel)');
+
+  /* DER BLICK DANEBEN. Dieselbe Spalte gibt es in der Ansicht "Wer hat
+     bewertet" und im Vergleich -- eine halb behobene Ausrichtung waere
+     schlechter als eine benannte. NACHGESEHEN UND VERNEINT: der Vergleich
+     stellt seine Werte rechtsbuendig und hat gar nichts, was von ihnen
+     geschoben wuerde; "Wer hat bewertet" traegt keine Durchschnittsspalte,
+     dort steht der Name ueber den Stimmen. Keine der beiden Regeln traegt
+     eine feste Breite. */
+  const slFremd = ['.cmp-crit', '.stimmzeile .rname', '.rstimmen', '.rstimme']
+    .filter(r => /min-width|max-width|width:/.test(regel123(r)));
+  pruefe('Weder Vergleich noch Stimmliste tragen dasselbe Muster',
+    slFremd.length === 0, slFremd.map(r => regel123(r)).join(' | ') || '(keine)');
+  pruefe('Und die Stimmliste hat gar keine Durchschnittsspalte',
+    !/\.stimmzeile[^{]*\.ravg/.test(css123) &&
+    !/zeile\.className = 'stimmzeile'[\s\S]{0,600}ravg/.test(arQuelle),
+    'ravg taucht in der Stimmliste auf');
 }
 
 /* ================= Der Schluesselwechsel =================

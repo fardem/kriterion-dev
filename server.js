@@ -762,7 +762,13 @@ function nurEintragVerfasser(req, res, next) {
 // steht bewusst NICHT dabei: der Favorit ist persoenlich, jeder setzt seinen
 // eigenen an jedem Eintrag. Deshalb sitzt die Klemme dort IM Rumpf und nicht
 // vor der Route.
-const NUR_VERFASSER_FELDER = ['title', 'description', 'rejected', 'tested', 'productCategoryId'];
+/* `rejectedGrund` STEHT MIT DABEI, UND DAS IST DIE GROBE HAELFTE DER KLEMME:
+   an die Begruendung kommt ueberhaupt nur, wer den Eintrag aendern darf. Die
+   feine Haelfte steht im Rumpf der Route -- umschreiben darf sie nur, wer sie
+   getroffen hat. Ohne die grobe koennte jeder Angemeldete an einem Eintrag,
+   dessen Ablehnung noch keinen Verfasser traegt, eine Begruendung hinsetzen. */
+const NUR_VERFASSER_FELDER = ['title', 'description', 'rejected', 'rejectedGrund',
+                              'tested', 'productCategoryId'];
 
 /* Wer an einen fremden ZUGANG darf. Ein Admin ist der Sheriff im
    Dorf -- er legt Benutzer an, sperrt sie und loescht sie. An seinesgleichen
@@ -2232,6 +2238,14 @@ function detail(id, benutzerId) {
   it.rejected = !!it.rejected; it.tested = !!it.tested;
   it.verfasser = verfasserAus(karte, it.user_id);
   delete it.user_id;
+  /* WER ABGELEHNT HAT, GEHT ALS VERFASSEROBJEKT HINAUS UND NIE ALS NUMMER --
+     dieselbe Abbildung wie am Eintrag, am Kommentar und am Testtag, und
+     dieselbe EINE Stelle: aus einem Grabstein wird damit "Geloeschter
+     Benutzer 7" und nicht sein freigegebener Name.
+     rejected_at und rejected_grund bleiben, wie sie in der Zeile stehen; ein
+     leeres Feld heisst "nicht bekannt" und wird hier nicht gefuellt. */
+  it.rejectedVerfasser = verfasserAus(karte, it.rejected_von);
+  delete it.rejected_von;
   it.favorite = !!qMeinPin.get(benutzerId, id);
   it.category = it.product_category_id ? qCat.get(it.product_category_id) : null;
   it.photos = qPhotos.all(id);
@@ -2402,6 +2416,13 @@ app.get('/api/items', (req, res) => {
        und das gibt es nicht mehr. Die Kachel zeigt keine Beschreibung; wer sie
        will, holt den Eintrag. */
     delete it.description;
+    /* UND DIE DREI ANGABEN ZUR ABLEHNUNG EBENSO. Die Kachel zeigt die Marke
+       "abgelehnt" und sonst nichts dazu -- ein Grund gehoert an den Eintrag
+       und nicht in eine Kachelreihe; wer ihn dort hineinschreibt, baut eine
+       zweite Anzeige derselben Sache.
+       rejected_von MUSS hier weg, nicht nur darf: es ist eine nackte
+       Zugangsnummer, und die geht aus keiner Antwort hinaus. */
+    delete it.rejected_at; delete it.rejected_grund; delete it.rejected_von;
   }
   res.json(rows);
 });
@@ -2424,6 +2445,20 @@ app.post('/api/items', (req, res) => {
   res.status(201).json(detail(i.lastInsertRowid, req.benutzer.id));
 });
 
+/* DIE BEGRUENDUNG EINER ABLEHNUNG -- EINE ZEILE TEXT.
+   Zugeschnitten wie jeder andere freie Text, der als Beschriftung erscheint:
+   Weissraum eingeebnet, aussen getrimmt, hinten gekappt. Das Einebnen ist der
+   Punkt und keine Zierde -- die Angabe steht als EINE Zeile an der Marke, und
+   ein eingefuegter Absatz zerrisse sie dort.
+   MASKIERT WIRD IN DER OBERFLAECHE, wie am Anbieternamen: hier faellt nur weg,
+   was die Zeile sprengt.
+   200 ZEICHEN wie am Suchbegriff einer gespeicherten Ansicht -- das ist in
+   dieser Anlage das Mass fuer "eine Zeile". Wer mehr zu sagen hat, sagt es in
+   einem Kommentar; dafuer gibt es ihn. */
+const GRUND_LAENGE = 200;
+const grundText = (v) =>
+  typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, GRUND_LAENGE) : '';
+
 app.put('/api/items/:id', (req, res) => {
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
   if (!it) return res.status(404).json({ error: 'Nicht gefunden' });
@@ -2439,6 +2474,34 @@ app.put('/api/items/:id', (req, res) => {
   const nurVerfasserFelder = NUR_VERFASSER_FELDER.filter(f => b[f] !== undefined);
   if (nurVerfasserFelder.length && !darfAendern(req, it.user_id))
     return res.status(403).json({ error: VERWEIGERT_EINTRAG });
+
+  /* ---- Die Klemme an der Begruendung ----
+     ZURUECKNEHMEN DARF DAS MERKMAL, WER DEN EINTRAG AENDERN DARF; UMSCHREIBEN
+     DARF DIE BEGRUENDUNG NUR, WER SIE GETROFFEN HAT. Das ist `nurSelbst` --
+     "Loeschen ja, umschreiben nein" --, angewandt auf ein Feld, das nicht dem
+     Verfasser des EINTRAGS gehoert, sondern dem der ENTSCHEIDUNG. Beide sind
+     nicht dasselbe: `rejected` steht hinter darfAendern, ein Admin kann also
+     einen fremden Eintrag ablehnen, und dann steht SEIN Name unter der
+     Begruendung.
+     ES IST EINE VERSCHAERFUNG GEGENUEBER 0.13.2, wo an diesen Feldern
+     durchweg darfAendern galt.
+
+     ZWEI FAELLE KOMMEN DURCH, und beide sind keine fremde Aussage:
+       1. WER GERADE ABLEHNT, schreibt seine eigene Begruendung. Er wird in
+          diesem Zug rejected_von und ist damit ihr Verfasser.
+       2. STEHT GAR KEIN VERFASSER DA, gibt es auch keine fremde Aussage. Das
+          ist der Fall einer Ablehnung aus einer Anlage vor 0.14.0: der
+          Migrationsblock laesst die Spalten leer, und ohne diesen Zweig
+          bekaeme so eine Ablehnung nie eine Begruendung. Wer sie hinschreibt,
+          wird ihr Verfasser.
+     DER WEG UEBER AUS UND WIEDER EIN BLEIBT OFFEN, und das ist dieselbe Regel
+     und kein Loch: eine fremde Entscheidung ZURUECKNEHMEN darf, wer den
+     Eintrag aendern darf. Wer sie danach neu trifft, trifft eine eigene --
+     mit eigenem Datum, eigenem Namen und eigenem Text. */
+  const schaltetEin = b.rejected !== undefined && !!b.rejected && !it.rejected;
+  if (b.rejectedGrund !== undefined && !schaltetEin &&
+      it.rejected_von != null && !nurSelbst(req, it.rejected_von))
+    return res.status(403).json({ error: VERWEIGERT_SELBST });
 
   // "Getestet" laesst sich nicht zuruecknehmen, solange Testtage eingetragen sind.
   if (b.tested === false) {
@@ -2474,6 +2537,30 @@ app.put('/api/items/:id', (req, res) => {
   if (b.title !== undefined) put('title', String(b.title).trim());
   if (b.description !== undefined) put('description', b.description);
   if (b.rejected !== undefined) put('rejected', b.rejected ? 1 : 0);
+  /* DIE DREI ANGABEN SIND EINE AUSSAGE UND WERDEN ZUSAMMEN GESCHRIEBEN.
+     Beim Einschalten setzt der Server alle drei: Datum auf jetzt, Verfasser
+     auf den Handelnden, Grund auf das, was im Rumpf steht -- steht dort
+     keiner, wird er leer. Sonst truege die neue Entscheidung den Satz einer
+     anderen Person, und das ist genau das, was nurSelbst verhindern soll.
+     DAS DATUM KOMMT VOM SERVER UND NIE AUS DEM RUMPF, wie updated_at daneben.
+     BEIM AUSSCHALTEN WIRD NICHTS GELOESCHT: die drei bleiben stehen. Eine
+     Angabe, die niemand wiederherstellen kann, wird nicht weggeworfen, nur
+     weil ein Schalter umgelegt wird -- und der Dialog bietet die alte
+     Begruendung beim erneuten Ablehnen als Vorschlag an.
+     WIRD NUR DIE BEGRUENDUNG NACHGETRAGEN, bleibt rejected_at leer, wenn es
+     leer war: ein nachgetragener Grund erfindet kein Datum. Nur der
+     Verfasser wird gesetzt, und auch das nur, wenn keiner dasteht. */
+  if (schaltetEin) {
+    // datetime('now') wie an created_at und updated_at daneben: die Zeit
+    // kommt aus der Datenbank und nie aus dem Rumpf -- und auch nicht aus
+    // einer zweiten Quelle in JS, die um Sekunden danebenlaege.
+    sets.push(`rejected_at = datetime('now')`);
+    put('rejected_von', req.benutzer.id);
+    put('rejected_grund', grundText(b.rejectedGrund));
+  } else if (b.rejectedGrund !== undefined) {
+    put('rejected_grund', grundText(b.rejectedGrund));
+    if (it.rejected_von == null) put('rejected_von', req.benutzer.id);
+  }
   if (b.tested !== undefined) put('tested', b.tested ? 1 : 0);
   if (b.productCategoryId !== undefined) put('product_category_id', b.productCategoryId);
   if (sets.length) {
@@ -3294,7 +3381,7 @@ app.get('/api/stats', nurAdmin, (req, res) => {
 // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
 // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
 // Fallunterscheidung nach Nummer steht. Sie steht an genau einer Stelle.
-const AUSTAUSCH_FORMAT = 10;
+const AUSTAUSCH_FORMAT = 11;
 
 // Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
 // hier und nicht als Zahl im Rumpf: der Wert kommt aus Node und nicht aus
@@ -3376,6 +3463,18 @@ function eintragAlsPaket(it, lage) {
     // Der Eintrag selbst nennt seinen Verfasser: ohne dieses Feld schoebe
     // eine ersetzende Wiederherstellung ALLE Eintraege dem Einspielenden zu.
     author: verfasserName(it.user_id),
+    /* WANN, WARUM UND VON WEM abgelehnt wurde. Dafuer steht die Formatnummer
+       11. Ohne diese drei Felder verloere eine Datei genau die Angabe, um
+       derentwillen 0.14.0 gebaut wurde -- und ein Rundlauf machte aus einer
+       begruendeten Ablehnung wieder ein nacktes Haekchen.
+       rejected_author WANDERT ALS NAME HINAUS, wie jeder Verfasser in dieser
+       Datei und ueber DIESELBE Karte: eine Zugangsnummer bedeutet in einer
+       fremden Anlage etwas anderes.
+       DIE DREI GEHEN AUCH MIT, WENN rejected FALSCH IST. Beim Zuruecknehmen
+       loescht der Server sie nicht, und eine Datei, die sie dann wegliesse,
+       naehme dem Ziel die Angabe, die die Quelle noch hat. */
+    rejected_at: it.rejected_at, rejected_grund: it.rejected_grund,
+    rejected_author: verfasserName(it.rejected_von),
     created_at: it.created_at, updated_at: it.updated_at,
     category: it.product_category_id ? qCat.get(it.product_category_id).name : null,
     tags: qTags.all(it.id).map(x => x.name),
@@ -4022,11 +4121,34 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
       // Verfasserangabe brauchen dieselbe Nummer noch einmal, und ein
       // zweiter Aufruf von verfasser() zaehlte den Fremdverweis doppelt.
       const itemVerfasser = verfasser(it.author);
+      /* WER ABGELEHNT HAT -- ueber dieselbe Abbildung wie jeder andere
+         Verfasser, aber mit einem Unterschied, und der ist der Punkt:
+         EIN FEHLENDER NAME BLEIBT LEER UND FAELLT NICHT AN DEN EINSPIELENDEN.
+         verfasser() tut das mit gutem Grund -- eine Zeile ohne Verfasser waere
+         herrenlos --, doch hier gibt es die Zeile auch ohne: ein Eintrag, den
+         niemand abgelehnt hat, hat keinen Ablehnenden. Wer hier zurueckfiele,
+         machte aus JEDEM eingespielten Eintrag eine Ablehnung durch den
+         Einspielenden.
+         EIN GENANNTER, ABER UNBEKANNTER NAME faellt dagegen sehr wohl an ihn
+         und wird in der Antwort genannt -- das ist dieselbe Regel wie ueberall
+         sonst in dieser Datei. */
+      const abgelehntVon = String(it.rejected_author == null ? '' : it.rejected_author).trim()
+        ? verfasser(it.rejected_author) : null;
+      /* EINE DATEI DER FORMATNUMMER 10 UND AELTER TRAEGT DIE DREI FELDER NICHT.
+         Dann bleiben sie leer -- genau wie bei einem Bestand, den der
+         Migrationsblock nachgeruestet hat. Entschieden wird ueber das
+         VORHANDENSEIN der Felder und nicht ueber die Nummer; die Nummer ist in
+         diesem Format eine Aussage und keine Bedingung. */
       const id = db.prepare(`INSERT INTO items
-        (title, description, rejected, tested, product_category_id, created_at, updated_at, user_id)
-        VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')), ?)`)
+        (title, description, rejected, rejected_at, rejected_grund, rejected_von,
+         tested, product_category_id, created_at, updated_at, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')), ?)`)
         .run(it.title || 'Ohne Titel', it.description || '',
-             it.rejected ? 1 : 0, it.tested ? 1 : 0,
+             it.rejected ? 1 : 0,
+             it.rejected_at == null ? null : String(it.rejected_at),
+             it.rejected_grund == null ? null : grundText(String(it.rejected_grund)),
+             abgelehntVon,
+             it.tested ? 1 : 0,
              catByName(it.category), it.created_at || null, it.updated_at || null,
              itemVerfasser).lastInsertRowid;
       neueIds.push(id);

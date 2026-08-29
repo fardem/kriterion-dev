@@ -3223,6 +3223,21 @@ async function renderDetail(id) {
             <button class="switch" id="sw-test"><span class="knob"></span><span id="sw-test-t"></span></button>
             <button class="switch" id="sw-rej"><span class="knob"></span><span id="sw-rej-t"></span></button>
           </div>
+          ${/* DIE MARKE „abgelehnt" WIRD ZUR AUSSAGE, und eine Aussage traegt
+               in dieser Anlage ihren Verfasser: „Abgelehnt am 14.03.2026,
+               09:12 von Anna — Lieferzeit über 6 Monate."
+               EIGENE ZEILE UNTER DEM SCHALTER, nicht Text IM Schalter: der
+               Knopf traegt den Zustand, den er umlegt, und ein Satz darin
+               risse ihn bei 120 Prozent Schrift ueber die Zeile. Dieselbe
+               Bauform und dieselbe Klasse wie „Angelegt von … am …" darueber.
+               DAS FELD FUER DEN GRUND STEHT OFFEN DA und nicht hinter einem
+               Aufklappen -- ein Feld, das man erst suchen muss, bleibt leer.
+               Beide sind versteckt, solange nicht abgelehnt ist. */''}
+          <div class="hint hint-sm verfasser-zeile" id="rej-marke" hidden></div>
+          <div class="row-in rej-grund" id="rej-grund-zeile" hidden>
+            <input class="input input-sm" id="rej-grund" maxlength="200"
+                   placeholder="Warum abgelehnt? (freiwillig)" style="padding:8px 11px">
+          </div>
         </div>
 
         <div class="blocks" id="blocks-seite">
@@ -3685,15 +3700,83 @@ async function renderDetail(id) {
     document.getElementById('sw-test-t').textContent = item.tested ? V.merkmalJa : V.merkmalNein;
     r.className = 'switch' + (item.rejected ? ' on-red' : '');
     document.getElementById('sw-rej-t').textContent = item.rejected ? 'Abgelehnt' : 'Nicht abgelehnt';
+    drawAblehnung();
+  }
+
+  /* DIE AUSSAGE ZUR ABLEHNUNG -- Datum, Verfasser und Grund, und JEDES DER
+     DREI DARF FEHLEN. Eine Ablehnung aus einer Anlage vor 0.14.0 hat keines
+     davon; ein Grund ist freiwillig; und ein Zugang kann entfernt worden sein.
+     Zusammengesetzt wird deshalb aus dem, was DA ist, und nicht aus einer
+     Vorlage mit Luecken.
+     STEHT GAR NICHTS DA, BLEIBT DIE ZEILE WEG: „Abgelehnt" allein saende
+     dasselbe wie der Schalter darueber -- dieselbe Aussage zweimal.
+     AM GRABSTEIN STEHT KEIN NAME: verfasserName() macht daraus „Gelöschter
+     Benutzer 7", und die Abbildung von der Nummer auf den Namen ist eine
+     Stelle und kein zweiter Weg. Ein Verfasserobjekt, das gar nicht da ist,
+     laesst das „von" weg -- „von Ohne Verfasser" waere eine Behauptung ueber
+     jemanden, den diese Anlage nicht kennt.
+     Das Datum in derselben Schreibweise wie ueberall sonst (fmtDate); zwei
+     Schreibweisen fuer denselben Zeitpunkt waeren eine zu viel.
+     BEI GENAU EINEM ZUGANG FAELLT DER NAME WEG, wie an jeder anderen
+     Verfasserangabe: es gibt nur einen, und "von pruefer" saende nichts.
+     DATUM UND GRUND BLEIBEN dabei stehen -- sie sind der INHALT der
+     Entscheidung und keine Angabe ueber eine Person. Deshalb faellt hier der
+     Name weg und nicht die ganze Zeile. */
+  function drawAblehnung() {
+    const marke = document.getElementById('rej-marke');
+    const zeile = document.getElementById('rej-grund-zeile');
+    const feld = document.getElementById('rej-grund');
+    if (!marke || !zeile || !feld) return;
+    zeile.hidden = !item.rejected;
+    // Der Vorschlag zum Ueberschreiben: beim Einschalten steht die alte
+    // Begruendung im Feld. Waehrend getippt wird, NICHT ueberschreiben --
+    // drawSwitches() laeuft auch nach dem Speichern des Grundes.
+    if (item.rejected && document.activeElement !== feld) feld.value = item.rejected_grund || '';
+    const teile = [];
+    if (item.rejected_at) teile.push(`am ${fmtDate(item.rejected_at)}`);
+    if (item.rejectedVerfasser && mehrereBenutzer())
+      teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);
+    const kopf = teile.length ? `Abgelehnt ${teile.join(' ')}` : '';
+    const grund = (item.rejected_grund || '').trim();
+    marke.hidden = !item.rejected || (!kopf && !grund);
+    marke.textContent = !kopf ? grund : (grund ? `${kopf} — ${grund}` : kopf);
   }
   document.getElementById('sw-test').onclick = async () => {
     try { item = await api('PUT', `/api/items/${id}`, { tested: !item.tested }); drawSwitches(); drawTestDays(); }
     catch (e) { toast(e.message, true); }   // Sperre wird serverseitig begruendet
   };
   document.getElementById('sw-rej').onclick = async () => {
-    try { item = await api('PUT', `/api/items/${id}`, { rejected: !item.rejected }); drawSwitches(); }
+    /* BEIM EINSCHALTEN GEHT DIE ALTE BEGRUENDUNG MIT HINAUS. Der Server
+       schreibt die drei Angaben zusammen: eine neue Entscheidung bekommt
+       neues Datum, neuen Namen und den Text, der im Rumpf steht. Ohne dieses
+       Feld faenge jede erneute Ablehnung mit einer leeren Zeile an -- und die
+       Angabe, die beim Zuruecknehmen ausdruecklich stehen geblieben ist, waere
+       damit doch weg. Sie steht anschliessend im Feld und laesst sich
+       ueberschreiben; das ist der Vorschlag und keine Uebernahme im Stillen.
+       BEIM AUSSCHALTEN GEHT NUR DAS MERKMAL HINAUS: die drei Angaben bleiben,
+       wo sie sind. */
+    const rumpf = item.rejected
+      ? { rejected: false }
+      : { rejected: true, rejectedGrund: item.rejected_grund || '' };
+    try { item = await api('PUT', `/api/items/${id}`, rumpf); drawSwitches(); }
     catch (e) { toast(e.message, true); }
   };
+  /* Der Grund wird beim Verlassen des Feldes gespeichert, wie Titel und
+     Beschreibung daneben -- und mit Enter, weil es eine EINZELNE Zeile ist
+     und dort kein Zeilenumbruch im Weg steht.
+     UNVERAENDERT WIRD NICHT GESCHICKT: sonst schoebe jedes Anklicken den
+     Eintrag ueber updated_at in jeder Uebersicht nach oben. */
+  {
+    const feld = document.getElementById('rej-grund');
+    const speichere = async () => {
+      const v = feld.value.trim();
+      if (v === (item.rejected_grund || '')) return;
+      try { item = await api('PUT', `/api/items/${id}`, { rejectedGrund: v }); drawSwitches(); toast('Gespeichert'); }
+      catch (e) { toast(e.message, true); feld.value = item.rejected_grund || ''; }
+    };
+    feld.onblur = speichere;
+    feld.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); feld.blur(); } });
+  }
   /* Den Knopf NICHT aus dem Ereignis holen: e.currentTarget ist nur waehrend
      der Zustellung gesetzt und steht nach dem ersten await auf null. Der
      Klick schriebe dann zwar richtig weg, wuerfe aber danach und zeichnete
@@ -3855,6 +3938,11 @@ async function renderDetail(id) {
   /* ---- Bewertung ---- */
   function drawRatings() {
     const box = document.getElementById('ratings');
+    /* DER KASTEN IST DAS RASTER, nicht die einzelne Zeile: eine Spalte kann
+       sich nur dann an ihrer breitesten Zelle ausrichten, wenn alle Zellen im
+       SELBEN Raster liegen. Die Klasse steht hier und nicht im Aufbau
+       darueber, damit sie neben dem Kasten steht, den sie meint. */
+    box.className = 'rlist';
     // Angelegt wird im Systembereich: ein neues Kriterium erscheint an
     // JEDEM Eintrag, das ist eine redaktionelle Entscheidung und keine
     // Notiz am Eintrag.
@@ -3917,6 +4005,12 @@ async function renderDetail(id) {
       // Bei genau einem Zugang entfaellt die Spalte ganz. Hat niemand bewertet,
       // bleibt sie leer -- neben fuenf leeren Sternen waere "keine Bewertung"
       // dieselbe Aussage zweimal.
+      row.append(n, acts);
+      /* DIE DURCHSCHNITTSSPALTE IST EINE RASTERZELLE UND HAENGT DESHALB AN DER
+         ZEILE, nicht in .racts. Nur so kann sich das Raster an der breitesten
+         Zahl der ganzen Liste ausrichten -- steckte sie in .racts, waere sie
+         wieder nur so breit wie ihr eigener Inhalt, und die Sterne stuenden
+         Zeile fuer Zeile woanders. */
       if (mehrereBenutzer()) {
         const a = document.createElement('span');
         a.className = 'ravg';
@@ -3933,9 +4027,8 @@ async function renderDetail(id) {
           a.textContent = `⌀ ${r.avg.toFixed(1).replace('.', ',')} (${r.count})`;
           a.title = `Durchschnitt ${r.avg.toFixed(1).replace('.', ',')} aus ${stimmen}`;
         } else a.textContent = '';
-        acts.append(a);
+        row.append(a);
       }
-      row.append(n, acts);
       box.appendChild(row);
       /* HIER STEHT AUSDRÜCKLICH KEINE STIMMENLISTE. Wer welchen Wert vergeben
          hat, ist eine Angabe über einzelne Personen; die Zeile zeigt den

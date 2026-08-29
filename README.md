@@ -203,6 +203,23 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 
 ## Eine neuere Version über eine bestehende einspielen
 
+> **FÜR 0.14.0 IST DIE SICHERUNG PFLICHT UND NICHT EMPFEHLUNG.** Diese Version
+> fasst die Datenbank an: sie rüstet drei Spalten an `items` nach
+> (`rejected_at`, `rejected_grund`, `rejected_von`). **Ohne die Kopie gibt es
+> keinen Rückweg** — bei einer Datenbankstufe ist ein Downgrade keine reine
+> Dateikopie mehr. *Die Zeile `cp -r kriterion/data …` unten wird bei dieser
+> Version nicht übersprungen.*
+>
+> **Nach dem Start einmal ins Protokoll sehen** (`docker compose logs
+> kriterion`): dort steht **einmalig** die Zeile *„items um rejected_at,
+> rejected_grund und rejected_von ergaenzt (Migration auf 0.14.0)"* samt der
+> Zahl der Ablehnungen, die von nun an ohne Datum, Grund und Verfasser
+> dastehen. *Das ist gewollt: diese Anlage weiß nicht, wann und von wem sie
+> getroffen wurden, und ein erfundener Wert wäre schlimmer als ein leerer.*
+> **Beim zweiten Start steht die Zeile nicht mehr da.**
+>
+> **Niemand wird abgemeldet, und einzustellen ist nichts.**
+
 **Der Weg ersetzt das Verzeichnis, statt darüber zu kopieren.** Bestand
 (`data/`), Schlüssel (`.env`) und Sicherungen ziehen von Hand mit:
 
@@ -906,6 +923,7 @@ Am einzelnen Eintrag gilt:
 |---|---|---|---|
 | alles sehen | ✔ | ✔ | ✔ |
 | Titel, Beschreibung, Fotos, Videos, Tags, Kategorie, getestet, abgelehnt | ✔ | — | ✔ |
+| **Begründung einer Ablehnung umschreiben** | nur wer sie getroffen hat | — | nur wenn er sie getroffen hat |
 | Eintrag löschen | ✔ | — | ✔ |
 | **Favorit** (★ am Eintrag) | persönlich — jeder für sich, an jedem Eintrag | | |
 | eigene Bewertung, eigener Testtag | ✔ | ✔ | ✔ |
@@ -1183,6 +1201,20 @@ es zwei, beide im Systembereich einstellbar:
   gehören an dieselbe Stelle.
   Im Systembereich steht daneben, in wie vielen Einträgen das Kriterium
   verwendet wird.
+- **„Abgelehnt" ist eine Aussage und kein bloßes Häkchen** (seit 0.14.0). Beim
+  Einschalten erscheint **offen im Dialog** ein Feld für den Grund — eine Zeile,
+  **freiwillig**, höchstens 200 Zeichen; gespeichert wird beim Verlassen des
+  Feldes oder mit Enter. Über dem Feld steht danach der ganze Satz:
+  *„Abgelehnt am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate."*
+  **Jedes der drei darf fehlen**, und die Zeile setzt sich aus dem zusammen, was
+  bekannt ist; ein entfernter Zugang erscheint als „Gelöschter Benutzer 7".
+  **Zurücknehmen darf das Merkmal, wer den Eintrag ändern darf; umschreiben darf
+  die Begründung nur, wer sie getroffen hat** — auch der Admin nicht.
+  *Beim Zurücknehmen wird nichts gelöscht: lehnt jemand denselben Eintrag später
+  wieder ab, steht die alte Begründung als Vorschlag im Feld.*
+  **In der Kachelansicht bleibt die Marke, wie sie war** — ein Grund gehört an
+  den Eintrag und nicht in eine Kachelreihe. *„Getestet" bekommt bewusst nichts
+  davon: es ist ein Zustand und keine Entscheidung.*
 - **Beschreibung und Kommentarfelder wachsen mit dem Text** — sie zeigen immer
   den ganzen Inhalt und haben deshalb keinen Ziehgriff.
 - **Testtage**: nur bei eingeschaltetem „Getestet". Jede Zeile ist ein Tag mit
@@ -1287,6 +1319,13 @@ Listen.
 - **Import** einer Exportdatei, wahlweise *ersetzen* oder *zusammenführen* —
   ebenfalls nur für den Eigentümer, und zwar in beiden Fällen: eine
   Exportdatei kann Beiträge **unter fremdem Namen** anlegen.
+  **Das Austauschformat trägt seit 0.14.0 die Nummer 11** — dazugekommen sind
+  Datum, Grund und Verfasser einer Ablehnung; der Verfasser wandert als **Name**
+  hinaus, nie als Zugangsnummer. **Eine Datei der Nummer 10 (und jeder älteren)
+  lässt sich weiterhin einspielen**: die drei Felder fehlen dann und bleiben
+  leer. *Ein fehlender Ablehnender fällt dabei ausdrücklich **nicht** an den
+  Einspielenden — ein Eintrag, den niemand abgelehnt hat, hat keinen
+  Ablehnenden.*
   Der Vorgang läuft in einem Zug; bricht er ab, bleibt der Bestand unverändert.
   Ein genannter Verfasser, den es als Zugang gibt, bekommt seine Zeilen zurück;
   alles andere fällt an den Einspielenden — auch ältere Dateien, die noch gar
@@ -1844,7 +1883,12 @@ Die Datenbankdatei heißt `katalog.sqlite`. Der Dateiname wandert bei einer
 Umbenennung des Projekts bewusst **nicht** mit: ein anderer Name ließe den
 Start eine leere Neuinstallation vermuten.
 
-- `items` — Titel, Beschreibung, Getestet-/Abgelehnt-Merkmal, Kategorie
+- `items` — Titel, Beschreibung, Getestet-/Abgelehnt-Merkmal, Kategorie. **Zur
+  Ablehnung gehören seit 0.14.0 drei Spalten:** `rejected_at` (wann),
+  `rejected_grund` (warum, eine Zeile) und `rejected_von` (wer). Alle drei
+  dürfen leer sein — eine Ablehnung aus einer Anlage vor 0.14.0 kennt keine
+  davon, und ein Grund ist freiwillig. *„Getestet" bekommt bewusst nichts
+  davon: es ist ein Zustand und keine Entscheidung.*
 - `item_pins` — der **Favorit**, je Benutzer und je Eintrag; nur Zeilen für
   tatsächlich Markiertes. Die Spalte `items.favorite` bleibt ungenutzt im
   Schema und wird nie beschrieben. Die Anpinnung der **Kommentare**

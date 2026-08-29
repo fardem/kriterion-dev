@@ -43,6 +43,117 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.14.0] - 2026-08-29
+
+**Das Häkchen „abgelehnt" ist zu einer Aussage geworden** — mit **Datum**,
+**Grund** und **Verfasser**. Damit hält die Anlage auch ihr Ergebnis fest und
+nicht bloß den Weg dorthin.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.14.0 ist **MINOR**, und die
+> Frage dahinter ist die übliche: *kann die Anlage danach etwas, was sie vorher
+> nicht konnte?* **Ja** — festhalten, wann, warum und von wem abgelehnt wurde.
+> **Keine neue Zeile in der `.env`, keine neue Abhängigkeit.**
+
+> **DIES IST EINE DATENBANKSTUFE.** Drei neue Spalten an `items`,
+> **Migrationsblock `MIGRATION 0.14.0`** — der sechste, und der erste seit
+> 0.8.50 —, **Austauschformat von 10 auf 11**. **DIE SICHERUNG DES
+> DATENVERZEICHNISSES IST VOR DEM EINSPIELEN PFLICHT UND NICHT EMPFEHLUNG.**
+
+### Added
+
+- **`items` bekommt drei Spalten:** `rejected_at` (wann), `rejected_grund`
+  (warum, eine Zeile Text) und `rejected_von` (wer). **`rejected` selbst bleibt,
+  wie es ist** — das vorhandene Merkmal bekommt, was ihm fehlt, und kein
+  zweites daneben.
+- **Beim Einschalten von „abgelehnt" erscheint ein Feld für den Grund** — offen
+  im Dialog, nicht hinter einem Aufklappen. **Freiwillig**, eine Zeile,
+  höchstens 200 Zeichen; gespeichert wird beim Verlassen des Feldes oder mit
+  Enter.
+- **Die Marke liest sich als Satz:** *„Abgelehnt am 14.03.2026, 09:12 von Anna
+  — Lieferzeit über 6 Monate."* **Jedes der drei darf fehlen**, und die Zeile
+  setzt sich aus dem zusammen, was bekannt ist. Ein entfernter Zugang erscheint
+  als „Gelöschter Benutzer 7". Ist gar nichts bekannt, bleibt die Zeile weg —
+  sie sagte sonst dasselbe wie der Schalter darüber.
+- **Der Migrationsblock rüstet die drei Spalten in einem bestehenden Bestand
+  nach**, fragt jede **einzeln** ab und legt alle drei `ALTER TABLE` in **eine**
+  Transaktion. **Er trägt in vorhandene Ablehnungen nichts ein**: diese Anlage
+  weiß nicht, wann und von wem sie getroffen wurden.
+
+### Changed
+
+- **Die Begründung einer Ablehnung darf nur umschreiben, wer sie getroffen
+  hat** — auch der Admin nicht, und auch nicht der Verfasser des Eintrags.
+  **Zurücknehmen darf das Merkmal weiterhin, wer den Eintrag ändern darf.**
+  *Das ist eine Verschärfung: bis 0.13.2 galt an diesen Feldern durchweg
+  „Verfasser oder Admin".*
+- **Beim Zurücknehmen wird nichts gelöscht.** Datum, Grund und Verfasser bleiben
+  stehen; lehnt jemand denselben Eintrag später wieder ab, steht die alte
+  Begründung als Vorschlag im Feld.
+- **Das Austauschformat steht auf 11.** Die drei Felder gehen mit hinaus und
+  wieder hinein; der Ablehnende wandert als **Name** hinaus, nie als
+  Zugangsnummer.
+- **Die Sternreihen der Kriterienliste beginnen an derselben Stelle** — auch in
+  Zeilen ohne Bewertung und neben einer langen Stimmenzahl. Gemessen bei 80 /
+  100 / 120 % Schrift: **11,6 / 27,5 / 43,3 px Versatz vorher, 0,0 px nachher.**
+
+### Fixed
+
+- **Ein fremder Cookie mit einem Prozentzeichen im Wert sperrte einen Browser
+  aus.** `parseCookies()` rief `decodeURIComponent()` auf **jeden** Wert des
+  `Cookie:`-Kopfes — und der Kopf trägt **alle** Cookies des Hosts, nicht nur
+  die dieser Anlage. Der `URIError` wurde zu einer **500**, bei **jeder**
+  geschützten Anfrage, bis jemand den Cookie von Hand löschte. *Der Fehler war
+  älter als jede Runde dieses Jahres.* Jetzt fällt ein Wert, der sich nicht
+  dekodieren lässt, **einzeln** heraus — der eigene, gültige Cookie daneben
+  kommt an.
+
+### Security
+
+- **Die Begründung einer Ablehnung ist eine fremde Aussage und wird wie eine
+  behandelt.** *„Löschen ja, umschreiben nein"* gilt jetzt auch hier: ein Admin
+  kann eine fremde Ablehnung zurücknehmen, aber ihren Text nicht unter dem Namen
+  eines anderen ändern.
+
+### Was du danach von Hand tun musst
+
+**EINE SICHERUNG DES DATENVERZEICHNISSES, VOR DEM EINSPIELEN — PFLICHT.** Diese
+Version ist eine Datenbankstufe; ohne die Kopie gibt es keinen Rückweg.
+
+```bash
+cd .../kriterion && docker compose down
+cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)
+```
+
+**Danach: nichts.** Keine neue Zeile in der `.env`, keine neue Abhängigkeit,
+niemand wird abgemeldet. Der Migrationsblock läuft beim ersten Start von selbst.
+
+**EIN BLICK INS PROTOKOLL GEHÖRT DAZU** (`docker compose logs kriterion`). Dort
+steht **einmalig**:
+
+```
+[Kriterion] items um rejected_at, rejected_grund und rejected_von ergaenzt
+(Migration auf 0.14.0); <n> bereits abgelehnte Eintraege stehen ohne Datum,
+Grund und Verfasser da.
+```
+
+*Die Zahl sagt, wie viele Ablehnungen im Bestand von nun an sichtbar
+unvollständig dastehen — das ist gewollt und keine Panne.* **Beim zweiten Start
+steht die Zeile nicht mehr da.**
+
+### Was gleich bleibt
+
+**Der Import** liest weiterhin jede ältere Datei: **eine Datei der Formatnummer
+10 und älter lässt sich unverändert einspielen**, die drei neuen Felder bleiben
+dann leer. **`rejected` selbst** ist unverändert — jeder Filter, jede Kachel und
+jede gespeicherte Ansicht arbeiten weiter wie bisher. **„Getestet" bekommt
+nichts davon**: es ist ein Zustand und keine Entscheidung. **`F_ROUTEN`** bleibt
+bei 69, **`VORGAENGE`** bei zwanzig — das Ablehnen bekommt **keine** Zeile im
+Sicherheitsprotokoll —, **`BESTAETIGUNG_ZWECKE`** bei sieben, **die Karten im
+Systembereich** bei neunzehn, **das Vokabular** bei elf. **Die Kachelansicht**
+zeigt die Marke „abgelehnt" wie bisher und keinen Grund.
+
+---
+
 ## [0.13.2] - 2026-08-29
 
 **Der Rahmen eines angepinnten Kommentars schließt jetzt wirklich.** Eine
@@ -1882,7 +1993,7 @@ nicht mehr übernehmen.*
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` bis `v0.13.0`
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` bis `v0.14.0`
      fehlen am Remote; solange das so ist, zeigen die Verweise darunter ins
      Leere.
      DER GRUND IST SEIT 0.12.4 BEKANNT UND WAR VORHER FALSCH NOTIERT: es ist
@@ -1902,3 +2013,4 @@ nicht mehr übernehmen.*
 [0.13.0]: https://github.com/fardem/kriterion/compare/v0.12.4...v0.13.0
 [0.13.1]: https://github.com/fardem/kriterion/compare/v0.13.0...v0.13.1
 [0.13.2]: https://github.com/fardem/kriterion/compare/v0.13.1...v0.13.2
+[0.14.0]: https://github.com/fardem/kriterion/compare/v0.13.2...v0.14.0
