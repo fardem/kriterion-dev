@@ -4078,15 +4078,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
         .all().map(z => z.name);
       pruefe('Und den Index auf das Datum, ebenfalls ohne Migration',
         idx.includes('idx_papierkorb_am'), JSON.stringify(idx));
-      /* UND DIE TRAGENDE REGEL DER RUNDE AN DER SCHMALSTEN STELLE: items
-         bekommt KEINE Spalte. Ein Zustand `geloescht` dort beruehrte jede
+      /* UND DIE TRAGENDE REGEL DER PAPIERKORBRUNDE AN DER SCHMALSTEN STELLE:
+         items bekommt KEINEN ZUSTAND. Ein `geloescht` dort beruehrte jede
          Abfrage im ganzen System. Gezaehlt wird gegen eine feste Liste, nicht
          gegen "enthaelt nicht geloescht" -- so faellt auch jede andere neue
-         Spalte auf. */
+         Spalte auf.
+         DREI SIND SEIT 0.14.0 DAZUGEKOMMEN, und sie sind ausdruecklich kein
+         Zustand: rejected_at, rejected_grund und rejected_von sagen, WANN,
+         WARUM und VON WEM das vorhandene Merkmal `rejected` gesetzt wurde. Sie
+         stehen in keiner Abfrage der Uebersicht und in keinem Filter. */
       const itemSpalten = d.prepare('PRAGMA table_info(items)').all().map(c => c.name);
-      pruefe('items traegt unveraendert genau seine zehn Spalten',
-        gleich(itemSpalten, ['id', 'title', 'description', 'rejected', 'tested', 'favorite',
+      pruefe('items traegt genau seine dreizehn Spalten',
+        gleich(itemSpalten, ['id', 'title', 'description', 'rejected', 'rejected_at',
+                             'rejected_grund', 'rejected_von', 'tested', 'favorite',
                              'product_category_id', 'created_at', 'updated_at', 'user_id']),
+        JSON.stringify(itemSpalten));
+      pruefe('Und keine davon ist ein Zustand neben dem Papierkorb',
+        !itemSpalten.some(n => /geloescht|deleted|papierkorb|status/i.test(n)),
         JSON.stringify(itemSpalten));
       d.close();
     }
@@ -11620,8 +11628,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
       } catch { tNach = ['(Start gescheitert)']; }
       pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
         !tNach.includes('letzter_zaehler'), JSON.stringify(tNach));
-      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein sechster mit
-         anderem Wortlaut waere eine zweite Schreibweise fuer dieselbe Sache. */
+      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein siebter mit
+         anderem Wortlaut waere eine zweite Schreibweise fuer dieselbe Sache.
+         SECHS SEIT 0.14.0: die erste Schema-Runde seit 0.8.50. */
       const tQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
       /* GEZAEHLT WERDEN DIE VERSCHIEDENEN MARKEN UND NICHT IHRE VORKOMMEN:
          jede steht zweimal in db.js -- einmal ueber dem Block und einmal an
@@ -11630,9 +11639,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
          was gemeint ist, nicht was dasteht). */
       const tBloecke = [...new Set(
         (tQuelle.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))];
-      pruefe('Es bleibt bei fuenf markierten Migrationsbloecken',
-        tBloecke.length === 5, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
-      pruefe('Und alle fuenf tragen denselben Wortlaut der Marke',
+      pruefe('Es bleibt bei sechs markierten Migrationsbloecken',
+        tBloecke.length === 6, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
+      pruefe('Und alle sechs tragen denselben Wortlaut der Marke',
         tBloecke.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBloecke.join(' · '));
       pruefe('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tQuelle) && !/migration0100/.test(tQuelle));
@@ -12358,14 +12367,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
       "  const x = db.prepare('SELECT * FROM items WHERE geloescht = 0').all();")).length === 1,
     'der Waechter sieht den Zusatz nicht');
 
-  /* KEIN SECHSTER MIGRATIONSBLOCK. Die Probe aus der Gruppe "Der Papierkorb:
+  /* KEIN BLOCK FUER EINE TABELLE. Die Probe aus der Gruppe "Der Papierkorb:
      die Tabelle legt sich selbst an" hat es hergegeben: CREATE TABLE IF NOT
-     EXISTS legt eine fehlende TABELLE bei jedem Start an. Es bleibt bei fuenf
-     markierten Bloecken, und es kommt kein Eintrag unter "Vorgemerkt fuer 1.0"
-     dazu. Wer trotzdem einen anlegt, wird hier namentlich rot. */
+     EXISTS legt eine fehlende TABELLE bei jedem Start an -- eine SPALTE
+     dagegen nicht, und nur dafuer gibt es Migrationsbloecke.
+     SECHS SEIT 0.14.0, vorher fuenf: die Runde ruestet drei Spalten an items
+     nach und ist damit die erste Schema-Runde seit 0.8.50. Wer einen siebten
+     anlegt, wird hier namentlich rot -- und muss sagen, welche SPALTE er
+     nachruestet. */
   const fDbQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
   const fMigrationen = (fDbQuelle.match(/function migration0?\d+\(/g) || []);
-  pruefe('Es gibt genau fuenf Migrationsfunktionen', fMigrationen.length === 5,
+  pruefe('Es gibt genau sechs Migrationsfunktionen', fMigrationen.length === 6,
+    fMigrationen.join(' · '));
+  // Und jede markierte Marke hat ihre Funktion -- eine Marke ohne Block waere
+  // eine Ankuendigung, die nichts tut.
+  pruefe('Und zu jedem markierten Block gehoert eine Funktion',
+    fMigrationen.length ===
+      [...new Set((fDbQuelle.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))].length,
     fMigrationen.join(' · '));
   pruefe('Und keine davon heisst migration0870',
     !fDbQuelle.includes('migration0870'), 'migration0870 steht in db.js');
@@ -14540,6 +14558,256 @@ const freigabeHaupt = (zweck, ziel = null) =>
   }
   fs.rmSync(u50Dir, { recursive: true, force: true });
   fs.rmSync(u50FrischDir, { recursive: true, force: true });
+
+  /* ================================================================
+     MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
+     verschwindet, steht beieinander und traegt dieselbe Marke.
+     DIE ERSTE SCHEMA-RUNDE SEIT 0.8.50, und der Block ruestet DREI Spalten
+     nach -- damit gilt Stolperstein 108 zum zweiten Mal, und diesmal mit
+     Transaktion.
+     ================================================================ */
+  gruppe('MIGRATION 0.14.0 — ENTFAELLT MIT 1.0');
+
+  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
+     aus 0.8.0 bis 0.13.2 -- dieselbe Anlage, nur ohne die drei Spalten an
+     items.
+     UND MIT EINTRAEGEN DARIN, davon einer ABGELEHNT: eine leere Tabelle
+     bewiese nichts darueber, was mit dem Bestand geschieht (Stolperstein 81)
+     -- und, wie diese Runde nachgemessen hat, nicht einmal etwas darueber, ob
+     das ALTER TABLE ueberhaupt durchgeht (Stolperstein 202). */
+  const u14Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0140-'));
+  const u14FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0140-'));
+  const u14Neu = ['rejected_at', 'rejected_grund', 'rejected_von'];
+  const u14Spalten = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(items)').all().map(c => c.name);
+    d.close();
+    return sp;
+  };
+  /* Abgefangen wie jede Lesestelle auf eine neue Spalte: fehlt sie, werden die
+     Pruefungen darunter rot, statt den Lauf abzureissen und KEINEN Namen zu
+     nennen (Stolperstein 103). */
+  const u14Zeilen = (verzeichnis = u14Dir) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    let z = [];
+    try {
+      z = d.prepare('SELECT id, title, rejected, rejected_at, rejected_grund, rejected_von FROM items ORDER BY id').all();
+    } catch { /* eine der Spalten fehlt -- die Pruefungen darunter werden rot */ }
+    d.close();
+    return z;
+  };
+  /* Eine Anlage aus 0.13.2 nachbauen: Tabellenneubau statt
+     ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
+     darueber -- SQLite prueft nach dem Entfernen den verbliebenen DDL-Text,
+     und der traegt hier Kommentare (Stolperstein 106). Ausserhalb jeder
+     Transaktion, sonst waere das PRAGMA ein stiller No-op (Stolperstein 12).
+     `welche` sagt, welche der drei Spalten die Prueflage NICHT hat -- damit
+     laesst sich belegen, dass jede EINZELN nachgeruestet wird. */
+  const u14Rueckbau = (verzeichnis, welche) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const zusatz = [
+      welche.includes('rejected_at') ? '' : 'rejected_at TEXT,',
+      welche.includes('rejected_grund') ? '' : 'rejected_grund TEXT,',
+      welche.includes('rejected_von') ? '' : 'rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL,'
+    ].join(' ');
+    d.pragma('foreign_keys = OFF');
+    d.exec(`
+      CREATE TABLE items_0132 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        rejected INTEGER NOT NULL DEFAULT 0,
+        ${zusatz}
+        tested INTEGER NOT NULL DEFAULT 0,
+        favorite INTEGER NOT NULL DEFAULT 0,
+        product_category_id INTEGER REFERENCES product_categories(id) ON DELETE SET NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+      );
+      INSERT INTO items_0132 (title, rejected, user_id)
+        VALUES ('Abgelehnter Altbestand', 1, 1), ('Offener Altbestand', 0, 1);
+      DROP TABLE items;
+      ALTER TABLE items_0132 RENAME TO items;
+    `);
+    d.close();
+  };
+
+  uLauf(u14Dir);
+  {
+    const d = oeffne(path.join(u14Dir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+    d.close();
+  }
+  u14Rueckbau(u14Dir, u14Neu);
+  pruefe('Die Prueflage traegt keine der drei Spalten',
+    u14Neu.every(n => !u14Spalten(u14Dir).includes(n)), u14Spalten(u14Dir).join(', '));
+  /* Und sie traegt wirklich Eintraege, davon einen abgelehnten -- ohne diese
+     Zeile stuende der Beleg unten auf null Zeilen und bliebe gruen, ohne etwas
+     zu belegen (Stolperstein 81). Eigene Abfrage, weil u14Zeilen() Spalten
+     liest, die es hier noch nicht gibt. */
+  {
+    const d = oeffne(path.join(u14Dir, 'katalog.sqlite'));
+    const z = d.prepare('SELECT COUNT(*) AS n, SUM(rejected) AS ab FROM items').get();
+    d.close();
+    pruefe('Und sie traegt zwei Eintraege, davon einen abgelehnten',
+      z.n === 2 && z.ab === 1, JSON.stringify(z));
+  }
+
+  const u14Ausgabe = uLauf(u14Dir);
+  pruefe('Die Migration ergaenzt alle drei Spalten im Bestand',
+    u14Neu.every(n => u14Spalten(u14Dir).includes(n)), u14Spalten(u14Dir).join(', '));
+  pruefe('Er sagt im Protokoll, was er getan hat',
+    /items um rejected_at, rejected_grund und rejected_von ergaenzt/.test(u14Ausgabe),
+    JSON.stringify(u14Ausgabe.trim()));
+  pruefe('Und er nennt dabei, wie viele Ablehnungen ohne Angaben dastehen',
+    /1 bereits abgelehnte Eintrag steht ohne Datum, Grund und Verfasser da/.test(u14Ausgabe),
+    JSON.stringify(u14Ausgabe.trim()));
+
+  /* DER KERN DIESES ABSCHNITTS. Die Bestandszeilen bleiben, und die drei
+     Spalten bleiben LEER -- auch an dem Eintrag, der schon abgelehnt war.
+     Ein nachgeschobenes UPDATE erfaende hier Angaben, die diese Anlage nicht
+     hat; "abgelehnt am Tag der Einspielung" waere die schlimmste davon. */
+  pruefe('Beide Bestandszeilen sind noch da',
+    u14Zeilen().length === 2, JSON.stringify(u14Zeilen().map(z => z.title)));
+  pruefe('Und alle drei Spalten stehen leer -- auch am abgelehnten Eintrag',
+    u14Zeilen().length === 2 &&
+    u14Zeilen().every(z => z.rejected_at === null && z.rejected_grund === null && z.rejected_von === null),
+    JSON.stringify(u14Zeilen()));
+  pruefe('Das Merkmal rejected selbst ist unangetastet geblieben',
+    u14Zeilen().map(z => z.rejected).join(',') === '1,0', JSON.stringify(u14Zeilen().map(z => z.rejected)));
+
+  /* Nachgestellt am Quelltext: kein UPDATE an items im Block, und die drei
+     ALTER TABLE laufen in EINER Transaktion (Stolperstein 108). */
+  {
+    const u14Quelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const u14Block = u14Quelle.slice(u14Quelle.indexOf('// MIGRATION 0.14.0'),
+                                     u14Quelle.indexOf('// ENDE MIGRATION 0.14.0'));
+    pruefe('Der Block schiebt kein UPDATE nach',
+      !/UPDATE\s+items/i.test(u14Block), JSON.stringify(u14Block.slice(0, 80)));
+    pruefe('Der Block fragt jede Spalte einzeln ab',
+      (u14Block.match(/spalten\.includes\(/g) || []).length === 3,
+      `${(u14Block.match(/spalten\.includes\(/g) || []).length} Abfragen`);
+    pruefe('Und die drei ALTER TABLE laufen in EINER Transaktion',
+      /db\.transaction\(/.test(u14Block) &&
+      (u14Block.match(/ALTER TABLE items ADD COLUMN/g) || []).length === 3,
+      JSON.stringify((u14Block.match(/db\.transaction\([^\n]*/g) || []).join(' | ')));
+    /* ordneBestandZu() wird ausdruecklich NICHT angefasst: dort geht es um
+       user_id und um die Frage, wem eine herrenlose Zeile gehoert.
+       rejected_von ist keine Eigentumsangabe, sondern der Name unter einer
+       Entscheidung -- sie dem Eigentuemer zuzuschieben setzte seinen Namen
+       unter eine fremde Aussage. */
+    const u14Auffang = u14Quelle.slice(u14Quelle.indexOf('function ordneBestandZu'),
+                                       u14Quelle.indexOf('ordneBestandZu();'));
+    pruefe('Das Auffangnetz kennt rejected_von nicht',
+      !u14Auffang.includes('rejected_von'), 'rejected_von steht in ordneBestandZu()');
+  }
+
+  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
+  const u14Zweitens = uLauf(u14Dir);
+  pruefe('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
+    !/items um /.test(u14Zweitens), JSON.stringify(u14Zweitens.trim()));
+  pruefe('Und die Zeilen sind dabei unangetastet geblieben',
+    u14Zeilen().length === 2 &&
+    u14Zeilen().every(z => z.rejected_at === null && z.rejected_von === null),
+    JSON.stringify(u14Zeilen()));
+
+  /* JEDE DER DREI SPALTEN WIRD EINZELN NACHGERUESTET -- nachgestellt, nicht
+     nur am Quelltext gelesen. Das ist der zerrissene Stand, den ein Block mit
+     einer einzigen Abfrage fuer immer stehen liesse. */
+  for (const fehlt of u14Neu) {
+    const daneben = u14Neu.filter(n => n !== fehlt);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `kriterion-u14-${fehlt}-`));
+    uLauf(dir);
+    {
+      const d = oeffne(path.join(dir, 'katalog.sqlite'));
+      d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+      d.close();
+    }
+    u14Rueckbau(dir, [fehlt]);
+    pruefe(`Die halbe Prueflage traegt ${daneben.join(' und ')}, aber nicht ${fehlt}`,
+      daneben.every(n => u14Spalten(dir).includes(n)) && !u14Spalten(dir).includes(fehlt),
+      u14Spalten(dir).join(', '));
+    const ausgabe = uLauf(dir);
+    pruefe(`Die Migration ruestet ${fehlt} einzeln nach`,
+      u14Spalten(dir).includes(fehlt) && new RegExp(`items um ${fehlt} ergaenzt`).test(ausgabe),
+      `${u14Spalten(dir).join(', ')} / ${JSON.stringify(ausgabe.trim())}`);
+    pruefe(`Und die Bestandszeilen stehen danach richtig da (${fehlt} fehlte)`,
+      u14Zeilen(dir).length === 2 &&
+      u14Zeilen(dir).every(z => z.rejected_at === null && z.rejected_grund === null && z.rejected_von === null),
+      JSON.stringify(u14Zeilen(dir)));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  /* Die frische Anlage bekommt die Spalten aus der DDL, nicht aus der
+     Migration. Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt
+     traegt -- und zu 1.0 faellt die Migration weg, die Spalten muessen
+     bleiben. */
+  const u14Frisch = uLauf(u14FrischDir);
+  pruefe('Eine frische Anlage traegt alle drei Spalten ohne Migration',
+    u14Neu.every(n => u14Spalten(u14FrischDir).includes(n)) && !/items um /.test(u14Frisch),
+    `${u14Spalten(u14FrischDir).join(', ')} / ${JSON.stringify(u14Frisch.trim())}`);
+
+  /* DER FREMDSCHLUESSEL, UND ZWAR AM VERHALTEN. Ein REFERENCES in einem
+     ALTER TABLE ... ADD COLUMN ist nicht selbstverstaendlich dasselbe wie
+     eines in der DDL (Stolperstein 105 stellt genau diese Frage fuer die
+     Vorgabe). Nachgemessen wird deshalb, was SQLite TUT: dass der Schluessel
+     dasteht, dass ON DELETE SET NULL greift und dass eine unbekannte Nummer
+     abgewiesen wird -- in der migrierten wie in der frischen Anlage. */
+  const u14Fk = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    d.pragma('foreign_keys = ON');
+    const eintrag = d.prepare('PRAGMA foreign_key_list(items)').all().find(f => f.from === 'rejected_von');
+    let gesetzt = null, fremd = 'angenommen';
+    try {
+      d.prepare("INSERT INTO users (id, username, password_hash) VALUES (777, 'fkprobe', 'x')").run();
+      d.prepare("INSERT INTO items (id, title, rejected, rejected_von) VALUES (777, 'FK-Probe', 1, 777)").run();
+      d.prepare('DELETE FROM users WHERE id = 777').run();
+      gesetzt = d.prepare('SELECT rejected_von FROM items WHERE id = 777').get().rejected_von;
+      try { d.prepare('UPDATE items SET rejected_von = 999 WHERE id = 777').run(); }
+      catch { fremd = 'abgewiesen'; }
+      d.prepare('DELETE FROM items WHERE id = 777').run();
+    } catch (e) { fremd = `Prueflage gescheitert: ${e.message}`; }
+    d.close();
+    return { ziel: eintrag?.table, beiLoeschung: eintrag?.on_delete, nachDemLoeschen: gesetzt, fremd };
+  };
+  const u14FkMigriert = u14Fk(u14Dir), u14FkFrisch = u14Fk(u14FrischDir);
+  pruefe('Migrierte und frische Anlage verhalten sich am Fremdschluessel gleich',
+    gleich(u14FkMigriert, u14FkFrisch),
+    `${JSON.stringify(u14FkMigriert)} gegen ${JSON.stringify(u14FkFrisch)}`);
+  pruefe('rejected_von zeigt auf users und gibt beim Loeschen frei',
+    u14FkMigriert.ziel === 'users' && u14FkMigriert.beiLoeschung === 'SET NULL',
+    JSON.stringify(u14FkMigriert));
+  pruefe('Ein entfernter Zugang laesst die Ablehnung stehen und nimmt nur den Namen mit',
+    u14FkMigriert.nachDemLoeschen === null, JSON.stringify(u14FkMigriert));
+  pruefe('Und eine Nummer, die es nicht gibt, wird abgewiesen',
+    u14FkMigriert.fremd === 'abgewiesen', JSON.stringify(u14FkMigriert.fremd));
+
+  /* STOLPERSTEIN 202, IN DIESER RUNDE NACHGEMESSEN UND NEU: die Absage aus
+     Stolperstein 105 haengt daran, ob die Tabelle ZEILEN HAT. An einer leeren
+     geht dasselbe ALTER TABLE durch. Das steht hier und nicht nur im Papier,
+     denn daraus folgt die Bauform der Prueflagen darueber: eine Migration, die
+     nur an einer leeren Tabelle gefahren wird, ist gar nicht gefahren. */
+  {
+    const d = oeffne(path.join(u14FrischDir, 'katalog.sqlite'));
+    const versuch = (sql) => { try { d.exec(sql); return 'geht'; } catch (e) { return e.message; } };
+    d.exec('CREATE TABLE p202_leer (id INTEGER PRIMARY KEY)');
+    d.exec('CREATE TABLE p202_voll (id INTEGER PRIMARY KEY)');
+    d.prepare('INSERT INTO p202_voll (id) VALUES (1)').run();
+    const spalte = ' ADD COLUMN v INTEGER NOT NULL DEFAULT 0 REFERENCES users(id) ON DELETE SET NULL';
+    const leer = versuch('ALTER TABLE p202_leer' + spalte);
+    const voll = versuch('ALTER TABLE p202_voll' + spalte);
+    d.exec('DROP TABLE p202_leer; DROP TABLE p202_voll');
+    d.close();
+    pruefe('An einer LEEREN Tabelle nimmt SQLite die Vorgabe am Fremdschluessel an',
+      leer === 'geht', JSON.stringify(leer));
+    pruefe('An einer Tabelle MIT Zeilen weist es dieselbe Anweisung ab',
+      /Cannot add a REFERENCES column with non-NULL default value/.test(voll), JSON.stringify(voll));
+  }
+
+  fs.rmSync(u14Dir, { recursive: true, force: true });
+  fs.rmSync(u14FrischDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   gruppe('Anordnung der Blöcke');

@@ -58,6 +58,25 @@ CREATE TABLE IF NOT EXISTS items (
   title TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   rejected INTEGER NOT NULL DEFAULT 0,
+  -- WANN, WARUM UND VON WEM abgelehnt wurde. Die drei gehoeren zu rejected und
+  -- ersetzen es NICHT: ein zweites Merkmal "Ergebnis" daneben waeren zwei
+  -- Wahrheiten ueber dieselbe Sache (Stolperstein 47). Das vorhandene Merkmal
+  -- bekommt, was ihm fehlt.
+  -- ALLE DREI SIND NULLBAR, und zwar nicht aus Bequemlichkeit: eine Ablehnung
+  -- aus einer Anlage vor 0.14.0 kennt weder Datum noch Verfasser, und ein
+  -- erfundener Wert waere schlimmer als ein leerer. Ein Grund ist ausserdem
+  -- freiwillig.
+  -- ZURUECKGENOMMEN WIRD DAS MERKMAL, NICHT DIE ANGABE: beim Ausschalten von
+  -- rejected bleiben die drei stehen. Sie gingen sonst verloren, ohne dass
+  -- sie jemand wiederherstellen koennte -- und der Dialog bietet die alte
+  -- Begruendung beim erneuten Ablehnen als Vorschlag an.
+  -- tested bekommt bewusst NICHTS davon: "getestet" ist ein Zustand und keine
+  -- Entscheidung. Wer beides gleich behandelt, baut die Haelfte umsonst.
+  rejected_at TEXT,
+  rejected_grund TEXT,
+  -- ON DELETE SET NULL wie an jedem Traeger (Stolperstein 54): ein entfernter
+  -- Zugang nimmt die Entscheidung nicht mit, nur seinen Namen davon.
+  rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
   tested INTEGER NOT NULL DEFAULT 0,
   -- favorite wird nicht mehr beschrieben. Der Favorit gehoert einem Benutzer
   -- und steht in item_pins; die Spalte bleibt nur stehen, damit Bestands- und
@@ -750,6 +769,53 @@ function migration0850() {
 migration0850();
 // ENDE MIGRATION 0.8.50
 
+// MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
+// Die Spalten rejected_at, rejected_grund und rejected_von stehen in der DDL,
+// aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
+// (Stolperstein 13). Ein Bestand aus 0.8.0 bis 0.13.2 traegt items ohne sie.
+// KEIN NACHGESCHOBENES UPDATE, und das ist entschieden und nicht vergessen:
+// eine Ablehnung aus einem Bestand vor dieser Version hat kein Datum, keinen
+// Grund und keinen Verfasser -- diese Anlage weiss sie nicht. Jeder gesetzte
+// Wert waere erfunden, und "abgelehnt am Tag der Einspielung von dem, der
+// eingespielt hat" waere die schlimmste Erfindung von allen. Die drei bleiben
+// leer, und die Marke zeigt dann genau so viel, wie bekannt ist.
+// JEDE SPALTE WIRD EINZELN GEFRAGT, nicht der Block als Ganzes (Stolperstein
+// 108). Ein Block, der beim Vorhandensein der ersten zurueckkehrt, liesse die
+// zweite und dritte fuer immer fehlen.
+// UND DIE DREI ALTER TABLE LAUFEN IN EINER TRANSAKTION. Ohne sie ueberlebt bei
+// einem Abbruch die erste Spalte, und die uebrigen fehlen. Die Transaktion
+// verhindert den Riss, die Einzelabfrage ueberlebt ihn -- nur das Zweite hilft
+// gegen einen Riss, der in einer frueheren Version entstanden ist.
+// rejected_von TRAEGT SEINEN FREMDSCHLUESSEL AUCH ALS NACHRUESTUNG: SQLite
+// schreibt die Spaltendefinition samt REFERENCES in den Schematext, und
+// ON DELETE SET NULL greift danach wie in der DDL -- nachgemessen, nicht
+// abgeschrieben. Was NICHT geht, ist eine Vorgabe ungleich NULL daneben
+// (Stolperstein 105); hier steht keine, und deshalb geht es.
+// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
+// weg, die Spalten in der DDL bleiben.
+function migration0140() {
+  const spalten = db.prepare('PRAGMA table_info(items)').all().map(c => c.name);
+  const fehlend = [];
+  if (!spalten.includes('rejected_at')) fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);
+  if (!spalten.includes('rejected_grund')) fehlend.push(['rejected_grund', 'ALTER TABLE items ADD COLUMN rejected_grund TEXT']);
+  if (!spalten.includes('rejected_von')) fehlend.push(['rejected_von',
+    'ALTER TABLE items ADD COLUMN rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL']);
+  if (!fehlend.length) return 0;
+  db.transaction(() => { for (const [, sql] of fehlend) db.exec(sql); })();
+  // "a, b und c" statt "a und b und c" -- bei drei Namen liest sich das
+  // andere wie ein Fehler in der Zeile.
+  const namen = fehlend.map(f => f[0]);
+  const aufzaehlung = namen.length > 1
+    ? `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}` : namen[0];
+  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;
+  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt ` +
+    `(Migration auf 0.14.0); ${n} bereits abgelehnte ${n === 1 ? 'Eintrag steht' : 'Eintraege stehen'} ` +
+    `ohne Datum, Grund und Verfasser da.`);
+  return 1;
+}
+migration0140();
+// ENDE MIGRATION 0.14.0
+
 // --- Auffangnetz: die Anlage braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
@@ -855,4 +921,6 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
                    migration0840,
                    // MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
-                   migration0850 };
+                   migration0850,
+                   // MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
+                   migration0140 };
