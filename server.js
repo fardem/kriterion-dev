@@ -8,7 +8,7 @@ const anh = require('./anhaenge');
 // sagt, dass sich noch alles aendern darf; die Veroeffentlichung bekaeme 1.0.0.
 const VERSION = require('./package.json').version;
 const sharp = require('sharp');
-const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria } = require('./db');
+const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
 
@@ -225,7 +225,7 @@ const putSetting = { run: (k, v) => {
 // Schranke oben gelesen -- eine Liste, die nur der Pruefstand ansieht, loescht
 // der Naechste als unbenutzt weg.
 const PERSOENLICHE_SCHLUESSEL = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleiste', 'suchNamen',
-                                'zuletztGesehen', 'ansichten'];
+                                'zuletztGesehen', 'glockeGesehen', 'ansichten'];
 
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
@@ -1582,6 +1582,9 @@ const schriftgroesse = (benutzerId) => {
    Oberflaeche bietet den Umschalter dann gar nicht erst an. Ein Filter, der
    beim ersten Klick alles zeigt, erklaert sich nicht. */
 const zuletztGesehen = (benutzerId) => getUserSetting(benutzerId, 'zuletztGesehen', null);
+// Der Bezugspunkt der Glocke. null heisst: es gibt keinen -- dann gibt es auch
+// keine Glocke, dieselbe Lage und dieselbe Antwort wie bei zuletztGesehen.
+const glockeGesehen = (benutzerId) => getUserSetting(benutzerId, 'glockeGesehen', null);
 
 /* --- Die gespeicherten Ansichten -----------------------------------------
    MEHRERE BENANNTE FILTERSTELLUNGEN NEBEN DER EINEN, DIE ES SCHON GIBT.
@@ -1640,6 +1643,13 @@ app.get('/api/settings', (req, res) => res.json({
   linkZeilen: linkZeilen(req.benutzer.id),
   zeitleiste: zeitleisteAn(req.benutzer.id),
   zuletztGesehen: zuletztGesehen(req.benutzer.id),
+  /* DER BEZUGSPUNKT DER GLOCKE, und er ist ein ZWEITER neben zuletztGesehen.
+     Die beiden beantworten verschiedene Fragen und duerfen sich deshalb nicht
+     teilen: „neu seit meinem letzten Besuch" faellt beim Verlassen der
+     Uebersicht, die Glocke erst, wenn man ihre Tafel WIRKLICH GEOEFFNET hat.
+     Mit einem gemeinsamen Merker loeschte ein Blick in die Uebersicht die
+     Glocke mit, ohne dass jemand gelesen haette, was sie meldete. */
+  glockeGesehen: glockeGesehen(req.benutzer.id),
   suche: suchvorlage(),
   suchAnbieter: suchAnbieter(),
   suchNamen: suchNamen(req.benutzer.id),
@@ -1754,6 +1764,15 @@ app.put('/api/settings', (req, res) => {
      als neu. Lieber einen Eintrag zweimal zeigen als einen verschlucken. */
   if (req.body.zuletztGesehen !== undefined)
     putUserSetting(req.benutzer.id, 'zuletztGesehen',
+      JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
+  /* DERSELBE WEG FUER DIE GLOCKE, und derselbe Grund fuer die Sekunde.
+     UEBER PUT /api/settings UND NICHT UEBER EINEN EIGENEN WEG: es ist eine
+     persoenliche Einstellung wie jede andere hier, und eine eigene schreibende
+     Route liesse F_ROUTEN wachsen, ohne dass es etwas Neues zu bewachen gaebe.
+     GESETZT WIRD ERST BEIM OEFFNEN DER TAFEL -- das entscheidet die
+     Oberflaeche. Der Server nimmt das Signal entgegen und setzt seine Uhr. */
+  if (req.body.glockeGesehen !== undefined)
+    putUserSetting(req.benutzer.id, 'glockeGesehen',
       JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
   // Eigene Anbieter zuerst: ein frisch angelegter muss im selben Zug in den
   // Vorrat aufgenommen werden koennen.
@@ -2173,9 +2192,29 @@ function stimmenJeKriterium(itemId, benutzerId, karte) {
 // Deckel, der vergessen werden koennte.
 // GERUNDET WIRD GENAU EINMAL, hier am Ende: je Kriterium vorzurunden waere ein
 // zweiter Rundungsort fuer dieselbe Zahl.
-function gesamtSchnitt(karte) {
+//
+// DER RECHENWEG ENTSTEHT IN DER RECHNUNG UND NICHT DANEBEN. Die Oberflaeche
+// erklaert seit 0.16.0, wie die Kopfzahl zustande kommt -- und sie RECHNET
+// DAZU NICHT NACH: ein zweiter Rechenweg fuer die Anzeige waere genau die
+// zweite Wahrheit, die diese Anlage nirgends duldet. Die beiden Wege liefen
+// frueher oder spaeter auseinander, und zwar unbemerkt: beide sehen plausibel aus.
+// Deshalb fuellt diese Funktion den Weg mit, den sie ohnehin geht.
+// `rechenweg` IST FREIWILLIG: die Uebersicht rechnet denselben Schnitt fuer
+// tausend Eintraege und braucht keine Aufstellung dazu.
+function gesamtSchnitt(karte, rechenweg) {
   let zaehler = 0, nenner = 0;
-  for (const z of karte.values()) { zaehler += z.schnitt * z.gewicht; nenner += z.gewicht; }
+  const zeilen = [];
+  for (const z of karte.values()) {
+    const produkt = z.schnitt * z.gewicht;
+    zaehler += produkt; nenner += z.gewicht;
+    zeilen.push({ criterionId: z.criterion_id, schnitt: z.schnitt, gewicht: z.gewicht, produkt });
+  }
+  // UNGERUNDET, wie hier gerechnet wird. Gerundet wird genau einmal, unten am
+  // Ergebnis -- die Oberflaeche rundet nur noch fuer die Anzeige und sagt das
+  // auch. Ginge der Weg gerundet hinaus, ergaebe die Aufstellung am Bildschirm
+  // eine andere Zahl als die Anlage rechnet.
+  if (rechenweg) Object.assign(rechenweg,
+    { zeilen, summe: zaehler, teiler: nenner, roh: nenner ? zaehler / nenner : null });
   // Kein Nenner heisst: kein bewertetes Kriterium, also keine Zahl. Bei
   // mindestens einer Zeile ist er mindestens GEWICHT_MIN und damit nie null.
   if (!nenner) return null;
@@ -2312,7 +2351,16 @@ function detail(id, benutzerId) {
     r.avg = z ? Math.round(z.schnitt * 10) / 10 : null;
     r.count = z ? z.anzahl : 0;
   }
-  it.avgRating = gesamtSchnitt(schnitte);
+  /* DIE AUFSTELLUNG GEHT NUR AM EINZELNEN EINTRAG MIT -- dort steht die
+     Kopfzahl, und dort wird gefragt, wie sie zustande kommt. In der Uebersicht
+     waere sie tausendmal dieselbe Arbeit fuer eine Zahl, die niemand
+     aufklappt.
+     SIE TRAEGT NICHTS NEUES: Gewicht und Kriterienschnitt stehen ohnehin in
+     `ratings`. Neu ist allein, dass Summe, Teiler und das ungerundete Ergebnis
+     aus DERSELBEN Schleife kommen wie die Zahl darueber. */
+  const rechenweg = {};
+  it.avgRating = gesamtSchnitt(schnitte, rechenweg);
+  it.rechenweg = { ...rechenweg, ergebnis: it.avgRating };
   Object.assign(it, testStats(id));
   return it;
 }
@@ -2379,6 +2427,36 @@ const qVolltext = db.prepare(`
 const volltextBegriff = (roh) => (typeof roh === 'string' ? roh.trim().toLowerCase() : '');
 const volltextTreffer = (begriff) => new Set(qVolltext.all({ q: begriff }).map(r => r.id));
 
+/* ---- ZWEI ZAHLEN, DIE MIT DER LISTE MITREISEN -- 0.16.0 ----------------
+   BEIDE HAENGEN AN EINER ANTWORT, DIE ES OHNEHIN GIBT, und das ist der ganze
+   Punkt. Der Zaehler „Offen 7" war in 0.8.60 genau daran gescheitert: er
+   haette bei JEDEM Seitenaufbau einen eigenen Weg gefragt. Hier faellt kein
+   zusaetzlicher Abruf an -- die Uebersicht holt diese Liste ohnehin.
+
+   JE EINE GRUPPENABFRAGE FUER DIE GANZE LISTE, nicht eine je Eintrag: bei
+   tausend Eintraegen waeren das zweitausend Abfragen fuer zwei Zahlen.
+   Dieselbe Ueberlegung wie bei qMeinePins und verfasserKarte() darunter. */
+const qOffenJeEintrag = db.prepare(
+  `SELECT item_id, COUNT(*) AS n FROM comments WHERE kind = 'task' GROUP BY item_id`);
+/* WAS SEIT DEM BEZUGSPUNKT VON ANDEREN DAZUGEKOMMEN IST -- Kommentare und
+   Bewertungen getrennt gefragt, weil sie in verschiedenen Tabellen stehen.
+   IFNULL(user_id, -1) STATT `!=`: eine herrenlose Zeile hat user_id NULL, und
+   `NULL != 7` ist in SQL nicht wahr, sondern NULL -- sie fiele wortlos aus der
+   Zaehlung. Herrenlos ist nicht meins, also zaehlt sie.
+   NUR WERTE UEBER NULL: eine zurueckgesetzte Bewertung hinterlaesst eine Zeile
+   mit 0, und die ist keine Stimme -- dieselbe Regel wie ueberall sonst.
+   gesetzt_am IS NOT NULL: was vor 0.16.0 entstanden ist und was eingespielt
+   wurde, traegt keinen Zeitpunkt. Die Glocke uebergeht es, statt es fuer neu
+   zu erklaeren. Der Vergleich `> ?` faellt bei NULL ohnehin nicht wahr aus;
+   die Bedingung steht trotzdem da, weil sie die Absicht sagt. */
+const qNeueKommentare = db.prepare(
+  `SELECT item_id, COUNT(*) AS n FROM comments
+    WHERE created_at > ? AND IFNULL(user_id, -1) != ? GROUP BY item_id`);
+const qNeueBewertungen = db.prepare(
+  `SELECT item_id, COUNT(*) AS n FROM ratings
+    WHERE gesetzt_am IS NOT NULL AND gesetzt_am > ? AND value > 0
+      AND IFNULL(user_id, -1) != ? GROUP BY item_id`);
+
 app.get('/api/items', (req, res) => {
   let rows = qAlleItems.all();
   const begriff = volltextBegriff(req.query.q);
@@ -2400,6 +2478,23 @@ app.get('/api/items', (req, res) => {
   // Einmal fuer die ganze Liste, nicht je Eintrag -- sonst stuende dieselbe
   // Abfrage bei hundert Eintraegen hundertmal.
   const karte = verfasserKarte();
+  const offenJe = new Map(qOffenJeEintrag.all().map(z => [z.item_id, z.n]));
+  /* OHNE GESPEICHERTEN BEZUGSPUNKT GIBT ES KEINE GLOCKE -- dieselbe Lage und
+     dieselbe Antwort wie bei „Neu seit meinem letzten Besuch". Vor dem ersten
+     Oeffnen der Tafel weiss die Anlage nicht, was jemand schon gesehen hat;
+     alles fuer neu zu erklaeren waere eine Behauptung, und der erste Blick in
+     die Uebersicht laeutete fuer den ganzen Bestand.
+     `neuFremd` FEHLT DANN GANZ und steht nicht auf 0: die Oberflaeche
+     unterscheidet „nichts Neues" von „es gibt keinen Bezugspunkt", und ein
+     stilles 0 machte aus der zweiten Lage die erste. */
+  const bezug = glockeGesehen(req.benutzer.id);
+  const neuJe = new Map();
+  if (bezug) {
+    for (const z of qNeueKommentare.all(bezug, req.benutzer.id))
+      neuJe.set(z.item_id, (neuJe.get(z.item_id) || 0) + z.n);
+    for (const z of qNeueBewertungen.all(bezug, req.benutzer.id))
+      neuJe.set(z.item_id, (neuJe.get(z.item_id) || 0) + z.n);
+  }
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
     it.verfasser = verfasserAus(karte, it.user_id);
@@ -2439,6 +2534,13 @@ app.get('/api/items', (req, res) => {
        rejected_von MUSS hier weg, nicht nur darf: es ist eine nackte
        Zugangsnummer, und die geht aus keiner Antwort hinaus. */
     delete it.rejected_at; delete it.rejected_grund; delete it.rejected_von;
+    /* DIE ZAHL DER OFFENEN AUFGABEN AN DIESEM EINTRAG. Der Knopf in der
+       Kopfzeile summiert sie; die Ansicht „Offene Aufgaben" holt weiterhin
+       ihre eigene Liste ueber /api/offen -- die braucht die Texte, nicht nur
+       die Zahl. Gerechnet wird beides aus DERSELBEN Bedingung (kind = 'task'),
+       sonst naennten Knopf und Ansicht zwei verschiedene Zahlen. */
+    it.offeneAufgaben = offenJe.get(it.id) || 0;
+    if (bezug) it.neuFremd = neuJe.get(it.id) || 0;
   }
   res.json(rows);
 });
@@ -3069,8 +3171,17 @@ app.put('/api/items/:id/ratings', (req, res) => {
   const v = Math.max(0, Math.min(5, Number(req.body.value) || 0));
   // Die eigene Bewertung. Konfliktziel und UNIQUE in db.js gehoeren
   // zusammen -- siehe die Bemerkung beim Testtag eine Bildschirmseite hoeher.
-  db.prepare(`INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, ?, ?)
-              ON CONFLICT(item_id, criterion_id, user_id) DO UPDATE SET value = excluded.value`)
+  /* DER ZEITPUNKT GEHT BEI BEIDEN WEGEN MIT -- beim Anlegen UND beim
+     Ueberschreiben. Eine geaenderte Bewertung ist fuer den anderen dasselbe
+     Ereignis wie eine neue: er sieht eine Zahl, die vorher nicht dastand.
+     GESETZT WIRD AUSDRUECKLICH UND NICHT UEBER EINEN VORGABEWERT der Spalte:
+     eine Zeile ohne Zeitpunkt heisst „die Anlage weiss nicht, wann" -- das
+     gilt fuer alles vor 0.16.0 und fuer alles Eingespielte, und ein
+     Vorgabewert machte daraus stillschweigend „gerade eben". */
+  db.prepare(`INSERT INTO ratings (item_id, criterion_id, value, user_id, gesetzt_am)
+              VALUES (?, ?, ?, ?, datetime('now'))
+              ON CONFLICT(item_id, criterion_id, user_id)
+              DO UPDATE SET value = excluded.value, gesetzt_am = excluded.gesetzt_am`)
     .run(req.params.id, req.body.criterionId, v, req.benutzer.id);
   touch.run(req.params.id);
   res.json(detail(req.params.id, req.benutzer.id));
@@ -3357,6 +3468,14 @@ app.get('/api/stats', nurAdmin, (req, res) => {
     // dort steht, sieht jeder, der die Adresse kennt. Der Fingerprint nagelt
     // den laufenden Dateisatz fest und geht deshalb nicht vor die Anmeldung.
     fingerprint: FINGERPRINT,
+    /* WAS UNTER DER HAUBE LAEUFT -- abgelesen in db.js, hier nur
+       durchgereicht. Die Karte nennt Verfahren und keine Paketversionen: das
+       eine sagt, WIE gerechnet wird, das andere, WELCHE Luecke passt.
+       `passwoerter` steht hier und nicht in db.js, weil es dort nichts zu
+       lesen gaebe -- die Kennwerte des Verfahrens stehen in auth.js und in
+       jedem gespeicherten Wert. Der Name ist derselbe, den baueWert() vorn
+       hineinschreibt. */
+    verfahren: { ...verfahren(), passwoerter: 'scrypt' },
     dbBytes, photoCount: p.n, photoBytes: p.o,
     videoCount: vi.n, videoBytes: vi.o,
     attachmentCount: an.n, attachmentBytes: an.o,
