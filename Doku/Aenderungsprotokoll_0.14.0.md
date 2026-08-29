@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.14.0 — „Die Entscheidung wird mitgeschrieben"
 
-**Version 0.14.0 · gebaut am 29. August 2026 · Fingerprint `8b8ad1ce` ·
+**Version 0.14.0 · gebaut am 29. August 2026 · Fingerprint `ca8bcf31` ·
 4262 Prüfungen · 249 Rückbauten in `gegenprobe.js`**
 
 ---

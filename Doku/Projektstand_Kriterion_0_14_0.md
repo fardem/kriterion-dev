@@ -127,7 +127,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.14.0** — Fingerprint **`8b8ad1ce`**, **4262 Prüfungen**,
+**Gebaut ist 0.14.0** — Fingerprint **`ca8bcf31`**, **4262 Prüfungen**,
 **249 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
 *0.14.0 macht aus dem Häkchen „abgelehnt" eine Aussage: wann, warum und von
 wem.* **MINOR — die Anlage hält seither ihr Ergebnis fest und nicht bloß den
@@ -288,7 +288,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.14.0** | **`8b8ad1ce`** | 4262 |
+| **0.14.0** | **`ca8bcf31`** | 4262 |
 | 0.13.2 | `15188676` | 4131 |
 | 0.13.1 | `ee00fdf2` | 4123 |
 | 0.13.0 | `c1d2320d` | 4115 |
