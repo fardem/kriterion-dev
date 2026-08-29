@@ -2261,9 +2261,9 @@ const RUECKBAUTEN = [
        Stift. Der Rueckbau trifft dieselbe Sache an ihrer neuen Zeile. */
     nr: '245', name: 'Das Feld fuer den Grund erscheint nicht',
     datei: 'public/app.js',
-    suche: "    zeile.hidden = !grundOffen;",
+    suche: "    zeile.hidden = !offen;",
     ersatz: "    zeile.hidden = true;",
-    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+    erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
   {
     /* Die Zeile steht auch dann da, wenn gar nichts bekannt ist -- dann sagt
@@ -2271,7 +2271,7 @@ const RUECKBAUTEN = [
        Aussage zweimal. */
     nr: '246', name: 'Die Aussage steht auch da, wenn sie nichts sagt',
     datei: 'public/app.js',
-    suche: "    marke.hidden = !item.rejected || grundOffen || (!kopf && !grund && !zeigeStift);",
+    suche: "    marke.hidden = !item.rejected || offen || (!kopf && !grund && !zeigeStift);",
     ersatz: "    marke.hidden = !item.rejected;",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
@@ -2385,12 +2385,16 @@ const RUECKBAUTEN = [
   },
   {
     /* Beim Einschalten steht das Feld nicht mehr offen. Ein Feld, das man erst
-       suchen muss, bleibt leer -- das war die Zusage aus 0.14.0. */
+       suchen muss, bleibt leer -- das war die Zusage aus 0.14.0.
+       SEIT 0.15.1 HAENGT DAS NICHT MEHR AM KLICK, sondern an der abgeleiteten
+       Regel: abgelehnt und kein Grund heisst offen. Der Rueckbau nimmt
+       deshalb die Haelfte der Regel weg, die den fehlenden Grund traegt --
+       dieselbe Sache an ihrer neuen Zeile. */
     nr: '261', name: 'Beim Einschalten bleibt das Feld zu',
     datei: 'public/app.js',
-    suche: "      grundOffen = item.rejected;\n      drawSwitches();",
-    ersatz: "      grundOffen = false;\n      drawSwitches();",
-    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+    suche: "    const offen = item.rejected && meins && (!grund || grundOffen);",
+    ersatz: "    const offen = item.rejected && meins && grundOffen;",
+    erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
   {
     /* Der Stift steht auch dem da, der gar nicht schreiben darf -- und
@@ -2449,6 +2453,46 @@ const RUECKBAUTEN = [
     ersatz: ".rej-aussage .rej-warum { font-weight: 500; }",
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
+  /* ---- 0.15.1: `hidden` wirkt wieder ---- */
+  {
+    /* DIE EINE REGEL FAELLT WEG, und damit ist `hidden` im ganzen Haus wieder
+       wirkungslos, sobald eine display-Regel danebensteht. Der Rueckbau nimmt
+       das `!important` -- die Regel bleibt stehen und tut nichts mehr, genau
+       die Lage von vor 0.15.1. */
+    nr: '268', name: 'Die Regel fuer hidden verliert ihre Kraft',
+    datei: 'public/style.css',
+    suche: "[hidden] { display: none !important; }",
+    ersatz: "[hidden] { display: none; }",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+  },
+  {
+    /* Die Regel verschwindet ganz. Damit stuenden die beiden oertlichen
+       Flicken auch nicht mehr da -- niemand versteckt mehr irgendetwas. */
+    nr: '269', name: 'Die Regel fuer hidden fehlt ganz',
+    datei: 'public/style.css',
+    suche: "[hidden] { display: none !important; }\n",
+    ersatz: "",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+  },
+  {
+    /* Die Aussage steht auch dann da, wenn das Feld offen ist -- also beides
+       zugleich. Genau die Doppelung, die 0.15.0 aufloesen sollte. */
+    nr: '270', name: 'Aussage und Feld stehen wieder zugleich da',
+    datei: 'public/app.js',
+    suche: "    marke.hidden = !item.rejected || offen || (!kopf && !grund && !zeigeStift);",
+    ersatz: "    marke.hidden = !item.rejected || (!kopf && !grund && !zeigeStift);",
+    erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
+  },
+  {
+    /* Das Feld steht auch dem offen, der nicht schreiben darf. Es nimmt dann
+       eine Eingabe an, die der Server mit 403 abweist. */
+    nr: '271', name: 'Das Feld steht auch dem offen, der nicht schreiben darf',
+    datei: 'public/app.js',
+    suche: "    const offen = item.rejected && meins && (!grund || grundOffen);",
+    ersatz: "    const offen = item.rejected && (!grund || grundOffen);",
+    erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
+  },
+
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',

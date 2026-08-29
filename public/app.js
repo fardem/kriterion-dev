@@ -3769,9 +3769,16 @@ async function renderDetail(id) {
      DATUM UND GRUND BLEIBEN dabei stehen -- sie sind der INHALT der
      Entscheidung und keine Angabe ueber eine Person. Deshalb faellt hier der
      Name weg und nicht die ganze Zeile. */
-  /* OB DAS FELD OFFEN STEHT, IST ANSICHTSZUSTAND und gehoert deshalb hierher
-     und nicht in `item`: der Server weiss nichts davon, und eine Antwort, die
-     es mitbraechte, waere eine Auskunft ueber ein Fenster. */
+  /* OB JEMAND DAS FELD AUSDRUECKLICH GEOEFFNET HAT, ist Ansichtszustand und
+     gehoert deshalb hierher und nicht in `item`: der Server weiss nichts davon,
+     und eine Antwort, die es mitbraechte, waere eine Auskunft ueber ein
+     Fenster.
+     ES IST NUR DIE HAELFTE DER FRAGE, SEIT 0.15.1. Ob das Feld dasteht, haengt
+     am ZUSTAND und nicht an einem Klick: es steht offen, solange abgelehnt ist
+     und KEIN Grund dasteht -- und darueber hinaus dann, wenn jemand es ueber
+     den Text oder das ✎ aufgemacht hat. Damit kommt es nach dem Entfernen des
+     Grundes von selbst zurueck, und ein neu geladener Eintrag ohne Grund
+     zeigt es ebenso. */
   let grundOffen = false;
 
   function drawAblehnung() {
@@ -3801,14 +3808,21 @@ async function renderDetail(id) {
     const verwalten = darf;
     const grund = (item.rejected_grund || '').trim();
 
-    // Ein Feld, das niemand fuellen darf, steht auch nicht offen -- und ein
-    // nicht abgelehnter Eintrag hat nichts zu begruenden.
-    if (!item.rejected || !meins) grundOffen = false;
-    zeile.hidden = !grundOffen;
+    /* WANN DAS FELD DASTEHT -- die Regel aus dem Betrieb, 29. August 2026:
+       ABGELEHNT UND KEIN GRUND. Das ist der Zustand, in dem etwas fehlt, und
+       nur dort gehoert eine Eingabe hin. Ein Eintrag, an dem niemand den
+       Ablehnungsknopf gedrueckt hat, braucht sie gar nicht -- sie naehme
+       umsonst Platz (gemessen: 72,9 px).
+       UND DARUEBER HINAUS AUF WUNSCH: wer den Text oder das ✎ anklickt, macht
+       sie auf, um einen vorhandenen Grund zu aendern. Das ist `grundOffen`.
+       EIN FELD, DAS NIEMAND FUELLEN DARF, STEHT NIE OFFEN. */
+    const offen = item.rejected && meins && (!grund || grundOffen);
+    if (!offen) grundOffen = false;
+    zeile.hidden = !offen;
     // Der Vorschlag zum Ueberschreiben: beim Oeffnen steht die alte
     // Begruendung im Feld. Waehrend getippt wird, NICHT ueberschreiben --
     // drawSwitches() laeuft auch nach dem Speichern des Grundes.
-    if (grundOffen && document.activeElement !== feld) feld.value = item.rejected_grund || '';
+    if (offen && document.activeElement !== feld) feld.value = item.rejected_grund || '';
 
     const teile = [];
     if (item.rejected_at) teile.push(`am ${fmtDate(item.rejected_at)}`);
@@ -3827,7 +3841,7 @@ async function renderDetail(id) {
        diesem Augenblick die Aussage, und beides nebeneinander waere genau die
        Doppelung, die dieser Ruhezustand aufloest. Der Kommentar macht es
        genauso -- sein Text weicht dem Textfeld. */
-    marke.hidden = !item.rejected || grundOffen || (!kopf && !grund && !zeigeStift);
+    marke.hidden = !item.rejected || offen || (!kopf && !grund && !zeigeStift);
     marke.innerHTML = '';
     const text = document.createElement('span');
     text.className = 'rej-text';
@@ -3866,6 +3880,10 @@ async function renderDetail(id) {
     marke.appendChild(acts);
   }
 
+  /* AUSDRUECKLICH AUFMACHEN -- fuer den einen Fall, den die Regel nicht schon
+     abdeckt: es steht ein Grund da, und er soll geaendert werden. Ohne Grund
+     ist das Feld ohnehin offen, und dieser Weg fuehrt dann nur den Zeiger
+     hinein. */
   function oeffneGrund() {
     grundOffen = true;
     drawAblehnung();
@@ -3909,14 +3927,20 @@ async function renderDetail(id) {
       : { rejected: true, rejectedGrund: item.rejected_grund || '' };
     try {
       item = await api('PUT', `/api/items/${id}`, rumpf);
-      /* BEIM EINSCHALTEN STEHT DAS FELD SOFORT OFFEN und der Zeiger steht
-         darin. Das war der Sinn der Zusage aus 0.14.0 und bleibt: ein Feld,
-         das man erst suchen muss, bleibt leer. Danach schliesst es sich.
-         BEIM AUSSCHALTEN SCHLIESST ES SICH: es gibt nichts mehr zu begruenden,
-         und die Angaben bleiben trotzdem stehen. */
-      grundOffen = item.rejected;
+      /* BEIM EINSCHALTEN STEHT DAS FELD OFFEN, WENN KEIN GRUND DASTEHT -- und
+         das entscheidet seit 0.15.1 die Regel in drawAblehnung() und nicht
+         dieser Klick. Hier wird deshalb NICHTS aufgeklappt, sondern nur der
+         Zeiger hineingesetzt, wenn es ohnehin dasteht: ein Feld, das man erst
+         suchen muss, bleibt leer.
+         WIRD EIN EINTRAG MIT VORHANDENEM GRUND ERNEUT ABGELEHNT, bleibt es zu
+         -- der Grund steht dann in der Aussage und laesst sich ueber das ✎
+         aendern. Er ist nicht verloren, er steht nur woanders.
+         BEIM AUSSCHALTEN VERSCHWINDEN BEIDE: es gibt nichts mehr zu begruenden,
+         und die Angaben bleiben trotzdem in der Zeile stehen. */
+      grundOffen = false;
       drawSwitches();
-      if (grundOffen) document.getElementById('rej-grund').focus();
+      const f = document.getElementById('rej-grund');
+      if (f && !document.getElementById('rej-grund-zeile').hidden) f.focus();
     }
     catch (e) { toast(e.message, true); }
   };

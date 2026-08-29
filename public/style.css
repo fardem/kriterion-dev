@@ -51,6 +51,35 @@
 }
 
 * { box-sizing: border-box; }
+
+/* ---- `hidden` MUSS WIRKEN, UND ZWAR UEBERALL ----
+   DER BEFUND AUS DEM BETRIEB, 29. AUGUST 2026: an einem NICHT abgelehnten
+   Eintrag standen die Aussage zur Ablehnung und ihr Eingabefeld trotzdem da --
+   beide mit gesetztem `hidden`. Nachgemessen in Chromium: `hidden` war wahr,
+   `display` stand auf `flex`, und der Titelblock war dadurch 156,8 statt
+   83,9 px hoch. **72,9 px fuer nichts.**
+
+   DIE URSACHE IST EINE RANGFRAGE UND KEIN FEHLER IN DER OBERFLAECHE. Der
+   Browser blendet `hidden` ueber `[hidden] { display: none }` in SEINEM
+   Stylesheet aus, und JEDE Regel von hier schlaegt die -- `.row-in` und
+   `.rej-aussage` setzen beide `display: flex`. Wer ein Element mit `hidden`
+   versteckt und ihm anderswo ein `display` gibt, versteckt es nicht.
+
+   DESHALB EINMAL GRUNDSAETZLICH UND MIT `!important`. Ohne das Ausrufezeichen
+   muesste diese Zeile jede kuenftige display-Regel ueberbieten, und das ist
+   ein Wettlauf, den sie irgendwann verliert. Es ist die einzige Stelle im
+   ganzen Stilblatt, an der eines steht, und sie stellt eine Vorgabe des
+   Browsers wieder her, statt eine eigene durchzudruecken.
+
+   SIE ERSETZT ZWEI OERTLICHE FLICKEN (`.zug-neu [hidden]` und
+   `.lb-btn[hidden]`). Beide trugen den richtigen Kommentar und lösten dasselbe
+   Problem an ihrer einen Stelle -- zweimal geflickt, nie grundsaetzlich. Genau
+   das ist der Grund, warum es beim dritten Mal wieder zugeschlagen hat.
+
+   `display: none` UND NICHT `visibility: hidden`: gemessen an derselben Lage
+   liess `visibility` die 72,9 px stehen. Was versteckt ist, soll auch keinen
+   Platz mehr nehmen. */
+[hidden] { display: none !important; }
 /* Grundmass der Schrift. Saemtliche Schriftgroessen im Stylesheet sind rem und
    haengen an genau diesem Wert -- die Einstellung im Systembereich setzt ihn
    und sonst nichts. Layoutmasse bleiben absichtlich in Pixeln.
@@ -1060,10 +1089,9 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .zug-neu .input { flex: 1 1 130px; min-width: 0; }
 .zug-neu select.input { flex: 0 0 auto; width: auto; }
 /* Das Passwortfeld erscheint nur zu der Betriebsart, in der es gilt. Die
-   Regel steht ausdruecklich da: `hidden` ist eine Vorgabe des Browsers mit
-   schwacher Kraft, und in einem Flex-Kasten ist ein halb verstecktes Feld
-   schlimmer als gar keines. */
-.zug-neu [hidden] { display: none; }
+   Regel dafuer steht seit 0.15.1 EINMAL ganz oben (`[hidden]`) und nicht mehr
+   hier: `hidden` ist eine Vorgabe des Browsers mit schwacher Kraft, und in
+   einem Flex-Kasten ist ein halb verstecktes Feld schlimmer als gar keines. */
 
 /* "noch kein Passwort" steht an der Statusspalte und nimmt deren Schrift.
    Es ist ein abgeleiteter Zustand und kein vierter in der Datenbank -- es
@@ -1216,10 +1244,10 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .lb-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 1rem; transition: all .15s var(--ease); }
 .lb-btn:hover { background: var(--surface-3); color: var(--text); border-color: #363e47; }
 /* display: flex oben schlaegt das display:none, das der Browser einem
-   hidden-Attribut mitgibt -- ohne diese Zeile bleibt der Zoomknopf stehen, wo
-   er nichts tut: am Kommentarbild und seit 0.8.50 am Video. Ein Knopf, der
-   nichts tut, wirkt kaputt. */
-.lb-btn[hidden] { display: none; }
+   hidden-Attribut mitgibt -- ohne eine Gegenregel bleibt der Zoomknopf stehen,
+   wo er nichts tut: am Kommentarbild und seit 0.8.50 am Video. Ein Knopf, der
+   nichts tut, wirkt kaputt. SEIT 0.15.1 STEHT DIE GEGENREGEL EINMAL GANZ OBEN
+   (`[hidden]`) und nicht mehr hier. */
 /* Die Pfeile haengen an der Lightbox, nicht an der Buehne: im gezoomten
    Zustand wird .lb-stage zum Scrollbereich, und Kinder davon wandern beim
    Verschieben mit dem Bild aus dem Bild. .lightbox ist fixed und scrollt nie. */
