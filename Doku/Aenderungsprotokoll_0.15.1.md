@@ -347,7 +347,13 @@ herstellen? Wenn nein, habe ich die Ursache nicht.**
 `express`, `multer`, `nodemailer`, `sharp`. **Entwicklungsabhängigkeit
 unverändert:** `jsdom`. **Keine neue, nicht eine.**
 
-> **IM FELD BESTÄTIGT, NOCH WÄHREND DIE RUNDE LIEF.** Der Betreiber hat den
+> **VOLLSTÄNDIG IM FELD BESTÄTIGT — 29. August 2026.** Die laufende Anlage
+> meldet **`d02260bd`**, den Wert dieses Papiers. **Damit ist die Sperre im
+> Auftrag für 0.16.0 eingelöst**, und **0.15.0 ist übersprungen worden**: die
+> Anlage ging von 0.14.0 auf 0.15.1. *Was 0.15.0 gebracht hat, steckt
+> vollständig darin.*
+>
+> **UND DER KERN WAR SCHON EINEN COMMIT FRÜHER BESTÄTIGT.** Der Betreiber hat den
 > Stand `13726aa` eingespielt — **Fingerprint `a23f24c1`** — und gemeldet:
 > *„jetzt funktioniert es richtig."* **Damit ist der Kern von 0.15.1 nicht nur
 > gemessen, sondern belegt.** *Die Fußzeile sagte dort noch 0.15.0, und das war
