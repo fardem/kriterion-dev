@@ -6843,13 +6843,41 @@ const freigabeHaupt = (zweck, ziel = null) =>
     JSON.stringify(agZeile()));
   /* DAS DATUM KOMMT VOM SERVER UND NIE AUS DEM RUMPF. Ein Rumpf, der es
      mitschickt, darf es nicht setzen -- sonst truege jede Ablehnung das
-     Datum, das der Aufrufende hineinschreibt. */
+     Datum, das der Aufrufende hineinschreibt.
+     GEPRUEFT WIRD AM EINSCHALTEN und nicht an einer beliebigen Anfrage: NUR
+     dort schreibt der Server das Datum ueberhaupt. Eine Anfrage, die das
+     Merkmal gar nicht umlegt, laeuft an der Zeile vorbei -- die Pruefung
+     bliebe gruen, gleich was dort stuende, und die Gegenprobe dazu waere
+     stumm. Genau das ist beim ersten Anlauf passiert (Rueckbau 229). */
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejected: false });
+  const agDatumRumpf = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
+    { rejected: true, rejectedGrund: 'Lieferzeit über 6 Monate',
+      rejectedAt: '1999-01-01 00:00:00', rejected_at: '1999-01-01 00:00:00' });
+  pruefe('Das Einschalten geht durch', agDatumRumpf.status === 200,
+    JSON.stringify(agDatumRumpf.inhalt?.error));
+  pruefe('Ein Datum aus dem Rumpf wird nicht angenommen',
+    !/1999/.test(agZeile().rejected_at || ''), JSON.stringify(agZeile().rejected_at));
+  /* UND DER SERVER SETZT WIRKLICH DIE JETZIGE ZEIT. Ohne diese Haelfte bliebe
+     die Verneinung darueber auch dann gruen, wenn gar kein Datum geschrieben
+     wuerde -- und der Maßstab kommt nicht vom Pruefling: er wird hier
+     ausgerechnet, nicht abgefragt. */
+  {
+    const jetzt = new Date();
+    const heute = jetzt.toISOString().slice(0, 10);
+    const gestern = new Date(jetzt.getTime() - 86400000).toISOString().slice(0, 10);
+    const gesetzt = agZeile().rejected_at || '';
+    pruefe('Der Server setzt die jetzige Zeit',
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(gesetzt) &&
+      (gesetzt.startsWith(heute) || gesetzt.startsWith(gestern)),
+      `${JSON.stringify(gesetzt)} gegen ${heute}`);
+  }
+  /* UND EIN NACHGETRAGENER GRUND ERFINDET AUCH DANN KEIN DATUM, wenn eines im
+     Rumpf steht: die Zeile bleibt, wie sie war. */
   const agVorDatum = agZeile().rejected_at;
   await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
-    { rejectedGrund: 'Lieferzeit über 6 Monate', rejected_at: '1999-01-01 00:00:00', rejectedAt: '1999-01-01 00:00:00' });
-  pruefe('Ein Datum aus dem Rumpf wird nicht angenommen',
-    agZeile().rejected_at === agVorDatum && !/1999/.test(agZeile().rejected_at || ''),
-    JSON.stringify(agZeile().rejected_at));
+    { rejectedGrund: 'Lieferzeit über 6 Monate', rejectedAt: '1999-01-01 00:00:00' });
+  pruefe('Und ein Nachtrag ruehrt das Datum ueberhaupt nicht an',
+    agZeile().rejected_at === agVorDatum, JSON.stringify(agZeile().rejected_at));
   /* UND DIE NUMMER DES ABLEHNENDEN AUCH NICHT. Sie kommt aus req.benutzer und
      nie aus der Adresse oder dem Rumpf -- sonst waere jede Begruendung unter
      fremdem Namen zu setzen, ohne dass eine Klemme etwas davon merkte. */
