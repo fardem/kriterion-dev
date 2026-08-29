@@ -6,7 +6,8 @@ einer Kopie.
 AUFTRAG: **Version 0.14.0 — „Die Entscheidung wird mitgeschrieben."**
 **Eine MINOR-Runde, und sie ist die dritte aus dem Fahrplan** — Projektstand,
 Abschnitt 10a, dort steht sie ausgearbeitet. **Sie ist die erste Runde seit
-0.8.50, die das Schema anfasst.**
+0.8.50, die das Schema anfasst.** *Punkt 1 und Punkt 6 stehen nicht im
+Fahrplan: es sind Befunde aus dem Betrieb und kamen später dazu.*
 
 WORAUF SIE AUFSETZT: 0.13.2 ist gebaut und geschoben, Fingerprint `15188676`,
 **4131 Prüfungen**, **218 Rückbauten** in `gegenprobe.js`, `F_ROUTEN` bei
@@ -19,16 +20,20 @@ Bestätigung. Laufzeitabhängigkeiten: `better-sqlite3-multiple-ciphers`,
 
 WAS SICH ÄNDERT, IN EINEM SATZ: Das Häkchen „abgelehnt" wird zu einer Aussage —
 mit **Datum**, **Grund** und **Verfasser** — und damit hält die Anlage endlich
-auch ihr Ergebnis fest, nicht bloß den Weg dorthin.
+auch ihr Ergebnis fest, nicht bloß den Weg dorthin. **Dazu zwei Befunde aus dem
+Betrieb**, die nichts damit zu tun haben und trotzdem mitfahren: ein kaputter
+Cookiewert sperrt einen Browser aus, und die Sternreihen der Kriterienliste
+stehen nicht auf einer Linie.
 
 **DIESE RUNDE HAT IHR RISIKO NICHT IN DER FUNKTION, SONDERN IM
 MIGRATIONSBLOCK.** Die Funktion selbst ist klein: drei Spalten, ein Feld im
 Dialog, eine Zeile an der Marke. **Der Block, der die Spalten in eine
 bestehende Datenbank nachrüstet, ist der Teil, bei dem ein Fehler Daten kostet**
 — und es ist der erste seit fünf Runden ohne Schema. *Der Schnitt, falls einer
-nötig wird, liegt zwischen Punkt 5 und Punkt 4; **Punkt 1 wird nie
-geschnitten**, er repariert Laufendes, und **Punkt 2 und 3 gehören zusammen** —
-Spalten ohne Eingabe wären eine Spalte, die niemand füllt.*
+nötig wird, beginnt bei Punkt 6 und geht dann zwischen Punkt 5 und Punkt 4;
+**Punkt 1 wird nie geschnitten**, er repariert Laufendes, und **Punkt 2 und 3
+gehören zusammen** — Spalten ohne Eingabe wären eine Spalte, die niemand
+füllt.*
 
 ---
 
@@ -240,7 +245,80 @@ Spalten ohne Eingabe wären eine Spalte, die niemand füllt.*
 
 ---
 
-6. **WAS AUSDRÜCKLICH NICHT GEBAUT WIRD.**
+6. **DIE STERNREIHE STEHT NICHT AUF EINER LINIE — EIN BEFUND AUS DEM BETRIEB
+   VOM 29. AUGUST 2026.**
+
+   In der Kriterienliste eines Eintrags steht rechts die eigene Sternreihe und
+   daneben der Schnitt, `⌀ 3,0 (2)`. **Eine Zeile, die noch niemand bewertet
+   hat, trägt dort nichts — und ihre Sterne rutschen dadurch nach rechts.** Sie
+   beginnen nicht an derselben Stelle wie die der Zeilen darüber und darunter.
+
+   **DIE URSACHE STEHT SEIT LANGEM IM STILBLATT:**
+
+   ```css
+   .rrow .ravg { … min-width: 52px; text-align: right; }
+   ```
+
+   Der Kommentar darüber sagt sogar, wozu die Zahl da ist: *„Feste
+   Mindestbreite: sonst wackelt die Sternreihe, sobald eine Zeile keine Zahl
+   hat."* **Die Absicht ist richtig, die Zahl ist zu klein** — und sie ist eine
+   feste Pixelzahl in einer Anlage, die ihre Schrift von 80 bis 120 Prozent
+   stellt. *Dasselbe Muster wie Befund A aus 0.12.1 (`right: 92px`) und wie die
+   Ausrichtung, die 0.13.1 in Ordnung gebracht hat.*
+
+   **NACHGEMESSEN IN CHROMIUM, gleiche Prüflage, drei Schriftgrößen** — der
+   linke Rand der Sternreihe:
+
+   | Schrift | Zeile mit Zahl | Zeile ohne Zahl | Unterschied |
+   |---|---|---|---|
+   | 80 % | 408,5 px | 408,5 px | **0 px** |
+   | 100 % | 379,3 px | 392,3 px | **13 px** |
+   | 120 % | 350,2 px | 376,2 px | **26 px** |
+
+   **Bei 80 Prozent stimmt es zufällig** — dort ist der Text genau 52 px breit.
+   *Die Zahl war einmal richtig und wächst seither auseinander.*
+
+   **UND ES IST NICHT NUR DIE LEERE ZEILE.** Auch unter den Zeilen **mit** Zahl
+   steht die Reihe nur so lange auf einer Linie, wie alle Zahlen gleich lang
+   sind: `⌀ 5,0 (128)` ist bei 100 Prozent 79,5 px breit und schiebt die Sterne
+   dieser einen Zeile **14,5 px nach links**. **Die Zusage „alle Sternreihen
+   beginnen an derselben Stelle" gilt heute für keinen der beiden Fälle.**
+
+   **Zu entscheiden ist der Weg, und beide sind vertretbar:**
+
+   * **(a) Die Mindestbreite in `ch` statt in Pixeln.** Die Spalte ist in
+     Festbreitenschrift gesetzt, `⌀ 5,0 (128)` sind zwölf Zeichen. **Wächst mit
+     der Schrift, kostet eine Zeile.** *Bleibt aber eine Zahl — bei vierstelliger
+     Stimmenzahl bricht sie wieder.*
+   * **(b) Der ganze Block wird EIN Raster**, und die Spalte misst sich an ihrer
+     breitesten Zelle. **Dann steht gar keine Zahl mehr im Stilblatt.** *Der
+     Preis: die Zeilen sind heute einzelne Flex-Kästen mit eigener Trennlinie
+     unten — wer sie zu Rasterzellen macht, muss die Trennlinie neu ziehen.*
+
+   **Meine Neigung ist (b)**, weil es das Muster ganz auflöst statt die Zahl zu
+   vergrößern — aber **(a) ist die kleinere Änderung**, und wenn die Runde eng
+   wird, ist sie die richtige. *Sag, wofür du dich entscheidest, und begründe
+   es.*
+
+   **Die Prüfung braucht beide schwierigen Zeilen:** eine **ohne** Bewertung und
+   eine mit **langer** Zahl. *Eine Prüflage, in der alle Zahlen gleich lang
+   sind, kann den Fehler gar nicht tragen (Stolperstein 189).* **Gemessen wird
+   in Chromium, nicht in jsdom** — dort ist jede Breite null; der Prüflauf
+   sichert die Regel im Stilblatt und den Aufbau, die Zahlen kommen ins
+   Änderungsprotokoll.
+
+   **Was NICHT gebaut wird:** ein Text wie „noch keine Bewertung" in der leeren
+   Spalte. *Neben fünf leeren Sternen wäre das dieselbe Aussage zweimal — die
+   Begründung steht seit jeher im Quelltext daneben und gilt weiter.*
+
+   **Und der Blick daneben lohnt:** dieselbe Spalte gibt es in der Ansicht
+   „Wer hat bewertet" und im Vergleich (`.cmp-crit`). **Sieh nach, ob dort
+   dasselbe Muster steht** — und wenn ja, nimm es mit; eine halb behobene
+   Ausrichtung ist schlechter als eine benannte.
+
+---
+
+7. **WAS AUSDRÜCKLICH NICHT GEBAUT WIRD.**
 
    * **KEIN dreiwertiger Zustand** *offen / genommen / verworfen*. Klingt
      vollständiger, ist aber ein Neubau: `rejected` müsste weg, jeder Filter und
@@ -263,7 +341,7 @@ Spalten ohne Eingabe wären eine Spalte, die niemand füllt.*
 
 ---
 
-DIE VIER ENTSCHEIDUNGEN — **jede will beantwortet werden, mit Begründung, im
+DIE FÜNF ENTSCHEIDUNGEN — **jede will beantwortet werden, mit Begründung, im
 Änderungsprotokoll:**
 
 * **Wird `rejected_grund` beim Zurücknehmen des Merkmals gelöscht oder
@@ -279,6 +357,8 @@ DIE VIER ENTSCHEIDUNGEN — **jede will beantwortet werden, mit Begründung, im
 * **Zählt `PUT /api/items/:id` mit den neuen Feldern als neue schreibende
   Route?** *Prüf, ob `F_ROUTEN` bei 69 bleibt* — und wenn nicht, sag es mit
   Begründung.
+* **Und die fünfte, aus Punkt 6: Mindestbreite in `ch` oder ein Raster für den
+  ganzen Block?** *Meine Neigung steht dort; die Entscheidung ist deine.*
 
 ---
 
@@ -314,9 +394,10 @@ AUFLAGEN — sie gelten unverändert und sind keine Formsache:
 * **Und der Zwilling dazu** (Stolperstein 199): *was du in einen Kommentar
   schreibst, schreibst du im selben Zug in eine Prüfung.*
 * **Wird es zu viel für einen Durchgang, sag es, sobald du es kommen siehst —
-  nicht hinterher.** Der Schnitt liegt zwischen Punkt 5 und Punkt 4. **Punkt 1
-  steht außerhalb** und wird nie geschnitten; **Punkt 2 und 3 fallen nur
-  zusammen** — Spalten ohne Eingabe wären eine Spalte, die niemand füllt.
+  nicht hinterher.** Zuerst fällt **Punkt 6** (er hängt an nichts), dann der
+  Schnitt zwischen Punkt 5 und Punkt 4. **Punkt 1 steht außerhalb** und wird nie
+  geschnitten; **Punkt 2 und 3 fallen nur zusammen** — Spalten ohne Eingabe
+  wären eine Spalte, die niemand füllt.
 
 BAUREGEL — datenbankverändernder Code wird rückbaufreundlich gebaut:
 
