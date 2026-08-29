@@ -16335,7 +16335,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
      gezaehlt waren es 193 -- 184 plus neun. */
-  pruefe('Es sind genau 214 Rueckbauten', gpListe.length === 214, `${gpListe.length}`);
+  pruefe('Es sind genau 216 Rueckbauten', gpListe.length === 216, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -27109,6 +27109,67 @@ async function pruefeOberflaeche() {
     /env\(safe-area-inset-bottom\)/.test(regelAnm), regelAnm);
   pruefe('Und der neue Abstand ist wirklich kleiner als der alte',
     Number((regelAnm.match(/calc\((\d+)px/) || [0, 99])[1]) < 26, regelAnm);
+
+  /* ================= Die Beschriftungen stehen oben — 0.13.1 ===========
+     DER BEFUND KAM AUS DEM BETRIEB UND WAR EIN BILD: bei aufgeklappter
+     Tagwolke sanken "TAGS", der Und/Oder-Umschalter und "weniger" in die
+     Mitte des Blocks und standen neben nichts. `align-items: center` mittelt
+     ueber die GANZE Hoehe der Zeile, und eine Filterzeile ist seit den Tags
+     nicht mehr verlaesslich einzeilig.
+     GEMESSEN WIRD HIER NICHT. jsdom rechnet kein Layout, jede Hoehe ist dort
+     null; die 32 / 36 / 59 px davor und die unter einem Pixel danach sind in
+     Chromium bei 80, 100 und 120 Prozent Schrift genommen und stehen im
+     Aenderungsprotokoll 0.13.1.
+     WAS DIESER LAUF PRUEFEN KANN, ist die Regel im Stilblatt -- und den
+     Gegenstand, an dem sie ueberhaupt wirkt: dass die vier Kaesten
+     Geschwister EINER Zeile sind. Eine Regel ohne diesen Gegenstand waere
+     gruen fuer nichts (Stolperstein 81). */
+  gruppe('Die Beschriftungen stehen oben — 0.13.1');
+
+  /* Ein gesetzter Tag ist noetig, damit "zuruecksetzen" dasteht: OHNE ihn gibt
+     es den Kasten .frow-rechts in dieser Prueflage gar nicht, denn "mehr"
+     haengt an begrenzeWolke() -- und die steigt in jsdom mangels Hoehe
+     ausdruecklich aus. Die Pruefung darunter waere dann eine ueber nichts. */
+  const obDom = baueDom(JSDOM, {
+    tags: [{ id: 41, name: 'Alu', usage_count: 3 }, { id: 42, name: 'Stahl', usage_count: 2 }],
+    einstellungen: { filters: { tagIds: [41] } } });
+  const obW = obDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const obTagzeile = [...obW.document.querySelectorAll('#filters .frow')]
+    .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
+  const obKind = (wahl) => obTagzeile && [...obTagzeile.children].some(k => k.matches(wahl));
+  pruefe('Die Tagzeile steht da', !!obTagzeile, '(keine Tagzeile)');
+  pruefe('Beschriftung, Umschalter, Wolke und Verweise sind Geschwister EINER Zeile',
+    obKind('.eyebrow') && obKind('.tagmode') && obKind('.pills.cloud') && obKind('.frow-rechts'),
+    [...(obTagzeile?.children || [])].map(k => k.className).join(' | '));
+  obW.close();
+
+  /* Die Regel selbst. Zwei Fassungen von `.frow` stehen im Stilblatt: die
+     allgemeine und die des schmalen Schirms -- gepruefft werden beide, denn
+     der schmale Schirm ordnet in einer Spalte an und darf von dieser Runde
+     gar nicht beruehrt werden. */
+  const obFrow = css123.match(/\.frow \{[^}]*\}/g) || [];
+  pruefe('Es gibt genau zwei Fassungen der Filterzeile: allgemein und schmal',
+    obFrow.length === 2, obFrow.join(' || ') || '(keine Regel)');
+  pruefe('Eine Filterzeile richtet sich an der Grundlinie aus',
+    /align-items: baseline/.test(obFrow[0] || ''), obFrow[0] || '(keine Regel)');
+  pruefe('Und ausdruecklich nicht mehr an der Mitte',
+    !/align-items: center/.test(obFrow[0] || ''), obFrow[0] || '(keine Regel)');
+  // Ohne den Umbruch stuende die Zeile bei grosser Schrift ueber den Rand
+  // hinaus, statt sich zu teilen.
+  pruefe('Die Zeile bricht weiterhin um',
+    /flex-wrap: wrap/.test(obFrow[0] || ''), obFrow[0] || '(keine Regel)');
+  pruefe('Der schmale Schirm behaelt seine eigene Anordnung',
+    /flex-direction: column/.test(obFrow[1] || ''), obFrow[1] || '(keine Regel)');
+  /* KEIN NACHGEBESSERTER INNENABSTAND. Der naheliegende zweite Weg waere
+     `align-items: flex-start` plus ein Innenabstand, der den Groessenunterschied
+     zwischen Beschriftung und Pille ausgleicht -- also eine ausgerechnete Zahl.
+     Die kann bei 80 bis 120 Prozent Schrift nur falsch werden; das war Befund A
+     aus 0.12.1. Diese Zeile haelt den Weg zu. */
+  const obNach = ['.frow > .eyebrow', '.frow-rechts', '.frow > .eyebrow-mit']
+    .filter(r => /align-self|padding-top|margin-top/.test(regel123(r)));
+  pruefe('Keine der Zeilen bessert die Ausrichtung mit einer Zahl nach',
+    obNach.length === 0, obNach.map(r => regel123(r)).join(' | ') || '(keine)');
 }
 
 /* ================= Der Schluesselwechsel =================

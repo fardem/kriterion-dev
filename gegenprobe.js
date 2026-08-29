@@ -1925,6 +1925,27 @@ const RUECKBAUTEN = [
     ersatz: "  if (false) {",
     erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
+  /* ---- Die Beschriftungen stehen oben — 0.13.1 ---- */
+  {
+    /* ZURUECK IN DIE MITTE -- der Befund selbst. Bei aufgeklappter Tagwolke
+       sinken Beschriftung, Umschalter und Verweise wieder in die Mitte des
+       Blocks. */
+    nr: '213', name: 'Die Filterzeile mittelt wieder ueber die ganze Hoehe',
+    datei: 'public/style.css',
+    suche: '.frow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }',
+    ersatz: '.frow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }',
+    erwartet: 'Die Beschriftungen stehen oben — 0.13.1'
+  },
+  {
+    /* DIE BESCHRIFTUNG NIMMT SICH IHRE MITTE EINZELN ZURUECK. Die Zeile bleibt
+       an der Grundlinie, das eine Element schert aus -- genau der Weg, den die
+       Pruefung ueber `align-self` zuhalten soll. */
+    nr: '214', name: 'Die Beschriftung schert aus der Grundlinie aus',
+    datei: 'public/style.css',
+    suche: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; }',
+    ersatz: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; align-self: center; }',
+    erwartet: 'Die Beschriftungen stehen oben — 0.13.1'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
