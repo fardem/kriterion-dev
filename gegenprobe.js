@@ -2601,6 +2601,17 @@ function leseLauf(ausgabe) {
   const abriss = ausgabe.match(/^Prueflauf abgebrochen: (.+)$/m);
   return {
     rot,
+    /* DIE INHALTLICH ROTEN PUNKTE, OHNE DIE SELBSTPROBE. Die Gruppe „Die
+       Gegenproben greifen" prueft, dass JEDER Suchtext in seiner Datei genau
+       einmal vorkommt -- und ein gefahrener Rueckbau hat seine Zeile gerade
+       ersetzt. Diese eine Pruefung wird deshalb bei JEDEM Rueckbau rot, ganz
+       gleich, ob er sonst etwas bewirkt.
+       OHNE DIESE UNTERSCHEIDUNG KANN DIE TABELLE EINEN STUMMEN RUECKBAU GAR
+       NICHT SEHEN: `rot.length` ist nie null, und „0 STUMM" waere eine
+       Auskunft ueber nichts. Genau so ist Rueckbau 265 in 0.15.0 durch die
+       Meldung gerutscht -- gefunden wurde er beim Lesen der Tabelle von Hand
+       (Stolperstein 213). */
+    inhaltlichRot: rot.filter(t => t.gruppe !== 'Die Gegenproben greifen'),
     durchgelaufen: Boolean(schluss),
     bestanden: schluss ? Number(schluss[1]) : null,
     gesamt: schluss ? Number(schluss[2]) : null,
@@ -2668,7 +2679,7 @@ async function fahreAlle(liste, spuren, stufe) {
       const wort = e.fehler ? 'FEHLER'
         : e.ueberfaellig ? 'ZEITGRENZE'
         : !e.durchgelaufen ? 'ABGERISSEN'
-        : e.rot.length ? `${e.rot.length} rot` : 'STUMM';
+        : e.inhaltlichRot?.length ? `${e.inhaltlichRot.length} rot` : 'STUMM';
       console.log(`  [Spur ${nr}] ${r.nr} fertig nach ${e.sekunden}s — ${wort}`);
     }
   };
@@ -2692,7 +2703,7 @@ function schreibeTabelle(ergebnisse) {
     else if (!e.durchgelaufen)
       rechts = `**LAUF ABGERISSEN** — ${e.abriss || `Code ${e.code}`}` +
                (e.rot.length ? ` (davor ${e.rot.length} rot)` : '');
-    else if (!e.rot.length) rechts = '**STUMM — das ist ein FUND**';
+    else if (!e.inhaltlichRot?.length) rechts = '**STUMM — das ist ein FUND**';
     else if (e.rot.length <= 3)
       rechts = e.rot.map(p => `„${p.name}"`).join(', ');
     else {
@@ -2712,7 +2723,7 @@ function schreibeTabelle(ergebnisse) {
       console.log(`  LAUF ABGERISSEN: ${e.abriss || `Rückgabewert ${e.code}`}`);
     else
       console.log(`  ${e.bestanden} von ${e.gesamt} bestanden, erwartet in „${e.erwartet}"`);
-    if (!e.rot.length && e.durchgelaufen)
+    if (!e.inhaltlichRot?.length && e.durchgelaufen)
       console.log('  STUMM — kein einziger roter Punkt. Das ist ein FUND und gehört untersucht.');
     let letzte = null;
     for (const p of e.rot) {
@@ -2724,7 +2735,7 @@ function schreibeTabelle(ergebnisse) {
     console.log('');
   }
 
-  const stumm = ergebnisse.filter(e => e.durchgelaufen && !e.rot.length);
+  const stumm = ergebnisse.filter(e => e.durchgelaufen && !e.inhaltlichRot?.length);
   const kaputt = ergebnisse.filter(e => e.fehler || !e.durchgelaufen);
   const leichen = ergebnisse.filter(e => e.uebrig || e.raeumFehler);
   console.log('══════════════════════════════════════════════════════════════');
@@ -2747,7 +2758,11 @@ function schreibeTabelle(ergebnisse) {
    der Stunden dauert. Drei davon lagen so fuenf Runden lang unbemerkt.
    NUR BEIM DIREKTEN AUFRUF WIRD GEFAHREN: `require('./gegenprobe')` liefert
    die Liste und startet keinen einzigen Server. */
-module.exports = { RUECKBAUTEN };
+/* leseLauf GEHT MIT HINAUS, damit der Pruefstand die Regel „was gilt als
+   stumm" an gestellten Ausgaben nachsehen kann -- in Millisekunden statt in
+   Minuten. Ein Werkzeug, das seinen eigenen Fund nicht melden kann, ist
+   schlimmer als keines (Stolperstein 213). */
+module.exports = { RUECKBAUTEN, leseLauf };
 if (require.main !== module) return;
 
 (async function haupt() {

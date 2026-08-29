@@ -4964,6 +4964,36 @@ Version, in der sie entstanden sind.*
     *Wer nur eine liefert, baut entweder einen Knopf, der 403 kassiert, oder
     versteckt einen, der erlaubt wäre.*
 
+211. **Eine Prüfung, die nach einem Element greift, das ihr eigener Rückbau
+    wegnimmt, REISST DEN GANZEN LAUF AB statt rot zu werden.** Rückbau 264
+    entfernt die Rückfrage vor dem Löschen; damit steht das
+    Bestätigungsfenster gar nicht da, und `fenster.querySelector('[data-yes]')`
+    warf einen TypeError. **Die beiden Prüfungen davor wurden richtig rot — der
+    Abriss kam danach**, und die Gegenprobe meldete den Rückbau als *„nicht
+    auswertbar"* statt als greifend. *Ein abgerissener Lauf belegt gar nichts,
+    und im Betrieb fällt die ganze Prüfung aus statt einer Gruppe.* **Jeder
+    Griff auf ein Element, das ein denkbarer Rückbau wegnehmen kann, wird
+    abgesichert** — `?.` kostet nichts und hält den Lauf ganz.
+
+212. **jsdom führt Folgewirkungen nicht aus — wer sie nicht selbst auslöst,
+    prüft die halbe Kette.** Ein echter Browser nimmt einem Element, das
+    versteckt wird, den Zeiger und löst damit `blur` aus; **jsdom tut das
+    nicht.** Die Prüfung auf „Escape verwirft und schreibt nicht weg" sah
+    deshalb nur, dass das Feld zugeht — nicht, dass der verworfene Text nicht
+    doch noch vom Speicherweg abgeholt wird. *Der Rückbau darauf blieb stumm.*
+    **Was der Browser von selbst tut, wird in der Prüflage ausdrücklich
+    ausgelöst**, sonst belegt sie die Hälfte und liest sich wie das Ganze.
+
+213. **Ein Werkzeug, dessen Erfolgsmeldung den eigenen Fund nicht sehen kann,
+    ist schlimmer als keines.** `gegenprobe.js` nannte einen Rückbau „STUMM",
+    wenn **kein** Punkt rot wurde — aber die Selbstprobe *„Jeder Suchtext kommt
+    in seiner Datei genau einmal vor"* wird bei **jedem** gefahrenen Rückbau
+    rot, denn er hat seinen Suchtext gerade ersetzt. **Damit war `rot.length`
+    nie null, und „0 STUMM" war eine Auskunft über nichts.** *Gefunden wurde
+    der stumme Rückbau beim Lesen der Tabelle von Hand — die Meldung darüber
+    sagte das Gegenteil.* **Die Frage an jede Erfolgsmeldung: gibt es einen
+    Zustand, in dem sie gar nicht anschlagen KANN?**
+
 ---
 
 ## 7. Prüfstand

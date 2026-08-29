@@ -649,6 +649,39 @@ das. **Die Oberfläche braucht deshalb zwei Angaben vom Server**
 *Wer nur eine liefert, baut entweder einen Knopf, der 403 kassiert, oder
 versteckt einen, der erlaubt wäre.*
 
+**211. Eine Prüfung, die nach einem Element greift, das ihr eigener Rückbau
+wegnimmt, REISST DEN GANZEN LAUF AB statt rot zu werden.** *Und dieser
+Stolperstein ist nicht ausgedacht — er kommt aus der Gegenprobe dieser Runde
+und ist ihr eigentlicher Fund.* **Rückbau 264** entfernt die Rückfrage vor dem
+Löschen; damit steht das Bestätigungsfenster gar nicht da, und
+`fenster.querySelector('[data-yes]')` warf einen TypeError. **Die beiden
+Prüfungen davor wurden richtig rot — der Abriss kam danach**, und die
+Gegenprobe meldete 264 als *„nicht auswertbar"* statt als greifend. *Ein
+abgerissener Lauf belegt gar nichts, und im Betrieb fällt die ganze Prüfung aus
+statt einer Gruppe.* **Jeder Griff auf ein Element, das ein denkbarer Rückbau
+wegnehmen kann, wird abgesichert** — `?.` kostet nichts und hält den Lauf ganz.
+
+**212. jsdom führt Folgewirkungen nicht aus — wer sie nicht selbst auslöst,
+prüft die halbe Kette.** *Der zweite Fund aus der Gegenprobe, und der
+schwerere.* Ein echter Browser nimmt einem Element, das versteckt wird, den
+Zeiger und löst damit `blur` aus; **jsdom tut das nicht.** Die Prüfung auf
+„Escape verwirft" sah deshalb nur, dass das Feld zugeht — nicht, dass der
+verworfene Text nicht doch noch vom Speicherweg abgeholt wird. **Rückbau 265,
+der genau das Zurücksetzen wegnimmt, blieb daran STUMM.** *Was der Browser von
+selbst tut, wird in der Prüflage ausdrücklich ausgelöst* — die Gruppe wirft den
+`blur` jetzt selbst und prüft dazu, dass der verworfene Text wirklich aus dem
+Feld verschwunden ist.
+
+**213. Ein Werkzeug, dessen Erfolgsmeldung den eigenen Fund nicht sehen kann,
+ist schlimmer als keines.** `gegenprobe.js` nannte einen Rückbau „STUMM", wenn
+**kein** Punkt rot wurde — aber die Selbstprobe *„Jeder Suchtext kommt in seiner
+Datei genau einmal vor"* wird bei **jedem** gefahrenen Rückbau rot, denn er hat
+seinen Suchtext gerade ersetzt. **Damit war `rot.length` nie null, und die
+Schlusszeile „0 STUMM" war eine Auskunft über nichts.** *Gefunden wurde 265
+beim Lesen der Tabelle von Hand — die Meldung darüber sagte das Gegenteil.*
+**Die Frage an jede Erfolgsmeldung: gibt es einen Zustand, in dem sie gar nicht
+anschlagen KANN?**
+
 ---
 
 ## 11. Die Zahlen
@@ -657,7 +690,7 @@ versteckt einen, der erlaubt wäre.*
 |---|---|---|
 | Prüfungen | 4262 | **4347** |
 | Rückbauten in `gegenprobe.js` | 249 | **267** |
-| Stolpersteine | 207 | **210** |
+| Stolpersteine | 207 | **213** |
 | Markierte Migrationsblöcke | 6 | **6** |
 | Austauschformat | 11 | **11** |
 | Spalten an `items` | 13 | **13** |

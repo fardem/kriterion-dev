@@ -17265,6 +17265,40 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und jeder nennt Name und erwartete Gruppe',
     gpOhneErwartet.length === 0, gpOhneErwartet.map(r => r.nr).join(' '));
 
+  /* ---- DIE MELDUNG „STUMM" MUSS EINEN STUMMEN RUECKBAU AUCH SEHEN KOENNEN.
+     DER BEFUND, DER DIESE DREI ZEILEN AUSGELOEST HAT: die Pruefung „Jeder
+     Suchtext kommt in seiner Datei genau einmal vor" -- die eine Zeile
+     hoeher -- wird bei JEDEM gefahrenen Rueckbau rot, denn er hat seinen
+     Suchtext gerade ersetzt. Zaehlt die Tabelle einfach alle roten Punkte,
+     ist `rot.length` nie null, und „0 STUMM" ist eine Auskunft ueber nichts.
+     Genau daran ist Rueckbau 265 in 0.15.0 durchgerutscht (Stolperstein 213).
+     GEPRUEFT WIRD AN GESTELLTEN AUSGABEN und nicht am laufenden Werkzeug: ein
+     Gegenprobenlauf dauert Minuten, diese drei Zeilen Millisekunden. ---- */
+  const gpLese = require('./gegenprobe').leseLauf;
+  pruefe('Der Leser der Gegenprobe ist von aussen erreichbar',
+    typeof gpLese === 'function', typeof gpLese);
+  const gpNurSelbst = gpLese([
+    '── Die Gegenproben greifen ─────',
+    '  ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor',
+    '  4346 von 4347 Pruefungen bestanden'
+  ].join('\n'));
+  pruefe('Ein Lauf, der NUR die Selbstprobe rot macht, gilt als stumm',
+    gpNurSelbst.rot.length === 1 && gpNurSelbst.inhaltlichRot.length === 0,
+    JSON.stringify([gpNurSelbst.rot.length, gpNurSelbst.inhaltlichRot.length]));
+  /* DIE GEGENLAGE, sonst belegt die Zeile darueber nichts: dieselbe Selbstprobe
+     mit EINER inhaltlichen Zeile daneben gilt sehr wohl als greifend. */
+  const gpMitInhalt = gpLese([
+    '── Die Begruendung kommt zur Ruhe — 0.15.0 ─────',
+    '  ✗ Escape schliesst das Feld, ohne etwas zu schicken',
+    '── Die Gegenproben greifen ─────',
+    '  ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor',
+    '  4345 von 4347 Pruefungen bestanden'
+  ].join('\n'));
+  pruefe('Und einer mit einer inhaltlichen Zeile daneben nicht',
+    gpMitInhalt.rot.length === 2 && gpMitInhalt.inhaltlichRot.length === 1 &&
+    gpMitInhalt.inhaltlichRot[0].gruppe === 'Die Begruendung kommt zur Ruhe — 0.15.0',
+    JSON.stringify(gpMitInhalt.inhaltlichRot));
+
   gruppe('Das Skript auf dem Wirt ist ausfuehrbar');
 
   /* ZWEI HAELFTEN, DIE ZUSAMMENGEHOEREN -- dieselbe Bauform wie beim
@@ -28822,9 +28856,25 @@ async function pruefeOberflaeche() {
     ruhFeld(d).value = 'Doch nicht so';
     ruhFeld(d).dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
+    /* UND JETZT DAS, WAS EIN ECHTER BROWSER VON SELBST TUT: das Schliessen
+       nimmt dem Feld den Zeiger, und das loest `blur` aus -- also den
+       Speicherweg. JSDOM TUT DAS NICHT; ein verstecktes Element behaelt dort
+       den Fokus.
+       OHNE DIESE ZEILE PRUEFT DIE GRUPPE DIE HALBE KETTE: sie saehe, dass das
+       Feld zugeht, aber nicht, dass der verworfene Text nicht doch noch
+       weggeschrieben wird. Rueckbau 265 nimmt genau das Zuruecksetzen weg und
+       blieb daran STUMM -- das ist der Grund fuer diese Zeile und fuer
+       Stolperstein 212. */
+    ruhFeld(d).dispatchEvent(new d.w.FocusEvent('blur'));
+    await new Promise(r => setTimeout(r, 60));
     pruefe('Escape schliesst das Feld, ohne etwas zu schicken',
       ruhZeile(d)?.hidden === true && d.gesendet.length === ruhVorEsc,
       JSON.stringify(d.gesendet.slice(ruhVorEsc).map(g => g.koerper)));
+    /* UND DER TEXT IM FELD IST WIRKLICH ZURUECKGESETZT, nicht bloss ungesendet.
+       Ohne diese Zeile bliebe die Pruefung darueber auch dann gruen, wenn der
+       Speicherweg nur zufaellig nichts zu tun fand. */
+    pruefe('Und der verworfene Text steht nicht mehr im Feld',
+      ruhFeld(d).value === 'Zu ruhig', JSON.stringify(ruhFeld(d).value));
     pruefe('Und die alte Aussage steht wieder da',
       ruhWarum(d)?.textContent === 'Zu ruhig', JSON.stringify(ruhWarum(d)?.textContent));
 
