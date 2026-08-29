@@ -17009,7 +17009,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
      gezaehlt waren es 193 -- 184 plus neun. */
-  pruefe('Es sind genau 218 Rueckbauten', gpListe.length === 218, `${gpListe.length}`);
+  pruefe('Es sind genau 248 Rueckbauten', gpListe.length === 248, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

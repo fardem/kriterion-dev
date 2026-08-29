@@ -1967,6 +1967,300 @@ const RUECKBAUTEN = [
     ersatz: '  border-bottom-color: var(--accent);\n}',
     erwartet: 'Der angepinnte Rahmen schliesst — 0.13.2'
   },
+  /* ---- 0.14.0: der kaputte Cookiewert ---- */
+  {
+    /* DER BEFUND SELBST, wiederhergestellt: decodeURIComponent() auf JEDEN
+       Wert, ohne Auffangnetz. Ein fremder Cookie mit einem Prozentzeichen
+       sperrt den Browser damit wieder aus. */
+    nr: '217', name: 'Ein kaputter Cookiewert bricht wieder den ganzen Kopf ab',
+    datei: 'auth.js',
+    suche: "    let wert;\n    try { wert = decodeURIComponent(part.slice(i + 1).trim()); }\n" +
+      "    catch { continue; }\n    out[part.slice(0, i).trim()] = wert;",
+    ersatz: "    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());",
+    erwartet: 'Der kaputte Cookiewert — 0.14.0'
+  },
+  {
+    /* DIE ANDERE HALBE FASSUNG: der kaputte Wert reisst nicht mehr ab, aber
+       der ganze KOPF faellt weg statt nur der einen Zeile. Dann kommt der
+       eigene, gueltige Cookie daneben nicht mehr an -- und genau das ist der
+       Unterschied, den eine Prueflage mit nur einem Cookie nicht sehen kann. */
+    nr: '218', name: 'Ein kaputter Wert nimmt den ganzen Cookiekopf mit',
+    datei: 'auth.js',
+    suche: "    catch { continue; }",
+    ersatz: "    catch { return {}; }",
+    erwartet: 'Der kaputte Cookiewert — 0.14.0'
+  },
+  /* ---- 0.14.0: die drei Spalten und der Migrationsblock ---- */
+  {
+    nr: '219', name: 'Der Migrationsblock laeuft gar nicht mehr',
+    datei: 'db.js',
+    suche: "migration0140();\n// ENDE MIGRATION 0.14.0",
+    ersatz: "// migration0140();\n// ENDE MIGRATION 0.14.0",
+    erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
+  },
+  {
+    /* STOLPERSTEIN 108: der Block fragt sich als GANZES ab. Ein Bestand, dem
+       nur die zweite oder dritte Spalte fehlt, bleibt damit fuer immer
+       zerrissen -- und genau das ist der Riss, den eine frueher abgebrochene
+       Fassung hinterlaesst. */
+    nr: '220', name: 'Der Migrationsblock fragt nur noch die erste Spalte ab',
+    datei: 'db.js',
+    suche: "  const fehlend = [];\n  if (!spalten.includes('rejected_at')) fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
+    ersatz: "  const fehlend = [];\n  if (spalten.includes('rejected_at')) return 0;\n  fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
+    erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
+  },
+  {
+    /* Die Transaktion faellt weg. Am unveraenderten Stand aendert das nichts
+       am Ergebnis -- der Waechter ueber den Quelltext haelt sie fest, denn
+       ohne sie ueberlebt bei einem Abbruch die erste Spalte allein. */
+    nr: '221', name: 'Die drei ALTER TABLE laufen nicht mehr in einer Transaktion',
+    datei: 'db.js',
+    suche: "  db.transaction(() => { for (const [, sql] of fehlend) db.exec(sql); })();",
+    ersatz: "  for (const [, sql] of fehlend) db.exec(sql);",
+    erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
+  },
+  {
+    /* EIN NACHGESCHOBENES UPDATE ERFINDET ANGABEN. "Abgelehnt am Tag der
+       Einspielung von dem, der eingespielt hat" ist die schlimmste davon --
+       und sie saehe aus wie eine echte. */
+    nr: '222', name: 'Die Migration traegt erfundene Angaben in den Bestand',
+    datei: 'db.js',
+    suche: "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt `",
+    ersatz: "  db.exec(\"UPDATE items SET rejected_at = datetime('now') WHERE rejected = 1\");\n" +
+      "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt `",
+    erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
+  },
+  {
+    /* Die nachgeruestete Spalte verliert ihren Fremdschluessel. Ein entfernter
+       Zugang laesst danach eine Nummer stehen, die auf niemanden mehr zeigt --
+       und die migrierte Anlage verhaelt sich anders als die frische. */
+    nr: '223', name: 'Die nachgeruestete Spalte bekommt keinen Fremdschluessel',
+    datei: 'db.js',
+    suche: "    'ALTER TABLE items ADD COLUMN rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL']);",
+    ersatz: "    'ALTER TABLE items ADD COLUMN rejected_von INTEGER']);",
+    erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
+  },
+  {
+    /* Die DDL verliert die drei Spalten. Eine FRISCHE Anlage bekaeme sie dann
+       ueber den Migrationsblock -- und zu 1.0, wenn er wegfaellt, gar nicht
+       mehr. Genau dafuer steht die Gegenlage der frischen Anlage. */
+    nr: '224', name: 'Die drei Spalten stehen nicht mehr in der DDL',
+    datei: 'db.js',
+    suche: "  rejected_at TEXT,\n  rejected_grund TEXT,",
+    ersatz: "",
+    erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
+  },
+  /* ---- 0.14.0: die Klemme an der Begruendung ---- */
+  {
+    /* DIE ZURUECKGENOMMENE ENTSCHEIDUNG, wiederhergestellt: an der Begruendung
+       gilt wieder darfAendern -- Verfasser ODER Admin. Damit schreibt ein
+       Admin eine fremde Aussage unter fremdem Namen um. */
+    nr: '225', name: 'An der Begruendung gilt wieder darfAendern statt nurSelbst',
+    datei: 'server.js',
+    suche: "      it.rejected_von != null && !nurSelbst(req, it.rejected_von))",
+    ersatz: "      it.rejected_von != null && !darfAendern(req, it.rejected_von))",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Die grobe Haelfte faellt weg: rejectedGrund steht nicht mehr in
+       NUR_VERFASSER_FELDER. Dann setzt jeder Angemeldete eine Begruendung an
+       einen Eintrag, dessen Ablehnung noch keinen Verfasser traegt. */
+    nr: '226', name: 'Die Begruendung faellt aus den Verfasserfeldern heraus',
+    datei: 'server.js',
+    suche: "const NUR_VERFASSER_FELDER = ['title', 'description', 'rejected', 'rejectedGrund',\n                              'tested', 'productCategoryId'];",
+    ersatz: "const NUR_VERFASSER_FELDER = ['title', 'description', 'rejected',\n                              'tested', 'productCategoryId'];",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Der Zweig fuer den Bestand ohne Verfasser faellt weg. Eine Ablehnung aus
+       einer Anlage vor 0.14.0 bekaeme damit NIE eine Begruendung:
+       nurSelbst(null) ist fuer jeden falsch. */
+    nr: '227', name: 'Eine Ablehnung ohne Verfasser laesst sich nicht mehr begruenden',
+    datei: 'server.js',
+    suche: "  if (b.rejectedGrund !== undefined && !schaltetEin &&\n      it.rejected_von != null && !nurSelbst(req, it.rejected_von))",
+    ersatz: "  if (b.rejectedGrund !== undefined && !schaltetEin &&\n      !nurSelbst(req, it.rejected_von))",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Beim Einschalten wird der Grund nicht mehr mitgeschrieben. Dann traegt
+       die NEUE Entscheidung den Satz der vorigen Person unter neuem Namen --
+       genau das, was die Klemme verhindern soll. */
+    nr: '228', name: 'Ein neues Ablehnen uebernimmt den fremden Satz',
+    datei: 'server.js',
+    suche: "    put('rejected_von', req.benutzer.id);\n    put('rejected_grund', grundText(b.rejectedGrund));",
+    ersatz: "    put('rejected_von', req.benutzer.id);",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Das Datum kommt wieder aus dem Rumpf. Dann traegt jede Ablehnung das
+       Datum, das der Aufrufende hineinschreibt. */
+    nr: '229', name: 'Das Ablehnungsdatum kommt aus dem Rumpf statt vom Server',
+    datei: 'server.js',
+    suche: "    sets.push(`rejected_at = datetime('now')`);",
+    ersatz: "    put('rejected_at', b.rejectedAt || new Date().toISOString().slice(0, 19).replace('T', ' '));",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Die nackte Zugangsnummer bleibt in der Detailantwort stehen -- und das
+       Verfasserobjekt entfaellt. Aus einem Grabstein liesse sich der
+       freigegebene Name dann nicht mehr fernhalten. */
+    nr: '230', name: 'Der Ablehnende geht als nackte Nummer hinaus',
+    datei: 'server.js',
+    suche: "  it.rejectedVerfasser = verfasserAus(karte, it.rejected_von);\n  delete it.rejected_von;",
+    ersatz: "",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Die drei Angaben bleiben in der Uebersicht stehen. Der Grund gehoert an
+       den Eintrag und nicht in eine Kachelreihe -- und rejected_von waere dort
+       eine nackte Zugangsnummer in einer Antwort an jeden. */
+    nr: '231', name: 'Die Uebersicht schickt Grund und Nummer mit hinaus',
+    datei: 'server.js',
+    suche: "    delete it.rejected_at; delete it.rejected_grund; delete it.rejected_von;",
+    ersatz: "",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Der Text wird nicht mehr eingeebnet. Ein eingefuegter Absatz risse die
+       Marke in der Oberflaeche, und der Deckel faellt gleich mit. */
+    nr: '232', name: 'Die Begruendung wird weder eingeebnet noch gekappt',
+    datei: 'server.js',
+    suche: "const grundText = (v) =>\n  typeof v === 'string' ? v.replace(/\\s+/g, ' ').trim().slice(0, GRUND_LAENGE) : '';",
+    ersatz: "const grundText = (v) => (typeof v === 'string' ? v : '');",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  /* ---- 0.14.0: das Austauschformat ---- */
+  {
+    nr: '233', name: 'Die Formatnummer bleibt auf 10',
+    datei: 'server.js',
+    suche: "const AUSTAUSCH_FORMAT = 11;",
+    ersatz: "const AUSTAUSCH_FORMAT = 10;",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Der Ablehnende wandert als NUMMER hinaus. Eine Zugangsnummer bedeutet in
+       einer fremden Anlage etwas anderes -- der Rundlauf traefe dort einen
+       beliebigen Zugang oder gar keinen. */
+    nr: '234', name: 'Der Ablehnende wandert als Nummer statt als Name hinaus',
+    datei: 'server.js',
+    suche: "    rejected_author: verfasserName(it.rejected_von),",
+    ersatz: "    rejected_author: it.rejected_von,",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Die drei Felder fallen aus der Datei. Ein Rundlauf machte damit aus
+       einer begruendeten Ablehnung wieder ein nacktes Haekchen. */
+    nr: '235', name: 'Die drei Angaben gehen gar nicht erst in die Datei',
+    datei: 'server.js',
+    suche: "    rejected_at: it.rejected_at, rejected_grund: it.rejected_grund,\n    rejected_author: verfasserName(it.rejected_von),",
+    ersatz: "",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  {
+    /* Der fehlende Name faellt wieder an den Einspielenden. Dann ist JEDER
+       eingespielte Eintrag von ihm abgelehnt -- auch die, die niemand
+       abgelehnt hat. */
+    nr: '236', name: 'Ein fehlender Ablehnender faellt an den Einspielenden',
+    datei: 'server.js',
+    suche: "      const abgelehntVon = String(it.rejected_author == null ? '' : it.rejected_author).trim()\n        ? verfasser(it.rejected_author) : null;",
+    ersatz: "      const abgelehntVon = verfasser(it.rejected_author);",
+    erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
+  },
+  /* ---- 0.14.0: die Sternreihe der Kriterienliste ---- */
+  {
+    /* DIE FESTE PIXELZAHL KEHRT ZURUECK -- der Befund vom 29. August 2026 in
+       Reinform: bei 80 Prozent stimmt es zufaellig, bei 120 klaffen 26 px. */
+    nr: '237', name: 'Die Zahlenspalte bekommt ihre feste Mindestbreite zurueck',
+    datei: 'public/style.css',
+    suche: "  white-space: nowrap; padding-left: 9px;\n  display: flex; align-items: center; justify-content: flex-end;",
+    ersatz: "  white-space: nowrap; padding-left: 9px;\n  min-width: 52px; text-align: right;",
+    erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
+  },
+  {
+    /* Das Raster faellt weg, die Zeile wird wieder ein Flex-Kasten. Damit
+       misst sich jede Zahlenspalte wieder an ihrem eigenen Inhalt. */
+    nr: '238', name: 'Aus dem Raster wird wieder eine Reihe einzelner Zeilen',
+    datei: 'public/style.css',
+    suche: ".rlist { display: grid; grid-template-columns: 1fr auto auto; }\n.rrow { display: contents; }",
+    ersatz: ".rlist { display: block; }\n.rrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }",
+    erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
+  },
+  {
+    /* Der Kasten bekommt die Rasterklasse nicht mehr. Die Regeln im Stilblatt
+       stehen dann alle da und greifen an nichts -- der Fehler waere zurueck,
+       ohne dass sich eine Zeile im Stilblatt geaendert haette. */
+    nr: '239', name: 'Die Kriterienliste bekommt ihre Rasterklasse nicht',
+    datei: 'public/app.js',
+    suche: "    box.className = 'rlist';",
+    ersatz: "",
+    erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
+  },
+  {
+    /* Die Zahl wandert zurueck in die Sterne. Dann ist sie keine Rasterzelle
+       mehr und wieder nur so breit wie ihr eigener Inhalt. */
+    nr: '240', name: 'Die Zahl steckt wieder in den Sternen statt im Raster',
+    datei: 'public/app.js',
+    suche: "        } else a.textContent = '';\n        row.append(a);",
+    ersatz: "        } else a.textContent = '';\n        acts.append(a);",
+    erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
+  },
+  {
+    /* Die Trennlinie bleibt an der Zeile. Eine Zeile mit display: contents ist
+       kein Kasten mehr -- die Linie verschwaende ganz. */
+    nr: '241', name: 'Die Trennlinie wird wieder an der Zeile gezogen',
+    datei: 'public/style.css',
+    suche: ".rrow > * { padding: 9px 0; border-bottom: 1px solid var(--line-2); }\n.rrow:last-of-type > * { border-bottom: none; }",
+    ersatz: ".rrow { padding: 9px 0; border-bottom: 1px solid var(--line-2); }\n.rrow:last-of-type { border-bottom: none; }",
+    erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
+  },
+  /* ---- 0.14.0: die Oberflaeche an der Marke ---- */
+  {
+    /* Die Marke wird wieder ein blosses Haekchen: der Satz darunter entfaellt.
+       Genau der Zustand vor dieser Runde. */
+    nr: '242', name: 'Die Marke sagt wieder nur "Abgelehnt"',
+    datei: 'public/app.js',
+    suche: "    drawAblehnung();\n  }",
+    ersatz: "  }",
+    erwartet: 'Die Aussage an der Marke — 0.14.0'
+  },
+  {
+    /* Der Name faellt aus der Aussage. Aussagen tragen in dieser Anlage ihren
+       Verfasser -- ohne ihn ist es wieder ein Haekchen mit Datum. */
+    nr: '243', name: 'Die Aussage verliert ihren Verfasser',
+    datei: 'public/app.js',
+    suche: "    if (item.rejectedVerfasser) teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);",
+    ersatz: "",
+    erwartet: 'Die Aussage an der Marke — 0.14.0'
+  },
+  {
+    /* Die alte Begruendung geht beim erneuten Einschalten nicht mehr mit.
+       Damit ist die Angabe, die beim Zuruecknehmen ausdruecklich stehen
+       geblieben ist, beim naechsten Ablehnen doch weg. */
+    nr: '244', name: 'Der Vorschlag zum Ueberschreiben geht verloren',
+    datei: 'public/app.js',
+    suche: "      : { rejected: true, rejectedGrund: item.rejected_grund || '' };",
+    ersatz: "      : { rejected: true };",
+    erwartet: 'Die Aussage an der Marke — 0.14.0'
+  },
+  {
+    /* Das Feld fuer den Grund bleibt verborgen. Ein Feld, das man nicht sieht,
+       ist ein Feld, das niemand fuellt -- und die Spalte bliebe leer. */
+    nr: '245', name: 'Das Feld fuer den Grund erscheint nicht',
+    datei: 'public/app.js',
+    suche: "    zeile.hidden = !item.rejected;",
+    ersatz: "    zeile.hidden = true;",
+    erwartet: 'Die Aussage an der Marke — 0.14.0'
+  },
+  {
+    /* Die Zeile steht auch dann da, wenn gar nichts bekannt ist -- dann sagt
+       sie "Abgelehnt", also dasselbe wie der Schalter darueber. Dieselbe
+       Aussage zweimal. */
+    nr: '246', name: 'Die Aussage steht auch da, wenn sie nichts sagt',
+    datei: 'public/app.js',
+    suche: "    marke.hidden = !item.rejected || (!kopf && !grund);",
+    ersatz: "    marke.hidden = !item.rejected;",
+    erwartet: 'Die Aussage an der Marke — 0.14.0'
+  },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
