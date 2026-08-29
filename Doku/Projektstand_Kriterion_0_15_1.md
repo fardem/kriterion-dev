@@ -283,7 +283,23 @@ Papierkorb am großen Bild kommt daneben. Was sich dort ändert, sind die zwei
 Knöpfe des Bildbereichs: sie tragen Zeichen statt Wörter und stehen in einer
 Reihe.
 
-**IM FELD BESTÄTIGT IST 0.12.2** — Fingerprint **`e30a19c1`**, derselbe wie am
+> **IM FELD BESTÄTIGT IST 0.15.1 — 29. August 2026.** Die laufende Anlage
+> meldet **`d02260bd`**, der Branch misst dasselbe. **Damit ist die Sperre im
+> Auftrag für 0.16.0 eingelöst.**
+>
+> **DER KERN WAR SCHON EINEN COMMIT FRÜHER BESTÄTIGT.** Der Betreiber hat den
+> Stand `13726aa` eingespielt — Fingerprint `a23f24c1` — und gemeldet, dass es
+> richtig funktioniert; die Fußzeile sagte dort noch 0.15.0, weil die
+> Versionsnummer einen Commit später kommt. *Nachgerechnet an beiden Ständen,
+> also kein Befund.*
+>
+> **0.15.0 IST DAMIT ÜBERSPRUNGEN WORDEN** und war nie für sich im Feld: die
+> Anlage ist von 0.14.0 (`ca8bcf31`) auf 0.15.1 gegangen. *Ihr Sollwert
+> `8fa66d7d` bleibt als Zeile in der Tabelle stehen — dieselbe Lage wie bei
+> 0.11.0.* **Was 0.15.0 gebracht hat, ist trotzdem bestätigt:** es steckt
+> vollständig in 0.15.1.
+
+**IM FELD BESTÄTIGT WAR DAVOR 0.12.2** — Fingerprint **`e30a19c1`**, derselbe wie am
 Branch. *Der Dateisatz auf dem Wirt ist damit genau der, der gemeint war —
 einen Befund wie bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es
 nicht.* **Davor war es 0.12.0** mit `192734a2`.

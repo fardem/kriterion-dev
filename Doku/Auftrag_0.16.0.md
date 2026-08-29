@@ -17,11 +17,14 @@ Punkt aus dem Betrieb, der nie im Sammelblatt stand.*
 > **`d02260bd`** melden — Systembereich → Kennzahlen —, und die
 > Fußzeile muss **0.15.1** sagen.
 >
-> *Der Kern von 0.15.1 ist im Feld bestätigt: der Betreiber hat den Stand
-> `13726aa` (Fingerprint `a23f24c1`) eingespielt und gemeldet, dass es richtig
-> funktioniert. **Das war ein Commit vor der Versionsnummer** — deshalb steht
-> die Bestätigung, und trotzdem ist der Fingerprint oben abzulesen: er sagt,
-> ob der GANZE Stand läuft.*
+> **AM 29. AUGUST 2026 HAT SIE DAS GEMELDET — die Sperre ist eingelöst.**
+> *Der Kern war schon einen Commit früher bestätigt (`13726aa`, Fingerprint
+> `a23f24c1`, Fußzeile noch 0.15.0); mit `d02260bd` ist es der ganze Stand.*
+>
+> **UND SIE IST TROTZDEM VOR DEM ERSTEN HANDGRIFF ERNEUT ABZULESEN.** Zwischen
+> dieser Meldung und dem Bauen kann ein Einspielen liegen, und ein halb
+> eingespielter Dateisatz zeigt einen Wert, der zu keiner Version gehört
+> (Stolperstein 158). *Es kostet zehn Sekunden.*
 >
 > **SOLANGE DORT ETWAS ANDERES STEHT, WIRD AN 0.16.0 KEINE ZEILE GEBAUT.**
 > Das ist keine Formsache und keine Vorsichtsmaßnahme auf Vorrat:
