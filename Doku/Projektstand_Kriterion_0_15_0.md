@@ -128,7 +128,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.15.0** — Fingerprint **`8fa66d7d`**, **4347 Prüfungen**,
+**Gebaut ist 0.15.0** — Fingerprint **`8fa66d7d`**, **4351 Prüfungen**,
 **267 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
 *0.15.0 gibt der Übersicht einen Filter für „abgelehnt" und bringt die
 Begründung zur Ruhe.* **MINOR — die Anlage kann seither nach der Ablehnung
@@ -301,7 +301,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.15.0** | **`8fa66d7d`** | 4347 |
+| **0.15.0** | **`8fa66d7d`** | 4351 |
 | 0.14.0 | `ca8bcf31` | 4262 |
 | 0.13.2 | `15188676` | 4131 |
 | 0.13.1 | `ee00fdf2` | 4123 |
@@ -5007,7 +5007,7 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4347 von 4347 bestanden** (0.15.0) — **85 neue Prüfungen** in
+**Stand: 4351 von 4351 bestanden** (0.15.0) — **89 neue Prüfungen** in
 drei neuen Gruppen; 0.14.0 davor brachte 131 in fünf, 0.13.2 brachte 8, 0.13.1
 ebenfalls 8. Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils
 neuen Zusagen beschränkt und **nicht** der volle Lauf über alle **267**
@@ -5017,10 +5017,10 @@ Rückbauten.
 |---|---|
 | Entfernen darf auch der Admin — 0.15.0 | 21 |
 | Der Filter „abgelehnt" — 0.15.0 | 23 |
-| Die Begründung kommt zur Ruhe — 0.15.0 | 42 |
-| **zusammen** | **86** |
+| Die Begründung kommt zur Ruhe — 0.15.0 | 43 |
+| **zusammen** | **87** |
 
-*In den drei Gruppen stehen 86 Zeilen; netto sind es 85 neue, weil eine
+*In den drei Gruppen stehen 87 Zeilen, drei weitere in „Die Gegenproben greifen"; netto sind es 89 neue, weil eine
 Prüfung aus 0.14.0 weggefallen ist. Dazu ist eine Zahl in einer vorhandenen
 Gruppe nachgezogen: 249 → 267 Rückbauten. **Die weggefallene Prüfung** — sie prüfte den Inhalt
 des Eingabefeldes im Ruhezustand, den es seit 0.15.0 nicht mehr gibt; die Sache
@@ -5468,7 +5468,7 @@ eine Buchführung.*
 | 0.13.1 | Die Beschriftungen stehen oben (8) | 2 neue (214 → 216) | Stolpersteine 197 und 198 |
 | 0.13.2 | Der angepinnte Rahmen schließt (0 netto; drei Zeilen nachgezogen) | 2 neue (216 → 218) | Stolpersteine 199 bis 201 |
 | 0.14.0 | Die Entscheidung wird mitgeschrieben (131) | 31 neue (218 → 249), alle einunddreißig gefahren | Stolpersteine 202 bis 207 |
-| **0.15.0** | **Der Filter und der Stift (85 netto, 86 in den Gruppen)** | **18 neue (249 → 267), alle achtzehn gefahren; zwei nachgezogen, einer repariert** | **Stolpersteine 208 bis 210** |
+| **0.15.0** | **Der Filter und der Stift (89 netto)** | **18 neue (249 → 267), alle achtzehn gefahren; zwei nachgezogen, einer repariert** | **Stolpersteine 208 bis 210** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -5843,7 +5843,7 @@ sechste Migrationsblock existiert, und die Bereinigung kann ihn wegräumen.*
 **KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, Format bleibt 11,
 sechs markierte Blöcke, `F_ROUTEN` bei 69. **Die Sicherung ist Empfehlung.**
 
-**4262 → 4347 Prüfungen, 249 → 267 Rückbauten.** Karten bei neunzehn,
+**4262 → 4351 Prüfungen, 249 → 267 Rückbauten.** Karten bei neunzehn,
 Vokabular bei elf, `VORGAENGE` bei zwanzig. **Keine neue Abhängigkeit.**
 
 ### 0.14.0 — „Die Entscheidung wird mitgeschrieben"

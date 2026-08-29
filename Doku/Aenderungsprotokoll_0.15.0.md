@@ -1,7 +1,7 @@
 # Änderungsprotokoll 0.15.0 — „Der Filter und der Stift"
 
 **Version 0.15.0 · gebaut am 29. August 2026 · Fingerprint `8fa66d7d` ·
-4347 Prüfungen · 267 Rückbauten in `gegenprobe.js`**
+4351 Prüfungen · 267 Rückbauten in `gegenprobe.js`**
 
 ---
 
@@ -441,15 +441,15 @@ es liegt immer nur einer im Repo.
 
 ## 7. Der Prüfstand
 
-**Stand: 4347 von 4347 bestanden** — **85 neue Prüfungen** in drei neuen
-Gruppen; **86 in den Gruppen, eine weggefallen** (siehe Kasten).
+**Stand: 4351 von 4351 bestanden** — **89 neue Prüfungen** in drei neuen
+Gruppen; **87 in den drei Gruppen, drei in „Die Gegenproben greifen", eine weggefallen** (siehe Kasten).
 
 | neue Gruppe (0.15.0) | Prüfungen |
 |---|---|
 | Entfernen darf auch der Admin — 0.15.0 | 21 |
 | Der Filter „abgelehnt" — 0.15.0 | 23 |
-| Die Begründung kommt zur Ruhe — 0.15.0 | 42 |
-| **zusammen** | **86** |
+| Die Begründung kommt zur Ruhe — 0.15.0 | 43 |
+| **zusammen** | **87** |
 
 *Dazu ist eine Zahl in einer vorhandenen Gruppe nachgezogen: 249 → 267
 Rückbauten.*
@@ -593,9 +593,76 @@ Name weiter grau, keine gefüllte Fläche und keine neue Farbe.**
 Runden aus; die Begründung steht in Abschnitt 14.
 
 **Gefahren sind die achtzehn dieser Runde**, in vier Nebenspuren —
-GEGENPROBE_ERGEBNIS:
+**keine einzige blieb stumm**, und zwei mussten dafür erst in Ordnung gebracht
+werden (siehe unten):
 
-GEGENPROBE_TABELLE
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 250 | Der Filter „abgelehnt" nimmt nichts weg | „Abgelehnt" zeigt genau die abgelehnten · „Getestet UND abgelehnt" ist einstellbar und trifft genau einen · Ein Druck auf „Abgelehnt" verkleinert die Liste sofort |
+| 251 | Die Gegenrichtung des Filters faellt weg | „Nicht abgelehnt" zeigt genau die uebrigen · „Ungetestet UND nicht abgelehnt" ebenso |
+| 252 | Der neue Filter fehlt in der Vorgabe | Ohne Filter steht keine Zahl am Schalter · Und sie faellt bei der Ablehnung auf „Alle" zurueck |
+| 253 | Der Ablehnungsfilter zaehlt nicht mit | Mit dem Ablehnungsfilter steht dort eine Eins · Und mit dem Teststatz zusammen eine Zwei · „Nicht abgelehnt" zaehlt genauso mit wie „Abgelehnt" |
+| 254 | Die zweite Gruppe ist nicht abgesetzt | Und ist mit einer zweiten Beschriftung abgesetzt |
+| 255 | rejectedMine geht nicht mehr hinaus | Die Ablehnende sieht rejectedMine gesetzt und mine nicht |
+| 256 | mine geht am Eintrag nicht mehr hinaus | Der Verfasser des Eintrags sieht es genau umgekehrt · Eine Sekunde vor Ablauf traegt der Link noch |
+| 257 | Entfernen laeuft wieder ueber nurSelbst | 6 Prüfungen, darunter *Ein Admin entfernt eine fremde Begruendung* — Gruppe „Entfernen darf auch der Admin — 0.15.0" |
+| 258 | Auch das Umschreiben kommt durch | 9 Prüfungen, darunter *Ein Admin, der weder Eintrag noch Begruendung geschrieben hat, wird abgewiesen* — 2 Gruppen |
+| 259 | Wer entfernt, wird Verfasser | Ein Entfernen an einer herrenlosen Ablehnung macht niemanden zum Verfasser |
+| 260 | Das Feld bleibt nach dem Speichern offen | Enter schickt den neuen Grund und schliesst das Feld · Und die Aussage sagt danach den neuen Satz |
+| 261 | Beim Einschalten bleibt das Feld zu | Und sie steht danach im Feld zum Ueberschreiben · Beim Einschalten steht es sofort offen · Und der Zeiger steht darin |
+| 262 | Der Stift steht jedem da | 5 Prüfungen, darunter *Ist gar nichts bekannt und darf niemand schreiben, bleibt die Zeile weg* — 2 Gruppen |
+| 263 | Der Papierkorb steht jedem da | Eine Fremde bekommt weder Stift noch Papierkorb |
+| 264 | Der Papierkorb fragt nicht mehr nach | Der Papierkorb fragt erst nach · Und schickt vorher nichts · Ein Nein schickt nichts und laesst den Grund stehen |
+| 265 | Escape verwirft nicht mehr, sondern speichert | Escape schliesst das Feld, ohne etwas zu schicken · Und der verworfene Text steht nicht mehr im Feld · Und die alte Aussage steht wieder da |
+| 266 | An der herrenlosen Ablehnung fehlt der Weg hinein | An einer herrenlosen Ablehnung steht der Stift fuer den, der aendern darf |
+| 267 | Die Hervorhebung des Grundes faellt weg | Und der Grund selbst steht in --red |
+
+*Die Spalte nennt die inhaltlich roten Punkte. **Die Selbstprobe „Jeder Suchtext
+kommt in seiner Datei genau einmal vor" steht bewusst nicht darin:** sie wird
+bei JEDEM gefahrenen Rückbau rot, denn er hat seinen Suchtext gerade ersetzt —
+und genau daran war die Schlusszeile des Werkzeugs blind (Stolperstein 213).*
+
+---
+
+### Und die beiden Funde, für die die Gegenprobe da ist
+
+**Sie ist in dieser Runde nicht bloß eine Bestätigung gewesen.** Zwei Rückbauten
+haben Fehler in den Prüfungen aufgedeckt, die kein Prüflauf gezeigt hätte:
+
+**Rückbau 264 riss den ganzen Lauf ab, statt rot zu werden.** Er entfernt die
+Rückfrage vor dem Löschen; damit steht das Bestätigungsfenster gar nicht da, und
+`fenster.querySelector('[data-yes]')` warf einen TypeError. **Die beiden
+Prüfungen davor wurden richtig rot — der Abriss kam danach**, und die Tabelle
+meldete *„nicht auswertbar"*. *Beide Griffe ins Fenster sind jetzt abgesichert;
+264 zeigt seither **drei** rote Punkte* (Stolperstein 211).
+
+**Rückbau 265 war STUMM — und die Schlusszeile sagte „0 STUMM".** Zwei Fehler
+übereinander:
+
+* **jsdom nimmt einem versteckten Element den Zeiger nicht** und löst damit kein
+  `blur` aus; ein echter Browser tut es. Die Prüfung auf „Escape verwirft" sah
+  deshalb nur, dass das Feld zugeht — nicht, dass der verworfene Text nicht doch
+  noch vom Speicherweg abgeholt wird. **Genau die Kette, die als Stolperstein 209
+  aufgeschrieben ist, war ungeprüft** (Stolperstein 212).
+* **Und das Werkzeug konnte den Fund gar nicht melden**, weil die Selbstprobe bei
+  jedem Rückbau rot wird und `rot.length` damit nie null ist (Stolperstein 213).
+  *Gefunden wurde 265 beim Lesen der Tabelle von Hand.*
+
+**Beides ist behoben und geprüft.** Die Gruppe wirft den `blur` jetzt selbst und
+sieht nach, dass der verworfene Text wirklich aus dem Feld verschwunden ist;
+`leseLauf()` liefert `inhaltlichRot` ohne die Selbstprobe, die
+Stumm-Entscheidung hängt daran, und **die Regel selbst wird an gestellten
+Ausgaben geprüft** — in Millisekunden statt in Minuten, mit beiden Stellungen.
+*Seither zeigt 265 **drei** rote Punkte.*
+
+> **UND EINE UNSAUBERKEIT IM ABLAUF GEHÖRT DAZU, WEIL SIE DIE TABELLE FAST
+> GEKOSTET HÄTTE.** Der erste Lauf ist mitten im Fahren durch einen Commit
+> überholt worden — `gegenprobe.js` zieht seine Kopie aus `git archive HEAD` —,
+> und ein `pkill -f "node server.js"`, gedacht für einen einzelnen Server, nahm
+> die Prüfserver der laufenden Rückbauten mit. **Die Tabelle oben stammt
+> deshalb aus einem vollständig wiederholten Lauf gegen den fertigen Stand**,
+> nicht aus dem ersten. *Die Auflage steht im Auftrag der nächsten Runde
+> ausdrücklich schärfer da.*
 
 **Zwei vorhandene Rückbauten sind nachgezogen und einer repariert**
 (Stolperstein 201 und, für das Reparieren, Stolperstein 192):
@@ -688,7 +755,7 @@ anschlagen KANN?**
 
 | | vorher (0.14.0) | nachher (0.15.0) |
 |---|---|---|
-| Prüfungen | 4262 | **4347** |
+| Prüfungen | 4262 | **4351** |
 | Rückbauten in `gegenprobe.js` | 249 | **267** |
 | Stolpersteine | 207 | **213** |
 | Markierte Migrationsblöcke | 6 | **6** |

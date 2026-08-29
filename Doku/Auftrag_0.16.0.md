@@ -55,9 +55,9 @@ Punkt aus dem Betrieb, der nie im Sammelblatt stand.*
 ---
 
 WORAUF SIE AUFSETZT: 0.15.0 ist gebaut und geschoben — Fingerprint `8fa66d7d`,
-**4347 Prüfungen**, **267 Rückbauten** in `gegenprobe.js`, `F_ROUTEN` bei
+**4351 Prüfungen**, **267 Rückbauten** in `gegenprobe.js`, `F_ROUTEN` bei
 **69**, Formatnummer **11**, **sechs** markierte Migrationsblöcke (0.8.3,
-0.8.30, 0.8.31, 0.8.40, 0.8.50, 0.14.0), Stolpersteine bis **211**,
+0.8.30, 0.8.31, 0.8.40, 0.8.50, 0.14.0), Stolpersteine bis **213**,
 **neunzehn** Karten im Systembereich, **elf** Vokabulareinträge, **zwanzig**
 Vorgänge im Sicherheitsprotokoll, **vierzehn** Merkmale, **sieben** Zwecke der
 zweiten Bestätigung. Ein voller Prüflauf dauert **rund 6 Minuten 29 Sekunden**.
@@ -433,12 +433,22 @@ AUFLAGEN — sie gelten unverändert und sind keine Formsache:
   mitzunehmen.**
 * **Und der Zwilling dazu** (Stolperstein 199): *was du in einen Kommentar
   schreibst, schreibst du im selben Zug in eine Prüfung.*
-* **NEU AUS 0.15.0 UND FÜR DIESE RUNDE WICHTIG** (Stolperstein 211): *eine
-  Prüfung, die nach einem Element greift, das ihr eigener Rückbau wegnimmt,
-  reißt den ganzen Lauf ab statt rot zu werden.* **Bei einer Runde, die
-  neunzehn Karten verschiebt, ist das die wahrscheinlichste Art, sich selbst zu
-  blenden** — jeder `querySelector(...)`, dessen Ziel verschwinden kann, wird
-  abgesichert.
+* **DREI NEUE AUS 0.15.0, UND ALLE DREI TREFFEN DIESE RUNDE:**
+  * **Stolperstein 211** — *eine Prüfung, die nach einem Element greift, das ihr
+    eigener Rückbau wegnimmt, reißt den ganzen Lauf ab statt rot zu werden.*
+    **Bei einer Runde, die neunzehn Karten verschiebt, ist das die
+    wahrscheinlichste Art, sich selbst zu blenden** — jeder
+    `querySelector(...)`, dessen Ziel verschwinden kann, wird abgesichert.
+  * **Stolperstein 212** — *jsdom führt Folgewirkungen nicht aus.* Ein
+    verstecktes Element behält dort den Zeiger, und `blur` bleibt aus. **Was
+    der Browser von selbst tut, wird in der Prüflage ausdrücklich ausgelöst** —
+    sonst belegt sie die halbe Kette und liest sich wie das Ganze. *Bei einer
+    Runde mit Abschnitten, die auf- und zugehen, ist das die zweite
+    wahrscheinliche Falle.*
+  * **Stolperstein 213** — *ein Werkzeug, dessen Erfolgsmeldung den eigenen Fund
+    nicht sehen kann, ist schlimmer als keines.* **Die Frage an jede
+    Erfolgsmeldung, die du in dieser Runde baust: gibt es einen Zustand, in dem
+    sie gar nicht anschlagen KANN?**
 * **Wird es zu viel für einen Durchgang, sag es, sobald du es kommen siehst —
   nicht hinterher.** Zuerst fällt **Punkt 5**, dann **Punkt 4**, dann
   **Punkt 3**. **Punkt 1 und 2 gehören zusammen und werden nicht getrennt.**
@@ -470,9 +480,9 @@ AM ENDE DES CHATS:
   Lauf wird davon rot, ohne dass am Code etwas falsch wäre.
 * `Doku/Aenderungsprotokoll_0.16.0.md` liegt im Branch: was gebaut wurde je
   Datei, Abweichungen mit Begründung, **die Entscheidungen mit ihrer
-  Begründung**, neue Stolpersteine (**die Zählung setzt bei 212 fort** — 211 ist
+  Begründung**, neue Stolpersteine (**die Zählung setzt bei 214 fort** — 213 ist
   vergeben), die Gegenprobentabelle **aus `gegenprobe.js`**, Prüfungszahlen
-  vorher/nachher (vorher: **4347**), Rückbauten vorher/nachher (vorher: **267**),
+  vorher/nachher (vorher: **4351**), Rückbauten vorher/nachher (vorher: **267**),
   **die neu gemessenen Funktions- und Dateigrößen** (Punkt 2), Offengebliebenes
   — **und die Ergebnisse der Feldbelege aus Abschnitt 0, sobald sie da sind.**
 * Die Zeile „0.16.0 — Fingerprint `…`" gehört ins Änderungsprotokoll,
