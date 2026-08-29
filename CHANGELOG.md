@@ -43,6 +43,62 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.13.1] - 2026-08-29
+
+**Die Beschriftungen der Filterleiste stehen wieder neben dem, was sie
+beschriften.** Bei aufgeklappter Tagwolke sanken „TAGS", der Und/Oder-Umschalter
+und „weniger" in die **Mitte** des Blocks und standen dort neben nichts.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.13.1 ist **PATCH**, und die
+> Frage dahinter ist die übliche: *kann die Anlage danach etwas, was sie vorher
+> nicht konnte?* **Nein.** Eine Zeile im Stilblatt richtet aus, was falsch
+> ausgerichtet war — keine neue Fähigkeit, keine geänderte Bedienung, kein
+> anderes Ergebnis. **Kein Schema, kein Migrationsblock, keine neue
+> Formatnummer, keine neue Zeile in der `.env`, keine neue Abhängigkeit.**
+
+### Fixed
+
+- **Beschriftung, Und/Oder-Umschalter und die Verweise „mehr" / „weniger" /
+  „zurücksetzen" stehen auf Höhe der ersten Zeile** ihres Inhalts statt in der
+  Mitte des ganzen Blocks. Sichtbar wurde es an der **aufgeklappten Tagwolke**;
+  dieselbe Ursache traf die **Kategoriezeile**, sobald sie bei großer Schrift
+  umbricht.
+- Gemessen in Chromium bei 1359 px: die Beschriftung stand **32 px** zu tief bei
+  80 Prozent Schrift, **36 px** bei 100, **59 px** bei 120. Danach bleibt der
+  Rest **unter einem Pixel** (0,4 / −0,8 / 0,0 px).
+
+### Changed
+
+- `.frow` richtet sich an der **Grundlinie** aus statt an der Mitte
+  (`align-items: baseline`). **Ausgerechnet wird dabei nichts** — kein
+  Innenabstand, keine Pixelzahl: die Schriftlinie der Beschriftung liegt auf der
+  Schriftlinie der ersten Pillenzeile, und das gilt bei jeder der fünf
+  Schriftgrößen von 80 bis 120 Prozent.
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Kein Schema, keine Migration, keine neue Zeile in der `.env`, keine
+neue Abhängigkeit. **Niemand wird abgemeldet**, und keine gespeicherte Ansicht
+ändert sich.
+
+### Was gleich bleibt
+
+**Alles außer der Ausrichtung.** Die Filterleiste ist **genauso hoch wie
+vorher** — nachgemessen: 154 px, 178 px bis zum ersten Eintrag, die Tagwolke
+1023 px breit mit 14 von 22 sichtbaren Tags, dieselben Zahlen wie in 0.13.0.
+**Auf dem schmalen Schirm ändert sich gar nichts**: dort ordnet die Zeile ohnehin
+in einer Spalte an. **`F_ROUTEN`** bleibt bei 69, **`BESTAETIGUNG_ZWECKE`** bei
+sieben, **das Austauschformat** bei **10**.
+
+> **NICHT GEBAUT, UND ZWAR ABSICHTLICH:** die Tagwolke füllt ab der zweiten
+> Zeile **weiterhin nicht** den Platz unter „mehr" / „weniger". Das wäre nur
+> über Fließsatz zu haben — die Wolke müsste ihre Bauform wechseln, und
+> `begrenzeWolke()` müsste mit. **Im Regelzustand brächte es nichts**, denn
+> eingeklappt ist die Wolke eine Zeile hoch, und das ist genau die Zeile, neben
+> der der Verweis ohnehin steht. Steht in `Doku/Fehler_und_Ideen.md`.
+
+---
+
 ## [0.13.0] - 2026-08-28
 
 **Die Anlage ist über zwei Netze zugleich erreichbar** — über HTTPS hinter dem
@@ -1797,3 +1853,4 @@ nicht mehr übernehmen.*
 [0.12.3]: https://github.com/fardem/kriterion/compare/v0.12.2...v0.12.3
 [0.12.4]: https://github.com/fardem/kriterion/compare/v0.12.3...v0.12.4
 [0.13.0]: https://github.com/fardem/kriterion/compare/v0.12.4...v0.13.0
+[0.13.1]: https://github.com/fardem/kriterion/compare/v0.13.0...v0.13.1

@@ -421,6 +421,30 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 
 ### Aus dem Betrieb und aus den Runden
 
+- **Die Tagwolke soll ab der zweiten Zeile den Platz unter „mehr" / „weniger"
+  mitfüllen** *(0.13.1, aus dem Betrieb — geprüft, beziffert, zurückgestellt)*.
+  Die Wolke steht seit 0.13.0 **neben** ihren Verweisen; damit endet **jede**
+  ihrer Zeilen an derselben Kante, auch die zweite und dritte, unter denen der
+  Platz frei ist.
+  **Machbar ist es, und es gibt genau einen Weg: Fließsatz.** Ein fließendes
+  Element ist das einzige Mittel in CSS, um umbrechenden Inhalt um eine Ecke
+  laufen zu lassen — ein Flex-Element ist immer ein Rechteck **neben** der
+  Wolke, nie eine Aussparung **in** ihr.
+  **Was der Umbau kostet:** die Wolke wechselt von `flex` auf `block`, die
+  Marken auf `inline-block` mit `vertical-align: top`; `gap` fällt weg und wird
+  zu Außenabständen, die letzte Zeile braucht einen Ausgleich; der Kasten
+  `.frow-rechts` wandert als erstes Kind **in** die Wolke mit `float: right`;
+  **`begrenzeWolke()` muss die erste Marke suchen statt das erste Kind zu
+  nehmen**; der schmale Schirm braucht eine eigene Antwort, weil `flex: 0 1
+  auto` in einem Blockkasten nichts mehr bedeutet.
+  **Was er einbringt:** rund 60 px je Zeile ab der zweiten — etwa eine Marke
+  mehr, zwei mit „zurücksetzen" daneben. **Im Regelzustand null**, denn
+  eingeklappt ist die Wolke eine Zeile hoch, und das ist genau die Zeile, neben
+  der der Verweis ohnehin steht.
+  *(Claude: später — kein PATCH. Er tauscht die Bauform der Wolke aus und macht
+  alle Maße aus 0.13.0 neu messbedürftig; das ist ein Punkt mit eigener Messung
+  und eigener Prüfgruppe. **Die Ausrichtung derselben Zeile ist mit 0.13.1
+  gebaut** und davon unabhängig.)*
 - **Dieselbe Tagwolke ist an zwei Stellen verschieden angeordnet — seit 0.13.0
   mit Grund** *(0.12.3, entschieden 0.13.0)*.
   Auf der Eintragsseite sitzt „mehr" in einer eigenen Kopfzeile (`.wolke-kopf`,

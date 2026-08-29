@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 33 · Stand 28. August 2026 · gebaut: Version 0.13.0**
+**Kompakte Übergabe · Revision 34 · Stand 29. August 2026 · gebaut: Version 0.13.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,16 +43,14 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
-**0.13.0 in einem Satz: die Anlage ist über zwei Netze zugleich erreichbar —
-über HTTPS hinter dem Proxy und über `http://<server-ip>:3100` im Heimnetz, mit
-derselben Einstellung.** *MINOR, weil das eine Fähigkeit ist, die es vorher
-nicht gab: mit `HINTER_PROXY=1` kam über den zweiten Weg niemand mehr herein.*
-**Es ist die zweite Runde aus dem Fahrplan in Abschnitt 10a**, und sie trägt
-sechs weitere Punkte — den reparierten Teilexport mit zweitem Faktor, den
-Filter am Sicherheitsprotokoll, den Satz im Löschdialog samt eigenem Fenster
-für die Grabsteine, eine um 75 px flachere Filterleiste und eine
-Kategoriezeile, die mehrere Werte zugleich trägt. Alles Weitere in Abschnitt 2
-und Abschnitt 9.
+**0.13.1 in einem Satz: die Beschriftungen der Filterleiste stehen wieder neben
+dem, was sie beschriften — auf Höhe der ersten Zeile statt in der Mitte des
+Blocks.** *PATCH, weil die Anlage danach nichts kann, was sie vorher nicht
+konnte: eine Zeile im Stilblatt richtet aus, was falsch ausgerichtet war.*
+**Die Runde davor, 0.13.0, ist die zweite aus dem Fahrplan in Abschnitt 10a**
+und hat die Anlage über zwei Netze zugleich erreichbar gemacht — über HTTPS
+hinter dem Proxy und über `http://<server-ip>:3100` im Heimnetz, mit derselben
+Einstellung. Alles Weitere in Abschnitt 2 und Abschnitt 9.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
 > trägt die **gebaute** Runde in einem Satz und sonst nichts Versionsbezogenes.
@@ -129,11 +127,15 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.13.0** — Fingerprint **`c1d2320d`**, **4115 Prüfungen**,
-**214 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
-*0.13.0 macht die Anlage über zwei Netze zugleich erreichbar und repariert den
-Teilexport, der mit eingeschaltetem zweitem Faktor seit 0.12.4 gar nicht ging.*
-**MINOR — die Anlage kann danach etwas, was sie vorher nicht konnte.**
+**Gebaut ist 0.13.1** — Fingerprint **`ee00fdf2`**, **4123 Prüfungen**,
+**216 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
+*0.13.1 richtet die Beschriftungen der Filterleiste an der Grundlinie aus statt
+in der Mitte — eine Zeile im Stilblatt, sonst nichts.* **PATCH — die Anlage kann
+danach nichts, was sie vorher nicht konnte.**
+
+*Die Runde davor, **0.13.0** (Fingerprint `c1d2320d`, 4115 Prüfungen), macht die
+Anlage über zwei Netze zugleich erreichbar und repariert den Teilexport, der mit
+eingeschaltetem zweitem Faktor seit 0.12.4 gar nicht ging.*
 **KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein Migrationscode; es
 bleibt bei **fünf** markierten Migrationsblöcken, und das Austauschformat bleibt
 bei **10**. *Die Sicherung des Datenverzeichnisses ist deshalb Empfehlung und
@@ -1175,6 +1177,10 @@ Fenster **154 px** statt 229 px, gemessen. Die Tagwolke steht neben ihren
 Verweisen in **einer** Zeile, Sortieren und Ansichten teilen sich eine. **Eine
 Pille, die zusammen mit der aktuellen Auswahl null Treffer brächte, wird
 gedämpft** — Tags, Kategorien und „Neu seit …" gleichermaßen.
+**Beschriftung, Und/Oder-Umschalter und die Verweise stehen seit 0.13.1 auf Höhe
+der ERSTEN Zeile** ihres Inhalts und nicht mehr in der Mitte des Blocks; bei
+aufgeklappter Wolke saßen sie bis zu 59 px zu tief. *Die Höhe der Leiste ändert
+sich dadurch nicht — dieselben 154 px, nachgemessen.*
 
 **Die Suche läuft seit 0.11.0 im SERVER** (`GET /api/items?q=…`) und nicht mehr
 im Browser. **Sie findet dasselbe wie vorher:** dieselben **sieben Quellen**
@@ -2945,6 +2951,24 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   (`sortiereWolke()`, `begrenzeWolke()` — eine Stelle, zwei Rufer); verschieden
   ist nur die Anordnung. *Aus einer Doppelung ohne Grund ist damit ein
   Unterschied mit Grund geworden.*
+- **Die Filterzeile richtet an der GRUNDLINIE aus, nicht an der Mitte und nicht
+  an der Oberkante** (seit 0.13.1). `align-items: baseline` an `.frow`.
+  **Mitte war der Fehler:** sie mittelt über die ganze Höhe, und die aufgeklappte
+  Tagwolke ist mehrzeilig — Beschriftung, Umschalter und Verweise sanken bis zu
+  59 px zu tief. **Oberkante wäre der falsche Ausweg:** sie setzt die Kästen
+  bündig, die Schrift darin nicht, und der Ausgleich wäre ein ausgerechneter
+  Innenabstand — eine feste Pixelzahl in einer Anlage, die ihre Schrift von 80
+  bis 120 Prozent stellt (Befund A aus 0.12.1). *Der Prüfstand hält den Weg zu:
+  ein `align-self`, `padding-top` oder `margin-top` an Beschriftung oder
+  Verweisen macht eine Zeile rot.*
+- **Die Tagwolke füllt ab der zweiten Zeile NICHT den Platz unter „mehr" /
+  „weniger"** (entschieden 0.13.1). Es ginge nur über Fließsatz: die Wolke
+  müsste von `flex` auf `block` wechseln, die Marken auf `inline-block`, `gap`
+  auf Außenabstände, und `begrenzeWolke()` müsste die erste Marke suchen statt
+  das erste Kind zu nehmen. **Der Gewinn wäre rund 60 px je Zeile ab der
+  zweiten — und im Regelzustand null**, weil die eingeklappte Wolke eine Zeile
+  hoch ist und der Verweis genau daneben steht. *Nicht verworfen, sondern
+  zurückgestellt: die Rechnung steht in `Doku/Fehler_und_Ideen.md`.*
 - **Der Löschdialog eines Zugangs nennt den umkehrbaren Weg** (seit 0.13.0):
   *„Nur vorübergehend aussperren? Dann sperren statt entfernen — das ist
   umkehrbar, und der Name bleibt."* **An beiden Stellen** — in der letzten
@@ -4588,6 +4612,25 @@ Version, in der sie entstanden sind.*
     wer dort eine Zeile zur Spalte macht, nimmt die Angabe zurück. *Der Fehler
     ist unauffällig, weil er am breiten Schirm gar nicht auftritt.*
 
+197. **`align-items: center` mittelt über die GANZE Höhe, und eine Zeile ist
+    nicht auf Dauer einzeilig.** Die Regel an der Filterzeile stand jahrelang
+    richtig da; falsch wurde sie erst, als ein Kasten darin umbrechen konnte —
+    die aufgeklappte Tagwolke seit 0.12.1, die mehrwertige Kategoriezeile seit
+    0.13.0. Beschriftung, Umschalter und Verweise sanken damit in die Mitte des
+    Blocks und standen neben nichts. **WER EINE ZEILE BAUT, IN DER EIN KASTEN
+    MEHRZEILIG WERDEN KANN, RICHTET AN DER GRUNDLINIE AUS UND NICHT AN DER
+    MITTE** — `baseline` rechnet nichts aus und hält bei jeder Schriftgröße.
+    *Und wer einen Kasten mehrzeilig macht, sieht nach, was die Zeile um ihn
+    herum dabei annimmt.*
+
+198. **Ein Messwert ist erst dann eine Messung, wenn der Bezugspunkt der
+    richtige ist.** Der erste Messversuch zu 197 verglich die Beschriftung mit
+    der ersten Pille des Und/Oder-Kastens statt mit der ersten Marke der Wolke.
+    **Beide waren gemittelt** — der Abstand war sauber null, und der Fehler, der
+    im Bild offen dalag, blieb in der Messung unsichtbar. **EIN NULLWERT IST
+    KEIN BELEG, SOLANGE NICHT FESTSTEHT, WOGEGEN GEMESSEN WURDE.** *Dieselbe
+    Sache in anderer Gestalt wie Stolperstein 193.*
+
 ---
 
 ## 7. Prüfstand
@@ -4601,10 +4644,14 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4115 von 4115 bestanden** (0.13.0) — **123 neue Prüfungen** in fünf
-neuen Gruppen. Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils
-neuen Zusagen beschränkt und **nicht** der volle Lauf über alle **214**
-Rückbauten.
+**Stand: 4123 von 4123 bestanden** (0.13.1) — **8 neue Prüfungen** in
+einer neuen Gruppe; 0.13.0 davor brachte 123 in fünf. Die Gegenproben stehen in
+Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der
+volle Lauf über alle **216** Rückbauten.
+
+| neue Gruppe (0.13.1) | Prüfungen |
+|---|---|
+| Die Beschriftungen stehen oben | 8 |
 
 | neue Gruppe (0.13.0) | Prüfungen |
 |---|---|
@@ -4634,7 +4681,11 @@ Rückbauten.
 > sind in Chromium gemessen und stehen im Änderungsprotokoll 0.13.0. **Was der
 > Lauf sieht, ist der Aufbau:** dass Wolke und Verweise Geschwister *einer*
 > Zeile sind, dass keine ausgerechnete Breite im Stilblatt steht, dass die Pille
-> mit null Treffern ihre Klasse und ihren Hinweis bekommt.
+> mit null Treffern ihre Klasse und ihren Hinweis bekommt. **Dasselbe gilt für
+> die Ausrichtung seit 0.13.1:** die 32 / 36 / 59 px vorher und die unter einem
+> Pixel danach sind in Chromium genommen; der Lauf sieht die Regel im Stilblatt
+> und den Gegenstand, an dem sie wirkt — dass Beschriftung, Umschalter, Wolke
+> und Verweise Geschwister *einer* Zeile sind.
 
 > **DIE PRÜFLAGE TRÄGT ECHTE BYTES, und das ist kein Zufall.** Ein Bestand ohne
 > Bytes ergäbe immer genau einen Teil, und die halbe Gruppe bliebe grün, ohne
@@ -5044,7 +5095,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   dem Pfad, der fremde Dateien annimmt und unter fremden Namen schreibt.** Eine
   eigene Runde mit eigener Prüflage, und keine Beifracht.
 
-- **DIE TAGS `v0.11.0` BIS `v0.13.0` FEHLEN AM REMOTE — UND DER GRUND STAND
+- **DIE TAGS `v0.11.0` BIS `v0.13.1` FEHLEN AM REMOTE — UND DER GRUND STAND
   BIS 0.12.4 FALSCH HIER.** Es ist **kein** Problem der GitHub-Rechte, und ein
   „Push von einer Stelle mit den nötigen Rechten" ist nicht der Punkt.
 
@@ -5079,8 +5130,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   ```
 
   **Diese vier liegen auf `main` und lassen sich sofort setzen.** `v0.12.3`
-  (`09873558`), `v0.12.4` (`9f7b0f7f`) und `v0.13.0` liegen bisher nur auf
-  einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
+  (`09873558`), `v0.12.4` (`9f7b0f7f`), `v0.13.0` und `v0.13.1` liegen bisher
+  nur auf einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
   danach auf dieselben Commits; wer ihn quetscht, setzt sie auf die dabei
   entstehenden — die alten sind von `main` aus dann nicht mehr erreichbar.*
 
@@ -5109,9 +5160,9 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT SECHS RUNDEN AUS.** 214 Rückbauten zu
-  je einem vollen Prüflauf sind über zwanzig Stunden. **In 0.13.0 ist er nicht
-  gefahren, und das ist keine Zusage mehr.** *Was 0.13.0 daran ändert, ist der
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT SIEBEN RUNDEN AUS.** 216 Rückbauten zu
+  je einem vollen Prüflauf sind über zwanzig Stunden. **Auch in 0.13.1 ist er
+  nicht gefahren, und das ist keine Zusage mehr.** *Was 0.13.0 daran ändert, ist der
   billige Teil: der Prüfstand rechnet jetzt bei jedem Lauf nach, dass jeder
   Rückbau in seiner Datei überhaupt noch greift — drei taten es fünf Runden lang
   nicht (Stolperstein 192).*
@@ -5324,6 +5375,41 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.13.1 — „Die Beschriftungen stehen oben"
+
+**PATCH · 29. August 2026 · ein Befund aus dem Betrieb, gemeldet als Bild.**
+
+**EINE ZEILE IM STILBLATT.** `.frow` richtete seine Elemente an der **Mitte**
+aus. Solange eine Filterzeile einzeilig ist, ist das richtig — die aufgeklappte
+Tagwolke ist es aber nicht: „TAGS", der Und/Oder-Umschalter und der Verweis
+„weniger" sanken in die Mitte des Blocks und standen neben nichts. Gemessen in
+Chromium bei 1359 px: **32 px zu tief bei 80 Prozent Schrift, 36 px bei 100,
+59 px bei 120.** Jetzt gilt `align-items: baseline`, und der Rest bleibt **unter
+einem Pixel**.
+
+**GRUNDLINIE UND NICHT OBERKANTE, und das ist die Entscheidung der Runde.**
+`flex-start` setzt die Kästen bündig, die Schrift darin aber nicht — die
+Beschriftung säße 7,5 px zu hoch, und der Ausgleich wäre ein ausgerechneter
+Innenabstand. **Eine feste Pixelzahl in einer Anlage, die ihre Schrift von 80 bis
+120 Prozent stellt, kann nur falsch werden** (Befund A aus 0.12.1). `baseline`
+rechnet nichts aus.
+
+**Es kostet nichts:** dieselben **154 px** Leistenhöhe, dieselben 178 px bis zum
+ersten Eintrag, dieselbe Wolkenbreite, dieselben 14 von 22 sichtbaren Tags.
+**Auf dem schmalen Schirm ändert sich gar nichts** — dort ordnet die Zeile
+ohnehin in einer Spalte an.
+
+**NICHT GEBAUT, UND ZWAR NACH RECHNUNG:** die Tagwolke füllt ab der zweiten
+Zeile weiterhin nicht den Platz unter „mehr" / „weniger". Das ginge nur über
+Fließsatz — die Wolke müsste ihre Bauform tauschen, `begrenzeWolke()` und der
+schmale Schirm müssten mit —, und **im Regelzustand brächte es null**, weil die
+eingeklappte Wolke eine Zeile hoch ist. *Steht in `Doku/Fehler_und_Ideen.md`.*
+
+**Kein Schema, kein Migrationsblock, keine Formatnummer, keine `.env`-Zeile,
+keine Abhängigkeit, `F_ROUTEN` unverändert bei 69.** Nur `public/style.css`,
+`pruefung.js` und `gegenprobe.js` sind angefasst. 4115 → **4123 Prüfungen**,
+214 → **216 Rückbauten**.
 
 ### 0.13.0 — „Zwei Netze, ein Zugang"
 
