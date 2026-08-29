@@ -768,7 +768,7 @@ anschlagen KANN?**
 | Karten im Systembereich | 19 | **19** |
 | Vokabulareinträge | 11 | **11** |
 | Portbasen im Prüfstand | 58 | **58** |
-| Laufzeit `npm test` | ~5 min 45 s | **~6 min 29 s** |
+| Laufzeit `npm test` | ~5 min 45 s | **~5 min 54 s** |
 
 **Laufzeitabhängigkeiten unverändert:** `better-sqlite3-multiple-ciphers`,
 `express`, `multer`, `nodemailer`, `sharp`. **Entwicklungsabhängigkeit
@@ -829,8 +829,9 @@ echten Bestand zu haben:
 
 * **Der volle Gegenprobenlauf steht weiterhin aus** — jetzt über **267**
   Rückbauten. *Er ist seit zehn Runden nicht ganz gefahren.* **Die Rechnung ist
-  unverändert:** 267 Rückbauten zu je einem vollen Prüflauf sind rund
-  **26 Stunden** hintereinander, in vier Nebenspuren rund sieben. **Und eine
+  unverändert:** 267 Rückbauten zu je einem vollen Prüflauf sind bei 5 min 54 s
+  je Lauf rund **26,3 Stunden** hintereinander, in vier Nebenspuren rund
+  sieben. **Und eine
   Auflage aus 0.14.0 gilt weiter:** er lässt sich **nicht neben dem Bauen**
   fahren — `gegenprobe.js` zieht seine Kopie aus `git archive HEAD`, und ein
   Commit mitten im Lauf verschiebt die Grundlage. *Gefahren sind die dieser

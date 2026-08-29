@@ -5582,7 +5582,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
 - **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZEHN RUNDEN AUS.** 267 Rückbauten zu
-  je einem vollen Prüflauf sind bei rund 6 Minuten je Lauf etwa **27 Stunden**
+  je einem vollen Prüflauf sind bei 5 min 54 s je Lauf rund **26,3 Stunden**
   hintereinander, in vier Nebenspuren rund sieben. **Auch in 0.15.0 ist er nicht
   gefahren, und das ist keine Zusage mehr.** *Die Gründe stehen im
   Änderungsprotokoll 0.14.0, Abschnitt 16; der wichtigste ist baulich:

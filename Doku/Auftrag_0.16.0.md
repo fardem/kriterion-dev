@@ -60,7 +60,7 @@ WORAUF SIE AUFSETZT: 0.15.0 ist gebaut und geschoben — Fingerprint `8fa66d7d`,
 0.8.30, 0.8.31, 0.8.40, 0.8.50, 0.14.0), Stolpersteine bis **213**,
 **neunzehn** Karten im Systembereich, **elf** Vokabulareinträge, **zwanzig**
 Vorgänge im Sicherheitsprotokoll, **vierzehn** Merkmale, **sieben** Zwecke der
-zweiten Bestätigung. Ein voller Prüflauf dauert **rund 6 Minuten 29 Sekunden**.
+zweiten Bestätigung. Ein voller Prüflauf dauert **rund 5 Minuten 54 Sekunden**.
 Laufzeitabhängigkeiten: `better-sqlite3-multiple-ciphers`, `express`, `multer`,
 `nodemailer`, `sharp`.
 
@@ -115,8 +115,8 @@ wahrscheinlich ist.*
      versucht; geht er unerwartet durch, ist das ein Befund.*
 
    * **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZEHN RUNDEN AUS.** 267 Rückbauten zu
-     je einem vollen Prüflauf sind rund **29 Stunden** hintereinander, in vier
-     Nebenspuren rund sieben. **Entscheide zu Beginn, ob er einmal ganz läuft.**
+     je einem vollen Prüflauf sind bei 5 min 54 s je Lauf rund **26,3 Stunden**
+     hintereinander, in vier Nebenspuren rund sieben. **Entscheide zu Beginn, ob er einmal ganz läuft.**
      *Läuft er nicht, schreib auf, dass er wieder aussteht.*
      **Und die Auflage aus 0.15.0 gilt verschärft:** er lässt sich **nicht neben
      dem Bauen** fahren — `gegenprobe.js` zieht seine Kopie aus
