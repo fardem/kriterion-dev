@@ -720,10 +720,43 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    0.14.0 die Aussage an der Marke „abgelehnt". Alle drei sind dieselbe Sache:
    eine Auskunft darueber, WER etwas getan hat und WANN. */
 .verfasser-zeile { margin: 8px 2px 0; }
-/* Die Zeile fuer den Grund einer Ablehnung. Sie steht offen unter dem
-   Schalter, nicht hinter einem Aufklappen -- ein Feld, das man erst suchen
-   muss, bleibt leer. Keine eigene Breite: .row-in laesst das Feld die Zeile
-   fuellen, und ein Satz braucht sie ganz. */
+/* ---- Die Aussage zur Ablehnung ----
+   SIE GEHOERT SICHTBAR ZUR ROTEN MARKE und nicht zu den grauen
+   Verfasserzeilen daneben: eine Entscheidung, die den Eintrag verwirft, darf
+   sich nicht wie eine Randnotiz lesen. Der Strich links traegt dieselben
+   42 Prozent Rot wie der Rand des Schalters darueber -- KEINE NEUE FARBE, und
+   auch keine gefuellte Flaeche: die haette mit dem Schalter um dieselbe
+   Aufmerksamkeit gestritten, und zwei rote Bloecke uebereinander sagen
+   weniger als einer mit einer Linie darunter.
+   NUR DER GRUND IST ROT, nicht die ganze Zeile. Datum und Name sind eine
+   Verfasserangabe wie "Angelegt von … am …" und keine Aussage ueber die
+   Sache; faerbt man sie mit, nimmt man dem Grund die Hervorhebung wieder weg.
+   `baseline` und nicht `center`: bricht der Grund auf einem schmalen Schirm
+   um, sollen die Zeichen rechts an der ERSTEN Zeile stehen und nicht in der
+   Mitte des Blocks. */
+.rej-aussage { display: flex; align-items: baseline; gap: 10px;
+               border-left: 2px solid rgba(240,85,92,.42); padding-left: 9px; }
+.rej-aussage .rej-text { flex: 1 1 auto; min-width: 0; }
+.rej-aussage .rej-warum { color: var(--red); font-weight: 500; }
+/* Anklickbar ist der Grund nur fuer den, der ihn geschrieben hat -- die Klasse
+   kommt genau dann dazu, und ohne sie gibt es weder Zeiger noch Unterstreichung
+   fuer etwas, das auf Klick nichts taete. */
+.rej-aussage .rej-warum.klick { cursor: pointer; }
+.rej-aussage .rej-warum.klick:hover { text-decoration: underline; text-underline-offset: 2px; }
+/* Dieselben Zeichen, dieselben Klassen und dasselbe Verhalten wie am
+   Kommentarkopf -- und wie dort STEHEN SIE IMMER DA und erscheinen nicht erst
+   beim Ueberfahren: die Zeile ist einzeilig, und auf einem Finger gibt es kein
+   Ueberfahren. */
+.rej-aussage .acts { display: flex; gap: 8px; flex-shrink: 0; }
+.rej-aussage .mact { color: var(--faint); font-size: .8rem; padding: 3px 6px;
+                     border-radius: 4px; transition: all .14s var(--ease); }
+.rej-aussage .mact:hover { color: var(--accent); background: var(--accent-dim); }
+.rej-aussage .mact.rm:hover { color: var(--red); background: var(--red-dim); }
+/* Die Zeile fuer den Grund einer Ablehnung. Sie steht beim Einschalten offen,
+   nicht hinter einem Aufklappen -- ein Feld, das man erst suchen muss, bleibt
+   leer -- und schliesst sich danach: die Aussage darueber sagt dieselbe Sache
+   sonst ein zweites Mal. Keine eigene Breite: .row-in laesst das Feld die
+   Zeile fuellen, und ein Satz braucht sie ganz. */
 .rej-grund { margin-top: 8px; }
 .trow .tvon { font-size: .76rem; color: var(--faint); flex-shrink: 0; }
 .trow .tvon.meine { color: var(--muted); }
@@ -1885,7 +1918,8 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      (er zoomt aufs Original), und `manipulation` naehme sie weg. */
   .btn, .icon-btn, .pill, .mark, .switch, .chip, .pick-box, .star,
   .abtn, .link-btn, .xdel, .off-haken, .pin-btn, .vnav, .vfocus, .vfull,
-  .cmt-head button, .mrow .mact, .arow .adl { touch-action: manipulation; }
+  .cmt-head button, .mrow .mact, .arow .adl,
+  .rej-aussage .mact { touch-action: manipulation; }
 
   /* ---- KEIN HINEINZOOMEN BEIM TIPPEN ----
      Ein Eingabefeld mit weniger als 16 Pixel Schriftgroesse laesst Safari auf

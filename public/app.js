@@ -1293,7 +1293,8 @@ const KATEGORIE_OHNE = 'ohne';
    `product_category_id` ist EINE Spalte, ein Eintrag traegt also genau eine
    Kategorie, und "Datentraeger UND Produkt" waere garantiert leer. */
 const FILTER_VORGABE = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
-                         favorit: false, neu: false, sort: 'updated_desc' };
+                         abgelehnt: 'all', favorit: false, neu: false,
+                         sort: 'updated_desc' };
 const state = {
   items: [], categories: [], tags: [], criteria: [],
   filters: { ...FILTER_VORGABE },
@@ -1668,6 +1669,19 @@ function visibleItems(filter) {
   if (f.tagIds.length) out = out.filter(i => passtZuTags(i, f.tagIds, f.tagMode));
   if (f.tested === 'tested') out = out.filter(i => i.tested);
   else if (f.tested === 'untested') out = out.filter(i => !i.tested);
+  /* DIE ABLEHNUNG IST EIN EIGENES MERKMAL und deshalb eine eigene Dreiergruppe
+     -- kein vierter Wert von `tested`. Man lehnt ab, OHNE zu testen, und man
+     lehnt NACH dem Test ab; beide Merkmale muessen sich kreuzen lassen, und als
+     vierter Wert waere "getestet UND abgelehnt" nicht mehr einstellbar.
+     DREI ZUSTAENDE UND KEIN UMSCHALTER wie beim Favoriten daneben: ein
+     Umschalter kann nur "zeig mir die abgelehnten". Gebraucht wird auch die
+     Gegenrichtung -- "zeig mir alles ausser dem Verworfenen" --, und die ist
+     der haeufigere Griff.
+     JEDER ANDERE WERT GILT ALS "all", genau wie eine Zeile hoeher: eine
+     gespeicherte Ansicht aus einer aelteren Fassung kennt den Schluessel nicht,
+     und ein unbekannter Wert darf nichts wegnehmen. */
+  if (f.abgelehnt === 'ja') out = out.filter(i => i.rejected);
+  else if (f.abgelehnt === 'nein') out = out.filter(i => !i.rejected);
   // Eigenes Merkmal, eigener Filter -- bewusst NICHT als vierter Wert von
   // `tested`: Favorit und Teststatus sind unabhaengig, und "getestet UND
   // Favorit" muss moeglich bleiben.
@@ -1924,6 +1938,9 @@ function filterZahl() {
   const f = state.filters, v = FILTER_VORGABE;
   let n = 0;
   if (f.tested !== v.tested) n++;
+  // Die Ablehnung zaehlt EIGENS mit und nicht mit dem Teststatus zusammen: sie
+  // ist ein zweites Merkmal, und beide zugleich verkleinern die Menge zweimal.
+  if (f.abgelehnt !== v.abgelehnt) n++;
   if (f.favorit) n++;
   if (f.neu) n++;
   /* DREI GEWAEHLTE KATEGORIEN ZAEHLEN ALS EIN FILTER und nicht als drei --
@@ -2038,6 +2055,31 @@ function drawFilters() {
     g1.appendChild(bNeu);
   }
   r1.appendChild(g1);
+
+  /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ----
+     KEINE EIGENE ZEILE. Die Zeile heisst "Status", und die Ablehnung ist einer
+     -- eine zweite Zeile gaebe von der in 0.13.0 gewonnenen Hoehe wieder etwas
+     her, fuer dieselbe Sache. Abgesetzt wird sie wie "Ansichten" hinter
+     "Sortieren": mit der zweiten Beschriftung, die keine Beschriftungsspalte
+     haelt.
+     DIE ZEILE TRAEGT DAMIT ACHT PILLEN und darf bei grosser Schrift umbrechen
+     -- `flex-wrap: wrap` steht seit 0.13.1 an `.pills`, und der Umbruch ist
+     hier erlaubt und kein Fehler.
+     "Alle" HEISST DIE ERSTE PILLE und nicht "Alles anzeigen" wie in der Gruppe
+     davor: dort ist es die Aussage ueber die ganze Liste, hier nur ueber dieses
+     eine Merkmal -- die Kategoriezeile nennt denselben Zustand aus demselben
+     Grund "Alle". */
+  zweiteBeschriftung(r1, 'Ablehnung');
+  const g1b = document.createElement('div');
+  g1b.className = 'pills'; g1b.id = 'f-abgelehnt';
+  [['all','Alle'],['ja','Abgelehnt'],['nein','Nicht abgelehnt']].forEach(([v,l]) => {
+    const b = document.createElement('button');
+    b.className = 'pill' + (f.abgelehnt === v ? ' on' : '');
+    b.textContent = l;
+    b.onclick = () => { f.abgelehnt = v; redraw(); };
+    g1b.appendChild(b);
+  });
+  r1.appendChild(g1b);
 
   /* ---- Kategorie ----
      MEHRERE ZUGLEICH, UND ES IST EIN ODER. Die Zeile bekommt deshalb
@@ -3230,10 +3272,15 @@ async function renderDetail(id) {
                Knopf traegt den Zustand, den er umlegt, und ein Satz darin
                risse ihn bei 120 Prozent Schrift ueber die Zeile. Dieselbe
                Bauform und dieselbe Klasse wie „Angelegt von … am …" darueber.
-               DAS FELD FUER DEN GRUND STEHT OFFEN DA und nicht hinter einem
-               Aufklappen -- ein Feld, das man erst suchen muss, bleibt leer.
+               DAS FELD STEHT BEIM EINSCHALTEN OFFEN UND SCHLIESST SICH
+               DANACH. Offen beim Einschalten, weil ein Feld, das man erst
+               suchen muss, leer bleibt; geschlossen danach, weil die Aussage
+               daneben schon dasteht -- ein dauernd offenes Feld sagte
+               dieselbe Sache ein zweites Mal. Zurueck kommt es ueber den Text
+               oder ueber das ✎, und beides gibt es nur fuer den, der die
+               Begruendung getroffen hat.
                Beide sind versteckt, solange nicht abgelehnt ist. */''}
-          <div class="hint hint-sm verfasser-zeile" id="rej-marke" hidden></div>
+          <div class="hint hint-sm verfasser-zeile rej-aussage" id="rej-marke" hidden></div>
           <div class="row-in rej-grund" id="rej-grund-zeile" hidden>
             <input class="input input-sm" id="rej-grund" maxlength="200"
                    placeholder="Warum abgelehnt? (freiwillig)" style="padding:8px 11px">
@@ -3722,24 +3769,126 @@ async function renderDetail(id) {
      DATUM UND GRUND BLEIBEN dabei stehen -- sie sind der INHALT der
      Entscheidung und keine Angabe ueber eine Person. Deshalb faellt hier der
      Name weg und nicht die ganze Zeile. */
+  /* OB DAS FELD OFFEN STEHT, IST ANSICHTSZUSTAND und gehoert deshalb hierher
+     und nicht in `item`: der Server weiss nichts davon, und eine Antwort, die
+     es mitbraechte, waere eine Auskunft ueber ein Fenster. */
+  let grundOffen = false;
+
   function drawAblehnung() {
     const marke = document.getElementById('rej-marke');
     const zeile = document.getElementById('rej-grund-zeile');
     const feld = document.getElementById('rej-grund');
     if (!marke || !zeile || !feld) return;
-    zeile.hidden = !item.rejected;
-    // Der Vorschlag zum Ueberschreiben: beim Einschalten steht die alte
+
+    /* WER WAS DARF, KOMMT VOM SERVER UND WIRD NICHT ZURUECKGERECHNET -- diese
+       Seite kennt ihren NAMEN (`NAME`), nicht ihre Nummer, und aus einem
+       Grabstein liesse sich ohnehin nichts holen. Geliefert werden zwei
+       Tatsachen, gerechnet wird hier, und zwar genau wie am Kommentar:
+         `darf`      spiegelt darfAendern am EINTRAG. Ohne ihn kommt gar kein
+                     Schreiben an `rejectedGrund` durch die erste Klemme.
+         `meins`     UMSCHREIBEN -- nur wer die Begruendung getroffen hat, und
+                     nur, solange er den Eintrag auch aendern darf.
+         `verwalten` ENTFERNEN -- "Loeschen ja, umschreiben nein": das ist
+                     dieselbe Klemme wie am Eintrag und deshalb `darf`.
+       HERRENLOS IST EIN EIGENER FALL: eine Ablehnung aus einer Anlage vor
+       0.14.0 hat keinen Verfasser. Der Server laesst dort jeden schreiben, der
+       den Eintrag aendern darf -- ohne diesen Zweig gaebe es hier keinen Weg
+       hinein, und die Zusage des Servers liefe ins Leere. `rejectedVerfasser`
+       ist GENAU DANN null, wenn die Spalte leer ist: ein Grabstein steht
+       weiter in der Verfasserkarte und kommt als Objekt ohne Namen. */
+    const darf = item.mine === true || ADMIN;
+    const meins = darf && (item.rejectedMine === true || !item.rejectedVerfasser);
+    const verwalten = darf;
+    const grund = (item.rejected_grund || '').trim();
+
+    // Ein Feld, das niemand fuellen darf, steht auch nicht offen -- und ein
+    // nicht abgelehnter Eintrag hat nichts zu begruenden.
+    if (!item.rejected || !meins) grundOffen = false;
+    zeile.hidden = !grundOffen;
+    // Der Vorschlag zum Ueberschreiben: beim Oeffnen steht die alte
     // Begruendung im Feld. Waehrend getippt wird, NICHT ueberschreiben --
     // drawSwitches() laeuft auch nach dem Speichern des Grundes.
-    if (item.rejected && document.activeElement !== feld) feld.value = item.rejected_grund || '';
+    if (grundOffen && document.activeElement !== feld) feld.value = item.rejected_grund || '';
+
     const teile = [];
     if (item.rejected_at) teile.push(`am ${fmtDate(item.rejected_at)}`);
     if (item.rejectedVerfasser && mehrereBenutzer())
       teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);
     const kopf = teile.length ? `Abgelehnt ${teile.join(' ')}` : '';
-    const grund = (item.rejected_grund || '').trim();
-    marke.hidden = !item.rejected || (!kopf && !grund);
-    marke.textContent = !kopf ? grund : (grund ? `${kopf} — ${grund}` : kopf);
+
+    /* DAS ✎ STEHT AUCH OHNE BEGRUENDUNG DA. Ohne Text gibt es nichts
+       anzuklicken, und ohne das Zeichen gaebe es dann gar keinen Weg mehr in
+       das Feld -- der Schalter steht ja schon auf "abgelehnt".
+       DAS ✕ NUR MIT BEGRUENDUNG: ein Papierkorb an einem leeren Feld boete
+       an, nichts zu entfernen. */
+    const zeigeStift = item.rejected && meins;
+    const zeigeWeg = item.rejected && verwalten && !!grund;
+    /* WAEHREND GESCHRIEBEN WIRD, TRITT DIE AUSSAGE ZURUECK: das Feld IST in
+       diesem Augenblick die Aussage, und beides nebeneinander waere genau die
+       Doppelung, die dieser Ruhezustand aufloest. Der Kommentar macht es
+       genauso -- sein Text weicht dem Textfeld. */
+    marke.hidden = !item.rejected || grundOffen || (!kopf && !grund && !zeigeStift);
+    marke.innerHTML = '';
+    const text = document.createElement('span');
+    text.className = 'rej-text';
+    if (kopf) text.appendChild(document.createTextNode(grund ? `${kopf} — ` : kopf));
+    if (grund) {
+      /* DER GRUND IST DIE ENTSCHEIDUNG UND BEKOMMT DAS ROT DES SCHALTERS;
+         Datum und Name bleiben grau. Sie sind eine Verfasserangabe wie
+         „Angelegt von … am …" und keine Aussage ueber die Sache -- und ein
+         ganzer Satz in Rot naehme dem Grund die Hervorhebung wieder weg. */
+      const w = document.createElement('span');
+      w.className = 'rej-warum' + (meins ? ' klick' : '');
+      w.textContent = grund;
+      if (meins) { w.title = 'Begründung ändern'; w.onclick = oeffneGrund; }
+      text.appendChild(w);
+    }
+    marke.appendChild(text);
+
+    // Dieselbe Bauform, dieselben Klassen, dieselben Zeichen wie am Kommentar.
+    // Eine zweite Bauform fuer dasselbe waere eine zweite Wahrheit.
+    const acts = document.createElement('span');
+    acts.className = 'acts';
+    if (zeigeStift) {
+      const b = document.createElement('button');
+      b.className = 'mact ed'; b.textContent = '✎';
+      b.title = grund ? 'Begründung ändern' : 'Begründung schreiben';
+      b.onclick = oeffneGrund;
+      acts.appendChild(b);
+    }
+    if (zeigeWeg) {
+      const b = document.createElement('button');
+      b.className = 'mact rm'; b.textContent = '✕';
+      b.title = 'Begründung entfernen';
+      b.onclick = entferneGrund;
+      acts.appendChild(b);
+    }
+    marke.appendChild(acts);
+  }
+
+  function oeffneGrund() {
+    grundOffen = true;
+    drawAblehnung();
+    const feld = document.getElementById('rej-grund');
+    if (feld) feld.focus();
+  }
+
+  /* DAS ENTFERNEN GEHT ALS LEERER GRUND HINAUS, und der Server macht daraus
+     ein Entfernen: leer nach grundText() heisst wegnehmen und laeuft ueber
+     darfAendern, alles andere ueber nurSelbst.
+     DATUM UND VERFASSER BLEIBEN STEHEN -- „Abgelehnt am 14.03.2026 von Anna"
+     ist weiterhin wahr, nur der Grund fehlt. Deshalb wird hier auch NICHT das
+     Merkmal zurueckgenommen; das ist der Schalter darueber und eine andere
+     Handlung.
+     GEFRAGT WIRD VORHER: die Angabe ist danach nirgends wiederherzustellen. */
+  async function entferneGrund() {
+    if (!await confirmBox('Begründung entfernen?',
+      'Der Text wird unwiderruflich entfernt. Datum und Verfasser der Ablehnung bleiben stehen.',
+      'Entfernen')) return;
+    try {
+      item = await api('PUT', `/api/items/${id}`, { rejectedGrund: '' });
+      grundOffen = false; drawSwitches(); toast('Begründung entfernt');
+    } catch (e) { toast(e.message, true); }
   }
   document.getElementById('sw-test').onclick = async () => {
     try { item = await api('PUT', `/api/items/${id}`, { tested: !item.tested }); drawSwitches(); drawTestDays(); }
@@ -3758,24 +3907,53 @@ async function renderDetail(id) {
     const rumpf = item.rejected
       ? { rejected: false }
       : { rejected: true, rejectedGrund: item.rejected_grund || '' };
-    try { item = await api('PUT', `/api/items/${id}`, rumpf); drawSwitches(); }
+    try {
+      item = await api('PUT', `/api/items/${id}`, rumpf);
+      /* BEIM EINSCHALTEN STEHT DAS FELD SOFORT OFFEN und der Zeiger steht
+         darin. Das war der Sinn der Zusage aus 0.14.0 und bleibt: ein Feld,
+         das man erst suchen muss, bleibt leer. Danach schliesst es sich.
+         BEIM AUSSCHALTEN SCHLIESST ES SICH: es gibt nichts mehr zu begruenden,
+         und die Angaben bleiben trotzdem stehen. */
+      grundOffen = item.rejected;
+      drawSwitches();
+      if (grundOffen) document.getElementById('rej-grund').focus();
+    }
     catch (e) { toast(e.message, true); }
   };
   /* Der Grund wird beim Verlassen des Feldes gespeichert, wie Titel und
      Beschreibung daneben -- und mit Enter, weil es eine EINZELNE Zeile ist
      und dort kein Zeilenumbruch im Weg steht.
      UNVERAENDERT WIRD NICHT GESCHICKT: sonst schoebe jedes Anklicken den
-     Eintrag ueber updated_at in jeder Uebersicht nach oben. */
+     Eintrag ueber updated_at in jeder Uebersicht nach oben.
+     UND DANACH SCHLIESST SICH DAS FELD, in jedem Ausgang: die Aussage tritt
+     wieder an seine Stelle. Auch nach einer Absage -- der Text steht dann
+     wieder da, wie er in der Zeile steht, und die Meldung sagt, warum. */
   {
     const feld = document.getElementById('rej-grund');
     const speichere = async () => {
       const v = feld.value.trim();
-      if (v === (item.rejected_grund || '')) return;
-      try { item = await api('PUT', `/api/items/${id}`, { rejectedGrund: v }); drawSwitches(); toast('Gespeichert'); }
-      catch (e) { toast(e.message, true); feld.value = item.rejected_grund || ''; }
+      if (v !== (item.rejected_grund || '')) {
+        try { item = await api('PUT', `/api/items/${id}`, { rejectedGrund: v }); toast('Gespeichert'); }
+        catch (e) { toast(e.message, true); feld.value = item.rejected_grund || ''; }
+      }
+      grundOffen = false;
+      drawSwitches();
     };
     feld.onblur = speichere;
-    feld.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); feld.blur(); } });
+    /* ESCAPE SETZT DAS FELD ZURUECK, BEVOR ES SCHLIESST -- und die Reihenfolge
+       ist der ganze Punkt: das Schliessen nimmt dem Feld den Zeiger, das
+       loest onblur aus, und speichere() vergliche sonst den getippten Text
+       mit dem gespeicherten und schriebe genau das weg, was gerade verworfen
+       werden sollte. */
+    feld.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); feld.blur(); }
+      else if (e.key === 'Escape') {
+        e.preventDefault();
+        feld.value = item.rejected_grund || '';
+        grundOffen = false;
+        drawAblehnung();
+      }
+    });
   }
   /* Den Knopf NICHT aus dem Ereignis holen: e.currentTarget ist nur waehrend
      der Zustellung gesetzt und steht nach dem ersten await auf null. Der

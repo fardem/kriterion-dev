@@ -2237,7 +2237,23 @@ function detail(id, benutzerId) {
   const karte = verfasserKarte();
   it.rejected = !!it.rejected; it.tested = !!it.tested;
   it.verfasser = verfasserAus(karte, it.user_id);
+  /* WEM DER EINTRAG GEHOERT, SAGT DER SERVER -- wie am Kommentar, an der
+     Linkzeile und am Anhang. Die Oberflaeche kennt nur ihren NAMEN und nicht
+     ihre Nummer; aus einem Grabstein liesse sich ohnehin nichts
+     zurueckrechnen, er hat keinen Namen mehr. */
+  it.mine = it.user_id === benutzerId;
   delete it.user_id;
+  /* WEM DIE BEGRUENDUNG GEHOERT, und es ist eine EIGENE Angabe neben `mine`:
+     wer abgelehnt hat, muss nicht der sein, dem der Eintrag gehoert. An
+     `rejectedMine` haengt der Stift, an `mine` zusammen mit dem Adminrecht der
+     Papierkorb -- dieselbe Rechnung wie am Kommentar (`meins`, `verwalten`).
+     KEINE RECHTEAUSKUNFT ("darfst du schreiben?"): die Klemme steht im Server,
+     und eine zweite Antwort daneben liefe mit ihr auseinander, sobald jemand
+     nur eine Seite aendert. Geliefert werden die zwei Tatsachen, gerechnet
+     wird oben.
+     OHNE ABLEHNENDEN IST ES `false` und nicht `null`: eine Begruendung, die
+     niemandem gehoert, gehoert auch mir nicht. */
+  it.rejectedMine = it.rejected_von != null && it.rejected_von === benutzerId;
   /* WER ABGELEHNT HAT, GEHT ALS VERFASSEROBJEKT HINAUS UND NIE ALS NUMMER --
      dieselbe Abbildung wie am Eintrag, am Kommentar und am Testtag, und
      dieselbe EINE Stelle: aus einem Grabstein wird damit "Geloeschter
@@ -2486,7 +2502,7 @@ app.put('/api/items/:id', (req, res) => {
      ES IST EINE VERSCHAERFUNG GEGENUEBER 0.13.2, wo an diesen Feldern
      durchweg darfAendern galt.
 
-     ZWEI FAELLE KOMMEN DURCH, und beide sind keine fremde Aussage:
+     DREI FAELLE KOMMEN DURCH; die ersten beiden sind keine fremde Aussage:
        1. WER GERADE ABLEHNT, schreibt seine eigene Begruendung. Er wird in
           diesem Zug rejected_von und ist damit ihr Verfasser.
        2. STEHT GAR KEIN VERFASSER DA, gibt es auch keine fremde Aussage. Das
@@ -2497,9 +2513,25 @@ app.put('/api/items/:id', (req, res) => {
      DER WEG UEBER AUS UND WIEDER EIN BLEIBT OFFEN, und das ist dieselbe Regel
      und kein Loch: eine fremde Entscheidung ZURUECKNEHMEN darf, wer den
      Eintrag aendern darf. Wer sie danach neu trifft, trifft eine eigene --
-     mit eigenem Datum, eigenem Namen und eigenem Text. */
+     mit eigenem Datum, eigenem Namen und eigenem Text.
+
+     UND DER DRITTE FALL IST DAS ENTFERNEN, und er kommt ausdruecklich durch.
+     "Loeschen ja, umschreiben nein" heisst am Kommentar: den TEXT aendert nur
+     der Verfasser, WEGNEHMEN darf auch der Admin. An dieser Stelle galt bis
+     0.14.0 `nurSelbst` fuer JEDES Schreiben -- damit konnte ein Admin eine
+     fremde Begruendung weder umschreiben noch entfernen, und das war strenger
+     als ueberall sonst im Haus. Die Zuruecknahme steht hier ausdruecklich
+     dabei, damit sie nicht als Versehen wiederkommt.
+     WAS "ENTFERNEN" HEISST, ENTSCHEIDET `grundText()` UND NICHT DER ROHWERT:
+     ein Rumpf mit lauter Leerzeichen ist ein Entfernen, und ein zweiter
+     Massstab daneben liefe damit auseinander.
+     DIE KLEMME DAFUER IST `darfAendern`, UND SIE IST SCHON DURCH: die Zeile
+     oben laesst `rejectedGrund` nur passieren, wer den Eintrag aendern darf.
+     Hier bleibt deshalb nur, den strengeren Fall zu ueberspringen -- keine
+     zweite Klemme daneben. */
   const schaltetEin = b.rejected !== undefined && !!b.rejected && !it.rejected;
-  if (b.rejectedGrund !== undefined && !schaltetEin &&
+  const entferntGrund = b.rejectedGrund !== undefined && !grundText(b.rejectedGrund);
+  if (b.rejectedGrund !== undefined && !schaltetEin && !entferntGrund &&
       it.rejected_von != null && !nurSelbst(req, it.rejected_von))
     return res.status(403).json({ error: VERWEIGERT_SELBST });
 
@@ -2559,7 +2591,11 @@ app.put('/api/items/:id', (req, res) => {
     put('rejected_grund', grundText(b.rejectedGrund));
   } else if (b.rejectedGrund !== undefined) {
     put('rejected_grund', grundText(b.rejectedGrund));
-    if (it.rejected_von == null) put('rejected_von', req.benutzer.id);
+    /* WER ENTFERNT, WIRD NICHT VERFASSER. Der Zweig traegt einen Verfasser
+       nach, wo keiner steht -- das ist der Fall einer Ablehnung aus einer
+       Anlage vor 0.14.0, in der jemand einen Text hinschreibt. Ein leeres Feld
+       hat keinen Verfasser, und wer es leert, hat nichts geschrieben. */
+    if (it.rejected_von == null && !entferntGrund) put('rejected_von', req.benutzer.id);
   }
   if (b.tested !== undefined) put('tested', b.tested ? 1 : 0);
   if (b.productCategoryId !== undefined) put('product_category_id', b.productCategoryId);
