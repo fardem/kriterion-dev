@@ -28863,7 +28863,15 @@ async function pruefeOberflaeche() {
     pruefe('Und schickt vorher nichts',
       !d.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/items/1'),
       JSON.stringify(d.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
-    ruhFrage.querySelector('[data-yes]').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    /* DER GRIFF INS FENSTER WIRD ABGESICHERT, und das ist keine Vorsicht,
+       sondern ein Befund: Rueckbau 264 nimmt die Rueckfrage weg, das Fenster
+       steht dann gar nicht da, und ein `ruhFrage.querySelector(...)` REISST
+       DEN GANZEN LAUF AB. Die beiden Zeilen darueber werden richtig rot --
+       aber die Gegenprobe kann einen abgerissenen Lauf nicht auswerten, und
+       im Betrieb faellt die ganze Pruefung aus statt einer Gruppe
+       (Stolperstein 211). */
+    ruhFrage?.querySelector('[data-yes]')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     const ruhWegRumpf = d.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/items/1').pop();
     pruefe('Nach dem Ja geht ein leerer Grund hinaus, und sonst nichts',
@@ -28895,8 +28903,10 @@ async function pruefeOberflaeche() {
     const d = await ruhBaue(ruhIch, 'Zu ruhig');
     ruhWeg(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
+    // Dieselbe Absicherung wie beim Ja daneben: ohne Rueckfrage gibt es kein
+    // Fenster, und ein Griff ins Leere risse den Lauf ab (Stolperstein 211).
     d.w.document.querySelector('.backdrop [data-no]')
-      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     pruefe('Ein Nein schickt nichts und laesst den Grund stehen',
       !d.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/items/1') &&
