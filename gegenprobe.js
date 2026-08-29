@@ -2228,8 +2228,19 @@ const RUECKBAUTEN = [
        Verfasser -- ohne ihn ist es wieder ein Haekchen mit Datum. */
     nr: '243', name: 'Die Aussage verliert ihren Verfasser',
     datei: 'public/app.js',
-    suche: "    if (item.rejectedVerfasser) teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);",
+    suche: "    if (item.rejectedVerfasser && mehrereBenutzer())\n" +
+      "      teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);",
     ersatz: "",
+    erwartet: 'Die Aussage an der Marke — 0.14.0'
+  },
+  {
+    /* DER NAME STEHT AUCH BEI EINEM EINZIGEN ZUGANG DA. Dann saende
+       "von pruefer" nichts -- dieselbe Sache wie an jeder anderen
+       Verfasserangabe, und die Prueflage mit EINEM Zugang faengt es. */
+    nr: '247', name: 'Der Name steht auch bei einem einzigen Zugang da',
+    datei: 'public/app.js',
+    suche: "    if (item.rejectedVerfasser && mehrereBenutzer())",
+    ersatz: "    if (item.rejectedVerfasser)",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
   {

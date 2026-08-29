@@ -3716,7 +3716,12 @@ async function renderDetail(id) {
      laesst das „von" weg -- „von Ohne Verfasser" waere eine Behauptung ueber
      jemanden, den diese Anlage nicht kennt.
      Das Datum in derselben Schreibweise wie ueberall sonst (fmtDate); zwei
-     Schreibweisen fuer denselben Zeitpunkt waeren eine zu viel. */
+     Schreibweisen fuer denselben Zeitpunkt waeren eine zu viel.
+     BEI GENAU EINEM ZUGANG FAELLT DER NAME WEG, wie an jeder anderen
+     Verfasserangabe: es gibt nur einen, und "von pruefer" saende nichts.
+     DATUM UND GRUND BLEIBEN dabei stehen -- sie sind der INHALT der
+     Entscheidung und keine Angabe ueber eine Person. Deshalb faellt hier der
+     Name weg und nicht die ganze Zeile. */
   function drawAblehnung() {
     const marke = document.getElementById('rej-marke');
     const zeile = document.getElementById('rej-grund-zeile');
@@ -3729,7 +3734,8 @@ async function renderDetail(id) {
     if (item.rejected && document.activeElement !== feld) feld.value = item.rejected_grund || '';
     const teile = [];
     if (item.rejected_at) teile.push(`am ${fmtDate(item.rejected_at)}`);
-    if (item.rejectedVerfasser) teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);
+    if (item.rejectedVerfasser && mehrereBenutzer())
+      teile.push(`von ${verfasserName(item.rejectedVerfasser)}`);
     const kopf = teile.length ? `Abgelehnt ${teile.join(' ')}` : '';
     const grund = (item.rejected_grund || '').trim();
     marke.hidden = !item.rejected || (!kopf && !grund);

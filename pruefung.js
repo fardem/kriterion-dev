@@ -4166,9 +4166,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // Ein zweiter Eintrag daneben. Ohne ihn liesse sich nicht sehen, dass das
     // Loeschen NUR den einen trifft.
     d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run('Bleibt stehen');
-    const itId = d.prepare(`INSERT INTO items (title, description, rejected, tested,
+    /* DIE ABLEHNUNG TRAEGT IHRE DREI ANGABEN, seit 0.14.0. Der Papierkorb legt
+       ein vollstaendiges Paket ab und spielt es ueber DENSELBEN Weg wieder ein
+       wie der Import -- ohne diese Zeilen bliebe unbelegt, dass Datum, Grund
+       und Ablehnender den Rundlauf ueberstehen.
+       ABGELEHNT HAT BERT (2) UND NICHT DIE EINSPIELENDE (anna, 1): faellt der
+       Name beim Wiederherstellen auf den Einspielenden zurueck, faellt das nur
+       so auf. */
+    const itId = d.prepare(`INSERT INTO items (title, description, rejected,
+        rejected_at, rejected_grund, rejected_von, tested,
         product_category_id, created_at, updated_at, user_id)
-      VALUES (?, ?, 1, 1, ?, '2026-01-02 03:04:05', '2026-02-03 04:05:06', 3)`)
+      VALUES (?, ?, 1, '2026-01-05 06:07:08', 'Lieferzeit über 6 Monate', 2, 1,
+        ?, '2026-01-02 03:04:05', '2026-02-03 04:05:06', 3)`)
       .run('Vollständig', 'Erste Zeile\nZweite Zeile', katId).lastInsertRowid;
     // Foto und Video in EINER Tabelle -- das Video ausdruecklich NICHT an
     // erster Stelle, sonst liesse sich das Hauptbild nicht unterscheiden.
@@ -4414,6 +4423,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pkNachher?.title === pkVorher.title && pkNachher?.description === pkVorher.description &&
     pkNachher?.rejected === pkVorher.rejected && pkNachher?.tested === pkVorher.tested,
     JSON.stringify({ t: pkNachher?.title, r: pkNachher?.rejected, g: pkNachher?.tested }));
+  /* ERST DER GEGENSTAND (Stolperstein 81): truege der Ausgangsstand keine
+     Ablehnung mit Angaben, verglichen die drei Zeilen darunter null mit null. */
+  pruefe('Der Ausgangsstand trug wirklich eine begruendete Ablehnung',
+    pkVorher.rejected === true && !!pkVorher.rejected_at && !!pkVorher.rejected_grund &&
+    pkVorher.rejectedVerfasser?.name === 'bert',
+    JSON.stringify({ at: pkVorher.rejected_at, grund: pkVorher.rejected_grund,
+                     wer: pkVorher.rejectedVerfasser }));
+  pruefe('Datum und Grund der Ablehnung ebenso',
+    pkNachher?.rejected_at === pkVorher.rejected_at &&
+    pkNachher?.rejected_grund === pkVorher.rejected_grund,
+    JSON.stringify([pkNachher?.rejected_at, pkNachher?.rejected_grund]));
+  /* UND DER ABLEHNENDE, und zwar der richtige: bert hat abgelehnt, anna hat
+     wiederhergestellt. Faellt der Name auf die Einspielende zurueck, steht
+     hier anna. */
+  pruefe('Und der Ablehnende ist wieder bert und nicht die Einspielende',
+    pkNachher?.rejectedVerfasser?.name === 'bert',
+    JSON.stringify(pkNachher?.rejectedVerfasser));
   pruefe('Die Zeitstempel ebenso',
     pkNachher?.created_at === pkVorher.created_at && pkNachher?.updated_at === pkVorher.updated_at,
     JSON.stringify([pkNachher?.created_at, pkNachher?.updated_at]));
@@ -17009,7 +17035,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
      gezaehlt waren es 193 -- 184 plus neun. */
-  pruefe('Es sind genau 248 Rueckbauten', gpListe.length === 248, `${gpListe.length}`);
+  pruefe('Es sind genau 249 Rueckbauten', gpListe.length === 249, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -28077,6 +28103,37 @@ async function pruefeOberflaeche() {
     pruefe('Das Feld steht trotzdem offen, damit sich etwas nachtragen laesst',
       amZeile(d)?.hidden === false, JSON.stringify(amZeile(d)?.hidden));
     d.w.close();
+  }
+
+  /* --- BEI GENAU EINEM ZUGANG FAELLT DER NAME WEG ---
+     DIE FRAGE AN JEDE NEUE GRUPPE: welcher Schalter bleibt hier durchweg aus,
+     und traegt er etwas zur Sache bei? Hier ist es `mehrereBenutzer()` -- und
+     er traegt: mit einem einzigen Zugang saende „von pruefer" nichts, wie an
+     jeder anderen Verfasserangabe auch.
+     DATUM UND GRUND BLEIBEN TROTZDEM STEHEN. Sie sind der Inhalt der
+     Entscheidung und keine Angabe ueber eine Person; faellt die ganze Zeile
+     weg, verliert eine Anlage mit einem Zugang genau das, wofuer diese Runde
+     gebaut ist. */
+  {
+    const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
+      verfasser: { id: 2, name: 'Anna', geloescht: false } }, 1);
+    pruefe('Bei einem einzigen Zugang steht der Name nicht dabei',
+      amText(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 — Zu teuer',
+      JSON.stringify(amText(d)?.textContent));
+    pruefe('Datum und Grund bleiben trotzdem stehen',
+      amText(d)?.hidden === false && /09:12/.test(amText(d)?.textContent || '') &&
+      /Zu teuer/.test(amText(d)?.textContent || ''), JSON.stringify(amText(d)?.textContent));
+    pruefe('Und das Feld fuer den Grund steht dort ebenso offen',
+      amZeile(d)?.hidden === false && amFeld(d)?.value === 'Zu teuer',
+      JSON.stringify([amZeile(d)?.hidden, amFeld(d)?.value]));
+    /* DIE GEGENLAGE, sonst belegt die Zeile darueber nichts: dieselbe Ablage
+       mit mehreren Zugaengen NENNT den Namen. */
+    const m = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
+      verfasser: { id: 2, name: 'Anna', geloescht: false } }, 3);
+    pruefe('Und mit mehreren Zugaengen steht er sehr wohl dabei',
+      amText(m)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Zu teuer',
+      JSON.stringify(amText(m)?.textContent));
+    d.w.close(); m.w.close();
   }
 
   // --- Freier Text bleibt Text: der Grund wird gesetzt, nicht gebaut ---
