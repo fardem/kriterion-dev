@@ -2243,6 +2243,57 @@ const freigabeHaupt = (zweck, ziel = null) =>
   fs.rmSync(mwDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
+  /* ================= Der kaputte Cookiewert — 0.14.0 =================
+     parseCookies() sieht ALLE Cookies des Hosts an, nicht nur die eigenen.
+     decodeURIComponent('%') wirft, requireAuth ruft die Funktion bei jeder
+     geschuetzten Anfrage, und der Fehler-Handler machte daraus eine 500 --
+     dieser eine Browser kaeme nicht mehr herein.
+     EINE PRUEFLAGE MIT EINEM GUELTIGEN COOKIE BELEGT HIER NICHTS: sie braucht
+     den kaputten NEBEN dem gueltigen (Stolperstein 189 in neuer Gestalt). Und
+     der Massstab kommt nicht vom Pruefling -- dass der Wert wirklich
+     unlesbar ist, sagt decodeURIComponent selbst und nicht der Server. */
+  gruppe('Der kaputte Cookiewert — 0.14.0');
+
+  const kkWert = '%';
+  /* ERST DER GEGENSTAND (Stolperstein 81): ist der Wert dekodierbar, traegt
+     die ganze Gruppe darunter nichts. */
+  let kkBricht = false;
+  try { decodeURIComponent(kkWert); } catch { kkBricht = true; }
+  pruefe('Der gestellte Wert laesst sich wirklich nicht dekodieren', kkBricht,
+    `decodeURIComponent(${JSON.stringify(kkWert)}) ging durch`);
+  pruefe('Und die Prueflage haelt einen gueltigen Sitzungscookie in der Hand',
+    /^kriterion_session=.+/.test(cookie), JSON.stringify(cookie.slice(0, 24)));
+
+  // Zwei Cookies in EINEM Kopf, in beiden Reihenfolgen: der kaputte darf den
+  // gueltigen weder ueberholen noch verdecken.
+  const kkRuf = async (kopf) => {
+    const a = await fetch(`${BASIS}/api/criteria`, { headers: { cookie: kopf } });
+    return a.status;
+  };
+  const kkVorn = await kkRuf(`fremd=${kkWert}; ${cookie}`);
+  const kkHinten = await kkRuf(`${cookie}; fremd=${kkWert}`);
+  pruefe('Ein kaputter Cookie VOR dem eigenen sperrt nicht aus', kkVorn === 200, `Stand ${kkVorn}`);
+  pruefe('Und einer DAHINTER ebenso wenig', kkHinten === 200, `Stand ${kkHinten}`);
+  /* DIE GEGENLAGE: der kaputte Cookie wird UEBERGANGEN, nicht angenommen.
+     Ohne sie bliebe offen, ob die Anlage ihn womoeglich als Sitzung nimmt --
+     401 ist hier das richtige Ergebnis und 500 das falsche. */
+  const kkAllein = await kkRuf(`kriterion_session=${kkWert}`);
+  pruefe('Ein kaputter Wert am EIGENEN Namen gilt als keine Sitzung, nicht als Fehler',
+    kkAllein === 401, `Stand ${kkAllein}`);
+  // Der NAME bleibt roh -- er wird nie dekodiert, ein Prozentzeichen darin ist
+  // deshalb kein Fall fuer diese Schranke.
+  const kkName = await kkRuf(`fre%md=1; ${cookie}`);
+  pruefe('Ein Prozentzeichen im NAMEN ist gar kein Fall', kkName === 200, `Stand ${kkName}`);
+  /* WAS AUSDRUECKLICH NICHT GEBAUT WURDE, und deshalb hier steht
+     (Stolperstein 199): ein fremder Cookie ist kein Vorgang dieser Anlage. Er
+     hinterlaesst keine Zeile im Sicherheitsprotokoll. */
+  const kkProt = (await ruf('GET', '/api/sicherheitsprotokoll')).inhalt;
+  const kkZeilen = Array.isArray(kkProt) ? kkProt : (kkProt?.zeilen || []);
+  pruefe('Und er hinterlaesst keine Zeile im Sicherheitsprotokoll',
+    !kkZeilen.some(z => /cookie/i.test(JSON.stringify(z))),
+    JSON.stringify(kkZeilen.slice(0, 3)));
+
+  /* ---------------------------------------------------------------- */
   gruppe('Bestand am Benutzer');
 
   /* Belegt an der Datenbank: jede Zeile bekommt ihren Verfasser -- beim

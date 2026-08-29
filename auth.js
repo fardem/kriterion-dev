@@ -609,6 +609,23 @@ function noteSuccess(ip, name) {
 }
 
 // --- Sitzungen ---------------------------------------------------------
+/* DIESE FUNKTION SIEHT ALLE COOKIES DES HOSTS AN, nicht nur die eigenen. Auf
+   demselben Namen kann eine ganz andere Anwendung sitzen, und von Hand setzen
+   laesst sich ohnehin jeder -- der Kopf `Cookie:` ist eine Liste von Fremden.
+
+   DESHALB DARF EIN EINZELNER WERT DEN GANZEN KOPF NICHT ZU FALL BRINGEN.
+   decodeURIComponent('%') wirft `URIError: URI malformed`; requireAuth ruft
+   diese Funktion bei JEDER geschuetzten Anfrage, der Fehler-Handler machte
+   daraus eine 500, und der Browser mit dem kaputten Cookie kaeme nicht mehr
+   herein, bis jemand ihn von Hand loescht.
+
+   DER NAME BLEIBT ROH, DER WERT WIRD VERSUCHT: ein Cookie, dessen Wert sich
+   nicht dekodieren laesst, ist fuer diese Anlage kein Cookie und faellt
+   stillschweigend heraus. Kein eigener Fehlerpfad, keine Meldung, keine Zeile
+   im Sicherheitsprotokoll -- ein fremder Cookie ist kein Vorgang dieser
+   Anlage, und eine Zeile, die ein Fremder ausloesen kann, gibt es schon.
+   UND ER FAELLT EINZELN HERAUS UND NICHT ALS GANZER KOPF: neben dem kaputten
+   steht der eigene, gueltige, und genau der soll ankommen. */
 function parseCookies(req) {
   const h = req.headers.cookie;
   if (!h) return {};
@@ -616,7 +633,10 @@ function parseCookies(req) {
   for (const part of h.split(';')) {
     const i = part.indexOf('=');
     if (i === -1) continue;
-    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+    let wert;
+    try { wert = decodeURIComponent(part.slice(i + 1).trim()); }
+    catch { continue; }
+    out[part.slice(0, i).trim()] = wert;
   }
   return out;
 }
