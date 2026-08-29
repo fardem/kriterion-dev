@@ -21070,16 +21070,31 @@ async function pruefeOberflaeche() {
   pruefe('Es gibt ein gedämpftes Gold als eigene Farbe',
     /--gold-line: rgba\(255,\s*197,\s*49,\s*\.\d+\)/.test(cssM),
     (cssM.match(/--gold-line:[^;]*/) || ['(nicht gesetzt)'])[0]);
-  pruefe('Die Anpinnung färbt oben, rechts und unten',
-    ['border-top-color', 'border-right-color', 'border-bottom-color']
-      .every(k => new RegExp(k + ': var\\(--gold-line\\)').test(regelM('.cmt.pinned'))),
+  /* DIESE DREI ZEILEN HABEN BIS 0.13.2 DIE ZURUECKGENOMMENE ENTSCHEIDUNG
+     FESTGEHALTEN, und das ist der eigentliche Befund jener Runde. Sie
+     stammen aus 0.12.0 und verlangten woertlich: die Anpinnung faerbt
+     "oben, rechts und unten", und "die linke Kante bleibt der Art
+     vorbehalten" -- letzteres sogar als Verbot von `border-color:`.
+     0.12.3 HAT DIESE ENTSCHEIDUNG UMGEDREHT ("kein Kasten traegt zwei
+     Farben; bei der Notiz wird der ganze Rahmen golden"), den Prüfstand
+     aber nicht mitgenommen. Die alten Zeilen blieben gruen, weil die
+     Umsetzung ihren Rest behalten hatte -- die linke Kante der angepinnten
+     Notiz blieb grau. DER PRUEFSTAND HAT DEN FEHLER NICHT UEBERSEHEN, ER
+     HAT IHN VERLANGT (Stolperstein 201). */
+  pruefe('Die Anpinnung faerbt alle vier Kanten',
+    /border-color: var\(--gold-line\)/.test(regelM('.cmt.pinned'))
+    || ['top', 'right', 'bottom', 'left']
+      .every(k => new RegExp('border-' + k + '-color: var\\(--gold-line\\)')
+        .test(regelM('.cmt.pinned'))),
     regelM('.cmt.pinned') || '(keine Regel)');
-  pruefe('Die linke Kante bleibt der Art vorbehalten',
-    !/border-left|border-color:/.test(regelM('.cmt.pinned')),
-    regelM('.cmt.pinned') || '(keine Regel)');
-  pruefe('Und der Bericht behält seine Kante auch angepinnt',
+  pruefe('Und die drei Arten holen sich ihre linke Kante in ihrer Farbe zurueck',
+    [['bericht', 'accent'], ['aufgabe', 'blue'], ['erledigt', 'green']].every(([a, f]) =>
+      new RegExp('border-left-color: var\\(--' + f + '\\)').test(regelM('.cmt.pinned.' + a))),
+    ['bericht', 'aufgabe', 'erledigt'].map(a => regelM('.cmt.pinned.' + a)).join(' | ').slice(0, 240));
+  pruefe('Und der Bericht behält seine dicke Kante auch angepinnt',
     /border-left: 3px solid var\(--accent\)/.test(regelM('.cmt.bericht')) &&
-    !/border-left/.test(regelM('.cmt.pinned')));
+    !/border-left:|border-left-width/.test(regelM('.cmt.pinned.bericht')),
+    regelM('.cmt.pinned.bericht') || '(keine Regel)');
   pruefe('Ein Merkmal, ein Zeichen — kein zweiter Untergrund für die Anpinnung',
     !/background/.test(regelM('.cmt.pinned')),
     regelM('.cmt.pinned') || '(keine Regel)');
@@ -26756,9 +26771,15 @@ async function pruefeOberflaeche() {
   /* ES AENDERT SICH KEINE EINZIGE BREITE. Wuerde die linke Kante beim
      Anpinnen duenn, muesste padding-left von 10 auf 12 zurueck -- sonst
      begaennen die Zeilen auf zwei Linien (Befund C aus 0.12.0, andersherum). */
+  /* DAS MUSTER TRENNT FARBE VON BREITE, und seit 0.13.2 muss es das auch:
+     `border-left` allein traf `border-left-color` mit -- also genau die
+     Zeile, mit der jede Art sich ihre Kante zurueckholt. Gemeint war nie die
+     Farbe, sondern die BREITE: die Kurzform `border-left:` kann eine tragen,
+     `border-left-color:` niemals. */
   pruefe('Und keine Breite und kein Innenabstand aendern sich dabei',
     !['', '.bericht', '.aufgabe', '.erledigt'].some(a =>
-      /border-left|border-width|border-(top|right|bottom)-width|padding/.test(regel123('.cmt.pinned' + a))),
+      /border-left:|border-left-width|border-width|border-(top|right|bottom)-width|padding/
+        .test(regel123('.cmt.pinned' + a))),
     ['', '.bericht', '.aufgabe', '.erledigt'].map(a => regel123('.cmt.pinned' + a)).join(' | ').slice(0, 240));
   pruefe('Die linke Kante bleibt ungeruehrt bei der Art',
     /border-left: 3px solid var\(--accent\)/.test(regel123('.cmt.bericht')),

@@ -18,6 +18,13 @@ wird der ganze Rahmen golden."* **Das Stilblatt tat es nie.** Zwei Runden lang
 stand die Absicht neben dem Code und stimmte nicht mit ihm überein — und
 niemand hat nachgesehen, weil ein Kommentar sich liest wie ein Beleg.
 
+**UND DER PRÜFSTAND HAT DEN FEHLER NICHT ÜBERSEHEN, SONDERN VERLANGT.** Drei
+Prüfungen aus 0.12.0 hielten die **zurückgenommene** Entscheidung fest — *„Die
+Anpinnung färbt oben, rechts und unten"* und *„Die linke Kante bleibt der Art
+vorbehalten"*. Sie sind beim Umdrehen der Entscheidung in 0.12.3 nicht
+mitgenommen worden und standen seither grün da. **Der Fehler war damit nicht
+ungeprüft, sondern falsch geprüft** — Abschnitt 3a.
+
 ---
 
 ## Inhalt
@@ -25,6 +32,7 @@ niemand hat nachgesehen, weil ein Kommentar sich liest wie ein Beleg.
 1. [Der Befund](#1-der-befund)
 2. [Was gebaut ist](#2-was-gebaut-ist)
 3. [Die zweite Entdeckung: der Kommentar stimmte auch sonst nicht](#3-die-zweite-entdeckung-der-kommentar-stimmte-auch-sonst-nicht)
+3a. [Die dritte Entdeckung: der Prüfstand hat den Fehler verlangt](#3a-die-dritte-entdeckung-der-prüfstand-hat-den-fehler-verlangt)
 4. [Was je Datei geändert wurde](#4-was-je-datei-geändert-wurde)
 5. [Der Prüfstand und die Gegenproben](#5-der-prüfstand-und-die-gegenproben)
 6. [Neue Stolpersteine](#6-neue-stolpersteine)
@@ -127,6 +135,50 @@ Prüfung hält die Reihenfolge fest, damit die Wiederholung nicht eines Tages al
 
 ---
 
+## 3a. Die dritte Entdeckung: der Prüfstand hat den Fehler verlangt
+
+Der erste volle Lauf nach der Änderung war **rot: 4128 von 4131**. Die drei
+gescheiterten Zeilen waren keine Folgeschäden, sondern der dritte Befund.
+
+**Zwei davon stammen aus 0.12.0** und schrieben die damalige Entscheidung fest
+— *„zwei Merkmale, zwei Kanäle: die linke Kante gehört allein der Art, die drei
+übrigen allein der Anpinnung"*:
+
+```js
+pruefe('Die Anpinnung färbt oben, rechts und unten', …)
+pruefe('Die linke Kante bleibt der Art vorbehalten',
+  !/border-left|border-color:/.test(regelM('.cmt.pinned')), …)
+```
+
+Die zweite Zeile **verbot `border-color:` ausdrücklich** — also genau die
+Schreibweise, mit der der Rahmen schließt.
+
+**0.12.3 hat diese Entscheidung umgedreht**, im Stilblatt ausführlich begründet
+und mit eigenen Regeln für die drei Arten versehen. **Den Prüfstand hat sie
+nicht mitgenommen.** Die beiden alten Zeilen blieben grün, weil die Umsetzung
+ihren Rest behalten hatte — die linke Kante der angepinnten Notiz blieb grau.
+*So sah zweieinhalb Runden lang alles bestätigt aus: ein Kommentar, der die neue
+Entscheidung erklärt, und zwei grüne Punkte, die die alte festhalten.*
+
+**Die dritte Zeile ist ein zu grobes Muster und kein Irrtum in der Sache:**
+
+```js
+/border-left|border-width|border-(top|right|bottom)-width|padding/
+```
+
+Gemeint war die **Breite** — es soll sich keine Kante und kein Innenabstand
+ändern. `border-left` trifft aber auch `border-left-color`, also genau die
+Zeile, mit der jede Art sich ihre Kante zurückholt. Das Muster unterscheidet
+jetzt: `border-left:` (die Kurzform, die eine Breite tragen **kann**) und
+`border-left-width` schlagen an, `border-left-color` nicht.
+
+**Alle drei sind nachgezogen, keine ist gelöscht.** Was sie belegen sollten,
+belegen sie weiterhin — nur eben gegen die geltende Entscheidung statt gegen die
+zurückgenommene. *Die Zahl der Prüfungen ändert sich dadurch nicht: 4131 vorher
+wie nachher.*
+
+---
+
 ## 4. Was je Datei geändert wurde
 
 ### `public/style.css`
@@ -143,6 +195,9 @@ angefasst**.
 ### `pruefung.js`
 
 * Neue Gruppe **„Der angepinnte Rahmen schliesst — 0.13.2"**, acht Zeilen.
+* **Drei Prüfungen aus 0.12.0 und 0.12.3 sind nachgezogen** (Abschnitt 3a) —
+  zwei hielten die zurückgenommene Entscheidung fest, eine hatte ein zu grobes
+  Muster. Keine ist gelöscht; über jeder steht, warum sie sich geändert hat.
 * Der Wächter über die Rückbauten zählt jetzt **218** statt 216.
 
 ### `gegenprobe.js`
@@ -224,6 +279,17 @@ die Wiederholung schlägt die spätere Regel durch.
     EIGENSCHAFT ERWEITERT, ZÄHLT DIE KLASSEN NEU** statt sich auf das zu
     verlassen, was danebensteht. *Die Reihenfolge ist jetzt selbst eine
     Prüfung.*
+
+201. **Ein Prüfstand kann einen Fehler nicht nur übersehen, sondern
+    verlangen.** Zwei Zeilen aus 0.12.0 hielten fest, dass die Anpinnung *„oben,
+    rechts und unten"* färbt und die linke Kante *„der Art vorbehalten"* bleibt.
+    0.12.3 hat genau diese Entscheidung umgedreht — und die beiden Zeilen
+    stehengelassen. **Sie blieben grün, weil die Umsetzung ihren Rest behalten
+    hatte**, und machten den Rest damit zur geprüften Zusage. **WER EINE
+    ENTSCHEIDUNG ZURÜCKNIMMT, SUCHT DIE PRÜFUNGEN, DIE SIE FESTHALTEN, UND
+    NIMMT SIE MIT** — sonst hält der Prüfstand den alten Zustand fest, und zwar
+    mit dem vollen Anschein der Bestätigung. *Ein grüner Punkt sagt nur, dass
+    etwas so ist wie beschrieben; er sagt nicht, ob die Beschreibung noch gilt.*
 
 ---
 

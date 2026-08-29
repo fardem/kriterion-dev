@@ -4663,6 +4663,17 @@ Version, in der sie entstanden sind.*
     anfasste. **WER EINE REGEL UM EINE EIGENSCHAFT ERWEITERT, ZÄHLT DIE KLASSEN
     NEU.** *Die Reihenfolge im Stilblatt ist seit 0.13.2 selbst eine Prüfung.*
 
+201. **Ein Prüfstand kann einen Fehler nicht nur übersehen, sondern
+    verlangen.** Zwei Zeilen aus 0.12.0 hielten fest, dass die Anpinnung *„oben,
+    rechts und unten"* färbt und die linke Kante *„der Art vorbehalten"* bleibt
+    — die zweite verbot `border-color:` sogar ausdrücklich. **0.12.3 hat genau
+    diese Entscheidung umgedreht und die beiden Zeilen stehengelassen.** Sie
+    blieben grün, weil die Umsetzung ihren Rest behalten hatte, und machten den
+    Rest damit zur geprüften Zusage. **WER EINE ENTSCHEIDUNG ZURÜCKNIMMT, SUCHT
+    DIE PRÜFUNGEN, DIE SIE FESTHALTEN, UND NIMMT SIE MIT.** *Ein grüner Punkt
+    sagt nur, dass etwas so ist wie beschrieben; er sagt nicht, ob die
+    Beschreibung noch gilt.*
+
 ---
 
 ## 7. Prüfstand
@@ -4684,6 +4695,13 @@ beschränkt und **nicht** der volle Lauf über alle **218** Rückbauten.
 | neue Gruppe (0.13.2) | Prüfungen |
 |---|---|
 | Der angepinnte Rahmen schliesst | 8 |
+
+> **DREI PRÜFUNGEN AUS 0.12.0 UND 0.12.3 SIND MIT 0.13.2 NACHGEZOGEN.** Zwei
+> hielten die in 0.12.3 **zurückgenommene** Entscheidung fest und blieben grün,
+> weil die Umsetzung ihren Rest behalten hatte; eine hatte ein zu grobes Muster
+> (`border-left` traf auch `border-left-color`). **Keine ist gelöscht**, über
+> jeder steht, warum sie sich geändert hat. *Die Zahl der Prüfungen ändert sich
+> dadurch nicht (Stolperstein 201).*
 
 | neue Gruppe (0.13.1) | Prüfungen |
 |---|---|
