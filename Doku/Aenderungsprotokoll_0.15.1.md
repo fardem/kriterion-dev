@@ -1,7 +1,7 @@
 # Änderungsprotokoll 0.15.1 — „`hidden` wirkt wieder"
 
-**Version 0.15.1 · gebaut am 29. August 2026 · Fingerprint `FINGERPRINT` ·
-PRUEFZAHL Prüfungen · RUECKZAHL Rückbauten in `gegenprobe.js`**
+**Version 0.15.1 · gebaut am 29. August 2026 · Fingerprint `d02260bd` ·
+4366 Prüfungen · 271 Rückbauten in `gegenprobe.js`**
 
 ---
 
@@ -233,6 +233,69 @@ Wert**), `package.json`, `package-lock.json` und dieses Protokoll.
 
 ---
 
+## 6. Der Prüfstand
+
+**Stand: 4366 von 4366 bestanden** — **fünfzehn neue Prüfungen**, davon zehn in
+einer neuen Gruppe:
+
+| neue Gruppe (0.15.1) | Prüfungen |
+|---|---|
+| Das Feld steht nur, wo etwas fehlt — 0.15.1 | 10 |
+
+*Dazu vier an der Regel im Stilblatt (in der Gruppe zur Hervorhebung aus
+0.15.0) und eine an der Gegenprobenliste. **Die neue Gruppe fährt alle VIER
+Felder der Tafel** — abgelehnt ja/nein gegen Grund ja/nein — und die
+Rechtefrage dazu; eine Gruppe, die nur eines davon fährt, belegt nichts über
+die anderen drei (Stolperstein 189).*
+
+> **FÜNF PRÜFUNGEN SIND NACHGEZOGEN, und keine davon war ein Fehler in der
+> Änderung** (Stolperstein 201):
+> * **Zwei hielten die örtlichen Flicken fest** (`.lb-btn[hidden]`,
+>   `.zug-neu [hidden]`). Sie prüfen jetzt die grundsätzliche Regel — und
+>   ausdrücklich, dass **keine** örtliche danebensteht.
+> * **Eine erwartete nach dem Löschen des Grundes die Aussage.** Dort geht
+>   seither das Feld auf; die Aussage wird im Ruhezustand danach geprüft.
+> * **Eine war mein eigener Zähler:** er las die Kommentare mit und meldete
+>   drei `[hidden]`-Regeln, wo eine steht. *Gezählt wird, was gemeint ist
+>   (Stolperstein 156).*
+> * **Und drei Rückbauten griffen ins Leere**, weil ihre Zeilen sich geändert
+>   haben (245, 246, 261).
+
+**Was der Prüfstand hier NICHT kann, steht in Abschnitt 4:** er misst kein CSS.
+*Die Regel ist festgenagelt, die Messung steht in diesem Papier.*
+
+---
+
+## 7. Gegenproben
+
+**Vorher: 267 Rückbauten. Nachher: 271.**
+
+**Der volle Lauf über alle 271 ist NICHT gefahren** — er steht seit elf Runden
+aus. **Gefahren sind die vier neuen und die drei nachgezogenen**, in vier
+Nebenspuren, **keiner blieb stumm**:
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 245 | Das Feld fuer den Grund erscheint nicht | 7 Prüfungen, darunter *Abgelehnt ohne Grund: das Feld steht offen* — 2 Gruppen |
+| 246 | Die Aussage steht auch da, wenn sie nichts sagt | 4 Prüfungen, darunter *Ist gar nichts bekannt und darf niemand schreiben, bleibt die Zeile weg* — 3 Gruppen |
+| 261 | Beim Einschalten bleibt das Feld zu | 7 Prüfungen, darunter *Abgelehnt ohne Grund: das Feld steht offen* — 2 Gruppen |
+| 268 | Die Regel fuer hidden verliert ihre Kraft | 4 Prüfungen, darunter *Und das hidden-Attribut wird am Knopf auch wirksam* — 3 Gruppen |
+| 269 | Die Regel fuer hidden fehlt ganz | 5 Prüfungen, darunter *Und das hidden-Attribut wird am Knopf auch wirksam* — 3 Gruppen |
+| 270 | Aussage und Feld stehen wieder zugleich da | Und die Aussage tritt so lange zurueck -- nie beides zugleich · Und die Aussage tritt so lange zurueck -- sonst stuende sie zweimal da · Und die Aussage tritt so lange zurueck |
+| 271 | Das Feld steht auch dem offen, der nicht schreiben darf | 5 Prüfungen, darunter *Und das Feld steht dort ebenso wenig offen* — 3 Gruppen |
+
+**DER WICHTIGSTE IST 268.** Er nimmt **nur das `!important`** weg, sonst
+nichts — und **vier Prüfungen werden rot**, in drei verschiedenen Gruppen.
+*Genau der Fehler, der bis 0.15.0 unbemerkt durchgelaufen ist, wird damit ab
+jetzt gefunden.* **269 geht einen Schritt weiter** und nimmt die ganze Regel:
+dann fällt zusätzlich die Zeile, die zählt, dass sie genau einmal dasteht.
+
+*Die drei nachgezogenen treffen dieselbe Sache an ihrer neuen Zeile — **261
+besonders deutlich:** er hing früher am Klick beim Einschalten und nimmt jetzt
+die Hälfte der abgeleiteten Regel weg, die den fehlenden Grund trägt.*
+
+---
+
 ## 8. Neue Stolpersteine
 
 **214. Wer `hidden` benutzt, benutzt eine Regel aus einem FREMDEN Stylesheet —
@@ -261,6 +324,36 @@ Ursache stand unangetastet zwei Dateien weiter. *Der Umbau war nicht umsonst
 (der Ruhezustand ist die bessere Bauform), aber er hat den Fehler verdeckt und
 eine Runde gekostet.* **Die Frage davor: kann ich den gemeldeten Zustand
 herstellen? Wenn nein, habe ich die Ursache nicht.**
+
+---
+
+## 9. Die Zahlen
+
+| | vorher (0.15.0) | nachher (0.15.1) |
+|---|---|---|
+| Prüfungen | 4351 | **4366** |
+| Rückbauten in `gegenprobe.js` | 267 | **271** |
+| Stolpersteine | 213 | **216** |
+| Regeln mit `!important` im Stilblatt | 0 | **1** |
+| Örtliche `[hidden]`-Regeln | 2 | **0** |
+| Markierte Migrationsblöcke | 6 | **6** |
+| Austauschformat | 11 | **11** |
+| `F_ROUTEN` | 69 | **69** |
+| Karten im Systembereich | 19 | **19** |
+| Vokabulareinträge | 11 | **11** |
+| Laufzeit `npm test` | ~5 min 54 s | **~5 min 54 s** |
+
+**Laufzeitabhängigkeiten unverändert:** `better-sqlite3-multiple-ciphers`,
+`express`, `multer`, `nodemailer`, `sharp`. **Entwicklungsabhängigkeit
+unverändert:** `jsdom`. **Keine neue, nicht eine.**
+
+> **IM FELD BESTÄTIGT, NOCH WÄHREND DIE RUNDE LIEF.** Der Betreiber hat den
+> Stand `13726aa` eingespielt — **Fingerprint `a23f24c1`** — und gemeldet:
+> *„jetzt funktioniert es richtig."* **Damit ist der Kern von 0.15.1 nicht nur
+> gemessen, sondern belegt.** *Die Fußzeile sagte dort noch 0.15.0, und das war
+> richtig so: die Versionsnummer kommt einen Commit später. Nachgerechnet an
+> beiden Ständen — `13726aa` → `a23f24c1` (0.15.0), `a58c712` → `d02260bd`
+> (0.15.1) —, also kein Befund, sondern ein Commit zu früh gezogen.*
 
 ---
 

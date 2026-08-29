@@ -137,8 +137,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.15.1** — Fingerprint **`FINGERPRINT_0151`**, **PRUEFZAHL Prüfungen**,
-**RUECKZAHL Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
+**Gebaut ist 0.15.1** — Fingerprint **`d02260bd`**, **4366 Prüfungen**,
+**271 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
 *0.15.1 macht `hidden` wieder wirksam und lässt die Begründung nur noch dort
 stehen, wo etwas fehlt.* **PATCH — eine reine Fehlerbehebung.**
 
@@ -334,7 +334,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.15.0** | **`8fa66d7d`** | 4351 |
+| **0.15.1** | **`d02260bd`** | 4366 |
+| 0.15.0 | `8fa66d7d` | 4351 |
 | 0.14.0 | `ca8bcf31` | 4262 |
 | 0.13.2 | `15188676` | 4131 |
 | 0.13.1 | `ee00fdf2` | 4123 |
@@ -398,7 +399,7 @@ Datenbankstufe ist ein Downgrade **keine reine Dateikopie mehr**.
 | 0.9.1 | Tabelle `anfragen` | **keiner** | Pflicht |
 | 0.10.0 | Tabellen `zweifaktor`, `zweifaktor_codes` | **keiner** | Pflicht |
 | **0.14.0** | **Spalten `items.rejected_at`, `items.rejected_grund`, `items.rejected_von`** | **`migration0140()`** | **Pflicht** |
-| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · 0.12.0 · 0.12.1 · 0.12.2 · 0.12.3 · 0.12.4 · 0.13.0 · 0.13.1 · 0.13.2 · **0.15.0** | — | — | Empfehlung |
+| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · 0.12.0 · 0.12.1 · 0.12.2 · 0.12.3 · 0.12.4 · 0.13.0 · 0.13.1 · 0.13.2 · 0.15.0 · **0.15.1** | — | — | Empfehlung |
 
 *Die Spalte „Sicherung" ist eine rückblickende Einordnung. **Als Regel steht sie
 erst seit 0.8.30 im Einspielweg** — 0.8.3 lag davor, und damals war der Rückweg
@@ -5067,11 +5068,21 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4351 von 4351 bestanden** (0.15.0) — **89 neue Prüfungen** in
-drei neuen Gruppen; 0.14.0 davor brachte 131 in fünf, 0.13.2 brachte 8, 0.13.1
-ebenfalls 8. Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils
-neuen Zusagen beschränkt und **nicht** der volle Lauf über alle **267**
-Rückbauten.
+**Stand: 4366 von 4366 bestanden** (0.15.1) — **fünfzehn neue Prüfungen**,
+davon zehn in einer neuen Gruppe; 0.15.0 davor brachte 89 in drei, 0.14.0
+brachte 131 in fünf. Die Gegenproben stehen in Abschnitt 8: sie sind auf die
+jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf über alle
+**271** Rückbauten.
+
+| neue Gruppe (0.15.1) | Prüfungen |
+|---|---|
+| Das Feld steht nur, wo etwas fehlt — 0.15.1 | 10 |
+
+*Dazu vier an der Regel `[hidden]` im Stilblatt und eine an der
+Gegenprobenliste. **Fünf Prüfungen sind nachgezogen** (Stolperstein 201): zwei
+hielten die entfallenen örtlichen `[hidden]`-Flicken fest, eine erwartete nach
+dem Löschen des Grundes die Aussage statt des Feldes, eine zählte die
+Kommentare mit, und drei Rückbauten griffen ins Leere.*
 
 | neue Gruppe (0.15.0) | Prüfungen |
 |---|---|
@@ -5528,7 +5539,8 @@ eine Buchführung.*
 | 0.13.1 | Die Beschriftungen stehen oben (8) | 2 neue (214 → 216) | Stolpersteine 197 und 198 |
 | 0.13.2 | Der angepinnte Rahmen schließt (0 netto; drei Zeilen nachgezogen) | 2 neue (216 → 218) | Stolpersteine 199 bis 201 |
 | 0.14.0 | Die Entscheidung wird mitgeschrieben (131) | 31 neue (218 → 249), alle einunddreißig gefahren | Stolpersteine 202 bis 207 |
-| **0.15.0** | **Der Filter und der Stift (89 netto)** | **18 neue (249 → 267), alle achtzehn gefahren; zwei nachgezogen, einer repariert** | **Stolpersteine 208 bis 210** |
+| 0.15.0 | Der Filter und der Stift (89 netto) | 18 neue (249 → 267), alle achtzehn gefahren; zwei nachgezogen, einer repariert | Stolpersteine 208 bis 213 |
+| **0.15.1** | **`hidden` wirkt wieder (15)** | **4 neue (267 → 271); alle vier plus drei nachgezogene gefahren, keiner stumm** | **Stolpersteine 214 bis 216** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -5641,14 +5653,15 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZEHN RUNDEN AUS.** 267 Rückbauten zu
-  je einem vollen Prüflauf sind bei 5 min 54 s je Lauf rund **26,3 Stunden**
-  hintereinander, in vier Nebenspuren rund sieben. **Auch in 0.15.0 ist er nicht
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ELF RUNDEN AUS.** 271 Rückbauten zu
+  je einem vollen Prüflauf sind bei 5 min 54 s je Lauf rund **26,7 Stunden**
+  hintereinander, in vier Nebenspuren rund sieben. **Auch in 0.15.1 ist er nicht
   gefahren, und das ist keine Zusage mehr.** *Die Gründe stehen im
   Änderungsprotokoll 0.14.0, Abschnitt 16; der wichtigste ist baulich:
   `gegenprobe.js` zieht seine Kopie aus `git archive HEAD`, ein Commit mitten im
-  Lauf verschöbe die Grundlage.* **Gefahren sind die achtzehn Rückbauten dieser
-  Runde, vollständig und in vier Nebenspuren.**
+  Lauf verschöbe die Grundlage.* **Gefahren sind die vier neuen Rückbauten dieser
+  Runde und die drei nachgezogenen, vollständig und in vier Nebenspuren —
+  keiner blieb stumm.**
   *Was 0.13.0 daran geändert hat, ist der billige Teil: der Prüfstand rechnet bei
   jedem Lauf nach, dass jeder Rückbau in seiner Datei überhaupt noch greift —
   drei taten es fünf Runden lang nicht (Stolperstein 192).*
@@ -5861,6 +5874,44 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.15.1 — „`hidden` wirkt wieder"
+
+**PATCH · 29. August 2026 · ein Befund aus dem Betrieb, gemeldet kurz nach dem
+Einspielen von 0.15.0 — und die Ursache lag nicht dort, wo sie vermutet
+wurde.**
+
+**AN EINEM NICHT ABGELEHNTEN EINTRAG STANDEN AUSSAGE UND EINGABEFELD TROTZDEM
+DA.** Beide trugen `hidden`. **Der Fehler steckte im Stilblatt:** `hidden`
+wirkt nur über `[hidden] { display: none }` im Stylesheet des **Browsers**, und
+**jede** eigene `display`-Regel schlägt die. `.row-in` tut das seit jeher — das
+Eingabefeld war damit **nie** versteckt, auch nicht in 0.14.0; mit
+`.rej-aussage` kam 0.15.0 die Aussage dazu. *Gemessen in Chromium: 72,9 px an
+jedem nicht abgelehnten Eintrag für nichts, fast die halbe Höhe des
+Titelblocks.*
+
+**DIE ANTWORT IST EINE REGEL, EINMAL GANZ OBEN:**
+`[hidden] { display: none !important; }` — die **einzige** Stelle im ganzen
+Stilblatt mit einem `!important`, und sie stellt eine Vorgabe des Browsers
+wieder her, statt eine eigene durchzudrücken. **Zwei örtliche Flicken für
+dasselbe Problem sind dabei entfallen**; sie hatten es zweimal an ihrer Stelle
+gelöst und nie grundsätzlich.
+
+**UND DIE ZWEITE HÄLFTE IST EINE REGEL AUS DEM BETRIEB:** das Eingabefeld steht
+offen, **solange abgelehnt ist und kein Grund dasteht** — darüber hinaus, wer
+es über den Text oder das ✎ aufmacht. *Bis 0.15.0 hing das an einem Klick und
+war damit nach jedem Neuzeichnen falsch: ein frisch geladener Eintrag ohne
+Grund zeigte kein Feld, nach dem Entfernen kam es nicht zurück, und ein
+erneutes Ablehnen machte es auf, obwohl ein Grund dastand.* **Nie beides
+zugleich, und an einem nicht abgelehnten Eintrag gar nichts.**
+
+**DIE DIAGNOSE ZU BEFUND 2 AUS 0.15.0 WAR FALSCH, und das gehört hierher:** die
+Logik ist umgebaut worden — richtig, aber am Problem vorbei —, während die
+Ursache zwei Dateien weiter unangetastet stand (Stolperstein 216).
+
+**4351 → 4366 Prüfungen, 267 → 271 Rückbauten.** Kein Schema, keine Route,
+keine Rechteänderung, `F_ROUTEN` bei 69, Format 11. **Keine neue
+Abhängigkeit.**
 
 ### 0.15.0 — „Der Filter und der Stift"
 

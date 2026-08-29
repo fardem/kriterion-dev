@@ -13,8 +13,15 @@ Punkt aus dem Betrieb, der nie im Sammelblatt stand.*
 
 > # ⛔ VOR DEM ERSTEN HANDGRIFF: DER FINGERPRINT MUSS BESTÄTIGT SEIN.
 >
-> **0.15.0 ist gebaut und geschoben, aber NICHT im Feld bestätigt.** Die
-> laufende Anlage muss **`8fa66d7d`** melden — Systembereich → Kennzahlen.
+> **0.15.1 ist gebaut und geschoben.** Die laufende Anlage muss
+> **`d02260bd`** melden — Systembereich → Kennzahlen —, und die
+> Fußzeile muss **0.15.1** sagen.
+>
+> *Der Kern von 0.15.1 ist im Feld bestätigt: der Betreiber hat den Stand
+> `13726aa` (Fingerprint `a23f24c1`) eingespielt und gemeldet, dass es richtig
+> funktioniert. **Das war ein Commit vor der Versionsnummer** — deshalb steht
+> die Bestätigung, und trotzdem ist der Fingerprint oben abzulesen: er sagt,
+> ob der GANZE Stand läuft.*
 >
 > **SOLANGE DORT ETWAS ANDERES STEHT, WIRD AN 0.16.0 KEINE ZEILE GEBAUT.**
 > Das ist keine Formsache und keine Vorsichtsmaßnahme auf Vorrat:
@@ -31,8 +38,12 @@ Punkt aus dem Betrieb, der nie im Sammelblatt stand.*
 >   Prüfstand gesehen hat.** Ob sie wirklich weg sind, sagt kein Prüflauf,
 >   sondern nur die laufende Anlage.
 >
-> **DREI HANDGRIFFE BELEGEN 0.15.0 IM FELD, und sie dauern zusammen zwei
-> Minuten:**
+> **VIER HANDGRIFFE BELEGEN DEN STAND IM FELD, und sie dauern zusammen zwei
+> Minuten. Der vierte ist neu aus 0.15.1 und der wichtigste:**
+>
+> 0. **Einen Eintrag ansehen, der NICHT abgelehnt ist.** Dort darf **nichts**
+>   von der Ablehnung stehen — keine rote Zeile, kein Eingabefeld. *Steht dort
+>   etwas, wirkt `hidden` wieder nicht, und dann ist 0.15.1 nicht drin.*
 >
 > 1. **Nach „Abgelehnt" filtern und mit „Getestet" kombinieren.** Die
 >   Statuszeile trägt hinter der Beschriftung „Ablehnung" drei Pillen. Beide
@@ -54,10 +65,11 @@ Punkt aus dem Betrieb, der nie im Sammelblatt stand.*
 
 ---
 
-WORAUF SIE AUFSETZT: 0.15.0 ist gebaut und geschoben — Fingerprint `8fa66d7d`,
-**4351 Prüfungen**, **267 Rückbauten** in `gegenprobe.js`, `F_ROUTEN` bei
+WORAUF SIE AUFSETZT: 0.15.1 ist gebaut und geschoben — Fingerprint
+`d02260bd`,
+**4366 Prüfungen**, **271 Rückbauten** in `gegenprobe.js`, `F_ROUTEN` bei
 **69**, Formatnummer **11**, **sechs** markierte Migrationsblöcke (0.8.3,
-0.8.30, 0.8.31, 0.8.40, 0.8.50, 0.14.0), Stolpersteine bis **213**,
+0.8.30, 0.8.31, 0.8.40, 0.8.50, 0.14.0), Stolpersteine bis **216**,
 **neunzehn** Karten im Systembereich, **elf** Vokabulareinträge, **zwanzig**
 Vorgänge im Sicherheitsprotokoll, **vierzehn** Merkmale, **sieben** Zwecke der
 zweiten Bestätigung. Ein voller Prüflauf dauert **rund 5 Minuten 54 Sekunden**.
@@ -85,7 +97,7 @@ wahrscheinlich ist.*
 
 0. WAS VOR DEM ERSTEN HANDGRIFF ZU TUN IST.
 
-   * **DER FINGERPRINT UND DIE DREI HANDGRIFFE — siehe der Kasten ganz oben.
+   * **DER FINGERPRINT UND DIE VIER HANDGRIFFE — siehe der Kasten ganz oben.
      Das ist die Bedingung, nicht der erste Punkt einer Liste.**
 
    * **ZWEI FELDBELEGE STEHEN SEIT VIER RUNDEN AUS.** Sie kosten keine Zeile
@@ -114,8 +126,8 @@ wahrscheinlich ist.*
      Projektstand, Abschnitt 8. *Der Tag dieser Runde wird angelegt und der Push
      versucht; geht er unerwartet durch, ist das ein Befund.*
 
-   * **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZEHN RUNDEN AUS.** 267 Rückbauten zu
-     je einem vollen Prüflauf sind bei 5 min 54 s je Lauf rund **26,3 Stunden**
+   * **DER VOLLE GEGENPROBENLAUF STEHT SEIT ELF RUNDEN AUS.** 271 Rückbauten zu
+     je einem vollen Prüflauf sind bei 5 min 54 s je Lauf rund **26,7 Stunden**
      hintereinander, in vier Nebenspuren rund sieben. **Entscheide zu Beginn, ob er einmal ganz läuft.**
      *Läuft er nicht, schreib auf, dass er wieder aussteht.*
      **Und die Auflage aus 0.15.0 gilt verschärft:** er lässt sich **nicht neben
@@ -480,9 +492,9 @@ AM ENDE DES CHATS:
   Lauf wird davon rot, ohne dass am Code etwas falsch wäre.
 * `Doku/Aenderungsprotokoll_0.16.0.md` liegt im Branch: was gebaut wurde je
   Datei, Abweichungen mit Begründung, **die Entscheidungen mit ihrer
-  Begründung**, neue Stolpersteine (**die Zählung setzt bei 214 fort** — 213 ist
+  Begründung**, neue Stolpersteine (**die Zählung setzt bei 217 fort** — 216 ist
   vergeben), die Gegenprobentabelle **aus `gegenprobe.js`**, Prüfungszahlen
-  vorher/nachher (vorher: **4351**), Rückbauten vorher/nachher (vorher: **267**),
+  vorher/nachher (vorher: **4366**), Rückbauten vorher/nachher (vorher: **271**),
   **die neu gemessenen Funktions- und Dateigrößen** (Punkt 2), Offengebliebenes
   — **und die Ergebnisse der Feldbelege aus Abschnitt 0, sobald sie da sind.**
 * Die Zeile „0.16.0 — Fingerprint `…`" gehört ins Änderungsprotokoll,
