@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 38 · Stand 29. August 2026 · gebaut: Version 0.15.1**
+**Kompakte Übergabe · Revision 39 · Stand 29. August 2026 · gebaut: Version 0.16.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,14 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.16.0 in einem Satz: der Systembereich bekommt Abschnitte mit eigener
+Adresse, die Kopfzeile eine Glocke, und das Wort „gewichtet" erklärt sich
+selbst.** *MINOR, und zugleich eine **Datenbankstufe**: die Bewertungen
+bekommen mit `gesetzt_am` einen Zeitpunkt — ohne ihn kann die Glocke über
+fremde Bewertungen nichts sagen.* **Die größte Umbaufläche des Fahrplans:**
+`renderSystem()` ist von 2.466 auf 79 Zeilen geschrumpft, die achtzehn Karten
+stehen seither als Tabelle. *Alles Weitere in Abschnitt 2 und Abschnitt 9.*
 
 **0.15.1 in einem Satz: `hidden` wirkt wieder — und die Begründung steht nur
 noch dort, wo etwas fehlt.** *PATCH: die Anlage kann danach nichts, was sie
@@ -137,9 +145,57 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.15.1** — Fingerprint **`d02260bd`**, **4366 Prüfungen**,
-**271 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
-*0.15.1 macht `hidden` wieder wirksam und lässt die Begründung nur noch dort
+**Gebaut ist 0.16.0** — Fingerprint **`aa76c352`**, **4520 Prüfungen**,
+**300 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
+*0.16.0 gibt dem Systembereich Abschnitte mit eigener Adresse, der Kopfzeile
+eine Glocke, dem Wort „gewichtet" eine Erklärung und den Kennzahlen Version und
+Verfahren.* **MINOR — und eine Datenbankstufe.**
+
+> **DIES IST EINE DATENBANKSTUFE, ANDERS ALS GEPLANT.** Der Auftrag schloss ein
+> Schema ausdrücklich aus. **Die Durchsicht kam zu einem anderen Ergebnis, und
+> genau dafür stand die Auflage „anhalten und fragen":** die Tabelle `ratings`
+> trägt keinen Zeitpunkt — nur `item_id`, `criterion_id`, `value`, `user_id` —,
+> und ohne einen kann die Glocke über **fremde Bewertungen** nichts sagen.
+> **Auf ausdrückliche Anweisung ist der Schemaschritt gefahren worden:**
+> `ratings.gesetzt_am`, der **siebte** markierte Migrationsblock.
+> **DIE SICHERUNG DES DATENVERZEICHNISSES IST DESHALB PFLICHT.**
+> *Das Austauschformat bleibt trotzdem bei **11**: der Zeitpunkt geht nicht in
+> die Exportdatei — bei einer eingespielten Bewertung weiß die Anlage nicht,
+> wann sie ursprünglich vergeben wurde, und behauptet es nicht.*
+> **Keine neue Zeile in der `.env`, keine neue Abhängigkeit, `F_ROUTEN`
+> unverändert bei 69** — der Bezugspunkt der Glocke läuft über
+> `PUT /api/settings`.
+
+> **DIE ALTEN ZEILEN BEKOMMEN KEINEN ZEITPUNKT NACHGETRAGEN.** Sie tragen NULL
+> und behalten es. *Ein nachgetragener Wert wäre erfunden: ein fester ließe
+> alles gleich alt aussehen, `datetime('now')` alles brandneu — und die Glocke
+> läutete beim ersten Start für den ganzen Bestand.* **Was die Anlage nicht
+> weiß, behauptet sie nicht**; die Glocke übergeht diese Zeilen.
+
+> **DER SYSTEMBEREICH STEHT IN FÜNF ABSCHNITTEN, JEDER MIT EIGENER ADRESSE** —
+> `#/system/persoenlich`, `…/bestand`, `…/zugaenge`, `…/datenbank`,
+> `…/anlage`, in der Reihenfolge der Rechteleiter. **Ohne Adresse ließe sich
+> keine Einstellung verlinken und die Zurück-Taste bräche.** *Ein Abschnitt
+> ohne sichtbare Karte erscheint gar nicht; eine Adresse dorthin fällt auf den
+> ersten sichtbaren zurück und wird in der Adresszeile nachgezogen.* **Der
+> zuletzt offene Abschnitt wird ausdrücklich nicht gemerkt** — die Adresse tut
+> es schon.
+
+> **UND `renderSystem()` IST DABEI ZERFALLEN: 2.466 → 79 Zeilen.** Die achtzehn
+> Karten stehen als **Tabelle** mit je einer Zeile — wohin sie gehört, woran
+> sie hängt, wie sie aussieht, was sie ausrüstet. **Die Rechteklemme ist damit
+> ein Feld und keine Klammer im Markup**, und keine Karte hat dabei ihre Klemme
+> gewechselt. *Kein Framework, keine Build-Kette: die Antwort auf die Größe
+> sind kleinere Funktionen.*
+
+**Was 0.16.0 für den Betrieb bedeutet: sichern, dann einspielen.** Beim ersten
+Start meldet das Protokoll `ratings um gesetzt_am ergaenzt (Migration auf
+0.16.0)`. Niemand wird abgemeldet, keine `.env`-Zeile kommt dazu. *Die Glocke
+erscheint erst, nachdem die Übersicht einmal verlassen wurde — vorher gibt es
+keinen Bezugspunkt.*
+
+*Davor, am 29. August: **0.15.1** (Fingerprint `d02260bd`, 4366 Prüfungen)
+macht `hidden` wieder wirksam und lässt die Begründung nur noch dort
 stehen, wo etwas fehlt.* **PATCH — eine reine Fehlerbehebung.**
 
 > **DER BEFUND LAG IM STILBLATT UND NICHT IN DER OBERFLÄCHE.** `hidden` wirkt
@@ -350,7 +406,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.15.1** | **`d02260bd`** | 4366 |
+| **0.16.0** | **`aa76c352`** | 4520 |
+| 0.15.1 | `d02260bd` | 4366 |
 | 0.15.0 | `8fa66d7d` | 4351 |
 | 0.14.0 | `ca8bcf31` | 4262 |
 | 0.13.2 | `15188676` | 4131 |
@@ -1114,7 +1171,7 @@ Abschnitt 10.
 `settings` zerfällt in zwei Hälften. **Eine Einstellung ist entweder Ansicht
 oder Sprache — und das entscheidet, wem sie gehört.**
 
-| persönlich (`user_settings`, **acht** Schlüssel) | global (`settings`, Admin) |
+| persönlich (`user_settings`, **neun** Schlüssel) | global (`settings`, Admin) |
 |---|---|
 | `filters` — die zuletzt benutzte Filter- und Sortierwahl | `title_public`, `title_app` |
 | `ansichten` — bis zu acht **gespeicherte Ansichten** *(0.11.0)* | `vokabular` — elf Wörter |
@@ -1124,6 +1181,13 @@ oder Sprache — und das entscheidet, wem sie gehört.**
 | `linkZeilen` — sichtbare Linkzeilen | `mailtestOk` — Marke der letzten Testmail *(0.9.0)* |
 | `zeitleiste` — ein/aus | `schluesselGewechseltAm` — Marke des Wechsels *(0.8.91)* |
 | `suchNamen` — Zahl der Anbieternamen | `mailzugang` *(0.9.0 — **beim Eigentümer**, nicht beim Admin)* |
+| `glockeGesehen` — der Bezugspunkt der **Glocke** *(0.16.0)* | |
+
+*`glockeGesehen` steht **neben** `zuletztGesehen` und nicht an seiner Stelle:
+das eine merkt sich, wann der Benutzer die Übersicht zuletzt verlassen hat, das
+andere, wann er die Tafel der Glocke zuletzt geöffnet hat. **Zwei Fragen, zwei
+Zeitpunkte** — ein gemeinsamer Merker müsste beide beantworten und beantwortete
+dann keine.*
 
 **`mailzugang` ist die eine Zeile in `settings`, die NICHT dem Admin gehört** —
 und die einzige Ausnahme von „global heißt Adminsache".
@@ -1517,7 +1581,40 @@ wirklich von selbst, drei mussten gebaut werden — und an der neuen Route
 andere, was der Browser nicht abspielt. **Die ehrliche Antwort darauf ist der
 Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 
-### Systembereich — neunzehn Karten, und sie hängen an der Rolle
+### Systembereich — achtzehn Karten in fünf Abschnitten, und sie hängen an der Rolle
+
+> **SEIT 0.16.0 IN FÜNF ABSCHNITTEN MIT EIGENER ADRESSE.** Die Zuordnung folgt
+> der **Rechteleiter**: was jedem gehört, steht vorn, was nur der Eigentümer
+> sieht, hinten.
+>
+> | Abschnitt | Adresse | Karten |
+> |---|---|---|
+> | **Persönlich** | `#/system/persoenlich` | Zugang, Meine Sitzungen, Darstellung |
+> | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
+> | **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
+> | **Datenbank** | `#/system/datenbank` | Kennzahlen, Sicherung, Export und Import |
+> | **Anlage** | `#/system/anlage` | Titel |
+>
+> **Die Adresse ist der ganze Punkt** — ohne sie ließe sich keine Einstellung
+> verlinken und die Zurück-Taste bräche. `#/system` bleibt gültig und löst sich
+> auf den ersten sichtbaren Abschnitt auf.
+> **Ein Abschnitt ohne sichtbare Karte erscheint gar nicht** — ein leerer
+> Reiter wäre schlechter als keiner; ein gewöhnlicher Benutzer sieht deshalb
+> zwei Abschnitte statt fünf. **Eine Adresse auf einen Abschnitt, den es für
+> ihn nicht gibt, fällt auf den ersten sichtbaren zurück und wird dabei in der
+> Adresszeile nachgezogen** — sonst stünden zwei Aussagen über denselben
+> Zustand nebeneinander.
+> **Auf dem Telefon wird aus der Reiterreihe eine Liste**, aus demselben
+> Markup — wie beim Menü der Kopfzeile (0.12.0).
+> **Der zuletzt offene Abschnitt wird nicht gemerkt:** die Adresse tut es
+> schon, und ein gemerkter Zustand daneben wäre eine zweite Wahrheit.
+
+> **ACHTZEHN STATT NEUNZEHN SEIT 0.16.0: „Export" und „Import" sind EINE
+> Karte.** Sie meinen dieselbe Datei — die eine geht hinaus, dieselbe kommt
+> herein. **Aber nicht gleichrangig:** der Export liest, der Import ersetzt
+> Bestand; die zerstörende Hälfte steht unter einem Trennstrich, mit kleinerer
+> Überschrift und leiserer Zeichnung, und **die zweite Bestätigung bleibt, wo
+> sie war.**
 
 **Dem Admin:** beide Titel, Kennzahlen (Umfang des Bestands je Art —
 **seit 0.12.3 auch die Kommentarbilder und die erwartete Exportgröße** —,
@@ -1570,7 +1667,7 @@ Bedienzeichen**: *wer nicht verwalten darf, darf trotzdem nachsehen.* Das
 Gewicht steht dort als Text statt als Eingabefeld.
 
 > **Der zweite Faktor bekommt ausdrücklich KEINE eigene Karte** — es bleibt bei
-> neunzehn. Er steht in „Zugang", wo Name, Passwort und Adresse stehen: wer
+> achtzehn. Er steht in „Zugang", wo Name, Passwort und Adresse stehen: wer
 > seinen Zugang sichern will, sucht ihn da, wo sein Zugang steht. Der Zustand
 > steht **ohne Klick** da — „an seit …" oder „aus", dazu „noch 6 von 8", und ab
 > zwei übrigen sagt die Karte deutlich, dass es knapp wird. Gefärbt wird **grün
@@ -1580,7 +1677,19 @@ Gewicht steht dort als Text statt als Eingabefeld.
 
 **Drei breite Kacheln** brauchen die Breite: „Zugänge", „Sicherheitsprotokoll"
 und „Anfragen". Sie stehen über `grid-auto-flow: dense` im Raster, ohne feste
-Position.
+Position. *Seit 0.16.0 stehen alle drei im selben Abschnitt „Zugänge" — und das
+ist kein Zufall: breit ist eine Karte genau dann, wenn sie eine Liste mit vielen
+Spalten je Zeile trägt.*
+
+> **DIE KARTEN STEHEN SEIT 0.16.0 ALS TABELLE IM QUELLTEXT** (`SYS_KARTEN` in
+> `public/app.js`), je Karte eine Zeile: Abschnitt, Klemme (`sichtbar`),
+> Markup und Behandler. **Die Rechteklemme ist damit ein Feld und keine Klammer
+> im Markup** — sie lässt sich ablesen und nachzählen, statt sie im Markup zu
+> suchen. *Eine Karte, die nicht gezeichnet wird, bekommt auch keinen
+> Behandler; das ist nicht Sparsamkeit, sondern die Bedingung dafür, dass kein
+> Behandler ins Leere greift (Stolperstein 211).*
+> **`renderSystem()` ist dabei von 2.466 auf 79 Zeilen geschrumpft** — siehe
+> Abschnitt 7, „Die Größe der Funktionen".
 
 **Der Papierkorb** (seit 0.8.70): beim Löschen eines Eintrags wird er im
 vorhandenen Austauschformat serialisiert und **in derselben Transaktion** als
@@ -2107,6 +2216,22 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   Durchprobieren von Benutzernamen; nachher ist sie das, was der Betroffene
   braucht. **Ein Fehlversuch ist es ausdrücklich nicht** — der Zähler wird nicht
   hochgesetzt.
+- **Die Abschnitte des Systembereichs folgen der Rechteleiter** (seit 0.16.0) —
+  *Persönlich · Bestand · Zugänge · Datenbank · Anlage*, von dem, was jeder
+  sieht, zu dem, was nur der Eigentümer anfasst. **Die Reihenfolge ist damit
+  keine Geschmacksfrage, sondern dieselbe Leiter wie in `role`.** *Wer nach
+  unten liest, liest wachsende Rechte; wer weniger darf, sieht die unteren
+  Abschnitte gar nicht.*
+- **Ein Abschnitt ist sichtbar, weil eine Karte darin sichtbar ist — und nicht
+  umgekehrt** (seit 0.16.0). `sysSichtbareAbschnitte()` fragt für jede Karte
+  **dieselbe** Funktion, die auch entscheidet, ob sie gezeichnet wird. **Es gibt
+  keine zweite Liste, die sagt, welche Abschnitte es gibt** (Stolperstein 47) —
+  sonst stünde irgendwann ein leerer Reiter da oder eine Karte in keinem.
+  *Eine Adresse auf einen Abschnitt ohne Recht führt deshalb nicht zu einer
+  Absage, sondern auf den ersten sichtbaren zurück: sie ist keine Auskunft
+  darüber, dass es ihn gibt.* **Keine Karte hat beim Umbau ihre Rechteklemme
+  gewechselt**, und ein Wächter im Prüfstand hält alle achtzehn samt Klemme
+  fest.
 
 ### 5.3 Geheimnisse, Schranken und Absagen
 
@@ -2673,6 +2798,25 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   Vergleich — und **beide sind gewichtet**. *Wer eine dritte anlegt — etwa in
   der Kachel der Übersicht —, bricht die Regel; die Kachel liest `avgRating` vom
   Server.*
+- **Der Erklärkasten LIEST die Rechnung, er rechnet sie nicht nach** (seit
+  0.16.0). Ein Klick auf die Zahl im Bewertungsblock öffnet die Rechnung
+  **dieses** Eintrags — Kriterium, Note, Gewicht, Produkt, Summe, Teiler,
+  Ergebnis. **Die Zahlen kommen aus `rechenweg`**, und der entsteht **in**
+  `gesamtSchnitt()`, also in derselben Schleife, die `avgRating` erzeugt.
+  *Ein zweiter Rechenweg für die Anzeige wäre die dritte Rechenstelle — und
+  die beiden liefen früher oder später auseinander, unbemerkt, weil beide
+  plausibel aussehen.* **Der Weg geht ungerundet hinaus**; gerundet wird
+  weiterhin genau einmal, am Ende, und die Oberfläche kürzt nur für die
+  Anzeige und sagt es dazu. **Die Übersicht bekommt ihn nicht:** tausend
+  Einträge trügen tausend Aufstellungen für eine Zahl, die niemand aufklappt.
+- **Eine Bewertung trägt seit 0.16.0 ihren Zeitpunkt** (`ratings.gesetzt_am`).
+  Er heißt **nicht** `created_at`, und das ist kein Geschmack: die Zeile
+  entsteht beim ersten Stern und wird danach überschrieben — was dort steht,
+  ist der Zeitpunkt der **letzten Setzung**, und genau der ist gemeint, wenn
+  die Glocke fragt, ob seit dem letzten Blick jemand bewertet hat. **Ohne
+  Vorgabewert:** eine Zeile ohne Zeitpunkt heißt „die Anlage weiß nicht, wann
+  das war" — das gilt für alles vor 0.16.0 und für jede eingespielte
+  Bewertung. *Ein Vorgabewert machte daraus stillschweigend „gerade eben".*
 - **Der Gesamtschnitt rechnet erst je Kriterium, dann über die Kriterien** (seit
   0.7.0). Nicht flach über alle Bewertungszeilen: flach zählt ein Kriterium, das
   drei Leute bewertet haben, dreifach gegen eines mit einer Stimme. **Gerundet
@@ -2838,6 +2982,16 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   Ziehen, mit Maus und Finger (Pointer-Events, nicht HTML5-Drag). **Seit 0.8.50
   heißt „Foto" hier „erstes Element"** — steht ein Video vorn, ist sein
   Standbild das Hauptbild.
+- **Das Vollbild trägt dieselben Werkzeuge wie die Ansicht darunter** (seit
+  0.16.0). Wer ein Bild groß betrachtet, erwartet dort auch den Papierkorb.
+  **Dieselbe Klemme, dieselbe Rückfrage, dieselbe Route** — eine Funktion, zwei
+  Rufer; zwei Löschstellen wären zwei Gelegenheiten, die Rückfrage zu
+  vergessen. *Ein Papierkorb im Vollbild, der ohne Frage löscht, wäre der
+  gefährlichste Knopf der Anlage.* **Er steht abgesetzt und VOR dem
+  Schließenkreuz**, nicht daneben: zwei Kreuze nebeneinander, von denen eines
+  die Ansicht zumacht und das andere das Bild vernichtet, wären die
+  gefährlichste Nachbarschaft der Anlage. *Am Kommentarbild gibt es ihn nicht —
+  das wird am Kommentar entfernt.*
 - **Der Fokuspunkt schneidet nichts weg.** Zwei Prozentwerte verschieben nur das
   sichtbare Fenster der quadratischen Vorschau (`object-position`); die Datei
   bleibt unangetastet. *Ein einmal weggeschnittener Bildrand wäre
@@ -3057,6 +3211,45 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   wer angemeldet ist, sieht die Kommentare ohnehin in jedem Eintrag. Sie steht
   deshalb **nicht** in `F_ROUTEN`, und der Erledigt-Haken geht über
   `PUT /api/comments/:id`.
+#### Die Glocke und der Zähler „Offen" (seit 0.16.0)
+
+- **Die Glocke trägt den PUNKT, der Knopf „Offen" die ZAHL.** Eine Zahl
+  beschreibt einen **Zustand** — so viele Aufgaben stehen offen —, ein Punkt
+  meldet ein **Ereignis** — seit deinem letzten Blick ist etwas dazugekommen.
+  **Die beiden Zeichen werden nirgends vertauscht.**
+- **Beide Zahlen reisen mit einer Antwort mit, die es ohnehin gibt.** `GET
+  /api/items` trägt je Eintrag `offeneAufgaben` und — sobald ein Bezugspunkt
+  gespeichert ist — `neuFremd`. **Kein eigener Weg, der bei jedem Seitenaufbau
+  gefragt wird:** genau daran ist der Zähler „Offen 7" in 0.8.60 gescheitert.
+  *Gerechnet wird über zwei Gruppenabfragen für die ganze Liste, nicht je
+  Eintrag.*
+- **Ein Zeitstempel, keine Benachrichtigungstabelle.** `glockeGesehen` steht in
+  `PERSOENLICHE_SCHLUESSEL` wie `zuletztGesehen` daneben — **keine Tabelle.**
+  *Bei einer Handvoll Zugängen ist die kleine Fassung nicht die ärmere, sondern
+  die richtige.*
+- **Es sind ZWEI Merker und nicht einer.** `zuletztGesehen` fällt beim
+  Verlassen der Übersicht, `glockeGesehen` erst beim **Öffnen der Tafel**. *Ein
+  gemeinsamer Merker löschte die Glocke bei jedem Blick in die Übersicht mit,
+  ohne dass jemand gelesen hätte, was sie meldete.* **Beim allerersten Mal
+  fahren sie in EINEM Ruf hinaus** — ohne Bezugspunkt gäbe es keine Glocke, und
+  ohne Glocke keinen Weg, ihn je zu setzen.
+- **Ohne gespeicherten Bezugspunkt gibt es keine Glocke.** Dieselbe Lage und
+  dieselbe Antwort wie bei „Neu seit meinem letzten Besuch". **`neuFremd` fehlt
+  dann GANZ und steht nicht auf 0** — „nichts Neues" und „es gibt keinen
+  Bezugspunkt" sind zwei verschiedene Aussagen.
+- **Sie gilt für Telefon und Desktop.** Die Kopfzeile ist **eine**; was in
+  `.mast-rest` steht, wandert von selbst ins Menü. *Eine Glocke nur am Desktop
+  wäre eine Weiche nach Gerät.*
+- **Ein Klick in der Tafel führt zum Eintrag.** Das ist der halbe Gewinn; eine
+  Meldung, die man nicht anspringen kann, ist eine Mitteilung ohne Weg.
+- **Der Lesestand je Meldung ist ausdrücklich nicht gebaut.** Er bräuchte doch
+  eine Tabelle; bei einem Zeitstempel löscht das Öffnen der Tafel alles auf
+  einmal — **die bewusste Grenze der schlanken Fassung, und sie steht in der
+  Tafel selbst.**
+- **Eine Glocke ist ein Versprechen, und dieses trägt nur ungefähr.** Sie
+  rechnet beim Aufbau der Übersicht nach und nicht laufend. *Das ist tragbar —
+  aber es gehört an die Tafel geschrieben und nicht verschwiegen.*
+
 #### Links, Suchzeilen und Suchanbieter
 
 - **Keine Favicons bei den Links.** Sie würden von fremden Servern nachgeladen
@@ -3097,6 +3290,35 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
 
 #### Systembereich
 
+- **Der Systembereich steht in Abschnitten, und jeder hat eine Adresse** (seit
+  0.16.0). **Ohne Adresse ließe sich keine Einstellung verlinken und die
+  Zurück-Taste bräche** — genau die Falle, in die draußen alle einmal getreten
+  sind. `#/system` bleibt gültig und löst sich auf. **Ein Abschnitt ohne
+  sichtbare Karte erscheint gar nicht**, und eine Adresse dorthin fällt auf den
+  ersten sichtbaren zurück; **die Adresszeile wird dabei nachgezogen**
+  (`history.replaceState`, nicht `location.hash` — ein neuer Eintrag im Verlauf
+  machte die Zurück-Taste unbrauchbar). **Der zuletzt offene Abschnitt wird
+  nicht gemerkt:** die Adresse tut es schon, ein Merker daneben wäre eine
+  zweite Wahrheit.
+- **Die Reiter sind Links und keine Knöpfe** (seit 0.16.0). Ein Reiter mit
+  Adresse lässt sich kopieren, in einem neuen Fenster öffnen und mit der
+  Zurück-Taste verlassen — ein Knopf könnte davon nichts. *Auf dem Telefon wird
+  aus derselben Reihe eine Liste: ein Markup, zwei Gestalten (0.12.0).*
+- **Die Karten stehen als Tabelle, nicht als Folge von Klammern im Markup**
+  (seit 0.16.0). `SYS_KARTEN` trägt je Karte eine Zeile: Abschnitt, Klemme,
+  Markup, Behandler. **Damit ist die Rechteklemme ablesbar und nachzählbar.**
+  *Vorher stand vor jeder Karte ein `${ADMIN ? …}`; dieselbe Aussage, aber
+  verstreut über 2.400 Zeilen.*
+- **Export und Import sind eine Karte, aber nicht gleichrangig** (seit 0.16.0).
+  Sie meinen dieselbe Datei. **Der Export liest, der Import ersetzt Bestand** —
+  die zerstörende Hälfte darf durch das Zusammenlegen nicht einen Klick näher
+  rücken: Trennstrich davor, kleinere Überschrift, leiseres Ablagefeld, zweite
+  Bestätigung unverändert.
+- **Die Kennzahlen nennen Verfahren, nie Paketversionen** (seit 0.16.0). Ein
+  Verfahrensname sagt, **wie** gerechnet wird — das darf wissen, wer die Anlage
+  betreibt. Eine Bibliotheksversion sagt, **welche Lücke passt**. *Die Angaben
+  werden in `db.js` aus der geöffneten Datenbank abgelesen, nicht in der
+  Oberfläche behauptet: eine Kopie liefe beim nächsten Wechsel auseinander.*
 - **Was verschwindet, sind die Karten, nicht die Daten** (seit 0.8.5). Das
   Vokabular **ist** jede Beschriftung, der interne Titel steht in der Kopfzeile —
   beide werden auch an einen gewöhnlichen Benutzer ausgeliefert. *„Ansicht für
@@ -3113,7 +3335,10 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
 - **Eine Karte, die an einer Rolle hängt, nimmt ihre Behandler mit** (seit
   0.8.5). Ein Behandler an einem Element, das es nicht gibt, wirft **nach** dem
   Setzen von `app.innerHTML` — halb gezeichneter Bildschirm, keine Meldung.
-  **Ein Ort für die Frage (`amElement()`), nicht zehn.**
+  **Ein Ort für die Frage (`amElement()`), nicht zehn.** *Seit 0.16.0 hängt
+  dieselbe Frage zusätzlich an der Tabelle: `ausruesten` läuft nur für die
+  Karten, die wirklich dastehen — und das ist nicht Sparsamkeit, sondern die
+  Bedingung (Stolperstein 211).*
 - **Wer eine Ansicht ergänzt, holt ihren Bestand beim Aufbau** (seit 0.8.70).
   `renderSystem()` hängt die Abrufe in EIN `Promise.all`, jeder hinter der
   Rolle, hinter der auch seine Karte steht. *Ein Nachladen aus der Karte heraus
@@ -5071,6 +5296,61 @@ Version, in der sie entstanden sind.*
     Frage davor: kann ich den gemeldeten Zustand herstellen? Wenn nein, habe
     ich die Ursache nicht.**
 
+217. **Eine Prüflage, deren Zahlen zueinander passen, kann nicht zeigen, WOHER
+    eine Zahl kommt.** Der Erklärkasten zur Gewichtung soll den **mitgelieferten**
+    Rechenweg anzeigen und nicht selbst rechnen. *Stünden in der Prüflage Summe,
+    Teiler und Ergebnis so, wie sie zueinander gehören, wäre die Prüfung auch
+    dann grün, wenn die Oberfläche das Ergebnis heimlich selbst ausrechnete —
+    sie beschriebe zwei Wege, die dasselbe liefern.* **Die Lage trägt deshalb
+    ein Ergebnis, das zu ihrer eigenen Summe und ihrem eigenen Teiler NICHT
+    passt** (9,2 ÷ 2,5 wäre 3,7; dort steht 3). Zeigt der Kasten die 3, liest
+    er; zeigt er 3,7, rechnet er. **Wer prüfen will, ob eine Zahl gelesen oder
+    gerechnet wird, muss die Lage so bauen, dass sich beides unterscheidet.**
+
+218. **Ein Zeitpunkt auf die Sekunde genau ist eine Grenze, an der ZWEI Dinge
+    im selben Augenblick liegen können.** Der Merker der Glocke wird bewusst
+    eine Sekunde zurückdatiert (`datetime('now','-1 second')`), damit nichts
+    verlorengeht, was in derselben Sekunde noch hereinkommt. *In der Prüflage
+    schrieb die Vorbereitung ihre Kommentare in genau dieser Sekunde — und die
+    Glocke zählte sie mit, obwohl sie älter sein sollten als der Blick.*
+    **Die Prüfung wartet seither über eine Sekunde, bevor sie den Bezugspunkt
+    setzt.** Das ist keine Notlösung: **wo die Auflösung einer Zeitangabe
+    gröber ist als der Abstand zweier Ereignisse, muss die Prüflage den Abstand
+    herstellen** — sonst prüft sie die Sekunde und nicht die Regel.
+
+219. **Eine Spalte ohne Vorgabewert ist eine Aussage und keine Bequemlichkeit.**
+    `ratings.gesetzt_am` bekommt **kein** `DEFAULT` — weder in der Migration
+    noch in der DDL. *Ein fester Wert ließe den ganzen Altbestand gleich alt
+    aussehen; `datetime('now')` ließe ihn brandneu aussehen, und die Glocke
+    läutete beim ersten Start für jede Bewertung, die je vergeben wurde.*
+    **Eine leere Zelle heißt „die Anlage weiß nicht, wann das war" — und die
+    Glocke übergeht sie.** Dasselbe gilt für eingespielte Bewertungen: die
+    Exportdatei trägt den Zeitpunkt nicht, und ein `datetime('now')` beim
+    Einspielen machte daraus die **Behauptung**, sie seien eben erst vergeben
+    worden. **Was die Anlage nicht weiß, behauptet sie nicht.**
+
+220. **Ein Anker, der zweimal vorkommt, ist kein Anker.** Ein Skript für dieses
+    Blatt suchte seine Einfügestelle mit „die erste Zeile, die mit `### 0.16.0
+    — „Der Systembereich` beginnt". **Diese Überschrift steht zweimal darin** —
+    einmal in Abschnitt 9 und einmal in Abschnitt 10a —, das Skript traf die
+    erste und löschte alles bis zur nächsten Marke: **1534 Zeilen.** *Gerettet
+    hat es allein, dass die Datei in Git lag.* **Vor jedem Ersetzen wird
+    gezählt, nicht gesucht:** kommt der Anker genau so oft vor, wie erwartet?
+    Wenn nein, bricht das Skript ab, statt zu raten. *Das ist dieselbe Lehre
+    wie bei den Rückbauten (Stolperstein 137), nur an einem Papier statt an
+    Quelltext — und dort hat sie keine Gegenprobe, die sie auffängt.*
+
+221. **Ein Ausschnitt, dessen Ende vor seinem Anfang liegt, ist leer — und an
+    einem leeren Text ist jede Prüfung auf „kommt nicht vor" grün.** Die Probe
+    „auch die DDL gibt `gesetzt_am` keinen Vorgabewert" schnitt das Schema
+    zwischen `ratings` und der Tabelle, die sie für die nächste hielt. *Die
+    stand weiter oben.* **Die Hälfte, die etwas VORFINDEN wollte, hat es
+    gemeldet; die Hälfte, die etwas NICHT finden wollte, wäre stumm geblieben.**
+    Ein Ausschnitt endet seither am schließenden `);` **derselben** Tabelle und
+    nicht am Namen einer benachbarten. **Zu jeder Prüfung auf Abwesenheit
+    gehört eine auf Anwesenheit im selben Ausschnitt** — sonst prüft man, dass
+    der Ausschnitt existiert, und merkt nicht, wenn er es nicht tut.
+
 ---
 
 ## 7. Prüfstand
@@ -5084,11 +5364,54 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4366 von 4366 bestanden** (0.15.1) — **fünfzehn neue Prüfungen**,
-davon zehn in einer neuen Gruppe; 0.15.0 davor brachte 89 in drei, 0.14.0
-brachte 131 in fünf. Die Gegenproben stehen in Abschnitt 8: sie sind auf die
-jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf über alle
-**271** Rückbauten.
+**Stand: 4520 von 4520 bestanden** (0.16.0) — **154
+neue Prüfungen**, davon 115 in neun neuen Gruppen; 0.15.1 davor brachte fünfzehn
+in einer, 0.15.0 brachte 89 in drei. Die Gegenproben stehen in Abschnitt 8: sie
+sind auf die jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf über
+alle **300** Rückbauten.
+
+| neue Gruppe (0.16.0) | Prüfungen |
+|---|---|
+| Die Groesse der Funktionen wird gemessen | 9 |
+| Export und Import stehen in einer Karte | 12 |
+| Die Rechnung hinter der Kopfzahl | 18 |
+| Die Glocke in der Kopfzeile | 22 |
+| Der Papierkorb im Vollbild | 10 |
+| Der Rechenweg reist mit | 7 |
+| Die Bewertung traegt ihren Zeitpunkt | 5 |
+| Die Glocke: was mit der Liste mitreist | 17 |
+| MIGRATION 0.16.0 — ENTFAELLT MIT 1.0 | 15 |
+| **zusammen** | **115** |
+
+*Die übrigen **39** stehen in **sechs vorhandenen** Gruppen, und **keine
+einzige Prüfung ist weggefallen**:*
+
+| vorhandene Gruppe | vorher | nachher | wofür |
+|---|---|---|---|
+| Versionsnummer, Linkzeilen, Zeitleiste | 15 | 26 | Version und Verfahren in den Kennzahlen |
+| Der Systembereich nach Rolle | 57 | 65 | die fünf Abschnitte, ihre Adressen, der Rückfall |
+| Der Papierkorb in der Oberflaeche | 39 | 50 | der Papierkorb im Vollbild an der echten Anlage |
+| Die Gegenproben greifen | 9 | 16 | der Nummernfilter und die 300 Rückbauten |
+| Offen: der Haken in der Ansicht | 26 | 27 | die Zahl am Knopf „Offen" |
+| Neu seit: der Merkzeitpunkt | 11 | 12 | `glockeGesehen` neben `zuletztGesehen` |
+
+**Zahlen in vorhandenen Gruppen sind nachgezogen:** 271 → 300 Rückbauten,
+acht → neun persönliche Schlüssel, sechs → sieben Migrationsblöcke und
+Migrationsfunktionen, neunzehn → achtzehn Karten. *Rund dreißig vorhandene
+Prüfungen mussten außerdem den Abschnitt öffnen, in dem ihre Karte jetzt steht
+— sie sind nicht gelöscht und nicht umgeschrieben, sie bekommen einen Handgriff
+davor* (Stolperstein 201).
+
+> **DIE GRÖSSENMESSUNG IST EINE AUSKUNFT UND KEIN URTEIL.** Die Gruppe „Die
+> Groesse der Funktionen wird gemessen" schreibt bei jedem Lauf die längsten
+> Funktionen je Datei mit ihrer Zeilenzahl hin. **Rot wird davon nichts** —
+> außer der einen Zusage, dass `renderSystem()` unter 300 Zeilen bleibt. *Eine
+> harte Grenze für alle wäre eine Zahl, die niemand begründen kann, und sie
+> würde umgangen statt eingehalten; eine Messung, die bei jedem Lauf dasteht,
+> lässt sich nicht übersehen.* **Die Messung prüft sich selbst** an einem
+> gestellten Quelltext mit bekannten Längen — sonst wäre eine Messung, die
+> nichts mehr findet, von einer sauberen Datei nicht zu unterscheiden
+> (Stolperstein 213).
 
 | neue Gruppe (0.15.1) | Prüfungen |
 |---|---|
@@ -5354,13 +5677,14 @@ Rückbauten.*
 **Die Zahl der Abhängigkeiten steht im Prüfstand fest** — `npm ls --omit=dev`
 liefert **122 Pfade**. Wächst der Baum später still, wird es namentlich rot.
 
-### Die sechs Migrationsabschnitte — ENTFAELLT MIT 1.0
+### Die sieben Migrationsabschnitte — ENTFAELLT MIT 1.0
 
-**Es gibt sechs, und alle tragen dieselbe Marke.** Je Block wird nachgestellt:
+**Es gibt sieben, und alle tragen dieselbe Marke.** Je Block wird nachgestellt:
 die Spalte kommt dazu, die Bestandszeilen stehen auf der Vorgabe **aus dem
 `DEFAULT`** (am Quelltext nachgesehen, nicht aus einem `UPDATE`), ein zweiter
 Lauf bleibt **stumm**, und eine **frische** Anlage trägt die Spalte **ohne**
-Migration.
+Migration. *Der siebte ist der erste ohne `DEFAULT`; dort steht statt der
+Vorgabe die leere Zelle, und sie wird ebenso geprüft.*
 
 | Abschnitt | Prüflage | Was er außerdem belegt |
 |---|---|---|
@@ -5370,9 +5694,10 @@ Migration.
 | 0.8.40 | Datenbank aus 0.8.31, drei Kriterien **mit Bewertungen** | **der gewichtete Gesamtschnitt ist nach der Migration derselbe wie der ungewichtete davor** |
 | 0.8.50 | Datenbank aus 0.8.40, `photos` **mit Fotos darin** | **jede der beiden Spalten wird EINZELN nachgerüstet** (zwei weitere Prüflagen, Stolperstein 108); es gibt **keinen `CHECK`** |
 | **0.14.0** | Datenbank aus 0.13.2, `items` **mit Einträgen darin, davon einer abgelehnt** | **jede der drei Spalten wird EINZELN nachgerüstet** (drei weitere Prüflagen); die drei bleiben **leer**, auch am abgelehnten Eintrag — **kein `UPDATE` im Block**; die drei `ALTER TABLE` laufen in **EINER Transaktion**; der **Fremdschlüssel** wird am Verhalten geprüft, migriert gegen frisch; und **beide Lagen zu Stolperstein 202**, leere Tabelle gegen Tabelle mit Zeilen |
+| **0.16.0** | Datenbank aus 0.15.1, `ratings` **mit zwei Bewertungen darin** | **`gesetzt_am` bekommt KEINEN Vorgabewert** — geprüft am `ALTER TABLE` *und* an der DDL, damit frisch und migriert gleich aussehen (Stolperstein 219); die beiden Bewertungen behalten ihre Werte und stehen danach **ohne Zeitpunkt** da — **kein `UPDATE` im Block**; das Protokoll **nennt die Zahl** der Bewertungen ohne Zeitpunkt, statt nur zu melden, dass es etwas getan hat |
 
 **Die Probe „Ein Sprung von 0.8.20 fährt ALLE Migrationen in einem Start" gehört
-allen sechs Blöcken.** Sie steht im Abschnitt von 0.8.31 und ist mit 0.8.50
+allen sieben Blöcken.** Sie steht im Abschnitt von 0.8.31 und ist mit 0.8.50
 **erweitert worden, nicht verdoppelt**. *Wer nur einen Block entfernt, muss sie
 umschreiben statt löschen.*
 
@@ -5572,6 +5897,27 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **DER MIGRATIONSBLOCK 0.16.0 IST AM ECHTEN BESTAND NOCH NICHT GEFAHREN.** Er
+  ist am Prüfstand an einer nachgebauten Datenbank aus 0.15.1 belegt — einmal
+  ganz, zweimal hintereinander, gegen eine frische Anlage gehalten und an
+  beiden Enden auf den fehlenden Vorgabewert geprüft. **Am Wirt fehlt der
+  Beleg:** nach dem Einspielen einmal ins Protokoll sehen
+  (`docker compose logs kriterion`), dass die Zeile *„ratings um gesetzt_am
+  ergaenzt (Migration auf 0.16.0)"* dasteht — **und welche Zahl sie nennt.**
+  *Das ist die Zahl der Bewertungen, für die die Glocke schweigen wird; sie
+  steht genau einmal da und beim nächsten Start nicht mehr.*
+- **DIE GLOCKE BRAUCHT ZWEI ZUGÄNGE, UM ÜBERHAUPT ETWAS ZU MELDEN.** Am
+  Prüfstand ist sie an zwei Benutzern belegt. **Am Wirt fehlt:** mit dem einen
+  Zugang die Übersicht einmal verlassen (das setzt den Bezugspunkt), mit dem
+  anderen einen Kommentar schreiben und einen Stern setzen, dann beim ersten
+  neu laden — **Punkt an der Glocke, zwei Zeilen in der Tafel, und ein Klick
+  führt zum Eintrag.** *Danach ist der Punkt weg und kommt erst beim nächsten
+  fremden Beitrag wieder.*
+- **DIE FÜNF ABSCHNITTE GEHÖREN EINMAL AUF EIN TELEFON.** Die Reiterreihe wird
+  dort zur Liste; gemessen ist das in Medienregeln, nicht an Glas. *Und der
+  eine Handgriff, der die Runde belegt: eine Adresse wie
+  `#/system/datenbank` in ein anderes Fenster kopieren und sehen, dass sie
+  genau dort landet.*
 - **DER MIGRATIONSBLOCK 0.14.0 IST AM ECHTEN BESTAND NOCH NICHT GEFAHREN.** Er
   ist am Prüfstand an einer nachgebauten Datenbank aus 0.13.2 belegt — einmal
   ganz, je Spalte einzeln und zweimal hintereinander. **Am Wirt fehlt der
@@ -5591,8 +5937,9 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   „Bestätigung gescheitert" im Sicherheitsprotokoll danach.
 - **DER AUSTAUSCHWEG IST AM ECHTEN BESTAND WEITERHIN NICHT GESEHEN.** 0.12.4
   schneidet ihn in Teile; bei 760 MB und 300 MB je Teil sollten es **drei**
-  sein. **Das gehört nach dem Einspielen abgelesen** — Systembereich → Export
-  → „In Teilen exportieren" —, und dazu die eine Frage, die zählt: **ob der
+  sein. **Das gehört nach dem Einspielen abgelesen** — Systembereich →
+  **Datenbank** → Export → „In Teilen exportieren" (der Weg hat sich mit
+  0.16.0 geändert, die Sache nicht) —, und dazu die eine Frage, die zählt: **ob der
   Rundlauf auch am echten Bestand stimmt.** *Gefahren ist er an drei
   Prüflagen, die größte mit 1000 Einträgen; die echte trägt Videos und
   Kommentarbilder in anderen Größen.*
@@ -5604,7 +5951,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   dem Pfad, der fremde Dateien annimmt und unter fremden Namen schreibt.** Eine
   eigene Runde mit eigener Prüflage, und keine Beifracht.
 
-- **DIE TAGS `v0.11.0` BIS `v0.15.0` FEHLEN AM REMOTE — UND DER GRUND STAND
+- **DIE TAGS `v0.11.0` BIS `v0.16.0` FEHLEN AM REMOTE — UND DER GRUND STAND
   BIS 0.12.4 FALSCH HIER.** Es ist **kein** Problem der GitHub-Rechte, und ein
   „Push von einer Stelle mit den nötigen Rechten" ist nicht der Punkt.
 
@@ -5640,7 +5987,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
   **Diese vier liegen auf `main` und lassen sich sofort setzen.** `v0.12.3`
   (`09873558`), `v0.12.4` (`9f7b0f7f`), `v0.13.0`, `v0.13.1`, `v0.13.2`,
-  `v0.14.0` und `v0.15.0` liegen bisher nur auf einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
+  `v0.14.0`, `v0.15.0`, `v0.15.1` und `v0.16.0` liegen bisher nur auf einem
+  Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
   danach auf dieselben Commits; wer ihn quetscht, setzt sie auf die dabei
   entstehenden — die alten sind von `main` aus dann nicht mehr erreichbar.*
 
@@ -5669,15 +6017,21 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ELF RUNDEN AUS.** 271 Rückbauten zu
-  je einem vollen Prüflauf sind bei 5 min 54 s je Lauf rund **26,7 Stunden**
-  hintereinander, in vier Nebenspuren rund sieben. **Auch in 0.15.1 ist er nicht
-  gefahren, und das ist keine Zusage mehr.** *Die Gründe stehen im
-  Änderungsprotokoll 0.14.0, Abschnitt 16; der wichtigste ist baulich:
-  `gegenprobe.js` zieht seine Kopie aus `git archive HEAD`, ein Commit mitten im
-  Lauf verschöbe die Grundlage.* **Gefahren sind die vier neuen Rückbauten dieser
-  Runde und die drei nachgezogenen, vollständig und in vier Nebenspuren —
-  keiner blieb stumm.**
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZWÖLF RUNDEN AUS.** Jetzt **300**
+  Rückbauten zu je einem vollen Prüflauf — bei rund 5 min 20 s je Lauf etwa
+  **26,7 Stunden** hintereinander, in vier Nebenspuren rund sieben. **Auch in
+  0.16.0 ist er nicht gefahren, und das ist keine Zusage mehr.** *Die Gründe
+  stehen im Änderungsprotokoll 0.14.0, Abschnitt 16; der wichtigste ist
+  baulich: `gegenprobe.js` zieht seine Kopie aus `git archive HEAD`, ein Commit
+  mitten im Lauf verschöbe die Grundlage.* **Gefahren sind die 29 neuen
+  Rückbauten dieser Runde und die zwei reparierten, vollständig und in vier
+  Nebenspuren — keiner blieb stumm.**
+  **UND DAS WERKZEUG SELBST WAR VOR DEM ERSTEN LAUF ZU REPARIEREN:** sein
+  Nummernfilter griff auch als Namensteil, `node gegenprobe.js 256` fuhr
+  deshalb zwei Rückbauten statt einem. *Eine Zahl in der Gegenprobentabelle,
+  die einen anderen Umfang hat als ihr Aufruf, ist schlimmer als keine — das
+  war die Auflage im Auftrag, und sie stand vor jeder Gegenprobe dieser
+  Runde.*
   *Was 0.13.0 daran geändert hat, ist der billige Teil: der Prüfstand rechnet bei
   jedem Lauf nach, dass jeder Rückbau in seiner Datei überhaupt noch greift —
   drei taten es fünf Runden lang nicht (Stolperstein 192).*
@@ -5890,6 +6244,81 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.16.0 — „Der Systembereich, die Glocke und die Auskunft"
+
+**MINOR · 29. August 2026 · die größte Umbaufläche des Plans — vier Punkte aus
+dem Sammelblatt, vier Zeilen aus dessen Teil II und ein Befund aus dem
+Betrieb.**
+
+**DER SYSTEMBEREICH HAT FÜNF ABSCHNITTE MIT EIGENER ADRESSE** —
+`#/system/persoenlich`, `…/bestand`, `…/zugaenge`, `…/datenbank`, `…/anlage`,
+in der Reihenfolge der **Rechteleiter**. *Ohne Adresse ließe sich keine
+Einstellung verlinken, und die Zurück-Taste bräche — das ist der ganze Punkt,
+und es ist die Falle, in die draußen alle einmal getreten sind.* **`#/system`
+bleibt gültig** und löst sich auf den ersten sichtbaren Abschnitt auf; eine
+Adresse auf einen Abschnitt, den dieser Benutzer nicht sehen darf, fällt ebenso
+zurück, und die Adresszeile wird über `history.replaceState` nachgezogen —
+**ohne zweiten Eintrag im Verlauf und ohne zweiten Durchlauf.** **Ein Abschnitt
+ohne sichtbare Karte erscheint gar nicht.** *Auf dem Telefon wird aus der
+Reiterreihe eine Liste: ein Markup, zwei Gestalten (seit 0.12.0).* **Der zuletzt
+offene Abschnitt wird nicht gemerkt** — gemerkt wird, was der Benutzer merken
+ließ, und das ist hier die Adresse.
+
+**`renderSystem()` IST DABEI VON 2466 AUF 79 ZEILEN GEFALLEN** — nicht als
+eigenes Vorhaben, sondern auf dem Weg. Aus einem Block wurden **eine Tabelle
+`SYS_KARTEN` mit achtzehn Einträgen** und je Karte zwei kleine Funktionen:
+eine, die das Markup liefert, und eine, die es ausrüstet. **Kein Rahmenwerk,
+keine Bauleitung, keine neue Abhängigkeit** — es ist dieselbe Sprache und
+dieselbe Datei. *Der Prüfstand **misst** seither die Länge der Funktionen und
+schreibt die längsten je Datei bei jedem Lauf hin; rot wird davon nichts außer
+der einen Zusage zu `renderSystem()`.* **Eine Zahl, die bei jedem Lauf
+dasteht, lässt sich nicht übersehen — eine harte Grenze würde umgangen.**
+
+**EXPORT UND IMPORT STEHEN IN EINER KARTE, neunzehn Karten sind achtzehn.** Der
+Import steht **untergeordnet** darin, hinter einer Trennlinie und mit leiserem
+Ablagefeld. **Die zweite Bestätigung bleibt, Wort für Wort** — die Karte ist
+zusammengelegt, nicht entschärft.
+
+**„GEWICHTET" IST JETZT ANKLICKBAR und erklärt sich an DIESEM Eintrag.** Ein
+Kasten zeigt Kriterium für Kriterium den Wert, das Gewicht und das Produkt,
+darunter Summe, Teiler und Ergebnis. **Der Kasten LIEST die Rechnung, er
+rechnet sie nicht nach** — sie reist mit dem Eintrag mit, aus derselben
+Funktion, die die Zahl im Kopf gebildet hat. *Es sind und bleiben genau zwei
+Rechenstellen.* **Der Rechner im Systembereich — „was passiert, wenn ich das
+Gewicht ändere" — ist NICHT gebaut**; er war im Auftrag als erster Kandidat des
+Schnitts benannt und ist der einzige Teil mit eigener Ansicht und eigenem
+Endpunkt. *Er steht weiter in Abschnitt 10.*
+
+**EINE GLOCKE IN DER KOPFZEILE, MIT EINEM PUNKT — UND EINE ZAHL AM KNOPF
+„OFFEN".** Die Glocke meldet **fremde Kommentare und fremde Bewertungen** seit
+dem letzten Öffnen ihrer Tafel; ein Klick in der Tafel führt zum Eintrag. Die
+Zahl an „Offen" ist die Summe der offenen Aufgaben. **Keine
+Benachrichtigungstabelle** — beides wird aus vorhandenen Zeitstempeln gerechnet
+und reist mit der Liste mit, die ohnehin geholt wird. **Keine neue Route:**
+der Merker `glockeGesehen` fährt über das vorhandene `PUT /api/settings`,
+`F_ROUTEN` bleibt bei **69**.
+
+**DIE KENNZAHLEN NENNEN VERSION UND VERFAHREN** — SQLCipher, 256-Bit-Rohschlüssel,
+WAL, scrypt —, **aus den lebenden Pragmas gelesen und nicht aus einem Text
+abgeschrieben.** *Paketversionen stehen dort nicht: sie sind eine
+Fremdauskunft, die morgen still falsch ist.*
+
+**UND AUS DEM BETRIEB: IM VOLLBILD LÄSST SICH LÖSCHEN**, mit derselben Klammer
+und derselben Rückfrage wie unten am Streifen. Wird das letzte Bild gelöscht,
+schließt sich die Ansicht selbst.
+
+**DIES IST EINE DATENBANKSTUFE — anders als geplant.** `ratings` bekommt mit
+`gesetzt_am` einen Zeitpunkt; ohne ihn kann die Glocke über fremde Bewertungen
+nichts sagen. **Siebter markierter Migrationsblock, auf ausdrückliche
+Anweisung** — die Prüfung dieser Frage stand im Auftrag als möglicher
+Abweichungsgrund. **Die Spalte hat keinen Vorgabewert** (Stolperstein 219), und
+das **Austauschformat bleibt bei 11**: der Zeitpunkt geht nicht in die
+Exportdatei. **Die Sicherung ist damit Pflicht und nicht Empfehlung.**
+
+**4366 → 4520 Prüfungen, 271 → 300 Rückbauten.** Karten von neunzehn
+auf achtzehn, persönliche Schlüssel von acht auf neun, `F_ROUTEN` bei 69,
+Format 11. **Keine neue Abhängigkeit.**
 
 ### 0.15.1 — „`hidden` wirkt wieder"
 
@@ -6505,9 +6934,9 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.13.0** | Zwei Netze, ein Zugang | **GEBAUT.** `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu der reparierte Teilexport mit zweitem Faktor, ein Filter am Sicherheitsprotokoll, der Satz im Löschdialog samt eigenem Fenster für die Grabsteine, eine flachere Filterleiste und mehrere Kategorien zugleich. *MINOR.* **Kein Schema, keine `.env`-Zeile** | nein | — |
 | **0.14.0** | Die Entscheidung wird mitgeschrieben | **GEBAUT.** `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. Mitgefahren sind zwei Befunde aus dem Betrieb: der kaputte Cookiewert und die Sternreihe der Kriterienliste. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie ist vor der Bereinigung gebaut** | ja, **sechster Block** | 10 → 11 |
 | **0.15.0** | Der Filter und der Stift | **GEBAUT.** Die Übersicht bekommt einen Filter für „abgelehnt" — drei Zustände in einer eigenen Gruppe, kombinierbar mit dem Teststatus. Dazu kommt die Begründung zur Ruhe: sie steht als Aussage da statt in einem dauernd offenen Feld, mit ✎ und ✕ daneben — und **entfernen darf sie seither auch der Admin**, was 0.14.0 zur Hälfte offengelassen hatte. *MINOR.* **Kein Schema, kein Migrationsblock, Format bleibt 11** | nein | — |
-| **0.16.0** | Der Systembereich, die Glocke und die Auskunft | Neunzehn Karten werden Abschnitte mit eigener Adresse, `renderSystem()` wird dabei zerlegt. Dazu die Glocke mit dem Punkt, der Zähler „Offen 7" und die Gewichtung, die sich selbst erklärt. **Und aus dem Betrieb: Löschen in der Zoomansicht.** *MINOR.* **Die größte Umbaufläche des Plans** | nein | — |
+| **0.16.0** | Der Systembereich, die Glocke und die Auskunft | **GEBAUT.** Neunzehn Karten sind achtzehn und stehen in fünf Abschnitten mit eigener Adresse; `renderSystem()` fiel dabei von 2466 auf 79 Zeilen. Dazu die Glocke mit dem Punkt, der Zähler „Offen" mit Zahl, die Gewichtung, die sich selbst erklärt, Version und Verfahren in den Kennzahlen — und aus dem Betrieb das Löschen in der Zoomansicht. *MINOR.* **Die größte Umbaufläche des Plans — und sie ist doch eine Datenbankstufe geworden: die Glocke braucht einen Zeitpunkt an der Bewertung. Der Rechner zur Gewichtung ist NICHT mitgefahren** | ja, **siebter Block** | — |
 | **0.17.0** | Die Suche wird nachvollziehbar | Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
-| **0.18.0** | Bereinigung — der Bruch | *(War als 0.13.0 vorgemerkt.)* Migrationscode raus — **jetzt sechs Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **0.18.0** | Bereinigung — der Bruch | *(War als 0.13.0 vorgemerkt.)* Migrationscode raus — **jetzt sieben Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 
 > **DIE BEREINIGUNG HIESS EINMAL 0.12.0, DANN 0.13.0, DANN 0.17.0 UND HEISST
 > JETZT 0.18.0.** Sie ist kein einziges Mal verschoben worden, weil jemand sie
@@ -6826,605 +7255,41 @@ ganze Rest des Plans ist dabei um eine Stelle gerückt** — Systembereich auf
 
 ---
 
-### 0.16.0 — „Der Systembereich, die Glocke und die Auskunft" · *MINOR*
-
-**Ausgearbeitet aus dem Sammelblatt:** Nr. 10, Nr. 4, Nr. 11, Nr. 16
-**Dazu ein Punkt, der nicht aus dem Sammelblatt kommt:** Löschen in der
-Zoomansicht, aus dem Betrieb am 28. August 2026 — *hierher gelegt, weil 0.13.0
-mit sechs Punkten voll war und 0.14.0 als Schema-Runde keine Beifracht trägt.*
-
-
-#### Der Systembereich bekommt Abschnitte
-
-*(stand als Punkt 10 im Sammelblatt)*
-
-**Aufgefallen im Betrieb, 28. August 2026** — verschärft mit 0.12.0, seit die
-neunzehn Karten auf dem Telefon in **einer** Spalte untereinander stehen.
-
-> **Art: Design** · **Claude: empfohlen** — und ausdrücklich gemeinsam mit Punkt 4.
-> **Draußen üblich:** Einstellungen mit seitlicher Abschnittsleiste und **einer
-> eigenen Adresse je Abschnitt** — GitLab, GitHub, Nextcloud, Discourse. *Die
-> eine Falle, in die alle einmal getreten sind, ist die fehlende Adresse: ohne
-> sie lässt sich keine Einstellung verlinken und die Zurück-Taste bricht.*
-
-### Woher
-
-Aus dem Betrieb, **28. August 2026**. Der Wunsch: den Systembereich aufteilen —
-Persönliches, Datenbank (Sicherung, Export, Zugänge, Anmeldungen,
-Sicherheitsprotokoll) und so fort.
-
-### Was auffiel
-
-**Neunzehn Karten in einer flachen Reihe**, und `renderSystem()` ist mit
-**2.022 Zeilen** die längste Funktion der Anlage. Am Desktop stehen sie in
-mehreren Spalten; seit 0.12.0 stehen sie auf dem Telefon **alle untereinander**,
-und der Weg von „Titel" bis „Vokabular" ist entsprechend lang.
-
-### Was es nicht ist
-
-**Kein Fehler.** Und **kein zweiter Vorschlag neben Punkt 4, sondern dessen
-Anlass.** Punkt 4 sagt seit der ersten Durchsicht: *„Bei `renderSystem()`:
-neunzehn Karten, neunzehn Funktionen"* — und dazu die Auflage, **nicht** als
-eigenes Umbauvorhaben, sondern *„auf dem Weg zu etwas anderem"*. **Dieser Punkt
-ist dieser Weg.** Wer die Abschnitte baut, zerlegt die Funktion dabei ohnehin.
-
-### Was gebaut werden könnte
-
-**a) Vier oder fünf Abschnitte statt einer Reihe.** Ein Vorschlag, der der
-Rechteleiter folgt und nicht dem Zufall:
-
-| Abschnitt | Karten |
-|---|---|
-| **Persönlich** | Zugang, Meine Sitzungen, Darstellung |
-| **Bestand** | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
-| **Zugänge** | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
-| **Datenbank** | Kennzahlen, Sicherung, Export und Import |
-| **Anlage** | Titel |
-
-**b) Eine Adresse je Abschnitt** — `#/system/datenbank`. Die Anlage hat die
-Adressform bereits (`#/item/12`).
-
-**c) Export und Import in EINE Karte** (siehe Teil II). Sie stehen ohnehin
-nebeneinander; in einem Abschnitt „Datenbank" gehören sie zusammen. **Mit einem
-Vorbehalt: der Import ersetzt Bestand, der Export liest nur.** Zusammengelegt
-darf der Import nicht einen Klick näher rücken.
-
-### Offene Entscheidungen
-
-* **Was geschieht mit einem Abschnitt, der für eine Rolle leer bleibt?** Die
-  Karten hängen an `ADMIN ?` und `EIGENTUEMER ?`. Ein leerer Reiter wäre
-  schlechter als keiner. *Vorschlag: ein Abschnitt ohne sichtbare Karte
-  erscheint nicht.*
-* **Reiter oder eine Leiste an der Seite?** Auf dem Telefon trägt eine Leiste
-  an der Seite nicht — dort wäre es eine Liste, die in den Abschnitt hinein
-  führt. **Das ist dann fast dieselbe Frage wie „die Unteransichten haben keine
-  Kopfzeile" in Teil II.**
-* **Merkt sich die Anlage den zuletzt offenen Abschnitt?** *Vorschlag: nein —
-  die Adresse tut es schon, und ein gemerkter Zustand wäre eine zweite
-  Wahrheit daneben.*
-
-### Was es anfasst
-
-`renderSystem()` samt seinen neunzehn Blöcken, die Adressauflösung, das
-Stylesheet, Prüfungen. **Kein Schema, keine Route, keine Rechteänderung** — die
-Karten behalten ihre Klemmen, sie stehen nur woanders.
-
-**Was dagegen spricht:** es ist die größte Umbaufläche auf dieser Liste. *Und
-genau deshalb steht daneben, dass Punkt 4 ohnehin darauf wartet — die Arbeit
-fällt einmal an, nicht zweimal.*
-
-#### Zwei Funktionen sind zu groß geworden
-
-*(stand als Punkt 4 im Sammelblatt)*
-
-**Aufgefallen bei der Durchsicht zu 0.8.6 und seither in jeder Runde größer
-geworden**, zuletzt mit 0.11.0.
-
-> **Art: Verbesserung** · **Claude: empfohlen** — beim nächsten Anfassen, nicht als Vorhaben.
-> **Draußen üblich:** Eine harte Zeilengrenze im Prüflauf ist verbreitet und
-> gilt als zweischneidig — sie wird bei der ersten ehrlichen Ausnahme
-> abgeschaltet. **Was sich hält, ist das Messen ohne Abweisen**: die Zahl steht
-> im Bericht, und wer sie wachsen sieht, greift ein.
-
-### Woher
-
-Aus der Durchsicht vom **21. August 2026** (damals Punkt 3.3), Stand 0.8.6 —
-und **seither jedes Mal größer geworden**. Die Zahlen unten sind am
-**28. August 2026** neu gemessen, Stand 0.12.2.
-
-### Was auffiel
-
-| Datei | bei 0.8.6 | bei 0.11.0 | bei 0.12.2 |
-|---|---:|---:|---:|
-| `public/app.js` | 3.857 | 6.493 | **6.671** |
-| `public/style.css` | — | 1.337 | **2.334** |
-| `server.js` | — | 4.998 | **4.434** (69 schreibende Routen) |
-| `pruefung.js` | — | 25.591 | **25.873** (3.815+ Prüfungen) |
-
-| Funktion in `public/app.js` | bei 0.8.6 | bei 0.11.0 | bei 0.12.2 |
-|---|---:|---:|---:|
-| `renderSystem()` | 825 | 2.030 | **2.022** |
-| `renderDetail()` | 1.310 | 1.499 | **1.586** |
-
-**`renderSystem()` ist auf das Zweieinhalbfache gewachsen** und damit die
-längste Funktion der Anlage — sie hat `renderDetail()` überholt, das bei der
-ersten Messung noch die längste war.
-
-**Und seit 0.12.2 steht ein zweiter Name in der Tabelle, der vorher fehlte:
-`public/style.css` hat sich in einer einzigen Runde fast verdoppelt** —
-1.337 auf 2.334 Zeilen, gewachsen um den Abschnitt für Telefon und Tablett. Es
-ist damit **die am schnellsten wachsende ausgelieferte Datei der Anlage**, und
-dieser Punkt hat sie bis heute nicht beobachtet. *Ein Stylesheet lässt sich
-nicht in Funktionen zerlegen — die Frage nach seiner Größe ist eine andere und
-gehört ausdrücklich noch nicht beantwortet. Gemessen wird sie ab jetzt.*
-
-### Was es nicht ist
-
-**Kein Qualitätsmangel.** Der Quelltext ist dicht kommentiert, die Namen sind
-klar, jede Entscheidung ist begründet. Es ist die **Größe der Funktionen**,
-nicht ihre Güte.
-
-**Und ausdrücklich kein Fall für ein Framework.** 6.493 Zeilen ohne Framework
-sind viel — aber kein Framework heißt: keine Build-Kette, keine 400
-Pakete, kein Ablaufdatum. Bei einer Anlage, die zehn Jahre laufen soll, ist das
-die richtige Wahl. **Die Antwort hier sind kleinere Funktionen, nicht React.**
-
-**Was es dagegen wirklich ist:** eine Gefahr für die Doktrin „eine Wahrheit".
-Bei 1.500 Zeilen sieht man einer Funktion nicht mehr an, ob ein Zustand schon
-weiter oben in ihr steht — und jede Änderung kostet erst einmal Suchen.
-
-### Was gebaut werden könnte
-
-**a) Beim nächsten Anfassen je einen Block herausziehen — nicht als eigenes
-Vorhaben.** *Das ist der Kern des Vorschlags: kein Umbauprojekt, sondern eine
-Auflage an die nächste Runde, die ohnehin dort hineinfasst.*
-
-Bei `renderDetail()`: `zeichneBewertung(item)`, `zeichneKommentare(item)`,
-`zeichneTesttage(item)`, `zeichneAnhaenge(item)`. **Die Blöcke sind in der
-Oberfläche ohnehin schon eigenständig** — sie lassen sich einzeln anordnen und
-einklappen. Die Struktur ist also da, sie steht nur nicht im Quelltext.
-
-Bei `renderSystem()`: **neunzehn Karten, neunzehn Funktionen.**
-
-**b) Eine Prüfung, die die Zahl festhält.** *Nicht um eine Grenze zu setzen,
-sondern damit das Wachsen sichtbar wird und nicht erst bei der nächsten
-Durchsicht auffällt.* Eine Zeile, die die längste Funktion misst und meldet.
-
-**c) Für `pruefung.js` ist der Weg schon gebaut** — der Gruppenfilter (seit
-0.8.10) macht die Datei bedienbar, ohne sie zu teilen. **Zu teilen wäre hier
-das Falsche:** die Prüflagen bauen aufeinander auf.
-
-### Offene Entscheidungen
-
-* **Was ist die Grenze — gibt es überhaupt eine?** Eine harte Zahl im Prüfstand
-  („keine Funktion über 500 Zeilen") wäre eine Zusicherung, die bei der ersten
-  ehrlichen Ausnahme wehtut. *Vorschlag: messen und melden, nicht abweisen.*
-* **Werden die Teilfunktionen im Modul belassen oder in eigene Dateien
-  gezogen?** Eigene Dateien heißen Ladereihenfolge im Browser, und die Anlage
-  hat bewusst keine Build-Kette. *Vorschlag: eine Datei, kleinere
-  Funktionen.*
-* **Zählt der Prüfstand als „ausgeliefert" mit?** Er wird nicht ausgeliefert,
-  wächst aber am schnellsten von allen.
-
-### Was es anfasst
-
-`public/app.js`, gegebenenfalls eine Prüfung. **Kein Schema, keine Route, keine
-Oberflächenänderung** — nichts, was ein Benutzer sieht.
-
-**Was dagegen spricht:** *Umbau ohne Anlass ist Risiko ohne Gegenwert.* Genau
-deshalb steht hier (a) und nicht „einmal aufräumen": **jede herausgezogene
-Funktion soll auf dem Weg zu etwas anderem entstehen**, mit den Prüfungen
-dieser Runde im Rücken.
-
-#### Die Gewichtung erklärt sich nicht
-
-*(stand als Punkt 11 im Sammelblatt)*
-
-**Aufgefallen im Betrieb, 28. August 2026.** Das Wort „gewichtet" steht seit
-0.8.40 da und sagt nicht, was es bedeutet.
-
-> **Art: Neue Funktion** · **Claude: stark empfohlen** für (a) — bester Erklärungsgewinn je Zeile auf dieser Liste.
-> **Draußen üblich:** „Erklär mir diese Zahl" **am Ort der Zahl und mit den
-> echten Werten**, nicht mit einem erfundenen Beispiel — Stripes
-> Gebührenaufschlüsselung, Grafanas Query Inspector, jede Steuersoftware.
-> *Ein allgemeines Rechenbeispiel liest niemand zweimal; die eigene Rechnung
-> schon.*
-
-### Woher
-
-Aus dem Betrieb, **28. August 2026**. Der Wunsch: das Wort „gewichtet" am
-Eintrag anklickbar machen, mit Formel und Rechenbeispielen — und im
-Systembereich etwas zum Ausprobieren.
-
-### Was auffiel
-
-Am Eintrag steht **„⌀ 4,2 gewichtet"**, und an einer Kriterienzeile steht
-**„×1,5"**. Beides ist richtig und beides erklärt sich nicht. Wer wissen will,
-wie aus den Sternen die Kopfzahl wird, findet es nirgends — **auch nicht in der
-Karte, in der die Gewichte eingestellt werden.**
-
-*Und das Wort ist bereits klüger, als es aussieht:* „gewichtet" ist
-**abgeleitet** und kein Schalter (`app.js:3350`) — es steht nur da, wenn
-wirklich ein Gewicht ungleich 1 in die Rechnung eingegangen ist.
-
-### Was es nicht ist
-
-**Kein Rechenfehler und keine fehlende Funktion.** Die Rechnung ist da, sauber
-und an einer Stelle. **Es fehlt die Auskunft darüber**, und das ist eine Frage
-der Darstellung — mit einer Ausnahme: Teil (b) ist wirklich eine neue Ansicht.
-
-### Was gebaut werden könnte
-
-**a) Klick auf „gewichtet" öffnet einen Kasten mit DIESER Rechnung.** Nicht mit
-einem erfundenen Beispiel, sondern mit den Zahlen des Eintrags, der gerade
-offen ist:
-
-> Bedienbarkeit **4** × 1,5 = 6,0
-> Preis **3** × 1,0 = 3,0
-> Optik **5** × 0,5 = 2,5
-> ——————————
-> 11,5 ÷ 3,0 (Summe der Gewichte) = **3,83**
-
-*Alles darin steht der Ansicht bereits zur Verfügung* — `item.ratings` trägt
-Wert, Schnitt und Gewicht je Kriterium.
-
-**b) Ein Rechner im Systembereich — und der ist nicht neu.** In Teil II steht
-seit 0.8.40 die Zeile **„Die Vorschau der Rangfolge im Systembereich"**: an
-einem Gewicht drehen und sehen, wie sich die Spitze verschiebt. **Das ist
-dasselbe Vorhaben**, nur von der anderen Seite beschrieben. Ein zweiter Rechner
-daneben wären zwei Wahrheiten über dieselbe Rechnung.
-
-**c) Was NICHT gebaut werden soll: eine Formel in Prosa in der README.** Sie
-steht dann dort, wo niemand sie sucht, und veraltet still, sobald die Rechnung
-sich ändert. *Die Erklärung gehört an die Zahl.*
-
-### Offene Entscheidungen
-
-* **Was zeigt der Kasten bei „meine / alle"?** Der Umschalter rechnet zwei
-  verschiedene Nenner — **der Kasten muss zeigen, welcher gerade gilt**, sonst
-  erklärt er die falsche Zahl.
-* **Und was bei einem Kriterium, das niemand bewertet hat?** Es fällt aus dem
-  Nenner heraus. *Das ist genau die Stelle, an der die meisten Leute die
-  Rechnung falsch raten — es gehört sichtbar in den Kasten, nicht weggelassen.*
-* **Auch an der Kachel oder nur in der Detailansicht?** Auf der Kachel steht
-  dieselbe Zahl ohne das Wort. *Vorschlag: nur in der Detailansicht — auf der
-  Kachel fehlt der Platz und der Anlass.*
-
-### Was es anfasst
-
-Die Detailansicht, ein Kasten, das Stylesheet. Für (b) zusätzlich der
-Systembereich und ein Endpunkt. **Kein Schema, keine Route für (a).**
-
-**Was dagegen spricht:** an (a) nichts — es ist eine Anzeige über eine Rechnung,
-die es längst gibt. Bei (b) spricht dagegen, dass es **eine eigene Ansicht mit
-eigenem Endpunkt** ist und damit eine eigene Runde.
-
-#### Die Glocke: was andere an meinen Sachen getan haben
-
-*(stand als Punkt 16 im Sammelblatt)*
-
-**Aufgefallen im Betrieb, 28. August 2026.** Der Anlass ist der
-Mehrbenutzerbetrieb: seit es fremde Kommentare und fremde Bewertungen gibt,
-erfährt man von ihnen nur durch Nachsehen.
-
-> **Art: Neue Funktion** · **Claude: empfohlen** für die schlanke Fassung, **nicht empfohlen** für eine Benachrichtigungstabelle, **später** für den Lesestand je Meldung.
-> **Draußen üblich:** Instagram, Facebook und GitHub führen alle eine
-> **Benachrichtigungstabelle** mit Lesestand je Zeile — *weil sie müssen: bei
-> Millionen Zugängen ist eine Zählung je Seitenaufbau undenkbar.* Kleine
-> selbstgehostete Anlagen rechnen sie statt dessen aus einem einzigen
-> Zeitstempel aus. **Bei einer Handvoll Zugänge ist die kleine Fassung nicht
-> die ärmere, sondern die richtige.**
-
-### Woher
-
-Aus dem Betrieb, **28. August 2026**. Der Wunsch: **eine Glocke in der
-Kopfzeile**, dort wo „+ Eintrag" und „Abmelden" stehen — zunächst für den
-Desktop. Ein **oranger Punkt** daran, wenn an den **eigenen** Einträgen etwas
-Neues geschehen ist: fremde Kommentare, fremde Bewertungen. Ein Klick öffnet
-die Liste. *„Also wie bei Instagram oder Facebook."*
-
-### Was auffiel
-
-**Die Anlage kennt heute nur eine Richtung: hinsehen.** Es gibt „Neu seit
-meinem letzten Besuch" als Filter über den **ganzen** Bestand — aber nichts,
-was sagt: *an DEINEN Sachen hat sich etwas getan.* Wer drei Einträge unter
-hundert hat, findet das im Filter nicht wieder.
-
-**Der Platz dafür ist da und passt.** In `.mast-rest` stehen bereits zwei
-Zeichenknöpfe derselben Bauart — „Offene Aufgaben" und „Systembereich" — und
-das Menü auf dem Telefon nimmt sie ohne Zutun mit auf: *ein Markup, zwei
-Gestalten* (0.12.0). **Eine dritte Glocke daneben kostet keine eigene
-Telefonfassung.**
-
-### Was es nicht ist
-
-**Kein Fehler, sondern eine neue Fähigkeit** — und zwar eine, die den Charakter
-der Anlage ändert. *Das gehört benannt: bis heute steht in Teil II an der Zeile
-„Erwähnungen im Kommentar" die Absage `die Anlage hat keine
-Benachrichtigungen`.* **Wird die Glocke gebaut, verliert diese Absage ihre
-Grundlage** — die beiden Zeilen hängen zusammen und gehören zusammen
-entschieden.
-
-**Und es ist der zweite Anlauf auf eine Frage, die schon einmal verneint
-wurde.** In Teil II steht seit 0.8.60 „Der Zähler ‚Offen 7' in der Kopfzeile",
-abgelehnt mit: *„er würde bei jedem Seitenaufbau gebraucht, und die Frage, wie
-er nicht ständig neu abgefragt wird, ist die eigentliche Arbeit."* **Dieselbe
-Frage stellt die Glocke — und diesmal gibt es eine Antwort, siehe (b).**
-
-### Was gebaut werden könnte
-
-**a) Ein eigener Zeitstempel — und das ist die Entscheidung, an der alles
-hängt.** Es liegt nahe, `zuletztGesehen` wiederzuverwenden. **Es wäre falsch.**
-Dieser Wert wird gesetzt, wenn man die **Übersicht verlässt** (`merkeGesehen()`,
-`app.js:1623`). Eine Glocke daran gehängt **löschte sich selbst, bevor man sie
-anklicken kann**: man betritt die Übersicht, sieht den Punkt, geht in einen
-Eintrag — und der Punkt ist fort, ohne dass man gelesen hätte, was er meinte.
-
-**Zwei Bedeutungen, ein Wert — das ist Stolperstein 47.** Die Glocke braucht
-ihren eigenen Zeitstempel, und er wird gesetzt, **wenn die Tafel geöffnet
-wird**, nicht beim Verlassen einer Ansicht.
-
-**b) Die Zahl reist mit einer Antwort mit, die es ohnehin gibt.** Kein eigener
-Endpunkt, der im Hintergrund gefragt wird, und **kein Nachfragen im Takt**. Die
-Zählung hängt sich an `GET /api/settings` oder an die Listenantwort — beide
-laufen beim Betreten der Übersicht ohnehin. **Damit ist die Frage aus 0.8.60
-beantwortet:** die Zahl kostet nichts Zusätzliches, weil sie keine eigene
-Anfrage ist.
-
-*Der Preis, ehrlich benannt: die Glocke aktualisiert sich nicht, während man
-auf der Seite sitzt.* **Für eine Anlage mit einer Handvoll Zugänge ist das
-richtig** — bei Instagram wäre es falsch, dort geschieht im Sekundentakt etwas.
-
-**c) Der orange Punkt, ohne Zahl.** `--accent` ist die Signalfarbe der Anlage,
-und ein Punkt ohne Zahl braucht keine genaue Zählung — nur die Antwort „gibt es
-etwas oder nicht". *Eine Zahl bringt die Frage nach „99+" mit und die nach
-ihrer Genauigkeit; ein Punkt bringt keine.*
-
-**c2) Zwei Knöpfe, zwei Zeichen — und das ist entschieden.** *Aus dem Betrieb
-kam am 28. August 2026 der Vorschlag, die Glocke an die Stelle des Knopfes
-„Offene Aufgaben" zu setzen und beides in eine Tafel zu legen: oben die
-persönlichen Neuigkeiten, eine Trennlinie, darunter die offenen Aufgaben.*
-**Verworfen am selben Tag, vom Betreiber, nach den beiden Befunden unten.**
-
-| Knopf | Zeichen | Was es sagt | Wann es weggeht |
-|---|---|---|---|
-| **Glocke** | **Punkt** in `--accent` | etwas ist geschehen | beim **Lesen** |
-| **„Offen"** | **Zahl** — `Offen 7` | so viel liegt an | beim **Erledigen** |
-
-**Der erste Befund steht in einer Zeile SQL.** `GET /api/offen` hat **keinen
-Benutzerfilter** (`WHERE c.kind = 'task'`, `server.js:3113`) — die Liste zeigt
-die offenen Aufgaben **aller**, jede Zeile trägt nur ein `mine` zur Anzeige.
-**In einer Tafel wäre die obere Hälfte „über mich" und die untere „über alle".**
-
-**Der zweite ist der tragende.** Eine Neuigkeit verschwindet, wenn man sie
-**gelesen** hat; eine Aufgabe erst, wenn man sie **erledigt** hat. *Ein Zeichen
-für beides geht nie ganz weg — und ein Punkt, der immer da ist, wird nach einer
-Woche nicht mehr gesehen.*
-
-**Der Knopf „Offen" verschwindet damit nicht, er wird besser:** die Zahl daran
-ist die Zeile **„Der Zähler ‚Offen 7' in der Kopfzeile"** aus Teil II, die seit
-0.8.60 auf ihren Weg wartet. **Sie bekommt ihn hier** — die Zählung reist mit
-derselben Antwort mit wie die der Glocke, siehe (b).
-
-**Und eine Ausnahme gehört dazu, sonst fällt etwas zwischen die beiden:** eine
-**fremde Aufgabe an einem eigenen Eintrag** ist eine Neuigkeit und gehört in die
-Glocke — *auch wenn dieselbe Aufgabe daneben in der Zahl steht. Das ist keine
-Doppelung: das eine sagt „jemand hat das eben angelegt", das andere „es ist noch
-offen".*
-
-**d) Was in der Tafel steht — und die Klemme, die niemand erraten würde.**
-
-| Ereignis | Was die Glocke sagen darf |
-|---|---|
-| fremder **Kommentar** an meinem Eintrag | **mit Namen** — ein Kommentar trägt seinen Verfasser ohnehin offen |
-| fremde **Bewertung** an meinem Eintrag | **nur die Zahl, niemals wer** |
-| fremder **Testtag**, **Link**, **Datei** an meinem Eintrag | mit Namen — sie tragen ihren Verfasser wie der Kommentar |
-
-**Warum die Bewertung anders liegt, steht wörtlich im Quelltext**
-(`server.js:2202`):
-
-> „**WER WELCHEN WERT VERGEBEN HAT, STEHT HIER AUSDRÜCKLICH NICHT:** diese
-> Antwort geht an jeden, und eine Angabe darüber, wie eine EINZELNE PERSON
-> bewertet hat, ist mehr, als eine Bewertung aussagen soll."
-
-Die Liste „Wer hat bewertet" ist **nur für den Admin**. **Eine Glocke, die
-‚Chefin hat deinen Eintrag bewertet' meldet, hebelt genau diese Entscheidung
-aus** — und zwar an der Stelle, an der es am wenigsten auffällt. *„Deine
-Einträge haben drei neue Bewertungen" ist dagegen einwandfrei.*
-
-**e) Eigenes zählt nie mit.** Mein eigener Kommentar an meinem eigenen Eintrag
-läutet nicht. *Das ist der Fehler, den jede erste Fassung dieser Funktion
-macht, und er fällt erst auf, wenn er nervt.*
-
-**f) Was NICHT gebaut werden soll: eine Benachrichtigungstabelle.** Eine Zeile
-je Ereignis, mit Lesestand — das ist der Weg der großen Anbieter, und er bringt
-mit: eine Schreiboperation an jedem Kommentar und jeder Bewertung, einen
-Aufräumer, eine Kaskade beim Löschen von Einträgen und Zugängen, und einen
-Migrationsblock. **Alles davon für eine Zahl, die sich aus vorhandenen
-Zeitstempeln errechnen lässt.**
-
-### Offene Entscheidungen
-
-* **Was ist „meins"?** Nur Einträge, die ich verfasst habe — oder auch solche,
-  an denen ich mitgeschrieben habe? *Vorschlag: nur die eigenen Einträge. Wer
-  irgendwo einmal kommentiert hat, bekäme sonst Meldungen über einen Eintrag,
-  der ihn nicht mehr interessiert, und die Glocke wird zur Wand.*
-* **Werden Bearbeitungen mitgezählt oder nur Neues?** Ein fremder Kommentar,
-  der geändert wird, trägt `updated_at`. *Vorschlag: nur Neues — sonst läutet
-  jeder Tippfehler ein zweites Mal.*
-* **Wie lange zurück?** Ohne Grenze zeigt die Tafel beim ersten Öffnen den
-  ganzen Bestand. **Beim allerersten Mal gibt es keinen Bezugspunkt** — dieselbe
-  Lage wie bei „Neu seit meinem letzten Besuch", und dort greift der Filter
-  ausdrücklich gar nicht. *Vorschlag: dieselbe Antwort — ohne gespeicherten Wert
-  keine Glocke.*
-* **Führt ein Klick in der Tafel zum Eintrag?** *Vorschlag: ja, und das ist der
-  halbe Gewinn* — eine Meldung, die man nicht anspringen kann, ist eine
-  Mitteilung ohne Weg.
-* **Löscht das Öffnen der Tafel alles auf einmal?** Bei einem Zeitstempel geht
-  es nicht anders. **Der Lesestand je Meldung ist die Fassung danach**, und er
-  braucht dann doch eine Tabelle — *deshalb steht er hier als „später" und nicht
-  als Teil der ersten Runde.*
-* **Und die Frage, die vor allen anderen steht: gilt das auch auf dem Telefon?**
-  Der Wunsch nennt den Desktop. **Die Kopfzeile ist aber eine — was in
-  `.mast-rest` steht, wandert auf dem Telefon von selbst ins Menü.** Eine
-  Glocke, die es nur am Desktop gibt, wäre eine Weiche nach Gerät, und die hat
-  0.12.0 ausdrücklich vermieden. *Vorschlag: sie gilt für beide, und das kostet
-  nichts.*
-
-### Was es anfasst
-
-Die Kopfzeile — **die Glocke als dritter Zeichenknopf neben „Offen" und
-„Systembereich", und die Zahl am Knopf „Offen"** —, eine Tafel, ein
-persönlicher Einstellungsschlüssel (`glockeGesehen` in
-`PERSOENLICHE_SCHLUESSEL`), eine Zählabfrage über `comments`, `ratings`,
-`test_days`, `links` und `attachments` mit einem JOIN auf die eigenen Einträge,
-eine zweite über die offenen Aufgaben, dazu Prüfungen und Gegenproben. **Kein Schema, keine neue
-Tabelle, kein Migrationsblock** — `user_settings` trägt den Zeitstempel wie
-`zuletztGesehen` auch.
-
-**Was dagegen spricht — und es ist mehr als bei den anderen Punkten:**
-
-**Erstens ist es eine Fähigkeit, die die Anlage bewusst nicht hatte.** Die
-Absage an den Erwähnungen stützt sich darauf. Wer die Glocke baut, sollte diese
-Zeile im selben Zug neu beurteilen statt sie stehenzulassen.
-
-**Zweitens ist eine Glocke ein Versprechen.** Wer sie sieht, verlässt sich
-darauf — und eine Glocke, die nur beim Betreten der Übersicht nachrechnet,
-hält es nur ungefähr. *Das ist tragbar, aber es gehört an die Tafel geschrieben
-und nicht verschwiegen.*
-
-**Drittens ist der Nutzen an die Zahl der Zugänge gebunden.** Bei zwei
-Menschen, die miteinander reden, meldet sie, was man ohnehin weiß. **Sie lohnt
-ab dem Punkt, an dem jemand mitschreibt, mit dem man nicht täglich spricht.**
-
-#### Dazu, aus Teil II des Sammelblatts
-
-- **Die Kennzahlen nennen die Version nicht.** **Art: Verbesserung.**
-  `/api/stats` **liefert `version` bereits** — die Karte zeigt es nur nicht.
-  Dazu, was der Betrieb „Nerd-Angaben" nennt und was im Quelltext längst
-  feststeht: **SQLCipher** über `better-sqlite3-multiple-ciphers`, Schlüssel
-  **256 Bit roh** (`PRAGMA key = x'…'`, also ohne Schlüsselableitung), Journal
-  **WAL**, Passwörter **scrypt**. **Ein Vorbehalt gehört dazu:** Verfahrensnamen
-  sind unbedenklich, **Paketversionen weniger** — sie sagen, welche Lücke passt.
-  *Verfahren nennen, Version der Bibliothek nicht.*
-  *(Claude: empfohlen · Draußen üblich: eine „Über"-Karte mit Version und
-  Kryptoverfahren ist Standard — Nextcloud, Vaultwarden; Paketversionen halten
-  die meisten zurück)*
-- **Import und Export in einer Kachel.** **Art: Design.** Sie stehen ohnehin
-  nebeneinander (Karte 6 und 7). **Der eine Vorbehalt: Export ist lesend,
-  Import ersetzt Bestand.** Zusammengelegt darf der Import nicht einen Klick
-  näher rücken — die zweite Bestätigung bleibt, und der Importknopf gehört
-  optisch untergeordnet. *Geht mit Punkt 10.*
-  *(Claude: empfohlen · Draußen üblich: „Import/Export" als ein Abschnitt ist
-  verbreitet, und die zerstörende Hälfte wird durchweg als sekundär gezeichnet)*
-- **Der Zähler „Offen 7" in der Kopfzeile** *(0.8.60)*. **Art: Verbesserung.**
-  Er stand schon im Auftrag der Runde und ist dort ausdrücklich nicht gebaut
-  worden: **er würde bei jedem Seitenaufbau gebraucht**, und die Frage, wie er
-  nicht ständig neu abgefragt wird, ist die eigentliche Arbeit.
-  **Punkt 16 beantwortet genau diese Frage** — die Zahl reist mit einer
-  Antwort mit, die es ohnehin gibt, statt eine eigene Anfrage zu sein.
-  **Und seit dem 28. August 2026 ist er ein Teil davon:** der Betreiber hat
-  entschieden, dass die Glocke den Knopf „Offen" **nicht** ersetzt, sondern
-  neben ihm steht — **die Glocke trägt den Punkt, dieser Knopf die Zahl**
-  (Punkt 16, Teil c2). *Er wird damit nicht mehr für sich allein gebaut,
-  sondern fällt in derselben Runde an.*
-  *(Claude: empfohlen — als Teil von Punkt 16 · Draußen üblich: eine Zahl für
-  einen Zustand, ein Punkt für ein Ereignis; die beiden Zeichen werden nicht
-  vertauscht)*
-- **Die Vorschau der Rangfolge im Systembereich** *(0.8.40, erneut gewünscht
-  28. August 2026)*. **Art: Neue Funktion.** Sehen, wie sich die Spitze
-  verschiebt, wenn man an einem Gewicht dreht. *Das ist es, was Gewichte im
-  Alltag bedienbar macht* — es ist aber eine eigene Ansicht mit eigenem
-  Endpunkt. **Aus dem Betrieb kam derselbe Wunsch von der anderen Seite:** ein
-  Feld, in das man Werte eingibt oder Sterne anklickt, mit dem Rechenweg mit
-  und ohne Gewichtung daneben. **Das ist dieselbe Ansicht** — sie gehört hier
-  gebaut und nicht ein zweites Mal daneben. *Die Erklärung am einzelnen Eintrag
-  ist etwas anderes und steht als Punkt 11 in Teil I.*
-  *(Claude: empfohlen · Draußen üblich: ein Rechner zum Ausprobieren neben den
-  Einstellungen, die er erklärt — nicht in einer Hilfeseite daneben)*
-
----
-
-#### Löschen in der Zoomansicht
-
-*(aus dem Betrieb, nicht aus dem Sammelblatt)*
-
-**Aufgefallen im Betrieb, 28. August 2026.**
-
-> **Art: Verbesserung** · **Claude: empfohlen** — klein im Umfang, aber sie gibt
-> einer reinen Anzeige zum ersten Mal einen Schreibweg. *Draußen üblich: die
-> Vollbildansicht trägt dieselben Werkzeuge wie die Ansicht darunter — wer ein
-> Bild groß betrachtet, erwartet dort auch den Papierkorb.*
-
-### Woher
-
-Aus dem Betrieb. Der Wunsch, wörtlich: *„Desktopansicht: Löschen auch bei
-Zoom ansicht."* **Auf Nachfrage: auf dem Telefon ebenso.**
-
-### Was auffiel
-
-Die Zoomansicht (`openLightbox`, `public/app.js`) trägt oben genau drei Dinge —
-**Zähler, Lupe, Schließen**. Kein Löschen. Wer ein Bild groß betrachtet und es
-wegwerfen will, muss **schließen, es in der Reihe wiederfinden und dort
-löschen**.
-
-**Eine Vermutung aus dem Betrieb ist dabei zu berichtigen**, und der Unterschied
-ist der Kern des Punktes: *„das müssten wir beim Telefon schon eingebaut haben,
-da dort Löschen auf Thumbs aus Versehen passieren konnte."* **Der Ersatz ist
-gebaut, aber an einer anderen Stelle.** Als 0.12.1 das Kreuz von den
-Vorschaukacheln nahm, kam es an das **große Bild auf der Eintragsseite**
-(`.vweg`, 44 × 44 px auf dem Telefon) — nicht in die Zoomansicht. *Die
-Zoomansicht hat nie eine gehabt.* Auf dem Telefon ist `.vweg` damit heute der
-**einzige** Weg: `@media (hover: none)` blendet das Kreuz an den Kacheln ganz
-aus.
-
-### Was gebaut werden könnte
-
-**Ein Löschknopf in der Werkzeugleiste oben**, neben Lupe und Schließen, für das
-Bild, das gerade zu sehen ist. **Auf Desktop und Telefon** — auf dem Telefon ist
-er sogar mehr wert, weil es dort bisher nur einen Weg gibt.
-
-**AUF DIE VORSCHAULEISTE UNTEN GEHÖRT ER NICHT.** Das ist genau die Lehre aus
-0.12.1, und sie steht im Quelltext am `.vweg`-Knopf: auf einer Kachel von 62 px
-war das Kreuz 27 px groß — *„die Reihe las sich nicht mehr als vier Bilder,
-sondern als vier Löschknöpfe"*, und zwar in der Ecke, auf der der Daumen beim
-Wischen aufsetzt. **Oben gilt stattdessen die Regel, die dort schon steht: man
-löscht, was man ansieht.**
-
-### Was es nicht ist
-
-**Kein neuer Löschweg am Server.** `DELETE /api/photos/:id` und
-`DELETE /api/comment-images/:id` gibt es beide; `F_ROUTEN` bleibt unberührt.
-
-### Offene Entscheidungen
-
-* **Zweierlei Bilder in derselben Ansicht.** Die Zoomansicht zeigt Fotos am
-  Eintrag **und** Bilder aus Kommentaren (`quelle === 'kommentar'`). Zwei
-  Löschwege, **zwei verschiedene Rechte**: beim Foto entscheidet, wem der
-  Eintrag gehört, beim Kommentarbild `darfAendern` über den Verfasser des
-  Kommentars. **Ein Knopf, der immer dasteht, wäre bei der Hälfte der Fälle eine
-  Absage.** *Entscheide, ob er sich versteckt oder ob die Absage getragen wird —
-  und begründe es.*
-* **Die Escape-Reihenfolge, und sie ist eine Falle.** Zoomansicht und
-  `confirmBox` horchen **beide** in der Abfangphase am Dokument
-  (`addEventListener('keydown', …, true)`), und die Zoomansicht ist zuerst
-  registriert. Ihr Handler ruft `stopPropagation()` — **Escape schlösse also die
-  Zoomansicht statt die Rückfrage**, und die Rückfrage bliebe stehen. *Heute
-  kann das nicht auftreten, weil es in der Zoomansicht nichts zu bestätigen
-  gibt. Mit dem Knopf tritt es sofort auf.*
-* **Der Rückweg zur Seite dahinter.** `openLightbox(photos, startIdx, title)`
-  bekommt eine Bilderliste und sonst nichts — sie weiß von `item`, `drawViewer`
-  und `drawThumbs` nichts. **Nach dem Löschen muss die Seite dahinter
-  nachziehen.** *Das ist der eigentliche Eingriff: eine Anzeige bekommt einen
-  Schreibweg.*
-* **Das letzte Bild.** Wird es gelöscht, hat die Zoomansicht nichts mehr zu
-  zeigen und **muss sich selbst schließen**.
-
-### Was es anfasst
-
-`public/app.js` (`openLightbox` und die drei Aufrufstellen), `public/style.css`
-(der Knopf in `.lb-tools`, Größe für den Daumen). **Kein Server, kein Schema,
-keine neue Route.**
+### 0.16.0 — GEBAUT, herausgegeben am 29. August 2026
+
+**Die Ausarbeitung steht nicht mehr hier.** Was gebaut ist, steht im
+Änderungsprotokoll 0.16.0 und im Stand — *ein Punkt wandert vom Sammelblatt in
+den Fahrplan und von dort in ein Änderungsprotokoll, nie zurück.*
+
+**Was die Runde gebracht hat, in fünf Zeilen:** der Systembereich hat fünf
+Abschnitte mit eigener Adresse, und `renderSystem()` ist dabei von 2466 auf 79
+Zeilen gefallen (Sammelblatt Nr. 10 und Teil II); die Gewichtung erklärt sich
+an jedem Eintrag selbst (Nr. 4); eine Glocke in der Kopfzeile meldet, was
+andere hinterlassen haben, und der Knopf „Offen" trägt seine Zahl (Nr. 11 und
+Nr. 16); die Kennzahlen nennen Version und Verfahren; und im Vollbild lässt
+sich löschen — der Befund aus dem Betrieb vom 28. August 2026.
+
+**ZWEI ABWEICHUNGEN VOM AUFTRAG, BEIDE HIER FESTGEHALTEN:**
+
+| Abweichung | warum | wo es jetzt steht |
+|---|---|---|
+| **Die „Vorschau der Rangfolge" ist NICHT gebaut** — der Rechner im Systembereich, der zeigt, was eine Gewichtsänderung anrichtete | **Sie war im Auftrag als erster Kandidat des Schnitts benannt**, und sie ist der einzige Teil der Runde mit **eigener Ansicht und eigenem Endpunkt**. Der Erklärkasten am Eintrag beantwortet die dringlichere Frage — *„wie kommt DIESE Note zustande"* — ohne beides | **Abschnitt 10**, unter „Zurückgestellt", zusammen mit dem Grund |
+| **Die Runde ist doch eine Datenbankstufe** — `ratings` bekommt `gesetzt_am`, siebter Migrationsblock | Der Auftrag sagte „kein Schema, sechs Blöcke" und **setzte dazu, dass die Glocke die Stelle sei, an der die Prüfung anders ausgehen könnte — und dass das ein Grund zum Fragen sei, nicht zum stillen Abweichen.** `ratings` trug keinen Zeitpunkt; **ohne ihn kann die Glocke über fremde Bewertungen nichts sagen.** Gefragt, und **ausdrücklich angewiesen** | **Abschnitt 2** (Datenbankstufe, Sicherung Pflicht), **Abschnitt 7** (siebter Block), **Stolperstein 219** |
+
+**Was die Runde ausdrücklich NICHT gebaut hat**, weil der Auftrag es
+ausschloss: eine Benachrichtigungstabelle, ein Rahmenwerk oder eine Bauleitung,
+eine harte Zeilengrenze, die Formel als Fließsatz in der README, Paketversionen
+in den Kennzahlen, die Adressliste aus `X-Forwarded-For`, ein Fließsatz an der
+Tagwolke, eine Bildablage. *Diese Grenzen sind Teil des Auftrags gewesen und
+nicht sein Rest — sie stehen deshalb hier und nicht nur dort.*
+
+**DER WERKZEUGBEFUND AUS TEIL II IST MITGEFAHREN:** `gegenprobe.js` nahm eine
+Nummer auch als Namensteil, und `node gegenprobe.js 256` fuhr damit **zwei**
+Rückbauten statt einem — neben der 256 auch die **83**, weil sie „SHA-256 statt
+SHA-1" heißt. **Der Beifang war stumm** und verfälschte damit die
+Gegenprobentabelle. *Ein Werkzeug, das mehr tut, als sein Aufruf sagt, wird
+nicht wieder benutzt.* **Behoben vor jedem Lauf dieser Runde,
+mit einer Prüfung daneben** — so, wie der Auftrag es verlangte.
 
 ---
 

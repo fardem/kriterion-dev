@@ -148,7 +148,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.14.0** *MINOR, Schema* — **GEBAUT am 29. August 2026** | Aus „abgelehnt" wird eine Entscheidung: Datum, Grund und Verfasser, dazu die Klemme am Grund. **Was gebaut wurde, steht im Änderungsprotokoll 0.14.0.** *Mitgefahren sind zwei Punkte aus dem Betrieb, die nie hier standen: der kaputte fremde Cookiewert und die Ausrichtung der Sternreihen in der Kriterienliste.* |
 | **0.15.0** *MINOR* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Zwei Befunde aus dem Betrieb, beide an der Ablehnung: der fehlende Filter für „abgelehnt" und die Begründung, die nicht zur Ruhe kam. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.0.** *Die Runde stand nie im Fahrplan; sie hat ihre Nummer bekommen, weil zwei ihrer drei Punkte Funktionen bringen — **und alle folgenden Runden sind dadurch um eine Stelle gerückt.*** |
 | **0.15.1** *PATCH* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Ein Befund aus dem Betrieb: `hidden` wirkte im Stilblatt nicht, weil jede eigene `display`-Regel die Vorgabe des Browsers schlägt — Aussage und Eingabefeld standen an einem *nicht* abgelehnten Eintrag da. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.1.** *Dazu die Regel, wann das Feld überhaupt dasteht: abgelehnt und kein Grund.* |
-| **0.16.0** *MINOR* *(war 0.15.0)* | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · Vorschau der Rangfolge · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt; 0.13.0 war voll, 0.14.0 trägt als Schema-Runde keine Beifracht)* |
+| **0.16.0** *MINOR, Schema* *(war 0.15.0)* — **GEBAUT am 29. August 2026** | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt)*. **Was gebaut wurde, steht im Änderungsprotokoll 0.16.0.** *Zwei Abweichungen: **die „Vorschau der Rangfolge" ist NICHT mitgefahren** — sie ist der einzige Teil mit eigener Ansicht und eigenem Endpunkt und war im Auftrag als erster Kandidat des Schnitts benannt; sie steht weiter in Abschnitt 10 des Projektstands. Und **die Runde ist doch eine Datenbankstufe geworden**: `ratings` trug keinen Zeitpunkt, und ohne ihn kann die Glocke über fremde Bewertungen nichts sagen — siebter Migrationsblock, auf ausdrückliche Anweisung.* **Mitgefahren ist der Werkzeugbefund am Rückbaufilter aus Teil II.** |
 | **0.17.0** *MINOR* *(war 0.16.0)* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
 | **0.18.0** *MINOR* *(war 0.17.0)* | Die Bildablage: Original und zwei Ableitungen |
 
@@ -512,14 +512,38 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   0.9.1)*. **Art: Neue Funktion.** `@name` in einem Kommentar, mit
   Benachrichtigung. *Setzt voraus, dass geklärt ist, wer wen sehen darf —
   Zugänge sehen einander heute nicht vollständig.*
-  **Die Absage stand bis zum 28. August 2026 auf einem Bein, und das Bein
-  wackelt jetzt:** sie lautete *„die Anlage hat keine Benachrichtigungen"* —
-  und **0.16.0 baut genau die.** *Wird die Glocke gebaut, gehört diese Zeile
-  im selben Zug neu beurteilt und nicht stehengelassen; das Ziel der Meldung
-  wäre dann da, und übrig bliebe allein die Frage, wer wen sehen darf.*
-  *(Claude: weiterhin nicht empfohlen — aber die Begründung ist ab 0.16.0
-  eine andere · Draußen üblich: Erwähnungen setzen überall eine
-  Benachrichtigung voraus, nie umgekehrt)*
+  **NEU BEURTEILT AM 29. AUGUST 2026, nach dem Bau von 0.16.0.** Die alte
+  Absage lautete *„die Anlage hat keine Benachrichtigungen"* — **sie hat jetzt
+  welche**, und damit ist diese Begründung verbraucht. *Sie wird hier nicht
+  stehengelassen und nicht stillschweigend ersetzt: die Zeile bekommt die
+  Begründung, die nach 0.16.0 wirklich trägt.*
+
+  **Was die Glocke davon schon leistet und was nicht.** Sie meldet, dass an
+  einem Eintrag **etwas** von anderen dazugekommen ist — nicht, dass jemand
+  **dich** gemeint hat. *Das ist der ganze Unterschied zwischen einer Glocke
+  und einer Erwähnung: die eine sagt „hier ist etwas", die andere „das gilt
+  dir".* **Der Träger der Meldung wäre also da; was fehlt, ist das Ziel.**
+
+  **Drei Dinge stehen einer Erwähnung weiterhin im Weg, und keines davon hat
+  mit Benachrichtigungen zu tun:**
+  1. **Wer wen sehen darf, ist ungeklärt.** `@name` verlangt eine
+     Namensvervollständigung über alle Zugänge — heute sehen Zugänge einander
+     nicht vollständig, und `GET /api/users` steht hinter dem Admin. **Eine
+     Erwähnung machte aus der Zugangsliste eine Auskunft für jeden.**
+  2. **Die schlanke Glocke kann kein Ziel tragen.** Sie führt einen
+     **Zeitstempel** und keine Tabelle; „diese Meldung gilt dir" wäre eine
+     Angabe je Meldung — genau die Tabelle, die 0.16.0 ausdrücklich nicht
+     gebaut hat. *Eine Erwähnung ohne Lesestand je Meldung wäre eine
+     Erwähnung, die das Öffnen der Tafel mit wegräumt.*
+  3. **Bei einer Handvoll Zugängen meldet sie, was man ohnehin weiß.** Der
+     Nutzen einer Erwähnung wächst mit der Zahl der Beteiligten; er ist hier
+     derselbe schwache Nutzen wie bei der Glocke selbst.
+
+  *(Claude: weiterhin nicht empfohlen — die Begründung ist seit 0.16.0 eine
+  andere und liegt jetzt bei der Sichtbarkeit der Zugänge und beim Lesestand
+  je Meldung, nicht mehr bei fehlenden Benachrichtigungen · Draußen üblich:
+  Erwähnungen setzen überall eine Benachrichtigung **und** einen Lesestand je
+  Meldung voraus, nie nur die erste)*
 
 
 ### Am Prüfstand
@@ -543,16 +567,6 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   *(Claude: später — die Entscheidung fällt nicht nebenbei · Draußen üblich:
   wer Oberfläche prüft, prüft sie im Browser; wer das nicht kann, prüft die
   Regeln statt der Bilder)*
-- **Der Rückbaufilter von `gegenprobe.js` trifft auch NAMEN, nicht nur
-  Nummern** *(0.15.0)*. `node gegenprobe.js 256` fährt nicht nur Rückbau 256,
-  sondern auch **83** („SHA-256 statt SHA-1") — die Auswahlzeile prüft
-  `nr === Argument` **oder** `name.includes(Argument)`, und eine Zahl steckt
-  eben auch in manchem Namen. **Beobachtet in 0.15.0**, dort ohne Schaden: der
-  zusätzliche Lauf war grün und kostete eine Nebenspur. **Die Wirkung kann aber
-  in beide Richtungen gehen** — wer eine Nummer meint, bekommt mehr, als er
-  wollte, und rechnet die Tabelle danach falsch zusammen. Die Antwort wäre eine
-  Zeile: **greift ein Argument als Nummer, gilt nur die Nummer.**
-  *(Claude: empfohlen — klein, und der Fehler ist stumm)*
 - **Das Wartefenster von zwölf Sekunden** *(0.8.10)*. `starteWeiterenServer`
   wartet 120 × 100 ms auf `/api/config`; unter schwerer Nebenlast reicht das
   nicht, und der Lauf reißt mit „Zweitserver nicht erreichbar" ab. **Beobachtet

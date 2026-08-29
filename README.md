@@ -1104,6 +1104,13 @@ es zwei, beide im Systembereich einstellbar:
 - Blättern mit ← → oder über die Pfeile, ohne vorher ins Bild zu klicken. Klick
   aufs Foto öffnet die Vollbildansicht; dort zoomt ein weiterer Klick auf
   Originalgröße. Esc schließt, auf Touch wird gewischt.
+  **Seit 0.16.0 trägt das Vollbild denselben Papierkorb wie die Ansicht
+  darunter** — wer ein Bild groß betrachtet, erwartet dort auch den
+  Papierkorb. Es ist **dieselbe Klemme und dieselbe Rückfrage**; ein
+  Papierkorb im Vollbild, der ohne Frage löschte, wäre der gefährlichste Knopf
+  der Anlage. Er steht abgesetzt und **vor** dem Schließenkreuz, nicht daneben.
+  War es das letzte Bild, geht das Vollbild zu. *An einem Kommentarbild gibt
+  es ihn nicht — das wird am Kommentar entfernt.*
 - Das **erste Element ist das Hauptbild** — Reihenfolge durch Ziehen der
   Vorschaubilder ändern, mit Maus oder Finger.
 - Fotos lassen sich per Dateiauswahl, **Strg+V aus der Zwischenablage** oder
@@ -1196,6 +1203,17 @@ es zwei, beide im Systembereich einstellbar:
   Gewichte auf 1 — so, wie eine frische Anlage startet —, sieht der Block aus
   wie zuvor. Eingestellt wird das Gewicht im Systembereich; **der
   Gesamtschnitt bleibt in jedem Fall zwischen 1 und 5.**
+  **Ein Klick auf die Zahl im Blockkopf öffnet die Rechnung — die dieses
+  Eintrags, kein erfundenes Beispiel** *(seit 0.16.0)*. Der Kasten zeigt je
+  bewertetem Kriterium eine Zeile mit Note, Gewicht und Produkt, darunter
+  Summe, Teiler und Ergebnis:
+  **erst je Kriterium der Schnitt über alle Bewertungen, dann der gewichtete
+  Mittelwert darüber.** Der **Teiler zählt nur die Kriterien, die auch bewertet
+  sind** — ein Kriterium ohne Sterne geht gar nicht ein, sonst zöge es die Zahl
+  nach unten, ohne dass es an den Werten läge. **Gerundet wird genau einmal,
+  ganz am Ende.**
+  *Der Kasten **liest** diese Rechnung; er rechnet sie nicht nach. Zwei
+  Rechenwege für dieselbe Zahl liefen früher oder später auseinander.*
   **Wer welchen Wert vergeben hat, steht nicht unter der Sternzeile.** Ab zwei
   Zugängen findet der **Admin** im Blockkopf den Knopf **„Wer hat bewertet"**:
   er öffnet eine Ansicht mit den Namen je Kriterium, und dort lässt sich eine
@@ -1281,6 +1299,40 @@ es zwei, beide im Systembereich einstellbar:
 
 **Systembereich** (Zahnrad in der Kopfzeile)
 
+**Seit 0.16.0 steht er in fünf Abschnitten, und jeder hat eine eigene
+Adresse.** Achtzehn Karten in einer Reihe waren auf dem Telefon eine einzige
+lange Spalte; der Weg von „Titel" bis „Vokabular" war entsprechend lang. Die
+Abschnitte folgen der **Rechteleiter**: was jedem gehört, steht vorn, was nur
+der Eigentümer sieht, hinten.
+
+| Abschnitt | Adresse | Karten |
+|---|---|---|
+| **Persönlich** | `#/system/persoenlich` | Zugang, Meine Sitzungen, Darstellung |
+| **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
+| **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
+| **Datenbank** | `#/system/datenbank` | Kennzahlen, Sicherung, Export und Import |
+| **Anlage** | `#/system/anlage` | Titel |
+
+**Die Adresse ist der ganze Punkt.** Ohne sie lässt sich keine Einstellung
+verlinken, und die Zurück-Taste bricht: `#/system/datenbank` lässt sich
+weitergeben, in einem neuen Fenster öffnen und mit der Zurück-Taste wieder
+verlassen. `#/system` ohne Abschnitt bleibt gültig und löst sich auf den ersten
+sichtbaren auf.
+
+**Ein Abschnitt, in dem für diesen Zugang keine einzige Karte steht, erscheint
+gar nicht** — ein leerer Reiter wäre schlechter als keiner. Ein gewöhnlicher
+Benutzer sieht deshalb zwei Abschnitte statt fünf. **Und eine Adresse, die auf
+einen Abschnitt zeigt, den es für ihn nicht gibt, fällt auf den ersten
+sichtbaren zurück** und wird dabei in der Adresszeile nachgezogen — sonst
+stünden dort zwei Aussagen über denselben Zustand.
+
+**Auf dem Telefon wird aus der Reiterreihe eine Liste**, die in den Abschnitt
+hinein führt. Es ist dasselbe Markup in zwei Gestalten, wie beim Menü der
+Kopfzeile — kein Verschieben von Knoten, keine Weiche nach Gerät.
+
+**Der zuletzt offene Abschnitt wird ausdrücklich nicht gemerkt.** Die Adresse
+tut es schon; ein gemerkter Zustand daneben wäre eine zweite Wahrheit.
+
 **Was man dort sieht, hängt an der Rolle.** Ein gewöhnlicher Benutzer bekommt
 sieben Karten: seinen eigenen **Zugang**, **Meine Sitzungen**, die
 **Darstellung**, die **Links** und die drei Listen **Kategorien**, **Tags** und
@@ -1297,6 +1349,17 @@ Listen.
 - Kennzahlen: Einträge, Fotos, Videos, Kommentare, Links, Testtage,
   **Papierkorb** und Datenbankgröße *(Admin)*. Der Schlüsselwert zum Abschreiben steht darin nur für den
   **Eigentümer**.
+  **Seit 0.16.0 stehen dort auch die Version und der Fingerprint nebeneinander**
+  — die Version sagt, welcher Stand laufen *soll*, der Fingerprint, ob die
+  Dateien dazu wirklich zusammengehören.
+  **Und ganz unten die Verfahren:** Verschlüsselung `sqlcipher`, Schlüssel
+  **256 Bit roh** (`PRAGMA key = x'…'`, also ohne Ableitung — er ist kein
+  Passwort, sondern trägt schon 256 Zufallsbits), Journal **WAL**, Passwörter
+  **scrypt**. Die vier Angaben werden aus der geöffneten Datenbank *abgelesen*
+  und nicht behauptet.
+  **Welche Fassung welcher Bibliothek das rechnet, steht dort ausdrücklich
+  nicht.** Ein Verfahrensname sagt, *wie* gerechnet wird; eine Versionsnummer
+  sagt, *welche Lücke passt*.
 - **Zugänge** verwalten — anlegen mit Passwort **oder mit Link**, sperren,
   Passwort zurücksetzen **direkt oder mit Link**, Rolle wechseln, entfernen;
   siehe den Abschnitt „Rollen und Zugänge" oben *(Admin)*.
@@ -1311,6 +1374,12 @@ Listen.
   wer die Anlage als Ganzes angefasst hat — 180 Tage lang, ohne einen Weg
   hinaus außer der Frist. Kein Änderungsverlauf, keine Adresse, keine
   Browserkennung.
+- **Export und Import stehen seit 0.16.0 in EINER Karte** *(Eigentümer)* —
+  sie meinen dieselbe Datei: die eine geht hinaus, dieselbe kommt herein.
+  **Aber nicht gleichrangig.** Der Export liest, der Import **ersetzt
+  Bestand**; die zerstörende Hälfte steht deshalb unter einem Trennstrich, mit
+  eigener, kleinerer Überschrift und in einer leiseren Zeichnung. Die zweite
+  Bestätigung vor dem Import bleibt, wo sie war.
 - **Export** mit oder ohne Fotos, nur für den Eigentümer der Anlage. Die
   Datei nennt zu jedem Eintrag, jeder Bewertung, jedem Kommentar, jedem
   Testtag, **jeder Linkzeile und jeder Datei** den **Verfassernamen**.
@@ -1458,8 +1527,8 @@ Höhe frißt, die es gar nicht hat.
 
 Auf dem Telefon stehen dort **zwei Zeilen**: oben Marke, Titel, der Knopf zum
 Anlegen und ein Menüzeichen, darunter die Suche über die volle Breite. Alles
-Übrige — offene Aufgaben, Systembereich, wer angemeldet ist, Abmelden — liegt
-**hinter dem Zeichen**.
+Übrige — die Glocke, offene Aufgaben, Systembereich, wer angemeldet ist,
+Abmelden — liegt **hinter dem Zeichen**.
 
 **Die Suche bleibt draußen**, weil sie auf einem kleinen Bildschirm das
 wichtigste Bedienelement ist: Filter und Tagwolke sieht man dort nicht auf einen
@@ -1473,6 +1542,53 @@ von 1024 Pixeln auf einem Desktop behält die Kopfzeile, die es immer hatte.
 Die Tafel schließt sich beim Klick daneben und mit Escape. Ein Menü, das nur
 sein eigener Knopf wieder zumacht, steht im Weg, sobald man es versehentlich
 geöffnet hat.
+
+### Die Glocke und der Zähler „Offen"
+
+*(seit 0.16.0, auf jedem Gerät — die Kopfzeile ist **eine**, und was in ihr
+steht, wandert auf dem Telefon von selbst hinter das Menüzeichen.)*
+
+**Die Glocke trägt einen Punkt, der Knopf „Offen" eine Zahl.** Das ist kein
+Zufall: eine Zahl beschreibt einen **Zustand** — so viele Aufgaben stehen offen
+—, ein Punkt meldet ein **Ereignis** — seit deinem letzten Blick ist etwas
+dazugekommen. Die beiden Zeichen werden nirgends vertauscht.
+
+**Ein Klick auf die Glocke öffnet eine Tafel** mit den Einträgen, an denen
+andere etwas hinterlassen haben, und **jede Zeile führt zu ihrem Eintrag**.
+Eine Meldung, die man nicht anspringen kann, wäre eine Mitteilung ohne Weg.
+
+**Was die Glocke verspricht:** fremde **Kommentare** und fremde **Bewertungen**
+seit dem letzten Öffnen der Tafel. Eigene Beiträge stehen nie darin.
+
+**Was sie nicht verspricht — und das gehört gesagt:**
+
+- **Sie rechnet beim Aufbau der Übersicht nach, nicht laufend.** Was in dieser
+  Minute entsteht, steht beim nächsten Laden da. *Eine Glocke ist ein
+  Versprechen; wer sie sieht, verlässt sich darauf — deshalb steht hier, wie
+  weit es trägt.*
+- **Sie führt keinen Lesestand je Meldung.** Das Öffnen der Tafel setzt
+  **alles** auf gesehen, auch was man gleich nicht anklickt. Ein Lesestand je
+  Zeile bräuchte eine eigene Tabelle; die schlanke Fassung führt einen
+  **Zeitstempel**, und das ist ihre bewusste Grenze.
+- **Bewertungen von vor der Umstellung auf 0.16.0 bleiben ihr unsichtbar.**
+  Sie tragen keinen Zeitpunkt, und ein nachgetragener wäre erfunden — entweder
+  sähe alles gleich alt aus oder alles brandneu, und die Glocke läutete beim
+  ersten Start für den ganzen Bestand.
+- **Vor dem ersten Verlassen der Übersicht gibt es sie gar nicht.** Ohne
+  gespeicherten Bezugspunkt weiß die Anlage nicht, was jemand schon gesehen hat
+  — dieselbe Lage und dieselbe Antwort wie bei „Neu seit meinem letzten
+  Besuch".
+- **Bei zwei Menschen, die miteinander reden, meldet sie, was man ohnehin
+  weiß.** Ihr Nutzen hängt an der Zahl der Zugänge.
+
+**Der Zähler „Offen"** summiert die offenen Aufgaben über den ganzen Bestand —
+gerechnet aus derselben Bedingung wie die Ansicht dahinter, damit Knopf und
+Ansicht nicht zwei verschiedene Zahlen nennen. **Ohne offene Aufgaben steht
+dort keine Null:** „Offen 0" wäre eine Auskunft über nichts.
+
+*Beide Zahlen reisen mit einer Antwort mit, die die Übersicht ohnehin holt. Es
+gibt keinen zusätzlichen Abruf je Seitenaufbau — genau daran war dieser Zähler
+in 0.8.60 gescheitert.*
 
 ### Die Filter
 
@@ -1926,7 +2042,13 @@ Start eine leere Neuinstallation vermuten.
 - `rating_criteria` / `ratings` — gemeinsame Kriterien mit frei bestimmbarer
   Reihenfolge **und Gewicht** (`gewicht`, 0,2 bis 2, Vorgabe 1), Werte je
   Eintrag und je Benutzer. Reihenfolge und Gewicht sind zwei Spalten, weil sie
-  zwei Aussagen sind: die eine über die Anzeige, die andere über die Rechnung
+  zwei Aussagen sind: die eine über die Anzeige, die andere über die Rechnung.
+  **Seit 0.16.0 trägt `ratings` mit `gesetzt_am` den Zeitpunkt der letzten
+  Setzung** — für die Glocke. Er heißt nicht `created_at`, weil die Zeile beim
+  ersten Stern entsteht und danach überschrieben wird, und er hat **keinen
+  Vorgabewert**: Bewertungen aus einer Anlage vor 0.16.0 und **eingespielte**
+  Bewertungen stehen ohne Zeitpunkt da. *Die Anlage weiß dann nicht, wann das
+  war, und behauptet es auch nicht — die Glocke übergeht solche Zeilen*
 - `product_categories`, `tags`, `item_tags`
 - `comments` — mit Bearbeitungszeitpunkt und `images_removed`: die Zahl der
   Bilder, die ein **anderer** als der Verfasser entfernt hat
@@ -1938,11 +2060,11 @@ Start eine leere Neuinstallation vermuten.
 - `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchanbieter
   (Vorrat, eigene Anbieter, Startanbieter) und die beiden Schalter, wer neue
   Tags und Kategorien anlegen darf. Sache des Admins
-- `user_settings` — die **persönliche** Hälfte, **acht** Schlüssel: die zuletzt
+- `user_settings` — die **persönliche** Hälfte, **neun** Schlüssel: die zuletzt
   benutzte Filterwahl, die **gespeicherten Ansichten**, der
-  Bezugspunkt für „Neu seit …", Schriftgröße, Blockanordnung,
-  sichtbare Linkzeilen, Zeitleiste und die Zahl der Anbieternamen. Je Benutzer
-  eine Zeile pro Schlüssel
+  Bezugspunkt für „Neu seit …", der Bezugspunkt der **Glocke**, Schriftgröße,
+  Blockanordnung, sichtbare Linkzeilen, Zeitleiste und die Zahl der
+  Anbieternamen. Je Benutzer eine Zeile pro Schlüssel
 - `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
   `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
   bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen.
