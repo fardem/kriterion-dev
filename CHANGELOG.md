@@ -43,6 +43,94 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.15.0] - 2026-08-29
+
+**Die Übersicht filtert nach „abgelehnt", und die Begründung kommt zur Ruhe.**
+Zwei Befunde aus dem Betrieb, beide an derselben Stelle — der eine eine alte
+Lücke, der andere eine Nachbesserung an dem, was 0.14.0 gerade gebaut hatte.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.15.0 ist **MINOR**, obwohl der
+> Auftrag als `0.14.1` herausging: *kann die Anlage danach etwas, was sie vorher
+> nicht konnte?* **Zweimal ja** — nach „abgelehnt" filtern, und eine fremde
+> Begründung entfernen. *Nur der Ruhezustand der Begründung allein wäre PATCH
+> gewesen.* **Der Fahrplan rückt entsprechend nach oben.**
+
+> **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock,
+> **Austauschformat unverändert 11**. **Die Sicherung des Datenverzeichnisses
+> ist deshalb Empfehlung und nicht Pflicht** — Pflicht war sie bei 0.14.0, und
+> zwar wegen des Migrationsblocks. *Wer von einer Fassung vor 0.14.0 kommt,
+> sichert trotzdem: der Sprung führt über jene Datenbankstufe hinweg.*
+
+### Added
+
+- **Ein Filter für „abgelehnt" in der Statuszeile** — *Alle · Abgelehnt · Nicht
+  abgelehnt*, als eigene Gruppe hinter der Beschriftung „Ablehnung".
+  **Kombinierbar mit dem Teststatus:** man lehnt ab, ohne zu testen, und man
+  lehnt nach dem Test ab, und beides muss zusammen einstellbar bleiben. *Drei
+  Zustände und kein einfacher Umschalter — gebraucht wird auch die
+  Gegenrichtung, „zeig mir alles außer dem Verworfenen".* Er zählt in der
+  Filterzahl eigens mit.
+- **Ein ✎ und ein ✕ an der Begründung einer Ablehnung.** Das ✎ öffnet das Feld
+  wieder — **nur für den, der die Begründung getroffen hat**; das ✕ entfernt sie
+  nach Rückfrage. **Dieselbe Bauform, dieselben Zeichen wie am Kommentar.**
+- **Eine fremde Begründung lässt sich entfernen** — von jedem, der den Eintrag
+  ändern darf, also auch vom Admin (siehe *Security*).
+
+### Changed
+
+- **Die Begründung steht im Ruhezustand als Aussage da, nicht in einem dauernd
+  offenen Feld.** Bis 0.14.0 stand beides nebeneinander und sagte dieselbe Sache
+  zweimal. **Beim Einschalten des Merkmals öffnet sich das Feld weiterhin sofort
+  und der Zeiger steht darin** — das war der Sinn der Zusage aus 0.14.0 —,
+  danach schließt es sich. Enter und das Verlassen des Feldes speichern,
+  **Escape verwirft**.
+- **Der Grund ist hervorgehoben** und nicht mehr im selben Grau wie „Angelegt
+  von … am …". *Datum und Name bleiben grau — sie sind eine Verfasserangabe und
+  keine Aussage über die Sache.* **Keine neue Farbe:** das Rot des Schalters.
+- **`GET /api/items/:id` liefert zwei neue Angaben** — `mine` am Eintrag und
+  `rejectedMine` an der Begründung. *Die Oberfläche kennt ihren Namen und
+  nirgends ihre Nummer; sie soll das nicht zurückrechnen müssen.* **Die nackten
+  Nummern gehen weiterhin nicht hinaus.**
+
+### Security
+
+- **„Löschen ja, umschreiben nein" gilt an der Begründung jetzt GANZ.** In
+  0.14.0 lief auch das **Leeren** über `nurSelbst` — damit konnte ein Admin eine
+  fremde Begründung weder umschreiben noch entfernen, **strenger als überall
+  sonst im Haus und ohne dass es je entschieden worden wäre.** Seither gilt:
+  **umschreiben** darf nur, wer die Begründung getroffen hat; **entfernen** darf,
+  wer den Eintrag ändern darf. *Beim Entfernen bleiben Datum und Verfasser
+  stehen, und wer entfernt, wird nicht ihr Verfasser — er darf danach also auch
+  keine neue hinschreiben.*
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Keine Sicherungspflicht (dies ist keine Datenbankstufe), keine neue
+Zeile in der `.env`, keine neue Abhängigkeit, niemand wird abgemeldet, kein
+Blick ins Protokoll nötig.
+
+*Wer von einer Fassung **vor 0.14.0** kommt, sichert vor dem Einspielen — dann
+läuft der Migrationsblock von 0.14.0 mit:*
+
+```bash
+cd .../kriterion && docker compose down
+cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)
+```
+
+### Was gleich bleibt
+
+**Gespeicherte Ansichten** bleiben lesbar: eine Ansicht aus 0.14.0 kennt den
+neuen Filterschlüssel nicht und fällt auf „Alle" zurück. **Das Austauschformat**
+bleibt bei **11**, **die markierten Migrationsblöcke** bei **sechs**,
+**`F_ROUTEN`** bei **69**, **`VORGAENGE`** bei **zwanzig** — das Entfernen einer
+Begründung bekommt **keine** Zeile im Sicherheitsprotokoll —,
+**`BESTAETIGUNG_ZWECKE`** bei **sieben**, **die Karten im Systembereich** bei
+**neunzehn**, **das Vokabular** bei **elf**. **Die Kachelansicht** zeigt die
+Marke „abgelehnt" wie bisher und keinen Grund. **„Getestet"** bekommt weiterhin
+nichts davon: es ist ein Zustand und keine Entscheidung.
+
+---
+
 ## [0.14.0] - 2026-08-29
 
 **Das Häkchen „abgelehnt" ist zu einer Aussage geworden** — mit **Datum**,
@@ -2014,3 +2102,4 @@ nicht mehr übernehmen.*
 [0.13.1]: https://github.com/fardem/kriterion/compare/v0.13.0...v0.13.1
 [0.13.2]: https://github.com/fardem/kriterion/compare/v0.13.1...v0.13.2
 [0.14.0]: https://github.com/fardem/kriterion/compare/v0.13.2...v0.14.0
+[0.15.0]: https://github.com/fardem/kriterion/compare/v0.14.0...v0.15.0

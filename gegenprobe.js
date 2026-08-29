@@ -2077,8 +2077,8 @@ const RUECKBAUTEN = [
        nurSelbst(null) ist fuer jeden falsch. */
     nr: '227', name: 'Eine Ablehnung ohne Verfasser laesst sich nicht mehr begruenden',
     datei: 'server.js',
-    suche: "  if (b.rejectedGrund !== undefined && !schaltetEin &&\n      it.rejected_von != null && !nurSelbst(req, it.rejected_von))",
-    ersatz: "  if (b.rejectedGrund !== undefined && !schaltetEin &&\n      !nurSelbst(req, it.rejected_von))",
+    suche: "  if (b.rejectedGrund !== undefined && !schaltetEin && !entferntGrund &&\n      it.rejected_von != null && !nurSelbst(req, it.rejected_von))",
+    ersatz: "  if (b.rejectedGrund !== undefined && !schaltetEin && !entferntGrund &&\n      !nurSelbst(req, it.rejected_von))",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -2255,12 +2255,15 @@ const RUECKBAUTEN = [
   },
   {
     /* Das Feld fuer den Grund bleibt verborgen. Ein Feld, das man nicht sieht,
-       ist ein Feld, das niemand fuellt -- und die Spalte bliebe leer. */
+       ist ein Feld, das niemand fuellt -- und die Spalte bliebe leer.
+       SEIT 0.15.0 HAENGT ES AN `grundOffen` und nicht mehr am Merkmal: der
+       Ruhezustand hat es zu, und geoeffnet wird ueber Schalter, Text und
+       Stift. Der Rueckbau trifft dieselbe Sache an ihrer neuen Zeile. */
     nr: '245', name: 'Das Feld fuer den Grund erscheint nicht',
     datei: 'public/app.js',
-    suche: "    zeile.hidden = !item.rejected;",
+    suche: "    zeile.hidden = !grundOffen;",
     ersatz: "    zeile.hidden = true;",
-    erwartet: 'Die Aussage an der Marke — 0.14.0'
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
     /* Die Zeile steht auch dann da, wenn gar nichts bekannt ist -- dann sagt
@@ -2268,9 +2271,183 @@ const RUECKBAUTEN = [
        Aussage zweimal. */
     nr: '246', name: 'Die Aussage steht auch da, wenn sie nichts sagt',
     datei: 'public/app.js',
-    suche: "    marke.hidden = !item.rejected || (!kopf && !grund);",
+    suche: "    marke.hidden = !item.rejected || grundOffen || (!kopf && !grund && !zeigeStift);",
     ersatz: "    marke.hidden = !item.rejected;",
     erwartet: 'Die Aussage an der Marke — 0.14.0'
+  },
+
+  /* ---- 0.15.0: Der Filter und der Stift ---- */
+  {
+    /* Der Filter greift gar nicht mehr: die Menge bleibt, wie sie ist, gleich
+       welcher der drei Zustaende gewaehlt ist. */
+    nr: '250', name: 'Der Filter „abgelehnt" nimmt nichts weg',
+    datei: 'public/app.js',
+    suche: "  if (f.abgelehnt === 'ja') out = out.filter(i => i.rejected);",
+    ersatz: "  if (false) out = out.filter(i => i.rejected);",
+    erwartet: 'Der Filter „abgelehnt" — 0.15.0'
+  },
+  {
+    /* Nur die Gegenrichtung faellt weg. "Zeig mir alles ausser dem
+       Verworfenen" ist der haeufigere Griff und der Grund, warum es drei
+       Zustaende sind und kein Umschalter. */
+    nr: '251', name: 'Die Gegenrichtung des Filters faellt weg',
+    datei: 'public/app.js',
+    suche: "  else if (f.abgelehnt === 'nein') out = out.filter(i => !i.rejected);",
+    ersatz: "  else if (false) out = out.filter(i => !i.rejected);",
+    erwartet: 'Der Filter „abgelehnt" — 0.15.0'
+  },
+  {
+    /* Der Schluessel steht nicht mehr in der Vorgabe. Damit faellt eine
+       gespeicherte Ansicht nicht mehr auf "Alle" zurueck, filterNormal()
+       raeumt ihn nicht auf, und filterZahl() vergleicht gegen undefined. */
+    nr: '252', name: 'Der neue Filter fehlt in der Vorgabe',
+    datei: 'public/app.js',
+    suche: "                         abgelehnt: 'all', favorit: false, neu: false,",
+    ersatz: "                         favorit: false, neu: false,",
+    erwartet: 'Der Filter „abgelehnt" — 0.15.0'
+  },
+  {
+    /* Der eingeklappte Filterbereich zaehlt ihn nicht mit und sagt damit die
+       Unwahrheit ueber die eine Frage, die er aufwirft. */
+    nr: '253', name: 'Der Ablehnungsfilter zaehlt nicht mit',
+    datei: 'public/app.js',
+    suche: "  if (f.abgelehnt !== v.abgelehnt) n++;",
+    ersatz: "  if (false) n++;",
+    erwartet: 'Der Filter „abgelehnt" — 0.15.0'
+  },
+  {
+    /* Die Gruppe steht ohne zweite Beschriftung da und liest sich damit als
+       Fortsetzung der Reihe davor -- als waeren es sechs Zustaende EINES
+       Merkmals. */
+    nr: '254', name: 'Die zweite Gruppe ist nicht abgesetzt',
+    datei: 'public/app.js',
+    suche: "  zweiteBeschriftung(r1, 'Ablehnung');",
+    ersatz: "  // zweiteBeschriftung(r1, 'Ablehnung');",
+    erwartet: 'Der Filter „abgelehnt" — 0.15.0'
+  },
+  {
+    /* Der Server sagt nicht mehr, wem die Begruendung gehoert. Die Oberflaeche
+       kann es nicht zurueckrechnen -- sie kennt ihren Namen, nicht ihre
+       Nummer -- und der Stift verschwindet fuer den, der ihn braucht. */
+    nr: '255', name: 'rejectedMine geht nicht mehr hinaus',
+    datei: 'server.js',
+    suche: "  it.rejectedMine = it.rejected_von != null && it.rejected_von === benutzerId;",
+    ersatz: "  it.rejectedMine = false;",
+    erwartet: 'Entfernen darf auch der Admin — 0.15.0'
+  },
+  {
+    /* Dasselbe fuer den Eintrag: ohne `mine` faellt der Papierkorb bei dem
+       weg, dem der Eintrag gehoert. */
+    nr: '256', name: 'mine geht am Eintrag nicht mehr hinaus',
+    datei: 'server.js',
+    suche: "  it.mine = it.user_id === benutzerId;",
+    ersatz: "  it.mine = false;",
+    erwartet: 'Entfernen darf auch der Admin — 0.15.0'
+  },
+  {
+    /* Die Fallunterscheidung faellt weg: das Entfernen laeuft wieder ueber
+       nurSelbst, und ein Admin kann eine fremde Begruendung weder umschreiben
+       noch wegnehmen. Genau die Luecke, die 0.15.0 schliesst. */
+    nr: '257', name: 'Entfernen laeuft wieder ueber nurSelbst',
+    datei: 'server.js',
+    suche: "  const entferntGrund = b.rejectedGrund !== undefined && !grundText(b.rejectedGrund);",
+    ersatz: "  const entferntGrund = false;",
+    erwartet: 'Entfernen darf auch der Admin — 0.15.0'
+  },
+  {
+    /* Umgekehrt: die Klemme laesst jetzt ALLES durch, auch das Umschreiben
+       einer fremden Begruendung. "Loeschen ja, umschreiben nein" waere damit
+       "beides ja". */
+    nr: '258', name: 'Auch das Umschreiben kommt durch',
+    datei: 'server.js',
+    suche: "  if (b.rejectedGrund !== undefined && !schaltetEin && !entferntGrund &&",
+    ersatz: "  if (false &&",
+    erwartet: 'Entfernen darf auch der Admin — 0.15.0'
+  },
+  {
+    /* Wer entfernt, wird wieder Verfasser einer Begruendung, die es gar nicht
+       gibt -- an einer Ablehnung aus einer Anlage vor 0.14.0. */
+    nr: '259', name: 'Wer entfernt, wird Verfasser',
+    datei: 'server.js',
+    suche: "    if (it.rejected_von == null && !entferntGrund) put('rejected_von', req.benutzer.id);",
+    ersatz: "    if (it.rejected_von == null) put('rejected_von', req.benutzer.id);",
+    erwartet: 'Entfernen darf auch der Admin — 0.15.0'
+  },
+  {
+    /* Das Feld schliesst sich nach dem Speichern nicht mehr. Damit steht die
+       Aussage wieder neben einem dauernd offenen Feld -- dieselbe Sache
+       zweimal, und genau der Befund aus dem Betrieb. */
+    nr: '260', name: 'Das Feld bleibt nach dem Speichern offen',
+    datei: 'public/app.js',
+    suche: "      grundOffen = false;\n      drawSwitches();\n    };\n    feld.onblur = speichere;",
+    ersatz: "      drawSwitches();\n    };\n    feld.onblur = speichere;",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+  },
+  {
+    /* Beim Einschalten steht das Feld nicht mehr offen. Ein Feld, das man erst
+       suchen muss, bleibt leer -- das war die Zusage aus 0.14.0. */
+    nr: '261', name: 'Beim Einschalten bleibt das Feld zu',
+    datei: 'public/app.js',
+    suche: "      grundOffen = item.rejected;\n      drawSwitches();",
+    ersatz: "      grundOffen = false;\n      drawSwitches();",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+  },
+  {
+    /* Der Stift steht auch dem da, der gar nicht schreiben darf -- und
+       oeffnet ein Feld, dessen Inhalt der Server mit 403 abweist. */
+    nr: '262', name: 'Der Stift steht jedem da',
+    datei: 'public/app.js',
+    suche: "    const zeigeStift = item.rejected && meins;",
+    ersatz: "    const zeigeStift = item.rejected;",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+  },
+  {
+    /* Der Papierkorb steht jedem da -- auch der Fremden, die den Eintrag
+       nicht aendern darf. */
+    nr: '263', name: 'Der Papierkorb steht jedem da',
+    datei: 'public/app.js',
+    suche: "    const zeigeWeg = item.rejected && verwalten && !!grund;",
+    ersatz: "    const zeigeWeg = item.rejected && !!grund;",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+  },
+  {
+    /* Der Papierkorb entfernt ohne Rueckfrage. Eine Angabe, die niemand
+       wiederherstellen kann, verschwindet auf einen Klick. */
+    nr: '264', name: 'Der Papierkorb fragt nicht mehr nach',
+    datei: 'public/app.js',
+    suche: "    if (!await confirmBox('Begründung entfernen?',",
+    ersatz: "    if (false && !await confirmBox('Begründung entfernen?',",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+  },
+  {
+    /* Escape setzt das Feld nicht mehr zurueck, bevor es schliesst. Das
+       Schliessen nimmt den Zeiger, onblur laeuft, und der verworfene Text
+       wird genau von dem Weg gespeichert, der ihn verwerfen sollte. */
+    nr: '265', name: 'Escape verwirft nicht mehr, sondern speichert',
+    datei: 'public/app.js',
+    suche: "        feld.value = item.rejected_grund || '';\n        grundOffen = false;\n        drawAblehnung();",
+    ersatz: "        grundOffen = false;\n        drawAblehnung();",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+  },
+  {
+    /* An einer herrenlosen Ablehnung -- aus einer Anlage vor 0.14.0 -- gibt es
+       keinen Weg mehr in das Feld. Der Server laesst dort jeden schreiben, der
+       den Eintrag aendern darf; die Oberflaeche bietet es nicht mehr an. */
+    nr: '266', name: 'An der herrenlosen Ablehnung fehlt der Weg hinein',
+    datei: 'public/app.js',
+    suche: "    const meins = darf && (item.rejectedMine === true || !item.rejectedVerfasser);",
+    ersatz: "    const meins = darf && item.rejectedMine === true;",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
+  },
+  {
+    /* Der Grund steht nicht mehr hervorgehoben da, sondern im selben Grau wie
+       "Angelegt von … am …". Eine Entscheidung, die den Eintrag verwirft,
+       liest sich wieder wie eine Randnotiz -- der zweite Befund. */
+    nr: '267', name: 'Die Hervorhebung des Grundes faellt weg',
+    datei: 'public/style.css',
+    suche: ".rej-aussage .rej-warum { color: var(--red); font-weight: 500; }",
+    ersatz: ".rej-aussage .rej-warum { font-weight: 500; }",
+    erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
@@ -2424,6 +2601,17 @@ function leseLauf(ausgabe) {
   const abriss = ausgabe.match(/^Prueflauf abgebrochen: (.+)$/m);
   return {
     rot,
+    /* DIE INHALTLICH ROTEN PUNKTE, OHNE DIE SELBSTPROBE. Die Gruppe „Die
+       Gegenproben greifen" prueft, dass JEDER Suchtext in seiner Datei genau
+       einmal vorkommt -- und ein gefahrener Rueckbau hat seine Zeile gerade
+       ersetzt. Diese eine Pruefung wird deshalb bei JEDEM Rueckbau rot, ganz
+       gleich, ob er sonst etwas bewirkt.
+       OHNE DIESE UNTERSCHEIDUNG KANN DIE TABELLE EINEN STUMMEN RUECKBAU GAR
+       NICHT SEHEN: `rot.length` ist nie null, und „0 STUMM" waere eine
+       Auskunft ueber nichts. Genau so ist Rueckbau 265 in 0.15.0 durch die
+       Meldung gerutscht -- gefunden wurde er beim Lesen der Tabelle von Hand
+       (Stolperstein 213). */
+    inhaltlichRot: rot.filter(t => t.gruppe !== 'Die Gegenproben greifen'),
     durchgelaufen: Boolean(schluss),
     bestanden: schluss ? Number(schluss[1]) : null,
     gesamt: schluss ? Number(schluss[2]) : null,
@@ -2491,7 +2679,7 @@ async function fahreAlle(liste, spuren, stufe) {
       const wort = e.fehler ? 'FEHLER'
         : e.ueberfaellig ? 'ZEITGRENZE'
         : !e.durchgelaufen ? 'ABGERISSEN'
-        : e.rot.length ? `${e.rot.length} rot` : 'STUMM';
+        : e.inhaltlichRot?.length ? `${e.inhaltlichRot.length} rot` : 'STUMM';
       console.log(`  [Spur ${nr}] ${r.nr} fertig nach ${e.sekunden}s — ${wort}`);
     }
   };
@@ -2515,7 +2703,7 @@ function schreibeTabelle(ergebnisse) {
     else if (!e.durchgelaufen)
       rechts = `**LAUF ABGERISSEN** — ${e.abriss || `Code ${e.code}`}` +
                (e.rot.length ? ` (davor ${e.rot.length} rot)` : '');
-    else if (!e.rot.length) rechts = '**STUMM — das ist ein FUND**';
+    else if (!e.inhaltlichRot?.length) rechts = '**STUMM — das ist ein FUND**';
     else if (e.rot.length <= 3)
       rechts = e.rot.map(p => `„${p.name}"`).join(', ');
     else {
@@ -2535,7 +2723,7 @@ function schreibeTabelle(ergebnisse) {
       console.log(`  LAUF ABGERISSEN: ${e.abriss || `Rückgabewert ${e.code}`}`);
     else
       console.log(`  ${e.bestanden} von ${e.gesamt} bestanden, erwartet in „${e.erwartet}"`);
-    if (!e.rot.length && e.durchgelaufen)
+    if (!e.inhaltlichRot?.length && e.durchgelaufen)
       console.log('  STUMM — kein einziger roter Punkt. Das ist ein FUND und gehört untersucht.');
     let letzte = null;
     for (const p of e.rot) {
@@ -2547,7 +2735,7 @@ function schreibeTabelle(ergebnisse) {
     console.log('');
   }
 
-  const stumm = ergebnisse.filter(e => e.durchgelaufen && !e.rot.length);
+  const stumm = ergebnisse.filter(e => e.durchgelaufen && !e.inhaltlichRot?.length);
   const kaputt = ergebnisse.filter(e => e.fehler || !e.durchgelaufen);
   const leichen = ergebnisse.filter(e => e.uebrig || e.raeumFehler);
   console.log('══════════════════════════════════════════════════════════════');
@@ -2570,7 +2758,11 @@ function schreibeTabelle(ergebnisse) {
    der Stunden dauert. Drei davon lagen so fuenf Runden lang unbemerkt.
    NUR BEIM DIREKTEN AUFRUF WIRD GEFAHREN: `require('./gegenprobe')` liefert
    die Liste und startet keinen einzigen Server. */
-module.exports = { RUECKBAUTEN };
+/* leseLauf GEHT MIT HINAUS, damit der Pruefstand die Regel „was gilt als
+   stumm" an gestellten Ausgaben nachsehen kann -- in Millisekunden statt in
+   Minuten. Ein Werkzeug, das seinen eigenen Fund nicht melden kann, ist
+   schlimmer als keines (Stolperstein 213). */
+module.exports = { RUECKBAUTEN, leseLauf };
 if (require.main !== module) return;
 
 (async function haupt() {

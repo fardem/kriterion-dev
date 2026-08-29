@@ -146,9 +146,10 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.12.3** *PATCH* — **GEBAUT am 28. August 2026** | Export durch den Arbeitsspeicher · nur zeichnen, was zu sehen ist · ein Kasten, eine Farbe · Speicherverbrauch · ⌀ und Anzahl · „offen" in der Kopfzeile · Kommentar ohne Rollen · Versionszeile · „mehr" frisst eine Zeile. **Was gebaut wurde, steht im Änderungsprotokoll 0.12.3; was daraus herausgenommen wurde, in Abschnitt 10a.** |
 | **0.13.0** *MINOR* — **GEBAUT am 28. August 2026** | Der Proxy ist ein Ja/Nein · gescheiterte Anmeldungen sichtbar machen · gelöschte Zugänge und der Weg zurück · der Teilexport mit zweitem Faktor · die Filterleiste (229 → 154 px, gemessen) · die Kategoriezeile lernt die Mehrzahl. **Was gebaut wurde, steht im Änderungsprotokoll 0.13.0; was daraus herausgenommen wurde, in Abschnitt 10a.** *Herausgenommen sind die Adressliste (eigene Runde) und die stdout-Zeile für CrowdSec (verworfen, solange die Adressliste fehlt).* |
 | **0.14.0** *MINOR, Schema* — **GEBAUT am 29. August 2026** | Aus „abgelehnt" wird eine Entscheidung: Datum, Grund und Verfasser, dazu die Klemme am Grund. **Was gebaut wurde, steht im Änderungsprotokoll 0.14.0.** *Mitgefahren sind zwei Punkte aus dem Betrieb, die nie hier standen: der kaputte fremde Cookiewert und die Ausrichtung der Sternreihen in der Kriterienliste.* |
-| **0.15.0** *MINOR* | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · Vorschau der Rangfolge · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt; 0.13.0 war voll, 0.14.0 trägt als Schema-Runde keine Beifracht)* |
-| **0.16.0** *MINOR* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
-| **0.17.0** *MINOR* | Die Bildablage: Original und zwei Ableitungen |
+| **0.15.0** *MINOR* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Zwei Befunde aus dem Betrieb, beide an der Ablehnung: der fehlende Filter für „abgelehnt" und die Begründung, die nicht zur Ruhe kam. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.0.** *Die Runde stand nie im Fahrplan; sie hat ihre Nummer bekommen, weil zwei ihrer drei Punkte Funktionen bringen — **und alle folgenden Runden sind dadurch um eine Stelle gerückt.*** |
+| **0.16.0** *MINOR* *(war 0.15.0)* | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · Vorschau der Rangfolge · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt; 0.13.0 war voll, 0.14.0 trägt als Schema-Runde keine Beifracht)* |
+| **0.17.0** *MINOR* *(war 0.16.0)* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
+| **0.18.0** *MINOR* *(war 0.17.0)* | Die Bildablage: Original und zwei Ableitungen |
 
 **Was hier bleibt, bleibt aus einem Grund:** die drei Punkte unten haben
 **keine Nummer**, weil keiner von ihnen gebaut werden soll — zwei sind `nicht
@@ -512,10 +513,10 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   Zugänge sehen einander heute nicht vollständig.*
   **Die Absage stand bis zum 28. August 2026 auf einem Bein, und das Bein
   wackelt jetzt:** sie lautete *„die Anlage hat keine Benachrichtigungen"* —
-  und **0.15.0 baut genau die.** *Wird die Glocke gebaut, gehört diese Zeile
+  und **0.16.0 baut genau die.** *Wird die Glocke gebaut, gehört diese Zeile
   im selben Zug neu beurteilt und nicht stehengelassen; das Ziel der Meldung
   wäre dann da, und übrig bliebe allein die Frage, wer wen sehen darf.*
-  *(Claude: weiterhin nicht empfohlen — aber die Begründung ist ab 0.15.0
+  *(Claude: weiterhin nicht empfohlen — aber die Begründung ist ab 0.16.0
   eine andere · Draußen üblich: Erwähnungen setzen überall eine
   Benachrichtigung voraus, nie umgekehrt)*
 
@@ -526,6 +527,16 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   **ein** Ablauf; der Namensfilter filtert die **Ausgabe**, nicht die Arbeit.
   `gegenprobe.js` und `PORT_VERSATZ` mildern das, sie beheben es nicht.
   *(Claude: nicht empfohlen — der Gruppenfilter trägt den Alltag)*
+- **Der Rückbaufilter von `gegenprobe.js` trifft auch NAMEN, nicht nur
+  Nummern** *(0.15.0)*. `node gegenprobe.js 256` fährt nicht nur Rückbau 256,
+  sondern auch **83** („SHA-256 statt SHA-1") — die Auswahlzeile prüft
+  `nr === Argument` **oder** `name.includes(Argument)`, und eine Zahl steckt
+  eben auch in manchem Namen. **Beobachtet in 0.15.0**, dort ohne Schaden: der
+  zusätzliche Lauf war grün und kostete eine Nebenspur. **Die Wirkung kann aber
+  in beide Richtungen gehen** — wer eine Nummer meint, bekommt mehr, als er
+  wollte, und rechnet die Tabelle danach falsch zusammen. Die Antwort wäre eine
+  Zeile: **greift ein Argument als Nummer, gilt nur die Nummer.**
+  *(Claude: empfohlen — klein, und der Fehler ist stumm)*
 - **Das Wartefenster von zwölf Sekunden** *(0.8.10)*. `starteWeiterenServer`
   wartet 120 × 100 ms auf `/api/config`; unter schwerer Nebenlast reicht das
   nicht, und der Lauf reißt mit „Zweitserver nicht erreichbar" ab. **Beobachtet
@@ -640,7 +651,7 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
   allem.** Für eine selbstgehostete Anlage ist das die richtige Abwägung, und
   sie gehört in die README statt in den Quelltext.
 - **Ein Framework im Frontend.** Kein Framework heißt: keine Build-Kette, keine
-  400 Pakete, kein Ablaufdatum. *Siehe Fahrplan 0.15.0, „Zwei Funktionen sind zu groß geworden" — die Antwort auf große
+  400 Pakete, kein Ablaufdatum. *Siehe Fahrplan 0.16.0, „Zwei Funktionen sind zu groß geworden" — die Antwort auf große
   Funktionen sind kleinere Funktionen.*
 - **PWA-Manifest.** Für eine Anlage im eigenen Netz ohne Offline-Anspruch ist
   der Gewinn das Icon auf dem Startbildschirm und sonst wenig. Steht in Teil II,
@@ -655,7 +666,7 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
   Vergleich, Austauschformat und Gesamtschnitt — und sie beantwortet eine
   Frage, die ein Absatz in der README billiger beantwortet. **Vorgemerkt ist
   deshalb der Absatz** (Projektstand, Abschnitt 10), nicht der Umbau.
-- **Wortgrenzensuche statt Teilstring.** Siehe Fahrplan 0.16.0, „Die Suche schärfen" (d): In einem
+- **Wortgrenzensuche statt Teilstring.** Siehe Fahrplan 0.17.0, „Die Suche schärfen" (d): In einem
   Katalog voller Typnummern verschwiege sie still Treffer.
 - **Ein Cookiename mit bedingtem `Secure`.** Der billige Weg an Fahrplan 0.13.0, „Der Proxy ist ein Ja/Nein",
   vorbei — und der falsche: er gäbe Sicherheit auf, statt Bequemlichkeit zu
@@ -692,7 +703,7 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
 - **Die vorhandenen Bildoriginale nach JPEG umwandeln.** Verlustbehaftet und
   unumkehrbar — und bei einem Bildschirmfoto ist PNG die bessere Wahl. Eine
   Umwandlung über den ganzen Bestand träfe genau die Bilder, denen sie schadet.
-  *Draußen fasst niemand das Original an.* Siehe Fahrplan 0.17.0, „Die Bildablage" (a).
+  *Draußen fasst niemand das Original an.* Siehe Fahrplan 0.18.0, „Die Bildablage" (a).
 - **Ein zweites Kommentarformular in einem Dialogfenster.** Das vorhandene
   trägt Bilder-Einfügen, Anpinnen, Art-Umschalter und Mitwachsen; ein zweites
   davon wären zwei Wahrheiten über dasselbe Formular. **Ein Sprungknopf tut
@@ -706,7 +717,7 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
   großen Anbieter — und für eine Handvoll Zugänge der falsche: eine
   Schreiboperation an jedem Kommentar und jeder Bewertung, ein Aufräumer, zwei
   Kaskaden und ein Migrationsblock, **für eine Zahl, die sich aus vorhandenen
-  Zeitstempeln errechnen lässt.** Siehe Fahrplan 0.15.0, „Die Glocke" (f).
+  Zeitstempeln errechnen lässt.** Siehe Fahrplan 0.16.0, „Die Glocke" (f).
 - **Eine Glocke, die nennt, WER bewertet hat.** Sie hebelte die Entscheidung
   aus, dass eine einzelne Bewertung anonym bleibt (`server.js:2202`, die Liste
   „Wer hat bewertet" ist nur für den Admin) — und zwar an der Stelle, an der es
@@ -720,4 +731,4 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
   Liste ist gemeinsam, die Neuigkeiten sind persönlich —, und **eine Neuigkeit
   geht weg, wenn man sie liest, eine Aufgabe erst, wenn man sie erledigt.** Ein
   Punkt, der beides meint, geht nie ganz weg. *Draußen trennt es jeder:
-  Instagram, Facebook, GitHub, Jira, Linear.* Siehe Fahrplan 0.15.0, „Die Glocke".
+  Instagram, Facebook, GitHub, Jira, Linear.* Siehe Fahrplan 0.16.0, „Die Glocke".

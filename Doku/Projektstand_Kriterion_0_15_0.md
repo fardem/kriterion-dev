@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 36 · Stand 29. August 2026 · gebaut: Version 0.14.0**
+**Kompakte Übergabe · Revision 37 · Stand 29. August 2026 · gebaut: Version 0.15.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,14 +43,15 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
-**0.14.0 in einem Satz: das Häkchen „abgelehnt" ist zu einer Aussage geworden —
-mit Datum, Grund und Verfasser.** *MINOR, weil die Anlage danach etwas kann,
-was sie vorher nicht konnte: ihr Ergebnis festhalten und nicht bloß den Weg
-dorthin.* **Es ist die dritte Runde aus dem Fahrplan in Abschnitt 10a und die
-erste Datenbankstufe seit 0.8.50** — drei Spalten an `items`, der sechste
-Migrationsblock, Austauschformat 11. **Vor dem Einspielen ist die Sicherung des
-Datenverzeichnisses Pflicht und nicht Empfehlung.** Alles Weitere in
-Abschnitt 2 und Abschnitt 9.
+**0.15.0 in einem Satz: die Übersicht filtert nach „abgelehnt", und die
+Begründung kommt zur Ruhe.** *MINOR, weil die Anlage danach zweierlei kann, was
+sie vorher nicht konnte: nach der Ablehnung suchen, und eine fremde Begründung
+entfernen.* **Sie stand nie im Fahrplan** — zwei Befunde aus dem Betrieb,
+gemeldet nach dem Einspielen von 0.14.0, beide an der Ablehnung. **Ihre Nummer
+lässt alle folgenden Runden um eine Stelle rücken** (Abschnitt 10).
+**Keine Datenbankstufe:** kein Schema, kein Migrationsblock, Austauschformat
+unverändert 11 — die Sicherung ist Empfehlung. Alles Weitere in Abschnitt 2 und
+Abschnitt 9.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
 > trägt die **gebaute** Runde in einem Satz und sonst nichts Versionsbezogenes.
@@ -127,30 +128,42 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.14.0** — Fingerprint **`ca8bcf31`**, **4262 Prüfungen**,
-**249 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
-*0.14.0 macht aus dem Häkchen „abgelehnt" eine Aussage: wann, warum und von
-wem.* **MINOR — die Anlage hält seither ihr Ergebnis fest und nicht bloß den
-Weg dorthin.**
+**Gebaut ist 0.15.0** — Fingerprint **`8fa66d7d`**, **4351 Prüfungen**,
+**267 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
+*0.15.0 gibt der Übersicht einen Filter für „abgelehnt" und bringt die
+Begründung zur Ruhe.* **MINOR — die Anlage kann seither nach der Ablehnung
+suchen, und eine fremde Begründung lässt sich entfernen.**
 
-> **DIES IST EINE DATENBANKSTUFE.** Drei Spalten an `items`
-> (`rejected_at`, `rejected_grund`, `rejected_von`), **Migrationsblock
-> `MIGRATION 0.14.0`** — der **sechste**, und der erste seit 0.8.50 —, und das
-> **Austauschformat geht von 10 auf 11**. **DIE SICHERUNG DES
-> DATENVERZEICHNISSES IST VOR DEM EINSPIELEN PFLICHT UND NICHT EMPFEHLUNG.**
-> *Bei den fünf Runden davor stand dort „Empfehlung"; bei einem
-> Migrationsblock ist das falsch.*
-> **Eine Datei der Formatnummer 10 bleibt einspielbar** — die drei Felder
-> fehlen dann und bleiben leer. **Keine neue Zeile in der `.env`, keine neue
-> Abhängigkeit, `F_ROUTEN` unverändert bei 69.**
+> **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
+> neue Formatnummer: es bleibt bei **sechs** markierten Blöcken und bei
+> **Austauschformat 11**. Die drei Spalten stehen seit 0.14.0; diese Runde
+> liest sie und schreibt in eine davon. **DIE SICHERUNG DES DATENVERZEICHNISSES
+> IST DESHALB EMPFEHLUNG UND NICHT PFLICHT.** *Pflicht war sie bei 0.14.0, und
+> zwar wegen des Migrationsblocks — den gibt es hier nicht.*
+> **Keine neue Zeile in der `.env`, keine neue Abhängigkeit, `F_ROUTEN`
+> unverändert bei 69.**
 
-**Was 0.14.0 für den Betrieb bedeutet: sichern, einspielen, fertig.** Der Block
-läuft beim ersten Start von selbst, nennt im Protokoll, was er getan hat, und
-ist danach stumm. **Er trägt in vorhandene Ablehnungen ausdrücklich nichts
-ein** — diese Anlage weiß nicht, wann und von wem sie getroffen wurden, und ein
-erfundener Wert wäre schlimmer als ein leerer. **Niemand wird abgemeldet.**
+**Was 0.15.0 für den Betrieb bedeutet: einspielen, fertig.** Niemand wird
+abgemeldet, keine gespeicherte Ansicht geht verloren — eine Ansicht aus 0.14.0
+kennt den neuen Filterschlüssel nicht und fällt auf „Alle" zurück.
 
-*Davor, ebenfalls am 29. August: **0.13.2** (Fingerprint `15188676`, 4131
+> **UND EINE ENTSCHEIDUNG AUS 0.14.0 IST ZURÜCKGENOMMEN.** Dort galt an
+> `rejected_grund` `nurSelbst` für **jedes** Schreiben; damit konnte ein Admin
+> eine fremde Begründung weder umschreiben noch **entfernen**. **Seit 0.15.0
+> gilt die Hausregel auch hier: „Löschen ja, umschreiben nein."** Umschreiben
+> darf weiterhin nur, wer die Begründung getroffen hat; entfernen darf, wer den
+> Eintrag ändern darf. *Wer entfernt, wird dabei nicht ihr Verfasser — Datum
+> und Verfasser der Ablehnung bleiben stehen, und wer gelöscht hat, darf danach
+> keine neue hinschreiben.*
+
+*Davor, am 29. August: **0.14.0** (Fingerprint `ca8bcf31`, 4262 Prüfungen)
+macht aus dem Häkchen „abgelehnt" eine Aussage — wann, warum und von wem.*
+**0.14.0 WAR EINE DATENBANKSTUFE**: drei Spalten an `items`, der **sechste**
+markierte Migrationsblock und das Austauschformat von 10 auf 11. *Wer von einer
+Fassung vor 0.14.0 kommt, sichert vorher — die Pflicht von damals gilt für den
+Sprung über 0.14.0 hinweg unverändert.*
+
+*Ebenfalls am 29. August: **0.13.2** (Fingerprint `15188676`, 4131
 Prüfungen) schließt den Rahmen eines angepinnten Kommentars, und **0.13.1**
 (Fingerprint `ee00fdf2`, 4123 Prüfungen) richtet die Beschriftungen der
 Filterleiste an der Grundlinie aus statt in der Mitte.*
@@ -288,7 +301,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.14.0** | **`ca8bcf31`** | 4262 |
+| **0.15.0** | **`8fa66d7d`** | 4351 |
+| 0.14.0 | `ca8bcf31` | 4262 |
 | 0.13.2 | `15188676` | 4131 |
 | 0.13.1 | `ee00fdf2` | 4123 |
 | 0.13.0 | `c1d2320d` | 4115 |
@@ -351,7 +365,7 @@ Datenbankstufe ist ein Downgrade **keine reine Dateikopie mehr**.
 | 0.9.1 | Tabelle `anfragen` | **keiner** | Pflicht |
 | 0.10.0 | Tabellen `zweifaktor`, `zweifaktor_codes` | **keiner** | Pflicht |
 | **0.14.0** | **Spalten `items.rejected_at`, `items.rejected_grund`, `items.rejected_von`** | **`migration0140()`** | **Pflicht** |
-| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · 0.12.0 · 0.12.1 · 0.12.2 · 0.12.3 · 0.12.4 · 0.13.0 · 0.13.1 · **0.13.2** | — | — | Empfehlung |
+| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · 0.12.0 · 0.12.1 · 0.12.2 · 0.12.3 · 0.12.4 · 0.13.0 · 0.13.1 · 0.13.2 · **0.15.0** | — | — | Empfehlung |
 
 *Die Spalte „Sicherung" ist eine rückblickende Einordnung. **Als Regel steht sie
 erst seit 0.8.30 im Einspielweg** — 0.8.3 lag davor, und damals war der Rückweg
@@ -402,11 +416,15 @@ herein. **Die Sicherung ist der Weg, der ohne diese Fußnoten auskommt.***
 
 ### Der Weg zum Einspielen
 
-> **FÜR 0.14.0 IST DIE SICHERUNGSZEILE PFLICHT UND NICHT EMPFEHLUNG.** Diese
-> Version ist eine Datenbankstufe: sie rüstet drei Spalten an `items` nach.
-> **Ohne die Kopie gibt es keinen Rückweg**, denn ein Downgrade ist bei einer
-> Datenbankstufe keine reine Dateikopie mehr. *Die Zeile steht unten ohnehin im
-> Rezept — bei dieser Version wird sie nicht übersprungen.*
+> **FÜR 0.15.0 IST DIE SICHERUNGSZEILE EMPFEHLUNG UND NICHT PFLICHT** — diese
+> Version ist **keine Datenbankstufe**: kein Schema, kein Migrationsblock,
+> Austauschformat unverändert 11. *Sie steht trotzdem im Rezept, und wer sie
+> mitnimmt, tut nichts Falsches.*
+>
+> **WER VON EINER FASSUNG VOR 0.14.0 KOMMT, SICHERT DAGEGEN PFLICHTGEMÄSS.**
+> Der Sprung führt dann über die Datenbankstufe 0.14.0 hinweg, und deren
+> Migrationsblock läuft beim ersten Start mit — **ohne die Kopie gibt es
+> danach keinen Rückweg.**
 
 Das Repo ist **privat**, der Server zieht deshalb nicht selbst — das ZIP kommt
 über „Download ZIP" von GitHub auf den Wirt. Der Pfad steht am laufenden
@@ -439,8 +457,10 @@ Ausführungsrechte** wieder her, `unzip` dagegen schon. Im Repo trägt
 eine Sicherung, die neben einem laufenden Server entsteht, kann eine offene WAL
 enthalten.
 
-**Nach dem Start von 0.14.0 gehört EIN Blick ins Protokoll dazu**
-(`docker compose logs kriterion`). Dort muss einmalig stehen:
+**0.15.0 SCHREIBT KEINE ZEILE INS PROTOKOLL** — sie hat keinen
+Migrationsblock. Wer von einer Fassung **vor 0.14.0** kommt, sieht dagegen die
+Zeile von 0.14.0 einmalig und soll sie prüfen
+(`docker compose logs kriterion`):
 
 ```
 [Kriterion] items um rejected_at, rejected_grund und rejected_von ergaenzt
@@ -1227,6 +1247,22 @@ Häufigkeit sortiert, Verknüpfung Und/Oder umschaltbar); Sortierung nach
 **„★ Favoriten"** als eigener, mit jedem Teststatus kombinierbarer Filter.
 Filter- und Sortierwahl werden serverseitig gespeichert.
 
+**SEIT 0.15.0 FILTERT DIE STATUSZEILE AUCH NACH „ABGELEHNT"** — *Alle ·
+Abgelehnt · Nicht abgelehnt*, als **zweite Gruppe derselben Zeile**, mit der
+zweiten Beschriftung „Ablehnung" abgesetzt. **Drei Zustände und kein vierter
+Wert der Reihe davor:** Teststatus und Ablehnung sind zwei Merkmale, und
+*„getestet UND abgelehnt"* muss einstellbar bleiben — man lehnt ab, ohne zu
+testen, und man lehnt nach dem Test ab. **Drei Zustände und kein Umschalter wie
+beim Favoriten:** gebraucht wird auch die Gegenrichtung, *„zeig mir alles außer
+dem Verworfenen"*, und die ist der häufigere Griff. *Beide Gruppen zählen in
+der Filterzahl einzeln — zusammen also zwei.* **Eine gespeicherte Ansicht aus
+0.14.0 kennt den Schlüssel nicht und fällt auf „Alle" zurück.**
+**Und die Zeile ist dadurch nicht gewachsen: 0,0 px, in Chromium gemessen.**
+Bei 1360 px Fenster ist die Filterleiste mit der neuen Gruppe 148,2 px hoch;
+nimmt man Gruppe und zweite Beschriftung im laufenden Fenster wieder heraus,
+sind es dieselben 148,2 px bei **vier** Zeilen. *Eine eigene Zeile hätte etwas
+gekostet — diese Bauform kostet nichts.*
+
 **Die Kategoriezeile trägt seit 0.13.0 MEHRERE Kategorien zugleich**, und
 **„Ohne"** ist ein Wert derselben Liste, mit eigener Zahl am Ende der Zeile.
 **Es ist ein ODER und niemals ein UND:** `product_category_id` ist eine einzelne
@@ -1311,7 +1347,7 @@ Zugang erscheint als „Gelöschter Benutzer 7", eine Zeile ohne Verfasser als
 
 **„Abgelehnt" ist seit 0.14.0 eine Aussage und kein Häkchen mehr:** *„Abgelehnt
 am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate."* Beim Einschalten
-erscheint **offen im Dialog** ein Feld für den Grund — freiwillig, eine Zeile,
+öffnet sich **sofort** ein Feld für den Grund — freiwillig, eine Zeile,
 höchstens 200 Zeichen. **Jedes der drei darf fehlen**, und die Zeile setzt sich
 aus dem zusammen, was da ist; ist gar nichts bekannt (eine Ablehnung aus einer
 Anlage vor 0.14.0), bleibt sie weg — sie sagte sonst dasselbe wie der Schalter
@@ -1320,6 +1356,27 @@ darüber. **Am Grabstein steht kein Name**, sondern die Nummer.
 stehen, und beim erneuten Ablehnen steht die alte Begründung als Vorschlag im
 Feld. *„Getestet" bekommt bewusst nichts davon — es ist ein Zustand und keine
 Entscheidung.* **In der Kachelansicht bleibt die Marke, wie sie war.**
+
+**SEIT 0.15.0 KOMMT DIE BEGRÜNDUNG ZUR RUHE.** Nach der Eingabe **schließt sich
+das Feld**, und was stehenbleibt, ist die Aussage — bis 0.14.0 stand beides
+nebeneinander und sagte dieselbe Sache zweimal. **Der Grund selbst ist
+hervorgehoben** (das Rot des Schalters); Datum und Name bleiben grau, sie sind
+eine Verfasserangabe wie „Angelegt von … am …". **Zurück kommt das Feld auf
+Klick — auf den Text oder auf ein ✎**, und beides gibt es nur für den, der die
+Begründung getroffen hat. **Ein ✕ daneben entfernt sie**, nach Rückfrage.
+*Ohne Begründung gibt es keinen Text zum Anklicken — dann steht das ✎ allein
+da, sonst gäbe es keinen Weg mehr hinein.* **Dieselbe Bauform, dieselben
+Klassen und dieselben Zeichen wie am Kommentar.**
+
+**Und wer was darf, ist seit 0.15.0 die Hausregel und nicht mehr strenger:**
+**umschreiben** darf die Begründung nur, wer sie getroffen hat (`nurSelbst`);
+**entfernen** darf sie, wer den Eintrag ändern darf (`darfAendern`) — also auch
+der Admin. *0.14.0 hatte „Löschen ja, umschreiben nein" nur zur Hälfte
+umgesetzt: dort lief auch das Leeren über `nurSelbst`, und damit konnte ein
+Admin eine fremde Begründung überhaupt nicht wegnehmen.* **Beim Entfernen
+bleiben Datum und Verfasser stehen** — „Abgelehnt am 14.03.2026 von Anna" ist
+weiterhin wahr, nur der Grund fehlt. **Und wer entfernt hat, wird dabei nicht
+ihr Verfasser**: Anna darf danach eine neue schreiben, der Admin nicht.
 
 **Die Bewertung sagt nur den eigenen Wert und den Schnitt** (seit 0.8.6). Wer
 welchen Wert vergeben hat, sieht der **Admin in einer eigenen Ansicht**, die er
@@ -1855,18 +1912,37 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   **Kommentarbild löschen** darf er, **anhängen** nicht. *Der Preis: entfernt der
   Admin ein fremdes Bild, verschwindet es wortlos — der Vermerk dazu ist eine
   eigene Angabe am Kommentar und niemals sein Textfeld.*
-  **Seit 0.14.0 gilt dieselbe Regel an der Begründung einer Ablehnung:
-  zurücknehmen darf das Merkmal, wer den Eintrag ändern darf; umschreiben darf
-  die Begründung nur, wer sie getroffen hat.** *Das ist eine Verschärfung — bis
-  0.13.2 galt an diesen Feldern durchweg `darfAendern`.* **Die Klemme hat zwei
-  Hälften:** grob steht `rejectedGrund` in `NUR_VERFASSER_FELDER`, fein
-  entscheidet `nurSelbst` gegen `items.rejected_von`. **Zwei Fälle kommen durch,
-  und beide sind keine fremde Aussage:** wer gerade ablehnt, und wer eine
-  Begründung hinschreibt, wo noch keine steht — sonst bekäme eine Ablehnung aus
-  einer Anlage vor 0.14.0 nie eine (Stolperstein 204). *Der Weg über Aus und
-  wieder Ein bleibt offen und ist kein Loch: eine fremde Entscheidung
-  zurücknehmen darf, wer den Eintrag ändern darf; wer sie danach neu trifft,
-  trifft eine eigene.*
+  **Seit 0.14.0 gilt dieselbe Regel an der Begründung einer Ablehnung, und seit
+  0.15.0 gilt sie GANZ:** zurücknehmen darf das Merkmal, wer den Eintrag ändern
+  darf; **umschreiben** darf die Begründung nur, wer sie getroffen hat;
+  **entfernen** darf sie, wer den Eintrag ändern darf — also auch der Admin.
+  *0.14.0 hatte die Regel zur Hälfte umgesetzt: dort lief auch das Leeren über
+  `nurSelbst`, und damit konnte ein Admin eine fremde Begründung überhaupt nicht
+  wegnehmen — strenger als überall sonst im Haus, und ohne dass es je
+  entschieden worden wäre.*
+  **Die Klemme hat zwei Hälften:** grob steht `rejectedGrund` in
+  `NUR_VERFASSER_FELDER`, fein entscheidet `nurSelbst` gegen
+  `items.rejected_von`. **Drei Fälle kommen durch:** wer gerade ablehnt; wer
+  eine Begründung hinschreibt, wo noch keine steht — sonst bekäme eine Ablehnung
+  aus einer Anlage vor 0.14.0 nie eine (Stolperstein 204) —; und wer sie
+  **entfernt**. *Was „entfernen" heißt, entscheidet `grundText()` und nicht der
+  rohe Rumpfwert: ein Rumpf aus lauter Leerraum ist nach dem Einebnen leer und
+  damit ein Entfernen.*
+  **Beim Entfernen bleiben Datum und Verfasser stehen, und wer entfernt, wird
+  nicht Verfasser** — ein leeres Feld hat keinen. *Die Folge gehört genannt:
+  bleibt `rejected_von` stehen, darf Anna danach eine neue Begründung schreiben,
+  der Admin, der gelöscht hat, dagegen nicht. Das ist „Löschen ja, umschreiben
+  nein" in Reinform.*
+  *Der Weg über Aus und wieder Ein bleibt offen und ist kein Loch: eine fremde
+  Entscheidung zurücknehmen darf, wer den Eintrag ändern darf; wer sie danach
+  neu trifft, trifft eine eigene.*
+  **Die Oberfläche rechnet das nicht zurück, sie bekommt es gesagt:** `mine` am
+  Eintrag und `rejectedMine` an der Begründung, beide aus `detail()` — dieselbe
+  Bauform wie am Kommentar. *Sie kennt ihren Namen (`NAME`) und nirgends ihre
+  Nummer, und aus einem Grabstein ließe sich ohnehin nichts holen. Eine
+  Rechteauskunft („darfst du schreiben?") steht ausdrücklich nicht in der
+  Antwort: das wäre eine zweite Wahrheit über eine Klemme, die im Server schon
+  steht.*
 - **Was an allen Einträgen aller Benutzer erscheint, gehört dem Admin; was nur
   dort erscheint, wo man es hinsetzt, gehört jedem** (seit 0.8.4). Daraus
   folgen: Kriterien beim Admin, Tags und Kategorien bei allen (abschaltbar),
@@ -3092,6 +3168,33 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
 - **In der leeren Durchschnittsspalte steht kein Ersatztext** (seit 0.8.6,
   bestätigt 0.14.0). Neben fünf leeren Sternen wäre „noch keine Bewertung"
   dieselbe Aussage zweimal.
+- **Die Begründung einer Ablehnung ist im Ruhezustand eine AUSSAGE und kein
+  offenes Feld** (seit 0.15.0). Bis 0.14.0 stand beides nebeneinander — dieselbe
+  Sache zweimal, und das Feld blieb dauerhaft auf. **Die Zusage „offen im
+  Dialog und nicht hinter einem Aufklappen" gilt weiter, aber der EINGABE:**
+  beim Einschalten des Merkmals steht das Feld sofort offen und der Zeiger
+  darin, danach schließt es sich. *Zurück kommt es über den Text oder über das
+  ✎ — beides nur für den, der die Begründung getroffen hat; ohne Text steht das
+  ✎ allein da, sonst gäbe es keinen Weg mehr hinein.*
+- **Es ist DIESELBE Bauform wie am Kommentar und keine zweite** (seit 0.15.0).
+  `.acts` mit `.mact ed` (✎) und `.mact rm` (✕), die Zeichen an derselben Stelle,
+  dasselbe Verhalten. *Eine zweite Bauform für dasselbe wäre eine zweite
+  Wahrheit.* **Wie am Kommentarkopf stehen die Zeichen immer da** und erscheinen
+  nicht erst beim Überfahren: die Zeile ist einzeilig, und auf einem Finger gibt
+  es kein Überfahren.
+- **Hervorgehoben ist der GRUND, nicht die ganze Zeile** (seit 0.15.0). Er trägt
+  `--red`, die Zeile links einen Strich in `rgba(240,85,92,.42)` — dieselben
+  42 Prozent wie der Rand des Schalters darüber. **Keine neue Farbe und keine
+  gefüllte Fläche:** ein zweiter roter Block unter dem Schalter stritte mit ihm
+  um dieselbe Aufmerksamkeit. *Datum und Name bleiben grau — sie sind eine
+  Verfasserangabe wie „Angelegt von … am …" und keine Aussage über die Sache;
+  färbte man sie mit, nähme man dem Grund die Hervorhebung wieder weg.*
+  **Nachgemessen in Chromium** — in jsdom ist jede Breite null: der Strich trägt
+  `rgba(240, 85, 92, 0.42)`, der Grund `rgb(240, 85, 92)`, **beides bitgleich**
+  mit Rand und Schriftfarbe des Schalters; Datum und Name stehen auf
+  `rgb(97, 106, 115)`. *Bricht der Grund bei 120 Prozent Schrift auf 300 px
+  Breite über vier Zeilen, stehen ✎ und ✕ weiterhin auf der ersten, und die
+  Zeile bleibt innerhalb ihres Kastens — dafür steht `align-items: baseline`.*
 - **Die Tagwolke füllt ab der zweiten Zeile NICHT den Platz unter „mehr" /
   „weniger"** (entschieden 0.13.1). Es ginge nur über Fließsatz: die Wolke
   müsste von `flex` auf `block` wechseln, die Marken auf `inline-block`, `gap`
@@ -4836,6 +4939,61 @@ Version, in der sie entstanden sind.*
     *„Layoutmaße bleiben absichtlich in Pixeln"*. *Der Maßstab muss die
     Eigenschaft benennen, nicht die Schreibweise.*
 
+208. **Eine Zusage, die einer HANDLUNG gilt, wird zum Fehler, sobald man sie
+    auf den RUHEZUSTAND anwendet.** Der Auftrag zu 0.14.0 verlangte „das Feld
+    für den Grund steht offen im Dialog und nicht hinter einem Aufklappen" —
+    gemeint war die **Eingabe**, damit ein Feld, das man erst suchen muss, nicht
+    leer bleibt. Umgesetzt wurde „das Feld steht immer offen", und damit stand
+    die Aussage neben ihrem eigenen Eingabefeld: **dieselbe Sache zweimal.**
+    *Der Fehler lag bei der Umsetzung und nicht beim Auftrag.* **Die Frage
+    dazu: gilt diese Zusage dem Augenblick, in dem jemand etwas tut, oder dem
+    Bild, das danach dasteht?**
+
+209. **Wer ein Feld schließt, das den Zeiger hat, löst `blur` aus — und damit
+    jeden Behandler, der daran hängt.** Beim Verwerfen mit Escape muss der Wert
+    **vor** dem Schließen zurückgesetzt werden; sonst vergleicht der
+    Speicherweg den getippten Text mit dem gespeicherten und schreibt genau das
+    weg, was gerade verworfen werden sollte. *Die Reihenfolge ist der ganze
+    Punkt, nicht der Handgriff.*
+
+210. **Ein Papierkorb an einem Feld, das jemandem gehört, hat ZWEI Klemmen und
+    nicht eine.** Wer den Text **umschreiben** darf, ist nicht dieselbe Menge
+    wie der, der ihn **entfernen** darf — „Löschen ja, umschreiben nein" heißt
+    genau das. **Die Oberfläche braucht deshalb zwei Angaben vom Server**
+    (`rejectedMine` für den Stift, `mine` für den Papierkorb) und nicht eine.
+    *Wer nur eine liefert, baut entweder einen Knopf, der 403 kassiert, oder
+    versteckt einen, der erlaubt wäre.*
+
+211. **Eine Prüfung, die nach einem Element greift, das ihr eigener Rückbau
+    wegnimmt, REISST DEN GANZEN LAUF AB statt rot zu werden.** Rückbau 264
+    entfernt die Rückfrage vor dem Löschen; damit steht das
+    Bestätigungsfenster gar nicht da, und `fenster.querySelector('[data-yes]')`
+    warf einen TypeError. **Die beiden Prüfungen davor wurden richtig rot — der
+    Abriss kam danach**, und die Gegenprobe meldete den Rückbau als *„nicht
+    auswertbar"* statt als greifend. *Ein abgerissener Lauf belegt gar nichts,
+    und im Betrieb fällt die ganze Prüfung aus statt einer Gruppe.* **Jeder
+    Griff auf ein Element, das ein denkbarer Rückbau wegnehmen kann, wird
+    abgesichert** — `?.` kostet nichts und hält den Lauf ganz.
+
+212. **jsdom führt Folgewirkungen nicht aus — wer sie nicht selbst auslöst,
+    prüft die halbe Kette.** Ein echter Browser nimmt einem Element, das
+    versteckt wird, den Zeiger und löst damit `blur` aus; **jsdom tut das
+    nicht.** Die Prüfung auf „Escape verwirft und schreibt nicht weg" sah
+    deshalb nur, dass das Feld zugeht — nicht, dass der verworfene Text nicht
+    doch noch vom Speicherweg abgeholt wird. *Der Rückbau darauf blieb stumm.*
+    **Was der Browser von selbst tut, wird in der Prüflage ausdrücklich
+    ausgelöst**, sonst belegt sie die Hälfte und liest sich wie das Ganze.
+
+213. **Ein Werkzeug, dessen Erfolgsmeldung den eigenen Fund nicht sehen kann,
+    ist schlimmer als keines.** `gegenprobe.js` nannte einen Rückbau „STUMM",
+    wenn **kein** Punkt rot wurde — aber die Selbstprobe *„Jeder Suchtext kommt
+    in seiner Datei genau einmal vor"* wird bei **jedem** gefahrenen Rückbau
+    rot, denn er hat seinen Suchtext gerade ersetzt. **Damit war `rot.length`
+    nie null, und „0 STUMM" war eine Auskunft über nichts.** *Gefunden wurde
+    der stumme Rückbau beim Lesen der Tabelle von Hand — die Meldung darüber
+    sagte das Gegenteil.* **Die Frage an jede Erfolgsmeldung: gibt es einen
+    Zustand, in dem sie gar nicht anschlagen KANN?**
+
 ---
 
 ## 7. Prüfstand
@@ -4849,10 +5007,26 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4262 von 4262 bestanden** (0.14.0) — **131 neue Prüfungen** in fünf
-neuen Gruppen; 0.13.2 davor brachte 8, 0.13.1 ebenfalls 8, 0.13.0 brachte 123 in
-fünf. Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen
-Zusagen beschränkt und **nicht** der volle Lauf über alle **249** Rückbauten.
+**Stand: 4351 von 4351 bestanden** (0.15.0) — **89 neue Prüfungen** in
+drei neuen Gruppen; 0.14.0 davor brachte 131 in fünf, 0.13.2 brachte 8, 0.13.1
+ebenfalls 8. Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils
+neuen Zusagen beschränkt und **nicht** der volle Lauf über alle **267**
+Rückbauten.
+
+| neue Gruppe (0.15.0) | Prüfungen |
+|---|---|
+| Entfernen darf auch der Admin — 0.15.0 | 21 |
+| Der Filter „abgelehnt" — 0.15.0 | 23 |
+| Die Begründung kommt zur Ruhe — 0.15.0 | 43 |
+| **zusammen** | **87** |
+
+*In den drei Gruppen stehen 87 Zeilen, drei weitere in „Die Gegenproben greifen"; netto sind es 89 neue, weil eine
+Prüfung aus 0.14.0 weggefallen ist. Dazu ist eine Zahl in einer vorhandenen
+Gruppe nachgezogen: 249 → 267 Rückbauten. **Die weggefallene Prüfung** — sie prüfte den Inhalt
+des Eingabefeldes im Ruhezustand, den es seit 0.15.0 nicht mehr gibt; die Sache
+selbst steht in der neuen Gruppe. Vier weitere Zeilen jener Gruppe haben sich
+geändert, weil sie die zurückgenommene Entscheidung festhielten — über jeder
+steht, warum (Stolperstein 201).*
 
 | neue Gruppe (0.14.0) | Prüfungen |
 |---|---|
@@ -4862,6 +5036,10 @@ Zusagen beschränkt und **nicht** der volle Lauf über alle **249** Rückbauten.
 | Die Aussage an der Marke — 0.14.0 | 26 |
 | Die Sternreihe steht auf einer Linie — 0.14.0 | 18 |
 | **zusammen** | **126** |
+
+*Diese Zahlen sagen, was 0.14.0 **gebracht** hat, und werden nicht
+nachgeschrieben. Die Gruppe „Die Aussage an der Marke" trägt seit 0.15.0 25
+statt 26 Zeilen — nachzulesen eine Tabelle höher.*
 
 *Die übrigen fünf der 131 stehen in vorhandenen Gruppen: „keine der dreizehn
 Spalten ist ein Zustand neben dem Papierkorb", „zu jedem markierten Block
@@ -5289,7 +5467,8 @@ eine Buchführung.*
 | 0.13.0 | Zwei Netze, Protokollfilter, Kategoriezeile (123) | 21 neue (193 → 214), nicht gefahren | Stolpersteine 191 bis 196 |
 | 0.13.1 | Die Beschriftungen stehen oben (8) | 2 neue (214 → 216) | Stolpersteine 197 und 198 |
 | 0.13.2 | Der angepinnte Rahmen schließt (0 netto; drei Zeilen nachgezogen) | 2 neue (216 → 218) | Stolpersteine 199 bis 201 |
-| **0.14.0** | **Die Entscheidung wird mitgeschrieben (131)** | **31 neue (218 → 249), alle einunddreißig gefahren** | **Stolpersteine 202 bis 207** |
+| 0.14.0 | Die Entscheidung wird mitgeschrieben (131) | 31 neue (218 → 249), alle einunddreißig gefahren | Stolpersteine 202 bis 207 |
+| **0.15.0** | **Der Filter und der Stift (89 netto)** | **18 neue (249 → 267), alle achtzehn gefahren; zwei nachgezogen, einer repariert** | **Stolpersteine 208 bis 210** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -5337,7 +5516,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   dem Pfad, der fremde Dateien annimmt und unter fremden Namen schreibt.** Eine
   eigene Runde mit eigener Prüflage, und keine Beifracht.
 
-- **DIE TAGS `v0.11.0` BIS `v0.14.0` FEHLEN AM REMOTE — UND DER GRUND STAND
+- **DIE TAGS `v0.11.0` BIS `v0.15.0` FEHLEN AM REMOTE — UND DER GRUND STAND
   BIS 0.12.4 FALSCH HIER.** Es ist **kein** Problem der GitHub-Rechte, und ein
   „Push von einer Stelle mit den nötigen Rechten" ist nicht der Punkt.
 
@@ -5372,8 +5551,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   ```
 
   **Diese vier liegen auf `main` und lassen sich sofort setzen.** `v0.12.3`
-  (`09873558`), `v0.12.4` (`9f7b0f7f`), `v0.13.0`, `v0.13.1`, `v0.13.2` und
-  `v0.14.0` liegen bisher nur auf einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
+  (`09873558`), `v0.12.4` (`9f7b0f7f`), `v0.13.0`, `v0.13.1`, `v0.13.2`,
+  `v0.14.0` und `v0.15.0` liegen bisher nur auf einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
   danach auf dieselben Commits; wer ihn quetscht, setzt sie auf die dabei
   entstehenden — die alten sind von `main` aus dann nicht mehr erreichbar.*
 
@@ -5402,13 +5581,13 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT NEUN RUNDEN AUS.** 249 Rückbauten zu
-  je einem vollen Prüflauf sind bei 5 min 45 s je Lauf rund **23,9 Stunden**
-  hintereinander, in vier Nebenspuren rund sechs. **Auch in 0.14.0 ist er nicht
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZEHN RUNDEN AUS.** 267 Rückbauten zu
+  je einem vollen Prüflauf sind bei 5 min 54 s je Lauf rund **26,3 Stunden**
+  hintereinander, in vier Nebenspuren rund sieben. **Auch in 0.15.0 ist er nicht
   gefahren, und das ist keine Zusage mehr.** *Die Gründe stehen im
   Änderungsprotokoll 0.14.0, Abschnitt 16; der wichtigste ist baulich:
   `gegenprobe.js` zieht seine Kopie aus `git archive HEAD`, ein Commit mitten im
-  Lauf verschöbe die Grundlage.* **Gefahren sind die einunddreißig Rückbauten dieser
+  Lauf verschöbe die Grundlage.* **Gefahren sind die achtzehn Rückbauten dieser
   Runde, vollständig und in vier Nebenspuren.**
   *Was 0.13.0 daran geändert hat, ist der billige Teil: der Prüfstand rechnet bei
   jedem Lauf nach, dass jeder Rückbau in seiner Datei überhaupt noch greift —
@@ -5622,6 +5801,50 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.15.0 — „Der Filter und der Stift"
+
+**MINOR · 29. August 2026 · zwei Befunde aus dem Betrieb, keiner aus dem
+Fahrplan — und die Runde, die alle folgenden um eine Stelle rücken lässt.**
+
+**DIE ÜBERSICHT FILTERT NACH „ABGELEHNT".** *Alle · Abgelehnt · Nicht abgelehnt*
+als **zweite Gruppe** der Statuszeile, mit der Beschriftung „Ablehnung"
+abgesetzt. **Kombinierbar mit dem Teststatus** — man lehnt ab, ohne zu testen,
+und man lehnt nach dem Test ab. *Drei Zustände und kein Umschalter wie beim
+Favoriten: gebraucht wird auch die Gegenrichtung, und die ist der häufigere
+Griff.* **Reine Oberfläche:** keine Route, keine Spalte, kein `F_ROUTEN`. **Eine
+gespeicherte Ansicht aus 0.14.0 kennt den Schlüssel nicht und fällt auf „Alle"
+zurück.**
+
+**DIE BEGRÜNDUNG KOMMT ZUR RUHE.** Bis 0.14.0 stand die Aussage da **und** das
+Eingabefeld daneben — dieselbe Sache zweimal. **Jetzt schließt sich das Feld
+nach der Eingabe**, der Grund steht **hervorgehoben** in der Aussage, und
+zurück kommt es über den Text oder über ein **✎**. *Beim Einschalten des
+Merkmals öffnet es sich weiterhin sofort — das war der Sinn der Zusage aus
+0.14.0 und bleibt.* **Ein ✕ daneben entfernt die Begründung**, nach Rückfrage.
+Dieselbe Bauform und dieselben Zeichen wie am Kommentar.
+
+**UND EINE ENTSCHEIDUNG AUS 0.14.0 IST ZURÜCKGENOMMEN.** Dort galt an
+`rejected_grund` `nurSelbst` für **jedes** Schreiben — damit konnte ein Admin
+eine fremde Begründung weder umschreiben noch **entfernen**, strenger als
+überall sonst im Haus. **Seither gilt „Löschen ja, umschreiben nein" auch hier:**
+umschreiben darf nur, wer sie getroffen hat; entfernen, wer den Eintrag ändern
+darf. *Beim Entfernen bleiben Datum und Verfasser stehen, und wer entfernt, wird
+nicht ihr Verfasser — er darf danach also auch keine neue hinschreiben.*
+**Die Oberfläche erfährt das über zwei Angaben nach Hausmuster** — `mine` am
+Eintrag, `rejectedMine` an der Begründung —, nicht über eine Rechteauskunft.
+
+**DIE NUMMER WAR DIE ERSTE ENTSCHEIDUNG DER RUNDE.** Der Auftrag ging als
+`0.14.1` heraus; zwei der drei Punkte bringen Funktionen, und damit ist es
+MINOR. **Der Fahrplan rückt entsprechend: Systembereich auf 0.16.0, Suche auf
+0.17.0, Bereinigung auf 0.18.0.** *Die harte Bindung bleibt eingelöst — der
+sechste Migrationsblock existiert, und die Bereinigung kann ihn wegräumen.*
+
+**KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, Format bleibt 11,
+sechs markierte Blöcke, `F_ROUTEN` bei 69. **Die Sicherung ist Empfehlung.**
+
+**4262 → 4351 Prüfungen, 249 → 267 Rückbauten.** Karten bei neunzehn,
+Vokabular bei elf, `VORGAENGE` bei zwanzig. **Keine neue Abhängigkeit.**
 
 ### 0.14.0 — „Die Entscheidung wird mitgeschrieben"
 
@@ -6154,17 +6377,29 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT — und im Feld hat sich der Punkt als eingetretener Fehler bestätigt: 760 MB gegen 512.** Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
 | **0.13.0** | Zwei Netze, ein Zugang | **GEBAUT.** `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu der reparierte Teilexport mit zweitem Faktor, ein Filter am Sicherheitsprotokoll, der Satz im Löschdialog samt eigenem Fenster für die Grabsteine, eine flachere Filterleiste und mehrere Kategorien zugleich. *MINOR.* **Kein Schema, keine `.env`-Zeile** | nein | — |
 | **0.14.0** | Die Entscheidung wird mitgeschrieben | **GEBAUT.** `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. Mitgefahren sind zwei Befunde aus dem Betrieb: der kaputte Cookiewert und die Sternreihe der Kriterienliste. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie ist vor der Bereinigung gebaut** | ja, **sechster Block** | 10 → 11 |
-| **0.15.0** | Der Systembereich, die Glocke und die Auskunft | Neunzehn Karten werden Abschnitte mit eigener Adresse, `renderSystem()` wird dabei zerlegt. Dazu die Glocke mit dem Punkt, der Zähler „Offen 7" und die Gewichtung, die sich selbst erklärt. **Und aus dem Betrieb: Löschen in der Zoomansicht.** *MINOR.* **Die größte Umbaufläche des Plans** | nein | — |
-| **0.16.0** | Die Suche wird nachvollziehbar | Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
-| **0.17.0** | Bereinigung — der Bruch | *(War als 0.13.0 vorgemerkt.)* Migrationscode raus — **jetzt sechs Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **0.15.0** | Der Filter und der Stift | **GEBAUT.** Die Übersicht bekommt einen Filter für „abgelehnt" — drei Zustände in einer eigenen Gruppe, kombinierbar mit dem Teststatus. Dazu kommt die Begründung zur Ruhe: sie steht als Aussage da statt in einem dauernd offenen Feld, mit ✎ und ✕ daneben — und **entfernen darf sie seither auch der Admin**, was 0.14.0 zur Hälfte offengelassen hatte. *MINOR.* **Kein Schema, kein Migrationsblock, Format bleibt 11** | nein | — |
+| **0.16.0** | Der Systembereich, die Glocke und die Auskunft | Neunzehn Karten werden Abschnitte mit eigener Adresse, `renderSystem()` wird dabei zerlegt. Dazu die Glocke mit dem Punkt, der Zähler „Offen 7" und die Gewichtung, die sich selbst erklärt. **Und aus dem Betrieb: Löschen in der Zoomansicht.** *MINOR.* **Die größte Umbaufläche des Plans** | nein | — |
+| **0.17.0** | Die Suche wird nachvollziehbar | Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
+| **0.18.0** | Bereinigung — der Bruch | *(War als 0.13.0 vorgemerkt.)* Migrationscode raus — **jetzt sechs Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 
-> **DIE BEREINIGUNG HIESS EINMAL 0.12.0, DANN 0.13.0 UND HEISST JETZT 0.17.0.**
-> Sie ist beide Male nicht verschoben worden, weil jemand sie später wollte —
+> **DIE BEREINIGUNG HIESS EINMAL 0.12.0, DANN 0.13.0, DANN 0.17.0 UND HEISST
+> JETZT 0.18.0.** Sie ist kein einziges Mal verschoben worden, weil jemand sie
+> später wollte —
 > **die Nummer war vorgemerkt und nicht vergeben**, und dazwischen sind Runden
 > geplant worden, die Funktionen bringen und damit nach der eigenen Regel MINOR
 > sind. *Eine vorgemerkte Zahl bindet nicht; was eine Runde enthält, entscheidet
 > ihre Nummer.* Der Eintrag steht deshalb ausdrücklich hier und ist nicht still
 > umnummeriert worden.
+>
+> **DAS DRITTE RÜCKEN KAM AUS DEM BETRIEB UND NICHT AUS DEM PLAN.** Nach dem
+> Einspielen von 0.14.0 sind zwei Befunde gemeldet worden, beide an der
+> Ablehnung: der fehlende Filter und die Begründung, die nicht zur Ruhe kam.
+> Der Auftrag ging als `0.14.1` heraus; **Abschnitt 5.1 sagt etwas anderes** —
+> *„eine Runde, die eine Funktion bringt, ist keine PATCH-Runde, auch dann
+> nicht, wenn sie klein ist."* Der Filter ist eine Funktion, das Entfernen
+> einer fremden Begründung ist eine zweite. **Also MINOR, also 0.15.0, und der
+> ganze Rest rückt.** *Nur der Ruhezustand der Begründung allein wäre PATCH
+> gewesen.*
 >
 > **UND SIE IST DIESMAL NICHT NUR VERSCHOBEN, SONDERN GEBUNDEN.** 0.14.0 legt
 > drei Spalten an `items` und bringt damit einen **sechsten** markierten
@@ -6337,9 +6572,9 @@ der Runde genauso bindend wie ihr Inhalt.* Wer sie hier wegließe, baute sie bei
 nächsten Anlauf.
 
 **ZWEITENS: die Reihenfolge hat genau eine harte Bindung, und alle anderen sind
-Bequemlichkeit.** Die harte war 0.14.0 vor 0.17.0 (der sechste
+Bequemlichkeit.** Die harte war 0.14.0 vor 0.18.0 (der sechste
 Migrationsblock, siehe oben) — **sie ist mit 0.14.0 eingelöst**. Die übrigen sind Schnitte nach dem, was eine Runde
-anfasst — 0.13.0 bündelt alles an `auth.js`, 0.15.0 alles am Systembereich —,
+anfasst — 0.13.0 bündelt alles an `auth.js`, 0.16.0 alles am Systembereich —,
 und sie lassen sich umlegen, ohne dass etwas bricht. *Der Unterschied gehört
 gesagt, sonst gilt später alles als bindend, was einmal in einer Tabelle stand.*
 
@@ -6368,7 +6603,7 @@ am zweiten Faktor.
 | **Der Export als Strom** *(Teil c)* | nirgends — **verworfen** | Umbau an einer Stelle, die nachweislich funktioniert; `VACUUM INTO` ist seit 0.8.70 ohnehin der Hauptweg. **Als Entscheidung in Abschnitt 5.4 festgehalten.** |
 | **Nachladen beim Rollen** *(2a, Teil b)* | **erledigt durch die Messung** | Der Fahrplan sah es *„erst dann, wenn (a) gemessen zu wenig gebracht hat"* vor. **Es hat genug gebracht** — 397 → 168 ms auf dem Telefon. |
 | **Blättern mit Seitenzahlen** *(2a, Teil c)* | nirgends — **verworfen, endgültig** | zerschnitte die Suche; alle Filter und alle elf Sortierungen laufen örtlich über den ganzen Bestand. |
-| **Version und Verfahren in den Kennzahlen** *(2i)* | **0.15.0** | gehört zum Umbau des Systembereichs, nicht zu einer Zahl daneben. |
+| **Version und Verfahren in den Kennzahlen** *(2i)* | **0.16.0** | gehört zum Umbau des Systembereichs, nicht zu einer Zahl daneben. |
 | **Die eigene Ausgabezeile nach stdout** | **0.13.0** | hängt an der richtigen Adressermittlung — ohne den Proxy-Punkt sperrte CrowdSec den Proxy statt den Angreifer. |
 | **Die doppelt gebaute Tagwolke** *(Nebenbefund aus 2f)* | **Sammelblatt, Teil II** | die beiden Zeilen tragen Verschiedenes; eine gemeinsame Bauform müsste beides können. Eigene Runde, keine Beifracht. |
 
@@ -6433,12 +6668,38 @@ bleibt beim Zurücknehmen **stehen**, er ist **freiwillig**, das Ablehnen bekomm
 gebaut worden.
 
 **Es ist die erste Datenbankstufe seit 0.8.50** — damit ist die harte Bindung
-dieses Fahrplans eingelöst: der sechste Migrationsblock existiert, und 0.17.0
+dieses Fahrplans eingelöst: der sechste Migrationsblock existiert, und 0.18.0
 kann ihn wegräumen.
 
 ---
 
-### 0.15.0 — „Der Systembereich, die Glocke und die Auskunft" · *MINOR*
+### 0.15.0 — GEBAUT, herausgegeben am 29. August 2026
+
+**Die Ausarbeitung steht nicht mehr hier.** Was gebaut ist, steht im
+Änderungsprotokoll 0.15.0 und im Stand — *ein Punkt wandert vom Sammelblatt in
+den Fahrplan und von dort in ein Änderungsprotokoll, nie zurück.*
+
+**SIE STAND NIE IM FAHRPLAN.** Beide Punkte sind Befunde aus dem Betrieb,
+gemeldet am 29. August 2026 nach dem Einspielen von 0.14.0 — und beide an
+derselben Stelle, der Ablehnung. *Der eine war eine alte Lücke, der andere eine
+Nachbesserung an dem, was 0.14.0 gerade gebaut hatte.*
+
+**Was die Runde gebracht hat, in drei Zeilen:** die Übersicht filtert nach
+„abgelehnt", in drei Zuständen und kombinierbar mit dem Teststatus; die
+Begründung steht im Ruhezustand als **Aussage** da statt in einem dauernd
+offenen Feld, mit ✎ und ✕ nach dem Muster des Kommentars; und **entfernen darf
+sie auch der Admin** — 0.14.0 hatte „Löschen ja, umschreiben nein" nur zur
+Hälfte umgesetzt.
+
+**Die Nummer selbst war die erste Entscheidung der Runde**, und sie steht im
+Kasten unter dem Fahrplan: der Auftrag ging als `0.14.1` heraus und ist auf
+0.15.0 gehoben worden, weil zwei der drei Punkte Funktionen bringen. **Der
+ganze Rest des Plans ist dabei um eine Stelle gerückt** — Systembereich auf
+0.16.0, Suche auf 0.17.0, Bereinigung auf 0.18.0.
+
+---
+
+### 0.16.0 — „Der Systembereich, die Glocke und die Auskunft" · *MINOR*
 
 **Ausgearbeitet aus dem Sammelblatt:** Nr. 10, Nr. 4, Nr. 11, Nr. 16
 **Dazu ein Punkt, der nicht aus dem Sammelblatt kommt:** Löschen in der
@@ -7040,7 +7301,7 @@ keine neue Route.**
 
 ---
 
-### 0.16.0 — „Die Suche wird nachvollziehbar" · *MINOR*
+### 0.17.0 — „Die Suche wird nachvollziehbar" · *MINOR*
 
 **Ausgearbeitet aus dem Sammelblatt:** Nr. 1
 
@@ -7144,7 +7405,7 @@ macht den einfachen Fall teurer, um den seltenen billiger zu machen.
 
 ---
 
-### 0.17.0 — „Bereinigung — der Bruch" · *MINOR*
+### 0.18.0 — „Bereinigung — der Bruch" · *MINOR*
 
 **Ausgearbeitet aus dem Sammelblatt:** Nr. 15
 
