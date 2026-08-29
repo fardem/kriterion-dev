@@ -16335,7 +16335,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
      gezaehlt waren es 193 -- 184 plus neun. */
-  pruefe('Es sind genau 216 Rueckbauten', gpListe.length === 216, `${gpListe.length}`);
+  pruefe('Es sind genau 218 Rueckbauten', gpListe.length === 218, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -21070,16 +21070,31 @@ async function pruefeOberflaeche() {
   pruefe('Es gibt ein gedämpftes Gold als eigene Farbe',
     /--gold-line: rgba\(255,\s*197,\s*49,\s*\.\d+\)/.test(cssM),
     (cssM.match(/--gold-line:[^;]*/) || ['(nicht gesetzt)'])[0]);
-  pruefe('Die Anpinnung färbt oben, rechts und unten',
-    ['border-top-color', 'border-right-color', 'border-bottom-color']
-      .every(k => new RegExp(k + ': var\\(--gold-line\\)').test(regelM('.cmt.pinned'))),
+  /* DIESE DREI ZEILEN HABEN BIS 0.13.2 DIE ZURUECKGENOMMENE ENTSCHEIDUNG
+     FESTGEHALTEN, und das ist der eigentliche Befund jener Runde. Sie
+     stammen aus 0.12.0 und verlangten woertlich: die Anpinnung faerbt
+     "oben, rechts und unten", und "die linke Kante bleibt der Art
+     vorbehalten" -- letzteres sogar als Verbot von `border-color:`.
+     0.12.3 HAT DIESE ENTSCHEIDUNG UMGEDREHT ("kein Kasten traegt zwei
+     Farben; bei der Notiz wird der ganze Rahmen golden"), den Prüfstand
+     aber nicht mitgenommen. Die alten Zeilen blieben gruen, weil die
+     Umsetzung ihren Rest behalten hatte -- die linke Kante der angepinnten
+     Notiz blieb grau. DER PRUEFSTAND HAT DEN FEHLER NICHT UEBERSEHEN, ER
+     HAT IHN VERLANGT (Stolperstein 201). */
+  pruefe('Die Anpinnung faerbt alle vier Kanten',
+    /border-color: var\(--gold-line\)/.test(regelM('.cmt.pinned'))
+    || ['top', 'right', 'bottom', 'left']
+      .every(k => new RegExp('border-' + k + '-color: var\\(--gold-line\\)')
+        .test(regelM('.cmt.pinned'))),
     regelM('.cmt.pinned') || '(keine Regel)');
-  pruefe('Die linke Kante bleibt der Art vorbehalten',
-    !/border-left|border-color:/.test(regelM('.cmt.pinned')),
-    regelM('.cmt.pinned') || '(keine Regel)');
-  pruefe('Und der Bericht behält seine Kante auch angepinnt',
+  pruefe('Und die drei Arten holen sich ihre linke Kante in ihrer Farbe zurueck',
+    [['bericht', 'accent'], ['aufgabe', 'blue'], ['erledigt', 'green']].every(([a, f]) =>
+      new RegExp('border-left-color: var\\(--' + f + '\\)').test(regelM('.cmt.pinned.' + a))),
+    ['bericht', 'aufgabe', 'erledigt'].map(a => regelM('.cmt.pinned.' + a)).join(' | ').slice(0, 240));
+  pruefe('Und der Bericht behält seine dicke Kante auch angepinnt',
     /border-left: 3px solid var\(--accent\)/.test(regelM('.cmt.bericht')) &&
-    !/border-left/.test(regelM('.cmt.pinned')));
+    !/border-left:|border-left-width/.test(regelM('.cmt.pinned.bericht')),
+    regelM('.cmt.pinned.bericht') || '(keine Regel)');
   pruefe('Ein Merkmal, ein Zeichen — kein zweiter Untergrund für die Anpinnung',
     !/background/.test(regelM('.cmt.pinned')),
     regelM('.cmt.pinned') || '(keine Regel)');
@@ -26756,9 +26771,15 @@ async function pruefeOberflaeche() {
   /* ES AENDERT SICH KEINE EINZIGE BREITE. Wuerde die linke Kante beim
      Anpinnen duenn, muesste padding-left von 10 auf 12 zurueck -- sonst
      begaennen die Zeilen auf zwei Linien (Befund C aus 0.12.0, andersherum). */
+  /* DAS MUSTER TRENNT FARBE VON BREITE, und seit 0.13.2 muss es das auch:
+     `border-left` allein traf `border-left-color` mit -- also genau die
+     Zeile, mit der jede Art sich ihre Kante zurueckholt. Gemeint war nie die
+     Farbe, sondern die BREITE: die Kurzform `border-left:` kann eine tragen,
+     `border-left-color:` niemals. */
   pruefe('Und keine Breite und kein Innenabstand aendern sich dabei',
     !['', '.bericht', '.aufgabe', '.erledigt'].some(a =>
-      /border-left|border-width|border-(top|right|bottom)-width|padding/.test(regel123('.cmt.pinned' + a))),
+      /border-left:|border-left-width|border-width|border-(top|right|bottom)-width|padding/
+        .test(regel123('.cmt.pinned' + a))),
     ['', '.bericht', '.aufgabe', '.erledigt'].map(a => regel123('.cmt.pinned' + a)).join(' | ').slice(0, 240));
   pruefe('Die linke Kante bleibt ungeruehrt bei der Art',
     /border-left: 3px solid var\(--accent\)/.test(regel123('.cmt.bericht')),
@@ -27170,6 +27191,77 @@ async function pruefeOberflaeche() {
     .filter(r => /align-self|padding-top|margin-top/.test(regel123(r)));
   pruefe('Keine der Zeilen bessert die Ausrichtung mit einer Zahl nach',
     obNach.length === 0, obNach.map(r => regel123(r)).join(' | ') || '(keine)');
+
+  /* ================= Der angepinnte Rahmen schliesst — 0.13.2 ==========
+     DER BEFUND WAR EIN BILD AUS DEM BETRIEB: eine angepinnte Notiz stand in
+     drei goldenen Kanten und einer grauen da. `.cmt.pinned` faerbte oben,
+     rechts und unten; die linke Kante blieb auf dem `--line` der Grundregel.
+     DER KOMMENTAR IM STILBLATT SAGTE SEIT 0.12.3 DAS GEGENTEIL -- "bei ihr
+     wird der ganze Rahmen golden". Ein Kommentar ist keine Pruefung, und
+     zweieinhalb Runden lang hat niemand nachgesehen (Stolperstein 199).
+     GEMESSEN WIRD HIER NICHT, sondern in Chromium: jsdom rechnet keine
+     Kaskade ueber mehrere Klassen, und die Farbwerte stehen im
+     Aenderungsprotokoll 0.13.2. Dieser Lauf prueft die Regeln im Stilblatt
+     und den Gegenstand: dass die Oberflaeche Art und Anpinnung wirklich als
+     zwei getrennte Klassen an denselben Kasten haengt. */
+  gruppe('Der angepinnte Rahmen schliesst — 0.13.2');
+
+  /* ERST DER GEGENSTAND (Stolperstein 81): ohne die vier Klassen an EINEM
+     Kasten hat keine Regel darunter einen Fall, auf den sie zutraefe. */
+  const arQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  pruefe('Die Oberflaeche haengt Art und Anpinnung an denselben Kasten',
+    /className = 'cmt'[\s\S]{0,200}bericht[\s\S]{0,120}aufgabe[\s\S]{0,120}erledigt[\s\S]{0,120}pinned/
+      .test(arQuelle),
+    (arQuelle.match(/className = 'cmt'[\s\S]{0,200}/) || ['(nicht gefunden)'])[0].slice(0, 160));
+
+  const arGrund = regel123('.cmt');
+  // Die Grundregel gibt allen vier Kanten dieselbe Breite -- ohne sie waere
+  // "genauso duenn wie die anderen Seiten" gar keine Zusage.
+  pruefe('Die Grundregel gibt allen vier Kanten dieselbe Breite',
+    /border: 1px solid var\(--line\)/.test(arGrund), arGrund || '(keine Regel)');
+  // Und die drei Arten tragen die dicke linke Linie, an der man sie erkennt.
+  const arArten = ['.cmt.bericht', '.cmt.aufgabe', '.cmt.erledigt'];
+  const arOhneKante = arArten.filter(r => !/border-left: 3px solid/.test(regel123(r)));
+  pruefe('Die drei Arten tragen die dicke linke Linie',
+    arOhneKante.length === 0, arOhneKante.join(' '));
+
+  /* DIE EIGENTLICHE AENDERUNG: alle vier Kanten, nicht drei. Geprueft wird
+     nicht auf den Wortlaut `border-color`, sondern auf die Wirkung -- vier
+     gefaerbte Kanten. Eine Regel, die sie einzeln aufzaehlt, ist genauso
+     richtig. */
+  const arPin = regel123('.cmt.pinned');
+  const arSeiten = ['top', 'right', 'bottom', 'left'];
+  const arGedeckt = (regel) => /border-color:/.test(regel)
+    || arSeiten.every(s => new RegExp(`border-${s}-color:`).test(regel));
+  pruefe('Die angepinnte Notiz bekommt alle vier Kanten',
+    arGedeckt(arPin), arPin || '(keine Regel)');
+  pruefe('Und zwar in Gold', /--gold-line/.test(arPin), arPin || '(keine Regel)');
+
+  /* JEDE ART HOLT SICH IHRE LINKE KANTE AUSDRUECKLICH ZURUECK, und das ist
+     keine Doppelung ohne Grund: `.cmt.bericht` und `.cmt.pinned` tragen BEIDE
+     zwei Klassen. Bei gleicher Spezifitaet entscheidet die Reihenfolge, und
+     die Anpinnung steht spaeter. Ohne die Wiederholung bekaeme ein
+     angepinnter Bericht eine goldene linke Kante -- die zwei Farben an einem
+     Kasten, die 0.12.3 abgeschafft hat. */
+  const arPinArten = [['.cmt.pinned.bericht', '--accent'],
+                      ['.cmt.pinned.aufgabe', '--blue'],
+                      ['.cmt.pinned.erledigt', '--green']];
+  const arOhneLinks = arPinArten.filter(([r, farbe]) =>
+    !new RegExp(`border-left-color: var\\(${farbe}\\)`).test(regel123(r)));
+  pruefe('Jede angepinnte Art holt sich ihre linke Kante in ihrer Farbe zurueck',
+    arOhneLinks.length === 0, arOhneLinks.map(([r]) => regel123(r) || r).join(' | '));
+  // Und alle vier Kanten tragen dieselbe Farbe -- kein Kasten mit zwei Farben.
+  const arZweifarbig = arPinArten.filter(([r]) => !arGedeckt(regel123(r)));
+  pruefe('Und kein angepinnter Kasten bleibt halb gefaerbt',
+    arZweifarbig.length === 0, arZweifarbig.map(([r]) => regel123(r) || r).join(' | '));
+
+  /* DIE REIHENFOLGE IST DER GRUND FUER DIE WIEDERHOLUNG, also wird sie
+     gepruefft. Zoege jemand `.cmt.pinned` nach oben, waeren die drei
+     Wiederholungen ueberfluessig -- und die Pruefung darueber bliebe gruen,
+     ohne dass noch jemand wuesste, warum sie dasteht. */
+  pruefe('Die Anpinnung steht im Stilblatt HINTER den drei Arten',
+    css123.indexOf('.cmt.pinned {') > css123.indexOf('.cmt.bericht {'),
+    `pinned bei ${css123.indexOf('.cmt.pinned {')}, bericht bei ${css123.indexOf('.cmt.bericht {')}`);
 }
 
 /* ================= Der Schluesselwechsel =================
