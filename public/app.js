@@ -3932,6 +3932,11 @@ async function renderDetail(id) {
   /* ---- Bewertung ---- */
   function drawRatings() {
     const box = document.getElementById('ratings');
+    /* DER KASTEN IST DAS RASTER, nicht die einzelne Zeile: eine Spalte kann
+       sich nur dann an ihrer breitesten Zelle ausrichten, wenn alle Zellen im
+       SELBEN Raster liegen. Die Klasse steht hier und nicht im Aufbau
+       darueber, damit sie neben dem Kasten steht, den sie meint. */
+    box.className = 'rlist';
     // Angelegt wird im Systembereich: ein neues Kriterium erscheint an
     // JEDEM Eintrag, das ist eine redaktionelle Entscheidung und keine
     // Notiz am Eintrag.
@@ -3994,6 +3999,12 @@ async function renderDetail(id) {
       // Bei genau einem Zugang entfaellt die Spalte ganz. Hat niemand bewertet,
       // bleibt sie leer -- neben fuenf leeren Sternen waere "keine Bewertung"
       // dieselbe Aussage zweimal.
+      row.append(n, acts);
+      /* DIE DURCHSCHNITTSSPALTE IST EINE RASTERZELLE UND HAENGT DESHALB AN DER
+         ZEILE, nicht in .racts. Nur so kann sich das Raster an der breitesten
+         Zahl der ganzen Liste ausrichten -- steckte sie in .racts, waere sie
+         wieder nur so breit wie ihr eigener Inhalt, und die Sterne stuenden
+         Zeile fuer Zeile woanders. */
       if (mehrereBenutzer()) {
         const a = document.createElement('span');
         a.className = 'ravg';
@@ -4010,9 +4021,8 @@ async function renderDetail(id) {
           a.textContent = `⌀ ${r.avg.toFixed(1).replace('.', ',')} (${r.count})`;
           a.title = `Durchschnitt ${r.avg.toFixed(1).replace('.', ',')} aus ${stimmen}`;
         } else a.textContent = '';
-        acts.append(a);
+        row.append(a);
       }
-      row.append(n, acts);
       box.appendChild(row);
       /* HIER STEHT AUSDRÜCKLICH KEINE STIMMENLISTE. Wer welchen Wert vergeben
          hat, ist eine Angabe über einzelne Personen; die Zeile zeigt den

@@ -17765,6 +17765,10 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     gewechseltAm: null, veraltet: 0
   };
   const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  /* Die dreistellige Stimmenzahl der zweiten Kriterienzeile. Sie steht als
+     Zahl an EINER Stelle: `count` in der Zeile und die Laenge der Stimmliste
+     muessen uebereinstimmen, und zwei getippte Zahlen liefen auseinander. */
+  const STIMMEN_VIELE = 128;
   const kriterien = [
     { id: 7, name: 'Zuerst', sort_order: 0, usage_count: 2, gewicht: kriterienGewichte[0] },
     { id: 8, name: 'Dann', sort_order: 1, usage_count: 0, gewicht: kriterienGewichte[1] },
@@ -17896,9 +17900,15 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     // gewicht steht an JEDER Kriterienzeile -- der echte Server liefert es seit
     // 0.8.40, und ein Mock, der die Antwort vereinfacht, loescht
     // genau die Pruefung, fuer die er gebaut ist.
+    /* DREI ZEILEN, UND SIE SIND VERSCHIEDEN LANG -- das ist seit 0.14.0 keine
+       Zierde mehr, sondern der Gegenstand: die Sternreihen sollen an
+       derselben Stelle beginnen, und eine Prueflage, in der alle Zahlen gleich
+       lang sind, kann diesen Fehler gar nicht tragen (Stolperstein 189).
+       Deshalb steht hier eine DREISTELLIGE Stimmenzahl neben einer
+       einstelligen -- und die dritte Zeile hat gar keine. */
     ratings: kriterien.map((c, i) => ({
       criterion_id: c.id, name: c.name, value: eigeneWerte[i], gewicht: c.gewicht,
-      avg: [3.4, 4.1, null][i], count: [5, 2, 0][i] })),
+      avg: [3.4, 4.1, null][i], count: [5, STIMMEN_VIELE, 0][i] })),
     avgRating: 3, testCount: 1, testAvg: 4, testLast: 4,
     // Reine Anzeige, seit 0.8.6 in der Verfasserzeile. Ohne dieses Feld
     // zeichnete die Zeile ins Leere und jede Pruefung darauf waere blind.
@@ -17919,9 +17929,22 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       { id: 503, wert: 2, mine: false, verfasser: vGrab },
       { id: 504, wert: 4, mine: false, verfasser: null },
       { id: 505, wert: 4, mine: false, verfasser: { id: 3, name: 'carla', geloescht: false } }] },
+    /* DIE ZWEITE ZEILE TRAEGT ABSICHTLICH EINE DREISTELLIGE STIMMENZAHL.
+       Die Zusage seit 0.14.0 lautet, dass alle Sternreihen der Kriterienliste
+       an derselben Stelle beginnen -- und sie gilt fuer die leere Zelle
+       ebenso wie fuer eine ueberlange Zahl. Eine Prueflage, in der alle Zahlen
+       gleich lang sind, kann diesen Fehler gar nicht tragen (Stolperstein
+       189).
+       DIE LISTE WIRD WIRKLICH SO LANG, statt nur `count` hochzusetzen: ein
+       Mock, der sich hier widerspricht, macht jede Pruefung darauf wertlos
+       (Stolperstein 90). Die zwei benannten Stimmen stehen vorn, der Rest
+       zaehlt auf. */
     { criterion_id: 8, stimmen: [
       { id: 506, wert: 3, mine: true, verfasser: vChefin },
-      { id: 507, wert: 5, mine: false, verfasser: vBert }] }
+      { id: 507, wert: 5, mine: false, verfasser: vBert },
+      ...Array.from({ length: STIMMEN_VIELE - 2 }, (unused, i) => ({
+        id: 600 + i, wert: 4, mine: false,
+        verfasser: { id: 100 + i, name: `stimme${i}`, geloescht: false } }))] }
   ];
   const uebersicht = [{
     id: 1, title: 'Beispiel', rejected: false, tested: true, favorite: false,
@@ -20344,7 +20367,7 @@ async function pruefeOberflaeche() {
   // Jede Zeile ihre eigene Zahl: gleiche Werte koennten nicht zeigen, ob die
   // Spalte ueberhaupt der richtigen Zeile zugeordnet ist.
   pruefe('Sie nennt Schnitt und Zahl der Bewerter je Zeile',
-    eSpalten[0]?.textContent === '⌀ 3,4 (5)' && eSpalten[1]?.textContent === '⌀ 4,1 (2)',
+    eSpalten[0]?.textContent === '⌀ 3,4 (5)' && eSpalten[1]?.textContent === '⌀ 4,1 (128)',
     JSON.stringify(eSpalten.map(z => z.textContent)));
   /* --- 0.12.3: dieselbe Form wie die Kopfzahl darueber ---
      DAS ⌀ IST DIE HAUSFORM: die Kopfzahl schreibt bereits "⌀ 4,2 gewichtet",
@@ -20360,8 +20383,8 @@ async function pruefeOberflaeche() {
     JSON.stringify(eSpalten.map(z => z.textContent)));
   pruefe('Das Zeichen wird im Klartext erklaert',
     eSpalten[0]?.title === 'Durchschnitt 3,4 aus 5 Stimmen', eSpalten[0]?.title);
-  pruefe('Und die Einzahl steht auch dort',
-    eSpalten[1]?.title === 'Durchschnitt 4,1 aus 2 Stimmen', eSpalten[1]?.title);
+  pruefe('Und die zweite Zeile traegt ihren eigenen Klartext',
+    eSpalten[1]?.title === 'Durchschnitt 4,1 aus 128 Stimmen', eSpalten[1]?.title);
   pruefe('Ein Kriterium ohne Stimme bekommt keinen Klartext',
     !eSpalten[2]?.title, eSpalten[2]?.title);
   pruefe('Der Schnitt steht mit Komma, nicht mit Punkt',
@@ -28135,6 +28158,126 @@ async function pruefeOberflaeche() {
     d.w.close();
   }
 
+  /* ================= Die Sternreihe steht auf einer Linie — 0.14.0 =====
+     DER BEFUND WAR EIN BILD AUS DEM BETRIEB: in der Kriterienliste eines
+     Eintrags begannen die Sternreihen nicht an derselben Stelle. Eine Zeile,
+     die noch niemand bewertet hat, traegt rechts keine Zahl, und ihre Sterne
+     rutschten nach rechts; eine Zeile mit einer LANGEN Zahl schob ihre nach
+     links.
+     DIE URSACHE STAND SEIT LANGEM IM STILBLATT: `min-width: 52px` an
+     `.rrow .ravg`. Die Absicht war richtig, die ZAHL war falsch -- eine feste
+     Pixelzahl in einer Anlage, die ihre Schrift von 80 bis 120 Prozent
+     stellt. Dasselbe Muster wie Befund A aus 0.12.1 (`right: 92px`) und wie
+     die Ausrichtung, die 0.13.1 in Ordnung gebracht hat.
+     GEMESSEN WIRD HIER NICHT, sondern in Chromium: in jsdom ist jede Breite
+     null, und eine Probe, die dort misst, waere gruen ueber nichts. Die
+     Zahlen stehen im Aenderungsprotokoll 0.14.0. Dieser Lauf sichert die
+     Regel im Stilblatt und den AUFBAU -- dass die Oberflaeche die drei
+     Stuecke einer Zeile wirklich als Zellen EINES Rasters haengt. */
+  gruppe('Die Sternreihe steht auf einer Linie — 0.14.0');
+
+  /* ERST DER GEGENSTAND (Stolperstein 81): ohne die beiden schwierigen Zeilen
+     traegt keine Regel darunter einen Fall, auf den sie zutraefe. Die
+     Prueflage braucht eine Zeile OHNE Bewertung und eine mit LANGER Zahl --
+     sind alle Zahlen gleich lang, kann sie den Fehler gar nicht tragen
+     (Stolperstein 189). */
+  const slDom = baueDom(JSDOM, { hash: '#/item/1',
+    einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+  await new Promise(r => setTimeout(r, 80));
+  const slDoc = slDom.w.document;
+  const slKasten = slDoc.getElementById('ratings');
+  const slZeilen = [...(slKasten?.querySelectorAll('.rrow') || [])];
+  const slZahlen = slZeilen.map(z => z.querySelector('.ravg')?.textContent ?? '(keine Zelle)');
+  pruefe('Die Prueflage traegt drei Kriterienzeilen',
+    slZeilen.length === 3, `${slZeilen.length}`);
+  pruefe('Eine davon hat keine Bewertung und traegt trotzdem ihre Zelle',
+    slZahlen[2] === '', JSON.stringify(slZahlen));
+  pruefe('Und eine traegt eine dreistellige Stimmenzahl',
+    /\(\d{3}\)$/.test(slZahlen[1] || ''), JSON.stringify(slZahlen));
+  pruefe('Die beiden Zahlen sind wirklich verschieden lang',
+    (slZahlen[0] || '').length !== (slZahlen[1] || '').length, JSON.stringify(slZahlen));
+
+  /* DER AUFBAU. Die Spalte kann sich nur dann an ihrer breitesten Zelle
+     ausrichten, wenn alle Zellen im SELBEN Raster liegen: der KASTEN traegt
+     es, die Zeile wird zu display: contents, und die drei Stuecke sind
+     direkte Kinder der Zeile. Steckte .ravg wieder in .racts, waere sie nur
+     so breit wie ihr eigener Inhalt -- und der Fehler waere zurueck, ohne
+     dass eine Regel im Stilblatt sich geaendert haette. */
+  pruefe('Der Kasten der Kriterienliste traegt das Raster',
+    slKasten?.classList.contains('rlist'), JSON.stringify(slKasten?.className));
+  const slKinder = slZeilen.map(z => [...z.children].map(k => k.className));
+  pruefe('Jede Zeile haengt Name, Sterne und Zahl als drei direkte Kinder',
+    slKinder.every(k => k.length === 3 && k[0] === 'rname' && k[1] === 'racts' && k[2] === 'ravg'),
+    JSON.stringify(slKinder));
+  pruefe('Die Zahl steckt ausdruecklich NICHT mehr in den Sternen',
+    slZeilen.every(z => !z.querySelector('.racts .ravg')),
+    JSON.stringify(slZeilen.map(z => !!z.querySelector('.racts .ravg'))));
+  /* UND KEIN TEXT IN DER LEEREN ZELLE. Neben fuenf leeren Sternen waere
+     "noch keine Bewertung" dieselbe Aussage zweimal -- die Begruendung steht
+     seit jeher im Quelltext daneben und gilt weiter. */
+  pruefe('Die leere Zelle bleibt leer und bekommt keinen Ersatztext',
+    slZahlen[2] === '' && !slZeilen[2]?.querySelector('.ravg')?.title,
+    JSON.stringify([slZahlen[2], slZeilen[2]?.querySelector('.ravg')?.title]));
+  slDom.w.close();
+
+  /* DIE REGELN IM STILBLATT. Gepruefft wird die Wirkung und nicht der
+     Wortlaut: ein Raster ueber drei Spalten, eine Zeile ohne eigenen Kasten,
+     und an der Zahlenspalte KEINE Breite mehr. */
+  const slListe = regel123('.rlist'), slRow = regel123('.rrow'), slAvg = regel123('.rrow .ravg');
+  pruefe('Die Kriterienliste ist ein Raster ueber drei Spalten',
+    /display: grid/.test(slListe) && /grid-template-columns: 1fr auto auto/.test(slListe),
+    slListe || '(keine Regel)');
+  pruefe('Die Zeile ist kein eigener Kasten mehr, sondern gibt ihre Zellen frei',
+    /display: contents/.test(slRow), slRow || '(keine Regel)');
+  /* DER KERN: keine Zahl mehr an der Spalte. Weder eine Mindestbreite noch
+     irgendein anderes festes Mass -- die Spalte misst sich an ihrer
+     breitesten Zelle, und das ist der ganze Unterschied zu vorher. */
+  pruefe('Die Zahlenspalte traegt keine Mindestbreite mehr',
+    !/min-width/.test(slAvg), slAvg || '(keine Regel)');
+  /* UND UEBERHAUPT KEINE BREITE. Der Innenabstand bleibt in Pixeln, und das
+     ist richtig: er ist ein Abstand und keine Ausrichtung -- jede Zelle
+     bekommt denselben, bei 80 wie bei 120 Prozent. Das Stilblatt sagt es
+     selbst am Grundmass der Schrift: "Layoutmasse bleiben absichtlich in
+     Pixeln". Was hier nicht mehr stehen darf, ist eine BREITE. */
+  pruefe('Und ueberhaupt keine Breite',
+    !/(^|[^-])width:/.test(slAvg.replace('.rrow .ravg {', '')), slAvg || '(keine Regel)');
+  /* DIE GEGENPROBE ZUR REGEL: dass ueberhaupt noch eine Regel dasteht. Ohne
+     sie waeren die beiden Verneinungen darueber gruen an einer Zeile, die es
+     gar nicht mehr gibt (Stolperstein 81). */
+  pruefe('Es gibt die Regel ueberhaupt noch, und sie faerbt die Zahl gedaempft',
+    /var\(--muted\)/.test(slAvg) && /var\(--mono\)/.test(slAvg), slAvg || '(keine Regel)');
+
+  /* DIE TRENNLINIE IST DER PREIS DES RASTERS und deshalb geprueft: eine Zeile
+     mit display: contents ist kein Kasten mehr und kann keine tragen. Sie
+     wird an den ZELLEN gezogen, und die letzte Zeile bekommt keine. */
+  pruefe('Die Trennlinie wird an den Zellen gezogen, nicht an der Zeile',
+    /border-bottom: 1px solid var\(--line-2\)/.test(regel123('.rrow > \\*')) &&
+    !/border-bottom: 1px solid/.test(slRow),
+    `${regel123('.rrow > \\*') || '(keine Zellregel)'} || ${slRow}`);
+  pruefe('Und die letzte Zeile bekommt keine',
+    /border-bottom: none/.test(regel123('.rrow:last-of-type > \\*')),
+    regel123('.rrow:last-of-type > \\*') || '(keine Regel)');
+  /* UND KEIN SPALTENABSTAND AM RASTER: er risse die Trennlinie in Stuecke.
+     Der Abstand sitzt als Innenabstand IN den Zellen -- nachgemessen in
+     Chromium, die Zellkanten stossen ohne Luecke aneinander. */
+  pruefe('Das Raster traegt keinen Spaltenabstand -- die Linie bliebe sonst zerrissen',
+    !/gap/.test(slListe), slListe || '(keine Regel)');
+
+  /* DER BLICK DANEBEN. Dieselbe Spalte gibt es in der Ansicht "Wer hat
+     bewertet" und im Vergleich -- eine halb behobene Ausrichtung waere
+     schlechter als eine benannte. NACHGESEHEN UND VERNEINT: der Vergleich
+     stellt seine Werte rechtsbuendig und hat gar nichts, was von ihnen
+     geschoben wuerde; "Wer hat bewertet" traegt keine Durchschnittsspalte,
+     dort steht der Name ueber den Stimmen. Keine der beiden Regeln traegt
+     eine feste Breite. */
+  const slFremd = ['.cmp-crit', '.stimmzeile .rname', '.rstimmen', '.rstimme']
+    .filter(r => /min-width|max-width|width:/.test(regel123(r)));
+  pruefe('Weder Vergleich noch Stimmliste tragen dasselbe Muster',
+    slFremd.length === 0, slFremd.map(r => regel123(r)).join(' | ') || '(keine)');
+  pruefe('Und die Stimmliste hat gar keine Durchschnittsspalte',
+    !/\.stimmzeile[^{]*\.ravg/.test(css123) &&
+    !/zeile\.className = 'stimmzeile'[\s\S]{0,600}ravg/.test(arQuelle),
+    'ravg taucht in der Stimmliste auf');
 }
 
 /* ================= Der Schluesselwechsel =================

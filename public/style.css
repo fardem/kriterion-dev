@@ -644,9 +644,28 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .stars .star { cursor: pointer; }
 .stars .star:hover { transform: scale(1.18); }
 
-.rrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-2); }
-.rrow:last-of-type { border-bottom: none; }
-.rrow .rname { font-size: .93rem; font-weight: 500; }
+/* DIE KRITERIENLISTE IST EIN RASTER UND NICHT EINE REIHE EINZELNER ZEILEN --
+   und genau das ist der Punkt: die Spalte mit dem Schnitt misst sich an ihrer
+   BREITESTEN Zelle, und damit beginnen alle Sternreihen an derselben Stelle.
+   Vorher stand dort eine feste Mindestbreite in Pixeln. Sie war als
+   Mindestbreite richtig gedacht und als ZAHL falsch: die Anlage stellt ihre
+   Schrift von 80 bis 120 Prozent, und die Zahl waechst nicht mit. Sie half
+   ausserdem nur gegen die LEERE Zelle -- eine Zeile mit einer langen Zahl wie
+   „⌀ 5,0 (128)" schob ihre Sterne trotzdem nach links. Hier steht deshalb
+   keine Zahl mehr, und es kann auch keine mehr hin.
+   DIE ZEILE SELBST WIRD ZU display: contents, damit ihre drei Stuecke Zellen
+   des Rasters sind. Der Preis dafuer ist die Trennlinie: die Zeile ist dann
+   kein Kasten mehr, der eine tragen koennte. Sie wird deshalb an den ZELLEN
+   gezogen -- und die Spalten stossen ohne Zwischenraum aneinander (der Abstand
+   sitzt als Innenabstand IN den Zellen), sonst hatte die Linie zwei Luecken.
+   KEIN align-items: center AM RASTER: dann waeren die Zellen unterschiedlich
+   hoch, und die drei Linienstuecke laegen auf drei Hoehen. Gestreckt sind sie
+   gleich hoch; was in der Mitte stehen soll, zentriert in seiner Zelle. */
+.rlist { display: grid; grid-template-columns: 1fr auto auto; }
+.rrow { display: contents; }
+.rrow > * { padding: 9px 0; border-bottom: 1px solid var(--line-2); }
+.rrow:last-of-type > * { border-bottom: none; }
+.rrow .rname { font-size: .93rem; font-weight: 500; padding-right: 12px; }
 .rrow .racts { display: flex; align-items: center; gap: 9px; }
 /* Die Gewichtsmarke ×1,5 hinter dem Kriteriennamen -- und dieselbe Marke an
    der Zeilenbeschriftung im Vergleich. Gedaempft und in Festbreitenschrift wie
@@ -661,11 +680,22 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Sternen. Gedaempfte Textfarbe und Festbreitenschrift, damit die Zahlen
    untereinander stehen und die goldenen Sterne das auffaellige Element
    bleiben -- sie sind das Bedienelement, die Zahl ist Auskunft.
-   Feste Mindestbreite: sonst wackelt die Sternreihe, sobald eine Zeile keine
-   Zahl hat. Keine neue Farbe, --muted gibt es laengst. */
+   KEINE MINDESTBREITE MEHR: die eigene Rasterspalte richtet sich nach der
+   breitesten Zahl der Liste, und eine leere Zelle bleibt genau so breit wie
+   diese Spalte. Damit stehen die Sterne aller Zeilen auf einer Linie -- auch
+   der Zeilen, die noch niemand bewertet hat, und auch neben einer dreistelligen
+   Stimmenzahl.
+   RECHTSBUENDIG UEBER flex und nicht ueber text-align: die Zelle ist gestreckt
+   (sonst laege die Trennlinie schief), und die Zahl soll darin trotzdem in der
+   Mitte sitzen. Der Abstand zu den Sternen steht hier und nicht als
+   Rasterluecke: ohne die Zahl gibt es die Zelle gar nicht, und dann soll auch
+   kein Abstand danebenstehen.
+   HIER STEHT AUSDRUECKLICH KEIN TEXT FUER DIE LEERE ZELLE. Neben fuenf leeren
+   Sternen waere „noch keine Bewertung" dieselbe Aussage zweimal. */
 .rrow .ravg {
   font-family: var(--mono); font-size: .8rem; color: var(--muted);
-  min-width: 52px; text-align: right; white-space: nowrap;
+  white-space: nowrap; padding-left: 9px;
+  display: flex; align-items: center; justify-content: flex-end;
 }
 /* Wer welchen Wert vergeben hat -- unter der Sternzeile, nicht darin. Die
    Sterne bleiben das auffaellige Element; das hier ist Auskunft.
