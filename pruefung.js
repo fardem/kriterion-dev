@@ -7119,6 +7119,172 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await AGZ.stopp();
   fs.rmSync(agZielDir, { recursive: true, force: true });
 
+  /* ================= Entfernen darf auch der Admin — 0.15.0 ============
+     0.15.0 NIMMT EINE ENTSCHEIDUNG AUS 0.14.0 ZURUECK. Dort galt an
+     `rejected_grund` `nurSelbst` fuer JEDES Schreiben -- damit konnte ein
+     Admin eine fremde Begruendung weder umschreiben noch entfernen, und das
+     war strenger als ueberall sonst im Haus. Die Hausregel lautet "Loeschen
+     ja, umschreiben nein": den TEXT aendert nur der Verfasser, WEGNEHMEN darf
+     auch der Admin.
+     DIESELBEN VIER ZUGAENGE, und sie tragen die Sache weiter: anna ist der
+     fremde Admin (weder Eintrag noch Begruendung), bert der Verfasser des
+     EINTRAGS, carla die Ablehnende, dora die Fremde.
+     ZU JEDEM AUSGANG DIE NACHSCHAU IN DER DATENBANK: ein 403, nach dem der
+     Text trotzdem weg ist, waere das Schlimmste; ein 200, nach dem er noch
+     dasteht, das Zweitschlimmste. */
+  gruppe('Entfernen darf auch der Admin — 0.15.0');
+
+  // ERST DER GEGENSTAND (Stolperstein 81): ohne eine Begruendung in der Zeile
+  // belegt kein Entfernen darunter etwas.
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Lieferzeit über 6 Monate' });
+  pruefe('Die Begruendung steht vor dem Entfernen wirklich da',
+    agZeile().rejected_grund === 'Lieferzeit über 6 Monate' && agZeile().rejected_von === 3,
+    JSON.stringify(agZeile()));
+
+  /* ---- DIE FREMDE KOMMT NICHT DURCH, und zwar schon an der ERSTEN Klemme:
+     `rejectedGrund` steht in NUR_VERFASSER_FELDER, und dora darf den Eintrag
+     gar nicht aendern. Ohne diese Zeile stuende das Entfernen jedem offen. */
+  const agWegDora = await agRuf('cookie-ag-dora', 'PUT', '/api/items/1', { rejectedGrund: '' });
+  pruefe('Eine Fremde entfernt die Begruendung nicht',
+    agWegDora.status === 403, JSON.stringify(agWegDora));
+  pruefe('Und der Text steht danach unveraendert da',
+    agZeile().rejected_grund === 'Lieferzeit über 6 Monate', JSON.stringify(agZeile().rejected_grund));
+
+  /* ---- DER FREMDE ADMIN ENTFERNT -- das ist die Entscheidung dieser Runde.
+     Bis 0.14.0 war genau das ein 403. */
+  const agWegAnna = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1', { rejectedGrund: '' });
+  pruefe('Ein Admin entfernt eine fremde Begruendung',
+    agWegAnna.status === 200, JSON.stringify(agWegAnna));
+  pruefe('Und der Text ist danach wirklich weg',
+    agZeile().rejected_grund === '', JSON.stringify(agZeile().rejected_grund));
+  /* DATUM UND VERFASSER BLEIBEN STEHEN. "Abgelehnt am … von carla" ist
+     weiterhin wahr; nur der Grund fehlt. Und das Merkmal selbst wird beim
+     Entfernen der Begruendung NICHT zurueckgenommen -- das ist der Schalter
+     und eine andere Handlung. */
+  pruefe('Datum, Verfasser und Merkmal bleiben beim Entfernen stehen',
+    agZeile().rejected === 1 && agZeile().rejected_von === 3 &&
+    /^\d{4}-\d{2}-\d{2} /.test(agZeile().rejected_at || ''), JSON.stringify(agZeile()));
+
+  /* ---- UND DIE FOLGE, DIE GENANNT GEHOERT: bleibt rejected_von stehen, darf
+     carla danach eine neue Begruendung schreiben -- anna, die geloescht hat,
+     dagegen nicht. Das ist "Loeschen ja, umschreiben nein" in Reinform. ---- */
+  const agNeuAnna = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1',
+    { rejectedGrund: 'Vom Admin nachgeschoben' });
+  pruefe('Wer entfernt hat, darf danach trotzdem keine neue schreiben',
+    agNeuAnna.status === 403 && agZeile().rejected_grund === '',
+    JSON.stringify([agNeuAnna.status, agZeile().rejected_grund]));
+  pruefe('Die Absage sagt weiterhin, dass nur der Verfasser aendert',
+    /nur, wer es geschrieben hat/.test(agNeuAnna.inhalt?.error || ''), agNeuAnna.inhalt?.error);
+  const agNeuCarla = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1',
+    { rejectedGrund: 'Neu von der Ablehnenden' });
+  pruefe('Die Ablehnende schreibt danach sehr wohl eine neue',
+    agNeuCarla.status === 200 && agZeile().rejected_grund === 'Neu von der Ablehnenden',
+    JSON.stringify([agNeuCarla.status, agZeile().rejected_grund]));
+
+  /* ---- DER VERFASSER DES EINTRAGS DARF EBENSO ENTFERNEN und weiterhin NICHT
+     umschreiben. Die beiden Haelften stehen nebeneinander, sonst belegte die
+     eine nichts ueber die andere: bert laeuft durch darfAendern und faellt an
+     nurSelbst. ---- */
+  const agUmBert = await agRuf('cookie-ag-bert', 'PUT', '/api/items/1',
+    { rejectedGrund: 'Von Bert umgeschrieben' });
+  pruefe('Der Verfasser des Eintrags schreibt die fremde Begruendung nicht um',
+    agUmBert.status === 403 && agZeile().rejected_grund === 'Neu von der Ablehnenden',
+    JSON.stringify([agUmBert.status, agZeile().rejected_grund]));
+  const agWegBert = await agRuf('cookie-ag-bert', 'PUT', '/api/items/1', { rejectedGrund: '' });
+  pruefe('Entfernen darf er sie sehr wohl',
+    agWegBert.status === 200 && agZeile().rejected_grund === '',
+    JSON.stringify([agWegBert.status, agZeile().rejected_grund]));
+
+  /* ---- DIE ABLEHNENDE ENTFERNT IHRE EIGENE -- der dritte Zugang, und er
+     stand nie in Frage. Ohne ihn belegte die Gruppe nur die Ausnahmen. ---- */
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Noch einmal von carla' });
+  const agWegCarla = await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: '' });
+  pruefe('Die Ablehnende entfernt ihre eigene Begruendung',
+    agWegCarla.status === 200 && agZeile().rejected_grund === '',
+    JSON.stringify([agWegCarla.status, agZeile().rejected_grund]));
+
+  /* ---- WAS "ENTFERNEN" HEISST, ENTSCHEIDET grundText() UND NICHT DER
+     ROHWERT. Ein Rumpf aus lauter Leerzeichen ist nach dem Einebnen leer und
+     damit ein Entfernen -- laeuft die Unterscheidung stattdessen am rohen
+     String, faellt anna hier auf 403. ---- */
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Vor dem Leerraum' });
+  const agWegRaum = await agRuf('cookie-ag-anna', 'PUT', '/api/items/1', { rejectedGrund: '  \n  ' });
+  pruefe('Ein Rumpf aus lauter Leerraum gilt als Entfernen',
+    agWegRaum.status === 200 && agZeile().rejected_grund === '',
+    JSON.stringify([agWegRaum.status, agZeile().rejected_grund]));
+
+  /* ---- WER ENTFERNT, WIRD NICHT VERFASSER. Der Nachtragezweig setzt
+     rejected_von, wo keiner steht -- ein leeres Feld hat aber keinen
+     Verfasser. Ohne diese Unterscheidung machte ein Entfernen an einer
+     Ablehnung aus einer Anlage vor 0.14.0 den Entfernenden zum Verfasser
+     einer Begruendung, die es gar nicht gibt.
+     DIE LAGE WIRD IN DER DATENBANK HERGESTELLT: eine Ablehnung ohne
+     Verfasser laesst sich ueber die Route gar nicht mehr erzeugen. ---- */
+  {
+    const d = oeffne(path.join(agDir, 'katalog.sqlite'));
+    d.prepare("UPDATE items SET rejected = 1, rejected_von = NULL, rejected_at = NULL, " +
+              "rejected_grund = NULL WHERE id = 2").run();
+    d.close();
+  }
+  const agLeerAlt = await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedGrund: '   ' });
+  pruefe('Ein Entfernen an einer herrenlosen Ablehnung macht niemanden zum Verfasser',
+    agLeerAlt.status === 200 && agZeile(2).rejected_von === null &&
+    agZeile(2).rejected_grund === '', JSON.stringify(agZeile(2)));
+  /* DIE GEGENLAGE, sonst belegt die Zeile darueber nichts: derselbe Zugang,
+     derselbe Eintrag, aber mit TEXT -- dann wird er sehr wohl Verfasser. */
+  const agTextAlt = await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedGrund: 'Von anna nachgetragen' });
+  pruefe('Wer aber einen Text nachtraegt, wird sein Verfasser',
+    agTextAlt.status === 200 && agZeile(2).rejected_von === 1 &&
+    agZeile(2).rejected_grund === 'Von anna nachgetragen', JSON.stringify(agZeile(2)));
+
+  /* ---- UND DIE ZWEI ANGABEN AN DER ANTWORT (Punkt 2 dieser Runde). Die
+     Oberflaeche kennt ihren NAMEN und nirgends ihre Nummer; ohne `mine` und
+     `rejectedMine` muesste sie aus dem Verfasserobjekt zurueckrechnen, und an
+     einem Grabstein ginge das gar nicht.
+     BEIDE STELLUNGEN JEDES SCHALTERS, sonst belegt die Gruppe nichts: derselbe
+     Eintrag, aus drei Blickwinkeln. ---- */
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Fuer die zwei Angaben' });
+  const agSichtCarla = (await agRuf('cookie-ag-carla', 'GET', '/api/items/1')).inhalt;
+  const agSichtBert = (await agRuf('cookie-ag-bert', 'GET', '/api/items/1')).inhalt;
+  const agSichtDora = (await agRuf('cookie-ag-dora', 'GET', '/api/items/1')).inhalt;
+  pruefe('Die Ablehnende sieht rejectedMine gesetzt und mine nicht',
+    agSichtCarla?.rejectedMine === true && agSichtCarla?.mine === false,
+    JSON.stringify([agSichtCarla?.rejectedMine, agSichtCarla?.mine]));
+  pruefe('Der Verfasser des Eintrags sieht es genau umgekehrt',
+    agSichtBert?.rejectedMine === false && agSichtBert?.mine === true,
+    JSON.stringify([agSichtBert?.rejectedMine, agSichtBert?.mine]));
+  pruefe('Und die Fremde sieht beide aus',
+    agSichtDora?.rejectedMine === false && agSichtDora?.mine === false,
+    JSON.stringify([agSichtDora?.rejectedMine, agSichtDora?.mine]));
+  /* DIE NACKTE NUMMER GEHT NICHT MIT HINAUS -- weder die des Eintrags noch
+     die des Ablehnenden. Sonst waere die Angabe daneben ueberfluessig und die
+     Oberflaeche rechnete doch wieder zurueck. */
+  pruefe('Die Nummern selbst stehen nicht in der Antwort',
+    agSichtCarla?.user_id === undefined && agSichtCarla?.rejected_von === undefined,
+    JSON.stringify(Object.keys(agSichtCarla || {}).filter(k => /user_id|rejected_von/.test(k))));
+  /* UND AN EINER ABLEHNUNG OHNE VERFASSER IST rejectedMine FALSE UND NICHT
+     NULL: eine Begruendung, die niemandem gehoert, gehoert auch mir nicht. */
+  const agSichtAlt = (await agRuf('cookie-ag-carla', 'GET', '/api/items/2')).inhalt;
+  await agRuf('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedGrund: '' });
+  {
+    const d = oeffne(path.join(agDir, 'katalog.sqlite'));
+    d.prepare('UPDATE items SET rejected_von = NULL WHERE id = 2').run();
+    d.close();
+  }
+  const agSichtHerrenlos = (await agRuf('cookie-ag-carla', 'GET', '/api/items/2')).inhalt;
+  pruefe('Ohne Ablehnenden steht rejectedMine auf false und nicht auf null',
+    agSichtHerrenlos?.rejectedMine === false && agSichtHerrenlos?.rejectedVerfasser === null,
+    JSON.stringify([agSichtHerrenlos?.rejectedMine, agSichtHerrenlos?.rejectedVerfasser]));
+  pruefe('Und mit Ablehnendem trug dieselbe Zeile sehr wohl einen Verfasser',
+    agSichtAlt?.rejectedVerfasser?.id === 1, JSON.stringify(agSichtAlt?.rejectedVerfasser));
+
+  // Die Zeile geht in dem Stand weiter, in dem die Gruppe von 0.14.0 sie
+  // uebernimmt -- die Pruefung am Grabstein darunter liest genau diesen Text.
+  await agRuf('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedGrund: 'Lieferzeit über 6 Monate' });
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Entscheidung wird mitgeschrieben — 0.14.0');
+
   /* ---- EIN ENTFERNTER ZUGANG NIMMT NUR SEINEN NAMEN MIT. Der Grabstein
      bleibt als Zeile stehen, und aus der Nummer wird "Geloeschter Benutzer 3"
      -- der freigegebene Name geht nie hinaus. ---- */
@@ -17063,7 +17229,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
      (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
      gezaehlt waren es 193 -- 184 plus neun. */
-  pruefe('Es sind genau 249 Rueckbauten', gpListe.length === 249, `${gpListe.length}`);
+  // 267 SEIT 0.15.0, vorher 249: die Runde bringt achtzehn dazu -- fuenf am
+  // Filter, fuenf an der Klemme und acht am Ruhezustand der Begruendung.
+  pruefe('Es sind genau 267 Rueckbauten', gpListe.length === 267, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -17660,7 +17828,14 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
      braucht, reicht die drei Felder herein. Ausdruecklich EINZELN und nicht
      als Schalter: die Lagen, um die es geht, unterscheiden sich gerade darin,
      WELCHES der drei fehlt. */
-  ablehnung = null } = {}) {
+  ablehnung = null,
+  /* WEM DER EINTRAG GEHOERT, seit 0.15.0. Vorgabe ist "einem anderen" (bert)
+     -- so stand er hier immer. Wer die Lage braucht, in der die Fragende
+     selbst ihn angelegt hat, schaltet um; daran haengt der Papierkorb an der
+     Begruendung, denn ENTFERNEN darf, wer den Eintrag aendern darf. Ein
+     Schalter, der nie umgelegt wird, belegt nichts ueber den zweiten
+     Zustand. */
+  eintragMeins = false } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
   const { VirtualConsole } = require('jsdom');
@@ -17850,7 +18025,17 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     rejected_at: ablehnung?.at ?? null,
     rejected_grund: ablehnung?.grund ?? null,
     rejectedVerfasser: ablehnung?.verfasser ?? null,
-    verfasser: vBert,
+    /* ZWEI ANGABEN NACH HAUSMUSTER, seit 0.15.0, und sie werden GERECHNET wie
+       im echten Server: `mine` aus dem Verfasser des EINTRAGS, `rejectedMine`
+       aus dem der BEGRUENDUNG -- beide gegen die Nummer der Fragenden. Ein
+       Mock, der sie fest auf true legte, naehme genau die Pruefungen weg, fuer
+       die er gebraucht wird (Stolperstein 102).
+       DIE OBERFLAECHE KANN SIE NICHT ZURUECKRECHNEN: sie kennt ihren NAMEN
+       (`NAME`) und nirgends ihre Nummer -- deshalb ist die Rechnung hier
+       ehrlich und kein zweiter Weg zum selben Ergebnis. */
+    mine: eintragMeins,
+    rejectedMine: !!(ablehnung?.verfasser && ablehnung.verfasser.id === zugaenge.ich),
+    verfasser: eintragMeins ? vChefin : vBert,
     /* ZWEI ZEILEN, UND SIE SIND VERSCHIEDENER ART -- ein Mock mit
        lauter Bildern naehme genau die Pruefungen weg, fuer die er hier
        gebraucht wird (Stolperstein 90). Das Video steht ausdruecklich NICHT an
@@ -18529,14 +18714,23 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
          angezeigten Text vergleicht, braucht einen Wert, der sich nicht
          zwischen zwei Zeilen des Prueflaufs bewegt. */
       const schaltetEin = rumpf.rejected === true && !beispiel.rejected;
+      const grundRoh = String(rumpf.rejectedGrund ?? '').replace(/\s+/g, ' ').trim();
       if (rumpf.rejected !== undefined) beispiel.rejected = !!rumpf.rejected;
       if (schaltetEin) {
         beispiel.rejected_at = '2026-08-29 09:12:00';
         beispiel.rejectedVerfasser = vChefin;
-        beispiel.rejected_grund = String(rumpf.rejectedGrund ?? '').replace(/\s+/g, ' ').trim();
+        beispiel.rejectedMine = vChefin.id === zugaenge.ich;
+        beispiel.rejected_grund = grundRoh;
       } else if (rumpf.rejectedGrund !== undefined) {
-        beispiel.rejected_grund = String(rumpf.rejectedGrund).replace(/\s+/g, ' ').trim();
-        if (!beispiel.rejectedVerfasser) beispiel.rejectedVerfasser = vChefin;
+        beispiel.rejected_grund = grundRoh;
+        /* WER ENTFERNT, WIRD NICHT VERFASSER -- wie im echten Server seit
+           0.15.0. Ein leeres Feld hat keinen Verfasser, und ein Mock, der ihn
+           trotzdem einträgt, verdeckte genau den Unterschied zwischen
+           Entfernen und Nachtragen. */
+        if (!beispiel.rejectedVerfasser && grundRoh) {
+          beispiel.rejectedVerfasser = vChefin;
+          beispiel.rejectedMine = vChefin.id === zugaenge.ich;
+        }
       }
       delete rumpf.rejected; delete rumpf.rejectedGrund;
       Object.assign(beispiel, rumpf);
@@ -28070,6 +28264,13 @@ async function pruefeOberflaeche() {
   const amText = (d) => d.w.document.getElementById('rej-marke');
   const amFeld = (d) => d.w.document.getElementById('rej-grund');
   const amZeile = (d) => d.w.document.getElementById('rej-grund-zeile');
+  /* SEIT 0.15.0 TRAEGT DIE ZEILE AUCH DIE ZEICHEN ✎ und ✕ -- der Satz selbst
+     steht in einer eigenen Spanne. Wer hier `rej-marke`.textContent
+     vergliche, verglichenen den Satz SAMT der beiden Zeichen und muesste sie
+     in jede Erwartung schreiben. */
+  const amSatz = (d) => d.w.document.querySelector('#rej-marke .rej-text');
+  const amStift = (d) => d.w.document.querySelector('#rej-marke .mact.ed');
+  const amWeg = (d) => d.w.document.querySelector('#rej-marke .mact.rm');
 
   // --- Nicht abgelehnt: weder Satz noch Feld ---
   {
@@ -28087,17 +28288,18 @@ async function pruefeOberflaeche() {
     const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Lieferzeit über 6 Monate',
       verfasser: { id: 2, name: 'Anna', geloescht: false } });
     pruefe('Die Marke wird zur Aussage: wann, von wem und warum',
-      amText(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate',
-      JSON.stringify(amText(d)?.textContent));
+      amSatz(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate',
+      JSON.stringify(amSatz(d)?.textContent));
     pruefe('Und sie steht sichtbar da', amText(d)?.hidden === false, JSON.stringify(amText(d)?.hidden));
-    /* DAS FELD STEHT OFFEN IM DIALOG und nicht hinter einem Aufklappen -- ein
-       Feld, das man erst suchen muss, bleibt leer. Nachgesehen wird der
-       Aufbau: kein <details>, kein eingeklappter Block darueber. */
-    pruefe('Das Feld fuer den Grund steht offen da',
-      amZeile(d)?.hidden === false && !amZeile(d)?.closest('details') &&
+    /* DAS FELD IST IM RUHEZUSTAND ZU, seit 0.15.0. Bis dahin stand es offen
+       daneben und wiederholte, was die Aussage schon sagte -- dieselbe Sache
+       zweimal. Es kommt auf Klick zurueck; das steht in der Gruppe zu 0.15.0.
+       DIE ZUSAGE "nicht hinter einem Aufklappen" GILT WEITER fuer die Stelle
+       im Aufbau: kein <details>, kein eingeklappter Block darueber -- nur der
+       eigene Schalter entscheidet, ob es dasteht. */
+    pruefe('Das Feld fuer den Grund steht im Ruhezustand nicht offen',
+      amZeile(d)?.hidden === true && !amZeile(d)?.closest('details') &&
       !amZeile(d)?.closest('.zu'), JSON.stringify(amZeile(d)?.hidden));
-    pruefe('Und es traegt die vorhandene Begruendung als Vorschlag',
-      amFeld(d)?.value === 'Lieferzeit über 6 Monate', JSON.stringify(amFeld(d)?.value));
     pruefe('Der Schalter selbst sagt weiterhin nur "Abgelehnt"',
       d.w.document.getElementById('sw-rej-t')?.textContent === 'Abgelehnt',
       JSON.stringify(d.w.document.getElementById('sw-rej-t')?.textContent));
@@ -28109,8 +28311,8 @@ async function pruefeOberflaeche() {
     const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
       verfasser: { id: 4, name: null, geloescht: true } });
     pruefe('Am Grabstein steht kein Name, sondern die Nummer',
-      /von Gelöschter Benutzer 4 —/.test(amText(d)?.textContent || ''),
-      JSON.stringify(amText(d)?.textContent));
+      /von Gelöschter Benutzer 4 —/.test(amSatz(d)?.textContent || ''),
+      JSON.stringify(amSatz(d)?.textContent));
     d.w.close();
   }
 
@@ -28118,23 +28320,31 @@ async function pruefeOberflaeche() {
   {
     const d = await amLage({ at: null, grund: 'Nachgetragen ohne Datum', verfasser: null });
     pruefe('Fehlt beides, steht der Grund allein da',
-      amText(d)?.textContent === 'Nachgetragen ohne Datum' && amText(d)?.hidden === false,
-      JSON.stringify(amText(d)?.textContent));
+      amSatz(d)?.textContent === 'Nachgetragen ohne Datum' && amText(d)?.hidden === false,
+      JSON.stringify(amSatz(d)?.textContent));
     pruefe('Und "von Ohne Verfasser" steht ausdruecklich nicht dabei',
-      !/Ohne Verfasser/.test(amText(d)?.textContent || ''), JSON.stringify(amText(d)?.textContent));
+      !/Ohne Verfasser/.test(amSatz(d)?.textContent || ''), JSON.stringify(amSatz(d)?.textContent));
     d.w.close();
   }
 
   // --- Gar nichts bekannt: die Zeile bleibt weg ---
   {
     const d = await amLage({ at: null, grund: null, verfasser: null });
-    pruefe('Ist gar nichts bekannt, bleibt die Zeile weg',
-      amText(d)?.hidden === true, JSON.stringify([amText(d)?.hidden, amText(d)?.textContent]));
-    /* Sie waere sonst "Abgelehnt" -- dasselbe, was der Schalter darueber
-       schon sagt. Dieselbe Aussage zweimal. */
-    pruefe('Das Feld steht trotzdem offen, damit sich etwas nachtragen laesst',
-      amZeile(d)?.hidden === false, JSON.stringify(amZeile(d)?.hidden));
-    d.w.close();
+    /* SIE BLEIBT NUR WEG, WENN AUCH KEIN ZEICHEN DASTEHT. Ohne Datum, ohne
+       Namen und ohne Grund gaebe es sonst nur "Abgelehnt" -- dasselbe, was
+       der Schalter darueber schon sagt. Wer schreiben darf, sieht seit
+       0.15.0 trotzdem das ✎: sonst gaebe es gar keinen Weg mehr in das Feld.
+       Hier darf niemand: der Eintrag gehoert bert, und istAdmin steht aus. */
+    const dOhne = baueDom(JSDOM, { hash: '#/item/1',
+      ablehnung: { at: null, grund: null, verfasser: null },
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Ist gar nichts bekannt und darf niemand schreiben, bleibt die Zeile weg',
+      amText(dOhne)?.hidden === true,
+      JSON.stringify([amText(dOhne)?.hidden, amText(dOhne)?.textContent]));
+    pruefe('Und das Feld steht dort ebenso wenig offen',
+      amZeile(dOhne)?.hidden === true, JSON.stringify(amZeile(dOhne)?.hidden));
+    d.w.close(); dOhne.w.close();
   }
 
   /* --- BEI GENAU EINEM ZUGANG FAELLT DER NAME WEG ---
@@ -28150,21 +28360,20 @@ async function pruefeOberflaeche() {
     const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
       verfasser: { id: 2, name: 'Anna', geloescht: false } }, 1);
     pruefe('Bei einem einzigen Zugang steht der Name nicht dabei',
-      amText(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 — Zu teuer',
-      JSON.stringify(amText(d)?.textContent));
+      amSatz(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 — Zu teuer',
+      JSON.stringify(amSatz(d)?.textContent));
     pruefe('Datum und Grund bleiben trotzdem stehen',
-      amText(d)?.hidden === false && /09:12/.test(amText(d)?.textContent || '') &&
-      /Zu teuer/.test(amText(d)?.textContent || ''), JSON.stringify(amText(d)?.textContent));
-    pruefe('Und das Feld fuer den Grund steht dort ebenso offen',
-      amZeile(d)?.hidden === false && amFeld(d)?.value === 'Zu teuer',
-      JSON.stringify([amZeile(d)?.hidden, amFeld(d)?.value]));
+      amText(d)?.hidden === false && /09:12/.test(amSatz(d)?.textContent || '') &&
+      /Zu teuer/.test(amSatz(d)?.textContent || ''), JSON.stringify(amSatz(d)?.textContent));
+    pruefe('Und das Feld ist auch dort im Ruhezustand zu',
+      amZeile(d)?.hidden === true, JSON.stringify(amZeile(d)?.hidden));
     /* DIE GEGENLAGE, sonst belegt die Zeile darueber nichts: dieselbe Ablage
        mit mehreren Zugaengen NENNT den Namen. */
     const m = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
       verfasser: { id: 2, name: 'Anna', geloescht: false } }, 3);
     pruefe('Und mit mehreren Zugaengen steht er sehr wohl dabei',
-      amText(m)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Zu teuer',
-      JSON.stringify(amText(m)?.textContent));
+      amSatz(m)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Zu teuer',
+      JSON.stringify(amSatz(m)?.textContent));
     d.w.close(); m.w.close();
   }
 
@@ -28173,7 +28382,7 @@ async function pruefeOberflaeche() {
     const d = await amLage({ at: null, grund: 'Kaputt <b id="boese-grund">X</b>', verfasser: null });
     pruefe('Der Grund wird als Text gesetzt und nicht als Aufbau gelesen',
       !d.w.document.getElementById('boese-grund') &&
-      /<b id=/.test(amText(d)?.textContent || ''), amText(d)?.innerHTML);
+      /<b id=/.test(amSatz(d)?.textContent || ''), amText(d)?.innerHTML);
     d.w.close();
   }
 
@@ -28217,9 +28426,12 @@ async function pruefeOberflaeche() {
       d.gesendet.length > vorher && gleich(Object.keys(grundRumpf?.koerper || {}), ['rejectedGrund']) &&
       grundRumpf?.koerper?.rejectedGrund === 'Preis zu hoch', JSON.stringify(grundRumpf?.koerper));
     pruefe('Und die Marke sagt danach den neuen Satz',
-      /— Preis zu hoch$/.test(amText(d)?.textContent || ''), JSON.stringify(amText(d)?.textContent));
+      /— Preis zu hoch$/.test(amSatz(d)?.textContent || ''), JSON.stringify(amSatz(d)?.textContent));
     /* UNVERAENDERT WIRD NICHT GESCHICKT: sonst schoebe jedes Anklicken den
-       Eintrag ueber updated_at in jeder Uebersicht nach oben. */
+       Eintrag ueber updated_at in jeder Uebersicht nach oben.
+       DAS FELD IST INZWISCHEN ZU -- geoeffnet wird es hier wieder ueber das
+       ✎, damit das Verlassen ueberhaupt etwas zu verlassen hat. */
+    amStift(d).dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
     const vorLeerlauf = d.gesendet.length;
     amFeld(d).dispatchEvent(new w.FocusEvent('blur'));
     await new Promise(r => setTimeout(r, 40));
@@ -28367,6 +28579,461 @@ async function pruefeOberflaeche() {
     !/\.stimmzeile[^{]*\.ravg/.test(css123) &&
     !/zeile\.className = 'stimmzeile'[\s\S]{0,600}ravg/.test(arQuelle),
     'ravg taucht in der Stimmliste auf');
+
+  /* ================= Der Filter „abgelehnt" — 0.15.0 ===================
+     DER BEFUND KAM AUS DEM BETRIEB: die Statuszeile trug „Alles anzeigen ·
+     Getestet · Ungetestet · ★ Favoriten · Neu seit …" und keinen Filter fuer
+     „abgelehnt" -- obwohl es das Merkmal seit jeher gibt. Keine Luecke von
+     0.14.0 also, sondern eine alte, die erst auffiel, als die Ablehnung
+     etwas zu sagen bekam.
+     DREI ZUSTAENDE IN EINER EIGENEN GRUPPE und ausdruecklich kein vierter
+     Wert der Reihe davor: Teststatus und Ablehnung sind ZWEI Merkmale, und
+     „getestet UND abgelehnt" muss einstellbar bleiben -- man lehnt ab, ohne
+     zu testen, und man lehnt nach dem Test ab.
+     DIE PRUEFLAGE MUSS DAS TRAGEN KOENNEN (Stolperstein 189): waere jeder
+     abgelehnte Eintrag auch getestet, lieferten beide Filter dieselbe Menge,
+     und „kombinierbar" liesse sich gar nicht belegen. Deshalb kommen alle
+     VIER Kombinationen vor. */
+  gruppe('Der Filter „abgelehnt" — 0.15.0');
+
+  const abEintrag = (id, titel, getestet, abgelehnt) => ({
+    id, title: titel, rejected: abgelehnt, tested: getestet, favorite: false,
+    category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
+    avgRating: null, testCount: 0, testAvg: null, testLast: null, testDays: [],
+    updated_at: '2026-08-01 10:00:00'
+  });
+  // Vier Eintraege, vier Kombinationen -- und die Titel sagen, welche.
+  const abBestand = [
+    abEintrag(1, 'Getestet und abgelehnt', true, true),
+    abEintrag(2, 'Getestet und nicht abgelehnt', true, false),
+    abEintrag(3, 'Ungetestet und abgelehnt', false, true),
+    abEintrag(4, 'Ungetestet und nicht abgelehnt', false, false)
+  ];
+  const abTitel = (d) =>
+    [...d.w.document.querySelectorAll('.card .card-title')].map(e => e.textContent).sort();
+  /* `const state` haengt nicht am window und laesst sich von aussen nicht
+     setzen. Jede Stellung bekommt deshalb ihr eigenes DOM mit gespeicherten
+     Filtern -- der echte Weg, so wie die Tagfilter und die Favoriten. */
+  const abBaue = async (filters) => {
+    const d = baueDom(JSDOM, { uebersichtItems: abBestand, einstellungen: { filters } });
+    await new Promise(r => setTimeout(r, 80));
+    return d;
+  };
+
+  // ERST DER GEGENSTAND (Stolperstein 81): ohne die vier Zeilen belegt keine
+  // Menge darunter etwas.
+  const abAlle = await abBaue(null);
+  pruefe('Die Prueflage traegt alle vier Kombinationen',
+    abTitel(abAlle).length === 4, JSON.stringify(abTitel(abAlle)));
+
+  /* ---- DIE GRUPPE STEHT IN DER ZEILE „STATUS" UND IST ABGESETZT. Eine
+     eigene Zeile gaebe von der in 0.13.0 gewonnenen Hoehe wieder etwas her;
+     die zweite Beschriftung setzt sie ab, ohne eine Zeile zu kosten. ---- */
+  const abZeile = abAlle.w.document.querySelector('#filters .frow');
+  const abGruppe = abAlle.w.document.getElementById('f-abgelehnt');
+  pruefe('Die Ablehnung steht in derselben Zeile wie der Teststatus',
+    !!abGruppe && abGruppe.closest('.frow') === abZeile,
+    abGruppe ? 'andere Zeile' : 'die Gruppe fehlt ganz');
+  pruefe('Und ist mit einer zweiten Beschriftung abgesetzt',
+    [...(abZeile?.querySelectorAll('.eyebrow-mit') || [])].some(e => e.textContent === 'Ablehnung'),
+    JSON.stringify([...(abZeile?.querySelectorAll('.eyebrow') || [])].map(e => e.textContent)));
+  pruefe('Sie traegt drei Pillen und keinen vierten Wert der Reihe davor',
+    gleich([...(abGruppe?.querySelectorAll('.pill') || [])].map(b => b.textContent),
+      ['Alle', 'Abgelehnt', 'Nicht abgelehnt']),
+    JSON.stringify([...(abGruppe?.querySelectorAll('.pill') || [])].map(b => b.textContent)));
+  /* DIE REIHE DAVOR BLEIBT BEI DREI WERTEN. Waere „abgelehnt" dort als
+     vierter Knopf gelandet, liesse sich „getestet UND abgelehnt" gar nicht
+     mehr einstellen -- und genau das ist der Punkt dieser Runde. */
+  const abStatusPillen = [...(abZeile?.querySelectorAll('.pills') || [])][0];
+  pruefe('Der Teststatus selbst hat weiterhin drei Zustaende',
+    [...(abStatusPillen?.querySelectorAll('.pill') || [])]
+      .filter(b => !b.classList.contains('pill-sep')).length === 3,
+    JSON.stringify([...(abStatusPillen?.querySelectorAll('.pill') || [])].map(b => b.textContent)));
+
+  pruefe('Ohne Filter stehen alle vier da',
+    gleich(abTitel(abAlle), ['Getestet und abgelehnt', 'Getestet und nicht abgelehnt',
+      'Ungetestet und abgelehnt', 'Ungetestet und nicht abgelehnt']),
+    JSON.stringify(abTitel(abAlle)));
+
+  // --- Jeder der drei Zustaende einzeln ---
+  const abJa = await abBaue({ abgelehnt: 'ja' });
+  pruefe('„Abgelehnt" zeigt genau die abgelehnten',
+    gleich(abTitel(abJa), ['Getestet und abgelehnt', 'Ungetestet und abgelehnt']),
+    JSON.stringify(abTitel(abJa)));
+  const abNein = await abBaue({ abgelehnt: 'nein' });
+  pruefe('„Nicht abgelehnt" zeigt genau die uebrigen',
+    gleich(abTitel(abNein), ['Getestet und nicht abgelehnt', 'Ungetestet und nicht abgelehnt']),
+    JSON.stringify(abTitel(abNein)));
+  const abKeiner = await abBaue({ abgelehnt: 'all' });
+  pruefe('Und „Alle" nimmt nichts weg', abTitel(abKeiner).length === 4,
+    JSON.stringify(abTitel(abKeiner)));
+
+  /* ---- DIE KOMBINATION, IN BEIDEN RICHTUNGEN. Das ist der eigentliche
+     Beleg der Bauform: als vierter Wert von `tested` waere keine der beiden
+     Mengen zu erreichen. ---- */
+  const abBeides = await abBaue({ tested: 'tested', abgelehnt: 'ja' });
+  pruefe('„Getestet UND abgelehnt" ist einstellbar und trifft genau einen',
+    gleich(abTitel(abBeides), ['Getestet und abgelehnt']), JSON.stringify(abTitel(abBeides)));
+  const abGegen = await abBaue({ tested: 'untested', abgelehnt: 'nein' });
+  pruefe('„Ungetestet UND nicht abgelehnt" ebenso',
+    gleich(abTitel(abGegen), ['Ungetestet und nicht abgelehnt']), JSON.stringify(abTitel(abGegen)));
+  /* UND DIE GEGENPROBE ZUR PRUEFLAGE SELBST: die beiden Filter liefern
+     einzeln VERSCHIEDENE Mengen. Waeren sie gleich, belegte die Kombination
+     darueber nichts (Stolperstein 189). */
+  const abNurGetestet = await abBaue({ tested: 'tested' });
+  pruefe('Teststatus und Ablehnung treffen wirklich verschiedene Mengen',
+    !gleich(abTitel(abNurGetestet), abTitel(abJa)),
+    JSON.stringify([abTitel(abNurGetestet), abTitel(abJa)]));
+
+  /* ---- EIN KLICK, WIRKLICH ZUGESTELLT (Stolperstein 61). Ein gebauter DOM
+     zeigt nicht, was ein Druck tut. ---- */
+  const abGruppe2 = abAlle.w.document.getElementById('f-abgelehnt');
+  const abPille = [...abGruppe2.querySelectorAll('.pill')].find(b => b.textContent === 'Abgelehnt');
+  abPille.dispatchEvent(new abAlle.w.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 60));
+  pruefe('Ein Druck auf „Abgelehnt" verkleinert die Liste sofort',
+    gleich(abTitel(abAlle), ['Getestet und abgelehnt', 'Ungetestet und abgelehnt']),
+    JSON.stringify(abTitel(abAlle)));
+  pruefe('Und die Pille steht danach gesetzt da',
+    abAlle.w.document.querySelector('#f-abgelehnt .pill.on')?.textContent === 'Abgelehnt',
+    JSON.stringify(abAlle.w.document.querySelector('#f-abgelehnt .pill.on')?.textContent));
+  /* DIE STELLUNG WIRD GESPEICHERT wie jeder andere Filter -- der Server sieht
+     `filters` als undurchschautes Objekt, und der neue Schluessel muss
+     einfach mitfahren. */
+  const abGespeichert = abAlle.gesendet
+    .filter(g => g.methode === 'PUT' && g.url === '/api/settings').pop();
+  pruefe('Und sie faehrt in der gespeicherten Filterstellung mit',
+    abGespeichert?.koerper?.filters?.abgelehnt === 'ja',
+    JSON.stringify(abGespeichert?.koerper?.filters));
+
+  /* ---- filterZahl() ZAEHLT IHN MIT. Sonst sagte der eingeklappte
+     Filterbereich die Unwahrheit ueber die eine Frage, die er aufwirft:
+     „warum sehe ich nicht alles?" ---- */
+  const abZahl = (d) => d.w.document.querySelector('#filter-auf .fz')?.textContent || '';
+  pruefe('Ohne Filter steht keine Zahl am Schalter', abZahl(abKeiner) === '', abZahl(abKeiner));
+  pruefe('Mit dem Ablehnungsfilter steht dort eine Eins',
+    /· 1 aktiv/.test(abZahl(abJa)), abZahl(abJa));
+  /* ZWEI MERKMALE ZAEHLEN ZWEIMAL -- sie verkleinern die Menge auch zweimal.
+     Ohne diese Zeile bliebe die darueber auch dann gruen, wenn der neue
+     Filter mit dem Teststatus zu EINEM zusammengezaehlt wuerde. */
+  pruefe('Und mit dem Teststatz zusammen eine Zwei',
+    /· 2 aktiv/.test(abZahl(abBeides)), abZahl(abBeides));
+  pruefe('„Nicht abgelehnt" zaehlt genauso mit wie „Abgelehnt"',
+    /· 1 aktiv/.test(abZahl(abNein)), abZahl(abNein));
+
+  /* ---- EINE GESPEICHERTE ANSICHT IN DER FORM VON 0.14.0 -- ohne den neuen
+     Schluessel. Sie bleibt lesbar und faellt auf „Alle" zurueck. Das ist die
+     Zusage von filterNormal(), und sie wird geprueft und nicht geglaubt. ---- */
+  const abAlt = await abBaue({ categoryIds: [], tagIds: [], tagMode: 'and', tested: 'tested',
+                               favorit: false, neu: false, sort: 'updated_desc' });
+  pruefe('Eine Ansicht ohne den neuen Schluessel bleibt lesbar',
+    gleich(abTitel(abAlt), ['Getestet und abgelehnt', 'Getestet und nicht abgelehnt']),
+    JSON.stringify(abTitel(abAlt)));
+  pruefe('Und sie faellt bei der Ablehnung auf „Alle" zurueck',
+    abAlt.w.document.querySelector('#f-abgelehnt .pill.on')?.textContent === 'Alle',
+    JSON.stringify(abAlt.w.document.querySelector('#f-abgelehnt .pill.on')?.textContent));
+  pruefe('Der Schalter zaehlt dort nur den Teststatus',
+    /· 1 aktiv/.test(abZahl(abAlt)), abZahl(abAlt));
+  /* UND EIN UNBEKANNTER WERT NIMMT NICHTS WEG. Eine Ansicht aus einer
+     spaeteren Fassung -- oder eine von Hand verbogene Ablage -- darf die
+     Liste nicht leeren. */
+  const abKrumm = await abBaue({ abgelehnt: 'vielleicht' });
+  pruefe('Ein unbekannter Wert nimmt nichts weg', abTitel(abKrumm).length === 4,
+    JSON.stringify(abTitel(abKrumm)));
+
+  [abAlle, abJa, abNein, abKeiner, abBeides, abGegen, abNurGetestet, abAlt, abKrumm]
+    .forEach(d => d.w.close());
+
+  /* ================= Die Begruendung kommt zur Ruhe — 0.15.0 ===========
+     DER ZWEITE BEFUND AUS DEM BETRIEB, und er trifft, was 0.14.0 gebaut hat:
+     die Aussage stand da UND das Eingabefeld daneben stand dauerhaft offen --
+     dieselbe Sache zweimal. Die Zusage „offen im Dialog und nicht hinter
+     einem Aufklappen" galt der EINGABE; im Ruhezustand ist sie eine
+     Doppelung.
+     ZU BAUEN WAR DER RUHEZUSTAND: das Feld verschwindet nach der Eingabe, es
+     kommt auf Klick zurueck -- auf den Text oder auf ein ✎ --, und ein ✕
+     daneben entfernt die Begruendung.
+     ZWEI SCHALTER BLEIBEN HIER NICHT AUS, und das ist der Punkt der Lagen:
+     `rejectedMine` und `ADMIN`. Eine Gruppe, die nur den Ablehnenden faehrt,
+     belegt nichts ueber die anderen drei. */
+  gruppe('Die Begruendung kommt zur Ruhe — 0.15.0');
+
+  /* VIER LAGEN, und sie unterscheiden sich genau in den beiden Schaltern:
+       ruhAblehner  -- die Fragende hat abgelehnt (rejectedMine).
+       ruhAdmin     -- ein anderer hat abgelehnt, die Fragende ist Admin.
+       ruhFremd     -- ein anderer hat abgelehnt, die Fragende ist es nicht
+                       und hat auch den Eintrag nicht angelegt.
+       ruhEigner    -- die Fragende hat den EINTRAG angelegt, aber nicht
+                       abgelehnt, und ist kein Admin. Ohne sie bliebe `mine`
+                       durchweg aus und belegte nichts.
+     `vIch` ist die Fragende selbst (Nummer 1) -- daraus rechnet der Mock
+     `rejectedMine`, so wie der echte Server. */
+  const ruhIch = { id: 1, name: 'chefin', geloescht: false };
+  const ruhAndere = { id: 2, name: 'Anna', geloescht: false };
+  const ruhBaue = async (verfasser, grund, { admin = true, eigner = false } = {}) => {
+    const d = baueDom(JSDOM, { hash: '#/item/1', eintragMeins: eigner,
+      ablehnung: { at: '2026-03-14 09:12:00', grund, verfasser },
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: admin } });
+    await new Promise(r => setTimeout(r, 80));
+    return d;
+  };
+  const ruhMarke = (d) => d.w.document.getElementById('rej-marke');
+  const ruhSatz = (d) => d.w.document.querySelector('#rej-marke .rej-text');
+  const ruhWarum = (d) => d.w.document.querySelector('#rej-marke .rej-warum');
+  const ruhStift = (d) => d.w.document.querySelector('#rej-marke .mact.ed');
+  const ruhWeg = (d) => d.w.document.querySelector('#rej-marke .mact.rm');
+  const ruhZeile = (d) => d.w.document.getElementById('rej-grund-zeile');
+  const ruhFeld = (d) => d.w.document.getElementById('rej-grund');
+
+  // --- Der Ablehnende: Aussage im Ruhezustand, Stift und Papierkorb ---
+  {
+    const d = await ruhBaue(ruhIch, 'Zu ruhig');
+    pruefe('Im Ruhezustand steht die Aussage da und das Feld ist zu',
+      ruhMarke(d)?.hidden === false && ruhZeile(d)?.hidden === true,
+      JSON.stringify([ruhMarke(d)?.hidden, ruhZeile(d)?.hidden]));
+    pruefe('Der Ablehnende bekommt Stift und Papierkorb',
+      !!ruhStift(d) && !!ruhWeg(d),
+      JSON.stringify([!!ruhStift(d), !!ruhWeg(d)]));
+    /* DER GRUND IST HERVORGEHOBEN und steht in einer eigenen Spanne -- Datum
+       und Name bleiben grau, sie sind eine Verfasserangabe und keine Aussage
+       ueber die Sache. */
+    pruefe('Der Grund steht in einer eigenen, hervorgehobenen Spanne',
+      ruhWarum(d)?.textContent === 'Zu ruhig', JSON.stringify(ruhWarum(d)?.textContent));
+    pruefe('Und Datum wie Name stehen weiterhin im Satz',
+      /^Abgelehnt am 14\.03\.2026, 09:12 von chefin — /.test(ruhSatz(d)?.textContent || ''),
+      JSON.stringify(ruhSatz(d)?.textContent));
+
+    // --- Ein Klick auf den TEXT oeffnet das Feld ---
+    ruhWarum(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein Klick auf den Text oeffnet das Feld',
+      ruhZeile(d)?.hidden === false && ruhFeld(d)?.value === 'Zu ruhig',
+      JSON.stringify([ruhZeile(d)?.hidden, ruhFeld(d)?.value]));
+    pruefe('Und die Aussage tritt so lange zurueck -- sonst stuende sie zweimal da',
+      ruhMarke(d)?.hidden === true, JSON.stringify(ruhMarke(d)?.hidden));
+    pruefe('Der Zeiger steht im Feld',
+      d.w.document.activeElement === ruhFeld(d),
+      d.w.document.activeElement?.id || '(nichts)');
+
+    /* --- ESCAPE VERWIRFT und schreibt ausdruecklich NICHT. Das Schliessen
+       nimmt dem Feld den Zeiger und loest onblur aus; ohne das Zuruecksetzen
+       davor schriebe genau der Weg weg, der verwerfen sollte. --- */
+    const ruhVorEsc = d.gesendet.length;
+    ruhFeld(d).value = 'Doch nicht so';
+    ruhFeld(d).dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Escape schliesst das Feld, ohne etwas zu schicken',
+      ruhZeile(d)?.hidden === true && d.gesendet.length === ruhVorEsc,
+      JSON.stringify(d.gesendet.slice(ruhVorEsc).map(g => g.koerper)));
+    pruefe('Und die alte Aussage steht wieder da',
+      ruhWarum(d)?.textContent === 'Zu ruhig', JSON.stringify(ruhWarum(d)?.textContent));
+
+    // --- Ueber das ✎ ebenso, und Enter speichert und schliesst ---
+    ruhStift(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Das Stiftsymbol oeffnet dasselbe Feld',
+      ruhZeile(d)?.hidden === false, JSON.stringify(ruhZeile(d)?.hidden));
+    ruhFeld(d).value = 'Zu laut';
+    ruhFeld(d).dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    const ruhGeschickt = d.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/items/1').pop();
+    pruefe('Enter schickt den neuen Grund und schliesst das Feld',
+      gleich(Object.keys(ruhGeschickt?.koerper || {}), ['rejectedGrund']) &&
+      ruhGeschickt?.koerper?.rejectedGrund === 'Zu laut' && ruhZeile(d)?.hidden === true,
+      JSON.stringify([ruhGeschickt?.koerper, ruhZeile(d)?.hidden]));
+    pruefe('Und die Aussage sagt danach den neuen Satz',
+      ruhWarum(d)?.textContent === 'Zu laut' && ruhMarke(d)?.hidden === false,
+      JSON.stringify(ruhWarum(d)?.textContent));
+    d.w.close();
+  }
+
+  /* --- DER PAPIERKORB. Er schickt einen LEEREN Grund -- der Server macht
+     daraus ein Entfernen. Das Merkmal selbst wird ausdruecklich nicht
+     zurueckgenommen; das ist der Schalter und eine andere Handlung. --- */
+  {
+    const d = await ruhBaue(ruhIch, 'Zu ruhig');
+    ruhWeg(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    /* GEFRAGT WIRD VORHER: die Angabe ist danach nirgends wiederherzustellen.
+       Solange das Fenster offen steht, ist nichts hinausgegangen. */
+    const ruhFrage = d.w.document.querySelector('.backdrop .modal');
+    pruefe('Der Papierkorb fragt erst nach',
+      !!ruhFrage && /Begründung entfernen\?/.test(ruhFrage.textContent || ''),
+      ruhFrage ? ruhFrage.textContent.slice(0, 60) : '(kein Fenster)');
+    pruefe('Und schickt vorher nichts',
+      !d.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/items/1'),
+      JSON.stringify(d.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
+    ruhFrage.querySelector('[data-yes]').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    const ruhWegRumpf = d.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/items/1').pop();
+    pruefe('Nach dem Ja geht ein leerer Grund hinaus, und sonst nichts',
+      gleich(Object.keys(ruhWegRumpf?.koerper || {}), ['rejectedGrund']) &&
+      ruhWegRumpf?.koerper?.rejectedGrund === '', JSON.stringify(ruhWegRumpf?.koerper));
+    pruefe('Der Grund verschwindet aus der Aussage',
+      !ruhWarum(d) && ruhMarke(d)?.hidden === false, JSON.stringify(ruhSatz(d)?.textContent));
+    /* DATUM UND VERFASSER BLEIBEN STEHEN -- "Abgelehnt am … von …" ist
+       weiterhin wahr, nur der Grund fehlt. */
+    pruefe('Datum und Verfasser stehen weiter da',
+      ruhSatz(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von chefin',
+      JSON.stringify(ruhSatz(d)?.textContent));
+    pruefe('Und das Merkmal bleibt gesetzt',
+      d.w.document.getElementById('sw-rej-t')?.textContent === 'Abgelehnt',
+      JSON.stringify(d.w.document.getElementById('sw-rej-t')?.textContent));
+    /* OHNE BEGRUENDUNG GIBT ES KEINEN TEXT ZUM ANKLICKEN -- dann muss das ✎
+       dastehen, sonst gaebe es keinen Weg mehr hinein. Der Papierkorb dagegen
+       faellt weg: an einem leeren Feld boete er an, nichts zu entfernen. */
+    pruefe('Das Stiftsymbol bleibt, der Papierkorb geht',
+      !!ruhStift(d) && !ruhWeg(d), JSON.stringify([!!ruhStift(d), !!ruhWeg(d)]));
+    pruefe('Und der Stift sagt jetzt "schreiben" statt "ändern"',
+      ruhStift(d)?.title === 'Begründung schreiben', JSON.stringify(ruhStift(d)?.title));
+    d.w.close();
+  }
+
+  /* --- DIE ABSAGE BEIM ENTFERNEN. Ohne das Nein bliebe die Frage darueber
+     eine Frage, die nichts entscheidet. --- */
+  {
+    const d = await ruhBaue(ruhIch, 'Zu ruhig');
+    ruhWeg(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    d.w.document.querySelector('.backdrop [data-no]')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein Nein schickt nichts und laesst den Grund stehen',
+      !d.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/items/1') &&
+      ruhWarum(d)?.textContent === 'Zu ruhig', JSON.stringify(ruhWarum(d)?.textContent));
+    d.w.close();
+  }
+
+  /* --- DER FREMDE ADMIN: entfernen ja, umschreiben nein. Das ist die
+     Hausregel, und sie steht hier auf dem Bildschirm genauso wie im Server.
+     Der Text ist dort AUCH nicht anklickbar -- sonst oeffnete sich ein Feld,
+     dessen Inhalt der Server ablehnte. --- */
+  {
+    const d = await ruhBaue(ruhAndere, 'Zu ruhig');
+    pruefe('Ein fremder Admin bekommt den Papierkorb, aber keinen Stift',
+      !ruhStift(d) && !!ruhWeg(d), JSON.stringify([!!ruhStift(d), !!ruhWeg(d)]));
+    pruefe('Und der Text ist bei ihm nicht anklickbar',
+      !ruhWarum(d)?.classList.contains('klick'), ruhWarum(d)?.className);
+    ruhWarum(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein Klick auf den Text oeffnet dort gar nichts',
+      ruhZeile(d)?.hidden === true, JSON.stringify(ruhZeile(d)?.hidden));
+    pruefe('Die Aussage selbst steht ihm trotzdem vollstaendig da',
+      ruhSatz(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von Anna — Zu ruhig',
+      JSON.stringify(ruhSatz(d)?.textContent));
+    d.w.close();
+  }
+
+  /* --- DER VERFASSER DES EINTRAGS, ohne Adminrolle und ohne die Ablehnung
+     getroffen zu haben. Er darf entfernen (darfAendern) und nicht
+     umschreiben -- und genau an ihm haengt `mine`. OHNE DIESE LAGE bliebe der
+     Schalter durchweg aus und belegte nichts. --- */
+  {
+    const d = await ruhBaue(ruhAndere, 'Zu ruhig', { admin: false, eigner: true });
+    pruefe('Der Verfasser des Eintrags bekommt ebenfalls nur den Papierkorb',
+      !ruhStift(d) && !!ruhWeg(d), JSON.stringify([!!ruhStift(d), !!ruhWeg(d)]));
+    d.w.close();
+  }
+
+  /* --- DIE FREMDE: weder Admin noch Verfasser, weder des Eintrags noch der
+     Begruendung. Sie sieht die Aussage und kein einziges Zeichen. --- */
+  {
+    const d = await ruhBaue(ruhAndere, 'Zu ruhig', { admin: false });
+    pruefe('Eine Fremde bekommt weder Stift noch Papierkorb',
+      !ruhStift(d) && !ruhWeg(d), JSON.stringify([!!ruhStift(d), !!ruhWeg(d)]));
+    pruefe('Und das Feld bleibt ihr verschlossen',
+      ruhZeile(d)?.hidden === true, JSON.stringify(ruhZeile(d)?.hidden));
+    pruefe('Die Aussage liest sie trotzdem',
+      ruhMarke(d)?.hidden === false && /Zu ruhig/.test(ruhSatz(d)?.textContent || ''),
+      JSON.stringify(ruhSatz(d)?.textContent));
+    d.w.close();
+  }
+
+  /* --- OHNE VERFASSER DER BEGRUENDUNG -- eine Ablehnung aus einer Anlage vor
+     0.14.0. Der Server laesst dort JEDEN schreiben, der den Eintrag aendern
+     darf; ohne diesen Zweig gaebe es auf dem Bildschirm keinen Weg hinein,
+     und die Zusage des Servers liefe ins Leere. --- */
+  {
+    const d = await ruhBaue(null, null);
+    pruefe('An einer herrenlosen Ablehnung steht der Stift fuer den, der aendern darf',
+      !!ruhStift(d), '(kein Stift)');
+    pruefe('Und ohne Grund steht kein Papierkorb daneben',
+      !ruhWeg(d), '(Papierkorb steht da)');
+    const fremd = await ruhBaue(null, null, { admin: false });
+    pruefe('Wer den Eintrag nicht aendern darf, bekommt auch dort keinen',
+      !ruhStift(fremd) && !ruhWeg(fremd),
+      JSON.stringify([!!ruhStift(fremd), !!ruhWeg(fremd)]));
+    /* DIE ZEILE BLEIBT IHR TROTZDEM STEHEN: das Datum ist bekannt, und es ist
+       der Inhalt der Entscheidung. Weg bliebe sie nur, wenn gar nichts
+       bekannt waere UND kein Zeichen dastuende -- diese Lage steht in der
+       Gruppe von 0.14.0. */
+    pruefe('Das Datum liest sie aber weiterhin',
+      ruhMarke(fremd)?.hidden === false &&
+      ruhSatz(fremd)?.textContent === 'Abgelehnt am 14.03.2026, 09:12',
+      JSON.stringify([ruhMarke(fremd)?.hidden, ruhSatz(fremd)?.textContent]));
+    d.w.close(); fremd.w.close();
+  }
+
+  /* --- BEIM EINSCHALTEN STEHT DAS FELD SOFORT OFFEN. Das war der Sinn der
+     Zusage aus 0.14.0 und bleibt: ein Feld, das man erst suchen muss, bleibt
+     leer. Danach schliesst es sich. --- */
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1',
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Ohne Ablehnung steht das Feld zu Beginn nicht offen',
+      ruhZeile(d)?.hidden === true, JSON.stringify(ruhZeile(d)?.hidden));
+    d.w.document.getElementById('sw-rej')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Beim Einschalten steht es sofort offen',
+      ruhZeile(d)?.hidden === false, JSON.stringify(ruhZeile(d)?.hidden));
+    pruefe('Und der Zeiger steht darin',
+      d.w.document.activeElement === ruhFeld(d), d.w.document.activeElement?.id || '(nichts)');
+    // Und beim Ausschalten schliesst es sich wieder.
+    d.w.document.getElementById('sw-rej')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Beim Ausschalten schliesst es sich wieder',
+      ruhZeile(d)?.hidden === true && ruhMarke(d)?.hidden === true,
+      JSON.stringify([ruhZeile(d)?.hidden, ruhMarke(d)?.hidden]));
+    d.w.close();
+  }
+
+  /* --- DIE HERVORHEBUNG IM STILBLATT. Keine neue Farbe: der Strich traegt
+     dieselben 42 Prozent Rot wie der Rand des Schalters, der Grund selbst
+     `--red`. Eine Regel, die es nicht gibt, laesst die Aussage aussehen wie
+     eine Randnotiz -- und genau das war der Befund. --- */
+  {
+    // Dasselbe Werkzeug wie in der Gruppe zur Filterleiste -- ein zweiter
+    // Leser fuer dieselbe Datei liefe mit ihm auseinander.
+    pruefe('Die Aussage traegt einen roten Strich in der Farbe des Schalters',
+      /border-left: 2px solid rgba\(240,85,92,\.42\)/.test(regel123('.rej-aussage')),
+      regel123('.rej-aussage') || '(keine Regel)');
+    pruefe('Und der Grund selbst steht in --red',
+      /color: var\(--red\)/.test(regel123('.rej-aussage .rej-warum')),
+      regel123('.rej-aussage .rej-warum') || '(keine Regel)');
+    /* KEINE NEUE FARBE, und das ist zu belegen und nicht zu behaupten. Rot
+       steht hier in ZWEI Schreibweisen: ausgeschrieben (der Strich) und ueber
+       einen Vorgabewert (der Grund, das Loeschkreuz). Beide werden einzeln
+       nachgesehen -- ein Lauf, der nur die eine kennt, bliebe gruen, wenn die
+       andere eine erfundene Farbe truege. */
+    const ruhStellen = [regel123('.rej-aussage'), regel123('.rej-aussage .rej-warum'),
+                        regel123('.rej-aussage .mact.rm:hover')].join(' ');
+    const ruhRot = ruhStellen.match(/#[0-9a-f]{3,8}|rgba?\([^)]*\)/gi) || [];
+    const ruhVar = [...new Set(ruhStellen.match(/var\(--[a-z0-9-]+\)/gi) || [])];
+    pruefe('Die Gruppe benutzt Rot in beiden Schreibweisen',
+      ruhRot.length >= 1 && ruhVar.length >= 1, JSON.stringify([ruhRot, ruhVar]));
+    pruefe('Kein ausgeschriebener Rotwert ist neu',
+      ruhRot.every(w => (css123.match(new RegExp(w.replace(/[().*+?^${}|[\]\\]/g, '\\$&'), 'gi')) || []).length > 1),
+      JSON.stringify(ruhRot));
+    /* UND JEDER BENUTZTE VORGABEWERT IST IM STILBLATT GESETZT. Ein var() auf
+       einen Namen, den es nicht gibt, faellt lautlos auf "keine Farbe"
+       zurueck -- die Aussage stuende dann im Erbwert da und saehe aus wie
+       Absicht. */
+    pruefe('Und jeder benutzte Vorgabewert steht im Stilblatt',
+      ruhVar.every(v => css123.includes(`${v.slice(4, -1)}:`)), JSON.stringify(ruhVar));
+  }
 }
 
 /* ================= Der Schluesselwechsel =================
