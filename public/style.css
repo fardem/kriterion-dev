@@ -1467,28 +1467,43 @@ body.lb-open { overflow: hidden; }
    unruhiger; sie erweckten den Eindruck, die Anpinnung sei gar nicht
    gekennzeichnet.
 
-   DIE REIHENFOLGE ENTSCHEIDET HIER NICHTS: die drei Arten tragen zwei
-   Klassen und schlagen die einzelne von .cmt.pinned ueber die Spezifitaet.
-   Die Notizregel steht deshalb zuerst und faellt fuer jede Art wieder weg. */
-.cmt.pinned {
-  border-top-color: var(--gold-line);
-  border-right-color: var(--gold-line);
-  border-bottom-color: var(--gold-line);
-}
+   VIER KANTEN UND NICHT DREI, seit 0.13.2. Der Absatz darueber sagt seit
+   0.12.3 "bei ihr wird der ganze Rahmen golden" -- das Stilblatt tat es nicht:
+   `.cmt.pinned` faerbte oben, rechts und unten, die linke Kante blieb auf dem
+   grauen `--line` der Grundregel. Eine angepinnte Notiz stand damit in drei
+   goldenen und einer grauen Kante da. *Nachgemessen im Browser: oben
+   rgba(255,197,49,.52), links rgb(38,44,51).* Jetzt faerbt `border-color`
+   alle vier auf einmal.
+   DIE DREI ARTEN HOLEN SICH IHRE LINKE KANTE AUSDRUECKLICH ZURUECK, und das
+   ist der Grund, warum `border-left-color` in jeder der drei Regeln steht,
+   obwohl es weiter oben schon einmal dasteht: `.cmt.bericht` traegt ZWEI
+   Klassen, `.cmt.pinned` ebenfalls -- bei gleicher Spezifitaet gewinnt die
+   spaetere Regel, und das ist seit dieser Aenderung `.cmt.pinned`. Ohne die
+   Wiederholung bekaeme ein angepinnter Bericht eine goldene linke Kante, also
+   genau die zwei Farben, die 0.12.3 abgeschafft hat. *Der Absatz, der hier bis
+   0.13.2 stand, behauptete das Gegenteil -- die Arten schluegen `.cmt.pinned`
+   ueber die Spezifitaet. Sie tun es nicht; es fiel nur nicht auf, solange
+   `.cmt.pinned` die linke Kante gar nicht anfasste.*
+   WER EINE VIERTE ART EINFUEHRT, braucht deshalb weiterhin ihre eigene
+   `.cmt.pinned.<art>`-Regel -- schon wegen der drei uebrigen Kanten. */
+.cmt.pinned { border-color: var(--gold-line); }
 .cmt.pinned.bericht {
   border-top-color: var(--accent);
   border-right-color: var(--accent);
   border-bottom-color: var(--accent);
+  border-left-color: var(--accent);
 }
 .cmt.pinned.aufgabe {
   border-top-color: var(--blue);
   border-right-color: var(--blue);
   border-bottom-color: var(--blue);
+  border-left-color: var(--blue);
 }
 .cmt.pinned.erledigt {
   border-top-color: var(--green);
   border-right-color: var(--green);
   border-bottom-color: var(--green);
+  border-left-color: var(--green);
 }
 .cmt-head .marks { display: flex; gap: 4px; flex-shrink: 0; }
 .cmt-head .cmt-when { flex: 1; }
