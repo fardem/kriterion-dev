@@ -43,6 +43,53 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.13.2] - 2026-08-29
+
+**Der Rahmen eines angepinnten Kommentars schließt jetzt wirklich.** Eine
+angepinnte **Notiz** stand in drei goldenen Kanten und einer grauen da — die
+linke blieb auf dem Grundwert. *Das Stilblatt sagte seit 0.12.3 das Gegenteil;
+der Code tat es nie.*
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.13.2 ist **PATCH**: eine Kante
+> bekommt die Farbe, die sie laut geltender Entscheidung seit 0.12.3 haben
+> sollte. **Keine neue Fähigkeit, keine geänderte Bedienung, kein anderes
+> Ergebnis.** Kein Schema, kein Migrationsblock, keine neue Formatnummer, keine
+> neue Zeile in der `.env`, keine neue Abhängigkeit.
+
+### Fixed
+
+- **Angepinnt heißt jetzt: alle vier Kanten in einer Farbe.** Bei einer
+  angepinnten **Notiz** ist der ganze Rahmen golden; bei **Bericht**,
+  **Aufgabe** und **Erledigt** nehmen alle vier Kanten die Farbe der Art an,
+  und die linke bleibt die dicke Linie, an der man die Art erkennt.
+- Nachgemessen im Browser an der angepinnten Notiz: oben
+  `rgba(255,197,49,.52)`, links **`rgb(38,44,51)`** — der graue Grundwert.
+  Jetzt tragen beide dieselbe Farbe.
+
+### Changed
+
+- `.cmt.pinned` färbt mit **`border-color`** alle vier Kanten statt drei
+  einzelner. **Die drei Art-Regeln holen sich ihre linke Kante ausdrücklich
+  zurück** — `.cmt.bericht` und `.cmt.pinned` tragen beide zwei Klassen, und
+  bei gleicher Spezifität gewinnt die spätere Regel. *Ohne die Wiederholung
+  bekäme ein angepinnter Bericht eine goldene linke Kante neben drei orangen —
+  genau die zwei Farben an einem Kasten, die 0.12.3 abgeschafft hat.*
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Kein Schema, keine Migration, keine neue Zeile in der `.env`, keine
+neue Abhängigkeit. **Niemand wird abgemeldet**, kein Kommentar ändert sich.
+
+### Was gleich bleibt
+
+**Alles außer der einen Kante.** Breiten, Abstände und Textanfänge sind
+unverändert: die linke Kante einer Art bleibt **3 px**, die einer Notiz **1 px**,
+und der Innenabstand gleicht den Unterschied weiterhin aus (10 + 3 = 12 + 1), so
+dass die Zeilenanfänge in einer gemischten Liste auf einer Linie stehen.
+**`F_ROUTEN`** bleibt bei 69, **das Austauschformat** bei **10**.
+
+---
+
 ## [0.13.1] - 2026-08-29
 
 **Die Beschriftungen der Filterleiste stehen wieder neben dem, was sie
@@ -1854,3 +1901,4 @@ nicht mehr übernehmen.*
 [0.12.4]: https://github.com/fardem/kriterion/compare/v0.12.3...v0.12.4
 [0.13.0]: https://github.com/fardem/kriterion/compare/v0.12.4...v0.13.0
 [0.13.1]: https://github.com/fardem/kriterion/compare/v0.13.0...v0.13.1
+[0.13.2]: https://github.com/fardem/kriterion/compare/v0.13.1...v0.13.2

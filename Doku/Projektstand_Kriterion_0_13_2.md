@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 34 · Stand 29. August 2026 · gebaut: Version 0.13.1**
+**Kompakte Übergabe · Revision 35 · Stand 29. August 2026 · gebaut: Version 0.13.2**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,14 +43,13 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
-**0.13.1 in einem Satz: die Beschriftungen der Filterleiste stehen wieder neben
-dem, was sie beschriften — auf Höhe der ersten Zeile statt in der Mitte des
-Blocks.** *PATCH, weil die Anlage danach nichts kann, was sie vorher nicht
-konnte: eine Zeile im Stilblatt richtet aus, was falsch ausgerichtet war.*
-**Die Runde davor, 0.13.0, ist die zweite aus dem Fahrplan in Abschnitt 10a**
-und hat die Anlage über zwei Netze zugleich erreichbar gemacht — über HTTPS
-hinter dem Proxy und über `http://<server-ip>:3100` im Heimnetz, mit derselben
-Einstellung. Alles Weitere in Abschnitt 2 und Abschnitt 9.
+**0.13.2 in einem Satz: der Rahmen eines angepinnten Kommentars schließt jetzt
+wirklich — bei einer Notiz sind alle vier Kanten golden statt drei.** *PATCH,
+weil die Anlage danach nichts kann, was sie vorher nicht konnte: eine Kante
+bekommt die Farbe, die sie nach der Entscheidung aus 0.12.3 längst haben
+sollte.* **Die letzte Runde mit einer neuen Fähigkeit ist 0.13.0**, die zweite
+aus dem Fahrplan in Abschnitt 10a: die Anlage ist seither über zwei Netze
+zugleich erreichbar. Alles Weitere in Abschnitt 2 und Abschnitt 9.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
 > trägt die **gebaute** Runde in einem Satz und sonst nichts Versionsbezogenes.
@@ -127,11 +126,15 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.13.1** — Fingerprint **`ee00fdf2`**, **4123 Prüfungen**,
-**216 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
-*0.13.1 richtet die Beschriftungen der Filterleiste an der Grundlinie aus statt
-in der Mitte — eine Zeile im Stilblatt, sonst nichts.* **PATCH — die Anlage kann
-danach nichts, was sie vorher nicht konnte.**
+**Gebaut ist 0.13.2** — Fingerprint **`15188676`**, **4131 Prüfungen**,
+**218 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
+*0.13.2 schließt den Rahmen eines angepinnten Kommentars: bei einer Notiz waren
+drei Kanten golden und die linke grau.* **PATCH — die Anlage kann danach nichts,
+was sie vorher nicht konnte.**
+
+*Davor, ebenfalls am 29. August: **0.13.1** (Fingerprint `ee00fdf2`, 4123
+Prüfungen) richtet die Beschriftungen der Filterleiste an der Grundlinie aus
+statt in der Mitte.*
 
 *Die Runde davor, **0.13.0** (Fingerprint `c1d2320d`, 4115 Prüfungen), macht die
 Anlage über zwei Netze zugleich erreichbar und repariert den Teilexport, der mit
@@ -2951,6 +2954,15 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   (`sortiereWolke()`, `begrenzeWolke()` — eine Stelle, zwei Rufer); verschieden
   ist nur die Anordnung. *Aus einer Doppelung ohne Grund ist damit ein
   Unterschied mit Grund geworden.*
+- **Angepinnt heißt: ALLE VIER Kanten in einer Farbe** (seit 0.12.3
+  entschieden, seit 0.13.2 auch gebaut). `.cmt.pinned { border-color: … }`.
+  Bei einer Notiz ist der ganze Rahmen golden, bei einer Art tragen alle vier
+  Kanten deren Farbe, und links bleibt die dicke Linie. **Bis 0.13.2 färbte die
+  Regel nur drei Kanten** — die Entscheidung stand im Kommentar, nicht im Code
+  (Stolperstein 199). *Die drei Art-Regeln wiederholen ihre linke Kante
+  ausdrücklich: gleiche Spezifität, spätere Regel gewinnt (Stolperstein 200).
+  Eine Prüfung hält die Reihenfolge im Stilblatt fest, damit die Wiederholung
+  nicht als überflüssig gestrichen wird.*
 - **Die Filterzeile richtet an der GRUNDLINIE aus, nicht an der Mitte und nicht
   an der Oberkante** (seit 0.13.1). `align-items: baseline` an `.frow`.
   **Mitte war der Fehler:** sie mittelt über die ganze Höhe, und die aufgeklappte
@@ -4631,6 +4643,26 @@ Version, in der sie entstanden sind.*
     KEIN BELEG, SOLANGE NICHT FESTSTEHT, WOGEGEN GEMESSEN WURDE.** *Dieselbe
     Sache in anderer Gestalt wie Stolperstein 193.*
 
+199. **Ein Kommentar, der sagt, was gelten soll, ist kein Beleg dafür, dass es
+    gilt.** Über `.cmt.pinned` stand seit 0.12.3 *„bei ihr wird der ganze Rahmen
+    golden"*, und drei Zeilen darunter standen drei Kanten statt vier — eine
+    angepinnte Notiz trug drei goldene Kanten und eine graue. Der Absatz war
+    sorgfältig geschrieben, ausführlich begründet und falsch. **WER EINE
+    ENTSCHEIDUNG IN EINEN KOMMENTAR SCHREIBT, SCHREIBT SIE IM SELBEN ZUG IN EINE
+    PRÜFUNG** — sonst ist sie eine Absichtserklärung, die mit jeder Runde
+    glaubwürdiger aussieht und nicht wahrer wird. *Der Fehler ist besonders zäh,
+    weil der Kommentar beim Lesen wie eine Bestätigung wirkt: man sieht, was
+    dastehen soll, und liest darüber hinweg, dass es nicht dasteht.*
+
+200. **Zwei Regeln gleicher Spezifität widersprechen sich erst, wenn sie
+    dieselbe Eigenschaft anfassen — und bis dahin bleibt jede Behauptung über
+    sie unwiderlegt.** Derselbe Kommentar sagte, die Art-Regeln schlügen
+    `.cmt.pinned` über die Spezifität; `.cmt.bericht` und `.cmt.pinned` tragen
+    aber **beide zwei Klassen**, und dann entscheidet die Reihenfolge. Das war
+    zwei Runden lang folgenlos, weil `.cmt.pinned` die linke Kante gar nicht
+    anfasste. **WER EINE REGEL UM EINE EIGENSCHAFT ERWEITERT, ZÄHLT DIE KLASSEN
+    NEU.** *Die Reihenfolge im Stilblatt ist seit 0.13.2 selbst eine Prüfung.*
+
 ---
 
 ## 7. Prüfstand
@@ -4644,10 +4676,14 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4123 von 4123 bestanden** (0.13.1) — **8 neue Prüfungen** in
-einer neuen Gruppe; 0.13.0 davor brachte 123 in fünf. Die Gegenproben stehen in
-Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der
-volle Lauf über alle **216** Rückbauten.
+**Stand: 4131 von 4131 bestanden** (0.13.2) — **8 neue Prüfungen** in einer
+neuen Gruppe; 0.13.1 davor brachte ebenfalls 8, 0.13.0 brachte 123 in fünf. Die
+Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
+beschränkt und **nicht** der volle Lauf über alle **218** Rückbauten.
+
+| neue Gruppe (0.13.2) | Prüfungen |
+|---|---|
+| Der angepinnte Rahmen schliesst | 8 |
 
 | neue Gruppe (0.13.1) | Prüfungen |
 |---|---|
@@ -5095,7 +5131,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   dem Pfad, der fremde Dateien annimmt und unter fremden Namen schreibt.** Eine
   eigene Runde mit eigener Prüflage, und keine Beifracht.
 
-- **DIE TAGS `v0.11.0` BIS `v0.13.1` FEHLEN AM REMOTE — UND DER GRUND STAND
+- **DIE TAGS `v0.11.0` BIS `v0.13.2` FEHLEN AM REMOTE — UND DER GRUND STAND
   BIS 0.12.4 FALSCH HIER.** Es ist **kein** Problem der GitHub-Rechte, und ein
   „Push von einer Stelle mit den nötigen Rechten" ist nicht der Punkt.
 
@@ -5130,8 +5166,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   ```
 
   **Diese vier liegen auf `main` und lassen sich sofort setzen.** `v0.12.3`
-  (`09873558`), `v0.12.4` (`9f7b0f7f`), `v0.13.0` und `v0.13.1` liegen bisher
-  nur auf einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
+  (`09873558`), `v0.12.4` (`9f7b0f7f`), `v0.13.0`, `v0.13.1` und `v0.13.2`
+  liegen bisher nur auf einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
   danach auf dieselben Commits; wer ihn quetscht, setzt sie auf die dabei
   entstehenden — die alten sind von `main` aus dann nicht mehr erreichbar.*
 
@@ -5160,8 +5196,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT SIEBEN RUNDEN AUS.** 216 Rückbauten zu
-  je einem vollen Prüflauf sind über zwanzig Stunden. **Auch in 0.13.1 ist er
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ACHT RUNDEN AUS.** 218 Rückbauten zu
+  je einem vollen Prüflauf sind über zwanzig Stunden. **Auch in 0.13.2 ist er
   nicht gefahren, und das ist keine Zusage mehr.** *Was 0.13.0 daran ändert, ist der
   billige Teil: der Prüfstand rechnet jetzt bei jedem Lauf nach, dass jeder
   Rückbau in seiner Datei überhaupt noch greift — drei taten es fünf Runden lang
@@ -5375,6 +5411,34 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.13.2 — „Der Rahmen schließt"
+
+**PATCH · 29. August 2026 · ein Befund aus dem Betrieb, gemeldet als Bild.**
+
+**EINE KANTE.** `.cmt.pinned` färbte oben, rechts und unten golden; die linke
+Kante blieb auf dem grauen `--line` der Grundregel. Eine angepinnte **Notiz**
+stand damit in drei goldenen und einer grauen Kante da — nachgemessen: oben
+`rgba(255,197,49,.52)`, links `rgb(38,44,51)`. Jetzt färbt `border-color` alle
+vier auf einmal. **Bei Bericht, Aufgabe und Erledigt war es von Anfang an
+richtig**, weil deren linke Kante aus der Art-Regel kam und von der Anpinnung
+nicht angefasst wurde; der Fehler traf genau einen von vier Fällen.
+
+**DER EIGENTLICHE BEFUND IST DER KOMMENTAR.** Über der Regel stand seit 0.12.3
+*„bei ihr wird der ganze Rahmen golden"* — zwei Runden lang stand die Absicht
+neben dem Code und stimmte nicht mit ihm überein. **Und ein zweiter Satz
+desselben Kommentars war ebenfalls falsch:** die Art-Regeln schlagen
+`.cmt.pinned` **nicht** über die Spezifität, beide tragen zwei Klassen. Das war
+folgenlos, solange die beiden Regeln einander nicht berührten — mit
+`border-color` tun sie es. **Jede Art holt sich ihre linke Kante deshalb
+ausdrücklich zurück**, sonst bekäme ein angepinnter Bericht eine goldene linke
+Kante neben drei orangen. *Beide Sätze stehen jetzt als widerlegt im Stilblatt
+statt gelöscht.*
+
+**Kein Schema, kein Migrationsblock, keine Formatnummer, keine `.env`-Zeile,
+keine Abhängigkeit, `F_ROUTEN` unverändert bei 69.** Nur `public/style.css`,
+`pruefung.js` und `gegenprobe.js` sind angefasst; Breiten und Abstände bleiben,
+wie sie waren. 4123 → **4131 Prüfungen**, 216 → **218 Rückbauten**.
 
 ### 0.13.1 — „Die Beschriftungen stehen oben"
 
