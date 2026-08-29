@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 32 · Stand 28. August 2026 · gebaut: Version 0.12.4**
+**Kompakte Übergabe · Revision 33 · Stand 28. August 2026 · gebaut: Version 0.13.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,16 +43,15 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
-**0.12.3 in einem Satz: der Export sagt, wie groß er wird, bevor er versucht
-wird — und neun Kleinigkeiten an der Oberfläche ziehen nach.** *PATCH, weil die
-Anlage danach nichts kann, was sie vorher nicht konnte: der Export exportiert
-weiterhin, er bricht nur nicht mehr wortlos ab.* **Es ist die erste Runde aus
-dem Fahrplan in Abschnitt 10a** und damit die erste seit 0.12.0, die wieder
-den Server anfasst. Die drei Runden davor waren eine Sache mit zwei
-Nachschlägen: 0.12.2 hat die Vorschaureihe auf dem Telefon die Breite füllen
-lassen, 0.12.1 das Löschen ans große Bild gebracht, und 0.12.0 hat die
-Oberfläche auf Telefon und Tablett zu einer Anwendung gemacht statt zu einer
-breit gebauten Seite, die man schmal gemacht hat. Alles Weitere in Abschnitt 2
+**0.13.0 in einem Satz: die Anlage ist über zwei Netze zugleich erreichbar —
+über HTTPS hinter dem Proxy und über `http://<server-ip>:3100` im Heimnetz, mit
+derselben Einstellung.** *MINOR, weil das eine Fähigkeit ist, die es vorher
+nicht gab: mit `HINTER_PROXY=1` kam über den zweiten Weg niemand mehr herein.*
+**Es ist die zweite Runde aus dem Fahrplan in Abschnitt 10a**, und sie trägt
+sechs weitere Punkte — den reparierten Teilexport mit zweitem Faktor, den
+Filter am Sicherheitsprotokoll, den Satz im Löschdialog samt eigenem Fenster
+für die Grabsteine, eine um 75 px flachere Filterleiste und eine
+Kategoriezeile, die mehrere Werte zugleich trägt. Alles Weitere in Abschnitt 2
 und Abschnitt 9.
 
 > **Regel für diesen Kopf, damit er nicht zum zweiten Changelog wird.** Er
@@ -130,17 +129,43 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.12.4** — Fingerprint **`ca991cf5`**, **3992 Prüfungen**,
-**einundzwanzig Gegenproben, und die nur auf die neuen Zusagen** (Abschnitt 8).
-*0.12.4 ist die Antwort auf das, was 0.12.3 gemessen hat: der Export geht in
-Teilen, und jeder Teil ist eine vollständige Exportdatei.* **PATCH — die
-Fähigkeit ist nicht neu, sie kommt zurück.**
+**Gebaut ist 0.13.0** — Fingerprint **`c1d2320d`**, **4115 Prüfungen**,
+**214 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
+*0.13.0 macht die Anlage über zwei Netze zugleich erreichbar und repariert den
+Teilexport, der mit eingeschaltetem zweitem Faktor seit 0.12.4 gar nicht ging.*
+**MINOR — die Anlage kann danach etwas, was sie vorher nicht konnte.**
 **KEINE DATENBANKSTUFE:** keine Tabelle, keine Spalte, kein Migrationscode; es
 bleibt bei **fünf** markierten Migrationsblöcken, und das Austauschformat bleibt
 bei **10**. *Die Sicherung des Datenverzeichnisses ist deshalb Empfehlung und
 nicht Pflicht.* **Keine neue Zeile in der `.env`, keine neue Abhängigkeit,
 `F_ROUTEN` unverändert bei 69.**
 Was die Runde bringt, steht in Abschnitt 9.
+
+> **DER PREIS DER EINSTELLUNG IST BEZAHLT, NICHT MEHR GETRAGEN.** `HINTER_PROXY`
+> bündelte fünf Wirkungen und konnte damit immer nur ein Netz bedienen; über
+> `http://<server-ip>:3100` kam niemand mehr herein, weil der Browser den
+> `Secure`-Cookie stillschweigend verwarf. **Cookiename, `Secure` und HSTS
+> entscheidet seit 0.13.0 die einzelne Anfrage über `X-Forwarded-Proto`** —
+> zwei Cookienamen nebeneinander, und je Anfrage wird genau einer gelesen.
+> **Damit ist auch der Handgriff „Wenn der Proxy ausfällt" gegenstandslos** und
+> aus der README entfernt: fällt der Proxy aus, geht der Weg über das Heimnetz
+> von selbst.
+> **Was NICHT gebaut ist: die Adressliste, wer `X-Forwarded-For` setzen darf.**
+> Sie ist die zweite Hälfte des Problems — die offene Portfreigabe 3100 — und
+> steht als offener Punkt in Abschnitt 8.
+
+**Was 0.13.0 für den Betrieb bedeutet: nichts einzustellen, und niemand wird
+abgemeldet.** Kein Schema, keine `.env`-Zeile, keine neue Abhängigkeit. **Wer
+über HTTPS angemeldet ist, bleibt es** — sein Cookiename ändert sich nicht.
+*Das Umlegen von `HINTER_PROXY` meldet weiterhin alle einmalig ab, die über
+HTTPS kommen; nur braucht es das jetzt nicht mehr, um ins Heimnetz zu kommen.*
+
+> **ZWEI ZAHLEN AUS DEM BETRIEB HABEN DIESE RUNDE MITGEFORMT.** Erstens: der
+> Teilexport war mit eingeschaltetem zweitem Faktor **unbenutzbar** — der Knopf
+> schickte denselben Code einmal je Teil, und ein Code gilt genau einmal.
+> Zweitens: die Filterleiste war bei 1359 px Fenster **229 px** hoch, vier von
+> fünf Zeilen zu mehr als der Hälfte leer. **Beides ist gemessen und nicht
+> geschätzt, vorher wie nachher.**
 
 > **DIE ZAHL AUS DEM FELD WAR 760 MB, UND SIE HAT DIESE RUNDE AUSGELÖST.** Die
 > Karte **Kennzahlen** trägt seit 0.12.3 die Zeile **„Export, alles"**; am
@@ -193,14 +218,19 @@ Branch. *Der Dateisatz auf dem Wirt ist damit genau der, der gemeint war —
 einen Befund wie bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es
 nicht.* **Davor war es 0.12.0** mit `192734a2`.
 
-> **0.12.3 IST IM FELD GEWESEN und hat dabei genau das geliefert, wofür es
-> gebaut war: die Zahl 760 MB.** Der Fingerprint dieser Runde ist nicht
-> gegengeprüft worden — die Rückmeldung kam über die Meldung am Exportknopf.
+> **0.12.4 IST IM FELD BESTÄTIGT — 28. August 2026.** Die laufende Anlage
+> meldete **`ca991cf5`**, der Branch maß dasselbe. *Damit stand fest, dass auf
+> dem Wirt genau der Stand lag, den 0.13.0 voraussetzt.*
 >
-> **FÜR 0.12.4 STEHT DIE BESTÄTIGUNG AUS.** Der Fingerprint des Branches ist
-> **`ca991cf5`**. *Abzulesen beim ersten Öffnen — und daneben, unter Export →
-> „In Teilen exportieren", wie viele Teile bei 300 MB herauskommen. Bei 760 MB
-> sollten es drei sein.*
+> **WAS AN 0.12.4 NOCH NICHT BESTÄTIGT IST, IST DER TEILEXPORT SELBST.** Er ist
+> an drei Prüflagen gefahren, die größte mit 1000 Einträgen; **am echten
+> Bestand ist er noch nicht gesehen** — und mit eingeschaltetem zweitem Faktor
+> ging er bis 0.13.0 überhaupt nicht. *Die Nachlese steht in Abschnitt 8.*
+>
+> **FÜR 0.13.0 STEHT DIE BESTÄTIGUNG AUS.** Der Fingerprint des Branches ist
+> **`c1d2320d`**. *Abzulesen beim ersten Öffnen — und daneben die beiden
+> Anmeldungen, die diese Runde belegen: eine über HTTPS und eine über
+> `http://<server-ip>:3100`, im selben Browser.*
 
 **UND DIESE BESTÄTIGUNG HAT SOFORT ETWAS GEBRACHT: 0.12.1 IST EIN BEFUND AUS
 DEM BETRIEB.** Einen Tag nach dem Einspielen kam vom laufenden Gerät die
@@ -234,7 +264,9 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.12.2** | **`e30a19c1`** | 3856 |
+| **0.12.4** | **`ca991cf5`** | 3992 |
+| 0.12.3 | `0d04b540` | 3954 |
+| 0.12.2 | `e30a19c1` | 3856 |
 | 0.12.1 | `2e3f2e0b` | 3851 |
 | 0.12.0 | `192734a2` | 3848 |
 | 0.11.0 | `74c44ec0` | 3815 |
@@ -252,14 +284,14 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 jeder Version steht auch in ihrem Änderungsprotokoll.*
 
 **`HINTER_PROXY` STEHT IM BETRIEB AUF `1`.** Der Reverse Proxy steht inzwischen
-davor — festgehalten wurde das mit 0.10.0. Die Anmeldung läuft damit nur noch
-über HTTPS, und der Sitzungscookie heißt `__Host-kriterion_session`. **Der
-direkte Weg über `http://<server-ip>:3100` ist damit tot** — der Server
-antwortet zwar mit 200, aber der Browser verwirft den `Secure`-Cookie
-stillschweigend. *Das ist kein
-Fehler, sondern der Preis der Einstellung.* Was daran offen ist und wie der Weg
-zurück aussieht, steht in Abschnitt 8; die fünf Wirkungen der Einstellung in
-Abschnitt 3.
+davor — festgehalten wurde das mit 0.10.0. **Seit 0.13.0 sind damit BEIDE Wege
+offen:** über HTTPS gilt der Cookie `__Host-kriterion_session` samt `Secure`
+und HSTS, über `http://<server-ip>:3100` der Cookie `kriterion_session` ohne
+beides. **Entschieden wird je Anfrage über `X-Forwarded-Proto`**, und gelesen
+wird je Anfrage genau ein Name. *Bis 0.12.4 war der direkte Weg tot — der
+Server antwortete mit 200, und der Browser verwarf den `Secure`-Cookie
+stillschweigend.* Was daran offen bleibt, steht in Abschnitt 8; die zwei
+verbliebenen Wirkungen der Einstellung in Abschnitt 3.
 
 **Die beiden Anlegen-Schalter stehen so:** bei den **Kategorien aus** (nur der
 Admin legt neue an, das Auswahlfeld am Eintrag bleibt), bei den **Tags an**
@@ -788,14 +820,35 @@ Bewertung, keine Note.
 | Wer es sieht | **der Eigentümer allein** |
 | Wie lange | **180 Tage**, geräumt beim Start und beim Öffnen der Karte |
 | Weg hinaus | **nur die Frist** — es gibt keine Löschroute |
+| Wie gefunden wird | **sechs Ansichten** an der Karte, seit 0.13.0 |
 
 **Zwanzig Vorgänge** (`VORGAENGE`): Anmeldung gelungen/gescheitert, Bestätigung
 gescheitert, Zugang angelegt, Rolle vergeben, Zugang gesperrt/freigegeben,
 fremdes Passwort gesetzt, Zugang entfernt, eigener Zugang geändert, Link
 erzeugt, Link eingelöst, Anfrage freigeschaltet, Anfrage abgelehnt, zweiter
 Faktor an/aus/wieder, Export, Import, Sicherung, Schlüssel gewechselt.
-**Dreizehn Merkmale** (`MERKMALE`), alle aus einer geschlossenen Liste im
-Quelltext.
+**Vierzehn Merkmale** (`MERKMALE`), alle aus einer geschlossenen Liste im
+Quelltext. *`teil` kam mit 0.13.0 dazu, als Nachlese zu einem Befund: 0.12.4
+schrieb `teil 1/5` in diese Spalte, das ist kein Wert aus der Liste, und
+`protokolliere()` verwarf damit die **ganze** Zeile — ein Teilexport stand im
+Protokoll nirgends (Stolperstein 191).*
+
+**SECHS ANSICHTEN AN DER KARTE, seit 0.13.0:** Alle · **Gescheitert** ·
+Anmeldungen · Zugänge · Zweiter Faktor · Bestand. Jede nennt ihre Zahl, gezählt
+über die ganze Tabelle. **Die Auswahl geht an den SERVER** (`?gruppe=`) und
+nicht an den Browser: die Karte holt die **hundert jüngsten**, und mit der
+Auswahl sind es die hundert jüngsten **dieser Art**. *Ein örtlicher Filter
+durchsuchte genau die hundert, in denen man die gescheiterten Anmeldungen
+nicht findet — das war der Befund.* **Ein unbekannter Schlüssel ist ein 400**,
+kein stillschweigendes „alles". **Die Zuordnung steht als `PROTOKOLL_GRUPPEN`
+in `auth.js`**, neben der Liste der Vorgänge; der Prüfstand rechnet nach, dass
+jeder Vorgang in genau einer Gruppe steht.
+**„Gescheitert" heißt nicht „gescheiterte Anmeldungen":** die Ansicht trägt auch
+die gescheiterte zweite Bestätigung — beide sagen, dass jemand an der Tür nicht
+belegen konnte, wer er ist.
+**Die Namen in den Zeilen sind anklickbar** und springen zur Zeile in der Karte
+„Zugänge". **„unbekannter Name" wird nie ein Knopf** — es gäbe nichts, wohin er
+springen könnte.
 
 **`zweifaktor.wieder` ist der, auf den es ankommt** — er sagt, dass ein
 **Wiederherstellungscode verbraucht** wurde, und ist damit die einzige Zeile im
@@ -1028,7 +1081,7 @@ Schlüsselverwaltung.*
 die Schlüssellänge, den Dateinamen `katalog.sqlite`, das Schema, das
 Austauschformat, die Passwörter und die Sitzungen.
 
-### `HINTER_PROXY` — eine Einstellung, fünf Wirkungen
+### `HINTER_PROXY` — eine Einstellung, zwei Wirkungen (bis 0.12.4: fünf)
 
 Sie steht in der `.env`, nicht in `settings`: sie entscheidet über
 Netzwerkvertrauen, nicht über eine Vorliebe, und ein übernommener Admin-Zugang
@@ -1037,28 +1090,56 @@ könnte sie sonst selbst umlegen. Vorgabe ist **aus**; **im Betrieb steht sie au
 
 | | fehlt (Vorgabe) | `HINTER_PROXY=1` |
 |---|---|---|
+| `X-Forwarded-For` und `X-Forwarded-Proto` | werden **nicht angesehen** | werden gelesen |
 | Adresse des Aufrufers | `req.socket.remoteAddress` | **letzter** Eintrag aus `X-Forwarded-For` |
-| Cookiename | `kriterion_session` | `__Host-kriterion_session` |
-| `Secure` am Cookie | nein | ja |
-| `Strict-Transport-Security` | nein | `max-age=31536000` |
 | `http://` in `OEFFENTLICHE_ADRESSE` | wird hingenommen | **Warnung beim Start**, keine Absage |
 | richtig für | direkt im Heimnetz, Port 3100 | Betrieb hinter einem Proxy, HTTPS |
 
 **Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung.**
-Ohne die Einstellung wird `X-Forwarded-For` nicht einmal angesehen; mit ihr zählt
+Ohne die Einstellung wird keiner der beiden angesehen; mit ihr zählt bei beiden
 der **letzte** Eintrag der Kette und nicht der erste — ein Proxy hängt die
 Gegenstelle, die er wirklich sieht, hinten an, alles davor kann der Aufrufer
 selbst geschrieben haben. *Genau der erste Eintrag war es, den die Fassung vor
 0.8.20 nahm; mit wechselndem Kopf griff die Bremse nie.*
 
-**Der Cookiename steht deshalb nirgends mehr als fester String** — wer ihn
-braucht, nimmt `auth.COOKIE_NAME`; ein Wächter über die ausgelieferten Dateien
-hält das fest. **Das Umlegen meldet alle einmalig ab**, weil das Präfix
-`__Host-` den Namen wörtlich verlangt.
+### Cookiename, `Secure` und HSTS — je Anfrage, seit 0.13.0
+
+**Diese drei hingen bis 0.12.4 an `HINTER_PROXY` und hängen seither an der
+einzelnen Anfrage.** Der Grund ist der Betrieb: die Anlage ist aus **zwei**
+Netzen zugleich erreichbar, und eine Einstellung je Prozess kann immer nur
+eines davon bedienen. Die eine Frage steht in `auth.js` als `ueberProxy(req)`
+— sie sieht **ausschließlich** in die Kopfzeilen.
+
+| | `X-Forwarded-Proto: https` | ohne den Kopf |
+|---|---|---|
+| Cookiename | `__Host-kriterion_session` | `kriterion_session` |
+| `Secure` | **ja** | **nein** |
+| `Strict-Transport-Security` | `max-age=31536000` | **nein** |
+| gelesen wird | **nur** `__Host-…` | **nur** `kriterion_session` |
+
+**GELESEN WIRD JE ANFRAGE GENAU EIN NAME.** Ein Klartextcookie geht auch an die
+HTTPS-Seite — er trägt kein `Secure`. Wer ihn dort gelten ließe, hätte das
+Präfix `__Host-` für nichts: wer im eigenen Netz eine Klartextverbindung
+verbiegen kann, setzte damit einen Cookie, den die HTTPS-Seite anschließend
+auch annähme. **Ein Name mit bedingtem `Secure` ist deshalb ausdrücklich nicht
+gebaut** (Abschnitt 5).
+
+**HSTS gilt nur auf dem HTTPS-Weg** — ginge der Kopf auf dem Heimnetzweg mit,
+bestünde der Browser danach auf HTTPS und fände an Port 3100 keines. Die Stelle
+ist die globale Kopfzeilen-Middleware in `server.js`, vor `express.static`.
+
+**Der Cookiename steht nirgends als fester String** — wer ihn braucht, nimmt
+`auth.sitzungsToken(req)` beziehungsweise `auth.cookieName(req)`; ein Wächter
+über die ausgelieferten Dateien hält das fest, und der Klarname entsteht in
+`auth.js` genau einmal als Literal (der sichere wird daraus gebaut).
+**Das Umlegen der Einstellung meldet weiterhin alle einmalig ab, die über HTTPS
+kommen** — ihr Name wird dann nicht mehr gelesen.
 
 **Was die Einstellung nicht ist: eine Liste, wer den Kopf setzen darf.** Sie ist
-ein Ja/Nein — und die Anlage ist inzwischen aus **zwei** Netzen zugleich
-erreichbar. Was daran offen ist, steht in Abschnitt 8.
+ein Ja/Nein, und die Anlage ist aus zwei Netzen erreichbar. **Solange Port 3100
+im eigenen Netz offen steht, ist `X-Forwarded-For` eine Behauptung des
+Aufrufers und die Anmeldebremse damit umgehbar.** Was daran offen ist, steht in
+Abschnitt 8.
 
 ### Zwei Titel
 
@@ -1079,6 +1160,21 @@ Häufigkeit sortiert, Verknüpfung Und/Oder umschaltbar); Sortierung nach
 Änderung, Bewertung, Titel und drei Testkennzahlen; Vergleich mehrerer Einträge;
 **„★ Favoriten"** als eigener, mit jedem Teststatus kombinierbarer Filter.
 Filter- und Sortierwahl werden serverseitig gespeichert.
+
+**Die Kategoriezeile trägt seit 0.13.0 MEHRERE Kategorien zugleich**, und
+**„Ohne"** ist ein Wert derselben Liste, mit eigener Zahl am Ende der Zeile.
+**Es ist ein ODER und niemals ein UND:** `product_category_id` ist eine einzelne
+Spalte, ein Eintrag trägt genau eine Kategorie, und ein Schnitt wäre garantiert
+leer. **Die Zeile bekommt deshalb ausdrücklich kein Und/Oder** — anders als die
+Tagzeile, wo die Wahl echt ist. *Mehrere gewählte Kategorien zählen in der
+Filterzahl als **ein** Filter: jeder Tag verkleinert die Menge, jede Kategorie
+vergrößert sie.* **„Alle" bleibt eine Pille** (Begründung in Abschnitt 5).
+
+**Die Filterleiste ist seit 0.13.0 vier Zeilen statt fünf** — bei 1359 px
+Fenster **154 px** statt 229 px, gemessen. Die Tagwolke steht neben ihren
+Verweisen in **einer** Zeile, Sortieren und Ansichten teilen sich eine. **Eine
+Pille, die zusammen mit der aktuellen Auswahl null Treffer brächte, wird
+gedämpft** — Tags, Kategorien und „Neu seit …" gleichermaßen.
 
 **Die Suche läuft seit 0.11.0 im SERVER** (`GET /api/items?q=…`) und nicht mehr
 im Browser. **Sie findet dasselbe wie vorher:** dieselben **sieben Quellen**
@@ -1239,7 +1335,10 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 Belegung der Datenbank und der Fingerprint), Kategorien und Tags umbenennen und
 löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
 **gewichten**, Karte **„Zugänge"** (anlegen mit Passwort oder mit Link, sperren,
-Passwort zurücksetzen direkt oder über einen Link, Rolle wechseln, entfernen),
+Passwort zurücksetzen direkt oder über einen Link, Rolle wechseln, entfernen —
+**gelöschte Zugänge stehen seit 0.13.0 in einem eigenen Fenster** hinter einem
+Knopf, der ihre Zahl nennt, und **der Löschdialog nennt sperren als den
+umkehrbaren Weg**),
 Karte **„Anfragen"** (der Schalter der Selbstanmeldung, die Liste der
 bestätigten Anfragen, je Zeile Freischalten und Ablehnen), Karte
 **„Suchanbieter"** (Vorrat, Startanbieter, drei eigene), **Vokabular** aus elf
@@ -1264,10 +1363,12 @@ verweigert nicht.* **Der Import fragt vor dem Einlesen nach**, wenn die Datei
 sehr groß ist; dort steht die Größe ja vorher fest.
 **Seit 0.12.4 steht darunter der Weg, der hilft: „In Teilen exportieren".** Die
 Anlage rechnet den Schnitt aus und zeigt jeden Teil mit Nummer, Anzahl und
-Größe; **das Passwort wird einmal gefragt und je Teil geprüft.** Eingespielt
-wird Teil 1 mit „Ersetzen" und alle übrigen mit „Zusammenführen" — der
-Einspielweg steht an der Karte und nicht nur in der README. Näheres in
-Abschnitt 5.4. **Letztere steht ausdrücklich NICHT beim Admin**, obwohl der
+Größe; **seit 0.13.0 wird EINMAL bestätigt — eine Anfrage für alle Teile —, und
+jedes Laden verbraucht weiterhin genau eine Freigabe.** *Bis dahin schickte der
+Knopf denselben Code einmal je Teil, und mit eingeschaltetem zweitem Faktor ging
+der Weg damit überhaupt nicht.* Eingespielt wird Teil 1 mit „Ersetzen" und alle
+übrigen mit „Zusammenführen" — der Einspielweg steht an der Karte und nicht nur
+in der README. Näheres in Abschnitt 5.4. **Letztere steht ausdrücklich NICHT beim Admin**, obwohl der
 die Einladungen verschickt — was er bekommt, ist die Auskunft an der Stelle, an
 der sie ihn angeht: neben dem Link steht, ob etwas hinausging und warum nicht.
 
@@ -2814,17 +2915,78 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   gezahlte Preis.**
 - **Jedes Vokabelwort in `innerHTML` braucht `esc()`** — es ist Eingabe aus dem
   Systembereich, keine Konstante.
+- **Ein Umschalter, dessen eine Hälfte garantiert null Treffer liefert, wird
+  nicht gebaut** (seit 0.13.0). Die Kategoriezeile trägt mehrere Werte, aber
+  **kein Und/Oder**: ein Eintrag hat genau eine Kategorie, ein Schnitt wäre
+  immer leer. *Bei den Tags ist die Wahl echt, weil ein Eintrag viele Tags
+  trägt.* **Er ist auch nicht dadurch zu retten, dass man ihn dämpft.**
+- **Mehrere Werte eines ODER-Filters zählen als EIN Filter** (seit 0.13.0),
+  mehrere Werte eines UND-Filters einzeln. Die Filterzahl beantwortet die eine
+  Frage *„warum sehe ich nicht alles?"* — **jeder Tag verkleinert die Menge,
+  jede Kategorie vergrößert sie**, und eine Drei für etwas, das die Liste
+  gerade weiter macht, gäbe darauf die falsche Antwort.
+- **„Alle" bleibt an der Kategoriezeile eine Pille, die Tagzeile behält
+  „zurücksetzen"** (entschieden 0.13.0). Die Kategorien sind eine kurze,
+  geschlossene, immer sichtbare Liste, in der „alles" ein nennbarer Zustand ist
+  und **seinen festen Platz behält**; die Tagwolke ist offen und lang, und ein
+  dauernd hervorgehobenes „Alle" an ihrem Anfang läse sich als Tag. *Der
+  Unterschied ist damit benannt und nicht stillschweigend.*
+- **Eine Pille, die zusammen mit der aktuellen Auswahl null Treffer brächte,
+  wird gedämpft — jede** (seit 0.13.0, vorher nur Tags). `.pill.leer` mit dem
+  Hinweis *„Zusammen mit der aktuellen Auswahl kein Treffer"*. **Anklickbar
+  bleibt sie**: man sieht nur vorher, dass die Liste leer würde. *Dieselbe Sache
+  mit zwei Verhalten war der Befund (Stolperstein 47, im Kleinen).*
+- **Die Tagwolke der Übersicht und die der Eintragsseite sind verschieden
+  angeordnet, und zwar mit Grund** (entschieden 0.13.0). In der Übersicht steht
+  die Wolke **neben** ihren Verweisen in einer Zeile — dort ist die Höhe knapp
+  und rechts standen 900 px leer. Auf der Eintragsseite steht sie **unter**
+  einem erklärenden Satz und über drei Zeilen — neben ihm bekäme sie eine
+  schmale Spalte und bräche über *mehr* Zeilen um. **Die Mechanik ist geteilt**
+  (`sortiereWolke()`, `begrenzeWolke()` — eine Stelle, zwei Rufer); verschieden
+  ist nur die Anordnung. *Aus einer Doppelung ohne Grund ist damit ein
+  Unterschied mit Grund geworden.*
+- **Der Löschdialog eines Zugangs nennt den umkehrbaren Weg** (seit 0.13.0):
+  *„Nur vorübergehend aussperren? Dann sperren statt entfernen — das ist
+  umkehrbar, und der Name bleibt."* **An beiden Stellen** — in der letzten
+  Rückfrage und im Passwortfenster dahinter. *Zwei aufeinanderfolgende Fenster,
+  die Verschiedenes sagen, sind schlimmer als eines.* **Der Mechanismus war
+  längst da; es fehlte der Satz, der ihn nennt.**
+- **Gelöschte Zugänge stehen in einem eigenen Fenster** (seit 0.13.0), nicht
+  zwischen den lebenden. Sie sind kein Zugang, den man verwalten kann, und sie
+  wachsen mit jeder Löschung. **Der Knopf steht nur da, wenn es Grabsteine
+  gibt, und nennt ihre Zahl.** *Der Ursprungsname wird weiterhin nirgends
+  aufbewahrt — das Fenster sagt es ausdrücklich.*
 
 ### 5.7 Auslieferung, Netz und Werkzeuge
 
 - **Ein Kopf vom Aufrufer ist nie eine Feststellung, sondern eine Behauptung**
   (seit 0.8.20). Er darf nur geglaubt werden, wo ausdrücklich eingestellt ist,
-  wer ihn setzen darf. Gilt für `X-Forwarded-For` — dort gebaut als
-  `HINTER_PROXY` — und unverändert für den `Host`-Kopf: **die öffentliche
-  Adresse ist eine Einstellung, niemals der `Host`-Kopf.** *Wer künftig einen
-  weiteren Kopf auswertet, stellt zuerst diese Frage.* **Dieselbe Regel greift
-  am Merkzeitpunkt von „Neu seit …"** — auch dort ist die mitgeschickte Zeit
-  eine Behauptung.
+  wer ihn setzen darf. Gilt für `X-Forwarded-For` und — **seit 0.13.0** — für
+  `X-Forwarded-Proto`, beide gebunden an `HINTER_PROXY`; und unverändert für
+  den `Host`-Kopf: **die öffentliche Adresse ist eine Einstellung, niemals der
+  `Host`-Kopf.** *Wer künftig einen weiteren Kopf auswertet, stellt zuerst diese
+  Frage.* **Dieselbe Regel greift am Merkzeitpunkt von „Neu seit …"** — auch
+  dort ist die mitgeschickte Zeit eine Behauptung.
+- **Zwei Cookienamen, und kein Name mit bedingtem `Secure`** (seit 0.13.0). Der
+  sichere Weg trägt `__Host-kriterion_session` samt `Secure`, der Heimnetzweg
+  `kriterion_session` ohne beides — **und je Anfrage wird genau EIN Name
+  gelesen.** *Ein Klartextcookie geht auch an die HTTPS-Seite; wer ihn dort
+  gelten ließe, hätte das Präfix `__Host-` für nichts: wer im eigenen Netz eine
+  Klartextverbindung verbiegen kann, setzte damit einen Cookie, den die
+  HTTPS-Seite anschließend auch annähme.* **Das ist der Grund, aus dem ein
+  einzelner Name mit bedingtem `Secure` nicht gebaut wurde**, und er gilt
+  weiter, falls die Frage wiederkommt.
+- **`Strict-Transport-Security` gilt nur auf dem HTTPS-Weg** (seit 0.13.0).
+  Ginge der Kopf auf dem Heimnetzweg mit, bestünde der Browser danach auf HTTPS
+  und fände an Port 3100 keines — **er sperrte genau den Weg aus, den die
+  Einstellung offenhalten soll.**
+- **Ein Code des zweiten Faktors gilt genau einmal, und das gilt auch für die
+  Oberfläche** (seit 0.13.0). Was sich gegen einen **Hash** prüfen lässt, lässt
+  sich beliebig oft prüfen; was einen **Zähler** verbraucht, nicht. **Wer eine
+  Eingabe für mehrere Ziele wiederverwenden will, fasst die ANFRAGE zusammen und
+  nicht die Prüfung** — n Anfragen mit demselben Code sind eine gelungene und
+  n−1 gescheiterte, samt Zeilen im Sicherheitsprotokoll und Treffern in der
+  Anmeldebremse. *Genau daran ist der Teilexport in 0.12.4 gescheitert.*
 - **Der ausgelieferte Typ kommt nie aus der Datenbank** (seit 0.8.20). Er kommt
   aus der Endung (`anhaenge.js`, `ausgabeTyp`) oder aus den ersten Bytes
   (`typAusBytes`) — nie aus einer Spalte, die der Hochladende gefüllt hat.
@@ -4375,6 +4537,57 @@ Version, in der sie entstanden sind.*
     PRÜFT BEIDE RICHTUNGEN, BEVOR ER SICH FÜR EINE LÖSUNG ENTSCHEIDET** — und
     am besten an einem echten Rundlauf, nicht an der Schnittstelle.
 
+191. **Ein Wert außerhalb einer geschlossenen Liste verwirft nicht das Feld,
+    sondern die ganze Zeile.** `protokolliere()` prüft `was` und `merkmal`
+    gegen ihre Listen und fängt jeden Fehler ab — **also schreibt es bei einem
+    unbekannten Merkmal gar nichts.** Der Teilexport schrieb `teil 1/5`, stand
+    damit in keiner einzigen Protokollzeile, und der Hinweis darauf lag im
+    Containerprotokoll, wo ihn niemand suchte. **WER EINEN AUFRUF UM EIN FELD
+    ERGÄNZT, SIEHT NACH, OB DER WERT IN DIE LISTE GEHÖRT** — und wer eine
+    geschlossene Liste baut, muss damit rechnen, dass ein Aufruf danebengreift.
+    *Ein stiller Verlust ist der schlechtere Ausgang als ein Fehler.*
+
+192. **Ein Rückbau, der ins Leere greift, sieht aus wie einer, der nichts
+    bewirkt — und fällt nur im vollen Lauf auf.** Drei Suchtexte waren über
+    fünf Runden veraltet, weil der Quelltext daneben sich geändert hatte. Der
+    Gegenprobentreiber meldet das zwar, aber erst nach zwanzig Stunden. **DIE
+    FRAGE „GREIFT ER ÜBERHAUPT NOCH" IST BILLIG UND GEHÖRT IN DEN PRÜFSTAND**,
+    die Frage „macht er etwas rot" ist teuer und gehört in den Lauf. *Zwei
+    verschiedene Fragen, und nur eine davon muss Stunden kosten.*
+
+193. **Eine Prüfung, die ihren Gegenstand vorher selbst zerstört, kann nicht
+    scheitern.** Zwei Zeilen prüften den Cookienamen **nach** zwölf
+    absichtlichen Fehlversuchen, die die Adresse hart sperren — die Anmeldung
+    danach liefert 429 und gar keinen Cookie. Ein `wert === '' ||` als
+    Auffangnetz machte beide in jedem Lauf wahr. **STOLPERSTEIN 81 HAT EINE
+    ZWEITE GESTALT:** nicht der fehlende Gegenstand, sondern der von der
+    Prüflage selbst weggenommene. *Reihenfolge ist bei aufeinander aufbauenden
+    Lagen ein Teil der Aussage.*
+
+194. **Zwei Codes aus demselben Zeitfenster sind derselbe Code.** Wer eine
+    Prüflage baut, die die **Einmaligkeit** eines Codes belegen soll, kann den
+    zweiten nicht ausrechnen — er muss auf die Uhr warten, bis der Zähler
+    weitergelaufen ist. **EINE PRÜFUNG, DIE ZWEIMAL DENSELBEN CODE SCHICKT UND
+    ZWEIMAL 200 ERWARTET, STELLT DEN FEHLER NACH, DEN SIE WIDERLEGEN SOLL.**
+    *Deshalb braucht eine solche Gruppe so wenige tragende Codes wie möglich und
+    wartet dazwischen — Rechnen hilft nicht, nur Warten.*
+
+195. **Ein fehlendes Wort fällt still auf den Schlüssel zurück.**
+    `VORGANGSWORT[z.was] || z.was` und `MERKMALSWORT[z.merkmal] || ''` sind
+    beide richtig gebaut — und beide machen eine fehlende Übersetzung
+    unsichtbar: einmal steht der rohe Schlüssel da, einmal gar nichts. Fünf
+    Vorgänge und zwei Merkmale sind so über Runden hinweg unbemerkt geblieben.
+    **WER EINE ABBILDUNG ÜBER EINE GESCHLOSSENE LISTE BAUT, PRÜFT DIE
+    VOLLSTÄNDIGKEIT GEGEN DIE LISTE** — der Rückfall ist für den Notfall da und
+    nicht für den Regelfall.
+
+196. **`flex: 1 1 0` meint in einer Spalte die Höhe.** Dieselbe Regel, die eine
+    Zeile teilt, lässt ein Element in `flex-direction: column` auf die
+    Grundhöhe null fallen und dann über die ganze Spalte wachsen. **JEDE
+    FLEX-ANGABE GILT FÜR DIE HAUPTACHSE, UND DIE DREHT SICH IM TABLETTTEIL** —
+    wer dort eine Zeile zur Spalte macht, nimmt die Angabe zurück. *Der Fehler
+    ist unauffällig, weil er am breiten Schirm gar nicht auftritt.*
+
 ---
 
 ## 7. Prüfstand
@@ -4388,13 +4601,40 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 3992 von 3992 bestanden** (0.12.4) — **38 neue Prüfungen** in der
-Gruppe „Der Export in Teilen", davon der **Rundlauf** als Kern: zwei Anlagen,
-sechs Teile hinaus, sechs hinein, Vergleich Feld für Feld. *Das ist die
-Bedingung, unter der der Betreiber diesen Weg bestellt hat, und sie gehört
-nicht in ein Papier, sondern in den Lauf.* Die Gegenproben stehen in
-Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht**
-der volle Lauf über alle **195** Rückbauten.
+**Stand: 4115 von 4115 bestanden** (0.13.0) — **123 neue Prüfungen** in fünf
+neuen Gruppen. Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils
+neuen Zusagen beschränkt und **nicht** der volle Lauf über alle **214**
+Rückbauten.
+
+| neue Gruppe (0.13.0) | Prüfungen |
+|---|---|
+| Der Teilexport mit zweitem Faktor | 26 |
+| Zwei Netze, ein Zugang | 9 |
+| Die Gegenproben greifen | 6 |
+| Die Filterleiste wird kürzer | 14 |
+| Die Kategoriezeile lernt die Mehrzahl | 30 |
+
+> **DIE FRAGE, DIE SEIT 0.13.0 AN JEDE NEUE GRUPPE GEHÖRT: welcher Schalter
+> bleibt hier durchweg aus, und trägt er etwas zur Sache bei?** Die **36
+> Prüfungen** auf den Teilexport fuhren alle gegen einen Server **ohne** zweiten
+> Faktor — und die Eigenschaft, an der er im Betrieb scheiterte, gibt es nur
+> **mit** ihm. *Eine Prüfgruppe, die einen Schalter nie einschaltet, belegt
+> nichts über den Zustand mit Schalter.*
+
+> **„DIE GEGENPROBEN GREIFEN" IST EINE PRÜFUNG ÜBER DEN GEGENPROBENTREIBER.**
+> Sie liest `RUECKBAUTEN` aus `gegenprobe.js` und sieht nach, ob jeder Suchtext
+> in seiner Datei genau einmal vorkommt. **Sie ersetzt den vollen Lauf nicht** —
+> sie sagt nichts darüber, ob ein Rückbau eine Prüfung *rot* macht. Sie sagt
+> nur, dass er überhaupt noch etwas anfasst. *Drei taten es fünf Runden lang
+> nicht, und das fiel niemandem auf, weil der volle Lauf so lange aussteht
+> (Stolperstein 192).*
+
+> **DIE FILTERLEISTE UND DIE KATEGORIEZEILE PRÜFT DER AUFBAU UND NICHT DIE
+> HÖHE.** `jsdom` rechnet kein Layout; die 229 px vorher und die 154 px nachher
+> sind in Chromium gemessen und stehen im Änderungsprotokoll 0.13.0. **Was der
+> Lauf sieht, ist der Aufbau:** dass Wolke und Verweise Geschwister *einer*
+> Zeile sind, dass keine ausgerechnete Breite im Stilblatt steht, dass die Pille
+> mit null Treffern ihre Klasse und ihren Hinweis bekommt.
 
 > **DIE PRÜFLAGE TRÄGT ECHTE BYTES, und das ist kein Zufall.** Ein Bestand ohne
 > Bytes ergäbe immer genau einen Teil, und die halbe Gruppe bliebe grün, ohne
@@ -4780,13 +5020,22 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **DER AUSTAUSCHWEG IST WIEDER DA — ABER AM ECHTEN BESTAND NOCH NICHT
-  GESEHEN.** 0.12.4 schneidet ihn in Teile; bei 760 MB und 300 MB je Teil
-  sollten es **drei** sein. **Das gehört nach dem Einspielen abgelesen** —
-  Systembereich → Export → „In Teilen exportieren" —, und dazu die eine Frage,
-  die zählt: **ob der Rundlauf auch am echten Bestand stimmt.** *Gefahren ist
-  er an drei Prüflagen, die größte mit 1000 Einträgen; die echte trägt Videos
-  und Kommentarbilder in anderen Größen.*
+- **BEIDE WEGE SIND AM ECHTEN WIRT NOCH NICHT GEFAHREN.** Punkt 2 aus 0.13.0
+  ist am Prüfstand belegt — beide Wege gegen denselben Server, der Cookiename
+  je Anfrage. **Am Wirt fehlt der Beleg:** eine Anmeldung über HTTPS und eine
+  über `http://<server-ip>:3100`, **im selben Browser**, jeweils bis zur
+  stehenden Sitzung. *Ohne beide ist die Runde nicht im Feld belegt.*
+- **DER TEILEXPORT MIT EINGESCHALTETEM ZWEITEM FAKTOR** ist ebenso nur am
+  Prüfstand belegt. **Am Wirt fehlt:** wie viele Teile bei 300 MB, **eine**
+  Eingabe, wie viele geladene Dateien — und **keine** Zeile
+  „Bestätigung gescheitert" im Sicherheitsprotokoll danach.
+- **DER AUSTAUSCHWEG IST AM ECHTEN BESTAND WEITERHIN NICHT GESEHEN.** 0.12.4
+  schneidet ihn in Teile; bei 760 MB und 300 MB je Teil sollten es **drei**
+  sein. **Das gehört nach dem Einspielen abgelesen** — Systembereich → Export
+  → „In Teilen exportieren" —, und dazu die eine Frage, die zählt: **ob der
+  Rundlauf auch am echten Bestand stimmt.** *Gefahren ist er an drei
+  Prüflagen, die größte mit 1000 Einträgen; die echte trägt Videos und
+  Kommentarbilder in anderen Größen.*
 - **Der Import liest die Datei weiterhin als einen String.** Für Teile reicht
   das — jeder ist klein genug. **Eine einzelne Datei über 512 MB lässt sich
   weiterhin nicht einspielen**, gleich woher sie kommt. *Das trifft niemanden,
@@ -4795,7 +5044,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   dem Pfad, der fremde Dateien annimmt und unter fremden Namen schreibt.** Eine
   eigene Runde mit eigener Prüflage, und keine Beifracht.
 
-- **DIE TAGS `v0.11.0` BIS `v0.12.4` FEHLEN AM REMOTE — UND DER GRUND STAND
+- **DIE TAGS `v0.11.0` BIS `v0.13.0` FEHLEN AM REMOTE — UND DER GRUND STAND
   BIS 0.12.4 FALSCH HIER.** Es ist **kein** Problem der GitHub-Rechte, und ein
   „Push von einer Stelle mit den nötigen Rechten" ist nicht der Punkt.
 
@@ -4830,8 +5079,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   ```
 
   **Diese vier liegen auf `main` und lassen sich sofort setzen.** `v0.12.3`
-  (`09873558`) und `v0.12.4` (`9f7b0f7f`) liegen bisher nur auf dem
-  Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
+  (`09873558`), `v0.12.4` (`9f7b0f7f`) und `v0.13.0` liegen bisher nur auf
+  einem Arbeitsbranch. *Wer ihn mit einem Merge-Commit zusammenführt, setzt sie
   danach auf dieselben Commits; wer ihn quetscht, setzt sie auf die dabei
   entstehenden — die alten sind von `main` aus dann nicht mehr erreichbar.*
 
@@ -4860,6 +5109,12 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT SECHS RUNDEN AUS.** 214 Rückbauten zu
+  je einem vollen Prüflauf sind über zwanzig Stunden. **In 0.13.0 ist er nicht
+  gefahren, und das ist keine Zusage mehr.** *Was 0.13.0 daran ändert, ist der
+  billige Teil: der Prüfstand rechnet jetzt bei jedem Lauf nach, dass jeder
+  Rückbau in seiner Datei überhaupt noch greift — drei taten es fünf Runden lang
+  nicht (Stolperstein 192).*
 - **DIE GEGENPROBEN ZU 0.12.0, 0.12.1 UND 0.12.2 SIND AUF DIE NEUEN ZUSAGEN
   BESCHRÄNKT.** Sechs Rückbauten in 0.12.0, zwei in 0.12.1 und fünf in 0.12.2
   decken die tragenden davon ab, **und keiner blieb stumm**; **der volle Lauf
@@ -4884,43 +5139,61 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Der Proxy, und was daran noch fehlt
 
-**`HINTER_PROXY` IST EIN JA/NEIN, UND DIE ANLAGE IST INZWISCHEN BEIDES.** Seit
-der Reverse Proxy davorsteht, kommt über `http://<server-ip>:3100` niemand mehr
-herein: der Cookie trägt `Secure` und das Präfix `__Host-`, der Browser
-verwirft ihn. **Gemessen, nicht vermutet** — der Server antwortet mit **200** und
-setzt den Cookie; das Verwerfen geschieht allein im Browser, stillschweigend,
-und im Serverprotokoll steht davon nichts. *Das ist kein Fehler, sondern der
-Preis der Einstellung.*
+**DIE ERSTE HÄLFTE IST MIT 0.13.0 GEBAUT.** `HINTER_PROXY` bündelte fünf
+Wirkungen und konnte damit immer nur ein Netz bedienen; über
+`http://<server-ip>:3100` kam niemand mehr herein. **Cookiename, `Secure` und
+HSTS entscheidet seither die einzelne Anfrage über `X-Forwarded-Proto`, mit
+zwei Cookienamen und genau einem gelesenen je Anfrage** (Abschnitt 3).
+*Der Quelltext hatte genau das vorhergesehen:* „Ist die Anlage je aus mehreren
+Netzen gleichzeitig erreichbar, gehört das nachgeliefert" (`auth.js`, Kopf) —
+geschrieben 0.8.20, eingetreten 0.10.0, gebaut 0.13.0.
 
-**Der Mangel liegt woanders:** die eine Einstellung bündelt **fünf** Wirkungen —
-`X-Forwarded-For` glauben, `Secure`, `__Host-`, HSTS und die Startwarnung bei
-`http://` (Abschnitt 3) — und die Anlage ist seit dem Proxy aus **zwei** Netzen
-zugleich erreichbar. *Der Quelltext hat genau das vorhergesehen:* „Ist die
-Anlage je aus mehreren Netzen gleichzeitig erreichbar, gehört das
-nachgeliefert" (`auth.js`, Kopf).
+**Damit ist auch der Ernstfall entschärft:** fällt der Proxy aus oder läuft ein
+Zertifikat ab, geht der Weg über das Heimnetz von selbst — ohne `.env`, ohne
+Neustart, ohne Menschen am Wirt. **Der Handgriff „Wenn der Proxy ausfällt" ist
+aus der README entfernt**, weil er gegenstandslos geworden ist.
 
-**Was das im Ernstfall kostet:** fällt der Proxy aus oder läuft ein Zertifikat
-ab, gibt es **gar keinen Weg mehr in die Oberfläche**. Die Daten sind sicher und
-die Werkzeuge auf dem Wirt gehen weiter — lesen lässt sich der Bestand nicht.
-**Der Handgriff dagegen steht in der README** („Wenn der Proxy ausfällt"):
-Einstellung für die Dauer der Störung abschalten, neu starten.
+**WAS OFFEN BLEIBT, IST DIE ZWEITE HÄLFTE: DIE ADRESSLISTE.**
 
-**Die saubere Lösung ist eine Runde Arbeit und steht ausgearbeitet im
-Sammelblatt** (`Doku/Fehler_und_Ideen.md`): `X-Forwarded-Proto` lesen — es wird
-bisher **nirgends** gelesen — und je Anfrage entscheiden, **mit zwei
-Cookienamen, nicht mit einem.**
-
-**Die Portfreigabe 3100 bleibt daneben offen, und das ist als tragbar
-eingestuft.** Wer im Heimnetz steht, kann den Proxy umgehen und
+**Die Portfreigabe 3100 ist seit 0.13.0 ein GEWOLLTER Weg und nicht mehr bloß
+ein offener.** Wer im Heimnetz steht, kann den Proxy umgehen und
 `X-Forwarded-For` selbst setzen; die Anmeldebremse ließe sich so aushebeln. *Ein
 gewöhnlicher Browser tut das nicht, ein absichtlicher Aufruf schon.* Der Schutz
 gilt dem Weg aus dem Internet. **Wer es doch schließen will**, hängt Kriterion
 in das Netz des Proxys und lässt die Portfreigabe fallen — dann läuft auch der
-Zugriff im Heimnetz über den Proxy. *Ein Adressbuch, wer den Kopf setzen darf,
-ist in 0.8.20 ausdrücklich nicht gebaut worden und wäre der dritte Weg.*
+Zugriff im Heimnetz über den Proxy.
+
+**DIE ADRESSLISTE IST DIE ANTWORT DARAUF, UND SIE IST NICHT GEBAUT.** In 0.8.20
+ausdrücklich nicht, weil die Einstellung ein Ja/Nein sein sollte; in 0.13.0
+ausdrücklich nicht, mit drei Gründen:
+
+* **Sie ist die Antwort auf die offene Portfreigabe und nicht auf die zwei
+  Netze.** Punkt 2 aus 0.13.0 löst die erste Hälfte ganz.
+* **Sie braucht eine neue `.env`-Zeile** — 0.13.0 kommt sonst ohne aus.
+* **Eine falsch gesetzte Liste zieht die Anmeldebremse auf die Adresse des
+  Proxys.** Dann teilen sich alle Besucher einen Zähler, und ein einziger
+  Angreifer sperrt mit zehn Fehlversuchen **alle** für fünf Minuten aus. *In
+  eine Runde, deren Zweck es ist, den Zugang offenzuhalten, gehört kein neuer
+  Weg, ihn zu verlieren.*
+
+**Sie gehört damit in eine eigene Runde.** *Und solange sie fehlt, bleibt auch
+die maschinenlesbare Zeile nach stdout (Sammelblatt Nr. 9c) verworfen: sie
+trüge eine Adresse, für die die Anlage schlechter einstehen kann als das
+Zugriffsprotokoll des Proxys, das dieselbe Auskunft schon gibt.*
 
 ### Offene Kleinigkeiten
 
+- **EIN KAPUTTER COOKIEWERT LEGT JEDE ANFRAGE DIESES BROWSERS LAHM.**
+  `parseCookies()` in `auth.js` ruft `decodeURIComponent()` auf jeden Wert; eine
+  unvollständige Prozentfolge (`kriterion_session=%`) wirft einen `URIError`.
+  **Die Funktion sieht ALLE Cookies des Hosts an** — ein fremder Cookie mit
+  einem `%` im Wert genügt —, und `requireAuth` ruft sie bei jeder geschützten
+  Anfrage: der Fehler-Handler macht daraus eine 500, und dieser Browser kommt
+  nicht mehr herein, bis der Cookie gelöscht ist. *Nachgestellt am 28. August
+  2026; die Zeile stammt aus Commit `158b6d9` und ist von 0.13.0 nicht
+  berührt.* **Der Weg wäre klein:** die Schleife überspringt einen Wert, der
+  sich nicht dekodieren lässt, statt abzubrechen. *Eine eigene, kleine Runde —
+  sie fasst eine ausgelieferte Datei an.*
 - **Weicht der Fingerprint ab, nennt er nicht, WELCHE Datei es ist.** Der
   Handgriff dafür steht in der README („Eine neue Version einspielen"): die
   Prüfsummen der Dateien nebeneinander, über die er geht. **Eine Datei zu viel
@@ -5052,6 +5325,44 @@ in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstof
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
 
+### 0.13.0 — „Zwei Netze, ein Zugang"
+
+**MINOR · 28. August 2026 · die zweite Runde aus dem Fahrplan (Abschnitt 10a),
+und ein Befund aus dem Betrieb, der davor kam.**
+
+**DIE ANLAGE IST ÜBER ZWEI NETZE ZUGLEICH ERREICHBAR.** `HINTER_PROXY` bündelte
+fünf Wirkungen und konnte damit immer nur eines bedienen; über
+`http://<server-ip>:3100` kam mit der Einstellung niemand mehr herein — der
+Server antwortete mit 200, der Browser verwarf den `Secure`-Cookie
+stillschweigend, und im Serverprotokoll stand davon nichts. **Cookiename,
+`Secure` und HSTS entscheidet jetzt die einzelne Anfrage über
+`X-Forwarded-Proto`, mit zwei Cookienamen und genau einem gelesenen je
+Anfrage.** *Ein Name mit bedingtem `Secure` ist ausdrücklich nicht gebaut — er
+gäbe die Zusage des Präfixes `__Host-` auf.* **Der Handgriff „Wenn der Proxy
+ausfällt" ist damit gegenstandslos und aus der README entfernt.**
+
+**DER TEILEXPORT GING MIT EINGESCHALTETEM ZWEITEM FAKTOR SEIT 0.12.4 NICHT.**
+Der Knopf schickte denselben Code einmal je Teil; ein Code gilt genau einmal.
+Jetzt trägt eine Anfrage alle Teilnummern, und der Code wird einmal verbraucht
+— **das Laden eines Teils verbraucht weiterhin genau eine Freigabe.**
+
+**Dazu:** ein Filter am Sicherheitsprotokoll mit sechs Ansichten (die Auswahl
+geht an den Server, nicht an den Browser) und anklickbare Namen; der Satz im
+Löschdialog, der **sperren** als den umkehrbaren Weg nennt, und ein eigenes
+Fenster für die Grabsteine; eine um **75 px flachere Filterleiste** (229 → 154
+px bei 1359 px, gemessen); eine **Kategoriezeile, die mehrere Werte zugleich
+trägt**, samt „Ohne" als eigener Pille.
+
+**Vier Befunde sind beim Bauen aufgefallen:** ein Teilexport stand seit 0.12.4
+in keiner Protokollzeile (`teil 1/5` ist kein Wert aus `MERKMALE`, und die ganze
+Zeile fiel weg); drei Gegenproben griffen ins Leere; die Zahl der Rückbauten
+stand mit 195 statt 193 in den Papieren; und fünf von zwanzig Vorgängen hatten
+gar kein deutsches Wort.
+
+**Kein Schema, kein Migrationsblock, keine Formatnummer, keine `.env`-Zeile,
+keine Abhängigkeit, `F_ROUTEN` unverändert bei 69.** 3992 → **4115 Prüfungen**,
+193 → **214 Rückbauten**; `MERKMALE` 13 → **14**.
+
 ### 0.12.4 — „Der Export geht in Teilen"
 
 **PATCH · 28. August 2026 · ausgelöst durch eine Messung im Feld.**
@@ -5076,7 +5387,8 @@ der Grenze liegt, wird namentlich genannt** statt still übergangen.
 
 **Kein Schema, kein neues Austauschformat, keine `.env`-Zeile, keine
 Abhängigkeit, `F_ROUTEN` unverändert bei 69.** 3954 → **3992 Prüfungen**,
-184 → **195 Rückbauten**. *Der Rundlauf läuft als Prüfung mit: zwei Anlagen,
+184 → **193 Rückbauten** *(in den Papieren dieser Runde stand 195; nachgezählt
+mit 0.13.0)*. *Der Rundlauf läuft als Prüfung mit: zwei Anlagen,
 sechs Teile hinaus, sechs hinein, Feld für Feld verglichen.*
 
 ### 0.12.3 — „Der Export sagt Bescheid, und die Anzeige zieht nach"
@@ -5436,7 +5748,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1 bis 0.12.4 sind die ersten vier* | in der Regel nein | — |
 | **0.12.4** | Der Export geht in Teilen | **GEBAUT.** Die Antwort auf die 760 MB: n vollständige Exportdateien statt einer, die es nicht geben kann. *PATCH.* **Kein Schema, kein neues Format, keine Zeile am Import** | nein | — |
 | **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT — und im Feld hat sich der Punkt als eingetretener Fehler bestätigt: 760 MB gegen 512.** Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
-| **0.13.0** | Zwei Netze, ein Zugang | `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu die gescheiterten Anmeldungen im Protokoll auffindbar, die Zeile für CrowdSec, und zwei Handgriffe an gelöschten Zugängen. *MINOR.* **Kein Schema** | nein | — |
+| **0.13.0** | Zwei Netze, ein Zugang | **GEBAUT.** `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu der reparierte Teilexport mit zweitem Faktor, ein Filter am Sicherheitsprotokoll, der Satz im Löschdialog samt eigenem Fenster für die Grabsteine, eine flachere Filterleiste und mehrere Kategorien zugleich. *MINOR.* **Kein Schema, keine `.env`-Zeile** | nein | — |
 | **0.14.0** | Die Entscheidung wird mitgeschrieben | `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie muss vor die Bereinigung** | ja, **sechster Block** | 10 → 11 |
 | **0.15.0** | Der Systembereich, die Glocke und die Auskunft | Neunzehn Karten werden Abschnitte mit eigener Adresse, `renderSystem()` wird dabei zerlegt. Dazu die Glocke mit dem Punkt, der Zähler „Offen 7" und die Gewichtung, die sich selbst erklärt. **Und aus dem Betrieb: Löschen in der Zoomansicht.** *MINOR.* **Die größte Umbaufläche des Plans** | nein | — |
 | **0.16.0** | Die Suche wird nachvollziehbar | Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
@@ -5665,309 +5977,36 @@ unangetastet.*
 ---
 
 
-### 0.13.0 — „Zwei Netze, ein Zugang" · *MINOR*
-
-**Ausgearbeitet aus dem Sammelblatt:** Nr. 8, Nr. 9, Nr. 12
-
-
-#### Der Proxy ist ein Ja/Nein, die Anlage ist beides
-
-*(stand als Punkt 8 im Sammelblatt)*
-
-**Nötig geworden mit 0.8.20** (dort entstand die Einstellung) **und akut mit
-0.10.0** — seitdem steht der Reverse Proxy wirklich davor.
-
-> **Art: Verbesserung** · **Claude: stark empfohlen** — das einzige Betriebsrisiko auf der Liste.
-> **Draußen üblich:** `X-Forwarded-Proto` je Anfrage lesen ist der Normalweg —
-> Express nennt ihn `trust proxy`, und `req.protocol` folgt ihm dann von selbst.
-> **Und die Adressliste, wer den Kopf setzen darf, gehört dort ausdrücklich
-> dazu:** ohne sie ist der Kopf eine Behauptung des Aufrufers.
-
-### Woher
-
-Aus dem Betrieb. `HINTER_PROXY` steht seit **0.10.0** auf `1`; festgehalten im
-Projektstand, Abschnitt 2. *Der Quelltext hat den Fall vorhergesehen:* „Ist die
-Anlage je aus mehreren Netzen gleichzeitig erreichbar, gehört das nachgeliefert"
-(`auth.js`, Kopf) — geschrieben **0.8.20**, eingetreten **0.10.0**.
-
-### Was auffiel
-
-**Die eine Einstellung bündelt fünf Wirkungen** — `X-Forwarded-For` glauben,
-`Secure`, `__Host-`, HSTS und die Startwarnung bei `http://` in
-`OEFFENTLICHE_ADRESSE` — **und die Anlage ist inzwischen aus zwei Netzen
-zugleich erreichbar.**
-
-Über `http://<server-ip>:3100` kommt damit niemand mehr herein: der Server
-antwortet mit **200** und setzt den Cookie, der Browser verwirft ihn
-stillschweigend, und im Serverprotokoll steht davon nichts. **Gemessen, nicht
-vermutet.**
-
-### Was es nicht ist
-
-**Kein Fehler, sondern der Preis der Einstellung** — und ein Handgriff dagegen
-steht in der README („Wenn der Proxy ausfällt"): Einstellung abschalten, neu
-starten.
-
-**Was es kostet, gehört trotzdem gesagt:** fällt der Proxy aus oder läuft ein
-Zertifikat ab, gibt es **gar keinen Weg mehr in die Oberfläche**. Die Daten sind
-sicher und die Werkzeuge auf dem Wirt gehen weiter — lesen lässt sich der
-Bestand nicht.
-
-### Was gebaut werden könnte
-
-**a) `X-Forwarded-Proto` lesen** (wird bisher **nirgends** gelesen) und je
-Anfrage entscheiden — **mit zwei Cookienamen, nicht mit einem.**
-
-**b) Was NICHT gebaut werden soll: ein Name mit bedingtem `Secure`.** Das gäbe
-Sicherheit auf, statt Bequemlichkeit zu gewinnen: wer im eigenen Netz eine
-Klartextverbindung verbiegen kann, setzte damit einen Cookie, den die
-HTTPS-Seite anschließend auch annimmt — **und genau dagegen gibt es `__Host-`.**
-
-**c) Der dritte Weg, falls (a) zu teuer wird: eine Adressliste, wer den Kopf
-setzen darf.** In **0.8.20** ausdrücklich nicht gebaut, weil die Einstellung ein
-Ja/Nein sein sollte. *Sie ist inzwischen die Antwort auf die zweite Hälfte des
-Problems — die Portfreigabe 3100 —, nicht auf die erste.*
-
-### Offene Entscheidungen
-
-* **Umlegen meldet alle einmalig ab**, weil das Präfix `__Host-` den Namen
-  wörtlich verlangt. Bei zwei Namen nebeneinander gilt das nicht mehr — *ist das
-  ein Gewinn oder verliert man damit einen ehrlichen Schnitt?*
-* **Gilt HSTS dann nur auf dem HTTPS-Weg?** Es muss, sonst sperrt der Kopf den
-  Heimnetzweg aus, den (a) gerade offenhalten soll.
-* **Bleibt die Portfreigabe 3100 offen?** Heute ist sie als tragbar eingestuft:
-  wer im Heimnetz steht, kann den Proxy umgehen und `X-Forwarded-For` selbst
-  setzen, die Anmeldebremse ließe sich so aushebeln. *Ein gewöhnlicher Browser
-  tut das nicht, ein absichtlicher Aufruf schon.* **Wer sie schließen will**,
-  hängt Kriterion in das Netz des Proxys und lässt die Freigabe fallen.
-
-### Was es anfasst
-
-`auth.js` (Cookiename, `Secure`, HSTS), die Adressermittlung, den Prüfstand
-(beide Wege statt einem), README. **Kein Schema.**
-
-**Was dagegen spricht:** es ist eine Runde Arbeit für einen Fall, der heute
-funktioniert — *und einen Handgriff hat, wenn er ausfällt.* **Dagegen steht,
-dass der Handgriff einen Menschen am Wirt braucht, genau dann, wenn nichts
-mehr geht.**
-
-#### Gescheiterte Anmeldungen: sichtbar machen, und eine Zeile für CrowdSec
-
-*(stand als Punkt 9 im Sammelblatt)*
-
-**Aufgefallen im Betrieb, 28. August 2026** — der Betreiber setzt einen
-CrowdSec-Container vor die Anlage und findet nichts, was der lesen könnte.
-
-> **Art: Neue Funktion** · **Claude: stark empfohlen** für (a) und (d), **empfohlen** für (c), **nicht empfohlen** für (b).
-> **Draußen üblich:** **fail2ban und CrowdSec lesen ausnahmslos Logdateien,
-> niemals Datenbanken** — und sie sperren nach **Adresse**, nicht nach Namen.
-> Der getippte Benutzername ist für sie ohne Wert. *Das entscheidet diesen
-> Punkt fast allein.*
-
-### Woher
-
-Aus dem Betrieb, **28. August 2026**. Der Wunsch war: gescheiterte Anmeldungen
-im Sicherheitsprotokoll auflisten — **samt der getippten Benutzernamen**,
-anklickbar, gleich ob ausgebremst, falsches Passwort oder gesperrt —, dazu eine
-Rotation und ein Beispiel für die CrowdSec-Einrichtung.
-
-### Was auffiel
-
-**Die Hälfte davon gibt es schon, die andere Hälfte an einer anderen Stelle als
-gedacht.**
-
-`anmeldung.fehl` **wird längst mitgeschrieben** (`auth.js:603`), und der falsche
-zweite Faktor schreibt dieselbe Zeile (`server.js:416`). `ziel` trägt die
-Zugangsnummer, **wenn der getippte Name einen vorhandenen Zugang traf** — sonst
-`NULL`, und die Karte zeigt dort „unbekannter Name".
-
-**Was wirklich fehlt, ist zweierlei, und die beiden haben nichts miteinander zu
-tun:**
-
-1. **Man findet sie nicht.** Die Karte holt die hundert jüngsten Zeilen, alle
-   Vorgangsarten gemischt, ohne Filter. Wer nach Fehlversuchen sucht, blättert.
-2. **Es gibt nichts zu parsen.** Kriterion schreibt bei einer gescheiterten
-   Anmeldung **nichts** nach stdout — nachgesehen, `auth.js` und `server.js`
-   kennen keine solche Zeile. **CrowdSec hat hier heute keine Grundlage.**
-
-### Was es nicht ist
-
-**Kein fehlendes Mitschreiben.** Und ausdrücklich **kein Fall für den getippten
-Namen in der Protokolltabelle** — das steht gegen zwei festgeschriebene
-Entscheidungen, von denen eine als **Zusage im Kartentext** steht:
-
-> „Ebenso wenig Adresse oder Browserkennung: **die Anlage speichert beides
-> nicht.**"
-
-Und der Grund für „kein Freitext" steht am Schema in `db.js`, wörtlich: *„sonst
-landete früher oder später ein ins falsche Feld getipptes Passwort darin."*
-**Das ist keine Vorsicht auf Verdacht** — Facebook, Twitter und GitHub haben
-genau so Klartextpasswörter in ihren Protokollen gefunden.
-
-**Auch die Ausnahme „gleich ob ausgebremst" ist keine Lücke, sondern der
-Deckel.** Der ausgebremste Fall schreibt absichtlich nichts: die Bremse ist das
-Einzige, was verhindert, dass ein Fremder die Tabelle vollschreibt. Nähme man
-sie heraus, wäre die einzige von außen auslösbare Zeile ohne Obergrenze.
-
-### Was gebaut werden könnte
-
-**a) Ein Filter an der Karte, und die Namen anklickbar.** Nach Vorgangsart
-filtern, „gescheiterte Anmeldungen" als eigene Ansicht, und ein Klick auf den
-Zugang springt zu ihm. *Klein, ändert kein Schema, nimmt niemandem etwas weg.*
-
-**b) Was NICHT gebaut werden soll: Name oder Adresse in die Protokolltabelle.**
-Siehe oben. Die Tabelle trägt Nummern aus geschlossenen Listen; das ist baulich
-wahr und nicht bloß beabsichtigt.
-
-**c) Eine maschinenlesbare Zeile nach stdout.** Fester, versionierter Aufbau mit
-Zeitstempel, Adresse und einem Grundcode — **ohne den getippten Namen**, weil
-CrowdSec ihn nicht braucht und die Doktrin ihn nicht hergibt. Dazu ein
-`parsers/`- und ein `scenarios/`-Beispiel in der README.
-
-**d) Und zuerst der Weg ohne eine Zeile Code — er könnte (c) ganz ersparen.**
-Die Antworten der Anmelderoute sind **bereits sauber unterscheidbar**:
-
-| Fall | Antwort |
-|---|---|
-| Name oder Passwort falsch | **401** |
-| ausgebremst | **429** |
-| Passwort richtig, Zugang gesperrt | **403** |
-
-Der Betreiber betreibt **Nginx Proxy Manager**, und dessen Zugriffsprotokoll
-sieht jede dieser Antworten. **Ein CrowdSec-Szenario auf `POST /api/login` mit
-401/403/429 sperrt die Adresse heute**, ohne dass an Kriterion irgendetwas
-geändert wird. *Das gehört als Beispiel in die README — und erst wenn es
-nachweislich nicht reicht, kommt (c).*
-
-**e) Rotation ist zweimal schon beantwortet, an beiden Enden.** Das
-Sicherheitsprotokoll räumt sich selbst (`PROTOKOLL_TAGE = 180`, beim Start und
-beim Öffnen der Karte), und für das Containerprotokoll ist Docker zuständig:
-vier Zeilen `logging:` in der `docker-compose.yml`. **Beides gehört in die
-README, nicht in den Code.**
-
-### Offene Entscheidungen
-
-* **Bekommt der ausgebremste Fall eine stdout-Zeile?** In der Tabelle
-  ausdrücklich nicht — im Protokoll wäre er dagegen nützlich, denn er sagt
-  CrowdSec, dass hier jemand wirklich durchprobiert. *Vorschlag: ja, und genau
-  darin liegt der Unterschied zwischen den beiden Ablagen.*
-* **Wie fest ist „fester Aufbau"?** Ein Logformat, das jemand parst, ist eine
-  **Zusage**. Wer es später ändert, bricht fremde Einrichtungen — das gehört
-  gesagt, bevor die erste Zeile geschrieben wird.
-* **Steht der getippte Name wenigstens im Containerprotokoll?** *Vorschlag:
-  nein.* Es ist dieselbe Gefahr an einem anderen Ort, und CrowdSec hat nichts
-  davon.
-* **Trägt die Zeile die Adresse aus `X-Forwarded-For`?** Nur wenn
-  `HINTER_PROXY` an ist — sonst stünde dort die Adresse des Proxys, und die
-  Sperre träfe den Proxy. *Das hängt unmittelbar an Punkt 8.*
-
-### Was es anfasst
-
-Für (a): die Karte im Systembereich und die Leseroute. Für (c): eine
-Ausgabestelle in `auth.js`, der Prüfstand, README. Für (d) und (e): **nur die
-README.** **Kein Schema, keine neue Abhängigkeit.**
-
-**Was dagegen spricht:** an (a), (d) und (e) nichts. Gegen (c) spricht, dass
-(d) es womöglich erledigt — *und eine Zeile, die niemand liest, ist eine Zusage,
-die man trotzdem halten muss.*
-
-#### Gelöschte Zugänge, und der Weg zurück
-
-*(stand als Punkt 12 im Sammelblatt)*
-
-**Aufgefallen im Betrieb, 28. August 2026** — seit es mehrere Zugänge gibt und
-der erste gelöscht wurde.
-
-> **Art: Verbesserung** · **Claude: stark empfohlen** für (b), **empfohlen** für (a), **nicht empfohlen** für (c), **später** für (d).
-> **Draußen üblich:** **Sperren und Löschen sind überall zwei getrennte
-> Vorgänge** — GitHub, GitLab, Google Workspace, Discourse. Und die Gnadenfrist
-> von dreißig Tagen gibt es dort **ausnahmslos bei Selbstlöschung**; eine
-> Löschung durch den Admin wirkt überall sofort, und der Name wird
-> anonymisiert statt aufbewahrt.
-
-### Woher
-
-Aus dem Betrieb, **28. August 2026**. Der Wunsch war dreiteilig: gelöschte
-Zugänge aus der normalen Liste heraus in ein eigenes Fenster; eine
-Rückholfrist von dreißig Tagen; und in der Liste der Gelöschten **den
-ursprünglichen Namen lesen können** — *„was nützt mir ‚Gelöschte 5', wenn ich
-nicht sehe, wer das war?"*
-
-### Was auffiel
-
-`entferneZugang()` überschreibt beim Löschen `username` mit `geloescht-<id>`,
-leert den Hash, setzt die Rolle zurück und entfernt die Adresse. **Der
-ursprüngliche Name ist danach nirgends mehr** — und die Grabsteine stehen
-zwischen den lebenden Zugängen in derselben Liste.
-
-### Was es nicht ist
-
-**Der Ursprungsname ist keine Auslassung, sondern eine Entscheidung — und sie
-ist zweimal festgeschrieben.** Am Schema in `db.js` steht wörtlich, warum das
-Sicherheitsprotokoll keine Namensspalte hat: *„entferneZugang() überschreibt
-username, und eine Kopie hier wäre die eine Stelle im Projekt, die den Grabstein
-rückgängig macht."*
-
-**Zwei harte Gründe stehen dahinter, und beide sind nicht wegzudiskutieren:**
-
-1. **Der Name wird zur Neuvergabe frei.** Ein aufbewahrter alter Name kollidiert
-   früher oder später mit einem lebenden Zugang, der ihn inzwischen trägt.
-2. **Der Grabstein IST die Anonymisierung** — genau das, was Artikel 17 DSGVO
-   verlangt. Wer den Namen aufbewahrt, hat nicht gelöscht.
-
-**Und die Rückholfrist ist zur Hälfte schon gebaut, nur heißt sie anders.** Der
-umkehrbare Weg ist **sperren**: die Anmeldung wird abgewiesen, die laufende
-Sitzung fällt, **der Name bleibt, der Bestand bleibt**, und der Admin kann es
-jederzeit zurücknehmen. *Was fehlt, ist nicht der Mechanismus — es ist der Satz,
-der ihn im Löschdialog nennt.*
-
-### Was gebaut werden könnte
-
-**a) Gelöschte Zugänge raus aus der Liste, in ein eigenes Fenster.** Das Vorbild
-steht im Projekt: der Dialog **„Wer hat bewertet"**. *Reine Oberfläche.*
-
-**b) Der Löschdialog nennt den umkehrbaren Weg.** Heute sagt er
-„unwiderruflich" und „der Name wird frei" — er sagt **nicht**, dass es
-daneben einen Weg gibt, der beides nicht tut. Ein Satz:
-
-> *„Nur vorübergehend aussperren? Dann **sperren** statt entfernen — das ist
-> umkehrbar, und der Name bleibt."*
-
-**Ein Satz gegen eine unumkehrbare Fehlbedienung.** *Das ist der billigste Punkt
-mit dem größten Schaden dahinter, und deshalb steht er hier über allen anderen.*
-
-**c) Was NICHT gebaut werden soll: der Ursprungsname am Grabstein.** Siehe oben,
-zwei Gründe.
-
-**d) Die Rückholfrist von dreißig Tagen.** Baubar — aber sie ist ein eigener
-Zustand zwischen „aktiv" und „gelöscht", mit eigenem Aufräumer, und sie
-überschneidet sich mit „gesperrt".
-
-### Offene Entscheidungen
-
-*Die folgenden gelten nur, falls (d) trotz (b) gewollt ist:*
-
-* **Bleibt der Name in den dreißig Tagen gesperrt oder frei?** Frei heißt: die
-  Rückholung kann an einem inzwischen vergebenen Namen scheitern.
-* **Wer räumt ab?** Dieselbe Bauform wie Papierkorb, Token und
-  Sicherheitsprotokoll: eine Funktion, zwei Aufrufstellen.
-* **Darf ein Admin die Frist überspringen?** Draußen gibt es die Frist nur bei
-  Selbstlöschung. *Wer sie hier auch dem Admin auferlegt, baut etwas, das es
-  sonst nirgends gibt — das muss man wollen.*
-* **Und die Frage, die alles davor entscheidet: was genau soll die Frist, was
-  „sperren" nicht schon kann?**
-
-### Was es anfasst
-
-Für (a) und (b): die Karte „Zugänge" und zwei Dialogtexte. **Kein Schema.** Für
-(d): eine Spalte, ein Migrationsblock, ein Aufräumer, das Sicherheitsprotokoll
-und die Rechteprüfung an drei Routen.
-
-**Was dagegen spricht:** an (a) und (b) nichts. Gegen (c) spricht die Doktrin
-und das Gesetz. Gegen (d) spricht, dass es einen zweiten Weg für etwas baut,
-das es schon gibt — *und zwei Wege zum selben Ziel laufen auseinander.*
+### 0.13.0 — GEBAUT, herausgegeben am 28. August 2026
+
+**Die Ausarbeitung steht nicht mehr hier.** Was gebaut ist, steht im
+Änderungsprotokoll 0.13.0 und im Stand — *ein Punkt wandert vom Sammelblatt in
+den Fahrplan und von dort in ein Änderungsprotokoll, nie zurück.*
+
+**Was die Runde gebracht hat, in vier Zeilen:** die Anlage ist über zwei Netze
+zugleich erreichbar (Sammelblatt Nr. 8); die gescheiterten Anmeldungen sind im
+Sicherheitsprotokoll auffindbar, und die Namen sind anklickbar (Nr. 9a); der
+Löschdialog nennt **sperren** als den umkehrbaren Weg, und die Grabsteine haben
+ihr eigenes Fenster (Nr. 12a und 12b). Dazu zwei Punkte aus dem Betrieb vom
+28. August 2026 — die Filterleiste ist 75 px flacher, und die Kategoriezeile
+trägt mehrere Werte zugleich —, und die Reparatur des Teilexports, der mit
+eingeschaltetem zweitem Faktor seit 0.12.4 gar nicht ging.
+
+**WAS AUS DIESER RUNDE HERAUSGENOMMEN WURDE UND WO ES JETZT STEHT:**
+
+| herausgenommen | steht jetzt | warum |
+|---|---|---|
+| **Die Adressliste, wer den Kopf setzen darf** *(8c)* | **eigene Runde**, ausgearbeitet in Abschnitt 8 | Sie ist die Antwort auf die offene Portfreigabe 3100 und nicht auf die zwei Netze. **Sie braucht eine neue `.env`-Zeile**, und eine falsch gesetzte Liste zöge die Anmeldebremse auf die Adresse des Proxys — ein einziger Angreifer sperrte damit alle aus. *In eine Runde, deren Zweck es ist, den Zugang offenzuhalten, gehört kein neuer Weg, ihn zu verlieren.* |
+| **Die maschinenlesbare Zeile nach stdout** *(9c)* | nirgends — **verworfen, solange die Adressliste fehlt** | Der Weg über das Zugriffsprotokoll des Proxys steht seit 0.12.3 in der README und trägt. **Dazu ein Grund, der erst mit Punkt 2 sichtbar wurde:** eine Zeile, die Kriterion selbst schriebe, trüge die Adresse aus `X-Forwarded-For` — und die ist, solange Port 3100 offen steht, eine Behauptung des Aufrufers. *Wir gäben eine Zusage über ein Logformat und führten darin Daten, für die wir schlechter einstehen können als die Stelle, die es schon tut.* |
+| **Der Ursprungsname am Grabstein** *(12c)* | nirgends — **verworfen, zweimal begründet** | Der Name wird zur Neuvergabe frei und kollidiert irgendwann; und der Grabstein IST die Anonymisierung. *Das Fenster der gelöschten Zugänge sagt es jetzt ausdrücklich.* |
+| **Die Rückholfrist von dreißig Tagen** *(12d)* | nirgends — **beantwortet durch 12b** | Die Frage, die alles davor entscheidet, lautete: was soll die Frist, was „sperren" nicht schon kann? **Nichts, das einen zweiten Zustand rechtfertigte.** |
+
+**Die drei Zeilen für die README** (CrowdSec über das Zugriffsprotokoll, die
+Protokollrotation über Docker, das sich selbst räumende Sicherheitsprotokoll)
+**standen unter 0.13.0 und sind schon mit 0.12.3 mitgegangen.**
 
 ---
+
 
 ### 0.14.0 — „Die Entscheidung wird mitgeschrieben" · *MINOR*
 
@@ -6938,8 +6977,13 @@ keine mehr.*
   Mal hin.*
 - **Wer eine Ansicht ergänzt, holt ihren Bestand beim Aufbau** (seit 0.8.70,
   Stolperstein 118).
-- **Der Cookiename ist kein fester String.** Wer etwas an der Sitzung baut,
-  nimmt ihn aus `auth.COOKIE_NAME` und schreibt ihn nirgends ab.
+- **Der Cookiename ist kein fester String — und seit 0.13.0 sind es zwei.** Wer
+  etwas an der Sitzung baut, holt den Token über **`auth.sitzungsToken(req)`**
+  und den Namen über `auth.cookieName(req)`; abgeschrieben wird keiner von
+  beiden. **Erzeugen und Verbrauchen einer Freigabe müssen denselben Leseweg
+  benutzen** — zwei Lesewege nebeneinander liefen auseinander, und der
+  Unterschied fällt erst auf, wenn eine Freigabe nicht passt oder jemand sich
+  selbst hinauswirft.
 - **Die Node-Version steht an zwei Stellen und muss an beiden dieselbe sein**
   (seit 0.8.10): im `Dockerfile` (beide Stufen) und in
   `.github/workflows/pruefstand.yml`. *Laufen sie auseinander, prüft der

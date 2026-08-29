@@ -43,6 +43,129 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.13.0] - 2026-08-28
+
+**Die Anlage ist über zwei Netze zugleich erreichbar** — über HTTPS hinter dem
+Proxy **und** über `http://<server-ip>:3100` im Heimnetz, mit derselben
+Einstellung und ohne Handgriff dazwischen.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.13.0 ist **MINOR**, und die
+> Frage dahinter ist die übliche: *kann die Anlage danach etwas, was sie vorher
+> nicht konnte?* **Ja** — über zwei Netze zugleich erreichbar sein. Das ist
+> keine Fehlerbereinigung, sondern eine Fähigkeit, die es vorher nicht gab.
+> **Kein Schema, kein Migrationsblock, keine neue Formatnummer, keine neue
+> Zeile in der `.env`, keine neue Abhängigkeit.**
+
+### Added
+
+- **Zwei Cookienamen statt einem, entschieden je Anfrage.** Über den Proxy
+  gilt weiterhin `__Host-kriterion_session` samt `Secure` und HSTS, über das
+  Heimnetz `kriterion_session` ohne beides. **Gelesen wird je Anfrage genau
+  ein Name** — ein Klartextcookie gilt auf der HTTPS-Seite nicht, sonst wäre
+  das Präfix `__Host-` wertlos.
+- **Ein Filter am Sicherheitsprotokoll**, sechs Ansichten mit je ihrer Zahl:
+  Alle, **Gescheitert**, Anmeldungen, Zugänge, Zweiter Faktor, Bestand. Die
+  Auswahl geht an den Server — mit ihr sind es die hundert jüngsten **dieser
+  Art** statt der hundert jüngsten aller Arten.
+- **Die Namen im Protokoll sind anklickbar** und springen zur Zeile in der
+  Karte „Zugänge". „unbekannter Name" bleibt Text — es gäbe nichts, wohin er
+  springen könnte.
+- **Gelöschte Zugänge stehen in einem eigenen Fenster**, hinter einem Knopf,
+  der ihre Zahl nennt. Die Liste der Zugänge zeigt nur noch die lebenden.
+- **Die Kategoriezeile trägt mehrere Kategorien zugleich**, und „Ohne
+  Kategorie" ist eine Pille mit eigener Zahl. Es ist ein ODER — ein Eintrag
+  trägt genau eine Kategorie, ein UND wäre garantiert leer.
+
+### Changed
+
+- **Der Löschdialog nennt den umkehrbaren Weg:** *„Nur vorübergehend
+  aussperren? Dann sperren statt entfernen — das ist umkehrbar, und der Name
+  bleibt."* Der Satz steht in der letzten Rückfrage und im Passwortfenster
+  dahinter.
+- **`HINTER_PROXY` bündelt nur noch zwei Wirkungen statt fünf:** ob die Köpfe
+  des Proxys überhaupt angesehen werden, und die Startwarnung bei `http://` in
+  `OEFFENTLICHE_ADRESSE`. Cookiename, `Secure` und HSTS entscheidet die
+  einzelne Anfrage.
+- **Die Filterleiste ist 75 px flacher** — bei 1359 px Fenster **229 px
+  vorher, 154 px nachher**, gemessen und nicht geschätzt. Die Tagzeile braucht
+  eine Zeile statt zwei, Sortieren und Ansichten teilen sich eine.
+- **Der Knopf am Teilexport sagt, was er tut:** „Einmal bestätigen, dann alle
+  n Teile laden" statt „Alle n Teile freigeben".
+- **„Neu seit …" mit null Treffern wird gedämpft**, wie ein Tag in derselben
+  Lage.
+- **Abmelden räumt beide Cookienamen weg** und beendet beide Sitzungen dieses
+  Browsers.
+
+### Removed
+
+- **Der Handgriff „Wenn der Proxy ausfällt" ist aus der README entfernt.** Er
+  ist gegenstandslos geworden: fällt der Proxy aus, geht
+  `http://<server-ip>:3100` von selbst — ohne `.env`, ohne Neustart, ohne
+  Mensch am Wirt.
+
+### Fixed
+
+- **Der Export in Teilen ging mit eingeschaltetem zweitem Faktor seit 0.12.4
+  überhaupt nicht.** Der Knopf schickte denselben Code einmal je Teil an den
+  Server; ein Code des zweiten Faktors gilt **genau einmal**, also ging Teil 1
+  durch und alle weiteren bekamen „Der Code stimmt nicht". **Die Meldung war
+  wahr und trotzdem irreführend** — der Code war richtig, er war verbraucht.
+  *Wer 0.12.4 im Einsatz hat und den Weg nie gebraucht hat, war trotzdem
+  betroffen: der Fehler trat bei jedem Versuch auf.* Jetzt trägt eine Anfrage
+  alle Teilnummern, und der Code wird einmal verbraucht. **Nebenher fallen die
+  Fehlalarme im eigenen Sicherheitsprotokoll weg, die Treffer in der
+  Anmeldebremse (bei elf Teilen griff die harte Sperre) und der verbrannte
+  Wiederherstellungscode.**
+- **Ein Teilexport stand seit 0.12.4 in keiner einzigen Protokollzeile.** Er
+  schrieb `teil 1/5` in eine Spalte, die nur Werte aus einer geschlossenen
+  Liste annimmt — und die ganze Zeile fiel weg, nicht bloß das Merkmal.
+- **Fünf Vorgänge standen als roher Schlüssel am Bildschirm** —
+  `anfrage.frei`, `anfrage.ab` und die drei zum zweiten Faktor hatten kein
+  deutsches Wort. Dazu fehlte „Adresse" unter den Merkmalen, und „beides" hieß
+  fälschlich „Name und Passwort".
+
+### Security
+
+- **Der Heimnetzweg bekommt einen eigenen Cookienamen und nicht denselben mit
+  bedingtem `Secure`.** Ein Name ohne `Secure`, der auch auf der HTTPS-Seite
+  gälte, ließe sich aus dem eigenen Netz über eine verbogene
+  Klartextverbindung setzen — genau dagegen gibt es das Präfix `__Host-`.
+- **HSTS gilt nur auf dem HTTPS-Weg.** Ginge der Kopf auf dem Heimnetzweg mit,
+  bestünde der Browser danach auf HTTPS und fände an Port 3100 keines.
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Kein Schema, keine Migration, keine neue Zeile in der `.env`, keine
+neue Abhängigkeit.
+
+**ZWEI DINGE ZUM WISSEN:**
+
+1. **Das Umlegen von `HINTER_PROXY` meldet weiterhin alle einmalig ab, die
+   über HTTPS kommen** — ihr Cookiename wird dann nicht mehr gelesen. Kein
+   Datenverlust, nur eine neue Anmeldung. *Für den Heimnetzweg gilt das nicht
+   mehr; er war vorher ohnehin nicht erreichbar.*
+2. **Das Einspielen dieser Version meldet niemanden ab.** Wer über HTTPS
+   angemeldet ist, bleibt es.
+
+**Und so geht der Teilexport mit eingeschaltetem zweitem Faktor:**
+
+1. Systembereich → **Export** → *In Teilen exportieren*, Teilgröße wählen.
+2. **Einmal bestätigen** — Passwort und **ein** Code.
+3. Jeden Teil einzeln laden.
+
+### Was gleich bleibt
+
+**Das Austauschformat** bleibt bei **10**, ältere Dateien lassen sich
+weiterhin einspielen. **Der Import** ist Zeile für Zeile derselbe. **Die
+gespeicherten Ansichten** gelten weiter: eine Ansicht mit einer einzelnen
+Kategorie wird beim Einlesen übersetzt, der gespeicherte Wert bleibt
+unangetastet. **`F_ROUTEN`** bleibt bei 69, **`BESTAETIGUNG_ZWECKE`** bei
+sieben, **die Karten im Systembereich** bei neunzehn. **Das
+Sicherheitsprotokoll** trägt weiterhin weder Name noch Adresse — die Anlage
+speichert beides nicht.
+
+---
+
 ## [0.12.4] - 2026-08-28
 
 **Der Export geht in Teilen** — die Antwort auf das, was 0.12.3 gemessen hat:
@@ -1656,7 +1779,7 @@ nicht mehr übernehmen.*
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` bis `v0.12.4`
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` bis `v0.13.0`
      fehlen am Remote; solange das so ist, zeigen die Verweise darunter ins
      Leere.
      DER GRUND IST SEIT 0.12.4 BEKANNT UND WAR VORHER FALSCH NOTIERT: es ist
@@ -1673,3 +1796,4 @@ nicht mehr übernehmen.*
 [0.12.2]: https://github.com/fardem/kriterion/compare/v0.12.1...v0.12.2
 [0.12.3]: https://github.com/fardem/kriterion/compare/v0.12.2...v0.12.3
 [0.12.4]: https://github.com/fardem/kriterion/compare/v0.12.3...v0.12.4
+[0.13.0]: https://github.com/fardem/kriterion/compare/v0.12.4...v0.13.0

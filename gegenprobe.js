@@ -677,7 +677,7 @@ const RUECKBAUTEN = [
        sich wieder. */
     nr: '77', name: 'Marke und Name stapeln sich wieder uebereinander',
     datei: 'public/app.js',
-    suche: '  `<div class="login-marke">${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
+    suche: '  `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
     ersatz: '  `${MARK(40)}<h1>${esc(TITLE_PUBLIC)}</h1>`;',
     erwartet: 'Die Markenzeile der Anmeldeseiten'
   },
@@ -686,8 +686,8 @@ const RUECKBAUTEN = [
        bleibt, also greift hier nur die Zeile, die die Reihenfolge prueft. */
     nr: '78', name: 'Erst das Wort, dann das Zeichen',
     datei: 'public/app.js',
-    suche: '  `<div class="login-marke">${MARK(34)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
-    ersatz: '  `<div class="login-marke"><h1>${esc(TITLE_PUBLIC)}</h1>${MARK(34)}</div>`;',
+    suche: '  `<div class="login-marke">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
+    ersatz: '  `<div class="login-marke"><h1>${esc(TITLE_PUBLIC)}</h1>${MARK(36)}</div>`;',
     erwartet: 'Die Markenzeile der Anmeldeseiten'
   },
   {
@@ -1304,10 +1304,13 @@ const RUECKBAUTEN = [
     erwartet: 'Gespeicherte Ansichten in der Oberflaeche'
   },
   {
+    /* SEIT 0.13.0 TRAEGT DER FILTER EINE LISTE. Der Rueckbau nimmt dieselbe
+       Klemme weg wie vorher: eine Nummer, die es nicht mehr gibt, bliebe
+       stehen und filterte auf eine Kategorie, die niemand mehr hat. */
     nr: '149', name: 'Eine geloeschte Kategorie bleibt in der angewandten Ansicht stehen',
     datei: 'public/app.js',
-    suche: "  if (f.categoryId != null && !state.categories.some(c => c.id === f.categoryId)) f.categoryId = null;",
-    ersatz: "",
+    suche: "  f.categoryIds = [...new Set(f.categoryIds)].filter(v =>\n    v === KATEGORIE_OHNE || state.categories.some(c => c.id === v));",
+    ersatz: "  f.categoryIds = [...new Set(f.categoryIds)];",
     erwartet: 'Gespeicherte Ansichten in der Oberflaeche'
   },
   /* ---- Die Doppelerkennung ---- */
@@ -1534,8 +1537,8 @@ const RUECKBAUTEN = [
   {
     nr: '173', name: 'Der Export baut erst und sagt danach ab',
     datei: 'server.js',
-    suche: '  const gross = austauschBytes(null, schalter);\n  if (gross > AUSTAUSCH_MAX)',
-    ersatz: '  const gross = 0;\n  if (gross > AUSTAUSCH_MAX)',
+    suche: '  const gross = austauschBytes(null, schalter);\n  if (!alsTeil && gross > AUSTAUSCH_MAX)',
+    ersatz: '  const gross = 0;\n  if (!alsTeil && gross > AUSTAUSCH_MAX)',
     erwartet: 'Videos: Kennzahlen und Austausch'
   },
   {
@@ -1586,10 +1589,14 @@ const RUECKBAUTEN = [
        Zeile bricht um, und ein Geschwister DAHINTER rutscht auf eine eigene
        Zeile. Genau das war der Befund. Die CSS-Regel bliebe dabei stehen und
        saehe richtig aus. */
-    nr: '179', name: 'Der Verweis rutscht wieder hinter die Wolke',
+    /* UMGEDREHT SEIT 0.13.0: der Verweis steht jetzt HINTER der Wolke, und das
+       ist die neue Wahrheit. Der Rueckbau schiebt ihn wieder davor -- dann
+       stimmt die Reihenfolge nicht mehr, und "mehr" stuende vor dem, was es
+       aufklappt. */
+    nr: '179', name: 'Der Verweis rutscht wieder VOR die Wolke',
     datei: 'public/app.js',
-    suche: '  if (rechts.childElementCount) r3.insertBefore(rechts, g3);',
-    ersatz: '  if (rechts.childElementCount) r3.appendChild(rechts);',
+    suche: '  if (rechts.childElementCount) r3.appendChild(rechts);',
+    ersatz: '  if (rechts.childElementCount) r3.insertBefore(rechts, g3);',
     erwartet: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
@@ -1702,13 +1709,221 @@ const RUECKBAUTEN = [
     erwartet: 'Der Export in Teilen'
   },
   {
-    /* EINE ABFRAGE, MEHRERE FREIGABEN -- und wenn die Oberflaeche nur eine
-       holt, bleibt der Export nach dem ersten Teil stehen. */
-    nr: '191', name: 'Die Oberflaeche holt nur eine Freigabe statt einer je Teil',
+    /* DER ZUSAMMENZUG IST DER GANZE PUNKT 1 AUS 0.13.0. Faellt er weg und die
+       Oberflaeche fragt wieder je Teil, kommt genau der Fehler aus dem Betrieb
+       zurueck: der erste Aufruf traegt, jeder weitere bekommt "Der Code stimmt
+       nicht" -- ein Code des zweiten Faktors gilt genau einmal.
+       DER RUECKBAU IST DER ALTE QUELLTEXT, Zeile fuer Zeile. Er ist auf einem
+       Server OHNE zweiten Faktor harmlos, und genau deshalb muss die neue
+       Gruppe rot werden und nicht die alte. */
+    nr: '191', name: 'Die Oberflaeche fragt wieder je Teil statt einmal fuer alle',
     datei: 'public/app.js',
-    suche: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }",
-    ersatz: "  for (const ziel of ziele.slice(0, 1)) {\n    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }",
-    erwartet: 'Der Export in Teilen'
+    suche: "  try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziele }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
+    ersatz: "  for (const ziel of ziele) {\n    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }\n    catch (e) { toast(e.message, true); return false; }\n  }\n  return true;",
+    erwartet: 'Der Teilexport mit zweitem Faktor'
+  },
+  {
+    /* DIE MEHRZAHL AM SERVER. Ohne sie nimmt die Route nur ein Ziel, und die
+       eine Anfrage der Oberflaeche legt genau eine Freigabe an -- Teil 2
+       bekaeme 403, und zwar ohne dass irgendwo ein Code falsch gewesen waere. */
+    nr: '192', name: 'Die Route nimmt wieder nur ein einzelnes Ziel',
+    datei: 'server.js',
+    suche: '  } else zielListe = [ziel ?? null];',
+    ersatz: '  }\n  zielListe = [ziel ?? null];',
+    erwartet: 'Der Teilexport mit zweitem Faktor'
+  },
+  {
+    /* DIE ABSAGE AUF DOPPELTE NUMMERN. Ohne sie wird aus drei bestellten
+       Freigaben stillschweigend eine -- die Antwort saehe aus wie ein Erfolg,
+       und der zweite Teil bliebe stehen. */
+    nr: '193', name: 'Doppelte Zielnummern gehen als halbierte Bestellung durch',
+    datei: 'server.js',
+    suche: '    if (new Set(zielListe).size !== zielListe.length)',
+    ersatz: '    if (false)',
+    erwartet: 'Der Teilexport mit zweitem Faktor'
+  },
+  {
+    /* DER DECKEL AUF DER ZAHL DER ZIELE. Ohne ihn legt eine einzige Anfrage
+       zehntausend Freigaben im Arbeitsspeicher ab, und nichts raeumt sie vor
+       ihrem Ablauf wieder weg. */
+    nr: '194', name: 'Eine Anfrage darf beliebig viele Freigaben bestellen',
+    datei: 'server.js',
+    suche: '    if (ziele.length > AUSTAUSCH_TEIL_MAX)',
+    ersatz: '    if (false)',
+    erwartet: 'Der Teilexport mit zweitem Faktor'
+  },
+  {
+    /* DAS MERKMAL AM TEILEXPORT. Steht dort wieder die Nummer, ist sie kein
+       Wert aus MERKMALE -- und protokolliere() verwirft die GANZE Zeile. Ein
+       Bestand, der in fuenf Teilen hinausgeht, stuende im Protokoll nirgends.
+       DAS IST DER BEFUND AUS 0.12.4, wortwoertlich zurueckgebaut. */
+    nr: '195', name: 'Der Teilexport schreibt wieder "teil 1/5" und faellt damit aus dem Protokoll',
+    datei: 'server.js',
+    suche: "merkmal: alsTeil ? 'teil' : null });",
+    ersatz: 'merkmal: alsTeil ? `teil ${teil}/${teile}` : null });',
+    erwartet: 'Der Teilexport mit zweitem Faktor'
+  },
+  /* ---- 0.13.0: zwei Netze, ein Zugang ---- */
+  {
+    /* DER KOPF WIRD OHNE DIE EINSTELLUNG GEGLAUBT. Dann holt sich jeder
+       Aufrufer auf Port 3100 einen __Host--Cookie samt HSTS -- und sperrt sich
+       damit selbst aus, weil sein Browser den Cookie verwirft. */
+    nr: '196', name: 'X-Forwarded-Proto wird auch ohne HINTER_PROXY geglaubt',
+    datei: 'auth.js',
+    suche: '  if (!HINTER_PROXY) return false;',
+    ersatz: '  if (false) return false;',
+    erwartet: 'Ohne Proxy ist der Kopf nur eine Behauptung'
+  },
+  {
+    /* BEIDE WEGE BEKOMMEN DENSELBEN NAMEN -- der Fehler aus (b) in Reinform.
+       Eine Zeile, die nur sagt, dass ein Cookie gesetzt wurde, bliebe dabei
+       gruen; der NAME ist die Pruefung. */
+    nr: '197', name: 'Beide Wege bekommen denselben Cookienamen',
+    datei: 'auth.js',
+    suche: "const cookieName = (req) => ueberProxy(req) ? COOKIE_SICHER : COOKIE_NAME;",
+    ersatz: "const cookieName = (req) => COOKIE_NAME;",
+    erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
+  },
+  {
+    /* SECURE AM HEIMNETZWEG. Der Browser verwirft den Cookie dann
+       stillschweigend -- genau der Fehler, gegen den diese Runde gebaut ist,
+       nur eine Ebene tiefer. */
+    nr: '198', name: 'Auch der Heimnetzcookie traegt Secure',
+    datei: 'auth.js',
+    suche: "  `${ueberProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;",
+    ersatz: "  `; Secure; Max-Age=${SESSION_DAYS * 86400}`;",
+    erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
+  },
+  {
+    /* HSTS AUF JEDEM WEG. Der Kopf sperrt den Heimnetzweg aus, den (a) gerade
+       offenhalten soll: der Browser bestuende danach auf HTTPS und faende an
+       Port 3100 keines. */
+    nr: '199', name: 'HSTS geht wieder auf jedem Weg mit',
+    datei: 'server.js',
+    suche: "  if (auth.ueberProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');",
+    ersatz: "  if (auth.HINTER_PROXY) res.set('Strict-Transport-Security', 'max-age=31536000');",
+    erwartet: 'Zwei Netze, ein Zugang — 0.13.0'
+  },
+  /* ---- 0.13.0: der Filter am Sicherheitsprotokoll ---- */
+  {
+    /* DIE AUSWAHL WIRD UEBERGANGEN. Die Karte zeigt dann wieder die hundert
+       juengsten ALLER Arten, und genau darin findet man die gescheiterten
+       Anmeldungen nicht. */
+    nr: '200', name: 'Die Leseroute uebergeht die gewaehlte Ansicht',
+    datei: 'server.js',
+    suche: '  res.json(auth.leseProtokoll(auth.PROTOKOLL_GRENZE, gruppe));',
+    ersatz: '  res.json(auth.leseProtokoll(auth.PROTOKOLL_GRENZE));',
+    erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
+  },
+  {
+    /* DIE NAMEN WERDEN WIEDER BLOSSER TEXT. Der Sprung zum Zugang faellt damit
+       weg -- und mit ihm die zweite Haelfte von Punkt 3a. */
+    nr: '201', name: 'Die Namen im Protokoll sind wieder nur Text',
+    datei: 'public/app.js',
+    suche: "    if (id == null) { feld.appendChild(dok.createTextNode(text)); return feld; }",
+    ersatz: "    feld.appendChild(dok.createTextNode(text)); return feld;",
+    erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
+  },
+  {
+    /* "unbekannter Name" WIRD ANKLICKBAR. Er ist der getippte Name eines
+       Versuchs, der an keinen Zugang traf -- ein Knopf ins Leere. */
+    nr: '202', name: 'Auch "unbekannter Name" wird ein Knopf',
+    datei: 'public/app.js',
+    suche: "      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z),\n        z.wer != null ? z.wer : null));",
+    ersatz: "      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z), z.wer ?? 0));",
+    erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
+  },
+  {
+    /* DIE FUENF WOERTER FALLEN WIEDER WEG. Die Vorgaenge stehen dann als rohe
+       Schluessel am Bildschirm -- "anfrage.frei" statt eines Satzes. */
+    nr: '203', name: 'Fuenf Vorgaenge stehen wieder als roher Schluessel da',
+    datei: 'public/app.js',
+    suche: "    'anfrage.frei': 'Anfrage freigegeben',",
+    ersatz: "",
+    erwartet: 'Das Sicherheitsprotokoll in der Oberflaeche'
+  },
+  /* ---- 0.13.0: der Loeschdialog und die Grabsteine ---- */
+  {
+    /* DER SATZ FAELLT WEG. Der Dialog sagt dann wieder nur, dass es nicht
+       rueckgaengig zu machen ist -- und verschweigt den Weg, der genau das
+       nicht tut. Der billigste Punkt der Runde mit dem groessten Schaden. */
+    nr: '204', name: 'Der Loeschdialog verschweigt den umkehrbaren Weg wieder',
+    datei: 'public/app.js',
+    suche: "            `Nur vorübergehend aussperren? Dann sperren statt entfernen — das ist umkehrbar, ` +\n            `und der Name bleibt.`)) return;",
+    ersatz: "            ``)) return;",
+    erwartet: 'Die zweite Bestaetigung in der Oberflaeche'
+  },
+  {
+    /* DIE GRABSTEINE STEHEN WIEDER ZWISCHEN DEN LEBENDEN. */
+    nr: '205', name: 'Grabsteine stehen wieder in der Zugangsliste',
+    datei: 'public/app.js',
+    suche: "    for (const z of daten.zugaenge.filter(z => z.status !== 'geloescht')) {",
+    ersatz: "    for (const z of daten.zugaenge) {",
+    erwartet: 'Der Einladungslink in der Karte Zugaenge'
+  },
+  /* ---- 0.13.0: die Filterleiste ---- */
+  {
+    /* DIE SELBSTTAETIGE AUSSENKANTE KOMMT ZURUECK. Sie frisst den freien Platz
+       der Zeile, die Wolke rutscht darunter, und die Tagzeile kostet wieder
+       zwei Zeilen. */
+    nr: '206', name: 'Die selbsttaetige Aussenkante frisst die Zeile wieder',
+    datei: 'public/style.css',
+    suche: '.frow-rechts { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }',
+    ersatz: '.frow-rechts { display: flex; align-items: center; gap: 10px; margin-left: auto; }',
+    erwartet: 'Die Anzeige zieht nach — 0.12.3'
+  },
+  {
+    /* SORTIEREN UND ANSICHTEN FALLEN WIEDER AUSEINANDER. */
+    nr: '207', name: 'Sortieren und Ansichten bekommen wieder je eine Zeile',
+    datei: 'public/app.js',
+    suche: "  const r5 = r4;\n  zweiteBeschriftung(r5, 'Ansichten');",
+    ersatz: "  const r5 = row('Ansichten');",
+    erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
+  },
+  {
+    /* "NEU SEIT ..." MIT NULL TREFFERN STEHT WIEDER IN VOLLER HELLIGKEIT DA. */
+    nr: '208', name: 'Die Pille mit null Treffern wird nicht mehr gedaempft',
+    datei: 'public/app.js',
+    suche: '    const leer = !f.neu && neuZahl === 0;',
+    ersatz: '    const leer = false;',
+    erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
+  },
+  /* ---- 0.13.0: die Kategoriezeile ---- */
+  {
+    /* DIE UEBERSETZUNG DER ALTEN FORM FAELLT WEG. Alle vorhandenen Ansichten
+       verloeren ihre Kategorie -- still und ohne Meldung. */
+    nr: '209', name: 'Eine gespeicherte Ansicht in der alten Form verliert ihre Kategorie',
+    datei: 'public/app.js',
+    suche: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = f.categoryId != null ? [f.categoryId] : [];",
+    ersatz: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = [];",
+    erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
+  },
+  {
+    /* AUS DEM ODER WIRD EIN UND. Ein Eintrag traegt genau eine Kategorie --
+       zwei gewaehlte ergaeben damit garantiert null Treffer. */
+    nr: '210', name: 'Aus der Vereinigung wird ein Schnitt',
+    datei: 'public/app.js',
+    suche: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.includes(i.category ? i.category.id : KATEGORIE_OHNE));",
+    ersatz: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.every(v => v === (i.category ? i.category.id : KATEGORIE_OHNE)));",
+    erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
+  },
+  {
+    /* "OHNE" WIRD BEIM ZURECHTRUECKEN WEGGEWORFEN: es ist kein Kategoriewert,
+       und eine Klemme, die nur Nummern durchlaesst, nimmt es mit. */
+    nr: '211', name: '"Ohne" ueberlebt das Zurechtruecken nicht',
+    datei: 'public/app.js',
+    suche: "    v === KATEGORIE_OHNE || state.categories.some(c => c.id === v));",
+    ersatz: "    state.categories.some(c => c.id === v));",
+    erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
+  },
+  {
+    /* DIE PILLE "OHNE" FAELLT WEG. Die Eintraege ohne Kategorie waeren wieder
+       ueber keine einzelne Kategorie erreichbar -- der Anlass des Punktes. */
+    nr: '212', name: 'Die Pille "Ohne" wird gar nicht erst gezeichnet',
+    datei: 'public/app.js',
+    suche: "  if (ohneZahl || f.categoryIds.includes(KATEGORIE_OHNE)) {",
+    ersatz: "  if (false) {",
+    erwartet: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
@@ -2000,7 +2215,16 @@ function schreibeTabelle(ergebnisse) {
   return (stumm.length || kaputt.length || leichen.length) ? 1 : 0;
 }
 
-/* ================= Bedienung ================= */
+/* ================= Bedienung =================
+   DIE LISTE IST AUCH VON AUSSEN LESBAR, und der Prueflauf liest sie: er zaehlt
+   die Rueckbauten nach und sieht bei jedem nach, ob sein Suchtext in seiner
+   Datei genau einmal vorkommt. Ein Rueckbau, der ins Leere greift, sieht sonst
+   aus wie einer, der nichts bewirkt -- und faellt erst beim vollen Lauf auf,
+   der Stunden dauert. Drei davon lagen so fuenf Runden lang unbemerkt.
+   NUR BEIM DIREKTEN AUFRUF WIRD GEFAHREN: `require('./gegenprobe')` liefert
+   die Liste und startet keinen einzigen Server. */
+module.exports = { RUECKBAUTEN };
+if (require.main !== module) return;
 
 (async function haupt() {
   const argumente = process.argv.slice(2);

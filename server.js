@@ -152,8 +152,13 @@ app.use(express.json({ limit: '2mb' }));
    einem <video> faellt unter media-src, nicht unter img-src -- ohne die
    Freigabe verwirft der Browser sie WORTLOS.
 
-   Strict-Transport-Security nur hinter dem Proxy: im Heimnetz auf Port 3100
-   spricht niemand HTTPS, und ein gesetzter Kopf sperrte die Anlage aus. */
+   Strict-Transport-Security NUR AUF DEM HTTPS-WEG, und das ist seit 0.13.0
+   eine Frage an die ANFRAGE und nicht mehr an die Einstellung: der Kopf sagt
+   dem Browser "diesen Rechnernamen kuenftig nur noch ueber HTTPS". Ginge er
+   auch auf dem Heimnetzweg mit, sperrte er genau den Weg aus, den diese Runde
+   offenhaelt -- der Browser bestuende danach auf HTTPS und faende an Port 3100
+   keines. DIE STELLE IST DIESE EINE, und sie liegt vor express.static: der
+   Kopf gehoert an jede Antwort, auch an die der Oberflaeche. */
 const CSP_ANWENDUNG =
   "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; " +
   "style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'self'; " +
@@ -161,7 +166,7 @@ const CSP_ANWENDUNG =
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Content-Security-Policy', CSP_ANWENDUNG);
-  if (auth.HINTER_PROXY) res.set('Strict-Transport-Security', 'max-age=31536000');
+  if (auth.ueberProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');
   next();
 });
 app.use(express.static(path.join(__dirname, 'public')));
@@ -298,7 +303,7 @@ app.post('/api/setup', async (req, res) => {
   } catch (e) { return res.status(400).json({ error: e.message }); }
   // Gleich angemeldet: ein zweites Formular unmittelbar nach dem ersten waere
   // nur eine Huerde ohne Gewinn.
-  res.set('Set-Cookie', auth.sessionCookie(auth.legeSitzungAn(angelegt.id)));
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.legeSitzungAn(angelegt.id)));
   res.json({ ok: true });
 });
 
@@ -351,7 +356,7 @@ app.post('/api/login', async (req, res) => {
   }
   auth.noteSuccess(ip, user);
   auth.pruneSessions();
-  res.set('Set-Cookie', auth.sessionCookie(auth.legeSitzungAn(benutzer.id)));
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.legeSitzungAn(benutzer.id)));
   res.json({ ok: true });
 });
 
@@ -425,12 +430,22 @@ app.post('/api/login/zwei', async (req, res) => {
   }
   auth.noteSuccess(ip, name);
   auth.pruneSessions();
-  res.set('Set-Cookie', auth.sessionCookie(auth.legeSitzungAn(id)));
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.legeSitzungAn(id)));
   res.json({ ok: true });
 });
 
+/* ABGEMELDET WIRD DER BROWSER UND NICHT DIE VERBINDUNGSART. Seit 0.13.0
+   koennen zwei Sitzungen desselben Menschen im selben Browser nebeneinander
+   stehen -- eine ueber HTTPS, eine ueber das Heimnetz --, und jede traegt einen
+   eigenen Cookienamen. Wer abmeldet, meint beide: eine stehengebliebene waere
+   ein Zugang, den niemand mehr erwartet.
+   BEENDET WIRD, WAS WIRKLICH DASTEHT: der Klartextcookie geht auch an die
+   HTTPS-Seite (er traegt kein Secure), umgekehrt nicht -- die Liste ist
+   deshalb das, was diese eine Anfrage mitbringt, und nicht eine Vermutung. */
 app.post('/api/logout', (req, res) => {
-  auth.destroySession(auth.parseCookies(req)[auth.COOKIE_NAME]);
+  const kekse = auth.parseCookies(req);
+  for (const t of new Set([kekse[auth.COOKIE_SICHER], kekse[auth.COOKIE_NAME]].filter(Boolean)))
+    auth.destroySession(t);
   res.set('Set-Cookie', auth.clearCookie());
   res.json({ ok: true });
 });
@@ -438,7 +453,7 @@ app.post('/api/logout', (req, res) => {
 // Bewusst nur ja/nein: der Endpunkt liegt VOR der Anmeldung und darf ueber den
 // Benutzer nichts verraten. Deshalb das Boolean um die Zeile herum.
 app.get('/api/session', (req, res) => {
-  res.json({ authenticated: Boolean(auth.sitzungsBenutzer(auth.parseCookies(req)[auth.COOKIE_NAME])) });
+  res.json({ authenticated: Boolean(auth.sitzungsBenutzer(auth.sitzungsToken(req))) });
 });
 
 /* ---- Der Token vor der Anmeldung ----
@@ -530,7 +545,7 @@ app.post('/api/token/einloesen', async (req, res) => {
     });
   }
   auth.pruneSessions();
-  res.set('Set-Cookie', auth.sessionCookie(auth.legeSitzungAn(ergebnis.id)));
+  res.set('Set-Cookie', auth.sessionCookie(req, auth.legeSitzungAn(ergebnis.id)));
   res.json({ ok: true, username: ergebnis.username });
 });
 
@@ -671,7 +686,7 @@ const VERWEIGERT_BESTAETIGUNG = 'Dafür ist dein Passwort nötig — bitte noch 
 // 403 und NICHT 401: der Zugang gilt weiter, nur diese eine Handlung nicht.
 // Ein 401 wuerfe die Oberflaeche auf die Anmeldeseite.
 function zweiteBestaetigung(req, res, zweck, ziel = null) {
-  const token = auth.parseCookies(req)[auth.COOKIE_NAME];
+  const token = auth.sitzungsToken(req);
   if (auth.verbraucheFreigabe(token, zweck, ziel)) return true;
   res.status(403).json({ error: VERWEIGERT_BESTAETIGUNG, bestaetigung: zweck });
   return false;
@@ -792,7 +807,7 @@ app.put('/api/account', async (req, res) => {
   // hinauswerfen. Die Zeile selbst steht in auth.js -- der Knopf "alle anderen
   // beenden" ruft dieselbe, und zwei Ausfuehrungen derselben Regel liefen
   // auseinander.
-  auth.beendeAndereSitzungen(req.benutzer.id, auth.parseCookies(req)[auth.COOKIE_NAME]);
+  auth.beendeAndereSitzungen(req.benutzer.id, auth.sitzungsToken(req));
   res.json(ergebnis);
 });
 
@@ -802,17 +817,17 @@ app.put('/api/account', async (req, res) => {
    Beide schreibenden Routen tragen die Art 'selbstbezug'.
    DIE FESTE ROUTE STEHT VOR DER PLATZHALTERROUTE (Stolperstein 11). */
 app.get('/api/sessions', (req, res) => {
-  const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
+  const eigener = auth.sitzungsToken(req);
   res.json({ sitzungen: auth.sitzungenVon(req.benutzer.id, eigener), tage: auth.SESSION_DAYS });
 });
 
 app.delete('/api/sessions', (req, res) => {
-  const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
+  const eigener = auth.sitzungsToken(req);
   res.json({ beendet: auth.beendeAndereSitzungen(req.benutzer.id, eigener) });
 });
 
 app.delete('/api/sessions/:kennung', (req, res) => {
-  const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
+  const eigener = auth.sitzungsToken(req);
   // Die eigene ueber diesen Weg zu beenden waere ein zweiter Abmeldeweg neben
   // POST /api/logout -- und einer, nach dem die Oberflaeche weiterliefe, als
   // waere nichts gewesen.
@@ -938,9 +953,43 @@ app.post('/api/bestaetigung', async (req, res) => {
     });
   }
   if (t.delayMs) await new Promise(r => setTimeout(r, t.delayMs));
-  const { passwort, zweck, ziel, code } = req.body || {};
+  const { passwort, zweck, ziel, ziele, code } = req.body || {};
   if (!auth.BESTAETIGUNG_ZWECKE.includes(zweck))
     return res.status(400).json({ error: 'Diesen Zweck gibt es nicht.' });
+  /* MEHRERE ZIELE IN EINER ANFRAGE, und der Grund ist der Code des zweiten
+     Faktors: er gilt GENAU EINMAL. Das Passwort laeuft gegen einen Hash und
+     laesst sich beliebig oft vergleichen, der Code nicht -- wer ihn n-mal
+     schickt, bekommt einmal 200 und n-1 mal 403.
+     GEPRUEFT WIRD DESHALB EINMAL UND FREIGEGEBEN n-MAL. Was dabei bleibt: das
+     LADEN eines Teils verbraucht weiterhin genau eine Freigabe, und eine
+     Freigabe fuer Teil 1 laesst Teil 2 nicht durch -- der Schluessel ist
+     Sitzung, Zweck und Ziel, und daran aendert sich nichts.
+     GEPRUEFT VOR DEM PASSWORT: eine unbrauchbare Bestellung soll keinen Code
+     verbrennen und keine Zeile in der Anmeldebremse kosten. */
+  let zielListe;
+  if (ziele !== undefined) {
+    if (ziel !== undefined)
+      return res.status(400).json({ error: 'Entweder ein Ziel oder mehrere, nicht beides.' });
+    if (!Array.isArray(ziele) || !ziele.length)
+      return res.status(400).json({ error: 'Es fehlen die Ziele.' });
+    /* Die Zahl der Ziele ist gedeckelt wie die Zahl der Teile: eine Bestellung
+       ueber zehntausend Freigaben legte sie im Arbeitsspeicher ab und nichts
+       raeumte sie vor ihrem Ablauf wieder weg.
+       AUSTAUSCH_TEIL_MAX STEHT WEIT UNTEN, beim Teilexport selbst -- dort
+       gehoert die Zahl hin, und dieselbe Grenze zweimal zu schreiben liefe
+       auseinander. Zur Laufzeit ist sie laengst gesetzt: diese Zeile laeuft in
+       einem Routenrumpf, nicht bei der Modulauswertung. */
+    if (ziele.length > AUSTAUSCH_TEIL_MAX)
+      return res.status(400).json({ error: `Mehr als ${AUSTAUSCH_TEIL_MAX} Ziele gibt es nicht.` });
+    zielListe = ziele.map(z => Number(z));
+    if (!zielListe.every(n => Number.isInteger(n) && n > 0))
+      return res.status(400).json({ error: 'Jedes Ziel ist eine Nummer.' });
+    // Doppelte sind ein Fehler und keine stillschweigend halbierte Bestellung:
+    // wer zweimal dieselbe Nummer schickt, hat sich verzaehlt, und eine
+    // Antwort mit weniger Freigaben als bestellt saehe aus wie ein Erfolg.
+    if (new Set(zielListe).size !== zielListe.length)
+      return res.status(400).json({ error: 'Ein Ziel steht doppelt in der Liste.' });
+  } else zielListe = [ziel ?? null];
   const zeile = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.benutzer.id);
   if (!zeile || !await auth.pruefePasswort(String(passwort || ''), zeile.password_hash)) {
     auth.noteFailure(ip, name);
@@ -965,9 +1014,14 @@ app.post('/api/bestaetigung', async (req, res) => {
     return res.status(403).json({ error: auth.ZWEITER_FAKTOR_ABSAGE, zweifaktor: true });
   }
   auth.noteSuccess(ip, name);
-  const eigener = auth.parseCookies(req)[auth.COOKIE_NAME];
+  const eigener = auth.sitzungsToken(req);
   try {
-    res.json({ ok: true, ...auth.erzeugeFreigabe(eigener, zweck, ziel) });
+    // Alle Freigaben in EINER Antwort. `ziele` steht auch dann darin, wenn nur
+    // eine bestellt war -- eine Antwort, deren Form von der Zahl abhaengt,
+    // braeuchte auf der Gegenseite zwei Lesearten.
+    let letzte;
+    for (const z of zielListe) letzte = auth.erzeugeFreigabe(eigener, zweck, z);
+    res.json({ ok: true, ...letzte, ziele: zielListe });
   } catch (e) { return res.status(400).json({ error: e.message }); }
 });
 
@@ -980,7 +1034,17 @@ app.post('/api/bestaetigung', async (req, res) => {
    ZWEITE AUFRUFSTELLE DES AUFRAEUMENS; die erste steht beim Start. */
 app.get('/api/sicherheitsprotokoll', nurEigentuemer, (req, res) => {
   auth.raeumeProtokollAuf();
-  res.json(auth.leseProtokoll());
+  /* DIE AUSWAHL GEHT AN DEN SERVER und nicht an den Browser: die Karte holt
+     die hundert JUENGSTEN Zeilen, und darin findet man die gescheiterten
+     Anmeldungen nicht -- sie stehen zwischen allem anderen. Mit der Auswahl
+     sind es die hundert juengsten DIESER Art.
+     EIN UNBEKANNTER SCHLUESSEL IST EIN 400 und nicht stillschweigend "alles":
+     ein Tippfehler saehe sonst aus wie ein Erfolg.
+     LESEND WIE VORHER -- F_ROUTEN bleibt bei 69. */
+  const gruppe = req.query.gruppe;
+  if (gruppe !== undefined && !Object.prototype.hasOwnProperty.call(auth.PROTOKOLL_GRUPPEN, gruppe))
+    return res.status(400).json({ error: 'Diese Ansicht gibt es nicht.' });
+  res.json(auth.leseProtokoll(auth.PROTOKOLL_GRENZE, gruppe));
 });
 
 /* ---- Zugaenge verwalten ----
@@ -3707,9 +3771,12 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
   const items = (alsTeil
     ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(von, bis)
     : db.prepare('SELECT * FROM items ORDER BY id').all()).map(it => eintragAlsPaket(it, lage));
-  // Ein Teil steht als solcher im Protokoll -- sonst saehe ein Bestand, der in
-  // fuenf Teilen hinausgeht, aus wie fuenf volle Exporte.
-  auth.protokolliere('export', { wer: req.benutzer.id, merkmal: alsTeil ? `teil ${teil}/${teile}` : null });
+  /* Ein Teil steht als solcher im Protokoll -- sonst saehe ein Bestand, der in
+     fuenf Teilen hinausgeht, aus wie fuenf volle Exporte.
+     DAS MERKMAL IST DAS WORT UND NICHT DIE NUMMER: merkmal traegt nur Werte
+     aus MERKMALE, und "teil 1/5" stand nicht darin -- 0.12.4 hat damit gar
+     keine Zeile geschrieben. Die Nummer des Teils steht im Dateinamen. */
+  auth.protokolliere('export', { wer: req.benutzer.id, merkmal: alsTeil ? 'teil' : null });
   res.set('Content-Disposition',
     `attachment; filename="${exportName(alsTeil ? `-teil-${teil}-von-${teile}` : '')}"`);
   /* DAS NETZ UNTER DER SCHAETZUNG. Die Absage oben rechnet, sie misst nicht --
@@ -4705,13 +4772,17 @@ app.listen(PORT, () => {
   const u = auth.holeBenutzer();
   console.log(`[Kriterion] Läuft auf Port ${PORT} — ` +
     (u ? `Eigentümer: ${u.username}` : 'noch kein Zugang, Einrichtung im Browser'));
-  // Die Betriebsart gehoert ins Protokoll: an ihr haengen der gelesene Kopf,
-  // das Secure am Cookie, HSTS und der Name des Cookies. Wer sie falsch stehen
-  // hat, sieht es hier und nicht erst an einer wirkungslosen Anmeldebremse.
+  /* Die Betriebsart gehoert ins Protokoll: an ihr haengt, ob die Koepfe des
+     Proxys ueberhaupt angesehen werden. Wer sie falsch stehen hat, sieht es
+     hier und nicht erst an einer wirkungslosen Anmeldebremse.
+     SIE NENNT SEIT 0.13.0 BEIDE WEGE: Cookiename, Secure und HSTS haengen
+     nicht mehr an ihr, sondern an der einzelnen Anfrage. Eine Zeile, die eine
+     Buendelung behauptet, die es nicht mehr gibt, waere schlechter als keine. */
   console.log(`[Kriterion] Hinter Proxy: ${auth.HINTER_PROXY ? 'an' : 'aus'} — ` +
     (auth.HINTER_PROXY
-      ? 'X-Forwarded-For wird gelesen, Cookie mit Secure und __Host-'
-      : 'X-Forwarded-For wird nicht gelesen'));
+      ? 'X-Forwarded-For und X-Forwarded-Proto werden gelesen; über HTTPS gilt ' +
+        `${auth.COOKIE_SICHER} mit Secure und HSTS, über das Heimnetz ${auth.COOKIE_NAME}`
+      : `kein Kopf wird gelesen, jede Anfrage gilt als Klartext: ${auth.COOKIE_NAME} ohne Secure`));
   /* Die oeffentliche Adresse gehoert ins Protokoll: an ihr haengt, welchen
      Link ein Empfaenger bekommt. Wer sie falsch stehen hat, sieht es hier und
      nicht erst am toten Link beim Empfaenger. */
@@ -4725,7 +4796,8 @@ app.listen(PORT, () => {
       // Widerspruch, aber kein Verlust: ein falscher Link ist ein toter Link.
       // Eine Absage waere hier haerter als der Schaden.
       console.warn('[Kriterion] Hinter einem Proxy und trotzdem http:// in ' +
-        'OEFFENTLICHE_ADRESSE — der Cookie traegt Secure, ueber http kommt niemand herein.');
+        'OEFFENTLICHE_ADRESSE — verschickte Links fuehren dann am Proxy vorbei ' +
+        'und ohne HTTPS ins Haus.');
     }
   } else {
     console.log('[Kriterion] Oeffentliche Adresse: nicht gesetzt — ' +

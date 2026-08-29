@@ -144,7 +144,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | Runde | Was daraus geworden ist |
 |---|---|
 | **0.12.3** *PATCH* — **GEBAUT am 28. August 2026** | Export durch den Arbeitsspeicher · nur zeichnen, was zu sehen ist · ein Kasten, eine Farbe · Speicherverbrauch · ⌀ und Anzahl · „offen" in der Kopfzeile · Kommentar ohne Rollen · Versionszeile · „mehr" frisst eine Zeile. **Was gebaut wurde, steht im Änderungsprotokoll 0.12.3; was daraus herausgenommen wurde, in Abschnitt 10a.** |
-| **0.13.0** *MINOR* | Der Proxy ist ein Ja/Nein · gescheiterte Anmeldungen und CrowdSec · gelöschte Zugänge und der Weg zurück. **Dazu ein Befund aus dem Betrieb vom 28. August 2026, der nicht aus dem Fahrplan kommt:** der Export in Teilen ist mit eingeschaltetem zweitem Faktor unbenutzbar — er schickt denselben Code je Teil, und ein Code gilt genau einmal. *Er steht als Punkt 1 im Auftrag 0.13.0 und wird dort zuerst gebaut.* **Dazu die Filterleiste** — zwei Zeilen zu viel, nachgemessen: 229 px in fünf Zeilen, davon vier zu mehr als der Hälfte leer. *Punkt 5 desselben Auftrags.* **Und die Kategoriezeile** (Punkt 6): mehrere Kategorien zugleich — ein Oder, denn ein Eintrag trägt genau eine —, dazu die Pille „Ohne". *Anlass: der Kopf sagte 12 Einträge, die Kategorien 1 + 9 = 10; zwei Einträge waren über keine einzelne Kategorie erreichbar.* |
+| **0.13.0** *MINOR* — **GEBAUT am 28. August 2026** | Der Proxy ist ein Ja/Nein · gescheiterte Anmeldungen sichtbar machen · gelöschte Zugänge und der Weg zurück · der Teilexport mit zweitem Faktor · die Filterleiste (229 → 154 px, gemessen) · die Kategoriezeile lernt die Mehrzahl. **Was gebaut wurde, steht im Änderungsprotokoll 0.13.0; was daraus herausgenommen wurde, in Abschnitt 10a.** *Herausgenommen sind die Adressliste (eigene Runde) und die stdout-Zeile für CrowdSec (verworfen, solange die Adressliste fehlt).* |
 | **0.14.0** *MINOR, Schema* | Aus „abgelehnt" wird eine Entscheidung |
 | **0.15.0** *MINOR* | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · Vorschau der Rangfolge · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt; 0.13.0 war voll, 0.14.0 trägt als Schema-Runde keine Beifracht)* |
 | **0.16.0** *MINOR* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
@@ -421,18 +421,24 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 
 ### Aus dem Betrieb und aus den Runden
 
-- **Dieselbe Tagwolke ist an zwei Stellen verschieden gebaut** *(0.12.3)*.
+- **Dieselbe Tagwolke ist an zwei Stellen verschieden angeordnet — seit 0.13.0
+  mit Grund** *(0.12.3, entschieden 0.13.0)*.
   Auf der Eintragsseite sitzt „mehr" in einer eigenen Kopfzeile (`.wolke-kopf`,
-  `space-between`), in der Übersicht als Kind der Filterzeile mit
-  `margin-left: auto`. **0.12.3 hat die Übersicht auf dasselbe Verhalten
-  gebracht, nicht auf dieselbe Bauform** — Stolperstein 47, im Kleinen.
-  *Zusammengeführt wurde bewusst nicht: die beiden Zeilen tragen Verschiedenes
-  (die Filterzeile trägt Und/Oder und die Auswahl, die Kopfzeile nur eine
-  Beschriftung), und eine gemeinsame Bauform müsste beides können.* **Solange
-  beide dasselbe tun, ist es eine Doppelung und kein Fehler; sobald eine von
-  beiden sich ändert, ist es einer.** *(Claude: später — eigene Runde, keine
-  Beifracht. Später denkbar: `+7` statt „mehr", was voraussetzt, dass die
-  überzähligen Tags weggeblendet statt beschnitten werden.)*
+  `space-between`) über einer dreizeiligen Wolke; in der Übersicht steht die
+  Wolke seit 0.13.0 **neben** ihren Verweisen in einer einzigen Zeile.
+  **0.13.0 hat genau eine von beiden geändert — und damit die Frage
+  entschieden, die hier stand.** *Die Eintragsseite zieht NICHT mit, und das
+  ist nachgesehen: dort steht neben der Wolke ein ganzer erklärender Satz. Sie
+  bekäme neben ihm eine schmale Spalte und bräche über MEHR Zeilen um, nicht
+  über weniger — Mitziehen machte sie schlechter. In der Übersicht dagegen
+  standen rechts 900 px leer, und knapp war die Höhe.*
+  **Die Mechanik ist ohnehin geteilt** (`sortiereWolke()`, `begrenzeWolke()` —
+  eine Stelle, zwei Rufer); verschieden ist allein die Anordnung, und sie ist es
+  aus einem genannten Grund. **Aus einer Doppelung ohne Grund ist damit ein
+  Unterschied mit Grund geworden**, und der steht im Projektstand, Abschnitt
+  5.6. *(Claude: erledigt als Frage. Offen bleibt nur eine Idee ohne Nummer:
+  `+7` statt „mehr", was voraussetzt, dass die überzähligen Tags weggeblendet
+  statt beschnitten werden.)*
 - **Prüfung der Wiederherstellung** *(0.8.70)*. Seit die Sicherung über
   `VACUUM INTO` der Hauptweg ist, gibt es eine Datei, die niemand je
   zurückgespielt hat — **eine Sicherung ohne Probe ist eine Vermutung.** Ein

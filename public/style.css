@@ -257,18 +257,34 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 .frow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 /* Die Verweise am rechten Ende der Filterzeile -- "mehr"/"weniger" und
-   "zuruecksetzen" an der Tagzeile. Sie stehen im Aufbau VOR der Wolke und
-   landen mit der selbsttaetigen linken Aussenkante am rechten Rand der ersten
-   Zeile; die Wolke bricht darunter um und bekommt die volle Breite.
-   EIN KASTEN FUER BEIDE: zwei Elemente mit je einem `margin-left: auto`
-   teilten sich den freien Platz und stuenden auseinandergezogen da.
+   "zuruecksetzen" an der Tagzeile. Sie stehen im Aufbau HINTER der Wolke, also
+   dort, wo sie hingehoeren: "mehr" gehoert hinter das, was es aufklappt.
+   OHNE SELBSTTAETIGE AUSSENKANTE, und das ist der ganze Punkt seit 0.13.0. Ein
+   `margin-left: auto` frisst den gesamten freien Platz der Zeile -- die Wolke
+   konnte daneben nicht stehen und rutschte immer darunter. Die Tagzeile kostete
+   damit zwei Zeilen. Jetzt nimmt die Wolke den Platz (siehe darunter), und die
+   Verweise stehen daneben.
+   EIN KASTEN FUER BEIDE: die zwei gehoeren zusammen und sollen bei einem
+   Umbruch nicht auseinanderfallen.
    KEINE AUSGERECHNETE BREITE, nirgends -- die Anlage stellt die Schrift von
    80 bis 120 Prozent, und eine feste Zahl kann dabei nur falsch werden. */
-.frow-rechts { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.frow-rechts { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+/* DIE WOLKE NIMMT, WAS UEBRIG IST. `flex: 1 1 0` statt einer Breite: sie
+   schrumpft und waechst mit der Zeile, und `min-width: 0` erlaubt ihr das
+   ueberhaupt erst -- ohne diese Null waere ihre Mindestbreite der Inhalt, und
+   sie schoebe die Verweise wieder hinaus.
+   NUR IN DER FILTERZEILE: die Wolke der Eintragsseite steht in einem eigenen
+   Kasten und braucht das nicht. */
+.frow > .pills.cloud { flex: 1 1 0; min-width: 0; }
 /* Die beiden folgenden Mindestbreiten fassen ausschliesslich Text und sind
    deshalb als einzige Layoutmasse in em -- sonst wird die Beschriftung bei
    grosser Schrift abgeschnitten. Alle uebrigen Masse bleiben in Pixeln. */
 .frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; }
+/* Die ZWEITE Beschriftung derselben Zeile -- "Ansichten" hinter "Sortieren".
+   Sie ist das Gegenstueck zur ersten und keine Ueberschrift ueber dem, was
+   dahinter steht: deshalb ohne die Beschriftungsspalte und mit einem Abstand
+   davor, der sie vom Vorhergehenden loest. */
+.frow > .eyebrow-mit { min-width: 0; margin-left: 22px; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .pill {
   padding: 5px 12px; border-radius: 999px;
@@ -999,7 +1015,16 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .prot-zeit { font-family: var(--mono); font-size: .74rem; color: var(--muted); white-space: nowrap; }
 .prot-was { font-weight: 560; }
 .prot-wer, .prot-ziel { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+/* Der anklickbare Name im Protokoll. Er erbt die Farbe seiner Zeile statt der
+   gedämpften Verweisfarbe: er steht mitten im Text und soll nicht heller sein
+   als das, was ihn umgibt — die Unterstreichung sagt schon, dass er trägt. */
+.prot-wer .prot-sprung, .prot-ziel .prot-sprung { color: inherit; font-size: inherit; }
+.prot-wer .prot-sprung:hover, .prot-ziel .prot-sprung:hover { color: var(--accent); }
 .prot-merkmal { color: var(--muted); font-size: .8rem; }
+/* Die Zeile, auf die gerade gesprungen wurde. Kurz und ohne Bewegung: ein
+   Aufblinken, das sich selbst wieder wegnimmt, führt das Auge und bleibt
+   niemandem im Weg. Dieselbe Farbe wie jede Hervorhebung dieser Anlage. */
+.mrow.mrow-blitz { border-color: var(--accent); background: var(--accent-dim); }
 /* DIESELBE BEDINGUNG WIE DER GANZE ABSCHNITT "DAS TELEFON" weiter unten --
    vorher stand hier 620px, eine eigene vierte Zahl neben den drei Stellen der
    Staffel. Zwischen 620 und 700 Pixeln stand die Zeile damit noch in fuenf
@@ -1346,10 +1371,13 @@ body.lb-open { overflow: hidden; }
 .tagmode.ruht { opacity: .45; }
 .tagmode.ruht:hover { opacity: 1; }
 .pill-mode { padding: 3px 9px; font-size: .7rem; font-family: var(--mono); }
-/* Tags, die zusammen mit der Auswahl null Treffer brächten. Anklickbar
-   bleiben sie — man sieht nur vorher, dass die Liste leer würde. */
-.pill-tag.leer { opacity: .34; }
-.pill-tag.leer:hover { opacity: .7; }
+/* Pillen, die zusammen mit der Auswahl null Treffer brächten. Anklickbar
+   bleiben sie — man sieht nur vorher, dass die Liste leer würde.
+   SEIT 0.13.0 GILT DIE REGEL FÜR JEDE PILLE und nicht mehr nur für Tags:
+   „Neu seit …" stand in derselben Lage und in voller Helligkeit da. Dieselbe
+   Sache darf nicht zwei Verhalten haben (Stolperstein 47, im Kleinen). */
+.pill.leer { opacity: .34; }
+.pill.leer:hover { opacity: .7; }
 
 /* ================= Berichte, Anpinnung, Kommentarbilder ================= */
 /* Bericht und Notiz müssen optisch klar unterscheidbar sein — das bricht die
@@ -2066,12 +2094,16 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .filters { gap: 9px; margin-bottom: 16px; }
   .frow { flex-direction: column; align-items: stretch; gap: 6px; }
   .frow > .eyebrow { min-width: 0; }
-  /* In der Spalte steht der Kasten sonst UEBER der Wolke -- im Aufbau liegt er
-     davor, weil er am Desktop auf die erste Zeile gehoert. "mehr" gehoert
-     hinter das, was es aufklappt; `order` stellt das her, ohne den Aufbau ein
-     zweites Mal zu bauen. Die selbsttaetige Aussenkante wirkt hier ohnehin
-     nicht: in der Spalte gibt es rechts keinen freien Platz. */
-  .frow-rechts { order: 2; }
+  /* Die zweite Beschriftung steht in der Spalte ueber ihrer eigenen Reihe und
+     braucht dort keinen Abstand nach links. */
+  .frow > .eyebrow-mit { margin-left: 0; margin-top: 4px; }
+  /* IN DER SPALTE IST DIE HAUPTACHSE DIE HOEHE. `flex: 1 1 0` hiesse dort
+     "Grundhoehe null und dann wachsen" -- die Wolke faellt zusammen und zieht
+     sich ueber die ganze Spalte. Sie bekommt deshalb ihre natuerliche Hoehe
+     zurueck; Platz nach rechts gibt es hier ohnehin keinen zu verteilen.
+     `order` BRAUCHT ES NICHT MEHR: die Verweise stehen seit 0.13.0 auch im
+     Aufbau hinter der Wolke, und damit stimmt die Reihenfolge von selbst. */
+  .frow > .pills.cloud { flex: 0 1 auto; }
 
   /* ---- Das Kartenraster ----
      240 Pixel Mindestbreite ergaben auf dem Telefon genau EINE Spalte: eine

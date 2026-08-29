@@ -11909,8 +11909,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und es gibt keinen eigenen Vorgang fuer einen falschen Code',
     !fAuth.VORGAENGE.some(v => /^zweifaktor\.(fehl|falsch)/.test(v)),
     fAuth.VORGAENGE.filter(v => v.startsWith('zweifaktor')).join(' '));
-  pruefe('Es bleibt bei dreizehn Merkmalen', fAuth.MERKMALE.length === 13,
+  /* VIERZEHN SEIT 0.13.0, VORHER DREIZEHN. 'teil' kommt dazu, und zwar als
+     Nachlese zu einem Befund: 0.12.4 schrieb "teil 1/5" in die Spalte, das ist
+     kein Wert aus dieser Liste, und protokolliere() verwarf damit die GANZE
+     Zeile -- ein Teilexport stand im Protokoll nirgends. Die Liste hat
+     gehalten, was sie zusagt; falsch war die Aufrufstelle.
+     OHNE NUMMER: die Nummer des Teils waere Freitext, und den gibt es in
+     dieser Spalte ausdruecklich nicht. Sie steht im Dateinamen. */
+  pruefe('Es sind jetzt vierzehn Merkmale', fAuth.MERKMALE.length === 14,
     `${fAuth.MERKMALE.length}: ${fAuth.MERKMALE.join(' ')}`);
+  pruefe('Und das vierzehnte heisst "teil" und traegt keine Nummer',
+    fAuth.MERKMALE.includes('teil') && !fAuth.MERKMALE.some(m => /\d/.test(m)),
+    fAuth.MERKMALE.join(' '));
   pruefe('Und bei sieben Zwecken der zweiten Bestaetigung',
     fAuth.BESTAETIGUNG_ZWECKE.length === 7, fAuth.BESTAETIGUNG_ZWECKE.join(' '));
 
@@ -13256,6 +13266,46 @@ const freigabeHaupt = (zweck, ziel = null) =>
      zwoelf dieselbe.
      DIESE GRUPPE STEHT ZULETZT AUF DIESEM SERVER: sie sperrt die Adresse
      absichtlich hart, und danach kaeme hier niemand mehr herein. */
+  /* DER COOKIE ZUERST UND DIE SPERRE DANACH, und die Reihenfolge ist seit
+     0.13.0 eine Korrektur: die zwoelf Fehlversuche sperren die Adresse hart,
+     und eine Anmeldung DANACH liefert 429 und gar keinen Cookie. Die beiden
+     Zeilen darunter standen bis 0.12.4 hinter der Sperre und trugen ein
+     `gCookieKopf === '' ||` -- sie konnten damit nicht scheitern und belegten
+     nichts (Stolperstein 81, an einer Stelle, die aussah, als waere sie
+     gemeint). Jetzt steht der Gegenstand ausdruecklich davor. */
+  const gCookieKopf = await (async () => {
+    const a = await fetch(G.basis + '/api/login', { method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user: 'anna', password: 'annas-langes-wort' }) });
+    return a.headers.get('set-cookie') || '';
+  })();
+  pruefe('Ohne Proxy kommt ueberhaupt ein Cookie zurueck', gCookieKopf !== '', gCookieKopf);
+  // Der Cookie der Anlage ohne Proxy: kein Secure, kein Praefix. Beides waere
+  // hier falsch -- der Browser verwuerfe den Cookie ueber http.
+  pruefe('Ohne Proxy traegt der Cookie kein Secure',
+    !/;\s*Secure/i.test(gCookieKopf), gCookieKopf);
+  pruefe('Und er heisst weiterhin kriterion_session',
+    gCookieKopf.startsWith('kriterion_session='), gCookieKopf.split(';')[0]);
+  /* OHNE DIE EINSTELLUNG WIRD AUCH X-FORWARDED-PROTO GAR NICHT ANGESEHEN --
+     dieselbe Linie wie bei X-Forwarded-For, und seit 0.13.0 gehoert sie
+     ausdruecklich belegt: waere der Kopf ohne Einstellung wirksam, holte sich
+     jeder Aufrufer auf Port 3100 einen __Host--Cookie samt HSTS und sperrte
+     sich selbst aus. Die Gegenprobe zur ganzen Proxygruppe darunter: ohne sie
+     belegte die nur, dass ein Kopf gelesen wird, nicht dass er gelesen werden
+     DARF. */
+  const gProtoKopf = await fetch(G.basis + '/api/config',
+    { headers: { 'x-forwarded-proto': 'https' } });
+  pruefe('Ohne HINTER_PROXY bewirkt ein X-Forwarded-Proto gar nichts',
+    !gProtoKopf.headers.get('strict-transport-security'),
+    String(gProtoKopf.headers.get('strict-transport-security')));
+  const gProtoAnmeldung = await fetch(G.basis + '/api/login', { method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-forwarded-proto': 'https' },
+    body: JSON.stringify({ user: 'anna', password: 'annas-langes-wort' }) });
+  const gProtoCookie = gProtoAnmeldung.headers.get('set-cookie') || '';
+  pruefe('Und der Cookie heisst auch dann kriterion_session, ohne Secure',
+    gProtoCookie.startsWith('kriterion_session=') && !/;\s*Secure/i.test(gProtoCookie),
+    gProtoCookie.split(';')[0]);
+
   let gGesperrtAb = 0;
   for (let i = 1; i <= 12; i++) {
     const a = await gAnmelden('anna', 'ganz-sicher-falsch', `10.0.7.${i}`);
@@ -13265,18 +13315,6 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gGesperrtAb > 0 && gGesperrtAb <= 11, `gesperrt ab Versuch ${gGesperrtAb || '(nie)'}`);
   pruefe('Und auch das richtige Passwort kommt waehrend der Sperre nicht durch',
     (await gAnmelden('anna', 'annas-langes-wort', '10.0.7.99')).status === 429);
-  // Der Cookie der Anlage ohne Proxy: kein Secure, kein Praefix. Beides waere
-  // hier falsch -- der Browser verwuerfe den Cookie ueber http.
-  const gCookieKopf = await (async () => {
-    const a = await fetch(G.basis + '/api/login', { method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ user: 'anna', password: 'annas-langes-wort' }) });
-    return a.headers.get('set-cookie') || '';
-  })();
-  pruefe('Ohne Proxy traegt der Cookie kein Secure',
-    gCookieKopf === '' || !/;\s*Secure/i.test(gCookieKopf), gCookieKopf);
-  pruefe('Und er heisst weiterhin kriterion_session',
-    gCookieKopf === '' || gCookieKopf.startsWith('kriterion_session='), gCookieKopf.split(';')[0]);
 
   await G.stopp();
 
@@ -13290,9 +13328,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
      stehen im Arbeitsspeicher und nicht in der Datenbank. */
   const P = starteWeiterenServer(gDir, { HINTER_PROXY: '1' }, 5700);
   await P.bereit;
-  const pAnmelden = async (name, passwort, adresse) => {
+  /* SEIT 0.13.0 TRAEGT DER RUFER DEN WEG. `proto` ist X-Forwarded-Proto: mit
+     'https' ist es der Weg ueber den Proxy, ohne den Kopf der Weg aus dem
+     Heimnetz auf Port 3100 -- DERSELBE Server, dieselbe Einstellung, zwei
+     Wege. Eine Prueflage, die nur einen davon kennt, belegt nichts ueber zwei
+     (Stolperstein 189). */
+  const pAnmelden = async (name, passwort, adresse, proto) => {
     const kopf = { 'content-type': 'application/json' };
     if (adresse) kopf['x-forwarded-for'] = adresse;
+    if (proto) kopf['x-forwarded-proto'] = proto;
     const t0 = Date.now();
     const a = await fetch(P.basis + '/api/login',
       { method: 'POST', headers: kopf, body: JSON.stringify({ user: name, password: passwort }) });
@@ -13302,7 +13346,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
              setzCookie: a.headers.get('set-cookie') || '' };
   };
 
-  const pGut = await pAnmelden('anna', 'annas-langes-wort', '10.1.0.1');
+  const pGut = await pAnmelden('anna', 'annas-langes-wort', '10.1.0.1', 'https');
   pruefe('Die Anmeldung gelingt auch hinter dem Proxy', pGut.status === 200,
     `${pGut.status}: ${JSON.stringify(pGut.inhalt)}`);
   pruefe('Der Cookie traegt hinter dem Proxy Secure', /;\s*Secure/i.test(pGut.setzCookie), pGut.setzCookie);
@@ -13317,16 +13361,77 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Der Cookie mit dem neuen Namen wird auch wirklich gelesen: sonst waere die
   // Umbenennung eine Anlage, in die niemand mehr hineinkaeme.
   const pCookieWert = pGut.setzCookie.split(';')[0];
-  const pSitzung = await fetch(P.basis + '/api/settings', { headers: { cookie: pCookieWert } });
+  const pSitzung = await fetch(P.basis + '/api/settings',
+    { headers: { cookie: pCookieWert, 'x-forwarded-proto': 'https' } });
   pruefe('Mit diesem Cookie laesst sich weiterarbeiten', pSitzung.status === 200, `${pSitzung.status}`);
-  // Und der alte Name gilt nicht mehr -- die einmalige Abmeldung beim
-  // Umlegen der Einstellung ist damit belegt und keine Vermutung.
+  /* AUF DEM HTTPS-WEG WIRD DER HEIMNETZNAME NICHT GELESEN, und das ist die
+     Absage an "ein Name mit bedingtem Secure": ein Klartextcookie geht auch an
+     die HTTPS-Seite (er traegt kein Secure), und wer ihn dort gelten liesse,
+     haette __Host- fuer nichts -- wer im eigenen Netz eine Klartextverbindung
+     verbiegen kann, setzte damit einen Cookie, den die HTTPS-Seite annaehme.
+     GELESEN WIRD JE ANFRAGE GENAU EIN NAME. */
   const pAlterName = await fetch(P.basis + '/api/settings',
-    { headers: { cookie: 'kriterion_session=' + pCookieWert.split('=')[1] } });
-  pruefe('Der alte Cookiename gilt nicht mehr', pAlterName.status === 401, `${pAlterName.status}`);
+    { headers: { cookie: 'kriterion_session=' + pCookieWert.split('=')[1],
+                 'x-forwarded-proto': 'https' } });
+  pruefe('Auf dem HTTPS-Weg gilt der Heimnetzname nicht', pAlterName.status === 401, `${pAlterName.status}`);
   pruefe('Hinter dem Proxy steht Strict-Transport-Security',
-    /max-age=\d+/.test((await fetch(P.basis + '/api/config')).headers.get('strict-transport-security') || ''),
-    (await fetch(P.basis + '/api/config')).headers.get('strict-transport-security'));
+    /max-age=\d+/.test((await fetch(P.basis + '/api/config',
+      { headers: { 'x-forwarded-proto': 'https' } })).headers.get('strict-transport-security') || ''),
+    (await fetch(P.basis + '/api/config',
+      { headers: { 'x-forwarded-proto': 'https' } })).headers.get('strict-transport-security'));
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Zwei Netze, ein Zugang — 0.13.0');
+
+  /* DERSELBE SERVER, DIESELBE EINSTELLUNG, DER ANDERE WEG. Bis 0.12.4 kam ueber
+     http://<server-ip>:3100 mit HINTER_PROXY=1 niemand mehr herein: der Server
+     antwortete mit 200 und setzte einen Secure-Cookie, den der Browser
+     stillschweigend verwarf. Der Prueflauf konnte das nicht sehen -- er ist
+     kein Browser und nimmt jeden Cookie, den er bekommt.
+     GEPRUEFT WIRD DESHALB DER NAME UND NICHT DIE ABSICHT: eine Zeile, die nur
+     sagt, dass ein Cookie gesetzt wurde, bliebe gruen, wenn beide Wege denselben
+     Namen bekaemen -- und genau das waere der Fehler, den diese Runde nicht
+     baut. */
+  const pHeim = await pAnmelden('anna', 'annas-langes-wort', '10.1.0.2');
+  pruefe('Die Anmeldung gelingt auch ueber das Heimnetz, mit HINTER_PROXY=1',
+    pHeim.status === 200, `${pHeim.status}: ${JSON.stringify(pHeim.inhalt)}`);
+  pruefe('Dort traegt der Cookie KEIN Secure — sonst verwirft ihn der Browser',
+    !/;\s*Secure/i.test(pHeim.setzCookie), pHeim.setzCookie);
+  pruefe('Und er heisst kriterion_session, nicht __Host-kriterion_session',
+    pHeim.setzCookie.startsWith('kriterion_session='), pHeim.setzCookie.split(';')[0]);
+  // Und der Name ist wirklich ein anderer: zwei Wege mit demselben Namen
+  // waeren der Fehler aus (b), und die Zeile darueber saehe genauso aus.
+  pruefe('Die beiden Wege bekommen verschiedene Namen',
+    pHeim.setzCookie.split('=')[0] !== pGut.setzCookie.split('=')[0],
+    `${pHeim.setzCookie.split('=')[0]} gegen ${pGut.setzCookie.split('=')[0]}`);
+  const pHeimWert = pHeim.setzCookie.split(';')[0];
+  pruefe('Mit dem Heimnetzcookie laesst sich weiterarbeiten',
+    (await fetch(P.basis + '/api/settings', { headers: { cookie: pHeimWert } })).status === 200);
+  /* HSTS GILT NUR AUF DEM HTTPS-WEG. Ginge der Kopf auch hier mit, bestuende
+     der Browser danach auf HTTPS und faende an Port 3100 keines -- er sperrte
+     genau den Weg, den diese Runde offenhaelt. */
+  pruefe('Auf dem Heimnetzweg steht KEIN Strict-Transport-Security',
+    !(await fetch(P.basis + '/api/config')).headers.get('strict-transport-security'),
+    String((await fetch(P.basis + '/api/config')).headers.get('strict-transport-security')));
+  // Und umgekehrt: der __Host--Cookie gilt auf dem Heimnetzweg nicht. Ein
+  // Browser schickte ihn dort ohnehin nie (Secure), und der Server liest ihn
+  // auch nicht -- eine Anfrage, ein Name.
+  pruefe('Auf dem Heimnetzweg gilt der HTTPS-Name nicht',
+    (await fetch(P.basis + '/api/settings', { headers: { cookie: pCookieWert } })).status === 401);
+  /* BEIDE SITZUNGEN STEHEN NEBENEINANDER -- das ist "zwei Netze, EIN Zugang":
+     derselbe Mensch, dieselbe Anlage, zwei Wege hinein, und keiner wirft den
+     anderen hinaus. */
+  pruefe('Beide Sitzungen stehen zugleich und werfen einander nicht hinaus',
+    (await fetch(P.basis + '/api/settings',
+      { headers: { cookie: pCookieWert, 'x-forwarded-proto': 'https' } })).status === 200 &&
+    (await fetch(P.basis + '/api/settings', { headers: { cookie: pHeimWert } })).status === 200);
+  /* EIN GEFAELSCHTER KOPF AUS DEM HEIMNETZ HOLT SICH HOECHSTENS EINEN COOKIE,
+     DEN SEIN BROWSER WEGWIRFT. Er ist damit kein Weg an irgendetwas vorbei --
+     festgehalten, weil die Frage bei zwei Namen unweigerlich aufkommt. */
+  const pFalsch = await pAnmelden('anna', 'annas-langes-wort', '10.1.0.3', 'https');
+  pruefe('Wer den Kopf selbst setzt, bekommt den Secure-Cookie und sonst nichts',
+    pFalsch.status === 200 && /;\s*Secure/i.test(pFalsch.setzCookie) &&
+    pFalsch.setzCookie.startsWith('__Host-'), pFalsch.setzCookie.split(';')[0]);
 
   /* ---------------------------------------------------------------- */
   gruppe('Die Anmeldebremse zaehlt auch den Namen');
@@ -15873,6 +15978,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* SIE STEHEN IN settings UNTER EINEM PERSOENLICHEN SCHLUESSEL und brauchen
      kein Schema. Die eine gemerkte Filterstellung daneben bleibt, was sie war:
      die zuletzt benutzte. */
+  /* DIE ALTE FORM MIT ABSICHT: `categoryId` als einzelner Wert ist das, was in
+     jedem vorhandenen Bestand steht. Der Server reicht durch, was er bekommt --
+     die Uebersetzung in die Liste steht in der Oberflaeche (filterNormal), und
+     genau das belegt diese Gruppe. */
   const vaStellung = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'untested',
                        favorit: false, neu: false, sort: 'title_asc' };
   await ruf('PUT', '/api/settings', { filters: vaStellung });
@@ -16130,7 +16239,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTEN -- eine
      Prueflage, die still verschwindet, faellt sonst niemandem auf. */
   pruefe('Der Lauf hat seine Portbasen vermerkt',
-    pbBasen.length === 55 && PRUEFLAGEN.length >= 60,
+    pbBasen.length === 56 && PRUEFLAGEN.length >= 60,
     `${pbBasen.length} Basen aus ${PRUEFLAGEN.length} Prueflagen: ${pbBasen.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
@@ -16205,6 +16314,60 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die hoechste Nummer aller Spuren bleibt unter 32768',
     pbOben + (VERSATZ_SPUREN - 1) * VERSATZ_STUFE < 32768,
     `hoechste Nummer ${pbOben + (VERSATZ_SPUREN - 1) * VERSATZ_STUFE}`);
+
+  /* ================= Die Gegenproben greifen — 0.13.0 ==================
+     EIN RUECKBAU, DER INS LEERE GREIFT, SIEHT AUS WIE EINER, DER NICHTS
+     BEWIRKT. gegenprobe.js meldet das zwar -- aber erst im vollen Lauf, und
+     der dauert bei 197 Rueckbauten ueber zwanzig Stunden und steht seit fuenf
+     Runden aus. In dieser Zeit sind DREI Suchtexte still veraltet: die
+     Markenzeile trug 34 statt 36, und die Absage am Export bekam mit 0.12.4
+     ein `!alsTeil` davor. Drei Rueckbauten, die nichts mehr belegten.
+     DIESE GRUPPE ERSETZT DEN LAUF NICHT -- sie sagt nichts darueber, ob ein
+     Rueckbau eine Pruefung ROT macht. Sie sagt nur, dass er ueberhaupt noch
+     etwas anfasst, und das kostet Millisekunden statt Stunden.
+     DIE LISTE KOMMT UEBER require UND NICHT UEBER EINEN REGEX: gegenprobe.js
+     gibt sie seit 0.13.0 heraus und faehrt nur beim direkten Aufruf los. Ein
+     zweiter Leser daneben liefe irgendwann auseinander. */
+  gruppe('Die Gegenproben greifen');
+
+  const gpListe = require('./gegenprobe').RUECKBAUTEN;
+  /* DIE ZAHL AUSDRUECKLICH, wie bei F_ROUTEN und den Listen aus auth.js
+     (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
+     Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
+     gezaehlt waren es 193 -- 184 plus neun. */
+  pruefe('Es sind genau 214 Rueckbauten', gpListe.length === 214, `${gpListe.length}`);
+  const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
+  pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
+  /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
+     heisst veraltet, mehrfach heisst mehrdeutig -- beides macht den Rueckbau
+     wertlos, und beides faellt hier auf, nicht erst nach zwanzig Stunden. */
+  const gpFehl = [];
+  for (const r of gpListe) {
+    const datei = path.join(__dirname, r.datei);
+    if (!fs.existsSync(datei)) { gpFehl.push(`${r.nr}: ${r.datei} gibt es nicht`); continue; }
+    if (r.kopie) continue;
+    const n = fs.readFileSync(datei, 'utf8').split(r.suche).length - 1;
+    if (n !== 1) gpFehl.push(`${r.nr} (${r.datei}): ${n} Treffer`);
+  }
+  pruefe('Jeder Suchtext kommt in seiner Datei genau einmal vor',
+    gpFehl.length === 0, gpFehl.join(' · '));
+  // Ein Ersatz, der dem Suchtext gleicht, baut nichts zurueck -- die Kopie
+  // waere wortgleich mit dem Kopf des Zweiges, und alles bliebe gruen.
+  const gpGleich = gpListe.filter(r => r.suche !== undefined && r.suche === r.ersatz);
+  pruefe('Und kein Ersatz ist mit seinem Suchtext wortgleich',
+    gpGleich.length === 0, gpGleich.map(r => r.nr).join(' '));
+  // Jeder Eintrag traegt entweder eine Textersetzung ODER eine Kopie, nie
+  // beides und nie keines von beiden.
+  const gpForm = gpListe.filter(r =>
+    (r.kopie === undefined) === (r.suche === undefined || r.ersatz === undefined));
+  pruefe('Jeder Rueckbau traegt entweder Suche und Ersatz oder eine Kopie',
+    gpForm.length === 0, gpForm.map(r => r.nr).join(' '));
+  // Und er nennt die Gruppe, in der die roten Punkte erwartet werden. Sie ist
+  // eine Notiz und keine Bedingung -- aber eine fehlende waere eine Zeile
+  // weniger beim Deuten der Tabelle.
+  const gpOhneErwartet = gpListe.filter(r => !r.erwartet || !r.name);
+  pruefe('Und jeder nennt Name und erwartete Gruppe',
+    gpOhneErwartet.length === 0, gpOhneErwartet.map(r => r.nr).join(' '));
 
   gruppe('Das Skript auf dem Wirt ist ausfuehrbar');
 
@@ -16684,8 +16847,12 @@ const DOM_PASSWORT = 'chefinnen-langes-wort';
    Zugang, einer VOM WIRT (wer ist leer) und eine gescheiterte Anmeldung an
    einem unbekannten Namen (wer UND ziel sind leer). Waeren sie gleichartig,
    liesse sich nicht pruefen, dass die Karte sie verschieden liest. */
+/* `zahlen` SEIT 0.13.0: die Zahlen an den Filterpillen. Sie zaehlen ueber die
+   GANZE Tabelle und nicht ueber die vier geholten Zeilen -- deshalb sind sie
+   groesser als das, was hier steht, genau wie am echten Server. */
 const DOM_PROTOKOLL = {
   tage: 180, grenze: 100, gesamt: 7,
+  zahlen: { alle: 7, gescheitert: 2, anmeldungen: 1, zugaenge: 3, zweifaktor: 0, bestand: 1 },
   zeilen: [
     { id: 7, am: '2026-08-24 09:15:00', was: 'zugang.rolle', wer: 1, werName: 'chefin',
       ziel: 2, zielName: 'bert', merkmal: 'admin' },
@@ -16697,6 +16864,17 @@ const DOM_PROTOKOLL = {
       ziel: null, zielName: null, merkmal: null }
   ]
 };
+
+/* DIE GRUPPEN DES PROTOKOLLFILTERS FUER DEN MOCK -- GELESEN und nicht
+   abgeschrieben. Eine zweite Liste daneben liefe auseinander, und der Mock
+   belegte dann etwas anderes als der Server tut (Stolperstein 102). */
+const DOM_PROT_GRUPPEN = (() => {
+  const q = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-protgruppen-'));
+  const g = JSON.parse(kurzlauf(
+    `console.log(JSON.stringify(require('./auth').PROTOKOLL_GRUPPEN));`, q));
+  fs.rmSync(q, { recursive: true, force: true });
+  return g;
+})();
 
 /* Fuellt den Dialog der zweiten Bestaetigung und drueckt den Knopf.
    NEUE BEDIENELEMENTE WERDEN PER dispatchEvent GEDRUECKT, samt Durchlauf des
@@ -17513,7 +17691,19 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
           json: () => Promise.resolve({ error: 'Das Passwort stimmt nicht.' }) });
       return gib({ ok: true, zweck: k.zweck, sekunden: 120 });
     }
-    if (url === '/api/sicherheitsprotokoll') return gib(protokoll);
+    /* SEIT 0.13.0 KENNT DIE ROUTE EINE AUSWAHL. Der Mock antwortet wie der
+       echte Server (Stolperstein 90): er filtert wirklich und liefert `gruppe`
+       und `gesamt` dieser Ansicht zurueck. Ein Mock, der stur dieselbe Liste
+       gibt, machte jede Pruefung auf den Filter gruen, ohne etwas zu belegen. */
+    if (String(url).split('?')[0] === '/api/sicherheitsprotokoll') {
+      const gruppe = (String(url).match(/[?&]gruppe=([^&]*)/) || [])[1];
+      if (!gruppe) return gib(protokoll);
+      const arten = DOM_PROT_GRUPPEN[decodeURIComponent(gruppe)];
+      if (!arten) return gib({ error: 'Diese Ansicht gibt es nicht.' }, 400);
+      const zeilen = (protokoll.zeilen || []).filter(z => arten.includes(z.was));
+      return gib({ ...protokoll, zeilen, gruppe: decodeURIComponent(gruppe),
+                   gesamt: (protokoll.zahlen || {})[decodeURIComponent(gruppe)] ?? zeilen.length });
+    }
 
     if (/^\/api\/users\/\d+\/bestand$/.test(url))
       return gib({ username: 'bert', eintraege: 2, fremdKommentare: 3, fremdBewertungen: 1,
@@ -18944,7 +19134,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 90));
     return d;
   };
-  const nsVorgabe = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'all',
+  const nsVorgabe = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                       favorit: false, neu: false, sort: 'title_asc' };
 
   /* ERSTER BESUCH: kein Merkzeitpunkt, also kein Umschalter. Erst das
@@ -19033,7 +19223,7 @@ async function pruefeOberflaeche() {
   pruefe('Kombinierbar mit dem Teststatus',
     gleich(nsTitel(nsTest), ['Delta neu']), JSON.stringify(nsTitel(nsTest)));
   nsTest.w.close();
-  const nsKatDom = await nsBaue({ ...nsVorgabe, neu: true, categoryId: 21 });
+  const nsKatDom = await nsBaue({ ...nsVorgabe, neu: true, categoryIds: [21] });
   pruefe('Kombinierbar mit der Kategorie',
     gleich(nsTitel(nsKatDom), ['Delta neu']), JSON.stringify(nsTitel(nsKatDom)));
   nsKatDom.w.close();
@@ -19949,23 +20139,31 @@ async function pruefeOberflaeche() {
   await gvEig.w.renderSystem();
   await new Promise(r => setTimeout(r, 40));
   const gvZeilen = [...gvEig.w.document.querySelectorAll('#mzugaenge .mrow')];
-  pruefe('Der Systembereich hat eine Karte fuer die Zugaenge', gvZeilen.length === 4,
+  /* DREI ZEILEN SEIT 0.13.0, VORHER VIER: der Grabstein steht nicht mehr
+     zwischen den lebenden Zugaengen, sondern in einem eigenen Fenster. Die
+     Prueflage traegt ihn weiterhin -- er ist nur woanders zu sehen. */
+  pruefe('Der Systembereich hat eine Karte fuer die Zugaenge', gvZeilen.length === 3,
     `${gvZeilen.length} Zeilen`);
   pruefe('Der eigene Zugang ist als solcher gekennzeichnet',
     /\(du\)/.test(gvZeilen[0]?.textContent || ''), gvZeilen[0]?.textContent);
   /* Der Grabstein zeigt die NUMMER, nicht den gespeicherten Namen. Das ist der
      ganze Zweck der stehengebliebenen Zeile: die Beitraege bleiben sichtbar,
-     der Name ist weg. */
-  pruefe('Ein geloeschter Zugang erscheint als "Geloeschter Benutzer <nr>"',
-    /Gelöschter Benutzer 4/.test(gvZeilen[3]?.textContent || ''), gvZeilen[3]?.textContent);
-  pruefe('Und traegt seinen freigegebenen Namen nicht mehr',
-    !/geloescht-4/.test(gvZeilen[3]?.textContent || ''), gvZeilen[3]?.textContent);
+     der Name ist weg. Er steht seit 0.13.0 im eigenen Fenster -- gepruefft
+     wird er dort (Gruppe "Gelöschte Zugänge im eigenen Fenster"). */
+  const gvWeg = gvEig.w.document.getElementById('zug-weg-auf');
+  pruefe('Der Grabstein steht nicht mehr in dieser Liste',
+    !gvZeilen.some(z => /Gelöschter Benutzer 4/.test(z.textContent || '')),
+    gvZeilen.map(z => z.textContent?.trim()).join(' · '));
+  pruefe('Sondern hinter einem eigenen Knopf, der ihn zaehlt',
+    !!gvWeg && /\(1\)/.test(gvWeg.textContent || ''), gvWeg?.textContent);
+  pruefe('Und der freigegebene Name steht auch dort nirgends',
+    !/geloescht-4/.test(gvEig.w.document.getElementById('mzugaenge')?.textContent || ''),
+    gvEig.w.document.getElementById('mzugaenge')?.textContent);
   pruefe('Ein gesperrter Zugang ist zurueckgenommen, nicht rot markiert',
     gvZeilen[2]?.classList.contains('zug-sperr') && !gvZeilen[2]?.classList.contains('rm'),
     gvZeilen[2]?.className);
   pruefe('Am eigenen Zugang steht kein Werkzeug',
     !gvZeilen[0]?.querySelector('.zug-akt'), gvZeilen[0]?.innerHTML.slice(0, 90));
-  pruefe('Am Grabstein ebenfalls nicht', !gvZeilen[3]?.querySelector('.zug-akt'));
   pruefe('Der Eigentuemer kommt an den zweiten Admin heran',
     !!gvZeilen[1]?.querySelector('.zug-akt') && !!gvZeilen[1]?.querySelector('.zug-r'),
     gvZeilen[1]?.innerHTML.slice(0, 90));
@@ -23384,7 +23582,9 @@ async function pruefeOberflaeche() {
 
   const ziEig = await ziSystem({ istAdmin: true, istEigentuemer: true });
   pruefe('Die Karte "Zugänge" steht da', !!ziKarte(ziEig));
-  pruefe('Und sie zeigt ihre Zeilen', ziReihen(ziEig).length >= 4, `${ziReihen(ziEig).length}`);
+  // Drei lebende Zugaenge; der Grabstein der Prueflage steht seit 0.13.0 im
+  // eigenen Fenster und nicht mehr in dieser Liste.
+  pruefe('Und sie zeigt ihre Zeilen', ziReihen(ziEig).length === 3, `${ziReihen(ziEig).length}`);
 
   /* "NOCH KEIN PASSWORT" IST ABGELEITET, KEIN VIERTER ZUSTAND -- und es steht
      NUR an der aktiven Zeile. Der Grabstein traegt denselben leeren Hash und
@@ -23395,11 +23595,14 @@ async function pruefeOberflaeche() {
   pruefe('Die Zeile des eingeladenen Zugangs ist da', !!ziZeile('bert'));
   pruefe('Sie traegt "noch kein Passwort"',
     /noch kein Passwort/.test(ziZeile('bert')?.textContent || ''), ziZeile('bert')?.textContent);
-  pruefe('Die Zeile des Grabsteins ist auch da', !!ziZeile('Gelöschter Benutzer 4'));
-  pruefe('Aber sie traegt es NICHT',
-    !/noch kein Passwort/.test(ziZeile('Gelöschter Benutzer 4')?.textContent || ''),
-    ziZeile('Gelöschter Benutzer 4')?.textContent);
-  pruefe('Und eine Zeile mit Passwort ebenso wenig',
+  /* SEIT 0.13.0 STEHT DER GRABSTEIN NICHT MEHR IN DIESER LISTE, sondern in
+     einem eigenen Fenster -- er ist kein Zugang, den man verwalten kann, und
+     er waechst mit jeder Loeschung. Die Zeile steht also ausdruecklich NICHT
+     hier; die Gruppe weiter unten prueft, dass sie dafuer dort steht. */
+  pruefe('Der Grabstein steht nicht mehr zwischen den lebenden Zugaengen',
+    !ziZeile('Gelöschter Benutzer 4'),
+    ziReihen(ziEig).map(r => r.querySelector('.mname')?.textContent).join(' · '));
+  pruefe('Und eine Zeile mit Passwort traegt "noch kein Passwort" ebenso wenig',
     !/noch kein Passwort/.test(ziZeile('carla')?.textContent || ''),
     ziZeile('carla')?.textContent);
 
@@ -23415,10 +23618,61 @@ async function pruefeOberflaeche() {
     [...(ziZeile('carla')?.querySelector('.zug-akt')?.children || [])]
       .findIndex(e => e.classList.contains('zug-p')),
     'die Reihenfolge stimmt nicht');
-  pruefe('Am Grabstein steht keiner von beiden',
-    !ziZeile('Gelöschter Benutzer 4')?.querySelector('.zug-l') &&
-    !ziZeile('Gelöschter Benutzer 4')?.querySelector('.zug-p'),
-    'der Grabstein traegt Bedienzeichen');
+
+  /* ================= Gelöschte Zugänge im eigenen Fenster — 0.13.0 ====
+     REINE OBERFLÄCHE, Vorbild ist der Dialog "Wer hat bewertet". Der Server
+     gibt die Grabsteine weiterhin mit; getrennt wird hier. */
+  {
+    const zwKnopf = () => ziKarte(ziEig)?.querySelector('#zug-weg-auf');
+    pruefe('An der Karte steht ein Knopf zu den geloeschten Zugaengen', !!zwKnopf(),
+      ziKarte(ziEig)?.querySelector('#zug-weg-zeile')?.innerHTML);
+    pruefe('Und er nennt ihre Zahl', /\(1\)/.test(zwKnopf()?.textContent || ''),
+      zwKnopf()?.textContent);
+    zwKnopf()?.dispatchEvent(new ziEig.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const zwFenster = () => ziEig.w.document.getElementById('grabstein-modal');
+    pruefe('Der Klick oeffnet ein eigenes Fenster', !!zwFenster(), 'kein Fenster');
+    const zwReihen = () => [...(zwFenster()?.querySelectorAll('.mrow.zug') || [])];
+    pruefe('Darin steht der Grabstein', zwReihen().length === 1 &&
+      /Gelöschter Benutzer 4/.test(zwReihen()[0].textContent), zwFenster()?.textContent);
+    /* KEIN WERKZEUG AM GRABSTEIN -- es gibt nichts zu tun, und ein Knopf, der
+       zuverlaessig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler. */
+    pruefe('Ohne Werkzeug: kein Link, kein Schluessel, kein Entfernen',
+      !zwReihen()[0].querySelector('.zug-l') && !zwReihen()[0].querySelector('.zug-p') &&
+      !zwReihen()[0].querySelector('.zug-x') && !zwReihen()[0].querySelector('.zug-akt'),
+      zwReihen()[0].innerHTML);
+    // "Noch kein Passwort" gilt auch hier nicht: der Grabstein traegt denselben
+    // leeren Hash, aber die Angabe waere eine Falschaussage.
+    pruefe('Und ohne "noch kein Passwort"',
+      !/noch kein Passwort/.test(zwReihen()[0].textContent || ''), zwReihen()[0].textContent);
+    /* DAS FENSTER SAGT, WARUM DER NAME NICHT DASTEHT. Die Frage kam aus dem
+       Betrieb ("was nuetzt mir 'Gelöschte 5'"), und die Antwort ist eine
+       Entscheidung: der Grabstein IST die Anonymisierung. */
+    pruefe('Es sagt, dass der urspruengliche Name nicht aufbewahrt wird',
+      /ursprüngliche Name steht hier nicht/.test(zwFenster()?.textContent || ''),
+      zwFenster()?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
+    pruefe('Und nennt sperren als den umkehrbaren Weg',
+      /sperren/.test(zwFenster()?.textContent || ''),
+      zwFenster()?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
+    zwFenster()?.querySelector('[data-no]')?.dispatchEvent(new ziEig.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 30));
+    pruefe('Und es laesst sich wieder schliessen', !zwFenster(), 'das Fenster bleibt stehen');
+  }
+  /* OHNE GRABSTEIN KEIN KNOPF. Ein Knopf, der ein leeres Fenster oeffnet, ist
+     einer zu viel -- und ohne diese Lage bliebe die Zeile darueber auch dann
+     gruen, wenn der Knopf immer dastuende. */
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, { zugaenge: {
+      ich: 1, darfRollen: true, eigentuemer: 1,
+      zugaenge: [{ id: 1, username: 'chefin', role: 'eigentuemer', status: 'aktiv',
+                   last_login: null, created_at: '2026-01-01 09:00:00', eintraege: 0 }] } });
+    pruefe('Der Aufbau steht: eine Anlage ohne Grabstein zeigt ihre Zeile',
+      ziReihen(d).length === 1, `${ziReihen(d).length} Zeilen`);
+    pruefe('Und dann steht der Knopf gar nicht erst da',
+      !ziKarte(d)?.querySelector('#zug-weg-auf'),
+      ziKarte(d)?.querySelector('#zug-weg-zeile')?.innerHTML);
+    d.w.close();
+  }
 
   /* DEN LINK ERZEUGEN. Der Kasten erscheint, er nennt die Adresse VOLLSTAENDIG
      -- gebaut aus location, nicht vom Server --, und die Warnung steht daneben. */
@@ -23612,6 +23866,167 @@ async function pruefeOberflaeche() {
       /Die 4 jüngsten von 7 Vorgängen/.test(
         d.w.document.getElementById('protokoll-fuss')?.textContent || ''),
       d.w.document.getElementById('protokoll-fuss')?.textContent);
+
+    /* ---- 0.13.0: der Filter an der Karte ----
+       DIE KARTE HOLT DIE HUNDERT JUENGSTEN ZEILEN, alle Vorgangsarten
+       gemischt -- man findet die gescheiterten Anmeldungen darin nicht, sie
+       stehen nur dazwischen. Das war der Befund. */
+    const spFilter = () => [...(d.w.document.querySelectorAll('#protokoll-filter .pill') || [])];
+    pruefe('Ueber der Liste steht eine Filterleiste', spFilter().length > 0,
+      `${spFilter().length} Pillen`);
+    pruefe('Und sie bietet "Alle" und fuenf Ansichten',
+      spFilter().length === 6 && spFilter()[0].textContent.startsWith('Alle'),
+      JSON.stringify(spFilter().map(b => b.textContent)));
+    /* "GESCHEITERT" IST DIE ANSICHT, UM DIE ES GEHT -- sie steht ausdruecklich
+       und nicht als eine unter vielen: der ganze Punkt war, dass man sie
+       findet. */
+    const spGescheitert = () => spFilter().find(b => b.dataset.gruppe === 'gescheitert');
+    pruefe('Darunter eine eigene fuer die gescheiterten Versuche', !!spGescheitert(),
+      JSON.stringify(spFilter().map(b => b.dataset.gruppe)));
+    pruefe('Und ihr Name sagt, dass beide Arten darin stehen',
+      /Anmeldungen und .*Bestätigungen/.test(spGescheitert()?.title || ''),
+      spGescheitert()?.title);
+    /* JEDE PILLE NENNT IHRE ZAHL, und die zaehlt ueber die GANZE Tabelle --
+       nicht ueber die vier geholten Zeilen. Eine Zahl, die nur ihren eigenen
+       Ausschnitt zaehlt, sagt genau das nicht, was man von ihr wissen will. */
+    pruefe('Jede Pille nennt ihre Zahl',
+      spFilter().every(b => /^\d+$/.test(b.querySelector('.n')?.textContent || '')),
+      JSON.stringify(spFilter().map(b => b.querySelector('.n')?.textContent)));
+    pruefe('Und die Zahl kommt vom Server, nicht aus den geholten Zeilen',
+      spFilter()[0].querySelector('.n').textContent === '7' &&
+      spGescheitert().querySelector('.n').textContent === '2',
+      JSON.stringify(spFilter().map(b => b.textContent)));
+    // Eine Ansicht ohne Zeilen wird gedaempft -- wie jede Pille in dieser Lage.
+    const spZf = spFilter().find(b => b.dataset.gruppe === 'zweifaktor');
+    pruefe('Eine Ansicht ohne Zeilen ist gedaempft', spZf?.classList.contains('leer'),
+      spZf?.className);
+    pruefe('Und "Alle" mit Zeilen ist es nicht',
+      !spFilter()[0].classList.contains('leer'), spFilter()[0].className);
+    pruefe('"Alle" steht anfangs auf an', spFilter()[0].classList.contains('on'),
+      spFilter()[0].className);
+
+    /* DER KLICK FRAGT DEN SERVER und filtert nicht im Browser. Das ist der
+       Kern: die Liste traegt nur die hundert juengsten aller Arten, und ein
+       oertlicher Filter durchsuchte genau die. */
+    spGescheitert().dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Ein Klick auf eine Ansicht fragt den Server mit der Auswahl',
+      d.gesendet.some(x => String(x.url) === '/api/sicherheitsprotokoll?gruppe=gescheitert'),
+      JSON.stringify(d.gesendet.filter(x => String(x.url).startsWith('/api/sicherheitsprotokoll'))
+        .map(x => x.url)));
+    pruefe('Und danach steht nur noch die gescheiterte Anmeldung da',
+      spReihen(d).length === 1 && spReihen(d)[0].dataset.was === 'anmeldung.fehl',
+      JSON.stringify(spReihen(d).map(z => z.dataset.was)));
+    pruefe('Die gewaehlte Pille ist markiert und "Alle" nicht mehr',
+      spGescheitert().classList.contains('on') && !spFilter()[0].classList.contains('on'),
+      JSON.stringify(spFilter().map(b => b.className)));
+    pruefe('Und die Fusszeile sagt, dass sie von dieser Art spricht',
+      /dieser Art/.test(d.w.document.getElementById('protokoll-fuss')?.textContent || ''),
+      d.w.document.getElementById('protokoll-fuss')?.textContent);
+    // Und wieder zurueck: eine Ansicht, aus der es keinen Weg heraus gibt,
+    // waere eine Falle.
+    spFilter()[0].dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Zurueck auf "Alle" zeigt wieder alle vier Zeilen',
+      spReihen(d).length === 4, `${spReihen(d).length} Zeilen`);
+
+    /* ---- 0.13.0: die Namen sind anklickbar ---- */
+    const spRolle = spReihen(d).find(z => z.dataset.was === 'zugang.rolle');
+    const spWerKnopf = spRolle?.querySelector('.prot-wer .prot-sprung');
+    pruefe('Der Handelnde ist ein Knopf und kein blosser Text', !!spWerKnopf,
+      spRolle?.querySelector('.prot-wer')?.innerHTML);
+    pruefe('Und er traegt die Nummer des Zugangs',
+      spWerKnopf?.dataset.mid === '1', spWerKnopf?.dataset.mid);
+    pruefe('Das Ziel ebenso',
+      spRolle?.querySelector('.prot-ziel .prot-sprung')?.dataset.mid === '2',
+      spRolle?.querySelector('.prot-ziel')?.innerHTML);
+    pruefe('Der Pfeil steht dabei VOR dem Knopf und nicht in ihm',
+      /^→\s/.test(spRolle?.querySelector('.prot-ziel')?.textContent || '') &&
+      !/→/.test(spRolle?.querySelector('.prot-ziel .prot-sprung')?.textContent || ''),
+      spRolle?.querySelector('.prot-ziel')?.textContent);
+    /* "UNBEKANNTER NAME" WIRD NIE EIN KNOPF: er ist der getippte Name eines
+       Versuchs, der an keinen Zugang traf -- es gaebe nichts, wohin er
+       springen koennte. Ein Knopf ins Leere ist schlimmer als Text. */
+    const spFehl = spReihen(d).find(z => z.dataset.was === 'anmeldung.fehl');
+    pruefe('"unbekannter Name" bleibt Text und wird kein Knopf',
+      !!spFehl && /unbekannter Name/.test(spFehl.textContent) &&
+      !spFehl.querySelector('.prot-sprung'), spFehl?.innerHTML);
+    // Und "über zugang.js auf dem Wirt" ebenso wenig -- dort ist niemand.
+    const spWirt = spReihen(d).find(z => z.dataset.was === 'zugang.passwort');
+    pruefe('Der Wirt wird ebenso wenig anklickbar',
+      !spWirt?.querySelector('.prot-wer .prot-sprung'),
+      spWirt?.querySelector('.prot-wer')?.innerHTML);
+    // Das Ziel dieser Zeile dagegen schon: carla ist ein Zugang.
+    pruefe('Ihr Ziel dagegen schon',
+      spWirt?.querySelector('.prot-ziel .prot-sprung')?.dataset.mid === '3',
+      spWirt?.querySelector('.prot-ziel')?.innerHTML);
+    /* DER SPRUNG FINDET DIE ZEILE IN DER KARTE "ZUGAENGE". Wer das Protokoll
+       sieht, ist Eigentuemer und damit immer auch Admin -- die Karte ist da. */
+    spWerKnopf?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein Klick hebt die Zeile in der Karte "Zugaenge" hervor',
+      !!d.w.document.querySelector('#mzugaenge .mrow[data-mid="1"].mrow-blitz'),
+      d.w.document.getElementById('mzugaenge')?.innerHTML.slice(0, 200));
+  }
+
+  /* ---- 0.13.0: die fuenf Vorgaenge ohne Wort ----
+     Ein Vorgang ohne Wort faellt auf den Rueckfall `|| z.was` und steht als
+     roher Schluessel am Bildschirm. Bis 0.12.4 traf das fuenf von zwanzig --
+     der Filter dieser Runde macht es unuebersehbar.
+     GEPRUEFT WIRD GEGEN DIE LISTE AUS auth.js und nicht gegen eine
+     abgeschriebene: eine zweite Liste liefe auseinander. */
+  {
+    const wVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-woerter-'));
+    const wListen = JSON.parse(kurzlauf(
+      `const a = require('./auth'); console.log(JSON.stringify(` +
+      `{ VORGAENGE: a.VORGAENGE, MERKMALE: a.MERKMALE, GRUPPEN: a.PROTOKOLL_GRUPPEN }));`, wVerz));
+    fs.rmSync(wVerz, { recursive: true, force: true });
+    const wZeilen = wListen.VORGAENGE.map((was, i) => ({
+      id: 100 + i, am: '2026-08-24 09:00:00', was,
+      wer: was === 'anmeldung.fehl' ? null : 1, werName: was === 'anmeldung.fehl' ? null : 'chefin',
+      ziel: null, zielName: null, merkmal: null }));
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+      { protokollBestand: { zeilen: wZeilen, gesamt: wZeilen.length, tage: 180, grenze: 100,
+                            zahlen: { alle: wZeilen.length } } });
+    /* ERST DER GEGENSTAND: ohne Zeilen bliebe die Verneinung darunter wahr und
+       belegte nichts (Stolperstein 81). */
+    pruefe('Der Aufbau steht: jede Vorgangsart hat eine Zeile',
+      spReihen(d).length === wListen.VORGAENGE.length,
+      `${spReihen(d).length} von ${wListen.VORGAENGE.length}`);
+    /* KEIN ROHER SCHLUESSEL AM BILDSCHIRM. Erkennbar sind sie am Punkt:
+       "anfrage.frei" steht so in keiner deutschen Beschriftung. */
+    const wRoh = spReihen(d).filter(z =>
+      (z.querySelector('.prot-was')?.textContent || '').includes('.'));
+    pruefe('Kein Vorgang steht als roher Schluessel am Bildschirm',
+      wRoh.length === 0, wRoh.map(z => z.dataset.was).join(' '));
+    /* UND JEDES MERKMAL HAT SEIN WORT -- ausser den beiden, deren Wort schon
+       der Vorgang traegt ("Zugang gesperrt" / "Zugang freigegeben"). Ein
+       Merkmal ohne Wort verschwindet spurlos: merkmalsWort() faellt still auf
+       den leeren String zurueck. */
+    const wOhneVorgang = ['aktiv', 'gesperrt'];
+    const wZeilen2 = wListen.MERKMALE.filter(m => !wOhneVorgang.includes(m))
+      .map((merkmal, i) => ({ id: 200 + i, am: '2026-08-24 09:00:00', was: 'zugang.selbst',
+        wer: 1, werName: 'chefin', ziel: 1, zielName: 'chefin', merkmal }));
+    const dm = await ziSystem({ istAdmin: true, istEigentuemer: true },
+      { protokollBestand: { zeilen: wZeilen2, gesamt: wZeilen2.length, tage: 180, grenze: 100,
+                            zahlen: { alle: wZeilen2.length } } });
+    pruefe('Der Aufbau steht: jedes Merkmal hat eine Zeile',
+      spReihen(dm).length === wZeilen2.length, `${spReihen(dm).length} von ${wZeilen2.length}`);
+    const wStumm = spReihen(dm).filter(z =>
+      !(z.querySelector('.prot-merkmal')?.textContent || '').trim());
+    pruefe('Und jedes Merkmal bekommt sein Wort — keines verschwindet spurlos',
+      wStumm.length === 0,
+      wStumm.map((z, i) => wZeilen2[spReihen(dm).indexOf(z)]?.merkmal).join(' '));
+    /* JEDER VORGANG STEHT IN GENAU EINER GRUPPE. Ein neuer, der in keiner
+       steht, waere unter keiner Ansicht zu finden -- ausser unter "alle", und
+       dort sucht ihn niemand. */
+    const wZuordnung = wListen.VORGAENGE.map(v =>
+      [v, Object.entries(wListen.GRUPPEN).filter(([, arten]) => arten.includes(v)).length]);
+    pruefe('Jeder Vorgang steht in genau einer Gruppe des Filters',
+      wZuordnung.every(([, n]) => n === 1),
+      wZuordnung.filter(([, n]) => n !== 1).map(([v, n]) => `${v}: ${n}`).join(' · '));
+    dm.w.close();
+    d.w.close();
   }
 
   /* DER LEERE FALL. Eine Karte, die nur den gefuellten Zustand kennt, belegt
@@ -23741,12 +24156,35 @@ async function pruefeOberflaeche() {
   }
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.confirm = () => true;
+    // Die Rueckfragen werden mitgeschrieben: seit 0.13.0 steht in der letzten
+    // der Satz, der den umkehrbaren Weg nennt.
+    const zdFragen = [];
+    d.w.confirm = (t) => { zdFragen.push(String(t)); return true; };
     const zeile = ziReihen(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     zeile?.querySelector('.zug-x')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Vor dem Entfernen steht der Dialog -- NACH den Rueckfragen',
       !!zdDialog(d), 'kein Dialog');
+    /* ---- 0.13.0: der Satz gegen die unumkehrbare Fehlbedienung ----
+       Bis 0.12.4 sagte der Dialog, dass es nicht rueckgaengig zu machen ist
+       und dass der Name frei wird -- er sagte NICHT, dass es daneben einen Weg
+       gibt, der beides nicht tut. Der Mechanismus war da; es fehlte der Satz,
+       der ihn nennt.
+       ERST DER GEGENSTAND (Stolperstein 81): ohne Rueckfragen bliebe jede
+       Aussage ueber ihren Wortlaut gruen. */
+    pruefe('Der Aufbau steht: die Rueckfragen sind gestellt worden',
+      zdFragen.length === 3, `${zdFragen.length} Rueckfragen`);
+    const zdLetzte = zdFragen[zdFragen.length - 1] || '';
+    pruefe('Die letzte Rueckfrage nennt den umkehrbaren Weg',
+      /sperren statt entfernen/.test(zdLetzte), zdLetzte.replace(/\n/g, ' | '));
+    pruefe('Und sagt, dass er umkehrbar ist und der Name bleibt',
+      /umkehrbar/.test(zdLetzte) && /der Name bleibt/.test(zdLetzte),
+      zdLetzte.replace(/\n/g, ' | '));
+    /* DERSELBE SATZ IM PASSWORTFENSTER DAHINTER. Zwei aufeinanderfolgende
+       Fenster, die Verschiedenes sagen, sind schlimmer als eines. */
+    pruefe('Und das Passwortfenster dahinter sagt dasselbe',
+      /sperren statt entfernen/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
+      zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
     pruefe('Und der Zugang ist bis dahin nicht entfernt',
       !d.gesendet.some(x => x.methode === 'DELETE' && x.url.startsWith('/api/users/3')),
       d.gesendet.map(x => `${x.methode} ${x.url}`).join(' · '));
@@ -25330,8 +25768,11 @@ async function pruefeOberflaeche() {
   });
   const ansW = ansDom.w;
   await new Promise(r => setTimeout(r, 80));
+  /* SEIT 0.13.0 TEILEN SICH SORTIEREN UND ANSICHTEN EINE ZEILE, und die Zeile
+     traegt deshalb ZWEI Beschriftungen. Gesucht wird die, in der eine davon
+     "Ansichten" heisst -- `querySelector('.eyebrow')` faende nur die erste. */
   const ansZeile = () => [...ansW.document.querySelectorAll('.frow')]
-    .find(r => r.querySelector('.eyebrow')?.textContent === 'Ansichten');
+    .find(r => [...r.querySelectorAll('.eyebrow')].some(e => e.textContent === 'Ansichten'));
   const ansPillen = () => [...(ansZeile()?.querySelectorAll('.pill') || [])]
     .map(b => b.textContent.replace('✕', '').trim());
   const ansSettings = () => ansDom.gesendet.filter(g => g.url === '/api/settings' && g.methode === 'PUT');
@@ -25381,7 +25822,7 @@ async function pruefeOberflaeche() {
   const awDom = baueDom(JSDOM, {
     uebersichtItems: ansBestand,
     einstellungen: { filters: null, ansichtenDeckel: 8, ansichten: [
-      { name: 'Nur Bosch', q: 'bosch', filters: { categoryId: null, tagIds: [], tagMode: 'and',
+      { name: 'Nur Bosch', q: 'bosch', filters: { categoryIds: [], tagIds: [], tagMode: 'and',
         tested: 'all', favorit: false, neu: false, sort: 'title_asc' } }
     ] }
   });
@@ -25440,11 +25881,11 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   pruefe('Bei vollem Deckel steht kein Knopf zum Speichern mehr da',
     !ad.document.getElementById('ansicht-neu'), 'der Knopf steht da');
+  const adZeile = () => [...ad.document.querySelectorAll('.frow')]
+    .find(r => [...r.querySelectorAll('.eyebrow')].some(e => e.textContent === 'Ansichten'));
   pruefe('Aber es steht da, WARUM',
-    /8 sind das Höchste/.test([...ad.document.querySelectorAll('.frow')]
-      .find(r => r.querySelector('.eyebrow')?.textContent === 'Ansichten')?.textContent || ''),
-    [...ad.document.querySelectorAll('.frow')]
-      .find(r => r.querySelector('.eyebrow')?.textContent === 'Ansichten')?.textContent || '(keine Zeile)');
+    /8 sind das Höchste/.test(adZeile()?.textContent || ''),
+    adZeile()?.textContent || '(keine Zeile)');
   ad.close();
 
   /* ---- Eine Ansicht mit geloeschter Kategorie ----
@@ -25453,6 +25894,10 @@ async function pruefeOberflaeche() {
   const agDom = baueDom(JSDOM, {
     uebersichtItems: ansBestand,
     einstellungen: { filters: null, ansichtenDeckel: 8, ansichten: [
+      /* IN DER ALTEN FORM MIT ABSICHT (`categoryId` statt `categoryIds`): so
+         steht sie in jedem vorhandenen Bestand, und sie geht damit durch die
+         Uebersetzung in filterNormal -- die Lage prueft seit 0.13.0 beides in
+         einem, die alte Form und die uebergangene Nummer. */
       { name: 'Mit Fremdnummern', q: '', filters: { categoryId: 999, tagIds: [998],
         tagMode: 'and', tested: 'all', favorit: false, neu: false, sort: 'title_asc' } }
     ] }
@@ -26000,6 +26445,247 @@ async function pruefeOberflaeche() {
   tlA.stopp(); tlB.stopp();
   fs.rmSync(tlDir, { recursive: true, force: true });
   fs.rmSync(tlZielDir, { recursive: true, force: true });
+
+  /* ---------------------------------------------------------------- */
+  /* ================= Der Teilexport MIT zweitem Faktor — 0.13.0 =========
+     DIE GRUPPE DARUEBER FAEHRT GEGEN EINEN SERVER OHNE ZWEITEN FAKTOR, und
+     genau daran ist 0.12.4 im Betrieb gescheitert: dort ist das wiederholte
+     Passwort harmlos, weil es gegen einen Hash laeuft und sich beliebig oft
+     vergleichen laesst. DIE EINMALIGKEIT GIBT ES NUR MIT EINGESCHALTETEM
+     FAKTOR -- 38 Pruefungen auf den Teilexport, und keine einzige stellte
+     beides zusammen. Eine Pruefgruppe, die einen Schalter nie einschaltet,
+     belegt nichts ueber den Zustand mit Schalter.
+
+     SIE HOLT MEHR ALS EINE FREIGABE. Eine Lage mit einem einzigen Teil bliebe
+     gruen und belegte nichts: der Fehler beginnt beim ZWEITEN Aufruf.
+
+     UND SIE SIEHT INS SICHERHEITSPROTOKOLL. Die Fehlalarme sind der Teil des
+     Schadens, den sonst niemand sieht -- drei Teile hinterliessen drei Zeilen
+     'bestaetigung.fehl' ueber den Eigentuemer selbst. */
+  {
+    const ZF2 = require('./zweifaktor');
+    gruppe('Der Teilexport mit zweitem Faktor');
+
+    const tzDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-teile-zf-'));
+    // 7000: die naechste freie Basis ueber 6940 (Teilexport, Ziel), und sie
+    // deckt keine Nummer von der Sperrliste. Der Waechter unten zaehlt sie mit.
+    const tzS = starteWeiterenServer(tzDir, {}, 7000);
+    await tzS.bereit;
+    const TZ_WORT = 'teile-faktor-wort-88';
+    await tzS.ruf('POST', '/api/setup', { user: 'chefin', password: TZ_WORT });
+    await tzS.ruf('POST', '/api/login', { user: 'chefin', password: TZ_WORT });
+
+    /* EIN CODE, DER TRAEGT -- und die beiden Bedingungen dafuer stehen hier an
+       EINER Stelle, statt an jeder Aufrufstelle noch einmal.
+       ERSTENS DAS FENSTER: faellt die Grenze der dreissig Sekunden zwischen
+       Rechnung und Ankunft, wuerde eine Pruefung zufaellig rot, und roter
+       Zufall kostet Vertrauen in alle anderen (Stolperstein 151).
+       ZWEITENS DIE EINMALIGKEIT, und sie ist der Gegenstand dieser Gruppe: der
+       Zaehler muss echt groesser sein als der zuletzt verbrauchte. Zwei Codes
+       aus DEMSELBEN Fenster sind derselbe Code -- wer das uebersieht, baut
+       eine Pruefung, die den Fehler nachstellt, den sie widerlegen soll.
+       DESHALB WIRD GEWARTET UND NICHT GERECHNET: nur die Uhr bringt den
+       Zaehler weiter. Jeder Aufruf kostet damit bis zu dreissig Sekunden, und
+       die Gruppe braucht deshalb genau zwei tragende Codes. */
+    let tzVerbraucht = -1;
+    const tzCode = async () => {
+      for (;;) {
+        if (30000 - (Date.now() % 30000) >= 9000 && ZF2.jetztSchritt() + 1 > tzVerbraucht) break;
+        await new Promise(r => setTimeout(r, 200));
+      }
+      tzVerbraucht = ZF2.jetztSchritt() + 1;
+      return ZF2.code(tzGeheim, tzVerbraucht);
+    };
+    // Fuer die Absagen, die VOR der Codepruefung fallen. Er ist absichtlich
+    // keiner, der traegt: faellt die Absage weg, wird aus dem erwarteten 400
+    // ein 403 und die Zeile bleibt rot -- sie kann also gar nicht aus
+    // Versehen gruen werden.
+    const TZ_KEIN_CODE = '000000';
+
+    const tzRuhig = async () => {
+      while (30000 - (Date.now() % 30000) < 9000) await new Promise(r => setTimeout(r, 200));
+    };
+
+    await tzRuhig();
+    const tzStart = await tzS.ruf('POST', '/api/zweifaktor/start', { passwort: TZ_WORT });
+    // Auffangnetz (Stolperstein 138): gibt /start kein Geheimnis her, laeuft
+    // alles Weitere trotzdem durch -- mit einem Wert, der zuverlaessig nicht
+    // traegt, statt dass der Lauf hier abreisst.
+    const tzGeheim = (tzStart.inhalt && tzStart.inhalt.geheim) || 'A'.repeat(32);
+    const tzZaehler = ZF2.jetztSchritt();
+    const tzAn = await tzS.ruf('POST', '/api/zweifaktor/an',
+      { passwort: TZ_WORT, code: ZF2.code(tzGeheim, tzZaehler) });
+    // DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT -- das ist die Zusage "ein
+    // Code gilt genau einmal" an ihrer ersten Anwendung.
+    tzVerbraucht = tzZaehler;
+    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne
+       eingeschalteten Faktor liefe die ganze Gruppe gegen denselben Server wie
+       die Gruppe darueber und belegte nichts ueber die Einmaligkeit. */
+    pruefe('Der Zugang traegt wirklich einen eingeschalteten zweiten Faktor',
+      tzAn.status === 200 && tzAn.inhalt?.an === true, JSON.stringify(tzAn.inhalt));
+    const tzEinst = await tzS.ruf('GET', '/api/settings');
+    pruefe('Und der Server sagt der Oberflaeche, dass ein Code dazugehoert',
+      tzEinst.inhalt?.zweifaktor === true, JSON.stringify(tzEinst.inhalt?.zweifaktor));
+
+    /* DER BESTAND MUSS BYTES TRAGEN, sonst gibt es nichts zu schneiden --
+       dieselbe Bauform wie in der Gruppe darueber: Anhaenge gehen als Bytes
+       hinein und als Bytes wieder heraus. */
+    const tzAnhang = Buffer.alloc(420 * 1024, 'y');
+    for (let i = 1; i <= 4; i++) {
+      const it = (await tzS.ruf('POST', '/api/items', { title: `Faktorstueck ${i}` })).inhalt;
+      const fa = new FormData();
+      fa.append('files', new Blob([tzAnhang], { type: 'text/plain' }), `gross-${i}.txt`);
+      await fetch(`${tzS.basis}/api/items/${it.id}/attachments`,
+        { method: 'POST', headers: { cookie: tzS.cookieWert() }, body: fa });
+    }
+    const tzSchalter = 'photos=1&files=1&videos=1';
+    const tzPlan = (await tzS.ruf('GET', `/api/export/plan?${tzSchalter}&ziel=1048576`)).inhalt;
+    const tzTeile = tzPlan?.teile || [];
+    /* MEHR ALS EIN TEIL IST DIE BEDINGUNG DIESER GRUPPE. Bei einem einzigen
+       bliebe jede Zeile darunter gruen, ohne etwas zu belegen: der Fehler
+       beginnt beim zweiten Aufruf (Stolperstein 189, dieselbe Lehre). */
+    pruefe('Der Plan schneidet in mehr als einen Teil — sonst belegt diese Gruppe nichts',
+      tzTeile.length > 1, JSON.stringify(tzTeile.map(t => t.anzahl)));
+    // Der Plan selbst braucht keine Bestaetigung und ist deshalb vom Fehler
+    // nicht betroffen -- das gehoert festgehalten, weil im Betrieb genau
+    // dieser Schritt noch ging und der naechste nicht mehr.
+    pruefe('Und er kommt ohne Bestaetigung, auch mit eingeschaltetem Faktor',
+      (await tzS.ruf('GET', `/api/export/plan?${tzSchalter}&ziel=1048576`)).status === 200);
+
+    /* --- Der Fehler aus dem Betrieb, nachgestellt ---
+       EINE EINGABE, N ANFRAGEN: die erste traegt, die zweite nicht. Das ist
+       die Eigenschaft, an der 0.12.4 gescheitert ist, und sie wird hier
+       ausdruecklich vorgefuehrt -- ohne sie waere die Zeile darunter eine
+       Behauptung ueber etwas, das es gar nicht gibt. */
+    const tzCodeA = await tzCode();
+    const tzEinzeln1 = await tzS.ruf('POST', '/api/bestaetigung',
+      { passwort: TZ_WORT, zweck: 'export', ziel: tzTeile[0]?.nr ?? 1, code: tzCodeA });
+    const tzEinzeln2 = await tzS.ruf('POST', '/api/bestaetigung',
+      { passwort: TZ_WORT, zweck: 'export', ziel: tzTeile[1]?.nr ?? 2, code: tzCodeA });
+    pruefe('Derselbe Code ein zweites Mal traegt nicht — ein Code gilt genau einmal',
+      tzEinzeln1.status === 200 && tzEinzeln2.status === 403,
+      `${tzEinzeln1.status} / ${tzEinzeln2.status}`);
+    pruefe('Und die Absage ist die des zweiten Faktors, nicht die des Passworts',
+      tzEinzeln2.inhalt?.zweifaktor === true, JSON.stringify(tzEinzeln2.inhalt));
+
+    /* --- Und so geht es seit 0.13.0: EINE Anfrage fuer alle Teile --- */
+    // Der Fehlschlag darueber hat eine Zeile geschrieben. Gezaehlt wird
+    // deshalb ab HIER, sonst faende die Probe weiter unten ihre eigene Spur.
+    const tzProtVor = (await tzS.ruf('GET', '/api/sicherheitsprotokoll')).inhalt;
+    const tzFehlVor = (tzProtVor?.zeilen || []).filter(z => z.was === 'bestaetigung.fehl').length;
+    pruefe('Das Protokoll traegt die Fehlalarme des alten Wegs — die Probe hat einen Bezugspunkt',
+      tzFehlVor >= 1, String(tzFehlVor));
+
+    /* DERSELBE CODE FUER BEIDE ANFRAGEN, und das ist Absicht: die erste ist
+       unbrauchbar bestellt und wird abgewiesen, die zweite traegt. Damit steht
+       in einem Zug, dass eine abgewiesene Bestellung den Code NICHT verbraucht
+       -- die Absagen stehen vor der Passwortpruefung, und genau deshalb.
+       FIELE DIE ABSAGE WEG, verbrauchte die erste Anfrage den Code und die
+       zweite bekaeme 403: die Zeile darunter wuerde rot. */
+    const tzCodeB = await tzCode();
+    pruefe('Eine unbrauchbare Bestellung wird abgewiesen, bevor der Code geprueft wird',
+      (await tzS.ruf('POST', '/api/bestaetigung',
+        { passwort: TZ_WORT, zweck: 'export', ziele: [1, 1], code: tzCodeB })).status === 400);
+    const tzAlle = await tzS.ruf('POST', '/api/bestaetigung',
+      { passwort: TZ_WORT, zweck: 'export', ziele: tzTeile.map(t => t.nr), code: tzCodeB });
+    pruefe('Eine Anfrage mit allen Teilnummern und EINEM Code wird angenommen',
+      tzAlle.status === 200 && tzAlle.inhalt?.ok === true,
+      `${tzAlle.status} · ${JSON.stringify(tzAlle.inhalt)}`);
+    pruefe('Und die Antwort nennt jede bestellte Nummer',
+      Array.isArray(tzAlle.inhalt?.ziele) &&
+      tzAlle.inhalt.ziele.join(',') === tzTeile.map(t => t.nr).join(','),
+      JSON.stringify(tzAlle.inhalt?.ziele));
+
+    /* JEDER TEIL LAEDT, UND JEDER VERBRAUCHT GENAU EINE FREIGABE. Das ist die
+       Eigenschaft, die NICHT mit weggeraeumt werden darf: zusammengefasst wird
+       die Abfrage, nicht die Schranke. */
+    const tzGeladen = [];
+    for (const t of tzTeile) {
+      const a = await fetch(`${tzS.basis}/api/export?${tzSchalter}` +
+        `&von=${t.von}&bis=${t.bis}&teil=${t.nr}&teile=${tzTeile.length}`,
+        { headers: { cookie: tzS.cookieWert() } });
+      tzGeladen.push(a.status);
+    }
+    pruefe(`Danach laden alle ${tzTeile.length} Teile — mit EINER Eingabe`,
+      tzGeladen.length > 1 && tzGeladen.every(s => s === 200), tzGeladen.join(' '));
+    pruefe('Und jede Freigabe ist danach verbraucht — ein zweiter Griff geht nicht',
+      (await tzS.ruf('GET', `/api/export?${tzSchalter}` +
+        `&von=${tzTeile[0].von}&bis=${tzTeile[0].bis}&teil=${tzTeile[0].nr}&teile=${tzTeile.length}`))
+        .status === 403);
+
+    /* --- KEINE ZEILE 'bestaetigung.fehl' ---
+       Der Teil des Schadens, den sonst niemand sieht: drei Teile hinterliessen
+       drei Zeilen ueber den Eigentuemer selbst, an genau der Karte, die diese
+       Runde durchsuchbar macht. */
+    const tzProtNach = (await tzS.ruf('GET', '/api/sicherheitsprotokoll')).inhalt;
+    const tzFehlNach = (tzProtNach?.zeilen || []).filter(z => z.was === 'bestaetigung.fehl').length;
+    pruefe('Der ganze Weg hinterlaesst keine einzige neue Zeile "bestaetigung.fehl"',
+      tzFehlNach === tzFehlVor, `${tzFehlVor} vorher, ${tzFehlNach} nachher`);
+    /* UND DAS PROTOKOLL SCHREIBT UEBERHAUPT MIT -- eine leere Tabelle machte
+       die Zeile darueber wahr, ohne etwas zu belegen (Stolperstein 81).
+       DIESE ZEILE IST SELBST EIN BEFUND AUS 0.12.4: dort stand "teil 1/5" im
+       Merkmal, das ist kein Wert aus MERKMALE, und protokolliere() verwarf
+       damit die GANZE Zeile. Ein Teilexport hinterliess im Protokoll nichts. */
+    pruefe('Und der Export selbst steht sehr wohl darin, Teil fuer Teil',
+      (tzProtNach?.zeilen || []).filter(z => z.was === 'export' && z.merkmal === 'teil')
+        .length === tzTeile.length,
+      JSON.stringify((tzProtNach?.zeilen || []).filter(z => z.was === 'export').map(z => z.merkmal)));
+
+    /* --- Die Grenzen der Mehrzahl ---
+       ALLE MIT EINEM CODE, DER NICHT TRAEGT: diese Absagen fallen VOR der
+       Codepruefung. Faellt eine von ihnen weg, wird aus dem erwarteten 400 ein
+       403, und die Zeile bleibt rot -- sie kann nicht aus Versehen gruen
+       werden (Befund B aus 0.12.0: kein Massstab vom Prueflling). */
+    const tzGrenze = (rumpf) => tzS.ruf('POST', '/api/bestaetigung',
+      { passwort: TZ_WORT, zweck: 'export', code: TZ_KEIN_CODE, ...rumpf });
+    pruefe('Doppelte Nummern sind ein Fehler und keine halbierte Bestellung',
+      (await tzGrenze({ ziele: [1, 2, 2] })).status === 400);
+    pruefe('Zehntausend Freigaben auf einmal gehen nicht durch',
+      (await tzGrenze({ ziele: Array.from({ length: 10000 }, (_, i) => i + 1) })).status === 400);
+    pruefe('Eine leere Liste ebenso wenig',
+      (await tzGrenze({ ziele: [] })).status === 400 &&
+      (await tzGrenze({ ziele: 'alle' })).status === 400);
+    pruefe('Und eine Nummer, die keine ist, auch nicht',
+      (await tzGrenze({ ziele: [1, 'zwei'] })).status === 400 &&
+      (await tzGrenze({ ziele: [1, 0] })).status === 400);
+    pruefe('Ein Ziel UND mehrere zugleich ist ein Fehler, kein stiller Vorzug',
+      (await tzGrenze({ ziel: 1, ziele: [1, 2] })).status === 400);
+    // Der Deckel liegt bei 999 und nicht irgendwo: eine Bestellung genau auf
+    // der Grenze muss durchgehen, sonst belegte die Zeile darueber nur, dass
+    // IRGENDWO abgewiesen wird.
+    pruefe('999 Ziele liegen noch darunter — die Absage kommt nicht vom Passwort',
+      (await tzGrenze({ ziele: Array.from({ length: 999 }, (_, i) => i + 1) })).status === 403);
+
+    /* --- Die Oberflaeche schickt EINE Anfrage --- */
+    /* GEPRUEFT AM QUELLTEXT, weil jsdom keinen Server hat: die Schleife ueber
+       die Ziele ist genau das, was im Betrieb gescheitert ist. Steht sie
+       wieder da, ist der Fehler zurueck. */
+    const tzApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const tzMehrfach = (tzApp.match(
+      /async function zweiteBestaetigungMehrfach[\s\S]*?\n\}/) || [''])[0];
+    pruefe('zweiteBestaetigungMehrfach steht im Quelltext',
+      tzMehrfach.length > 60, String(tzMehrfach.length));
+    pruefe('Und sie schickt die Ziele in EINER Anfrage statt eine je Ziel',
+      /ziele\s*\}\)/.test(tzMehrfach) && !/for\s*\(\s*const\s+ziel\s+of\s+ziele/.test(tzMehrfach),
+      tzMehrfach.slice(-220));
+
+    /* --- Der Knopf sagt, was er tut --- */
+    /* "Alle n Teile freigeben" war das Wort aus dem Maschinenraum. Gepruefft
+       wird die AUSSAGE und nicht die Laenge: dass einmal bestaetigt und danach
+       jeder Teil einzeln geladen wird. */
+    pruefe('Der Knopf nennt nicht mehr das Freigeben',
+      !/Alle \$\{n\} Teile freigeben/.test(tzApp) && !/Freigegeben —/.test(tzApp));
+    pruefe('Er sagt, dass EINMAL bestätigt wird',
+      /Einmal bestätigen, dann/.test(tzApp), 'Knopftext');
+    pruefe('Und dass danach jeder Teil selbst geladen wird',
+      /danach lädst du jeden Teil selbst/.test(tzApp), 'Satz über dem Knopf');
+    pruefe('Der Satz darüber nennt den Grund der Frage',
+      /Ein Export nimmt den Bestand\s+mit aus dem Haus/.test(tzApp), 'Grundsatz');
+
+    tzS.stopp();
+    fs.rmSync(tzDir, { recursive: true, force: true });
+  }
+
   /* ---------------------------------------------------------------- */
   gruppe('Die Anzeige zieht nach — 0.12.3');
 
@@ -26084,14 +26770,27 @@ async function pruefeOberflaeche() {
     /zwei Merkmale, zwei Kanaele/i.test(cssRoh) && /0\.12\.3/.test(cssRoh),
     'die Begruendung fehlt');
 
-  /* --- 2f: „mehr" frisst keine Zeile mehr --- */
-  pruefe('Es gibt einen Kasten fuer das rechte Ende der Filterzeile',
-    /margin-left: auto/.test(regel123('.frow-rechts')), regel123('.frow-rechts') || '(keine Regel)');
+  /* --- 2f: „mehr" frisst keine Zeile mehr ---
+     SEIT 0.13.0 ANDERSHERUM GEBAUT, und das ist der Kern von Punkt 5a: der
+     Kasten trug `margin-left: auto`, und eine selbsttaetige Aussenkante frisst
+     den gesamten freien Platz der Zeile -- die Wolke KANN daneben nicht
+     stehen, sie rutscht immer darunter. Jetzt nimmt die Wolke den Platz
+     (`flex: 1 1 0`), und die Verweise stehen als gewoehnliche Geschwister
+     dahinter. */
+  pruefe('Es gibt einen Kasten fuer die Verweise der Filterzeile',
+    /display: flex/.test(regel123('.frow-rechts')), regel123('.frow-rechts') || '(keine Regel)');
+  pruefe('Und er traegt KEINE selbsttaetige Aussenkante mehr',
+    !/margin-left: auto/.test(regel123('.frow-rechts')), regel123('.frow-rechts'));
   /* KEINE AUSGERECHNETE BREITE, nirgends -- die Anlage stellt die Schrift von
      80 bis 120 Prozent, und genau daran hing 0.12.1 schon einmal
      (`right: 92px`, Befund A). */
   pruefe('Und er rechnet keine Breite aus',
     !/width|right:/.test(regel123('.frow-rechts')), regel123('.frow-rechts'));
+  pruefe('Die Wolke der Filterzeile nimmt den uebrigen Platz, ohne eine Breite zu nennen',
+    /flex: 1 1 0/.test(regel123('.frow > .pills.cloud')) &&
+    /min-width: 0/.test(regel123('.frow > .pills.cloud')) &&
+    !/[0-9]+px/.test(regel123('.frow > .pills.cloud')),
+    regel123('.frow > .pills.cloud') || '(keine Regel)');
   const fzDom = baueDom(JSDOM, { tags: [
     { id: 41, name: 'Alu', usage_count: 3 }, { id: 42, name: 'Stahl', usage_count: 2 },
     { id: 43, name: 'Holz', usage_count: 1 }] });
@@ -26113,15 +26812,25 @@ async function pruefeOberflaeche() {
   const fZeile2 = [...fzW.document.querySelectorAll('.frow')]
     .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
   const fRechts = fZeile2?.querySelector('.frow-rechts');
-  pruefe('Der Verweis sitzt im Kasten am rechten Ende und nicht hinter der Wolke',
+  pruefe('Der Verweis sitzt in seinem Kasten',
     !!fRechts && /zurücksetzen/.test(fRechts.textContent), fZeile2?.innerHTML.slice(0, 200));
-  /* DIE REIHENFOLGE IM AUFBAU ENTSCHEIDET, AUF WELCHER ZEILE ETWAS LANDET:
-     die Zeile bricht um, und ein Geschwister HINTER der Wolke rutscht auf
-     eine eigene Zeile. Genau das war der Befund. */
+  /* SEIT 0.13.0 STEHT ER HINTER DER WOLKE -- die natuerliche Reihenfolge:
+     "mehr" gehoert hinter das, was es aufklappt. Vorher musste er davor
+     stehen, weil er die Zeile sonst umbrach; das lag an der selbsttaetigen
+     Aussenkante und nicht an der Reihenfolge.
+     GEPRUEFT WIRD DIE REIHENFOLGE UND NICHT DIE HOEHE: jsdom rechnet kein
+     Layout, die Ersparnis von 82 px kann dieser Lauf nicht sehen. Was er
+     sehen kann, ist der Aufbau. */
   const fKinder = [...(fZeile2?.children || [])].map(k => k.className);
-  pruefe('Und er steht im Aufbau VOR der Wolke, sonst braeche die Zeile davor um',
+  pruefe('Und er steht im Aufbau HINTER der Wolke, in derselben Zeile',
     fKinder.indexOf('frow-rechts') >= 0 &&
-    fKinder.indexOf('frow-rechts') < fKinder.findIndex(k => /cloud/.test(k)),
+    fKinder.indexOf('frow-rechts') > fKinder.findIndex(k => /cloud/.test(k)),
+    JSON.stringify(fKinder));
+  // Wolke und Verweise sind Geschwister in EINER Zeile -- das ist die
+  // Ersparnis, und sie laesst sich am Aufbau ablesen.
+  pruefe('Wolke und Verweise sind Geschwister derselben .frow',
+    fZeile2?.querySelector('.pills.cloud')?.parentElement ===
+    fZeile2?.querySelector('.frow-rechts')?.parentElement,
     JSON.stringify(fKinder));
   // Und wieder weg: ein leerer Kasten bliebe als Flex-Element stehen und
   // schoebe die Wolke um eine Luecke nach rechts.
@@ -26132,6 +26841,231 @@ async function pruefeOberflaeche() {
   pruefe('Faellt die Auswahl weg, verschwindet auch der Kasten wieder',
     !fZeile3?.querySelector('.frow-rechts'), fZeile3?.innerHTML.slice(0, 160));
   fzW.close();
+
+  /* ================= Die Filterleiste wird kuerzer — 0.13.0 ============
+     DER PRUEFSTAND KANN DIESE ZEILEN NICHT SEHEN: jsdom rechnet kein Layout,
+     jede Hoehe ist dort null. Die 229 px vorher und die rund 147 px nachher
+     sind am Browser gemessen und stehen im Aenderungsprotokoll.
+     WAS SICH PRUEFEN LAESST, IST DER AUFBAU -- und der traegt die Ersparnis:
+     wie viele Zeilen es gibt, dass Wolke und Verweise Geschwister EINER Zeile
+     sind, dass im Stilblatt keine ausgerechnete Breite steht und dass die
+     Pille mit null Treffern ihre Klasse und ihren Hinweis bekommt.
+     Behauptet wird hier nichts, was dieser Lauf nicht messen kann. */
+  gruppe('Die Filterleiste wird kuerzer — 0.13.0');
+
+  const flDom = baueDom(JSDOM, { tags: [
+    { id: 41, name: 'Alu', usage_count: 3 }, { id: 42, name: 'Stahl', usage_count: 2 }] });
+  const flW = flDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const flZeilen = () => [...flW.document.querySelectorAll('#filters .frow')];
+  const flBeschriftungen = () => flZeilen().map(z =>
+    [...z.querySelectorAll('.eyebrow')].map(e => e.textContent).join('+'));
+  /* VIER STEUERGRUPPEN IN VIER ZEILEN, vorher fuenf in fuenf. Die Zahl steht
+     ausdruecklich da: eine Zeile, die sich still dazuschiebt, faellt sonst
+     niemandem auf. */
+  pruefe('Die Leiste hat noch vier Zeilen statt fuenf',
+    flZeilen().length === 4, JSON.stringify(flBeschriftungen()));
+  pruefe('Und Sortieren und Ansichten teilen sich die letzte',
+    flBeschriftungen()[3] === 'Sortieren+Ansichten', JSON.stringify(flBeschriftungen()));
+  /* DIE ZWEITE BESCHRIFTUNG IST DAS GEGENSTUECK ZUR ERSTEN und keine
+     Ueberschrift: sie traegt die Beschriftungsspalte NICHT. Gepruefft wird die
+     Klasse und im Stilblatt die Regel dazu -- die Breite selbst kann jsdom
+     nicht messen. */
+  const flZweite = flZeilen()[3]?.querySelectorAll('.eyebrow')[1];
+  pruefe('Die zweite Beschriftung traegt die Beschriftungsspalte nicht',
+    flZweite?.classList.contains('eyebrow-mit'), flZweite?.className);
+  pruefe('Und das Stilblatt nimmt ihr die Mindestbreite wieder ab',
+    /min-width: 0/.test(regel123('.frow > .eyebrow-mit')),
+    regel123('.frow > .eyebrow-mit') || '(keine Regel)');
+  // Und die Sortierung steht weiterhin in derselben Zeile -- ohne sie waere
+  // die Zusammenlegung nur eine verschobene Beschriftung.
+  pruefe('Das Auswahlfeld der Sortierung steht in derselben Zeile',
+    !!flZeilen()[3]?.querySelector('#f-sort'), flZeilen()[3]?.innerHTML.slice(0, 120));
+  pruefe('Und die Ansichten ebenso',
+    !!flZeilen()[3]?.querySelector('#ansicht-neu'), flZeilen()[3]?.innerHTML.slice(0, 200));
+  /* KEINE AUSGERECHNETE BREITE, an keiner der drei angefassten Stellen. Das
+     war Befund A aus 0.12.1 (`right: 92px`), und die Anlage stellt die Schrift
+     von 80 bis 120 Prozent -- jede feste Zahl kann dabei nur falsch werden.
+     Die Beschriftungsspalte selbst bleibt in em und ist ausgenommen; sie fasst
+     Text und ist die eine Ausnahme, die im Stilblatt begruendet steht. */
+  const flRegeln = ['.frow-rechts', '.frow > .pills.cloud', '.frow > .eyebrow-mit'];
+  const flMitPx = flRegeln.filter(r => /:\s*[0-9.]+px/.test(regel123(r).replace(/gap: [0-9]+px|margin-left: [0-9]+px/g, '')));
+  pruefe('Keine der drei angefassten Regeln rechnet eine Breite aus',
+    flMitPx.length === 0, flMitPx.map(r => regel123(r)).join(' | '));
+  flW.close();
+
+  /* --- „Neu seit …" mit null Treffern wird gedaempft ---
+     DIESELBE SACHE, ZWEI VERHALTEN war der Befund (Stolperstein 47, im
+     Kleinen): Tags in genau dieser Lage werden gedaempft, die Pille stand in
+     voller Helligkeit da und fuehrte garantiert auf eine leere Liste. */
+  const flNeuItem = (id, datum) => ({
+    id, title: 'Stueck ' + id, rejected: false, tested: false, favorite: false, category: null,
+    tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
+    testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: datum });
+  // Alles ist AELTER als der Bezugspunkt -- damit bringt "Neu seit ..." null.
+  const flAltDom = baueDom(JSDOM, {
+    uebersichtItems: [flNeuItem(1, '2026-01-01 10:00:00'), flNeuItem(2, '2026-01-02 10:00:00')],
+    einstellungen: { filters: null, zuletztGesehen: '2026-06-01 00:00:00' } });
+  const flAltW = flAltDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const flNeuPille = flAltW.document.getElementById('f-neu');
+  /* ERST DER GEGENSTAND (Stolperstein 81): ohne Bezugspunkt gibt es die Pille
+     gar nicht, und eine Pruefung auf ihre Klasse waere dann gruen fuer nichts. */
+  pruefe('Die Pille "Neu seit …" steht da', !!flNeuPille, '(keine Pille)');
+  pruefe('Und sie nennt die Null', /0/.test(flNeuPille?.querySelector('.n')?.textContent || ''),
+    flNeuPille?.textContent);
+  pruefe('Bei null Treffern ist sie gedaempft — wie ein Tag in derselben Lage',
+    flNeuPille?.classList.contains('leer'), flNeuPille?.className);
+  pruefe('Und sie sagt, warum',
+    flNeuPille?.title === 'Zusammen mit der aktuellen Auswahl kein Treffer', flNeuPille?.title);
+  pruefe('Anklickbar bleibt sie', flNeuPille?.disabled !== true, String(flNeuPille?.disabled));
+  /* DIE REGEL GILT SEIT 0.13.0 FUER JEDE PILLE und nicht mehr nur fuer Tags --
+     sonst waere es dieselbe Sache mit zwei Verhalten, nur andersherum. */
+  pruefe('Das Stilblatt daempft jede Pille in dieser Lage, nicht nur Tags',
+    /opacity: \.34/.test(regel123('.pill.leer')) && !regel123('.pill-tag.leer'),
+    `${regel123('.pill.leer')} | ${regel123('.pill-tag.leer')}`);
+  flAltW.close();
+
+  // Und die Gegenprobe: mit Treffern ist sie NICHT gedaempft. Ohne diese Zeile
+  // bliebe die Pruefung darueber auch dann gruen, wenn die Klasse immer stuende.
+  const flNeuDom = baueDom(JSDOM, {
+    uebersichtItems: [flNeuItem(1, '2026-08-01 10:00:00')],
+    einstellungen: { filters: null, zuletztGesehen: '2026-06-01 00:00:00' } });
+  const flNeuW = flNeuDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const flNeuPille2 = flNeuW.document.getElementById('f-neu');
+  pruefe('Mit Treffern steht sie in voller Helligkeit da',
+    !!flNeuPille2 && !flNeuPille2.classList.contains('leer'), flNeuPille2?.className);
+  flNeuW.close();
+
+  /* ================= Die Kategoriezeile lernt die Mehrzahl — 0.13.0 ====
+     ZWEI WUENSCHE, EINE AENDERUNG: mehrere Kategorien zugleich, und "ohne
+     Kategorie" als Eintrag derselben Liste.
+     DIE PRUEFUNG, DIE HIER FEHLEN WUERDE, ist die auf die ALTE Form: eine
+     gespeicherte Ansicht mit einem einzelnen Kategoriewert muss nach dem
+     Einlesen dieselbe Liste zeigen wie vorher. Eine Prueflage, die nur die
+     neue Form kennt, belegt darueber nichts -- dieselbe Lehre wie beim
+     Teilexport: der Schalter, den keine Lage jemals einschaltet. */
+  gruppe('Die Kategoriezeile lernt die Mehrzahl — 0.13.0');
+
+  const kmKat = [{ id: 21, name: 'Werkzeug', usage_count: 2 },
+                 { id: 22, name: 'Material', usage_count: 1 }];
+  const kmItem = (id, kat) => ({
+    id, title: 'Stueck ' + id, rejected: false, tested: false, favorite: false,
+    category: kat ? kmKat.find(k => k.id === kat) : null,
+    tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
+    testCount: null, testAvg: null, testLast: null, testDays: [],
+    updated_at: '2026-08-01 10:00:00' });
+  /* FUENF EINTRAEGE: zwei Werkzeug, eines Material, ZWEI OHNE. Genau die Lage
+     aus dem Betrieb -- der Kopf sagte mehr, als die Kategorien zusammen
+     ergaben, und die Luecke war nicht zu sehen. */
+  const kmBestand = [kmItem(1, 21), kmItem(2, 21), kmItem(3, 22), kmItem(4, null), kmItem(5, null)];
+  const kmDom = baueDom(JSDOM, { uebersichtItems: kmBestand, kategorien: kmKat,
+                                 einstellungen: { filters: null } });
+  const kmW = kmDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const kmZeile = () => [...kmW.document.querySelectorAll('#filters .frow')]
+    .find(z => z.querySelector('.eyebrow')?.textContent === 'Kategorie');
+  const kmPillen = () => [...(kmZeile()?.querySelectorAll('.pill') || [])];
+  const kmNamen = () => kmPillen().map(b => b.textContent.trim());
+  const kmAn = () => kmPillen().filter(b => b.classList.contains('on')).map(b => b.textContent.trim());
+
+  pruefe('Die Kategoriezeile steht da', !!kmZeile(), '(keine Zeile)');
+  /* "OHNE" IST EINE PILLE MIT EIGENER ZAHL, am Ende der Zeile. Der Anlass:
+     zwei Eintraege waren ueber keine einzelne Kategorie erreichbar. */
+  pruefe('Am Ende steht "Ohne" mit eigener Zahl',
+    /^Ohne2$/.test(kmNamen()[kmNamen().length - 1] || ''), JSON.stringify(kmNamen()));
+  // Die Zahl rechnet der Browser aus state.alle -- der Server wird dafuer
+  // nicht gefragt. Ohne diese Zeile bliebe das eine Behauptung.
+  pruefe('Und der Server wird dafuer nicht gefragt',
+    !kmDom.gesendet.some(g => /ohne|kategorielos/i.test(String(g.url))),
+    JSON.stringify(kmDom.gesendet.map(g => g.url).slice(0, 12)));
+  /* KEIN UND/ODER AN DIESER ZEILE. Bei den Tags ist die Wahl echt, weil ein
+     Eintrag viele Tags traegt; hier gibt es nur Oder -- ein Umschalter, dessen
+     eine Haelfte garantiert null Treffer liefert, ist schlimmer als keiner. */
+  pruefe('Die Zeile traegt kein Und/Oder', !kmZeile()?.querySelector('.tagmode'),
+    kmZeile()?.innerHTML.slice(0, 200));
+
+  const kmKlick = (text) => {
+    const b = kmPillen().find(x => x.textContent.trim().startsWith(text));
+    b?.dispatchEvent(new kmW.MouseEvent('click', { bubbles: true }));
+    return b;
+  };
+  const kmKarten = () => kmW.document.querySelectorAll('.card-title').length;
+  pruefe('Ohne Auswahl steht "Alle" auf an und die Liste zeigt alles',
+    kmAn().join() === 'Alle' && kmKarten() === 5, `${JSON.stringify(kmAn())} · ${kmKarten()}`);
+
+  kmKlick('Werkzeug'); await new Promise(r => setTimeout(r, 40));
+  pruefe('Eine Kategorie wirkt wie bisher', kmKarten() === 2, `${kmKarten()} Karten`);
+  kmKlick('Material'); await new Promise(r => setTimeout(r, 40));
+  /* MEHRERE ZUGLEICH, UND ES IST DIE VEREINIGUNG. Ein Schnitt waere garantiert
+     leer -- ein Eintrag traegt genau eine Kategorie. */
+  pruefe('Zwei Kategorien zugleich zeigen beide Gruppen', kmKarten() === 3, `${kmKarten()} Karten`);
+  pruefe('Und beide Pillen stehen auf an',
+    kmAn().length === 2 && kmAn().every(n => /Werkzeug|Material/.test(n)), JSON.stringify(kmAn()));
+  kmKlick('Ohne'); await new Promise(r => setTimeout(r, 40));
+  pruefe('"Ohne" laesst sich dazunehmen wie jeder andere Wert', kmKarten() === 5,
+    `${kmKarten()} Karten`);
+  /* DREI GEWAEHLTE KATEGORIEN ZAEHLEN ALS EIN FILTER -- anders als die Tags,
+     und der Unterschied ist die Verknuepfung: jeder Tag verkleinert die Menge,
+     jede Kategorie vergroessert sie. */
+  pruefe('Die Filterzahl zaehlt drei gewaehlte Werte als EINEN Filter',
+    /· 1 aktiv/.test(kmW.document.querySelector('#filter-auf .fz')?.textContent || ''),
+    kmW.document.querySelector('#filter-auf .fz')?.textContent);
+  kmKlick('Werkzeug'); await new Promise(r => setTimeout(r, 40));
+  pruefe('Ein zweiter Klick nimmt einen Wert wieder heraus', kmKarten() === 3,
+    `${kmKarten()} Karten`);
+  const kmAlle = kmPillen().find(b => b.textContent.trim() === 'Alle');
+  kmAlle?.dispatchEvent(new kmW.MouseEvent('click', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 40));
+  pruefe('"Alle" raeumt die ganze Auswahl weg',
+    kmAn().join() === 'Alle' && kmKarten() === 5, `${JSON.stringify(kmAn())} · ${kmKarten()}`);
+
+  /* --- DIE ALTE FORM EINER GESPEICHERTEN ANSICHT ---
+     Vor 0.13.0 stand dort EIN Kategoriewert. Ohne Uebersetzung verloeren alle
+     vorhandenen Ansichten ihre Kategorie, still und ohne Meldung. */
+  const kmAlt = kmW.filterNormal({ categoryId: 21, tagIds: [], tagMode: 'and',
+    tested: 'all', favorit: false, neu: false, sort: 'updated_desc' });
+  pruefe('Eine Ansicht in der ALTEN Form wird uebersetzt',
+    Array.isArray(kmAlt.categoryIds) && kmAlt.categoryIds.join() === '21',
+    JSON.stringify(kmAlt.categoryIds));
+  // Und sie zeigt danach DIESELBE Liste wie vorher -- daran haengt der ganze
+  // Punkt, nicht an der Form des Felds.
+  pruefe('Und sie zeigt danach dieselbe Liste wie vorher',
+    kmW.visibleItems(kmAlt).length === 2, String(kmW.visibleItems(kmAlt).length));
+  // Das alte Feld faellt heraus: sonst gaelte eine alte Ansicht nie als die
+  // geltende, weil die Stellungen Zeichen fuer Zeichen verglichen werden.
+  pruefe('Das alte Feld bleibt nicht in der zurechtgerueckten Stellung stehen',
+    !('categoryId' in kmAlt), JSON.stringify(Object.keys(kmAlt)));
+  /* "OHNE" MUSS STEHENBLEIBEN: es ist kein Kategoriewert und trotzdem
+     gueltig. Eine Klemme, die nur Kategorienummern durchlaesst, wuerfe ihn weg. */
+  const kmOhne = kmW.filterNormal({ categoryIds: ['ohne'], tagIds: [], tagMode: 'and',
+    tested: 'all', favorit: false, neu: false, sort: 'updated_desc' });
+  pruefe('"Ohne" ueberlebt das Zurechtruecken',
+    kmOhne.categoryIds.join() === 'ohne', JSON.stringify(kmOhne.categoryIds));
+  pruefe('Und filtert auf die Eintraege ohne Kategorie',
+    kmW.visibleItems(kmOhne).length === 2, String(kmW.visibleItems(kmOhne).length));
+  /* EINE GELOESCHTE KATEGORIE NIMMT DIE UEBRIGEN NICHT MIT. Bis 0.12.4 fiel
+     die Ansicht ganz auf "Alle" zurueck; mit einer Liste faellt sie auf den
+     REST zurueck, und das ist der bessere Ausgang. */
+  const kmRest = kmW.filterNormal({ categoryIds: [21, 999, 'ohne'], tagIds: [], tagMode: 'and',
+    tested: 'all', favorit: false, neu: false, sort: 'updated_desc' });
+  pruefe('Eine geloeschte Nummer faellt weg, der Rest bleibt stehen',
+    kmRest.categoryIds.join() === '21,ohne', JSON.stringify(kmRest.categoryIds));
+  pruefe('Eine Ansicht, in der NUR die geloeschte stand, faellt auf Alle zurueck',
+    kmW.filterNormal({ categoryIds: [999] }).categoryIds.length === 0,
+    JSON.stringify(kmW.filterNormal({ categoryIds: [999] }).categoryIds));
+  // Doppelte Werte werden zusammengezogen: zweimal dieselbe Kategorie ist
+  // dieselbe Menge, aber die Filterzahl saehe anders aus.
+  pruefe('Doppelte Werte werden zusammengezogen',
+    kmW.filterNormal({ categoryIds: [21, 21] }).categoryIds.join() === '21',
+    JSON.stringify(kmW.filterNormal({ categoryIds: [21, 21] }).categoryIds));
+  // Und was gar keine Liste ist, wird eine leere -- die Vorgabe traegt sie,
+  // aber ein gespeicherter Unsinn darf nicht durchschlagen.
+  pruefe('Was keine Liste ist, wird eine leere',
+    kmW.filterNormal({ categoryIds: 'werkzeug' }).categoryIds.length === 0,
+    JSON.stringify(kmW.filterNormal({ categoryIds: 'werkzeug' }).categoryIds));
+  kmW.close();
 
   /* --- 2g und 2h: die Versionszeile --- */
   const vzDom = baueDom(JSDOM, {});

@@ -331,24 +331,27 @@ const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
 const bestaetigungsFeldFrei = (titel, was, mitCode) =>
   passwortFenster(titel, was, '', mitCode === true);
 
-/* EINE ABFRAGE, MEHRERE FREIGABEN. Ein Bestand, der in fuenf Teilen hinausgeht,
-   braucht fuenf Freigaben -- eine Freigabe wird verbraucht, und fuenf mit
-   demselben Ziel waeren EINE -- der Schluessel ist Sitzung, Zweck und Ziel.
-   ZUSAMMENGEFASST WIRD DIE EINGABE UND NICHT DIE PRUEFUNG: jede einzelne
-   Freigabe geht mit dem Passwort an den Server und wird dort gegen den Hash
-   gehalten. Der Mensch tippt einmal, geprueft wird n-mal.
-   REIHUM UND NICHT NEBENEINANDER: die Anmeldebremse zaehlt je Adresse, und
-   fuenf gleichzeitige Anfragen mit demselben Passwort saehen aus wie ein
-   Versuch, sie zu umgehen.
-   BRICHT EINE AB, BRECHEN ALLE AB -- eine halbe Freigabe waere ein Export, der
-   mitten in der Reihe stehenbleibt und dessen Grund niemand sieht. */
+/* EINE ABFRAGE, EINE ANFRAGE, MEHRERE FREIGABEN. Ein Bestand, der in fuenf
+   Teilen hinausgeht, braucht fuenf Freigaben -- eine Freigabe wird verbraucht,
+   und fuenf mit demselben Ziel waeren EINE; der Schluessel ist Sitzung, Zweck
+   und Ziel.
+   ALLE ZIELE IN EINER ANFRAGE, und das ist die ganze Sache: ein Code des
+   zweiten Faktors gilt GENAU EINMAL. Wer dieselbe Eingabe n-mal an den Server
+   schickt, bekommt einmal 200 und n-1 mal "Der Code stimmt nicht" -- richtig
+   gemeldet und trotzdem irrefuehrend, denn der Code war richtig und
+   verbraucht. Fuer das Passwort gilt das nicht: es laeuft gegen einen Hash und
+   laesst sich beliebig oft vergleichen. Der Unterschied ist die Stelle, an der
+   ein n-facher Aufruf kippt.
+   NEBENHER FAELLT DAMIT DREIERLEI WEG: n-1 Zeilen 'bestaetigung.fehl' ueber
+   den Eigentuemer selbst, n-1 Fehlschlaege in der Anmeldebremse (bei elf
+   Teilen griff die harte Sperre), und der verbrannte Wiederherstellungscode.
+   WAS BLEIBT: das Laden eines Teils verbraucht genau eine Freigabe. Was
+   zusammengefasst wird, ist die ABFRAGE und nicht die Schranke. */
 async function zweiteBestaetigungMehrfach(zweck, ziele, titel, was) {
   const eingabe = await bestaetigungsFeld(titel, was);
   if (eingabe === null) return false;
-  for (const ziel of ziele) {
-    try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziel }); }
-    catch (e) { toast(e.message, true); return false; }
-  }
+  try { await api('POST', '/api/bestaetigung', { ...eingabe, zweck, ziele }); }
+  catch (e) { toast(e.message, true); return false; }
   return true;
 }
 
@@ -1279,7 +1282,17 @@ const istSchmal = () => !!(window.matchMedia && window.matchMedia(SCHMAL).matche
 /* ================= Zustand ================= */
 /* DIE VORGABESTELLUNG DER FILTER STEHT GENAU EINMAL -- sonst laufen die
    Abschriften auseinander, sobald jemand einen Filter ergaenzt. */
-const FILTER_VORGABE = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'all',
+/* "Ohne Kategorie" ist ein WERT DIESER LISTE und kein Sonderfall daneben --
+   deshalb steht er in derselben Auswahl wie jede Kategorie und laesst sich mit
+   ihnen zusammen anklicken. Ein Wort und keine Nummer: Nummern sind
+   Kategorienummern, und eine erfundene (0 oder -1) waere irgendwann eine echte.
+   ER STEHT IM GESPEICHERTEN JSON und muss deshalb stabil bleiben. */
+const KATEGORIE_OHNE = 'ohne';
+/* SEIT 0.13.0 EINE LISTE UND KEINE EINZELNE NUMMER. Der Filter traegt mehrere
+   Kategorien zugleich, und die Verknuepfung ist ein ODER -- nie ein UND:
+   `product_category_id` ist EINE Spalte, ein Eintrag traegt also genau eine
+   Kategorie, und "Datentraeger UND Produkt" waere garantiert leer. */
+const FILTER_VORGABE = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                          favorit: false, neu: false, sort: 'updated_desc' };
 const state = {
   items: [], categories: [], tags: [], criteria: [],
@@ -1440,7 +1453,35 @@ async function loadAll() {
 function filterNormal(roh) {
   const f = { ...FILTER_VORGABE, ...(roh && typeof roh === 'object' ? roh : {}) };
   f.tagIds = (Array.isArray(f.tagIds) ? f.tagIds : []).filter(id => state.tags.some(t => t.id === id));
-  if (f.categoryId != null && !state.categories.some(c => c.id === f.categoryId)) f.categoryId = null;
+  /* DIE UEBERSETZUNG DER ALTEN FORM, an genau dieser einen Stelle. Vor 0.13.0
+     stand in einer gespeicherten Ansicht EIN Kategoriewert (`categoryId`).
+     Ohne diese Zeilen verloeren alle vorhandenen Ansichten ihre Kategorie --
+     still und ohne Meldung, weil das Ausbreiten oben ein unbekanntes Feld
+     einfach stehenlaesst und `categoryIds` auf der leeren Vorgabe bliebe.
+     HIER UND NICHT AN JEDER LESESTELLE: filterNormal ist der Ort, an dem eine
+     gespeicherte Stellung zurechtgerueckt wird; ein zweiter Weg daneben liefe
+     auseinander.
+     DER GESPEICHERTE WERT WIRD NICHT ZURUECKGESCHRIEBEN -- gelesen wird er
+     uebersetzt, in der Ablage bleibt er, wie er ist. Dieselbe Linie wie bei
+     den Nummern, die es nicht mehr gibt: ein Lesevorgang, der die Ansicht
+     eines Menschen umschreibt, ist schlimmer als ein alter Wert. */
+  if (!Array.isArray(f.categoryIds))
+    f.categoryIds = f.categoryId != null ? [f.categoryId] : [];
+  else if (f.categoryId != null && !f.categoryIds.length) f.categoryIds = [f.categoryId];
+  // Das alte Feld faellt aus der zurechtgerueckten Stellung heraus: sie wird
+  // Zeichen fuer Zeichen mit der aktuellen verglichen (welche Ansicht gerade
+  // gilt), und ein mitgeschlepptes Feld liesse jede alte Ansicht als "nicht
+  // aktiv" erscheinen, obwohl sie genau das zeigt, was sie zeigen soll.
+  delete f.categoryId;
+  /* NUMMERN, DIE ES NICHT MEHR GIBT, FALLEN WEG -- und der Rest bleibt stehen.
+     Bis 0.12.4 fiel eine Ansicht mit geloeschter Kategorie ganz auf "Alle"
+     zurueck; mit einer Liste faellt sie auf den REST zurueck, und das ist der
+     bessere Ausgang: von drei gewaehlten Kategorien soll eine geloeschte nicht
+     die beiden anderen mitnehmen.
+     "Ohne" BLEIBT IMMER STEHEN: es ist kein Kategoriewert und trotzdem
+     gueltig. */
+  f.categoryIds = [...new Set(f.categoryIds)].filter(v =>
+    v === KATEGORIE_OHNE || state.categories.some(c => c.id === v));
   if (f.tagMode !== 'or') f.tagMode = 'and';
   f.favorit = f.favorit === true;
   f.neu = f.neu === true;
@@ -1614,7 +1655,14 @@ function passtZuTags(item, tagIds, modus) {
 function visibleItems(filter) {
   const f = filter || state.filters;
   let out = state.items;
-  if (f.categoryId != null) out = out.filter(i => i.category && i.category.id === f.categoryId);
+  /* EIN ODER UEBER DIE GEWAEHLTEN KATEGORIEN, niemals ein UND: ein Eintrag
+     traegt genau eine Kategorie, ein Schnitt waere also immer leer. Gebaut
+     wird die Vereinigung -- beide Gruppen zugleich in der Liste.
+     "OHNE" IST EIN WERT DIESER LISTE: ein Eintrag ohne Kategorie war ueber
+     keine einzelne Kategorie erreichbar, und die Zahlen verrieten die Luecke,
+     ohne sie zeigen zu koennen. */
+  if (f.categoryIds.length) out = out.filter(i =>
+    f.categoryIds.includes(i.category ? i.category.id : KATEGORIE_OHNE));
   // UND ist die Vorgabe: mit zwei Tags will man fast immer den Schnitt
   // ("gruen UND schwer"), nicht die Vereinigung.
   if (f.tagIds.length) out = out.filter(i => passtZuTags(i, f.tagIds, f.tagMode));
@@ -1878,7 +1926,13 @@ function filterZahl() {
   if (f.tested !== v.tested) n++;
   if (f.favorit) n++;
   if (f.neu) n++;
-  if (f.categoryId != null) n++;
+  /* DREI GEWAEHLTE KATEGORIEN ZAEHLEN ALS EIN FILTER und nicht als drei --
+     anders als die Tags eine Zeile tiefer, und der Unterschied ist die
+     Verknuepfung. Jeder zusaetzliche Tag verkleinert die Menge (UND), jede
+     zusaetzliche Kategorie vergroessert sie (ODER). Die Zahl beantwortet die
+     eine Frage "warum sehe ich nicht alles?"; eine Drei fuer etwas, das die
+     Liste gerade WEITER macht, gaebe darauf die falsche Antwort. */
+  if (f.categoryIds.length) n++;
   n += f.tagIds.length;
   return n;
 }
@@ -1912,6 +1966,17 @@ function drawFilters() {
     r.innerHTML = `<span class="eyebrow">${label}</span>`;
     box.appendChild(r);
     return r;
+  };
+  /* EINE ZWEITE BESCHRIFTUNG IN DERSELBEN ZEILE -- und sie ist das Gegenstueck
+     zur ersten und keine Ueberschrift ueber dem, was dahinter steht. Deshalb
+     ohne die Beschriftungsspalte (`min-width`) und mit einem Abstand davor:
+     die erste haelt die Spalte, die zweite laeuft mit. */
+  const zweiteBeschriftung = (zeile, text) => {
+    const e = document.createElement('span');
+    e.className = 'eyebrow eyebrow-mit';
+    e.textContent = text;
+    zeile.appendChild(e);
+    return e;
   };
 
   // Merkmal (Vorgabe: Teststatus). Beschriftung generisch, weil das Wort
@@ -1949,33 +2014,88 @@ function drawFilters() {
      uebrigen Filtern. Eine Gesamtzahl daneben widerspraeche der Liste,
      sobald ein zweiter Filter an ist. */
   if (ZULETZT_GESEHEN) {
+    const neuZahl = visibleItems({ ...f, neu: true }).length;
+    /* NULL TREFFER WERDEN GEDAEMPFT, genau wie bei den Tags -- dieselbe Sache
+       darf nicht zwei Verhalten haben (Stolperstein 47, im Kleinen). Die Pille
+       stand bisher in voller Helligkeit da und fuehrte garantiert auf eine
+       leere Liste.
+       NUR SOLANGE SIE NICHT GESETZT IST: ist der Filter an, sagt die Zahl null
+       nicht "hier gibt es nichts zu holen", sondern "genau das siehst du
+       gerade" -- und eine gedaempfte Pille im gesetzten Zustand waere eine
+       Auskunft ueber den eigenen Klick.
+       ANKLICKBAR BLEIBT SIE, wie die Tags: man sieht nur vorher, dass die
+       Liste leer wuerde. */
+    const leer = !f.neu && neuZahl === 0;
     const bNeu = document.createElement('button');
-    bNeu.className = 'pill pill-sep' + (f.neu ? ' on' : '');
+    bNeu.className = 'pill pill-sep' + (f.neu ? ' on' : '') + (leer ? ' leer' : '');
     bNeu.id = 'f-neu';
     bNeu.innerHTML = `Neu seit ${esc(fmtTagKurz(ZULETZT_GESEHEN))}`
-      + `<span class="n">${visibleItems({ ...f, neu: true }).length}</span>`;
-    bNeu.title = f.neu ? 'Alle Einträge zeigen'
+      + `<span class="n">${neuZahl}</span>`;
+    bNeu.title = leer ? 'Zusammen mit der aktuellen Auswahl kein Treffer'
+      : f.neu ? 'Alle Einträge zeigen'
       : `Nur was sich seit ${fmtDate(ZULETZT_GESEHEN)} getan hat`;
     bNeu.onclick = () => { f.neu = !f.neu; redraw(); };
     g1.appendChild(bNeu);
   }
   r1.appendChild(g1);
 
-  // Kategorie
+  /* ---- Kategorie ----
+     MEHRERE ZUGLEICH, UND ES IST EIN ODER. Die Zeile bekommt deshalb
+     ausdruecklich KEIN Und/Oder wie die Tagzeile darunter: bei den Tags ist die
+     Wahl echt, weil ein Eintrag viele Tags traegt; hier gibt es nur Oder, denn
+     `product_category_id` ist eine einzelne Spalte. Ein Umschalter, dessen eine
+     Haelfte garantiert null Treffer liefert, ist schlimmer als keiner -- und er
+     ist auch nicht dadurch zu retten, dass man ihn daempft.
+     "ALLE" BLEIBT EINE PILLE, obwohl die Tagzeile stattdessen "zuruecksetzen"
+     am rechten Ende traegt. Der Unterschied ist nicht Nachlaessigkeit, sondern
+     der Ort: die Kategorien sind eine kurze, geschlossene, immer sichtbare
+     Liste, in der "alles" ein nennbarer Zustand ist und seinen festen Platz
+     behaelt. Die Tagwolke ist offen und lang; ein dauernd hervorgehobenes
+     "Alle" an ihrem Anfang laese sich als Tag. Und "zuruecksetzen" kaeme und
+     ginge, waehrend "Alle" immer an derselben Stelle steht. */
   const r2 = row('Kategorie');
   const g2 = document.createElement('div'); g2.className = 'pills';
+  // Ein Klick auf einen Wert nimmt ihn dazu oder wieder heraus -- dieselbe
+  // Handhabung wie bei den Tags, und die Zeile verhaelt sich damit wie jene.
+  const katUm = (wert) => {
+    f.categoryIds = f.categoryIds.includes(wert)
+      ? f.categoryIds.filter(x => x !== wert) : [...f.categoryIds, wert];
+    redraw();
+  };
   const all = document.createElement('button');
-  all.className = 'pill' + (f.categoryId == null ? ' on' : '');
+  all.className = 'pill' + (f.categoryIds.length ? '' : ' on');
   all.textContent = 'Alle';
-  all.onclick = () => { f.categoryId = null; redraw(); };
+  all.onclick = () => { f.categoryIds = []; redraw(); };
   g2.appendChild(all);
   state.categories.forEach(c => {
     const b = document.createElement('button');
-    b.className = 'pill' + (f.categoryId === c.id ? ' on' : '');
+    b.className = 'pill' + (f.categoryIds.includes(c.id) ? ' on' : '');
     b.innerHTML = `${esc(c.name)}<span class="n">${c.usage_count}</span>`;
-    b.onclick = () => { f.categoryId = f.categoryId === c.id ? null : c.id; redraw(); };
+    b.onclick = () => katUm(c.id);
     g2.appendChild(b);
   });
+  /* "OHNE" AM ENDE DER ZEILE, mit eigener Zahl. Der Anlass: der Kopf sagte 12
+     Eintraege, die Kategorien 1 + 9 = 10 -- zwei Eintraege waren ueber keine
+     einzelne Kategorie erreichbar. Die Zahlen verrieten die Luecke, zu sehen
+     bekam man sie trotzdem nicht.
+     DIE ZAHL RECHNET DER BROWSER, wie die an "Neu seit ..." -- state.alle
+     traegt den ganzen Bestand, der Server wird dafuer nicht gefragt. Und sie
+     zaehlt ueber den GANZEN Bestand wie die usage_count der Kategorien daneben:
+     zwei Zahlen in einer Zeile muessen dasselbe meinen.
+     SIE STEHT NUR DA, WENN ES SIE GIBT -- eine Pille mit garantierter Null
+     waere ein Bedienelement fuer nichts. Ist sie einmal gewaehlt und faellt der
+     letzte Eintrag ohne Kategorie weg, bleibt sie stehen: sonst verschwaende
+     der eigene Filter unter der Hand. */
+  const ohneZahl = state.alle.filter(i => !i.category).length;
+  if (ohneZahl || f.categoryIds.includes(KATEGORIE_OHNE)) {
+    const b = document.createElement('button');
+    b.className = 'pill pill-sep' + (f.categoryIds.includes(KATEGORIE_OHNE) ? ' on' : '');
+    b.id = 'f-kat-ohne';
+    b.innerHTML = `Ohne<span class="n">${ohneZahl}</span>`;
+    b.title = 'Einträge, die keiner Kategorie zugeordnet sind';
+    b.onclick = () => katUm(KATEGORIE_OHNE);
+    g2.appendChild(b);
+  }
   r2.appendChild(g2);
 
   // Tags
@@ -2031,20 +2151,22 @@ function drawFilters() {
   // Eine Zeile, Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
   // abgeschnitten ist.
   const beschnitten = begrenzeWolke(g3, wolkeOffen.uebersicht ? 0 : 1);
-  /* DIE BEIDEN VERWEISE STEHEN AM RECHTEN ENDE DER ERSTEN ZEILE -- dort, wo
-     TAGS und Und/Oder stehen und rechts ohnehin nichts steht. Als Geschwister
-     HINTER der Wolke rutschten sie auf eine eigene Zeile und kosteten so viel
-     Platz wie eine ganze Reihe Tags.
-     DIE EINTRAGSSEITE MACHT ES SCHON SO (`.wolke-kopf`, `space-between`), und
-     genau deshalb faellt es dort nicht auf. Dieselbe Sache war an zwei Stellen
-     verschieden gebaut -- Stolperstein 47, im Kleinen.
-     SIE STEHEN IM DOM VOR DER WOLKE UND NICHT DAHINTER: die Zeile bricht um,
-     und die Reihenfolge im Aufbau entscheidet, auf welcher Zeile etwas landet.
-     Gemessen wird die Wolke trotzdem vorher -- begrenzeWolke() braucht sie im
-     Dokument, und ob "mehr" ueberhaupt dasteht, haengt an seiner Antwort.
-     ZUSAMMEN IN EINEM KASTEN und nicht zweimal `margin-left: auto`: zwei
-     Elemente mit je einer selbsttaetigen Aussenkante teilen sich den freien
-     Platz und stuenden auseinandergezogen da.
+  /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche Geschwister
+     -- und seit 0.13.0 ist das wieder die natuerliche Reihenfolge: "mehr"
+     gehoert hinter das, was es aufklappt.
+     WARUM DAS FRUEHER NICHT GING: der Kasten trug `margin-left: auto`. Eine
+     selbsttaetige Aussenkante frisst den gesamten freien Platz der ersten
+     Zeile -- die Wolke KANN daneben nicht stehen, sie rutscht immer darunter,
+     und die Tagzeile kostete zwei Zeilen statt einer. Jetzt ist die Wolke ein
+     Flex-Element (`flex: 1 1 0`, `min-width: 0`) und nimmt den Platz, der
+     uebrig ist; die Verweise stehen daneben.
+     DER PREIS IST BEKANNT UND ANGENOMMEN: die Wolke verliert rund 230 px, also
+     etwa drei sichtbare Tags. "mehr" faengt sie -- und die erste Zeile war
+     vorher zu drei Vierteln leer.
+     GEMESSEN WIRD DIE WOLKE VORHER: begrenzeWolke() braucht sie im Dokument,
+     und ob "mehr" ueberhaupt dasteht, haengt an seiner Antwort.
+     ZUSAMMEN IN EINEM KASTEN und nicht zwei einzelne Geschwister: die beiden
+     gehoeren zusammen und sollen bei einem Umbruch nicht auseinanderfallen.
      KEIN AUSGERECHNETER FREIRAUM. Die Wolke wird beschnitten (`max-height`,
      `overflow: hidden`), ein Verweis IN ihr wuerde mitabgeschnitten -- und
      eine feste Breite daneben ist genau der Fehler, an dem 0.12.1 schon einmal
@@ -2065,11 +2187,15 @@ function drawFilters() {
     c.onclick = () => { f.tagIds = []; redraw(); };
     rechts.appendChild(c);
   }
-  // Ein leerer Kasten bliebe als Flex-Element stehen und schoebe die Wolke
-  // um eine Luecke nach rechts.
-  if (rechts.childElementCount) r3.insertBefore(rechts, g3);
+  // Ein leerer Kasten bliebe als Flex-Element stehen und naehme der Wolke
+  // eine Luecke weg.
+  if (rechts.childElementCount) r3.appendChild(rechts);
 
-  // Sortierung, gruppiert
+  /* SORTIEREN UND ANSICHTEN TEILEN SICH EINE ZEILE -- gemessen brauchen sie
+     322 und 237 px von 1232, sie passen mit Abstand.
+     DER SCHLIMMSTE FALL IST HARMLOS: stehen einmal acht gespeicherte Ansichten
+     da (ANSICHTEN_DECKEL), bricht die Zeile um und sieht aus wie vorher. Nichts
+     wird abgeschnitten, nichts geht verloren. */
   const r4 = row('Sortieren');
   const sel = document.createElement('select');
   // Eine Kennung wie am Favoritenknopf daneben: ohne sie liesse sich die
@@ -2103,8 +2229,12 @@ function drawFilters() {
      GANZ UNTEN UND NICHT GANZ OBEN: sie sind die Zusammenfassung der Zeilen
      darueber, und man liest sie, nachdem man weiss, was einstellbar ist.
      Die Zeile steht auch LEER da, mit dem Knopf zum Speichern -- ohne ihn
-     erfuehre niemand, dass es Ansichten gibt. */
-  const r5 = row('Ansichten');
+     erfuehre niemand, dass es Ansichten gibt.
+     SEIT 0.13.0 IN DERSELBEN ZEILE WIE DIE SORTIERUNG: sie ist dieselbe Sorte
+     Bedienung -- was gezeigt wird, aendert sie nicht -- und beide brauchten je
+     eine ganze Zeile fuer ein Auswahlfeld und ein paar Pillen. */
+  const r5 = r4;
+  zweiteBeschriftung(r5, 'Ansichten');
   const g5 = document.createElement('div'); g5.className = 'pills';
   /* WELCHE ANSICHT GERADE GILT, wird verglichen und nicht gemerkt: ein
      gemerkter Zeiger auf "die aktive Ansicht" liefe auseinander, sobald jemand
@@ -5082,11 +5212,15 @@ async function renderSystem() {
         <h3>Zugänge</h3>
         <p class="desc">Wer sich anmelden darf. <strong>Sperren ist in den meisten Fällen das,
           was man eigentlich will</strong> — die Anmeldung wird abgewiesen, die Beiträge bleiben
-          unangetastet stehen.
+          unangetastet stehen, und der Name bleibt vergeben.
           ${EIGENTUEMER
             ? `Als Eigentümer der Anlage vergibst du Rollen und kommst auch an andere Admins.`
             : `Rollen vergibt der Eigentümer der Anlage; an einen anderen Admin kommst du nicht.`}</p>
         <div class="manage-list" id="mzugaenge"></div>
+        ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
+             nichts geloescht wurde -- gefuellt wird sie von
+             zeichneGrabsteinKnopf(), sobald die Liste vom Server da ist. */''}
+        <div class="row-in" id="zug-weg-zeile" style="margin-top:8px"></div>
 
         <p class="desc" style="margin:16px 0 8px">Woher der neue Zugang sein Passwort bekommt,
           steht als <strong>Wahl im Formular</strong> — das Feld daneben erscheint nur, wenn es
@@ -5190,6 +5324,11 @@ async function renderSystem() {
         <p class="desc">Die Zeilen bleiben <strong>${protokoll.tage} Tage</strong> stehen und werden
           danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Sicherheitsprotokoll,
           das sich wegräumen lässt, wäre keins.</p>
+        ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
+             dieser Anlage -- man waehlt, bevor man liest. Gezeichnet wird sie
+             aus einer geschlossenen Liste; die Auswahl geht an den Server,
+             denn die Liste darunter traegt nur die hundert juengsten Zeilen. */''}
+        <div class="pills" id="protokoll-filter" style="margin:0 0 12px"></div>
         <div class="prot-liste" id="protokoll-liste"></div>
         <p class="hint hint-sm" id="protokoll-fuss" style="margin:10px 2px 0"></p>
       </div>` : ''}
@@ -5646,6 +5785,16 @@ async function renderSystem() {
     'zugang.selbst': 'Eigener Zugang geändert',
     'link.neu': 'Link erzeugt',
     'link.ein': 'Link eingelöst',
+    /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. Sie fielen auf den Rueckfall `|| z.was`
+       und standen als roher Schluessel am Bildschirm -- "anfrage.frei" statt
+       eines Wortes. Zwanzig Vorgaenge und vierzehn Woerter: der Filter dieser
+       Runde macht die Luecke unuebersehbar, gefehlt hat sie seit 0.9.1 und
+       0.10.0. */
+    'anfrage.frei': 'Anfrage freigegeben',
+    'anfrage.ab': 'Anfrage abgelehnt',
+    'zweifaktor.an': 'Zweiter Faktor eingeschaltet',
+    'zweifaktor.aus': 'Zweiter Faktor ausgeschaltet',
+    'zweifaktor.wieder': 'Wiederherstellungscode verbraucht',
     'export': 'Export gezogen',
     'import': 'Import eingespielt',
     'sicherung': 'Sicherung geschrieben',
@@ -5662,11 +5811,25 @@ async function renderSystem() {
     : (VORGANGSWORT[z.was] || z.was);
   // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
   // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
+  /* EIN MERKMAL OHNE WORT VERSCHWINDET SPURLOS -- merkmalsWort() faellt still
+     auf den leeren String zurueck, und genau deshalb ist bis 0.12.4 niemandem
+     aufgefallen, dass Woerter fehlten.
+     'teil' KAM MIT 0.13.0 DAZU: ohne das Wort waere ein Teilexport von einem
+     vollen nicht zu unterscheiden -- und das war der Grund, aus dem er
+     ueberhaupt ein Merkmal traegt.
+     'adresse' FEHLTE seit 0.9.1, und 'beides' war seither falsch beschriftet:
+     es heisst am Server "mehr als eines" und kann Name, Passwort und Adresse
+     in jeder Mischung meinen -- "Name und Passwort" behauptete zwei bestimmte.
+     'aktiv' UND 'gesperrt' STEHEN HIER AUSDRUECKLICH NICHT: ihr Wort traegt
+     schon der Vorgang ("Zugang gesperrt" / "Zugang freigegeben"), und zweimal
+     dasselbe in einer Zeile ist eines zu viel. Ein Waechter im Pruefstand
+     nimmt genau diese beiden aus und verlangt fuer jedes uebrige ein Wort. */
   const MERKMALSWORT = {
     user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer',
     einladung: 'Einladung', ruecksetzung: 'Rücksetzung',
     merge: 'zusammengeführt', replace: 'ersetzend',
-    name: 'Name', passwort: 'Passwort', beides: 'Name und Passwort'
+    name: 'Name', passwort: 'Passwort', adresse: 'Adresse',
+    beides: 'mehreres', teil: 'in Teilen'
   };
   const merkmalsWort = (z) => (z.was === 'zugang.status' ? '' : (MERKMALSWORT[z.merkmal] || ''));
 
@@ -5683,34 +5846,158 @@ async function renderSystem() {
     return verfasserName({ id: z.ziel, name: z.zielName, geloescht: z.zielName == null });
   };
 
+  /* DIE ANSICHTEN DES PROTOKOLLS. Die Schluessel kommen aus auth.js
+     (PROTOKOLL_GRUPPEN), die Woerter stehen hier -- dieselbe Teilung wie bei
+     den Vorgaengen selbst.
+     "GESCHEITERT" HEISST NICHT "gescheiterte Anmeldungen": die Gruppe traegt
+     auch die gescheiterte zweite Bestaetigung, und beide sagen dasselbe --
+     jemand konnte an der Tuer nicht belegen, wer er ist. Ein Name, der nur die
+     Haelfte nennt, waere falsch. */
+  const PROTOKOLL_ANSICHT = [
+    ['', 'Alle'],
+    ['gescheitert', 'Gescheitert'],
+    ['anmeldungen', 'Anmeldungen'],
+    ['zugaenge', 'Zugänge'],
+    ['zweifaktor', 'Zweiter Faktor'],
+    ['bestand', 'Bestand']
+  ];
+  const PROTOKOLL_ANSICHT_HILFE = {
+    '': 'Alle Vorgänge, die jüngsten zuerst',
+    gescheitert: 'Gescheiterte Anmeldungen und gescheiterte Bestätigungen',
+    anmeldungen: 'Gelungene Anmeldungen',
+    zugaenge: 'Angelegt, gesperrt, entfernt, Rollen, Links und Anfragen',
+    zweifaktor: 'Ein- und ausgeschaltet, verbrauchte Wiederherstellungscodes',
+    bestand: 'Export, Import, Sicherung und Schlüsselwechsel'
+  };
+  // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
+  // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
+  let protokollGruppe = '';
+
+  /* DER SPRUNG ZUM ZUGANG. Er klappt nichts auf -- die Karte "Zugaenge" steht
+     im selben Bereich -- und hebt die Zeile kurz hervor, damit man sie in
+     einer langen Liste wiederfindet.
+     WER DAS PROTOKOLL SIEHT, IST EIGENTUEMER UND DAMIT IMMER AUCH ADMIN: die
+     Karte "Zugaenge" ist also da. Trotzdem abgefangen -- zeichneZugaenge()
+     laedt fuer sich, und beim allerersten Aufbau kann die Zeile noch fehlen.
+     Ein stiller Klick, der nichts tut, waere der schlechtere Ausgang.
+     scrollIntoView MIT `?.`: jsdom kennt es nicht, und ein Prueflauf, der an
+     einer Anzeigefunktion abreisst, faerbt keine Pruefung rot (Stolperstein 138). */
+  function springeZuZugang(id) {
+    const zeile = document.querySelector(`#mzugaenge .mrow[data-mid="${Number(id) || 0}"]`);
+    if (!zeile) return toast('Diesen Zugang gibt es in der Liste nicht mehr.', true);
+    zeile.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    zeile.classList.add('mrow-blitz');
+    setTimeout(() => zeile.classList.remove('mrow-blitz'), 1600);
+  }
+
+  /* EIN NAME WIRD ZUM KNOPF, wenn er eine Nummer hat -- und nur dann.
+     "unbekannter Name" hat keine: er ist der getippte Name eines Versuchs, der
+     an keinen Zugang traf, und es gaebe nichts, wohin er springen koennte. Ein
+     Knopf, der ins Leere fuehrt, ist schlimmer als Text. */
+  const protNamensFeld = (dok, klasse, text, id, davor = '') => {
+    const feld = dok.createElement('span');
+    feld.className = klasse;
+    if (!text) return feld;
+    // Der Pfeil steht VOR dem Knopf und nicht in ihm: er gehoert der Zeile und
+    // ist kein Teil des Namens, auf den man klickt.
+    if (davor) feld.appendChild(dok.createTextNode(davor));
+    if (id == null) { feld.appendChild(dok.createTextNode(text)); return feld; }
+    const b = dok.createElement('button');
+    b.className = 'link-btn prot-sprung';
+    b.dataset.mid = String(id);
+    b.textContent = text;
+    b.title = 'Zu diesem Zugang springen';
+    b.onclick = () => springeZuZugang(id);
+    feld.appendChild(b);
+    return feld;
+  };
+
+  function zeichneProtokollFilter(d) {
+    const box = document.getElementById('protokoll-filter');
+    if (!box) return;
+    const zahlen = (d && d.zahlen && typeof d.zahlen === 'object') ? d.zahlen : {};
+    box.innerHTML = '';
+    for (const [schluessel, wort] of PROTOKOLL_ANSICHT) {
+      const b = document.createElement('button');
+      const n = Number(zahlen[schluessel || 'alle']) || 0;
+      /* GEDAEMPFT BEI NULL, wie jede Pille in dieser Lage (Stolperstein 47):
+         eine Ansicht ohne Zeilen fuehrt garantiert auf eine leere Liste.
+         Anklickbar bleibt sie -- man sieht nur vorher, dass nichts kommt. */
+      const leer = n === 0 && protokollGruppe !== schluessel;
+      b.className = 'pill' + (protokollGruppe === schluessel ? ' on' : '') + (leer ? ' leer' : '');
+      b.dataset.gruppe = schluessel;
+      b.innerHTML = `${esc(wort)}<span class="n">${n}</span>`;
+      b.title = PROTOKOLL_ANSICHT_HILFE[schluessel] || '';
+      b.onclick = () => protokollNeu(schluessel);
+      box.appendChild(b);
+    }
+  }
+
+  /* NACHGELADEN WIRD BEIM KLICK, und zwar NUR diese Karte -- dieselbe Bauform
+     wie sitzungenNeu() und papierkorbNeu(). Ein Neuaufbau des ganzen
+     Systembereichs leerte die Passwortfelder daneben.
+     GEFRAGT WIRD DER SERVER UND NICHT DIE GEHOLTEN HUNDERT ZEILEN: der Filter
+     soll die hundert juengsten DIESER Art zeigen und nicht die dieser Art unter
+     den hundert juengsten aller Arten. Genau das war der Befund. */
+  async function protokollNeu(gruppe) {
+    protokollGruppe = gruppe || '';
+    let d;
+    try {
+      d = await api('GET', '/api/sicherheitsprotokoll' +
+        (protokollGruppe ? `?gruppe=${encodeURIComponent(protokollGruppe)}` : ''));
+    } catch (e) {
+      const box = document.getElementById('protokoll-liste');
+      if (box) box.innerHTML = `<p class="hint">${esc(e.message)}</p>`;
+      return;
+    }
+    zeichneProtokoll(d);
+  }
+
   function zeichneProtokoll(d) {
     const box = document.getElementById('protokoll-liste');
     const fuss = document.getElementById('protokoll-fuss');
     if (!box) return;
+    const dok = box.ownerDocument;
+    zeichneProtokollFilter(d);
     const zeilen = (d && Array.isArray(d.zeilen)) ? d.zeilen : [];
     if (!zeilen.length) {
-      box.innerHTML = `<p class="hint">Noch kein Vorgang festgehalten.</p>`;
+      /* ZWEI LEERE FAELLE, ZWEI SAETZE. "Noch kein Vorgang festgehalten" waere
+         unter einem Filter eine Falschaussage: es gibt Vorgaenge, nur keinen
+         dieser Art. */
+      box.innerHTML = protokollGruppe
+        ? `<p class="hint">Kein Vorgang dieser Art in den letzten ${esc(String(d && d.tage || ''))} Tagen.</p>`
+        : `<p class="hint">Noch kein Vorgang festgehalten.</p>`;
       if (fuss) fuss.textContent = '';
       return;
     }
     box.innerHTML = '';
     for (const z of zeilen) {
-      const zeile = document.createElement('div');
+      const zeile = dok.createElement('div');
       zeile.className = 'prot-zeile';
       zeile.dataset.was = z.was;
       const wen = protZiel(z), merk = merkmalsWort(z);
-      zeile.innerHTML = `<span class="prot-zeit">${esc(fmtDate(z.am))}</span>
-        <span class="prot-was">${esc(vorgangsWort(z))}</span>
-        <span class="prot-wer">${esc(protHandelnder(z))}</span>
-        <span class="prot-ziel">${wen ? '→ ' + esc(wen) : ''}</span>
-        <span class="prot-merkmal">${merk ? esc(merk) : ''}</span>`;
+      const zeit = dok.createElement('span');
+      zeit.className = 'prot-zeit'; zeit.textContent = fmtDate(z.am);
+      const was = dok.createElement('span');
+      was.className = 'prot-was'; was.textContent = vorgangsWort(z);
+      zeile.appendChild(zeit); zeile.appendChild(was);
+      // Der Handelnde ist anklickbar, wenn er eine Nummer hat -- "—" und
+      // "ueber zugang.js auf dem Wirt" haben keine.
+      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z),
+        z.wer != null ? z.wer : null));
+      zeile.appendChild(protNamensFeld(dok, 'prot-ziel', wen,
+        z.ziel != null ? z.ziel : null, '→ '));
+      const mfeld = dok.createElement('span');
+      mfeld.className = 'prot-merkmal'; mfeld.textContent = merk || '';
+      zeile.appendChild(mfeld);
       box.appendChild(zeile);
     }
     if (fuss) {
       const gesamt = Number(d.gesamt) || zeilen.length;
+      const art = protokollGruppe ? ' dieser Art' : '';
       fuss.textContent = gesamt > zeilen.length
-        ? `Die ${zeilen.length} jüngsten von ${gesamt} Vorgängen.`
-        : `${gesamt} ${gesamt === 1 ? 'Vorgang' : 'Vorgänge'}.`;
+        ? `Die ${zeilen.length} jüngsten von ${gesamt} Vorgängen${art}.`
+        : `${gesamt} ${gesamt === 1 ? 'Vorgang' : 'Vorgänge'}${art}.`;
     }
   }
   zeichneProtokoll(protokoll);
@@ -5817,8 +6104,18 @@ async function renderSystem() {
             disabled>↓ Laden</button>
           <span class="pk-meta">${esc(fmtBytes(t.bytes))}</span>
         </div>`).join('')}</div>
-      <div class="row-in" style="margin-top:10px"><button class="btn btn-accent btn-sm" id="ex-frei">
-        Alle ${n} Teile freigeben</button></div>
+      ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. "Alle n Teile
+           freigeben" war das Wort aus dem Maschinenraum -- aus dem Betrieb kam
+           die Frage "was ist mit freigeben gemeint?" zurueck. Derselbe Fehler
+           wie "Code aus deiner App" in 0.12.3.
+           WAS EIN MENSCH WISSEN MUSS, sind zwei Dinge: dass EINMAL gefragt
+           wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
+           Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
+      <p class="hint hint-sm" style="margin:10px 2px 6px">Ein Export nimmt den Bestand
+        mit aus dem Haus. Deshalb fragt die Anlage einmal nach deinem Passwort${ZWEIFAKTOR
+          ? ' und dem Code deines zweiten Faktors' : ''} — danach lädst du jeden Teil selbst.</p>
+      <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
+        Einmal bestätigen, dann ${n === 1 ? 'den Teil' : `alle ${n} Teile`} laden</button></div>
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
            Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
            welcher Reihenfolge und mit welchem Knopf sie hineingehen. */''}
@@ -5827,8 +6124,8 @@ async function renderSystem() {
         <strong>Zusammenführen</strong>. Nur zum Weitergeben einzelner
         ${esc(V.sacheMehrzahl)} genügt der Teil, der sie enthält.</p>` : ''}`;
 
-    /* FREIGEGEBEN WIRD EINMAL FUER ALLE, GEPRUEFT WIRD JE TEIL. Ohne das
-       muesste das Passwort je Datei getippt werden -- bei fünf Teilen fünfmal. */
+    /* GEFRAGT WIRD EINMAL, GEPRUEFT WIRD JE TEIL. Ohne das muesste das Passwort
+       je Datei getippt werden -- bei fünf Teilen fünfmal. */
     amElement('ex-frei', b => b.onclick = async () => {
       const ok = await zweiteBestaetigungMehrfach('export', plan.teile.map(t => t.nr),
         'Export bestätigen',
@@ -5836,7 +6133,7 @@ async function renderSystem() {
         `verlassen — mit allen Fotos, allen Anhängen und den Namen aller Verfasser.`);
       if (!ok) return;
       b.disabled = true;
-      b.textContent = 'Freigegeben — jeden Teil einzeln laden';
+      b.textContent = 'Bestätigt — jetzt jeden Teil laden';
       kasten.querySelectorAll('.ex-teil-lad').forEach(k => { k.disabled = false; });
     });
 
@@ -6687,14 +6984,22 @@ async function renderSystem() {
     catch (e) { if (box.isConnected) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`; return; }
     if (!box.isConnected) return;
     box.innerHTML = '';
-    for (const z of daten.zugaenge) {
-      const grabstein = z.status === 'geloescht';
+    /* GRABSTEINE STEHEN NICHT MEHR ZWISCHEN DEN LEBENDEN. Sie sind kein
+       Zugang, den man verwalten kann -- kein Werkzeug, keine Rolle, kein
+       Passwort --, und sie wachsen mit jeder Löschung. Sie stehen deshalb in
+       einem eigenen Fenster; das Vorbild ist "Wer hat bewertet".
+       DIE ERKENNUNG BLEIBT DIE EINE: `status === 'geloescht'`. Kein zweiter
+       Test am Namen -- der geht gar nicht hinaus.
+       DER SERVER GIBT SIE WEITERHIN MIT. Getrennt wird in der Oberfläche; die
+       Antwort der Route bleibt, wie sie ist. */
+    zugGrabsteine = daten.zugaenge.filter(z => z.status === 'geloescht');
+    for (const z of daten.zugaenge.filter(z => z.status !== 'geloescht')) {
       const selbst = z.id === daten.ich;
       // Genau die Regel des Servers, einmal hier: an einen Admin oder den
       // Eigentuemer kommt nur der Eigentuemer.
-      const darf = !grabstein && !selbst && (z.role === 'user' ? true : daten.darfRollen);
+      const darf = !selbst && (z.role === 'user' ? true : daten.darfRollen);
       const row = dok.createElement('div');
-      row.className = 'mrow zug' + (grabstein ? ' zug-weg' : '') + (z.status === 'gesperrt' ? ' zug-sperr' : '');
+      row.className = 'mrow zug' + (z.status === 'gesperrt' ? ' zug-sperr' : '');
       row.dataset.mid = z.id;
       // Dieselbe Beschriftung wie an jedem Beitrag im Eintrag -- eine
       // Funktion, zwei Rufer. Stuende die Bildung des Grabsteinnamens hier ein
@@ -6702,10 +7007,11 @@ async function renderSystem() {
       /* "Noch kein Passwort" steht NICHT als vierter Zustand in der Datenbank:
          ZUSTAENDE hat drei, und jede Stelle, die status liest, kennt sie. Es
          ist abgeleitet aus dem leeren Hash — genau dem Wert, über den auch die
-         Anmeldung entscheidet. Am Grabstein wird es nie angezeigt: der trägt
-         denselben leeren Hash, ist aber über status unterschieden. */
-      const wartet = !grabstein && z.ohnePasswort;
-      row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: grabstein }))}${
+         Anmeldung entscheidet. Am Grabstein kann es gar nicht mehr erscheinen:
+         der steht seit 0.13.0 in einem eigenen Fenster, und dort trägt keine
+         Zeile diese Angabe. */
+      const wartet = z.ohnePasswort;
+      row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: false }))}${
           selbst ? ' <span class="zug-ich">(du)</span>' : ''}</span>
         <span class="zug-rolle">${esc(ROLLENWORT[z.role] || z.role)}</span>
         <span class="zug-status">${esc(STATUSWORT[z.status] || z.status)}${
@@ -6800,9 +7106,20 @@ async function renderSystem() {
             `${b.kommentare} Kommentare, ${b.bewertungen} Bewertungen, ${b.testtage} ${vZeit(b.testtage)}, ` +
             `${b.links} Links, ${b.dateien} Dateien.\n\n` +
             `OK = mitlöschen.\nAbbrechen = stehen lassen.`);
-          if (!confirm(`„${z.username}“ jetzt entfernen? Das lässt sich nicht rückgängig machen.`)) return;
+          /* DER SATZ, DER DEN UMKEHRBAREN WEG NENNT. Bis 0.12.4 sagte der
+             Dialog, dass es nicht rückgängig zu machen ist und dass der Name
+             frei wird -- er sagte NICHT, dass es daneben einen Weg gibt, der
+             beides nicht tut. Die Rückholfrist ist zur Hälfte längst gebaut,
+             sie heißt nur anders: sperren.
+             ER STEHT AN BEIDEN STELLEN, hier und im Passwortfenster darunter --
+             zwei aufeinanderfolgende Fenster, die Verschiedenes sagen, sind
+             schlimmer als eines. */
+          if (!confirm(`„${z.username}“ jetzt entfernen? Das lässt sich nicht rückgängig machen.\n\n` +
+            `Nur vorübergehend aussperren? Dann sperren statt entfernen — das ist umkehrbar, ` +
+            `und der Name bleibt.`)) return;
           if (!await zweiteBestaetigung('entfernen', z.id, 'Zugang entfernen',
-            `„${z.username}“ wird stillgelegt; der Name wird frei.`)) return;
+            `„${z.username}“ wird stillgelegt; der Name wird frei. Nur vorübergehend aussperren? ` +
+            `Dann sperren statt entfernen — das ist umkehrbar, und der Name bleibt.`)) return;
           try {
             await api('DELETE', `/api/users/${z.id}?eintraege=${eintraegeWeg ? 1 : 0}&beitraege=${beitraegeWeg ? 1 : 0}`);
             toast('Zugang entfernt');
@@ -6810,6 +7127,77 @@ async function renderSystem() {
           zeichneZugaenge();
         };
       }
+      box.appendChild(row);
+    }
+    if (!daten.zugaenge.some(z => z.status !== 'geloescht'))
+      box.innerHTML = `<span class="hint">Kein Zugang.</span>`;
+    zeichneGrabsteinKnopf();
+  }
+
+  /* --- Gelöschte Zugänge, im eigenen Fenster ---
+     REINE OBERFLÄCHE. Das Vorbild steht im Projekt: der Dialog "Wer hat
+     bewertet" -- Hintergrund, Fenster, ein erklärender Satz, eine Liste, ein
+     Knopf zum Schließen.
+     DER KNOPF STEHT NUR DA, WENN ES ETWAS ZU ZEIGEN GIBT. Ein Knopf, der ein
+     leeres Fenster öffnet, ist ein Knopf zu viel; die Zahl daneben sagt schon,
+     was darin steht. */
+  let zugGrabsteine = [];
+  function zeichneGrabsteinKnopf() {
+    const zeile = document.getElementById('zug-weg-zeile');
+    if (!zeile) return;
+    zeile.innerHTML = '';
+    if (!zugGrabsteine.length) return;
+    const n = zugGrabsteine.length;
+    const b = zeile.ownerDocument.createElement('button');
+    b.className = 'btn btn-ghost btn-sm';
+    b.id = 'zug-weg-auf';
+    b.textContent = `Gelöschte Zugänge (${n})`;
+    b.title = 'Die Grabsteine der entfernten Zugänge ansehen';
+    b.onclick = zeigeGrabsteine;
+    zeile.appendChild(b);
+  }
+
+  function zeigeGrabsteine() {
+    const dok = document;
+    const bd = dok.createElement('div');
+    bd.className = 'backdrop';
+    bd.innerHTML = `<div class="modal" id="grabstein-modal"><h2>Gelöschte Zugänge</h2>
+      <p>Ein entfernter Zugang wird zum <strong>Grabstein</strong>: der Name ist frei geworden,
+      und was er geschrieben hat, trägt seither „Gelöschter Benutzer &lt;Nummer&gt;“.
+      <strong>Der ursprüngliche Name steht hier nicht</strong> — die Anlage bewahrt ihn nirgends
+      auf, denn der Grabstein IST das Löschen. Zurückholen lässt sich ein Zugang nicht;
+      <strong>sperren</strong> ist der umkehrbare Weg.</p>
+      <div class="manage-list" id="grabsteinliste"></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
+    dok.body.appendChild(bd);
+    const zu = () => { bd.remove(); dok.removeEventListener('keydown', onKey, true); };
+    /* Escape schliesst nur den OBERSTEN Dialog -- dieselbe Regel wie bei
+       "Wer hat bewertet": aus diesem Fenster heraus geht keiner auf, aber ein
+       Horcher, der jeden Hintergrund schliesst, waere eine Falle fuer den
+       naechsten, der einen dazubaut. */
+    const onKey = e => {
+      if (e.key !== 'Escape') return;
+      if ([...dok.querySelectorAll('.backdrop')].pop() !== bd) return;
+      zu();
+    };
+    dok.addEventListener('keydown', onKey, true);
+    bd.querySelector('[data-no]').onclick = zu;
+    bd.onclick = e => { if (e.target === bd) zu(); };
+    const box = bd.querySelector('#grabsteinliste');
+    if (!zugGrabsteine.length) {
+      box.innerHTML = `<span class="hint">Es wurde noch kein Zugang entfernt.</span>`;
+      return;
+    }
+    for (const z of zugGrabsteine) {
+      const row = dok.createElement('div');
+      row.className = 'mrow zug zug-weg';
+      row.dataset.mid = z.id;
+      // Dieselbe Beschriftung wie ueberall: eine Funktion, zwei Rufer. Stuende
+      // die Bildung des Grabsteinnamens hier ein zweites Mal, liefen die
+      // Stellen auseinander.
+      row.innerHTML = `<span class="mname">${esc(verfasserName({ id: z.id, name: z.username, geloescht: true }))}</span>
+        <span class="zug-status">${esc(STATUSWORT.geloescht)}</span>
+        <span class="mcount">${z.eintraege} ${esc(vSache(z.eintraege))}</span>`;
       box.appendChild(row);
     }
   }
