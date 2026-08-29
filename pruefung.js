@@ -17229,9 +17229,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
      (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
      gezaehlt waren es 193 -- 184 plus neun. */
-  // 267 SEIT 0.15.0, vorher 249: die Runde bringt achtzehn dazu -- fuenf am
-  // Filter, fuenf an der Klemme und acht am Ruhezustand der Begruendung.
-  pruefe('Es sind genau 267 Rueckbauten', gpListe.length === 267, `${gpListe.length}`);
+  // 271 SEIT 0.15.1, vorher 267: vier neue an der Regel fuer `hidden` und an
+  // der abgeleiteten Sichtbarkeit des Feldes.
+  pruefe('Es sind genau 271 Rueckbauten', gpListe.length === 271, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -22762,15 +22762,24 @@ async function pruefeOberflaeche() {
     JSON.stringify(vLb?.querySelector('.zoom')?.hidden));
   /* UND DAS ATTRIBUT MUSS AUCH WIRKEN. .lb-btn traegt display: flex, und das
      schlaegt das display:none, das der Browser einem hidden-Attribut mitgibt.
-     Ohne die eigene Regel stuende der Knopf sichtbar da und taete nichts --
+     Ohne eine Gegenregel stuende der Knopf sichtbar da und taete nichts --
      eine Klassenpruefung allein belegt nicht, dass die Klasse etwas bewirkt
-     (Lücke 1 im Prüfstand). Im echten Chromium aufgefallen, nicht hier. */
+     (Lücke 1 im Prüfstand). Im echten Chromium aufgefallen, nicht hier.
+     SEIT 0.15.1 TRAEGT DAS DIE GRUNDSAETZLICHE REGEL und nicht mehr eine
+     eigene fuer diesen Knopf: `.lb-btn[hidden]` ist entfallen, weil
+     `[hidden] { display: none !important }` ganz oben dasselbe fuer die ganze
+     Anlage tut -- und zwar auch dort, wo noch niemand daran gedacht hat.
+     Zwei Regeln fuer dieselbe Sache waeren zwei Wahrheiten (Stolperstein
+     201 und 214). */
   {
     const cssV = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
       .replace(/\s+/g, ' ');
     pruefe('Und das hidden-Attribut wird am Knopf auch wirksam',
-      /\.lb-btn\[hidden\] \{[^}]*display: none[^}]*\}/.test(cssV),
-      (cssV.match(/\.lb-btn\[hidden\][^}]*\}/) || ['(keine Regel)'])[0]);
+      /\[hidden\] \{ display: none !important; \}/.test(cssV),
+      (cssV.match(/\[hidden\] \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    // Und die oertliche Regel steht ausdruecklich NICHT mehr daneben.
+    pruefe('Und zwar ohne eine eigene Regel fuer diesen Knopf daneben',
+      !/\.lb-btn\[hidden\] \{/.test(cssV), 'die alte oertliche Regel steht noch da');
   }
   // Ein angehaltener Abspieler ohne Quelle: mehr laesst sich in jsdom nicht
   // messen, und mehr braucht es auch nicht -- genau daran haengt, ob der Ton
@@ -25319,11 +25328,15 @@ async function pruefeOberflaeche() {
     pruefe('Der Knopf sagt, was er tun wird',
       knopf.textContent.includes('Link'), knopf.textContent);
     /* Und die Regel dazu im Stylesheet -- ohne sie stuende das Feld im
-       Flex-Kasten weiter da (Stolperstein 81: erst das Vorhandensein). */
+       Flex-Kasten weiter da (Stolperstein 81: erst das Vorhandensein).
+       SEIT 0.15.1 IST ES DIE GRUNDSAETZLICHE REGEL und nicht mehr eine eigene
+       fuer diesen Kasten: `.zug-neu [hidden]` ist entfallen. */
     const ziCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
     pruefe('Das Stylesheet nimmt ein verstecktes Feld wirklich aus der Zeile',
-      /\.zug-neu \[hidden\] \{[^}]*display: *none/.test(ziCss),
-      'Regel fuer .zug-neu [hidden] fehlt');
+      /\[hidden\] \{ display: none !important; \}/.test(ziCss),
+      'die grundsaetzliche Regel fuer [hidden] fehlt');
+    pruefe('Und zwar ohne eine eigene Regel fuer diesen Kasten daneben',
+      !/\.zug-neu \[hidden\] \{/.test(ziCss), 'die alte oertliche Regel steht noch da');
 
     // Hinwechseln: das Feld erscheint, der Knopf heisst anders.
     art.value = 'passwort';
@@ -29044,10 +29057,18 @@ async function pruefeOberflaeche() {
     pruefe('Nach dem Ja geht ein leerer Grund hinaus, und sonst nichts',
       gleich(Object.keys(ruhWegRumpf?.koerper || {}), ['rejectedGrund']) &&
       ruhWegRumpf?.koerper?.rejectedGrund === '', JSON.stringify(ruhWegRumpf?.koerper));
+    /* SEIT 0.15.1 TRITT DIE AUSSAGE DABEI ZURUECK, weil das Feld von selbst
+       aufgeht: abgelehnt und kein Grund heisst offen. Der Grund ist weg, und
+       das ist hier die Aussage der Zeile -- geprueft wird sie am naechsten
+       Ruhezustand, gleich darunter. */
     pruefe('Der Grund verschwindet aus der Aussage',
-      !ruhWarum(d) && ruhMarke(d)?.hidden === false, JSON.stringify(ruhSatz(d)?.textContent));
+      !ruhWarum(d), JSON.stringify(ruhSatz(d)?.textContent));
     /* DATUM UND VERFASSER BLEIBEN STEHEN -- "Abgelehnt am … von …" ist
-       weiterhin wahr, nur der Grund fehlt. */
+       weiterhin wahr, nur der Grund fehlt. Nachgesehen wird es im
+       Ruhezustand: das Feld wird ueber Escape wieder zugemacht. */
+    ruhFeld(d).dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    ruhFeld(d).dispatchEvent(new d.w.FocusEvent('blur'));
+    await new Promise(r => setTimeout(r, 60));
     pruefe('Datum und Verfasser stehen weiter da',
       ruhSatz(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von chefin',
       JSON.stringify(ruhSatz(d)?.textContent));
@@ -29241,7 +29262,12 @@ async function pruefeOberflaeche() {
        jeweiligen Stelle geloest -- und beim dritten Mal schlug es wieder zu.
        Eine zweite Regel daneben waere genau die zweite Wahrheit, die diese
        Runde aufloest. */
-    const hidAlle = css123.match(/[^{}]*\[hidden\][^{}]*\{/g) || [];
+    /* GEZAEHLT WIRD OHNE DIE KOMMENTARE. Der Kommentar ueber der Regel nennt
+       `[hidden]` mehrfach, und ein Zaehler, der ihn mitliest, meldet drei
+       Regeln, wo eine steht -- er waere rot, ohne dass etwas falsch ist
+       (Stolperstein 156: gezaehlt wird, was gemeint ist). */
+    const cssOhneKommentar = css123.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const hidAlle = cssOhneKommentar.match(/[^{}]*\[hidden\][^{}]*\{/g) || [];
     pruefe('Und sie steht genau einmal, ohne oertliche Flicken daneben',
       hidAlle.length === 1, JSON.stringify(hidAlle));
     /* DIE GEGENPROBE ZUM MASSSTAB: es gibt ueberhaupt Regeln, die `display`
