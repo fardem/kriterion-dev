@@ -3,7 +3,7 @@ Projektstand, Konzeptpapier, Sammelblatt, Videopapier und die
 Änderungsprotokolle stehen dort unter `Doku/`. Gearbeitet wird im Repo, nicht an
 einer Kopie.
 
-AUFTRAG: **Version 0.14.1 — „Der Filter und der Stift"**
+AUFTRAG: **Version 0.15.0 — „Der Filter und der Stift"**
 **Zwei Befunde aus dem Betrieb vom 29. August 2026, gemeldet nach dem
 Einspielen von 0.14.0, beide an derselben Stelle: der Ablehnung.** *Der eine ist
 eine alte Lücke, der andere ist eine Nachbesserung an dem, was 0.14.0 gerade
@@ -39,47 +39,36 @@ nichts**.*
 0. WAS VOR DEM ERSTEN HANDGRIFF ZU TUN IST — FÜNF PUNKTE. **DER ERSTE IST DIE
    NUMMER SELBST, UND ER FÄLLT VOR DEM BAUEN.**
 
-   * **DIE NUMMER IST NICHT GESETZT, SIE IST ZU BEGRÜNDEN — UND SIE IST
-     STRITTIG.** Der Dateiname sagt 0.14.1; **die Regel in Abschnitt 5.1 sagt
-     etwas anderes:**
+   * **DIE NUMMER IST ENTSCHIEDEN: 0.15.0, UND DER FAHRPLAN RÜCKT.**
+     Der Auftrag ging als `0.14.1` heraus; die Regel in Abschnitt 5.1 sagt
+     etwas anderes:
 
      > *„Dritte Zahl (PATCH) nur für abwärtskompatible Fehlerbehebungen. Eine
      > Runde, die eine Funktion bringt, ist keine PATCH-Runde — auch dann
      > nicht, wenn sie klein ist."*
 
-     **Punkt 1 bringt eine Funktion.** Nach dem Einspielen kann die Anlage
-     etwas, was sie vorher nicht konnte: nach „abgelehnt" filtern. *Nach der
-     eigenen Frage des Projekts — „kann die Anlage danach etwas, was sie vorher
-     nicht konnte?" — ist das ein Ja.* **Punkt 3 bringt ebenfalls eine:** eine
-     Begründung lässt sich danach entfernen.
-     **Punkt 2 allein wäre PATCH** — er richtet eine Anzeige, die 0.14.0 falsch
-     gebaut hat.
+     **Punkt 1 bringt eine Funktion** — nach dem Einspielen kann die Anlage
+     nach „abgelehnt" filtern, was sie vorher nicht konnte. **Punkt 3 bringt
+     ebenfalls eine:** eine Begründung lässt sich danach entfernen. *Nur
+     Punkt 2 allein wäre PATCH.* **Also MINOR.**
 
-     **Drei Wege, und alle drei sind vertretbar:**
+     **WAS DAS FÜR DEN FAHRPLAN HEISST, und es wird hingeschrieben statt still
+     vollzogen:**
 
-     1. **Alles zusammen als 0.15.0.** Ehrlich zur Regel. **Der Preis: der
-        Fahrplan rückt** — aus „Der Systembereich, die Glocke und die Auskunft"
-        wird 0.16.0, aus „Die Suche wird nachvollziehbar" 0.17.0, aus
-        „Bereinigung — der Bruch" 0.18.0. *Der Projektstand sagt dazu selbst:
-        „Eine vorgemerkte Zahl bindet nicht; was eine Runde enthält, entscheidet
-        ihre Nummer." Die Bereinigung ist aus genau diesem Grund schon zweimal
-        umnummeriert worden.*
-     2. **Teilen: 0.14.1 trägt nur Punkt 2**, die Punkte 1 und 3 warten auf die
-        nächste MINOR-Runde. **Der Preis: zwei Papierwege für zwei Befunde
-        desselben Nachmittags** — und der Filter, den du brauchst, wartet.
-     3. **Alles als 0.14.1, mit einer benannten Abweichung im Protokoll.**
-        **Der Preis ist der höchste:** die Versionsregel ist eine der wenigen,
-        die das Projekt sich selbst gegeben hat, und sie ist schon einmal
-        gebrochen worden — 0.9.1, Stolperstein 158. *Eine Regel, die beim
-        zweiten Mal wieder weicht, ist keine.*
+     | bisher | künftig | Runde |
+     |---|---|---|
+     | — | **0.15.0** | **Der Filter und der Stift** *(diese Runde)* |
+     | 0.15.0 | **0.16.0** | Der Systembereich, die Glocke und die Auskunft |
+     | 0.16.0 | **0.17.0** | Die Suche wird nachvollziehbar |
+     | 0.17.0 | **0.18.0** | Bereinigung — der Bruch |
 
-     **Meine Empfehlung ist Weg 1**, und der Grund ist nicht Formtreue: **der
-     Fahrplan hat die Umnummerierung schon zweimal ausgehalten und sagt
-     ausdrücklich, dass eine vorgemerkte Zahl nicht bindet.** Die Versionsregel
-     dagegen ist eine Zusage an den Betreiber darüber, was ein
-     Versionswechsel bedeutet. *Von zwei Dingen weicht das billigere.*
-     **Sag, wofür du dich entscheidest, und begründe es** — und wenn es Weg 1
-     oder 2 wird, **benenne diese Datei um** (`git mv`).
+     *Der Projektstand sagt dazu selbst: „Eine vorgemerkte Zahl bindet nicht;
+     was eine Runde enthält, entscheidet ihre Nummer." Die Bereinigung ist aus
+     genau diesem Grund schon zweimal umnummeriert worden — dies ist das
+     dritte Mal, und es steht in Abschnitt 10a so da.*
+     **Die harte Bindung des Fahrplans bleibt eingelöst:** der sechste
+     Migrationsblock existiert seit 0.14.0, die Bereinigung kann ihn wegräumen,
+     gleich unter welcher Nummer sie läuft.
 
    * **DER FINGERPRINT IST ZU BESTÄTIGEN.** Die laufende Anlage muss
      `ca8bcf31` melden — Systembereich → Kennzahlen. *Er war es bei der Meldung
@@ -165,8 +154,9 @@ nichts**.*
    * **(b) Eine eigene Zeile mit eigener Beschriftung.** Ruhiger zu lesen.
      *Der Preis: eine Zeile mehr, gegen die Richtung von 0.13.0.*
 
-   *Meine Neigung ist (a)* — die Zeile heißt „Status", und die Ablehnung ist
-   einer. **Sag, wofür du dich entscheidest.**
+   **ENTSCHIEDEN IST (a)** — die Zeile heißt „Status", und die Ablehnung ist
+   einer. *Bricht die Zeile bei 120 Prozent Schrift um, ist das erlaubt: sie
+   trägt `flex-wrap: wrap` seit 0.13.1.*
 
    **DIE PRÜFUNG BRAUCHT EINE LAGE, DIE DIE SACHE TRAGEN KANN** (Stolperstein
    189). Vier Einträge, und die vier Kombinationen müssen alle vorkommen:
@@ -238,13 +228,11 @@ nichts**.*
      zweite Wahrheit über eine Klemme, die im Server schon steht — und läuft
      mit ihr auseinander, sobald jemand nur eine Seite ändert.*
 
-   *Meine Neigung ist (a).* **Sag, wofür du dich entscheidest.**
+   **ENTSCHIEDEN IST (a):** zwei Angaben nach Hausmuster.
 
-   **WAS ZU ENTSCHEIDEN IST — DIE HERVORHEBUNG.** Die Aussage soll sichtbar zur
-   roten Marke gehören. **Keine neue Farbe:** `--red`, `--red-dim` und
-   `rgba(240,85,92,.42)` gibt es längst am Schalter. *Ob das eine Textfarbe, ein
-   linker Rand oder ein gedämpfter Untergrund wird, ist eine Gestaltungsfrage —
-   sag, was dir vorschwebt, sonst entscheide ich sie und begründe sie.*
+   **DIE HERVORHEBUNG ENTSCHEIDE ICH UND BEGRÜNDE SIE IM PROTOKOLL.** Die
+   Aussage soll sichtbar zur roten Marke gehören. **Keine neue Farbe:**
+   `--red`, `--red-dim` und `rgba(240,85,92,.42)` gibt es längst am Schalter.
 
    **DIE PRÜFUNG BRAUCHT BEIDE STELLUNGEN JEDES SCHALTERS.** *Welcher Schalter
    bleibt hier durchweg aus, und trägt er etwas zur Sache bei?* Hier sind es
@@ -275,8 +263,7 @@ nichts**.*
    `nurSelbst`. *Die Klemme steht schon da (`server.js:2501`) und bekommt eine
    Fallunterscheidung, keine zweite Klemme daneben.*
 
-   **WAS BEIM ENTFERNEN MIT DATUM UND VERFASSER GESCHIEHT, IST ZU ENTSCHEIDEN.**
-   *Mein Vorschlag: beide bleiben stehen.* „Abgelehnt am 14.03.2026 von Anna"
+   **BEIM ENTFERNEN BLEIBEN DATUM UND VERFASSER STEHEN — entschieden.** „Abgelehnt am 14.03.2026 von Anna"
    ist weiterhin wahr; nur der Grund fehlt. **Und es hat eine Folge, die
    genannt gehört:** bleibt `rejected_von` stehen, darf Anna danach eine neue
    Begründung schreiben — der Admin, der gelöscht hat, dagegen nicht. *Das ist
@@ -320,19 +307,17 @@ nichts**.*
 
 ---
 
-DIE FÜNF ENTSCHEIDUNGEN — **jede will beantwortet werden, mit Begründung, im
-Änderungsprotokoll:**
+DIE FÜNF ENTSCHEIDUNGEN — **vier sind getroffen, eine liegt bei mir; alle fünf
+gehören mit ihrer Begründung ins Änderungsprotokoll:**
 
-* **Die Nummer** — 0.15.0, geteilt, oder 0.14.1 mit benannter Abweichung?
-  *Meine Empfehlung steht in Abschnitt 0.*
-* **Der Platz des neuen Filters** — zweite Gruppe in der Statuszeile oder eigene
-  Zeile? *Meine Neigung: zweite Gruppe.*
-* **Wie die Oberfläche erfährt, ob sie schreiben darf** — zwei Angaben nach
-  Hausmuster oder eine, die die Klemme beantwortet? *Meine Neigung: zwei.*
-* **Bleiben Datum und Verfasser stehen, wenn die Begründung entfernt wird?**
-  *Mein Vorschlag: ja.*
-* **Wie die Aussage hervorgehoben wird** — Textfarbe, linker Rand oder
-  gedämpfter Untergrund, alles aus den vorhandenen Rotwerten.
+* **Die Nummer: 0.15.0**, und der Fahrplan rückt (Abschnitt 0).
+* **Der Platz des neuen Filters: zweite Gruppe in der Statuszeile**, mit
+  `zweiteBeschriftung()` abgesetzt.
+* **Wie die Oberfläche erfährt, ob sie schreiben darf: zwei Angaben nach
+  Hausmuster** — `mine` am Eintrag und `rejectedMine` an der Begründung.
+* **Datum und Verfasser bleiben stehen**, wenn die Begründung entfernt wird.
+* **Die Hervorhebung der Aussage** — meine Entscheidung, aus den vorhandenen
+  Rotwerten, mit Begründung im Protokoll.
 
 ---
 
@@ -398,14 +383,14 @@ AM ENDE DES CHATS:
   **Und danach kein Prüflauf mehr, den du abbrichst** — abgebrochene Läufe
   hinterlassen Server mit `ppid=1` auf den festen Portbasen, und der nächste
   Lauf wird davon rot, ohne dass am Code etwas falsch wäre.
-* `Doku/Aenderungsprotokoll_<Version>.md` liegt im Branch: was gebaut wurde je
+* `Doku/Aenderungsprotokoll_0.15.0.md` liegt im Branch: was gebaut wurde je
   Datei, Abweichungen mit Begründung, **die fünf Entscheidungen mit ihrer
   Begründung**, neue Stolpersteine (**die Zählung setzt bei 208 fort** — 207 ist
   vergeben), die Gegenprobentabelle **aus `gegenprobe.js`**, Prüfungszahlen
   vorher/nachher (vorher: **4262**), Rückbauten vorher/nachher (vorher: **249**),
   Offengebliebenes — **und die Ergebnisse der beiden Feldbelege aus Abschnitt 0,
   sobald sie da sind.**
-* Die Zeile „<Version> — Fingerprint `…`" gehört ins Änderungsprotokoll,
+* Die Zeile „0.15.0 — Fingerprint `…`" gehört ins Änderungsprotokoll,
   **ZULETZT gebildet**, nach der letzten Änderung an einer ausgelieferten Datei
   — die Versionsnummer in `package.json` eingeschlossen, **und
   `package-lock.json` trägt sie ein zweites Mal.** *In 0.14.0 ist der
@@ -431,9 +416,9 @@ ZUM SCHLUSS DIESER RUNDE — DOKUMENTE UND CHANGELOG:
   Stolpersteine, Prüfstand, Versionsgeschichte, **Abschnitt 10 und 10a**). Der
   Projektstand trägt die Version im Dateinamen und wird umbenannt (`git mv`);
   alle Verweise sind nachzuziehen.
-* **WIRD ES 0.15.0, RÜCKT DER FAHRPLAN.** Dann sind Abschnitt 10 und 10a
-  umzunummerieren — und **die Umnummerierung wird ausdrücklich hingeschrieben,
-  nicht still vollzogen**, genau wie beim dreimaligen Rücken der Bereinigung.
+* **DER FAHRPLAN RÜCKT.** Abschnitt 10 und 10a sind umzunummerieren — und
+  **die Umnummerierung wird ausdrücklich hingeschrieben, nicht still
+  vollzogen**, genau wie beim bisherigen Rücken der Bereinigung.
   *Ein Punkt wandert vom Sammelblatt in den Fahrplan und von dort in ein
   Änderungsprotokoll — nie zurück.*
 * **Das Sammelblatt wird an genau einer Stelle angefasst:** die
@@ -448,9 +433,8 @@ ZUM SCHLUSS DIESER RUNDE — DOKUMENTE UND CHANGELOG:
   Filterleiste, und **wer eine Begründung ändern und wer sie entfernen darf** —
   die Rechtetabelle am Eintrag trägt seit 0.14.0 eine Zeile dazu und wird
   genauer.
-* **`CHANGELOG.md` bekommt den Eintrag nach der Form der Runde, die die Nummer
-  verlangt** — bei MINOR nach 0.14.0, bei PATCH nach 0.13.2 —, mit beiden
-  eigenen Abschnitten am Ende.
+* **`CHANGELOG.md` bekommt den Eintrag nach der Form von 0.14.0** — der letzten
+  MINOR-Runde —, mit beiden eigenen Abschnitten am Ende.
 * **Alles wird fertig gemacht — bis auf den Auftrag für die nächste Runde.** Den
   weise ich zum Schluss ausdrücklich an, wenn eingespielt und sauber getestet
   ist. **Bau ihn nicht ungefragt.** Und wenn du ihn baust: **dieser hier wird

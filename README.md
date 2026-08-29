@@ -203,22 +203,24 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 
 ## Eine neuere Version über eine bestehende einspielen
 
-> **FÜR 0.14.0 IST DIE SICHERUNG PFLICHT UND NICHT EMPFEHLUNG.** Diese Version
-> fasst die Datenbank an: sie rüstet drei Spalten an `items` nach
-> (`rejected_at`, `rejected_grund`, `rejected_von`). **Ohne die Kopie gibt es
-> keinen Rückweg** — bei einer Datenbankstufe ist ein Downgrade keine reine
-> Dateikopie mehr. *Die Zeile `cp -r kriterion/data …` unten wird bei dieser
-> Version nicht übersprungen.*
+> **0.15.0 IST KEINE DATENBANKSTUFE** — kein Schema, kein Migrationscode, das
+> Austauschformat bleibt bei 11. **Die Sicherung ist deshalb Empfehlung und
+> nicht Pflicht.** *Wer sie mitnimmt, tut nichts Falsches; die Zeile steht unten
+> ohnehin im Rezept.*
 >
-> **Nach dem Start einmal ins Protokoll sehen** (`docker compose logs
-> kriterion`): dort steht **einmalig** die Zeile *„items um rejected_at,
-> rejected_grund und rejected_von ergaenzt (Migration auf 0.14.0)"* samt der
-> Zahl der Ablehnungen, die von nun an ohne Datum, Grund und Verfasser
-> dastehen. *Das ist gewollt: diese Anlage weiß nicht, wann und von wem sie
-> getroffen wurden, und ein erfundener Wert wäre schlimmer als ein leerer.*
-> **Beim zweiten Start steht die Zeile nicht mehr da.**
+> **WER VON EINER FASSUNG VOR 0.14.0 KOMMT, SICHERT DAGEGEN PFLICHTGEMÄSS.**
+> Der Sprung führt über die Datenbankstufe 0.14.0 hinweg: sie rüstet drei
+> Spalten an `items` nach (`rejected_at`, `rejected_grund`, `rejected_von`), und
+> ihr Migrationsblock läuft beim ersten Start mit. **Ohne die Kopie gibt es
+> danach keinen Rückweg.** *Im Protokoll steht dann einmalig die Zeile „items um
+> rejected_at, rejected_grund und rejected_von ergaenzt (Migration auf 0.14.0)"
+> samt der Zahl der Ablehnungen, die von nun an ohne Datum, Grund und Verfasser
+> dastehen — das ist gewollt: diese Anlage weiß nicht, wann und von wem sie
+> getroffen wurden.*
 >
-> **Niemand wird abgemeldet, und einzustellen ist nichts.**
+> **Niemand wird abgemeldet, und einzustellen ist nichts.** *Auch keine
+> gespeicherte Ansicht geht verloren: eine Ansicht aus 0.14.0 kennt den neuen
+> Filter „abgelehnt" nicht und fällt auf „Alle" zurück.*
 
 **Der Weg ersetzt das Verzeichnis, statt darüber zu kopieren.** Bestand
 (`data/`), Schlüssel (`.env`) und Sicherungen ziehen von Hand mit:
@@ -924,6 +926,7 @@ Am einzelnen Eintrag gilt:
 | alles sehen | ✔ | ✔ | ✔ |
 | Titel, Beschreibung, Fotos, Videos, Tags, Kategorie, getestet, abgelehnt | ✔ | — | ✔ |
 | **Begründung einer Ablehnung umschreiben** | nur wer sie getroffen hat | — | nur wenn er sie getroffen hat |
+| **Begründung einer Ablehnung entfernen** | ✔ | — | ✔ |
 | Eintrag löschen | ✔ | — | ✔ |
 | **Favorit** (★ am Eintrag) | persönlich — jeder für sich, an jedem Eintrag | | |
 | eigene Bewertung, eigener Testtag | ✔ | ✔ | ✔ |
@@ -1073,6 +1076,12 @@ es zwei, beide im Systembereich einstellbar:
   Testtage, Durchschnitt der Tagesnoten und letzte Tagesnote. Einträge ohne
   Testtage stehen dabei immer am Ende — sie haben keinen niedrigen Wert, sondern
   gar keinen.
+- **Abgelehnt** steht als eigene Gruppe in der Statuszeile, hinter der
+  Beschriftung „Ablehnung": *Alle · Abgelehnt · Nicht abgelehnt*. **Sie lässt
+  sich mit dem Teststatus kombinieren** — man lehnt ab, ohne zu testen, und man
+  lehnt nach dem Test ab, und beides muss zusammen einstellbar bleiben. *Drei
+  Zustände und kein einfacher Umschalter: gebraucht wird auch die
+  Gegenrichtung — „zeig mir alles außer dem Verworfenen".*
 - **★ Favoriten** steht als eigener Umschalter rechts in der Statuszeile und
   lässt sich mit jedem Teststatus kombinieren. Ein Favorit ist persönlich
   und sortiert die gemeinsame Liste nicht um — wer seine Favoriten sammeln
@@ -1202,16 +1211,27 @@ es zwei, beide im Systembereich einstellbar:
   Im Systembereich steht daneben, in wie vielen Einträgen das Kriterium
   verwendet wird.
 - **„Abgelehnt" ist eine Aussage und kein bloßes Häkchen** (seit 0.14.0). Beim
-  Einschalten erscheint **offen im Dialog** ein Feld für den Grund — eine Zeile,
+  Einschalten öffnet sich **sofort** ein Feld für den Grund — eine Zeile,
   **freiwillig**, höchstens 200 Zeichen; gespeichert wird beim Verlassen des
-  Feldes oder mit Enter. Über dem Feld steht danach der ganze Satz:
+  Feldes oder mit Enter, verworfen mit Escape. **Danach schließt sich das Feld,
+  und was stehenbleibt, ist der Satz:**
   *„Abgelehnt am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate."*
+  Der Grund selbst steht **hervorgehoben** da, Datum und Name gedämpft.
   **Jedes der drei darf fehlen**, und die Zeile setzt sich aus dem zusammen, was
   bekannt ist; ein entfernter Zugang erscheint als „Gelöschter Benutzer 7".
-  **Zurücknehmen darf das Merkmal, wer den Eintrag ändern darf; umschreiben darf
-  die Begründung nur, wer sie getroffen hat** — auch der Admin nicht.
-  *Beim Zurücknehmen wird nichts gelöscht: lehnt jemand denselben Eintrag später
-  wieder ab, steht die alte Begründung als Vorschlag im Feld.*
+- **Ändern und Entfernen der Begründung** (seit 0.15.0): ein Klick auf den Text
+  oder auf das **✎** daneben öffnet das Feld wieder — **beides nur für den, der
+  die Begründung getroffen hat.** Das **✕** daneben entfernt sie nach Rückfrage,
+  und **das darf jeder, der den Eintrag ändern darf** — also auch der Admin.
+  *Es ist dieselbe Hausregel wie beim Kommentar: Löschen ja, umschreiben nein.*
+  **Beim Entfernen bleiben Datum und Verfasser stehen** — „Abgelehnt am
+  14.03.2026 von Anna" ist weiterhin wahr, nur der Grund fehlt. *Und wer
+  entfernt hat, wird dabei nicht ihr Verfasser: Anna darf danach eine neue
+  schreiben, der Admin nicht.* **Steht gar keine Begründung da, bleibt das ✎
+  allein stehen** — sonst gäbe es keinen Weg mehr hinein.
+  *Beim Zurücknehmen des Merkmals wird ebenfalls nichts gelöscht: lehnt jemand
+  denselben Eintrag später wieder ab, steht die alte Begründung als Vorschlag
+  im Feld.*
   **In der Kachelansicht bleibt die Marke, wie sie war** — ein Grund gehört an
   den Eintrag und nicht in eine Kachelreihe. *„Getestet" bekommt bewusst nichts
   davon: es ist ein Zustand und keine Entscheidung.*
