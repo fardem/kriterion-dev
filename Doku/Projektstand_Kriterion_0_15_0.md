@@ -128,7 +128,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.15.0** — Fingerprint **`FINGERPRINT_0150`**, **4347 Prüfungen**,
+**Gebaut ist 0.15.0** — Fingerprint **`8fa66d7d`**, **4347 Prüfungen**,
 **267 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
 *0.15.0 gibt der Übersicht einen Filter für „abgelehnt" und bringt die
 Begründung zur Ruhe.* **MINOR — die Anlage kann seither nach der Ablehnung
@@ -301,7 +301,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.15.0** | **`FINGERPRINT_0150`** | 4347 |
+| **0.15.0** | **`8fa66d7d`** | 4347 |
 | 0.14.0 | `ca8bcf31` | 4262 |
 | 0.13.2 | `15188676` | 4131 |
 | 0.13.1 | `ee00fdf2` | 4123 |

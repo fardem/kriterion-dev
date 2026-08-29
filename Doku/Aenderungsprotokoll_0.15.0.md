@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.15.0 — „Der Filter und der Stift"
 
-**Version 0.15.0 · gebaut am 29. August 2026 · Fingerprint `FINGERPRINT` ·
+**Version 0.15.0 · gebaut am 29. August 2026 · Fingerprint `8fa66d7d` ·
 4347 Prüfungen · 267 Rückbauten in `gegenprobe.js`**
 
 ---
