@@ -28057,9 +28057,13 @@ async function pruefeOberflaeche() {
      "zusammengesetzt wird aus dem, was da ist" gar nicht tragen. */
   gruppe('Die Aussage an der Marke — 0.14.0');
 
-  const amLage = async (ablehnung) => {
+  /* Die Zahl der Zugaenge ist ein PARAMETER und keine Konstante: die Gruppe
+     braucht beide Lagen -- mit mehreren Zugaengen steht der Name in der
+     Aussage, mit einem einzigen nicht. Vorgabe drei, weil das der Regelfall
+     dieser Gruppe ist. */
+  const amLage = async (ablehnung, benutzerZahl = 3) => {
     const d = baueDom(JSDOM, { hash: '#/item/1', ablehnung,
-      einstellungen: { filters: null, benutzerZahl: 3 } });
+      einstellungen: { filters: null, benutzerZahl } });
     await new Promise(r => setTimeout(r, 80));
     return d;
   };
