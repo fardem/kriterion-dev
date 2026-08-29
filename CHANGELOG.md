@@ -43,6 +43,63 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.15.1] - 2026-08-29
+
+**`hidden` wirkt wieder.** An einem Eintrag, der **nicht** abgelehnt war,
+standen die Aussage zur Ablehnung und ihr Eingabefeld trotzdem da — beide mit
+gesetztem `hidden`. **Befund aus dem Betrieb, gemeldet kurz nach dem Einspielen
+von 0.15.0.**
+
+> **DIE URSACHE LAG IM STILBLATT, NICHT IN DER OBERFLÄCHE — und sie ist älter
+> als 0.15.0.** Der Browser blendet `hidden` über `[hidden] { display: none }`
+> in **seinem** Stylesheet aus, und **jede** eigene `display`-Regel schlägt die.
+> `.row-in` tut das seit jeher; das Eingabefeld war damit nie versteckt, auch
+> nicht in 0.14.0. *Gemessen in Chromium: 72,9 px standen an jedem nicht
+> abgelehnten Eintrag für nichts.*
+
+> **PATCH.** Die Anlage kann danach nichts, was sie vorher nicht konnte — sie
+> tut endlich, was sie versprochen hatte. **Kein Schema, keine Route, keine
+> Rechteänderung, Austauschformat unverändert 11.**
+
+### Fixed
+
+- **`hidden` versteckt wieder, überall.** Eine Regel ganz oben im Stilblatt —
+  `[hidden] { display: none !important; }` — stellt die Vorgabe des Browsers
+  wieder her. **Sie ist die einzige Stelle im ganzen Stilblatt mit einem
+  `!important`**, und sie ersetzt zwei örtliche Notlösungen, die dasselbe
+  Problem zweimal an ihrer jeweiligen Stelle gelöst hatten. *Was versteckt ist,
+  nimmt seither auch keinen Platz mehr.*
+- **Die Aussage zur Ablehnung steht nur noch an abgelehnten Einträgen.** Wo der
+  Ablehnungsknopf nie gedrückt wurde, steht nichts.
+
+### Changed
+
+- **Das Eingabefeld für die Begründung erscheint, solange abgelehnt ist und
+  KEIN Grund dasteht** — und darüber hinaus dann, wenn man es über den Text
+  oder das ✎ aufmacht. **Nie beides zugleich mit der Aussage.** *Bis 0.15.0
+  hing das an einem einzelnen Klick: ein frisch geladener Eintrag ohne Grund
+  zeigte das Feld deshalb nicht, und nach dem Entfernen des Grundes kam es
+  nicht von selbst zurück. Jetzt wird es aus dem Zustand gerechnet und stimmt
+  nach jedem Neuzeichnen.*
+- **Wird ein Eintrag mit vorhandener Begründung erneut abgelehnt, bleibt das
+  Feld zu** — die alte Begründung steht dann in der Aussage und lässt sich über
+  das ✎ ändern. *Sie geht nicht verloren, sie steht nur woanders.*
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Keine Sicherungspflicht, keine neue Zeile in der `.env`, keine neue
+Abhängigkeit, niemand wird abgemeldet, kein Blick ins Protokoll nötig.
+
+### Was gleich bleibt
+
+**Alles außer der Anzeige.** Das Austauschformat bleibt bei **11**, die
+markierten Migrationsblöcke bei **sechs**, **`F_ROUTEN`** bei **69**,
+**`VORGAENGE`** bei **zwanzig**, **die Karten im Systembereich** bei
+**neunzehn**, **das Vokabular** bei **elf**. **Der Filter „abgelehnt" aus
+0.15.0 ist unberührt**, ebenso die Rechte an der Begründung.
+
+---
+
 ## [0.15.0] - 2026-08-29
 
 **Die Übersicht filtert nach „abgelehnt", und die Begründung kommt zur Ruhe.**
@@ -2103,3 +2160,4 @@ nicht mehr übernehmen.*
 [0.13.2]: https://github.com/fardem/kriterion/compare/v0.13.1...v0.13.2
 [0.14.0]: https://github.com/fardem/kriterion/compare/v0.13.2...v0.14.0
 [0.15.0]: https://github.com/fardem/kriterion/compare/v0.14.0...v0.15.0
+[0.15.1]: https://github.com/fardem/kriterion/compare/v0.15.0...v0.15.1

@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 37 · Stand 29. August 2026 · gebaut: Version 0.15.0**
+**Kompakte Übergabe · Revision 38 · Stand 29. August 2026 · gebaut: Version 0.15.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,15 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.15.1 in einem Satz: `hidden` wirkt wieder — und die Begründung steht nur
+noch dort, wo etwas fehlt.** *PATCH: die Anlage kann danach nichts, was sie
+vorher nicht konnte; sie tut endlich, was sie versprochen hatte.* **Der Befund
+kam aus dem Betrieb und lag im Stilblatt, nicht in der Oberfläche:** eine
+eigene `display`-Regel schlägt die Vorgabe des Browsers, und damit war
+`hidden` an diesen Stellen wirkungslos — an einem **nicht** abgelehnten Eintrag
+standen Aussage und Eingabefeld trotzdem da, 72,9 px für nichts. *Alles Weitere
+in Abschnitt 2 und Abschnitt 9.*
 
 **0.15.0 in einem Satz: die Übersicht filtert nach „abgelehnt", und die
 Begründung kommt zur Ruhe.** *MINOR, weil die Anlage danach zweierlei kann, was
@@ -128,11 +137,35 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.15.0** — Fingerprint **`8fa66d7d`**, **4351 Prüfungen**,
-**267 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
-*0.15.0 gibt der Übersicht einen Filter für „abgelehnt" und bringt die
-Begründung zur Ruhe.* **MINOR — die Anlage kann seither nach der Ablehnung
-suchen, und eine fremde Begründung lässt sich entfernen.**
+**Gebaut ist 0.15.1** — Fingerprint **`FINGERPRINT_0151`**, **PRUEFZAHL Prüfungen**,
+**RUECKZAHL Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
+*0.15.1 macht `hidden` wieder wirksam und lässt die Begründung nur noch dort
+stehen, wo etwas fehlt.* **PATCH — eine reine Fehlerbehebung.**
+
+> **DER BEFUND LAG IM STILBLATT UND NICHT IN DER OBERFLÄCHE.** `hidden` wirkt
+> nur über `[hidden] { display: none }` im Stylesheet des **Browsers**, und
+> **jede** eigene `display`-Regel schlägt die. `.row-in` tut das seit jeher,
+> `.rej-aussage` seit 0.15.0. **Damit standen an einem NICHT abgelehnten
+> Eintrag die Aussage zur Ablehnung und ihr Eingabefeld trotzdem da** —
+> gemessen 72,9 px, fast die Hälfte des Titelblocks.
+> **Die Antwort ist eine Regel, einmal ganz oben:**
+> `[hidden] { display: none !important; }` — die einzige Stelle im Stilblatt
+> mit einem `!important`, und sie stellt eine Vorgabe des Browsers wieder her.
+> *Zwei örtliche Flicken für dasselbe Problem sind dabei entfallen.*
+
+> **UND DIE ZWEITE HÄLFTE IST EINE REGEL AUS DEM BETRIEB:** das Eingabefeld
+> steht offen, **solange abgelehnt ist und kein Grund dasteht** — und darüber
+> hinaus dann, wenn jemand es über den Text oder das ✎ aufmacht. *Bis 0.15.0
+> hing das an einem Klick; damit war es nach jedem Neuzeichnen falsch.*
+> **Nie beides zugleich, und an einem nicht abgelehnten Eintrag gar nichts.**
+
+**Was 0.15.1 für den Betrieb bedeutet: einspielen, fertig.** Keine
+Datenbankstufe, keine `.env`-Zeile, niemand wird abgemeldet.
+
+*Davor, am 29. August: **0.15.0** (Fingerprint `8fa66d7d`, 4351 Prüfungen)
+gibt der Übersicht einen Filter für „abgelehnt" und bringt die Begründung zur
+Ruhe.* **MINOR — die Anlage kann seither nach der Ablehnung suchen, und eine
+fremde Begründung lässt sich entfernen.**
 
 > **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
 > neue Formatnummer: es bleibt bei **sechs** markierten Blöcken und bei
@@ -4993,6 +5026,33 @@ Version, in der sie entstanden sind.*
     der stumme Rückbau beim Lesen der Tabelle von Hand — die Meldung darüber
     sagte das Gegenteil.* **Die Frage an jede Erfolgsmeldung: gibt es einen
     Zustand, in dem sie gar nicht anschlagen KANN?**
+
+214. **Wer `hidden` benutzt, benutzt eine Regel aus einem FREMDEN Stylesheet —
+    und die ist die schwächste im Haus.** `hidden` wirkt nur über
+    `[hidden] { display: none }` im Stylesheet des **Browsers**; **jede** eigene
+    Regel mit `display` schlägt sie. *Ein Element mit `hidden` und einer
+    display-Regel ist nicht versteckt — es sieht bloß aus wie ein Fehler in der
+    Logik, und man baut dann die Logik um.* **Die Antwort ist eine einzige
+    Regel mit `!important` und nicht ein Flicken je Fundstelle**: hier standen
+    zwei örtliche Flicken mit dem richtigen Kommentar daneben, und beim dritten
+    Mal schlug es trotzdem zu.
+
+215. **Ein Zustand, den eine Anzeige ausdrückt, gehört ABGELEITET und nicht
+    gemerkt.** Ob das Eingabefeld für die Begründung dasteht, hing an einem
+    Klick. **Damit war es nach jedem Neuzeichnen falsch:** ein frisch geladener
+    Eintrag ohne Grund zeigte es nicht, nach dem Entfernen kam es nicht zurück,
+    und ein erneutes Ablehnen machte es auf, obwohl ein Grund dastand.
+    *Gerechnet aus dem Zustand stimmt es in allen vier Feldern der Tafel von
+    selbst.* **Ein gemerkter Zustand neben einem vorhandenen ist eine zweite
+    Wahrheit** (Stolperstein 47) — und sie fällt erst beim Neuladen auf.
+
+216. **Eine falsche Diagnose kostet mehr als ein unbehobener Fehler.** Der
+    Befund „das Feld steht dauernd offen" ist der Logik zugeschrieben worden;
+    die Logik wurde umgebaut — richtig, aber am Problem vorbei —, und die
+    Ursache stand unangetastet zwei Dateien weiter. *Der Umbau war nicht
+    umsonst, aber er hat den Fehler verdeckt und eine Runde gekostet.* **Die
+    Frage davor: kann ich den gemeldeten Zustand herstellen? Wenn nein, habe
+    ich die Ursache nicht.**
 
 ---
 

@@ -147,6 +147,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.13.0** *MINOR* — **GEBAUT am 28. August 2026** | Der Proxy ist ein Ja/Nein · gescheiterte Anmeldungen sichtbar machen · gelöschte Zugänge und der Weg zurück · der Teilexport mit zweitem Faktor · die Filterleiste (229 → 154 px, gemessen) · die Kategoriezeile lernt die Mehrzahl. **Was gebaut wurde, steht im Änderungsprotokoll 0.13.0; was daraus herausgenommen wurde, in Abschnitt 10a.** *Herausgenommen sind die Adressliste (eigene Runde) und die stdout-Zeile für CrowdSec (verworfen, solange die Adressliste fehlt).* |
 | **0.14.0** *MINOR, Schema* — **GEBAUT am 29. August 2026** | Aus „abgelehnt" wird eine Entscheidung: Datum, Grund und Verfasser, dazu die Klemme am Grund. **Was gebaut wurde, steht im Änderungsprotokoll 0.14.0.** *Mitgefahren sind zwei Punkte aus dem Betrieb, die nie hier standen: der kaputte fremde Cookiewert und die Ausrichtung der Sternreihen in der Kriterienliste.* |
 | **0.15.0** *MINOR* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Zwei Befunde aus dem Betrieb, beide an der Ablehnung: der fehlende Filter für „abgelehnt" und die Begründung, die nicht zur Ruhe kam. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.0.** *Die Runde stand nie im Fahrplan; sie hat ihre Nummer bekommen, weil zwei ihrer drei Punkte Funktionen bringen — **und alle folgenden Runden sind dadurch um eine Stelle gerückt.*** |
+| **0.15.1** *PATCH* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Ein Befund aus dem Betrieb: `hidden` wirkte im Stilblatt nicht, weil jede eigene `display`-Regel die Vorgabe des Browsers schlägt — Aussage und Eingabefeld standen an einem *nicht* abgelehnten Eintrag da. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.1.** *Dazu die Regel, wann das Feld überhaupt dasteht: abgelehnt und kein Grund.* |
 | **0.16.0** *MINOR* *(war 0.15.0)* | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · Vorschau der Rangfolge · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt; 0.13.0 war voll, 0.14.0 trägt als Schema-Runde keine Beifracht)* |
 | **0.17.0** *MINOR* *(war 0.16.0)* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
 | **0.18.0** *MINOR* *(war 0.17.0)* | Die Bildablage: Original und zwei Ableitungen |
@@ -527,6 +528,21 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   **ein** Ablauf; der Namensfilter filtert die **Ausgabe**, nicht die Arbeit.
   `gegenprobe.js` und `PORT_VERSATZ` mildern das, sie beheben es nicht.
   *(Claude: nicht empfohlen — der Gruppenfilter trägt den Alltag)*
+- **Eine Messung im echten Browser als Teil des Prüflaufs** *(0.15.1)*.
+  **Art: Verbesserung.** `jsdom` rechnet kein CSS. Der Prüfstand kann deshalb
+  sagen, dass `element.hidden` wahr ist — **nicht, ob der Browser das Element
+  zeichnet.** *Genau daran ist 0.15.1 hängengeblieben: 4351 grüne Prüfungen,
+  und die Anlage zeigte im Browser das Gegenteil.* **Die Frage, die offen
+  bleibt: wie viele weitere Zusagen der Oberfläche stehen nur in jsdom?**
+  Die Antwort wäre ein Browser im Prüflauf — **und der kostet eine
+  Abhängigkeit**, die es hier nicht gibt. *Ein Mittelweg, der nichts kostet:
+  Regeln im Stilblatt festnageln, wie 0.15.1 es mit `[hidden]` tut, und
+  einzelne Lagen von Hand in Chromium messen und ins Protokoll schreiben, wie
+  0.14.0 es mit der Sternreihe getan hat.* **Diese Zeile ist keine Empfehlung,
+  sondern die Notiz, dass die Frage gestellt und nicht beantwortet ist.**
+  *(Claude: später — die Entscheidung fällt nicht nebenbei · Draußen üblich:
+  wer Oberfläche prüft, prüft sie im Browser; wer das nicht kann, prüft die
+  Regeln statt der Bilder)*
 - **Der Rückbaufilter von `gegenprobe.js` trifft auch NAMEN, nicht nur
   Nummern** *(0.15.0)*. `node gegenprobe.js 256` fährt nicht nur Rückbau 256,
   sondern auch **83** („SHA-256 statt SHA-1") — die Auswahlzeile prüft

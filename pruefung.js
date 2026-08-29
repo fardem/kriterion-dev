@@ -28447,10 +28447,19 @@ async function pruefeOberflaeche() {
     pruefe('Ein Einschalten nimmt die alte Begruendung als Vorschlag mit',
       einRumpf?.koerper?.rejected === true && einRumpf?.koerper?.rejectedGrund === 'Alte Begründung',
       JSON.stringify(einRumpf?.koerper));
-    pruefe('Und sie steht danach im Feld zum Ueberschreiben',
-      amFeld(d)?.value === 'Alte Begründung', JSON.stringify(amFeld(d)?.value));
+    /* SEIT 0.15.1 STEHT SIE DANACH IN DER AUSSAGE UND NICHT IM FELD. Das Feld
+       ist nur offen, solange KEIN Grund dasteht -- und hier steht einer. Die
+       Zusage „die alte Begruendung geht nicht verloren" ist damit nicht
+       aufgegeben, sondern eingeloest: sie steht sichtbar da und laesst sich
+       ueber das ✎ aendern. */
+    pruefe('Und sie steht danach in der Aussage, nicht im Feld',
+      /— Alte Begründung$/.test(amSatz(d)?.textContent || '') && amZeile(d)?.hidden === true,
+      JSON.stringify([amSatz(d)?.textContent, amZeile(d)?.hidden]));
 
     // Der Grund selbst: getippt, Feld verlassen, und erst dann geht er hinaus.
+    // Aufgemacht wird es dafuer ueber das ✎ -- offen ist es hier nicht mehr.
+    amStift(d).dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
     const vorher = d.gesendet.length;
     amFeld(d).value = 'Preis zu hoch';
     amFeld(d).dispatchEvent(new w.FocusEvent('blur'));
@@ -28613,6 +28622,114 @@ async function pruefeOberflaeche() {
     !/\.stimmzeile[^{]*\.ravg/.test(css123) &&
     !/zeile\.className = 'stimmzeile'[\s\S]{0,600}ravg/.test(arQuelle),
     'ravg taucht in der Stimmliste auf');
+
+  /* ================= Das Feld steht nur, wo etwas fehlt — 0.15.1 =======
+     BEFUND AUS DEM BETRIEB, 29. AUGUST 2026: an einem NICHT abgelehnten
+     Eintrag standen die Aussage zur Ablehnung UND ihr Eingabefeld da. Beide
+     trugen `hidden`; der Browser zeichnete sie trotzdem, weil eine
+     display-Regel aus dem Stilblatt die Vorgabe des Browsers schlaegt. Die
+     Regel dagegen steht jetzt einmal ganz oben und wird in der Gruppe zur
+     Hervorhebung geprueft.
+     HIER GEHT ES UM DIE ZWEITE HAELFTE: WANN das Feld ueberhaupt dastehen
+     soll. Die Antwort aus dem Betrieb ist ein ZUSTAND und kein Klick --
+     abgelehnt und kein Grund -- und darueber hinaus, wer es ausdruecklich
+     aufmacht.
+     VIER LAGEN, UND SIE SIND DIE VIER FELDER DER TAFEL: abgelehnt ja/nein
+     gegen Grund ja/nein. Eine Gruppe, die nur eine davon faehrt, belegt
+     nichts ueber die anderen drei (Stolperstein 189). */
+  gruppe('Das Feld steht nur, wo etwas fehlt — 0.15.1');
+
+  const fsBaue = async (abgelehnt, grund) => {
+    const d = baueDom(JSDOM, { hash: '#/item/1',
+      ablehnung: abgelehnt ? { at: '2026-03-14 09:12:00', grund,
+        verfasser: { id: 1, name: 'chefin', geloescht: false } } : null,
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    return d;
+  };
+  const fsFeld = (d) => d.w.document.getElementById('rej-grund-zeile');
+  const fsMarke = (d) => d.w.document.getElementById('rej-marke');
+  const fsWert = (d) => d.w.document.getElementById('rej-grund');
+
+  // --- Nicht abgelehnt: gar nichts, gleich ob ein Grund in der Zeile steht ---
+  {
+    const d = await fsBaue(false, null);
+    pruefe('Nicht abgelehnt und ohne Grund: weder Aussage noch Feld',
+      fsMarke(d)?.hidden === true && fsFeld(d)?.hidden === true,
+      JSON.stringify([fsMarke(d)?.hidden, fsFeld(d)?.hidden]));
+    d.w.close();
+  }
+  /* DIE LAGE, DIE DEN BEFUND TRUG: das Merkmal ist zurueckgenommen, der Grund
+     steht aber noch in der Zeile -- genau so laesst 0.14.0 ihn stehen. Ohne
+     diese Lage bliebe die Zeile darueber auch dann gruen, wenn die Anzeige
+     bloss am fehlenden Text haenge und nicht am Merkmal. */
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1',
+      ablehnung: { at: '2026-03-14 09:12:00', grund: 'Ein Grund von frueher',
+                   verfasser: { id: 1, name: 'chefin', geloescht: false } },
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    // Das Merkmal zuruecknehmen -- Datum, Grund und Verfasser bleiben stehen.
+    d.w.document.getElementById('sw-rej')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Zurueckgenommen, aber Grund noch in der Zeile: trotzdem beides weg',
+      fsMarke(d)?.hidden === true && fsFeld(d)?.hidden === true,
+      JSON.stringify([fsMarke(d)?.hidden, fsFeld(d)?.hidden]));
+    pruefe('Und der Schalter sagt es auch',
+      d.w.document.getElementById('sw-rej-t')?.textContent === 'Nicht abgelehnt',
+      JSON.stringify(d.w.document.getElementById('sw-rej-t')?.textContent));
+    d.w.close();
+  }
+
+  // --- Abgelehnt OHNE Grund: das Feld steht offen, die Aussage tritt zurueck ---
+  {
+    const d = await fsBaue(true, null);
+    pruefe('Abgelehnt ohne Grund: das Feld steht offen',
+      fsFeld(d)?.hidden === false, JSON.stringify(fsFeld(d)?.hidden));
+    pruefe('Und die Aussage tritt so lange zurueck -- nie beides zugleich',
+      fsMarke(d)?.hidden === true, JSON.stringify(fsMarke(d)?.hidden));
+    pruefe('Das Feld ist dabei leer und nicht mit Altem gefuellt',
+      fsWert(d)?.value === '', JSON.stringify(fsWert(d)?.value));
+    d.w.close();
+  }
+
+  // --- Abgelehnt MIT Grund: die Aussage steht, das Feld ist zu ---
+  {
+    const d = await fsBaue(true, 'Lieferzeit über 6 Monate');
+    pruefe('Abgelehnt mit Grund: die Aussage steht, das Feld ist zu',
+      fsMarke(d)?.hidden === false && fsFeld(d)?.hidden === true,
+      JSON.stringify([fsMarke(d)?.hidden, fsFeld(d)?.hidden]));
+    /* UND ES BLEIBT ZU, AUCH NACH EINEM NEUEN ZEICHNEN. Bis 0.15.1 hing das
+       Offenstehen an einem Klick; ein neu geladener Eintrag zeigte das Feld
+       deshalb nie, gleich ob ein Grund dastand oder nicht. */
+    d.w.document.getElementById('sw-rej')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    d.w.document.getElementById('sw-rej')
+      .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Ein erneutes Ablehnen macht es nicht auf -- der Grund steht ja da',
+      fsFeld(d)?.hidden === true && fsMarke(d)?.hidden === false,
+      JSON.stringify([fsFeld(d)?.hidden, fsMarke(d)?.hidden]));
+    d.w.close();
+  }
+
+  /* --- UND DIE VIERTE LAGE IST DIE RECHTEFRAGE: wer nicht schreiben darf,
+     bekommt das Feld auch dann nicht, wenn ein Grund fehlt. Sonst stuende ein
+     Eingabefeld da, dessen Inhalt der Server mit 403 abweist. --- */
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1',
+      ablehnung: { at: '2026-03-14 09:12:00', grund: null,
+                   verfasser: { id: 2, name: 'Anna', geloescht: false } },
+      einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false } });
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Wer nicht schreiben darf, bekommt auch ohne Grund kein Feld',
+      fsFeld(d)?.hidden === true, JSON.stringify(fsFeld(d)?.hidden));
+    pruefe('Die Aussage liest er dafuer',
+      fsMarke(d)?.hidden === false, JSON.stringify(fsMarke(d)?.hidden));
+    d.w.close();
+  }
 
   /* ================= Der Filter „abgelehnt" — 0.15.0 ===================
      DER BEFUND KAM AUS DEM BETRIEB: die Statuszeile trug „Alles anzeigen ·
@@ -28937,13 +29054,13 @@ async function pruefeOberflaeche() {
     pruefe('Und das Merkmal bleibt gesetzt',
       d.w.document.getElementById('sw-rej-t')?.textContent === 'Abgelehnt',
       JSON.stringify(d.w.document.getElementById('sw-rej-t')?.textContent));
-    /* OHNE BEGRUENDUNG GIBT ES KEINEN TEXT ZUM ANKLICKEN -- dann muss das ✎
-       dastehen, sonst gaebe es keinen Weg mehr hinein. Der Papierkorb dagegen
-       faellt weg: an einem leeren Feld boete er an, nichts zu entfernen. */
-    pruefe('Das Stiftsymbol bleibt, der Papierkorb geht',
-      !!ruhStift(d) && !ruhWeg(d), JSON.stringify([!!ruhStift(d), !!ruhWeg(d)]));
-    pruefe('Und der Stift sagt jetzt "schreiben" statt "ändern"',
-      ruhStift(d)?.title === 'Begründung schreiben', JSON.stringify(ruhStift(d)?.title));
+    /* UND DAS FELD KOMMT VON SELBST ZURUECK -- seit 0.15.1 haengt es am
+       ZUSTAND: abgelehnt und kein Grund heisst offen. Damit braucht es hier
+       kein ✎ mehr, um wieder hineinzukommen; der Weg steht ohnehin offen.
+       Bis 0.15.1 stand hier das ✎ allein da und das Feld blieb zu. */
+    pruefe('Das Feld kommt nach dem Entfernen von selbst zurueck',
+      ruhZeile(d)?.hidden === false && ruhFeld(d)?.value === '',
+      JSON.stringify([ruhZeile(d)?.hidden, ruhFeld(d)?.value]));
     d.w.close();
   }
 
@@ -29015,14 +29132,16 @@ async function pruefeOberflaeche() {
      und die Zusage des Servers liefe ins Leere. --- */
   {
     const d = await ruhBaue(null, null);
-    pruefe('An einer herrenlosen Ablehnung steht der Stift fuer den, der aendern darf',
-      !!ruhStift(d), '(kein Stift)');
-    pruefe('Und ohne Grund steht kein Papierkorb daneben',
-      !ruhWeg(d), '(Papierkorb steht da)');
+    /* SEIT 0.15.1 STEHT DORT DAS FELD SELBST OFFEN und nicht bloss ein ✎:
+       abgelehnt und kein Grund ist genau der Zustand, in dem etwas fehlt. */
+    pruefe('An einer herrenlosen Ablehnung steht das Feld offen fuer den, der aendern darf',
+      ruhZeile(d)?.hidden === false, JSON.stringify(ruhZeile(d)?.hidden));
+    pruefe('Und die Aussage tritt so lange zurueck',
+      ruhMarke(d)?.hidden === true, JSON.stringify(ruhMarke(d)?.hidden));
     const fremd = await ruhBaue(null, null, { admin: false });
-    pruefe('Wer den Eintrag nicht aendern darf, bekommt auch dort keinen',
-      !ruhStift(fremd) && !ruhWeg(fremd),
-      JSON.stringify([!!ruhStift(fremd), !!ruhWeg(fremd)]));
+    pruefe('Wer den Eintrag nicht aendern darf, bekommt weder Feld noch Zeichen',
+      ruhZeile(fremd)?.hidden === true && !ruhStift(fremd) && !ruhWeg(fremd),
+      JSON.stringify([ruhZeile(fremd)?.hidden, !!ruhStift(fremd), !!ruhWeg(fremd)]));
     /* DIE ZEILE BLEIBT IHR TROTZDEM STEHEN: das Datum ist bekannt, und es ist
        der Inhalt der Entscheidung. Weg bliebe sie nur, wenn gar nichts
        bekannt waere UND kein Zeichen dastuende -- diese Lage steht in der
@@ -29093,6 +29212,45 @@ async function pruefeOberflaeche() {
        Absicht. */
     pruefe('Und jeder benutzte Vorgabewert steht im Stilblatt',
       ruhVar.every(v => css123.includes(`${v.slice(4, -1)}:`)), JSON.stringify(ruhVar));
+  }
+
+  /* ---- `hidden` MUSS WIRKEN, UND ZWAR UEBERALL — 0.15.1 ----
+     DER BEFUND AUS DEM BETRIEB: an einem NICHT abgelehnten Eintrag standen
+     Aussage und Eingabefeld trotzdem da. `hidden` war an beiden gesetzt, und
+     der Browser zeichnete sie mit `display: flex`. Der Grund ist eine
+     Rangfrage: `[hidden] { display: none }` steht im Stylesheet des BROWSERS,
+     und jede Regel aus `style.css` schlaegt die.
+     WARUM DAS KEIN PRUEFLAUF GESEHEN HAT: jsdom rechnet kein CSS, und alle
+     Pruefungen fragen `element.hidden` -- die EIGENSCHAFT. Die war wahr
+     (Stolperstein 212). Nachgemessen wurde in Chromium; die Zahlen stehen im
+     Aenderungsprotokoll 0.15.1.
+     WAS HIER GEHT, IST DIE REGEL SELBST -- und das ist kein Ersatz fuer die
+     Messung, sondern die Sperre dagegen, dass sie wieder verschwindet. */
+  {
+    const hidRegel = /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(css123);
+    pruefe('Das Stilblatt stellt `hidden` grundsaetzlich wieder her',
+      hidRegel, (css123.match(/\[hidden\][^}]*\}/) || ['(keine Regel)'])[0]);
+    /* MIT `!important`, UND DAS IST DER PUNKT: ohne muesste die Regel jede
+       kuenftige display-Regel ueberbieten -- ein Wettlauf, den sie irgendwann
+       verliert. */
+    pruefe('Und zwar mit !important, nicht auf gut Glueck',
+      /\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/.test(css123),
+      (css123.match(/\[hidden\][^}]*\}/) || ['(keine Regel)'])[0]);
+    /* UND SIE STEHT GENAU EINMAL. Zwei oertliche Flicken (`.zug-neu [hidden]`
+       und `.lb-btn[hidden]`) hatten dasselbe Problem zweimal an seiner
+       jeweiligen Stelle geloest -- und beim dritten Mal schlug es wieder zu.
+       Eine zweite Regel daneben waere genau die zweite Wahrheit, die diese
+       Runde aufloest. */
+    const hidAlle = css123.match(/[^{}]*\[hidden\][^{}]*\{/g) || [];
+    pruefe('Und sie steht genau einmal, ohne oertliche Flicken daneben',
+      hidAlle.length === 1, JSON.stringify(hidAlle));
+    /* DIE GEGENPROBE ZUM MASSSTAB: es gibt ueberhaupt Regeln, die `display`
+       setzen und ein Element mit `hidden` treffen koennen -- sonst pruefte die
+       Zeile darueber eine Sache ohne Gegenstand (Stolperstein 81). */
+    const hidGefahr = ['.row-in', '.rej-aussage', '.lb-btn']
+      .filter(w => /display:\s*(flex|grid|block|inline-flex)/.test(regel123(w)));
+    pruefe('Und es gibt wirklich display-Regeln, die `hidden` schlagen wuerden',
+      hidGefahr.length === 3, JSON.stringify(hidGefahr));
   }
 }
 

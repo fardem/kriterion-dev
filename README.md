@@ -203,7 +203,7 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 
 ## Eine neuere Version über eine bestehende einspielen
 
-> **0.15.0 IST KEINE DATENBANKSTUFE** — kein Schema, kein Migrationscode, das
+> **0.15.1 IST KEINE DATENBANKSTUFE** — kein Schema, kein Migrationscode, das
 > Austauschformat bleibt bei 11. **Die Sicherung ist deshalb Empfehlung und
 > nicht Pflicht.** *Wer sie mitnimmt, tut nichts Falsches; die Zeile steht unten
 > ohnehin im Rezept.*
@@ -1219,6 +1219,12 @@ es zwei, beide im Systembereich einstellbar:
   Der Grund selbst steht **hervorgehoben** da, Datum und Name gedämpft.
   **Jedes der drei darf fehlen**, und die Zeile setzt sich aus dem zusammen, was
   bekannt ist; ein entfernter Zugang erscheint als „Gelöschter Benutzer 7".
+- **Wann das Eingabefeld dasteht** (seit 0.15.1): **solange abgelehnt ist und
+  noch kein Grund dasteht** — und darüber hinaus dann, wenn man es über den
+  Text oder das ✎ aufmacht. *Nie beides zugleich mit der Aussage, und an einem
+  Eintrag, der nicht abgelehnt ist, steht gar nichts davon.* **Wird ein Eintrag
+  mit vorhandener Begründung erneut abgelehnt, bleibt das Feld zu** — die alte
+  Begründung steht dann in der Aussage.
 - **Ändern und Entfernen der Begründung** (seit 0.15.0): ein Klick auf den Text
   oder auf das **✎** daneben öffnet das Feld wieder — **beides nur für den, der
   die Begründung getroffen hat.** Das **✕** daneben entfernt sie nach Rückfrage,
