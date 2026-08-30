@@ -149,7 +149,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.15.0** *MINOR* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Zwei Befunde aus dem Betrieb, beide an der Ablehnung: der fehlende Filter für „abgelehnt" und die Begründung, die nicht zur Ruhe kam. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.0.** *Die Runde stand nie im Fahrplan; sie hat ihre Nummer bekommen, weil zwei ihrer drei Punkte Funktionen bringen — **und alle folgenden Runden sind dadurch um eine Stelle gerückt.*** |
 | **0.15.1** *PATCH* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Ein Befund aus dem Betrieb: `hidden` wirkte im Stilblatt nicht, weil jede eigene `display`-Regel die Vorgabe des Browsers schlägt — Aussage und Eingabefeld standen an einem *nicht* abgelehnten Eintrag da. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.1.** *Dazu die Regel, wann das Feld überhaupt dasteht: abgelehnt und kein Grund.* |
 | **0.16.0** *MINOR, Schema* *(war 0.15.0)* — **GEBAUT am 29. August 2026** | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt)*. **Was gebaut wurde, steht im Änderungsprotokoll 0.16.0.** *Zwei Abweichungen: **die „Vorschau der Rangfolge" ist NICHT mitgefahren** — sie ist der einzige Teil mit eigener Ansicht und eigenem Endpunkt und war im Auftrag als erster Kandidat des Schnitts benannt; sie steht weiter in Abschnitt 10 des Projektstands. Und **die Runde ist doch eine Datenbankstufe geworden**: `ratings` trug keinen Zeitpunkt, und ohne ihn kann die Glocke über fremde Bewertungen nichts sagen — siebter Migrationsblock, auf ausdrückliche Anweisung.* **Mitgefahren ist der Werkzeugbefund am Rückbaufilter aus Teil II.** |
-| **0.17.0** *MINOR* | **Was dasteht, und was nicht dasteht** — neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, keiner davon aus diesem Blatt und keiner aus dem Fahrplan. Die Kriterienliste zerfällt bei genau **einem** Zugang; zwei Erklärtexte verlassen die Oberfläche; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen wird.** *Die Nummer ist MINOR, weil die Glockentafel eine Funktion bringt; der Auftrag ging als 0.16.1 in die Besprechung.* **Ausarbeitung: Projektstand, Abschnitt 10a** |
+| **0.17.0** *MINOR* — **GEBAUT am 30. August 2026** | **Was dasteht, und was nicht dasteht** — neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, keiner davon aus diesem Blatt und keiner aus dem Fahrplan. Die Kriterienliste zerfällt bei genau **einem** Zugang; zwei Erklärtexte verlassen die Oberfläche; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen wird.** *Die Nummer ist MINOR, weil die Glockentafel eine Funktion bringt; der Auftrag ging als 0.16.1 in die Besprechung.* **Was gebaut wurde, steht im Änderungsprotokoll 0.17.0.** *Alle neun Punkte sind gebaut; nichts ist hierher zurückgekommen. **Eine Abweichung:** die Tafel nennt die Namen nur zu den **Kommentaren** — „Eine Glocke, die nennt, WER bewertet hat" steht in Teil III dieses Blatts als geprüft und verworfen, und die gebaute Fassung hält sich daran. **Und ein zehnter Befund ist beim Bauen dazugekommen und gleich mitgefahren:** der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt — derselbe blinde Fleck wie Punkt 1, eine Ansicht weiter.* |
 | **0.18.0** *MINOR* *(war 0.17.0)* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
 | **0.19.0** *MINOR* *(war 0.18.0)* | Die Bildablage: Original und zwei Ableitungen |
 
@@ -424,16 +424,51 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 
 ### Aus dem Betrieb und aus den Runden
 
-> **DIE NEUN BEFUNDE VOM 30. AUGUST 2026 STEHEN NICHT MEHR HIER.** Sie sind am
-> selben Tag ausgearbeitet worden und haben ihre Nummer bekommen: **0.17.0**.
-> *Damit sind sie nach Regel 3 von diesem Blatt fortgezogen — was schon eine
-> Nummer hat, steht nicht hier, sondern im Fahrplan.* **Ihre Ausarbeitung steht
-> im Projektstand, Abschnitt 10a**, der Auftrag dazu in
-> `Doku/Auftrag_0.17.0.md`.
+> **DIE NEUN BEFUNDE VOM 30. AUGUST 2026 SIND GEBAUT.** Sie standen hier einen
+> halben Tag lang, haben am selben Tag ihre Nummer bekommen — **0.17.0** — und
+> sind an diesem Tag vollständig gebaut worden. *Ein Punkt wandert vom
+> Sammelblatt in den Fahrplan und von dort in ein Änderungsprotokoll, nie
+> zurück.* **Was gebaut wurde, steht im Änderungsprotokoll 0.17.0.**
 >
-> *Was die Runde am Ende NICHT baut, kommt hierher zurück — mit einem Satz
-> dazu, warum.*
+> **KEINER DER NEUN IST ZURÜCKGEKOMMEN** — es ist nichts geblieben, was hier
+> wieder aufzuschreiben wäre.
+>
+> **DAZU ZWEI ZEILEN, DIE DIE RUNDE SELBST ERZEUGT HAT** — sie stehen gleich
+> hier darunter: *dieselbe Art Satz, die Punkt 2 aus zwei Stellen genommen hat,
+> steht an zwölf weiteren*, und *eine tote Regel im Stilblatt aus 0.16.0*. **Eine
+> dritte steht in Teil II unter „Am Prüfstand"** — `gegenprobe.js` kann einen
+> Abriss nicht von einer Störung von außen unterscheiden.
 
+- **Dieselbe Art Satz wie in Punkt 2 von 0.17.0 steht an zwölf weiteren
+  Stellen in der Oberfläche** *(0.17.0, aus der Durchsicht der Runde —
+  nachgesehen und aufgeschrieben, nicht behoben)*.
+  **Die Regel steht seit 0.17.0 im Projektstand, Abschnitt 5.6:** eine
+  Oberfläche sagt, WAS IST, nicht, warum sie so gebaut wurde. Zwei Stellen sind
+  in jener Runde gestrichen worden; **die übrigen sind gefunden, benannt und
+  ausdrücklich stehengeblieben**, weil der Auftrag „nachsehen und aufschreiben"
+  verlangte und nicht „beheben".
+  **Die Liste mit Zeilennummer und Wortlaut steht im Änderungsprotokoll
+  0.17.0**, Abschnitt „Offen geblieben". Die klarsten Fälle: *„ein
+  Sicherheitsprotokoll, das sich wegräumen lässt, wäre keins"* (Karte
+  „Sicherheitsprotokoll"), *„ein Knopf, der an eine beliebige Adresse schickt,
+  wäre ein offener Mailverteiler hinter einer Anmeldung"* (Karte „Mailversand")
+  und *„das ist so gewollt und bleibt so"* (Karte „Meine Sitzungen").
+  **Drei Grenzfälle gehören dazu und sind KEIN Befund:** eine **fachliche
+  Warnung** ist erlaubt, und eine **Folge**, die man kennen muss, um zu
+  entscheiden, auch. *Der Unterschied ist die Frage, die der Satz beantwortet:
+  „was passiert, wenn ich das tue" ja — „warum haben wir das so gebaut" nein.*
+  *(Claude: eine eigene kleine Runde wert, aber keine eilige. Zwölf Sätze in
+  einer Datei, jeder einzeln zu entscheiden — und die Hälfte davon sind
+  Grenzfälle, über die man reden muss.)*
+- **`.rz-summe:first-of-type` im Stilblatt kann nie greifen** *(0.16.0, beim
+  Bau von 0.17.0 aufgefallen)*. Die Regel soll der ersten Summenzeile des
+  Erklärkastens einen Strich darüber geben; `:first-of-type` zählt aber
+  **DIV-Geschwister**, und das erste `div` in `.rechnung` ist `.rz-kopf`.
+  **Die Regel ist damit tot** — der Strich entsteht heute an anderer Stelle,
+  und niemand hat es gemerkt.
+  *(Claude: eine Zeile, ein PATCH-Kandidat. Nicht in 0.17.0 mitgefahren, weil
+  sie zu keinem der neun Punkte gehört und die Runde eine Kartenbreite von
+  einem Anzeigefehler unterscheiden können muss.)*
 - **Die Tagwolke soll ab der zweiten Zeile den Platz unter „mehr" / „weniger"
   mitfüllen** *(0.13.1, aus dem Betrieb — geprüft, beziffert, zurückgestellt)*.
   Die Wolke steht seit 0.13.0 **neben** ihren Verweisen; damit endet **jede**
@@ -612,6 +647,19 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   kein Lauf lag. *(Claude: empfohlen — der Prüflauf bei jedem Push gibt es seit
   0.8.10; hier hat er entweder nicht gegriffen oder niemand hat hingesehen. Das
   gehört nachgeprüft, bevor daraus eine neue Regel wird.)*
+- **`gegenprobe.js` kann einen Abriss nicht von einer Störung von außen
+  unterscheiden** *(0.17.0)*. **Art: Werkzeug.** Spur 0 fährt ohne Versatz,
+  also auf denselben Portbasen wie ein gewöhnlicher `npm test`. Läuft daneben
+  ein Prüflauf, nimmt er ihr die Ports, ihre Server enden sofort — und der
+  Bericht meldet **ABGERISSEN**, was wie ein Befund über den Rückbau aussieht.
+  *In dieser Runde ist genau das passiert, und ein `pkill` auf den Namen hat es
+  auf alle vier Spuren ausgedehnt: die verwaisten Server blieben stehen und
+  nahmen der nächsten Runde die Ports, bis neunzehn Rückbauten hintereinander
+  falsch gemeldet waren.* **Die Antwort wäre klein:** vor dem Start nachsehen,
+  ob auf den Portbasen der Spuren schon jemand horcht, und beim Aufräumen nach
+  Prozessnummer statt nach Namen greifen — beides steht als Bauform schon in
+  `prozesseUnter()`. *(Claude: empfohlen — klein, und es verhindert einen
+  Befund, den es gar nicht gibt)*
 
 ### Aus der Durchsicht für Telefon und Tablett
 
@@ -702,12 +750,17 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
 - **Die Sortierung nach `updated_at` für alle.** Die Entscheidung ist richtig;
   sie hatte eine Lücke, und die ist mit „Neu seit meinem letzten Besuch"
   (0.8.60) **daneben** geschlossen worden statt durch Umbau.
+  *Nachtrag 30. August 2026: die Pille ist mit 0.17.0 gestrichen, ihre Auskunft
+  trägt die Glocke. **Die Sortierung bleibt, was sie war** — und sie ist jetzt
+  das Einzige, was eine Titeländerung oder eine neue Datei noch sichtbar
+  macht: was sich zuletzt getan hat, steht oben. Wird das doch zu wenig, ist
+  das ein neuer Befund und keine Rückkehr der Pille.*
 - **Kriteriengruppen je Kategorie.** Die Alternative zu „eine Anlage ist ein
   Sachgebiet". Sie ist ein Umbau an Kriterienverwaltung, Detailansicht,
   Vergleich, Austauschformat und Gesamtschnitt — und sie beantwortet eine
   Frage, die ein Absatz in der README billiger beantwortet. **Vorgemerkt ist
   deshalb der Absatz** (Projektstand, Abschnitt 10), nicht der Umbau.
-- **Wortgrenzensuche statt Teilstring.** Siehe Fahrplan 0.17.0, „Die Suche schärfen" (d): In einem
+- **Wortgrenzensuche statt Teilstring.** Siehe Fahrplan 0.18.0, „Die Suche schärfen" (d) *(war 0.17.0; die Nummer ist am 30. August 2026 weitergerückt)*: In einem
   Katalog voller Typnummern verschwiege sie still Treffer.
 - **Ein Cookiename mit bedingtem `Secure`.** Der billige Weg an Fahrplan 0.13.0, „Der Proxy ist ein Ja/Nein",
   vorbei — und der falsche: er gäbe Sicherheit auf, statt Bequemlichkeit zu
@@ -760,9 +813,19 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
   Kaskaden und ein Migrationsblock, **für eine Zahl, die sich aus vorhandenen
   Zeitstempeln errechnen lässt.** Siehe Fahrplan 0.16.0, „Die Glocke" (f).
 - **Eine Glocke, die nennt, WER bewertet hat.** Sie hebelte die Entscheidung
-  aus, dass eine einzelne Bewertung anonym bleibt (`server.js:2202`, die Liste
-  „Wer hat bewertet" ist nur für den Admin) — und zwar an der Stelle, an der es
-  am wenigsten auffällt. **Die Zahl ja, der Name nie.**
+  aus, dass eine einzelne Bewertung anonym bleibt (die Liste „Wer hat bewertet"
+  ist nur für den Admin) — und zwar an der Stelle, an der es am wenigsten
+  auffällt. **Die Zahl ja, der Name nie.**
+  > **DIESE ZEILE IST AM 30. AUGUST 2026 AUF DIE PROBE GESTELLT WORDEN — UND
+  > SIE HAT GEHALTEN.** Der Auftrag zu 0.17.0 verlangte, die Glockentafel sage
+  > bei jeder Zeile dazu, **von wem** — und die Zeile zählt Kommentare **und**
+  > Bewertungen. **Gebaut ist deshalb die Fassung, die weniger preisgibt:** die
+  > Namen kommen aus den **Kommentaren**, eine Zeile mit ausschließlich neuen
+  > Bewertungen trägt keinen. *Ein Kommentar trägt seinen Verfasser am Eintrag
+  > ohnehin sichtbar; eine Bewertung tut das nicht.* **Die Abweichung steht im
+  > Änderungsprotokoll 0.17.0, mit Grund** — und als Stolperstein 230:
+  > *ein Auftrag kann einer stehenden Entscheidung widersprechen, ohne dass es
+  > jemandem auffällt.*
 - **Eine Glocke nur für den Desktop.** Was in `.mast-rest` steht, wandert auf
   dem Telefon von selbst ins Menü — *ein Markup, zwei Gestalten* (0.12.0). Eine
   Fassung nur für ein Gerät wäre eine Weiche nach Gerät, und genau die hat
