@@ -2550,6 +2550,13 @@ app.get('/api/items', (req, res) => {
        Regel und nicht zwei. Eine Zeile mit ausschliesslich neuen Bewertungen
        traegt deshalb keinen Namen; „2 Bewertungen" ist dort die ganze
        Auskunft. */
+    /* DIE EINDEUTIGKEIT KOMMT AUS DEM GROUP BY, NICHT AUS DER MENGE. Die
+       Abfrage gruppiert nach Eintrag UND Verfasser und liefert je Paar genau
+       eine Zeile; die Menge hier ist das zweite Netz und nicht das erste.
+       DAS IST NACHGEMESSEN UND NICHT GEGLAUBT: ein Rueckbau, der die Menge
+       gegen eine Liste tauschte, blieb STUMM -- er konnte nichts bewirken,
+       weil es nichts zu entdoppeln gibt. Die Zusage haengt am GROUP BY, und
+       dort greift seit 0.17.0 auch der Rueckbau (Stolperstein 235). */
     const wer = (id, uid) => {
       if (!neuVonJe.has(id)) neuVonJe.set(id, new Set());
       neuVonJe.get(id).add(uid);

@@ -582,7 +582,7 @@ sich geändert hat (Stolperstein 201).
 | `gegenprobe.js` | **33 neue (301–333)**; **zehn vorhandene nachgezogen** (143, 208, 238, 239, 252, 282, 283, 285, 286, 291), einer davon (286) **umgedreht**, einer (238) in zwei zerlegt. *329 schließt die letzte blinde Stelle der neuen Gruppe — die Zelle löst sich von der Bedingung, während die Klasse bleibt, die Gegenrichtung zu 301; 330 gehört zu Punkt 5a.* |
 | `README.md` | Der Erklärkasten bekommt die Vergleichszahl; „Die Glocke und der Zähler ‚Offen'" ist umgeschrieben (von allen, was neu ist, von wem, und was verlorengeht); die Pille aus der Filterliste und aus der Kopfzeile der Tabelle entfernt; acht statt neun persönliche Schlüssel. |
 | `CHANGELOG.md` | Eintrag `0.17.0` in der Form der Nachbarn, samt „Was du danach von Hand tun musst" (**Sicherung ist Empfehlung**) und dem Vergleichsverweis am Ende. |
-| `Doku/Projektstand_Kriterion_0_16_0.md` → `_0_17_0.md` | **`git mv`.** Kopf (Revision 40), Betriebsstand samt Einspielweg, die Einstellungstabelle, die Filterleiste, **Abschnitt 5.6 mit der neuen Regel**, die Glocke in 5.6, **Stolpersteine 226–234**, Prüfstand, Versionsgeschichte, Abschnitt 8, Abschnitt 10 und 10a. *Kein anderes Papier nennt den alten Dateinamen — nachgesehen über das ganze Repo; die Nennungen in älteren Änderungsprotokollen meinen ihre eigene Version und bleiben.* |
+| `Doku/Projektstand_Kriterion_0_16_0.md` → `_0_17_0.md` | **`git mv`.** Kopf (Revision 40), Betriebsstand samt Einspielweg, die Einstellungstabelle, die Filterleiste, **Abschnitt 5.6 mit der neuen Regel**, die Glocke in 5.6, **Stolpersteine 226–235**, Prüfstand, Versionsgeschichte, Abschnitt 8, Abschnitt 10 und 10a. *Kein anderes Papier nennt den alten Dateinamen — nachgesehen über das ganze Repo; die Nennungen in älteren Änderungsprotokollen meinen ihre eigene Version und bleiben.* |
 | `Doku/Fehler_und_Ideen.md` | Wegweiser auf **GEBAUT**; der Kasten in Teil II sagt, dass nichts zurückgekommen ist; **drei neue Zeilen** (die zwölf Erklärsätze, die tote Regel `.rz-summe:first-of-type`, und in Teil II unter „Am Prüfstand" der Werkzeugbefund an `gegenprobe.js`); der Vermerk an der zurückgenommenen Zeile in Teil III; zwei Fahrplanverweise von 0.17.0 auf 0.18.0 nachgezogen. |
 | `db.js`, `auth.js`, `mail.js`, `anhaenge.js`, `keys.js`, `zugang.js`, `schluessel.js`, `zweifaktor.js` | **unverändert.** |
 
@@ -741,7 +741,7 @@ abgeschrieben:**
 | **318** | `server.js` | Der Server legt beide Zahlen wieder in eine Kiste |
 | **319** | `public/app.js` | Die Tafel ordnet nach den Kommentaren statt nach der Summe |
 | **320** | `public/app.js` | Die Tafel sagt nicht mehr, von wem etwas kommt |
-| **321** | `server.js` | Ein Verfasser steht in der Tafel mehrfach |
+| **321** | `server.js` | Die Abfrage gruppiert nicht mehr nach Verfasser |
 | **322** | `public/app.js` | Die Namen werden mit Kommas bis zum Schluss aufgezaehlt |
 | **323** | `public/app.js` | Der Schluessel der gestrichenen Pille bleibt in der Stellung stehen |
 | **324** | `public/app.js` | Der Bezugspunkt faellt bei jedem Verlassen der Uebersicht |
@@ -762,7 +762,7 @@ abgeschrieben:**
 
 ## 11. Neue Stolpersteine
 
-**226 bis 234.** Ausführlich stehen sie im Projektstand, Abschnitt 6; hier je
+**226 bis 235.** Ausführlich stehen sie im Projektstand, Abschnitt 6; hier je
 ein Satz:
 
 * **226 — Ein Raster mit fester Spaltenzahl und einer BEDINGTEN Zelle zerfällt
@@ -794,6 +794,9 @@ ein Satz:
   zweite getippt: in der Prüfung, die sie dafür geschrieben hat.** *Eine Lehre
   wandert nicht von selbst; wer sie zieht, sucht am selben Tag die anderen
   Stellen, an denen dieselbe Zahl zweimal steht.*
+* **235 — Ein Rückbau, der ein ZWEITES Netz wegnimmt, bleibt stumm.** Die
+  Eindeutigkeit der Verfasser kommt aus dem `GROUP BY` und nicht aus der Menge
+  darunter. *Der Anker gehört an die tragende Zusage.*
 
 ---
 

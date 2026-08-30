@@ -5714,6 +5714,21 @@ Version, in der sie entstanden sind.*
     (Stolperstein 199) — *ein Kommentar ist keine Prüfung, auch dann nicht,
     wenn er sorgfältig ist.*
 
+235. **Ein Rückbau, der ein ZWEITES Netz wegnimmt, bleibt stumm — und das ist
+    ein Fund über die Prüfung, nicht über die Anlage.** Rückbau 321 tauschte
+    die Menge in `neuVon` gegen eine Liste und sollte zeigen, dass ein
+    Verfasser **nur einmal** in der Tafel steht. **Er konnte nichts zeigen:**
+    die Eindeutigkeit kommt aus `GROUP BY item_id, user_id`, das je Paar genau
+    **eine** Zeile liefert — die Menge sieht nie ein Doppel. *Zwei Anläufe
+    waren nötig, um das zu sehen: der erste riss den Lauf ab (`.add()` gibt es
+    an einer Liste nicht, Stolperstein 138), der zweite lief sauber durch und
+    blieb **STUMM**.* **Der Anker gehört an die tragende Zusage und nicht an
+    das Netz darunter** — er greift jetzt am `GROUP BY`, und dann steht in der
+    Tafel nur noch **ein** Name statt aller. *Die Menge bleibt trotzdem stehen:
+    sie kostet nichts und trägt, wenn jemand die Abfrage eines Tages anders
+    gruppiert. Was sich geändert hat, ist der Kommentar daneben — er sagt
+    jetzt, welche der beiden Zusagen die tragende ist.*
+
 ---
 
 ## 7. Prüfstand
@@ -6282,7 +6297,7 @@ eine Buchführung.*
 | 0.15.0 | Der Filter und der Stift (89 netto) | 18 neue (249 → 267), alle achtzehn gefahren; zwei nachgezogen, einer repariert | Stolpersteine 208 bis 213 |
 | 0.15.1 | `hidden` wirkt wieder (15) | 4 neue (267 → 271); alle vier plus drei nachgezogene gefahren, keiner stumm | Stolpersteine 214 bis 216 |
 | 0.16.0 | Der Systembereich, die Glocke und die Auskunft (157) | 29 neue (271 → 300); gefahren wurden sie einzeln, **sieben Befunde** dabei | Stolpersteine 217 bis 225 |
-| **0.17.0** | **Was dasteht, und was nicht dasteht (107 netto)** | **33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); GEGENPROBENSTAND** | **Stolpersteine 226 bis 234** |
+| **0.17.0** | **Was dasteht, und was nicht dasteht (107 netto)** | **33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); GEGENPROBENSTAND** | **Stolpersteine 226 bis 235** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die

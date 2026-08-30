@@ -2957,19 +2957,17 @@ const RUECKBAUTEN = [
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* EIN NAME STEHT MEHRFACH DA, wenn er zweimal kommentiert hat: die Tafel
-       sagt WER, nicht wie oft.
-       DER ERSTE ANLAUF DIESES RUECKBAUS HAT DEN LAUF ABGERISSEN. Er tauschte
-       nur die Menge gegen eine Liste; das darauffolgende .add() gibt es an
-       einer Liste nicht, der Aufruf warf, GET /api/items antwortete mit 500,
-       und die Prueflage kam gar nicht erst zustande -- der Bericht meldete
-       nach 13 Sekunden ABGERISSEN statt einer roten Zeile (Stolperstein 138).
-       JETZT WIRD BEIDES GETAUSCHT: Menge zu Liste UND add() zu push(). Der
-       Code laeuft weiter und tut das Falsche -- genau das soll ein Rueckbau. */
-    nr: '321', name: 'Ein Verfasser steht in der Tafel mehrfach',
+    /* DIE ABFRAGE GRUPPIERT NICHT MEHR NACH VERFASSER. Dann liefert sie je
+       Eintrag EINE Zeile, und in `neuVon` steht nur noch EIN Name statt aller
+       -- die Tafel sagt dann die halbe Wahrheit darueber, von wem etwas kommt.
+       ZWEI ANLAEUFE VORHER ZIELTEN AUF DIE MENGE und blieben STUMM: die
+       Eindeutigkeit kommt aus dem GROUP BY, nicht aus der Menge, und ein
+       Rueckbau, der ein zweites Netz wegnimmt, kann nichts zeigen
+       (Stolperstein 235). Der Anker gehoert an die tragende Zusage. */
+    nr: '321', name: 'Die Abfrage gruppiert nicht mehr nach Verfasser',
     datei: 'server.js',
-    suche: "      if (!neuVonJe.has(id)) neuVonJe.set(id, new Set());\n      neuVonJe.get(id).add(uid);",
-    ersatz: "      if (!neuVonJe.has(id)) neuVonJe.set(id, []);\n      neuVonJe.get(id).push(uid);",
+    suche: "    WHERE created_at > ? GROUP BY item_id, user_id`);",
+    ersatz: "    WHERE created_at > ? GROUP BY item_id`);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
