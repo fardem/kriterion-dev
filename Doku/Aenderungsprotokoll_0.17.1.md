@@ -637,7 +637,46 @@ war.** Er heißt jetzt *„Die Anmeldezeile darf wieder breiter werden als ihr
 Kasten"* und tauscht die nachgebende Namensspalte gegen `max-content`:
 **dieselbe Zusage, ein anderer Anker.**
 
-*Der Lauf läuft noch; die Tabelle wird nachgetragen.*
+### Der Lauf — 30. August 2026, 21 Rückbauten in drei Nebenspuren
+
+**21 gefahren · 0 STUMM · rund 47 Minuten.** *Jeder Rückbau ist ein voller
+Prüflauf in einer eigenen Kopie aus `git archive HEAD`; der Arbeitsbaum wird
+nicht angefasst.* **Die Zeile „Jeder Suchtext kommt in seiner Datei genau
+einmal vor" wird bei JEDEM gefahrenen Rückbau rot** — sein Suchtext ist ja
+gerade ersetzt worden; sie zählt deshalb nicht als Wirkung.
+
+**GEFAHREN WURDEN DIE ZWANZIG NEUEN UND DER NACHGEZOGENE 305**, nicht die
+ganze Liste. *Der volle Lauf über alle 353 steht weiter aus (Abschnitt 14).*
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 305 | Die Anmeldezeile darf wieder breiter werden als ihr Kasten | 4 Prüfungen, darunter „Und ihre Namensspalte gibt nach, statt die Zeile breiter zu machen" (2 Gruppen) |
+| 334 | Die Marke am Adressfeld behauptet wieder immer „freiwillig" | „Mit Selbstanmeldung steht dort „(wird gebraucht)"", „Danach steht dort „(wird gebraucht)" -- ohne Neuladen", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 335 | Der Absatz richtet sich nicht mehr nach der Selbstanmeldung | „Mit Selbstanmeldung sagt er, dass sie gebraucht WIRD", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 336 | Der Merker der Selbstanmeldung bleibt beim Umlegen stehen | „Danach steht dort „(wird gebraucht)" -- ohne Neuladen", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 337 | Der Wirtsbefehl steht wieder bei jedem | „Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da", „Sondern der Satz, der ihm wirklich hilft", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 338 | Die Laengenvorgabe faellt vom Passwortfeld weg | „Die Laengenvorgabe steht am Feld „Neues Passwort"", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 339 | Die Liste bekommt ihre festen 280 Pixel zurueck | 4 Prüfungen, darunter „.manage-list traegt keine feste Hoehe mehr" (2 Gruppen) |
+| 340 | Die Liste verliert die Zeile, an der es sonst scheitert | „.prot-liste darf dafuer unter seinen Inhalt schrumpfen", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 341 | Die Kachel ist wieder keine Spalte | „Die Kachel ist eine Spalte", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 342 | Der Knopf in der Kachel wird wieder ueber die volle Breite gezogen | „Und ein Knopf darin bleibt so breit wie sein Wort", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 343 | Die Reihe „wohin" verliert ihre Rasterspalten | „WOHIN macht den Server breit und den Port schmal", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 344 | Auf dem Telefon bleiben die Reihen des Mailversands nebeneinander | „Auf dem Telefon fallen die Reihen wieder in eine Spalte", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 345 | Die Felder „wohin" fallen aus ihrer Reihe | 4 Prüfungen, darunter „Sie traegt drei Reihen -- die vierte Angabe steht allein" (2 Gruppen) |
+| 346 | Die alte Adresse des fuenften Abschnitts wird nicht mehr uebersetzt | 7 Prüfungen, darunter „Die alte Adresse fuehrt weiter auf denselben Abschnitt" (2 Gruppen) |
+| 347 | Der fuenfte Abschnitt heisst wieder „Anlage" | 5 Prüfungen, darunter „Die Eigentuemerin bekommt fuenf Abschnitte" (3 Gruppen) |
+| 348 | Die Zeitangaben stehen wieder linksbuendig | „Und sie stehen rechtsbuendig", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 349 | Der Name steht nicht mehr ueber beide Zeilen | „Links davon steht der Name ueber beide Zeilen", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 350 | Das Vollbild uebernimmt den inneren Abspieler nicht mehr | 8 Prüfungen, darunter „Aber nur EINES traegt noch eine Quelle" (2 Gruppen) |
+| 351 | Die uebernommene Stelle wird nicht gesetzt | „Und das Vollbild hat seine Stelle uebernommen", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 352 | Der Rueckweg beim Schliessen faellt weg | 5 Prüfungen, darunter „Nach dem Schliessen traegt wieder genau einer eine Quelle" (2 Gruppen) |
+| 353 | Die geloeschte Quelle wandert wieder zurueck | „Und die geloeschte Quelle wandert NICHT zurueck", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+
+**353 IST DIE ZEILE, DIE OHNE IHRE EIGENE PRÜFLAGE STUMM GEBLIEBEN WÄRE**
+(Stolperstein 239). Sie schützt davor, dass die Quelle eines gelöschten Videos
+an den inneren Abspieler zurückwandert — und über den Betrachter ist das nicht
+zu zeigen, weil er sich beim Löschen ohnehin neu zeichnet. *Erst der Rufer, der
+NICHTS neu zeichnet, macht sie sichtbar; genau diesen stellt die Prüflage.*
 
 ---
 
