@@ -755,7 +755,72 @@ abgeschrieben:**
 | **332** | `public/style.css` | Die Vergleichszeile wird dem Ergebnis gleichgestellt |
 | **333** | `public/app.js` | Die Vergleichszeile bekommt eine Zelle zu wenig |
 
-### Der Lauf — GEGENPROBENLAUF_PLATZHALTER
+### Der Lauf — 30. August 2026, 43 Rückbauten in vier Nebenspuren
+
+**43 gefahren · 0 STUMM · rund 70 Minuten.** *Jeder Rückbau ist ein voller
+Prüflauf in einer eigenen Kopie aus `git archive HEAD`; der Arbeitsbaum wird
+nicht angefasst.* **Die Zeile „Jeder Suchtext kommt in seiner Datei genau
+einmal vor" wird bei JEDEM gefahrenen Rückbau rot** — sein Suchtext ist ja
+gerade ersetzt worden; sie zählt deshalb nicht als Wirkung.
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 143 | Die Ansichten sind kein persoenlicher Schluessel mehr | 4 Prüfungen, darunter „server.js kennt genau die acht persoenlichen Schluessel" (3 Gruppen) |
+| 208 | Eine Pille mit null Treffern wird nicht mehr gedaempft | 4 Prüfungen, darunter „Aussichtslose Tags werden gedämpft" (3 Gruppen) |
+| 238 | Aus dem Raster wird wieder ein gewoehnlicher Kasten | 5 Prüfungen, darunter „Die allgemeine Regel der Kriterienliste ist ein Raster ueber drei Spalten" (3 Gruppen) |
+| 239 | Die Kriterienliste bekommt ihre Rasterklasse nicht | 8 Prüfungen, darunter „Der Kasten der Kriterienliste traegt das Raster" (3 Gruppen) |
+| 252 | Der neue Filter fehlt in der Vorgabe | „Ohne Filter steht keine Zahl am Schalter", „Und sie faellt bei der Ablehnung auf „Alle" zurueck", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 282 | Der Rechenweg wird auf zwei Stellen gerundet ausgeliefert | „Die Prueflage taugt: der rohe Quotient hat mehr als zwei Stellen", „Der rohe Quotient steht ungerundet daneben", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 283 | Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr | 6 Prüfungen, darunter „server.js kennt genau die acht persoenlichen Schluessel" (3 Gruppen) |
+| 285 | Die Zahl der Kommentare steht auch ohne Bezugspunkt da | „Ohne Bezugspunkt fallen die drei Angaben ganz aus der Antwort", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 314 | Die Verfasser stehen auch ohne Bezugspunkt an jedem Eintrag | „Ohne Bezugspunkt fallen die drei Angaben ganz aus der Antwort", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 286 | Die Glocke zaehlt die eigenen Kommentare wieder nicht mit | 6 Prüfungen, darunter „Der eigene zaehlt seit 0.17.0 mit" (2 Gruppen) |
+| 291 | Das Oeffnen der Tafel zieht den Bezugspunkt nicht nach | „Das Oeffnen zieht den Bezugspunkt nach", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 301 | Die Spaltenzahl folgt dem Zustand nicht mehr | 4 Prüfungen, darunter „Und bei einem einzigen Zugang passen Zellen und Spalten zusammen" (2 Gruppen) |
+| 302 | Die Regel fuer den einen Zugang faellt aus dem Stilblatt | 6 Prüfungen, darunter „Und er unterscheidet die beiden wirklich" (2 Gruppen) |
+| 303 | Die Anmeldeseite misst die Hoehe wieder in vh | „body.anmeldung misst die Hoehe in dvh", „Und body.anmeldung behaelt 100vh als Rueckfall DAVOR", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 304 | Der Rueckfall 100vh steht hinter dem dvh statt davor | „Und .login-screen behaelt 100vh als Rueckfall DAVOR", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 305 | Die Anmeldezeile bricht wieder nur auf dem Telefon um | „Die Zeile einer Anmeldung bricht ausserhalb jeder Medienabfrage um", „Und der Zeilenabstand des Umbruchs steht daneben", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 306 | Die Karte „Mailversand" verliert ihre Breite wieder | „Als eine von genau vieren, und alle vier namentlich", „Und im Abschnitt „Zugaenge" steht keine schmale Kachel mehr", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 307 | Aus den Rasterzellen wird wieder eine eigene Zeile | „Die Zeile ist kein eigener Kasten mehr, sondern gibt ihre Zellen frei", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 308 | Die Vergleichszahl faellt aus dem Rechenweg | „Ihr Teiler ist die Zahl der bewerteten Kriterien", „Ihre Summe ist die der Kriterienschnitte, ohne jedes Gewicht", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 309 | Die Vergleichszahl rechnet die Gewichte doch wieder ein | „Ihre Summe ist die der Kriterienschnitte, ohne jedes Gewicht", „Und sie rechnet wirklich ohne Gewichte", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 310 | Die Vergleichszahl wird ungerundet ausgeliefert | „Gerundet wird auch bei ihr genau einmal", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 311 | Der Erklaerkasten laesst die Vergleichszahl weg | 6 Prüfungen, darunter „Die Prueflage taugt: gewichtet und ungewichtet sind verschieden" (2 Gruppen) |
+| 312 | Die Vergleichszahl steht auch ohne jede Gewichtung da | „Dann sagt der Kasten, dass die Gewichtung nichts aendert", „Und er behauptet keinen Unterschied", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 313 | Der Kasten rechnet die Vergleichszahl selbst nach | 4 Prüfungen, darunter „Der Kasten nennt die Zahl ohne Gewichte" (2 Gruppen) |
+| 315 | Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen | 9 Prüfungen, darunter „Sie nennt die Arten getrennt statt sie zusammenzuzaehlen" (2 Gruppen) |
+| 316 | Die Tafel schreibt auch die Null hin | 6 Prüfungen, darunter „Bei nur einer Art steht auch nur eine Angabe da" (2 Gruppen) |
+| 317 | Die Tafel schreibt die Mehrzahl auch bei einem Kommentar | „Bei nur einer Art steht auch nur eine Angabe da", „Die Einzahl steht bei beiden Woertern richtig", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 318 | Der Server legt beide Zahlen wieder in eine Kiste | 4 Prüfungen, darunter „Eine fremde Bewertung zaehlt ebenfalls" (2 Gruppen) |
+| 319 | Die Tafel ordnet nach den Kommentaren statt nach der Summe | 4 Prüfungen, darunter „Die Tafel ordnet nach der Summe, nicht nach einem der Teile" (2 Gruppen) |
+| 320 | Die Tafel sagt nicht mehr, von wem etwas kommt | 5 Prüfungen, darunter „Jede Zeile sagt, von wem" (2 Gruppen) |
+| 321 | Die Abfrage gruppiert nicht mehr nach Verfasser | „Und beide Verfasser stehen daneben", „Der Bewerter steht ausdruecklich nicht bei den Verfassern", „Jeder Suchtext kommt in seiner Datei genau einmal vor" *(nachgeholt, siehe unten)* |
+| 322 | Die Namen werden mit Kommas bis zum Schluss aufgezaehlt | „Jede Zeile sagt, von wem", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 323 | Der Schluessel der gestrichenen Pille bleibt in der Stellung stehen | „Und der Schluessel faellt aus der zurechtgerueckten Stellung heraus", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 324 | Der Bezugspunkt faellt bei jedem Verlassen der Uebersicht | „Mit vorhandenem Bezugspunkt faehrt beim Verlassen nichts mehr hinaus", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 325 | Die Zeile der Glockentafel bricht nicht mehr um | „Die Regel fuer die Zeile der Tafel steht im Stilblatt", „Und sie laesst die Zeile umbrechen", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 326 | Die Angabe „von wem" bekommt keine eigene Zeile | „Die Angabe „von wem" bekommt die volle Breite", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 327 | Die Kennzahlen begruenden den Vorbehalt wieder an der Oberflaeche | „Und sie begruendet den Vorbehalt nicht mehr an der Oberflaeche", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 328 | Die Glockentafel begruendet sich wieder selbst | „Die Tafel begruendet sich nicht mehr selbst", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 329 | Die Durchschnittszelle haengt nicht mehr an derselben Bedingung | 6 Prüfungen, darunter „Bei einem einzigen Zugang bleibt die Spalte weg" (4 Gruppen) |
+| 330 | Der Erklaerkasten verweist wieder auf die Spalte dahinter | 5 Prüfungen, darunter „Und der Satz darueber verweist genau auf sie" (2 Gruppen) |
+| 331 | Das Raster des Erklaerkastens verliert eine Spalte | „Die Zeile traegt so viele Zellen, wie das Raster Spalten hat", „Und jede Zeile des Kastens traegt dieselbe Zahl", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+| 332 | Die Vergleichszeile wird dem Ergebnis gleichgestellt | 5 Prüfungen, darunter „Sie daempft die Zahl" (2 Gruppen) |
+| 333 | Die Vergleichszeile bekommt eine Zelle zu wenig | „Die Zeile traegt so viele Zellen, wie das Raster Spalten hat", „Und jede Zeile des Kastens traegt dieselbe Zahl", „Jeder Suchtext kommt in seiner Datei genau einmal vor" |
+
+> **RÜCKBAU 321 HAT ZWEI ANLÄUFE GEBRAUCHT, und beide sind ein Befund.**
+> **Der erste riss den Lauf ab:** er tauschte die Menge in `neuVon` gegen eine
+> Liste, das folgende `.add()` gibt es an einer Liste nicht, `GET /api/items`
+> warf, und die Prüflage kam gar nicht erst zustande — nach 13 Sekunden
+> „ABGERISSEN" statt einer roten Zeile (Stolperstein 138).
+> **Der zweite lief sauber durch und blieb STUMM.** Der Grund ist der
+> eigentliche Fund: **die Eindeutigkeit der Verfasser kommt aus
+> `GROUP BY item_id, user_id`** — je Paar genau eine Zeile —, **nicht aus der
+> Menge darunter.** Ein Rückbau, der ein zweites Netz wegnimmt, kann nichts
+> zeigen.
+> **Er greift jetzt am `GROUP BY`** und ist damit greifend; die Zeile in der
+> Tabelle stammt aus diesem Nachlauf. *Als Stolperstein 235 festgehalten.*
 
 
 ---

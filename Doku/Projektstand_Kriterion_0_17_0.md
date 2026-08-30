@@ -6297,7 +6297,7 @@ eine Buchführung.*
 | 0.15.0 | Der Filter und der Stift (89 netto) | 18 neue (249 → 267), alle achtzehn gefahren; zwei nachgezogen, einer repariert | Stolpersteine 208 bis 213 |
 | 0.15.1 | `hidden` wirkt wieder (15) | 4 neue (267 → 271); alle vier plus drei nachgezogene gefahren, keiner stumm | Stolpersteine 214 bis 216 |
 | 0.16.0 | Der Systembereich, die Glocke und die Auskunft (157) | 29 neue (271 → 300); gefahren wurden sie einzeln, **sieben Befunde** dabei | Stolpersteine 217 bis 225 |
-| **0.17.0** | **Was dasteht, und was nicht dasteht (107 netto)** | **33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); GEGENPROBENSTAND** | **Stolpersteine 226 bis 235** |
+| **0.17.0** | **Was dasteht, und was nicht dasteht (107 netto)** | **33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); 43 gefahren, 0 stumm** | **Stolpersteine 226 bis 235** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
