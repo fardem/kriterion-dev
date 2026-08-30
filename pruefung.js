@@ -95,6 +95,20 @@ function schlussBlock() {
 }
 const rueckgabewert = () => (gescheitert || (FILTER && !gruppenGezeigt)) ? 1 : 0;
 const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/* SETZT EIN FELD UND SAGT, OB ES DA WAR. `feld?.value = wert` gibt es nicht --
+   optional chaining kann kein Zuweisungsziel sein, und genau deshalb standen
+   diese Zeilen ungeschuetzt da.
+   OHNE DIESEN HELFER REISST EIN RUECKBAU, DER EIN FELD WEGNIMMT, DEN GANZEN
+   LAUF AB, statt die Pruefung darunter rot zu machen -- und eine abgerissene
+   Gegenprobe belegt gar nichts (Stolperstein 161). Fehlt das Feld, bleibt der
+   Wert ungesetzt, der Knopf schickt ihn nicht mit, und die Zusage darunter
+   wird rot. Genau so soll es sein.
+   GEFUNDEN VON DEN GEGENPROBEN 273 UND 275, nicht vom Prueflauf. */
+const setzeFeld = (dok, id, wert) => {
+  const f = dok.getElementById(id);
+  if (f) f.value = wert;
+  return !!f;
+};
 
 /* SELBSTPROBE DES RAHMENS. Mit gesetztem PRUEFRAHMEN_PROBE laeuft NICHT der
    Prueflauf, sondern nur der Rahmen darueber: zwei gestellte Gruppen mit
@@ -19743,9 +19757,9 @@ async function pruefeOberflaeche() {
     !eText.includes('Intern') && !eText.includes('Beispiel'), eText.slice(0, 120));
   // Ohne Uebereinstimmung darf nichts an den Server gehen -- sonst waere ein
   // Tippfehler im Passwort sofort endgueltig.
-  einDom.w.document.getElementById('su').value = 'chefin';
-  einDom.w.document.getElementById('sp').value = 'zehn-zeichen-und-mehr';
-  einDom.w.document.getElementById('sp2').value = 'zehn-zeichen-und-mahr';
+  setzeFeld(einDom.w.document, 'su', 'chefin');
+  setzeFeld(einDom.w.document, 'sp', 'zehn-zeichen-und-mehr');
+  setzeFeld(einDom.w.document, 'sp2', 'zehn-zeichen-und-mahr');
   einDom.gesendet.length = 0;
   einDom.w.document.getElementById('sb').click();
   await new Promise(r => setTimeout(r, 40));
@@ -21649,8 +21663,8 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   await eUm.w.renderSystem();
   await new Promise(r => setTimeout(r, 30));
-  eUm.w.document.getElementById('acc-old').value = 'altes-passwort';
-  eUm.w.document.getElementById('acc-user').value = 'chefin2';
+  setzeFeld(eUm.w.document, 'acc-old', 'altes-passwort');
+  setzeFeld(eUm.w.document, 'acc-user', 'chefin2');
   eUm.w.document.getElementById('acc-save')
     .dispatchEvent(new eUm.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
@@ -21960,8 +21974,8 @@ async function pruefeOberflaeche() {
     !!gvEig.w.document.getElementById('zug-pass') &&
     !!gvEig.w.document.getElementById('zug-rolle'));
   // Wirklich zugestellt, nicht von Hand gerufen.
-  gvEig.w.document.getElementById('zug-name').value = 'neuer';
-  gvEig.w.document.getElementById('zug-pass').value = 'ein-langes-wort';
+  setzeFeld(gvEig.w.document, 'zug-name', 'neuer');
+  setzeFeld(gvEig.w.document, 'zug-pass', 'ein-langes-wort');
   gvEig.w.document.getElementById('zug-anlegen')
     .dispatchEvent(new gvEig.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
@@ -22172,8 +22186,8 @@ async function pruefeOberflaeche() {
   pruefe('Der Name ist auf 20 Zeichen begrenzt',
     sysZl.w.document.getElementById('se-name-1')?.maxLength === 20,
     `${sysZl.w.document.getElementById('se-name-1')?.maxLength}`);
-  sysZl.w.document.getElementById('se-name-2').value = 'Zweites Forum';
-  sysZl.w.document.getElementById('se-vorlage-2').value = 'https://zwei.beispiel.de/?q=%s';
+  setzeFeld(sysZl.w.document, 'se-name-2', 'Zweites Forum');
+  setzeFeld(sysZl.w.document, 'se-vorlage-2', 'https://zwei.beispiel.de/?q=%s');
   sysZl.w.document.getElementById('se-b-2').onclick();
   await new Promise(r => setTimeout(r, 30));
   const eigGesendet = sysZl.gesendet.filter(x => x.koerper && x.koerper.sucheEigene !== undefined).pop();
@@ -23890,7 +23904,7 @@ async function pruefeOberflaeche() {
   // Und der Weg funktioniert auch: ein wirklich zugestellter Druck schickt den
   // Namen. Ein Knopf, den es gibt und der nichts tut, waere nicht besser.
   anDom.gesendet.length = 0;
-  wAn.document.getElementById('newtag').value = 'Ganz neu';
+  setzeFeld(wAn.document, 'newtag', 'Ganz neu');
   wAn.document.getElementById('newtag-b').dispatchEvent(new wAn.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   const anGesendet = anDom.gesendet.filter(g => /\/api\/items\/1\/tags$/.test(g.url)).pop();
@@ -24525,8 +24539,8 @@ async function pruefeOberflaeche() {
   /* DAS PASSWORT SETZEN, mit einem WIRKLICH zugestellten Ereignis. */
   {
     const d = await eiBau('d'.repeat(64));
-    d.w.document.getElementById('ep').value = 'kurz';
-    d.w.document.getElementById('ep2').value = 'kurz';
+    setzeFeld(d.w.document, 'ep', 'kurz');
+    setzeFeld(d.w.document, 'ep2', 'kurz');
     d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Ein zu kurzes Passwort geht gar nicht erst an den Server',
@@ -24536,8 +24550,8 @@ async function pruefeOberflaeche() {
       /mindestens 10 Zeichen/.test(d.w.document.querySelector('.login-error')?.textContent || ''),
       d.w.document.querySelector('.login-error')?.textContent);
 
-    d.w.document.getElementById('ep').value = 'ein-gutes-passwort';
-    d.w.document.getElementById('ep2').value = 'ein-anderes-passwort';
+    setzeFeld(d.w.document, 'ep', 'ein-gutes-passwort');
+    setzeFeld(d.w.document, 'ep2', 'ein-anderes-passwort');
     d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Zwei verschiedene Passwoerter ebenso wenig',
@@ -24547,8 +24561,8 @@ async function pruefeOberflaeche() {
       /stimmen nicht überein/.test(d.w.document.querySelector('.login-error')?.textContent || ''),
       d.w.document.querySelector('.login-error')?.textContent);
 
-    d.w.document.getElementById('ep').value = 'ein-gutes-passwort';
-    d.w.document.getElementById('ep2').value = 'ein-gutes-passwort';
+    setzeFeld(d.w.document, 'ep', 'ein-gutes-passwort');
+    setzeFeld(d.w.document, 'ep2', 'ein-gutes-passwort');
     d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 120));
     const gesetzt = d.gesendet.find(x => x.url === '/api/token/einloesen');
@@ -24785,8 +24799,8 @@ async function pruefeOberflaeche() {
   const zdAnmelden = async (faktor) => {
     const d = baueDom(JSDOM, { angemeldet: false, anmeldeFaktor: faktor });
     await new Promise(r => setTimeout(r, 80));
-    d.w.document.getElementById('lu').value = 'chefin';
-    d.w.document.getElementById('lp').value = 'chefins-wort-100';
+    setzeFeld(d.w.document, 'lu', 'chefin');
+    setzeFeld(d.w.document, 'lp', 'chefins-wort-100');
     await zdKlick(d.w, d.w.document.getElementById('lb'));
     return d;
   };
@@ -24891,8 +24905,8 @@ async function pruefeOberflaeche() {
      dort kein Wort. */
   const zdWort = baueDom(JSDOM, { angemeldet: false, anmeldeFaktor: true });
   await new Promise(r => setTimeout(r, 80));
-  zdWort.w.document.getElementById('lu').value = 'chefin';
-  zdWort.w.document.getElementById('lp').value = 'falsches-wort-100';
+  setzeFeld(zdWort.w.document, 'lu', 'chefin');
+  setzeFeld(zdWort.w.document, 'lp', 'falsches-wort-100');
   await zdKlick(zdWort.w, zdWort.w.document.getElementById('lb'));
   pruefe('Bei falschem Passwort bleibt es bei der gewohnten Absage',
     /Benutzername oder Passwort/.test(
@@ -26242,7 +26256,7 @@ async function pruefeOberflaeche() {
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     const vorher = ziReihen(d).length;
-    d.w.document.getElementById('zug-name').value = 'neuling';
+    setzeFeld(d.w.document, 'zug-name', 'neuling');
     d.w.document.getElementById('zug-anlegen')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -26268,8 +26282,8 @@ async function pruefeOberflaeche() {
     const art = d.w.document.getElementById('zug-art');
     art.value = 'passwort';
     art.dispatchEvent(new d.w.Event('change'));
-    d.w.document.getElementById('zug-name').value = 'mitpasswort';
-    d.w.document.getElementById('zug-pass').value = 'ein-passwort-1';
+    setzeFeld(d.w.document, 'zug-name', 'mitpasswort');
+    setzeFeld(d.w.document, 'zug-pass', 'ein-passwort-1');
     d.w.document.getElementById('zug-anlegen')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -26288,8 +26302,8 @@ async function pruefeOberflaeche() {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     pruefe('Beim Anlegen steht ein Adressfeld',
       !!d.w.document.getElementById('zug-mail'), 'kein Adressfeld');
-    d.w.document.getElementById('zug-name').value = 'neuling';
-    d.w.document.getElementById('zug-mail').value = 'neuling@beispiel.de';
+    setzeFeld(d.w.document, 'zug-name', 'neuling');
+    setzeFeld(d.w.document, 'zug-mail', 'neuling@beispiel.de');
     d.w.document.getElementById('zug-anlegen')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -26305,7 +26319,7 @@ async function pruefeOberflaeche() {
     // `email` waere am Server die Ansage "keine", und das ist beim ANLEGEN
     // dasselbe; mitzuschicken gibt es trotzdem nichts.
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.document.getElementById('zug-name').value = 'ohnemail';
+    setzeFeld(d.w.document, 'zug-name', 'ohnemail');
     d.w.document.getElementById('zug-anlegen')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -26349,8 +26363,8 @@ async function pruefeOberflaeche() {
        wie Name und Passwort. Ein WIRKLICH zugestelltes Ereignis
        (Stolperstein 61). */
     const d = await ziSystem({ istAdmin: false, istEigentuemer: false });
-    d.w.document.getElementById('acc-old').value = DOM_PASSWORT;
-    d.w.document.getElementById('acc-mail').value = 'neue@beispiel.de';
+    setzeFeld(d.w.document, 'acc-old', DOM_PASSWORT);
+    setzeFeld(d.w.document, 'acc-mail', 'neue@beispiel.de');
     d.w.document.getElementById('acc-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
@@ -26371,8 +26385,8 @@ async function pruefeOberflaeche() {
     // das als „unveraendert“ gelesen wird, liesse eine Adresse nie wieder
     // entfernen -- genau die stille Falle, die niemand bemerkt.
     const d = await ziSystem({ istAdmin: false, istEigentuemer: false });
-    d.w.document.getElementById('acc-old').value = DOM_PASSWORT;
-    d.w.document.getElementById('acc-mail').value = '';
+    setzeFeld(d.w.document, 'acc-old', DOM_PASSWORT);
+    setzeFeld(d.w.document, 'acc-mail', '');
     d.w.document.getElementById('acc-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
@@ -26475,11 +26489,11 @@ async function pruefeOberflaeche() {
        zugestellten Ereignis (Stolperstein 61). */
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de', mailStand: {} });
-    d.w.document.getElementById('mail-anbieter').value = 'gmail';
+    setzeFeld(d.w.document, 'mail-anbieter', 'gmail');
     d.w.document.getElementById('mail-anbieter').dispatchEvent(new d.w.Event('change'));
-    d.w.document.getElementById('mail-benutzer').value = 'anlage@gmail.com';
-    d.w.document.getElementById('mail-passwort').value = 'erfundenes-app-passwort';
-    d.w.document.getElementById('mail-absender').value = 'anlage@gmail.com';
+    setzeFeld(d.w.document, 'mail-benutzer', 'anlage@gmail.com');
+    setzeFeld(d.w.document, 'mail-passwort', 'erfundenes-app-passwort');
+    setzeFeld(d.w.document, 'mail-absender', 'anlage@gmail.com');
     d.w.document.getElementById('mail-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -27081,7 +27095,7 @@ async function pruefeOberflaeche() {
      gesagt, statt still zu bleiben. */
   {
     const d = await siSystem({ istAdmin: true, istEigentuemer: true });
-    if (d.w.document.getElementById('sich-ort')) d.w.document.getElementById('sich-ort').value = 'woechentlich';
+    if (d.w.document.getElementById('sich-ort')) setzeFeld(d.w.document, 'sich-ort', 'woechentlich');
     d.w.document.getElementById('sich-ort-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -27093,7 +27107,7 @@ async function pruefeOberflaeche() {
       d.w.document.getElementById('sich-ort')?.value === 'woechentlich',
       d.w.document.getElementById('sich-ort')?.value);
 
-    if (d.w.document.getElementById('sich-ort')) d.w.document.getElementById('sich-ort').value = '../raus';
+    if (d.w.document.getElementById('sich-ort')) setzeFeld(d.w.document, 'sich-ort', '../raus');
     d.w.document.getElementById('sich-ort-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
