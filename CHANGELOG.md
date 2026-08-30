@@ -43,6 +43,126 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.16.0] - 2026-08-29
+
+**Der Systembereich bekommt Abschnitte mit eigener Adresse, die Kopfzeile eine
+Glocke, und das Wort „gewichtet" erklärt sich endlich selbst.** Vier Punkte aus
+dem Sammelblatt, vier Zeilen aus dessen Teil II und ein Punkt aus dem Betrieb,
+der nie darin stand.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** 0.16.0 ist **MINOR**: *kann die
+> Anlage danach etwas, was sie vorher nicht konnte?* **Mehrfach ja** — eine
+> Einstellung verlinken, sehen, dass andere etwas hinterlassen haben, die
+> eigene Gesamtnote nachvollziehen, im Vollbild löschen.
+
+> **DIES IST EINE DATENBANKSTUFE — anders als geplant.** Die Bewertungen
+> bekommen mit `gesetzt_am` einen Zeitpunkt; ohne ihn kann die Glocke über
+> **fremde Bewertungen** nichts sagen, denn die Tabelle `ratings` trug bis
+> 0.15.1 keinen. **Es ist der siebte markierte Migrationsblock. Die Sicherung
+> des Datenverzeichnisses ist deshalb PFLICHT und nicht Empfehlung.**
+> *Das Austauschformat bleibt trotzdem bei **11**: der Zeitpunkt geht nicht in
+> die Exportdatei — die Anlage weiß bei einer eingespielten Bewertung nicht,
+> wann sie ursprünglich vergeben wurde, und behauptet es auch nicht.*
+
+### Added
+
+- **Fünf Abschnitte im Systembereich, jeder mit eigener Adresse** —
+  `#/system/persoenlich`, `…/bestand`, `…/zugaenge`, `…/datenbank`,
+  `…/anlage`. Sie folgen der **Rechteleiter**. **Ohne Adresse ließe sich keine
+  Einstellung verlinken und die Zurück-Taste bräche** — das ist der ganze
+  Punkt. `#/system` bleibt gültig und löst sich auf den ersten sichtbaren
+  Abschnitt auf. **Ein Abschnitt ohne sichtbare Karte erscheint gar nicht**,
+  und eine Adresse dorthin fällt auf den ersten sichtbaren zurück; die
+  Adresszeile wird dabei nachgezogen. *Auf dem Telefon wird aus der
+  Reiterreihe eine Liste — ein Markup, zwei Gestalten.*
+- **Eine Glocke in der Kopfzeile, mit einem Punkt, und die Zahl der offenen
+  Aufgaben am Knopf „Offen".** Die Glocke meldet **fremde Kommentare und
+  fremde Bewertungen** seit dem letzten Öffnen ihrer Tafel; **jede Zeile der
+  Tafel führt zu ihrem Eintrag**. *Ein Punkt für ein Ereignis, eine Zahl für
+  einen Zustand — die beiden Zeichen werden nirgends vertauscht.* **Beide
+  Zahlen reisen mit einer Antwort mit, die die Übersicht ohnehin holt**; es
+  gibt keinen zusätzlichen Abruf je Seitenaufbau. Was sie **nicht** verspricht,
+  steht in der Tafel selbst und in der README.
+- **Ein Klick auf die Zahl im Bewertungsblock öffnet die Rechnung dieses
+  Eintrags** — Kriterium, Note, Gewicht, Produkt, Summe, Teiler, Ergebnis.
+  **Kein erfundenes Beispiel, sondern die eigenen Werte.** *Der Kasten **liest**
+  die vorhandene Rechnung; er rechnet sie nicht nach.*
+- **Die Kennzahlen nennen Version und Verfahren** — Verschlüsselung
+  `sqlcipher`, Schlüssel
+  **256 Bit roh**, Journal **WAL**, Passwörter **scrypt**, aus der geöffneten
+  Datenbank abgelesen. **Paketversionen ausdrücklich nicht.**
+- **Ein Papierkorb in der Vollbildansicht**, mit **derselben Klemme und
+  derselben Rückfrage** wie über dem großen Bild darunter. Er steht abgesetzt
+  und vor dem Schließenkreuz.
+- **Die Bewertungen tragen einen Zeitpunkt** (`ratings.gesetzt_am`). Zeilen
+  von vor 0.16.0 und eingespielte Bewertungen tragen **keinen** und bleiben der
+  Glocke unsichtbar — was die Anlage nicht weiß, behauptet sie nicht.
+- **Der Prüfstand misst die Länge der Funktionen je Datei und nennt sie.**
+  **Er weist nichts ab**: eine harte Grenze wäre eine Zusicherung, die bei der
+  ersten ehrlichen Ausnahme abgeschaltet wird. Rot werden darf, **welche**
+  Funktion die längste ist — dieselbe Linie wie bei `F_ROUTEN`.
+
+### Changed
+
+- **Export und Import stehen in EINER Karte** — sie meinen dieselbe Datei.
+  **Aber nicht gleichrangig:** der Export liest, der Import ersetzt Bestand.
+  Die zerstörende Hälfte steht unter einem Trennstrich, mit kleinerer
+  Überschrift und leiserer Zeichnung; **die zweite Bestätigung bleibt, wo sie
+  war**. **Damit sind es achtzehn Karten statt neunzehn.**
+- **`renderSystem()` ist von 2.466 auf 79 Zeilen geschrumpft.** Die achtzehn
+  Karten stehen als **Tabelle** mit je einer Zeile: wohin sie gehört, woran sie
+  hängt, wie sie aussieht, was sie ausrüstet. *Kein Framework, keine
+  Build-Kette — die Antwort auf die Größe sind kleinere Funktionen.* **Keine
+  Karte wechselt dabei ihre Rechteklemme.**
+- **`GET /api/items/:id` liefert den Rechenweg des Gesamtschnitts mit** —
+  aus derselben Schleife, die die Zahl erzeugt. **Die Übersicht bekommt ihn
+  nicht:** tausend Einträge trügen tausend Aufstellungen für eine Zahl, die
+  niemand aufklappt.
+- **`GET /api/items` trägt zwei neue Zahlen je Eintrag** — `offeneAufgaben`
+  und, sobald ein Bezugspunkt gespeichert ist, `neuFremd`. *Ohne Bezugspunkt
+  fehlt das Feld ganz und steht nicht auf 0: „nichts Neues" und „es gibt keinen
+  Bezugspunkt" sind zwei verschiedene Aussagen.*
+
+### Fixed
+
+- **`node gegenprobe.js 2 256` fuhr neben Rückbau 256 auch die 83 mit**, weil
+  der Filter Nummer **oder** Namensteil prüfte und „SHA-256 statt SHA-1" die
+  Zeichenfolge 256 trägt. **Der Beifang war stumm und verfälschte damit die
+  Gegenprobentabelle.** Seither gilt: **greift ein Argument als Nummer, gilt
+  nur die Nummer.**
+
+### Was du danach von Hand tun musst
+
+**Die Sicherung des Datenverzeichnisses ist Pflicht** — diese Version fährt
+einen Migrationsblock:
+
+```bash
+cd .../kriterion && docker compose down
+cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)
+```
+
+Danach wie immer einspielen. Beim ersten Start meldet das Protokoll
+`ratings um gesetzt_am ergaenzt (Migration auf 0.16.0)` samt der Zahl der
+vorhandenen Bewertungen. **Sonst nichts:** keine neue Zeile in der `.env`,
+keine neue Abhängigkeit, niemand wird abgemeldet.
+
+*Die Glocke erscheint erst, nachdem die Übersicht einmal verlassen wurde* —
+vorher gibt es keinen Bezugspunkt, und eine Glocke, die beim ersten Blick für
+den ganzen Bestand läutet, wäre keine Auskunft.
+
+### Was gleich bleibt
+
+**Das Austauschformat** bleibt bei **11** — der Zeitpunkt an der Bewertung geht
+nicht mit hinaus. **`F_ROUTEN`** bleibt bei **69**: der Bezugspunkt der Glocke
+läuft über `PUT /api/settings`, es kommt keine schreibende Route dazu.
+**`VORGAENGE`** bleibt bei **zwanzig**, **`BESTAETIGUNG_ZWECKE`** bei
+**sieben**, **das Vokabular** bei **elf**, **die Merkmale** bei **vierzehn**.
+**Keine Karte wechselt ihre Rolle** — was der Admin sah, sieht der Admin, was
+dem Eigentümer gehörte, gehört ihm. **Die Rechnung des Gesamtschnitts wird
+nicht angefasst**: sie steht weiter an einer Stelle, der Kasten liest sie nur.
+
+---
+
 ## [0.15.1] - 2026-08-29
 
 **`hidden` wirkt wieder.** An einem Eintrag, der **nicht** abgelehnt war,
@@ -2161,3 +2281,4 @@ nicht mehr übernehmen.*
 [0.14.0]: https://github.com/fardem/kriterion/compare/v0.13.2...v0.14.0
 [0.15.0]: https://github.com/fardem/kriterion/compare/v0.14.0...v0.15.0
 [0.15.1]: https://github.com/fardem/kriterion/compare/v0.15.0...v0.15.1
+[0.16.0]: https://github.com/fardem/kriterion/compare/v0.15.1...v0.16.0

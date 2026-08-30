@@ -103,6 +103,10 @@ const ICON_AUSSCHNITT = `<svg width="17" height="17" viewBox="0 0 24 24" fill="n
 const ICON_VOLLBILD = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6"/><path d="M15 21h6v-6"/><path d="M21 9V3h-6"/><path d="M3 15v6h6"/></svg>`;
 const ICON_PAPIERKORB = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12.6A1.5 1.5 0 0 0 8.9 21h6.2a1.5 1.5 0 0 0 1.5-1.4L17.5 7"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
 const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>`;
+/* DIE GLOCKE. Kein Zeichen erklaert sich von selbst, aber dieses ist draussen
+   so fest belegt wie das Zahnrad fuer Einstellungen -- und die Kopfzeile
+   traegt ohnehin an jedem Knopf seinen Titel. */
+const ICON_GLOCKE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 5.2-2 6.5-2 6.5h16s-2-1.3-2-6.5"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
 /* Die Marke der Anlage. EINE AUSGELIEFERTE DATEI statt eines eingebauten
    SVG: eine Marke gehoert dem Projekt und nicht einer Funktion in app.js --
@@ -1343,6 +1347,17 @@ const mehrereBenutzer = () => BENUTZER_ZAHL > 1;
    angeboten. */
 let ZULETZT_GESEHEN = null;
 
+/* DER BEZUGSPUNKT DER GLOCKE -- ein ZWEITER neben ZULETZT_GESEHEN, und er darf
+   es sein. Die beiden beantworten verschiedene Fragen: „neu seit meinem
+   letzten Besuch" faellt beim Verlassen der Uebersicht, die Glocke erst, wenn
+   ihre Tafel WIRKLICH geoeffnet wurde. Ein gemeinsamer Merker loeschte die
+   Glocke bei jedem Blick in die Uebersicht mit -- ohne dass jemand gelesen
+   haette, was sie meldete.
+   null heisst „noch nie gesetzt": dann gibt es keine Glocke, dieselbe Lage und
+   dieselbe Antwort wie oben. Gesetzt wird er beim ersten Aufbau der
+   Uebersicht; von da an ist er der Strich, hinter dem gezaehlt wird. */
+let GLOCKE_GESEHEN = null;
+
 /* Die beiden Anlegen-Schalter, global und mit Vorgabe an. Der Bildschirm haelt
    sich an dieselbe Regel wie der Server: DER ADMIN KOMMT IMMER DURCH. Bote die
    Oberflaeche die Zeile "+ neu anlegen" trotz ausgeschaltetem Schalter an,
@@ -1393,6 +1408,7 @@ async function ladeEinstellungen() {
   // start(); ein spaeterer Aufruf duerfte den Bezugszeitpunkt nicht mehr
   // nachziehen, sonst verschwaende die Menge unter dem Zeiger.
   if (EINSTELLUNGEN.zuletztGesehen) ZULETZT_GESEHEN = EINSTELLUNGEN.zuletztGesehen;
+  if (EINSTELLUNGEN.glockeGesehen) GLOCKE_GESEHEN = EINSTELLUNGEN.glockeGesehen;
   if (Array.isArray(EINSTELLUNGEN.suchAnbieter)) SUCHANBIETER = EINSTELLUNGEN.suchAnbieter;
   if (EINSTELLUNGEN.suchNamen) SUCHNAMEN = EINSTELLUNGEN.suchNamen;
   // Der Server leitet beide beim Lesen ab und liefert sie immer; die Vorgabe
@@ -1750,13 +1766,32 @@ let LETZTE_ANSICHT = null;
    Wer den Browser schliesst, ohne die Uebersicht zu verlassen, behaelt seinen
    alten Merkzeitpunkt und sieht dieselben Eintraege noch einmal. Das ist die
    richtige Seite des Fehlers: lieber zweimal zeigen als einmal verschlucken. */
-const merkeGesehen = () => { api('PUT', '/api/settings', { zuletztGesehen: 1 }).catch(() => {}); };
+/* BEIM VERLASSEN DER UEBERSICHT, NICHT BEIM BETRETEN -- und in EINEM Ruf.
+   DER BEZUGSPUNKT DER GLOCKE FAEHRT BEIM ALLERERSTEN MAL MIT. Ohne ihn gibt es
+   keine Glocke, und ohne Glocke gaebe es keinen Weg, ihn je zu setzen -- eine
+   Bedingung, die ihren eigenen Ausweg verdeckt. Danach faellt er nur noch
+   beim Oeffnen der Tafel; die beiden Merker teilen sich nichts als diesen
+   einen Ruf.
+   UND AUSDRUECKLICH KEIN ZWEITER RUF BEIM AUFBAU: was beim Betreten der
+   Uebersicht hinausginge, ginge bei jedem Seitenaufbau hinaus. */
+const merkeGesehen = () => {
+  const koerper = { zuletztGesehen: 1 };
+  if (!GLOCKE_GESEHEN) { GLOCKE_GESEHEN = true; koerper.glockeGesehen = 1; }
+  api('PUT', '/api/settings', koerper).catch(() => {});
+};
 function route() {
   const h = location.hash || '#/';
   // Die alte Ansicht ist gleich fort; ihre Wolke darf niemand mehr zeichnen.
   wolkeNeuzeichnen = null;
   const m = h.match(/^#\/item\/(\d+)$/);
-  const ansicht = h === '#/system' ? 'system' : h === '#/compare' ? 'vergleich'
+  /* DER SYSTEMBEREICH HAT SEIT 0.16.0 FUENF ADRESSEN STATT EINER --
+     `#/system` und `#/system/<abschnitt>`. Welcher Abschnitt gemeint ist,
+     liest renderSystem() selbst aus der Adresse; hier steht nur, DASS es der
+     Systembereich ist. Sonst muesste der Abschnitt zweimal bestimmt werden,
+     und die beiden Stellen liefen auseinander.
+     `#/systemisch` DARF NICHT TREFFEN: das Muster ist verankert und verlangt
+     hinter „system" entweder nichts oder einen Schraegstrich. */
+  const ansicht = SYS_MUSTER.test(h) ? 'system' : h === '#/compare' ? 'vergleich'
     : h === '#/offen' ? 'offen' : m ? 'eintrag' : 'liste';
   if (LETZTE_ANSICHT === 'liste' && ansicht !== 'liste') merkeGesehen();
   LETZTE_ANSICHT = ansicht;
@@ -1765,6 +1800,104 @@ function route() {
   if (ansicht === 'offen') return renderOffen();
   if (m) return renderDetail(+m[1]);
   return renderList();
+}
+
+/* ================= Die Glocke und der Zähler „Offen" =================
+   BEIDE ZAHLEN KOMMEN AUS DER LISTE, DIE DIE UEBERSICHT OHNEHIN HOLT. Kein
+   eigener Weg, der bei jedem Seitenaufbau gefragt wird -- genau daran ist der
+   Zaehler „Offen 7" in 0.8.60 gescheitert, und genau das ist hier beantwortet.
+   GERECHNET WIRD AUS `state.alle` UND NICHT AUS `state.items`: die Zahlen
+   gelten dem BESTAND und nicht der gerade eingestellten Filterung. Ein Filter,
+   der die Glocke stumm schaltet, waere eine Falle -- man saehe nichts und
+   wuesste nicht, warum.
+   DIE GLOCKE TRAEGT DEN PUNKT, DER KNOPF „OFFEN" DIE ZAHL. Das ist keine
+   Laune: eine Zahl beschreibt einen ZUSTAND (so viele Aufgaben stehen offen),
+   ein Punkt meldet ein EREIGNIS (seit deinem letzten Blick ist etwas
+   dazugekommen). Die beiden Zeichen werden nirgends vertauscht.
+   WAS DIE GLOCKE NICHT LEISTET, steht in der Tafel selbst: sie rechnet beim
+   Aufbau der Uebersicht nach und nicht laufend. */
+const glockeNeu = () => (state.alle || []).reduce((n, i) => n + (Number(i.neuFremd) || 0), 0);
+const offeneGesamt = () => (state.alle || []).reduce((n, i) => n + (Number(i.offeneAufgaben) || 0), 0);
+
+function zeichneKopfzahlen() {
+  const offen = offeneGesamt();
+  /* KEINE NULL AM KNOPF. „Offen 0" ist eine Auskunft ueber nichts und stuende
+     dauerhaft da -- dieselbe Ueberlegung wie bei der Marke ×1 an einem
+     Kriterium. Ohne offene Aufgaben traegt der Knopf nur sein Zeichen. */
+  amElement('offen-zahl', el => {
+    el.textContent = offen ? String(offen) : '';
+    el.hidden = !offen;
+  });
+  amElement('offen', b => b.title = offen
+    ? `${offen} offene ${offen === 1 ? V.aufgabeEinzahl : V.aufgabeMehrzahl}`
+    : `Offene ${V.aufgabeMehrzahl}`);
+  const neu = glockeNeu();
+  amElement('glocke-punkt', el => { el.hidden = !neu; });
+  amElement('glocke', b => b.title = neu
+    ? `${neu} neu von anderen — Klick zeigt, wo`
+    : 'Nichts Neues von anderen');
+}
+
+/* DIE TAFEL. Sie ist die zweite Haelfte der Glocke und nicht ihr Beiwerk:
+   eine Meldung, die man nicht anspringen kann, ist eine Mitteilung ohne Weg.
+   JEDE ZEILE FUEHRT ZU IHREM EINTRAG.
+   DAS OEFFNEN SETZT ALLES AUF GESEHEN, und das steht in der Tafel. Es ist die
+   bewusste Grenze der schlanken Fassung: ein Lesestand je Meldung braeuchte
+   eine Tabelle, und die gibt es hier nicht. */
+function zeigeGlockentafel() {
+  const zeilen = (state.alle || []).filter(i => Number(i.neuFremd) > 0)
+    .slice().sort((a, b) => (b.neuFremd - a.neuFremd) || String(a.title).localeCompare(String(b.title)));
+  const bd = document.createElement('div');
+  bd.className = 'backdrop';
+  bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>Neu von anderen</h2>
+    <p>Was seit deinem letzten Blick in diese Tafel von <strong>anderen</strong> dazugekommen
+      ist — Kommentare und Bewertungen. Eigene Beiträge stehen nie hier.</p>
+    <div class="manage-list" id="glocken-liste"></div>
+    <p class="hint hint-sm" style="margin:2px 0 0"><strong>Was die Glocke nicht verspricht:</strong>
+      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend — was in dieser Minute entsteht,
+      steht beim nächsten Laden da. Und sie führt <strong>keinen Lesestand je Meldung</strong>:
+      dieses Öffnen setzt alles auf gesehen, auch was du gleich nicht anklickst.
+      Bewertungen von vor der Umstellung auf 0.16.0 tragen keinen Zeitpunkt und bleiben ihr
+      unsichtbar.</p>
+    <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
+  document.body.appendChild(bd);
+  const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
+  const onKey = e => {
+    if (e.key !== 'Escape') return;
+    if ([...document.querySelectorAll('.backdrop')].pop() !== bd) return;
+    zu();
+  };
+  document.addEventListener('keydown', onKey, true);
+  bd.querySelector('[data-no]').onclick = zu;
+  bd.onclick = e => { if (e.target === bd) zu(); };
+
+  const box = bd.querySelector('#glocken-liste');
+  if (!zeilen.length) {
+    box.innerHTML = `<span class="hint">Nichts Neues von anderen.</span>`;
+  } else for (const it of zeilen) {
+    /* EIN LINK UND KEIN KNOPF: er traegt eine Adresse, laesst sich kopieren
+       und in einem neuen Fenster oeffnen. Geschlossen wird die Tafel trotzdem
+       von Hand -- ein Wechsel der Ansicht raeumt sie nicht mit weg. */
+    const a = document.createElement('a');
+    a.className = 'mrow glocken-zeile';
+    a.href = `#/item/${it.id}`;
+    a.dataset.mid = String(it.id);
+    const n = Number(it.neuFremd) || 0;
+    a.innerHTML = `<span class="mname"></span>
+      <span class="mcount">${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}</span>`;
+    // Der Titel ist freier Text und wird gesetzt, nicht zusammengebaut.
+    a.querySelector('.mname').textContent = it.title;
+    a.onclick = () => zu();
+    box.appendChild(a);
+  }
+
+  /* DER STRICH WIRD BEIM OEFFNEN NACHGEZOGEN, nicht beim Schliessen: wer die
+     Tafel gesehen hat, hat sie gesehen. Und die Zahlen im Speicher gehen im
+     selben Zug auf null -- sonst stuende der Punkt bis zum naechsten Laden
+     weiter da und behauptete etwas, das nicht mehr gilt. */
+  api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});
+  for (const it of (state.alle || [])) if (it.neuFremd) it.neuFremd = 0;
+  zeichneKopfzahlen();
 }
 
 /* ================= Übersicht ================= */
@@ -1796,7 +1929,21 @@ async function renderList() {
            Das ist keine Formsache: die Angabe erklaert den Knopf daneben, und
            getrennt erklaerte sie nichts mehr. */''}
       <div class="mast-rest" id="mast-rest">
-        <button class="icon-btn" id="offen" title="Offene ${esc(V.aufgabeMehrzahl)}">${ICON_OFFEN}<span class="mast-wort">Offene ${esc(V.aufgabeMehrzahl)}</span></button>
+        ${/* DIE GLOCKE STEHT IN DEMSELBEN BEHAELTER wie die beiden anderen
+             Zeichenknoepfe -- und damit wandert sie auf dem Telefon ohne ein
+             einziges Zutun in die Tafel: ein Markup, zwei Gestalten (0.12.0).
+             Eine Glocke nur am Desktop waere eine Weiche nach Geraet.
+             SIE STEHT NUR DA, WENN ES EINEN BEZUGSPUNKT GIBT. Vor dem ersten
+             Aufbau der Uebersicht weiss die Anlage nicht, was jemand schon
+             gesehen hat -- eine Glocke, die dann alles meldet, laeutete beim
+             ersten Blick fuer den ganzen Bestand. Dieselbe Lage und dieselbe
+             Antwort wie bei „Neu seit meinem letzten Besuch".
+             DER PUNKT IST EIN EIGENER KNOTEN und kein Text im Knopf: er wird
+             beim Zeichnen ein- und ausgeblendet, ohne dass das Zeichen daneben
+             neu gebaut wird. */''}
+        ${GLOCKE_GESEHEN ? `<button class="icon-btn glocke" id="glocke" title="Neu von anderen"
+          aria-label="Neu von anderen">${ICON_GLOCKE}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">Neu von anderen</span></button>` : ''}
+        <button class="icon-btn" id="offen" title="Offene ${esc(V.aufgabeMehrzahl)}">${ICON_OFFEN}<span class="offen-zahl" id="offen-zahl" hidden></span><span class="mast-wort">Offene ${esc(V.aufgabeMehrzahl)}</span></button>
         <button class="icon-btn" id="sys" title="Systembereich">${ICON_SYS}<span class="mast-wort">Systembereich</span></button>
         <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>
         <button class="btn btn-ghost btn-sm" id="out">Abmelden</button>
@@ -1822,6 +1969,8 @@ async function renderList() {
 
   document.getElementById('new').onclick = openCreate;
   document.getElementById('offen').onclick = () => { location.hash = '#/offen'; };
+  amElement('glocke', b => b.onclick = zeigeGlockentafel);
+  zeichneKopfzahlen();
   document.getElementById('sys').onclick = () => { location.hash = '#/system'; };
   document.getElementById('out').onclick = async () => {
     await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
@@ -2971,7 +3120,18 @@ function zentriereBuehne(buehne) {
   buehne.scrollTop = Math.max(0, (buehne.scrollHeight - buehne.clientHeight) / 2);
 }
 
-function openLightbox(photos, startIdx, title) {
+/* `loeschen` IST FREIWILLIG UND ENTSCHEIDET UEBER DEN PAPIERKORB IM VOLLBILD.
+   Wer keinen mitgibt, bekommt keinen -- die Kommentarbilder etwa werden am
+   Kommentar entfernt und nicht hier.
+   DIE KLEMME WIRD NICHT NEU ERFUNDEN: der Rufer gibt genau die Funktion
+   mit, die auch der Papierkorb ueber dem grossen Bild ruft -- samt Rueckfrage,
+   samt Route, samt Neuzeichnen der Ansicht darunter. Eine zweite Loeschstelle
+   waere eine zweite Gelegenheit, die Rueckfrage zu vergessen.
+   SIE LIEFERT `true`, WENN WIRKLICH GELOESCHT WURDE. Ohne diese Antwort
+   muesste das Vollbild raten, ob es sein Bild aus der Liste nehmen darf --
+   und naehme es auch dann heraus, wenn der Mensch die Rueckfrage abgebrochen
+   hat. */
+function openLightbox(photos, startIdx, title, loeschen) {
   if (!photos.length) return;
   lightboxOpen = true;
   let i = startIdx, zoomed = false;
@@ -2984,6 +3144,15 @@ function openLightbox(photos, startIdx, title) {
       <div class="lb-tools">
         <span class="lb-count"></span>
         <button class="lb-btn zoom" title="Auf Originalgröße zoomen">⊕</button>
+        ${/* DER PAPIERKORB STEHT ABGESETZT, mit einer groesseren Luecke davor
+             -- dieselbe Ueberlegung wie ueber dem grossen Bild darunter: die
+             Knoepfe davor stellen etwas ein, dieser hier nimmt etwas weg.
+             UND ER STEHT NICHT NEBEN DEM SCHLIESSEN. Zwei Kreuze
+             nebeneinander, von denen eines die Ansicht zumacht und das andere
+             das Bild vernichtet, waeren die gefaehrlichste Nachbarschaft der
+             Anlage. Deshalb traegt er das Papierkorbzeichen und steht vor dem
+             Schliessen, nicht daneben. */''}
+        ${loeschen ? `<button class="lb-btn weg" title="Löschen">${ICON_PAPIERKORB}</button>` : ''}
         <button class="lb-btn close" title="Schließen (Esc)">✕</button>
       </div>
     </div>
@@ -3043,19 +3212,33 @@ function openLightbox(photos, startIdx, title) {
     lb.querySelector('.zoom').hidden = !hatOriginal(photos[i]);
     img.title = hatOriginal(photos[i]) ? 'Klick zoomt auf Originalgröße' : '';
     lb.querySelector('.lb-count').textContent = `${i + 1} / ${photos.length}`;
+    /* BLEIBT NUR EINES UEBRIG, VERSCHWINDEN PFEILE UND STREIFEN. Beim Oeffnen
+       entscheidet die Zahl, OB es sie gibt; danach kann Loeschen sie
+       ueberfluessig machen, und ein Pfeil, der auf dasselbe Bild zeigt, sieht
+       aus wie ein kaputter Knopf. */
+    lb.querySelectorAll('.lb-nav').forEach(k => { k.hidden = photos.length < 2; });
     if (strip) {
+      strip.hidden = photos.length < 2;
       [...strip.children].forEach((t, n) => t.classList.toggle('on', n === i));
       strip.children[i]?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
     }
   }
-  if (strip) photos.forEach((p, n) => {
-    const t = document.createElement('button');
-    t.className = 'lb-thumb' + (istVideo(p) ? ' ist-video' : '');
-    t.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
-      (istVideo(p) ? `<span class="spielmarke">▶</span>` : '');
-    t.onclick = () => { i = n; show(); };
-    strip.appendChild(t);
-  });
+  /* EIGENE FUNKTION UND NICHT EINE SCHLEIFE BEIM OEFFNEN: nach einem Loeschen
+     stimmt der Streifen sonst nicht mehr -- er zeigte das entfernte Bild
+     weiter, und der Klick darauf fuehrte auf eine Nummer, die es nicht gibt. */
+  function baueStreifen() {
+    if (!strip) return;
+    strip.innerHTML = '';
+    photos.forEach((p, n) => {
+      const t = document.createElement('button');
+      t.className = 'lb-thumb' + (istVideo(p) ? ' ist-video' : '');
+      t.innerHTML = `<img src="${bildQuelle(p, 'thumb')}" alt="">` +
+        (istVideo(p) ? `<span class="spielmarke">▶</span>` : '');
+      t.onclick = () => { i = n; show(); };
+      strip.appendChild(t);
+    });
+  }
+  baueStreifen();
 
   const close = () => {
     halteAn();
@@ -3073,6 +3256,18 @@ function openLightbox(photos, startIdx, title) {
 
   lb.querySelector('.close').onclick = close;
   lb.querySelector('.zoom').onclick = () => setZoom(!zoomed);
+  /* GELOESCHT WIRD, WAS MAN ANSIEHT -- dieselbe Regel wie ueber dem grossen
+     Bild darunter, und dort steht sie ausfuehrlich begruendet. Die Rueckfrage
+     stellt der Rufer; hier wird nur nachgezogen, was danach uebrig ist.
+     WAR ES DAS LETZTE BILD, GEHT DAS VOLLBILD ZU. Ein leeres Vollbild mit
+     „0 / 0" waere die Ansicht eines Nichts. */
+  lb.querySelector('.weg')?.addEventListener('click', async () => {
+    if (!await loeschen(photos[i])) return;
+    photos.splice(i, 1);
+    if (!photos.length) { close(); return; }
+    baueStreifen();
+    show();
+  });
   // Auf dem Finger zoomt erst der zweite Tipp. Ein einzelner Tipp tut nichts --
   // Schliessen waere bei jedem versehentlichen Antippen zu hart, und beim
   // Betrachten tippt man leicht daneben.
@@ -3386,6 +3581,28 @@ async function renderDetail(id) {
   </div>`;
 
   /* ---- Fotos ---- */
+  /* ---- Ein Foto oder Video entfernen ----
+     EINE FUNKTION, ZWEI RUFER: der Papierkorb ueber dem grossen Bild und der
+     im Vollbild. Die Rueckfrage, die Route und das Neuzeichnen stehen damit an
+     EINER Stelle; zwei Ausfertigungen waeren zwei Gelegenheiten, die
+     Rueckfrage zu vergessen -- und ein Loeschknopf ohne Rueckfrage waere der
+     gefaehrlichste Knopf der Anlage.
+     SIE LIEFERT, OB WIRKLICH GELOESCHT WURDE. Das Vollbild braucht die
+     Antwort, um sein Bild aus der eigenen Liste zu nehmen; ein abgebrochenes
+     Loeschen darf dort nichts verschwinden lassen. */
+  async function loescheFoto(foto) {
+    if (!foto) return false;
+    const wort = istVideo(foto) ? 'Video' : 'Foto';
+    if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird unwiderruflich entfernt.`)) return false;
+    try {
+      await api('DELETE', `/api/photos/${foto.id}`);
+      item = await api('GET', `/api/items/${id}`);
+      if (idx >= item.photos.length) idx = Math.max(0, item.photos.length - 1);
+      drawViewer(); drawThumbs();
+      return true;
+    } catch (err) { toast(err.message, true); return false; }
+  }
+
   function drawViewer() {
     const v = document.getElementById('viewer');
     // Der Betrachter bleibt bei jedem Neuzeichnen dasselbe Element; innerHTML
@@ -3437,9 +3654,15 @@ async function renderDetail(id) {
         <button class="vnav next" title="Nächstes (→)">›</button>
         <span class="vcount">${idx + 1} / ${ps.length}</span>` : ''}`;
     const bild = v.querySelector('img');
-    if (bild) bild.onclick = () => { if (!ausschnittModus) openLightbox(item.photos, idx, item.title); };
+    /* DAS VOLLBILD BEKOMMT DENSELBEN PAPIERKORB -- eine Funktion, zwei Rufer.
+       Eine EIGENE Liste geht mit: das Vollbild nimmt sein geloeschtes Bild
+       selbst heraus, waehrend hier unten `item` frisch vom Server kommt.
+       Beide Listen zeigen danach dasselbe, aber keine haengt an der anderen. */
+    if (bild) bild.onclick = () => {
+      if (!ausschnittModus) openLightbox([...item.photos], idx, item.title, loescheFoto);
+    };
     v.querySelector('.vfull')?.addEventListener('click',
-      () => openLightbox(item.photos, idx, item.title));
+      () => openLightbox([...item.photos], idx, item.title, loescheFoto));
     v.querySelector('.vfocus').onclick = () => {
       ausschnittModus = !ausschnittModus;
       drawViewer();
@@ -3457,17 +3680,7 @@ async function renderDetail(id) {
        Hier dagegen ist das Bild gross und der Zaehler daneben sagt, welches es
        ist -- man loescht, was man ansieht. Dasselbe Bild, das eine Kamera
        zeigt, wenn man dort den Papierkorb drueckt. */
-    v.querySelector('.vweg').onclick = async () => {
-      const foto = ps[idx];
-      const wort = istVideo(foto) ? 'Video' : 'Foto';
-      if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird unwiderruflich entfernt.`)) return;
-      try {
-        await api('DELETE', `/api/photos/${foto.id}`);
-        item = await api('GET', `/api/items/${id}`);
-        if (idx >= item.photos.length) idx = Math.max(0, item.photos.length - 1);
-        drawViewer(); drawThumbs();
-      } catch (err) { toast(err.message, true); }
-    };
+    v.querySelector('.vweg').onclick = () => loescheFoto(ps[idx]);
     if (ausschnittModus && bild) ruesteAusschnittAus(v, bild, ps[idx]);
     if (ps.length > 1) {
       v.querySelector('.prev').onclick = () => { idx--; drawViewer(); markThumb(); };
@@ -4165,8 +4378,30 @@ async function renderDetail(id) {
        keine Gewichtung stattgefunden hat. */
     const gewichtetGerechnet = item.ratings
       .some(r => (r.value > 0 || r.avg != null) && Number(r.gewicht) !== 1);
-    if (kopf) kopf.textContent = item.avgRating
-      ? '⌀ ' + item.avgRating.toFixed(1).replace('.', ',') + (gewichtetGerechnet ? ' gewichtet' : '') : '';
+    /* DIE KOPFZAHL IST SEIT 0.16.0 EIN KNOPF, und er fuehrt zur eigenen
+       Rechnung dieses Eintrags. „⌀ 4,2 gewichtet" war zwar richtig, hat sich
+       aber nirgends erklaert -- auch nicht in der Karte, in der die Gewichte
+       eingestellt werden.
+       DER GANZE AUSDRUCK IST DER KNOPF, nicht nur das Wort „gewichtet". Sonst
+       gaebe es die Erklaerung ausgerechnet dort nicht, wo alle Gewichte 1 sind
+       -- und die zwei Schritte hinter dem ⌀ (erst je Kriterium, dann darueber)
+       sind auch ohne Gewichte nicht selbstverstaendlich.
+       OHNE ZAHL KEIN KNOPF: an einem Eintrag ohne Bewertung gaebe es nichts zu
+       erklaeren, und ein Knopf, der ein leeres Fenster oeffnet, ist einer zu
+       viel. */
+    if (kopf) {
+      kopf.textContent = '';
+      if (item.avgRating) {
+        const b = document.createElement('button');
+        b.className = 'link-btn gew-auf';
+        b.id = 'gew-auf';
+        b.textContent = '⌀ ' + item.avgRating.toFixed(1).replace('.', ',') +
+          (gewichtetGerechnet ? ' gewichtet' : '');
+        b.title = 'Wie diese Zahl zustande kommt';
+        b.onclick = zeigeRechnung;
+        kopf.appendChild(b);
+      }
+    }
     item.ratings.forEach(r => {
       const row = document.createElement('div');
       row.className = 'rrow';
@@ -4255,6 +4490,80 @@ async function renderDetail(id) {
      die Liste der eigene Wert ein zweites Mal. Der Server verweigert den Abruf
      ohnehin; ein Knopf, der zuverlässig eine Fehlermeldung erzeugt, sieht aus
      wie ein Fehler. */
+  /* ---- Die eigene Rechnung hinter der Kopfzahl -- 0.16.0 ----
+     DER KASTEN LIEST DIE VORHANDENE RECHNUNG, ER RECHNET NICHT NACH. Zaehler,
+     Nenner und das ungerundete Ergebnis kommen aus `rechenweg`, und der
+     entsteht im Server IN gesamtSchnitt() -- also in derselben Schleife, die
+     die Zahl erzeugt. Ein zweiter Rechenweg fuer die Anzeige waere genau die
+     zweite Wahrheit, die diese Anlage nirgends duldet: die beiden liefen
+     frueher oder spaeter auseinander, und zwar unbemerkt.
+     KEIN ALLGEMEINES BEISPIEL, SONDERN DIESER EINTRAG. Ein erfundenes
+     Rechenbeispiel liest niemand zweimal; die eigene Rechnung schon.
+     DIE NAMEN KOMMEN AUS `ratings` UND NICHT AUS DEM RECHENWEG: der traegt
+     Nummern, Werte und Gewichte. Zwei Quellen fuer denselben Namen waeren zwei
+     Wahrheiten -- dieselbe Ueberlegung wie bei „Wer hat bewertet". */
+  const gewZahl = (n) => {
+    const z = Math.round(Number(n) * 100) / 100;
+    return (Number.isFinite(z) ? z : 0).toString().replace('.', ',');
+  };
+
+  function zeigeRechnung() {
+    const weg = item.rechenweg;
+    // Ohne Aufstellung kein Kasten. Sie fehlt nur, wenn nichts bewertet ist --
+    // dann steht aber auch keine Kopfzahl da, an der man klicken koennte.
+    if (!weg || !Array.isArray(weg.zeilen) || !weg.zeilen.length)
+      return toast('Für diesen Eintrag gibt es noch keine Rechnung.', true);
+    const namen = new Map(item.ratings.map(r => [r.criterion_id, r.name]));
+    const mitGewicht = weg.zeilen.some(z => Number(z.gewicht) !== 1);
+    const bd = document.createElement('div');
+    bd.className = 'backdrop';
+    bd.innerHTML = `<div class="modal rechnung-modal" id="rechnung-modal">
+      <h2>Wie ⌀ ${esc(gewZahl(weg.ergebnis))} zustande kommt</h2>
+      <p>Die Zahl entsteht in <strong>zwei Schritten</strong>. Zuerst wird je Kriterium der
+        Schnitt über alle Bewertungen gebildet — das sind die Zahlen rechts in den Zeilen.
+        Dann wird über diese Schnitte gemittelt${mitGewicht
+          ? ', und zwar <strong>gewichtet</strong>: jeder Schnitt zählt mit dem Gewicht seines Kriteriums'
+          : '. Alle Gewichte stehen hier auf 1, also zählt jedes Kriterium gleich'}.</p>
+      <div class="rechnung" id="rechnung">
+        <div class="rz rz-kopf"><span>Kriterium</span><span>Note</span><span>Gewicht</span><span>Produkt</span></div>
+        ${weg.zeilen.map(z => `<div class="rz" data-krit="${Number(z.criterionId)}">
+          <span class="rz-name">${esc(namen.get(z.criterionId) || '—')}</span>
+          <span>${esc(gewZahl(z.schnitt))}</span>
+          <span>× ${esc(gewZahl(z.gewicht))}</span>
+          <span>${esc(gewZahl(z.produkt))}</span></div>`).join('')}
+        <div class="rz rz-summe"><span>Summe der Produkte</span><span></span><span></span>
+          <span id="rz-summe">${esc(gewZahl(weg.summe))}</span></div>
+        <div class="rz rz-summe"><span>Teiler — Summe der Gewichte</span><span></span><span></span>
+          <span id="rz-teiler">${esc(gewZahl(weg.teiler))}</span></div>
+        <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>
+          <span id="rz-ergebnis">⌀ ${esc(gewZahl(weg.ergebnis))}</span></div>
+      </div>
+      ${/* DER TEILER IST DER PUNKT, AN DEM SICH DIE MEISTEN VERRECHNEN, und
+           deshalb steht er als eigener Satz da und nicht in einer Fussnote. */''}
+      <p>Der <strong>Teiler zählt nur die Kriterien, die auch bewertet sind</strong>. Ein
+        Kriterium, an dem niemand Sterne vergeben hat, geht gar nicht ein — sonst zöge es
+        die Zahl nach unten, ohne dass es an den Werten läge.</p>
+      <p><strong>Gerundet wird genau einmal</strong>, ganz am Ende:
+        ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))} =
+        ${esc(String(Math.round(Number(weg.roh) * 10000) / 10000).replace('.', ','))}
+        → <strong>${esc(gewZahl(weg.ergebnis))}</strong>. Die Zahlen oben sind für die Anzeige
+        auf zwei Stellen gekürzt; gerechnet wird ungekürzt.
+        Die Gewichte stellt der Admin im Systembereich unter <strong>Bewertungskriterien</strong> ein.</p>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
+    document.body.appendChild(bd);
+    const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
+    /* Escape schliesst nur den OBERSTEN Dialog -- dieselbe Regel wie bei
+       „Wer hat bewertet" und den Grabsteinen. */
+    const onKey = e => {
+      if (e.key !== 'Escape') return;
+      if ([...document.querySelectorAll('.backdrop')].pop() !== bd) return;
+      zu();
+    };
+    document.addEventListener('keydown', onKey, true);
+    bd.querySelector('[data-no]').onclick = zu;
+    bd.onclick = e => { if (e.target === bd) zu(); };
+  }
+
   async function zeigeStimmen() {
     let liste;
     try { liste = await api('GET', `/api/items/${id}/stimmen`); }
@@ -5092,11 +5401,125 @@ async function renderDetail(id) {
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
 }
 
-/* ================= Systembereich ================= */
+/* ================= Der Systembereich =================
+   ACHTZEHN KARTEN IN FUENF ABSCHNITTEN, JEDER MIT EIGENER ADRESSE.
+
+   BIS 0.15.1 STANDEN ALLE KARTEN IN EINER REIHE, und renderSystem() war mit
+   2.466 Zeilen die laengste Funktion der Anlage. Beides hing zusammen: eine
+   Seite ohne Abschnitte braucht keine Aufteilung im Quelltext, und eine
+   Funktion, die alles zeichnet, laesst sich nicht abschnittsweise rufen.
+
+   DIE AUFTEILUNG STEHT DESHALB ALS TABELLE UND NICHT ALS VERZWEIGUNG. Je
+   Karte eine Zeile: wohin sie gehoert, woran sie haengt, wie sie aussieht,
+   was sie ausruestet. Damit ist die Zuordnung ABLESBAR -- und der Pruefstand
+   kann sie nachzaehlen, statt sie im Markup zu suchen.
+
+   DIE KLEMME IST EIN FELD UND KEINE KLAMMER. Vorher stand vor jeder Karte ein
+   `${ADMIN ? ...}` im Markup; jetzt steht sie in `sichtbar`. Das ist derselbe
+   Wert an einer Stelle, an der man ihn ansehen kann: kein Zugang bekommt
+   danach eine Karte, die ihm vorher verwehrt war, und keiner verliert eine.
+
+   EINE KARTE, DIE NICHT GEZEICHNET WIRD, BEKOMMT AUCH KEINEN BEHANDLER --
+   `ausruesten` laeuft nur fuer die Karten, die wirklich dastehen. Das ist
+   nicht Sparsamkeit, sondern die Bedingung: die Behandler greifen mit
+   getElementById auf ihre Felder zu, und ein Griff ins Leere risse den ganzen
+   Systembereich mit (Stolperstein 211). Vorher hing dieselbe Frage an EINER
+   Klammer (`amElement`); jetzt haengt sie an der Tabelle. */
+
+/* DIE FUENF ABSCHNITTE, IN DER REIHENFOLGE DER RECHTELEITER: was jedem
+   gehoert, steht vorn; was nur der Eigentuemer sieht, steht hinten.
+   "Anlage" traegt heute genau eine Karte. Das ist kein Versehen: der
+   oeffentliche Titel ist die einzige Einstellung, die die ANLAGE als Ganzes
+   nach aussen beschreibt, und sie gehoert weder zum Bestand noch zu den
+   Zugaengen. Ein Abschnitt mit einer Karte ist ehrlicher als eine Karte am
+   falschen Platz. */
+const SYS_ABSCHNITTE = [
+  { schluessel: 'persoenlich', name: 'Persönlich' },
+  { schluessel: 'bestand',     name: 'Bestand' },
+  { schluessel: 'zugaenge',    name: 'Zugänge' },
+  { schluessel: 'datenbank',   name: 'Datenbank' },
+  { schluessel: 'anlage',      name: 'Anlage' }
+];
+
+/* DIE ADRESSE IST DIE EINE WAHRHEIT UEBER DEN OFFENEN ABSCHNITT. Kein
+   gemerkter Zustand daneben: ein zweiter Merker waere eine zweite Wahrheit,
+   und beim naechsten Aufruf staende die Frage, welche gilt.
+   `#/system` OHNE ABSCHNITT BLEIBT GUELTIG -- es ist die Adresse, die der
+   Knopf in der Kopfzeile setzt und die in aelteren Papieren steht. Sie loest
+   sich auf den ersten sichtbaren Abschnitt auf. */
+const SYS_MUSTER = /^#\/system(?:\/([a-z]+))?$/;
+const sysAdresse = (schluessel) => `#/system/${schluessel}`;
+
+/* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. EIN Ort fuer die
+   Frage nach einem fehlenden Element: stuende vor jedem Behandler dieselbe
+   Klammer, risse die erste vergessene den ganzen Systembereich mit -- und
+   zwar wortlos, weil der Fehler nach dem Setzen von app.innerHTML kaeme. */
+const amElement = (id, tu) => { const el = document.getElementById(id); if (el) tu(el); };
+
+
+/* ---- DIE ACHTZEHN KARTEN ----
+   `sichtbar` ist die Klemme, `markup` das Aussehen, `ausruesten` die
+   Behandler. Eine Karte ohne Behandler laesst `ausruesten` weg -- "Kennzahlen"
+   zeigt nur Zahlen, und eine leere Funktion daneben waere eine Zeile, die
+   behauptet, es gaebe dort etwas zu tun. */
+const SYS_KARTEN = [
+  { schluessel: 'zugang',       abschnitt: 'persoenlich', sichtbar: () => true,
+    markup: karteZugang,       ausruesten: ruesteZugangAus },
+  { schluessel: 'sitzungen',    abschnitt: 'persoenlich', sichtbar: () => true,
+    markup: karteSitzungen,    ausruesten: ruesteSitzungenAus },
+  { schluessel: 'darstellung',  abschnitt: 'persoenlich', sichtbar: () => true,
+    markup: karteDarstellung,  ausruesten: ruesteDarstellungAus },
+
+  { schluessel: 'kategorien',   abschnitt: 'bestand', sichtbar: () => true,
+    markup: karteKategorien,   ausruesten: ruesteKategorienAus },
+  { schluessel: 'tags',         abschnitt: 'bestand', sichtbar: () => true,
+    markup: karteTags,         ausruesten: ruesteTagsAus },
+  { schluessel: 'kriterien',    abschnitt: 'bestand', sichtbar: () => true,
+    markup: karteKriterien,    ausruesten: ruesteKriterienAus },
+  { schluessel: 'vokabular',    abschnitt: 'bestand', sichtbar: () => ADMIN,
+    markup: karteVokabular,    ausruesten: ruesteVokabularAus },
+  { schluessel: 'links',        abschnitt: 'bestand', sichtbar: () => true,
+    markup: karteLinks,        ausruesten: ruesteLinksAus },
+  { schluessel: 'suchanbieter', abschnitt: 'bestand', sichtbar: () => ADMIN,
+    markup: karteSuchanbieter, ausruesten: ruesteSuchanbieterAus },
+  { schluessel: 'papierkorb',   abschnitt: 'bestand', sichtbar: () => ADMIN,
+    markup: kartePapierkorb,   ausruesten: ruestePapierkorbAus },
+
+  { schluessel: 'zugaenge',     abschnitt: 'zugaenge', sichtbar: () => ADMIN,
+    markup: karteZugaenge,     ausruesten: ruesteZugaengeAus },
+  { schluessel: 'anfragen',     abschnitt: 'zugaenge', sichtbar: (g) => ADMIN && !!g.anfragen,
+    markup: karteAnfragen,     ausruesten: ruesteAnfragenAus },
+  { schluessel: 'protokoll',    abschnitt: 'zugaenge', sichtbar: (g) => EIGENTUEMER && !!g.protokoll,
+    markup: karteProtokoll,    ausruesten: ruesteProtokollAus },
+  { schluessel: 'mailversand',  abschnitt: 'zugaenge', sichtbar: (g) => EIGENTUEMER && !!g.mailstand,
+    markup: karteMailversand,  ausruesten: ruesteMailversandAus },
+
+  { schluessel: 'kennzahlen',   abschnitt: 'datenbank', sichtbar: () => ADMIN,
+    markup: karteKennzahlen },
+  { schluessel: 'sicherung',    abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
+    markup: karteSicherung,    ausruesten: ruesteSicherungAus },
+  { schluessel: 'export',       abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
+    markup: karteExport,       ausruesten: ruesteExportAus },
+
+  { schluessel: 'titel',        abschnitt: 'anlage', sichtbar: () => ADMIN,
+    markup: karteTitel,        ausruesten: ruesteTitelAus }
+];
+
+/* WELCHE ABSCHNITTE FUER DIESEN ZUGANG ETWAS ZU ZEIGEN HABEN. Ein Abschnitt
+   ohne sichtbare Karte erscheint gar nicht -- ein leerer Reiter waere
+   schlechter als keiner: er verspricht etwas und haelt es nie.
+   ZWEI BLEIBEN IMMER: "Persoenlich" und "Bestand" tragen Karten ohne Klemme.
+   Die Liste kann deshalb nicht leer werden, und der Rueckfall unten greift
+   nie ins Leere. */
+function sysSichtbareAbschnitte(geholt) {
+  return SYS_ABSCHNITTE.filter(a =>
+    SYS_KARTEN.some(k => k.abschnitt === a.schluessel && k.sichtbar(geholt)));
+}
+
+
 async function renderSystem() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
-  let stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll, mailstand,
-      anfragen;
+  const geholt = {};
   try {
     /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
        stehen hinter dem Admin; ein Abruf, der zuverlaessig 403 ergibt, risse
@@ -5114,8 +5537,9 @@ async function renderSystem() {
        geholt und nicht spaeter nachgeladen: ein Nachladen liefe als herrenlose
        Zusage weiter, auch wenn das Fenster laengst zu ist (Stolperstein 118).
        Es sind elf Abrufe. */
-    [stats, titles, cats, tags, crits, zugang, papierkorb, sicherung, sitzungen, protokoll, mailstand,
-     anfragen] = await Promise.all([
+    [geholt.stats, geholt.titles, geholt.cats, geholt.tags, geholt.crits, geholt.zugang,
+     geholt.papierkorb, geholt.sicherung, geholt.sitzungen, geholt.protokoll,
+     geholt.mailstand, geholt.anfragen] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/papierkorb') : null,
@@ -5126,15 +5550,58 @@ async function renderSystem() {
     ]);
   } catch (e) { if (e.message !== 'Sitzung abgelaufen') toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
-  if (papierkorb && papierkorb.tage) PAPIERKORB_TAGE = papierkorb.tage;
+  if (geholt.papierkorb && geholt.papierkorb.tage) PAPIERKORB_TAGE = geholt.papierkorb.tage;
+
+  /* WELCHER ABSCHNITT OFFEN IST, ENTSCHEIDET DIE ADRESSE -- und wenn die auf
+     einen zeigt, den es fuer diesen Zugang nicht gibt, faellt sie auf den
+     ersten sichtbaren zurueck. Ins Leere zeigen darf sie nicht: wer den Link
+     eines Admins bekommt und ihn als gewoehnlicher Benutzer oeffnet, saehe
+     sonst eine leere Seite. */
+  const sichtbare = sysSichtbareAbschnitte(geholt);
+  const gewuenscht = (SYS_MUSTER.exec(location.hash || '') || [])[1] || '';
+  const offen = sichtbare.find(a => a.schluessel === gewuenscht) || sichtbare[0];
+  const karten = SYS_KARTEN.filter(k => k.abschnitt === offen.schluessel && k.sichtbar(geholt));
 
   app.innerHTML = `<div class="shell">
     <a href="#/" class="back">← Zurück zur Übersicht</a>
     <h1 class="page-title">System</h1>
-    <p class="hint" style="margin:0 0 22px">Alles, was den Bestand als Ganzes betrifft.</p>
+    <p class="hint" style="margin:0 0 16px">Alles, was den Bestand als Ganzes betrifft.</p>
+    ${/* EIN MARKUP, ZWEI GESTALTEN -- dieselbe Bauform wie das Menue der
+         Kopfzeile aus 0.12.0. Auf dem breiten Schirm eine Reihe Reiter, auf
+         dem Telefon eine Liste, die in den Abschnitt hinein fuehrt. Kein
+         Verschieben von Knoten, keine Weiche nach Geraet.
+         ES SIND LINKS UND KEINE KNOEPFE. Ein Reiter, der eine Adresse hat,
+         laesst sich kopieren, in einem neuen Fenster oeffnen und mit der
+         Zurueck-Taste verlassen -- ein Knopf koennte davon nichts. */''}
+    <nav class="sys-reiter" aria-label="Abschnitte des Systembereichs">
+      ${sichtbare.map(a => `<a class="sys-reiter-k${a === offen ? ' on' : ''}"
+        href="${sysAdresse(a.schluessel)}" data-abschnitt="${esc(a.schluessel)}"${
+        a === offen ? ' aria-current="page"' : ''}>${esc(a.name)}</a>`).join('')}
+    </nav>
     <div class="sys-grid">
+      ${karten.map(k => k.markup(geholt)).join('\n')}
+    </div></div>`;
 
-      ${ADMIN ? `<div class="sys-card">
+  for (const k of karten) if (k.ausruesten) k.ausruesten(geholt);
+
+  /* DIE ADRESSE WIRD NACHGEZOGEN, NICHT DIE ANSICHT VERBOGEN. Stuende in der
+     Adresse weiter "datenbank", waehrend "Persoenlich" dasteht, gaebe es zwei
+     Aussagen ueber denselben Zustand -- und die kopierte Adresse fuehrte den
+     naechsten wieder woandershin.
+     replaceState UND NICHT location.hash: ein neuer Eintrag im Verlauf machte
+     die Zurueck-Taste unbrauchbar (zurueck fuehrte auf dieselbe Seite), und
+     ein gesetzter Hash loeste ein zweites Zeichnen aus. replaceState loest
+     kein hashchange aus -- genau deshalb steht es hier. */
+  if (location.hash !== sysAdresse(offen.schluessel) &&
+      typeof history !== 'undefined' && typeof history.replaceState === 'function')
+    history.replaceState(null, '', sysAdresse(offen.schluessel));
+}
+
+
+/* ---- Karte „Titel" — Abschnitt „Anlage" ---- */
+function karteTitel(geholt) {
+  const { titles } = geholt;
+  return `<div class="sys-card">
         <h3>Titel</h3>
         <p class="desc">Der <strong>öffentliche Titel</strong> steht auf der Anmeldeseite und ist für
           jeden sichtbar, der die Adresse aufruft. Der <strong>interne Titel</strong> erscheint erst
@@ -5144,9 +5611,26 @@ async function renderSystem() {
         <div class="field"><label>Titel nach der Anmeldung</label>
           <input class="input" id="ta2" value="${esc(titles.appTitle)}"></div>
         <button class="btn btn-accent btn-sm" id="tsave">Titel speichern</button>
-      </div>` : ''}
+      </div>`;
+}
+function ruesteTitelAus() {
+  amElement('tsave', tsave => tsave.onclick = async () => {
+    const p = document.getElementById('tp').value.trim();
+    const a = document.getElementById('ta2').value.trim();
+    try {
+      const r = await api('PUT', '/api/titles', { publicTitle: p, appTitle: a });
+      TITLE_PUBLIC = r.publicTitle; TITLE_APP = r.appTitle;
+      document.title = TITLE_APP;
+      toast('Titel gespeichert');
+    } catch (e) { toast(e.message, true); }
+  });
+}
 
-      <div class="sys-card">
+
+/* ---- Karte „Zugang" — Abschnitt „Persönlich" ---- */
+function karteZugang(geholt) {
+  const { zugang } = geholt;
+  return `<div class="sys-card">
         <h3>Zugang</h3>
         <p class="desc">Benutzername und Passwort für die Anmeldung. Zum Ändern ist das
           bisherige Passwort nötig. Das Passwortfeld leer lassen ändert nur den Namen.
@@ -5191,552 +5675,9 @@ async function renderSystem() {
               man erst drücken muss, um zu sehen, ob der Zugang gesichert ist,
               wäre keine Auskunft. */''}
         <div class="zf-block" id="zf-block"></div>
-      </div>
-
-      <div class="sys-card">
-        <h3>Meine Sitzungen</h3>
-        <p class="desc">Wo dieser Zugang überall angemeldet ist. <strong>Was hier nicht
-          steht:</strong> von welchem Gerät. Die Anlage speichert weder Adresse noch
-          Browserkennung — das ist so gewollt und bleibt so. Sie kann deshalb
-          <strong>diese</strong> Anmeldung von <strong>allen anderen</strong> trennen, und
-          mehr braucht der Knopf darunter nicht.</p>
-        <div class="manage-list" id="msitzungen"></div>
-      </div>
-
-      ${ADMIN ? `<div class="sys-card">
-        <h3>Kennzahlen</h3>
-        <p class="desc">Umfang des Bestands, Belegung der Datenbank und der Fingerprint
-          der laufenden Dateien.</p>
-        <div class="kv"><span class="k">${esc(V.sacheMehrzahl)}</span><span class="v">${stats.itemCount}</span></div>
-        <div class="kv"><span class="k">Fotos</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
-        <div class="kv"><span class="k">Videos</span><span class="v">${stats.videoCount} · ${fmtBytes(stats.videoBytes)}</span></div>
-        <div class="kv"><span class="k">Kommentare</span><span class="v">${stats.commentCount}</span></div>
-        <div class="kv"><span class="k">Links</span><span class="v">${stats.linkCount}</span></div>
-        <div class="kv"><span class="k">${esc(V.zeitpunktMehrzahl)}</span><span class="v">${stats.testDayCount}</span></div>
-          <div class="kv"><span class="k">Dateien</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
-        ${/* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos:
-             sonst wundert sich jemand ueber eine Datenbank, die nach dem
-             Aufraeumen groesser ist als vorher. Die Zeile steht UEBER der
-             Datenbankgroesse, weil sie ein Teil von ihr ist. */''}
-        ${/* Kommentarbilder standen bisher in keiner Zeile, obwohl sie als Blob
-             in derselben Datei liegen wie Fotos und Anhaenge. Wer sich fragt,
-             wovon die Datenbank so gross ist, soll die Antwort vollstaendig
-             finden und nicht bei einem Rest stehenbleiben. */''}
-        <div class="kv"><span class="k">Kommentarbilder</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
-        <div class="kv"><span class="k">Papierkorb</span><span class="v">${stats.papierkorbCount || 0} · ${fmtBytes(stats.papierkorbBytes)}</span></div>
-        <div class="kv"><span class="k">Datenbank</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
-        ${/* DIE ZWEITE GROESSENANGABE, und sie beantwortet eine andere Frage als
-             die Zeile darueber. Die Datenbankgroesse sagt, wie viel Platz die
-             Anlage auf der Platte braucht; sie traegt Indizes, das
-             Sicherheitsprotokoll und freie Seiten aus Geloeschtem. Die
-             Exportgroesse sagt, wie gross die Datei wird, die das Haus
-             verlaesst -- Base64 statt Bytes, dafuer ohne alles, was nicht
-             mitgeht. Die beiden Zahlen sind darum verschieden, und dass die
-             obere die untere ueberschreiten kann, ist kein Fehler.
-             ALLES EINGERECHNET: Fotos, Videos, Dateien, Kommentarbilder. Am
-             Knopf steht darunter, was die eingeschalteten Schalter davon
-             wirklich mitnehmen. */''}
-        ${exportGesamt(stats) ? `<div class="kv"><span class="k">Export, alles</span><span class="v">≈ ${fmtBytes(exportGesamt(stats))}</span></div>` : ''}
-        ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann: ob die
-             Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
-             Einspielen wird er gegen die Zeile im Aenderungsprotokoll
-             gehalten -- stimmt er nicht, ist ein Dateisatz halb eingespielt. */''}
-        <div class="kv"><span class="k">Fingerprint</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
-        <div style="margin-top:14px">${stats.keyFromEnv
-          ? `<div class="ok-box">Der Schlüssel kommt aus der Umgebung. Denk daran: <strong>.env und data/ nicht in dieselbe Sicherung legen</strong> — und ohne den Schlüssel sind die Daten unwiederbringlich verloren.</div>`
-          : `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.
-              <p style="margin:9px 0 6px">Für echten Schutz <strong>diesen</strong> Wert in die <code>.env</code> eintragen — keinen neuen erzeugen, sonst sind die vorhandenen Daten nicht mehr lesbar:</p>
-              <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
-              <p style="margin:8px 0 0">Danach <code>docker compose up -d</code> und im Protokoll „Schlüssel aus ENCRYPTION_KEY geladen" prüfen — <strong>erst dann</strong> <code>data/encryption.key</code> entfernen.</p>
-            </div>`}
-        </div>
-      </div>` : ''}
-
-      ${/* Export und Import gehoeren dem Eigentuemer, beide Routen stehen hinter
-            nurEigentuemer. Die Groessenschaetzung liest aus den Kennzahlen --
-            das geht nur auf, weil die Rollen eine LEITER sind: wer Eigentuemer
-            ist, ist auch Admin, und dann steht stats. Faellt diese Leiter
-            jemals, faellt hier eine Karte auf null. */''}${EIGENTUEMER && mailstand ? `<div class="sys-card">
-        <h3>Mailversand</h3>
-        ${/* DIE ACHTZEHNTE KARTE, und sie gehört dem EIGENTÜMER — nicht dem
-              Admin, obwohl der die Einladungen verschickt. Der SMTP-Server
-              sieht jede Mail, und jede trägt einen Link, der ein Passwort
-              setzt; ein Admin, der ihn einträgt, böge damit die Rücksetzmail
-              des Eigentümers auf einen Server seiner Wahl. Über dem Eigentümer
-              steht niemand — die Rollenleiter bleibt heil.
-              DAS PASSWORT STEHT HIER NIE: „gesetzt“ oder „nicht gesetzt“, nie
-              die Länge, nie der Anfang, nie Sternchen mit der richtigen Zahl.
-              Aus jedem davon ließe sich etwas ableiten, und keines hilft dem,
-              der die Karte ansieht. */''}
-        <p class="desc"><strong>E-Mail ist eine Bequemlichkeit, keine Voraussetzung.</strong>
-          Ohne Mailzugang läuft die Anlage vollständig — Einladungs- und Rücksetzlinks stehen
-          dann wie bisher im Verwaltungsbereich zum Kopieren. Mit Mailzugang gehen sie
-          <em>zusätzlich</em> hinaus; schlägt das fehl, bricht nichts ab.</p>
-        <div class="kv"><span class="k">Zustand</span><span class="v">${mailstand.eingerichtet
-          ? '<strong class="mail-gut">eingerichtet</strong>'
-          : '<strong class="mail-aus">nicht eingerichtet</strong>'}</span></div>
-        <div class="kv"><span class="k">Passwort</span><span class="v">${mailstand.passwortGesetzt
-          ? 'gesetzt' : 'nicht gesetzt'}</span></div>
-        <div class="kv"><span class="k">Öffentliche Adresse</span><span class="v">${mailstand.adresseGesetzt
-          ? esc(mailstand.adresse)
-          : '<strong class="mail-aus">nicht gesetzt — es wird nicht verschickt</strong>'}</span></div>
-        <div class="kv"><span class="k">Zuletzt erfolgreich getestet</span><span class="v">${mailstand.getestetAm
-          ? esc(mailstand.getestetAm) : 'noch nie'}</span></div>
-        ${mailstand.adresseGesetzt ? '' : `<p class="warn-box" style="margin:10px 0 0">
-          <strong>Ohne <code>OEFFENTLICHE_ADRESSE</code> in der <code>.env</code> wird nichts
-          verschickt.</strong> Der Server wüsste sonst nicht, worauf der Link zeigen soll —
-          und aus dem <code>Host</code>-Kopf darf er es nicht ableiten: über einen gefälschten
-          Kopf ließe sich ein Rücksetzlink auf einen fremden Server umbiegen.</p>`}
-
-        <div class="field" style="margin-top:14px"><label for="mail-anbieter">Anbieter</label>
-          <select class="input" id="mail-anbieter">
-            <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
-            ${mailstand.anbieterListe.map(a => `<option value="${esc(a.schluessel)}"${
-              a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
-          </select></div>
-        ${/* Server, Port und Verschlüsselung stehen für die Vorlagen im
-              Quelltext und werden hier nur GEZEIGT. Wechselt ein Anbieter
-              morgen den Port, kommt der neue aus der Liste — eine Kopie in
-              der Datenbank wäre eingefroren und liefe auseinander. Nur bei
-              „Eigener Server“ sind die Felder offen. */''}
-        <div class="field"><label for="mail-server">Server</label>
-          <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
-            autocapitalize="off" spellcheck="false"></div>
-        <div class="row-in">
-          <div class="field" style="flex:1"><label for="mail-port">Port</label>
-            <input class="input" id="mail-port" type="number" min="1" max="65535"
-              value="${mailstand.port || ''}"></div>
-          <div class="field" style="flex:1"><label for="mail-sicher">Verschlüsselung</label>
-            <select class="input" id="mail-sicher">
-              <option value="starttls"${mailstand.sicher ? '' : ' selected'}>STARTTLS (meist 587)</option>
-              <option value="tls"${mailstand.sicher ? ' selected' : ''}>TLS von Anfang an (meist 465)</option>
-            </select></div>
-        </div>
-        <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
-          <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
-            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-        <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
-          <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
-            placeholder="${mailstand.passwortGesetzt ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
-        <div class="field"><label for="mail-absender">Absenderadresse</label>
-          <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
-            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-
-        <p class="desc" id="mail-hinweis">${mailstand.hinweis ? `<strong>${esc(mailstand.hinweis)}</strong><br>` : ''}
-          ${esc(mailstand.hinweisImmer)}</p>
-        <p class="desc">Immer über den SMTP-Zugang eines Anbieters, nie unmittelbar vom
-          Hausanschluss: dort fehlen rDNS und SPF/DKIM, und die Mail landet im besten Fall
-          im Spam.</p>
-        <div class="row-in">
-          <button class="btn btn-accent btn-sm" id="mail-save">Mailzugang speichern</button>
-          <button class="btn btn-sm" id="mail-test">Testmail an mich</button>
-        </div>
-        <p class="desc" style="margin:8px 0 0">Die Testmail geht <strong>ausschließlich an die
-          Adresse deines eigenen Zugangs</strong> — es gibt kein Adressfeld daneben, und zwar
-          mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener
-          Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der
-          Versuch nach ${mailstand.sekunden} Sekunden ab.</p>
-        <div id="mail-ergebnis"></div>
-      </div>` : ''}${EIGENTUEMER ? `<div class="sys-card">
-        <h3>Export</h3>
-        ${/* DIE ROLLENTEILUNG GEHOERT AN DIE KARTE, nicht nur in die Doku. Wer
-             Export und Sicherung nebeneinander sieht, muss ohne Rueckfrage
-             wissen, welche er will. Ein Satz je Karte, und er steht hier. */''}
-        <p class="desc"><strong>Der Austauschweg</strong> — für Umzug, Archiv und die Weitergabe:
-          die Datei überlebt einen Formatwechsel und braucht keinen Schlüssel. Für den Notfall
-          ist die Karte <strong>Sicherung</strong> zuständig.</p>
-        <p class="desc">Schreibt den gesamten Bestand in eine Datei. Mit Fotos wird sie deutlich
-          größer, weil Bilder als Text kodiert werden müssen — rechne mit rund einem Drittel
-          Aufschlag auf ${fmtBytes(stats.photoBytes)}.</p>
-        ${/* DIE ZAHLEN AN DEN KNOEPFEN SIND LEBENDIG. Sie standen bisher fest im
-             Text und rechneten dabei jede fuer sich -- die Haekchen darunter
-             aenderten die Datei, aber keine Zahl. Wer beide Haekchen setzte,
-             fand nirgends, was dabei herauskommt.
-             GERECHNET WIRD AN EINER STELLE, in exportSumme(); die Warnung
-             darunter liest dieselbe Zahl. Zwei Rechenwege naennten frueher oder
-             spaeter zwei Groessen fuer dieselbe Datei. */''}
-        <div class="row-in">
-          <button class="btn btn-accent btn-sm" id="ex-yes">Mit Fotos (~<span id="ex-gr-yes">…</span>)</button>
-          <button class="btn btn-sm" id="ex-no">Ohne Fotos (~<span id="ex-gr-no">…</span>)</button>
-        </div>
-        <label class="ex-files"><input type="checkbox" id="ex-files">
-          Angehängte Dateien mitnehmen (+${fmtBytes((stats.export?.anhaenge || 0) + (stats.export?.kommentarbilder || 0))})</label>
-        ${/* Eigener Schalter, Vorgabe aus. Ohne ihn bleibt der Platz des Videos
-             in der Datei vermerkt, die Datei selbst fehlt -- der Import sagt
-             dann, wie viele es waren. Stand ein Video an erster Stelle, wird
-             danach das naechste Foto zum Hauptbild. */''}
-        <label class="ex-files"><input type="checkbox" id="ex-videos">
-          Videos mitnehmen (+${fmtBytes(stats.export?.videos || 0)})</label>
-        ${stats.videoCount ? `<p class="hint hint-sm" style="margin:6px 2px 0">
-          Ohne Häkchen bleiben die Videos zurück; die Einträge nennen sie, die Dateien fehlen.</p>` : ''}
-        ${/* DER HINWEIS STEHT VOR DEM KNOPF UND NICHT HINTER DEM ABBRUCH. Ein
-             Export, der nach zwei Minuten mit einem Speicherfehler aufgibt,
-             sieht aus wie ein kaputtes Programm; er ist aber eine erreichte
-             Grenze, und der Unterschied liegt allein darin, ob die Anlage es
-             vorher sagt.
-             GEWARNT WIRD, VERWEIGERT NICHT. Die Zahl ist eine Schaetzung, und
-             eine Schaetzung darf niemandem den Export wegnehmen, dessen Datei
-             am Ende doch gepasst haette. Wer die Grenze wirklich reisst,
-             bekommt sie von der Route gesagt -- mit derselben Rechnung. */''}
-        <div id="ex-warn"></div>
-        ${/* DER WEG, WENN DIE EINE DATEI NICHT GEHT. Er steht IMMER da und
-             nicht erst hinter der Warnung: wer seine Teile auf einen
-             Datentraeger bringen oder durch eine Hochladegrenze schieben will,
-             braucht sie auch unterhalb des Schwellwerts.
-             DIE TEILGROESSE IST WAEHLBAR, NACH OBEN ABER GEDECKELT: oberhalb
-             des Warnwerts baute die Anlage Teile, vor denen sie im selben
-             Atemzug warnt. */''}
-        <div class="ex-teile">
-          <div class="row-in" style="align-items:baseline">
-            <button class="btn btn-sm" id="ex-plan">In Teilen exportieren</button>
-            <label class="hint hint-sm" style="display:flex;align-items:baseline;gap:6px">
-              höchstens
-              <select class="input input-sm" id="ex-ziel" style="width:auto">
-                <option value="52428800">50 MB</option>
-                <option value="104857600">100 MB</option>
-                <option value="209715200">200 MB</option>
-                <option value="314572800" selected>300 MB</option>
-              </select>
-              je Datei
-            </label>
-          </div>
-          <div id="ex-plan-out"></div>
-        </div>
-      </div>
-
-      <div class="sys-card">
-        <h3>Import</h3>
-        <p class="desc">Spielt eine zuvor erzeugte Exportdatei wieder ein. Vor dem Start wird
-          gefragt, was mit dem vorhandenen Bestand geschehen soll.</p>
-        <label class="drop" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
-          Exportdatei auswählen</label>
-      </div>
-
-      <div class="sys-card">
-        <h3>Sicherung</h3>
-        <p class="desc"><strong>Der Sicherungsweg</strong> — eine vollständige, verschlüsselte
-          Kopie der Datenbank, samt allem, was der Export nicht mitnimmt. Sie braucht beim
-          Schreiben keinen nennenswerten Arbeitsspeicher, überlebt aber keinen Formatwechsel.</p>
-        ${/* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
-             Dokumentation: die Kopie ist ohne .env wertlos. Das ist dieselbe
-             Falle, die die README ausfuehrlich beschreibt -- hier steht sie an
-             der Stelle, an der jemand sie tatsaechlich tappt. */''}
-        <div class="warn-box" style="margin:0 0 14px"><strong>Die Kopie ist verschlüsselt.</strong>
-          Ohne den Schlüssel aus der <code>.env</code> lässt sie sich nicht öffnen — und beides
-          gehört nicht an denselben Ort.</div>
-        <div id="sicherung-box"></div>
-      </div>` : ''}
-
-      ${/* DIE KARTE STEHT BEIM ADMIN, GEHANDELT WIRD NUR VOM EIGENTUEMER --
-            dieselbe Bauform wie bei "Kategorien", "Tags" und
-            "Bewertungskriterien": wer nicht verwalten darf, darf trotzdem
-            nachsehen. Sehen ist hier harmlos, denn der Titel eines geloeschten
-            Eintrags stand vorher in der Uebersicht, die jeder sieht.
-            Zurueckholen dagegen legt Zeilen unter FREMDEM Namen an und liegt
-            damit in derselben Rechtezeile wie der Import. */''}${ADMIN ? `<div class="sys-card">
-        <h3>Papierkorb</h3>
-        <p class="desc">Gelöschte ${esc(V.sacheMehrzahl)} liegen hier <strong>${PAPIERKORB_TAGE} Tage</strong>
-          und lassen sich zurückholen; danach fallen sie heraus. Zurück kommt eine
-          <strong>neue</strong> Nummer mit demselben Inhalt — Fotos, Videos, Dateien, Kommentare,
-          Bewertungen und ${esc(V.zeitpunktMehrzahl)} samt ihren Verfassern.
-          ${EIGENTUEMER ? '' : 'Zurückholen und endgültig entfernen kann der Eigentümer der Anlage.'}</p>
-        <div class="manage-list" id="mpapierkorb"></div>
-      </div>` : ''}
-
-      <div class="sys-card">
-        <h3>Kategorien</h3>
-        <p class="desc">Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)}
-          erhalten und haben nur keine Kategorie mehr.</p>
-        <div class="manage-list" id="mcats"></div>
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Wer eine <strong>neue</strong> Kategorie
-          anlegen darf. Ohne Häkchen bleibt die Auswahl aus dem Vorhandenen für jeden bestehen —
-          nur die Zeile „+ neue Kategorie" am ${esc(V.sacheEinzahl)} verschwindet. Der Admin legt
-          weiterhin an.</p>
-        <label class="ex-files"><input type="checkbox" id="katfrei">
-          Neue Kategorien darf jeder anlegen</label>` : ''}
-      </div>
-
-      <div class="sys-card">
-        <h3>Tags</h3>
-        <p class="desc">Umbenennen oder löschen. Ein gelöschter Tag verschwindet überall;
-          die ${esc(V.sacheMehrzahl)} selbst bleiben unberührt.</p>
-        <div class="manage-list" id="mtags"></div>
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Wer einen <strong>neuen</strong> Tag
-          anlegen darf. Ohne Häkchen bleiben Wolke und Vergabe für jeden bestehen — nur die
-          Eingabezeile am ${esc(V.sacheEinzahl)} verschwindet. Am ${esc(V.zeitpunktEinzahl)} bleibt
-          sie stehen, weil es dort keine Wolke gibt; ein unbekannter Name wird dann abgewiesen.</p>
-        <label class="ex-files"><input type="checkbox" id="tagfrei">
-          Neue Tags darf jeder anlegen</label>` : ''}
-      </div>
-
-      <div class="sys-card">
-        <h3>Bewertungskriterien</h3>
-        <p class="desc">${ADMIN
-          ? `Anlegen, umbenennen, löschen und <strong>per Ziehen sortieren</strong> — mit Maus
-             oder Finger. Die Reihenfolge gilt für Detailansicht und Vergleich gleichermaßen.
-             Ein neues Kriterium erscheint sofort an allen ${esc(V.sacheMehrzahl)}, ein gelöschtes
-             nimmt überall die vergebenen Sterne mit. Die Zahl nennt, an wie vielen
-             ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`
-          : `Die Kriterienliste pflegt der Admin. Die Reihenfolge gilt für Detailansicht und
-             Vergleich gleichermaßen; die Zahl nennt, an wie vielen ${esc(V.sacheMehrzahl)}
-             Sterne vergeben sind.`}</p>
-        <div class="manage-list" id="mcrits"></div>
-        <p class="desc" style="margin:10px 0 0">Das <strong>Gewicht</strong> bestimmt, wie stark ein
-          Kriterium in den Gesamtschnitt eingeht. Bei 1 zählen alle gleich. ${ADMIN
-            ? `Möglich ist 0,2 bis 2 — die Vorschläge sind nur die häufigsten Werte.`
-            : `Eingestellt wird es vom Admin; es gilt für alle.`}
-          Der Gesamtschnitt bleibt in jedem Fall zwischen 1 und 5.</p>
-        <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
-             ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
-             tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
-             Eintrag (#newtag mit list="tagsug").
-             ZWEI VORSCHLAEGE UNTER 1: die Liste ist der einzige Ort, an dem der Bereich unter 1
-             ueberhaupt sichtbar wird. Ohne sie bliebe er da und waere nur nicht auffindbar.
-             Sie kostet eine Zeile und der Server merkt davon nichts -- alles zwischen 0,2 und 2
-             laesst sich ohnehin eintippen. -->
-        <datalist id="gewichtsug">
-          <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
-        </datalist>
-        ${ADMIN ? `<div class="row-in" style="margin-top:12px">
-          <input class="input input-sm" id="newcrit" placeholder="Neues Kriterium" style="padding:8px 11px">
-          <button class="btn btn-sm" id="newcrit-b">+ Anlegen</button>
-        </div>` : ''}
-      </div>
-
-      ${ADMIN ? `<div class="sys-card breit">
-        <h3>Zugänge</h3>
-        <p class="desc">Wer sich anmelden darf. <strong>Sperren ist in den meisten Fällen das,
-          was man eigentlich will</strong> — die Anmeldung wird abgewiesen, die Beiträge bleiben
-          unangetastet stehen, und der Name bleibt vergeben.
-          ${EIGENTUEMER
-            ? `Als Eigentümer der Anlage vergibst du Rollen und kommst auch an andere Admins.`
-            : `Rollen vergibt der Eigentümer der Anlage; an einen anderen Admin kommst du nicht.`}</p>
-        <div class="manage-list" id="mzugaenge"></div>
-        ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
-             nichts geloescht wurde -- gefuellt wird sie von
-             zeichneGrabsteinKnopf(), sobald die Liste vom Server da ist. */''}
-        <div class="row-in" id="zug-weg-zeile" style="margin-top:8px"></div>
-
-        <p class="desc" style="margin:16px 0 8px">Woher der neue Zugang sein Passwort bekommt,
-          steht als <strong>Wahl im Formular</strong> — das Feld daneben erscheint nur, wenn es
-          auch gilt. Der Weg über den <strong>Link</strong> ist der empfohlene: du erfährst das
-          Passwort nie, und der Link gilt sieben Tage und genau einmal.</p>
-        <div class="zug-neu">
-          <input class="input input-sm" id="zug-name" placeholder="Benutzername"
-            autocomplete="off" autocapitalize="off" spellcheck="false">
-          ${/* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die
-                Einladungsmail keinen Empfänger, und den Zugang gibt es in
-                diesem Augenblick noch nicht, also kann sie auch niemand selbst
-                eintragen. Ändern darf sie danach allein der Betroffene, unter
-                „Zugang“. Freiwillig — ohne sie bleibt alles beim Kopieren. */''}
-          <input class="input input-sm" id="zug-mail" type="email" placeholder="E-Mail (freiwillig)"
-            autocomplete="off" autocapitalize="off" spellcheck="false">
-          <select class="input input-sm" id="zug-art">
-            <option value="link">Er wählt sein Passwort selbst</option>
-            <option value="passwort">Ich vergebe das erste Passwort</option>
-          </select>
-          <input class="input input-sm" id="zug-pass" type="password" placeholder="Erstes Passwort"
-            autocomplete="new-password" hidden>
-          ${EIGENTUEMER ? `<select class="input input-sm" id="zug-rolle">
-            <option value="user">Benutzer</option>
-            <option value="admin">Admin</option>
-            <option value="eigentuemer">Eigentümer</option>
-          </select>` : ''}
-          <button class="btn btn-accent btn-sm" id="zug-anlegen">+ Anlegen und Link</button>
-        </div>
-        <div id="zug-link"></div>
-
-        <p class="desc" style="margin:16px 0 0">Passwort vergessen und niemand kommt mehr herein?
-          Auf dem Server hilft
-          <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.</p>
-      </div>` : ''}
-
-      ${/* DIE NEUNZEHNTE KARTE — und sie steht beim ADMIN, nicht
-            beim Eigentümer: aus einer Anfrage wird nie etwas anderes als ein
-            Zugang mit der Rolle „Benutzer“, und den legt der Admin ohnehin an.
-            SIE STEHT IMMER, AUCH WENN DIE SELBSTANMELDUNG AUS IST — und das
-            ist eine Berichtigung aus dem Betrieb. Zuerst war sie an die
-            Bedingung „der Schalter ist an oder es liegen Anfragen" geknüpft;
-            der Gedanke dahinter war, keine Karte zu zeigen, die dauerhaft
-            „aus, nichts offen" meldet. Er trägt nicht, denn DER SCHALTER STEHT
-            IN DIESER KARTE: solange sie fehlt, gibt es keinen Weg, ihn je
-            einzuschalten. Eine Bedingung, die ihren eigenen Ausweg verdeckt,
-            ist eine Sackgasse.
-            SIE BLEIBT TROTZDEM KURZ, wenn es nichts zu sagen gibt: Überschrift,
-            ein Satz, der Zustand und der Schalter — die Liste erscheint erst,
-            wenn eine Anfrage vorliegt.
-            DER SCHALTER LEGT SICH NIE VON SELBST UM: geht der Versand kaputt,
-            bleibt er an und die Zeile darunter wird rot. Ein Schalter, der
-            sich selbst umlegt, stünde anders da, als der Mensch ihn gestellt
-            hat — und niemand wüsste, wann das passiert ist. */''}${
-        ADMIN && anfragen ? `<div class="sys-card breit">
-        <h3>Anfragen</h3>
-        <p class="desc"><strong>Niemand kommt hier herein, ohne dass ein Admin ihn hereinlässt.</strong>
-          Ist die Selbstanmeldung an, steht auf der Anmeldeseite ein Formular: Wunschname und
-          E-Mail-Adresse, kein Passwort. Wer es abschickt, bekommt zuerst eine Mail und bestätigt
-          damit, dass die Adresse ihm gehört — <strong>erst die bestätigte Anfrage erscheint
-          hier</strong>. Unbestätigte verfallen nach ${anfragen.stunden} Stunden.
-          ${anfragen.an ? '' : '<strong>Zurzeit ist sie aus</strong> — dann legt nur der Admin ' +
-            'Zugänge an, und es fehlt nichts.'}</p>
-        <div class="kv"><span class="k">Selbstanmeldung</span><span class="v" id="anf-zustand">${
-          anfragen.an ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>'
-        }</span></div>
-        <div class="kv"><span class="k">Offene Anfragen</span><span class="v" id="anf-belegt">${
-          anfragen.belegt} von höchstens ${anfragen.deckel}</span></div>
-        ${anfragen.an && !anfragen.versandBereit ? `<p class="warn-box" id="anf-kaputt" style="margin:10px 0 0">
-          <strong>Der Versand trägt gerade nicht — die Selbstanmeldung bleibt trotzdem an.</strong>
-          ${esc(anfragen.versandGrund)} Solange das so ist, bekommt niemand eine Bestätigungsmail,
-          und es kann keine Anfrage entstehen. Der Schalter wird deshalb <em>nicht</em> von selbst
-          umgelegt: er steht so, wie ihr ihn gestellt habt.</p>` : ''}
-        ${!anfragen.an && !anfragen.versandBereit ? `<p class="desc" id="anf-nichtbereit">
-          <strong>Einschalten geht erst, wenn der Versand steht.</strong>
-          ${esc(anfragen.versandGrund)}</p>` : ''}
-        <div class="row-in" style="margin-top:10px">
-          <button class="btn btn-sm${anfragen.an ? '' : ' btn-accent'}" id="anf-schalter"${
-            !anfragen.an && !anfragen.versandBereit ? ' disabled' : ''}>${
-            anfragen.an ? 'Selbstanmeldung ausschalten' : 'Selbstanmeldung einschalten'}</button>
-        </div>
-        <div class="manage-list" id="manfragen" style="margin-top:14px"></div>
-        <div id="anf-link"></div>
-        <p class="desc" style="margin:16px 0 0"><strong>Freischalten</strong> legt einen Zugang mit
-          der Rolle <strong>Benutzer</strong> an — nie mit einer anderen — und erzeugt den
-          Einladungslink, über den der Betreffende sein Passwort selbst setzt.
-          <strong>Ablehnen</strong> entfernt die Anfrage; es entsteht kein Zugang, und es geht
-          keine Nachricht hinaus.</p>
-      </div>` : ''}
-
-      ${/* NUR DER EIGENTUEMER. Die Karte nennt Namen und Vorgaenge ueber andere
-            Zugaenge; ein Admin, der sie liest, saehe die Verwaltungsvorgaenge
-            des Eigentuemers ueber ihn selbst. Dieselbe Zeile wie Export,
-            Import und der Schluesselwert.
-            SIE IST KEIN AENDERUNGSVERLAUF, und das steht auch dort: kein
-            Eintragstitel, kein Kommentartext, keine Bewertung. */''}${EIGENTUEMER && protokoll ? `<div class="sys-card breit">
-        <h3>Sicherheitsprotokoll</h3>
-        <p class="desc">Wer Zugang hatte und wer die Anlage als Ganzes angefasst hat.
-          <strong>Was hier nicht steht:</strong> was jemand geschrieben oder bewertet hat — das ist
-          kein Änderungsverlauf, und das bleibt so. Ebenso wenig Adresse oder Browserkennung:
-          die Anlage speichert beides nicht.</p>
-        <p class="desc">Die Zeilen bleiben <strong>${protokoll.tage} Tage</strong> stehen und werden
-          danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Sicherheitsprotokoll,
-          das sich wegräumen lässt, wäre keins.</p>
-        ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
-             dieser Anlage -- man waehlt, bevor man liest. Gezeichnet wird sie
-             aus einer geschlossenen Liste; die Auswahl geht an den Server,
-             denn die Liste darunter traegt nur die hundert juengsten Zeilen. */''}
-        <div class="pills" id="protokoll-filter" style="margin:0 0 12px"></div>
-        <div class="prot-liste" id="protokoll-liste"></div>
-        <p class="hint hint-sm" id="protokoll-fuss" style="margin:10px 2px 0"></p>
-      </div>` : ''}
-
-      <div class="sys-card">
-        <h3>Darstellung</h3>
-        <p class="desc">Schriftgröße der gesamten Oberfläche. Wirkt sofort und gilt auf jedem
-          Gerät. Die Layoutmaße bleiben unverändert — bei sehr großer Schrift wird es an
-          manchen Stellen enger.</p>
-        <div class="pills" id="fsize"></div>
-
-        <p class="desc" style="margin:16px 0 8px">Die Zeitleiste der ${esc(V.zeitpunktMehrzahl)} über dem
-          Kartenraster. Auf kleinen Bildschirmen nimmt sie viel Platz ein.</p>
-        <label class="ex-files"><input type="checkbox" id="zlan"> Zeitleiste anzeigen</label>
-
-        <p class="desc" style="margin:16px 0 8px">Anordnung und Einklappzustand der Blöcke in der
-          Detailansicht gelten für alle Einträge gemeinsam.</p>
-        <button class="btn btn-ghost btn-sm" id="breset">Standardanordnung wiederherstellen</button>
-      </div>
-
-      <div class="sys-card">
-        <h3>Links</h3>
-        <p class="desc">Wie viele Zeilen in der Detailansicht zu sehen sind, bevor
-          aufgeklappt werden muss.</p>
-        <div class="pills" id="lzeilen"></div>
-
-        <p class="desc sys-teil">Wird in der Linkliste etwas eingetragen, das
-          keine Adresse ist, wird daraus eine <strong>Suche</strong>. Gespeichert bleibt der
-          Rohtext — ein Anbieterwechsel gilt deshalb rückwirkend für alle vorhandenen
-          Suchzeilen. Gefragt wird erst beim Klick, Kriterion selbst ruft niemanden.</p>
-        <p class="desc" style="margin:0 0 8px">Wie viele Anbieternamen unter einer Suchzeile
-          stehen. Gezählt wird der Startanbieter mit; sind weniger in der Auswahl, stehen
-          entsprechend weniger da.</p>
-        <div class="pills" id="snamen"></div>
-      </div>
-
-      ${ADMIN ? `<div class="sys-card">
-        <h3>Suchanbieter</h3>
-        <p class="desc">Das Häkchen nimmt einen Anbieter in die Auswahl,
-          <strong>Start</strong> macht ihn zum Ziel des Zeilenklicks. Der Startanbieter steht
-          unter der Suchzeile immer vorn. Beides gilt für alle — die Zahl der angezeigten
-          Namen bestimmt jeder für sich in der Karte „Links".</p>
-        <div class="sanb-liste" id="sanbieter"></div>
-
-        <p class="desc sys-teil">Bis zu drei eigene Anbieter. <code>%s</code> steht
-          für den Suchtext; erlaubt sind nur <code>http://</code> und <code>https://</code>. Ein
-          Platz zählt erst, wenn Name <em>und</em> Vorlage dastehen. Der Name darf bis zu 20
-          Zeichen lang sein.</p>
-        <div class="sanb-eigen" id="seigene"></div>
-        <p class="desc" style="margin:8px 0 0">Foreneigene Suchen sind oft schlecht, gedrosselt
-          oder verlangen eine Anmeldung. Zuverlässiger ist eine Suchmaschine, die auf die Domain
-          eingeschränkt wird:<br>
-          <code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code><br>
-          Das <code>%3A</code> muss so dastehen — der Doppelpunkt gehört in die Vorlage, nicht in
-          den Suchtext.</p>
-      </div>` : ''}
-
-      ${ADMIN ? `<div class="sys-card">
-        <h3>Vokabular</h3>
-        <p class="desc">Wie die Dinge in der Oberfläche heißen sollen. <strong>Nur die
-          Beschriftung ändert sich</strong> — Datenbank und Exportdateien bleiben unberührt,
-          ältere Exportdateien lassen sich weiterhin einspielen.</p>
-        <div class="vok-grid">
-          <div class="field"><label>Sache, Einzahl</label>
-            <input class="input input-sm" id="v1" maxlength="40" value="${esc(V.sacheEinzahl)}"></div>
-          <div class="field"><label>Sache, Mehrzahl</label>
-            <input class="input input-sm" id="v2" maxlength="40" value="${esc(V.sacheMehrzahl)}"></div>
-          <div class="field"><label>Merkmal erfüllt</label>
-            <input class="input input-sm" id="v3" maxlength="40" value="${esc(V.merkmalJa)}"></div>
-          <div class="field"><label>Merkmal nicht erfüllt</label>
-            <input class="input input-sm" id="v4" maxlength="40" value="${esc(V.merkmalNein)}"></div>
-          <div class="field"><label>Zeitpunkt, Einzahl</label>
-            <input class="input input-sm" id="v5" maxlength="40" value="${esc(V.zeitpunktEinzahl)}"></div>
-          <div class="field"><label>Zeitpunkt, Mehrzahl</label>
-            <input class="input input-sm" id="v6" maxlength="40" value="${esc(V.zeitpunktMehrzahl)}"></div>
-          <div class="field"><label>Bericht, Einzahl</label>
-            <input class="input input-sm" id="v7" maxlength="40" value="${esc(V.berichtEinzahl)}"></div>
-          <div class="field"><label>Bericht, Mehrzahl</label>
-            <input class="input input-sm" id="v8" maxlength="40" value="${esc(V.berichtMehrzahl)}"></div>
-          <div class="field"><label>Aufgabe, Einzahl</label>
-            <input class="input input-sm" id="v9" maxlength="40" value="${esc(V.aufgabeEinzahl)}"></div>
-          <div class="field"><label>Aufgabe, Mehrzahl</label>
-            <input class="input input-sm" id="v10" maxlength="40" value="${esc(V.aufgabeMehrzahl)}"></div>
-          <div class="field"><label>Aufgabe, erledigt</label>
-            <input class="input input-sm" id="v11" maxlength="40" value="${esc(V.aufgabeErledigt)}"></div>
-        </div>
-        <div class="vok-probe" id="vprobe"></div>
-        <div class="row-in" style="margin-top:12px">
-          <button class="btn btn-accent btn-sm" id="vsave">Vokabular speichern</button>
-          <button class="btn btn-ghost btn-sm" id="vreset">Vorgaben</button>
-        </div>
-      </div>` : ''}
-
-    </div></div>`;
-
-  /* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. EIN Ort fuer
-     die Frage: stuende vor jedem Behandler dieselbe Klammer, risse die erste
-     vergessene beim Zeichnen fuer einen gewoehnlichen Benutzer den ganzen
-     Systembereich mit -- und zwar wortlos, weil der Fehler nach dem Setzen
-     von app.innerHTML kaeme. */
-  const amElement = (id, tu) => { const el = document.getElementById(id); if (el) tu(el); };
-
-  amElement('tsave', tsave => tsave.onclick = async () => {
-    const p = document.getElementById('tp').value.trim();
-    const a = document.getElementById('ta2').value.trim();
-    try {
-      const r = await api('PUT', '/api/titles', { publicTitle: p, appTitle: a });
-      TITLE_PUBLIC = r.publicTitle; TITLE_APP = r.appTitle;
-      document.title = TITLE_APP;
-      toast('Titel gespeichert');
-    } catch (e) { toast(e.message, true); }
-  });
-
+      </div>`;
+}
+function ruesteZugangAus(geholt) {
   document.getElementById('acc-save').onclick = async () => {
     const alt = document.getElementById('acc-old').value;
     const name = document.getElementById('acc-user').value.trim();
@@ -5764,6 +5705,8 @@ async function renderSystem() {
       renderSystem();   // leert die Passwortfelder
     } catch (e) { toast(e.message, true); }
   };
+  zeichneZweifaktor(geholt.zugang.zweifaktor);
+}
 
   /* --- Der zweite Faktor in der Karte „Zugang“ ---
      DIESELBE BAUFORM WIE zeichneAnfragen(): der Stand kommt vom Server, die
@@ -5915,76 +5858,22 @@ async function renderSystem() {
     box.appendChild(kasten);
   }
 
-  zeichneZweifaktor(zugang.zweifaktor);
 
-  /* --- Der Mailversand ---
-     NUR FUER DEN EIGENTUEMER; die Karte steht bei allen anderen gar nicht da,
-     und die Endpunkte darunter weisen sie ohnehin ab. Die Abfrage auf das
-     Element ist deshalb keine Zierde, sondern die Bedingung. */
-  const mailAnbieter = document.getElementById('mail-anbieter');
-  if (mailAnbieter && mailstand) {
-    const feld = (id) => document.getElementById('mail-' + id);
-    /* SERVER, PORT UND VERSCHLUESSELUNG GEHOEREN DER VORLAGE, ausser bei
-       "eigen". Sie werden gesperrt und nicht versteckt: wer GMX gewaehlt hat,
-       soll SEHEN, wohin die Anlage schickt -- ein leeres Feld waere eine
-       Auskunft weniger, kein Schutz mehr. */
-    const nachVorlage = () => {
-      const eigen = mailAnbieter.value === 'eigen';
-      const keiner = mailAnbieter.value === '';
-      for (const id of ['server', 'port', 'sicher']) feld(id).disabled = !eigen;
-      for (const id of ['benutzer', 'passwort', 'absender']) feld(id).disabled = keiner;
-      const h = document.getElementById('mail-hinweis');
-      if (h) h.hidden = keiner;
-    };
-    mailAnbieter.onchange = nachVorlage;
-    nachVorlage();
-
-    const mailErgebnis = (text, gut) => {
-      const box = document.getElementById('mail-ergebnis');
-      if (box) box.innerHTML = `<p class="warn-box ${gut ? 'mail-erfolg' : ''}"
-        style="margin:10px 0 0">${esc(text)}</p>`;
-    };
-
-    document.getElementById('mail-save').onclick = async () => {
-      const koerper = {
-        anbieter: mailAnbieter.value,
-        server: feld('server').value.trim(),
-        port: Number(feld('port').value),
-        sicher: feld('sicher').value === 'tls',
-        benutzer: feld('benutzer').value.trim(),
-        // LEER HEISST "unveraendert", nicht "loeschen": sonst muesste das
-        // Passwort bei jeder Aenderung am Absender neu getippt werden, und ein
-        // Formular, das ein Geheimnis fuer eine Nebensache verlangt, wird
-        // irgendwann mit einem falschen Wert gespeichert. Der Server hat
-        // dieselbe Regel; hier steht sie nur, weil das Feld hier steht.
-        passwort: feld('passwort').value,
-        absender: feld('absender').value.trim()
-      };
-      if (!await zweiteBestaetigung('mail', null, 'Mailzugang setzen',
-        'Über diesen Server läuft künftig JEDE Mail dieser Anlage — auch jeder ' +
-        'Link, der ein Passwort setzt.')) return;
-      try {
-        await api('PUT', '/api/mail', koerper);
-        toast('Mailzugang gespeichert');
-        renderSystem();   // zeichnet den Zustand neu und leert das Passwortfeld
-      } catch (e) { toast(e.message, true); }
-    };
-
-    document.getElementById('mail-test').onclick = async (e) => {
-      /* e.currentTarget IST NACH DEM ERSTEN await NULL (Stolperstein 61) --
-         der Knopf wird deshalb VOR dem Ruf festgehalten. */
-      const knopf = e.currentTarget;
-      knopf.disabled = true; knopf.textContent = 'Wird verschickt …';
-      try {
-        const r = await api('POST', '/api/mail/test', {});
-        mailErgebnis(r.ok
-          ? `Die Testmail ist an ${r.an} hinausgegangen. Kommt sie an, steht der Versand.`
-          : `Der Versand ist fehlgeschlagen: ${r.grund}`, r.ok);
-        if (r.ok) toast('Testmail verschickt');
-      } catch (err) { mailErgebnis(err.message, false); }
-      knopf.disabled = false; knopf.textContent = 'Testmail an mich';
-    };
-  }
+/* ---- Karte „Meine Sitzungen" — Abschnitt „Persönlich" ---- */
+function karteSitzungen() {
+  return `<div class="sys-card">
+        <h3>Meine Sitzungen</h3>
+        <p class="desc">Wo dieser Zugang überall angemeldet ist. <strong>Was hier nicht
+          steht:</strong> von welchem Gerät. Die Anlage speichert weder Adresse noch
+          Browserkennung — das ist so gewollt und bleibt so. Sie kann deshalb
+          <strong>diese</strong> Anmeldung von <strong>allen anderen</strong> trennen, und
+          mehr braucht der Knopf darunter nicht.</p>
+        <div class="manage-list" id="msitzungen"></div>
+      </div>`;
+}
+function ruesteSitzungenAus(geholt) {
+  zeichneSitzungen(geholt.sitzungen);
+}
 
   /* --- Meine Sitzungen ---
      Gezeichnet wird aus dem, was oben schon geholt wurde -- eine Karte, die
@@ -6062,606 +5951,46 @@ async function renderSystem() {
     }
     if (box.isConnected) zeichneSitzungen(d);
   }
-  zeichneSitzungen(sitzungen);
 
-  /* --- Das Sicherheitsprotokoll ---
-     Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
-     wie bei den Verwaltungskarten und aus demselben Grund (Stolperstein 118).
-     JEDE LESESTELLE IST ABGEFANGEN: fehlt der Gegenstand, bleibt die Karte
-     leer und sagt es, statt den Lauf abzureissen. */
-  const VORGANGSWORT = {
-    'anmeldung.ok': 'Angemeldet',
-    'anmeldung.fehl': 'Anmeldung gescheitert',
-    'bestaetigung.fehl': 'Bestätigung gescheitert',
-    'zugang.neu': 'Zugang angelegt',
-    'zugang.rolle': 'Rolle vergeben',
-    'zugang.passwort': 'Passwort gesetzt',
-    'zugang.weg': 'Zugang entfernt',
-    'zugang.selbst': 'Eigener Zugang geändert',
-    'link.neu': 'Link erzeugt',
-    'link.ein': 'Link eingelöst',
-    /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. Sie fielen auf den Rueckfall `|| z.was`
-       und standen als roher Schluessel am Bildschirm -- "anfrage.frei" statt
-       eines Wortes. Zwanzig Vorgaenge und vierzehn Woerter: der Filter dieser
-       Runde macht die Luecke unuebersehbar, gefehlt hat sie seit 0.9.1 und
-       0.10.0. */
-    'anfrage.frei': 'Anfrage freigegeben',
-    'anfrage.ab': 'Anfrage abgelehnt',
-    'zweifaktor.an': 'Zweiter Faktor eingeschaltet',
-    'zweifaktor.aus': 'Zweiter Faktor ausgeschaltet',
-    'zweifaktor.wieder': 'Wiederherstellungscode verbraucht',
-    'export': 'Export gezogen',
-    'import': 'Import eingespielt',
-    'sicherung': 'Sicherung geschrieben',
-    // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
-    // traegt weder Ziel noch Merkmal, und der Handelnde ist immer leer:
-    // gewechselt wird auf dem Wirt.
-    'schluessel': 'Schlüssel gewechselt'
+
+/* ---- Karte „Darstellung" — Abschnitt „Persönlich" ---- */
+function karteDarstellung() {
+  return `<div class="sys-card">
+        <h3>Darstellung</h3>
+        <p class="desc">Schriftgröße der gesamten Oberfläche. Wirkt sofort und gilt auf jedem
+          Gerät. Die Layoutmaße bleiben unverändert — bei sehr großer Schrift wird es an
+          manchen Stellen enger.</p>
+        <div class="pills" id="fsize"></div>
+
+        <p class="desc" style="margin:16px 0 8px">Die Zeitleiste der ${esc(V.zeitpunktMehrzahl)} über dem
+          Kartenraster. Auf kleinen Bildschirmen nimmt sie viel Platz ein.</p>
+        <label class="ex-files"><input type="checkbox" id="zlan"> Zeitleiste anzeigen</label>
+
+        <p class="desc" style="margin:16px 0 8px">Anordnung und Einklappzustand der Blöcke in der
+          Detailansicht gelten für alle Einträge gemeinsam.</p>
+        <button class="btn btn-ghost btn-sm" id="breset">Standardanordnung wiederherstellen</button>
+      </div>`;
+}
+function ruesteDarstellungAus() {
+  drawSchrift();
+  /* --- Zeitleiste --- */
+  const zl = document.getElementById('zlan');
+  zl.checked = ZEITLEISTE_AN;
+  zl.onchange = async () => {
+    const vorher = ZEITLEISTE_AN;
+    ZEITLEISTE_AN = zl.checked;
+    try { await api('PUT', '/api/settings', { zeitleiste: ZEITLEISTE_AN }); toast('Gespeichert'); }
+    catch (e) { ZEITLEISTE_AN = vorher; zl.checked = vorher; toast(e.message, true); }
   };
-  // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "gesperrt"
-  // und "freigegeben" sind zwei verschiedene Aussagen und sollen auch zwei
-  // verschiedene Zeilen sein.
-  const vorgangsWort = (z) => z.was === 'zugang.status'
-    ? (z.merkmal === 'aktiv' ? 'Zugang freigegeben' : 'Zugang gesperrt')
-    : (VORGANGSWORT[z.was] || z.was);
-  // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
-  // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
-  /* EIN MERKMAL OHNE WORT VERSCHWINDET SPURLOS -- merkmalsWort() faellt still
-     auf den leeren String zurueck, und genau deshalb ist bis 0.12.4 niemandem
-     aufgefallen, dass Woerter fehlten.
-     'teil' KAM MIT 0.13.0 DAZU: ohne das Wort waere ein Teilexport von einem
-     vollen nicht zu unterscheiden -- und das war der Grund, aus dem er
-     ueberhaupt ein Merkmal traegt.
-     'adresse' FEHLTE seit 0.9.1, und 'beides' war seither falsch beschriftet:
-     es heisst am Server "mehr als eines" und kann Name, Passwort und Adresse
-     in jeder Mischung meinen -- "Name und Passwort" behauptete zwei bestimmte.
-     'aktiv' UND 'gesperrt' STEHEN HIER AUSDRUECKLICH NICHT: ihr Wort traegt
-     schon der Vorgang ("Zugang gesperrt" / "Zugang freigegeben"), und zweimal
-     dasselbe in einer Zeile ist eines zu viel. Ein Waechter im Pruefstand
-     nimmt genau diese beiden aus und verlangt fuer jedes uebrige ein Wort. */
-  const MERKMALSWORT = {
-    user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer',
-    einladung: 'Einladung', ruecksetzung: 'Rücksetzung',
-    merge: 'zusammengeführt', replace: 'ersetzend',
-    name: 'Name', passwort: 'Passwort', adresse: 'Adresse',
-    beides: 'mehreres', teil: 'in Teilen'
-  };
-  const merkmalsWort = (z) => (z.was === 'zugang.status' ? '' : (MERKMALSWORT[z.merkmal] || ''));
-
-  /* WER GEHANDELT HAT. Eine leere Nummer heisst "über zugang.js auf dem Wirt"
-     -- mit genau einer Ausnahme, und die ist am Vorgang zu erkennen: bei einer
-     gescheiterten Anmeldung war niemand angemeldet. */
-  const protHandelnder = (z) => {
-    if (z.wer != null) return verfasserName({ id: z.wer, name: z.werName, geloescht: z.werName == null });
-    return z.was === 'anmeldung.fehl' ? '—' : 'über zugang.js auf dem Wirt';
-  };
-  const protZiel = (z) => {
-    if (z.ziel == null) return z.was === 'anmeldung.fehl' ? 'unbekannter Name' : '';
-    if (z.ziel === z.wer) return '';
-    return verfasserName({ id: z.ziel, name: z.zielName, geloescht: z.zielName == null });
-  };
-
-  /* DIE ANSICHTEN DES PROTOKOLLS. Die Schluessel kommen aus auth.js
-     (PROTOKOLL_GRUPPEN), die Woerter stehen hier -- dieselbe Teilung wie bei
-     den Vorgaengen selbst.
-     "GESCHEITERT" HEISST NICHT "gescheiterte Anmeldungen": die Gruppe traegt
-     auch die gescheiterte zweite Bestaetigung, und beide sagen dasselbe --
-     jemand konnte an der Tuer nicht belegen, wer er ist. Ein Name, der nur die
-     Haelfte nennt, waere falsch. */
-  const PROTOKOLL_ANSICHT = [
-    ['', 'Alle'],
-    ['gescheitert', 'Gescheitert'],
-    ['anmeldungen', 'Anmeldungen'],
-    ['zugaenge', 'Zugänge'],
-    ['zweifaktor', 'Zweiter Faktor'],
-    ['bestand', 'Bestand']
-  ];
-  const PROTOKOLL_ANSICHT_HILFE = {
-    '': 'Alle Vorgänge, die jüngsten zuerst',
-    gescheitert: 'Gescheiterte Anmeldungen und gescheiterte Bestätigungen',
-    anmeldungen: 'Gelungene Anmeldungen',
-    zugaenge: 'Angelegt, gesperrt, entfernt, Rollen, Links und Anfragen',
-    zweifaktor: 'Ein- und ausgeschaltet, verbrauchte Wiederherstellungscodes',
-    bestand: 'Export, Import, Sicherung und Schlüsselwechsel'
-  };
-  // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
-  // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
-  let protokollGruppe = '';
-
-  /* DER SPRUNG ZUM ZUGANG. Er klappt nichts auf -- die Karte "Zugaenge" steht
-     im selben Bereich -- und hebt die Zeile kurz hervor, damit man sie in
-     einer langen Liste wiederfindet.
-     WER DAS PROTOKOLL SIEHT, IST EIGENTUEMER UND DAMIT IMMER AUCH ADMIN: die
-     Karte "Zugaenge" ist also da. Trotzdem abgefangen -- zeichneZugaenge()
-     laedt fuer sich, und beim allerersten Aufbau kann die Zeile noch fehlen.
-     Ein stiller Klick, der nichts tut, waere der schlechtere Ausgang.
-     scrollIntoView MIT `?.`: jsdom kennt es nicht, und ein Prueflauf, der an
-     einer Anzeigefunktion abreisst, faerbt keine Pruefung rot (Stolperstein 138). */
-  function springeZuZugang(id) {
-    const zeile = document.querySelector(`#mzugaenge .mrow[data-mid="${Number(id) || 0}"]`);
-    if (!zeile) return toast('Diesen Zugang gibt es in der Liste nicht mehr.', true);
-    zeile.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-    zeile.classList.add('mrow-blitz');
-    setTimeout(() => zeile.classList.remove('mrow-blitz'), 1600);
-  }
-
-  /* EIN NAME WIRD ZUM KNOPF, wenn er eine Nummer hat -- und nur dann.
-     "unbekannter Name" hat keine: er ist der getippte Name eines Versuchs, der
-     an keinen Zugang traf, und es gaebe nichts, wohin er springen koennte. Ein
-     Knopf, der ins Leere fuehrt, ist schlimmer als Text. */
-  const protNamensFeld = (dok, klasse, text, id, davor = '') => {
-    const feld = dok.createElement('span');
-    feld.className = klasse;
-    if (!text) return feld;
-    // Der Pfeil steht VOR dem Knopf und nicht in ihm: er gehoert der Zeile und
-    // ist kein Teil des Namens, auf den man klickt.
-    if (davor) feld.appendChild(dok.createTextNode(davor));
-    if (id == null) { feld.appendChild(dok.createTextNode(text)); return feld; }
-    const b = dok.createElement('button');
-    b.className = 'link-btn prot-sprung';
-    b.dataset.mid = String(id);
-    b.textContent = text;
-    b.title = 'Zu diesem Zugang springen';
-    b.onclick = () => springeZuZugang(id);
-    feld.appendChild(b);
-    return feld;
-  };
-
-  function zeichneProtokollFilter(d) {
-    const box = document.getElementById('protokoll-filter');
-    if (!box) return;
-    const zahlen = (d && d.zahlen && typeof d.zahlen === 'object') ? d.zahlen : {};
-    box.innerHTML = '';
-    for (const [schluessel, wort] of PROTOKOLL_ANSICHT) {
-      const b = document.createElement('button');
-      const n = Number(zahlen[schluessel || 'alle']) || 0;
-      /* GEDAEMPFT BEI NULL, wie jede Pille in dieser Lage (Stolperstein 47):
-         eine Ansicht ohne Zeilen fuehrt garantiert auf eine leere Liste.
-         Anklickbar bleibt sie -- man sieht nur vorher, dass nichts kommt. */
-      const leer = n === 0 && protokollGruppe !== schluessel;
-      b.className = 'pill' + (protokollGruppe === schluessel ? ' on' : '') + (leer ? ' leer' : '');
-      b.dataset.gruppe = schluessel;
-      b.innerHTML = `${esc(wort)}<span class="n">${n}</span>`;
-      b.title = PROTOKOLL_ANSICHT_HILFE[schluessel] || '';
-      b.onclick = () => protokollNeu(schluessel);
-      box.appendChild(b);
-    }
-  }
-
-  /* NACHGELADEN WIRD BEIM KLICK, und zwar NUR diese Karte -- dieselbe Bauform
-     wie sitzungenNeu() und papierkorbNeu(). Ein Neuaufbau des ganzen
-     Systembereichs leerte die Passwortfelder daneben.
-     GEFRAGT WIRD DER SERVER UND NICHT DIE GEHOLTEN HUNDERT ZEILEN: der Filter
-     soll die hundert juengsten DIESER Art zeigen und nicht die dieser Art unter
-     den hundert juengsten aller Arten. Genau das war der Befund. */
-  async function protokollNeu(gruppe) {
-    protokollGruppe = gruppe || '';
-    let d;
-    try {
-      d = await api('GET', '/api/sicherheitsprotokoll' +
-        (protokollGruppe ? `?gruppe=${encodeURIComponent(protokollGruppe)}` : ''));
-    } catch (e) {
-      const box = document.getElementById('protokoll-liste');
-      if (box) box.innerHTML = `<p class="hint">${esc(e.message)}</p>`;
-      return;
-    }
-    zeichneProtokoll(d);
-  }
-
-  function zeichneProtokoll(d) {
-    const box = document.getElementById('protokoll-liste');
-    const fuss = document.getElementById('protokoll-fuss');
-    if (!box) return;
-    const dok = box.ownerDocument;
-    zeichneProtokollFilter(d);
-    const zeilen = (d && Array.isArray(d.zeilen)) ? d.zeilen : [];
-    if (!zeilen.length) {
-      /* ZWEI LEERE FAELLE, ZWEI SAETZE. "Noch kein Vorgang festgehalten" waere
-         unter einem Filter eine Falschaussage: es gibt Vorgaenge, nur keinen
-         dieser Art. */
-      box.innerHTML = protokollGruppe
-        ? `<p class="hint">Kein Vorgang dieser Art in den letzten ${esc(String(d && d.tage || ''))} Tagen.</p>`
-        : `<p class="hint">Noch kein Vorgang festgehalten.</p>`;
-      if (fuss) fuss.textContent = '';
-      return;
-    }
-    box.innerHTML = '';
-    for (const z of zeilen) {
-      const zeile = dok.createElement('div');
-      zeile.className = 'prot-zeile';
-      zeile.dataset.was = z.was;
-      const wen = protZiel(z), merk = merkmalsWort(z);
-      const zeit = dok.createElement('span');
-      zeit.className = 'prot-zeit'; zeit.textContent = fmtDate(z.am);
-      const was = dok.createElement('span');
-      was.className = 'prot-was'; was.textContent = vorgangsWort(z);
-      zeile.appendChild(zeit); zeile.appendChild(was);
-      // Der Handelnde ist anklickbar, wenn er eine Nummer hat -- "—" und
-      // "ueber zugang.js auf dem Wirt" haben keine.
-      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z),
-        z.wer != null ? z.wer : null));
-      zeile.appendChild(protNamensFeld(dok, 'prot-ziel', wen,
-        z.ziel != null ? z.ziel : null, '→ '));
-      const mfeld = dok.createElement('span');
-      mfeld.className = 'prot-merkmal'; mfeld.textContent = merk || '';
-      zeile.appendChild(mfeld);
-      box.appendChild(zeile);
-    }
-    if (fuss) {
-      const gesamt = Number(d.gesamt) || zeilen.length;
-      const art = protokollGruppe ? ' dieser Art' : '';
-      fuss.textContent = gesamt > zeilen.length
-        ? `Die ${zeilen.length} jüngsten von ${gesamt} Vorgängen${art}.`
-        : `${gesamt} ${gesamt === 1 ? 'Vorgang' : 'Vorgänge'}${art}.`;
-    }
-  }
-  zeichneProtokoll(protokoll);
-
-  // Dateien haben einen eigenen Schalter mit Vorgabe aus: bei 50 MB je Datei
-  // waere die Exportdatei sonst schnell unhandlich.
-  const mitDateien = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '') +
-                           (document.getElementById('ex-videos')?.checked ? '&videos=1' : '');
-  /* DER EXPORT BLEIBT EINE NAVIGATION -- die Datei laeuft damit an der Platte
-     vorbei statt vollstaendig im Speicher zu stehen. Die zweite Bestaetigung
-     steht deshalb DAVOR und nicht darin: sie holt die Freigabe, danach faehrt
-     der Browser los. */
-  const exportLos = async (mitFotos) => {
-    if (!await zweiteBestaetigung('export', null, 'Export bestätigen',
-      'Der Export schreibt den gesamten Bestand in eine Datei, die das Haus verlässt — ' +
-      'mit allen Fotos, allen Anhängen und den Namen aller Verfasser.')) return;
-    window.location = `/api/export?photos=${mitFotos ? 1 : 0}` + mitDateien();
-  };
-  amElement('ex-yes', b => b.onclick = () => exportLos(true));
-  amElement('ex-no', b => b.onclick = () => exportLos(false));
-
-  /* DIE GROESSEN AN DEN KNOEPFEN, und sie folgen den Haekchen. Gerufen wird
-     einmal beim Zeichnen und danach bei jeder Aenderung -- eine Zahl, die nur
-     beim Aufbau stimmt, ist schlimmer als keine.
-     GEWARNT WIRD FUER DIE ZAHL, DIE GROESSER IST: die beiden Knoepfe stehen
-     nebeneinander, und ein Hinweis, der nur fuer einen von ihnen gilt, muss
-     sagen, fuer welchen. Deshalb nennt er den Fall beim Namen. */
-  function exportZahlen() {
-    // `stats` bleibt null, wer nicht Admin ist -- und diese Funktion laeuft
-    // beim Zeichnen IMMER, nicht nur im Zweig des Eigentuemers.
-    const ex = stats && stats.export;
-    if (!ex) return;
-    const schalter = {
-      mitDateien: !!document.getElementById('ex-files')?.checked,
-      mitVideos: !!document.getElementById('ex-videos')?.checked
-    };
-    const mit = exportSumme(ex, { ...schalter, mitFotos: true });
-    const ohne = exportSumme(ex, { ...schalter, mitFotos: false });
-    amElement('ex-gr-yes', e => e.textContent = fmtBytes(mit));
-    amElement('ex-gr-no', e => e.textContent = fmtBytes(ohne));
-    amElement('ex-warn', kasten => {
-      if (mit <= ex.warnAb) { kasten.innerHTML = ''; return; }
-      // „Auch ohne Fotos" ist der schlimmere Fall und gehoert deshalb gesagt:
-      // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
-      const auchOhne = ohne > ex.warnAb;
-      kasten.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
-        <strong>Export mit Fotos: rund ${esc(fmtBytes(mit))}.</strong>
-        Eine Exportdatei ist ein einziger Text, und der kann nicht größer als
-        ${esc(fmtBytes(ex.string))} werden — ${auchOhne
-          ? `auch ohne Fotos bleiben noch rund ${esc(fmtBytes(ohne))}.`
-          : `ohne Fotos bleiben rund ${esc(fmtBytes(ohne))}.`}
-        <p style="margin:9px 0 0"><strong>Der Weg dafür steht darunter: „In Teilen
-        exportieren".</strong> Jeder Teil ist eine vollständige Exportdatei, und der Import
-        nimmt sie mit „Zusammenführen" wieder auf. Für eine Kopie zum Zurückspielen ist
-        die Karte <strong>Sicherung</strong> der kürzere Weg.</p>
-        <p style="margin:9px 0 0"><strong>Der Knopf oben bleibt trotzdem</strong> — die Zahl
-        ist eine Schätzung, und wer weiß, was er tut, soll es versuchen dürfen.</p></div>`;
-    });
-  }
-  for (const id of ['ex-files', 'ex-videos']) amElement(id, e => e.addEventListener('change', exportZahlen));
-  exportZahlen();
-
-  /* ---- Der Export in Teilen ----
-     JEDER TEIL IST EINE VOLLSTAENDIGE EXPORTDATEI. Der Import nimmt sie mit
-     „Zusammenführen" wieder auf, ohne dass an ihm eine Zeile geaendert wurde --
-     genau deshalb gibt es hier kein neues Format und keinen zweiten Leser.
-     GESCHNITTEN WIRD AM SERVER und nicht hier: dort liegen die Groessen, und
-     eine zweite Rechnung in der Oberflaeche liefe irgendwann auseinander. */
-  const teilSchalter = () => `photos=1` + mitDateien();
-  async function zeichneTeilplan() {
-    const kasten = document.getElementById('ex-plan-out');
-    if (!kasten) return;
-    const ziel = document.getElementById('ex-ziel')?.value || '';
-    kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">Wird gerechnet …</p>`;
-    let plan;
-    try { plan = await api('GET', `/api/export/plan?${teilSchalter()}&ziel=${encodeURIComponent(ziel)}`); }
-    catch (e) { kasten.innerHTML = `<p class="hint hint-sm">${esc(e.message)}</p>`; return; }
-
-    const n = (plan.teile || []).length;
-    if (!n && !(plan.zuGross || []).length) {
-      kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">Es gibt nichts zu exportieren.</p>`;
-      return;
-    }
-    /* EIN EINTRAG, DER FUER SICH ALLEIN ZU GROSS IST, WIRD BEIM NAMEN GENANNT
-       und nicht stillschweigend uebergangen. Ein stiller Verlust waere der
-       schlimmere Ausgang -- wer ihn sieht, weiss, dass er die Videos abwaehlen
-       oder diesen einen Eintrag von Hand behandeln muss. */
-    const zuGross = (plan.zuGross || []).length ? `<div class="warn-box" style="margin:10px 0 0">
-      <strong>${plan.zuGross.length} ${plan.zuGross.length === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}
-      ${plan.zuGross.length === 1 ? 'passt' : 'passen'} in keinen Teil</strong> — schon für sich allein
-      über der Grenze von ${esc(fmtBytes(plan.string))}. Sie fehlen in jeder Datei:
-      <ul style="margin:6px 0 0 18px">${plan.zuGross.map(z =>
-        `<li>${esc(z.titel)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
-      <p style="margin:8px 0 0">Ohne das Häkchen an den Videos werden sie meist klein genug.</p></div>` : '';
-
-    kasten.innerHTML = `${zuGross}
-      ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${n} ${n === 1 ? 'Teil' : 'Teile'}</strong>,
-        je höchstens ${esc(fmtBytes(plan.zielGroesse))}. <strong>Jeder Teil ist eine vollständige
-        Exportdatei</strong> — geschnitten wird zwischen ${esc(V.sacheMehrzahl)}, nie mitten hinein.</p>
-      <div class="manage-list" id="ex-teil-liste">${plan.teile.map(t => `
-        <div class="mrow">
-          <span class="mname">Teil ${t.nr} — ${t.anzahl} ${t.anzahl === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}</span>
-          <button class="mact ex-teil-lad" data-nr="${t.nr}" data-von="${t.von}" data-bis="${t.bis}"
-            disabled>↓ Laden</button>
-          <span class="pk-meta">${esc(fmtBytes(t.bytes))}</span>
-        </div>`).join('')}</div>
-      ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. "Alle n Teile
-           freigeben" war das Wort aus dem Maschinenraum -- aus dem Betrieb kam
-           die Frage "was ist mit freigeben gemeint?" zurueck. Derselbe Fehler
-           wie "Code aus deiner App" in 0.12.3.
-           WAS EIN MENSCH WISSEN MUSS, sind zwei Dinge: dass EINMAL gefragt
-           wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
-           Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
-      <p class="hint hint-sm" style="margin:10px 2px 6px">Ein Export nimmt den Bestand
-        mit aus dem Haus. Deshalb fragt die Anlage einmal nach deinem Passwort${ZWEIFAKTOR
-          ? ' und dem Code deines zweiten Faktors' : ''} — danach lädst du jeden Teil selbst.</p>
-      <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
-        Einmal bestätigen, dann ${n === 1 ? 'den Teil' : `alle ${n} Teile`} laden</button></div>
-      ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
-           Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
-           welcher Reihenfolge und mit welchem Knopf sie hineingehen. */''}
-      <p class="hint hint-sm" style="margin:10px 2px 0"><strong>Zum Einspielen:</strong>
-        Teil 1 mit <strong>Ersetzen</strong>, alle übrigen der Reihe nach mit
-        <strong>Zusammenführen</strong>. Nur zum Weitergeben einzelner
-        ${esc(V.sacheMehrzahl)} genügt der Teil, der sie enthält.</p>` : ''}`;
-
-    /* GEFRAGT WIRD EINMAL, GEPRUEFT WIRD JE TEIL. Ohne das muesste das Passwort
-       je Datei getippt werden -- bei fünf Teilen fünfmal. */
-    amElement('ex-frei', b => b.onclick = async () => {
-      const ok = await zweiteBestaetigungMehrfach('export', plan.teile.map(t => t.nr),
-        'Export bestätigen',
-        `Der Export schreibt den gesamten Bestand in ${n} ${n === 1 ? 'Datei' : 'Dateien'}, die das Haus ` +
-        `verlassen — mit allen Fotos, allen Anhängen und den Namen aller Verfasser.`);
-      if (!ok) return;
-      b.disabled = true;
-      b.textContent = 'Bestätigt — jetzt jeden Teil laden';
-      kasten.querySelectorAll('.ex-teil-lad').forEach(k => { k.disabled = false; });
-    });
-
-    /* JEDER KNOPF GILT GENAU EINMAL, weil die Freigabe verbraucht wird. Das
-       steht am Knopf und nicht in einer Fehlermeldung danach: ein zweiter
-       Klick bekaeme sonst eine 403, die wie ein Fehler aussieht. */
-    kasten.querySelectorAll('.ex-teil-lad').forEach(k => {
-      k.onclick = () => {
-        window.location = `/api/export?${teilSchalter()}` +
-          `&von=${k.dataset.von}&bis=${k.dataset.bis}&teil=${k.dataset.nr}&teile=${n}`;
-        k.disabled = true;
-        k.textContent = '✓ geladen';
-      };
-    });
-  }
-  amElement('ex-plan', b => b.onclick = zeichneTeilplan);
-  // Aendert sich ein Schalter oder die Teilgroesse, gilt der gezeichnete Plan
-  // nicht mehr -- ein stehengebliebener Plan naennte falsche Grenzen.
-  for (const id of ['ex-files', 'ex-videos', 'ex-ziel'])
-    amElement(id, e => e.addEventListener('change', () => {
-      const kasten = document.getElementById('ex-plan-out');
-      if (kasten) kasten.innerHTML = '';
-    }));
-
-  amElement('imp', imp => imp.onchange = e => {
-    const file = e.target.files[0];
-    e.target.value = '';
-    if (file) askImport(file, stats && stats.export);
+  amElement('breset', breset => breset.onclick = async () => {
+    if (!await confirmBox('Standardanordnung wiederherstellen?',
+      'Die Blöcke der Detailansicht kehren in ihre Ausgangsreihenfolge zurück, alle eingeklappten werden wieder geöffnet.',
+      'Wiederherstellen')) return;
+    BLOECKE = { seite: [...BLOCK_VORGABE.seite], unten: [...BLOCK_VORGABE.unten], zu: [] };
+    try { await api('PUT', '/api/settings', { bloecke: BLOECKE }); toast('Standardanordnung wiederhergestellt'); }
+    catch (e) { toast(e.message, true); }
   });
-
-  /* --- Papierkorb --- */
-  /* Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
-     wie bei den drei Verwaltungskarten. Nach einem Zurueckholen oder einem
-     endgueltigen Entfernen holt papierkorbNeu() die Liste noch einmal und
-     zeichnet nur DIESE Karte: ein Neuaufbau des ganzen Systembereichs leerte
-     die Passwortfelder daneben.
-     JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
-     soll die Karte etwas sagen und nicht der Lauf abreissen. */
-  async function papierkorbNeu() {
-    try { papierkorb = await api('GET', '/api/papierkorb'); }
-    catch (e) {
-      const box = document.getElementById('mpapierkorb');
-      if (box) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`;
-      return;
-    }
-    drawPapierkorb();
-  }
-  function drawPapierkorb() {
-    const box = document.getElementById('mpapierkorb');
-    if (!box) return;
-    const zeilen = Array.isArray(papierkorb && papierkorb.zeilen) ? papierkorb.zeilen : [];
-    box.innerHTML = '';
-    if (!zeilen.length) {
-      box.innerHTML = `<span class="hint">Keine gelöschten ${esc(V.sacheMehrzahl)}.</span>`;
-      return;
-    }
-    zeilen.forEach(z => {
-      const row = document.createElement('div');
-      row.className = 'mrow pk';
-      row.dataset.pkid = z.id;
-      const offen = Number(z.tageOffen);
-      const meta = [
-        `gelöscht ${fmtDate(z.geloescht_am)} von ${verfasserName(z.loeschender)}`,
-        `noch ${offen} ${offen === 1 ? 'Tag' : 'Tage'}`,
-        fmtBytes(z.bytes)
-      ];
-      // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
-      // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
-      // sieht aus wie ein Fehler.
-      row.innerHTML = `<span class="mname">${esc(z.titel)}</span>
-        ${EIGENTUEMER ? `<button class="mact pk-back" title="Wiederherstellen">↩ Zurückholen</button>
-        <button class="mact rm pk-weg" title="Endgültig entfernen">✕</button>` : ''}
-        <span class="pk-meta">${esc(meta.join(' · '))}</span>`;
-      box.appendChild(row);
-      const zurueck = row.querySelector('.pk-back');
-      if (zurueck) zurueck.onclick = async () => {
-        try {
-          const r = await api('POST', `/api/papierkorb/${z.id}/wiederherstellen`);
-          // Die unbekannten Verfasser stehen in der Antwort und gehoeren
-          // gesagt: sie sind beim Zurueckholen an MICH gefallen.
-          const offene = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
-          toast(`„${z.titel}" ist wieder da.` +
-            (offene.length ? ` Unbekannte Verfasser mir zugeordnet: ${offene.join(', ')}.` : ''));
-          papierkorbNeu();
-        } catch (e) { toast(e.message, true); }
-      };
-      const weg = row.querySelector('.pk-weg');
-      if (weg) weg.onclick = async () => {
-        if (!await confirmBox('Endgültig entfernen?',
-          `„${z.titel}" wird aus dem Papierkorb entfernt. Danach gibt es keinen Rückweg mehr.`,
-          'Endgültig entfernen')) return;
-        try {
-          await api('DELETE', `/api/papierkorb/${z.id}`);
-          toast('Endgültig entfernt');
-          papierkorbNeu();
-        } catch (e) { toast(e.message, true); }
-      };
-    });
-  }
-  drawPapierkorb();
-
-  /* --- Sicherung --- */
-  /* Gezeichnet wird aus dem, was oben schon geholt wurde; nach jedem Schreiben
-     traegt die Antwort den neuen Stand, und die Karte zeichnet sich daraus neu.
-     JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
-     und nicht der Lauf abreissen. */
-  function drawSicherung() {
-    const box = document.getElementById('sicherung-box');
-    if (!box) return;
-    const d = sicherung || {};
-    if (!d.eingerichtet) {
-      box.innerHTML = `<div class="warn-box">${esc(d.grund || 'Es ist kein Sicherungsort eingerichtet.')}</div>`;
-      return;
-    }
-    /* „Letzte Sicherung vor N Tagen" kommt aus dem DATEISYSTEM, nicht aus einem
-       Schlüssel in der Datenbank. Der Preis steht hier: ist der Ort nicht
-       erreichbar, sagt die Karte GENAU DAS statt einer Zahl — eine Zahl aus
-       einem Merker wäre in genau diesem Fall die Lüge. */
-    const letzte = d.letzte;
-    const stand = d.fehler
-      ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler)}</div>`
-      : (!d.erreichbar
-        ? `<div class="warn-box" style="margin:0 0 12px">Der Zielort ist nicht erreichbar.</div>`
-        : (letzte
-          ? `<div class="kv"><span class="k">Letzte Sicherung</span><span class="v">vor ${letzte.tageHer} ${letzte.tageHer === 1 ? 'Tag' : 'Tagen'}</span></div>
-             <div class="kv"><span class="k">Datei</span><span class="v"><code>${esc(letzte.datei)}</code></span></div>
-             <div class="kv"><span class="k">Größe</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>
-             <div class="kv"><span class="k">Dateien am Ort</span><span class="v">${d.zahl || 0}${
-               d.veraltet ? ` <strong class="sich-alt">· ${d.veraltet} mit dem alten Schlüssel</strong>` : ''}</span></div>`
-          : `<p class="desc" style="margin:0 0 12px">An diesem Ort liegt noch keine Sicherung.</p>`));
-
-    /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt,
-       öffnen sich die Kopien von vorher nur noch mit dem ALTEN. Sie sind nicht
-       kaputt; sie brauchen einen anderen Schlüssel als die laufende Anlage.
-       DER KASTEN STEHT NUR DA, WENN ER ETWAS ZU SAGEN HAT: ohne Wechsel gibt
-       es keine zwei Schlüssel, und eine Warnung, die immer dasteht, liest
-       niemand mehr.
-       DIE SCHÄRFSTE LAGE BEKOMMT DEN SCHÄRFSTEN SATZ: ist auch die JÜNGSTE
-       Kopie älter als der Wechsel, gibt es überhaupt keine, die zur laufenden
-       Anlage passt. Das ist etwas anderes als „ein paar alte liegen daneben".
-       WO DER ALTE WERT LIEGT, HÄNGT VOM FALL AB — in der `.env` nur dann, wenn
-       er von dort kam; im Dateifall steht er nach dem Wechsel nirgends mehr.
-       Die Karte weiß das nicht sicher und behauptet es deshalb nicht: sie
-       nennt den Weg, der ihn beim Wechsel genannt hat. */
-    const wechsel = !d.gewechseltAm ? '' : (
-      letzte && letzte.veraltet
-        ? `<div class="warn-box" style="margin:0 0 12px"><strong>Keine dieser Kopien passt zum
-             heutigen Schlüssel.</strong> Gewechselt wurde am ${esc(fmtDate(d.gewechseltAm))}; auch
-             die jüngste Sicherung ist älter. Sie öffnet sich nur mit dem <strong>alten</strong>
-             Schlüssel — <code>./schluessel.sh</code> hat ihn beim Wechsel genannt und, wenn er aus
-             der <code>.env</code> kam, dort auskommentiert stehen lassen.
-             <strong>Sicher jetzt neu</strong>, dann liegt wieder eine Kopie da, die zur laufenden
-             Anlage gehört.</div>`
-        : (d.veraltet
-          ? `<div class="warn-box" style="margin:0 0 12px"><strong>${d.veraltet} ${d.veraltet === 1
-               ? 'Kopie stammt' : 'Kopien stammen'} von vor dem Schlüsselwechsel</strong>
-               (${esc(fmtDate(d.gewechseltAm))}). ${d.veraltet === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich
-               nur mit dem <strong>alten</strong> Schlüssel. <strong>Heb ihn auf</strong> — kam er aus
-               der <code>.env</code>, steht er dort auskommentiert; er gehört in den
-               Passwortspeicher.</div>`
-          : `<div class="ok-box" style="margin:0 0 12px">Der Schlüssel wurde am
-               ${esc(fmtDate(d.gewechseltAm))} gewechselt. Alle Kopien an diesem Ort sind
-               jünger und passen zum heutigen Schlüssel.</div>`));
-    /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
-       ist die Frage, die vor allen anderen steht. Ein Ort im
-       Arbeitsverzeichnis ist erlaubt und wird nicht abgewiesen -- er wird
-       benannt. Wer hier rot sieht, soll wissen, WARUM, und nicht bloss, DASS.
-       Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
-       sonst liest ihn beim nächsten Umbau niemand mehr. */
-    const lage = d.imArbeitsverzeichnis
-      ? `<div class="warn-box" id="sich-lage" style="margin:0 0 12px"><strong>Der Sicherungsort liegt im
-           Arbeitsverzeichnis.</strong> Dringend empfohlen ist er daneben. Er teilt hier das
-           Schicksal des Projektverzeichnisses: beim Einspielen einer neuen Version wird das
-           umbenannt, und die Sicherungen wandern mit — der Weg in der README holt sie eigens
-           zurück. Ein Fehlgriff am Projektordner nähme Original und Sicherung auf einmal,
-           und beide liegen ohnehin auf derselben Platte. Umgestellt wird es in der
-           <code>docker-compose.yml</code>; dort steht, wie.</div>`
-      : `<div class="ok-box" id="sich-lage" style="margin:0 0 12px">Der Sicherungsort liegt <strong>außerhalb
-           des Arbeitsverzeichnisses</strong>. So bleibt er unberührt, wenn das
-           Projektverzeichnis beim Einspielen einer neuen Version umbenannt oder ersetzt
-           wird.</div>`;
-    box.innerHTML = `
-      ${lage}
-      <div class="field"><label>Zielort</label>
-        <p class="desc" style="margin:0 0 6px">Eingerichtet ist <code>${esc(d.wurzel || '')}</code>.
-          Darunter lässt sich ein Unterverzeichnis wählen; es muss dort schon liegen —
-          angelegt wird keines.</p>
-        <input class="input" id="sich-ort" value="${esc(d.ort || '')}" placeholder="(der eingerichtete Ort selbst)"
-          autocapitalize="off" spellcheck="false"></div>
-      <button class="btn btn-sm" id="sich-ort-save">Zielort speichern</button>
-      <div class="sys-teil"></div>
-      ${stand}
-      ${wechsel}
-      <p class="desc" style="margin:0 0 10px">Während die Kopie entsteht, <strong>steht die
-        Anlage still</strong> — bei ${fmtBytes(d.dbBytes)} sind das etwa
-        ${d.dauerSekunden} Sekunden.</p>
-      <button class="btn btn-accent btn-sm" id="sich-los">Jetzt sichern</button>`;
-
-    document.getElementById('sich-ort-save').onclick = async () => {
-      const wert = document.getElementById('sich-ort').value;
-      try {
-        const r = await api('PUT', '/api/sicherung/ort', { ort: wert });
-        // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
-        // Kasten ueber die alten Sicherungen beim ersten Speichern des
-        // Zielorts, und die Karte saehe danach harmloser aus als die Lage ist.
-        sicherung = { ...sicherung, ort: r.ort, pfad: r.pfad, fehler: null,
-                      erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
-                      gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
-        toast('Zielort gespeichert');
-        drawSicherung();
-      } catch (e) { toast(e.message, true); }
-    };
-    /* Der Knopf sperrt sich selbst, solange die Kopie entsteht: VACUUM INTO
-       laeuft synchron, die Anlage steht so lange still, und ein zweiter Klick
-       stellte sich nur in die Schlange. */
-    document.getElementById('sich-los').onclick = async (e) => {
-      const knopf = e.currentTarget;
-      knopf.disabled = true;
-      knopf.textContent = 'Sicherung läuft …';
-      try {
-        const r = await api('POST', '/api/sicherung');
-        sicherung = { ...sicherung, erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
-                      gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
-        toast(`Sicherung geschrieben: ${r.datei} (${fmtBytes(r.bytes)})`);
-        drawSicherung();
-      } catch (err) {
-        toast(err.message, true);
-        knopf.disabled = false;
-        knopf.textContent = 'Jetzt sichern';
-      }
-    };
-  }
-  drawSicherung();
+}
 
   /* --- Schriftgröße --- */
   function drawSchrift() {
@@ -6682,7 +6011,403 @@ async function renderSystem() {
       box.appendChild(b);
     });
   }
-  drawSchrift();
+
+
+/* ---- Karte „Kategorien" — Abschnitt „Bestand" ---- */
+function karteKategorien() {
+  return `<div class="sys-card">
+        <h3>Kategorien</h3>
+        <p class="desc">Umbenennen oder löschen. Beim Löschen bleiben die ${esc(V.sacheMehrzahl)}
+          erhalten und haben nur keine Kategorie mehr.</p>
+        <div class="manage-list" id="mcats"></div>
+        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Wer eine <strong>neue</strong> Kategorie
+          anlegen darf. Ohne Häkchen bleibt die Auswahl aus dem Vorhandenen für jeden bestehen —
+          nur die Zeile „+ neue Kategorie" am ${esc(V.sacheEinzahl)} verschwindet. Der Admin legt
+          weiterhin an.</p>
+        <label class="ex-files"><input type="checkbox" id="katfrei">
+          Neue Kategorien darf jeder anlegen</label>` : ''}
+      </div>`;
+}
+function ruesteKategorienAus(geholt) {
+  verwaltungsListe('mcats', geholt.cats, 'cat', geholt);
+  anlegeSchalter('katfrei', 'kategorienFreiAnlegen', () => KATEGORIEN_FREI, v => { KATEGORIEN_FREI = v; });
+}
+
+/* ---- Karte „Tags" — Abschnitt „Bestand" ---- */
+function karteTags() {
+  return `<div class="sys-card">
+        <h3>Tags</h3>
+        <p class="desc">Umbenennen oder löschen. Ein gelöschter Tag verschwindet überall;
+          die ${esc(V.sacheMehrzahl)} selbst bleiben unberührt.</p>
+        <div class="manage-list" id="mtags"></div>
+        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">Wer einen <strong>neuen</strong> Tag
+          anlegen darf. Ohne Häkchen bleiben Wolke und Vergabe für jeden bestehen — nur die
+          Eingabezeile am ${esc(V.sacheEinzahl)} verschwindet. Am ${esc(V.zeitpunktEinzahl)} bleibt
+          sie stehen, weil es dort keine Wolke gibt; ein unbekannter Name wird dann abgewiesen.</p>
+        <label class="ex-files"><input type="checkbox" id="tagfrei">
+          Neue Tags darf jeder anlegen</label>` : ''}
+      </div>`;
+}
+function ruesteTagsAus(geholt) {
+  verwaltungsListe('mtags', geholt.tags, 'tag', geholt);
+  anlegeSchalter('tagfrei', 'tagsFreiAnlegen', () => TAGS_FREI, v => { TAGS_FREI = v; });
+}
+
+/* ---- Karte „Bewertungskriterien" — Abschnitt „Bestand" ---- */
+function karteKriterien() {
+  return `<div class="sys-card">
+        <h3>Bewertungskriterien</h3>
+        <p class="desc">${ADMIN
+          ? `Anlegen, umbenennen, löschen und <strong>per Ziehen sortieren</strong> — mit Maus
+             oder Finger. Die Reihenfolge gilt für Detailansicht und Vergleich gleichermaßen.
+             Ein neues Kriterium erscheint sofort an allen ${esc(V.sacheMehrzahl)}, ein gelöschtes
+             nimmt überall die vergebenen Sterne mit. Die Zahl nennt, an wie vielen
+             ${esc(V.sacheMehrzahl)} Sterne vergeben sind.`
+          : `Die Kriterienliste pflegt der Admin. Die Reihenfolge gilt für Detailansicht und
+             Vergleich gleichermaßen; die Zahl nennt, an wie vielen ${esc(V.sacheMehrzahl)}
+             Sterne vergeben sind.`}</p>
+        <div class="manage-list" id="mcrits"></div>
+        <p class="desc" style="margin:10px 0 0">Das <strong>Gewicht</strong> bestimmt, wie stark ein
+          Kriterium in den Gesamtschnitt eingeht. Bei 1 zählen alle gleich. ${ADMIN
+            ? `Möglich ist 0,2 bis 2 — die Vorschläge sind nur die häufigsten Werte.`
+            : `Eingestellt wird es vom Admin; es gilt für alle.`}
+          Der Gesamtschnitt bleibt in jedem Fall zwischen 1 und 5.</p>
+        <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
+             ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
+             tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
+             Eintrag (#newtag mit list="tagsug").
+             ZWEI VORSCHLAEGE UNTER 1: die Liste ist der einzige Ort, an dem der Bereich unter 1
+             ueberhaupt sichtbar wird. Ohne sie bliebe er da und waere nur nicht auffindbar.
+             Sie kostet eine Zeile und der Server merkt davon nichts -- alles zwischen 0,2 und 2
+             laesst sich ohnehin eintippen. -->
+        <datalist id="gewichtsug">
+          <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
+        </datalist>
+        ${ADMIN ? `<div class="row-in" style="margin-top:12px">
+          <input class="input input-sm" id="newcrit" placeholder="Neues Kriterium" style="padding:8px 11px">
+          <button class="btn btn-sm" id="newcrit-b">+ Anlegen</button>
+        </div>` : ''}
+      </div>`;
+}
+function ruesteKriterienAus(geholt) {
+  verwaltungsListe('mcrits', geholt.crits, 'crit', geholt);
+  // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
+  // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
+  const critFeld = document.getElementById('newcrit');
+  if (critFeld) {
+    const addCrit = async () => {
+      const name = critFeld.value.trim();
+      if (!name) return;
+      try { await api('POST', '/api/criteria', { name }); critFeld.value = ''; toast('Kriterium angelegt'); verwaltungNeu(geholt); }
+      catch (e) { toast(e.message, true); }
+    };
+    document.getElementById('newcrit-b').onclick = addCrit;
+    critFeld.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
+  }
+}
+
+  /* --- Die beiden Anlegen-Schalter ---
+     Nur der Admin bekommt sie zu sehen; ein Haken, der zuverlaessig 403
+     erzeugt, saehe aus wie ein Fehler. EIN Helfer fuer beide: zwei
+     gleichlautende Bloecke nebeneinander liefen frueher oder spaeter
+     auseinander. Schlaegt das Speichern fehl, geht die Stellung zurueck --
+     sonst zeigte der Bildschirm etwas anderes an als der Server haelt. */
+  const anlegeSchalter = (id, schluessel, lies, merke) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.checked = lies();
+    el.onchange = async () => {
+      const vorher = lies();
+      merke(el.checked);
+      try { await api('PUT', '/api/settings', { [schluessel]: el.checked }); toast('Gespeichert'); }
+      catch (e) { merke(vorher); el.checked = vorher; toast(e.message, true); }
+    };
+  };
+
+
+  /* --- Kategorien, Tags und Kriterien verwalten --- */
+  // Dieselbe Liste fuer alle drei. Kriterien haben zusaetzlich einen Griff,
+  // weil bei ihnen die Reihenfolge etwas bedeutet.
+  const VERWALTUNGSART = {
+    cat: {
+      url: '/api/product-categories', frage: 'Kategorie löschen?',
+      warnung: e => `Die Kategorie „${e.name}" wird entfernt. Betroffen: ${e.usage_count} ${vSache(e.usage_count)} — dort fehlt danach nur die Zuordnung.`
+    },
+    tag: {
+      url: '/api/tags', frage: 'Tag löschen?',
+      // Beide Verwendungen nennen: sonst wird ein scheinbar ungenutzter Tag
+      // entfernt und reisst die Kennzeichnungen an den Testtagen mit.
+      zaehler: e => `${e.usage_count} ${vSache(e.usage_count)} · ${e.test_usage_count} ${vZeit(e.test_usage_count)}`,
+      warnung: e => `Der Tag „${e.name}" wird überall entfernt. Betroffen: ` +
+        `${e.usage_count} ${vSache(e.usage_count)} und ${e.test_usage_count} ${vZeit(e.test_usage_count)}` +
+        `${e.test_usage_count ? ' — auch die Kennzeichnungen dort verschwinden.' : '.'}`
+    },
+    crit: {
+      url: '/api/criteria', frage: 'Kriterium löschen?', sortierbar: true,
+      // DAS GEWICHTSFELD GEHOERT ALLEIN HIERHER. verwaltungsListe() zeichnet dieselbe
+      // Zeile auch fuer Kategorien und Tags, und dort gibt es kein Gewicht --
+      // ein Kriterium wiegt im Gesamtschnitt, eine Kategorie rechnet nirgends
+      // mit. Die Unterscheidung laeuft ueber diesen Eintrag, wie schon bei
+      // `sortierbar` und `zaehler`, und nicht ueber eine Abfrage auf den
+      // Kartennamen.
+      gewicht: true,
+      warnung: e => `„${e.name}" wird überall entfernt, samt vergebener Sterne.`
+    }
+  };
+
+  function verwaltungsListe(boxId, list, kind, geholt) {
+    const box = document.getElementById(boxId);
+    if (!box) return;
+    const art = VERWALTUNGSART[kind];
+    // Umbenennen und Loeschen gehoeren dem Admin -- bei allen dreien, und bei
+    // den Kriterien auch das Sortieren. Fuer andere bleibt die Karte eine
+    // LISTE: kein Griff, kein ✎, kein ✕ und kein Anlegefeld. Der Server
+    // verweigert es ohnehin; ein Knopf, der eine Fehlermeldung erzeugt, sieht
+    // aber aus wie ein Fehler.
+    // DIE KARTE SELBST BLEIBT STEHEN, alle drei. Wer nicht verwalten darf,
+    // darf trotzdem nachsehen, was es gibt -- die Namen sind die Auswahl, aus
+    // der jeder am Eintrag schoepft.
+    const darf = ADMIN;
+    box.innerHTML = '';
+    if (!list.length) { box.innerHTML = `<span class="hint">Noch nichts angelegt.</span>`; return; }
+    list.forEach(entry => {
+      const row = document.createElement('div');
+      row.className = 'mrow' + (art.sortierbar && darf ? ' drag' : '');
+      row.dataset.mid = entry.id;
+      const url = art.url;
+      /* Die Zeile war schon besetzt: Griff, Name, Verwendungszaehler, ✎ und ✕.
+         Das Gewichtsfeld steht ZWISCHEN Name und Zaehler -- der Name traegt
+         flex:1 und schiebt alles Weitere nach rechts, das Feld sitzt damit an
+         der Kante zwischen Beschriftung und Kennzahlen. Rechts der Knoepfe
+         waere es zwischen zwei Aktionen geraten, obwohl es keine ist.
+         WER NICHT VERWALTEN DARF, SIEHT DAS GEWICHT TROTZDEM -- es erklaert
+         die Kopfzahl an jedem Eintrag, und die sieht er ja auch. Nur als Text
+         statt als Feld, wie bei Name und Zaehler daneben. */
+      const gewFeld = art.gewicht
+        ? (darf
+          ? `<span class="mgew" title="Gewicht im Gesamtschnitt">×<input class="mgew-feld"
+               type="text" inputmode="decimal" list="gewichtsug" aria-label="Gewicht"
+               value="${esc(gewichtText(entry.gewicht))}"></span>`
+          : `<span class="mgew mgew-fest" title="Gewicht im Gesamtschnitt">×${esc(gewichtText(entry.gewicht))}</span>`)
+        : '';
+      row.innerHTML = `${art.sortierbar && darf ? `<span class="grip" title="Zum Sortieren ziehen">⣿</span>` : ''}
+        <span class="mname">${esc(entry.name)}</span>
+        ${gewFeld}
+        <span class="mcount">${esc(art.zaehler ? art.zaehler(entry) : `${entry.usage_count} ${vSache(entry.usage_count)}`)}</span>
+        ${darf ? `<button class="mact ed" title="Umbenennen">✎</button>
+        <button class="mact rm" title="Löschen">✕</button>` : ''}`;
+      if (!darf) { box.appendChild(row); return; }
+      if (art.sortierbar) {
+        // Ziehen wie bei Fotos und Links: Pointer-Events, gleiche Schwelle.
+        // Die Knoepfe und das Umbenennfeld bleiben ausgenommen.
+        makeSortable(row, {
+          axis: 'y', selector: '.mrow', ignore: '.mact, input',
+          onDrop: async (children) => {
+            try {
+              await api('PUT', '/api/criteria/order', { order: children.map(c => +c.dataset.mid) });
+              toast('Reihenfolge gespeichert');
+              verwaltungNeu(geholt);
+            } catch (e) { toast(e.message, true); verwaltungNeu(geholt); }
+          }
+        });
+      }
+      /* NACH EINEM GEWICHTSWECHSEL WIRD DIE LISTE NICHT NEU GEZEICHNET. Das
+         ist der Unterschied zum Umbenennen: dort MUSS neu gezeichnet werden,
+         weil das ✎ den Namen durch ein Eingabefeld ERSETZT hat und der Zustand
+         zurueckgebaut gehoert. Ein Gewichtswechsel ersetzt nichts -- das Feld
+         steht dauerhaft da und traegt den neuen Wert bereits. Ein verwaltungNeu()
+         waere hier nicht nur ueberfluessig, sondern schaedlich: ist an
+         derselben Zeile gerade ein Umbenennen offen, risse der Neuaufbau es
+         weg. Der Verwendungszaehler daneben aendert sich durch ein Gewicht
+         ohnehin nicht. */
+      const gewEingabe = row.querySelector('.mgew-feld');
+      if (gewEingabe) gewEingabe.onchange = async () => {
+        const g = gewichtAusText(gewEingabe.value);
+        // Ein leeres oder unlesbares Feld schickt GAR NICHTS: wer den Inhalt
+        // loescht und wegklickt, hat es sich anders ueberlegt und meint nicht
+        // "Gewicht 0".
+        if (Number.isNaN(g)) { gewEingabe.value = gewichtText(entry.gewicht); return; }
+        try {
+          const nun = await api('PUT', `${url}/${entry.id}`, { name: entry.name, gewicht: g });
+          // Den Datensatz IN DER LISTE nachziehen statt neu zu laden -- sonst
+          // zeigte die naechste Zeichnung wieder den alten Wert.
+          entry.gewicht = nun.gewicht;
+          // Zeigt die Rundung mit: 1,234 steht danach als 1,23 im Feld. Die
+          // Rundung ist damit nicht still.
+          gewEingabe.value = gewichtText(nun.gewicht);
+          toast('Gewicht gespeichert');
+        } catch (e) {
+          toast(e.message, true);
+          // Kein Wert im Feld, der nicht gespeichert ist.
+          gewEingabe.value = gewichtText(entry.gewicht);
+        }
+      };
+      row.querySelector('.ed').onclick = () => {
+        const inp = document.createElement('input');
+        inp.className = 'medit'; inp.value = entry.name;
+        row.querySelector('.mname').replaceWith(inp);
+        inp.focus(); inp.select();
+        const save = async () => {
+          const name = inp.value.trim();
+          if (!name || name === entry.name) return verwaltungNeu(geholt);
+          try { await api('PUT', `${url}/${entry.id}`, { name }); toast('Umbenannt'); verwaltungNeu(geholt); }
+          catch (e) { toast(e.message, true); verwaltungNeu(geholt); }
+        };
+        inp.onblur = save;
+        inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') verwaltungNeu(geholt); };
+      };
+      row.querySelector('.rm').onclick = async () => {
+        if (!await confirmBox(art.frage, art.warnung(entry))) return;
+        try { await api('DELETE', `${url}/${entry.id}`); toast('Gelöscht'); verwaltungNeu(geholt); }
+        catch (e) { toast(e.message, true); }
+      };
+      box.appendChild(row);
+    });
+  }
+  function zeichneVerwaltung(geholt) {
+    verwaltungsListe('mcats', geholt.cats, 'cat', geholt);
+    verwaltungsListe('mtags', geholt.tags, 'tag', geholt);
+    verwaltungsListe('mcrits', geholt.crits, 'crit', geholt);
+  }
+  async function verwaltungNeu(geholt) {
+    [geholt.cats, geholt.tags, geholt.crits] = await Promise.all([
+      api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria')
+    ]);
+    zeichneVerwaltung(geholt);
+  }
+
+
+/* ---- Karte „Vokabular" — Abschnitt „Bestand" ---- */
+function karteVokabular() {
+  return `<div class="sys-card">
+        <h3>Vokabular</h3>
+        <p class="desc">Wie die Dinge in der Oberfläche heißen sollen. <strong>Nur die
+          Beschriftung ändert sich</strong> — Datenbank und Exportdateien bleiben unberührt,
+          ältere Exportdateien lassen sich weiterhin einspielen.</p>
+        <div class="vok-grid">
+          <div class="field"><label>Sache, Einzahl</label>
+            <input class="input input-sm" id="v1" maxlength="40" value="${esc(V.sacheEinzahl)}"></div>
+          <div class="field"><label>Sache, Mehrzahl</label>
+            <input class="input input-sm" id="v2" maxlength="40" value="${esc(V.sacheMehrzahl)}"></div>
+          <div class="field"><label>Merkmal erfüllt</label>
+            <input class="input input-sm" id="v3" maxlength="40" value="${esc(V.merkmalJa)}"></div>
+          <div class="field"><label>Merkmal nicht erfüllt</label>
+            <input class="input input-sm" id="v4" maxlength="40" value="${esc(V.merkmalNein)}"></div>
+          <div class="field"><label>Zeitpunkt, Einzahl</label>
+            <input class="input input-sm" id="v5" maxlength="40" value="${esc(V.zeitpunktEinzahl)}"></div>
+          <div class="field"><label>Zeitpunkt, Mehrzahl</label>
+            <input class="input input-sm" id="v6" maxlength="40" value="${esc(V.zeitpunktMehrzahl)}"></div>
+          <div class="field"><label>Bericht, Einzahl</label>
+            <input class="input input-sm" id="v7" maxlength="40" value="${esc(V.berichtEinzahl)}"></div>
+          <div class="field"><label>Bericht, Mehrzahl</label>
+            <input class="input input-sm" id="v8" maxlength="40" value="${esc(V.berichtMehrzahl)}"></div>
+          <div class="field"><label>Aufgabe, Einzahl</label>
+            <input class="input input-sm" id="v9" maxlength="40" value="${esc(V.aufgabeEinzahl)}"></div>
+          <div class="field"><label>Aufgabe, Mehrzahl</label>
+            <input class="input input-sm" id="v10" maxlength="40" value="${esc(V.aufgabeMehrzahl)}"></div>
+          <div class="field"><label>Aufgabe, erledigt</label>
+            <input class="input input-sm" id="v11" maxlength="40" value="${esc(V.aufgabeErledigt)}"></div>
+        </div>
+        <div class="vok-probe" id="vprobe"></div>
+        <div class="row-in" style="margin-top:12px">
+          <button class="btn btn-accent btn-sm" id="vsave">Vokabular speichern</button>
+          <button class="btn btn-ghost btn-sm" id="vreset">Vorgaben</button>
+        </div>
+      </div>`;
+}
+function ruesteVokabularAus() {
+  // Die Probe zeigt dieselben Textbausteine, die die Oberfläche später
+  // benutzt — damit sich Einzahl und Mehrzahl vor dem Speichern prüfen lassen.
+  const vFelder = () => ({
+    sacheEinzahl: document.getElementById('v1').value,
+    sacheMehrzahl: document.getElementById('v2').value,
+    merkmalJa: document.getElementById('v3').value,
+    merkmalNein: document.getElementById('v4').value,
+    zeitpunktEinzahl: document.getElementById('v5').value,
+    zeitpunktMehrzahl: document.getElementById('v6').value,
+    berichtEinzahl: document.getElementById('v7').value,
+    berichtMehrzahl: document.getElementById('v8').value,
+    aufgabeEinzahl: document.getElementById('v9').value,
+    aufgabeMehrzahl: document.getElementById('v10').value,
+    aufgabeErledigt: document.getElementById('v11').value
+  });
+  function drawProbe() {
+    const w = vFelder();
+    const s1 = w.sacheEinzahl.trim() || V.sacheEinzahl;
+    const sm = w.sacheMehrzahl.trim() || V.sacheMehrzahl;
+    const z1 = w.zeitpunktEinzahl.trim() || V.zeitpunktEinzahl;
+    const zm = w.zeitpunktMehrzahl.trim() || V.zeitpunktMehrzahl;
+    const ja = w.merkmalJa.trim() || V.merkmalJa;
+    const nein = w.merkmalNein.trim() || V.merkmalNein;
+    const b1 = w.berichtEinzahl.trim() || V.berichtEinzahl;
+    const bm = w.berichtMehrzahl.trim() || V.berichtMehrzahl;
+    const a1 = w.aufgabeEinzahl.trim() || V.aufgabeEinzahl;
+    const am = w.aufgabeMehrzahl.trim() || V.aufgabeMehrzahl;
+    const ae = w.aufgabeErledigt.trim() || V.aufgabeErledigt;
+    document.getElementById('vprobe').innerHTML =
+      `<span class="label">Probe</span>
+       <span>+ ${esc(s1)}</span><span>${esc(s1)} löschen?</span><span>7 ${esc(sm)}</span>
+       <span>${esc(ja)} / ${esc(nein)}</span>
+       <span>1 ${esc(z1)}</span><span>3 ${esc(zm)}</span>
+       <span>Als ${esc(b1)} markieren</span><span>2 ${esc(bm)}</span>
+       <span>Als ${esc(a1)} markieren</span><span>4 ${esc(am)}</span>
+       <span>Auf „${esc(ae)}" setzen</span>`;
+  }
+  // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
+  // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
+  // Beschriftung der Oberflaeche. Was hier fehlt, ist die Karte, nicht der Wert.
+  ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11'].forEach(id =>
+    amElement(id, feld => feld.addEventListener('input', drawProbe)));
+  if (document.getElementById('vprobe')) drawProbe();
+
+  amElement('vsave', vsave => vsave.onclick = async () => {
+    try {
+      const r = await api('PUT', '/api/settings', { vokabular: vFelder() });
+      V = { ...V, ...r.vokabular };
+      toast('Vokabular gespeichert');
+      renderSystem();          // leere Felder kommen mit der Vorgabe zurück
+    } catch (e) { toast(e.message, true); }
+  });
+  amElement('vreset', vreset => vreset.onclick = async () => {
+    if (!await confirmBox('Vorgaben wiederherstellen?',
+      'Die elf Wörter werden auf Eintrag/Einträge, Getestet/Ungetestet, Testtag/Testtage, Bericht/Berichte, Aufgabe/Aufgaben und Erledigt zurückgesetzt.',
+      'Zurücksetzen')) return;
+    try {
+      const leer = { sacheEinzahl: '', sacheMehrzahl: '', merkmalJa: '',
+                     merkmalNein: '', zeitpunktEinzahl: '', zeitpunktMehrzahl: '',
+                     berichtEinzahl: '', berichtMehrzahl: '',
+                     aufgabeEinzahl: '', aufgabeMehrzahl: '', aufgabeErledigt: '' };
+      const r = await api('PUT', '/api/settings', { vokabular: leer });
+      V = { ...V, ...r.vokabular };
+      toast('Vorgaben wiederhergestellt');
+      renderSystem();
+    } catch (e) { toast(e.message, true); }
+  });
+}
+
+
+/* ---- Karte „Links" — Abschnitt „Bestand" ---- */
+function karteLinks() {
+  return `<div class="sys-card">
+        <h3>Links</h3>
+        <p class="desc">Wie viele Zeilen in der Detailansicht zu sehen sind, bevor
+          aufgeklappt werden muss.</p>
+        <div class="pills" id="lzeilen"></div>
+
+        <p class="desc sys-teil">Wird in der Linkliste etwas eingetragen, das
+          keine Adresse ist, wird daraus eine <strong>Suche</strong>. Gespeichert bleibt der
+          Rohtext — ein Anbieterwechsel gilt deshalb rückwirkend für alle vorhandenen
+          Suchzeilen. Gefragt wird erst beim Klick, Kriterion selbst ruft niemanden.</p>
+        <p class="desc" style="margin:0 0 8px">Wie viele Anbieternamen unter einer Suchzeile
+          stehen. Gezählt wird der Startanbieter mit; sind weniger in der Auswahl, stehen
+          entsprechend weniger da.</p>
+        <div class="pills" id="snamen"></div>
+      </div>`;
+}
+function ruesteLinksAus() {
+  drawLinkZeilen();
+  drawSuchNamen();
+}
 
   /* --- Sichtbare Linkzeilen --- */
   function drawLinkZeilen() {
@@ -6702,7 +6427,54 @@ async function renderSystem() {
       box.appendChild(b2);
     });
   }
-  drawLinkZeilen();
+
+  function drawSuchNamen() {
+    const box = document.getElementById('snamen');
+    if (!box) return;
+    box.innerHTML = '';
+    SUCHNAMEN_STUFEN.forEach(n => {
+      const b3 = document.createElement('button');
+      b3.className = 'pill' + (SUCHNAMEN === n ? ' on' : '');
+      b3.textContent = n === 1 ? '1 Name' : `${n} Namen`;
+      b3.onclick = async () => {
+        const vorher = SUCHNAMEN;
+        SUCHNAMEN = n;
+        drawSuchNamen();
+        try { await api('PUT', '/api/settings', { suchNamen: n }); toast('Gespeichert'); }
+        catch (e) { SUCHNAMEN = vorher; drawSuchNamen(); toast(e.message, true); }
+      };
+      box.appendChild(b3);
+    });
+  }
+
+
+/* ---- Karte „Suchanbieter" — Abschnitt „Bestand" ---- */
+function karteSuchanbieter() {
+  return `<div class="sys-card">
+        <h3>Suchanbieter</h3>
+        <p class="desc">Das Häkchen nimmt einen Anbieter in die Auswahl,
+          <strong>Start</strong> macht ihn zum Ziel des Zeilenklicks. Der Startanbieter steht
+          unter der Suchzeile immer vorn. Beides gilt für alle — die Zahl der angezeigten
+          Namen bestimmt jeder für sich in der Karte „Links".</p>
+        <div class="sanb-liste" id="sanbieter"></div>
+
+        <p class="desc sys-teil">Bis zu drei eigene Anbieter. <code>%s</code> steht
+          für den Suchtext; erlaubt sind nur <code>http://</code> und <code>https://</code>. Ein
+          Platz zählt erst, wenn Name <em>und</em> Vorlage dastehen. Der Name darf bis zu 20
+          Zeichen lang sein.</p>
+        <div class="sanb-eigen" id="seigene"></div>
+        <p class="desc" style="margin:8px 0 0">Foreneigene Suchen sind oft schlecht, gedrosselt
+          oder verlangen eine Anmeldung. Zuverlässiger ist eine Suchmaschine, die auf die Domain
+          eingeschränkt wird:<br>
+          <code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code><br>
+          Das <code>%3A</code> muss so dastehen — der Doppelpunkt gehört in die Vorlage, nicht in
+          den Suchtext.</p>
+      </div>`;
+}
+function ruesteSuchanbieterAus() {
+  drawAnbieter();
+  drawEigene();
+}
 
   /* --- Suchanbieter --- */
   // Der Vorrat als Liste von Schluesseln, Standard zuerst -- dieselbe Form,
@@ -6795,285 +6567,194 @@ async function renderSystem() {
     return sendeAnbieter({ sucheEigene: liste }, 'Eigene Suchanbieter gespeichert');
   }
 
-  function drawSuchNamen() {
-    const box = document.getElementById('snamen');
-    if (!box) return;
-    box.innerHTML = '';
-    SUCHNAMEN_STUFEN.forEach(n => {
-      const b3 = document.createElement('button');
-      b3.className = 'pill' + (SUCHNAMEN === n ? ' on' : '');
-      b3.textContent = n === 1 ? '1 Name' : `${n} Namen`;
-      b3.onclick = async () => {
-        const vorher = SUCHNAMEN;
-        SUCHNAMEN = n;
-        drawSuchNamen();
-        try { await api('PUT', '/api/settings', { suchNamen: n }); toast('Gespeichert'); }
-        catch (e) { SUCHNAMEN = vorher; drawSuchNamen(); toast(e.message, true); }
-      };
-      box.appendChild(b3);
-    });
-  }
 
-  drawAnbieter(); drawEigene(); drawSuchNamen();
+/* ---- Karte „Papierkorb" — Abschnitt „Bestand" ---- */
+function kartePapierkorb() {
+  return `<div class="sys-card">
+        <h3>Papierkorb</h3>
+        <p class="desc">Gelöschte ${esc(V.sacheMehrzahl)} liegen hier <strong>${PAPIERKORB_TAGE} Tage</strong>
+          und lassen sich zurückholen; danach fallen sie heraus. Zurück kommt eine
+          <strong>neue</strong> Nummer mit demselben Inhalt — Fotos, Videos, Dateien, Kommentare,
+          Bewertungen und ${esc(V.zeitpunktMehrzahl)} samt ihren Verfassern.
+          ${EIGENTUEMER ? '' : 'Zurückholen und endgültig entfernen kann der Eigentümer der Anlage.'}</p>
+        <div class="manage-list" id="mpapierkorb"></div>
+      </div>`;
+}
+function ruestePapierkorbAus(geholt) {
+  drawPapierkorb(geholt);
+}
 
-  /* --- Zeitleiste --- */
-  const zl = document.getElementById('zlan');
-  zl.checked = ZEITLEISTE_AN;
-  zl.onchange = async () => {
-    const vorher = ZEITLEISTE_AN;
-    ZEITLEISTE_AN = zl.checked;
-    try { await api('PUT', '/api/settings', { zeitleiste: ZEITLEISTE_AN }); toast('Gespeichert'); }
-    catch (e) { ZEITLEISTE_AN = vorher; zl.checked = vorher; toast(e.message, true); }
-  };
-
-  /* --- Die beiden Anlegen-Schalter ---
-     Nur der Admin bekommt sie zu sehen; ein Haken, der zuverlaessig 403
-     erzeugt, saehe aus wie ein Fehler. EIN Helfer fuer beide: zwei
-     gleichlautende Bloecke nebeneinander liefen frueher oder spaeter
-     auseinander. Schlaegt das Speichern fehl, geht die Stellung zurueck --
-     sonst zeigte der Bildschirm etwas anderes an als der Server haelt. */
-  const anlegeSchalter = (id, schluessel, lies, merke) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.checked = lies();
-    el.onchange = async () => {
-      const vorher = lies();
-      merke(el.checked);
-      try { await api('PUT', '/api/settings', { [schluessel]: el.checked }); toast('Gespeichert'); }
-      catch (e) { merke(vorher); el.checked = vorher; toast(e.message, true); }
-    };
-  };
-  anlegeSchalter('tagfrei', 'tagsFreiAnlegen', () => TAGS_FREI, v => { TAGS_FREI = v; });
-  anlegeSchalter('katfrei', 'kategorienFreiAnlegen', () => KATEGORIEN_FREI, v => { KATEGORIEN_FREI = v; });
-
-  amElement('breset', breset => breset.onclick = async () => {
-    if (!await confirmBox('Standardanordnung wiederherstellen?',
-      'Die Blöcke der Detailansicht kehren in ihre Ausgangsreihenfolge zurück, alle eingeklappten werden wieder geöffnet.',
-      'Wiederherstellen')) return;
-    BLOECKE = { seite: [...BLOCK_VORGABE.seite], unten: [...BLOCK_VORGABE.unten], zu: [] };
-    try { await api('PUT', '/api/settings', { bloecke: BLOECKE }); toast('Standardanordnung wiederhergestellt'); }
-    catch (e) { toast(e.message, true); }
-  });
-
-  /* --- Vokabular --- */
-  // Die Probe zeigt dieselben Textbausteine, die die Oberfläche später
-  // benutzt — damit sich Einzahl und Mehrzahl vor dem Speichern prüfen lassen.
-  const vFelder = () => ({
-    sacheEinzahl: document.getElementById('v1').value,
-    sacheMehrzahl: document.getElementById('v2').value,
-    merkmalJa: document.getElementById('v3').value,
-    merkmalNein: document.getElementById('v4').value,
-    zeitpunktEinzahl: document.getElementById('v5').value,
-    zeitpunktMehrzahl: document.getElementById('v6').value,
-    berichtEinzahl: document.getElementById('v7').value,
-    berichtMehrzahl: document.getElementById('v8').value,
-    aufgabeEinzahl: document.getElementById('v9').value,
-    aufgabeMehrzahl: document.getElementById('v10').value,
-    aufgabeErledigt: document.getElementById('v11').value
-  });
-  function drawProbe() {
-    const w = vFelder();
-    const s1 = w.sacheEinzahl.trim() || V.sacheEinzahl;
-    const sm = w.sacheMehrzahl.trim() || V.sacheMehrzahl;
-    const z1 = w.zeitpunktEinzahl.trim() || V.zeitpunktEinzahl;
-    const zm = w.zeitpunktMehrzahl.trim() || V.zeitpunktMehrzahl;
-    const ja = w.merkmalJa.trim() || V.merkmalJa;
-    const nein = w.merkmalNein.trim() || V.merkmalNein;
-    const b1 = w.berichtEinzahl.trim() || V.berichtEinzahl;
-    const bm = w.berichtMehrzahl.trim() || V.berichtMehrzahl;
-    const a1 = w.aufgabeEinzahl.trim() || V.aufgabeEinzahl;
-    const am = w.aufgabeMehrzahl.trim() || V.aufgabeMehrzahl;
-    const ae = w.aufgabeErledigt.trim() || V.aufgabeErledigt;
-    document.getElementById('vprobe').innerHTML =
-      `<span class="label">Probe</span>
-       <span>+ ${esc(s1)}</span><span>${esc(s1)} löschen?</span><span>7 ${esc(sm)}</span>
-       <span>${esc(ja)} / ${esc(nein)}</span>
-       <span>1 ${esc(z1)}</span><span>3 ${esc(zm)}</span>
-       <span>Als ${esc(b1)} markieren</span><span>2 ${esc(bm)}</span>
-       <span>Als ${esc(a1)} markieren</span><span>4 ${esc(am)}</span>
-       <span>Auf „${esc(ae)}" setzen</span>`;
-  }
-  // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
-  // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
-  // Beschriftung der Oberflaeche. Was hier fehlt, ist die Karte, nicht der Wert.
-  ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11'].forEach(id =>
-    amElement(id, feld => feld.addEventListener('input', drawProbe)));
-  if (document.getElementById('vprobe')) drawProbe();
-
-  amElement('vsave', vsave => vsave.onclick = async () => {
-    try {
-      const r = await api('PUT', '/api/settings', { vokabular: vFelder() });
-      V = { ...V, ...r.vokabular };
-      toast('Vokabular gespeichert');
-      renderSystem();          // leere Felder kommen mit der Vorgabe zurück
-    } catch (e) { toast(e.message, true); }
-  });
-  amElement('vreset', vreset => vreset.onclick = async () => {
-    if (!await confirmBox('Vorgaben wiederherstellen?',
-      'Die elf Wörter werden auf Eintrag/Einträge, Getestet/Ungetestet, Testtag/Testtage, Bericht/Berichte, Aufgabe/Aufgaben und Erledigt zurückgesetzt.',
-      'Zurücksetzen')) return;
-    try {
-      const leer = { sacheEinzahl: '', sacheMehrzahl: '', merkmalJa: '',
-                     merkmalNein: '', zeitpunktEinzahl: '', zeitpunktMehrzahl: '',
-                     berichtEinzahl: '', berichtMehrzahl: '',
-                     aufgabeEinzahl: '', aufgabeMehrzahl: '', aufgabeErledigt: '' };
-      const r = await api('PUT', '/api/settings', { vokabular: leer });
-      V = { ...V, ...r.vokabular };
-      toast('Vorgaben wiederhergestellt');
-      renderSystem();
-    } catch (e) { toast(e.message, true); }
-  });
-
-  /* --- Kategorien, Tags und Kriterien verwalten --- */
-  // Dieselbe Liste fuer alle drei. Kriterien haben zusaetzlich einen Griff,
-  // weil bei ihnen die Reihenfolge etwas bedeutet.
-  const KIND = {
-    cat: {
-      url: '/api/product-categories', frage: 'Kategorie löschen?',
-      warnung: e => `Die Kategorie „${e.name}" wird entfernt. Betroffen: ${e.usage_count} ${vSache(e.usage_count)} — dort fehlt danach nur die Zuordnung.`
-    },
-    tag: {
-      url: '/api/tags', frage: 'Tag löschen?',
-      // Beide Verwendungen nennen: sonst wird ein scheinbar ungenutzter Tag
-      // entfernt und reisst die Kennzeichnungen an den Testtagen mit.
-      zaehler: e => `${e.usage_count} ${vSache(e.usage_count)} · ${e.test_usage_count} ${vZeit(e.test_usage_count)}`,
-      warnung: e => `Der Tag „${e.name}" wird überall entfernt. Betroffen: ` +
-        `${e.usage_count} ${vSache(e.usage_count)} und ${e.test_usage_count} ${vZeit(e.test_usage_count)}` +
-        `${e.test_usage_count ? ' — auch die Kennzeichnungen dort verschwinden.' : '.'}`
-    },
-    crit: {
-      url: '/api/criteria', frage: 'Kriterium löschen?', sortierbar: true,
-      // DAS GEWICHTSFELD GEHOERT ALLEIN HIERHER. manage() zeichnet dieselbe
-      // Zeile auch fuer Kategorien und Tags, und dort gibt es kein Gewicht --
-      // ein Kriterium wiegt im Gesamtschnitt, eine Kategorie rechnet nirgends
-      // mit. Die Unterscheidung laeuft ueber diesen Eintrag, wie schon bei
-      // `sortierbar` und `zaehler`, und nicht ueber eine Abfrage auf den
-      // Kartennamen.
-      gewicht: true,
-      warnung: e => `„${e.name}" wird überall entfernt, samt vergebener Sterne.`
+  /* --- Papierkorb --- */
+  /* Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
+     wie bei den drei Verwaltungskarten. Nach einem Zurueckholen oder einem
+     endgueltigen Entfernen holt papierkorbNeu() die Liste noch einmal und
+     zeichnet nur DIESE Karte: ein Neuaufbau des ganzen Systembereichs leerte
+     die Passwortfelder daneben.
+     JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
+     soll die Karte etwas sagen und nicht der Lauf abreissen. */
+  async function papierkorbNeu(geholt) {
+    try { geholt.papierkorb = await api('GET', '/api/papierkorb'); }
+    catch (e) {
+      const box = document.getElementById('mpapierkorb');
+      if (box) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`;
+      return;
     }
-  };
-
-  function manage(boxId, list, kind) {
-    const box = document.getElementById(boxId);
-    const art = KIND[kind];
-    // Umbenennen und Loeschen gehoeren dem Admin -- bei allen dreien, und bei
-    // den Kriterien auch das Sortieren. Fuer andere bleibt die Karte eine
-    // LISTE: kein Griff, kein ✎, kein ✕ und kein Anlegefeld. Der Server
-    // verweigert es ohnehin; ein Knopf, der eine Fehlermeldung erzeugt, sieht
-    // aber aus wie ein Fehler.
-    // DIE KARTE SELBST BLEIBT STEHEN, alle drei. Wer nicht verwalten darf,
-    // darf trotzdem nachsehen, was es gibt -- die Namen sind die Auswahl, aus
-    // der jeder am Eintrag schoepft.
-    const darf = ADMIN;
+    drawPapierkorb(geholt);
+  }
+  function drawPapierkorb(geholt) {
+    const box = document.getElementById('mpapierkorb');
+    if (!box) return;
+    const zeilen = Array.isArray(geholt.papierkorb && geholt.papierkorb.zeilen) ? geholt.papierkorb.zeilen : [];
     box.innerHTML = '';
-    if (!list.length) { box.innerHTML = `<span class="hint">Noch nichts angelegt.</span>`; return; }
-    list.forEach(entry => {
+    if (!zeilen.length) {
+      box.innerHTML = `<span class="hint">Keine gelöschten ${esc(V.sacheMehrzahl)}.</span>`;
+      return;
+    }
+    zeilen.forEach(z => {
       const row = document.createElement('div');
-      row.className = 'mrow' + (art.sortierbar && darf ? ' drag' : '');
-      row.dataset.mid = entry.id;
-      const url = art.url;
-      /* Die Zeile war schon besetzt: Griff, Name, Verwendungszaehler, ✎ und ✕.
-         Das Gewichtsfeld steht ZWISCHEN Name und Zaehler -- der Name traegt
-         flex:1 und schiebt alles Weitere nach rechts, das Feld sitzt damit an
-         der Kante zwischen Beschriftung und Kennzahlen. Rechts der Knoepfe
-         waere es zwischen zwei Aktionen geraten, obwohl es keine ist.
-         WER NICHT VERWALTEN DARF, SIEHT DAS GEWICHT TROTZDEM -- es erklaert
-         die Kopfzahl an jedem Eintrag, und die sieht er ja auch. Nur als Text
-         statt als Feld, wie bei Name und Zaehler daneben. */
-      const gewFeld = art.gewicht
-        ? (darf
-          ? `<span class="mgew" title="Gewicht im Gesamtschnitt">×<input class="mgew-feld"
-               type="text" inputmode="decimal" list="gewichtsug" aria-label="Gewicht"
-               value="${esc(gewichtText(entry.gewicht))}"></span>`
-          : `<span class="mgew mgew-fest" title="Gewicht im Gesamtschnitt">×${esc(gewichtText(entry.gewicht))}</span>`)
-        : '';
-      row.innerHTML = `${art.sortierbar && darf ? `<span class="grip" title="Zum Sortieren ziehen">⣿</span>` : ''}
-        <span class="mname">${esc(entry.name)}</span>
-        ${gewFeld}
-        <span class="mcount">${esc(art.zaehler ? art.zaehler(entry) : `${entry.usage_count} ${vSache(entry.usage_count)}`)}</span>
-        ${darf ? `<button class="mact ed" title="Umbenennen">✎</button>
-        <button class="mact rm" title="Löschen">✕</button>` : ''}`;
-      if (!darf) { box.appendChild(row); return; }
-      if (art.sortierbar) {
-        // Ziehen wie bei Fotos und Links: Pointer-Events, gleiche Schwelle.
-        // Die Knoepfe und das Umbenennfeld bleiben ausgenommen.
-        makeSortable(row, {
-          axis: 'y', selector: '.mrow', ignore: '.mact, input',
-          onDrop: async (children) => {
-            try {
-              await api('PUT', '/api/criteria/order', { order: children.map(c => +c.dataset.mid) });
-              toast('Reihenfolge gespeichert');
-              refresh();
-            } catch (e) { toast(e.message, true); refresh(); }
-          }
-        });
-      }
-      /* NACH EINEM GEWICHTSWECHSEL WIRD DIE LISTE NICHT NEU GEZEICHNET. Das
-         ist der Unterschied zum Umbenennen: dort MUSS neu gezeichnet werden,
-         weil das ✎ den Namen durch ein Eingabefeld ERSETZT hat und der Zustand
-         zurueckgebaut gehoert. Ein Gewichtswechsel ersetzt nichts -- das Feld
-         steht dauerhaft da und traegt den neuen Wert bereits. Ein refresh()
-         waere hier nicht nur ueberfluessig, sondern schaedlich: ist an
-         derselben Zeile gerade ein Umbenennen offen, risse der Neuaufbau es
-         weg. Der Verwendungszaehler daneben aendert sich durch ein Gewicht
-         ohnehin nicht. */
-      const gewEingabe = row.querySelector('.mgew-feld');
-      if (gewEingabe) gewEingabe.onchange = async () => {
-        const g = gewichtAusText(gewEingabe.value);
-        // Ein leeres oder unlesbares Feld schickt GAR NICHTS: wer den Inhalt
-        // loescht und wegklickt, hat es sich anders ueberlegt und meint nicht
-        // "Gewicht 0".
-        if (Number.isNaN(g)) { gewEingabe.value = gewichtText(entry.gewicht); return; }
-        try {
-          const nun = await api('PUT', `${url}/${entry.id}`, { name: entry.name, gewicht: g });
-          // Den Datensatz IN DER LISTE nachziehen statt neu zu laden -- sonst
-          // zeigte die naechste Zeichnung wieder den alten Wert.
-          entry.gewicht = nun.gewicht;
-          // Zeigt die Rundung mit: 1,234 steht danach als 1,23 im Feld. Die
-          // Rundung ist damit nicht still.
-          gewEingabe.value = gewichtText(nun.gewicht);
-          toast('Gewicht gespeichert');
-        } catch (e) {
-          toast(e.message, true);
-          // Kein Wert im Feld, der nicht gespeichert ist.
-          gewEingabe.value = gewichtText(entry.gewicht);
-        }
-      };
-      row.querySelector('.ed').onclick = () => {
-        const inp = document.createElement('input');
-        inp.className = 'medit'; inp.value = entry.name;
-        row.querySelector('.mname').replaceWith(inp);
-        inp.focus(); inp.select();
-        const save = async () => {
-          const name = inp.value.trim();
-          if (!name || name === entry.name) return refresh();
-          try { await api('PUT', `${url}/${entry.id}`, { name }); toast('Umbenannt'); refresh(); }
-          catch (e) { toast(e.message, true); refresh(); }
-        };
-        inp.onblur = save;
-        inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') refresh(); };
-      };
-      row.querySelector('.rm').onclick = async () => {
-        if (!await confirmBox(art.frage, art.warnung(entry))) return;
-        try { await api('DELETE', `${url}/${entry.id}`); toast('Gelöscht'); refresh(); }
-        catch (e) { toast(e.message, true); }
-      };
+      row.className = 'mrow pk';
+      row.dataset.pkid = z.id;
+      const offen = Number(z.tageOffen);
+      const meta = [
+        `gelöscht ${fmtDate(z.geloescht_am)} von ${verfasserName(z.loeschender)}`,
+        `noch ${offen} ${offen === 1 ? 'Tag' : 'Tage'}`,
+        fmtBytes(z.bytes)
+      ];
+      // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
+      // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
+      // sieht aus wie ein Fehler.
+      row.innerHTML = `<span class="mname">${esc(z.titel)}</span>
+        ${EIGENTUEMER ? `<button class="mact pk-back" title="Wiederherstellen">↩ Zurückholen</button>
+        <button class="mact rm pk-weg" title="Endgültig entfernen">✕</button>` : ''}
+        <span class="pk-meta">${esc(meta.join(' · '))}</span>`;
       box.appendChild(row);
+      const zurueck = row.querySelector('.pk-back');
+      if (zurueck) zurueck.onclick = async () => {
+        try {
+          const r = await api('POST', `/api/papierkorb/${z.id}/wiederherstellen`);
+          // Die unbekannten Verfasser stehen in der Antwort und gehoeren
+          // gesagt: sie sind beim Zurueckholen an MICH gefallen.
+          const offene = (r && Array.isArray(r.verfasserUnbekannt)) ? r.verfasserUnbekannt : [];
+          toast(`„${z.titel}" ist wieder da.` +
+            (offene.length ? ` Unbekannte Verfasser mir zugeordnet: ${offene.join(', ')}.` : ''));
+          papierkorbNeu(geholt);
+        } catch (e) { toast(e.message, true); }
+      };
+      const weg = row.querySelector('.pk-weg');
+      if (weg) weg.onclick = async () => {
+        if (!await confirmBox('Endgültig entfernen?',
+          `„${z.titel}" wird aus dem Papierkorb entfernt. Danach gibt es keinen Rückweg mehr.`,
+          'Endgültig entfernen')) return;
+        try {
+          await api('DELETE', `/api/papierkorb/${z.id}`);
+          toast('Endgültig entfernt');
+          papierkorbNeu(geholt);
+        } catch (e) { toast(e.message, true); }
+      };
     });
   }
-  function drawManage() {
-    manage('mcats', cats, 'cat');
-    manage('mtags', tags, 'tag');
-    manage('mcrits', crits, 'crit');
-  }
-  async function refresh() {
-    [cats, tags, crits] = await Promise.all([
-      api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria')
-    ]);
-    drawManage();
-  }
-  drawManage();
+
+
+/* ---- Karte „Zugänge" — Abschnitt „Zugänge" ---- */
+function karteZugaenge() {
+  return `<div class="sys-card breit">
+        <h3>Zugänge</h3>
+        <p class="desc">Wer sich anmelden darf. <strong>Sperren ist in den meisten Fällen das,
+          was man eigentlich will</strong> — die Anmeldung wird abgewiesen, die Beiträge bleiben
+          unangetastet stehen, und der Name bleibt vergeben.
+          ${EIGENTUEMER
+            ? `Als Eigentümer der Anlage vergibst du Rollen und kommst auch an andere Admins.`
+            : `Rollen vergibt der Eigentümer der Anlage; an einen anderen Admin kommst du nicht.`}</p>
+        <div class="manage-list" id="mzugaenge"></div>
+        ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
+             nichts geloescht wurde -- gefuellt wird sie von
+             zeichneGrabsteinKnopf(), sobald die Liste vom Server da ist. */''}
+        <div class="row-in" id="zug-weg-zeile" style="margin-top:8px"></div>
+
+        <p class="desc" style="margin:16px 0 8px">Woher der neue Zugang sein Passwort bekommt,
+          steht als <strong>Wahl im Formular</strong> — das Feld daneben erscheint nur, wenn es
+          auch gilt. Der Weg über den <strong>Link</strong> ist der empfohlene: du erfährst das
+          Passwort nie, und der Link gilt sieben Tage und genau einmal.</p>
+        <div class="zug-neu">
+          <input class="input input-sm" id="zug-name" placeholder="Benutzername"
+            autocomplete="off" autocapitalize="off" spellcheck="false">
+          ${/* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die
+                Einladungsmail keinen Empfänger, und den Zugang gibt es in
+                diesem Augenblick noch nicht, also kann sie auch niemand selbst
+                eintragen. Ändern darf sie danach allein der Betroffene, unter
+                „Zugang“. Freiwillig — ohne sie bleibt alles beim Kopieren. */''}
+          <input class="input input-sm" id="zug-mail" type="email" placeholder="E-Mail (freiwillig)"
+            autocomplete="off" autocapitalize="off" spellcheck="false">
+          <select class="input input-sm" id="zug-art">
+            <option value="link">Er wählt sein Passwort selbst</option>
+            <option value="passwort">Ich vergebe das erste Passwort</option>
+          </select>
+          <input class="input input-sm" id="zug-pass" type="password" placeholder="Erstes Passwort"
+            autocomplete="new-password" hidden>
+          ${EIGENTUEMER ? `<select class="input input-sm" id="zug-rolle">
+            <option value="user">Benutzer</option>
+            <option value="admin">Admin</option>
+            <option value="eigentuemer">Eigentümer</option>
+          </select>` : ''}
+          <button class="btn btn-accent btn-sm" id="zug-anlegen">+ Anlegen und Link</button>
+        </div>
+        <div id="zug-link"></div>
+
+        <p class="desc" style="margin:16px 0 0">Passwort vergessen und niemand kommt mehr herein?
+          Auf dem Server hilft
+          <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.</p>
+      </div>`;
+}
+function ruesteZugaengeAus() {
+  zeichneZugaenge();
+  /* EINE WAHL, EIN KNOPF. Vorher standen hier zwei Knöpfe nebeneinander, und
+     die Betriebsart steckte darin, WELCHEN man drückt — man musste beide
+     Beschriftungen lesen, um zu wissen, was gleich passiert, und das
+     Passwortfeld stand auch dann da, wenn es gar nicht galt.
+     Jetzt sagt das Auswahlfeld die Betriebsart, das Passwortfeld erscheint nur
+     zu ihr, und der Knopf trägt die Folge im Namen. Ein Feld, das nicht gilt,
+     ist kein Feld — und ein Knopf, der zuverlässig etwas anderes tut, als sein
+     Nachbar heißt, ist eine Falle.
+     DIE VORGABE IST DER LINK: es ist der Weg, bei dem der Admin das Passwort
+     nie erfährt. */
+  const zugArt = document.getElementById('zug-art');
+  const zugAnlegen = document.getElementById('zug-anlegen');
+  const zugPass = document.getElementById('zug-pass');
+
+  const zugArtGesetzt = () => {
+    if (!zugArt || !zugAnlegen || !zugPass) return;
+    const link = zugArt.value === 'link';
+    zugPass.hidden = link;
+    // Geleert, nicht bloß versteckt: ein Passwort, das man nicht mehr sieht,
+    // aber noch mitschickt, wäre die unangenehmste Art von Überraschung.
+    if (link) zugPass.value = '';
+    zugAnlegen.textContent = link ? '+ Anlegen und Link' : '+ Anlegen';
+  };
+  if (zugArt) zugArt.onchange = zugArtGesetzt;
+  zugArtGesetzt();
+
+  if (zugAnlegen) zugAnlegen.onclick = async () => {
+    const nameFeld = document.getElementById('zug-name');
+    const mailFeld = document.getElementById('zug-mail');
+    const rolleFeld = document.getElementById('zug-rolle');
+    const einladen = !zugArt || zugArt.value === 'link';
+    const koerper = { username: nameFeld.value.trim() };
+    if (mailFeld && mailFeld.value.trim()) koerper.email = mailFeld.value.trim();
+    if (einladen) koerper.einladen = true;
+    else koerper.passwort = zugPass.value;
+    if (rolleFeld) koerper.rolle = rolleFeld.value;
+    if (!koerper.username) return toast('Bitte einen Benutzernamen angeben.', true);
+    try {
+      const d = await api('POST', '/api/users', koerper);
+      nameFeld.value = ''; zugPass.value = '';
+      if (mailFeld) mailFeld.value = '';
+      toast(einladen ? 'Zugang angelegt — der Link steht unten' : 'Zugang angelegt');
+      if (einladen) zeigeLink(d);
+    } catch (e) { return toast(e.message, true); }
+    zeichneZugaenge();
+  };
+
+}
 
   /* --- Zugaenge ---
      Was ein Zugang mit sich machen laesst, entscheidet der Server. Die
@@ -7178,91 +6859,6 @@ async function renderSystem() {
       } else toast('Bitte von Hand kopieren — der Link ist markiert.', true);
     };
   }
-
-  /* Die Warteschlange der Selbstanmeldung, . DIESELBE BAUFORM WIE
-     zeichneZugaenge(): die Liste kommt vom Server, wird nach jeder Handlung
-     neu gezeichnet, und was nach dem await gebraucht wird, wird vorher geholt.
-     DIE ANTWORT DER HANDLUNG TRAEGT DIE NEUE LISTE MIT -- die Karte zeichnet
-     sich daraus neu und fragt nicht ein zweites Mal nach. Ein Mock, der auf
-     ein Loeschen zwar "ok" sagt, aber dieselbe Liste zurueckgibt, faellt damit
-     auf (Stolperstein 90). */
-  function zeichneAnfragen(stand) {
-    const box = document.getElementById('manfragen');
-    if (!box || !stand) return;
-    const dok = box.ownerDocument;
-    const zustand = document.getElementById('anf-zustand');
-    if (zustand) zustand.innerHTML = stand.an
-      ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>';
-    const belegt = document.getElementById('anf-belegt');
-    if (belegt) belegt.textContent = `${stand.belegt} von höchstens ${stand.deckel}`;
-    const schalter = document.getElementById('anf-schalter');
-    if (schalter) {
-      schalter.textContent = stand.an ? 'Selbstanmeldung ausschalten' : 'Selbstanmeldung einschalten';
-      schalter.disabled = !stand.an && !stand.versandBereit;
-    }
-    box.innerHTML = '';
-    if (!stand.anfragen.length) {
-      /* KURZ, ABER NICHT STUMM: wer die Karte ansieht, soll den Unterschied
-         zwischen „es liegt nichts vor" und „hier fehlt etwas" sehen. */
-      box.innerHTML = stand.an
-        ? '<span class="hint">Zurzeit liegt keine bestätigte Anfrage vor.</span>'
-        : '';
-      return;
-    }
-    for (const a of stand.anfragen) {
-      const row = dok.createElement('div');
-      row.className = 'mrow zug';
-      row.dataset.mid = a.id;
-      /* NAME UND ADRESSE STEHEN HIER, und sie sind Freitext von aussen --
-         deshalb geht jedes Feld durch esc(). Es ist die einzige Stelle im
-         Systembereich, an der etwas steht, das ein Fremder getippt hat. */
-      row.innerHTML = `<span class="mname">${esc(a.username)}</span>
-        <span class="zug-rolle">${esc(a.email)}</span>
-        <span class="zug-status">gefragt ${esc(fmtDate(a.created_at))}</span>
-        <span class="mcount">bestätigt ${esc(fmtDate(a.bestaetigt_am))}</span>`;
-      const werkzeug = dok.createElement('span');
-      werkzeug.className = 'zug-akt';
-      werkzeug.innerHTML =
-        `<button class="mact anf-frei" title="Freischalten — legt einen Zugang an">✓</button>
-         <button class="mact rm anf-ab" title="Ablehnen — entfernt die Anfrage">✕</button>`;
-      row.appendChild(werkzeug);
-      werkzeug.querySelector('.anf-frei').onclick = async () => {
-        if (!confirm(`„${a.username}“ freischalten? Es entsteht ein Zugang mit der Rolle ` +
-          `„Benutzer“, und der Einladungslink geht an ${a.email}.`)) return;
-        try {
-          const d = await api('POST', `/api/anfragen/${a.id}/frei`);
-          toast('Freigeschaltet — der Link steht unten');
-          zeigeLink(d, 'anf-link');
-          zeichneAnfragen(d);
-          zeichneZugaenge();
-        } catch (e) { toast(e.message, true); }
-      };
-      werkzeug.querySelector('.anf-ab').onclick = async () => {
-        if (!confirm(`Anfrage von „${a.username}“ ablehnen? Die Zeile wird entfernt; ` +
-          `es entsteht kein Zugang, und es geht keine Nachricht hinaus.`)) return;
-        try {
-          const d = await api('DELETE', `/api/anfragen/${a.id}`);
-          toast('Anfrage abgelehnt');
-          zeichneAnfragen(d);
-        } catch (e) { toast(e.message, true); }
-      };
-      box.appendChild(row);
-    }
-  }
-  if (anfragen) zeichneAnfragen(anfragen);
-  const anfSchalter = document.getElementById('anf-schalter');
-  if (anfSchalter) anfSchalter.onclick = async () => {
-    // Vor dem await lesen: danach steht am Knopf schon der andere Text.
-    const neu = !(anfragen && anfragen.an);
-    try {
-      const d = await api('PUT', '/api/registrierung/schalter', { an: neu });
-      anfragen = d;
-      toast(neu ? 'Selbstanmeldung eingeschaltet' : 'Selbstanmeldung ausgeschaltet');
-      zeichneAnfragen(d);
-      const kaputt = document.getElementById('anf-kaputt');
-      if (kaputt && (!d.an || d.versandBereit)) kaputt.remove();
-    } catch (e) { toast(e.message, true); }
-  };
 
   async function zeichneZugaenge() {
     const box = document.getElementById('mzugaenge');
@@ -7496,69 +7092,1057 @@ async function renderSystem() {
       box.appendChild(row);
     }
   }
-  zeichneZugaenge();
 
-  /* EINE WAHL, EIN KNOPF. Vorher standen hier zwei Knöpfe nebeneinander, und
-     die Betriebsart steckte darin, WELCHEN man drückt — man musste beide
-     Beschriftungen lesen, um zu wissen, was gleich passiert, und das
-     Passwortfeld stand auch dann da, wenn es gar nicht galt.
-     Jetzt sagt das Auswahlfeld die Betriebsart, das Passwortfeld erscheint nur
-     zu ihr, und der Knopf trägt die Folge im Namen. Ein Feld, das nicht gilt,
-     ist kein Feld — und ein Knopf, der zuverlässig etwas anderes tut, als sein
-     Nachbar heißt, ist eine Falle.
-     DIE VORGABE IST DER LINK: es ist der Weg, bei dem der Admin das Passwort
-     nie erfährt. */
-  const zugArt = document.getElementById('zug-art');
-  const zugAnlegen = document.getElementById('zug-anlegen');
-  const zugPass = document.getElementById('zug-pass');
 
-  const zugArtGesetzt = () => {
-    if (!zugArt || !zugAnlegen || !zugPass) return;
-    const link = zugArt.value === 'link';
-    zugPass.hidden = link;
-    // Geleert, nicht bloß versteckt: ein Passwort, das man nicht mehr sieht,
-    // aber noch mitschickt, wäre die unangenehmste Art von Überraschung.
-    if (link) zugPass.value = '';
-    zugAnlegen.textContent = link ? '+ Anlegen und Link' : '+ Anlegen';
-  };
-  if (zugArt) zugArt.onchange = zugArtGesetzt;
-  zugArtGesetzt();
-
-  if (zugAnlegen) zugAnlegen.onclick = async () => {
-    const nameFeld = document.getElementById('zug-name');
-    const mailFeld = document.getElementById('zug-mail');
-    const rolleFeld = document.getElementById('zug-rolle');
-    const einladen = !zugArt || zugArt.value === 'link';
-    const koerper = { username: nameFeld.value.trim() };
-    if (mailFeld && mailFeld.value.trim()) koerper.email = mailFeld.value.trim();
-    if (einladen) koerper.einladen = true;
-    else koerper.passwort = zugPass.value;
-    if (rolleFeld) koerper.rolle = rolleFeld.value;
-    if (!koerper.username) return toast('Bitte einen Benutzernamen angeben.', true);
+/* ---- Karte „Anfragen" — Abschnitt „Zugänge" ---- */
+function karteAnfragen(geholt) {
+  const { anfragen } = geholt;
+  return `<div class="sys-card breit">
+        <h3>Anfragen</h3>
+        <p class="desc"><strong>Niemand kommt hier herein, ohne dass ein Admin ihn hereinlässt.</strong>
+          Ist die Selbstanmeldung an, steht auf der Anmeldeseite ein Formular: Wunschname und
+          E-Mail-Adresse, kein Passwort. Wer es abschickt, bekommt zuerst eine Mail und bestätigt
+          damit, dass die Adresse ihm gehört — <strong>erst die bestätigte Anfrage erscheint
+          hier</strong>. Unbestätigte verfallen nach ${anfragen.stunden} Stunden.
+          ${anfragen.an ? '' : '<strong>Zurzeit ist sie aus</strong> — dann legt nur der Admin ' +
+            'Zugänge an, und es fehlt nichts.'}</p>
+        <div class="kv"><span class="k">Selbstanmeldung</span><span class="v" id="anf-zustand">${
+          anfragen.an ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>'
+        }</span></div>
+        <div class="kv"><span class="k">Offene Anfragen</span><span class="v" id="anf-belegt">${
+          anfragen.belegt} von höchstens ${anfragen.deckel}</span></div>
+        ${anfragen.an && !anfragen.versandBereit ? `<p class="warn-box" id="anf-kaputt" style="margin:10px 0 0">
+          <strong>Der Versand trägt gerade nicht — die Selbstanmeldung bleibt trotzdem an.</strong>
+          ${esc(anfragen.versandGrund)} Solange das so ist, bekommt niemand eine Bestätigungsmail,
+          und es kann keine Anfrage entstehen. Der Schalter wird deshalb <em>nicht</em> von selbst
+          umgelegt: er steht so, wie ihr ihn gestellt habt.</p>` : ''}
+        ${!anfragen.an && !anfragen.versandBereit ? `<p class="desc" id="anf-nichtbereit">
+          <strong>Einschalten geht erst, wenn der Versand steht.</strong>
+          ${esc(anfragen.versandGrund)}</p>` : ''}
+        <div class="row-in" style="margin-top:10px">
+          <button class="btn btn-sm${anfragen.an ? '' : ' btn-accent'}" id="anf-schalter"${
+            !anfragen.an && !anfragen.versandBereit ? ' disabled' : ''}>${
+            anfragen.an ? 'Selbstanmeldung ausschalten' : 'Selbstanmeldung einschalten'}</button>
+        </div>
+        <div class="manage-list" id="manfragen" style="margin-top:14px"></div>
+        <div id="anf-link"></div>
+        <p class="desc" style="margin:16px 0 0"><strong>Freischalten</strong> legt einen Zugang mit
+          der Rolle <strong>Benutzer</strong> an — nie mit einer anderen — und erzeugt den
+          Einladungslink, über den der Betreffende sein Passwort selbst setzt.
+          <strong>Ablehnen</strong> entfernt die Anfrage; es entsteht kein Zugang, und es geht
+          keine Nachricht hinaus.</p>
+      </div>`;
+}
+function ruesteAnfragenAus(geholt) {
+  zeichneAnfragen(geholt.anfragen);
+  const anfSchalter = document.getElementById('anf-schalter');
+  if (anfSchalter) anfSchalter.onclick = async () => {
+    // Vor dem await lesen: danach steht am Knopf schon der andere Text.
+    const neu = !(geholt.anfragen && geholt.anfragen.an);
     try {
-      const d = await api('POST', '/api/users', koerper);
-      nameFeld.value = ''; zugPass.value = '';
-      if (mailFeld) mailFeld.value = '';
-      toast(einladen ? 'Zugang angelegt — der Link steht unten' : 'Zugang angelegt');
-      if (einladen) zeigeLink(d);
-    } catch (e) { return toast(e.message, true); }
-    zeichneZugaenge();
+      const d = await api('PUT', '/api/registrierung/schalter', { an: neu });
+      geholt.anfragen = d;
+      toast(neu ? 'Selbstanmeldung eingeschaltet' : 'Selbstanmeldung ausgeschaltet');
+      zeichneAnfragen(d);
+      const kaputt = document.getElementById('anf-kaputt');
+      if (kaputt && (!d.an || d.versandBereit)) kaputt.remove();
+    } catch (e) { toast(e.message, true); }
+  };
+}
+
+  /* Die Warteschlange der Selbstanmeldung, . DIESELBE BAUFORM WIE
+     zeichneZugaenge(): die Liste kommt vom Server, wird nach jeder Handlung
+     neu gezeichnet, und was nach dem await gebraucht wird, wird vorher geholt.
+     DIE ANTWORT DER HANDLUNG TRAEGT DIE NEUE LISTE MIT -- die Karte zeichnet
+     sich daraus neu und fragt nicht ein zweites Mal nach. Ein Mock, der auf
+     ein Loeschen zwar "ok" sagt, aber dieselbe Liste zurueckgibt, faellt damit
+     auf (Stolperstein 90). */
+  function zeichneAnfragen(stand) {
+    const box = document.getElementById('manfragen');
+    if (!box || !stand) return;
+    const dok = box.ownerDocument;
+    const zustand = document.getElementById('anf-zustand');
+    if (zustand) zustand.innerHTML = stand.an
+      ? '<strong class="mail-gut">an</strong>' : '<strong class="mail-aus">aus</strong>';
+    const belegt = document.getElementById('anf-belegt');
+    if (belegt) belegt.textContent = `${stand.belegt} von höchstens ${stand.deckel}`;
+    const schalter = document.getElementById('anf-schalter');
+    if (schalter) {
+      schalter.textContent = stand.an ? 'Selbstanmeldung ausschalten' : 'Selbstanmeldung einschalten';
+      schalter.disabled = !stand.an && !stand.versandBereit;
+    }
+    box.innerHTML = '';
+    if (!stand.anfragen.length) {
+      /* KURZ, ABER NICHT STUMM: wer die Karte ansieht, soll den Unterschied
+         zwischen „es liegt nichts vor" und „hier fehlt etwas" sehen. */
+      box.innerHTML = stand.an
+        ? '<span class="hint">Zurzeit liegt keine bestätigte Anfrage vor.</span>'
+        : '';
+      return;
+    }
+    for (const a of stand.anfragen) {
+      const row = dok.createElement('div');
+      row.className = 'mrow zug';
+      row.dataset.mid = a.id;
+      /* NAME UND ADRESSE STEHEN HIER, und sie sind Freitext von aussen --
+         deshalb geht jedes Feld durch esc(). Es ist die einzige Stelle im
+         Systembereich, an der etwas steht, das ein Fremder getippt hat. */
+      row.innerHTML = `<span class="mname">${esc(a.username)}</span>
+        <span class="zug-rolle">${esc(a.email)}</span>
+        <span class="zug-status">gefragt ${esc(fmtDate(a.created_at))}</span>
+        <span class="mcount">bestätigt ${esc(fmtDate(a.bestaetigt_am))}</span>`;
+      const werkzeug = dok.createElement('span');
+      werkzeug.className = 'zug-akt';
+      werkzeug.innerHTML =
+        `<button class="mact anf-frei" title="Freischalten — legt einen Zugang an">✓</button>
+         <button class="mact rm anf-ab" title="Ablehnen — entfernt die Anfrage">✕</button>`;
+      row.appendChild(werkzeug);
+      werkzeug.querySelector('.anf-frei').onclick = async () => {
+        if (!confirm(`„${a.username}“ freischalten? Es entsteht ein Zugang mit der Rolle ` +
+          `„Benutzer“, und der Einladungslink geht an ${a.email}.`)) return;
+        try {
+          const d = await api('POST', `/api/anfragen/${a.id}/frei`);
+          toast('Freigeschaltet — der Link steht unten');
+          zeigeLink(d, 'anf-link');
+          zeichneAnfragen(d);
+          zeichneZugaenge();
+        } catch (e) { toast(e.message, true); }
+      };
+      werkzeug.querySelector('.anf-ab').onclick = async () => {
+        if (!confirm(`Anfrage von „${a.username}“ ablehnen? Die Zeile wird entfernt; ` +
+          `es entsteht kein Zugang, und es geht keine Nachricht hinaus.`)) return;
+        try {
+          const d = await api('DELETE', `/api/anfragen/${a.id}`);
+          toast('Anfrage abgelehnt');
+          zeichneAnfragen(d);
+        } catch (e) { toast(e.message, true); }
+      };
+      box.appendChild(row);
+    }
+  }
+
+
+/* ---- Karte „Sicherheitsprotokoll" — Abschnitt „Zugänge" ---- */
+function karteProtokoll(geholt) {
+  const { protokoll } = geholt;
+  return `<div class="sys-card breit">
+        <h3>Sicherheitsprotokoll</h3>
+        <p class="desc">Wer Zugang hatte und wer die Anlage als Ganzes angefasst hat.
+          <strong>Was hier nicht steht:</strong> was jemand geschrieben oder bewertet hat — das ist
+          kein Änderungsverlauf, und das bleibt so. Ebenso wenig Adresse oder Browserkennung:
+          die Anlage speichert beides nicht.</p>
+        <p class="desc">Die Zeilen bleiben <strong>${protokoll.tage} Tage</strong> stehen und werden
+          danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Sicherheitsprotokoll,
+          das sich wegräumen lässt, wäre keins.</p>
+        ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
+             dieser Anlage -- man waehlt, bevor man liest. Gezeichnet wird sie
+             aus einer geschlossenen Liste; die Auswahl geht an den Server,
+             denn die Liste darunter traegt nur die hundert juengsten Zeilen. */''}
+        <div class="pills" id="protokoll-filter" style="margin:0 0 12px"></div>
+        <div class="prot-liste" id="protokoll-liste"></div>
+        <p class="hint hint-sm" id="protokoll-fuss" style="margin:10px 2px 0"></p>
+      </div>`;
+}
+function ruesteProtokollAus(geholt) {
+  // Beim Zeichnen steht wieder "Alle" -- Ansichtszustand, keine Einstellung.
+  protokollGruppe = '';
+  zeichneProtokoll(geholt.protokoll);
+}
+
+  /* --- Das Sicherheitsprotokoll ---
+     Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
+     wie bei den Verwaltungskarten und aus demselben Grund (Stolperstein 118).
+     JEDE LESESTELLE IST ABGEFANGEN: fehlt der Gegenstand, bleibt die Karte
+     leer und sagt es, statt den Lauf abzureissen. */
+  const VORGANGSWORT = {
+    'anmeldung.ok': 'Angemeldet',
+    'anmeldung.fehl': 'Anmeldung gescheitert',
+    'bestaetigung.fehl': 'Bestätigung gescheitert',
+    'zugang.neu': 'Zugang angelegt',
+    'zugang.rolle': 'Rolle vergeben',
+    'zugang.passwort': 'Passwort gesetzt',
+    'zugang.weg': 'Zugang entfernt',
+    'zugang.selbst': 'Eigener Zugang geändert',
+    'link.neu': 'Link erzeugt',
+    'link.ein': 'Link eingelöst',
+    /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. Sie fielen auf den Rueckfall `|| z.was`
+       und standen als roher Schluessel am Bildschirm -- "anfrage.frei" statt
+       eines Wortes. Zwanzig Vorgaenge und vierzehn Woerter: der Filter dieser
+       Runde macht die Luecke unuebersehbar, gefehlt hat sie seit 0.9.1 und
+       0.10.0. */
+    'anfrage.frei': 'Anfrage freigegeben',
+    'anfrage.ab': 'Anfrage abgelehnt',
+    'zweifaktor.an': 'Zweiter Faktor eingeschaltet',
+    'zweifaktor.aus': 'Zweiter Faktor ausgeschaltet',
+    'zweifaktor.wieder': 'Wiederherstellungscode verbraucht',
+    'export': 'Export gezogen',
+    'import': 'Import eingespielt',
+    'sicherung': 'Sicherung geschrieben',
+    // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
+    // traegt weder Ziel noch Merkmal, und der Handelnde ist immer leer:
+    // gewechselt wird auf dem Wirt.
+    'schluessel': 'Schlüssel gewechselt'
+  };
+  // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "gesperrt"
+  // und "freigegeben" sind zwei verschiedene Aussagen und sollen auch zwei
+  // verschiedene Zeilen sein.
+  const vorgangsWort = (z) => z.was === 'zugang.status'
+    ? (z.merkmal === 'aktiv' ? 'Zugang freigegeben' : 'Zugang gesperrt')
+    : (VORGANGSWORT[z.was] || z.was);
+  // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
+  // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
+  /* EIN MERKMAL OHNE WORT VERSCHWINDET SPURLOS -- merkmalsWort() faellt still
+     auf den leeren String zurueck, und genau deshalb ist bis 0.12.4 niemandem
+     aufgefallen, dass Woerter fehlten.
+     'teil' KAM MIT 0.13.0 DAZU: ohne das Wort waere ein Teilexport von einem
+     vollen nicht zu unterscheiden -- und das war der Grund, aus dem er
+     ueberhaupt ein Merkmal traegt.
+     'adresse' FEHLTE seit 0.9.1, und 'beides' war seither falsch beschriftet:
+     es heisst am Server "mehr als eines" und kann Name, Passwort und Adresse
+     in jeder Mischung meinen -- "Name und Passwort" behauptete zwei bestimmte.
+     'aktiv' UND 'gesperrt' STEHEN HIER AUSDRUECKLICH NICHT: ihr Wort traegt
+     schon der Vorgang ("Zugang gesperrt" / "Zugang freigegeben"), und zweimal
+     dasselbe in einer Zeile ist eines zu viel. Ein Waechter im Pruefstand
+     nimmt genau diese beiden aus und verlangt fuer jedes uebrige ein Wort. */
+  const MERKMALSWORT = {
+    user: 'Benutzer', admin: 'Admin', eigentuemer: 'Eigentümer',
+    einladung: 'Einladung', ruecksetzung: 'Rücksetzung',
+    merge: 'zusammengeführt', replace: 'ersetzend',
+    name: 'Name', passwort: 'Passwort', adresse: 'Adresse',
+    beides: 'mehreres', teil: 'in Teilen'
+  };
+  const merkmalsWort = (z) => (z.was === 'zugang.status' ? '' : (MERKMALSWORT[z.merkmal] || ''));
+
+  /* WER GEHANDELT HAT. Eine leere Nummer heisst "über zugang.js auf dem Wirt"
+     -- mit genau einer Ausnahme, und die ist am Vorgang zu erkennen: bei einer
+     gescheiterten Anmeldung war niemand angemeldet. */
+  const protHandelnder = (z) => {
+    if (z.wer != null) return verfasserName({ id: z.wer, name: z.werName, geloescht: z.werName == null });
+    return z.was === 'anmeldung.fehl' ? '—' : 'über zugang.js auf dem Wirt';
+  };
+  const protZiel = (z) => {
+    if (z.ziel == null) return z.was === 'anmeldung.fehl' ? 'unbekannter Name' : '';
+    if (z.ziel === z.wer) return '';
+    return verfasserName({ id: z.ziel, name: z.zielName, geloescht: z.zielName == null });
   };
 
-  // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
-  // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
-  const critFeld = document.getElementById('newcrit');
-  if (critFeld) {
-    const addCrit = async () => {
-      const name = critFeld.value.trim();
-      if (!name) return;
-      try { await api('POST', '/api/criteria', { name }); critFeld.value = ''; toast('Kriterium angelegt'); refresh(); }
-      catch (e) { toast(e.message, true); }
+  /* DIE ANSICHTEN DES PROTOKOLLS. Die Schluessel kommen aus auth.js
+     (PROTOKOLL_GRUPPEN), die Woerter stehen hier -- dieselbe Teilung wie bei
+     den Vorgaengen selbst.
+     "GESCHEITERT" HEISST NICHT "gescheiterte Anmeldungen": die Gruppe traegt
+     auch die gescheiterte zweite Bestaetigung, und beide sagen dasselbe --
+     jemand konnte an der Tuer nicht belegen, wer er ist. Ein Name, der nur die
+     Haelfte nennt, waere falsch. */
+  const PROTOKOLL_ANSICHT = [
+    ['', 'Alle'],
+    ['gescheitert', 'Gescheitert'],
+    ['anmeldungen', 'Anmeldungen'],
+    ['zugaenge', 'Zugänge'],
+    ['zweifaktor', 'Zweiter Faktor'],
+    ['bestand', 'Bestand']
+  ];
+  const PROTOKOLL_ANSICHT_HILFE = {
+    '': 'Alle Vorgänge, die jüngsten zuerst',
+    gescheitert: 'Gescheiterte Anmeldungen und gescheiterte Bestätigungen',
+    anmeldungen: 'Gelungene Anmeldungen',
+    zugaenge: 'Angelegt, gesperrt, entfernt, Rollen, Links und Anfragen',
+    zweifaktor: 'Ein- und ausgeschaltet, verbrauchte Wiederherstellungscodes',
+    bestand: 'Export, Import, Sicherung und Schlüsselwechsel'
+  };
+  // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
+  // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
+  let protokollGruppe = '';
+
+  /* DER SPRUNG ZUM ZUGANG. Er klappt nichts auf -- die Karte "Zugaenge" steht
+     im selben Bereich -- und hebt die Zeile kurz hervor, damit man sie in
+     einer langen Liste wiederfindet.
+     WER DAS PROTOKOLL SIEHT, IST EIGENTUEMER UND DAMIT IMMER AUCH ADMIN: die
+     Karte "Zugaenge" ist also da. Trotzdem abgefangen -- zeichneZugaenge()
+     laedt fuer sich, und beim allerersten Aufbau kann die Zeile noch fehlen.
+     Ein stiller Klick, der nichts tut, waere der schlechtere Ausgang.
+     scrollIntoView MIT `?.`: jsdom kennt es nicht, und ein Prueflauf, der an
+     einer Anzeigefunktion abreisst, faerbt keine Pruefung rot (Stolperstein 138). */
+  function springeZuZugang(id) {
+    const zeile = document.querySelector(`#mzugaenge .mrow[data-mid="${Number(id) || 0}"]`);
+    if (!zeile) return toast('Diesen Zugang gibt es in der Liste nicht mehr.', true);
+    zeile.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    zeile.classList.add('mrow-blitz');
+    setTimeout(() => zeile.classList.remove('mrow-blitz'), 1600);
+  }
+
+  /* EIN NAME WIRD ZUM KNOPF, wenn er eine Nummer hat -- und nur dann.
+     "unbekannter Name" hat keine: er ist der getippte Name eines Versuchs, der
+     an keinen Zugang traf, und es gaebe nichts, wohin er springen koennte. Ein
+     Knopf, der ins Leere fuehrt, ist schlimmer als Text. */
+  const protNamensFeld = (dok, klasse, text, id, davor = '') => {
+    const feld = dok.createElement('span');
+    feld.className = klasse;
+    if (!text) return feld;
+    // Der Pfeil steht VOR dem Knopf und nicht in ihm: er gehoert der Zeile und
+    // ist kein Teil des Namens, auf den man klickt.
+    if (davor) feld.appendChild(dok.createTextNode(davor));
+    if (id == null) { feld.appendChild(dok.createTextNode(text)); return feld; }
+    const b = dok.createElement('button');
+    b.className = 'link-btn prot-sprung';
+    b.dataset.mid = String(id);
+    b.textContent = text;
+    b.title = 'Zu diesem Zugang springen';
+    b.onclick = () => springeZuZugang(id);
+    feld.appendChild(b);
+    return feld;
+  };
+
+  function zeichneProtokollFilter(d) {
+    const box = document.getElementById('protokoll-filter');
+    if (!box) return;
+    const zahlen = (d && d.zahlen && typeof d.zahlen === 'object') ? d.zahlen : {};
+    box.innerHTML = '';
+    for (const [schluessel, wort] of PROTOKOLL_ANSICHT) {
+      const b = document.createElement('button');
+      const n = Number(zahlen[schluessel || 'alle']) || 0;
+      /* GEDAEMPFT BEI NULL, wie jede Pille in dieser Lage (Stolperstein 47):
+         eine Ansicht ohne Zeilen fuehrt garantiert auf eine leere Liste.
+         Anklickbar bleibt sie -- man sieht nur vorher, dass nichts kommt. */
+      const leer = n === 0 && protokollGruppe !== schluessel;
+      b.className = 'pill' + (protokollGruppe === schluessel ? ' on' : '') + (leer ? ' leer' : '');
+      b.dataset.gruppe = schluessel;
+      b.innerHTML = `${esc(wort)}<span class="n">${n}</span>`;
+      b.title = PROTOKOLL_ANSICHT_HILFE[schluessel] || '';
+      b.onclick = () => protokollNeu(schluessel);
+      box.appendChild(b);
+    }
+  }
+
+  /* NACHGELADEN WIRD BEIM KLICK, und zwar NUR diese Karte -- dieselbe Bauform
+     wie sitzungenNeu() und papierkorbNeu(). Ein Neuaufbau des ganzen
+     Systembereichs leerte die Passwortfelder daneben.
+     GEFRAGT WIRD DER SERVER UND NICHT DIE GEHOLTEN HUNDERT ZEILEN: der Filter
+     soll die hundert juengsten DIESER Art zeigen und nicht die dieser Art unter
+     den hundert juengsten aller Arten. Genau das war der Befund. */
+  async function protokollNeu(gruppe) {
+    protokollGruppe = gruppe || '';
+    let d;
+    try {
+      d = await api('GET', '/api/sicherheitsprotokoll' +
+        (protokollGruppe ? `?gruppe=${encodeURIComponent(protokollGruppe)}` : ''));
+    } catch (e) {
+      const box = document.getElementById('protokoll-liste');
+      if (box) box.innerHTML = `<p class="hint">${esc(e.message)}</p>`;
+      return;
+    }
+    zeichneProtokoll(d);
+  }
+
+  function zeichneProtokoll(d) {
+    const box = document.getElementById('protokoll-liste');
+    const fuss = document.getElementById('protokoll-fuss');
+    if (!box) return;
+    const dok = box.ownerDocument;
+    zeichneProtokollFilter(d);
+    const zeilen = (d && Array.isArray(d.zeilen)) ? d.zeilen : [];
+    if (!zeilen.length) {
+      /* ZWEI LEERE FAELLE, ZWEI SAETZE. "Noch kein Vorgang festgehalten" waere
+         unter einem Filter eine Falschaussage: es gibt Vorgaenge, nur keinen
+         dieser Art. */
+      box.innerHTML = protokollGruppe
+        ? `<p class="hint">Kein Vorgang dieser Art in den letzten ${esc(String(d && d.tage || ''))} Tagen.</p>`
+        : `<p class="hint">Noch kein Vorgang festgehalten.</p>`;
+      if (fuss) fuss.textContent = '';
+      return;
+    }
+    box.innerHTML = '';
+    for (const z of zeilen) {
+      const zeile = dok.createElement('div');
+      zeile.className = 'prot-zeile';
+      zeile.dataset.was = z.was;
+      const wen = protZiel(z), merk = merkmalsWort(z);
+      const zeit = dok.createElement('span');
+      zeit.className = 'prot-zeit'; zeit.textContent = fmtDate(z.am);
+      const was = dok.createElement('span');
+      was.className = 'prot-was'; was.textContent = vorgangsWort(z);
+      zeile.appendChild(zeit); zeile.appendChild(was);
+      // Der Handelnde ist anklickbar, wenn er eine Nummer hat -- "—" und
+      // "ueber zugang.js auf dem Wirt" haben keine.
+      zeile.appendChild(protNamensFeld(dok, 'prot-wer', protHandelnder(z),
+        z.wer != null ? z.wer : null));
+      zeile.appendChild(protNamensFeld(dok, 'prot-ziel', wen,
+        z.ziel != null ? z.ziel : null, '→ '));
+      const mfeld = dok.createElement('span');
+      mfeld.className = 'prot-merkmal'; mfeld.textContent = merk || '';
+      zeile.appendChild(mfeld);
+      box.appendChild(zeile);
+    }
+    if (fuss) {
+      const gesamt = Number(d.gesamt) || zeilen.length;
+      const art = protokollGruppe ? ' dieser Art' : '';
+      fuss.textContent = gesamt > zeilen.length
+        ? `Die ${zeilen.length} jüngsten von ${gesamt} Vorgängen${art}.`
+        : `${gesamt} ${gesamt === 1 ? 'Vorgang' : 'Vorgänge'}${art}.`;
+    }
+  }
+
+
+/* ---- Karte „Mailversand" — Abschnitt „Zugänge" ---- */
+function karteMailversand(geholt) {
+  const { mailstand } = geholt;
+  return `<div class="sys-card">
+        <h3>Mailversand</h3>
+        ${/* DIE ACHTZEHNTE KARTE, und sie gehört dem EIGENTÜMER — nicht dem
+              Admin, obwohl der die Einladungen verschickt. Der SMTP-Server
+              sieht jede Mail, und jede trägt einen Link, der ein Passwort
+              setzt; ein Admin, der ihn einträgt, böge damit die Rücksetzmail
+              des Eigentümers auf einen Server seiner Wahl. Über dem Eigentümer
+              steht niemand — die Rollenleiter bleibt heil.
+              DAS PASSWORT STEHT HIER NIE: „gesetzt“ oder „nicht gesetzt“, nie
+              die Länge, nie der Anfang, nie Sternchen mit der richtigen Zahl.
+              Aus jedem davon ließe sich etwas ableiten, und keines hilft dem,
+              der die Karte ansieht. */''}
+        <p class="desc"><strong>E-Mail ist eine Bequemlichkeit, keine Voraussetzung.</strong>
+          Ohne Mailzugang läuft die Anlage vollständig — Einladungs- und Rücksetzlinks stehen
+          dann wie bisher im Verwaltungsbereich zum Kopieren. Mit Mailzugang gehen sie
+          <em>zusätzlich</em> hinaus; schlägt das fehl, bricht nichts ab.</p>
+        <div class="kv"><span class="k">Zustand</span><span class="v">${mailstand.eingerichtet
+          ? '<strong class="mail-gut">eingerichtet</strong>'
+          : '<strong class="mail-aus">nicht eingerichtet</strong>'}</span></div>
+        <div class="kv"><span class="k">Passwort</span><span class="v">${mailstand.passwortGesetzt
+          ? 'gesetzt' : 'nicht gesetzt'}</span></div>
+        <div class="kv"><span class="k">Öffentliche Adresse</span><span class="v">${mailstand.adresseGesetzt
+          ? esc(mailstand.adresse)
+          : '<strong class="mail-aus">nicht gesetzt — es wird nicht verschickt</strong>'}</span></div>
+        <div class="kv"><span class="k">Zuletzt erfolgreich getestet</span><span class="v">${mailstand.getestetAm
+          ? esc(mailstand.getestetAm) : 'noch nie'}</span></div>
+        ${mailstand.adresseGesetzt ? '' : `<p class="warn-box" style="margin:10px 0 0">
+          <strong>Ohne <code>OEFFENTLICHE_ADRESSE</code> in der <code>.env</code> wird nichts
+          verschickt.</strong> Der Server wüsste sonst nicht, worauf der Link zeigen soll —
+          und aus dem <code>Host</code>-Kopf darf er es nicht ableiten: über einen gefälschten
+          Kopf ließe sich ein Rücksetzlink auf einen fremden Server umbiegen.</p>`}
+
+        <div class="field" style="margin-top:14px"><label for="mail-anbieter">Anbieter</label>
+          <select class="input" id="mail-anbieter">
+            <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
+            ${mailstand.anbieterListe.map(a => `<option value="${esc(a.schluessel)}"${
+              a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
+          </select></div>
+        ${/* Server, Port und Verschlüsselung stehen für die Vorlagen im
+              Quelltext und werden hier nur GEZEIGT. Wechselt ein Anbieter
+              morgen den Port, kommt der neue aus der Liste — eine Kopie in
+              der Datenbank wäre eingefroren und liefe auseinander. Nur bei
+              „Eigener Server“ sind die Felder offen. */''}
+        <div class="field"><label for="mail-server">Server</label>
+          <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
+            autocapitalize="off" spellcheck="false"></div>
+        <div class="row-in">
+          <div class="field" style="flex:1"><label for="mail-port">Port</label>
+            <input class="input" id="mail-port" type="number" min="1" max="65535"
+              value="${mailstand.port || ''}"></div>
+          <div class="field" style="flex:1"><label for="mail-sicher">Verschlüsselung</label>
+            <select class="input" id="mail-sicher">
+              <option value="starttls"${mailstand.sicher ? '' : ' selected'}>STARTTLS (meist 587)</option>
+              <option value="tls"${mailstand.sicher ? ' selected' : ''}>TLS von Anfang an (meist 465)</option>
+            </select></div>
+        </div>
+        <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
+          <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
+            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+        <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
+          <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
+            placeholder="${mailstand.passwortGesetzt ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
+        <div class="field"><label for="mail-absender">Absenderadresse</label>
+          <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
+            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+
+        <p class="desc" id="mail-hinweis">${mailstand.hinweis ? `<strong>${esc(mailstand.hinweis)}</strong><br>` : ''}
+          ${esc(mailstand.hinweisImmer)}</p>
+        <p class="desc">Immer über den SMTP-Zugang eines Anbieters, nie unmittelbar vom
+          Hausanschluss: dort fehlen rDNS und SPF/DKIM, und die Mail landet im besten Fall
+          im Spam.</p>
+        <div class="row-in">
+          <button class="btn btn-accent btn-sm" id="mail-save">Mailzugang speichern</button>
+          <button class="btn btn-sm" id="mail-test">Testmail an mich</button>
+        </div>
+        <p class="desc" style="margin:8px 0 0">Die Testmail geht <strong>ausschließlich an die
+          Adresse deines eigenen Zugangs</strong> — es gibt kein Adressfeld daneben, und zwar
+          mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener
+          Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der
+          Versuch nach ${mailstand.sekunden} Sekunden ab.</p>
+        <div id="mail-ergebnis"></div>
+      </div>`;
+}
+function ruesteMailversandAus(geholt) {
+  /* NUR FUER DEN EIGENTUEMER; die Klemme steht in SYS_KARTEN, und die
+     Endpunkte darunter weisen jeden anderen ohnehin ab. Die Abfrage auf das
+     Element bleibt trotzdem stehen: sie ist der Schutz davor, dass ein
+     Behandler ins Leere greift, wenn die Karte einmal woanders steht
+     (Stolperstein 211). */
+  const { mailstand } = geholt;
+  const mailAnbieter = document.getElementById('mail-anbieter');
+  if (mailAnbieter && mailstand) {
+    const feld = (id) => document.getElementById('mail-' + id);
+    /* SERVER, PORT UND VERSCHLUESSELUNG GEHOEREN DER VORLAGE, ausser bei
+       "eigen". Sie werden gesperrt und nicht versteckt: wer GMX gewaehlt hat,
+       soll SEHEN, wohin die Anlage schickt -- ein leeres Feld waere eine
+       Auskunft weniger, kein Schutz mehr. */
+    const nachVorlage = () => {
+      const eigen = mailAnbieter.value === 'eigen';
+      const keiner = mailAnbieter.value === '';
+      for (const id of ['server', 'port', 'sicher']) feld(id).disabled = !eigen;
+      for (const id of ['benutzer', 'passwort', 'absender']) feld(id).disabled = keiner;
+      const h = document.getElementById('mail-hinweis');
+      if (h) h.hidden = keiner;
     };
-    document.getElementById('newcrit-b').onclick = addCrit;
-    critFeld.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
+    mailAnbieter.onchange = nachVorlage;
+    nachVorlage();
+
+    const mailErgebnis = (text, gut) => {
+      const box = document.getElementById('mail-ergebnis');
+      if (box) box.innerHTML = `<p class="warn-box ${gut ? 'mail-erfolg' : ''}"
+        style="margin:10px 0 0">${esc(text)}</p>`;
+    };
+
+    document.getElementById('mail-save').onclick = async () => {
+      const koerper = {
+        anbieter: mailAnbieter.value,
+        server: feld('server').value.trim(),
+        port: Number(feld('port').value),
+        sicher: feld('sicher').value === 'tls',
+        benutzer: feld('benutzer').value.trim(),
+        // LEER HEISST "unveraendert", nicht "loeschen": sonst muesste das
+        // Passwort bei jeder Aenderung am Absender neu getippt werden, und ein
+        // Formular, das ein Geheimnis fuer eine Nebensache verlangt, wird
+        // irgendwann mit einem falschen Wert gespeichert. Der Server hat
+        // dieselbe Regel; hier steht sie nur, weil das Feld hier steht.
+        passwort: feld('passwort').value,
+        absender: feld('absender').value.trim()
+      };
+      if (!await zweiteBestaetigung('mail', null, 'Mailzugang setzen',
+        'Über diesen Server läuft künftig JEDE Mail dieser Anlage — auch jeder ' +
+        'Link, der ein Passwort setzt.')) return;
+      try {
+        await api('PUT', '/api/mail', koerper);
+        toast('Mailzugang gespeichert');
+        renderSystem();   // zeichnet den Zustand neu und leert das Passwortfeld
+      } catch (e) { toast(e.message, true); }
+    };
+
+    document.getElementById('mail-test').onclick = async (e) => {
+      /* e.currentTarget IST NACH DEM ERSTEN await NULL (Stolperstein 61) --
+         der Knopf wird deshalb VOR dem Ruf festgehalten. */
+      const knopf = e.currentTarget;
+      knopf.disabled = true; knopf.textContent = 'Wird verschickt …';
+      try {
+        const r = await api('POST', '/api/mail/test', {});
+        mailErgebnis(r.ok
+          ? `Die Testmail ist an ${r.an} hinausgegangen. Kommt sie an, steht der Versand.`
+          : `Der Versand ist fehlgeschlagen: ${r.grund}`, r.ok);
+        if (r.ok) toast('Testmail verschickt');
+      } catch (err) { mailErgebnis(err.message, false); }
+      knopf.disabled = false; knopf.textContent = 'Testmail an mich';
+    };
   }
 }
+
+
+/* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ----
+   OHNE BEHANDLER: die Karte zeigt Zahlen und nimmt nichts entgegen. */
+function karteKennzahlen(geholt) {
+  const { stats } = geholt;
+  return `<div class="sys-card">
+        <h3>Kennzahlen</h3>
+        <p class="desc">Umfang des Bestands, Belegung der Datenbank, Version und Fingerprint
+          der laufenden Dateien — und ganz unten die Verfahren, mit denen gearbeitet wird.</p>
+        <div class="kv"><span class="k">${esc(V.sacheMehrzahl)}</span><span class="v">${stats.itemCount}</span></div>
+        <div class="kv"><span class="k">Fotos</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
+        <div class="kv"><span class="k">Videos</span><span class="v">${stats.videoCount} · ${fmtBytes(stats.videoBytes)}</span></div>
+        <div class="kv"><span class="k">Kommentare</span><span class="v">${stats.commentCount}</span></div>
+        <div class="kv"><span class="k">Links</span><span class="v">${stats.linkCount}</span></div>
+        <div class="kv"><span class="k">${esc(V.zeitpunktMehrzahl)}</span><span class="v">${stats.testDayCount}</span></div>
+          <div class="kv"><span class="k">Dateien</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
+        ${/* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos:
+             sonst wundert sich jemand ueber eine Datenbank, die nach dem
+             Aufraeumen groesser ist als vorher. Die Zeile steht UEBER der
+             Datenbankgroesse, weil sie ein Teil von ihr ist. */''}
+        ${/* Kommentarbilder standen bisher in keiner Zeile, obwohl sie als Blob
+             in derselben Datei liegen wie Fotos und Anhaenge. Wer sich fragt,
+             wovon die Datenbank so gross ist, soll die Antwort vollstaendig
+             finden und nicht bei einem Rest stehenbleiben. */''}
+        <div class="kv"><span class="k">Kommentarbilder</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
+        <div class="kv"><span class="k">Papierkorb</span><span class="v">${stats.papierkorbCount || 0} · ${fmtBytes(stats.papierkorbBytes)}</span></div>
+        <div class="kv"><span class="k">Datenbank</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
+        ${/* DIE ZWEITE GROESSENANGABE, und sie beantwortet eine andere Frage als
+             die Zeile darueber. Die Datenbankgroesse sagt, wie viel Platz die
+             Anlage auf der Platte braucht; sie traegt Indizes, das
+             Sicherheitsprotokoll und freie Seiten aus Geloeschtem. Die
+             Exportgroesse sagt, wie gross die Datei wird, die das Haus
+             verlaesst -- Base64 statt Bytes, dafuer ohne alles, was nicht
+             mitgeht. Die beiden Zahlen sind darum verschieden, und dass die
+             obere die untere ueberschreiten kann, ist kein Fehler.
+             ALLES EINGERECHNET: Fotos, Videos, Dateien, Kommentarbilder. Am
+             Knopf steht darunter, was die eingeschalteten Schalter davon
+             wirklich mitnehmen. */''}
+        ${exportGesamt(stats) ? `<div class="kv"><span class="k">Export, alles</span><span class="v">≈ ${fmtBytes(exportGesamt(stats))}</span></div>` : ''}
+        ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann: ob die
+             Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
+             Einspielen wird er gegen die Zeile im Aenderungsprotokoll
+             gehalten -- stimmt er nicht, ist ein Dateisatz halb eingespielt. */''}
+        ${/* DIE VERSION STAND IN DER ANTWORT SCHON IMMER, gezeigt hat die Karte
+             sie nie -- sie lief nur in die Fusszeile. Sie gehoert neben den
+             Fingerprint: die Version sagt, WELCHER Stand laufen SOLL, der
+             Fingerprint, ob die Dateien dazu wirklich zusammengehoeren. Wer
+             nach dem Einspielen nachsieht, braucht beide, und zwar
+             nebeneinander. */''}
+        <div class="kv"><span class="k">Version</span><span class="v">${esc(stats.version || '—')}</span></div>
+        <div class="kv"><span class="k">Fingerprint</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
+        <div style="margin-top:14px">${stats.keyFromEnv
+          ? `<div class="ok-box">Der Schlüssel kommt aus der Umgebung. Denk daran: <strong>.env und data/ nicht in dieselbe Sicherung legen</strong> — und ohne den Schlüssel sind die Daten unwiederbringlich verloren.</div>`
+          : `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.
+              <p style="margin:9px 0 6px">Für echten Schutz <strong>diesen</strong> Wert in die <code>.env</code> eintragen — keinen neuen erzeugen, sonst sind die vorhandenen Daten nicht mehr lesbar:</p>
+              <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
+              <p style="margin:8px 0 0">Danach <code>docker compose up -d</code> und im Protokoll „Schlüssel aus ENCRYPTION_KEY geladen" prüfen — <strong>erst dann</strong> <code>data/encryption.key</code> entfernen.</p>
+            </div>`}
+        </div>
+        ${/* ---- DIE VERFAHREN ----
+             AUS DEM BETRIEB: „was benutzt ihr eigentlich?" Die Antwort stand
+             im Quelltext und sonst nirgends. Sie gehoert hierher, denn wer
+             eine Anlage selbst betreibt, traegt auch die Entscheidung, ob ihm
+             die Verfahren genuegen.
+             VERFAHREN JA, PAKETVERSIONEN NEIN. Ein Verfahrensname sagt, WIE
+             gerechnet wird; eine Bibliotheksversion sagt, WELCHE Luecke passt.
+             Version und Fingerprint darueber sagen nichts ueber eine fremde
+             Bibliothek und bleiben, wo sie sind.
+             GELESEN UND NICHT BEHAUPTET: die Zeilen kommen aus db.js, das die
+             geoeffnete Datei selbst fragt. Eine Kopie hier liefe beim naechsten
+             Wechsel auseinander. */''}
+        ${stats.verfahren ? `<div class="sys-teil"></div>
+        <h4 class="sys-unter">Verfahren</h4>
+        ${/* SIE HEISST „Verschlüsselung" UND NICHT „Datenbank": eine Zeile mit
+             dieser Beschriftung steht in derselben Karte schon — die
+             Belegung auf der Platte. Zwei Zeilen mit demselben Wort in einer
+             Karte sind eine zu viel, und beim Ablesen greift man die
+             falsche. */''}
+        <div class="kv"><span class="k">Verschlüsselung</span><span class="v">${esc(stats.verfahren.cipher || '—')}</span></div>
+        <div class="kv"><span class="k">Schlüssel</span><span class="v">${
+          stats.verfahren.schluesselBits ? `${stats.verfahren.schluesselBits} Bit roh` : '—'}</span></div>
+        <div class="kv"><span class="k">Journal</span><span class="v">${esc(stats.verfahren.journal || '—')}</span></div>
+        <div class="kv"><span class="k">Passwörter</span><span class="v">${esc(stats.verfahren.passwoerter || '—')}</span></div>
+        <p class="desc" style="margin:10px 0 0">Der Schlüssel geht <strong>roh</strong> in die
+          Datenbank (<code>PRAGMA key = x'…'</code>) — ohne Ableitung, weil er kein Passwort ist,
+          sondern schon 256 Zufallsbits trägt. <strong>Welche Fassung welcher Bibliothek</strong>
+          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand
+          sucht, der eine Lücke ausnutzen will.</p>` : ''}
+      </div>`;
+}
+
+
+/* ---- Karte „Sicherung" — Abschnitt „Datenbank" ---- */
+function karteSicherung() {
+  return `<div class="sys-card">
+        <h3>Sicherung</h3>
+        <p class="desc"><strong>Der Sicherungsweg</strong> — eine vollständige, verschlüsselte
+          Kopie der Datenbank, samt allem, was der Export nicht mitnimmt. Sie braucht beim
+          Schreiben keinen nennenswerten Arbeitsspeicher, überlebt aber keinen Formatwechsel.</p>
+        ${/* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
+             Dokumentation: die Kopie ist ohne .env wertlos. Das ist dieselbe
+             Falle, die die README ausfuehrlich beschreibt -- hier steht sie an
+             der Stelle, an der jemand sie tatsaechlich tappt. */''}
+        <div class="warn-box" style="margin:0 0 14px"><strong>Die Kopie ist verschlüsselt.</strong>
+          Ohne den Schlüssel aus der <code>.env</code> lässt sie sich nicht öffnen — und beides
+          gehört nicht an denselben Ort.</div>
+        <div id="sicherung-box"></div>
+      </div>`;
+}
+function ruesteSicherungAus(geholt) {
+  drawSicherung(geholt);
+}
+
+  /* --- Sicherung --- */
+  /* Gezeichnet wird aus dem, was oben schon geholt wurde; nach jedem Schreiben
+     traegt die Antwort den neuen Stand, und die Karte zeichnet sich daraus neu.
+     JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
+     und nicht der Lauf abreissen. */
+  function drawSicherung(geholt) {
+    const box = document.getElementById('sicherung-box');
+    if (!box) return;
+    const d = geholt.sicherung || {};
+    if (!d.eingerichtet) {
+      box.innerHTML = `<div class="warn-box">${esc(d.grund || 'Es ist kein Sicherungsort eingerichtet.')}</div>`;
+      return;
+    }
+    /* „Letzte Sicherung vor N Tagen" kommt aus dem DATEISYSTEM, nicht aus einem
+       Schlüssel in der Datenbank. Der Preis steht hier: ist der Ort nicht
+       erreichbar, sagt die Karte GENAU DAS statt einer Zahl — eine Zahl aus
+       einem Merker wäre in genau diesem Fall die Lüge. */
+    const letzte = d.letzte;
+    const stand = d.fehler
+      ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.fehler)}</div>`
+      : (!d.erreichbar
+        ? `<div class="warn-box" style="margin:0 0 12px">Der Zielort ist nicht erreichbar.</div>`
+        : (letzte
+          ? `<div class="kv"><span class="k">Letzte Sicherung</span><span class="v">vor ${letzte.tageHer} ${letzte.tageHer === 1 ? 'Tag' : 'Tagen'}</span></div>
+             <div class="kv"><span class="k">Datei</span><span class="v"><code>${esc(letzte.datei)}</code></span></div>
+             <div class="kv"><span class="k">Größe</span><span class="v">${fmtBytes(letzte.bytes)}</span></div>
+             <div class="kv"><span class="k">Dateien am Ort</span><span class="v">${d.zahl || 0}${
+               d.veraltet ? ` <strong class="sich-alt">· ${d.veraltet} mit dem alten Schlüssel</strong>` : ''}</span></div>`
+          : `<p class="desc" style="margin:0 0 12px">An diesem Ort liegt noch keine Sicherung.</p>`));
+
+    /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt,
+       öffnen sich die Kopien von vorher nur noch mit dem ALTEN. Sie sind nicht
+       kaputt; sie brauchen einen anderen Schlüssel als die laufende Anlage.
+       DER KASTEN STEHT NUR DA, WENN ER ETWAS ZU SAGEN HAT: ohne Wechsel gibt
+       es keine zwei Schlüssel, und eine Warnung, die immer dasteht, liest
+       niemand mehr.
+       DIE SCHÄRFSTE LAGE BEKOMMT DEN SCHÄRFSTEN SATZ: ist auch die JÜNGSTE
+       Kopie älter als der Wechsel, gibt es überhaupt keine, die zur laufenden
+       Anlage passt. Das ist etwas anderes als „ein paar alte liegen daneben".
+       WO DER ALTE WERT LIEGT, HÄNGT VOM FALL AB — in der `.env` nur dann, wenn
+       er von dort kam; im Dateifall steht er nach dem Wechsel nirgends mehr.
+       Die Karte weiß das nicht sicher und behauptet es deshalb nicht: sie
+       nennt den Weg, der ihn beim Wechsel genannt hat. */
+    const wechsel = !d.gewechseltAm ? '' : (
+      letzte && letzte.veraltet
+        ? `<div class="warn-box" style="margin:0 0 12px"><strong>Keine dieser Kopien passt zum
+             heutigen Schlüssel.</strong> Gewechselt wurde am ${esc(fmtDate(d.gewechseltAm))}; auch
+             die jüngste Sicherung ist älter. Sie öffnet sich nur mit dem <strong>alten</strong>
+             Schlüssel — <code>./schluessel.sh</code> hat ihn beim Wechsel genannt und, wenn er aus
+             der <code>.env</code> kam, dort auskommentiert stehen lassen.
+             <strong>Sicher jetzt neu</strong>, dann liegt wieder eine Kopie da, die zur laufenden
+             Anlage gehört.</div>`
+        : (d.veraltet
+          ? `<div class="warn-box" style="margin:0 0 12px"><strong>${d.veraltet} ${d.veraltet === 1
+               ? 'Kopie stammt' : 'Kopien stammen'} von vor dem Schlüsselwechsel</strong>
+               (${esc(fmtDate(d.gewechseltAm))}). ${d.veraltet === 1 ? 'Sie öffnet' : 'Sie öffnen'} sich
+               nur mit dem <strong>alten</strong> Schlüssel. <strong>Heb ihn auf</strong> — kam er aus
+               der <code>.env</code>, steht er dort auskommentiert; er gehört in den
+               Passwortspeicher.</div>`
+          : `<div class="ok-box" style="margin:0 0 12px">Der Schlüssel wurde am
+               ${esc(fmtDate(d.gewechseltAm))} gewechselt. Alle Kopien an diesem Ort sind
+               jünger und passen zum heutigen Schlüssel.</div>`));
+    /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
+       ist die Frage, die vor allen anderen steht. Ein Ort im
+       Arbeitsverzeichnis ist erlaubt und wird nicht abgewiesen -- er wird
+       benannt. Wer hier rot sieht, soll wissen, WARUM, und nicht bloss, DASS.
+       Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
+       sonst liest ihn beim nächsten Umbau niemand mehr. */
+    const lage = d.imArbeitsverzeichnis
+      ? `<div class="warn-box" id="sich-lage" style="margin:0 0 12px"><strong>Der Sicherungsort liegt im
+           Arbeitsverzeichnis.</strong> Dringend empfohlen ist er daneben. Er teilt hier das
+           Schicksal des Projektverzeichnisses: beim Einspielen einer neuen Version wird das
+           umbenannt, und die Sicherungen wandern mit — der Weg in der README holt sie eigens
+           zurück. Ein Fehlgriff am Projektordner nähme Original und Sicherung auf einmal,
+           und beide liegen ohnehin auf derselben Platte. Umgestellt wird es in der
+           <code>docker-compose.yml</code>; dort steht, wie.</div>`
+      : `<div class="ok-box" id="sich-lage" style="margin:0 0 12px">Der Sicherungsort liegt <strong>außerhalb
+           des Arbeitsverzeichnisses</strong>. So bleibt er unberührt, wenn das
+           Projektverzeichnis beim Einspielen einer neuen Version umbenannt oder ersetzt
+           wird.</div>`;
+    box.innerHTML = `
+      ${lage}
+      <div class="field"><label>Zielort</label>
+        <p class="desc" style="margin:0 0 6px">Eingerichtet ist <code>${esc(d.wurzel || '')}</code>.
+          Darunter lässt sich ein Unterverzeichnis wählen; es muss dort schon liegen —
+          angelegt wird keines.</p>
+        <input class="input" id="sich-ort" value="${esc(d.ort || '')}" placeholder="(der eingerichtete Ort selbst)"
+          autocapitalize="off" spellcheck="false"></div>
+      <button class="btn btn-sm" id="sich-ort-save">Zielort speichern</button>
+      <div class="sys-teil"></div>
+      ${stand}
+      ${wechsel}
+      <p class="desc" style="margin:0 0 10px">Während die Kopie entsteht, <strong>steht die
+        Anlage still</strong> — bei ${fmtBytes(d.dbBytes)} sind das etwa
+        ${d.dauerSekunden} Sekunden.</p>
+      <button class="btn btn-accent btn-sm" id="sich-los">Jetzt sichern</button>`;
+
+    document.getElementById('sich-ort-save').onclick = async () => {
+      const wert = document.getElementById('sich-ort').value;
+      try {
+        const r = await api('PUT', '/api/sicherung/ort', { ort: wert });
+        // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
+        // Kasten ueber die alten Sicherungen beim ersten Speichern des
+        // Zielorts, und die Karte saehe danach harmloser aus als die Lage ist.
+        geholt.sicherung = { ...geholt.sicherung, ort: r.ort, pfad: r.pfad, fehler: null,
+                      erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
+                      gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
+        toast('Zielort gespeichert');
+        drawSicherung(geholt);
+      } catch (e) { toast(e.message, true); }
+    };
+    /* Der Knopf sperrt sich selbst, solange die Kopie entsteht: VACUUM INTO
+       laeuft synchron, die Anlage steht so lange still, und ein zweiter Klick
+       stellte sich nur in die Schlange. */
+    document.getElementById('sich-los').onclick = async (e) => {
+      const knopf = e.currentTarget;
+      knopf.disabled = true;
+      knopf.textContent = 'Sicherung läuft …';
+      try {
+        const r = await api('POST', '/api/sicherung');
+        geholt.sicherung = { ...geholt.sicherung, erreichbar: r.erreichbar, letzte: r.letzte, zahl: r.zahl,
+                      gewechseltAm: r.gewechseltAm, veraltet: r.veraltet };
+        toast(`Sicherung geschrieben: ${r.datei} (${fmtBytes(r.bytes)})`);
+        drawSicherung(geholt);
+      } catch (err) {
+        toast(err.message, true);
+        knopf.disabled = false;
+        knopf.textContent = 'Jetzt sichern';
+      }
+    };
+  }
+
+
+/* ---- Karte „Export und Import" — Abschnitt „Datenbank" ---- */
+function karteExport(geholt) {
+  const { stats } = geholt;
+  return `<div class="sys-card">
+        <h3>Export und Import</h3>
+        ${/* DIE ROLLENTEILUNG GEHOERT AN DIE KARTE, nicht nur in die Doku. Wer
+             Export und Sicherung nebeneinander sieht, muss ohne Rueckfrage
+             wissen, welche er will. Ein Satz je Karte, und er steht hier. */''}
+        <p class="desc"><strong>Der Austauschweg</strong> — für Umzug, Archiv und die Weitergabe:
+          die Datei überlebt einen Formatwechsel und braucht keinen Schlüssel. Für den Notfall
+          ist die Karte <strong>Sicherung</strong> zuständig.</p>
+        <p class="desc">Schreibt den gesamten Bestand in eine Datei. Mit Fotos wird sie deutlich
+          größer, weil Bilder als Text kodiert werden müssen — rechne mit rund einem Drittel
+          Aufschlag auf ${fmtBytes(stats.photoBytes)}.</p>
+        ${/* DIE ZAHLEN AN DEN KNOEPFEN SIND LEBENDIG. Sie standen bisher fest im
+             Text und rechneten dabei jede fuer sich -- die Haekchen darunter
+             aenderten die Datei, aber keine Zahl. Wer beide Haekchen setzte,
+             fand nirgends, was dabei herauskommt.
+             GERECHNET WIRD AN EINER STELLE, in exportSumme(); die Warnung
+             darunter liest dieselbe Zahl. Zwei Rechenwege naennten frueher oder
+             spaeter zwei Groessen fuer dieselbe Datei. */''}
+        <div class="row-in">
+          <button class="btn btn-accent btn-sm" id="ex-yes">Mit Fotos (~<span id="ex-gr-yes">…</span>)</button>
+          <button class="btn btn-sm" id="ex-no">Ohne Fotos (~<span id="ex-gr-no">…</span>)</button>
+        </div>
+        <label class="ex-files"><input type="checkbox" id="ex-files">
+          Angehängte Dateien mitnehmen (+${fmtBytes((stats.export?.anhaenge || 0) + (stats.export?.kommentarbilder || 0))})</label>
+        ${/* Eigener Schalter, Vorgabe aus. Ohne ihn bleibt der Platz des Videos
+             in der Datei vermerkt, die Datei selbst fehlt -- der Import sagt
+             dann, wie viele es waren. Stand ein Video an erster Stelle, wird
+             danach das naechste Foto zum Hauptbild. */''}
+        <label class="ex-files"><input type="checkbox" id="ex-videos">
+          Videos mitnehmen (+${fmtBytes(stats.export?.videos || 0)})</label>
+        ${stats.videoCount ? `<p class="hint hint-sm" style="margin:6px 2px 0">
+          Ohne Häkchen bleiben die Videos zurück; die Einträge nennen sie, die Dateien fehlen.</p>` : ''}
+        ${/* DER HINWEIS STEHT VOR DEM KNOPF UND NICHT HINTER DEM ABBRUCH. Ein
+             Export, der nach zwei Minuten mit einem Speicherfehler aufgibt,
+             sieht aus wie ein kaputtes Programm; er ist aber eine erreichte
+             Grenze, und der Unterschied liegt allein darin, ob die Anlage es
+             vorher sagt.
+             GEWARNT WIRD, VERWEIGERT NICHT. Die Zahl ist eine Schaetzung, und
+             eine Schaetzung darf niemandem den Export wegnehmen, dessen Datei
+             am Ende doch gepasst haette. Wer die Grenze wirklich reisst,
+             bekommt sie von der Route gesagt -- mit derselben Rechnung. */''}
+        <div id="ex-warn"></div>
+        ${/* DER WEG, WENN DIE EINE DATEI NICHT GEHT. Er steht IMMER da und
+             nicht erst hinter der Warnung: wer seine Teile auf einen
+             Datentraeger bringen oder durch eine Hochladegrenze schieben will,
+             braucht sie auch unterhalb des Schwellwerts.
+             DIE TEILGROESSE IST WAEHLBAR, NACH OBEN ABER GEDECKELT: oberhalb
+             des Warnwerts baute die Anlage Teile, vor denen sie im selben
+             Atemzug warnt. */''}
+        <div class="ex-teile">
+          <div class="row-in" style="align-items:baseline">
+            <button class="btn btn-sm" id="ex-plan">In Teilen exportieren</button>
+            <label class="hint hint-sm" style="display:flex;align-items:baseline;gap:6px">
+              höchstens
+              <select class="input input-sm" id="ex-ziel" style="width:auto">
+                <option value="52428800">50 MB</option>
+                <option value="104857600">100 MB</option>
+                <option value="209715200">200 MB</option>
+                <option value="314572800" selected>300 MB</option>
+              </select>
+              je Datei
+            </label>
+          </div>
+          <div id="ex-plan-out"></div>
+        </div>
+        ${/* ---- DER IMPORT STEHT IN DERSELBEN KARTE UND EINE STUFE TIEFER ----
+             ZUSAMMENGELEGT, WEIL SIE DASSELBE MEINEN: die eine Datei geht
+             hinaus, dieselbe Datei kommt herein. Getrennt standen sie als
+             Karte 6 und 7 nebeneinander, und wer die eine suchte, las erst
+             die andere.
+             ABER NICHT GLEICHRANGIG. Der Export LIEST, der Import ERSETZT
+             BESTAND -- die zerstoerende Haelfte darf durch das Zusammenlegen
+             nicht einen Klick naeher ruecken. Sie steht deshalb unter einem
+             Trennstrich, mit eigener, kleinerer Ueberschrift und in der
+             leisen Bauform des Ablagefeldes. Die zweite Bestaetigung bleibt,
+             wo sie war: in askImport(). */''}
+        <div class="sys-teil"></div>
+        <h4 class="sys-unter">Import</h4>
+        <p class="desc">Spielt eine zuvor erzeugte Exportdatei wieder ein. <strong>Der Export
+          liest, der Import schreibt</strong> — je nach Betriebsart führt er zusammen oder
+          <strong>ersetzt den vorhandenen Bestand</strong>. Gefragt wird vor dem Start, und
+          danach ein zweites Mal nach dem Passwort.</p>
+        <label class="drop drop-leise" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
+          Exportdatei auswählen</label>
+      </div>`;
+}
+function ruesteExportAus(geholt) {
+  amElement('ex-yes', b => b.onclick = () => exportLos(true));
+  amElement('ex-no', b => b.onclick = () => exportLos(false));
+  for (const id of ['ex-files', 'ex-videos'])
+    amElement(id, e => e.addEventListener('change', () => exportZahlen(geholt)));
+  exportZahlen(geholt);
+  amElement('ex-plan', b => b.onclick = zeichneTeilplan);
+  // Aendert sich ein Schalter oder die Teilgroesse, gilt der gezeichnete Plan
+  // nicht mehr -- ein stehengebliebener Plan naennte falsche Grenzen.
+  for (const id of ['ex-files', 'ex-videos', 'ex-ziel'])
+    amElement(id, e => e.addEventListener('change', () => {
+      const kasten = document.getElementById('ex-plan-out');
+      if (kasten) kasten.innerHTML = '';
+    }));
+  amElement('imp', imp => imp.onchange = e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (file) askImport(file, geholt.stats && geholt.stats.export);
+  });
+}
+
+  // Dateien haben einen eigenen Schalter mit Vorgabe aus: bei 50 MB je Datei
+  // waere die Exportdatei sonst schnell unhandlich.
+  const mitDateien = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '') +
+                           (document.getElementById('ex-videos')?.checked ? '&videos=1' : '');
+  /* DER EXPORT BLEIBT EINE NAVIGATION -- die Datei laeuft damit an der Platte
+     vorbei statt vollstaendig im Speicher zu stehen. Die zweite Bestaetigung
+     steht deshalb DAVOR und nicht darin: sie holt die Freigabe, danach faehrt
+     der Browser los. */
+  const exportLos = async (mitFotos) => {
+    if (!await zweiteBestaetigung('export', null, 'Export bestätigen',
+      'Der Export schreibt den gesamten Bestand in eine Datei, die das Haus verlässt — ' +
+      'mit allen Fotos, allen Anhängen und den Namen aller Verfasser.')) return;
+    window.location = `/api/export?photos=${mitFotos ? 1 : 0}` + mitDateien();
+  };
+
+  /* DIE GROESSEN AN DEN KNOEPFEN, und sie folgen den Haekchen. Gerufen wird
+     einmal beim Zeichnen und danach bei jeder Aenderung -- eine Zahl, die nur
+     beim Aufbau stimmt, ist schlimmer als keine.
+     GEWARNT WIRD FUER DIE ZAHL, DIE GROESSER IST: die beiden Knoepfe stehen
+     nebeneinander, und ein Hinweis, der nur fuer einen von ihnen gilt, muss
+     sagen, fuer welchen. Deshalb nennt er den Fall beim Namen. */
+  function exportZahlen(geholt) {
+    /* `stats` bleibt null, wer nicht Admin ist. Die Karte steht zwar hinter
+       dem Eigentuemer und der ist immer auch Admin -- aber die Rollenleiter
+       ist eine Annahme ueber eine ANDERE Stelle, und diese Zeile traegt sie
+       nicht. */
+    const ex = geholt.stats && geholt.stats.export;
+    if (!ex) return;
+    const schalter = {
+      mitDateien: !!document.getElementById('ex-files')?.checked,
+      mitVideos: !!document.getElementById('ex-videos')?.checked
+    };
+    const mit = exportSumme(ex, { ...schalter, mitFotos: true });
+    const ohne = exportSumme(ex, { ...schalter, mitFotos: false });
+    amElement('ex-gr-yes', e => e.textContent = fmtBytes(mit));
+    amElement('ex-gr-no', e => e.textContent = fmtBytes(ohne));
+    amElement('ex-warn', kasten => {
+      if (mit <= ex.warnAb) { kasten.innerHTML = ''; return; }
+      // „Auch ohne Fotos" ist der schlimmere Fall und gehoert deshalb gesagt:
+      // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
+      const auchOhne = ohne > ex.warnAb;
+      kasten.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
+        <strong>Export mit Fotos: rund ${esc(fmtBytes(mit))}.</strong>
+        Eine Exportdatei ist ein einziger Text, und der kann nicht größer als
+        ${esc(fmtBytes(ex.string))} werden — ${auchOhne
+          ? `auch ohne Fotos bleiben noch rund ${esc(fmtBytes(ohne))}.`
+          : `ohne Fotos bleiben rund ${esc(fmtBytes(ohne))}.`}
+        <p style="margin:9px 0 0"><strong>Der Weg dafür steht darunter: „In Teilen
+        exportieren".</strong> Jeder Teil ist eine vollständige Exportdatei, und der Import
+        nimmt sie mit „Zusammenführen" wieder auf. Für eine Kopie zum Zurückspielen ist
+        die Karte <strong>Sicherung</strong> der kürzere Weg.</p>
+        <p style="margin:9px 0 0"><strong>Der Knopf oben bleibt trotzdem</strong> — die Zahl
+        ist eine Schätzung, und wer weiß, was er tut, soll es versuchen dürfen.</p></div>`;
+    });
+  }
+
+  /* ---- Der Export in Teilen ----
+     JEDER TEIL IST EINE VOLLSTAENDIGE EXPORTDATEI. Der Import nimmt sie mit
+     „Zusammenführen" wieder auf, ohne dass an ihm eine Zeile geaendert wurde --
+     genau deshalb gibt es hier kein neues Format und keinen zweiten Leser.
+     GESCHNITTEN WIRD AM SERVER und nicht hier: dort liegen die Groessen, und
+     eine zweite Rechnung in der Oberflaeche liefe irgendwann auseinander. */
+  const teilSchalter = () => `photos=1` + mitDateien();
+  async function zeichneTeilplan() {
+    const kasten = document.getElementById('ex-plan-out');
+    if (!kasten) return;
+    const ziel = document.getElementById('ex-ziel')?.value || '';
+    kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">Wird gerechnet …</p>`;
+    let plan;
+    try { plan = await api('GET', `/api/export/plan?${teilSchalter()}&ziel=${encodeURIComponent(ziel)}`); }
+    catch (e) { kasten.innerHTML = `<p class="hint hint-sm">${esc(e.message)}</p>`; return; }
+
+    const n = (plan.teile || []).length;
+    if (!n && !(plan.zuGross || []).length) {
+      kasten.innerHTML = `<p class="hint hint-sm" style="margin:10px 2px 0">Es gibt nichts zu exportieren.</p>`;
+      return;
+    }
+    /* EIN EINTRAG, DER FUER SICH ALLEIN ZU GROSS IST, WIRD BEIM NAMEN GENANNT
+       und nicht stillschweigend uebergangen. Ein stiller Verlust waere der
+       schlimmere Ausgang -- wer ihn sieht, weiss, dass er die Videos abwaehlen
+       oder diesen einen Eintrag von Hand behandeln muss. */
+    const zuGross = (plan.zuGross || []).length ? `<div class="warn-box" style="margin:10px 0 0">
+      <strong>${plan.zuGross.length} ${plan.zuGross.length === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}
+      ${plan.zuGross.length === 1 ? 'passt' : 'passen'} in keinen Teil</strong> — schon für sich allein
+      über der Grenze von ${esc(fmtBytes(plan.string))}. Sie fehlen in jeder Datei:
+      <ul style="margin:6px 0 0 18px">${plan.zuGross.map(z =>
+        `<li>${esc(z.titel)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
+      <p style="margin:8px 0 0">Ohne das Häkchen an den Videos werden sie meist klein genug.</p></div>` : '';
+
+    kasten.innerHTML = `${zuGross}
+      ${n ? `<p class="desc" style="margin:10px 0 6px"><strong>${n} ${n === 1 ? 'Teil' : 'Teile'}</strong>,
+        je höchstens ${esc(fmtBytes(plan.zielGroesse))}. <strong>Jeder Teil ist eine vollständige
+        Exportdatei</strong> — geschnitten wird zwischen ${esc(V.sacheMehrzahl)}, nie mitten hinein.</p>
+      <div class="manage-list" id="ex-teil-liste">${plan.teile.map(t => `
+        <div class="mrow">
+          <span class="mname">Teil ${t.nr} — ${t.anzahl} ${t.anzahl === 1 ? esc(V.sacheEinzahl) : esc(V.sacheMehrzahl)}</span>
+          <button class="mact ex-teil-lad" data-nr="${t.nr}" data-von="${t.von}" data-bis="${t.bis}"
+            disabled>↓ Laden</button>
+          <span class="pk-meta">${esc(fmtBytes(t.bytes))}</span>
+        </div>`).join('')}</div>
+      ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. "Alle n Teile
+           freigeben" war das Wort aus dem Maschinenraum -- aus dem Betrieb kam
+           die Frage "was ist mit freigeben gemeint?" zurueck. Derselbe Fehler
+           wie "Code aus deiner App" in 0.12.3.
+           WAS EIN MENSCH WISSEN MUSS, sind zwei Dinge: dass EINMAL gefragt
+           wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
+           Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
+      <p class="hint hint-sm" style="margin:10px 2px 6px">Ein Export nimmt den Bestand
+        mit aus dem Haus. Deshalb fragt die Anlage einmal nach deinem Passwort${ZWEIFAKTOR
+          ? ' und dem Code deines zweiten Faktors' : ''} — danach lädst du jeden Teil selbst.</p>
+      <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
+        Einmal bestätigen, dann ${n === 1 ? 'den Teil' : `alle ${n} Teile`} laden</button></div>
+      ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
+           Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
+           welcher Reihenfolge und mit welchem Knopf sie hineingehen. */''}
+      <p class="hint hint-sm" style="margin:10px 2px 0"><strong>Zum Einspielen:</strong>
+        Teil 1 mit <strong>Ersetzen</strong>, alle übrigen der Reihe nach mit
+        <strong>Zusammenführen</strong>. Nur zum Weitergeben einzelner
+        ${esc(V.sacheMehrzahl)} genügt der Teil, der sie enthält.</p>` : ''}`;
+
+    /* GEFRAGT WIRD EINMAL, GEPRUEFT WIRD JE TEIL. Ohne das muesste das Passwort
+       je Datei getippt werden -- bei fünf Teilen fünfmal. */
+    amElement('ex-frei', b => b.onclick = async () => {
+      const ok = await zweiteBestaetigungMehrfach('export', plan.teile.map(t => t.nr),
+        'Export bestätigen',
+        `Der Export schreibt den gesamten Bestand in ${n} ${n === 1 ? 'Datei' : 'Dateien'}, die das Haus ` +
+        `verlassen — mit allen Fotos, allen Anhängen und den Namen aller Verfasser.`);
+      if (!ok) return;
+      b.disabled = true;
+      b.textContent = 'Bestätigt — jetzt jeden Teil laden';
+      kasten.querySelectorAll('.ex-teil-lad').forEach(k => { k.disabled = false; });
+    });
+
+    /* JEDER KNOPF GILT GENAU EINMAL, weil die Freigabe verbraucht wird. Das
+       steht am Knopf und nicht in einer Fehlermeldung danach: ein zweiter
+       Klick bekaeme sonst eine 403, die wie ein Fehler aussieht. */
+    kasten.querySelectorAll('.ex-teil-lad').forEach(k => {
+      k.onclick = () => {
+        window.location = `/api/export?${teilSchalter()}` +
+          `&von=${k.dataset.von}&bis=${k.dataset.bis}&teil=${k.dataset.nr}&teile=${n}`;
+        k.disabled = true;
+        k.textContent = '✓ geladen';
+      };
+    });
+  }
+
 
 /* DER BILLIGERE DER BEIDEN FAELLE: beim Import steht die Groesse VOR dem
    Einlesen fest. Der Export muss sie schaetzen, hier steht sie an der Datei.

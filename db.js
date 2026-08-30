@@ -46,6 +46,27 @@ function wechsleSchluessel(neuHex) {
   return { vorher, nachher: db.pragma('journal_mode', { simple: true }) };
 }
 
+/* --- Welche Verfahren wirklich laufen -----------------------------------
+   DIE KENNZAHLEN NENNEN SIE, UND SIE STEHEN DESHALB HIER UND NICHT DORT.
+   Eine Kopie der Angaben in der Oberflaeche waere eine zweite Wahrheit: wer
+   hier eines Tages den Journalmodus umstellt, aendert die Anzeige nicht mit,
+   und die Karte behauptete dann etwas, das nicht mehr stimmt.
+   ABGELESEN, NICHT BEHAUPTET: `cipher` und `journal_mode` fragt die geoeffnete
+   Datei selbst, die Schluessellaenge ist die des Schluessels, der wirklich
+   gesetzt wurde. Nur "scrypt" kommt von woanders -- es steht in auth.js und
+   wird dort in jeden gespeicherten Wert geschrieben; der Server haengt es an.
+
+   KEINE PAKETVERSION, NICHT EINE. Ein Verfahrensname sagt, WIE gerechnet wird,
+   und das ist unbedenklich: wer die Anlage betreibt, darf wissen, worauf seine
+   Daten liegen. Eine Versionsnummer sagt dagegen, WELCHE Luecke passt. */
+function verfahren() {
+  return {
+    cipher: String(db.pragma('cipher', { simple: true }) || ''),
+    schluesselBits: key.hex.length * 4,
+    journal: String(db.pragma('journal_mode', { simple: true }) || '').toUpperCase()
+  };
+}
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS product_categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -194,6 +215,20 @@ CREATE TABLE IF NOT EXISTS ratings (
   criterion_id INTEGER NOT NULL REFERENCES rating_criteria(id) ON DELETE CASCADE,
   value INTEGER NOT NULL DEFAULT 0,
   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  -- WANN DIESER WERT ZULETZT GESETZT WURDE. Er heisst nicht created_at, und
+  -- das ist kein Geschmack: die Zeile entsteht beim ersten Stern und wird
+  -- danach ueberschrieben (ON CONFLICT DO UPDATE). Was hier steht, ist der
+  -- Zeitpunkt der letzten Setzung -- und genau der ist gemeint, wenn die
+  -- Glocke fragt, ob seit meinem letzten Blick jemand bewertet hat.
+  -- OHNE VORGABEWERT, und zwar mit Absicht. Eine Zeile ohne Zeitpunkt heisst
+  -- „die Anlage weiss nicht, wann das war" -- das gilt fuer alles, was vor
+  -- 0.16.0 entstanden ist, und ebenso fuer eingespielte Bewertungen: die
+  -- Exportdatei traegt den Zeitpunkt nicht (Format 11 bleibt Format 11), und
+  -- ein datetime('now') beim Einspielen machte daraus die Behauptung, sie
+  -- seien eben erst vergeben worden. Die Glocke uebergeht Zeilen ohne Zeitpunkt.
+  -- ALTER TABLE ADD COLUMN kann in SQLite ohnehin keinen nicht-konstanten
+  -- Vorgabewert setzen; frisch angelegt und migriert sehen damit gleich aus.
+  gesetzt_am TEXT,
   UNIQUE(item_id, criterion_id, user_id)
 );
 
@@ -816,6 +851,31 @@ function migration0140() {
 migration0140();
 // ENDE MIGRATION 0.14.0
 
+// MIGRATION 0.16.0 — ENTFAELLT MIT 1.0
+/* DIE BEWERTUNGEN BEKOMMEN EINEN ZEITPUNKT. Bis 0.15.1 trug eine Bewertung
+   ihren Wert und ihren Verfasser, aber kein Wann -- und damit war „hat seit
+   meinem letzten Blick jemand bewertet?" nicht zu beantworten. Die Glocke aus
+   0.16.0 stellt genau diese Frage.
+   OHNE VORGABEWERT UND OHNE NACHTRAGEN: die vorhandenen Zeilen bekommen NULL
+   und behalten es. Ein nachgetragener Zeitpunkt waere erfunden -- entweder
+   saehe alles gleich alt aus (ein fester Wert) oder alles brandneu
+   (datetime('now')), und die Glocke laeutete beim ersten Start fuer den ganzen
+   Bestand. Was die Anlage nicht weiss, behauptet sie nicht.
+   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
+   PRAGMA table_info, nicht ein Merker. */
+function migration0160() {
+  const spalten = db.prepare('PRAGMA table_info(ratings)').all().map(c => c.name);
+  if (spalten.includes('gesetzt_am')) return 0;
+  db.exec('ALTER TABLE ratings ADD COLUMN gesetzt_am TEXT');
+  const n = db.prepare('SELECT COUNT(*) AS n FROM ratings WHERE value > 0').get().n;
+  console.log(`[Kriterion] ratings um gesetzt_am ergaenzt (Migration auf 0.16.0); ` +
+    `${n} vorhandene ${n === 1 ? 'Bewertung steht' : 'Bewertungen stehen'} ohne Zeitpunkt da ` +
+    `und bleiben fuer die Glocke unsichtbar.`);
+  return 1;
+}
+migration0160();
+// ENDE MIGRATION 0.16.0
+
 // --- Auffangnetz: die Anlage braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
@@ -910,7 +970,7 @@ renumberCriteria();
 // Abschreiben zeigen kann. Ausgeliefert wird er nur hinter der Anmeldung und
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
-                   wechsleSchluessel,
+                   wechsleSchluessel, verfahren,
                    renumberCriteria, ordneBestandZu, eigentuemerId,
                    // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
                    migration083,
@@ -923,4 +983,6 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
                    migration0850,
                    // MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
-                   migration0140 };
+                   migration0140,
+                   // MIGRATION 0.16.0 — ENTFAELLT MIT 1.0
+                   migration0160 };

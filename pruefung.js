@@ -95,6 +95,20 @@ function schlussBlock() {
 }
 const rueckgabewert = () => (gescheitert || (FILTER && !gruppenGezeigt)) ? 1 : 0;
 const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/* SETZT EIN FELD UND SAGT, OB ES DA WAR. `feld?.value = wert` gibt es nicht --
+   optional chaining kann kein Zuweisungsziel sein, und genau deshalb standen
+   diese Zeilen ungeschuetzt da.
+   OHNE DIESEN HELFER REISST EIN RUECKBAU, DER EIN FELD WEGNIMMT, DEN GANZEN
+   LAUF AB, statt die Pruefung darunter rot zu machen -- und eine abgerissene
+   Gegenprobe belegt gar nichts (Stolperstein 161). Fehlt das Feld, bleibt der
+   Wert ungesetzt, der Knopf schickt ihn nicht mit, und die Zusage darunter
+   wird rot. Genau so soll es sein.
+   GEFUNDEN VON DEN GEGENPROBEN 273 UND 275, nicht vom Prueflauf. */
+const setzeFeld = (dok, id, wert) => {
+  const f = dok.getElementById(id);
+  if (f) f.value = wert;
+  return !!f;
+};
 
 /* SELBSTPROBE DES RAHMENS. Mit gesetztem PRUEFRAHMEN_PROBE laeuft NICHT der
    Prueflauf, sondern nur der Rahmen darueber: zwei gestellte Gruppen mit
@@ -1925,6 +1939,53 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Kennzahlen nennen ihn dafür', /^[0-9a-f]{8}$/.test(statsFingerprint || ''),
     JSON.stringify(statsFingerprint));
 
+  /* ---- DIE VERFAHREN -- 0.16.0 ------------------------------------------
+     ABGELESEN UND NICHT BEHAUPTET: die Angaben kommen aus db.js, das die
+     GEOEFFNETE Datei fragt. Eine Kopie in der Oberflaeche liefe beim naechsten
+     Wechsel auseinander -- deshalb steht hier auch keine zweite Liste, sondern
+     die Frage, ob die Antwort mit dem uebereinstimmt, was die Anlage
+     tatsaechlich tut.
+     UND DER HARTE VORBEHALT: Verfahrensnamen ja, PAKETVERSIONEN NEIN. Eine
+     Bibliotheksversion sagt, welche Luecke passt. Die Pruefung darunter ist
+     die einzige Stelle, an der das ueberhaupt auffallen kann. */
+  const statsVerf = (await ruf('GET', '/api/stats')).inhalt.verfahren;
+  pruefe('Die Kennzahlen nennen die Verfahren', !!statsVerf && typeof statsVerf === 'object',
+    JSON.stringify(statsVerf));
+  pruefe('Und zwar genau vier Angaben und keine weitere',
+    gleich(Object.keys(statsVerf || {}).sort(),
+      ['cipher', 'journal', 'passwoerter', 'schluesselBits']),
+    JSON.stringify(Object.keys(statsVerf || {})));
+  pruefe('Die Chiffre ist die, die db.js wirklich setzt',
+    statsVerf?.cipher === 'sqlcipher', JSON.stringify(statsVerf?.cipher));
+  pruefe('Der Schluessel ist 256 Bit roh',
+    statsVerf?.schluesselBits === 256, JSON.stringify(statsVerf?.schluesselBits));
+  pruefe('Das Journal steht auf WAL',
+    statsVerf?.journal === 'WAL', JSON.stringify(statsVerf?.journal));
+  pruefe('Und die Passwoerter rechnen mit scrypt',
+    statsVerf?.passwoerter === 'scrypt', JSON.stringify(statsVerf?.passwoerter));
+  /* DIE GEGENPROBE AN DER ANLAGE SELBST, sonst waeren die vier Zeilen darueber
+     nur vier Behauptungen gegen vier andere Behauptungen: db.js muss die
+     Chiffre wirklich setzen, und auth.js muss wirklich scrypt schreiben. */
+  const verfQuelleDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+  pruefe('db.js setzt die Chiffre wirklich',
+    verfQuelleDb.includes("db.pragma(\"cipher='sqlcipher'\")"), 'die Zeile fehlt');
+  pruefe('Und den Schluessel wirklich roh, ohne Ableitung',
+    /db\.pragma\(`key="x'\$\{key\.hex\}'"`\)/.test(verfQuelleDb), 'die Zeile fehlt');
+  // auth.js unmittelbar gefragt: das Verfahren steht vorn in jedem
+  // gespeicherten Wert, und genau dieses Wort nennen die Kennzahlen.
+  const verfHash = await require('./auth').hashePasswort('probe-fuer-das-verfahren');
+  pruefe('Ein gespeichertes Passwort traegt wirklich das genannte Verfahren',
+    verfHash.startsWith('scrypt$'), verfHash.slice(0, 12));
+  /* KEINE PAKETVERSION IN DER ANTWORT. Gesucht wird nach dem Muster einer
+     Versionsnummer in JEDEM Wert der Verfahrensangaben -- die Version der
+     ANLAGE steht eine Zeile hoeher und ist ausdruecklich erwuenscht. */
+  pruefe('Und keine der Angaben nennt eine Paketversion',
+    !Object.values(statsVerf || {}).some(v => /\d+\.\d+\.\d+/.test(String(v))),
+    JSON.stringify(statsVerf));
+  pruefe('Auch nicht der Name eines Pakets',
+    !/better-sqlite3|nodemailer|express|multer|sharp/i.test(JSON.stringify(statsVerf || {})),
+    JSON.stringify(statsVerf));
+
   const e0 = (await ruf('GET', '/api/settings')).inhalt;
   pruefe('Vorgabe: fünf sichtbare Linkzeilen', e0.linkZeilen === 5, `${e0.linkZeilen}`);
   pruefe('Vorgabe: Zeitleiste an', e0.zeitleiste === true);
@@ -2678,10 +2739,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Filterstellungen. Sie sind persoenlich wie `filters` daneben und aus
      demselben Grund -- eine geteilte Ansicht waere ein neuer Traeger samt
      neuer Rechtefrage. `filters` bleibt, was es war, die zuletzt benutzte
-     Stellung; die Ansichten stehen daneben und ersetzen sie nicht. */
-  const dSoll = ['ansichten', 'bloecke', 'filters', 'linkZeilen', 'schrift', 'suchNamen',
-                 'zeitleiste', 'zuletztGesehen'];
-  pruefe('server.js kennt genau die acht persoenlichen Schluessel',
+     Stellung; die Ansichten stehen daneben und ersetzen sie nicht.
+     NEUN SEIT 0.16.0: `glockeGesehen` kommt dazu, der Bezugspunkt der Glocke.
+     Er steht NEBEN `zuletztGesehen` und nicht an seiner Stelle -- die beiden
+     beantworten verschiedene Fragen und fallen zu verschiedenen Zeitpunkten:
+     der eine beim Verlassen der Uebersicht, der andere erst beim Oeffnen der
+     Tafel. Ein gemeinsamer Merker loeschte die Glocke bei jedem Blick in die
+     Uebersicht mit. */
+  const dSoll = ['ansichten', 'bloecke', 'filters', 'glockeGesehen', 'linkZeilen', 'schrift',
+                 'suchNamen', 'zeitleiste', 'zuletztGesehen'];
+  pruefe('server.js kennt genau die neun persoenlichen Schluessel',
     gleich(dListeSrv, dSoll), JSON.stringify(dListeSrv));
 
   /* Der Waechter ueber den Quelltext. Dieselbe Ueberlegung wie bei detail()
@@ -2856,6 +2923,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Der zweite Zugang traegt wirklich keine Adminrolle',
     (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin === false,
     JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin));
+  /* DER BEZUGSPUNKT DER GLOCKE GEHT DENSELBEN WEG -- er ist seit 0.16.0 der
+     neunte persoenliche Schluessel und faellt beim Verlassen der Uebersicht
+     zusammen mit dem Merkzeitpunkt. Gesetzt wird er hier ausdruecklich bei
+     BEIDEN Zugaengen, damit die Zaehlung weiter unten ihn wirklich in der
+     persoenlichen Tabelle findet. */
+  await dRuf('cookie-d-eins', 'PUT', '/api/settings', { glockeGesehen: 1 });
+  await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { glockeGesehen: 1 });
   const dGesehenZwei = await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { zuletztGesehen: 1 });
   pruefe('Auch ohne Adminrolle merkt sich jeder seinen eigenen Zeitpunkt',
     dGesehenZwei.status === 200, `Status ${dGesehenZwei.status} / ${JSON.stringify(dGesehenZwei.inhalt)}`);
@@ -2917,7 +2991,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const dFehlend = dSoll.filter(k => !persoenlichDa(k, 1));
   pruefe('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dFalschGlobal.length === 0, `global gefunden: ${JSON.stringify(dFalschGlobal)}`);
-  pruefe('Alle acht stehen beim Benutzer, der sie gesetzt hat',
+  pruefe('Alle neun stehen beim Benutzer, der sie gesetzt hat',
     dFehlend.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dFehlend)}`);
   pruefe('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('sucheAktiv') && !persoenlichDa('sucheAktiv', 1),
@@ -2933,10 +3007,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Merkzeitpunkt dazu -- fuenf. Was er NICHT gesetzt hat, steht auch nicht
      bei ihm; genau darum geht es hier.
      SEIT 0.11.0 TRAEGT DAS AUCH DIE GESPEICHERTEN ANSICHTEN: der Erste hat
-     eine, der Zweite keine, und die Zahl bleibt trotzdem fuenf. Waeren sie
-     versehentlich global, stuenden sie hier als sechste Zeile. */
+     eine, der Zweite keine, und die Zahl bleibt trotzdem stehen. Waeren sie
+     versehentlich global, stuenden sie hier als weitere Zeile.
+     SECHS SEIT 0.16.0: der Bezugspunkt der Glocke kommt dazu -- auch er
+     gehoert dem, der ihn gesetzt hat. */
   pruefe('Die beiden Benutzer teilen sich keine Zeile',
-    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 5,
+    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 6,
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 2').all()));
   pruefe('Und die gespeicherte Ansicht des Ersten steht nicht beim Zweiten',
     persoenlichDa('ansichten', 1) && !persoenlichDa('ansichten', 2),
@@ -3400,6 +3476,244 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Ein ungewichteter Bestand ergibt ein leeres Feld',
     gAusGleich?.criteriaGewichte && Object.keys(gAusGleich.criteriaGewichte).length === 0,
     JSON.stringify(gAusGleich?.criteriaGewichte));
+
+  /* ================= Der Rechenweg reist mit — 0.16.0 ==================
+     DER KASTEN AM EINTRAG LIEST DIE VORHANDENE RECHNUNG. Damit er das kann,
+     muss sie mitreisen -- und zwar aus DERSELBEN Schleife, die die Zahl
+     erzeugt. Geprueft wird hier, dass die Aufstellung mit der Zahl darueber
+     zusammenpasst; dass die Oberflaeche sie LIEST statt nachzurechnen, steht
+     in der Oberflaechengruppe „Die Rechnung hinter der Kopfzahl". */
+  gruppe('Der Rechenweg reist mit');
+
+  /* DIE GEWICHTE SIND SO GEWAEHLT, DASS DER QUOTIENT NICHT AUFGEHT -- 0,3
+     statt 1 macht den Teiler 3,3 statt 4. MIT 2/1/1 TEILTE ALLES DURCH VIER,
+     und alles durch vier endet nach zwei Stellen: eine Auslieferung, die auf
+     zwei Stellen rundet, waere von der ungerundeten nicht zu unterscheiden
+     gewesen, und die Zusage „ungerundet" haette gar nicht scheitern koennen
+     (Stolperstein 189). Gefunden hat das nicht der Pruefstand, sondern der
+     stumme Rueckbau 282. */
+  await gSetz('Optik', 2); await gSetz('Haptik', 1); await gSetz('Preis', 0.3);
+  const rwSicht = (await eRuf('cookie-e-eins', 'GET', '/api/items/1')).inhalt;
+  const rw = rwSicht?.rechenweg;
+  pruefe('Die Antwort am Eintrag traegt einen Rechenweg', !!rw && Array.isArray(rw.zeilen),
+    JSON.stringify(rw));
+  /* UND DIE LAGE WIRD SELBST GEPRUEFT, nicht bloss angenommen: taugt sie
+     nicht mehr, wird DIESE Zeile rot statt der Zusage darunter stumm. */
+  pruefe('Die Prueflage taugt: der rohe Quotient hat mehr als zwei Stellen',
+    typeof rw?.roh === 'number' && Math.round(rw.roh * 100) / 100 !== rw.roh,
+    `${rw?.roh}`);
+  /* NUR DIE BEWERTETEN KRITERIEN. "Service" hat keine Stimme und geht in die
+     Rechnung gar nicht ein -- stuende es im Weg, waere die Aufstellung eine
+     andere Rechnung als die Zahl darueber. */
+  pruefe('Und nur die bewerteten Kriterien stehen darin',
+    rw?.zeilen?.length === 3, JSON.stringify(rw?.zeilen?.map(z => z.criterionId)));
+  pruefe('Jede Zeile traegt Schnitt, Gewicht und Produkt',
+    (rw?.zeilen || []).every(z =>
+      typeof z.schnitt === 'number' && typeof z.gewicht === 'number' &&
+      Math.abs(z.produkt - z.schnitt * z.gewicht) < 1e-9),
+    JSON.stringify(rw?.zeilen));
+  /* SUMME UND TEILER SIND DIE DER ZEILEN -- nachgerechnet HIER, aus der
+     Antwort. Eine fest hingeschriebene Zahl belegte nur, dass sie einmal
+     jemand getippt hat. */
+  const rwSumme = (rw?.zeilen || []).reduce((n, z) => n + z.produkt, 0);
+  const rwTeiler = (rw?.zeilen || []).reduce((n, z) => n + z.gewicht, 0);
+  pruefe('Summe und Teiler sind die der Zeilen',
+    Math.abs(rw?.summe - rwSumme) < 1e-9 && Math.abs(rw?.teiler - rwTeiler) < 1e-9,
+    `${rw?.summe}/${rw?.teiler} gegen ${rwSumme}/${rwTeiler}`);
+  /* DAS ERGEBNIS IST DIE ZAHL DARUEBER, und zwar bitgleich. Zwei Wege zu
+     derselben Zahl waeren zwei Wahrheiten -- der Kasten am Bildschirm zeigt
+     diese hier und rechnet nicht nach. */
+  pruefe('Das Ergebnis ist genau avgRating',
+    rw?.ergebnis === rwSicht?.avgRating, `${rw?.ergebnis} gegen ${rwSicht?.avgRating}`);
+  /* UND DER ROHE QUOTIENT IST UNGERUNDET. Ohne ihn koennte der Kasten „gerundet
+     wird genau einmal" nicht zeigen, sondern nur behaupten. */
+  pruefe('Der rohe Quotient steht ungerundet daneben',
+    Math.abs(rw?.roh - rw?.summe / rw?.teiler) < 1e-12 &&
+    Math.round(rw?.roh * 10) / 10 === rw?.ergebnis,
+    `${rw?.roh} -> ${rw?.ergebnis}`);
+  /* IN DER UEBERSICHT STEHT ER AUSDRUECKLICH NICHT. Tausend Eintraege
+     traegen tausend Aufstellungen fuer eine Zahl, die niemand aufklappt. */
+  const rwListe = (await eRuf('cookie-e-eins', 'GET', '/api/items')).inhalt;
+  pruefe('Die Uebersicht traegt ihn ausdruecklich nicht',
+    Array.isArray(rwListe) && rwListe.every(i => i.rechenweg === undefined),
+    JSON.stringify(rwListe?.map(i => i.rechenweg)));
+
+  /* ================= Die Bewertung traegt ihren Zeitpunkt — 0.16.0 =====
+     OHNE IHN KANN DIE GLOCKE UEBER FREMDE BEWERTUNGEN NICHTS SAGEN. Die
+     Spalte kommt mit dem siebten Migrationsblock; die Zeilen, die es vorher
+     gab, tragen NULL und behalten es -- was die Anlage nicht weiss, behauptet
+     sie nicht. */
+  gruppe('Die Bewertung traegt ihren Zeitpunkt');
+
+  const zpZeilen = (sql, ...args) => {
+    const d = oeffne(path.join(stufeEDir, 'katalog.sqlite'));
+    const z = d.prepare(sql).all(...args);
+    d.close();
+    return z;
+  };
+  pruefe('Die Spalte gesetzt_am steht an ratings',
+    zpZeilen('PRAGMA table_info(ratings)').map(c => c.name).includes('gesetzt_am'),
+    JSON.stringify(zpZeilen('PRAGMA table_info(ratings)').map(c => c.name)));
+  /* DIE ZEILEN AUS DEM AUFBAU SIND VON HAND EINGETRAGEN und tragen deshalb
+     keinen Zeitpunkt -- genau die Lage einer Anlage, die von 0.15.1 kommt.
+     Ohne diese Zeile waere „alte Zeilen bleiben unsichtbar" nicht belegbar. */
+  pruefe('Von Hand eingetragene Bewertungen tragen keinen',
+    zpZeilen('SELECT COUNT(*) n FROM ratings WHERE gesetzt_am IS NULL')[0].n > 0,
+    JSON.stringify(zpZeilen('SELECT COUNT(*) n FROM ratings WHERE gesetzt_am IS NULL')[0]));
+  /* DIE NUMMER KOMMT AUS DER ANTWORT und nicht aus einer eigenen Abfrage nach
+     einem NAMEN: die Lage weiter oben hat ein Kriterium umbenannt, und eine
+     Abfrage auf 'Service' liefe seither ins Leere -- still, denn sie faende
+     einfach nichts (Stolperstein 81). Genommen wird das Kriterium OHNE
+     Stimmen: an ihm ist eine neue Bewertung wirklich neu. */
+  const zpKritZeile = rwSicht.ratings.find(r => r.avg == null)
+    || rwSicht.ratings[rwSicht.ratings.length - 1];
+  pruefe('Die Prueflage findet ein Kriterium, an dem gesetzt werden kann',
+    !!zpKritZeile, JSON.stringify(rwSicht.ratings?.map(r => r.name)));
+  const zpKrit = zpKritZeile.criterion_id;
+  await eRuf('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpKrit, value: 4 });
+  const zpNeu = zpZeilen('SELECT gesetzt_am FROM ratings WHERE item_id = 2 AND criterion_id = ?', zpKrit);
+  pruefe('Eine ueber die Route gesetzte Bewertung traegt ihn',
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(zpNeu[0]?.gesetzt_am || ''),
+    JSON.stringify(zpNeu[0]));
+  /* UND ER ZIEHT BEIM UEBERSCHREIBEN MIT. Eine geaenderte Bewertung ist fuer
+     den anderen dasselbe Ereignis wie eine neue: er sieht eine Zahl, die
+     vorher nicht dastand. Nachgestellt statt geglaubt -- gewartet wird eine
+     Sekunde, weil datetime('now') nur Sekunden aufloest. */
+  const zpVorher = zpNeu[0].gesetzt_am;
+  await new Promise(r => setTimeout(r, 1100));
+  await eRuf('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpKrit, value: 2 });
+  const zpNachher = zpZeilen('SELECT gesetzt_am, value FROM ratings WHERE item_id = 2 AND criterion_id = ?', zpKrit)[0];
+  pruefe('Und beim Ueberschreiben zieht er mit',
+    zpNachher.value === 2 && zpNachher.gesetzt_am > zpVorher,
+    `${zpVorher} -> ${zpNachher.gesetzt_am}`);
+
+  /* ================= Die Glocke: was mit der Liste mitreist — 0.16.0 ===
+     BEIDE ZAHLEN HAENGEN AN EINER ANTWORT, DIE ES OHNEHIN GIBT. Genau daran
+     war der Zaehler „Offen 7" in 0.8.60 gescheitert: er haette bei jedem
+     Seitenaufbau einen eigenen Weg gefragt.
+     EINE LAGE MIT EINEM EINZIGEN ZUGANG KOENNTE HIER NICHTS BELEGEN --
+     „fremd" gaebe es nicht (Stolperstein 189). Diese Lage hat drei. */
+  gruppe('Die Glocke: was mit der Liste mitreist');
+
+  const glListe = async (cookie) => (await eRuf(cookie, 'GET', '/api/items')).inhalt;
+  const glEintrag = async (cookie, id) => (await glListe(cookie)).find(i => i.id === id);
+
+  /* OHNE BEZUGSPUNKT GIBT ES KEINE GLOCKE. Das Feld faellt GANZ weg und steht
+     nicht auf 0 -- so unterscheidet die Oberflaeche „nichts Neues" von „es
+     gibt keinen Bezugspunkt". */
+  pruefe('Ohne Bezugspunkt faellt neuFremd ganz aus der Antwort',
+    (await glListe('cookie-e-eins')).every(i => !('neuFremd' in i)),
+    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.neuFremd)));
+  const glStand0 = (await eRuf('cookie-e-eins', 'GET', '/api/settings')).inhalt;
+  pruefe('Und die Einstellungen nennen ihn als noch nicht gesetzt',
+    'glockeGesehen' in glStand0 && glStand0.glockeGesehen === null,
+    JSON.stringify(glStand0.glockeGesehen));
+
+  /* GESETZT WIRD UEBER PUT /api/settings -- kein eigener Weg, und damit waechst
+     F_ROUTEN nicht. Was hinausgeht, ist ein SIGNAL: der Server setzt seine
+     eigene Uhr ein.
+     EINE SEKUNDE ABSTAND VOR DEM STRICH: der Server setzt ihn ausdruecklich
+     eine Sekunde in die Vergangenheit (lieber einen Beitrag zweimal zeigen als
+     einen verschlucken), und die Lage darueber hat gerade eben geschrieben.
+     Ohne das Warten faengt der Strich die eigene Vorbereitung mit ein. */
+  await new Promise(r => setTimeout(r, 1100));
+  const glGesetzt = await eRuf('cookie-e-eins', 'PUT', '/api/settings', { glockeGesehen: 1 });
+  const glNachSetzen = (await eRuf('cookie-e-eins', 'GET', '/api/settings')).inhalt?.glockeGesehen;
+  pruefe('Er laesst sich ueber die vorhandene Route setzen',
+    glGesetzt.status === 200 &&
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(glNachSetzen || ''),
+    `Status ${glGesetzt.status}, ${JSON.stringify(glNachSetzen)}`);
+  /* DIE UHR DES AUFRUFERS IST EINE BEHAUPTUNG. Was er schickt, ist ein Signal
+     („ich habe die Tafel gesehen") und keine Feststellung -- dieselbe Regel
+     wie beim Merkzeitpunkt daneben. */
+  await eRuf('cookie-e-eins', 'PUT', '/api/settings', { glockeGesehen: '1999-01-01 00:00:00' });
+  pruefe('Und die Uhr des Aufrufers wird dabei nicht uebernommen',
+    ((await eRuf('cookie-e-eins', 'GET', '/api/settings')).inhalt?.glockeGesehen || '')
+      .startsWith('20'),
+    JSON.stringify((await eRuf('cookie-e-eins', 'GET', '/api/settings')).inhalt?.glockeGesehen));
+  /* ER IST PERSOENLICH: der Bezugspunkt des einen sagt nichts ueber den des
+     anderen. Ohne diese Zeile waere ein globaler Schluessel nicht zu bemerken. */
+  pruefe('Er ist persoenlich und faellt nicht bei den anderen mit',
+    (await eRuf('cookie-e-zwei', 'GET', '/api/settings')).inhalt?.glockeGesehen === null,
+    JSON.stringify((await eRuf('cookie-e-zwei', 'GET', '/api/settings')).inhalt?.glockeGesehen));
+
+  pruefe('Mit Bezugspunkt steht neuFremd an jedem Eintrag',
+    (await glListe('cookie-e-eins')).every(i => typeof i.neuFremd === 'number'),
+    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.neuFremd)));
+  pruefe('Und es ist zunaechst ueberall null',
+    (await glListe('cookie-e-eins')).every(i => i.neuFremd === 0),
+    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.neuFremd)));
+  /* DIE ALTEN BEWERTUNGEN OHNE ZEITPUNKT ZAEHLEN NICHT MIT -- sonst laeutete
+     die Glocke beim ersten Start fuer den ganzen Bestand. */
+  pruefe('Bewertungen ohne Zeitpunkt bleiben ihr unsichtbar',
+    (await glEintrag('cookie-e-eins', 1)).neuFremd === 0,
+    JSON.stringify(await glEintrag('cookie-e-eins', 1)));
+
+  // Ein FREMDER Kommentar -- der Fall, um den es geht.
+  await new Promise(r => setTimeout(r, 1100));
+  await eRuf('cookie-e-zwei', 'POST', '/api/items/1/comments', { text: 'Von zwei' });
+  pruefe('Ein fremder Kommentar zaehlt',
+    (await glEintrag('cookie-e-eins', 1)).neuFremd === 1,
+    JSON.stringify((await glListe('cookie-e-eins')).map(i => `${i.id}:${i.neuFremd}`)));
+  // Und der eigene ausdruecklich nicht: die Glocke meldet, was ANDERE tun.
+  await eRuf('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Von eins selbst' });
+  pruefe('Der eigene zaehlt ausdruecklich nicht',
+    (await glEintrag('cookie-e-eins', 1)).neuFremd === 1,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuFremd));
+  /* Beim anderen Zugang zaehlt genau umgekehrt -- der Beleg dafuer, dass die
+     Zahl je Zugang gerechnet wird und nicht global. Wieder eine Sekunde
+     Abstand vor dem Strich, aus demselben Grund wie oben. */
+  await new Promise(r => setTimeout(r, 1100));
+  await eRuf('cookie-e-zwei', 'PUT', '/api/settings', { glockeGesehen: 1 });
+  await new Promise(r => setTimeout(r, 1100));
+  await eRuf('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Noch einer von eins' });
+  pruefe('Und fuer den anderen Zugang zaehlt genau umgekehrt',
+    (await glEintrag('cookie-e-zwei', 1)).neuFremd === 1 &&
+    (await glEintrag('cookie-e-eins', 1)).neuFremd === 1,
+    `zwei: ${(await glEintrag('cookie-e-zwei', 1)).neuFremd}, ` +
+    `eins: ${(await glEintrag('cookie-e-eins', 1)).neuFremd}`);
+
+  // Eine fremde BEWERTUNG zaehlt ebenso -- dafuer gibt es gesetzt_am.
+  await eRuf('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 5 });
+  pruefe('Eine fremde Bewertung zaehlt ebenfalls',
+    (await glEintrag('cookie-e-eins', 1)).neuFremd === 2,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuFremd));
+  // Eine zurueckgesetzte Bewertung ist keine Stimme und meldet nichts.
+  await eRuf('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 0 });
+  pruefe('Eine zurueckgesetzte Bewertung meldet nichts',
+    (await glEintrag('cookie-e-eins', 1)).neuFremd === 1,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuFremd));
+
+  /* DAS OEFFNEN DER TAFEL SETZT ALLES AUF GESEHEN -- die bewusste Grenze der
+     schlanken Fassung: bei einem Zeitstempel gibt es keinen Lesestand je
+     Meldung. */
+  await new Promise(r => setTimeout(r, 1100));
+  await eRuf('cookie-e-eins', 'PUT', '/api/settings', { glockeGesehen: 1 });
+  pruefe('Ein neuer Bezugspunkt setzt alles auf gesehen',
+    (await glListe('cookie-e-eins')).every(i => i.neuFremd === 0),
+    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.neuFremd)));
+
+  /* ---- UND DIE ZAHL DER OFFENEN AUFGABEN ----
+     SIE KOMMT AUS DERSELBEN BEDINGUNG WIE /api/offen (kind = 'task'). Zwei
+     Quellen fuer dieselbe Zahl liefen auseinander, und der Zaehler in der
+     Kopfzeile naennte etwas anderes als die Ansicht dahinter. */
+  const glKomm = (await eRuf('cookie-e-eins', 'GET', '/api/items/1')).inhalt.comments;
+  await eRuf('cookie-e-eins', 'PUT', `/api/comments/${glKomm[0].id}`, { kind: 'task' });
+  pruefe('Die Zahl der offenen Aufgaben steht an jedem Eintrag',
+    (await glListe('cookie-e-eins')).every(i => typeof i.offeneAufgaben === 'number'),
+    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.offeneAufgaben)));
+  const glOffen = (await eRuf('cookie-e-eins', 'GET', '/api/offen')).inhalt;
+  pruefe('Und sie stimmt mit der Ansicht „Offene Aufgaben" ueberein',
+    (await glListe('cookie-e-eins')).reduce((n, i) => n + i.offeneAufgaben, 0) === glOffen.length,
+    `${(await glListe('cookie-e-eins')).reduce((n, i) => n + i.offeneAufgaben, 0)} gegen ${glOffen.length}`);
+  /* DIE GEGENPROBE: eine erledigte Aufgabe faellt aus beiden Zahlen. Ohne sie
+     bliebe die Zeile darueber auch dann gruen, wenn beide dasselbe Falsche
+     zaehlten (Stolperstein 81). */
+  await eRuf('cookie-e-eins', 'PUT', `/api/comments/${glKomm[0].id}`, { kind: 'done' });
+  const glNachher = (await glListe('cookie-e-eins')).reduce((n, i) => n + i.offeneAufgaben, 0);
+  pruefe('Eine erledigte Aufgabe faellt aus beiden Zahlen',
+    glNachher === (await eRuf('cookie-e-eins', 'GET', '/api/offen')).inhalt.length &&
+    glNachher < glOffen.length, `${glNachher} gegen ${glOffen.length}`);
 
   await SE1.stopp();
   fs.rmSync(stufeEDir, { recursive: true, force: true });
@@ -12203,9 +12517,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
       } catch { tNach = ['(Start gescheitert)']; }
       pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
         !tNach.includes('letzter_zaehler'), JSON.stringify(tNach));
-      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein siebter mit
+      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein achter mit
          anderem Wortlaut waere eine zweite Schreibweise fuer dieselbe Sache.
-         SECHS SEIT 0.14.0: die erste Schema-Runde seit 0.8.50. */
+         SIEBEN SEIT 0.16.0, vorher sechs: die Bewertungen bekommen mit
+         `gesetzt_am` einen Zeitpunkt, und ohne ihn kann die Glocke nicht
+         sagen, ob seit dem letzten Blick jemand bewertet hat. */
       const tQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
       /* GEZAEHLT WERDEN DIE VERSCHIEDENEN MARKEN UND NICHT IHRE VORKOMMEN:
          jede steht zweimal in db.js -- einmal ueber dem Block und einmal an
@@ -12214,9 +12530,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
          was gemeint ist, nicht was dasteht). */
       const tBloecke = [...new Set(
         (tQuelle.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))];
-      pruefe('Es bleibt bei sechs markierten Migrationsbloecken',
-        tBloecke.length === 6, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
-      pruefe('Und alle sechs tragen denselben Wortlaut der Marke',
+      pruefe('Es sind genau sieben markierte Migrationsbloecke',
+        tBloecke.length === 7, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
+      pruefe('Und alle sieben tragen denselben Wortlaut der Marke',
         tBloecke.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBloecke.join(' · '));
       pruefe('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tQuelle) && !/migration0100/.test(tQuelle));
@@ -12946,13 +13262,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      die Tabelle legt sich selbst an" hat es hergegeben: CREATE TABLE IF NOT
      EXISTS legt eine fehlende TABELLE bei jedem Start an -- eine SPALTE
      dagegen nicht, und nur dafuer gibt es Migrationsbloecke.
-     SECHS SEIT 0.14.0, vorher fuenf: die Runde ruestet drei Spalten an items
-     nach und ist damit die erste Schema-Runde seit 0.8.50. Wer einen siebten
-     anlegt, wird hier namentlich rot -- und muss sagen, welche SPALTE er
-     nachruestet. */
+     SIEBEN SEIT 0.16.0, vorher sechs: die Runde ruestet `gesetzt_am` an
+     ratings nach -- ohne den Zeitpunkt kann die Glocke ueber fremde
+     Bewertungen nichts sagen. Wer einen achten anlegt, wird hier namentlich
+     rot -- und muss sagen, welche SPALTE er nachruestet. */
   const fDbQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
   const fMigrationen = (fDbQuelle.match(/function migration0?\d+\(/g) || []);
-  pruefe('Es gibt genau sechs Migrationsfunktionen', fMigrationen.length === 6,
+  pruefe('Es gibt genau sieben Migrationsfunktionen', fMigrationen.length === 7,
     fMigrationen.join(' · '));
   // Und jede markierte Marke hat ihre Funktion -- eine Marke ohne Block waere
   // eine Ankuendigung, die nichts tut.
@@ -15384,6 +15700,171 @@ const freigabeHaupt = (zweck, ziel = null) =>
   fs.rmSync(u14Dir, { recursive: true, force: true });
   fs.rmSync(u14FrischDir, { recursive: true, force: true });
 
+  /* ================================================================
+     MIGRATION 0.16.0 — ENTFAELLT MIT 1.0
+     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
+     verschwindet, steht beieinander und traegt dieselbe Marke.
+     EINE SPALTE, UND SIE HAT KEINEN VORGABEWERT -- das ist die Aussage dieses
+     Blocks und nicht seine Bequemlichkeit (Stolperstein 219): eine Zeile ohne
+     Zeitpunkt heisst „die Anlage weiss nicht, wann das war". Ein fester Wert
+     liesse den ganzen Altbestand gleich alt aussehen, `datetime('now')` liesse
+     ihn brandneu aussehen -- und die Glocke laeutete beim ersten Start fuer
+     alles.
+     ================================================================ */
+  gruppe('MIGRATION 0.16.0 — ENTFAELLT MIT 1.0');
+
+  const u16Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0160-'));
+  const u16FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0160-'));
+  const u16Spalten = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(ratings)').all().map(c => c.name);
+    d.close();
+    return sp;
+  };
+  /* Abgefangen wie jede Lesestelle auf eine neue Spalte: fehlt sie, werden die
+     Pruefungen darunter rot, statt den Lauf abzureissen (Stolperstein 103). */
+  const u16Zeilen = (verzeichnis = u16Dir) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    let z = [];
+    try { z = d.prepare('SELECT id, value, gesetzt_am FROM ratings ORDER BY id').all(); }
+    catch { /* die Spalte fehlt -- die Pruefungen darunter werden rot */ }
+    d.close();
+    return z;
+  };
+  /* Eine Anlage aus 0.15.1 nachbauen: Tabellenneubau statt
+     ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
+     darueber (Stolperstein 106). Ausserhalb jeder Transaktion, sonst waere das
+     PRAGMA ein stiller No-op (Stolperstein 12).
+     UND MIT BEWERTUNGEN DARIN: eine leere Tabelle bewiese nichts darueber, was
+     mit dem Bestand geschieht (Stolperstein 81) -- und nicht einmal etwas
+     darueber, ob das ALTER TABLE ueberhaupt durchgeht (Stolperstein 202). */
+  const u16Rueckbau = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    d.pragma('foreign_keys = OFF');
+    d.exec(`
+      CREATE TABLE ratings_0151 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+        criterion_id INTEGER NOT NULL REFERENCES rating_criteria(id) ON DELETE CASCADE,
+        value INTEGER NOT NULL DEFAULT 0,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        UNIQUE(item_id, criterion_id, user_id)
+      );
+      INSERT INTO ratings_0151 (item_id, criterion_id, value, user_id)
+        SELECT item_id, criterion_id, value, user_id FROM ratings;
+      DROP TABLE ratings;
+      ALTER TABLE ratings_0151 RENAME TO ratings;
+    `);
+    d.close();
+  };
+
+  uLauf(u16Dir);
+  {
+    const d = oeffne(path.join(u16Dir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Altbestand', 1)").run();
+    const k = d.prepare('SELECT id FROM rating_criteria ORDER BY id').all();
+    d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (1, ?, 4, 1)').run(k[0].id);
+    d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (1, ?, 2, 1)').run(k[1].id);
+    d.close();
+  }
+  u16Rueckbau(u16Dir);
+  pruefe('Die Prueflage traegt die Spalte gesetzt_am nicht',
+    !u16Spalten(u16Dir).includes('gesetzt_am'), u16Spalten(u16Dir).join(', '));
+  /* Und sie traegt wirklich Bewertungen -- ohne diese Zeile stuende der Beleg
+     unten auf null Zeilen und bliebe gruen (Stolperstein 81). */
+  {
+    const d = oeffne(path.join(u16Dir, 'katalog.sqlite'));
+    const z = d.prepare('SELECT COUNT(*) AS n FROM ratings').get();
+    d.close();
+    pruefe('Und sie traegt zwei Bewertungen', z.n === 2, JSON.stringify(z));
+  }
+
+  const u16Ausgabe = uLauf(u16Dir);
+  pruefe('Die Migration ergaenzt gesetzt_am im Bestand',
+    u16Spalten(u16Dir).includes('gesetzt_am'), u16Spalten(u16Dir).join(', '));
+  pruefe('Er sagt im Protokoll, was er getan hat',
+    /ratings um gesetzt_am ergaenzt \(Migration auf 0\.16\.0\)/.test(u16Ausgabe),
+    JSON.stringify(u16Ausgabe.trim()));
+  pruefe('Und er nennt dabei, wie viele Bewertungen ohne Zeitpunkt dastehen',
+    /2 vorhandene Bewertungen stehen ohne Zeitpunkt da/.test(u16Ausgabe),
+    JSON.stringify(u16Ausgabe.trim()));
+
+  /* DER KERN DIESES ABSCHNITTS. Die Bestandszeilen bleiben, und die Spalte
+     bleibt LEER. Ein nachgeschobenes UPDATE erfaende hier einen Zeitpunkt,
+     den diese Anlage nicht hat -- „bewertet am Tag der Einspielung" waere die
+     schlimmste Variante davon. */
+  pruefe('Beide Bewertungen sind noch da mit ihren Werten',
+    u16Zeilen().length === 2 && u16Zeilen().map(z => z.value).join(',') === '4,2',
+    JSON.stringify(u16Zeilen()));
+  pruefe('Und gesetzt_am steht an beiden leer',
+    u16Zeilen().length === 2 && u16Zeilen().every(z => z.gesetzt_am === null),
+    JSON.stringify(u16Zeilen()));
+
+  /* Nachgestellt am Quelltext: kein UPDATE an ratings im Block, und kein
+     Vorgabewert am ALTER TABLE. */
+  {
+    const u16Quelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const u16Block = u16Quelle.slice(u16Quelle.indexOf('// MIGRATION 0.16.0'),
+                                     u16Quelle.indexOf('// ENDE MIGRATION 0.16.0'));
+    pruefe('Der Block schiebt kein UPDATE nach',
+      !/UPDATE\s+ratings/i.test(u16Block), JSON.stringify(u16Block.slice(0, 80)));
+    pruefe('Und das ALTER TABLE traegt keinen Vorgabewert',
+      /ALTER TABLE ratings ADD COLUMN gesetzt_am TEXT'/.test(u16Block) &&
+      !/DEFAULT/i.test(u16Block), JSON.stringify(
+        (u16Block.match(/ALTER TABLE[^']*/) || [''])[0]));
+    /* UND DIE DDL EBENSO WENIG -- sonst saehe eine frisch angelegte Anlage
+       anders aus als eine migrierte, und ein eingespielter Bestand bekaeme
+       stillschweigend „gerade eben" als Zeitpunkt. */
+    const u16Anf = u16Quelle.indexOf('CREATE TABLE IF NOT EXISTS ratings (');
+    /* Bis zum schliessenden „);" DIESER Tabelle -- nicht bis zur naechsten
+       benannten Tabelle: welche als naechste kaeme, ist Zufall der Reihenfolge,
+       und stuende sie im Schema weiter oben, waere der Ausschnitt leer. */
+    const u16Ddl = u16Quelle.slice(u16Anf, u16Quelle.indexOf('\n);', u16Anf));
+    pruefe('Auch die DDL gibt gesetzt_am keinen Vorgabewert',
+      /gesetzt_am TEXT,/.test(u16Ddl) && !/gesetzt_am TEXT DEFAULT/.test(u16Ddl),
+      JSON.stringify((u16Ddl.match(/gesetzt_am[^\n]*/) || [''])[0]));
+  }
+
+  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
+  const u16Zweitens = uLauf(u16Dir);
+  pruefe('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
+    !/ratings um /.test(u16Zweitens), JSON.stringify(u16Zweitens.trim()));
+  pruefe('Und die Zeilen sind dabei unangetastet geblieben',
+    u16Zeilen().length === 2 && u16Zeilen().every(z => z.gesetzt_am === null),
+    JSON.stringify(u16Zeilen()));
+
+  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus der
+     Migration -- und beide sehen danach GLEICH aus. Zu 1.0 faellt die
+     Migration weg, die Spalte muss bleiben. */
+  const u16Frisch = uLauf(u16FrischDir);
+  pruefe('Eine frische Anlage traegt gesetzt_am ohne Migration',
+    u16Spalten(u16FrischDir).includes('gesetzt_am') && !/ratings um /.test(u16Frisch),
+    `${u16Spalten(u16FrischDir).join(', ')} / ${JSON.stringify(u16Frisch.trim())}`);
+  pruefe('Und migriert wie frisch tragen dieselben Spalten in derselben Reihenfolge',
+    gleich(u16Spalten(u16Dir), u16Spalten(u16FrischDir)),
+    `${u16Spalten(u16Dir).join(', ')} gegen ${u16Spalten(u16FrischDir).join(', ')}`);
+  /* UND BEIDE HABEN DENSELBEN VORGABEWERT: keinen. Nachgemessen am Verhalten
+     und nicht am Text -- eine eingefuegte Zeile ohne Angabe traegt NULL. */
+  const u16Vorgabe = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    let wert = 'Prueflage gescheitert';
+    try {
+      d.pragma('foreign_keys = OFF');
+      d.prepare('INSERT INTO ratings (id, item_id, criterion_id, value) VALUES (9001, 9001, 9001, 3)').run();
+      wert = d.prepare('SELECT gesetzt_am FROM ratings WHERE id = 9001').get().gesetzt_am;
+      d.prepare('DELETE FROM ratings WHERE id = 9001').run();
+    } catch (e) { wert = `Prueflage gescheitert: ${e.message}`; }
+    d.close();
+    return wert;
+  };
+  pruefe('Eine Zeile ohne Angabe traegt in beiden Anlagen NULL',
+    u16Vorgabe(u16Dir) === null && u16Vorgabe(u16FrischDir) === null,
+    `${JSON.stringify(u16Vorgabe(u16Dir))} gegen ${JSON.stringify(u16Vorgabe(u16FrischDir))}`);
+
+  fs.rmSync(u16Dir, { recursive: true, force: true });
+  fs.rmSync(u16FrischDir, { recursive: true, force: true });
+
   /* ---------------------------------------------------------------- */
   gruppe('Anordnung der Blöcke');
 
@@ -17229,9 +17710,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
      (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. In 0.12.4 stand "195" in den Papieren,
      gezaehlt waren es 193 -- 184 plus neun. */
-  // 271 SEIT 0.15.1, vorher 267: vier neue an der Regel fuer `hidden` und an
-  // der abgeleiteten Sichtbarkeit des Feldes.
-  pruefe('Es sind genau 271 Rueckbauten', gpListe.length === 271, `${gpListe.length}`);
+  // 300 SEIT 0.16.0, vorher 271: neunundzwanzig neue an den Abschnitten des
+  // Systembereichs, an der zusammengelegten Karte, am Erklaerkasten der
+  // Gewichtung, an der Glocke samt Zeitpunkt an der Bewertung, an den
+  // Verfahren in den Kennzahlen, am Papierkorb im Vollbild und an den beiden
+  // Werkzeugen (Groessenmessung und Nummernfilter).
+  pruefe('Es sind genau 300 Rueckbauten', gpListe.length === 300, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -17298,6 +17782,199 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gpMitInhalt.rot.length === 2 && gpMitInhalt.inhaltlichRot.length === 1 &&
     gpMitInhalt.inhaltlichRot[0].gruppe === 'Die Begruendung kommt zur Ruhe — 0.15.0',
     JSON.stringify(gpMitInhalt.inhaltlichRot));
+  /* UND DIE DRITTE LAGE, an der es bis 0.16.0 falsch stand: eine ANDERE rote
+     Zeile IN der Gruppe „Die Gegenproben greifen". Ausgeblendet gehoert die
+     eine Selbstprobe und nicht die ganze Gruppe -- sonst faellt jeder Rueckbau
+     durch, dessen eigene Zusagen ausgerechnet dort stehen.
+     GENAU DAS IST RUECKBAU 300 PASSIERT: er machte „Eine Nummer als Argument
+     greift NICHT in die Namen hinein" sauber rot und wurde als STUMM
+     gemeldet. Ein zu grober Filter macht aus einem Beleg einen Fund. */
+  const gpEigeneGruppe = gpLese([
+    '── Die Gegenproben greifen ─────',
+    '  ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor',
+    '  ✗ Eine Nummer als Argument greift NICHT in die Namen hinein',
+    '  4345 von 4347 Pruefungen bestanden'
+  ].join('\n'));
+  pruefe('Eine ANDERE rote Zeile derselben Gruppe zaehlt sehr wohl',
+    gpEigeneGruppe.rot.length === 2 && gpEigeneGruppe.inhaltlichRot.length === 1 &&
+    gpEigeneGruppe.inhaltlichRot[0].name === 'Eine Nummer als Argument greift NICHT in die Namen hinein',
+    JSON.stringify(gpEigeneGruppe.inhaltlichRot));
+
+  /* ---- WELCHES ARGUMENT WELCHEN RUECKBAU MEINT -- 0.16.0.
+     DER BEFUND: `node gegenprobe.js 2 256` fuhr neben Rueckbau 256 auch die 83
+     mit, denn deren Name „SHA-256 statt SHA-1" traegt die Zeichenfolge 256.
+     Der Beifang war STUMM und verfaelschte damit die Gegenprobentabelle -- ein
+     Rueckbau ohne roten Punkt, den niemand angefordert hatte.
+     GEPRUEFT WIRD AN GESTELLTEN FAELLEN und nicht an einem Lauf: die Frage ist
+     eine Frage an die Regel, und die Regel steht als eigene Funktion da. Ein
+     Lauf beantwortete dieselbe Frage in Minuten. ---- */
+  const gpPasst = require('./gegenprobe').passtRueckbau;
+  pruefe('Die Regel, welches Argument welchen Rueckbau meint, ist von aussen erreichbar',
+    typeof gpPasst === 'function', typeof gpPasst);
+  const gpFall = { nr: '83', name: 'SHA-256 statt SHA-1' };
+  pruefe('Eine Nummer als Argument greift NICHT in die Namen hinein',
+    gpPasst(gpFall, '256') === false, JSON.stringify(gpPasst(gpFall, '256')));
+  /* DIE GEGENLAGE, sonst belegte die Zeile darueber nichts: dieselbe Nummer an
+     ihrem eigenen Rueckbau greift sehr wohl -- die Regel darf nicht einfach
+     alles abweisen, was aus Ziffern besteht (Stolperstein 189). */
+  pruefe('Und dieselbe Nummer greift an ihrem eigenen Rueckbau',
+    gpPasst({ nr: '256', name: 'Ein anderer Rueckbau' }, '256') === true,
+    JSON.stringify(gpPasst({ nr: '256', name: 'Ein anderer Rueckbau' }, '256')));
+  // Der Weg ueber den Namen bleibt, solange das Argument kein reiner Zahlwert
+  // ist: wer nach Text sucht, schreibt Text.
+  pruefe('Ein Text als Argument greift weiterhin in die Namen',
+    gpPasst(gpFall, 'sha') === true && gpPasst(gpFall, 'SHA-256') === true,
+    JSON.stringify([gpPasst(gpFall, 'sha'), gpPasst(gpFall, 'SHA-256')]));
+  // Die Wortnummern sind keine reinen Ziffernfolgen und gehen deshalb weiter
+  // ueber beide Wege -- sonst waeren W2, W5 und W6 unerreichbar geworden.
+  pruefe('Und die Wortnummern bleiben erreichbar',
+    gpPasst({ nr: 'W2', name: 'Eine Portbasis' }, 'W2') === true &&
+    gpPasst({ nr: 'W2', name: 'Eine Portbasis' }, 'w2') === true,
+    'W2 / w2');
+  /* UND DIE PROBE AN DER ECHTEN LISTE. Erst nachsehen, ob es die beiden
+     Rueckbauten ueberhaupt gibt -- eine Probe an einer leeren Menge bliebe
+     gruen, ohne etwas zu belegen (Stolperstein 81). */
+  const gp256 = gpListe.find(r => r.nr === '256');
+  const gp83 = gpListe.find(r => r.nr === '83');
+  pruefe('Die beiden Rueckbauten des Befundes stehen in der Liste',
+    !!gp256 && !!gp83 && /256/.test(gp83.name),
+    `${gp256 ? gp256.nr : '—'} / ${gp83 ? gp83.name : '—'}`);
+  if (gp256 && gp83) {
+    const gpTreffer = gpListe.filter(r => gpPasst(r, '256')).map(r => r.nr);
+    pruefe('Das Argument 256 waehlt an der echten Liste genau einen Rueckbau',
+      gpTreffer.length === 1 && gpTreffer[0] === '256', gpTreffer.join(' '));
+  }
+
+  /* ================= Die Groesse der Funktionen — 0.16.0 ================
+     SIE MISST, SIE WEIST NICHT AB. Eine harte Grenze („keine Funktion ueber
+     500 Zeilen") waere eine Zusicherung, die bei der ersten ehrlichen Ausnahme
+     abgeschaltet wird -- und eine abgeschaltete Pruefung ist schlechter als
+     keine. Gemessen und GENANNT wird die laengste Funktion je Datei; rot wird
+     sie davon nicht.
+     ROT WERDEN DARF EINE BEHAUPTUNG. Dieselbe Linie wie bei F_ROUTEN und den
+     271 Rueckbauten: welche Funktion die laengste einer Datei IST, steht in
+     den Papieren dieser Runde -- und wenn eine andere sie ueberholt, soll das
+     auffallen und nicht in einer Zahl untergehen, die niemand liest.
+     Die LAENGE steht ausdruecklich nicht in der Bedingung: sie aendert sich mit
+     jedem Kommentar, und eine Pruefung, die bei jeder Zeile rot wird, wird
+     angepasst statt gelesen.
+
+     WAS GEMESSEN WIRD: Funktionen auf der aeussersten Ebene -- das ist die
+     Einheit, um die es geht. Eine Hilfsfunktion INNERHALB einer langen
+     Funktion macht diese nicht kuerzer, sie steht in ihrer Zahl mit drin.
+     WIE GEMESSEN WIRD: an der Einrueckung null. Dieser Quelltext schreibt jede
+     aeussere Funktion an den linken Rand und schliesst sie mit einer Zeile,
+     die nur aus `}` oder `};` besteht. Das ist keine Annahme ueber JavaScript,
+     sondern eine ueber DIESEN Quelltext -- und sie wird gleich an einer
+     gestellten Vorlage nachgesehen, damit das Werkzeug seinen eigenen Fund
+     auch sehen kann (Stolperstein 213). */
+  gruppe('Die Groesse der Funktionen wird gemessen');
+
+  function funktionsLaengen(quelle) {
+    const zeilen = String(quelle).split('\n');
+    const gefunden = [];
+    let offen = null;
+    for (let i = 0; i < zeilen.length; i++) {
+      const z = zeilen[i];
+      if (!offen) {
+        const m = z.match(/^(?:async\s+)?function\s+([A-Za-z0-9_$]+)\s*\(/);
+        if (m) { offen = { name: m[1], von: i }; continue; }
+        // Auch die Pfeilform am linken Rand, solange ihr Rumpf geklammert ist.
+        const a = z.match(/^const\s+([A-Za-z0-9_$]+)\s*=\s*(?:async\s*)?\(?[^)]*\)?\s*=>\s*\{$/);
+        if (a) { offen = { name: a[1], von: i }; continue; }
+      } else if (z === '}' || z === '};') {
+        gefunden.push({ name: offen.name, von: offen.von + 1, zeilen: i - offen.von + 1 });
+        offen = null;
+      }
+    }
+    return gefunden.sort((a, b) => b.zeilen - a.zeilen || a.name.localeCompare(b.name));
+  }
+
+  /* ---- DAS WERKZEUG AN EINER GESTELLTEN VORLAGE ----
+     Ohne diese vier Zeilen koennte funktionsLaengen() die leere Liste liefern
+     und alles darunter bliebe gruen -- eine Erfolgsmeldung, die ihren eigenen
+     Fund nicht sehen kann, ist schlimmer als keine (Stolperstein 213). */
+  const flProbe = [
+    'function eins() {',                 // 3 Zeilen
+    '  return 1;',
+    '}',
+    '',
+    'const zwei = (a) => {',             // 5 Zeilen
+    '  if (a) {',
+    '    return 2;',
+    '  }',
+    '};',
+    '',
+    'async function drei() {',           // 2 Zeilen
+    '}'
+  ].join('\n');
+  const flGemessen = funktionsLaengen(flProbe);
+  pruefe('Das Werkzeug findet die Funktionen der gestellten Vorlage',
+    gleich(flGemessen.map(f => f.name), ['zwei', 'eins', 'drei']),
+    JSON.stringify(flGemessen.map(f => `${f.name}:${f.zeilen}`)));
+  pruefe('Und es zaehlt ihre Zeilen richtig',
+    gleich(flGemessen.map(f => f.zeilen), [5, 3, 2]),
+    JSON.stringify(flGemessen.map(f => f.zeilen)));
+  // Die Gegenlage: eine Datei ohne Funktion liefert die leere Liste und keinen
+  // Fehler -- das Stilblatt ist genau so eine.
+  pruefe('Und eine Vorlage ohne Funktion liefert die leere Liste',
+    funktionsLaengen('.a { color: red; }\n').length === 0);
+
+  /* ---- DIE MESSUNG AN DEN AUSGELIEFERTEN DATEIEN ----
+     GENANNT, NICHT GEPRUEFT: der Block darunter ist eine Auskunft. Er steht im
+     Prueflauf, damit die Zahlen beim Bauen vor Augen sind und nicht erst beim
+     Schreiben der Papiere gesucht werden muessen. */
+  const flDateien = ['public/app.js', 'server.js', 'auth.js', 'db.js', 'anhaenge.js',
+                     'zweifaktor.js', 'zugang.js', 'schluessel.js', 'mail.js', 'keys.js',
+                     'pruefung.js', 'gegenprobe.js'];
+  const flStand = new Map();
+  console.log('');
+  console.log('  ── Die laengsten Funktionen je Datei ──────────────────────');
+  for (const name of flDateien) {
+    const pfad = path.join(__dirname, name);
+    if (!fs.existsSync(pfad)) continue;
+    const quelle = fs.readFileSync(pfad, 'utf8');
+    const liste = funktionsLaengen(quelle);
+    flStand.set(name, { liste, zeilen: quelle.split('\n').length });
+    const spitze = liste.slice(0, 3)
+      .map(f => `${f.name} ${f.zeilen}`).join(' · ') || '—';
+    console.log(`     ${name.padEnd(16)} ${String(quelle.split('\n').length).padStart(6)} Zeilen` +
+                `  ·  ${String(liste.length).padStart(3)} Funktionen  ·  ${spitze}`);
+  }
+  console.log('  ──────────────────────────────────────────────────────────');
+
+  /* ---- UND DIE BEHAUPTUNG, DIE ROT WERDEN DARF ----
+     ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): eine
+     Messung, die gar nichts gefunden hat, liefert `undefined` -- und jede
+     Aussage darueber waere entweder wahr oder unfalsifizierbar. */
+  const flLaengste = (datei) => (flStand.get(datei)?.liste || [])[0];
+  pruefe('Die Messung findet in public/app.js ueberhaupt Funktionen',
+    (flStand.get('public/app.js')?.liste || []).length > 50,
+    `${(flStand.get('public/app.js')?.liste || []).length} gefunden`);
+  pruefe('Und in server.js ebenso',
+    (flStand.get('server.js')?.liste || []).length > 30,
+    `${(flStand.get('server.js')?.liste || []).length} gefunden`);
+  /* DIE BEHAUPTUNG DIESER RUNDE. Bis 0.15.1 war es renderSystem() mit 2.466
+     Zeilen; seit 0.16.0 steht sie bei 79, und die laengste ist renderDetail().
+     Wer eine Funktion so weit wachsen laesst, dass sie renderDetail() ueberholt,
+     soll es hier erfahren -- und die Zeile dann bewusst umschreiben, nicht
+     wegnehmen (Stolperstein 74). */
+  pruefe('Die laengste Funktion in public/app.js heisst renderDetail',
+    flLaengste('public/app.js')?.name === 'renderDetail',
+    `${flLaengste('public/app.js')?.name} mit ${flLaengste('public/app.js')?.zeilen} Zeilen`);
+  pruefe('Und die laengste in server.js heisst spieleEin',
+    flLaengste('server.js')?.name === 'spieleEin',
+    `${flLaengste('server.js')?.name} mit ${flLaengste('server.js')?.zeilen} Zeilen`);
+  /* UND DASS renderSystem() WIRKLICH ZERFALLEN IST. Das ist die Zusage dieser
+     Runde, und sie waere ohne diese Zeile nur eine Behauptung im Protokoll.
+     EINE OBERGRENZE MIT LUFT, keine Punktzahl: 79 gemessen, 300 verlangt --
+     die Zeile faellt nicht bei jedem Kommentar um, sie faellt, wenn jemand
+     wieder anfaengt, alles in EINE Funktion zu schreiben. */
+  const flSystem = (flStand.get('public/app.js')?.liste || []).find(f => f.name === 'renderSystem');
+  pruefe('renderSystem() steht ueberhaupt noch in public/app.js', !!flSystem,
+    'die Funktion gibt es nicht mehr');
+  pruefe('Und sie ist unter 300 Zeilen geblieben',
+    !!flSystem && flSystem.zeilen < 300, `${flSystem?.zeilen} Zeilen`);
 
   gruppe('Das Skript auf dem Wirt ist ausfuehrbar');
 
@@ -17852,9 +18529,10 @@ const DOM_ANBIETER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
-function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
+function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [], uebersichtItems = null, einrichtung = false, angemeldet = true, zugaenge = null, testTage = null, zweiterEintrag = null, kriterienGewichte = [1.5, 1, 0.5], eigeneWerte = [3, 3, 3], ohneBewertung = false, offenBestand = null, papierkorbBestand = null, sicherungStand = null, sitzungenBestand = null, protokollBestand = null,
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
   tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null, statsExport = null,
+  statsVerfahren = undefined,
   zweifaktorCodes = null, anmeldeFaktor = false, suchFehler = false, suchBremsen = null,
   kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }],
   /* Die Ablehnung am Beispieleintrag, seit 0.14.0. Vorgabe ist "nicht
@@ -18182,7 +18860,30 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     ratings: kriterien.map((c, i) => ({
       criterion_id: c.id, name: c.name, value: eigeneWerte[i], gewicht: c.gewicht,
       avg: [3.4, 4.1, null][i], count: [5, STIMMEN_VIELE, 0][i] })),
-    avgRating: 3, testCount: 1, testAvg: 4, testLast: 4,
+    avgRating: ohneBewertung ? null : 3, testCount: 1, testAvg: 4, testLast: 4,
+    /* ---- DER RECHENWEG -- 0.16.0 ------------------------------------------
+       WIE DER ECHTE SERVER: er entsteht dort IN gesamtSchnitt(), also in
+       derselben Schleife wie avgRating -- nur die bewerteten Kriterien, das
+       dritte hat kein avg und faellt heraus. Hier wird er aus denselben
+       Zahlen gebildet, damit der Mock nicht behauptet, was er nicht rechnet.
+       DAS ERGEBNIS IST AUSDRUECKLICH EIN ANDERES ALS DER ROHE QUOTIENT, und
+       das ist kein Versehen: die Oberflaeche soll die Zahl LESEN und nicht
+       nachrechnen. Rechnete sie nach, stuende im Kasten der Quotient und
+       nicht `ergebnis` -- und genau daran faellt es auf (Stolperstein 102). */
+    rechenweg: (() => {
+      const zeilen = kriterien
+        .map((c, i) => ({ criterionId: c.id, schnitt: [3.4, 4.1, null][i], gewicht: c.gewicht }))
+        .filter(z => z.schnitt != null)
+        .map(z => ({ ...z, produkt: z.schnitt * z.gewicht }));
+      const summe = zeilen.reduce((n, z) => n + z.produkt, 0);
+      const teiler = zeilen.reduce((n, z) => n + z.gewicht, 0);
+      /* OHNE JEDE BEWERTUNG GIBT ES KEINE ZAHL UND KEINEN RECHENWEG -- der
+         echte Server liefert dann avgRating null und einen Weg ohne Zeilen.
+         Die Lage ist stellbar, weil ohne sie „ohne Zahl kein Knopf" gar nicht
+         zu belegen waere (Stolperstein 81). */
+      if (ohneBewertung) return { zeilen: [], summe: 0, teiler: 0, roh: null, ergebnis: null };
+      return { zeilen, summe, teiler, roh: teiler ? summe / teiler : null, ergebnis: 3 };
+    })(),
     // Reine Anzeige, seit 0.8.6 in der Verfasserzeile. Ohne dieses Feld
     // zeichnete die Zeile ins Leere und jede Pruefung darauf waere blind.
     created_at: '2026-07-20 14:30:00'
@@ -18702,12 +19403,36 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        DER FEHLERFALL IST STELLBAR. Bis 0.10.0 KONNTE die Suche nicht
        scheitern -- sie lief im Arbeitsspeicher. Ohne diese Lage liesse sich
        der Rueckfall nicht pruefen, sondern nur hoffen. */
+    /* ---- DIE BEIDEN ZAHLEN, DIE MIT DER LISTE MITREISEN -- 0.16.0 ----
+       WIE DER ECHTE SERVER, und darauf kommt es an (Stolperstein 90):
+       `offeneAufgaben` wird aus DERSELBEN Menge gerechnet, aus der /api/offen
+       seine Liste nimmt -- kind = 'task'. Zwei Quellen fuer dieselbe Zahl
+       liefen auseinander, und der Zaehler in der Kopfzeile naennte etwas
+       anderes als die Ansicht dahinter.
+       `neuFremd` STEHT NUR MIT BEZUGSPUNKT da. Ohne ihn faellt das Feld ganz
+       weg -- so unterscheidet die Oberflaeche „nichts Neues" von „es gibt
+       keinen Bezugspunkt". Ein Mock, der es immer mitgaebe, naehme genau die
+       Pruefung weg, fuer die er gebraucht wird (Stolperstein 102).
+       DIE PRUEFLAGE DARF BEIDES UEBERSCHREIBEN: was in uebersichtItems steht,
+       gewinnt -- deshalb steht `...i` HINTER der gerechneten Zahl. */
+    const mitKopfzahlen = (liste) => liste.map(i => {
+      const zeile = {
+        offeneAufgaben: offen.filter(z => z.kind === 'task' && z.item?.id === i.id).length,
+        ...i
+      };
+      if (!einstellungen.glockeGesehen) delete zeile.neuFremd;
+      return zeile;
+    });
     if (url.startsWith('/api/items?q=')) {
       if (suchFehler) return gib({ error: 'Die Suche ist gerade nicht erreichbar.' }, 500);
       const qRoh = decodeURIComponent(url.slice('/api/items?q='.length));
       const qMock = qRoh.trim().toLowerCase();
       const quelle = uebersichtItems || uebersicht;
-      const antwort = gib(qMock ? quelle.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : quelle);
+      // DIESELBE FORM WIE OHNE SUCHE: der echte Server geht durch dieselbe
+      // Schleife. Ein Mock, der die beiden Wege verschieden beantwortete,
+      // verschwaende die Kopfzahlen bei jeder Suche.
+      const antwort = gib(mitKopfzahlen(
+        qMock ? quelle.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : quelle));
       /* EINE STELLBARE VERZOEGERUNG JE ANFRAGE, seit 0.11.0. Ohne sie antwortet
          der Mock augenblicklich, und dann koennen sich zwei Anfragen gar nicht
          ueberholen -- der Rueckbau auf die laufende Nummer in
@@ -18721,7 +19446,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       }
       return antwort;
     }
-    if (url === '/api/items') return gib(uebersichtItems || uebersicht);
+    if (url === '/api/items') return gib(mitKopfzahlen(uebersichtItems || uebersicht));
     /* Ein ZWEITER Eintrag, nur fuer den Vergleich: dort holt die Ansicht
        mehrere Detailantworten nebeneinander. Ohne ihn faende sie fuer die
        zweite Nummer das leere Objekt und zerbraeche an dessen fehlenden
@@ -18889,6 +19614,14 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
           anhaenge: 8192, kommentarbilder: 2048,
           warnAb: 300 * 1024 * 1024, grenze: 483183799 },
         version: require('./package.json').version, fingerprint: 'a1b2c3d4',
+        /* DIE VERFAHREN, seit 0.16.0 -- dieselben Werte, die db.js aus der
+           geoeffneten Datei abliest. STELLBAR AUF null: eine Antwort ohne sie
+           ist die Lage, in der der Abschnitt in der Karte gar nicht dastehen
+           darf. Ohne diesen Fall waere „er steht da" nicht von „er steht
+           immer da" zu unterscheiden (Stolperstein 81). */
+        verfahren: statsVerfahren === undefined
+          ? { cipher: 'sqlcipher', schluesselBits: 256, journal: 'WAL', passwoerter: 'scrypt' }
+          : statsVerfahren,
         keyFromEnv: false, keyHex: 'ab'.repeat(32) });
     }
     return gib({});
@@ -18927,6 +19660,48 @@ async function warteSuche(w, grenzeMs = 3000) {
   }
   // Eine Runde durch den Event Loop, damit das Neuzeichnen durch ist.
   await new Promise(r => setTimeout(r, 20));
+}
+
+/* ---- Einen bestimmten Abschnitt des Systembereichs zeichnen -- 0.16.0 ----
+   SEIT 0.16.0 ZEIGT DER SYSTEMBEREICH IMMER GENAU EINEN ABSCHNITT. Eine
+   Prueflage, die eine bestimmte Karte sucht, muss deshalb sagen, in welchem
+   Abschnitt diese Karte steht -- sonst sucht sie im ersten und findet nichts.
+   UEBER replaceState UND NICHT UEBER location.hash: ein gesetzter Hash loeste
+   hashchange aus, route() zeichnete ein zweites Mal, und die Prueflage haette
+   zwei Zeichnungen fuer einen Aufruf. replaceState loest nichts aus -- genau
+   das ist hier gewollt.
+   DIE ADRESSE IST DAMIT DERSELBE WEG WIE IM BROWSER: renderSystem() liest sie
+   selbst. Ein zweiter Weg (etwa ein Argument) waere eine zweite Wahrheit
+   ueber denselben Zustand. */
+async function sysAbschnitt(w, schluessel) {
+  w.history.replaceState(null, '', `#/system/${schluessel}`);
+  await w.renderSystem();
+  await new Promise(r => setTimeout(r, 20));
+}
+
+/* EIN DURCHGANG DURCH ALLE ABSCHNITTE -- Karten, Reiter und der ganze Text.
+   GEGANGEN WIRD DER WEG DES BENUTZERS: die Reiter, die wirklich dastehen,
+   werden der Reihe nach geoeffnet. Damit belegt dieselbe Schleife dreierlei --
+   welche Karten es gibt, dass jeder Reiter wirklich irgendwohin fuehrt, und
+   was auf keinem einzigen Abschnitt steht.
+   DIE LISTE AUS SYS_KARTEN ABZULESEN WAERE KEIN BELEG: eine Probe, die ihren
+   Maßstab vom Pruefling bezieht, kann nicht scheitern (Befund B aus 0.12.0).
+   Gezaehlt wird, was im Markup steht.
+   DER TEXT GEHOERT DAZU, weil „steht nirgends" sonst nur „steht nicht im
+   ersten Abschnitt" hiesse -- und das ist eine andere Aussage. */
+async function sysDurchgang(d) {
+  const karten = [], stuecke = [];
+  const reiter = [...d.w.document.querySelectorAll('.sys-reiter-k')]
+    .map(a => a.getAttribute('href'));
+  for (const adresse of reiter) {
+    d.w.history.replaceState(null, '', adresse);
+    await d.w.renderSystem();
+    await new Promise(r => setTimeout(r, 30));
+    karten.push(...[...d.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
+      .map(h => h.textContent.trim()));
+    stuecke.push(d.w.document.getElementById('app')?.textContent || '');
+  }
+  return { karten, reiter, text: stuecke.join('\n') };
 }
 
 async function pruefeOberflaeche() {
@@ -18999,9 +19774,9 @@ async function pruefeOberflaeche() {
     !eText.includes('Intern') && !eText.includes('Beispiel'), eText.slice(0, 120));
   // Ohne Uebereinstimmung darf nichts an den Server gehen -- sonst waere ein
   // Tippfehler im Passwort sofort endgueltig.
-  einDom.w.document.getElementById('su').value = 'chefin';
-  einDom.w.document.getElementById('sp').value = 'zehn-zeichen-und-mehr';
-  einDom.w.document.getElementById('sp2').value = 'zehn-zeichen-und-mahr';
+  setzeFeld(einDom.w.document, 'su', 'chefin');
+  setzeFeld(einDom.w.document, 'sp', 'zehn-zeichen-und-mehr');
+  setzeFeld(einDom.w.document, 'sp2', 'zehn-zeichen-und-mahr');
   einDom.gesendet.length = 0;
   einDom.w.document.getElementById('sb').click();
   await new Promise(r => setTimeout(r, 40));
@@ -19055,8 +19830,8 @@ async function pruefeOberflaeche() {
   pruefe('Die Sterne stehen weiterhin dort',
     bewZeilen.every(z => !!z.querySelector('.racts')?.children.length));
 
-  /* --- Systembereich --- */
-  await w.renderSystem();
+  /* --- Systembereich, Abschnitt „Bestand" --- */
+  await sysAbschnitt(w, 'bestand');
   const kasten = w.document.getElementById('mcrits');
   pruefe('Systembereich zeigt die Kriterienkarte', !!kasten);
   const reihen = [...kasten.querySelectorAll('.mrow')];
@@ -19112,6 +19887,9 @@ async function pruefeOberflaeche() {
    * folgenlos: der Zustand kommt gar nicht von dort. Wer diese Schalter
    * einmal auf die Serverantwort umstellt, muss den Mock mit
    * umstellen. */
+  /* „Darstellung" steht seit 0.16.0 im Abschnitt „Persoenlich", die
+     Linkzeilen darunter in „Bestand" (Stolperstein 201). */
+  await sysAbschnitt(w, 'persoenlich');
   const schriftKnoepfe = [...w.document.querySelectorAll('#fsize .pill')];
   const zielSchrift = schriftKnoepfe.find(b => b.textContent === '120 %');
   zielSchrift?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
@@ -19131,6 +19909,7 @@ async function pruefeOberflaeche() {
     parseFloat(w.document.documentElement.style.fontSize) === 18,
     w.document.documentElement.style.fontSize);
 
+  await sysAbschnitt(w, 'bestand');
   const zeilenKnoepfe = [...w.document.querySelectorAll('#lzeilen .pill')];
   zeilenKnoepfe.find(b => b.textContent === '12 Zeilen')
     ?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
@@ -19308,7 +20087,7 @@ async function pruefeOberflaeche() {
   const drei = baueDom(JSDOM, { einstellungen: eigen });
   const w3 = drei.w;
   await new Promise(r => setTimeout(r, 60));
-  await w3.renderSystem();
+  await sysAbschnitt(w3, 'bestand');
 
   const felder = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11']
     .map(id => w3.document.getElementById(id));
@@ -19330,6 +20109,10 @@ async function pruefeOberflaeche() {
   pruefe('Probe folgt der Eingabe sofort',
     w3.document.getElementById('vprobe').textContent.includes('+ Objekt'));
 
+  /* DIE SCHRIFTGROESSE STEHT IN „Darstellung" UND DAMIT IN EINEM ANDEREN
+     ABSCHNITT ALS DAS VOKABULAR (Stolperstein 201): die Karte ist dieselbe
+     geblieben, ihr Platz nicht. */
+  await sysAbschnitt(w3, 'persoenlich');
   const stufen = [...w3.document.querySelectorAll('#fsize .pill')];
   pruefe('Fuenf Schriftstufen zur Auswahl', stufen.length === 5, `${stufen.length}`);
   pruefe('Aktuelle Stufe ist hervorgehoben',
@@ -19363,7 +20146,7 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   pruefe('Detailansicht macht aus dem Vokabular kein HTML',
     !w4.document.getElementById('boese') && !w4.document.getElementById('boese3'));
-  await w4.renderSystem();
+  await sysAbschnitt(w4, 'bestand');
   pruefe('Systembereich macht aus dem Vokabular kein HTML',
     !w4.document.getElementById('boese2') && !w4.document.getElementById('boese3'));
   w4.close();
@@ -20087,8 +20870,14 @@ async function pruefeOberflaeche() {
   pruefe('Die Kopfzeile traegt einen Knopf in die Ansicht', !!offKnopf);
   pruefe('Und er steht neben dem Zahnrad',
     offKnopf?.nextElementSibling?.id === 'sys', offKnopf?.nextElementSibling?.id);
+  /* SEIT 0.16.0 NENNT DER TITEL DIE ZAHL, sobald es eine gibt -- der Knopf
+     traegt sie ohnehin. Das Wort dahinter kommt weiter aus dem Vokabular, und
+     es steht in der richtigen Zahlform: eine Aufgabe, zwei Aufgaben. */
   pruefe('Sein Ueberfahrtext kommt aus dem Vokabular',
-    offKnopf?.title === 'Offene Aufgaben', offKnopf?.title);
+    /^\d+ offene Aufgabe$/.test(offKnopf?.title || ''), offKnopf?.title);
+  pruefe('Und der Knopf traegt die Zahl selbst',
+    offKopf.w.document.getElementById('offen-zahl')?.textContent === '1',
+    offKopf.w.document.getElementById('offen-zahl')?.textContent);
   offKnopf?.dispatchEvent(new offKopf.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 90));
   pruefe('Ein zugestellter Klick fuehrt in die Ansicht',
@@ -20279,9 +21068,26 @@ async function pruefeOberflaeche() {
   pruefe('Und zwar als Signal, nicht als Zeitangabe des Aufrufers',
     !/\d{4}-\d{2}-\d{2}/.test(String(nsPuts()[0]?.koerper?.zuletztGesehen ?? '')),
     JSON.stringify(nsPuts()[0]?.koerper));
+  /* DER FILTERSTAND WANDERT NICHT MIT. Was mitfaehrt, ist seit 0.16.0 der
+     Bezugspunkt der Glocke -- und zwar GENAU EINMAL: ohne ihn gibt es keine
+     Glocke, und ohne Glocke gaebe es keinen Weg, ihn je zu setzen. Die
+     Prueflage hat noch keinen, also steht er hier. */
   pruefe('Der Filterstand wandert dabei nicht mit',
-    gleich(Object.keys(nsPuts()[0]?.koerper || {}), ['zuletztGesehen']),
+    gleich(Object.keys(nsPuts()[0]?.koerper || {}).sort(), ['glockeGesehen', 'zuletztGesehen']),
     JSON.stringify(nsPuts()[0]?.koerper));
+  /* UND DIE GEGENLAGE: hat der Zugang seinen Bezugspunkt schon, faehrt nur
+     noch der Merkzeitpunkt hinaus. Ohne diese Zeile belegte die darueber
+     nicht, dass der Bezugspunkt genau einmal gesetzt wird, sondern nur, dass
+     er ueberhaupt mitfaehrt (Stolperstein 81). */
+  const nsSchon = await nsBaue(nsVorgabe, { glockeGesehen: '2026-08-01 00:00:00' });
+  nsSchon.w.location.hash = '#/item/1';
+  await new Promise(r => setTimeout(r, 90));
+  const nsSchonPut = nsSchon.gesendet
+    .filter(g => g.methode === 'PUT' && g.url === '/api/settings').pop();
+  pruefe('Mit vorhandenem Bezugspunkt faehrt nur der Merkzeitpunkt hinaus',
+    gleich(Object.keys(nsSchonPut?.koerper || {}), ['zuletztGesehen']),
+    JSON.stringify(nsSchonPut?.koerper));
+  nsSchon.w.close();
 
   /* DER BEZUGSPUNKT BLEIBT WAEHREND EINES SEITENLEBENS STEHEN. Ohne das waere
      die Menge nach dem ersten geoeffneten Eintrag leer: man saehe zwei Neue
@@ -20874,8 +21680,8 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 80));
   await eUm.w.renderSystem();
   await new Promise(r => setTimeout(r, 30));
-  eUm.w.document.getElementById('acc-old').value = 'altes-passwort';
-  eUm.w.document.getElementById('acc-user').value = 'chefin2';
+  setzeFeld(eUm.w.document, 'acc-old', 'altes-passwort');
+  setzeFeld(eUm.w.document, 'acc-user', 'chefin2');
   eUm.w.document.getElementById('acc-save')
     .dispatchEvent(new eUm.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
@@ -21073,8 +21879,7 @@ async function pruefeOberflaeche() {
   const eSys = baueDom(JSDOM, { tags: eSysTags,
     einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
   await new Promise(r => setTimeout(r, 60));
-  await eSys.w.renderSystem();
-  await new Promise(r => setTimeout(r, 20));
+  await sysAbschnitt(eSys.w, 'bestand');
   const eFeld = eSys.w.document.getElementById('newcrit');
   pruefe('Der Systembereich hat ein Anlegefeld fuer Kriterien', !!eFeld);
   pruefe('Die Kriterienzeilen tragen Griff, Umbenennen und Loeschen',
@@ -21111,8 +21916,7 @@ async function pruefeOberflaeche() {
     einstellungen: { filters: null, benutzerZahl: 3,
       istAdmin: false, istEigentuemer: false } });
   await new Promise(r => setTimeout(r, 60));
-  await eSysUser.w.renderSystem();
-  await new Promise(r => setTimeout(r, 20));
+  await sysAbschnitt(eSysUser.w, 'bestand');
   pruefe('Ohne Adminrolle gibt es kein Anlegefeld',
     !eSysUser.w.document.getElementById('newcrit'));
   // Der Server verweigert es ohnehin. Ein Knopf, der nur eine Fehlermeldung
@@ -21149,8 +21953,7 @@ async function pruefeOberflaeche() {
   const gvEig = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4,
     istAdmin: true, istEigentuemer: true } });
   await new Promise(r => setTimeout(r, 60));
-  await gvEig.w.renderSystem();
-  await new Promise(r => setTimeout(r, 40));
+  await sysAbschnitt(gvEig.w, 'zugaenge');
   const gvZeilen = [...gvEig.w.document.querySelectorAll('#mzugaenge .mrow')];
   /* DREI ZEILEN SEIT 0.13.0, VORHER VIER: der Grabstein steht nicht mehr
      zwischen den lebenden Zugaengen, sondern in einem eigenen Fenster. Die
@@ -21188,8 +21991,8 @@ async function pruefeOberflaeche() {
     !!gvEig.w.document.getElementById('zug-pass') &&
     !!gvEig.w.document.getElementById('zug-rolle'));
   // Wirklich zugestellt, nicht von Hand gerufen.
-  gvEig.w.document.getElementById('zug-name').value = 'neuer';
-  gvEig.w.document.getElementById('zug-pass').value = 'ein-langes-wort';
+  setzeFeld(gvEig.w.document, 'zug-name', 'neuer');
+  setzeFeld(gvEig.w.document, 'zug-pass', 'ein-langes-wort');
   gvEig.w.document.getElementById('zug-anlegen')
     .dispatchEvent(new gvEig.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
@@ -21213,8 +22016,7 @@ async function pruefeOberflaeche() {
       { id: 3, username: 'carla', role: 'user', status: 'aktiv', last_login: null, created_at: '', eintraege: 0 }
     ] } });
   await new Promise(r => setTimeout(r, 60));
-  await gvAdm.w.renderSystem();
-  await new Promise(r => setTimeout(r, 40));
+  await sysAbschnitt(gvAdm.w, 'zugaenge');
   const gvAZeilen = [...gvAdm.w.document.querySelectorAll('#mzugaenge .mrow')];
   pruefe('Ein Admin sieht die Karte ebenfalls', gvAZeilen.length === 3, `${gvAZeilen.length}`);
   pruefe('Aber nirgends eine Rollenwahl',
@@ -21227,9 +22029,11 @@ async function pruefeOberflaeche() {
   /* Und ein gewoehnlicher Benutzer sieht die Karte gar nicht. */
   const gvUser = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4,
     istAdmin: false, istEigentuemer: false } });
+  /* DIE ADRESSE ZEIGT AUF EINEN ABSCHNITT, DEN ES FUER IHN NICHT GIBT -- und
+     genau das ist hier zusaetzlich zu belegen: sie faellt auf den ersten
+     sichtbaren zurueck, statt eine leere Seite zu zeigen. */
   await new Promise(r => setTimeout(r, 60));
-  await gvUser.w.renderSystem();
-  await new Promise(r => setTimeout(r, 40));
+  await sysAbschnitt(gvUser.w, 'zugaenge');
   pruefe('Ohne Adminrolle gibt es die Karte "Zugaenge" nicht',
     !gvUser.w.document.getElementById('mzugaenge') &&
     !gvUser.w.document.getElementById('zug-anlegen'));
@@ -21309,7 +22113,7 @@ async function pruefeOberflaeche() {
 
   const sysZl = baueDom(JSDOM, { einstellungen: { filters: null, zeitleiste: false, linkZeilen: 12 } });
   await new Promise(r => setTimeout(r, 60));
-  await sysZl.w.renderSystem();
+  await sysAbschnitt(sysZl.w, 'persoenlich');
   const haken = sysZl.w.document.getElementById('zlan');
   pruefe('Der Systembereich hat einen Schalter dafür', !!haken);
   pruefe('Er zeigt den gespeicherten Zustand', haken.checked === false);
@@ -21320,6 +22124,10 @@ async function pruefeOberflaeche() {
   pruefe('Umschalten wird serverseitig gespeichert',
     zlGesendet?.koerper.zeitleiste === true, JSON.stringify(zlGesendet?.koerper));
 
+  /* „Links" und „Suchanbieter" stehen im Abschnitt „Bestand", der Schalter
+     fuer die Zeitleiste in „Darstellung" -- seit 0.16.0 zwei Abschnitte
+     (Stolperstein 201). */
+  await sysAbschnitt(sysZl.w, 'bestand');
   const lzStufen = [...sysZl.w.document.querySelectorAll('#lzeilen .pill')];
   pruefe('Und es gibt Stufen für die sichtbaren Linkzeilen', lzStufen.length === 4, `${lzStufen.length}`);
   pruefe('Die gespeicherte Stufe ist hervorgehoben',
@@ -21395,8 +22203,8 @@ async function pruefeOberflaeche() {
   pruefe('Der Name ist auf 20 Zeichen begrenzt',
     sysZl.w.document.getElementById('se-name-1')?.maxLength === 20,
     `${sysZl.w.document.getElementById('se-name-1')?.maxLength}`);
-  sysZl.w.document.getElementById('se-name-2').value = 'Zweites Forum';
-  sysZl.w.document.getElementById('se-vorlage-2').value = 'https://zwei.beispiel.de/?q=%s';
+  setzeFeld(sysZl.w.document, 'se-name-2', 'Zweites Forum');
+  setzeFeld(sysZl.w.document, 'se-vorlage-2', 'https://zwei.beispiel.de/?q=%s');
   sysZl.w.document.getElementById('se-b-2').onclick();
   await new Promise(r => setTimeout(r, 30));
   const eigGesendet = sysZl.gesendet.filter(x => x.koerper && x.koerper.sucheEigene !== undefined).pop();
@@ -23113,7 +23921,7 @@ async function pruefeOberflaeche() {
   // Und der Weg funktioniert auch: ein wirklich zugestellter Druck schickt den
   // Namen. Ein Knopf, den es gibt und der nichts tut, waere nicht besser.
   anDom.gesendet.length = 0;
-  wAn.document.getElementById('newtag').value = 'Ganz neu';
+  setzeFeld(wAn.document, 'newtag', 'Ganz neu');
   wAn.document.getElementById('newtag-b').dispatchEvent(new wAn.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   const anGesendet = anDom.gesendet.filter(g => /\/api\/items\/1\/tags$/.test(g.url)).pop();
@@ -23129,7 +23937,7 @@ async function pruefeOberflaeche() {
     tagsFreiAnlegen: false, kategorienFreiAnlegen: true } });
   const wSys = sysDom.w;
   await new Promise(r => setTimeout(r, 60));
-  await wSys.renderSystem();
+  await sysAbschnitt(wSys, 'bestand');
   const hakenTag = wSys.document.getElementById('tagfrei');
   const hakenKat = wSys.document.getElementById('katfrei');
   pruefe('Der Systembereich traegt beide Haken',
@@ -23167,7 +23975,7 @@ async function pruefeOberflaeche() {
     istAdmin: false, istEigentuemer: false } });
   const wSysU = sysUser.w;
   await new Promise(r => setTimeout(r, 60));
-  await wSysU.renderSystem();
+  await sysAbschnitt(wSysU, 'bestand');
   pruefe('Ein Benutzer bekommt die Haken gar nicht erst zu sehen',
     !wSysU.document.getElementById('tagfrei') && !wSysU.document.getElementById('katfrei'),
     'ein Haken steht auch ohne Adminrolle da');
@@ -23203,15 +24011,17 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 40));
     return d;
   };
-  // Die Karten werden an ihrer UEBERSCHRIFT abgezaehlt, nicht an einer id:
-  // die Ueberschrift ist das, was auf dem Bildschirm steht.
-  const kartenVon = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
-    .map(h => h.textContent.trim());
-
+  /* Die Karten werden an ihrer UEBERSCHRIFT abgezaehlt, nicht an einer id:
+     die Ueberschrift ist das, was auf dem Bildschirm steht.
+     SEIT 0.16.0 UEBER ALLE ABSCHNITTE: der Systembereich zeigt immer nur
+     einen, und wer nur den ersten abzaehlt, zaehlt drei Karten statt
+     achtzehn. */
   const rEig = await baueSystem({ istAdmin: true, istEigentuemer: true });
   const rAdm = await baueSystem({ istAdmin: true, istEigentuemer: false });
   const rUser = await baueSystem({ istAdmin: false, istEigentuemer: false });
-  const kEig = kartenVon(rEig), kAdm = kartenVon(rAdm), kUser = kartenVon(rUser);
+  const dEig = await sysDurchgang(rEig), dAdm = await sysDurchgang(rAdm),
+        dUser = await sysDurchgang(rUser);
+  const kEig = dEig.karten, kAdm = dAdm.karten, kUser = dUser.karten;
 
   /* ACHTZEHN SEIT 0.9.0: "Mailversand" kommt dazu, und sie steht beim
      EIGENTUEMER -- nicht beim Admin, obwohl der die Einladungen verschickt.
@@ -23224,16 +24034,87 @@ async function pruefeOberflaeche() {
      ZU SAGEN HAT: der Schalter ist an oder es liegen Anfragen. Die Lage
      darunter stellt den anderen Fall -- ohne beide bliebe die Bedingung
      ungeprueft (Stolperstein 81). */
-  const ALLE_KARTEN = ['Titel', 'Zugang', 'Meine Sitzungen', 'Kennzahlen', 'Mailversand',
-    'Export', 'Import',
-    'Sicherung', 'Papierkorb', 'Kategorien', 'Tags', 'Bewertungskriterien', 'Zugänge',
-    'Anfragen', 'Sicherheitsprotokoll', 'Darstellung', 'Links', 'Suchanbieter', 'Vokabular'];
-  pruefe('Die Eigentuemerin sieht alle neunzehn Karten',
+  /* ACHTZEHN SEIT 0.16.0: "Export" und "Import" sind EINE Karte geworden --
+     sie meinen dieselbe Datei, und der Import steht darin eine Stufe tiefer.
+     DIE REIHENFOLGE IST DIE DER ABSCHNITTE und nicht mehr die eines Rasters:
+     erst was jedem gehoert, dann der Bestand, dann die Zugaenge, dann die
+     Datenbank, zuletzt die Anlage. */
+  const ALLE_KARTEN = [
+    'Zugang', 'Meine Sitzungen', 'Darstellung',
+    'Kategorien', 'Tags', 'Bewertungskriterien', 'Vokabular', 'Links', 'Suchanbieter', 'Papierkorb',
+    'Zugänge', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
+    'Kennzahlen', 'Sicherung', 'Export und Import',
+    'Titel'];
+  pruefe('Die Eigentuemerin sieht alle achtzehn Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
   // Die ZAHL ausdruecklich, wie bei F_ROUTEN: eine Karte, die still
   // verschwindet, faellt sonst niemandem auf.
-  pruefe('Und es sind wirklich neunzehn', ALLE_KARTEN.length === 19 && kEig.length === 19,
+  pruefe('Und es sind wirklich achtzehn', ALLE_KARTEN.length === 18 && kEig.length === 18,
     `${ALLE_KARTEN.length} erwartet, ${kEig.length} gezeichnet`);
+  // Und keine steht zweimal -- eine Karte, die in zwei Abschnitten haengt,
+  // faellt an der Summe sonst gar nicht auf.
+  pruefe('Und keine Karte steht in zwei Abschnitten',
+    new Set(kEig).size === kEig.length,
+    kEig.filter((n, i) => kEig.indexOf(n) !== i).join(' · '));
+
+  /* ---- DIE ABSCHNITTE SELBST ----
+     FUENF FUER DEN EIGENTUEMER, ZWEI FUER DEN GEWOEHNLICHEN BENUTZER. Der
+     zweite Fall ist der eigentliche Gegenstand: ein Abschnitt, in dem fuer
+     ihn keine einzige Karte stuende, erscheint gar nicht. Eine Prueflage, in
+     der jeder Abschnitt Karten haette, koennte darueber nichts sagen
+     (Stolperstein 189). */
+  const reiterWorte = (d) => [...d.w.document.querySelectorAll('.sys-reiter-k')]
+    .map(a => a.textContent.trim());
+  pruefe('Die Eigentuemerin bekommt fuenf Abschnitte',
+    gleich(reiterWorte(rEig), ['Persönlich', 'Bestand', 'Zugänge', 'Datenbank', 'Anlage']),
+    reiterWorte(rEig).join(' · '));
+  pruefe('Ein gewoehnlicher Benutzer bekommt nur die zwei, die etwas zu zeigen haben',
+    gleich(reiterWorte(rUser), ['Persönlich', 'Bestand']), reiterWorte(rUser).join(' · '));
+  pruefe('Und kein Abschnitt ist dabei leer',
+    dUser.reiter.length === 2 && kUser.length === 7,
+    `${dUser.reiter.length} Reiter, ${kUser.length} Karten`);
+  // Jeder Reiter traegt eine eigene Adresse -- ohne sie liesse sich keine
+  // Einstellung verlinken, und die Zurueck-Taste braeche.
+  pruefe('Jeder Reiter traegt seine eigene Adresse',
+    gleich(dEig.reiter, ['#/system/persoenlich', '#/system/bestand', '#/system/zugaenge',
+                         '#/system/datenbank', '#/system/anlage']),
+    dEig.reiter.join(' · '));
+  /* UND ER IST EIN VERWEIS UND KEIN KNOPF. Die Zeile darueber liest ein
+     ATTRIBUT, und ein `href` laesst sich an jedes Element schreiben -- ein
+     <button href="#/system/bestand"> bestuende sie anstandslos und koennte
+     doch nichts davon: nicht kopieren, nicht in einem neuen Fenster oeffnen,
+     nicht mit der Zurueck-Taste verlassen. GEFUNDEN HAT DAS NICHT DER
+     PRUEFSTAND, SONDERN DER STUMME RUECKBAU 276: er tauschte genau diese
+     eine Marke, und keine Pruefung wurde rot (Stolperstein 50 -- die Regel
+     lag nicht dort, wo sie zu wirken schien). */
+  pruefe('Und er ist ein Verweis und kein Knopf',
+    [...rEig.w.document.querySelectorAll('.sys-reiter-k')].length === 5 &&
+    [...rEig.w.document.querySelectorAll('.sys-reiter-k')].every(a => a.tagName === 'A'),
+    [...rEig.w.document.querySelectorAll('.sys-reiter-k')].map(a => a.tagName).join(' · '));
+  /* DIE ADRESSE ZEIGT AUF EINEN ABSCHNITT, DEN ES FUER IHN NICHT GIBT.
+     Sie faellt auf den ersten sichtbaren zurueck -- und WIRD DABEI
+     NACHGEZOGEN: stuende in der Adresse weiter "datenbank", waehrend
+     "Persoenlich" dasteht, gaebe es zwei Aussagen ueber denselben Zustand. */
+  await sysAbschnitt(rUser.w, 'datenbank');
+  pruefe('Eine Adresse auf einen unsichtbaren Abschnitt faellt auf den ersten zurueck',
+    [...rUser.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
+      .map(h => h.textContent.trim())[0] === 'Zugang',
+    [...rUser.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
+      .map(h => h.textContent.trim()).join(' · '));
+  pruefe('Und die Adresse wird dabei nachgezogen',
+    rUser.w.location.hash === '#/system/persoenlich', rUser.w.location.hash);
+  /* DIE GEGENLAGE, sonst belegte die Zeile darueber nichts: eine Adresse auf
+     einen Abschnitt, den es SEHR WOHL gibt, bleibt stehen (Stolperstein 189). */
+  await sysAbschnitt(rUser.w, 'bestand');
+  pruefe('Eine Adresse auf einen sichtbaren Abschnitt bleibt dagegen stehen',
+    rUser.w.location.hash === '#/system/bestand', rUser.w.location.hash);
+  /* UND `#/system` OHNE ABSCHNITT LOEST SICH AUF -- es ist die Adresse, die
+     der Knopf in der Kopfzeile setzt. */
+  rUser.w.history.replaceState(null, '', '#/system');
+  await rUser.w.renderSystem();
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Und `#/system` ohne Abschnitt loest sich auf den ersten auf',
+    rUser.w.location.hash === '#/system/persoenlich', rUser.w.location.hash);
 
   /* Die drei, die JEDEM bleiben -- und der Grund steht in jeder von ihnen:
      "Zugang" ist der eigene Zugang, "Darstellung" ist Schriftgroesse und
@@ -23242,8 +24123,8 @@ async function pruefeOberflaeche() {
   /* SIEBEN SEIT 0.8.80: "Meine Sitzungen" ist persoenlich wie "Zugang" und
      steht deshalb JEDEM -- es ist kein Systembereich fuer Admins. */
   pruefe('Ein gewoehnlicher Benutzer sieht sieben -- vier persoenliche, drei zum Nachsehen',
-    gleich(kUser, ['Zugang', 'Meine Sitzungen', 'Kategorien', 'Tags', 'Bewertungskriterien',
-                   'Darstellung', 'Links']),
+    gleich(kUser, ['Zugang', 'Meine Sitzungen', 'Darstellung',
+                   'Kategorien', 'Tags', 'Bewertungskriterien', 'Links']),
     kUser.join(' · '));
 
   /* Punkt fuer Punkt, weil eine Sammelpruefung nicht sagt, WELCHE Karte
@@ -23258,7 +24139,7 @@ async function pruefeOberflaeche() {
       kAdm.includes(karte) && !kUser.includes(karte),
       `Admin: ${kAdm.includes(karte)} · Benutzer: ${kUser.includes(karte)}`);
   }
-  for (const karte of ['Export', 'Import', 'Sicherung', 'Sicherheitsprotokoll', 'Mailversand']) {
+  for (const karte of ['Export und Import', 'Sicherung', 'Sicherheitsprotokoll', 'Mailversand']) {
     pruefe(`Die Karte "${karte}" steht nur beim Eigentuemer`,
       kEig.includes(karte) && !kAdm.includes(karte) && !kUser.includes(karte),
       `Eigentuemer: ${kEig.includes(karte)} · Admin: ${kAdm.includes(karte)}`);
@@ -23277,11 +24158,13 @@ async function pruefeOberflaeche() {
   const rAus = await baueSystem({ istAdmin: true, istEigentuemer: true },
     { an: false, versandBereit: false, versandGrund: 'Es ist kein Mailzugang eingerichtet.',
       deckel: 20, stunden: 24, anfragen: [] });
-  const kAus = kartenVon(rAus);
+  const kAus = (await sysDurchgang(rAus)).karten;
   pruefe('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kAus.includes('Anfragen'), kAus.join(' · '));
-  pruefe('Und es sind auch dann neunzehn', kAus.length === 19 && gleich(kAus, ALLE_KARTEN),
+  pruefe('Und es sind auch dann achtzehn', kAus.length === 18 && gleich(kAus, ALLE_KARTEN),
     `${kAus.length} gezeichnet`);
+  // Die Karte steht im Abschnitt „Zugaenge" -- dorthin, bevor an ihr geprueft wird.
+  await sysAbschnitt(rAus.w, 'zugaenge');
   /* DER SCHALTER MUSS IN GENAU DIESER LAGE ERREICHBAR SEIN -- sonst ist die
      Selbstanmeldung ueber die Oberflaeche gar nicht einzuschalten. Das ist die
      Pruefung, die den Befund aus dem Betrieb festhaelt. */
@@ -23301,6 +24184,7 @@ async function pruefeOberflaeche() {
     { an: false, versandBereit: true, versandGrund: '', deckel: 20, stunden: 24,
       anfragen: [{ id: 11, username: 'neuling', email: 'neuling@beispiel.de',
                    created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' }] });
+  await sysAbschnitt(rAusMitZeilen.w, 'zugaenge');
   pruefe('Bei ausgeschaltetem Schalter mit offenen Anfragen steht die Liste darin',
     [...rAusMitZeilen.w.document.querySelectorAll('#manfragen .mrow')].length === 1,
     `${[...rAusMitZeilen.w.document.querySelectorAll('#manfragen .mrow')].length} Zeilen`);
@@ -23334,6 +24218,7 @@ async function pruefeOberflaeche() {
      ueberall stuende (Stolperstein 81). */
   const kennzahlenKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
+  await sysAbschnitt(rAdm.w, 'datenbank');
   const admKarte = kennzahlenKarte(rAdm);
   pruefe('Die Karte Kennzahlen ist für den Admin überhaupt da', !!admKarte,
     kAdm.join(' · '));
@@ -23346,9 +24231,10 @@ async function pruefeOberflaeche() {
       .some(z => z.querySelector('.k')?.textContent.trim() === 'Fingerprint' &&
                  z.querySelector('.v')?.textContent.trim() === 'a1b2c3d4'),
     [...(admKarte?.querySelectorAll('.kv .v') || [])].map(v => v.textContent.trim()).join(' · '));
+  /* NIRGENDS heisst: in KEINEM Abschnitt. Ein Blick auf den gerade offenen
+     belegte nur, dass er dort nicht steht. */
   pruefe('Ohne Adminrolle steht der Fingerprint nirgends',
-    !/a1b2c3d4/.test(rUser.w.document.getElementById('app')?.textContent || ''),
-    rUser.w.document.getElementById('app')?.textContent?.slice(0, 120));
+    !/a1b2c3d4/.test(dUser.text), dUser.text.slice(0, 120));
 
   /* Was verschwindet, sind die KARTEN, nicht die Daten. Das Vokabular ist
      jede Beschriftung der Oberflaeche -- ohne es haette der Benutzer einen
@@ -23356,6 +24242,11 @@ async function pruefeOberflaeche() {
      Vokabular kommt und nicht aus dem Quelltext. */
   const rVok = await baueSystem({ istAdmin: false, istEigentuemer: false,
     vokabular: { sacheMehrzahl: 'Geräte' } });
+  /* Die Karte „Vokabular" steht im Abschnitt „Bestand", und die Beschriftung,
+     an der das Vokabular abzulesen ist, ebenso -- die Karte „Kategorien" nennt
+     dort die Mehrzahl. Ohne diesen Wechsel belegte die Zeile darunter nur,
+     dass die Karte nicht in „Persoenlich" steht (Stolperstein 201). */
+  await sysAbschnitt(rVok.w, 'bestand');
   pruefe('Das Vokabular wird trotzdem ausgeliefert und benutzt',
     /Geräte/.test(rVok.w.document.getElementById('app')?.textContent || ''),
     'die Beschriftung folgt dem Vokabular nicht');
@@ -23367,6 +24258,7 @@ async function pruefeOberflaeche() {
      wirklich zugestelltes Ereignis, samt Durchlauf des Event Loops --
      eine Karte, die dasteht und nichts tut, waere nicht besser als keine
      (Stolperstein 61). */
+  await sysAbschnitt(rUser.w, 'persoenlich');
   rUser.gesendet.length = 0;
   const rPille = [...rUser.w.document.querySelectorAll('#fsize .pill')]
     .find(b => b.textContent === '120 %');
@@ -23381,7 +24273,11 @@ async function pruefeOberflaeche() {
     rGesendet?.koerper?.schrift === 120, JSON.stringify(rGesendet));
 
   /* Die persoenliche Haelfte der Links bleibt, die Adminhaelfte geht. Beides
-     an EINER Lage, sonst liesse sich der Schnitt der Karte nicht belegen. */
+     an EINER Lage, sonst liesse sich der Schnitt der Karte nicht belegen.
+     BEIDE KARTEN STEHEN IM ABSCHNITT „Bestand" -- „Links" jedem, „Suchanbieter"
+     nur dem Admin. */
+  await sysAbschnitt(rUser.w, 'bestand');
+  await sysAbschnitt(rAdm.w, 'bestand');
   pruefe('Die Zahl der Anbieternamen bleibt dem Benutzer',
     !!rUser.w.document.getElementById('snamen') &&
     rUser.w.document.querySelectorAll('#snamen .pill').length > 0);
@@ -23399,6 +24295,7 @@ async function pruefeOberflaeche() {
      schlimmer als eine fehlende: sie wird befolgt. Erst das Vorhandensein der
      Karte, dann ihr Inhalt -- sonst bliebe die Verneinung auch dann wahr,
      wenn die Karte gar nicht mehr da waere (Stolperstein 81). */
+  await sysAbschnitt(rUser.w, 'persoenlich');
   const rZugangKarte = [...rUser.w.document.querySelectorAll('.sys-card')]
     .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugang');
   pruefe('Die Karte "Zugang" ist ueberhaupt da', !!rZugangKarte);
@@ -23421,6 +24318,11 @@ async function pruefeOberflaeche() {
      darueber, ob sie jemand traegt. Erst das Vorhandensein der Regel, dann
      ihre Eigenschaft -- eine fehlende Regel liefert ein leerer String,
      und jede Verneinung darauf waere wahr (Stolperstein 81). */
+  /* ALLE DREI BREITEN KACHELN STEHEN IM ABSCHNITT „Zugaenge", und das ist
+     kein Zufall: breit ist eine Karte genau dann, wenn sie eine Liste mit
+     vielen Spalten je Zeile traegt -- Zugaenge, Anfragen, Sicherheitsprotokoll.
+     Damit laesst sich „genau drei" weiterhin an EINER Zeichnung abzaehlen. */
+  await sysAbschnitt(rEig.w, 'zugaenge');
   const rKachel = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugänge');
   pruefe('Die Kachel "Zugaenge" ist da', !!rKachel);
@@ -23464,6 +24366,7 @@ async function pruefeOberflaeche() {
     'die breite Kachel ist ans Ende gewandert');
 
   /* --- Trennlinien zwischen den Abschnitten der Linkkarten --- */
+  await sysAbschnitt(rUser.w, 'bestand');
   pruefe('Die Karte "Links" traegt einen abgesetzten Abschnitt',
     rUser.w.document.querySelectorAll('.sys-card .sys-teil').length > 0,
     `${rUser.w.document.querySelectorAll('.sys-card .sys-teil').length} Abschnitte`);
@@ -23653,8 +24556,8 @@ async function pruefeOberflaeche() {
   /* DAS PASSWORT SETZEN, mit einem WIRKLICH zugestellten Ereignis. */
   {
     const d = await eiBau('d'.repeat(64));
-    d.w.document.getElementById('ep').value = 'kurz';
-    d.w.document.getElementById('ep2').value = 'kurz';
+    setzeFeld(d.w.document, 'ep', 'kurz');
+    setzeFeld(d.w.document, 'ep2', 'kurz');
     d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Ein zu kurzes Passwort geht gar nicht erst an den Server',
@@ -23664,8 +24567,8 @@ async function pruefeOberflaeche() {
       /mindestens 10 Zeichen/.test(d.w.document.querySelector('.login-error')?.textContent || ''),
       d.w.document.querySelector('.login-error')?.textContent);
 
-    d.w.document.getElementById('ep').value = 'ein-gutes-passwort';
-    d.w.document.getElementById('ep2').value = 'ein-anderes-passwort';
+    setzeFeld(d.w.document, 'ep', 'ein-gutes-passwort');
+    setzeFeld(d.w.document, 'ep2', 'ein-anderes-passwort');
     d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Zwei verschiedene Passwoerter ebenso wenig',
@@ -23675,8 +24578,8 @@ async function pruefeOberflaeche() {
       /stimmen nicht überein/.test(d.w.document.querySelector('.login-error')?.textContent || ''),
       d.w.document.querySelector('.login-error')?.textContent);
 
-    d.w.document.getElementById('ep').value = 'ein-gutes-passwort';
-    d.w.document.getElementById('ep2').value = 'ein-gutes-passwort';
+    setzeFeld(d.w.document, 'ep', 'ein-gutes-passwort');
+    setzeFeld(d.w.document, 'ep2', 'ein-gutes-passwort');
     d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 120));
     const gesetzt = d.gesendet.find(x => x.url === '/api/token/einloesen');
@@ -23913,8 +24816,8 @@ async function pruefeOberflaeche() {
   const zdAnmelden = async (faktor) => {
     const d = baueDom(JSDOM, { angemeldet: false, anmeldeFaktor: faktor });
     await new Promise(r => setTimeout(r, 80));
-    d.w.document.getElementById('lu').value = 'chefin';
-    d.w.document.getElementById('lp').value = 'chefins-wort-100';
+    setzeFeld(d.w.document, 'lu', 'chefin');
+    setzeFeld(d.w.document, 'lp', 'chefins-wort-100');
     await zdKlick(d.w, d.w.document.getElementById('lb'));
     return d;
   };
@@ -24019,8 +24922,8 @@ async function pruefeOberflaeche() {
      dort kein Wort. */
   const zdWort = baueDom(JSDOM, { angemeldet: false, anmeldeFaktor: true });
   await new Promise(r => setTimeout(r, 80));
-  zdWort.w.document.getElementById('lu').value = 'chefin';
-  zdWort.w.document.getElementById('lp').value = 'falsches-wort-100';
+  setzeFeld(zdWort.w.document, 'lu', 'chefin');
+  setzeFeld(zdWort.w.document, 'lp', 'falsches-wort-100');
   await zdKlick(zdWort.w, zdWort.w.document.getElementById('lb'));
   pruefe('Bei falschem Passwort bleibt es bei der gewohnten Absage',
     /Benutzername oder Passwort/.test(
@@ -24034,7 +24937,7 @@ async function pruefeOberflaeche() {
 
   gruppe('Die Karte „Zugang“: der zweite Faktor');
 
-  /* KEINE NEUE KARTE -- es bleibt bei neunzehn. Der zweite Faktor steht dort,
+  /* KEINE NEUE KARTE -- es bleibt bei achtzehn. Der zweite Faktor steht dort,
      wo Name, Passwort und Adresse stehen: beim eigenen Zugang. */
   const zkAus = baueDom(JSDOM, { hash: '#/system' });
   await new Promise(r => setTimeout(r, 60));
@@ -24044,9 +24947,13 @@ async function pruefeOberflaeche() {
   pruefe('Der Block steht in der Karte "Zugang" und nicht in einer eigenen',
     Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === 'Zugang',
     zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
-  pruefe('Und die Zahl der Karten bleibt bei neunzehn',
-    zkAus.w.document.querySelectorAll('.sys-card').length === 19,
-    String(zkAus.w.document.querySelectorAll('.sys-card').length));
+  /* GEZAEHLT WIRD UEBER ALLE ABSCHNITTE, seit der Systembereich immer nur
+     einen zeigt. Waere hier nur der offene gezaehlt, stuende die Zahl drei da
+     und die Pruefung belegte nichts ueber die uebrigen fuenfzehn. */
+  const zkAlle = (await sysDurchgang(zkAus)).karten;
+  pruefe('Und die Zahl der Karten bleibt bei achtzehn',
+    zkAlle.length === 18, `${zkAlle.length}: ${zkAlle.join(' · ')}`);
+  await sysAbschnitt(zkAus.w, 'persoenlich');
   /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
      einem Knopf, den man erst druecken muss. */
   pruefe('Der Zustand "aus" steht ohne Klick da',
@@ -24318,8 +25225,8 @@ async function pruefeOberflaeche() {
     const d = baueDom(JSDOM, { anfragenStand: stand,
       einstellungen: { filters: null, istAdmin: true, istEigentuemer: true } });
     await new Promise(r => setTimeout(r, 60));
-    await d.w.renderSystem();
-    await new Promise(r => setTimeout(r, 60));
+    await sysAbschnitt(d.w, 'zugaenge');
+    await new Promise(r => setTimeout(r, 40));
     return d;
   };
   const sKarteStand = () => ({ an: true, versandBereit: true, versandGrund: '', deckel: 20,
@@ -24612,8 +25519,8 @@ async function pruefeOberflaeche() {
   const ziSystem = async (rollen, opt = {}) => {
     const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
     await new Promise(r => setTimeout(r, 60));
-    await d.w.renderSystem();
-    await new Promise(r => setTimeout(r, 60));
+    await sysAbschnitt(d.w, 'zugaenge');
+    await new Promise(r => setTimeout(r, 40));
     return d;
   };
 
@@ -25088,9 +25995,12 @@ async function pruefeOberflaeche() {
     pruefe('Ohne Eigentuemerrolle wird das Protokoll gar nicht erst abgerufen',
       !dAdmin.gesendet.some(x => x.url === '/api/sicherheitsprotokoll'),
       dAdmin.gesendet.map(x => x.url).join(' · '));
+    /* GEZAEHLT WIRD UEBER ALLE ABSCHNITTE: ein einzelner traegt seit 0.16.0
+       drei bis sieben Karten, und „mehr als fuenf" saehe je nach offenem
+       Abschnitt anders aus. */
+    const dAdminKarten = (await sysDurchgang(dAdmin)).karten;
     pruefe('Und der Systembereich bleibt dabei gefuellt',
-      [...dAdmin.w.document.querySelectorAll('.sys-grid > .sys-card')].length > 5,
-      `${dAdmin.w.document.querySelectorAll('.sys-grid > .sys-card').length} Karten`);
+      dAdminKarten.length > 5, `${dAdminKarten.length} Karten`);
     const dUser = await ziSystem({ istAdmin: false, istEigentuemer: false });
     pruefe('Ein gewoehnlicher Benutzer ruft es erst recht nicht ab',
       !dUser.gesendet.some(x => x.url === '/api/sicherheitsprotokoll'),
@@ -25240,6 +26150,9 @@ async function pruefeOberflaeche() {
      nichts ausloest. */
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
+    // Der Export steht seit 0.16.0 im Abschnitt „Datenbank" und in derselben
+    // Karte wie der Import.
+    await sysAbschnitt(d.w, 'datenbank');
     d.w.document.getElementById('ex-no')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Vor dem Export steht der Dialog', !!zdDialog(d), 'kein Dialog');
@@ -25360,7 +26273,7 @@ async function pruefeOberflaeche() {
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     const vorher = ziReihen(d).length;
-    d.w.document.getElementById('zug-name').value = 'neuling';
+    setzeFeld(d.w.document, 'zug-name', 'neuling');
     d.w.document.getElementById('zug-anlegen')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -25386,8 +26299,8 @@ async function pruefeOberflaeche() {
     const art = d.w.document.getElementById('zug-art');
     art.value = 'passwort';
     art.dispatchEvent(new d.w.Event('change'));
-    d.w.document.getElementById('zug-name').value = 'mitpasswort';
-    d.w.document.getElementById('zug-pass').value = 'ein-passwort-1';
+    setzeFeld(d.w.document, 'zug-name', 'mitpasswort');
+    setzeFeld(d.w.document, 'zug-pass', 'ein-passwort-1');
     d.w.document.getElementById('zug-anlegen')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -25406,8 +26319,8 @@ async function pruefeOberflaeche() {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
     pruefe('Beim Anlegen steht ein Adressfeld',
       !!d.w.document.getElementById('zug-mail'), 'kein Adressfeld');
-    d.w.document.getElementById('zug-name').value = 'neuling';
-    d.w.document.getElementById('zug-mail').value = 'neuling@beispiel.de';
+    setzeFeld(d.w.document, 'zug-name', 'neuling');
+    setzeFeld(d.w.document, 'zug-mail', 'neuling@beispiel.de');
     d.w.document.getElementById('zug-anlegen')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -25423,7 +26336,7 @@ async function pruefeOberflaeche() {
     // `email` waere am Server die Ansage "keine", und das ist beim ANLEGEN
     // dasselbe; mitzuschicken gibt es trotzdem nichts.
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true });
-    d.w.document.getElementById('zug-name').value = 'ohnemail';
+    setzeFeld(d.w.document, 'zug-name', 'ohnemail');
     d.w.document.getElementById('zug-anlegen')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -25467,8 +26380,8 @@ async function pruefeOberflaeche() {
        wie Name und Passwort. Ein WIRKLICH zugestelltes Ereignis
        (Stolperstein 61). */
     const d = await ziSystem({ istAdmin: false, istEigentuemer: false });
-    d.w.document.getElementById('acc-old').value = DOM_PASSWORT;
-    d.w.document.getElementById('acc-mail').value = 'neue@beispiel.de';
+    setzeFeld(d.w.document, 'acc-old', DOM_PASSWORT);
+    setzeFeld(d.w.document, 'acc-mail', 'neue@beispiel.de');
     d.w.document.getElementById('acc-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
@@ -25489,8 +26402,8 @@ async function pruefeOberflaeche() {
     // das als „unveraendert“ gelesen wird, liesse eine Adresse nie wieder
     // entfernen -- genau die stille Falle, die niemand bemerkt.
     const d = await ziSystem({ istAdmin: false, istEigentuemer: false });
-    d.w.document.getElementById('acc-old').value = DOM_PASSWORT;
-    d.w.document.getElementById('acc-mail').value = '';
+    setzeFeld(d.w.document, 'acc-old', DOM_PASSWORT);
+    setzeFeld(d.w.document, 'acc-mail', '');
     d.w.document.getElementById('acc-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
@@ -25593,11 +26506,11 @@ async function pruefeOberflaeche() {
        zugestellten Ereignis (Stolperstein 61). */
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de', mailStand: {} });
-    d.w.document.getElementById('mail-anbieter').value = 'gmail';
+    setzeFeld(d.w.document, 'mail-anbieter', 'gmail');
     d.w.document.getElementById('mail-anbieter').dispatchEvent(new d.w.Event('change'));
-    d.w.document.getElementById('mail-benutzer').value = 'anlage@gmail.com';
-    d.w.document.getElementById('mail-passwort').value = 'erfundenes-app-passwort';
-    d.w.document.getElementById('mail-absender').value = 'anlage@gmail.com';
+    setzeFeld(d.w.document, 'mail-benutzer', 'anlage@gmail.com');
+    setzeFeld(d.w.document, 'mail-passwort', 'erfundenes-app-passwort');
+    setzeFeld(d.w.document, 'mail-absender', 'anlage@gmail.com');
     d.w.document.getElementById('mail-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -25686,8 +26599,8 @@ async function pruefeOberflaeche() {
   const pkSystem = async (rollen, opt = {}) => {
     const d = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, ...rollen }, ...opt });
     await new Promise(r => setTimeout(r, 60));
-    await d.w.renderSystem();
-    await new Promise(r => setTimeout(r, 60));
+    await sysAbschnitt(d.w, 'bestand');
+    await new Promise(r => setTimeout(r, 40));
     return d;
   };
   const pkKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
@@ -25857,6 +26770,9 @@ async function pruefeOberflaeche() {
      KARTE, in der er stehen soll -- ein Wert irgendwo im Systembereich belegte
      nicht, dass er bei den Kennzahlen steht. */
   {
+    // Die Kennzahlen stehen im Abschnitt „Datenbank", der Papierkorb in
+    // „Bestand" -- dieselbe Karte, ein anderer Platz (Stolperstein 201).
+    await sysAbschnitt(pkuEig.w, 'datenbank');
     const karte = [...pkuEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
       .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
     pruefe('Die Karte Kennzahlen ist ueberhaupt da', !!karte);
@@ -25867,6 +26783,59 @@ async function pruefeOberflaeche() {
     pruefe('Und darin stehen Zahl und Groesse aus der Antwort',
       /^2 · 2,5 KB$/.test(zeile?.querySelector('.v')?.textContent?.trim() || ''),
       zeile?.querySelector('.v')?.textContent);
+
+    /* ---- VERSION UND VERFAHREN — 0.16.0 ----
+       DIE VERSION STAND IN DER ANTWORT SCHON IMMER, gezeigt hat die Karte sie
+       nie. Sie gehoert neben den Fingerprint: die Version sagt, WELCHER Stand
+       laufen soll, der Fingerprint, ob die Dateien dazu zusammengehoeren.
+       UND DIE VERFAHREN DARUNTER, mit dem harten Vorbehalt: Verfahrensnamen
+       ja, Paketversionen nein. */
+    const kvZeile = (k) => [...(karte?.querySelectorAll('.kv') || [])]
+      .find(z => z.querySelector('.k')?.textContent.trim() === k);
+    pruefe('Die Karte nennt die Version der Anlage',
+      !!kvZeile('Version'),
+      [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
+    pruefe('Und zwar den Wert aus der Antwort',
+      kvZeile('Version')?.querySelector('.v')?.textContent.trim() ===
+        require('./package.json').version,
+      kvZeile('Version')?.querySelector('.v')?.textContent);
+    pruefe('Und sie steht unmittelbar vor dem Fingerprint',
+      [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim())
+        .join('|').includes('Version|Fingerprint'),
+      [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
+    const kvUnter = karte?.querySelector('.sys-unter');
+    pruefe('Ein eigener, untergeordneter Abschnitt nennt die Verfahren',
+      kvUnter?.textContent.trim() === 'Verfahren', kvUnter?.textContent);
+    /* DIE BESCHRIFTUNGEN SIND IN DER KARTE EINDEUTIG -- „Datenbank" steht dort
+       schon einmal, fuer die Belegung auf der Platte. Deshalb heisst die Zeile
+       der Chiffre „Verschlüsselung"; ohne das griffe die Suche die falsche
+       Zeile und meldete eine Groessenangabe. */
+    pruefe('Keine Beschriftung steht in der Karte zweimal',
+      new Set([...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim())).size ===
+        (karte?.querySelectorAll('.kv .k') || []).length,
+      [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
+    for (const [wort, wert] of [['Verschlüsselung', 'sqlcipher'], ['Schlüssel', '256 Bit roh'],
+                                ['Journal', 'WAL'], ['Passwörter', 'scrypt']]) {
+      pruefe(`Die Zeile „${wort}" steht darin und nennt ${wert}`,
+        kvZeile(wort)?.querySelector('.v')?.textContent.trim() === wert,
+        kvZeile(wort)?.querySelector('.v')?.textContent);
+    }
+    /* UND KEINE PAKETVERSION IN DER GANZEN KARTE. Die Version der ANLAGE steht
+       darin und ist erwuenscht; gesucht wird deshalb nach den Paketnamen. */
+    pruefe('Und die Karte nennt keine fremde Bibliothek beim Namen',
+      !/better-sqlite3|nodemailer|express|multer|sharp/i.test(karte?.textContent || ''),
+      karte?.textContent?.replace(/\s+/g, ' ').slice(0, 200));
+    /* DIE GEGENLAGE: liefert der Server die Verfahren nicht mit, steht der
+       Abschnitt gar nicht da -- statt vier Zeilen mit Gedankenstrichen. */
+    const ohneVerf = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { statsVerfahren: null });
+    await sysAbschnitt(ohneVerf.w, 'datenbank');
+    const kOhne = [...ohneVerf.w.document.querySelectorAll('.sys-grid > .sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
+    pruefe('Ohne Verfahrensangaben steht der Abschnitt gar nicht da',
+      !!kOhne && !kOhne.querySelector('.sys-unter'),
+      kOhne?.querySelector('.sys-unter')?.textContent);
+    ohneVerf.w.close();
   }
 
   /* ---------------------------------------------------------------- */
@@ -25878,10 +26847,18 @@ async function pruefeOberflaeche() {
      WER DIE ZAHLEN EINER PRUEFLAGE MISST, MISST SIE AN EINEM FRISCHEN AUFBAU
      (Stolperstein 115): die Schreibwege unten aendern den Stand des Mocks
      wirklich. */
+  /* „Sicherung" und „Export und Import" stehen seit 0.16.0 im Abschnitt
+     „Datenbank", der Papierkorb daneben in „Bestand" -- dieselbe Prueflage,
+     ein anderer Abschnitt (Stolperstein 201). */
+  const siSystem = async (rollen, opt = {}) => {
+    const d = await pkSystem(rollen, opt);
+    await sysAbschnitt(d.w, 'datenbank');
+    return d;
+  };
   const siKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Sicherung');
-  const siEig = await pkSystem({ istAdmin: true, istEigentuemer: true });
-  const siAdm = await pkSystem({ istAdmin: true, istEigentuemer: false });
+  const siEig = await siSystem({ istAdmin: true, istEigentuemer: true });
+  const siAdm = await siSystem({ istAdmin: true, istEigentuemer: false });
 
   pruefe('Die Karte steht bei der Eigentuemerin', !!siKarte(siEig));
   pruefe('Beim Admin ohne Eigentuemerrolle gibt es sie nicht', !siKarte(siAdm));
@@ -25911,7 +26888,7 @@ async function pruefeOberflaeche() {
     siLage(siEig)?.textContent);
 
   {
-    const siInn = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const siInn = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: { eingerichtet: true, wurzel: '/app/sicherung', ort: '',
         pfad: '/app/sicherung', imArbeitsverzeichnis: true, dbBytes: 1048576,
         dauerSekunden: 1, erreichbar: true, zahl: 0, letzte: null } });
@@ -25962,7 +26939,7 @@ async function pruefeOberflaeche() {
       [...(siKarte(d)?.querySelectorAll('.' + klasse) || [])].map(k => falte(k.textContent));
 
     // Ohne Wechsel: kein Kasten, kein Wort davon.
-    const ohne = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const ohne = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: siStandMit({}) });
     pruefe('Ohne Wechsel steht nichts von zwei Schluesseln auf der Karte',
       !/Schlüsselwechsel|alten Schlüssel|gewechselt/.test(siText(ohne)),
@@ -25970,7 +26947,7 @@ async function pruefeOberflaeche() {
 
     // Ein Teil veraltet: roter Kasten mit der Zahl und dem Verbleib des alten
     // Werts.
-    const teils = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const teils = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: siStandMit({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 2 }) });
     const teilsRot = siKaesten(teils, 'warn-box').join(' ');
     pruefe('Nach einem Wechsel nennt ein roter Kasten die Zahl der alten Kopien',
@@ -25988,7 +26965,7 @@ async function pruefeOberflaeche() {
 
     // Genau eine alte Kopie -- die Einzahl gehoert geprueft, sonst steht dort
     // "1 Kopien stammen".
-    const eine = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const eine = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: siStandMit({ gewechseltAm: '2026-08-21 08:00:00', veraltet: 1 }) });
     pruefe('Bei genau einer alten Kopie steht die Einzahl da',
       /1 Kopie stammt von vor dem Schlüsselwechsel/.test(siKaesten(eine, 'warn-box').join(' ')),
@@ -25997,7 +26974,7 @@ async function pruefeOberflaeche() {
     // Alles veraltet -- die schaerfste Lage: es gibt ueberhaupt keine
     // brauchbare Kopie, und das ist eine ANDERE Aussage als "ein paar alte
     // liegen daneben".
-    const alles = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const alles = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: siStandMit({
         gewechseltAm: '2026-08-22 08:00:00', veraltet: 3,
         letzte: { datei: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
@@ -26012,7 +26989,7 @@ async function pruefeOberflaeche() {
 
     // Und die Gegenlage: alle Kopien juenger als der Wechsel -> gruen, mit
     // dem Grund daneben statt eines blossen "alles gut".
-    const gruen = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const gruen = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: siStandMit({ gewechseltAm: '2026-08-19 08:00:00', veraltet: 0 }) });
     const gruenKasten = siKaesten(gruen, 'ok-box').join(' ');
     pruefe('Sind alle Kopien juenger als der Wechsel, ist der Kasten gruen',
@@ -26024,8 +27001,10 @@ async function pruefeOberflaeche() {
   /* DIE ROLLENTEILUNG STEHT AN BEIDEN KARTEN, nicht nur in den Dokumenten.
      Wer sie nebeneinander sieht, muss ohne Rueckfrage wissen, welche er
      will -- ein Satz je Karte, und beide werden hier geprueft. */
+  // SEIT 0.16.0 HEISST SIE „Export und Import": es ist dieselbe Datei, die
+  // hinausgeht und wieder hereinkommt (Stolperstein 201).
   const siExportKarte = [...siEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(c => c.querySelector('h3')?.textContent.trim() === 'Export');
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Export und Import');
   pruefe('Die Exportkarte ist ueberhaupt da', !!siExportKarte);
   pruefe('Sie nennt sich den Austauschweg',
     /Austauschweg/.test(siExportKarte?.textContent || ''), siExportKarte?.textContent?.slice(0, 200));
@@ -26071,7 +27050,7 @@ async function pruefeOberflaeche() {
 
   /* DER NICHT EINGERICHTETE FALL. */
   {
-    const d = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: { eingerichtet: false, grund: 'Es ist kein Sicherungsort eingerichtet. ' +
         'Die docker-compose.yml hängt ihn ein.', ort: '', dbBytes: 1, dauerSekunden: 1,
         erreichbar: false, letzte: null } });
@@ -26088,7 +27067,7 @@ async function pruefeOberflaeche() {
   /* DER UNERREICHBARE ZIELORT. Die Karte sagt es, statt eine Zahl zu
      behaupten -- das ist der Preis der Entscheidung fuer das Dateisystem. */
   {
-    const d = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: { eingerichtet: true, wurzel: '/sicherung', ort: 'weg',
         fehler: 'Das Verzeichnis „weg“ gibt es unter dem Sicherungsort nicht.',
         dbBytes: 1024, dauerSekunden: 1, erreichbar: false, letzte: null } });
@@ -26100,7 +27079,7 @@ async function pruefeOberflaeche() {
       siKarte(d)?.textContent?.slice(0, 400));
   }
   {
-    const d = await pkSystem({ istAdmin: true, istEigentuemer: true },
+    const d = await siSystem({ istAdmin: true, istEigentuemer: true },
       { sicherungStand: { eingerichtet: true, wurzel: '/sicherung', ort: '',
         pfad: '/sicherung', dbBytes: 1024, dauerSekunden: 1, erreichbar: true,
         letzte: null, zahl: 0 } });
@@ -26111,7 +27090,7 @@ async function pruefeOberflaeche() {
 
   /* DER KNOPF, mit einem WIRKLICH zugestellten Ereignis. */
   {
-    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    const d = await siSystem({ istAdmin: true, istEigentuemer: true });
     d.w.document.getElementById('sich-los')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -26132,8 +27111,8 @@ async function pruefeOberflaeche() {
   /* DER ZIELORT laesst sich umstellen -- und eine Absage des Servers wird
      gesagt, statt still zu bleiben. */
   {
-    const d = await pkSystem({ istAdmin: true, istEigentuemer: true });
-    if (d.w.document.getElementById('sich-ort')) d.w.document.getElementById('sich-ort').value = 'woechentlich';
+    const d = await siSystem({ istAdmin: true, istEigentuemer: true });
+    if (d.w.document.getElementById('sich-ort')) setzeFeld(d.w.document, 'sich-ort', 'woechentlich');
     d.w.document.getElementById('sich-ort-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -26145,7 +27124,7 @@ async function pruefeOberflaeche() {
       d.w.document.getElementById('sich-ort')?.value === 'woechentlich',
       d.w.document.getElementById('sich-ort')?.value);
 
-    if (d.w.document.getElementById('sich-ort')) d.w.document.getElementById('sich-ort').value = '../raus';
+    if (d.w.document.getElementById('sich-ort')) setzeFeld(d.w.document, 'sich-ort', '../raus');
     d.w.document.getElementById('sich-ort-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -26236,7 +27215,7 @@ async function pruefeOberflaeche() {
            { id: 32, name: 'Blau', usage_count: 0, test_usage_count: 0 }],
     einstellungen: { filters: null, benutzerZahl: 3, istAdmin: true } });
   await new Promise(r => setTimeout(r, 80));
-  await gwSys.w.renderSystem();
+  await sysAbschnitt(gwSys.w, 'bestand');
   const gwSDoc = gwSys.w.document;
   const gwFelder = () => [...gwSDoc.querySelectorAll('#mcrits .mgew-feld')];
   const gwGesendet = gwSys.gesendet;
@@ -26391,8 +27370,7 @@ async function pruefeOberflaeche() {
      Ausnahmeliste von makeSortable lautet '.mact, input'. Ein <input> ist
      damit ausgenommen -- nachgestellt statt geglaubt, mit echten
      Zeigerereignissen. */
-  await gwSys.w.renderSystem();
-  await new Promise(r => setTimeout(r, 20));
+  await sysAbschnitt(gwSys.w, 'bestand');
   const gwZeilen = [...gwSDoc.querySelectorAll('#mcrits .mrow')];
   gwSDoc.elementFromPoint = () => gwZeilen[2];
   const gwZeiger = (art, y) => {
@@ -26429,8 +27407,7 @@ async function pruefeOberflaeche() {
   const gwNurLesen = baueDom(JSDOM, { hash: '',
     einstellungen: { filters: null, benutzerZahl: 3, istAdmin: false, istEigentuemer: false } });
   await new Promise(r => setTimeout(r, 80));
-  await gwNurLesen.w.renderSystem();
-  await new Promise(r => setTimeout(r, 20));
+  await sysAbschnitt(gwNurLesen.w, 'bestand');
   const gwNDoc = gwNurLesen.w.document;
   pruefe('Ohne Adminrecht steht kein Eingabefeld da',
     gwNDoc.querySelectorAll('#mcrits .mgew-feld').length === 0);
@@ -26625,8 +27602,13 @@ async function pruefeOberflaeche() {
   pruefe('Der Umschalter schreibt nichts an den Server',
     !vglPuts.some(g => !(g.koerper && g.koerper.zuletztGesehen !== undefined)),
     JSON.stringify(vglPuts.map(g => g.koerper)));
-  pruefe('Und was dorthin ging, war ausschliesslich der Merkzeitpunkt',
-    vglPuts.length === 1 && gleich(Object.keys(vglPuts[0].koerper || {}), ['zuletztGesehen']),
+  /* SEIT 0.16.0 FAEHRT BEIM ERSTEN VERLASSEN DER BEZUGSPUNKT DER GLOCKE MIT --
+     genau einmal, in DEMSELBEN Ruf. Ohne ihn gaebe es keine Glocke, und ohne
+     Glocke keinen Weg, ihn je zu setzen. Die Ausnahme bleibt eng: es ist EIN
+     PUT, und darin steht nichts als diese beiden Merker. */
+  pruefe('Und was dorthin ging, waren ausschliesslich die beiden Merker',
+    vglPuts.length === 1 &&
+    gleich(Object.keys(vglPuts[0].koerper || {}).sort(), ['glockeGesehen', 'zuletztGesehen']),
     JSON.stringify(vglPuts.map(g => g.koerper)));
 
   cmpSicht('alle').dispatchEvent(new wVgl.MouseEvent('click', { bubbles: true }));
@@ -27103,8 +28085,8 @@ async function pruefeOberflaeche() {
     const d = baueDom(JSDOM, { statsExport,
       einstellungen: { filters: null, istAdmin: true, istEigentuemer: true } });
     await new Promise(r => setTimeout(r, 60));
-    await d.w.renderSystem();
-    await new Promise(r => setTimeout(r, 40));
+    await sysAbschnitt(d.w, 'datenbank');
+    await new Promise(r => setTimeout(r, 20));
     return d;
   };
   const MB = 1024 * 1024;
@@ -29277,6 +30259,400 @@ async function pruefeOberflaeche() {
       .filter(w => /display:\s*(flex|grid|block|inline-flex)/.test(regel123(w)));
     pruefe('Und es gibt wirklich display-Regeln, die `hidden` schlagen wuerden',
       hidGefahr.length === 3, JSON.stringify(hidGefahr));
+  }
+
+  /* ================= Export und Import stehen in EINER Karte — 0.16.0 ====
+     SIE MEINEN DIESELBE DATEI: die eine geht hinaus, dieselbe kommt herein.
+     Getrennt standen sie als Karte 6 und 7 nebeneinander, und wer die eine
+     suchte, las erst die andere.
+     ABER NICHT GLEICHRANGIG -- und das ist der ganze Vorbehalt dieser
+     Zusammenlegung: der Export LIEST, der Import ERSETZT BESTAND. Die
+     zerstoerende Haelfte darf durch das Zusammenlegen nicht einen Klick naeher
+     ruecken. Geprueft wird deshalb BEIDES: dass sie zusammenstehen UND dass
+     die untere untergeordnet gezeichnet ist. */
+  gruppe('Export und Import stehen in einer Karte');
+
+  {
+    const d = baueDom(JSDOM, {
+      einstellungen: { filters: null, istAdmin: true, istEigentuemer: true } });
+    await new Promise(r => setTimeout(r, 60));
+    await sysAbschnitt(d.w, 'datenbank');
+    const karten = [...d.w.document.querySelectorAll('.sys-grid > .sys-card')];
+    const ex = karten.find(k => k.querySelector('h3')?.textContent.trim() === 'Export und Import');
+    pruefe('Die Karte heisst „Export und Import"', !!ex,
+      karten.map(k => k.querySelector('h3')?.textContent.trim()).join(' · '));
+    /* UND ES GIBT KEINE ZWEITE DANEBEN. Ohne diese Zeile bliebe die darueber
+       auch dann gruen, wenn zusaetzlich noch die alte Importkarte stuende
+       (Stolperstein 74: die Pruefung der Vorgaengerfassung wird umgedreht). */
+    pruefe('Und es gibt keine eigene Karte „Import" mehr',
+      !karten.some(k => k.querySelector('h3')?.textContent.trim() === 'Import'),
+      karten.map(k => k.querySelector('h3')?.textContent.trim()).join(' · '));
+    pruefe('Beide Haelften stehen wirklich darin',
+      !!ex?.querySelector('#ex-yes') && !!ex?.querySelector('#ex-no') &&
+      !!ex?.querySelector('#ex-plan') && !!ex?.querySelector('#imp'),
+      `ex-yes ${!!ex?.querySelector('#ex-yes')} · imp ${!!ex?.querySelector('#imp')}`);
+    /* DIE UNTERORDNUNG, an drei Merkmalen und nicht an einem Gefuehl:
+       eine eigene, kleinere Ueberschrift, ein Trennstrich davor und das leise
+       Ablagefeld. */
+    const unter = ex?.querySelector('.sys-unter');
+    pruefe('Der Import traegt eine eigene, untergeordnete Ueberschrift',
+      unter?.textContent.trim() === 'Import', unter?.textContent);
+    pruefe('Und sie ist ein h4 und kein zweites h3',
+      unter?.tagName === 'H4', unter?.tagName);
+    pruefe('Ein Trennstrich steht davor', !!ex?.querySelector('.sys-teil'));
+    pruefe('Und das Ablagefeld ist leise gezeichnet',
+      !!ex?.querySelector('#imp-drop.drop-leise'),
+      ex?.querySelector('#imp-drop')?.className);
+    /* DIE REIHENFOLGE IST DER HALBE PUNKT: der Import steht UNTER dem Export
+       und nicht darueber. Verglichen wird die Stellung im Markup. */
+    /* BEIDE HAELFTEN GESCHUETZT (Stolperstein 161): faellt die Karte weg, muss
+       diese Zeile ROT werden koennen und darf den Lauf nicht mitreissen. */
+    const stellung = (w) =>
+      [...(ex?.querySelectorAll('*') || [])].indexOf(ex?.querySelector(w) || null);
+    pruefe('Und er steht unter dem Export, nicht darueber',
+      stellung('#imp-drop') > stellung('#ex-plan'),
+      `${stellung('#ex-plan')} gegen ${stellung('#imp-drop')}`);
+    // Und die Regel dazu steht wirklich im Stilblatt -- erst das Vorhandensein,
+    // dann die Eigenschaft (Stolperstein 81).
+    pruefe('Die Regel fuer das leise Ablagefeld steht im Stilblatt',
+      regel123('.drop-leise').length > 0, '(keine Regel)');
+    pruefe('Und sie nimmt ihm den eigenen Untergrund',
+      /background: none/.test(regel123('.drop-leise')), regel123('.drop-leise'));
+    pruefe('Die Regel fuer die untergeordnete Ueberschrift ebenso',
+      regel123('.sys-card .sys-unter').length > 0, '(keine Regel)');
+    /* KLEINER ALS DAS h3 DARUEBER -- sonst waere es keine Stufe, sondern eine
+       zweite Karte im selben Rahmen. Verglichen werden die beiden Groessen aus
+       dem Stilblatt und nicht zwei Zahlen von Hand. */
+    const grAus = (w) => parseFloat((regel123(w).match(/font-size:\s*([\d.]+)rem/) || [])[1] || '0');
+    pruefe('Und sie ist kleiner als die Ueberschrift der Karte',
+      grAus('.sys-card .sys-unter') > 0 && grAus('.sys-card h3') > 0 &&
+      grAus('.sys-card .sys-unter') < grAus('.sys-card h3'),
+      `${grAus('.sys-card .sys-unter')} gegen ${grAus('.sys-card h3')}`);
+    d.w.close();
+  }
+
+  /* ================= Die Rechnung hinter der Kopfzahl — 0.16.0 ==========
+     „⌀ 4,2 gewichtet" war richtig und erklaerte sich nicht. Der Kasten zeigt
+     DIE RECHNUNG DIESES EINTRAGS -- kein erfundenes Beispiel.
+     UND ER LIEST SIE, ER RECHNET SIE NICHT NACH. Genau daran haengt die
+     schaerfste Pruefung dieser Gruppe: die Prueflage liefert einen Rechenweg,
+     dessen `ergebnis` NICHT der Quotient seiner eigenen Zeilen ist. Rechnete
+     die Oberflaeche nach, stuende der Quotient im Kasten -- und die Zeile
+     wuerde rot (Stolperstein 102). */
+  gruppe('Die Rechnung hinter der Kopfzahl');
+
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1' });
+    await new Promise(r => setTimeout(r, 90));
+    const dok = d.w.document;
+    const kopf = () => dok.getElementById('rhead');
+    pruefe('Die Kopfzahl steht ueberhaupt da', !!kopf(), 'kein #rhead');
+    const knopf = () => dok.querySelector('#rhead .gew-auf');
+    pruefe('Und sie ist ein Knopf, kein blosser Text', !!knopf(),
+      kopf()?.innerHTML?.slice(0, 120));
+    pruefe('Der Knopf traegt die Zahl und das Wort',
+      /^⌀ 3,0 gewichtet$/.test(knopf()?.textContent || ''), knopf()?.textContent);
+
+    // Kein Kasten, bevor jemand klickt.
+    pruefe('Vor dem Klick steht kein Kasten da', !dok.getElementById('rechnung-modal'));
+    knopf()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const kasten = dok.getElementById('rechnung-modal');
+    pruefe('Der Klick oeffnet den Kasten', !!kasten, dok.body.innerHTML.slice(0, 160));
+    pruefe('Und die Ueberschrift nennt die Zahl dieses Eintrags',
+      /⌀ 3/.test(kasten?.querySelector('h2')?.textContent || ''),
+      kasten?.querySelector('h2')?.textContent);
+
+    /* JE BEWERTETEM KRITERIUM EINE ZEILE -- und ausdruecklich nur je
+       bewertetem: „Zuletzt" hat kein avg und geht in die Rechnung gar nicht
+       ein. Stuende es hier, waere der Kasten eine andere Rechnung als die
+       Zahl darueber. */
+    const zeilen = [...(kasten?.querySelectorAll('.rechnung .rz[data-krit]') || [])];
+    pruefe('Der Kasten zeigt je bewertetem Kriterium eine Zeile',
+      zeilen.length === 2, `${zeilen.length} Zeilen`);
+    pruefe('Und nennt sie beim Namen',
+      gleich(zeilen.map(z => z.querySelector('.rz-name')?.textContent), ['Zuerst', 'Dann']),
+      JSON.stringify(zeilen.map(z => z.querySelector('.rz-name')?.textContent)));
+    pruefe('Das unbewertete Kriterium steht ausdruecklich nicht darin',
+      !/Zuletzt/.test(kasten?.querySelector('.rechnung')?.textContent || ''),
+      kasten?.querySelector('.rechnung')?.textContent);
+    /* NOTE, GEWICHT UND PRODUKT stehen in der Zeile -- ohne das Produkt waere
+       es eine Aufzaehlung und keine Rechnung. */
+    const spalten = [...(zeilen[0]?.querySelectorAll('span') || [])].map(x => x.textContent.trim());
+    pruefe('Jede Zeile traegt Note, Gewicht und Produkt',
+      gleich(spalten, ['Zuerst', '3,4', '× 1,5', '5,1']), JSON.stringify(spalten));
+    pruefe('Summe und Teiler stehen darunter',
+      dok.getElementById('rz-summe')?.textContent === '9,2' &&
+      dok.getElementById('rz-teiler')?.textContent === '2,5',
+      `${dok.getElementById('rz-summe')?.textContent} / ${dok.getElementById('rz-teiler')?.textContent}`);
+    /* DIE ENTSCHEIDENDE ZEILE. 9,2 ÷ 2,5 ergibt 3,68 und gerundet 3,7 -- der
+       Rechenweg der Prueflage nennt als Ergebnis aber ausdruecklich 3. Steht
+       hier 3, LIEST die Oberflaeche; stuende 3,7, RECHNETE sie nach, und der
+       Kasten waere eine zweite Wahrheit ueber dieselbe Zahl. */
+    pruefe('Das Ergebnis kommt aus der Antwort und wird nicht nachgerechnet',
+      dok.getElementById('rz-ergebnis')?.textContent.trim() === '⌀ 3',
+      dok.getElementById('rz-ergebnis')?.textContent);
+    pruefe('Und der Kasten sagt, dass genau einmal gerundet wird',
+      /Gerundet wird genau einmal/.test(kasten?.textContent || ''),
+      kasten?.textContent?.replace(/\s+/g, ' ').slice(0, 200));
+    pruefe('Und wo die Gewichte eingestellt werden',
+      /Bewertungskriterien/.test(kasten?.textContent || ''),
+      kasten?.textContent?.replace(/\s+/g, ' ').slice(-200));
+
+    // Escape schliesst ihn, wie jeden Dialog dieser Anlage.
+    dok.dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise(r => setTimeout(r, 20));
+    pruefe('Escape schliesst den Kasten wieder', !dok.getElementById('rechnung-modal'));
+    d.w.close();
+  }
+
+  /* OHNE BEWERTUNG KEINE KOPFZAHL UND DAMIT KEIN KNOPF -- ein Knopf, der ein
+     leeres Fenster oeffnet, ist einer zu viel. Die Gegenlage zur Gruppe
+     darueber (Stolperstein 81): ohne sie bliebe „der Knopf steht da" auch
+     dann gruen, wenn er immer stuende. */
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1', ohneBewertung: true });
+    await new Promise(r => setTimeout(r, 90));
+    pruefe('Ohne Bewertung steht dort ueberhaupt nichts',
+      (d.w.document.getElementById('rhead')?.textContent || '') === '',
+      JSON.stringify(d.w.document.getElementById('rhead')?.innerHTML));
+    pruefe('Und damit auch kein Knopf',
+      !d.w.document.querySelector('#rhead .gew-auf'),
+      d.w.document.getElementById('rhead')?.innerHTML);
+    /* Die Kriterienzeilen stehen trotzdem da -- was fehlt, ist die ZAHL, nicht
+       der Block. */
+    pruefe('Die Kriterienzeilen bleiben davon unberuehrt',
+      [...d.w.document.querySelectorAll('#ratings .rrow')].length === 3,
+      `${d.w.document.querySelectorAll('#ratings .rrow').length} Zeilen`);
+    d.w.close();
+  }
+
+  /* ================= Die Glocke in der Kopfzeile — 0.16.0 ===============
+     DREI DINGE ZUSAMMEN: der Punkt an der Glocke, die Zahl am Knopf „Offen"
+     und die Tafel dahinter. Und die Lage, in der es die Glocke GAR NICHT gibt
+     -- ohne sie waere „die Glocke steht da" von „sie steht immer da" nicht zu
+     unterscheiden (Stolperstein 81).
+     EINE LAGE MIT EINEM EINZIGEN ZUGANG KOENNTE UEBER DIE GLOCKE NICHTS
+     BELEGEN: fremde Beitraege gibt es dort nicht. Alle Lagen hier tragen
+     deshalb benutzerZahl 3. */
+  gruppe('Die Glocke in der Kopfzeile');
+
+  const glBestand = (neu) => [
+    { id: 1, title: 'Erster', rejected: false, tested: true, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
+      testCount: 1, testAvg: 4, testLast: 4, updated_at: '2026-08-01 10:00:00',
+      offeneAufgaben: 2, neuFremd: neu[0] },
+    { id: 2, title: 'Zweiter', rejected: false, tested: true, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 4,
+      testCount: 1, testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00',
+      offeneAufgaben: 5, neuFremd: neu[1] }
+  ];
+  const glBaue = async (neu, mehr = {}) => {
+    const d = baueDom(JSDOM, { uebersichtItems: glBestand(neu),
+      einstellungen: { filters: null, benutzerZahl: 3,
+        glockeGesehen: '2026-08-01 00:00:00', ...mehr } });
+    await new Promise(r => setTimeout(r, 90));
+    return d;
+  };
+
+  {
+    /* OHNE BEZUGSPUNKT GIBT ES KEINE GLOCKE. Der Mock nimmt `neuFremd` dann
+       aus der Antwort -- wie der echte Server, der das Feld gar nicht erst
+       bildet. */
+    const ohne = await glBaue([3, 1], { glockeGesehen: undefined });
+    pruefe('Ohne gespeicherten Bezugspunkt gibt es keine Glocke',
+      !ohne.w.document.getElementById('glocke'), 'die Glocke steht trotzdem da');
+    /* UND SIE ENTSTEHT BEIM VERLASSEN DER UEBERSICHT -- sonst gaebe es keinen
+       Weg, sie je zu bekommen. */
+    ohne.w.location.hash = '#/item/1';
+    await new Promise(r => setTimeout(r, 90));
+    const ohnePut = ohne.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings').pop();
+    pruefe('Der Bezugspunkt wird beim Verlassen der Uebersicht gesetzt',
+      ohnePut?.koerper?.glockeGesehen !== undefined, JSON.stringify(ohnePut?.koerper));
+    // Als SIGNAL, nicht als Uhrzeit des Aufrufers -- wie zuletztGesehen daneben.
+    pruefe('Und zwar als Signal, nicht als Zeitangabe des Aufrufers',
+      !/\d{4}-\d{2}-\d{2}/.test(String(ohnePut?.koerper?.glockeGesehen ?? '')),
+      JSON.stringify(ohnePut?.koerper));
+    ohne.w.close();
+  }
+
+  {
+    const d = await glBaue([3, 1]);
+    const dok = d.w.document;
+    pruefe('Mit Bezugspunkt steht die Glocke da', !!dok.getElementById('glocke'));
+    pruefe('Und sie steht im selben Behaelter wie die anderen Zeichenknoepfe',
+      dok.getElementById('glocke')?.closest('#mast-rest') === dok.getElementById('mast-rest'),
+      'die Glocke steht ausserhalb von .mast-rest');
+    /* EIN PUNKT UND KEINE ZAHL. Ein Ereignis bekommt einen Punkt, ein Zustand
+       eine Zahl -- die beiden Zeichen werden nirgends vertauscht. */
+    const punkt = dok.getElementById('glocke-punkt');
+    pruefe('Sie traegt einen Punkt, wenn etwas Neues da ist',
+      !!punkt && punkt.hidden === false, `hidden: ${punkt?.hidden}`);
+    pruefe('Und der Punkt traegt ausdruecklich keine Zahl',
+      (punkt?.textContent || '') === '', JSON.stringify(punkt?.textContent));
+    pruefe('Der Titel des Knopfes nennt sie dafuer',
+      /4 neu von anderen/.test(dok.getElementById('glocke')?.title || ''),
+      dok.getElementById('glocke')?.title);
+    /* DER ZAEHLER „OFFEN". Er summiert, was an den Eintraegen steht -- 2 und 5.
+       DIE ZAHL STEHT AM KNOPF, nicht an der Glocke. */
+    pruefe('Der Knopf „Offen" traegt die Zahl',
+      dok.getElementById('offen-zahl')?.textContent === '7',
+      dok.getElementById('offen-zahl')?.textContent);
+    pruefe('Und sie steht sichtbar da',
+      dok.getElementById('offen-zahl')?.hidden === false,
+      String(dok.getElementById('offen-zahl')?.hidden));
+
+    /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke: eine Meldung, die man
+       nicht anspringen kann, ist eine Mitteilung ohne Weg. */
+    dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const tafel = dok.getElementById('glocken-modal');
+    pruefe('Der Klick oeffnet die Tafel', !!tafel, dok.body.innerHTML.slice(0, 140));
+    const zeilen = [...(tafel?.querySelectorAll('#glocken-liste .glocken-zeile') || [])];
+    pruefe('Sie listet nur die Eintraege mit Neuem',
+      zeilen.length === 2, `${zeilen.length} Zeilen`);
+    pruefe('Jede Zeile fuehrt zu ihrem Eintrag',
+      gleich(zeilen.map(z => z.getAttribute('href')), ['#/item/1', '#/item/2']),
+      JSON.stringify(zeilen.map(z => z.getAttribute('href'))));
+    pruefe('Und nennt, wie viel dort neu ist',
+      /3 neue Beiträge/.test(zeilen[0]?.textContent || '') &&
+      /1 neuer Beitrag/.test(zeilen[1]?.textContent || ''),
+      zeilen.map(z => z.textContent.replace(/\s+/g, ' ')).join(' | '));
+    pruefe('Und die Tafel sagt, was sie nicht verspricht',
+      /keinen Lesestand je Meldung/.test(tafel?.textContent || ''),
+      tafel?.textContent?.replace(/\s+/g, ' ').slice(-260));
+    /* DAS OEFFNEN SETZT ALLES AUF GESEHEN -- die bewusste Grenze der schlanken
+       Fassung, und sie steht in der Tafel. */
+    const glPut = d.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings')
+      .filter(g => g.koerper && g.koerper.glockeGesehen !== undefined).pop();
+    pruefe('Das Oeffnen zieht den Bezugspunkt nach',
+      !!glPut, JSON.stringify(d.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
+    pruefe('Und der Punkt ist danach fort',
+      dok.getElementById('glocke-punkt')?.hidden === true,
+      String(dok.getElementById('glocke-punkt')?.hidden));
+    /* DER ZAEHLER „OFFEN" BLEIBT DAVON UNBERUEHRT: er beschreibt einen
+       Zustand, und der aendert sich nicht dadurch, dass jemand hinsieht. */
+    pruefe('Der Zaehler „Offen" bleibt dabei stehen',
+      dok.getElementById('offen-zahl')?.textContent === '7',
+      dok.getElementById('offen-zahl')?.textContent);
+    d.w.close();
+  }
+
+  {
+    /* NICHTS NEUES: die Glocke steht, der Punkt nicht. Ohne diese Lage bliebe
+       „der Punkt steht da" auch dann gruen, wenn er immer stuende. */
+    const still = await glBaue([0, 0]);
+    pruefe('Ohne Neues steht die Glocke, aber kein Punkt',
+      !!still.w.document.getElementById('glocke') &&
+      still.w.document.getElementById('glocke-punkt')?.hidden === true,
+      String(still.w.document.getElementById('glocke-punkt')?.hidden));
+    pruefe('Und ihr Titel sagt es',
+      /Nichts Neues/.test(still.w.document.getElementById('glocke')?.title || ''),
+      still.w.document.getElementById('glocke')?.title);
+    // Und die Tafel bleibt trotzdem erreichbar und sagt, dass nichts da ist.
+    still.w.document.getElementById('glocke')
+      .dispatchEvent(new still.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Die Tafel sagt es dann auch',
+      /Nichts Neues von anderen/.test(
+        still.w.document.getElementById('glocken-liste')?.textContent || ''),
+      still.w.document.getElementById('glocken-liste')?.textContent);
+    still.w.close();
+  }
+
+  {
+    /* OHNE OFFENE AUFGABEN KEINE ZAHL. „Offen 0" waere eine Auskunft ueber
+       nichts und stuende dauerhaft da. */
+    const leer = await glBaue([0, 0]);
+    for (const it of [...leer.w.document.querySelectorAll('.card')]) it.remove();
+    const ohneAufgaben = baueDom(JSDOM, {
+      uebersichtItems: glBestand([0, 0]).map(i => ({ ...i, offeneAufgaben: 0 })),
+      einstellungen: { filters: null, benutzerZahl: 3, glockeGesehen: '2026-08-01 00:00:00' } });
+    await new Promise(r => setTimeout(r, 90));
+    pruefe('Ohne offene Aufgaben traegt der Knopf keine Zahl',
+      ohneAufgaben.w.document.getElementById('offen-zahl')?.hidden === true &&
+      (ohneAufgaben.w.document.getElementById('offen-zahl')?.textContent || '') === '',
+      JSON.stringify(ohneAufgaben.w.document.getElementById('offen-zahl')?.textContent));
+    leer.w.close(); ohneAufgaben.w.close();
+  }
+
+  /* ================= Der Papierkorb im Vollbild — 0.16.0 ================
+     DIESELBE KLEMME WIE DARUNTER und dieselbe Rueckfrage. Ein Papierkorb im
+     Vollbild, der ohne Frage loescht, waere der gefaehrlichste Knopf der
+     Anlage -- deshalb steht der Abbruch hier vor dem Vollzug. */
+  gruppe('Der Papierkorb im Vollbild');
+
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1' });
+    await new Promise(r => setTimeout(r, 90));
+    const dok = d.w.document;
+    dok.querySelector('#viewer img')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Das Vollbild geht auf', !!dok.querySelector('.lightbox'));
+    const weg = () => dok.querySelector('.lightbox .lb-btn.weg');
+    pruefe('Und es traegt einen Papierkorb', !!weg(), 'kein Papierkorb im Vollbild');
+    /* ER STEHT NICHT NEBEN DEM SCHLIESSEN: zwei Kreuze nebeneinander, von
+       denen eines die Ansicht zumacht und das andere das Bild vernichtet,
+       waeren die gefaehrlichste Nachbarschaft der Anlage. */
+    const werkzeuge = [...dok.querySelectorAll('.lightbox .lb-tools .lb-btn')]
+      .map(b => b.className.replace('lb-btn ', ''));
+    pruefe('Und er steht vor dem Schliessen, nicht daneben',
+      gleich(werkzeuge, ['zoom', 'weg', 'close']), JSON.stringify(werkzeuge));
+
+    const bilderVorher = [...dok.querySelectorAll('.lightbox .lb-thumb')].length;
+    /* MIT FRAGEZEICHEN, und das ist keine Zierde: nimmt ein Rueckbau den
+       Papierkorb weg, ist `weg()` null. Ohne das Zeichen risse der Lauf hier
+       ab, statt die Zusagen darunter rot zu faerben -- und eine abgerissene
+       Gegenprobe belegt gar nichts (Stolperstein 161). Genau das hat Rueckbau
+       297 vorgefuehrt. */
+    weg()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const frage = dok.querySelector('.backdrop .modal');
+    pruefe('Der Papierkorb fragt zuerst nach', !!frage, dok.body.innerHTML.slice(0, 140));
+    pruefe('Und die Frage nennt, was verschwindet',
+      /unwiderruflich entfernt/.test(frage?.textContent || ''), frage?.textContent);
+    // Abbrechen: es darf nichts hinausgehen und nichts verschwinden.
+    dok.querySelector('.backdrop [data-no]')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Nach dem Abbrechen wird nichts geschickt',
+      !d.gesendet.some(x => x.methode === 'DELETE' && x.url.startsWith('/api/photos/')),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und das Vollbild steht unveraendert', !!dok.querySelector('.lightbox') &&
+      [...dok.querySelectorAll('.lightbox .lb-thumb')].length === bilderVorher,
+      `${[...dok.querySelectorAll('.lightbox .lb-thumb')].length} statt ${bilderVorher}`);
+
+    weg()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    dok.querySelector('.backdrop [data-yes]')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Nach dem Bestaetigen geht das Loeschen ueber DIESELBE Route hinaus',
+      d.gesendet.some(x => x.methode === 'DELETE' && /^\/api\/photos\/\d+$/.test(x.url)),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und der Vorschaustreifen im Vollbild zieht nach',
+      !dok.querySelector('.lightbox') ||
+      [...dok.querySelectorAll('.lightbox .lb-thumb')].length === bilderVorher - 1,
+      `${[...dok.querySelectorAll('.lightbox .lb-thumb')].length} statt ${bilderVorher - 1}`);
+    d.w.close();
+  }
+
+  {
+    /* DIE GEGENLAGE: ein Kommentarbild bekommt KEINEN Papierkorb im Vollbild.
+       Es wird am Kommentar entfernt, und die Klemme dort ist eine andere --
+       „dieselbe Klemme wie darunter" heisst auch, dass es ohne eine darunter
+       keine gibt (Stolperstein 81). */
+    const d = baueDom(JSDOM, { hash: '#/item/1' });
+    await new Promise(r => setTimeout(r, 90));
+    const bild = d.w.document.querySelector('.kbild img, .komm-bild img, .cimgs img');
+    if (bild) {
+      bild.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 40));
+    }
+    pruefe('Ein Kommentarbild im Vollbild traegt keinen Papierkorb',
+      !bild || !d.w.document.querySelector('.lightbox .lb-btn.weg'),
+      bild ? 'der Papierkorb steht auch dort' : '(kein Kommentarbild in der Prueflage)');
+    d.w.close();
   }
 }
 

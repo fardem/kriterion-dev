@@ -556,10 +556,14 @@ const RUECKBAUTEN = [
        erscheint nur, wenn der Schalter an ist oder Anfragen offen sind. Das
        ist die Sackgasse aus dem Betrieb -- der Schalter steht IN der Karte,
        also gaebe es keinen Weg, ihn je einzuschalten. */
+    /* SEIT 0.16.0 STEHT DIE KLEMME ALS FELD IN SYS_KARTEN und nicht mehr als
+       Klammer im Markup -- der Rueckbau greift deshalb dort an. Die Sache ist
+       dieselbe geblieben: die Karte traegt den Schalter, mit dem sich die
+       Selbstanmeldung ueberhaupt erst einschalten laesst. */
     nr: '63', name: 'Die Karte „Anfragen“ verschwindet, solange der Schalter aus ist',
     datei: 'public/app.js',
-    suche: "        ADMIN && anfragen ? `<div class=\"sys-card breit\">",
-    ersatz: "        ADMIN && anfragen && (anfragen.an || anfragen.anfragen.length) ? `<div class=\"sys-card breit\">",
+    suche: "sichtbar: (g) => ADMIN && !!g.anfragen,",
+    ersatz: "sichtbar: (g) => ADMIN && !!g.anfragen && (g.anfragen.an || g.anfragen.anfragen.length),",
     erwartet: 'Die Karten im Systembereich'
   },
   {
@@ -1264,8 +1268,8 @@ const RUECKBAUTEN = [
   {
     nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
     datei: 'server.js',
-    suche: "                                'zuletztGesehen', 'ansichten'];",
-    ersatz: "                                'zuletztGesehen'];",
+    suche: "                                'zuletztGesehen', 'glockeGesehen', 'ansichten'];",
+    ersatz: "                                'zuletztGesehen', 'glockeGesehen'];",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
@@ -2493,6 +2497,225 @@ const RUECKBAUTEN = [
     erwartet: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
 
+  /* ================= 0.16.0 — Abschnitte, Glocke und Auskunft ========== */
+  {
+    nr: '272', name: 'Der Systembereich zeigt wieder alle Karten auf einmal',
+    datei: 'public/app.js',
+    suche: "  const karten = SYS_KARTEN.filter(k => k.abschnitt === offen.schluessel && k.sichtbar(geholt));",
+    ersatz: "  const karten = SYS_KARTEN.filter(k => k.sichtbar(geholt));",
+    erwartet: 'Der Systembereich nach Rolle'
+  },
+  {
+    nr: '273', name: 'Ein Abschnitt ohne sichtbare Karte erscheint trotzdem',
+    datei: 'public/app.js',
+    suche: "  return SYS_ABSCHNITTE.filter(a =>\n    SYS_KARTEN.some(k => k.abschnitt === a.schluessel && k.sichtbar(geholt)));",
+    ersatz: "  return SYS_ABSCHNITTE;",
+    erwartet: 'Der Systembereich nach Rolle'
+  },
+  {
+    nr: '274', name: 'Die Adresse wird nicht mehr nachgezogen',
+    datei: 'public/app.js',
+    suche: "    history.replaceState(null, '', sysAdresse(offen.schluessel));",
+    ersatz: "    void 0;",
+    erwartet: 'Der Systembereich nach Rolle'
+  },
+  {
+    nr: '275', name: 'Eine Adresse auf einen unsichtbaren Abschnitt zeigt ins Leere',
+    datei: 'public/app.js',
+    suche: "  const offen = sichtbare.find(a => a.schluessel === gewuenscht) || sichtbare[0];",
+    ersatz: "  const offen = SYS_ABSCHNITTE.find(a => a.schluessel === gewuenscht) || sichtbare[0];",
+    erwartet: 'Der Systembereich nach Rolle'
+  },
+  {
+    /* DIE REITER VERLIEREN IHRE ADRESSE. Genau die Falle, in die draussen alle
+       einmal getreten sind: ohne Adresse laesst sich keine Einstellung
+       verlinken und die Zurueck-Taste bricht. */
+    nr: '276', name: 'Die Reiter tragen keine eigene Adresse mehr',
+    datei: 'public/app.js',
+    suche: "      ${sichtbare.map(a => `<a class=\"sys-reiter-k${a === offen ? ' on' : ''}\"",
+    ersatz: "      ${sichtbare.map(a => `<button class=\"sys-reiter-k${a === offen ? ' on' : ''}\"",
+    erwartet: 'Der Systembereich nach Rolle'
+  },
+  {
+    nr: '277', name: 'Der Import steht wieder gleichrangig neben dem Export',
+    datei: 'public/app.js',
+    suche: '        <h4 class="sys-unter">Import</h4>',
+    ersatz: '        <h3>Import</h3>',
+    erwartet: 'Export und Import stehen in einer Karte'
+  },
+  {
+    nr: '278', name: 'Das Ablagefeld des Imports wird wieder gleich laut gezeichnet',
+    datei: 'public/app.js',
+    suche: '        <label class="drop drop-leise" id="imp-drop">',
+    ersatz: '        <label class="drop" id="imp-drop">',
+    erwartet: 'Export und Import stehen in einer Karte'
+  },
+  {
+    nr: '279', name: 'Die Kopfzahl ist wieder blosser Text',
+    datei: 'public/app.js',
+    suche: "        b.onclick = zeigeRechnung;",
+    ersatz: "        b.onclick = null;",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  {
+    /* DER KERN VON PUNKT 4: der Kasten LIEST die Rechnung. Rechnet er nach,
+       gibt es zwei Wege zu derselben Zahl -- und sie laufen auseinander. */
+    nr: '280', name: 'Der Erklaerkasten rechnet wieder selbst nach',
+    datei: 'public/app.js',
+    suche: '        <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>\n          <span id="rz-ergebnis">⌀ ${esc(gewZahl(weg.ergebnis))}</span></div>',
+    ersatz: '        <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>\n          <span id="rz-ergebnis">⌀ ${esc(gewZahl(Math.round((weg.summe / weg.teiler) * 10) / 10))}</span></div>',
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  {
+    nr: '281', name: 'Der Rechenweg faellt aus der Antwort',
+    datei: 'server.js',
+    suche: "  it.rechenweg = { ...rechenweg, ergebnis: it.avgRating };",
+    ersatz: "  void rechenweg;",
+    erwartet: 'Der Rechenweg reist mit'
+  },
+  {
+    nr: '282', name: 'Der Rechenweg wird auf zwei Stellen gerundet ausgeliefert',
+    datei: 'server.js',
+    suche: "    { zeilen, summe: zaehler, teiler: nenner, roh: nenner ? zaehler / nenner : null });",
+    ersatz: "    { zeilen, summe: Math.round(zaehler * 100) / 100, teiler: nenner,\n      roh: nenner ? Math.round((zaehler / nenner) * 100) / 100 : null });",
+    erwartet: 'Der Rechenweg reist mit'
+  },
+  {
+    nr: '283', name: 'Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr',
+    datei: 'server.js',
+    suche: "                                'zuletztGesehen', 'glockeGesehen', 'ansichten'];",
+    ersatz: "                                'zuletztGesehen', 'ansichten'];",
+    erwartet: 'Persoenliche Einstellungen'
+  },
+  {
+    nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
+    datei: 'public/app.js',
+    suche: "        ${GLOCKE_GESEHEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neu von anderen\"",
+    ersatz: "        ${true ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neu von anderen\"",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    nr: '285', name: 'neuFremd steht auch ohne Bezugspunkt an jedem Eintrag',
+    datei: 'server.js',
+    suche: "    if (bezug) it.neuFremd = neuJe.get(it.id) || 0;",
+    ersatz: "    it.neuFremd = neuJe.get(it.id) || 0;",
+    erwartet: 'Die Glocke: was mit der Liste mitreist'
+  },
+  {
+    /* DIE GLOCKE MELDET, WAS ANDERE TUN. Zaehlt sie die eigenen Beitraege mit,
+       laeutet sie nach jedem eigenen Kommentar. */
+    nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare mit',
+    datei: 'server.js',
+    suche: "    WHERE created_at > ? AND IFNULL(user_id, -1) != ? GROUP BY item_id`);",
+    ersatz: "    WHERE created_at > ? AND IFNULL(user_id, -1) != -99 AND ? IS NOT NULL GROUP BY item_id`);",
+    erwartet: 'Die Glocke: was mit der Liste mitreist'
+  },
+  {
+    nr: '287', name: 'Bewertungen ohne Zeitpunkt gelten wieder als neu',
+    datei: 'server.js',
+    suche: "    WHERE gesetzt_am IS NOT NULL AND gesetzt_am > ? AND value > 0",
+    ersatz: "    WHERE IFNULL(gesetzt_am, '9999-12-31') > ? AND value > 0",
+    erwartet: 'Die Glocke: was mit der Liste mitreist'
+  },
+  {
+    nr: '288', name: 'Der Zeitpunkt zieht beim Ueberschreiben nicht mehr mit',
+    datei: 'server.js',
+    suche: "              DO UPDATE SET value = excluded.value, gesetzt_am = excluded.gesetzt_am`)",
+    ersatz: "              DO UPDATE SET value = excluded.value`)",
+    erwartet: 'Die Bewertung traegt ihren Zeitpunkt'
+  },
+  {
+    /* EIN PUNKT FUER EIN EREIGNIS, EINE ZAHL FUER EINEN ZUSTAND. Die beiden
+       Zeichen werden nirgends vertauscht. */
+    nr: '289', name: 'Der Punkt an der Glocke wird wieder eine Zahl',
+    datei: 'public/app.js',
+    suche: "  amElement('glocke-punkt', el => { el.hidden = !neu; });",
+    ersatz: "  amElement('glocke-punkt', el => { el.textContent = String(neu); el.hidden = !neu; });",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    nr: '290', name: 'Der Zaehler „Offen" zeigt auch die Null',
+    datei: 'public/app.js',
+    suche: "    el.textContent = offen ? String(offen) : '';\n    el.hidden = !offen;",
+    ersatz: "    el.textContent = String(offen);\n    el.hidden = false;",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    nr: '291', name: 'Das Oeffnen der Tafel zieht den Bezugspunkt nicht nach',
+    datei: 'public/app.js',
+    suche: "  api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});",
+    ersatz: "  void 0;",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    /* EINE MELDUNG, DIE MAN NICHT ANSPRINGEN KANN, IST EINE MITTEILUNG OHNE
+       WEG -- das ist der halbe Gewinn der Tafel. */
+    nr: '292', name: 'Die Zeilen der Tafel fuehren nicht mehr zum Eintrag',
+    datei: 'public/app.js',
+    suche: "    a.href = `#/item/${it.id}`;\n    a.dataset.mid = String(it.id);",
+    ersatz: "    a.href = '#/';\n    a.dataset.mid = String(it.id);",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    nr: '293', name: 'Die Kennzahlen nennen die Verfahren nicht mehr',
+    datei: 'server.js',
+    suche: "    verfahren: { ...verfahren(), passwoerter: 'scrypt' },",
+    ersatz: "",
+    erwartet: 'Der Versions-Fingerprint'
+  },
+  {
+    nr: '294', name: 'Die Kennzahlen nennen zusaetzlich die Paketversion',
+    datei: 'server.js',
+    suche: "    verfahren: { ...verfahren(), passwoerter: 'scrypt' },",
+    ersatz: "    verfahren: { ...verfahren(), passwoerter: 'scrypt',\n      paket: require('./package.json').dependencies['better-sqlite3-multiple-ciphers'] },",
+    erwartet: 'Der Versions-Fingerprint'
+  },
+  {
+    nr: '295', name: 'Das Journal wird behauptet statt abgelesen',
+    datei: 'db.js',
+    suche: "    journal: String(db.pragma('journal_mode', { simple: true }) || '').toUpperCase()",
+    ersatz: "    journal: 'DELETE'",
+    erwartet: 'Der Versions-Fingerprint'
+  },
+  {
+    /* DER GEFAEHRLICHSTE KNOPF DER ANLAGE, wenn er ohne Frage loescht. */
+    nr: '296', name: 'Der Papierkorb loescht wieder ohne Rueckfrage',
+    datei: 'public/app.js',
+    suche: "    if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird unwiderruflich entfernt.`)) return false;",
+    ersatz: "    if (false) return false;",
+    erwartet: 'Der Papierkorb im Vollbild'
+  },
+  {
+    nr: '297', name: 'Das Vollbild bekommt seinen Papierkorb nicht',
+    datei: 'public/app.js',
+    suche: "    ${loeschen ? `<button class=\"lb-btn weg\" title=\"Löschen\">${ICON_PAPIERKORB}</button>` : ''}",
+    ersatz: "    ${false ? `<button class=\"lb-btn weg\" title=\"Löschen\">${ICON_PAPIERKORB}</button>` : ''}",
+    erwartet: 'Der Papierkorb im Vollbild'
+  },
+  {
+    nr: '298', name: 'Der Vorschaustreifen im Vollbild zieht nach dem Loeschen nicht nach',
+    datei: 'public/app.js',
+    suche: "    baueStreifen();\n    show();",
+    ersatz: "    show();",
+    erwartet: 'Der Papierkorb im Vollbild'
+  },
+  {
+    /* EIN WERKZEUG, DAS SEINEN EIGENEN FUND NICHT SEHEN KANN, IST SCHLIMMER
+       ALS KEINES (Stolperstein 213). */
+    nr: '299', name: 'Die Groessenmessung findet gar nichts mehr',
+    datei: 'pruefung.js',
+    suche: "    return gefunden.sort((a, b) => b.zeilen - a.zeilen || a.name.localeCompare(b.name));",
+    ersatz: "    return [];",
+    erwartet: 'Die Groesse der Funktionen wird gemessen'
+  },
+  {
+    nr: '300', name: 'Der Nummernfilter der Gegenprobe greift wieder in die Namen',
+    datei: 'gegenprobe.js',
+    suche: "  if (/^\\d+$/.test(a)) return r.nr.toLowerCase() === a;",
+    ersatz: "  if (false) return r.nr.toLowerCase() === a;",
+    erwartet: 'Die Gegenproben greifen'
+  },
+
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
@@ -2628,6 +2851,11 @@ function baueZurueck(kopie, r) {
    "  ✓ <Name>" bzw. "  ✗ <Name>". Gelesen wird genau das -- und die Schlusszeile
    daneben, denn ein Lauf, der ABREISST, sieht in den roten Punkten allein
    genauso aus wie einer, der sauber durchlaeuft und nichts findet. */
+/* DER NAME DER EINEN SELBSTPROBE, die bei JEDEM gefahrenen Rueckbau rot wird.
+   Sie steht hier als Konstante und nicht als String mitten im Filter:
+   aendert sich ihr Name im Pruefstand, faellt es an einer Stelle auf. */
+const SELBSTPROBE = 'Jeder Suchtext kommt in seiner Datei genau einmal vor';
+
 function leseLauf(ausgabe) {
   const rot = [];
   let gruppe = '(vor der ersten Gruppe)';
@@ -2654,8 +2882,15 @@ function leseLauf(ausgabe) {
        NICHT SEHEN: `rot.length` ist nie null, und „0 STUMM" waere eine
        Auskunft ueber nichts. Genau so ist Rueckbau 265 in 0.15.0 durch die
        Meldung gerutscht -- gefunden wurde er beim Lesen der Tabelle von Hand
-       (Stolperstein 213). */
-    inhaltlichRot: rot.filter(t => t.gruppe !== 'Die Gegenproben greifen'),
+       (Stolperstein 213).
+       AUSGEBLENDET WIRD DIE EINE ZEILE UND NICHT DIE GANZE GRUPPE. Bis 0.16.0
+       fiel die Gruppe als Ganzes weg -- und damit jeder Rueckbau, dessen
+       eigene Zusagen ausgerechnet DORT stehen: der Nummernfilter des Werkzeugs
+       (Rueckbau 300) machte zwei Pruefungen sauber rot und wurde trotzdem als
+       STUMM gemeldet. Ein zu grober Filter macht aus einem Beleg einen Fund
+       und schickt den naechsten Leser auf eine Suche nach nichts. */
+    inhaltlichRot: rot.filter(t => !(t.gruppe === 'Die Gegenproben greifen' &&
+      t.name === SELBSTPROBE)),
     durchgelaufen: Boolean(schluss),
     bestanden: schluss ? Number(schluss[1]) : null,
     gesamt: schluss ? Number(schluss[2]) : null,
@@ -2802,11 +3037,31 @@ function schreibeTabelle(ergebnisse) {
    der Stunden dauert. Drei davon lagen so fuenf Runden lang unbemerkt.
    NUR BEIM DIREKTEN AUFRUF WIRD GEFAHREN: `require('./gegenprobe')` liefert
    die Liste und startet keinen einzigen Server. */
+/* ---- WELCHER RUECKBAU AUF EIN ARGUMENT PASST ----
+   GREIFT EIN ARGUMENT ALS NUMMER, GILT NUR DIE NUMMER. Vorher stand hier ein
+   ODER: Nummer gleich ODER Name enthaelt -- und damit fuhr `node gegenprobe.js
+   2 256` neben Rueckbau 256 auch die 83 mit, weil deren Name „SHA-256 statt
+   SHA-1" die Zeichenfolge 256 traegt. Der zweite Lauf stand dann stumm in der
+   Tabelle, ohne dass ihn jemand angefordert haette.
+   EIN NAME, DER WIE EINE NUMMER AUSSIEHT, IST KEINER: wer nach Text sucht,
+   schreibt Text. Ein Argument aus lauter Ziffern meint die Nummer und sonst
+   nichts -- passt keine, ist das ein Fehler und kein stiller Beifang.
+   Die Wortnummern (W2, W5, W6) sind keine reinen Ziffernfolgen und gehen
+   deshalb weiter ueber beide Wege. */
+const passtRueckbau = (r, argument) => {
+  const a = String(argument).toLowerCase();
+  if (/^\d+$/.test(a)) return r.nr.toLowerCase() === a;
+  return r.nr.toLowerCase() === a || r.name.toLowerCase().includes(a);
+};
+
 /* leseLauf GEHT MIT HINAUS, damit der Pruefstand die Regel „was gilt als
    stumm" an gestellten Ausgaben nachsehen kann -- in Millisekunden statt in
    Minuten. Ein Werkzeug, das seinen eigenen Fund nicht melden kann, ist
-   schlimmer als keines (Stolperstein 213). */
-module.exports = { RUECKBAUTEN, leseLauf };
+   schlimmer als keines (Stolperstein 213).
+   passtRueckbau EBENSO: die Regel, welches Argument welchen Rueckbau meint,
+   laesst sich damit an gestellten Faellen nachsehen, statt Minuten lang einen
+   Lauf zu fahren, um zu sehen, WAS er gefahren hat. */
+module.exports = { RUECKBAUTEN, leseLauf, passtRueckbau };
 if (require.main !== module) return;
 
 (async function haupt() {
@@ -2819,9 +3074,7 @@ if (require.main !== module) return;
     process.exit(1);
   }
   const liste = argumente.length
-    ? RUECKBAUTEN.filter(r => argumente.some(a =>
-        r.nr.toLowerCase() === a.toLowerCase() ||
-        r.name.toLowerCase().includes(a.toLowerCase())))
+    ? RUECKBAUTEN.filter(r => argumente.some(a => passtRueckbau(r, a)))
     : RUECKBAUTEN;
   /* Ein Filter, auf den KEIN Rueckbau passt, ist ein Fehler und kein leerer
      Lauf -- sonst meldete ein Tippfehler wortlos Erfolg. Dieselbe Regel wie
