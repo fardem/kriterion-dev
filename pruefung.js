@@ -3471,11 +3471,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
      in der Oberflaechengruppe „Die Rechnung hinter der Kopfzahl". */
   gruppe('Der Rechenweg reist mit');
 
-  await gSetz('Optik', 2); await gSetz('Haptik', 1); await gSetz('Preis', 1);
+  /* DIE GEWICHTE SIND SO GEWAEHLT, DASS DER QUOTIENT NICHT AUFGEHT -- 0,3
+     statt 1 macht den Teiler 3,3 statt 4. MIT 2/1/1 TEILTE ALLES DURCH VIER,
+     und alles durch vier endet nach zwei Stellen: eine Auslieferung, die auf
+     zwei Stellen rundet, waere von der ungerundeten nicht zu unterscheiden
+     gewesen, und die Zusage „ungerundet" haette gar nicht scheitern koennen
+     (Stolperstein 189). Gefunden hat das nicht der Pruefstand, sondern der
+     stumme Rueckbau 282. */
+  await gSetz('Optik', 2); await gSetz('Haptik', 1); await gSetz('Preis', 0.3);
   const rwSicht = (await eRuf('cookie-e-eins', 'GET', '/api/items/1')).inhalt;
   const rw = rwSicht?.rechenweg;
   pruefe('Die Antwort am Eintrag traegt einen Rechenweg', !!rw && Array.isArray(rw.zeilen),
     JSON.stringify(rw));
+  /* UND DIE LAGE WIRD SELBST GEPRUEFT, nicht bloss angenommen: taugt sie
+     nicht mehr, wird DIESE Zeile rot statt der Zusage darunter stumm. */
+  pruefe('Die Prueflage taugt: der rohe Quotient hat mehr als zwei Stellen',
+    typeof rw?.roh === 'number' && Math.round(rw.roh * 100) / 100 !== rw.roh,
+    `${rw?.roh}`);
   /* NUR DIE BEWERTETEN KRITERIEN. "Service" hat keine Stimme und geht in die
      Rechnung gar nicht ein -- stuende es im Weg, waere die Aufstellung eine
      andere Rechnung als die Zahl darueber. */
@@ -24036,6 +24048,18 @@ async function pruefeOberflaeche() {
     gleich(dEig.reiter, ['#/system/persoenlich', '#/system/bestand', '#/system/zugaenge',
                          '#/system/datenbank', '#/system/anlage']),
     dEig.reiter.join(' · '));
+  /* UND ER IST EIN VERWEIS UND KEIN KNOPF. Die Zeile darueber liest ein
+     ATTRIBUT, und ein `href` laesst sich an jedes Element schreiben -- ein
+     <button href="#/system/bestand"> bestuende sie anstandslos und koennte
+     doch nichts davon: nicht kopieren, nicht in einem neuen Fenster oeffnen,
+     nicht mit der Zurueck-Taste verlassen. GEFUNDEN HAT DAS NICHT DER
+     PRUEFSTAND, SONDERN DER STUMME RUECKBAU 276: er tauschte genau diese
+     eine Marke, und keine Pruefung wurde rot (Stolperstein 50 -- die Regel
+     lag nicht dort, wo sie zu wirken schien). */
+  pruefe('Und er ist ein Verweis und kein Knopf',
+    [...rEig.w.document.querySelectorAll('.sys-reiter-k')].length === 5 &&
+    [...rEig.w.document.querySelectorAll('.sys-reiter-k')].every(a => a.tagName === 'A'),
+    [...rEig.w.document.querySelectorAll('.sys-reiter-k')].map(a => a.tagName).join(' · '));
   /* DIE ADRESSE ZEIGT AUF EINEN ABSCHNITT, DEN ES FUER IHN NICHT GIBT.
      Sie faellt auf den ersten sichtbaren zurueck -- und WIRD DABEI
      NACHGEZOGEN: stuende in der Adresse weiter "datenbank", waehrend
