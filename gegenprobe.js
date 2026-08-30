@@ -2852,7 +2852,7 @@ function baueZurueck(kopie, r) {
    daneben, denn ein Lauf, der ABREISST, sieht in den roten Punkten allein
    genauso aus wie einer, der sauber durchlaeuft und nichts findet. */
 /* DER NAME DER EINEN SELBSTPROBE, die bei JEDEM gefahrenen Rueckbau rot wird.
-   Sie steht hier als Konstante und nicht als Zeichenkette mitten im Filter:
+   Sie steht hier als Konstante und nicht als String mitten im Filter:
    aendert sich ihr Name im Pruefstand, faellt es an einer Stelle auf. */
 const SELBSTPROBE = 'Jeder Suchtext kommt in seiner Datei genau einmal vor';
 
