@@ -23,6 +23,14 @@ const { spawn, spawnSync, execFileSync } = require('child_process');
 const Database = require('better-sqlite3-multiple-ciphers');
 const anh = require('./anhaenge');
 
+/* DIE README ALS EIN LANGER STRING, EINMAL GELESEN. Gebraucht wird sie
+   ueberall dort, wo ein Text die Oberflaeche VERLAESST: was aus der Anlage
+   faellt und nirgends sonst steht, ist verloren und nicht umgezogen. Die
+   Zwischenraeume sind eingeebnet, damit ein Satz ueber zwei Zeilen genauso
+   gefunden wird wie einer in einer. */
+const liesmichText = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8')
+  .replace(/\s+/g, ' ');
+
 /* ================= Kleiner Pruefrahmen ================= */
 /* EIN NAMENSFILTER AUF DER AUSGABE, NICHT AUF DER ARBEIT.
 
@@ -661,6 +669,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Es gehört zu dieser package.json',
     sperre.name === paketJson.name && sperre.version === paketJson.version,
     `${sperre.name} ${sperre.version} gegen ${paketJson.name} ${paketJson.version}`);
+  /* DIE NUMMER STEHT IM LOCKFILE ZWEIMAL -- 0.17.0. Einmal in der Wurzel und
+     ein zweites Mal in `packages[""]`, dem Eintrag des Pakets selbst. `npm`
+     schreibt beide, von Hand zieht man leicht nur die erste nach: die Zeile
+     darueber bliebe dann gruen, und im Lockfile stuende an einer Stelle noch
+     die alte Version.
+     ERST DER GEGENSTAND (Stolperstein 81): fehlt der Eintrag ganz, ist der
+     Vergleich darunter wahr fuer nichts. */
+  pruefe('Und es traegt den Eintrag des Pakets selbst',
+    !!(sperre.packages && sperre.packages['']), JSON.stringify(Object.keys(sperre.packages || {}).slice(0, 3)));
+  pruefe('Die Version steht dort ein zweites Mal und stimmt mit der ersten ueberein',
+    sperre.packages?.['']?.version === paketJson.version,
+    `${sperre.packages?.['']?.version} gegen ${paketJson.version}`);
   pruefe('Es nennt jede Abhängigkeit der package.json',
     Object.keys(paketJson.dependencies).every(n => sperre.packages && sperre.packages['node_modules/' + n]),
     Object.keys(paketJson.dependencies).filter(n => !(sperre.packages || {})['node_modules/' + n]).join(', '));
@@ -2741,15 +2761,36 @@ const freigabeHaupt = (zweck, ziel = null) =>
      neuer Rechtefrage. `filters` bleibt, was es war, die zuletzt benutzte
      Stellung; die Ansichten stehen daneben und ersetzen sie nicht.
      NEUN SEIT 0.16.0: `glockeGesehen` kommt dazu, der Bezugspunkt der Glocke.
-     Er steht NEBEN `zuletztGesehen` und nicht an seiner Stelle -- die beiden
-     beantworten verschiedene Fragen und fallen zu verschiedenen Zeitpunkten:
+     Er stand NEBEN `zuletztGesehen` und nicht an seiner Stelle -- die beiden
+     beantworteten verschiedene Fragen und fielen zu verschiedenen Zeitpunkten:
      der eine beim Verlassen der Uebersicht, der andere erst beim Oeffnen der
-     Tafel. Ein gemeinsamer Merker loeschte die Glocke bei jedem Blick in die
-     Uebersicht mit. */
+     Tafel.
+     WIEDER ACHT SEIT 0.17.0: `zuletztGesehen` faellt weg. Er trug die Pille
+     „Neu seit ...", und die ist gestrichen -- zwei Anzeigen fuer dieselbe
+     Frage sind eine zu viel. NACHGEZAEHLT UND NICHT ANGENOMMEN: der Auftrag
+     nannte die Moeglichkeit, entschieden hat sie diese Liste.
+     VORHANDENE ZEILEN IN user_settings BLEIBEN STEHEN und werden nicht mehr
+     gelesen. Eine Migration, die persoenliche Zeilen loescht, waere teurer als
+     die Zeilen selbst -- und sie waere ein Schema-Eingriff in einer Runde, die
+     ausdruecklich keiner ist. */
   const dSoll = ['ansichten', 'bloecke', 'filters', 'glockeGesehen', 'linkZeilen', 'schrift',
-                 'suchNamen', 'zeitleiste', 'zuletztGesehen'];
-  pruefe('server.js kennt genau die neun persoenlichen Schluessel',
+                 'suchNamen', 'zeitleiste'];
+  pruefe('server.js kennt genau die acht persoenlichen Schluessel',
     gleich(dListeSrv, dSoll), JSON.stringify(dListeSrv));
+  /* UND `zuletztGesehen` STEHT WIRKLICH NIRGENDS MEHR IN server.js -- ausser
+     als Vermerk in einem Kommentar. Ohne diese Zeile bliebe die Aufzaehlung
+     darueber gruen, waehrend der Getter und der Schreibweg weiterlebten
+     (Stolperstein 201: eine zurueckgenommene Entscheidung kommt sonst wieder). */
+  pruefe('Und `zuletztGesehen` steht in keiner Zeile Code mehr',
+    !/zuletztGesehen/.test(srvQuelle.replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '')),
+    (srvQuelle.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+      .match(/^.*zuletztGesehen.*$/m) || ['(keine)'])[0]);
+  /* DER VERMERK BLEIBT ABER STEHEN. Eine Entscheidung, die man zurueckgenommen
+     hat, kommt sonst in zwei Jahren wieder (Stolperstein 201). */
+  pruefe('Der Vermerk ueber den weggefallenen Merker steht als Kommentar da',
+    /zuletztGesehen/.test(srvQuelle) && /Neu seit/.test(srvQuelle),
+    'der Vermerk fehlt');
 
   /* Der Waechter ueber den Quelltext. Dieselbe Ueberlegung wie bei detail()
      und aus demselben Grund die EINZIGE Schicht, die eine vergessene
@@ -2867,31 +2908,41 @@ const freigabeHaupt = (zweck, ziel = null) =>
     dEins.filters?.tested === 'yes' && dZwei.filters?.tested === 'no',
     JSON.stringify([dEins.filters, dZwei.filters]));
 
-  /* Der Merkzeitpunkt, und er ist der einzige der sieben, der seinen Wert
-     NICHT vom Aufrufer bekommt: geschickt wird ein Signal, gespeichert wird
-     die Serveruhr. Ein mitgeschickter Zeitstempel waere eine Behauptung --
-     damit liesse sich jeder Bestand nach Belieben als ungesehen erklaeren.
+  /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT (Stolperstein 201): bis dahin
+     stand hier derselbe Block fuer `zuletztGesehen`, den Merker der Pille
+     „Neu seit ...". Die Pille ist gestrichen; die Zusagen wandern deshalb auf
+     `glockeGesehen`, denn sie galten nie der Pille, sondern der BAUFORM --
+     Signal statt Zeitangabe, Serveruhr statt Aufruferuhr, um eine Sekunde
+     nachgestellt, und persoenlich.
+     ER IST DER EINZIGE DER ACHT, DER SEINEN WERT NICHT VOM AUFRUFER BEKOMMT:
+     geschickt wird ein Signal, gespeichert wird die Serveruhr. Ein
+     mitgeschickter Zeitstempel waere eine Behauptung -- damit liesse sich jeder
+     Bestand nach Belieben als ungesehen erklaeren.
      ERST DIE ABWESENHEIT, DANN DAS VORHANDENSEIN: vor dem ersten Verlassen
      der Uebersicht steht der Schluessel gar nicht in der Tabelle, und die
      Antwort traegt null. Ohne diese Zeile bliebe offen, ob der Server ihn
-     nicht schon beim Lesen anlegt -- dann waere "neu seit" beim ersten Besuch
-     immer leer. */
+     nicht schon beim Lesen anlegt -- dann laeutete die Glocke beim ersten
+     Besuch fuer den ganzen Bestand. */
   const dVorher = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt;
-  pruefe('Vor dem ersten Verlassen der Uebersicht gibt es keinen Merkzeitpunkt',
-    dVorher.zuletztGesehen === null, JSON.stringify(dVorher.zuletztGesehen));
+  pruefe('Vor dem ersten Verlassen der Uebersicht gibt es keinen Bezugspunkt',
+    dVorher.glockeGesehen === null, JSON.stringify(dVorher.glockeGesehen));
+  /* UND DEN MERKER DER PILLE GIBT ES GAR NICHT MEHR. Ohne diese Zeile bliebe
+     offen, ob der Server ihn weiter fuehrt und nur niemand ihn liest. */
+  pruefe('Und den Merker der gestrichenen Pille gibt es nicht mehr',
+    !('zuletztGesehen' in dVorher), JSON.stringify(Object.keys(dVorher).sort()));
   const dGesehen = await dRuf('cookie-d-eins', 'PUT', '/api/settings',
-    { zuletztGesehen: '1999-01-01 00:00:00' });
+    { glockeGesehen: '1999-01-01 00:00:00' });
   const dNachher = (await dRuf('cookie-d-eins', 'GET', '/api/settings')).inhalt;
   pruefe('Nach dem Verlassen steht er da',
-    dGesehen.status === 200 && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dNachher.zuletztGesehen || ''),
-    JSON.stringify(dNachher.zuletztGesehen));
+    dGesehen.status === 200 && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dNachher.glockeGesehen || ''),
+    JSON.stringify(dNachher.glockeGesehen));
   pruefe('Und zwar von der Serveruhr, nicht aus dem Ruf',
-    dNachher.zuletztGesehen !== '1999-01-01 00:00:00' &&
-    dNachher.zuletztGesehen > '2020-01-01 00:00:00',
-    JSON.stringify(dNachher.zuletztGesehen));
+    dNachher.glockeGesehen !== '1999-01-01 00:00:00' &&
+    dNachher.glockeGesehen > '2020-01-01 00:00:00',
+    JSON.stringify(dNachher.glockeGesehen));
   /* DAS FENSTER IST NACHGESTELLT (Stolperstein 60): datetime('now') loest nur
      Sekunden auf. Entstuende ein Kommentar in derselben Sekunde, in der jemand
-     die Uebersicht verlaesst, traege sein Eintrag genau diesen Zeitstempel und
+     die Tafel oeffnet, traege sein Eintrag genau diesen Zeitstempel und
      gaelte danach nie als neu. Geprueft wird an der Sekunde selbst: der
      gespeicherte Wert liegt VOR der Uhr des Servers, nicht auf ihr. */
   const dUhr = (() => {
@@ -2900,15 +2951,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.close();
     return t;
   })();
-  pruefe('Der Merkzeitpunkt liegt vor der Serveruhr, nicht auf ihr',
-    dNachher.zuletztGesehen < dUhr, `gemerkt ${dNachher.zuletztGesehen}, Uhr ${dUhr}`);
+  pruefe('Der Bezugspunkt liegt vor der Serveruhr, nicht auf ihr',
+    dNachher.glockeGesehen < dUhr, `gemerkt ${dNachher.glockeGesehen}, Uhr ${dUhr}`);
   pruefe('Und hoechstens eine Sekunde davor',
-    (new Date(dUhr.replace(' ', 'T') + 'Z') - new Date(dNachher.zuletztGesehen.replace(' ', 'T') + 'Z'))
+    (new Date(dUhr.replace(' ', 'T') + 'Z') - new Date(dNachher.glockeGesehen.replace(' ', 'T') + 'Z'))
       <= 2000,
-    `gemerkt ${dNachher.zuletztGesehen}, Uhr ${dUhr}`);
+    `gemerkt ${dNachher.glockeGesehen}, Uhr ${dUhr}`);
   pruefe('Er gehoert dem, der ihn gesetzt hat',
-    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen === null,
-    JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen));
+    (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.glockeGesehen === null,
+    JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.glockeGesehen));
 
   /* DER SCHLUESSEL MUSS IN PERSOENLICHE_SCHLUESSEL STEHEN, und das ist keine
      Formsache. PUT /api/settings leitet aus dieser Liste ab, was jeder fuer
@@ -2923,19 +2974,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Der zweite Zugang traegt wirklich keine Adminrolle',
     (await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin === false,
     JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.istAdmin));
-  /* DER BEZUGSPUNKT DER GLOCKE GEHT DENSELBEN WEG -- er ist seit 0.16.0 der
-     neunte persoenliche Schluessel und faellt beim Verlassen der Uebersicht
-     zusammen mit dem Merkzeitpunkt. Gesetzt wird er hier ausdruecklich bei
-     BEIDEN Zugaengen, damit die Zaehlung weiter unten ihn wirklich in der
-     persoenlichen Tabelle findet. */
+  /* GESETZT WIRD BEI BEIDEN ZUGAENGEN, damit die Zaehlung weiter unten den
+     Bezugspunkt wirklich in der persoenlichen Tabelle findet. */
   await dRuf('cookie-d-eins', 'PUT', '/api/settings', { glockeGesehen: 1 });
-  await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { glockeGesehen: 1 });
-  const dGesehenZwei = await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { zuletztGesehen: 1 });
+  const dGesehenZwei = await dRuf('cookie-d-zwei', 'PUT', '/api/settings', { glockeGesehen: 1 });
   pruefe('Auch ohne Adminrolle merkt sich jeder seinen eigenen Zeitpunkt',
     dGesehenZwei.status === 200, `Status ${dGesehenZwei.status} / ${JSON.stringify(dGesehenZwei.inhalt)}`);
   pruefe('Und er steht danach bei ihm',
-    /^\d{4}-/.test((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen || ''),
-    JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.zuletztGesehen));
+    /^\d{4}-/.test((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.glockeGesehen || ''),
+    JSON.stringify((await dRuf('cookie-d-zwei', 'GET', '/api/settings')).inhalt.glockeGesehen));
 
   // Und die Blockanordnung, die eine eigene Bauform hat (verschachteltes
   // Objekt statt Zahl) und deshalb eigens geprueft wird.
@@ -2991,7 +3038,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const dFehlend = dSoll.filter(k => !persoenlichDa(k, 1));
   pruefe('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dFalschGlobal.length === 0, `global gefunden: ${JSON.stringify(dFalschGlobal)}`);
-  pruefe('Alle neun stehen beim Benutzer, der sie gesetzt hat',
+  pruefe('Alle acht stehen beim Benutzer, der sie gesetzt hat',
     dFehlend.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dFehlend)}`);
   pruefe('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('sucheAktiv') && !persoenlichDa('sucheAktiv', 1),
@@ -3010,9 +3057,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      eine, der Zweite keine, und die Zahl bleibt trotzdem stehen. Waeren sie
      versehentlich global, stuenden sie hier als weitere Zeile.
      SECHS SEIT 0.16.0: der Bezugspunkt der Glocke kommt dazu -- auch er
-     gehoert dem, der ihn gesetzt hat. */
+     gehoert dem, der ihn gesetzt hat.
+     WIEDER FUENF SEIT 0.17.0: der Merkzeitpunkt der gestrichenen Pille faellt
+     weg. Die Zahl steht hier ausdruecklich und wird nicht aus dSoll
+     abgeleitet -- sie zaehlt, was der Zweite WIRKLICH gesetzt hat, und das ist
+     etwas anderes als die Liste der moeglichen Schluessel. */
   pruefe('Die beiden Benutzer teilen sich keine Zeile',
-    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 6,
+    dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 5,
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 2').all()));
   pruefe('Und die gespeicherte Ansicht des Ersten steht nicht beim Zweiten',
     persoenlichDa('ansichten', 1) && !persoenlichDa('ansichten', 2),
@@ -3531,6 +3582,39 @@ const freigabeHaupt = (zweck, ziel = null) =>
     Math.abs(rw?.roh - rw?.summe / rw?.teiler) < 1e-12 &&
     Math.round(rw?.roh * 10) / 10 === rw?.ergebnis,
     `${rw?.roh} -> ${rw?.ergebnis}`);
+  /* ---- DIE VERGLEICHSZAHL OHNE GEWICHTE — 0.17.0 ----
+     WAS KAEME HERAUS, WENN ALLE KRITERIEN GLEICH ZAEHLTEN? Sie entsteht in
+     DERSELBEN Schleife und aus DERSELBEN Menge wie die Zahl darueber -- eine
+     zweite Rechenstelle im Browser waere genau die zweite Wahrheit, die diese
+     Anlage nirgends duldet (Stolperstein 217).
+     DIE PRUEFLAGE WIRD WIEDER SELBST GEPRUEFT (Stolperstein 224): waeren beide
+     Zahlen gleich, belegte die Gruppe nichts ueber den Unterschied -- dann
+     wird DIESE Zeile rot und keine Zusage darunter stumm. */
+  pruefe('Der Rechenweg traegt die Zahl ohne Gewichte',
+    typeof rw?.gleichErgebnis === 'number' && typeof rw?.gleichRoh === 'number',
+    JSON.stringify([rw?.gleichErgebnis, rw?.gleichRoh]));
+  pruefe('Die Prueflage taugt: gewichtet und ungewichtet ergeben Verschiedenes',
+    rw?.gleichErgebnis !== rw?.ergebnis,
+    `${rw?.ergebnis} gegen ${rw?.gleichErgebnis}`);
+  /* IHR TEILER IST DIE ZAHL DER BEWERTETEN KRITERIEN und nicht die aller:
+     sonst verglichen sich zwei Rechnungen ueber verschiedene Mengen, und der
+     Unterschied saehe nach Gewichtung aus, wo er keiner ist. */
+  pruefe('Ihr Teiler ist die Zahl der bewerteten Kriterien',
+    rw?.gleichTeiler === (rw?.zeilen || []).length,
+    `${rw?.gleichTeiler} gegen ${(rw?.zeilen || []).length}`);
+  const rwGleichSumme = (rw?.zeilen || []).reduce((n, z) => n + z.schnitt, 0);
+  pruefe('Ihre Summe ist die der Kriterienschnitte, ohne jedes Gewicht',
+    Math.abs(rw?.gleichSumme - rwGleichSumme) < 1e-9,
+    `${rw?.gleichSumme} gegen ${rwGleichSumme}`);
+  /* UND SIE GEHT NICHT UEBER DIE GEWICHTE. Ohne diese Zeile bliebe die
+     Gruppe auch dann gruen, wenn jemand die Gewichte doch wieder einrechnete
+     und der „Vergleich" dieselbe Rechnung ein zweites Mal waere. */
+  pruefe('Und sie rechnet wirklich ohne Gewichte',
+    Math.abs(rw?.gleichRoh - rwGleichSumme / (rw?.zeilen || []).length) < 1e-12,
+    `${rw?.gleichRoh}`);
+  pruefe('Gerundet wird auch bei ihr genau einmal',
+    Math.round(rw?.gleichRoh * 10) / 10 === rw?.gleichErgebnis,
+    `${rw?.gleichRoh} -> ${rw?.gleichErgebnis}`);
   /* IN DER UEBERSICHT STEHT ER AUSDRUECKLICH NICHT. Tausend Eintraege
      traegen tausend Aufstellungen fuer eine Zahl, die niemand aufklappt. */
   const rwListe = (await eRuf('cookie-e-eins', 'GET', '/api/items')).inhalt;
@@ -3591,8 +3675,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
      BEIDE ZAHLEN HAENGEN AN EINER ANTWORT, DIE ES OHNEHIN GIBT. Genau daran
      war der Zaehler „Offen 7" in 0.8.60 gescheitert: er haette bei jedem
      Seitenaufbau einen eigenen Weg gefragt.
-     EINE LAGE MIT EINEM EINZIGEN ZUGANG KOENNTE HIER NICHTS BELEGEN --
-     „fremd" gaebe es nicht (Stolperstein 189). Diese Lage hat drei. */
+     SEIT 0.17.0 SIND ES DREI ANGABEN STATT EINER: Kommentare und Bewertungen
+     getrennt, dazu die Verfasser. Eine SUMME steht ausdruecklich nicht dabei --
+     sie folgt aus den beiden Zahlen, und eine Summe neben ihren Teilen waere
+     eine zweite Wahrheit (Stolperstein 47).
+     UND SIE MELDET VON ALLEN, die eigenen Beitraege eingeschlossen. Bis 0.16.0
+     fielen die eigenen heraus; damit meldete die Glocke einem Betreiber, der
+     ALLEIN arbeitet, nie etwas. Der Satz „Eigene Beitraege stehen nie hier"
+     ist damit zurueckgenommen -- und dieser Vermerk gehoert dazu, sonst kommt
+     die Entscheidung wieder (Stolperstein 201).
+     DIESE LAGE HAT DREI ZUGAENGE, weil sie beides zeigen muss: dass Fremdes
+     zaehlt und dass Eigenes ebenfalls zaehlt. Bei einem Zugang liesse sich das
+     eine vom anderen nicht unterscheiden (Stolperstein 189). */
   gruppe('Die Glocke: was mit der Liste mitreist');
 
   const glListe = async (cookie) => (await eRuf(cookie, 'GET', '/api/items')).inhalt;
@@ -3601,7 +3695,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* OHNE BEZUGSPUNKT GIBT ES KEINE GLOCKE. Das Feld faellt GANZ weg und steht
      nicht auf 0 -- so unterscheidet die Oberflaeche „nichts Neues" von „es
      gibt keinen Bezugspunkt". */
-  pruefe('Ohne Bezugspunkt faellt neuFremd ganz aus der Antwort',
+  pruefe('Ohne Bezugspunkt fallen die drei Angaben ganz aus der Antwort',
+    (await glListe('cookie-e-eins')).every(i =>
+      !('neuKommentare' in i) && !('neuBewertungen' in i) && !('neuVon' in i)),
+    JSON.stringify((await glListe('cookie-e-eins'))
+      .map(i => [i.neuKommentare, i.neuBewertungen, i.neuVon])));
+  /* UND DAS ALTE FELD GIBT ES NICHT MEHR. Ohne diese Zeile bliebe offen, ob
+     die Summe daneben weiterlebt -- und dann stuenden Teile und Summe
+     nebeneinander (Stolperstein 47). */
+  pruefe('Und eine Summe traegt die Antwort ausdruecklich nicht',
     (await glListe('cookie-e-eins')).every(i => !('neuFremd' in i)),
     JSON.stringify((await glListe('cookie-e-eins')).map(i => i.neuFremd)));
   const glStand0 = (await eRuf('cookie-e-eins', 'GET', '/api/settings')).inhalt;
@@ -3637,52 +3739,107 @@ const freigabeHaupt = (zweck, ziel = null) =>
     (await eRuf('cookie-e-zwei', 'GET', '/api/settings')).inhalt?.glockeGesehen === null,
     JSON.stringify((await eRuf('cookie-e-zwei', 'GET', '/api/settings')).inhalt?.glockeGesehen));
 
-  pruefe('Mit Bezugspunkt steht neuFremd an jedem Eintrag',
-    (await glListe('cookie-e-eins')).every(i => typeof i.neuFremd === 'number'),
-    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.neuFremd)));
-  pruefe('Und es ist zunaechst ueberall null',
-    (await glListe('cookie-e-eins')).every(i => i.neuFremd === 0),
-    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.neuFremd)));
+  pruefe('Mit Bezugspunkt stehen beide Zahlen an jedem Eintrag',
+    (await glListe('cookie-e-eins')).every(i =>
+      typeof i.neuKommentare === 'number' && typeof i.neuBewertungen === 'number' &&
+      Array.isArray(i.neuVon)),
+    JSON.stringify((await glListe('cookie-e-eins'))
+      .map(i => [i.neuKommentare, i.neuBewertungen, i.neuVon])));
+  pruefe('Und sie sind zunaechst ueberall null',
+    (await glListe('cookie-e-eins')).every(i =>
+      i.neuKommentare === 0 && i.neuBewertungen === 0 && i.neuVon.length === 0),
+    JSON.stringify((await glListe('cookie-e-eins'))
+      .map(i => [i.neuKommentare, i.neuBewertungen])));
   /* DIE ALTEN BEWERTUNGEN OHNE ZEITPUNKT ZAEHLEN NICHT MIT -- sonst laeutete
      die Glocke beim ersten Start fuer den ganzen Bestand. */
   pruefe('Bewertungen ohne Zeitpunkt bleiben ihr unsichtbar',
-    (await glEintrag('cookie-e-eins', 1)).neuFremd === 0,
+    (await glEintrag('cookie-e-eins', 1)).neuBewertungen === 0,
     JSON.stringify(await glEintrag('cookie-e-eins', 1)));
 
   // Ein FREMDER Kommentar -- der Fall, um den es geht.
   await new Promise(r => setTimeout(r, 1100));
   await eRuf('cookie-e-zwei', 'POST', '/api/items/1/comments', { text: 'Von zwei' });
   pruefe('Ein fremder Kommentar zaehlt',
-    (await glEintrag('cookie-e-eins', 1)).neuFremd === 1,
-    JSON.stringify((await glListe('cookie-e-eins')).map(i => `${i.id}:${i.neuFremd}`)));
-  // Und der eigene ausdruecklich nicht: die Glocke meldet, was ANDERE tun.
+    (await glEintrag('cookie-e-eins', 1)).neuKommentare === 1,
+    JSON.stringify((await glListe('cookie-e-eins')).map(i => `${i.id}:${i.neuKommentare}`)));
+  /* UND ER STEHT ALS BEWERTUNG AUSDRUECKLICH NICHT DA. Ohne diese Zeile bliebe
+     offen, ob die beiden Zahlen ueberhaupt auseinandergehalten werden -- genau
+     das war der Befund: „7 neue Beitraege" sagte nicht, WAS neu ist. */
+  pruefe('Und zwar als Kommentar und nicht als Bewertung',
+    (await glEintrag('cookie-e-eins', 1)).neuBewertungen === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuBewertungen));
+  /* WER ES WAR, STEHT DANEBEN -- als Verfasserobjekt wie ueberall sonst und
+     nicht als nackte Zugangsnummer. */
+  pruefe('Und wer es war, steht daneben',
+    (await glEintrag('cookie-e-eins', 1)).neuVon.length === 1 &&
+    (await glEintrag('cookie-e-eins', 1)).neuVon[0]?.name === 'zwei',
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuVon));
+  /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): hier stand „Der eigene zaehlt
+     ausdruecklich nicht". Die Entscheidung ist zurueckgenommen -- die Glocke
+     meldet von ALLEN, sonst meldete sie einem, der allein arbeitet, nie etwas.
+     Die Zusage ist umgedreht worden statt zu verschwinden. */
   await eRuf('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Von eins selbst' });
-  pruefe('Der eigene zaehlt ausdruecklich nicht',
-    (await glEintrag('cookie-e-eins', 1)).neuFremd === 1,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuFremd));
-  /* Beim anderen Zugang zaehlt genau umgekehrt -- der Beleg dafuer, dass die
-     Zahl je Zugang gerechnet wird und nicht global. Wieder eine Sekunde
+  pruefe('Der eigene zaehlt seit 0.17.0 mit',
+    (await glEintrag('cookie-e-eins', 1)).neuKommentare === 2,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuKommentare));
+  pruefe('Und beide Verfasser stehen daneben',
+    (await glEintrag('cookie-e-eins', 1)).neuVon.map(v => v?.name).sort().join(',') === 'eins,zwei',
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuVon));
+  /* DIE ZAHL WIRD JE ZUGANG GERECHNET UND NICHT GLOBAL. Der zweite Zugang
+     setzt seinen Strich spaeter und sieht deshalb weniger. Wieder eine Sekunde
      Abstand vor dem Strich, aus demselben Grund wie oben. */
   await new Promise(r => setTimeout(r, 1100));
   await eRuf('cookie-e-zwei', 'PUT', '/api/settings', { glockeGesehen: 1 });
   await new Promise(r => setTimeout(r, 1100));
   await eRuf('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Noch einer von eins' });
-  pruefe('Und fuer den anderen Zugang zaehlt genau umgekehrt',
-    (await glEintrag('cookie-e-zwei', 1)).neuFremd === 1 &&
-    (await glEintrag('cookie-e-eins', 1)).neuFremd === 1,
-    `zwei: ${(await glEintrag('cookie-e-zwei', 1)).neuFremd}, ` +
-    `eins: ${(await glEintrag('cookie-e-eins', 1)).neuFremd}`);
+  pruefe('Jeder Zugang zaehlt hinter seinem eigenen Strich',
+    (await glEintrag('cookie-e-zwei', 1)).neuKommentare === 1 &&
+    (await glEintrag('cookie-e-eins', 1)).neuKommentare === 3,
+    `zwei: ${(await glEintrag('cookie-e-zwei', 1)).neuKommentare}, ` +
+    `eins: ${(await glEintrag('cookie-e-eins', 1)).neuKommentare}`);
 
   // Eine fremde BEWERTUNG zaehlt ebenso -- dafuer gibt es gesetzt_am.
   await eRuf('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 5 });
   pruefe('Eine fremde Bewertung zaehlt ebenfalls',
-    (await glEintrag('cookie-e-eins', 1)).neuFremd === 2,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuFremd));
+    (await glEintrag('cookie-e-eins', 1)).neuBewertungen === 1,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuBewertungen));
+  /* UND SIE VERMEHRT DIE KOMMENTARE NICHT. Zwei Zahlen, die sich gegenseitig
+     hochzaehlen, waeren dieselbe Auskunft zweimal. */
+  pruefe('Und sie steht in der anderen Zahl, nicht bei den Kommentaren',
+    (await glEintrag('cookie-e-eins', 1)).neuKommentare === 3,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuKommentare));
+  /* UND DER BEWERTER STEHT AUSDRUECKLICH NICHT BEI DEN VERFASSERN. Wer welche
+     Bewertung abgegeben hat, ist eine Angabe ueber einzelne Personen und geht
+     aus keiner Antwort hinaus, die jeder bekommt -- die Liste „Wer hat
+     bewertet" holt der Admin ueber einen eigenen Weg. Die Namen der Tafel
+     kommen aus den KOMMENTAREN, und ein Kommentar traegt seinen Verfasser am
+     Eintrag ohnehin sichtbar.
+     DAS IST DIE STELLE, AN DER ES AM WENIGSTEN AUFFIELE: steht an einem
+     Eintrag nur eine neue Bewertung und ein Name daneben, weiss jeder, wer
+     bewertet hat. Genau deshalb steht diese Zeile hier. */
+  pruefe('Der Bewerter steht ausdruecklich nicht bei den Verfassern',
+    (await glEintrag('cookie-e-eins', 1)).neuVon.map(v => v?.name).sort().join(',') ===
+      'eins,zwei',
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuVon.map(v => v?.name)));
+  /* DIE SCHAERFERE LAGE: ein Eintrag, an dem AUSSCHLIESSLICH eine fremde
+     Bewertung neu ist. Dort gibt es keinen Kommentar, hinter dem ein Name
+     harmlos waere -- die Antwort muss die Liste leer lassen. Ohne diese Zeile
+     bliebe die Zusage darueber auch dann gruen, wenn der Name nur zufaellig
+     schon dastuende. */
+  await eRuf('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpKrit, value: 4 });
+  pruefe('Die Prueflage taugt: am zweiten Eintrag ist nur eine Bewertung neu',
+    (await glEintrag('cookie-e-eins', 2)).neuBewertungen === 1 &&
+    (await glEintrag('cookie-e-eins', 2)).neuKommentare === 0,
+    JSON.stringify([(await glEintrag('cookie-e-eins', 2)).neuKommentare,
+                    (await glEintrag('cookie-e-eins', 2)).neuBewertungen]));
+  pruefe('Und dort steht kein einziger Name',
+    (await glEintrag('cookie-e-eins', 2)).neuVon.length === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 2)).neuVon));
   // Eine zurueckgesetzte Bewertung ist keine Stimme und meldet nichts.
   await eRuf('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 0 });
   pruefe('Eine zurueckgesetzte Bewertung meldet nichts',
-    (await glEintrag('cookie-e-eins', 1)).neuFremd === 1,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuFremd));
+    (await glEintrag('cookie-e-eins', 1)).neuBewertungen === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuBewertungen));
 
   /* DAS OEFFNEN DER TAFEL SETZT ALLES AUF GESEHEN -- die bewusste Grenze der
      schlanken Fassung: bei einem Zeitstempel gibt es keinen Lesestand je
@@ -3690,8 +3847,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await new Promise(r => setTimeout(r, 1100));
   await eRuf('cookie-e-eins', 'PUT', '/api/settings', { glockeGesehen: 1 });
   pruefe('Ein neuer Bezugspunkt setzt alles auf gesehen',
-    (await glListe('cookie-e-eins')).every(i => i.neuFremd === 0),
-    JSON.stringify((await glListe('cookie-e-eins')).map(i => i.neuFremd)));
+    (await glListe('cookie-e-eins')).every(i =>
+      i.neuKommentare === 0 && i.neuBewertungen === 0 && i.neuVon.length === 0),
+    JSON.stringify((await glListe('cookie-e-eins'))
+      .map(i => [i.neuKommentare, i.neuBewertungen])));
 
   /* ---- UND DIE ZAHL DER OFFENEN AUFGABEN ----
      SIE KOMMT AUS DERSELBEN BEDINGUNG WIE /api/offen (kind = 'task'). Zwei
@@ -7024,20 +7183,27 @@ const freigabeHaupt = (zweck, ziel = null) =>
     `Status ${oOhneCookie.status}`);
 
   /* ---------------------------------------------------------------- */
-  gruppe('Neu seit: die Sekunde am Rand');
+  gruppe('Der Bezugspunkt: die Sekunde am Rand');
 
-  /* DIE PROBE, UM DIE ES IN DIESER RUNDE GEHT. datetime('now') loest nur
-     Sekunden auf (Stolperstein 60). Wer die Uebersicht verlaesst, waehrend in
-     DERSELBEN Sekunde jemand anderes kommentiert, traege sonst einen
-     Merkzeitpunkt, der genau auf dem Zeitstempel dieses Eintrags liegt -- und
-     der Eintrag gaelte nie als neu. Deshalb steht die Marke eine Sekunde
-     davor.
+  /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT (Stolperstein 201): diese Gruppe
+     hiess „Neu seit: die Sekunde am Rand" und fuhr auf `zuletztGesehen`, den
+     Merker der gestrichenen Pille. DIE ZUSAGE GALT NIE DER PILLE, sondern der
+     Bauform -- und die traegt seither `glockeGesehen` allein.
+     DIE PROBE SELBST: datetime('now') loest nur Sekunden auf (Stolperstein
+     60). Wer die Uebersicht verlaesst, waehrend in DERSELBEN Sekunde jemand
+     kommentiert, traege sonst einen Bezugspunkt, der genau auf dem Zeitstempel
+     dieses Kommentars liegt -- und der Kommentar gaelte nie als neu. Deshalb
+     steht die Marke eine Sekunde davor.
      GETROFFEN WIRD DIE LAGE, NICHT BEHAUPTET: die beiden Rufe gehen
      unmittelbar nacheinander hinaus, und die Sekunde des Verlassens wird
      danach von der Uhr des Servers gelesen -- unabhaengig davon, wie die Marke
-     gebildet wurde. Nur wenn der Eintrag wirklich diese Sekunde traegt, ist
+     gebildet wurde. Nur wenn der Kommentar wirklich diese Sekunde traegt, ist
      die Prueflage die gemeinte; bei einem Wechsel ueber die Sekundengrenze
-     wird es noch einmal versucht. */
+     wird es noch einmal versucht.
+     GEMESSEN WIRD AM KOMMENTAR SELBST und nicht mehr an `updated_at` des
+     Eintrags: die Glocke zaehlt Kommentare und Bewertungen, nicht Aenderungen
+     am Eintrag. Das ist genau der Unterschied, um den die Runde die Pille
+     abgeloest hat. */
   const fUhr = () => {
     const d = fDatenbank();
     const t = d.prepare("SELECT datetime('now') AS t").get().t;
@@ -7046,30 +7212,44 @@ const freigabeHaupt = (zweck, ziel = null) =>
   };
   let sekGetroffen = false, sekMarke = null, sekStand = null, sekVerlassen = null;
   for (let versuch = 0; versuch < 12 && !sekGetroffen; versuch++) {
-    await fRuf('cookie-f-anna', 'PUT', '/api/settings', { zuletztGesehen: 1 });
+    await fRuf('cookie-f-anna', 'PUT', '/api/settings', { glockeGesehen: 1 });
     sekVerlassen = fUhr();
     await fRuf('cookie-f-bert', 'POST', `/api/items/${oA.id}/comments`,
       { text: `Sekundenprobe ${versuch}` });
     sekMarke = JSON.parse(fEine(
-      "SELECT value FROM user_settings WHERE user_id = 1 AND key = 'zuletztGesehen'").value);
-    sekStand = fEine('SELECT updated_at FROM items WHERE id = ?', oA.id).updated_at;
+      "SELECT value FROM user_settings WHERE user_id = 1 AND key = 'glockeGesehen'").value);
+    /* DIE ZEILE WIRD IN DER DATENBANK NACHGESEHEN und nicht aus der Antwort
+       gelesen: POST /api/items/:id/comments liefert den ganzen EINTRAG zurueck,
+       nicht den Kommentar. */
+    sekStand = fEine(
+      'SELECT created_at FROM comments WHERE item_id = ? ORDER BY id DESC LIMIT 1',
+      oA.id).created_at;
     sekGetroffen = sekStand === sekVerlassen;
   }
   pruefe('Die Prueflage trifft wirklich die Sekunde des Verlassens',
-    sekGetroffen, `Verlassen ${sekVerlassen}, Eintrag ${sekStand}`);
+    sekGetroffen, `Verlassen ${sekVerlassen}, Kommentar ${sekStand}`);
   /* Und die eigentliche Zusicherung: der Kommentar aus genau dieser Sekunde
      kommt an. Steht die Marke ohne das Nachstellen auf der Sekunde des
      Verlassens, ist dieser Vergleich falsch -- und genau diese Zeile wird
      dann namentlich rot. */
   pruefe('Ein Kommentar aus der Sekunde des Verlassens gilt danach als neu',
-    sekStand > sekMarke, `gemerkt ${sekMarke}, Eintrag ${sekStand}`);
-  /* Die Gegenrichtung gehoert dazu: was VOR dem Merkzeitpunkt liegt, ist
-     nicht neu. Ohne sie bliebe der Vergleich auch dann gruen, wenn er
-     schlichtweg alles durchliesse. */
-  fSchreibe("UPDATE items SET updated_at = '2020-01-01 00:00:00' WHERE id = ?", oB.id);
-  pruefe('Was aelter ist als der Merkzeitpunkt, ist nicht neu',
-    fEine('SELECT updated_at FROM items WHERE id = ?', oB.id).updated_at < sekMarke,
-    `gemerkt ${sekMarke}`);
+    sekStand > sekMarke, `gemerkt ${sekMarke}, Kommentar ${sekStand}`);
+  /* UND DIE GLOCKE SIEHT IHN WIRKLICH. Ohne diese Zeile belegte der Vergleich
+     darueber nur zwei Strings und nichts ueber die Anlage. */
+  pruefe('Und die Glocke meldet ihn auch',
+    ((await fRuf('cookie-f-anna', 'GET', '/api/items')).inhalt || [])
+      .find(i => i.id === oA.id)?.neuKommentare >= 1,
+    JSON.stringify(((await fRuf('cookie-f-anna', 'GET', '/api/items')).inhalt || [])
+      .map(i => `${i.id}:${i.neuKommentare}`)));
+  /* Die Gegenrichtung gehoert dazu: was VOR dem Bezugspunkt liegt, ist nicht
+     neu. Ohne sie bliebe der Vergleich auch dann gruen, wenn er schlichtweg
+     alles durchliesse. */
+  fSchreibe("UPDATE comments SET created_at = '2020-01-01 00:00:00' WHERE item_id = ?", oB.id);
+  pruefe('Was aelter ist als der Bezugspunkt, ist nicht neu',
+    ((await fRuf('cookie-f-anna', 'GET', '/api/items')).inhalt || [])
+      .find(i => i.id === oB.id)?.neuKommentare === 0,
+    JSON.stringify(((await fRuf('cookie-f-anna', 'GET', '/api/items')).inhalt || [])
+      .map(i => `${i.id}:${i.neuKommentare}`)));
 
   await F.stopp();
   fs.rmSync(fDir, { recursive: true, force: true });
@@ -17715,7 +17895,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Gewichtung, an der Glocke samt Zeitpunkt an der Bewertung, an den
   // Verfahren in den Kennzahlen, am Papierkorb im Vollbild und an den beiden
   // Werkzeugen (Groessenmessung und Nummernfilter).
-  pruefe('Es sind genau 300 Rueckbauten', gpListe.length === 300, `${gpListe.length}`);
+  // 328 SEIT 0.17.0: achtundzwanzig neue am Raster der Kriterienliste, an den
+  // beiden Massen vom echten Geraet, an der Vergleichszahl ohne Gewichte, an
+  // der aufgeteilten Glockentafel, an der gestrichenen Pille und an den zwei
+  // Erklaertexten, die die Oberflaeche verlassen haben. Neun vorhandene sind
+  // MITGEGANGEN statt geloescht zu werden (Stolperstein 201): 143, 208, 238,
+  // 239, 252, 282, 283, 285, 286 und 291 zeigten auf Zeilen, die diese Runde
+  // umgebaut hat -- ein Rueckbau, der ins Leere greift, ist stumm und
+  // verfaelscht die Tabelle (Stolperstein 192).
+  pruefe('Es sind genau 328 Rueckbauten', gpListe.length === 328, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -18547,6 +18735,11 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
      Begruendung, denn ENTFERNEN darf, wer den Eintrag aendern darf. Ein
      Schalter, der nie umgelegt wird, belegt nichts ueber den zweiten
      Zustand. */
+  /* WELCHE VERGLEICHSZAHL DER RECHENWEG TRAEGT, seit 0.17.0. Vorgabe ist eine
+     ANDERE als das gewichtete Ergebnis -- nur dann kann die Prueflage den
+     Unterschied ueberhaupt zeigen (Stolperstein 224). Wer den Fall „beide
+     gleich" braucht, stellt hier 3 ein. */
+  rechenwegGleich = undefined,
   eintragMeins = false } = {}) {
   // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
   // hier ein Griff in den Zwischenspeicher, kein zweites Laden.
@@ -18881,8 +19074,26 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
          echte Server liefert dann avgRating null und einen Weg ohne Zeilen.
          Die Lage ist stellbar, weil ohne sie „ohne Zahl kein Knopf" gar nicht
          zu belegen waere (Stolperstein 81). */
-      if (ohneBewertung) return { zeilen: [], summe: 0, teiler: 0, roh: null, ergebnis: null };
-      return { zeilen, summe, teiler, roh: teiler ? summe / teiler : null, ergebnis: 3 };
+      /* ---- DIE VERGLEICHSZAHL OHNE GEWICHTE -- 0.17.0 ----
+         WIE DER ECHTE SERVER: sie entsteht dort IN derselben Schleife, aus
+         DERSELBEN Menge, und ihr Teiler ist die ZAHL der bewerteten Kriterien.
+         AUCH SIE IST AUSDRUECKLICH NICHT DER QUOTIENT IHRER EIGENEN ZAHLEN,
+         und zwar aus demselben Grund wie `ergebnis` darueber: die Oberflaeche
+         soll sie LESEN und nicht nachrechnen. (3,4 + 4,1) ÷ 2 waere 3,75 und
+         gerundet 3,8 -- hier steht 4. Rechnete der Kasten nach, stuende 3,8
+         darin, und genau daran faellt es auf (Stolperstein 102).
+         UND SIE IST EINE ANDERE ZAHL ALS `ergebnis`: eine Prueflage, in der
+         beide gleich sind, koennte den Unterschied gar nicht zeigen
+         (Stolperstein 189 und 224). Der gleiche Fall wird ueber
+         `rechenwegGleich` gestellt. */
+      const gleichSumme = zeilen.reduce((n, z) => n + z.schnitt, 0);
+      const gleich = rechenwegGleich === undefined ? 4 : rechenwegGleich;
+      if (ohneBewertung) return { zeilen: [], summe: 0, teiler: 0, roh: null, ergebnis: null,
+        gleichSumme: 0, gleichTeiler: 0, gleichRoh: null, gleichErgebnis: null };
+      return { zeilen, summe, teiler, roh: teiler ? summe / teiler : null, ergebnis: 3,
+        gleichSumme, gleichTeiler: zeilen.length,
+        gleichRoh: zeilen.length ? gleichSumme / zeilen.length : null,
+        gleichErgebnis: gleich };
     })(),
     // Reine Anzeige, seit 0.8.6 in der Verfasserzeile. Ohne dieses Feld
     // zeichnete die Zeile ins Leere und jede Pruefung darauf waere blind.
@@ -19409,10 +19620,12 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        seine Liste nimmt -- kind = 'task'. Zwei Quellen fuer dieselbe Zahl
        liefen auseinander, und der Zaehler in der Kopfzeile naennte etwas
        anderes als die Ansicht dahinter.
-       `neuFremd` STEHT NUR MIT BEZUGSPUNKT da. Ohne ihn faellt das Feld ganz
-       weg -- so unterscheidet die Oberflaeche „nichts Neues" von „es gibt
-       keinen Bezugspunkt". Ein Mock, der es immer mitgaebe, naehme genau die
-       Pruefung weg, fuer die er gebraucht wird (Stolperstein 102).
+       DIE ANGABEN DER GLOCKE STEHEN NUR MIT BEZUGSPUNKT da. Ohne ihn fallen
+       sie GEMEINSAM weg -- so unterscheidet die Oberflaeche „nichts Neues" von
+       „es gibt keinen Bezugspunkt". Ein Mock, der sie immer mitgaebe, naehme
+       genau die Pruefung weg, fuer die er gebraucht wird (Stolperstein 102).
+       SEIT 0.17.0 SIND ES DREI STATT EINER: `neuKommentare`, `neuBewertungen`
+       und `neuVon`. Eine Summe gibt es nicht -- die bildet die Oberflaeche.
        DIE PRUEFLAGE DARF BEIDES UEBERSCHREIBEN: was in uebersichtItems steht,
        gewinnt -- deshalb steht `...i` HINTER der gerechneten Zahl. */
     const mitKopfzahlen = (liste) => liste.map(i => {
@@ -19420,7 +19633,8 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
         offeneAufgaben: offen.filter(z => z.kind === 'task' && z.item?.id === i.id).length,
         ...i
       };
-      if (!einstellungen.glockeGesehen) delete zeile.neuFremd;
+      if (!einstellungen.glockeGesehen)
+        for (const k of ['neuKommentare', 'neuBewertungen', 'neuVon']) delete zeile[k];
       return zeile;
     });
     if (url.startsWith('/api/items?q=')) {
@@ -20901,19 +21115,28 @@ async function pruefeOberflaeche() {
     /line-through/.test(regelOff('.off-zeile.erledigt .off-text')),
     regelOff('.off-zeile.erledigt .off-text'));
 
-  /* ================= Neu seit ================= */
-  gruppe('Neu seit: der Filter in der Uebersicht');
+  /* ================= Die gestrichene Pille — 0.17.0 ====================
+     MITGENOMMEN UND NICHT GELOESCHT (Stolperstein 201). Hier standen bis 0.16.0
+     die beiden Gruppen „Neu seit: der Filter in der Uebersicht" und „Neu seit:
+     der Merkzeitpunkt" -- rund dreissig Zusagen an eine Pille, die es nicht
+     mehr gibt. Sie sind nicht verschwunden, sondern umgedreht: was die Pille
+     KONNTE, muss jetzt nachweislich WEG sein, und was ihr Merkzeitpunkt
+     leistete, leistet der Bezugspunkt der Glocke allein.
+     WARUM SIE GESTRICHEN IST: zwei Anzeigen fuer dieselbe Frage -- was hat
+     sich getan, seit ich zuletzt hier war -- sind eine zu viel. Dazu verletzte
+     sie eine Hausregel: sie stand auch dann da, wenn ihre Zahl null war, nur
+     gedaempft. Am Knopf „Offen" steht seit 0.16.0 das Gegenteil.
+     WAS DABEI VERLORENGEHT, STEHT IM AENDERUNGSPROTOKOLL und im Quelltext bei
+     visibleItems(): die Pille zeigte JEDE Aenderung, die Glocke bleibt bei
+     Kommentaren und Bewertungen. */
+  gruppe('Die gestrichene Pille „Neu seit …" — 0.17.0');
 
-  /* Vier Eintraege, zwei alt und zwei neu -- und die beiden Haelften tragen
-     verschiedene Teststatus und Kategorien. Mit lauter gleichartigen Zeilen
-     liesse sich nicht sehen, ob der Filter sich mit den uebrigen kombiniert
-     oder sie ueberfaehrt.
-     DER MERKZEITPUNKT LIEGT MITTAGS: bei Mitternacht faerbte die Zeitzone des
-     Prueflaufs die Beschriftung um einen Tag um, und die Pruefung waere je
-     nach Rechner rot. */
+  /* Vier Eintraege, zwei alt und zwei neu -- der Bestand der alten Gruppe,
+     unveraendert. Er ist der Gegenstand: ohne Eintraege, die sich in
+     `updated_at` unterscheiden, koennte keine Zeile darunter belegen, dass
+     wirklich NICHT MEHR gefiltert wird (Stolperstein 81). */
   const nsKat = { id: 21, name: 'Werkzeug' };
   const nsTag = { id: 1, name: 'Grün' };
-  const nsMerk = '2026-08-10 12:00:00';
   const nsEintrag = (id, titel, stand, extra = {}) => ({
     id, title: titel, rejected: false, tested: false, favorite: false, category: null,
     tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
@@ -20931,202 +21154,165 @@ async function pruefeOberflaeche() {
   const nsBaue = async (filters, mehr = {}) => {
     const d = baueDom(JSDOM, {
       uebersichtItems: nsBestand, tags: nsTagVorrat,
-      einstellungen: { filters, zuletztGesehen: nsMerk, ...mehr }
+      einstellungen: { filters, ...mehr }
     });
     await new Promise(r => setTimeout(r, 90));
     return d;
   };
   const nsVorgabe = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
-                      favorit: false, neu: false, sort: 'title_asc' };
+                      favorit: false, sort: 'title_asc' };
 
-  /* ERSTER BESUCH: kein Merkzeitpunkt, also kein Umschalter. Erst das
-     Vorhandensein der Filterzeile pruefen, dann die Abwesenheit des Knopfes --
-     ohne die erste Zeile bliebe die zweite auch bei einer gar nicht
-     gezeichneten Zeile gruen (Stolperstein 81). */
-  const nsErster = await nsBaue(nsVorgabe, { zuletztGesehen: null });
-  pruefe('Beim ersten Besuch steht die Filterzeile trotzdem da',
-    !!nsErster.w.document.getElementById('f-fav'));
-  pruefe('Aber „Neu seit ..." wird gar nicht erst angeboten',
-    !nsErster.w.document.getElementById('f-neu'));
-  pruefe('Und es sind alle Eintraege zu sehen', nsTitel(nsErster).length === 4,
-    JSON.stringify(nsTitel(nsErster)));
-  /* Ein gespeicherter Filter, der den Umschalter auf AN stehen hat, waehrend
-     es keinen Bezugspunkt gibt: er darf nichts wegnehmen. Sonst verschwaende
-     der halbe Bestand hinter einem Knopf, den es gar nicht gibt. */
-  const nsErsterAn = await nsBaue({ ...nsVorgabe, neu: true }, { zuletztGesehen: null });
-  pruefe('Ein gespeichertes „neu" ohne Bezugspunkt nimmt nichts weg',
-    nsTitel(nsErsterAn).length === 4, JSON.stringify(nsTitel(nsErsterAn)));
-  nsErster.w.close(); nsErsterAn.w.close();
+  /* ERST DER GEGENSTAND: die Filterzeile steht ueberhaupt da. Ohne diese Zeile
+     bliebe jede Verneinung darunter auch bei einer gar nicht gezeichneten
+     Zeile gruen (Stolperstein 81). */
+  const nsOhne = await nsBaue(nsVorgabe);
+  pruefe('Die Filterzeile steht da, mit dem Favoritenknopf',
+    !!nsOhne.w.document.getElementById('f-fav'));
+  pruefe('Aber die Pille „Neu seit ..." gibt es nicht mehr',
+    !nsOhne.w.document.getElementById('f-neu'),
+    nsOhne.w.document.getElementById('filters')?.textContent?.replace(/\s+/g, ' '));
+  /* UND AUCH IHRE BESCHRIFTUNG NICHT. Ein Rueckbau, der nur die Kennung
+     umbenennt, bliebe an der Zeile darueber unsichtbar (Stolperstein 223). */
+  pruefe('Und ihre Beschriftung steht nirgends mehr in der Filterzeile',
+    !/Neu seit/.test(nsOhne.w.document.getElementById('filters')?.textContent || ''),
+    nsOhne.w.document.getElementById('filters')?.textContent?.replace(/\s+/g, ' '));
+  pruefe('Es sind alle vier Eintraege zu sehen', nsTitel(nsOhne).length === 4,
+    JSON.stringify(nsTitel(nsOhne)));
+  /* UND DIE ZEILE IST WIRKLICH EINE PILLE KUERZER. Eine Pille, die ihre
+     Kennung verliert, waere an den beiden Zeilen darueber unsichtbar wieder da
+     (Stolperstein 223) -- gezaehlt wird deshalb, was in der Statuszeile
+     WIRKLICH steht, und die Pillen werden namentlich genannt.
+     SIEBEN STATT ACHT: drei fuer den Teststatus, der Favorit, und drei fuer
+     die Ablehnung. Die Fortsetzung von 0.13.0, wo die Filterzeile 75 px
+     flacher wurde. */
+  const nsStatus = [...nsOhne.w.document.querySelectorAll('#filters .frow')][0];
+  const nsPillen = [...(nsStatus?.querySelectorAll('.pill') || [])]
+    .map(b => b.textContent.replace(/\s+/g, ' ').trim());
+  pruefe('Die Statuszeile traegt sieben Pillen statt acht',
+    nsPillen.length === 7, JSON.stringify(nsPillen));
+  pruefe('Und alle sieben namentlich',
+    gleich(nsPillen, ['Alles anzeigen', 'Getestet', 'Ungetestet', '★ Favoriten',
+                      'Alle', 'Abgelehnt', 'Nicht abgelehnt']),
+    JSON.stringify(nsPillen));
+  nsOhne.w.close();
 
-  const nsAus = await nsBaue(nsVorgabe);
-  const nsKnopf = nsAus.w.document.getElementById('f-neu');
-  pruefe('Mit Merkzeitpunkt steht der Umschalter da', !!nsKnopf);
-  pruefe('Er nennt den Tag, seit dem gezaehlt wird',
-    nsKnopf?.textContent.startsWith('Neu seit 10.08.'), nsKnopf?.textContent);
-  pruefe('Und daneben die Zahl',
-    nsKnopf?.querySelector('.n')?.textContent === '2', nsKnopf?.querySelector('.n')?.textContent);
-  pruefe('Er sitzt abgesetzt, wie der Favoritenknopf daneben',
-    nsKnopf?.classList.contains('pill-sep'), nsKnopf?.className);
-  pruefe('Vor dem Klick ist er nicht gesetzt',
-    !nsKnopf?.classList.contains('on'), nsKnopf?.className);
+  /* EINE GESPEICHERTE ANSICHT AUS 0.11.0 KANN DEN SCHLUESSEL NOCH TRAGEN. Sie
+     muss ihn UEBERGEHEN statt daran zu scheitern -- dieselbe Regel wie beim
+     Schluessel `abgelehnt`, den 0.15.0 hinzugefuegt hat, nur andersherum.
+     UND SIE DARF NICHTS WEGNEHMEN: sonst verschwaende der halbe Bestand hinter
+     einem Knopf, den es gar nicht mehr gibt. */
+  const nsAlt = await nsBaue({ ...nsVorgabe, neu: true });
+  pruefe('Eine gespeicherte Stellung mit „neu" bleibt lesbar',
+    nsTitel(nsAlt).length === 4, JSON.stringify(nsTitel(nsAlt)));
+  pruefe('Und der Schluessel faellt aus der zurechtgerueckten Stellung heraus',
+    nsAlt.w.filterNormal({ ...nsVorgabe, neu: true }).neu === undefined,
+    JSON.stringify(nsAlt.w.filterNormal({ ...nsVorgabe, neu: true })));
+  /* ER ZAEHLT AUCH NICHT MEHR MIT. Der Schalter ueber den Filtern nennt die
+     Zahl der greifenden Filter; ein Schluessel, den es nicht mehr gibt, darf
+     dort keine Eins erzeugen. */
+  pruefe('Und der Schalter zaehlt ihn nicht als greifenden Filter',
+    !/aktiv/.test(nsAlt.w.document.querySelector('#filter-auf .fz')?.textContent || ''),
+    nsAlt.w.document.querySelector('#filter-auf .fz')?.textContent);
+  nsAlt.w.close();
 
-  /* Ein wirklich zugestellter Klick (Stolperstein 61). */
-  nsKnopf.dispatchEvent(new nsAus.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
-  pruefe('Ein zugestellter Klick zeigt nur, was seither dazugekommen ist',
-    gleich(nsTitel(nsAus), ['Beta neu', 'Delta neu']), JSON.stringify(nsTitel(nsAus)));
-  pruefe('Und die Zahl daneben stimmt mit der Menge ueberein',
-    nsAus.w.document.getElementById('f-neu')?.querySelector('.n')?.textContent
-      === String(nsTitel(nsAus).length),
-    nsAus.w.document.getElementById('f-neu')?.querySelector('.n')?.textContent);
-  pruefe('Der Knopf zeichnet sich dabei als gesetzt',
-    nsAus.w.document.getElementById('f-neu')?.classList.contains('on'),
-    nsAus.w.document.getElementById('f-neu')?.className);
-  nsAus.w.document.getElementById('f-neu')
-    .dispatchEvent(new nsAus.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
-  pruefe('Erneuter Klick nimmt ihn zurueck', nsTitel(nsAus).length === 4,
-    JSON.stringify(nsTitel(nsAus)));
-  nsAus.w.close();
-
-  /* ER FILTERT, ER SORTIERT NICHT UM -- die tragende Regel dieser Runde.
-     Derselbe Bestand einmal mit und einmal ohne Filter, und die verbliebenen
-     Eintraege stehen in DERSELBEN Reihenfolge. Geprueft an ZWEI Sortierungen:
-     bei nur einer liesse sich nicht ausschliessen, dass der Filter zufaellig
-     dieselbe Ordnung erzeugt wie die eingestellte. */
-  const nsOrdnung = [
-    ['updated_desc', 'nach Änderung',
-     ['Delta neu', 'Beta neu', 'Gamma alt', 'Alpha alt'], ['Delta neu', 'Beta neu']],
-    ['title_asc', 'nach Titel',
-     ['Alpha alt', 'Beta neu', 'Delta neu', 'Gamma alt'], ['Beta neu', 'Delta neu']]
-  ];
-  for (const [wahl, name, sollOhne, sollMit] of nsOrdnung) {
-    const dOhne = await nsBaue({ ...nsVorgabe, sort: wahl });
-    const dMit = await nsBaue({ ...nsVorgabe, sort: wahl, neu: true });
-    const ohne = nsTitel(dOhne), mit = nsTitel(dMit);
-    /* ZUERST DIE UNGEFILTERTE LISTE, und das ist die eigentliche Zusicherung:
-       eine Vorsortierung des Neuen VOR dem `switch` -- die Bauform, an der
-       schon der Favorit gescheitert ist -- veraendert die Reihenfolge der
-       verbliebenen Zeilen gar nicht und bliebe an der Pruefung darunter
-       unsichtbar. Sie faellt nur auf, wenn die Liste OHNE Filter an ihrer
-       eingestellten Ordnung gemessen wird. */
-    pruefe(`Ohne Filter steht die Liste in der eingestellten Ordnung (${name})`,
-      gleich(ohne, sollOhne), JSON.stringify(ohne));
-    pruefe(`Der Filter nimmt Zeilen weg und ordnet nicht um (${name})`,
-      gleich(mit, sollMit) && gleich(mit, ohne.filter(t => mit.includes(t))),
-      `ohne ${JSON.stringify(ohne)} / mit ${JSON.stringify(mit)}`);
-    dOhne.w.close(); dMit.w.close();
-  }
-
-  /* Kombinierbar mit allem anderen -- wie der Favorit. Drei Paare, weil jeder
-     der drei Filter anders gebaut ist: Teststatus ist ein Wert aus dreien,
-     Kategorie eine Nummer, Tags eine Menge mit eigener Verknuepfung. */
-  const nsTest = await nsBaue({ ...nsVorgabe, neu: true, tested: 'tested' });
-  pruefe('Kombinierbar mit dem Teststatus',
-    gleich(nsTitel(nsTest), ['Delta neu']), JSON.stringify(nsTitel(nsTest)));
-  nsTest.w.close();
-  const nsKatDom = await nsBaue({ ...nsVorgabe, neu: true, categoryIds: [21] });
-  pruefe('Kombinierbar mit der Kategorie',
-    gleich(nsTitel(nsKatDom), ['Delta neu']), JSON.stringify(nsTitel(nsKatDom)));
+  /* UND DIE UEBRIGEN FILTER STEHEN UNVERAENDERT. Eine gestrichene Pille darf
+     ihre Nachbarn nicht mitnehmen -- geprueft an allen dreien, die in
+     derselben Zeile stehen. */
+  const nsRest = await nsBaue({ ...nsVorgabe, tested: 'tested' });
+  pruefe('Der Teststatus filtert weiter',
+    gleich(nsTitel(nsRest), ['Alpha alt', 'Delta neu']), JSON.stringify(nsTitel(nsRest)));
+  nsRest.w.close();
+  const nsFav = await nsBaue({ ...nsVorgabe, favorit: true });
+  pruefe('Der Favoritenknopf steht weiter da und filtert',
+    !!nsFav.w.document.getElementById('f-fav') && nsTitel(nsFav).length === 0,
+    JSON.stringify(nsTitel(nsFav)));
+  nsFav.w.close();
+  const nsKatDom = await nsBaue({ ...nsVorgabe, categoryIds: [21] });
+  pruefe('Und die Kategorie ebenso',
+    gleich(nsTitel(nsKatDom), ['Alpha alt', 'Delta neu']), JSON.stringify(nsTitel(nsKatDom)));
   nsKatDom.w.close();
-  const nsTagDom = await nsBaue({ ...nsVorgabe, neu: true, tagIds: [1] });
-  pruefe('Kombinierbar mit dem Tagfilter',
-    gleich(nsTitel(nsTagDom), ['Beta neu']), JSON.stringify(nsTitel(nsTagDom)));
-  nsTagDom.w.close();
-  /* Und die Gegenlage zum Paar: ohne den zweiten Filter stuenden beide neuen
-     Eintraege da. Ohne sie belegte das Paar nur, dass ueberhaupt etwas
-     wegfaellt -- nicht, dass BEIDE Bedingungen greifen. */
-  const nsNurNeu = await nsBaue({ ...nsVorgabe, neu: true });
-  pruefe('Ohne den zweiten Filter blieben es zwei',
-    gleich(nsTitel(nsNurNeu), ['Beta neu', 'Delta neu']), JSON.stringify(nsTitel(nsNurNeu)));
-  nsNurNeu.w.close();
 
-  /* Bei EINEM Zugang erscheint er trotzdem -- anders als „meine / alle" ist er
-     keine Aussage ueber andere. Auch allein vergisst man, wo man war. */
-  const nsEiner = await nsBaue(nsVorgabe, { benutzerZahl: 1 });
-  pruefe('Auch bei einem einzigen Zugang steht der Umschalter da',
-    !!nsEiner.w.document.getElementById('f-neu'));
+  /* WAS EIN BETREIBER SIEHT, DER ALLEIN ARBEITET -- die Auflage dieser Runde.
+     Die Pille war das Einzige, was ihm die Frage „was hat sich getan" beantwortet
+     hat; die Glocke meldete ihm bis 0.16.0 nie etwas. Deshalb steht sie ihm
+     jetzt offen, und zwar mit Inhalt. */
+  const nsEiner = await nsBaue(nsVorgabe, { benutzerZahl: 1,
+    glockeGesehen: '2026-08-01 00:00:00' });
+  pruefe('Bei einem einzigen Zugang steht die Pille ebenfalls nicht mehr da',
+    !nsEiner.w.document.getElementById('f-neu'));
+  pruefe('Dafuer steht dort die Glocke',
+    !!nsEiner.w.document.getElementById('glocke'), 'keine Glocke bei einem Zugang');
   nsEiner.w.close();
 
-  /* ================= Der Merkzeitpunkt ================= */
-  gruppe('Neu seit: der Merkzeitpunkt');
+  /* ================= Der Bezugspunkt der Glocke ================= */
+  /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): diese Gruppe hiess „Neu seit:
+     der Merkzeitpunkt" und pruefte `zuletztGesehen`. Die Zusagen galten nie
+     der Pille, sondern der BAUFORM -- beim Verlassen und nicht beim Betreten,
+     als Signal und nicht als Uhrzeit, und nicht bei jedem Filterklick. Sie
+     tragen jetzt den Bezugspunkt der Glocke, den einzigen, der noch da ist.
+     UND EINE ZUSAGE IST NEU: er faehrt GENAU EINMAL hinaus. Bis 0.16.0 ging
+     bei jedem Verlassen der Uebersicht ein Ruf hinaus, weil der Merkzeitpunkt
+     nachgestellt werden musste; den gibt es nicht mehr. */
+  gruppe('Der Bezugspunkt der Glocke in der Oberflaeche');
 
-  /* BEIM VERLASSEN, NICHT BEIM BETRETEN. Erst die Abwesenheit nach dem
-     Aufbau -- und die ist hier belastbar, weil daneben belegt wird, dass
-     ueberhaupt etwas an /api/settings geht. */
   const nsWeg = await nsBaue(nsVorgabe);
   const nsPuts = () => nsWeg.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings');
   pruefe('Das Betreten der Uebersicht merkt sich nichts',
     nsPuts().length === 0, JSON.stringify(nsPuts().map(g => g.koerper)));
   nsWeg.w.location.hash = '#/item/1';
   await new Promise(r => setTimeout(r, 90));
-  pruefe('Das Verlassen der Uebersicht schickt den Merkzeitpunkt',
-    nsPuts().length === 1 && nsPuts()[0].koerper?.zuletztGesehen !== undefined,
+  pruefe('Das Verlassen der Uebersicht setzt den Bezugspunkt',
+    nsPuts().length === 1 && nsPuts()[0].koerper?.glockeGesehen !== undefined,
     JSON.stringify(nsPuts().map(g => g.koerper)));
   /* Was hinausgeht, ist ein SIGNAL und keine Uhrzeit: die Uhr des Aufrufers
      ist eine Behauptung, der Server setzt seine eigene ein. */
   pruefe('Und zwar als Signal, nicht als Zeitangabe des Aufrufers',
-    !/\d{4}-\d{2}-\d{2}/.test(String(nsPuts()[0]?.koerper?.zuletztGesehen ?? '')),
+    !/\d{4}-\d{2}-\d{2}/.test(String(nsPuts()[0]?.koerper?.glockeGesehen ?? '')),
     JSON.stringify(nsPuts()[0]?.koerper));
-  /* DER FILTERSTAND WANDERT NICHT MIT. Was mitfaehrt, ist seit 0.16.0 der
-     Bezugspunkt der Glocke -- und zwar GENAU EINMAL: ohne ihn gibt es keine
-     Glocke, und ohne Glocke gaebe es keinen Weg, ihn je zu setzen. Die
-     Prueflage hat noch keinen, also steht er hier. */
-  pruefe('Der Filterstand wandert dabei nicht mit',
-    gleich(Object.keys(nsPuts()[0]?.koerper || {}).sort(), ['glockeGesehen', 'zuletztGesehen']),
+  /* DER FILTERSTAND WANDERT NICHT MIT, und der Merker der gestrichenen Pille
+     erst recht nicht: der Ruf traegt seit 0.17.0 GENAU EIN Feld. */
+  pruefe('Der Ruf traegt genau ein Feld und sonst nichts',
+    gleich(Object.keys(nsPuts()[0]?.koerper || {}), ['glockeGesehen']),
     JSON.stringify(nsPuts()[0]?.koerper));
-  /* UND DIE GEGENLAGE: hat der Zugang seinen Bezugspunkt schon, faehrt nur
-     noch der Merkzeitpunkt hinaus. Ohne diese Zeile belegte die darueber
-     nicht, dass der Bezugspunkt genau einmal gesetzt wird, sondern nur, dass
-     er ueberhaupt mitfaehrt (Stolperstein 81). */
+  /* UND DIE GEGENLAGE: hat der Zugang seinen Bezugspunkt schon, faehrt beim
+     Verlassen GAR NICHTS mehr hinaus. Ohne diese Zeile belegte die darueber
+     nicht, dass er genau einmal gesetzt wird, sondern nur, dass er ueberhaupt
+     mitfaehrt (Stolperstein 81). */
   const nsSchon = await nsBaue(nsVorgabe, { glockeGesehen: '2026-08-01 00:00:00' });
   nsSchon.w.location.hash = '#/item/1';
   await new Promise(r => setTimeout(r, 90));
-  const nsSchonPut = nsSchon.gesendet
-    .filter(g => g.methode === 'PUT' && g.url === '/api/settings').pop();
-  pruefe('Mit vorhandenem Bezugspunkt faehrt nur der Merkzeitpunkt hinaus',
-    gleich(Object.keys(nsSchonPut?.koerper || {}), ['zuletztGesehen']),
-    JSON.stringify(nsSchonPut?.koerper));
+  pruefe('Mit vorhandenem Bezugspunkt faehrt beim Verlassen nichts mehr hinaus',
+    nsSchon.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings'
+      && g.koerper?.glockeGesehen !== undefined).length === 0,
+    JSON.stringify(nsSchon.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
   nsSchon.w.close();
-
-  /* DER BEZUGSPUNKT BLEIBT WAEHREND EINES SEITENLEBENS STEHEN. Ohne das waere
-     die Menge nach dem ersten geoeffneten Eintrag leer: man saehe zwei Neue
-     und verloere sie beim ersten Klick. */
-  nsWeg.w.location.hash = '#/';
-  await new Promise(r => setTimeout(r, 90));
-  pruefe('Zurueck in der Uebersicht steht derselbe Bezugspunkt',
-    nsWeg.w.document.getElementById('f-neu')?.textContent.startsWith('Neu seit 10.08.'),
-    nsWeg.w.document.getElementById('f-neu')?.textContent);
-  pruefe('Und dieselbe Menge wie vorher',
-    nsWeg.w.document.getElementById('f-neu')?.querySelector('.n')?.textContent === '2',
-    nsWeg.w.document.getElementById('f-neu')?.querySelector('.n')?.textContent);
   nsWeg.w.close();
 
   /* Der Weg in die Ansicht "Offen" ist ebenfalls ein Verlassen der Uebersicht,
-     der Weg in den Systembereich auch -- der Merkzeitpunkt haengt an der
+     der Weg in den Systembereich auch -- der Bezugspunkt haengt an der
      Uebersicht und nicht an einem einzelnen Ziel. */
   for (const ziel of ['#/offen', '#/system', '#/compare']) {
     const d = await nsBaue(nsVorgabe);
     d.w.location.hash = ziel;
     await new Promise(r => setTimeout(r, 90));
-    pruefe(`Auch der Weg nach ${ziel} merkt den Zeitpunkt`,
+    pruefe(`Auch der Weg nach ${ziel} setzt den Bezugspunkt`,
       d.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings'
-        && g.koerper?.zuletztGesehen !== undefined).length === 1,
+        && g.koerper?.glockeGesehen !== undefined).length === 1,
       JSON.stringify(d.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
     d.w.close();
   }
 
   /* Und die Gegenprobe zum Ganzen: ein Wechsel, der die Uebersicht NICHT
-     verlaesst, merkt sich nichts. Ohne sie bliebe offen, ob der Merkzeitpunkt
+     verlaesst, merkt sich nichts. Ohne sie bliebe offen, ob der Bezugspunkt
      bei jedem Neuzeichnen hinausginge -- dann stuende er auf dem Augenblick,
-     in dem man hinsieht, und "neu seit" waere immer leer. */
+     in dem man hinsieht, und die Glocke waere immer leer. */
   const nsBleibt = await nsBaue(nsVorgabe);
-  nsBleibt.w.document.getElementById('f-neu')
+  nsBleibt.w.document.getElementById('f-fav')
     .dispatchEvent(new nsBleibt.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
-  pruefe('Ein Filterklick in der Uebersicht merkt sich keinen Zeitpunkt',
+  pruefe('Ein Filterklick in der Uebersicht setzt keinen Bezugspunkt',
     nsBleibt.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings'
-      && g.koerper?.zuletztGesehen !== undefined).length === 0,
+      && g.koerper?.glockeGesehen !== undefined).length === 0,
     JSON.stringify(nsBleibt.gesendet.filter(g => g.methode === 'PUT').map(g => g.koerper)));
   pruefe('Er schreibt aber sehr wohl die Filterwahl',
     nsBleibt.gesendet.some(g => g.methode === 'PUT' && g.url === '/api/settings'
@@ -24318,10 +24504,16 @@ async function pruefeOberflaeche() {
      darueber, ob sie jemand traegt. Erst das Vorhandensein der Regel, dann
      ihre Eigenschaft -- eine fehlende Regel liefert ein leerer String,
      und jede Verneinung darauf waere wahr (Stolperstein 81). */
-  /* ALLE DREI BREITEN KACHELN STEHEN IM ABSCHNITT „Zugaenge", und das ist
-     kein Zufall: breit ist eine Karte genau dann, wenn sie eine Liste mit
-     vielen Spalten je Zeile traegt -- Zugaenge, Anfragen, Sicherheitsprotokoll.
-     Damit laesst sich „genau drei" weiterhin an EINER Zeichnung abzaehlen. */
+  /* ALLE BREITEN KACHELN STEHEN IM ABSCHNITT „Zugaenge", und das ist kein
+     Zufall. BIS 0.16.0 LAUTETE DIE REGEL: breit ist eine Karte genau dann,
+     wenn sie eine Liste mit vielen Spalten je Zeile traegt -- Zugaenge,
+     Anfragen, Sicherheitsprotokoll.
+     SEIT 0.17.0 LAUTET SIE ANDERS, und das gehoert hingeschrieben: alle
+     Kacheln EINES Abschnitts sind gleich breit. „Mailversand" traegt keine
+     Liste, sondern Eingabefelder -- die alte Regel erklaerte ihren eigenen
+     vierten Fall nicht mehr. Vier gleich breite Kacheln sind einfacher zu
+     begruenden als drei plus ein Rest.
+     Damit laesst sich „alle" weiterhin an EINER Zeichnung abzaehlen. */
   await sysAbschnitt(rEig.w, 'zugaenge');
   const rKachel = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugänge');
@@ -24333,13 +24525,27 @@ async function pruefeOberflaeche() {
      ist keine. SEIT 0.8.90 SIND ES ZWEI -- das Sicherheitsprotokoll ist die
      zweite, und zwar aus demselben Grund: eine Zeile je Vorgang braucht die
      Breite. SEIT 0.9.1 SIND ES DREI: "Anfragen" traegt Name, Adresse und zwei
-     Zeitpunkte in einer Zeile und braucht sie genauso. Alle drei werden
-     namentlich genannt, sonst bliebe die Zahl gruen, wenn eine andere Kachel
-     die Klasse bekaeme. */
+     Zeitpunkte in einer Zeile und braucht sie genauso.
+     SEIT 0.17.0 SIND ES VIER, und das ist der Grund: „Mailversand" steht seit
+     0.16.0 im selben Abschnitt wie die drei und wirkte daneben wie ein Rest.
+     Vier gleich breite Kacheln sind einfacher zu begruenden als drei plus ein
+     Rest. Alle vier werden namentlich genannt, sonst bliebe die Zahl gruen,
+     wenn eine andere Kachel die Klasse bekaeme.
+     DIE VIER SIND ZUGLEICH DER GANZE ABSCHNITT „Zugaenge" -- damit laesst sich
+     „alle" weiterhin an EINER Zeichnung abzaehlen. */
   const rBreite = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.breit')]
     .map(k => k.querySelector('h3')?.textContent.trim());
-  pruefe('Als eine von genau dreien, und alle drei namentlich',
-    gleich(rBreite, ['Zugänge', 'Anfragen', 'Sicherheitsprotokoll']), JSON.stringify(rBreite));
+  pruefe('Als eine von genau vieren, und alle vier namentlich',
+    gleich(rBreite, ['Zugänge', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand']),
+    JSON.stringify(rBreite));
+  /* UND KEINE SCHMALE BLEIBT IM ABSCHNITT STEHEN. Ohne diese Zeile bliebe die
+     Aufzaehlung darueber auch dann gruen, wenn eine fuenfte Karte dazukaeme,
+     die keine Breite traegt -- genau die Lage, aus der der Befund kam. */
+  const rSchmal = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .filter(k => !k.classList.contains('breit'))
+    .map(k => k.querySelector('h3')?.textContent.trim());
+  pruefe('Und im Abschnitt „Zugaenge" steht keine schmale Kachel mehr',
+    rSchmal.length === 0, JSON.stringify(rSchmal));
 
   const rCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
@@ -24349,11 +24555,16 @@ async function pruefeOberflaeche() {
   pruefe('Und sie zieht die Kachel ueber alle Rasterspalten',
     /grid-column: 1 \/ -1/.test(rRegel('.sys-card.breit')),
     rRegel('.sys-card.breit') || '(keine Regel)');
-  /* Die Luecke, die eine breite Kachel davor hinterlaesst. GEPRUEFT WIRD AM
-     STYLESHEET, NICHT AM GEFUEHL: jsdom rechnet kein Layout, ein Raster gibt
-     es hier gar nicht. Wieder erst das Vorhandensein der Regel, dann ihre
-     Eigenschaft -- eine fehlende Regel liefert ein leerer String, und
-     jede Verneinung darauf waere wahr (Stolperstein 81). */
+  /* Die Luecke, die eine breite Kachel davor hinterlaesst. Im Abschnitt
+     „Zugaenge" gibt es sie seit 0.17.0 nicht mehr -- dort sind alle vier
+     Kacheln breit --, in den uebrigen Abschnitten sehr wohl: „Kennzahlen"
+     steht neben „Sicherung", und eine breite Kachel dazwischen liesse sonst
+     eine halbe Zeile frei. Die Regel gilt dem RASTER und nicht diesem
+     Abschnitt.
+     GEPRUEFT WIRD AM STYLESHEET, NICHT AM GEFUEHL: jsdom rechnet kein Layout,
+     ein Raster gibt es hier gar nicht. Wieder erst das Vorhandensein der
+     Regel, dann ihre Eigenschaft -- eine fehlende Regel liefert ein leerer
+     String, und jede Verneinung darauf waere wahr (Stolperstein 81). */
   pruefe('Die Regel fuer das Kartenraster steht ueberhaupt im Stylesheet',
     rRegel('.sys-grid').length > 0, '(keine Regel)');
   pruefe('Und das Raster zieht nachfolgende Karten in die Luecke',
@@ -26825,6 +27036,26 @@ async function pruefeOberflaeche() {
     pruefe('Und die Karte nennt keine fremde Bibliothek beim Namen',
       !/better-sqlite3|nodemailer|express|multer|sharp/i.test(karte?.textContent || ''),
       karte?.textContent?.replace(/\s+/g, ' ').slice(0, 200));
+    /* NEU MIT 0.17.0: die Karte SAGT das auch nicht mehr. Der Vorbehalt gilt
+       unveraendert -- gestrichen ist der Satz, der ihn an der Oberflaeche
+       begruendete. Eine Oberflaeche sagt, WAS IST, nicht, warum es so gebaut
+       wurde (Projektstand 5.6). */
+    pruefe('Und sie begruendet den Vorbehalt nicht mehr an der Oberflaeche',
+      !/Lücke ausnutzen|welcher Bibliothek/.test(karte?.textContent || ''),
+      karte?.textContent?.replace(/\s+/g, ' ').slice(-260));
+    /* DIE ANGABE SELBST BLEIBT ABER STEHEN -- ohne diese Zeile bliebe die
+       Verneinung darueber auch dann gruen, wenn der ganze Absatz verschwaende
+       (Stolperstein 81). */
+    pruefe('Der Satz zum rohen Schluessel bleibt dagegen stehen',
+      /256 Zufallsbits/.test(karte?.textContent || ''),
+      karte?.textContent?.replace(/\s+/g, ' ').slice(-260));
+    /* UND DIE BEGRUENDUNG STEHT DAFUER IN DER README (Stolperstein 81, wieder
+       herum: erst das Vorhandensein am neuen Ort, dann die Verneinung am
+       alten). */
+    pruefe('Die Begruendung steht dafuer in der README',
+      /welcher Bibliothek/.test(liesmichText) &&
+      /welche Lücke passt/.test(liesmichText),
+      'die README traegt die Begruendung nicht');
     /* DIE GEGENLAGE: liefert der Server die Verfahren nicht mit, steht der
        Abschnitt gar nicht da -- statt vier Zeilen mit Gedankenstrichen. */
     const ohneVerf = await pkSystem({ istAdmin: true, istEigentuemer: true },
@@ -27592,23 +27823,26 @@ async function pruefeOberflaeche() {
   /* ANSICHTSZUSTAND, KEINE EINSTELLUNG: der Umschalter schreibt nichts an den
      Server. Ginge er dorthin, waere er eine zweite Wahrheit ueber dieselben
      Daten und stuende beim naechsten Aufruf noch immer so.
-     AUSGENOMMEN IST DER MERKZEITPUNKT: die Prueflage kommt aus der Uebersicht,
-     und wer sie verlaesst, schickt seit 0.8.60 genau ein PUT auf /api/settings
-     mit `zuletztGesehen`. Die Ausnahme ist eng gefasst und wird DANEBEN
+     AUSGENOMMEN IST DER BEZUGSPUNKT DER GLOCKE: die Prueflage kommt aus der
+     Uebersicht, und wer sie zum ERSTEN Mal verlaesst, schickt genau ein PUT auf
+     /api/settings damit. Die Ausnahme ist eng gefasst und wird DANEBEN
      belegt -- ohne die zweite Zeile koennte sie stillschweigend alles
      durchlassen und die erste bliebe gruen, was immer geschickt wuerde
-     (Stolperstein 81). */
+     (Stolperstein 81).
+     MITGENOMMEN MIT 0.17.0 (Stolperstein 201): bis dahin trug der Ruf ZWEI
+     Merker, weil `zuletztGesehen` fuer die Pille „Neu seit ..." nachgestellt
+     werden musste. Die Pille ist gestrichen; der Ruf traegt jetzt einen. */
   const vglPuts = vglDom.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings');
   pruefe('Der Umschalter schreibt nichts an den Server',
-    !vglPuts.some(g => !(g.koerper && g.koerper.zuletztGesehen !== undefined)),
+    !vglPuts.some(g => !(g.koerper && g.koerper.glockeGesehen !== undefined)),
     JSON.stringify(vglPuts.map(g => g.koerper)));
-  /* SEIT 0.16.0 FAEHRT BEIM ERSTEN VERLASSEN DER BEZUGSPUNKT DER GLOCKE MIT --
-     genau einmal, in DEMSELBEN Ruf. Ohne ihn gaebe es keine Glocke, und ohne
-     Glocke keinen Weg, ihn je zu setzen. Die Ausnahme bleibt eng: es ist EIN
-     PUT, und darin steht nichts als diese beiden Merker. */
-  pruefe('Und was dorthin ging, waren ausschliesslich die beiden Merker',
+  /* BEIM ERSTEN VERLASSEN FAEHRT DER BEZUGSPUNKT DER GLOCKE HINAUS -- genau
+     einmal. Ohne ihn gaebe es keine Glocke, und ohne Glocke keinen Weg, ihn je
+     zu setzen. Die Ausnahme bleibt eng: es ist EIN PUT, und darin steht nichts
+     als dieser eine Merker. */
+  pruefe('Und was dorthin ging, war ausschliesslich dieser eine Merker',
     vglPuts.length === 1 &&
-    gleich(Object.keys(vglPuts[0].koerper || {}).sort(), ['glockeGesehen', 'zuletztGesehen']),
+    gleich(Object.keys(vglPuts[0].koerper || {}), ['glockeGesehen']),
     JSON.stringify(vglPuts.map(g => g.koerper)));
 
   cmpSicht('alle').dispatchEvent(new wVgl.MouseEvent('click', { bubbles: true }));
@@ -28923,33 +29157,51 @@ async function pruefeOberflaeche() {
     flMitPx.length === 0, flMitPx.map(r => regel123(r)).join(' | '));
   flW.close();
 
-  /* --- „Neu seit …" mit null Treffern wird gedaempft ---
-     DIESELBE SACHE, ZWEI VERHALTEN war der Befund (Stolperstein 47, im
-     Kleinen): Tags in genau dieser Lage werden gedaempft, die Pille stand in
-     voller Helligkeit da und fuehrte garantiert auf eine leere Liste. */
+  /* --- MITGENOMMEN MIT 0.17.0: die Daempfung galt jeder Pille ---
+     HIER STAND „Neu seit ... mit null Treffern wird gedaempft". Die Pille ist
+     gestrichen; DIE REGEL DAHINTER GILT WEITER und war nie ihre eigene: seit
+     0.13.0 wird JEDE Pille gedaempft, die in der aktuellen Auswahl auf null
+     Treffer fuehrt -- dieselbe Sache darf nicht zwei Verhalten haben
+     (Stolperstein 47, im Kleinen). Belegt wird sie deshalb weiter, jetzt an
+     einem Tag, und die Regel im Stilblatt wird ausdruecklich daraufhin
+     angesehen, dass sie NICHT nur fuer Tags gilt (Stolperstein 201). */
   const flNeuItem = (id, datum) => ({
     id, title: 'Stueck ' + id, rejected: false, tested: false, favorite: false, category: null,
     tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
     testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: datum });
-  // Alles ist AELTER als der Bezugspunkt -- damit bringt "Neu seit ..." null.
+  /* DIE LAGE STELLT DEN LEERLAUF WIRKLICH HER (Stolperstein 224): EIN Tag ist
+     bereits gewaehlt, und der zweite traegt keinen der sichtbaren Eintraege --
+     erst dann fuehrt ein zusaetzlicher Klick garantiert auf eine leere Liste.
+     Ohne die gewaehlte Vorauswahl stellt sich die Frage gar nicht: im
+     ODER-Modus und ohne Auswahl erweitert jeder Klick. */
+  const flTagVorrat = [{ id: 1, name: 'Grün', usage_count: 1, test_usage_count: 0 },
+                       { id: 2, name: 'Blau', usage_count: 1, test_usage_count: 0 }];
   const flAltDom = baueDom(JSDOM, {
-    uebersichtItems: [flNeuItem(1, '2026-01-01 10:00:00'), flNeuItem(2, '2026-01-02 10:00:00')],
-    einstellungen: { filters: null, zuletztGesehen: '2026-06-01 00:00:00' } });
+    uebersichtItems: [{ ...flNeuItem(1, '2026-01-01 10:00:00'),
+                        tags: [{ id: 1, name: 'Grün' }] }],
+    tags: flTagVorrat,
+    einstellungen: { filters: { categoryIds: [], tagIds: [1], tagMode: 'and', tested: 'all',
+                                abgelehnt: 'all', favorit: false, sort: 'title_asc' } } });
   const flAltW = flAltDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const flNeuPille = flAltW.document.getElementById('f-neu');
-  /* ERST DER GEGENSTAND (Stolperstein 81): ohne Bezugspunkt gibt es die Pille
-     gar nicht, und eine Pruefung auf ihre Klasse waere dann gruen fuer nichts. */
-  pruefe('Die Pille "Neu seit …" steht da', !!flNeuPille, '(keine Pille)');
-  pruefe('Und sie nennt die Null', /0/.test(flNeuPille?.querySelector('.n')?.textContent || ''),
-    flNeuPille?.textContent);
-  pruefe('Bei null Treffern ist sie gedaempft — wie ein Tag in derselben Lage',
-    flNeuPille?.classList.contains('leer'), flNeuPille?.className);
+  const flPille = (w, name) => [...w.document.querySelectorAll('#filters .pill-tag')]
+    .find(b => b.textContent.trim() === name);
+  const flLeerePille = flPille(flAltW, 'Blau');
+  /* ERST DER GEGENSTAND (Stolperstein 81): ohne die Pille im Vorrat waere jede
+     Pruefung auf ihre Klasse gruen fuer nichts. */
+  pruefe('Die Pille steht da', !!flLeerePille, '(keine Pille)');
+  pruefe('Und die Vorauswahl steht wirklich',
+    flPille(flAltW, 'Grün')?.classList.contains('on'), flPille(flAltW, 'Grün')?.className);
+  pruefe('Bei null Treffern ist sie gedaempft',
+    flLeerePille?.classList.contains('leer'), flLeerePille?.className);
   pruefe('Und sie sagt, warum',
-    flNeuPille?.title === 'Zusammen mit der aktuellen Auswahl kein Treffer', flNeuPille?.title);
-  pruefe('Anklickbar bleibt sie', flNeuPille?.disabled !== true, String(flNeuPille?.disabled));
+    flLeerePille?.title === 'Zusammen mit der aktuellen Auswahl kein Treffer',
+    flLeerePille?.title);
+  pruefe('Anklickbar bleibt sie', flLeerePille?.disabled !== true, String(flLeerePille?.disabled));
   /* DIE REGEL GILT SEIT 0.13.0 FUER JEDE PILLE und nicht mehr nur fuer Tags --
-     sonst waere es dieselbe Sache mit zwei Verhalten, nur andersherum. */
+     sonst waere es dieselbe Sache mit zwei Verhalten, nur andersherum. Sie
+     bleibt stehen, obwohl die Pille, fuer die sie 0.13.0 verallgemeinert hat,
+     gestrichen ist: die Verallgemeinerung ist der Gewinn, nicht die Pille. */
   pruefe('Das Stilblatt daempft jede Pille in dieser Lage, nicht nur Tags',
     /opacity: \.34/.test(regel123('.pill.leer')) && !regel123('.pill-tag.leer'),
     `${regel123('.pill.leer')} | ${regel123('.pill-tag.leer')}`);
@@ -28958,13 +29210,16 @@ async function pruefeOberflaeche() {
   // Und die Gegenprobe: mit Treffern ist sie NICHT gedaempft. Ohne diese Zeile
   // bliebe die Pruefung darueber auch dann gruen, wenn die Klasse immer stuende.
   const flNeuDom = baueDom(JSDOM, {
-    uebersichtItems: [flNeuItem(1, '2026-08-01 10:00:00')],
-    einstellungen: { filters: null, zuletztGesehen: '2026-06-01 00:00:00' } });
+    uebersichtItems: [{ ...flNeuItem(1, '2026-08-01 10:00:00'),
+                        tags: [{ id: 1, name: 'Grün' }, { id: 2, name: 'Blau' }] }],
+    tags: flTagVorrat,
+    einstellungen: { filters: { categoryIds: [], tagIds: [1], tagMode: 'and', tested: 'all',
+                                abgelehnt: 'all', favorit: false, sort: 'title_asc' } } });
   const flNeuW = flNeuDom.w;
   await new Promise(r => setTimeout(r, 80));
-  const flNeuPille2 = flNeuW.document.getElementById('f-neu');
+  const flVollePille = flPille(flNeuW, 'Blau');
   pruefe('Mit Treffern steht sie in voller Helligkeit da',
-    !!flNeuPille2 && !flNeuPille2.classList.contains('leer'), flNeuPille2?.className);
+    !!flVollePille && !flVollePille.classList.contains('leer'), flVollePille?.className);
   flNeuW.close();
 
   /* ================= Die Kategoriezeile lernt die Mehrzahl — 0.13.0 ====
@@ -29617,6 +29872,240 @@ async function pruefeOberflaeche() {
     !/\.stimmzeile[^{]*\.ravg/.test(css123) &&
     !/zeile\.className = 'stimmzeile'[\s\S]{0,600}ravg/.test(arQuelle),
     'ravg taucht in der Stimmliste auf');
+
+  /* ================= Das Raster zaehlt seine Zellen — 0.17.0 ===========
+     DER BEFUND KAM AUS DEM BETRIEB UND KEINE PRUEFUNG KONNTE IHN SEHEN. Das
+     Raster stand fest auf drei Spalten, die Durchschnittszelle haengt
+     drawRatings() aber nur bei mehreren Zugaengen an. Bei EINEM Zugang liefert
+     jede Zeile damit zwei Zellen in ein Dreispaltenraster, und die
+     Selbstanordnung schiebt alles um eine Spalte weiter: Name, Sterne,
+     naechster Name in einer Reihe.
+     SICHTBAR GEWORDEN IST DAS ERST MIT DEN GEWICHTSMARKEN aus 0.16.0, die die
+     Namensspalte breiter machen -- der Fehler ist aelter, das Raster kam mit
+     0.14.0 und die bedingte Zelle gibt es seit 0.8.91.
+     WARUM IHN NIEMAND SAH: alle Prueflagen der Kriterienliste fahren mit
+     benutzerZahl 3, also genau in der Lage, in der das Raster aufgeht.
+     DIESE GRUPPE PRUEFT DESHALB MEHR ALS DEN FEHLER: sie zaehlt die Zellen JE
+     ZEILE und die Spalten des Rasters und haelt fest, dass beide Zahlen
+     zusammenpassen -- in BEIDEN Lagen. Eine Gruppe, die nur den einen Fall
+     ansaehe, waere dieselbe Blindheit mit umgekehrtem Vorzeichen.
+     UND SIE LIEST NICHT BLOSS DIE KLASSE (Stolperstein 223): die Zellen
+     kommen als echte Kindknoten aus dem Aufbau, die Spalten aus der Regel im
+     Stilblatt, die auf genau diese Klassen zutrifft. Ein Rueckbau, der die
+     Klasse setzt und die Regel wegnimmt, wird damit trotzdem rot. */
+  gruppe('Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0');
+
+  /* WIE VIELE SPALTEN EIN KASTEN MIT DIESEN KLASSEN HAT -- GELESEN, nicht
+     hingeschrieben. Von den Regeln, deren Klassen der Kasten alle traegt,
+     gewinnt die letzte; so wertet es der Browser bei gleicher Spezifitaet,
+     und beide Regeln haben hier dieselbe.
+     ERST DER GEGENSTAND (Stolperstein 81): findet sich gar keine Regel, ist
+     die Zahl 0 und die Zusagen darunter koennen nicht gruen bleiben. */
+  const rasterSpalten = (klassen) => {
+    /* KOMMENTARE ZUERST WEG: sie tragen selbst geschweifte Klammern und
+       Punkte, und ein Ausdruck ueber das rohe Stilblatt griffe dort hinein.
+       DANACH VON KLAMMER ZU KLAMMER, ohne Ausdruck ueber die ganze Regel: ein
+       Ausdruck mit einem Anker DAVOR frisst die schliessende Klammer der
+       vorigen Regel auf und ueberspringt damit jede zweite. Klammer zu Klammer
+       schneiden ist langweiliger und deshalb richtig. */
+    const ohne = css123.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    let gefunden = 0, i = 0;
+    for (;;) {
+      const auf = ohne.indexOf('{', i);
+      if (auf < 0) break;
+      const zu = ohne.indexOf('}', auf);
+      if (zu < 0) break;
+      const wahl = ohne.slice(i, auf).trim();
+      const rumpf = ohne.slice(auf + 1, zu);
+      i = zu + 1;
+      // Nur reine Klassenwaehler; alles andere geht diese Frage nichts an.
+      if (!/^(?:\.[a-z0-9-]+)+$/i.test(wahl)) continue;
+      const noetig = wahl.split('.').filter(Boolean);
+      if (noetig[0] !== 'rlist' || !noetig.every(k => klassen.includes(k))) continue;
+      const m = rumpf.match(/grid-template-columns:\s*([^;]+)/);
+      if (m) gefunden = m[1].trim().split(/\s+/).length;
+    }
+    return gefunden;
+  };
+  /* DIE PROBE AUF DEN LESER SELBST. Ohne sie belegte „Zellen und Spalten
+     passen zusammen" auch dann etwas, wenn rasterSpalten() immer dieselbe
+     Zahl lieferte -- und das waere eine Pruefung ueber den Pruefstand statt
+     ueber die Anlage. */
+  pruefe('Der Leser findet fuer beide Klassenstellungen eine Regel',
+    rasterSpalten(['rlist']) > 0 && rasterSpalten(['rlist', 'ohne-schnitt']) > 0,
+    `${rasterSpalten(['rlist'])} / ${rasterSpalten(['rlist', 'ohne-schnitt'])}`);
+  pruefe('Und er unterscheidet die beiden wirklich',
+    rasterSpalten(['rlist']) !== rasterSpalten(['rlist', 'ohne-schnitt']),
+    `${rasterSpalten(['rlist'])} / ${rasterSpalten(['rlist', 'ohne-schnitt'])}`);
+
+  for (const [wieViele, wort] of [[3, 'mehreren Zugaengen'], [1, 'einem einzigen Zugang']]) {
+    const rz = baueDom(JSDOM, { hash: '#/item/1',
+      einstellungen: { filters: null, benutzerZahl: wieViele, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 80));
+    const rzKasten = rz.w.document.getElementById('ratings');
+    const rzZeilen = [...(rzKasten?.querySelectorAll('.rrow') || [])];
+    /* ERST DER GEGENSTAND: ohne Zeilen traegt keine Zusage darunter einen
+       Fall, auf den sie zutraefe. */
+    pruefe(`Bei ${wort} stehen drei Kriterienzeilen da`,
+      rzZeilen.length === 3, `${rzZeilen.length}`);
+    const rzKlassen = [...(rzKasten?.classList || [])];
+    pruefe(`Und der Kasten bei ${wort} traegt das Raster`,
+      rzKlassen.includes('rlist'), JSON.stringify(rzKlassen));
+    const rzSpalten = rasterSpalten(rzKlassen);
+    /* DIE ZELLEN SIND ECHTE KINDKNOTEN und keine Behauptung: gezaehlt wird,
+       was der Aufbau wirklich angehaengt hat. */
+    const rzZellen = rzZeilen.map(z => z.children.length);
+    pruefe(`Bei ${wort} traegt jede Zeile gleich viele Zellen`,
+      rzZellen.length > 0 && rzZellen.every(n => n === rzZellen[0]),
+      JSON.stringify(rzZellen));
+    /* DER KERN DIESER GRUPPE. Bei einem Zugang waren es zwei Zellen in drei
+       Spalten -- und genau daran zerfiel die Liste. */
+    pruefe(`Und bei ${wort} passen Zellen und Spalten zusammen`,
+      rzSpalten > 0 && rzZellen.every(n => n === rzSpalten),
+      `${JSON.stringify(rzZellen)} Zellen gegen ${rzSpalten} Spalten`);
+    /* UND DIE ZAHL SELBST, ausdruecklich: sonst bliebe die Zeile darueber
+       auch dann gruen, wenn beide Lagen auf zwei Zellen und zwei Spalten
+       faellen -- die Durchschnittsspalte waere dann wortlos verschwunden. */
+    pruefe(`Bei ${wort} sind es ${wieViele > 1 ? 'drei' : 'zwei'} Zellen`,
+      rzZellen[0] === (wieViele > 1 ? 3 : 2), `${rzZellen[0]}`);
+    /* UND DIE KLASSE STEHT NUR DA, WO SIE HINGEHOERT. Ohne diese Zeile bliebe
+       „passen zusammen" auch dann gruen, wenn sie immer stuende und die
+       Durchschnittszelle mit ihr. */
+    pruefe(`Die Klasse „ohne-schnitt" steht bei ${wort} ${wieViele > 1 ? 'nicht' : ''} da`.replace('  ', ' '),
+      rzKlassen.includes('ohne-schnitt') === (wieViele === 1), JSON.stringify(rzKlassen));
+    rz.w.close();
+  }
+
+  /* ES GIBT GENAU ZWEI REGELN MIT SPALTENANGABE, und keine davon steht in
+     einer Medienabfrage. Eine dritte -- etwa eine fuer den schmalen Schirm --
+     waere eine zweite Wahrheit ueber dieselbe Zahl, und die neue Zusage
+     darueber saehe sie nicht (Stolperstein 47). */
+  const rzRegeln = (css123.match(/\.rlist[^{]*\{[^}]*grid-template-columns[^}]*\}/g) || []);
+  pruefe('Die Spaltenzahl steht an genau zwei Stellen im Stilblatt',
+    rzRegeln.length === 2, JSON.stringify(rzRegeln));
+  /* UND AUCH DIE ZWEITE REGEL TRAEGT KEINEN SPALTENABSTAND: er risse die
+     Trennlinie in Stuecke, genauso wie an der ersten. */
+  pruefe('Auch die Regel fuer den einen Zugang traegt keinen Spaltenabstand',
+    rzRegeln.length === 2 && !/gap/.test(rzRegeln[1]), JSON.stringify(rzRegeln[1]));
+  /* DIE SCHWELLE STEHT AN EINER STELLE. Verlockend waere gewesen, die
+     Spaltenzahl aus den Bewertungen selbst abzuleiten -- dann haetten Raster
+     und Zelle zwei Quellen, und die eine liesse sich aendern, ohne dass die
+     andere mitginge. */
+  pruefe('Raster und Zelle haengen an derselben einen Bedingung',
+    /const mitSchnitt = mehrereBenutzer\(\);/.test(arQuelle) &&
+    /box\.className = 'rlist' \+ \(mitSchnitt \?/.test(arQuelle) &&
+    /if \(mitSchnitt\) \{/.test(arQuelle),
+    (arQuelle.match(/const mitSchnitt[^\n]*/) || ['(nicht gefunden)'])[0]);
+
+  /* ================= Zwei Masse vom echten Geraet — 0.17.0 =============
+     BEIDE BEFUNDE SIND AUF EINEM TELEFON ENTSTANDEN und in jsdom nicht zu
+     messen: dort ist jede Breite und jede Hoehe null. Geprueft wird deshalb
+     an beiden Enden -- dass der Aufbau die Gegenstaende wirklich traegt, und
+     dass am Stilblatt die Regel dazu haengt (Stolperstein 81 und 223). */
+  gruppe('Zwei Masse vom echten Geraet — 0.17.0');
+
+  /* WAS AUSSERHALB JEDER MEDIENABFRAGE STEHT. Eine Regel, die nur unterhalb
+     eines Umbruchpunkts gilt, gilt auf dem Desktop nicht -- und genau darum
+     geht es beim zweiten Befund. Die Bloecke werden ueber ihre Klammern
+     gezaehlt und nicht ueber einen Ausdruck: eine Medienabfrage enthaelt
+     selbst Klammerpaare. */
+  const ohneMedien = (() => {
+    const roh = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    let raus = '', i = 0;
+    while (i < roh.length) {
+      const a = roh.indexOf('@media', i);
+      if (a < 0) { raus += roh.slice(i); break; }
+      raus += roh.slice(i, a);
+      let j = roh.indexOf('{', a), tiefe = 0;
+      if (j < 0) break;
+      for (; j < roh.length; j++) {
+        if (roh[j] === '{') tiefe++;
+        else if (roh[j] === '}' && --tiefe === 0) { j++; break; }
+      }
+      i = j;
+    }
+    return raus.replace(/\s+/g, ' ');
+  })();
+  /* DIE PROBE AUF DEN LESER: er muss wirklich etwas wegnehmen und wirklich
+     etwas stehenlassen. Ohne sie belegten die Zeilen darunter nichts. */
+  pruefe('Der Leser trennt Medienabfragen wirklich ab',
+    ohneMedien.length > 0 && ohneMedien.length < css123.length &&
+    !/@media/.test(ohneMedien), `${ohneMedien.length} von ${css123.length}`);
+
+  /* ---- Erstens: die Versionszeile unter der Falz (Samsung S21 5G) ----
+     `vh` IST AUF DEM TELEFON DIE GROSSE ANZEIGEFLAECHE -- die ohne
+     Browserleisten, also die, die man nicht sieht. Die Seite wird damit
+     hoeher als das Fenster, und die Zeile am unteren Ende steht darunter.
+     `dvh` misst, was gerade wirklich da ist.
+     DER RUECKFALL STEHT DARUEBER UND NICHT DARUNTER: ein Browser, der `dvh`
+     nicht kennt, ueberliest die zweite Zeile und behaelt die erste. Stuende
+     sie andersherum, bliebe fuer ihn nichts uebrig. */
+  for (const wahl of ['body.anmeldung', '.login-screen']) {
+    const regel = (ohneMedien.match(new RegExp(wahl.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
+    pruefe(`Die Regel fuer ${wahl} steht ueberhaupt im Stilblatt`,
+      regel.length > 0, '(keine Regel)');
+    pruefe(`${wahl} misst die Hoehe in dvh`,
+      /min-height: *100dvh/.test(regel), regel || '(keine Regel)');
+    pruefe(`Und ${wahl} behaelt 100vh als Rueckfall DAVOR`,
+      regel.indexOf('min-height: 100vh') >= 0 &&
+      regel.indexOf('min-height: 100vh') < regel.indexOf('min-height: 100dvh'),
+      regel || '(keine Regel)');
+  }
+  /* UND DIE ALTE VERMUTUNG IST NICHT DIE URSACHE: einen festen oberen Abstand
+     gibt es an der Anmeldekarte gar nicht, sie ist mittig gesetzt. Ohne diese
+     Zeile bliebe offen, ob jemand doch wieder am Abstand dreht. */
+  pruefe('Die Anmeldekarte bleibt mittig gesetzt statt oben angeheftet',
+    /align-items: center/.test((ohneMedien.match(/\.login-screen \{[^}]*\}/) || [''])[0]),
+    (ohneMedien.match(/\.login-screen \{[^}]*\}/) || ['(keine Regel)'])[0]);
+
+  /* ---- Zweitens: der Rahmen der eigenen Anmeldung reicht nicht bis zum Rand
+     `.manage-list` traegt `overflow-y: auto`, und damit steht `overflow-x`
+     nach der CSS-Regel ebenfalls auf `auto`. Die Zeile ist breiter als der
+     Kasten -- die beiden Zeitangaben geben nicht nach --, also entsteht ein
+     Bildlauf zur Seite, und der Rahmen endet am sichtbaren Ausschnitt.
+     ERST DER GEGENSTAND: die Zeile muss die beiden Zeitangaben wirklich
+     tragen, und die muessen wirklich nicht nachgeben. Sonst haette der Umbruch
+     nichts, wovor er schuetzt. */
+  {
+    const az = baueDom(JSDOM, { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 60));
+    await az.w.renderSystem();
+    await new Promise(r => setTimeout(r, 60));
+    const azEigene = az.w.document.querySelector('#msitzungen .mrow.sitz.sitz-ich');
+    pruefe('Die eigene Anmeldung steht als markierte Zeile da',
+      !!azEigene, az.w.document.getElementById('msitzungen')?.innerHTML?.slice(0, 160));
+    pruefe('Und sie traegt zwei Zeitangaben in derselben Zeile',
+      azEigene?.querySelectorAll('.sitz-zeit').length === 2,
+      `${azEigene?.querySelectorAll('.sitz-zeit').length}`);
+    az.w.close();
+  }
+  const azZeit = (ohneMedien.match(/\.mrow\.sitz \.sitz-zeit \{[^}]*\}/) || [''])[0];
+  pruefe('Die Zeitangaben geben ausdruecklich nicht nach',
+    /flex-shrink: 0/.test(azZeit), azZeit || '(keine Regel)');
+  pruefe('Und der Kasten laesst weiterhin senkrecht rollen',
+    /overflow-y: auto/.test((ohneMedien.match(/\.manage-list \{[^}]*\}/) || [''])[0]),
+    (ohneMedien.match(/\.manage-list \{[^}]*\}/) || ['(keine Regel)'])[0]);
+  /* DER KERN: der Umbruch gilt AUF JEDEM SCHIRM und nicht erst unterhalb eines
+     Umbruchpunkts. Gelesen wird deshalb aus dem Stilblatt OHNE Medienabfragen
+     -- eine Regel, die nur dort steht, faellt hier durch. */
+  const azSitz = (ohneMedien.match(/\.mrow\.sitz \{[^}]*\}/) || [''])[0];
+  pruefe('Die Zeile einer Anmeldung bricht ausserhalb jeder Medienabfrage um',
+    /flex-wrap: wrap/.test(azSitz), azSitz || '(keine Regel)');
+  pruefe('Und der Zeilenabstand des Umbruchs steht daneben',
+    /row-gap:/.test(azSitz), azSitz || '(keine Regel)');
+  /* DIE ANORDNUNG BLEIBT DAGEGEN DEM SCHMALEN SCHIRM: sie ist eine Anordnung
+     und keine Frage des Umbruchs. Ohne diese Zeile liesse sich nicht
+     unterscheiden, ob der ganze Block gewandert ist oder nur der Umbruch. */
+  pruefe('Die Anordnung der Stuecke bleibt beim schmalen Schirm',
+    !/\.mrow\.sitz \.zug-akt/.test(ohneMedien) &&
+    /\.mrow\.sitz \.zug-akt \{ order: 1; \}/.test(css123),
+    'die Anordnung steht ausserhalb der Medienabfrage');
+  /* UND DER ANDERE WEG IST AUSDRUECKLICH NICHT GEGANGEN: `min-width:
+     max-content` liesse den seitlichen Bildlauf stehen, und der ist auf dem
+     Telefon schwer zu treffen. */
+  pruefe('Der seitliche Bildlauf wird nicht bloss laenger gemacht',
+    !/max-content/.test(azSitz) && !/max-content/.test(azZeit),
+    `${azSitz} | ${azZeit}`);
 
   /* ================= Das Feld steht nur, wo etwas fehlt — 0.15.1 =======
      BEFUND AUS DEM BETRIEB, 29. AUGUST 2026: an einem NICHT abgelehnten
@@ -30399,10 +30888,102 @@ async function pruefeOberflaeche() {
       /Bewertungskriterien/.test(kasten?.textContent || ''),
       kasten?.textContent?.replace(/\s+/g, ' ').slice(-200));
 
+    /* ---- DIE VERGLEICHSZAHL OHNE GEWICHTE — 0.17.0 ----
+       DIE FORMEL STAND ZEILE FUER ZEILE DA und liess trotzdem offen, WOFUER
+       die Gewichte gut sind. Erst der Unterschied macht die Gewichtung
+       sichtbar.
+       ERST DIE PRUEFLAGE SELBST (Stolperstein 224): sind beide Zahlen gleich,
+       kann diese Gruppe den Unterschied gar nicht zeigen -- dann wird DIESE
+       Zeile rot und nicht die Zusagen darunter stumm. */
+    pruefe('Die Prueflage taugt: gewichtet und ungewichtet sind verschieden',
+      dok.getElementById('rz-gleich')?.textContent.trim() !== '⌀ 3' &&
+      (dok.getElementById('rz-gleich')?.textContent || '').trim().length > 0,
+      `${dok.getElementById('rz-ergebnis')?.textContent} gegen ` +
+      `${dok.getElementById('rz-gleich')?.textContent}`);
+    pruefe('Der Kasten nennt die Zahl ohne Gewichte',
+      dok.getElementById('rz-gleich')?.textContent.trim() === '⌀ 4',
+      dok.getElementById('rz-gleich')?.textContent);
+    /* SIE WIRD GELESEN UND NICHT NACHGERECHNET (Stolperstein 217). (3,4 + 4,1)
+       ÷ 2 ergibt 3,75 und gerundet 3,8 -- der Rechenweg der Prueflage nennt
+       aber ausdruecklich 4. Steht hier 4, LIEST die Oberflaeche; stuende 3,8,
+       rechnete sie nach, und der Kasten waere eine zweite Rechenstelle. */
+    pruefe('Und sie kommt aus der Antwort, statt im Browser gerechnet zu werden',
+      !/3,8/.test(dok.querySelector('.rechnung')?.textContent || ''),
+      dok.querySelector('.rechnung')?.textContent?.replace(/\s+/g, ' '));
+    /* VIER ZELLEN WIE JEDE ANDERE ZEILE. Eine Zeile mit dreien schoebe im
+       Vierspaltenraster alles darunter um eine Spalte weiter -- genau der
+       Fehler, den Punkt 1 derselben Runde behebt. */
+    const rgZeile = kasten?.querySelector('.rz-gleich');
+    pruefe('Die Zeile traegt vier Zellen wie jede andere',
+      rgZeile?.children.length === 4, `${rgZeile?.children.length}`);
+    pruefe('Und sie steht unter dem Ergebnis, nicht darueber',
+      [...(kasten?.querySelectorAll('.rechnung > .rz') || [])].indexOf(rgZeile) >
+      [...(kasten?.querySelectorAll('.rechnung > .rz') || [])]
+        .indexOf(kasten?.querySelector('.rz-ergebnis')),
+      'die Vergleichszahl steht vor dem Ergebnis');
+    /* UND EIN SATZ SAGT, WAS SIE BEDEUTET. Eine Zahl ohne Deutung waere die
+       fuenfte Zahl im Kasten und nicht die Antwort auf „wofuer sind die
+       Gewichte gut". */
+    pruefe('Ein Satz nennt den Unterschied beim Namen',
+      /Unterschied, den die Gewichtung macht/.test(kasten?.textContent || ''),
+      dok.getElementById('rz-gleich-satz')?.textContent?.replace(/\s+/g, ' '));
+
     // Escape schliesst ihn, wie jeden Dialog dieser Anlage.
     dok.dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
     pruefe('Escape schliesst den Kasten wieder', !dok.getElementById('rechnung-modal'));
+    d.w.close();
+  }
+
+  /* OHNE GEWICHTUNG GIBT ES NICHTS ZU VERGLEICHEN -- stehen alle Gewichte auf
+     1, ist die Vergleichszahl dieselbe Zahl wie darueber, und zweimal dasselbe
+     hinzuschreiben ist keine Auskunft. DIE GEGENLAGE ZUR GRUPPE DARUEBER
+     (Stolperstein 81): ohne sie bliebe „die Zeile steht da" auch dann gruen,
+     wenn sie immer stuende. */
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1', kriterienGewichte: [1, 1, 1] });
+    await new Promise(r => setTimeout(r, 90));
+    const dok = d.w.document;
+    dok.querySelector('#rhead .gew-auf')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const kasten = dok.getElementById('rechnung-modal');
+    pruefe('Auch ohne Gewichtung geht der Kasten auf', !!kasten, dok.body.innerHTML.slice(0, 160));
+    pruefe('Aber er nennt keine Vergleichszahl',
+      !!kasten && !dok.getElementById('rz-gleich'),
+      dok.getElementById('rz-gleich')?.textContent);
+    pruefe('Und auch keinen Satz dazu',
+      !!kasten && !dok.getElementById('rz-gleich-satz'),
+      dok.getElementById('rz-gleich-satz')?.textContent);
+    /* DIE RECHNUNG SELBST STEHT TROTZDEM DA -- was fehlt, ist der Vergleich,
+       nicht der Kasten. */
+    pruefe('Die Rechnung selbst steht trotzdem darin',
+      (kasten?.querySelectorAll('.rechnung .rz[data-krit]') || []).length === 2,
+      `${kasten?.querySelectorAll('.rechnung .rz[data-krit]').length}`);
+    d.w.close();
+  }
+
+  /* UND WENN BEIDE ZAHLEN GLEICH SIND, SAGT DER KASTEN DAS -- statt zweimal
+     dieselbe Zahl hinzuschreiben. Die Gewichte wirken, das Ergebnis faellt
+     nach dem Runden trotzdem gleich aus; das ist eine eigene Auskunft und
+     kein Sonderfall zum Verschweigen. */
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1', rechenwegGleich: 3 });
+    await new Promise(r => setTimeout(r, 90));
+    const dok = d.w.document;
+    dok.querySelector('#rhead .gew-auf')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const kasten = dok.getElementById('rechnung-modal');
+    pruefe('Die Prueflage taugt: hier sind beide Zahlen wirklich gleich',
+      dok.getElementById('rz-gleich')?.textContent.trim() ===
+      dok.getElementById('rz-ergebnis')?.textContent.trim(),
+      `${dok.getElementById('rz-ergebnis')?.textContent} gegen ` +
+      `${dok.getElementById('rz-gleich')?.textContent}`);
+    pruefe('Dann sagt der Kasten, dass die Gewichtung nichts aendert',
+      /ändert die Gewichtung nichts/.test(kasten?.textContent || ''),
+      dok.getElementById('rz-gleich-satz')?.textContent?.replace(/\s+/g, ' '));
+    pruefe('Und er behauptet keinen Unterschied',
+      !/Unterschied, den die Gewichtung macht/.test(kasten?.textContent || ''),
+      dok.getElementById('rz-gleich-satz')?.textContent?.replace(/\s+/g, ' '));
     d.w.close();
   }
 
@@ -30432,20 +31013,33 @@ async function pruefeOberflaeche() {
      und die Tafel dahinter. Und die Lage, in der es die Glocke GAR NICHT gibt
      -- ohne sie waere „die Glocke steht da" von „sie steht immer da" nicht zu
      unterscheiden (Stolperstein 81).
-     EINE LAGE MIT EINEM EINZIGEN ZUGANG KOENNTE UEBER DIE GLOCKE NICHTS
-     BELEGEN: fremde Beitraege gibt es dort nicht. Alle Lagen hier tragen
-     deshalb benutzerZahl 3. */
+     SEIT 0.17.0 SAGT DIE TAFEL, WAS NEU IST -- „3 Kommentare · 4 Bewertungen"
+     statt „7 neue Beitraege" -- UND VON WEM. „Beitrag" ist ein Sammelwort, das
+     die Anlage sonst nirgends benutzt.
+     DIE LAGE MIT EINEM EINZIGEN ZUGANG BELEGT SEITHER ETWAS: die Glocke meldet
+     von ALLEN, die eigenen Beitraege eingeschlossen. Bis 0.16.0 waere sie dort
+     zwangslaeufig leer gewesen -- und genau deshalb gab es daneben die Pille
+     „Neu seit ...". Sie hat ihre eigene Lage weiter unten. */
   gruppe('Die Glocke in der Kopfzeile');
 
+  const glVon = { bert: { id: 2, name: 'bert', geloescht: false },
+                  carla: { id: 3, name: 'carla', geloescht: false },
+                  ich: { id: 1, name: 'chefin', geloescht: false } };
+  /* JE EINTRAG ZWEI ZAHLEN UND EINE LISTE. Die beiden Zeilen sind bewusst
+     UNGLEICH gebaut: die erste traegt beide Arten, die zweite nur eine -- ohne
+     das liesse sich „bei einer Art steht auch nur eine Angabe da" gar nicht
+     belegen (Stolperstein 189). */
   const glBestand = (neu) => [
     { id: 1, title: 'Erster', rejected: false, tested: true, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
       testCount: 1, testAvg: 4, testLast: 4, updated_at: '2026-08-01 10:00:00',
-      offeneAufgaben: 2, neuFremd: neu[0] },
+      offeneAufgaben: 2, neuKommentare: neu[0][0], neuBewertungen: neu[0][1],
+      neuVon: neu[0][2] || [] },
     { id: 2, title: 'Zweiter', rejected: false, tested: true, favorite: false, category: null,
       tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 4,
       testCount: 1, testAvg: 4, testLast: 4, updated_at: '2026-08-02 10:00:00',
-      offeneAufgaben: 5, neuFremd: neu[1] }
+      offeneAufgaben: 5, neuKommentare: neu[1][0], neuBewertungen: neu[1][1],
+      neuVon: neu[1][2] || [] }
   ];
   const glBaue = async (neu, mehr = {}) => {
     const d = baueDom(JSDOM, { uebersichtItems: glBestand(neu),
@@ -30456,10 +31050,11 @@ async function pruefeOberflaeche() {
   };
 
   {
-    /* OHNE BEZUGSPUNKT GIBT ES KEINE GLOCKE. Der Mock nimmt `neuFremd` dann
-       aus der Antwort -- wie der echte Server, der das Feld gar nicht erst
+    /* OHNE BEZUGSPUNKT GIBT ES KEINE GLOCKE. Der Mock nimmt die drei Angaben
+       dann aus der Antwort -- wie der echte Server, der sie gar nicht erst
        bildet. */
-    const ohne = await glBaue([3, 1], { glockeGesehen: undefined });
+    const ohne = await glBaue([[3, 0, [glVon.bert]], [1, 0, [glVon.carla]]],
+      { glockeGesehen: undefined });
     pruefe('Ohne gespeicherten Bezugspunkt gibt es keine Glocke',
       !ohne.w.document.getElementById('glocke'), 'die Glocke steht trotzdem da');
     /* UND SIE ENTSTEHT BEIM VERLASSEN DER UEBERSICHT -- sonst gaebe es keinen
@@ -30469,7 +31064,8 @@ async function pruefeOberflaeche() {
     const ohnePut = ohne.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings').pop();
     pruefe('Der Bezugspunkt wird beim Verlassen der Uebersicht gesetzt',
       ohnePut?.koerper?.glockeGesehen !== undefined, JSON.stringify(ohnePut?.koerper));
-    // Als SIGNAL, nicht als Uhrzeit des Aufrufers -- wie zuletztGesehen daneben.
+    // Als SIGNAL, nicht als Uhrzeit des Aufrufers: die Uhr des Aufrufers ist
+    // eine Behauptung, der Server setzt seine eigene ein.
     pruefe('Und zwar als Signal, nicht als Zeitangabe des Aufrufers',
       !/\d{4}-\d{2}-\d{2}/.test(String(ohnePut?.koerper?.glockeGesehen ?? '')),
       JSON.stringify(ohnePut?.koerper));
@@ -30477,7 +31073,11 @@ async function pruefeOberflaeche() {
   }
 
   {
-    const d = await glBaue([3, 1]);
+    /* DREI KOMMENTARE UND EINE BEWERTUNG AM ERSTEN, EIN KOMMENTAR AM ZWEITEN.
+       Die Summe ueber beide ist damit 5, und die beiden Zeilen unterscheiden
+       sich in der ART -- ohne das koennte die Gruppe „bei einer Art steht auch
+       nur eine Angabe da" nicht zeigen. */
+    const d = await glBaue([[3, 1, [glVon.bert, glVon.carla]], [1, 0, [glVon.ich]]]);
     const dok = d.w.document;
     pruefe('Mit Bezugspunkt steht die Glocke da', !!dok.getElementById('glocke'));
     pruefe('Und sie steht im selben Behaelter wie die anderen Zeichenknoepfe',
@@ -30490,8 +31090,16 @@ async function pruefeOberflaeche() {
       !!punkt && punkt.hidden === false, `hidden: ${punkt?.hidden}`);
     pruefe('Und der Punkt traegt ausdruecklich keine Zahl',
       (punkt?.textContent || '') === '', JSON.stringify(punkt?.textContent));
-    pruefe('Der Titel des Knopfes nennt sie dafuer',
-      /4 neu von anderen/.test(dok.getElementById('glocke')?.title || ''),
+    /* EINE ZAHL IM TITEL, UND ZWAR DIE SUMME. Der Titel beantwortet „gibt es
+       etwas", die Tafel beantwortet „was" -- eine Aufzaehlung im Titel machte
+       aus einem Hinweis eine Liste.
+       DIE SUMME BILDET DIE OBERFLAECHE, an genau einer Stelle: der Server
+       liefert zwei Zahlen und keine Summe. 3 + 1 + 1 + 0 = 5. */
+    pruefe('Der Titel des Knopfes nennt die Summe',
+      /^5 seit deinem letzten Blick/.test(dok.getElementById('glocke')?.title || ''),
+      dok.getElementById('glocke')?.title);
+    pruefe('Und er zaehlt Kommentare und Bewertungen zusammen, nicht doppelt',
+      !/10 |8 /.test(dok.getElementById('glocke')?.title || ''),
       dok.getElementById('glocke')?.title);
     /* DER ZAEHLER „OFFEN". Er summiert, was an den Eintraegen steht -- 2 und 5.
        DIE ZAHL STEHT AM KNOPF, nicht an der Glocke. */
@@ -30514,13 +31122,62 @@ async function pruefeOberflaeche() {
     pruefe('Jede Zeile fuehrt zu ihrem Eintrag',
       gleich(zeilen.map(z => z.getAttribute('href')), ['#/item/1', '#/item/2']),
       JSON.stringify(zeilen.map(z => z.getAttribute('href'))));
-    pruefe('Und nennt, wie viel dort neu ist',
-      /3 neue Beiträge/.test(zeilen[0]?.textContent || '') &&
-      /1 neuer Beitrag/.test(zeilen[1]?.textContent || ''),
+    /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): hier stand „3 neue Beitraege".
+       „Beitrag" ist ein Sammelwort, das die Anlage sonst nirgends benutzt, und
+       es liess offen, ob Kommentare oder Bewertungen gemeint sind. Die Auskunft
+       lag laengst vor und wurde weggeworfen.
+       VERGLICHEN WIRD DER GANZE TEXT DER ZELLE und nicht ein Ausschnitt: „1
+       Kommentar" ist in „1 Kommentare" enthalten, und eine Pruefung, die die
+       Einzahl mit einem Ausschnitt sucht, kann an der Mehrzahl nicht scheitern. */
+    const glZahl = (i) => zeilen[i]?.querySelector('.mcount')?.textContent?.trim();
+    pruefe('Sie nennt die Arten getrennt statt sie zusammenzuzaehlen',
+      glZahl(0) === '3 Kommentare · 1 Bewertung', JSON.stringify(glZahl(0)));
+    /* BEI NUR EINER ART STEHT AUCH NUR EINE ANGABE DA. „0 Bewertungen" waere
+       eine Auskunft ueber nichts -- dieselbe Regel wie die fehlende Null am
+       Knopf „Offen". */
+    pruefe('Bei nur einer Art steht auch nur eine Angabe da',
+      glZahl(1) === '1 Kommentar', JSON.stringify(glZahl(1)));
+    pruefe('Und keine Null steht in der Tafel',
+      !zeilen.some(z => /\b0 /.test(z.querySelector('.mcount')?.textContent || '')),
+      zeilen.map(z => z.querySelector('.mcount')?.textContent).join(' | '));
+    /* DAS SAMMELWORT STEHT IN KEINER ZEILE MEHR. Der Einleitungsabsatz nennt
+       weiterhin, was die Tafel ueberhaupt meldet; gemeint ist die ZEILE. */
+    pruefe('Das Sammelwort „Beitrag" steht in keiner Zeile mehr',
+      !zeilen.some(z => /Beitr/.test(z.textContent || '')),
       zeilen.map(z => z.textContent.replace(/\s+/g, ' ')).join(' | '));
-    pruefe('Und die Tafel sagt, was sie nicht verspricht',
-      /keinen Lesestand je Meldung/.test(tafel?.textContent || ''),
+    /* UND JEDE ZEILE SAGT, VON WEM. Ohne den Namen liesse sich seit 0.17.0
+       nicht mehr unterscheiden, ob dort jemand anders war oder man selbst --
+       die Glocke meldet beides. */
+    const glWer = (i) => zeilen[i]?.querySelector('.glocken-von')?.textContent?.trim();
+    pruefe('Jede Zeile sagt, von wem',
+      glWer(0) === 'von bert und carla', JSON.stringify(glWer(0)));
+    pruefe('Bei einem Namen ohne „und"',
+      glWer(1) === 'von chefin', JSON.stringify(glWer(1)));
+    /* DER EIGENE NAME STEHT MIT DA. Bis 0.16.0 hiess es „Eigene Beitraege
+       stehen nie hier"; die Entscheidung ist zurueckgenommen, weil die Glocke
+       einem Betreiber, der allein arbeitet, sonst nie etwas meldet. */
+    pruefe('Und der eigene Name steht ausdruecklich mit da',
+      /chefin/.test(tafel?.textContent || ''),
+      tafel?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
+    pruefe('Die Tafel behauptet nicht mehr, Eigenes stehe nie darin',
+      !/Eigene Beiträge stehen nie hier/.test(tafel?.textContent || ''),
+      tafel?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
+    /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT (Stolperstein 201): bis dahin
+       stand hier „die Tafel sagt, was sie nicht verspricht". Der Block ist
+       ersatzlos gestrichen und steht nur noch in der README -- eine
+       Oberflaeche sagt, WAS IST, nicht, warum sie so gebaut ist. Die Zusage
+       ist deshalb umgedreht worden statt zu verschwinden; sonst baute sie
+       jemand in zwei Jahren wieder ein. */
+    pruefe('Die Tafel begruendet sich nicht mehr selbst',
+      !/nicht verspricht|Lesestand je Meldung|nicht laufend/.test(tafel?.textContent || ''),
       tafel?.textContent?.replace(/\s+/g, ' ').slice(-260));
+    /* UND DIE AUSKUNFT IST DAFUER IN DER README -- erst das Vorhandensein,
+       dann die Verneinung (Stolperstein 81). Ein Text, der aus der Anlage
+       faellt und nirgends sonst steht, ist verloren und nicht umgezogen. */
+    pruefe('Dafuer steht sie in der README',
+      /keinen Lesestand je Meldung/.test(liesmichText) &&
+      /nicht laufend/.test(liesmichText),
+      'die README traegt den Vorbehalt nicht');
     /* DAS OEFFNEN SETZT ALLES AUF GESEHEN -- die bewusste Grenze der schlanken
        Fassung, und sie steht in der Tafel. */
     const glPut = d.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings')
@@ -30541,7 +31198,7 @@ async function pruefeOberflaeche() {
   {
     /* NICHTS NEUES: die Glocke steht, der Punkt nicht. Ohne diese Lage bliebe
        „der Punkt steht da" auch dann gruen, wenn er immer stuende. */
-    const still = await glBaue([0, 0]);
+    const still = await glBaue([[0, 0, []], [0, 0, []]]);
     pruefe('Ohne Neues steht die Glocke, aber kein Punkt',
       !!still.w.document.getElementById('glocke') &&
       still.w.document.getElementById('glocke-punkt')?.hidden === true,
@@ -30554,7 +31211,7 @@ async function pruefeOberflaeche() {
       .dispatchEvent(new still.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     pruefe('Die Tafel sagt es dann auch',
-      /Nichts Neues von anderen/.test(
+      /Nichts Neues\./.test(
         still.w.document.getElementById('glocken-liste')?.textContent || ''),
       still.w.document.getElementById('glocken-liste')?.textContent);
     still.w.close();
@@ -30563,10 +31220,10 @@ async function pruefeOberflaeche() {
   {
     /* OHNE OFFENE AUFGABEN KEINE ZAHL. „Offen 0" waere eine Auskunft ueber
        nichts und stuende dauerhaft da. */
-    const leer = await glBaue([0, 0]);
+    const leer = await glBaue([[0, 0, []], [0, 0, []]]);
     for (const it of [...leer.w.document.querySelectorAll('.card')]) it.remove();
     const ohneAufgaben = baueDom(JSDOM, {
-      uebersichtItems: glBestand([0, 0]).map(i => ({ ...i, offeneAufgaben: 0 })),
+      uebersichtItems: glBestand([[0, 0, []], [0, 0, []]]).map(i => ({ ...i, offeneAufgaben: 0 })),
       einstellungen: { filters: null, benutzerZahl: 3, glockeGesehen: '2026-08-01 00:00:00' } });
     await new Promise(r => setTimeout(r, 90));
     pruefe('Ohne offene Aufgaben traegt der Knopf keine Zahl',
@@ -30574,6 +31231,128 @@ async function pruefeOberflaeche() {
       (ohneAufgaben.w.document.getElementById('offen-zahl')?.textContent || '') === '',
       JSON.stringify(ohneAufgaben.w.document.getElementById('offen-zahl')?.textContent));
     leer.w.close(); ohneAufgaben.w.close();
+  }
+
+  {
+    /* SORTIERT WIRD NACH DER SUMME UND NICHT NACH EINEM DER BEIDEN TEILE. Die
+       Lage stellt den Unterschied ausdruecklich her (Stolperstein 224): der
+       erste Eintrag hat WENIGER Kommentare und trotzdem mehr Neues. Nach
+       `neuKommentare` sortiert stuende er unten. */
+    const d = await glBaue([[1, 4, [glVon.bert]], [3, 0, [glVon.carla]]]);
+    const dok = d.w.document;
+    dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const zeilen = [...dok.querySelectorAll('#glocken-liste .glocken-zeile')];
+    pruefe('Die Prueflage taugt: die Teile ordnen anders als die Summe',
+      zeilen.length === 2, `${zeilen.length} Zeilen`);
+    pruefe('Die Tafel ordnet nach der Summe, nicht nach einem der Teile',
+      zeilen[0]?.querySelector('.mname')?.textContent === 'Erster',
+      zeilen.map(z => z.querySelector('.mname')?.textContent).join(' | '));
+    /* UND DIE EINZAHL STEHT RICHTIG DA. „1 Kommentare" ist der Fehler, den
+       eine feste Endung macht -- geprueft an BEIDEN Woertern. */
+    pruefe('Die Einzahl steht bei beiden Woertern richtig',
+      zeilen[0]?.querySelector('.mcount')?.textContent?.trim() === '1 Kommentar · 4 Bewertungen',
+      JSON.stringify(zeilen[0]?.querySelector('.mcount')?.textContent));
+    pruefe('Und die Mehrzahl ebenso',
+      zeilen[1]?.querySelector('.mcount')?.textContent?.trim() === '3 Kommentare',
+      JSON.stringify(zeilen[1]?.querySelector('.mcount')?.textContent));
+    /* JE ZEILE GENAU EINE ANGABE, und sie wird am GEGENSTAND gelesen und nicht
+       an einem Attribut (Stolperstein 223): zwei .mcount nebeneinander saehen
+       im Text aus wie eine. */
+    pruefe('Jede Zeile traegt genau eine solche Angabe',
+      zeilen.every(z => z.querySelectorAll('.mcount').length === 1),
+      JSON.stringify(zeilen.map(z => z.querySelectorAll('.mcount').length)));
+    /* UND DER KNOPF „OFFEN" BLEIBT EINE ZAHL. Er zaehlt EINE Sache, nicht
+       zwei -- ein Trennpunkt dort waere die Aufteilung an der falschen
+       Stelle. */
+    pruefe('Der Knopf „Offen" traegt weiterhin genau eine Zahl',
+      /^\d+$/.test(dok.getElementById('offen-zahl')?.textContent || ''),
+      dok.getElementById('offen-zahl')?.textContent);
+    d.w.close();
+  }
+
+  {
+    /* DIE GEGENRICHTUNG: nur Bewertungen, und eine davon in der Einzahl. Ohne
+       sie belegte die Gruppe die Aufteilung nur in einer Richtung -- ein
+       Rueckbau, der die beiden Felder vertauscht, bliebe stumm. */
+    /* OHNE NAMEN, WIE DER ECHTE SERVER (Stolperstein 90): er speist `neuVon`
+       aus den KOMMENTAREN, und hier gibt es keine. Ein Mock, der hier Namen
+       hineinlegte, deckte genau die Zusage zu, um die es geht. */
+    const d = await glBaue([[0, 4, []], [0, 1, []]]);
+    const dok = d.w.document;
+    dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const zeilen = [...dok.querySelectorAll('#glocken-liste .glocken-zeile')];
+    pruefe('Die Prueflage traegt zwei Zeilen mit nur Bewertungen',
+      zeilen.length === 2, `${zeilen.length} Zeilen`);
+    pruefe('Nur Bewertungen: nur diese Angabe steht da',
+      zeilen[0]?.querySelector('.mcount')?.textContent?.trim() === '4 Bewertungen',
+      JSON.stringify(zeilen[0]?.querySelector('.mcount')?.textContent));
+    pruefe('Und die Einzahl der Bewertung steht richtig da',
+      zeilen[1]?.querySelector('.mcount')?.textContent?.trim() === '1 Bewertung',
+      JSON.stringify(zeilen[1]?.querySelector('.mcount')?.textContent));
+    pruefe('Das Wort „Kommentar" steht dann in keiner Zeile',
+      !zeilen.some(z => /Kommentar/.test(z.textContent || '')),
+      zeilen.map(z => z.textContent.replace(/\s+/g, ' ')).join(' | '));
+    /* UND KEIN NAME. Wer welche Bewertung abgegeben hat, ist eine Angabe ueber
+       einzelne Personen -- der Server liefert die Namen nur zu Kommentaren,
+       und die Zeile schreibt hin, was sie bekommt. Hier steht die Zusage an der
+       OBERFLAECHE, damit sie auch dann rot wird, wenn jemand den Namen im
+       Browser aus einer anderen Quelle zusammensuchte. */
+    pruefe('Und kein Name steht neben einer reinen Bewertungszeile',
+      zeilen.every(z => (z.querySelector('.glocken-von')?.textContent || '') === ''),
+      JSON.stringify(zeilen.map(z => z.querySelector('.glocken-von')?.textContent)));
+    d.w.close();
+  }
+
+  {
+    /* WAS EIN BETREIBER SIEHT, DER ALLEIN ARBEITET -- die Auflage dieser
+       Runde, und der eigentliche Grund fuer Punkt 6. Bis 0.16.0 meldete die
+       Glocke nur FREMDE Beitraege; bei einem einzigen Zugang gab es die nie,
+       und die Tafel war zwangslaeufig leer. Die Auskunft trug daneben die
+       Pille „Neu seit ...", und die ist gestrichen.
+       DIE LAGE HAT GENAU EINEN ZUGANG. Ohne sie bliebe die ganze Gruppe eine
+       Aussage ueber den Mehrbenutzerbetrieb -- genau die Blindheit, an der
+       Punkt 1 dieser Runde gescheitert ist. */
+    const d = await glBaue([[2, 1, [glVon.ich]], [0, 0, []]], { benutzerZahl: 1 });
+    const dok = d.w.document;
+    pruefe('Auch bei einem einzigen Zugang steht die Glocke da',
+      !!dok.getElementById('glocke'), 'keine Glocke bei einem Zugang');
+    pruefe('Und sie traegt ihren Punkt',
+      dok.getElementById('glocke-punkt')?.hidden === false,
+      String(dok.getElementById('glocke-punkt')?.hidden));
+    dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const zeilen = [...dok.querySelectorAll('#glocken-liste .glocken-zeile')];
+    pruefe('Die Tafel meldet ihm etwas, statt leer zu bleiben',
+      zeilen.length === 1, `${zeilen.length} Zeilen`);
+    pruefe('Und sie sagt, was es ist',
+      zeilen[0]?.querySelector('.mcount')?.textContent?.trim() === '2 Kommentare · 1 Bewertung',
+      JSON.stringify(zeilen[0]?.querySelector('.mcount')?.textContent));
+    pruefe('Und dass es die eigenen Beitraege sind',
+      zeilen[0]?.querySelector('.glocken-von')?.textContent?.trim() === 'von chefin',
+      JSON.stringify(zeilen[0]?.querySelector('.glocken-von')?.textContent));
+    d.w.close();
+  }
+
+  {
+    /* DIE ZEILE DER TAFEL BRICHT UM. Sie traegt seit 0.17.0 drei Stuecke, und
+       das dritte gehoert in eine eigene Zeile -- sonst schrumpft der Titel zu
+       Punkten, damit „3 Kommentare · 4 Bewertungen" und die Namen Platz haben.
+       DIESELBE ANTWORT WIE AN DER ZEILE EINER ANMELDUNG in Punkt 4. */
+    const glZeile = regel123('.mrow.glocken-zeile');
+    pruefe('Die Regel fuer die Zeile der Tafel steht im Stilblatt',
+      glZeile.length > 0, '(keine Regel)');
+    pruefe('Und sie laesst die Zeile umbrechen',
+      /flex-wrap: wrap/.test(glZeile), glZeile || '(keine Regel)');
+    const glVonRegel = regel123('.glocken-zeile .glocken-von');
+    pruefe('Die Angabe „von wem" bekommt die volle Breite',
+      /flex-basis: 100%/.test(glVonRegel), glVonRegel || '(keine Regel)');
+    /* KEINE NEUE FARBE: --faint traegt in dieser Anlage jede Nebenangabe. Ein
+       neuer Farbwert waere ein zweiter Kanal fuer dieselbe Aussage. */
+    pruefe('Und sie fuehrt keine neue Farbe ein',
+      /var\(--faint\)/.test(glVonRegel) && !/#[0-9a-f]{3,8}/i.test(glVonRegel),
+      glVonRegel || '(keine Regel)');
   }
 
   /* ================= Der Papierkorb im Vollbild — 0.16.0 ================
