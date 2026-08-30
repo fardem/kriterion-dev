@@ -3747,44 +3747,45 @@ const freigabeHaupt = (zweck, ziel = null) =>
       .map(i => [i.neuKommentare, i.neuBewertungen, i.neuVon])));
   pruefe('Und sie sind zunaechst ueberall null',
     (await glListe('cookie-e-eins')).every(i =>
-      i.neuKommentare === 0 && i.neuBewertungen === 0 && i.neuVon.length === 0),
+      i.neuKommentare === 0 && i.neuBewertungen === 0 &&
+      Array.isArray(i.neuVon) && i.neuVon.length === 0),
     JSON.stringify((await glListe('cookie-e-eins'))
       .map(i => [i.neuKommentare, i.neuBewertungen])));
   /* DIE ALTEN BEWERTUNGEN OHNE ZEITPUNKT ZAEHLEN NICHT MIT -- sonst laeutete
      die Glocke beim ersten Start fuer den ganzen Bestand. */
   pruefe('Bewertungen ohne Zeitpunkt bleiben ihr unsichtbar',
-    (await glEintrag('cookie-e-eins', 1)).neuBewertungen === 0,
+    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 0,
     JSON.stringify(await glEintrag('cookie-e-eins', 1)));
 
   // Ein FREMDER Kommentar -- der Fall, um den es geht.
   await new Promise(r => setTimeout(r, 1100));
   await eRuf('cookie-e-zwei', 'POST', '/api/items/1/comments', { text: 'Von zwei' });
   pruefe('Ein fremder Kommentar zaehlt',
-    (await glEintrag('cookie-e-eins', 1)).neuKommentare === 1,
+    (await glEintrag('cookie-e-eins', 1))?.neuKommentare === 1,
     JSON.stringify((await glListe('cookie-e-eins')).map(i => `${i.id}:${i.neuKommentare}`)));
   /* UND ER STEHT ALS BEWERTUNG AUSDRUECKLICH NICHT DA. Ohne diese Zeile bliebe
      offen, ob die beiden Zahlen ueberhaupt auseinandergehalten werden -- genau
      das war der Befund: „7 neue Beitraege" sagte nicht, WAS neu ist. */
   pruefe('Und zwar als Kommentar und nicht als Bewertung',
-    (await glEintrag('cookie-e-eins', 1)).neuBewertungen === 0,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuBewertungen));
+    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuBewertungen));
   /* WER ES WAR, STEHT DANEBEN -- als Verfasserobjekt wie ueberall sonst und
      nicht als nackte Zugangsnummer. */
   pruefe('Und wer es war, steht daneben',
-    (await glEintrag('cookie-e-eins', 1)).neuVon.length === 1 &&
-    (await glEintrag('cookie-e-eins', 1)).neuVon[0]?.name === 'zwei',
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuVon));
+    (await glEintrag('cookie-e-eins', 1))?.neuVon?.length === 1 &&
+    (await glEintrag('cookie-e-eins', 1))?.neuVon?.[0]?.name === 'zwei',
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuVon));
   /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): hier stand „Der eigene zaehlt
      ausdruecklich nicht". Die Entscheidung ist zurueckgenommen -- die Glocke
      meldet von ALLEN, sonst meldete sie einem, der allein arbeitet, nie etwas.
      Die Zusage ist umgedreht worden statt zu verschwinden. */
   await eRuf('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Von eins selbst' });
   pruefe('Der eigene zaehlt seit 0.17.0 mit',
-    (await glEintrag('cookie-e-eins', 1)).neuKommentare === 2,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuKommentare));
+    (await glEintrag('cookie-e-eins', 1))?.neuKommentare === 2,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuKommentare));
   pruefe('Und beide Verfasser stehen daneben',
-    (await glEintrag('cookie-e-eins', 1)).neuVon.map(v => v?.name).sort().join(',') === 'eins,zwei',
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuVon));
+    ((await glEintrag('cookie-e-eins', 1))?.neuVon || []).map(v => v?.name).sort().join(',') === 'eins,zwei',
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuVon));
   /* DIE ZAHL WIRD JE ZUGANG GERECHNET UND NICHT GLOBAL. Der zweite Zugang
      setzt seinen Strich spaeter und sieht deshalb weniger. Wieder eine Sekunde
      Abstand vor dem Strich, aus demselben Grund wie oben. */
@@ -3793,21 +3794,21 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await new Promise(r => setTimeout(r, 1100));
   await eRuf('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Noch einer von eins' });
   pruefe('Jeder Zugang zaehlt hinter seinem eigenen Strich',
-    (await glEintrag('cookie-e-zwei', 1)).neuKommentare === 1 &&
-    (await glEintrag('cookie-e-eins', 1)).neuKommentare === 3,
-    `zwei: ${(await glEintrag('cookie-e-zwei', 1)).neuKommentare}, ` +
-    `eins: ${(await glEintrag('cookie-e-eins', 1)).neuKommentare}`);
+    (await glEintrag('cookie-e-zwei', 1))?.neuKommentare === 1 &&
+    (await glEintrag('cookie-e-eins', 1))?.neuKommentare === 3,
+    `zwei: ${(await glEintrag('cookie-e-zwei', 1))?.neuKommentare}, ` +
+    `eins: ${(await glEintrag('cookie-e-eins', 1))?.neuKommentare}`);
 
   // Eine fremde BEWERTUNG zaehlt ebenso -- dafuer gibt es gesetzt_am.
   await eRuf('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 5 });
   pruefe('Eine fremde Bewertung zaehlt ebenfalls',
-    (await glEintrag('cookie-e-eins', 1)).neuBewertungen === 1,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuBewertungen));
+    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 1,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuBewertungen));
   /* UND SIE VERMEHRT DIE KOMMENTARE NICHT. Zwei Zahlen, die sich gegenseitig
      hochzaehlen, waeren dieselbe Auskunft zweimal. */
   pruefe('Und sie steht in der anderen Zahl, nicht bei den Kommentaren',
-    (await glEintrag('cookie-e-eins', 1)).neuKommentare === 3,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuKommentare));
+    (await glEintrag('cookie-e-eins', 1))?.neuKommentare === 3,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuKommentare));
   /* UND DER BEWERTER STEHT AUSDRUECKLICH NICHT BEI DEN VERFASSERN. Wer welche
      Bewertung abgegeben hat, ist eine Angabe ueber einzelne Personen und geht
      aus keiner Antwort hinaus, die jeder bekommt -- die Liste „Wer hat
@@ -3818,9 +3819,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Eintrag nur eine neue Bewertung und ein Name daneben, weiss jeder, wer
      bewertet hat. Genau deshalb steht diese Zeile hier. */
   pruefe('Der Bewerter steht ausdruecklich nicht bei den Verfassern',
-    (await glEintrag('cookie-e-eins', 1)).neuVon.map(v => v?.name).sort().join(',') ===
+    ((await glEintrag('cookie-e-eins', 1))?.neuVon || []).map(v => v?.name).sort().join(',') ===
       'eins,zwei',
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuVon.map(v => v?.name)));
+    JSON.stringify(((await glEintrag('cookie-e-eins', 1))?.neuVon || []).map(v => v?.name)));
   /* DIE SCHAERFERE LAGE: ein Eintrag, an dem AUSSCHLIESSLICH eine fremde
      Bewertung neu ist. Dort gibt es keinen Kommentar, hinter dem ein Name
      harmlos waere -- die Antwort muss die Liste leer lassen. Ohne diese Zeile
@@ -3828,18 +3829,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
      schon dastuende. */
   await eRuf('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpKrit, value: 4 });
   pruefe('Die Prueflage taugt: am zweiten Eintrag ist nur eine Bewertung neu',
-    (await glEintrag('cookie-e-eins', 2)).neuBewertungen === 1 &&
-    (await glEintrag('cookie-e-eins', 2)).neuKommentare === 0,
-    JSON.stringify([(await glEintrag('cookie-e-eins', 2)).neuKommentare,
-                    (await glEintrag('cookie-e-eins', 2)).neuBewertungen]));
+    (await glEintrag('cookie-e-eins', 2))?.neuBewertungen === 1 &&
+    (await glEintrag('cookie-e-eins', 2))?.neuKommentare === 0,
+    JSON.stringify([(await glEintrag('cookie-e-eins', 2))?.neuKommentare,
+                    (await glEintrag('cookie-e-eins', 2))?.neuBewertungen]));
   pruefe('Und dort steht kein einziger Name',
-    (await glEintrag('cookie-e-eins', 2)).neuVon.length === 0,
-    JSON.stringify((await glEintrag('cookie-e-eins', 2)).neuVon));
+    (await glEintrag('cookie-e-eins', 2))?.neuVon?.length === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 2))?.neuVon));
   // Eine zurueckgesetzte Bewertung ist keine Stimme und meldet nichts.
   await eRuf('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 0 });
   pruefe('Eine zurueckgesetzte Bewertung meldet nichts',
-    (await glEintrag('cookie-e-eins', 1)).neuBewertungen === 0,
-    JSON.stringify((await glEintrag('cookie-e-eins', 1)).neuBewertungen));
+    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuBewertungen));
 
   /* DAS OEFFNEN DER TAFEL SETZT ALLES AUF GESEHEN -- die bewusste Grenze der
      schlanken Fassung: bei einem Zeitstempel gibt es keinen Lesestand je
@@ -3848,7 +3849,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await eRuf('cookie-e-eins', 'PUT', '/api/settings', { glockeGesehen: 1 });
   pruefe('Ein neuer Bezugspunkt setzt alles auf gesehen',
     (await glListe('cookie-e-eins')).every(i =>
-      i.neuKommentare === 0 && i.neuBewertungen === 0 && i.neuVon.length === 0),
+      i.neuKommentare === 0 && i.neuBewertungen === 0 &&
+      Array.isArray(i.neuVon) && i.neuVon.length === 0),
     JSON.stringify((await glListe('cookie-e-eins'))
       .map(i => [i.neuKommentare, i.neuBewertungen])));
 
@@ -21205,7 +21207,7 @@ async function pruefeOberflaeche() {
   pruefe('Eine gespeicherte Stellung mit „neu" bleibt lesbar',
     nsTitel(nsAlt).length === 4, JSON.stringify(nsTitel(nsAlt)));
   pruefe('Und der Schluessel faellt aus der zurechtgerueckten Stellung heraus',
-    nsAlt.w.filterNormal({ ...nsVorgabe, neu: true }).neu === undefined,
+    !('neu' in nsAlt.w.filterNormal({ ...nsVorgabe, neu: true })),
     JSON.stringify(nsAlt.w.filterNormal({ ...nsVorgabe, neu: true })));
   /* ER ZAEHLT AUCH NICHT MEHR MIT. Der Schalter ueber den Filtern nennt die
      Zahl der greifenden Filter; ein Schluessel, den es nicht mehr gibt, darf
@@ -21308,7 +21310,7 @@ async function pruefeOberflaeche() {
      in dem man hinsieht, und die Glocke waere immer leer. */
   const nsBleibt = await nsBaue(nsVorgabe);
   nsBleibt.w.document.getElementById('f-fav')
-    .dispatchEvent(new nsBleibt.w.MouseEvent('click', { bubbles: true }));
+    ?.dispatchEvent(new nsBleibt.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
   pruefe('Ein Filterklick in der Uebersicht setzt keinen Bezugspunkt',
     nsBleibt.gesendet.filter(g => g.methode === 'PUT' && g.url === '/api/settings'
@@ -29883,8 +29885,13 @@ async function pruefeOberflaeche() {
      SICHTBAR GEWORDEN IST DAS ERST MIT DEN GEWICHTSMARKEN aus 0.16.0, die die
      Namensspalte breiter machen -- der Fehler ist aelter, das Raster kam mit
      0.14.0 und die bedingte Zelle gibt es seit 0.8.91.
-     WARUM IHN NIEMAND SAH: alle Prueflagen der Kriterienliste fahren mit
-     benutzerZahl 3, also genau in der Lage, in der das Raster aufgeht.
+     WARUM IHN NIEMAND SAH: die Gegenlage mit EINEM Zugang gab es -- eEinzeln
+     zeichnet die Liste seit 0.8.91 mit benutzerZahl 1 --, aber sie trug genau
+     zwei Zusagen: die Durchschnittsspalte bleibt weg, und die Sternzeilen
+     stehen trotzdem vollstaendig da. Beide blieben im kaputten Zustand gruen.
+     Die Zelle war weg, richtig gefragt; die Spalte, in die sie gehoerte, blieb
+     stehen, nie gefragt. Alle uebrigen Lagen fahren mit benutzerZahl 3, also
+     genau in der Lage, in der das Raster aufgeht.
      DIESE GRUPPE PRUEFT DESHALB MEHR ALS DEN FEHLER: sie zaehlt die Zellen JE
      ZEILE und die Spalten des Rasters und haelt fest, dass beide Zahlen
      zusammenpassen -- in BEIDEN Lagen. Eine Gruppe, die nur den einen Fall
