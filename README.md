@@ -26,7 +26,7 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 | **Testtage führen** | datierte Einträge mit Note und Tags; sie sind die Zeitreihe, die Kriterienbewertung ist das gegenwärtige Urteil |
 | **Vergleichen** | mehrere Einträge nebeneinander, Kriterium für Kriterium |
 | **Suchen und filtern** | Volltextsuche über Titel, Beschreibung, Kategorie, Tags, Links und Kommentare; Filterstellungen lassen sich als **Ansicht** speichern |
-| **Den Überblick behalten** | „Offen" zeigt alle unerledigten Aufgaben über alle Einträge, „Neu seit …" alles seit dem letzten Besuch |
+| **Den Überblick behalten** | „Offen" zeigt alle unerledigten Aufgaben über alle Einträge, die **Glocke** alles, was seit dem letzten Blick dazugekommen ist |
 | **Zu mehreren arbeiten** | Zugänge mit drei Rollen; jeder Beitrag trägt seinen Verfasser |
 | **Sichern** | verschlüsselte Kopie auf Knopfdruck, dazu ein JSON-Export, der ohne Schlüssel auskommt |
 
@@ -1086,13 +1086,11 @@ es zwei, beide im Systembereich einstellbar:
   lässt sich mit jedem Teststatus kombinieren. Ein Favorit ist persönlich
   und sortiert die gemeinsame Liste nicht um — wer seine Favoriten sammeln
   will, nimmt den Filter.
-- **„Neu seit …"** steht daneben und folgt demselben Muster: er
-  zeigt, was sich seit dem letzten Besuch getan hat, mit der Zahl daneben, und
-  lässt sich mit Status, Kategorie und Tags frei kombinieren. Der Bezugspunkt
-  ist persönlich und wird gesetzt, wenn man die Übersicht **verlässt** — solange
-  man hinsieht, bleibt die Liste also stehen. **Beim allerersten Besuch
-  erscheint der Umschalter nicht:** vorher gibt es nichts, womit sich
-  vergleichen ließe. Wie der Favorit filtert er und sortiert nicht.
+- **Einen Filter „Neu seit …" gibt es seit 0.17.0 nicht mehr.** Er stand hier
+  bis 0.16.0 neben dem Favoriten. *Zwei Anzeigen für dieselbe Frage — was hat
+  sich getan, seit ich zuletzt hier war — sind eine zu viel; die Auskunft trägt
+  die **Glocke** in der Kopfzeile.* **Eine gespeicherte Ansicht, die ihn noch
+  trägt, bleibt lesbar** — er wird übergangen.
 - Über das Häkchen auf einer Karte lassen sich Einträge vergleichen. Im
   Vergleich steht bei **mehr als einem Zugang** ein Umschalter
   **„meine / alle"** über dem Raster: er schaltet Kriterienwerte, Kopfzahl und
@@ -1212,8 +1210,17 @@ es zwei, beide im Systembereich einstellbar:
   sind** — ein Kriterium ohne Sterne geht gar nicht ein, sonst zöge es die Zahl
   nach unten, ohne dass es an den Werten läge. **Gerundet wird genau einmal,
   ganz am Ende.**
-  *Der Kasten **liest** diese Rechnung; er rechnet sie nicht nach. Zwei
-  Rechenwege für dieselbe Zahl liefen früher oder später auseinander.*
+  **Und seit 0.17.0 steht darunter die Vergleichszahl: was käme heraus, wenn
+  alle Kriterien gleich zählten?** *Erst der Unterschied macht die Gewichtung
+  sichtbar — die Formel allein sagt, WIE gerechnet wird, nicht, WAS die
+  Gewichte ändern.* **Stehen alle Gewichte auf 1, steht sie gar nicht da:**
+  dort gibt es nichts zu vergleichen. **Und ergeben beide Zahlen nach dem
+  Runden dasselbe, sagt der Kasten genau das** — zweimal dieselbe Zahl
+  hinzuschreiben wäre eine Auskunft über nichts.
+  *Der Kasten **liest** diese Rechnung; er rechnet sie nicht nach — die
+  Vergleichszahl eingeschlossen. Beide entstehen in derselben Schleife im
+  Server. Zwei Rechenwege für dieselbe Zahl liefen früher oder später
+  auseinander.*
   **Wer welchen Wert vergeben hat, steht nicht unter der Sternzeile.** Ab zwei
   Zugängen findet der **Admin** im Blockkopf den Knopf **„Wer hat bewertet"**:
   er öffnet eine Ansicht mit den Namen je Kriterium, und dort lässt sich eine
@@ -1554,11 +1561,28 @@ Zufall: eine Zahl beschreibt einen **Zustand** — so viele Aufgaben stehen offe
 dazugekommen. Die beiden Zeichen werden nirgends vertauscht.
 
 **Ein Klick auf die Glocke öffnet eine Tafel** mit den Einträgen, an denen
-andere etwas hinterlassen haben, und **jede Zeile führt zu ihrem Eintrag**.
+etwas hinzugekommen ist, und **jede Zeile führt zu ihrem Eintrag**.
 Eine Meldung, die man nicht anspringen kann, wäre eine Mitteilung ohne Weg.
 
-**Was die Glocke verspricht:** fremde **Kommentare** und fremde **Bewertungen**
-seit dem letzten Öffnen der Tafel. Eigene Beiträge stehen nie darin.
+**Was die Glocke verspricht:** **Kommentare** und **Bewertungen** seit dem
+letzten Öffnen der Tafel — **von allen, die eigenen eingeschlossen**
+*(seit 0.17.0; bis dahin meldete sie nur fremde)*. **Der Grund für die
+Änderung ist der Betreiber, der allein arbeitet:** ihm meldete eine Glocke, die
+nur Fremdes zeigt, nie etwas. *Eine Regel statt zwei — eine Ausnahme für den
+Fall „ein Zugang" wäre selbst wieder eine zweite Wahrheit.*
+
+**Und jede Zeile sagt, WAS neu ist:** „3 Kommentare · 4 Bewertungen" statt
+„7 neue Beiträge" *(seit 0.17.0)*. **Bei nur einer Art steht auch nur eine
+Angabe da** — „0 Bewertungen" wäre eine Auskunft über nichts, dieselbe Regel
+wie beim Zähler „Offen" weiter unten.
+
+**Darunter steht, von wem** — und zwar **nur zu den Kommentaren**. *Ein
+Kommentar trägt seinen Verfasser am Eintrag ohnehin sichtbar; eine Bewertung
+tut das nicht.* **Wer welche Bewertung abgegeben hat, bleibt anonym** — die
+Liste „Wer hat bewertet" sieht weiterhin nur der Admin, und die Tafel gibt
+davon nichts preis. Eine Zeile, an der ausschließlich Bewertungen neu sind,
+trägt deshalb keinen Namen; **das ist dieselbe Regel wie am Eintrag selbst und
+keine Ausnahme.**
 
 **Was sie nicht verspricht — und das gehört gesagt:**
 
@@ -1575,11 +1599,21 @@ seit dem letzten Öffnen der Tafel. Eigene Beiträge stehen nie darin.
   sähe alles gleich alt aus oder alles brandneu, und die Glocke läutete beim
   ersten Start für den ganzen Bestand.
 - **Vor dem ersten Verlassen der Übersicht gibt es sie gar nicht.** Ohne
-  gespeicherten Bezugspunkt weiß die Anlage nicht, was jemand schon gesehen hat
-  — dieselbe Lage und dieselbe Antwort wie bei „Neu seit meinem letzten
-  Besuch".
-- **Bei zwei Menschen, die miteinander reden, meldet sie, was man ohnehin
-  weiß.** Ihr Nutzen hängt an der Zahl der Zugänge.
+  gespeicherten Bezugspunkt weiß die Anlage nicht, was jemand schon gesehen
+  hat.
+- **Sie meldet Kommentare und Bewertungen — sonst nichts.** Ein geänderter
+  Titel, eine neue Datei, ein neuer Testtag stehen nicht darin. *Das ist etwas,
+  das jemand **am** Eintrag getan hat, und kein Beitrag, der **für** dich
+  daliegt — und die Übersicht ordnet ohnehin nach der letzten Änderung: was
+  sich zuletzt getan hat, steht oben.* **Bis 0.16.0 fing der Filter „Neu
+  seit …" diese Fälle mit; er ist mit 0.17.0 gestrichen.**
+
+> **DIE PILLE „NEU SEIT …" IST MIT 0.17.0 WEGGEFALLEN.** Zwei Anzeigen für
+> dieselbe Frage — *was hat sich getan, seit ich zuletzt hier war* — sind eine
+> zu viel; die Auskunft trägt die Glocke. **Eine gespeicherte Ansicht aus einer
+> älteren Version, die den Filter trägt, bleibt lesbar** — er wird übergangen,
+> und der gespeicherte Wert bleibt unangetastet. *Was dabei verlorengeht, steht
+> einen Punkt weiter oben.*
 
 **Der Zähler „Offen"** summiert die offenen Aufgaben über den ganzen Bestand —
 gerechnet aus derselben Bedingung wie die Ansicht dahinter, damit Knopf und
@@ -2060,11 +2094,14 @@ Start eine leere Neuinstallation vermuten.
 - `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchanbieter
   (Vorrat, eigene Anbieter, Startanbieter) und die beiden Schalter, wer neue
   Tags und Kategorien anlegen darf. Sache des Admins
-- `user_settings` — die **persönliche** Hälfte, **neun** Schlüssel: die zuletzt
-  benutzte Filterwahl, die **gespeicherten Ansichten**, der
-  Bezugspunkt für „Neu seit …", der Bezugspunkt der **Glocke**, Schriftgröße,
-  Blockanordnung, sichtbare Linkzeilen, Zeitleiste und die Zahl der
-  Anbieternamen. Je Benutzer eine Zeile pro Schlüssel
+- `user_settings` — die **persönliche** Hälfte, **acht** Schlüssel: die zuletzt
+  benutzte Filterwahl, die **gespeicherten Ansichten**, der Bezugspunkt der
+  **Glocke**, Schriftgröße, Blockanordnung, sichtbare Linkzeilen, Zeitleiste
+  und die Zahl der Anbieternamen. Je Benutzer eine Zeile pro Schlüssel.
+  *Bis 0.16.0 waren es neun: der Bezugspunkt für „Neu seit …" ist mit der Pille
+  weggefallen. **Vorhandene Zeilen bleiben stehen und werden nicht mehr
+  gelesen** — es gibt dafür keinen Migrationsblock, und eine Migration, die
+  persönliche Zeilen löscht, wäre teurer als die Zeilen selbst.*
 - `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
   `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
   bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen.

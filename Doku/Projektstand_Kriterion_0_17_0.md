@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 39 · Stand 29. August 2026 · gebaut: Version 0.16.0**
+**Kompakte Übergabe · Revision 40 · Stand 30. August 2026 · gebaut: Version 0.17.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,18 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.17.0 in einem Satz: was dasteht, und was nicht dasteht.** *MINOR — die
+Glockentafel sagt seither, **was** auf einen wartet („3 Kommentare ·
+4 Bewertungen" statt „7 neue Beiträge"), und das ist etwas, das die Anlage
+vorher nicht konnte.* **Neun Befunde aus einem einzigen Rundlauf von Hand,
+keiner davon aus dem Fahrplan und keiner aus dem Sammelblatt.** Der einzige
+Fehler der Runde: die **Kriterienliste zerfiel bei genau einem Zugang** — ein
+Raster mit drei Spalten und einer bedingten Zelle. **Und der größte Punkt nimmt
+etwas weg:** die Pille „Neu seit …" ist gestrichen, ihre Auskunft trägt die
+Glocke, und die meldet dafür **von allen**. **Keine Datenbankstufe** — kein
+Schema, kein Migrationsblock, Austauschformat unverändert **11**, die Sicherung
+bleibt Empfehlung. *Alles Weitere in Abschnitt 2 und Abschnitt 9.*
 
 **0.16.0 in einem Satz: der Systembereich bekommt Abschnitte mit eigener
 Adresse, die Kopfzeile eine Glocke, und das Wort „gewichtet" erklärt sich
@@ -145,12 +157,69 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut UND im Feld bestätigt ist 0.16.0** — Fingerprint **`aa76c352`**
+**Gebaut ist 0.17.0** — Fingerprint **`1b6bb5d2`**, **4630
+Prüfungen**, **333 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
+(Abschnitt 8). *0.17.0 bringt die Kriterienliste bei einem einzigen Zugang
+wieder in Ordnung, nimmt zwei Erklärtexte aus der Oberfläche, lässt die
+Glockentafel sagen, WAS neu ist, behebt drei Anzeigefehler vom echten Gerät,
+stellt dem Erklärkasten die Vergleichszahl ohne Gewichtung daneben — **und
+streicht die Pille „Neu seit …", deren Auskunft die Glocke übernimmt.***
+**MINOR — und ausdrücklich KEINE Datenbankstufe.**
+
+> **IM FELD BESTÄTIGT IST SIE NOCH NICHT.** Die Zeile hier gilt dem gebauten
+> Stand; was die laufende Anlage meldet, gehört nach dem Einspielen daneben.
+
+> **DIES IST KEINE DATENBANKSTUFE — und das ist der Unterschied zu 0.16.0.**
+> Kein Schema, kein Migrationsblock, keine neue Formatnummer: es bleibt bei
+> **sieben** markierten Blöcken und bei **Austauschformat 11**. Punkt 3 und
+> Punkt 5 lesen beide nur, was ohnehin dasteht.
+> **DIE SICHERUNG DES DATENVERZEICHNISSES IST DESHALB EMPFEHLUNG UND NICHT
+> PFLICHT.** *Bei 0.16.0 war sie Pflicht, und zwar wegen des siebten
+> Migrationsblocks — den gibt es hier nicht. Der Unterschied gehört benannt,
+> sonst liest ein Betreiber über beides hinweg.*
+> **Keine neue Zeile in der `.env`, keine neue Abhängigkeit, `F_ROUTEN`
+> unverändert bei 69** — nachgezählt und nicht angenommen.
+
+> **DIE PERSÖNLICHEN SCHLÜSSEL SINKEN VON NEUN AUF ACHT.** `zuletztGesehen`
+> trug die Pille „Neu seit …" und hat mit ihr keinen Rufer mehr.
+> **Vorhandene Zeilen in `user_settings` bleiben stehen und werden nicht mehr
+> gelesen** — es gibt dafür keinen Migrationsblock und soll keinen geben: eine
+> Migration, die persönliche Zeilen löscht, wäre teurer als die Zeilen selbst,
+> und sie wäre ein Schemaeingriff in einer Runde, die ausdrücklich keiner ist.
+> *Nachgezählt, nicht angenommen — der Auftrag nannte die Möglichkeit,
+> entschieden hat die Liste in `server.js`.*
+
+> **DIE GLOCKE MELDET SEITHER VON ALLEN, die eigenen Beiträge eingeschlossen.**
+> Der Satz aus 0.16.0 — *„Eigene Beiträge stehen nie hier"* — **ist damit
+> zurückgenommen**, und dieser Vermerk gehört dazu, denn eine zurückgenommene
+> Entscheidung kommt sonst wieder (Stolperstein 201). *Der Grund ist der
+> Betreiber, der **allein** arbeitet: ihm meldete eine Glocke, die nur Fremdes
+> zeigt, nie etwas — und die Pille, die ihm die Auskunft gab, fällt in
+> derselben Runde weg.* **Eine Regel statt zwei; eine Ausnahme für den Fall
+> „ein Zugang" wäre selbst wieder eine zweite Wahrheit.**
+
+> **UND EINE ABWEICHUNG VOM AUFTRAG, WEIL SIE EINE STEHENDE ENTSCHEIDUNG
+> SCHÜTZT.** Der Auftrag verlangt, die Tafel sage bei jeder Zeile dazu, **von
+> wem**. **Die Namen kommen nur aus den KOMMENTAREN.** *Sammelblatt, Teil III,
+> hält ausdrücklich fest: „Eine Glocke, die nennt, WER bewertet hat … Die Zahl
+> ja, der Name nie."* **Ein Kommentar trägt seinen Verfasser am Eintrag ohnehin
+> sichtbar; eine Bewertung tut das nicht** — und die Liste „Wer hat bewertet"
+> sieht seit jeher nur der Admin. Eine Zeile, an der ausschließlich Bewertungen
+> neu sind, trägt deshalb keinen Namen. *Das ist dieselbe Regel wie am Eintrag
+> selbst und keine Ausnahme: die Tafel zeigt genau das, was der Eintrag zeigt.*
+
+**Was 0.17.0 für den Betrieb bedeutet: einspielen, fertig.** Keine
+Datenbankstufe, keine Sicherungspflicht, keine `.env`-Zeile, niemand wird
+abgemeldet, **keine Zeile im Protokoll** — diese Version hat keinen
+Migrationsblock. *Eine gespeicherte Ansicht, die den Filter „Neu seit …" noch
+trägt, bleibt lesbar; er wird übergangen, und der gespeicherte Wert bleibt
+unangetastet.*
+
+*Davor, am 29./30. August: **0.16.0** — Fingerprint **`aa76c352`**
 (am 30. August 2026 von der laufenden Anlage gemeldet), **4523 Prüfungen**,
-**300 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
-*0.16.0 gibt dem Systembereich Abschnitte mit eigener Adresse, der Kopfzeile
-eine Glocke, dem Wort „gewichtet" eine Erklärung und den Kennzahlen Version und
-Verfahren.* **MINOR — und eine Datenbankstufe.**
+**300 Rückbauten in der Liste**. *0.16.0 gibt dem Systembereich Abschnitte mit
+eigener Adresse, der Kopfzeile eine Glocke, dem Wort „gewichtet" eine Erklärung
+und den Kennzahlen Version und Verfahren.* **MINOR — und eine Datenbankstufe.**
 
 > **DIES IST EINE DATENBANKSTUFE, ANDERS ALS GEPLANT.** Der Auftrag schloss ein
 > Schema ausdrücklich aus. **Die Durchsicht kam zu einem anderen Ergebnis, und
@@ -427,7 +496,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.16.0** | **`aa76c352`** | 4523 |
+| **0.17.0** | **`1b6bb5d2`** | 4630 |
+| 0.16.0 | `aa76c352` | 4523 |
 | 0.15.1 | `d02260bd` | 4366 |
 | 0.15.0 | `8fa66d7d` | 4351 |
 | 0.14.0 | `ca8bcf31` | 4262 |
@@ -544,15 +614,19 @@ herein. **Die Sicherung ist der Weg, der ohne diese Fußnoten auskommt.***
 
 ### Der Weg zum Einspielen
 
-> **FÜR 0.15.0 IST DIE SICHERUNGSZEILE EMPFEHLUNG UND NICHT PFLICHT** — diese
+> **FÜR 0.17.0 IST DIE SICHERUNGSZEILE EMPFEHLUNG UND NICHT PFLICHT** — diese
 > Version ist **keine Datenbankstufe**: kein Schema, kein Migrationsblock,
-> Austauschformat unverändert 11. *Sie steht trotzdem im Rezept, und wer sie
-> mitnimmt, tut nichts Falsches.*
+> Austauschformat unverändert 11, weiterhin sieben markierte Blöcke. *Sie steht
+> trotzdem im Rezept, und wer sie mitnimmt, tut nichts Falsches.*
 >
-> **WER VON EINER FASSUNG VOR 0.14.0 KOMMT, SICHERT DAGEGEN PFLICHTGEMÄSS.**
-> Der Sprung führt dann über die Datenbankstufe 0.14.0 hinweg, und deren
-> Migrationsblock läuft beim ersten Start mit — **ohne die Kopie gibt es
-> danach keinen Rückweg.**
+> **BEI 0.16.0 WAR SIE PFLICHT, und der Unterschied gehört benannt** — sonst
+> liest ein Betreiber über beides hinweg. Dort lief der siebte Migrationsblock
+> (`ratings.gesetzt_am`); hier läuft keiner.
+>
+> **WER VON EINER FASSUNG VOR 0.16.0 KOMMT, SICHERT DAGEGEN PFLICHTGEMÄSS.**
+> Der Sprung führt dann über die Datenbankstufen 0.14.0 und/oder 0.16.0 hinweg,
+> und deren Migrationsblöcke laufen beim ersten Start mit — **ohne die Kopie
+> gibt es danach keinen Rückweg.**
 
 Das Repo ist **privat**, der Server zieht deshalb nicht selbst — das ZIP kommt
 über „Download ZIP" von GitHub auf den Wirt. Der Pfad steht am laufenden
@@ -585,8 +659,10 @@ Ausführungsrechte** wieder her, `unzip` dagegen schon. Im Repo trägt
 eine Sicherung, die neben einem laufenden Server entsteht, kann eine offene WAL
 enthalten.
 
-**0.15.0 SCHREIBT KEINE ZEILE INS PROTOKOLL** — sie hat keinen
-Migrationsblock. Wer von einer Fassung **vor 0.14.0** kommt, sieht dagegen die
+**0.17.0 SCHREIBT KEINE ZEILE INS PROTOKOLL** — sie hat keinen
+Migrationsblock. *Die Zeile `gesetzt_am` aus 0.16.0 kommt genau einmal, beim
+ersten Start nach jenem Einspielen; wer 0.16.0 bereits fährt, sieht sie nicht
+noch einmal.* Wer von einer Fassung **vor 0.14.0** kommt, sieht dagegen die
 Zeile von 0.14.0 einmalig und soll sie prüfen
 (`docker compose logs kriterion`):
 
@@ -1192,23 +1268,31 @@ Abschnitt 10.
 `settings` zerfällt in zwei Hälften. **Eine Einstellung ist entweder Ansicht
 oder Sprache — und das entscheidet, wem sie gehört.**
 
-| persönlich (`user_settings`, **neun** Schlüssel) | global (`settings`, Admin) |
+| persönlich (`user_settings`, **acht** Schlüssel) | global (`settings`, Admin) |
 |---|---|
 | `filters` — die zuletzt benutzte Filter- und Sortierwahl | `title_public`, `title_app` |
 | `ansichten` — bis zu acht **gespeicherte Ansichten** *(0.11.0)* | `vokabular` — elf Wörter |
-| `zuletztGesehen` — der Bezugspunkt für „Neu seit …" *(0.8.60)* | `tagsFreiAnlegen`, `kategorienFreiAnlegen` |
+| `glockeGesehen` — der Bezugspunkt der **Glocke** *(0.16.0)* | `tagsFreiAnlegen`, `kategorienFreiAnlegen` |
 | `schrift` — Schriftgröße | `suche`, `sucheEigene`, `sucheAktiv` |
 | `bloecke` — Anordnung und Einklappzustand | `registrierung` *(0.9.1)* |
 | `linkZeilen` — sichtbare Linkzeilen | `mailtestOk` — Marke der letzten Testmail *(0.9.0)* |
 | `zeitleiste` — ein/aus | `schluesselGewechseltAm` — Marke des Wechsels *(0.8.91)* |
 | `suchNamen` — Zahl der Anbieternamen | `mailzugang` *(0.9.0 — **beim Eigentümer**, nicht beim Admin)* |
-| `glockeGesehen` — der Bezugspunkt der **Glocke** *(0.16.0)* | |
 
-*`glockeGesehen` steht **neben** `zuletztGesehen` und nicht an seiner Stelle:
-das eine merkt sich, wann der Benutzer die Übersicht zuletzt verlassen hat, das
-andere, wann er die Tafel der Glocke zuletzt geöffnet hat. **Zwei Fragen, zwei
-Zeitpunkte** — ein gemeinsamer Merker müsste beide beantworten und beantwortete
-dann keine.*
+> **NEUN WAREN ES BIS 0.16.0: `zuletztGesehen`, der Bezugspunkt für „Neu
+> seit …", ist mit 0.17.0 weggefallen.** Die Pille ist gestrichen, und ein
+> Merker ohne Rufer ist kein Merker. **Bis dahin standen die beiden
+> nebeneinander und nicht einer an der Stelle des anderen:** das eine merkte
+> sich, wann jemand die Übersicht zuletzt **verlassen** hat, das andere, wann er
+> die Tafel der Glocke zuletzt **geöffnet** hat — zwei Fragen, zwei Zeitpunkte.
+> **Seit 0.17.0 gibt es nur noch die zweite Frage.**
+> **Vorhandene Zeilen mit `key = 'zuletztGesehen'` bleiben in `user_settings`
+> stehen und werden nicht mehr gelesen.** *Kein Migrationsblock: eine
+> Migration, die persönliche Zeilen löscht, wäre teurer als die Zeilen selbst.*
+> **Und eine Nebenwirkung gehört dazu:** `zuletztGesehen` steht nicht mehr in
+> `PERSOENLICHE_SCHLUESSEL` und damit nicht mehr unter der Schranke, die einen
+> persönlichen Schlüssel aus der globalen Tabelle heraushält. *Heute ruft ihn
+> niemand; wer ihn je wieder einbaut, muss ihn in die Liste zurücknehmen.*
 
 **`mailzugang` ist die eine Zeile in `settings`, die NICHT dem Admin gehört** —
 und die einzige Ausnahme von „global heißt Adminsache".
@@ -1411,7 +1495,9 @@ vergrößert sie.* **„Alle" bleibt eine Pille** (Begründung in Abschnitt 5).
 Fenster **154 px** statt 229 px, gemessen. Die Tagwolke steht neben ihren
 Verweisen in **einer** Zeile, Sortieren und Ansichten teilen sich eine. **Eine
 Pille, die zusammen mit der aktuellen Auswahl null Treffer brächte, wird
-gedämpft** — Tags, Kategorien und „Neu seit …" gleichermaßen.
+gedämpft** — Tags und Kategorien gleichermaßen. *Die Regel galt bis 0.16.0 auch
+„Neu seit …"; die Pille ist mit 0.17.0 gestrichen, die Regel bleibt.*
+**Seit 0.17.0 trägt die Statuszeile sieben Pillen statt acht.**
 **Beschriftung, Und/Oder-Umschalter und die Verweise stehen seit 0.13.1 auf Höhe
 der ERSTEN Zeile** ihres Inhalts und nicht mehr in der Mitte des Blocks; bei
 aufgeklappter Wolke saßen sie bis zu 59 px zu tief. *Die Höhe der Leiste ändert
@@ -1439,14 +1525,31 @@ war. *Zeigt eine Ansicht auf eine gelöschte Kategorie oder einen gelöschten Ta
 wird die Nummer beim **Anwenden** übergangen — die Ansicht zeigt dann, was sie
 zeigen kann, statt leer zu bleiben.*
 
-**Der Filter „Neu seit …"** (seit 0.8.60): derselbe Platz, dasselbe Muster wie
-der Favoritenfilter — ein eigener Umschalter, mit allen übrigen Filtern
-kombinierbar, **persönlich**, mit der Zahl daneben (*„Neu seit 19.08. · 7"*). Er
-**filtert und sortiert nicht**. Der Bezugszeitpunkt wird beim **Verlassen** der
-Übersicht gesetzt, von der Serveruhr und um eine Sekunde nachgestellt; beim
-allerersten Besuch erscheint der Umschalter nicht. **Bei einem einzigen Zugang
-erscheint er trotzdem** — anders als „meine / alle" ist er keine Aussage über
-andere.
+> **DER FILTER „NEU SEIT …" IST MIT 0.17.0 GESTRICHEN — ZURÜCKGENOMMEN, NICHT
+> VERSCHWUNDEN.** Er stand seit 0.8.60 in der Statuszeile: derselbe Platz und
+> dasselbe Muster wie der Favoritenfilter, mit der Zahl daneben („Neu seit
+> 19.08. · 7"), kombinierbar mit allem, persönlich, filternd und nicht
+> sortierend.
+> **Zwei Gründe, und der zweite ist der härtere.** *Erstens:* zwei Anzeigen für
+> dieselbe Frage — was hat sich getan, seit ich zuletzt hier war — sind eine zu
+> viel; die Auskunft trägt die **Glocke**. *Zweitens:* **die Pille stand auch
+> dann da, wenn ihre Zahl null war** — gedämpft, aber da. Am Knopf „Offen"
+> steht seit 0.16.0 wörtlich das Gegenteil: „Ohne offene Aufgaben steht dort
+> keine Null." **Dieselbe Sache darf nicht zwei Verhalten haben**
+> (Stolperstein 47, im Kleinen).
+> **WAS DABEI VERLORENGEHT, GEHÖRT DANEBEN:** die Pille zeigte **jede**
+> Änderung an einem Eintrag — auch einen geänderten Titel, eine neue Datei,
+> einen neuen Testtag. **Die Glocke tut das nicht;** sie bleibt bei Kommentaren
+> und Bewertungen. *Vertretbar, weil eine Titeländerung etwas ist, das jemand
+> **am** Eintrag getan hat, und kein Beitrag, der **für** dich daliegt — und
+> weil die Übersicht ohnehin nach `updated_at` ordnet.* **Wäre der Verlust doch
+> spürbar, ist das ein Befund für eine spätere Runde und kein Grund, die Pille
+> zurückzuholen.**
+> **Die Filterzeile ist damit um eine Pille kürzer** — sieben statt acht in der
+> Statuszeile, die Fortsetzung von 0.13.0. **Eine gespeicherte Ansicht aus
+> 0.11.0 kann den Schlüssel `neu` noch tragen; sie übergeht ihn, statt daran zu
+> scheitern**, und der gespeicherte Wert bleibt unangetastet — dieselbe Regel
+> wie beim Schlüssel `abgelehnt` in 0.15.0, nur andersherum.
 
 **Die Ansicht „Offen"** (seit 0.8.60): ein Knopf in der Kopfzeile neben dem
 Zahnrad führt auf einen Bildschirm mit **allen nicht erledigten
@@ -2930,6 +3033,49 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
 
 ### 5.6 Anzeige und Bedienung
 
+#### Eine Oberfläche sagt, WAS IST — nicht, warum es so gebaut wurde
+
+*(seit 0.17.0, und die Regel reicht über die zwei Stellen hinaus, an denen sie
+entstanden ist.)*
+
+**Eine Begründung gehört in ein Papier — in die README, in dieses Blatt, in
+einen Kommentar am Quelltext.** *Wer davorsteht, will wissen, WAS die Anlage
+tut; warum sie so gebaut ist, hilft ihm nicht und ist in einem Jahr womöglich
+nicht mehr wahr.*
+
+**Der deutlichste Fall ist eine Versionsnummer in einem Dialog:** sie ist für
+den, der sie liest, ohne Bedeutung, und in einem Jahr ist sie falsch.
+*Nach 0.17.0 steht keine einzige mehr in der ausgelieferten Oberfläche.*
+
+**Zwei Stellen sind mit 0.17.0 ersatzlos gestrichen worden**, beide in der
+README aufgehoben — *die zweite wörtlich, die erste dem Inhalt nach*:
+
+- **Kennzahlen, Abschnitt „Verfahren":** der Satz, dass die Fassung der
+  Bibliothek dort **nicht** steht, weil das die Angabe wäre, nach der jemand
+  sucht, der eine Lücke ausnutzen will. *Der Vorbehalt selbst gilt unverändert —
+  gestrichen ist der Satz, der ihn an der Oberfläche begründete.* **Die README
+  trägt ihn in anderen Worten und nicht Wort für Wort** — der Auftrag sagte
+  „Wort für Wort", und das stimmt für diese Stelle nicht ganz; nachgesehen
+  wurde vor dem Streichen.
+- **Glockentafel:** der Block „Was die Glocke nicht verspricht" — eine
+  Überschrift und drei Sätze über den Zeitpunkt der Berechnung, den fehlenden
+  Lesestand je Meldung und Bewertungen von vor 0.16.0. *Die Grenzen gelten
+  unverändert; sie stehen in der README.*
+
+**Was NICHT unter diese Regel fällt:** eine **fachliche Warnung** („ohne diese
+Zeile startet nichts", „der Server wüsste sonst nicht, worauf der Link zeigt")
+und eine **Folge**, die man kennen muss, um zu entscheiden. *Der Unterschied
+ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja —
+„warum haben wir das so gebaut" nein.*
+
+> **DIE DURCHSICHT NACH GLEICHARTIGEN SÄTZEN IST GEFAHREN, und sie hat zwölf
+> weitere Stellen in `public/app.js` gefunden** — von „das ist so gewollt und
+> bleibt so" an der Karte „Meine Sitzungen" bis „ein Sicherheitsprotokoll, das
+> sich wegräumen lässt, wäre keins". **Keine davon ist in 0.17.0 angefasst
+> worden**; sie stehen mit Zeilennummer und Wortlaut im Änderungsprotokoll
+> 0.17.0 und als Zeile im Sammelblatt, Teil II. *Der Auftrag verlangte
+> ausdrücklich nachsehen und aufschreiben, nicht beheben.*
+
 #### Farbe und Marke
 
 - **Gold ist Bewertung und Anheftung, Orange ist Art und Bedienung.** Sonst
@@ -3232,32 +3378,59 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   wer angemeldet ist, sieht die Kommentare ohnehin in jedem Eintrag. Sie steht
   deshalb **nicht** in `F_ROUTEN`, und der Erledigt-Haken geht über
   `PUT /api/comments/:id`.
-#### Die Glocke und der Zähler „Offen" (seit 0.16.0)
+#### Die Glocke und der Zähler „Offen" (seit 0.16.0, erweitert mit 0.17.0)
 
 - **Die Glocke trägt den PUNKT, der Knopf „Offen" die ZAHL.** Eine Zahl
   beschreibt einen **Zustand** — so viele Aufgaben stehen offen —, ein Punkt
   meldet ein **Ereignis** — seit deinem letzten Blick ist etwas dazugekommen.
   **Die beiden Zeichen werden nirgends vertauscht.**
-- **Beide Zahlen reisen mit einer Antwort mit, die es ohnehin gibt.** `GET
+- **Die Zahlen reisen mit einer Antwort mit, die es ohnehin gibt.** `GET
   /api/items` trägt je Eintrag `offeneAufgaben` und — sobald ein Bezugspunkt
-  gespeichert ist — `neuFremd`. **Kein eigener Weg, der bei jedem Seitenaufbau
-  gefragt wird:** genau daran ist der Zähler „Offen 7" in 0.8.60 gescheitert.
-  *Gerechnet wird über zwei Gruppenabfragen für die ganze Liste, nicht je
-  Eintrag.*
+  gespeichert ist — `neuKommentare`, `neuBewertungen` und `neuVon`. **Kein
+  eigener Weg, der bei jedem Seitenaufbau gefragt wird:** genau daran ist der
+  Zähler „Offen 7" in 0.8.60 gescheitert. *Gerechnet wird über zwei
+  Gruppenabfragen für die ganze Liste, nicht je Eintrag — und das gilt
+  unverändert, seit sie nach Eintrag UND Verfasser gruppieren.*
+- **DIE TAFEL SAGT, WAS NEU IST** *(seit 0.17.0)*: „3 Kommentare ·
+  4 Bewertungen" statt „7 neue Beiträge". *„Beitrag" ist ein Sammelwort, das
+  die Anlage sonst nirgends benutzt.* **Die Auskunft lag vorher schon vor und
+  wurde weggeworfen** — die beiden Abfragen sind seit jeher getrennt und wurden
+  erst in der Schleife zu einer Zahl addiert. **Bei nur einer Art steht auch
+  nur eine Angabe da**; „0 Bewertungen" wäre eine Auskunft über nichts.
+- **DIE ANTWORT TRÄGT KEINE SUMME.** Sie folgt aus den beiden Zahlen, und eine
+  Summe neben ihren Teilen wäre eine zweite Wahrheit über dieselbe Sache
+  (Stolperstein 47). **Gebildet wird sie in der Oberfläche, an genau einer
+  Stelle** — für den Punkt an der Glocke und für die Reihenfolge der Tafel.
+  *Sortiert wird nach der Summe: ein Eintrag mit vier neuen Bewertungen stünde
+  sonst unter einem mit einem Kommentar.*
+- **SIE MELDET VON ALLEN, die eigenen Beiträge eingeschlossen** *(seit
+  0.17.0)*. Bis 0.16.0 fielen die eigenen heraus, und der Satz „Eigene Beiträge
+  stehen nie hier" stand in der Tafel. **Er ist zurückgenommen** — bei einem
+  einzigen Zugang meldete die Glocke sonst nie etwas, und die Pille, die dort
+  die Auskunft trug, ist mit derselben Runde gestrichen. *Eine Regel statt
+  zwei: eine Sonderbehandlung für den Fall „ein Zugang" wäre selbst wieder eine
+  zweite Wahrheit.*
+- **DIE NAMEN KOMMEN NUR AUS DEN KOMMENTAREN.** *Wer welche Bewertung abgegeben
+  hat, ist eine Angabe über einzelne Personen* — die Liste „Wer hat bewertet"
+  sieht seit jeher nur der Admin, und die Tafel gibt davon nichts preis
+  (Sammelblatt, Teil III: „Die Zahl ja, der Name nie"). **Ein Kommentar trägt
+  seinen Verfasser am Eintrag ohnehin sichtbar; eine Bewertung tut das nicht.**
+  Eine Zeile, an der ausschließlich Bewertungen neu sind, trägt deshalb keinen
+  Namen. *Dieselbe Regel wie am Eintrag selbst und keine Ausnahme: die Tafel
+  zeigt genau das, was der Eintrag zeigt.*
 - **Ein Zeitstempel, keine Benachrichtigungstabelle.** `glockeGesehen` steht in
-  `PERSOENLICHE_SCHLUESSEL` wie `zuletztGesehen` daneben — **keine Tabelle.**
-  *Bei einer Handvoll Zugängen ist die kleine Fassung nicht die ärmere, sondern
-  die richtige.*
-- **Es sind ZWEI Merker und nicht einer.** `zuletztGesehen` fällt beim
-  Verlassen der Übersicht, `glockeGesehen` erst beim **Öffnen der Tafel**. *Ein
-  gemeinsamer Merker löschte die Glocke bei jedem Blick in die Übersicht mit,
-  ohne dass jemand gelesen hätte, was sie meldete.* **Beim allerersten Mal
-  fahren sie in EINEM Ruf hinaus** — ohne Bezugspunkt gäbe es keine Glocke, und
-  ohne Glocke keinen Weg, ihn je zu setzen.
-- **Ohne gespeicherten Bezugspunkt gibt es keine Glocke.** Dieselbe Lage und
-  dieselbe Antwort wie bei „Neu seit meinem letzten Besuch". **`neuFremd` fehlt
-  dann GANZ und steht nicht auf 0** — „nichts Neues" und „es gibt keinen
-  Bezugspunkt" sind zwei verschiedene Aussagen.
+  `PERSOENLICHE_SCHLUESSEL` — **keine Tabelle.** *Bei einer Handvoll Zugängen
+  ist die kleine Fassung nicht die ärmere, sondern die richtige.*
+- **Es ist seit 0.17.0 EIN Merker und nicht zwei.** `glockeGesehen` entsteht
+  beim **ersten** Verlassen der Übersicht und fällt danach nur noch beim
+  **Öffnen der Tafel**. *Bis 0.16.0 stand `zuletztGesehen` daneben und fiel bei
+  jedem Verlassen; er trug die Pille „Neu seit …" und ist mit ihr weggefallen.*
+  **Ohne Bezugspunkt gäbe es keine Glocke, und ohne Glocke keinen Weg, ihn je
+  zu setzen** — deshalb der eine Ruf beim allerersten Verlassen.
+- **Ohne gespeicherten Bezugspunkt gibt es keine Glocke.** **Die drei Angaben
+  fehlen dann GANZ und stehen nicht auf 0** — „nichts Neues" und „es gibt
+  keinen Bezugspunkt" sind zwei verschiedene Aussagen. *Sie fehlen gemeinsam:
+  eine Antwort mit nur einer davon wäre eine dritte Lage, die niemand kennt.*
 - **Sie gilt für Telefon und Desktop.** Die Kopfzeile ist **eine**; was in
   `.mast-rest` steht, wandert von selbst ins Menü. *Eine Glocke nur am Desktop
   wäre eine Weiche nach Gerät.*
@@ -3265,11 +3438,12 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   Meldung, die man nicht anspringen kann, ist eine Mitteilung ohne Weg.
 - **Der Lesestand je Meldung ist ausdrücklich nicht gebaut.** Er bräuchte doch
   eine Tabelle; bei einem Zeitstempel löscht das Öffnen der Tafel alles auf
-  einmal — **die bewusste Grenze der schlanken Fassung, und sie steht in der
-  Tafel selbst.**
+  einmal — **die bewusste Grenze der schlanken Fassung.** *Bis 0.16.0 stand sie
+  in der Tafel selbst; seit 0.17.0 steht sie nur noch in der README — eine
+  Oberfläche sagt, WAS IST (Abschnitt 5.6).*
 - **Eine Glocke ist ein Versprechen, und dieses trägt nur ungefähr.** Sie
   rechnet beim Aufbau der Übersicht nach und nicht laufend. *Das ist tragbar —
-  aber es gehört an die Tafel geschrieben und nicht verschwiegen.*
+  und es steht in der README.*
 
 #### Links, Suchzeilen und Suchanbieter
 
@@ -3519,8 +3693,10 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   `X-Forwarded-Proto`, beide gebunden an `HINTER_PROXY`; und unverändert für
   den `Host`-Kopf: **die öffentliche Adresse ist eine Einstellung, niemals der
   `Host`-Kopf.** *Wer künftig einen weiteren Kopf auswertet, stellt zuerst diese
-  Frage.* **Dieselbe Regel greift am Merkzeitpunkt von „Neu seit …"** — auch
-  dort ist die mitgeschickte Zeit eine Behauptung.
+  Frage.* **Dieselbe Regel greift am Bezugspunkt der Glocke** — auch dort ist
+  die mitgeschickte Zeit eine Behauptung, und der Server setzt seine eigene Uhr
+  ein. *Sie galt bis 0.16.0 ebenso am Merkzeitpunkt von „Neu seit …"; die Pille
+  ist mit 0.17.0 gestrichen, die Regel bleibt.*
 - **Zwei Cookienamen, und kein Name mit bedingtem `Secure`** (seit 0.13.0). Der
   sichere Weg trägt `__Host-kriterion_session` samt `Secure`, der Heimnetzweg
   `kriterion_session` ohne beides — **und je Anfrage wird genau EIN Name
@@ -5419,6 +5595,140 @@ Version, in der sie entstanden sind.*
     bevor der Lauf gefahren war.** *Eine Zusage über einen Lauf gehört
     geschrieben, nachdem er gefahren ist, und nicht davor.*
 
+226. **Ein Raster mit fester Spaltenzahl und einer BEDINGTEN Zelle zerfällt in
+    dem Fall, den keine Prüflage fährt.** `.rlist` stand auf drei Spalten,
+    `.rrow` auf `display: contents` — und die Durchschnittszelle hängte
+    `drawRatings()` nur bei **mehreren** Zugängen an. **Bei einem einzigen
+    lieferte jede Zeile zwei Zellen in ein Dreispaltenraster**, und die
+    Selbstanordnung schob alles um eine Spalte weiter: *Name · Sterne ·
+    nächster Name.* **Der Fehler ist älter als der Befund** — das Raster kam
+    mit 0.14.0, die bedingte Zelle gibt es seit 0.8.91; sichtbar wurde er erst,
+    als die Gewichtsmarken `×1,25` die Namensspalte breiter machten.
+    **Die Regel: die Spaltenzahl folgt DERSELBEN Bedingung wie die Zelle, nicht
+    einer zweiten daneben** (Stolperstein 47). *Und die Prüfung dazu zählt
+    beides — Zellen je Zeile und Spuren des Rasters — und hält fest, dass die
+    Zahlen zusammenpassen, in BEIDEN Lagen.*
+
+227. **Die Gegenlage mit einem einzigen Zugang gab es — sie hat nur das
+    Falsche gefragt.** `eEinzeln` zeichnete die Kriterienliste seit 0.8.91 mit
+    `benutzerZahl: 1`, und sie trug **genau zwei Zusagen**: *„Bei einem
+    einzigen Zugang bleibt die Spalte weg"* und *„Die Sternzeilen stehen
+    trotzdem vollständig da"*. **Beide waren im kaputten Zustand grün.** Die
+    Zelle war weg — richtig gefragt; die Spalte, in die sie gehörte, blieb
+    stehen — nie gefragt. **Eine Gegenlage, die nur nachsieht, was FEHLT, sagt
+    nichts darüber, ob das Übriggebliebene noch zusammenpasst.** *Der Auftrag zu
+    0.16.0 hatte die Falle sogar benannt („eine Lage mit einem einzigen Zugang
+    kann über die Glocke nichts belegen") — angewandt hat sie niemand auf die
+    Kriterienliste.* **Die Frage an eine Gegenlage lautet seither nicht „ist es
+    weg?", sondern „passt, was übrig ist, noch zusammen?" — und die Frage an
+    jede Gruppe: was sieht ein Betreiber, der allein arbeitet?**
+
+228. **Ein Regex mit einem Anker DAVOR frisst den Anker auf und überspringt
+    jede zweite Regel.** `/(?:^|[{}])\s*(…)\s*\{([^}]*)\}/g` über ein
+    Stylesheet liest `.rlist`, verbraucht dabei dessen schließende Klammer —
+    und findet die unmittelbar folgende Regel nicht mehr, weil ihr Anker fehlt.
+    **Dazu tragen Kommentare selbst Klammern und Punkte**, und der Ausdruck
+    greift hinein. *Der Leser gab für beide Klassenstellungen 0 zurück; die
+    Prüfungen darüber wären rot geworden, und der Rückbau daneben hätte
+    trotzdem „greifend" gemeldet — er belegte nichts und sähe gut aus.*
+    **Kommentare erst weg, dann von Klammer zu Klammer schneiden.** *Ein Leser,
+    der nichts liest, ist schlimmer als keiner: er sieht aus wie einer.*
+
+229. **Ein Rückbau, der an einem KOMMENTAR hängt, greift ins Leere, sobald
+    jemand den Kommentar besser schreibt.** Ein Suchtext wie
+    `".mrow.sitz { … }\n/* Die eigene Anmeldung ist markiert"` ist eindeutig
+    und trotzdem falsch gebaut: die Eindeutigkeit hängt an einem Satz, den
+    niemand für tragend hält. **Der Anker gehört an den GEGENSTAND** — an die
+    Regel, an die Zeile, an den Ausdruck, den der Rückbau wirklich meint.
+    *Kommt der Gegenstand mehrfach vor, ist die Zeile davor die zweitbeste
+    Wahl — aber nur, wenn sie selbst Code ist.*
+
+230. **Ein Auftrag kann einer stehenden Entscheidung widersprechen, ohne dass
+    es jemandem auffällt.** 0.17.0 verlangte, die Glockentafel sage bei jeder
+    Zeile dazu, **von wem** — und die Zeile zählt Kommentare **und
+    Bewertungen**. *Im Sammelblatt, Teil III, steht seit 0.16.0: „Eine Glocke,
+    die nennt, WER bewertet hat … Die Zahl ja, der Name nie."* **Gebaut ist
+    deshalb die Fassung, die weniger preisgibt:** die Namen kommen aus den
+    Kommentaren, eine Zeile mit ausschließlich neuen Bewertungen trägt keinen.
+    **Die Abweichung steht im Änderungsprotokoll, mit Grund.** *Wer einen
+    Auftrag ausführt, liest Teil III des Sammelblatts mit — dort steht, was
+    schon einmal geprüft und verworfen wurde.*
+
+231. **Ein gewöhnlicher Prüflauf neben einer laufenden Gegenprobe reißt deren
+    Spur 0 ab — und der Bericht meldet „ABGERISSEN", nicht „von außen gestört".**
+    Spur 0 fährt ohne Versatz, also auf **denselben Portbasen wie `npm test`**.
+    Ein Lauf daneben nimmt ihr die Ports, ihre Server enden sofort, und der
+    Rückbau sieht aus wie einer, der die Anlage zerstört. **Schlimmer ist das
+    Aufräumen über ein Namensmuster:** `pkill -f "node pruefung.js"` trifft die
+    Läufe **aller** Spuren, weil sie genauso heißen — vier Rückbauten auf einen
+    Schlag, alle mit demselben falschen Befund, und die verwaisten Server
+    bleiben stehen und nehmen der nächsten Runde die Ports. *Solange eine
+    Gegenprobe läuft, läuft daneben kein Prüflauf; und aufgeräumt wird nach
+    Nummer, nicht nach Namen* — dieselbe Lehre wie in Stolperstein 133, dort
+    fürs Erkennen, hier fürs Beenden. **Ein ABGERISSEN ist erst dann ein Befund,
+    wenn der Lauf allein auf der Maschine war.**
+
+232. **Ein Satz, der auf etwas ANDERES in der Oberfläche zeigt, erbt dessen
+    Bedingungen.** Im Erklärkasten hinter der Gesamtnote stand seit 0.16.0
+    *„das sind die Zahlen rechts in den Zeilen"* — gemeint war die
+    **Durchschnittsspalte der Kriterienliste dahinter**, und die gibt es bei
+    genau **einem** Zugang nicht. *Er stand vom 29. auf den 30. August genau einen
+    Tag lang da und war für jeden falsch, der allein arbeitet — und keine
+    Prüfung konnte es sehen: jede Lage des Kastens fuhr mit mehreren Zugängen.
+    Der kurze Weg ist kein Verdienst, sondern Zufall: 0.16.0 und 0.17.0 lagen
+    einen Tag auseinander.* **Dieselbe Blindheit wie 226 und 227,
+    eine Ansicht weiter — gefunden, weil dieselbe Frage ein zweites Mal
+    gestellt wurde.** **Die Antwort ist NICHT eine Bedingung, sondern ein
+    anderer Bezugspunkt:** der Kasten nennt jetzt seine **eigene** Spalte
+    „Note", die immer dasteht. *Eine Bedingung wäre eine zweite Wahrheit über
+    die Zahl der Zugänge (Stolperstein 47); ein Verweis auf das, was im selben
+    Kasten steht, braucht keine.*
+
+233. **Ein Leser, der die Kaskade nach dem PLATZ entscheidet, gibt die richtige
+    Zahl aus dem falschen Grund.** `rasterSpalten()` nahm die **letzte**
+    passende Regel, und der Kommentar daneben behauptete, beide Regeln hätten
+    dieselbe Spezifität. **Sie haben sie nicht:** `.rlist` trägt eine Klasse,
+    `.rlist.ohne-schnitt` zwei. *Die Zahl stimmte, weil die spezifischere hier
+    zufällig auch die spätere ist — wer die beiden umstellte, bekäme wortlos
+    die falsche Zahl und eine grüne Zusage darüber.* **Dasselbe eine Zeile
+    weiter:** `rzRegeln[1]` war die stille Annahme, die zweite **gefundene**
+    Regel sei die gemeinte. **Gefragt wird nach dem Wähler und nicht nach dem
+    Platz** — die Auswahlregel des Browsers heißt: spezifischer schlägt später.
+    *Und die Selbstprobe des Lesers prüft jetzt genau das: was er für beide
+    Klassen liefert, muss die Zahl aus der ZWEIKLASSIGEN Regel sein.*
+
+234. **Dieselbe Runde, die eine getippte Spaltenzahl behoben hat, hat eine
+    zweite getippt — in der Prüfung, die sie dafür geschrieben hat.** Punkt 1
+    leitet die Spaltenzahl der Kriterienliste aus dem Stilblatt ab, weil eine
+    zweite Quelle auseinanderläuft. **Die Prüfung zu Punkt 5 schrieb
+    `rgZeile.children.length === 4`** — die Vier stand in der Prüfung, das
+    Raster des Erklärkastens (`1fr auto auto auto`) im Stilblatt, und **nichts
+    verband die beiden.** *Wer die Spalten des Kastens änderte, bekäme eine
+    grüne Zusage über ein zerfallenes Raster: der Befund aus Punkt 1, eine
+    Ansicht weiter und diesmal im Prüfstand statt in der Anlage.* **Eine Lehre
+    wandert nicht von selbst** — wer sie an einer Stelle zieht, sucht am selben
+    Tag die anderen, an denen dieselbe Zahl zweimal steht. *Gefunden hat sie
+    eine Durchsicht und nicht der Lauf: 4621 grüne Prüfungen sahen sie nicht
+    (Stolperstein 225).* **Dazu die Regel daneben:** `.rz-gleich > span` machte
+    im Kommentar vier Zusagen, und keine stand in einer Prüfung
+    (Stolperstein 199) — *ein Kommentar ist keine Prüfung, auch dann nicht,
+    wenn er sorgfältig ist.*
+
+235. **Ein Rückbau, der ein ZWEITES Netz wegnimmt, bleibt stumm — und das ist
+    ein Fund über die Prüfung, nicht über die Anlage.** Rückbau 321 tauschte
+    die Menge in `neuVon` gegen eine Liste und sollte zeigen, dass ein
+    Verfasser **nur einmal** in der Tafel steht. **Er konnte nichts zeigen:**
+    die Eindeutigkeit kommt aus `GROUP BY item_id, user_id`, das je Paar genau
+    **eine** Zeile liefert — die Menge sieht nie ein Doppel. *Zwei Anläufe
+    waren nötig, um das zu sehen: der erste riss den Lauf ab (`.add()` gibt es
+    an einer Liste nicht, Stolperstein 138), der zweite lief sauber durch und
+    blieb **STUMM**.* **Der Anker gehört an die tragende Zusage und nicht an
+    das Netz darunter** — er greift jetzt am `GROUP BY`, und dann steht in der
+    Tafel nur noch **ein** Name statt aller. *Die Menge bleibt trotzdem stehen:
+    sie kostet nichts und trägt, wenn jemand die Abfrage eines Tages anders
+    gruppiert. Was sich geändert hat, ist der Kommentar daneben — er sagt
+    jetzt, welche der beiden Zusagen die tragende ist.*
+
 ---
 
 ## 7. Prüfstand
@@ -5432,11 +5742,47 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4523 von 4523 bestanden** (0.16.0) — **157
-neue Prüfungen**, davon 116 in neun neuen Gruppen; 0.15.1 davor brachte fünfzehn
-in einer, 0.15.0 brachte 89 in drei. Die Gegenproben stehen in Abschnitt 8: sie
-sind auf die jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf über
-alle **300** Rückbauten.
+**Stand: 4630 von 4630 bestanden** (0.17.0) — **107 neue Prüfungen netto**,
+davon 59 in **vier** neuen Gruppen; 0.16.0 davor brachte 157, davon 116 in neun.
+Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
+beschränkt und **nicht** der volle Lauf über alle **333** Rückbauten.
+
+| neue Gruppe (0.17.0) | Prüfungen |
+|---|---|
+| Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0 | 19 |
+| Zwei Masse vom echten Geraet — 0.17.0 | 16 |
+| Die gestrichene Pille „Neu seit …" — 0.17.0 | 14 |
+| Der Bezugspunkt der Glocke in der Oberflaeche | 10 |
+| **zusammen** | **59** |
+
+> **ZWEI GRUPPEN SIND DABEI AUFGELÖST WORDEN, NICHT GELÖSCHT.** „Neu seit: der
+> Filter in der Uebersicht" und „Neu seit: der Merkzeitpunkt" prüften eine
+> Pille, die es nicht mehr gibt; **ihre Zusagen stehen umgedreht in den beiden
+> neuen Gruppen** — was die Pille KONNTE, muss jetzt nachweislich weg sein
+> (Stolperstein 201). *Deshalb ist die Zahl der neuen Prüfungen netto 107 und
+> nicht 59 plus alles.*
+
+*Die übrigen stehen in **acht vorhandenen** Gruppen:*
+
+| vorhandene Gruppe | vorher | nachher | wofür |
+|---|---|---|---|
+| Die Glocke in der Kopfzeile | 22 | **51** | die getrennten Zahlen, Ein- und Mehrzahl, die Namen, die Sortierung nach der Summe, die Lage mit **einem** Zugang |
+| Die Rechnung hinter der Kopfzahl | 18 | **47** | die Vergleichszahl, die Lagen ohne Gewichtung und mit gleichen Zahlen, der Verweis auf die eigene Spalte, die **gelesene** Spaltenzahl des Kastens und die Regel der Vergleichszeile |
+| Die Glocke: was mit der Liste mitreist | 17 | **25** | drei Angaben statt einer, beide Richtungen der Aufteilung, der Bewerter ohne Namen |
+| Der Rechenweg reist mit | 8 | **14** | die Vergleichszahl am Server samt Selbstprobe der Lage |
+| Der Papierkorb in der Oberflaeche | 50 | **53** | die Kennzahlen begründen den Vorbehalt nicht mehr |
+| Der Systembereich nach Rolle | 66 | **67** | vier breite Kacheln statt drei |
+| Persoenliche Einstellungen | — | **43** | acht statt neun Schlüssel |
+| Der Bezugspunkt: die Sekunde am Rand | — | **4** | dieselbe Zusage, gemessen am Kommentar |
+
+**Zahlen in vorhandenen Gruppen nachgezogen:** 300 → **333** Rückbauten, neun →
+**acht** persönliche Schlüssel. **Neu ist die Zusage, dass die Versionsnummer im
+Lockfile an BEIDEN Stellen steht** — bisher sah der Prüflauf nur die erste.
+
+**EINE ZUSAGE AUS 0.14.0 IST MITGEGANGEN** (Stolperstein 201): *„Die
+Kriterienliste ist ein Raster über drei Spalten"* heißt jetzt *„Die **allgemeine
+Regel** …"* — ab dieser Runde war der alte Wortlaut die halbe Wahrheit, denn bei
+genau einem Zugang sind es zwei.
 
 | neue Gruppe (0.16.0) | Prüfungen |
 |---|---|
@@ -5451,8 +5797,8 @@ alle **300** Rückbauten.
 | MIGRATION 0.16.0 — ENTFAELLT MIT 1.0 | 15 |
 | **zusammen** | **116** |
 
-*Die übrigen **41** stehen in **sechs vorhandenen** Gruppen, und **keine
-einzige Prüfung ist weggefallen**:*
+*Die übrigen **41** standen in **sechs vorhandenen** Gruppen, und **keine
+einzige Prüfung ist damals weggefallen**:*
 
 | vorhandene Gruppe | vorher | nachher | wofür |
 |---|---|---|---|
@@ -5461,9 +5807,9 @@ einzige Prüfung ist weggefallen**:*
 | Der Papierkorb in der Oberflaeche | 39 | 50 | der Papierkorb im Vollbild an der echten Anlage |
 | Die Gegenproben greifen | 9 | 17 | der Nummernfilter und die 300 Rückbauten |
 | Offen: der Haken in der Ansicht | 26 | 27 | die Zahl am Knopf „Offen" |
-| Neu seit: der Merkzeitpunkt | 11 | 12 | `glockeGesehen` neben `zuletztGesehen` |
+| Neu seit: der Merkzeitpunkt | 11 | 12 | `glockeGesehen` neben `zuletztGesehen` *(die Gruppe ist mit 0.17.0 aufgelöst)* |
 
-**Zahlen in vorhandenen Gruppen sind nachgezogen:** 271 → 300 Rückbauten,
+**Zahlen in vorhandenen Gruppen waren nachgezogen:** 271 → 300 Rückbauten,
 acht → neun persönliche Schlüssel, sechs → sieben Migrationsblöcke und
 Migrationsfunktionen, neunzehn → achtzehn Karten. *Rund dreißig vorhandene
 Prüfungen mussten außerdem den Abschnitt öffnen, in dem ihre Karte jetzt steht
@@ -5949,7 +6295,9 @@ eine Buchführung.*
 | 0.13.2 | Der angepinnte Rahmen schließt (0 netto; drei Zeilen nachgezogen) | 2 neue (216 → 218) | Stolpersteine 199 bis 201 |
 | 0.14.0 | Die Entscheidung wird mitgeschrieben (131) | 31 neue (218 → 249), alle einunddreißig gefahren | Stolpersteine 202 bis 207 |
 | 0.15.0 | Der Filter und der Stift (89 netto) | 18 neue (249 → 267), alle achtzehn gefahren; zwei nachgezogen, einer repariert | Stolpersteine 208 bis 213 |
-| **0.15.1** | **`hidden` wirkt wieder (15)** | **4 neue (267 → 271); alle vier plus drei nachgezogene gefahren, keiner stumm** | **Stolpersteine 214 bis 216** |
+| 0.15.1 | `hidden` wirkt wieder (15) | 4 neue (267 → 271); alle vier plus drei nachgezogene gefahren, keiner stumm | Stolpersteine 214 bis 216 |
+| 0.16.0 | Der Systembereich, die Glocke und die Auskunft (157) | 29 neue (271 → 300); gefahren wurden sie einzeln, **sieben Befunde** dabei | Stolpersteine 217 bis 225 |
+| **0.17.0** | **Was dasteht, und was nicht dasteht (107 netto)** | **33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); 43 gefahren, 0 stumm** | **Stolpersteine 226 bis 235** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -5965,6 +6313,27 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **DIE DREI HANDGRIFFE ZU 0.17.0 SIND AM WIRT NOCH NICHT GEFAHREN.** Am
+  Prüfstand ist alles belegt, was sich dort belegen lässt; jsdom rechnet kein
+  Layout, und drei der Befunde dieser Runde sind **Maße**. **Am Wirt fehlt:**
+  *(a)* einen Eintrag mit **mehreren Kriterien** an einer Anlage mit **einem
+  einzigen Zugang** ansehen und nachzählen, dass Namen und Sternreihen
+  untereinander stehen — *und im selben Zug auf die Gesamtnote klicken: der
+  Erklärkasten muss auf die Spalte **Note** verweisen, die in ihm selbst steht
+  (zehnter Befund)*; *(b)* die **Glockentafel** öffnen und lesen, **was**
+  neu ist — „3 Kommentare · 4 Bewertungen" statt „7 neue Beiträge" —, und dass
+  darunter steht, von wem; *(c)* die **Anmeldeseite auf dem Telefon** aufrufen
+  und die Versionszeile sehen, **ohne zu scrollen** *(der Befund kam vom
+  Samsung S21 5G)*. *Dazu, wenn sich die Gelegenheit ergibt: die Karte
+  „Mailversand" im Abschnitt „Zugänge" — sie steht jetzt so breit wie ihre drei
+  Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
+  zum Rand reichen muss.*
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT DREIZEHN RUNDEN AUS.** 333 Rückbauten
+  zu je einem vollen Prüflauf sind bei rund fünfeinhalb Minuten je Lauf etwa
+  **dreißig Stunden** hintereinander, in vier Nebenspuren rund acht. **Er lässt
+  sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
+  `git archive HEAD`, und ein Commit mitten im Lauf verschiebt die Grundlage.
+  *Was in 0.17.0 gefahren wurde, steht im Änderungsprotokoll dieser Runde.*
 - **DER MIGRATIONSBLOCK 0.16.0 IST AM ECHTEN BESTAND NOCH NICHT GEFAHREN.** Er
   ist am Prüfstand an einer nachgebauten Datenbank aus 0.15.1 belegt — einmal
   ganz, zweimal hintereinander, gegen eine frische Anlage gehalten und an
@@ -5974,13 +6343,16 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   ergaenzt (Migration auf 0.16.0)"* dasteht — **und welche Zahl sie nennt.**
   *Das ist die Zahl der Bewertungen, für die die Glocke schweigen wird; sie
   steht genau einmal da und beim nächsten Start nicht mehr.*
-- **DIE GLOCKE BRAUCHT ZWEI ZUGÄNGE, UM ÜBERHAUPT ETWAS ZU MELDEN.** Am
-  Prüfstand ist sie an zwei Benutzern belegt. **Am Wirt fehlt:** mit dem einen
-  Zugang die Übersicht einmal verlassen (das setzt den Bezugspunkt), mit dem
-  anderen einen Kommentar schreiben und einen Stern setzen, dann beim ersten
-  neu laden — **Punkt an der Glocke, zwei Zeilen in der Tafel, und ein Klick
-  führt zum Eintrag.** *Danach ist der Punkt weg und kommt erst beim nächsten
-  fremden Beitrag wieder.*
+- **DIE GLOCKE BRAUCHT SEIT 0.17.0 KEINEN ZWEITEN ZUGANG MEHR, UM ETWAS ZU
+  MELDEN.** Sie meldet Kommentare und Bewertungen **von allen**, die eigenen
+  eingeschlossen. **Am Wirt fehlt:** die Übersicht einmal verlassen (das setzt
+  den Bezugspunkt), einen Kommentar schreiben und einen Stern setzen, dann neu
+  laden — **Punkt an der Glocke, eine Zeile in der Tafel mit „1 Kommentar ·
+  1 Bewertung", darunter der eigene Name, und ein Klick führt zum Eintrag.**
+  *Mit einem zweiten Zugang dazu: der fremde Name steht neben dem eigenen, und
+  an einer Zeile mit ausschließlich neuen Bewertungen steht KEIN Name — das ist
+  die Zusage, die die Anonymität der einzelnen Bewertung hält.* **Danach ist
+  der Punkt weg und kommt erst beim nächsten Beitrag wieder.**
 - **DIE FÜNF ABSCHNITTE GEHÖREN EINMAL AUF EIN TELEFON.** Die Reiterreihe wird
   dort zur Liste; gemessen ist das in Medienregeln, nicht an Glas. *Und der
   eine Handgriff, der die Runde belegt: eine Adresse wie
@@ -6010,6 +6382,12 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   Eingabe des zweiten Faktors, wie viele geladene Dateien, **welcher Teil mit
   welchem Verfahren eingespielt wurde** — und danach, dass **keine** Zeile
   „Bestätigung gescheitert" im Sicherheitsprotokoll steht.
+  **Und der eine Handgriff, der wirklich zählt: einen Teil in eine
+  ZWEITANLAGE einspielen, nicht in die laufende.** *Ein Rückweg, der nur in
+  die Anlage führt, aus der der Export kam, belegt den Rückweg nicht.*
+  **Der Punkt darunter meint denselben Lauf mit einer zweiten Frage** — hier
+  geht es um Weg und Mitschrift, dort um den Rundlauf am echten Bestand; wer
+  beides in einem Zug mitschreibt, spart sich den zweiten Lauf.
 - **DER AUSTAUSCHWEG IST AM ECHTEN BESTAND WEITERHIN NICHT GESEHEN.** 0.12.4
   schneidet ihn in Teile; bei 760 MB und 300 MB je Teil sollten es **drei**
   sein. **Das gehört nach dem Einspielen abgelesen** — Systembereich →
@@ -6338,6 +6716,93 @@ in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstof
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
 
+### 0.17.0 — „Was dasteht, und was nicht dasteht"
+
+**MINOR · 30. August 2026 · neun Befunde aus EINEM Rundlauf von Hand,
+unmittelbar nach dem Einspielen von 0.16.0 — keiner davon aus dem Fahrplan und
+keiner aus dem Sammelblatt. Ein zehnter ist beim Bauen dazugekommen.**
+
+**DIE KRITERIENLISTE ZERFIEL BEI GENAU EINEM ZUGANG — der einzige Fehler der
+Runde.** `.rlist` war ein Raster mit **drei** Spalten, die Durchschnittszelle
+hängte `drawRatings()` aber nur bei mehreren Zugängen an; jede Zeile lieferte
+damit **zwei** Zellen in ein Dreispaltenraster, und die Selbstanordnung schob
+alles um eine Spalte weiter: *Name · Sterne · nächster Name.* **Die Spaltenzahl
+folgt seither derselben Bedingung wie die Zelle** — eine Klasse am Kasten,
+abgeleitet aus `mehrereBenutzer()` und nicht aus einer zweiten Quelle.
+*Der Fehler ist älter als 0.16.0: das Raster kam mit 0.14.0, die bedingte Zelle
+gibt es seit 0.8.91 — sichtbar wurde er erst, als die Gewichtsmarken `×1,25`
+die Namensspalte breiter machten.* **Und keine Prüfung konnte ihn sehen:** alle
+Prüflagen der Liste fuhren mit mehreren Zugängen. **Die neue Gruppe zählt
+deshalb Zellen je Zeile UND Spuren des Rasters und hält fest, dass beide Zahlen
+zusammenpassen — in BEIDEN Lagen.**
+
+**ZWEI ERKLÄRTEXTE HABEN DIE OBERFLÄCHE VERLASSEN** — der Satz über die
+Bibliotheksfassung in den Kennzahlen und der Block „Was die Glocke nicht
+verspricht" in der Tafel. **Beide stehen in der README, ersatzlos gestrichen
+ist nur die Begründung an der Oberfläche.** *Die Regel dahinter steht in
+Abschnitt 5.6: eine Oberfläche sagt, WAS IST — nicht, warum es so gebaut wurde.*
+**Nach dieser Runde steht keine Versionsnummer mehr in einem Dialog.**
+
+**DIE GLOCKENTAFEL SAGT, WAS NEU IST:** „3 Kommentare · 4 Bewertungen" statt
+„7 neue Beiträge". **Die Auskunft lag längst vor und wurde weggeworfen** — die
+beiden Abfragen sind seit jeher getrennt und wurden erst in der Schleife
+addiert. *Die Aufteilung kostet keine zusätzliche Abfrage; bei nur einer Art
+steht auch nur eine Angabe da.* **Dieser Punkt ist der Grund, warum die Runde
+MINOR heißt** — die Anlage kann danach etwas, was sie vorher nicht konnte.
+
+**DREI ANZEIGEFEHLER VOM ECHTEN GERÄT.** Die **Versionszeile stand auf dem
+Telefon unter der Falz**: `body.anmeldung` maß in `vh`, und `vh` ist dort die
+**große** Anzeigefläche — die ohne Browserleisten, also die, die man nicht
+sieht. *Seither `100dvh`, mit `100vh` als Rückfall darüber; der Abstand war nie
+die Ursache und ist zweimal umsonst verkleinert worden.* Der **orangene Rahmen
+der eigenen Anmeldung reichte nicht bis zum Rand**: `.manage-list` trägt
+`overflow-y: auto`, und damit steht `overflow-x` nach der CSS-Regel ebenfalls
+auf `auto` — die Zeile lief seitlich hinaus und ihr Rahmen endete am sichtbaren
+Ausschnitt. *Sie bricht seither **immer** um und nicht erst auf dem Telefon;
+die Anordnung der umgebrochenen Stücke bleibt dem schmalen Schirm.* Und die
+Karte **„Mailversand" bekommt `.breit`** wie ihre drei Nachbarn. *Damit lautet
+die Regel nicht mehr „breit ist, was eine Liste mit vielen Spalten trägt",
+sondern **alle Kacheln eines Abschnitts sind gleich breit** — die alte erklärte
+ihren eigenen vierten Fall nicht mehr.*
+
+**DER ERKLÄRKASTEN NENNT DIE VERGLEICHSZAHL OHNE GEWICHTUNG.** Die Formel stand
+Zeile für Zeile da und ließ trotzdem offen, wofür die Gewichte gut sind — **es
+fehlte, was herauskäme, wenn alle Kriterien gleich zählten.** *Sie wird
+gerechnet, wo die andere gerechnet wird: in `gesamtSchnitt()`, in derselben
+Schleife und aus derselben Menge. Der Kasten LIEST sie* (Stolperstein 217).
+**Ohne Gewichtung steht sie gar nicht da**, und ergeben beide Zahlen nach dem
+Runden dasselbe, **sagt der Kasten genau das**.
+
+**UND DIE GLOCKE ERSETZT DIE PILLE „NEU SEIT …", die dafür gestrichen ist** —
+der größte Punkt der Runde und der einzige, der etwas **wegnimmt**. *Zwei
+Anzeigen für dieselbe Frage sind eine zu viel, und die Pille verletzte eine
+Hausregel: sie stand auch dann da, wenn ihre Zahl null war.* **Die Glocke wird
+dafür vollständig: sie meldet Kommentare und Bewertungen von ALLEN** — der Satz
+„Eigene Beiträge stehen nie hier" aus 0.16.0 ist zurückgenommen. *Sonst meldete
+sie einem Betreiber, der allein arbeitet, nie etwas; eine Sonderbehandlung für
+den Fall „ein Zugang" wäre selbst wieder eine zweite Wahrheit.* **Jede Zeile
+sagt dazu, von wem — und zwar nur zu den Kommentaren:** wer welche Bewertung
+abgegeben hat, bleibt anonym (Sammelblatt, Teil III). **Was verlorengeht, steht
+in Abschnitt 5.6:** die Pille zeigte **jede** Änderung, die Glocke bleibt bei
+Kommentaren und Bewertungen. **Die persönlichen Schlüssel sinken von neun auf
+acht**, die Filterzeile wird um eine Pille kürzer.
+
+**UND EIN ZEHNTER BEFUND, DER NICHT IM AUFTRAG STAND.** Der Erklärkasten sagte
+seit 0.16.0 *„das sind die Zahlen rechts in den Zeilen"* — gemeint war die
+**Durchschnittsspalte der Kriterienliste dahinter**, und die gibt es bei genau
+**einem** Zugang nicht. **Derselbe blinde Fleck wie der erste Punkt, eine
+Ansicht weiter**, gefunden durch dieselbe Frage: *was sieht ein Betreiber, der
+allein arbeitet?* **Gebaut ohne Bedingung** — der Satz nennt jetzt die Spalte
+**„Note"**, die dem Kasten selbst gehört und in jeder Lage dasteht.
+*Stolperstein 232; Einzelheiten im Änderungsprotokoll, Abschnitt 5a.*
+
+**KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine neue
+Formatnummer: sieben markierte Blöcke, Austauschformat **11**, `F_ROUTEN` bei
+**69**, achtzehn Karten. **Die Sicherung ist Empfehlung und nicht Pflicht** —
+der Unterschied zu 0.16.0 steht in Abschnitt 2. **Keine neue Abhängigkeit.**
+
+**4523 → 4630 Prüfungen, 300 → 333 Rückbauten.**
+
 ### 0.16.0 — „Der Systembereich, die Glocke und die Auskunft"
 
 **MINOR · 29. August 2026 · die größte Umbaufläche des Plans — vier Punkte aus
@@ -6385,7 +6850,8 @@ Endpunkt. *Er steht weiter in Abschnitt 10.*
 
 **EINE GLOCKE IN DER KOPFZEILE, MIT EINEM PUNKT — UND EINE ZAHL AM KNOPF
 „OFFEN".** Die Glocke meldet **fremde Kommentare und fremde Bewertungen** seit
-dem letzten Öffnen ihrer Tafel; ein Klick in der Tafel führt zum Eintrag. Die
+dem letzten Öffnen ihrer Tafel *(so in 0.16.0; **mit 0.17.0 auf ALLE erweitert**
+— siehe die Runde darüber)*; ein Klick in der Tafel führt zum Eintrag. Die
 Zahl an „Offen" ist die Summe der offenen Aufgaben. **Keine
 Benachrichtigungstabelle** — beides wird aus vorhandenen Zeitstempeln gerechnet
 und reist mit der Liste mit, die ohnehin geholt wird. **Keine neue Route:**
@@ -6910,7 +7376,8 @@ zweistufig und am **aufgelösten** Pfad geprüft) und der **Einzelexport**.
 **0.8.60 — „Was ist offen, was ist neu".** Keine Datenbankstufe. Die Ansicht
 **„Offen"** über alle Einträge und der Filter **„Neu seit …"** an einem
 persönlichen Schlüssel — *die günstigste Art von Verbesserung ist, vorhandene
-Funktionalität erreichbar zu machen.* Dazu die **Sprachbereinigung** aus
+Funktionalität erreichbar zu machen.* **Der Filter ist mit 0.17.0 gestrichen;
+seine Auskunft trägt seither die Glocke.** Dazu die **Sprachbereinigung** aus
 Abschnitt 12 samt Wächter; sichtbar davon ist genau eine Umbenennung, der
 `Abdruck` heißt jetzt **Fingerprint**. `F_ROUTEN` bleibt bei **47**.
 
@@ -7028,7 +7495,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.14.0** | Die Entscheidung wird mitgeschrieben | **GEBAUT.** `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. Mitgefahren sind zwei Befunde aus dem Betrieb: der kaputte Cookiewert und die Sternreihe der Kriterienliste. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie ist vor der Bereinigung gebaut** | ja, **sechster Block** | 10 → 11 |
 | **0.15.0** | Der Filter und der Stift | **GEBAUT.** Die Übersicht bekommt einen Filter für „abgelehnt" — drei Zustände in einer eigenen Gruppe, kombinierbar mit dem Teststatus. Dazu kommt die Begründung zur Ruhe: sie steht als Aussage da statt in einem dauernd offenen Feld, mit ✎ und ✕ daneben — und **entfernen darf sie seither auch der Admin**, was 0.14.0 zur Hälfte offengelassen hatte. *MINOR.* **Kein Schema, kein Migrationsblock, Format bleibt 11** | nein | — |
 | **0.16.0** | Der Systembereich, die Glocke und die Auskunft | **GEBAUT.** Neunzehn Karten sind achtzehn und stehen in fünf Abschnitten mit eigener Adresse; `renderSystem()` fiel dabei von 2466 auf 79 Zeilen. Dazu die Glocke mit dem Punkt, der Zähler „Offen" mit Zahl, die Gewichtung, die sich selbst erklärt, Version und Verfahren in den Kennzahlen — und aus dem Betrieb das Löschen in der Zoomansicht. *MINOR.* **Die größte Umbaufläche des Plans — und sie ist doch eine Datenbankstufe geworden: die Glocke braucht einen Zeitpunkt an der Bewertung. Der Rechner zur Gewichtung ist NICHT mitgefahren** | ja, **siebter Block** | — |
-| **0.17.0** | Was dasteht, und was nicht dasteht | Acht Befunde aus **einem** Rundlauf von Hand am 30. August 2026, unmittelbar nach dem Einspielen von 0.16.0. Die Kriterienliste zerfällt bei genau **einem** Zugang; zwei Erklärtexte verlassen die Oberfläche; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler, die man nur auf einem echten Gerät sieht; der Erklärkasten nennt die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen wird.** *MINOR.* **Kein Schema, keine Route — MINOR wegen der Glockentafel** | nein | — |
+| **0.17.0** | Was dasteht, und was nicht dasteht | **GEBAUT.** Neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, unmittelbar nach dem Einspielen von 0.16.0. Die Kriterienliste zerfiel bei genau **einem** Zugang; zwei Erklärtexte haben die Oberfläche verlassen; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; der Erklärkasten nennt die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen ist.** *MINOR.* **Kein Schema, keine Route — MINOR wegen der Glockentafel. Alle neun Punkte sind gebaut, dazu ein zehnter Befund aus dem Bauen: der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
 | **0.19.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0 vorgemerkt.)* Migrationscode raus — **jetzt sieben Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 
@@ -7400,149 +7867,51 @@ mit einer Prüfung daneben** — so, wie der Auftrag es verlangte.
 
 ---
 
-### 0.17.0 — „Was dasteht, und was nicht dasteht" · *MINOR*
+### 0.17.0 — GEBAUT, herausgegeben am 30. August 2026
 
-**Ausgearbeitet aus dem Sammelblatt:** die **neun Zeilen vom 30. August 2026**,
-Teil II. *Sie standen dort einen halben Tag lang und haben an diesem Tag ihre
-Nummer bekommen — damit sind sie nach Regel 3 des Sammelblatts von dort
-fortgezogen, und ihre Ausarbeitung steht hier und nur hier.*
+**Die Ausarbeitung steht nicht mehr hier.** Was gebaut ist, steht im
+Änderungsprotokoll 0.17.0 und im Stand — *ein Punkt wandert vom Sammelblatt in
+den Fahrplan und von dort in ein Änderungsprotokoll, nie zurück.*
 
-> **NEUN BEFUNDE AUS EINEM EINZIGEN RUNDLAUF VON HAND, und keiner stand im
-> Fahrplan.** Sie sind gemeldet worden, nachdem 0.16.0 eingespielt und ihr
-> Fingerprint `aa76c352` bestätigt war. **Der Prüfstand war zu diesem Zeitpunkt
-> grün — 4523 von 4523.** *Das ist der ganze Grund, warum der Rundlauf von Hand
-> in Abschnitt 8 steht und dort auch stehen bleibt.*
+**Was die Runde gebracht hat, in sechs Zeilen:** die Kriterienliste zerfiel bei
+genau **einem** Zugang und tut es nicht mehr (der einzige **Fehler** der Runde);
+zwei Erklärtexte haben die Oberfläche verlassen; die Glockentafel sagt, **was**
+neu ist, und **von wem**; drei Anzeigefehler vom echten Gerät sind behoben; der
+Erklärkasten nennt die **Vergleichszahl ohne Gewichtung**; und die Pille
+„Neu seit …" ist **gestrichen** — ihre Auskunft trägt die Glocke, die dafür von
+**allen** meldet.
 
-> **DIE NUMMER WAR DIE ERSTE ENTSCHEIDUNG.** Der Auftrag ging als `0.16.1` in
-> die Besprechung, mit acht Punkten; der neunte kam am selben Abend dazu.
-> **Punkt 3 kippt es:** sagt die Glockentafel „3 Kommentare ·
-> 4 Bewertungen" statt „7 neue Beiträge", kann die Anlage danach etwas, was sie
-> vorher nicht konnte. **Also MINOR** (Abschnitt 5.1) — und der Fahrplan rückt
-> zum vierten Mal. *Die Begründung steht ausführlich im Kasten unter dem
-> Fahrplan.*
+**ALLE NEUN PUNKTE SIND GEBAUT.** *Der Auftrag nannte eine Reihenfolge des
+Schnitts (zuerst Punkt 5, dann Punkt 3, dann die Kartenbreite aus Punkt 4);
+gebraucht wurde sie nicht.*
 
-#### Punkt 1 — Die Kriterienliste zerfällt bei genau einem Zugang
+**DAZU EIN ZEHNTER BEFUND, DER NICHT IM AUFTRAG STAND.** Der Erklärkasten
+hinter der Gesamtnote verwies mit *„die Zahlen rechts in den Zeilen"* auf die
+**Durchschnittsspalte der Kriterienliste dahinter** — und die gibt es bei genau
+**einem** Zugang nicht. *Gefunden durch dieselbe Frage, die Punkt 1 verlangt.*
+**Gebaut ist er, weil er kein Stilbefund ist, sondern ein Satz, der auf etwas
+zeigt, das nicht da ist**; er nennt jetzt die Spalte „Note", die dem Kasten
+selbst gehört. *Einzelheiten im Änderungsprotokoll, Abschnitt 5a; als
+Stolperstein 232 festgehalten. Er hängt an keiner anderen Änderung und ließe
+sich mit einem Commit wieder herausnehmen.*
 
-*(Der einzige **Fehler** der Runde, und der einzige Punkt, der nicht fallen
-darf.)*
+**WAS VON DER AUSARBEITUNG ABWEICHT UND WARUM:**
 
-> **Art: Fehler** · **Claude: empfohlen** · **Draußen üblich:** ein Raster mit
-> fester Spaltenzahl und bedingten Zellen ist überall dieselbe Falle; wer sie
-> kennt, leitet die Spaltenzahl aus derselben Bedingung ab wie die Zelle.
+| abgewichen | wie es gebaut ist | warum |
+|---|---|---|
+| **„sagt bei jeder Zeile dazu, von wem"** *(Punkt 6)* | die Namen kommen **nur aus den Kommentaren**; eine Zeile mit ausschließlich neuen Bewertungen trägt keinen | *Sammelblatt, Teil III: „Eine Glocke, die nennt, WER bewertet hat … Die Zahl ja, der Name nie."* Ein Kommentar trägt seinen Verfasser am Eintrag ohnehin sichtbar, eine Bewertung nicht. **Die gebaute Fassung gibt weniger preis als die beauftragte** (Stolperstein 230) |
+| **`.login-screen` war nicht genannt** *(Punkt 4a)* | bekommt denselben Rückfall `100vh` → `100dvh` wie `body.anmeldung` | dieselbe Aussage an zwei Stellen darf nicht zwei Einheiten tragen (Stolperstein 47) |
+| **`fmtTagKurz()`** | ersatzlos entfernt | die Funktion hatte nach dem Streichen der Pille keinen Rufer mehr |
+| **der Erklärkasten war gar nicht Gegenstand** *(zehnter Befund)* | der Verweis zeigt jetzt auf die Spalte „Note" des Kastens statt auf die Liste dahinter | ein Satz, der bei einem einzigen Zugang auf nichts zeigt, ist derselbe blinde Fleck wie Punkt 1 — und die Frage der Runde lautet: was sieht ein Betreiber, der allein arbeitet? (Stolperstein 232) |
+| **fünf Rückbauten mehr als angekündigt** | 300 → **333** statt 328 | 329 schließt die letzte blinde Stelle am Raster der Kriterienliste, 330 gehört zum zehnten Befund, und 331–333 schließen zwei Lücken im Erklärkasten, die derselben Frage folgen |
 
-`.rlist` ist ein Raster mit **drei** Spalten (`1fr auto auto`), `.rrow` ist
-`display: contents`. Die Durchschnittsspalte hängt `drawRatings()` aber nur an,
-**wenn `mehrereBenutzer()` gilt**. Bei einem einzigen Zugang liefert jede Zeile
-damit **zwei** Zellen in ein Dreispaltenraster, und die Selbstanordnung schiebt
-alles um eine Spalte weiter: *Name · Sterne · nächster Name / Sterne ·
-übernächster Name · Sterne.*
+**WAS DER AUFTRAG NANNTE UND WAS DIE DURCHSICHT BERICHTIGT HAT:** die
+**Formatnummer** steht in `server.js` (`AUSTAUSCH_FORMAT`) und **nicht in
+`db.js`**, wie der Auftrag schrieb. *Sie steht dort an genau einer Stelle und
+ist unverändert **11**.*
 
-**SIE IST ÄLTER ALS 0.16.0.** Das Raster kam mit 0.14.0, die bedingte Spalte
-gibt es seit 0.8.91. **Sichtbar geworden ist sie erst, als die Gewichtsmarken
-`×1,25` die Namensspalte breiter machten.**
-
-**Und keine Prüfung konnte sie sehen:** die Prüflagen fahren mit mehreren
-Zugängen — genau der Fall, in dem die dritte Zelle da ist. *Der Auftrag zu
-0.16.0 hat die Falle sogar benannt („eine Lage mit einem einzigen Zugang kann
-über die Glocke nichts belegen") und niemand hat sie auf die Kriterienliste
-angewandt.*
-
-#### Punkt 2 — Zwei Erklärtexte verlassen die Oberfläche
-
-> **Art: Verbesserung** · **Claude: empfohlen** · **Draußen üblich:** die
-> Begründung einer Entscheidung steht in der Dokumentation, nicht im Dialog.
-
-Zweimal derselbe Fehler: in den Kennzahlen der Satz über die
-**Bibliotheksfassung**, in der Glockentafel der Block **„Was die Glocke nicht
-verspricht"**. Beide stehen in der README bereits, Wort für Wort. **Eine
-Oberfläche sagt, WAS IST — nicht, warum es so gebaut wurde.** *Eine
-Versionsnummer in einem Dialog ist der deutlichste Fall: für den, der
-davorsteht, ohne Bedeutung, und in einem Jahr falsch.*
-
-#### Punkt 3 — Die Glockentafel sagt nicht, was neu ist
-
-> **Art: Verbesserung** · **Claude: empfohlen** · **Draußen üblich:** jede
-> Meldungsliste nennt die Art der Meldung; „7 Beiträge" gibt es nirgends.
-
-„**7 neue Beiträge**" lässt offen, ob das Kommentare sind, Bewertungen oder
-offene Aufgaben. **Die Auskunft liegt bereits vor und wird weggeworfen:**
-`server.js` fragt `qNeueKommentare` und `qNeueBewertungen` **getrennt** ab und
-addiert beide in derselben Schleife. *Die Aufteilung kostet keine zusätzliche
-Abfrage.* **Dies ist der Punkt, der die Runde zu MINOR macht.**
-
-#### Punkt 4 — Drei Anzeigefehler, die man nur auf einem echten Gerät sieht
-
-> **Art: Design** · **Claude: empfohlen** · **Draußen üblich:** `dvh` statt
-> `vh` ist seit 2022 die Antwort auf genau dieses Problem.
-
-**Die Versionszeile steht auf dem Telefon unter der Falz** (Samsung S21 5G):
-`body.anmeldung` trägt `min-height: 100vh`, und **`vh` ist die GROSSE
-Anzeigefläche — die ohne Browserleisten.** *Der Abstand ist seit 0.15.x zweimal
-verkleinert worden und war nie die Ursache.*
-**Der orangene Rahmen der eigenen Sitzung reicht nicht bis zum Rand:**
-`.manage-list` trägt `overflow-y: auto`, **und damit steht `overflow-x` nach
-der CSS-Regel ebenfalls auf `auto`** — die Zeile ist breiter als der Kasten,
-aber nur so breit wie der sichtbare Ausschnitt.
-**Die Karte „Mailversand" steht schmal unter drei breiten:** seit 0.16.0 stehen
-alle vier im selben Abschnitt. **Entschieden ist, dass sie ebenfalls `.breit`
-bekommt.**
-
-#### Punkt 5 — Der Erklärkasten nennt die Vergleichszahl ohne Gewichtung
-
-> **Art: Verbesserung** · **Claude: empfohlen** · **Draußen üblich:** wer eine
-> gewichtete Zahl erklärt, zeigt die ungewichtete daneben — sonst erklärt er
-> eine Formel und keine Wirkung.
-
-Die Formel steht Zeile für Zeile da, und trotzdem bleibt offen, wofür die
-Gewichte gut sind. **Es fehlt: was käme heraus, wenn alle Kriterien gleich
-zählten?** *Sie wird gerechnet, wo die andere gerechnet wird — in
-`gesamtSchnitt()` —, und der Kasten liest sie* (Stolperstein 217).
-
-#### Punkt 6 — Die Glocke ersetzt die Pille „Neu seit …"
-
-*(Der größte Punkt der Runde, und der einzige, der etwas **wegnimmt**.)*
-
-> **Art: Verbesserung** · **Claude: empfohlen** · **Draußen üblich:** eine
-> Glocke und ein Filter „seit meinem letzten Besuch" stehen anderswo
-> nebeneinander — und werden dort auch beide übersehen.
-
-**Zwei Anzeigen für dieselbe Frage sind eine zu viel.** Dazu kommt eine
-Hausregel, die die Pille verletzt: **sie steht auch dann da, wenn ihre Zahl
-null ist** — gedämpft, aber da. *Am Knopf „Offen" steht seit 0.16.0 wörtlich
-das Gegenteil: „Ohne offene Aufgaben steht dort keine Null."* **Dieselbe Sache
-darf nicht zwei Verhalten haben** (Stolperstein 47, im Kleinen).
-
-**WAS DIE PILLE KANN UND DIE GLOCKE HEUTE NICHT:** sie ist ein **Filter** auf
-der Liste, kombinierbar mit allen übrigen und mit einer Trefferzahl; sie zeigt
-**jede** Änderung und nicht nur fremde Kommentare und Bewertungen; sie misst an
-`zuletztGesehen` statt an `glockeGesehen`; **und sie arbeitet bei genau einem
-Zugang, wo die Glocke nie etwas meldet.**
-
-> **DER LETZTE PUNKT WAR DER OFFENE UND IST ENTSCHIEDEN — 30. August 2026, vor
-> Beginn der Runde.** Ersatzlos gestrichen, verlöre ein Betreiber, der allein
-> arbeitet, die Auskunft ganz. *Derselbe blinde Fleck wie bei Punkt 1, nur
-> andersherum: dort hat die Lage mit einem Zugang einen Fehler versteckt, hier
-> nähme sie eine Funktion weg.* **Die Pille wird nicht stehengelassen, sondern
-> die Glocke wird vollständig:** sie meldet **Kommentare und Bewertungen von
-> allen** seit dem letzten Blick und sagt je Zeile dazu, **von wem**. *Eine
-> Regel statt zwei; der Satz „Eigene Beiträge stehen nie hier" aus 0.16.0 wird
-> dabei zurückgenommen, mit Vermerk* (Stolperstein 201).
-
-**WAS DABEI VERLORENGEHT, GEHÖRT DANEBEN:** die Pille zeigte **jede** Änderung
-— auch einen geänderten Titel, eine neue Datei, einen neuen Testtag. **Die
-Glocke bleibt bei Kommentaren und Bewertungen.** *Vertretbar, weil eine
-Titeländerung etwas ist, das jemand **am** Eintrag getan hat, und kein Beitrag,
-der **für** dich daliegt — und weil die Übersicht ohnehin nach `updated_at`
-ordnet: was sich zuletzt getan hat, steht oben.*
-
-### Was es anfasst
-
-`public/app.js` (`drawRatings`, `zeigeGlockentafel`, `karteKennzahlen`,
-`zeigeRechnung`, `drawFilters`, `visibleItems`), `public/style.css`
-(`.rlist`, `.mrow.sitz`, `body.anmeldung`, die Kartenbreite), `server.js`
-(`gesamtSchnitt`, `/api/items`). **Kein Schema, keine neue Route, keine
-Rechteänderung** — *und `PERSOENLICHE_SCHLUESSEL` möglicherweise eine weniger,
-wenn `zuletztGesehen` mit der Pille entfällt; das ist nachzuzählen.*
+**WAS OFFEN GEBLIEBEN IST**, steht in Abschnitt 8: die drei Handgriffe am
+Wirt, der volle Gegenprobenlauf, der Teilexport und beide Netze.
 
 ---
 

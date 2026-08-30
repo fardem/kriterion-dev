@@ -158,8 +158,13 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .btn:disabled:hover { background: var(--surface-2); border-color: var(--line); color: var(--text-2); }
 
 /* ---------- Anmeldung ---------- */
+/* DIESELBE EINHEIT UND DERSELBE RUECKFALL WIE AN body.anmeldung: die Regel
+   dort hebt diese Hoehe zwar auf, solange die Kennzeichnung am body steht --
+   aber zwei Stellen mit derselben Aussage duerfen nicht zwei Einheiten tragen
+   (Stolperstein 47). */
 .login-screen {
-  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
   background: radial-gradient(780px 440px at 50% -12%, rgba(255,122,26,.11), transparent 64%), var(--bg);
 }
 .login-card {
@@ -691,6 +696,14 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    hoch, und die drei Linienstuecke laegen auf drei Hoehen. Gestreckt sind sie
    gleich hoch; was in der Mitte stehen soll, zentriert in seiner Zelle. */
 .rlist { display: grid; grid-template-columns: 1fr auto auto; }
+/* DIE SPALTENZAHL FOLGT DEM ZUSTAND. Bei genau einem Zugang haengt
+   drawRatings() die Durchschnittszelle gar nicht erst an -- jede Zeile liefert
+   dann ZWEI Zellen in ein Dreispaltenraster, und die Selbstanordnung schiebt
+   alles um eine Spalte weiter: Name, Sterne, naechster Name in einer Reihe.
+   DIE KLASSE KOMMT AUS DERSELBEN BEDINGUNG WIE DIE ZELLE und nicht aus einer
+   zweiten daneben (Stolperstein 47) -- sonst koennen Raster und Inhalt wieder
+   auseinanderlaufen, und zwar wortlos. */
+.rlist.ohne-schnitt { grid-template-columns: 1fr auto; }
 .rrow { display: contents; }
 .rrow > * { padding: 9px 0; border-bottom: 1px solid var(--line-2); }
 .rrow:last-of-type > * { border-bottom: none; }
@@ -1193,6 +1206,19 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   .prot-zeit { grid-column: 1 / -1; }
 }
 
+/* DIE ZEILE EINER ANMELDUNG BRICHT UM -- IMMER UND NICHT ERST AUF DEM TELEFON.
+   `.manage-list` traegt `overflow-y: auto`, und damit steht `overflow-x` nach
+   der CSS-Regel ebenfalls auf `auto`, ohne dass es jemand hingeschrieben
+   haette. Die Zeile ist breiter als der Kasten -- die beiden Zeitangaben
+   tragen `flex-shrink: 0` und geben nicht nach --, also entsteht ein Bildlauf
+   zur Seite; die Zeile ist dann aber nur so breit wie der SICHTBARE
+   Ausschnitt, und ihr Rahmen endet dort. An der eigenen Anmeldung, die als
+   einzige einen farbigen Rahmen traegt, sieht man das.
+   UMBRECHEN STATT SCHIEBEN: der andere Weg (`min-width: max-content`) liesse
+   den seitlichen Bildlauf stehen, und der ist auf dem Telefon schwer zu
+   treffen. Die Anordnung fuer den schmalen Schirm bleibt, wo sie war -- sie
+   ist eine Anordnung und keine Frage des Umbruchs. */
+.mrow.sitz { flex-wrap: wrap; row-gap: 2px; }
 /* Die eigene Anmeldung ist markiert -- sonst waere sie von einer fremden nicht
    zu unterscheiden, und genau das ist die eine Auskunft dieser Karte. */
 .mrow.sitz .sitz-zeit { font-family: var(--mono); font-size: .68rem; color: var(--faint); flex-shrink: 0; }
@@ -1334,6 +1360,14 @@ body.lb-open { overflow: hidden; }
    dieselbe Hervorhebung wie an jeder anderen anklickbaren Zeile. */
 .glocken-zeile { cursor: pointer; }
 .glocken-zeile:hover .mname { color: var(--accent); }
+/* DREI STUECKE IN EINER ZEILE, seit 0.17.0: der Titel, was dort neu ist, und
+   von wem. DIE DRITTE ANGABE BEKOMMT IHRE EIGENE ZEILE -- oben, worum es geht,
+   darunter, wer. Dieselbe Aufteilung wie an der Zeile einer Anmeldung, und aus
+   demselben Grund: `.mname` schrumpft sonst zu Punkten, damit „3 Kommentare ·
+   4 Bewertungen" und die Namen daneben Platz haben.
+   KEINE NEUE FARBE: --faint traegt in dieser Anlage jede Nebenangabe. */
+.mrow.glocken-zeile { flex-wrap: wrap; row-gap: 2px; }
+.glocken-zeile .glocken-von { flex-basis: 100%; font-size: .76rem; color: var(--faint); }
 .rechnung-modal { max-width: 540px; }
 .rechnung { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }
 .rz { display: contents; }
@@ -1346,6 +1380,13 @@ body.lb-open { overflow: hidden; }
 .rz-summe > span { color: var(--text-2); }
 .rz-summe:first-of-type > span { border-top: 1px solid var(--line); }
 .rz-ergebnis > span { font-weight: 640; color: var(--text); border-bottom: 0; }
+/* DIE VERGLEICHSZAHL OHNE GEWICHTE -- 0.17.0. Sie steht UNTER dem Ergebnis und
+   ist ihm untergeordnet: gedaempft, ohne den fetten Schnitt. Der Strich
+   darueber trennt sie vom Ergebnis, ohne sie ihm gleichzustellen -- keine neue
+   Farbe, --line-2 und --muted gibt es laengst.
+   VIER ZELLEN WIE JEDE ANDERE ZEILE DES RASTERS: eine mit dreien schoebe
+   alles darunter um eine Spalte weiter. */
+.rz-gleich > span { color: var(--muted); border-bottom: 0; border-top: 1px solid var(--line-2); }
 
 /* Ueber dem Bedienbalken des Telefons und nicht darunter -- sonst steht die
    Meldung zur Haelfte hinter dem Griffstreifen. */
@@ -1562,8 +1603,10 @@ body.lb-open { overflow: hidden; }
 /* Pillen, die zusammen mit der Auswahl null Treffer brächten. Anklickbar
    bleiben sie — man sieht nur vorher, dass die Liste leer würde.
    SEIT 0.13.0 GILT DIE REGEL FÜR JEDE PILLE und nicht mehr nur für Tags:
-   „Neu seit …" stand in derselben Lage und in voller Helligkeit da. Dieselbe
-   Sache darf nicht zwei Verhalten haben (Stolperstein 47, im Kleinen). */
+   eine Pille stand damals in derselben Lage und in voller Helligkeit da.
+   Dieselbe Sache darf nicht zwei Verhalten haben (Stolperstein 47, im
+   Kleinen). Die Pille, an der es auffiel, ist mit 0.17.0 gestrichen; die
+   Verallgemeinerung ist der Gewinn und bleibt. */
 .pill.leer { opacity: .34; }
 .pill.leer:hover { opacity: .7; }
 
@@ -1751,7 +1794,17 @@ body.lb-open .version-zeile { display: none; }
    obwohl darueber nur Leerraum liegt. flex-shrink bleibt 0: passt die Karte auf
    einem kleinen Bildschirm nicht, darf die Seite wachsen und scrollen, statt
    die Karte oben abzuschneiden. */
-body.anmeldung { display: flex; flex-direction: column; min-height: 100vh; }
+/* `dvh` UND NICHT `vh`, MIT `vh` ALS RUECKFALL DARUEBER. `vh` ist auf dem
+   Telefon die GROSSE Anzeigeflaeche -- die ohne Browserleisten, also die, die
+   man gar nicht sieht. Die Seite ist damit hoeher als das Fenster, und die
+   Versionszeile am unteren Ende steht unter der Falz. `dvh` misst die Flaeche,
+   die gerade WIRKLICH da ist.
+   DER ABSTAND WAR NIE DIE URSACHE: er ist seit 0.15.x zweimal verkleinert
+   worden, und die Zeile stand weiter darunter. Die Einheit war es.
+   ZWEI ZEILEN UND KEINE Abfrage: ein Browser, der `dvh` nicht kennt, ueberliest
+   die zweite und behaelt die erste -- dieselbe Bauform wie an den Listen
+   weiter unten. */
+body.anmeldung { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
 body.anmeldung #app { flex: 1 0 auto; display: flex; flex-direction: column; }
 body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
 
@@ -2310,7 +2363,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
 
   /* ---- Die Filter ----
      Vier Reihen mit Beschriftung und beliebig vielen Pillen -- Status,
-     Favoriten, Neu seit, jede Kategorie, die Tagwolke, Und/Oder, Sortierung,
+     Favoriten, Ablehnung, jede Kategorie, die Tagwolke, Und/Oder, Sortierung,
      gespeicherte Ansichten. Auf dem Telefon fuellte das den ganzen ersten
      Bildschirm, und darunter fing die Liste erst an.
      SIE SIND DESHALB EINGEKLAPPT, NICHT WEG. Der Schalter darueber sagt, wie
@@ -2585,15 +2638,13 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .card-foot { flex-wrap: wrap; row-gap: 5px; }
   .apdf-hint { row-gap: 6px; }
 
-  /* DIE ZEILE EINER ANMELDUNG BRICHT UM. Sie traegt vier Stuecke: was fuer
+  /* DIE ANORDNUNG DER UMGEBROCHENEN ZEILE. Sie traegt vier Stuecke: was fuer
      eine Anmeldung es ist, wann sie begann, wann sie zuletzt gesehen wurde,
-     und das Kreuz zum Beenden. Die beiden Zeitangaben stehen mit
-     `flex-shrink: 0` da -- sie sollen nicht mitten im Datum abgeschnitten
-     werden, und das ist richtig. Auf 342 Pixeln lief die Zeile deshalb
-     seitlich aus der Karte hinaus.
+     und das Kreuz zum Beenden.
      OBEN, WAS DIE ZEILE IST UND WAS MAN MIT IHR TUN KANN; DARUNTER, WANN.
-     Dieselbe Trennung wie am Kommentarkopf, und aus demselben Grund. */
-  .mrow.sitz { flex-wrap: wrap; row-gap: 2px; }
+     Dieselbe Trennung wie am Kommentarkopf, und aus demselben Grund.
+     DER UMBRUCH SELBST STEHT SEIT 0.17.0 OBEN und gilt auf jedem Schirm --
+     hier steht nur noch, WIE die Stuecke sich dann verteilen. */
   .mrow.sitz .mname { flex: 1 1 auto; }
   .mrow.sitz .zug-akt { order: 1; }
   .mrow.sitz .sitz-zeit { order: 2; flex: 1 1 auto; }

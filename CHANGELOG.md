@@ -43,6 +43,145 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.17.0] - 2026-08-30
+
+**Was dasteht, und was nicht dasteht.** Neun Befunde aus **einem** Rundlauf von
+Hand, gemeldet unmittelbar nach dem Einspielen von 0.16.0 — **keiner davon aus
+dem Fahrplan und keiner aus dem Sammelblatt.** Einer ist ein Fehler, sieben sind
+Verbesserungen, einer nimmt etwas weg. **Dazu ein zehnter, beim Bauen
+gefunden:** derselbe blinde Fleck wie der erste, eine Ansicht weiter.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** Der Auftrag ging als `0.16.1` in
+> die Besprechung — sieben der acht Punkte betreffen Anzeige und Wortlaut.
+> **Ein Punkt kippt es:** sagt die Glockentafel „3 Kommentare · 4 Bewertungen"
+> statt „7 neue Beiträge", **kann die Anlage danach etwas, was sie vorher nicht
+> konnte** — sie sagt, WAS auf einen wartet. *Eine Runde, die eine Funktion
+> bringt, ist keine PATCH-Runde, auch dann nicht, wenn sie klein ist.*
+
+> **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
+> neue Formatnummer: es bleibt bei **sieben** markierten Blöcken und beim
+> Austauschformat **11**. **Die Sicherung des Datenverzeichnisses ist deshalb
+> Empfehlung und nicht Pflicht** — *bei 0.16.0 war sie Pflicht, und der
+> Unterschied ist der Migrationsblock, den es hier nicht gibt.*
+
+### Added
+
+- **Die Glockentafel sagt, WAS neu ist** — „3 Kommentare · 4 Bewertungen" statt
+  „7 neue Beiträge". *„Beitrag" war ein Sammelwort, das die Anlage sonst
+  nirgends benutzt.* **Bei nur einer Art steht auch nur eine Angabe da**;
+  „0 Bewertungen" wäre eine Auskunft über nichts. **Die Auskunft lag längst vor
+  und wurde weggeworfen:** die beiden Abfragen sind seit jeher getrennt und
+  wurden erst danach zu einer Zahl addiert — *die Aufteilung kostet keine
+  zusätzliche Abfrage.* **Der Punkt an der Glocke und die Zahl am Knopf „Offen"
+  bleiben, was sie waren.**
+- **Jede Zeile der Tafel sagt, von wem** — und zwar **nur zu den Kommentaren**.
+  *Ein Kommentar trägt seinen Verfasser am Eintrag ohnehin sichtbar; eine
+  Bewertung tut das nicht.* **Wer welche Bewertung abgegeben hat, bleibt
+  anonym** — die Liste „Wer hat bewertet" sieht weiterhin nur der Admin. Eine
+  Zeile, an der ausschließlich Bewertungen neu sind, trägt deshalb keinen Namen.
+- **Der Erklärkasten hinter der Gesamtnote nennt die Vergleichszahl ohne
+  Gewichtung** — was käme heraus, wenn alle Kriterien gleich zählten. *Erst der
+  Unterschied macht die Gewichtung sichtbar; die Formel allein sagt, WIE
+  gerechnet wird, nicht, WAS die Gewichte ändern.* **Stehen alle Gewichte
+  auf 1, steht sie gar nicht da**, und **ergeben beide Zahlen dasselbe, sagt der
+  Kasten genau das.** *Gerechnet wird sie dort, wo die andere gerechnet wird;
+  der Kasten liest sie.*
+
+### Changed
+
+- **Die Glocke meldet Kommentare und Bewertungen von ALLEN**, die eigenen
+  eingeschlossen. **Der Satz „Eigene Beiträge stehen nie hier" aus 0.16.0 ist
+  damit zurückgenommen.** *Der Grund ist der Betreiber, der **allein** arbeitet:
+  ihm meldete eine Glocke, die nur Fremdes zeigt, nie etwas — und die Anzeige,
+  die ihm die Auskunft gab, fällt in derselben Runde weg.* **Eine Regel statt
+  zwei; eine Ausnahme für den Fall „ein Zugang" wäre selbst wieder eine zweite
+  Wahrheit.**
+- **Die Anmeldeseite misst ihre Höhe in `dvh` statt in `vh`** — mit `100vh` als
+  Rückfall darüber. *Auf dem Telefon ist `vh` die **große** Anzeigefläche, die
+  ohne Browserleisten; die Seite war damit höher als das Fenster, und die
+  Versionszeile stand unter der Falz.* **Der Abstand war nie die Ursache.**
+- **Die Zeile einer Anmeldung in „Meine Sitzungen" bricht immer um**, nicht
+  mehr erst auf dem Telefon. *Sie lief seitlich aus der Karte hinaus, und der
+  orangene Rahmen der eigenen Anmeldung endete am sichtbaren Ausschnitt.* Die
+  Anordnung der umgebrochenen Stücke bleibt dem schmalen Schirm.
+- **Die Karte „Mailversand" steht so breit wie ihre drei Nachbarn** im
+  Abschnitt „Zugänge". *Vier gleich breite Kacheln sind einfacher zu begründen
+  als drei plus ein Rest.*
+- **`GET /api/items` trägt je Eintrag drei Angaben statt einer** —
+  `neuKommentare`, `neuBewertungen` und `neuVon` an der Stelle von `neuFremd`.
+  *Ohne gespeicherten Bezugspunkt fehlen sie gemeinsam und stehen nicht auf 0.*
+  **Eine Summe trägt die Antwort ausdrücklich nicht:** sie folgt aus den beiden
+  Zahlen und wird in der Oberfläche an einer Stelle gebildet.
+
+### Removed
+
+- **Die Filterpille „Neu seit …" ist gestrichen.** *Zwei Anzeigen für dieselbe
+  Frage — was hat sich getan, seit ich zuletzt hier war — sind eine zu viel; die
+  Auskunft trägt die Glocke.* **Dazu verletzte sie eine Hausregel:** sie stand
+  auch dann da, wenn ihre Zahl null war. Am Knopf „Offen" steht seit 0.16.0 das
+  Gegenteil. **Die Filterzeile ist damit um eine Pille kürzer.**
+  **Was dabei verlorengeht, gehört gesagt:** die Pille zeigte **jede** Änderung
+  an einem Eintrag — auch einen geänderten Titel, eine neue Datei, einen neuen
+  Testtag. **Die Glocke tut das nicht;** sie bleibt bei Kommentaren und
+  Bewertungen. *Vertretbar, weil eine Titeländerung etwas ist, das jemand **am**
+  Eintrag getan hat, und kein Beitrag, der **für** dich daliegt — und weil die
+  Übersicht ohnehin nach der letzten Änderung ordnet.*
+- **Zwei Erklärtexte haben die Oberfläche verlassen**, ersatzlos: der Satz über
+  die **Bibliotheksfassung** in den Kennzahlen und der Block **„Was die Glocke
+  nicht verspricht"** in der Tafel. **Beide stehen in der README.** *Eine
+  Oberfläche sagt, WAS IST — nicht, warum es so gebaut wurde. Die Vorbehalte
+  selbst gelten unverändert.*
+
+### Fixed
+
+- **Die Kriterienliste zerfiel bei genau EINEM Zugang.** Namen und Sternreihen
+  standen versetzt statt untereinander: *Name · Sterne · nächster Name.*
+  **Die Ursache war ein Raster mit fester Spaltenzahl und einer bedingten
+  Zelle** — drei Spalten, aber nur zwei Zellen je Zeile, weil die
+  Durchschnittsspalte erst ab zwei Zugängen dasteht. **Die Spaltenzahl folgt
+  seither derselben Bedingung wie die Zelle.** *Der Fehler ist älter als
+  0.16.0 — das Raster kam mit 0.14.0, die bedingte Zelle gibt es seit 0.8.91;
+  sichtbar wurde er erst, als die Gewichtsmarken die Namensspalte breiter
+  machten.*
+- **Der Erklärkasten hinter der Gesamtnote verwies auf eine Spalte, die es bei
+  einem einzigen Zugang nicht gibt.** *„Das sind die Zahlen rechts in den
+  Zeilen" meinte die Durchschnittsspalte der Kriterienliste dahinter — und die
+  steht dort erst ab zwei Zugängen.* **Der Satz nennt jetzt die Spalte „Note",
+  die zum Kasten selbst gehört und in jeder Lage dasteht.** *Derselbe blinde
+  Fleck wie darüber, eine Ansicht weiter; gefunden beim Bauen und nicht im
+  Betrieb.*
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Keine Sicherungspflicht — diese Version fährt **keinen**
+Migrationsblock —, keine neue Zeile in der `.env`, keine neue Abhängigkeit,
+niemand wird abgemeldet, **keine Zeile im Protokoll**.
+
+*Die Sicherung schadet trotzdem nie:*
+
+```bash
+cd .../kriterion && docker compose down
+cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # Empfehlung, nicht Pflicht
+```
+
+**Eine gespeicherte Ansicht, die den Filter „Neu seit …" noch trägt, bleibt
+lesbar** — er wird übergangen, und der gespeicherte Wert bleibt unangetastet.
+*Die Zeilen mit `key = 'zuletztGesehen'` bleiben in `user_settings` stehen und
+werden nicht mehr gelesen; es gibt dafür keinen Migrationsblock.*
+
+### Was gleich bleibt
+
+**Das Austauschformat** bleibt bei **11**, **`F_ROUTEN`** bei **69** — keiner
+der neun Punkte braucht eine schreibende Route. **`VORGAENGE`** bleibt bei
+**zwanzig**, **`BESTAETIGUNG_ZWECKE`** bei **sieben**, **das Vokabular** bei
+**elf**, **die Merkmale** bei **vierzehn**, **die Karten** bei **achtzehn** in
+**fünf** Abschnitten, **die Migrationsblöcke** bei **sieben**. **Keine Karte
+wechselt ihre Rolle.** **Die Rechnung des Gesamtschnitts wird nicht angefasst**
+— die Vergleichszahl entsteht in derselben Schleife, die es schon gab.
+*Die persönlichen Schlüssel sinken von neun auf **acht**.*
+
+---
+
 ## [0.16.0] - 2026-08-29
 
 **Der Systembereich bekommt Abschnitte mit eigener Adresse, die Kopfzeile eine
@@ -2258,9 +2397,14 @@ nicht mehr übernehmen.*
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
      0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
-     `v0.10.0` liegt am Remote und trägt. ACHTUNG: `v0.11.0` bis `v0.14.0`
-     fehlen am Remote; solange das so ist, zeigen die Verweise darunter ins
-     Leere.
+     `v0.10.0` liegt am Remote und trägt. ACHTUNG: ab `v0.11.0` fehlen sie alle
+     am Remote; solange das so ist, zeigen die Verweise darunter ins Leere.
+     SEIT DEM 30. AUGUST 2026 IST ENTSCHIEDEN, DASS KEINE TAGS MEHR GESETZT
+     WERDEN -- weder die ausstehenden noch kuenftige (Projektstand,
+     Abschnitt 8). Die Verweise bleiben trotzdem stehen: sie sind Teil der Form
+     dieser Datei, und wer die Tags eines Tages doch setzt, findet sie fertig
+     vor. Die Versionen sind ueber diese Datei, die Aenderungsprotokolle und
+     den Fingerprint eindeutig bestimmt.
      DER GRUND IST SEIT 0.12.4 BEKANNT UND WAR VORHER FALSCH NOTIERT: es ist
      KEIN Problem der GitHub-Rechte. Der Git-Proxy der Arbeitsumgebung, in der
      Claude laeuft, weist `POST /git-receive-pack` mit `refs/tags/*` mit 403
@@ -2282,3 +2426,4 @@ nicht mehr übernehmen.*
 [0.15.0]: https://github.com/fardem/kriterion/compare/v0.14.0...v0.15.0
 [0.15.1]: https://github.com/fardem/kriterion/compare/v0.15.0...v0.15.1
 [0.16.0]: https://github.com/fardem/kriterion/compare/v0.15.1...v0.16.0
+[0.17.0]: https://github.com/fardem/kriterion/compare/v0.16.0...v0.17.0

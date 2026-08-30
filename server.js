@@ -224,8 +224,12 @@ const putSetting = { run: (k, v) => {
 // Die persoenliche Haelfte von settings. Die Liste wird zur Laufzeit von der
 // Schranke oben gelesen -- eine Liste, die nur der Pruefstand ansieht, loescht
 // der Naechste als unbenutzt weg.
+/* ACHT SEIT 0.17.0, vorher neun: `zuletztGesehen` trug die Pille „Neu seit
+   ..." und hat mit ihr keinen Rufer mehr. Vorhandene Zeilen in user_settings
+   bleiben stehen und werden nicht gelesen -- eine Migration, die persoenliche
+   Zeilen loescht, waere teurer als die Zeilen selbst. */
 const PERSOENLICHE_SCHLUESSEL = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleiste', 'suchNamen',
-                                'zuletztGesehen', 'glockeGesehen', 'ansichten'];
+                                'glockeGesehen', 'ansichten'];
 
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
@@ -1575,15 +1579,15 @@ const schriftgroesse = (benutzerId) => {
   return SCHRIFT_STUFEN.includes(n) ? n : 100;
 };
 
-/* --- Der Merkzeitpunkt fuer "Neu seit ..." --------------------------------
-   Persoenlich, wie der Favorit. Er FILTERT die Uebersicht und sortiert sie
-   nicht um -- die Reihenfolge bleibt updated_at fuer alle.
-   NULL heisst "noch nie gesetzt", und das ist ein eigener Zustand: die
-   Oberflaeche bietet den Umschalter dann gar nicht erst an. Ein Filter, der
-   beim ersten Klick alles zeigt, erklaert sich nicht. */
-const zuletztGesehen = (benutzerId) => getUserSetting(benutzerId, 'zuletztGesehen', null);
-// Der Bezugspunkt der Glocke. null heisst: es gibt keinen -- dann gibt es auch
-// keine Glocke, dieselbe Lage und dieselbe Antwort wie bei zuletztGesehen.
+/* --- Der Bezugspunkt der Glocke ------------------------------------------
+   Persoenlich, wie der Favorit. NULL heisst "noch nie gesetzt", und das ist ein
+   eigener Zustand: dann gibt es keine Glocke. Alles fuer neu zu erklaeren waere
+   eine Behauptung, und der erste Blick in die Uebersicht laeutete fuer den
+   ganzen Bestand.
+   BIS 0.17.0 STAND EIN ZWEITER MERKER DANEBEN: `zuletztGesehen` fuer die Pille
+   „Neu seit ...". Die Pille ist gestrichen -- zwei Anzeigen fuer dieselbe
+   Frage sind eine zu viel --, und der Merker mit ihr. Der Vermerk steht hier,
+   damit ihn niemand als Luecke wieder einbaut. */
 const glockeGesehen = (benutzerId) => getUserSetting(benutzerId, 'glockeGesehen', null);
 
 /* --- Die gespeicherten Ansichten -----------------------------------------
@@ -1642,13 +1646,10 @@ app.get('/api/settings', (req, res) => res.json({
   bloecke: bloecke(req.benutzer.id),
   linkZeilen: linkZeilen(req.benutzer.id),
   zeitleiste: zeitleisteAn(req.benutzer.id),
-  zuletztGesehen: zuletztGesehen(req.benutzer.id),
-  /* DER BEZUGSPUNKT DER GLOCKE, und er ist ein ZWEITER neben zuletztGesehen.
-     Die beiden beantworten verschiedene Fragen und duerfen sich deshalb nicht
-     teilen: „neu seit meinem letzten Besuch" faellt beim Verlassen der
-     Uebersicht, die Glocke erst, wenn man ihre Tafel WIRKLICH GEOEFFNET hat.
-     Mit einem gemeinsamen Merker loeschte ein Blick in die Uebersicht die
-     Glocke mit, ohne dass jemand gelesen haette, was sie meldete. */
+  /* DER BEZUGSPUNKT DER GLOCKE. Bis einschliesslich 0.16.0 stand
+     `zuletztGesehen` daneben, der Merker der Pille „Neu seit ..."; er faellt
+     mit ihr weg. Eine Antwort, die ein Feld weniger traegt, ist kein Bruch:
+     die Oberflaeche wird im selben Dateisatz ausgeliefert. */
   glockeGesehen: glockeGesehen(req.benutzer.id),
   suche: suchvorlage(),
   suchAnbieter: suchAnbieter(),
@@ -1757,20 +1758,20 @@ app.put('/api/settings', (req, res) => {
   if (req.body.zeitleiste !== undefined)
     putUserSetting(req.benutzer.id, 'zeitleiste', JSON.stringify(!!req.body.zeitleiste));
   /* DER MERKZEITPUNKT KOMMT VON DER SERVERUHR, NIE VOM AUFRUFER. Was der
-     Aufrufer schickt, ist ein Signal ("ich habe die Uebersicht verlassen")
-     und keine Feststellung -- eine mitgeschickte Zeit waere eine Behauptung.
+     Aufrufer schickt, ist ein Signal ("ich habe die Tafel geoeffnet") und keine
+     Feststellung -- eine mitgeschickte Zeit waere eine Behauptung.
      UND SIE WIRD UM EINE SEKUNDE NACHGESTELLT: datetime('now') loest nur
      Sekunden auf, und ein Kommentar aus DERSELBEN Sekunde gaelte sonst nie
-     als neu. Lieber einen Eintrag zweimal zeigen als einen verschlucken. */
-  if (req.body.zuletztGesehen !== undefined)
-    putUserSetting(req.benutzer.id, 'zuletztGesehen',
-      JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
-  /* DERSELBE WEG FUER DIE GLOCKE, und derselbe Grund fuer die Sekunde.
+     als neu. Lieber einen Eintrag zweimal zeigen als einen verschlucken.
+     BIS EINSCHLIESSLICH 0.16.0 STAND DERSELBE WEG FUER `zuletztGesehen`
+     DARUEBER, den Merker der Pille „Neu seit ...". Sie ist gestrichen, und ein
+     Feld, das niemand mehr setzt, wird auch nicht mehr entgegengenommen.
      UEBER PUT /api/settings UND NICHT UEBER EINEN EIGENEN WEG: es ist eine
      persoenliche Einstellung wie jede andere hier, und eine eigene schreibende
      Route liesse F_ROUTEN wachsen, ohne dass es etwas Neues zu bewachen gaebe.
-     GESETZT WIRD ERST BEIM OEFFNEN DER TAFEL -- das entscheidet die
-     Oberflaeche. Der Server nimmt das Signal entgegen und setzt seine Uhr. */
+     GESETZT WIRD BEIM ERSTEN VERLASSEN DER UEBERSICHT UND DANACH BEIM OEFFNEN
+     DER TAFEL -- das entscheidet die Oberflaeche. Der Server nimmt das Signal
+     entgegen und setzt seine Uhr. */
   if (req.body.glockeGesehen !== undefined)
     putUserSetting(req.benutzer.id, 'glockeGesehen',
       JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
@@ -2203,18 +2204,38 @@ function stimmenJeKriterium(itemId, benutzerId, karte) {
 // tausend Eintraege und braucht keine Aufstellung dazu.
 function gesamtSchnitt(karte, rechenweg) {
   let zaehler = 0, nenner = 0;
+  /* DIE VERGLEICHSZAHL -- 0.17.0. Was kaeme heraus, wenn alle Kriterien gleich
+     zaehlten? Ohne sie steht die Formel Zeile fuer Zeile da und laesst trotzdem
+     offen, WOFUER die Gewichte gut sind: erst der Unterschied macht die
+     Gewichtung sichtbar.
+     SIE ENTSTEHT HIER UND NICHT IM BROWSER (Stolperstein 217): in DERSELBEN
+     Schleife wie die Zahl darueber, aus DERSELBEN Menge. Eine zweite
+     Rechenstelle fuer die Anzeige waere genau die zweite Wahrheit, die diese
+     Anlage nirgends duldet -- und die beiden liefen unbemerkt auseinander.
+     DER TEILER IST DIE ZAHL DER BEWERTETEN KRITERIEN, nicht die aller: sonst
+     verglichen sich zwei Rechnungen ueber verschiedene Mengen, und der
+     Unterschied saehe nach Gewichtung aus, wo er keiner ist. */
+  let gleichZaehler = 0;
   const zeilen = [];
   for (const z of karte.values()) {
     const produkt = z.schnitt * z.gewicht;
     zaehler += produkt; nenner += z.gewicht;
+    gleichZaehler += z.schnitt;
     zeilen.push({ criterionId: z.criterion_id, schnitt: z.schnitt, gewicht: z.gewicht, produkt });
   }
   // UNGERUNDET, wie hier gerechnet wird. Gerundet wird genau einmal, unten am
   // Ergebnis -- die Oberflaeche rundet nur noch fuer die Anzeige und sagt das
   // auch. Ginge der Weg gerundet hinaus, ergaebe die Aufstellung am Bildschirm
   // eine andere Zahl als die Anlage rechnet.
+  // DIE VERGLEICHSZAHL WIRD DAGEGEN HIER GERUNDET, und zwar genau einmal: sie
+  // hat keine Zahl darueber, an der sie sonst haengen koennte. Der ungerundete
+  // Quotient reist daneben mit, wie beim gewichteten Ergebnis auch.
   if (rechenweg) Object.assign(rechenweg,
-    { zeilen, summe: zaehler, teiler: nenner, roh: nenner ? zaehler / nenner : null });
+    { zeilen, summe: zaehler, teiler: nenner, roh: nenner ? zaehler / nenner : null,
+      gleichSumme: gleichZaehler, gleichTeiler: zeilen.length,
+      gleichRoh: zeilen.length ? gleichZaehler / zeilen.length : null,
+      gleichErgebnis: zeilen.length
+        ? Math.round((gleichZaehler / zeilen.length) * 10) / 10 : null });
   // Kein Nenner heisst: kein bewertetes Kriterium, also keine Zahl. Bei
   // mindestens einer Zeile ist er mindestens GEWICHT_MIN und damit nie null.
   if (!nenner) return null;
@@ -2438,11 +2459,22 @@ const volltextTreffer = (begriff) => new Set(qVolltext.all({ q: begriff }).map(r
    Dieselbe Ueberlegung wie bei qMeinePins und verfasserKarte() darunter. */
 const qOffenJeEintrag = db.prepare(
   `SELECT item_id, COUNT(*) AS n FROM comments WHERE kind = 'task' GROUP BY item_id`);
-/* WAS SEIT DEM BEZUGSPUNKT VON ANDEREN DAZUGEKOMMEN IST -- Kommentare und
-   Bewertungen getrennt gefragt, weil sie in verschiedenen Tabellen stehen.
-   IFNULL(user_id, -1) STATT `!=`: eine herrenlose Zeile hat user_id NULL, und
-   `NULL != 7` ist in SQL nicht wahr, sondern NULL -- sie fiele wortlos aus der
-   Zaehlung. Herrenlos ist nicht meins, also zaehlt sie.
+/* WAS SEIT DEM BEZUGSPUNKT DAZUGEKOMMEN IST -- Kommentare und Bewertungen
+   getrennt gefragt, weil sie in verschiedenen Tabellen stehen.
+   VON ALLEN UND NICHT NUR VON ANDEREN. Bis 0.16.0 fielen die eigenen Beitraege
+   heraus; damit meldete die Glocke einem Betreiber, der ALLEIN arbeitet, nie
+   etwas -- sie war fuer ihn eine Anzeige ohne Inhalt. Die Auskunft „was hat
+   sich getan, seit ich zuletzt hier war" trug bis dahin die Pille „Neu
+   seit ..."; mit ihr faellt die Sonderbehandlung fuer den einen Zugang weg.
+   EINE REGEL STATT ZWEI: eine Ausnahme fuer den Fall „ein Zugang" waere selbst
+   wieder eine zweite Wahrheit. Die Tafel sagt bei jeder Zeile dazu, VON WEM --
+   damit bleibt unterscheidbar, was ein anderer getan hat und was man selbst.
+   DIE ZURUECKGENOMMENE ENTSCHEIDUNG STEHT HIER, damit sie niemand wieder
+   einbaut: „Eigene Beitraege stehen nie hier" galt in 0.16.0 und gilt seit
+   0.17.0 nicht mehr.
+   GRUPPIERT WIRD NACH EINTRAG UND VERFASSER. Das ist DIESELBE eine Abfrage,
+   nur eine Spalte breiter -- kein zusaetzlicher Weg je Eintrag, und dieselbe
+   Ueberlegung wie bei qOffenJeEintrag darueber.
    NUR WERTE UEBER NULL: eine zurueckgesetzte Bewertung hinterlaesst eine Zeile
    mit 0, und die ist keine Stimme -- dieselbe Regel wie ueberall sonst.
    gesetzt_am IS NOT NULL: was vor 0.16.0 entstanden ist und was eingespielt
@@ -2450,12 +2482,12 @@ const qOffenJeEintrag = db.prepare(
    zu erklaeren. Der Vergleich `> ?` faellt bei NULL ohnehin nicht wahr aus;
    die Bedingung steht trotzdem da, weil sie die Absicht sagt. */
 const qNeueKommentare = db.prepare(
-  `SELECT item_id, COUNT(*) AS n FROM comments
-    WHERE created_at > ? AND IFNULL(user_id, -1) != ? GROUP BY item_id`);
+  `SELECT item_id, user_id, COUNT(*) AS n FROM comments
+    WHERE created_at > ? GROUP BY item_id, user_id`);
 const qNeueBewertungen = db.prepare(
-  `SELECT item_id, COUNT(*) AS n FROM ratings
+  `SELECT item_id, user_id, COUNT(*) AS n FROM ratings
     WHERE gesetzt_am IS NOT NULL AND gesetzt_am > ? AND value > 0
-      AND IFNULL(user_id, -1) != ? GROUP BY item_id`);
+    GROUP BY item_id, user_id`);
 
 app.get('/api/items', (req, res) => {
   let rows = qAlleItems.all();
@@ -2484,16 +2516,57 @@ app.get('/api/items', (req, res) => {
      Oeffnen der Tafel weiss die Anlage nicht, was jemand schon gesehen hat;
      alles fuer neu zu erklaeren waere eine Behauptung, und der erste Blick in
      die Uebersicht laeutete fuer den ganzen Bestand.
-     `neuFremd` FEHLT DANN GANZ und steht nicht auf 0: die Oberflaeche
-     unterscheidet „nichts Neues" von „es gibt keinen Bezugspunkt", und ein
-     stilles 0 machte aus der zweiten Lage die erste. */
+     DIE DREI ANGABEN FEHLEN DANN GANZ und stehen nicht auf 0 beziehungsweise
+     leer: die Oberflaeche unterscheidet „nichts Neues" von „es gibt keinen
+     Bezugspunkt", und ein stilles 0 machte aus der zweiten Lage die erste. Sie
+     fehlen GEMEINSAM -- eine Antwort mit nur einer davon waere eine dritte
+     Lage, die niemand kennt.
+     DREI ANGABEN UND KEINE ABFRAGE MEHR ALS VORHER -- 0.17.0. Die Trennung
+     nach Kommentaren und Bewertungen liegt schon in den beiden Abfragen; bis
+     0.16.0 wurden sie erst hier zu EINER Zahl zusammengezaehlt, und damit ging
+     die Auskunft verloren, WAS dazugekommen ist. Wer dazugekommen ist, steht
+     in derselben Zeile.
+     KEINE SUMME AN DER ANTWORT: sie folgt aus den beiden Zahlen, und eine
+     Summe neben ihren Teilen waere eine zweite Wahrheit ueber dieselbe Sache
+     (Stolperstein 47). Gebildet wird sie in der Oberflaeche, an einer Stelle. */
   const bezug = glockeGesehen(req.benutzer.id);
-  const neuJe = new Map();
+  const neuKommJe = new Map(), neuBewJe = new Map(), neuVonJe = new Map();
   if (bezug) {
-    for (const z of qNeueKommentare.all(bezug, req.benutzer.id))
-      neuJe.set(z.item_id, (neuJe.get(z.item_id) || 0) + z.n);
-    for (const z of qNeueBewertungen.all(bezug, req.benutzer.id))
-      neuJe.set(z.item_id, (neuJe.get(z.item_id) || 0) + z.n);
+    /* WER EINEN KOMMENTAR GESCHRIEBEN HAT -- je Eintrag eine Menge von
+       Zugangsnummern. Eine Nummer, die zweimal vorkommt, steht einmal darin:
+       die Tafel sagt, WER, nicht wie oft. `null` bleibt drin -- eine
+       herrenlose Zeile hat ihren Verfasser verloren, und das ist etwas anderes
+       als „niemand".
+       AUS DEN KOMMENTAREN UND AUSDRUECKLICH NICHT AUS DEN BEWERTUNGEN, und das
+       ist keine Nachlaessigkeit: WER WELCHE BEWERTUNG ABGEGEBEN HAT, IST EINE
+       ANGABE UEBER EINZELNE PERSONEN. Sie geht aus keiner Antwort hinaus, die
+       jeder bekommt -- die Liste „Wer hat bewertet" holt der Admin ueber einen
+       eigenen Weg (GET /api/items/:id/stimmen), und die Zeile am Eintrag zeigt
+       Schnitt und Zahl der Bewerter, nie einen Namen.
+       EIN KOMMENTAR TRAEGT SEINEN VERFASSER OHNEHIN SICHTBAR am Eintrag; ein
+       Name in der Tafel gibt daran nichts preis, was nicht schon dastuende.
+       Eine Bewertung tut das nicht.
+       DIE TAFEL ZEIGT DAMIT GENAU DAS, WAS DER EINTRAG SELBST ZEIGT -- eine
+       Regel und nicht zwei. Eine Zeile mit ausschliesslich neuen Bewertungen
+       traegt deshalb keinen Namen; „2 Bewertungen" ist dort die ganze
+       Auskunft. */
+    /* DIE EINDEUTIGKEIT KOMMT AUS DEM GROUP BY, NICHT AUS DER MENGE. Die
+       Abfrage gruppiert nach Eintrag UND Verfasser und liefert je Paar genau
+       eine Zeile; die Menge hier ist das zweite Netz und nicht das erste.
+       DAS IST NACHGEMESSEN UND NICHT GEGLAUBT: ein Rueckbau, der die Menge
+       gegen eine Liste tauschte, blieb STUMM -- er konnte nichts bewirken,
+       weil es nichts zu entdoppeln gibt. Die Zusage haengt am GROUP BY, und
+       dort greift seit 0.17.0 auch der Rueckbau (Stolperstein 235). */
+    const wer = (id, uid) => {
+      if (!neuVonJe.has(id)) neuVonJe.set(id, new Set());
+      neuVonJe.get(id).add(uid);
+    };
+    for (const z of qNeueKommentare.all(bezug)) {
+      neuKommJe.set(z.item_id, (neuKommJe.get(z.item_id) || 0) + z.n);
+      wer(z.item_id, z.user_id);
+    }
+    for (const z of qNeueBewertungen.all(bezug))
+      neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);
   }
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
@@ -2540,7 +2613,12 @@ app.get('/api/items', (req, res) => {
        die Zahl. Gerechnet wird beides aus DERSELBEN Bedingung (kind = 'task'),
        sonst naennten Knopf und Ansicht zwei verschiedene Zahlen. */
     it.offeneAufgaben = offenJe.get(it.id) || 0;
-    if (bezug) it.neuFremd = neuJe.get(it.id) || 0;
+    /* DREI ANGABEN, UND SIE STEHEN ODER FEHLEN GEMEINSAM. Die Verfasser gehen
+       als dieselben Objekte hinaus wie ueberall sonst -- aus verfasserKarte(),
+       nicht als nackte Zugangsnummern. */
+    if (bezug) it.neuKommentare = neuKommJe.get(it.id) || 0;
+    if (bezug) it.neuBewertungen = neuBewJe.get(it.id) || 0;
+    if (bezug) it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => verfasserAus(karte, uid));
   }
   res.json(rows);
 });

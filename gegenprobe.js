@@ -1266,10 +1266,13 @@ const RUECKBAUTEN = [
   },
   /* ---- Die gespeicherten Ansichten ---- */
   {
+    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): `zuletztGesehen` ist aus der
+       Liste gefallen, und der Suchtext griff damit ins Leere (Stolperstein
+       192). Er nimmt weiterhin genau die Ansichten heraus. */
     nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
     datei: 'server.js',
-    suche: "                                'zuletztGesehen', 'glockeGesehen', 'ansichten'];",
-    ersatz: "                                'zuletztGesehen', 'glockeGesehen'];",
+    suche: "                                'glockeGesehen', 'ansichten'];",
+    ersatz: "                                'glockeGesehen'];",
     erwartet: 'Gespeicherte Ansichten'
   },
   {
@@ -1885,11 +1888,16 @@ const RUECKBAUTEN = [
     erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
   {
-    /* "NEU SEIT ..." MIT NULL TREFFERN STEHT WIEDER IN VOLLER HELLIGKEIT DA. */
-    nr: '208', name: 'Die Pille mit null Treffern wird nicht mehr gedaempft',
+    /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): der Rueckbau zeigte auf die
+       Pille „Neu seit ...", und die ist gestrichen. DIE REGEL DAHINTER GILT
+       WEITER und war nie ihre eigene -- seit 0.13.0 wird JEDE Pille gedaempft,
+       die auf null Treffer fuehrt. Der Rueckbau nimmt sie jetzt am Tag, wo sie
+       zuerst stand. Ohne das Nachziehen waere er stumm geworden
+       (Stolperstein 192). */
+    nr: '208', name: 'Eine Pille mit null Treffern wird nicht mehr gedaempft',
     datei: 'public/app.js',
-    suche: '    const leer = !f.neu && neuZahl === 0;',
-    ersatz: '    const leer = false;',
+    suche: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '') + (leerlauf.has(t.id) ? ' leer' : '');",
+    ersatz: "    b.className = 'pill pill-tag' + (gewaehlt ? ' on' : '');",
     erwartet: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
   /* ---- 0.13.0: die Kategoriezeile ---- */
@@ -2183,19 +2191,29 @@ const RUECKBAUTEN = [
   {
     /* Das Raster faellt weg, die Zeile wird wieder ein Flex-Kasten. Damit
        misst sich jede Zahlenspalte wieder an ihrem eigenen Inhalt. */
-    nr: '238', name: 'Aus dem Raster wird wieder eine Reihe einzelner Zeilen',
+    /* GEAENDERT MIT 0.17.0, und der Grund gehoert daneben (Stolperstein 201):
+       zwischen den beiden Zeilen steht seit dieser Runde die Regel fuer den
+       einen Zugang. Der Rueckbau griff damit ins Leere und waere stumm
+       geworden (Stolperstein 192). Er nimmt jetzt die Kastenhaelfte; die
+       Zeilenhaelfte hat mit 307 ihren eigenen bekommen -- zwei Rueckbauten
+       statt einem, und beide zeigen auf eine Zeile, die es wirklich gibt. */
+    nr: '238', name: 'Aus dem Raster wird wieder ein gewoehnlicher Kasten',
     datei: 'public/style.css',
-    suche: ".rlist { display: grid; grid-template-columns: 1fr auto auto; }\n.rrow { display: contents; }",
-    ersatz: ".rlist { display: block; }\n.rrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }",
+    suche: ".rlist { display: grid; grid-template-columns: 1fr auto auto; }",
+    ersatz: ".rlist { display: block; }",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
     /* Der Kasten bekommt die Rasterklasse nicht mehr. Die Regeln im Stilblatt
        stehen dann alle da und greifen an nichts -- der Fehler waere zurueck,
        ohne dass sich eine Zeile im Stilblatt geaendert haette. */
+    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): die Zeile setzt seither auch
+       die Klasse fuer den einen Zugang. Ohne das Nachziehen zeigte der
+       Rueckbau auf eine Zeile, die es nicht mehr gibt, und waere stumm
+       geworden (Stolperstein 192). Er nimmt weiterhin die ganze Klasse. */
     nr: '239', name: 'Die Kriterienliste bekommt ihre Rasterklasse nicht',
     datei: 'public/app.js',
-    suche: "    box.className = 'rlist';",
+    suche: "    box.className = 'rlist' + (mitSchnitt ? '' : ' ohne-schnitt');",
     ersatz: "",
     erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
@@ -2304,10 +2322,14 @@ const RUECKBAUTEN = [
     /* Der Schluessel steht nicht mehr in der Vorgabe. Damit faellt eine
        gespeicherte Ansicht nicht mehr auf "Alle" zurueck, filterNormal()
        raeumt ihn nicht auf, und filterZahl() vergleicht gegen undefined. */
+    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): `neu` steht nicht mehr in der
+       Vorgabe -- die Pille ist gestrichen. Der Rueckbau nimmt weiterhin genau
+       den Ablehnungsfilter heraus; ohne das Nachziehen griffe er ins Leere
+       (Stolperstein 192). */
     nr: '252', name: 'Der neue Filter fehlt in der Vorgabe',
     datei: 'public/app.js',
-    suche: "                         abgelehnt: 'all', favorit: false, neu: false,",
-    ersatz: "                         favorit: false, neu: false,",
+    suche: "                         abgelehnt: 'all', favorit: false,",
+    ersatz: "                         favorit: false,",
     erwartet: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
@@ -2574,40 +2596,69 @@ const RUECKBAUTEN = [
     erwartet: 'Der Rechenweg reist mit'
   },
   {
+    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): der Rechenweg traegt seither
+       auch die Vergleichszahl ohne Gewichte, und der Aufruf ist damit vier
+       Zeilen lang. Ohne das Nachziehen griffe der Rueckbau ins Leere und waere
+       stumm geworden (Stolperstein 192). Er rundet weiterhin genau das, was er
+       vorher gerundet hat -- Summe und rohen Quotienten. */
     nr: '282', name: 'Der Rechenweg wird auf zwei Stellen gerundet ausgeliefert',
     datei: 'server.js',
-    suche: "    { zeilen, summe: zaehler, teiler: nenner, roh: nenner ? zaehler / nenner : null });",
-    ersatz: "    { zeilen, summe: Math.round(zaehler * 100) / 100, teiler: nenner,\n      roh: nenner ? Math.round((zaehler / nenner) * 100) / 100 : null });",
+    suche: "    { zeilen, summe: zaehler, teiler: nenner, roh: nenner ? zaehler / nenner : null,",
+    ersatz: "    { zeilen, summe: Math.round(zaehler * 100) / 100, teiler: nenner,\n      roh: nenner ? Math.round((zaehler / nenner) * 100) / 100 : null,",
     erwartet: 'Der Rechenweg reist mit'
   },
   {
+    /* GEAENDERT MIT 0.17.0 (Stolperstein 201), derselbe Grund wie bei 143.
+       Der Rueckbau nimmt weiterhin genau den Bezugspunkt der Glocke heraus. */
     nr: '283', name: 'Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr',
     datei: 'server.js',
-    suche: "                                'zuletztGesehen', 'glockeGesehen', 'ansichten'];",
-    ersatz: "                                'zuletztGesehen', 'ansichten'];",
+    suche: "'suchNamen',\n                                'glockeGesehen', 'ansichten'];",
+    ersatz: "'suchNamen',\n                                'ansichten'];",
     erwartet: 'Persoenliche Einstellungen'
   },
   {
+    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): der Knopf heisst nicht mehr
+       „Neu von anderen" -- die Glocke meldet seither von allen. Ohne das
+       Nachziehen griffe der Rueckbau ins Leere (Stolperstein 192). */
     nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
     datei: 'public/app.js',
-    suche: "        ${GLOCKE_GESEHEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neu von anderen\"",
-    ersatz: "        ${true ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neu von anderen\"",
+    suche: "        ${GLOCKE_GESEHEN ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neu seit deinem letzten Blick\"",
+    ersatz: "        ${true ? `<button class=\"icon-btn glocke\" id=\"glocke\" title=\"Neu seit deinem letzten Blick\"",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
-    nr: '285', name: 'neuFremd steht auch ohne Bezugspunkt an jedem Eintrag',
+    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): aus `neuFremd` sind drei
+       Angaben geworden, und der Suchtext griff ins Leere (Stolperstein 192).
+       DIE ZUSAGE IST DIESELBE: ohne Bezugspunkt fehlt die Angabe GANZ und
+       steht nicht auf 0 -- die Oberflaeche unterscheidet „nichts Neues" von
+       „es gibt keinen Bezugspunkt". */
+    nr: '285', name: 'Die Zahl der Kommentare steht auch ohne Bezugspunkt da',
     datei: 'server.js',
-    suche: "    if (bezug) it.neuFremd = neuJe.get(it.id) || 0;",
-    ersatz: "    it.neuFremd = neuJe.get(it.id) || 0;",
+    suche: "    if (bezug) it.neuKommentare = neuKommJe.get(it.id) || 0;",
+    ersatz: "    it.neuKommentare = neuKommJe.get(it.id) || 0;",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
-    /* DIE GLOCKE MELDET, WAS ANDERE TUN. Zaehlt sie die eigenen Beitraege mit,
-       laeutet sie nach jedem eigenen Kommentar. */
-    nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare mit',
+    /* NEU MIT 0.17.0: die drei Angaben stehen oder fehlen GEMEINSAM. Eine
+       Antwort mit nur einer davon waere eine dritte Lage, die niemand kennt. */
+    nr: '314', name: 'Die Verfasser stehen auch ohne Bezugspunkt an jedem Eintrag',
     datei: 'server.js',
-    suche: "    WHERE created_at > ? AND IFNULL(user_id, -1) != ? GROUP BY item_id`);",
-    ersatz: "    WHERE created_at > ? AND IFNULL(user_id, -1) != -99 AND ? IS NOT NULL GROUP BY item_id`);",
+    suche: "    if (bezug) it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => verfasserAus(karte, uid));",
+    ersatz: "    it.neuVon = [...(neuVonJe.get(it.id) || [])].map(uid => verfasserAus(karte, uid));",
+    erwartet: 'Die Glocke: was mit der Liste mitreist'
+  },
+  {
+    /* MITGENOMMEN MIT 0.17.0 UND UMGEDREHT (Stolperstein 201). Bis 0.16.0 hiess
+       der Rueckbau „Die Glocke zaehlt die eigenen Kommentare mit" und nahm die
+       Bedingung `IFNULL(user_id, -1) != ?` weg. Die Entscheidung ist
+       zurueckgenommen: die Glocke meldet seither von ALLEN, sonst meldete sie
+       einem Betreiber, der allein arbeitet, nie etwas. Der Rueckbau baut die
+       alte Bedingung deshalb WIEDER EIN -- und genau daran muss die Gruppe rot
+       werden. */
+    nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare wieder nicht mit',
+    datei: 'server.js',
+    suche: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? GROUP BY item_id, user_id`);",
+    ersatz: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT 1 GROUP BY item_id, user_id`);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -2641,10 +2692,15 @@ const RUECKBAUTEN = [
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
+    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): dieselbe Zeile steht seither
+       auch in merkeGesehen() -- dort setzt sie den Bezugspunkt beim ERSTEN
+       Verlassen der Uebersicht, hier beim Oeffnen der Tafel. Ein Suchtext, der
+       zweimal passt, bricht den Rueckbau ab; die Zeile davor macht ihn wieder
+       eindeutig. */
     nr: '291', name: 'Das Oeffnen der Tafel zieht den Bezugspunkt nicht nach',
     datei: 'public/app.js',
-    suche: "  api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});",
-    ersatz: "  void 0;",
+    suche: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});",
+    ersatz: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  void 0;",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2714,6 +2770,319 @@ const RUECKBAUTEN = [
     suche: "  if (/^\\d+$/.test(a)) return r.nr.toLowerCase() === a;",
     ersatz: "  if (false) return r.nr.toLowerCase() === a;",
     erwartet: 'Die Gegenproben greifen'
+  },
+
+  /* ---- 0.17.0: das Raster der Kriterienliste ---- */
+  {
+    /* DIE SPALTENZAHL STEHT WIEDER FEST -- genau der Fehler aus dem Betrieb:
+       zwei Zellen in drei Spalten, und die Liste zerfaellt. */
+    nr: '301', name: 'Die Spaltenzahl folgt dem Zustand nicht mehr',
+    datei: 'public/app.js',
+    suche: "    box.className = 'rlist' + (mitSchnitt ? '' : ' ohne-schnitt');",
+    ersatz: "    box.className = 'rlist';",
+    erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
+  },
+  {
+    /* DIE KLASSE STEHT, DIE REGEL FEHLT. Ein Rueckbau, der nur die Klasse
+       naehme, liesse eine Pruefung durch, die bloss das Attribut liest
+       (Stolperstein 223) -- dieser hier nimmt den Gegenstand weg. */
+    nr: '302', name: 'Die Regel fuer den einen Zugang faellt aus dem Stilblatt',
+    datei: 'public/style.css',
+    suche: ".rlist.ohne-schnitt { grid-template-columns: 1fr auto; }",
+    ersatz: "",
+    erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
+  },
+
+  /* ---- 0.17.0: zwei Masse vom echten Geraet ---- */
+  {
+    /* DIE ANMELDESEITE MISST WIEDER IN vh -- der grossen Anzeigeflaeche, die
+       man auf dem Telefon gar nicht sieht. */
+    nr: '303', name: 'Die Anmeldeseite misst die Hoehe wieder in vh',
+    datei: 'public/style.css',
+    suche: "body.anmeldung { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }",
+    ersatz: "body.anmeldung { display: flex; flex-direction: column; min-height: 100vh; }",
+    erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
+  },
+  {
+    /* DER RUECKFALL STEHT DAHINTER STATT DAVOR: ein Browser ohne `dvh`
+       ueberliest die letzte Zeile und behaelt gar keine Hoehe. */
+    nr: '304', name: 'Der Rueckfall 100vh steht hinter dem dvh statt davor',
+    datei: 'public/style.css',
+    suche: "  min-height: 100vh; min-height: 100dvh;",
+    ersatz: "  min-height: 100dvh; min-height: 100vh;",
+    erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
+  },
+  {
+    /* DER UMBRUCH GILT WIEDER NUR UNTERHALB EINES UMBRUCHPUNKTS -- auf dem
+       Desktop laeuft die Zeile damit erneut seitlich aus dem Kasten. */
+    nr: '305', name: 'Die Anmeldezeile bricht wieder nur auf dem Telefon um',
+    datei: 'public/style.css',
+    /* AM GEGENSTAND UND NICHT AN EINEM KOMMENTAR DANEBEN: die Regel kommt
+       ausserhalb der Medienabfrage genau einmal vor, und wer sie umformuliert,
+       aendert die Sache selbst. Ein Suchtext, der an einem Kommentar haengt,
+       greift ins Leere, sobald jemand den Kommentar besser schreibt. */
+    suche: ".mrow.sitz { flex-wrap: wrap; row-gap: 2px; }",
+    ersatz: "",
+    erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
+  },
+  {
+    /* DIE VIERTE KACHEL STEHT WIEDER SCHMAL UNTER DREI BREITEN. */
+    nr: '306', name: 'Die Karte „Mailversand" verliert ihre Breite wieder',
+    datei: 'public/app.js',
+    suche: "  return `<div class=\"sys-card breit\">\n        <h3>Mailversand</h3>",
+    ersatz: "  return `<div class=\"sys-card\">\n        <h3>Mailversand</h3>",
+    erwartet: 'Der Systembereich nach Rolle'
+  },
+  {
+    /* DIE ZWEITE HAELFTE VON 238, seit 0.17.0 ein eigener Rueckbau: die Zeile
+       wird wieder ein eigener Kasten, und damit koennen sich die Spalten nicht
+       mehr an der breitesten Zelle der ganzen Liste ausrichten -- genau der
+       Befund, den 0.14.0 behoben hat. */
+    nr: '307', name: 'Aus den Rasterzellen wird wieder eine eigene Zeile',
+    datei: 'public/style.css',
+    suche: ".rrow { display: contents; }",
+    ersatz: ".rrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }",
+    erwartet: 'Die Sternreihe steht auf einer Linie — 0.14.0'
+  },
+
+  /* ---- 0.17.0: die Vergleichszahl ohne Gewichte ---- */
+  {
+    /* DIE VERGLEICHSZAHL REIST NICHT MEHR MIT -- die Formel steht wieder da
+       und sagt nicht, wofuer die Gewichte gut sind. */
+    nr: '308', name: 'Die Vergleichszahl faellt aus dem Rechenweg',
+    datei: 'server.js',
+    suche: "      gleichSumme: gleichZaehler, gleichTeiler: zeilen.length,",
+    ersatz: "      gleichSumme: 0, gleichTeiler: 0,",
+    erwartet: 'Der Rechenweg reist mit'
+  },
+  {
+    /* SIE RECHNET WIEDER MIT GEWICHTEN -- und ist damit dieselbe Rechnung ein
+       zweites Mal, also gar kein Vergleich. */
+    nr: '309', name: 'Die Vergleichszahl rechnet die Gewichte doch wieder ein',
+    datei: 'server.js',
+    suche: "    gleichZaehler += z.schnitt;",
+    ersatz: "    gleichZaehler += produkt;",
+    erwartet: 'Der Rechenweg reist mit'
+  },
+  {
+    /* GERUNDET WIRD ZWEIMAL: je Kriterium und am Ende. */
+    nr: '310', name: 'Die Vergleichszahl wird ungerundet ausgeliefert',
+    datei: 'server.js',
+    suche: "      gleichErgebnis: zeilen.length\n        ? Math.round((gleichZaehler / zeilen.length) * 10) / 10 : null });",
+    ersatz: "      gleichErgebnis: zeilen.length ? gleichZaehler / zeilen.length : null });",
+    erwartet: 'Der Rechenweg reist mit'
+  },
+  {
+    /* DER KASTEN ZEIGT SIE NICHT MEHR. */
+    nr: '311', name: 'Der Erklaerkasten laesst die Vergleichszahl weg',
+    datei: 'public/app.js',
+    suche: "        ${mitGewicht ? `<div class=\"rz rz-gleich\"><span>Ohne Gewichte — jedes Kriterium gleich</span>",
+    ersatz: "        ${false ? `<div class=\"rz rz-gleich\"><span>Ohne Gewichte — jedes Kriterium gleich</span>",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  {
+    /* SIE STEHT AUCH DA, WO ALLE GEWICHTE 1 SIND -- dann steht zweimal
+       dieselbe Zahl im Kasten, und das ist eine Auskunft ueber nichts. */
+    nr: '312', name: 'Die Vergleichszahl steht auch ohne jede Gewichtung da',
+    datei: 'public/app.js',
+    suche: "    const gleicheZahl = Number(weg.gleichErgebnis) === Number(weg.ergebnis);",
+    ersatz: "    const gleicheZahl = false;",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  {
+    /* DER KASTEN RECHNET SIE SELBST NACH statt sie zu lesen -- eine zweite
+       Rechenstelle im Browser (Stolperstein 217). */
+    nr: '313', name: 'Der Kasten rechnet die Vergleichszahl selbst nach',
+    datei: 'public/app.js',
+    suche: "          <span id=\"rz-gleich\">⌀ ${esc(gewZahl(weg.gleichErgebnis))}</span></div>` : ''}",
+    ersatz: "          <span id=\"rz-gleich\">⌀ ${esc(gewZahl(Math.round((weg.zeilen.reduce((n, z) => n + z.schnitt, 0) / weg.zeilen.length) * 10) / 10))}</span></div>` : ''}",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+
+  /* ---- 0.17.0: die Glockentafel sagt, was neu ist ---- */
+  {
+    /* DIE BEIDEN ZAHLEN WERDEN WIEDER ZU EINER -- genau der Befund: „7 neue
+       Beitraege" sagt nicht, WAS auf einen wartet. */
+    nr: '315', name: 'Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen',
+    datei: 'public/app.js',
+    suche: "  return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',\n          b ? `${b} ${b === 1 ? 'Bewertung' : 'Bewertungen'}` : ''].filter(Boolean).join(' · ');",
+    ersatz: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    /* DIE NULL STEHT WIEDER DA. „0 Bewertungen" ist eine Auskunft ueber
+       nichts -- dieselbe Regel wie am Knopf „Offen". */
+    nr: '316', name: 'Die Tafel schreibt auch die Null hin',
+    datei: 'public/app.js',
+    suche: "b ? `${b} ${b === 1 ? 'Bewertung' : 'Bewertungen'}` : ''].filter(Boolean).join(' · ');",
+    ersatz: "`${b} ${b === 1 ? 'Bewertung' : 'Bewertungen'}`].join(' · ');",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    /* EINE FESTE ENDUNG MACHT AUS EINEM KOMMENTAR „1 Kommentare". */
+    nr: '317', name: 'Die Tafel schreibt die Mehrzahl auch bei einem Kommentar',
+    datei: 'public/app.js',
+    suche: "  return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',",
+    ersatz: "  return [k ? `${k} Kommentare` : '',",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    /* DIE ZAHLEN KOMMEN AUS EINER ABFRAGE, DIE SIE NICHT MEHR TRENNT. Der
+       Server wirft die Auskunft wieder weg, noch bevor sie hinausgeht. */
+    nr: '318', name: 'Der Server legt beide Zahlen wieder in eine Kiste',
+    datei: 'server.js',
+    suche: "      neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);",
+    ersatz: "      neuKommJe.set(z.item_id, (neuKommJe.get(z.item_id) || 0) + z.n);",
+    erwartet: 'Die Glocke: was mit der Liste mitreist'
+  },
+  {
+    /* DIE TAFEL ORDNET NACH EINEM DER TEILE STATT NACH DER SUMME -- ein
+       Eintrag mit vier neuen Bewertungen stuende unter einem mit einem
+       Kommentar. */
+    nr: '319', name: 'Die Tafel ordnet nach den Kommentaren statt nach der Summe',
+    datei: 'public/app.js',
+    suche: "    .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title)));",
+    ersatz: "    .slice().sort((a, b) => ((b.neuKommentare || 0) - (a.neuKommentare || 0)) || String(a.title).localeCompare(String(b.title)));",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+
+  /* ---- 0.17.0: die Glocke ersetzt die Pille ---- */
+  {
+    /* DIE TAFEL SAGT NICHT MEHR, VON WEM. Bei einer Glocke, die auch die
+       eigenen Beitraege meldet, ist das die halbe Auskunft. */
+    nr: '320', name: 'Die Tafel sagt nicht mehr, von wem etwas kommt',
+    datei: 'public/app.js',
+    suche: "    a.querySelector('.glocken-von').textContent = neuVonWorte(it);",
+    ersatz: "    a.querySelector('.glocken-von').textContent = '';",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    /* DIE ABFRAGE GRUPPIERT NICHT MEHR NACH VERFASSER. Dann liefert sie je
+       Eintrag EINE Zeile, und in `neuVon` steht nur noch EIN Name statt aller
+       -- die Tafel sagt dann die halbe Wahrheit darueber, von wem etwas kommt.
+       ZWEI ANLAEUFE VORHER ZIELTEN AUF DIE MENGE und blieben STUMM: die
+       Eindeutigkeit kommt aus dem GROUP BY, nicht aus der Menge, und ein
+       Rueckbau, der ein zweites Netz wegnimmt, kann nichts zeigen
+       (Stolperstein 235). Der Anker gehoert an die tragende Zusage. */
+    nr: '321', name: 'Die Abfrage gruppiert nicht mehr nach Verfasser',
+    datei: 'server.js',
+    suche: "    WHERE created_at > ? GROUP BY item_id, user_id`);",
+    ersatz: "    WHERE created_at > ? GROUP BY item_id`);",
+    erwartet: 'Die Glocke: was mit der Liste mitreist'
+  },
+  {
+    /* DIE AUFZAEHLUNG WIRD EINE LISTE MIT KOMMAS BIS ZUM SCHLUSS -- so
+       zaehlt man Dinge auf, nicht Menschen. */
+    nr: '322', name: 'Die Namen werden mit Kommas bis zum Schluss aufgezaehlt',
+    datei: 'public/app.js',
+    suche: "  return 'von ' + (namen.length === 1 ? namen[0]\n    : `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}`);",
+    ersatz: "  return 'von ' + namen.join(', ');",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    /* DIE PILLE „NEU SEIT ..." KOMMT ZURUECK -- zwei Anzeigen fuer dieselbe
+       Frage, und die Filterzeile ist wieder eine Pille laenger. */
+    nr: '323', name: 'Der Schluessel der gestrichenen Pille bleibt in der Stellung stehen',
+    datei: 'public/app.js',
+    suche: "  delete f.neu;\n  return f;",
+    ersatz: "  return f;",
+    erwartet: 'Die gestrichene Pille „Neu seit …" — 0.17.0'
+  },
+  {
+    /* DER BEZUGSPUNKT DER GLOCKE FAEHRT BEI JEDEM VERLASSEN HINAUS statt genau
+       einmal -- dann setzt ein Blick in einen Eintrag die Tafel zurueck, ohne
+       dass jemand sie gelesen haette. */
+    nr: '324', name: 'Der Bezugspunkt faellt bei jedem Verlassen der Uebersicht',
+    datei: 'public/app.js',
+    suche: "  if (GLOCKE_GESEHEN) return;\n  GLOCKE_GESEHEN = true;",
+    ersatz: "  GLOCKE_GESEHEN = true;",
+    erwartet: 'Der Bezugspunkt der Glocke in der Oberflaeche'
+  },
+  {
+    /* DIE ZEILE DER TAFEL BRICHT NICHT MEHR UM -- der Titel schrumpft zu
+       Punkten, damit die Namen Platz haben. */
+    nr: '325', name: 'Die Zeile der Glockentafel bricht nicht mehr um',
+    datei: 'public/style.css',
+    suche: ".mrow.glocken-zeile { flex-wrap: wrap; row-gap: 2px; }",
+    ersatz: "",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    /* DIE ANGABE „VON WEM" BEKOMMT KEINE EIGENE ZEILE MEHR. */
+    nr: '326', name: 'Die Angabe „von wem" bekommt keine eigene Zeile',
+    datei: 'public/style.css',
+    suche: ".glocken-zeile .glocken-von { flex-basis: 100%; font-size: .76rem; color: var(--faint); }",
+    ersatz: ".glocken-zeile .glocken-von { font-size: .76rem; color: var(--faint); }",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+
+  /* ---- 0.17.0: die beiden gestrichenen Erklaertexte ----
+     EIN GESTRICHENER TEXT LAESST SICH NUR ZURUECKBAUEN, INDEM MAN IHN WIEDER
+     HINSCHREIBT. Beide Rueckbauten setzen genau den Satz zurueck, den die
+     Runde aus der Oberflaeche genommen hat -- und die Zusagen, die das
+     festhalten, muessen daran rot werden. */
+  {
+    nr: '327', name: 'Die Kennzahlen begruenden den Vorbehalt wieder an der Oberflaeche',
+    datei: 'public/app.js',
+    suche: "          sondern schon 256 Zufallsbits trägt.</p>` : ''}",
+    ersatz: "          sondern schon 256 Zufallsbits trägt. <strong>Welche Fassung welcher Bibliothek</strong>\n          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand\n          sucht, der eine Lücke ausnutzen will.</p>` : ''}",
+    erwartet: 'Der Papierkorb in der Oberflaeche'
+  },
+  {
+    nr: '328', name: 'Die Glockentafel begruendet sich wieder selbst',
+    datei: 'public/app.js',
+    suche: "    <div class=\"manage-list\" id=\"glocken-liste\"></div>\n    <div class=\"modal-acts\">",
+    ersatz: "    <div class=\"manage-list\" id=\"glocken-liste\"></div>\n    <p class=\"hint hint-sm\" style=\"margin:2px 0 0\"><strong>Was die Glocke nicht verspricht:</strong>\n      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend.</p>\n    <div class=\"modal-acts\">",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  /* DIE GEGENRICHTUNG ZU 301. Dort faellt die KLASSE weg und das Raster bleibt
+     bei drei Spalten; hier bleibt die Klasse und die ZELLE loest sich von der
+     Bedingung -- drei Zellen in zwei Spalten. Ohne diesen Rueckbau belegte
+     nichts, dass die Gruppe wirklich Zellen GEGEN Spalten haelt und nicht bloss
+     eine Klasse liest (Stolperstein 223). */
+  {
+    nr: '329', name: 'Die Durchschnittszelle haengt nicht mehr an derselben Bedingung',
+    datei: 'public/app.js',
+    suche: "      if (mitSchnitt) {",
+    ersatz: "      if (true) {",
+    erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
+  },
+  /* DER SATZ ZEIGT WIEDER AUS DEM KASTEN HINAUS -- auf die Durchschnittsspalte
+     der Liste dahinter, die es bei einem einzigen Zugang nicht gibt. */
+  {
+    nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
+    datei: 'public/app.js',
+    suche: "        Schnitt über alle Bewertungen gebildet — das sind die Zahlen in der Spalte\n        <strong>Note</strong>.",
+    ersatz: "        Schnitt über alle Bewertungen gebildet — das sind die Zahlen rechts in den Zeilen.",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
+     Zellen einer Zeile zu den Spalten ihres Rasters? 331 nimmt dem Raster eine
+     Spalte, 333 der Zeile eine Zelle -- beide Richtungen, weil eine allein die
+     andere nicht belegt. Bis 0.17.0 stand die Vier in der Pruefung getippt und
+     nicht im Stilblatt gelesen; kein Rueckbau konnte sie treffen. */
+  {
+    nr: '331', name: 'Das Raster des Erklaerkastens verliert eine Spalte',
+    datei: 'public/style.css',
+    suche: ".rechnung { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }",
+    ersatz: ".rechnung { display: grid; grid-template-columns: 1fr auto auto; gap: 0 14px; }",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  /* DIE REGEL, DIE DIE VERGLEICHSZAHL UNTERORDNET. Ihr Kommentar macht vier
+     Zusagen; bis 0.17.0 stand keine davon in einer Pruefung (Stolperstein 199). */
+  {
+    nr: '332', name: 'Die Vergleichszeile wird dem Ergebnis gleichgestellt',
+    datei: 'public/style.css',
+    suche: ".rz-gleich > span { color: var(--muted); border-bottom: 0; border-top: 1px solid var(--line-2); }",
+    ersatz: ".rz-gleich > span { font-weight: 640; color: #8a8a8a; border-bottom: 0; }",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  {
+    nr: '333', name: 'Die Vergleichszeile bekommt eine Zelle zu wenig',
+    datei: 'public/app.js',
+    suche: "          <span></span><span></span>\n          <span id=\"rz-gleich\">",
+    ersatz: "          <span></span>\n          <span id=\"rz-gleich\">",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
