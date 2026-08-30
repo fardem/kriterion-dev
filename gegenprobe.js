@@ -3030,6 +3030,27 @@ const RUECKBAUTEN = [
     ersatz: "    <div class=\"manage-list\" id=\"glocken-liste\"></div>\n    <p class=\"hint hint-sm\" style=\"margin:2px 0 0\"><strong>Was die Glocke nicht verspricht:</strong>\n      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend.</p>\n    <div class=\"modal-acts\">",
     erwartet: 'Die Glocke in der Kopfzeile'
   },
+  /* DIE GEGENRICHTUNG ZU 301. Dort faellt die KLASSE weg und das Raster bleibt
+     bei drei Spalten; hier bleibt die Klasse und die ZELLE loest sich von der
+     Bedingung -- drei Zellen in zwei Spalten. Ohne diesen Rueckbau belegte
+     nichts, dass die Gruppe wirklich Zellen GEGEN Spalten haelt und nicht bloss
+     eine Klasse liest (Stolperstein 223). */
+  {
+    nr: '329', name: 'Die Durchschnittszelle haengt nicht mehr an derselben Bedingung',
+    datei: 'public/app.js',
+    suche: "      if (mitSchnitt) {",
+    ersatz: "      if (true) {",
+    erwartet: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
+  },
+  /* DER SATZ ZEIGT WIEDER AUS DEM KASTEN HINAUS -- auf die Durchschnittsspalte
+     der Liste dahinter, die es bei einem einzigen Zugang nicht gibt. */
+  {
+    nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
+    datei: 'public/app.js',
+    suche: "        Schnitt über alle Bewertungen gebildet — das sind die Zahlen in der Spalte\n        <strong>Note</strong>.",
+    ersatz: "        Schnitt über alle Bewertungen gebildet — das sind die Zahlen rechts in den Zeilen.",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
