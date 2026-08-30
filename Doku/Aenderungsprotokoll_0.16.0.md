@@ -1,7 +1,7 @@
 # Änderungsprotokoll 0.16.0 — „Der Systembereich, die Glocke und die Auskunft"
 
 **Version 0.16.0 · gebaut am 29. August 2026 · Fingerprint `aa76c352` ·
-4520 Prüfungen · 300 Rückbauten in `gegenprobe.js`**
+4523 Prüfungen · 300 Rückbauten in `gegenprobe.js`**
 
 ---
 
@@ -402,8 +402,8 @@ als sie behauptet.
 
 ## 11. Der Prüfstand
 
-**4520 von 4520 bestanden — 4366 waren es vorher, also
-154 neue.** Neun neue Gruppen mit zusammen **115** Prüfungen:
+**4523 von 4523 bestanden — 4366 waren es vorher, also
+157 neue.** Neun neue Gruppen mit zusammen **116** Prüfungen:
 
 | Gruppe | Prüfungen |
 |---|---|
@@ -412,25 +412,25 @@ als sie behauptet.
 | Die Rechnung hinter der Kopfzahl | 18 |
 | Die Glocke in der Kopfzeile | 22 |
 | Der Papierkorb im Vollbild | 10 |
-| Der Rechenweg reist mit | 7 |
+| Der Rechenweg reist mit | 8 |
 | Die Bewertung traegt ihren Zeitpunkt | 5 |
 | Die Glocke: was mit der Liste mitreist | 17 |
 | MIGRATION 0.16.0 — ENTFAELLT MIT 1.0 | 15 |
-| **zusammen** | **115** |
+| **zusammen** | **116** |
 
-**Die übrigen 39 stehen in sechs vorhandenen Gruppen, und keine einzige
+**Die übrigen 41 stehen in sechs vorhandenen Gruppen, und keine einzige
 Prüfung ist weggefallen:**
 
 | vorhandene Gruppe | vorher | nachher | wofür |
 |---|---|---|---|
 | Versionsnummer, Linkzeilen, Zeitleiste | 15 | 26 | Version und Verfahren in den Kennzahlen |
-| Der Systembereich nach Rolle | 57 | 65 | die fünf Abschnitte, ihre Adressen, der Rückfall |
+| Der Systembereich nach Rolle | 57 | 66 | die fünf Abschnitte, ihre Adressen, der Rückfall |
 | Der Papierkorb in der Oberflaeche | 39 | 50 | der Papierkorb im Vollbild an der echten Anlage |
-| Die Gegenproben greifen | 9 | 16 | der Nummernfilter und die 300 Rückbauten |
+| Die Gegenproben greifen | 9 | 17 | der Nummernfilter und die 300 Rückbauten |
 | Offen: der Haken in der Ansicht | 26 | 27 | die Zahl am Knopf „Offen" |
 | Neu seit: der Merkzeitpunkt | 11 | 12 | `glockeGesehen` neben `zuletztGesehen` |
 
-*4366 + 115 + 39 = 4520. **Die Rechnung geht auf** — das ist der Grund, warum
+*4366 + 116 + 41 = 4523. **Die Rechnung geht auf** — das ist der Grund, warum
 sie hier steht: eine Runde, in der eine vorhandene Gruppe stillschweigend
 kleiner wird, sieht an der Gesamtzahl genauso aus wie eine, in der alles bleibt.*
 
@@ -504,7 +504,47 @@ abgeschrieben:**
 | **299** | `pruefung.js` | Die Groessenmessung findet gar nichts mehr |
 | **300** | `gegenprobe.js` | Der Nummernfilter der Gegenprobe greift wieder in die Namen |
 
-**Gefahren sind die neuen, einzeln und vollständig — keiner blieb stumm.**
+### Der Lauf — und was er gefunden hat
+
+**Gefahren sind die 29 neuen und die zwei reparierten, einzeln und vollständig,
+in vier Nebenspuren: 31 Rückbauten, rund 51 Minuten.** *Und er hat sich
+gelohnt: **sieben Befunde**, von denen der Prüfstand keinen einzigen sehen
+konnte.*
+
+| Ergebnis | Zahl | welche |
+|---|---|---|
+| greifen sauber (1 bis 10 rote Punkte) | **24** | 63, 143, 272, 274, 277–280, 283–296, 298, 299 |
+| **STUMM — echter Fund** | **2** | 276, 282 |
+| **ABGERISSEN — die Prüfung konnte gar nicht rot werden** | **4** | 273, 275, 281, 297 |
+| **falsch als STUMM gemeldet — Fehler im Werkzeug** | **1** | 300 |
+
+**DIE SECHS BEFUNDE AM PRÜFSTAND:**
+
+| Nr. | was der Rückbau tat | warum nichts geschah | behoben |
+|---|---|---|---|
+| **276** | `<a>` am Reiter gegen `<button>` getauscht | die Prüfung las das **Attribut** `href` — und das lässt sich an jedes Element schreiben. Ein `<button href="…">` bestand sie anstandslos | die Zeile sieht jetzt den Gegenstand an: es ist ein `<a>` |
+| **282** | den rohen Quotienten auf zwei Stellen gerundet ausgeliefert | die Prüflage rechnete mit den Gewichten **2/1/1** — alles teilt durch vier, und alles durch vier endet nach zwei Stellen. Gerundet und ungerundet waren nicht zu unterscheiden | drittes Gewicht auf **0,3**, Teiler 3,3 — und die Lage prüft sich selbst |
+| **273, 275** | die Abschnittsfilterung bzw. den Rückfall entfernt | vier bzw. acht Prüfungen wurden korrekt rot, dann setzte eine spätere `getElementById('acc-old').value` auf `null` und riss den Lauf ab | `setzeFeld()`, 36 Zuweisungen umgestellt |
+| **281** | den Rechenweg aus der Antwort genommen | zwei Prüfungen wurden korrekt rot, die dritte griff auf `rw.summe` zu | `rw?.summe`, `rw?.roh` |
+| **297** | den Papierkorb aus dem Vollbild genommen | zwei Prüfungen wurden korrekt rot, dann `weg().dispatchEvent()` auf `null` | `weg()?.dispatchEvent()` |
+
+**UND EINER AM WERKZEUG (300).** Er machte zwei Prüfungen sauber rot und wurde
+trotzdem als STUMM gemeldet: `leseLauf()` blendete die Gruppe *„Die Gegenproben
+greifen"* als **Ganzes** aus — richtig für die eine Selbstprobe, die bei jedem
+Rückbau rot wird, falsch für jeden Rückbau, dessen eigene Zusagen dort stehen.
+*Ein zu grober Filter macht aus einem Beleg einen Fund; ein fehlender machte in
+0.15.0 aus einem Fund ein Schweigen (Stolperstein 213). Es ist dieselbe Zeile,
+zweimal falsch in die andere Richtung.*
+
+**Drei weitere Stellen derselben Klasse sind vorbeugend geschlossen worden** —
+gefunden beim systematischen Durchgang durch alle neun neuen Gruppen, bevor ein
+Rückbau sie melden konnte.
+
+> **DAS IST DER ERTRAG DES LAUFS, UND ER GEHÖRT SO DASTEHEND.** 4520 grüne
+> Prüfungen standen da, und zwei Zusagen konnten nicht scheitern, vier
+> Prüfungen konnten nicht rot werden. **Der Lauf war nicht falsch — er war
+> blind, und Blindheit sieht von innen genau wie Grün aus** (Stolperstein 225).
+
 **Der volle Lauf über alle 300 steht weiterhin aus** — die Rechnung dafür steht
 in Abschnitt 17.
 
@@ -536,7 +576,7 @@ ein Satz:
 
 | | vorher (0.15.1) | nachher (0.16.0) |
 |---|---|---|
-| Prüfungen | 4366 | **4520** |
+| Prüfungen | 4366 | **4523** |
 | Rückbauten | 271 | **300** |
 | Karten im Systembereich | 19 | **18** |
 | Abschnitte im Systembereich | — | **5** |

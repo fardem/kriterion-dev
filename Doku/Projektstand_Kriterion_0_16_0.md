@@ -145,7 +145,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.16.0** — Fingerprint **`aa76c352`**, **4520 Prüfungen**,
+**Gebaut ist 0.16.0** — Fingerprint **`aa76c352`**, **4523 Prüfungen**,
 **300 Rückbauten in der Liste; gefahren ist der volle Lauf nicht** (Abschnitt 8).
 *0.16.0 gibt dem Systembereich Abschnitte mit eigener Adresse, der Kopfzeile
 eine Glocke, dem Wort „gewichtet" eine Erklärung und den Kennzahlen Version und
@@ -406,7 +406,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.16.0** | **`aa76c352`** | 4520 |
+| **0.16.0** | **`aa76c352`** | 4523 |
 | 0.15.1 | `d02260bd` | 4366 |
 | 0.15.0 | `8fa66d7d` | 4351 |
 | 0.14.0 | `ca8bcf31` | 4262 |
@@ -5387,9 +5387,10 @@ Version, in der sie entstanden sind.*
     Tages nicht mehr, wird **diese** Zeile rot, statt die Zusage darunter
     stumm werden zu lassen.
 
-225. **Fünf Befunde in einem Gegenprobenlauf, und der Prüfstand hat keinen
+225. **Sieben Befunde in einem Gegenprobenlauf, und der Prüfstand hat keinen
     davon sehen können.** 4520 grüne Prüfungen standen da, und zwei Zusagen
-    konnten nicht scheitern, drei Prüfungen konnten nicht rot werden. *Der
+    konnten nicht scheitern, vier Prüfungen konnten nicht rot werden — und ein
+    siebter Befund lag im Werkzeug, das die Tabelle schreibt. *Der
     Lauf war nicht falsch — er war blind, und Blindheit sieht von innen genau
     wie Grün aus.* **Eine Zahl von Prüfungen sagt nichts über Abdeckung; das
     tut allein der Rückbau.** Und die Zeile, die das beinahe verdeckt hätte,
@@ -5410,8 +5411,8 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4520 von 4520 bestanden** (0.16.0) — **154
-neue Prüfungen**, davon 115 in neun neuen Gruppen; 0.15.1 davor brachte fünfzehn
+**Stand: 4523 von 4523 bestanden** (0.16.0) — **157
+neue Prüfungen**, davon 116 in neun neuen Gruppen; 0.15.1 davor brachte fünfzehn
 in einer, 0.15.0 brachte 89 in drei. Die Gegenproben stehen in Abschnitt 8: sie
 sind auf die jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf über
 alle **300** Rückbauten.
@@ -5423,21 +5424,21 @@ alle **300** Rückbauten.
 | Die Rechnung hinter der Kopfzahl | 18 |
 | Die Glocke in der Kopfzeile | 22 |
 | Der Papierkorb im Vollbild | 10 |
-| Der Rechenweg reist mit | 7 |
+| Der Rechenweg reist mit | 8 |
 | Die Bewertung traegt ihren Zeitpunkt | 5 |
 | Die Glocke: was mit der Liste mitreist | 17 |
 | MIGRATION 0.16.0 — ENTFAELLT MIT 1.0 | 15 |
-| **zusammen** | **115** |
+| **zusammen** | **116** |
 
-*Die übrigen **39** stehen in **sechs vorhandenen** Gruppen, und **keine
+*Die übrigen **41** stehen in **sechs vorhandenen** Gruppen, und **keine
 einzige Prüfung ist weggefallen**:*
 
 | vorhandene Gruppe | vorher | nachher | wofür |
 |---|---|---|---|
 | Versionsnummer, Linkzeilen, Zeitleiste | 15 | 26 | Version und Verfahren in den Kennzahlen |
-| Der Systembereich nach Rolle | 57 | 65 | die fünf Abschnitte, ihre Adressen, der Rückfall |
+| Der Systembereich nach Rolle | 57 | 66 | die fünf Abschnitte, ihre Adressen, der Rückfall |
 | Der Papierkorb in der Oberflaeche | 39 | 50 | der Papierkorb im Vollbild an der echten Anlage |
-| Die Gegenproben greifen | 9 | 16 | der Nummernfilter und die 300 Rückbauten |
+| Die Gegenproben greifen | 9 | 17 | der Nummernfilter und die 300 Rückbauten |
 | Offen: der Haken in der Ansicht | 26 | 27 | die Zahl am Knopf „Offen" |
 | Neu seit: der Merkzeitpunkt | 11 | 12 | `glockeGesehen` neben `zuletztGesehen` |
 
@@ -6071,7 +6072,15 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   baulich: `gegenprobe.js` zieht seine Kopie aus `git archive HEAD`, ein Commit
   mitten im Lauf verschöbe die Grundlage.* **Gefahren sind die 29 neuen
   Rückbauten dieser Runde und die zwei reparierten, vollständig und in vier
-  Nebenspuren — keiner blieb stumm.**
+  Nebenspuren — 31 Stück, rund 51 Minuten.**
+  **UND SIE HABEN SIEBEN BEFUNDE GELIEFERT.** 24 greifen sauber; **zwei blieben
+  stumm** (276, 282), **vier rissen den Lauf ab**, statt rot zu werden (273,
+  275, 281, 297), und **einer wurde falsch als stumm gemeldet** (300) — der
+  Fehler lag dort im Werkzeug. *Alle sieben sind behoben, dazu drei Stellen
+  derselben Klasse vorbeugend. Die Einzelheiten stehen im Änderungsprotokoll
+  0.16.0, Abschnitt 12; die Lehren daraus als Stolpersteine 222 bis 225.*
+  **Vor dem Lauf stand in diesem Blatt „keiner blieb stumm" — geschrieben,
+  bevor er gefahren war** (Stolperstein 225).
   **UND DAS WERKZEUG SELBST WAR VOR DEM ERSTEN LAUF ZU REPARIEREN:** sein
   Nummernfilter griff auch als Namensteil, `node gegenprobe.js 256` fuhr
   deshalb zwei Rückbauten statt einem. *Eine Zahl in der Gegenprobentabelle,
@@ -6362,7 +6371,7 @@ Abweichungsgrund. **Die Spalte hat keinen Vorgabewert** (Stolperstein 219), und
 das **Austauschformat bleibt bei 11**: der Zeitpunkt geht nicht in die
 Exportdatei. **Die Sicherung ist damit Pflicht und nicht Empfehlung.**
 
-**4366 → 4520 Prüfungen, 271 → 300 Rückbauten.** Karten von neunzehn
+**4366 → 4523 Prüfungen, 271 → 300 Rückbauten.** Karten von neunzehn
 auf achtzehn, persönliche Schlüssel von acht auf neun, `F_ROUTEN` bei 69,
 Format 11. **Keine neue Abhängigkeit.**
 
