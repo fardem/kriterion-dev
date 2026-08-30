@@ -8,15 +8,10 @@ function fmtDate(iso) {
   const d = new Date(iso.replace(' ', 'T') + 'Z');
   return d.toLocaleString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
-// Kurzform fuer die Filterzeile: "19.08." -- der Platz dort ist eng, und das
-// Jahr sagt neben einem Merkzeitpunkt von vorgestern nichts. Den nachlaufenden
-// Punkt setzt die deutsche Schreibweise selbst; er wird hier NICHT angehaengt,
-// sonst stuende dort "19.08..".
-function fmtTagKurz(iso) {
-  if (!iso) return '';
-  const d = new Date(iso.replace(' ', 'T') + 'Z');
-  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-}
+/* HIER STAND BIS 0.17.0 fmtTagKurz() -- die Kurzform „19.08." fuer die
+   Beschriftung der Pille „Neu seit ...". Die Pille ist gestrichen, und die
+   Funktion hatte danach genau keinen Rufer mehr. Eine Funktion, die niemand
+   ruft, ist kein Vorrat, sondern eine Frage an den Naechsten. */
 function fmtDay(day) {
   const d = new Date(day + 'T12:00:00');
   return d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -1296,8 +1291,11 @@ const KATEGORIE_OHNE = 'ohne';
    Kategorien zugleich, und die Verknuepfung ist ein ODER -- nie ein UND:
    `product_category_id` ist EINE Spalte, ein Eintrag traegt also genau eine
    Kategorie, und "Datentraeger UND Produkt" waere garantiert leer. */
+/* `neu` STEHT HIER SEIT 0.17.0 NICHT MEHR. Die Pille „Neu seit ..." ist
+   gestrichen; ihre Auskunft traegt die Glocke. Eine gespeicherte Ansicht aus
+   0.11.0 kann den Schluessel noch tragen -- filterNormal() uebergeht ihn. */
 const FILTER_VORGABE = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
-                         abgelehnt: 'all', favorit: false, neu: false,
+                         abgelehnt: 'all', favorit: false,
                          sort: 'updated_desc' };
 const state = {
   items: [], categories: [], tags: [], criteria: [],
@@ -1336,25 +1334,15 @@ let NAME = '';
 // Die Schwelle steht GENAU HIER und nirgends sonst.
 const mehrereBenutzer = () => BENUTZER_ZAHL > 1;
 
-/* Der Bezugszeitpunkt fuer "Neu seit ...". EINMAL beim Laden der Seite
-   gelesen und dann STEHENGELASSEN, obwohl der Server ihn bei jedem Verlassen
-   der Uebersicht weiterstellt. Ohne das waere die Menge nach dem ersten
-   geoeffneten Eintrag leer: man saehe sieben Neue und verloere sechs davon
-   beim ersten Klick. Der weitergestellte Wert gilt also erst beim naechsten
-   Laden der Seite -- ein Besuch ist eine Sitzung am Bildschirm, nicht ein
-   Wechsel der Ansicht.
-   null heisst "noch nie gesetzt": dann wird der Umschalter gar nicht erst
-   angeboten. */
-let ZULETZT_GESEHEN = null;
-
-/* DER BEZUGSPUNKT DER GLOCKE -- ein ZWEITER neben ZULETZT_GESEHEN, und er darf
-   es sein. Die beiden beantworten verschiedene Fragen: „neu seit meinem
-   letzten Besuch" faellt beim Verlassen der Uebersicht, die Glocke erst, wenn
-   ihre Tafel WIRKLICH geoeffnet wurde. Ein gemeinsamer Merker loeschte die
-   Glocke bei jedem Blick in die Uebersicht mit -- ohne dass jemand gelesen
-   haette, was sie meldete.
-   null heisst „noch nie gesetzt": dann gibt es keine Glocke, dieselbe Lage und
-   dieselbe Antwort wie oben. Gesetzt wird er beim ersten Aufbau der
+/* DER BEZUGSPUNKT DER GLOCKE, und seit 0.17.0 der EINZIGE. Bis dahin stand ein
+   zweiter daneben: `zuletztGesehen` trug die Pille „Neu seit ..." und fiel beim
+   Verlassen der Uebersicht, dieser hier faellt erst, wenn die Tafel WIRKLICH
+   geoeffnet wurde. Zwei Anzeigen fuer dieselbe Frage -- was hat sich getan,
+   seit ich zuletzt hier war -- sind eine zu viel; die Pille ist gestrichen,
+   und ihr Merker mit ihr.
+   null heisst „noch nie gesetzt": dann gibt es keine Glocke. Alles fuer neu zu
+   erklaeren waere eine Behauptung, und der erste Blick in die Uebersicht
+   laeutete fuer den ganzen Bestand. Gesetzt wird er beim ersten Verlassen der
    Uebersicht; von da an ist er der Strich, hinter dem gezaehlt wird. */
 let GLOCKE_GESEHEN = null;
 
@@ -1407,7 +1395,6 @@ async function ladeEinstellungen() {
   // Ausdruecklich nur beim ERSTEN Laden. ladeEinstellungen() laeuft nur in
   // start(); ein spaeterer Aufruf duerfte den Bezugszeitpunkt nicht mehr
   // nachziehen, sonst verschwaende die Menge unter dem Zeiger.
-  if (EINSTELLUNGEN.zuletztGesehen) ZULETZT_GESEHEN = EINSTELLUNGEN.zuletztGesehen;
   if (EINSTELLUNGEN.glockeGesehen) GLOCKE_GESEHEN = EINSTELLUNGEN.glockeGesehen;
   if (Array.isArray(EINSTELLUNGEN.suchAnbieter)) SUCHANBIETER = EINSTELLUNGEN.suchAnbieter;
   if (EINSTELLUNGEN.suchNamen) SUCHNAMEN = EINSTELLUNGEN.suchNamen;
@@ -1501,7 +1488,18 @@ function filterNormal(roh) {
     v === KATEGORIE_OHNE || state.categories.some(c => c.id === v));
   if (f.tagMode !== 'or') f.tagMode = 'and';
   f.favorit = f.favorit === true;
-  f.neu = f.neu === true;
+  /* DER SCHLUESSEL EINER GESTRICHENEN PILLE FAELLT HERAUS -- 0.17.0. Eine
+     gespeicherte Ansicht aus 0.11.0 kann `neu` noch tragen; sie muss ihn
+     UEBERGEHEN statt daran zu scheitern. Dieselbe Regel wie beim Schluessel
+     `abgelehnt`, den 0.15.0 hinzugefuegt hat, nur andersherum.
+     UND ER MUSS WIRKLICH HERAUSFALLEN: die zurechtgerueckte Stellung wird
+     Zeichen fuer Zeichen mit der aktuellen verglichen (welche Ansicht gerade
+     gilt), und ein mitgeschlepptes Feld liesse jede alte Ansicht als „nicht
+     aktiv" erscheinen -- dieselbe Ueberlegung wie bei `categoryId` darueber.
+     DER GESPEICHERTE WERT BLEIBT, WIE ER IST: gelesen wird er uebergangen, in
+     der Ablage steht er weiter. Ein Lesevorgang, der die Ansicht eines
+     Menschen umschreibt, ist schlimmer als ein alter Wert. */
+  delete f.neu;
   return f;
 }
 
@@ -1702,18 +1700,15 @@ function visibleItems(filter) {
   // `tested`: Favorit und Teststatus sind unabhaengig, und "getestet UND
   // Favorit" muss moeglich bleiben.
   if (f.favorit) out = out.filter(i => i.favorite);
-  /* "Neu seit ..." ist ein FILTER, kein zweiter Sortierweg -- persoenlich wie
-     der Favorit und aus demselben Grund: die Liste zeigt, wo etwas geschieht,
-     nicht wo ICH zuletzt war. Wer daraus eine persoenliche Reihenfolge macht,
-     baut eine zweite Wahrheit ueber denselben Bestand.
-     Verglichen werden zwei Zeitstempel aus DERSELBEN Quelle -- beide kommen
-     als 'JJJJ-MM-TT HH:MM:SS' vom Server, und in diesem Format ist der
-     Stringvergleich der Vergleich der Zeiten. Genau wie die Sortierung
-     eine Zeile tiefer, die localeCompare auf dieselbe Spalte anwendet.
-     OHNE gespeicherten Wert greift er GAR NICHT: beim allerersten Besuch gibt
-     es keinen Bezugspunkt, und ein Filter, der dann alles zeigt, erklaert
-     sich nicht -- die Filterzeile bietet ihn dort auch nicht an. */
-  if (f.neu && ZULETZT_GESEHEN) out = out.filter(i => i.updated_at > ZULETZT_GESEHEN);
+  /* HIER STEHT SEIT 0.17.0 KEIN FILTER „Neu seit ..." MEHR. Die Auskunft --
+     was hat sich getan, seit ich zuletzt hier war -- traegt die Glocke; zwei
+     Anzeigen fuer dieselbe Frage sind eine zu viel. WAS DABEI VERLORENGEHT,
+     gehoert daneben: die Pille zeigte JEDE Aenderung an einem Eintrag, auch
+     einen geaenderten Titel, eine neue Datei, einen neuen Testtag. Die Glocke
+     bleibt bei Kommentaren und Bewertungen.
+     TRAGBAR IST DAS, weil eine Titelaenderung etwas ist, das jemand AM Eintrag
+     getan hat, und kein Beitrag, der FUER dich daliegt -- und weil die Liste
+     ohnehin nach updated_at ordnet: was sich zuletzt getan hat, steht oben. */
   /* HIER WIRD NICHT GESUCHT: das macht GET /api/items?q=..., und
      `state.items` traegt bereits nur noch die Treffer. Eine zweite Suche hier
      waere eine zweite Wahrheit ueber dieselbe Menge. Die uebrigen Filter
@@ -1766,18 +1761,20 @@ let LETZTE_ANSICHT = null;
    Wer den Browser schliesst, ohne die Uebersicht zu verlassen, behaelt seinen
    alten Merkzeitpunkt und sieht dieselben Eintraege noch einmal. Das ist die
    richtige Seite des Fehlers: lieber zweimal zeigen als einmal verschlucken. */
-/* BEIM VERLASSEN DER UEBERSICHT, NICHT BEIM BETRETEN -- und in EINEM Ruf.
-   DER BEZUGSPUNKT DER GLOCKE FAEHRT BEIM ALLERERSTEN MAL MIT. Ohne ihn gibt es
-   keine Glocke, und ohne Glocke gaebe es keinen Weg, ihn je zu setzen -- eine
-   Bedingung, die ihren eigenen Ausweg verdeckt. Danach faellt er nur noch
-   beim Oeffnen der Tafel; die beiden Merker teilen sich nichts als diesen
-   einen Ruf.
-   UND AUSDRUECKLICH KEIN ZWEITER RUF BEIM AUFBAU: was beim Betreten der
-   Uebersicht hinausginge, ginge bei jedem Seitenaufbau hinaus. */
+/* DER BEZUGSPUNKT DER GLOCKE ENTSTEHT BEIM ERSTEN VERLASSEN DER UEBERSICHT.
+   Ohne ihn gibt es keine Glocke, und ohne Glocke gaebe es keinen Weg, ihn je zu
+   setzen -- eine Bedingung, die ihren eigenen Ausweg verdeckt. Danach faellt er
+   NUR noch beim Oeffnen der Tafel: wer sie gesehen hat, hat sie gesehen.
+   GENAU EIN RUF, UND NUR EINMAL. Bis 0.17.0 ging bei jedem Verlassen der
+   Uebersicht ein Ruf hinaus -- er stellte `zuletztGesehen` fuer die Pille
+   „Neu seit ..." nach. Die Pille ist gestrichen, und mit ihr der Merker; was
+   bleibt, ist der eine Ruf, der die Glocke ueberhaupt erst moeglich macht.
+   UND AUSDRUECKLICH KEIN RUF BEIM BETRETEN: was beim Betreten der Uebersicht
+   hinausginge, ginge bei jedem Seitenaufbau hinaus. */
 const merkeGesehen = () => {
-  const koerper = { zuletztGesehen: 1 };
-  if (!GLOCKE_GESEHEN) { GLOCKE_GESEHEN = true; koerper.glockeGesehen = 1; }
-  api('PUT', '/api/settings', koerper).catch(() => {});
+  if (GLOCKE_GESEHEN) return;
+  GLOCKE_GESEHEN = true;
+  api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});
 };
 function route() {
   const h = location.hash || '#/';
@@ -1814,10 +1811,58 @@ function route() {
    Laune: eine Zahl beschreibt einen ZUSTAND (so viele Aufgaben stehen offen),
    ein Punkt meldet ein EREIGNIS (seit deinem letzten Blick ist etwas
    dazugekommen). Die beiden Zeichen werden nirgends vertauscht.
-   WAS DIE GLOCKE NICHT LEISTET, steht in der Tafel selbst: sie rechnet beim
-   Aufbau der Uebersicht nach und nicht laufend. */
-const glockeNeu = () => (state.alle || []).reduce((n, i) => n + (Number(i.neuFremd) || 0), 0);
+   WAS DIE GLOCKE NICHT LEISTET, steht in der README: sie rechnet beim Aufbau
+   der Uebersicht nach und nicht laufend.
+   SIE MELDET SEIT 0.17.0 VON ALLEN, die eigenen Beitraege eingeschlossen --
+   sonst meldete sie einem Betreiber, der allein arbeitet, nie etwas. Die
+   Auskunft „was hat sich getan, seit ich zuletzt hier war" trug bis dahin die
+   Pille „Neu seit ...", und die ist mit dieser Runde gestrichen. */
+/* DIE SUMME ENTSTEHT AN GENAU EINER STELLE. Der Server liefert zwei Zahlen und
+   keine Summe: eine Summe neben ihren Teilen waere eine zweite Wahrheit ueber
+   dieselbe Sache (Stolperstein 47), und die Glocke zaehlte sie eines Tages
+   doppelt. */
+const neuAn = (i) => (Number(i.neuKommentare) || 0) + (Number(i.neuBewertungen) || 0);
+const glockeNeu = () => (state.alle || []).reduce((n, i) => n + neuAn(i), 0);
 const offeneGesamt = () => (state.alle || []).reduce((n, i) => n + (Number(i.offeneAufgaben) || 0), 0);
+
+/* WAS DORT NEU IST, IN WORTEN -- 0.17.0. „7 neue Beitraege" liess offen, ob
+   das Kommentare sind oder Bewertungen; „Beitrag" ist ein Sammelwort, das die
+   Anlage sonst nirgends benutzt.
+   NUR WAS ES GIBT: bei einer Art steht auch nur eine Angabe da. „0
+   Bewertungen" waere eine Auskunft ueber nichts -- dieselbe Regel wie die
+   fehlende Null am Knopf „Offen".
+   EIN- UND MEHRZAHL AUSGESCHRIEBEN: „1 Kommentare" ist der Fehler, den eine
+   feste Endung macht. Die beiden Woerter stehen NICHT im Vokabular: dort geht
+   es um die Sache, den Bericht, die Aufgabe und den Zeitpunkt -- Kommentar und
+   Bewertung heissen in dieser Anlage ueberall so. */
+const neuWorte = (i) => {
+  const k = Number(i.neuKommentare) || 0, b = Number(i.neuBewertungen) || 0;
+  return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',
+          b ? `${b} ${b === 1 ? 'Bewertung' : 'Bewertungen'}` : ''].filter(Boolean).join(' · ');
+};
+
+/* VON WEM -- 0.17.0. Die Glocke meldet auch die eigenen Beitraege; ohne den
+   Namen daneben liesse sich nicht unterscheiden, ob dort jemand anders war
+   oder man selbst.
+   DIE NAMEN KOMMEN AUS DEN KOMMENTAREN UND NICHT AUS DEN BEWERTUNGEN -- der
+   Server liefert sie gar nicht anders. Wer welche Bewertung abgegeben hat, ist
+   eine Angabe ueber einzelne Personen und steht in keiner Antwort, die jeder
+   bekommt. Eine Zeile mit ausschliesslich neuen Bewertungen traegt deshalb
+   keinen Namen, und das ist kein Mangel, sondern dieselbe Regel wie am Eintrag
+   selbst.
+   „von Anna", „von Anna und Bert", „von Anna, Bert und Carla": so heisst eine
+   Aufzaehlung im Deutschen. Kommas bis zum Schluss lesen sich wie eine Liste
+   von Dingen, nicht von Menschen.
+   SORTIERT NACH DEM ANGEZEIGTEN NAMEN und nicht nach der Zugangsnummer -- die
+   Nummer sieht niemand, und zwei Tafeln nacheinander sollen dieselbe Reihe
+   zeigen. Der Name entsteht ueber verfasserName() wie ueberall sonst. */
+const neuVonWorte = (i) => {
+  const namen = (Array.isArray(i.neuVon) ? i.neuVon : [])
+    .map(verfasserName).sort((a, b) => String(a).localeCompare(String(b), 'de'));
+  if (!namen.length) return '';
+  return 'von ' + (namen.length === 1 ? namen[0]
+    : `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}`);
+};
 
 function zeichneKopfzahlen() {
   const offen = offeneGesamt();
@@ -1832,33 +1877,39 @@ function zeichneKopfzahlen() {
     ? `${offen} offene ${offen === 1 ? V.aufgabeEinzahl : V.aufgabeMehrzahl}`
     : `Offene ${V.aufgabeMehrzahl}`);
   const neu = glockeNeu();
+  /* EINE ZAHL IM TITEL, EIN PUNKT AM KNOPF. Der Titel bleibt EINE Zahl, auch
+     seit die Tafel zwei nennt: er beantwortet „gibt es etwas", die Tafel
+     beantwortet „was". Eine Aufzaehlung im Titel machte aus einem Hinweis eine
+     Liste. */
   amElement('glocke-punkt', el => { el.hidden = !neu; });
   amElement('glocke', b => b.title = neu
-    ? `${neu} neu von anderen — Klick zeigt, wo`
-    : 'Nichts Neues von anderen');
+    ? `${neu} seit deinem letzten Blick — Klick zeigt, wo`
+    : 'Nichts Neues seit deinem letzten Blick');
 }
 
 /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke und nicht ihr Beiwerk:
    eine Meldung, die man nicht anspringen kann, ist eine Mitteilung ohne Weg.
    JEDE ZEILE FUEHRT ZU IHREM EINTRAG.
-   DAS OEFFNEN SETZT ALLES AUF GESEHEN, und das steht in der Tafel. Es ist die
-   bewusste Grenze der schlanken Fassung: ein Lesestand je Meldung braeuchte
-   eine Tabelle, und die gibt es hier nicht. */
+   DAS OEFFNEN SETZT ALLES AUF GESEHEN. Es ist die bewusste Grenze der
+   schlanken Fassung: ein Lesestand je Meldung braeuchte eine Tabelle, und die
+   gibt es hier nicht.
+   BIS 0.17.0 STAND DAS IN DER TAFEL SELBST, als Block „Was die Glocke nicht
+   verspricht". Er ist ersatzlos gestrichen und steht nur noch in der README:
+   eine Oberflaeche sagt, WAS IST, nicht, warum sie so gebaut ist
+   (Projektstand 5.6). Die Grenze gilt unveraendert -- gestrichen ist ihre
+   Begruendung an der Oberflaeche, nicht die Grenze. */
 function zeigeGlockentafel() {
-  const zeilen = (state.alle || []).filter(i => Number(i.neuFremd) > 0)
-    .slice().sort((a, b) => (b.neuFremd - a.neuFremd) || String(a.title).localeCompare(String(b.title)));
+  /* SORTIERT NACH DER SUMME und nicht nach einem der beiden Teile: ein Eintrag
+     mit vier neuen Bewertungen stuende sonst unter einem mit einem Kommentar. */
+  const zeilen = (state.alle || []).filter(i => neuAn(i) > 0)
+    .slice().sort((a, b) => (neuAn(b) - neuAn(a)) || String(a.title).localeCompare(String(b.title)));
   const bd = document.createElement('div');
   bd.className = 'backdrop';
-  bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>Neu von anderen</h2>
-    <p>Was seit deinem letzten Blick in diese Tafel von <strong>anderen</strong> dazugekommen
-      ist — Kommentare und Bewertungen. Eigene Beiträge stehen nie hier.</p>
+  bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>Neu seit deinem letzten Blick</h2>
+    <p>Was seit deinem letzten Blick in diese Tafel dazugekommen ist — Kommentare und
+      Bewertungen, <strong>von allen</strong>. Die eigenen stehen mit da: auch allein vergisst
+      man, was man zuletzt gesehen hat.</p>
     <div class="manage-list" id="glocken-liste"></div>
-    <p class="hint hint-sm" style="margin:2px 0 0"><strong>Was die Glocke nicht verspricht:</strong>
-      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend — was in dieser Minute entsteht,
-      steht beim nächsten Laden da. Und sie führt <strong>keinen Lesestand je Meldung</strong>:
-      dieses Öffnen setzt alles auf gesehen, auch was du gleich nicht anklickst.
-      Bewertungen von vor der Umstellung auf 0.16.0 tragen keinen Zeitpunkt und bleiben ihr
-      unsichtbar.</p>
     <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
   document.body.appendChild(bd);
   const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
@@ -1873,7 +1924,7 @@ function zeigeGlockentafel() {
 
   const box = bd.querySelector('#glocken-liste');
   if (!zeilen.length) {
-    box.innerHTML = `<span class="hint">Nichts Neues von anderen.</span>`;
+    box.innerHTML = `<span class="hint">Nichts Neues.</span>`;
   } else for (const it of zeilen) {
     /* EIN LINK UND KEIN KNOPF: er traegt eine Adresse, laesst sich kopieren
        und in einem neuen Fenster oeffnen. Geschlossen wird die Tafel trotzdem
@@ -1882,11 +1933,16 @@ function zeigeGlockentafel() {
     a.className = 'mrow glocken-zeile';
     a.href = `#/item/${it.id}`;
     a.dataset.mid = String(it.id);
-    const n = Number(it.neuFremd) || 0;
-    a.innerHTML = `<span class="mname"></span>
-      <span class="mcount">${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}</span>`;
-    // Der Titel ist freier Text und wird gesetzt, nicht zusammengebaut.
+    /* DREI STUECKE: der Titel, WAS dort neu ist, und VON WEM. Die dritte
+       Angabe steht in einer eigenen Zeile darunter -- oben, worum es geht,
+       darunter, wer: dieselbe Aufteilung wie an der Zeile einer Anmeldung.
+       ALLE DREI WERDEN GESETZT UND NICHT ZUSAMMENGEBAUT: Titel und Namen sind
+       freier Text. */
+    a.innerHTML = `<span class="mname"></span><span class="mcount"></span>
+      <span class="glocken-von"></span>`;
     a.querySelector('.mname').textContent = it.title;
+    a.querySelector('.mcount').textContent = neuWorte(it);
+    a.querySelector('.glocken-von').textContent = neuVonWorte(it);
     a.onclick = () => zu();
     box.appendChild(a);
   }
@@ -1896,7 +1952,14 @@ function zeigeGlockentafel() {
      selben Zug auf null -- sonst stuende der Punkt bis zum naechsten Laden
      weiter da und behauptete etwas, das nicht mehr gilt. */
   api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});
-  for (const it of (state.alle || [])) if (it.neuFremd) it.neuFremd = 0;
+  /* NUR WAS DASTEHT, WIRD ZURUECKGESETZT -- und nichts angelegt. Ohne
+     Bezugspunkt gibt es die Felder gar nicht, und wer sie hier auf 0 setzte,
+     machte aus „es gibt keinen Bezugspunkt" ein „nichts Neues". */
+  for (const it of (state.alle || [])) {
+    if (it.neuKommentare) it.neuKommentare = 0;
+    if (it.neuBewertungen) it.neuBewertungen = 0;
+    if (it.neuVon) it.neuVon = [];
+  }
   zeichneKopfzahlen();
 }
 
@@ -1933,6 +1996,9 @@ async function renderList() {
              Zeichenknoepfe -- und damit wandert sie auf dem Telefon ohne ein
              einziges Zutun in die Tafel: ein Markup, zwei Gestalten (0.12.0).
              Eine Glocke nur am Desktop waere eine Weiche nach Geraet.
+             SIE HEISST SEIT 0.17.0 „Neu seit deinem letzten Blick" UND NICHT
+             MEHR „Neu von anderen": sie meldet auch die eigenen Beitraege --
+             sonst meldete sie einem, der allein arbeitet, nie etwas.
              SIE STEHT NUR DA, WENN ES EINEN BEZUGSPUNKT GIBT. Vor dem ersten
              Aufbau der Uebersicht weiss die Anlage nicht, was jemand schon
              gesehen hat -- eine Glocke, die dann alles meldet, laeutete beim
@@ -1941,8 +2007,8 @@ async function renderList() {
              DER PUNKT IST EIN EIGENER KNOTEN und kein Text im Knopf: er wird
              beim Zeichnen ein- und ausgeblendet, ohne dass das Zeichen daneben
              neu gebaut wird. */''}
-        ${GLOCKE_GESEHEN ? `<button class="icon-btn glocke" id="glocke" title="Neu von anderen"
-          aria-label="Neu von anderen">${ICON_GLOCKE}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">Neu von anderen</span></button>` : ''}
+        ${GLOCKE_GESEHEN ? `<button class="icon-btn glocke" id="glocke" title="Neu seit deinem letzten Blick"
+          aria-label="Neu seit deinem letzten Blick">${ICON_GLOCKE}<span class="glocke-punkt" id="glocke-punkt" hidden></span><span class="mast-wort">Neu seit deinem letzten Blick</span></button>` : ''}
         <button class="icon-btn" id="offen" title="Offene ${esc(V.aufgabeMehrzahl)}">${ICON_OFFEN}<span class="offen-zahl" id="offen-zahl" hidden></span><span class="mast-wort">Offene ${esc(V.aufgabeMehrzahl)}</span></button>
         <button class="icon-btn" id="sys" title="Systembereich">${ICON_SYS}<span class="mast-wort">Systembereich</span></button>
         <span class="hint wer" id="wer">Angemeldet als ${esc(NAME)}</span>
@@ -2091,7 +2157,6 @@ function filterZahl() {
   // ist ein zweites Merkmal, und beide zugleich verkleinern die Menge zweimal.
   if (f.abgelehnt !== v.abgelehnt) n++;
   if (f.favorit) n++;
-  if (f.neu) n++;
   /* DREI GEWAEHLTE KATEGORIEN ZAEHLEN ALS EIN FILTER und nicht als drei --
      anders als die Tags eine Zeile tiefer, und der Unterschied ist die
      Verknuepfung. Jeder zusaetzliche Tag verkleinert die Menge (UND), jede
@@ -2167,42 +2232,15 @@ function drawFilters() {
   bFav.onclick = () => { f.favorit = !f.favorit; redraw(); };
   g1.appendChild(bFav);
 
-  /* "Neu seit ..." -- derselbe Platz, dasselbe Muster wie der Favorit
-     daneben: ein eigener Umschalter, mit allen uebrigen Filtern kombinierbar,
-     persoenlich.
-     ER ERSCHEINT NUR MIT BEZUGSPUNKT. Beim allerersten Besuch gibt es keinen,
-     und ein Filter, der dann alles zeigt, erklaert sich nicht. Bei EINEM
-     Zugang erscheint er trotzdem -- anders als "meine / alle" ist er keine
-     Aussage ueber andere: auch allein vergisst man, was man zuletzt gesehen
-     hat.
-     Die Zahl daneben steht wie an der Kategorie in einem <span class="n"> --
-     und sie ist die Vorschau auf den eigenen Klick, also die Menge unter ALLEN
-     uebrigen Filtern. Eine Gesamtzahl daneben widerspraeche der Liste,
-     sobald ein zweiter Filter an ist. */
-  if (ZULETZT_GESEHEN) {
-    const neuZahl = visibleItems({ ...f, neu: true }).length;
-    /* NULL TREFFER WERDEN GEDAEMPFT, genau wie bei den Tags -- dieselbe Sache
-       darf nicht zwei Verhalten haben (Stolperstein 47, im Kleinen). Die Pille
-       stand bisher in voller Helligkeit da und fuehrte garantiert auf eine
-       leere Liste.
-       NUR SOLANGE SIE NICHT GESETZT IST: ist der Filter an, sagt die Zahl null
-       nicht "hier gibt es nichts zu holen", sondern "genau das siehst du
-       gerade" -- und eine gedaempfte Pille im gesetzten Zustand waere eine
-       Auskunft ueber den eigenen Klick.
-       ANKLICKBAR BLEIBT SIE, wie die Tags: man sieht nur vorher, dass die
-       Liste leer wuerde. */
-    const leer = !f.neu && neuZahl === 0;
-    const bNeu = document.createElement('button');
-    bNeu.className = 'pill pill-sep' + (f.neu ? ' on' : '') + (leer ? ' leer' : '');
-    bNeu.id = 'f-neu';
-    bNeu.innerHTML = `Neu seit ${esc(fmtTagKurz(ZULETZT_GESEHEN))}`
-      + `<span class="n">${neuZahl}</span>`;
-    bNeu.title = leer ? 'Zusammen mit der aktuellen Auswahl kein Treffer'
-      : f.neu ? 'Alle Einträge zeigen'
-      : `Nur was sich seit ${fmtDate(ZULETZT_GESEHEN)} getan hat`;
-    bNeu.onclick = () => { f.neu = !f.neu; redraw(); };
-    g1.appendChild(bNeu);
-  }
+  /* HIER STAND BIS 0.17.0 DIE PILLE „Neu seit ...". Sie ist gestrichen: ihre
+     Auskunft -- was hat sich getan, seit ich zuletzt hier war -- traegt die
+     Glocke, und zwei Anzeigen fuer dieselbe Frage sind eine zu viel.
+     DAZU EINE HAUSREGEL, DIE SIE VERLETZTE: sie stand auch dann da, wenn ihre
+     Zahl null war, nur gedaempft. Am Knopf „Offen" steht seit 0.16.0 das
+     Gegenteil -- „Offen 0" waere eine Auskunft ueber nichts. Dieselbe Sache
+     darf nicht zwei Verhalten haben (Stolperstein 47, im Kleinen).
+     DIE FILTERZEILE IST DAMIT UM EINE PILLE KUERZER -- die Fortsetzung von
+     0.13.0, wo sie 75 px flacher wurde. */
   r1.appendChild(g1);
 
   /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ----
@@ -4356,8 +4394,15 @@ async function renderDetail(id) {
     /* DER KASTEN IST DAS RASTER, nicht die einzelne Zeile: eine Spalte kann
        sich nur dann an ihrer breitesten Zelle ausrichten, wenn alle Zellen im
        SELBEN Raster liegen. Die Klasse steht hier und nicht im Aufbau
-       darueber, damit sie neben dem Kasten steht, den sie meint. */
-    box.className = 'rlist';
+       darueber, damit sie neben dem Kasten steht, den sie meint.
+       UND DIE SPALTENZAHL FOLGT DEM ZUSTAND: bei genau einem Zugang gibt es
+       die Durchschnittszelle nicht, also hat das Raster auch nur zwei
+       Spalten. Beide Entscheidungen haengen an DERSELBEN Bedingung -- sie
+       steht einmal hier und wird unten wiederverwendet, statt ein zweites Mal
+       gefragt zu werden (Stolperstein 47). Mit drei Spalten und zwei Zellen
+       ruecken die Zeilen gegeneinander, und die Liste zerfaellt. */
+    const mitSchnitt = mehrereBenutzer();
+    box.className = 'rlist' + (mitSchnitt ? '' : ' ohne-schnitt');
     // Angelegt wird im Systembereich: ein neues Kriterium erscheint an
     // JEDEM Eintrag, das ist eine redaktionelle Entscheidung und keine
     // Notiz am Eintrag.
@@ -4447,8 +4492,12 @@ async function renderDetail(id) {
          ZEILE, nicht in .racts. Nur so kann sich das Raster an der breitesten
          Zahl der ganzen Liste ausrichten -- steckte sie in .racts, waere sie
          wieder nur so breit wie ihr eigener Inhalt, und die Sterne stuenden
-         Zeile fuer Zeile woanders. */
-      if (mehrereBenutzer()) {
+         Zeile fuer Zeile woanders.
+         DIESELBE BEDINGUNG WIE OBEN AM RASTER, und zwar buchstaeblich
+         dieselbe: `mitSchnitt` entscheidet ueber die Spalte UND ueber die
+         Zelle. Zwei getrennte Abfragen waeren zwei Wahrheiten, und die eine
+         liesse sich aendern, ohne dass die andere mitginge. */
+      if (mitSchnitt) {
         const a = document.createElement('span');
         a.className = 'ravg';
         /* DIESELBE FORM WIE DIE KOPFZAHL DARUEBER, die bereits "⌀ 4,2
@@ -4515,6 +4564,12 @@ async function renderDetail(id) {
       return toast('Für diesen Eintrag gibt es noch keine Rechnung.', true);
     const namen = new Map(item.ratings.map(r => [r.criterion_id, r.name]));
     const mitGewicht = weg.zeilen.some(z => Number(z.gewicht) !== 1);
+    /* OB DIE GEWICHTUNG UEBERHAUPT ETWAS AENDERT. Verglichen werden die beiden
+       ANGEZEIGTEN Zahlen und nicht die ungerundeten: der Kasten sagt etwas
+       ueber das, was dasteht. Zwei Rechnungen, die sich erst in der dritten
+       Stelle unterscheiden, ergeben am Bildschirm dieselbe Zahl -- und dann
+       ist „hier steht 3,7 statt 3,7" keine Auskunft. */
+    const gleicheZahl = Number(weg.gleichErgebnis) === Number(weg.ergebnis);
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal rechnung-modal" id="rechnung-modal">
@@ -4537,12 +4592,39 @@ async function renderDetail(id) {
           <span id="rz-teiler">${esc(gewZahl(weg.teiler))}</span></div>
         <div class="rz rz-ergebnis"><span>Ergebnis</span><span></span><span></span>
           <span id="rz-ergebnis">⌀ ${esc(gewZahl(weg.ergebnis))}</span></div>
+        ${/* DIE VERGLEICHSZAHL -- 0.17.0. Die Formel stand Zeile fuer Zeile da
+             und liess trotzdem offen, WOFUER die Gewichte gut sind. Erst der
+             Unterschied macht die Gewichtung sichtbar.
+             OHNE GEWICHTUNG STEHT SIE GAR NICHT DA: sind alle Gewichte 1, ist
+             sie dieselbe Zahl wie darueber, und zweimal dasselbe hinzuschreiben
+             ist keine Auskunft.
+             VIER ZELLEN WIE JEDE ANDERE ZEILE. Das Raster hat vier Spalten;
+             eine Zeile mit dreien schoebe alles darunter um eine weiter --
+             genau der Fehler, den Punkt 1 derselben Runde behebt.
+             UND SIE WIRD GELESEN, NICHT GERECHNET (Stolperstein 217): sie
+             entsteht in gesamtSchnitt(), in derselben Schleife wie die Zahl
+             darueber. */''}
+        ${mitGewicht ? `<div class="rz rz-gleich"><span>Ohne Gewichte — jedes Kriterium gleich</span>
+          <span></span><span></span>
+          <span id="rz-gleich">⌀ ${esc(gewZahl(weg.gleichErgebnis))}</span></div>` : ''}
       </div>
       ${/* DER TEILER IST DER PUNKT, AN DEM SICH DIE MEISTEN VERRECHNEN, und
            deshalb steht er als eigener Satz da und nicht in einer Fussnote. */''}
       <p>Der <strong>Teiler zählt nur die Kriterien, die auch bewertet sind</strong>. Ein
         Kriterium, an dem niemand Sterne vergeben hat, geht gar nicht ein — sonst zöge es
         die Zahl nach unten, ohne dass es an den Werten läge.</p>
+      ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. Sind beide Zahlen gleich,
+           steht genau das da -- zweimal dieselbe Zahl hinzuschreiben waere
+           eine Auskunft ueber nichts. */''}
+      ${mitGewicht ? (gleicheZahl
+        ? `<p id="rz-gleich-satz"><strong>An dieser Zahl ändert die Gewichtung nichts.</strong>
+            Zählte jedes Kriterium gleich, käme dieselbe
+            <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong> heraus — die Gewichte wirken,
+            das Ergebnis fällt nach dem Runden trotzdem gleich aus.</p>`
+        : `<p id="rz-gleich-satz">Zählte jedes Kriterium <strong>gleich</strong>, stünde hier
+            <strong>⌀ ${esc(gewZahl(weg.gleichErgebnis))}</strong> statt
+            <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong>.
+            <strong>Das ist der Unterschied, den die Gewichtung macht.</strong></p>`) : ''}
       <p><strong>Gerundet wird genau einmal</strong>, ganz am Ende:
         ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))} =
         ${esc(String(Math.round(Number(weg.roh) * 10000) / 10000).replace('.', ','))}
@@ -7485,7 +7567,12 @@ function ruesteProtokollAus(geholt) {
 /* ---- Karte „Mailversand" — Abschnitt „Zugänge" ---- */
 function karteMailversand(geholt) {
   const { mailstand } = geholt;
-  return `<div class="sys-card">
+  /* `.breit` WIE DIE DREI NACHBARN. Seit 0.16.0 stehen „Zugaenge",
+     „Anfragen", „Sicherheitsprotokoll" und „Mailversand" im selben Abschnitt;
+     die ersten drei nehmen die volle Breite, und die vierte wirkte daneben wie
+     ein Rest. Vier gleich breite Kacheln sind einfacher zu begruenden als drei
+     plus ein Rest, und diese Karte traegt die Breite mit ihren Feldern gut. */
+  return `<div class="sys-card breit">
         <h3>Mailversand</h3>
         ${/* DIE ACHTZEHNTE KARTE, und sie gehört dem EIGENTÜMER — nicht dem
               Admin, obwohl der die Einladungen verschickt. Der SMTP-Server
@@ -7709,6 +7796,11 @@ function karteKennzahlen(geholt) {
              gerechnet wird; eine Bibliotheksversion sagt, WELCHE Luecke passt.
              Version und Fingerprint darueber sagen nichts ueber eine fremde
              Bibliothek und bleiben, wo sie sind.
+             DIESE BEGRUENDUNG STAND BIS 0.17.0 AUCH IN DER KARTE, als Satz
+             unter den vier Zeilen. Sie steht jetzt nur noch hier und in der
+             README: eine Oberflaeche sagt, WAS IST, nicht, warum es so gebaut
+             wurde (Projektstand 5.6). Die REGEL gilt unveraendert -- was hier
+             faellt, ist der Satz, nicht der Vorbehalt.
              GELESEN UND NICHT BEHAUPTET: die Zeilen kommen aus db.js, das die
              geoeffnete Datei selbst fragt. Eine Kopie hier liefe beim naechsten
              Wechsel auseinander. */''}
@@ -7726,9 +7818,7 @@ function karteKennzahlen(geholt) {
         <div class="kv"><span class="k">Passwörter</span><span class="v">${esc(stats.verfahren.passwoerter || '—')}</span></div>
         <p class="desc" style="margin:10px 0 0">Der Schlüssel geht <strong>roh</strong> in die
           Datenbank (<code>PRAGMA key = x'…'</code>) — ohne Ableitung, weil er kein Passwort ist,
-          sondern schon 256 Zufallsbits trägt. <strong>Welche Fassung welcher Bibliothek</strong>
-          das rechnet, steht hier <strong>nicht</strong>: das wäre die Angabe, nach der jemand
-          sucht, der eine Lücke ausnutzen will.</p>` : ''}
+          sondern schon 256 Zufallsbits trägt.</p>` : ''}
       </div>`;
 }
 
