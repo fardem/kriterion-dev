@@ -7496,11 +7496,14 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.15.0** | Der Filter und der Stift | **GEBAUT.** Die Übersicht bekommt einen Filter für „abgelehnt" — drei Zustände in einer eigenen Gruppe, kombinierbar mit dem Teststatus. Dazu kommt die Begründung zur Ruhe: sie steht als Aussage da statt in einem dauernd offenen Feld, mit ✎ und ✕ daneben — und **entfernen darf sie seither auch der Admin**, was 0.14.0 zur Hälfte offengelassen hatte. *MINOR.* **Kein Schema, kein Migrationsblock, Format bleibt 11** | nein | — |
 | **0.16.0** | Der Systembereich, die Glocke und die Auskunft | **GEBAUT.** Neunzehn Karten sind achtzehn und stehen in fünf Abschnitten mit eigener Adresse; `renderSystem()` fiel dabei von 2466 auf 79 Zeilen. Dazu die Glocke mit dem Punkt, der Zähler „Offen" mit Zahl, die Gewichtung, die sich selbst erklärt, Version und Verfahren in den Kennzahlen — und aus dem Betrieb das Löschen in der Zoomansicht. *MINOR.* **Die größte Umbaufläche des Plans — und sie ist doch eine Datenbankstufe geworden: die Glocke braucht einen Zeitpunkt an der Bewertung. Der Rechner zur Gewichtung ist NICHT mitgefahren** | ja, **siebter Block** | — |
 | **0.17.0** | Was dasteht, und was nicht dasteht | **GEBAUT.** Neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, unmittelbar nach dem Einspielen von 0.16.0. Die Kriterienliste zerfiel bei genau **einem** Zugang; zwei Erklärtexte haben die Oberfläche verlassen; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; der Erklärkasten nennt die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen ist.** *MINOR.* **Kein Schema, keine Route — MINOR wegen der Glockentafel. Alle neun Punkte sind gebaut, dazu ein zehnter Befund aus dem Bauen: der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt** | nein | — |
+| **0.17.1** | Was der Benutzer sieht | **BEAUFTRAGT am 30. August 2026.** Sechs Handgriffe aus einem Rundlauf von Hand: der Text im Kachel „Zugang" stimmt nicht und sagt zu viel, Kacheln nutzen ihre Höhe nicht, der Mailversand ordnet sich, **aus „Anlage" wird „Instanz"**, die Zeile einer Sitzung steht schief — und das Video fängt im Vollbild ein zweites Mal an. *PATCH: fünf sind Wortlaut und Anzeige, einer ist ein echter Fehler.* **Der Auftrag liegt als `Doku/Auftrag_0.17.1.md` im Repo** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
-| **0.19.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0 vorgemerkt.)* Migrationscode raus — **jetzt sieben Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
+| **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
+| **0.21.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0 vorgemerkt — **die Nummer ist vorläufig**.)* Migrationscode raus — **jetzt sieben Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 
-> **DIE BEREINIGUNG HIESS EINMAL 0.12.0, DANN 0.13.0, DANN 0.17.0, DANN 0.18.0
-> UND HEISST JETZT 0.19.0.** Sie ist kein einziges Mal verschoben worden, weil
+> **DIE BEREINIGUNG HIESS EINMAL 0.12.0, DANN 0.13.0, DANN 0.17.0, DANN 0.18.0,
+> DANN 0.19.0 UND HEISST JETZT 0.21.0.** Sie ist kein einziges Mal verschoben worden, weil
 > jemand sie später wollte —
 > **die Nummer war vorgemerkt und nicht vergeben**, und dazwischen sind Runden
 > geplant worden, die Funktionen bringen und damit nach der eigenen Regel MINOR
@@ -7915,6 +7918,34 @@ Wirt, der volle Gegenprobenlauf, der Teilexport und beide Netze.
 
 ---
 
+### 0.17.1 — „Was der Benutzer sieht" · *PATCH*
+
+**BEAUFTRAGT am 30. August 2026.** *Nichts aus dem Sammelblatt — sechs Befunde
+aus einem Rundlauf von Hand, unmittelbar nachdem 0.17.0 gebaut war.*
+
+**Die Ausarbeitung steht im Auftrag** (`Doku/Auftrag_0.17.1.md`) und nicht hier;
+sie ist für eine PATCH-Runde kurz genug, dass eine zweite Fassung daneben nur
+auseinanderlaufen könnte. **In einem Satz je Punkt:**
+
+1. **Der Text im Kachel „Zugang" stimmt nicht und sagt zu viel.** „Freiwillig"
+   gilt nicht bei eingeschalteter Selbstanmeldung, „mindestens 10 Zeichen" steht
+   am falschen Feld, **und der Server-Befehl geht nur den Eigentümer an** — alle
+   anderen wenden sich an den Admin.
+2. **Kacheln nutzen ihre Höhe nicht:** eine feste Höhe an `.manage-list` blendet
+   einen Rollbalken ein, wo Platz ist. **Eine Regel für alle Listen.**
+3. **Der Mailversand ordnet sich** in vier Reihen — *wer · wohin · womit · als
+   wer* — statt sechs Felder über die volle Breite.
+4. **Aus „Anlage" wird „Instanz",** überall in den lebenden Dateien. *Die
+   abgeschlossenen Papiere bleiben, wie sie sind; `#/system/anlage` wird weiter
+   verstanden.*
+5. **Die Zeile einer Sitzung** trägt beide Zeitangaben rechtsbündig
+   untereinander.
+6. **Das Video fängt im Vollbild ein zweites Mal an** — der einzige echte
+   Fehler. *Die Lightbox baut sich einen eigenen Abspieler; gebaut wird ein
+   fliegender Wechsel.*
+
+---
+
 ### 0.18.0 — „Die Suche wird nachvollziehbar" · *MINOR*
 
 *(War als 0.17.0 vorgemerkt; die Nummer ist am 30. August 2026 an die Runde
@@ -8022,9 +8053,17 @@ macht den einfachen Fall teurer, um den seltenen billiger zu machen.
 
 ---
 
-### 0.19.0 — „Bereinigung — der Bruch" · *MINOR*
+### 0.19.0 — „Die Bildablage" · *MINOR*
 
 **Ausgearbeitet aus dem Sammelblatt:** Nr. 15
+
+> **DIESER ABSCHNITT HIESS BIS ZUM 30. AUGUST 2026 „Bereinigung — der Bruch",
+> und das war ein Versehen.** Sein Inhalt war schon immer die **Bildablage**;
+> beim Rücken der Nummern in 0.17.0 ist die Überschrift mitgewandert, der
+> Inhalt gehörte nie dazu. *Das Sammelblatt führte 0.19.0 durchgehend als
+> Bildablage, der Fahrplan als Bereinigung — zwei Wahrheiten über dieselbe
+> Nummer (Stolperstein 47).* **Aufgelöst: die Bildablage behält 0.19.0, die
+> Bereinigung rückt auf 0.21.0.**
 
 
 #### Die Bildablage: das Original und zwei Ableitungen — an einer Stelle
@@ -8118,6 +8157,105 @@ Prüflagen. **Kein Schema in beiden Fällen.**
 **Was dagegen spricht:** gegen (c) nichts. Gegen (b) spricht, dass nichts
 klemmt — *es ist eine Ersparnis ohne Not, und sie fasst den Weg an, über den
 jedes Bild der Anlage läuft.*
+
+#### Dazugekommen am 30. August 2026: der engere Ausschnitt und das Bildformat
+
+*(Aus dem Betrieb, nicht aus dem Sammelblatt — beim Durchsehen von 0.17.0.)*
+
+**(d) DER AUSSCHNITT SOLL SICH ENGER WÄHLEN LASSEN.** Heute lässt sich nur
+verschieben, nicht zoomen.
+
+> **NACHGESEHEN, UND DIE ANTWORT IST ANGENEHM:** es wird **gar nichts
+> geschnitten.** `fokus()` liefert zwei Prozentwerte als `object-position`, die
+> Datei bleibt ganz. **Ein engerer Ausschnitt wäre ein drittes Maß daneben** —
+> wieder rein in der Anzeige, **ohne jede Neuberechnung des Bildes.**
+> *Aber es ist eine gespeicherte Spalte, und damit eine Datenbankstufe. Genau
+> deshalb steht der Punkt hier und nicht in 0.17.1.*
+
+**(e) DAS BILDFORMAT SOLL WÄHLBAR SEIN.** Der Bestand ist auf rund 700 MB
+gewachsen.
+
+> **ZWEI BEFUNDE VORWEG, beide nachgesehen und beide angenehm:**
+> **Erstens: die Bilder liegen nicht als PNG.** `makeVariants()` kodiert
+> **jedes** Bild neu — `thumb` 400 px bei q78, `medium` 1600 px bei q84, beide
+> mit mozjpeg; die Kommentarbilder denselben Weg. **PNG kommt herein, nie
+> hinaus.**
+> **Zweitens: WebP kostet keine neue Abhängigkeit.** `sharp` ist längst da und
+> kann es; der Wechsel wäre je Stelle eine Zeile. *Realistisch 25 bis 35 Prozent
+> kleiner bei gleicher Qualität.*
+
+**WAS ZUERST GEMESSEN GEHÖRT, BEVOR JEMAND ETWAS BAUT:** wie sich die 700 MB
+auf **Original**, `medium` und `thumb` verteilen. **Liegt das Gewicht am
+Original, ist die Umstellung der Ableitungen die kleinere Hälfte** — und die
+Frage lautet dann, ob das Original überhaupt bleiben muss. *Eine Ersparnis, die
+man nicht gemessen hat, ist eine Vermutung.*
+
+**Der Ort für die Einstellung ist „Datenbank" und nicht der Reiter „Instanz":**
+das Format entscheidet, wie viel Platz der Bestand braucht, und dort steht schon
+alles andere, was über Platz redet.
+
+---
+
+### 0.20.0 — „Die Oberfläche wird ruhiger" · *MINOR* *(Nummer vorläufig)*
+
+**Neu am 30. August 2026, aus dem Betrieb.** *Nichts aus dem Sammelblatt.*
+
+### Woher
+
+**Aus einer fremden Fassung derselben Anwendung** — ein anderes Modell hat auf
+Zuruf eine aufgehübschte Oberfläche gebaut, und der Betreiber hat sie zum
+Vergleich abgelegt (`fardem/kriterium-Gemini`). **Sie dient als Anregung und
+nicht als Vorlage zum Abschreiben** — weder ihre Optik eins zu eins noch
+irgendetwas unter der Haube.
+
+### Was auffiel
+
+**Die Oberfläche ist sachlich, und das ist richtig — aber sie ist auch
+unbewegt.** Nichts hebt sich, nichts antwortet auf einen Zeiger, die Rolle eines
+Zugangs steht als graues Wort neben seinem Namen. *Ein Hauch Moderne würde ihr
+guttun, ohne dass sie ihre Ruhe verliert.*
+
+### Was gebaut werden könnte
+
+* **Karten heben sich beim Überfahren** — zwei Pixel, nicht vier.
+* **Eigene Fokusringe** statt der Vorgabe des Browsers.
+* **Weichere Übergänge an den Dialogen** — ohne Tiefenunschärfe.
+* **Die Kopfzeile setzt sich beim Rollen ab** — mit einem Schatten, nicht mit
+  Milchglas.
+* **Rolle und Status als farbige Marken** in der Zugangsliste statt als graue
+  Wörter. *Die Rollen sind die eigenen — Benutzer, Admin, Eigentümer —, und
+  einen Anzeigenamen gibt es hier nicht.*
+* **Bewegung nur, wo sie etwas sagt:** die Glocke, wenn etwas Neues da ist; die
+  Karte, die gerade gespeichert wurde. **`prefers-reduced-motion` bleibt.**
+
+### Was es ausdrücklich NICHT wird
+
+**Jede Zeile hier ist abgelehnt, weil sie einer Regel widerspricht, die sich
+dieses Projekt selbst gegeben hat.** *Das ist der eigentliche Wert dieser
+Ausarbeitung: nicht die Liste dessen, was schön wäre, sondern die Begründung
+dessen, was nicht mitkommt.*
+
+| was | warum nicht |
+|---|---|
+| **Pulsierender Punkt für „AES-GCM 256-Bit"** | Abschnitt 5.6: *eine Oberfläche sagt, WAS IST — nicht, wie sie gebaut ist.* Ein blinkendes Abzeichen für ein Chiffrierverfahren ist Werbung, keine Auskunft |
+| **Versionsnummer in einem Fußdock** | dieselbe Regel; 0.17.0 hat gerade die letzte Versionsnummer aus der Oberfläche genommen |
+| **Milchglas (`backdrop-filter: blur`)** | kostet auf dem Telefon spürbar Leistung und macht Text unruhig. *0.17.0 hat zwei Anzeigefehler auf einem S21 behoben; das ginge in die Gegenrichtung* |
+| **Orange-Verläufe an Knöpfen** | *„Gold ist Bewertung und Anheftung, Orange ist Art und Bedienung"* — und **keine neue Farbe.** Ein Verlauf bringt zwei |
+| **Leuchtende Sterne** | Gold ist schon die Auszeichnung; ein Glühen wäre ein zweiter Kanal für dieselbe Aussage |
+| **Schwebendes Fußdock** | unten sitzt auf dem Telefon bereits die Vergleichsleiste — der Konflikt steht im Sammelblatt |
+
+### Was es anfasst
+
+**`public/style.css`, und sonst möglichst nichts.** Die farbigen Marken an Rolle
+und Status brauchen dazu zwei Klassen in `public/app.js`. **Kein Schema, keine
+Route, keine neue Abhängigkeit.**
+
+**Und die Runde bekommt eine geschriebene Gestaltungsregel in Abschnitt 5.6**,
+neben Farbe und Marke. *Sonst läuft es beim nächsten Mal wieder auseinander.*
+
+**Was dagegen spricht:** nichts klemmt. *Es ist eine Runde ohne Not — und
+genau deshalb gehört sie hinter die beiden, die Funktionen bringen, und vor die
+Bereinigung, damit der Bruch nicht auch noch die Optik mitträgt.*
 
 ---
 

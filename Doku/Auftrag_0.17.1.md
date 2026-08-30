@@ -357,90 +357,28 @@ Lehre ist nicht „keine Agenten", sondern:
 * **DAS KONZEPTPAPIER UND DAS VIDEOPAPIER WERDEN NICHT ANGEFASST.** Fällt dir
   dort etwas auf, das falsch wird, ist das ein Befund und gehört gemeldet.
 
-### Der Fahrplan wird gerade gezogen — und ein Widerspruch aufgelöst
+### Der Fahrplan steht anderswo, und das mit Absicht
 
-> **DIE BEIDEN PAPIERE SIND SICH ÜBER 0.19.0 NICHT EINIG.** Der Projektstand
-> führt sie in Abschnitt 10 als **„Bereinigung — der Bruch"**, das Sammelblatt
-> in seinem Fahrplan als **„Die Bildablage"**. *Zwei Wahrheiten über dieselbe
-> Nummer (Stolperstein 47) — vermutlich beim Rücken der Nummern in 0.17.0
-> entstanden.* **Das gehört aufgelöst und als Befund vermerkt.**
+> **DER PLAN STEHT IM PROJEKTSTAND, ABSCHNITT 10 — und sonst nirgends.** Das
+> Sammelblatt führt dazu einen **Wegweiser** und keinen zweiten Eintrag. **Ein
+> Auftrag ist kein Ort für den Fahrplan:** er wird beim Schreiben des nächsten
+> entfernt, und was nur hier stünde, wäre danach weg.
 
-**So sieht der Fahrplan nach dieser Runde aus:**
+**Am 30. August 2026 ist der Fahrplan bereits nachgezogen worden**, samt einem
+Widerspruch, der beim Rücken der Nummern in 0.17.0 entstanden war: *Abschnitt
+10a trug die Überschrift „0.19.0 — Bereinigung", der Inhalt war die
+Bildablage.* **Aufgelöst — die Bildablage behält 0.19.0, die Bereinigung rückt
+auf 0.21.0, und dazwischen steht die Optikrunde als 0.20.0.**
 
-| Nummer | Runde |
-|---|---|
-| **0.17.1** *PATCH* | *diese Runde* |
-| **0.18.0** *MINOR* | Die Suche wird nachvollziehbar |
-| **0.19.0** *MINOR* | **Die Bildablage** — Original und zwei Ableitungen, **dazu der engere Bildausschnitt und das wählbare Bildformat** |
-| **0.20.0** *MINOR* | **Die Oberfläche wird ruhiger** *(neu)* |
-| **0.21.0** *MINOR* | **Bereinigung — der Bruch** |
+**Diese Runde hat damit am Fahrplan nur eines zu tun:** ihre eigene Zeile in
+Abschnitt 10 und ihren Abschnitt in 10a von **BEAUFTRAGT** auf **GEBAUT**
+setzen, wenn sie fertig ist.
 
-*Die Bereinigung hieß einmal 0.12.0, dann 0.13.0, 0.17.0, 0.18.0, 0.19.0 — und
-heißt jetzt 0.21.0. **Sie ist kein einziges Mal verschoben worden, weil jemand
-sie später wollte:** die Nummer war vorgemerkt und nicht vergeben. Der Satz
-dazu steht im Projektstand und bleibt.*
-
-**Beide Zeilen — die Bildablage und die Optik — bekommen eine Ausarbeitung in
-Abschnitt 10a**, damit die Entscheidungen nicht verlorengehen.
-
----
-
-## Anhang: was für 0.19.0 und 0.20.0 schon entschieden ist
-
-*Damit es beim Schreiben der beiden Aufträge nicht noch einmal besprochen
-werden muss. **Nichts davon wird in dieser Runde gebaut.***
-
-### Für die Bildablage (0.19.0)
-
-* **Der engere Ausschnitt geht ohne Neuberechnung.** Heute wird gar nichts
-  geschnitten: `fokus()` liefert nur `object-position: X% Y%`, die Datei bleibt
-  ganz. Ein engerer Ausschnitt wäre ein **drittes** Maß daneben — wieder rein in
-  der Anzeige, aber als **gespeicherte Spalte**, und damit eine Datenbankstufe.
-* **Die Bilder liegen nicht als PNG, sondern als JPEG.** `makeVariants()`
-  kodiert **jedes** Bild neu — `thumb` 400 px bei q78, `medium` 1600 px bei q84,
-  beide mit mozjpeg; Kommentarbilder denselben Weg. **PNG kommt herein, nie
-  hinaus.**
-* **WebP kostet keine neue Abhängigkeit** — `sharp` ist längst da und kann es.
-  Der Wechsel wäre je Stelle eine Zeile. **Realistisch 25 bis 35 Prozent
-  kleiner bei gleicher Qualität.**
-* **Der eigentliche Hebel bei 700 MB ist vermutlich das Original**, das neben
-  den Ableitungen liegt. **Das gehört zuerst gemessen und dann entschieden** —
-  nicht andersherum.
-* **Der Ort für die Einstellung ist „Datenbank" und nicht „Instanz":** das
-  Format entscheidet, wie viel Platz der Bestand braucht.
-
-### Für die Oberfläche (0.20.0)
-
-**Die Vorlage ist eine fremde Fassung** (`fardem/kriterium-Gemini`), und sie
-dient als **Anregung, nicht als Vorlage zum Abschreiben** — weder ihre Optik
-eins zu eins noch irgendetwas unter der Haube.
-
-**Übernommen wird, was zur Anwendung passt:**
-
-* Sanftes Anheben der Karten beim Überfahren — **zwei Pixel, nicht vier**.
-* Ruhigere, eigene Fokusringe statt der Vorgabe des Browsers.
-* Weichere Übergänge an den Dialogen — **ohne** Tiefenunschärfe.
-* Die Kopfzeile beim Rollen leicht abgesetzt — **Schatten statt Milchglas**.
-* **Die Zugangsliste bekommt Form:** Rolle und Status als **farbige Marken**
-  statt als graue Wörter. *Die Rollen sind unsere eigenen — Benutzer, Admin,
-  Eigentümer —, und einen Anzeigenamen gibt es hier nicht.*
-* Bewegung **nur, wo sie etwas sagt**: die Glocke, wenn etwas Neues da ist; die
-  Karte, die gerade gespeichert wurde. **`prefers-reduced-motion` bleibt.**
-
-**Nicht übernommen wird, und jedes Mal mit demselben Grund — es widerspricht
-einer Regel, die sich dieses Projekt selbst gegeben hat:**
-
-| was | warum nicht |
-|---|---|
-| **Pulsierender Punkt für „AES-GCM 256-Bit"** | Abschnitt 5.6: *eine Oberfläche sagt, WAS IST, nicht, wie sie gebaut ist.* Ein blinkendes Abzeichen für ein Chiffrierverfahren ist Werbung, keine Auskunft |
-| **Versionsnummer im Fußdock** | dieselbe Regel — 0.17.0 hat gerade die letzte aus der Oberfläche genommen |
-| **Milchglas (`backdrop-filter: blur`)** | kostet auf dem Telefon spürbar Leistung und macht Text unruhig. 0.17.0 hat zwei Anzeigefehler auf einem S21 behoben; das ginge in die Gegenrichtung |
-| **Orange-Verläufe an Knöpfen** | *„Gold ist Bewertung und Anheftung, Orange ist Art und Bedienung"* — und **keine neue Farbe**. Ein Verlauf bringt zwei |
-| **Leuchtende Sterne** | Gold ist schon die Auszeichnung; ein Glühen wäre ein zweiter Kanal für dieselbe Aussage |
-| **Schwebendes Fußdock** | unten sitzt auf dem Telefon bereits die Vergleichsleiste — der Konflikt steht im Sammelblatt |
-
-**Und die Runde bekommt eine geschriebene Gestaltungsregel in Abschnitt 5.6**,
-neben Farbe und Marke. *Sonst läuft es beim nächsten Mal wieder auseinander.*
+> **WAS FÜR 0.19.0 UND 0.20.0 SCHON ENTSCHIEDEN IST, STEHT IN 10a** — der
+> engere Bildausschnitt und das wählbare Bildformat bei der Bildablage, die
+> Optik samt der Liste dessen, was ausdrücklich **nicht** mitkommt.
+> **Nichts davon wird in dieser Runde gebaut.** *Wer es hier hereinzieht,
+> macht aus einer PATCH-Runde eine andere.*
 
 ---
 
