@@ -30487,7 +30487,7 @@ async function pruefeOberflaeche() {
 
     /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke: eine Meldung, die man
        nicht anspringen kann, ist eine Mitteilung ohne Weg. */
-    dok.getElementById('glocke').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    dok.getElementById('glocke')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     const tafel = dok.getElementById('glocken-modal');
     pruefe('Der Klick oeffnet die Tafel', !!tafel, dok.body.innerHTML.slice(0, 140));
@@ -30583,7 +30583,12 @@ async function pruefeOberflaeche() {
       gleich(werkzeuge, ['zoom', 'weg', 'close']), JSON.stringify(werkzeuge));
 
     const bilderVorher = [...dok.querySelectorAll('.lightbox .lb-thumb')].length;
-    weg().dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    /* MIT FRAGEZEICHEN, und das ist keine Zierde: nimmt ein Rueckbau den
+       Papierkorb weg, ist `weg()` null. Ohne das Zeichen risse der Lauf hier
+       ab, statt die Zusagen darunter rot zu faerben -- und eine abgerissene
+       Gegenprobe belegt gar nichts (Stolperstein 161). Genau das hat Rueckbau
+       297 vorgefuehrt. */
+    weg()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     const frage = dok.querySelector('.backdrop .modal');
     pruefe('Der Papierkorb fragt zuerst nach', !!frage, dok.body.innerHTML.slice(0, 140));
@@ -30600,7 +30605,7 @@ async function pruefeOberflaeche() {
       [...dok.querySelectorAll('.lightbox .lb-thumb')].length === bilderVorher,
       `${[...dok.querySelectorAll('.lightbox .lb-thumb')].length} statt ${bilderVorher}`);
 
-    weg().dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    weg()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     dok.querySelector('.backdrop [data-yes]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
