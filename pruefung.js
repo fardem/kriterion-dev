@@ -24502,9 +24502,25 @@ async function pruefeOberflaeche() {
   pruefe('Sie nennt AUTH_RESET nicht mehr',
     !!rZugangKarte && !/AUTH_RESET/.test(rZugangKarte.textContent || ''),
     rZugangKarte?.textContent?.slice(0, 200));
-  pruefe('Sondern den Befehl, der wirklich hilft',
-    !!rZugangKarte && /zugang\.js passwort/.test(rZugangKarte.textContent || ''),
+  /* SEIT 0.17.1 HAENGT DER BEFEHL AN DER ROLLE. Er laeuft auf dem Wirt, und
+     dort sitzt in der Regel der Eigentuemer; einem gewoehnlichen Benutzer ist
+     er eine Auskunft ueber den Betrieb und kein Weg. BEIDE SEITEN WERDEN
+     GEPRUEFT -- eine Verneinung allein belegte nichts darueber, ob der Befehl
+     ueberhaupt noch irgendwo steht (Stolperstein 81). */
+  pruefe('Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da',
+    !!rZugangKarte && !/zugang\.js passwort/.test(rZugangKarte.textContent || ''),
     rZugangKarte?.textContent?.slice(0, 300));
+  pruefe('Sondern der Satz, der ihm wirklich hilft',
+    !!rZugangKarte && /wendet sich an den Admin/.test(rZugangKarte.textContent || ''),
+    rZugangKarte?.textContent?.slice(0, 300));
+  {
+    await sysAbschnitt(rEig.w, 'persoenlich');
+    const eigZugang = [...rEig.w.document.querySelectorAll('.sys-card')]
+      .find(k => k.querySelector('h3')?.textContent.trim() === 'Zugang');
+    pruefe('Beim Eigentuemer steht er sehr wohl',
+      !!eigZugang && /zugang\.js passwort/.test(eigZugang.textContent || ''),
+      eigZugang?.textContent?.slice(0, 300));
+  }
   // Und ausdruecklich in der ganzen Oberflaeche nicht mehr als Anleitung:
   // der String steht in app.js nur noch dort, wo sie hingehoert.
   const rAppQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
@@ -26588,8 +26604,10 @@ async function pruefeOberflaeche() {
       feld?.value === 'chefin@beispiel.de', JSON.stringify(feld?.value));
     pruefe('Die Karte sagt, dass die Adresse freiwillig ist',
       /freiwillig/.test(d.w.document.body.textContent), 'kein Hinweis');
-    pruefe('Und dass ohne sie nichts fehlt',
-      /Ohne sie fehlt nichts/.test(d.w.document.body.textContent),
+    /* SEIT 0.17.1 KUERZER, und die Zusage ist dieselbe geblieben: ohne Adresse
+       steht der Link wie immer zum Kopieren bereit. */
+    pruefe('Und dass der Link auch ohne sie zum Kopieren bereitsteht',
+      /Ohne sie steht der Link wie immer zum Kopieren bereit/.test(d.w.document.body.textContent),
       d.w.document.body.textContent.slice(0, 100));
   }
   {
@@ -31598,6 +31616,80 @@ async function pruefeOberflaeche() {
      Anordnung, einer ist ein echter Fehler. Sie stehen hier in derselben
      Reihenfolge wie im Auftrag, und jede Gruppe sagt oben, WAS sie belegen
      kann und was nicht. */
+
+  /* ---- 1. Der Text im Kachel „Zugang" sagt, was gilt ---- */
+  gruppe('Der Zugangstext sagt, was gilt — 0.17.1');
+
+  /* DREI SACHEN WAREN DARAN FALSCH: „freiwillig" auch bei eingeschalteter
+     Selbstanmeldung, „Mindestens 10 Zeichen" am Adressfeld statt am Passwort,
+     und ein Wirtsbefehl fuer Leute ohne Wirt.
+     BEIDE LAGEN WERDEN GEFAHREN. Eine Gruppe, die nur den einen Zustand
+     stellt, belegt nichts ueber den anderen -- und ein Satz, der IMMER
+     dasteht, bestuende sie genauso (Stolperstein 81 und 189). */
+  const zt = async (registrierung) => {
+    const d = baueDom(JSDOM, { registrierung,
+      einstellungen: { filters: null, benutzerZahl: 4, istAdmin: false, istEigentuemer: false } });
+    await new Promise(r => setTimeout(r, 60));
+    await sysAbschnitt(d.w, 'persoenlich');
+    return d;
+  };
+  const ztKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Zugang');
+  {
+    const dAus = await zt(false), dAn = await zt(true);
+    pruefe('Die Karte „Zugang" steht in beiden Lagen da',
+      !!ztKarte(dAus) && !!ztKarte(dAn),
+      `${!!ztKarte(dAus)} / ${!!ztKarte(dAn)}`);
+    const tAus = ztKarte(dAus)?.textContent || '', tAn = ztKarte(dAn)?.textContent || '';
+    /* DIE MARKE HAENGT AM ADRESSFELD und nicht irgendwo in der Karte: gelesen
+       wird die Beschriftung DES FELDES, sonst faende die Zeile auch ein
+       „freiwillig", das an einer ganz anderen Stelle steht. */
+    const ztLabel = (d) => d.w.document.getElementById('acc-mail')
+      ?.closest('.field')?.querySelector('label')?.textContent || '';
+    pruefe('Ohne Selbstanmeldung steht am Adressfeld „(freiwillig)"',
+      /\(freiwillig\)/.test(ztLabel(dAus)), ztLabel(dAus));
+    pruefe('Mit Selbstanmeldung steht dort „(wird gebraucht)"',
+      /\(wird gebraucht\)/.test(ztLabel(dAn)) && !/freiwillig/.test(ztLabel(dAn)),
+      ztLabel(dAn));
+    pruefe('Ohne Selbstanmeldung sagt der Absatz, wofuer die Adresse gebraucht wird',
+      /Einladungs- oder Rücksetzlink per Mail/.test(tAus) &&
+      /Ohne sie steht der Link wie immer zum Kopieren bereit/.test(tAus),
+      tAus.slice(0, 260));
+    pruefe('Mit Selbstanmeldung sagt er, dass sie gebraucht WIRD',
+      /Die Adresse wird gebraucht/.test(tAn) && /keine Bestätigungsmail/.test(tAn),
+      tAn.slice(0, 260));
+    /* UND DIE ALTE BEHAUPTUNG IST WEG. „Ohne sie fehlt nichts" war die Lage,
+       die der Satz behauptet hat -- bei eingeschalteter Selbstanmeldung stimmt
+       sie nicht. */
+    pruefe('Die alte Behauptung „ohne sie fehlt nichts" steht nirgends mehr',
+      !/Ohne sie fehlt nichts/.test(tAus) && !/Ohne sie fehlt nichts/.test(tAn),
+      `${/Ohne sie fehlt nichts/.test(tAus)} / ${/Ohne sie fehlt nichts/.test(tAn)}`);
+
+    /* DIE VORGABE STEHT AM FELD, FUER DAS SIE GILT. Erst dort, dann
+       ausdruecklich NICHT am Adressfeld -- eine Verneinung allein belegte
+       nicht, dass die Angabe ueberhaupt noch irgendwo steht. */
+    const ztPw = dAus.w.document.getElementById('acc-new')
+      ?.closest('.field')?.querySelector('label')?.textContent || '';
+    pruefe('Die Laengenvorgabe steht am Feld „Neues Passwort"',
+      /mindestens 10 Zeichen/.test(ztPw), ztPw);
+    pruefe('Und nicht mehr am Adressfeld',
+      !/Zeichen/.test(ztLabel(dAus)), ztLabel(dAus));
+    pruefe('Und auch nicht mehr im Absatz darunter',
+      !/Mindestens 10 Zeichen/.test(tAus), tAus.slice(0, 260));
+
+    /* DIE KLEMME SITZT AN DERSELBEN STELLE WIE DIE KARTE und nicht an einer
+       zweiten Abfrage daneben (Stolperstein 47). Gezaehlt wird, was wirklich
+       hinausgeht: waere fuer den neuen Satz ein eigener Abruf dazugekommen,
+       stuenden hier zwei verschiedene Zahlen. */
+    const ztAbrufe = (d) => d.gesendet.filter(x => x.methode === 'GET').map(x => x.url).sort();
+    pruefe('Beide Lagen holen genau dieselben Auskuenfte',
+      gleich(ztAbrufe(dAus), ztAbrufe(dAn)),
+      `${ztAbrufe(dAus).length} gegen ${ztAbrufe(dAn).length}`);
+    pruefe('Und keine davon fragt eigens nach der Selbstanmeldung',
+      !ztAbrufe(dAus).some(u => /registrierung/.test(u)),
+      ztAbrufe(dAus).join(' · '));
+    dAus.w.close(); dAn.w.close();
+  }
 
   /* ---- 2. Die Kachel gibt der Liste ihre Hoehe ---- */
   gruppe('Die Liste bekommt die Hoehe der Kachel — 0.17.1');

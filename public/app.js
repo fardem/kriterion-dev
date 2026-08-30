@@ -5799,6 +5799,20 @@ function ruesteTitelAus() {
 
 
 /* ---- Karte „Zugang" — Abschnitt „Persönlich" ---- */
+/* ZWEI KLEMMEN, UND BEIDE SITZEN HIER -- an derselben Stelle wie die Karte
+   selbst und nicht an einer zweiten Abfrage daneben (Stolperstein 47).
+   ERSTENS DIE SELBSTANMELDUNG. Ist sie an, ist die Adresse keine
+   Bequemlichkeit mehr: ohne sie kommt keine Bestätigungsmail an. Der Satz
+   RICHTET SICH DANACH, WAS GERADE GILT, statt eine Lage zu behaupten.
+   Gelesen wird `REGISTRIERUNG` -- derselbe Merker, aus dem die Anmeldeseite
+   ihr Formular baut. Ein zweiter Abruf daneben wäre eine zweite Wahrheit, und
+   die läuft auseinander, sobald jemand den Schalter umlegt.
+   ZWEITENS DIE ROLLE. Der Befehl auf dem Wirt steht nur beim Eigentümer: er
+   ist der Einzige, der in der Regel auch am Server sitzt. Wer dort nicht
+   hinkommt, dem nützt der Befehl nichts — er ist für ihn eine Auskunft über
+   den Betrieb und kein Weg. Für ihn steht dort der Satz, der wirklich hilft.
+   WAS HILFT DEM, DER DAVORSTEHT — und was erzählt ihm nur, wie es gebaut ist?
+   Eine Oberfläche sagt, WAS IST (Projektstand 5.6). */
 function karteZugang(geholt) {
   const { zugang } = geholt;
   return `<div class="sys-card">
@@ -5815,24 +5829,33 @@ function karteZugang(geholt) {
               Rücksetzlink des Betroffenen auf ein Postfach seiner Wahl.
               Sie steht hinter dem bisherigen Passwort wie Name und Passwort
               daneben — aus demselben Grund. */''}
-        <div class="field"><label>E-Mail-Adresse <span class="hint">(freiwillig)</span></label>
+        <div class="field"><label>E-Mail-Adresse <span class="hint">${
+          REGISTRIERUNG ? '(wird gebraucht)' : '(freiwillig)'}</span></label>
           <input class="input" id="acc-mail" type="email" autocomplete="email"
             autocapitalize="off" spellcheck="false" value="${esc(zugang.email || '')}"
             placeholder="noch keine hinterlegt"></div>
         <div class="field"><label>Bisheriges Passwort</label>
           <input class="input" id="acc-old" type="password" autocomplete="current-password"></div>
-        <div class="field"><label>Neues Passwort</label>
+        ${/* DIE VORGABE STEHT AM FELD, FÜR DAS SIE GILT. „Mindestens 10
+              Zeichen“ stand bis 0.17.0 im Absatz unter der ADRESSE — dort
+              gehört sie nicht hin, und wer sie dort las, hielt sie für eine
+              Vorgabe an die Adresse. */''}
+        <div class="field"><label>Neues Passwort
+          <span class="hint">(mindestens ${MIN_PASSWORT} Zeichen)</span></label>
           <input class="input" id="acc-new" type="password" autocomplete="new-password"></div>
         <div class="field"><label>Neues Passwort wiederholen</label>
           <input class="input" id="acc-new2" type="password" autocomplete="new-password"></div>
-        <p class="desc" style="margin:0 0 10px">Die Adresse ist freiwillig. Sie wird für genau
-          zwei Dinge gebraucht: den Einladungs- oder Rücksetzlink per Mail und die Testmail
-          im Mailversand. <strong>Ohne sie fehlt nichts</strong> — der Link steht wie immer
-          zum Kopieren bereit.
-          Mindestens ${MIN_PASSWORT} Zeichen. Über die
-          Oberfläche gibt es keine Wiederherstellung; vergessen heißt
-          <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>
-          auf dem Server.</p>
+        <p class="desc" style="margin:0 0 10px">${REGISTRIERUNG
+          ? `<strong>Die Adresse wird gebraucht</strong>, solange die Selbstanmeldung an ist:
+             ohne sie kommt keine Bestätigungsmail an. Sie trägt außerdem den Einladungs- oder
+             Rücksetzlink und die Testmail im Mailversand.`
+          : `Wird für den Einladungs- oder Rücksetzlink per Mail gebraucht und für die Testmail
+             im Mailversand. <strong>Ohne sie steht der Link wie immer zum Kopieren bereit.</strong>`}
+          Über die Oberfläche gibt es keine Wiederherstellung; ${EIGENTUEMER
+            ? `vergessen heißt
+               <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>
+               auf dem Server.`
+            : `wer sein Passwort vergessen hat, <strong>wendet sich an den Admin</strong>.`}</p>
         <button class="btn btn-accent btn-sm" id="acc-save">Zugang ändern</button>
 
         ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE
@@ -6871,9 +6894,17 @@ function karteZugaenge() {
         </div>
         <div id="zug-link"></div>
 
+        ${/* DIESELBE KLEMME WIE IN DER KARTE „ZUGANG“, und aus demselben
+              Grund: der Befehl läuft auf dem Wirt, und dort sitzt in der Regel
+              der Eigentümer. Ein Admin, der nicht Eigentümer ist, verwaltet
+              Zugänge über diese Karte und kommt an den Server nicht heran —
+              ihm hilft der Name dessen, der es kann. */''}
         <p class="desc" style="margin:16px 0 0">Passwort vergessen und niemand kommt mehr herein?
-          Auf dem Server hilft
-          <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.</p>
+          ${EIGENTUEMER
+            ? `Auf dem Server hilft
+               <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.`
+            : `Der <strong>Eigentümer</strong> kommt am Server daran; über die Oberfläche gibt
+               es diesen Weg nicht.`}</p>
       </div>`;
 }
 function ruesteZugaengeAus() {
@@ -7313,6 +7344,12 @@ function ruesteAnfragenAus(geholt) {
     try {
       const d = await api('PUT', '/api/registrierung/schalter', { an: neu });
       geholt.anfragen = d;
+      /* DER EINE MERKER ZIEHT MIT. `REGISTRIERUNG` kommt beim Start aus
+         /api/config und traegt die Anmeldeseite; seit 0.17.1 haengt auch der
+         Satz in der Karte „Zugang“ daran. Bliebe er hier stehen, saehe der
+         Admin, der eben umgelegt hat, einen Abschnitt weiter noch die alte
+         Lage -- eine zweite Wahrheit, und zwar die falsche. */
+      REGISTRIERUNG = !!d.an;
       toast(neu ? 'Selbstanmeldung eingeschaltet' : 'Selbstanmeldung ausgeschaltet');
       zeichneAnfragen(d);
       const kaputt = document.getElementById('anf-kaputt');
