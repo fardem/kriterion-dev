@@ -8184,6 +8184,21 @@ gewachsen.
 > kann es; der Wechsel wäre je Stelle eine Zeile. *Realistisch 25 bis 35 Prozent
 > kleiner bei gleicher Qualität.*
 
+> **UND DAS GILT AUCH FÜR ALLES, WAS MIT STRG+V HEREINKOMMT.** Es gibt drei
+> Einfügestellen — am Eintrag, im neuen Kommentar und am nachgereichten —, und
+> **keine davon ist ein eigener Weg:** sie sparen nur den Umweg über eine Datei
+> und landen bei denselben Funktionen wie die Dateiauswahl. *Ebenso das
+> Standbild eines Videos und die Bilder aus einem Import: `makeVariants()` steht
+> an vier Stellen, und alle vier führen dorthin.*
+>
+> **DAS IST SOGAR DAS STÄRKSTE ARGUMENT FÜR (e).** Ein Bildschirmfoto liegt als
+> **PNG** in der Zwischenablage, und **JPEG ist für Bildschirmfotos der falsche
+> Kodierer**: Text auf flachem Hintergrund bekommt bei q84 Kanten und Schlieren.
+> *Genau dort ist WebP am stärksten.* **Sind viele der 700 MB eingefügte
+> Bildschirmfotos, spart die Umstellung nicht nur Platz — sie sieht auch
+> besser aus.** Das gehört bei der Messung unten mit erhoben: **wie viele
+> Bilder sind Bildschirmfotos und nicht Aufnahmen?**
+
 **WAS ZUERST GEMESSEN GEHÖRT, BEVOR JEMAND ETWAS BAUT:** wie sich die 700 MB
 auf **Original**, `medium` und `thumb` verteilen. **Liegt das Gewicht am
 Original, ist die Umstellung der Ableitungen die kleinere Hälfte** — und die
