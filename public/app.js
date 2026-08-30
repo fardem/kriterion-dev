@@ -3168,8 +3168,13 @@ function zentriereBuehne(buehne) {
    SIE LIEFERT `true`, WENN WIRKLICH GELOESCHT WURDE. Ohne diese Antwort
    muesste das Vollbild raten, ob es sein Bild aus der Liste nehmen darf --
    und naehme es auch dann heraus, wenn der Mensch die Rueckfrage abgebrochen
-   hat. */
-function openLightbox(photos, startIdx, title, loeschen) {
+   hat.
+   `innen` IST FREIWILLIG UND LIEFERT DEN INNEREN ABSPIELER. Es ist eine
+   FUNKTION und kein Element: der Betrachter darunter zeichnet sich beim
+   Loeschen neu, und ein gemerktes Element zeigte danach auf einen Knoten, den
+   es nicht mehr gibt. Wer keinen mitgibt -- die Kommentarbilder etwa --
+   bekommt keinen Wechsel; dort gibt es auch nichts zu uebernehmen. */
+function openLightbox(photos, startIdx, title, loeschen, innen) {
   if (!photos.length) return;
   lightboxOpen = true;
   let i = startIdx, zoomed = false;
@@ -3207,16 +3212,65 @@ function openLightbox(photos, startIdx, title, loeschen) {
   const abspieler = lb.querySelector('.lb-video');
   const strip = lb.querySelector('.lb-strip');
 
+  /* ---- DER FLIEGENDE WECHSEL ----
+     DAS VOLLBILD IST DERSELBE FILM, NUR GROESSER. Bis 0.17.0 baute es sich
+     seinen eigenen Abspieler und liess den inneren stehen, wo er war: zwei
+     Elemente mit derselben Quelle, zwei Tonspuren, zwei Stellen im Film.
+     Also wird uebergeben. Der hier uebernimmt Stelle und Zustand des inneren,
+     und der innere GIBT SEINE QUELLE AB -- anhalten allein genuegt nicht: ein
+     Element mit Quelle laedt weiter, und es bliebe ein zweiter Abspieler.
+     DIE PROBE IST DIE QUELLE UND NICHT DIE NUMMER. Nur wenn der innere
+     wirklich dieses Video traegt, gehoert ihm die Stelle -- steht dort ein
+     anderes Bild oder gar nichts, wird nichts uebernommen und nichts
+     angehalten.
+     DIE LEERE QUELLE IST DAS ERKENNUNGSZEICHEN FUER DEN RUECKWEG: leer ist
+     nur der, dem wir sie genommen haben. */
+  const innerer = () => (typeof innen === 'function' ? innen() : null) || null;
+  let uebergabe = null;
+  {
+    const el = innerer();
+    const quelle = istVideo(photos[i]) ? bildQuelle(photos[i], '') : null;
+    if (el && quelle && el.getAttribute('src') === quelle) {
+      uebergabe = { quelle, stelle: el.currentTime || 0, lief: !el.paused, offen: true };
+      el.pause();
+      el.removeAttribute('src');
+      el.load();
+    }
+  }
+
   /* ANHALTEN BEIM BLAETTERN UND BEIM VERLASSEN. Ohne das spielt der Ton
      weiter, waehrend man das naechste Bild ansieht -- und beim Schliessen
      bliebe ein unsichtbares Element am Laufen. Die Quelle wird mit
-     abgeraeumt, sonst laedt der Browser weiter. */
+     abgeraeumt, sonst laedt der Browser weiter.
+     UND HIER WIRD DIE STELLE MITGENOMMEN, BEVOR SIE FAELLT: nach dem
+     removeAttribute steht sie nicht mehr da. Das gilt fuers Blaettern wie
+     fuers Schliessen -- beide gehen durch diese eine Stelle, und deshalb
+     braucht der Rueckweg keine zweite. */
   const halteAn = () => {
     if (!abspieler.hidden || abspieler.src) {
+      if (uebergabe && abspieler.getAttribute('src') === uebergabe.quelle) {
+        uebergabe.stelle = abspieler.currentTime || 0;
+        uebergabe.lief = !abspieler.paused;
+      }
       abspieler.pause();
       abspieler.removeAttribute('src');
       abspieler.load();
     }
+  };
+
+  /* ZURUECK GEHT ES DENSELBEN WEG -- Quelle und Stelle wandern an den inneren
+     Abspieler zurueck. ABER NUR, WENN ER NOCH DERSELBE IST: Loeschen aus dem
+     Vollbild zeichnet den Betrachter darunter neu, und der neue traegt schon
+     seine eigene Quelle. Sie zu ueberschreiben hiesse, ihn auf eine Adresse zu
+     setzen, die es vielleicht gar nicht mehr gibt. */
+  const gibZurueck = () => {
+    if (!uebergabe) return;
+    const el = innerer();
+    if (!el || el.getAttribute('src')) return;
+    el.src = uebergabe.quelle;
+    el.currentTime = uebergabe.stelle;
+    if (uebergabe.lief) el.play()?.catch?.(() => {});
+    uebergabe = null;
   };
 
   // Erst wenn das Original geladen ist, stehen seine Masse fest -- vorher waere
@@ -3243,6 +3297,18 @@ function openLightbox(photos, startIdx, title, loeschen) {
     if (video) {
       abspieler.poster = bildQuelle(photos[i], 'medium');
       abspieler.src = bildQuelle(photos[i], '');
+      /* DIE UEBERNOMMENE STELLE GILT EINMAL, beim Oeffnen. Wer im Vollbild
+         weiterblaettert und zurueckkommt, faengt vorn an -- so wie jedes
+         andere Video dort auch.
+         VOR DEM LADEN GESETZT IST currentTime die "default playback start
+         position": der Browser merkt sich die Zahl und springt hin, sobald er
+         die Masse kennt. Ein Warten auf loadedmetadata braucht es dafuer
+         nicht. */
+      if (uebergabe && uebergabe.offen && abspieler.getAttribute('src') === uebergabe.quelle) {
+        uebergabe.offen = false;
+        abspieler.currentTime = uebergabe.stelle;
+        if (uebergabe.lief) abspieler.play()?.catch?.(() => {});
+      }
     } else {
       img.src = bildQuelle(photos[i], 'medium');
     }
@@ -3280,6 +3346,7 @@ function openLightbox(photos, startIdx, title, loeschen) {
 
   const close = () => {
     halteAn();
+    gibZurueck();
     lightboxOpen = false;
     document.removeEventListener('keydown', onKey, true);
     document.body.classList.remove('lb-open');
@@ -3300,7 +3367,12 @@ function openLightbox(photos, startIdx, title, loeschen) {
      WAR ES DAS LETZTE BILD, GEHT DAS VOLLBILD ZU. Ein leeres Vollbild mit
      „0 / 0" waere die Ansicht eines Nichts. */
   lb.querySelector('.weg')?.addEventListener('click', async () => {
-    if (!await loeschen(photos[i])) return;
+    const weg = photos[i];
+    if (!await loeschen(weg)) return;
+    /* WAS GELOESCHT IST, WANDERT NICHT ZURUECK. Der Betrachter darunter hat
+       sich beim Loeschen bereits neu gezeichnet; eine Quelle, die es nicht
+       mehr gibt, darf ihm hier nicht noch einmal untergeschoben werden. */
+    if (uebergabe && bildQuelle(weg, '') === uebergabe.quelle) uebergabe = null;
     photos.splice(i, 1);
     if (!photos.length) { close(); return; }
     baueStreifen();
@@ -3695,12 +3767,18 @@ async function renderDetail(id) {
     /* DAS VOLLBILD BEKOMMT DENSELBEN PAPIERKORB -- eine Funktion, zwei Rufer.
        Eine EIGENE Liste geht mit: das Vollbild nimmt sein geloeschtes Bild
        selbst heraus, waehrend hier unten `item` frisch vom Server kommt.
-       Beide Listen zeigen danach dasselbe, aber keine haengt an der anderen. */
+       Beide Listen zeigen danach dasselbe, aber keine haengt an der anderen.
+       UND ES BEKOMMT DEN INNEREN ABSPIELER -- als Funktion, nicht als
+       Element: `drawViewer()` baut den Betrachter beim Loeschen und beim
+       Blaettern neu auf, und ein gemerkter Knoten waere danach ein Waisenkind.
+       Ohne diese Mitgabe liefen zwei Abspieler nebeneinander. */
+    const innererAbspieler = () => v.querySelector('video');
     if (bild) bild.onclick = () => {
-      if (!ausschnittModus) openLightbox([...item.photos], idx, item.title, loescheFoto);
+      if (!ausschnittModus)
+        openLightbox([...item.photos], idx, item.title, loescheFoto, innererAbspieler);
     };
     v.querySelector('.vfull')?.addEventListener('click',
-      () => openLightbox([...item.photos], idx, item.title, loescheFoto));
+      () => openLightbox([...item.photos], idx, item.title, loescheFoto, innererAbspieler));
     v.querySelector('.vfocus').onclick = () => {
       ausschnittModus = !ausschnittModus;
       drawViewer();

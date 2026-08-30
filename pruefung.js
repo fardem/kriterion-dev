@@ -19786,6 +19786,18 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       }
       return gib(beispiel);
     }
+    /* LOESCHEN ZIEHT WIRKLICH MIT (Stolperstein 90). Der echte Server nimmt
+       die Zeile weg, und das naechste GET auf den Eintrag liefert sie nicht
+       mehr. Gab der Mock sie bis 0.17.0 weiter zurueck, zeichnete der
+       Betrachter danach ein Bild, das es gar nicht mehr gibt -- und die Zusage
+       „kein Abspieler zeigt auf eine geloeschte Adresse" liess sich nicht
+       stellen. Das FOCUS-Ziel bleibt unberuehrt: es traegt einen Anhang und
+       faellt nicht unter dieses Muster. */
+    if (/^\/api\/photos\/\d+$/.test(url) && opt.method === 'DELETE') {
+      const wegId = Number(url.slice(url.lastIndexOf('/') + 1));
+      beispiel.photos = beispiel.photos.filter(p => p.id !== wegId);
+      return gib({ ok: true });
+    }
     if (url.startsWith('/api/items/1')) return gib(beispiel);
     // Endpunkte, die den ganzen Eintrag zurueckgeben. Ohne das wird `item` im
     // Frontend leer, und alles Folgende bricht -- der Prueflauf stuerzte
@@ -31571,6 +31583,145 @@ async function pruefeOberflaeche() {
     pruefe('Ein Kommentarbild im Vollbild traegt keinen Papierkorb',
       !bild || !d.w.document.querySelector('.lightbox .lb-btn.weg'),
       bild ? 'der Papierkorb steht auch dort' : '(kein Kommentarbild in der Prueflage)');
+    d.w.close();
+  }
+
+  /* ================= Was der Benutzer sieht — 0.17.1 ====================
+     SECHS HANDGRIFFE AUS EINEM RUNDLAUF VON HAND. Fuenf sind Wortlaut und
+     Anordnung, einer ist ein echter Fehler. Sie stehen hier in derselben
+     Reihenfolge wie im Auftrag, und jede Gruppe sagt oben, WAS sie belegen
+     kann und was nicht. */
+
+  /* ---- 6. Genau ein Abspieler laeuft ---- */
+  gruppe('Genau ein Abspieler laeuft — 0.17.1');
+
+  /* DER EINZIGE ECHTE FEHLER DIESER RUNDE. Bis 0.17.0 baute sich das Vollbild
+     seinen eigenen Abspieler und liess den inneren stehen: zwei Elemente mit
+     derselben Quelle, zwei Tonspuren, zwei Stellen im Film.
+     JSDOM SPIELT NICHTS AB -- pause(), play() und load() sind dort leer, und
+     `paused` steht immer auf true. Was sich belegen laesst, ist genau das, was
+     traegt: dass es die ZWEITE QUELLE nicht mehr gibt, und dass die Stelle
+     hin- und zurueckwandert. GEZAEHLT WIRD AN DEN ELEMENTEN UND IHREM ZUSTAND
+     und nicht an einer Klasse (Stolperstein 223). */
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1' });
+    await new Promise(r => setTimeout(r, 90));
+    const dok = d.w.document;
+    const klick = (el) => el?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    const mitQuelle = () => [...dok.querySelectorAll('video')].filter(v => v.getAttribute('src'));
+    const betrachter = dok.getElementById('viewer');
+    klick(betrachter?.querySelector('.vnav.next'));
+    await new Promise(r => setTimeout(r, 30));
+    const innen = betrachter?.querySelector('video');
+    pruefe('Am Videoplatz steht ein Abspieler mit seiner Quelle',
+      innen?.getAttribute('src') === '/api/photos/6/raw', innen?.getAttribute('src'));
+    pruefe('Und vor dem Vollbild ist er der einzige', mitQuelle().length === 1,
+      `${mitQuelle().length}`);
+    innen.currentTime = 12.5;
+
+    klick(betrachter?.querySelector('.vfull'));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Im Vollbild gibt es zwei Abspielelemente',
+      dok.querySelectorAll('video').length === 2, `${dok.querySelectorAll('video').length}`);
+    pruefe('Aber nur EINES traegt noch eine Quelle', mitQuelle().length === 1,
+      mitQuelle().map(v => v.getAttribute('src')).join(' · '));
+    /* UND ES IST DER OBERE -- gepruefte Elemente, keine Klasse: der eine ist
+       nicht der innere, und er haengt im Vollbild. */
+    pruefe('Und es ist der im Vollbild, nicht der darunter',
+      mitQuelle()[0] !== innen && dok.querySelector('.lightbox')?.contains(mitQuelle()[0]) === true,
+      mitQuelle()[0] === innen ? 'der innere spielt weiter' : 'er haengt nicht im Vollbild');
+    pruefe('Der innere hat seine Quelle abgegeben',
+      !innen.getAttribute('src'), innen.getAttribute('src'));
+    pruefe('Und das Vollbild hat seine Stelle uebernommen',
+      mitQuelle()[0]?.currentTime === 12.5, `${mitQuelle()[0]?.currentTime}`);
+
+    // Weitergelaufen im Vollbild, dann zu: die Stelle geht denselben Weg zurueck.
+    mitQuelle()[0].currentTime = 20;
+    klick(dok.querySelector('.lightbox .close'));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Nach dem Schliessen traegt wieder genau einer eine Quelle',
+      mitQuelle().length === 1 && mitQuelle()[0] === innen,
+      `${mitQuelle().length} Quellen`);
+    pruefe('Und er steht an der Stelle, die das Vollbild zuletzt hatte',
+      innen.currentTime === 20, `${innen.currentTime}`);
+
+    /* ESCAPE GEHT DENSELBEN WEG WIE DAS KREUZ und nicht einen zweiten
+       daneben. Ohne diese Lage bliebe offen, ob der Rueckweg an einem
+       einzelnen Behandler haengt. */
+    klick(betrachter?.querySelector('.vfull'));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Beim zweiten Oeffnen gibt der innere wieder ab',
+      !innen.getAttribute('src') && mitQuelle().length === 1, innen.getAttribute('src'));
+    dok.dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Escape schliesst das Vollbild',
+      !dok.querySelector('.lightbox'), 'das Vollbild steht noch');
+    pruefe('Und gibt die Quelle auf demselben Weg zurueck',
+      mitQuelle().length === 1 && mitQuelle()[0] === innen, `${mitQuelle().length} Quellen`);
+
+    /* BEIM BLAETTERN: das Anhalten gibt es schon, der Wechsel muss dazu
+       passen. Wer im Vollbild auf das Foto blaettert und dort schliesst, darf
+       den inneren Abspieler nicht ohne Quelle zuruecklassen. */
+    klick(betrachter?.querySelector('.vfull'));
+    await new Promise(r => setTimeout(r, 40));
+    klick(dok.querySelector('.lightbox .prev'));
+    await new Promise(r => setTimeout(r, 30));
+    pruefe('Am Foto im Vollbild traegt gar kein Abspieler eine Quelle',
+      mitQuelle().length === 0, mitQuelle().map(v => v.getAttribute('src')).join(' · '));
+    klick(dok.querySelector('.lightbox .close'));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Auch vom Foto aus bekommt der innere seine Quelle zurueck',
+      mitQuelle().length === 1 && mitQuelle()[0] === innen, `${mitQuelle().length} Quellen`);
+    d.w.close();
+  }
+  {
+    /* BEIM LOESCHEN AUS DEM VOLLBILD gibt es das Video danach nicht mehr, und
+       der innere Abspieler darf nicht auf eine Adresse zeigen, die weg ist. */
+    const d = baueDom(JSDOM, { hash: '#/item/1' });
+    await new Promise(r => setTimeout(r, 90));
+    const dok = d.w.document;
+    const klick = (el) => el?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    const betrachter = dok.getElementById('viewer');
+    klick(betrachter?.querySelector('.vnav.next'));
+    await new Promise(r => setTimeout(r, 30));
+    klick(betrachter?.querySelector('.vfull'));
+    await new Promise(r => setTimeout(r, 40));
+    klick(dok.querySelector('.lightbox .lb-btn.weg'));
+    await new Promise(r => setTimeout(r, 40));
+    klick(dok.querySelector('.backdrop [data-yes]'));
+    await new Promise(r => setTimeout(r, 120));
+    pruefe('Nach dem Loeschen ging es wirklich ueber die Route hinaus',
+      d.gesendet.some(x => x.methode === 'DELETE' && x.url === '/api/photos/6'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Und kein Abspieler zeigt mehr auf die geloeschte Adresse',
+      ![...dok.querySelectorAll('video')].some(v => v.getAttribute('src') === '/api/photos/6/raw'),
+      [...dok.querySelectorAll('video')].map(v => v.getAttribute('src')).join(' · '));
+    d.w.close();
+  }
+  {
+    /* DIE GEGENLAGE: OHNE VIDEO VERHAELT SICH DAS VOLLBILD WIE BISHER. Der
+       Betrachter zeigt ein Bild, es gibt gar keinen inneren Abspieler, und der
+       im Vollbild bleibt verborgen und ohne Quelle. Ohne diese Lage bliebe
+       offen, ob der Wechsel auch dort zugreift, wo es nichts zu wechseln
+       gibt. */
+    const d = baueDom(JSDOM, { hash: '#/item/1' });
+    await new Promise(r => setTimeout(r, 90));
+    const dok = d.w.document;
+    const betrachter = dok.getElementById('viewer');
+    pruefe('Am Fotoplatz gibt es gar keinen inneren Abspieler',
+      !!betrachter?.querySelector('img') && !betrachter.querySelector('video'),
+      betrachter?.innerHTML?.slice(0, 90));
+    betrachter?.querySelector('img')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const lbVideo = dok.querySelector('.lightbox .lb-video');
+    pruefe('Das Vollbild geht trotzdem auf', !!dok.querySelector('.lightbox'));
+    pruefe('Sein Abspieler bleibt verborgen und ohne Quelle',
+      lbVideo?.hidden === true && !lbVideo?.getAttribute('src'),
+      JSON.stringify({ hidden: lbVideo?.hidden, src: lbVideo?.getAttribute('src') }));
+    pruefe('Und das Bild darunter behaelt seine Quelle',
+      !!betrachter?.querySelector('img')?.getAttribute('src'),
+      betrachter?.querySelector('img')?.getAttribute('src'));
     d.w.close();
   }
 }
