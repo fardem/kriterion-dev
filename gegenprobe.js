@@ -3051,6 +3051,34 @@ const RUECKBAUTEN = [
     ersatz: "        Schnitt über alle Bewertungen gebildet — das sind die Zahlen rechts in den Zeilen.",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
   },
+  /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
+     Zellen einer Zeile zu den Spalten ihres Rasters? 331 nimmt dem Raster eine
+     Spalte, 333 der Zeile eine Zelle -- beide Richtungen, weil eine allein die
+     andere nicht belegt. Bis 0.17.0 stand die Vier in der Pruefung getippt und
+     nicht im Stilblatt gelesen; kein Rueckbau konnte sie treffen. */
+  {
+    nr: '331', name: 'Das Raster des Erklaerkastens verliert eine Spalte',
+    datei: 'public/style.css',
+    suche: ".rechnung { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }",
+    ersatz: ".rechnung { display: grid; grid-template-columns: 1fr auto auto; gap: 0 14px; }",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  /* DIE REGEL, DIE DIE VERGLEICHSZAHL UNTERORDNET. Ihr Kommentar macht vier
+     Zusagen; bis 0.17.0 stand keine davon in einer Pruefung (Stolperstein 199). */
+  {
+    nr: '332', name: 'Die Vergleichszeile wird dem Ergebnis gleichgestellt',
+    datei: 'public/style.css',
+    suche: ".rz-gleich > span { color: var(--muted); border-bottom: 0; border-top: 1px solid var(--line-2); }",
+    ersatz: ".rz-gleich > span { font-weight: 640; color: #8a8a8a; border-bottom: 0; }",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  {
+    nr: '333', name: 'Die Vergleichszeile bekommt eine Zelle zu wenig',
+    datei: 'public/app.js',
+    suche: "          <span></span><span></span>\n          <span id=\"rz-gleich\">",
+    ersatz: "          <span></span>\n          <span id=\"rz-gleich\">",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {

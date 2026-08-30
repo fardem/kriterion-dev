@@ -17897,7 +17897,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Gewichtung, an der Glocke samt Zeitpunkt an der Bewertung, an den
   // Verfahren in den Kennzahlen, am Papierkorb im Vollbild und an den beiden
   // Werkzeugen (Groessenmessung und Nummernfilter).
-  // 330 SEIT 0.17.0: dreissig neue am Raster der Kriterienliste, an den
+  // 333 SEIT 0.17.0: dreiunddreissig neue am Raster der Kriterienliste, an den
   // beiden Massen vom echten Geraet, an der Vergleichszahl ohne Gewichte, an
   // der aufgeteilten Glockentafel, an der gestrichenen Pille und an den zwei
   // Erklaertexten, die die Oberflaeche verlassen haben. ZEHN vorhandene sind
@@ -17905,7 +17905,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // 239, 252, 282, 283, 285, 286 und 291 zeigten auf Zeilen, die diese Runde
   // umgebaut hat -- ein Rueckbau, der ins Leere greift, ist stumm und
   // verfaelscht die Tabelle (Stolperstein 192).
-  pruefe('Es sind genau 330 Rueckbauten', gpListe.length === 330, `${gpListe.length}`);
+  pruefe('Es sind genau 333 Rueckbauten', gpListe.length === 333, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -30973,12 +30973,55 @@ async function pruefeOberflaeche() {
     pruefe('Und sie kommt aus der Antwort, statt im Browser gerechnet zu werden',
       !/3,8/.test(dok.querySelector('.rechnung')?.textContent || ''),
       dok.querySelector('.rechnung')?.textContent?.replace(/\s+/g, ' '));
-    /* VIER ZELLEN WIE JEDE ANDERE ZEILE. Eine Zeile mit dreien schoebe im
-       Vierspaltenraster alles darunter um eine Spalte weiter -- genau der
-       Fehler, den Punkt 1 derselben Runde behebt. */
+    /* SO VIELE ZELLEN, WIE DAS RASTER SPALTEN HAT -- UND DIE ZAHL WIRD
+       GELESEN, NICHT HINGESCHRIEBEN. Eine Zeile mit einer Zelle zu wenig
+       schoebe alles darunter um eine Spalte weiter, genau der Fehler, den
+       Punkt 1 derselben Runde behebt.
+       EINE VIER, DIE IN DER PRUEFUNG STEHT UND NICHT IM STILBLATT, WAERE
+       DIESELBE ZWEITE WAHRHEIT (Stolperstein 47/223): wer die Spaltenzahl des
+       Kastens aenderte, bekaeme hier eine gruene Zusage ueber ein zerfallenes
+       Raster -- und das ist woertlich der Befund, aus dem Punkt 1 entstand. */
+    const rgRegel = regel123('.rechnung');
+    pruefe('Die Regel fuer das Raster des Kastens steht im Stilblatt',
+      rgRegel.length > 0, '(keine Regel)');
+    const rgSpalten = (rgRegel.match(/grid-template-columns: ([^;}]+)/) || ['', ''])[1]
+      .trim().split(/\s+/).filter(Boolean).length;
+    pruefe('Und sie nennt eine Spaltenzahl', rgSpalten > 0, rgRegel || '(keine Regel)');
     const rgZeile = kasten?.querySelector('.rz-gleich');
-    pruefe('Die Zeile traegt vier Zellen wie jede andere',
-      rgZeile?.children.length === 4, `${rgZeile?.children.length}`);
+    pruefe('Die Zeile traegt so viele Zellen, wie das Raster Spalten hat',
+      rgSpalten > 0 && rgZeile?.children.length === rgSpalten,
+      `${rgZeile?.children.length} Zellen gegen ${rgSpalten} Spalten`);
+    /* UND JEDE ANDERE ZEILE EBENSO. Ohne diese Zeile bliebe die darueber
+       gruen, waehrend eine Nachbarzeile das Raster sprengt -- dieselbe
+       Bauform wie an der Kriterienliste. */
+    const rgAlle = [...(kasten?.querySelectorAll('.rechnung > .rz') || [])]
+      .map(z => z.children.length);
+    pruefe('Und jede Zeile des Kastens traegt dieselbe Zahl',
+      rgAlle.length > 0 && rgSpalten > 0 && rgAlle.every(n => n === rgSpalten),
+      `${JSON.stringify(rgAlle)} gegen ${rgSpalten} Spalten`);
+    /* UND DIE REGEL IM STILBLATT, DIE SIE UNTERORDNET. Der Kommentar an ihr
+       macht vier Zusagen -- gedaempft, ohne fetten Schnitt, ein Strich darueber,
+       keine neue Farbe --, und ein Kommentar ist keine Pruefung
+       (Stolperstein 199). Ohne diese Zeilen bliebe die Regel ungeprueft, und
+       ein Rueckbau an ihr faerbte nichts rot. */
+    const rgSpanRegel = regel123('.rz-gleich > span');
+    pruefe('Die Regel fuer die Zellen der Vergleichszeile steht im Stilblatt',
+      rgSpanRegel.length > 0, '(keine Regel)');
+    pruefe('Sie daempft die Zahl',
+      /color: var\(--muted\)/.test(rgSpanRegel), rgSpanRegel || '(keine Regel)');
+    pruefe('Und traegt ausdruecklich keinen fetten Schnitt',
+      !/font-weight/.test(rgSpanRegel), rgSpanRegel || '(keine Regel)');
+    pruefe('Ein Strich darueber trennt sie vom Ergebnis',
+      /border-top: 1px solid var\(--line-2\)/.test(rgSpanRegel),
+      rgSpanRegel || '(keine Regel)');
+    pruefe('Und sie fuehrt keine neue Farbe ein',
+      !/#[0-9a-f]{3,8}/i.test(rgSpanRegel) && !/rgb|hsl/i.test(rgSpanRegel),
+      rgSpanRegel || '(keine Regel)');
+    /* DER GEGENSATZ MUSS ES AUCH GEBEN (Stolperstein 81): „untergeordnet"
+       belegt nichts, wenn die Zeile darueber selbst nicht hervorgehoben ist. */
+    const rgErgRegel = regel123('.rz-ergebnis > span');
+    pruefe('Die Zeile darueber traegt dagegen den fetten Schnitt',
+      /font-weight: 6\d\d/.test(rgErgRegel), rgErgRegel || '(keine Regel)');
     pruefe('Und sie steht unter dem Ergebnis, nicht darueber',
       [...(kasten?.querySelectorAll('.rechnung > .rz') || [])].indexOf(rgZeile) >
       [...(kasten?.querySelectorAll('.rechnung > .rz') || [])]
