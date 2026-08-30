@@ -669,7 +669,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Es gehört zu dieser package.json',
     sperre.name === paketJson.name && sperre.version === paketJson.version,
     `${sperre.name} ${sperre.version} gegen ${paketJson.name} ${paketJson.version}`);
-  /* DIE NUMMER STEHT IM LOCKFILE ZWEIMAL -- 0.17.0. Einmal in der Wurzel und
+  /* DIE NUMMER STEHT IM LOCKFILE ZWEIMAL -- 0.17.1. Einmal in der Wurzel und
      ein zweites Mal in `packages[""]`, dem Eintrag des Pakets selbst. `npm`
      schreibt beide, von Hand zieht man leicht nur die erste nach: die Zeile
      darueber bliebe dann gruen, und im Lockfile stuende an einer Stelle noch
@@ -31773,8 +31773,13 @@ async function pruefeOberflaeche() {
        misst das Fenster. Ohne sie machte ein Sicherheitsprotokoll mit
        zweihundert Zeilen die Karte unbrauchbar lang. */
     pruefe('Auf dem Telefon bleibt die Deckelung am Fenster haengen',
-      /\.manage-list, \.prot-liste, \.test-scroll, \.atext \{ max-height: 62vh; max-height: 62dvh; \}/.test(css123),
+      /\.manage-list, \.prot-liste, \.test-scroll, \.atext, #ex-teil-liste \{ max-height: 62vh; max-height: 62dvh; \}/.test(css123),
       (css123.match(/\.manage-list, \.prot-liste[^}]*\}/) || ['(keine Regel)'])[0]);
+    /* UND DIE AUSNAHME STEHT DORT MIT DRIN. Ihre eigene Regel ist ein
+       ID-Waehler und schluege die Klassenregel des Telefons -- die feste
+       Deckelung bliebe dann auch auf dem schmalen Schirm stehen, wo bis 0.17.0
+       das Fenstermass galt. Eine Ausnahme darf eine Regel zuruecknehmen, aber
+       nicht heimlich eine zweite mit. */
   }
   {
     /* UND DIE ZEILEN WERDEN WIRKLICH ALLE GEZEICHNET. Der Befund war, dass

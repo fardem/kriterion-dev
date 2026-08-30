@@ -442,6 +442,24 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 > dritte steht in Teil II unter „Am Prüfstand"** — `gegenprobe.js` kann einen
 > Abriss nicht von einer Störung von außen unterscheiden.
 
+> **DIE SECHS BEFUNDE VOM 30. AUGUST 2026, ABENDS, SIND EBENFALLS GEBAUT** —
+> **0.17.1**, und keiner von ihnen stand je hier. **Was gebaut wurde, steht im
+> Änderungsprotokoll 0.17.1.** *Zurückgekommen ist nichts;* **eine Zeile hat
+> die Runde erzeugt, und sie steht gleich hier darunter.**
+
+- **Die beiden Konzeptpapiere tragen „Anlage" je einmal** *(0.17.1, aus der
+  Durchsicht der Runde — gefunden, benannt, nicht behoben)*.
+  **Art: Kleinigkeit.** Mit 0.17.1 heißt die Installation überall **Instanz**;
+  der Auftrag jener Runde nimmt das Konzeptpapier zum Mehrbenutzerbetrieb und
+  das Videopapier **ausdrücklich aus** und verlangt stattdessen die Meldung.
+  **Zwei Stellen sind es:** `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md`
+  Zeile 178 und `Konzept_Video_und_grosse_Dateien.md` Zeile 112 — *beide Male
+  meint das Wort die Installation.* **Falsch ist dort nichts**, es liest sich
+  nur nach einem Wort, das es sonst nicht mehr gibt. *Beide Papiere sind
+  Herleitung und kein Stand; wer sie eines Tages anfasst, zieht die zwei
+  Wörter mit.*
+  *(Claude: später — zwei Wörter, und die Papiere ruhen)*
+
 - **Dieselbe Art Satz wie in Punkt 2 von 0.17.0 steht an zwölf weiteren
   Stellen in der Oberfläche** *(0.17.0, aus der Durchsicht der Runde —
   nachgesehen und aufgeschrieben, nicht behoben)*.

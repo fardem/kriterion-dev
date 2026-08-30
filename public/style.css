@@ -2617,7 +2617,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      Ganz aufheben laesst sich der eigene Bildlauf nicht: ein
      Sicherheitsprotokoll mit zweihundert Zeilen machte die Karte sonst
      unbrauchbar lang. */
-  .manage-list, .prot-liste, .test-scroll, .atext { max-height: 62vh; max-height: 62dvh; }
+  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste { max-height: 62vh; max-height: 62dvh; }
 
   /* ---- Die Detailansicht: DER TITEL STEHT VOR DEM BILD ----
      Das ist die einzige Umstellung der Reihenfolge in dieser ganzen Runde.

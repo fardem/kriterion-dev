@@ -169,7 +169,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.17.1** — Fingerprint **`FINGERPRINT_0171`**, **4715
+**Gebaut ist 0.17.1** — Fingerprint **`1775fcd4`**, **4715
 Prüfungen**, **353 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
 (Abschnitt 8). *0.17.1 bringt den Text im Kachel „Zugang" in Ordnung, gibt den
 Listen die Höhe, die ihre Kachel hergibt, ordnet den Mailversand in vier
@@ -207,13 +207,23 @@ danach nichts, was sie vorher nicht konnte.**
 > Stellen in `anhaenge.js`, `Anlagenbytes` in `server.js` und die
 > `Anlagen-Antwort` in README und hier.
 
+**Was 0.17.1 für den Betrieb bedeutet: einspielen, fertig.** Keine
+Datenbankstufe, keine Sicherungspflicht, keine `.env`-Zeile, niemand wird
+abgemeldet, **keine Zeile im Protokoll** — diese Version hat keinen
+Migrationsblock. *Ein Lesezeichen auf `#/system/anlage` bleibt gültig und wird
+auf `#/system/instanz` nachgezogen.*
+
+*Davor, am 30. August:* **Die Blöcke ab hier gehören 0.17.0 und den Runden
+davor.**
+
 > **DIE VORHERIGE ZEILE, ZUM VERGLEICH: 0.17.0** — Fingerprint **`1b6bb5d2`**,
 > **4630 Prüfungen**, 333 Rückbauten. *MINOR, ebenfalls keine Datenbankstufe:
 > die Kriterienliste bei einem einzigen Zugang, zwei gestrichene Erklärtexte,
 > die Glockentafel mit dem WAS, drei Anzeigefehler vom echten Gerät, die
 > Vergleichszahl ohne Gewichtung — und die gestrichene Pille „Neu seit …".*
 
-> **DIE PERSÖNLICHEN SCHLÜSSEL SINKEN VON NEUN AUF ACHT.** `zuletztGesehen`
+> **DIE PERSÖNLICHEN SCHLÜSSEL SIND MIT 0.17.0 VON NEUN AUF ACHT GESUNKEN**
+> — 0.17.1 lässt sie unverändert. `zuletztGesehen`
 > trug die Pille „Neu seit …" und hat mit ihr keinen Rufer mehr.
 > **Vorhandene Zeilen in `user_settings` bleiben stehen und werden nicht mehr
 > gelesen** — es gibt dafür keinen Migrationsblock und soll keinen geben: eine
@@ -222,7 +232,8 @@ danach nichts, was sie vorher nicht konnte.**
 > *Nachgezählt, nicht angenommen — der Auftrag nannte die Möglichkeit,
 > entschieden hat die Liste in `server.js`.*
 
-> **DIE GLOCKE MELDET SEITHER VON ALLEN, die eigenen Beiträge eingeschlossen.**
+> **DIE GLOCKE MELDET SEIT 0.17.0 VON ALLEN, die eigenen Beiträge
+> eingeschlossen.**
 > Der Satz aus 0.16.0 — *„Eigene Beiträge stehen nie hier"* — **ist damit
 > zurückgenommen**, und dieser Vermerk gehört dazu, denn eine zurückgenommene
 > Entscheidung kommt sonst wieder (Stolperstein 201). *Der Grund ist der
@@ -529,7 +540,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.1** | **`FINGERPRINT_0171`** | 4715 |
+| **0.17.1** | **`1775fcd4`** | 4715 |
 | 0.17.0 | `1b6bb5d2` | 4630 |
 | 0.16.0 | `aa76c352` | 4523 |
 | 0.15.1 | `d02260bd` | 4366 |
@@ -5874,6 +5885,9 @@ beschränkt und **nicht** der volle Lauf über alle **353** Rückbauten.
 > und die Zeilen darin lesen jetzt das Raster. *Die Zahl der Prüfungen in dieser
 > Gruppe ist gleich geblieben — deshalb steht sie in keiner der beiden Tabellen.*
 
+**Und die Runde davor, zum Vergleich — 0.17.0 brachte 107 netto, davon 59 in
+vier neuen Gruppen:**
+
 | neue Gruppe (0.17.0) | Prüfungen |
 |---|---|
 | Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0 | 19 |
@@ -5889,7 +5903,7 @@ beschränkt und **nicht** der volle Lauf über alle **353** Rückbauten.
 > (Stolperstein 201). *Deshalb ist die Zahl der neuen Prüfungen netto 107 und
 > nicht 59 plus alles.*
 
-*Die übrigen stehen in **acht vorhandenen** Gruppen:*
+*Die übrigen jener Runde stehen in **acht vorhandenen** Gruppen:*
 
 | vorhandene Gruppe | vorher | nachher | wofür |
 |---|---|---|---|
@@ -6425,7 +6439,7 @@ eine Buchführung.*
 | 0.15.1 | `hidden` wirkt wieder (15) | 4 neue (267 → 271); alle vier plus drei nachgezogene gefahren, keiner stumm | Stolpersteine 214 bis 216 |
 | 0.16.0 | Der Systembereich, die Glocke und die Auskunft (157) | 29 neue (271 → 300); gefahren wurden sie einzeln, **sieben Befunde** dabei | Stolpersteine 217 bis 225 |
 | 0.17.0 | Was dasteht, und was nicht dasteht (107 netto) | 33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); 43 gefahren, 0 stumm | Stolpersteine 226 bis 235 |
-| **0.17.1** | **Was der Benutzer sieht (85 netto)** | **20 neue (333 → 353), einer nachgezogen (Stolperstein 201); GEGENPROBENTABELLE_0171** | **Stolpersteine 236 bis 241** |
+| **0.17.1** | **Was der Benutzer sieht (85 netto)** | **20 neue (333 → 353), einer nachgezogen (Stolperstein 201); der Lauf wird nachgetragen** | **Stolpersteine 236 bis 241** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
