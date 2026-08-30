@@ -633,6 +633,41 @@ echten Bestand zu haben:
 *Der Weg zum Export hat sich mit dieser Runde geändert — er liegt jetzt im
 Abschnitt „Datenbank"; die Prüfung selbst ist dieselbe.*
 
+> **NACHGETRAGEN AM 30. AUGUST 2026: 0.16.0 IST IM FELD BESTÄTIGT.** Die
+> laufende Anlage meldet **`aa76c352`** — derselbe Wert, den der Branch misst.
+> **Damit ist auch der siebte Migrationsblock am echten Bestand gefahren.**
+>
+> **ZUM TEILEXPORT STEHT JETZT MEHR DA ALS VORHER, ABER NICHT GENUG:** er ist
+> zweimal gefahren worden. **Der erste Lauf machte Probleme, der zweite lief
+> gut** — und offen ist, ob beim ersten der Weg eingehalten war. *Ein geglückter
+> zweiter Lauf ist kein Freispruch für den ersten; solange der Ablauf des ersten
+> nicht feststeht, ist der Punkt nicht belegt.* **Er bleibt offen.**
+>
+> **UND DER RUNDLAUF VON HAND HAT NEUN BEFUNDE GELIEFERT**, darunter einen
+> Fehler: die Kriterienliste zerfällt bei genau einem Zugang. *Er ist älter als
+> diese Runde — das Raster kam mit 0.14.0 — und in ihr nur sichtbar geworden.*
+> **Alle neun sind als 0.17.0 ausgearbeitet** (Projektstand, Abschnitt 10a),
+> und keiner davon ist in 0.16.0 behoben. **Drei treffen unmittelbar, was diese
+> Runde gebaut hat:** die Glockentafel sagt nicht, WAS neu ist; sie trägt einen
+> Erklärtext, der auf eine Oberfläche nicht gehört; **und sie macht die Pille
+> „Neu seit …" überflüssig, die deshalb gestrichen wird.**
+
+> **NACHGETRAGEN AM 30. AUGUST 2026: 0.16.0 IST IM FELD BESTÄTIGT.** Die
+> laufende Anlage meldet **`aa76c352`** — derselbe Wert, den der Branch misst.
+> **Damit ist auch der siebte Migrationsblock am echten Bestand gefahren.**
+>
+> **ZUM TEILEXPORT STEHT JETZT MEHR DA ALS VORHER, ABER NICHT GENUG:** er ist
+> zweimal gefahren worden. **Der erste Lauf machte Probleme, der zweite lief
+> gut** — und offen ist, ob beim ersten der Weg eingehalten war. *Ein geglückter
+> zweiter Lauf ist kein Freispruch für den ersten; solange der Ablauf des ersten
+> nicht feststeht, ist der Punkt nicht belegt.* **Er bleibt offen.**
+>
+> **UND DER RUNDLAUF VON HAND HAT SECHS BEFUNDE GELIEFERT**, darunter einen
+> Fehler: die Kriterienliste zerfällt bei genau einem Zugang. *Er ist älter als
+> diese Runde — das Raster kam mit 0.14.0 — und in ihr nur sichtbar geworden.*
+> **Alle sechs stehen im Sammelblatt, Teil II**, und keiner davon ist in 0.16.0
+> behoben.
+
 ---
 
 ## 17. Offen geblieben
