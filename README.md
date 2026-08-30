@@ -646,6 +646,22 @@ da, auch wenn der Versand fehlschlägt. **Ändern darf die Adresse danach allein
 der Betreffende selbst**, im Systembereich unter „Zugang": sie entscheidet,
 wohin sein nächster Rücksetzlink geht, und das gehört nicht in fremde Hand.
 
+> **WAS DIE KARTE „ZUGANG" DAZU SAGT, RICHTET SICH SEIT 0.17.1 DANACH, WAS
+> GERADE GILT.** Ist die **Selbstanmeldung aus**, steht am Feld
+> *(freiwillig)*, und darunter: *„Wird für den Einladungs- oder Rücksetzlink
+> per Mail gebraucht und für die Testmail im Mailversand. Ohne sie steht der
+> Link wie immer zum Kopieren bereit."* **Ist sie an, steht dort
+> *(wird gebraucht)*** und der Satz, dass ohne Adresse keine Bestätigungsmail
+> ankommt. *Vorher behauptete der Text in beiden Lagen dasselbe — und in einer
+> der beiden war es falsch.*
+>
+> **UND DER WEG ÜBER DEN SERVER STEHT NUR NOCH BEIM EIGENTÜMER.** Er ist der
+> Einzige, der in der Regel auch am Wirt sitzt; wer dort nicht hinkommt, liest
+> stattdessen, dass er sich an den Admin wendet. *Ein Befehl, den man nicht
+> ausführen kann, ist keine Hilfe, sondern eine Auskunft über den Betrieb.*
+> **Die Vorgabe „mindestens 10 Zeichen" steht seither am Passwortfeld** und
+> nicht mehr im Absatz unter der Adresse, für die sie nie galt.
+
 #### Ein Passwort zurücksetzen — ebenfalls zwei Wege
 
 - **🔗 Link zum Zurücksetzen** — derselbe Weg wie bei der Einladung. Das
@@ -1325,6 +1341,12 @@ verlinken, und die Zurück-Taste bricht: `#/system/datenbank` lässt sich
 weitergeben, in einem neuen Fenster öffnen und mit der Zurück-Taste wieder
 verlassen. `#/system` ohne Abschnitt bleibt gültig und löst sich auf den ersten
 sichtbaren auf.
+
+> **DER FÜNFTE ABSCHNITT HIESS BIS 0.17.0 „ANLAGE" UND LAG UNTER
+> `#/system/anlage`.** Mit der Umbenennung heißt er **„Instanz"**, und die alte
+> Adresse **wird weiter verstanden**: sie führt still an dieselbe Stelle und
+> wird dabei in der Adresszeile auf die neue nachgezogen. *Ein Lesezeichen von
+> gestern führt also dorthin, wohin es immer führte.*
 
 **Ein Abschnitt, in dem für diesen Zugang keine einzige Karte steht, erscheint
 gar nicht** — ein leerer Reiter wäre schlechter als keiner. Ein gewöhnlicher

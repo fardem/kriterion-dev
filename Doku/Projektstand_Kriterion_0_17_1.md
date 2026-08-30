@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 40 · Stand 30. August 2026 · gebaut: Version 0.17.0**
+**Kompakte Übergabe · Revision 41 · Stand 30. August 2026 · gebaut: Version 0.17.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,18 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.17.1 in einem Satz: was der Benutzer sieht.** *PATCH — die Instanz kann
+danach nichts, was sie vorher nicht konnte.* **Sechs Handgriffe aus einem
+Rundlauf von Hand, unmittelbar nachdem 0.17.0 gebaut war; fünf sind Wortlaut
+und Anordnung, einer ist ein echter Fehler.** Der Fehler: **das Video fing im
+Vollbild ein zweites Mal an** — zwei Abspieler, zwei Tonspuren, zwei Stellen im
+Film. **Und der größte Posten ist der harmloseste:** aus **Anlage** wird
+**Instanz**, an 692 Stellen, und eine davon ist eine Adresse
+(`#/system/anlage` → `#/system/instanz`, die alte wird still übersetzt).
+**Keine Datenbankstufe** — kein Schema, kein Migrationsblock, Austauschformat
+unverändert **11**, `F_ROUTEN` unverändert **69**. *Alles Weitere in
+Abschnitt 2 und Abschnitt 9.*
 
 **0.17.0 in einem Satz: was dasteht, und was nicht dasteht.** *MINOR — die
 Glockentafel sagt seither, **was** auf einen wartet („3 Kommentare ·
@@ -157,28 +169,49 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.17.0** — Fingerprint **`1b6bb5d2`**, **4630
-Prüfungen**, **333 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
-(Abschnitt 8). *0.17.0 bringt die Kriterienliste bei einem einzigen Zugang
-wieder in Ordnung, nimmt zwei Erklärtexte aus der Oberfläche, lässt die
-Glockentafel sagen, WAS neu ist, behebt drei Anzeigefehler vom echten Gerät,
-stellt dem Erklärkasten die Vergleichszahl ohne Gewichtung daneben — **und
-streicht die Pille „Neu seit …", deren Auskunft die Glocke übernimmt.***
-**MINOR — und ausdrücklich KEINE Datenbankstufe.**
+**Gebaut ist 0.17.1** — Fingerprint **`FINGERPRINT_0171`**, **4715
+Prüfungen**, **353 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
+(Abschnitt 8). *0.17.1 bringt den Text im Kachel „Zugang" in Ordnung, gibt den
+Listen die Höhe, die ihre Kachel hergibt, ordnet den Mailversand in vier
+Reihen, stellt die beiden Zeitangaben einer Anmeldung untereinander,
+**benennt „Anlage" in „Instanz" um** — und behebt den einen echten Fehler:
+**das Video fing im Vollbild ein zweites Mal an.*** **PATCH — die Instanz kann
+danach nichts, was sie vorher nicht konnte.**
 
 > **IM FELD BESTÄTIGT IST SIE NOCH NICHT.** Die Zeile hier gilt dem gebauten
 > Stand; was die laufende Instanz meldet, gehört nach dem Einspielen daneben.
+> **DASSELBE GILT WEITERHIN FÜR 0.17.0** — die drei Handgriffe, die sie im Feld
+> belegen, stehen aus (Abschnitt 8).
 
-> **DIES IST KEINE DATENBANKSTUFE — und das ist der Unterschied zu 0.16.0.**
-> Kein Schema, kein Migrationsblock, keine neue Formatnummer: es bleibt bei
-> **sieben** markierten Blöcken und bei **Austauschformat 11**. Punkt 3 und
-> Punkt 5 lesen beide nur, was ohnehin dasteht.
+> **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
+> neue Formatnummer: es bleibt bei **sieben** markierten Blöcken und bei
+> **Austauschformat 11**. Kein einziger der sechs Punkte fasst Daten an.
 > **DIE SICHERUNG DES DATENVERZEICHNISSES IST DESHALB EMPFEHLUNG UND NICHT
 > PFLICHT.** *Bei 0.16.0 war sie Pflicht, und zwar wegen des siebten
 > Migrationsblocks — den gibt es hier nicht. Der Unterschied gehört benannt,
 > sonst liest ein Betreiber über beides hinweg.*
 > **Keine neue Zeile in der `.env`, keine neue Abhängigkeit, `F_ROUTEN`
-> unverändert bei 69** — nachgezählt und nicht angenommen.
+> unverändert bei 69, achtzehn Karten in fünf Abschnitten, acht persönliche
+> Schlüssel** — nachgezählt und nicht angenommen.
+
+> **AUS „ANLAGE" WIRD „INSTANZ", UND EINE ADRESSE ÄNDERT SICH DABEI.** Der
+> fünfte Abschnitt des Systembereichs heißt jetzt **Instanz** und liegt unter
+> `#/system/instanz`. **Die alte Adresse `#/system/anlage` wird still
+> übersetzt, nicht abgewiesen** — sie steht in Lesezeichen und in älteren
+> Papieren, und ein Link, der ins Leere führt, ist eine Mitteilung ohne Weg.
+> *Die Übersetzung ist eine Tafel (`SYS_ALTE_ABSCHNITTE`) und keine
+> Verzweigung; dieselbe Bauform wie `delete f.neu` in 0.17.0.*
+> **WAS NICHT UMBENANNT WURDE:** die abgeschlossenen Änderungsprotokolle, die
+> CHANGELOG-Einträge bis einschließlich 0.17.0, das Konzept- und das
+> Videopapier — und **fünf falsche Freunde, die ANHÄNGE meinen**: die drei
+> Stellen in `anhaenge.js`, `Anlagenbytes` in `server.js` und die
+> `Anlagen-Antwort` in README und hier.
+
+> **DIE VORHERIGE ZEILE, ZUM VERGLEICH: 0.17.0** — Fingerprint **`1b6bb5d2`**,
+> **4630 Prüfungen**, 333 Rückbauten. *MINOR, ebenfalls keine Datenbankstufe:
+> die Kriterienliste bei einem einzigen Zugang, zwei gestrichene Erklärtexte,
+> die Glockentafel mit dem WAS, drei Anzeigefehler vom echten Gerät, die
+> Vergleichszahl ohne Gewichtung — und die gestrichene Pille „Neu seit …".*
 
 > **DIE PERSÖNLICHEN SCHLÜSSEL SINKEN VON NEUN AUF ACHT.** `zuletztGesehen`
 > trug die Pille „Neu seit …" und hat mit ihr keinen Rufer mehr.
@@ -496,7 +529,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.0** | **`1b6bb5d2`** | 4630 |
+| **0.17.1** | **`FINGERPRINT_0171`** | 4715 |
+| 0.17.0 | `1b6bb5d2` | 4630 |
 | 0.16.0 | `aa76c352` | 4523 |
 | 0.15.1 | `d02260bd` | 4366 |
 | 0.15.0 | `8fa66d7d` | 4351 |
@@ -614,10 +648,11 @@ herein. **Die Sicherung ist der Weg, der ohne diese Fußnoten auskommt.***
 
 ### Der Weg zum Einspielen
 
-> **FÜR 0.17.0 IST DIE SICHERUNGSZEILE EMPFEHLUNG UND NICHT PFLICHT** — diese
+> **FÜR 0.17.1 IST DIE SICHERUNGSZEILE EMPFEHLUNG UND NICHT PFLICHT** — diese
 > Version ist **keine Datenbankstufe**: kein Schema, kein Migrationsblock,
 > Austauschformat unverändert 11, weiterhin sieben markierte Blöcke. *Sie steht
-> trotzdem im Rezept, und wer sie mitnimmt, tut nichts Falsches.*
+> trotzdem im Rezept, und wer sie mitnimmt, tut nichts Falsches.* **Für 0.17.0
+> galt dasselbe.**
 >
 > **BEI 0.16.0 WAR SIE PFLICHT, und der Unterschied gehört benannt** — sonst
 > liest ein Betreiber über beides hinweg. Dort lief der siebte Migrationsblock
@@ -659,8 +694,8 @@ Ausführungsrechte** wieder her, `unzip` dagegen schon. Im Repo trägt
 eine Sicherung, die neben einem laufenden Server entsteht, kann eine offene WAL
 enthalten.
 
-**0.17.0 SCHREIBT KEINE ZEILE INS PROTOKOLL** — sie hat keinen
-Migrationsblock. *Die Zeile `gesetzt_am` aus 0.16.0 kommt genau einmal, beim
+**0.17.1 SCHREIBT KEINE ZEILE INS PROTOKOLL** — sie hat keinen
+Migrationsblock, und 0.17.0 hatte auch keinen. *Die Zeile `gesetzt_am` aus 0.16.0 kommt genau einmal, beim
 ersten Start nach jenem Einspielen; wer 0.16.0 bereits fährt, sieht sie nicht
 noch einmal.* Wer von einer Fassung **vor 0.14.0** kommt, sieht dagegen die
 Zeile von 0.14.0 einmalig und soll sie prüfen
@@ -1718,6 +1753,13 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 > | **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
 > | **Datenbank** | `#/system/datenbank` | Kennzahlen, Sicherung, Export und Import |
 > | **Instanz** | `#/system/instanz` | Titel |
+>
+> **SEIT 0.17.1 HEISST DER FÜNFTE ABSCHNITT „INSTANZ" — und `#/system/anlage`
+> WIRD WEITER VERSTANDEN.** Die alte Adresse steht in Lesezeichen und in
+> älteren Papieren; sie wird über die Tafel `SYS_ALTE_ABSCHNITTE` still
+> übersetzt und dabei in der Adresszeile auf die neue nachgezogen. *Ein
+> erfundener Abschnitt fällt weiterhin auf den ersten sichtbaren zurück — die
+> Übersetzung ist etwas anderes als der Rückfall, und beides wird geprüft.*
 >
 > **Die Adresse ist der ganze Punkt** — ohne sie ließe sich keine Einstellung
 > verlinken und die Zurück-Taste bräche. `#/system` bleibt gültig und löst sich
@@ -5729,6 +5771,67 @@ Version, in der sie entstanden sind.*
     gruppiert. Was sich geändert hat, ist der Kommentar daneben — er sagt
     jetzt, welche der beiden Zusagen die tragende ist.*
 
+236. **Eine Zahlenliste im Auftrag ist ein Anhaltspunkt und keine Zusage —
+    nachgezählt wird an der Stelle, nicht am Wortlaut.** Der Auftrag zu 0.17.1
+    nannte **zwei** falsche Freunde in `server.js`, die „Anlagen" im Sinne von
+    **Anhängen** meinen. **Es sind fünf, und einer der beiden genannten war
+    keiner:** `server.js:3801` (*„… damit zwei Anlagen nicht zwei gleichnamige
+    Dateien im Ordner ablegen"*) spricht von zwei **Installationen** und ist
+    deshalb mitgegangen; dafür meinen alle **drei** Stellen in `anhaenge.js`
+    und die **`Anlagen-Antwort`** in README und Projektstand wirklich Anhänge.
+    *Gefunden hat sie kein Lauf, sondern das Lesen jeder einzelnen Zeile im
+    Zusammenhang.* **Wer ein Wort tauscht, liest jede Fundstelle — die Liste im
+    Auftrag sagt, wo ungefähr zu suchen ist, und nichts darüber, was dort
+    steht.**
+
+237. **Ein Flexkind rollt nicht, es wächst — bis `min-height: 0` dasteht.**
+    `.manage-list` trug eine feste Höhe und blendete einen Rollbalken ein, wo
+    Platz war. **Wer nur die `max-height` streicht und `flex: 1` hinschreibt,
+    bekommt eine Kachel, die länger wird als ihre Nachbarn** — die
+    automatische Mindesthöhe eines Flexkindes ist `auto`, und `auto` heißt: so
+    hoch wie sein Inhalt. *Das Raster verrutscht dann, und der Befund sieht aus
+    wie ein Fehler an der Kachel statt an der Liste.* **Die beiden Zeilen
+    gehören zusammen und werden zusammen geprüft.**
+
+238. **Wer einen Kasten zur Flexspalte macht, ändert die Breite ALLER seiner
+    Kinder.** `.sys-card` musste eine Spalte werden, damit die Liste darin die
+    Höhe bekommt. **`align-items: stretch` ist die Vorgabe** — und damit wurde
+    aus jedem `<button class="btn">`, der bis dahin so breit war wie sein Wort,
+    ein Balken über die ganze Kachel. *Drei Karten waren betroffen: „Titel",
+    „Zugang" und „Darstellung".* **Eine Umstellung des Kastens ist nie nur eine
+    Umstellung des Kastens** — die Gegenregel (`.sys-card > .btn { align-self:
+    flex-start; }`) gehört in denselben Griff und in dieselbe Prüfung.
+
+239. **Eine Schutzzeile, die im einzigen vorhandenen Rufer nichts bewirkt, ist
+    keine geprüfte Zeile, sondern eine Behauptung.** Das Vollbild setzt seine
+    Übergabe beim Löschen zurück, damit der innere Abspieler keine Quelle
+    wiederbekommt, die es nicht mehr gibt. **Über den Betrachter ist das nicht
+    zu zeigen:** er zeichnet sich beim Löschen ohnehin neu, und die Zeile
+    darüber greift dann schon. *Die Prüflage muss deshalb den ANDEREN Rufer
+    stellen* — `openLightbox()` wird direkt gerufen, mit einem `loeschen`, das
+    nichts neu zeichnet. **Wer eine defensive Zeile behält, schuldet die Lage,
+    in der sie trägt; sonst gehört sie weg** (Stolperstein 199).
+
+240. **Ein Suchen-und-Ersetzen trifft auch die Sätze, die die Ersetzung
+    BESCHREIBEN — und dort muss das alte Wort stehenbleiben.** Aus
+    *„aus **Anlage** wird **Instanz**"* wurde an drei Stellen in den lebenden
+    Papieren *„aus **Instanz** wird **Instanz**"*: im Fahrplan, in der
+    Ausarbeitung zu 10a und im Sammelblatt. **Kein Lauf sieht das** — die Sätze
+    sind grammatisch heil und sachlich sinnlos. *Dieselbe Falle wie bei den
+    falschen Freunden, nur andersherum: dort meint das Wort etwas anderes, hier
+    zitiert es sich selbst.* **Nach einer Umbenennung wird jede Stelle gelesen,
+    an der die Umbenennung selbst vorkommt.**
+
+241. **Ein Merker, der beim Start einmal gefüllt wird, ist kein Zustand,
+    sondern ein Stand von damals.** `REGISTRIERUNG` kommt aus `/api/config` und
+    trug bis 0.17.0 nur die Anmeldeseite — dort wird die Seite ohnehin frisch
+    geladen. **Seit 0.17.1 hängt auch der Satz in der Karte „Zugang" daran**,
+    und damit fällt auf, dass der Schalter in der Karte „Anfragen" ihn nicht
+    nachzog: wer die Selbstanmeldung umlegte, las einen Abschnitt weiter noch
+    die alte Lage. *Ein zweiter Abruf daneben wäre die falsche Antwort gewesen
+    (Stolperstein 47)* — **die richtige ist, den einen Merker dort
+    nachzuziehen, wo sich sein Gegenstand ändert.**
+
 ---
 
 ## 7. Prüfstand
@@ -5742,10 +5845,34 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4630 von 4630 bestanden** (0.17.0) — **107 neue Prüfungen netto**,
-davon 59 in **vier** neuen Gruppen; 0.16.0 davor brachte 157, davon 116 in neun.
+**Stand: 4715 von 4715 bestanden** (0.17.1) — **85 neue Prüfungen netto**,
+davon 83 in **sechs** neuen Gruppen; 0.17.0 davor brachte 107, davon 59 in vier.
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **333** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **353** Rückbauten.
+
+| neue Gruppe (0.17.1) | Prüfungen |
+|---|---|
+| Der Zugangstext sagt, was gilt — 0.17.1 | 14 |
+| Die Liste bekommt die Hoehe der Kachel — 0.17.1 | 17 |
+| Der Mailversand ordnet sich — 0.17.1 | 14 |
+| Aus „Anlage" wird „Instanz" — 0.17.1 | 9 |
+| Die Zeitangaben stehen untereinander — 0.17.1 | 6 |
+| Genau ein Abspieler laeuft — 0.17.1 | 23 |
+| **zusammen** | **83** |
+
+> **DIE ÜBRIGEN ZWEI STEHEN IN EINER VORHANDENEN GRUPPE.** *„Der Systembereich
+> nach Rolle"* prüfte eine Zeile — *„Sondern den Befehl, der wirklich hilft"* —
+> und prüft jetzt drei: dass der Wirtsbefehl beim gewöhnlichen Benutzer **nicht**
+> steht, dass dort der Satz steht, der ihm hilft, und dass er beim Eigentümer
+> **sehr wohl** steht. *Eine Verneinung allein belegte nicht, dass es den Befehl
+> überhaupt noch irgendwo gibt (Stolperstein 81).*
+>
+> **UND EINE GRUPPE IST UMGESCHRIEBEN, NICHT GEWACHSEN.** *„Zwei Masse vom
+> echten Geraet — 0.17.0"* trägt die Zusage, die nicht zurückfallen darf: **der
+> Rahmen der eigenen Anmeldung reicht bis zum Rand.** Sie ist dieselbe
+> geblieben; nur der Weg dorthin ist seit Punkt 5 das Raster statt des Umbruchs,
+> und die Zeilen darin lesen jetzt das Raster. *Die Zahl der Prüfungen in dieser
+> Gruppe ist gleich geblieben — deshalb steht sie in keiner der beiden Tabellen.*
 
 | neue Gruppe (0.17.0) | Prüfungen |
 |---|---|
@@ -6297,7 +6424,8 @@ eine Buchführung.*
 | 0.15.0 | Der Filter und der Stift (89 netto) | 18 neue (249 → 267), alle achtzehn gefahren; zwei nachgezogen, einer repariert | Stolpersteine 208 bis 213 |
 | 0.15.1 | `hidden` wirkt wieder (15) | 4 neue (267 → 271); alle vier plus drei nachgezogene gefahren, keiner stumm | Stolpersteine 214 bis 216 |
 | 0.16.0 | Der Systembereich, die Glocke und die Auskunft (157) | 29 neue (271 → 300); gefahren wurden sie einzeln, **sieben Befunde** dabei | Stolpersteine 217 bis 225 |
-| **0.17.0** | **Was dasteht, und was nicht dasteht (107 netto)** | **33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); 43 gefahren, 0 stumm** | **Stolpersteine 226 bis 235** |
+| 0.17.0 | Was dasteht, und was nicht dasteht (107 netto) | 33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); 43 gefahren, 0 stumm | Stolpersteine 226 bis 235 |
+| **0.17.1** | **Was der Benutzer sieht (85 netto)** | **20 neue (333 → 353), einer nachgezogen (Stolperstein 201); GEGENPROBENTABELLE_0171** | **Stolpersteine 236 bis 241** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -6313,6 +6441,21 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **0.17.1 IST AM WIRT NOCH NICHT GEFAHREN.** Am Prüfstand ist alles belegt,
+  was sich dort belegen lässt; **jsdom rechnet kein Layout und spielt nichts
+  ab**, und vier der sechs Punkte sind Maße oder Bewegung. **Am Wirt fehlt:**
+  *(a)* die Kachel **„Zugang" als gewöhnlicher Benutzer** ansehen — dort darf
+  der Server-Befehl **nicht** stehen, und statt seiner der Satz, dass man sich
+  an den Admin wendet; *(b)* **„Meine Sitzungen" mit mehr als drei
+  Anmeldungen** öffnen — die Liste soll die Höhe der Kachel nehmen und erst
+  dann rollen, und die beiden Zeitangaben stehen rechtsbündig untereinander;
+  *(c)* **ein Video am Eintrag starten und ins Vollbild wechseln** — es muss
+  **an derselben Stelle weiterlaufen**, mit **einer** Tonspur, und beim
+  Schließen ebenso zurück; *(d)* den **Mailversand** ansehen — vier Reihen auf
+  dem breiten Schirm, eine Spalte auf dem Telefon; *(e)* ein Lesezeichen auf
+  **`#/system/anlage`** aufrufen: es muss beim Abschnitt **Instanz** landen,
+  und die Adresszeile danach `#/system/instanz` zeigen.
+  *Die Befehle dazu standen im Chat der Runde, nicht hier.*
 - **DIE DREI HANDGRIFFE ZU 0.17.0 SIND AM WIRT NOCH NICHT GEFAHREN.** Am
   Prüfstand ist alles belegt, was sich dort belegen lässt; jsdom rechnet kein
   Layout, und drei der Befunde dieser Runde sind **Maße**. **Am Wirt fehlt:**
@@ -6328,12 +6471,13 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   „Mailversand" im Abschnitt „Zugänge" — sie steht jetzt so breit wie ihre drei
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT DREIZEHN RUNDEN AUS.** 333 Rückbauten
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT VIERZEHN RUNDEN AUS.** 353 Rückbauten
   zu je einem vollen Prüflauf sind bei rund fünfeinhalb Minuten je Lauf etwa
-  **dreißig Stunden** hintereinander, in vier Nebenspuren rund acht. **Er lässt
+  **zweiunddreißig Stunden** hintereinander, in vier Nebenspuren rund acht. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
   `git archive HEAD`, und ein Commit mitten im Lauf verschiebt die Grundlage.
-  *Was in 0.17.0 gefahren wurde, steht im Änderungsprotokoll dieser Runde.*
+  *Was in 0.17.1 gefahren wurde, steht im Änderungsprotokoll dieser Runde;
+  was in 0.17.0 gefahren wurde, in jenem.*
 - **DER MIGRATIONSBLOCK 0.16.0 IST AM ECHTEN BESTAND NOCH NICHT GEFAHREN.** Er
   ist am Prüfstand an einer nachgebauten Datenbank aus 0.15.1 belegt — einmal
   ganz, zweimal hintereinander, gegen eine frische Instanz gehalten und an
@@ -6715,6 +6859,88 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.17.1 — „Was der Benutzer sieht"
+
+**PATCH · 30. August 2026 · sechs Handgriffe aus einem Rundlauf von Hand,
+unmittelbar nachdem 0.17.0 gebaut war — fünf an Wortlaut und Anordnung, einer
+ist ein echter Fehler.** *Die Instanz kann danach nichts, was sie vorher nicht
+konnte; das ist die Begründung der Nummer (Abschnitt 5.1).*
+
+**DER TEXT IM KACHEL „ZUGANG" STIMMTE NICHT UND SAGTE ZU VIEL.** *„Die Adresse
+ist freiwillig"* gilt nicht, wenn die **Selbstanmeldung** an ist — ohne Adresse
+kommt keine Bestätigungsmail an. **Der Satz richtet sich seither danach, was
+gerade gilt**, und die Marke am Feld mit ihm (`(freiwillig)` gegen
+`(wird gebraucht)`). *Gelesen wird `REGISTRIERUNG`, derselbe Merker, aus dem
+die Anmeldeseite ihr Formular baut; ein zweiter Abruf daneben wäre eine zweite
+Wahrheit (Stolperstein 47), und der Schalter in der Karte „Anfragen" zieht ihn
+seither nach (Stolperstein 241).* **„Mindestens 10 Zeichen" stand am
+Adressfeld und gilt fürs Passwort** — es steht jetzt dort, wo es hingehört.
+**Und der Server-Befehl steht nur noch beim Eigentümer:** er ist der Einzige,
+der in der Regel auch am Wirt sitzt; alle anderen lesen, an wen sie sich
+wenden. *Dieselbe Klemme in der Karte „Zugänge" — auch ein Admin ohne Eigentum
+kommt an den Server nicht heran.* **Der Absatz ist dabei kürzer geworden.**
+
+**DIE LISTEN BEKOMMEN DIE HÖHE, DIE IHRE KACHEL HERGIBT.** `.manage-list` trug
+feste 280 Pixel und `.prot-liste` feste 380: „Meine Sitzungen" zeigte drei von
+zehn Anmeldungen und blendete einen Rollbalken ein, während die Kachel darunter
+leer stand. **Die Kachel ist jetzt eine Spalte, die Liste nimmt mit `flex: 1`
+und `min-height: 0`, was übrig ist**, und rollt erst dann, wenn sie wirklich
+überläuft. *Ohne die zweite Zeile wächst ein Flexkind über seinen Anteil hinaus,
+statt zu rollen (Stolperstein 237) — und die Umstellung der Kachel zog jeden
+Knopf darin auf die volle Breite, bis die Gegenregel danebenstand
+(Stolperstein 238).* **Eine Regel und nicht sechs:** Sitzungen, Tags,
+Kategorien, Kriterien, Zugänge, Anfragen, Papierkorb und das
+Sicherheitsprotokoll tragen dieselbe. **Die einzige Ausnahme ist die
+Teileliste des Exports**, und ihr Grund steht als Satz daneben: sie steht
+mitten in ihrer Karte und schöbe den Import aus dem Blick.
+
+**DER MAILVERSAND ORDNET SICH IN VIER REIHEN — wer · wohin · womit · als
+wer.** Vorher standen sechs Felder untereinander, jedes über die volle Breite
+einer Karte, die seit 0.16.0 `.breit` ist. **Die Absenderadresse steht allein**,
+weil unter ihr zwei eigene Hinweissätze stehen — neben zwei anderen Feldern
+klebten sie unter dreien. *Ein Raster und keine Flexreihe: welches Feld breit
+ist und welches schmal, ist eine Angabe über die Reihe und nicht über das Feld.*
+**Auf dem Telefon fällt alles wieder untereinander**, und der Zustandsblock
+oben bleibt, wie er war.
+
+**AUS „ANLAGE" WIRD „INSTANZ" — 692 Stellen in achtzehn Dateien.** Das Wort trug
+die ganze Installation und passte nicht; englisch wäre das *instance*.
+**Der einzige harte Teil ist eine Adresse:** aus `#/system/anlage` wird
+`#/system/instanz`, und **die alte wird still übersetzt statt abgewiesen** —
+sie steht in Lesezeichen und älteren Papieren. *Eine Tafel und keine
+Verzweigung; dieselbe Bauform wie `delete f.neu` in 0.17.0 und der Schlüssel
+`abgelehnt` in 0.15.0.* **Nicht angefasst sind die abgeschlossenen
+Änderungsprotokolle, die CHANGELOG-Einträge bis einschließlich 0.17.0, die
+beiden Konzeptpapiere — und fünf falsche Freunde, die Anhänge meinen.** *Der
+Auftrag nannte zwei; einer davon war keiner, drei weitere fehlten
+(Stolperstein 236). Und drei Sätze, die die Umbenennung selbst beschreiben,
+hatte die Ersetzung mitgenommen (Stolperstein 240).*
+
+**DIE ZEILE EINER ANMELDUNG STEHT GERADE.** „Angemeldet" und „zuletzt gesehen"
+standen nebeneinander, unterschiedlich lang; sie stehen jetzt **rechtsbündig
+untereinander**, links davon der Name. *Die Zeile trägt dafür ein Raster statt
+eines Umbruchs — die Zusage aus 0.17.0, dass der orangene Rahmen der eigenen
+Anmeldung bis zum Rand reicht, hängt seither an der nachgebenden Namensspalte
+und nicht mehr am Umbruch.*
+
+**UND DER EINZIGE ECHTE FEHLER: DAS VIDEO FING IM VOLLBILD EIN ZWEITES MAL
+AN.** Die Lightbox baute sich einen eigenen Abspieler und ließ den inneren
+stehen — zwei Elemente mit derselben Quelle, zwei Tonspuren, zwei Stellen im
+Film. **Gebaut ist ein fliegender Wechsel:** beim Öffnen übernimmt der obere
+Stelle und Zustand des inneren, und der innere **gibt seine Quelle ab** —
+anhalten allein genügt nicht, ein Element mit Quelle lädt weiter. **Beim
+Schließen geht es denselben Weg zurück**, und zwar auf demselben Pfad wie das
+Kreuz, das Blättern und Escape. *Was aus dem Vollbild gelöscht wurde, wandert
+nicht zurück; die Zeile dafür ist an einem Rufer geprüft, der nichts neu
+zeichnet (Stolperstein 239).*
+
+**KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine neue
+Formatnummer: sieben markierte Blöcke, Austauschformat **11**, `F_ROUTEN` bei
+**69**, achtzehn Karten in fünf Abschnitten, acht persönliche Schlüssel.
+**Die Sicherung ist Empfehlung und nicht Pflicht.**
+
+**4630 → 4715 Prüfungen, 333 → 353 Rückbauten.** **Keine neue Abhängigkeit.**
 
 ### 0.17.0 — „Was dasteht, und was nicht dasteht"
 
@@ -7496,7 +7722,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.15.0** | Der Filter und der Stift | **GEBAUT.** Die Übersicht bekommt einen Filter für „abgelehnt" — drei Zustände in einer eigenen Gruppe, kombinierbar mit dem Teststatus. Dazu kommt die Begründung zur Ruhe: sie steht als Aussage da statt in einem dauernd offenen Feld, mit ✎ und ✕ daneben — und **entfernen darf sie seither auch der Admin**, was 0.14.0 zur Hälfte offengelassen hatte. *MINOR.* **Kein Schema, kein Migrationsblock, Format bleibt 11** | nein | — |
 | **0.16.0** | Der Systembereich, die Glocke und die Auskunft | **GEBAUT.** Neunzehn Karten sind achtzehn und stehen in fünf Abschnitten mit eigener Adresse; `renderSystem()` fiel dabei von 2466 auf 79 Zeilen. Dazu die Glocke mit dem Punkt, der Zähler „Offen" mit Zahl, die Gewichtung, die sich selbst erklärt, Version und Verfahren in den Kennzahlen — und aus dem Betrieb das Löschen in der Zoomansicht. *MINOR.* **Die größte Umbaufläche des Plans — und sie ist doch eine Datenbankstufe geworden: die Glocke braucht einen Zeitpunkt an der Bewertung. Der Rechner zur Gewichtung ist NICHT mitgefahren** | ja, **siebter Block** | — |
 | **0.17.0** | Was dasteht, und was nicht dasteht | **GEBAUT.** Neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, unmittelbar nach dem Einspielen von 0.16.0. Die Kriterienliste zerfiel bei genau **einem** Zugang; zwei Erklärtexte haben die Oberfläche verlassen; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; der Erklärkasten nennt die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen ist.** *MINOR.* **Kein Schema, keine Route — MINOR wegen der Glockentafel. Alle neun Punkte sind gebaut, dazu ein zehnter Befund aus dem Bauen: der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt** | nein | — |
-| **0.17.1** | Was der Benutzer sieht | **BEAUFTRAGT am 30. August 2026.** Sechs Handgriffe aus einem Rundlauf von Hand: der Text im Kachel „Zugang" stimmt nicht und sagt zu viel, Kacheln nutzen ihre Höhe nicht, der Mailversand ordnet sich, **aus „Instanz" wird „Instanz"**, die Zeile einer Sitzung steht schief — und das Video fängt im Vollbild ein zweites Mal an. *PATCH: fünf sind Wortlaut und Anzeige, einer ist ein echter Fehler.* **Der Auftrag liegt als `Doku/Auftrag_0.17.1.md` im Repo** | nein | — |
+| **0.17.1** | Was der Benutzer sieht | **GEBAUT.** Sechs Handgriffe aus einem Rundlauf von Hand: der Text im Kachel „Zugang" stimmt nicht und sagt zu viel, Kacheln nutzen ihre Höhe nicht, der Mailversand ordnet sich, **aus „Anlage" wird „Instanz"**, die Zeile einer Sitzung steht schief — und das Video fängt im Vollbild ein zweites Mal an. *PATCH: fünf sind Wortlaut und Anzeige, einer ist ein echter Fehler.* **Alle sechs Punkte sind gebaut; keiner ist herausgefallen. Die Umbenennung traf 692 Stellen, und die alte Adresse `#/system/anlage` wird still übersetzt** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
 | **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
@@ -7918,12 +8144,14 @@ Wirt, der volle Gegenprobenlauf, der Teilexport und beide Netze.
 
 ---
 
-### 0.17.1 — „Was der Benutzer sieht" · *PATCH*
+### 0.17.1 — GEBAUT, herausgegeben am 30. August 2026
 
-**BEAUFTRAGT am 30. August 2026.** *Nichts aus dem Sammelblatt — sechs Befunde
+**GEBAUT am 30. August 2026.** *Nichts aus dem Sammelblatt — sechs Befunde
 aus einem Rundlauf von Hand, unmittelbar nachdem 0.17.0 gebaut war.*
+**Alle sechs sind gebaut; was dabei herauskam, steht im Änderungsprotokoll
+`Doku/Aenderungsprotokoll_0.17.1.md` und in Abschnitt 9.**
 
-**Die Ausarbeitung steht im Auftrag** (`Doku/Auftrag_0.17.1.md`) und nicht hier;
+**Die Ausarbeitung stand im Auftrag** (`Doku/Auftrag_0.17.1.md`) und nicht hier;
 sie ist für eine PATCH-Runde kurz genug, dass eine zweite Fassung daneben nur
 auseinanderlaufen könnte. **In einem Satz je Punkt:**
 
@@ -7935,8 +8163,8 @@ auseinanderlaufen könnte. **In einem Satz je Punkt:**
    einen Rollbalken ein, wo Platz ist. **Eine Regel für alle Listen.**
 3. **Der Mailversand ordnet sich** in vier Reihen — *wer · wohin · womit · als
    wer* — statt sechs Felder über die volle Breite.
-4. **Aus „Instanz" wird „Instanz",** überall in den lebenden Dateien. *Die
-   abgeschlossenen Papiere bleiben, wie sie sind; `#/system/instanz` wird weiter
+4. **Aus „Anlage" wird „Instanz",** überall in den lebenden Dateien. *Die
+   abgeschlossenen Papiere bleiben, wie sie sind; `#/system/anlage` wird weiter
    verstanden.*
 5. **Die Zeile einer Sitzung** trägt beide Zeitangaben rechtsbündig
    untereinander.

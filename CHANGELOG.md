@@ -43,6 +43,104 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.17.1] - 2026-08-30
+
+**Was der Benutzer sieht.** Sechs Handgriffe aus **einem** Rundlauf von Hand,
+gemeldet unmittelbar nachdem 0.17.0 gebaut war — **keiner aus dem Fahrplan und
+keiner aus dem Sammelblatt.** **Fünf sind Wortlaut und Anordnung, einer ist ein
+echter Fehler:** das Video fing im Vollbild ein zweites Mal an.
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** **PATCH**, und diesmal ohne
+> Streit: *kann die Instanz danach etwas, was sie vorher nicht konnte?* **Nein.**
+> Sechs Handgriffe an Wortlaut, Anordnung und einem Fehler. **Auch die
+> Umbenennung ist Wortlaut** — und die eine Adresse, die sich dabei ändert, wird
+> abwärtskompatibel gehalten.
+
+> **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
+> neue Formatnummer: es bleibt bei **sieben** markierten Blöcken und beim
+> Austauschformat **11**. **Die Sicherung des Datenverzeichnisses ist deshalb
+> Empfehlung und nicht Pflicht.**
+
+### Changed
+
+- **Aus „Anlage" wird „Instanz" — überall.** *Das Wort trug in dieser Anwendung
+  die ganze Installation und passte nicht; englisch wäre das* instance. **692
+  Stellen in achtzehn Dateien:** Oberfläche, Meldungen, Kommentare, README,
+  Projektstand und Sammelblatt. **Der fünfte Abschnitt des Systembereichs heißt
+  damit „Instanz" und liegt unter `#/system/instanz`.** *Die alte Adresse
+  `#/system/anlage` wird **still übersetzt**, nicht abgewiesen — sie steht in
+  Lesezeichen und in älteren Papieren, und ein Link, der ins Leere führt, ist
+  eine Mitteilung ohne Weg.* **Nicht umbenannt sind die abgeschlossenen
+  Änderungsprotokolle, die Einträge dieser Datei bis einschließlich 0.17.0, die
+  beiden Konzeptpapiere — und fünf Stellen, an denen „Anlage" einen ANHANG
+  meint.**
+- **Der Text im Kachel „Zugang" sagt, was gilt.** *„Die Adresse ist freiwillig"*
+  stimmt nicht, wenn die **Selbstanmeldung** an ist — dann kommt ohne sie keine
+  Bestätigungsmail an. **Der Satz und die Marke am Feld richten sich seither
+  danach, was gerade gilt.** **Die Vorgabe „mindestens 10 Zeichen" steht jetzt
+  am Passwortfeld**, für das sie gilt, und nicht mehr im Absatz unter der
+  Adresse. **Und der Weg über den Server steht nur noch beim Eigentümer** — alle
+  anderen lesen, dass sie sich an den Admin wenden. *Der Absatz ist dabei kürzer
+  geworden.*
+- **Die Listen in den Kacheln bekommen die Höhe, die ihre Kachel hergibt**, und
+  rollen erst dann, wenn sie wirklich überlaufen. *„Meine Sitzungen" zeigte drei
+  von zehn Anmeldungen und blendete einen Rollbalken ein, während die Kachel
+  darunter leer stand.* **Eine Regel für alle Listen** — Sitzungen, Tags,
+  Kategorien, Kriterien, Zugänge, Anfragen, Papierkorb, Sicherheitsprotokoll.
+  **Die einzige Ausnahme ist die Teileliste des Exports**, und ihr Grund steht
+  als Satz daneben.
+- **Der Mailversand ordnet sich in vier Reihen** — *wer* (Anbieter) · *wohin*
+  (Server, Port, Verschlüsselung) · *womit* (Benutzername, Passwort) · *als wer*
+  (Absenderadresse). *Sechs Felder standen untereinander, jedes über die volle
+  Breite einer Karte, die seit 0.16.0 breit ist.* **Die Absenderadresse steht
+  allein**, weil unter ihr zwei eigene Hinweissätze stehen. **Auf dem Telefon
+  fällt alles wieder untereinander.** Der Zustandsblock oben bleibt, wie er war.
+- **Die beiden Zeitangaben einer Anmeldung stehen rechtsbündig untereinander**,
+  links davon der Name. *Nebeneinander waren sie unterschiedlich lang und sahen
+  aus wie ein Versehen.* **Der orangene Rahmen der eigenen Anmeldung reicht
+  weiterhin bis zum Rand** — er hängt seither an der nachgebenden Namensspalte
+  des Rasters statt am Umbruch.
+
+### Fixed
+
+- **Das Video fing im Vollbild ein zweites Mal an.** *Die Lightbox baute sich
+  einen eigenen Abspieler und ließ den inneren stehen: zwei Elemente mit
+  derselben Quelle, zwei Tonspuren, zwei Stellen im Film.* **Gebaut ist ein
+  fliegender Wechsel:** beim Öffnen übernimmt der obere Stelle und Zustand des
+  inneren, und der innere **gibt seine Quelle ab** — anhalten allein genügt
+  nicht, ein Element mit Quelle lädt weiter. **Beim Schließen geht es denselben
+  Weg zurück**, und zwar über denselben Pfad wie das Kreuz, das Blättern und
+  Escape. *Für den, der davorsteht, ist es dasselbe Video, nur größer.*
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Keine Sicherungspflicht — diese Version fährt **keinen**
+Migrationsblock —, keine neue Zeile in der `.env`, keine neue Abhängigkeit,
+niemand wird abgemeldet, **keine Zeile im Protokoll**.
+
+*Die Sicherung schadet trotzdem nie:*
+
+```bash
+cd .../kriterion && docker compose down
+cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # Empfehlung, nicht Pflicht
+```
+
+**Ein Lesezeichen auf `#/system/anlage` bleibt gültig** — es führt an dieselbe
+Stelle und wird in der Adresszeile auf `#/system/instanz` nachgezogen.
+
+### Was gleich bleibt
+
+**Das Austauschformat** bleibt bei **11**, **`F_ROUTEN`** bei **69** — keiner
+der sechs Punkte braucht eine schreibende Route. **`VORGAENGE`** bleibt bei
+**zwanzig**, **`BESTAETIGUNG_ZWECKE`** bei **sieben**, **das Vokabular** bei
+**elf**, **die Merkmale** bei **vierzehn**, **die Karten** bei **achtzehn** in
+**fünf** Abschnitten, **die Migrationsblöcke** bei **sieben**, **die
+persönlichen Schlüssel** bei **acht**. **Keine Karte wechselt ihre Rolle, keine
+Route kommt dazu, keine geht weg.** *Die Instanz kann danach nichts, was sie
+vorher nicht konnte.*
+
+---
+
 ## [0.17.0] - 2026-08-30
 
 **Was dasteht, und was nicht dasteht.** Neun Befunde aus **einem** Rundlauf von
@@ -2427,3 +2525,4 @@ nicht mehr übernehmen.*
 [0.15.1]: https://github.com/fardem/kriterion/compare/v0.15.0...v0.15.1
 [0.16.0]: https://github.com/fardem/kriterion/compare/v0.15.1...v0.16.0
 [0.17.0]: https://github.com/fardem/kriterion/compare/v0.16.0...v0.17.0
+[0.17.1]: https://github.com/fardem/kriterion/compare/v0.17.0...v0.17.1
