@@ -2957,12 +2957,19 @@ const RUECKBAUTEN = [
     erwartet: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* EIN NAME STEHT MEHRFACH DA, wenn er in beiden Abfragen vorkommt: die
-       Tafel sagt WER, nicht wie oft. */
+    /* EIN NAME STEHT MEHRFACH DA, wenn er zweimal kommentiert hat: die Tafel
+       sagt WER, nicht wie oft.
+       DER ERSTE ANLAUF DIESES RUECKBAUS HAT DEN LAUF ABGERISSEN. Er tauschte
+       nur die Menge gegen eine Liste; das darauffolgende .add() gibt es an
+       einer Liste nicht, der Aufruf warf, GET /api/items antwortete mit 500,
+       und die Prueflage kam gar nicht erst zustande -- der Bericht meldete
+       nach 13 Sekunden ABGERISSEN statt einer roten Zeile (Stolperstein 138).
+       JETZT WIRD BEIDES GETAUSCHT: Menge zu Liste UND add() zu push(). Der
+       Code laeuft weiter und tut das Falsche -- genau das soll ein Rueckbau. */
     nr: '321', name: 'Ein Verfasser steht in der Tafel mehrfach',
     datei: 'server.js',
-    suche: "      if (!neuVonJe.has(id)) neuVonJe.set(id, new Set());",
-    ersatz: "      if (!neuVonJe.has(id)) neuVonJe.set(id, []);",
+    suche: "      if (!neuVonJe.has(id)) neuVonJe.set(id, new Set());\n      neuVonJe.get(id).add(uid);",
+    ersatz: "      if (!neuVonJe.has(id)) neuVonJe.set(id, []);\n      neuVonJe.get(id).push(uid);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
