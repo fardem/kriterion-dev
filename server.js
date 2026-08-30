@@ -1648,9 +1648,8 @@ app.get('/api/settings', (req, res) => res.json({
   zeitleiste: zeitleisteAn(req.benutzer.id),
   /* DER BEZUGSPUNKT DER GLOCKE. Bis einschliesslich 0.16.0 stand
      `zuletztGesehen` daneben, der Merker der Pille „Neu seit ..."; er faellt
-     mit ihr weg. Eine Antwort, die
-     ein Feld weniger traegt, ist kein Bruch: die Oberflaeche wird im selben
-     Dateisatz ausgeliefert. */
+     mit ihr weg. Eine Antwort, die ein Feld weniger traegt, ist kein Bruch:
+     die Oberflaeche wird im selben Dateisatz ausgeliefert. */
   glockeGesehen: glockeGesehen(req.benutzer.id),
   suche: suchvorlage(),
   suchAnbieter: suchAnbieter(),

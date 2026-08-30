@@ -2307,8 +2307,8 @@ function drawFilters() {
      Eintraege, die Kategorien 1 + 9 = 10 -- zwei Eintraege waren ueber keine
      einzelne Kategorie erreichbar. Die Zahlen verrieten die Luecke, zu sehen
      bekam man sie trotzdem nicht.
-     DIE ZAHL RECHNET DER BROWSER, wie die an "Neu seit ..." -- state.alle
-     traegt den ganzen Bestand, der Server wird dafuer nicht gefragt. Und sie
+     DIE ZAHL RECHNET DER BROWSER, wie die an der Glocke -- state.alle traegt
+     den ganzen Bestand, der Server wird dafuer nicht gefragt. Und sie
      zaehlt ueber den GANZEN Bestand wie die usage_count der Kategorien daneben:
      zwei Zahlen in einer Zeile muessen dasselbe meinen.
      SIE STEHT NUR DA, WENN ES SIE GIBT -- eine Pille mit garantierter Null

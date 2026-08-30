@@ -1603,8 +1603,10 @@ body.lb-open { overflow: hidden; }
 /* Pillen, die zusammen mit der Auswahl null Treffer brächten. Anklickbar
    bleiben sie — man sieht nur vorher, dass die Liste leer würde.
    SEIT 0.13.0 GILT DIE REGEL FÜR JEDE PILLE und nicht mehr nur für Tags:
-   „Neu seit …" stand in derselben Lage und in voller Helligkeit da. Dieselbe
-   Sache darf nicht zwei Verhalten haben (Stolperstein 47, im Kleinen). */
+   eine Pille stand damals in derselben Lage und in voller Helligkeit da.
+   Dieselbe Sache darf nicht zwei Verhalten haben (Stolperstein 47, im
+   Kleinen). Die Pille, an der es auffiel, ist mit 0.17.0 gestrichen; die
+   Verallgemeinerung ist der Gewinn und bleibt. */
 .pill.leer { opacity: .34; }
 .pill.leer:hover { opacity: .7; }
 
@@ -2361,7 +2363,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
 
   /* ---- Die Filter ----
      Vier Reihen mit Beschriftung und beliebig vielen Pillen -- Status,
-     Favoriten, Neu seit, jede Kategorie, die Tagwolke, Und/Oder, Sortierung,
+     Favoriten, Ablehnung, jede Kategorie, die Tagwolke, Und/Oder, Sortierung,
      gespeicherte Ansichten. Auf dem Telefon fuellte das den ganzen ersten
      Bildschirm, und darunter fing die Liste erst an.
      SIE SIND DESHALB EINGEKLAPPT, NICHT WEG. Der Schalter darueber sagt, wie
