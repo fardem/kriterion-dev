@@ -3492,7 +3492,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const rwSumme = (rw?.zeilen || []).reduce((n, z) => n + z.produkt, 0);
   const rwTeiler = (rw?.zeilen || []).reduce((n, z) => n + z.gewicht, 0);
   pruefe('Summe und Teiler sind die der Zeilen',
-    Math.abs(rw.summe - rwSumme) < 1e-9 && Math.abs(rw.teiler - rwTeiler) < 1e-9,
+    Math.abs(rw?.summe - rwSumme) < 1e-9 && Math.abs(rw?.teiler - rwTeiler) < 1e-9,
     `${rw?.summe}/${rw?.teiler} gegen ${rwSumme}/${rwTeiler}`);
   /* DAS ERGEBNIS IST DIE ZAHL DARUEBER, und zwar bitgleich. Zwei Wege zu
      derselben Zahl waeren zwei Wahrheiten -- der Kasten am Bildschirm zeigt
@@ -3502,8 +3502,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* UND DER ROHE QUOTIENT IST UNGERUNDET. Ohne ihn koennte der Kasten „gerundet
      wird genau einmal" nicht zeigen, sondern nur behaupten. */
   pruefe('Der rohe Quotient steht ungerundet daneben',
-    Math.abs(rw.roh - rw.summe / rw.teiler) < 1e-12 &&
-    Math.round(rw.roh * 10) / 10 === rw.ergebnis,
+    Math.abs(rw?.roh - rw?.summe / rw?.teiler) < 1e-12 &&
+    Math.round(rw?.roh * 10) / 10 === rw?.ergebnis,
     `${rw?.roh} -> ${rw?.ergebnis}`);
   /* IN DER UEBERSICHT STEHT ER AUSDRUECKLICH NICHT. Tausend Eintraege
      traegen tausend Aufstellungen fuer eine Zahl, die niemand aufklappt. */
@@ -30250,7 +30250,10 @@ async function pruefeOberflaeche() {
       ex?.querySelector('#imp-drop')?.className);
     /* DIE REIHENFOLGE IST DER HALBE PUNKT: der Import steht UNTER dem Export
        und nicht darueber. Verglichen wird die Stellung im Markup. */
-    const stellung = (w) => [...(ex?.querySelectorAll('*') || [])].indexOf(ex.querySelector(w));
+    /* BEIDE HAELFTEN GESCHUETZT (Stolperstein 161): faellt die Karte weg, muss
+       diese Zeile ROT werden koennen und darf den Lauf nicht mitreissen. */
+    const stellung = (w) =>
+      [...(ex?.querySelectorAll('*') || [])].indexOf(ex?.querySelector(w) || null);
     pruefe('Und er steht unter dem Export, nicht darueber',
       stellung('#imp-drop') > stellung('#ex-plan'),
       `${stellung('#ex-plan')} gegen ${stellung('#imp-drop')}`);
