@@ -5351,6 +5351,52 @@ Version, in der sie entstanden sind.*
     gehört eine auf Anwesenheit im selben Ausschnitt** — sonst prüft man, dass
     der Ausschnitt existiert, und merkt nicht, wenn er es nicht tut.
 
+222. **Es gibt kein `feld?.value = wert` — und genau diese Zeilen standen als
+    einzige ungeschützt da.** Optional chaining kann **kein Zuweisungsziel**
+    sein. Überall sonst im Prüfstand steht das Fragezeichen; an den
+    sechsunddreißig Stellen, die einem Feld einen Wert geben, ging es
+    sprachlich nicht — und dort blieb es weg. **Seit 0.16.0 kann eine Karte
+    legitim außerhalb des offenen Abschnitts liegen**, das Feld ist dann
+    `null`, und der Lauf brach mit *„Cannot set properties of null"* ab, statt
+    rot zu werden. *Zwei Gegenproben kamen deshalb als ABGERISSEN zurück und
+    belegten nichts* (Stolperstein 161). **Wo die Sprache das Fragezeichen
+    nicht hergibt, gehört ein Helfer hin und kein Weglassen:** `setzeFeld()`
+    setzt den Wert, wenn das Feld da ist, und lässt die Zusage darunter rot
+    werden, wenn nicht. **Die Frage an jede ungeschützte Zeile: was passiert
+    hier, wenn der Gegenstand fehlt — rot, oder Abriss?**
+
+223. **Eine Prüfung, die ein ATTRIBUT liest, prüft nicht den Gegenstand.** Die
+    Zeile *„Jeder Reiter trägt seine eigene Adresse"* las `href` — und `href`
+    lässt sich an **jedes** Element schreiben. **Ein
+    `<button href="#/system/bestand">` bestand sie anstandslos** und könnte
+    doch nichts von dem, wofür die Adresse da ist: nicht kopieren, nicht in
+    einem neuen Fenster öffnen, nicht mit der Zurück-Taste verlassen. *Der
+    Rückbau, der genau diese eine Marke tauschte, blieb stumm.* **Zu jeder
+    Prüfung auf eine Eigenschaft gehört die Prüfung, dass sie an dem Ding
+    hängt, das sie tragen kann** — hier: es ist ein `<a>`.
+
+224. **Eine Prüflage, die eine Unterscheidung nicht herstellen kann, muss das
+    SELBST prüfen — sonst merkt es niemand.** Der Rechenweg wurde mit den
+    Gewichten 2/1/1 geprüft; **alles teilt dann durch vier, und alles durch
+    vier endet nach zwei Stellen.** Eine Auslieferung, die auf zwei Stellen
+    rundet, war von der ungerundeten nicht zu unterscheiden — die Zusage
+    *„ungerundet"* **konnte gar nicht scheitern**, und der Rückbau dazu blieb
+    stumm. *Das ist Stolperstein 189 an einer Zahl statt an einem Bestand; neu
+    ist die Antwort darauf.* **Die Lage trägt seither eine Zeile über sich
+    selbst:** *„der rohe Quotient hat mehr als zwei Stellen"*. Taugt sie eines
+    Tages nicht mehr, wird **diese** Zeile rot, statt die Zusage darunter
+    stumm werden zu lassen.
+
+225. **Fünf Befunde in einem Gegenprobenlauf, und der Prüfstand hat keinen
+    davon sehen können.** 4520 grüne Prüfungen standen da, und zwei Zusagen
+    konnten nicht scheitern, drei Prüfungen konnten nicht rot werden. *Der
+    Lauf war nicht falsch — er war blind, und Blindheit sieht von innen genau
+    wie Grün aus.* **Eine Zahl von Prüfungen sagt nichts über Abdeckung; das
+    tut allein der Rückbau.** Und die Zeile, die das beinahe verdeckt hätte,
+    stand schon in den Papieren: *„keiner blieb stumm"* — **geschrieben,
+    bevor der Lauf gefahren war.** *Eine Zusage über einen Lauf gehört
+    geschrieben, nachdem er gefahren ist, und nicht davor.*
+
 ---
 
 ## 7. Prüfstand
