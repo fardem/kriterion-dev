@@ -4574,8 +4574,19 @@ async function renderDetail(id) {
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal rechnung-modal" id="rechnung-modal">
       <h2>Wie ⌀ ${esc(gewZahl(weg.ergebnis))} zustande kommt</h2>
+      ${/* DER VERWEIS ZEIGT IN DEN KASTEN UND NICHT AUS IHM HINAUS. Hier stand
+           bis 0.17.0 „die Zahlen rechts in den Zeilen" -- gemeint war die
+           Durchschnittsspalte der Kriterienliste dahinter, und die gibt es bei
+           genau EINEM Zugang gar nicht. Derselbe blinde Fleck wie in Punkt 1
+           dieser Runde, eine Ansicht weiter: ein Satz zeigte auf eine Spalte,
+           die nicht in jeder Lage dasteht.
+           DIE SPALTE „NOTE" STEHT DAGEGEN IMMER DA -- sie gehoert dem Kasten
+           selbst, gleich unter diesem Satz. Ein Verweis auf das, was der Kasten
+           mitbringt, braucht keine Bedingung; eine Bedingung waere eine zweite
+           Wahrheit ueber die Zahl der Zugaenge (Stolperstein 47). */''}
       <p>Die Zahl entsteht in <strong>zwei Schritten</strong>. Zuerst wird je Kriterium der
-        Schnitt über alle Bewertungen gebildet — das sind die Zahlen rechts in den Zeilen.
+        Schnitt über alle Bewertungen gebildet — das sind die Zahlen in der Spalte
+        <strong>Note</strong>.
         Dann wird über diese Schnitte gemittelt${mitGewicht
           ? ', und zwar <strong>gewichtet</strong>: jeder Schnitt zählt mit dem Gewicht seines Kriteriums'
           : '. Alle Gewichte stehen hier auf 1, also zählt jedes Kriterium gleich'}.</p>
