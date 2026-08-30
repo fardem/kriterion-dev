@@ -157,7 +157,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.17.0** — Fingerprint **`e7f35b0e`**, **4630
+**Gebaut ist 0.17.0** — Fingerprint **`1b6bb5d2`**, **4630
 Prüfungen**, **333 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
 (Abschnitt 8). *0.17.0 bringt die Kriterienliste bei einem einzigen Zugang
 wieder in Ordnung, nimmt zwei Erklärtexte aus der Oberfläche, lässt die
@@ -496,7 +496,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.0** | **`e7f35b0e`** | 4630 |
+| **0.17.0** | **`1b6bb5d2`** | 4630 |
 | 0.16.0 | `aa76c352` | 4523 |
 | 0.15.1 | `d02260bd` | 4366 |
 | 0.15.0 | `8fa66d7d` | 4351 |

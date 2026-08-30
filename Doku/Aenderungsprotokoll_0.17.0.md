@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.17.0 — „Was dasteht, und was nicht dasteht"
 
-**Version 0.17.0 · gebaut am 30. August 2026 · Fingerprint `e7f35b0e` ·
+**Version 0.17.0 · gebaut am 30. August 2026 · Fingerprint `1b6bb5d2` ·
 4630 Prüfungen · 333 Rückbauten in `gegenprobe.js`**
 
 ---
