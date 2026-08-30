@@ -2851,6 +2851,11 @@ function baueZurueck(kopie, r) {
    "  ✓ <Name>" bzw. "  ✗ <Name>". Gelesen wird genau das -- und die Schlusszeile
    daneben, denn ein Lauf, der ABREISST, sieht in den roten Punkten allein
    genauso aus wie einer, der sauber durchlaeuft und nichts findet. */
+/* DER NAME DER EINEN SELBSTPROBE, die bei JEDEM gefahrenen Rueckbau rot wird.
+   Sie steht hier als Konstante und nicht als Zeichenkette mitten im Filter:
+   aendert sich ihr Name im Pruefstand, faellt es an einer Stelle auf. */
+const SELBSTPROBE = 'Jeder Suchtext kommt in seiner Datei genau einmal vor';
+
 function leseLauf(ausgabe) {
   const rot = [];
   let gruppe = '(vor der ersten Gruppe)';
@@ -2877,8 +2882,15 @@ function leseLauf(ausgabe) {
        NICHT SEHEN: `rot.length` ist nie null, und „0 STUMM" waere eine
        Auskunft ueber nichts. Genau so ist Rueckbau 265 in 0.15.0 durch die
        Meldung gerutscht -- gefunden wurde er beim Lesen der Tabelle von Hand
-       (Stolperstein 213). */
-    inhaltlichRot: rot.filter(t => t.gruppe !== 'Die Gegenproben greifen'),
+       (Stolperstein 213).
+       AUSGEBLENDET WIRD DIE EINE ZEILE UND NICHT DIE GANZE GRUPPE. Bis 0.16.0
+       fiel die Gruppe als Ganzes weg -- und damit jeder Rueckbau, dessen
+       eigene Zusagen ausgerechnet DORT stehen: der Nummernfilter des Werkzeugs
+       (Rueckbau 300) machte zwei Pruefungen sauber rot und wurde trotzdem als
+       STUMM gemeldet. Ein zu grober Filter macht aus einem Beleg einen Fund
+       und schickt den naechsten Leser auf eine Suche nach nichts. */
+    inhaltlichRot: rot.filter(t => !(t.gruppe === 'Die Gegenproben greifen' &&
+      t.name === SELBSTPROBE)),
     durchgelaufen: Boolean(schluss),
     bestanden: schluss ? Number(schluss[1]) : null,
     gesamt: schluss ? Number(schluss[2]) : null,

@@ -17782,6 +17782,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gpMitInhalt.rot.length === 2 && gpMitInhalt.inhaltlichRot.length === 1 &&
     gpMitInhalt.inhaltlichRot[0].gruppe === 'Die Begruendung kommt zur Ruhe — 0.15.0',
     JSON.stringify(gpMitInhalt.inhaltlichRot));
+  /* UND DIE DRITTE LAGE, an der es bis 0.16.0 falsch stand: eine ANDERE rote
+     Zeile IN der Gruppe „Die Gegenproben greifen". Ausgeblendet gehoert die
+     eine Selbstprobe und nicht die ganze Gruppe -- sonst faellt jeder Rueckbau
+     durch, dessen eigene Zusagen ausgerechnet dort stehen.
+     GENAU DAS IST RUECKBAU 300 PASSIERT: er machte „Eine Nummer als Argument
+     greift NICHT in die Namen hinein" sauber rot und wurde als STUMM
+     gemeldet. Ein zu grober Filter macht aus einem Beleg einen Fund. */
+  const gpEigeneGruppe = gpLese([
+    '── Die Gegenproben greifen ─────',
+    '  ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor',
+    '  ✗ Eine Nummer als Argument greift NICHT in die Namen hinein',
+    '  4345 von 4347 Pruefungen bestanden'
+  ].join('\n'));
+  pruefe('Eine ANDERE rote Zeile derselben Gruppe zaehlt sehr wohl',
+    gpEigeneGruppe.rot.length === 2 && gpEigeneGruppe.inhaltlichRot.length === 1 &&
+    gpEigeneGruppe.inhaltlichRot[0].name === 'Eine Nummer als Argument greift NICHT in die Namen hinein',
+    JSON.stringify(gpEigeneGruppe.inhaltlichRot));
 
   /* ---- WELCHES ARGUMENT WELCHEN RUECKBAU MEINT -- 0.16.0.
      DER BEFUND: `node gegenprobe.js 2 256` fuhr neben Rueckbau 256 auch die 83
