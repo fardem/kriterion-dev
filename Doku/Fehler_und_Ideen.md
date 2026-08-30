@@ -149,8 +149,9 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.15.0** *MINOR* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Zwei Befunde aus dem Betrieb, beide an der Ablehnung: der fehlende Filter für „abgelehnt" und die Begründung, die nicht zur Ruhe kam. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.0.** *Die Runde stand nie im Fahrplan; sie hat ihre Nummer bekommen, weil zwei ihrer drei Punkte Funktionen bringen — **und alle folgenden Runden sind dadurch um eine Stelle gerückt.*** |
 | **0.15.1** *PATCH* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Ein Befund aus dem Betrieb: `hidden` wirkte im Stilblatt nicht, weil jede eigene `display`-Regel die Vorgabe des Browsers schlägt — Aussage und Eingabefeld standen an einem *nicht* abgelehnten Eintrag da. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.1.** *Dazu die Regel, wann das Feld überhaupt dasteht: abgelehnt und kein Grund.* |
 | **0.16.0** *MINOR, Schema* *(war 0.15.0)* — **GEBAUT am 29. August 2026** | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt)*. **Was gebaut wurde, steht im Änderungsprotokoll 0.16.0.** *Zwei Abweichungen: **die „Vorschau der Rangfolge" ist NICHT mitgefahren** — sie ist der einzige Teil mit eigener Ansicht und eigenem Endpunkt und war im Auftrag als erster Kandidat des Schnitts benannt; sie steht weiter in Abschnitt 10 des Projektstands. Und **die Runde ist doch eine Datenbankstufe geworden**: `ratings` trug keinen Zeitpunkt, und ohne ihn kann die Glocke über fremde Bewertungen nichts sagen — siebter Migrationsblock, auf ausdrückliche Anweisung.* **Mitgefahren ist der Werkzeugbefund am Rückbaufilter aus Teil II.** |
-| **0.17.0** *MINOR* *(war 0.16.0)* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
-| **0.18.0** *MINOR* *(war 0.17.0)* | Die Bildablage: Original und zwei Ableitungen |
+| **0.17.0** *MINOR* | **Was dasteht, und was nicht dasteht** — neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, keiner davon aus diesem Blatt und keiner aus dem Fahrplan. Die Kriterienliste zerfällt bei genau **einem** Zugang; zwei Erklärtexte verlassen die Oberfläche; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen wird.** *Die Nummer ist MINOR, weil die Glockentafel eine Funktion bringt; der Auftrag ging als 0.16.1 in die Besprechung.* **Ausarbeitung: Projektstand, Abschnitt 10a** |
+| **0.18.0** *MINOR* *(war 0.17.0)* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
+| **0.19.0** *MINOR* *(war 0.18.0)* | Die Bildablage: Original und zwei Ableitungen |
 
 **Was hier bleibt, bleibt aus einem Grund:** die drei Punkte unten haben
 **keine Nummer**, weil keiner von ihnen gebaut werden soll — zwei sind `nicht
@@ -422,6 +423,16 @@ keine Zuordnung zu einer Runde, sondern Herkunft: eine Idee ohne Anlass ist
 schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 
 ### Aus dem Betrieb und aus den Runden
+
+> **DIE NEUN BEFUNDE VOM 30. AUGUST 2026 STEHEN NICHT MEHR HIER.** Sie sind am
+> selben Tag ausgearbeitet worden und haben ihre Nummer bekommen: **0.17.0**.
+> *Damit sind sie nach Regel 3 von diesem Blatt fortgezogen — was schon eine
+> Nummer hat, steht nicht hier, sondern im Fahrplan.* **Ihre Ausarbeitung steht
+> im Projektstand, Abschnitt 10a**, der Auftrag dazu in
+> `Doku/Auftrag_0.17.0.md`.
+>
+> *Was die Runde am Ende NICHT baut, kommt hierher zurück — mit einem Satz
+> dazu, warum.*
 
 - **Die Tagwolke soll ab der zweiten Zeile den Platz unter „mehr" / „weniger"
   mitfüllen** *(0.13.1, aus dem Betrieb — geprüft, beziffert, zurückgestellt)*.
