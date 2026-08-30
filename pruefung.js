@@ -17897,15 +17897,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Gewichtung, an der Glocke samt Zeitpunkt an der Bewertung, an den
   // Verfahren in den Kennzahlen, am Papierkorb im Vollbild und an den beiden
   // Werkzeugen (Groessenmessung und Nummernfilter).
-  // 328 SEIT 0.17.0: achtundzwanzig neue am Raster der Kriterienliste, an den
+  // 330 SEIT 0.17.0: dreissig neue am Raster der Kriterienliste, an den
   // beiden Massen vom echten Geraet, an der Vergleichszahl ohne Gewichte, an
   // der aufgeteilten Glockentafel, an der gestrichenen Pille und an den zwei
-  // Erklaertexten, die die Oberflaeche verlassen haben. Neun vorhandene sind
+  // Erklaertexten, die die Oberflaeche verlassen haben. ZEHN vorhandene sind
   // MITGEGANGEN statt geloescht zu werden (Stolperstein 201): 143, 208, 238,
   // 239, 252, 282, 283, 285, 286 und 291 zeigten auf Zeilen, die diese Runde
   // umgebaut hat -- ein Rueckbau, der ins Leere greift, ist stumm und
   // verfaelscht die Tabelle (Stolperstein 192).
-  pruefe('Es sind genau 328 Rueckbauten', gpListe.length === 328, `${gpListe.length}`);
+  pruefe('Es sind genau 330 Rueckbauten', gpListe.length === 330, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -29818,9 +29818,16 @@ async function pruefeOberflaeche() {
 
   /* DIE REGELN IM STILBLATT. Gepruefft wird die Wirkung und nicht der
      Wortlaut: ein Raster ueber drei Spalten, eine Zeile ohne eigenen Kasten,
-     und an der Zahlenspalte KEINE Breite mehr. */
+     und an der Zahlenspalte KEINE Breite mehr.
+     SEIT 0.17.0 GILT DIE DREI NUR NOCH DER ALLGEMEINEN REGEL -- bei einem
+     einzigen Zugang sind es zwei Spalten, und das steht eine Gruppe weiter. */
   const slListe = regel123('.rlist'), slRow = regel123('.rrow'), slAvg = regel123('.rrow .ravg');
-  pruefe('Die Kriterienliste ist ein Raster ueber drei Spalten',
+  /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): diese Zeile hiess „ist ein
+     Raster ueber drei Spalten" und war ab dieser Runde nur noch die halbe
+     Wahrheit -- bei genau EINEM Zugang sind es zwei. Drei Spalten gelten der
+     ALLGEMEINEN Regel; die zweite Regel und die Bedingung dahinter stehen in
+     der Gruppe „Das Raster der Kriterienliste zaehlt seine Zellen". */
+  pruefe('Die allgemeine Regel der Kriterienliste ist ein Raster ueber drei Spalten',
     /display: grid/.test(slListe) && /grid-template-columns: 1fr auto auto/.test(slListe),
     slListe || '(keine Regel)');
   pruefe('Die Zeile ist kein eigener Kasten mehr, sondern gibt ihre Zellen frei',
@@ -29904,8 +29911,13 @@ async function pruefeOberflaeche() {
 
   /* WIE VIELE SPALTEN EIN KASTEN MIT DIESEN KLASSEN HAT -- GELESEN, nicht
      hingeschrieben. Von den Regeln, deren Klassen der Kasten alle traegt,
-     gewinnt die letzte; so wertet es der Browser bei gleicher Spezifitaet,
-     und beide Regeln haben hier dieselbe.
+     gewinnt die SPEZIFISCHERE, und bei gleicher Spezifitaet die spaetere --
+     in dieser Reihenfolge wertet es der Browser.
+     DIE BEIDEN REGELN HABEN HIER NICHT DIESELBE SPEZIFITAET: `.rlist` traegt
+     eine Klasse, `.rlist.ohne-schnitt` zwei. Die zweite gewinnt deshalb ueber
+     ihre Spezifitaet und nicht ueber ihren Platz -- ein Leser, der nur den
+     Platz ansaehe, gaebe die falsche Zahl zurueck, sobald jemand die Regeln
+     umstellt, und die Zusagen darunter blieben trotzdem gruen.
      ERST DER GEGENSTAND (Stolperstein 81): findet sich gar keine Regel, ist
      die Zahl 0 und die Zusagen darunter koennen nicht gruen bleiben. */
   const rasterSpalten = (klassen) => {
@@ -29916,7 +29928,7 @@ async function pruefeOberflaeche() {
        vorigen Regel auf und ueberspringt damit jede zweite. Klammer zu Klammer
        schneiden ist langweiliger und deshalb richtig. */
     const ohne = css123.replace(/\/\*[\s\S]*?\*\//g, ' ');
-    let gefunden = 0, i = 0;
+    let gefunden = 0, beste = -1, i = 0;
     for (;;) {
       const auf = ohne.indexOf('{', i);
       if (auf < 0) break;
@@ -29930,7 +29942,12 @@ async function pruefeOberflaeche() {
       const noetig = wahl.split('.').filter(Boolean);
       if (noetig[0] !== 'rlist' || !noetig.every(k => klassen.includes(k))) continue;
       const m = rumpf.match(/grid-template-columns:\s*([^;]+)/);
-      if (m) gefunden = m[1].trim().split(/\s+/).length;
+      // Mehr Klassen heisst spezifischer; bei gleicher Zahl gewinnt die
+      // spaetere Regel -- deshalb >= und nicht >.
+      if (m && noetig.length >= beste) {
+        beste = noetig.length;
+        gefunden = m[1].trim().split(/\s+/).length;
+      }
     }
     return gefunden;
   };
@@ -29944,6 +29961,19 @@ async function pruefeOberflaeche() {
   pruefe('Und er unterscheidet die beiden wirklich',
     rasterSpalten(['rlist']) !== rasterSpalten(['rlist', 'ohne-schnitt']),
     `${rasterSpalten(['rlist'])} / ${rasterSpalten(['rlist', 'ohne-schnitt'])}`);
+  /* UND ER WAEHLT NACH SPEZIFITAET UND NICHT NACH PLATZ. Gegengeprueft an der
+     Regel selbst: was der Leser fuer beide Klassen liefert, muss die Zahl aus
+     der ZWEIKLASSIGEN Regel sein. Ohne diese Zeile bliebe „er unterscheidet
+     die beiden" auch dann gruen, wenn er die falsche Regel nimmt und nur
+     zufaellig eine andere Zahl herausbekaeme. */
+  const rzOhneRegel = regel123('.rlist.ohne-schnitt');
+  pruefe('Die Regel fuer den einen Zugang steht ueberhaupt im Stilblatt',
+    rzOhneRegel.length > 0, '(keine Regel)');
+  const rzOhneSpalten = (rzOhneRegel.match(/grid-template-columns: ([^;}]+)/) || ['', ''])[1]
+    .trim().split(/\s+/).filter(Boolean).length;
+  pruefe('Und der Leser liefert die Zahl AUS DIESER Regel, nicht aus der allgemeinen',
+    rzOhneSpalten > 0 && rasterSpalten(['rlist', 'ohne-schnitt']) === rzOhneSpalten,
+    `${rasterSpalten(['rlist', 'ohne-schnitt'])} gegen ${rzOhneSpalten} in ${rzOhneRegel || '(keine Regel)'}`);
 
   for (const [wieViele, wort] of [[3, 'mehreren Zugaengen'], [1, 'einem einzigen Zugang']]) {
     const rz = baueDom(JSDOM, { hash: '#/item/1',
@@ -29990,10 +30020,16 @@ async function pruefeOberflaeche() {
   const rzRegeln = (css123.match(/\.rlist[^{]*\{[^}]*grid-template-columns[^}]*\}/g) || []);
   pruefe('Die Spaltenzahl steht an genau zwei Stellen im Stilblatt',
     rzRegeln.length === 2, JSON.stringify(rzRegeln));
-  /* UND AUCH DIE ZWEITE REGEL TRAEGT KEINEN SPALTENABSTAND: er risse die
-     Trennlinie in Stuecke, genauso wie an der ersten. */
+  /* UND AUCH DIE REGEL FUER DEN EINEN ZUGANG TRAEGT KEINEN SPALTENABSTAND: er
+     risse die Trennlinie in Stuecke, genauso wie an der allgemeinen.
+     GEFRAGT WIRD NACH DEM WAEHLER UND NICHT NACH DEM PLATZ: `rzRegeln[1]` waere
+     die stille Annahme, die zweite gefundene Regel sei die gemeinte -- wer die
+     beiden umstellte, pruefte danach wortlos die falsche.
+     UND DAS VORHANDENSEIN STEHT IN EINER EIGENEN ZEILE (Stolperstein 81):
+     beides in einer Bedingung meldete bei fehlender Regel „keine Regel" und
+     saehe aus wie ein Befund ueber den Spaltenabstand. */
   pruefe('Auch die Regel fuer den einen Zugang traegt keinen Spaltenabstand',
-    rzRegeln.length === 2 && !/gap/.test(rzRegeln[1]), JSON.stringify(rzRegeln[1]));
+    !/gap/.test(rzOhneRegel), rzOhneRegel || '(keine Regel)');
   /* DIE SCHWELLE STEHT AN EINER STELLE. Verlockend waere gewesen, die
      Spaltenzahl aus den Bewertungen selbst abzuleiten -- dann haetten Raster
      und Zelle zwei Quellen, und die eine liesse sich aendern, ohne dass die
@@ -30895,6 +30931,26 @@ async function pruefeOberflaeche() {
       /Bewertungskriterien/.test(kasten?.textContent || ''),
       kasten?.textContent?.replace(/\s+/g, ' ').slice(-200));
 
+    /* ---- DER VERWEIS ZEIGT IN DEN KASTEN — 0.17.0 ----
+       BIS 0.17.0 STAND HIER „die Zahlen rechts in den Zeilen". Gemeint war die
+       Durchschnittsspalte der Kriterienliste DAHINTER -- und die gibt es bei
+       genau EINEM Zugang nicht. Derselbe blinde Fleck wie am Raster, eine
+       Ansicht weiter.
+       GEPRUEFT WIRD BEIDES: dass der Satz die Spalte beim Namen nennt UND dass
+       es diese Spalte im Kasten wirklich gibt. Ein Satz, der auf eine Spalte
+       zeigt, die es nicht gibt, ist genau der Fehler, um den es geht -- und
+       eine Zusage, die nur den Satz liest, faende ihn nicht (Stolperstein 81). */
+    const rvKopf = [...(kasten?.querySelectorAll('.rechnung .rz-kopf span') || [])]
+      .map(s => s.textContent.trim());
+    pruefe('Der Kasten traegt selbst eine Spalte „Note"',
+      rvKopf.includes('Note'), JSON.stringify(rvKopf));
+    pruefe('Und der Satz darueber verweist genau auf sie',
+      /in der Spalte\s*Note/.test((kasten?.textContent || '').replace(/\s+/g, ' ')),
+      (kasten?.textContent || '').replace(/\s+/g, ' ').slice(0, 220));
+    pruefe('Und nicht mehr auf die Liste dahinter',
+      !/rechts in den Zeilen/.test(kasten?.textContent || ''),
+      (kasten?.textContent || '').replace(/\s+/g, ' ').slice(0, 220));
+
     /* ---- DIE VERGLEICHSZAHL OHNE GEWICHTE — 0.17.0 ----
        DIE FORMEL STAND ZEILE FUER ZEILE DA und liess trotzdem offen, WOFUER
        die Gewichte gut sind. Erst der Unterschied macht die Gewichtung
@@ -31012,6 +31068,40 @@ async function pruefeOberflaeche() {
     pruefe('Die Kriterienzeilen bleiben davon unberuehrt',
       [...d.w.document.querySelectorAll('#ratings .rrow')].length === 3,
       `${d.w.document.querySelectorAll('#ratings .rrow').length} Zeilen`);
+    d.w.close();
+  }
+
+  /* UND DIE LAGE MIT EINEM EINZIGEN ZUGANG — 0.17.0. Die Frage dieser Runde,
+     hier an den Kasten gestellt: was sieht ein Betreiber, der allein arbeitet?
+     Hinter dem Kasten liegt dann eine Kriterienliste OHNE Durchschnittsspalte.
+     Der Satz im Kasten darf sich darauf nicht stuetzen -- er nennt die Spalte
+     „Note", und die gehoert dem Kasten selbst.
+     OHNE DIESE LAGE waere die Zusage darueber nur eine Aussage ueber den
+     Mehrbenutzerbetrieb, und genau daran ist Punkt 1 dieser Runde gescheitert
+     (Stolperstein 227). */
+  {
+    const d = baueDom(JSDOM, { hash: '#/item/1',
+      einstellungen: { filters: null, benutzerZahl: 1, istAdmin: true } });
+    await new Promise(r => setTimeout(r, 90));
+    const dok = d.w.document;
+    /* ERST DIE LAGE SELBST: die Spalte hinter dem Kasten fehlt hier wirklich.
+       Faende sich hier doch eine, belegte die Zusage darunter nichts. */
+    pruefe('Die Prueflage taugt: bei einem Zugang gibt es die Spalte dahinter nicht',
+      dok.querySelectorAll('#ratings .rrow .ravg').length === 0,
+      `${dok.querySelectorAll('#ratings .rrow .ravg').length} Durchschnittszellen`);
+    dok.querySelector('#rhead .gew-auf')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    const kasten = dok.getElementById('rechnung-modal');
+    pruefe('Auch bei einem einzigen Zugang geht der Kasten auf', !!kasten,
+      dok.body.innerHTML.slice(0, 160));
+    pruefe('Und er verweist auch dort nicht auf die Liste dahinter',
+      !!kasten && !/rechts in den Zeilen/.test(kasten.textContent || ''),
+      (kasten?.textContent || '').replace(/\s+/g, ' ').slice(0, 220));
+    pruefe('Sondern auf seine eigene Spalte, die auch hier dasteht',
+      [...(kasten?.querySelectorAll('.rechnung .rz-kopf span') || [])]
+        .map(s => s.textContent.trim()).includes('Note') &&
+      /in der Spalte\s*Note/.test((kasten?.textContent || '').replace(/\s+/g, ' ')),
+      (kasten?.textContent || '').replace(/\s+/g, ' ').slice(0, 220));
     d.w.close();
   }
 
