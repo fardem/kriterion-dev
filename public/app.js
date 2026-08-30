@@ -7693,36 +7693,55 @@ function karteMailversand(geholt) {
           und aus dem <code>Host</code>-Kopf darf er es nicht ableiten: über einen gefälschten
           Kopf ließe sich ein Rücksetzlink auf einen fremden Server umbiegen.</p>`}
 
-        <div class="field" style="margin-top:14px"><label for="mail-anbieter">Anbieter</label>
-          <select class="input" id="mail-anbieter">
-            <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
-            ${mailstand.anbieterListe.map(a => `<option value="${esc(a.schluessel)}"${
-              a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
-          </select></div>
+        ${/* ---- VIER REIHEN, UND JEDE BEANTWORTET EINE FRAGE ----
+              WER (Anbieter) · WOHIN (Server, Port, Verschlüsselung) · WOMIT
+              (Benutzername, Passwort) · ALS WER (Absenderadresse). Bis 0.17.0
+              standen sechs Felder untereinander, jedes über die volle Breite
+              einer Karte, die seit 0.16.0 `.breit` ist — ein Auswahlfeld mit
+              sechs Einträgen über neunhundert Pixel. Der Platz war da und
+              wurde nicht genutzt.
+              DIE ABSENDERADRESSE STEHT ALLEIN, und das ist der einzige Grund,
+              warum sie keine Reihe teilt: unter ihr stehen zwei eigene
+              Hinweissätze. Neben zwei anderen Feldern klebten sie unter dreien,
+              und niemand wüsste, auf welches sie sich beziehen.
+              AUF DEM TELEFON FÄLLT ALLES WIEDER UNTEREINANDER — das entscheidet
+              das Stilblatt. Eine Reihe, die auf 366 Pixeln drei Felder
+              nebeneinander zwingt, ist schlechter als die Spalte, die es
+              vorher war. */''}
+        <div class="mail-reihe mail-wer" style="margin-top:14px">
+          <div class="field"><label for="mail-anbieter">Anbieter</label>
+            <select class="input" id="mail-anbieter">
+              <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
+              ${mailstand.anbieterListe.map(a => `<option value="${esc(a.schluessel)}"${
+                a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
+            </select></div>
+        </div>
         ${/* Server, Port und Verschlüsselung stehen für die Vorlagen im
               Quelltext und werden hier nur GEZEIGT. Wechselt ein Anbieter
               morgen den Port, kommt der neue aus der Liste — eine Kopie in
               der Datenbank wäre eingefroren und liefe auseinander. Nur bei
               „Eigener Server“ sind die Felder offen. */''}
-        <div class="field"><label for="mail-server">Server</label>
-          <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
-            autocapitalize="off" spellcheck="false"></div>
-        <div class="row-in">
-          <div class="field" style="flex:1"><label for="mail-port">Port</label>
+        <div class="mail-reihe mail-wohin">
+          <div class="field"><label for="mail-server">Server</label>
+            <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
+              autocapitalize="off" spellcheck="false"></div>
+          <div class="field"><label for="mail-port">Port</label>
             <input class="input" id="mail-port" type="number" min="1" max="65535"
               value="${mailstand.port || ''}"></div>
-          <div class="field" style="flex:1"><label for="mail-sicher">Verschlüsselung</label>
+          <div class="field"><label for="mail-sicher">Verschlüsselung</label>
             <select class="input" id="mail-sicher">
               <option value="starttls"${mailstand.sicher ? '' : ' selected'}>STARTTLS (meist 587)</option>
               <option value="tls"${mailstand.sicher ? ' selected' : ''}>TLS von Anfang an (meist 465)</option>
             </select></div>
         </div>
-        <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
-          <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
-            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-        <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
-          <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
-            placeholder="${mailstand.passwortGesetzt ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
+        <div class="mail-reihe mail-womit">
+          <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
+            <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
+              autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+          <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
+            <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
+              placeholder="${mailstand.passwortGesetzt ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
+        </div>
         <div class="field"><label for="mail-absender">Absenderadresse</label>
           <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
             autocomplete="off" autocapitalize="off" spellcheck="false"></div>

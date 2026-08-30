@@ -2815,14 +2815,18 @@ const RUECKBAUTEN = [
   {
     /* DER UMBRUCH GILT WIEDER NUR UNTERHALB EINES UMBRUCHPUNKTS -- auf dem
        Desktop laeuft die Zeile damit erneut seitlich aus dem Kasten. */
-    nr: '305', name: 'Die Anmeldezeile bricht wieder nur auf dem Telefon um',
+    nr: '305', name: 'Die Anmeldezeile darf wieder breiter werden als ihr Kasten',
     datei: 'public/style.css',
     /* AM GEGENSTAND UND NICHT AN EINEM KOMMENTAR DANEBEN: die Regel kommt
        ausserhalb der Medienabfrage genau einmal vor, und wer sie umformuliert,
        aendert die Sache selbst. Ein Suchtext, der an einem Kommentar haengt,
-       greift ins Leere, sobald jemand den Kommentar besser schreibt. */
-    suche: ".mrow.sitz { flex-wrap: wrap; row-gap: 2px; }",
-    ersatz: "",
+       greift ins Leere, sobald jemand den Kommentar besser schreibt.
+       SEIT 0.17.1 ZIELT ER AUFS RASTER. Die Zusage ist dieselbe geblieben --
+       der Rahmen der eigenen Anmeldung reicht bis zum Rand --, sie haengt nur
+       nicht mehr am Umbruch, sondern an der nachgebenden Namensspalte. */
+    suche: `.mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center; column-gap: 9px; row-gap: 2px; }`,
+    ersatz: ".mrow.sitz { display: grid; grid-template-columns: max-content auto auto; }",
     erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
   },
   {

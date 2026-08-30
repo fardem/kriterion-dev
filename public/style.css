@@ -1027,7 +1027,19 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    der Fensterbreite (auto-fit), und wie viele es ueberhaupt gibt, an der
    Rolle. Die Reihenfolge im Quelltext bleibt davon unberuehrt. */
 .sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-flow: dense; gap: 18px; margin-top: 6px; }
-.sys-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px 20px; }
+/* DIE KACHEL IST EINE SPALTE, und das ist die Voraussetzung fuer die Liste
+   darin. Als Rasterkind ist sie so hoch wie ihre hoechste Nachbarin -- diese
+   Hoehe war bis 0.17.0 fuer nichts zu gebrauchen: die Liste darin trug ihre
+   eigenen 280 Pixel und rollte, waehrend darunter Platz stand.
+   ALS SPALTE GIBT SIE DIE HOEHE WEITER. Was `flex: 1` traegt, bekommt, was
+   uebrig ist; alles andere behaelt seine natuerliche Hoehe. */
+.sys-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px 20px;
+  display: flex; flex-direction: column; }
+/* EIN KNOPF BLEIBT SO BREIT WIE SEIN WORT. In einer Spalte werden die Kinder
+   sonst auf die volle Breite gezogen, und "Titel speichern" waere ein Balken
+   ueber die ganze Kachel. Nur die unmittelbaren Kinder: was in einer Reihe
+   (`.row-in`) steht, ordnet die Reihe. */
+.sys-card > .btn { align-self: flex-start; }
 .sys-card h3 { font-size: 1.03rem; font-weight: 620; letter-spacing: -.018em; margin: 0 0 4px; }
 .sys-card .desc { color: var(--muted); font-size: .87rem; margin: 0 0 14px; line-height: 1.55; }
 .sys-card .desc strong { color: var(--text-2); font-weight: 600; }
@@ -1067,7 +1079,28 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   font-size: .83rem; color: var(--text-2);
 }
 .vok-probe .label { width: 100%; margin-bottom: 2px; }
-.manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+/* DIE LISTE BEKOMMT DIE HOEHE, DIE DIE KACHEL HERGIBT -- und rollt erst dann,
+   wenn sie wirklich ueberlaeuft. Bis 0.17.0 stand hier `max-height: 280px`:
+   "Meine Sitzungen" zeigte drei von zehn Anmeldungen und blendete einen
+   Rollbalken ein, waehrend die Kachel darunter leer war. Dieselbe Kachel wird
+   hoeher, weil ihre Nachbarin hoeher ist; die Liste darin blieb, wo sie war.
+   `min-height: 0` IST DIE ZEILE, AN DER ES SONST SCHEITERT. Ein Flexkind
+   traegt von sich aus `min-height: auto` und waechst damit ueber seinen
+   Anteil hinaus, statt zu rollen -- die Kachel wuerde laenger als ihre
+   Nachbarn und das Raster verrutschte. Wer nur die `max-height` streicht,
+   bekommt genau das.
+   EINE REGEL UND NICHT SECHS: Sitzungen, Tags, Kategorien, Kriterien,
+   Zugaenge, Anfragen und der Papierkorb tragen alle diese eine Klasse. Sie
+   steht auch in zwei Fenstern (Glockentafel, Grabsteine) -- `.modal` ist
+   ebenfalls eine Spalte, und dort haelt dieselbe Zeile den Kopf und den
+   Schliessknopf im Blick, statt das ganze Fenster rollen zu lassen. */
+.manage-list { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+/* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
+   einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
+   der Export, unter ihr der Import. Naehme sie die Kachelhoehe, schoebe sie
+   den Import aus dem Blick, und ein Bestand von zwanzig Gigabyte ergibt
+   siebzig Zeilen. */
+#ex-teil-liste { flex: none; max-height: 280px; }
 .mrow { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-sm); background: var(--surface-2); margin-bottom: 5px; border: 1px solid transparent; }
 .mrow:hover { border-color: var(--line); }
 .mrow .mname { flex: 1; min-width: 0; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1170,14 +1203,38 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* Die Karte "Mailversand". Zwei Woerter tragen die ganze Karte -- eingerichtet
    oder nicht -- und stehen deshalb farbig da. */
 .mail-gut { color: var(--green); }
+/* ---- DIE VIER REIHEN DES MAILVERSANDS ----
+   Bis 0.17.0 standen sechs Felder untereinander, jedes ueber die volle Breite
+   einer Karte, die seit 0.16.0 `.breit` ist. Jetzt ordnet sich jede Reihe nach
+   der Frage, die sie beantwortet: WER, WOHIN, WOMIT, ALS WER.
+   EIN RASTER UND KEINE FLEXREIHE. `.row-in` gaebe den Feldern die Breite, die
+   ihr Inhalt braucht; hier soll SERVER breit und PORT schmal sein, und das ist
+   eine Angabe ueber die Reihe und nicht ueber das einzelne Feld.
+   `minmax(0, …)` UND NICHT BLOSS `…fr`: eine Rasterspalte gibt von sich aus
+   nicht unter ihre Mindestbreite nach, und ein Auswahlfeld mit einem langen
+   Eintrag ("TLS von Anfang an (meist 465)") schoebe die Reihe sonst breiter
+   als die Karte.
+   `align-items: start`: die Felder tragen unterschiedlich lange Beschriftungen
+   ("Port" gegen "Benutzername beim Anbieter"), und die Eingabefelder sollen
+   trotzdem auf einer Linie beginnen. */
+.mail-reihe { display: grid; gap: 0 12px; align-items: start; }
+/* WER -- der Anbieter steht allein und etwa ein Drittel breit. Ein
+   Auswahlfeld mit sechs Eintraegen ueber neunhundert Pixel war der Befund. */
+.mail-wer { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* WOHIN -- der Servername ist die lange Angabe, der Port die kuerzeste, die
+   Verschluesselung traegt zwei ausgeschriebene Eintraege. */
+.mail-wohin { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 2fr); }
+/* WOMIT -- zwei gleichrangige Angaben, also zwei gleiche Haelften. */
+.mail-womit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .mail-aus { color: var(--red); }
 .mail-erfolg { background: var(--green-dim); border-color: rgba(63,211,154,.3); }
 .mail-erfolg strong { color: var(--green); }
 
 /* Das Sicherheitsprotokoll. Eine Zeile je Vorgang, die juengste oben; die
-   Liste laeuft in sich und schiebt die Karte nicht auf. Auf schmalem Schirm
-   bricht sie in zwei Zeilen statt seitlich zu scrollen. */
-.prot-liste { max-height: 380px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+   Liste laeuft in sich und schiebt die Karte nicht auf -- seit 0.17.1 in der
+   Hoehe, die die Kachel hergibt, und nicht mehr in festen 380 Pixeln. Auf
+   schmalem Schirm bricht sie in zwei Zeilen statt seitlich zu scrollen. */
+.prot-liste { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 .prot-zeile { display: grid; grid-template-columns: 128px 1fr 1fr auto auto; gap: 4px 12px;
   align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: .86rem; }
 .prot-zeile:last-child { border-bottom: 0; }
@@ -1206,22 +1263,30 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   .prot-zeit { grid-column: 1 / -1; }
 }
 
-/* DIE ZEILE EINER ANMELDUNG BRICHT UM -- IMMER UND NICHT ERST AUF DEM TELEFON.
-   `.manage-list` traegt `overflow-y: auto`, und damit steht `overflow-x` nach
-   der CSS-Regel ebenfalls auf `auto`, ohne dass es jemand hingeschrieben
-   haette. Die Zeile ist breiter als der Kasten -- die beiden Zeitangaben
-   tragen `flex-shrink: 0` und geben nicht nach --, also entsteht ein Bildlauf
-   zur Seite; die Zeile ist dann aber nur so breit wie der SICHTBARE
-   Ausschnitt, und ihr Rahmen endet dort. An der eigenen Anmeldung, die als
-   einzige einen farbigen Rahmen traegt, sieht man das.
-   UMBRECHEN STATT SCHIEBEN: der andere Weg (`min-width: max-content`) liesse
-   den seitlichen Bildlauf stehen, und der ist auf dem Telefon schwer zu
-   treffen. Die Anordnung fuer den schmalen Schirm bleibt, wo sie war -- sie
-   ist eine Anordnung und keine Frage des Umbruchs. */
-.mrow.sitz { flex-wrap: wrap; row-gap: 2px; }
+/* DIE ZEILE EINER ANMELDUNG STEHT IN EINEM RASTER UND NICHT IN EINER REIHE.
+   Bis 0.17.0 standen "angemeldet" und "zuletzt gesehen" NEBENEINANDER,
+   unterschiedlich lang, und das sah aus wie ein Versehen. Jetzt stehen sie
+   UNTEREINANDER UND RECHTSBUENDIG, links davon der Name der Anmeldung.
+   Zwei Zeitangaben untereinander lesen sich als eine Angabe mit zwei Zeilen;
+   nebeneinander lasen sie sich als zwei Spalten, die nicht zueinander passen.
+   DER RAHMEN REICHT WEITERHIN BIS ZUM RAND -- das war Punkt 4b von 0.17.0 und
+   darf nicht zurueckfallen. Vorher hielt ihn `flex-wrap: wrap`: die Zeile war
+   breiter als der Kasten (`.manage-list` traegt `overflow-y: auto`, und damit
+   steht `overflow-x` nach der CSS-Regel ebenfalls auf `auto`), also entstand
+   ein Bildlauf zur Seite, und der farbige Rahmen der eigenen Anmeldung endete
+   am sichtbaren Ausschnitt. Das Raster kann gar nicht erst breiter werden:
+   die Namensspalte ist `minmax(0, 1fr)` und gibt nach, statt zu schieben.
+   NUR DIE ZEITEN TRAGEN `white-space: nowrap`. Ein umgebrochener Zeitstempel
+   waere schlechter zu lesen als ein abgeschnittener Name -- und der Name
+   traegt seine Ellipse ohnehin schon. */
+.mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center; column-gap: 9px; row-gap: 2px; }
+.mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 2; }
+.mrow.sitz .sitz-zeit { grid-column: 2; justify-self: end; text-align: right; }
+.mrow.sitz .zug-akt { grid-column: 3; grid-row: 1 / span 2; }
 /* Die eigene Anmeldung ist markiert -- sonst waere sie von einer fremden nicht
    zu unterscheiden, und genau das ist die eine Auskunft dieser Karte. */
-.mrow.sitz .sitz-zeit { font-family: var(--mono); font-size: .68rem; color: var(--faint); flex-shrink: 0; }
+.mrow.sitz .sitz-zeit { font-family: var(--mono); font-size: .68rem; color: var(--faint); white-space: nowrap; }
 .mrow.sitz-ich { border-color: var(--accent); }
 .mrow.sitz-ich .mname { color: var(--accent); }
 .sitz-fuss { margin-top: 4px; }
@@ -2539,6 +2604,12 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .sys-grid > .sys-card:first-child { border-top: 0; padding-top: 4px; }
   /* Zwei Spalten Formularfelder auf 366 Pixeln sind zwei zu schmale Spalten. */
   .vok-grid { grid-template-columns: 1fr; }
+  /* UND AUS DEMSELBEN GRUND FAELLT DER MAILVERSAND WIEDER IN EINE SPALTE. Eine
+     Reihe, die auf 366 Pixeln drei Felder nebeneinander zwingt, ist schlechter
+     als die Spalte, die es vorher war -- "Benutzername beim Anbieter" stuende
+     dann dreizeilig ueber einem Feld von hundert Pixeln.
+     EINE REGEL FUER ALLE VIER REIHEN und nicht vier: die Frage ist dieselbe. */
+  .mail-reihe { grid-template-columns: minmax(0, 1fr); }
 
   /* Die Listen, die in sich scrollen, tun das jetzt selten genug, dass die
      Wischbewegung fast immer die Seite bewegt -- 62 Prozent der Fensterhoehe
@@ -2638,16 +2709,20 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .card-foot { flex-wrap: wrap; row-gap: 5px; }
   .apdf-hint { row-gap: 6px; }
 
-  /* DIE ANORDNUNG DER UMGEBROCHENEN ZEILE. Sie traegt vier Stuecke: was fuer
-     eine Anmeldung es ist, wann sie begann, wann sie zuletzt gesehen wurde,
-     und das Kreuz zum Beenden.
+  /* DIE ANORDNUNG AUF DEM SCHMALEN SCHIRM. Die Zeile traegt vier Stuecke: was
+     fuer eine Anmeldung es ist, wann sie begann, wann sie zuletzt gesehen
+     wurde, und das Kreuz zum Beenden.
      OBEN, WAS DIE ZEILE IST UND WAS MAN MIT IHR TUN KANN; DARUNTER, WANN.
      Dieselbe Trennung wie am Kommentarkopf, und aus demselben Grund.
-     DER UMBRUCH SELBST STEHT SEIT 0.17.0 OBEN und gilt auf jedem Schirm --
-     hier steht nur noch, WIE die Stuecke sich dann verteilen. */
-  .mrow.sitz .mname { flex: 1 1 auto; }
-  .mrow.sitz .zug-akt { order: 1; }
-  .mrow.sitz .sitz-zeit { order: 2; flex: 1 1 auto; }
+     DIE ZEITEN BLEIBEN RECHTSBUENDIG UND UNTEREINANDER -- nur eben UNTER dem
+     Namen statt neben ihm. Drei Spalten auf 366 Pixeln waeren drei zu schmale:
+     "zuletzt gesehen 30.08.2026, 20:17" nimmt allein zwei Drittel, und vom
+     Namen bliebe ein Stummel mit Ellipse. Dieselbe Ueberlegung wie beim
+     Mailversand, eine Karte weiter. */
+  .mrow.sitz { grid-template-columns: minmax(0, 1fr) auto; }
+  .mrow.sitz .mname { grid-column: 1; grid-row: 1; }
+  .mrow.sitz .zug-akt { grid-column: 2; grid-row: 1; }
+  .mrow.sitz .sitz-zeit { grid-column: 1 / -1; }
 
   /* Ein langer Titel der Anlage schoebe sonst den Knopf zum Anlegen und das
      Menuezeichen aus der Kopfzeile. Abgeschnitten wird der Titel: er steht

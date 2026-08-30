@@ -30134,27 +30134,34 @@ async function pruefeOberflaeche() {
       `${azEigene?.querySelectorAll('.sitz-zeit').length}`);
     az.w.close();
   }
-  const azZeit = (ohneMedien.match(/\.mrow\.sitz \.sitz-zeit \{[^}]*\}/) || [''])[0];
-  pruefe('Die Zeitangaben geben ausdruecklich nicht nach',
-    /flex-shrink: 0/.test(azZeit), azZeit || '(keine Regel)');
-  pruefe('Und der Kasten laesst weiterhin senkrecht rollen',
+  const azZeit = (ohneMedien.match(/\.mrow\.sitz \.sitz-zeit \{[^}]*\}/g) || []).join(' ');
+  pruefe('Der Kasten laesst weiterhin senkrecht rollen',
     /overflow-y: auto/.test((ohneMedien.match(/\.manage-list \{[^}]*\}/) || [''])[0]),
     (ohneMedien.match(/\.manage-list \{[^}]*\}/) || ['(keine Regel)'])[0]);
-  /* DER KERN: der Umbruch gilt AUF JEDEM SCHIRM und nicht erst unterhalb eines
+  /* DER KERN: die Zusage gilt AUF JEDEM SCHIRM und nicht erst unterhalb eines
      Umbruchpunkts. Gelesen wird deshalb aus dem Stilblatt OHNE Medienabfragen
-     -- eine Regel, die nur dort steht, faellt hier durch. */
+     -- eine Regel, die nur dort steht, faellt hier durch.
+     SEIT 0.17.1 TRAEGT SIE EIN RASTER UND NICHT MEHR DER UMBRUCH. Der Umbruch
+     liess die Zeile erst zu breit werden und brach sie dann um; das Raster
+     laesst sie gar nicht erst zu breit werden -- die Namensspalte ist
+     `minmax(0, 1fr)` und gibt nach. Die ZUSAGE ist dieselbe geblieben, der Weg
+     dorthin ist der bessere. */
   const azSitz = (ohneMedien.match(/\.mrow\.sitz \{[^}]*\}/) || [''])[0];
-  pruefe('Die Zeile einer Anmeldung bricht ausserhalb jeder Medienabfrage um',
-    /flex-wrap: wrap/.test(azSitz), azSitz || '(keine Regel)');
-  pruefe('Und der Zeilenabstand des Umbruchs steht daneben',
+  pruefe('Die Zeile einer Anmeldung steht ausserhalb jeder Medienabfrage in einem Raster',
+    /display: grid/.test(azSitz), azSitz || '(keine Regel)');
+  pruefe('Und ihre Namensspalte gibt nach, statt die Zeile breiter zu machen',
+    /grid-template-columns: minmax\(0, 1fr\)/.test(azSitz), azSitz || '(keine Regel)');
+  pruefe('Und der Zeilenabstand steht daneben',
     /row-gap:/.test(azSitz), azSitz || '(keine Regel)');
   /* DIE ANORDNUNG BLEIBT DAGEGEN DEM SCHMALEN SCHIRM: sie ist eine Anordnung
-     und keine Frage des Umbruchs. Ohne diese Zeile liesse sich nicht
-     unterscheiden, ob der ganze Block gewandert ist oder nur der Umbruch. */
+     und keine Frage der Breite. Auf dem breiten Schirm steht das Kreuz in der
+     DRITTEN Spalte neben den Zeiten, auf dem schmalen in der zweiten neben dem
+     Namen. Ohne diese Zeile liesse sich nicht unterscheiden, ob der ganze
+     Block gewandert ist oder nur eine Zahl. */
   pruefe('Die Anordnung der Stuecke bleibt beim schmalen Schirm',
-    !/\.mrow\.sitz \.zug-akt/.test(ohneMedien) &&
-    /\.mrow\.sitz \.zug-akt \{ order: 1; \}/.test(css123),
-    'die Anordnung steht ausserhalb der Medienabfrage');
+    /\.mrow\.sitz \.zug-akt \{ grid-column: 3; grid-row: 1 \/ span 2; \}/.test(ohneMedien) &&
+    /\.mrow\.sitz \.zug-akt \{ grid-column: 2; grid-row: 1; \}/.test(css123),
+    (ohneMedien.match(/\.mrow\.sitz \.zug-akt \{[^}]*\}/) || ['(keine Regel)'])[0]);
   /* UND DER ANDERE WEG IST AUSDRUECKLICH NICHT GEGANGEN: `min-width:
      max-content` liesse den seitlichen Bildlauf stehen, und der ist auf dem
      Telefon schwer zu treffen. */
@@ -31591,6 +31598,182 @@ async function pruefeOberflaeche() {
      Anordnung, einer ist ein echter Fehler. Sie stehen hier in derselben
      Reihenfolge wie im Auftrag, und jede Gruppe sagt oben, WAS sie belegen
      kann und was nicht. */
+
+  /* ---- 2. Die Kachel gibt der Liste ihre Hoehe ---- */
+  gruppe('Die Liste bekommt die Hoehe der Kachel — 0.17.1');
+
+  /* WAS HIER AUSDRUECKLICH NICHT GEPRUEFT WIRD: DIE WIRKUNG. jsdom rechnet
+     kein Layout -- jede Hoehe ist dort null, und ob eine Liste wirklich den
+     Platz nimmt, den die Kachel hergibt, laesst sich nur am Bildschirm sehen.
+     GEPRUEFT WIRD DIE REGEL IM STILBLATT und dass die Zeilen wirklich alle
+     gezeichnet werden. Beides zusammen ist der Beleg, den es hier geben kann
+     (Stolperstein 223). */
+  {
+    const khKarte = regel123('.sys-card');
+    pruefe('Die Kachel ist eine Spalte',
+      /display: flex/.test(khKarte) && /flex-direction: column/.test(khKarte),
+      khKarte || '(keine Regel)');
+    /* SONST WAERE JEDER KNOPF EIN BALKEN. In einer Spalte werden die Kinder
+       auf die volle Breite gezogen; die Regel daneben nimmt das zurueck. */
+    pruefe('Und ein Knopf darin bleibt so breit wie sein Wort',
+      /\.sys-card > \.btn \{ align-self: flex-start; \}/.test(css123),
+      (css123.match(/\.sys-card > \.btn \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    for (const wahl of ['.manage-list', '.prot-liste']) {
+      const regel = (ohneMedien.match(new RegExp(wahl.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
+      pruefe(`Die Regel fuer ${wahl} steht ueberhaupt im Stilblatt`,
+        regel.length > 0, '(keine Regel)');
+      pruefe(`${wahl} traegt keine feste Hoehe mehr`,
+        !/max-height/.test(regel), regel || '(keine Regel)');
+      pruefe(`${wahl} nimmt, was die Kachel hergibt`,
+        /flex: 1/.test(regel), regel || '(keine Regel)');
+      /* DIE ZEILE, AN DER ES SONST SCHEITERT: ohne sie waechst ein Flexkind
+         ueber seinen Anteil hinaus, statt zu rollen. Wer nur die max-height
+         streicht, bekommt genau das. */
+      pruefe(`${wahl} darf dafuer unter seinen Inhalt schrumpfen`,
+        /min-height: 0/.test(regel), regel || '(keine Regel)');
+      pruefe(`${wahl} rollt weiterhin in sich`,
+        /overflow-y: auto/.test(regel), regel || '(keine Regel)');
+    }
+    /* DIE AUSNAHME STEHT ALS REGEL DA UND IST GENAU EINE. Die Teileliste des
+       Exports bleibt kurz, weil sie MITTEN in ihrer Karte steht; der Grund
+       steht als Satz daneben. Waeren es zwei, waere es keine Ausnahme mehr. */
+    pruefe('Die eine Ausnahme traegt ihre Deckelung ausdruecklich',
+      /#ex-teil-liste \{ flex: none; max-height: 280px; \}/.test(ohneMedien),
+      (ohneMedien.match(/#ex-teil-liste \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('Und der Grund dafuer steht im Stilblatt daneben',
+      /Teileliste des Exports/.test(fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')),
+      'kein Satz daneben');
+    /* AUF DEM TELEFON BLEIBT DIE DECKELUNG, und sie ist keine feste Hoehe: sie
+       misst das Fenster. Ohne sie machte ein Sicherheitsprotokoll mit
+       zweihundert Zeilen die Karte unbrauchbar lang. */
+    pruefe('Auf dem Telefon bleibt die Deckelung am Fenster haengen',
+      /\.manage-list, \.prot-liste, \.test-scroll, \.atext \{ max-height: 62vh; max-height: 62dvh; \}/.test(css123),
+      (css123.match(/\.manage-list, \.prot-liste[^}]*\}/) || ['(keine Regel)'])[0]);
+  }
+  {
+    /* UND DIE ZEILEN WERDEN WIRKLICH ALLE GEZEICHNET. Der Befund war, dass
+       zehn Anmeldungen dastehen und drei zu sehen sind -- gezeichnet waren
+       auch vorher alle zehn, aber ohne diese Zeile bliebe offen, ob die neue
+       Regel etwas verschluckt. */
+    const khSitzungen = Array.from({ length: 10 }, (_, n) => ({
+      kennung: String.fromCharCode(97 + n).repeat(64),
+      angemeldetAm: '2026-08-20 08:00:00', zuletztGesehen: '2026-08-24 07:30:00',
+      diese: n === 0 }));
+    const d = baueDom(JSDOM, { sitzungenBestand: khSitzungen,
+      einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
+    await new Promise(r => setTimeout(r, 60));
+    await sysAbschnitt(d.w, 'persoenlich');
+    const reihen = [...d.w.document.querySelectorAll('#msitzungen .mrow.sitz')];
+    pruefe('Zehn Anmeldungen ergeben zehn gezeichnete Zeilen',
+      reihen.length === 10, `${reihen.length}`);
+    pruefe('Und genau eine davon ist die eigene',
+      reihen.filter(r => r.classList.contains('sitz-ich')).length === 1,
+      `${reihen.filter(r => r.classList.contains('sitz-ich')).length}`);
+    d.w.close();
+  }
+
+  /* ---- 3. Der Mailversand ordnet sich ---- */
+  gruppe('Der Mailversand ordnet sich — 0.17.1');
+
+  /* VIER REIHEN, UND JEDE BEANTWORTET EINE FRAGE: wer, wohin, womit, als wer.
+     GEPRUEFT WIRD DIE ZUORDNUNG UND NICHT DIE BREITE -- welches Feld in
+     welcher Reihe steht, laesst sich hier belegen; wie breit es dann wirklich
+     ist, nicht. Die Breite haengt am Stilblatt, und die Regel dazu wird
+     darunter gelesen. */
+  {
+    const d = baueDom(JSDOM,
+      { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
+    await new Promise(r => setTimeout(r, 60));
+    await sysAbschnitt(d.w, 'zugaenge');
+    const karte = [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Mailversand');
+    pruefe('Die Karte „Mailversand" steht da', !!karte, 'keine Karte');
+    const reihen = [...(karte?.querySelectorAll('.mail-reihe') || [])];
+    pruefe('Sie traegt drei Reihen -- die vierte Angabe steht allein',
+      reihen.length === 3, `${reihen.length}`);
+    const felderIn = (n) => [...(reihen[n]?.querySelectorAll('.field .input') || [])].map(e => e.id);
+    pruefe('WER: der Anbieter steht allein in der ersten Reihe',
+      gleich(felderIn(0), ['mail-anbieter']), JSON.stringify(felderIn(0)));
+    pruefe('WOHIN: Server, Port und Verschluesselung in dieser Folge',
+      gleich(felderIn(1), ['mail-server', 'mail-port', 'mail-sicher']), JSON.stringify(felderIn(1)));
+    pruefe('WOMIT: Benutzername und Passwort beim Anbieter',
+      gleich(felderIn(2), ['mail-benutzer', 'mail-passwort']), JSON.stringify(felderIn(2)));
+    /* ALS WER: DIE ABSENDERADRESSE STEHT ALLEIN, und das ist der einzige
+       Grund, warum sie keine Reihe teilt -- unter ihr stehen zwei eigene
+       Hinweissaetze. Neben zwei anderen Feldern klebten sie unter dreien. */
+    const absender = karte?.querySelector('#mail-absender');
+    pruefe('ALS WER: die Absenderadresse steht in keiner Reihe',
+      !!absender && !absender.closest('.mail-reihe'), absender ? 'sie steht in einer Reihe' : 'kein Feld');
+    pruefe('Und die beiden Hinweissaetze stehen unmittelbar unter ihr',
+      !!karte?.querySelector('#mail-hinweis') &&
+      absender?.closest('.field')?.nextElementSibling?.id === 'mail-hinweis',
+      absender?.closest('.field')?.nextElementSibling?.outerHTML?.slice(0, 90));
+    /* DER ZUSTANDSBLOCK OBEN BLEIBT, WIE ER IST -- vier Zeilen, und keine
+       davon ist in eine Reihe gewandert. */
+    const kvs = [...(karte?.querySelectorAll('.kv .k') || [])].map(e => e.textContent.trim());
+    pruefe('Der Zustandsblock steht unveraendert mit seinen vier Zeilen',
+      gleich(kvs, ['Zustand', 'Passwort', 'Öffentliche Adresse', 'Zuletzt erfolgreich getestet']),
+      JSON.stringify(kvs));
+    /* UND DIE REIHEN SIND KEINE FLEXREIHEN MEHR. `.row-in` gaebe den Feldern
+       die Breite, die ihr Inhalt braucht; hier soll die REIHE sagen, welches
+       Feld breit ist und welches schmal. */
+    pruefe('Keines der sechs Felder haengt mehr an einer .row-in',
+      !['mail-server', 'mail-port', 'mail-sicher', 'mail-benutzer', 'mail-passwort', 'mail-absender']
+        .some(id => karte?.querySelector('#' + id)?.closest('.row-in')),
+      'ein Feld steht noch in einer .row-in');
+    d.w.close();
+  }
+  {
+    const reihe = regel123('.mail-reihe');
+    pruefe('Die Reihen des Mailversands sind ein Raster',
+      /display: grid/.test(reihe), reihe || '(keine Regel)');
+    pruefe('WER gibt dem Anbieter etwa ein Drittel',
+      /\.mail-wer \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/.test(ohneMedien),
+      (ohneMedien.match(/\.mail-wer \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('WOHIN macht den Server breit und den Port schmal',
+      /\.mail-wohin \{ grid-template-columns: minmax\(0, 3fr\) minmax\(0, 1fr\) minmax\(0, 2fr\); \}/.test(ohneMedien),
+      (ohneMedien.match(/\.mail-wohin \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('WOMIT teilt in zwei gleiche Haelften',
+      /\.mail-womit \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/.test(ohneMedien),
+      (ohneMedien.match(/\.mail-womit \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    /* AUF DEM TELEFON FAELLT ALLES WIEDER UNTEREINANDER. Eine Reihe, die auf
+       366 Pixeln drei Felder nebeneinander zwingt, ist schlechter als die
+       Spalte, die es vorher war. EINE Regel fuer alle vier Reihen. */
+    pruefe('Auf dem Telefon fallen die Reihen wieder in eine Spalte',
+      !/\.mail-reihe \{ grid-template-columns: minmax\(0, 1fr\); \}/.test(ohneMedien) &&
+      /\.mail-reihe \{ grid-template-columns: minmax\(0, 1fr\); \}/.test(css123),
+      'die Spaltenregel steht ausserhalb der Medienabfrage');
+  }
+
+  /* ---- 5. Die Zeile einer Sitzung steht gerade ---- */
+  gruppe('Die Zeitangaben stehen untereinander — 0.17.1');
+
+  /* DER BEFUND WAR DIE SCHIEFE ZEILE: „angemeldet" und „zuletzt gesehen"
+     nebeneinander, unterschiedlich lang. GEPRUEFT WIRD DIE ANORDNUNG IM
+     STILBLATT und dass die Zeile wirklich beide Angaben traegt -- die
+     Ausrichtung selbst rechnet jsdom nicht. */
+  {
+    const zeit = (ohneMedien.match(/\.mrow\.sitz \.sitz-zeit \{[^}]*\}/g) || []);
+    pruefe('Es gibt ueberhaupt Regeln fuer die Zeitangaben', zeit.length > 0, '(keine Regel)');
+    const zAlle = zeit.join(' ');
+    pruefe('Beide Zeitangaben stehen in derselben Spalte',
+      /grid-column: 2/.test(zAlle), zAlle || '(keine Regel)');
+    pruefe('Und sie stehen rechtsbuendig',
+      /justify-self: end/.test(zAlle) && /text-align: right/.test(zAlle), zAlle || '(keine Regel)');
+    pruefe('Ein Zeitstempel bricht dabei nicht um',
+      /white-space: nowrap/.test(zAlle), zAlle || '(keine Regel)');
+    /* UNTEREINANDER HEISST: DER NAME STEHT UEBER BEIDE ZEILEN. Ohne diese
+       Zeile stuenden die Zeiten zwar rechts, aber der Name daneben waere nur
+       so hoch wie die erste. */
+    const name = (ohneMedien.match(/\.mrow\.sitz \.mname \{[^}]*\}/) || [''])[0];
+    pruefe('Links davon steht der Name ueber beide Zeilen',
+      /grid-column: 1/.test(name) && /grid-row: 1 \/ span 2/.test(name), name || '(keine Regel)');
+    /* DER ORANGENE RAHMEN DER EIGENEN ANMELDUNG BLEIBT -- Punkt 4b von
+       0.17.0 darf nicht zurueckfallen. */
+    pruefe('Und der Rahmen der eigenen Anmeldung steht unveraendert da',
+      /\.mrow\.sitz-ich \{ border-color: var\(--accent\); \}/.test(ohneMedien),
+      (ohneMedien.match(/\.mrow\.sitz-ich \{[^}]*\}/) || ['(keine Regel)'])[0]);
+  }
 
   /* ---- 6. Genau ein Abspieler laeuft ---- */
   gruppe('Genau ein Abspieler laeuft — 0.17.1');
