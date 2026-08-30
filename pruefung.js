@@ -24,7 +24,7 @@ const Database = require('better-sqlite3-multiple-ciphers');
 const anh = require('./anhaenge');
 
 /* DIE README ALS EIN LANGER STRING, EINMAL GELESEN. Gebraucht wird sie
-   ueberall dort, wo ein Text die Oberflaeche VERLAESST: was aus der Anlage
+   ueberall dort, wo ein Text die Oberflaeche VERLAESST: was aus der Instanz
    faellt und nirgends sonst steht, ist verloren und nicht umgezogen. Die
    Zwischenraeume sind eingeebnet, damit ein Satz ueber zwei Zeilen genauso
    gefunden wird wie einer in einer. */
@@ -157,7 +157,7 @@ const KEY = crypto.randomBytes(32).toString('hex');
    steht HIER und nicht dort: der Waechter, der ihn nachrechnet, liegt hier, und
    zwei Zahlen an zwei Orten laufen auseinander. */
 /* 3500 SEIT 0.12.4, VORHER 3000. Die Spanne aller Basen ist mit dem Rundlauf
-   des Teilexports auf 3100 gewachsen (zwei Anlagen: die Quelle und das Ziel),
+   des Teilexports auf 3100 gewachsen (zwei Instanzen: die Quelle und das Ziel),
    und unterhalb der vorhandenen Basen war kein Fenster von 60 Nummern mehr
    frei -- die Luecken tragen entweder zu wenig Platz oder eine Nummer von der
    Sperrliste. WAECHST DIE SPANNE, WAECHST DER VERSATZ MIT; bei Gleichheit
@@ -166,7 +166,7 @@ const KEY = crypto.randomBytes(32).toString('hex');
    17679 weit unter 32768.
    ZWEI BASEN MEHR SEIT 0.14.0 (7060 und 7120): die Prueflage zur Ablehnung
    braucht eine Quelle und ein Ziel, weil der Rundlauf durch das
-   Austauschformat zwei Anlagen braucht. Die Spanne waechst damit auf 3280 und
+   Austauschformat zwei Instanzen braucht. Die Spanne waechst damit auf 3280 und
    bleibt unter dem Versatz. */
 const VERSATZ_STUFE = 3500;
 const VERSATZ_SPUREN = 4;
@@ -381,7 +381,7 @@ function smtpEmpfaenger(art = 'ok') {
 }
 
 // Ein weiterer Server mit eigenem Datenverzeichnis, eigener Umgebung und
-// eigenem Cookie. Gebraucht fuer alle Prueflagen, die eine eigene Anlage
+// eigenem Cookie. Gebraucht fuer alle Prueflagen, die eine eigene Instanz
 // brauchen: frische Einrichtung, Rechte mit mehreren Zugaengen, Sperren.
 function starteWeiterenServer(datenVerzeichnis, zusatz, portBasis) {
   const port = portBasis + PORT_VERSATZ + Math.floor(Math.random() * PORT_BREITE);
@@ -504,7 +504,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---------------------------------------------------------------- */
   gruppe('Frische Installation');
 
-  // Der Hauptserver startet auf einer leeren Anlage -- genau wie im Betrieb.
+  // Der Hauptserver startet auf einer leeren Instanz -- genau wie im Betrieb.
   const frischDb = oeffne(path.join(DATA, 'katalog.sqlite'));
   /* Die Spalte gewicht steht mit in der Abfrage -- und wird abgefangen, falls
      es sie nicht gibt: sonst risse ein Rueckbau der DDL den ganzen Lauf in der
@@ -1229,7 +1229,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /ungueltiges Gewicht auf 1,0 zurueckgesetzt/.test(ausgabe),
     (ausgabe.match(/.*Gewicht auf 1,0.*/) || ['(nichts im Protokoll)'])[0]);
 
-  /* Ein RUNDLAUF: Gewichte setzen, exportieren, in dieselbe Anlage ersetzend
+  /* Ein RUNDLAUF: Gewichte setzen, exportieren, in dieselbe Instanz ersetzend
      einspielen. Der ersetzende Import loescht items, Kategorien und Tags --
      rating_criteria ausdruecklich NICHT. Die Gewichte stehen danach also
      unveraendert da. */
@@ -1239,7 +1239,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     .map(c => `${c.name}:${c.gewicht}`);
   const gewAus = (await rufF('GET', '/api/export?photos=0')).inhalt;
   await sendeImport(gewAus, 'replace');
-  pruefe('Ein Rundlauf in dieselbe Anlage laesst die Gewichte stehen',
+  pruefe('Ein Rundlauf in dieselbe Instanz laesst die Gewichte stehen',
     gleich((await ruf('GET', '/api/criteria')).inhalt.map(c => `${c.name}:${c.gewicht}`), gewVorRund),
     JSON.stringify((await ruf('GET', '/api/criteria')).inhalt.map(c => `${c.name}:${c.gewicht}`)));
   // Und die Datei traegt sie ueberhaupt -- sonst belegte der Rundlauf oben nur,
@@ -1248,7 +1248,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gewAus?.criteriaGewichte?.[gewRund[0].name] === 0.6, JSON.stringify(gewAus?.criteriaGewichte));
 
   /* ---------------------------------------------------------------- */
-  gruppe('Die Marke der Anlage');
+  gruppe('Die Marke der Instanz');
 
   /* SEIT 0.9.1 IST SIE EINE AUSGELIEFERTE DATEI und kein eingebautes SVG mehr.
      Wer sie austauscht, tauscht eine Datei aus und faesst keinen Quelltext an. */
@@ -1394,7 +1394,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Kopfzeile standen zwei warme Farben nebeneinander, die nichts voneinander
      wussten: der Strich in --gold, der Knopf daneben in --accent. Eine Farbe
      ist besser als zwei. Gold bleibt die Farbe der BEWERTUNG; die Marke ist
-     nicht die Bewertung, sie ist die Anlage.
+     nicht die Bewertung, sie ist die Instanz.
      GEPRUEFT AN BEIDEN DATEIEN UND NICHT AN EINER: sie liegen getrennt, und
      wer eine anfasst, laesst die andere zurueck -- ab dann zeigt der Reiter
      etwas anderes als die Kopfzeile. */
@@ -1430,7 +1430,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /viewBox="0 0 32 32"/.test(mkInhalt['favicon.svg'] || ''),
     (mkInhalt['favicon.svg'] || '').match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
 
-  /* DIE HOEHE STEHT IM CSS UND IN rem, NICHT IN PIXEL. Die Anlage stellt die
+  /* DIE HOEHE STEHT IM CSS UND IN rem, NICHT IN PIXEL. Die Instanz stellt die
      Schrift von 80 bis 120 Prozent; eine festgeschriebene Pixelhoehe passte
      nur bei 100 Prozent zum Text daneben.
      UND SIE IST AUSGERECHNET: Titel (1,23 rem) und Zaehlzeile (0,77 rem) haben
@@ -1521,7 +1521,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* OHNE viewport-fit=cover IST JEDE ANGABE ZUR AUSSPARUNG EINE TOTE ZEILE:
      env(safe-area-inset-*) liefert dann in jedem Browser null. Die beiden
      gehoeren zusammen, und deshalb werden sie zusammen geprueft -- eine
-     Anlage, die Sicherheitsabstaende rechnet und den Bereich nie bekommt,
+     Instanz, die Sicherheitsabstaende rechnet und den Bereich nie bekommt,
      saehe aus wie eine, die es richtig macht. */
   pruefe('Die Seite bekommt die ganze Flaeche, Aussparung eingeschlossen',
     /<meta name="viewport"[^>]*viewport-fit=cover/.test(indexHtml),
@@ -1535,7 +1535,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      da -- und genau deshalb wird er hier verglichen. */
   const themeFarbe = (indexHtml.match(/<meta name="theme-color" content="([^"]+)"/) || [])[1];
   const bgFarbe = (css.match(/--bg: *(#[0-9a-fA-F]+)/) || [])[1];
-  pruefe('Die Leiste des Browsers traegt die Farbe der Anlage',
+  pruefe('Die Leiste des Browsers traegt die Farbe der Instanz',
     !!themeFarbe && !!bgFarbe && themeFarbe.toLowerCase() === bgFarbe.toLowerCase(),
     `${themeFarbe} gegen ${bgFarbe}`);
 
@@ -1565,7 +1565,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      app.js. Sie muss es: das Stylesheet entscheidet, WAS zu sehen ist, und
      die Oberflaeche muss wissen, ob die Filter eingeklappt anfangen. Diese
      Pruefung ist die Klammer darum: laufen die beiden auseinander, klappt die
-     Anlage Filter ein, deren Schalter gar nicht dasteht -- eine Liste, die
+     Instanz Filter ein, deren Schalter gar nicht dasteht -- eine Liste, die
      ohne sichtbaren Grund weniger zeigt. */
   const schmalLiteral = (appQuelle.match(/const SCHMAL = '([^']+)'/) || [])[1];
   pruefe('Die Oberflaeche kennt die Bedingung fuer den schmalen Schirm', !!schmalLiteral,
@@ -1935,7 +1935,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* FUENF NAMEN SEIT 0.9.1: registrierung kommt dazu -- die Anmeldeseite muss
      wissen, ob sie das Formular ueberhaupt zeigen soll. Der Wert sagt nichts
      ueber den Bestand und nichts ueber einen Menschen; er sagt, ob diese
-     Anlage Anfragen annimmt, und das erfaehrt ohnehin jeder, der eine stellt.
+     Instanz Anfragen annimmt, und das erfaehrt ohnehin jeder, der eine stellt.
      Die Liste bleibt abgeschlossen, und ein sechster Name kommt nicht
      stillschweigend dazu (Stolperstein 74: die Pruefung der Vorgaengerversion
      ist die erste Betroffene). */
@@ -1963,7 +1963,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      ABGELESEN UND NICHT BEHAUPTET: die Angaben kommen aus db.js, das die
      GEOEFFNETE Datei fragt. Eine Kopie in der Oberflaeche liefe beim naechsten
      Wechsel auseinander -- deshalb steht hier auch keine zweite Liste, sondern
-     die Frage, ob die Antwort mit dem uebereinstimmt, was die Anlage
+     die Frage, ob die Antwort mit dem uebereinstimmt, was die Instanz
      tatsaechlich tut.
      UND DER HARTE VORBEHALT: Verfahrensnamen ja, PAKETVERSIONEN NEIN. Eine
      Bibliotheksversion sagt, welche Luecke passt. Die Pruefung darunter ist
@@ -1983,7 +1983,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     statsVerf?.journal === 'WAL', JSON.stringify(statsVerf?.journal));
   pruefe('Und die Passwoerter rechnen mit scrypt',
     statsVerf?.passwoerter === 'scrypt', JSON.stringify(statsVerf?.passwoerter));
-  /* DIE GEGENPROBE AN DER ANLAGE SELBST, sonst waeren die vier Zeilen darueber
+  /* DIE GEGENPROBE AN DER INSTANZ SELBST, sonst waeren die vier Zeilen darueber
      nur vier Behauptungen gegen vier andere Behauptungen: db.js muss die
      Chiffre wirklich setzen, und auth.js muss wirklich scrypt schreiben. */
   const verfQuelleDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
@@ -1998,7 +1998,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     verfHash.startsWith('scrypt$'), verfHash.slice(0, 12));
   /* KEINE PAKETVERSION IN DER ANTWORT. Gesucht wird nach dem Muster einer
      Versionsnummer in JEDEM Wert der Verfahrensangaben -- die Version der
-     ANLAGE steht eine Zeile hoeher und ist ausdruecklich erwuenscht. */
+     INSTANZ steht eine Zeile hoeher und ist ausdruecklich erwuenscht. */
   pruefe('Und keine der Angaben nennt eine Paketversion',
     !Object.values(statsVerf || {}).some(v => /\d+\.\d+\.\d+/.test(String(v))),
     JSON.stringify(statsVerf));
@@ -2227,7 +2227,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Schnittstelle allein ist der Leseweg nicht erreichbar, weil dorthin nie
   // etwas Halbes gelangt -- deshalb kommt der halbe Platz hier von Hand in die
   // Datenbank.
-  async function anlageMitEinstellungen(zeilen, portBasis) {
+  async function instanzMitEinstellungen(zeilen, portBasis) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-suchdb-'));
     kurzlauf(`require('./db'); console.log('da');`, dir);
     const d = oeffne(path.join(dir, 'katalog.sqlite'));
@@ -2240,7 +2240,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return { S, dir, hole: async () => (await S.ruf('GET', '/api/settings')).inhalt };
   }
 
-  const wHalb = await anlageMitEinstellungen({
+  const wHalb = await instanzMitEinstellungen({
     sucheEigene: [{ name: 'Nur Name', vorlage: '' }, { name: '', vorlage: 'https://a.de/?q=%s' }, null],
     sucheAktiv: ['eigen1', 'eigen2', 'bing']
   }, 4400);
@@ -2360,7 +2360,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Ein kaputter Cookie VOR dem eigenen sperrt nicht aus', kkVorn === 200, `Stand ${kkVorn}`);
   pruefe('Und einer DAHINTER ebenso wenig', kkHinten === 200, `Stand ${kkHinten}`);
   /* DIE GEGENLAGE: der kaputte Cookie wird UEBERGANGEN, nicht angenommen.
-     Ohne sie bliebe offen, ob die Anlage ihn womoeglich als Sitzung nimmt --
+     Ohne sie bliebe offen, ob die Instanz ihn womoeglich als Sitzung nimmt --
      401 ist hier das richtige Ergebnis und 500 das falsche. */
   const kkAllein = await kkRuf(`kriterion_session=${kkWert}`);
   pruefe('Ein kaputter Wert am EIGENEN Namen gilt als keine Sitzung, nicht als Fehler',
@@ -2370,7 +2370,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const kkName = await kkRuf(`fre%md=1; ${cookie}`);
   pruefe('Ein Prozentzeichen im NAMEN ist gar kein Fall', kkName === 200, `Stand ${kkName}`);
   /* WAS AUSDRUECKLICH NICHT GEBAUT WURDE, und deshalb hier steht
-     (Stolperstein 199): ein fremder Cookie ist kein Vorgang dieser Anlage. Er
+     (Stolperstein 199): ein fremder Cookie ist kein Vorgang dieser Instanz. Er
      hinterlaesst keine Zeile im Sicherheitsprotokoll. */
   const kkProt = (await ruf('GET', '/api/sicherheitsprotokoll')).inhalt;
   const kkZeilen = Array.isArray(kkProt) ? kkProt : (kkProt?.zeilen || []);
@@ -3586,7 +3586,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      WAS KAEME HERAUS, WENN ALLE KRITERIEN GLEICH ZAEHLTEN? Sie entsteht in
      DERSELBEN Schleife und aus DERSELBEN Menge wie die Zahl darueber -- eine
      zweite Rechenstelle im Browser waere genau die zweite Wahrheit, die diese
-     Anlage nirgends duldet (Stolperstein 217).
+     Instanz nirgends duldet (Stolperstein 217).
      DIE PRUEFLAGE WIRD WIEDER SELBST GEPRUEFT (Stolperstein 224): waeren beide
      Zahlen gleich, belegte die Gruppe nichts ueber den Unterschied -- dann
      wird DIESE Zeile rot und keine Zusage darunter stumm. */
@@ -3625,7 +3625,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ================= Die Bewertung traegt ihren Zeitpunkt — 0.16.0 =====
      OHNE IHN KANN DIE GLOCKE UEBER FREMDE BEWERTUNGEN NICHTS SAGEN. Die
      Spalte kommt mit dem siebten Migrationsblock; die Zeilen, die es vorher
-     gab, tragen NULL und behalten es -- was die Anlage nicht weiss, behauptet
+     gab, tragen NULL und behalten es -- was die Instanz nicht weiss, behauptet
      sie nicht. */
   gruppe('Die Bewertung traegt ihren Zeitpunkt');
 
@@ -3639,7 +3639,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     zpZeilen('PRAGMA table_info(ratings)').map(c => c.name).includes('gesetzt_am'),
     JSON.stringify(zpZeilen('PRAGMA table_info(ratings)').map(c => c.name)));
   /* DIE ZEILEN AUS DEM AUFBAU SIND VON HAND EINGETRAGEN und tragen deshalb
-     keinen Zeitpunkt -- genau die Lage einer Anlage, die von 0.15.1 kommt.
+     keinen Zeitpunkt -- genau die Lage einer Instanz, die von 0.15.1 kommt.
      Ohne diese Zeile waere „alte Zeilen bleiben unsichtbar" nicht belegbar. */
   pruefe('Von Hand eingetragene Bewertungen tragen keinen',
     zpZeilen('SELECT COUNT(*) n FROM ratings WHERE gesetzt_am IS NULL')[0].n > 0,
@@ -4298,7 +4298,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* Ein unbekannter Name faellt an den Einspielenden -- der vorhandene Weg
      ueber verfasser() gilt unveraendert. Der Eintragsverfasser (bert) ist
      hier ausdruecklich NICHT die Antwort: die Datei nennt einen Namen, er ist
-     nur keiner aus dieser Anlage. */
+     nur keiner aus dieser Instanz. */
   pruefe('Ein unbekannter Name an der Linkzeile faellt an den Einspielenden',
     e2LinkNeuZeilen.find(z => /dora$/.test(z.url))?.username === 'anna',
     JSON.stringify(e2LinkNeuZeilen));
@@ -4521,7 +4521,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       return n;
     };
     const frisch = tTabellen();
-    pruefe('Eine frische Anlage traegt papierkorb ohne Migration',
+    pruefe('Eine frische Instanz traegt papierkorb ohne Migration',
       frisch.includes('papierkorb'), JSON.stringify(frisch));
     pruefe('Und papierkorb_bytes daneben',
       frisch.includes('papierkorb_bytes'), JSON.stringify(frisch));
@@ -5265,7 +5265,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---------------------------------------------------------------- */
   gruppe('Die Sicherung auf Knopfdruck');
 
-  /* VACUUM INTO an einer ECHTEN, verschluesselten Anlage: die Kopie entsteht,
+  /* VACUUM INTO an einer ECHTEN, verschluesselten Instanz: die Kopie entsteht,
      sie ist OHNE Schluessel nicht lesbar, MIT Schluessel vollstaendig, und der
      Ausgangsstand ist danach unveraendert.
      ES GIBT KEINEN ZWEITEN WEG -- db.backup() liefe schrittweise und
@@ -5594,7 +5594,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         .run(JSON.stringify(wert));
       d.close();
     };
-    // Die Schreibweise der Anlage, in UTC -- dieselbe, die schluessel.js
+    // Die Schreibweise der Instanz, in UTC -- dieselbe, die schluessel.js
     // schreibt und die letzteSicherung() zurueckliest.
     const alsMarke = (ms) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
     // Die beiden Dateien liegen aus der Gruppe darueber auf 9 und 4 Tagen.
@@ -5630,7 +5630,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       ganz.inhalt?.letzte?.veraltet === true, JSON.stringify(ganz.inhalt?.letzte));
 
     /* DIE MARKE WIRD IN UTC GELESEN. Ohne das Z am Ende lese der Rechner die
-       Schreibweise der Anlage als ORTSZEIT, und die Grenze verschoebe sich um
+       Schreibweise der Instanz als ORTSZEIT, und die Grenze verschoebe sich um
        den Zeitzonenabstand -- an einer Kopie, die eine Stunde alt ist, waere
        das der Unterschied zwischen veraltet und nicht. */
     siSetzeMarke(alsMarke(jetzt - 5 * 86400000));
@@ -5713,7 +5713,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await SI.stopp();
 
   /* --- DER SICHERUNGSORT DARF NICHT IM DATENVERZEICHNIS LIEGEN. Eine eigene
-     Anlage, deren Wurzel genau dort steht: die Karte bleibt aus und sagt,
+     Instanz, deren Wurzel genau dort steht: die Karte bleibt aus und sagt,
      warum. --- */
   {
     const dDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherung-daneben-'));
@@ -5743,7 +5743,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   }
 
   /* --- OHNE SICHERUNG_DIR bleibt die Karte aus und sagt es. Das ist der
-     Zustand jeder Anlage, die den Einhaengepunkt noch nicht hat. --- */
+     Zustand jeder Instanz, die den Einhaengepunkt noch nicht hat. --- */
   {
     const oDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherung-ohne-'));
     kurzlauf(`require('./db'); console.log('da');`, oDir);
@@ -5765,7 +5765,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* --- ES GIBT KEINEN ZWEITEN WEG, nachgestellt statt geglaubt: db.backup()
      liefe schrittweise und blockierte den Server nicht -- und scheitert an
-     einer verschluesselten Anlage. Das ist die Begruendung dafuer, dass
+     einer verschluesselten Instanz. Das ist die Begruendung dafuer, dass
      VACUUM INTO synchron laeuft und die Karte die Dauer vorher nennt. --- */
   {
     const d = oeffne(path.join(siDir, 'katalog.sqlite'));
@@ -5775,7 +5775,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     try { await d.backup(path.join(siWurzel, 'leer', 'schritt.sqlite')); }
     catch (e) { meldung = e.message; }
     d.close();
-    pruefe('Er scheitert an einer verschluesselten Anlage',
+    pruefe('Er scheitert an einer verschluesselten Instanz',
       /not supported with incompatible source and target/.test(meldung), meldung);
     pruefe('Und hinterlaesst keine brauchbare Kopie',
       siDateien('leer').length === 0, siDateien('leer').join(' · '));
@@ -6385,7 +6385,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('Was dem Eigentuemer gehoert');
 
   /* Bis hierher war anna beides. Jetzt bekommt CARLA die Rolle admin -- damit
-     steht zum ersten Mal ein Admin da, dem die Anlage NICHT gehoert. Ohne
+     steht zum ersten Mal ein Admin da, dem die Instanz NICHT gehoert. Ohne
      diesen Zugang liesse sich "Eigentuemer" von "Admin" gar nicht
      unterscheiden, und jede Pruefung darauf bliebe auch dann gruen, wenn dort
      nurAdmin stuende. */
@@ -6484,7 +6484,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* UMGEDREHT SEIT 0.8.5, nicht geloescht (Stolperstein 74): bis 0.8.4 hiess
      die Prueflage "Die Kennzahlen selbst sieht weiterhin jeder". Die Zahlen
      sagen, wie gross der Bestand und die Datenbank sind -- eine Aussage ueber
-     die Anlage als Ganzes. */
+     die Instanz als Ganzes. */
   pruefe('Die Kennzahlen selbst sieht seit 0.8.5 nur noch der Admin',
     fStatsBert.status === 403, `Status ${fStatsBert.status}`);
   pruefe('Die Absage nennt dabei den Admin',
@@ -7237,7 +7237,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Ein Kommentar aus der Sekunde des Verlassens gilt danach als neu',
     sekStand > sekMarke, `gemerkt ${sekMarke}, Kommentar ${sekStand}`);
   /* UND DIE GLOCKE SIEHT IHN WIRKLICH. Ohne diese Zeile belegte der Vergleich
-     darueber nur zwei Strings und nichts ueber die Anlage. */
+     darueber nur zwei Strings und nichts ueber die Instanz. */
   pruefe('Und die Glocke meldet ihn auch',
     ((await fRuf('cookie-f-anna', 'GET', '/api/items')).inhalt || [])
       .find(i => i.id === oA.id)?.neuKommentare >= 1,
@@ -7470,7 +7470,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     JSON.stringify(agZeile()));
 
   /* ---- DER BESTAND AUS 0.13.2: abgelehnt, aber ohne Verfasser. Ohne diesen
-     Zweig bekaeme eine Ablehnung aus einer aelteren Anlage NIE eine
+     Zweig bekaeme eine Ablehnung aus einer aelteren Instanz NIE eine
      Begruendung -- nurSelbst(null) ist fuer jeden falsch. Wer sie hinschreibt,
      wird ihr Verfasser; die grobe Klemme steht trotzdem davor. ---- */
   pruefe('Der Altbestand steht abgelehnt und ohne Verfasser da',
@@ -7483,7 +7483,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Wer den Eintrag aendern darf, traegt die fehlende Begruendung nach',
     agAlt.status === 200 && agZeile(2).rejected_grund === 'Nachgetragen' &&
     agZeile(2).rejected_von === 2, JSON.stringify(agZeile(2)));
-  /* UND ERFINDET DABEI KEIN DATUM. Wann abgelehnt wurde, weiss diese Anlage
+  /* UND ERFINDET DABEI KEIN DATUM. Wann abgelehnt wurde, weiss diese Instanz
      nicht; "am Tag des Nachtrags" waere eine Behauptung. */
   pruefe('Und erfindet dabei kein Datum', agZeile(2).rejected_at === null,
     JSON.stringify(agZeile(2).rejected_at));
@@ -7533,7 +7533,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Datei kennt beide Eintraege', !!agPaket && !!agPaketAus,
     JSON.stringify(agDatei?.items?.map(i => i.title)));
 
-  // Einspielen in eine ZWEITE, leere Anlage: dort gibt es carla auch, und der
+  // Einspielen in eine ZWEITE, leere Instanz: dort gibt es carla auch, und der
   // Name muss wieder auf sie treffen.
   const agZielDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-ablehnung-ziel-'));
   kurzlauf(`require('./db'); console.log('da');`, agZielDir);
@@ -7579,7 +7579,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return { status: a.status, inhalt: await a.json().catch(() => null) };
   };
   const agzEin = await agzEinspielen(agDatei);
-  pruefe('Die Datei laesst sich in eine zweite Anlage einspielen',
+  pruefe('Die Datei laesst sich in eine zweite Instanz einspielen',
     agzEin.status === 200, JSON.stringify(agzEin.inhalt?.error));
   const agzSicht = ((await agzRuf('GET', '/api/items')).inhalt || [])
     .find(i => i.title === 'Berts Saege');
@@ -7712,7 +7712,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---- WER ENTFERNT, WIRD NICHT VERFASSER. Der Nachtragezweig setzt
      rejected_von, wo keiner steht -- ein leeres Feld hat aber keinen
      Verfasser. Ohne diese Unterscheidung machte ein Entfernen an einer
-     Ablehnung aus einer Anlage vor 0.14.0 den Entfernenden zum Verfasser
+     Ablehnung aus einer Instanz vor 0.14.0 den Entfernenden zum Verfasser
      einer Begruendung, die es gar nicht gibt.
      DIE LAGE WIRD IN DER DATENBANK HERGESTELLT: eine Ablehnung ohne
      Verfasser laesst sich ueber die Route gar nicht mehr erzeugen. ---- */
@@ -7912,7 +7912,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       return n;
     };
     const tkFrisch = tkTabellen();
-    pruefe('Eine frische Anlage traegt tokens ohne Migration',
+    pruefe('Eine frische Instanz traegt tokens ohne Migration',
       tkFrisch.includes('tokens'), JSON.stringify(tkFrisch));
 
     {
@@ -8250,7 +8250,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      raeumeTokensAuf() selbst ruft. Die erste Fassung tat genau das -- und eine
      Gegenprobe, die den Aufruf aus server.js entfernte, blieb VOLLSTAENDIG
      STUMM: geprueft war die Funktion, nicht die Aufrufstelle. Eine eigene
-     Anlage, weil der Server dieser Gruppe schon laeuft und die Datenbank
+     Instanz, weil der Server dieser Gruppe schon laeuft und die Datenbank
      haelt. */
   {
     const auDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-tokenraum-'));
@@ -8716,7 +8716,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      wenn niemand duerfte. */
   const tkAnnaAnAdmin = await tkF('cookie-tk-anna')('POST', '/api/users/2/token',
     { zweck: 'ruecksetzung' });
-  pruefe('An einen Admin kommt der Eigentuemer der Anlage',
+  pruefe('An einen Admin kommt der Eigentuemer der Instanz',
     tkAnnaAnAdmin.status === 200, `${tkAnnaAnAdmin.status} ${tkAnnaAnAdmin.roh}`);
 
   /* Dieselbe Frage am ANLEGEWEG: ein Admin darf einen Benutzer anlegen und
@@ -8941,7 +8941,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und die Frist von dreissig Tagen rechnet der Server, nicht die Karte',
     msAnna.inhalt.tage === 30, JSON.stringify(msAnna.inhalt.tage));
   /* WAS AUSDRUECKLICH NICHT DASTEHT: keine Adresse, kein Browserkopf. Das ist
-     eine Eigenschaft der Anlage und kein Mangel -- und eine Pruefung darauf
+     eine Eigenschaft der Instanz und kein Mangel -- und eine Pruefung darauf
      ist die einzige Art, sie festzuhalten. */
   pruefe('Weder Adresse noch Browserkopf stehen in der Antwort',
     !/ip|agent|browser|gerae?t/i.test(msAnna.roh), msAnna.roh.slice(0, 200));
@@ -9060,7 +9060,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       return n;
     };
     const spFrisch = spTabellen();
-    pruefe('Eine frische Anlage traegt sicherheitsprotokoll ohne Migration',
+    pruefe('Eine frische Instanz traegt sicherheitsprotokoll ohne Migration',
       spFrisch.includes('sicherheitsprotokoll'), JSON.stringify(spFrisch));
 
     {
@@ -9176,7 +9176,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const PR_ANNA = 'annas-langes-wort', PR_BERT = 'berts-langes-wort';
   const PR_CARLA = 'carlas-langes-wort', PR_DORA = 'doras-langes-wort';
 
-  /* Die Einrichtung ist der erste Vorgang der Anlage -- und sie schreibt ZWEI
+  /* Die Einrichtung ist der erste Vorgang der Instanz -- und sie schreibt ZWEI
      Zeilen: der Zugang entsteht, und die Anmeldung gelingt gleich mit. */
   await PR.ruf('POST', '/api/setup', { user: 'anna', password: PR_ANNA });
   const prErste = prZeilen('SELECT was, wer, ziel, merkmal FROM sicherheitsprotokoll ORDER BY id');
@@ -9291,7 +9291,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Ein Aufruf, der nichts bewegt, schreibt gar keine Zeile',
     prSeit(m).length === 0, JSON.stringify(prSeit(m)));
 
-  /* EXPORT UND IMPORT -- die beiden, die die Anlage als GANZES betreffen. */
+  /* EXPORT UND IMPORT -- die beiden, die die Instanz als GANZES betreffen. */
   m = prMarke();
   await prAnnaF('GET', '/api/export?photos=0');
   pruefe('Ein Export schreibt eine Zeile ohne Ziel',
@@ -10055,7 +10055,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       /Oeffentliche Adresse: nicht gesetzt/.test(ohne.S.protokoll()),
       ohne.S.protokoll().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
     /* DIE ADRESSE STEHT NICHT IN /api/config, und das gehoert geprueft: der
-       Endpunkt liegt VOR der Anmeldung und darf ueber die Anlage nichts
+       Endpunkt liegt VOR der Anmeldung und darf ueber die Instanz nichts
        verraten, was nicht ohnehin dasteht. */
     const ohneCfg = await ohne.S.ruf('GET', '/api/config');
     pruefe('Und /api/config nennt hier ohnehin nichts',
@@ -10081,13 +10081,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* Die Versionsnummer kommt aus package.json und steht hier NICHT als
        Zahl: eine abgeschriebene Nummer faerbt diese Pruefung bei jeder Runde
        rot, ohne je etwas ueber /api/config zu sagen. Geprueft ist, dass der
-       Endpunkt DIE Version der Anlage traegt -- nicht welche. */
+       Endpunkt DIE Version der Instanz traegt -- nicht welche. */
     pruefe('Und /api/config traegt trotzdem seine bekannten Felder',
       mitCfg.inhalt?.version === require('./package.json').version &&
       typeof mitCfg.inhalt?.title === 'string',
       JSON.stringify(mitCfg.inhalt));
 
-    /* DER UNBRAUCHBARE WERT: der Start meldet es laut und die Anlage laeuft
+    /* DER UNBRAUCHBARE WERT: der Start meldet es laut und die Instanz laeuft
        weiter, mit dem Browserweg als Rueckfall -- dieselbe Form wie bei
        AUTH_RESET und beim fehlenden Sicherungsort. Ein Start, der an einem
        Tippfehler in einer OPTIONALEN Einstellung abbraeche, waere schlimmer
@@ -10167,7 +10167,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   });
 
   {
-    const mailAnlage = async (zusatz, portBasis) => {
+    const mailInstanz = async (zusatz, portBasis) => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-mail-'));
       const S = starteWeiterenServer(dir, zusatz, portBasis);
       await S.bereit;
@@ -10182,14 +10182,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
       await mailFrei(S);
       return S.ruf('PUT', '/api/mail', {
         anbieter: 'eigen', server: '127.0.0.1', port: empf.port, sicher: false,
-        benutzer: MAIL_BENUTZER, passwort: MAIL_GEHEIMNIS, absender: 'anlage@beispiel.de'
+        benutzer: MAIL_BENUTZER, passwort: MAIL_GEHEIMNIS, absender: 'instanz@beispiel.de'
       });
     };
 
     gruppe('Der Mailversand: das echte SMTP-Gespraech');
 
     const E = smtpEmpfaenger('ok');
-    const A = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6430);
+    const A = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6430);
     const gesetzt = await mailSetzen(A.S, E);
     pruefe('Der Mailzugang laesst sich setzen', gesetzt.status === 200, `Status ${gesetzt.status}`);
     pruefe('Und die Karte sagt danach "eingerichtet"',
@@ -10215,7 +10215,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       gelesen.inhalt?.passwortGesetzt === true, JSON.stringify(gelesen.inhalt?.passwortGesetzt));
     /* Und die Gegenlage dazu: die Karte sagt es auch, wenn KEINES gesetzt ist.
        Ohne sie bliebe "passwortGesetzt" eine Behauptung, die immer wahr ist. */
-    const leerA = await mailAnlage({}, 5260);
+    const leerA = await mailInstanz({}, 5260);
     const leerKarte = await leerA.S.ruf('GET', '/api/mail');
     pruefe('Ohne Zugang sagt die Karte "nicht gesetzt"',
       leerKarte.inhalt?.passwortGesetzt === false && leerKarte.inhalt?.eingerichtet === false,
@@ -10232,7 +10232,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // (Ein zweiter kommt weiter unten dazu, an der zweiten Tokenroute.)
     const b1 = briefe[0] || { kopf: '', rumpf: '', roh: '' };
     pruefe('Der Empfaenger stimmt', /^To: bert@beispiel\.de$/m.test(b1.kopf), b1.kopf.slice(0, 200));
-    pruefe('Der Absender stimmt', /^From: anlage@beispiel\.de$/m.test(b1.kopf), b1.kopf.slice(0, 200));
+    pruefe('Der Absender stimmt', /^From: instanz@beispiel\.de$/m.test(b1.kopf), b1.kopf.slice(0, 200));
     /* DER LINK IM RUMPF, und er wird DEKODIERT gesucht: quoted-printable
        bricht die Adresse nach 76 Zeichen weich um, und wer im rohen Text
        sucht, findet sie nicht. Genau das haette hier fast zu dem Schluss
@@ -10310,7 +10310,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gruppe('Der Mailversand: das Offline-Prinzip in beide Richtungen');
 
     /* OHNE MAILZUGANG ENTSTEHT DER TOKEN TROTZDEM. Das ist die Lage jeder
-       Anlage, die vor dieser Runde lief -- und sie muss nach dem Einspielen
+       Instanz, die vor dieser Runde lief -- und sie muss nach dem Einspielen
        GENAU SO vollstaendig laufen wie vorher. */
     const ohneNeu = await leerA.S.ruf('POST', '/api/users', { username: 'bert', einladen: true });
     pruefe('Ohne Mailzugang entsteht der Token trotzdem',
@@ -10325,7 +10325,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       ohneNeu.inhalt?.link === null && ohneNeu.inhalt?.linkQuelle === 'browser',
       JSON.stringify([ohneNeu.inhalt?.link, ohneNeu.inhalt?.linkQuelle]));
 
-    /* EIN ZUGANG OHNE ADRESSE -- an einer Anlage, an der der Versand STEHT.
+    /* EIN ZUGANG OHNE ADRESSE -- an einer Instanz, an der der Versand STEHT.
        Das ist die dritte der drei Lagen hinter `versand: 'aus'`, und sie hat
        hier bis zu einer stummen Gegenprobe gefehlt: geprueft war sie nur in
        der Oberflaeche, und dort gegen den Mock (Stolperstein 102, zum
@@ -10351,7 +10351,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* DER EMPFAENGER ANTWORTET MIT EINEM FEHLER. Der Token entsteht trotzdem,
        der Link steht da, und der GRUND steht daneben. */
     const F = smtpEmpfaenger('fehler');
-    const FA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5320);
+    const FA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5320);
     await mailSetzen(FA.S, F);
     const fNeu = await FA.S.ruf('POST', '/api/users',
       { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
@@ -10366,7 +10366,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     /* DER EMPFAENGER BRICHT DIE VERBINDUNG AB. Dieselbe Zusage. */
     const X = smtpEmpfaenger('abbruch');
-    const XA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5380);
+    const XA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5380);
     await mailSetzen(XA.S, X);
     const xNeu = await XA.S.ruf('POST', '/api/users',
       { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
@@ -10407,7 +10407,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
                    die aeussere Schranke rechtfertigt -- und die einzige, an
                    der sich zeigen laesst, dass sie etwas tut. */
     const St = smtpEmpfaenger('stumm');
-    const StA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5440);
+    const StA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5440);
     await mailSetzen(StA.S, St);
     const t0 = Date.now();
     const stNeu = await mitNetz(StA.S.ruf('POST', '/api/users',
@@ -10421,7 +10421,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       `${stNeu.inhalt?.versand} · ${stNeu.inhalt?.token}`);
 
     const Sw = smtpEmpfaenger('schweigt');
-    const SwA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5500);
+    const SwA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 5500);
     await mailSetzen(SwA.S, Sw);
     const t1 = Date.now();
     const swNeu = await mitNetz(SwA.S.ruf('POST', '/api/users',
@@ -10444,7 +10444,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Sekunden immer noch. Faellt sie weg, wird DIESE Prueflage rot und keine
        andere. */
     const Tr = smtpEmpfaenger('troepfelt');
-    const TrA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6490);
+    const TrA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6490);
     await mailSetzen(TrA.S, Tr);
     const t2 = Date.now();
     const trNeu = await mitNetz(TrA.S.ruf('POST', '/api/users',
@@ -10466,9 +10466,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gruppe('Der Mailversand: die oeffentliche Adresse ist Pflicht');
 
     /* PFLICHT FUER DEN VERSAND, NICHT FUER DEN START. Der Server laeuft, die
-       Anlage ist vollstaendig, und es wird nur nichts verschickt. */
+       Instanz ist vollstaendig, und es wird nur nichts verschickt. */
     const O = smtpEmpfaenger('ok');
-    const OA = await mailAnlage({}, 6020);
+    const OA = await mailInstanz({}, 6020);
     await mailSetzen(OA.S, O);
     const oNeu = await OA.S.ruf('POST', '/api/users',
       { username: 'bert', einladen: true, email: 'bert@beispiel.de' });
@@ -10489,10 +10489,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* DIE ADRESSE KOMMT NIE AUS DEM Host-KOPF, und das ist die Stelle, an der
        ein gefaelschter Kopf am meisten wert waere: eine verschickte Mail
        traegt den Link zu einem fremden Empfaenger. Geprueft mit einem
-       gefaelschten Kopf an einer Anlage, die die Einstellung GESETZT hat --
+       gefaelschten Kopf an einer Instanz, die die Einstellung GESETZT hat --
        der Link muss ihr folgen und nicht dem Kopf. */
     const H = smtpEmpfaenger('ok');
-    const HA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6130);
+    const HA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6130);
     await mailSetzen(HA.S, H);
     const hInhalt = (await mailRohRuf(HA.S, '/api/users',
       { host: 'boeser.beispiel.net', 'x-forwarded-host': 'boeser.beispiel.net' },
@@ -10522,7 +10522,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
           for (const [spalte, wert] of Object.entries(z)) {
             const s = wert === null ? '' : String(wert);
             // settings traegt den Zugang -- dort MUSS es stehen, sonst koennte
-            // die Anlage gar nicht verschicken. Ueberall sonst nicht.
+            // die Instanz gar nicht verschicken. Ueberall sonst nicht.
             if (s.includes(MAIL_GEHEIMNIS) && !(t.name === 'settings' && z.key === 'mailzugang'))
               pTreffer.push(`${t.name}.${spalte}`);
           }
@@ -10550,10 +10550,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der Start nennt den Mailversand trotzdem',
       /Mailversand: /.test(A.S.protokoll()),
       A.S.protokoll().split('\n').filter(z => /Mailversand/.test(z)).join(' | ') || '(keine Zeile)');
-    pruefe('Und sagt an einer Anlage ohne Zugang, dass keiner eingerichtet ist',
+    pruefe('Und sagt an einer Instanz ohne Zugang, dass keiner eingerichtet ist',
       /Mailversand: nicht eingerichtet/.test(leerA.S.protokoll()),
       leerA.S.protokoll().split('\n').filter(z => /Mailversand/.test(z)).join(' | ') || '(keine Zeile)');
-    /* UND DIE ZEILE AN EINER ANLAGE, DIE MIT ZUGANG STARTET. Sie wird beim
+    /* UND DIE ZEILE AN EINER INSTANZ, DIE MIT ZUGANG STARTET. Sie wird beim
        START geschrieben, also sagt sie an einem Server, der vor dem Eintragen
        hochgekommen ist, zu Recht "nicht eingerichtet" -- geprueft werden muss
        sie am NEUSTART. Genau dort steht sie im Betrieb auch: nach einem
@@ -10566,7 +10566,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     await A2.bereit;
     pruefe('Nach einem Neustart nennt die Startzeile Anbieter, Server und Absender',
       /Mailversand: Eigener Server über 127\.0\.0\.1:/.test(A2.protokoll()) &&
-      /anlage@beispiel\.de/.test(A2.protokoll()),
+      /instanz@beispiel\.de/.test(A2.protokoll()),
       A2.protokoll().split('\n').filter(z => /Mailversand/.test(z)).join(' | ') || '(keine Zeile)');
     pruefe('Und das Passwort steht auch dort nicht',
       !A2.protokoll().includes(MAIL_GEHEIMNIS), 'das Geheimnis steht im Protokoll');
@@ -10579,7 +10579,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        wird gar nicht angesehen; das ist die einzige Bauform, in der die
        Zusage baulich wahr ist statt durchgesetzt. */
     const T = smtpEmpfaenger('ok');
-    const TA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6190);
+    const TA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6190);
     await mailSetzen(TA.S, T);
     const tOhneAdresse = await TA.S.ruf('POST', '/api/mail/test', {});
     pruefe('Ohne eigene Adresse wird die Testmail abgesagt',
@@ -10664,7 +10664,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* NUR DER EIGENTUEMER -- eintragen, einsehen UND testen. Ein Admin kommt
        an keines der drei. Geprueft an einem ECHTEN zweiten Zugang, nicht an
        einer gestellten Rolle. */
-    const RA = await mailAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6250);
+    const RA = await mailInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6250);
     await RA.S.ruf('POST', '/api/users', { username: 'carla', passwort: MAIL_PASSWORT_CARLA });
     const rListe = (await RA.S.ruf('GET', '/api/users')).inhalt?.zugaenge || [];
     const rCarla = rListe.find(z => z.username === 'carla');
@@ -10778,7 +10778,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   {
     const REG_PASSWORT = 'annas-langes-wort-91';
     const REG_MAILWORT = 'erfundenes-mailwort-' + crypto.randomBytes(4).toString('hex');
-    const regAnlage = async (zusatz, portBasis) => {
+    const regInstanz = async (zusatz, portBasis) => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-reg-'));
       const S = starteWeiterenServer(dir, zusatz, portBasis);
       await S.bereit;
@@ -10791,7 +10791,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       await regFrei(S);
       return S.ruf('PUT', '/api/mail', {
         anbieter: 'eigen', server: '127.0.0.1', port: empf.port, sicher: false,
-        benutzer: 'kriterion@beispiel.de', passwort: REG_MAILWORT, absender: 'anlage@beispiel.de'
+        benutzer: 'kriterion@beispiel.de', passwort: REG_MAILWORT, absender: 'instanz@beispiel.de'
       });
     };
     /* Mailzugang setzen, eigene Adresse eintragen, Testmail druecken. Ohne
@@ -10851,9 +10851,9 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     const gOk = smtpEmpfaenger('ok');
     const gTr = smtpEmpfaenger('troepfelt');
-    const gA = await regAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6700);
+    const gA = await regInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6700);
     const gTest = await regVersandStellen(gA.S, gOk);
-    pruefe('Die Testmail dieser Anlage kommt durch', gTest.inhalt?.ok === true,
+    pruefe('Die Testmail dieser Instanz kommt durch', gTest.inhalt?.ok === true,
       `${gTest.inhalt?.ok} · ${gTest.inhalt?.grund}`);
     const gAn = await gA.S.ruf('PUT', '/api/registrierung/schalter', { an: true });
     pruefe('Und damit laesst sich der Schalter einschalten',
@@ -11041,7 +11041,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        versand: 'aus' abbricht -- und dann laeuft die Selbstanmeldung genau in
        die Leere, die die Kopplung verhindern soll. */
     const iOk = smtpEmpfaenger('ok');
-    const iA = await regAnlage({}, 6760);
+    const iA = await regInstanz({}, 6760);
     const iOhne = await iA.S.ruf('PUT', '/api/registrierung/schalter', { an: true });
     pruefe('Ohne Mailzugang laesst er sich nicht einschalten', iOhne.status === 400,
       `Status ${iOhne.status}`);
@@ -11070,7 +11070,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gruppe('Die Selbstanmeldung: die Bestaetigungsmail');
 
     const hOk = smtpEmpfaenger('ok');
-    const hA = await regAnlage({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6820);
+    const hA = await regInstanz({ OEFFENTLICHE_ADRESSE: 'https://kriterion.beispiel.de' }, 6820);
     await regVersandStellen(hA.S, hOk);
     await hA.S.ruf('PUT', '/api/registrierung/schalter', { an: true });
     const hVorBriefe = hOk.briefe().length;
@@ -11095,7 +11095,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der Empfaenger ist die angefragte Adresse',
       /^To: clara@beispiel\.de$/m.test(hBrief.kopf), hBrief.kopf.split('\n').slice(0, 4).join(' | '));
     pruefe('Der Absender ist der eingetragene',
-      /^From: anlage@beispiel\.de$/m.test(hBrief.kopf), hBrief.kopf.split('\n').slice(0, 4).join(' | '));
+      /^From: instanz@beispiel\.de$/m.test(hBrief.kopf), hBrief.kopf.split('\n').slice(0, 4).join(' | '));
     pruefe('Der Betreff nennt die Bestaetigung',
       /Best.tige deine Adresse/.test(Buffer.from(
         (hBrief.kopf.match(/Subject: (.*)/) || ['', ''])[1], 'utf8').toString('utf8')) ||
@@ -11555,13 +11555,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
     gruppe('Die Selbstanmeldung: die Bremse greift an beiden Routen');
 
-    /* GEFAHREN WIRD AUF DER ANLAGE AUS DER GRUPPE DAVOR, und zwar als LETZTES
+    /* GEFAHREN WIRD AUF DER INSTANZ AUS DER GRUPPE DAVOR, und zwar als LETZTES
        auf ihr: die Zaehler der Anmeldebremse liegen im Arbeitsspeicher des
        Prozesses, und zwoelf Fehlversuche vergiften jede weitere Lage auf
        derselben Adresse. Ein eigener Server dafuer waere die saubere Form --
        er kostet aber eine weitere Portbasis, und die Spanne aller Basen muss
        unter dem Versatz je Nebenspur bleiben (Stolperstein 127; der Waechter
-       ueber die Portbasen hat genau das gefunden). Diese Anlage ist mit ihrer
+       ueber die Portbasen hat genau das gefunden). Diese Instanz ist mit ihrer
        Gruppe fertig, ihr Schalter ist aus, und es darf ohnehin nichts
        entstehen -- damit ist sie die richtige.
        BELEGT WIRD AM UEBERGANG, und die Schwelle wird NACHGERECHNET
@@ -11630,7 +11630,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         d.close();
         return c;
       };
-      pruefe('Eine frische Anlage traegt anfragen ohne Migration',
+      pruefe('Eine frische Instanz traegt anfragen ohne Migration',
         nTabellen().includes('anfragen'), JSON.stringify(nTabellen()));
       const nFrisch = nSpaltenVon('anfragen');
       pruefe('Und zwar mit genau ihren sechs Spalten',
@@ -11647,10 +11647,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
       kurzlauf(`require('./db'); console.log('da');`, nDir);
       pruefe('Ein einziger Start legt sie wieder an',
         nTabellen().includes('anfragen'), JSON.stringify(nTabellen()));
-      pruefe('Und das Schema ist danach dasselbe wie in einer frischen Anlage',
+      pruefe('Und das Schema ist danach dasselbe wie in einer frischen Instanz',
         gleich(nSpaltenVon('anfragen'), nFrisch), JSON.stringify(nSpaltenVon('anfragen')));
       /* UND DIE ZUSAGE, DIE DER PRUEFSTAND DIESER RUNDE AUSDRUECKLICH GIBT:
-         das Schema einer GEWACHSENEN Anlage ist nach dem Start dasselbe wie
+         das Schema einer GEWACHSENEN Instanz ist nach dem Start dasselbe wie
          das einer frischen. Verglichen werden alle Tabellen, nicht nur die
          neue -- eine Runde ohne Migrationsblock darf nirgends etwas
          verschieben. */
@@ -11664,7 +11664,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         d.close();
         return t;
       })();
-      pruefe('Das Schema der gewachsenen Anlage gleicht dem der frischen',
+      pruefe('Das Schema der gewachsenen Instanz gleicht dem der frischen',
         gleich(nGewachsen, nFrischTabellen),
         `gewachsen: ${nGewachsen.join(' ')} · frisch: ${nFrischTabellen.join(' ')}`);
       fs.rmSync(nFrischDir, { recursive: true, force: true });
@@ -11689,7 +11689,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     }
 
     for (const l of [gOk, gTr, iOk, hOk]) await l.stopp();
-    // bA IST iA -- die Bremsprobe laeuft auf derselben Anlage. Ein zweiter
+    // bA IST iA -- die Bremsprobe laeuft auf derselben Instanz. Ein zweiter
     // Eintrag hier waere ein zweites Aufraeumen desselben Verzeichnisses.
     for (const x of [gA, iA, hA]) {
       await x.S.stopp();
@@ -11701,12 +11701,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* ================= Der zweite Faktor, 0.10.0 =================
      WER WILL, SICHERT SEINEN ZUGANG MIT EINEM CODE AUS EINER APP AUF SEINEM
-     TELEFON. Freiwillig, je Zugang -- und die Anlage laeuft ohne ihn
+     TELEFON. Freiwillig, je Zugang -- und die Instanz laeuft ohne ihn
      vollstaendig, genau wie ohne Mailversand und ohne Selbstanmeldung.
 
      GEPRUEFT WIRD AN ECHTEN SERVERN UND ECHTEN CODES. Die Codes rechnet der
      Pruefstand mit demselben Modul nach, das der Server benutzt -- das allein
-     belegte nichts (die Anlage pruefte sich selbst), und deshalb steht die
+     belegte nichts (die Instanz pruefte sich selbst), und deshalb steht die
      Gruppe mit den TESTVEKTOREN AUS RFC 6238 davor: erst ist belegt, dass die
      Rechnung dem weltweiten Standard entspricht, dann erst wird sie benutzt.
 
@@ -11760,7 +11760,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Bauform des Zaehlers: writeBigUInt64BE schreibt die acht Bytes in einem
        Zug, zweifaktor.js schreibt sie in zwei Haelften. Stimmen beide Wege
        ueberein, ist die Teilung richtig -- und das ist kein Vergleich der
-       Anlage mit sich selbst, sondern zweier verschiedener Wege. */
+       Instanz mit sich selbst, sondern zweier verschiedener Wege. */
     pruefe('Kein Testvektor aus RFC 6238 erreicht die obere Haelfte des Zaehlers',
       ZF.schrittZu(20000000000 * 1000) < 2 ** 32,
       `groesster Zaehler ${ZF.schrittZu(20000000000 * 1000)}, Grenze ${2 ** 32}`);
@@ -11847,12 +11847,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Kennwerte ausgeschrieben, obwohl sie die Vorgabe sind: ein Pruefgeraet,
        das sie anders vorbelegt, laege sonst still daneben. */
     const zfZeile = ZF.otpauthZeile('Kriterion', 'anna', zfVektorGeheim);
-    pruefe('Die otpauth-Zeile nennt Anlage, Zugang, Geheimnis und alle drei Kennwerte',
+    pruefe('Die otpauth-Zeile nennt Instanz, Zugang, Geheimnis und alle drei Kennwerte',
       zfZeile.startsWith('otpauth://totp/') && zfZeile.includes('Kriterion%3Aanna') &&
       zfZeile.includes(`secret=${zfVektorGeheim}`) && zfZeile.includes('issuer=Kriterion') &&
       zfZeile.includes('algorithm=SHA1') && zfZeile.includes('digits=6') &&
       zfZeile.includes('period=30'), zfZeile);
-    pruefe('Ein Anlagenname mit Doppelpunkt oder Leerzeichen wird maskiert',
+    pruefe('Ein Instanzname mit Doppelpunkt oder Leerzeichen wird maskiert',
       !ZF.otpauthZeile('Werk Nord: Prüfung', 'anna', zfVektorGeheim)
         .slice('otpauth://totp/'.length).includes(' '),
       ZF.otpauthZeile('Werk Nord: Prüfung', 'anna', zfVektorGeheim));
@@ -11942,7 +11942,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und daneben denselben Wert in Vierergruppen',
       zfA.start.inhalt.gruppen.replace(/ /g, '') === zfA.start.inhalt.geheim,
       zfA.start.inhalt.gruppen);
-    pruefe('Und die otpauth-Zeile mit dem oeffentlichen Titel der Anlage',
+    pruefe('Und die otpauth-Zeile mit dem oeffentlichen Titel der Instanz',
       zfA.start.inhalt.zeile.includes('otpauth://totp/') &&
       zfA.start.inhalt.zeile.includes('Bewertungskatalog') &&
       zfA.start.inhalt.zeile.includes(zfA.start.inhalt.geheim), zfA.start.inhalt.zeile);
@@ -12194,7 +12194,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Kein Wort ueber den zweiten Faktor steht darin',
       !/zweifaktor|ausweis|faktor|code/i.test(zfMitFaktor.roh), zfMitFaktor.roh);
     /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): die drei
-       Antworten oben waeren auch dann gleich, wenn die Anlage ueberhaupt nie
+       Antworten oben waeren auch dann gleich, wenn die Instanz ueberhaupt nie
        etwas ueber den Faktor sagte. Erst diese Zeile belegt, dass sie es bei
        RICHTIGEM Passwort sehr wohl tut. */
     const zfMitWort = await zfRoh({ user: zfC.name, password: zfC.passwort });
@@ -12652,7 +12652,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
         d.close();
         return i;
       };
-      pruefe('Eine frische Anlage traegt beide Tabellen ohne Migration',
+      pruefe('Eine frische Instanz traegt beide Tabellen ohne Migration',
         tTabellen().includes('zweifaktor') && tTabellen().includes('zweifaktor_codes'),
         JSON.stringify(tTabellen().filter(n => n.startsWith('zweifaktor'))));
       const tFrisch = tSpalten('zweifaktor'), tFrischC = tSpalten('zweifaktor_codes');
@@ -12678,7 +12678,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       kurzlauf(`require('./db'); console.log('da');`, tDir);
       pruefe('Ein einziger Start legt beide wieder an',
         tTabellen().includes('zweifaktor') && tTabellen().includes('zweifaktor_codes'));
-      pruefe('Und das Schema ist danach dasselbe wie in einer frischen Anlage',
+      pruefe('Und das Schema ist danach dasselbe wie in einer frischen Instanz',
         gleich(tSpalten('zweifaktor'), tFrisch) && gleich(tSpalten('zweifaktor_codes'), tFrischC));
       pruefe('Der Index kommt dabei mit zurueck',
         tIndizes().includes('idx_zweifaktor_codes_user'));
@@ -12721,7 +12721,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       /* UND KEINEN FUER 0.11.0. Die Runde braucht keinen: die Volltextsuche
          liest vorhandene Spalten, die gespeicherten Ansichten liegen als
          weiterer persoenlicher Schluessel in user_settings, und ein neuer
-         Schluessel dort ist kein Schema -- eine Anlage ohne ihn bekommt beim
+         Schluessel dort ist kein Schema -- eine Instanz ohne ihn bekommt beim
          Lesen die leere Liste als Vorgabe. Steht hier je einer, ist die
          Zusage "kein Schema" gebrochen, und das soll auffallen. */
       pruefe('Und keinen fuer 0.11.0',
@@ -12763,7 +12763,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
                        NICHTS hin, und auch das wird geprueft.
        'zweitbestaetigt'
                     -- ZUSATZ WIE 'im Rumpf', seit 0.8.90: der Weg trifft die
-                       Anlage als Ganzes und verlangt das Passwort ein zweites
+                       Instanz als Ganzes und verlangt das Passwort ein zweites
                        Mal. Die Art steht daneben und nicht anstelle der
                        anderen: 'nurEigentuemer' sagt WER darf, dieser Zusatz
                        sagt, dass es damit noch nicht getan ist. Genau der
@@ -12927,7 +12927,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     ['POST',   '/api/papierkorb/:id/wiederherstellen', 'nurEigentuemer'],
     ['DELETE', '/api/papierkorb/:id',            'nurEigentuemer'],
     /* Die Sicherung, 0.8.70. Beide beim Eigentuemer, dieselbe Zeile wie Export
-       und Import -- alles, was die Anlage als Ganzes betrifft. Der Zielort geht
+       und Import -- alles, was die Instanz als Ganzes betrifft. Der Zielort geht
        ausdruecklich NICHT ueber PUT /api/settings: die Route leitet ihre Rechte
        aus PERSOENLICHE_SCHLUESSEL ab, und was dort nicht persoenlich ist, ist
        Adminsache. Der Sicherungsort ist es nicht. */
@@ -13690,7 +13690,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* DAS PASSWORT REIST IM RUMPF -- UND DARF NIRGENDS AUSGEGEBEN WERDEN. Im
      Rumpf eines POST steht es nicht im Zugriffsprotokoll eines Proxys, der
-     die Anfragezeile schreibt; die Anlage selbst fuehrt gar keines. Was
+     die Anfragezeile schreibt; die Instanz selbst fuehrt gar keines. Was
      bleibt, ist die eine Gefahr, gegen die ein Waechter hilft: eine Zeile, die
      den Rumpf ins Containerprotokoll schreibt. */
   const fRumpfAusgabe = ohneKommentare(fQuelle)
@@ -14102,7 +14102,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
      noch durch Sperren noch durch Loeschen. Ohne diese Klemme koennte sich die
-     Anlage verriegeln, und der einzige Ausweg waere zugang.js auf dem Wirt. */
+     Instanz verriegeln, und der einzige Ausweg waere zugang.js auf dem Wirt. */
   const gLetzterWeg = await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { rolle: 'admin' });
   pruefe('Der letzte Eigentuemer stuft sich nicht selbst herab',
     gLetzterWeg.status === 400 && /letzte Eigentümer/.test(gLetzterWeg.inhalt?.error || ''),
@@ -14422,7 +14422,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return a.headers.get('set-cookie') || '';
   })();
   pruefe('Ohne Proxy kommt ueberhaupt ein Cookie zurueck', gCookieKopf !== '', gCookieKopf);
-  // Der Cookie der Anlage ohne Proxy: kein Secure, kein Praefix. Beides waere
+  // Der Cookie der Instanz ohne Proxy: kein Secure, kein Praefix. Beides waere
   // hier falsch -- der Browser verwuerfe den Cookie ueber http.
   pruefe('Ohne Proxy traegt der Cookie kein Secure',
     !/;\s*Secure/i.test(gCookieKopf), gCookieKopf);
@@ -14463,7 +14463,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---------------------------------------------------------------- */
   gruppe('Hinter dem Proxy wird der Kopf gelesen');
 
-  /* DIESELBE ANLAGE, EINE EINSTELLUNG ANDERS. Derselbe Bestand, derselbe
+  /* DIESELBE INSTANZ, EINE EINSTELLUNG ANDERS. Derselbe Bestand, derselbe
      Zugang -- nur HINTER_PROXY=1. Eine Pruefung, die nur die Vorgabe ansieht,
      belegt die Einstellung nicht; deshalb beide Lagen.
      Der Prozess ist neu, die Zaehler der vorigen Gruppe sind damit weg -- sie
@@ -14501,7 +14501,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Ohne Domain -- sonst waere das Praefix ungueltig',
     !/;\s*Domain=/i.test(pGut.setzCookie), pGut.setzCookie);
   // Der Cookie mit dem neuen Namen wird auch wirklich gelesen: sonst waere die
-  // Umbenennung eine Anlage, in die niemand mehr hineinkaeme.
+  // Umbenennung eine Instanz, in die niemand mehr hineinkaeme.
   const pCookieWert = pGut.setzCookie.split(';')[0];
   const pSitzung = await fetch(P.basis + '/api/settings',
     { headers: { cookie: pCookieWert, 'x-forwarded-proto': 'https' } });
@@ -14561,7 +14561,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Auf dem Heimnetzweg gilt der HTTPS-Name nicht',
     (await fetch(P.basis + '/api/settings', { headers: { cookie: pCookieWert } })).status === 401);
   /* BEIDE SITZUNGEN STEHEN NEBENEINANDER -- das ist "zwei Netze, EIN Zugang":
-     derselbe Mensch, dieselbe Anlage, zwei Wege hinein, und keiner wirft den
+     derselbe Mensch, dieselbe Instanz, zwei Wege hinein, und keiner wirft den
      anderen hinaus. */
   pruefe('Beide Sitzungen stehen zugleich und werfen einander nicht hinaus',
     (await fetch(P.basis + '/api/settings',
@@ -14717,7 +14717,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     zJa.code === 0 && zBertId != null &&
     zZeilen('SELECT username FROM users WHERE id = ?', zBertId)[0]?.username === `geloescht-${zBertId}`,
     JSON.stringify(zZeilen('SELECT id, username, status FROM users')));
-  pruefe('Der Eintrag der Anlage bleibt dabei unangetastet',
+  pruefe('Der Eintrag der Instanz bleibt dabei unangetastet',
     zZeilen('SELECT COUNT(*) n FROM items')[0].n === 1);
 
   const zEig = zBefehl(['eigentuemer', 'anna']);
@@ -14811,7 +14811,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('MIGRATION 0.8.3 — ENTFAELLT MIT 1.0');
 
   /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.8.2 -- dieselbe Anlage, nur ohne die neue Spalte. Und mit
+     aus 0.8.0 bis 0.8.2 -- dieselbe Instanz, nur ohne die neue Spalte. Und mit
      einer Zeile darin: eine leere Tabelle bewiese nichts ueber die Vorgabe. */
   const uDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration083-'));
   const uZweiterDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch083-'));
@@ -14883,11 +14883,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und die Zeile ist dabei unangetastet geblieben',
     uWert().length === 1 && uWert()[0].images_removed === 0, JSON.stringify(uWert()));
 
-  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus der Migration.
+  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der Migration.
      Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
      und zu 1.0 faellt die Migration weg, die Spalte muss bleiben. */
   const uFrisch = uLauf(uZweiterDir);
-  pruefe('Eine frische Anlage traegt die Spalte ohne Migration',
+  pruefe('Eine frische Instanz traegt die Spalte ohne Migration',
     umsSpalten(uZweiterDir).includes('images_removed') && !/images_removed/.test(uFrisch),
     `${umsSpalten(uZweiterDir).includes('images_removed')} / ${JSON.stringify(uFrisch.trim())}`);
   fs.rmSync(uDir, { recursive: true, force: true });
@@ -14901,10 +14901,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('MIGRATION 0.8.30 — ENTFAELLT MIT 1.0');
 
   /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.8.20 -- dieselbe Anlage, nur ohne die neue Spalte an
+     aus 0.8.0 bis 0.8.20 -- dieselbe Instanz, nur ohne die neue Spalte an
      links. Und mit Linkzeilen darin: eine leere Tabelle bewiese nichts.
 
-     DIE ANLAGE IST SO GEBAUT, DASS DIE FALSCHE ANTWORT AUFFAELLT. Der Eintrag
+     DIE INSTANZ IST SO GEBAUT, DASS DIE FALSCHE ANTWORT AUFFAELLT. Der Eintrag
      gehoert BERT, Eigentuemerin ist CHEFIN (kleinste Nummer, ueber die
      Startregel). Fielen die Bestandszeilen an den Eigentuemer statt an den
      Eintragsverfasser, stuende dort chefin -- und genau das waere still
@@ -14995,11 +14995,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     gleich(u30Zeilen().map(z => z.username), ['bert', 'bert', 'chefin']),
     JSON.stringify(u30Zeilen()));
 
-  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus der Migration.
+  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der Migration.
      Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
      und zu 1.0 faellt die Migration weg, die Spalte muss bleiben. */
   const u30Frisch = uLauf(u30FrischDir);
-  pruefe('Eine frische Anlage traegt die Spalte ohne Migration',
+  pruefe('Eine frische Instanz traegt die Spalte ohne Migration',
     u30Spalten(u30FrischDir).includes('user_id') && !/links um user_id ergaenzt/.test(u30Frisch),
     `${u30Spalten(u30FrischDir).includes('user_id')} / ${JSON.stringify(u30Frisch.trim())}`);
   /* Der Index ist mit dem Tabellenneubau verschwunden und legt sich beim Start
@@ -15098,7 +15098,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     JSON.stringify(u31Zeilen()));
 
   const u31Frisch = uLauf(u31FrischDir);
-  pruefe('Eine frische Anlage traegt die Spalte ohne Migration',
+  pruefe('Eine frische Instanz traegt die Spalte ohne Migration',
     u31Spalten(u31FrischDir).includes('user_id') && !/attachments um user_id ergaenzt/.test(u31Frisch),
     `${u31Spalten(u31FrischDir).includes('user_id')} / ${JSON.stringify(u31Frisch.trim())}`);
   {
@@ -15200,7 +15200,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('MIGRATION 0.8.40 — ENTFAELLT MIT 1.0');
 
   /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.8.31 -- dieselbe Anlage, nur ohne die Spalte gewicht an
+     aus 0.8.0 bis 0.8.31 -- dieselbe Instanz, nur ohne die Spalte gewicht an
      rating_criteria. Und mit Kriterien darin: eine leere Tabelle bewiese
      nichts ueber die Vorgabe (Stolperstein 81).
 
@@ -15307,7 +15307,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       !u40Auffang.includes('rating_criteria'), 'rating_criteria steht in ordneBestandZu()');
   }
 
-  /* Der eigentliche Beleg der Runde, an derselben Anlage: der Gesamtschnitt
+  /* Der eigentliche Beleg der Runde, an derselben Instanz: der Gesamtschnitt
      nach der Migration ist derselbe, den die Rechnung ohne Gewichte ergaebe.
      (5 + 2 + 4) / 3 = 3,67 -> 3,7. Hier von Hand nachgerechnet statt aus dem
      Server geholt: eine fest hingeschriebene Zahl belegte weniger. */
@@ -15352,11 +15352,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Ein gesetztes Gewicht ueberlebt den naechsten Start',
     u40Zeilen().find(z => z.name === 'Optik')?.gewicht === 1.5, JSON.stringify(u40Zeilen()));
 
-  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus der Migration.
+  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der Migration.
      Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
      und zu 1.0 faellt die Migration weg, die Spalte muss bleiben. */
   const u40Frisch = uLauf(u40FrischDir);
-  pruefe('Eine frische Anlage traegt die Spalte ohne Migration',
+  pruefe('Eine frische Instanz traegt die Spalte ohne Migration',
     u40Spalten(u40FrischDir).includes('gewicht') &&
     !/rating_criteria um gewicht ergaenzt/.test(u40Frisch),
     `${u40Spalten(u40FrischDir).includes('gewicht')} / ${JSON.stringify(u40Frisch.trim())}`);
@@ -15386,7 +15386,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return { notnull: sp?.notnull, vorgabe: String(sp?.dflt_value), ausserhalb, leer };
   };
   const u40BauMigriert = u40Bau(u40Dir), u40BauFrisch = u40Bau(u40FrischDir);
-  pruefe('Migrierte und frische Anlage bauen die Spalte gleich',
+  pruefe('Migrierte und frische Instanz bauen die Spalte gleich',
     gleich(u40BauMigriert, u40BauFrisch),
     `${JSON.stringify(u40BauMigriert)} gegen ${JSON.stringify(u40BauFrisch)}`);
   pruefe('Sie ist NOT NULL mit Vorgabe 1.0',
@@ -15409,7 +15409,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('MIGRATION 0.8.50 — ENTFAELLT MIT 1.0');
 
   /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.8.40 -- dieselbe Anlage, nur ohne art und dauer an photos.
+     aus 0.8.0 bis 0.8.40 -- dieselbe Instanz, nur ohne art und dauer an photos.
      UND MIT FOTOS DARIN: eine leere Tabelle bewiese nichts ueber die Vorgabe
      (Stolperstein 81).
      KEINE FRAGE NACH EINEM VERFASSER, wie schon bei 0.8.40: ein Foto gehoert
@@ -15435,7 +15435,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.close();
     return z;
   };
-  /* Eine Anlage aus 0.8.40 nachbauen: Tabellenneubau statt
+  /* Eine Instanz aus 0.8.40 nachbauen: Tabellenneubau statt
      ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
      darueber -- SQLite prueft nach dem Entfernen den verbliebenen DDL-Text,
      und der traegt hier Kommentare. Ausserhalb jeder Transaktion, sonst waere
@@ -15570,15 +15570,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
     fs.rmSync(dir, { recursive: true, force: true });
   }
 
-  /* Die frische Anlage bekommt die Spalten aus der DDL, nicht aus der Migration.
+  /* Die frische Instanz bekommt die Spalten aus der DDL, nicht aus der Migration.
      Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt -- und
      zu 1.0 faellt die Migration weg, die Spalten muessen bleiben. */
   const u50Frisch = uLauf(u50FrischDir);
-  pruefe('Eine frische Anlage traegt beide Spalten ohne Migration',
+  pruefe('Eine frische Instanz traegt beide Spalten ohne Migration',
     u50Spalten(u50FrischDir).includes('art') && u50Spalten(u50FrischDir).includes('dauer') &&
     !/photos um /.test(u50Frisch),
     `${u50Spalten(u50FrischDir).join(', ')} / ${JSON.stringify(u50Frisch.trim())}`);
-  /* Und migrierte und frische Anlage bauen die Spalten gleich. Nachgesehen
+  /* Und migrierte und frische Instanz bauen die Spalten gleich. Nachgesehen
      wird das VERHALTEN, nicht der DDL-Text: das Wort CHECK steht im Kommentar
      an der Spalte, und ein Waechter ueber den Text faerbte sich daran
      (Stolperstein 106). Eine dritte Art muss direkt in der Datenbank
@@ -15604,7 +15604,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
              dauerNotnull: dauer?.notnull, dritteArt, leer };
   };
   const u50BauMigriert = u50Bau(u50Dir), u50BauFrisch = u50Bau(u50FrischDir);
-  pruefe('Migrierte und frische Anlage bauen die Spalten gleich',
+  pruefe('Migrierte und frische Instanz bauen die Spalten gleich',
     gleich(u50BauMigriert, u50BauFrisch),
     `${JSON.stringify(u50BauMigriert)} gegen ${JSON.stringify(u50BauFrisch)}`);
   pruefe('art ist NOT NULL mit Vorgabe bild, dauer darf leer bleiben',
@@ -15643,7 +15643,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   gruppe('MIGRATION 0.14.0 — ENTFAELLT MIT 1.0');
 
   /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.13.2 -- dieselbe Anlage, nur ohne die drei Spalten an
+     aus 0.8.0 bis 0.13.2 -- dieselbe Instanz, nur ohne die drei Spalten an
      items.
      UND MIT EINTRAEGEN DARIN, davon einer ABGELEHNT: eine leere Tabelle
      bewiese nichts darueber, was mit dem Bestand geschieht (Stolperstein 81)
@@ -15670,7 +15670,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.close();
     return z;
   };
-  /* Eine Anlage aus 0.13.2 nachbauen: Tabellenneubau statt
+  /* Eine Instanz aus 0.13.2 nachbauen: Tabellenneubau statt
      ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
      darueber -- SQLite prueft nach dem Entfernen den verbliebenen DDL-Text,
      und der traegt hier Kommentare (Stolperstein 106). Ausserhalb jeder
@@ -15740,7 +15740,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* DER KERN DIESES ABSCHNITTS. Die Bestandszeilen bleiben, und die drei
      Spalten bleiben LEER -- auch an dem Eintrag, der schon abgelehnt war.
-     Ein nachgeschobenes UPDATE erfaende hier Angaben, die diese Anlage nicht
+     Ein nachgeschobenes UPDATE erfaende hier Angaben, die diese Instanz nicht
      hat; "abgelehnt am Tag der Einspielung" waere die schlimmste davon. */
   pruefe('Beide Bestandszeilen sind noch da',
     u14Zeilen().length === 2, JSON.stringify(u14Zeilen().map(z => z.title)));
@@ -15813,12 +15813,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     fs.rmSync(dir, { recursive: true, force: true });
   }
 
-  /* Die frische Anlage bekommt die Spalten aus der DDL, nicht aus der
+  /* Die frische Instanz bekommt die Spalten aus der DDL, nicht aus der
      Migration. Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt
      traegt -- und zu 1.0 faellt die Migration weg, die Spalten muessen
      bleiben. */
   const u14Frisch = uLauf(u14FrischDir);
-  pruefe('Eine frische Anlage traegt alle drei Spalten ohne Migration',
+  pruefe('Eine frische Instanz traegt alle drei Spalten ohne Migration',
     u14Neu.every(n => u14Spalten(u14FrischDir).includes(n)) && !/items um /.test(u14Frisch),
     `${u14Spalten(u14FrischDir).join(', ')} / ${JSON.stringify(u14Frisch.trim())}`);
 
@@ -15827,7 +15827,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      eines in der DDL (Stolperstein 105 stellt genau diese Frage fuer die
      Vorgabe). Nachgemessen wird deshalb, was SQLite TUT: dass der Schluessel
      dasteht, dass ON DELETE SET NULL greift und dass eine unbekannte Nummer
-     abgewiesen wird -- in der migrierten wie in der frischen Anlage. */
+     abgewiesen wird -- in der migrierten wie in der frischen Instanz. */
   const u14Fk = (verzeichnis) => {
     const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
     d.pragma('foreign_keys = ON');
@@ -15846,7 +15846,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return { ziel: eintrag?.table, beiLoeschung: eintrag?.on_delete, nachDemLoeschen: gesetzt, fremd };
   };
   const u14FkMigriert = u14Fk(u14Dir), u14FkFrisch = u14Fk(u14FrischDir);
-  pruefe('Migrierte und frische Anlage verhalten sich am Fremdschluessel gleich',
+  pruefe('Migrierte und frische Instanz verhalten sich am Fremdschluessel gleich',
     gleich(u14FkMigriert, u14FkFrisch),
     `${JSON.stringify(u14FkMigriert)} gegen ${JSON.stringify(u14FkFrisch)}`);
   pruefe('rejected_von zeigt auf users und gibt beim Loeschen frei',
@@ -15888,7 +15888,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      verschwindet, steht beieinander und traegt dieselbe Marke.
      EINE SPALTE, UND SIE HAT KEINEN VORGABEWERT -- das ist die Aussage dieses
      Blocks und nicht seine Bequemlichkeit (Stolperstein 219): eine Zeile ohne
-     Zeitpunkt heisst „die Anlage weiss nicht, wann das war". Ein fester Wert
+     Zeitpunkt heisst „die Instanz weiss nicht, wann das war". Ein fester Wert
      liesse den ganzen Altbestand gleich alt aussehen, `datetime('now')` liesse
      ihn brandneu aussehen -- und die Glocke laeutete beim ersten Start fuer
      alles.
@@ -15913,7 +15913,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.close();
     return z;
   };
-  /* Eine Anlage aus 0.15.1 nachbauen: Tabellenneubau statt
+  /* Eine Instanz aus 0.15.1 nachbauen: Tabellenneubau statt
      ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
      darueber (Stolperstein 106). Ausserhalb jeder Transaktion, sonst waere das
      PRAGMA ein stiller No-op (Stolperstein 12).
@@ -15974,7 +15974,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* DER KERN DIESES ABSCHNITTS. Die Bestandszeilen bleiben, und die Spalte
      bleibt LEER. Ein nachgeschobenes UPDATE erfaende hier einen Zeitpunkt,
-     den diese Anlage nicht hat -- „bewertet am Tag der Einspielung" waere die
+     den diese Instanz nicht hat -- „bewertet am Tag der Einspielung" waere die
      schlimmste Variante davon. */
   pruefe('Beide Bewertungen sind noch da mit ihren Werten',
     u16Zeilen().length === 2 && u16Zeilen().map(z => z.value).join(',') === '4,2',
@@ -15995,7 +15995,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
       /ALTER TABLE ratings ADD COLUMN gesetzt_am TEXT'/.test(u16Block) &&
       !/DEFAULT/i.test(u16Block), JSON.stringify(
         (u16Block.match(/ALTER TABLE[^']*/) || [''])[0]));
-    /* UND DIE DDL EBENSO WENIG -- sonst saehe eine frisch angelegte Anlage
+    /* UND DIE DDL EBENSO WENIG -- sonst saehe eine frisch angelegte Instanz
        anders aus als eine migrierte, und ein eingespielter Bestand bekaeme
        stillschweigend „gerade eben" als Zeitpunkt. */
     const u16Anf = u16Quelle.indexOf('CREATE TABLE IF NOT EXISTS ratings (');
@@ -16016,11 +16016,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     u16Zeilen().length === 2 && u16Zeilen().every(z => z.gesetzt_am === null),
     JSON.stringify(u16Zeilen()));
 
-  /* Die frische Anlage bekommt die Spalte aus der DDL, nicht aus der
+  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der
      Migration -- und beide sehen danach GLEICH aus. Zu 1.0 faellt die
      Migration weg, die Spalte muss bleiben. */
   const u16Frisch = uLauf(u16FrischDir);
-  pruefe('Eine frische Anlage traegt gesetzt_am ohne Migration',
+  pruefe('Eine frische Instanz traegt gesetzt_am ohne Migration',
     u16Spalten(u16FrischDir).includes('gesetzt_am') && !/ratings um /.test(u16Frisch),
     `${u16Spalten(u16FrischDir).join(', ')} / ${JSON.stringify(u16Frisch.trim())}`);
   pruefe('Und migriert wie frisch tragen dieselben Spalten in derselben Reihenfolge',
@@ -16040,7 +16040,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     d.close();
     return wert;
   };
-  pruefe('Eine Zeile ohne Angabe traegt in beiden Anlagen NULL',
+  pruefe('Eine Zeile ohne Angabe traegt in beiden Instanzen NULL',
     u16Vorgabe(u16Dir) === null && u16Vorgabe(u16FrischDir) === null,
     `${JSON.stringify(u16Vorgabe(u16Dir))} gegen ${JSON.stringify(u16Vorgabe(u16FrischDir))}`);
 
@@ -16563,7 +16563,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
        Beim Ausliefern entscheiden die ersten Bytes. Das schuetzt auch, was
        schon vor dieser Regel in der Datenbank lag, und dafuer steht die
        Bestandsprobe weiter unten: sie schreibt eine SVG an sharp vorbei
-       hinein, so wie sie eine alte Anlage haette. */
+       hinein, so wie sie eine alte Instanz haette. */
   const fo = (await ruf('POST', '/api/items', { title: 'Fotoprobe' })).inhalt;
   const SVG_BOESE = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8">' +
     '<scr' + 'ipt>document.title="AUSGEFUEHRT"</scr' + 'ipt><rect width="8" height="8"/></svg>';
@@ -16770,7 +16770,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   }
 
   /* --- 0.12.3: die erwartete Exportgroesse steht in denselben Kennzahlen ---
-     ZWEI FRAGEN, ZWEI ZAHLEN. `dbBytes` sagt, wie viel Platz die Anlage auf
+     ZWEI FRAGEN, ZWEI ZAHLEN. `dbBytes` sagt, wie viel Platz die Instanz auf
      der Platte braucht -- samt Indizes, Sicherheitsprotokoll und freien Seiten
      aus Geloeschtem. `export` sagt, wie gross die Datei wird, die das Haus
      verlaesst: Base64 statt Bytes, dafuer ohne alles, was nicht mitgeht.
@@ -17073,7 +17073,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Seite selbst traegt eine Sicherheitsregel', cspWert.length > 0, cspWert);
   pruefe('Nichts wird von fremden Adressen geladen', /default-src 'self'/.test(cspWert), cspWert);
   /* media-src TRAEGT DIE VIDEOS, und beide Angaben sind noetig.
-     'self' erlaubt das Abspielen aus der eigenen Anlage; ohne die Zeile griffe
+     'self' erlaubt das Abspielen aus der eigenen Instanz; ohne die Zeile griffe
      dafuer zwar default-src 'self' mit, aber blob: eben nicht -- und blob: ist
      der Weg, auf dem die Oberflaeche das Standbild VOR dem Hochladen zieht.
      Eine blob:-Adresse an einem <video> faellt unter media-src, nicht unter
@@ -17081,7 +17081,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      liesse sich ueberhaupt kein Video hochladen (im echten Chromium
      nachgemessen: "Refused to load media from blob:", MEDIA_ELEMENT_ERROR 4). */
   const mediaTeil = (cspWert.match(/media-src[^;]*/) || [''])[0];
-  pruefe('Videos duerfen aus der eigenen Anlage abgespielt werden',
+  pruefe('Videos duerfen aus der eigenen Instanz abgespielt werden',
     /media-src[^;]*'self'/.test(cspWert), cspWert);
   pruefe('Und das Standbild darf vor dem Hochladen aus einer blob-Adresse kommen',
     /media-src[^;]*blob:/.test(cspWert), cspWert);
@@ -17092,12 +17092,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     'das Muster nimmt auch eine Regel ohne blob: an');
   pruefe('media-src steht wirklich in der Regel und nicht nur im Muster',
     mediaTeil.length > 0, cspWert);
-  pruefe('Skript nur aus der eigenen Anlage', /script-src 'self'/.test(cspWert), cspWert);
+  pruefe('Skript nur aus der eigenen Instanz', /script-src 'self'/.test(cspWert), cspWert);
   /* DIE TRAGENDE ZEILE: script-src ohne 'unsafe-inline'. Eine Regel, die
      eingebettetes Skript erlaubte, koennte man sich sparen. */
   pruefe('Und ausdruecklich KEIN eingebettetes Skript',
     !/script-src[^;]*unsafe-inline/.test(cspWert), cspWert);
-  pruefe('Die Anlage laesst sich nicht in einen fremden Rahmen setzen',
+  pruefe('Die Instanz laesst sich nicht in einen fremden Rahmen setzen',
     /frame-ancestors 'none'/.test(cspWert), cspWert);
   pruefe('base-uri und form-action sind zu',
     /base-uri 'none'/.test(cspWert) && /form-action 'none'/.test(cspWert), cspWert);
@@ -17127,7 +17127,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /style-src[^;]*unsafe-inline/.test(cspWert), cspWert);
   pruefe('Auch eine Antwort der Schnittstelle traegt die Regel',
     ((await fetch(`${BASIS}/api/config`)).headers.get('content-security-policy') || '') === cspWert);
-  /* Die Anlage ohne Proxy spricht kein HTTPS -- ein HSTS-Kopf sperrte sie
+  /* Die Instanz ohne Proxy spricht kein HTTPS -- ein HSTS-Kopf sperrte sie
      aus. Er haengt an derselben Einstellung wie alles Uebrige, siehe die
      beiden Gruppen zum Proxy weiter unten. */
   pruefe('Ohne Proxy steht kein Strict-Transport-Security',
@@ -17219,7 +17219,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     // KEIN MIGRATIONSCODE NOETIG, und das wird hier belegt statt geglaubt: der
     // Index wird entfernt, der Server einmal gestartet -- und er ist wieder
     // da. Anders als eine neue Spalte ruestet CREATE INDEX IF NOT EXISTS sich
-    // bei jedem Start selbst nach, in bestehender wie frischer Anlage.
+    // bei jedem Start selbst nach, in bestehender wie frischer Instanz.
     d.prepare('DROP INDEX idx_sessions_user').run();
     pruefe('Zur Gegenprobe entfernt', !d.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_sessions_user'").get());
@@ -17358,7 +17358,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* DIE SCHREIBUNG SPIELT KEINE ROLLE, AUCH BEI UMLAUTEN. Das ist die Zeile,
      die den Bauweg festhaelt: SQLite faltet in LIKE und lower() nur ASCII, ein
      LIKE-Weg faende "ÜBERGROSS" bei der Eingabe "übergross" NICHT. Die
-     Anlage haengt deshalb eine Kleinschreibung nach Unicode in SQL ein.
+     Instanz haengt deshalb eine Kleinschreibung nach Unicode in SQL ein.
      Ohne diese Pruefung faellt der Rueckbau darauf gar nicht auf. */
   const vsUml = await vsNur('übergross', vsTitel.id);
   pruefe('Und zwar ohne Rücksicht auf Groß- und Kleinschreibung — auch bei Umlauten',
@@ -17383,7 +17383,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* PROZENT UND UNTERSTRICH SIND TEXT UND KEINE WILDCARDS. In einem
      LIKE '%…%' waere ein eingegebenes Prozentzeichen ein Platzhalter und
-     faende ALLES. Die Anlage sucht deshalb ueber instr(), das keine
+     faende ALLES. Die Instanz sucht deshalb ueber instr(), das keine
      Wildcards kennt -- von Bauart und nicht durch eine Klemme, die jemand
      vergessen kann. */
   const vsPz = await vsNur('%', vsProzent.id);
@@ -17546,7 +17546,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Der Aufbau steht: eine gemerkte Filterstellung liegt vor',
     vaVorher.filters && vaVorher.filters.tested === 'untested',
     JSON.stringify(vaVorher.filters));
-  pruefe('Eine Anlage ohne gespeicherte Ansichten liefert die leere Liste',
+  pruefe('Eine Instanz ohne gespeicherte Ansichten liefert die leere Liste',
     Array.isArray(vaVorher.ansichten) && vaVorher.ansichten.length === 0,
     JSON.stringify(vaVorher.ansichten));
   pruefe('Und der Deckel kommt vom Server', vaVorher.ansichtenDeckel === 8,
@@ -17905,7 +17905,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // 239, 252, 282, 283, 285, 286 und 291 zeigten auf Zeilen, die diese Runde
   // umgebaut hat -- ein Rueckbau, der ins Leere greift, ist stumm und
   // verfaelscht die Tabelle (Stolperstein 192).
-  pruefe('Es sind genau 333 Rueckbauten', gpListe.length === 333, `${gpListe.length}`);
+  // 353 SEIT 0.17.1: zwanzig neue zu den sechs Handgriffen -- fuenf am
+  // Zugangstext, vier an der Kachelhoehe, drei am Mailversand, zwei an der
+  // Umbenennung, zwei an der Sitzungszeile und vier am fliegenden Wechsel im
+  // Vollbild. EINER IST MITGEGANGEN statt geloescht zu werden (Stolperstein
+  // 201): 305 zielte auf den Umbruch der Anmeldezeile, den es nicht mehr gibt,
+  // und zielt jetzt auf die nachgebende Namensspalte -- dieselbe Zusage, ein
+  // anderer Weg dorthin.
+  pruefe('Es sind genau 353 Rueckbauten', gpListe.length === 353, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -18304,7 +18311,7 @@ async function pruefeErstanmeldung() {
     frischDb.prepare('SELECT COUNT(*) n FROM users').get().n === 1);
   pruefe('Das Passwort steht nirgends im Klartext',
     !frischDb.prepare('SELECT password_hash h FROM users').get().h.includes('zehn-zeichen-und-mehr'));
-  // Der erste Benutzer entsteht ausschliesslich hier -- und wer die Anlage
+  // Der erste Benutzer entsteht ausschliesslich hier -- und wer die Instanz
   // einrichtet, dem gehoert sie.
   const frischU = frischDb.prepare('SELECT id, role, status, last_login FROM users ORDER BY id').get();
   pruefe('Der frisch eingerichtete Zugang ist Eigentuemer', frischU?.role === 'eigentuemer',
@@ -18817,14 +18824,14 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   let zfCodesMock = zweifaktorCodes ||
     ['AAAAA-BBBBB', 'CCCCC-DDDDD', 'EEEEE-FFFFF', 'GGGGG-HHHHH',
      'JJJJJ-KKKKK', 'MMMMM-NNNNN', 'PPPPP-QQQQQ', 'RRRRR-SSSSS'];
-  const MAIL_VERWEIGERT = 'Das kann nur der Eigentümer der Anlage.';
+  const MAIL_VERWEIGERT = 'Das kann nur der Eigentümer der Instanz.';
   const MAIL_ANBIETER_MOCK = [
     { schluessel: 'gmx', name: 'GMX' }, { schluessel: 'web', name: 'Web.de' },
     { schluessel: 'gmail', name: 'Gmail' }, { schluessel: 'strato', name: 'Strato' },
     { schluessel: 'ionos', name: 'IONOS' }, { schluessel: 'eigen', name: 'Eigener Server' }
   ];
   mailStand = mailStand || { anbieter: 'gmx', server: 'mail.gmx.net', port: 587, sicher: false,
-    benutzer: 'anlage@gmx.de', absender: 'anlage@gmx.de', passwortGesetzt: true,
+    benutzer: 'instanz@gmx.de', absender: 'instanz@gmx.de', passwortGesetzt: true,
     getestetAm: '2026-08-20 08:30:00' };
   const mailKarteMock = () => ({
     anbieter: mailStand.anbieter || '',
@@ -19465,7 +19472,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        mit -- antwortete er jedem mit 200, waere die Rolle unpruefbar. */
     if (url === '/api/sicherung' && (opt.method || 'GET') === 'GET') {
       if (einstellungen.istEigentuemer === false)
-        return gib({ error: 'Das kann nur der Eigentümer der Anlage.' }, 403);
+        return gib({ error: 'Das kann nur der Eigentümer der Instanz.' }, 403);
       return gib(sicherung);
     }
     /* Und die beiden Schreibwege, die ihren Stand WIRKLICH aendern
@@ -22050,7 +22057,7 @@ async function pruefeOberflaeche() {
   pruefe('Sein Schlusssatz nennt den Papierkorb samt Frist',
     /liegt danach 30 Tage im Papierkorb/.test(eDialog), eDialog);
   pruefe('Und wer zurueckholen darf',
-    /Eigentümer der Anlage/.test(eDialog), eDialog);
+    /Eigentümer der Instanz/.test(eDialog), eDialog);
   pruefe('Das Wort "unwiderruflich" steht nicht mehr darin',
     !/unwiderruflich/i.test(eDialog), eDialog);
   /* Seit 0.8.30 die Links, seit 0.8.31 auch die Dateien: was fremd sein kann,
@@ -23776,7 +23783,7 @@ async function pruefeOberflaeche() {
      SEIT 0.15.1 TRAEGT DAS DIE GRUNDSAETZLICHE REGEL und nicht mehr eine
      eigene fuer diesen Knopf: `.lb-btn[hidden]` ist entfallen, weil
      `[hidden] { display: none !important }` ganz oben dasselbe fuer die ganze
-     Anlage tut -- und zwar auch dort, wo noch niemand daran gedacht hat.
+     Instanz tut -- und zwar auch dort, wo noch niemand daran gedacht hat.
      Zwei Regeln fuer dieselbe Sache waeren zwei Wahrheiten (Stolperstein
      201 und 214). */
   {
@@ -24238,7 +24245,7 @@ async function pruefeOberflaeche() {
      sie meinen dieselbe Datei, und der Import steht darin eine Stufe tiefer.
      DIE REIHENFOLGE IST DIE DER ABSCHNITTE und nicht mehr die eines Rasters:
      erst was jedem gehoert, dann der Bestand, dann die Zugaenge, dann die
-     Datenbank, zuletzt die Anlage. */
+     Datenbank, zuletzt die Instanz. */
   const ALLE_KARTEN = [
     'Zugang', 'Meine Sitzungen', 'Darstellung',
     'Kategorien', 'Tags', 'Bewertungskriterien', 'Vokabular', 'Links', 'Suchanbieter', 'Papierkorb',
@@ -24266,7 +24273,7 @@ async function pruefeOberflaeche() {
   const reiterWorte = (d) => [...d.w.document.querySelectorAll('.sys-reiter-k')]
     .map(a => a.textContent.trim());
   pruefe('Die Eigentuemerin bekommt fuenf Abschnitte',
-    gleich(reiterWorte(rEig), ['Persönlich', 'Bestand', 'Zugänge', 'Datenbank', 'Anlage']),
+    gleich(reiterWorte(rEig), ['Persönlich', 'Bestand', 'Zugänge', 'Datenbank', 'Instanz']),
     reiterWorte(rEig).join(' · '));
   pruefe('Ein gewoehnlicher Benutzer bekommt nur die zwei, die etwas zu zeigen haben',
     gleich(reiterWorte(rUser), ['Persönlich', 'Bestand']), reiterWorte(rUser).join(' · '));
@@ -24277,7 +24284,7 @@ async function pruefeOberflaeche() {
   // Einstellung verlinken, und die Zurueck-Taste braeche.
   pruefe('Jeder Reiter traegt seine eigene Adresse',
     gleich(dEig.reiter, ['#/system/persoenlich', '#/system/bestand', '#/system/zugaenge',
-                         '#/system/datenbank', '#/system/anlage']),
+                         '#/system/datenbank', '#/system/instanz']),
     dEig.reiter.join(' · '));
   /* UND ER IST EIN VERWEIS UND KEIN KNOPF. Die Zeile darueber liest ein
      ATTRIBUT, und ein `href` laesst sich an jedes Element schreiben -- ein
@@ -24842,11 +24849,11 @@ async function pruefeOberflaeche() {
   /* ---------------------------------------------------------------- */
   gruppe('Die Markenzeile der Anmeldeseiten');
 
-  /* AUS DEM BETRIEB: die Marke stand UEBER dem Namen der Anlage, und das Paar
+  /* AUS DEM BETRIEB: die Marke stand UEBER dem Namen der Instanz, und das Paar
      las sich als Bild mit einer Ueberschrift darunter -- zwei Dinge statt
      einem. Sie stehen jetzt nebeneinander.
      GEPRUEFT WIRD DER GEBAUTE BAUM UND NICHT NUR DIE QUELLE (die Quellzeilen
-     dazu stehen in der Gruppe "Die Marke der Anlage"): die Quelle sagt, was
+     dazu stehen in der Gruppe "Die Marke der Instanz"): die Quelle sagt, was
      der Helfer schreibt, der Baum sagt, was auf der Seite steht. */
   const mzDom = baueDom(JSDOM, { angemeldet: false, registrierung: false });
   await new Promise(r => setTimeout(r, 80));
@@ -24869,7 +24876,7 @@ async function pruefeOberflaeche() {
     mzDom.w.document.querySelectorAll('.login-card .marke').length === 1,
     `${mzDom.w.document.querySelectorAll('.login-card .marke').length} Marken in der Karte`);
   /* DAS ZEICHEN BLEIBT STUMM: es steht unmittelbar neben dem Namen der
-     Anlage, ein Vorleseprogramm saegte ihn sonst zweimal. Nebeneinander ist
+     Instanz, ein Vorleseprogramm saegte ihn sonst zweimal. Nebeneinander ist
      das noch dringender als gestapelt. */
   pruefe('Das Zeichen bleibt fuer das Vorleseprogramm stumm',
     mzKinder[0]?.getAttribute('alt') === '' && !mzKinder[0]?.getAttribute('title'),
@@ -25078,7 +25085,7 @@ async function pruefeOberflaeche() {
     Boolean(zdFeld), 'das Codefeld fehlt');
   pruefe('Und das Passwortfeld ist fort -- es ist ein zweiter SCHRITT, kein zweites Feld',
     !zdMit.w.document.getElementById('lp'), 'das Passwortfeld steht noch da');
-  pruefe('Die Marke der Anlage steht auch hier',
+  pruefe('Die Marke der Instanz steht auch hier',
     Boolean(zdMit.w.document.querySelector('.login-marke')), 'keine Markenzeile');
   /* DER WEG UEBER DEN WIEDERHERSTELLUNGSCODE STEHT DANEBEN, nicht hinter
      einem Knopf: wer sein Telefon nicht hat, sucht ihn genau in diesem
@@ -25203,7 +25210,7 @@ async function pruefeOberflaeche() {
     Boolean(zkAus.w.document.getElementById('zf-an')), 'der Knopf fehlt');
   pruefe('Zum Ausschalten steht dort keiner',
     !zkAus.w.document.getElementById('zf-aus') && !zkAus.w.document.getElementById('zf-neue'));
-  pruefe('Und der Text nennt die Anlage als vollstaendig ohne ihn',
+  pruefe('Und der Text nennt die Instanz als vollstaendig ohne ihn',
     /[Ff]reiwillig/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 300));
 
   // Einschalten, Schritt 1: hinter dem bisherigen Passwort.
@@ -25591,7 +25598,7 @@ async function pruefeOberflaeche() {
      einschalten -- und die Karte sagt, was fehlt, statt einen Knopf
      anzubieten, der nur absagt. */
   const kNichtBereit = await sKarteBau({ an: false, versandBereit: false,
-    versandGrund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer der Anlage.',
+    versandGrund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer der Instanz.',
     deckel: 20, stunden: 24, anfragen: [
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' }] });
@@ -25851,7 +25858,7 @@ async function pruefeOberflaeche() {
       ich: 1, darfRollen: true, eigentuemer: 1,
       zugaenge: [{ id: 1, username: 'chefin', role: 'eigentuemer', status: 'aktiv',
                    last_login: null, created_at: '2026-01-01 09:00:00', eintraege: 0 }] } });
-    pruefe('Der Aufbau steht: eine Anlage ohne Grabstein zeigt ihre Zeile',
+    pruefe('Der Aufbau steht: eine Instanz ohne Grabstein zeigt ihre Zeile',
       ziReihen(d).length === 1, `${ziReihen(d).length} Zeilen`);
     pruefe('Und dann steht der Knopf gar nicht erst da',
       !ziKarte(d)?.querySelector('#zug-weg-auf'),
@@ -26017,7 +26024,7 @@ async function pruefeOberflaeche() {
        waere wahr. */
     pruefe('Die Zeile zum Export hat ueberhaupt ein Zielfeld',
       !!spZeile('export')?.querySelector('.prot-ziel'), 'kein Zielfeld');
-    pruefe('Und es bleibt leer -- der Export trifft die Anlage, nicht jemanden',
+    pruefe('Und es bleibt leer -- der Export trifft die Instanz, nicht jemanden',
       (spZeile('export')?.querySelector('.prot-ziel')?.textContent || '').trim() === '',
       spZeile('export')?.textContent?.replace(/\s+/g, ' '));
 
@@ -26734,7 +26741,7 @@ async function pruefeOberflaeche() {
       !!k?.querySelector('.mail-aus'), 'keine Auszeichnung');
   }
   {
-    // OHNE ZUGANG: der Zustand jeder Anlage vor dieser Runde.
+    // OHNE ZUGANG: der Zustand jeder Instanz vor dieser Runde.
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true }, { mailStand: {} });
     const k = mvKarte(d);
     pruefe('Ohne Mailzugang sagt die Karte "nicht eingerichtet"',
@@ -26751,9 +26758,9 @@ async function pruefeOberflaeche() {
       { oeffentlicheAdresse: 'https://kriterion.beispiel.de', mailStand: {} });
     setzeFeld(d.w.document, 'mail-anbieter', 'gmail');
     d.w.document.getElementById('mail-anbieter').dispatchEvent(new d.w.Event('change'));
-    setzeFeld(d.w.document, 'mail-benutzer', 'anlage@gmail.com');
+    setzeFeld(d.w.document, 'mail-benutzer', 'instanz@gmail.com');
     setzeFeld(d.w.document, 'mail-passwort', 'erfundenes-app-passwort');
-    setzeFeld(d.w.document, 'mail-absender', 'anlage@gmail.com');
+    setzeFeld(d.w.document, 'mail-absender', 'instanz@gmail.com');
     d.w.document.getElementById('mail-save')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
@@ -26766,7 +26773,7 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 80));
     const put = d.gesendet.find(x => x.methode === 'PUT' && x.url === '/api/mail');
     pruefe('Danach geht der Zugang an den Server',
-      put?.koerper?.anbieter === 'gmail' && put?.koerper?.benutzer === 'anlage@gmail.com',
+      put?.koerper?.anbieter === 'gmail' && put?.koerper?.benutzer === 'instanz@gmail.com',
       JSON.stringify({ ...put?.koerper, passwort: '(nicht abgedruckt)' }));
     pruefe('Und die Karte zeigt danach "eingerichtet"',
       /eingerichtet/.test(mvKarte(d)?.textContent || '') &&
@@ -26898,10 +26905,10 @@ async function pruefeOberflaeche() {
     pkuAdmReihen.every(r => !r.querySelector('.pk-back') && !r.querySelector('.pk-weg')),
     JSON.stringify(pkuAdmReihen.map(r => r.innerHTML.slice(0, 120))));
   pruefe('Und die Karte sagt ihm, wer es darf',
-    /Eigentümer der Anlage/.test(pkKarte(pkuAdm)?.querySelector('.desc')?.textContent || ''),
+    /Eigentümer der Instanz/.test(pkKarte(pkuAdm)?.querySelector('.desc')?.textContent || ''),
     pkKarte(pkuAdm)?.querySelector('.desc')?.textContent);
   pruefe('Bei der Eigentuemerin steht dieser Satz NICHT',
-    !/Eigentümer der Anlage/.test(pkKarte(pkuEig)?.querySelector('.desc')?.textContent || ''),
+    !/Eigentümer der Instanz/.test(pkKarte(pkuEig)?.querySelector('.desc')?.textContent || ''),
     pkKarte(pkuEig)?.querySelector('.desc')?.textContent);
 
   // Die Frist steht in der Karte, und zwar die aus der Antwort.
@@ -27035,7 +27042,7 @@ async function pruefeOberflaeche() {
        ja, Paketversionen nein. */
     const kvZeile = (k) => [...(karte?.querySelectorAll('.kv') || [])]
       .find(z => z.querySelector('.k')?.textContent.trim() === k);
-    pruefe('Die Karte nennt die Version der Anlage',
+    pruefe('Die Karte nennt die Version der Instanz',
       !!kvZeile('Version'),
       [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
     pruefe('Und zwar den Wert aus der Antwort',
@@ -27063,7 +27070,7 @@ async function pruefeOberflaeche() {
         kvZeile(wort)?.querySelector('.v')?.textContent.trim() === wert,
         kvZeile(wort)?.querySelector('.v')?.textContent);
     }
-    /* UND KEINE PAKETVERSION IN DER GANZEN KARTE. Die Version der ANLAGE steht
+    /* UND KEINE PAKETVERSION IN DER GANZEN KARTE. Die Version der INSTANZ steht
        darin und ist erwuenscht; gesucht wird deshalb nach den Paketnamen. */
     pruefe('Und die Karte nennt keine fremde Bibliothek beim Namen',
       !/better-sqlite3|nodemailer|express|multer|sharp/i.test(karte?.textContent || ''),
@@ -27302,10 +27309,10 @@ async function pruefeOberflaeche() {
     /kriterion-2026-08-20-03-00-00\.sqlite/.test(siKarte(siEig)?.textContent || '') &&
     /50,0 MB/.test(siKarte(siEig)?.textContent || ''),
     siKarte(siEig)?.textContent?.slice(0, 600));
-  /* DIE DAUER STEHT VORHER DA. VACUUM INTO laeuft synchron, die Anlage steht
+  /* DIE DAUER STEHT VORHER DA. VACUUM INTO laeuft synchron, die Instanz steht
      so lange still -- eine Ansage ist besser als ein stiller Stillstand. */
-  pruefe('Die Karte sagt vorher, dass die Anlage stillsteht',
-    /steht die\s+Anlage still/.test(siKarte(siEig)?.textContent || ''),
+  pruefe('Die Karte sagt vorher, dass die Instanz stillsteht',
+    /steht die\s+Instanz still/.test(siKarte(siEig)?.textContent || ''),
     siKarte(siEig)?.textContent?.slice(0, 700));
   pruefe('Und nennt die erwartete Dauer aus der Antwort',
     /etwa\s+1 Sekunden/.test(siKarte(siEig)?.textContent || ''),
@@ -28307,7 +28314,7 @@ async function pruefeOberflaeche() {
 
   /* SIE STEHT IN DER KOPFZEILE UND AUF DEN ANMELDESEITEN, und beide laden
      DIESELBE Datei. Die Farbe und das viewBox pruefen die Dateien selbst
-     (Gruppe "Die Marke der Anlage"); hier geht es darum, dass die Oberflaeche
+     (Gruppe "Die Marke der Instanz"); hier geht es darum, dass die Oberflaeche
      sie ueberhaupt so einbaut. */
   const mbDom = baueDom(JSDOM, { uebersichtItems: suBestand });
   const mb = mbDom.w;
@@ -28496,7 +28503,7 @@ async function pruefeOberflaeche() {
   /* WOZU DIESE GRUPPE MEHR PRUEFT ALS DIE ANDEREN: der Betreiber hat den Weg
      an EINE Bedingung gebunden -- "wenn es sich genauso ein und ausspielen
      laesst". Eine Zusicherung auf die Schnittstelle allein waere hier zu
-     wenig; geprueft wird der RUNDLAUF, mit einer zweiten, frischen Anlage und
+     wenig; geprueft wird der RUNDLAUF, mit einer zweiten, frischen Instanz und
      einem Vergleich Feld fuer Feld. */
   const tlDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-teile-'));
   const tlZielDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-teile-ziel-'));
@@ -28571,7 +28578,7 @@ async function pruefeOberflaeche() {
   pruefe('Die Teile sind durchnummeriert, bei eins beginnend',
     tlPlan.teile.every((t, i) => t.nr === i + 1), JSON.stringify(tlPlan.teile.map(t => t.nr)));
   /* DER ZIELWERT LAESST SICH KLEINER STELLEN, ABER NICHT GROESSER: oberhalb
-     des Warnwerts baute die Anlage Teile, vor denen sie im selben Atemzug
+     des Warnwerts baute die Instanz Teile, vor denen sie im selben Atemzug
      warnt. Beide Richtungen einzeln, sonst belegte die eine die andere nicht. */
   pruefe('Ein zu grosser Zielwert wird auf den Warnwert gedeckelt',
     (await tlPlanRuf('&ziel=999999999')).inhalt.zielGroesse === tlPlan.vorgabe,
@@ -29076,7 +29083,7 @@ async function pruefeOberflaeche() {
     /display: flex/.test(regel123('.frow-rechts')), regel123('.frow-rechts') || '(keine Regel)');
   pruefe('Und er traegt KEINE selbsttaetige Aussenkante mehr',
     !/margin-left: auto/.test(regel123('.frow-rechts')), regel123('.frow-rechts'));
-  /* KEINE AUSGERECHNETE BREITE, nirgends -- die Anlage stellt die Schrift von
+  /* KEINE AUSGERECHNETE BREITE, nirgends -- die Instanz stellt die Schrift von
      80 bis 120 Prozent, und genau daran hing 0.12.1 schon einmal
      (`right: 92px`, Befund A). */
   pruefe('Und er rechnet keine Breite aus',
@@ -29179,7 +29186,7 @@ async function pruefeOberflaeche() {
   pruefe('Und die Ansichten ebenso',
     !!flZeilen()[3]?.querySelector('#ansicht-neu'), flZeilen()[3]?.innerHTML.slice(0, 200));
   /* KEINE AUSGERECHNETE BREITE, an keiner der drei angefassten Stellen. Das
-     war Befund A aus 0.12.1 (`right: 92px`), und die Anlage stellt die Schrift
+     war Befund A aus 0.12.1 (`right: 92px`), und die Instanz stellt die Schrift
      von 80 bis 120 Prozent -- jede feste Zahl kann dabei nur falsch werden.
      Die Beschriftungsspalte selbst bleibt in em und ist ausgenommen; sie fasst
      Text und ist die eine Ausnahme, die im Stilblatt begruendet steht. */
@@ -29393,14 +29400,14 @@ async function pruefeOberflaeche() {
   pruefe('Und zwar dieselbe Datei wie ueberall sonst',
     vzMarke?.getAttribute('src') === 'marke-dunkel.svg', vzMarke?.getAttribute('src'));
   /* alt="" UND KEIN TITEL: das Zeichen steht unmittelbar neben dem Namen der
-     Anlage, und ein Vorleseprogramm saegte ihn sonst zweimal. */
+     Instanz, und ein Vorleseprogramm saegte ihn sonst zweimal. */
   pruefe('Es sagt nichts vor — der Name steht daneben',
     vzMarke?.getAttribute('alt') === '' && !vzMarke?.getAttribute('title'),
     JSON.stringify([vzMarke?.getAttribute('alt'), vzMarke?.getAttribute('title')]));
-  pruefe('Der Name der Anlage steht weiterhin in der Zeile',
+  pruefe('Der Name der Instanz steht weiterhin in der Zeile',
     /^Kriterion \d/.test((vzZeile?.textContent || '').trim()), vzZeile?.textContent);
   /* DIE GROESSE STEHT IM STYLESHEET UND IN em: die Zeile laeuft auf .67rem,
-     und die Anlage stellt die Schrift von 80 bis 120 Prozent. Eine feste
+     und die Instanz stellt die Schrift von 80 bis 120 Prozent. Eine feste
      Pixelzahl bliebe stehen, waehrend die Schrift daneben mitwaechst. */
   pruefe('Die Groesse steht im Stylesheet und waechst mit der Schrift',
     /\.version-zeile \.marke \{ height: [\d.]+em; \}/.test(css123),
@@ -29561,7 +29568,7 @@ async function pruefeOberflaeche() {
   /* ================= Die Aussage an der Marke — 0.14.0 =================
      Aus dem Haekchen "abgelehnt" wird ein Satz: WANN, WARUM und VON WEM.
      JEDES DER DREI DARF FEHLEN, und die Lagen unterscheiden sich gerade
-     darin -- eine Ablehnung aus einer Anlage vor 0.14.0 hat keines davon, ein
+     darin -- eine Ablehnung aus einer Instanz vor 0.14.0 hat keines davon, ein
      Grund ist freiwillig, und ein Zugang kann entfernt worden sein. Eine
      Prueflage mit lauter vollstaendigen Angaben koennte die Zusage
      "zusammengesetzt wird aus dem, was da ist" gar nicht tragen. */
@@ -29670,7 +29677,7 @@ async function pruefeOberflaeche() {
      jeder anderen Verfasserangabe auch.
      DATUM UND GRUND BLEIBEN TROTZDEM STEHEN. Sie sind der Inhalt der
      Entscheidung und keine Angabe ueber eine Person; faellt die ganze Zeile
-     weg, verliert eine Anlage mit einem Zugang genau das, wofuer diese Runde
+     weg, verliert eine Instanz mit einem Zugang genau das, wofuer diese Runde
      gebaut ist. */
   {
     const d = await amLage({ at: '2026-03-14 09:12:00', grund: 'Zu teuer',
@@ -29792,7 +29799,7 @@ async function pruefeOberflaeche() {
      links.
      DIE URSACHE STAND SEIT LANGEM IM STILBLATT: `min-width: 52px` an
      `.rrow .ravg`. Die Absicht war richtig, die ZAHL war falsch -- eine feste
-     Pixelzahl in einer Anlage, die ihre Schrift von 80 bis 120 Prozent
+     Pixelzahl in einer Instanz, die ihre Schrift von 80 bis 120 Prozent
      stellt. Dasselbe Muster wie Befund A aus 0.12.1 (`right: 92px`) und wie
      die Ausrichtung, die 0.13.1 in Ordnung gebracht hat.
      GEMESSEN WIRD HIER NICHT, sondern in Chromium: in jsdom ist jede Breite
@@ -29984,7 +29991,7 @@ async function pruefeOberflaeche() {
   /* DIE PROBE AUF DEN LESER SELBST. Ohne sie belegte „Zellen und Spalten
      passen zusammen" auch dann etwas, wenn rasterSpalten() immer dieselbe
      Zahl lieferte -- und das waere eine Pruefung ueber den Pruefstand statt
-     ueber die Anlage. */
+     ueber die Instanz. */
   pruefe('Der Leser findet fuer beide Klassenstellungen eine Regel',
     rasterSpalten(['rlist']) > 0 && rasterSpalten(['rlist', 'ohne-schnitt']) > 0,
     `${rasterSpalten(['rlist'])} / ${rasterSpalten(['rlist', 'ohne-schnitt'])}`);
@@ -30698,7 +30705,7 @@ async function pruefeOberflaeche() {
     d.w.close();
   }
 
-  /* --- OHNE VERFASSER DER BEGRUENDUNG -- eine Ablehnung aus einer Anlage vor
+  /* --- OHNE VERFASSER DER BEGRUENDUNG -- eine Ablehnung aus einer Instanz vor
      0.14.0. Der Server laesst dort JEDEN schreiben, der den Eintrag aendern
      darf; ohne diesen Zweig gaebe es auf dem Bildschirm keinen Weg hinein,
      und die Zusage des Servers liefe ins Leere. --- */
@@ -31071,7 +31078,7 @@ async function pruefeOberflaeche() {
       /Unterschied, den die Gewichtung macht/.test(kasten?.textContent || ''),
       dok.getElementById('rz-gleich-satz')?.textContent?.replace(/\s+/g, ' '));
 
-    // Escape schliesst ihn, wie jeden Dialog dieser Anlage.
+    // Escape schliesst ihn, wie jeden Dialog dieser Instanz.
     dok.dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await new Promise(r => setTimeout(r, 20));
     pruefe('Escape schliesst den Kasten wieder', !dok.getElementById('rechnung-modal'));
@@ -31192,7 +31199,7 @@ async function pruefeOberflaeche() {
      unterscheiden (Stolperstein 81).
      SEIT 0.17.0 SAGT DIE TAFEL, WAS NEU IST -- „3 Kommentare · 4 Bewertungen"
      statt „7 neue Beitraege" -- UND VON WEM. „Beitrag" ist ein Sammelwort, das
-     die Anlage sonst nirgends benutzt.
+     die Instanz sonst nirgends benutzt.
      DIE LAGE MIT EINEM EINZIGEN ZUGANG BELEGT SEITHER ETWAS: die Glocke meldet
      von ALLEN, die eigenen Beitraege eingeschlossen. Bis 0.16.0 waere sie dort
      zwangslaeufig leer gewesen -- und genau deshalb gab es daneben die Pille
@@ -31300,7 +31307,7 @@ async function pruefeOberflaeche() {
       gleich(zeilen.map(z => z.getAttribute('href')), ['#/item/1', '#/item/2']),
       JSON.stringify(zeilen.map(z => z.getAttribute('href'))));
     /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): hier stand „3 neue Beitraege".
-       „Beitrag" ist ein Sammelwort, das die Anlage sonst nirgends benutzt, und
+       „Beitrag" ist ein Sammelwort, das die Instanz sonst nirgends benutzt, und
        es liess offen, ob Kommentare oder Bewertungen gemeint sind. Die Auskunft
        lag laengst vor und wurde weggeworfen.
        VERGLICHEN WIRD DER GANZE TEXT DER ZELLE und nicht ein Ausschnitt: „1
@@ -31349,7 +31356,7 @@ async function pruefeOberflaeche() {
       !/nicht verspricht|Lesestand je Meldung|nicht laufend/.test(tafel?.textContent || ''),
       tafel?.textContent?.replace(/\s+/g, ' ').slice(-260));
     /* UND DIE AUSKUNFT IST DAFUER IN DER README -- erst das Vorhandensein,
-       dann die Verneinung (Stolperstein 81). Ein Text, der aus der Anlage
+       dann die Verneinung (Stolperstein 81). Ein Text, der aus der Instanz
        faellt und nirgends sonst steht, ist verloren und nicht umgezogen. */
     pruefe('Dafuer steht sie in der README',
       /keinen Lesestand je Meldung/.test(liesmichText) &&
@@ -31525,7 +31532,7 @@ async function pruefeOberflaeche() {
     const glVonRegel = regel123('.glocken-zeile .glocken-von');
     pruefe('Die Angabe „von wem" bekommt die volle Breite',
       /flex-basis: 100%/.test(glVonRegel), glVonRegel || '(keine Regel)');
-    /* KEINE NEUE FARBE: --faint traegt in dieser Anlage jede Nebenangabe. Ein
+    /* KEINE NEUE FARBE: --faint traegt in dieser Instanz jede Nebenangabe. Ein
        neuer Farbwert waere ein zweiter Kanal fuer dieselbe Aussage. */
     pruefe('Und sie fuehrt keine neue Farbe ein',
       /var\(--faint\)/.test(glVonRegel) && !/#[0-9a-f]{3,8}/i.test(glVonRegel),
@@ -31535,7 +31542,7 @@ async function pruefeOberflaeche() {
   /* ================= Der Papierkorb im Vollbild — 0.16.0 ================
      DIESELBE KLEMME WIE DARUNTER und dieselbe Rueckfrage. Ein Papierkorb im
      Vollbild, der ohne Frage loescht, waere der gefaehrlichste Knopf der
-     Anlage -- deshalb steht der Abbruch hier vor dem Vollzug. */
+     Instanz -- deshalb steht der Abbruch hier vor dem Vollzug. */
   gruppe('Der Papierkorb im Vollbild');
 
   {
@@ -31549,7 +31556,7 @@ async function pruefeOberflaeche() {
     pruefe('Und es traegt einen Papierkorb', !!weg(), 'kein Papierkorb im Vollbild');
     /* ER STEHT NICHT NEBEN DEM SCHLIESSEN: zwei Kreuze nebeneinander, von
        denen eines die Ansicht zumacht und das andere das Bild vernichtet,
-       waeren die gefaehrlichste Nachbarschaft der Anlage. */
+       waeren die gefaehrlichste Nachbarschaft der Instanz. */
     const werkzeuge = [...dok.querySelectorAll('.lightbox .lb-tools .lb-btn')]
       .map(b => b.className.replace('lb-btn ', ''));
     pruefe('Und er steht vor dem Schliessen, nicht daneben',
@@ -31689,6 +31696,33 @@ async function pruefeOberflaeche() {
       !ztAbrufe(dAus).some(u => /registrierung/.test(u)),
       ztAbrufe(dAus).join(' · '));
     dAus.w.close(); dAn.w.close();
+  }
+  {
+    /* UND DER EINE MERKER ZIEHT WIRKLICH MIT. Wer die Selbstanmeldung in der
+       Karte „Anfragen" umlegt, liest einen Abschnitt weiter sofort den Satz,
+       der jetzt gilt -- und nicht den von vorhin. Ohne diese Lage bliebe der
+       Merker eine Behauptung im Kommentar (Stolperstein 199). */
+    const d = baueDom(JSDOM, { registrierung: false,
+      anfragenStand: { an: false, versandBereit: true, versandGrund: '', deckel: 20,
+                       stunden: 24, anfragen: [] },
+      einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
+    await new Promise(r => setTimeout(r, 60));
+    await sysAbschnitt(d.w, 'persoenlich');
+    const marke = () => d.w.document.getElementById('acc-mail')
+      ?.closest('.field')?.querySelector('label')?.textContent || '';
+    pruefe('Vor dem Umlegen steht am Adressfeld „(freiwillig)"',
+      /\(freiwillig\)/.test(marke()), marke());
+    await sysAbschnitt(d.w, 'zugaenge');
+    d.w.document.getElementById('anf-schalter')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Der Schalter ist wirklich hinausgegangen',
+      d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/registrierung/schalter'),
+      d.gesendet.slice(-2).map(x => `${x.methode} ${x.url}`).join(' · '));
+    await sysAbschnitt(d.w, 'persoenlich');
+    pruefe('Danach steht dort „(wird gebraucht)" -- ohne Neuladen',
+      /\(wird gebraucht\)/.test(marke()), marke());
+    d.w.close();
   }
 
   /* ---- 2. Die Kachel gibt der Liste ihre Hoehe ---- */
@@ -31837,6 +31871,107 @@ async function pruefeOberflaeche() {
       'die Spaltenregel steht ausserhalb der Medienabfrage');
   }
 
+  /* ---- 4. Aus „Anlage" wird „Instanz" ---- */
+  gruppe('Aus „Anlage" wird „Instanz" — 0.17.1');
+
+  /* EIN WORT UND KEINE FUNKTION. Der groesste Posten dieser Runde ist der
+     harmloseste -- bis auf EINE Stelle: der fuenfte Abschnitt trug den
+     Schluessel `anlage`, und daraus ist eine Adresse geworden.
+     DASS DIE NEUE ADRESSE TRAEGT, steht in der Gruppe ueber die Reiter weiter
+     oben (der Reiter heisst „Instanz" und zeigt auf `#/system/instanz`). Hier
+     geht es um die ALTE -- und um das Wort im ganzen ausgelieferten Stand. */
+  {
+    const d = baueDom(JSDOM,
+      { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
+    await new Promise(r => setTimeout(r, 60));
+    /* NICHT UEBER sysAbschnitt(): die alte Adresse ist der Gegenstand, und
+       sie wird hier von Hand gesetzt, damit im Aufruf sichtbar steht, was
+       geprueft wird. */
+    d.w.history.replaceState(null, '', '#/system/anlage');
+    await d.w.renderSystem();
+    await new Promise(r => setTimeout(r, 40));
+    const ueberschriften = [...d.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
+      .map(h => h.textContent.trim());
+    pruefe('Die alte Adresse fuehrt weiter auf denselben Abschnitt',
+      gleich(ueberschriften, ['Titel']), ueberschriften.join(' · '));
+    /* STILL UEBERSETZT UND NICHT ABGEWIESEN: der Reiter „Instanz" steht offen
+       da, und die Adresse ist danach die neue. Ohne die zweite Zeile bliebe
+       offen, ob die alte Adresse haengengeblieben ist -- und der naechste,
+       der sie kopiert, gaebe sie weiter. */
+    pruefe('Und der Reiter „Instanz" steht dabei offen',
+      d.w.document.querySelector('.sys-reiter-k.on')?.textContent.trim() === 'Instanz',
+      d.w.document.querySelector('.sys-reiter-k.on')?.textContent);
+    pruefe('Und die Adresse wird still auf die neue nachgezogen',
+      d.w.location.hash === '#/system/instanz', d.w.location.hash);
+    /* DIE GEGENLAGE: ein Schluessel, den es weder alt noch neu gibt, faellt
+       weiterhin auf den ersten sichtbaren Abschnitt zurueck. Ohne sie belegte
+       die Uebersetzung nichts -- sie sieht sonst aus wie der Rueckfall. */
+    d.w.history.replaceState(null, '', '#/system/scheune');
+    await d.w.renderSystem();
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Ein erfundener Abschnitt faellt dagegen auf den ersten zurueck',
+      d.w.location.hash === '#/system/persoenlich', d.w.location.hash);
+    d.w.close();
+  }
+  {
+    /* DIE TAFEL IST EINE TAFEL UND KEINE VERZWEIGUNG. Kaeme je ein zweiter
+       alter Name dazu, steht er als Zeile daneben. */
+    const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    pruefe('Die alten Schluessel stehen in einer Tafel',
+      /const SYS_ALTE_ABSCHNITTE = \{ anlage: 'instanz' \};/.test(quelle),
+      (quelle.match(/const SYS_ALTE_ABSCHNITTE = [^\n]*/) || ['(keine Tafel)'])[0]);
+  }
+  {
+    /* DER WAECHTER UEBER DAS WORT SELBST. „Ueberall" laesst sich nur so
+       belegen: es wird nachgezaehlt, und zwar in den Dateien, die wirklich
+       ausgeliefert werden.
+       DIE AUSNAHMEN STEHEN NAMENTLICH DA UND SIND FALSCHE FREUNDE: sie meinen
+       ANHAENGE und nicht die Installation. Eine Zeile, die sie stillschweigend
+       ueberginge, uebersaehe auch den naechsten echten Treffer.
+       `anhaenge.js` FEHLT IN DER LISTE, und das ist Absicht: dort meint JEDE
+       der drei Stellen einen Anhang. Die Datei steht deshalb als eigene Zeile
+       darunter -- gepruefte Abwesenheit ist etwas anderes als eine Datei, an
+       die niemand gedacht hat. */
+    const ausgeliefert = ['public/app.js', 'public/style.css', 'public/index.html',
+                          'server.js', 'auth.js', 'db.js', 'zugang.js', 'mail.js',
+                          'keys.js', 'schluessel.js', 'zweifaktor.js'];
+    /* WAS STEHENBLEIBEN DARF, STEHT MIT SEINER ZAHL DA und nicht als blosse
+       Erlaubnis: verglichen wird die ganze Liste. Eine Erlaubnis, die
+       „irgendwie oft" hiesse, deckte den naechsten echten Treffer mit zu.
+       `Anlagenbytes` MEINT EINEN ANHANG -- es steht an der Route, die die
+       Bytes eines Anhangs ausliefert.
+       DIE VIER IN app.js SIND DIE TAFEL DER ALTEN ADRESSE samt ihrer
+       Begruendung. Sie MUSS das alte Wort nennen: `#/system/anlage` ist die
+       Adresse, die weiter verstanden werden soll. */
+    const ERLAUBT = {
+      'server.js': ['Anlagenbytes'],
+      'public/app.js': ['Anlage', 'anlage', 'anlage', 'anlage']
+    };
+    const gefunden = {};
+    for (const datei of ausgeliefert)
+      gefunden[datei] = fs.readFileSync(path.join(__dirname, ...datei.split('/')), 'utf8')
+        .match(/[A-Za-zÄÖÜäöüß]*[Aa]nlage[A-Za-zÄÖÜäöüß]*/g) || [];
+    const uebrig = ausgeliefert.filter(d => !gleich(gefunden[d], ERLAUBT[d] || []));
+    pruefe('Das Wort „Anlage" steht nur noch, wo es ausdruecklich stehenbleibt',
+      uebrig.length === 0,
+      uebrig.map(d => `${d}: ${gefunden[d].join(', ')}`).join(' · '));
+    /* UND DIE ERLAUBNIS IST KEINE LEERE HUELSE: beide Ausnahmen stehen
+       wirklich noch da. Eine Ausnahmeliste, die auf nichts zeigt, sagt beim
+       naechsten Lesen etwas Falsches ueber den Bestand (Stolperstein 81). */
+    pruefe('Und beide Ausnahmen zeigen wirklich auf etwas',
+      gefunden['server.js'].length === 1 && gefunden['public/app.js'].length === 4,
+      `${gefunden['server.js'].length} / ${gefunden['public/app.js'].length}`);
+    /* NEUN VON ELF DATEIEN TRAGEN DAS WORT GAR NICHT MEHR. Ohne diese Zeile
+       bestuende die Gruppe auch dann, wenn jemand die Erlaubnis auf alle
+       ausdehnte. */
+    pruefe('Und neun der elf ausgelieferten Dateien kennen es gar nicht mehr',
+      ausgeliefert.filter(d => gefunden[d].length === 0).length === 9,
+      `${ausgeliefert.filter(d => gefunden[d].length === 0).length}`);
+    pruefe('In anhaenge.js meint jede der drei Stellen einen Anhang',
+      (fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8').match(/[Aa]nlage/g) || []).length === 3,
+      `${(fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8').match(/[Aa]nlage/g) || []).length}`);
+  }
+
   /* ---- 5. Die Zeile einer Sitzung steht gerade ---- */
   gruppe('Die Zeitangaben stehen untereinander — 0.17.1');
 
@@ -31974,6 +32109,36 @@ async function pruefeOberflaeche() {
     d.w.close();
   }
   {
+    /* DIE SCHUTZZEILE BEIM LOESCHEN, gestellt an einem Rufer, der den
+       Betrachter darunter NICHT neu zeichnet. `openLightbox()` ist allgemein:
+       `loeschen` kommt von aussen, und ob der Rufer danach neu zeichnet, weiss
+       das Vollbild nicht. Ohne die Zeile bekaeme der innere Abspieler beim
+       Schliessen die Quelle eines Videos zurueck, das es nicht mehr gibt --
+       genau der Fall, den der Auftrag nennt.
+       GERUFEN WIRD DIREKT und nicht ueber den Betrachter: nur so laesst sich
+       ein Rufer stellen, der nichts neu zeichnet. */
+    const d = baueDom(JSDOM, { hash: '#/item/1' });
+    await new Promise(r => setTimeout(r, 90));
+    const dok = d.w.document;
+    const innen = dok.createElement('video');
+    innen.setAttribute('src', '/api/photos/6/raw');
+    dok.body.appendChild(innen);
+    d.w.openLightbox([{ id: 6, art: 'video', dauer: 42 }], 0, 'Probe',
+      async () => true, () => innen);
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Auch hier gibt der innere Abspieler zuerst ab',
+      !innen.getAttribute('src') && !!dok.querySelector('.lightbox'),
+      innen.getAttribute('src'));
+    dok.querySelector('.lightbox .lb-btn.weg')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Nach dem letzten Bild geht das Vollbild zu',
+      !dok.querySelector('.lightbox'), 'das Vollbild steht noch');
+    pruefe('Und die geloeschte Quelle wandert NICHT zurueck',
+      !innen.getAttribute('src'), innen.getAttribute('src'));
+    d.w.close();
+  }
+  {
     /* DIE GEGENLAGE: OHNE VIDEO VERHAELT SICH DAS VOLLBILD WIE BISHER. Der
        Betrachter zeigt ein Bild, es gibt gar keinen inneren Abspieler, und der
        im Vollbild bleibt verborgen und ohne Quelle. Ohne diese Lage bliebe
@@ -32002,19 +32167,19 @@ async function pruefeOberflaeche() {
 }
 
 /* ================= Der Schluesselwechsel =================
-   GEWECHSELT WIRD BEI ANGEHALTENER ANLAGE, auf dem Wirt, ueber schluessel.js.
+   GEWECHSELT WIRD BEI ANGEHALTENER INSTANZ, auf dem Wirt, ueber schluessel.js.
    Genau so wird hier auch geprueft: kein Server, sondern echte Prozesse gegen
-   echte, verschluesselte Anlagen in Wegwerfverzeichnissen.
+   echte, verschluesselte Instanzen in Wegwerfverzeichnissen.
 
    ES IST DER EINZIGE VORGANG IM PROJEKT, DER BEI FALSCHER HANDHABUNG ALLES
    VERLIERT. Deshalb wird hier nicht nur geprueft, DASS er laeuft, sondern jede
    Lage einzeln, in der er NICHT laufen darf -- und in jeder davon, dass die
-   Anlage danach unangetastet ist. */
+   Instanz danach unangetastet ist. */
 function pruefeSchluesselwechsel() {
   const SW = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-schluessel-'));
   const hexNeu = () => crypto.randomBytes(32).toString('hex');
 
-  /* Eine Anlage OHNE ENCRYPTION_KEY in der Umgebung: dann erzeugt loadKey()
+  /* Eine Instanz OHNE ENCRYPTION_KEY in der Umgebung: dann erzeugt loadKey()
      einen und legt ihn als data/encryption.key ab -- das ist der DATEIFALL.
      Mit gesetztem Wert ist es der .ENV-FALL. Dieselbe Unterscheidung, die
      loadKey() trifft, und deshalb hier keine zweite. */
@@ -32076,10 +32241,10 @@ function pruefeSchluesselwechsel() {
     return crypto.createHash('sha256').update(teile.join(' ')).digest('hex');
   };
 
-  /* Eine Anlage mit belastbarem Bestand. Angelegt ueber db.js, damit das
+  /* Eine Instanz mit belastbarem Bestand. Angelegt ueber db.js, damit das
      Schema dasselbe ist wie im Betrieb -- ein von Hand gebautes waere eine
-     zweite Wahrheit darueber, wie eine Anlage aussieht. */
-  const swAnlage = (name, schluessel) => {
+     zweite Wahrheit darueber, wie eine Instanz aussieht. */
+  const swInstanz = (name, schluessel) => {
     const dir = path.join(SW, name);
     fs.mkdirSync(dir);
     swKurz("require('./db'); console.log('da');", dir, schluessel);
@@ -32116,8 +32281,8 @@ function pruefeSchluesselwechsel() {
   /* ---- Der Rundlauf ---------------------------------------------------- */
   gruppe('Der Schluesselwechsel: der Rundlauf');
 
-  const a1 = swAnlage('rundlauf');
-  pruefe('Der Aufbau steht: eine Anlage im Dateifall, mit Bestand',
+  const a1 = swInstanz('rundlauf');
+  pruefe('Der Aufbau steht: eine Instanz im Dateifall, mit Bestand',
     fs.existsSync(path.join(a1.dir, 'encryption.key')) && /^[0-9a-f]{64}$/.test(a1.hex) &&
     a1.journal === 'wal',
     `Schluessel ${a1.hex.length} Zeichen, journal ${a1.journal}`);
@@ -32157,10 +32322,10 @@ function pruefeSchluesselwechsel() {
   swVersuch(() => d1.close());
 
   /* DIE GEGENLAGE, und sie ist die wichtigste dieser Gruppe: OHNE die
-     Umschaltung laeuft rekey gar nicht. Nachgestellt an einer eigenen Anlage
+     Umschaltung laeuft rekey gar nicht. Nachgestellt an einer eigenen Instanz
      statt behauptet -- genau der Befund, der die Form dieser Runde bestimmt
      hat (Stolperstein 128). */
-  const a2 = swAnlage('journal', hexNeu());
+  const a2 = swInstanz('journal', hexNeu());
   const d2 = swOeffne(a2.dir, a2.hex);
   d2.pragma('journal_mode = WAL');
   let ohneMeldung = '', ohneLief = true;
@@ -32178,7 +32343,7 @@ function pruefeSchluesselwechsel() {
 
   /* Der Dateifall ist oben schon gefahren -- hier steht die Aussage, die ihn
      vom .env-Fall unterscheidet: er braucht KEINE .env und weist eine zurueck. */
-  const a3 = swAnlage('dateifall');
+  const a3 = swInstanz('dateifall');
   const envFremd = path.join(SW, 'fremd.env');
   fs.writeFileSync(envFremd, `ENCRYPTION_KEY=${hexNeu()}\n`);
   const w3 = swRuf(['wechseln', '--env', envFremd, '--ja'], a3.dir, null);
@@ -32191,8 +32356,8 @@ function pruefeSchluesselwechsel() {
      demselben Namen: sie darf nicht getroffen werden. In der .env.example
      stehen sechs solcher Zeilen. */
   const envAlt = hexNeu();
-  const a4 = swAnlage('envfall', envAlt);
-  const envDatei = path.join(SW, 'anlage.env');
+  const a4 = swInstanz('envfall', envAlt);
+  const envDatei = path.join(SW, 'instanz.env');
   const envVorher =
     '# Kopfzeile, die stehen bleibt\n' +
     '# ENCRYPTION_KEY= steht hier auskommentiert und darf NICHT getroffen werden\n' +
@@ -32341,15 +32506,15 @@ function pruefeSchluesselwechsel() {
   gruppe('Der Schluesselwechsel: der Abbruch mittendrin');
 
   /* kill -9 MITTEN HINEIN. Dafuer muss der Wechsel lange genug dauern, um
-     getroffen zu werden -- bei 120 Zeilen sind es Millisekunden. Die Anlage
+     getroffen zu werden -- bei 120 Zeilen sind es Millisekunden. Die Instanz
      bekommt deshalb Bytes, bis der Wechsel messbar wird.
      DIE DAUER WIRD GEMESSEN UND NICHT GERATEN: ist der Wechsel wider Erwarten
      zu schnell, sagt die Pruefung GENAU DAS und bleibt nicht still gruen
      (Stolperstein 81). */
-  const a5 = swAnlage('abbruch');
+  const a5 = swInstanz('abbruch');
   {
     const d = swOeffne(a5.dir, a5.hex);
-    // Das Fuellen selbst darf nicht abreissen -- die Anlage ist frisch, aber
+    // Das Fuellen selbst darf nicht abreissen -- die Instanz ist frisch, aber
     // eine Gegenprobe kann jede Annahme darueber umstossen.
     d.exec("INSERT INTO papierkorb (id, titel, inhalt) VALUES (1, 'Brocken', '{}')");
     const ins = d.prepare('INSERT INTO papierkorb_bytes (papierkorb_id, nr, daten) VALUES (1, ?, ?)');
@@ -32366,7 +32531,7 @@ function pruefeSchluesselwechsel() {
   const a5groesse = fs.statSync(path.join(a5.dir, 'katalog.sqlite')).size;
 
   /* Erst messen, wie lange der Wechsel an dieser Groesse dauert -- an einer
-     KOPIE, damit die Anlage selbst unangetastet in den Abbruch geht. */
+     KOPIE, damit die Instanz selbst unangetastet in den Abbruch geht. */
   const a5probe = path.join(SW, 'abbruch-probe');
   fs.cpSync(a5.dir, a5probe, { recursive: true });
   const a5dauer = Number(swVersuch(() => swKurz(
@@ -32413,7 +32578,7 @@ function pruefeSchluesselwechsel() {
 
   /* DIE ANSAGE STEHT IMMER: was der Wechsel an Platz braucht, rechnet
      schluessel.js aus der Groesse der Datenbank -- das Journal waechst auf
-     ihre Groesse. Das laesst sich an jeder Anlage nachrechnen. */
+     ihre Groesse. Das laesst sich an jeder Instanz nachrechnen. */
   const zeigen = swRuf(['zeigen'], a5.dir, null);
   const zGross = Number((zeigen.aus.match(/Datenbank\s+([\d.]+) MB/) || [])[1]);
   const zNoetig = Number((zeigen.aus.match(/Wechsel\s+([\d.]+) MB/) || [])[1]);
@@ -32437,7 +32602,7 @@ function pruefeSchluesselwechsel() {
     console.log('  ... uebersprungen: kein tmpfs einhaengbar (die Absage bei zu wenig Platz ' +
                 'und der gescheiterte rekey brauchen ein volles Dateisystem)');
   } else {
-    const engDir = path.join(eng, 'anlage');
+    const engDir = path.join(eng, 'instanz');
     fs.mkdirSync(engDir);
     swKurz("require('./db'); console.log('da');", engDir, null);
     const engHex = fs.readFileSync(path.join(engDir, 'encryption.key'), 'utf8').trim();
@@ -32507,18 +32672,18 @@ function pruefeSchluesselwechsel() {
   const TABELLEN = "SELECT name FROM sqlite_master WHERE type='table' " +
     "AND name NOT LIKE 'sqlite_%' ORDER BY name";
   const tabellenNach = swVersuch(() => d7.prepare(TABELLEN).all().map(t => t.name), []);
-  const a4frisch = swAnlage('vergleich', hexNeu());
+  const a4frisch = swInstanz('vergleich', hexNeu());
   const dv = swVersuch(() => swOeffne(a4frisch.dir, a4frisch.hex));
   const tabellenFrisch = swVersuch(() => dv.prepare(TABELLEN).all().map(t => t.name), []);
   swVersuch(() => dv.close());
   // ERST DER GEGENSTAND: zwei leere Listen waeren gleich und belegten nichts.
-  pruefe('Und das Schema ist dasselbe wie das einer frischen Anlage',
+  pruefe('Und das Schema ist dasselbe wie das einer frischen Instanz',
     tabellenFrisch.length > 5 && gleich(tabellenNach, tabellenFrisch),
     `nach dem Wechsel ${tabellenNach.length}, frisch ${tabellenFrisch.length}`);
   swVersuch(() => d7.close());
 
   /* Der veraltete Umgebungswert ist die Lage, in der jemand den Wechsel ein
-     zweites Mal faehrt, ohne die .env nachgezogen zu haben. Die Anlage laesst
+     zweites Mal faehrt, ohne die .env nachgezogen zu haben. Die Instanz laesst
      sich damit gar nicht erst oeffnen -- und das ist die richtige Antwort. */
   const zweiter = swRuf(['wechseln', '--env', envDatei, '--ja'], a4.dir, envAlt);
   pruefe('Ein zweiter Wechsel mit dem VERALTETEN Umgebungswert wird abgewiesen',

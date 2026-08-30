@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Der Schluesselwechsel -- auf dem Wirt, bei ANGEHALTENER Anlage.
+/* Der Schluesselwechsel -- auf dem Wirt, bei ANGEHALTENER Instanz.
  *
  *   node schluessel.js zeigen
  *   node schluessel.js wechseln [--env <pfad>] [--wer <text>] [--ja]
@@ -7,14 +7,14 @@
  * ES IST DER EINZIGE VORGANG IM GANZEN PROJEKT, DER BEI FALSCHER HANDHABUNG
  * ALLES VERLIERT. Deshalb steht er hier und nicht als Knopf in der Oberflaeche:
  *   * Auf dem Wirt liegt die .env. Kommt der Schluessel von dort, kann NUR hier
- *     der Wechsel zu Ende gefuehrt werden -- die Anlage im Container sieht die
+ *     der Wechsel zu Ende gefuehrt werden -- die Instanz im Container sieht die
  *     Datei nicht einmal (.dockerignore).
- *   * Die Anlage STEHT dabei. Ein laufender Server haelt die Datei im WAL-Modus
+ *   * Die Instanz STEHT dabei. Ein laufender Server haelt die Datei im WAL-Modus
  *     offen, und der Wechsel muss auf DELETE umschalten. Ein Knopf im laufenden
  *     Betrieb muesste um genau diesen Umstand herumbauen.
  *   * ZUGRIFF AUF DEN WIRT IST DIE BERECHTIGUNG -- dieselbe Linie wie bei
  *     zugang.js. Eine Rechtefrage waere hier eine Kulisse.
- * Gerufen wird er ueber schluessel.sh, das die Anlage anhaelt, sichert und
+ * Gerufen wird er ueber schluessel.sh, das die Instanz anhaelt, sichert und
  * hinterher wieder startet. Von Hand geht es auch; dann gilt die Reihenfolge
  * aus der README.
  *
@@ -35,7 +35,7 @@ const FETT = (t) => `\x1b[1m${t}\x1b[0m`;
 // Rollback-Journal waechst auf ihre Groesse. Ein Zehntel Zuschlag, weil eine
 // Platte, die auf das letzte Byte genau reicht, keine ist.
 const PLATZ_ZUSCHLAG = 1.1;
-// Gemessen an einer verschluesselten Anlage: rund 20 ms je MB (5189 ms fuer
+// Gemessen an einer verschluesselten Instanz: rund 20 ms je MB (5189 ms fuer
 // 261 MB). Dieselbe Zahl wie SICHERUNG_MS_JE_MB in server.js -- und sie steht
 // hier ein zweites Mal, weil server.js beim Wechsel gar nicht laeuft.
 const MS_JE_MB = 20;
@@ -57,7 +57,7 @@ ${FETT('Kriterion — Schlüsselwechsel')}
                      neben dem abgelösten Wert, nicht im Sicherheitsprotokoll.
       --ja           ohne Rückfrage. Für schluessel.sh und den Prüfstand.
 
-${ROT('  DIE ANLAGE MUSS DABEI STEHEN.')} Ein laufender Server hält die Datei im
+${ROT('  DIE INSTANZ MUSS DABEI STEHEN.')} Ein laufender Server hält die Datei im
   WAL-Modus offen; der Wechsel schaltet auf DELETE um. schluessel.sh nimmt
   einem das ab.
 
@@ -175,7 +175,7 @@ async function befehlWechseln(optionen) {
     if (treffer[0].wert.trim().toLowerCase() !== keyHex.toLowerCase()) {
       console.error(ROT(`Die Zeile ENCRYPTION_KEY in ${optionen.env} trägt einen anderen Wert`));
       console.error('als den, mit dem diese Datenbank gerade offen ist. Das ist nicht die .env');
-      console.error('dieser Anlage — und sie zu überschreiben nähme jemandem einen Schlüssel weg.');
+      console.error('dieser Instanz — und sie zu überschreiben nähme jemandem einen Schlüssel weg.');
       process.exit(1);
     }
   }
@@ -241,7 +241,7 @@ async function befehlWechseln(optionen) {
      Schreiben, steht der neue Wert auf dem Bildschirm -- das ist die eine
      Stelle, die zum Abschreiben da ist, und der Merksatz zu Kontrollausgaben
      nimmt sie ausdruecklich aus. */
-  /* Dieselbe Schreibweise wie jeder Zeitstempel der Anlage ("2026-08-23
+  /* Dieselbe Schreibweise wie jeder Zeitstempel der Instanz ("2026-08-23
      19:56:01", UTC): die Karte "Sicherung" haelt die Marke gegen die
      Aenderungszeiten der Dateien, und die Oberflaeche hat genau einen Weg, aus
      einem Zeitstempel ein Datum zu machen. */
@@ -286,11 +286,11 @@ async function befehlWechseln(optionen) {
     console.log(ROT('  entstanden ist. Übernimm ihn in den Passwortspeicher:'));
     console.log(`\n    ${keyHex}\n`);
   }
-  console.log('  Jetzt die Anlage starten und im Protokoll nachsehen, dass sie öffnet.');
+  console.log('  Jetzt die Instanz starten und im Protokoll nachsehen, dass sie öffnet.');
 
   /* SAUBER SCHLIESSEN, dieselbe Form wie beim Herunterfahren des Servers: die
      WAL wird eingearbeitet, bevor der Prozess endet. schluessel.sh startet die
-     Anlage unmittelbar danach, und wer in genau diesem Augenblick das
+     Instanz unmittelbar danach, und wer in genau diesem Augenblick das
      Datenverzeichnis sichert, soll keinen Zustand mit offener WAL erwischen.
      Der Abschluss darf nichts werfen -- der Wechsel ist an dieser Stelle
      laengst gelungen. */

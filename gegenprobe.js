@@ -418,8 +418,8 @@ const RUECKBAUTEN = [
   {
     nr: '44', name: 'Der Schalter laesst sich ohne oeffentliche Adresse einschalten',
     datei: 'server.js',
-    suche: "      'Der Eigentümer der Anlage drückt sie in der Karte „Mailversand“.' };\n  if (!OEFFENTLICHE.adresse)",
-    ersatz: "      'Der Eigentümer der Anlage drückt sie in der Karte „Mailversand“.' };\n  if (false)",
+    suche: "      'Der Eigentümer der Instanz drückt sie in der Karte „Mailversand“.' };\n  if (!OEFFENTLICHE.adresse)",
+    ersatz: "      'Der Eigentümer der Instanz drückt sie in der Karte „Mailversand“.' };\n  if (false)",
     erwartet: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
   {
@@ -647,7 +647,7 @@ const RUECKBAUTEN = [
     ersatz: "    '',\n    'Wer diesen Link hat, kommt herein",
     erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
   },
-  /* ---- Die Marke der Anlage ---- */
+  /* ---- Die Marke der Instanz ---- */
   {
     /* NEU GEZIELT: marke-hell.svg ist entfernt -- sie war Byte fuer Byte
        favicon.svg. Der Rueckbau greift jetzt zur verbliebenen Fassung mit
@@ -656,7 +656,7 @@ const RUECKBAUTEN = [
     datei: 'public/app.js',
     suche: '<img class="marke" src="marke-dunkel.svg"',
     ersatz: '<img class="marke" src="favicon.svg"',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   {
     /* DIE MARKE TRAEGT WIEDER DIE KLASSE DER KOMMENTARKNOEPFE -- und saesse
@@ -665,14 +665,14 @@ const RUECKBAUTEN = [
     datei: 'public/app.js',
     suche: '<img class="marke" src="marke-dunkel.svg"',
     ersatz: '<img class="mark" src="marke-dunkel.svg"',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   {
     nr: '72', name: 'Der Tab bekommt kein Favicon mehr',
     datei: 'public/index.html',
     suche: '<link rel="icon" href="favicon.svg" type="image/svg+xml">',
     ersatz: '',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   /* ---- Die Markenzeile der Anmeldeseiten ---- */
   {
@@ -702,7 +702,7 @@ const RUECKBAUTEN = [
     datei: 'public/style.css',
     suche: '  display: flex; align-items: center; gap: 11px; margin: 0 0 5px;',
     ersatz: '  display: block; margin: 0 0 5px;',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   {
     /* DIE UEBERSCHRIFT NIMMT IHREN UNTERRAND WIEDER MIT -- bei
@@ -712,7 +712,7 @@ const RUECKBAUTEN = [
     datei: 'public/style.css',
     suche: '.login-card .login-marke h1 { margin: 0; }',
     ersatz: '.login-card .login-marke h1 { margin: 0 0 5px; }',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   {
     /* DIE DOPPELTE DATEI KOMMT ZURUECK: favicon.svg noch einmal unter einem
@@ -720,12 +720,12 @@ const RUECKBAUTEN = [
     nr: '81', name: 'Dieselbe Datei liegt wieder unter zwei Namen in public/',
     datei: 'public/favicon.svg',
     kopie: 'public/marke-hell.svg',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   /* ---- Der zweite Faktor: die Rechnung, 0.10.0 ----
      DIE DREI KENNWERTE EINZELN. Jedes davon ist fuer sich das bessere
      Verfahren und wird von Google Authenticator stillschweigend falsch
-     gelesen -- ein Rueckbau, der stumm bliebe, hiesse: die Anlage bindet sich
+     gelesen -- ein Rueckbau, der stumm bliebe, hiesse: die Instanz bindet sich
      an nichts. */
   {
     nr: '82', name: 'Acht Ziffern statt sechs',
@@ -1050,7 +1050,7 @@ const RUECKBAUTEN = [
        "no such table" beendet den Prozess. Der Lauf risse dann ab, statt rot
        zu werden (Stolperstein 138). Die Zusage "eine fehlende TABELLE waechst
        nach" haelt der Pruefstand deshalb an einem echten Versuch statt an einer
-       Behauptung: er entfernt beide von Hand aus einer bestehenden Anlage,
+       Behauptung: er entfernt beide von Hand aus einer bestehenden Instanz,
        startet einmal und sieht nach. Der INDEX daneben laesst sich gefahrlos
        zuruecknehmen und traegt dieselbe Aussage ueber CREATE ... IF NOT EXISTS. */
     nr: '115', name: 'Der Index auf zweifaktor_codes wird nicht mehr angelegt',
@@ -1348,7 +1348,7 @@ const RUECKBAUTEN = [
     datei: 'public/marke-dunkel.svg',
     suche: '<path d="M8 16 H24" stroke="#ff7a1a"/>',
     ersatz: '<path d="M8 16 H24" stroke="#ffc531"/>',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   {
     /* DIESELBE ZEILE IN DER ANDEREN DATEI, und das ist kein Doppel: die
@@ -1358,28 +1358,28 @@ const RUECKBAUTEN = [
     datei: 'public/favicon.svg',
     suche: '<path d="M8 16 H24" stroke="#ff7a1a"/>',
     ersatz: '<path d="M8 16 H24" stroke="#ffc531"/>',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   {
     nr: '155', name: 'Das viewBox umschliesst wieder die Kachel statt der Farbe',
     datei: 'public/marke-dunkel.svg',
     suche: 'viewBox="6.5 4.5 19 23" width="19" height="23"',
     ersatz: 'viewBox="0 0 32 32" width="32" height="32"',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   {
     nr: '156', name: 'Die Hoehe der Marke steht wieder in Pixel',
     datei: 'public/style.css',
     suche: '.brand .marke { height: 3.1rem; }',
     ersatz: '.brand .marke { height: 46px; }',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   {
     nr: '157', name: 'Das Markup gibt die Marke wieder quadratisch an',
     datei: 'public/app.js',
     suche: '`<img class="marke" src="marke-dunkel.svg" width="${Math.round(s * 19 / 23)}" height="${s}" alt="">`;',
     ersatz: '`<img class="marke" src="marke-dunkel.svg" width="${s}" height="${s}" alt="">`;',
-    erwartet: 'Die Marke der Anlage'
+    erwartet: 'Die Marke der Instanz'
   },
   /* ---- Telefon und Tablett (0.12.0) ----
      SECHS RUECKBAUTEN UND NICHT MEHR. Sie sind auf die tragenden Zusagen der
@@ -1533,7 +1533,7 @@ const RUECKBAUTEN = [
   {
     /* DIE SUMME UEBER ALLE BLOB-SPALTEN IST DIE NAHELIEGENDE UND FALSCHE
        RECHNUNG: photos.thumb geht nie in die Datei. Faellt hier keine
-       Pruefung rot, warnt die Anlage irgendwann zu frueh -- und eine Warnung,
+       Pruefung rot, warnt die Instanz irgendwann zu frueh -- und eine Warnung,
        die zu frueh kommt, wird weggeklickt. */
     nr: '172', name: 'Die Vorschaubilder werden mitgezaehlt, obwohl sie nie mitgehen',
     datei: 'server.js',
@@ -2045,7 +2045,7 @@ const RUECKBAUTEN = [
   {
     /* Die nachgeruestete Spalte verliert ihren Fremdschluessel. Ein entfernter
        Zugang laesst danach eine Nummer stehen, die auf niemanden mehr zeigt --
-       und die migrierte Anlage verhaelt sich anders als die frische. */
+       und die migrierte Instanz verhaelt sich anders als die frische. */
     nr: '223', name: 'Die nachgeruestete Spalte bekommt keinen Fremdschluessel',
     datei: 'db.js',
     suche: "    'ALTER TABLE items ADD COLUMN rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL']);",
@@ -2053,9 +2053,9 @@ const RUECKBAUTEN = [
     erwartet: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
   },
   {
-    /* Die DDL verliert die drei Spalten. Eine FRISCHE Anlage bekaeme sie dann
+    /* Die DDL verliert die drei Spalten. Eine FRISCHE Instanz bekaeme sie dann
        ueber den Migrationsblock -- und zu 1.0, wenn er wegfaellt, gar nicht
-       mehr. Genau dafuer steht die Gegenlage der frischen Anlage. */
+       mehr. Genau dafuer steht die Gegenlage der frischen Instanz. */
     nr: '224', name: 'Die drei Spalten stehen nicht mehr in der DDL',
     datei: 'db.js',
     suche: "  rejected_at TEXT,\n  rejected_grund TEXT,",
@@ -2085,7 +2085,7 @@ const RUECKBAUTEN = [
   },
   {
     /* Der Zweig fuer den Bestand ohne Verfasser faellt weg. Eine Ablehnung aus
-       einer Anlage vor 0.14.0 bekaeme damit NIE eine Begruendung:
+       einer Instanz vor 0.14.0 bekaeme damit NIE eine Begruendung:
        nurSelbst(null) ist fuer jeden falsch. */
     nr: '227', name: 'Eine Ablehnung ohne Verfasser laesst sich nicht mehr begruenden',
     datei: 'server.js',
@@ -2151,7 +2151,7 @@ const RUECKBAUTEN = [
   },
   {
     /* Der Ablehnende wandert als NUMMER hinaus. Eine Zugangsnummer bedeutet in
-       einer fremden Anlage etwas anderes -- der Rundlauf traefe dort einen
+       einer fremden Instanz etwas anderes -- der Rundlauf traefe dort einen
        beliebigen Zugang oder gar keinen. */
     nr: '234', name: 'Der Ablehnende wandert als Nummer statt als Name hinaus',
     datei: 'server.js',
@@ -2246,7 +2246,7 @@ const RUECKBAUTEN = [
     erwartet: 'Die Aussage an der Marke — 0.14.0'
   },
   {
-    /* Der Name faellt aus der Aussage. Aussagen tragen in dieser Anlage ihren
+    /* Der Name faellt aus der Aussage. Aussagen tragen in dieser Instanz ihren
        Verfasser -- ohne ihn ist es wieder ein Haekchen mit Datum. */
     nr: '243', name: 'Die Aussage verliert ihren Verfasser',
     datei: 'public/app.js',
@@ -2392,7 +2392,7 @@ const RUECKBAUTEN = [
   },
   {
     /* Wer entfernt, wird wieder Verfasser einer Begruendung, die es gar nicht
-       gibt -- an einer Ablehnung aus einer Anlage vor 0.14.0. */
+       gibt -- an einer Ablehnung aus einer Instanz vor 0.14.0. */
     nr: '259', name: 'Wer entfernt, wird Verfasser',
     datei: 'server.js',
     suche: "    if (it.rejected_von == null && !entferntGrund) put('rejected_von', req.benutzer.id);",
@@ -2460,7 +2460,7 @@ const RUECKBAUTEN = [
     erwartet: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
-    /* An einer herrenlosen Ablehnung -- aus einer Anlage vor 0.14.0 -- gibt es
+    /* An einer herrenlosen Ablehnung -- aus einer Instanz vor 0.14.0 -- gibt es
        keinen Weg mehr in das Feld. Der Server laesst dort jeden schreiben, der
        den Eintrag aendern darf; die Oberflaeche bietet es nicht mehr an. */
     nr: '266', name: 'An der herrenlosen Ablehnung fehlt der Weg hinein',
@@ -2734,7 +2734,7 @@ const RUECKBAUTEN = [
     erwartet: 'Der Versions-Fingerprint'
   },
   {
-    /* DER GEFAEHRLICHSTE KNOPF DER ANLAGE, wenn er ohne Frage loescht. */
+    /* DER GEFAEHRLICHSTE KNOPF DER INSTANZ, wenn er ohne Frage loescht. */
     nr: '296', name: 'Der Papierkorb loescht wieder ohne Rueckfrage',
     datei: 'public/app.js',
     suche: "    if (!await confirmBox(`${wort} löschen?`, `Dieses ${wort} wird unwiderruflich entfernt.`)) return false;",
@@ -3087,6 +3087,151 @@ const RUECKBAUTEN = [
     suche: "          <span></span><span></span>\n          <span id=\"rz-gleich\">",
     ersatz: "          <span></span>\n          <span id=\"rz-gleich\">",
     erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+
+  /* ---- 0.17.1: was der Benutzer sieht ---- */
+  {
+    nr: '334', name: 'Die Marke am Adressfeld behauptet wieder immer „freiwillig"',
+    datei: 'public/app.js',
+    suche: "        <div class=\"field\"><label>E-Mail-Adresse <span class=\"hint\">${\n" +
+           "          REGISTRIERUNG ? '(wird gebraucht)' : '(freiwillig)'}</span></label>",
+    ersatz: "        <div class=\"field\"><label>E-Mail-Adresse <span class=\"hint\">(freiwillig)</span></label>",
+    erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
+  },
+  {
+    nr: '335', name: 'Der Absatz richtet sich nicht mehr nach der Selbstanmeldung',
+    datei: 'public/app.js',
+    suche: "        <p class=\"desc\" style=\"margin:0 0 10px\">${REGISTRIERUNG",
+    ersatz: "        <p class=\"desc\" style=\"margin:0 0 10px\">${false",
+    erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
+  },
+  {
+    nr: '336', name: 'Der Merker der Selbstanmeldung bleibt beim Umlegen stehen',
+    datei: 'public/app.js',
+    suche: "      REGISTRIERUNG = !!d.an;\n",
+    ersatz: "",
+    erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
+  },
+  {
+    nr: '337', name: 'Der Wirtsbefehl steht wieder bei jedem',
+    datei: 'public/app.js',
+    suche: "          Über die Oberfläche gibt es keine Wiederherstellung; ${EIGENTUEMER",
+    ersatz: "          Über die Oberfläche gibt es keine Wiederherstellung; ${true",
+    erwartet: 'Der Systembereich nach Rolle'
+  },
+  {
+    nr: '338', name: 'Die Laengenvorgabe faellt vom Passwortfeld weg',
+    datei: 'public/app.js',
+    suche: "        <div class=\"field\"><label>Neues Passwort\n" +
+           "          <span class=\"hint\">(mindestens ${MIN_PASSWORT} Zeichen)</span></label>",
+    ersatz: "        <div class=\"field\"><label>Neues Passwort</label>",
+    erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
+  },
+  {
+    nr: '339', name: 'Die Liste bekommt ihre festen 280 Pixel zurueck',
+    datei: 'public/style.css',
+    suche: ".manage-list { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
+    ersatz: ".manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
+    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+  },
+  {
+    nr: '340', name: 'Die Liste verliert die Zeile, an der es sonst scheitert',
+    datei: 'public/style.css',
+    suche: ".prot-liste { flex: 1; min-height: 0; overflow-y: auto;",
+    ersatz: ".prot-liste { flex: 1; overflow-y: auto;",
+    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+  },
+  {
+    nr: '341', name: 'Die Kachel ist wieder keine Spalte',
+    datei: 'public/style.css',
+    suche: "padding: 18px 20px 20px;\n  display: flex; flex-direction: column; }",
+    ersatz: "padding: 18px 20px 20px; }",
+    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+  },
+  {
+    nr: '342', name: 'Der Knopf in der Kachel wird wieder ueber die volle Breite gezogen',
+    datei: 'public/style.css',
+    suche: ".sys-card > .btn { align-self: flex-start; }",
+    ersatz: "",
+    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+  },
+  {
+    nr: '343', name: 'Die Reihe „wohin" verliert ihre Rasterspalten',
+    datei: 'public/style.css',
+    suche: ".mail-wohin { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 2fr); }",
+    ersatz: ".mail-wohin { grid-template-columns: repeat(3, minmax(0, 1fr)); }",
+    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+  },
+  {
+    nr: '344', name: 'Auf dem Telefon bleiben die Reihen des Mailversands nebeneinander',
+    datei: 'public/style.css',
+    suche: "  .mail-reihe { grid-template-columns: minmax(0, 1fr); }",
+    ersatz: "",
+    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+  },
+  {
+    nr: '345', name: 'Die Felder „wohin" fallen aus ihrer Reihe',
+    datei: 'public/app.js',
+    suche: "        <div class=\"mail-reihe mail-wohin\">",
+    ersatz: "        <div class=\"mail-wohin\">",
+    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+  },
+  {
+    nr: '346', name: 'Die alte Adresse des fuenften Abschnitts wird nicht mehr uebersetzt',
+    datei: 'public/app.js',
+    suche: "const SYS_ALTE_ABSCHNITTE = { anlage: 'instanz' };",
+    ersatz: "const SYS_ALTE_ABSCHNITTE = {};",
+    erwartet: 'Aus „Anlage" wird „Instanz" — 0.17.1'
+  },
+  {
+    nr: '347', name: 'Der fuenfte Abschnitt heisst wieder „Anlage"',
+    datei: 'public/app.js',
+    suche: "  { schluessel: 'instanz',     name: 'Instanz' }",
+    ersatz: "  { schluessel: 'instanz',     name: 'Anlage' }",
+    erwartet: 'Aus „Anlage" wird „Instanz" — 0.17.1'
+  },
+  {
+    nr: '348', name: 'Die Zeitangaben stehen wieder linksbuendig',
+    datei: 'public/style.css',
+    suche: ".mrow.sitz .sitz-zeit { grid-column: 2; justify-self: end; text-align: right; }",
+    ersatz: ".mrow.sitz .sitz-zeit { grid-column: 2; }",
+    erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
+  },
+  {
+    nr: '349', name: 'Der Name steht nicht mehr ueber beide Zeilen',
+    datei: 'public/style.css',
+    suche: ".mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 2; }",
+    ersatz: ".mrow.sitz .mname { grid-column: 1; }",
+    erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
+  },
+  {
+    nr: '350', name: 'Das Vollbild uebernimmt den inneren Abspieler nicht mehr',
+    datei: 'public/app.js',
+    suche: "      uebergabe = { quelle, stelle: el.currentTime || 0, lief: !el.paused, offen: true };\n" +
+           "      el.pause();\n      el.removeAttribute('src');\n      el.load();",
+    ersatz: "      el.pause();",
+    erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
+  },
+  {
+    nr: '351', name: 'Die uebernommene Stelle wird nicht gesetzt',
+    datei: 'public/app.js',
+    suche: "        abspieler.currentTime = uebergabe.stelle;\n",
+    ersatz: "",
+    erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
+  },
+  {
+    nr: '352', name: 'Der Rueckweg beim Schliessen faellt weg',
+    datei: 'public/app.js',
+    suche: "    halteAn();\n    gibZurueck();\n    lightboxOpen = false;",
+    ersatz: "    halteAn();\n    lightboxOpen = false;",
+    erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
+  },
+  {
+    nr: '353', name: 'Die geloeschte Quelle wandert wieder zurueck',
+    datei: 'public/app.js',
+    suche: "    if (uebergabe && bildQuelle(weg, '') === uebergabe.quelle) uebergabe = null;\n",
+    ersatz: "",
+    erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */

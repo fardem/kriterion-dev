@@ -10,7 +10,7 @@
 # dem Wegwerf-Container eigens eingehaengt. Der LAUFENDE Container bekommt sie
 # nie zu sehen.
 #
-# WARUM DIE ANLAGE DABEI STEHT: ein laufender Server haelt katalog.sqlite im
+# WARUM DIE INSTANZ DABEI STEHT: ein laufender Server haelt katalog.sqlite im
 # WAL-Modus offen, und der Wechsel muss auf DELETE umschalten. Zwei Schreiber
 # an dieser Stelle sind genau der Zustand, den niemand will.
 #
@@ -91,8 +91,8 @@ case "$BEFEHL" in
     NEUER_SCHLUESSEL="$(openssl rand -hex 32)"
     export NEUER_SCHLUESSEL
 
-    # 3. Die Anlage anhalten.
-    echo "  Anlage anhalten …"
+    # 3. Die Instanz anhalten.
+    echo "  Instanz anhalten …"
     docker compose stop
 
     # 4. Das Datenverzeichnis sichern. PFLICHT.
@@ -103,7 +103,7 @@ case "$BEFEHL" in
     # 5. Der Wechsel selbst.
     if lauf wechseln "${ENV_ARGUMENTE[@]}" --wer "$WER" --ja; then
       echo
-      echo "  Anlage starten …"
+      echo "  Instanz starten …"
       docker compose up -d
       echo
       fett "  Fertig. Jetzt das Protokoll ansehen:"
@@ -116,7 +116,7 @@ case "$BEFEHL" in
       echo "  .env.vor-schluesselwechsel-$MARKE — und gehoert in den Passwortspeicher."
     else
       echo
-      rot "  Der Wechsel ist nicht durchgelaufen. Die Anlage bleibt ANGEHALTEN."
+      rot "  Der Wechsel ist nicht durchgelaufen. Die Instanz bleibt ANGEHALTEN."
       rot "  Lies die Meldung darueber, bevor du irgendetwas startest."
       echo "  Zurueck geht es so:"
       echo "      rm -rf data && cp -a $ZIEL data"
@@ -136,13 +136,13 @@ Kriterion — Schluesselwechsel auf dem Wirt
       frei ist, wann zuletzt gewechselt wurde. Aendert nichts.
 
   ./schluessel.sh wechseln
-      Sichert .env und Datenverzeichnis, haelt die Anlage an, gibt der
+      Sichert .env und Datenverzeichnis, haelt die Instanz an, gibt der
       Datenbank einen neuen Schluessel, zieht die Ablage nach und startet
       wieder. Der alte Wert bleibt auskommentiert in der .env stehen -- er
       oeffnet alle Sicherungen von vor dem Wechsel.
 
   ES IST DER EINZIGE VORGANG, DER BEI FALSCHER HANDHABUNG ALLES VERLIERT.
-  Probier ihn an einer Wegwerfanlage aus, bevor du ihn an der echten faehrst:
+  Probier ihn an einer Wegwerfinstanz aus, bevor du ihn an der echten faehrst:
       mkdir /tmp/kriterion-probe && cd /tmp/kriterion-probe
 
 ENDE

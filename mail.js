@@ -3,12 +3,12 @@ const nodemailer = require('nodemailer');
 
 /* ================= Der Mailversand =================
 
-   DIE EINZIGE VERBINDUNG NACH DRAUSSEN. Die Anlage antwortet sonst nur auf
+   DIE EINZIGE VERBINDUNG NACH DRAUSSEN. Die Instanz antwortet sonst nur auf
    Anfragen; hier baut sie von sich aus eine Verbindung zu einem fremden
    Server auf. Jede Entscheidung in dieser Datei steht unter dieser
    Ueberschrift.
 
-   E-MAIL IST EINE BEQUEMLICHKEIT, KEINE VORAUSSETZUNG -- eine Anlage ohne
+   E-MAIL IST EINE BEQUEMLICHKEIT, KEINE VORAUSSETZUNG -- eine Instanz ohne
    Mailzugang laeuft vollstaendig. Jeder Link, der verschickt wird, ist im
    Verwaltungsbereich zusaetzlich zum Kopieren sichtbar; schlaegt der Versand
    fehl, bricht nichts ab. Deshalb wirft in dieser Datei NICHTS nach aussen:
@@ -216,7 +216,7 @@ function baueVersender(z) {
     host: z.server, port: z.port, secure: z.sicher === true,
     auth: { user: z.benutzer, pass: z.passwort },
     connectionTimeout: VERBINDUNG_MS, greetingTimeout: GRUSS_MS, socketTimeout: VERSAND_MS,
-    // Die Anlage schickt eine Handvoll Mails im Monat. Eine offen gehaltene
+    // Die Instanz schickt eine Handvoll Mails im Monat. Eine offen gehaltene
     // Verbindung waere eine Verbindung nach draussen, die ohne Anlass steht.
     pool: false
   });
@@ -253,7 +253,7 @@ async function versende(roh, an, betreff, text) {
     return { ok: false, grund: kurzerGrund(e) };
   } finally {
     // Auch im Fehlerfall: eine haengende Verbindung nach draussen ist genau
-    // das, was diese Anlage nicht offen halten soll (Stolperstein 134 in
+    // das, was diese Instanz nicht offen halten soll (Stolperstein 134 in
     // seiner Form fuer Sockets).
     try { if (versender) versender.close(); } catch {}
   }

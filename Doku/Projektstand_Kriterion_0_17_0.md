@@ -45,7 +45,7 @@ dort unter `Doku/`.
 
 **0.17.0 in einem Satz: was dasteht, und was nicht dasteht.** *MINOR — die
 Glockentafel sagt seither, **was** auf einen wartet („3 Kommentare ·
-4 Bewertungen" statt „7 neue Beiträge"), und das ist etwas, das die Anlage
+4 Bewertungen" statt „7 neue Beiträge"), und das ist etwas, das die Instanz
 vorher nicht konnte.* **Neun Befunde aus einem einzigen Rundlauf von Hand,
 keiner davon aus dem Fahrplan und keiner aus dem Sammelblatt.** Der einzige
 Fehler der Runde: die **Kriterienliste zerfiel bei genau einem Zugang** — ein
@@ -64,7 +64,7 @@ fremde Bewertungen nichts sagen.* **Die größte Umbaufläche des Fahrplans:**
 stehen seither als Tabelle. *Alles Weitere in Abschnitt 2 und Abschnitt 9.*
 
 **0.15.1 in einem Satz: `hidden` wirkt wieder — und die Begründung steht nur
-noch dort, wo etwas fehlt.** *PATCH: die Anlage kann danach nichts, was sie
+noch dort, wo etwas fehlt.** *PATCH: die Instanz kann danach nichts, was sie
 vorher nicht konnte; sie tut endlich, was sie versprochen hatte.* **Der Befund
 kam aus dem Betrieb und lag im Stilblatt, nicht in der Oberfläche:** eine
 eigene `display`-Regel schlägt die Vorgabe des Browsers, und damit war
@@ -73,7 +73,7 @@ standen Aussage und Eingabefeld trotzdem da, 72,9 px für nichts. *Alles Weitere
 in Abschnitt 2 und Abschnitt 9.*
 
 **0.15.0 in einem Satz: die Übersicht filtert nach „abgelehnt", und die
-Begründung kommt zur Ruhe.** *MINOR, weil die Anlage danach zweierlei kann, was
+Begründung kommt zur Ruhe.** *MINOR, weil die Instanz danach zweierlei kann, was
 sie vorher nicht konnte: nach der Ablehnung suchen, und eine fremde Begründung
 entfernen.* **Sie stand nie im Fahrplan** — zwei Befunde aus dem Betrieb,
 gemeldet nach dem Einspielen von 0.14.0, beide an der Ablehnung. **Ihre Nummer
@@ -167,7 +167,7 @@ streicht die Pille „Neu seit …", deren Auskunft die Glocke übernimmt.***
 **MINOR — und ausdrücklich KEINE Datenbankstufe.**
 
 > **IM FELD BESTÄTIGT IST SIE NOCH NICHT.** Die Zeile hier gilt dem gebauten
-> Stand; was die laufende Anlage meldet, gehört nach dem Einspielen daneben.
+> Stand; was die laufende Instanz meldet, gehört nach dem Einspielen daneben.
 
 > **DIES IST KEINE DATENBANKSTUFE — und das ist der Unterschied zu 0.16.0.**
 > Kein Schema, kein Migrationsblock, keine neue Formatnummer: es bleibt bei
@@ -216,7 +216,7 @@ trägt, bleibt lesbar; er wird übergangen, und der gespeicherte Wert bleibt
 unangetastet.*
 
 *Davor, am 29./30. August: **0.16.0** — Fingerprint **`aa76c352`**
-(am 30. August 2026 von der laufenden Anlage gemeldet), **4523 Prüfungen**,
+(am 30. August 2026 von der laufenden Instanz gemeldet), **4523 Prüfungen**,
 **300 Rückbauten in der Liste**. *0.16.0 gibt dem Systembereich Abschnitte mit
 eigener Adresse, der Kopfzeile eine Glocke, dem Wort „gewichtet" eine Erklärung
 und den Kennzahlen Version und Verfahren.* **MINOR — und eine Datenbankstufe.**
@@ -230,7 +230,7 @@ und den Kennzahlen Version und Verfahren.* **MINOR — und eine Datenbankstufe.*
 > `ratings.gesetzt_am`, der **siebte** markierte Migrationsblock.
 > **DIE SICHERUNG DES DATENVERZEICHNISSES IST DESHALB PFLICHT.**
 > *Das Austauschformat bleibt trotzdem bei **11**: der Zeitpunkt geht nicht in
-> die Exportdatei — bei einer eingespielten Bewertung weiß die Anlage nicht,
+> die Exportdatei — bei einer eingespielten Bewertung weiß die Instanz nicht,
 > wann sie ursprünglich vergeben wurde, und behauptet es nicht.*
 > **Keine neue Zeile in der `.env`, keine neue Abhängigkeit, `F_ROUTEN`
 > unverändert bei 69** — der Bezugspunkt der Glocke läuft über
@@ -239,12 +239,12 @@ und den Kennzahlen Version und Verfahren.* **MINOR — und eine Datenbankstufe.*
 > **DIE ALTEN ZEILEN BEKOMMEN KEINEN ZEITPUNKT NACHGETRAGEN.** Sie tragen NULL
 > und behalten es. *Ein nachgetragener Wert wäre erfunden: ein fester ließe
 > alles gleich alt aussehen, `datetime('now')` alles brandneu — und die Glocke
-> läutete beim ersten Start für den ganzen Bestand.* **Was die Anlage nicht
+> läutete beim ersten Start für den ganzen Bestand.* **Was die Instanz nicht
 > weiß, behauptet sie nicht**; die Glocke übergeht diese Zeilen.
 
 > **DER SYSTEMBEREICH STEHT IN FÜNF ABSCHNITTEN, JEDER MIT EIGENER ADRESSE** —
 > `#/system/persoenlich`, `…/bestand`, `…/zugaenge`, `…/datenbank`,
-> `…/anlage`, in der Reihenfolge der Rechteleiter. **Ohne Adresse ließe sich
+> `…/instanz`, in der Reihenfolge der Rechteleiter. **Ohne Adresse ließe sich
 > keine Einstellung verlinken und die Zurück-Taste bräche.** *Ein Abschnitt
 > ohne sichtbare Karte erscheint gar nicht; eine Adresse dorthin fällt auf den
 > ersten sichtbaren zurück und wird in der Adresszeile nachgezogen.* **Der
@@ -290,7 +290,7 @@ Datenbankstufe, keine `.env`-Zeile, niemand wird abgemeldet.
 
 *Davor, am 29. August: **0.15.0** (Fingerprint `8fa66d7d`, 4351 Prüfungen)
 gibt der Übersicht einen Filter für „abgelehnt" und bringt die Begründung zur
-Ruhe.* **MINOR — die Anlage kann seither nach der Ablehnung suchen, und eine
+Ruhe.* **MINOR — die Instanz kann seither nach der Ablehnung suchen, und eine
 fremde Begründung lässt sich entfernen.**
 
 > **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
@@ -328,7 +328,7 @@ Prüfungen) schließt den Rahmen eines angepinnten Kommentars, und **0.13.1**
 Filterleiste an der Grundlinie aus statt in der Mitte.*
 
 *Die Runde davor, **0.13.0** (Fingerprint `c1d2320d`, 4115 Prüfungen), macht die
-Anlage über zwei Netze zugleich erreichbar und repariert den Teilexport, der mit
+Instanz über zwei Netze zugleich erreichbar und repariert den Teilexport, der mit
 eingeschaltetem zweitem Faktor seit 0.12.4 gar nicht ging.*
 **0.13.0 WAR KEINE DATENBANKSTUFE** — und die vier Runden danach ebenso wenig:
 keine Tabelle, keine Spalte, kein Migrationscode; es blieb bei **fünf**
@@ -365,7 +365,7 @@ HTTPS kommen; nur braucht es das jetzt nicht mehr, um ins Heimnetz zu kommen.*
 
 > **DIE ZAHL AUS DEM FELD WAR 760 MB, UND SIE HAT DIESE RUNDE AUSGELÖST.** Die
 > Karte **Kennzahlen** trägt seit 0.12.3 die Zeile **„Export, alles"**; am
-> 28. August 2026 hat die laufende Anlage sie gemeldet. **Gegen Nodes Grenze
+> 28. August 2026 hat die laufende Instanz sie gemeldet. **Gegen Nodes Grenze
 > von 512 MB heißt das: der Export war kaputt** — nicht gefährdet, kaputt, und
 > niemand hat es bemerkt, weil ihn niemand gebraucht hat.
 > **0.12.3 hat die Ansage gelöst, 0.12.4 die Grenze.** Der Export geht seither
@@ -397,7 +397,7 @@ aus der README übernehmen will, tut das von Hand in seiner eigenen
 `zugang.js` sind Zeile für Zeile dieselben. Bewegt haben sich **drei Dateien in
 `public/`** (in 0.12.1 zwei davon), dazu `package.json` samt Lockfile für die
 Nummer. *Wer im Browser noch die alte Oberfläche sieht,
-sieht einen zwischengespeicherten Stand und keine kaputte Anlage; ein hartes
+sieht einen zwischengespeicherten Stand und keine kaputte Instanz; ein hartes
 Neuladen räumt ihn weg.*
 
 **Am Desktop ändert sich nichts, und das ist nachgemessen.** Die Übersicht
@@ -409,9 +409,9 @@ Papierkorb am großen Bild kommt daneben. Was sich dort ändert, sind die zwei
 Knöpfe des Bildbereichs: sie tragen Zeichen statt Wörter und stehen in einer
 Reihe.
 
-> **IM FELD BESTÄTIGT IST 0.16.0 — 30. August 2026.** Die laufende Anlage
+> **IM FELD BESTÄTIGT IST 0.16.0 — 30. August 2026.** Die laufende Instanz
 > meldet **`aa76c352`**, der Branch misst dasselbe. **Damit ist auch der siebte
-> Migrationsblock am echten Bestand gefahren** — die Anlage läuft danach, und
+> Migrationsblock am echten Bestand gefahren** — die Instanz läuft danach, und
 > die Kennzahlen nennen Version und Verfahren.
 >
 > **UND DIE BESTÄTIGUNG HAT SOFORT NEUN BEFUNDE GELIEFERT** — darunter einen
@@ -427,9 +427,9 @@ Reihe.
 > ist richtig, und ob ein Satz an der richtigen Stelle steht, prüft keine
 > Zeile.* **Derselbe Fall wie der Satz über die Bibliotheksfassung in den
 > Kennzahlen — die Begründung einer Entscheidung ist zweimal aus dem Papier in
-> die Anlage gerutscht.**
+> die Instanz gerutscht.**
 
-> **IM FELD BESTÄTIGT WAR DAVOR 0.15.1 — 29. August 2026.** Die laufende Anlage
+> **IM FELD BESTÄTIGT WAR DAVOR 0.15.1 — 29. August 2026.** Die laufende Instanz
 > meldete **`d02260bd`**, der Branch maß dasselbe. **Damit war die Sperre im
 > Auftrag für 0.16.0 eingelöst.**
 >
@@ -440,7 +440,7 @@ Reihe.
 > also kein Befund.*
 >
 > **0.15.0 IST DAMIT ÜBERSPRUNGEN WORDEN** und war nie für sich im Feld: die
-> Anlage ist von 0.14.0 (`ca8bcf31`) auf 0.15.1 gegangen. *Ihr Sollwert
+> Instanz ist von 0.14.0 (`ca8bcf31`) auf 0.15.1 gegangen. *Ihr Sollwert
 > `8fa66d7d` bleibt als Zeile in der Tabelle stehen — dieselbe Lage wie bei
 > 0.11.0.* **Was 0.15.0 gebracht hat, ist trotzdem bestätigt:** es steckt
 > vollständig in 0.15.1.
@@ -450,7 +450,7 @@ Branch. *Der Dateisatz auf dem Wirt ist damit genau der, der gemeint war —
 einen Befund wie bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es
 nicht.* **Davor war es 0.12.0** mit `192734a2`.
 
-> **0.12.4 IST IM FELD BESTÄTIGT — 28. August 2026.** Die laufende Anlage
+> **0.12.4 IST IM FELD BESTÄTIGT — 28. August 2026.** Die laufende Instanz
 > meldete **`ca991cf5`**, der Branch maß dasselbe. *Damit stand fest, dass auf
 > dem Wirt genau der Stand lag, den 0.13.0 voraussetzt.*
 >
@@ -473,23 +473,23 @@ es hat ein Daumen gefunden.* **Genau dafür steht der Rundlauf von Hand
 weiter unten.**
 
 **Was noch aussteht, sind die Rundläufe von Hand.** Der Fingerprint sagt, dass
-die richtigen Dateien liegen; er sagt nichts darüber, ob sich die Anlage
+die richtigen Dateien liegen; er sagt nichts darüber, ob sich die Instanz
 bedienen lässt. Für **0.11.0** sind es drei Handgriffe — nach einem
 Kommentartext suchen, eine Ansicht speichern und nach dem Abmelden wieder
 wählen, einen Doppeleintrag antippen und die Zeile „Ähnlich" sehen. **Für
-0.12.0 kommt einer dazu, den nur ein echtes Gerät beantwortet:** die Anlage
+0.12.0 kommt einer dazu, den nur ein echtes Gerät beantwortet:** die Instanz
 einmal auf einem Telefon und einmal auf einem Tablett öffnen. *Gemessen wurde in
 einem Browser mit Geräteemulation, und die stimmt in Maßen und Medienregeln —
 sie sagt nichts darüber, wie sich ein Finger auf Glas anfühlt.* Die Ergebnisse
 gehören hierher (Abschnitt 8).
 
-**Und 0.10.0 war davor im Feld bestätigt** — die laufende Anlage meldete
+**Und 0.10.0 war davor im Feld bestätigt** — die laufende Instanz meldete
 denselben Fingerprint wie der Branch (`dc8c16f7`), und der zweite Faktor tut,
 was er soll.
 **Der Mailversand aus 0.9.0 ist ebenfalls bestätigt** (die erste echte
 Einladungsmail kam an, Absender und Link stimmten, der Rumpf stand als reiner
 Text da). **Und bei 0.9.1 hat sich der Fingerprint zum ersten Mal bezahlt
-gemacht:** die laufende Anlage meldete einen Wert, den kein Commit trug —
+gemacht:** die laufende Instanz meldete einen Wert, den kein Commit trug —
 Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 **Fingerprints der letzten Runden**, zum Abgleich mit `GET /api/stats`:
@@ -540,7 +540,7 @@ Systembereich, keine Version — beides jederzeit umkehrbar.
 
 **Vorausgesetzt wird eine Datenbank aus 0.8.0 oder neuer.** Ältere Bestände
 werden nicht übernommen; sie bräuchten den Zwischenschritt über 0.8.0 als
-letzte Version mit Migrationscode. **Eine wirklich alte Anlage läuft dabei
+letzte Version mit Migrationscode. **Eine wirklich alte Instanz läuft dabei
 wortlos in SQL-Fehler** — die klare Absage am Start ist für 1.0 vorgemerkt
 (Abschnitt 10).
 
@@ -600,7 +600,7 @@ Bestandszeilen bekommen ihren Wert aus dem `DEFAULT` der Spalte, nicht aus einem
 nachgeschobenen `UPDATE`: Gewicht 1,0 ist bitgleich zum ungewichteten Mittel,
 `art = 'bild'` ändert an keiner Auslieferung etwas. **`migration0140()` schreibt
 gar keinen Wert** — die drei Spalten bleiben leer, auch an einem Eintrag, der
-schon abgelehnt war. *Diese Anlage weiß nicht, wann und von wem das geschah;
+schon abgelehnt war. *Diese Instanz weiß nicht, wann und von wem das geschah;
 „abgelehnt am Tag der Einspielung von dem, der eingespielt hat" wäre die
 schlimmste Erfindung von allen, weil sie aussähe wie eine echte Angabe.*
 
@@ -648,7 +648,7 @@ cd kriterion && docker compose up -d --build
 **Der Weg ERSETZT das Verzeichnis, er kopiert nicht darüber.** Das ist kein
 Geschmack: ein Einspielweg, der Dateien kopiert, **entfernt keine** — eine in
 dieser Version gelöschte Datei bliebe liegen und liefe mit, und der Fingerprint
-schlüge aus, ohne dass die Anlage kaputt wäre (Stolperstein 158).
+schlüge aus, ohne dass die Instanz kaputt wäre (Stolperstein 158).
 
 **Die `chmod`-Zeile ist nachgestellt:** `python3 -m zipfile -e` stellt **keine
 Ausführungsrechte** wieder her, `unzip` dagegen schon. Im Repo trägt
@@ -673,7 +673,7 @@ Grund und Verfasser da.
 ```
 
 *Die Zahl am Ende sagt, wie viele Ablehnungen im Bestand von nun an sichtbar
-unvollständig dastehen — das ist gewollt und keine Panne: diese Anlage weiß
+unvollständig dastehen — das ist gewollt und keine Panne: diese Instanz weiß
 nicht, wann und von wem sie getroffen wurden.* **Beim zweiten Start steht die
 Zeile nicht mehr da**; der Block ist wiederholbar und dann stumm.
 
@@ -690,7 +690,7 @@ neben dem Original liegt, ist keine. **Bricht der Wechsel ab, stellt das
 Rollback-Journal den alten Stand her — geht das Journal verloren, ist alles
 verloren.** Das ist der Grund für die Kopie, nicht der Abbruch selbst. **Und der
 Schlüsselwechsel wird nicht nebenbei ausprobiert** — wer ihn zum ersten Mal
-fährt, fährt ihn an einer Wegwerfanlage; das Rezept steht in der README.
+fährt, fährt ihn an einer Wegwerfinstanz; das Rezept steht in der README.
 
 ### Sieben Dinge, die beim Einspielen schiefgehen können — alle schon vorgekommen
 
@@ -775,7 +775,7 @@ dort erscheint, wo man es hinsetzt, gehört jedem.*
 ### Der Zugang selbst
 
 **Der Zugang liegt als scrypt-Hash in der Tabelle `users`**, nicht in der
-Umgebung; gesetzt wird er beim ersten Aufruf im Browser, und wer die Anlage
+Umgebung; gesetzt wird er beim ersten Aufruf im Browser, und wer die Instanz
 einrichtet, ist ihr Eigentümer. Es gibt keine voreingestellte Kennung.
 Mindestens zehn Zeichen, sonst keine Regeln — **auch für ein Passwort, das über
 einen Link gesetzt wird**. Ohne Anmeldung ist außer dem öffentlichen Titel
@@ -878,7 +878,7 @@ kein Passwort" wird aus `password_hash = ''` abgeleitet und **nicht** aus
 Jeder sieht beim eigenen Zugang, wo er überall angemeldet ist: angemeldet am,
 zuletzt gesehen, welche davon die eigene ist. **Ein Admin sieht keine fremden** —
 für den Ernstfall gibt es das Sperren, und das löscht die Sitzungen bereits mit.
-**Die Karte kennt kein Gerät und sagt das offen:** die Anlage speichert **weder
+**Die Karte kennt kein Gerät und sagt das offen:** die Instanz speichert **weder
 IP-Adresse noch Browserkopf**. Was sie trägt, ist die **Zahl** und **ein Knopf**
 („alle anderen beenden"). **Adressiert wird eine Sitzung über eine Kennung, die
 gerechnet und nirgends gespeichert wird** — der volle SHA-256 ihres Tokens; der
@@ -962,8 +962,8 @@ kaputt, **bleibt der Schalter an** und die Karte sagt es rot.
 
 Wer will, sichert seinen Zugang zusätzlich mit einem Code aus einer App auf
 seinem Telefon. Der Code entsteht dort **ohne Netz**, aus einem Geheimnis und
-der Uhr. **Ab Werk ist er aus, und ohne ihn läuft die Anlage vollständig** —
-dieselbe Linie wie beim Mailversand und bei der Selbstanmeldung. **Die Anlage
+der Uhr. **Ab Werk ist er aus, und ohne ihn läuft die Instanz vollständig** —
+dieselbe Linie wie beim Mailversand und bei der Selbstanmeldung. **Die Instanz
 verschickt dafür nichts**: kein Code per Mail, kein Code per SMS.
 
 | | |
@@ -1051,7 +1051,7 @@ anklickbarer Verweis — auf einem Telefon öffnet der die App unmittelbar.
 
 ### Die zweite Bestätigung — seit 0.8.90
 
-**Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt.** Sieben
+**Was die Instanz als Ganzes trifft, wird ein zweites Mal bestätigt.** Sieben
 Wege über sechs Routen verlangen das Passwort des Angemeldeten noch einmal:
 
 | Weg | Route |
@@ -1086,7 +1086,7 @@ diesmal nachgezählt (Stolperstein 137).*
 
 **Was ausdrücklich NICHT dahinter liegt, und es ist entschieden, nicht
 vergessen:** Sperren und Freigeben (umkehrbar, und ein gesperrter Zugang ist
-nicht die Anlage), einen Zugang **anlegen** (er ist neu und nimmt niemandem
+nicht die Instanz), einen Zugang **anlegen** (er ist neu und nimmt niemandem
 etwas — auch mit Einladungslink), Anfragen freischalten und ablehnen, der eigene
 Zugang (dort ist das bisherige Passwort seit 0.5.0 ohnehin Pflicht) und alles am
 Eintrag. **`POST /api/setup` erst recht** — dort gibt es kein bisheriges
@@ -1099,7 +1099,7 @@ wer fragt; hier ist der Fragende angemeldet und namentlich bekannt.
 
 ### Das Sicherheitsprotokoll — seit 0.8.90
 
-Es hält fest, **wer Zugang hatte und wer die Anlage als Ganzes angefasst hat**.
+Es hält fest, **wer Zugang hatte und wer die Instanz als Ganzes angefasst hat**.
 Es ist **kein Änderungsverlauf**: kein Eintragstitel, kein Kommentartext, keine
 Bewertung, keine Note.
 
@@ -1156,7 +1156,7 @@ angemeldet.
 **Die gescheiterte Anmeldung ist die einzige Zeile, die ein Fremder auslösen
 kann.** Ihr Deckel ist die Bremse, die es schon gibt: geschrieben wird nur, wenn
 die Anfrage die Passwortprüfung wirklich erreicht hat. Damit sind es höchstens
-**zehn Zeilen je Adresse und Sperrzeit** — eine Eigenschaft der Anlage statt
+**zehn Zeilen je Adresse und Sperrzeit** — eine Eigenschaft der Instanz statt
 einer Regel, die jemand durchsetzen müsste. *Der Preis: verteiltes Raten aus
 vielen Adressen schreibt weiterhin viele Zeilen.* **Der getippte Name wird nie
 gespeichert**; `ziel` trägt eine Nummer nur, wenn der Name einen vorhandenen
@@ -1208,7 +1208,7 @@ Sicherheitsprotokoll für den Versand:** eine Zeile „Mail an X verschickt" wä
 ein Zustellprotokoll, und die Adresse wäre Freitext von außen. Der Anlass steht
 schon drin (`link.neu`).
 
-**Die Bestätigungsmail ist der einzige Text der Anlage, der an jemanden gehen
+**Die Bestätigungsmail ist der einzige Text der Instanz, der an jemanden gehen
 kann, der nichts angefordert hat**, und danach ist sie gebaut: der Satz *„warst
 du das nicht, ist nichts zu tun"* steht weit oben und nicht am Ende, und der
 Text sagt ausdrücklich, dass der Link **keinen Zugang öffnet und kein Passwort
@@ -1225,7 +1225,7 @@ einer zweiten Liste in der Oberfläche.
 verschickt: der Server wüsste nicht, worauf der Link zeigen soll, und aus dem
 `Host`-Kopf darf er es nicht ableiten — eine verschickte Mail wäre genau die
 Stelle, an der ein gefälschter Kopf am meisten wert wäre. **Der Start bricht
-deswegen nicht ab**, und die Anlage bleibt vollständig; die Karte „Mailversand"
+deswegen nicht ab**, und die Instanz bleibt vollständig; die Karte „Mailversand"
 markiert den fehlenden Wert rot. *Das ist eine engere Auslegung als der Wortlaut
 des Konzeptpapiers („ab Stufe I ist sie Pflicht") — wörtlich gelesen bräche der
 Start jede vorhandene Installation beim Einspielen.*
@@ -1321,7 +1321,7 @@ der Wert steht seit dem 13. August in der `.env`, die Datei liegt nur noch als
 `encryption.key.abgeloest` daneben.
 
 > **DER WERT IST UMGEZOGEN, NICHT GEWECHSELT — und daraus folgt der eine echte
-> Anlass für einen Schlüsselwechsel, den diese Anlage hat.** Jede Kopie von
+> Anlass für einen Schlüsselwechsel, den diese Instanz hat.** Jede Kopie von
 > `data/`, die vor dem 13. August entstanden ist, enthält einen Schlüssel, der
 > die **heutige** Datei öffnet. `encryption.key.abgeloest` zu löschen hilft nur
 > gegen **künftige** Kopien; die vorhandenen bleiben lesbar. **Ein
@@ -1410,7 +1410,7 @@ selbst geschrieben haben. *Genau der erste Eintrag war es, den die Fassung vor
 ### Cookiename, `Secure` und HSTS — je Anfrage, seit 0.13.0
 
 **Diese drei hingen bis 0.12.4 an `HINTER_PROXY` und hängen seither an der
-einzelnen Anfrage.** Der Grund ist der Betrieb: die Anlage ist aus **zwei**
+einzelnen Anfrage.** Der Grund ist der Betrieb: die Instanz ist aus **zwei**
 Netzen zugleich erreichbar, und eine Einstellung je Prozess kann immer nur
 eines davon bedienen. Die eine Frage steht in `auth.js` als `ueberProxy(req)`
 — sie sieht **ausschließlich** in die Kopfzeilen.
@@ -1441,7 +1441,7 @@ ist die globale Kopfzeilen-Middleware in `server.js`, vor `express.static`.
 kommen** — ihr Name wird dann nicht mehr gelesen.
 
 **Was die Einstellung nicht ist: eine Liste, wer den Kopf setzen darf.** Sie ist
-ein Ja/Nein, und die Anlage ist aus zwei Netzen erreichbar. **Solange Port 3100
+ein Ja/Nein, und die Instanz ist aus zwei Netzen erreichbar. **Solange Port 3100
 im eigenen Netz offen steht, ist `X-Forwarded-For` eine Behauptung des
 Aufrufers und die Anmeldebremse damit umgehbar.** Was daran offen ist, steht in
 Abschnitt 8.
@@ -1588,7 +1588,7 @@ am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate."* Beim Einschalten
 öffnet sich **sofort** ein Feld für den Grund — freiwillig, eine Zeile,
 höchstens 200 Zeichen. **Jedes der drei darf fehlen**, und die Zeile setzt sich
 aus dem zusammen, was da ist; ist gar nichts bekannt (eine Ablehnung aus einer
-Anlage vor 0.14.0), bleibt sie weg — sie sagte sonst dasselbe wie der Schalter
+Instanz vor 0.14.0), bleibt sie weg — sie sagte sonst dasselbe wie der Schalter
 darüber. **Am Grabstein steht kein Name**, sondern die Nummer.
 **Beim Zurücknehmen wird nichts gelöscht:** Datum, Grund und Verfasser bleiben
 stehen, und beim erneuten Ablehnen steht die alte Begründung als Vorschlag im
@@ -1717,7 +1717,7 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 > | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
 > | **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
 > | **Datenbank** | `#/system/datenbank` | Kennzahlen, Sicherung, Export und Import |
-> | **Anlage** | `#/system/anlage` | Titel |
+> | **Instanz** | `#/system/instanz` | Titel |
 >
 > **Die Adresse ist der ganze Punkt** — ohne sie ließe sich keine Einstellung
 > verlinken und die Zurück-Taste bräche. `#/system` bleibt gültig und löst sich
@@ -1772,7 +1772,7 @@ folgen den Häkchen.** Ab **300 MB** steht ein Hinweis darunter — *gewarnt wir
 verweigert nicht.* **Der Import fragt vor dem Einlesen nach**, wenn die Datei
 sehr groß ist; dort steht die Größe ja vorher fest.
 **Seit 0.12.4 steht darunter der Weg, der hilft: „In Teilen exportieren".** Die
-Anlage rechnet den Schnitt aus und zeigt jeden Teil mit Nummer, Anzahl und
+Instanz rechnet den Schnitt aus und zeigt jeden Teil mit Nummer, Anzahl und
 Größe; **seit 0.13.0 wird EINMAL bestätigt — eine Anfrage für alle Teile —, und
 jedes Laden verbraucht weiterhin genau eine Freigabe.** *Bis dahin schickte der
 Knopf denselben Code einmal je Teil, und mit eingeschaltetem zweitem Faktor ging
@@ -1831,7 +1831,7 @@ Vermerk über entfernte Kommentarbilder.
 **Die Sicherung auf Knopfdruck** (seit 0.8.70): `VACUUM INTO` erzeugt eine
 **vollständige, verschlüsselte** Kopie der Datenbank — samt Sitzungen,
 Einstellungen und den Geheimnissen der zweiten Faktoren, ohne den Schlüssel
-unlesbar. **Während die Kopie entsteht, steht die Anlage still**; die Karte sagt
+unlesbar. **Während die Kopie entsteht, steht die Instanz still**; die Karte sagt
 es vorher mit einer Schätzung (`SICHERUNG_MS_JE_MB = 20`). *Gemessen sind rund
 **10** ms je MB; die Ansage ist bewusst **verdoppelt** — der Betrieb läuft auf
 einem N100, und eine zu niedrige Ansage ist schlimmer als eine zu hohe. An der
@@ -1878,7 +1878,7 @@ Vokabeleinträge.**
 
 ### Telefon und Tablett (seit 0.12.0, nachgearbeitet mit 0.12.1)
 
-**Es ist EINE Anlage.** Kein zweiter Aufbau, keine Weiche nach der Kennung des
+**Es ist EINE Instanz.** Kein zweiter Aufbau, keine Weiche nach der Kennung des
 Browsers, keine Handy-Adresse. Was sich ändert, entscheidet der Browser über
 zwei Fragen, und die beiden werden nirgends vermischt: **die Breite entscheidet
 über das Layout, der Zeiger über die Größe der Ziele.**
@@ -1996,17 +1996,17 @@ genau solche Runden; unter SemVer hätte keine davon eine freie Nummer gebraucht
   `Deprecated` führt, dann eine spätere, die es entfernt.
   **AUSGENOMMEN IST DIE ABSAGE AN ALTE DATENBANKEN IN 0.13.0** *(vorgemerkt
   als 0.12.0, seit die Nummer an „Telefon und Tablett" ging — Abschnitt 10)*,
-  **ausdrücklich entschieden:** es gibt zurzeit **genau eine Anlage und genau einen
+  **ausdrücklich entschieden:** es gibt zurzeit **genau eine Instanz und genau einen
   Betreiber**, und der weiß es. Ein Ankündigungslauf für ein Publikum, das es
   nicht gibt, wäre Papier ohne Leser. **Diese Ausnahme endet in dem Augenblick,
-  in dem die Anlage an jemand anderen herausgeht.**
+  in dem die Instanz an jemand anderen herausgeht.**
 - **Vorveröffentlichungen sind möglich**, falls eine Runde in Etappen
   herausgeht: `1.0.0-rc.1` rangiert vor `1.0.0`.
 - **EINE VERÖFFENTLICHTE VERSION WIRD NIE VERÄNDERT.** Wer an einem
   ausgelieferten Stand etwas ändert, gibt eine **neue Nummer** heraus. Das ist
   die Regel, gegen die 0.9.1 selbst verstoßen hat: die Nacharbeit an der
   Anmeldeseite ging unter derselben Nummer heraus, und genau daran ist der
-  Fingerprint der laufenden Anlage unlesbar geworden (Stolperstein 158).
+  Fingerprint der laufenden Instanz unlesbar geworden (Stolperstein 158).
   **Ab 0.10.0 gibt es das nicht mehr.**
 - **Nummern, die einmal draußen waren, werden nicht umgeschrieben.** 0.8.31
   bleibt 0.8.31. Umnummeriert wird nur der **Plan**.
@@ -2071,7 +2071,7 @@ kommt 1.0.0 — und nicht später.**
   `Doku/`. *Wer das Paket auspackt, findet sie dort, ohne zu suchen.*
 - **Keine Commit-Protokolle als Changelog.** Ein Commit dokumentiert die
   Entwicklung des Quelltextes, ein Changelog-Eintrag die beachtenswerte
-  Änderung für den, der die Anlage betreibt.
+  Änderung für den, der die Instanz betreibt.
 
 **ZWEI EIGENE ABSCHNITTE BLEIBEN, und das ist kein Verstoß** — die Form nennt
 sechs Arten, sie verbietet keine weiteren. Sie stehen **hinter** den sechs:
@@ -2123,7 +2123,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   kleinsten Nummer.* **Der Zwischenschritt über den Admin ist keine Zierde:**
   ohne ihn beförderte der nächste Start den Zugang mit der kleinsten Nummer auch
   dann, wenn er ausdrücklich herabgestuft worden ist. **`status != 'geloescht'`
-  ebenso wenig:** ein Grabstein darf die Anlage nicht erben. *Seit 0.8.1 bekommt
+  ebenso wenig:** ein Grabstein darf die Instanz nicht erben. *Seit 0.8.1 bekommt
   der erste Zugang die Rolle direkt beim Anlegen; die Startregel bleibt als
   Auffangnetz für von Hand veränderte Bestände.*
 - **Ein Admin kommt nicht an seinesgleichen** (seit 0.8.0). An einen anderen
@@ -2132,7 +2132,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   steht an genau einer Stelle (`darfAnZugang`).
 - **Der letzte aktive Eigentümer darf nicht verschwinden** (seit 0.8.0) — weder
   durch Herabstufen noch Sperren noch Entfernen, serverseitig durchgesetzt.
-  Gezählt werden nur **aktive**: sonst ließe sich die Anlage verriegeln, indem
+  Gezählt werden nur **aktive**: sonst ließe sich die Instanz verriegeln, indem
   man den letzten sperrt statt ihn herabzustufen.
 - **Niemand sperrt oder entfernt sich selbst** (seit 0.8.0). Keine Doppelung der
   Regel darüber: mit zwei Eigentümern greift jene nicht mehr. *Die naheliegende
@@ -2153,7 +2153,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   MediaWiki und GitHub geben den Namen frei, Slack, Jira und Mastodon behalten
   ihn.* Für Kriterion gab den Ausschlag, dass der **Export** seit 0.7.1 den
   Namen nennt: trüge ein Grabstein weiter „faruk", schöbe dieselbe Datei in
-  einer anderen Anlage mit einem lebenden „faruk" dessen Zeilen zu.
+  einer anderen Instanz mit einem lebenden „faruk" dessen Zeilen zu.
   **Der Preis: der alte Name ist danach endgültig weg.**
 - **Zwei Häkchen beim Entfernen, nicht eine Entscheidung** (seit 0.8.0).
   **„seine Einträge löschen"** nimmt über die Kaskade auch **fremde**
@@ -2180,7 +2180,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   `requireAuth` muss den Status über die Datenbank setzen**, sonst bliebe sie
   grün, auch wenn die Klemme fehlte.
 - **`benutzerZahl` zählt keine Grabsteine** (seit 0.8.0). Bei genau einem
-  lebenden Zugang sieht die Anlage wieder aus wie im Einbenutzerbetrieb, auch
+  lebenden Zugang sieht die Instanz wieder aus wie im Einbenutzerbetrieb, auch
   wenn zehn Grabsteine daneben stehen.
 - **Die Rechteregel steht an einem Ort, nicht an jeder Route** (seit 0.7.2).
   `istAdmin` und `istEigentuemer` sagen, wer fragt; `darfAendern` (Verfasser
@@ -2207,7 +2207,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   `NUR_VERFASSER_FELDER`, fein entscheidet `nurSelbst` gegen
   `items.rejected_von`. **Drei Fälle kommen durch:** wer gerade ablehnt; wer
   eine Begründung hinschreibt, wo noch keine steht — sonst bekäme eine Ablehnung
-  aus einer Anlage vor 0.14.0 nie eine (Stolperstein 204) —; und wer sie
+  aus einer Instanz vor 0.14.0 nie eine (Stolperstein 204) —; und wer sie
   **entfernt**. *Was „entfernen" heißt, entscheidet `grundText()` und nicht der
   rohe Rumpfwert: ein Rumpf aus lauter Leerraum ist nach dem Einebnen leer und
   damit ein Entfernen.*
@@ -2328,7 +2328,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   mehreren Bewertern sind geteilte Kriterien kein Hindernis, sondern die
   Voraussetzung.
 - **Zwei Wörter für zwei Dinge: Admin und Eigentümer** (seit 0.7.2). *Admin*
-  verwaltet den Bestand; *Eigentümer* ist, wem gehört, was die Anlage als Ganzes
+  verwaltet den Bestand; *Eigentümer* ist, wem gehört, was die Instanz als Ganzes
   betrifft. **„Leitung" war für beides benutzt worden** und ist aus Quelltext,
   Oberfläche und Dokumenten verschwunden; ein Wächter im Prüfstand hält fest,
   dass das Wort nirgends zurückkommt. **Kein drittes Rollenwort.** *Der
@@ -2341,7 +2341,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   braucht. **Ein Fehlversuch ist es ausdrücklich nicht** — der Zähler wird nicht
   hochgesetzt.
 - **Die Abschnitte des Systembereichs folgen der Rechteleiter** (seit 0.16.0) —
-  *Persönlich · Bestand · Zugänge · Datenbank · Anlage*, von dem, was jeder
+  *Persönlich · Bestand · Zugänge · Datenbank · Instanz*, von dem, was jeder
   sieht, zu dem, was nur der Eigentümer anfasst. **Die Reihenfolge ist damit
   keine Geschmacksfrage, sondern dieselbe Leiter wie in `role`.** *Wer nach
   unten liest, liest wachsende Rechte; wer weniger darf, sieht die unteren
@@ -2399,7 +2399,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   Token** (seit 0.8.80). In einem Pfad stünde er im Zugriffsprotokoll, in der
   Verlaufsliste und womöglich im Referrer. Dieselbe Überlegung trägt die
   Einlöseseite: der Schlüssel steht im **Fragment** und geht nie an den Server.
-- **Die Anlage speichert weder IP-Adresse noch Browserkopf** (bestätigt in
+- **Die Instanz speichert weder IP-Adresse noch Browserkopf** (bestätigt in
   0.8.80). *Eine Karte, die mehr behauptet, als sie weiß, ist schlimmer als
   keine.*
 - **„Token" im Quelltext, „Link" am Bildschirm** (seit 0.8.80). **Nicht** in der
@@ -2412,7 +2412,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   Forum —, und zwei Betriebsarten wären genau die zweite Wahrheit, die der
   Leitgedanke ausschließt. Der Bestätigungsschritt davor ist **kein** Ersatz für
   die Entscheidung eines Menschen, sondern nur der Beleg, dass die Adresse dem
-  Anfragenden gehört. **Und die Anlage läuft ohne die Selbstanmeldung
+  Anfragenden gehört. **Und die Instanz läuft ohne die Selbstanmeldung
   vollständig.**
 - **Die immer gleiche Antwort ist eine Zusage über den Rumpf UND über die Uhr**
   (seit 0.9.1). Fünf Lagen, ein Statuscode, ein Rumpf Byte für Byte. **Die
@@ -2482,7 +2482,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   aussieht, öffnet genau diese Lücke.*
 - **Das TOTP-Geheimnis liegt im Klartext, und es geht nicht anders** (seit
   0.10.0). Ein Passwort wird **geprüft**, also genügt sein Hash; ein
-  TOTP-Geheimnis wird **nachgerechnet**, also braucht die Anlage den Wert
+  TOTP-Geheimnis wird **nachgerechnet**, also braucht die Instanz den Wert
   selbst. **Die verschlüsselte Datenbank ist die einzige Schicht darüber**, und
   das gehört benannt statt weggeschrieben: der **JSON-Export trägt es nicht**,
   die **Sicherung sehr wohl**, und in eine **Kontrollausgabe kommt es nie**.
@@ -2512,7 +2512,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   *ein Knopf könnte den `.env`-Fall gar nicht zu Ende bringen* — die `.env` ist
   per `.dockerignore` nicht einmal im Image.
   **Was daraus folgt und weitergilt:** *wer eine Handlung baut, die außerhalb
-  der Anlage etwas nachziehen muss, baut sie dort, wo beides erreichbar ist* —
+  der Instanz etwas nachziehen muss, baut sie dort, wo beides erreichbar ist* —
   und *ein Vorgang, der genau einmal vorkommt, braucht keinen dauerhaften Ort in
   der Oberfläche.* **Der Preis ist benannt:** es gibt keine Rechtefrage vor dem
   Wechsel. *Zugriff auf den Wirt ist die Berechtigung.*
@@ -2568,7 +2568,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   (Stolperstein 203). **Beim Zurücknehmen des Merkmals wird nichts gelöscht** —
   eine Angabe, die niemand wiederherstellen kann, wird nicht weggeworfen, nur
   weil ein Schalter umgelegt wird. **Und der Migrationsblock trägt nichts nach:**
-  was diese Anlage nicht weiß, erfindet sie nicht.
+  was diese Instanz nicht weiß, erfindet sie nicht.
 - **Zwei Regeln für zwei Zeitpunkte sind keine zweite Wahrheit** (seit 0.8.30).
   `migration0830()` gibt die Bestandslinks dem **Eintragsverfasser**,
   `ordneBestandZu()` gibt später herrenlos gewordene Zeilen dem **Eigentümer**.
@@ -2615,8 +2615,8 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   steht nur noch einmal** (seit 0.8.1): `PERSOENLICHE_SCHLUESSEL` in `server.js`
   ist Schranke und Wahrheit zugleich.
 - **`items.favorite` bleibt als Spalte stehen und wird nie beschrieben** (seit
-  0.6.3). Die Spalte bleibt, damit Bestands- und Neuanlage dasselbe Schema
-  tragen; der Favorit steht in `item_pins`. **Wer hier wieder hineinschreibt,
+  0.6.3). Die Spalte bleibt, damit eine bestehende und eine frische Instanz
+  dasselbe Schema tragen; der Favorit steht in `item_pins`. **Wer hier wieder hineinschreibt,
   baut eine zweite Wahrheit über dieselbe Sache.**
 - **Die Anheftung ist eine Aussage über den Eintrag, keine Eigenschaft von ihm**
   (seit 0.6.3). `favorite` in der Antwort heißt „habe **ich** angeheftet" —
@@ -2645,7 +2645,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   nicht kennt, bleiben leer.
 - **Die Exportdatei nennt den Namen, nie die Id** (seit 0.7.1). Eine nackte
   `user_id` zeigt auf eine Zeilennummer in *einer bestimmten* Datenbank und ist
-  woanders bedeutungslos; der Name ist die einzige Angabe, die zwei Anlagen
+  woanders bedeutungslos; der Name ist die einzige Angabe, die zwei Instanzen
   gemeinsam haben.
 - **Ein herrenloser Verfasser steht ausdrücklich als `null` in der Datei** (seit
   0.7.1), das Feld fehlt nie. Sonst wäre „diese Zeile hat keinen Verfasser" von
@@ -2688,7 +2688,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   an der Route, und abgesagt wird VOR dem Bau: ein Knopf, der nach zwei Minuten
   mit einem Speicherfehler abbricht, sieht aus wie ein kaputtes Programm — er
   ist aber eine erreichte Grenze, und der Unterschied liegt allein darin, ob die
-  Anlage es vorher sagt.* **Genannt wird in der Meldung die gemessene Zahl**:
+  Instanz es vorher sagt.* **Genannt wird in der Meldung die gemessene Zahl**:
   zu nennen ist die, bei der es kippt, nicht die, bei der es unbequem wird.
 - **Geschätzt wird über das, was GESCHRIEBEN wird — nicht über die Blob-Spalten**
   (seit 0.12.3). `photos.thumb` und `comment_images.thumb` gehen nie in eine
@@ -2703,7 +2703,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   Stelle, die funktioniert — **und er löste nur die Hälfte:** der Import liest
   die Datei über `readAsText()` im Browser und `buffer.toString('utf8')` am
   Server, beides ein einziger String. **Eine gestreamte Datei könnte diese
-  Anlage nicht wieder einspielen**, und ein Austauschweg, der nur hinaus führt,
+  Instanz nicht wieder einspielen**, und ein Austauschweg, der nur hinaus führt,
   ist ein halber (Stolperstein 190).
 - **Was zu groß für eine Datei ist, geht in TEILEN hinaus — und jeder Teil ist
   eine vollständige Exportdatei** (seit 0.12.4). Derselbe Umschlag, dieselbe
@@ -2718,7 +2718,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   **Ein Eintrag, der schon für sich allein über der Grenze liegt, wird
   namentlich genannt** statt still übergangen.
 - **Die Teilgröße ist wählbar, aber nur nach unten** (seit 0.12.4). Nach oben
-  deckelt `AUSTAUSCH_WARN`: darüber baute die Anlage Teile, vor denen sie im
+  deckelt `AUSTAUSCH_WARN`: darüber baute die Instanz Teile, vor denen sie im
   selben Atemzug warnt. *Wer seine Teile auf einen Datenträger oder durch eine
   Hochladegrenze bringen muss, braucht kleinere.*
 - **Die Abbildung je Eintrag und der Deserialisierer stehen je genau einmal**
@@ -2745,7 +2745,7 @@ nichts mehr darin steht, was jemand nachziehen müsste.
   Aufräumen, das die endgültige Datei träfe, würfe im Zweifel die Sicherung des
   Vortags weg.
 - **Der Sicherungsort und seine Einhängung stehen in derselben Datei** (seit
-  0.8.70). Stünde die eine in der `.env`, liefen sie auseinander, und die Anlage
+  0.8.70). Stünde die eine in der `.env`, liefen sie auseinander, und die Instanz
   schriebe in eine Schicht des Containers, die beim nächsten `--build`
   verschwindet.
 - **Benannt statt verboten — die Lage des Sicherungsorts** (seit 0.8.71). Der
@@ -2938,7 +2938,7 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   entsteht beim ersten Stern und wird danach überschrieben — was dort steht,
   ist der Zeitpunkt der **letzten Setzung**, und genau der ist gemeint, wenn
   die Glocke fragt, ob seit dem letzten Blick jemand bewertet hat. **Ohne
-  Vorgabewert:** eine Zeile ohne Zeitpunkt heißt „die Anlage weiß nicht, wann
+  Vorgabewert:** eine Zeile ohne Zeitpunkt heißt „die Instanz weiß nicht, wann
   das war" — das gilt für alles vor 0.16.0 und für jede eingespielte
   Bewertung. *Ein Vorgabewert machte daraus stillschweigend „gerade eben".*
 - **Der Gesamtschnitt rechnet erst je Kriterium, dann über die Kriterien** (seit
@@ -3019,7 +3019,7 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   Verglichen wird mit `IS NOT`, nicht mit `!=` (Stolperstein 55).
 - **Die Kennzahlen sieht nur der Admin** (seit 0.8.5). Nimmt „Die Kennzahlen
   selbst sieht weiterhin jeder" aus 0.7.2 **ausdrücklich zurück**: sie sind eine
-  Aussage über die **Anlage als Ganzes**. **Der Schlüsselwert im selben Rumpf
+  Aussage über die **Instanz als Ganzes**. **Der Schlüsselwert im selben Rumpf
   bleibt eine zweite, engere Klemme** am Eigentümer; die beiden wurden
   ausdrücklich nicht zusammengelegt.
 - **Wer einen Testtag einträgt, dem gehört die Zeile** (seit 0.6.1). *Löschen*
@@ -3039,7 +3039,7 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
 entstanden ist.)*
 
 **Eine Begründung gehört in ein Papier — in die README, in dieses Blatt, in
-einen Kommentar am Quelltext.** *Wer davorsteht, will wissen, WAS die Anlage
+einen Kommentar am Quelltext.** *Wer davorsteht, will wissen, WAS die Instanz
 tut; warum sie so gebaut ist, hilft ihm nicht und ist in einem Jahr womöglich
 nicht mehr wahr.*
 
@@ -3104,13 +3104,13 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
 >
 > **Was in 0.10.0 entschieden war.** Der hervorgehobene Strich in
 > `marke-dunkel.svg` und `favicon.svg` war `#ffc531` — **genau `--gold`**, seit
-> jeher der zweite Signalwert der Anlage neben `--accent`. Die Frage stand als
+> jeher der zweite Signalwert der Instanz neben `--accent`. Die Frage stand als
 > Berichtigung im Auftrag zu 0.10.0 („die Marke läuft aus der Farbwelt"); beim
 > Nachsehen war sie **keine**. Entschieden war: Gold bleibt — *`--accent` ist
 > die Farbe der **Handlung**, und eine Marke ist keine Handlung.*
 >
 > **Warum das nicht trägt.** Die Entscheidung fiel **am Papier**. An der
-> laufenden Anlage gesehen, stehen in der Kopfzeile **zwei warme Farben
+> laufenden Instanz gesehen, stehen in der Kopfzeile **zwei warme Farben
 > nebeneinander, die nichts voneinander wissen**: der Strich in Gold, der Knopf
 > „+ Maschine" eine Handbreit daneben in `--accent`. **Es ist keine Rangfolge,
 > wenn beide gleichzeitig im Blick liegen — es sind zwei Töne, die sich
@@ -3119,11 +3119,11 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
 > **Der Satz, der stehen bleibt: Gold ist die Farbe der Bewertung.** Er gilt
 > weiter — für die Sterne, für die Punkte der Zeitleiste, für das Anheften.
 > **Der Satz, der ihn schlägt: die Marke ist nicht die Bewertung — sie ist die
-> Anlage.** Und die Anlage spricht in `--accent`.
+> Instanz.** Und die Instanz spricht in `--accent`.
 >
 > **Entschieden ist mit 0.11.0: der Strich trägt `--accent`**, in beiden
-> Dateien. *Wer das je wieder ändert, ändert eine Aussage über die Anlage und
-> nicht eine Farbe — und sollte es an der laufenden Anlage ansehen und nicht am
+> Dateien. *Wer das je wieder ändert, ändert eine Aussage über die Instanz und
+> nicht eine Farbe — und sollte es an der laufenden Instanz ansehen und nicht am
 > Papier.*
 
 - **Die Marke steht so hoch wie der Text daneben, und die Zahl ist
@@ -3139,7 +3139,7 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
   (`6.5 4.5 19 23`). **`favicon.svg` behält dagegen sein Quadrat samt Kachel** —
   es ist ein **Kachelsymbol**, 72 Prozent Füllung sind dort der übliche
   Schutzbereich, und ein enges `viewBox` schnitte die Kachel an. **Und die Größe
-  steht im Stylesheet, in `rem`, nicht in den Attributen** — die Anlage stellt
+  steht im Stylesheet, in `rem`, nicht in den Attributen** — die Instanz stellt
   die Schrift von 80 bis 120 Prozent. *Die Anmeldeseite ist damit
   mitentschieden und nicht mitgeschleift.*
 
@@ -3154,10 +3154,10 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
   **Dieselbe Klemme, dieselbe Rückfrage, dieselbe Route** — eine Funktion, zwei
   Rufer; zwei Löschstellen wären zwei Gelegenheiten, die Rückfrage zu
   vergessen. *Ein Papierkorb im Vollbild, der ohne Frage löscht, wäre der
-  gefährlichste Knopf der Anlage.* **Er steht abgesetzt und VOR dem
+  gefährlichste Knopf der Instanz.* **Er steht abgesetzt und VOR dem
   Schließenkreuz**, nicht daneben: zwei Kreuze nebeneinander, von denen eines
   die Ansicht zumacht und das andere das Bild vernichtet, wären die
-  gefährlichste Nachbarschaft der Anlage. *Am Kommentarbild gibt es ihn nicht —
+  gefährlichste Nachbarschaft der Instanz. *Am Kommentarbild gibt es ihn nicht —
   das wird am Kommentar entfernt.*
 - **Der Fokuspunkt schneidet nichts weg.** Zwei Prozentwerte verschieben nur das
   sichtbare Fenster der quadratischen Vorschau (`object-position`); die Datei
@@ -3393,7 +3393,7 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
   unverändert, seit sie nach Eintrag UND Verfasser gruppieren.*
 - **DIE TAFEL SAGT, WAS NEU IST** *(seit 0.17.0)*: „3 Kommentare ·
   4 Bewertungen" statt „7 neue Beiträge". *„Beitrag" ist ein Sammelwort, das
-  die Anlage sonst nirgends benutzt.* **Die Auskunft lag vorher schon vor und
+  die Instanz sonst nirgends benutzt.* **Die Auskunft lag vorher schon vor und
   wurde weggeworfen** — die beiden Abfragen sind seit jeher getrennt und wurden
   erst in der Schleife zu einer Zahl addiert. **Bei nur einer Art steht auch
   nur eine Angabe da**; „0 Bewertungen" wäre eine Auskunft über nichts.
@@ -3510,7 +3510,7 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
   rücken: Trennstrich davor, kleinere Überschrift, leiseres Ablagefeld, zweite
   Bestätigung unverändert.
 - **Die Kennzahlen nennen Verfahren, nie Paketversionen** (seit 0.16.0). Ein
-  Verfahrensname sagt, **wie** gerechnet wird — das darf wissen, wer die Anlage
+  Verfahrensname sagt, **wie** gerechnet wird — das darf wissen, wer die Instanz
   betreibt. Eine Bibliotheksversion sagt, **welche Lücke passt**. *Die Angaben
   werden in `db.js` aus der geöffneten Datenbank abgelesen, nicht in der
   Oberfläche behauptet: eine Kopie liefe beim nächsten Wechsel auseinander.*
@@ -3614,7 +3614,7 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
   Tagwolke ist mehrzeilig — Beschriftung, Umschalter und Verweise sanken bis zu
   59 px zu tief. **Oberkante wäre der falsche Ausweg:** sie setzt die Kästen
   bündig, die Schrift darin nicht, und der Ausgleich wäre ein ausgerechneter
-  Innenabstand — eine feste Pixelzahl in einer Anlage, die ihre Schrift von 80
+  Innenabstand — eine feste Pixelzahl in einer Instanz, die ihre Schrift von 80
   bis 120 Prozent stellt (Befund A aus 0.12.1). *Der Prüfstand hält den Weg zu:
   ein `align-self`, `padding-top` oder `margin-top` an Beschriftung oder
   Verweisen macht eine Zeile rot.*
@@ -3624,7 +3624,7 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
   **Damit beginnen alle Sternreihen an derselben Stelle** — auch die der Zeilen
   ohne Bewertung und die neben einer dreistelligen Stimmenzahl.
   **Vorher stand dort `min-width: 52px`.** Die Absicht war richtig, die **Zahl**
-  war falsch: eine feste Pixelzahl in einer Anlage, die ihre Schrift von 80 bis
+  war falsch: eine feste Pixelzahl in einer Instanz, die ihre Schrift von 80 bis
   120 Prozent stellt — dasselbe Muster wie Befund A aus 0.12.1. *Bei 80 Prozent
   stimmte die leere Zeile zufällig, bei 120 klafften 26 px; und gegen die lange
   Zahl half sie in keiner Größe.* **Im Stilblatt steht an dieser Spalte keine
@@ -3821,7 +3821,7 @@ frame-ancestors 'none'; base-uri 'none'; form-action 'none'
 ```
 
 **`media-src 'self' blob:` ist seit 0.8.50 dabei, und beide Angaben sind
-nötig.** `'self'` trägt das Abspielen aus der eigenen Anlage. `blob:` trägt das
+nötig.** `'self'` trägt das Abspielen aus der eigenen Instanz. `blob:` trägt das
 **Standbild vor dem Hochladen**: die Oberfläche hängt die gewählte Datei als
 `blob:`-Adresse an ein `<video>`, um ein Einzelbild daraus zu ziehen. Eine
 `blob:`-Adresse an einem `<video>` fällt unter `media-src`, **nicht** unter
@@ -4416,7 +4416,7 @@ Version, in der sie entstanden sind.*
     startet echte Server als Kindprozesse; bricht er ab, laufen sie weiter. Die
     **Bereitschaftsprüfung** des nächsten Laufs (`GET /api/config` auf einem
     zufällig gewählten Port) kann dann von einem **fremden** Server beantwortet
-    werden — und der Lauf prüft danach eine andere Anlage: Zeilen, die in der
+    werden — und der Lauf prüft danach eine andere Instanz: Zeilen, die in der
     Datenbank stehen, sind über die Schnittstelle nicht da. Beim Bau von 0.8.70
     hat das zwei Gegenproben widersprüchliche Punkte liefern lassen, und der
     Befund war erst zu sehen, als zwölf verwaiste Prozesse nebeneinander
@@ -4492,9 +4492,9 @@ Version, in der sie entstanden sind.*
 
 130. **Ein Rückbau, der eine Tabelle aus der DDL nimmt, reißt den Start ab
     statt eine Prüfung rot zu färben.** `auth.js` bereitet seine Anweisungen
-    beim Laden vor; fehlt die Tabelle, startet die Anlage gar nicht. Die
+    beim Laden vor; fehlt die Tabelle, startet die Instanz gar nicht. Die
     Gegenprobe zu „die Tabelle legt sich selbst an" läuft deshalb über den
-    **Index**, und der Befund gehört daneben geschrieben: *die Anlage startet
+    **Index**, und der Befund gehört daneben geschrieben: *die Instanz startet
     ohne die Tabelle überhaupt nicht — das ist schärfer als die Prüfung, aber
     es ist eine andere Aussage.* Verwandt mit 103, aber eigenständig: dort
     reißt die Prüfzeile ab, hier der Gegenstand selbst.
@@ -4689,12 +4689,12 @@ Version, in der sie entstanden sind.*
     einer **leeren** Datenbank: Ansage „0,2 MB, rund 1 Sekunde", in
     Millisekunden vorbei, danach „noch kein Zugang". Über 662 MB sagt das
     nichts. **`data/` und `.env` gehören zusammen:** wer beides wegwirft, hat
-    keine Probe mehr, sondern eine neue Anlage; wer nur den Schlüssel ersetzt
+    keine Probe mehr, sondern eine neue Instanz; wer nur den Schlüssel ersetzt
     und die Daten behält, bekommt eine Datenbank, die gar nicht mehr aufgeht —
     dann scheitert schon der Start, nicht der Wechsel. *Eine Probe an einem
     Bestand ist erst dann eine, wenn sie den echten Bestand trägt, samt seinem
     Schlüssel.* Die README trug dazu nur Prosa; seit 0.9.0 steht dort ein
-    Rezept, das eine Kopie der echten Anlage nimmt, und daneben die vier
+    Rezept, das eine Kopie der echten Instanz nimmt, und daneben die vier
     Zeilen, an denen sich ablesen lässt, ob die Probe etwas wert war.
 
 148. **Wer die echte `.env` in eine Probe kopiert, kopiert den laufenden
@@ -4702,13 +4702,13 @@ Version, in der sie entstanden sind.*
     **alten** Wert im Klartext nennt, ist gewollt und in Abschnitt 3 begründet:
     er öffnet ab dann nur noch die Sicherungen von vorher. An einer Probe, die
     die echte `.env` trägt — und **nur die belegt etwas, siehe 147** —, ist
-    dieser „alte" Wert der **laufende** Schlüssel der echten Anlage. **Das ist
+    dieser „alte" Wert der **laufende** Schlüssel der echten Instanz. **Das ist
     kein Fehler des Skripts, sondern eine Eigenschaft der Probe:** dieselbe
-    Zeile ist an einer Wegwerfanlage harmlos und an der Kopie der echten die
+    Zeile ist an einer Wegwerfinstanz harmlos und an der Kopie der echten die
     schärfste im ganzen Lauf. *Wer so probt, behandelt ihre Ausgabe wie den
     Schlüssel selbst* — kein Gespräch, kein Papier, keine Zwischenablage, die
     woanders landet. **Ist er doch abgeflossen, ist der Wechsel an der echten
-    Anlage die Antwort**, und der ist jetzt geprobt: elf Sekunden Stillstand.
+    Instanz die Antwort**, und der ist jetzt geprobt: elf Sekunden Stillstand.
     Dazu gehört das Aufräumen, denn die Probe lässt zwei Dinge nebeneinander
     liegen: `.env.vor-schluesselwechsel-…` und die Sicherung
     `../kriterion-data-vor-schluesselwechsel-…` — Schlüssel neben Daten, genau
@@ -4756,7 +4756,7 @@ Version, in der sie entstanden sind.*
     ersten Lauf gefunden**, namentlich und mit beiden Zahlen. *Wer eine
     Prüflage ergänzt, rechnet nicht nur ihre eigene Nummer nach, sondern die
     Spanne aller.* Behoben, ohne die Zahl zu ändern: die Bremsprobe teilt sich
-    die Anlage der Gruppe davor, die dort ohnehin fertig ist. Fortschreibung
+    die Instanz der Gruppe davor, die dort ohnehin fertig ist. Fortschreibung
     von 127.
 
 153. **Zwei Kästen mit denselben festen Kennungen sind einer zu viel.** Der
@@ -4786,7 +4786,7 @@ Version, in der sie entstanden sind.*
 155. **Ein Bedienelement, das seinen eigenen Zustand ein- und ausschaltet, darf
     nicht an diesem Zustand hängen.** Die Karte „Anfragen" trug den Schalter der
     Selbstanmeldung — und erschien selbst nur, wenn der Schalter an war oder
-    Anfragen vorlagen. An einer frisch eingespielten Anlage ist beides nicht der
+    Anfragen vorlagen. An einer frisch eingespielten Instanz ist beides nicht der
     Fall: **die Karte fehlt, also fehlt der Schalter, also bleibt die
     Selbstanmeldung für immer aus.** Aufgefallen ist es erst im Betrieb, nach
     dem Einspielen.
@@ -4829,7 +4829,7 @@ Version, in der sie entstanden sind.*
 
 158. **Ein Einspielweg, der Dateien kopiert, entfernt keine — eine gelöschte
     Datei bleibt auf dem Wirt liegen und läuft mit.** Nach dem Einspielen der
-    Nacharbeit meldete die Anlage `fad3e5ed`, und das war der Stand keines
+    Nacharbeit meldete die Instanz `fad3e5ed`, und das war der Stand keines
     einzigen Commits — nachgemessen an je einem echten Server aus einem
     sauberen `git archive`-Export, für jeden Stand der Runde. Die Ursache war
     **eine Datei zu viel**: `public/marke-hell.svg` war entfernt worden und lag
@@ -4845,7 +4845,7 @@ Version, in der sie entstanden sind.*
     kopieren, und genau dafür ist das da.* Wer abkürzt und über den vorhandenen
     Ordner entpackt, bekommt diesen Fall. **Und was der Fingerprint weiterhin
     nicht sagt, ist WELCHE Datei abweicht** — dafür steht der Handgriff im
-    README, und eine Zeile in der Karte „Anlage" ist für die nächste
+    README, und eine Zeile in der Karte „Instanz" ist für die nächste
     Nacharbeitsrunde vorgemerkt (Abschnitt 10).
 
 159. **Wer eine zweite Schranke vor die Anmeldung setzt, sucht ALLE Wege
@@ -4994,7 +4994,7 @@ Version, in der sie entstanden sind.*
 169. **Ein Feldname sagt nicht, was in dem Feld steht.** `testLast` in der
     Listenantwort klingt nach „letzter Testtag" und trägt die **letzte
     Tagesnote** — eine Zahl von 1 bis 5. Eine frisch geschriebene Prüfung
-    verglich sie mit `'2026-05-05'` und wurde rot, obwohl die Anlage richtig
+    verglich sie mit `'2026-05-05'` und wurde rot, obwohl die Instanz richtig
     antwortete. *Der Beleg für die Bedeutung eines Feldes steht an seiner
     Entstehungsstelle (`testStats`) und nicht in seinem Namen;* die Kachel
     schreibt daneben „zuletzt 4", und die Sortierung `testlast_desc` vergleicht
@@ -5046,7 +5046,7 @@ Version, in der sie entstanden sind.*
     Fingerabschnitt hebt die Ziele über `.xdel`, `.chip` und `.select` — und
     verfehlte damit `.rstimme .xdel`, `.chip-xs` und `.mrow.zug select.zug-r`:
     zwei Klassen schlagen eine, **auch aus einer Medienregel heraus**. Die drei
-    kleinsten Ziele der Anlage wären als einzige klein geblieben.
+    kleinsten Ziele der Instanz wären als einzige klein geblieben.
     *Umgekehrt genauso:* eine neue Regel mit gleichem Gewicht, die weiter unten
     steht, **nimmt der älteren still ihre Wirkung** — so hat der Rücknehmer für
     hängengebliebene Überfahrzustände der ausgewählten Karte ihren Rahmen
@@ -5095,7 +5095,7 @@ Version, in der sie entstanden sind.*
     Wähler wiegen zwei Klassen, und die spätere gewinnt.
 
 178. **Eine Anordnung, die in einer Zeile richtig ist, kann in einer Kachel
-    falsch sein.** Das Löschkreuz sitzt in dieser Anlage überall oben rechts —
+    falsch sein.** Das Löschkreuz sitzt in dieser Instanz überall oben rechts —
     in der Linkliste, in der Dateiliste, am Kommentar. In der Vorschaureihe saß
     es dort ebenfalls, und dort war es falsch: **eine Zeile ist breit und wird
     angetippt, eine Kachelreihe ist schmal und wird quer durchgewischt.** Der
@@ -5223,7 +5223,7 @@ Version, in der sie entstanden sind.*
     zur anderen Hälfte gehört.*
 
 187. **Eine Prüflage mehr kann eine Zahl kippen, die mit ihr nichts zu tun
-    hat.** Der Rundlauf des Teilexports braucht **zwei** Anlagen; damit wuchs
+    hat.** Der Rundlauf des Teilexports braucht **zwei** Instanzen; damit wuchs
     die Spanne aller Portbasen von 2980 auf 3100 — und über einen Wächter, der
     seit jeher verlangt, dass der **Versatz je Nebenspur größer ist als diese
     Spanne**, riss damit die Gegenprobe. *Bei Gleichheit fängt die nächste Spur
@@ -5520,11 +5520,11 @@ Version, in der sie entstanden sind.*
     noch in der DDL. *Ein fester Wert ließe den ganzen Altbestand gleich alt
     aussehen; `datetime('now')` ließe ihn brandneu aussehen, und die Glocke
     läutete beim ersten Start für jede Bewertung, die je vergeben wurde.*
-    **Eine leere Zelle heißt „die Anlage weiß nicht, wann das war" — und die
+    **Eine leere Zelle heißt „die Instanz weiß nicht, wann das war" — und die
     Glocke übergeht sie.** Dasselbe gilt für eingespielte Bewertungen: die
     Exportdatei trägt den Zeitpunkt nicht, und ein `datetime('now')` beim
     Einspielen machte daraus die **Behauptung**, sie seien eben erst vergeben
-    worden. **Was die Anlage nicht weiß, behauptet sie nicht.**
+    worden. **Was die Instanz nicht weiß, behauptet sie nicht.**
 
 220. **Ein Anker, der zweimal vorkommt, ist kein Anker.** Ein Skript für dieses
     Blatt suchte seine Einfügestelle mit „die erste Zeile, die mit `### 0.16.0
@@ -5658,7 +5658,7 @@ Version, in der sie entstanden sind.*
     Spur 0 ab — und der Bericht meldet „ABGERISSEN", nicht „von außen gestört".**
     Spur 0 fährt ohne Versatz, also auf **denselben Portbasen wie `npm test`**.
     Ein Lauf daneben nimmt ihr die Ports, ihre Server enden sofort, und der
-    Rückbau sieht aus wie einer, der die Anlage zerstört. **Schlimmer ist das
+    Rückbau sieht aus wie einer, der die Instanz zerstört. **Schlimmer ist das
     Aufräumen über ein Namensmuster:** `pkill -f "node pruefung.js"` trifft die
     Läufe **aller** Spuren, weil sie genauso heißen — vier Rückbauten auf einen
     Schlag, alle mit demselben falschen Befund, und die verwaisten Server
@@ -5705,7 +5705,7 @@ Version, in der sie entstanden sind.*
     Raster des Erklärkastens (`1fr auto auto auto`) im Stilblatt, und **nichts
     verband die beiden.** *Wer die Spalten des Kastens änderte, bekäme eine
     grüne Zusage über ein zerfallenes Raster: der Befund aus Punkt 1, eine
-    Ansicht weiter und diesmal im Prüfstand statt in der Anlage.* **Eine Lehre
+    Ansicht weiter und diesmal im Prüfstand statt in der Instanz.* **Eine Lehre
     wandert nicht von selbst** — wer sie an einer Stelle zieht, sucht am selben
     Tag die anderen, an denen dieselbe Zahl zweimal steht. *Gefunden hat sie
     eine Durchsicht und nicht der Lauf: 4621 grüne Prüfungen sahen sie nicht
@@ -5715,7 +5715,7 @@ Version, in der sie entstanden sind.*
     wenn er sorgfältig ist.*
 
 235. **Ein Rückbau, der ein ZWEITES Netz wegnimmt, bleibt stumm — und das ist
-    ein Fund über die Prüfung, nicht über die Anlage.** Rückbau 321 tauschte
+    ein Fund über die Prüfung, nicht über die Instanz.** Rückbau 321 tauschte
     die Menge in `neuVon` gegen eine Liste und sollte zeigen, dass ein
     Verfasser **nur einmal** in der Tafel steht. **Er konnte nichts zeigen:**
     die Eindeutigkeit kommt aus `GROUP BY item_id, user_id`, das je Paar genau
@@ -5735,7 +5735,7 @@ Version, in der sie entstanden sind.*
 
 Der Prüfstand liegt als `pruefung.js` im Quelltext und läuft über `npm test`. Er
 legt **echte Server mit echten, verschlüsselten Datenbanken** in
-Wegwerfverzeichnissen an — `data/` bleibt unangetastet, und **alle Anlagen
+Wegwerfverzeichnissen an — `data/` bleibt unangetastet, und **alle Instanzen
 entstehen frisch** über Einrichtungsseite und Verwaltung; einen präparierten
 Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 `jsdom` (Entwicklungsabhängigkeit; per `.dockerignore` und `--omit=dev`
@@ -5804,7 +5804,7 @@ einzige Prüfung ist damals weggefallen**:*
 |---|---|---|---|
 | Versionsnummer, Linkzeilen, Zeitleiste | 15 | 26 | Version und Verfahren in den Kennzahlen |
 | Der Systembereich nach Rolle | 57 | 66 | die fünf Abschnitte, ihre Adressen, der Rückfall |
-| Der Papierkorb in der Oberflaeche | 39 | 50 | der Papierkorb im Vollbild an der echten Anlage |
+| Der Papierkorb in der Oberflaeche | 39 | 50 | der Papierkorb im Vollbild an der echten Instanz |
 | Die Gegenproben greifen | 9 | 17 | der Nummernfilter und die 300 Rückbauten |
 | Offen: der Haken in der Ansicht | 26 | 27 | die Zahl am Knopf „Offen" |
 | Neu seit: der Merkzeitpunkt | 11 | 12 | `glockeGesehen` neben `zuletztGesehen` *(die Gruppe ist mit 0.17.0 aufgelöst)* |
@@ -6005,16 +6005,16 @@ Rückbauten.*
   Transaktion** (ein Auslöser in der Datenbank erzwingt den Fehlschlag), die
   Bytes liegen **nicht** in der JSON, die **dreißig Tage** an **beiden** Seiten
   und **jede** der beiden Aufräumstellen einzeln.
-- **Die Sicherung:** `VACUUM INTO` an einer echten Anlage — die Kopie entsteht,
+- **Die Sicherung:** `VACUUM INTO` an einer echten Instanz — die Kopie entsteht,
   ist **ohne Schlüssel nicht lesbar**, **mit** Schlüssel vollständig, und der
   Ausgangsstand ist danach unverändert. Sieben Absagen am Zielort, jede mit
   ihrer Begründung **und** der Nachschau, dass danach keine Datei da liegt;
   darunter ein **Symlink**, der aus der Wurzel herausführt. „Letzte Sicherung"
   folgt dem **Dateisystem**. Und die Probe, dass `db.backup()` kein zweiter Weg
   ist.
-- **Der Schlüsselwechsel:** an echten, verschlüsselten Anlagen, ohne Server —
-  gewechselt wird bei angehaltener Anlage, und genau so läuft die Prüfung. Der
-  **Abbruch mit `kill -9`** braucht eine Anlage, an der der Wechsel messbar
+- **Der Schlüsselwechsel:** an echten, verschlüsselten Instanzen, ohne Server —
+  gewechselt wird bei angehaltener Instanz, und genau so läuft die Prüfung. Der
+  **Abbruch mit `kill -9`** braucht eine Instanz, an der der Wechsel messbar
   dauert (rund 60 MB, gemessen statt geraten); ist er wider Erwarten zu schnell,
   **sagt die Prüfung das** und bleibt nicht still grün. Die **Absage bei zu
   wenig Platz** braucht ein volles Dateisystem; lässt sich keines einhängen,
@@ -6034,7 +6034,7 @@ Rückbauten.*
   stehen daneben — **samt der Gegenlage zur Messung selbst** (hätte der
   Empfänger sofort abgesagt, wäre „keine wartet" wahr, ohne etwas zu belegen).
 - **Der zweite Faktor: die Codes werden gegen die Testvektoren aus RFC 6238
-  geprüft, nicht gegen die eigene Rechnung** — sonst prüfte die Anlage sich
+  geprüft, nicht gegen die eigene Rechnung** — sonst prüfte die Instanz sich
   selbst. Alle sechs Vektoren, sechs- und achtstellig, dazu der Base32-Rundlauf
   gegen RFC 4648. **Jeder der vier Kennwerte wird einzeln festgenagelt.**
   **Jede Lage bekommt ihren eigenen Zugang** — der verbrauchte Zähler steht je
@@ -6096,7 +6096,7 @@ liefert **122 Pfade**. Wächst der Baum später still, wird es namentlich rot.
 **Es gibt sieben, und alle tragen dieselbe Marke.** Je Block wird nachgestellt:
 die Spalte kommt dazu, die Bestandszeilen stehen auf der Vorgabe **aus dem
 `DEFAULT`** (am Quelltext nachgesehen, nicht aus einem `UPDATE`), ein zweiter
-Lauf bleibt **stumm**, und eine **frische** Anlage trägt die Spalte **ohne**
+Lauf bleibt **stumm**, und eine **frische** Instanz trägt die Spalte **ohne**
 Migration. *Der siebte ist der erste ohne `DEFAULT`; dort steht statt der
 Vorgabe die leere Zelle, und sie wird ebenso geprüft.*
 
@@ -6123,7 +6123,7 @@ einem Lauf von beiden Seiten belegt. *Die DDL einer Tabelle hat bewusst keinen
 Rückbau: nähme man sie weg, stürbe der Server beim Laden, und der Lauf risse ab
 statt rot zu werden (Stolperstein 161) — zurückgenommen wird der **Index**
 daneben, der dieselbe Aussage trägt.* **Ausdrücklich geprüft ist außerdem: das
-Schema einer gewachsenen Anlage ist nach dem Start dasselbe wie das einer
+Schema einer gewachsenen Instanz ist nach dem Start dasselbe wie das einer
 frischen.**
 
 ### Die Gegenproben — und was sie gefunden haben
@@ -6263,7 +6263,7 @@ eine Buchführung.*
 | 0.7.1 | Stufe E2 (31) | 8 | Stolpersteine 70 und 71 |
 | 0.7.2 | Stufe F (112) | 25 | Stolpersteine 72, 73 und 74 |
 | 0.8.0 | Stufe G1 (115) | 20 | Stolpersteine 75, 76 und 77 |
-| 0.8.1 | Umstellung auf frische Anlage (−102 Migrationsprüfungen) | — | — |
+| 0.8.1 | Umstellung auf frische Instanz (−102 Migrationsprüfungen) | — | — |
 | 0.8.2 | Stufe G2, erste Hälfte (61) | 19 | Stolpersteine 78, 79 und 80 |
 | 0.8.3 | Stufe G2, zweite Hälfte, Punkte 1–4 (39) | 16 | Stolpersteine 81 und 82 |
 | 0.8.4 | Stufe G2 vollständig (106) | 34 | Stolpersteine 83 bis 86 |
@@ -6316,7 +6316,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 - **DIE DREI HANDGRIFFE ZU 0.17.0 SIND AM WIRT NOCH NICHT GEFAHREN.** Am
   Prüfstand ist alles belegt, was sich dort belegen lässt; jsdom rechnet kein
   Layout, und drei der Befunde dieser Runde sind **Maße**. **Am Wirt fehlt:**
-  *(a)* einen Eintrag mit **mehreren Kriterien** an einer Anlage mit **einem
+  *(a)* einen Eintrag mit **mehreren Kriterien** an einer Instanz mit **einem
   einzigen Zugang** ansehen und nachzählen, dass Namen und Sternreihen
   untereinander stehen — *und im selben Zug auf die Gesamtnote klicken: der
   Erklärkasten muss auf die Spalte **Note** verweisen, die in ihm selbst steht
@@ -6336,7 +6336,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   *Was in 0.17.0 gefahren wurde, steht im Änderungsprotokoll dieser Runde.*
 - **DER MIGRATIONSBLOCK 0.16.0 IST AM ECHTEN BESTAND NOCH NICHT GEFAHREN.** Er
   ist am Prüfstand an einer nachgebauten Datenbank aus 0.15.1 belegt — einmal
-  ganz, zweimal hintereinander, gegen eine frische Anlage gehalten und an
+  ganz, zweimal hintereinander, gegen eine frische Instanz gehalten und an
   beiden Enden auf den fehlenden Vorgabewert geprüft. **Am Wirt fehlt der
   Beleg:** nach dem Einspielen einmal ins Protokoll sehen
   (`docker compose logs kriterion`), dass die Zeile *„ratings um gesetzt_am
@@ -6383,8 +6383,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   welchem Verfahren eingespielt wurde** — und danach, dass **keine** Zeile
   „Bestätigung gescheitert" im Sicherheitsprotokoll steht.
   **Und der eine Handgriff, der wirklich zählt: einen Teil in eine
-  ZWEITANLAGE einspielen, nicht in die laufende.** *Ein Rückweg, der nur in
-  die Anlage führt, aus der der Export kam, belegt den Rückweg nicht.*
+  ZWEITINSTANZ einspielen, nicht in die laufende.** *Ein Rückweg, der nur in
+  die Instanz führt, aus der der Export kam, belegt den Rückweg nicht.*
   **Der Punkt darunter meint denselben Lauf mit einer zweiten Frage** — hier
   geht es um Weg und Mitschrift, dort um den Rundlauf am echten Bestand; wer
   beides in einem Zug mitschreibt, spart sich den zweiten Lauf.
@@ -6399,7 +6399,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 - **Der Import liest die Datei weiterhin als einen String.** Für Teile reicht
   das — jeder ist klein genug. **Eine einzelne Datei über 512 MB lässt sich
   weiterhin nicht einspielen**, gleich woher sie kommt. *Das trifft niemanden,
-  der mit dieser Anlage exportiert hat; es trifft, wer eine solche Datei von
+  der mit dieser Instanz exportiert hat; es trifft, wer eine solche Datei von
   woanders bekommt.* **Der Weg dahin wäre ein zeilenweiser Leser für JSON — auf
   dem Pfad, der fremde Dateien annimmt und unter fremden Namen schreibt.** Eine
   eigene Runde mit eigener Prüflage, und keine Beifracht.
@@ -6410,7 +6410,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   Versionen sind über `CHANGELOG.md`, die Änderungsprotokolle und den
   Fingerprint eindeutig bestimmt, und der Fingerprint sagt am Wirt mehr als
   ein Tag.* **Die einzige Wirkung bleibt, dass die Vergleichsverweise am Ende
-  von `CHANGELOG.md` ins Leere zeigen** — an der Anlage ändert es nichts.
+  von `CHANGELOG.md` ins Leere zeigen** — an der Instanz ändert es nichts.
   **Der Befund darunter bleibt trotzdem stehen**, weil er eine Eigenschaft der
   Arbeitsumgebung festhält und nicht eine offene Aufgabe:
 
@@ -6456,7 +6456,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   entstehenden — die alten sind von `main` aus dann nicht mehr erreichbar.*
 
   **Ohne die Tags zeigen die Vergleichsverweise am Ende von `CHANGELOG.md` ins
-  Leere** — das ist die einzige Wirkung; an der Anlage ändert es nichts.
+  Leere** — das ist die einzige Wirkung; an der Instanz ändert es nichts.
   *`v0.10.0` liegt am Remote und trägt.*
 - **DIE RUNDLÄUFE FÜR 0.11.0 UND 0.12.0 SIND NOCH NICHT GEFAHREN.** Für 0.11.0
   belegen drei Handgriffe die Runde am laufenden Server: **nach einem
@@ -6464,7 +6464,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   abmelden, anmelden, die Ansicht wählen**; und **einen Doppeleintrag
   antippen**, die Zeile „Ähnlich" sehen.
   **Für 0.12.0 kommt ein Handgriff dazu, den nur ein echtes Gerät beantwortet:**
-  die Anlage einmal auf einem Telefon und einmal auf einem Tablett öffnen — das
+  die Instanz einmal auf einem Telefon und einmal auf einem Tablett öffnen — das
   Menü, die Filter, ein Eintrag mit mehreren Fotos, ein Kommentar. *Gemessen
   wurde in einem Browser mit Geräteemulation, und die stimmt in Maßen und
   Medienregeln; sie sagt nichts darüber, wie sich ein Finger auf Glas anfühlt.*
@@ -6476,8 +6476,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   *es darf dabei nichts mehr zu löschen geben, und die Reihe soll bis an den
   rechten Rand reichen* —, eine Kachel lange drücken und verschieben, dann am
   großen Bild den Papierkorb drücken.
-- ~~**Der Fingerprint der laufenden Anlage ist zu vergleichen.**~~ **ERLEDIGT:**
-  die Anlage ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
+- ~~**Der Fingerprint der laufenden Instanz ist zu vergleichen.**~~ **ERLEDIGT:**
+  die Instanz ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
 - **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZWÖLF RUNDEN AUS.** Jetzt **300**
@@ -6521,7 +6521,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   sie trägt. *Beides gehört in den Prüflauf, und dafür braucht er etwas, das
   Layout rechnet.*
 - **ZWEI DATEISÄTZE TRAGEN DIE NUMMER 0.9.1.** Das veröffentlichte 0.9.1 in
-  `main` hat den Fingerprint `cb73399d`; die laufende Anlage trug `3cf1b093`.
+  `main` hat den Fingerprint `cb73399d`; die laufende Instanz trug `3cf1b093`.
   Dazwischen liegt die Nacharbeit an Marke und Anmeldekarte. **Solange das so
   steht, lässt sich `3cf1b093` keiner veröffentlichten Nummer zuordnen** — das
   ist der Betriebsstand. *Eine eigene Nummer dafür kommt nicht mehr in Frage:
@@ -6535,7 +6535,7 @@ Wirkungen und konnte damit immer nur ein Netz bedienen; über
 `http://<server-ip>:3100` kam niemand mehr herein. **Cookiename, `Secure` und
 HSTS entscheidet seither die einzelne Anfrage über `X-Forwarded-Proto`, mit
 zwei Cookienamen und genau einem gelesenen je Anfrage** (Abschnitt 3).
-*Der Quelltext hatte genau das vorhergesehen:* „Ist die Anlage je aus mehreren
+*Der Quelltext hatte genau das vorhergesehen:* „Ist die Instanz je aus mehreren
 Netzen gleichzeitig erreichbar, gehört das nachgeliefert" (`auth.js`, Kopf) —
 geschrieben 0.8.20, eingetreten 0.10.0, gebaut 0.13.0.
 
@@ -6569,7 +6569,7 @@ ausdrücklich nicht, mit drei Gründen:
 
 **Sie gehört damit in eine eigene Runde.** *Und solange sie fehlt, bleibt auch
 die maschinenlesbare Zeile nach stdout (Sammelblatt Nr. 9c) verworfen: sie
-trüge eine Adresse, für die die Anlage schlechter einstehen kann als das
+trüge eine Adresse, für die die Instanz schlechter einstehen kann als das
 Zugriffsprotokoll des Proxys, das dieselbe Auskunft schon gibt.*
 
 ### Offene Kleinigkeiten
@@ -6590,7 +6590,7 @@ Zugriffsprotokoll des Proxys, das dieselbe Auskunft schon gibt.*
   Prüfsummen der Dateien nebeneinander, über die er geht. **Eine Datei zu viel
   wiegt dabei genauso schwer wie eine falsche.** *Was daraus gebaut werden
   könnte, steht im Sammelblatt.*
-- **`OEFFENTLICHE_ADRESSE` eintragen**, falls noch nicht geschehen. Die Anlage
+- **`OEFFENTLICHE_ADRESSE` eintragen**, falls noch nicht geschehen. Die Instanz
   läuft hinter einem Proxy, eine Adresse von außen gibt es also. **Ohne sie wird
   nicht verschickt**, und die Selbstanmeldung lässt sich gar nicht erst
   einschalten. *Die Startzeile hat beim ersten Mal getan, wofür sie gebaut ist:
@@ -6598,7 +6598,7 @@ Zugriffsprotokoll des Proxys, das dieselbe Auskunft schon gibt.*
 - **`AUTH_USER` und `AUTH_PASSWORD` aus der `.env` nehmen** — sie werden nicht
   mehr gelesen (der Start meldet Reste), enthalten aber ein Klartextpasswort.
   **Und das Passwort im Systembereich unter „Zugang" wechseln:** es ist zweimal
-  aus der Anlage herausgeraten — einmal im Klartext in einem ZIP, einmal über
+  aus der Instanz herausgeraten — einmal im Klartext in einem ZIP, einmal über
   eine `od -c`-Ausgabe.
 - **Dateien lassen die Datenbank wachsen.** Bei 50 MB je Stück lohnt
   gelegentlich ein Blick auf die Kennzahlen — und daran zu denken, dass die
@@ -6619,13 +6619,13 @@ Zugriffsprotokoll des Proxys, das dieselbe Auskunft schon gibt.*
   einen `HEALTHCHECK` gegen `/api/config`; `docker compose ps` zeigt `healthy`.
 
 **Hier stehen nur Handgriffe am laufenden Betrieb.** *Was daraus zu bauen wäre —
-die Zeile in der Karte „Anlage", der abgerissene Prüflauf aus der Nacharbeit zu
+die Zeile in der Karte „Instanz", der abgerissene Prüflauf aus der Nacharbeit zu
 0.9.1, das Wartefenster von zwölf Sekunden —, steht in
 `Doku/Fehler_und_Ideen.md` und nur dort.*
 
 ### Erledigt, aber die Lehre bleibt
 
-**DER SCHLÜSSELWECHSEL IST BESTÄTIGT — an einer Kopie der echten Anlage, am
+**DER SCHLÜSSELWECHSEL IST BESTÄTIGT — an einer Kopie der echten Instanz, am
 echten Umfang** (25. August 2026). Gemessen: **662,5 MB angesagt mit rund 13
 Sekunden, wirklich gedauert 10 592 ms**, Journal `wal → DELETE → wal`, danach
 `integrity_check: ok`. **Die Schätzung aus 20 ms je MB hält, und sie schätzt
@@ -6748,7 +6748,7 @@ Abschnitt 5.6: eine Oberfläche sagt, WAS IST — nicht, warum es so gebaut wurd
 beiden Abfragen sind seit jeher getrennt und wurden erst in der Schleife
 addiert. *Die Aufteilung kostet keine zusätzliche Abfrage; bei nur einer Art
 steht auch nur eine Angabe da.* **Dieser Punkt ist der Grund, warum die Runde
-MINOR heißt** — die Anlage kann danach etwas, was sie vorher nicht konnte.
+MINOR heißt** — die Instanz kann danach etwas, was sie vorher nicht konnte.
 
 **DREI ANZEIGEFEHLER VOM ECHTEN GERÄT.** Die **Versionszeile stand auf dem
 Telefon unter der Falz**: `body.anmeldung` maß in `vh`, und `vh` ist dort die
@@ -6810,7 +6810,7 @@ dem Sammelblatt, vier Zeilen aus dessen Teil II und ein Befund aus dem
 Betrieb.**
 
 **DER SYSTEMBEREICH HAT FÜNF ABSCHNITTE MIT EIGENER ADRESSE** —
-`#/system/persoenlich`, `…/bestand`, `…/zugaenge`, `…/datenbank`, `…/anlage`,
+`#/system/persoenlich`, `…/bestand`, `…/zugaenge`, `…/datenbank`, `…/instanz`,
 in der Reihenfolge der **Rechteleiter**. *Ohne Adresse ließe sich keine
 Einstellung verlinken, und die Zurück-Taste bräche — das ist der ganze Punkt,
 und es ist die Falle, in die draußen alle einmal getreten sind.* **`#/system`
@@ -6996,7 +6996,7 @@ rief `decodeURIComponent()` auf **jeden** Wert — ein fremder Cookie mit einem
 Prozentzeichen machte aus jeder geschützten Anfrage eine 500 und sperrte diesen
 Browser aus. Zweitens: die **Sternreihen der Kriterienliste** standen nicht auf
 einer Linie; Ursache war eine feste Pixelzahl (`min-width: 52px`) in einer
-Anlage, die ihre Schrift von 80 bis 120 Prozent stellt. **Die Liste ist jetzt
+Instanz, die ihre Schrift von 80 bis 120 Prozent stellt. **Die Liste ist jetzt
 ein Raster, und im Stilblatt steht dort keine Breite mehr** — gemessen: Spanne
 vorher 11,6 / 27,5 / 43,3 px, nachher **0,0 px** bei allen drei Schriftgrößen.
 
@@ -7047,7 +7047,7 @@ einem Pixel**.
 **GRUNDLINIE UND NICHT OBERKANTE, und das ist die Entscheidung der Runde.**
 `flex-start` setzt die Kästen bündig, die Schrift darin aber nicht — die
 Beschriftung säße 7,5 px zu hoch, und der Ausgleich wäre ein ausgerechneter
-Innenabstand. **Eine feste Pixelzahl in einer Anlage, die ihre Schrift von 80 bis
+Innenabstand. **Eine feste Pixelzahl in einer Instanz, die ihre Schrift von 80 bis
 120 Prozent stellt, kann nur falsch werden** (Befund A aus 0.12.1). `baseline`
 rechnet nichts aus.
 
@@ -7072,7 +7072,7 @@ keine Abhängigkeit, `F_ROUTEN` unverändert bei 69.** Nur `public/style.css`,
 **MINOR · 28. August 2026 · die zweite Runde aus dem Fahrplan (Abschnitt 10a),
 und ein Befund aus dem Betrieb, der davor kam.**
 
-**DIE ANLAGE IST ÜBER ZWEI NETZE ZUGLEICH ERREICHBAR.** `HINTER_PROXY` bündelte
+**DIE INSTANZ IST ÜBER ZWEI NETZE ZUGLEICH ERREICHBAR.** `HINTER_PROXY` bündelte
 fünf Wirkungen und konnte damit immer nur eines bedienen; über
 `http://<server-ip>:3100` kam mit der Einstellung niemand mehr herein — der
 Server antwortete mit 200, der Browser verwarf den `Secure`-Cookie
@@ -7109,7 +7109,7 @@ keine Abhängigkeit, `F_ROUTEN` unverändert bei 69.** 3992 → **4115 Prüfunge
 
 **PATCH · 28. August 2026 · ausgelöst durch eine Messung im Feld.**
 
-**0.12.3 hat gemessen, 0.12.4 antwortet.** Die laufende Anlage meldete beim
+**0.12.3 hat gemessen, 0.12.4 antwortet.** Die laufende Instanz meldete beim
 Druck auf den Exportknopf **760 MB gegen Nodes Grenze von 512 MB**. Der Export
 sagte das seither sauber an — und lieferte nichts mehr.
 
@@ -7130,7 +7130,7 @@ der Grenze liegt, wird namentlich genannt** statt still übergangen.
 **Kein Schema, kein neues Austauschformat, keine `.env`-Zeile, keine
 Abhängigkeit, `F_ROUTEN` unverändert bei 69.** 3954 → **3992 Prüfungen**,
 184 → **193 Rückbauten** *(in den Papieren dieser Runde stand 195; nachgezählt
-mit 0.13.0)*. *Der Rundlauf läuft als Prüfung mit: zwei Anlagen,
+mit 0.13.0)*. *Der Rundlauf läuft als Prüfung mit: zwei Instanzen,
 sechs Teile hinaus, sechs hinein, Feld für Feld verglichen.*
 
 ### 0.12.3 — „Der Export sagt Bescheid, und die Anzeige zieht nach"
@@ -7145,7 +7145,7 @@ gebaut wurde.
 Bestand und lief bei genügend Fotos in `RangeError: Invalid string length` — eine
 **500 nach zwei Minuten**, nachdem der Speicher für den halben Bestand schon
 belegt war. *Am Einzelexport gab es die Klemme längst; am vollen fehlte sie.*
-**Jetzt rechnet die Anlage die Größe aus, bevor sie baut**: die Kennzahlen
+**Jetzt rechnet die Instanz die Größe aus, bevor sie baut**: die Kennzahlen
 nennen sie, die Exportkarte nennt sie je Häkchen und warnt ab 300 MB, die Route
 sagt an der harten Grenze ab, und der Import fragt vor dem Einlesen nach.
 *Gewarnt wird, verweigert nicht — die Zahl ist eine Schätzung.* **Der Export als
@@ -7231,7 +7231,7 @@ Schalter über den Filtern, das Wischen am Bildbereich. **Weggenommen wird
 nichts.** *Keine Datenbankstufe, keine neue Route, keine neue Abhängigkeit,
 keine neue `.env`-Zeile.*
 
-**Der Satz, unter dem alles steht: es bleibt EINE Anlage.** Kein zweiter
+**Der Satz, unter dem alles steht: es bleibt EINE Instanz.** Kein zweiter
 Aufbau, keine Weiche nach der Kennung des Browsers, keine Handy-Adresse. Was
 sich ändert, entscheidet der Browser über zwei Fragen — **die Breite über das
 Layout, der Zeiger über die Größe der Ziele.**
@@ -7255,7 +7255,7 @@ Abweichung sind zwei Pixel im Kommentarblock.
   Telefon fangen sie eingeklappt an, auf dem Tablett offen.
 - **Der Titel vor dem Bild, zwei Karten nebeneinander, Dialoge von unten,
   Wischen am Bildbereich**, die Aussparung des Geräts, die Browserleiste in der
-  Farbe der Anlage, und Eingabefelder, die nicht unter 16 Pixel fallen.
+  Farbe der Instanz, und Eingabefelder, die nicht unter 16 Pixel fallen.
 - **Behoben, und alle drei gab es vorher schon:** die Vergleichsleiste stand
   nicht mittig (`animation … both` überschrieb die Zentrierung); der
   Systembereich lief auf dem Telefon rechts aus dem Bild (`1fr` statt
@@ -7316,7 +7316,7 @@ Dinge (Stolperstein 149). `F_ROUTEN` 59 → **64**, Karten achtzehn →
 nachgezogen, ohne neue Versionsnummer** — die Karte „Anfragen" steht dem Admin
 jetzt immer (Stolperstein 155), der Weg zur Anfrage ist ein Knopf, Marke und
 Name stehen nebeneinander; dabei fiel **eine SVG weniger** in `public/` an, und
-genau daran ist der Fingerprint der laufenden Anlage aufgefallen
+genau daran ist der Fingerprint der laufenden Instanz aufgefallen
 (Stolperstein 158).
 
 **0.9.0 — „Der Server verschickt selbst".** Erste Hälfte von Stufe I, **keine**
@@ -7334,7 +7334,7 @@ nachgemessen; `npm ls --omit=dev` steht seither bei **122 Pfaden**.
 
 **0.8.91 — „Der Schlüssel lässt sich wechseln".** Keine Datenbankstufe. Der
 Schlüssel wechselt über `./schluessel.sh wechseln` **auf dem Wirt**, bei
-angehaltener Anlage, mit der `.env` in einem Zug — **ausdrücklich nicht als
+angehaltener Instanz, mit der `.env` in einem Zug — **ausdrücklich nicht als
 Knopf** (Abschnitt 5). `PRAGMA rekey` läuft nur mit `journal_mode = DELETE`
 davor (Stolperstein 128). Neu: der fünfzehnte Vorgang `schluessel`, die Marke
 `schluesselGewechseltAm` und die **rote Markierung jeder älteren Sicherung**.
@@ -7415,7 +7415,7 @@ Auftrag annahm.
 | 0.8.4 | Stufe G2 vollständig: Eingriffsvermerk nennt die Rolle, `updated_at` an den Bildwegen des Verfassers, Zahlen in der Kopfzeile des Kommentarblocks, die beiden Anlegen-Schalter, Umschalter „meine/alle" im Vergleich |
 | 0.8.3 | Stufe G2, zweite Hälfte, erster Teil: Eingriffsvermerk am Kommentar (erster Migrationscode seit der Bereinigung), `mine` am Kommentar, blaue Aufgabenmarke, Tagwolke klappt ganz auf |
 | 0.8.2 | Stufe G2, erste Hälfte: Verfassernamen an vier Trägern als Objekt, Stimmenliste je Kriterium, Löschdialog am Eintrag, `DELETE /api/ratings/:id` |
-| 0.8.1 | Bereinigung: `legacy.js` und aller Migrationscode entfernt, Schema als vollständige DDL, Prüfstand auf frische Anlagen (−102 Prüfungen) |
+| 0.8.1 | Bereinigung: `legacy.js` und aller Migrationscode entfernt, Schema als vollständige DDL, Prüfstand auf frische Instanzen (−102 Prüfungen) |
 | 0.8.0 | Stufe G1: Karte „Zugänge", Rollenleiter als vergebbarer Rollenwert, Sperren an zwei Stellen durchgesetzt, Namensbremse, Löschen als Grabstein, `zugang.js` ersetzt `AUTH_RESET` |
 | 0.7.2 | Stufe F: serverseitige Rechteschicht für alle schreibenden Endpunkte, Export/Import nur Eigentümer, „Leitung" → „Admin" |
 | 0.7.1 | Stufe E2: Export/Import mit Verfassernamen an vier Trägern, Formatnummer 6 |
@@ -7490,13 +7490,13 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.12.2** | Die Kachelreihe füllt die Breite | Die Vorschaureihe steht auf dem Telefon als Raster und lässt rechts nichts mehr leer. *PATCH.* **Zweiter Befund aus dem Betrieb**, am selben Tag und am selben Gerät | **nein** | — |
 | **0.12.x** | Fehlerbereinigung und Verbesserungen | Befunde aus dem Betrieb und Nacharbeit an Gebautem. **Keine geplante Nummer, sondern die nächste freie PATCH-Zahl** — und so viele davon, wie sie braucht. *0.12.1 bis 0.12.4 sind die ersten vier* | in der Regel nein | — |
 | **0.12.4** | Der Export geht in Teilen | **GEBAUT.** Die Antwort auf die 760 MB: n vollständige Exportdateien statt einer, die es nicht geben kann. *PATCH.* **Kein Schema, kein neues Format, keine Zeile am Import** | nein | — |
-| **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT — und im Feld hat sich der Punkt als eingetretener Fehler bestätigt: 760 MB gegen 512.** Die Anlage nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
-| **0.13.0** | Zwei Netze, ein Zugang | **GEBAUT.** `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Anlage ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu der reparierte Teilexport mit zweitem Faktor, ein Filter am Sicherheitsprotokoll, der Satz im Löschdialog samt eigenem Fenster für die Grabsteine, eine flachere Filterleiste und mehrere Kategorien zugleich. *MINOR.* **Kein Schema, keine `.env`-Zeile** | nein | — |
+| **0.12.3** | Der Export sagt Bescheid, und die Anzeige zieht nach | **GEBAUT — und im Feld hat sich der Punkt als eingetretener Fehler bestätigt: 760 MB gegen 512.** Die Instanz nennt die erwartete Exportgröße, bevor der Knopf gedrückt wird, und sagt an der Grenze ab, statt abzubrechen. Dazu neun Anzeigepunkte und die Beschriftung am zweiten Faktor. *PATCH.* **Kein Schema, kein Format, `F_ROUTEN` unverändert** | nein | — |
+| **0.13.0** | Zwei Netze, ein Zugang | **GEBAUT.** `X-Forwarded-Proto` je Anfrage und zwei Cookienamen — die Instanz ist danach über HTTPS **und** über das Heimnetz erreichbar. Dazu der reparierte Teilexport mit zweitem Faktor, ein Filter am Sicherheitsprotokoll, der Satz im Löschdialog samt eigenem Fenster für die Grabsteine, eine flachere Filterleiste und mehrere Kategorien zugleich. *MINOR.* **Kein Schema, keine `.env`-Zeile** | nein | — |
 | **0.14.0** | Die Entscheidung wird mitgeschrieben | **GEBAUT.** `rejected` bekommt Datum, Grund und Verfasser, dazu die Klemme `nurSelbst` am Grund. Mitgefahren sind zwei Befunde aus dem Betrieb: der kaputte Cookiewert und die Sternreihe der Kriterienliste. *MINOR.* **Die einzige Runde des Plans mit Schema — und sie ist vor der Bereinigung gebaut** | ja, **sechster Block** | 10 → 11 |
 | **0.15.0** | Der Filter und der Stift | **GEBAUT.** Die Übersicht bekommt einen Filter für „abgelehnt" — drei Zustände in einer eigenen Gruppe, kombinierbar mit dem Teststatus. Dazu kommt die Begründung zur Ruhe: sie steht als Aussage da statt in einem dauernd offenen Feld, mit ✎ und ✕ daneben — und **entfernen darf sie seither auch der Admin**, was 0.14.0 zur Hälfte offengelassen hatte. *MINOR.* **Kein Schema, kein Migrationsblock, Format bleibt 11** | nein | — |
 | **0.16.0** | Der Systembereich, die Glocke und die Auskunft | **GEBAUT.** Neunzehn Karten sind achtzehn und stehen in fünf Abschnitten mit eigener Adresse; `renderSystem()` fiel dabei von 2466 auf 79 Zeilen. Dazu die Glocke mit dem Punkt, der Zähler „Offen" mit Zahl, die Gewichtung, die sich selbst erklärt, Version und Verfahren in den Kennzahlen — und aus dem Betrieb das Löschen in der Zoomansicht. *MINOR.* **Die größte Umbaufläche des Plans — und sie ist doch eine Datenbankstufe geworden: die Glocke braucht einen Zeitpunkt an der Bewertung. Der Rechner zur Gewichtung ist NICHT mitgefahren** | ja, **siebter Block** | — |
 | **0.17.0** | Was dasteht, und was nicht dasteht | **GEBAUT.** Neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, unmittelbar nach dem Einspielen von 0.16.0. Die Kriterienliste zerfiel bei genau **einem** Zugang; zwei Erklärtexte haben die Oberfläche verlassen; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; der Erklärkasten nennt die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen ist.** *MINOR.* **Kein Schema, keine Route — MINOR wegen der Glockentafel. Alle neun Punkte sind gebaut, dazu ein zehnter Befund aus dem Bauen: der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt** | nein | — |
-| **0.17.1** | Was der Benutzer sieht | **BEAUFTRAGT am 30. August 2026.** Sechs Handgriffe aus einem Rundlauf von Hand: der Text im Kachel „Zugang" stimmt nicht und sagt zu viel, Kacheln nutzen ihre Höhe nicht, der Mailversand ordnet sich, **aus „Anlage" wird „Instanz"**, die Zeile einer Sitzung steht schief — und das Video fängt im Vollbild ein zweites Mal an. *PATCH: fünf sind Wortlaut und Anzeige, einer ist ein echter Fehler.* **Der Auftrag liegt als `Doku/Auftrag_0.17.1.md` im Repo** | nein | — |
+| **0.17.1** | Was der Benutzer sieht | **BEAUFTRAGT am 30. August 2026.** Sechs Handgriffe aus einem Rundlauf von Hand: der Text im Kachel „Zugang" stimmt nicht und sagt zu viel, Kacheln nutzen ihre Höhe nicht, der Mailversand ordnet sich, **aus „Instanz" wird „Instanz"**, die Zeile einer Sitzung steht schief — und das Video fängt im Vollbild ein zweites Mal an. *PATCH: fünf sind Wortlaut und Anzeige, einer ist ein echter Fehler.* **Der Auftrag liegt als `Doku/Auftrag_0.17.1.md` im Repo** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
 | **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
@@ -7535,7 +7535,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > Befunde gemeldet worden. Der Auftrag ging als `0.16.1` in die Besprechung;
 > **sieben der acht betreffen Anzeige und Wortlaut, der achte nicht:** sagt die
 > Glockentafel künftig „3 Kommentare · 4 Bewertungen" statt „7 neue Beiträge",
-> **kann die Anlage danach etwas, was sie vorher nicht konnte.** Also MINOR,
+> **kann die Instanz danach etwas, was sie vorher nicht konnte.** Also MINOR,
 > also 0.17.0, und der Rest rückt: Suche auf 0.18.0, Bereinigung auf 0.19.0.
 > *Zum zweiten Mal dieselbe Frage, zum zweiten Mal dieselbe Antwort — **eine
 > Regel, die man beim zweiten Mal wieder anwendet, ist eine Regel; eine, die
@@ -7544,7 +7544,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **danach** | Große Dateien bis 2 GB | Teil II des Videopapiers. *MINOR nach 1.0.0* | ja | — |
 
 **VERÖFFENTLICHEN UND DIE EINS SIND ZWEI VERSCHIEDENE DINGE, und SemVer trennt
-sie.** Die Anlage darf mit **jeder** Nummer herausgehen. Was 1.0.0 hinzufügt,
+sie.** Die Instanz darf mit **jeder** Nummer herausgehen. Was 1.0.0 hinzufügt,
 ist nicht das Herausgehen, sondern **die Zusage**: ab da ist die öffentliche
 Schnittstelle festgelegt, und ein Bruch daran kostet die Zwei. *Die alte Zeile
 „0.9.90 — Veröffentlichung" trug beides in einem und ist deshalb aufgeteilt.*
@@ -7624,7 +7624,7 @@ und die legt `CREATE TABLE IF NOT EXISTS` bei jedem Start selbst an.*
   | `migration0850()` | `photos.art`, `photos.dauer` | 26 | alles zum Videoweg: `VIDEO_MAX`, die Videotypen, die Ranges, `media-src`, der Filter in `backfillVariants()` |
 
   **Die Spalte in der DDL bleibt in jedem Fall** — die Prüfung „Eine frische
-  Anlage trägt die Spalte ohne Migration" hält genau das fest. **Und eine Prüfung
+  Instanz trägt die Spalte ohne Migration" hält genau das fest. **Und eine Prüfung
   gehört ALLEN Blöcken und fällt erst mit dem letzten:** „Ein Sprung von 0.8.20
   fährt ALLE Migrationen in einem Start". *Wer nur einen Block entfernt, muss
   sie umschreiben statt löschen.*
@@ -7635,7 +7635,7 @@ und die legt `CREATE TABLE IF NOT EXISTS` bei jedem Start selbst an.*
   der Zeit vor 0.8.0 nicht mehr übernommen, **aber auch nicht erkannt** — der
   Start liefe in SQL-Fehler statt in eine Meldung. Vor 1.0 gehört an den Start
   eine klare Absage, die den Zwischenschritt über 0.8.0 nennt. *`migration0830()`
-  greift dabei auf eine Tabelle `links` zu, die es in einer wirklich alten Anlage
+  greift dabei auf eine Tabelle `links` zu, die es in einer wirklich alten Instanz
   geben mag oder nicht.*
 - **Die Vorgabewerte durchsehen.** `title_app` hat im Server die Vorgabe „Model
   Bewertungen" — ein persönlicher Wert, der in einer frischen Installation für
@@ -7655,12 +7655,12 @@ und die legt `CREATE TABLE IF NOT EXISTS` bei jedem Start selbst an.*
   lassen. Maus, Finger und Tastatur sind drei Fälle, nicht zwei.* **Seit 0.8.30
   hängt daran noch etwas:** das Datum des Eintragers steht nur im Überfahrtext
   und ist ohne Zeigegerät gar nicht erreichbar.
-- **Zwei Sätze in die README.** **Erstens: eine Anlage ist ein Sachgebiet.**
+- **Zwei Sätze in die README.** **Erstens: eine Instanz ist ein Sachgebiet.**
   Kriterien sind global und erscheinen an jedem Eintrag; wer Modelle **und**
-  Werkzeuge **und** Bezugsquellen in derselben Anlage sammelt, hat an jedem
+  Werkzeuge **und** Bezugsquellen in derselben Instanz sammelt, hat an jedem
   Eintrag die Kriterien aller drei stehen. **Das ist die einzige Annahme der
   Architektur, die nirgends aufgeschrieben ist.** *Aufschreiben statt bauen:* wer
-  zwei Sachgebiete sammelt, betreibt zwei Anlagen — was zur Linie „ein Schlüssel,
+  zwei Sachgebiete sammelt, betreibt zwei Instanzen — was zur Linie „ein Schlüssel,
   eine Datenbank" ohnehin besser passt. **Kriteriengruppen je Kategorie wären ein
   Umbau und sind ausdrücklich nicht vorgesehen.**
   **Zweitens: ein Schlüssel, eine Datenbank.** Jeder Benutzer vertraut dem
@@ -7755,7 +7755,7 @@ unangetastet.*
 Änderungsprotokoll 0.13.0 und im Stand — *ein Punkt wandert vom Sammelblatt in
 den Fahrplan und von dort in ein Änderungsprotokoll, nie zurück.*
 
-**Was die Runde gebracht hat, in vier Zeilen:** die Anlage ist über zwei Netze
+**Was die Runde gebracht hat, in vier Zeilen:** die Instanz ist über zwei Netze
 zugleich erreichbar (Sammelblatt Nr. 8); die gescheiterten Anmeldungen sind im
 Sicherheitsprotokoll auffindbar, und die Namen sind anklickbar (Nr. 9a); der
 Löschdialog nennt **sperren** als den umkehrbaren Weg, und die Grabsteine haben
@@ -7935,8 +7935,8 @@ auseinanderlaufen könnte. **In einem Satz je Punkt:**
    einen Rollbalken ein, wo Platz ist. **Eine Regel für alle Listen.**
 3. **Der Mailversand ordnet sich** in vier Reihen — *wer · wohin · womit · als
    wer* — statt sechs Felder über die volle Breite.
-4. **Aus „Anlage" wird „Instanz",** überall in den lebenden Dateien. *Die
-   abgeschlossenen Papiere bleiben, wie sie sind; `#/system/anlage` wird weiter
+4. **Aus „Instanz" wird „Instanz",** überall in den lebenden Dateien. *Die
+   abgeschlossenen Papiere bleiben, wie sie sind; `#/system/instanz` wird weiter
    verstanden.*
 5. **Die Zeile einer Sitzung** trägt beide Zeitangaben rechtsbündig
    untereinander.
@@ -8093,7 +8093,7 @@ Zwischenablage als **PNG** ab — die Windows-Zwischenablage hält intern eine
 DIB, der Browser reicht sie als PNG weiter.
 
 **Beim Nachsehen kam etwas anderes heraus, und das ist der eigentliche Punkt:
-die beiden Bildwege der Anlage speichern verschieden, und nirgends steht,
+die beiden Bildwege der Instanz speichern verschieden, und nirgends steht,
 warum.**
 
 | Weg | Was in der Datenbank landet |
@@ -8142,7 +8142,7 @@ fehlt.*
   einheitlich — und es vergrößerte die Datenbank an der Stelle, an der die
   meisten Bilder anfallen. *Vorschlag: nein, aber die Begründung aufschreiben.*
 * **Wenn (b) kommt: AVIF statt WebP?** Kleiner, aber langsamer zu rechnen und
-  in älteren Browsern nicht überall da. *Für eine Anlage, die zehn Jahre laufen
+  in älteren Browsern nicht überall da. *Für eine Instanz, die zehn Jahre laufen
   soll, ist WebP die sichere Wahl.*
 * **Und die Frage, die Punkt 3 stellt und hier beantwortet werden müsste:**
   zählt die Größenschätzung für den Export das Original **und** beide
@@ -8156,7 +8156,7 @@ Prüflagen. **Kein Schema in beiden Fällen.**
 
 **Was dagegen spricht:** gegen (c) nichts. Gegen (b) spricht, dass nichts
 klemmt — *es ist eine Ersparnis ohne Not, und sie fasst den Weg an, über den
-jedes Bild der Anlage läuft.*
+jedes Bild der Instanz läuft.*
 
 #### Dazugekommen am 30. August 2026: der engere Ausschnitt und das Bildformat
 
@@ -8449,7 +8449,7 @@ keine mehr.*
   Schalterstellung**, bevor er baut.
 - **Ein Adressbuch, wer `X-Forwarded-For` setzen darf, ist bewusst nicht
   gebaut** (Entscheidung aus 0.8.20). Die Einstellung ist ein Ja/Nein. **Die
-  Anlage ist inzwischen aus zwei Netzen zugleich erreichbar** — der einfachere
+  Instanz ist inzwischen aus zwei Netzen zugleich erreichbar** — der einfachere
   Weg steht in Abschnitt 8.
 - **Ein Vermerk gehört dorthin, wo aus einer Aussage etwas herausgenommen
   wird — nicht dorthin, wo eine ganze Aussage verschwindet.** Ein gelöschter

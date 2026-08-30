@@ -3,7 +3,7 @@ const crypto = require('crypto');
 /* ================= Der zweite Faktor — die reine Rechnung =================
 
    TOTP NACH RFC 6238. Ein Code entsteht auf dem Telefon aus einem Geheimnis
-   und der Uhr, OHNE NETZ -- die Anlage verschickt fuer den zweiten Faktor
+   und der Uhr, OHNE NETZ -- die Instanz verschickt fuer den zweiten Faktor
    nichts, weder Code noch Nachricht.
 
    DIESE DATEI KENNT KEINE DATENBANK. Sie rechnet: Base32 hin und zurueck,
@@ -59,7 +59,7 @@ function base32Kodiere(puffer) {
 
 /* Liefert den Puffer oder null. NULL UND KEINE AUSNAHME: der Aufrufer ist eine
    Route, und ein abgetippter Wert mit einem falschen Zeichen ist keine Stoerung
-   der Anlage, sondern eine gewoehnliche Eingabe.
+   der Instanz, sondern eine gewoehnliche Eingabe.
    LEERZEICHEN UND BINDESTRICHE FALLEN WEG: der Schluessel steht am Bildschirm
    in Vierergruppen, und wer ihn abschreibt, schreibt die Luecken mit. */
 function base32Dekodiere(text) {
@@ -77,7 +77,7 @@ function base32Dekodiere(text) {
   return Buffer.from(aus);
 }
 
-// Ein frisches Geheimnis, fertig zum Abtippen. Es verlaesst die Anlage genau
+// Ein frisches Geheimnis, fertig zum Abtippen. Es verlaesst die Instanz genau
 // einmal -- beim Einschalten. Danach nie wieder, auch nicht an den Eigentuemer.
 const neuesGeheimnis = () => base32Kodiere(crypto.randomBytes(GEHEIM_BYTES));
 
@@ -85,7 +85,7 @@ const neuesGeheimnis = () => base32Kodiere(crypto.randomBytes(GEHEIM_BYTES));
    Stueck sind der Weg, an dem Menschen aufgeben; acht Gruppen zu vier sind
    derselbe String und lassen sich nach jeder Gruppe abgleichen.
    DIE GRUPPEN SIND EINE ANZEIGE UND KEIN FORMAT: base32Dekodiere wirft die
-   Trennzeichen wieder weg, und die Anlage speichert den Wert ohne sie. */
+   Trennzeichen wieder weg, und die Instanz speichert den Wert ohne sie. */
 const inVierergruppen = (s) => String(s || '').replace(/(.{4})(?=.)/g, '$1 ');
 
 /* ---- Der Zeitschritt ----
@@ -159,14 +159,14 @@ function pruefeCode(geheimBase32, eingabe, jetzt = Date.now()) {
    DIE DREI KENNWERTE STEHEN AUSGESCHRIEBEN DARIN, obwohl sie die Vorgabe
    sind: ein Pruefgeraet, das sie ANDERS vorbelegt, laege sonst still daneben.
 
-   DER ANLAGENNAME KOMMT AUS DEM OEFFENTLICHEN TITEL und ist Eingabe aus dem
+   DER INSTANZNAME KOMMT AUS DEM OEFFENTLICHEN TITEL und ist Eingabe aus dem
    Systembereich -- deshalb encodeURIComponent, nicht bloss ein Ersetzen von
    Doppelpunkten. Die Zeile misst rund hundert Zeichen bei kurzen Namen und
    zweihundert bei sehr langen. */
-function otpauthZeile(anlage, benutzername, geheimBase32) {
-  const kennung = encodeURIComponent(`${anlage}:${benutzername}`);
+function otpauthZeile(instanz, benutzername, geheimBase32) {
+  const kennung = encodeURIComponent(`${instanz}:${benutzername}`);
   return `otpauth://totp/${kennung}?secret=${geheimBase32}` +
-    `&issuer=${encodeURIComponent(anlage)}` +
+    `&issuer=${encodeURIComponent(instanz)}` +
     `&algorithm=${VERFAHREN.toUpperCase()}&digits=${ZIFFERN}&period=${SCHRITT_SEKUNDEN}`;
 }
 

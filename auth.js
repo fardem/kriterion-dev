@@ -26,7 +26,7 @@ const zf = require('./zweifaktor');
 
    WAS NICHT MEHR AN IHR HAENGT: Cookiename, Secure und HSTS. Die drei
    entscheidet seit 0.13.0 die EINZELNE ANFRAGE ueber X-Forwarded-Proto, und
-   der Grund ist der Betrieb: die Anlage ist aus zwei Netzen zugleich
+   der Grund ist der Betrieb: die Instanz ist aus zwei Netzen zugleich
    erreichbar, und eine Einstellung je Prozess kann immer nur einen davon
    bedienen. Mit HINTER_PROXY=1 kam ueber http://<server-ip>:3100 niemand mehr
    herein -- der Server antwortete mit 200, der Browser verwarf den
@@ -96,7 +96,7 @@ const cookieName = (req) => ueberProxy(req) ? COOKIE_SICHER : COOKIE_NAME;
    welcher Wert gilt.
 
    ALLES AB ? UND # WIRD ABGEWIESEN: das Fragment traegt bereits den
-   Schluessel des Links. Ein PFAD ist erlaubt -- die Anlage kann unter einem
+   Schluessel des Links. Ein PFAD ist erlaubt -- die Instanz kann unter einem
    Unterpfad haengen. ZUGANGSDATEN IN DER ADRESSE WERDEN ABGEWIESEN: sie
    stuenden sonst in jedem verschickten Link.
 
@@ -193,7 +193,7 @@ const grabsteinName = (id) => `geloescht-${id}`;
 const GRABSTEIN_MUSTER = /^geloescht-\d+$/i;
 
 // Der EIGENTUEMER mit der kleinsten Nummer -- wer ihn ruft, meint den
-// Eigentuemer der Anlage, nie den Angemeldeten (dafuer gibt es req.benutzer).
+// Eigentuemer der Instanz, nie den Angemeldeten (dafuer gibt es req.benutzer).
 // Gefragt wird die ROLLE, nicht die kleinste id: sonst nennte das Protokoll
 // einen geloeschten Zugang als Eigentuemer.
 const holeBenutzer = () =>
@@ -229,7 +229,7 @@ function pruefeVorgaben(name, passwort) {
 
 // Legt den ersten Zugang an. Das Einfuegen entscheidet selbst, ob es der erste
 // ist -- eine Pruefung davor liesse zwischen Pruefung und Einfuegen Platz fuer
-// einen zweiten Aufruf. Die Rolle steht fest auf 'eigentuemer': wer die Anlage
+// einen zweiten Aufruf. Die Rolle steht fest auf 'eigentuemer': wer die Instanz
 // einrichtet, dem gehoert sie.
 async function legeErstenBenutzerAn(name, passwort) {
   pruefeVorgaben(name, passwort);
@@ -240,10 +240,10 @@ async function legeErstenBenutzerAn(name, passwort) {
   ).run(String(name).trim(), hash);
   if (r.changes === 0) throw new Error('Die Einrichtung ist bereits abgeschlossen.');
   // Zweite Aufrufstelle des Auffangnetzes aus db.js: beim Start einer leeren
-  // Anlage lief es ins Leere, weil es noch keinen Benutzer gab -- dieser Weg
+  // Instanz lief es ins Leere, weil es noch keinen Benutzer gab -- dieser Weg
   // liefert ihn erst jetzt nach.
   ordneBestandZu();
-  // Die erste Zeile des Sicherheitsprotokolls: die Anlage bekommt ihren
+  // Die erste Zeile des Sicherheitsprotokolls: die Instanz bekommt ihren
   // Eigentuemer. Er handelt an sich selbst -- es gibt sonst niemanden.
   protokolliere('zugang.neu', { wer: r.lastInsertRowid, ziel: r.lastInsertRowid, merkmal: 'eigentuemer' });
   return { id: r.lastInsertRowid, username: String(name).trim() };
@@ -330,7 +330,7 @@ const listeZugaenge = () => db.prepare(
 ).all().map(z => ({ ...z, ohnePasswort: Boolean(z.ohnePasswort) }));
 
 // Zaehlt die Eigentuemer, die sich noch anmelden koennen. Ein gesperrter oder
-// geloeschter zaehlt nicht mit -- sonst liesse sich die Anlage verriegeln,
+// geloeschter zaehlt nicht mit -- sonst liesse sich die Instanz verriegeln,
 // indem man den letzten Eigentuemer sperrt statt ihn herabzustufen.
 const zahlEigentuemer = () => db.prepare(
   "SELECT COUNT(*) AS n FROM users WHERE role = 'eigentuemer' AND status = 'aktiv'"
@@ -394,7 +394,7 @@ function setzeRolle(benutzerId, rolle, wer) {
   // noch weiter unten durch Sperren oder Loeschen. Ohne ihn kaeme niemand mehr
   // an Rollen, Export und Import, und der einzige Ausweg waere zugang.js.
   if (u.role === 'eigentuemer' && rolle !== 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Error('Das ist der letzte Eigentümer der Anlage — vorher einen zweiten bestimmen.');
+    throw new Error('Das ist der letzte Eigentümer der Instanz — vorher einen zweiten bestimmen.');
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(rolle, u.id);
   protokolliere('zugang.rolle', { wer: handelt, ziel: u.id, merkmal: rolle });
   return { id: u.id, username: u.username, role: rolle };
@@ -408,7 +408,7 @@ function setzeStatus(benutzerId, status, wer) {
   if (status !== 'aktiv' && status !== 'gesperrt')
     throw new Error('Dieser Status lässt sich hier nicht setzen.');
   if (u.role === 'eigentuemer' && status !== 'aktiv' && zahlEigentuemer() <= 1)
-    throw new Error('Das ist der letzte Eigentümer der Anlage — vorher einen zweiten bestimmen.');
+    throw new Error('Das ist der letzte Eigentümer der Instanz — vorher einen zweiten bestimmen.');
   db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, u.id);
   // Erste von zwei Schichten. requireAuth wuerde eine laufende Sitzung ohnehin
   // abweisen; das Wegraeumen haelt die Tabelle sauber und wirkt sofort.
@@ -473,7 +473,7 @@ function entferneZugang(benutzerId, optionen = {}, wer) {
   if (!u) throw new Error('Diesen Zugang gibt es nicht.');
   if (u.status === 'geloescht') throw new Error('Dieser Zugang ist bereits gelöscht.');
   if (u.role === 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Error('Das ist der letzte Eigentümer der Anlage — vorher einen zweiten bestimmen.');
+    throw new Error('Das ist der letzte Eigentümer der Instanz — vorher einen zweiten bestimmen.');
   const zahlen = zaehleBestand(u.id);
   db.transaction(() => {
     // Reihenfolge: erst die Eintraege, dann der Rest. Umgekehrt zaehlte das
@@ -620,10 +620,10 @@ function noteSuccess(ip, name) {
    herein, bis jemand ihn von Hand loescht.
 
    DER NAME BLEIBT ROH, DER WERT WIRD VERSUCHT: ein Cookie, dessen Wert sich
-   nicht dekodieren laesst, ist fuer diese Anlage kein Cookie und faellt
+   nicht dekodieren laesst, ist fuer diese Instanz kein Cookie und faellt
    stillschweigend heraus. Kein eigener Fehlerpfad, keine Meldung, keine Zeile
    im Sicherheitsprotokoll -- ein fremder Cookie ist kein Vorgang dieser
-   Anlage, und eine Zeile, die ein Fremder ausloesen kann, gibt es schon.
+   Instanz, und eine Zeile, die ein Fremder ausloesen kann, gibt es schon.
    UND ER FAELLT EINZELN HERAUS UND NICHT ALS GANZER KOPF: neben dem kaputten
    steht der eigene, gueltige, und genau der soll ankommen. */
 function parseCookies(req) {
@@ -714,7 +714,7 @@ function pruneSessions() {
    nichts oeffnen.
 
    WAS DIE LISTE NICHT ENTHAELT, UND ZWAR ABSICHTLICH: keine IP-Adresse und
-   keinen Browserkopf -- die Anlage speichert beides nicht. Die Karte kann
+   keinen Browserkopf -- die Instanz speichert beides nicht. Die Karte kann
    damit "diese hier" von "alle anderen" trennen und die ZAHL nennen, und mehr
    braucht der Knopf daneben nicht. */
 const sitzungsKennung = (token) =>
@@ -820,7 +820,7 @@ function beginneTokenFrist(hash) {
 const tokenHash = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
 
 /* Dieselbe Bauform wie raeumePapierkorbAuf(): EINE Funktion, ZWEI
-   Aufrufstellen -- beim Start und beim Oeffnen der Karte. Eine Anlage, die
+   Aufrufstellen -- beim Start und beim Oeffnen der Karte. Eine Instanz, die
    drei Monate durchlaeuft, raeumte sonst drei Monate lang nicht auf.
    ZWEI MODIFIKATOREN WAEREN ZWEI ARGUMENTE (Stolperstein 119); hier steht
    einer, und er wird gebunden statt in den String geschrieben. */
@@ -1052,7 +1052,7 @@ const entferneAnfrage = (id) =>
   db.prepare('DELETE FROM anfragen WHERE id = ?').run(Number(id) || 0).changes > 0;
 
 /* --- Das Sicherheitsprotokoll -------------------------------------------
-   ES HAELT FEST, WER ZUGANG HATTE UND WER DIE ANLAGE ALS GANZES ANGEFASST
+   ES HAELT FEST, WER ZUGANG HATTE UND WER DIE INSTANZ ALS GANZES ANGEFASST
    HAT -- und ausdruecklich nichts darueber, was jemand GESAGT hat. Die
    Begruendung zu Spalten und Grenzen steht am Schema in db.js.
 
@@ -1072,7 +1072,7 @@ const entferneAnfrage = (id) =>
    geschrieben wird NUR, wenn die Anfrage die Passwortpruefung wirklich
    erreicht hat -- der gesperrte Fall schreibt nichts. Damit sind es hoechstens
    HARD_LIMIT Zeilen je Adresse und BLOCK_MS, und die Obergrenze ist eine
-   Eigenschaft der Anlage statt einer Regel, die jemand durchsetzen muesste.
+   Eigenschaft der Instanz statt einer Regel, die jemand durchsetzen muesste.
    Der Preis, ehrlich benannt: verteiltes Raten aus vielen Adressen schreibt
    weiterhin viele Zeilen. Die Frist traegt es, und die ersten zehn je Adresse
    sind die Spur, auf die es ankommt. */
@@ -1175,7 +1175,7 @@ function protokolliere(was, { wer = null, ziel = null, merkmal = null } = {}) {
 
 /* Dieselbe Bauform wie raeumeTokensAuf() und raeumePapierkorbAuf(): EINE
    Funktion, ZWEI Aufrufstellen -- beim Start und beim Oeffnen der Karte. Eine
-   Anlage, die ein halbes Jahr durchlaeuft, raeumte sonst ein halbes Jahr lang
+   Instanz, die ein halbes Jahr durchlaeuft, raeumte sonst ein halbes Jahr lang
    nicht auf.
    EIN MODIFIKATOR, und er wird GEBUNDEN statt in den String geschrieben
    (Stolperstein 119). */
@@ -1265,7 +1265,7 @@ function leseProtokoll(grenze = PROTOKOLL_GRENZE, gruppe = null) {
 }
 
 /* --- Die zweite Bestaetigung --------------------------------------------
-   WAS DIE ANLAGE ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT.
+   WAS DIE INSTANZ ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT.
    Verteidigt wird nicht gegen den Fremden -- der kommt ohne Passwort gar
    nicht herein --, sondern gegen die FREMDE OFFENE SITZUNG.
 
@@ -1288,7 +1288,7 @@ function leseProtokoll(grenze = PROTOKOLL_GRENZE, gruppe = null) {
 const FREIGABE_MS = 120 * 1000;
 /* SIEBEN WEGE UEBER SECHS ROUTEN -- 'mail' kommt dazu. Wer den
    Mailzugang setzt, entscheidet, ueber wessen Server JEDER kuenftige
-   Ruecksetzlink dieser Anlage laeuft; das trifft die Anlage als Ganzes und
+   Ruecksetzlink dieser Instanz laeuft; das trifft die Instanz als Ganzes und
    liegt damit in derselben Zeile wie Export und Import.
    Die Zahl steht im Projektstand und wird dort nachgezaehlt, nicht
    abgeschrieben -- Stolperstein 137. */
@@ -1404,7 +1404,7 @@ const ZWEITER_FAKTOR_ABSAGE = 'Der Code stimmt nicht.';
    FAKTOR WIRD ABGEWIESEN: erst ausschalten -- sonst waere dieser Knopf der
    Weg, einen laufenden zweiten Faktor aus einer uebernommenen Sitzung heraus
    gegen einen eigenen zu tauschen. */
-function beginneZweifaktor(benutzerId, anlagenName, benutzername) {
+function beginneZweifaktor(benutzerId, instanzName, benutzername) {
   const id = Number(benutzerId) || 0;
   if (zweifaktorAn(id)) throw new Error('Der zweite Faktor ist bereits eingeschaltet.');
   const geheim = zf.neuesGeheimnis();
@@ -1417,7 +1417,7 @@ function beginneZweifaktor(benutzerId, anlagenName, benutzername) {
   ).run(id, geheim);
   return {
     geheim, gruppen: zf.inVierergruppen(geheim),
-    zeile: zf.otpauthZeile(anlagenName, benutzername, geheim),
+    zeile: zf.otpauthZeile(instanzName, benutzername, geheim),
     ziffern: zf.ZIFFERN, sekunden: zf.SCHRITT_SEKUNDEN
   };
 }

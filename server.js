@@ -92,7 +92,7 @@ function mailtestStand(roh) {
   return test && test.marke && test.marke === mail.marke(roh) ? test : null;
 }
 
-/* ---- Kann diese Anlage ueberhaupt verschicken --------------------------
+/* ---- Kann diese Instanz ueberhaupt verschicken --------------------------
    DREI VORAUSSETZUNGEN, UND ALLE DREI SIND NOETIG. Die Testmarke allein
    traegt nicht: DIE TESTMAIL ENTHAELT KEINEN LINK und geht auch ohne
    OEFFENTLICHE_ADRESSE durch -- die Marke waere gruen, und die
@@ -100,10 +100,10 @@ function mailtestStand(roh) {
 function versandBereit() {
   const roh = getSetting(mail.SCHLUESSEL, null);
   if (!mail.eingerichtet(roh))
-    return { ok: false, grund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer der Anlage.' };
+    return { ok: false, grund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer der Instanz.' };
   if (!mailtestStand(roh))
     return { ok: false, grund: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen. ' +
-      'Der Eigentümer der Anlage drückt sie in der Karte „Mailversand“.' };
+      'Der Eigentümer der Instanz drückt sie in der Karte „Mailversand“.' };
   if (!OEFFENTLICHE.adresse)
     return { ok: false, grund:
       'Ohne OEFFENTLICHE_ADRESSE in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
@@ -635,7 +635,7 @@ app.use('/api', auth.requireAuth);
                     sperrt und loescht sie -- an einen Admin oder Eigentuemer
                     kommt er nicht.
      Eigentuemer -- alles vom Admin, dazu Rollen vergeben, an Admins ran, und
-                    was die Anlage als GANZES betrifft: Export, Import,
+                    was die Instanz als GANZES betrifft: Export, Import,
                     Schluesselwert.
 
    Vier Fragen, und keine steht ein zweites Mal: Adminfrage,
@@ -648,7 +648,7 @@ function istEigentuemer(req) { return req.benutzer.role === 'eigentuemer'; }
 function istAdmin(req) { return req.benutzer.role === 'admin' || istEigentuemer(req); }
 
 const VERWEIGERT_ADMIN = 'Das verwaltet nur der Admin.';
-const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer der Anlage.';
+const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer der Instanz.';
 const VERWEIGERT_EINTRAG = 'Diesen Eintrag ändert nur, wer ihn angelegt hat — oder der Admin.';
 const VERWEIGERT_SELBST = 'Das ändert nur, wer es geschrieben hat.';
 const VERWEIGERT_TAG_NEU = 'Neue Tags legt nur der Admin an. Vorhandene lassen sich weiterhin vergeben.';
@@ -665,7 +665,7 @@ function nurEigentuemer(req, res, next) {
 }
 
 /* ---- Die zweite Bestaetigung ----
-   WAS DIE ANLAGE ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT.
+   WAS DIE INSTANZ ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT.
    Verteidigt wird gegen eine FREMDE OFFENE SITZUNG.
 
    SIEBEN WEGE UEBER SECHS ROUTEN, und PUT /api/users/:id traegt zwei davon:
@@ -782,8 +782,8 @@ const NUR_VERFASSER_FELDER = ['title', 'description', 'rejected', 'rejectedGrund
 function darfAnZugang(req, ziel) {
   return ziel.role === 'user' ? istAdmin(req) : istEigentuemer(req);
 }
-const VERWEIGERT_ZUGANG = 'An einen Admin oder den Eigentümer kommt nur der Eigentümer der Anlage.';
-const VERWEIGERT_ROLLE = 'Rollen vergibt nur der Eigentümer der Anlage.';
+const VERWEIGERT_ZUGANG = 'An einen Admin oder den Eigentümer kommt nur der Eigentümer der Instanz.';
+const VERWEIGERT_ROLLE = 'Rollen vergibt nur der Eigentümer der Instanz.';
 const VERWEIGERT_SELBST_ZUGANG = 'Den eigenen Zugang ändert man unter „Zugang“, nicht hier.';
 
 /* ---- Zugang ---- */
@@ -1081,7 +1081,7 @@ function zielZugangFrei(req, res, id, selbstErlaubt = false) {
 
 app.get('/api/users', nurAdmin, (req, res) => {
   // Zweite Aufrufstelle des Aufraeumens; die erste steht beim Start. Dieselbe
-  // Bauform wie bei raeumePapierkorbAuf(): eine Anlage, die monatelang
+  // Bauform wie bei raeumePapierkorbAuf(): eine Instanz, die monatelang
   // durchlaeuft, raeumte sonst monatelang nicht auf. Hauswirtschaft, keine
   // Benutzerhandlung -- die Liste schreibender Routen bleibt unberuehrt.
   auth.raeumeTokensAuf();
@@ -1280,7 +1280,7 @@ app.post('/api/mail/test', nurEigentuemer, async (req, res) => {
       JSON.stringify({ marke: mail.marke(roh), am: new Date().toISOString().slice(0, 19).replace('T', ' ') }));
   }
   // 200 AUCH BEIM FEHLSCHLAG: der Versuch ist gelaufen, und sein Ergebnis ist
-  // die Antwort. Ein 500 hiesse, die Anlage haette einen Fehler -- den hat der
+  // die Antwort. Ein 500 hiesse, die Instanz haette einen Fehler -- den hat der
   // Mailserver. Die Oberflaeche liest `ok` und nicht den Statuscode.
   res.json({ ok: e.ok, grund: e.grund, an: eigener.email, ...mailKarte() });
 });
@@ -1310,7 +1310,7 @@ function anfragenKarte() {
 app.get('/api/anfragen', nurAdmin, (req, res) => {
   // Zweite Aufrufstelle des Aufraeumens; die erste steht beim Start, die
   // dritte an der Anfrageroute selbst. Dieselbe Bauform wie bei
-  // raeumeTokensAuf() -- eine Anlage, die monatelang durchlaeuft, raeumte
+  // raeumeTokensAuf() -- eine Instanz, die monatelang durchlaeuft, raeumte
   // sonst monatelang nicht auf. Hauswirtschaft, keine Benutzerhandlung.
   auth.raeumeAnfragenAuf();
   res.json(anfragenKarte());
@@ -1623,7 +1623,7 @@ const ansichten = (benutzerId) => {
 //   Adminfrage: kommt aus req.benutzer, ausdruecklich NICHT aus holeBenutzer()
 //     -- das lieferte den ERSTEN Benutzer, nicht den angemeldeten.
 //   Eigentuemerfrage: erspart der Oberflaeche eine zweite Wahrheit darueber,
-//     wem die Anlage gehoert.
+//     wem die Instanz gehoert.
 const qBenutzerZahl = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status != 'geloescht'");
 
 app.get('/api/settings', (req, res) => res.json({
@@ -2197,7 +2197,7 @@ function stimmenJeKriterium(itemId, benutzerId, karte) {
 // DER RECHENWEG ENTSTEHT IN DER RECHNUNG UND NICHT DANEBEN. Die Oberflaeche
 // erklaert seit 0.16.0, wie die Kopfzahl zustande kommt -- und sie RECHNET
 // DAZU NICHT NACH: ein zweiter Rechenweg fuer die Anzeige waere genau die
-// zweite Wahrheit, die diese Anlage nirgends duldet. Die beiden Wege liefen
+// zweite Wahrheit, die diese Instanz nirgends duldet. Die beiden Wege liefen
 // frueher oder spaeter auseinander, und zwar unbemerkt: beide sehen plausibel aus.
 // Deshalb fuellt diese Funktion den Weg mit, den sie ohnehin geht.
 // `rechenweg` IST FREIWILLIG: die Uebersicht rechnet denselben Schnitt fuer
@@ -2211,7 +2211,7 @@ function gesamtSchnitt(karte, rechenweg) {
      SIE ENTSTEHT HIER UND NICHT IM BROWSER (Stolperstein 217): in DERSELBEN
      Schleife wie die Zahl darueber, aus DERSELBEN Menge. Eine zweite
      Rechenstelle fuer die Anzeige waere genau die zweite Wahrheit, die diese
-     Anlage nirgends duldet -- und die beiden liefen unbemerkt auseinander.
+     Instanz nirgends duldet -- und die beiden liefen unbemerkt auseinander.
      DER TEILER IST DIE ZAHL DER BEWERTETEN KRITERIEN, nicht die aller: sonst
      verglichen sich zwei Rechnungen ueber verschiedene Mengen, und der
      Unterschied saehe nach Gewichtung aus, wo er keiner ist. */
@@ -2226,7 +2226,7 @@ function gesamtSchnitt(karte, rechenweg) {
   // UNGERUNDET, wie hier gerechnet wird. Gerundet wird genau einmal, unten am
   // Ergebnis -- die Oberflaeche rundet nur noch fuer die Anzeige und sagt das
   // auch. Ginge der Weg gerundet hinaus, ergaebe die Aufstellung am Bildschirm
-  // eine andere Zahl als die Anlage rechnet.
+  // eine andere Zahl als die Instanz rechnet.
   // DIE VERGLEICHSZAHL WIRD DAGEGEN HIER GERUNDET, und zwar genau einmal: sie
   // hat keine Zahl darueber, an der sie sonst haengen koennte. Der ungerundete
   // Quotient reist daneben mit, wie beim gewichteten Ergebnis auch.
@@ -2513,7 +2513,7 @@ app.get('/api/items', (req, res) => {
   const offenJe = new Map(qOffenJeEintrag.all().map(z => [z.item_id, z.n]));
   /* OHNE GESPEICHERTEN BEZUGSPUNKT GIBT ES KEINE GLOCKE -- dieselbe Lage und
      dieselbe Antwort wie bei „Neu seit meinem letzten Besuch". Vor dem ersten
-     Oeffnen der Tafel weiss die Anlage nicht, was jemand schon gesehen hat;
+     Oeffnen der Tafel weiss die Instanz nicht, was jemand schon gesehen hat;
      alles fuer neu zu erklaeren waere eine Behauptung, und der erste Blick in
      die Uebersicht laeutete fuer den ganzen Bestand.
      DIE DREI ANGABEN FEHLEN DANN GANZ und stehen nicht auf 0 beziehungsweise
@@ -2649,7 +2649,7 @@ app.post('/api/items', (req, res) => {
    MASKIERT WIRD IN DER OBERFLAECHE, wie am Anbieternamen: hier faellt nur weg,
    was die Zeile sprengt.
    200 ZEICHEN wie am Suchbegriff einer gespeicherten Ansicht -- das ist in
-   dieser Anlage das Mass fuer "eine Zeile". Wer mehr zu sagen hat, sagt es in
+   dieser Instanz das Mass fuer "eine Zeile". Wer mehr zu sagen hat, sagt es in
    einem Kommentar; dafuer gibt es ihn. */
 const GRUND_LAENGE = 200;
 const grundText = (v) =>
@@ -2686,7 +2686,7 @@ app.put('/api/items/:id', (req, res) => {
        1. WER GERADE ABLEHNT, schreibt seine eigene Begruendung. Er wird in
           diesem Zug rejected_von und ist damit ihr Verfasser.
        2. STEHT GAR KEIN VERFASSER DA, gibt es auch keine fremde Aussage. Das
-          ist der Fall einer Ablehnung aus einer Anlage vor 0.14.0: der
+          ist der Fall einer Ablehnung aus einer Instanz vor 0.14.0: der
           Migrationsblock laesst die Spalten leer, und ohne diesen Zweig
           bekaeme so eine Ablehnung nie eine Begruendung. Wer sie hinschreibt,
           wird ihr Verfasser.
@@ -2773,7 +2773,7 @@ app.put('/api/items/:id', (req, res) => {
     put('rejected_grund', grundText(b.rejectedGrund));
     /* WER ENTFERNT, WIRD NICHT VERFASSER. Der Zweig traegt einen Verfasser
        nach, wo keiner steht -- das ist der Fall einer Ablehnung aus einer
-       Anlage vor 0.14.0, in der jemand einen Text hinschreibt. Ein leeres Feld
+       Instanz vor 0.14.0, in der jemand einen Text hinschreibt. Ein leeres Feld
        hat keinen Verfasser, und wer es leert, hat nichts geschrieben. */
     if (it.rejected_von == null && !entferntGrund) put('rejected_von', req.benutzer.id);
   }
@@ -3253,7 +3253,7 @@ app.put('/api/items/:id/ratings', (req, res) => {
      Ueberschreiben. Eine geaenderte Bewertung ist fuer den anderen dasselbe
      Ereignis wie eine neue: er sieht eine Zahl, die vorher nicht dastand.
      GESETZT WIRD AUSDRUECKLICH UND NICHT UEBER EINEN VORGABEWERT der Spalte:
-     eine Zeile ohne Zeitpunkt heisst „die Anlage weiss nicht, wann" -- das
+     eine Zeile ohne Zeitpunkt heisst „die Instanz weiss nicht, wann" -- das
      gilt fuer alles vor 0.16.0 und fuer alles Eingespielte, und ein
      Vorgabewert machte daraus stillschweigend „gerade eben". */
   db.prepare(`INSERT INTO ratings (item_id, criterion_id, value, user_id, gesetzt_am)
@@ -3512,7 +3512,7 @@ app.get('/api/offen', (req, res) => {
 
 /* ---- Kennzahlen ---- */
 // NUR DER ADMIN. Die Zahlen sagen, wie gross der Bestand und wie belegt die
-// Datenbank ist -- eine Aussage ueber die Anlage als Ganzes. Lesend, deshalb
+// Datenbank ist -- eine Aussage ueber die Instanz als Ganzes. Lesend, deshalb
 // kein Eintrag in F_ROUTEN.
 // Der Schluesselwert weiter unten im Rumpf bleibt eine ZWEITE, engere Klemme:
 // den bekommt nur der Eigentuemer.
@@ -3541,7 +3541,7 @@ app.get('/api/stats', nurAdmin, (req, res) => {
   res.json({
     version: VERSION,
     // Der Fingerprint steht hier und nicht in /api/config: er ist dieselbe Art
-    // Aussage wie die Zahlen darunter -- eine ueber die ANLAGE ALS GANZES.
+    // Aussage wie die Zahlen darunter -- eine ueber die INSTANZ ALS GANZES.
     // Und die Liste in /api/config ist ausdruecklich abgeschlossen; was
     // dort steht, sieht jeder, der die Adresse kennt. Der Fingerprint nagelt
     // den laufenden Dateisatz fest und geht deshalb nicht vor die Anmeldung.
@@ -3586,7 +3586,7 @@ app.get('/api/stats', nurAdmin, (req, res) => {
     // aus der Umgebung, gibt es nichts abzuschreiben -- und dann hat er in
     // einer Antwort auch nichts verloren.
     // Und nur an den Eigentuemer. Er steht in derselben Rechtezeile
-    // wie Export und Import -- alles, was die Anlage als Ganzes
+    // wie Export und Import -- alles, was die Instanz als Ganzes
     // betrifft. Ein Admin verwaltet den Bestand, er oeffnet nicht die Datei.
     keyHex: (keyFromEnv || !istEigentuemer(req)) ? null : keyHex
   });
@@ -3622,7 +3622,7 @@ const AUSTAUSCH_FORMAT = 11;
 const AUSTAUSCH_STRING = require('buffer').constants.MAX_STRING_LENGTH;
 const AUSTAUSCH_MAX = Math.floor(AUSTAUSCH_STRING * 0.9);
 
-/* Der Wert, ab dem die Anlage WARNT -- deutlich unter der Grenze, an der sie
+/* Der Wert, ab dem die Instanz WARNT -- deutlich unter der Grenze, an der sie
    ABSAGT. Die beiden Zahlen haben verschiedene Aufgaben und duerfen deshalb
    nicht dieselbe sein:
      AUSTAUSCH_MAX  ist gemessen -- daran zerbricht der String.
@@ -3702,7 +3702,7 @@ function eintragAlsPaket(it, lage) {
        begruendeten Ablehnung wieder ein nacktes Haekchen.
        rejected_author WANDERT ALS NAME HINAUS, wie jeder Verfasser in dieser
        Datei und ueber DIESELBE Karte: eine Zugangsnummer bedeutet in einer
-       fremden Anlage etwas anderes.
+       fremden Instanz etwas anderes.
        DIE DREI GEHEN AUCH MIT, WENN rejected FALSCH IST. Beim Zuruecknehmen
        loescht der Server sie nicht, und eine Datei, die sie dann wegliesse,
        naehme dem Ziel die Angabe, die die Quelle noch hat. */
@@ -3787,7 +3787,7 @@ function exportUmschlag(items) {
   // Feld lassen sich weiterhin einspielen.
   const kritZeilen = db.prepare('SELECT name, gewicht FROM rating_criteria ORDER BY sort_order, id').all();
   /* Die Gewichte kommen als EIGENES Feld daneben, criteria bleibt eine Liste
-     von Namen: auf Objekte umgestellt liefe eine aeltere Anlage durch String()
+     von Namen: auf Objekte umgestellt liefe eine aeltere Instanz durch String()
      und bekaeme ein Kriterium namens "[object Object]". Ein zusaetzliches
      Feld ignoriert sie dagegen wortlos.
      NUR ABWEICHUNGEN -- ein Kriterium mit Gewicht 1 taucht gar nicht auf. */
@@ -3797,8 +3797,8 @@ function exportUmschlag(items) {
            criteria: kritZeilen.map(c => c.name), criteriaGewichte, items };
 }
 
-// Der Dateiname einer Exportdatei. Aus dem Titel der Anlage, damit zwei
-// Anlagen nicht zwei gleichnamige Dateien im Ordner ablegen.
+// Der Dateiname einer Exportdatei. Aus dem Titel der Instanz, damit zwei
+// Instanzen nicht zwei gleichnamige Dateien im Ordner ablegen.
 function exportName(zusatz) {
   const title = getSetting('title_app', 'Kriterion');
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kriterion';
@@ -3891,13 +3891,13 @@ function austauschUmschlagBytes(itemId) {
 
 /* ---- Der Export in Teilen ----------------------------------------------
    WOZU. Bei genuegend Fotos gibt es die eine Datei nicht: 760 MB gegen Nodes
-   512 MB, gemessen an der laufenden Anlage am 28. August 2026. Der Export sagt
+   512 MB, gemessen an der laufenden Instanz am 28. August 2026. Der Export sagt
    das seit 0.12.3 sauber an -- und liefert seither nichts mehr.
 
    WARUM TEILE UND NICHT EIN STROM. Ein Strom loeste den Weg HINAUS und liesse
    den Weg ZURUECK zu: der Import liest die Datei ueber readAsText() im Browser
    und buffer.toString('utf8') am Server, beides ein einziger String. Eine
-   gestreamte Datei koennte diese Anlage nicht wieder einspielen.
+   gestreamte Datei koennte diese Instanz nicht wieder einspielen.
    JEDER TEIL IST DAGEGEN EINE VOLLSTAENDIGE EXPORTDATEI -- derselbe Umschlag,
    dieselbe Formatnummer, nur weniger Eintraege darin. Der vorhandene Import
    nimmt sie mit "Zusammenfuehren" wieder auf, ohne eine Zeile Aenderung.
@@ -3972,7 +3972,7 @@ function teilBytes(z, schalter) {
    ER LAESST SICH KLEINER STELLEN, aber nicht groesser. Wer seine Teile auf
    einen Datentraeger oder durch eine Hochladegrenze bringen muss, braucht
    kleinere; groesser darf niemand, denn oberhalb von AUSTAUSCH_WARN baute die
-   Anlage Teile, vor denen sie im selben Atemzug warnt.
+   Instanz Teile, vor denen sie im selben Atemzug warnt.
    DIE UNTERGRENZE IST NICHT ZIERDE: bei einem Zielwert unter einem Megabyte
    entstuenden bei tausend Eintraegen tausend Dateien, und der Import waere
    tausend Handgriffe. */
@@ -4071,7 +4071,7 @@ app.get('/api/export', nurEigentuemer, zweiteBestaetigungNoetig('export'), (req,
      zurueck: eine 500 nach zwei Minuten, mit einem Spitzenverbrauch, den
      niemand gebraucht hat. Ein Knopf, der so abbricht, sieht aus wie ein
      kaputtes Programm; er ist aber eine erreichte Grenze, und der Unterschied
-     liegt allein darin, ob die Anlage es vorher sagt.
+     liegt allein darin, ob die Instanz es vorher sagt.
      GEWARNT WIRD AN DER KARTE, ABGESAGT WIRD HIER. Die beiden Zahlen haben
      verschiedene Aufgaben: AUSTAUSCH_WARN nimmt niemandem etwas weg,
      AUSTAUSCH_MAX ist die Grenze, hinter der es keine Datei mehr gibt.
@@ -4306,7 +4306,7 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
   db.transaction(() => {
     if (modus === 'replace') {
       /* DIESE DREI ZEILEN FUELLEN DEN PAPIERKORB AUSDRUECKLICH NICHT.
-         Ein ersetzender Import legte sonst die ganze bisherige Anlage als
+         Ein ersetzender Import legte sonst die ganze bisherige Instanz als
          Pakete daneben und verdoppelte sie damit in derselben Datei. Wer
          ersetzt, hat die Datei in der Hand, aus der er ersetzt -- das ist der
          Rueckweg, und er ist ein anderer als der Papierkorb. */
@@ -4492,7 +4492,7 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
   /* Die laute Haelfte. Ein Name, den es nicht gibt, faellt an den
      Einspielenden -- die entworfene Regel und trotzdem der stillste denkbare
      Vorgang: beim Einspielen einer Mehrbenutzersicherung in eine frische
-     Anlage zieht der gesamte Bestand wortlos um. Deshalb steht die Liste in
+     Instanz zieht der gesamte Bestand wortlos um. Deshalb steht die Liste in
      der Antwort UND im Protokoll. Der Ausweg steht in der Zeile selbst: die
      fehlenden Zugaenge anlegen und noch einmal einspielen. */
   const unbekannt = [...unbekannteNamen].sort();
@@ -4568,7 +4568,7 @@ app.post('/api/import', nurEigentuemer, zweiteBestaetigungNoetig('import'),
    ZWEI LOESCHWEGE FUELLEN IHN AUSDRUECKLICH NICHT: "Zugang entfernen" mit dem
    Haekchen "Eintraege mitnehmen" (das steckt in auth.js, und auth.js darf von
    der Abbildung in server.js nichts wissen) und der ERSETZENDE Import (er
-   verdoppelte sonst die ganze bisherige Anlage in den Papierkorb). */
+   verdoppelte sonst die ganze bisherige Instanz in den Papierkorb). */
 
 const PAPIERKORB_TAGE = 30;
 
@@ -4582,7 +4582,7 @@ const delPapierkorbAlt = db.prepare(
   "DELETE FROM papierkorb WHERE geloescht_am < datetime('now', ?)");
 
 /* ZWEI AUFRUFSTELLEN, beide noetig -- beim Start und beim Oeffnen der Karte.
-   Eine Anlage, die drei Monate durchlaeuft, raeumte sonst drei Monate lang
+   Eine Instanz, die drei Monate durchlaeuft, raeumte sonst drei Monate lang
    nicht auf.
    HINZUNEHMENDE FOLGE: damit schreibt eine LESENDE Route. Das ist
    Hauswirtschaft und keine Benutzerhandlung -- die Liste schreibender Routen
@@ -4749,7 +4749,7 @@ app.delete('/api/papierkorb/:id', nurEigentuemer, (req, res) => {
    kein stilles Anlegen. */
 
 const SICHERUNG_DIR = (process.env.SICHERUNG_DIR || '').trim();
-// Gemessen an einer verschluesselten Anlage: rund 10 ms je MB. Verdoppelt,
+// Gemessen an einer verschluesselten Instanz: rund 10 ms je MB. Verdoppelt,
 // weil der Betrieb auf einem N100 laeuft und eine zu niedrige Ansage
 // schlimmer ist als eine zu hohe.
 const SICHERUNG_MS_JE_MB = 20;
@@ -4888,7 +4888,7 @@ function letzteSicherung(pfad) {
   const j = dateien[0];
   return { erreichbar: true, zahl: dateien.length, gewechseltAm, veraltet, letzte: {
     datei: j.name, bytes: j.bytes,
-    // Dieselbe Schreibweise wie jeder Zeitstempel der Anlage
+    // Dieselbe Schreibweise wie jeder Zeitstempel der Instanz
     // ("2026-08-23 19:56:01", UTC): die Oberflaeche hat genau einen Weg, aus
     // einem Zeitstempel ein Datum zu machen, und der erwartet diese Form.
     am: new Date(j.zeit).toISOString().slice(0, 19).replace('T', ' '),
@@ -4910,10 +4910,10 @@ app.get('/api/sicherung', nurEigentuemer, (req, res) => {
   // Ansage der Dauer waere zu niedrig. Stolperstein 4 in der Gegenrichtung.
   try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
   // Die erwartete Dauer wird aus der Groesse gerechnet und VORHER genannt:
-  // waehrend VACUUM INTO laeuft, steht die Anlage.
+  // waehrend VACUUM INTO laeuft, steht die Instanz.
   const dauer = Math.max(1, Math.round(dbBytes / 1048576 * SICHERUNG_MS_JE_MB / 1000));
   /* Die Marke steht auch dann in der Antwort, wenn der Zielort nicht erreichbar
-     ist: DASS gewechselt wurde, ist eine Aussage ueber die Anlage und haengt
+     ist: DASS gewechselt wurde, ist eine Aussage ueber die Instanz und haengt
      nicht am Sicherungsort. Nur die ZAHL der veralteten Kopien haengt daran,
      und die ist dann ehrlich null statt geraten. */
   const marke = wechselMarke();
@@ -4934,7 +4934,7 @@ app.get('/api/sicherung', nurEigentuemer, (req, res) => {
              dbBytes, dauerSekunden: dauer, ...letzteSicherung(ziel.pfad) });
 });
 
-/* Der Ort ist eine Einstellung der ANLAGE und gehoert damit in settings, nicht
+/* Der Ort ist eine Einstellung der INSTANZ und gehoert damit in settings, nicht
    in user_settings: zwei Leute mit verschiedenen Orten haetten zwei Wahrheiten
    ueber dieselbe Sache.
    EIGENE ROUTE statt PUT /api/settings: die leitet ihre Rechte aus
@@ -5143,7 +5143,7 @@ app.listen(PORT, () => {
      nicht erst am toten Link beim Empfaenger. */
   if (OEFFENTLICHE.fehler) {
     console.warn(`[Kriterion] OEFFENTLICHE_ADRESSE ist unbrauchbar: ${OEFFENTLICHE.fehler} ` +
-      'Die Anlage laeuft weiter; den Einladungslink baut wie bisher der Browser des Admins.');
+      'Die Instanz laeuft weiter; den Einladungslink baut wie bisher der Browser des Admins.');
   } else if (OEFFENTLICHE.adresse) {
     console.log(`[Kriterion] Oeffentliche Adresse: ${OEFFENTLICHE.adresse} — ` +
       'Einladungslinks werden damit gebaut.');
