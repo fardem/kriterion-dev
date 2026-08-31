@@ -178,10 +178,15 @@ Reihen, stellt die beiden Zeitangaben einer Anmeldung untereinander,
 **das Video fing im Vollbild ein zweites Mal an.*** **PATCH — die Instanz kann
 danach nichts, was sie vorher nicht konnte.**
 
-> **IM FELD BESTÄTIGT IST SIE NOCH NICHT.** Die Zeile hier gilt dem gebauten
-> Stand; was die laufende Instanz meldet, gehört nach dem Einspielen daneben.
-> **DASSELBE GILT WEITERHIN FÜR 0.17.0** — die drei Handgriffe, die sie im Feld
-> belegen, stehen aus (Abschnitt 8).
+> **IM FELD BESTÄTIGT AM 31. AUGUST 2026: die laufende Instanz meldet
+> `1775fcd4`.** *Der Fingerprint stimmt mit dem gebauten Stand überein; auf dem
+> Wirt liegt keine Datei, die kein Commit trägt (Stolperstein 158).* **Vier der
+> sechs Punkte sind am Bildschirm nachgesehen** — Zugangstext, Mailversand,
+> Umbenennung, Sitzungszeile; die Einzelheiten stehen im Änderungsprotokoll
+> 0.17.1. **Zwei Befunde kamen aus demselben Blick und sind als 0.17.2
+> beauftragt** (Abschnitt 10a): der abgeschnittene Name in der Anmeldezeile und
+> die Listen ohne Deckel.
+> **DIE DREI HANDGRIFFE ZU 0.17.0 STEHEN WEITERHIN AUS** (Abschnitt 8).
 
 > **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
 > neue Formatnummer: es bleibt bei **sieben** markierten Blöcken und bei
@@ -540,7 +545,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.1** | **`1775fcd4`** | 4715 |
+| **0.17.1** | **`1775fcd4`** *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4715 |
 | 0.17.0 | `1b6bb5d2` | 4630 |
 | 0.16.0 | `aa76c352` | 4523 |
 | 0.15.1 | `d02260bd` | 4366 |
@@ -687,7 +692,7 @@ python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion               # GitHub hängt den Branchnamen an
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # OHNE DIESE ZEILE STARTET NICHTS
-chmod +x kriterion/schluessel.sh          # das ZIP bringt das Recht nicht mit
+chmod +x kriterion/schluessel.sh          # python3 legt das Recht nicht an
 cd kriterion && docker compose up -d --build
 ```
 
@@ -696,10 +701,13 @@ Geschmack: ein Einspielweg, der Dateien kopiert, **entfernt keine** — eine in
 dieser Version gelöschte Datei bliebe liegen und liefe mit, und der Fingerprint
 schlüge aus, ohne dass die Instanz kaputt wäre (Stolperstein 158).
 
-**Die `chmod`-Zeile ist nachgestellt:** `python3 -m zipfile -e` stellt **keine
-Ausführungsrechte** wieder her, `unzip` dagegen schon. Im Repo trägt
-`schluessel.sh` den Modus `100755`; auf dem Wirt kommt er ohne ihn an
-(Stolperstein 140). Ohne das Recht geht `bash schluessel.sh`.
+**Die `chmod`-Zeile ist nachgestellt, und sie hängt am ENTPACKER:**
+`python3 -m zipfile -e` stellt **keine Ausführungsrechte** wieder her, `unzip`
+dagegen schon. *Das ZIP von GitHub trägt sie mit — nachgemessen am 31. August
+2026: `schluessel.sh` steht darin mit `0o100755`.* Im Repo trägt die Datei den
+Modus `100755`; über `python3 -m zipfile` kommt sie ohne ihn auf dem Wirt an
+(Stolperstein 140). **Wer klont oder mit `unzip` auspackt, braucht die Zeile
+nicht.** Ohne das Recht geht `bash schluessel.sh`.
 
 **Die Sicherungszeile gehört ZWISCHEN `docker compose down` und alles Weitere** —
 eine Sicherung, die neben einem laufenden Server entsteht, kann eine offene WAL
@@ -4662,6 +4670,13 @@ Version, in der sie entstanden sind.*
     das Recht an, und `./schluessel.sh` antwortete **„Keine Berechtigung"**.
     Der Einspielweg packt das ZIP mit Pythons `zipfile` aus, und das schreibt
     die Modusbits nicht zurück — **`unzip` tut es**, nachgestellt an beiden.
+    **ES LIEGT AM ENTPACKER UND NICHT AM ZIP**, und der Unterschied gehört
+    benannt: *am 31. August 2026 nachgemessen — das ZIP von GitHub trägt
+    `0o100755` im Eintrag mit; `python3 -m zipfile -e` legt es beim Auspacken
+    nicht an, `unzip` legt es an.* **Die README sagte bis 0.17.1 „das ZIP
+    bringt das Recht nicht mit", und das war falsch.** *Wer klont, hat das
+    Problem gar nicht; unter Windows entpackt hat es jeder, denn NTFS kennt
+    das Recht nicht.*
     Der Weg trägt jetzt eine `chmod +x`-Zeile, und **ein Wächter hält beide
     Hälften**: das Recht an der Datei **und** die Zeile im Einspielweg —
     dieselbe Bauform wie bei Einhängung und `SICHERUNG_DIR` (Stolperstein 123).
@@ -6455,18 +6470,15 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.17.1 IST AM WIRT NOCH NICHT GEFAHREN.** Am Prüfstand ist alles belegt,
-  was sich dort belegen lässt; **jsdom rechnet kein Layout und spielt nichts
-  ab**, und vier der sechs Punkte sind Maße oder Bewegung. **Am Wirt fehlt:**
-  *(a)* die Kachel **„Zugang" als gewöhnlicher Benutzer** ansehen — dort darf
-  der Server-Befehl **nicht** stehen, und statt seiner der Satz, dass man sich
-  an den Admin wendet; *(b)* **„Meine Sitzungen" mit mehr als drei
-  Anmeldungen** öffnen — die Liste soll die Höhe der Kachel nehmen und erst
-  dann rollen, und die beiden Zeitangaben stehen rechtsbündig untereinander;
-  *(c)* **ein Video am Eintrag starten und ins Vollbild wechseln** — es muss
-  **an derselben Stelle weiterlaufen**, mit **einer** Tonspur, und beim
-  Schließen ebenso zurück; *(d)* den **Mailversand** ansehen — vier Reihen auf
-  dem breiten Schirm, eine Spalte auf dem Telefon; *(e)* ein Lesezeichen auf
+- **0.17.1 IST AM WIRT ANGEKOMMEN — DREI HANDGRIFFE FEHLEN NOCH.** *Am
+  31. August 2026 bestätigt: Fingerprint `1775fcd4`, dazu Zugangstext,
+  Mailversand, Umbenennung und Sitzungszeile am Bildschirm nachgesehen.*
+  **Offen bleibt:** *(a)* die Kachel **„Zugang" als gewöhnlicher Benutzer** —
+  dort darf der Server-Befehl **nicht** stehen, und statt seiner der Satz, dass
+  man sich an den Admin wendet *(gesehen wurde sie als Eigentümer, und dort
+  steht er richtig)*; *(b)* **ein Video am Eintrag starten und ins Vollbild
+  wechseln** — es muss **an derselben Stelle weiterlaufen**, mit **einer**
+  Tonspur, und beim Schließen ebenso zurück; *(c)* ein Lesezeichen auf
   **`#/system/anlage`** aufrufen: es muss beim Abschnitt **Instanz** landen,
   und die Adresszeile danach `#/system/instanz` zeigen.
   *Die Befehle dazu standen im Chat der Runde, nicht hier.*
@@ -7737,6 +7749,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.16.0** | Der Systembereich, die Glocke und die Auskunft | **GEBAUT.** Neunzehn Karten sind achtzehn und stehen in fünf Abschnitten mit eigener Adresse; `renderSystem()` fiel dabei von 2466 auf 79 Zeilen. Dazu die Glocke mit dem Punkt, der Zähler „Offen" mit Zahl, die Gewichtung, die sich selbst erklärt, Version und Verfahren in den Kennzahlen — und aus dem Betrieb das Löschen in der Zoomansicht. *MINOR.* **Die größte Umbaufläche des Plans — und sie ist doch eine Datenbankstufe geworden: die Glocke braucht einen Zeitpunkt an der Bewertung. Der Rechner zur Gewichtung ist NICHT mitgefahren** | ja, **siebter Block** | — |
 | **0.17.0** | Was dasteht, und was nicht dasteht | **GEBAUT.** Neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, unmittelbar nach dem Einspielen von 0.16.0. Die Kriterienliste zerfiel bei genau **einem** Zugang; zwei Erklärtexte haben die Oberfläche verlassen; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; der Erklärkasten nennt die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen ist.** *MINOR.* **Kein Schema, keine Route — MINOR wegen der Glockentafel. Alle neun Punkte sind gebaut, dazu ein zehnter Befund aus dem Bauen: der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt** | nein | — |
 | **0.17.1** | Was der Benutzer sieht | **GEBAUT.** Sechs Handgriffe aus einem Rundlauf von Hand: der Text im Kachel „Zugang" stimmt nicht und sagt zu viel, Kacheln nutzen ihre Höhe nicht, der Mailversand ordnet sich, **aus „Anlage" wird „Instanz"**, die Zeile einer Sitzung steht schief — und das Video fängt im Vollbild ein zweites Mal an. *PATCH: fünf sind Wortlaut und Anzeige, einer ist ein echter Fehler.* **Alle sechs Punkte sind gebaut; keiner ist herausgefallen. Die Umbenennung traf 692 Stellen, und die alte Adresse `#/system/anlage` wird still übersetzt** | nein | — |
+| **0.17.2** | Der Deckel und die eigene Hand | **BEAUFTRAGT am 31. August 2026.** Fünf Handgriffe aus dem Rundlauf mit 0.17.1, zwei davon Nacharbeit an ihr selbst: die Zeile einer Anmeldung schneidet den Namen ab, **die Listen brauchen einen Deckel bei zwölf Zeilen** (die Tagliste zog die Seite auf), der Mailversand ordnet sich zu Ende, die Klammer bei einer einzigen Stimme fällt weg — **und die Glocke meldet die eigenen Beiträge wieder nicht.** *PATCH: die Instanz sagt an einer Stelle weniger.* **Der Auftrag liegt als `Doku/Auftrag_0.17.2.md` im Repo** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
 | **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
@@ -8185,6 +8198,43 @@ auseinanderlaufen könnte. **In einem Satz je Punkt:**
 6. **Das Video fängt im Vollbild ein zweites Mal an** — der einzige echte
    Fehler. *Die Lightbox baut sich einen eigenen Abspieler; gebaut wird ein
    fliegender Wechsel.*
+
+---
+
+### 0.17.2 — „Der Deckel und die eigene Hand" · *PATCH*
+
+**BEAUFTRAGT am 31. August 2026.** *Nichts aus dem Sammelblatt — fünf Befunde
+aus dem Rundlauf mit 0.17.1, unmittelbar nach dem Einspielen.* **Zwei davon
+sind Nacharbeit an 0.17.1 selbst.**
+
+**Die Ausarbeitung steht im Auftrag** (`Doku/Auftrag_0.17.2.md`) und nicht hier.
+**In einem Satz je Punkt:**
+
+1. **Die Zeile einer Anmeldung schneidet den Namen ab** — „Diese Anmeldung (…".
+   *Zwei Reihen statt einer: oben der Name, darunter die beiden Zeitangaben,
+   weiterhin rechtsbündig untereinander. Keine Ellipse mit Überfahren — was nur
+   die Maus zeigt, zeigt die Anlage nicht.*
+2. **Die Listen brauchen einen Deckel bei zwölf Zeilen, und er geht mit.**
+   *0.17.1 hat die feste Höhe gestrichen und keine Grenze gesetzt; in „Bestand"
+   zieht die Tagliste die Seite auf rund fünfzig Zeilen auseinander.* **Zwölf
+   Zeilen sind keine Obergrenze, sondern die Höhe, die die Liste von sich aus
+   fordert:** braucht eine Nachbarkachel mehr, nimmt sie diese Höhe mit.
+   **`flex: 1` und `min-height: 0` bleiben; der Deckel steht in `em`, nicht in
+   Pixeln.** *Dasselbe am Sicherheitsprotokoll. Ein schlichtes `max-height`
+   klemmt beides und nimmt 0.17.1 zurück — das ist die eine echte Entscheidung
+   der Runde.*
+3. **Der Mailversand ordnet sich zu Ende:** Absenderadresse und Knöpfe bekommen
+   ihren Satz **daneben** statt darunter, und **ein Satz wird gestrichen** — die
+   Begründung, warum es kein Adressfeld neben der Testmail gibt, ist ein Gedanke
+   vom Bauen und keine Auskunft (Abschnitt 5.6).
+4. **Die Klammer bei einer einzigen Stimme fällt weg** — „⌀ 4,8 (1)" sagt mit
+   der Eins nichts. *Ab zwei steht sie wieder da; der Vermerk zur
+   zurückgenommenen Zusage bleibt (Stolperstein 201).*
+5. **Die Glocke meldet die eigenen Beiträge wieder nicht.** *Die zweite Wende an
+   derselben Entscheidung: 0.16.0 schloss sie aus, 0.17.0 nahm das zurück,
+   0.17.2 stellt 0.16.0 wieder her.* **Die Folge ist gewollt und ausgesprochen:
+   bei genau einem Zugang bleibt die Glocke stumm — wer allein arbeitet, hat
+   nichts, wovon ihm jemand berichten müsste.**
 
 ---
 

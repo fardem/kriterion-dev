@@ -77,11 +77,28 @@ folgen [Semantic Versioning](https://semver.org/lang/de/).
 kleiner Server, ein Intel-N100-Kasten unter OpenMediaVault reicht völlig. Sonst
 nichts: Node.js, Übersetzer und Datenbank stecken im Image.
 
+**Der kürzeste Weg ist das Klonen:**
+
+```bash
+git clone https://github.com/fardem/kriterion.git
+cd kriterion
+cp .env.example .env
+docker compose up -d --build
+```
+
+> **SOLANGE DAS REPO PRIVAT IST, GEHT DAS NUR MIT ZUGANG** — `git clone` fragt
+> dann nach Anmeldedaten oder braucht einen Schlüssel. **Das ändert sich, wenn
+> das Repo öffentlich wird**; die Zeile steht hier, weil sie dann der eine Weg
+> ist, den man sich merken muss.
+
+**Der Weg über das ZIP** („Code" → „Download ZIP" auf
+<https://github.com/fardem/kriterion>) **tut dasselbe:**
+
 ```bash
 python3 -m zipfile -e kriterion-main.zip .   # ZIP von GitHub
 mv kriterion-main kriterion                  # der Ordner heißt nach dem Branch
 cd kriterion
-chmod +x schluessel.sh                       # das ZIP bringt das Recht nicht mit
+chmod +x schluessel.sh                       # python3 legt das Recht nicht an
 cp .env.example .env
 docker compose up -d --build
 ```
@@ -89,9 +106,13 @@ docker compose up -d --build
 Erreichbar unter `http://<server-ip>:3100`. **Der Port steht in der
 `docker-compose.yml`**, nicht in der `.env`.
 
-*Wer `git` auf dem Server hat, nimmt statt der ersten beiden Zeilen*
-`git clone https://github.com/fardem/kriterion.git` *— dann kommen auch die
-Ausführungsrechte mit, und das `chmod` entfällt.*
+> **DAS `chmod` HÄNGT AM ENTPACKER UND NICHT AM ZIP.** *Nachgemessen und nicht
+> geglaubt:* das ZIP von GitHub **trägt** die Ausführungsrechte mit
+> (`schluessel.sh` steht darin mit `0o100755`). **`python3 -m zipfile -e` legt
+> sie beim Auspacken nicht an, `unzip` schon.** Wer also
+> `unzip -q kriterion-main.zip` benutzt — oder klont —, **braucht die
+> `chmod`-Zeile nicht.** *Unter Windows entpackt geht das Recht in jedem Fall
+> verloren: NTFS kennt es nicht.*
 
 **Der Schritt `cp .env.example .env` ist Pflicht, auch wenn nichts darin steht.**
 `docker compose` liest die Datei ein und bricht sonst ab, bevor der Container
@@ -234,7 +255,7 @@ mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
 mv kriterion-alt/kriterion-sicherung kriterion/ 2>/dev/null   # nur bei Ort im Projekt
-chmod +x kriterion/schluessel.sh          # das ZIP bringt das Recht nicht mit
+chmod +x kriterion/schluessel.sh          # python3 legt das Recht nicht an
 cd kriterion && docker compose up -d --build
 ```
 
@@ -282,9 +303,11 @@ Kopien aus dem umbenannten Ordner zurück; ohne sie bleiben sie in
 warnt der rote Kasten in der Karte „Sicherung". Liegt der Ort außerhalb, ist die
 Zeile ohne Wirkung und stört nicht.
 
-**Die `chmod`-Zeile ist nicht überflüssig.** `python3 -m zipfile -e` stellt
-**keine Ausführungsrechte** wieder her — anders als `unzip`, das es tut. Ohne
-sie antwortet `./schluessel.sh` mit „Keine Berechtigung"; es geht dann auch
+**Die `chmod`-Zeile hängt am Entpacker und nicht am ZIP.** *Nachgemessen:* das
+ZIP von GitHub **trägt** die Ausführungsrechte mit; `python3 -m zipfile -e`
+stellt **keine Ausführungsrechte** wieder her — anders als `unzip`, das es tut.
+**Wer mit `unzip` auspackt oder klont, braucht die Zeile nicht.** Ohne sie
+antwortet `./schluessel.sh` mit „Keine Berechtigung"; es geht dann auch
 `bash schluessel.sh zeigen`.
 
 **`--build` ist nicht optional.** Ohne es startet stillschweigend die alte
@@ -2293,7 +2316,8 @@ Gewechselt wird **auf dem Wirt**, im Projektverzeichnis:
 ```
 
 > **„Keine Berechtigung"?** Dann fehlt dem Skript das Ausführungsrecht —
-> `python3 -m zipfile -e` im Einspielweg bringt es nicht mit. Einmal
+> `python3 -m zipfile -e` im Einspielweg legt es nicht an. *Das ZIP trägt es
+> mit; `unzip` und `git clone` bringen es durch.* Einmal
 > `chmod +x schluessel.sh`, und es ist erledigt; ohne das Recht geht auch
 > `bash schluessel.sh zeigen`.
 
