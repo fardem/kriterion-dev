@@ -604,11 +604,31 @@ Abschnitt 6.*
 
 ## 14. Offen geblieben
 
-**DIESE RUNDE IST IM FELD NOCH NICHT BESTÄTIGT.** *Der Fingerprint steht —
-`edbd76b6` —, die Instanz hat ihn noch nicht gemeldet.* **Nach dem Einspielen
-gehört ein Blick in Systembereich → Datenbank → Kennzahlen:** steht dort ein
-anderer Wert, liegt auf dem Wirt eine Datei, die kein Commit trägt
-(Stolperstein 158).
+> **NACHGETRAGEN AM 31. AUGUST 2026 — DIE RUNDE IST IM FELD ANGEKOMMEN.**
+> *Dieses Papier ist abgeschlossen und wird genau dafür ein zweites Mal
+> angefasst: die Belege waren beim Schreiben noch nicht da, und der Auftrag zu
+> 0.17.3 verlangt sie hierher. Dasselbe Vorgehen wie bei 0.17.1.*
+>
+> **DIE LAUFENDE INSTANZ MELDET `edbd76b6`** — Systembereich → Datenbank →
+> Kennzahlen. **Der Fingerprint stimmt mit dem gebauten Stand überein**; auf dem
+> Wirt liegt keine Datei, die kein Commit trägt (Stolperstein 158).
+>
+> **UND DER ERSTE DER FÜNF HANDGRIFFE HAT EINEN BEFUND GEBRACHT — Punkt 2
+> dieser Runde greift zu kurz.** Die Bilder von „Anfragen" und „Zugängen"
+> zeigen eine leere und eine fünfzeilige Liste in einer Kachel, die über
+> tausend Pixel hoch ist. **Die Liste klemmt korrekt; die KACHEL klemmt
+> nicht** — `.sys-grid` ist ein Raster, und ein Raster zieht jedes Kind auf die
+> Höhe der höchsten Zelle seiner Reihe. *Der Leerraum steht unter dem Inhalt IN
+> der Kachel, nicht in der Liste, und genau deshalb hat die Messung zu dieser
+> Runde ihn nicht gesehen: sie hat die Liste gemessen und die Kachel
+> übersehen.* **Das ist kein Rückfall, sondern eine Ursache, die eine Ebene
+> höher lag**; behoben in 0.17.3, Punkt 1. *Im selben Zug fällt der Deckel dort
+> von zwölf auf zehn Zeilen.*
+>
+> **DIE HANDGRIFFE 3, 4 UND 5 STEHEN WEITERHIN AUS** — sie stehen unten
+> unverändert da, und der Auftrag zu 0.17.3 führt sie ein zweites Mal.
+> *Handgriff 2 verlangt ein Telefon und ist damit nicht „mit einem Blick" zu
+> haben; auch er ist nicht gemeldet.*
 
 > **EINE PRÜFUNG IST BEIM SCHREIBEN DIESER PAPIERE EINMAL ROT GEWESEN, und das
 > gehört hierher.** *„Eine Sekunde vor Ablauf trägt der Link noch"* aus der

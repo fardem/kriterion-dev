@@ -10786,6 +10786,42 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und der Hinweis zur Absenderadresse steht immer da',
       /Absenderadresse muss zum Konto/.test(rMitFrei.inhalt?.hinweisImmer || ''),
       JSON.stringify(rMitFrei.inhalt?.hinweisImmer));
+    /* ---- DIE ANBIETERLISTE TRAEGT, WAS DER DIALOG BRAUCHT — 0.17.3 ----
+       Seit dieser Runde stellt ein Dialog den Zugang ein, und dort wechselt
+       mit der Auswahl ZWEIERLEI: der Hinweis zu genau diesem Anbieter und die
+       drei festen Werte, die dann gelten. BEIDES KOMMT VOM SERVER -- eine
+       zweite Liste in app.js liefe auseinander, sobald ein Anbieter dazukommt
+       oder einer den Port wechselt (Stolperstein 102).
+       DIE LISTE SELBST IST UNVERAENDERT: fuenf Vorlagen und „Eigener Server".
+       Gezaehlt wird sie ausdruecklich, damit ein stiller Zuwachs auffaellt. */
+    const rAnbListe = rMitFrei.inhalt?.anbieterListe || [];
+    pruefe('Die Anbieterliste kommt weiterhin mit sechs Eintraegen',
+      rAnbListe.length === 6, `${rAnbListe.length}`);
+    pruefe('Und in derselben Folge wie in mail.js',
+      rAnbListe.map(a => a.schluessel).join(',') === 'gmx,web,gmail,strato,ionos,eigen',
+      rAnbListe.map(a => a.schluessel).join(','));
+    const rAnbGmx = rAnbListe.find(a => a.schluessel === 'gmx');
+    pruefe('Jeder Eintrag traegt Server, Port und Verschluesselung',
+      rAnbListe.every(a => typeof a.server === 'string' && typeof a.port === 'number'
+                     && typeof a.sicher === 'boolean'),
+      JSON.stringify(rAnbListe[0]));
+    pruefe('Und die Werte sind die der Vorlage',
+      rAnbGmx?.server === 'mail.gmx.net' && rAnbGmx?.port === 587 && rAnbGmx?.sicher === false,
+      JSON.stringify(rAnbGmx));
+    /* DER HINWEIS HAENGT JETZT AM EINTRAG UND NICHT MEHR NUR AM GESPEICHERTEN
+       ANBIETER. Beide Richtungen: wo einer gehoert, steht er; wo keiner
+       gehoert, steht ein leerer String und nicht `undefined` -- der Dialog
+       fragt darauf ab, ob der Absatz ueberhaupt dasteht. */
+    pruefe('Der Anbieterhinweis haengt am Eintrag',
+      /fremde Programme/.test(rAnbGmx?.hinweis || ''), JSON.stringify(rAnbGmx?.hinweis));
+    pruefe('Und ein Anbieter ohne Hinweis traegt einen leeren',
+      rAnbListe.find(a => a.schluessel === 'strato')?.hinweis === '',
+      JSON.stringify(rAnbListe.find(a => a.schluessel === 'strato')?.hinweis));
+    /* DAS PASSWORT KOMMT AUCH HIER NICHT HERAUS -- die Liste ist eine neue
+       Auskunft, und jede neue Auskunft wird daraufhin angesehen. */
+    pruefe('Und aus der Liste kommt kein Geheimnis heraus',
+      !rAnbListe.some(a => 'passwort' in a || 'benutzer' in a),
+      JSON.stringify(Object.keys(rAnbListe[0] || {})));
 
     for (const l of [E, F, X, St, Sw, Tr, O, H, T]) await l.stopp();
     // A ist oben beim Neustart schon gestoppt worden -- beendeKind fragt
@@ -18002,7 +18038,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // die fehlende Lage fuer die EIGENE Bewertung und der ungeprueffte
   // Einleitungssatz der Glockentafel. Alle drei sind geschlossen; die
   // Rueckbauten bleiben, wo sie sind.
-  pruefe('Es sind genau 368 Rueckbauten', gpListe.length === 368, `${gpListe.length}`);
+  // 380 SEIT 0.17.3: zwanzig neue -- drei an der Kachelhoehe und dem Deckel von
+  // zehn Zeilen, neun am umgebauten Mailversand, drei am Erklaerkasten und
+  // fuenf am Filterruecksetzer. ACHT SIND WEGGEFALLEN und nicht mitgegangen,
+  // und das ist der Unterschied zu den Runden davor: 343, 344, 345 und 358 bis
+  // 362 bauten die VIER REIHEN des Mailversands zurueck, und genau diese
+  // Anordnung ist der Befund dieser Runde gewesen. Ein Rueckbau auf etwas, das
+  // es nicht mehr gibt, laesst sich nicht mitnehmen -- er hat keinen Ort mehr.
+  // Was an ihre Stelle tritt, sind die neun am Dialog und an der Zustandskarte.
+  pruefe('Es sind genau 380 Rueckbauten', gpListe.length === 380, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -18922,10 +18966,22 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     ['AAAAA-BBBBB', 'CCCCC-DDDDD', 'EEEEE-FFFFF', 'GGGGG-HHHHH',
      'JJJJJ-KKKKK', 'MMMMM-NNNNN', 'PPPPP-QQQQQ', 'RRRRR-SSSSS'];
   const MAIL_VERWEIGERT = 'Das kann nur der Eigentümer der Instanz.';
+  /* DIE ANBIETERLISTE, WIE SIE ÜBER /api/mail HEREINKOMMT -- seit 0.17.3 samt
+     Hinweis und den drei festen Werten je Anbieter. Der Dialog wechselt beides
+     mit der Auswahl, und beides kommt vom Server; ein Mock ohne diese Felder
+     pruefte einen Dialog, den es so nicht gibt.
+     DIESELBEN WERTE WIE IN mail.js -- dass sie es wirklich sind, prueft die
+     Gruppe „Der Mailversand: das echte SMTP-Gespraech" am laufenden Server. */
   const MAIL_ANBIETER_MOCK = [
-    { schluessel: 'gmx', name: 'GMX' }, { schluessel: 'web', name: 'Web.de' },
-    { schluessel: 'gmail', name: 'Gmail' }, { schluessel: 'strato', name: 'Strato' },
-    { schluessel: 'ionos', name: 'IONOS' }, { schluessel: 'eigen', name: 'Eigener Server' }
+    { schluessel: 'gmx', name: 'GMX', server: 'mail.gmx.net', port: 587, sicher: false,
+      hinweis: 'GMX verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
+    { schluessel: 'web', name: 'Web.de', server: 'smtp.web.de', port: 587, sicher: false,
+      hinweis: 'Web.de verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
+    { schluessel: 'gmail', name: 'Gmail', server: 'smtp.gmail.com', port: 465, sicher: true,
+      hinweis: 'Gmail verlangt Zwei-Faktor und ein App-Passwort — das Kontopasswort wird abgewiesen.' },
+    { schluessel: 'strato', name: 'Strato', server: 'smtp.strato.de', port: 465, sicher: true, hinweis: '' },
+    { schluessel: 'ionos', name: 'IONOS', server: 'smtp.ionos.de', port: 587, sicher: false, hinweis: '' },
+    { schluessel: 'eigen', name: 'Eigener Server', server: '', port: 587, sicher: false, hinweis: '' }
   ];
   mailStand = mailStand || { anbieter: 'gmx', server: 'mail.gmx.net', port: 587, sicher: false,
     benutzer: 'instanz@gmx.de', absender: 'instanz@gmx.de', passwortGesetzt: true,
@@ -26773,7 +26829,10 @@ async function pruefeOberflaeche() {
 
   /* DIE ACHTZEHNTE KARTE, und sie gehoert dem EIGENTUEMER -- eintragen,
      einsehen und testen. Dass ein Admin sie gar nicht sieht, steht in der
-     Gruppe ueber die Karten nach Rolle; hier geht es um ihren Inhalt. */
+     Gruppe ueber die Karten nach Rolle; hier geht es um ihren Inhalt.
+     SEIT 0.17.3 ZEIGT DIE KARTE UND STELLT NICHT EIN. Was hier geprueft wird,
+     ist deshalb der ZUSTAND -- fuenf Zeilen, zwei Knoepfe, ein Satz; der
+     Dialog hat seine eigene Gruppe weiter unten. */
   const mvKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Mailversand');
   {
@@ -26788,47 +26847,49 @@ async function pruefeOberflaeche() {
       k?.textContent?.slice(0, 300));
     pruefe('Sie sagt "eingerichtet"',
       /eingerichtet/.test(k?.textContent || ''), k?.textContent?.slice(0, 300));
+    /* ---- FUENF ZEILEN UND KEIN FELD — 0.17.3 ----
+       DIE KARTE TRAEGT KEIN BEDIENELEMENT MEHR ausser den beiden Knoepfen.
+       Geprueft wird beides: welche Zeilen dastehen UND dass kein Eingabefeld
+       mehr in der Karte steht -- ohne die zweite Zeile bliebe offen, ob die
+       Felder bloss woanders in derselben Karte gelandet sind. */
+    const mvZeilen = [...(k?.querySelectorAll('.kv .k') || [])].map(e => e.textContent.trim());
+    pruefe('Sie ist eine Zustandskarte mit fuenf Zeilen',
+      gleich(mvZeilen, ['Zustand', 'Anbieter', 'Absender', 'Öffentliche Adresse',
+                        'Zuletzt erfolgreich getestet']),
+      JSON.stringify(mvZeilen));
+    pruefe('Und traegt kein einziges Eingabefeld mehr',
+      [...(k?.querySelectorAll('input, select, textarea') || [])].length === 0,
+      [...(k?.querySelectorAll('input, select, textarea') || [])].map(e => e.id).join(','));
+    /* DIE ANBIETERZEILE FASST DREI ANGABEN ZU EINER. Bis 0.17.2 stand der
+       Anbieter allein auf einem Drittel, daneben zwei Drittel Leere. */
+    const mvWert = (name) => [...(k?.querySelectorAll('.kv') || [])]
+      .find(z => z.querySelector('.k')?.textContent.trim() === name)
+      ?.querySelector('.v')?.textContent.trim() || '';
+    pruefe('Die Anbieterzeile nennt Name, Server mit Port und Verschluesselung',
+      mvWert('Anbieter') === 'GMX · mail.gmx.net:587 · STARTTLS', JSON.stringify(mvWert('Anbieter')));
+    pruefe('Und die Absenderzeile die Absenderadresse',
+      mvWert('Absender') === 'instanz@gmx.de', JSON.stringify(mvWert('Absender')));
     /* DAS PASSWORT STEHT NIE DA -- weder als Wert noch als Laenge noch als
-       Sternchen mit der richtigen Zahl. Geprueft am Feld UND am Text. */
-    pruefe('Das Passwort steht nur als "gesetzt" da',
-      /gesetzt/.test(k?.textContent || '') &&
-      d.w.document.getElementById('mail-passwort')?.value === '',
-      JSON.stringify(d.w.document.getElementById('mail-passwort')?.value));
-    pruefe('Und das Feld sagt im Platzhalter, dass leer "unveraendert" heisst',
-      /leer lassen ändert es nicht/.test(d.w.document.getElementById('mail-passwort')?.placeholder || ''),
-      d.w.document.getElementById('mail-passwort')?.placeholder);
-    /* DIE DREI ANBIETERHINWEISE, und sie kommen vom SERVER (Stolperstein 102):
-       eine zweite Liste in app.js liefe beim naechsten Anbieter auseinander. */
-    pruefe('Der Hinweis zum gewaehlten Anbieter steht da',
-      /fremde Programme/.test(k?.textContent || ''), k?.textContent?.slice(0, 900));
-    pruefe('Und der Hinweis zur Absenderadresse ebenso',
-      /Absenderadresse muss zum Konto gehören/.test(k?.textContent || ''),
-      k?.textContent?.slice(0, 900));
+       Sternchen mit der richtigen Zahl. SEIT 0.17.3 STEHT AUCH „gesetzt" NICHT
+       MEHR IN DER KARTE: die Zeile beantwortete dieselbe Frage wie „Zustand"
+       eine Zeile darueber. Der Dialog sagt es am Feld selbst, und das prueft
+       die Gruppe zum Dialog. */
+    pruefe('Die Karte traegt keine Zeile „Passwort" mehr',
+      !mvZeilen.includes('Passwort'), JSON.stringify(mvZeilen));
     pruefe('Sie nennt die Frist des Versands',
       /20 Sekunden/.test(k?.textContent || ''), k?.textContent?.slice(0, 900));
-    /* DIE AUSWAHLLISTE KOMMT VOM SERVER, samt „eigener Server“. */
-    const auswahl = d.w.document.getElementById('mail-anbieter');
-    pruefe('Die Anbieterliste kommt vom Server',
-      [...(auswahl?.options || [])].map(o => o.value).join(',') === ',gmx,web,gmail,strato,ionos,eigen',
-      [...(auswahl?.options || [])].map(o => o.value).join(','));
-    /* BEI EINER VORLAGE SIND SERVER, PORT UND VERSCHLUESSELUNG GESPERRT und
-       nicht versteckt: wer GMX gewaehlt hat, soll SEHEN, wohin geschickt wird. */
-    pruefe('Bei einer Vorlage stehen Server und Port da, aber gesperrt',
-      d.w.document.getElementById('mail-server')?.value === 'mail.gmx.net' &&
-      d.w.document.getElementById('mail-server')?.disabled === true &&
-      d.w.document.getElementById('mail-port')?.disabled === true,
-      `${d.w.document.getElementById('mail-server')?.value} · gesperrt=${d.w.document.getElementById('mail-server')?.disabled}`);
-    // Und die Gegenrichtung: bei „eigener Server“ sind sie offen.
-    auswahl.value = 'eigen';
-    auswahl.dispatchEvent(new d.w.Event('change'));
-    pruefe('Bei „eigener Server“ sind sie offen',
-      d.w.document.getElementById('mail-server')?.disabled === false &&
-      d.w.document.getElementById('mail-port')?.disabled === false,
-      `gesperrt=${d.w.document.getElementById('mail-server')?.disabled}`);
+    /* ZWEI KNOEPFE, und der erste sagt, was er tut. Bei einem eingerichteten
+       Zugang heisst er „ändern" -- „Speichern" hiess er bis 0.17.2, an einer
+       Karte, in der die Felder schon dastanden. */
+    const mvKnoepfe = [...(k?.querySelectorAll('.btn') || [])].map(b => `${b.id}:${b.textContent.trim()}`);
+    pruefe('Darunter stehen genau zwei Knoepfe',
+      gleich(mvKnoepfe, ['mail-einrichten:Mailzugang ändern', 'mail-test:Testmail an mich']),
+      JSON.stringify(mvKnoepfe));
     pruefe('Die Karte nennt die zuletzt erfolgreiche Probe',
       /2026-08-20 08:30:00/.test(k?.textContent || ''), k?.textContent?.slice(0, 600));
     pruefe('Und sie nennt die oeffentliche Adresse',
       /kriterion\.beispiel\.de/.test(k?.textContent || ''), k?.textContent?.slice(0, 600));
+    d.w.close();
   }
   {
     // OHNE OEFFENTLICHE ADRESSE markiert die Karte rot und nennt den Grund.
@@ -26842,6 +26903,7 @@ async function pruefeOberflaeche() {
       k?.textContent?.slice(0, 900));
     pruefe('Die Stelle traegt die rote Auszeichnung',
       !!k?.querySelector('.mail-aus'), 'keine Auszeichnung');
+    d.w.close();
   }
   {
     // OHNE ZUGANG: der Zustand jeder Instanz vor dieser Runde.
@@ -26849,42 +26911,35 @@ async function pruefeOberflaeche() {
     const k = mvKarte(d);
     pruefe('Ohne Mailzugang sagt die Karte "nicht eingerichtet"',
       /nicht eingerichtet/.test(k?.textContent || ''), k?.textContent?.slice(0, 400));
-    pruefe('Und "nicht gesetzt" beim Passwort',
-      /nicht gesetzt/.test(k?.textContent || ''), k?.textContent?.slice(0, 400));
+    /* UND DIE ANBIETERZEILE STEHT NICHT LEER DA. Eine leere Zelle sieht aus
+       wie eine Auskunft, die nicht geladen hat. */
+    pruefe('Und die Anbieterzeile sagt, dass keiner gewaehlt ist',
+      /noch keiner gewählt/.test(k?.textContent || ''), k?.textContent?.slice(0, 500));
+    pruefe('Der Knopf heisst dann „einrichten" und nicht „ändern"',
+      d.w.document.getElementById('mail-einrichten')?.textContent.trim() === 'Mailzugang einrichten',
+      d.w.document.getElementById('mail-einrichten')?.textContent);
     pruefe('Und "noch nie" bei der Probe',
       /noch nie/.test(k?.textContent || ''), k?.textContent?.slice(0, 600));
+    d.w.close();
   }
   {
-    /* SPEICHERN -- hinter der zweiten Bestaetigung, mit einem WIRKLICH
-       zugestellten Ereignis (Stolperstein 61). */
+    /* ---- WAS 0.17.2 WEGGENOMMEN HAT, BLEIBT WEG ----
+       Die Begruendung zum fehlenden Adressfeld ist richtig und war ein Gedanke
+       vom Bauen; eine Oberflaeche sagt, WAS IST (Projektstand 5.6). Sie steht
+       in der README. Der Umbau dieser Runde durfte sie nicht zurueckholen.
+       WEISSRAUM NORMALISIERT -- UND DAS IST EIN BEFUND DER GEGENPROBE. Der
+       Rueckbau, der den Satz wieder einbaut, blieb in 0.17.2 STUMM: er
+       schreibt ihn ueber drei Quelltextzeilen, und `textContent` traegt den
+       Umbruch samt Einrueckung mit. Eine Verneinung, die am Zeilenumbruch
+       scheitert, ist gruen aus dem falschen Grund. */
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
-      { oeffentlicheAdresse: 'https://kriterion.beispiel.de', mailStand: {} });
-    setzeFeld(d.w.document, 'mail-anbieter', 'gmail');
-    d.w.document.getElementById('mail-anbieter').dispatchEvent(new d.w.Event('change'));
-    setzeFeld(d.w.document, 'mail-benutzer', 'instanz@gmail.com');
-    setzeFeld(d.w.document, 'mail-passwort', 'erfundenes-app-passwort');
-    setzeFeld(d.w.document, 'mail-absender', 'instanz@gmail.com');
-    d.w.document.getElementById('mail-save')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
-    pruefe('Vor dem Speichern steht die zweite Bestaetigung',
-      !!d.w.document.getElementById('best-pass'), 'kein Dialog');
-    pruefe('Und der Server ist bis dahin NICHT gefragt worden',
-      !d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/mail'),
-      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
-    await bestaetigeImDom(d);
-    await new Promise(r => setTimeout(r, 80));
-    const put = d.gesendet.find(x => x.methode === 'PUT' && x.url === '/api/mail');
-    pruefe('Danach geht der Zugang an den Server',
-      put?.koerper?.anbieter === 'gmail' && put?.koerper?.benutzer === 'instanz@gmail.com',
-      JSON.stringify({ ...put?.koerper, passwort: '(nicht abgedruckt)' }));
-    pruefe('Und die Karte zeigt danach "eingerichtet"',
-      /eingerichtet/.test(mvKarte(d)?.textContent || '') &&
-      !/nicht eingerichtet/.test(mvKarte(d)?.textContent || ''),
-      mvKarte(d)?.textContent?.slice(0, 300));
-    pruefe('Das Passwortfeld ist danach wieder leer',
-      d.w.document.getElementById('mail-passwort')?.value === '',
-      JSON.stringify(d.w.document.getElementById('mail-passwort')?.value));
+      { oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
+    const t = (mvKarte(d)?.textContent || '').replace(/\s+/g, ' ');
+    pruefe('Die Begruendung zum fehlenden Adressfeld steht nicht in der Karte',
+      !/offener Mailverteiler/.test(t), t.slice(0, 60));
+    pruefe('Was die Testmail tut, steht aber weiterhin da',
+      /ausschließlich an die Adresse deines eigenen Zugangs/.test(t), t.slice(-140));
+    d.w.close();
   }
   {
     /* DIE TESTMAIL, und zwar in BEIDEN Ausgaengen -- Erfolg UND Fehlschlag.
@@ -26903,13 +26958,14 @@ async function pruefeOberflaeche() {
     pruefe('Und schickt ausdruecklich KEINE Adresse mit',
       JSON.stringify(test?.koerper || {}) === '{}', JSON.stringify(test?.koerper));
     pruefe('Es gibt auch gar kein Adressfeld daneben',
-      !mvKarte(d)?.querySelector('input[type="email"][id*="test"]'), 'ein Adressfeld steht da');
+      !mvKarte(d)?.querySelector('input[type="email"]'), 'ein Adressfeld steht da');
     pruefe('Der Erfolg steht danach in der Karte',
       /hinausgegangen/.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
       d.w.document.getElementById('mail-ergebnis')?.textContent);
     pruefe('Und die Karte sagt, an welche Adresse',
       /chefin@beispiel\.de/.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
       d.w.document.getElementById('mail-ergebnis')?.textContent);
+    d.w.close();
   }
   {
     const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
@@ -26926,6 +26982,7 @@ async function pruefeOberflaeche() {
     pruefe('Und der Knopf ist danach wieder bedienbar',
       d.w.document.getElementById('mail-test')?.disabled === false,
       `gesperrt=${d.w.document.getElementById('mail-test')?.disabled}`);
+    d.w.close();
   }
   {
     // OHNE EIGENE ADRESSE sagt die Absage, wo sie einzutragen ist.
@@ -26937,6 +26994,205 @@ async function pruefeOberflaeche() {
     pruefe('Ohne eigene Adresse sagt die Karte, wo sie einzutragen ist',
       /Zugang/.test(d.w.document.getElementById('mail-ergebnis')?.textContent || ''),
       d.w.document.getElementById('mail-ergebnis')?.textContent);
+    d.w.close();
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Dialog „Mailzugang einrichten“ — 0.17.3');
+
+  /* DIE KARTE ZEIGT, DER DIALOG STELLT EIN. Was bis 0.17.2 in vier Reihen mit
+     vier verschiedenen Spaltenaufteilungen in der Karte stand, steht jetzt in
+     EINER Spalte in einem Fenster.
+     GEPRUEFT WIRD DIE ZUORDNUNG UND DER RHYTHMUS -- welches Feld wo steht und
+     welcher Satz unter welcher Sache. Wie breit es dann wirklich ist, laesst
+     sich hier nicht sehen; die Regeln dazu werden im Stilblatt gelesen. */
+  const mdOeffne = async (d) => {
+    d.w.document.getElementById('mail-einrichten')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    return d.w.document.getElementById('mail-dialog');
+  };
+  {
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+      { oeffentlicheAdresse: 'https://kriterion.beispiel.de' });
+    pruefe('Vor dem Klick steht kein Dialog da', !d.w.document.getElementById('mail-dialog'));
+    const dlg = await mdOeffne(d);
+    pruefe('Der Knopf oeffnet den Dialog', !!dlg, d.w.document.body.innerHTML.slice(-200));
+    pruefe('Und seine Ueberschrift sagt, dass geaendert wird',
+      dlg?.querySelector('h2')?.textContent.trim() === 'Mailzugang ändern',
+      dlg?.querySelector('h2')?.textContent);
+    /* EINE SPALTE, BESCHRIFTUNG UEBER DEM FELD. Jedes Feld steht in einem
+       `.field` mit eigener Beschriftung -- keine Reihe, kein Raster. */
+    pruefe('Der Dialog traegt keine der alten Reihen mehr',
+      !dlg?.querySelector('.mail-reihe'), 'eine Reihe steht noch da');
+    /* DIE AUSWAHLLISTE KOMMT VOM SERVER, samt „Eigener Server“. */
+    const auswahl = d.w.document.getElementById('mail-anbieter');
+    pruefe('Die Anbieterliste kommt vom Server',
+      [...(auswahl?.options || [])].map(o => o.value).join(',') === ',gmx,web,gmail,strato,ionos,eigen',
+      [...(auswahl?.options || [])].map(o => o.value).join(','));
+    pruefe('Und der gespeicherte Anbieter steht vorgewaehlt',
+      auswahl?.value === 'gmx', auswahl?.value);
+    /* ---- DER HINWEIS STEHT UNTER SEINER SACHE UND WECHSELT MIT DER AUSWAHL.
+       DAS IST DER PUNKT DES GANZEN UMBAUS: bis 0.17.2 stand der Hinweis zum
+       Anbieter NEBEN der Absenderadresse -- also neben einer anderen Sache. */
+    const mdHinweis = () => d.w.document.getElementById('mail-anbieter-hinweis');
+    pruefe('Der Hinweis zum Anbieter steht unter der Auswahl',
+      mdHinweis()?.previousElementSibling?.querySelector('#mail-anbieter') != null,
+      mdHinweis()?.previousElementSibling?.className);
+    pruefe('Und er nennt, was GMX verlangt',
+      /fremde Programme/.test(mdHinweis()?.textContent || ''), mdHinweis()?.textContent);
+    /* BEI EINER VORLAGE STEHEN SERVER, PORT UND VERSCHLUESSELUNG ALS GELESENE
+       ZEILE DA -- kein Feld. Drei Felder fuer drei feste Werte waeren drei
+       Felder zu viel, und ein gesperrtes Feld sieht aus wie eines, das gleich
+       aufgeht. */
+    const mdFest = () => d.w.document.getElementById('mail-fest');
+    const mdFestFeld = () => d.w.document.getElementById('mail-fest-feld');
+    const mdEigen = () => d.w.document.getElementById('mail-eigen');
+    pruefe('Bei einer Vorlage steht die feste Zeile da',
+      mdFestFeld()?.hidden === false && mdFest()?.textContent === 'mail.gmx.net · 587 · STARTTLS',
+      `versteckt=${mdFestFeld()?.hidden} · ${mdFest()?.textContent}`);
+    pruefe('Und die drei Felder dazu stehen nicht da',
+      mdEigen()?.hidden === true, `versteckt=${mdEigen()?.hidden}`);
+    /* DER SATZ ZUM HAUSANSCHLUSS STEHT BEI „EIGENER SERVER" UND SONST NIRGENDS
+       -- dort, wo er gilt. Bis 0.17.2 stand er quer durch die ganze Karte. */
+    /* ER STEHT DORT, WO ER GILT, UND SONST NIRGENDS -- geprueft ueber ALLE
+       Absaetze des Dialogs und nicht ueber einen: eine zweite Ausfertigung
+       weiter unten faende die Abfrage auf einen einzelnen nicht. */
+    pruefe('Und der Satz zum Hausanschluss steht ausschliesslich bei „Eigener Server“',
+      [...(dlg?.querySelectorAll('p') || [])]
+        .filter(x => /Hausanschluss/.test(x.textContent)).length === 1 &&
+      [...(dlg?.querySelectorAll('p') || [])]
+        .filter(x => /Hausanschluss/.test(x.textContent)).every(x => x.closest('#mail-eigen')),
+      [...(dlg?.querySelectorAll('p') || [])]
+        .filter(x => /Hausanschluss/.test(x.textContent)).map(x => x.parentElement?.id).join(','));
+
+    /* ---- UND JETZT DIE GEGENRICHTUNG: „Eigener Server" ---- */
+    auswahl.value = 'eigen';
+    auswahl.dispatchEvent(new d.w.Event('change'));
+    pruefe('Bei „eigener Server“ stehen die drei Felder da',
+      mdEigen()?.hidden === false &&
+      !!d.w.document.getElementById('mail-server') &&
+      !!d.w.document.getElementById('mail-port') &&
+      !!d.w.document.getElementById('mail-sicher'),
+      `versteckt=${mdEigen()?.hidden}`);
+    pruefe('Und die gelesene Zeile verschwindet dafuer',
+      mdFestFeld()?.hidden === true, `versteckt=${mdFestFeld()?.hidden}`);
+    pruefe('Der Satz zum Hausanschluss steht genau dort',
+      /Hausanschluss/.test((mdEigen()?.textContent || '').replace(/\s+/g, ' ')),
+      (mdEigen()?.textContent || '').replace(/\s+/g, ' ').slice(-160));
+    pruefe('Und „Eigener Server“ hat keinen Anbieterhinweis',
+      mdHinweis()?.hidden === true, `versteckt=${mdHinweis()?.hidden} · ${mdHinweis()?.textContent}`);
+    /* EIN ANDERER VORLAGENANBIETER WECHSELT BEIDES MIT -- Hinweis UND feste
+       Zeile. Ohne diese Lage bliebe offen, ob die Werte bloss die des
+       gespeicherten Anbieters sind (Stolperstein 224). */
+    auswahl.value = 'gmail';
+    auswahl.dispatchEvent(new d.w.Event('change'));
+    pruefe('Ein anderer Anbieter bringt seine eigene feste Zeile mit',
+      mdFest()?.textContent === 'smtp.gmail.com · 465 · TLS von Anfang an', mdFest()?.textContent);
+    pruefe('Und seinen eigenen Hinweis',
+      /App-Passwort/.test(mdHinweis()?.textContent || ''), mdHinweis()?.textContent);
+    /* „KEIN VERSAND" IST DER DRITTE FALL und nicht die halbe Vorlagenlage:
+       dort gibt es weder feste Zeile noch Felder, und die drei Felder darunter
+       haben nichts zu tragen. */
+    auswahl.value = '';
+    auswahl.dispatchEvent(new d.w.Event('change'));
+    pruefe('Ohne Anbieter steht weder die feste Zeile noch die Felder da',
+      mdFestFeld()?.hidden === true && mdEigen()?.hidden === true,
+      `fest=${mdFestFeld()?.hidden} · eigen=${mdEigen()?.hidden}`);
+    pruefe('Und die drei Felder darunter sind gesperrt',
+      ['benutzer', 'passwort', 'absender']
+        .every(id => d.w.document.getElementById('mail-' + id)?.disabled === true),
+      ['benutzer', 'passwort', 'absender']
+        .map(id => `${id}=${d.w.document.getElementById('mail-' + id)?.disabled}`).join(' · '));
+
+    /* ---- DAS PASSWORT UND SEIN PLATZHALTER ---- */
+    auswahl.value = 'gmx';
+    auswahl.dispatchEvent(new d.w.Event('change'));
+    pruefe('Das Passwortfeld steht leer da',
+      d.w.document.getElementById('mail-passwort')?.value === '',
+      JSON.stringify(d.w.document.getElementById('mail-passwort')?.value));
+    pruefe('Und sagt im Platzhalter, dass leer "unveraendert" heisst',
+      /leer lassen ändert es nicht/.test(d.w.document.getElementById('mail-passwort')?.placeholder || ''),
+      d.w.document.getElementById('mail-passwort')?.placeholder);
+    /* DER HINWEIS ZUR ABSENDERADRESSE STEHT UNTER IHR und nicht neben ihr. */
+    const mdAbs = d.w.document.getElementById('mail-absender-hinweis');
+    pruefe('Der Hinweis zur Absenderadresse steht unter dem Feld',
+      mdAbs?.previousElementSibling?.querySelector('#mail-absender') != null,
+      mdAbs?.previousElementSibling?.className);
+    pruefe('Und er nennt, dass die Adresse zum Konto gehoeren muss',
+      /Absenderadresse muss zum Konto gehören/.test(mdAbs?.textContent || ''), mdAbs?.textContent);
+    /* DIE REIHENFOLGE DER FELDER, in einer Zeile abgelesen: Anbieter, die
+       drei der eigenen Lage, Benutzername, Passwort, Absenderadresse. */
+    const mdFolge = [...(dlg?.querySelectorAll('.field .input') || [])].map(e => e.id);
+    pruefe('Die Felder stehen in der Folge des Auftrags',
+      gleich(mdFolge, ['mail-anbieter', 'mail-server', 'mail-port', 'mail-sicher',
+                       'mail-benutzer', 'mail-passwort', 'mail-absender']),
+      JSON.stringify(mdFolge));
+    // ABBRECHEN SCHLIESST OHNE ZU SCHREIBEN.
+    const mdVorher = d.gesendet.length;
+    dlg.querySelector('[data-no]').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 40));
+    pruefe('Abbrechen schliesst den Dialog', !d.w.document.getElementById('mail-dialog'));
+    pruefe('Und schreibt dabei nichts',
+      !d.gesendet.slice(mdVorher).some(x => x.methode !== 'GET'),
+      d.gesendet.slice(mdVorher).map(x => `${x.methode} ${x.url}`).join(' · ') || '(nichts)');
+    d.w.close();
+  }
+  {
+    /* SPEICHERN -- hinter der zweiten Bestaetigung, mit einem WIRKLICH
+       zugestellten Ereignis (Stolperstein 61). DASS DER DIALOG SELBST SCHON
+       EIN DIALOG IST, KUERZT DIE SCHRANKE NICHT AB: `mail` ist einer der
+       sieben Zwecke, und der Weg ist derselbe wie vor dieser Runde. */
+    const d = await ziSystem({ istAdmin: true, istEigentuemer: true },
+      { oeffentlicheAdresse: 'https://kriterion.beispiel.de', mailStand: {} });
+    const dlg = await mdOeffne(d);
+    pruefe('Ohne Zugang heisst die Ueberschrift „einrichten"',
+      dlg?.querySelector('h2')?.textContent.trim() === 'Mailzugang einrichten',
+      dlg?.querySelector('h2')?.textContent);
+    setzeFeld(d.w.document, 'mail-anbieter', 'gmail');
+    d.w.document.getElementById('mail-anbieter').dispatchEvent(new d.w.Event('change'));
+    setzeFeld(d.w.document, 'mail-benutzer', 'instanz@gmail.com');
+    setzeFeld(d.w.document, 'mail-passwort', 'erfundenes-app-passwort');
+    setzeFeld(d.w.document, 'mail-absender', 'instanz@gmail.com');
+    d.w.document.getElementById('mail-save')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    pruefe('Vor dem Speichern steht die zweite Bestaetigung',
+      !!d.w.document.getElementById('best-pass'), 'kein Dialog');
+    pruefe('Und der Server ist bis dahin NICHT gefragt worden',
+      !d.gesendet.some(x => x.methode === 'PUT' && x.url === '/api/mail'),
+      d.gesendet.slice(-3).map(x => `${x.methode} ${x.url}`).join(' · '));
+    /* BRICHT DIE BESTAETIGUNG AB, BLEIBT DER DIALOG STEHEN -- sonst waere das
+       Eingetippte weg, und ein Anbieterpasswort tippt niemand gern zweimal. */
+    await bestaetigeImDom(d, 'chefinnen-langes-wort', true);
+    pruefe('Ein Abbruch der Bestaetigung laesst den Dialog stehen',
+      !!d.w.document.getElementById('mail-dialog'), 'der Dialog ist weg');
+    pruefe('Und das Eingetippte steht noch darin',
+      d.w.document.getElementById('mail-benutzer')?.value === 'instanz@gmail.com',
+      d.w.document.getElementById('mail-benutzer')?.value);
+    // Und noch einmal, diesmal mit Freigabe.
+    d.w.document.getElementById('mail-save')
+      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    await bestaetigeImDom(d);
+    await new Promise(r => setTimeout(r, 80));
+    const put = d.gesendet.find(x => x.methode === 'PUT' && x.url === '/api/mail');
+    pruefe('Danach geht der Zugang an den Server',
+      put?.koerper?.anbieter === 'gmail' && put?.koerper?.benutzer === 'instanz@gmail.com',
+      JSON.stringify({ ...put?.koerper, passwort: '(nicht abgedruckt)' }));
+    pruefe('Und zwar ueber dieselbe Route wie vorher -- keine neue',
+      d.gesendet.filter(x => x.methode === 'PUT' && /^\/api\/mail/.test(x.url)).length === 1,
+      d.gesendet.filter(x => x.methode !== 'GET').map(x => `${x.methode} ${x.url}`).join(' · '));
+    pruefe('Nach dem Speichern schliesst der Dialog',
+      !d.w.document.getElementById('mail-dialog'), 'der Dialog steht noch da');
+    pruefe('Und die Karte zeigt danach "eingerichtet"',
+      /eingerichtet/.test(mvKarte(d)?.textContent || '') &&
+      !/nicht eingerichtet/.test(mvKarte(d)?.textContent || ''),
+      mvKarte(d)?.textContent?.slice(0, 300));
+    pruefe('Und der Knopf heisst jetzt „ändern"',
+      d.w.document.getElementById('mail-einrichten')?.textContent.trim() === 'Mailzugang ändern',
+      d.w.document.getElementById('mail-einrichten')?.textContent);
+    d.w.close();
   }
 
   /* ---------------------------------------------------------------- */
@@ -31083,6 +31339,38 @@ async function pruefeOberflaeche() {
       /Bewertungskriterien/.test(kasten?.textContent || ''),
       kasten?.textContent?.replace(/\s+/g, ' ').slice(-200));
 
+    /* ---- DER KASTEN ROLLT NICHT MEHR — 0.17.3 ----
+       GEPRUEFT WIRD, WAS SICH HIER PRUEFEN LAESST: dass die eine doppelte
+       Angabe weg ist und dass unter der Tabelle zwei Absaetze stehen und nicht
+       drei. Die HOEHE ist es nicht -- jsdom rechnet kein Layout, und die
+       gemessenen Pixel stehen im Aenderungsprotokoll (Stolperstein 223). */
+    const rgKinder = [...(kasten?.children || [])];
+    const rgNachTabelle = rgKinder.slice(rgKinder.findIndex(k => k.classList.contains('rechnung')) + 1)
+      .filter(k => k.tagName === 'P');
+    pruefe('Unter der Tabelle stehen zwei Absaetze und nicht drei',
+      rgNachTabelle.length === 2, `${rgNachTabelle.length} Absaetze`);
+    /* DIE AUSGESCHRIEBENE RECHNUNG IST DIE EINE ANGABE, DIE DOPPELT DASTAND:
+       Summe, Teiler und Ergebnis tragen eigene Zeilen in der Tabelle. Gesucht
+       wird nach dem Rechenzeichen mit den beiden Zahlen daneben, nicht nach
+       dem Wort "gerundet" -- das bleibt ja stehen. */
+    const rgText = (kasten?.textContent || '').replace(/\s+/g, ' ');
+    pruefe('Die Rechnung steht nicht ein zweites Mal unter der Tabelle',
+      !/9,2 ÷ 2,5/.test(rgText), rgText.slice(-260));
+    pruefe('Die Begruendung zum Teiler steht nicht mehr da',
+      !/nach unten/.test(rgText), rgText.slice(0, 400));
+    pruefe('Der Teiler selbst steht weiterhin da',
+      /Teiler zählt nur die Kriterien, die auch bewertet sind/.test(rgText),
+      rgText.slice(0, 400));
+    /* UND DIE BEIDEN ZAHLEN IM STILBLATT. Sie sind die andere Haelfte des
+       Punktes: die Zeilen ruecken enger, und der Kasten wird breiter, damit
+       der Fliesstext seltener umbricht. */
+    pruefe('Die Zeilen der Rechnung ruecken enger zusammen',
+      /\.rz > span \{ padding: 3px 0;/.test(css123),
+      (css123.match(/\.rz > span \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('Und der Kasten selbst wird breiter',
+      /\.rechnung-modal \{ max-width: 620px; \}/.test(css123),
+      (css123.match(/\.rechnung-modal \{[^}]*\}/) || ['(keine Regel)'])[0]);
+
     /* ---- DER VERWEIS ZEIGT IN DEN KASTEN — 0.17.0 ----
        BIS 0.17.0 STAND HIER „die Zahlen rechts in den Zeilen". Gemeint war die
        Durchschnittsspalte der Kriterienliste DAHINTER -- und die gibt es bei
@@ -31867,8 +32155,8 @@ async function pruefeOberflaeche() {
     d.w.close();
   }
 
-  /* ---- 2. Die Kachel gibt der Liste ihre Hoehe ---- */
-  gruppe('Die Liste bekommt die Hoehe der Kachel — 0.17.1');
+  /* ---- 2. Die Kachel ist so hoch wie ihr Inhalt ---- */
+  gruppe('Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3');
 
   /* WAS HIER AUSDRUECKLICH NICHT GEPRUEFT WIRD: DIE WIRKUNG. jsdom rechnet
      kein Layout -- jede Hoehe ist dort null, und ob eine Liste wirklich den
@@ -31877,6 +32165,17 @@ async function pruefeOberflaeche() {
      gezeichnet werden. Beides zusammen ist der Beleg, den es hier geben kann
      (Stolperstein 223). */
   {
+    /* DIE ZEILE, DIE DEN LEERRAUM NIMMT -- und sie steht an der KACHEL.
+       Ein Raster zieht jedes Kind auf die Hoehe der hoechsten Zelle seiner
+       Reihe (`align-items` steht von Haus aus auf `stretch`); der Leerraum
+       stand deshalb UNTER dem Inhalt IN der Kachel und nicht in der Liste.
+       Die Messung zu 0.17.2 hat die Liste gemessen und die Kachel uebersehen
+       -- die Liste klemmte korrekt, und der Befund blieb trotzdem stehen. */
+    const khRaster = regel123('.sys-grid');
+    pruefe('Das Kachelraster streckt seine Kinder nicht mehr',
+      /align-items: start/.test(khRaster), khRaster || '(keine Regel)');
+    pruefe('Und es steht ausserhalb jeder Medienabfrage',
+      /\.sys-grid \{[^}]*align-items: start/.test(ohneMedien), '(nur im Telefonblock)');
     const khKarte = regel123('.sys-card');
     pruefe('Die Kachel ist eine Spalte',
       /display: flex/.test(khKarte) && /flex-direction: column/.test(khKarte),
@@ -31892,16 +32191,23 @@ async function pruefeOberflaeche() {
         regel.length > 0, '(keine Regel)');
       /* SEIT 0.17.2 TRAEGT SIE EINEN DECKEL -- aber als FORDERUNG und nicht
          als Grenze. Eine feste Zahl in `max-height` klemmte beides: was die
-         Liste fordert UND wie hoch sie werden darf; der Platz einer hoeheren
-         Nachbarkachel bliebe dann leer. Der Deckel steht deshalb in
+         Liste fordert UND wie hoch sie werden darf. Der Deckel steht deshalb in
          `flex-basis`, und `max-height` traegt nur noch `max-content` -- die
-         Zeile, die einer KURZEN Liste ihre zwoelf Zeilen wieder wegnimmt. */
+         Zeile, die einer KURZEN Liste ihre zehn Zeilen wieder wegnimmt. */
       pruefe(`${wahl} traegt keine feste Hoehe mehr`,
         !/max-height: *\d/.test(regel), regel || '(keine Regel)');
       pruefe(`${wahl} klemmt sich auf das, was wirklich dasteht`,
         /max-height: max-content/.test(regel), regel || '(keine Regel)');
-      pruefe(`${wahl} fordert hoechstens zwoelf Zeilen -- in rem und nicht in Pixeln`,
+      pruefe(`${wahl} fordert seinen Deckel in rem und nicht in Pixeln`,
         /flex: 1 1 [\d.]+rem/.test(regel), regel || '(keine Regel)');
+      /* ZEHN ZEILEN SEIT 0.17.3, und die Zahl steht hier ausgerechnet da:
+         27,95rem sind zehn `.mrow` zu 41,92 px bei Wurzelschrift 15, 23,3rem
+         sind zehn `.prot-zeile` zu 35 px. EINE Regel und nicht zwei -- auch
+         das Sicherheitsprotokoll deckelt bei zehn, obwohl seine Zeilen
+         schmaler sind (Stolperstein 47). */
+      pruefe(`${wahl} fordert genau zehn Zeilen`,
+        new RegExp('flex: 1 1 ' + ({ '.manage-list': '27\\.95', '.prot-liste': '23\\.3' })[wahl] + 'rem').test(regel),
+        regel || '(keine Regel)');
       pruefe(`${wahl} nimmt, was die Kachel hergibt`,
         /flex: 1/.test(regel), regel || '(keine Regel)');
       /* DIE ZEILE, AN DER ES SONST SCHEITERT: ohne sie waechst ein Flexkind
@@ -31925,9 +32231,9 @@ async function pruefeOberflaeche() {
        misst das Fenster. Ohne sie machte ein Sicherheitsprotokoll mit
        zweihundert Zeilen die Karte unbrauchbar lang. */
     /* AUF DEM TELEFON IST DER DECKEL WIEDER EINE GRENZE. Dort steht jede
-       Kachel ALLEIN in ihrer Zeile -- es gibt keine Nachbarin, deren Hoehe eine
-       Liste mitnehmen koennte, und `flex: 0 1 auto` laesst sie ihren Inhalt
-       fordern, statt zwoelf Zeilen zu verlangen, die sie nicht hat. */
+       Kachel ALLEIN in ihrer Zeile, und `flex: 0 1 auto` laesst die Liste ihren
+       Inhalt fordern, statt zehn Zeilen zu verlangen, die sie nicht hat. An
+       dieser Zeile aendert 0.17.3 nichts. */
     pruefe('Auf dem Telefon bleibt die Deckelung am Fenster haengen',
       /\.manage-list, \.prot-liste, \.test-scroll, \.atext, #ex-teil-liste \{ flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; \}/.test(css123),
       (css123.match(/\.manage-list, \.prot-liste[^}]*\}/) || ['(keine Regel)'])[0]);
@@ -31959,129 +32265,54 @@ async function pruefeOberflaeche() {
     d.w.close();
   }
 
-  /* ---- 3. Der Mailversand ordnet sich ---- */
-  gruppe('Der Mailversand ordnet sich — 0.17.1');
+  /* ---- 3. Der Mailversand: die Karte zeigt, der Dialog stellt ein ---- */
+  gruppe('Der Mailversand im Stilblatt — 0.17.3');
 
-  /* VIER REIHEN, UND JEDE BEANTWORTET EINE FRAGE: wer, wohin, womit, als wer.
-     GEPRUEFT WIRD DIE ZUORDNUNG UND NICHT DIE BREITE -- welches Feld in
-     welcher Reihe steht, laesst sich hier belegen; wie breit es dann wirklich
-     ist, nicht. Die Breite haengt am Stilblatt, und die Regel dazu wird
-     darunter gelesen. */
   {
-    const d = baueDom(JSDOM,
-      { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
-    await new Promise(r => setTimeout(r, 60));
-    await sysAbschnitt(d.w, 'zugaenge');
-    const karte = [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-      .find(c => c.querySelector('h3')?.textContent.trim() === 'Mailversand');
-    pruefe('Die Karte „Mailversand" steht da', !!karte, 'keine Karte');
-    const reihen = [...(karte?.querySelectorAll('.mail-reihe') || [])];
-    pruefe('Sie traegt fuenf Reihen',
-      reihen.length === 5, `${reihen.length}`);
-    const felderIn = (n) => [...(reihen[n]?.querySelectorAll('.field .input') || [])].map(e => e.id);
-    pruefe('WER: der Anbieter steht allein in der ersten Reihe',
-      gleich(felderIn(0), ['mail-anbieter']), JSON.stringify(felderIn(0)));
-    pruefe('WOHIN: Server, Port und Verschluesselung in dieser Folge',
-      gleich(felderIn(1), ['mail-server', 'mail-port', 'mail-sicher']), JSON.stringify(felderIn(1)));
-    pruefe('WOMIT: Benutzername und Passwort beim Anbieter',
-      gleich(felderIn(2), ['mail-benutzer', 'mail-passwort']), JSON.stringify(felderIn(2)));
-    /* ALS WER: DIE ABSENDERADRESSE TEILT IHRE REIHE MIT DEM SATZ, DER SIE
-       ERKLAERT -- seit 0.17.2 steht er NEBEN ihr und nicht mehr darunter. Bis
-       dahin lag er als eigene Zeile quer durch die Karte und liess die halbe
-       Breite leer.
-       SIE HAT WEITERHIN IHRE EIGENE REIHE und teilt sie mit keinem zweiten
-       FELD: die beiden Hinweissaetze gehoeren ihr und keinem anderen. */
-    const absender = karte?.querySelector('#mail-absender');
-    const alswer = absender?.closest('.mail-reihe');
-    pruefe('ALS WER: die Absenderadresse steht in ihrer eigenen Reihe',
-      !!alswer && alswer.classList.contains('mail-alswer') &&
-      [...alswer.querySelectorAll('.field .input')].length === 1,
-      alswer ? alswer.className : 'in keiner Reihe');
-    pruefe('Und die beiden Hinweissaetze stehen neben ihr, in derselben Reihe',
-      alswer?.querySelector('#mail-hinweis')?.classList.contains('mail-satz') === true,
-      alswer?.querySelector('#mail-hinweis')?.className);
-    /* TUN: DIE BEIDEN KNOEPFE UND IHR SATZ, dieselbe Bauform. */
-    const tun = karte?.querySelector('.mail-tun');
-    pruefe('TUN: die beiden Knoepfe stehen in einer Reihe mit ihrem Satz',
-      !!tun && [...tun.querySelectorAll('.btn')].map(b => b.id).join(',') === 'mail-save,mail-test' &&
-      !!tun.querySelector('.mail-satz'),
-      tun ? [...tun.querySelectorAll('.btn')].map(b => b.id).join(',') : 'keine Reihe');
-    /* UND DIE BEGRUENDUNG ZUM FEHLENDEN ADRESSFELD IST WEG. Sie ist richtig und
-       war ein Gedanke vom Bauen; eine Oberflaeche sagt, WAS IST (Projektstand
-       5.6). Sie steht in der README, und das wird eine Zeile weiter unten
-       geprueft. */
-    /* WEISSRAUM NORMALISIERT -- UND DAS IST EIN BEFUND DER GEGENPROBE. Der
-       Rueckbau, der den Satz wieder einbaut, blieb STUMM: er schreibt ihn ueber
-       drei Quelltextzeilen, und `textContent` traegt den Umbruch samt
-       Einrueckung mit. „offener Mailverteiler" stand dann als „offener\n
-       Mailverteiler" da und wurde nicht gefunden. Eine Verneinung, die am
-       Zeilenumbruch scheitert, ist gruen aus dem falschen Grund. */
-    pruefe('Die Begruendung zum fehlenden Adressfeld steht nicht mehr in der Karte',
-      !/offener Mailverteiler/.test((karte?.textContent || '').replace(/\s+/g, ' ')),
-      (karte?.textContent || '').replace(/\s+/g, ' ').slice(0, 60));
-    /* WEISSRAUM NORMALISIERT: der Satz steht im Quelltext ueber zwei Zeilen,
-       und textContent traegt den Umbruch samt Einrueckung mit. Ein Vergleich
-       gegen den rohen Text pruefte die Zeilenlaenge und nicht den Satz. */
-    pruefe('Was die Testmail tut, steht aber weiterhin da',
-      /ausschließlich an die Adresse deines eigenen Zugangs/
-        .test((karte?.textContent || '').replace(/\s+/g, ' ')),
-      (karte?.textContent || '').replace(/\s+/g, ' ').slice(-140));
-    /* DER ZUSTANDSBLOCK OBEN BLEIBT, WIE ER IST -- vier Zeilen, und keine
-       davon ist in eine Reihe gewandert. */
-    const kvs = [...(karte?.querySelectorAll('.kv .k') || [])].map(e => e.textContent.trim());
-    pruefe('Der Zustandsblock steht unveraendert mit seinen vier Zeilen',
-      gleich(kvs, ['Zustand', 'Passwort', 'Öffentliche Adresse', 'Zuletzt erfolgreich getestet']),
-      JSON.stringify(kvs));
-    /* UND DIE REIHEN SIND KEINE FLEXREIHEN MEHR. `.row-in` gaebe den Feldern
-       die Breite, die ihr Inhalt braucht; hier soll die REIHE sagen, welches
-       Feld breit ist und welches schmal. */
-    pruefe('Keines der sechs Felder haengt mehr an einer .row-in',
-      !['mail-server', 'mail-port', 'mail-sicher', 'mail-benutzer', 'mail-passwort', 'mail-absender']
-        .some(id => karte?.querySelector('#' + id)?.closest('.row-in')),
-      'ein Feld steht noch in einer .row-in');
-    d.w.close();
+    /* DAS STILBLATT ZUM DIALOG. Drei Zeilen, und jede beantwortet eine Frage,
+       die jsdom nicht beantworten kann. */
+    pruefe('Der Dialog traegt seine eigene Breite',
+      /\.mail-dialog \{ max-width: 520px; \}/.test(css123),
+      (css123.match(/\.mail-dialog \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('Und die Felder darin tragen keinen zweiten Abstand',
+      /\.mail-dialog \.field \{ margin-bottom: 0; \}/.test(css123),
+      (css123.match(/\.mail-dialog \.field \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('Der Hinweis rueckt an die Sache heran, die er erklaert',
+      /margin: -7px 0 0/.test(regel123('.mail-hinweis')),
+      regel123('.mail-hinweis') || '(keine Regel)');
+    pruefe('Und die gelesene Zeile steht in der Monoschrift',
+      /font-family: var\(--mono\)/.test(regel123('.mail-fest')),
+      regel123('.mail-fest') || '(keine Regel)');
+    /* DIE SECHS REGELN DER VIER REIHEN SIND WEG, und das gehoert ausdruecklich
+       geprueft: eine Regel ohne Waehler im Markup faellt niemandem auf. */
+    const mdAlt = ['.mail-reihe', '.mail-wer', '.mail-wohin', '.mail-womit', '.mail-satz']
+      .filter(w => regel123(w));
+    pruefe('Und keine der Regeln fuer die vier Reihen steht noch im Stilblatt',
+      mdAlt.length === 0, mdAlt.join(' · '));
+    pruefe('Auch nicht die gemeinsame von ALS WER und TUN',
+      !/\.mail-alswer/.test(css123), (css123.match(/\.mail-alswer[^}]*\}/) || [''])[0]);
   }
-  {
-    const reihe = regel123('.mail-reihe');
-    pruefe('Die Reihen des Mailversands sind ein Raster',
-      /display: grid/.test(reihe), reihe || '(keine Regel)');
-    pruefe('WER gibt dem Anbieter etwa ein Drittel',
-      /\.mail-wer \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/.test(ohneMedien),
-      (ohneMedien.match(/\.mail-wer \{[^}]*\}/) || ['(keine Regel)'])[0]);
-    pruefe('WOHIN macht den Server breit und den Port schmal',
-      /\.mail-wohin \{ grid-template-columns: minmax\(0, 3fr\) minmax\(0, 1fr\) minmax\(0, 2fr\); \}/.test(ohneMedien),
-      (ohneMedien.match(/\.mail-wohin \{[^}]*\}/) || ['(keine Regel)'])[0]);
-    pruefe('WOMIT teilt in zwei gleiche Haelften',
-      /\.mail-womit \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/.test(ohneMedien),
-      (ohneMedien.match(/\.mail-womit \{[^}]*\}/) || ['(keine Regel)'])[0]);
-    /* ALS WER UND TUN TEILEN EIN DRITTEL ZU ZWEI DRITTELN -- dieselbe Breite
-       links wie der Anbieter in der ersten Reihe; eine Adresse und zwei
-       Knoepfe brauchen sie nicht ganz, und der Satz rechts bekommt den Rest.
-       EINE REGEL FUER BEIDE und nicht zwei: die Frage ist dieselbe. */
-    pruefe('ALS WER und TUN geben der Sache ein Drittel und dem Satz zwei',
-      /\.mail-alswer, \.mail-tun \{ grid-template-columns: minmax\(0, 1fr\) minmax\(0, 2fr\); \}/.test(ohneMedien),
-      (ohneMedien.match(/\.mail-alswer, \.mail-tun \{[^}]*\}/) || ['(keine Regel)'])[0]);
-    /* DER SATZ SITZT AN DER GRUNDLINIE DES FELDES DANEBEN und nicht an dessen
-       Oberkante: links steht ueber dem Feld noch eine Beschriftung, und ein
-       Satz, der auf ihrer Hoehe begaenne, saehe aus wie eine zweite. */
-    pruefe('Und der Satz daneben sitzt an der Grundlinie seines Feldes',
-      /\.mail-satz \{ margin: 0; align-self: end; padding-bottom: 10px; \}/.test(ohneMedien),
-      (ohneMedien.match(/\.mail-satz \{[^}]*\}/) || ['(keine Regel)'])[0]);
-    /* AUF DEM TELEFON STEHT ER WIEDER UNTER SEINER SACHE -- und dann gehoert
-       er an ihren Anfang und nicht an ihr Ende. ERST DAS VORHANDENSEIN IN DER
-       MEDIENABFRAGE, DANN DIE VERNEINUNG AUSSERHALB (Stolperstein 81). */
-    pruefe('Auf dem Telefon steht der Satz wieder oben an seiner Sache',
-      /\.mail-satz \{ align-self: start; padding-bottom: 0; margin: 0 0 14px; \}/.test(css123) &&
-      !/\.mail-satz \{ align-self: start;/.test(ohneMedien),
-      (css123.match(/\.mail-satz \{ align-self[^}]*\}/) || ['(keine Regel)'])[0]);
-    /* AUF DEM TELEFON FAELLT ALLES WIEDER UNTEREINANDER. Eine Reihe, die auf
-       366 Pixeln drei Felder nebeneinander zwingt, ist schlechter als die
-       Spalte, die es vorher war. EINE Regel fuer alle vier Reihen. */
-    pruefe('Auf dem Telefon fallen die Reihen wieder in eine Spalte',
-      !/\.mail-reihe \{ grid-template-columns: minmax\(0, 1fr\); \}/.test(ohneMedien) &&
-      /\.mail-reihe \{ grid-template-columns: minmax\(0, 1fr\); \}/.test(css123),
-      'die Spaltenregel steht ausserhalb der Medienabfrage');
-  }
+
+  /* WOZU DIESE GRUPPE HIER STEHT UND NICHT OBEN BEI DEN ANDEREN MAILPRUEFUNGEN:
+     `css123` wird in dieser Funktion erst weiter unten gelesen, und ein Griff
+     davor ist eine tote Zone -- der Lauf reisst dann ab, statt rot zu werden.
+     Die Pruefungen am DOM stehen deshalb oben, die am Stilblatt hier.
+
+     DIE GRUPPE „Der Mailversand ordnet sich — 0.17.1" STAND AN DIESER STELLE
+     UND IST WEG; dieser Satz steht an ihrer Stelle, damit die Entscheidung
+     nicht wiederkommt (Stolperstein 201).
+     SIE PRUEFTE VIER REIHEN IN DER KARTE -- wer, wohin, womit, als wer -- und
+     die sechs Stilblattregeln dazu. Genau diese Anordnung ist der Befund von
+     0.17.3 gewesen: neun Bedienelemente in vier verschiedenen
+     Spaltenaufteilungen, dazwischen vier Erklaersaetze, zwei NEBEN einem Feld.
+     Das Auge fand keine Spalte, und keine der Reihen war fuer sich falsch.
+     WAS AN IHRE STELLE TRITT, steht weiter oben: die Gruppen „Die Karte
+     „Mailversand“" (fuenf Zeilen, zwei Knoepfe, kein Feld) und „Der Dialog
+     „Mailzugang einrichten“ — 0.17.3" (eine Spalte, Beschriftung ueber dem
+     Feld, Hinweis unter seiner Sache) -- und die Gruppe hier darueber, die
+     ausdruecklich nachsieht, dass die sechs alten Regeln wirklich aus dem
+     Stilblatt verschwunden sind: eine Regel ohne Waehler im Markup faellt
+     sonst niemandem auf. */
 
   /* ---- 4. Aus „Anlage" wird „Instanz" ---- */
   gruppe('Aus „Anlage" wird „Instanz" — 0.17.1');
@@ -32430,6 +32661,153 @@ async function pruefeOberflaeche() {
       kSpalten[0]?.title === 'Durchschnitt 3,5 aus 2 Stimmen', kSpalten[0]?.title);
     pruefe('Ein Kriterium ohne Stimme bekommt weiterhin keinen Klartext',
       !kSpalten[2]?.title, kSpalten[2]?.title);
+    d.w.close();
+  }
+
+  /* ---- 4. Der Ruecksetzer fuer die Filterleiste ---- */
+  gruppe('Der Ruecksetzer fuer die Filterleiste — 0.17.3');
+
+  /* DER BEFUND WAR EINE FRAGE: „fehlt das Filter-zuruecksetzen, oder finde ich
+     den gerade nicht?" -- Er war nicht zu finden, weil es ihn nicht gab. Ein
+     „zurücksetzen" gab es genau EINMAL, in der Tagzeile, und auch dort nur,
+     solange mindestens ein Tag gewaehlt war.
+     GEPRUEFT WIRD BEIDES: dass er dasteht, wenn etwas gesetzt ist, UND dass er
+     fehlt, wenn nichts gesetzt ist. Ein Knopf, der immer dasteht, waere
+     dieselbe Auskunft ueber nichts wie eine Null am Zaehler (Stolperstein 81).
+     UND WAS ER NICHT MITRAEUMT, denn genau daran haengt seine Wahrhaftigkeit:
+     die Suche und die Sortierung zaehlt filterZahl() nicht mit, also darf er
+     sie auch nicht wegnehmen. */
+  const frTags = [{ id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
+                  { id: 42, name: 'Stahl', usage_count: 2, test_usage_count: 0 }];
+  const frKnopf = (w) => w.document.getElementById('filter-zurueck');
+  {
+    /* OHNE EINEN EINZIGEN FILTER steht er nicht da -- und die Leiste steht
+       trotzdem, sonst belegte die Verneinung nichts. */
+    const d = baueDom(JSDOM, { tags: frTags, einstellungen: { filters: null } });
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Die Filterleiste steht da',
+      !!d.w.document.querySelector('#filters .frow'), 'keine Leiste');
+    pruefe('Ohne gesetzten Filter steht kein Ruecksetzer da',
+      !frKnopf(d.w), frKnopf(d.w)?.textContent);
+    d.w.close();
+  }
+  {
+    /* VIER FILTER IN EINER LAGE, und jeder zaehlt anders: der Teststatus
+       einzeln, die Kategorien als EINER (sie vergroessern die Menge), die
+       beiden Tags EINZELN (jeder verkleinert sie). Eine Lage mit nur einem
+       Filter belegte ueber diese Regeln nichts. */
+    const d = baueDom(JSDOM, { tags: frTags,
+      einstellungen: { filters: { categoryIds: [21, 22], tagIds: [41, 42], tagMode: 'and',
+                                  tested: 'tested', abgelehnt: 'all', favorit: false,
+                                  sort: 'title_asc' } } });
+    await new Promise(r => setTimeout(r, 80));
+    const knopf = frKnopf(d.w);
+    pruefe('Mit gesetzten Filtern steht der Ruecksetzer da', !!knopf, 'kein Knopf');
+    pruefe('Und er nennt die Zahl',
+      knopf?.textContent === 'Filter zurücksetzen (4)', JSON.stringify(knopf?.textContent));
+    /* DIE ZAHL KOMMT AUS filterZahl() UND AUS NICHTS ANDEREM. Belegt wird das
+       nicht ueber den Kommentar, sondern gegen den ZWEITEN Ort, an dem
+       dieselbe Zahl steht: den Schalter ueber den Filtern. Zwei Zaehlungen
+       nebeneinander liefen frueher oder spaeter auseinander
+       (Stolperstein 47). */
+    const schalter = d.w.document.querySelector('#filter-auf .fz')?.textContent || '';
+    pruefe('Und es ist dieselbe Zahl, die auch der Schalter nennt',
+      schalter === '· 4 aktiv', JSON.stringify(schalter));
+    /* ER STEHT IN DER SORTIERZEILE, neben „+ Ansicht speichern" -- dort, wo er
+       gesucht wurde, und nicht in einer eigenen Zeile darunter. */
+    const zeile = knopf?.closest('.frow');
+    pruefe('Er steht in der Sortierzeile',
+      !!zeile?.querySelector('#f-sort') && !!zeile?.querySelector('#ansicht-neu'),
+      zeile ? [...zeile.querySelectorAll('.eyebrow')].map(e => e.textContent).join('+') : 'in keiner Zeile');
+    pruefe('Und rechts in ihr',
+      knopf?.parentElement?.classList.contains('frow-rechts-weit'),
+      knopf?.parentElement?.className);
+    /* DAS STILBLATT SCHIEBT IHN AN DEN RAND -- ohne ausgerechnete Breite. Die
+       Pillen der Sortierzeile wachsen nicht von selbst, anders als die Wolke
+       der Tagzeile. */
+    pruefe('Das Stilblatt schiebt ihn an den rechten Rand',
+      /margin-left: auto/.test(regel123('.frow-rechts-weit')),
+      regel123('.frow-rechts-weit') || '(keine Regel)');
+
+    /* ---- UND JETZT DER KLICK ----
+       EIN SUCHBEGRIFF STEHT DABEI WIRKLICH IM FELD und nicht bloss im Zustand:
+       nur dann belegt die Zeile unten etwas (Stolperstein 224). */
+    const vorherSort = d.w.document.getElementById('f-sort')?.value;
+    const suchfeld = d.w.document.getElementById('q');
+    suchfeld.value = 'schraube';
+    suchfeld.dispatchEvent(new d.w.Event('input'));
+    await warteSuche(d.w);
+    /* GEZAEHLT WIRD, WAS NACH DEM KLICK HINAUSGEHT und nicht, was beim Aufbau
+       schon lief -- sonst pruefte die Verneinung unten den Seitenaufbau mit. */
+    const vorDemKlick = d.gesendet.length;
+    knopf.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    const danach = d.gesendet.slice(vorDemKlick);
+    /* GELESEN WIRD DIE STELLUNG DORT, WO SIE HINAUSGEHT -- im Rumpf des
+       letzten PUT. `state` ist ein `const` im Modul und steht am Fenster gar
+       nicht; eine Pruefung, die dorthin greift, pruefte `undefined`. */
+    const put = danach.filter(x => x.methode === 'PUT' && x.url === '/api/settings');
+    const jetzt = put[put.length - 1]?.koerper?.filters || {};
+    pruefe('Danach ist der Teststatus zurueckgesetzt', jetzt.tested === 'all', String(jetzt.tested));
+    pruefe('Und die Kategorien sind leer',
+      Array.isArray(jetzt.categoryIds) && jetzt.categoryIds.length === 0,
+      JSON.stringify(jetzt.categoryIds));
+    pruefe('Und die Tags ebenso',
+      Array.isArray(jetzt.tagIds) && jetzt.tagIds.length === 0, JSON.stringify(jetzt.tagIds));
+    pruefe('Auch die uebrigen Merkmale stehen wieder auf der Vorgabe',
+      jetzt.abgelehnt === 'all' && jetzt.favorit === false && jetzt.tagMode === 'and',
+      JSON.stringify(jetzt));
+    // UND DIE LEISTE ZEIGT ES AUCH: die Pille „Alles anzeigen" steht wieder an.
+    const allesPille = [...d.w.document.querySelectorAll('#filters .pill')]
+      .find(b => b.textContent.trim() === 'Alles anzeigen');
+    pruefe('Und die Leiste zeigt es',
+      allesPille?.classList.contains('on'), allesPille?.className);
+    /* DIE SORTIERUNG BLEIBT STEHEN, obwohl sie in FILTER_VORGABE steht: sie
+       wird auch nicht mitgezaehlt. Ein Knopf, der „(4)" sagt und fuenf Dinge
+       wegnimmt, sagt die Unwahrheit. */
+    pruefe('Die Sortierung bleibt, wo sie war',
+      jetzt.sort === 'title_asc' && d.w.document.getElementById('f-sort')?.value === vorherSort,
+      `${jetzt.sort} · Feld ${d.w.document.getElementById('f-sort')?.value}`);
+    // UND DIE SUCHE EBENSO -- sie hat ihr eigenes Kreuz im Suchfeld.
+    pruefe('Der Suchbegriff bleibt ebenfalls stehen',
+      d.w.document.getElementById('q')?.value === 'schraube',
+      JSON.stringify(d.w.document.getElementById('q')?.value));
+    /* DER FILTERSTAND FAEHRT WIE IMMER UEBER PUT /api/settings hinaus -- keine
+       neue Route, dieselbe, die jeder Klick auf eine Pille schon benutzt. */
+    pruefe('Der neue Stand geht ueber die vorhandene Route hinaus',
+      put.length > 0, `${put.length} Schreibvorgaenge`);
+    pruefe('Und keine andere Route wird dafuer geschrieben',
+      !danach.some(x => x.methode !== 'GET' && x.url !== '/api/settings'),
+      danach.filter(x => x.methode !== 'GET').map(x => `${x.methode} ${x.url}`).join(' · ') || '(keine)');
+    // EIN KNOPF, DER NICHTS MEHR ZU TUN HAT, STEHT NICHT MEHR DA.
+    pruefe('Und danach ist der Ruecksetzer selbst wieder weg',
+      !frKnopf(d.w), frKnopf(d.w)?.textContent);
+    d.w.close();
+  }
+  {
+    /* EINE GESPEICHERTE ANSICHT WIRD NICHT ANGETASTET. Zuruecksetzen heisst
+       „zeig mir alles", nicht „vergiss, was ich mir gemerkt habe". */
+    const d = baueDom(JSDOM, { tags: frTags,
+      einstellungen: { ansichten: [{ name: 'Meine Sicht', q: 'eins', filters: { tested: 'tested' } }],
+                       filters: { categoryIds: [], tagIds: [41], tagMode: 'and',
+                                  tested: 'all', abgelehnt: 'all', favorit: false,
+                                  sort: 'updated_desc' } } });
+    await new Promise(r => setTimeout(r, 80));
+    const pillen = () => [...d.w.document.querySelectorAll('#filters .pill')]
+      .map(b => b.textContent.replace('✕', '').trim());
+    pruefe('Die gespeicherte Ansicht steht in der Leiste',
+      pillen().includes('Meine Sicht'), JSON.stringify(pillen()));
+    pruefe('Bei einem einzigen Tag nennt der Knopf die Eins',
+      frKnopf(d.w)?.textContent === 'Filter zurücksetzen (1)',
+      JSON.stringify(frKnopf(d.w)?.textContent));
+    const anVorher = d.gesendet.length;
+    frKnopf(d.w).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Nach dem Zuruecksetzen steht sie immer noch da',
+      pillen().includes('Meine Sicht'), JSON.stringify(pillen()));
+    pruefe('Und sie ist dabei nicht neu geschrieben worden',
+      !d.gesendet.slice(anVorher).some(x => x.koerper && 'ansichten' in x.koerper),
+      d.gesendet.slice(anVorher).map(x => `${x.methode} ${Object.keys(x.koerper || {}).join('+')}`).join(' · ') || '(nichts)');
     d.w.close();
   }
 }

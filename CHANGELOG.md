@@ -29,6 +29,15 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.17.3] - 2026-08-31
+
+- Added: „Filter zurücksetzen" in der Sortierzeile — nur wenn etwas gesetzt ist, und mit der Zahl daneben
+- Changed: Jede Kachel im Systembereich ist so hoch wie ihr Inhalt; eine kurze Liste zieht die Reihe nicht mehr auf
+- Changed: Listen in Karten deckeln bei zehn Zeilen statt bei zwölf
+- Changed: Die Karte „Mailversand" zeigt nur noch den Zustand; eingetragen wird er in einem eigenen Fenster
+- Changed: Der Erklärkasten hinter der Gesamtnote braucht keinen Rollbalken mehr
+- Removed: Die Zeile „Passwort" in der Karte „Mailversand" — sie sagte dasselbe wie „Zustand" darüber
+
 ## [0.17.2] - 2026-08-31
 
 - Changed: Die Zeile einer Anmeldung steht in zwei Reihen — oben der Name, darunter die beiden Zeiten

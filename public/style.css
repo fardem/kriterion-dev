@@ -323,6 +323,13 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    KEINE AUSGERECHNETE BREITE, nirgends -- die Instanz stellt die Schrift von
    80 bis 120 Prozent, und eine feste Zahl kann dabei nur falsch werden. */
 .frow-rechts { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+/* AN DEN RECHTEN RAND, seit 0.17.3: der Ruecksetzer der Filterleiste steht in
+   der Sortierzeile, und dort waechst nichts von selbst -- die Wolke der
+   Tagzeile tut das (`flex: 1 1 0`), die Pillen der Sortierzeile nicht. `auto`
+   und keine ausgerechnete Breite: was uebrig ist, entscheidet die Zeile.
+   AUF DEM TELEFON WIRD DARAUS EINE SPALTE, und dann sitzt er unter den Pillen
+   -- `margin-left` an einem Spaltenkind tut nichts, und das ist hier richtig. */
+.frow-rechts-weit { margin-left: auto; }
 /* DIE WOLKE NIMMT, WAS UEBRIG IST. `flex: 1 1 0` statt einer Breite: sie
    schrumpft und waechst mit der Zeile, und `min-width: 0` erlaubt ihr das
    ueberhaupt erst -- ohne diese Null waere ihre Mindestbreite der Inhalt, und
@@ -1026,13 +1033,25 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Position taete das nicht: wie viele Karten in eine Zeile passen, haengt an
    der Fensterbreite (auto-fit), und wie viele es ueberhaupt gibt, an der
    Rolle. Die Reihenfolge im Quelltext bleibt davon unberuehrt. */
-.sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-flow: dense; gap: 18px; margin-top: 6px; }
+/* `align-items: start` IST DIE ZEILE, DIE DEN LEERRAUM NIMMT -- und sie steht
+   an der Kachel und nicht an der Liste darin.
+   EIN RASTER ZIEHT JEDES KIND AUF DIE HOEHE DER HOECHSTEN ZELLE SEINER REIHE:
+   `align-items` steht von Haus aus auf `stretch`. Neben einer Kachel mit
+   fuenfzig Zeilen war eine leere Kachel deshalb genauso hoch, und der Leerraum
+   stand UNTER dem Inhalt IN der Kachel -- nicht in der Liste, die korrekt
+   klemmte. Wer nur die Liste misst, sieht ihn nicht.
+   MIT `start` IST JEDE KACHEL SO HOCH WIE IHR INHALT. Gemessen in Chromium bei
+   1600x913 und drei Kacheln nebeneinander: eine Kachel mit zwei Listenzeilen
+   faellt von 605 auf 186 Pixel, eine mit leerer Liste auf 136. */
+.sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-flow: dense; gap: 18px; margin-top: 6px;
+  align-items: start; }
 /* DIE KACHEL IST EINE SPALTE, und das ist die Voraussetzung fuer die Liste
-   darin. Als Rasterkind ist sie so hoch wie ihre hoechste Nachbarin -- diese
-   Hoehe war bis 0.17.0 fuer nichts zu gebrauchen: die Liste darin trug ihre
-   eigenen 280 Pixel und rollte, waehrend darunter Platz stand.
-   ALS SPALTE GIBT SIE DIE HOEHE WEITER. Was `flex: 1` traegt, bekommt, was
-   uebrig ist; alles andere behaelt seine natuerliche Hoehe. */
+   darin: was `flex: 1` traegt, bekommt, was uebrig ist; alles andere behaelt
+   seine natuerliche Hoehe.
+   BIS 0.17.2 GAB SIE AUCH DIE GESCHENKTE HOEHE EINER HOEHEREN NACHBARIN
+   WEITER. Das tut sie seit `align-items: start` nicht mehr -- es gibt keine
+   geschenkte Hoehe mehr. Die Zusage ist damit gegenstandslos und nicht
+   gebrochen: ungenutzt bleibt nichts, weil nichts mehr verschenkt wird. */
 .sys-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px 20px;
   display: flex; flex-direction: column; }
 /* EIN KNOPF BLEIBT SO BREIT WIE SEIN WORT. In einer Spalte werden die Kinder
@@ -1096,26 +1115,25 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Schliessknopf im Blick, statt das ganze Fenster rollen zu lassen. */
 /* DER DECKEL IST DIE FORDERUNG UND NICHT DIE GRENZE -- das ist der ganze
    Unterschied, und er steckt in `flex-basis`.
-   `flex: 1 1 33.5rem` HEISST: "ich haette gern zwoelf Zeilen". Mehr verlangt die
+   `flex: 1 1 27.95rem` HEISST: "ich haette gern zehn Zeilen". Mehr verlangt die
    Liste nicht, und deshalb zieht sie die Rasterzeile nicht weiter auf; 0.17.1
    hatte die feste Hoehe gestrichen, ohne etwas an ihre Stelle zu setzen, und
    die Tagliste zog den Abschnitt "Bestand" auf fuenfzig Zeilen auseinander.
-   WIRD DIE KACHEL TROTZDEM HOEHER, weil eine Nachbarin mehr braucht ("Vokabular"
-   etwa), waechst die Liste MIT -- `flex-grow: 1` nimmt, was uebrig ist. Ein
-   `max-height` an dieser Stelle koennte das nicht: es klemmt die Forderung UND
-   die Hoehe, und der Platz bliebe leer.
-   `max-height: max-content` IST DIE DRITTE ZEILE UND DIE, DIE DEN LEERRAUM
-   NIMMT. Ohne sie forderte auch eine Liste mit zwei Zeilen ihre zwoelf, und die
-   Kachel "Kategorien" waere so hoch wie die mit fuenfzig Tags. Sie klemmt auf
-   das, was wirklich dasteht -- nie auf weniger.
-   NACHGEMESSEN IN CHROMIUM: allein deckelt sie bei zwoelf Zeilen und rollt;
-   neben einer 700 Pixel hohen Nachbarin nimmt sie die 700 mit; mit zwei
-   Eintraegen bleibt sie zwei Zeilen hoch.
-   33.5rem SIND ZWOELF ZEILEN: eine `.mrow` misst mit Innenabstand und dem
+   ALLE DREI ZEILEN TRAGEN WEITER, auch seit die Kachel nicht mehr streckt
+   (`.sys-grid { align-items: start }`): ohne `flex-basis` und `min-height: 0`
+   waechst ein Flexkind ueber seinen Anteil hinaus, statt zu rollen, und ohne
+   `max-height: max-content` forderte auch eine Liste mit zwei Zeilen ihre zehn.
+   Sie klemmt auf das, was wirklich dasteht -- nie auf weniger.
+   NACHGEMESSEN IN CHROMIUM bei 1600x913: mit fuenfzig Eintraegen deckelt die
+   Liste bei 419 Pixeln und rollt, mit zwei Eintraegen bleibt sie zwei Zeilen
+   hoch, und leer ist sie 0.
+   27.95rem SIND ZEHN ZEILEN: eine `.mrow` misst mit Innenabstand und dem
    Abstand zur naechsten 41,92 Pixel, und die Wurzelschrift steht auf 15. IN rem
    UND NICHT IN PIXELN, weil die Oberflaeche ihre Schrift von 80 bis 120 Prozent
-   stellt -- eine feste Zahl fasste dort mal neun und mal fuenfzehn Zeilen. */
-.manage-list { flex: 1 1 33.5rem; min-height: 0; max-height: max-content;
+   stellt -- eine feste Zahl fasste dort mal neun und mal fuenfzehn Zeilen.
+   ZEHN UND NICHT ZWOELF SEIT 0.17.3: zwoelf Zeilen waren mehr Liste, als eine
+   Kachel neben ihren Nachbarn tragen soll. */
+.manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 /* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
    einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
@@ -1225,53 +1243,54 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* Die Karte "Mailversand". Zwei Woerter tragen die ganze Karte -- eingerichtet
    oder nicht -- und stehen deshalb farbig da. */
 .mail-gut { color: var(--green); }
-/* ---- DIE VIER REIHEN DES MAILVERSANDS ----
-   Bis 0.17.0 standen sechs Felder untereinander, jedes ueber die volle Breite
-   einer Karte, die seit 0.16.0 `.breit` ist. Jetzt ordnet sich jede Reihe nach
-   der Frage, die sie beantwortet: WER, WOHIN, WOMIT, ALS WER.
-   EIN RASTER UND KEINE FLEXREIHE. `.row-in` gaebe den Feldern die Breite, die
-   ihr Inhalt braucht; hier soll SERVER breit und PORT schmal sein, und das ist
-   eine Angabe ueber die Reihe und nicht ueber das einzelne Feld.
-   `minmax(0, …)` UND NICHT BLOSS `…fr`: eine Rasterspalte gibt von sich aus
-   nicht unter ihre Mindestbreite nach, und ein Auswahlfeld mit einem langen
-   Eintrag ("TLS von Anfang an (meist 465)") schoebe die Reihe sonst breiter
-   als die Karte.
-   `align-items: start`: die Felder tragen unterschiedlich lange Beschriftungen
-   ("Port" gegen "Benutzername beim Anbieter"), und die Eingabefelder sollen
-   trotzdem auf einer Linie beginnen. */
-.mail-reihe { display: grid; gap: 0 12px; align-items: start; }
-/* WER -- der Anbieter steht allein und etwa ein Drittel breit. Ein
-   Auswahlfeld mit sechs Eintraegen ueber neunhundert Pixel war der Befund. */
-.mail-wer { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-/* WOHIN -- der Servername ist die lange Angabe, der Port die kuerzeste, die
-   Verschluesselung traegt zwei ausgeschriebene Eintraege. */
-.mail-wohin { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 2fr); }
-/* WOMIT -- zwei gleichrangige Angaben, also zwei gleiche Haelften. */
-.mail-womit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-/* ALS WER und TUN -- links das Feld beziehungsweise die beiden Knoepfe, rechts
-   der Satz, der dazugehoert. Bis 0.17.1 stand jeder dieser Saetze als eigene
-   Zeile UNTER seiner Sache und liess die halbe Karte leer.
-   EIN DRITTEL LINKS: dieselbe Breite wie der Anbieter in der ersten Reihe --
-   eine Adresse und zwei Knoepfe brauchen sie nicht ganz, und der Satz daneben
-   liest sich als das, was er ist, naemlich eine Erlaeuterung zu genau dieser
-   Sache und nicht zur ganzen Karte. */
-.mail-alswer, .mail-tun { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
-/* Der Satz sitzt an der Grundlinie des Feldes daneben und nicht an dessen
-   Oberkante: links steht ueber dem Feld noch eine Beschriftung, und ein Satz,
-   der auf ihrer Hoehe begaenne, saehe aus wie eine zweite Beschriftung. */
-.mail-satz { margin: 0; align-self: end; padding-bottom: 10px; }
+/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
+   HIER STANDEN BIS 0.17.2 SECHS REGELN FUER VIER REIHEN, und sie sind weg.
+   Die Karte trug neun Bedienelemente in vier verschiedenen Spaltenaufteilungen
+   -- `1fr`, `3fr 1fr 2fr`, `1fr 1fr`, `1fr 2fr` -- und dazwischen vier
+   Erklaersaetze, zwei NEBEN einem Feld und zwei ueber die volle Breite. Das
+   Auge fand keine Spalte. Der Satz steht hier, damit die Reihen nicht
+   wiederkommen (Stolperstein 201).
+   DIE KARTE IST JETZT EINE ZUSTANDSKARTE WIE IHRE NACHBARN und braucht dafuer
+   gar keine eigene Regel: `.kv` traegt die fuenf Zeilen, `.row-in` die beiden
+   Knoepfe. Was von dieser Karte im Stilblatt bleibt, sind zwei Farben. */
 .mail-aus { color: var(--red); }
 .mail-erfolg { background: var(--green-dim); border-color: rgba(63,211,154,.3); }
 .mail-erfolg strong { color: var(--green); }
+/* ---- DER DIALOG „Mailzugang einrichten" — 0.17.3 ----
+   EIN RHYTHMUS UND NICHT VIER: eine Spalte, Beschriftung ueber dem Feld,
+   Hinweis unter seiner Sache. `.modal` ist selbst schon eine Spalte mit
+   eigenem Abstand -- die 14 Pixel, die ein `.field` sonst unter sich traegt,
+   kaemen zu diesem Abstand hinzu und ergaeben zwei verschiedene Luecken in
+   derselben Spalte. */
+.mail-dialog { max-width: 520px; }
+.mail-dialog .field { margin-bottom: 0; }
+/* DER HINWEIS HAENGT AM FELD UEBER IHM und nicht an der Spalte: er rueckt
+   deshalb nach oben an seine Sache heran. Der negative Abstand nimmt genau die
+   Haelfte der Luecke zurueck, die `.modal` zwischen ihren Kindern setzt --
+   damit steht er naeher an dem, was er erklaert, als am naechsten Feld. */
+.mail-hinweis { margin: -7px 0 0; }
+/* DIE FESTEN WERTE EINER VORLAGE WERDEN GELESEN UND NICHT EINGESTELLT. Server,
+   Port und Verschluesselung stehen im Quelltext; drei Felder fuer drei feste
+   Werte waeren drei Felder zu viel. GESPERRTE Felder waren es bis 0.17.2, und
+   ein gesperrtes Feld sieht aus wie eines, das gleich aufgeht.
+   IN DER MONOSCHRIFT, wie jede andere Angabe der Instanz, die ein Rechner
+   gesetzt hat und kein Mensch. */
+.mail-fest { font-family: var(--mono); font-size: .84rem; color: var(--text-2);
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r-sm); padding: 9px 11px; }
 
 /* Das Sicherheitsprotokoll. Eine Zeile je Vorgang, die juengste oben; die
    Liste laeuft in sich und schiebt die Karte nicht auf -- seit 0.17.1 in der
    Hoehe, die die Kachel hergibt, und nicht mehr in festen 380 Pixeln. Auf
    schmalem Schirm bricht sie in zwei Zeilen statt seitlich zu scrollen. */
 /* DIESELBE BAUFORM WIE AN `.manage-list`, und die Begruendung steht dort.
-   28rem SIND HIER ZWOELF ZEILEN: eine `.prot-zeile` misst in der breiten Karte
-   35 Pixel -- sie traegt keinen Abstand zur naechsten, sondern eine Linie. */
-.prot-liste { flex: 1 1 28rem; min-height: 0; max-height: max-content;
+   23.3rem SIND HIER ZEHN ZEILEN: eine `.prot-zeile` misst in der breiten Karte
+   35 Pixel -- sie traegt keinen Abstand zur naechsten, sondern eine Linie.
+   ZEHN AUCH HIER, UND DER PREIS STEHT DAZU: die Zeilen sind schmaler, zehn
+   statt zwoelf heisst spuerbar weniger Protokoll auf einen Blick. Trotzdem EINE
+   Regel und nicht zwei -- zwei Zahlen fuer dieselbe Sache sind eine zu viel,
+   und wer die Liste wirklich durchsieht, nimmt den Filter darueber. */
+.prot-liste { flex: 1 1 23.3rem; min-height: 0; max-height: max-content;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 .prot-zeile { display: grid; grid-template-columns: 128px 1fr 1fr auto auto; gap: 4px 12px;
   align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: .86rem; }
@@ -1480,10 +1499,17 @@ body.lb-open { overflow: hidden; }
    KEINE NEUE FARBE: --faint traegt in dieser Instanz jede Nebenangabe. */
 .mrow.glocken-zeile { flex-wrap: wrap; row-gap: 2px; }
 .glocken-zeile .glocken-von { flex-basis: 100%; font-size: .76rem; color: var(--faint); }
-.rechnung-modal { max-width: 540px; }
+/* BREITER ALS EIN GEWOEHNLICHES FENSTER, seit 0.17.3: die Tabelle hat vier
+   Spalten, und der Fliesstext darunter bricht auf 540 Pixeln zu oft um. Jeder
+   gesparte Umbruch ist eine Zeile weniger im Kasten -- und der Kasten rollte
+   bei sieben Kriterien ueber `88dvh` hinaus. */
+.rechnung-modal { max-width: 620px; }
 .rechnung { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }
 .rz { display: contents; }
-.rz > span { padding: 6px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem; text-align: right; }
+/* DREI PIXEL UND NICHT SECHS, seit 0.17.3. Zwoelf Tabellenzeilen sparen damit
+   rund 72 Pixel; die Trennlinie haelt die Zeilen weiterhin auseinander, und
+   dafuer braucht es keinen doppelten Abstand. */
+.rz > span { padding: 3px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem; text-align: right; }
 .rz > span:first-child { text-align: left; color: var(--muted); }
 .rz > span:not(:first-child) { font-family: var(--mono); font-size: .83rem; }
 .rz-kopf > span { color: var(--faint); font-size: .74rem; text-transform: uppercase;
@@ -2656,22 +2682,19 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      als die Spalte, die es vorher war -- "Benutzername beim Anbieter" stuende
      dann dreizeilig ueber einem Feld von hundert Pixeln.
      EINE REGEL FUER ALLE VIER REIHEN und nicht vier: die Frage ist dieselbe. */
-  .mail-reihe { grid-template-columns: minmax(0, 1fr); }
-  /* Untereinander steht der Satz wieder UNTER seiner Sache, und dann gehoert er
-     an ihren Anfang und nicht an ihr Ende. */
-  .mail-satz { align-self: start; padding-bottom: 0; margin: 0 0 14px; }
 
   /* Die Listen, die in sich scrollen, tun das jetzt selten genug, dass die
      Wischbewegung fast immer die Seite bewegt -- 62 Prozent der Fensterhoehe
-     fassen auf einem Telefon mehr Zeilen als ein Deckel von zwoelf. Ganz
+     fassen auf einem Telefon mehr Zeilen als ein Deckel von zehn. Ganz
      aufheben laesst sich der eigene Bildlauf nicht: ein Sicherheitsprotokoll
      mit zweihundert Zeilen machte die Karte sonst unbrauchbar lang.
      UND HIER IST DER DECKEL WIEDER EINE GRENZE UND KEINE FORDERUNG. Auf dem
-     schmalen Schirm steht jede Kachel ALLEIN in ihrer Zeile -- es gibt keine
-     Nachbarin, deren Hoehe eine Liste mitnehmen koennte. `flex: 0 1 auto` laesst
-     sie deshalb ihren Inhalt fordern, und das Fenstermass deckelt ihn; die
-     Forderung von zwoelf Zeilen machte eine Karte mit zwei Eintraegen sonst so
-     hoch wie eine mit fuenfzig. */
+     schmalen Schirm steht jede Kachel ALLEIN in ihrer Zeile, und das Fenstermass
+     ist das einzige Mass, das dort etwas sagt. `flex: 0 1 auto` laesst die Liste
+     ihren Inhalt fordern, und `62dvh` deckelt ihn; die Forderung von zehn Zeilen
+     machte eine Karte mit zwei Eintraegen sonst so hoch wie eine mit fuenfzig.
+     AN DIESER ZEILE AENDERT 0.17.3 NICHTS: der Deckel von zehn Zeilen gilt fuer
+     den breiten Schirm, hier haengt er am Fenster. */
   .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {
     flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }
 

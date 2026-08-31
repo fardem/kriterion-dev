@@ -3134,52 +3134,31 @@ const RUECKBAUTEN = [
   {
     nr: '339', name: 'Die Liste bekommt ihre feste Hoehe zurueck',
     datei: 'public/style.css',
-    suche: `.manage-list { flex: 1 1 33.5rem; min-height: 0; max-height: max-content;
+    suche: `.manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }`,
     ersatz: ".manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '340', name: 'Die Liste verliert die Zeile, an der es sonst scheitert',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 28rem; min-height: 0; max-height: max-content;",
-    ersatz: ".prot-liste { flex: 1 1 28rem; max-height: max-content;",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    suche: ".prot-liste { flex: 1 1 23.3rem; min-height: 0; max-height: max-content;",
+    ersatz: ".prot-liste { flex: 1 1 23.3rem; max-height: max-content;",
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '341', name: 'Die Kachel ist wieder keine Spalte',
     datei: 'public/style.css',
     suche: "padding: 18px 20px 20px;\n  display: flex; flex-direction: column; }",
     ersatz: "padding: 18px 20px 20px; }",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '342', name: 'Der Knopf in der Kachel wird wieder ueber die volle Breite gezogen',
     datei: 'public/style.css',
     suche: ".sys-card > .btn { align-self: flex-start; }",
     ersatz: "",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
-  },
-  {
-    nr: '343', name: 'Die Reihe „wohin" verliert ihre Rasterspalten',
-    datei: 'public/style.css',
-    suche: ".mail-wohin { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 2fr); }",
-    ersatz: ".mail-wohin { grid-template-columns: repeat(3, minmax(0, 1fr)); }",
-    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
-  },
-  {
-    nr: '344', name: 'Auf dem Telefon bleiben die Reihen des Mailversands nebeneinander',
-    datei: 'public/style.css',
-    suche: "  .mail-reihe { grid-template-columns: minmax(0, 1fr); }",
-    ersatz: "",
-    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
-  },
-  {
-    nr: '345', name: 'Die Felder „wohin" fallen aus ihrer Reihe',
-    datei: 'public/app.js',
-    suche: "        <div class=\"mail-reihe mail-wohin\">",
-    ersatz: "        <div class=\"mail-wohin\">",
-    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '346', name: 'Die alte Adresse des fuenften Abschnitts wird nicht mehr uebersetzt',
@@ -3250,16 +3229,16 @@ const RUECKBAUTEN = [
   {
     nr: '355', name: 'Die Liste fordert wieder so viele Zeilen, wie sie hat',
     datei: 'public/style.css',
-    suche: ".manage-list { flex: 1 1 33.5rem;",
+    suche: ".manage-list { flex: 1 1 27.95rem;",
     ersatz: ".manage-list { flex: 1 1 auto;",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '356', name: 'Das Sicherheitsprotokoll fordert wieder alle seine Zeilen',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 28rem;",
+    suche: ".prot-liste { flex: 1 1 23.3rem;",
     ersatz: ".prot-liste { flex: 1 1 auto;",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '357', name: 'Auf dem Telefon deckelt nichts mehr am Fenster',
@@ -3267,42 +3246,7 @@ const RUECKBAUTEN = [
     suche: "  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {\n" +
            "    flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }",
     ersatz: "",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
-  },
-  {
-    nr: '358', name: 'Die beiden letzten Reihen des Mailversands teilen wieder gleich',
-    datei: 'public/style.css',
-    suche: ".mail-alswer, .mail-tun { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }",
-    ersatz: ".mail-alswer, .mail-tun { grid-template-columns: repeat(2, minmax(0, 1fr)); }",
-    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
-  },
-  {
-    nr: '359', name: 'Der Satz sitzt wieder an der Oberkante seines Feldes',
-    datei: 'public/style.css',
-    suche: ".mail-satz { margin: 0; align-self: end; padding-bottom: 10px; }",
-    ersatz: ".mail-satz { margin: 0; }",
-    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
-  },
-  {
-    nr: '360', name: 'Auf dem Telefon bleibt der Satz an der Grundlinie haengen',
-    datei: 'public/style.css',
-    suche: "  .mail-satz { align-self: start; padding-bottom: 0; margin: 0 0 14px; }",
-    ersatz: "",
-    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
-  },
-  {
-    nr: '361', name: 'Die Absenderadresse faellt aus ihrer Reihe',
-    datei: 'public/app.js',
-    suche: "        <div class=\"mail-reihe mail-alswer\">",
-    ersatz: "        <div class=\"mail-alswer\">",
-    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
-  },
-  {
-    nr: '362', name: 'Die beiden Knoepfe fallen aus ihrer Reihe',
-    datei: 'public/app.js',
-    suche: "        <div class=\"mail-reihe mail-tun\">",
-    ersatz: "        <div class=\"mail-tun\">",
-    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
@@ -3311,7 +3255,7 @@ const RUECKBAUTEN = [
     ersatz: "deines eigenen Zugangs</strong> — es gibt kein Adressfeld daneben, und zwar mit\n" +
             "            Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener\n" +
             "            Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
-    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+    erwartet: 'Die Karte „Mailversand“'
   },
   {
     nr: '364', name: 'Die Klammer steht wieder auch bei einer einzigen Stimme',
@@ -3347,6 +3291,156 @@ const RUECKBAUTEN = [
     suche: "**Über der Liste steht eine Reihe von Ansichten**",
     ersatz: "**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**",
     erwartet: 'Der Sprachwaechter'
+  },
+
+  /* ---- 0.17.3: die Kachel, der Mailversand, der Erklaerkasten, der Filter ---- */
+  {
+    nr: '369', name: 'Das Kachelraster streckt seine Kinder wieder',
+    datei: 'public/style.css',
+    suche: "grid-auto-flow: dense; gap: 18px; margin-top: 6px;\n  align-items: start; }",
+    ersatz: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; }",
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+  },
+  {
+    nr: '370', name: 'Die Liste fordert wieder zwoelf Zeilen',
+    datei: 'public/style.css',
+    suche: ".manage-list { flex: 1 1 27.95rem; min-height: 0;",
+    ersatz: ".manage-list { flex: 1 1 33.5rem; min-height: 0;",
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+  },
+  {
+    nr: '371', name: 'Das Sicherheitsprotokoll deckelt wieder bei zwoelf Zeilen',
+    datei: 'public/style.css',
+    suche: ".prot-liste { flex: 1 1 23.3rem; min-height: 0;",
+    ersatz: ".prot-liste { flex: 1 1 28rem; min-height: 0;",
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+  },
+  {
+    nr: '372', name: 'Die Karte bekommt ihre Passwortzeile zurueck',
+    datei: 'public/app.js',
+    suche: "        <div class=\"kv\"><span class=\"k\">Anbieter</span>",
+    ersatz: "        <div class=\"kv\"><span class=\"k\">Passwort</span><span class=\"v\">${mailstand.passwortGesetzt\n" +
+            "          ? 'gesetzt' : 'nicht gesetzt'}</span></div>\n" +
+            "        <div class=\"kv\"><span class=\"k\">Anbieter</span>",
+    erwartet: 'Die Karte „Mailversand“'
+  },
+  {
+    nr: '373', name: 'Die Anbieterzeile nennt wieder nur den Namen',
+    datei: 'public/app.js',
+    suche: "  const teile = [esc(m.anbieterName || m.anbieter)];\n  if (m.server && m.port) {",
+    ersatz: "  const teile = [esc(m.anbieterName || m.anbieter)];\n  if (false) {",
+    erwartet: 'Die Karte „Mailversand“'
+  },
+  {
+    nr: '374', name: 'Der Knopf heisst wieder „Mailzugang speichern"',
+    datei: 'public/app.js',
+    suche: "id=\"mail-einrichten\">Mailzugang ${\n            mailstand.eingerichtet ? 'ändern' : 'einrichten'}</button>",
+    ersatz: "id=\"mail-einrichten\">Mailzugang speichern</button>",
+    erwartet: 'Die Karte „Mailversand“'
+  },
+  {
+    nr: '375', name: 'Der Anbieterhinweis wechselt nicht mehr mit der Auswahl',
+    datei: 'public/app.js',
+    suche: "      hinweis.textContent = v && v.hinweis ? v.hinweis : '';",
+    ersatz: "      hinweis.textContent = mailstand.hinweis || '';",
+    erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
+  },
+  {
+    nr: '376', name: 'Die gelesene Zeile steht auch bei „Eigener Server"',
+    datei: 'public/app.js',
+    suche: "      festFeld.hidden = !v || eigen;",
+    ersatz: "      festFeld.hidden = !v;",
+    erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
+  },
+  {
+    nr: '377', name: 'Der Dialog kuerzt die zweite Bestaetigung ab',
+    datei: 'public/app.js',
+    suche: "      if (!await zweiteBestaetigung('mail', null, 'Mailzugang setzen',\n" +
+           "        'Über diesen Server läuft künftig JEDE Mail dieser Instanz — auch jeder ' +\n" +
+           "        'Link, der ein Passwort setzt.')) return;\n",
+    ersatz: "",
+    erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
+  },
+  {
+    nr: '378', name: 'Die Anbieterliste kommt wieder ohne Hinweise und feste Werte',
+    datei: 'server.js',
+    suche: "    anbieterListe: mail.fuerDieAuswahl(),",
+    ersatz: "    anbieterListe: mail.ANBIETER.map(a => ({ schluessel: a.schluessel, name: a.name })),",
+    erwartet: 'Der Mailversand: das echte SMTP-Gespraech'
+  },
+  {
+    nr: '379', name: 'Der Hinweis rueckt nicht mehr an seine Sache heran',
+    datei: 'public/style.css',
+    suche: ".mail-hinweis { margin: -7px 0 0; }",
+    ersatz: ".mail-hinweis { margin: 0; }",
+    erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
+  },
+  {
+    nr: '380', name: 'Die Felder im Dialog tragen wieder ihren zweiten Abstand',
+    datei: 'public/style.css',
+    suche: ".mail-dialog .field { margin-bottom: 0; }",
+    ersatz: ".mail-dialog .field { margin-bottom: 14px; }",
+    erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
+  },
+  {
+    nr: '381', name: 'Die Zeilen der Rechnung ruecken wieder auseinander',
+    datei: 'public/style.css',
+    suche: ".rz > span { padding: 3px 0;",
+    ersatz: ".rz > span { padding: 6px 0;",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  {
+    nr: '382', name: 'Der Erklaerkasten wird wieder schmal',
+    datei: 'public/style.css',
+    suche: ".rechnung-modal { max-width: 620px; }",
+    ersatz: ".rechnung-modal { max-width: 540px; }",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  {
+    nr: '383', name: 'Die ausgeschriebene Rechnung steht wieder unter der Tabelle',
+    datei: 'public/app.js',
+    suche: "        <strong>Gerundet wird genau einmal</strong>, ganz am Ende — die Zahlen oben sind für",
+    ersatz: "        <strong>Gerundet wird genau einmal</strong>, ganz am Ende:\n" +
+            "        ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))} =\n" +
+            "        ${esc(String(Math.round(Number(weg.roh) * 10000) / 10000).replace('.', ','))}\n" +
+            "        → <strong>${esc(gewZahl(weg.ergebnis))}</strong>. Die Zahlen oben sind für",
+    erwartet: 'Die Rechnung hinter der Kopfzahl'
+  },
+  {
+    nr: '384', name: 'Der Filterruecksetzer steht immer da',
+    datei: 'public/app.js',
+    suche: "  const filterGesetzt = filterZahl();\n  if (filterGesetzt) {",
+    ersatz: "  const filterGesetzt = filterZahl();\n  if (true) {",
+    erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
+  },
+  {
+    nr: '385', name: 'Der Filterruecksetzer nennt seine Zahl nicht mehr',
+    datei: 'public/app.js',
+    suche: "    bZurueck.textContent = `Filter zurücksetzen (${filterGesetzt})`;",
+    ersatz: "    bZurueck.textContent = 'Filter zurücksetzen';",
+    erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
+  },
+  {
+    nr: '386', name: 'Der Filterruecksetzer raeumt die Sortierung mit',
+    datei: 'public/app.js',
+    suche: "      state.filters = filterNormal({ sort: state.filters.sort });",
+    ersatz: "      state.filters = filterNormal({});",
+    erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
+  },
+  {
+    nr: '387', name: 'Der Filterruecksetzer raeumt die Suche mit',
+    datei: 'public/app.js',
+    suche: "      redraw();\n    };\n    rechts5.appendChild(bZurueck);",
+    ersatz: "      const qf = document.getElementById('q'); if (qf) qf.value = '';\n" +
+            "      redraw();\n    };\n    rechts5.appendChild(bZurueck);",
+    erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
+  },
+  {
+    nr: '388', name: 'Der Filterruecksetzer steht nicht mehr am rechten Rand',
+    datei: 'public/style.css',
+    suche: ".frow-rechts-weit { margin-left: auto; }",
+    ersatz: ".frow-rechts-weit { margin-right: 0; }",
+    erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
