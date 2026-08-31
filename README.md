@@ -42,13 +42,13 @@ eine öffentliche Datenbank oder etwas, das ohne eigenen Server auskommt.
 
 **Und das solltest du vor der Entscheidung wissen:**
 
-* **Eine Anlage ist ein Sachgebiet.** Bewertungskriterien sind global und
+* **Eine Instanz ist ein Sachgebiet.** Bewertungskriterien sind global und
   erscheinen an **jedem** Eintrag. Wer Modelle *und* Werkzeuge *und*
-  Bezugsquellen sammeln will, betreibt besser zwei oder drei Anlagen mit je
+  Bezugsquellen sammeln will, betreibt besser zwei oder drei Instanzen mit je
   eigenem Datenverzeichnis — sonst steht an jedem Eintrag die Kriterienliste
   aller Sachgebiete.
 * **Ein Schlüssel, eine Datenbank.** Die Verschlüsselung schützt die Datei,
-  nicht die Benutzer voreinander: wer die Anlage betreibt, kann alles lesen,
+  nicht die Benutzer voreinander: wer die Instanz betreibt, kann alles lesen,
   was darin steht. Bei einer selbstgehosteten Sache ist das normal — es gehört
   trotzdem gesagt, bevor Fremde mitmachen.
 * **Ohne den Schlüssel sind die Daten endgültig verloren.** Es gibt keine
@@ -115,13 +115,13 @@ Rollenvergabe, der Mailzugang und der Schlüsselwert; alles Weitere steht unter
 
 | | wo | wofür |
 |---|---|---|
-| **Titel der Anlage** | Systembereich, Karte „Darstellung" | zwei frei wählbare Titel: einer über der Anmeldeseite, einer in der Anwendung |
+| **Titel der Instanz** | Systembereich, Karte „Darstellung" | zwei frei wählbare Titel: einer über der Anmeldeseite, einer in der Anwendung |
 | **Bewertungskriterien** | Systembereich, Karte „Kriterien" | Name, Reihenfolge, Gewicht — sie erscheinen an jedem Eintrag |
 | **Vokabular** | Systembereich, Karte „Vokabular" | elf Wörter der Oberfläche umbenennen, etwa „Eintrag" → „Modell" |
 | **Weitere Zugänge** | Systembereich, Karte „Zugänge" | anlegen oder über einen Einladungslink einladen |
 | **Mailversand** | Systembereich, Karte „Mailversand" | nur für Einladungs- und Rücksetzlinks; ohne ihn läuft alles weiter |
 | **Sicherungsort** | `docker-compose.yml` | Vorgabe liegt im Projektverzeichnis; die empfohlene Lage ist daneben — siehe „Sichern" |
-| **Reverse Proxy** | `.env`, `HINTER_PROXY=1` | nur wenn die Anlage über einen Proxy und HTTPS nach außen geht. **Der Weg über `http://<server-ip>:3100` bleibt daneben offen** — siehe „Anmeldung" |
+| **Reverse Proxy** | `.env`, `HINTER_PROXY=1` | nur wenn die Instanz über einen Proxy und HTTPS nach außen geht. **Der Weg über `http://<server-ip>:3100` bleibt daneben offen** — siehe „Anmeldung" |
 
 ### Wenn niemand mehr hereinkommt
 
@@ -215,7 +215,7 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 > danach keinen Rückweg.** *Im Protokoll steht dann einmalig die Zeile „items um
 > rejected_at, rejected_grund und rejected_von ergaenzt (Migration auf 0.14.0)"
 > samt der Zahl der Ablehnungen, die von nun an ohne Datum, Grund und Verfasser
-> dastehen — das ist gewollt: diese Anlage weiß nicht, wann und von wem sie
+> dastehen — das ist gewollt: diese Instanz weiß nicht, wann und von wem sie
 > getroffen wurden.*
 >
 > **Niemand wird abgemeldet, und einzustellen ist nichts.** *Auch keine
@@ -332,7 +332,7 @@ es diese Datei. Löschen bzw. ersetzen und `docker compose up -d --build`, denn
 der Quelltext steckt im Image.
 
 *Ein Randfall, der wie ein Fehler aussieht und keiner ist:* ändert eine Version
-die Marke der Anlage, zeigt der Browser im Reiter noch die alte — ein hartes
+die Marke der Instanz, zeigt der Browser im Reiter noch die alte — ein hartes
 Neuladen (Strg+Umschalt+R) räumt den Zwischenspeicher weg.
 
 ### Wenn eine Version die Datenbank anfasst
@@ -377,23 +377,23 @@ gesperrt: eine harte Namenssperre wäre ein Werkzeug *gegen* fremde Zugänge.
 **Dieselbe Bremse steht vor dem Einlösen eines Einladungs- oder
 Rücksetzlinks** — dort ohne die Hälfte je Benutzername, denn ein Link nennt
 keinen. Was dabei abgewiesen wird — abgelaufen, schon eingelöst, erfunden, oder
-der Zugang ist gesperrt —, beantwortet die Anlage **immer gleich**: „Dieser
+der Zugang ist gesperrt —, beantwortet die Instanz **immer gleich**: „Dieser
 Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern." Der Grund ist
 nicht Geheimniskrämerei, sondern dass in allen vier Fällen dasselbe zu tun
 ist.
 
 **Die zweite Bestätigung greift auch hinter der Anmeldung** — vor
-jedem Weg, der die Anlage als Ganzes trifft. Was das ist und warum, steht
+jedem Weg, der die Instanz als Ganzes trifft. Was das ist und warum, steht
 unter „Rollen und Zugänge".
 
 ### Der zweite Faktor, freiwillig
 
 **Wer will, sichert seinen Zugang zusätzlich mit einem Code aus einer App auf
 seinem Telefon.** Der Code entsteht dort **ohne Netz**, aus einem Geheimnis und
-der Uhr, und ist alle dreißig Sekunden ein anderer. **Die Anlage schickt dafür
+der Uhr, und ist alle dreißig Sekunden ein anderer. **Die Instanz schickt dafür
 nichts hinaus** — kein Code per Mail, kein Code per SMS.
 
-> **OHNE ZWEITEN FAKTOR LÄUFT DIE ANLAGE VOLLSTÄNDIG.** Er ist freiwillig und
+> **OHNE ZWEITEN FAKTOR LÄUFT DIE INSTANZ VOLLSTÄNDIG.** Er ist freiwillig und
 > steht je Zugang; ab Werk ist er aus. Wer ihn nicht einschaltet, merkt von
 > dieser Funktion nichts. **Und niemand kann ihn für einen anderen ein- oder
 > ausschalten** — auch der Eigentümer nicht.
@@ -522,7 +522,7 @@ Neustart, ohne Menschen am Server. *Bis 0.12.4 stand hier ein Handgriff, der
 die Einstellung für die Dauer der Störung abschaltete; er wird nicht mehr
 gebraucht.*
 
-*Wer den Umweg gar nicht erst haben will, richtet den Namen der Anlage auch im
+*Wer den Umweg gar nicht erst haben will, richtet den Namen der Instanz auch im
 eigenen Netz auf den Proxy ein* (Eintrag im lokalen DNS oder in der
 `hosts`-Datei). Dann läuft auch der Weg von innen über HTTPS.
 
@@ -547,7 +547,7 @@ bereits unterscheidbar, und das genügt einem Wächter davor:
 **Wer einen Reverse Proxy fährt, hat diese Antworten in dessen
 Zugriffsprotokoll stehen.** Ein CrowdSec-Szenario auf `POST /api/login`, das
 auf 401, 403 und 429 achtet, sperrt die Adresse damit heute — es liest das
-Protokoll des Proxys, nicht das der Anlage. *Das ist auch die richtige Stelle:
+Protokoll des Proxys, nicht das der Instanz. *Das ist auch die richtige Stelle:
 hinter dem Proxy sieht Kriterion ohnehin nur dessen Adresse, solange
 `HINTER_PROXY` nicht gesetzt ist — und mit der Einstellung nur das, was im Kopf
 steht. Der Proxy schreibt auf, was er wirklich gesehen hat.*
@@ -564,15 +564,15 @@ unbegrenzt:
         max-file: "5"
 ```
 
-**Das Sicherheitsprotokoll der Anlage räumt sich dagegen schon selbst** — es
+**Das Sicherheitsprotokoll der Instanz räumt sich dagegen schon selbst** — es
 hält 180 Tage, geprüft beim Start und jedes Mal, wenn die Karte geöffnet wird.
 *Wer dafür eine Rotation sucht, soll sie nicht bauen: es gibt sie schon.*
 
 ### Rollen und Zugänge
 
 Drei Rollen, und sie sind eine Leiter: **Benutzer** < **Admin** <
-**Eigentümer**. Wer die Anlage einrichtet, ist ihr Eigentümer; das Recht ist
-eine Rolle und lässt sich vergeben — zwei Leute können sich eine Anlage
+**Eigentümer**. Wer die Instanz einrichtet, ist ihr Eigentümer; das Recht ist
+eine Rolle und lässt sich vergeben — zwei Leute können sich eine Instanz
 teilen. Solange nur **ein** Zugang besteht, ist er alles zugleich, und ihm
 verweigert nichts etwas.
 
@@ -583,7 +583,7 @@ verweigert nichts etwas.
   Titel, Vokabular und die Suchanbieter. Er darf fremde Beiträge **löschen**,
   aber nicht umschreiben. Und er verwaltet die Zugänge — aber nicht die von
   Admins oder dem Eigentümer.
-- **Eigentümer** — alles davon, dazu das, was die Anlage als *Ganzes*
+- **Eigentümer** — alles davon, dazu das, was die Instanz als *Ganzes*
   betrifft: **Export**, **Import**, der angezeigte Schlüsselwert und das
   Vergeben von Rollen. Ein Admin ohne Eigentümerrolle kann also keine
   Sicherung ziehen — das ist Absicht.
@@ -640,11 +640,27 @@ verstreichen lässt, holt sich einen neuen Link. Der Zugang selbst bleibt dabei
 stehen und trägt weiter „noch kein Passwort".
 
 Das Feld daneben ist **freiwillig**: trägst du eine **E-Mail-Adresse** ein,
-schickt die Anlage den Link zusätzlich dorthin — vorausgesetzt, ein Mailzugang
+schickt die Instanz den Link zusätzlich dorthin — vorausgesetzt, ein Mailzugang
 ist eingerichtet (siehe **Mailversand**). Der Link steht trotzdem zum Kopieren
 da, auch wenn der Versand fehlschlägt. **Ändern darf die Adresse danach allein
 der Betreffende selbst**, im Systembereich unter „Zugang": sie entscheidet,
 wohin sein nächster Rücksetzlink geht, und das gehört nicht in fremde Hand.
+
+> **WAS DIE KARTE „ZUGANG" DAZU SAGT, RICHTET SICH SEIT 0.17.1 DANACH, WAS
+> GERADE GILT.** Ist die **Selbstanmeldung aus**, steht am Feld
+> *(freiwillig)*, und darunter: *„Wird für den Einladungs- oder Rücksetzlink
+> per Mail gebraucht und für die Testmail im Mailversand. Ohne sie steht der
+> Link wie immer zum Kopieren bereit."* **Ist sie an, steht dort
+> *(wird gebraucht)*** und der Satz, dass ohne Adresse keine Bestätigungsmail
+> ankommt. *Vorher behauptete der Text in beiden Lagen dasselbe — und in einer
+> der beiden war es falsch.*
+>
+> **UND DER WEG ÜBER DEN SERVER STEHT NUR NOCH BEIM EIGENTÜMER.** Er ist der
+> Einzige, der in der Regel auch am Wirt sitzt; wer dort nicht hinkommt, liest
+> stattdessen, dass er sich an den Admin wendet. *Ein Befehl, den man nicht
+> ausführen kann, ist keine Hilfe, sondern eine Auskunft über den Betrieb.*
+> **Die Vorgabe „mindestens 10 Zeichen" steht seither am Passwortfeld** und
+> nicht mehr im Absatz unter der Adresse, für die sie nie galt.
 
 #### Ein Passwort zurücksetzen — ebenfalls zwei Wege
 
@@ -691,7 +707,7 @@ verschickte Mail auf seinen Server. Der Systembereich **zeigt** sie, er setzt
 sie nicht.
 
 **ist sie Pflicht — für den Versand, nicht für den Start.** Ohne sie
-verschickt die Anlage keine Links: der Server wüsste nicht, worauf sie zeigen
+verschickt die Instanz keine Links: der Server wüsste nicht, worauf sie zeigen
 sollen, und aus dem `Host`-Kopf darf er es nicht ableiten. Der Start bricht
 deswegen **nicht** ab, und es fehlt auch nichts — die Links stehen wie bisher
 zum Kopieren da. Die Karte „Mailversand" markiert den fehlenden Wert rot und
@@ -775,7 +791,7 @@ hereinlässt.** Das ist der Satz, unter dem alles Weitere steht. Es gibt keine
 Betriebsart, in der ein geklickter Link allein freischaltet — Kriterion ist ein
 Archiv für eine kleine Gruppe, kein Forum.
 
-**Und die Anlage läuft ohne all das vollständig.** Ist die Selbstanmeldung aus,
+**Und die Instanz läuft ohne all das vollständig.** Ist die Selbstanmeldung aus,
 legt eben nur der Admin Zugänge an. Es fehlt keine Funktion, und der Schalter
 steht ab Werk auf **aus**.
 
@@ -785,7 +801,7 @@ steht ab Werk auf **aus**.
    **„Zugang anfragen"**, darüber die Frage „Noch keinen Zugang?". Das Formular
    dahinter hat zwei Felder — Wunschname und E-Mail-Adresse — und **kein
    Passwortfeld**.
-2. **Bestätigungsmail.** Die Anlage schickt einen kurzen Link an die
+2. **Bestätigungsmail.** Die Instanz schickt einen kurzen Link an die
    angegebene Adresse. Er **öffnet keinen Zugang und setzt kein Passwort**; wer
    ihn anklickt, sagt nur „ja, das bin ich". Er gilt **24 Stunden**.
 3. **Warteschlange.** Erst die **bestätigte** Anfrage erscheint beim Admin, in
@@ -799,7 +815,7 @@ steht ab Werk auf **aus**.
    Tage gültig, genau einmal, ab dem ersten Öffnen fünfzehn Minuten.
 
 **Zwei Dinge müssen stehen, bevor sich der Schalter überhaupt einschalten
-lässt** — und beides prüft die Anlage selbst, statt es zu empfehlen:
+lässt** — und beides prüft die Instanz selbst, statt es zu empfehlen:
 
 - **Ein Mailzugang, mit dem eine Testmail wirklich durchgekommen ist.** Ändert
   sich danach irgendetwas am Mailzugang, gilt der Beleg nicht mehr, und der
@@ -851,7 +867,7 @@ Links, Favoriten und persönliche Einstellungen gehen immer mit. Der Name
 
 #### Die zweite Bestätigung
 
-**Was die Anlage als Ganzes trifft, wird ein zweites Mal bestätigt.** Vor dem
+**Was die Instanz als Ganzes trifft, wird ein zweites Mal bestätigt.** Vor dem
 Export, dem Import, dem Vergeben einer Rolle, dem Setzen eines fremden
 Passworts, dem Erzeugen eines Links, dem Entfernen eines Zugangs und dem
 **Setzen des Mailzugangs** fragt Kriterion nach **deinem eigenen Passwort**, in
@@ -883,7 +899,7 @@ derselben Adresse ist für einige Minuten Ruhe.
 
 Der Systembereich zeigt dem **Eigentümer** eine Karte
 **„Sicherheitsprotokoll"**. Sie hält fest, **wer Zugang hatte und wer die
-Anlage als Ganzes angefasst hat**: Anmeldungen (gelungen und gescheitert),
+Instanz als Ganzes angefasst hat**: Anmeldungen (gelungen und gescheitert),
 angelegte, gesperrte, freigegebene und entfernte Zugänge, vergebene Rollen,
 gesetzte Passwörter, erzeugte und eingelöste Links, Export, Import,
 Sicherung — und den **Schlüsselwechsel**. Der trägt weder Ziel noch
@@ -893,7 +909,7 @@ Protokollzeile.
 
 **Was dort nicht steht, ist der eigentliche Punkt.** Es ist **kein
 Änderungsverlauf**: kein Eintragstitel, kein Kommentartext, keine Bewertung,
-keine Note. Dieselbe Trennlinie wie überall — was die *Anlage* betrifft, nicht
+keine Note. Dieselbe Trennlinie wie überall — was die *Instanz* betrifft, nicht
 was jemand *gesagt* hat. Ebenso wenig stehen dort **IP-Adresse oder
 Browserkennung**: Kriterion speichert beides nicht, und dabei bleibt es.
 
@@ -1106,7 +1122,7 @@ es zwei, beide im Systembereich einstellbar:
   darunter** — wer ein Bild groß betrachtet, erwartet dort auch den
   Papierkorb. Es ist **dieselbe Klemme und dieselbe Rückfrage**; ein
   Papierkorb im Vollbild, der ohne Frage löschte, wäre der gefährlichste Knopf
-  der Anlage. Er steht abgesetzt und **vor** dem Schließenkreuz, nicht daneben.
+  der Instanz. Er steht abgesetzt und **vor** dem Schließenkreuz, nicht daneben.
   War es das letzte Bild, geht das Vollbild zu. *An einem Kommentarbild gibt
   es ihn nicht — das wird am Kommentar entfernt.*
 - Das **erste Element ist das Hauptbild** — Reihenfolge durch Ziehen der
@@ -1198,7 +1214,7 @@ es zwei, beide im Systembereich einstellbar:
   **Kriterien können verschieden schwer wiegen.** Ist an einem Kriterium ein
   Gewicht eingestellt, das von 1 abweicht, steht `×1,5` hinter seinem Namen,
   und im Blockkopf steht neben der Zahl das Wort „gewichtet". Stehen alle
-  Gewichte auf 1 — so, wie eine frische Anlage startet —, sieht der Block aus
+  Gewichte auf 1 — so, wie eine frische Instanz startet —, sieht der Block aus
   wie zuvor. Eingestellt wird das Gewicht im Systembereich; **der
   Gesamtschnitt bleibt in jedem Fall zwischen 1 und 5.**
   **Ein Klick auf die Zahl im Blockkopf öffnet die Rechnung — die dieses
@@ -1298,7 +1314,7 @@ es zwei, beide im Systembereich einstellbar:
   Kommentare, Bewertungen und Testtage getrennt nach eigenen und fremden**,
   denn die fremden gehen über die Kaskade mit. **sagt der Dialog
   dazu, dass der Eintrag dreißig Tage im Papierkorb liegt** und wer ihn von
-  dort zurückholen kann — der Eigentümer der Anlage, nicht der, der hier
+  dort zurückholen kann — der Eigentümer der Instanz, nicht der, der hier
   klickt.
 - **„Diesen Eintrag als Datei"** *(Eigentümer)*: derselbe Aufbau
   wie eine volle Exportdatei, nur mit einem Eintrag — samt Fotos, Videos,
@@ -1318,13 +1334,19 @@ der Eigentümer sieht, hinten.
 | **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertungskriterien, Vokabular, Links, Suchanbieter, Papierkorb |
 | **Zugänge** | `#/system/zugaenge` | Zugänge, Anfragen, Sicherheitsprotokoll, Mailversand |
 | **Datenbank** | `#/system/datenbank` | Kennzahlen, Sicherung, Export und Import |
-| **Anlage** | `#/system/anlage` | Titel |
+| **Instanz** | `#/system/instanz` | Titel |
 
 **Die Adresse ist der ganze Punkt.** Ohne sie lässt sich keine Einstellung
 verlinken, und die Zurück-Taste bricht: `#/system/datenbank` lässt sich
 weitergeben, in einem neuen Fenster öffnen und mit der Zurück-Taste wieder
 verlassen. `#/system` ohne Abschnitt bleibt gültig und löst sich auf den ersten
 sichtbaren auf.
+
+> **DER FÜNFTE ABSCHNITT HIESS BIS 0.17.0 „ANLAGE" UND LAG UNTER
+> `#/system/anlage`.** Mit der Umbenennung heißt er **„Instanz"**, und die alte
+> Adresse **wird weiter verstanden**: sie führt still an dieselbe Stelle und
+> wird dabei in der Adresszeile auf die neue nachgezogen. *Ein Lesezeichen von
+> gestern führt also dorthin, wohin es immer führte.*
 
 **Ein Abschnitt, in dem für diesen Zugang keine einzige Karte steht, erscheint
 gar nicht** — ein leerer Reiter wäre schlechter als keiner. Ein gewöhnlicher
@@ -1378,7 +1400,7 @@ Listen.
 - **Meine Sitzungen** — wo dieser Zugang überall angemeldet ist, mit „alle
   anderen beenden" *(jeder; jeder sieht nur seine eigenen)*
 - **Sicherheitsprotokoll** *(Eigentümer)*: wer Zugang hatte und
-  wer die Anlage als Ganzes angefasst hat — 180 Tage lang, ohne einen Weg
+  wer die Instanz als Ganzes angefasst hat — 180 Tage lang, ohne einen Weg
   hinaus außer der Frist. Kein Änderungsverlauf, keine Adresse, keine
   Browserkennung.
 - **Export und Import stehen seit 0.16.0 in EINER Karte** *(Eigentümer)* —
@@ -1387,7 +1409,7 @@ Listen.
   Bestand**; die zerstörende Hälfte steht deshalb unter einem Trennstrich, mit
   eigener, kleinerer Überschrift und in einer leiseren Zeichnung. Die zweite
   Bestätigung vor dem Import bleibt, wo sie war.
-- **Export** mit oder ohne Fotos, nur für den Eigentümer der Anlage. Die
+- **Export** mit oder ohne Fotos, nur für den Eigentümer der Instanz. Die
   Datei nennt zu jedem Eintrag, jeder Bewertung, jedem Kommentar, jedem
   Testtag, **jeder Linkzeile und jeder Datei** den **Verfassernamen**.
   **Videos gehen nur mit eigenem Häkchen mit** — ohne es nennt die Datei sie,
@@ -1399,10 +1421,10 @@ Listen.
   eine Exportdatei ist ein **einziger Text**, und der kann nicht größer als
   512 MB werden — das ist Nodes Grenze für einen String und keine Einstellung. **Gewarnt wird, verweigert nicht** — die Zahl ist eine
   Schätzung, und wer weiß, was er tut, soll es versuchen dürfen. Wird sie
-  wirklich gerissen, sagt die Anlage ab, **bevor** sie anfängt zu bauen,
+  wirklich gerissen, sagt die Instanz ab, **bevor** sie anfängt zu bauen,
   statt nach zwei Minuten mit einem Speicherfehler abzubrechen.
 - **Export in Teilen** *(Eigentümer, seit 0.12.4)* — der Weg, wenn die eine
-  Datei nicht mehr geht. Die Anlage rechnet aus, wie viele Teile es braucht,
+  Datei nicht mehr geht. Die Instanz rechnet aus, wie viele Teile es braucht,
   und **jeder Teil ist eine vollständige Exportdatei**: derselbe Umschlag,
   dieselbe Formatnummer, nur weniger Einträge darin. **Geschnitten wird
   zwischen Einträgen, nie mitten hinein.**
@@ -1410,7 +1432,7 @@ Listen.
   „Zusammenführen".** Es ist derselbe Import wie immer — es gibt kein neues
   Format und keinen zweiten Weg hinein.
   **Die Teilgröße ist wählbar** (50 bis 300 MB), nach oben aber gedeckelt:
-  darüber baute die Anlage Teile, vor denen sie im selben Atemzug warnt.
+  darüber baute die Instanz Teile, vor denen sie im selben Atemzug warnt.
   **Das Passwort wird einmal gefragt und je Teil geprüft** — eine Freigabe
   für Teil 1 lässt Teil 2 nicht durch.
   **Ein Eintrag, der schon für sich allein über der Grenze liegt**, passt in
@@ -1486,7 +1508,7 @@ Listen.
   denen Sterne vergeben sind; ein zurückgesetztes Kriterium zählt nicht mit.
 
   **Das Gewicht** bestimmt, wie stark ein Kriterium in den Gesamtschnitt
-  eingeht. Bei **1** zählen alle gleich — so startet jede Anlage, und so
+  eingeht. Bei **1** zählen alle gleich — so startet jede Instanz, und so
   bleiben die Zahlen die gewohnten. Möglich ist **0,2 bis 2**; angeboten
   werden `0,5 · 0,8 · 1 · 1,2 · 1,5`, alles dazwischen lässt sich eintippen.
   Geschrieben wird mit Komma (`1,5`), gelesen wird auch ein Punkt (`1.5`).
@@ -1509,7 +1531,7 @@ Listen.
 
 ## Auf dem Handy und auf dem Tablett
 
-**Es ist eine Anlage und keine zweite Oberfläche.** Es gibt keinen zweiten
+**Es ist eine Instanz und keine zweite Oberfläche.** Es gibt keinen zweiten
 Aufbau, keine Weiche nach der Kennung des Browsers und keine Handy-Adresse. Was
 sich ändert, entscheidet der Browser anhand von zwei Fragen — und die beiden
 werden nie vermischt:
@@ -1540,7 +1562,7 @@ Abmelden — liegt **hinter dem Zeichen**.
 **Die Suche bleibt draußen**, weil sie auf einem kleinen Bildschirm das
 wichtigste Bedienelement ist: Filter und Tagwolke sieht man dort nicht auf einen
 Blick, die Suche findet trotzdem. **„+ Eintrag" bleibt draußen**, weil er der
-eine Weg ist, auf dem etwas Neues in die Anlage kommt.
+eine Weg ist, auf dem etwas Neues in die Instanz kommt.
 
 **Dasselbe Menü bekommt auch ein Tablett, das mit dem Finger bedient wird** —
 dort passt die Kopfzeile mit Fingermaßen sonst nicht in eine Zeile. Ein Fenster
@@ -1599,7 +1621,7 @@ keine Ausnahme.**
   sähe alles gleich alt aus oder alles brandneu, und die Glocke läutete beim
   ersten Start für den ganzen Bestand.
 - **Vor dem ersten Verlassen der Übersicht gibt es sie gar nicht.** Ohne
-  gespeicherten Bezugspunkt weiß die Anlage nicht, was jemand schon gesehen
+  gespeicherten Bezugspunkt weiß die Instanz nicht, was jemand schon gesehen
   hat.
 - **Sie meldet Kommentare und Bewertungen — sonst nichts.** Ein geänderter
   Titel, eine neue Datei, ein neuer Testtag stehen nicht darin. *Das ist etwas,
@@ -1696,7 +1718,7 @@ Das ist kein neuer Gedanke, es ist der vorhandene: *ein Merkmal, ein Zeichen.*
 - **Die Aussparung des Geräts wird mitgerechnet** — Kopfzeile, Vollbild,
   Meldungen und die Vergleichsleiste. Auf jedem Gerät ohne Aussparung ändert das
   nichts.
-- **Die Leiste des Browsers nimmt die Farbe der Anlage.** Ein hellerer Streifen
+- **Die Leiste des Browsers nimmt die Farbe der Instanz.** Ein hellerer Streifen
   über der dunklen Seite ist das, was eine Seite wie eine Seite aussehen läßt.
 
 ### Berühren, halten, wischen
@@ -1795,7 +1817,7 @@ bleibt bei der Vorgabegröße, weil der Endpunkt vor der Anmeldung nur den
 
 ## Dateien am Eintrag — wie sie abgesichert sind
 
-**Eine Anlage darf niemals so ausgeliefert werden, dass der Browser sie als
+**Eine Instanz darf niemals so ausgeliefert werden, dass der Browser sie als
 Webseite ausführt.** Wer an `anhaenge.js` etwas ändert, sollte das hier gelesen
 haben. Die Verteidigung liegt in Schichten, damit kein einzelner Fehler genügt:
 
@@ -1852,7 +1874,7 @@ jedes eingebettete Skript, `frame-ancestors 'none'`, `base-uri 'none'`,
 setzt Abstände, Rasterspalten und den Fokuspunkt als `style="…"`-Attribut, und
 ohne die Freigabe verwirft der Browser jedes davon. Die tragende Zeile ist
 `script-src` — dort steht sie nicht. steht dort außerdem
-`media-src 'self' blob:`: `'self'` trägt das Abspielen aus der eigenen Anlage,
+`media-src 'self' blob:`: `'self'` trägt das Abspielen aus der eigenen Instanz,
 `blob:` das Standbild vor dem Hochladen. Ohne die zweite Angabe verwirft der
 Browser die Adresse, an der die Oberfläche das Standbild zieht, und zwar
 wortlos — es ließe sich überhaupt kein Video hochladen.
@@ -1945,7 +1967,7 @@ Gelöschter Platz wird automatisch freigegeben.
 **Die Sicherung auf Knopfdruck** steht im Systembereich beim
 Eigentümer. Sie erzeugt über `VACUUM INTO` eine vollständige, verschlüsselte
 Kopie der Datenbank — konsistent, auch während gearbeitet wird. Die Karte nennt
-vorher, wie lange es dauert; **während die Kopie entsteht, steht die Anlage
+vorher, wie lange es dauert; **während die Kopie entsteht, steht die Instanz
 still** (rund zehn bis zwanzig Millisekunden je Megabyte). Sie zeigt außerdem,
 wann zuletzt gesichert wurde — gelesen wird das am Zielort selbst, nicht aus
 einem Merker in der Datenbank.
@@ -2016,8 +2038,8 @@ auch **ein einzelner Eintrag** als Datei ziehen.
 > länger als **512 MB** kann ein Text in Node nicht werden — Fotos und Videos
 > stecken als Base64 darin und kosten dabei ein Drittel Aufschlag. Die Karte
 > **Export** rechnet das vorher aus und warnt ab **300 MB**; darüber sagt die
-> Anlage ab, bevor sie anfängt. Beim **Import** gilt dieselbe Grenze, dort aber
-> vorab sichtbar: die Dateigröße steht ja fest, und die Anlage fragt nach,
+> Instanz ab, bevor sie anfängt. Beim **Import** gilt dieselbe Grenze, dort aber
+> vorab sichtbar: die Dateigröße steht ja fest, und die Instanz fragt nach,
 > bevor sie zu lesen anfängt.
 >
 > **Seit 0.12.4 ist das kein Ende mehr, sondern ein Schnitt:** „In Teilen
@@ -2062,7 +2084,7 @@ Start eine leere Neuinstallation vermuten.
 - `items` — Titel, Beschreibung, Getestet-/Abgelehnt-Merkmal, Kategorie. **Zur
   Ablehnung gehören seit 0.14.0 drei Spalten:** `rejected_at` (wann),
   `rejected_grund` (warum, eine Zeile) und `rejected_von` (wer). Alle drei
-  dürfen leer sein — eine Ablehnung aus einer Anlage vor 0.14.0 kennt keine
+  dürfen leer sein — eine Ablehnung aus einer Instanz vor 0.14.0 kennt keine
   davon, und ein Grund ist freiwillig. *„Getestet" bekommt bewusst nichts
   davon: es ist ein Zustand und keine Entscheidung.*
 - `item_pins` — der **Favorit**, je Benutzer und je Eintrag; nur Zeilen für
@@ -2080,8 +2102,8 @@ Start eine leere Neuinstallation vermuten.
   **Seit 0.16.0 trägt `ratings` mit `gesetzt_am` den Zeitpunkt der letzten
   Setzung** — für die Glocke. Er heißt nicht `created_at`, weil die Zeile beim
   ersten Stern entsteht und danach überschrieben wird, und er hat **keinen
-  Vorgabewert**: Bewertungen aus einer Anlage vor 0.16.0 und **eingespielte**
-  Bewertungen stehen ohne Zeitpunkt da. *Die Anlage weiß dann nicht, wann das
+  Vorgabewert**: Bewertungen aus einer Instanz vor 0.16.0 und **eingespielte**
+  Bewertungen stehen ohne Zeitpunkt da. *Die Instanz weiß dann nicht, wann das
   war, und behauptet es auch nicht — die Glocke übergeht solche Zeilen*
 - `product_categories`, `tags`, `item_tags`
 - `comments` — mit Bearbeitungszeitpunkt und `images_removed`: die Zahl der
@@ -2113,7 +2135,7 @@ Start eine leere Neuinstallation vermuten.
 - `tokens` — Einladungs- und Rücksetzlinke. **Gespeichert ist nur
   der SHA-256 des Links, nie er selbst**; dazu Benutzer, Anlass, Ablauf und
   wann er eingelöst wurde. Sieben Tage haltbar, einmal gültig; abgelaufene
-  Zeilen räumt die Anlage nach dreißig Tagen selbst weg
+  Zeilen räumt die Instanz nach dreißig Tagen selbst weg
 - `anfragen` — die **Warteschlange der Selbstanmeldung**:
   Wunschname, Adresse, der SHA-256 des Bestätigungslinks und der Zeitpunkt der
   Bestätigung. **Unbestätigte verfallen nach 24 Stunden** und erscheinen beim
@@ -2128,7 +2150,7 @@ Start eine leere Neuinstallation vermuten.
   von 8" sagen kann. **Geräumt wird hier nichts nach einer Frist** — ein
   Wiederherstellungscode soll genau dann tragen, wenn das Telefon seit Monaten
   weg ist
-- `sicherheitsprotokoll` — **wer Zugang hatte und wer die Anlage als Ganzes
+- `sicherheitsprotokoll` — **wer Zugang hatte und wer die Instanz als Ganzes
   angefasst hat**. Eine Zeile je Vorgang: Zeitpunkt, was, wer, an
   wem und ein kurzes Merkmal aus einer festen Liste — **kein Freitext, keine
   Namen, keine Adresse**. Beide Benutzerspalten halten einen **Vorgang** fest,
@@ -2160,7 +2182,7 @@ npm test
 ```
 
 Der Prüfstand legt echte Server mit echten, verschlüsselten Datenbanken in
-Wegwerfverzeichnissen an — `./data` bleibt unangetastet, alle Anlagen entstehen
+Wegwerfverzeichnissen an — `./data` bleibt unangetastet, alle Instanzen entstehen
 frisch über Einrichtungsseite und Verwaltung. Geprüft werden unter anderem die
 Rechteschicht mit mehreren Zugängen nebeneinander, die Zugangsverwaltung samt
 `zugang.js` als echtem Prozess, die Kriterienverwaltung samt Reihenfolge **und
@@ -2173,7 +2195,7 @@ Proxy-Lagen sowie die mitwachsenden Textfelder im echten DOM.
 **Dazu der Rundlauf des Papierkorbs** — ein Eintrag mit Foto,
 Video, Dateien, Kommentaren aller Arten, Bewertungen und Testtagen mehrerer
 Verfasser wird gelöscht, zurückgeholt und Feld für Feld gegen den
-Ausgangsstand gehalten — und **die Sicherung an einer echten Anlage**: die
+Ausgangsstand gehalten — und **die Sicherung an einer echten Instanz**: die
 Kopie entsteht, ist ohne Schlüssel nicht lesbar, mit Schlüssel vollständig, und
 jeder abgewiesene Zielort hinterlässt nachweislich keine Datei.
 **Dazu der Rundlauf des Einladungslinks** — anlegen, Link, Formular,
@@ -2190,7 +2212,7 @@ Frist an beiden Seiten, das Aufräumen an **beiden** Aufrufstellen (die für den
 Start gegen einen echten Serverstart) und die öffentliche Adresse in beiden
 Zuständen.
 **Dazu der Rundlauf des Schlüsselwechsels** an echten,
-verschlüsselten Anlagen: wechseln, mit dem neuen Schlüssel lesen, mit dem alten
+verschlüsselten Instanzen: wechseln, mit dem neuen Schlüssel lesen, mit dem alten
 nicht mehr, Bestand Feld für Feld derselbe — dazu jede Lage, in der der Wechsel
 **nicht** laufen darf, und in jeder davon die Nachschau, dass wirklich nichts
 gewechselt wurde. **Der Abbruch mit `kill -9` mitten hinein** wird an rund 60 MB
@@ -2236,7 +2258,7 @@ entstehen lässt, der Deckel (die einundzwanzigste wird still verworfen), das
 Verfallen an beiden Seiten, die Freischaltung mit der Rolle `user` **auch dann,
 wenn eine andere in Rumpf, Abfrage oder Kopf mitgeschickt wird**, die Ablehnung
 ohne Namen in der Protokollzeile, und dass die neue Tabelle sich an einer
-bestehenden Anlage beim Start selbst wieder anlegt — **eine Spalte dagegen
+bestehenden Instanz beim Start selbst wieder anlegt — **eine Spalte dagegen
 nicht**.
 
 Die Dateien `pruefung.js` und `gegenprobe.js` sind per `.dockerignore`
@@ -2287,13 +2309,13 @@ Image. Dort werden Datenbank und `.env` **in einem Zug** nachgezogen.
 
 1. `.env` sichern (`.env.vor-schluesselwechsel-…`)
 2. neuen Wert erzeugen (`openssl rand -hex 32`)
-3. die Anlage **anhalten** — ein laufender Server hält die Datenbank im
+3. die Instanz **anhalten** — ein laufender Server hält die Datenbank im
    WAL-Modus offen, und der Wechsel braucht `journal_mode = DELETE`
 4. das Datenverzeichnis sichern (`../kriterion-data-vor-schluesselwechsel-…`)
 5. wechseln, in einem Wegwerf-Container
 6. **erst nach Erfolg** den neuen Wert eintragen — in die `.env` oder in
    `data/encryption.key`, je nachdem, woher der alte kam
-7. die Anlage starten
+7. die Instanz starten
 
 Danach ins Protokoll sehen:
 
@@ -2304,13 +2326,13 @@ docker compose logs --tail 30 kriterion
 Erwartet wird „Schlüssel aus ENCRYPTION_KEY geladen." bzw. die Warnung, dass
 der Schlüssel neben der Datenbank liegt.
 
-> **PROBIER DEN WECHSEL AN EINER WEGWERFANLAGE AUS, bevor du ihn an der echten
+> **PROBIER DEN WECHSEL AN EINER WEGWERFINSTANZ AUS, bevor du ihn an der echten
 > fährst.** Es ist der einzige Vorgang im ganzen Projekt, bei dem ein Fehler
 > alles kostet.
 
 **Und die Probe muss an einem echten Bestand laufen, sonst belegt sie nichts.**
 Ein Wechsel an einer leeren Datenbank ist in Millisekunden vorbei und sagt über
-662 MB nichts. Die Probe unten nimmt deshalb eine **Kopie der echten Anlage** —
+662 MB nichts. Die Probe unten nimmt deshalb eine **Kopie der echten Instanz** —
 mit ihrem Bestand **und ihrer `.env`**:
 
 ```bash
@@ -2331,7 +2353,7 @@ docker compose logs --tail 30 kriterion
 ```
 
 > **`data/` und `.env` gehören zusammen — wer eines von beiden ersetzt, hat
-> keine Probe mehr, sondern eine neue Anlage.** Wird `data/` gelöscht und ein
+> keine Probe mehr, sondern eine neue Instanz.** Wird `data/` gelöscht und ein
 > frischer Schlüssel erzeugt, wechselt das Skript den Schlüssel einer **leeren**
 > Datenbank; das läuft durch und belegt nichts. Wird umgekehrt `data/` behalten
 > und trotzdem ein frischer Schlüssel geschrieben, geht die Datenbank **gar
@@ -2349,14 +2371,14 @@ vier müssen stimmen:
 | im Browser auf `:3199` | Einträge, Fotos, Kommentare vollständig; Karte „Sicherung" markiert die alten Kopien rot |
 
 Danach die Probe wegräumen: `cd .. && docker compose -f kriterion-probe/docker-compose.yml down && rm -rf kriterion-probe`.
-**Die `.env` der Probe niemals an die echte Anlage zurückkopieren** — sie trägt
+**Die `.env` der Probe niemals an die echte Instanz zurückkopieren** — sie trägt
 einen Schlüssel, zu dem nur die Probedaten passen.
 
 ### Zwei Schlüssel im Umlauf — die unangenehmste Falle
 
 **Ab dem Wechsel gibt es zwei Schlüssel.** Jede Sicherung, die vorher entstanden
 ist, bleibt mit dem **alten** verschlüsselt. Sie ist nicht kaputt — sie braucht
-nur einen anderen Schlüssel als die laufende Anlage. Wer das nicht weiß, hält
+nur einen anderen Schlüssel als die laufende Instanz. Wer das nicht weiß, hält
 sie im Ernstfall für defekt und wirft sie weg.
 
 Dagegen stehen drei Dinge:

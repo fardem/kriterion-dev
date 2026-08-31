@@ -46,7 +46,7 @@ ${FETT('Kriterion — Zugangsverwaltung')}
                       Testtage in fremden Eintraegen.
 
   node zugang.js eigentuemer <name>
-      Macht den Zugang zum Eigentuemer der Anlage. Der Notausgang, wenn sich
+      Macht den Zugang zum Eigentuemer der Instanz. Der Notausgang, wenn sich
       der bisherige nicht mehr anmeldet.
 
   node zugang.js zweifaktor <name>
@@ -221,7 +221,7 @@ function befehlEigentuemer(name) {
   try {
     auth.setzeRolle(u.id, 'eigentuemer', auth.VOM_WIRT);
   } catch (e) { console.error(ROT(e.message)); process.exit(1); }
-  console.log(`"${u.username}" ist jetzt Eigentümer der Anlage. ` +
+  console.log(`"${u.username}" ist jetzt Eigentümer der Instanz. ` +
     `Aktive Eigentümer: ${auth.zahlEigentuemer()}.`);
 }
 

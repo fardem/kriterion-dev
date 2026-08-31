@@ -91,7 +91,7 @@ html, body {
   background: var(--bg); color: var(--text);
   /* DER GRAUBLAUE KASTEN, DEN ANDROID BEI JEDER BERUEHRUNG AUFBLITZEN LAESST,
      bleibt weg. Er ist die Ruecksicht des Browsers auf Seiten ohne eigene
-     Zustaende -- diese Anlage hat welche: jeder Knopf, jede Pille und jede
+     Zustaende -- diese Instanz hat welche: jeder Knopf, jede Pille und jede
      Zeile faerbt sich selbst, und der fremde Kasten legt sich mit eigener
      Farbe und eigener Ecke darueber. Zwei Rueckmeldungen fuer eine Beruehrung
      sind eine zu viel, und die fremde kennt weder --accent noch --r-sm.
@@ -120,12 +120,12 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   font-family: var(--mono); font-size: .7rem; text-transform: uppercase;
   letter-spacing: .14em; color: var(--faint);
 }
-/* Die Marke der Anlage. SIE HEISST `marke` UND NICHT `mark`, und das ist kein
+/* Die Marke der Instanz. SIE HEISST `marke` UND NICHT `mark`, und das ist kein
    Geschmack: `.mark` gibt es weiter unten ein zweites Mal, fuer die kleinen
    Knoepfe am Kommentar -- Rahmen, runder Fuellgrund, kleine Schrift. Die Marke
    hat das eine Zeit lang mitgetragen und sass deshalb in einem Kaestchen, das
    niemand gewollt hat. Zwei Dinge mit demselben Namen sind eines zu viel. */
-/* DIE MARKE TRAEGT IHRE GROESSE IN rem UND NICHT IN PIXEL. Die Anlage stellt
+/* DIE MARKE TRAEGT IHRE GROESSE IN rem UND NICHT IN PIXEL. Die Instanz stellt
    die Schrift von 80 bis 120 Prozent (wendeSchriftAn() schraubt an `html`);
    eine festgeschriebene Pixelhoehe passte nur bei 100 Prozent zum Text
    daneben. Gemessen wird an der ZEILENHOEHE des Textes und nicht an seiner
@@ -176,7 +176,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 /* MARKE UND NAME IN EINER ZEILE, erst das Zeichen, dann das Wort. Dieselbe
    Anordnung und dieselbe Luecke wie `.brand` in der Kopfzeile des
-   angemeldeten Bereichs -- die Anlage zeigt sich vor und nach der Anmeldung
+   angemeldeten Bereichs -- die Instanz zeigt sich vor und nach der Anmeldung
    gleich. Die 5px darunter sind die, die vorher das h1 trug: der Abstand von
    der Marke zur Unterzeile bleibt derselbe, nur der Stapel faellt weg. */
 .login-card .login-marke {
@@ -220,7 +220,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* GEDAEMPFT, ABER ERKENNBAR EIN KNOPF -- und die Grenze zwischen beidem ist
    der Punkt. Er nimmt DIESELBE FARBE wie "Anmelden", nur ganz leise: den
    Fuellgrund als --accent-dim (13% Deckung) und die Umrandung als
-   --accent-line (42%). Beides sind die Werte, mit denen die Anlage ueberall
+   --accent-line (42%). Beides sind die Werte, mit denen die Instanz ueberall
    sonst schon andeutet statt zu rufen -- der Fuellgrund ist derselbe, den ein
    Feld im Fokus als Schein bekommt.
 
@@ -320,7 +320,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Verweise stehen daneben.
    EIN KASTEN FUER BEIDE: die zwei gehoeren zusammen und sollen bei einem
    Umbruch nicht auseinanderfallen.
-   KEINE AUSGERECHNETE BREITE, nirgends -- die Anlage stellt die Schrift von
+   KEINE AUSGERECHNETE BREITE, nirgends -- die Instanz stellt die Schrift von
    80 bis 120 Prozent, und eine feste Zahl kann dabei nur falsch werden. */
 .frow-rechts { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 /* DIE WOLKE NIMMT, WAS UEBRIG IST. `flex: 1 1 0` statt einer Breite: sie
@@ -369,7 +369,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 
 /* Die Zeile "Ähnlich: …" unter dem Titelfeld im Anlegen-Dialog. Sie ist eine
    Auskunft und keine Warnung: kein Rot, kein Rahmen, kein Zeichen davor --
-   .hint sagt in dieser Anlage schon "Auskunft, kein Bedienelement". Der Platz
+   .hint sagt in dieser Instanz schon "Auskunft, kein Bedienelement". Der Platz
    entsteht erst, wenn etwas darin steht; ein leerer Streifen unter dem Feld
    verschoebe den Dialog bei jedem Anschlag. */
 .aehnlich { margin-top: 6px; }
@@ -682,7 +682,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    und genau das ist der Punkt: die Spalte mit dem Schnitt misst sich an ihrer
    BREITESTEN Zelle, und damit beginnen alle Sternreihen an derselben Stelle.
    Vorher stand dort eine feste Mindestbreite in Pixeln. Sie war als
-   Mindestbreite richtig gedacht und als ZAHL falsch: die Anlage stellt ihre
+   Mindestbreite richtig gedacht und als ZAHL falsch: die Instanz stellt ihre
    Schrift von 80 bis 120 Prozent, und die Zahl waechst nicht mit. Sie half
    ausserdem nur gegen die LEERE Zelle -- eine Zeile mit einer langen Zahl wie
    „⌀ 5,0 (128)" schob ihre Sterne trotzdem nach links. Hier steht deshalb
@@ -1027,7 +1027,19 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    der Fensterbreite (auto-fit), und wie viele es ueberhaupt gibt, an der
    Rolle. Die Reihenfolge im Quelltext bleibt davon unberuehrt. */
 .sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-flow: dense; gap: 18px; margin-top: 6px; }
-.sys-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px 20px; }
+/* DIE KACHEL IST EINE SPALTE, und das ist die Voraussetzung fuer die Liste
+   darin. Als Rasterkind ist sie so hoch wie ihre hoechste Nachbarin -- diese
+   Hoehe war bis 0.17.0 fuer nichts zu gebrauchen: die Liste darin trug ihre
+   eigenen 280 Pixel und rollte, waehrend darunter Platz stand.
+   ALS SPALTE GIBT SIE DIE HOEHE WEITER. Was `flex: 1` traegt, bekommt, was
+   uebrig ist; alles andere behaelt seine natuerliche Hoehe. */
+.sys-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px 20px;
+  display: flex; flex-direction: column; }
+/* EIN KNOPF BLEIBT SO BREIT WIE SEIN WORT. In einer Spalte werden die Kinder
+   sonst auf die volle Breite gezogen, und "Titel speichern" waere ein Balken
+   ueber die ganze Kachel. Nur die unmittelbaren Kinder: was in einer Reihe
+   (`.row-in`) steht, ordnet die Reihe. */
+.sys-card > .btn { align-self: flex-start; }
 .sys-card h3 { font-size: 1.03rem; font-weight: 620; letter-spacing: -.018em; margin: 0 0 4px; }
 .sys-card .desc { color: var(--muted); font-size: .87rem; margin: 0 0 14px; line-height: 1.55; }
 .sys-card .desc strong { color: var(--text-2); font-weight: 600; }
@@ -1067,7 +1079,28 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   font-size: .83rem; color: var(--text-2);
 }
 .vok-probe .label { width: 100%; margin-bottom: 2px; }
-.manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+/* DIE LISTE BEKOMMT DIE HOEHE, DIE DIE KACHEL HERGIBT -- und rollt erst dann,
+   wenn sie wirklich ueberlaeuft. Bis 0.17.0 stand hier `max-height: 280px`:
+   "Meine Sitzungen" zeigte drei von zehn Anmeldungen und blendete einen
+   Rollbalken ein, waehrend die Kachel darunter leer war. Dieselbe Kachel wird
+   hoeher, weil ihre Nachbarin hoeher ist; die Liste darin blieb, wo sie war.
+   `min-height: 0` IST DIE ZEILE, AN DER ES SONST SCHEITERT. Ein Flexkind
+   traegt von sich aus `min-height: auto` und waechst damit ueber seinen
+   Anteil hinaus, statt zu rollen -- die Kachel wuerde laenger als ihre
+   Nachbarn und das Raster verrutschte. Wer nur die `max-height` streicht,
+   bekommt genau das.
+   EINE REGEL UND NICHT SECHS: Sitzungen, Tags, Kategorien, Kriterien,
+   Zugaenge, Anfragen und der Papierkorb tragen alle diese eine Klasse. Sie
+   steht auch in zwei Fenstern (Glockentafel, Grabsteine) -- `.modal` ist
+   ebenfalls eine Spalte, und dort haelt dieselbe Zeile den Kopf und den
+   Schliessknopf im Blick, statt das ganze Fenster rollen zu lassen. */
+.manage-list { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+/* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
+   einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
+   der Export, unter ihr der Import. Naehme sie die Kachelhoehe, schoebe sie
+   den Import aus dem Blick, und ein Bestand von zwanzig Gigabyte ergibt
+   siebzig Zeilen. */
+#ex-teil-liste { flex: none; max-height: 280px; }
 .mrow { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-sm); background: var(--surface-2); margin-bottom: 5px; border: 1px solid transparent; }
 .mrow:hover { border-color: var(--line); }
 .mrow .mname { flex: 1; min-width: 0; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1170,14 +1203,38 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* Die Karte "Mailversand". Zwei Woerter tragen die ganze Karte -- eingerichtet
    oder nicht -- und stehen deshalb farbig da. */
 .mail-gut { color: var(--green); }
+/* ---- DIE VIER REIHEN DES MAILVERSANDS ----
+   Bis 0.17.0 standen sechs Felder untereinander, jedes ueber die volle Breite
+   einer Karte, die seit 0.16.0 `.breit` ist. Jetzt ordnet sich jede Reihe nach
+   der Frage, die sie beantwortet: WER, WOHIN, WOMIT, ALS WER.
+   EIN RASTER UND KEINE FLEXREIHE. `.row-in` gaebe den Feldern die Breite, die
+   ihr Inhalt braucht; hier soll SERVER breit und PORT schmal sein, und das ist
+   eine Angabe ueber die Reihe und nicht ueber das einzelne Feld.
+   `minmax(0, …)` UND NICHT BLOSS `…fr`: eine Rasterspalte gibt von sich aus
+   nicht unter ihre Mindestbreite nach, und ein Auswahlfeld mit einem langen
+   Eintrag ("TLS von Anfang an (meist 465)") schoebe die Reihe sonst breiter
+   als die Karte.
+   `align-items: start`: die Felder tragen unterschiedlich lange Beschriftungen
+   ("Port" gegen "Benutzername beim Anbieter"), und die Eingabefelder sollen
+   trotzdem auf einer Linie beginnen. */
+.mail-reihe { display: grid; gap: 0 12px; align-items: start; }
+/* WER -- der Anbieter steht allein und etwa ein Drittel breit. Ein
+   Auswahlfeld mit sechs Eintraegen ueber neunhundert Pixel war der Befund. */
+.mail-wer { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* WOHIN -- der Servername ist die lange Angabe, der Port die kuerzeste, die
+   Verschluesselung traegt zwei ausgeschriebene Eintraege. */
+.mail-wohin { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 2fr); }
+/* WOMIT -- zwei gleichrangige Angaben, also zwei gleiche Haelften. */
+.mail-womit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .mail-aus { color: var(--red); }
 .mail-erfolg { background: var(--green-dim); border-color: rgba(63,211,154,.3); }
 .mail-erfolg strong { color: var(--green); }
 
 /* Das Sicherheitsprotokoll. Eine Zeile je Vorgang, die juengste oben; die
-   Liste laeuft in sich und schiebt die Karte nicht auf. Auf schmalem Schirm
-   bricht sie in zwei Zeilen statt seitlich zu scrollen. */
-.prot-liste { max-height: 380px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+   Liste laeuft in sich und schiebt die Karte nicht auf -- seit 0.17.1 in der
+   Hoehe, die die Kachel hergibt, und nicht mehr in festen 380 Pixeln. Auf
+   schmalem Schirm bricht sie in zwei Zeilen statt seitlich zu scrollen. */
+.prot-liste { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 .prot-zeile { display: grid; grid-template-columns: 128px 1fr 1fr auto auto; gap: 4px 12px;
   align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: .86rem; }
 .prot-zeile:last-child { border-bottom: 0; }
@@ -1192,7 +1249,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .prot-merkmal { color: var(--muted); font-size: .8rem; }
 /* Die Zeile, auf die gerade gesprungen wurde. Kurz und ohne Bewegung: ein
    Aufblinken, das sich selbst wieder wegnimmt, führt das Auge und bleibt
-   niemandem im Weg. Dieselbe Farbe wie jede Hervorhebung dieser Anlage. */
+   niemandem im Weg. Dieselbe Farbe wie jede Hervorhebung dieser Instanz. */
 .mrow.mrow-blitz { border-color: var(--accent); background: var(--accent-dim); }
 /* DIESELBE BEDINGUNG WIE DER GANZE ABSCHNITT "DAS TELEFON" weiter unten --
    vorher stand hier 620px, eine eigene vierte Zahl neben den drei Stellen der
@@ -1206,22 +1263,30 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   .prot-zeit { grid-column: 1 / -1; }
 }
 
-/* DIE ZEILE EINER ANMELDUNG BRICHT UM -- IMMER UND NICHT ERST AUF DEM TELEFON.
-   `.manage-list` traegt `overflow-y: auto`, und damit steht `overflow-x` nach
-   der CSS-Regel ebenfalls auf `auto`, ohne dass es jemand hingeschrieben
-   haette. Die Zeile ist breiter als der Kasten -- die beiden Zeitangaben
-   tragen `flex-shrink: 0` und geben nicht nach --, also entsteht ein Bildlauf
-   zur Seite; die Zeile ist dann aber nur so breit wie der SICHTBARE
-   Ausschnitt, und ihr Rahmen endet dort. An der eigenen Anmeldung, die als
-   einzige einen farbigen Rahmen traegt, sieht man das.
-   UMBRECHEN STATT SCHIEBEN: der andere Weg (`min-width: max-content`) liesse
-   den seitlichen Bildlauf stehen, und der ist auf dem Telefon schwer zu
-   treffen. Die Anordnung fuer den schmalen Schirm bleibt, wo sie war -- sie
-   ist eine Anordnung und keine Frage des Umbruchs. */
-.mrow.sitz { flex-wrap: wrap; row-gap: 2px; }
+/* DIE ZEILE EINER ANMELDUNG STEHT IN EINEM RASTER UND NICHT IN EINER REIHE.
+   Bis 0.17.0 standen "angemeldet" und "zuletzt gesehen" NEBENEINANDER,
+   unterschiedlich lang, und das sah aus wie ein Versehen. Jetzt stehen sie
+   UNTEREINANDER UND RECHTSBUENDIG, links davon der Name der Anmeldung.
+   Zwei Zeitangaben untereinander lesen sich als eine Angabe mit zwei Zeilen;
+   nebeneinander lasen sie sich als zwei Spalten, die nicht zueinander passen.
+   DER RAHMEN REICHT WEITERHIN BIS ZUM RAND -- das war Punkt 4b von 0.17.0 und
+   darf nicht zurueckfallen. Vorher hielt ihn `flex-wrap: wrap`: die Zeile war
+   breiter als der Kasten (`.manage-list` traegt `overflow-y: auto`, und damit
+   steht `overflow-x` nach der CSS-Regel ebenfalls auf `auto`), also entstand
+   ein Bildlauf zur Seite, und der farbige Rahmen der eigenen Anmeldung endete
+   am sichtbaren Ausschnitt. Das Raster kann gar nicht erst breiter werden:
+   die Namensspalte ist `minmax(0, 1fr)` und gibt nach, statt zu schieben.
+   NUR DIE ZEITEN TRAGEN `white-space: nowrap`. Ein umgebrochener Zeitstempel
+   waere schlechter zu lesen als ein abgeschnittener Name -- und der Name
+   traegt seine Ellipse ohnehin schon. */
+.mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center; column-gap: 9px; row-gap: 2px; }
+.mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 2; }
+.mrow.sitz .sitz-zeit { grid-column: 2; justify-self: end; text-align: right; }
+.mrow.sitz .zug-akt { grid-column: 3; grid-row: 1 / span 2; }
 /* Die eigene Anmeldung ist markiert -- sonst waere sie von einer fremden nicht
    zu unterscheiden, und genau das ist die eine Auskunft dieser Karte. */
-.mrow.sitz .sitz-zeit { font-family: var(--mono); font-size: .68rem; color: var(--faint); flex-shrink: 0; }
+.mrow.sitz .sitz-zeit { font-family: var(--mono); font-size: .68rem; color: var(--faint); white-space: nowrap; }
 .mrow.sitz-ich { border-color: var(--accent); }
 .mrow.sitz-ich .mname { color: var(--accent); }
 .sitz-fuss { margin-top: 4px; }
@@ -1310,7 +1375,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* DER PAPIERKORB IM VOLLBILD steht abgesetzt und faerbt sich beim Ueberfahren
    rot -- dieselbe Sprache wie jedes andere ✕, das etwas wegnimmt. Die Luecke
    davor ist der ganze Punkt: neben dem Schliessenkreuz waere er die
-   gefaehrlichste Nachbarschaft der Anlage. */
+   gefaehrlichste Nachbarschaft der Instanz. */
 .lb-btn.weg { margin-left: 10px; }
 .lb-btn.weg:hover { color: var(--red); border-color: var(--red); background: var(--surface-3); }
 /* display: flex oben schlaegt das display:none, das der Browser einem
@@ -1365,7 +1430,7 @@ body.lb-open { overflow: hidden; }
    darunter, wer. Dieselbe Aufteilung wie an der Zeile einer Anmeldung, und aus
    demselben Grund: `.mname` schrumpft sonst zu Punkten, damit „3 Kommentare ·
    4 Bewertungen" und die Namen daneben Platz haben.
-   KEINE NEUE FARBE: --faint traegt in dieser Anlage jede Nebenangabe. */
+   KEINE NEUE FARBE: --faint traegt in dieser Instanz jede Nebenangabe. */
 .mrow.glocken-zeile { flex-wrap: wrap; row-gap: 2px; }
 .glocken-zeile .glocken-von { flex-basis: 100%; font-size: .76rem; color: var(--faint); }
 .rechnung-modal { max-width: 540px; }
@@ -1471,7 +1536,7 @@ body.lb-open { overflow: hidden; }
 /* EINE REIHE OBEN RECHTS, und darin sitzen alle Knoepfe des Bildbereichs.
    VORHER STAND JEDER EINZELN AM RAND, und der Vollbildknopf trug dafuer die
    Zahl 92 -- das war die Breite des Wortes "Ausschnitt" bei 100 Prozent
-   Schrift. Die Anlage stellt die Schrift aber von 80 bis 120 Prozent, und bei
+   Schrift. Die Instanz stellt die Schrift aber von 80 bis 120 Prozent, und bei
    120 schoben sich die beiden Knoepfe uebereinander. Eine Flexreihe mit einer
    Luecke braucht diese Zahl nicht und kann deshalb auch nicht falsch werden.
    DIE REIHE STEHT AUF BEIDEN GERAETEN AN DERSELBEN STELLE. Was sich zwischen
@@ -1519,7 +1584,7 @@ body.lb-open { overflow: hidden; }
    aus demselben Grund.
    ROT ERST IM UEBERFAHREN UND IM DIALOG, nicht im Ruhezustand: eine dauerhaft
    rote Flaeche auf jedem Foto waere ein Alarm, der nach einer Woche nicht mehr
-   gelesen wird. Rot bleibt in dieser Anlage dem Zerstoeren vorbehalten, und es
+   gelesen wird. Rot bleibt in dieser Instanz dem Zerstoeren vorbehalten, und es
    soll etwas bedeuten, wenn es auftaucht. */
 .vweg { margin-left: 14px; }
 .vweg:hover { color: var(--red); border-color: var(--red); background: var(--red-dim); }
@@ -1762,7 +1827,7 @@ body.lb-open { overflow: hidden; }
      Zeile trotzdem -- nur entscheidet das jetzt justify-content. */
   display: flex; align-items: center; justify-content: center; gap: .55em;
 }
-/* In em und nicht in px: die Zeile laeuft auf .67rem, und die Anlage stellt
+/* In em und nicht in px: die Zeile laeuft auf .67rem, und die Instanz stellt
    die Schrift von 80 bis 120 Prozent. Das Zeichen waechst damit mit dem Wort
    daneben statt daneben stehenzubleiben. */
 .version-zeile .marke { height: 1.5em; }
@@ -1853,10 +1918,10 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
 /* ================================================================
    DER SCHMALE SCHIRM
    ================================================================
-   Bis hierher steht im Stylesheet EINE Anlage, und sie ist fuer ein breites
+   Bis hierher steht im Stylesheet EINE Instanz, und sie ist fuer ein breites
    Fenster gebaut. Was folgt, nimmt ihr nichts weg: keine Regel oben wurde
    veraendert, jede hier unten greift erst unter einer Bedingung. Wer am
-   Schreibtisch sitzt, sieht dieselbe Anlage wie vorher -- Zeile fuer Zeile
+   Schreibtisch sitzt, sieht dieselbe Instanz wie vorher -- Zeile fuer Zeile
    dieselbe.
 
    ZWEI ACHSEN, UND SIE WERDEN NICHT VERMISCHT. Das ist die tragende
@@ -1899,7 +1964,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
 
    WAS HIER AUSDRUECKLICH NICHT PASSIERT: keine zweite Oberflaeche, kein
    zweiter Aufbau in app.js, kein Geraeteraten ueber die Kennung des Browsers.
-   Es ist EINE Anlage, und sie ordnet sich nach dem Platz, den sie bekommt.
+   Es ist EINE Instanz, und sie ordnet sich nach dem Platz, den sie bekommt.
    ================================================================ */
 
 /* ---------------------------------------------------------------
@@ -2013,7 +2078,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   /* DREI KLASSEN UND EIN ELEMENT schlagen die eine Klasse von `.select`
      darueber -- dasselbe Muster wie bei der kleinen Marke und dem Kreuz an
      einer fremden Stimme. Das Rollenfeld in der Zugangsliste waere sonst als
-     einziges Auswahlfeld der Anlage bei 20 Pixeln geblieben. */
+     einziges Auswahlfeld der Instanz bei 20 Pixeln geblieben. */
   .mrow.zug select.zug-r { padding: 6px 9px; }
   /* Das Kreuz an einer gespeicherten Ansicht liegt IM Knopf und ist deshalb
      ein span -- `button { padding: 0 }` greift dort gar nicht, es hatte
@@ -2029,7 +2094,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   /* ZWEI KLASSEN SCHLAGEN EINE, AUCH IN EINER MEDIENREGEL. Eine Medienregel
      aendert am Gewicht eines Waehlers nichts -- `.rstimme .xdel` (zwei
      Klassen) gewinnt weiter gegen `.xdel` (eine), und das Kreuz an einer
-     fremden Stimme waere als einziges der ganzen Anlage bei 18 Pixeln
+     fremden Stimme waere als einziges der ganzen Instanz bei 18 Pixeln
      geblieben. Es steht deshalb ausgeschrieben da.
      Kleiner als die uebrigen Kreuze bleibt es trotzdem: es sitzt in einer
      Zeile aus lauter kurzen Namen, und ein Ziel von 44 Pixeln zwischen zwei
@@ -2038,7 +2103,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .mrow .mact { padding: 9px 11px; }
   .arow .adl { padding: 9px 11px; }
   /* Die beiden am Kommentarkopf hatten ueberhaupt keinen Innenabstand und
-     waren damit rund elf Pixel gross -- das kleinste Ziel der ganzen Anlage. */
+     waren damit rund elf Pixel gross -- das kleinste Ziel der ganzen Instanz. */
   .cmt-head button { padding: 8px 10px; }
   .cmt-head .acts, .cmt-head .marks { gap: 2px; }
   /* Die runden Kreuze auf den Bildkacheln. 19 Pixel trifft niemand. */
@@ -2051,7 +2116,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .pick-box { width: 28px; height: 28px; }
 
   /* DIE STERNE. Fuenf Ziele in einer Reihe, und sie sind das wichtigste
-     Bedienelement der ganzen Anlage -- danebengetroffen heisst hier: einen
+     Bedienelement der ganzen Instanz -- danebengetroffen heisst hier: einen
      falschen Wert vergeben. Sie werden groesser gesetzt UND bekommen Flaeche
      zwischen sich; die Reihe misst damit rund 150 statt 100 Pixel. */
   .star { font-size: 1.45rem; }
@@ -2102,7 +2167,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      (das nimmt jedem, der schlecht sieht, das letzte Hilfsmittel -- kommt
      nicht in Frage) oder die Felder gross genug setzen.
 
-     max(...) UND KEINE BLANKE PIXELZAHL: die Anlage stellt die Schrift von 80
+     max(...) UND KEINE BLANKE PIXELZAHL: die Instanz stellt die Schrift von 80
      bis 120 Prozent. Bei 100 Prozent und darunter greift die feste
      Untergrenze, ab 107 Prozent waechst das Feld mit der Einstellung weiter.
      Wer klein stellt, bekommt hier also nicht ganz, was er wollte -- aber
@@ -2331,11 +2396,11 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      Hamburgerzeichen; darunter die Suche ueber die volle Breite. Alles
      Uebrige liegt hinter dem Zeichen.
      WARUM DIE SUCHE DRAUSSEN BLEIBT: sie ist auf einem kleinen Bildschirm das
-     wichtigste Bedienelement der Anlage -- Filter und Wolke sieht man dort
+     wichtigste Bedienelement der Instanz -- Filter und Wolke sieht man dort
      nicht auf einen Blick, die Suche findet trotzdem. Sie hinter zwei Griffe
      zu legen waere die falsche Ersparnis.
      WARUM "+ Eintrag" DRAUSSEN BLEIBT: er ist der eine Weg, auf dem etwas
-     Neues in die Anlage kommt. Ein Menue davor kostet bei jedem Eintrag einen
+     Neues in die Instanz kommt. Ein Menue davor kostet bei jedem Eintrag einen
      zusaetzlichen Griff. */
   .masthead {
     gap: 8px;
@@ -2539,6 +2604,12 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .sys-grid > .sys-card:first-child { border-top: 0; padding-top: 4px; }
   /* Zwei Spalten Formularfelder auf 366 Pixeln sind zwei zu schmale Spalten. */
   .vok-grid { grid-template-columns: 1fr; }
+  /* UND AUS DEMSELBEN GRUND FAELLT DER MAILVERSAND WIEDER IN EINE SPALTE. Eine
+     Reihe, die auf 366 Pixeln drei Felder nebeneinander zwingt, ist schlechter
+     als die Spalte, die es vorher war -- "Benutzername beim Anbieter" stuende
+     dann dreizeilig ueber einem Feld von hundert Pixeln.
+     EINE REGEL FUER ALLE VIER REIHEN und nicht vier: die Frage ist dieselbe. */
+  .mail-reihe { grid-template-columns: minmax(0, 1fr); }
 
   /* Die Listen, die in sich scrollen, tun das jetzt selten genug, dass die
      Wischbewegung fast immer die Seite bewegt -- 62 Prozent der Fensterhoehe
@@ -2546,7 +2617,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      Ganz aufheben laesst sich der eigene Bildlauf nicht: ein
      Sicherheitsprotokoll mit zweihundert Zeilen machte die Karte sonst
      unbrauchbar lang. */
-  .manage-list, .prot-liste, .test-scroll, .atext { max-height: 62vh; max-height: 62dvh; }
+  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste { max-height: 62vh; max-height: 62dvh; }
 
   /* ---- Die Detailansicht: DER TITEL STEHT VOR DEM BILD ----
      Das ist die einzige Umstellung der Reihenfolge in dieser ganzen Runde.
@@ -2600,7 +2671,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      waren lauter als der Kommentar, zu dem sie gehoeren.
      JETZT OBEN, WAS DIE ZEILE BESCHREIBT (wer, wann, und rechts die beiden
      Zeichen fuer Bearbeiten und Loeschen), DARUNTER, WAS SIE VERAENDERT. Das
-     ist dieselbe Trennung, die die Anlage ueberall macht -- Auskunft und
+     ist dieselbe Trennung, die die Instanz ueberall macht -- Auskunft und
      Bedienelement stehen nicht durcheinander --, sie wird hier nur senkrecht
      statt waagerecht gezogen.
      Die Umschalter fallen dabei eine Spur kleiner aus als sonst auf dem
@@ -2638,18 +2709,22 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .card-foot { flex-wrap: wrap; row-gap: 5px; }
   .apdf-hint { row-gap: 6px; }
 
-  /* DIE ANORDNUNG DER UMGEBROCHENEN ZEILE. Sie traegt vier Stuecke: was fuer
-     eine Anmeldung es ist, wann sie begann, wann sie zuletzt gesehen wurde,
-     und das Kreuz zum Beenden.
+  /* DIE ANORDNUNG AUF DEM SCHMALEN SCHIRM. Die Zeile traegt vier Stuecke: was
+     fuer eine Anmeldung es ist, wann sie begann, wann sie zuletzt gesehen
+     wurde, und das Kreuz zum Beenden.
      OBEN, WAS DIE ZEILE IST UND WAS MAN MIT IHR TUN KANN; DARUNTER, WANN.
      Dieselbe Trennung wie am Kommentarkopf, und aus demselben Grund.
-     DER UMBRUCH SELBST STEHT SEIT 0.17.0 OBEN und gilt auf jedem Schirm --
-     hier steht nur noch, WIE die Stuecke sich dann verteilen. */
-  .mrow.sitz .mname { flex: 1 1 auto; }
-  .mrow.sitz .zug-akt { order: 1; }
-  .mrow.sitz .sitz-zeit { order: 2; flex: 1 1 auto; }
+     DIE ZEITEN BLEIBEN RECHTSBUENDIG UND UNTEREINANDER -- nur eben UNTER dem
+     Namen statt neben ihm. Drei Spalten auf 366 Pixeln waeren drei zu schmale:
+     "zuletzt gesehen 30.08.2026, 20:17" nimmt allein zwei Drittel, und vom
+     Namen bliebe ein Stummel mit Ellipse. Dieselbe Ueberlegung wie beim
+     Mailversand, eine Karte weiter. */
+  .mrow.sitz { grid-template-columns: minmax(0, 1fr) auto; }
+  .mrow.sitz .mname { grid-column: 1; grid-row: 1; }
+  .mrow.sitz .zug-akt { grid-column: 2; grid-row: 1; }
+  .mrow.sitz .sitz-zeit { grid-column: 1 / -1; }
 
-  /* Ein langer Titel der Anlage schoebe sonst den Knopf zum Anlegen und das
+  /* Ein langer Titel der Instanz schoebe sonst den Knopf zum Anlegen und das
      Menuezeichen aus der Kopfzeile. Abgeschnitten wird der Titel: er steht
      auf jeder Seite, die beiden Knoepfe stehen nur hier. */
   .brand { min-width: 0; }
@@ -2682,7 +2757,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      sondern eine Untergrenze; links und rechts steht danach derselbe Rand,
      naemlich der Seitenrand der Schale und sonst nichts. Es braucht dafuer
      keinen vierten Umbruchpunkt: die Spaltenzahl faellt aus der Breite, und
-     die Breite ist genau die Achse, an der in dieser Anlage das Layout
+     die Breite ist genau die Achse, an der in dieser Instanz das Layout
      haengt.
 
      WARUM 60 UND NICHT 62 ALS UNTERGRENZE. Die Zahl entscheidet allein

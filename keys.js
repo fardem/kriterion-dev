@@ -133,13 +133,13 @@ function schreibeEnvZeile(pfad, altHex, neuHex, wer, zeitpunkt) {
     throw new Error(`In ${pfad} stehen ${treffer.length} aktive Zeilen ENCRYPTION_KEY=. ` +
       'Welche gemeint ist, entscheidet dieser Befehl nicht.');
   const alt = treffer[0].wert.trim();
-  /* DIE .ENV MUSS ZU DIESER ANLAGE GEHOEREN. Steht dort ein anderer Wert als
+  /* DIE .ENV MUSS ZU DIESER INSTANZ GEHOEREN. Steht dort ein anderer Wert als
      der, mit dem die Datenbank gerade offen ist, ist es die falsche Datei --
      und sie zu ueberschreiben naehme jemandem den Schluessel zu einer anderen
-     Anlage weg. */
+     Instanz weg. */
   if (alt.toLowerCase() !== String(altHex).toLowerCase())
     throw new Error(`Die Zeile ENCRYPTION_KEY in ${pfad} traegt einen anderen Wert als den, ` +
-      'mit dem diese Datenbank offen ist. Das ist nicht die .env dieser Anlage.');
+      'mit dem diese Datenbank offen ist. Das ist nicht die .env dieser Instanz.');
   zeilen.splice(treffer[0].nr, 1,
     `# Abgeloest am ${zeitpunkt} durch ${saubereNotiz(wer)} (schluessel.js).`,
     '# ER OEFFNET ALLE SICHERUNGEN VON VOR DIESEM ZEITPUNKT -- nicht loeschen,',

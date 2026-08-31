@@ -20,12 +20,12 @@ function open(file) {
 
 /* --- Den Schluessel der Datei wechseln -----------------------------------
    Gerufen ausschliesslich von schluessel.js auf dem Wirt, bei angehaltener
-   Anlage. Es steht hier, weil hier auch journal_mode gesetzt wird.
+   Instanz. Es steht hier, weil hier auch journal_mode gesetzt wird.
 
    PRAGMA rekey LAEUFT IM WAL-MODUS NICHT ("Rekeying is not supported in WAL
    journal mode"), und open() setzt WAL bei jedem Oeffnen -- also erst auf
    DELETE umschalten, wechseln, zurueckschalten (Stolperstein 128). Die
-   Rueckschaltung steht im finally: scheitert der Wechsel, bliebe die Anlage
+   Rueckschaltung steht im finally: scheitert der Wechsel, bliebe die Instanz
    sonst still im DELETE-Modus zurueck.
 
    EIN ABBRUCH MITTENDRIN IST FOLGENLOS, solange das Rollback-Journal
@@ -57,7 +57,7 @@ function wechsleSchluessel(neuHex) {
    wird dort in jeden gespeicherten Wert geschrieben; der Server haengt es an.
 
    KEINE PAKETVERSION, NICHT EINE. Ein Verfahrensname sagt, WIE gerechnet wird,
-   und das ist unbedenklich: wer die Anlage betreibt, darf wissen, worauf seine
+   und das ist unbedenklich: wer die Instanz betreibt, darf wissen, worauf seine
    Daten liegen. Eine Versionsnummer sagt dagegen, WELCHE Luecke passt. */
 function verfahren() {
   return {
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS items (
   -- Wahrheiten ueber dieselbe Sache (Stolperstein 47). Das vorhandene Merkmal
   -- bekommt, was ihm fehlt.
   -- ALLE DREI SIND NULLBAR, und zwar nicht aus Bequemlichkeit: eine Ablehnung
-  -- aus einer Anlage vor 0.14.0 kennt weder Datum noch Verfasser, und ein
+  -- aus einer Instanz vor 0.14.0 kennt weder Datum noch Verfasser, und ein
   -- erfundener Wert waere schlimmer als ein leerer. Ein Grund ist ausserdem
   -- freiwillig.
   -- ZURUECKGENOMMEN WIRD DAS MERKMAL, NICHT DIE ANGABE: beim Ausschalten von
@@ -100,8 +100,9 @@ CREATE TABLE IF NOT EXISTS items (
   rejected_von INTEGER REFERENCES users(id) ON DELETE SET NULL,
   tested INTEGER NOT NULL DEFAULT 0,
   -- favorite wird nicht mehr beschrieben. Der Favorit gehoert einem Benutzer
-  -- und steht in item_pins; die Spalte bleibt nur stehen, damit Bestands- und
-  -- Neuanlage dasselbe Schema tragen. Nie wieder hineinschreiben: es waere
+  -- und steht in item_pins; die Spalte bleibt nur stehen, damit eine
+  -- bestehende und eine frische Instanz dasselbe Schema tragen. Nie wieder
+  -- hineinschreiben: es waere
   -- eine zweite Wahrheit ueber dieselbe Sache.
   favorite INTEGER NOT NULL DEFAULT 0,
   product_category_id INTEGER REFERENCES product_categories(id) ON DELETE SET NULL,
@@ -221,7 +222,7 @@ CREATE TABLE IF NOT EXISTS ratings (
   -- Zeitpunkt der letzten Setzung -- und genau der ist gemeint, wenn die
   -- Glocke fragt, ob seit meinem letzten Blick jemand bewertet hat.
   -- OHNE VORGABEWERT, und zwar mit Absicht. Eine Zeile ohne Zeitpunkt heisst
-  -- „die Anlage weiss nicht, wann das war" -- das gilt fuer alles, was vor
+  -- „die Instanz weiss nicht, wann das war" -- das gilt fuer alles, was vor
   -- 0.16.0 entstanden ist, und ebenso fuer eingespielte Bewertungen: die
   -- Exportdatei traegt den Zeitpunkt nicht (Format 11 bleibt Format 11), und
   -- ein datetime('now') beim Einspielen machte daraus die Behauptung, sie
@@ -352,7 +353,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 -- Der Primaerschluessel liegt auf token; jede Frage nach den Sitzungen EINES
 -- Benutzers -- sperren, loeschen, spaeter "Meine Sitzungen" -- laese sonst die
 -- ganze Tabelle. Ein Index ist keine Migration: er fasst die Zeilenform nicht an
--- und legt sich bei jedem Start selbst nach, in frischer wie bestehender Anlage.
+-- und legt sich bei jedem Start selbst nach, in frischer wie bestehender Instanz.
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 
 /* EIN MECHANISMUS, ZWEI ANLAESSE -- Einladung und Ruecksetzung. Beide enden
@@ -452,7 +453,7 @@ CREATE TABLE IF NOT EXISTS anfragen (
 
    geheim LIEGT IM KLARTEXT, und das ist der Unterschied zu Passwort und
    Token: ein Passwort wird GEPRUEFT, also genuegt sein Hash; ein
-   TOTP-Geheimnis wird NACHGERECHNET, also braucht die Anlage den Wert selbst.
+   TOTP-Geheimnis wird NACHGERECHNET, also braucht die Instanz den Wert selbst.
    DIE VERSCHLUESSELTE DATENBANK IST DIE EINZIGE SCHICHT DARUEBER
    (Projektstand, Abschnitt 3). Der JSON-Export traegt es nicht, die Sicherung
    ueber VACUUM INTO sehr wohl, eine Kontrollausgabe nie.
@@ -519,11 +520,11 @@ CREATE INDEX IF NOT EXISTS idx_zweifaktor_codes_user ON zweifaktor_codes(user_id
    Bloecken. */
 
 /* DAS SICHERHEITSPROTOKOLL -- ES HAELT FEST, WER ZUGANG HATTE UND WER DIE
-   ANLAGE ALS GANZES ANGEFASST HAT.
+   INSTANZ ALS GANZES ANGEFASST HAT.
 
    ES IST KEIN AENDERUNGSVERLAUF, und das ist die tragende Grenze: kein
    Eintragstitel, kein Kommentartext, keine Bewertung, keine Note. Was die
-   ANLAGE betrifft, nicht was jemand GESAGT hat.
+   INSTANZ betrifft, nicht was jemand GESAGT hat.
 
    KEINE NAMENSSPALTE, obwohl sie verlockt: entferneZugang() ueberschreibt
    username, und eine Kopie hier waere die eine Stelle im Projekt, die den
@@ -599,7 +600,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
 -- KEIN MIGRATIONSBLOCK, und das ist nachgestellt statt geglaubt: anders als
 -- eine Spalte legt CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem
 -- Start an (Stolperstein 13 gilt der Spalte, nicht der Tabelle). Der
--- Pruefstand entfernt sie von Hand aus einer bestehenden Anlage, startet
+-- Pruefstand entfernt sie von Hand aus einer bestehenden Instanz, startet
 -- einmal und sieht nach -- dieselbe Probe wie beim Index auf sessions.user_id.
 --
 -- geloescht_von IST KEIN TRAEGER WIE items.user_id. Es ist die Feststellung
@@ -810,7 +811,7 @@ migration0850();
 // (Stolperstein 13). Ein Bestand aus 0.8.0 bis 0.13.2 traegt items ohne sie.
 // KEIN NACHGESCHOBENES UPDATE, und das ist entschieden und nicht vergessen:
 // eine Ablehnung aus einem Bestand vor dieser Version hat kein Datum, keinen
-// Grund und keinen Verfasser -- diese Anlage weiss sie nicht. Jeder gesetzte
+// Grund und keinen Verfasser -- diese Instanz weiss sie nicht. Jeder gesetzte
 // Wert waere erfunden, und "abgelehnt am Tag der Einspielung von dem, der
 // eingespielt hat" waere die schlimmste Erfindung von allen. Die drei bleiben
 // leer, und die Marke zeigt dann genau so viel, wie bekannt ist.
@@ -860,7 +861,7 @@ migration0140();
    und behalten es. Ein nachgetragener Zeitpunkt waere erfunden -- entweder
    saehe alles gleich alt aus (ein fester Wert) oder alles brandneu
    (datetime('now')), und die Glocke laeutete beim ersten Start fuer den ganzen
-   Bestand. Was die Anlage nicht weiss, behauptet sie nicht.
+   Bestand. Was die Instanz nicht weiss, behauptet sie nicht.
    WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
    PRAGMA table_info, nicht ein Merker. */
 function migration0160() {
@@ -876,7 +877,7 @@ function migration0160() {
 migration0160();
 // ENDE MIGRATION 0.16.0
 
-// --- Auffangnetz: die Anlage braucht einen Eigentuemer ---
+// --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
 // ueber den Admin verhindert, dass ein ausdruecklich herabgestufter Erstzugang
@@ -890,7 +891,7 @@ migration0160();
     "      SELECT 1 FROM users WHERE role = 'admin' AND status != 'geloescht')))" +
     " AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'eigentuemer')"
   ).run().changes;
-  if (n) console.log('[Kriterion] Die Anlage hatte keinen Eigentuemer; der aelteste ' +
+  if (n) console.log('[Kriterion] Die Instanz hatte keinen Eigentuemer; der aelteste ' +
     'berechtigte Zugang ist es jetzt (role=eigentuemer).');
 }
 
@@ -915,7 +916,7 @@ function eigentuemerId() {
 // entsteht so etwas nicht (geloeschte Zugaenge bleiben als Grabstein stehen);
 // das Netz faengt Fehlerfaelle. ZWEI AUFRUFSTELLEN, beide noetig: hier beim
 // Start und in auth.js nach legeErstenBenutzerAn() -- beim Start einer leeren
-// Anlage gibt es noch keinen Benutzer, dem etwas zufallen koennte.
+// Instanz gibt es noch keinen Benutzer, dem etwas zufallen koennte.
 // UPDATE OR IGNORE, weil user_id bei ratings und test_days im UNIQUE steht:
 // zwei herrenlose Zeilen zum selben Kriterium sind moeglich (NULL gilt im
 // UNIQUE als verschieden); ohne OR IGNORE stuerbe der Start an der Verletzung.

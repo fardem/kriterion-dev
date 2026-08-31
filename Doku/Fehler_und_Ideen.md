@@ -63,10 +63,10 @@ nie zurück.*
 
 **Sie sagt, was der Punkt IST, und nicht, wie wichtig er ist.** Ein Fehler ist
 etwas, das nicht tut, was es soll; eine Verbesserung macht etwas Vorhandenes
-besser; eine neue Funktion kann die Anlage danach etwas, was sie vorher nicht
+besser; eine neue Funktion kann die Instanz danach etwas, was sie vorher nicht
 konnte; Design ist eine Frage der Darstellung und der Bedienung, nicht des
 Verhaltens. *Die Grenze zwischen den letzten beiden ist manchmal dünn — dann
-entscheidet die Frage: „Könnte die Anlage danach etwas Neues?"*
+entscheidet die Frage: „Könnte die Instanz danach etwas Neues?"*
 
 **Die Art ordnet NICHT um.** Die Punkte stehen unten weiter in der Reihenfolge,
 in der sie aufgefallen sind — das ist Regel 1, und sie gilt. Wer nach Art
@@ -150,7 +150,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.15.1** *PATCH* — **GEBAUT am 29. August 2026** | **Nichts aus diesem Blatt.** Ein Befund aus dem Betrieb: `hidden` wirkte im Stilblatt nicht, weil jede eigene `display`-Regel die Vorgabe des Browsers schlägt — Aussage und Eingabefeld standen an einem *nicht* abgelehnten Eintrag da. **Was gebaut wurde, steht im Änderungsprotokoll 0.15.1.** *Dazu die Regel, wann das Feld überhaupt dasteht: abgelehnt und kein Grund.* |
 | **0.16.0** *MINOR, Schema* *(war 0.15.0)* — **GEBAUT am 29. August 2026** | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt)*. **Was gebaut wurde, steht im Änderungsprotokoll 0.16.0.** *Zwei Abweichungen: **die „Vorschau der Rangfolge" ist NICHT mitgefahren** — sie ist der einzige Teil mit eigener Ansicht und eigenem Endpunkt und war im Auftrag als erster Kandidat des Schnitts benannt; sie steht weiter in Abschnitt 10 des Projektstands. Und **die Runde ist doch eine Datenbankstufe geworden**: `ratings` trug keinen Zeitpunkt, und ohne ihn kann die Glocke über fremde Bewertungen nichts sagen — siebter Migrationsblock, auf ausdrückliche Anweisung.* **Mitgefahren ist der Werkzeugbefund am Rückbaufilter aus Teil II.** |
 | **0.17.0** *MINOR* — **GEBAUT am 30. August 2026** | **Was dasteht, und was nicht dasteht** — neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, keiner davon aus diesem Blatt und keiner aus dem Fahrplan. Die Kriterienliste zerfällt bei genau **einem** Zugang; zwei Erklärtexte verlassen die Oberfläche; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen wird.** *Die Nummer ist MINOR, weil die Glockentafel eine Funktion bringt; der Auftrag ging als 0.16.1 in die Besprechung.* **Was gebaut wurde, steht im Änderungsprotokoll 0.17.0.** *Alle neun Punkte sind gebaut; nichts ist hierher zurückgekommen. **Eine Abweichung:** die Tafel nennt die Namen nur zu den **Kommentaren** — „Eine Glocke, die nennt, WER bewertet hat" steht in Teil III dieses Blatts als geprüft und verworfen, und die gebaute Fassung hält sich daran. **Und ein zehnter Befund ist beim Bauen dazugekommen und gleich mitgefahren:** der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt — derselbe blinde Fleck wie Punkt 1, eine Ansicht weiter.* |
-| **0.17.1** *PATCH* — **BEAUFTRAGT am 30. August 2026** | **Nichts aus diesem Blatt.** Sechs Befunde aus einem Rundlauf von Hand, unmittelbar nachdem 0.17.0 gebaut war: der Text im Kachel „Zugang", die Kachelhöhe, die Aufteilung des Mailversands, **„Anlage" wird „Instanz"**, die Zeile einer Sitzung — und das Video, das im Vollbild ein zweites Mal anfängt. **Der Auftrag liegt als `Doku/Auftrag_0.17.1.md` im Repo, die Kurzfassung im Projektstand, Abschnitt 10a.** |
+| **0.17.1** *PATCH* — **GEBAUT am 30. August 2026** | **Nichts aus diesem Blatt.** Sechs Befunde aus einem Rundlauf von Hand, unmittelbar nachdem 0.17.0 gebaut war: der Text im Kachel „Zugang", die Kachelhöhe, die Aufteilung des Mailversands, **„Anlage" wird „Instanz"**, die Zeile einer Sitzung — und das Video, das im Vollbild ein zweites Mal anfängt. **Was gebaut wurde, steht im Änderungsprotokoll 0.17.1.** *Alle sechs Punkte sind gebaut; nichts ist hierher zurückgekommen. **Ein Befund aus dem Bauen:** der Auftrag nannte zwei falsche Freunde, die Anhänge meinen — es sind fünf, und einer der beiden genannten war keiner (Stolperstein 236).* |
 | **0.18.0** *MINOR* *(war 0.17.0)* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
 | **0.19.0** *MINOR* *(war 0.18.0)* | Die Bildablage: Original und zwei Ableitungen — **dazu seit dem 30. August der engere Bildausschnitt und das wählbare Bildformat** |
 | **0.20.0** *MINOR* *(neu, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
@@ -202,7 +202,7 @@ Aus der Durchsicht vom **21. August 2026** (damals Punkt 4.7), Stand 0.8.6, und
 
 `value = 0` bedeutet heute „nicht bewertet". Es bedeutet aber auch **„gibt es
 hier nicht"** — ein Kriterium „Akkulaufzeit" an einem Gegenstand ohne Akku.
-Zwei verschiedene Aussagen, ein Wert. Nach der Doktrin der Anlage: eine zweite
+Zwei verschiedene Aussagen, ein Wert. Nach der Doktrin der Instanz: eine zweite
 Wahrheit.
 
 Praktisch führt das dazu, dass ein vollständig beurteilter Eintrag
@@ -217,7 +217,7 @@ eine Frage der Anzeige und der Aussage, nicht des Ergebnisses.
 
 **Und wahrscheinlich gar nicht die richtige Frage.** Sie stellt sich nur bei
 **gemischten Beständen** — also genau dort, wo die Antwort eigentlich „eine
-Anlage ist ein Sachgebiet" heißt (Projektstand, Abschnitt 10, vorgemerkt für
+Instanz ist ein Sachgebiet" heißt (Projektstand, Abschnitt 10, vorgemerkt für
 1.0). *Wer beides baut, baut die Ausnahme zur Regel.*
 
 ### Was gebaut werden könnte
@@ -251,7 +251,7 @@ beantwortet ist.
 
 **Was dagegen spricht — und das ist hier der eigentliche Inhalt des Punktes:**
 **Er verkompliziert das am häufigsten benutzte Bedienelement, um eine Frage zu
-beantworten, die sich nur in einem Bestand stellt, den die Anlage gar nicht
+beantworten, die sich nur in einem Bestand stellt, den die Instanz gar nicht
 haben soll.**
 
 **Empfehlung: zurückstellen, bis es im Betrieb tatsächlich vermisst wird.** Er
@@ -280,7 +280,7 @@ vergessen* (Änderungsprotokoll 0.11.0, Abweichung zum Auftrag).
 
 ### Was auffiel
 
-**Seit 0.11.0 sagt die Anlage beim Anlegen, dass es den Gegenstand schon gibt.
+**Seit 0.11.0 sagt die Instanz beim Anlegen, dass es den Gegenstand schon gibt.
 Sie kann aber nichts dagegen tun, wenn er doch zweimal dasteht.** Ein Hinweis
 ohne Heilmittel.
 
@@ -291,7 +291,7 @@ Eintrag, **bevor** er entsteht, und das ist der Fall, der zählt. Was fehlt, ist
 die Reparatur für die Fälle davor.
 
 **Und es ist ausdrücklich keine kleine Ergänzung.** Es wäre **der erste Eingriff
-der Anlage, der Zeilen zwischen zwei Eltern verschiebt** — unumkehrbar. An einem
+der Instanz, der Zeilen zwischen zwei Eltern verschiebt** — unumkehrbar. An einem
 Eintrag hängen **acht** Tabellen.
 
 ### Was gebaut werden könnte
@@ -388,7 +388,7 @@ einzige Teil der Runde ohne begrenzten Prüfaufwand.*
 
 Der Encoder selbst, dazu der Dekoder im Prüfstand. **Gemessen statt geschätzt:**
 die `otpauth://`-Zeile ist **100 Zeichen** bei `Kriterion/faruk`, **117** bei
-`Bewertungskatalog/chefin` und **203** bei einem langen Anlagen- und
+`Bewertungskatalog/chefin` und **203** bei einem langen Instanz- und
 Zugangsnamen. Im Bytemodus heißt das **Version 5 bis 8**.
 
 ### Offene Entscheidungen
@@ -441,6 +441,24 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 > steht an zwölf weiteren*, und *eine tote Regel im Stilblatt aus 0.16.0*. **Eine
 > dritte steht in Teil II unter „Am Prüfstand"** — `gegenprobe.js` kann einen
 > Abriss nicht von einer Störung von außen unterscheiden.
+
+> **DIE SECHS BEFUNDE VOM 30. AUGUST 2026, ABENDS, SIND EBENFALLS GEBAUT** —
+> **0.17.1**, und keiner von ihnen stand je hier. **Was gebaut wurde, steht im
+> Änderungsprotokoll 0.17.1.** *Zurückgekommen ist nichts;* **eine Zeile hat
+> die Runde erzeugt, und sie steht gleich hier darunter.**
+
+- **Die beiden Konzeptpapiere tragen „Anlage" je einmal** *(0.17.1, aus der
+  Durchsicht der Runde — gefunden, benannt, nicht behoben)*.
+  **Art: Kleinigkeit.** Mit 0.17.1 heißt die Installation überall **Instanz**;
+  der Auftrag jener Runde nimmt das Konzeptpapier zum Mehrbenutzerbetrieb und
+  das Videopapier **ausdrücklich aus** und verlangt stattdessen die Meldung.
+  **Zwei Stellen sind es:** `Konzept_Mehrbenutzerbetrieb_Kriterion_0_9_1.md`
+  Zeile 178 und `Konzept_Video_und_grosse_Dateien.md` Zeile 112 — *beide Male
+  meint das Wort die Installation.* **Falsch ist dort nichts**, es liest sich
+  nur nach einem Wort, das es sonst nicht mehr gibt. *Beide Papiere sind
+  Herleitung und kein Stand; wer sie eines Tages anfasst, zieht die zwei
+  Wörter mit.*
+  *(Claude: später — zwei Wörter, und die Papiere ruhen)*
 
 - **Dieselbe Art Satz wie in Punkt 2 von 0.17.0 steht an zwölf weiteren
   Stellen in der Oberfläche** *(0.17.0, aus der Durchsicht der Runde —
@@ -523,7 +541,7 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   mit 0.9.1)*. Der Fingerprint sagt heute nur, **dass** etwas abweicht, nicht
   **was**. Bei 0.9.1 hat sich dort eine Datei zu viel gezeigt (Stolperstein
   158), und der Handgriff dagegen steht bisher nur in der README. **Eine Zeile
-  in der Karte „Anlage" würde ihn ersetzen.** *(Claude: empfohlen)*
+  in der Karte „Instanz" würde ihn ersetzen.** *(Claude: empfohlen)*
 - **Fälligkeitsdatum an Aufgaben** *(0.8.60)*. Die Aufgabenliste quer über alle
   Einträge gibt es seit der Ansicht „Offen"; ein Datum daran gibt es nicht.
   *(Claude: empfohlen)*
@@ -562,7 +580,7 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   Benachrichtigung. *Setzt voraus, dass geklärt ist, wer wen sehen darf —
   Zugänge sehen einander heute nicht vollständig.*
   **NEU BEURTEILT AM 29. AUGUST 2026, nach dem Bau von 0.16.0.** Die alte
-  Absage lautete *„die Anlage hat keine Benachrichtigungen"* — **sie hat jetzt
+  Absage lautete *„die Instanz hat keine Benachrichtigungen"* — **sie hat jetzt
   welche**, und damit ist diese Begründung verbraucht. *Sie wird hier nicht
   stehengelassen und nicht stillschweigend ersetzt: die Zeile bekommt die
   Begründung, die nach 0.16.0 wirklich trägt.*
@@ -605,7 +623,7 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   **Art: Verbesserung.** `jsdom` rechnet kein CSS. Der Prüfstand kann deshalb
   sagen, dass `element.hidden` wahr ist — **nicht, ob der Browser das Element
   zeichnet.** *Genau daran ist 0.15.1 hängengeblieben: 4351 grüne Prüfungen,
-  und die Anlage zeigte im Browser das Gegenteil.* **Die Frage, die offen
+  und die Instanz zeigte im Browser das Gegenteil.* **Die Frage, die offen
   bleibt: wie viele weitere Zusagen der Oberfläche stehen nur in jsdom?**
   Die Antwort wäre ein Browser im Prüflauf — **und der kostet eine
   Abhängigkeit**, die es hier nicht gibt. *Ein Mittelweg, der nichts kostet:
@@ -706,10 +724,10 @@ wurde. Keines davon ist neu entstanden; jedes gab es vorher genauso.*
 ### An den Nummern
 
 - **Zwei Dateisätze tragen die Nummer 0.9.1** *(0.9.1)*. Das veröffentlichte
-  0.9.1 in `main` hat den Fingerprint `cb73399d`; die laufende Anlage trug
+  0.9.1 in `main` hat den Fingerprint `cb73399d`; die laufende Instanz trug
   `3cf1b093`. Dazwischen liegt die Nacharbeit an Marke und Anmeldekarte.
   **Eine Nummer `0.9.2` kommt dafür nicht mehr in Frage:** seither sind 0.10.0
-  und 0.11.0 herausgegangen, und die Anlage hat nur **eine** Reihe — eine Zahl,
+  und 0.11.0 herausgegangen, und die Instanz hat nur **eine** Reihe — eine Zahl,
   die älter ist als das Laufende, spielt niemand ein. Offen bleibt allein die
   Zuordnung: `3cf1b093` gehört zu keiner veröffentlichten Nummer.
   *(Claude: nicht empfohlen — ein Satz im Changelog ordnet den Fingerprint dem
@@ -740,12 +758,12 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
   Blättern — Fahrplan, 0.12.3, „Nur zeichnen, was zu sehen ist".*
 - **Verschlüsselung je Benutzer.** „Ein Neubau, kein Anbau" — mit der Folge,
   die offen dokumentiert ist: **jeder Benutzer vertraut dem Betreiber mit
-  allem.** Für eine selbstgehostete Anlage ist das die richtige Abwägung, und
+  allem.** Für eine selbstgehostete Instanz ist das die richtige Abwägung, und
   sie gehört in die README statt in den Quelltext.
 - **Ein Framework im Frontend.** Kein Framework heißt: keine Build-Kette, keine
   400 Pakete, kein Ablaufdatum. *Siehe Fahrplan 0.16.0, „Zwei Funktionen sind zu groß geworden" — die Antwort auf große
   Funktionen sind kleinere Funktionen.*
-- **PWA-Manifest.** Für eine Anlage im eigenen Netz ohne Offline-Anspruch ist
+- **PWA-Manifest.** Für eine Instanz im eigenen Netz ohne Offline-Anspruch ist
   der Gewinn das Icon auf dem Startbildschirm und sonst wenig. Steht in Teil II,
   bewusst weit unten.
 - **Tags in Mengen bearbeiten / Vorlagen für Einträge.** Nützlich, aber
@@ -758,7 +776,7 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
   das Einzige, was eine Titeländerung oder eine neue Datei noch sichtbar
   macht: was sich zuletzt getan hat, steht oben. Wird das doch zu wenig, ist
   das ein neuer Befund und keine Rückkehr der Pille.*
-- **Kriteriengruppen je Kategorie.** Die Alternative zu „eine Anlage ist ein
+- **Kriteriengruppen je Kategorie.** Die Alternative zu „eine Instanz ist ein
   Sachgebiet". Sie ist ein Umbau an Kriterienverwaltung, Detailansicht,
   Vergleich, Austauschformat und Gesamtschnitt — und sie beantwortet eine
   Frage, die ein Absatz in der README billiger beantwortet. **Vorgemerkt ist
@@ -782,7 +800,7 @@ ist, kommt in einem halben Jahr als neue Idee zurück.**
 Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
 
 - **Der getippte Benutzername im Sicherheitsprotokoll.** Er steht gegen die
-  Zusage im Kartentext (*„die Anlage speichert beides nicht"*) und gegen den
+  Zusage im Kartentext (*„die Instanz speichert beides nicht"*) und gegen den
   Grund am Schema: **ein ins falsche Feld getipptes Passwort landete damit in
   der Tabelle.** *Und CrowdSec braucht ihn nicht — es sperrt nach Adresse.*
   Siehe Fahrplan 0.13.0, „Gescheiterte Anmeldungen" (b).
@@ -808,7 +826,7 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
 - **„mehr" in die Tagwolke legen und rechts Platz freihalten.** Die Wolke wird
   beschnitten, der Verweis würde mitabgeschnitten — und der Ausweg wäre ein
   fest ausgerechneter Freiraum. **Genau daran hing 0.12.1 schon einmal**
-  (`right: 92px`, Befund A): die Anlage stellt die Schrift von 80 bis 120
+  (`right: 92px`, Befund A): die Instanz stellt die Schrift von 80 bis 120
   Prozent, und eine ausgerechnete Breite kann dabei nur falsch werden.
 - **Eine Benachrichtigungstabelle mit Lesestand je Meldung.** Der Weg der
   großen Anbieter — und für eine Handvoll Zugänge der falsche: eine

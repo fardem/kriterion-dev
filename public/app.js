@@ -84,7 +84,7 @@ const ICON_MENUE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" 
    "Vollbild" -- und der Papierkorb ist neu.
    WARUM ZEICHEN UND NICHT WOERTER: sie liegen AUF dem Bild und nicht daneben.
    Ein Wort dort verdeckt Bildflaeche in der Breite des laengsten Wortes, und
-   es zwang die Anlage zu einer ausgerechneten Zahl -- der Vollbildknopf sass
+   es zwang die Instanz zu einer ausgerechneten Zahl -- der Vollbildknopf sass
    auf `right: 92px`, und das waren die 92 Pixel, die "Ausschnitt" bei 100
    Prozent Schrift misst. Bei 120 Prozent schoben sich die beiden uebereinander.
    Drei gleich grosse Quadrate in einer Reihe brauchen diese Zahl nicht.
@@ -103,7 +103,7 @@ const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
    traegt ohnehin an jedem Knopf seinen Titel. */
 const ICON_GLOCKE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 5.2-2 6.5-2 6.5h16s-2-1.3-2-6.5"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
-/* Die Marke der Anlage. EINE AUSGELIEFERTE DATEI statt eines eingebauten
+/* Die Marke der Instanz. EINE AUSGELIEFERTE DATEI statt eines eingebauten
    SVG: eine Marke gehoert dem Projekt und nicht einer Funktion in app.js --
    wer sie austauscht, tauscht eine Datei aus und fasst keinen Quelltext an.
    Die Klasse heisst `marke` und nicht `mark`: `mark` gibt es in style.css
@@ -115,7 +115,7 @@ const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
    NICHT DREI.
 
    alt="" UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem Namen
-   der Anlage -- ein Vorleseprogramm saegte ihn sonst zweimal.
+   der Instanz -- ein Vorleseprogramm saegte ihn sonst zweimal.
 
    DAS viewBox DER DURCHSICHTIGEN FASSUNG UMSCHLIESST DIE FARBE UND NICHT DIE
    KACHEL (`6.5 4.5 19 23`): bei stroke-width 3 und stroke-linecap round
@@ -123,7 +123,7 @@ const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
    ist die angegebene Hoehe die gezeichnete Hoehe. favicon.svg behaelt
    0 0 32 32 samt Kachel -- ein Kachelsymbol braucht seinen Rand.
 
-   DIE WIRKLICHE GROESSE STEHT IM CSS, IN rem: die Anlage stellt die Schrift
+   DIE WIRKLICHE GROESSE STEHT IM CSS, IN rem: die Instanz stellt die Schrift
    von 80 bis 120 Prozent. Die Attribute hier halten nur das Seitenverhaeltnis
    und den Platz, bis das Stylesheet greift. */
 const MARK = (s = 30) =>
@@ -223,7 +223,7 @@ function confirmBox(title, text, confirmLabel = 'Löschen') {
 
 /* EIN NAME WIRD GEFRAGT -- nach dem Muster von confirmBox() und ausdruecklich
    KEIN prompt(): das steht am oberen Rand des Fensters, sieht in keinem
-   Browser wie diese Anlage aus und laesst sich nicht beschriften.
+   Browser wie diese Instanz aus und laesst sich nicht beschriften.
    Liefert den getrimmten Namen oder null bei Abbruch. Ein leerer Name ist ein
    Abbruch: eine Ansicht ohne Namen liesse sich nicht wiederfinden. */
 function nameBox(title, text, vorgabe = '', okLabel = 'Speichern', maxLaenge = 40) {
@@ -260,7 +260,7 @@ function nameBox(title, text, vorgabe = '', okLabel = 'Speichern', maxLaenge = 4
    Liefert true, wenn die Freigabe steht -- der Rufer handelt danach. Bei false
    ist entweder abgebrochen worden oder das Passwort war falsch; die Meldung
    steht dann schon. */
-const BESTAETIGUNG_GRUND = 'Das trifft die Anlage als Ganzes. Damit eine fremde offene ' +
+const BESTAETIGUNG_GRUND = 'Das trifft die Instanz als Ganzes. Damit eine fremde offene ' +
   'Anmeldung das nicht kann, bestätigst du es mit deinem Passwort.';
 
 /* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
@@ -324,7 +324,7 @@ const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
    haengt das Codefeld an ZWEIFAKTOR, hier am WEG. Beim Einschalten gibt es noch
    keinen Code zu fragen, beim Ausschalten gehoert er dazu -- und beide Male ist
    ZWEIFAKTOR die falsche Auskunft darueber.
-   OHNE BESTAETIGUNG_GRUND: der steht fuer "das trifft die Anlage als Ganzes",
+   OHNE BESTAETIGUNG_GRUND: der steht fuer "das trifft die Instanz als Ganzes",
    und das trifft hier nicht zu -- es geht um den eigenen Zugang. Der Grund
    kommt deshalb je Weg von der Aufrufstelle. */
 const bestaetigungsFeldFrei = (titel, was, mitCode) =>
@@ -376,7 +376,7 @@ let TITLE_PUBLIC = 'Kriterion';
 let VERSION = '';   // kommt von /api/config, steht auch vor der Anmeldung
 let TITLE_APP = 'Kriterion';
 let MIN_PASSWORT = 10;   // Vorgabe des Servers, kommt mit /api/config
-/* Ob diese Anlage Anfragen annimmt. KOMMT VOM SERVER und wird hier nie
+/* Ob diese Instanz Anfragen annimmt. KOMMT VOM SERVER und wird hier nie
    geraten: die Oberfläche zeigt das Formular, der Server entscheidet über die
    Anfrage. Wer das Feld von Hand auf true setzt, bekommt ein Formular, dessen
    Anfrage an derselben Antwort endet wie jede andere — die Schranke liegt
@@ -968,9 +968,9 @@ function ruesteBloeckeAus(item) {
    Bild: MARK() liefert dieselbe durchsichtige Fassung, die auf allen neun
    Anmeldeseiten steht (Stolperstein 145).
    `alt=""` STECKT IN MARK() -- das Zeichen steht unmittelbar neben dem Namen
-   der Anlage, und ein Vorleseprogramm saegte ihn sonst zweimal.
+   der Instanz, und ein Vorleseprogramm saegte ihn sonst zweimal.
    DIE GROESSE STEHT IM STYLESHEET UND IN em: diese Zeile laeuft auf 0,67rem,
-   und die Anlage stellt die Schrift von 80 bis 120 Prozent. Eine feste
+   und die Instanz stellt die Schrift von 80 bis 120 Prozent. Eine feste
    Pixelzahl bliebe bei jeder anderen Einstellung stehen, waehrend die Schrift
    daneben mitwaechst.
    Der Name geht durch esc(): er kommt zwar aus dem eigenen package.json und
@@ -1267,7 +1267,7 @@ function wendeSchriftAn() {
 
 /* DER SCHMALE SCHIRM, ALS FRAGE AN DEN BROWSER.
    SIE STEHT WOERTLICH SO AUCH IM STYLESHEET, und das ist die einzige Stelle
-   in der ganzen Anlage, an der eine Bedingung zweimal geschrieben steht. Es
+   in der ganzen Instanz, an der eine Bedingung zweimal geschrieben steht. Es
    geht nicht anders: das Stylesheet entscheidet, WAS zu sehen ist, und die
    Oberflaeche muss wissen, ob die Filter beim Aufbau eingeklappt anfangen
    sollen -- eine Frage, die nur der Browser beantworten kann. Wer eine der
@@ -1323,7 +1323,7 @@ let EINSTELLUNGEN = null;
 // Durchschnittsspalte ueberhaupt erscheint; ADMIN steuert die Kriterienkarte,
 // EIGENTUEMER, was in der Karte "Zugaenge" bedienbar ist. Der Server
 // verweigert beides ohnehin -- die Felder ersparen der Oberflaeche eine zweite
-// Wahrheit darueber, wem die Anlage gehoert.
+// Wahrheit darueber, wem die Instanz gehoert.
 let BENUTZER_ZAHL = 1;
 let ADMIN = true;
 let EIGENTUEMER = true;
@@ -1827,14 +1827,14 @@ const offeneGesamt = () => (state.alle || []).reduce((n, i) => n + (Number(i.off
 
 /* WAS DORT NEU IST, IN WORTEN -- 0.17.0. „7 neue Beitraege" liess offen, ob
    das Kommentare sind oder Bewertungen; „Beitrag" ist ein Sammelwort, das die
-   Anlage sonst nirgends benutzt.
+   Instanz sonst nirgends benutzt.
    NUR WAS ES GIBT: bei einer Art steht auch nur eine Angabe da. „0
    Bewertungen" waere eine Auskunft ueber nichts -- dieselbe Regel wie die
    fehlende Null am Knopf „Offen".
    EIN- UND MEHRZAHL AUSGESCHRIEBEN: „1 Kommentare" ist der Fehler, den eine
    feste Endung macht. Die beiden Woerter stehen NICHT im Vokabular: dort geht
    es um die Sache, den Bericht, die Aufgabe und den Zeitpunkt -- Kommentar und
-   Bewertung heissen in dieser Anlage ueberall so. */
+   Bewertung heissen in dieser Instanz ueberall so. */
 const neuWorte = (i) => {
   const k = Number(i.neuKommentare) || 0, b = Number(i.neuBewertungen) || 0;
   return [k ? `${k} ${k === 1 ? 'Kommentar' : 'Kommentare'}` : '',
@@ -2000,7 +2000,7 @@ async function renderList() {
              MEHR „Neu von anderen": sie meldet auch die eigenen Beitraege --
              sonst meldete sie einem, der allein arbeitet, nie etwas.
              SIE STEHT NUR DA, WENN ES EINEN BEZUGSPUNKT GIBT. Vor dem ersten
-             Aufbau der Uebersicht weiss die Anlage nicht, was jemand schon
+             Aufbau der Uebersicht weiss die Instanz nicht, was jemand schon
              gesehen hat -- eine Glocke, die dann alles meldet, laeutete beim
              ersten Blick fuer den ganzen Bestand. Dieselbe Lage und dieselbe
              Antwort wie bei „Neu seit meinem letzten Besuch".
@@ -2399,7 +2399,7 @@ function drawFilters() {
      KEIN AUSGERECHNETER FREIRAUM. Die Wolke wird beschnitten (`max-height`,
      `overflow: hidden`), ein Verweis IN ihr wuerde mitabgeschnitten -- und
      eine feste Breite daneben ist genau der Fehler, an dem 0.12.1 schon einmal
-     hing (`right: 92px`, Befund A). Die Anlage stellt die Schrift von 80 bis
+     hing (`right: 92px`, Befund A). Die Instanz stellt die Schrift von 80 bis
      120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
   const rechts = document.createElement('div');
   rechts.className = 'frow-rechts';
@@ -2429,7 +2429,7 @@ function drawFilters() {
   const sel = document.createElement('select');
   // Eine Kennung wie am Favoritenknopf daneben: ohne sie liesse sich die
   // Sortierung nur ueber ihre Klasse ansprechen, und die tragen alle
-  // Auswahlfelder der Anlage.
+  // Auswahlfelder der Instanz.
   sel.id = 'f-sort';
   sel.className = 'select';
   sel.innerHTML = `
@@ -3168,8 +3168,13 @@ function zentriereBuehne(buehne) {
    SIE LIEFERT `true`, WENN WIRKLICH GELOESCHT WURDE. Ohne diese Antwort
    muesste das Vollbild raten, ob es sein Bild aus der Liste nehmen darf --
    und naehme es auch dann heraus, wenn der Mensch die Rueckfrage abgebrochen
-   hat. */
-function openLightbox(photos, startIdx, title, loeschen) {
+   hat.
+   `innen` IST FREIWILLIG UND LIEFERT DEN INNEREN ABSPIELER. Es ist eine
+   FUNKTION und kein Element: der Betrachter darunter zeichnet sich beim
+   Loeschen neu, und ein gemerktes Element zeigte danach auf einen Knoten, den
+   es nicht mehr gibt. Wer keinen mitgibt -- die Kommentarbilder etwa --
+   bekommt keinen Wechsel; dort gibt es auch nichts zu uebernehmen. */
+function openLightbox(photos, startIdx, title, loeschen, innen) {
   if (!photos.length) return;
   lightboxOpen = true;
   let i = startIdx, zoomed = false;
@@ -3188,7 +3193,7 @@ function openLightbox(photos, startIdx, title, loeschen) {
              UND ER STEHT NICHT NEBEN DEM SCHLIESSEN. Zwei Kreuze
              nebeneinander, von denen eines die Ansicht zumacht und das andere
              das Bild vernichtet, waeren die gefaehrlichste Nachbarschaft der
-             Anlage. Deshalb traegt er das Papierkorbzeichen und steht vor dem
+             Instanz. Deshalb traegt er das Papierkorbzeichen und steht vor dem
              Schliessen, nicht daneben. */''}
         ${loeschen ? `<button class="lb-btn weg" title="Löschen">${ICON_PAPIERKORB}</button>` : ''}
         <button class="lb-btn close" title="Schließen (Esc)">✕</button>
@@ -3207,16 +3212,65 @@ function openLightbox(photos, startIdx, title, loeschen) {
   const abspieler = lb.querySelector('.lb-video');
   const strip = lb.querySelector('.lb-strip');
 
+  /* ---- DER FLIEGENDE WECHSEL ----
+     DAS VOLLBILD IST DERSELBE FILM, NUR GROESSER. Bis 0.17.0 baute es sich
+     seinen eigenen Abspieler und liess den inneren stehen, wo er war: zwei
+     Elemente mit derselben Quelle, zwei Tonspuren, zwei Stellen im Film.
+     Also wird uebergeben. Der hier uebernimmt Stelle und Zustand des inneren,
+     und der innere GIBT SEINE QUELLE AB -- anhalten allein genuegt nicht: ein
+     Element mit Quelle laedt weiter, und es bliebe ein zweiter Abspieler.
+     DIE PROBE IST DIE QUELLE UND NICHT DIE NUMMER. Nur wenn der innere
+     wirklich dieses Video traegt, gehoert ihm die Stelle -- steht dort ein
+     anderes Bild oder gar nichts, wird nichts uebernommen und nichts
+     angehalten.
+     DIE LEERE QUELLE IST DAS ERKENNUNGSZEICHEN FUER DEN RUECKWEG: leer ist
+     nur der, dem wir sie genommen haben. */
+  const innerer = () => (typeof innen === 'function' ? innen() : null) || null;
+  let uebergabe = null;
+  {
+    const el = innerer();
+    const quelle = istVideo(photos[i]) ? bildQuelle(photos[i], '') : null;
+    if (el && quelle && el.getAttribute('src') === quelle) {
+      uebergabe = { quelle, stelle: el.currentTime || 0, lief: !el.paused, offen: true };
+      el.pause();
+      el.removeAttribute('src');
+      el.load();
+    }
+  }
+
   /* ANHALTEN BEIM BLAETTERN UND BEIM VERLASSEN. Ohne das spielt der Ton
      weiter, waehrend man das naechste Bild ansieht -- und beim Schliessen
      bliebe ein unsichtbares Element am Laufen. Die Quelle wird mit
-     abgeraeumt, sonst laedt der Browser weiter. */
+     abgeraeumt, sonst laedt der Browser weiter.
+     UND HIER WIRD DIE STELLE MITGENOMMEN, BEVOR SIE FAELLT: nach dem
+     removeAttribute steht sie nicht mehr da. Das gilt fuers Blaettern wie
+     fuers Schliessen -- beide gehen durch diese eine Stelle, und deshalb
+     braucht der Rueckweg keine zweite. */
   const halteAn = () => {
     if (!abspieler.hidden || abspieler.src) {
+      if (uebergabe && abspieler.getAttribute('src') === uebergabe.quelle) {
+        uebergabe.stelle = abspieler.currentTime || 0;
+        uebergabe.lief = !abspieler.paused;
+      }
       abspieler.pause();
       abspieler.removeAttribute('src');
       abspieler.load();
     }
+  };
+
+  /* ZURUECK GEHT ES DENSELBEN WEG -- Quelle und Stelle wandern an den inneren
+     Abspieler zurueck. ABER NUR, WENN ER NOCH DERSELBE IST: Loeschen aus dem
+     Vollbild zeichnet den Betrachter darunter neu, und der neue traegt schon
+     seine eigene Quelle. Sie zu ueberschreiben hiesse, ihn auf eine Adresse zu
+     setzen, die es vielleicht gar nicht mehr gibt. */
+  const gibZurueck = () => {
+    if (!uebergabe) return;
+    const el = innerer();
+    if (!el || el.getAttribute('src')) return;
+    el.src = uebergabe.quelle;
+    el.currentTime = uebergabe.stelle;
+    if (uebergabe.lief) el.play()?.catch?.(() => {});
+    uebergabe = null;
   };
 
   // Erst wenn das Original geladen ist, stehen seine Masse fest -- vorher waere
@@ -3243,6 +3297,18 @@ function openLightbox(photos, startIdx, title, loeschen) {
     if (video) {
       abspieler.poster = bildQuelle(photos[i], 'medium');
       abspieler.src = bildQuelle(photos[i], '');
+      /* DIE UEBERNOMMENE STELLE GILT EINMAL, beim Oeffnen. Wer im Vollbild
+         weiterblaettert und zurueckkommt, faengt vorn an -- so wie jedes
+         andere Video dort auch.
+         VOR DEM LADEN GESETZT IST currentTime die "default playback start
+         position": der Browser merkt sich die Zahl und springt hin, sobald er
+         die Masse kennt. Ein Warten auf loadedmetadata braucht es dafuer
+         nicht. */
+      if (uebergabe && uebergabe.offen && abspieler.getAttribute('src') === uebergabe.quelle) {
+        uebergabe.offen = false;
+        abspieler.currentTime = uebergabe.stelle;
+        if (uebergabe.lief) abspieler.play()?.catch?.(() => {});
+      }
     } else {
       img.src = bildQuelle(photos[i], 'medium');
     }
@@ -3280,6 +3346,7 @@ function openLightbox(photos, startIdx, title, loeschen) {
 
   const close = () => {
     halteAn();
+    gibZurueck();
     lightboxOpen = false;
     document.removeEventListener('keydown', onKey, true);
     document.body.classList.remove('lb-open');
@@ -3300,7 +3367,12 @@ function openLightbox(photos, startIdx, title, loeschen) {
      WAR ES DAS LETZTE BILD, GEHT DAS VOLLBILD ZU. Ein leeres Vollbild mit
      „0 / 0" waere die Ansicht eines Nichts. */
   lb.querySelector('.weg')?.addEventListener('click', async () => {
-    if (!await loeschen(photos[i])) return;
+    const weg = photos[i];
+    if (!await loeschen(weg)) return;
+    /* WAS GELOESCHT IST, WANDERT NICHT ZURUECK. Der Betrachter darunter hat
+       sich beim Loeschen bereits neu gezeichnet; eine Quelle, die es nicht
+       mehr gibt, darf ihm hier nicht noch einmal untergeschoben werden. */
+    if (uebergabe && bildQuelle(weg, '') === uebergabe.quelle) uebergabe = null;
     photos.splice(i, 1);
     if (!photos.length) { close(); return; }
     baueStreifen();
@@ -3499,7 +3571,7 @@ async function renderDetail(id) {
             <button class="switch" id="sw-rej"><span class="knob"></span><span id="sw-rej-t"></span></button>
           </div>
           ${/* DIE MARKE „abgelehnt" WIRD ZUR AUSSAGE, und eine Aussage traegt
-               in dieser Anlage ihren Verfasser: „Abgelehnt am 14.03.2026,
+               in dieser Instanz ihren Verfasser: „Abgelehnt am 14.03.2026,
                09:12 von Anna — Lieferzeit über 6 Monate."
                EIGENE ZEILE UNTER DEM SCHALTER, nicht Text IM Schalter: der
                Knopf traegt den Zustand, den er umlegt, und ein Satz darin
@@ -3624,7 +3696,7 @@ async function renderDetail(id) {
      im Vollbild. Die Rueckfrage, die Route und das Neuzeichnen stehen damit an
      EINER Stelle; zwei Ausfertigungen waeren zwei Gelegenheiten, die
      Rueckfrage zu vergessen -- und ein Loeschknopf ohne Rueckfrage waere der
-     gefaehrlichste Knopf der Anlage.
+     gefaehrlichste Knopf der Instanz.
      SIE LIEFERT, OB WIRKLICH GELOESCHT WURDE. Das Vollbild braucht die
      Antwort, um sein Bild aus der eigenen Liste zu nehmen; ein abgebrochenes
      Loeschen darf dort nichts verschwinden lassen. */
@@ -3695,12 +3767,18 @@ async function renderDetail(id) {
     /* DAS VOLLBILD BEKOMMT DENSELBEN PAPIERKORB -- eine Funktion, zwei Rufer.
        Eine EIGENE Liste geht mit: das Vollbild nimmt sein geloeschtes Bild
        selbst heraus, waehrend hier unten `item` frisch vom Server kommt.
-       Beide Listen zeigen danach dasselbe, aber keine haengt an der anderen. */
+       Beide Listen zeigen danach dasselbe, aber keine haengt an der anderen.
+       UND ES BEKOMMT DEN INNEREN ABSPIELER -- als Funktion, nicht als
+       Element: `drawViewer()` baut den Betrachter beim Loeschen und beim
+       Blaettern neu auf, und ein gemerkter Knoten waere danach ein Waisenkind.
+       Ohne diese Mitgabe liefen zwei Abspieler nebeneinander. */
+    const innererAbspieler = () => v.querySelector('video');
     if (bild) bild.onclick = () => {
-      if (!ausschnittModus) openLightbox([...item.photos], idx, item.title, loescheFoto);
+      if (!ausschnittModus)
+        openLightbox([...item.photos], idx, item.title, loescheFoto, innererAbspieler);
     };
     v.querySelector('.vfull')?.addEventListener('click',
-      () => openLightbox([...item.photos], idx, item.title, loescheFoto));
+      () => openLightbox([...item.photos], idx, item.title, loescheFoto, innererAbspieler));
     v.querySelector('.vfocus').onclick = () => {
       ausschnittModus = !ausschnittModus;
       drawViewer();
@@ -4002,7 +4080,7 @@ async function renderDetail(id) {
   }
 
   /* DIE AUSSAGE ZUR ABLEHNUNG -- Datum, Verfasser und Grund, und JEDES DER
-     DREI DARF FEHLEN. Eine Ablehnung aus einer Anlage vor 0.14.0 hat keines
+     DREI DARF FEHLEN. Eine Ablehnung aus einer Instanz vor 0.14.0 hat keines
      davon; ein Grund ist freiwillig; und ein Zugang kann entfernt worden sein.
      Zusammengesetzt wird deshalb aus dem, was DA ist, und nicht aus einer
      Vorlage mit Luecken.
@@ -4012,7 +4090,7 @@ async function renderDetail(id) {
      Benutzer 7", und die Abbildung von der Nummer auf den Namen ist eine
      Stelle und kein zweiter Weg. Ein Verfasserobjekt, das gar nicht da ist,
      laesst das „von" weg -- „von Ohne Verfasser" waere eine Behauptung ueber
-     jemanden, den diese Anlage nicht kennt.
+     jemanden, den diese Instanz nicht kennt.
      Das Datum in derselben Schreibweise wie ueberall sonst (fmtDate); zwei
      Schreibweisen fuer denselben Zeitpunkt waeren eine zu viel.
      BEI GENAU EINEM ZUGANG FAELLT DER NAME WEG, wie an jeder anderen
@@ -4048,7 +4126,7 @@ async function renderDetail(id) {
                      nur, solange er den Eintrag auch aendern darf.
          `verwalten` ENTFERNEN -- "Loeschen ja, umschreiben nein": das ist
                      dieselbe Klemme wie am Eintrag und deshalb `darf`.
-       HERRENLOS IST EIN EIGENER FALL: eine Ablehnung aus einer Anlage vor
+       HERRENLOS IST EIN EIGENER FALL: eine Ablehnung aus einer Instanz vor
        0.14.0 hat keinen Verfasser. Der Server laesst dort jeden schreiben, der
        den Eintrag aendern darf -- ohne diesen Zweig gaebe es hier keinen Weg
        hinein, und die Zusage des Servers liefe ins Leere. `rejectedVerfasser`
@@ -4544,7 +4622,7 @@ async function renderDetail(id) {
      Nenner und das ungerundete Ergebnis kommen aus `rechenweg`, und der
      entsteht im Server IN gesamtSchnitt() -- also in derselben Schleife, die
      die Zahl erzeugt. Ein zweiter Rechenweg fuer die Anzeige waere genau die
-     zweite Wahrheit, die diese Anlage nirgends duldet: die beiden liefen
+     zweite Wahrheit, die diese Instanz nirgends duldet: die beiden liefen
      frueher oder spaeter auseinander, und zwar unbemerkt.
      KEIN ALLGEMEINES BEISPIEL, SONDERN DIESER EINTRAG. Ein erfundenes
      Rechenbeispiel liest niemand zweimal; die eigene Rechnung schon.
@@ -5478,7 +5556,7 @@ async function renderDetail(id) {
     if (eigen.length) saetze.push(`Dazu ${eigen.join(', ')} von mir.`);
     if (fremd.length) saetze.push(`Und von anderen: ${fremd.join(', ')}.`);
     saetze.push(`Alles davon liegt danach ${PAPIERKORB_TAGE} Tage im Papierkorb; ` +
-      `zurückholen kann es der Eigentümer der Anlage.`);
+      `zurückholen kann es der Eigentümer der Instanz.`);
 
     if (!await confirmBox(`${V.sacheEinzahl} löschen?`, saetze.join(' '))) return;
     try { await api('DELETE', `/api/items/${id}`); state.compare.delete(id); location.hash = '#/'; }
@@ -5498,7 +5576,7 @@ async function renderDetail(id) {
    ACHTZEHN KARTEN IN FUENF ABSCHNITTEN, JEDER MIT EIGENER ADRESSE.
 
    BIS 0.15.1 STANDEN ALLE KARTEN IN EINER REIHE, und renderSystem() war mit
-   2.466 Zeilen die laengste Funktion der Anlage. Beides hing zusammen: eine
+   2.466 Zeilen die laengste Funktion der Instanz. Beides hing zusammen: eine
    Seite ohne Abschnitte braucht keine Aufteilung im Quelltext, und eine
    Funktion, die alles zeichnet, laesst sich nicht abschnittsweise rufen.
 
@@ -5521,8 +5599,8 @@ async function renderDetail(id) {
 
 /* DIE FUENF ABSCHNITTE, IN DER REIHENFOLGE DER RECHTELEITER: was jedem
    gehoert, steht vorn; was nur der Eigentuemer sieht, steht hinten.
-   "Anlage" traegt heute genau eine Karte. Das ist kein Versehen: der
-   oeffentliche Titel ist die einzige Einstellung, die die ANLAGE als Ganzes
+   "Instanz" traegt heute genau eine Karte. Das ist kein Versehen: der
+   oeffentliche Titel ist die einzige Einstellung, die die INSTANZ als Ganzes
    nach aussen beschreibt, und sie gehoert weder zum Bestand noch zu den
    Zugaengen. Ein Abschnitt mit einer Karte ist ehrlicher als eine Karte am
    falschen Platz. */
@@ -5531,7 +5609,7 @@ const SYS_ABSCHNITTE = [
   { schluessel: 'bestand',     name: 'Bestand' },
   { schluessel: 'zugaenge',    name: 'Zugänge' },
   { schluessel: 'datenbank',   name: 'Datenbank' },
-  { schluessel: 'anlage',      name: 'Anlage' }
+  { schluessel: 'instanz',     name: 'Instanz' }
 ];
 
 /* DIE ADRESSE IST DIE EINE WAHRHEIT UEBER DEN OFFENEN ABSCHNITT. Kein
@@ -5542,6 +5620,20 @@ const SYS_ABSCHNITTE = [
    sich auf den ersten sichtbaren Abschnitt auf. */
 const SYS_MUSTER = /^#\/system(?:\/([a-z]+))?$/;
 const sysAdresse = (schluessel) => `#/system/${schluessel}`;
+
+/* DIE ALTE ADRESSE WIRD STILL UEBERSETZT, NICHT ABGEWIESEN. Bis 0.17.0 hiess
+   der fuenfte Abschnitt „Anlage" und trug den Schluessel `anlage`; die Adresse
+   dazu steht in Lesezeichen, in aelteren Papieren und womoeglich in einer Mail.
+   EIN LINK, DER INS LEERE FUEHRT, IST EINE MITTEILUNG OHNE WEG. Ohne diese
+   Tafel faende `#/system/anlage` keinen Abschnitt und fiele auf den ersten
+   sichtbaren zurueck -- der Empfaenger landete also woanders, ohne dass ihm
+   jemand sagt, warum. Uebersetzt fuehrt er dorthin, wo er immer hinfuehrte,
+   und `replaceState` am Ende von renderSystem() zieht die Adresse gleich nach.
+   DIESELBE BAUFORM WIE `delete f.neu` IN 0.17.0 und wie der Schluessel
+   `abgelehnt` in 0.15.0: was einmal draussen war, wird weiter verstanden.
+   EINE TAFEL UND KEINE VERZWEIGUNG -- kaeme je ein zweiter alter Name dazu,
+   steht er als Zeile daneben und nicht als zweites `if`. */
+const SYS_ALTE_ABSCHNITTE = { anlage: 'instanz' };
 
 /* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. EIN Ort fuer die
    Frage nach einem fehlenden Element: stuende vor jedem Behandler dieselbe
@@ -5594,7 +5686,7 @@ const SYS_KARTEN = [
   { schluessel: 'export',       abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
     markup: karteExport,       ausruesten: ruesteExportAus },
 
-  { schluessel: 'titel',        abschnitt: 'anlage', sichtbar: () => ADMIN,
+  { schluessel: 'titel',        abschnitt: 'instanz', sichtbar: () => ADMIN,
     markup: karteTitel,        ausruesten: ruesteTitelAus }
 ];
 
@@ -5651,7 +5743,8 @@ async function renderSystem() {
      eines Admins bekommt und ihn als gewoehnlicher Benutzer oeffnet, saehe
      sonst eine leere Seite. */
   const sichtbare = sysSichtbareAbschnitte(geholt);
-  const gewuenscht = (SYS_MUSTER.exec(location.hash || '') || [])[1] || '';
+  const ausDerAdresse = (SYS_MUSTER.exec(location.hash || '') || [])[1] || '';
+  const gewuenscht = SYS_ALTE_ABSCHNITTE[ausDerAdresse] || ausDerAdresse;
   const offen = sichtbare.find(a => a.schluessel === gewuenscht) || sichtbare[0];
   const karten = SYS_KARTEN.filter(k => k.abschnitt === offen.schluessel && k.sichtbar(geholt));
 
@@ -5691,7 +5784,7 @@ async function renderSystem() {
 }
 
 
-/* ---- Karte „Titel" — Abschnitt „Anlage" ---- */
+/* ---- Karte „Titel" — Abschnitt „Instanz" ---- */
 function karteTitel(geholt) {
   const { titles } = geholt;
   return `<div class="sys-card">
@@ -5721,6 +5814,20 @@ function ruesteTitelAus() {
 
 
 /* ---- Karte „Zugang" — Abschnitt „Persönlich" ---- */
+/* ZWEI KLEMMEN, UND BEIDE SITZEN HIER -- an derselben Stelle wie die Karte
+   selbst und nicht an einer zweiten Abfrage daneben (Stolperstein 47).
+   ERSTENS DIE SELBSTANMELDUNG. Ist sie an, ist die Adresse keine
+   Bequemlichkeit mehr: ohne sie kommt keine Bestätigungsmail an. Der Satz
+   RICHTET SICH DANACH, WAS GERADE GILT, statt eine Lage zu behaupten.
+   Gelesen wird `REGISTRIERUNG` -- derselbe Merker, aus dem die Anmeldeseite
+   ihr Formular baut. Ein zweiter Abruf daneben wäre eine zweite Wahrheit, und
+   die läuft auseinander, sobald jemand den Schalter umlegt.
+   ZWEITENS DIE ROLLE. Der Befehl auf dem Wirt steht nur beim Eigentümer: er
+   ist der Einzige, der in der Regel auch am Server sitzt. Wer dort nicht
+   hinkommt, dem nützt der Befehl nichts — er ist für ihn eine Auskunft über
+   den Betrieb und kein Weg. Für ihn steht dort der Satz, der wirklich hilft.
+   WAS HILFT DEM, DER DAVORSTEHT — und was erzählt ihm nur, wie es gebaut ist?
+   Eine Oberfläche sagt, WAS IST (Projektstand 5.6). */
 function karteZugang(geholt) {
   const { zugang } = geholt;
   return `<div class="sys-card">
@@ -5737,24 +5844,33 @@ function karteZugang(geholt) {
               Rücksetzlink des Betroffenen auf ein Postfach seiner Wahl.
               Sie steht hinter dem bisherigen Passwort wie Name und Passwort
               daneben — aus demselben Grund. */''}
-        <div class="field"><label>E-Mail-Adresse <span class="hint">(freiwillig)</span></label>
+        <div class="field"><label>E-Mail-Adresse <span class="hint">${
+          REGISTRIERUNG ? '(wird gebraucht)' : '(freiwillig)'}</span></label>
           <input class="input" id="acc-mail" type="email" autocomplete="email"
             autocapitalize="off" spellcheck="false" value="${esc(zugang.email || '')}"
             placeholder="noch keine hinterlegt"></div>
         <div class="field"><label>Bisheriges Passwort</label>
           <input class="input" id="acc-old" type="password" autocomplete="current-password"></div>
-        <div class="field"><label>Neues Passwort</label>
+        ${/* DIE VORGABE STEHT AM FELD, FÜR DAS SIE GILT. „Mindestens 10
+              Zeichen“ stand bis 0.17.0 im Absatz unter der ADRESSE — dort
+              gehört sie nicht hin, und wer sie dort las, hielt sie für eine
+              Vorgabe an die Adresse. */''}
+        <div class="field"><label>Neues Passwort
+          <span class="hint">(mindestens ${MIN_PASSWORT} Zeichen)</span></label>
           <input class="input" id="acc-new" type="password" autocomplete="new-password"></div>
         <div class="field"><label>Neues Passwort wiederholen</label>
           <input class="input" id="acc-new2" type="password" autocomplete="new-password"></div>
-        <p class="desc" style="margin:0 0 10px">Die Adresse ist freiwillig. Sie wird für genau
-          zwei Dinge gebraucht: den Einladungs- oder Rücksetzlink per Mail und die Testmail
-          im Mailversand. <strong>Ohne sie fehlt nichts</strong> — der Link steht wie immer
-          zum Kopieren bereit.
-          Mindestens ${MIN_PASSWORT} Zeichen. Über die
-          Oberfläche gibt es keine Wiederherstellung; vergessen heißt
-          <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>
-          auf dem Server.</p>
+        <p class="desc" style="margin:0 0 10px">${REGISTRIERUNG
+          ? `<strong>Die Adresse wird gebraucht</strong>, solange die Selbstanmeldung an ist:
+             ohne sie kommt keine Bestätigungsmail an. Sie trägt außerdem den Einladungs- oder
+             Rücksetzlink und die Testmail im Mailversand.`
+          : `Wird für den Einladungs- oder Rücksetzlink per Mail gebraucht und für die Testmail
+             im Mailversand. <strong>Ohne sie steht der Link wie immer zum Kopieren bereit.</strong>`}
+          Über die Oberfläche gibt es keine Wiederherstellung; ${EIGENTUEMER
+            ? `vergessen heißt
+               <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>
+               auf dem Server.`
+            : `wer sein Passwort vergessen hat, <strong>wendet sich an den Admin</strong>.`}</p>
         <button class="btn btn-accent btn-sm" id="acc-save">Zugang ändern</button>
 
         ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE
@@ -5816,7 +5932,7 @@ function ruesteZugangAus(geholt) {
     box.innerHTML = stand.an ? `
       <div class="zf-zustand zf-an">
         <strong>Zweiter Faktor: an</strong> — seit ${esc(String(stand.seit || '').slice(0, 10))}.
-        Beim Anmelden fragt die Anlage zusätzlich nach dem Code des zweiten Faktors.
+        Beim Anmelden fragt die Instanz zusätzlich nach dem Code des zweiten Faktors.
         <div class="zf-codestand">Wiederherstellungscodes:
           <strong>noch ${stand.codesOffen} von ${stand.codesGesamt}</strong>${stand.codesOffen <= 2
             ? ' — <strong>das wird knapp.</strong> Hol dir neue, solange du noch hereinkommst.' : ''}</div>
@@ -5827,7 +5943,7 @@ function ruesteZugangAus(geholt) {
       </div>` : `
       <div class="zf-zustand zf-aus"><strong>Zweiter Faktor: aus</strong> — zum Anmelden
         genügt dein Passwort.</div>
-      <p class="desc" style="margin:8px 0 10px">Mit zweitem Faktor fragt die Anlage beim
+      <p class="desc" style="margin:8px 0 10px">Mit zweitem Faktor fragt die Instanz beim
         Anmelden zusätzlich nach einem sechsstelligen Code aus einer App auf deinem Telefon
         (Google Authenticator, Aegis, 1Password, iOS-Passwörter). Der Code entsteht
         <strong>ohne Netz</strong> und ist alle 30 Sekunden ein anderer.
@@ -5886,7 +6002,7 @@ function ruesteZugangAus(geholt) {
     box.innerHTML = `
       <div class="warn-box zf-einrichten">
         <strong>Schritt 1 — diesen Schlüssel in deine App eintragen.</strong>
-        Er wird <strong>nur dieses eine Mal</strong> angezeigt; danach gibt ihn die Anlage
+        Er wird <strong>nur dieses eine Mal</strong> angezeigt; danach gibt ihn die Instanz
         nie wieder heraus, auch dir nicht.
         <div class="zf-schluessel" id="zf-geheim">${esc(d.gruppen)}</div>
         <div class="row-in" style="margin:8px 0 0">
@@ -5957,7 +6073,7 @@ function karteSitzungen() {
   return `<div class="sys-card">
         <h3>Meine Sitzungen</h3>
         <p class="desc">Wo dieser Zugang überall angemeldet ist. <strong>Was hier nicht
-          steht:</strong> von welchem Gerät. Die Anlage speichert weder Adresse noch
+          steht:</strong> von welchem Gerät. Die Instanz speichert weder Adresse noch
           Browserkennung — das ist so gewollt und bleibt so. Sie kann deshalb
           <strong>diese</strong> Anmeldung von <strong>allen anderen</strong> trennen, und
           mehr braucht der Knopf darunter nicht.</p>
@@ -6669,7 +6785,7 @@ function kartePapierkorb() {
           und lassen sich zurückholen; danach fallen sie heraus. Zurück kommt eine
           <strong>neue</strong> Nummer mit demselben Inhalt — Fotos, Videos, Dateien, Kommentare,
           Bewertungen und ${esc(V.zeitpunktMehrzahl)} samt ihren Verfassern.
-          ${EIGENTUEMER ? '' : 'Zurückholen und endgültig entfernen kann der Eigentümer der Anlage.'}</p>
+          ${EIGENTUEMER ? '' : 'Zurückholen und endgültig entfernen kann der Eigentümer der Instanz.'}</p>
         <div class="manage-list" id="mpapierkorb"></div>
       </div>`;
 }
@@ -6756,8 +6872,8 @@ function karteZugaenge() {
           was man eigentlich will</strong> — die Anmeldung wird abgewiesen, die Beiträge bleiben
           unangetastet stehen, und der Name bleibt vergeben.
           ${EIGENTUEMER
-            ? `Als Eigentümer der Anlage vergibst du Rollen und kommst auch an andere Admins.`
-            : `Rollen vergibt der Eigentümer der Anlage; an einen anderen Admin kommst du nicht.`}</p>
+            ? `Als Eigentümer der Instanz vergibst du Rollen und kommst auch an andere Admins.`
+            : `Rollen vergibt der Eigentümer der Instanz; an einen anderen Admin kommst du nicht.`}</p>
         <div class="manage-list" id="mzugaenge"></div>
         ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
              nichts geloescht wurde -- gefuellt wird sie von
@@ -6793,9 +6909,17 @@ function karteZugaenge() {
         </div>
         <div id="zug-link"></div>
 
+        ${/* DIESELBE KLEMME WIE IN DER KARTE „ZUGANG“, und aus demselben
+              Grund: der Befehl läuft auf dem Wirt, und dort sitzt in der Regel
+              der Eigentümer. Ein Admin, der nicht Eigentümer ist, verwaltet
+              Zugänge über diese Karte und kommt an den Server nicht heran —
+              ihm hilft der Name dessen, der es kann. */''}
         <p class="desc" style="margin:16px 0 0">Passwort vergessen und niemand kommt mehr herein?
-          Auf dem Server hilft
-          <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.</p>
+          ${EIGENTUEMER
+            ? `Auf dem Server hilft
+               <code>docker compose exec kriterion node zugang.js passwort &lt;name&gt;</code>.`
+            : `Der <strong>Eigentümer</strong> kommt am Server daran; über die Oberfläche gibt
+               es diesen Weg nicht.`}</p>
       </div>`;
 }
 function ruesteZugaengeAus() {
@@ -7148,7 +7272,7 @@ function ruesteZugaengeAus() {
     bd.innerHTML = `<div class="modal" id="grabstein-modal"><h2>Gelöschte Zugänge</h2>
       <p>Ein entfernter Zugang wird zum <strong>Grabstein</strong>: der Name ist frei geworden,
       und was er geschrieben hat, trägt seither „Gelöschter Benutzer &lt;Nummer&gt;“.
-      <strong>Der ursprüngliche Name steht hier nicht</strong> — die Anlage bewahrt ihn nirgends
+      <strong>Der ursprüngliche Name steht hier nicht</strong> — die Instanz bewahrt ihn nirgends
       auf, denn der Grabstein IST das Löschen. Zurückholen lässt sich ein Zugang nicht;
       <strong>sperren</strong> ist der umkehrbare Weg.</p>
       <div class="manage-list" id="grabsteinliste"></div>
@@ -7235,6 +7359,12 @@ function ruesteAnfragenAus(geholt) {
     try {
       const d = await api('PUT', '/api/registrierung/schalter', { an: neu });
       geholt.anfragen = d;
+      /* DER EINE MERKER ZIEHT MIT. `REGISTRIERUNG` kommt beim Start aus
+         /api/config und traegt die Anmeldeseite; seit 0.17.1 haengt auch der
+         Satz in der Karte „Zugang“ daran. Bliebe er hier stehen, saehe der
+         Admin, der eben umgelegt hat, einen Abschnitt weiter noch die alte
+         Lage -- eine zweite Wahrheit, und zwar die falsche. */
+      REGISTRIERUNG = !!d.an;
       toast(neu ? 'Selbstanmeldung eingeschaltet' : 'Selbstanmeldung ausgeschaltet');
       zeichneAnfragen(d);
       const kaputt = document.getElementById('anf-kaputt');
@@ -7320,15 +7450,15 @@ function karteProtokoll(geholt) {
   const { protokoll } = geholt;
   return `<div class="sys-card breit">
         <h3>Sicherheitsprotokoll</h3>
-        <p class="desc">Wer Zugang hatte und wer die Anlage als Ganzes angefasst hat.
+        <p class="desc">Wer Zugang hatte und wer die Instanz als Ganzes angefasst hat.
           <strong>Was hier nicht steht:</strong> was jemand geschrieben oder bewertet hat — das ist
           kein Änderungsverlauf, und das bleibt so. Ebenso wenig Adresse oder Browserkennung:
-          die Anlage speichert beides nicht.</p>
+          die Instanz speichert beides nicht.</p>
         <p class="desc">Die Zeilen bleiben <strong>${protokoll.tage} Tage</strong> stehen und werden
           danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Sicherheitsprotokoll,
           das sich wegräumen lässt, wäre keins.</p>
         ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
-             dieser Anlage -- man waehlt, bevor man liest. Gezeichnet wird sie
+             dieser Instanz -- man waehlt, bevor man liest. Gezeichnet wird sie
              aus einer geschlossenen Liste; die Auswahl geht an den Server,
              denn die Liste darunter traegt nur die hundert juengsten Zeilen. */''}
         <div class="pills" id="protokoll-filter" style="margin:0 0 12px"></div>
@@ -7596,7 +7726,7 @@ function karteMailversand(geholt) {
               Aus jedem davon ließe sich etwas ableiten, und keines hilft dem,
               der die Karte ansieht. */''}
         <p class="desc"><strong>E-Mail ist eine Bequemlichkeit, keine Voraussetzung.</strong>
-          Ohne Mailzugang läuft die Anlage vollständig — Einladungs- und Rücksetzlinks stehen
+          Ohne Mailzugang läuft die Instanz vollständig — Einladungs- und Rücksetzlinks stehen
           dann wie bisher im Verwaltungsbereich zum Kopieren. Mit Mailzugang gehen sie
           <em>zusätzlich</em> hinaus; schlägt das fehl, bricht nichts ab.</p>
         <div class="kv"><span class="k">Zustand</span><span class="v">${mailstand.eingerichtet
@@ -7615,36 +7745,55 @@ function karteMailversand(geholt) {
           und aus dem <code>Host</code>-Kopf darf er es nicht ableiten: über einen gefälschten
           Kopf ließe sich ein Rücksetzlink auf einen fremden Server umbiegen.</p>`}
 
-        <div class="field" style="margin-top:14px"><label for="mail-anbieter">Anbieter</label>
-          <select class="input" id="mail-anbieter">
-            <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
-            ${mailstand.anbieterListe.map(a => `<option value="${esc(a.schluessel)}"${
-              a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
-          </select></div>
+        ${/* ---- VIER REIHEN, UND JEDE BEANTWORTET EINE FRAGE ----
+              WER (Anbieter) · WOHIN (Server, Port, Verschlüsselung) · WOMIT
+              (Benutzername, Passwort) · ALS WER (Absenderadresse). Bis 0.17.0
+              standen sechs Felder untereinander, jedes über die volle Breite
+              einer Karte, die seit 0.16.0 `.breit` ist — ein Auswahlfeld mit
+              sechs Einträgen über neunhundert Pixel. Der Platz war da und
+              wurde nicht genutzt.
+              DIE ABSENDERADRESSE STEHT ALLEIN, und das ist der einzige Grund,
+              warum sie keine Reihe teilt: unter ihr stehen zwei eigene
+              Hinweissätze. Neben zwei anderen Feldern klebten sie unter dreien,
+              und niemand wüsste, auf welches sie sich beziehen.
+              AUF DEM TELEFON FÄLLT ALLES WIEDER UNTEREINANDER — das entscheidet
+              das Stilblatt. Eine Reihe, die auf 366 Pixeln drei Felder
+              nebeneinander zwingt, ist schlechter als die Spalte, die es
+              vorher war. */''}
+        <div class="mail-reihe mail-wer" style="margin-top:14px">
+          <div class="field"><label for="mail-anbieter">Anbieter</label>
+            <select class="input" id="mail-anbieter">
+              <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
+              ${mailstand.anbieterListe.map(a => `<option value="${esc(a.schluessel)}"${
+                a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
+            </select></div>
+        </div>
         ${/* Server, Port und Verschlüsselung stehen für die Vorlagen im
               Quelltext und werden hier nur GEZEIGT. Wechselt ein Anbieter
               morgen den Port, kommt der neue aus der Liste — eine Kopie in
               der Datenbank wäre eingefroren und liefe auseinander. Nur bei
               „Eigener Server“ sind die Felder offen. */''}
-        <div class="field"><label for="mail-server">Server</label>
-          <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
-            autocapitalize="off" spellcheck="false"></div>
-        <div class="row-in">
-          <div class="field" style="flex:1"><label for="mail-port">Port</label>
+        <div class="mail-reihe mail-wohin">
+          <div class="field"><label for="mail-server">Server</label>
+            <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
+              autocapitalize="off" spellcheck="false"></div>
+          <div class="field"><label for="mail-port">Port</label>
             <input class="input" id="mail-port" type="number" min="1" max="65535"
               value="${mailstand.port || ''}"></div>
-          <div class="field" style="flex:1"><label for="mail-sicher">Verschlüsselung</label>
+          <div class="field"><label for="mail-sicher">Verschlüsselung</label>
             <select class="input" id="mail-sicher">
               <option value="starttls"${mailstand.sicher ? '' : ' selected'}>STARTTLS (meist 587)</option>
               <option value="tls"${mailstand.sicher ? ' selected' : ''}>TLS von Anfang an (meist 465)</option>
             </select></div>
         </div>
-        <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
-          <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
-            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-        <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
-          <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
-            placeholder="${mailstand.passwortGesetzt ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
+        <div class="mail-reihe mail-womit">
+          <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
+            <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
+              autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+          <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
+            <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
+              placeholder="${mailstand.passwortGesetzt ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
+        </div>
         <div class="field"><label for="mail-absender">Absenderadresse</label>
           <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
             autocomplete="off" autocapitalize="off" spellcheck="false"></div>
@@ -7678,7 +7827,7 @@ function ruesteMailversandAus(geholt) {
     const feld = (id) => document.getElementById('mail-' + id);
     /* SERVER, PORT UND VERSCHLUESSELUNG GEHOEREN DER VORLAGE, ausser bei
        "eigen". Sie werden gesperrt und nicht versteckt: wer GMX gewaehlt hat,
-       soll SEHEN, wohin die Anlage schickt -- ein leeres Feld waere eine
+       soll SEHEN, wohin die Instanz schickt -- ein leeres Feld waere eine
        Auskunft weniger, kein Schutz mehr. */
     const nachVorlage = () => {
       const eigen = mailAnbieter.value === 'eigen';
@@ -7713,7 +7862,7 @@ function ruesteMailversandAus(geholt) {
         absender: feld('absender').value.trim()
       };
       if (!await zweiteBestaetigung('mail', null, 'Mailzugang setzen',
-        'Über diesen Server läuft künftig JEDE Mail dieser Anlage — auch jeder ' +
+        'Über diesen Server läuft künftig JEDE Mail dieser Instanz — auch jeder ' +
         'Link, der ein Passwort setzt.')) return;
       try {
         await api('PUT', '/api/mail', koerper);
@@ -7768,7 +7917,7 @@ function karteKennzahlen(geholt) {
         <div class="kv"><span class="k">Datenbank</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
         ${/* DIE ZWEITE GROESSENANGABE, und sie beantwortet eine andere Frage als
              die Zeile darueber. Die Datenbankgroesse sagt, wie viel Platz die
-             Anlage auf der Platte braucht; sie traegt Indizes, das
+             Instanz auf der Platte braucht; sie traegt Indizes, das
              Sicherheitsprotokoll und freie Seiten aus Geloeschtem. Die
              Exportgroesse sagt, wie gross die Datei wird, die das Haus
              verlaesst -- Base64 statt Bytes, dafuer ohne alles, was nicht
@@ -7801,7 +7950,7 @@ function karteKennzahlen(geholt) {
         ${/* ---- DIE VERFAHREN ----
              AUS DEM BETRIEB: „was benutzt ihr eigentlich?" Die Antwort stand
              im Quelltext und sonst nirgends. Sie gehoert hierher, denn wer
-             eine Anlage selbst betreibt, traegt auch die Entscheidung, ob ihm
+             eine Instanz selbst betreibt, traegt auch die Entscheidung, ob ihm
              die Verfahren genuegen.
              VERFAHREN JA, PAKETVERSIONEN NEIN. Ein Verfahrensname sagt, WIE
              gerechnet wird; eine Bibliotheksversion sagt, WELCHE Luecke passt.
@@ -7887,13 +8036,13 @@ function ruesteSicherungAus(geholt) {
 
     /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt,
        öffnen sich die Kopien von vorher nur noch mit dem ALTEN. Sie sind nicht
-       kaputt; sie brauchen einen anderen Schlüssel als die laufende Anlage.
+       kaputt; sie brauchen einen anderen Schlüssel als die laufende Instanz.
        DER KASTEN STEHT NUR DA, WENN ER ETWAS ZU SAGEN HAT: ohne Wechsel gibt
        es keine zwei Schlüssel, und eine Warnung, die immer dasteht, liest
        niemand mehr.
        DIE SCHÄRFSTE LAGE BEKOMMT DEN SCHÄRFSTEN SATZ: ist auch die JÜNGSTE
        Kopie älter als der Wechsel, gibt es überhaupt keine, die zur laufenden
-       Anlage passt. Das ist etwas anderes als „ein paar alte liegen daneben".
+       Instanz passt. Das ist etwas anderes als „ein paar alte liegen daneben".
        WO DER ALTE WERT LIEGT, HÄNGT VOM FALL AB — in der `.env` nur dann, wenn
        er von dort kam; im Dateifall steht er nach dem Wechsel nirgends mehr.
        Die Karte weiß das nicht sicher und behauptet es deshalb nicht: sie
@@ -7906,7 +8055,7 @@ function ruesteSicherungAus(geholt) {
              Schlüssel — <code>./schluessel.sh</code> hat ihn beim Wechsel genannt und, wenn er aus
              der <code>.env</code> kam, dort auskommentiert stehen lassen.
              <strong>Sicher jetzt neu</strong>, dann liegt wieder eine Kopie da, die zur laufenden
-             Anlage gehört.</div>`
+             Instanz gehört.</div>`
         : (d.veraltet
           ? `<div class="warn-box" style="margin:0 0 12px"><strong>${d.veraltet} ${d.veraltet === 1
                ? 'Kopie stammt' : 'Kopien stammen'} von vor dem Schlüsselwechsel</strong>
@@ -7948,7 +8097,7 @@ function ruesteSicherungAus(geholt) {
       ${stand}
       ${wechsel}
       <p class="desc" style="margin:0 0 10px">Während die Kopie entsteht, <strong>steht die
-        Anlage still</strong> — bei ${fmtBytes(d.dbBytes)} sind das etwa
+        Instanz still</strong> — bei ${fmtBytes(d.dbBytes)} sind das etwa
         ${d.dauerSekunden} Sekunden.</p>
       <button class="btn btn-accent btn-sm" id="sich-los">Jetzt sichern</button>`;
 
@@ -7967,7 +8116,7 @@ function ruesteSicherungAus(geholt) {
       } catch (e) { toast(e.message, true); }
     };
     /* Der Knopf sperrt sich selbst, solange die Kopie entsteht: VACUUM INTO
-       laeuft synchron, die Anlage steht so lange still, und ein zweiter Klick
+       laeuft synchron, die Instanz steht so lange still, und ein zweiter Klick
        stellte sich nur in die Schlange. */
     document.getElementById('sich-los').onclick = async (e) => {
       const knopf = e.currentTarget;
@@ -8026,7 +8175,7 @@ function karteExport(geholt) {
         ${/* DER HINWEIS STEHT VOR DEM KNOPF UND NICHT HINTER DEM ABBRUCH. Ein
              Export, der nach zwei Minuten mit einem Speicherfehler aufgibt,
              sieht aus wie ein kaputtes Programm; er ist aber eine erreichte
-             Grenze, und der Unterschied liegt allein darin, ob die Anlage es
+             Grenze, und der Unterschied liegt allein darin, ob die Instanz es
              vorher sagt.
              GEWARNT WIRD, VERWEIGERT NICHT. Die Zahl ist eine Schaetzung, und
              eine Schaetzung darf niemandem den Export wegnehmen, dessen Datei
@@ -8038,7 +8187,7 @@ function karteExport(geholt) {
              Datentraeger bringen oder durch eine Hochladegrenze schieben will,
              braucht sie auch unterhalb des Schwellwerts.
              DIE TEILGROESSE IST WAEHLBAR, NACH OBEN ABER GEDECKELT: oberhalb
-             des Warnwerts baute die Anlage Teile, vor denen sie im selben
+             des Warnwerts baute die Instanz Teile, vor denen sie im selben
              Atemzug warnt. */''}
         <div class="ex-teile">
           <div class="row-in" style="align-items:baseline">
@@ -8206,7 +8355,7 @@ function ruesteExportAus(geholt) {
            wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
            Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
       <p class="hint hint-sm" style="margin:10px 2px 6px">Ein Export nimmt den Bestand
-        mit aus dem Haus. Deshalb fragt die Anlage einmal nach deinem Passwort${ZWEIFAKTOR
+        mit aus dem Haus. Deshalb fragt die Instanz einmal nach deinem Passwort${ZWEIFAKTOR
           ? ' und dem Code deines zweiten Faktors' : ''} — danach lädst du jeden Teil selbst.</p>
       <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
         Einmal bestätigen, dann ${n === 1 ? 'den Teil' : `alle ${n} Teile`} laden</button></div>
