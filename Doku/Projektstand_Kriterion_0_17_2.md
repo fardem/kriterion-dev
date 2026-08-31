@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 41 · Stand 30. August 2026 · gebaut: Version 0.17.1**
+**Kompakte Übergabe · Revision 42 · Stand 31. August 2026 · gebaut: Version 0.17.2**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,19 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.17.2 in einem Satz: der Deckel und die eigene Hand.** *PATCH — die Instanz
+kann danach nichts, was sie vorher nicht konnte; sie sagt an zwei Stellen
+weniger.* **Sechs Handgriffe aus dem Rundlauf mit 0.17.1, zwei davon Nacharbeit
+an 0.17.1 selbst.** Der schwerste: **die Listen bekommen einen Deckel, der
+mitgeht** — zwölf Zeilen als **Forderung** in `flex-basis`, nicht als Grenze in
+`max-height`, damit der Platz einer höheren Nachbarkachel nicht leer bleibt.
+**Und die Glocke meldet die eigene Hand nicht mehr** — die zweite Wende an
+dieser Entscheidung, beide Vermerke bleiben stehen. **Die README hat sechs
+Versionsnummern statt siebenundvierzig**: die Nummer bleibt, wo sie eine
+Handlung bestimmt. **Keine Datenbankstufe** — Austauschformat unverändert
+**11**, `F_ROUTEN` unverändert **69**. *Alles Weitere in Abschnitt 2 und
+Abschnitt 9.*
 
 **0.17.1 in einem Satz: was der Benutzer sieht.** *PATCH — die Instanz kann
 danach nichts, was sie vorher nicht konnte.* **Sechs Handgriffe aus einem
@@ -169,54 +182,62 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.17.1** — Fingerprint **`1775fcd4`**, **4715
-Prüfungen**, **353 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
-(Abschnitt 8). *0.17.1 bringt den Text im Kachel „Zugang" in Ordnung, gibt den
-Listen die Höhe, die ihre Kachel hergibt, ordnet den Mailversand in vier
-Reihen, stellt die beiden Zeitangaben einer Anmeldung untereinander,
-**benennt „Anlage" in „Instanz" um** — und behebt den einen echten Fehler:
-**das Video fing im Vollbild ein zweites Mal an.*** **PATCH — die Instanz kann
-danach nichts, was sie vorher nicht konnte.**
+**Gebaut ist 0.17.2** — Fingerprint **`edbd76b6`**, **4747
+Prüfungen**, **368 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
+(Abschnitt 8). *0.17.2 stellt die Anmeldezeile in zwei Reihen, gibt den Listen
+einen **Deckel, der mitgeht**, ordnet den Mailversand zu Ende, setzt die
+Klammer hinter dem Schnitt erst ab zwei Stimmen, nimmt der Glocke die eigene
+Hand und räumt die Versionsgeschichte aus der README.* **PATCH — die Instanz
+kann danach nichts, was sie vorher nicht konnte; sie sagt an zwei Stellen
+weniger.**
 
-> **IM FELD BESTÄTIGT AM 31. AUGUST 2026: die laufende Instanz meldet
-> `1775fcd4`.** *Der Fingerprint stimmt mit dem gebauten Stand überein; auf dem
-> Wirt liegt keine Datei, die kein Commit trägt (Stolperstein 158).* **Vier der
-> sechs Punkte sind am Bildschirm nachgesehen** — Zugangstext, Mailversand,
-> Umbenennung, Sitzungszeile; die Einzelheiten stehen im Änderungsprotokoll
-> 0.17.1. **Zwei Befunde kamen aus demselben Blick und sind als 0.17.2
-> beauftragt** (Abschnitt 10a): der abgeschnittene Name in der Anmeldezeile und
-> die Listen ohne Deckel.
-> **DIE DREI HANDGRIFFE ZU 0.17.0 STEHEN WEITERHIN AUS** (Abschnitt 8).
+> **ZWEI DER SECHS PUNKTE SIND NACHARBEIT AN 0.17.1.** Punkt 2 jener Runde
+> hatte die feste Höhe der Listen gestrichen, **ohne etwas an ihre Stelle zu
+> setzen** — die Tagliste zog den Abschnitt „Bestand" auf fünfzig Zeilen, und
+> daneben standen vier leere Kacheln. Und die Anmeldezeile stellte die Zeiten
+> untereinander, ließ den Namen aber daneben, wo er auf dem Telefon zu Punkten
+> gekürzt wurde. *Beides ist kein neuer Befund, sondern eine Regel, die zu weit
+> ging.*
 
 > **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
 > neue Formatnummer: es bleibt bei **sieben** markierten Blöcken und bei
-> **Austauschformat 11**. Kein einziger der sechs Punkte fasst Daten an.
-> **DIE SICHERUNG DES DATENVERZEICHNISSES IST DESHALB EMPFEHLUNG UND NICHT
-> PFLICHT.** *Bei 0.16.0 war sie Pflicht, und zwar wegen des siebten
-> Migrationsblocks — den gibt es hier nicht. Der Unterschied gehört benannt,
-> sonst liest ein Betreiber über beides hinweg.*
-> **Keine neue Zeile in der `.env`, keine neue Abhängigkeit, `F_ROUTEN`
-> unverändert bei 69, achtzehn Karten in fünf Abschnitten, acht persönliche
-> Schlüssel** — nachgezählt und nicht angenommen.
+> **Austauschformat 11**. **Die Sicherung des Datenverzeichnisses ist deshalb
+> Empfehlung und nicht Pflicht.** *Keine neue Zeile in der `.env`, keine neue
+> Abhängigkeit, `F_ROUTEN` unverändert bei 69, achtzehn Karten in fünf
+> Abschnitten, acht persönliche Schlüssel.*
 
-> **AUS „ANLAGE" WIRD „INSTANZ", UND EINE ADRESSE ÄNDERT SICH DABEI.** Der
-> fünfte Abschnitt des Systembereichs heißt jetzt **Instanz** und liegt unter
-> `#/system/instanz`. **Die alte Adresse `#/system/anlage` wird still
-> übersetzt, nicht abgewiesen** — sie steht in Lesezeichen und in älteren
-> Papieren, und ein Link, der ins Leere führt, ist eine Mitteilung ohne Weg.
-> *Die Übersetzung ist eine Tafel (`SYS_ALTE_ABSCHNITTE`) und keine
-> Verzweigung; dieselbe Bauform wie `delete f.neu` in 0.17.0.*
-> **WAS NICHT UMBENANNT WURDE:** die abgeschlossenen Änderungsprotokolle, die
-> CHANGELOG-Einträge bis einschließlich 0.17.0, das Konzept- und das
-> Videopapier — und **fünf falsche Freunde, die ANHÄNGE meinen**: die drei
-> Stellen in `anhaenge.js`, `Anlagenbytes` in `server.js` und die
-> `Anlagen-Antwort` in README und hier.
+> **DIE GLOCKE MELDET DIE EIGENE HAND NICHT MEHR — und wer allein arbeitet,
+> sieht sie deshalb nie läuten.** Das ist die gewollte Folge und gehört einem
+> Betreiber gesagt, bevor er sie für kaputt hält. *Der Bezugspunkt wird
+> trotzdem weiter gesetzt; sonst staute sich beim ersten fremden Beitrag alles
+> seit Wochen auf.*
 
-**Was 0.17.1 für den Betrieb bedeutet: einspielen, fertig.** Keine
+**Was 0.17.2 für den Betrieb bedeutet: einspielen, fertig.** Keine
 Datenbankstufe, keine Sicherungspflicht, keine `.env`-Zeile, niemand wird
-abgemeldet, **keine Zeile im Protokoll** — diese Version hat keinen
-Migrationsblock. *Ein Lesezeichen auf `#/system/anlage` bleibt gültig und wird
-auf `#/system/instanz` nachgezogen.*
+abgemeldet, **keine Zeile im Protokoll**.
+
+*Davor, am 30. August:* **Die Blöcke ab hier gehören 0.17.1 und den Runden
+davor.**
+
+> **DIE VORHERIGE ZEILE, ZUM VERGLEICH: 0.17.1** — Fingerprint **`1775fcd4`**,
+> **4715 Prüfungen**, 353 Rückbauten. *PATCH, ebenfalls keine Datenbankstufe:
+> der Text im Kachel „Zugang", die Höhe der Listen, der Mailversand in vier
+> Reihen, die Zeitangaben einer Anmeldung, **„Anlage" wird „Instanz"** — und
+> der eine echte Fehler: das Video fing im Vollbild ein zweites Mal an.*
+> **IM FELD BESTÄTIGT AM 31. AUGUST 2026: die laufende Instanz meldete
+> `1775fcd4`** (Stolperstein 158).
+
+> **EIN LESEZEICHEN AUF `#/system/anlage` BLEIBT GÜLTIG.** Der fünfte Abschnitt
+> des Systembereichs heißt seit 0.17.1 **Instanz** und liegt unter
+> `#/system/instanz`; **die alte Adresse wird still übersetzt, nicht
+> abgewiesen** — sie steht in Lesezeichen und in älteren Papieren, und ein
+> Link, der ins Leere führt, ist eine Mitteilung ohne Weg. *Die Übersetzung ist
+> eine Tafel (`SYS_ALTE_ABSCHNITTE`) und keine Verzweigung.*
+> **NICHT UMBENANNT SIND:** die abgeschlossenen Änderungsprotokolle, die
+> CHANGELOG-Einträge bis einschließlich 0.17.0, das Konzept- und das
+> Videopapier — und **fünf falsche Freunde, die ANHÄNGE meinen**.
+
+> **DIE DREI HANDGRIFFE ZU 0.17.0 STEHEN WEITERHIN AUS** (Abschnitt 8).
 
 *Davor, am 30. August:* **Die Blöcke ab hier gehören 0.17.0 und den Runden
 davor.**
@@ -237,15 +258,16 @@ davor.**
 > *Nachgezählt, nicht angenommen — der Auftrag nannte die Möglichkeit,
 > entschieden hat die Liste in `server.js`.*
 
-> **DIE GLOCKE MELDET SEIT 0.17.0 VON ALLEN, die eigenen Beiträge
-> eingeschlossen.**
-> Der Satz aus 0.16.0 — *„Eigene Beiträge stehen nie hier"* — **ist damit
-> zurückgenommen**, und dieser Vermerk gehört dazu, denn eine zurückgenommene
-> Entscheidung kommt sonst wieder (Stolperstein 201). *Der Grund ist der
-> Betreiber, der **allein** arbeitet: ihm meldete eine Glocke, die nur Fremdes
-> zeigt, nie etwas — und die Pille, die ihm die Auskunft gab, fällt in
-> derselben Runde weg.* **Eine Regel statt zwei; eine Ausnahme für den Fall
-> „ein Zugang" wäre selbst wieder eine zweite Wahrheit.**
+> **DIE GLOCKE MELDETE VON 0.17.0 BIS 0.17.1 VON ALLEN, die eigenen Beiträge
+> eingeschlossen — DAS IST MIT 0.17.2 ZURÜCKGENOMMEN.** *Der Grund damals war
+> der Betreiber, der **allein** arbeitet: ihm meldete eine Glocke, die nur
+> Fremdes zeigt, nie etwas, und die Pille, die ihm die Auskunft gab, fiel in
+> derselben Runde weg.* **Die Antwort war die falsche.** Eine Glocke ist eine
+> Nachricht von jemand anderem; wer allein arbeitet, hat nichts, wovon ihm
+> jemand berichten müsste. *Beide Vermerke bleiben stehen, denn eine
+> zurückgenommene Entscheidung kommt sonst wieder (Stolperstein 201) — und
+> diese ist zweimal gewendet worden: 0.16.0 schloss aus, 0.17.0 nahm dazu,
+> 0.17.2 stellt 0.16.0 wieder her.*
 
 > **UND EINE ABWEICHUNG VOM AUFTRAG, WEIL SIE EINE STEHENDE ENTSCHEIDUNG
 > SCHÜTZT.** Der Auftrag verlangt, die Tafel sage bei jeder Zeile dazu, **von
@@ -545,7 +567,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.1** | **`1775fcd4`** *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4715 |
+| **0.17.2** | **`edbd76b6`** *(im Feld noch nicht bestätigt)* | 4747 |
+| 0.17.1 | `1775fcd4` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4715 |
 | 0.17.0 | `1b6bb5d2` | 4630 |
 | 0.16.0 | `aa76c352` | 4523 |
 | 0.15.1 | `d02260bd` | 4366 |
@@ -2166,6 +2189,15 @@ Satz „es wird nicht mehr angefasst" aus früheren Revisionen ist damit
 eingelöst — nicht dadurch, dass niemand hineinsieht, sondern dadurch, dass
 nichts mehr darin steht, was jemand nachziehen müsste.
 
+**UND DIE README ERZÄHLT KEINE VERSIONSGESCHICHTE** (seit 0.17.2). Sie ist die
+**Bedienung und der Betrieb** und spricht mit dem, der Kriterion zum ersten Mal
+sieht. *Eine Nummer darin bleibt nur, wo sie eine **Handlung** bestimmt — die
+Sicherungspflicht vor einer Datenbankstufe, die älteste noch lesbare Datenbank,
+eine wörtlich zitierte Protokollzeile.* **Wo sie nur sagt, seit wann etwas gilt,
+geht sie:** das steht in Abschnitt 9 dieses Blattes und im Änderungsprotokoll
+der Runde. *Sechs Nennungen sind übrig, und ein Wächter hält die Zahl fest —
+dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
+
 ### 5.2 Rollen, Rechte und Zugänge
 
 - **Drei Rollen als Leiter, nicht zwei plus ein Bit** (seit 0.8.0).
@@ -3014,8 +3046,16 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   Sterne sind die eigene Bewertung, nie der Schnitt. Zeigten sie den Schnitt,
   spränge die Anzeige nach einem Klick auf den vierten Stern auf 3,6. Der
   Schnitt steht gedämpft rechts daneben, zusammen mit der **Zahl der Bewerter**:
-  4,8 aus einer Stimme heißt etwas anderes als 4,8 aus zwanzig. *Verworfen:*
+  4,8 aus zwei Stimmen heißt etwas anderes als 4,8 aus zwanzig. *Verworfen:*
   Schnitt in den Sternen mit dem eigenen Wert in Klammern.
+  **Die Klammer steht dabei erst ab ZWEI Stimmen** (seit 0.17.2). *„⌀ 4,8 (1)"
+  beantwortet keine Frage: die Klammer sagt, wie schwer der Schnitt wiegt, und
+  bei einer einzigen Stimme gibt es diese Frage nicht — dass jemand bewertet
+  hat, sagt schon der Schnitt daneben.* **Der Klartext beim Überfahren bleibt
+  vollständig**, in Ein- und Mehrzahl: er ist die Auskunft für den, der sie
+  braucht, und ein Vorleseprogramm liest kein ⌀. *Dieselbe Regel wie die
+  fehlende Null am Knopf „Offen" und in der Glockentafel: keine Angabe über
+  nichts.*
 - **Die Sterne zeigen die eigene Zeile, der Schnitt bleibt über alle** (seit
   0.6.3). `it.ratings` filtert auf den Benutzer — ohne das vervielfacht der
   `LEFT JOIN` das Kriterium. Testkennzahlen und `usage_count` rechnen weiter
@@ -3136,6 +3176,41 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
 > worden**; sie stehen mit Zeilennummer und Wortlaut im Änderungsprotokoll
 > 0.17.0 und als Zeile im Sammelblatt, Teil II. *Der Auftrag verlangte
 > ausdrücklich nachsehen und aufschreiben, nicht beheben.*
+
+**MIT 0.17.2 IST EINE DRITTE STELLE GESTRICHEN WORDEN** — die Begründung unter
+der Testmail, warum es kein Adressfeld daneben gibt (*„ein Knopf, der an eine
+beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer
+Anmeldung"*). **Sie steht in der README.** *Was die Testmail **tut**, steht
+weiterhin in der Karte: sie geht ausschließlich an die Adresse des eigenen
+Zugangs — das ist eine Folge, die man kennen muss, und fällt nach dem Absatz
+darüber nicht unter die Regel.*
+
+#### Und ein Handbuch sagt, WAS IST — nicht, seit wann
+
+*(seit 0.17.2 — dieselbe Regel, eine Ebene höher.)*
+
+**Die README trug siebenundvierzig Versionsnummern**, und die meisten sagten
+nur, WANN etwas entstanden ist: *„seit 0.13.0", „bis 0.12.4 stand hier ein
+Handgriff", „die Pille ist mit 0.17.0 weggefallen".* **Wer die Anwendung zum
+ersten Mal aufmacht, kannte 0.12.4 nie** — für ihn ist das eine Auskunft über
+nichts, und sie steht mitten in dem Satz, den er wirklich braucht.
+
+> **DIE TRENNLINIE IST NICHT „KEINE NUMMER", SONDERN: die Nummer bleibt, wo sie
+> eine HANDLUNG bestimmt — und geht, wo sie nur erzählt.**
+
+| bleibt | geht |
+|---|---|
+| *„Wer von einer Fassung vor 0.14.0 kommt, sichert pflichtgemäß"* — sie sagt, **was zu tun ist** | *„Beide Wege zugleich — seit 0.13.0"* |
+| *„Vorausgesetzt wird eine Datenbank aus Version 0.8.0 oder neuer"* — sie sagt, **was geht und was nicht** | *„Bis 0.12.4 hingen drei weitere Dinge an dieser Einstellung"* |
+| eine **wörtlich zitierte** Protokollzeile *„(Migration auf 0.14.0)"* | *„Einen Filter „Neu seit …" gibt es seit 0.17.0 nicht mehr"* — **er ist einfach weg** |
+
+**Sechs Nennungen sind übrig, und ein Wächter hält die Zahl fest** — dieselbe
+Bauform wie `F_ROUTEN`: *eine Menge bliebe grün, wenn jemand zwanzig neue „seit
+0.14.0" ergänzte* (Stolperstein 243).
+
+**DIE VERSIONSGESCHICHTE IST DAMIT NICHT GESTRICHEN.** Sie steht in Abschnitt 9
+dieses Blattes und in den Änderungsprotokollen — *also dort, wo sie jemand
+sucht, und nicht dort, wo sie jemanden aufhält.*
 
 #### Farbe und Marke
 
@@ -3464,13 +3539,21 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
   Stelle** — für den Punkt an der Glocke und für die Reihenfolge der Tafel.
   *Sortiert wird nach der Summe: ein Eintrag mit vier neuen Bewertungen stünde
   sonst unter einem mit einem Kommentar.*
-- **SIE MELDET VON ALLEN, die eigenen Beiträge eingeschlossen** *(seit
-  0.17.0)*. Bis 0.16.0 fielen die eigenen heraus, und der Satz „Eigene Beiträge
-  stehen nie hier" stand in der Tafel. **Er ist zurückgenommen** — bei einem
-  einzigen Zugang meldete die Glocke sonst nie etwas, und die Pille, die dort
-  die Auskunft trug, ist mit derselben Runde gestrichen. *Eine Regel statt
-  zwei: eine Sonderbehandlung für den Fall „ein Zugang" wäre selbst wieder eine
-  zweite Wahrheit.*
+- **SIE MELDET NUR FREMDE BEITRÄGE — die eigene Hand zählt nicht** *(seit
+  0.17.2, und das ist die **zweite Wende** an dieser Entscheidung)*. **0.16.0**
+  schloss die eigenen aus; **0.17.0** nahm das zurück, weil eine Glocke, die
+  nur Fremdes zeigt, bei einem einzigen Zugang nie etwas meldet und die Pille,
+  die dort die Auskunft trug, in derselben Runde gestrichen wurde; **0.17.2**
+  stellt 0.16.0 wieder her. *Beide Vermerke bleiben stehen — eine
+  zurückgenommene Entscheidung kommt sonst wieder (Stolperstein 201).*
+  **Eine Glocke ist eine Nachricht von jemand anderem; über die eigene Hand
+  braucht niemand eine.** *Die Folge ist gewollt und gehört ausgesprochen: bei
+  genau einem Zugang bleibt sie still. Wer allein arbeitet, hat nichts, wovon
+  ihm jemand berichten müsste.*
+  **`user_id IS NOT ?` und nicht `!= ?`:** eine herrenlose Zeile trägt `NULL`,
+  und `NULL != 1` ist in SQL nicht wahr, sondern NULL (Stolperstein 242).
+  *Der Bezugspunkt wird trotzdem weiter gesetzt — sonst staute sich beim ersten
+  fremden Beitrag alles seit Wochen auf.*
 - **DIE NAMEN KOMMEN NUR AUS DEN KOMMENTAREN.** *Wer welche Bewertung abgegeben
   hat, ist eine Angabe über einzelne Personen* — die Liste „Wer hat bewertet"
   sieht seit jeher nur der Admin, und die Tafel gibt davon nichts preis
@@ -3556,6 +3639,21 @@ ist die Frage, die der Satz beantwortet: „was passiert, wenn ich das tue" ja �
   machte die Zurück-Taste unbrauchbar). **Der zuletzt offene Abschnitt wird
   nicht gemerkt:** die Adresse tut es schon, ein Merker daneben wäre eine
   zweite Wahrheit.
+- **Eine Liste in einer Karte fordert zwölf Zeilen und deckelt nicht bei
+  zwölf** (seit 0.17.2). *0.17.1 hatte die feste Höhe gestrichen, ohne etwas an
+  ihre Stelle zu setzen; die Tagliste zog den Abschnitt „Bestand" auf fünfzig
+  Zeilen auseinander, und daneben standen vier leere Kacheln.* **Der Deckel
+  steht deshalb in `flex-basis` und nicht in `max-height`:** eine feste Zahl
+  dort klemmt **beides** — was die Liste fordert UND wie hoch sie werden darf —,
+  und der Platz einer höheren Nachbarkachel bliebe leer. **`max-height:
+  max-content` ist die Zeile, die einer kurzen Liste ihre zwölf Zeilen wieder
+  wegnimmt**, `min-height: 0` die, ohne die ein Flexkind wächst statt zu rollen
+  (Stolperstein 237). *In `rem` und nicht in Pixeln: die Oberfläche stellt ihre
+  Schrift von 80 bis 120 Prozent.* **Auf dem Telefon ist der Deckel wieder eine
+  Grenze und keine Forderung** — dort steht jede Kachel allein in ihrer Zeile,
+  es gibt keine Nachbarin, deren Höhe eine Liste mitnehmen könnte.
+  **Die eine Ausnahme ist `#ex-teil-liste`**, und ihr Grund steht als Satz
+  daneben: sie steht mitten in ihrer Karte und schöbe den Import aus dem Blick.
 - **Die Reiter sind Links und keine Knöpfe** (seit 0.16.0). Ein Reiter mit
   Adresse lässt sich kopieren, in einem neuen Fenster öffnen und mit der
   Zurück-Taste verlassen — ein Knopf könnte davon nichts. *Auf dem Telefon wird
@@ -5858,6 +5956,45 @@ Version, in der sie entstanden sind.*
     (Stolperstein 47)* — **die richtige ist, den einen Merker dort
     nachzuziehen, wo sich sein Gegenstand ändert.**
 
+242. **`!=` und `IS NOT` sind in SQL nicht dasselbe, und der Unterschied fällt
+    genau an den Zeilen auf, die niemandem mehr gehören.** Die Glocke schließt
+    seit 0.17.2 die eigene Hand aus. `WHERE user_id != ?` liest sich richtig
+    und ist es nicht: **eine herrenlose Zeile trägt `user_id` NULL, und
+    `NULL != 1` ist in SQL nicht wahr, sondern NULL** — die Zeile fällt still
+    aus dem Ergebnis. *Ein Kommentar, dessen Verfasser entfernt wurde, wäre
+    damit unsichtbar geworden, und zwar ohne jede Fehlermeldung.* **`IS NOT ?`
+    vergleicht auch gegen NULL** und ist hier die einzige richtige Form.
+    **Wo eine Spalte NULL tragen darf, ist jeder Vergleich mit `=` oder `!=`
+    eine Entscheidung und keine Selbstverständlichkeit.**
+
+243. **Ein Handbuch sagt, WAS IST — nicht, seit wann.** Abschnitt 5.6 gilt für
+    die Oberfläche; für die README gilt er genauso. Sie trug
+    **siebenundvierzig** Versionsnummern, und die meisten sagten nur, wann
+    etwas entstanden ist: *„seit 0.13.0", „bis 0.12.4 stand hier ein
+    Handgriff".* **Wer die Anwendung zum ersten Mal aufmacht, kannte 0.12.4
+    nie** — für ihn ist das eine Auskunft über nichts, und sie steht mitten in
+    dem Satz, den er wirklich braucht. **Die Trennlinie ist nicht „keine
+    Nummer", sondern: sie bleibt, wo sie eine HANDLUNG bestimmt** (die
+    Sicherungspflicht vor einer Datenbankstufe, die älteste noch lesbare
+    Datenbank, eine wörtlich zitierte Protokollzeile) **— und geht, wo sie nur
+    erzählt.** *Die Geschichte ist damit nicht weg: sie steht in Abschnitt 9
+    und in den Änderungsprotokollen, also dort, wo sie jemand sucht.*
+    **Und die Zahl wird festgehalten wie `F_ROUTEN`** — eine Menge bliebe grün,
+    wenn jemand zwanzig neue „seit 0.14.0" ergänzte.
+
+244. **Eine Zusage, die eine spätere Runde umdreht, muss auch in der PRÜFLAGE
+    umgedreht werden — sonst hält der Prüfstand die zurückgenommene
+    Entscheidung am Leben.** Die Glockengruppen prüften die Oberfläche gegen
+    einen **gestellten** Server: dort stand der eigene Name in der Tafel, weil
+    die Prüflage ihn hineinschrieb. **Der Umbau am Server allein macht so eine
+    Gruppe nicht rot** — sie blieb grün und behauptete weiter das Gegenteil der
+    neuen Zusage. *Der Befund ist beim Nachlesen aufgefallen und nicht beim
+    Laufen; ein grüner Lauf ist kein Beleg dafür, dass die Prüflagen noch
+    dasselbe meinen wie der Quelltext.* **Nach jeder Umkehr wird die Prüflage
+    danebengelegt**, und der eigene Name bleibt in der Tabelle stehen — er
+    belegt seither seine **Abwesenheit** statt seines Daseins (Stolperstein
+    201).
+
 ---
 
 ## 7. Prüfstand
@@ -5871,10 +6008,30 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4715 von 4715 bestanden** (0.17.1) — **85 neue Prüfungen netto**,
-davon 83 in **sechs** neuen Gruppen; 0.17.0 davor brachte 107, davon 59 in vier.
-Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **353** Rückbauten.
+**Stand: 4747 von 4747 bestanden** (0.17.2) — **32 neue Prüfungen netto**;
+0.17.1 davor brachte 85, davon 83 in sechs neuen Gruppen. Die Gegenproben
+stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und
+**nicht** der volle Lauf über alle **368** Rückbauten.
+
+| Gruppe | vorher | nachher | wofür |
+|---|---|---|---|
+| **Die Klammer steht erst ab zwei Stimmen — 0.17.2** *(neu)* | — | **8** | die Klammer ab zwei Stimmen, die Verneinung über **alle** Zeilen, der Klartext in Ein- und Mehrzahl |
+| Der Sprachwaechter | 16 | **24** | der Wächter über die Versionsnummern in der README — die drei, die bleiben, die Verneinung über alle anderen, die Zahl selbst und zwei Gegenproben am Wächter |
+| Der Mailversand ordnet sich — 0.17.1 | 14 | **20** | fünf Reihen, „als wer" und „tun" mit ihrem Satz **daneben**, die drei Regeln im Stilblatt, der gestrichene Satz |
+| Die Liste bekommt die Hoehe der Kachel — 0.17.1 | 17 | **21** | der Deckel als **Forderung** in `flex-basis`, `max-height: max-content`, die Telefonregel als Grenze |
+| Die Glocke in der Kopfzeile | 51 | **53** | der Einleitungssatz der Tafel, die **stille** Glocke bei einem einzigen Zugang, der eigene Name in keiner Zeile |
+| Die Glocke: was mit der Liste mitreist | 25 | **27** | die eigene **Bewertung** zählt nicht mit — und für einen anderen Zugang sehr wohl |
+| Die Zeitangaben stehen untereinander — 0.17.1 | 6 | **7** | der Name in seiner eigenen Reihe, das Raster mit nur noch zwei Spalten |
+| Zwei Masse vom echten Geraet — 0.17.0 | 16 | **17** | die Zusage zum Rahmen der eigenen Anmeldung liest jetzt das **globale** Raster |
+| **zusammen** | | | **+32** |
+
+> **KEINE EINZIGE GRUPPE IST GESCHRUMPFT.** *Die Zusagen der Glocke sind
+> **umgedreht** und nicht gelöscht worden (Stolperstein 201): der eigene Name
+> steht weiter in der Prüftabelle — er belegt seit dieser Runde seine
+> **Abwesenheit** statt seines Daseins.*
+
+**Und die Runde davor, zum Vergleich — 0.17.1 brachte 85 netto, davon 83 in
+sechs neuen Gruppen:**
 
 | neue Gruppe (0.17.1) | Prüfungen |
 |---|---|
@@ -6454,7 +6611,8 @@ eine Buchführung.*
 | 0.15.1 | `hidden` wirkt wieder (15) | 4 neue (267 → 271); alle vier plus drei nachgezogene gefahren, keiner stumm | Stolpersteine 214 bis 216 |
 | 0.16.0 | Der Systembereich, die Glocke und die Auskunft (157) | 29 neue (271 → 300); gefahren wurden sie einzeln, **sieben Befunde** dabei | Stolpersteine 217 bis 225 |
 | 0.17.0 | Was dasteht, und was nicht dasteht (107 netto) | 33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); 43 gefahren, 0 stumm | Stolpersteine 226 bis 235 |
-| **0.17.1** | **Was der Benutzer sieht (85 netto)** | **20 neue (333 → 353), einer nachgezogen (Stolperstein 201); 21 gefahren, 0 stumm** | **Stolpersteine 236 bis 241** |
+| 0.17.1 | Was der Benutzer sieht (85 netto) | 20 neue (333 → 353), einer nachgezogen (Stolperstein 201); 21 gefahren, 0 stumm | Stolpersteine 236 bis 241 |
+| **0.17.2** | **Der Deckel und die eigene Hand (32 netto)** | **15 neue (353 → 368), sieben nachgezogen (Stolperstein 201); 15 gefahren, 3 STUMM — und jede der drei war eine Lücke im Prüfstand; nach dem Schließen 15 gefahren, 0 stumm** | **Stolpersteine 242 bis 244** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -6470,6 +6628,23 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **0.17.2 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** **Am Wirt fehlt:**
+  *(a)* der Abschnitt **„Bestand"** auf einem breiten Schirm — die Tagliste
+  darf die Reihe nicht mehr auseinanderziehen, sie deckelt bei **zwölf** Zeilen
+  und rollt; *steht daneben eine höhere Kachel („Vokabular"), wächst sie mit
+  ihr, und die Kachel „Kategorien" mit zwei Einträgen bleibt zwei Zeilen hoch —
+  das ist der eigentliche Punkt und in jsdom nicht zu sehen*; *(b)* die Karte
+  **„Meine Sitzungen"**, und zwar auf dem **Telefon**: der Name steht ganz da
+  und wird nicht mehr zu Punkten gekürzt, darunter rechtsbündig die beiden
+  Zeiten; *(c)* die Karte **„Mailversand"** — der GMX-Satz steht **neben** der
+  Absenderadresse, der Testmail-Satz **neben** den beiden Knöpfen, und die
+  Begründung zum fehlenden Adressfeld steht **nicht mehr** da; *(d)* ein
+  Eintrag, den **genau einer** bewertet hat: hinter dem Schnitt steht **keine
+  Klammer**, und beim Überfahren nennt der Klartext trotzdem *„aus 1 Stimme"*;
+  *(e)* die **Glocke** — einen eigenen Kommentar schreiben, neu laden, und die
+  Glocke muss **still bleiben**; erst ein fremder Beitrag bringt den Punkt
+  zurück. *An einer Instanz mit einem einzigen Zugang läutet sie damit nie
+  mehr, und das ist die Zusage und kein Fehler.*
 - **0.17.1 IST AM WIRT ANGEKOMMEN — DREI HANDGRIFFE FEHLEN NOCH.** *Am
   31. August 2026 bestätigt: Fingerprint `1775fcd4`, dazu Zugangstext,
   Mailversand, Umbenennung und Sitzungszeile am Bildschirm nachgesehen.*
@@ -6497,13 +6672,13 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   „Mailversand" im Abschnitt „Zugänge" — sie steht jetzt so breit wie ihre drei
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT VIERZEHN RUNDEN AUS.** 353 Rückbauten
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT FÜNFZEHN RUNDEN AUS.** 368 Rückbauten
   zu je einem vollen Prüflauf sind bei rund fünfeinhalb Minuten je Lauf etwa
-  **zweiunddreißig Stunden** hintereinander, in vier Nebenspuren rund acht. **Er lässt
+  **vierunddreißig Stunden** hintereinander, in vier Nebenspuren rund neun. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
   `git archive HEAD`, und ein Commit mitten im Lauf verschiebt die Grundlage.
-  *Was in 0.17.1 gefahren wurde, steht im Änderungsprotokoll dieser Runde;
-  was in 0.17.0 gefahren wurde, in jenem.*
+  *Was in 0.17.2 gefahren wurde, steht im Änderungsprotokoll dieser Runde;
+  was in den Runden davor gefahren wurde, in jenen.*
 - **DER MIGRATIONSBLOCK 0.16.0 IST AM ECHTEN BESTAND NOCH NICHT GEFAHREN.** Er
   ist am Prüfstand an einer nachgebauten Datenbank aus 0.15.1 belegt — einmal
   ganz, zweimal hintereinander, gegen eine frische Instanz gehalten und an
@@ -6513,16 +6688,16 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   ergaenzt (Migration auf 0.16.0)"* dasteht — **und welche Zahl sie nennt.**
   *Das ist die Zahl der Bewertungen, für die die Glocke schweigen wird; sie
   steht genau einmal da und beim nächsten Start nicht mehr.*
-- **DIE GLOCKE BRAUCHT SEIT 0.17.0 KEINEN ZWEITEN ZUGANG MEHR, UM ETWAS ZU
-  MELDEN.** Sie meldet Kommentare und Bewertungen **von allen**, die eigenen
-  eingeschlossen. **Am Wirt fehlt:** die Übersicht einmal verlassen (das setzt
-  den Bezugspunkt), einen Kommentar schreiben und einen Stern setzen, dann neu
-  laden — **Punkt an der Glocke, eine Zeile in der Tafel mit „1 Kommentar ·
-  1 Bewertung", darunter der eigene Name, und ein Klick führt zum Eintrag.**
-  *Mit einem zweiten Zugang dazu: der fremde Name steht neben dem eigenen, und
-  an einer Zeile mit ausschließlich neuen Bewertungen steht KEIN Name — das ist
-  die Zusage, die die Anonymität der einzelnen Bewertung hält.* **Danach ist
-  der Punkt weg und kommt erst beim nächsten Beitrag wieder.**
+- **DIE GLOCKE BRAUCHT SEIT 0.17.2 WIEDER EINEN ZWEITEN ZUGANG, UM ETWAS ZU
+  MELDEN.** *Der Punkt hieß bis 0.17.1 andersherum; er ist umgedreht und nicht
+  gelöscht (Stolperstein 201).* **Am Wirt fehlt:** mit **zwei** Zugängen die
+  Übersicht einmal verlassen (das setzt den Bezugspunkt), den anderen einen
+  Kommentar schreiben und einen Stern setzen lassen, dann neu laden —
+  **Punkt an der Glocke, eine Zeile in der Tafel mit „1 Kommentar ·
+  1 Bewertung", darunter der FREMDE Name, und ein Klick führt zum Eintrag.**
+  *An einer Zeile mit ausschließlich neuen Bewertungen steht KEIN Name — das
+  ist die Zusage, die die Anonymität der einzelnen Bewertung hält.* **Danach
+  ist der Punkt weg und kommt erst beim nächsten fremden Beitrag wieder.**
 - **DIE FÜNF ABSCHNITTE GEHÖREN EINMAL AUF EIN TELEFON.** Die Reiterreihe wird
   dort zur Liste; gemessen ist das in Medienregeln, nicht an Glas. *Und der
   eine Handgriff, der die Runde belegt: eine Adresse wie
@@ -6744,6 +6919,15 @@ Zugriffsprotokoll des Proxys, das dieselbe Auskunft schon gibt.*
 
 ### Offene Kleinigkeiten
 
+- **EINE ZEITPROBE IM PRÜFSTAND HAT EIN ZU ENGES FENSTER.** *„Eine Sekunde vor
+  Ablauf trägt der Link noch"* (Gruppe „Der Token: die sieben Tage an beiden
+  Seiten") setzt den Ablauf auf `+1 seconds` und ruft dann. **Auf einer
+  Maschine unter Last reicht diese eine Sekunde nicht**, und die Prüfung wird
+  rot, ohne dass an ihr etwas falsch wäre — beobachtet am 31. August 2026,
+  während nebenher fünfzehn Gegenproben liefen. *Allein gefahren ist sie grün,
+  der volle Lauf auf ruhiger Maschine ebenso.* **Der Weg wäre klein:** ein
+  Fenster, das nicht an einer Sekunde hängt. *Sie steht hier, damit sie beim
+  nächsten Mal nicht wie ein neuer Fehler aussieht.*
 - **EIN KAPUTTER COOKIEWERT LEGT JEDE ANFRAGE DIESES BROWSERS LAHM.**
   `parseCookies()` in `auth.js` ruft `decodeURIComponent()` auf jeden Wert; eine
   unvollständige Prozentfolge (`kriterion_session=%`) wirft einen `URIError`.
@@ -6885,6 +7069,109 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.17.2 — „Der Deckel und die eigene Hand"
+
+**PATCH · 31. August 2026 · sechs Handgriffe aus dem Rundlauf mit 0.17.1,
+gemeldet unmittelbar nach dem Einspielen.** *Die Instanz kann danach nichts,
+was sie vorher nicht konnte — sie sagt an zwei Stellen weniger, und das ist der
+Punkt (Abschnitt 5.1).* **Zwei davon sind Nacharbeit an 0.17.1 selbst.**
+
+**DIE ANMELDEZEILE STEHT IN ZWEI REIHEN.** 0.17.1 hatte die beiden Zeitangaben
+untereinandergestellt, den Namen aber daneben gelassen — auf dem Telefon wurde
+er zu Punkten gekürzt. **Der Name bekommt jetzt die erste Rasterzeile für sich,
+mit dem Kreuz daneben; die Zeiten stehen darunter, rechtsbündig.** *Nicht
+Punkte mit Ausklappen beim Überfahren: ein Text, den man erst herbeiführen muss,
+ist auf einem Berührungsbildschirm keiner.* **Das Raster trägt dafür nur noch
+zwei Spalten**, und der orangene Rahmen der eigenen Anmeldung hängt weiter an
+der nachgebenden Namensspalte.
+
+**DIE LISTEN BEKOMMEN EINEN DECKEL, DER MITGEHT — die eigentliche Nacharbeit
+an 0.17.1.** Punkt 2 jener Runde hatte die feste Höhe gestrichen, **ohne etwas
+an ihre Stelle zu setzen**: die Tagliste zog den Abschnitt „Bestand" auf
+fünfzig Zeilen auseinander, und daneben standen vier leere Kacheln.
+**Der Deckel steht jetzt in `flex-basis` und nicht in `max-height`** —
+`.manage-list` fordert `33.5rem`, `.prot-liste` `28rem`, beides zwölf Zeilen.
+*Eine feste Zahl in `max-height` klemmt beides: was die Liste FORDERT und wie
+hoch sie werden DARF. Der Platz einer höheren Nachbarkachel bliebe dann leer —
+und genau das war die Auflage: **der Deckel ist dynamisch.*** **`max-height:
+max-content` ist die dritte Zeile und die, die den Leerraum nimmt:** ohne sie
+forderte auch eine Liste mit zwei Zeilen ihre zwölf. *Nachgemessen in Chromium
+und nicht geglaubt (Stolperstein 140): allein deckelt sie bei zwölf Zeilen und
+rollt, neben einer 700 Pixel hohen Nachbarin nimmt sie die 700 mit, mit zwei
+Einträgen bleibt sie zwei Zeilen hoch.* **In `rem` und nicht in Pixeln** — die
+Oberfläche stellt ihre Schrift von 80 bis 120 Prozent, eine feste Zahl fasste
+dort mal neun und mal fünfzehn Zeilen. **Auf dem Telefon ist der Deckel wieder
+eine Grenze und keine Forderung** (`flex: 0 1 auto` mit `62dvh`): dort steht
+jede Kachel allein in ihrer Zeile, es gibt keine Nachbarin, deren Höhe eine
+Liste mitnehmen könnte.
+
+**DER MAILVERSAND IST FERTIG GEORDNET.** 0.17.1 hatte die Felder in vier Reihen
+gebracht, die erklärenden Sätze aber als eigene Zeilen darunter stehen lassen —
+quer durch die Karte, die halbe Breite leer. **„Als wer" und „tun" tragen ihren
+Satz jetzt NEBEN sich, ein Drittel zu zwei Dritteln**, dieselbe Breite links
+wie der Anbieter in der ersten Reihe. *Der Satz sitzt an der Grundlinie des
+Feldes daneben und nicht an dessen Oberkante: links steht darüber noch eine
+Beschriftung, und ein Satz auf ihrer Höhe sähe aus wie eine zweite.* **Und die
+Begründung, warum es kein Adressfeld neben der Testmail gibt, ist aus der Karte
+heraus** — sie ist richtig und war ein Gedanke vom Bauen. *Eine Oberfläche
+sagt, WAS IST (Abschnitt 5.6). Sie steht in der README, und der Prüfstand hält
+beide Seiten fest: hier weg, dort da (Stolperstein 81).*
+
+**DIE KLAMMER STEHT ERST AB ZWEI STIMMEN.** An einem Kriterium, das genau einer
+bewertet hat, stand `⌀ 4,0 (1)`. **Die Klammer beantwortet die Frage, wie
+schwer der Schnitt wiegt — bei einer einzigen Stimme gibt es diese Frage
+nicht**, und *dass* jemand bewertet hat, sagt schon der Schnitt daneben.
+*Dieselbe Regel wie die fehlende Null am Knopf „Offen" und in der
+Glockentafel: keine Angabe über nichts.* **Der Klartext beim Überfahren bleibt
+vollständig** — er ist die Auskunft für den, der sie braucht, und ein
+Vorleseprogramm liest kein ⌀. *Was wegfällt, ist die Zahl auf dem Bildschirm
+und nicht die Auskunft.*
+
+**DIE GLOCKE MELDET DIE EIGENE HAND NICHT MEHR — und das ist die zweite Wende
+an dieser Entscheidung.** *0.16.0 schloss die eigenen Beiträge aus, 0.17.0 nahm
+das zurück — mit der Begründung, einer Betreiberin, die allein arbeitet, melde
+eine Glocke, die nur Fremdes zeigt, nie etwas. **0.17.2 stellt 0.16.0 wieder
+her.*** **Eine Glocke ist eine Nachricht von jemand anderem; über die eigene
+Hand braucht niemand eine, man war dabei.** *Beide Vermerke bleiben im Quelltext
+stehen (Stolperstein 201) — sonst baut es jemand in zwei Jahren wieder ein.*
+**Die Folge ist gewollt und gehört ausgesprochen: bei genau einem Zugang bleibt
+die Glocke still.** *Der Bezugspunkt wird trotzdem weiter gesetzt — sonst staute
+sich beim ersten fremden Beitrag alles seit Wochen auf.* **`IS NOT ?` und nicht
+`!= ?`:** eine herrenlose Zeile trägt `user_id` NULL, und `NULL != 1` ist in
+SQL nicht wahr, sondern NULL — mit `!=` fielen genau die Zeilen still heraus,
+deren Verfasser entfernt wurde (Stolperstein 242).
+
+**UND DIE README SPRICHT MIT DEM, DER KRITERION ZUM ERSTEN MAL SIEHT.** Sie
+trug **siebenundvierzig** Versionsnummern, und die meisten erzählten nur, WANN
+etwas entstanden ist — *„seit 0.13.0", „bis 0.12.4 stand hier ein Handgriff",
+„die Pille ist mit 0.17.0 weggefallen".* **Wer Kriterion zum ersten Mal
+aufmacht, kannte 0.12.4 nie.** **Die Regel: die Nummer bleibt, wo sie eine
+HANDLUNG bestimmt, und geht, wo sie nur erzählt.** *Dieselbe Regel wie
+Abschnitt 5.6 für die Oberfläche, eine Ebene höher: ein Handbuch sagt, WAS IST
+— nicht, seit wann.* **Sechs Nennungen bleiben**, und jede bestimmt etwas: die
+Sicherungspflicht beim Sprung über die Datenbankstufe **0.14.0**, die älteste
+Datenbank, die noch übernommen wird (**0.8.0**), und zwei **wörtliche**
+Protokollzeilen. *Ein Wächter hält die Zahl fest, dieselbe Bauform wie
+`F_ROUTEN` (Stolperstein 243).* **Die Versionsgeschichte ist nicht gestrichen,
+sondern steht dort, wo sie hingehört:** in diesem Abschnitt und in den
+Änderungsprotokollen.
+
+**KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine neue
+Formatnummer: sieben markierte Blöcke, Austauschformat **11**, `F_ROUTEN` bei
+**69**, achtzehn Karten in fünf Abschnitten, acht persönliche Schlüssel.
+**Die Sicherung ist Empfehlung und nicht Pflicht.**
+
+**UND DIE GEGENPROBE HAT DREI LÜCKEN IM PRÜFSTAND AUFGEDECKT.** *Von den
+fünfzehn neuen Rückbauten blieben drei **stumm** — und ein Rückbau, der keine
+einzige Prüfung rot macht, ist kein Erfolg, sondern ein Fund.* **Eine
+Verneinung war weißraumempfindlich** (der wieder eingebaute Satz stand über
+drei Zeilen), **die eigene BEWERTUNG war nirgends gestellt** (geprüft war nur
+die Abfrage der Kommentare, und die Zusage gilt für beide — Stolperstein 81),
+**und der Einleitungssatz der Glockentafel war an keiner Stelle geprüft.**
+*Alle drei sind geschlossen; die Rückbauten bleiben, wo sie sind.*
+
+**4715 → 4747 Prüfungen, 353 → 368 Rückbauten.** **Keine neue Abhängigkeit.**
 
 ### 0.17.1 — „Was der Benutzer sieht"
 
@@ -7749,7 +8036,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.16.0** | Der Systembereich, die Glocke und die Auskunft | **GEBAUT.** Neunzehn Karten sind achtzehn und stehen in fünf Abschnitten mit eigener Adresse; `renderSystem()` fiel dabei von 2466 auf 79 Zeilen. Dazu die Glocke mit dem Punkt, der Zähler „Offen" mit Zahl, die Gewichtung, die sich selbst erklärt, Version und Verfahren in den Kennzahlen — und aus dem Betrieb das Löschen in der Zoomansicht. *MINOR.* **Die größte Umbaufläche des Plans — und sie ist doch eine Datenbankstufe geworden: die Glocke braucht einen Zeitpunkt an der Bewertung. Der Rechner zur Gewichtung ist NICHT mitgefahren** | ja, **siebter Block** | — |
 | **0.17.0** | Was dasteht, und was nicht dasteht | **GEBAUT.** Neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, unmittelbar nach dem Einspielen von 0.16.0. Die Kriterienliste zerfiel bei genau **einem** Zugang; zwei Erklärtexte haben die Oberfläche verlassen; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; der Erklärkasten nennt die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen ist.** *MINOR.* **Kein Schema, keine Route — MINOR wegen der Glockentafel. Alle neun Punkte sind gebaut, dazu ein zehnter Befund aus dem Bauen: der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt** | nein | — |
 | **0.17.1** | Was der Benutzer sieht | **GEBAUT.** Sechs Handgriffe aus einem Rundlauf von Hand: der Text im Kachel „Zugang" stimmt nicht und sagt zu viel, Kacheln nutzen ihre Höhe nicht, der Mailversand ordnet sich, **aus „Anlage" wird „Instanz"**, die Zeile einer Sitzung steht schief — und das Video fängt im Vollbild ein zweites Mal an. *PATCH: fünf sind Wortlaut und Anzeige, einer ist ein echter Fehler.* **Alle sechs Punkte sind gebaut; keiner ist herausgefallen. Die Umbenennung traf 692 Stellen, und die alte Adresse `#/system/anlage` wird still übersetzt** | nein | — |
-| **0.17.2** | Der Deckel und die eigene Hand | **BEAUFTRAGT am 31. August 2026.** Fünf Handgriffe aus dem Rundlauf mit 0.17.1, zwei davon Nacharbeit an ihr selbst: die Zeile einer Anmeldung schneidet den Namen ab, **die Listen brauchen einen Deckel bei zwölf Zeilen** (die Tagliste zog die Seite auf), der Mailversand ordnet sich zu Ende, die Klammer bei einer einzigen Stimme fällt weg — **und die Glocke meldet die eigenen Beiträge wieder nicht.** *PATCH: die Instanz sagt an einer Stelle weniger.* **Der Auftrag liegt als `Doku/Auftrag_0.17.2.md` im Repo** | nein | — |
+| **0.17.2** | Der Deckel und die eigene Hand | **GEBAUT.** Sechs Handgriffe aus dem Rundlauf mit 0.17.1, zwei davon Nacharbeit an ihr selbst: die Zeile einer Anmeldung schnitt den Namen ab, **die Listen brauchten einen Deckel bei zwölf Zeilen** (die Tagliste zog die Seite auf), der Mailversand ordnet sich zu Ende, die Klammer bei einer einzigen Stimme fällt weg, **die Glocke meldet die eigenen Beiträge wieder nicht** — und die README erzählt keine Versionsgeschichte mehr. *PATCH: die Instanz sagt an zwei Stellen weniger.* **Alle sechs Punkte sind gebaut; der Deckel steht in `flex-basis` und nicht in `max-height`, damit er mitgeht** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
 | **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
@@ -8201,40 +8488,38 @@ auseinanderlaufen könnte. **In einem Satz je Punkt:**
 
 ---
 
-### 0.17.2 — „Der Deckel und die eigene Hand" · *PATCH*
+### 0.17.2 — GEBAUT, herausgegeben am 31. August 2026
 
-**BEAUFTRAGT am 31. August 2026.** *Nichts aus dem Sammelblatt — fünf Befunde
-aus dem Rundlauf mit 0.17.1, unmittelbar nach dem Einspielen.* **Zwei davon
-sind Nacharbeit an 0.17.1 selbst.**
+**GEBAUT am 31. August 2026.** *Nichts aus dem Sammelblatt — sechs Befunde aus
+dem Rundlauf mit 0.17.1, unmittelbar nach dem Einspielen; zwei davon Nacharbeit
+an 0.17.1 selbst.* **Alle sechs sind gebaut; was dabei herauskam, steht im
+Änderungsprotokoll `Doku/Aenderungsprotokoll_0.17.2.md` und in Abschnitt 9.**
 
-**Die Ausarbeitung steht im Auftrag** (`Doku/Auftrag_0.17.2.md`) und nicht hier.
+**Die Ausarbeitung stand im Auftrag** (`Doku/Auftrag_0.17.2.md`) und nicht hier.
 **In einem Satz je Punkt:**
 
-1. **Die Zeile einer Anmeldung schneidet den Namen ab** — „Diese Anmeldung (…".
-   *Zwei Reihen statt einer: oben der Name, darunter die beiden Zeitangaben,
-   weiterhin rechtsbündig untereinander. Keine Ellipse mit Überfahren — was nur
-   die Maus zeigt, zeigt die Anlage nicht.*
-2. **Die Listen brauchen einen Deckel bei zwölf Zeilen, und er geht mit.**
-   *0.17.1 hat die feste Höhe gestrichen und keine Grenze gesetzt; in „Bestand"
-   zieht die Tagliste die Seite auf rund fünfzig Zeilen auseinander.* **Zwölf
-   Zeilen sind keine Obergrenze, sondern die Höhe, die die Liste von sich aus
-   fordert:** braucht eine Nachbarkachel mehr, nimmt sie diese Höhe mit.
-   **`flex: 1` und `min-height: 0` bleiben; der Deckel steht in `em`, nicht in
-   Pixeln.** *Dasselbe am Sicherheitsprotokoll. Ein schlichtes `max-height`
-   klemmt beides und nimmt 0.17.1 zurück — das ist die eine echte Entscheidung
-   der Runde.*
-3. **Der Mailversand ordnet sich zu Ende:** Absenderadresse und Knöpfe bekommen
-   ihren Satz **daneben** statt darunter, und **ein Satz wird gestrichen** — die
-   Begründung, warum es kein Adressfeld neben der Testmail gibt, ist ein Gedanke
-   vom Bauen und keine Auskunft (Abschnitt 5.6).
-4. **Die Klammer bei einer einzigen Stimme fällt weg** — „⌀ 4,8 (1)" sagt mit
-   der Eins nichts. *Ab zwei steht sie wieder da; der Vermerk zur
-   zurückgenommenen Zusage bleibt (Stolperstein 201).*
-5. **Die Glocke meldet die eigenen Beiträge wieder nicht.** *Die zweite Wende an
-   derselben Entscheidung: 0.16.0 schloss sie aus, 0.17.0 nahm das zurück,
-   0.17.2 stellt 0.16.0 wieder her.* **Die Folge ist gewollt und ausgesprochen:
-   bei genau einem Zugang bleibt die Glocke stumm — wer allein arbeitet, hat
-   nichts, wovon ihm jemand berichten müsste.**
+1. **Die Zeile einer Anmeldung schnitt den Namen ab** — zwei Reihen statt einer:
+   oben der Name mit dem Kreuz, darunter die beiden Zeitangaben rechtsbündig.
+   *Keine Ellipse mit Überfahren — was nur die Maus zeigt, zeigt die Instanz
+   nicht.*
+2. **Die Listen haben einen Deckel bei zwölf Zeilen, und er geht mit.** *Der
+   Deckel steht in `flex-basis` und nicht in `max-height`* — eine feste Zahl
+   dort klemmte die Forderung UND die Höhe, und der Platz einer höheren
+   Nachbarkachel bliebe leer. **`max-height: max-content` nimmt einer kurzen
+   Liste ihre zwölf Zeilen wieder weg.** *In `rem` und nicht in Pixeln; in
+   Chromium nachgemessen.*
+3. **Der Mailversand ist zu Ende geordnet:** Absenderadresse und Knöpfe tragen
+   ihren Satz **daneben**, ein Drittel zu zwei Dritteln — und die Begründung
+   zum fehlenden Adressfeld ist aus der Karte heraus (Abschnitt 5.6).
+4. **Die Klammer steht erst ab zwei Stimmen.** *Der Klartext beim Überfahren
+   bleibt vollständig, in Ein- und Mehrzahl.*
+5. **Die Glocke meldet die eigenen Beiträge nicht mehr.** *Zweite Wende an
+   derselben Entscheidung; beide Vermerke bleiben stehen (Stolperstein 201).*
+   **Bei genau einem Zugang bleibt sie still — die gewollte Folge.**
+6. **Die README spricht mit dem Erstleser.** *Von siebenundvierzig
+   Versionsnummern bleiben sechs, und jede bestimmt eine Handlung.* **Dieser
+   Punkt ist während der Runde dazugekommen und im Auftrag nachgetragen
+   worden.**
 
 ---
 
