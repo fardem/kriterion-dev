@@ -31867,8 +31867,8 @@ async function pruefeOberflaeche() {
     d.w.close();
   }
 
-  /* ---- 2. Die Kachel gibt der Liste ihre Hoehe ---- */
-  gruppe('Die Liste bekommt die Hoehe der Kachel — 0.17.1');
+  /* ---- 2. Die Kachel ist so hoch wie ihr Inhalt ---- */
+  gruppe('Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3');
 
   /* WAS HIER AUSDRUECKLICH NICHT GEPRUEFT WIRD: DIE WIRKUNG. jsdom rechnet
      kein Layout -- jede Hoehe ist dort null, und ob eine Liste wirklich den
@@ -31877,6 +31877,17 @@ async function pruefeOberflaeche() {
      gezeichnet werden. Beides zusammen ist der Beleg, den es hier geben kann
      (Stolperstein 223). */
   {
+    /* DIE ZEILE, DIE DEN LEERRAUM NIMMT -- und sie steht an der KACHEL.
+       Ein Raster zieht jedes Kind auf die Hoehe der hoechsten Zelle seiner
+       Reihe (`align-items` steht von Haus aus auf `stretch`); der Leerraum
+       stand deshalb UNTER dem Inhalt IN der Kachel und nicht in der Liste.
+       Die Messung zu 0.17.2 hat die Liste gemessen und die Kachel uebersehen
+       -- die Liste klemmte korrekt, und der Befund blieb trotzdem stehen. */
+    const khRaster = regel123('.sys-grid');
+    pruefe('Das Kachelraster streckt seine Kinder nicht mehr',
+      /align-items: start/.test(khRaster), khRaster || '(keine Regel)');
+    pruefe('Und es steht ausserhalb jeder Medienabfrage',
+      /\.sys-grid \{[^}]*align-items: start/.test(ohneMedien), '(nur im Telefonblock)');
     const khKarte = regel123('.sys-card');
     pruefe('Die Kachel ist eine Spalte',
       /display: flex/.test(khKarte) && /flex-direction: column/.test(khKarte),
@@ -31892,16 +31903,23 @@ async function pruefeOberflaeche() {
         regel.length > 0, '(keine Regel)');
       /* SEIT 0.17.2 TRAEGT SIE EINEN DECKEL -- aber als FORDERUNG und nicht
          als Grenze. Eine feste Zahl in `max-height` klemmte beides: was die
-         Liste fordert UND wie hoch sie werden darf; der Platz einer hoeheren
-         Nachbarkachel bliebe dann leer. Der Deckel steht deshalb in
+         Liste fordert UND wie hoch sie werden darf. Der Deckel steht deshalb in
          `flex-basis`, und `max-height` traegt nur noch `max-content` -- die
-         Zeile, die einer KURZEN Liste ihre zwoelf Zeilen wieder wegnimmt. */
+         Zeile, die einer KURZEN Liste ihre zehn Zeilen wieder wegnimmt. */
       pruefe(`${wahl} traegt keine feste Hoehe mehr`,
         !/max-height: *\d/.test(regel), regel || '(keine Regel)');
       pruefe(`${wahl} klemmt sich auf das, was wirklich dasteht`,
         /max-height: max-content/.test(regel), regel || '(keine Regel)');
-      pruefe(`${wahl} fordert hoechstens zwoelf Zeilen -- in rem und nicht in Pixeln`,
+      pruefe(`${wahl} fordert seinen Deckel in rem und nicht in Pixeln`,
         /flex: 1 1 [\d.]+rem/.test(regel), regel || '(keine Regel)');
+      /* ZEHN ZEILEN SEIT 0.17.3, und die Zahl steht hier ausgerechnet da:
+         27,95rem sind zehn `.mrow` zu 41,92 px bei Wurzelschrift 15, 23,3rem
+         sind zehn `.prot-zeile` zu 35 px. EINE Regel und nicht zwei -- auch
+         das Sicherheitsprotokoll deckelt bei zehn, obwohl seine Zeilen
+         schmaler sind (Stolperstein 47). */
+      pruefe(`${wahl} fordert genau zehn Zeilen`,
+        new RegExp('flex: 1 1 ' + ({ '.manage-list': '27\\.95', '.prot-liste': '23\\.3' })[wahl] + 'rem').test(regel),
+        regel || '(keine Regel)');
       pruefe(`${wahl} nimmt, was die Kachel hergibt`,
         /flex: 1/.test(regel), regel || '(keine Regel)');
       /* DIE ZEILE, AN DER ES SONST SCHEITERT: ohne sie waechst ein Flexkind
@@ -31925,9 +31943,9 @@ async function pruefeOberflaeche() {
        misst das Fenster. Ohne sie machte ein Sicherheitsprotokoll mit
        zweihundert Zeilen die Karte unbrauchbar lang. */
     /* AUF DEM TELEFON IST DER DECKEL WIEDER EINE GRENZE. Dort steht jede
-       Kachel ALLEIN in ihrer Zeile -- es gibt keine Nachbarin, deren Hoehe eine
-       Liste mitnehmen koennte, und `flex: 0 1 auto` laesst sie ihren Inhalt
-       fordern, statt zwoelf Zeilen zu verlangen, die sie nicht hat. */
+       Kachel ALLEIN in ihrer Zeile, und `flex: 0 1 auto` laesst die Liste ihren
+       Inhalt fordern, statt zehn Zeilen zu verlangen, die sie nicht hat. An
+       dieser Zeile aendert 0.17.3 nichts. */
     pruefe('Auf dem Telefon bleibt die Deckelung am Fenster haengen',
       /\.manage-list, \.prot-liste, \.test-scroll, \.atext, #ex-teil-liste \{ flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; \}/.test(css123),
       (css123.match(/\.manage-list, \.prot-liste[^}]*\}/) || ['(keine Regel)'])[0]);

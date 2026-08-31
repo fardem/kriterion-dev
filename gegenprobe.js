@@ -3134,31 +3134,31 @@ const RUECKBAUTEN = [
   {
     nr: '339', name: 'Die Liste bekommt ihre feste Hoehe zurueck',
     datei: 'public/style.css',
-    suche: `.manage-list { flex: 1 1 33.5rem; min-height: 0; max-height: max-content;
+    suche: `.manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }`,
     ersatz: ".manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '340', name: 'Die Liste verliert die Zeile, an der es sonst scheitert',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 28rem; min-height: 0; max-height: max-content;",
-    ersatz: ".prot-liste { flex: 1 1 28rem; max-height: max-content;",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    suche: ".prot-liste { flex: 1 1 23.3rem; min-height: 0; max-height: max-content;",
+    ersatz: ".prot-liste { flex: 1 1 23.3rem; max-height: max-content;",
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '341', name: 'Die Kachel ist wieder keine Spalte',
     datei: 'public/style.css',
     suche: "padding: 18px 20px 20px;\n  display: flex; flex-direction: column; }",
     ersatz: "padding: 18px 20px 20px; }",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '342', name: 'Der Knopf in der Kachel wird wieder ueber die volle Breite gezogen',
     datei: 'public/style.css',
     suche: ".sys-card > .btn { align-self: flex-start; }",
     ersatz: "",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '343', name: 'Die Reihe „wohin" verliert ihre Rasterspalten',
@@ -3250,16 +3250,16 @@ const RUECKBAUTEN = [
   {
     nr: '355', name: 'Die Liste fordert wieder so viele Zeilen, wie sie hat',
     datei: 'public/style.css',
-    suche: ".manage-list { flex: 1 1 33.5rem;",
+    suche: ".manage-list { flex: 1 1 27.95rem;",
     ersatz: ".manage-list { flex: 1 1 auto;",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '356', name: 'Das Sicherheitsprotokoll fordert wieder alle seine Zeilen',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 28rem;",
+    suche: ".prot-liste { flex: 1 1 23.3rem;",
     ersatz: ".prot-liste { flex: 1 1 auto;",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '357', name: 'Auf dem Telefon deckelt nichts mehr am Fenster',
@@ -3267,7 +3267,7 @@ const RUECKBAUTEN = [
     suche: "  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {\n" +
            "    flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }",
     ersatz: "",
-    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
   },
   {
     nr: '358', name: 'Die beiden letzten Reihen des Mailversands teilen wieder gleich',
