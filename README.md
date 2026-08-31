@@ -1376,12 +1376,10 @@ sichtbaren auf.
 > Liste mit den meisten Zeilen das Maß — höchstens **zehn** Zeilen, beim
 > Sicherheitsprotokoll höchstens **fünfzehn**, und mindestens eine.
 >
-> **Eine Liste zeigt, was in ihre Karte passt, und rollt, wenn nicht alles
-> passt.** Tags, Kategorien, Zugänge und das Sicherheitsprotokoll können
+> **Eine Liste ist so hoch wie ihr Inhalt und rollt, wenn er den Deckel
+> übersteigt.** Tags, Kategorien, Zugänge und das Sicherheitsprotokoll können
 > beliebig lang werden; ohne Deckel zöge eine einzige Karte die Seite auf
-> fünfzig Zeilen. **Steht daneben eine hohe Karte, zeigt die Liste auch mehr
-> als zehn Zeilen** — der Deckel bestimmt, wie weit eine Liste die Reihe
-> aufzieht, nicht, wie viel sie zeigen darf.
+> fünfzig Zeilen.
 >
 > **Bekommt eine Karte mehr Platz, als ihre Liste braucht, bleibt der Rest
 > leer.** Eine Karte mit zwei Zeilen zeigt zwei Zeilen und bläst sich nicht auf

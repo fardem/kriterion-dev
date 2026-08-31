@@ -95,6 +95,29 @@ Reihen standen, standen danach in sieben Höhen.*
 
 ## 2. Die Regel, die gemeint war
 
+> ## ⚠️ DER MECHANISMUS DARUNTER IST MIT 0.17.5 ZURÜCKGENOMMEN
+>
+> **Die Regel in diesem Abschnitt gilt — bis auf einen Halbsatz.** *Was
+> zurückgenommen ist, ist der Bau darunter, und mit ihm die Zusage „der Deckel
+> begrenzt die Forderung und nicht die Nutzung".*
+>
+> **`max-height: max-content` KLEMMT DIE FORDERUNG NICHT ÜBERALL.** In Chromium
+> tut es das — deshalb steht in diesem Papier eine Messung, die stimmt, und
+> trotzdem eine Zusage, die in der laufenden Instanz nicht eingelöst wurde.
+> *Dort forderte jede Liste ihre zehn Zeilen, auch die leere: die Karte
+> „Zugänge" mit fünf Zeilen stand 728 Pixel hoch, wo dieselbe Karte in Chromium
+> 498 misst.* **Das ist derselbe Befund, der schon 0.17.3 ausgelöst hat** — er
+> war die ganze Zeit diese eine Zeile.
+>
+> **Seit 0.17.5 steht dort `flex: 0 1 auto` mit `max-height: <Deckel>rem`:** die
+> Liste ist so hoch wie ihr Inhalt, höchstens zehn Zeilen, und sie nimmt sich
+> nichts von dem, was die Kachel neben ihr übrig hat. ***Der Deckel ist damit
+> beides — Forderung UND Grenze.*** *Der Preis: die Sitzungsliste neben „Zugang"
+> zeigt wieder zehn Zeilen statt zwanzig.*
+>
+> **→ Einzelheiten in
+> [Änderungsprotokoll 0.17.5](Aenderungsprotokoll_0.17.5.md), Abschnitt 1 und 4.**
+
 **Sie steht in zwei Sätzen, und sie ist erst nach vier Anläufen richtig
 aufgeschrieben worden:**
 
