@@ -1813,10 +1813,11 @@ function route() {
    dazugekommen). Die beiden Zeichen werden nirgends vertauscht.
    WAS DIE GLOCKE NICHT LEISTET, steht in der README: sie rechnet beim Aufbau
    der Uebersicht nach und nicht laufend.
-   SIE MELDET SEIT 0.17.0 VON ALLEN, die eigenen Beitraege eingeschlossen --
-   sonst meldete sie einem Betreiber, der allein arbeitet, nie etwas. Die
-   Auskunft „was hat sich getan, seit ich zuletzt hier war" trug bis dahin die
-   Pille „Neu seit ...", und die ist mit dieser Runde gestrichen. */
+   SIE MELDET SEIT 0.17.2 WIEDER NUR FREMDE BEITRAEGE. 0.17.0 nahm die eigenen
+   dazu, damit sie einem Betreiber, der allein arbeitet, ueberhaupt etwas
+   meldet; das ist zurueckgenommen. Eine Glocke ist eine Nachricht von jemand
+   anderem, und ueber die eigene Hand braucht niemand eine. Bei einem einzigen
+   Zugang bleibt sie deshalb still -- die gewollte Folge und kein Mangel. */
 /* DIE SUMME ENTSTEHT AN GENAU EINER STELLE. Der Server liefert zwei Zahlen und
    keine Summe: eine Summe neben ihren Teilen waere eine zweite Wahrheit ueber
    dieselbe Sache (Stolperstein 47), und die Glocke zaehlte sie eines Tages
@@ -1841,9 +1842,10 @@ const neuWorte = (i) => {
           b ? `${b} ${b === 1 ? 'Bewertung' : 'Bewertungen'}` : ''].filter(Boolean).join(' · ');
 };
 
-/* VON WEM -- 0.17.0. Die Glocke meldet auch die eigenen Beitraege; ohne den
-   Namen daneben liesse sich nicht unterscheiden, ob dort jemand anders war
-   oder man selbst.
+/* VON WEM -- 0.17.0. Wer an einem Eintrag war, gehoert neben die Zahl: „3
+   Kommentare" allein sagt nicht, ob dort einer dreimal oder drei je einmal
+   geschrieben haben. Der eigene Name kann seit 0.17.2 nicht darunter sein --
+   der Server schickt ihn gar nicht erst mit.
    DIE NAMEN KOMMEN AUS DEN KOMMENTAREN UND NICHT AUS DEN BEWERTUNGEN -- der
    Server liefert sie gar nicht anders. Wer welche Bewertung abgegeben hat, ist
    eine Angabe ueber einzelne Personen und steht in keiner Antwort, die jeder
@@ -1907,8 +1909,7 @@ function zeigeGlockentafel() {
   bd.className = 'backdrop';
   bd.innerHTML = `<div class="modal glockentafel" id="glocken-modal"><h2>Neu seit deinem letzten Blick</h2>
     <p>Was seit deinem letzten Blick in diese Tafel dazugekommen ist — Kommentare und
-      Bewertungen, <strong>von allen</strong>. Die eigenen stehen mit da: auch allein vergisst
-      man, was man zuletzt gesehen hat.</p>
+      Bewertungen <strong>von den anderen</strong>.</p>
     <div class="manage-list" id="glocken-liste"></div>
     <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
   document.body.appendChild(bd);
@@ -1997,8 +1998,10 @@ async function renderList() {
              einziges Zutun in die Tafel: ein Markup, zwei Gestalten (0.12.0).
              Eine Glocke nur am Desktop waere eine Weiche nach Geraet.
              SIE HEISST SEIT 0.17.0 „Neu seit deinem letzten Blick" UND NICHT
-             MEHR „Neu von anderen": sie meldet auch die eigenen Beitraege --
-             sonst meldete sie einem, der allein arbeitet, nie etwas.
+             MEHR „Neu von anderen". Der Name bleibt, auch seit sie mit 0.17.2
+             wieder nur Fremdes meldet: er sagt, WORAUF sich die Auskunft
+             bezieht -- auf den letzten Blick -- und nicht, wer geschrieben
+             hat. Das steht in der Tafel.
              SIE STEHT NUR DA, WENN ES EINEN BEZUGSPUNKT GIBT. Vor dem ersten
              Aufbau der Uebersicht weiss die Instanz nicht, was jemand schon
              gesehen hat -- eine Glocke, die dann alles meldet, laeutete beim
@@ -4560,8 +4563,13 @@ async function renderDetail(id) {
       // Bedienelement zeigt den Zustand, den es veraendert; zeigten sie den
       // Schnitt, spraenge die Anzeige nach einem Klick auf den vierten Stern
       // auf 3,6, und der Klick wirkte verschluckt.
-      // Die Zahl der Bewerter steht bewusst dabei: 4,8 aus einer Stimme heisst
-      // etwas anderes als 4,8 aus zwanzig.
+      // Die Zahl der Bewerter steht dabei, sobald es ETWAS ZU UNTERSCHEIDEN
+      // gibt: 4,8 aus zwei Stimmen heisst etwas anderes als 4,8 aus zwanzig.
+      // BEI EINER EINZIGEN STIMME STEHT SIE NICHT DA -- die Eins beantwortet
+      // keine Frage, die jemand hat. Bis 0.17.1 stand sie auch dort, und die
+      // Begruendung lautete "4,8 aus einer Stimme heisst etwas anderes als 4,8
+      // aus zwanzig". Das stimmt, sagt aber nichts darueber, ob die Zahl DORT
+      // gebraucht wird: der Vergleich beginnt bei zwei.
       // Bei genau einem Zugang entfaellt die Spalte ganz. Hat niemand bewertet,
       // bleibt sie leer -- neben fuenf leeren Sternen waere "keine Bewertung"
       // dieselbe Aussage zweimal.
@@ -4588,8 +4596,15 @@ async function renderDetail(id) {
            vorgelesen bekommt, eine Folge von Zeichen. */
         if (r.avg) {
           const stimmen = `${r.count} ${r.count === 1 ? 'Stimme' : 'Stimmen'}`;
-          a.textContent = `⌀ ${r.avg.toFixed(1).replace('.', ',')} (${r.count})`;
-          a.title = `Durchschnitt ${r.avg.toFixed(1).replace('.', ',')} aus ${stimmen}`;
+          const schnitt = r.avg.toFixed(1).replace('.', ',');
+          /* DIE KLAMMER ERST AB ZWEI. Sie sagt "so viele Stimmen" und
+             beantwortet damit die Frage, wie schwer der Schnitt wiegt -- bei
+             einer einzigen gibt es diese Frage nicht.
+             DER TITEL BLEIBT VOLLSTAENDIG: wer die Zahl doch braucht, bekommt
+             sie beim Ueberfahren und ueber das Vorleseprogramm. Was hier
+             wegfaellt, ist die Zahl auf dem Bildschirm und nicht die Auskunft. */
+          a.textContent = r.count > 1 ? `⌀ ${schnitt} (${r.count})` : `⌀ ${schnitt}`;
+          a.title = `Durchschnitt ${schnitt} aus ${stimmen}`;
         } else a.textContent = '';
         row.append(a);
       }
@@ -7794,24 +7809,40 @@ function karteMailversand(geholt) {
             <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
               placeholder="${mailstand.passwortGesetzt ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
         </div>
-        <div class="field"><label for="mail-absender">Absenderadresse</label>
-          <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
-            autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-
-        <p class="desc" id="mail-hinweis">${mailstand.hinweis ? `<strong>${esc(mailstand.hinweis)}</strong><br>` : ''}
-          ${esc(mailstand.hinweisImmer)}</p>
+        ${/* ALS WER · UND WAS DER SATZ DANEBEN SAGT. Die Absenderadresse ist ein
+              Feld wie die darüber und braucht die Breite nicht; der Satz, der
+              sie erklärt, stand bis 0.17.1 als eigene Zeile darunter und ließ
+              die halbe Karte leer. Jetzt stehen sie NEBENEINANDER — das Feld
+              links, der Satz rechts.
+              DER SATZ IST WEITERHIN ZWEITEILIG: was der Anbieter verlangt
+              (`hinweis`, nur wenn es ihn gibt) und was immer gilt
+              (`hinweisImmer`). Beide gehören zur Adresse und zu keinem anderen
+              Feld — deshalb bekommt sie ihre eigene Reihe. */''}
+        <div class="mail-reihe mail-alswer">
+          <div class="field"><label for="mail-absender">Absenderadresse</label>
+            <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
+              autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+          <p class="desc mail-satz" id="mail-hinweis">${mailstand.hinweis ? `<strong>${esc(mailstand.hinweis)}</strong><br>` : ''}
+            ${esc(mailstand.hinweisImmer)}</p>
+        </div>
         <p class="desc">Immer über den SMTP-Zugang eines Anbieters, nie unmittelbar vom
           Hausanschluss: dort fehlen rDNS und SPF/DKIM, und die Mail landet im besten Fall
           im Spam.</p>
-        <div class="row-in">
-          <button class="btn btn-accent btn-sm" id="mail-save">Mailzugang speichern</button>
-          <button class="btn btn-sm" id="mail-test">Testmail an mich</button>
+        ${/* TUN · UND WAS DER SATZ DANEBEN SAGT. Dieselbe Bauform wie darüber:
+              die beiden Knöpfe links, der Satz zur Testmail rechts.
+              WAS HIER NICHT MEHR STEHT: die Begründung, warum es kein
+              Adressfeld neben der Testmail gibt. Sie ist richtig und war ein
+              Gedanke vom Bauen — eine Oberfläche sagt, WAS IST (Projektstand
+              5.6). Sie steht in der README. */''}
+        <div class="mail-reihe mail-tun">
+          <div class="row-in">
+            <button class="btn btn-accent btn-sm" id="mail-save">Mailzugang speichern</button>
+            <button class="btn btn-sm" id="mail-test">Testmail an mich</button>
+          </div>
+          <p class="desc mail-satz">Die Testmail geht <strong>ausschließlich an die Adresse
+            deines eigenen Zugangs</strong>. Antwortet der Mailserver nicht, bricht der
+            Versuch nach ${mailstand.sekunden} Sekunden ab.</p>
         </div>
-        <p class="desc" style="margin:8px 0 0">Die Testmail geht <strong>ausschließlich an die
-          Adresse deines eigenen Zugangs</strong> — es gibt kein Adressfeld daneben, und zwar
-          mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener
-          Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der
-          Versuch nach ${mailstand.sekunden} Sekunden ab.</p>
         <div id="mail-ergebnis"></div>
       </div>`;
 }

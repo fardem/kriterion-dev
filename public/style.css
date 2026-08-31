@@ -1094,7 +1094,29 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    steht auch in zwei Fenstern (Glockentafel, Grabsteine) -- `.modal` ist
    ebenfalls eine Spalte, und dort haelt dieselbe Zeile den Kopf und den
    Schliessknopf im Blick, statt das ganze Fenster rollen zu lassen. */
-.manage-list { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+/* DER DECKEL IST DIE FORDERUNG UND NICHT DIE GRENZE -- das ist der ganze
+   Unterschied, und er steckt in `flex-basis`.
+   `flex: 1 1 33.5rem` HEISST: "ich haette gern zwoelf Zeilen". Mehr verlangt die
+   Liste nicht, und deshalb zieht sie die Rasterzeile nicht weiter auf; 0.17.1
+   hatte die feste Hoehe gestrichen, ohne etwas an ihre Stelle zu setzen, und
+   die Tagliste zog den Abschnitt "Bestand" auf fuenfzig Zeilen auseinander.
+   WIRD DIE KACHEL TROTZDEM HOEHER, weil eine Nachbarin mehr braucht ("Vokabular"
+   etwa), waechst die Liste MIT -- `flex-grow: 1` nimmt, was uebrig ist. Ein
+   `max-height` an dieser Stelle koennte das nicht: es klemmt die Forderung UND
+   die Hoehe, und der Platz bliebe leer.
+   `max-height: max-content` IST DIE DRITTE ZEILE UND DIE, DIE DEN LEERRAUM
+   NIMMT. Ohne sie forderte auch eine Liste mit zwei Zeilen ihre zwoelf, und die
+   Kachel "Kategorien" waere so hoch wie die mit fuenfzig Tags. Sie klemmt auf
+   das, was wirklich dasteht -- nie auf weniger.
+   NACHGEMESSEN IN CHROMIUM: allein deckelt sie bei zwoelf Zeilen und rollt;
+   neben einer 700 Pixel hohen Nachbarin nimmt sie die 700 mit; mit zwei
+   Eintraegen bleibt sie zwei Zeilen hoch.
+   33.5rem SIND ZWOELF ZEILEN: eine `.mrow` misst mit Innenabstand und dem
+   Abstand zur naechsten 41,92 Pixel, und die Wurzelschrift steht auf 15. IN rem
+   UND NICHT IN PIXELN, weil die Oberflaeche ihre Schrift von 80 bis 120 Prozent
+   stellt -- eine feste Zahl fasste dort mal neun und mal fuenfzehn Zeilen. */
+.manage-list { flex: 1 1 33.5rem; min-height: 0; max-height: max-content;
+  overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 /* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
    einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
    der Export, unter ihr der Import. Naehme sie die Kachelhoehe, schoebe sie
@@ -1226,6 +1248,18 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .mail-wohin { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 2fr); }
 /* WOMIT -- zwei gleichrangige Angaben, also zwei gleiche Haelften. */
 .mail-womit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* ALS WER und TUN -- links das Feld beziehungsweise die beiden Knoepfe, rechts
+   der Satz, der dazugehoert. Bis 0.17.1 stand jeder dieser Saetze als eigene
+   Zeile UNTER seiner Sache und liess die halbe Karte leer.
+   EIN DRITTEL LINKS: dieselbe Breite wie der Anbieter in der ersten Reihe --
+   eine Adresse und zwei Knoepfe brauchen sie nicht ganz, und der Satz daneben
+   liest sich als das, was er ist, naemlich eine Erlaeuterung zu genau dieser
+   Sache und nicht zur ganzen Karte. */
+.mail-alswer, .mail-tun { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+/* Der Satz sitzt an der Grundlinie des Feldes daneben und nicht an dessen
+   Oberkante: links steht ueber dem Feld noch eine Beschriftung, und ein Satz,
+   der auf ihrer Hoehe begaenne, saehe aus wie eine zweite Beschriftung. */
+.mail-satz { margin: 0; align-self: end; padding-bottom: 10px; }
 .mail-aus { color: var(--red); }
 .mail-erfolg { background: var(--green-dim); border-color: rgba(63,211,154,.3); }
 .mail-erfolg strong { color: var(--green); }
@@ -1234,7 +1268,11 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Liste laeuft in sich und schiebt die Karte nicht auf -- seit 0.17.1 in der
    Hoehe, die die Kachel hergibt, und nicht mehr in festen 380 Pixeln. Auf
    schmalem Schirm bricht sie in zwei Zeilen statt seitlich zu scrollen. */
-.prot-liste { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+/* DIESELBE BAUFORM WIE AN `.manage-list`, und die Begruendung steht dort.
+   28rem SIND HIER ZWOELF ZEILEN: eine `.prot-zeile` misst in der breiten Karte
+   35 Pixel -- sie traegt keinen Abstand zur naechsten, sondern eine Linie. */
+.prot-liste { flex: 1 1 28rem; min-height: 0; max-height: max-content;
+  overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 .prot-zeile { display: grid; grid-template-columns: 128px 1fr 1fr auto auto; gap: 4px 12px;
   align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: .86rem; }
 .prot-zeile:last-child { border-bottom: 0; }
@@ -1263,12 +1301,21 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   .prot-zeit { grid-column: 1 / -1; }
 }
 
-/* DIE ZEILE EINER ANMELDUNG STEHT IN EINEM RASTER UND NICHT IN EINER REIHE.
-   Bis 0.17.0 standen "angemeldet" und "zuletzt gesehen" NEBENEINANDER,
-   unterschiedlich lang, und das sah aus wie ein Versehen. Jetzt stehen sie
-   UNTEREINANDER UND RECHTSBUENDIG, links davon der Name der Anmeldung.
-   Zwei Zeitangaben untereinander lesen sich als eine Angabe mit zwei Zeilen;
-   nebeneinander lasen sie sich als zwei Spalten, die nicht zueinander passen.
+/* DIE ZEILE EINER ANMELDUNG STEHT IN EINEM RASTER UND HAT ZWEI REIHEN:
+   OBEN DER NAME, DARUNTER DIE BEIDEN ZEITANGABEN -- rechtsbuendig und
+   untereinander. Zwei Zeitangaben untereinander lesen sich als eine Angabe mit
+   zwei Zeilen; nebeneinander lasen sie sich als zwei Spalten, die nicht
+   zueinander passen.
+   DER NAME BEKAM SEINE EIGENE REIHE, WEIL ER SONST ABGESCHNITTEN WURDE. Neben
+   zwei Zeitangaben blieb von "Diese Anmeldung (hier)" ein Stummel mit Ellipse:
+   "Diese Anmeldung (…". Die Namensspalte gibt nach -- das haelt den Rahmen bis
+   zum Rand -- und sie gab so weit nach, dass nichts mehr dastand.
+   UND AUSDRUECKLICH KEINE ELLIPSE MIT UEBERFAHREN: ein Titel, der nur unter dem
+   Zeiger vollstaendig ist, ist auf dem Finger gar nicht zu haben, und dieselbe
+   Karte wird auf dem Telefon gelesen.
+   DIESELBE ANORDNUNG AUF JEDEM SCHIRM. Sie stand bis 0.17.1 nur in der
+   Medienabfrage; die Trennung "oben, was die Zeile ist und was man mit ihr tun
+   kann -- darunter, wann" ist keine Frage der Breite.
    DER RAHMEN REICHT WEITERHIN BIS ZUM RAND -- das war Punkt 4b von 0.17.0 und
    darf nicht zurueckfallen. Vorher hielt ihn `flex-wrap: wrap`: die Zeile war
    breiter als der Kasten (`.manage-list` traegt `overflow-y: auto`, und damit
@@ -1279,11 +1326,11 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    NUR DIE ZEITEN TRAGEN `white-space: nowrap`. Ein umgebrochener Zeitstempel
    waere schlechter zu lesen als ein abgeschnittener Name -- und der Name
    traegt seine Ellipse ohnehin schon. */
-.mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+.mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: center; column-gap: 9px; row-gap: 2px; }
-.mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 2; }
-.mrow.sitz .sitz-zeit { grid-column: 2; justify-self: end; text-align: right; }
-.mrow.sitz .zug-akt { grid-column: 3; grid-row: 1 / span 2; }
+.mrow.sitz .mname { grid-column: 1; grid-row: 1; }
+.mrow.sitz .zug-akt { grid-column: 2; grid-row: 1; }
+.mrow.sitz .sitz-zeit { grid-column: 1 / -1; justify-self: end; text-align: right; }
 /* Die eigene Anmeldung ist markiert -- sonst waere sie von einer fremden nicht
    zu unterscheiden, und genau das ist die eine Auskunft dieser Karte. */
 .mrow.sitz .sitz-zeit { font-family: var(--mono); font-size: .68rem; color: var(--faint); white-space: nowrap; }
@@ -2610,14 +2657,23 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      dann dreizeilig ueber einem Feld von hundert Pixeln.
      EINE REGEL FUER ALLE VIER REIHEN und nicht vier: die Frage ist dieselbe. */
   .mail-reihe { grid-template-columns: minmax(0, 1fr); }
+  /* Untereinander steht der Satz wieder UNTER seiner Sache, und dann gehoert er
+     an ihren Anfang und nicht an ihr Ende. */
+  .mail-satz { align-self: start; padding-bottom: 0; margin: 0 0 14px; }
 
   /* Die Listen, die in sich scrollen, tun das jetzt selten genug, dass die
      Wischbewegung fast immer die Seite bewegt -- 62 Prozent der Fensterhoehe
-     fassen auf einem Telefon mehr Zeilen als die festen 280 bis 380 Pixel.
-     Ganz aufheben laesst sich der eigene Bildlauf nicht: ein
-     Sicherheitsprotokoll mit zweihundert Zeilen machte die Karte sonst
-     unbrauchbar lang. */
-  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste { max-height: 62vh; max-height: 62dvh; }
+     fassen auf einem Telefon mehr Zeilen als ein Deckel von zwoelf. Ganz
+     aufheben laesst sich der eigene Bildlauf nicht: ein Sicherheitsprotokoll
+     mit zweihundert Zeilen machte die Karte sonst unbrauchbar lang.
+     UND HIER IST DER DECKEL WIEDER EINE GRENZE UND KEINE FORDERUNG. Auf dem
+     schmalen Schirm steht jede Kachel ALLEIN in ihrer Zeile -- es gibt keine
+     Nachbarin, deren Hoehe eine Liste mitnehmen koennte. `flex: 0 1 auto` laesst
+     sie deshalb ihren Inhalt fordern, und das Fenstermass deckelt ihn; die
+     Forderung von zwoelf Zeilen machte eine Karte mit zwei Eintraegen sonst so
+     hoch wie eine mit fuenfzig. */
+  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {
+    flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }
 
   /* ---- Die Detailansicht: DER TITEL STEHT VOR DEM BILD ----
      Das ist die einzige Umstellung der Reihenfolge in dieser ganzen Runde.
@@ -2709,20 +2765,11 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
   .card-foot { flex-wrap: wrap; row-gap: 5px; }
   .apdf-hint { row-gap: 6px; }
 
-  /* DIE ANORDNUNG AUF DEM SCHMALEN SCHIRM. Die Zeile traegt vier Stuecke: was
-     fuer eine Anmeldung es ist, wann sie begann, wann sie zuletzt gesehen
-     wurde, und das Kreuz zum Beenden.
-     OBEN, WAS DIE ZEILE IST UND WAS MAN MIT IHR TUN KANN; DARUNTER, WANN.
-     Dieselbe Trennung wie am Kommentarkopf, und aus demselben Grund.
-     DIE ZEITEN BLEIBEN RECHTSBUENDIG UND UNTEREINANDER -- nur eben UNTER dem
-     Namen statt neben ihm. Drei Spalten auf 366 Pixeln waeren drei zu schmale:
-     "zuletzt gesehen 30.08.2026, 20:17" nimmt allein zwei Drittel, und vom
-     Namen bliebe ein Stummel mit Ellipse. Dieselbe Ueberlegung wie beim
-     Mailversand, eine Karte weiter. */
-  .mrow.sitz { grid-template-columns: minmax(0, 1fr) auto; }
-  .mrow.sitz .mname { grid-column: 1; grid-row: 1; }
-  .mrow.sitz .zug-akt { grid-column: 2; grid-row: 1; }
-  .mrow.sitz .sitz-zeit { grid-column: 1 / -1; }
+  /* HIER STAND BIS 0.17.1 DIE ANORDNUNG DER ANMELDEZEILE -- oben der Name und
+     das Kreuz, darunter die Zeiten. Sie gilt jetzt auf JEDEM Schirm und steht
+     deshalb oben bei der Regel selbst: der Name wurde auch auf dem breiten
+     Schirm abgeschnitten, und die Trennung "was die Zeile ist" gegen "wann" ist
+     keine Frage der Breite. */
 
   /* Ein langer Titel der Instanz schoebe sonst den Knopf zum Anlegen und das
      Menuezeichen aus der Kopfzeile. Abgeschnitten wird der Titel: er steht
