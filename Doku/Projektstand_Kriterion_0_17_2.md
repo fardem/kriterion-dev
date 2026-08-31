@@ -2143,6 +2143,15 @@ kommt 1.0.0 — und nicht später.**
   Changelog sie selbst führt* — und das ist kein Bruch mit der Sprachregel aus
   Abschnitt 12: deren Maßstab ist das Wort, das ein deutschsprachiger
   Entwickler im Gespräch benutzt.
+  **SEIT 0.17.2 STEHEN SIE VOR DER ZEILE STATT ALS ÜBERSCHRIFT DARÜBER** —
+  `- Changed: …`. *Dieselbe Auskunft auf einem Fünftel des Platzes; die
+  Reihenfolge der sechs bleibt.*
+- **EINE ZEILE JE ÄNDERUNG** (seit 0.17.2, rückwirkend bis 0.10.0). **Kein
+  Absatz, keine Herleitung, keine Begründung** — *ein Changelog wird überflogen,
+  nicht gelesen.* Wer wissen will, **warum** etwas so gebaut ist, liest das
+  Änderungsprotokoll der Runde, und dort steht es ausführlich. *Dieselbe Regel
+  wie für die README (Abschnitt 5.6): sagen, WAS IST, und die Herleitung
+  dorthin schicken, wo sie gesucht wird.*
 - **Für jede Version ein Eintrag. Keine Version ohne Zeile im Changelog.**
 - **Zurückgezogene Versionen** als `## [x.y.z] - JJJJ-MM-TT [YANKED]`,
   großgeschrieben, damit ein Mensch es bemerkt.
@@ -2168,7 +2177,9 @@ beim Einspielen über den alten Ordner liegen und verschiebt den Fingerprint
 danach von Hand tun musst".
 
 **Die Einträge bis einschließlich 0.9.1 stehen in der Form ihrer Zeit** — eigene
-deutsche Überschriften, ohne Datum. *Sie werden nicht umgeschrieben.* **Was
+deutsche Überschriften, ohne Datum. *Sie werden nicht umgeschrieben:* sie
+stammen aus der Zeit vor Keep a Changelog, und eine **dritte** Form mitten in
+einer geschlossenen Reihe wäre schlechter als die Lücke. **Was
 dort fehlte, ist mit Revision 25 nachgetragen worden** — 0.8.6, 0.8.10, 0.8.20
 und 0.8.30 hatten keinen Eintrag, und für alles vor 0.8.6 steht jetzt eine
 Sammelzeile. Nachgetragen wird in der Form der Nachbarn, nicht in der neuen:
@@ -2188,6 +2199,23 @@ sonst nirgends.*
 Satz „es wird nicht mehr angefasst" aus früheren Revisionen ist damit
 eingelöst — nicht dadurch, dass niemand hineinsieht, sondern dadurch, dass
 nichts mehr darin steht, was jemand nachziehen müsste.
+
+**UND DER CHANGELOG TRÄGT EINE ZEILE JE ÄNDERUNG** (seit 0.17.2, rückwirkend
+bis 0.10.0). *Bis dahin trug jeder Eintrag Absätze, Begründungen und
+Herleitungen — ein Changelog wird aber überflogen, nicht gelesen.* **Die
+Abschnittsnamen von Keep a Changelog bleiben, sie stehen nur VOR der Zeile
+statt als Überschrift darüber:** `- Changed: …`. **Die beiden eigenen Angaben
+bleiben ebenfalls** — „Danach von Hand" und „Gleich geblieben" —, und zwar
+einzeilig; *sie sind für einen Betreiber das Wertvollste am ganzen Papier, und
+keine der sechs Arten trägt sie.*
+**DAMIT IST EINE ENTSCHEIDUNG ZURÜCKGENOMMEN, und der Vermerk steht im Kopf des
+Changelogs** (Stolperstein 201): bis 0.17.1 galt dort *„was einmal draußen war,
+bleibt, wie es war"*, und die Einträge sind nie angefasst worden. **Für 0.10.0
+bis 0.17.1 gilt das nicht mehr.** *Es geht dabei kein Inhalt verloren — die
+Änderungsprotokolle sind der Rohstoff und bleiben unangetastet.* **Die Einträge
+bis einschließlich 0.9.1 bleiben, wie sie waren:** sie stammen aus der Zeit vor
+Keep a Changelog, und eine dritte Form mitten in einer geschlossenen Reihe wäre
+schlechter als die Lücke.
 
 **UND DIE README ERZÄHLT KEINE VERSIONSGESCHICHTE** (seit 0.17.2). Sie ist die
 **Bedienung und der Betrieb** und spricht mit dem, der Kriterion zum ersten Mal
@@ -8041,6 +8069,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.21.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0 vorgemerkt — **die Nummer ist vorläufig**.)* Migrationscode raus — **jetzt sieben Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **0.21.x** | Die Kommentare werden knapp | *(Neu am 31. August 2026 — **keine geplante Nummer, sondern die nächste freie PATCH-Zahl nach der Bereinigung**; dieselbe Bauform wie die 0.12.x-Zeile darüber.)* **Fast dreißig Prozent des Quelltextes sind Kommentar** — 16.281 von 54.822 Zeilen, `zweifaktor.js` zu 52 %, `auth.js` zu 46 %, `server.js` zu 44 %. **Was das Offensichtliche wiederholt, geht; was eine ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger stehen.** *PATCH: die Instanz kann danach nichts, was sie vorher nicht konnte. Der Fingerprint verschiebt sich, sonst nichts.* **Nach der Bereinigung und nicht davor** — sie löscht ganze Blöcke samt ihren Kommentaren, und wer vorher schneidet, schneidet zweimal. Einzelheiten in 10a | nein | — |
 
 > **DIE BEREINIGUNG HIESS EINMAL 0.12.0, DANN 0.13.0, DANN 0.17.0, DANN 0.18.0,
 > DANN 0.19.0 UND HEISST JETZT 0.21.0.** Sie ist kein einziges Mal verschoben worden, weil
@@ -8520,6 +8549,82 @@ an 0.17.1 selbst.* **Alle sechs sind gebaut; was dabei herauskam, steht im
    Versionsnummern bleiben sechs, und jede bestimmt eine Handlung.* **Dieser
    Punkt ist während der Runde dazugekommen und im Auftrag nachgetragen
    worden.**
+
+---
+
+### 0.21.x — „Die Kommentare werden knapp" · *PATCH*
+
+*(Neu am 31. August 2026. **Keine geplante Nummer, sondern die nächste freie
+PATCH-Zahl nach der Bereinigung** — dieselbe Bauform wie die 0.12.x-Zeile im
+Fahrplan.)*
+
+**Nicht aus dem Sammelblatt** — aufgekommen beim Umschreiben des Changelogs,
+aus derselben Frage: *sagt der Text, was ist, oder erzählt er?*
+
+> **Art: Verbesserung** · **Claude: empfohlen, aber mit einer Klemme** —
+> nicht als Kahlschlag, sondern nach der Regel unten.
+> **Draußen üblich:** ein Kommentar sagt, was aus dem Code nicht hervorgeht,
+> und sonst nichts. Ein Projekt mit dreißig Prozent Kommentar ist selten, und
+> wo es vorkommt, wird es beim ersten fremden Blick als Ballast gelesen.
+
+**BEFUND, gemessen am 31. August 2026:**
+
+| Datei | Zeilen | davon Kommentar | Anteil |
+|---|---:|---:|---:|
+| `server.js` | 5.205 | 2.290 | **44 %** |
+| `public/app.js` | 8.562 | 2.344 | 27 % |
+| `auth.js` | 1.677 | 773 | **46 %** |
+| `zweifaktor.js` | 224 | 116 | **52 %** |
+| `pruefung.js` | 32.964 | 9.071 | 28 % |
+| *(alle zwölf)* | **54.822** | **16.281** | **30 %** |
+
+**DIE REGEL, UND SIE IST DIESELBE WIE BEI DER README UND BEIM CHANGELOG:**
+
+| geht | bleibt |
+|---|---|
+| was der Code eine Zeile weiter selbst sagt (*„liest die eingestellten Routen"* über `const route = …`) | was eine **Entscheidung** trägt: warum es *so* und nicht anders gebaut ist |
+| die Herleitung, die schon im Änderungsprotokoll steht | ein **Stolpersteinverweis** — er ist die Abkürzung zur Herleitung und selbst eine Zeile |
+| die Erzählung *„bis 0.14.0 hieß das hier anders"* | eine **nachgemessene Zahl**, die nirgends sonst steht |
+| dieselbe Begründung an drei Stellen | eine **Zusage an den Prüfstand** („ohne diese Zeile bliebe X grün") |
+
+> **DIE HARTE KLEMME: nichts wird gestrichen, was nicht vorher woanders steht.**
+> *Ein Kommentar, der die einzige Aufzeichnung einer Entscheidung ist, wandert
+> zuerst in Abschnitt 5 dieses Blattes und bleibt im Quelltext als Zeiger
+> stehen — dann erst darf er dort kurz werden.* **Wer umgekehrt vorgeht,
+> verliert genau das, was diese Anwendung für einen Fremden lesbar macht.**
+> Und derselbe Satz gilt für die **umgedrehten** Zusagen (Stolperstein 201):
+> sie sind der Grund, warum eine zurückgenommene Entscheidung nicht in zwei
+> Jahren wiederkommt.
+
+**WARUM NACH DER BEREINIGUNG UND NICHT DAVOR.** 0.21.0 nimmt Migrationscode
+heraus und schreibt die Struktur fest — **sie löscht ganze Blöcke samt ihren
+Kommentaren.** *Wer vorher schneidet, schneidet zweimal.* **Und sie ist die
+eine Runde, in der ein lesbarer Diff wirklich zählt:** ein
+repoweiter Kommentarschnitt daneben machte sie unlesbar.
+
+> **WIE VIEL WEGGENOMMEN WIRD, ENTSCHEIDET DER AUFTRAG DIESER RUNDE — nicht
+> dieser Eintrag.** *Hier steht der Befund, die Regel und die Klemme; die
+> Schnitttiefe je Datei wird festgelegt, wenn die Runde beginnt, und nicht
+> Wochen vorher.* **Das ist keine Unentschlossenheit, sondern dieselbe Ordnung
+> wie überall:** ein Fahrplaneintrag sagt, worum es geht und was dabei nicht
+> passieren darf; **ein Auftrag sagt, was gebaut wird.** *Wer die Zahl hier
+> festschriebe, hätte sie beim Bauen entweder vergessen oder als Fessel.*
+
+**ZWEI FRAGEN GEHÖREN IN DIESEN AUFTRAG UND SIND HIER OFFEN:**
+
+- **Wie tief wird je Datei geschnitten?** *Ein Vorschlag als Anhaltspunkt und
+  nicht als Zusage: die ausgelieferten Dateien zuerst und am gründlichsten
+  (`server.js` mit 44 Prozent, `auth.js` mit 46, `zweifaktor.js` mit 52).*
+- **Wird `pruefung.js` überhaupt angefasst?** *Dort ist der Kommentar oft die
+  einzige Stelle, an der steht, **wofür** eine Prüflage gestellt ist — und eine
+  Prüfung, deren Grund niemand mehr kennt, wird beim ersten roten Punkt
+  gelöscht statt verstanden.* **Meine Neigung: zuletzt, mit der schärfsten
+  Klemme, oder gar nicht.** Entschieden ist es nicht.
+
+**BELEG:** `npm test` bleibt Zeile für Zeile grün, `F_ROUTEN` unverändert, kein
+Schema, kein Format. **Der Fingerprint verschiebt sich** — Kommentare stehen in
+den Dateien, über die er geht —, und das ist die einzige nach außen sichtbare
+Folge.
 
 ---
 
