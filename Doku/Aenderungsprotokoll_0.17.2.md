@@ -304,6 +304,51 @@ und nicht das ZIP.*
 
 ---
 
+### Ein Lauf über alle Texte, die einen Betreiber ansprechen
+
+**NACHGETRAGEN AM 31. AUGUST 2026.** *Punkt 6 hatte nur nach **Versionsnummern**
+gesucht. Nach der Berichtigung am Changelog ist derselbe Maßstab auf alle Texte
+gelegt worden, die kein Entwicklerpapier sind:* README, Changelog, der Text der
+Oberfläche und die Meldungen des Servers. **Achtzig Stellen gemeldet, sechzehn
+haben eine strenge Gegenprobe überstanden.**
+
+> **DER SCHWERSTE BEFUND WAR EINE REGRESSION AUS DERSELBEN RUNDE.** Die README
+> verwies an **drei** Stellen auf `CHANGELOG.md` *„unter ‚Was du danach von Hand
+> tun musst'"* — **einen Abschnitt, den es seit dem Umbau nur noch unter den
+> Einträgen bis 0.9.1 gibt.** *Und er steht genau an der Stelle, an der jemand
+> entscheidet, ob er vor dem Einspielen sichert: wer die Rubrik nicht findet,
+> liest nach dem Wortlaut des Satzes „Sicherung nur Empfehlung" — bei 0.10.0,
+> 0.14.0 und 0.16.0 wäre das der Bestand.* **Alle drei zeigen jetzt auf den
+> Kasten über den Änderungen.**
+
+**WAS SONST GEHALTEN HAT — und alles davon ist berichtigt:**
+
+| Stelle | was daran nicht ging |
+|---|---|
+| README, „Auf dem Telefon" | *„dasselbe Markup in zwei Gestalten … kein Verschieben von Knoten, keine Weiche nach Gerät"* — drei Wörter aus dem Quelltext in einem Satz |
+| README, „Berühren, halten, wischen" | *„Die Pfeile hängen an der Lightbox … Kinder davon wandern mit dem Bild aus dem Bild"* |
+| README, „Schriftgröße" | *„Sämtliche Schriftgrößen im Stylesheet sind relativ (`rem`) und hängen an einem Grundmaß am Wurzelelement"* — der Abschnitt sagte zuerst, wie es gebaut ist, statt was man einstellen kann |
+| README, „Prüfen" | `searchText` und `testDays` — Feldnamen, die kein Leser je sieht |
+| README, Zugänge | *„— wie bisher"*: eine frühere Fassung, die der Erstleser nie gesehen hat |
+| README, Suche | *„sucht der Server und nicht mehr der Browser … dasselbe wie vorher"* — derselbe Vergleich |
+| Changelog, fünf Zeilen | *„32 Pixel zu tief"*, *„75 Pixel flacher"*, *„auf einer ausgerechneten Textbreite"*, *„zwei Abspieler mit derselben Quelle"*, *„vierzehn Anzeigefehler"* — Werte aus dem Stilblatt und Bauursachen statt der Sache |
+
+**VIER BEFUNDE LIEGEN IM AUSGELIEFERTEN TEXT UND SIND NICHT MITGEMACHT** — drei
+Sätze in der Oberfläche und zwei Meldungen des Servers. *Sie stehen namentlich
+im Sammelblatt.* **Der Grund ist ausdrücklich kein inhaltlicher:** jede dieser
+Dateien geht in den Fingerprint, und die Papiere dieser Runde waren schon
+geschrieben. *Drei von ihnen stehen ohnehin seit 0.17.0 auf der Liste der
+zwölf, die „gefunden, benannt und stehengeblieben" sind.*
+
+**UND EINER IST NACH DER GEGENPROBE VERWORFEN WORDEN, zu Recht:** die Zeile
+*„`node gegenprobe.js 2 256` fuhr neben Rückbau 256 auch die 83 mit"* war als
+Entwicklernachricht gemeldet. **`gegenprobe.js` liegt beim Betreiber im
+Projektverzeichnis** — nur nicht im Image —, **und die README erklärt sie mit
+lauffähigem Aufruf.** *Der Name ist damit einer, den der Leser selbst sieht,
+und die Zeile bleibt.*
+
+---
+
 ## 7. Die Entscheidungen dieser Runde
 
 **ERSTENS: DER DECKEL STEHT IN `flex-basis` UND NICHT IN `max-height`.** *Das

@@ -486,9 +486,27 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   Warnung** ist erlaubt, und eine **Folge**, die man kennen muss, um zu
   entscheiden, auch. *Der Unterschied ist die Frage, die der Satz beantwortet:
   „was passiert, wenn ich das tue" ja — „warum haben wir das so gebaut" nein.*
-  *(Claude: eine eigene kleine Runde wert, aber keine eilige. Zwölf Sätze in
-  einer Datei, jeder einzeln zu entscheiden — und die Hälfte davon sind
-  Grenzfälle, über die man reden muss.)*
+  **NACHGETRAGEN AM 31. AUGUST 2026, aus einem Lauf über alle Texte, die einen
+  Betreiber ansprechen:** von achtzig gemeldeten Stellen haben sechzehn eine
+  strenge Gegenprobe überstanden, und **vier davon liegen im ausgelieferten
+  Text** — nicht in einem Papier. *Der Mailverteiler-Satz ist mit 0.17.2
+  gestrichen; die drei übrigen stehen noch:*
+  - *„das ist so gewollt und bleibt so"* (Karte „Meine Sitzungen") — der
+    Halbsatz davor sagt schon, WAS IST: weder Adresse noch Browserkennung
+    werden gespeichert.
+  - *„…, weil es dort keine Wolke gibt"* (Karte „Tags", Admin-Zweig).
+  - *„Der Schlüssel geht roh in die Datenbank (`PRAGMA key = x'…'`) — ohne
+    Ableitung, …"* (Karte „Kennzahlen") — die Klammer ist eine Zeile aus dem
+    Quelltext.
+  **Zwei Meldungen kommen dazu, außerhalb der Oberfläche:** *„AUTH_RESET wird
+  **seit Version 0.8.0** nicht mehr ausgeführt"* (`auth.js`, Startwarnung — die
+  Nummer sagt dem Leser nichts, seine Handlung bleibt dieselbe) und die Klammer
+  *„(role=eigentuemer)"* in der Auffangmeldung von `db.js`, die den Satz davor
+  in der Schreibweise der Datenbankspalte wiederholt.
+  *(Claude: eine eigene kleine Runde wert, aber keine eilige. Jeder Satz ist
+  einzeln zu entscheiden, und ein Teil davon sind Grenzfälle, über die man
+  reden muss. **Nicht mit 0.17.2 mitgemacht**, weil jede dieser Dateien in den
+  Fingerprint geht und die Runde ihre Papiere schon geschrieben hatte.)*
 - **`.rz-summe:first-of-type` im Stilblatt kann nie greifen** *(0.16.0, beim
   Bau von 0.17.0 aufgefallen)*. Die Regel soll der ersten Summenzeile des
   Erklärkastens einen Strich darüber geben; `:first-of-type` zählt aber

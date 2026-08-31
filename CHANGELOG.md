@@ -46,7 +46,7 @@ bleiben in der Form ihrer Zeit.*
 - Changed: Die Listen in den Kacheln bekommen die Höhe, die ihre Kachel hergibt
 - Changed: Der Mailversand ordnet sich in vier Reihen — wer · wohin · womit · als wer
 - Changed: Die beiden Zeitangaben einer Anmeldung stehen rechtsbündig untereinander
-- Fixed: Das Video fing im Vollbild ein zweites Mal an — zwei Abspieler mit derselben Quelle
+- Fixed: Das Video fing im Vollbild von vorn an, statt an seiner Stelle weiterzulaufen
 
 ## [0.17.0] - 2026-08-30
 
@@ -108,7 +108,7 @@ bleiben in der Form ihrer Zeit.*
 
 ## [0.13.1] - 2026-08-29
 
-- Fixed: Beschriftung und Umschalter der Filterzeile standen 32 Pixel zu tief
+- Fixed: Beschriftung und Umschalter der Filterzeile standen tiefer als der Rest der Zeile
 
 ## [0.13.0] - 2026-08-28
 
@@ -121,7 +121,7 @@ bleiben in der Form ihrer Zeit.*
 - Added: Gelöschte Zugänge stehen in einem eigenen Fenster
 - Added: Die Kategoriezeile trägt mehrere Kategorien zugleich
 - Changed: Der Löschdialog nennt den umkehrbaren Weg — sperren statt löschen
-- Changed: Die Filterleiste ist 75 Pixel flacher
+- Changed: Die Filterleiste ist flacher — die Liste beginnt weiter oben
 - Removed: Der Handgriff „Wenn der Proxy ausfällt" aus der README — er wird nicht mehr gebraucht
 - Fixed: Der Export in Teilen ging mit eingeschaltetem zweitem Faktor überhaupt nicht
 - Fixed: Ein Teilexport stand in keiner einzigen Protokollzeile
@@ -154,7 +154,7 @@ bleiben in der Form ihrer Zeit.*
 
 - Changed: Die Knöpfe am Bildbereich stehen in einer Reihe oben rechts
 - Changed: Auf dem Berührungsbildschirm trägt die Vorschaukachel kein Löschkreuz mehr
-- Fixed: Der Knopf „Vollbild" am Video saß auf einer ausgerechneten Textbreite
+- Fixed: Bei großer Schrift schoben sich „Ausschnitt" und „Vollbild" am Video übereinander
 - Fixed: Das Feld zum Hochladen stand auf dem Telefon dauerhaft wie im Ziehzustand
 
 ## [0.12.0] - 2026-08-28
@@ -163,7 +163,7 @@ bleiben in der Form ihrer Zeit.*
 - Changed: Auf dem Telefon ist ein Block kein Kasten mehr, sondern ein Abschnitt
 - Changed: Der Titel des Eintrags steht auf dem Telefon vor dem Bild
 - Changed: Dialoge steigen von unten auf
-- Fixed: Vierzehn Anzeigefehler auf dem Telefon — vom verschobenen Kommentartext bis zum Systembereich, der rechts aus dem Bild lief
+- Fixed: Anzeigefehler auf dem Telefon — vom verschobenen Kommentartext bis zum Systembereich, der rechts aus dem Bild lief
 
 ## [0.11.0] - 2026-08-27
 

@@ -214,9 +214,9 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 
 ## Eine neuere Version über eine bestehende einspielen
 
-> **OB EINE VERSION DIE DATENBANK ANFASST, SAGT `CHANGELOG.md`** unter „Was du
-> danach von Hand tun musst". Tut sie es nicht, ist die Sicherung Empfehlung und
-> nicht Pflicht. *Wer sie mitnimmt, tut nichts Falsches; die Zeile steht unten
+> **OB EINE VERSION DIE DATENBANK ANFASST, STEHT IM `CHANGELOG.md` ÜBER IHREN
+> ÄNDERUNGEN.** Steht dort ein Kasten, ist etwas zu tun; steht dort keiner, ist
+> die Sicherung Empfehlung und nicht Pflicht. *Wer sie mitnimmt, tut nichts Falsches; die Zeile steht unten
 > ohnehin im Rezept.*
 >
 > **WER VON EINER FASSUNG VOR 0.14.0 KOMMT, SICHERT PFLICHTGEMÄSS.**
@@ -260,8 +260,8 @@ dann sofort anhalten und nachsehen, **bevor** etwas geschrieben wird.
 laufenden Server entsteht, kann eine offene WAL-Datei enthalten.
 
 **Die Sicherungszeile.** Bei einer Version, die die Datenbank anfasst, ist sie
-kein guter Rat, sondern der einzige Weg zurück. Ob eine Version das tut, sagt
-`CHANGELOG.md` unter „Was du danach von Hand tun musst".
+kein guter Rat, sondern der einzige Weg zurück. Ob eine Version das tut, steht
+im `CHANGELOG.md` über ihren Änderungen.
 
 **`mv kriterion kriterion-alt` und ein frisch entpacktes Verzeichnis.** Wer über
 den alten Ordner entpackt, behält Dateien, die die neue Version **weggenommen**
@@ -621,7 +621,7 @@ und gibst ihn dem Betreffenden — mündlich, per Zettel, per Messenger. Wer ihn
 erfährst das Passwort nie.** In der Liste steht bei ihm „noch kein Passwort",
 bis er den Link eingelöst hat.
 
-**„Ich vergebe das erste Passwort" — wie bisher.** Erst dann erscheint das
+**„Ich vergebe das erste Passwort".** Erst dann erscheint das
 Passwortfeld, und der Knopf heißt nur noch **„+ Anlegen"**. Der kürzere Weg,
 wenn der andere danebensteht. Wechselst du zurück, verschwindet das Feld
 wieder — und was darin stand, wird geleert.
@@ -1047,8 +1047,7 @@ es zwei, beide im Systembereich einstellbar:
   Groß- und Kleinschreibung spielt keine Rolle, auch bei Umlauten; ein
   einzelnes Zeichen findet bereits. **Prozentzeichen und Unterstrich sind
   gewöhnliche Zeichen** — man kann nach ihnen suchen.
-  *sucht der Server und nicht mehr der Browser.* Gefunden wird
-  dasselbe wie vorher; gefragt wird kurz nach dem letzten Anschlag, damit
+  *Gesucht wird im Server.* Gefragt wird kurz nach dem letzten Anschlag, damit
   nicht jeder Tastendruck über das Netz geht. Ist der Server einmal nicht
   erreichbar, bleibt die zuletzt gezeigte Liste stehen und sagt es.
 - **Gespeicherte Ansichten** stehen als Knöpfe unter den Filtern. Wer eine
@@ -1365,8 +1364,7 @@ sichtbaren zurück** und wird dabei in der Adresszeile nachgezogen — sonst
 stünden dort zwei Aussagen über denselben Zustand.
 
 **Auf dem Telefon wird aus der Reiterreihe eine Liste**, die in den Abschnitt
-hinein führt. Es ist dasselbe Markup in zwei Gestalten, wie beim Menü der
-Kopfzeile — kein Verschieben von Knoten, keine Weiche nach Gerät.
+hinein führt.
 
 **Der zuletzt offene Abschnitt wird ausdrücklich nicht gemerkt.** Die Adresse
 tut es schon; ein gemerkter Zustand daneben wäre eine zweite Wahrheit.
@@ -1756,9 +1754,8 @@ dem Finger die Kachel und mit der Maus das Kreuz.*
 Im Vollbild **zoomt mit der Maus ein Klick, mit dem Finger erst der zweite
 Tipp** innerhalb einer knappen Sekunde. Ein einzelner Tipp tut nichts —
 Schließen wäre bei jedem versehentlichen Antippen zu hart. Die Pfeile zum
-Blättern hängen an der Lightbox, nicht an der Bildfläche: im gezoomten Zustand
-wird diese zum Scrollbereich, und Kinder davon wandern beim Verschieben mit dem
-Bild aus dem Bild.
+Blättern bleiben auch im herangezoomten Bild stehen, wo immer man es gerade
+hingeschoben hat.
 
 **Nach dem Zoom steht die Mitte des Bildes im Blick**, nicht die linke obere
 Ecke, und in jede Richtung lässt sich schieben. Ist das Original kleiner als die
@@ -1808,10 +1805,10 @@ echten Textbausteinen aussehen.
 
 ## Schriftgröße
 
-Sämtliche Schriftgrößen im Stylesheet sind relativ (`rem`) und hängen an einem
-einzigen Grundmaß am Wurzelelement. Die Einstellung im Systembereich setzt genau
-dieses Maß. **Layoutmaße bleiben in Pixeln** — bei 120 % wird es deshalb an
-einigen Stellen enger, dafür verschiebt sich das Gefüge nicht. Die Anmeldeseite
+**Die Einstellung im Systembereich vergrößert oder verkleinert die Schrift der
+ganzen Oberfläche**, in fünf Stufen von 80 auf 120 Prozent. **Die Abstände
+gehen nicht mit** — bei 120 % wird es deshalb an einigen Stellen enger, dafür
+verschiebt sich das Gefüge nicht. Die Anmeldeseite
 bleibt bei der Vorgabegröße, weil der Endpunkt vor der Anmeldung nur den
 öffentlichen Titel ausliefert.
 
@@ -1906,9 +1903,8 @@ einem `img`-Element läuft es nicht, aber ein direkt geöffneter Tab ist eine
 Webseite. SVG wird deshalb wie jede andere Datei heruntergeladen.
 
 Die `.docx`-Vorschau packt das Dokument mit dem eingebauten `zlib` selbst aus
-und liest `word/document.xml` als Text — eine eigene Abhängigkeit dafür wäre für
-eine vereinfachte Lesevorschau zu viel gewesen. Absätze und Zeilenumbrüche
-bleiben, alles andere fällt weg.
+und liest `word/document.xml` als Text. Absätze und Zeilenumbrüche bleiben,
+alles andere fällt weg.
 
 ## Kurzvideos
 
@@ -2058,8 +2054,8 @@ auch **ein einzelner Eintrag** als Datei ziehen.
 > Formatwechsel und braucht keinen Schlüssel.
 
 > **Vor einer Version, die die Datenbank anfasst, ist die Sicherung Pflicht.**
-> Ob eine Version das tut, sagt `CHANGELOG.md` unter „Was du danach von Hand
-> tun musst", und ausführlich das Änderungsprotokoll der Version.
+> Ob eine Version das tut, steht im `CHANGELOG.md` über ihren Änderungen, und
+> ausführlich im Änderungsprotokoll der Version.
 >
 > **Rüstet sie eine Spalte nach**, lässt sich der Bestand danach nicht mehr
 > ohne Weiteres auf die vorige Version zurückbringen. Der Weg zurück ist dann
@@ -2237,10 +2233,9 @@ Teilstring aus einem einzigen Zeichen, **Prozentzeichen und Unterstrich als
 Text samt der Gegenlage, dass man sie suchen kann**, und die Zusicherung, dass
 jede Trefferliste eine **Teilmenge** der Liste ohne Suchbegriff ist —
 nachgestellt an einem Eintrag, der vor dem Löschen gefunden wird und danach
-nicht mehr. **Feld für Feld gegen eine namentliche Liste** wird geprüft, dass
-`searchText` fort ist und **sonst nichts**, und dass `testDays` genau dann
-fehlt, wenn die Zeitleiste aus ist — samt der Nachschau, dass die Kachelzahlen
-trotzdem stimmen. Am Bildschirm: dass **drei Anschläge hintereinander EINE
+nicht mehr. **Feld für Feld gegen eine namentliche Liste** wird geprüft, dass die Übersicht
+nur noch mitschickt, was sie wirklich zeigt — samt der Nachschau, dass die
+Kachelzahlen trotzdem stimmen. Am Bildschirm: dass **drei Anschläge hintereinander EINE
 Anfrage** sind, dass der zuletzt getippte Begriff gewinnt, dass das Leeren
 ohne Anfrage auskommt und dass die Liste **stehenbleibt**, wenn die Suche
 scheitert.
