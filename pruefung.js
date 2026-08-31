@@ -18056,7 +18056,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // in 0.17.3 das `align-items: start` weggenommen und setzt es jetzt wieder,
   // weil die Zeile ein Fehler war. Ein zurueckgenommener Beschluss laesst eine
   // Spur zurueck, sonst kommt er wieder (Stolperstein 201).
-  pruefe('Es sind genau 385 Rueckbauten', gpListe.length === 385, `${gpListe.length}`);
+  // 389 SEIT 0.17.5: vier neue am Raster des Protokolls -- die Spalten an der
+  // Liste, die Zeile ohne eigenen Kasten, die Unterkante als Ausrichtung und
+  // das Telefon, das die Zeile wieder fuer sich stellt. NEUN VORHANDENE SIND
+  // MITGEGANGEN statt geloescht zu werden (Stolperstein 201): 339, 340, 355,
+  // 356, 370, 371, 390, 391 und 392 zeigten auf die Deckelzeilen, die diese
+  // Runde umgebaut hat. 391 IST DABEI UMGEDREHT -- er baute die Nutzung ueber
+  // den Deckel hinaus zurueck, und jetzt setzt er das Schluesselwort wieder,
+  // an dem die Runde gescheitert ist.
+  pruefe('Es sind genau 389 Rueckbauten', gpListe.length === 389, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -32166,7 +32174,7 @@ async function pruefeOberflaeche() {
   }
 
   /* ---- 2. Was die Liste fordert, ist nicht, was sie nutzt ---- */
-  gruppe('Fordern und nutzen — 0.17.4');
+  gruppe('So hoch wie der Inhalt — 0.17.5');
 
   /* WAS HIER AUSDRUECKLICH NICHT GEPRUEFT WIRD: DIE WIRKUNG. jsdom rechnet
      kein Layout -- jede Hoehe ist dort null, und ob eine Liste wirklich den
@@ -32198,44 +32206,35 @@ async function pruefeOberflaeche() {
       const regel = (ohneMedien.match(new RegExp(wahl.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
       pruefe(`Die Regel fuer ${wahl} steht ueberhaupt im Stilblatt`,
         regel.length > 0, '(keine Regel)');
-      /* SEIT 0.17.2 TRAEGT SIE EINEN DECKEL -- aber als FORDERUNG und nicht
-         als Grenze. Eine feste Zahl in `max-height` klemmte beides: was die
-         Liste fordert UND wie hoch sie werden darf. Der Deckel steht deshalb in
-         `flex-basis`, und `max-height` traegt nur noch `max-content` -- die
-         Zeile, die einer KURZEN Liste ihre zehn Zeilen wieder wegnimmt. */
-      pruefe(`${wahl} traegt keine feste Hoehe mehr`,
-        !/max-height: *\d/.test(regel), regel || '(keine Regel)');
-      pruefe(`${wahl} klemmt sich auf das, was wirklich dasteht`,
-        /max-height: max-content/.test(regel), regel || '(keine Regel)');
-      pruefe(`${wahl} fordert seinen Deckel in rem und nicht in Pixeln`,
-        /flex: 1 1 [\d.]+rem/.test(regel), regel || '(keine Regel)');
+      /* DIE LISTE IST SO HOCH WIE IHR INHALT: `flex: 0 1 auto`. `auto` heisst,
+         der Inhalt gibt das Mass; die `0` heisst, sie nimmt sich nichts von
+         dem, was die Kachel neben ihr uebrig hat.
+         0.17.2 BIS 0.17.4 STAND HIER `flex: 1 1 <Deckel>rem` mit
+         `max-height: max-content`, und das war der Fehler (Stolperstein 256):
+         wo `max-content` im Blockfluss nicht klemmt, fordert JEDE Liste ihre
+         zehn Zeilen -- auch die leere. Gemeldet mit Bild von der laufenden
+         Instanz: die Karte „Zugaenge" mit fuenf Zeilen stand 728 Pixel hoch,
+         wo dieselbe Karte in Chromium 498 misst. */
+      pruefe(`${wahl} ist so hoch wie sein Inhalt`,
+        /flex: 0 1 auto/.test(regel), regel || '(keine Regel)');
+      pruefe(`${wahl} haengt an keinem Schluesselwort mehr`,
+        !/max-content/.test(regel), regel || '(keine Regel)');
+      pruefe(`${wahl} deckelt in rem und nicht in Pixeln`,
+        /max-height: [\d.]+rem/.test(regel), regel || '(keine Regel)');
       /* ZWEI ZAHLEN, UND SIE SIND KEINE ZWEITE WAHRHEIT UEBER DIESELBE SACHE:
          27,95rem sind ZEHN `.mrow` zu 41,92 px, 35rem sind FUENFZEHN
          `.prot-zeile` zu 35 px. Eine Bedienzeile mit Knoepfen und eine
          Textzeile mit Trennlinie sind zwei verschiedene Dinge und duerfen zwei
-         Masse haben. 0.17.3 hatte beide auf zehn gesetzt; das Protokoll rollte
-         danach schon bei elf Vorgaengen (gemessen: Deckel 350 px, Inhalt
-         384). */
-      pruefe(`${wahl} fordert seinen eigenen Deckel`,
-        new RegExp('flex: 1 1 ' + ({ '.manage-list': '27\\.95', '.prot-liste': '35' })[wahl] + 'rem').test(regel),
+         Masse haben. */
+      pruefe(`${wahl} deckelt bei seinem eigenen Mass`,
+        new RegExp('max-height: ' + ({ '.manage-list': '27\\.95', '.prot-liste': '35' })[wahl] + 'rem').test(regel),
         regel || '(keine Regel)');
-      pruefe(`${wahl} nimmt, was die Kachel hergibt`,
-        /flex: 1/.test(regel), regel || '(keine Regel)');
       /* DIE ZEILE, AN DER ES SONST SCHEITERT: ohne sie waechst ein Flexkind
-         ueber seinen Anteil hinaus, statt zu rollen. Wer nur die max-height
-         streicht, bekommt genau das. */
+         ueber seinen Anteil hinaus, statt zu rollen. */
       pruefe(`${wahl} darf dafuer unter seinen Inhalt schrumpfen`,
         /min-height: 0/.test(regel), regel || '(keine Regel)');
       pruefe(`${wahl} rollt weiterhin in sich`,
         /overflow-y: auto/.test(regel), regel || '(keine Regel)');
-      /* UND DER DECKEL BEGRENZT DIE FORDERUNG UND NICHT DIE NUTZUNG. Das
-         steckt in `flex-grow: 1` zusammen mit `max-height: max-content`:
-         waere `max-height` eine Pixelzahl, klemmte sie beides. Nachgemessen in
-         Chromium: neben der 1055 px hohen Karte „Zugang" zeigt die
-         Sitzungsliste ZWANZIG Zeilen statt zehn. */
-      pruefe(`${wahl} nutzt mehr als seinen Deckel, wenn die Kachel es hergibt`,
-        /flex: 1 1/.test(regel) && /max-height: max-content/.test(regel) &&
-        !/max-height: *\d/.test(regel), regel || '(keine Regel)');
     }
     /* ---- DIE LEERE LISTE IST EINE ZEILE HOCH — 0.17.4 ----
        Sie faellt nicht auf null zusammen, und sie sagt, dass nichts da ist.
@@ -32280,8 +32279,12 @@ async function pruefeOberflaeche() {
        einer Grenze. */
     const khFenster = (ohneMedien.match(/\.modal \.manage-list \{[^}]*\}/) || [''])[0];
     pruefe('In einem Fenster traegt die Liste keinen Deckel',
-      /max-height: none/.test(khFenster) && /flex: 0 1 auto/.test(khFenster),
-      khFenster || '(keine Regel)');
+      /max-height: none/.test(khFenster), khFenster || '(keine Regel)');
+    /* UND SIE SAGT NICHTS ZWEIMAL. `flex: 0 1 auto` steht seit 0.17.5 in der
+       Grundregel; hier stuende es ein zweites Mal und liefe beim naechsten
+       Umbau auseinander (Stolperstein 47). */
+    pruefe('Und wiederholt die Grundregel nicht',
+      !/flex:/.test(khFenster), khFenster || '(keine Regel)');
     /* DIE AUSNAHME STEHT ALS REGEL DA UND IST GENAU EINE. Die Teileliste des
        Exports bleibt kurz, weil sie MITTEN in ihrer Karte steht; der Grund
        steht als Satz daneben. Waeren es zwei, waere es keine Ausnahme mehr. */
@@ -32291,6 +32294,41 @@ async function pruefeOberflaeche() {
     pruefe('Und der Grund dafuer steht im Stilblatt daneben',
       /Teileliste des Exports/.test(fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')),
       'kein Satz daneben');
+    /* ---- DAS RASTER DES PROTOKOLLS GEHOERT DER LISTE — 0.17.5 ----
+       BIS 0.17.4 WAR JEDE ZEILE IHR EIGENES RASTER. Die beiden letzten
+       Spalten sind `auto`; steht dort nichts, fallen sie auf null, und die
+       beiden `1fr` teilen sich den frei gewordenen Platz. Der Name in Spalte
+       drei stand damit in jeder Zeile woanders -- gemessen in Chromium bei
+       1410 Pixeln VIER verschiedene linke Kanten: 706, 708, 734 und 769.
+       Nach dem Umbau ist es EINE: 693. */
+    const khProtListe = (ohneMedien.match(/\.prot-liste \{[^}]*\}/) || [''])[0];
+    pruefe('Die Spalten des Protokolls gehoeren der Liste',
+      /display: grid/.test(khProtListe) && /grid-template-columns:/.test(khProtListe),
+      khProtListe || '(keine Regel)');
+    const khProtZeile = (ohneMedien.match(/\.prot-zeile \{[^}]*\}/) || [''])[0];
+    pruefe('Und die Zeile setzt ihre Felder direkt hinein',
+      /display: contents/.test(khProtZeile), khProtZeile || '(keine Regel)');
+    /* EINE ZEILE OHNE EIGENEN KASTEN KANN KEINE LINIE TRAGEN -- die Trennlinie
+       sitzt deshalb an den Feldern. Daraus folgen zwei Zeilen, die sonst wie
+       Kosmetik aussaehen und keine sind: der Spaltenabstand steht als
+       `padding-right` am Feld (ein `column-gap` risse die Linie in fuenf
+       Stuecke), und die Felder richten sich an der UNTERKANTE aus. Mit
+       `baseline` blieb ein Feld OHNE Text 15 Pixel hoch, wo seine Nachbarn 35
+       massen -- gemessen in Chromium, und im Bild als Treppe zu sehen. */
+    const khProtFeld = (ohneMedien.match(/\.prot-zeile > \* \{[^}]*\}/) || [''])[0];
+    pruefe('Die Trennlinie sitzt an den Feldern',
+      /border-bottom: 1px solid var\(--line\)/.test(khProtFeld), khProtFeld || '(keine Regel)');
+    pruefe('Und sie reisst nicht ab',
+      /align-self: end/.test(khProtFeld) && !/column-gap/.test(khProtListe) &&
+      !/ gap:/.test(khProtListe), `${khProtFeld} || ${khProtListe}`);
+    /* AUF DEM SCHMALEN SCHIRM TRAEGT DIE ZEILE IHR RASTER WIEDER SELBST. Fuenf
+       Felder in zwei Spalten gehen nicht auf: bei `display: contents` liefe das
+       sechste Feld der ersten Zeile in die Reihe der zweiten, und aus zwei
+       Vorgaengen wuerde eine Zeile. */
+    pruefe('Auf dem schmalen Schirm traegt die Zeile ihr Raster wieder selbst',
+      /\.prot-liste \{ display: block; \}/.test(css123) &&
+      /\.prot-zeile \{ display: grid; grid-template-columns: 1fr auto;/.test(css123),
+      (css123.match(/\.prot-liste \{ display: block; \}[\s\S]{0,120}/) || ['(keine Regel)'])[0]);
     /* AUF DEM TELEFON BLEIBT DIE DECKELUNG, und sie ist keine feste Hoehe: sie
        misst das Fenster. Ohne sie machte ein Sicherheitsprotokoll mit
        zweihundert Zeilen die Karte unbrauchbar lang. */

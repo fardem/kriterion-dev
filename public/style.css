@@ -1111,32 +1111,44 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    steht auch in zwei Fenstern (Glockentafel, Grabsteine) -- `.modal` ist
    ebenfalls eine Spalte, und dort haelt dieselbe Zeile den Kopf und den
    Schliessknopf im Blick, statt das ganze Fenster rollen zu lassen. */
-/* WAS DIE LISTE FORDERT, IST NICHT, WAS SIE NUTZT -- und dieser Unterschied
-   ist die ganze Regel. Drei Zeilen tragen ihn, und jede beantwortet eine
-   andere Frage:
+/* DIE LISTE IST SO HOCH WIE IHR INHALT, HOECHSTENS ABER ZEHN ZEILEN. Zwei
+   Zeilen sagen das, und beide sind so einfach wie moeglich:
 
-     `flex-basis: 27.95rem`   WAS FORDERE ICH? Hoechstens zehn Zeilen. Mehr
-                              verlangt die Liste nie, und deshalb zieht sie
-                              die Rasterzeile nie weiter auf als bis dahin.
-     `max-height: max-content` WAS FORDERE ICH WIRKLICH? Nur, was dasteht. Ohne
-                              diese Zeile forderte auch eine Liste mit zwei
-                              Eintraegen ihre zehn Zeilen, und der Abschnitt
-                              „Bestand" waere ueberall gleich hoch aufgeblasen.
-     `flex-grow: 1`           WAS NUTZE ICH? Alles, was die Kachel hergibt.
-                              Steht daneben eine hoehere Kachel, zeigt die
-                              Liste MEHR als zehn Zeilen -- der Deckel begrenzt
-                              die Forderung und nicht die Nutzung.
+     `flex: 0 1 auto`      WIE HOCH BIN ICH? So hoch wie das, was dasteht.
+                           `auto` heisst: der Inhalt gibt das Mass. `0` heisst:
+                           ich nehme mir nichts von dem, was die Kachel neben
+                           mir vielleicht uebrig hat -- der Rest bleibt unten
+                           in der Kachel leer und nicht IN der Liste.
+     `max-height: 27.95rem` UND WO IST SCHLUSS? Bei zehn Zeilen. Was darueber
+                           hinausgeht, kommt ueber den Rollbalken.
 
-   `min-height: 0` IST DIE VIERTE UND DIE, AN DER ES SONST SCHEITERT: ohne sie
-   waechst ein Flexkind ueber seinen Anteil hinaus, statt zu rollen. Wer nur
-   die `max-height` streicht, bekommt genau das.
+   0.17.2 BIS 0.17.4 STAND HIER `flex: 1 1 27.95rem` MIT `max-height:
+   max-content`, UND DAS WAR DER FEHLER (Stolperstein 256) -- der Satz steht
+   hier, damit er nicht wiederkommt (Stolperstein 201). Der Gedanke dahinter
+   war richtig: `flex-basis` sollte die FORDERUNG deckeln, `max-content` sie
+   einer kurzen Liste wieder wegnehmen und `flex-grow` die geschenkte Hoehe
+   einer hoeheren Nachbarin NUTZEN lassen. In Chromium tat es genau das.
+   NUR EBEN NICHT UEBERALL: `max-content` im BLOCKFLUSS ist ein Schluesselwort,
+   auf das kein Verlass ist. Wo es die Forderung nicht klemmt, fordert JEDE
+   Liste ihre zehn Zeilen -- auch die leere. Gemeldet mit Bild von der
+   laufenden Instanz (Fingerprint d3113d62, also wirklich 0.17.4): die Karte
+   „Zugaenge" mit fuenf Zeilen stand 728 Pixel hoch, wo dieselbe Karte in
+   Chromium 498 misst. Die Differenz ist auf den Pixel die geforderte, nicht
+   die gebrauchte Hoehe.
+   WAS DAS KOSTET: eine Liste NUTZT die Hoehe einer hoeheren Nachbarin nicht
+   mehr aus. Neben der Karte „Zugang" zeigt die Sitzungsliste wieder hoechstens
+   zehn Zeilen statt zwanzig, und darunter bleibt die Kachel leer. DAS IST DER
+   PREIS UND ER IST BEZAHLT: eine Zusage, die in einem Browser gilt und im
+   naechsten Leerraum erzeugt, ist keine.
+   `min-height: 0` BLEIBT: ohne sie waechst ein Flexkind ueber seinen Anteil
+   hinaus, statt zu rollen (Stolperstein 237).
    27.95rem SIND ZEHN ZEILEN: eine `.mrow` misst mit Innenabstand und dem
    Abstand zur naechsten 41,92 Pixel, und die Wurzelschrift steht auf 15. IN rem
    UND NICHT IN PIXELN, weil die Oberflaeche ihre Schrift von 80 bis 120 Prozent
    stellt -- eine feste Zahl fasste dort mal neun und mal fuenfzehn Zeilen.
    ZEHN UND NICHT ZWOELF SEIT 0.17.3: zwoelf Zeilen waren mehr Liste, als eine
    Kachel neben ihren Nachbarn tragen soll. */
-.manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;
+.manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 /* EINE LEERE LISTE FAELLT NICHT AUF NULL ZUSAMMEN. Sie ist eine Zeile hoch
    und sagt, dass nichts da ist -- die Meldung steht in jedem Zeichenweg als
@@ -1158,7 +1170,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .manage-list > .hint, .prot-liste > .hint {
   display: flex; align-items: center; margin: 0; }
 .manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }
-.prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; }
+.prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }
 /* DIE LISTEN IN EINEM FENSTER TRAGEN DEN DECKEL NICHT -- Glockentafel und
    Grabsteine. Dort gibt es keine Reihe und keine Nachbarin, an der sich etwas
    ausrichten koennte, und das Fenster deckelt laengst bei `88dvh`. Ein
@@ -1166,7 +1178,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    eigens oeffnet, will sehen, was darin steht.
    EINE REGEL STATT ZWEI KLASSEN IM MARKUP: die Frage ist nicht, WELCHE Liste
    es ist, sondern WO sie steht. */
-.modal .manage-list { flex: 0 1 auto; max-height: none; }
+.modal .manage-list { max-height: none; }
 
 /* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
    einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
@@ -1329,11 +1341,47 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Chromium: bei elf Vorgaengen rollte es schon (Deckel 350 px, Inhalt 384).
    Das Protokoll ist ausserdem die einzige dieser Listen, die man DURCHSIEHT
    statt in ihr etwas anzuklicken. */
-.prot-liste { flex: 1 1 35rem; min-height: 0; max-height: max-content;
-  overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
-.prot-zeile { display: grid; grid-template-columns: 128px 1fr 1fr auto auto; gap: 4px 12px;
-  align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: .86rem; }
-.prot-zeile:last-child { border-bottom: 0; }
+/* DAS RASTER GEHOERT DER LISTE UND NICHT DER ZEILE, und das ist der ganze
+   Unterschied zwischen einer Tabelle und fuenf Spalten, die jede Zeile neu
+   aushandelt.
+   BIS 0.17.4 WAR JEDE ZEILE IHR EIGENES RASTER (`128px 1fr 1fr auto auto`).
+   Die beiden letzten Spalten sind `auto` -- steht dort nichts, fallen sie auf
+   null, und die beiden `1fr` teilen sich den frei gewordenen Platz. DER NAME
+   IN SPALTE DREI STAND DAMIT IN JEDER ZEILE WOANDERS: gemessen in Chromium
+   bei 1410 Pixeln vier verschiedene linke Kanten -- 706, 708, 734 und 769 --,
+   je nachdem, ob die Zeile ein Ziel und ein Merkmal trug. Gemeldet als Frage,
+   und die Antwort war nein: gewollt war das nie.
+   JETZT SPANNT DIE LISTE DIE SPALTEN, und jede Zeile setzt ihre fuenf Felder
+   ueber `display: contents` DIREKT hinein. Damit misst Spalte vier so breit
+   wie das breiteste Ziel im GANZEN Protokoll und nicht wie das der einzelnen
+   Zeile -- alle Namen stehen untereinander, und verschenkt wird nichts.
+   FESTE SPALTENBREITEN WAEREN DER ANDERE WEG UND DER SCHLECHTERE: „→ Geloeschter
+   Benutzer 128" misst 176 Pixel, „zusammengefuehrt" 110 -- zusammen 286, die
+   jede Zeile mitschleppte, auch die, in der beides leer ist.
+   DIE TRENNLINIE SITZT AN DEN FELDERN und nicht mehr an der Zeile: eine Zeile
+   ohne eigenen Kasten kann keine Linie tragen. Daraus folgen zwei Zeilen, die
+   sonst wie Kosmetik aussaehen:
+   ERSTENS steht der Spaltenabstand als `padding-right` am Feld und nicht als
+   `column-gap` am Raster -- ein Abstand zwischen den Spalten risse die Linie in
+   fuenf Stuecke.
+   ZWEITENS richten sich die Felder an ihrer UNTERKANTE aus und nicht mehr an
+   der Schriftlinie. `align-items: baseline` gab einem Feld OHNE Text keine
+   Schriftlinie: es blieb 15 Pixel hoch, wo seine Nachbarn 35 massen, und seine
+   Trennlinie sass zwanzig Pixel zu hoch -- gemessen in Chromium, und im Bild
+   als Treppe in der Linie zu sehen. An der Unterkante liegen alle fuenf
+   Trennlinien auf derselben Hoehe, und weil jedes Feld denselben unteren
+   Innenabstand traegt, stehen die Schriften trotzdem auf einer Linie: der
+   Unterschied zwischen den Schriftgroessen 0,74 und 0,86 rem macht an der
+   Unterlaenge weniger als einen halben Pixel aus. */
+.prot-liste { flex: 0 1 auto; min-height: 0; max-height: 35rem;
+  overflow-y: auto; margin: 0 -4px; padding: 0 4px;
+  display: grid; grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }
+.prot-zeile { display: contents; }
+.prot-zeile > * { padding: 7px 12px 7px 0; border-bottom: 1px solid var(--line);
+  font-size: .86rem; align-self: end; }
+.prot-zeile > *:first-child { padding-left: 2px; }
+.prot-zeile > *:last-child { padding-right: 2px; }
+.prot-zeile:last-child > * { border-bottom: 0; }
 .prot-zeit { font-family: var(--mono); font-size: .74rem; color: var(--muted); white-space: nowrap; }
 .prot-was { font-weight: 560; }
 .prot-wer, .prot-ziel { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
@@ -1355,7 +1403,16 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Eine Zahl weniger heisst hier: ein Fall weniger, den niemand mehr im Kopf
    haben muss. */
 @media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {
-  .prot-zeile { grid-template-columns: 1fr auto; }
+  /* AUF DEM SCHMALEN SCHIRM TRAEGT DIE ZEILE IHR RASTER WIEDER SELBST. Fuenf
+     Felder in zwei Spalten gehen nicht auf: bei `display: contents` liefe das
+     sechste Feld der ersten Zeile in die Reihe der zweiten, und aus zwei
+     Vorgaengen wuerde eine Zeile. Zwei Spalten heissen hier also: jede Zeile
+     ist wieder ein Kasten -- und traegt damit auch ihre Trennlinie selbst. */
+  .prot-liste { display: block; }
+  .prot-zeile { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px;
+    align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); }
+  .prot-zeile > * { padding: 0; border-bottom: 0; }
+  .prot-zeile:last-child { border-bottom: 0; }
   .prot-zeit { grid-column: 1 / -1; }
 }
 
