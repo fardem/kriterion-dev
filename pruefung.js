@@ -31083,6 +31083,38 @@ async function pruefeOberflaeche() {
       /Bewertungskriterien/.test(kasten?.textContent || ''),
       kasten?.textContent?.replace(/\s+/g, ' ').slice(-200));
 
+    /* ---- DER KASTEN ROLLT NICHT MEHR — 0.17.3 ----
+       GEPRUEFT WIRD, WAS SICH HIER PRUEFEN LAESST: dass die eine doppelte
+       Angabe weg ist und dass unter der Tabelle zwei Absaetze stehen und nicht
+       drei. Die HOEHE ist es nicht -- jsdom rechnet kein Layout, und die
+       gemessenen Pixel stehen im Aenderungsprotokoll (Stolperstein 223). */
+    const rgKinder = [...(kasten?.children || [])];
+    const rgNachTabelle = rgKinder.slice(rgKinder.findIndex(k => k.classList.contains('rechnung')) + 1)
+      .filter(k => k.tagName === 'P');
+    pruefe('Unter der Tabelle stehen zwei Absaetze und nicht drei',
+      rgNachTabelle.length === 2, `${rgNachTabelle.length} Absaetze`);
+    /* DIE AUSGESCHRIEBENE RECHNUNG IST DIE EINE ANGABE, DIE DOPPELT DASTAND:
+       Summe, Teiler und Ergebnis tragen eigene Zeilen in der Tabelle. Gesucht
+       wird nach dem Rechenzeichen mit den beiden Zahlen daneben, nicht nach
+       dem Wort "gerundet" -- das bleibt ja stehen. */
+    const rgText = (kasten?.textContent || '').replace(/\s+/g, ' ');
+    pruefe('Die Rechnung steht nicht ein zweites Mal unter der Tabelle',
+      !/9,2 ÷ 2,5/.test(rgText), rgText.slice(-260));
+    pruefe('Die Begruendung zum Teiler steht nicht mehr da',
+      !/nach unten/.test(rgText), rgText.slice(0, 400));
+    pruefe('Der Teiler selbst steht weiterhin da',
+      /Teiler zählt nur die Kriterien, die auch bewertet sind/.test(rgText),
+      rgText.slice(0, 400));
+    /* UND DIE BEIDEN ZAHLEN IM STILBLATT. Sie sind die andere Haelfte des
+       Punktes: die Zeilen ruecken enger, und der Kasten wird breiter, damit
+       der Fliesstext seltener umbricht. */
+    pruefe('Die Zeilen der Rechnung ruecken enger zusammen',
+      /\.rz > span \{ padding: 3px 0;/.test(css123),
+      (css123.match(/\.rz > span \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    pruefe('Und der Kasten selbst wird breiter',
+      /\.rechnung-modal \{ max-width: 620px; \}/.test(css123),
+      (css123.match(/\.rechnung-modal \{[^}]*\}/) || ['(keine Regel)'])[0]);
+
     /* ---- DER VERWEIS ZEIGT IN DEN KASTEN — 0.17.0 ----
        BIS 0.17.0 STAND HIER „die Zahlen rechts in den Zeilen". Gemeint war die
        Durchschnittsspalte der Kriterienliste DAHINTER -- und die gibt es bei

@@ -1495,10 +1495,17 @@ body.lb-open { overflow: hidden; }
    KEINE NEUE FARBE: --faint traegt in dieser Instanz jede Nebenangabe. */
 .mrow.glocken-zeile { flex-wrap: wrap; row-gap: 2px; }
 .glocken-zeile .glocken-von { flex-basis: 100%; font-size: .76rem; color: var(--faint); }
-.rechnung-modal { max-width: 540px; }
+/* BREITER ALS EIN GEWOEHNLICHES FENSTER, seit 0.17.3: die Tabelle hat vier
+   Spalten, und der Fliesstext darunter bricht auf 540 Pixeln zu oft um. Jeder
+   gesparte Umbruch ist eine Zeile weniger im Kasten -- und der Kasten rollte
+   bei sieben Kriterien ueber `88dvh` hinaus. */
+.rechnung-modal { max-width: 620px; }
 .rechnung { display: grid; grid-template-columns: 1fr auto auto auto; gap: 0 14px; }
 .rz { display: contents; }
-.rz > span { padding: 6px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem; text-align: right; }
+/* DREI PIXEL UND NICHT SECHS, seit 0.17.3. Zwoelf Tabellenzeilen sparen damit
+   rund 72 Pixel; die Trennlinie haelt die Zeilen weiterhin auseinander, und
+   dafuer braucht es keinen doppelten Abstand. */
+.rz > span { padding: 3px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem; text-align: right; }
 .rz > span:first-child { text-align: left; color: var(--muted); }
 .rz > span:not(:first-child) { font-family: var(--mono); font-size: .83rem; }
 .rz-kopf > span { color: var(--faint); font-size: .74rem; text-transform: uppercase;

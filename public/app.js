@@ -4712,14 +4712,32 @@ async function renderDetail(id) {
           <span></span><span></span>
           <span id="rz-gleich">⌀ ${esc(gewZahl(weg.gleichErgebnis))}</span></div>` : ''}
       </div>
-      ${/* DER TEILER IST DER PUNKT, AN DEM SICH DIE MEISTEN VERRECHNEN, und
-           deshalb steht er als eigener Satz da und nicht in einer Fussnote. */''}
+      ${/* ZWEI ABSAETZE UNTER DER TABELLE UND NICHT DREI -- 0.17.3. Bei sieben
+           Kriterien lief der Kasten ueber `88dvh` hinaus und rollte.
+           WAS WIRKLICH DOPPELT DASTAND, WAR GENAU EINE ANGABE: die
+           ausgeschriebene Rechnung „Summe ÷ Teiler = Ergebnis". Sie steht als
+           Summe, Teiler und Ergebnis schon in der Tabelle darueber, und die
+           Zwischenzahl vor dem Runden trug nichts, was der Satz nicht auch so
+           sagt. Alles andere trug etwas, das in der Tabelle NICHT steht, und
+           ist deshalb geblieben.
+           WEGGEFALLEN IST AUSSERDEM DIE BEGRUENDUNG ZUM TEILER -- „sonst zoege
+           es die Zahl nach unten": WARUM es so gebaut ist, steht im
+           Projektstand und nicht in einem Kasten, den man beim Lesen einer Note
+           oeffnet.
+           DER TEILER BLEIBT DER PUNKT, AN DEM SICH DIE MEISTEN VERRECHNEN, und
+           steht deshalb vorn. Die Rundung steht daneben und nicht in einem
+           eigenen Absatz: beides sagt, wie aus den Zeilen darueber EINE Zahl
+           wird. */''}
       <p>Der <strong>Teiler zählt nur die Kriterien, die auch bewertet sind</strong>. Ein
-        Kriterium, an dem niemand Sterne vergeben hat, geht gar nicht ein — sonst zöge es
-        die Zahl nach unten, ohne dass es an den Werten läge.</p>
+        Kriterium, an dem niemand Sterne vergeben hat, geht gar nicht ein.
+        <strong>Gerundet wird genau einmal</strong>, ganz am Ende — die Zahlen oben sind für
+        die Anzeige auf zwei Stellen gekürzt, gerechnet wird ungekürzt.
+        Die Gewichte stellt der Admin im Systembereich unter <strong>Bewertungskriterien</strong> ein.</p>
       ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. Sind beide Zahlen gleich,
            steht genau das da -- zweimal dieselbe Zahl hinzuschreiben waere
-           eine Auskunft ueber nichts. */''}
+           eine Auskunft ueber nichts.
+           DIESER ABSATZ IST DER PUNKT DES GANZEN KASTENS und deshalb der
+           einzige, an dem 0.17.3 kein Wort geaendert hat. */''}
       ${mitGewicht ? (gleicheZahl
         ? `<p id="rz-gleich-satz"><strong>An dieser Zahl ändert die Gewichtung nichts.</strong>
             Zählte jedes Kriterium gleich, käme dieselbe
@@ -4729,12 +4747,6 @@ async function renderDetail(id) {
             <strong>⌀ ${esc(gewZahl(weg.gleichErgebnis))}</strong> statt
             <strong>⌀ ${esc(gewZahl(weg.ergebnis))}</strong>.
             <strong>Das ist der Unterschied, den die Gewichtung macht.</strong></p>`) : ''}
-      <p><strong>Gerundet wird genau einmal</strong>, ganz am Ende:
-        ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))} =
-        ${esc(String(Math.round(Number(weg.roh) * 10000) / 10000).replace('.', ','))}
-        → <strong>${esc(gewZahl(weg.ergebnis))}</strong>. Die Zahlen oben sind für die Anzeige
-        auf zwei Stellen gekürzt; gerechnet wird ungekürzt.
-        Die Gewichte stellt der Admin im Systembereich unter <strong>Bewertungskriterien</strong> ein.</p>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>Schließen</button></div></div>`;
     document.body.appendChild(bd);
     const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
