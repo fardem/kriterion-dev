@@ -43,6 +43,97 @@ ein Abschnitt mit Nummer und Datum.*
 
 ---
 
+## [0.17.2] - 2026-08-31
+
+**Was der Benutzer sieht.** Sechs Handgriffe aus dem Rundlauf mit 0.17.1,
+gemeldet unmittelbar nach dem Einspielen. **Zwei davon sind Nacharbeit an
+0.17.1 selbst** — eine Regel, die zu weit ging, und eine Zeile, die dabei ihren
+Namen verlor. **Die Instanz sagt danach an zwei Stellen weniger, und das ist
+der Punkt.**
+
+> **DIE NUMMER IST BEGRÜNDET, NICHT GESETZT.** **PATCH:** *kann die Instanz
+> danach etwas, was sie vorher nicht konnte?* **Nein.** Fünf Handgriffe an
+> Anordnung und Wortlaut, einer nimmt eine Meldung zurück.
+
+> **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
+> neue Formatnummer: es bleibt bei **sieben** markierten Blöcken und beim
+> Austauschformat **11**. **Die Sicherung des Datenverzeichnisses ist deshalb
+> Empfehlung und nicht Pflicht.**
+
+### Changed
+
+- **Die Zeile einer Anmeldung steht in zwei Reihen.** *0.17.1 hatte die beiden
+  Zeitangaben untereinandergestellt, den Namen aber daneben gelassen — auf dem
+  Telefon wurde er zu Punkten gekürzt.* **Oben der Name mit dem Kreuz daneben,
+  darunter die beiden Zeiten, rechtsbündig.** *Keine Ellipse zum Ausklappen: ein
+  Text, den man erst herbeiführen muss, ist auf einem Berührungsbildschirm
+  keiner.*
+- **Die Listen in den Kacheln bekommen einen Deckel bei zwölf Zeilen, und er
+  geht mit.** *0.17.1 hatte die feste Höhe gestrichen, ohne etwas an ihre Stelle
+  zu setzen: die Tagliste zog den Abschnitt „Bestand" auf rund fünfzig Zeilen
+  auseinander, und daneben standen vier leere Kacheln.* **Zwölf Zeilen sind eine
+  Forderung und keine Obergrenze:** steht daneben eine höhere Kachel, wächst die
+  Liste mit ihr und rollt erst darüber hinaus; eine Liste mit zwei Einträgen
+  bleibt zwei Zeilen hoch. **Auf dem Telefon deckelt weiterhin das Fenstermaß**
+  — dort steht jede Kachel allein in ihrer Zeile.
+- **Der Mailversand ist zu Ende geordnet.** Die **Absenderadresse** und die
+  **beiden Knöpfe** tragen ihren erklärenden Satz jetzt **neben** sich statt
+  darunter, ein Drittel zu zwei Dritteln. *Auf dem Telefon steht er wieder
+  darunter.*
+- **Hinter dem Durchschnitt einer Bewertung steht die Zahl der Stimmen erst ab
+  zwei.** *„⌀ 4,0 (1)" beantwortet keine Frage — dass jemand bewertet hat, sagt
+  schon der Schnitt daneben.* **Beim Überfahren steht die vollständige Angabe
+  weiterhin da**, in Ein- und Mehrzahl.
+- **Die README erzählt keine Versionsgeschichte mehr.** *Sie trug
+  siebenundvierzig Versionsnummern — „seit 0.13.0", „bis 0.12.4 stand hier ein
+  Handgriff". Wer Kriterion zum ersten Mal aufmacht, kannte 0.12.4 nie.*
+  **Sechs Nennungen bleiben, und jede bestimmt eine Handlung:** die
+  Sicherungspflicht beim Sprung über die Datenbankstufe 0.14.0, die älteste
+  Datenbank, die noch übernommen wird (0.8.0), und zwei wörtliche
+  Protokollzeilen. **Was eine Version gebracht hat, steht weiterhin
+  vollständig hier und im Änderungsprotokoll der Runde.**
+
+### Removed
+
+- **Die Begründung, warum es kein Adressfeld neben der Testmail gibt, steht
+  nicht mehr in der Karte „Mailversand".** *Sie ist richtig und war ein Gedanke
+  vom Bauen; eine Oberfläche sagt, WAS IST.* **Was die Testmail tut, steht
+  weiterhin da** — sie geht ausschließlich an die Adresse des eigenen Zugangs.
+  Die Begründung steht in der README.
+- **Die Glocke meldet die eigenen Beiträge nicht mehr.** *0.16.0 schloss sie
+  aus, 0.17.0 nahm das zurück, **0.17.2 stellt 0.16.0 wieder her**.* **Eine
+  Glocke ist eine Nachricht von jemand anderem; über die eigene Hand braucht
+  niemand eine.** **Die Folge ist gewollt und gehört gesagt: wer allein an
+  einer Instanz arbeitet, sieht sie nie läuten.**
+
+### Was du danach von Hand tun musst
+
+**Nichts.** Keine Sicherungspflicht — diese Version fährt **keinen**
+Migrationsblock —, keine neue Zeile in der `.env`, keine neue Abhängigkeit,
+niemand wird abgemeldet, **keine Zeile im Protokoll**.
+
+*Die Sicherung schadet trotzdem nie:*
+
+```bash
+cd .../kriterion && docker compose down
+cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)   # Empfehlung, nicht Pflicht
+```
+
+**Wenn die Glocke nach dem Einspielen stumm bleibt, ist das kein Fehler.** Sie
+meldet nur noch, was **andere** geschrieben haben.
+
+### Was gleich bleibt
+
+**Das Austauschformat** bleibt bei **11**, **`F_ROUTEN`** bei **69** — keiner
+der sechs Punkte braucht eine schreibende Route. **`VORGAENGE`** bleibt bei
+**zwanzig**, **`BESTAETIGUNG_ZWECKE`** bei **sieben**, **das Vokabular** bei
+**elf**, **die Merkmale** bei **vierzehn**, **die Karten** bei **achtzehn** in
+**fünf** Abschnitten, **die Migrationsblöcke** bei **sieben**, **die
+persönlichen Schlüssel** bei **acht**. **Keine Karte wechselt ihre Rolle, keine
+Route kommt dazu, keine geht weg.**
+
+---
+
 ## [0.17.1] - 2026-08-30
 
 **Was der Benutzer sieht.** Sechs Handgriffe aus **einem** Rundlauf von Hand,
