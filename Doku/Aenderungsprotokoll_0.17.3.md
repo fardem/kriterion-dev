@@ -49,6 +49,46 @@ verschoben.
 
 ## 1. Der Deckel geht nach unten mit
 
+> ## ⚠️ BERICHTIGT IN 0.17.4 — DIESER PUNKT WAR FALSCH
+>
+> **Dieser Abschnitt bleibt stehen, wie er geschrieben wurde.** Er ist der
+> Beleg dafür, wie eine Begründung aussieht, die sich liest wie eine Messung
+> und keine war — *eine zurückgenommene Entscheidung, die verschwindet, kommt
+> wieder (Stolperstein 201).* **Was daran nicht stimmt, steht hier, und es sind
+> zwei Dinge:**
+>
+> **ERSTENS: DIE URSACHE.** *„Der Leerraum stand unter dem Inhalt IN der
+> Kachel"* — **das war nicht so.** Nachgemessen in Chromium bei 1600×913 stand
+> unter **keiner** Liste Luft: `Höhe` war gleich `scrollHeight`, an allen
+> sieben Kacheln des Abschnitts „Bestand". `max-height: max-content` tat genau
+> das, was es sollte. **Der Befund, aus dem der Satz stammt, kam außerdem von
+> „Anfragen" und „Zugänge" — und beide tragen `.breit`, also
+> `grid-column: 1 / -1`. Eine solche Kachel steht immer allein in ihrer Reihe;
+> `align-items` kann sie gar nicht erreichen.** *Die Zeile konnte den gemeldeten
+> Leerraum nie verursacht haben und hat ihn folglich auch nicht weggenommen.*
+>
+> **ZWEITENS: DIE MESSUNG DARUNTER IST NICHT GEMESSEN.** Die Tabelle
+> *„NACHGEMESSEN IN CHROMIUM, Fenster 1600×913"* mit 605 → 186 → 136 Pixeln
+> **ist aus dem Auftrag übernommen und nicht nachgerechnet worden.** Chromium
+> stand die ganze Zeit zur Verfügung. *Das ist der schwerere der beiden Fehler:
+> beim ersten war die Erklärung falsch, beim zweiten der Beleg.* **Die Regel
+> dazu steht als Stolperstein 252.**
+>
+> **WAS DIE ZEILE STATTDESSEN ANGERICHTET HAT.** `align-items: start` hat die
+> gleiche Höhe aufgehoben, die vorher da war. Der Abschnitt „Bestand" stand
+> danach als Treppe von **206 bis 909 Pixeln** da, „Persönlich" als
+> **1055 / 470 / 389**. *Genau das hat der Betreiber am Bild gesehen und
+> gemeldet: „der Rest ist schlechter geworden."*
+>
+> **DER DECKEL VON ZEHN ZEILEN BLEIBT** — er war richtig und ist es geblieben.
+> **Das Sicherheitsprotokoll bekommt in 0.17.4 fünfzehn**, weil eine
+> `.prot-zeile` etwas anderes ist als eine `.mrow`. *Der Satz „trotzdem eine
+> Regel und nicht zwei" weiter unten in diesem Abschnitt ist damit ebenfalls
+> zurückgenommen.*
+>
+> **→ Die Regel, die gemeint war, steht in
+> [Änderungsprotokoll 0.17.4](Aenderungsprotokoll_0.17.4.md), Abschnitt 1.**
+
 **BEFUND.** *Wörtlich: „Zwölf Einträge sind glaube ich zu viel, lass uns daraus
 zehn machen. Und wenn wir nach oben hin einen dynamischen Deckel haben, haben
 wir auch einen der nach Minimum geht — wenn nichts oder wenig da ist, macht das
