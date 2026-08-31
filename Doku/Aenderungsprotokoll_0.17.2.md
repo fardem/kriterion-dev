@@ -326,7 +326,23 @@ Server allein macht so eine Gruppe nicht rot — sie blieb grün und behauptete
 weiter das Gegenteil der neuen Zusage* (Stolperstein 244). **Der eigene Name
 bleibt in der Tabelle stehen und belegt seither seine Abwesenheit.**
 
-**VIERTENS: DIE ANORDNUNG DER ANMELDEZEILE GILT JETZT AUF JEDEM SCHIRM.** Sie
+**VIERTENS: DER CHANGELOG IST AUF EINE ZEILE JE ÄNDERUNG GEBRACHT WORDEN —
+rückwirkend bis 0.10.0, und in zwei Anläufen.** *Der erste hat die Absätze
+weggenommen und die beiden eigenen Abschnitte behalten, mit der Begründung, sie
+seien „für einen Betreiber das Wertvollste am ganzen Papier". **Das stimmte zur
+Hälfte.*** Wertvoll war *„die Sicherung ist Pflicht"*; daneben standen
+`F_ROUTEN` 69, „siebter Migrationsblock", „Karten 19 → 18" — **jede Zahl
+richtig, jede aus dem Bauen, und keine beantwortet die Frage, die ein Betreiber
+vor dem Einspielen hat.** *Die richtige Hälfte hat die falsche gedeckt, weil
+beide in derselben Zeile standen* (Stolperstein 245).
+**Jetzt gilt: über den Änderungen steht ein Kasten, und nur dann, wenn wirklich
+etwas zu tun ist.** Von achtzehn Einträgen tragen ihn **vier** — 0.10.0, 0.13.0,
+0.14.0 und 0.16.0. *Auch „danach von Hand: nichts" ist weg: eine Zeile, die
+sagt, dass nichts zu tun ist, ist eine Auskunft über nichts.* **2619 → 1168
+Zeilen**, davon 197 für die achtzehn Einträge ab 0.10.0. **Die Einträge bis
+0.9.1 bleiben in der Form ihrer Zeit.**
+
+**FÜNFTENS: DIE ANORDNUNG DER ANMELDEZEILE GILT JETZT AUF JEDEM SCHIRM.** Sie
 stand bis 0.17.1 in der Medienabfrage. *Eine Zeile, die auf einem breiten Schirm
 anders gebaut ist als auf einem schmalen, ist zwei Zeilen — und eine davon wird
 irgendwann vergessen.*
@@ -482,7 +498,7 @@ ist eine, die wirklich getragen wird.*
 
 ## 11. Neue Stolpersteine
 
-**242 bis 244; 241 war vergeben.** *Der volle Wortlaut steht im Projektstand,
+**242 bis 245; 241 war vergeben.** *Der volle Wortlaut steht im Projektstand,
 Abschnitt 6.*
 
 - **242 — `!=` und `IS NOT` sind in SQL nicht dasselbe, und der Unterschied
@@ -496,6 +512,12 @@ Abschnitt 6.*
 - **244 — Eine Zusage, die eine spätere Runde umdreht, muss auch in der
   PRÜFLAGE umgedreht werden.** Sonst hält der Prüfstand die zurückgenommene
   Entscheidung am Leben — **grün und trotzdem falsch.**
+- **245 — Wer ein Papier kürzt, muss zuerst fragen, für WEN die Zahlen darin
+  stehen — nicht, ob sie stimmen.** Unter jedem Changelog-Eintrag standen
+  `F_ROUTEN`, die Zahl der Migrationsblöcke und die Kartenzahl: jede Zahl
+  richtig, jede aus dem Bauen, und keine beantwortet die Frage, die ein
+  Betreiber vor dem Einspielen hat. **Die richtige Hälfte hat die falsche
+  gedeckt** — sie stand in derselben Zeile wie die Sicherungspflicht.
 
 ---
 

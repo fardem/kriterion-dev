@@ -2166,15 +2166,33 @@ kommt 1.0.0 — und nicht später.**
   Entwicklung des Quelltextes, ein Changelog-Eintrag die beachtenswerte
   Änderung für den, der die Instanz betreibt.
 
-**ZWEI EIGENE ABSCHNITTE BLEIBEN, und das ist kein Verstoß** — die Form nennt
-sechs Arten, sie verbietet keine weiteren. Sie stehen **hinter** den sechs:
-**„Was du danach von Hand tun musst"** (der Einspielweg dieser Version) und
-**„Was gleich bleibt"** (die Zusagen, die eine Runde ausdrücklich *nicht*
-antastet). *Beide sind für einen Betreiber das Wertvollste am ganzen Papier.*
-**`Removed` bekommt dabei besonderes Gewicht:** eine weggenommene Datei bleibt
+**EIN KASTEN ÜBER DEN ÄNDERUNGEN — UND NUR, WENN ETWAS ZU TUN IST.** Steht dort
+nichts, ist nichts zu tun: einspielen und fertig. Steht dort eine Zeile, geht es
+um den **Bestand** — eine Sicherung vor dem Einspielen, oder eine Folge, die
+überrascht. *Von achtzehn Einträgen tragen ihn vier.*
+
+> **ZWEI EIGENE ABSCHNITTE STANDEN BIS 0.17.2 UNTER JEDEM EINTRAG UND SIND
+> WEG** — „Was du danach von Hand tun musst" und „Was gleich bleibt".
+> **Der Vermerk bleibt stehen** (Stolperstein 201), denn die Begründung dafür
+> war ausdrücklich *„beide sind für einen Betreiber das Wertvollste am ganzen
+> Papier"* — und die stimmte nur zur Hälfte.
+>
+> **Wertvoll war die Sicherungszeile. Der Rest war Buchhaltung aus dem Bauen:**
+> `F_ROUTEN`, die Zahl der Migrationsblöcke, die Zahl der Karten, die
+> Formatnummer. *Wer das Projekt nicht gebaut hat, weiß nicht, was `F_ROUTEN`
+> ist — und „siebter Migrationsblock" sagt ihm nichts darüber, ob er vor dem
+> Einspielen sichern muss.* **Die Zahlen stehen weiterhin vollständig da**, im
+> Betriebsstand (Abschnitt 2), im Prüfstand (Abschnitt 7) und im
+> Änderungsprotokoll der Runde — **also dort, wo sie jemand sucht, der sie
+> braucht** (Stolperstein 245).
+>
+> **„Danach von Hand: nichts" ist ebenfalls weg.** Eine Zeile, die sagt, dass
+> nichts zu tun ist, ist eine Auskunft über nichts — dieselbe Regel wie die
+> fehlende Null am Knopf „Offen".
+
+**`Removed` behält sein besonderes Gewicht:** eine weggenommene Datei bleibt
 beim Einspielen über den alten Ordner liegen und verschiebt den Fingerprint
-(Stolperstein 158) — was dort steht, gehört mit einem Satz auch nach „Was du
-danach von Hand tun musst".
+(Stolperstein 158) — was dort steht, gehört in den Kasten darüber.
 
 **Die Einträge bis einschließlich 0.9.1 stehen in der Form ihrer Zeit** — eigene
 deutsche Überschriften, ohne Datum. *Sie werden nicht umgeschrieben:* sie
@@ -2204,10 +2222,10 @@ nichts mehr darin steht, was jemand nachziehen müsste.
 bis 0.10.0). *Bis dahin trug jeder Eintrag Absätze, Begründungen und
 Herleitungen — ein Changelog wird aber überflogen, nicht gelesen.* **Die
 Abschnittsnamen von Keep a Changelog bleiben, sie stehen nur VOR der Zeile
-statt als Überschrift darüber:** `- Changed: …`. **Die beiden eigenen Angaben
-bleiben ebenfalls** — „Danach von Hand" und „Gleich geblieben" —, und zwar
-einzeilig; *sie sind für einen Betreiber das Wertvollste am ganzen Papier, und
-keine der sechs Arten trägt sie.*
+statt als Überschrift darüber:** `- Changed: …`. **Über den Änderungen steht ein Kasten,
+und nur dann, wenn wirklich etwas zu tun ist** — eine Sicherung vor dem
+Einspielen oder eine Folge, die überrascht. *Steht dort nichts, ist nichts zu
+tun.*
 **DAMIT IST EINE ENTSCHEIDUNG ZURÜCKGENOMMEN, und der Vermerk steht im Kopf des
 Changelogs** (Stolperstein 201): bis 0.17.1 galt dort *„was einmal draußen war,
 bleibt, wie es war"*, und die Einträge sind nie angefasst worden. **Für 0.10.0
@@ -6023,6 +6041,21 @@ Version, in der sie entstanden sind.*
     belegt seither seine **Abwesenheit** statt seines Daseins (Stolperstein
     201).
 
+245. **Wer ein Papier kürzt, muss zuerst fragen, für WEN die Zahlen darin
+    stehen — nicht, ob sie stimmen.** Der Changelog trug unter jedem Eintrag
+    zwei eigene Abschnitte, und die Begründung dafür stand seit Revision 25
+    fest: *„beide sind für einen Betreiber das Wertvollste am ganzen Papier."*
+    **Sie stimmte zur Hälfte.** Wertvoll war *„die Sicherung ist Pflicht"*.
+    Daneben stand `F_ROUTEN` **69**, „siebter Migrationsblock", „Karten 19 →
+    18", „Austauschformat 11" — **jede Zahl richtig, jede aus dem Bauen, und
+    keine davon beantwortet die eine Frage, die ein Betreiber vor dem
+    Einspielen hat.** *Beim ersten Kürzen ist die Buchhaltung mitgekommen,
+    weil sie in derselben Zeile stand wie die Sicherungspflicht — die richtige
+    Hälfte hat die falsche gedeckt.*
+    **Die Prüffrage ist nicht „ist das wahr", sondern „was tut der Leser damit,
+    und weiß er überhaupt, wovon die Rede ist".** *Dieselbe Frage hätte die
+    siebenundvierzig Versionsnummern in der README zwei Runden früher gefunden.*
+
 ---
 
 ## 7. Prüfstand
@@ -6640,7 +6673,7 @@ eine Buchführung.*
 | 0.16.0 | Der Systembereich, die Glocke und die Auskunft (157) | 29 neue (271 → 300); gefahren wurden sie einzeln, **sieben Befunde** dabei | Stolpersteine 217 bis 225 |
 | 0.17.0 | Was dasteht, und was nicht dasteht (107 netto) | 33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); 43 gefahren, 0 stumm | Stolpersteine 226 bis 235 |
 | 0.17.1 | Was der Benutzer sieht (85 netto) | 20 neue (333 → 353), einer nachgezogen (Stolperstein 201); 21 gefahren, 0 stumm | Stolpersteine 236 bis 241 |
-| **0.17.2** | **Der Deckel und die eigene Hand (32 netto)** | **15 neue (353 → 368), sieben nachgezogen (Stolperstein 201); 15 gefahren, 3 STUMM — und jede der drei war eine Lücke im Prüfstand; nach dem Schließen 15 gefahren, 0 stumm** | **Stolpersteine 242 bis 244** |
+| **0.17.2** | **Der Deckel und die eigene Hand (32 netto)** | **15 neue (353 → 368), sieben nachgezogen (Stolperstein 201); 15 gefahren, 3 STUMM — und jede der drei war eine Lücke im Prüfstand; nach dem Schließen 15 gefahren, 0 stumm** | **Stolpersteine 242 bis 245** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die

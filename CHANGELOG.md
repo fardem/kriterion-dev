@@ -1,54 +1,33 @@
 # Changelog
 
-Alle beachtenswerten Änderungen an diesem Projekt werden in dieser Datei
-festgehalten — **kurzgefasst für den Betrieb.** Die Einzelheiten je Version
-stehen in `Doku/Aenderungsprotokoll_<Version>.md`.
+Alle beachtenswerten Änderungen an diesem Projekt — **kurzgefasst für den, der
+Kriterion betreibt.** Wie etwas gebaut wurde und warum, steht im
+Änderungsprotokoll der jeweiligen Runde (`Doku/Aenderungsprotokoll_<Version>.md`).
 
-Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
-und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/de/).
+Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
+die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
-> **EINE ZEILE JE ÄNDERUNG — SEIT 0.17.2, UND RÜCKWIRKEND BIS 0.10.0.** Bis
-> dahin trug jeder Eintrag Absätze, Begründungen und Herleitungen. **Ein
-> Changelog wird überflogen, nicht gelesen** — wer wissen will, *warum* etwas
-> so gebaut ist, findet es im Änderungsprotokoll der Runde, und dort sehr
-> ausführlich. *Dieselbe Regel, die 0.17.2 an die README angelegt hat: sagen,
-> WAS IST, und die Herleitung dorthin schicken, wo sie gesucht wird.*
+> **EINE ZEILE JE ÄNDERUNG.** Kein Absatz, keine Begründung — ein Changelog wird
+> überflogen, nicht gelesen.
 >
-> **DAMIT IST EINE ENTSCHEIDUNG ZURÜCKGENOMMEN, und das gehört hierher.** Bis
-> 0.17.1 stand hier: *„was einmal draußen war, bleibt, wie es war"* (Semantic
-> Versioning, Punkt 3), und die Einträge sind deshalb nie angefasst worden.
-> **Für 0.10.0 bis 0.17.1 gilt das nicht mehr** — sie sind auf die knappe Form
-> gebracht. *Es geht dabei kein Inhalt verloren: die Änderungsprotokolle sind
-> unangetastet, und sie sind der Rohstoff.* **Was sich ändert, ist die Form und
-> nicht der Sachstand.** Der Vermerk steht hier, damit die Rücknahme sichtbar
-> bleibt und nicht in zwei Jahren rückwärts wieder eingeführt wird.
+> **STEHT ÜBER DEN ÄNDERUNGEN EIN KASTEN, IST ETWAS ZU TUN.** Meistens steht
+> dort nichts: dann einspielen und fertig. Steht dort eine Zeile, geht es um
+> deinen Bestand — eine Sicherung vor dem Einspielen, oder eine Folge, die
+> überrascht.
 >
-> **DIE EINTRÄGE BIS EINSCHLIESSLICH 0.9.1 BLEIBEN, WIE SIE WAREN** — eigene
-> deutsche Überschriften, ohne Datum, in der Form ihrer Zeit. *Sie stammen aus
-> der Zeit vor Keep a Changelog; sie in eine dritte Form zu bringen wäre
-> schlechter als die Lücke.* **Nachgetragen wurden dort am 27. August 2026
-> 0.8.6, 0.8.10, 0.8.20 und 0.8.30**, in der Form ihrer Nachbarn.
->
-> **Die Abschnittsnamen bleiben englisch** — `Added`, `Changed`, `Deprecated`,
-> `Removed`, `Fixed`, `Security` —, so wie die deutsche Fassung von Keep a
-> Changelog sie führt. Sie stehen seit 0.17.2 **vor der Zeile** statt als
-> Überschrift darüber; das ist dieselbe Auskunft auf einem Fünftel des Platzes.
->
-> **Zwei eigene Angaben stehen unter jedem Eintrag und bleiben:**
-> **„Danach von Hand"** und **„Gleich geblieben"**. *Sie sind für einen
-> Betreiber das Wertvollste hier, und keine der sechs Arten trägt sie —* die
-> eine sagt, ob die Sicherung Pflicht ist, die andere, welche Zusage diese
-> Runde ausdrücklich nicht angetastet hat.
->
-> **Zurückgezogene Versionen** werden als `## [x.y.z] - JJJJ-MM-TT [YANKED]`
-> gekennzeichnet — großgeschrieben, damit ein Mensch es bemerkt.
+> **Zurückgezogene Versionen** stehen als `## [x.y.z] - JJJJ-MM-TT [YANKED]`,
+> großgeschrieben, damit ein Mensch es bemerkt.
+
+*Zur Form: die Einträge ab 0.10.0 sind am 31. August 2026 auf diese knappe Form
+gebracht worden. Vorher trugen sie Absätze, Herleitungen und Zahlen aus dem
+Bauen — `F_ROUTEN`, Migrationsblöcke, Kartenzahlen —, die niemandem etwas sagen,
+der das Projekt nicht selbst gebaut hat. Verloren geht dabei nichts: die
+Änderungsprotokolle sind unangetastet und tragen alles. Die Einträge bis 0.9.1
+bleiben in der Form ihrer Zeit.*
 
 ## [Unreleased]
 
-*Hier wird mitgeschrieben, während gebaut wird. Beim Herausgeben wird daraus
-ein Abschnitt mit Nummer und Datum.*
-
----
+*Hier wird mitgeschrieben, während gebaut wird.*
 
 ## [0.17.2] - 2026-08-31
 
@@ -60,75 +39,47 @@ ein Abschnitt mit Nummer und Datum.*
 - Removed: Die Glocke meldet die eigenen Beiträge nicht mehr — bei einem einzigen Zugang bleibt sie still
 - Removed: Die Begründung zum fehlenden Adressfeld in der Karte „Mailversand"
 
-**Danach von Hand:** nichts. Keine Datenbankstufe, keine Sicherungspflicht, keine `.env`-Zeile, niemand wird abgemeldet. *Bleibt die Glocke danach stumm, ist das die Zusage und kein Fehler.*
-**Gleich geblieben:** Austauschformat 11, `F_ROUTEN` 69, 18 Karten in 5 Abschnitten, 7 Migrationsblöcke, 8 persönliche Schlüssel.
-
----
-
 ## [0.17.1] - 2026-08-30
 
-- Changed: Aus „Anlage" wird „Instanz", überall — `#/system/anlage` wird weiter verstanden
+- Changed: Aus „Anlage" wird „Instanz", überall — ein Lesezeichen auf `#/system/anlage` bleibt gültig
 - Changed: Der Text in der Karte „Zugang" richtet sich danach, ob die Selbstanmeldung an ist
 - Changed: Die Listen in den Kacheln bekommen die Höhe, die ihre Kachel hergibt
 - Changed: Der Mailversand ordnet sich in vier Reihen — wer · wohin · womit · als wer
 - Changed: Die beiden Zeitangaben einer Anmeldung stehen rechtsbündig untereinander
 - Fixed: Das Video fing im Vollbild ein zweites Mal an — zwei Abspieler mit derselben Quelle
 
-**Danach von Hand:** nichts. Keine Datenbankstufe. *Ein Lesezeichen auf `#/system/anlage` bleibt gültig und wird auf `#/system/instanz` nachgezogen.*
-**Gleich geblieben:** Austauschformat 11, `F_ROUTEN` 69, 18 Karten in 5 Abschnitten, 7 Migrationsblöcke, 8 persönliche Schlüssel.
-
----
-
 ## [0.17.0] - 2026-08-30
 
 - Added: Die Glockentafel sagt, WAS neu ist — „3 Kommentare · 4 Bewertungen" statt „7 neue Beiträge"
-- Added: Jede Zeile der Tafel sagt, von wem — aus den Kommentaren, nie aus den Bewertungen
+- Added: Jede Zeile der Tafel sagt, von wem
 - Added: Der Erklärkasten hinter der Gesamtnote nennt die Vergleichszahl ohne Gewichtung
 - Changed: Die Glocke meldet Kommentare und Bewertungen von allen, die eigenen eingeschlossen
-- Changed: Die Anmeldeseite misst ihre Höhe in `dvh` statt in `vh`
 - Changed: Die Zeile einer Anmeldung in „Meine Sitzungen" bricht immer um
 - Changed: Die Karte „Mailversand" steht so breit wie ihre drei Nachbarn
-- Changed: `GET /api/items` trägt je Eintrag drei Angaben statt einer
-- Removed: Die Filterpille „Neu seit …" — die Auskunft trägt die Glocke
+- Removed: Die Filterpille „Neu seit …" — die Auskunft trägt die Glocke; gespeicherte Ansichten bleiben lesbar
 - Removed: Zwei Erklärtexte haben die Oberfläche verlassen; sie stehen in der README
 - Fixed: Die Kriterienliste zerfiel bei genau einem Zugang
 - Fixed: Der Erklärkasten verwies auf eine Spalte, die es bei einem Zugang nicht gibt
-
-**Danach von Hand:** nichts. Keine Datenbankstufe. *Eine gespeicherte Ansicht mit „Neu seit …" bleibt lesbar — der Filter wird übergangen, der Wert bleibt stehen.*
-**Gleich geblieben:** Austauschformat 11, `F_ROUTEN` 69, 18 Karten in 5 Abschnitten, 7 Migrationsblöcke. **Persönliche Schlüssel: 9 → 8.**
-
----
+- Fixed: Die Anmeldeseite maß ihre Höhe falsch, wenn die Adressleiste des Telefons einklappte
 
 ## [0.16.0] - 2026-08-29
+
+> **Vor dem Einspielen: das Datenverzeichnis sichern.** Diese Version ändert die
+> Datenbank. Ohne die Kopie gibt es keinen Weg zurück auf eine ältere Fassung.
 
 - Added: Fünf Abschnitte im Systembereich, jeder mit eigener Adresse
 - Added: Eine Glocke in der Kopfzeile mit einem Punkt, dazu die Zahl der offenen Aufgaben
 - Added: Ein Klick auf die Zahl im Bewertungsblock öffnet die Rechnung dieses Eintrags
-- Added: Die Kennzahlen nennen Version, Fingerprint und die vier Verfahren
+- Added: Die Kennzahlen nennen Version, Fingerprint und die verwendeten Verfahren
 - Added: Ein Papierkorb in der Vollbildansicht, mit derselben Rückfrage wie darunter
-- Added: `ratings.gesetzt_am` — der Zeitpunkt der letzten Setzung, für die Glocke
-- Added: Der Prüfstand misst die Länge der Funktionen je Datei und nennt sie
+- Added: Bewertungen tragen einen Zeitpunkt — ohne ihn kann die Glocke nichts über sie sagen
 - Changed: Export und Import stehen in einer Karte, aber nicht gleichrangig
-- Changed: `renderSystem()` ist von 2.466 auf 79 Zeilen geschrumpft
-- Changed: `GET /api/items/:id` liefert den Rechenweg des Gesamtschnitts mit
 - Fixed: `node gegenprobe.js 2 256` fuhr neben Rückbau 256 auch die 83 mit
-
-**Danach von Hand:** **die Sicherung des Datenverzeichnisses ist PFLICHT** — diese Version fährt den siebten Migrationsblock. *Danach meldet das Protokoll einmalig `ratings um gesetzt_am ergaenzt (Migration auf 0.16.0)` samt der Zahl der Bewertungen, für die die Glocke schweigen wird.*
-**Gleich geblieben:** Austauschformat 11, `F_ROUTEN` 69. **Karten: 19 → 18, jetzt in 5 Abschnitten. Migrationsblöcke: 6 → 7.**
-
----
 
 ## [0.15.1] - 2026-08-29
 
-- Fixed: `hidden` versteckt wieder, überall — eine eigene `display`-Regel schlug die Vorgabe des Browsers
-- Fixed: Die Aussage zur Ablehnung steht nur noch an abgelehnten Einträgen
+- Fixed: Aussage und Eingabefeld zur Ablehnung standen auch an Einträgen, die nicht abgelehnt sind
 - Changed: Das Eingabefeld für die Begründung steht, solange abgelehnt ist und kein Grund dasteht
-- Changed: Wird ein Eintrag mit vorhandener Begründung erneut abgelehnt, bleibt das Feld zu
-
-**Danach von Hand:** nichts. Keine Datenbankstufe.
-**Gleich geblieben:** Austauschformat 11, `F_ROUTEN` 69, 6 Migrationsblöcke.
-
----
 
 ## [0.15.0] - 2026-08-29
 
@@ -136,180 +87,111 @@ ein Abschnitt mit Nummer und Datum.*
 - Added: Ein ✎ und ein ✕ an der Begründung einer Ablehnung
 - Added: Eine fremde Begründung lässt sich entfernen — von jedem, der den Eintrag ändern darf
 - Changed: Die Begründung steht im Ruhezustand als Aussage da statt in einem dauernd offenen Feld
-- Changed: `GET /api/items/:id` liefert zwei neue Angaben
-- Security: „Löschen ja, umschreiben nein" gilt an der Begründung jetzt ganz
-
-**Danach von Hand:** nichts. Keine Datenbankstufe. *Wer von einer Fassung vor 0.14.0 kommt, sichert vorher — dann läuft deren Migrationsblock mit.*
-**Gleich geblieben:** Austauschformat 11, `F_ROUTEN` 69, 6 Migrationsblöcke.
-
----
+- Security: An der Begründung gilt „Löschen ja, umschreiben nein" jetzt ganz
 
 ## [0.14.0] - 2026-08-29
 
-- Added: `items` bekommt `rejected_at`, `rejected_grund` und `rejected_von`
+> **Vor dem Einspielen: das Datenverzeichnis sichern.** Diese Version ändert die
+> Datenbank. Ohne die Kopie gibt es keinen Weg zurück auf eine ältere Fassung.
+
+- Added: Eine Ablehnung bekommt Datum, Grund und Verfasser
 - Added: Beim Einschalten von „abgelehnt" erscheint sofort ein Feld für den Grund
-- Added: Die Marke liest sich als Satz — „Abgelehnt am 14.03.2026, 09:12 von Anna — …"
-- Added: Ein Migrationsblock rüstet die drei Spalten in einem bestehenden Bestand nach
+- Added: Die Marke liest sich als Satz — „Abgelehnt am 14.03.2026, 09:12 von Anna — Lieferzeit über 6 Monate"
 - Changed: Die Begründung darf nur umschreiben, wer sie getroffen hat
-- Changed: Das Austauschformat steht auf 11
 - Changed: Die Sternreihen der Kriterienliste beginnen an derselben Stelle
 - Fixed: Ein fremder Cookie mit einem Prozentzeichen im Wert sperrte einen Browser aus
 - Security: Die Begründung ist eine fremde Aussage und wird wie eine behandelt
 
-**Danach von Hand:** **die Sicherung des Datenverzeichnisses ist PFLICHT** — Datenbankstufe, ohne die Kopie gibt es keinen Rückweg. *Das Protokoll meldet einmalig `items um rejected_at, rejected_grund und rejected_von ergaenzt (Migration auf 0.14.0)`.*
-**Gleich geblieben:** `F_ROUTEN` 69, Vokabular 11. **Austauschformat: 10 → 11. Migrationsblöcke: 5 → 6.**
-
----
-
 ## [0.13.2] - 2026-08-29
 
-- Fixed: Angepinnt heißt jetzt alle vier Kanten in einer Farbe
-- Changed: `.cmt.pinned` färbt mit `border-color` alle vier Kanten statt drei
-
-**Danach von Hand:** nichts. Kein Schema, keine Migration, niemand wird abgemeldet.
-**Gleich geblieben:** alles.
-
----
+- Fixed: Ein angepinnter Kommentar trug drei Kanten in einer Farbe und die vierte in einer anderen
 
 ## [0.13.1] - 2026-08-29
 
-- Fixed: Beschriftung und Umschalter der Filterzeile standen 32 px zu tief
-- Changed: `.frow` richtet sich an der Grundlinie aus statt an der Mitte
-
-**Danach von Hand:** nichts. Keine gespeicherte Ansicht ändert sich.
-**Gleich geblieben:** alles.
-
----
+- Fixed: Beschriftung und Umschalter der Filterzeile standen 32 Pixel zu tief
 
 ## [0.13.0] - 2026-08-28
 
-- Added: Zwei Cookienamen statt einem, entschieden je Anfrage über `X-Forwarded-Proto`
+> **Wer `HINTER_PROXY` umlegt, meldet damit alle ab, die über HTTPS hereinkommen.**
+> Kein Datenverlust, nur eine neue Anmeldung.
+
+- Added: Die Instanz ist über HTTPS **und** über das Heimnetz erreichbar, mit derselben Einstellung
 - Added: Ein Filter am Sicherheitsprotokoll — Alle · Gescheitert · Anmeldungen · Zugänge · Zweiter Faktor · Bestand
 - Added: Die Namen im Protokoll sind anklickbar und springen zur Karte „Zugänge"
 - Added: Gelöschte Zugänge stehen in einem eigenen Fenster
 - Added: Die Kategoriezeile trägt mehrere Kategorien zugleich
-- Changed: `HINTER_PROXY` bündelt nur noch zwei Wirkungen statt fünf
-- Changed: Die Filterleiste ist 75 px flacher
 - Changed: Der Löschdialog nennt den umkehrbaren Weg — sperren statt löschen
-- Removed: Der Handgriff „Wenn der Proxy ausfällt" ist aus der README entfernt — er wird nicht mehr gebraucht
+- Changed: Die Filterleiste ist 75 Pixel flacher
+- Removed: Der Handgriff „Wenn der Proxy ausfällt" aus der README — er wird nicht mehr gebraucht
 - Fixed: Der Export in Teilen ging mit eingeschaltetem zweitem Faktor überhaupt nicht
 - Fixed: Ein Teilexport stand in keiner einzigen Protokollzeile
 - Fixed: Fünf Vorgänge standen als roher Schlüssel am Bildschirm
 - Security: Der Heimnetzweg bekommt einen eigenen Cookienamen statt denselben ohne `Secure`
-- Security: HSTS gilt nur auf dem HTTPS-Weg
-
-**Danach von Hand:** nichts. Keine Datenbankstufe. *Das Umlegen von `HINTER_PROXY` meldet alle einmalig ab, die über HTTPS kommen — kein Datenverlust, nur eine neue Anmeldung.*
-**Gleich geblieben:** Austauschformat 10, `F_ROUTEN` 69, 5 Migrationsblöcke.
-
----
 
 ## [0.12.4] - 2026-08-28
 
-- Added: „In Teilen exportieren" — so viele vollständige Exportdateien, wie es braucht
+- Added: „In Teilen exportieren" — beim Einspielen Teil 1 mit „Ersetzen", alle übrigen mit „Zusammenführen"
 - Added: Die Teilgröße ist wählbar, 50 bis 300 MB
 - Added: Ein Eintrag, der schon allein über der Grenze liegt, wird namentlich genannt
 - Changed: Das Passwort wird einmal gefragt und je Teil geprüft
-- Changed: Der Hinweis ab 300 MB nennt den Weg, der hilft
-
-**Danach von Hand:** nichts. *Zum Einspielen: Teil 1 mit „Ersetzen", alle übrigen der Reihe nach mit „Zusammenführen".*
-**Gleich geblieben:** Austauschformat 10 — die Teile tragen dasselbe Format, es gibt keinen zweiten Weg hinein.
-
----
 
 ## [0.12.3] - 2026-08-28
 
-- Added: Die Kennzahlen nennen die erwartete Exportgröße
-- Added: Kommentarbilder haben eine eigene Zeile in den Kennzahlen
-- Added: Ein Hinweis an der Exportkarte ab 300 MB
+- Added: Die Exportkarte nennt die erwartete Dateigröße, bevor der Knopf gedrückt wird
+- Added: Ein Hinweis an der Exportkarte ab 300 MB, mit dem Weg, der dann hilft
 - Added: Der Import fragt vor dem Einlesen nach
 - Added: Ein Sprungknopf `+ Kommentar`
 - Changed: Am Kriterium steht `⌀ 4,2 (3)` statt `4,2 · 3`
-- Changed: Ein angepinnter Kommentar trägt nur noch eine Farbe
 - Changed: Die Kopfzeile der Kommentare nennt die offenen Aufgaben
-- Changed: Die Kachelliste zeichnet nur noch, was zu sehen ist
 - Fixed: Ein zu großer Export brach wortlos ab — jetzt sagt die Instanz vorher ab
-- Fixed: Die Zahlen an den Exportknöpfen folgen den Häkchen
-
-**Danach von Hand:** nichts. *Nach dem Einspielen den Fingerprint in den Kennzahlen gegen die Zeile im Änderungsprotokoll halten.*
-**Gleich geblieben:** Austauschformat 10, `F_ROUTEN` 69.
-
----
+- Fixed: Die Zahlen an den Exportknöpfen folgten den Häkchen nicht
 
 ## [0.12.2] - 2026-08-28
 
 - Fixed: Die Vorschaureihe ließ auf dem Telefon einen Streifen rechts leer
-- Changed: Die Kachel gibt auf dem Telefon ihre festen Maße ab und hält das Quadrat
-
-**Danach von Hand:** nichts. Nur die Oberfläche ändert sich.
-**Gleich geblieben:** alles.
-
----
 
 ## [0.12.1] - 2026-08-28
 
 - Changed: Die Knöpfe am Bildbereich stehen in einer Reihe oben rechts
 - Changed: Auf dem Berührungsbildschirm trägt die Vorschaukachel kein Löschkreuz mehr
-- Fixed: Das Löschkreuz auf der Vorschaukachel lag auf dem Weg des Daumens
 - Fixed: Der Knopf „Vollbild" am Video saß auf einer ausgerechneten Textbreite
 - Fixed: Das Feld zum Hochladen stand auf dem Telefon dauerhaft wie im Ziehzustand
 
-**Danach von Hand:** nichts. Nur die Oberfläche ändert sich.
-**Gleich geblieben:** alles.
-
----
-
 ## [0.12.0] - 2026-08-28
 
-- Added: Ein Menü hinter drei Strichen
-- Added: Ein Schalter über den Filtern
-- Added: Wischen blättert am Bildbereich
-- Added: Die Aussparung des Geräts wird mitgerechnet
+- Added: Kriterion ist auf Telefon und Tablett bedienbar — Menü, Filterschalter, Wischen am Bildbereich
 - Changed: Auf dem Telefon ist ein Block kein Kasten mehr, sondern ein Abschnitt
 - Changed: Der Titel des Eintrags steht auf dem Telefon vor dem Bild
 - Changed: Dialoge steigen von unten auf
-- Changed: Berührungsziele richten sich nach dem Zeiger und nicht nach der Breite
-- Changed: Eingabefelder fallen unter dem Finger nicht unter 16 Pixel
-- Fixed: Vierzehn Anzeigefehler auf dem Telefon — vom verschobenen Kommentartext über den Systembereich, der rechts aus dem Bild lief, bis zum Warten vor dem Klick
-
-**Danach von Hand:** nichts. Nur die Oberfläche ändert sich; Datenbank, Austauschformat, `.env` und die Werkzeuge auf dem Wirt sind unberührt.
-**Gleich geblieben:** alles.
-
----
+- Fixed: Vierzehn Anzeigefehler auf dem Telefon — vom verschobenen Kommentartext bis zum Systembereich, der rechts aus dem Bild lief
 
 ## [0.11.0] - 2026-08-27
 
-- Added: Volltextsuche im Server
+- Added: Die Suche läuft im Server und findet auch in Kommentaren, Links und Testtagen
 - Added: Gespeicherte Ansichten
 - Added: Ein Hinweis auf doppelte Einträge beim Anlegen
-- Changed: Die Übersicht ist deutlich leichter geworden
-- Changed: Die Suche fragt den Server frühestens 220 ms nach dem letzten Anschlag
-- Changed: `GET /api/items` liefert `testDays` nur noch, wenn die Zeitleiste sie braucht
-- Removed: `searchText` steht nicht mehr in der Antwort von `GET /api/items`
+- Changed: Die Übersicht lädt deutlich weniger Daten
 - Fixed: Eine gemerkte Filterstellung auf eine gelöschte Kategorie zeigte eine leere Liste
-- Fixed: Eine Beschriftung im Prüfstand nannte 64 schreibende Routen, wo 69 geprüft werden
-
-**Danach von Hand:** nichts. Keine Datenbankstufe, kein FTS5, kein Suchindex, keine neue Abhängigkeit. *Der Suchbegriff kommt nicht ins Sicherheitsprotokoll.*
-**Gleich geblieben:** Austauschformat 10, `F_ROUTEN` 69, Vokabular 11, 5 Migrationsblöcke.
-
----
 
 ## [0.10.0] - 2026-08-26
 
-- Added: Ein zweiter Faktor über TOTP, je Zugang und freiwillig
-- Added: Acht Wiederherstellungscodes, genau einmal angezeigt, jeder genau einmal gültig
+> **Vor dem Einspielen: das Datenverzeichnis sichern.** Diese Version ändert die
+> Datenbank. Ohne die Kopie gibt es keinen Weg zurück auf eine ältere Fassung.
+>
+> **Wer danach den zweiten Faktor einschaltet:** die acht Wiederherstellungscodes
+> aufschreiben und dorthin legen, wo das Telefon nicht liegt. Sie werden genau
+> einmal angezeigt.
+
+- Added: Ein zweiter Faktor über eine App auf dem Telefon, je Zugang und freiwillig
+- Added: Acht Wiederherstellungscodes, jeder genau einmal gültig
 - Added: Die Anmeldung wird zweistufig — aber nur für Zugänge mit zweitem Faktor
-- Added: `node zugang.js zweifaktor <name>` schaltet ihn auf dem Wirt aus
-- Changed: Versionsnummern folgen ab hier Semantic Versioning, dieses Changelog Keep a Changelog
+- Added: `node zugang.js zweifaktor <name>` schaltet ihn auf dem Wirt aus, wenn Telefon und Codes weg sind
+- Changed: Die Versionsnummern folgen ab hier Semantic Versioning, dieses Changelog Keep a Changelog
 - Changed: Diese Datei heißt `CHANGELOG.md` und liegt im Wurzelverzeichnis
-- Changed: Die Versionen bekommen ab hier lückenlos einen Git-Tag, und zwar mit `v`
 - Security: Der Rücksetzlink war der Weg am zweiten Faktor vorbei und ist geschlossen
 - Security: Sperren und Freigeben streift einen fremden zweiten Faktor nicht ab
-- Security: Die Anmeldebremse greift auch am zweiten Schritt
 - Security: „Dieser Zugang hat einen zweiten Faktor" erfährt nur, wer das Passwort kennt
 - Security: Das Geheimnis kommt aus keiner Antwort heraus, sobald es bestätigt ist
-
-**Danach von Hand:** **die Sicherung des Datenverzeichnisses ist PFLICHT** — Datenbankstufe: `zweifaktor` und `zweifaktor_codes` kommen dazu. *Wer den zweiten Faktor einschaltet, schreibt die acht Wiederherstellungscodes auf und legt sie dorthin, wo das Telefon nicht liegt — sie kommen nicht wieder.*
-**Gleich geblieben:** Austauschformat 10, Vokabular 11, 19 Karten, 5 Migrationsblöcke. *Ohne zweiten Faktor ist die Instanz vollständig.*
 
 ---
 
