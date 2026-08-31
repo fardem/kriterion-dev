@@ -1,6 +1,6 @@
 # Auftrag 0.17.2 — „Der Deckel und die eigene Hand"
 
-**Fünf Handgriffe aus dem Rundlauf mit 0.17.1**, gemeldet am 31. August 2026,
+**Sechs Handgriffe aus dem Rundlauf mit 0.17.1**, gemeldet am 31. August 2026,
 unmittelbar nach dem Einspielen. **Zwei davon sind Nacharbeit an 0.17.1
 selbst** — eine Regel, die zu weit ging, und eine Kachel, die dadurch ins
 Unendliche wächst.
@@ -52,7 +52,7 @@ Code und ist nur am echten Bestand zu haben.*
 abwärtskompatible Fehlerbehebungen. Eine Runde, die eine Funktion bringt, ist
 keine PATCH-Runde."*
 
-**Diese Runde bringt keine Funktion.** Vier Handgriffe an Anordnung und
+**Diese Runde bringt keine Funktion.** Fünf Handgriffe an Anordnung und
 Wortlaut, einer nimmt eine Meldung zurück. **Die Instanz kann danach nichts,
 was sie vorher nicht konnte** — sie sagt an einer Stelle weniger, und das ist
 der Punkt.
@@ -252,6 +252,39 @@ selbst** — es ist eine Stelle und nicht drei.
   Glocke nichts zu tun.
 * **Beide Lagen gehören gefahren:** ein Zugang und zwei. *Eine Prüflage, die
   nur den einen Fall stellt, belegt über den anderen nichts* (Stolperstein 189).
+
+---
+
+## 6. Die README spricht mit dem, der Kriterion zum ersten Mal sieht
+
+**Befund.** Die README erzählt an **siebenundvierzig Stellen** Versionsgeschichte
+— *„seit 0.13.0", „bis 0.12.4 stand hier ein Handgriff", „seit 0.16.0 trägt das
+Vollbild denselben Papierkorb".* **Wer Kriterion zum ersten Mal aufmacht, kannte
+0.12.4 nie.** *Ihm sagt „seit 0.13.0" nichts über die Sache und alles über eine
+Entwicklung, an der er nicht teilgenommen hat.*
+
+**GEBAUT WIRD: die Nummer bleibt, wo sie eine HANDLUNG bestimmt — und geht,
+wo sie nur erzählt, wann etwas entstanden ist.**
+
+| bleibt | geht |
+|---|---|
+| *„Wer von einer Fassung vor 0.14.0 kommt, sichert pflichtgemäß"* — sie sagt, **was zu tun ist** | *„Beide Wege zugleich — seit 0.13.0"* |
+| *„Vorausgesetzt wird eine Datenbank aus Version 0.8.0 oder neuer"* — sie sagt, **was geht und was nicht** | *„Bis 0.12.4 hingen drei weitere Dinge an dieser Einstellung"* |
+| die Protokollzeile *„(Migration auf 0.14.0)"* — sie steht **wörtlich so im Protokoll** | *„Einen Filter „Neu seit …" gibt es seit 0.17.0 nicht mehr"* — **er ist einfach weg** |
+
+> **DIESELBE REGEL WIE FÜR DIE OBERFLÄCHE, EINE EBENE HÖHER.** Abschnitt 5.6 des
+> Projektstands sagt: *eine Oberfläche sagt, WAS IST.* **Ein Handbuch sagt, WAS
+> IST — nicht, seit wann.** *Wo etwas nicht mehr da ist, wird es nicht
+> betrauert, sondern steht einfach nicht mehr drin.*
+
+**WAS DABEI NICHT GESTRICHEN WIRD:** die **Versionsgeschichte** gehört in den
+Projektstand, Abschnitt 9, und ins Änderungsprotokoll der jeweiligen Runde.
+*Beides gibt es, beides ist vollständig, und beides liest, wer es wissen will.*
+**Die README verweist darauf und erzählt es nicht selbst.**
+
+*Der Einspielweg und die Erstinstallation sind am 31. August 2026 bereits
+entschlackt worden* — der Hinweis auf das private Repo und die Herleitung zum
+Ausführungsrecht sind weg. **Der Rest der Datei steht noch aus.**
 
 ---
 
