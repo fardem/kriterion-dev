@@ -2506,6 +2506,47 @@ function drawFilters() {
   }
   r5.appendChild(g5);
 
+  /* ---- DER RUECKSETZER FUER DIE FILTERLEISTE — 0.17.3 ----
+     ER STAND BIS HIERHER NIRGENDS. Ein „zurücksetzen" gab es genau EINMAL, in
+     der Tagzeile weiter oben, und auch dort nur, solange mindestens ein Tag
+     gewaehlt war. Fuer die Leiste als Ganzes gab es keinen -- gesucht wurde er
+     hier, in der Sortierzeile neben „+ Ansicht speichern".
+     ER STEHT NUR DA, WENN WIRKLICH ETWAS GESETZT IST, und nennt die Zahl. Ein
+     Knopf, der nichts zu tun hat, ist dieselbe Auskunft ueber nichts wie eine
+     Null am Zaehler „Offen".
+     DIE ZAHL KOMMT AUS filterZahl() UND AUS NICHTS ANDEREM -- dieselbe
+     Funktion, die den Schalter ueber den Filtern traegt, mit denselben Regeln:
+     drei Kategorien zaehlen als EIN Filter, jeder Tag einzeln. Eine zweite
+     Zaehlung daneben waere eine zweite Wahrheit (Stolperstein 47).
+     WAS ER NICHT MITRAEUMT, UND BEIDES AUS DEMSELBEN GRUND: die SUCHE -- sie
+     hat ihr eigenes ✕ im Suchfeld, und filterZahl() zaehlt sie nicht mit --
+     und die SORTIERUNG. Ein Knopf, der „(3)" sagt und vier Dinge wegnimmt,
+     sagt die Unwahrheit.
+     EINE GESPEICHERTE ANSICHT WIRD NICHT ANGETASTET: zuruecksetzen heisst
+     „zeig mir alles", nicht „vergiss, was ich mir gemerkt habe". */
+  const filterGesetzt = filterZahl();
+  if (filterGesetzt) {
+    const rechts5 = document.createElement('div');
+    rechts5.className = 'frow-rechts frow-rechts-weit';
+    const bZurueck = document.createElement('button');
+    bZurueck.className = 'link-btn';
+    bZurueck.id = 'filter-zurueck';
+    bZurueck.textContent = `Filter zurücksetzen (${filterGesetzt})`;
+    bZurueck.title = 'Alle Filter auf „alles zeigen" — Suchbegriff und Sortierung bleiben stehen';
+    bZurueck.onclick = () => {
+      /* ZURUECKGESETZT WIRD AUF FILTER_VORGABE und sonst nichts -- und der Weg
+         dorthin ist filterNormal(), derselbe wie beim Anwenden einer
+         gespeicherten Ansicht. Eine zweite Stelle, die eine Filterstellung
+         zurechtrueckt, liefe auseinander.
+         DIE SORTIERUNG WIRD MITGEGEBEN UND NICHT ZURUECKGESETZT, obwohl sie in
+         der Vorgabe steht: sie zaehlt auch nicht mit. */
+      state.filters = filterNormal({ sort: state.filters.sort });
+      redraw();
+    };
+    rechts5.appendChild(bZurueck);
+    r5.appendChild(rechts5);
+  }
+
   // Ganz zum Schluss, wenn state.filters steht: der Schalter nennt die Zahl
   // der greifenden Filter, und die aendert sich mit jedem Klick auf eine
   // Pille. Er steht ausserhalb von #filters und ueberlebt das Neuzeichnen.

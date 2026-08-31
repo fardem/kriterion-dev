@@ -32482,6 +32482,153 @@ async function pruefeOberflaeche() {
       !kSpalten[2]?.title, kSpalten[2]?.title);
     d.w.close();
   }
+
+  /* ---- 4. Der Ruecksetzer fuer die Filterleiste ---- */
+  gruppe('Der Ruecksetzer fuer die Filterleiste — 0.17.3');
+
+  /* DER BEFUND WAR EINE FRAGE: „fehlt das Filter-zuruecksetzen, oder finde ich
+     den gerade nicht?" -- Er war nicht zu finden, weil es ihn nicht gab. Ein
+     „zurücksetzen" gab es genau EINMAL, in der Tagzeile, und auch dort nur,
+     solange mindestens ein Tag gewaehlt war.
+     GEPRUEFT WIRD BEIDES: dass er dasteht, wenn etwas gesetzt ist, UND dass er
+     fehlt, wenn nichts gesetzt ist. Ein Knopf, der immer dasteht, waere
+     dieselbe Auskunft ueber nichts wie eine Null am Zaehler (Stolperstein 81).
+     UND WAS ER NICHT MITRAEUMT, denn genau daran haengt seine Wahrhaftigkeit:
+     die Suche und die Sortierung zaehlt filterZahl() nicht mit, also darf er
+     sie auch nicht wegnehmen. */
+  const frTags = [{ id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
+                  { id: 42, name: 'Stahl', usage_count: 2, test_usage_count: 0 }];
+  const frKnopf = (w) => w.document.getElementById('filter-zurueck');
+  {
+    /* OHNE EINEN EINZIGEN FILTER steht er nicht da -- und die Leiste steht
+       trotzdem, sonst belegte die Verneinung nichts. */
+    const d = baueDom(JSDOM, { tags: frTags, einstellungen: { filters: null } });
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Die Filterleiste steht da',
+      !!d.w.document.querySelector('#filters .frow'), 'keine Leiste');
+    pruefe('Ohne gesetzten Filter steht kein Ruecksetzer da',
+      !frKnopf(d.w), frKnopf(d.w)?.textContent);
+    d.w.close();
+  }
+  {
+    /* VIER FILTER IN EINER LAGE, und jeder zaehlt anders: der Teststatus
+       einzeln, die Kategorien als EINER (sie vergroessern die Menge), die
+       beiden Tags EINZELN (jeder verkleinert sie). Eine Lage mit nur einem
+       Filter belegte ueber diese Regeln nichts. */
+    const d = baueDom(JSDOM, { tags: frTags,
+      einstellungen: { filters: { categoryIds: [21, 22], tagIds: [41, 42], tagMode: 'and',
+                                  tested: 'tested', abgelehnt: 'all', favorit: false,
+                                  sort: 'title_asc' } } });
+    await new Promise(r => setTimeout(r, 80));
+    const knopf = frKnopf(d.w);
+    pruefe('Mit gesetzten Filtern steht der Ruecksetzer da', !!knopf, 'kein Knopf');
+    pruefe('Und er nennt die Zahl',
+      knopf?.textContent === 'Filter zurücksetzen (4)', JSON.stringify(knopf?.textContent));
+    /* DIE ZAHL KOMMT AUS filterZahl() UND AUS NICHTS ANDEREM. Belegt wird das
+       nicht ueber den Kommentar, sondern gegen den ZWEITEN Ort, an dem
+       dieselbe Zahl steht: den Schalter ueber den Filtern. Zwei Zaehlungen
+       nebeneinander liefen frueher oder spaeter auseinander
+       (Stolperstein 47). */
+    const schalter = d.w.document.querySelector('#filter-auf .fz')?.textContent || '';
+    pruefe('Und es ist dieselbe Zahl, die auch der Schalter nennt',
+      schalter === '· 4 aktiv', JSON.stringify(schalter));
+    /* ER STEHT IN DER SORTIERZEILE, neben „+ Ansicht speichern" -- dort, wo er
+       gesucht wurde, und nicht in einer eigenen Zeile darunter. */
+    const zeile = knopf?.closest('.frow');
+    pruefe('Er steht in der Sortierzeile',
+      !!zeile?.querySelector('#f-sort') && !!zeile?.querySelector('#ansicht-neu'),
+      zeile ? [...zeile.querySelectorAll('.eyebrow')].map(e => e.textContent).join('+') : 'in keiner Zeile');
+    pruefe('Und rechts in ihr',
+      knopf?.parentElement?.classList.contains('frow-rechts-weit'),
+      knopf?.parentElement?.className);
+    /* DAS STILBLATT SCHIEBT IHN AN DEN RAND -- ohne ausgerechnete Breite. Die
+       Pillen der Sortierzeile wachsen nicht von selbst, anders als die Wolke
+       der Tagzeile. */
+    pruefe('Das Stilblatt schiebt ihn an den rechten Rand',
+      /margin-left: auto/.test(regel123('.frow-rechts-weit')),
+      regel123('.frow-rechts-weit') || '(keine Regel)');
+
+    /* ---- UND JETZT DER KLICK ----
+       EIN SUCHBEGRIFF STEHT DABEI WIRKLICH IM FELD und nicht bloss im Zustand:
+       nur dann belegt die Zeile unten etwas (Stolperstein 224). */
+    const vorherSort = d.w.document.getElementById('f-sort')?.value;
+    const suchfeld = d.w.document.getElementById('q');
+    suchfeld.value = 'schraube';
+    suchfeld.dispatchEvent(new d.w.Event('input'));
+    await warteSuche(d.w);
+    /* GEZAEHLT WIRD, WAS NACH DEM KLICK HINAUSGEHT und nicht, was beim Aufbau
+       schon lief -- sonst pruefte die Verneinung unten den Seitenaufbau mit. */
+    const vorDemKlick = d.gesendet.length;
+    knopf.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    const danach = d.gesendet.slice(vorDemKlick);
+    /* GELESEN WIRD DIE STELLUNG DORT, WO SIE HINAUSGEHT -- im Rumpf des
+       letzten PUT. `state` ist ein `const` im Modul und steht am Fenster gar
+       nicht; eine Pruefung, die dorthin greift, pruefte `undefined`. */
+    const put = danach.filter(x => x.methode === 'PUT' && x.url === '/api/settings');
+    const jetzt = put[put.length - 1]?.koerper?.filters || {};
+    pruefe('Danach ist der Teststatus zurueckgesetzt', jetzt.tested === 'all', String(jetzt.tested));
+    pruefe('Und die Kategorien sind leer',
+      Array.isArray(jetzt.categoryIds) && jetzt.categoryIds.length === 0,
+      JSON.stringify(jetzt.categoryIds));
+    pruefe('Und die Tags ebenso',
+      Array.isArray(jetzt.tagIds) && jetzt.tagIds.length === 0, JSON.stringify(jetzt.tagIds));
+    pruefe('Auch die uebrigen Merkmale stehen wieder auf der Vorgabe',
+      jetzt.abgelehnt === 'all' && jetzt.favorit === false && jetzt.tagMode === 'and',
+      JSON.stringify(jetzt));
+    // UND DIE LEISTE ZEIGT ES AUCH: die Pille „Alles anzeigen" steht wieder an.
+    const allesPille = [...d.w.document.querySelectorAll('#filters .pill')]
+      .find(b => b.textContent.trim() === 'Alles anzeigen');
+    pruefe('Und die Leiste zeigt es',
+      allesPille?.classList.contains('on'), allesPille?.className);
+    /* DIE SORTIERUNG BLEIBT STEHEN, obwohl sie in FILTER_VORGABE steht: sie
+       wird auch nicht mitgezaehlt. Ein Knopf, der „(4)" sagt und fuenf Dinge
+       wegnimmt, sagt die Unwahrheit. */
+    pruefe('Die Sortierung bleibt, wo sie war',
+      jetzt.sort === 'title_asc' && d.w.document.getElementById('f-sort')?.value === vorherSort,
+      `${jetzt.sort} · Feld ${d.w.document.getElementById('f-sort')?.value}`);
+    // UND DIE SUCHE EBENSO -- sie hat ihr eigenes Kreuz im Suchfeld.
+    pruefe('Der Suchbegriff bleibt ebenfalls stehen',
+      d.w.document.getElementById('q')?.value === 'schraube',
+      JSON.stringify(d.w.document.getElementById('q')?.value));
+    /* DER FILTERSTAND FAEHRT WIE IMMER UEBER PUT /api/settings hinaus -- keine
+       neue Route, dieselbe, die jeder Klick auf eine Pille schon benutzt. */
+    pruefe('Der neue Stand geht ueber die vorhandene Route hinaus',
+      put.length > 0, `${put.length} Schreibvorgaenge`);
+    pruefe('Und keine andere Route wird dafuer geschrieben',
+      !danach.some(x => x.methode !== 'GET' && x.url !== '/api/settings'),
+      danach.filter(x => x.methode !== 'GET').map(x => `${x.methode} ${x.url}`).join(' · ') || '(keine)');
+    // EIN KNOPF, DER NICHTS MEHR ZU TUN HAT, STEHT NICHT MEHR DA.
+    pruefe('Und danach ist der Ruecksetzer selbst wieder weg',
+      !frKnopf(d.w), frKnopf(d.w)?.textContent);
+    d.w.close();
+  }
+  {
+    /* EINE GESPEICHERTE ANSICHT WIRD NICHT ANGETASTET. Zuruecksetzen heisst
+       „zeig mir alles", nicht „vergiss, was ich mir gemerkt habe". */
+    const d = baueDom(JSDOM, { tags: frTags,
+      einstellungen: { ansichten: [{ name: 'Meine Sicht', q: 'eins', filters: { tested: 'tested' } }],
+                       filters: { categoryIds: [], tagIds: [41], tagMode: 'and',
+                                  tested: 'all', abgelehnt: 'all', favorit: false,
+                                  sort: 'updated_desc' } } });
+    await new Promise(r => setTimeout(r, 80));
+    const pillen = () => [...d.w.document.querySelectorAll('#filters .pill')]
+      .map(b => b.textContent.replace('✕', '').trim());
+    pruefe('Die gespeicherte Ansicht steht in der Leiste',
+      pillen().includes('Meine Sicht'), JSON.stringify(pillen()));
+    pruefe('Bei einem einzigen Tag nennt der Knopf die Eins',
+      frKnopf(d.w)?.textContent === 'Filter zurücksetzen (1)',
+      JSON.stringify(frKnopf(d.w)?.textContent));
+    const anVorher = d.gesendet.length;
+    frKnopf(d.w).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    pruefe('Nach dem Zuruecksetzen steht sie immer noch da',
+      pillen().includes('Meine Sicht'), JSON.stringify(pillen()));
+    pruefe('Und sie ist dabei nicht neu geschrieben worden',
+      !d.gesendet.slice(anVorher).some(x => x.koerper && 'ansichten' in x.koerper),
+      d.gesendet.slice(anVorher).map(x => `${x.methode} ${Object.keys(x.koerper || {}).join('+')}`).join(' · ') || '(nichts)');
+    d.w.close();
+  }
 }
 
 /* ================= Der Schluesselwechsel =================

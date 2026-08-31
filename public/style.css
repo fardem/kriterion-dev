@@ -323,6 +323,13 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    KEINE AUSGERECHNETE BREITE, nirgends -- die Instanz stellt die Schrift von
    80 bis 120 Prozent, und eine feste Zahl kann dabei nur falsch werden. */
 .frow-rechts { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+/* AN DEN RECHTEN RAND, seit 0.17.3: der Ruecksetzer der Filterleiste steht in
+   der Sortierzeile, und dort waechst nichts von selbst -- die Wolke der
+   Tagzeile tut das (`flex: 1 1 0`), die Pillen der Sortierzeile nicht. `auto`
+   und keine ausgerechnete Breite: was uebrig ist, entscheidet die Zeile.
+   AUF DEM TELEFON WIRD DARAUS EINE SPALTE, und dann sitzt er unter den Pillen
+   -- `margin-left` an einem Spaltenkind tut nichts, und das ist hier richtig. */
+.frow-rechts-weit { margin-left: auto; }
 /* DIE WOLKE NIMMT, WAS UEBRIG IST. `flex: 1 1 0` statt einer Breite: sie
    schrumpft und waechst mit der Zeile, und `min-width: 0` erlaubt ihr das
    ueberhaupt erst -- ohne diese Null waere ihre Mindestbreite der Inhalt, und
