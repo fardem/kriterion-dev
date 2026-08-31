@@ -29,10 +29,22 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.17.4] - 2026-08-31
+
+> **Nur die Anzeige ändert sich, und nur im Systembereich.** Nach dem Einspielen
+> im Browser einmal hart neu laden — geändert ist ausschließlich das Stilblatt,
+> und das liegt im Zwischenspeicher.
+
+- Changed: Die Karten einer Reihe sind wieder gleich hoch — 0.17.3 hatte sie zu einer Treppe gemacht
+- Changed: Steht neben einer Liste eine hohe Karte, zeigt die Liste auch mehr als zehn Zeilen
+- Changed: Das Sicherheitsprotokoll zeigt fünfzehn Zeilen statt zehn, bevor es rollt
+- Changed: Eine leere Liste ist eine Zeile hoch und sagt, dass nichts da ist
+- Changed: In der Glockentafel und bei den gelöschten Zugängen gilt kein Deckel — dort rollt das Fenster
+
 ## [0.17.3] - 2026-08-31
 
 - Added: „Filter zurücksetzen" in der Sortierzeile — nur wenn etwas gesetzt ist, und mit der Zahl daneben
-- Changed: Jede Kachel im Systembereich ist so hoch wie ihr Inhalt; eine kurze Liste zieht die Reihe nicht mehr auf
+- Changed: Jede Kachel im Systembereich ist so hoch wie ihr Inhalt; eine kurze Liste zieht die Reihe nicht mehr auf *(zurückgenommen mit 0.17.4)*
 - Changed: Listen in Karten deckeln bei zehn Zeilen statt bei zwölf
 - Changed: Die Karte „Mailversand" zeigt nur noch den Zustand; eingetragen wird er in einem eigenen Fenster
 - Changed: Der Erklärkasten hinter der Gesamtnote braucht keinen Rollbalken mehr

@@ -1033,25 +1033,23 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Position taete das nicht: wie viele Karten in eine Zeile passen, haengt an
    der Fensterbreite (auto-fit), und wie viele es ueberhaupt gibt, an der
    Rolle. Die Reihenfolge im Quelltext bleibt davon unberuehrt. */
-/* `align-items: start` IST DIE ZEILE, DIE DEN LEERRAUM NIMMT -- und sie steht
-   an der Kachel und nicht an der Liste darin.
-   EIN RASTER ZIEHT JEDES KIND AUF DIE HOEHE DER HOECHSTEN ZELLE SEINER REIHE:
-   `align-items` steht von Haus aus auf `stretch`. Neben einer Kachel mit
-   fuenfzig Zeilen war eine leere Kachel deshalb genauso hoch, und der Leerraum
-   stand UNTER dem Inhalt IN der Kachel -- nicht in der Liste, die korrekt
-   klemmte. Wer nur die Liste misst, sieht ihn nicht.
-   MIT `start` IST JEDE KACHEL SO HOCH WIE IHR INHALT. Gemessen in Chromium bei
-   1600x913 und drei Kacheln nebeneinander: eine Kachel mit zwei Listenzeilen
-   faellt von 605 auf 186 Pixel, eine mit leerer Liste auf 136. */
-.sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-flow: dense; gap: 18px; margin-top: 6px;
-  align-items: start; }
+/* DAS RASTER STRECKT SEINE KINDER, und das ist gewollt: alle Kacheln einer
+   Reihe sind gleich hoch. `align-items` bleibt deshalb auf `stretch` und wird
+   hier nicht gesetzt.
+   0.17.3 HAT HIER `align-items: start` GESETZT, UND DAS WAR EIN FEHLER --
+   der Satz steht hier, damit er nicht wiederkommt (Stolperstein 201). Die
+   Begruendung damals: „ein Raster zieht jedes Kind auf die Hoehe der hoechsten
+   Zelle seiner Reihe, also steht der Leerraum IN der Kachel." Der erste Teil
+   stimmt, der zweite nicht -- gemessen in Chromium bei 1600x913 stand unter
+   KEINER Liste Luft (`Hoehe` gleich `scrollHeight`, an allen sieben Kacheln
+   des Abschnitts „Bestand"). Weggenommen hat die Zeile nichts; kaputt gemacht
+   hat sie die gleiche Hoehe: „Bestand" stand danach als Treppe von 206 bis
+   909 Pixeln da, „Persoenlich" als 1055 / 470 / 389. */
+.sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-flow: dense; gap: 18px; margin-top: 6px; }
 /* DIE KACHEL IST EINE SPALTE, und das ist die Voraussetzung fuer die Liste
-   darin: was `flex: 1` traegt, bekommt, was uebrig ist; alles andere behaelt
-   seine natuerliche Hoehe.
-   BIS 0.17.2 GAB SIE AUCH DIE GESCHENKTE HOEHE EINER HOEHEREN NACHBARIN
-   WEITER. Das tut sie seit `align-items: start` nicht mehr -- es gibt keine
-   geschenkte Hoehe mehr. Die Zusage ist damit gegenstandslos und nicht
-   gebrochen: ungenutzt bleibt nichts, weil nichts mehr verschenkt wird. */
+   darin. Als Rasterkind ist sie so hoch wie ihre hoechste Nachbarin, und ALS
+   SPALTE GIBT SIE DIESE HOEHE WEITER: was `flex: 1` traegt, bekommt, was
+   uebrig ist; alles andere behaelt seine natuerliche Hoehe. */
 .sys-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px 20px;
   display: flex; flex-direction: column; }
 /* EIN KNOPF BLEIBT SO BREIT WIE SEIN WORT. In einer Spalte werden die Kinder
@@ -1113,20 +1111,25 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    steht auch in zwei Fenstern (Glockentafel, Grabsteine) -- `.modal` ist
    ebenfalls eine Spalte, und dort haelt dieselbe Zeile den Kopf und den
    Schliessknopf im Blick, statt das ganze Fenster rollen zu lassen. */
-/* DER DECKEL IST DIE FORDERUNG UND NICHT DIE GRENZE -- das ist der ganze
-   Unterschied, und er steckt in `flex-basis`.
-   `flex: 1 1 27.95rem` HEISST: "ich haette gern zehn Zeilen". Mehr verlangt die
-   Liste nicht, und deshalb zieht sie die Rasterzeile nicht weiter auf; 0.17.1
-   hatte die feste Hoehe gestrichen, ohne etwas an ihre Stelle zu setzen, und
-   die Tagliste zog den Abschnitt "Bestand" auf fuenfzig Zeilen auseinander.
-   ALLE DREI ZEILEN TRAGEN WEITER, auch seit die Kachel nicht mehr streckt
-   (`.sys-grid { align-items: start }`): ohne `flex-basis` und `min-height: 0`
-   waechst ein Flexkind ueber seinen Anteil hinaus, statt zu rollen, und ohne
-   `max-height: max-content` forderte auch eine Liste mit zwei Zeilen ihre zehn.
-   Sie klemmt auf das, was wirklich dasteht -- nie auf weniger.
-   NACHGEMESSEN IN CHROMIUM bei 1600x913: mit fuenfzig Eintraegen deckelt die
-   Liste bei 419 Pixeln und rollt, mit zwei Eintraegen bleibt sie zwei Zeilen
-   hoch, und leer ist sie 0.
+/* WAS DIE LISTE FORDERT, IST NICHT, WAS SIE NUTZT -- und dieser Unterschied
+   ist die ganze Regel. Drei Zeilen tragen ihn, und jede beantwortet eine
+   andere Frage:
+
+     `flex-basis: 27.95rem`   WAS FORDERE ICH? Hoechstens zehn Zeilen. Mehr
+                              verlangt die Liste nie, und deshalb zieht sie
+                              die Rasterzeile nie weiter auf als bis dahin.
+     `max-height: max-content` WAS FORDERE ICH WIRKLICH? Nur, was dasteht. Ohne
+                              diese Zeile forderte auch eine Liste mit zwei
+                              Eintraegen ihre zehn Zeilen, und der Abschnitt
+                              „Bestand" waere ueberall gleich hoch aufgeblasen.
+     `flex-grow: 1`           WAS NUTZE ICH? Alles, was die Kachel hergibt.
+                              Steht daneben eine hoehere Kachel, zeigt die
+                              Liste MEHR als zehn Zeilen -- der Deckel begrenzt
+                              die Forderung und nicht die Nutzung.
+
+   `min-height: 0` IST DIE VIERTE UND DIE, AN DER ES SONST SCHEITERT: ohne sie
+   waechst ein Flexkind ueber seinen Anteil hinaus, statt zu rollen. Wer nur
+   die `max-height` streicht, bekommt genau das.
    27.95rem SIND ZEHN ZEILEN: eine `.mrow` misst mit Innenabstand und dem
    Abstand zur naechsten 41,92 Pixel, und die Wurzelschrift steht auf 15. IN rem
    UND NICHT IN PIXELN, weil die Oberflaeche ihre Schrift von 80 bis 120 Prozent
@@ -1135,6 +1138,36 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Kachel neben ihren Nachbarn tragen soll. */
 .manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+/* EINE LEERE LISTE FAELLT NICHT AUF NULL ZUSAMMEN. Sie ist eine Zeile hoch
+   und sagt, dass nichts da ist -- die Meldung steht in jedem Zeichenweg als
+   `.hint` schon drin, hier bekommt sie das Mass einer Zeile.
+   EINE REGEL UND NICHT SECHS: Kategorien, Tags, Kriterien, Papierkorb,
+   Zugaenge und das Protokoll melden ihre Leere alle so. Wer eine siebte Liste
+   dazustellt, bekommt das Mass mit.
+   DIESELBE HOEHE WIE EINE ZEILE, aber ohne deren Hintergrund und in der
+   gedaempften Farbe: es ist keine Zeile, es ist die Auskunft, dass keine da
+   ist.
+   `margin: 0` IST KEINE KOSMETIK. Das Protokoll meldet seine Leere als `<p>`,
+   die anderen als `<span>`; ein `<p>` traegt die Vorgabemarge des Browsers von
+   1em. Gemessen in Chromium: 13,05 Pixel oben und unten, die leere Liste stand
+   68 Pixel hoch statt 35.
+   ZWEI ZEILENMASSE, WEIL ES ZWEI ZEILEN SIND -- dieselbe Unterscheidung wie
+   beim Deckel darueber: eine `.mrow` misst 41,92 Pixel und rueckt 9 Pixel ein,
+   eine `.prot-zeile` misst 35 und rueckt 2 ein. Ein gemeinsames Mass waere hier
+   keine Regel, sondern ein Fehler an einer der beiden. */
+.manage-list > .hint, .prot-liste > .hint {
+  display: flex; align-items: center; margin: 0; }
+.manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }
+.prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; }
+/* DIE LISTEN IN EINEM FENSTER TRAGEN DEN DECKEL NICHT -- Glockentafel und
+   Grabsteine. Dort gibt es keine Reihe und keine Nachbarin, an der sich etwas
+   ausrichten koennte, und das Fenster deckelt laengst bei `88dvh`. Ein
+   zweiter Deckel darin waere eine Grenze in einer Grenze; wer ein Fenster
+   eigens oeffnet, will sehen, was darin steht.
+   EINE REGEL STATT ZWEI KLASSEN IM MARKUP: die Frage ist nicht, WELCHE Liste
+   es ist, sondern WO sie steht. */
+.modal .manage-list { flex: 0 1 auto; max-height: none; }
+
 /* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
    einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
    der Export, unter ihr der Import. Naehme sie die Kachelhoehe, schoebe sie
@@ -1284,13 +1317,19 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Hoehe, die die Kachel hergibt, und nicht mehr in festen 380 Pixeln. Auf
    schmalem Schirm bricht sie in zwei Zeilen statt seitlich zu scrollen. */
 /* DIESELBE BAUFORM WIE AN `.manage-list`, und die Begruendung steht dort.
-   23.3rem SIND HIER ZEHN ZEILEN: eine `.prot-zeile` misst in der breiten Karte
-   35 Pixel -- sie traegt keinen Abstand zur naechsten, sondern eine Linie.
-   ZEHN AUCH HIER, UND DER PREIS STEHT DAZU: die Zeilen sind schmaler, zehn
-   statt zwoelf heisst spuerbar weniger Protokoll auf einen Blick. Trotzdem EINE
-   Regel und nicht zwei -- zwei Zahlen fuer dieselbe Sache sind eine zu viel,
-   und wer die Liste wirklich durchsieht, nimmt den Filter darueber. */
-.prot-liste { flex: 1 1 23.3rem; min-height: 0; max-height: max-content;
+   35rem SIND HIER FUENFZEHN ZEILEN: eine `.prot-zeile` misst in der breiten
+   Karte 35 Pixel -- sie traegt keinen Abstand zur naechsten, sondern eine
+   Linie.
+   FUENFZEHN UND NICHT ZEHN, UND DAS IST KEINE ZWEITE WAHRHEIT UEBER DIESELBE
+   SACHE (Stolperstein 47): eine `.mrow` ist eine BEDIENZEILE mit Knoepfen und
+   Auswahlfeldern, eine `.prot-zeile` eine TEXTZEILE mit Trennlinie. Zwei
+   verschiedene Dinge duerfen zwei Masse haben. 0.17.3 hat beide auf zehn
+   gesetzt, „damit es eine Regel ist" -- das Protokoll hat dabei doppelt
+   verloren: zwei Zeilen weniger UND die schmaleren Zeilen. Gemessen in
+   Chromium: bei elf Vorgaengen rollte es schon (Deckel 350 px, Inhalt 384).
+   Das Protokoll ist ausserdem die einzige dieser Listen, die man DURCHSIEHT
+   statt in ihr etwas anzuklicken. */
+.prot-liste { flex: 1 1 35rem; min-height: 0; max-height: max-content;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 .prot-zeile { display: grid; grid-template-columns: 128px 1fr 1fr auto auto; gap: 4px 12px;
   align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: .86rem; }
@@ -2693,8 +2732,10 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      ist das einzige Mass, das dort etwas sagt. `flex: 0 1 auto` laesst die Liste
      ihren Inhalt fordern, und `62dvh` deckelt ihn; die Forderung von zehn Zeilen
      machte eine Karte mit zwei Eintraegen sonst so hoch wie eine mit fuenfzig.
-     AN DIESER ZEILE AENDERT 0.17.3 NICHTS: der Deckel von zehn Zeilen gilt fuer
-     den breiten Schirm, hier haengt er am Fenster. */
+     AN DIESER ZEILE AENDERT SICH NICHTS: die Deckel von zehn und fuenfzehn
+     Zeilen gelten fuer den breiten Schirm, hier haengt der Deckel am Fenster.
+     UND DIE LEERE ZEILE GILT AUCH HIER -- sie steht an der Liste und nicht am
+     Umbruchpunkt. */
   .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {
     flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }
 

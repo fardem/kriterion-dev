@@ -3137,28 +3137,28 @@ const RUECKBAUTEN = [
     suche: `.manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }`,
     ersatz: ".manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
     nr: '340', name: 'Die Liste verliert die Zeile, an der es sonst scheitert',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 23.3rem; min-height: 0; max-height: max-content;",
-    ersatz: ".prot-liste { flex: 1 1 23.3rem; max-height: max-content;",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    suche: ".prot-liste { flex: 1 1 35rem; min-height: 0; max-height: max-content;",
+    ersatz: ".prot-liste { flex: 1 1 35rem; max-height: max-content;",
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
     nr: '341', name: 'Die Kachel ist wieder keine Spalte',
     datei: 'public/style.css',
     suche: "padding: 18px 20px 20px;\n  display: flex; flex-direction: column; }",
     ersatz: "padding: 18px 20px 20px; }",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
     nr: '342', name: 'Der Knopf in der Kachel wird wieder ueber die volle Breite gezogen',
     datei: 'public/style.css',
     suche: ".sys-card > .btn { align-self: flex-start; }",
     ersatz: "",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
     nr: '346', name: 'Die alte Adresse des fuenften Abschnitts wird nicht mehr uebersetzt',
@@ -3231,14 +3231,14 @@ const RUECKBAUTEN = [
     datei: 'public/style.css',
     suche: ".manage-list { flex: 1 1 27.95rem;",
     ersatz: ".manage-list { flex: 1 1 auto;",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
     nr: '356', name: 'Das Sicherheitsprotokoll fordert wieder alle seine Zeilen',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 23.3rem;",
+    suche: ".prot-liste { flex: 1 1 35rem;",
     ersatz: ".prot-liste { flex: 1 1 auto;",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
     nr: '357', name: 'Auf dem Telefon deckelt nichts mehr am Fenster',
@@ -3246,7 +3246,7 @@ const RUECKBAUTEN = [
     suche: "  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {\n" +
            "    flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }",
     ersatz: "",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
@@ -3295,25 +3295,25 @@ const RUECKBAUTEN = [
 
   /* ---- 0.17.3: die Kachel, der Mailversand, der Erklaerkasten, der Filter ---- */
   {
-    nr: '369', name: 'Das Kachelraster streckt seine Kinder wieder',
+    nr: '369', name: 'Das Kachelraster streckt seine Kinder wieder nicht',
     datei: 'public/style.css',
-    suche: "grid-auto-flow: dense; gap: 18px; margin-top: 6px;\n  align-items: start; }",
-    ersatz: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; }",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    suche: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; }",
+    ersatz: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; align-items: start; }",
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
     nr: '370', name: 'Die Liste fordert wieder zwoelf Zeilen',
     datei: 'public/style.css',
     suche: ".manage-list { flex: 1 1 27.95rem; min-height: 0;",
     ersatz: ".manage-list { flex: 1 1 33.5rem; min-height: 0;",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
-    nr: '371', name: 'Das Sicherheitsprotokoll deckelt wieder bei zwoelf Zeilen',
+    nr: '371', name: 'Das Sicherheitsprotokoll deckelt wieder bei zehn Zeilen',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 23.3rem; min-height: 0;",
-    ersatz: ".prot-liste { flex: 1 1 28rem; min-height: 0;",
-    erwartet: 'Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3'
+    suche: ".prot-liste { flex: 1 1 35rem; min-height: 0;",
+    ersatz: ".prot-liste { flex: 1 1 23.3rem; min-height: 0;",
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
   {
     nr: '372', name: 'Die Karte bekommt ihre Passwortzeile zurueck',
@@ -3441,6 +3441,43 @@ const RUECKBAUTEN = [
     suche: ".frow-rechts-weit { margin-left: auto; }",
     ersatz: ".frow-rechts-weit { margin-right: 0; }",
     erwartet: 'Der Ruecksetzer fuer die Filterleiste — 0.17.3'
+  },
+
+  /* ---- 0.17.4: fordern und nutzen ---- */
+  {
+    nr: '389', name: 'Die leere Bedienliste faellt wieder auf null zusammen',
+    datei: 'public/style.css',
+    suche: ".manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }",
+    ersatz: ".manage-list > .hint { padding: 0 9px; }",
+    erwartet: 'Fordern und nutzen — 0.17.4'
+  },
+  {
+    nr: '392', name: 'Das leere Protokoll bekommt das Mass der Bedienzeile',
+    datei: 'public/style.css',
+    suche: ".prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; }",
+    ersatz: ".prot-liste > .hint { min-height: 2.795rem; padding: 0 9px; }",
+    erwartet: 'Fordern und nutzen — 0.17.4'
+  },
+  {
+    nr: '393', name: 'Die leere Meldung traegt die Vorgabemarge wieder mit',
+    datei: 'public/style.css',
+    suche: "  display: flex; align-items: center; margin: 0; }\n.manage-list > .hint {",
+    ersatz: "  display: flex; align-items: center; }\n.manage-list > .hint {",
+    erwartet: 'Fordern und nutzen — 0.17.4'
+  },
+  {
+    nr: '390', name: 'Die Liste im Fenster bekommt den Deckel wieder',
+    datei: 'public/style.css',
+    suche: ".modal .manage-list { flex: 0 1 auto; max-height: none; }",
+    ersatz: ".modal .manage-list { flex: 0 1 auto; }",
+    erwartet: 'Fordern und nutzen — 0.17.4'
+  },
+  {
+    nr: '391', name: 'Die Liste nutzt den Platz der Kachel nicht mehr',
+    datei: 'public/style.css',
+    suche: ".manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;",
+    ersatz: ".manage-list { flex: 0 1 27.95rem; min-height: 0; max-height: max-content;",
+    erwartet: 'Fordern und nutzen — 0.17.4'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */

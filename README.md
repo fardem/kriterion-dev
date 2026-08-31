@@ -1371,15 +1371,25 @@ weitergeben, in einem neuen Fenster öffnen und mit der Zurück-Taste wieder
 verlassen. `#/system` ohne Abschnitt bleibt gültig und löst sich auf den ersten
 sichtbaren auf.
 
-> **EINE LISTE IN EINER KARTE WÄCHST BIS ZEHN ZEILEN UND ROLLT DANN.** Tags,
-> Kategorien, Zugänge und das Sicherheitsprotokoll können beliebig lang werden;
-> ohne Deckel zöge eine einzige Karte die Seite auf fünfzig Zeilen, und
-> daneben stünden vier leere.
+> **DIE KARTEN EINER REIHE SIND GLEICH HOCH, und was die Reihe hoch macht, ist
+> ihre höchste Karte ohne Liste.** Steht in einer Reihe keine solche, macht die
+> Liste mit den meisten Zeilen das Maß — höchstens **zehn** Zeilen, beim
+> Sicherheitsprotokoll höchstens **fünfzehn**, und mindestens eine.
 >
-> **Und jede Karte ist so hoch wie ihr Inhalt.** Eine Karte mit zwei Zeilen
-> bleibt zwei Zeilen hoch, auch wenn daneben eine mit fünfzig steht — sie
-> streckt sich nicht auf deren Höhe. *Eine leere Karte ist eine leere Karte
-> und kein leeres Feld.*
+> **Eine Liste zeigt, was in ihre Karte passt, und rollt, wenn nicht alles
+> passt.** Tags, Kategorien, Zugänge und das Sicherheitsprotokoll können
+> beliebig lang werden; ohne Deckel zöge eine einzige Karte die Seite auf
+> fünfzig Zeilen. **Steht daneben eine hohe Karte, zeigt die Liste auch mehr
+> als zehn Zeilen** — der Deckel bestimmt, wie weit eine Liste die Reihe
+> aufzieht, nicht, wie viel sie zeigen darf.
+>
+> **Bekommt eine Karte mehr Platz, als ihre Liste braucht, bleibt der Rest
+> leer.** Eine Karte mit zwei Zeilen zeigt zwei Zeilen und bläst sich nicht auf
+> zehn auf. *Und eine leere Liste ist eine Zeile hoch und sagt, dass nichts da
+> ist — nicht null Zeilen und keine stumme Lücke.*
+>
+> **In einem Fenster gilt kein Deckel** — die Glockentafel und die Liste der
+> gelöschten Zugänge zeigen, was da ist; das Fenster selbst rollt.
 >
 > **Auf dem Telefon steht jede Karte allein in ihrer Zeile.** Dort hängt der
 > Deckel am Fenster: eine Liste nimmt höchstens gut sechs Zehntel der

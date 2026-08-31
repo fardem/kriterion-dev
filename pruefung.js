@@ -18046,7 +18046,17 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Anordnung ist der Befund dieser Runde gewesen. Ein Rueckbau auf etwas, das
   // es nicht mehr gibt, laesst sich nicht mitnehmen -- er hat keinen Ort mehr.
   // Was an ihre Stelle tritt, sind die neun am Dialog und an der Zustandskarte.
-  pruefe('Es sind genau 380 Rueckbauten', gpListe.length === 380, `${gpListe.length}`);
+  // 385 SEIT 0.17.4: fuenf neue -- drei an der leeren Liste (das Mass der
+  // Bedienzeile, das eigene Mass des Protokolls und die Vorgabemarge, die sie
+  // nicht mittraegt), einer an der Liste im Fenster, die keinen Deckel traegt,
+  // und einer am Wachstum, mit dem eine Liste mehr nutzt als sie fordert. VIER
+  // VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein 201):
+  // 340, 356 und 371 zeigen auf den Deckel des Sicherheitsprotokolls, der von
+  // zehn auf fuenfzehn Zeilen gestiegen ist, und 369 KEHRT SICH UM -- er hat
+  // in 0.17.3 das `align-items: start` weggenommen und setzt es jetzt wieder,
+  // weil die Zeile ein Fehler war. Ein zurueckgenommener Beschluss laesst eine
+  // Spur zurueck, sonst kommt er wieder (Stolperstein 201).
+  pruefe('Es sind genau 385 Rueckbauten', gpListe.length === 385, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -32155,8 +32165,8 @@ async function pruefeOberflaeche() {
     d.w.close();
   }
 
-  /* ---- 2. Die Kachel ist so hoch wie ihr Inhalt ---- */
-  gruppe('Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3');
+  /* ---- 2. Was die Liste fordert, ist nicht, was sie nutzt ---- */
+  gruppe('Fordern und nutzen — 0.17.4');
 
   /* WAS HIER AUSDRUECKLICH NICHT GEPRUEFT WIRD: DIE WIRKUNG. jsdom rechnet
      kein Layout -- jede Hoehe ist dort null, und ob eine Liste wirklich den
@@ -32165,17 +32175,16 @@ async function pruefeOberflaeche() {
      gezeichnet werden. Beides zusammen ist der Beleg, den es hier geben kann
      (Stolperstein 223). */
   {
-    /* DIE ZEILE, DIE DEN LEERRAUM NIMMT -- und sie steht an der KACHEL.
-       Ein Raster zieht jedes Kind auf die Hoehe der hoechsten Zelle seiner
-       Reihe (`align-items` steht von Haus aus auf `stretch`); der Leerraum
-       stand deshalb UNTER dem Inhalt IN der Kachel und nicht in der Liste.
-       Die Messung zu 0.17.2 hat die Liste gemessen und die Kachel uebersehen
-       -- die Liste klemmte korrekt, und der Befund blieb trotzdem stehen. */
+    /* DAS RASTER STRECKT SEINE KINDER, und das ist die tragende Zusage:
+       alle Kacheln einer Reihe sind gleich hoch.
+       0.17.3 HAT HIER `align-items: start` GESETZT UND DAMIT GENAU DAS
+       KAPUTTGEMACHT. Die Begruendung damals war eine Vermutung ueber den
+       Leerraum, und sie war falsch -- in Chromium stand unter keiner Liste
+       Luft. Die Zeile ist zurueckgenommen, und diese Pruefung haelt fest,
+       dass sie nicht wiederkommt (Stolperstein 201). */
     const khRaster = regel123('.sys-grid');
-    pruefe('Das Kachelraster streckt seine Kinder nicht mehr',
-      /align-items: start/.test(khRaster), khRaster || '(keine Regel)');
-    pruefe('Und es steht ausserhalb jeder Medienabfrage',
-      /\.sys-grid \{[^}]*align-items: start/.test(ohneMedien), '(nur im Telefonblock)');
+    pruefe('Das Kachelraster streckt seine Kinder wieder',
+      !/align-items:/.test(khRaster), khRaster || '(keine Regel)');
     const khKarte = regel123('.sys-card');
     pruefe('Die Kachel ist eine Spalte',
       /display: flex/.test(khKarte) && /flex-direction: column/.test(khKarte),
@@ -32200,13 +32209,15 @@ async function pruefeOberflaeche() {
         /max-height: max-content/.test(regel), regel || '(keine Regel)');
       pruefe(`${wahl} fordert seinen Deckel in rem und nicht in Pixeln`,
         /flex: 1 1 [\d.]+rem/.test(regel), regel || '(keine Regel)');
-      /* ZEHN ZEILEN SEIT 0.17.3, und die Zahl steht hier ausgerechnet da:
-         27,95rem sind zehn `.mrow` zu 41,92 px bei Wurzelschrift 15, 23,3rem
-         sind zehn `.prot-zeile` zu 35 px. EINE Regel und nicht zwei -- auch
-         das Sicherheitsprotokoll deckelt bei zehn, obwohl seine Zeilen
-         schmaler sind (Stolperstein 47). */
-      pruefe(`${wahl} fordert genau zehn Zeilen`,
-        new RegExp('flex: 1 1 ' + ({ '.manage-list': '27\\.95', '.prot-liste': '23\\.3' })[wahl] + 'rem').test(regel),
+      /* ZWEI ZAHLEN, UND SIE SIND KEINE ZWEITE WAHRHEIT UEBER DIESELBE SACHE:
+         27,95rem sind ZEHN `.mrow` zu 41,92 px, 35rem sind FUENFZEHN
+         `.prot-zeile` zu 35 px. Eine Bedienzeile mit Knoepfen und eine
+         Textzeile mit Trennlinie sind zwei verschiedene Dinge und duerfen zwei
+         Masse haben. 0.17.3 hatte beide auf zehn gesetzt; das Protokoll rollte
+         danach schon bei elf Vorgaengen (gemessen: Deckel 350 px, Inhalt
+         384). */
+      pruefe(`${wahl} fordert seinen eigenen Deckel`,
+        new RegExp('flex: 1 1 ' + ({ '.manage-list': '27\\.95', '.prot-liste': '35' })[wahl] + 'rem').test(regel),
         regel || '(keine Regel)');
       pruefe(`${wahl} nimmt, was die Kachel hergibt`,
         /flex: 1/.test(regel), regel || '(keine Regel)');
@@ -32217,7 +32228,60 @@ async function pruefeOberflaeche() {
         /min-height: 0/.test(regel), regel || '(keine Regel)');
       pruefe(`${wahl} rollt weiterhin in sich`,
         /overflow-y: auto/.test(regel), regel || '(keine Regel)');
+      /* UND DER DECKEL BEGRENZT DIE FORDERUNG UND NICHT DIE NUTZUNG. Das
+         steckt in `flex-grow: 1` zusammen mit `max-height: max-content`:
+         waere `max-height` eine Pixelzahl, klemmte sie beides. Nachgemessen in
+         Chromium: neben der 1055 px hohen Karte „Zugang" zeigt die
+         Sitzungsliste ZWANZIG Zeilen statt zehn. */
+      pruefe(`${wahl} nutzt mehr als seinen Deckel, wenn die Kachel es hergibt`,
+        /flex: 1 1/.test(regel) && /max-height: max-content/.test(regel) &&
+        !/max-height: *\d/.test(regel), regel || '(keine Regel)');
     }
+    /* ---- DIE LEERE LISTE IST EINE ZEILE HOCH — 0.17.4 ----
+       Sie faellt nicht auf null zusammen, und sie sagt, dass nichts da ist.
+       EINE REGEL FUER BEIDE LISTENARTEN und nicht sechs Zeichenwege. */
+    const khLeer = (ohneMedien.match(/\.manage-list > \.hint, \.prot-liste > \.hint \{[^}]*\}/) || [''])[0];
+    pruefe('Die Meldung einer leeren Liste steht auf der Hoehe einer Zeile',
+      /display: flex/.test(khLeer) && /align-items: center/.test(khLeer),
+      khLeer || '(keine Regel)');
+    /* `margin: 0` IST KEINE KOSMETIK, SONDERN DER GEMESSENE FEHLER. Das
+       Protokoll meldet seine Leere als `<p class="hint">`, die anderen fuenf
+       Listen als `<span>`; ein `<p>` traegt die Vorgabemarge des Browsers von
+       1em. Gemessen in Chromium: 13,05 Pixel oben und unten, die leere Liste
+       stand 68 Pixel hoch statt 35. jsdom rechnet keine Lage aus und faende das
+       nie (Stolperstein 223) -- die Zeile im Stilblatt ist hier der Beleg. */
+    pruefe('Und sie traegt die Vorgabemarge ihres Absatzes nicht mit',
+      /margin: 0/.test(khLeer), khLeer || '(keine Regel)');
+    /* ZWEI ZEILENMASSE, WEIL ES ZWEI ZEILEN SIND -- dieselbe Unterscheidung wie
+       beim Deckel darueber. Eine `.mrow` misst 41,92 px und rueckt 9 px ein,
+       eine `.prot-zeile` misst 35 und rueckt 2 ein. Ein gemeinsames Mass waere
+       hier keine Regel, sondern ein Fehler an einer der beiden. */
+    /* DIE EIGENE REGEL UND NICHT DIE SAMMELREGEL DARUEBER. Beide Waehler stehen
+       zweimal im Stilblatt: einmal zusammen hinter einem Komma, einmal je fuer
+       sich. Ohne Anker faende die Suche die Sammelregel zuerst und die Probe
+       waere gruen, ohne das eigene Mass je gesehen zu haben.
+       DER ANKER IST DAS `}` DAVOR UND NICHT DER ZEILENANFANG: `ohneMedien` ist
+       EINE Zeile -- der Leser oben presst allen Weissraum auf ein Leerzeichen
+       zusammen, und `^` mit `m` greift darin nie (Stolperstein 251). */
+    const eigeneRegel = (waehler) =>
+      (ohneMedien.match(new RegExp('\\} (' + waehler + ' \\{[^}]*\\})')) || ['', ''])[1];
+    const khLeerBedien = eigeneRegel('\\.manage-list > \\.hint');
+    const khLeerText = eigeneRegel('\\.prot-liste > \\.hint');
+    pruefe('Eine leere Bedienliste faellt nicht auf null zusammen',
+      /min-height: 2\.795rem/.test(khLeerBedien) && /padding: 0 9px/.test(khLeerBedien),
+      khLeerBedien || '(keine Regel)');
+    pruefe('Und ein leeres Protokoll ebenso wenig, nach seinem eigenen Mass',
+      /min-height: 2\.333rem/.test(khLeerText) && /padding: 0 2px/.test(khLeerText),
+      khLeerText || '(keine Regel)');
+    /* ---- IN EINEM FENSTER GILT DER DECKEL NICHT — 0.17.4 ----
+       Glockentafel und Grabsteine tragen dieselbe Klasse, stehen aber in einem
+       `.modal`. Dort gibt es keine Reihe und keine Nachbarin, und das Fenster
+       deckelt laengst bei 88dvh. Ein zweiter Deckel darin waere eine Grenze in
+       einer Grenze. */
+    const khFenster = (ohneMedien.match(/\.modal \.manage-list \{[^}]*\}/) || [''])[0];
+    pruefe('In einem Fenster traegt die Liste keinen Deckel',
+      /max-height: none/.test(khFenster) && /flex: 0 1 auto/.test(khFenster),
+      khFenster || '(keine Regel)');
     /* DIE AUSNAHME STEHT ALS REGEL DA UND IST GENAU EINE. Die Teileliste des
        Exports bleibt kurz, weil sie MITTEN in ihrer Karte steht; der Grund
        steht als Satz daneben. Waeren es zwei, waere es keine Ausnahme mehr. */
@@ -32233,7 +32297,9 @@ async function pruefeOberflaeche() {
     /* AUF DEM TELEFON IST DER DECKEL WIEDER EINE GRENZE. Dort steht jede
        Kachel ALLEIN in ihrer Zeile, und `flex: 0 1 auto` laesst die Liste ihren
        Inhalt fordern, statt zehn Zeilen zu verlangen, die sie nicht hat. An
-       dieser Zeile aendert 0.17.3 nichts. */
+       dieser Zeile aendert 0.17.4 nichts -- die Deckel von zehn und fuenfzehn
+       Zeilen gelten fuer den breiten Schirm, hier haengt der Deckel am
+       Fenster. */
     pruefe('Auf dem Telefon bleibt die Deckelung am Fenster haengen',
       /\.manage-list, \.prot-liste, \.test-scroll, \.atext, #ex-teil-liste \{ flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; \}/.test(css123),
       (css123.match(/\.manage-list, \.prot-liste[^}]*\}/) || ['(keine Regel)'])[0]);
