@@ -216,6 +216,13 @@ weniger.**
 Datenbankstufe, keine Sicherungspflicht, keine `.env`-Zeile, niemand wird
 abgemeldet, **keine Zeile im Protokoll**.
 
+> **IM FELD BESTÄTIGT AM 31. AUGUST 2026: die laufende Instanz meldet
+> `edbd76b6`** — Systembereich → Datenbank → Kennzahlen, genau der gebaute
+> Wert. *Auf dem Wirt liegt keine Datei, die kein Commit trägt* (Stolperstein
+> 158). **Drei der fünf Handgriffe stehen weiterhin aus** (Abschnitt 8), **und
+> der erste hat einen Befund gebracht:** der Deckel der Listen greift, die
+> **Kachel** darum aber klemmt nicht — behoben in 0.17.3.
+
 *Davor, am 30. August:* **Die Blöcke ab hier gehören 0.17.1 und den Runden
 davor.**
 
@@ -567,7 +574,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.2** | **`edbd76b6`** *(im Feld noch nicht bestätigt)* | 4747 |
+| **0.17.2** | **`edbd76b6`** *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4747 |
 | 0.17.1 | `1775fcd4` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4715 |
 | 0.17.0 | `1b6bb5d2` | 4630 |
 | 0.16.0 | `aa76c352` | 4523 |
@@ -6689,23 +6696,26 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.17.2 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** **Am Wirt fehlt:**
-  *(a)* der Abschnitt **„Bestand"** auf einem breiten Schirm — die Tagliste
-  darf die Reihe nicht mehr auseinanderziehen, sie deckelt bei **zwölf** Zeilen
-  und rollt; *steht daneben eine höhere Kachel („Vokabular"), wächst sie mit
-  ihr, und die Kachel „Kategorien" mit zwei Einträgen bleibt zwei Zeilen hoch —
-  das ist der eigentliche Punkt und in jsdom nicht zu sehen*; *(b)* die Karte
+- **0.17.2 IST AM WIRT ANGEKOMMEN — DREI HANDGRIFFE FEHLEN NOCH, EINER HAT
+  EINEN BEFUND GEBRACHT.** *Am 31. August 2026 bestätigt: die laufende Instanz
+  meldet `edbd76b6`, genau den gebauten Wert.* **Gesehen ist *(a)*** — der
+  Abschnitt **„Bestand"** und die Abschnitte „Anfragen" und „Zugänge" auf einem
+  breiten Schirm: **die Liste deckelt, die Kachel darum aber nicht.** *Der
+  Leerraum steht IN der Kachel, weil ein Raster jedes Kind auf die Höhe der
+  höchsten Zelle seiner Reihe zieht; behoben in 0.17.3, dort fällt der Deckel
+  zugleich von zwölf auf zehn Zeilen.* **Offen bleibt:** *(b)* die Karte
   **„Meine Sitzungen"**, und zwar auf dem **Telefon**: der Name steht ganz da
   und wird nicht mehr zu Punkten gekürzt, darunter rechtsbündig die beiden
   Zeiten; *(c)* die Karte **„Mailversand"** — der GMX-Satz steht **neben** der
   Absenderadresse, der Testmail-Satz **neben** den beiden Knöpfen, und die
-  Begründung zum fehlenden Adressfeld steht **nicht mehr** da; *(d)* ein
-  Eintrag, den **genau einer** bewertet hat: hinter dem Schnitt steht **keine
-  Klammer**, und beim Überfahren nennt der Klartext trotzdem *„aus 1 Stimme"*;
-  *(e)* die **Glocke** — einen eigenen Kommentar schreiben, neu laden, und die
-  Glocke muss **still bleiben**; erst ein fremder Beitrag bringt den Punkt
-  zurück. *An einer Instanz mit einem einzigen Zugang läutet sie damit nie
-  mehr, und das ist die Zusage und kein Fehler.*
+  Begründung zum fehlenden Adressfeld steht **nicht mehr** da *(0.17.3 baut
+  diese Karte um; der Blick belegt dann die Ausgangslage und nicht mehr den
+  Stand)*; *(d)* ein Eintrag, den **genau einer** bewertet hat: hinter dem
+  Schnitt steht **keine Klammer**, und beim Überfahren nennt der Klartext
+  trotzdem *„aus 1 Stimme"*; *(e)* die **Glocke** — einen eigenen Kommentar
+  schreiben, neu laden, und die Glocke muss **still bleiben**; erst ein fremder
+  Beitrag bringt den Punkt zurück. *An einer Instanz mit einem einzigen Zugang
+  läutet sie damit nie mehr, und das ist die Zusage und kein Fehler.*
 - **0.17.1 IST AM WIRT ANGEKOMMEN — DREI HANDGRIFFE FEHLEN NOCH.** *Am
   31. August 2026 bestätigt: Fingerprint `1775fcd4`, dazu Zugangstext,
   Mailversand, Umbenennung und Sitzungszeile am Bildschirm nachgesehen.*
