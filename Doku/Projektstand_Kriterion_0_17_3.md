@@ -197,7 +197,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.17.3** — Fingerprint **`FINGERPRINT_0173`**, **4805
+**Gebaut ist 0.17.3** — Fingerprint **`ebd36b66`**, **4805
 Prüfungen**, **380 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
 (Abschnitt 8). *0.17.3 macht jede Kachel so hoch wie ihren Inhalt und deckelt
 die Listen bei **zehn** Zeilen, macht aus der Karte „Mailversand" eine
@@ -603,7 +603,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.3** | **`FINGERPRINT_0173`** *(im Feld noch nicht bestätigt)* | 4805 |
+| **0.17.3** | **`ebd36b66`** *(im Feld noch nicht bestätigt)* | 4805 |
 | 0.17.2 | `edbd76b6` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4747 |
 | 0.17.1 | `1775fcd4` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4715 |
 | 0.17.0 | `1b6bb5d2` | 4630 |
@@ -6859,7 +6859,7 @@ eine Buchführung.*
 | 0.17.0 | Was dasteht, und was nicht dasteht (107 netto) | 33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); 43 gefahren, 0 stumm | Stolpersteine 226 bis 235 |
 | 0.17.1 | Was der Benutzer sieht (85 netto) | 20 neue (333 → 353), einer nachgezogen (Stolperstein 201); 21 gefahren, 0 stumm | Stolpersteine 236 bis 241 |
 | 0.17.2 | Der Deckel und die eigene Hand (32 netto) | 15 neue (353 → 368), sieben nachgezogen (Stolperstein 201); 15 gefahren, 3 STUMM — und jede der drei war eine Lücke im Prüfstand; nach dem Schließen 15 gefahren, 0 stumm | Stolpersteine 242 bis 245 |
-| **0.17.3** | **Die Karte zeigt, der Dialog stellt ein (58 netto)** | **20 neue, ACHT weggefallen (368 → 380); vier nachgezogen (Stolperstein 201); GEGENPROBENLAUF_0173** | **Stolpersteine 246 bis 250** |
+| **0.17.3** | **Die Karte zeigt, der Dialog stellt ein (58 netto)** | **20 neue, ACHT weggefallen (368 → 380); vier nachgezogen (Stolperstein 201); 24 gefahren, 0 stumm** | **Stolpersteine 246 bis 250** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
