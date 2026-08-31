@@ -78,10 +78,20 @@ kleiner Server, ein Intel-N100-Kasten unter OpenMediaVault reicht völlig. Sonst
 nichts: Node.js, Übersetzer und Datenbank stecken im Image.
 
 ```bash
-python3 -m zipfile -e kriterion-main.zip .   # ZIP von GitHub
+git clone https://github.com/fardem/kriterion.git
+cd kriterion
+cp .env.example .env
+docker compose up -d --build
+```
+
+**Ohne `git` geht es über das ZIP** — auf <https://github.com/fardem/kriterion>
+unter „Code" → „Download ZIP":
+
+```bash
+python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion                  # der Ordner heißt nach dem Branch
 cd kriterion
-chmod +x schluessel.sh                       # das ZIP bringt das Recht nicht mit
+chmod +x schluessel.sh                       # siehe unten
 cp .env.example .env
 docker compose up -d --build
 ```
@@ -89,9 +99,10 @@ docker compose up -d --build
 Erreichbar unter `http://<server-ip>:3100`. **Der Port steht in der
 `docker-compose.yml`**, nicht in der `.env`.
 
-*Wer `git` auf dem Server hat, nimmt statt der ersten beiden Zeilen*
-`git clone https://github.com/fardem/kriterion.git` *— dann kommen auch die
-Ausführungsrechte mit, und das `chmod` entfällt.*
+> **DIE `chmod`-ZEILE BRAUCHT NUR, WER MIT `python3 -m zipfile` AUSPACKT** —
+> oder unter Windows. **`unzip` und `git clone` bringen das Ausführungsrecht
+> mit.** *Fehlt es, antwortet `./schluessel.sh` später mit „Keine
+> Berechtigung"; dann hilft `chmod +x schluessel.sh`.*
 
 **Der Schritt `cp .env.example .env` ist Pflicht, auch wenn nichts darin steht.**
 `docker compose` liest die Datei ein und bricht sonst ab, bevor der Container
@@ -203,12 +214,12 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 
 ## Eine neuere Version über eine bestehende einspielen
 
-> **0.15.1 IST KEINE DATENBANKSTUFE** — kein Schema, kein Migrationscode, das
-> Austauschformat bleibt bei 11. **Die Sicherung ist deshalb Empfehlung und
-> nicht Pflicht.** *Wer sie mitnimmt, tut nichts Falsches; die Zeile steht unten
+> **OB EINE VERSION DIE DATENBANK ANFASST, STEHT IM `CHANGELOG.md` ÜBER IHREN
+> ÄNDERUNGEN.** Steht dort ein Kasten, ist etwas zu tun; steht dort keiner, ist
+> die Sicherung Empfehlung und nicht Pflicht. *Wer sie mitnimmt, tut nichts Falsches; die Zeile steht unten
 > ohnehin im Rezept.*
 >
-> **WER VON EINER FASSUNG VOR 0.14.0 KOMMT, SICHERT DAGEGEN PFLICHTGEMÄSS.**
+> **WER VON EINER FASSUNG VOR 0.14.0 KOMMT, SICHERT PFLICHTGEMÄSS.**
 > Der Sprung führt über die Datenbankstufe 0.14.0 hinweg: sie rüstet drei
 > Spalten an `items` nach (`rejected_at`, `rejected_grund`, `rejected_von`), und
 > ihr Migrationsblock läuft beim ersten Start mit. **Ohne die Kopie gibt es
@@ -219,8 +230,8 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 > getroffen wurden.*
 >
 > **Niemand wird abgemeldet, und einzustellen ist nichts.** *Auch keine
-> gespeicherte Ansicht geht verloren: eine Ansicht aus 0.14.0 kennt den neuen
-> Filter „abgelehnt" nicht und fällt auf „Alle" zurück.*
+> gespeicherte Ansicht geht verloren: eine ältere Ansicht kennt den Filter
+> „abgelehnt" nicht und fällt auf „Alle" zurück.*
 
 **Der Weg ersetzt das Verzeichnis, statt darüber zu kopieren.** Bestand
 (`data/`), Schlüssel (`.env`) und Sicherungen ziehen von Hand mit:
@@ -234,7 +245,7 @@ mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
 cp -r kriterion-alt/data kriterion/data
 cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
 mv kriterion-alt/kriterion-sicherung kriterion/ 2>/dev/null   # nur bei Ort im Projekt
-chmod +x kriterion/schluessel.sh          # das ZIP bringt das Recht nicht mit
+chmod +x kriterion/schluessel.sh          # python3 legt das Recht nicht an
 cd kriterion && docker compose up -d --build
 ```
 
@@ -249,8 +260,8 @@ dann sofort anhalten und nachsehen, **bevor** etwas geschrieben wird.
 laufenden Server entsteht, kann eine offene WAL-Datei enthalten.
 
 **Die Sicherungszeile.** Bei einer Version, die die Datenbank anfasst, ist sie
-kein guter Rat, sondern der einzige Weg zurück. Ob eine Version das tut, sagt
-`CHANGELOG.md` unter „Was du danach von Hand tun musst".
+kein guter Rat, sondern der einzige Weg zurück. Ob eine Version das tut, steht
+im `CHANGELOG.md` über ihren Änderungen.
 
 **`mv kriterion kriterion-alt` und ein frisch entpacktes Verzeichnis.** Wer über
 den alten Ordner entpackt, behält Dateien, die die neue Version **weggenommen**
@@ -282,10 +293,10 @@ Kopien aus dem umbenannten Ordner zurück; ohne sie bleiben sie in
 warnt der rote Kasten in der Karte „Sicherung". Liegt der Ort außerhalb, ist die
 Zeile ohne Wirkung und stört nicht.
 
-**Die `chmod`-Zeile ist nicht überflüssig.** `python3 -m zipfile -e` stellt
-**keine Ausführungsrechte** wieder her — anders als `unzip`, das es tut. Ohne
-sie antwortet `./schluessel.sh` mit „Keine Berechtigung"; es geht dann auch
-`bash schluessel.sh zeigen`.
+**Die `chmod`-Zeile.** `python3 -m zipfile -e` legt das Ausführungsrecht beim
+Auspacken nicht an — `unzip` und `git clone` tun es. **Wer einen davon nimmt,
+braucht die Zeile nicht.** Ohne das Recht antwortet `./schluessel.sh` mit „Keine
+Berechtigung"; es geht dann auch `bash schluessel.sh zeigen`.
 
 **`--build` ist nicht optional.** Ohne es startet stillschweigend die alte
 Version weiter — der Quelltext steckt im Image, nicht im eingehängten
@@ -483,16 +494,10 @@ selbst hineingeschrieben haben.
 Der Start sagt im Protokoll, welche Lage gilt: `Hinter Proxy: an` oder
 `Hinter Proxy: aus`.
 
-#### Beide Wege zugleich — seit 0.13.0
+#### Beide Wege zugleich
 
-**Bis 0.12.4 hingen drei weitere Dinge an dieser Einstellung: der Name des
-Sitzungscookies, `Secure` und `Strict-Transport-Security`.** Das hatte eine
-unangenehme Folge: mit `HINTER_PROXY=1` kam über `http://<server-ip>:3100`
-niemand mehr herein. Der Server antwortete mit 200 und setzte den Cookie, der
-Browser verwarf ihn stillschweigend, und die Seite fiel auf die Anmeldung
-zurück — **im Protokoll des Servers stand davon nichts.**
-
-**Seit 0.13.0 entscheidet die einzelne Anfrage**, und zwar am Kopf
+**Der Name des Sitzungscookies, `Secure` und `Strict-Transport-Security` hängen
+nicht an der Einstellung, sondern an der einzelnen Anfrage** — und zwar am Kopf
 `X-Forwarded-Proto`, den der Proxy setzt:
 
 | | über den Proxy (HTTPS) | direkt, `http://<server-ip>:3100` |
@@ -518,9 +523,7 @@ Datenverlust, nur eine neue Anmeldung.
 
 **FÄLLT DER PROXY AUS, IST NICHTS ZU TUN.** Läuft ein Zertifikat ab oder klemmt
 der Name im DNS, geht `http://<server-ip>:3100` von selbst — ohne `.env`, ohne
-Neustart, ohne Menschen am Server. *Bis 0.12.4 stand hier ein Handgriff, der
-die Einstellung für die Dauer der Störung abschaltete; er wird nicht mehr
-gebraucht.*
+Neustart, ohne Menschen am Server.
 
 *Wer den Umweg gar nicht erst haben will, richtet den Namen der Instanz auch im
 eigenen Netz auf den Proxy ein* (Eintrag im lokalen DNS oder in der
@@ -618,7 +621,7 @@ und gibst ihn dem Betreffenden — mündlich, per Zettel, per Messenger. Wer ihn
 erfährst das Passwort nie.** In der Liste steht bei ihm „noch kein Passwort",
 bis er den Link eingelöst hat.
 
-**„Ich vergebe das erste Passwort" — wie bisher.** Erst dann erscheint das
+**„Ich vergebe das erste Passwort".** Erst dann erscheint das
 Passwortfeld, und der Knopf heißt nur noch **„+ Anlegen"**. Der kürzere Weg,
 wenn der andere danebensteht. Wechselst du zurück, verschwindet das Feld
 wieder — und was darin stand, wird geleert.
@@ -646,21 +649,19 @@ da, auch wenn der Versand fehlschlägt. **Ändern darf die Adresse danach allein
 der Betreffende selbst**, im Systembereich unter „Zugang": sie entscheidet,
 wohin sein nächster Rücksetzlink geht, und das gehört nicht in fremde Hand.
 
-> **WAS DIE KARTE „ZUGANG" DAZU SAGT, RICHTET SICH SEIT 0.17.1 DANACH, WAS
-> GERADE GILT.** Ist die **Selbstanmeldung aus**, steht am Feld
-> *(freiwillig)*, und darunter: *„Wird für den Einladungs- oder Rücksetzlink
-> per Mail gebraucht und für die Testmail im Mailversand. Ohne sie steht der
-> Link wie immer zum Kopieren bereit."* **Ist sie an, steht dort
-> *(wird gebraucht)*** und der Satz, dass ohne Adresse keine Bestätigungsmail
-> ankommt. *Vorher behauptete der Text in beiden Lagen dasselbe — und in einer
-> der beiden war es falsch.*
+> **WAS DIE KARTE „ZUGANG" DAZU SAGT, RICHTET SICH DANACH, WAS GERADE GILT.**
+> Ist die **Selbstanmeldung aus**, steht am Feld *(freiwillig)*, und darunter:
+> *„Wird für den Einladungs- oder Rücksetzlink per Mail gebraucht und für die
+> Testmail im Mailversand. Ohne sie steht der Link wie immer zum Kopieren
+> bereit."* **Ist sie an, steht dort *(wird gebraucht)*** und der Satz, dass
+> ohne Adresse keine Bestätigungsmail ankommt.
 >
-> **UND DER WEG ÜBER DEN SERVER STEHT NUR NOCH BEIM EIGENTÜMER.** Er ist der
-> Einzige, der in der Regel auch am Wirt sitzt; wer dort nicht hinkommt, liest
+> **DER WEG ÜBER DEN SERVER STEHT NUR BEIM EIGENTÜMER.** Er ist der Einzige,
+> der in der Regel auch am Wirt sitzt; wer dort nicht hinkommt, liest
 > stattdessen, dass er sich an den Admin wendet. *Ein Befehl, den man nicht
 > ausführen kann, ist keine Hilfe, sondern eine Auskunft über den Betrieb.*
-> **Die Vorgabe „mindestens 10 Zeichen" steht seither am Passwortfeld** und
-> nicht mehr im Absatz unter der Adresse, für die sie nie galt.
+> **Die Vorgabe „mindestens 10 Zeichen" steht am Passwortfeld** und nicht im
+> Absatz unter der Adresse, für die sie nicht gilt.
 
 #### Ein Passwort zurücksetzen — ebenfalls zwei Wege
 
@@ -876,8 +877,7 @@ einem Fenster, das daneben schreibt, warum es fragt.
 **Wogegen das schützt, ist nicht der Fremde:** der kommt ohne Passwort gar
 nicht herein. Es schützt gegen eine **fremde offene Anmeldung** — einen
 Bildschirm, der unbeaufsichtigt stehen blieb, einen Rechner, an dem jemand
-anderes sitzt. Beim Ändern des eigenen Zugangs gilt dasselbe Prinzip seit
-0.5.0; bei den schweren Wegen hat es gefehlt.
+anderes sitzt. Beim Ändern des eigenen Zugangs gilt dasselbe Prinzip.
 
 Die Bestätigung gilt **genau einmal** und **nur für die eine Handlung, für die
 du sie gegeben hast**. Wer drei Zugänge nacheinander entfernt, tippt dreimal.
@@ -922,7 +922,7 @@ Name wird nirgends aufbewahrt. Und ein Vorgang über den Server
 wegräumen lässt, wäre keins. Das Wort meint hier nicht `docker compose logs`;
 das heißt in dieser Anleitung weiterhin schlicht *Protokoll*.
 
-**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**, jede mit ihrer
+**Über der Liste steht eine Reihe von Ansichten**, jede mit ihrer
 Zahl: **Alle · Gescheitert · Anmeldungen · Zugänge · Zweiter Faktor ·
 Bestand**. Die Karte zeigt die **hundert jüngsten** Zeilen — mit einer Ansicht
 sind es die hundert jüngsten **dieser Art**, und damit findet man die
@@ -1047,8 +1047,7 @@ es zwei, beide im Systembereich einstellbar:
   Groß- und Kleinschreibung spielt keine Rolle, auch bei Umlauten; ein
   einzelnes Zeichen findet bereits. **Prozentzeichen und Unterstrich sind
   gewöhnliche Zeichen** — man kann nach ihnen suchen.
-  *sucht der Server und nicht mehr der Browser.* Gefunden wird
-  dasselbe wie vorher; gefragt wird kurz nach dem letzten Anschlag, damit
+  *Gesucht wird im Server.* Gefragt wird kurz nach dem letzten Anschlag, damit
   nicht jeder Tastendruck über das Netz geht. Ist der Server einmal nicht
   erreichbar, bleibt die zuletzt gezeigte Liste stehen und sagt es.
 - **Gespeicherte Ansichten** stehen als Knöpfe unter den Filtern. Wer eine
@@ -1076,7 +1075,7 @@ es zwei, beide im Systembereich einstellbar:
   mit den aktiven Filtern vorn; der Rest klappt auf. Tags, die nur an Testtagen
   hängen, stehen nicht darin — dort lieferten sie null Treffer. Die Suche
   findet sie trotzdem.
-- **Mehrere Kategorien zugleich** *(seit 0.13.0)*: ein Klick nimmt eine dazu,
+- **Mehrere Kategorien zugleich**: ein Klick nimmt eine dazu,
   ein zweiter nimmt sie wieder heraus, **„Alle"** räumt die Auswahl weg. **Es
   ist immer ein Oder** — ein Eintrag trägt genau eine Kategorie, ein „und" wäre
   garantiert leer; die Zeile hat deshalb keinen Umschalter. Am Ende steht
@@ -1102,11 +1101,10 @@ es zwei, beide im Systembereich einstellbar:
   lässt sich mit jedem Teststatus kombinieren. Ein Favorit ist persönlich
   und sortiert die gemeinsame Liste nicht um — wer seine Favoriten sammeln
   will, nimmt den Filter.
-- **Einen Filter „Neu seit …" gibt es seit 0.17.0 nicht mehr.** Er stand hier
-  bis 0.16.0 neben dem Favoriten. *Zwei Anzeigen für dieselbe Frage — was hat
-  sich getan, seit ich zuletzt hier war — sind eine zu viel; die Auskunft trägt
-  die **Glocke** in der Kopfzeile.* **Eine gespeicherte Ansicht, die ihn noch
-  trägt, bleibt lesbar** — er wird übergangen.
+- **Einen Filter „Neu seit …" gibt es nicht.** *Zwei Anzeigen für dieselbe
+  Frage — was hat sich getan, seit ich zuletzt hier war — sind eine zu viel;
+  die Auskunft trägt die **Glocke** in der Kopfzeile.* **Eine gespeicherte
+  Ansicht, die ihn trägt, bleibt lesbar** — er wird übergangen.
 - Über das Häkchen auf einer Karte lassen sich Einträge vergleichen. Im
   Vergleich steht bei **mehr als einem Zugang** ein Umschalter
   **„meine / alle"** über dem Raster: er schaltet Kriterienwerte, Kopfzahl und
@@ -1118,9 +1116,8 @@ es zwei, beide im Systembereich einstellbar:
 - Blättern mit ← → oder über die Pfeile, ohne vorher ins Bild zu klicken. Klick
   aufs Foto öffnet die Vollbildansicht; dort zoomt ein weiterer Klick auf
   Originalgröße. Esc schließt, auf Touch wird gewischt.
-  **Seit 0.16.0 trägt das Vollbild denselben Papierkorb wie die Ansicht
-  darunter** — wer ein Bild groß betrachtet, erwartet dort auch den
-  Papierkorb. Es ist **dieselbe Klemme und dieselbe Rückfrage**; ein
+  **Das Vollbild trägt denselben Papierkorb wie die Ansicht darunter** — wer
+  ein Bild groß betrachtet, erwartet dort auch den Papierkorb. Es ist **dieselbe Klemme und dieselbe Rückfrage**; ein
   Papierkorb im Vollbild, der ohne Frage löschte, wäre der gefährlichste Knopf
   der Instanz. Er steht abgesetzt und **vor** dem Schließenkreuz, nicht daneben.
   War es das letzte Bild, geht das Vollbild zu. *An einem Kommentarbild gibt
@@ -1206,8 +1203,10 @@ es zwei, beide im Systembereich einstellbar:
   die verkleinerte Variante samt Kachel, nicht das Original.
 - **Bewertung**: gemeinsame Kriterien, feste Skala 1–5. **Die Sterne sind die
   eigene Bewertung**; sind mehrere Zugänge eingerichtet, steht rechts daneben
-  gedämpft der Schnitt über alle und die Zahl der Bewerter, im Blockkopf die
-  Gesamtzahl. Der Gesamtschnitt entsteht **erst je Kriterium, dann über die
+  gedämpft der Schnitt über alle, im Blockkopf die Gesamtzahl.
+  **Wie viele Stimmen darin stecken, steht in Klammern daneben — aber erst ab
+  zweien.** *„⌀ 4,0 (1)" wäre eine Auskunft über nichts: dass jemand bewertet
+  hat, sagt schon der Schnitt.* Die vollständige Angabe steht am Überfahren. Der Gesamtschnitt entsteht **erst je Kriterium, dann über die
   Kriterien**. Ein **Doppelklick auf die Sterne setzt genau dieses Kriterium
   zurück**, der Knopf oben leert die eigenen Werte für diesen Eintrag — fremde
   Bewertungen bleiben unberührt.
@@ -1218,7 +1217,7 @@ es zwei, beide im Systembereich einstellbar:
   wie zuvor. Eingestellt wird das Gewicht im Systembereich; **der
   Gesamtschnitt bleibt in jedem Fall zwischen 1 und 5.**
   **Ein Klick auf die Zahl im Blockkopf öffnet die Rechnung — die dieses
-  Eintrags, kein erfundenes Beispiel** *(seit 0.16.0)*. Der Kasten zeigt je
+  Eintrags, kein erfundenes Beispiel.** Der Kasten zeigt je
   bewertetem Kriterium eine Zeile mit Note, Gewicht und Produkt, darunter
   Summe, Teiler und Ergebnis:
   **erst je Kriterium der Schnitt über alle Bewertungen, dann der gewichtete
@@ -1226,8 +1225,8 @@ es zwei, beide im Systembereich einstellbar:
   sind** — ein Kriterium ohne Sterne geht gar nicht ein, sonst zöge es die Zahl
   nach unten, ohne dass es an den Werten läge. **Gerundet wird genau einmal,
   ganz am Ende.**
-  **Und seit 0.17.0 steht darunter die Vergleichszahl: was käme heraus, wenn
-  alle Kriterien gleich zählten?** *Erst der Unterschied macht die Gewichtung
+  **Darunter steht die Vergleichszahl: was käme heraus, wenn alle Kriterien
+  gleich zählten?** *Erst der Unterschied macht die Gewichtung
   sichtbar — die Formel allein sagt, WIE gerechnet wird, nicht, WAS die
   Gewichte ändern.* **Stehen alle Gewichte auf 1, steht sie gar nicht da:**
   dort gibt es nichts zu vergleichen. **Und ergeben beide Zahlen nach dem
@@ -1251,7 +1250,7 @@ es zwei, beide im Systembereich einstellbar:
   gehören an dieselbe Stelle.
   Im Systembereich steht daneben, in wie vielen Einträgen das Kriterium
   verwendet wird.
-- **„Abgelehnt" ist eine Aussage und kein bloßes Häkchen** (seit 0.14.0). Beim
+- **„Abgelehnt" ist eine Aussage und kein bloßes Häkchen.** Beim
   Einschalten öffnet sich **sofort** ein Feld für den Grund — eine Zeile,
   **freiwillig**, höchstens 200 Zeichen; gespeichert wird beim Verlassen des
   Feldes oder mit Enter, verworfen mit Escape. **Danach schließt sich das Feld,
@@ -1260,13 +1259,13 @@ es zwei, beide im Systembereich einstellbar:
   Der Grund selbst steht **hervorgehoben** da, Datum und Name gedämpft.
   **Jedes der drei darf fehlen**, und die Zeile setzt sich aus dem zusammen, was
   bekannt ist; ein entfernter Zugang erscheint als „Gelöschter Benutzer 7".
-- **Wann das Eingabefeld dasteht** (seit 0.15.1): **solange abgelehnt ist und
+- **Wann das Eingabefeld dasteht**: **solange abgelehnt ist und
   noch kein Grund dasteht** — und darüber hinaus dann, wenn man es über den
   Text oder das ✎ aufmacht. *Nie beides zugleich mit der Aussage, und an einem
   Eintrag, der nicht abgelehnt ist, steht gar nichts davon.* **Wird ein Eintrag
   mit vorhandener Begründung erneut abgelehnt, bleibt das Feld zu** — die alte
   Begründung steht dann in der Aussage.
-- **Ändern und Entfernen der Begründung** (seit 0.15.0): ein Klick auf den Text
+- **Ändern und Entfernen der Begründung**: ein Klick auf den Text
   oder auf das **✎** daneben öffnet das Feld wieder — **beides nur für den, der
   die Begründung getroffen hat.** Das **✕** daneben entfernt sie nach Rückfrage,
   und **das darf jeder, der den Eintrag ändern darf** — also auch der Admin.
@@ -1322,9 +1321,8 @@ es zwei, beide im Systembereich einstellbar:
 
 **Systembereich** (Zahnrad in der Kopfzeile)
 
-**Seit 0.16.0 steht er in fünf Abschnitten, und jeder hat eine eigene
-Adresse.** Achtzehn Karten in einer Reihe waren auf dem Telefon eine einzige
-lange Spalte; der Weg von „Titel" bis „Vokabular" war entsprechend lang. Die
+**Er steht in fünf Abschnitten, und jeder hat eine eigene Adresse.** Achtzehn
+Karten in einer Reihe wären auf dem Telefon eine einzige lange Spalte. Die
 Abschnitte folgen der **Rechteleiter**: was jedem gehört, steht vorn, was nur
 der Eigentümer sieht, hinten.
 
@@ -1342,11 +1340,21 @@ weitergeben, in einem neuen Fenster öffnen und mit der Zurück-Taste wieder
 verlassen. `#/system` ohne Abschnitt bleibt gültig und löst sich auf den ersten
 sichtbaren auf.
 
-> **DER FÜNFTE ABSCHNITT HIESS BIS 0.17.0 „ANLAGE" UND LAG UNTER
-> `#/system/anlage`.** Mit der Umbenennung heißt er **„Instanz"**, und die alte
-> Adresse **wird weiter verstanden**: sie führt still an dieselbe Stelle und
-> wird dabei in der Adresszeile auf die neue nachgezogen. *Ein Lesezeichen von
-> gestern führt also dorthin, wohin es immer führte.*
+> **EINE LISTE IN EINER KARTE WÄCHST BIS ZWÖLF ZEILEN UND ROLLT DANN.** Tags,
+> Kategorien, Zugänge und das Sicherheitsprotokoll können beliebig lang werden;
+> ohne Deckel zöge eine einzige Karte die Seite auf fünfzig Zeilen, und
+> daneben stünden vier leere.
+>
+> **Der Deckel geht aber mit.** Steht neben der Karte eine höhere — eine, die
+> den Platz ohnehin braucht —, wächst die Liste bis auf deren Höhe und rollt
+> erst darüber hinaus. *Zwölf Zeilen sind eine Forderung und keine
+> Obergrenze:* der Platz, der in der Reihe ohnehin da ist, wird genutzt, und
+> was fehlt, holt der Rollbalken.
+
+> **DIE ALTE ADRESSE `#/system/anlage` WIRD WEITER VERSTANDEN.** Sie führt
+> still an dieselbe Stelle wie `#/system/instanz` und wird dabei in der
+> Adresszeile auf die neue nachgezogen. *Ein Lesezeichen von gestern führt
+> also dorthin, wohin es immer führte.*
 
 **Ein Abschnitt, in dem für diesen Zugang keine einzige Karte steht, erscheint
 gar nicht** — ein leerer Reiter wäre schlechter als keiner. Ein gewöhnlicher
@@ -1356,8 +1364,7 @@ sichtbaren zurück** und wird dabei in der Adresszeile nachgezogen — sonst
 stünden dort zwei Aussagen über denselben Zustand.
 
 **Auf dem Telefon wird aus der Reiterreihe eine Liste**, die in den Abschnitt
-hinein führt. Es ist dasselbe Markup in zwei Gestalten, wie beim Menü der
-Kopfzeile — kein Verschieben von Knoten, keine Weiche nach Gerät.
+hinein führt.
 
 **Der zuletzt offene Abschnitt wird ausdrücklich nicht gemerkt.** Die Adresse
 tut es schon; ein gemerkter Zustand daneben wäre eine zweite Wahrheit.
@@ -1378,9 +1385,9 @@ Listen.
 - Kennzahlen: Einträge, Fotos, Videos, Kommentare, Links, Testtage,
   **Papierkorb** und Datenbankgröße *(Admin)*. Der Schlüsselwert zum Abschreiben steht darin nur für den
   **Eigentümer**.
-  **Seit 0.16.0 stehen dort auch die Version und der Fingerprint nebeneinander**
-  — die Version sagt, welcher Stand laufen *soll*, der Fingerprint, ob die
-  Dateien dazu wirklich zusammengehören.
+  **Dort stehen auch die Version und der Fingerprint nebeneinander** — die
+  Version sagt, welcher Stand laufen *soll*, der Fingerprint, ob die Dateien
+  dazu wirklich zusammengehören.
   **Und ganz unten die Verfahren:** Verschlüsselung `sqlcipher`, Schlüssel
   **256 Bit roh** (`PRAGMA key = x'…'`, also ohne Ableitung — er ist kein
   Passwort, sondern trägt schon 256 Zufallsbits), Journal **WAL**, Passwörter
@@ -1392,18 +1399,18 @@ Listen.
 - **Zugänge** verwalten — anlegen mit Passwort **oder mit Link**, sperren,
   Passwort zurücksetzen **direkt oder mit Link**, Rolle wechseln, entfernen;
   siehe den Abschnitt „Rollen und Zugänge" oben *(Admin)*.
-  **Gelöschte Zugänge stehen seit 0.13.0 in einem eigenen Fenster** hinter dem
-  Knopf „Gelöschte Zugänge (n)" — sie sind kein Zugang mehr, den man verwalten
-  kann, und die Liste bleibt damit kurz. *Der Löschdialog nennt jetzt auch den
-  umkehrbaren Weg: **sperren** weist die Anmeldung ab, lässt aber den Namen und
-  den Bestand stehen und lässt sich jederzeit zurücknehmen.*
+  **Gelöschte Zugänge stehen in einem eigenen Fenster** hinter dem Knopf
+  „Gelöschte Zugänge (n)" — sie sind kein Zugang mehr, den man verwalten kann,
+  und die Liste bleibt damit kurz. *Der Löschdialog nennt auch den umkehrbaren
+  Weg: **sperren** weist die Anmeldung ab, lässt aber den Namen und den Bestand
+  stehen und lässt sich jederzeit zurücknehmen.*
 - **Meine Sitzungen** — wo dieser Zugang überall angemeldet ist, mit „alle
   anderen beenden" *(jeder; jeder sieht nur seine eigenen)*
 - **Sicherheitsprotokoll** *(Eigentümer)*: wer Zugang hatte und
   wer die Instanz als Ganzes angefasst hat — 180 Tage lang, ohne einen Weg
   hinaus außer der Frist. Kein Änderungsverlauf, keine Adresse, keine
   Browserkennung.
-- **Export und Import stehen seit 0.16.0 in EINER Karte** *(Eigentümer)* —
+- **Export und Import stehen in EINER Karte** *(Eigentümer)* —
   sie meinen dieselbe Datei: die eine geht hinaus, dieselbe kommt herein.
   **Aber nicht gleichrangig.** Der Export liest, der Import **ersetzt
   Bestand**; die zerstörende Hälfte steht deshalb unter einem Trennstrich, mit
@@ -1423,7 +1430,7 @@ Listen.
   Schätzung, und wer weiß, was er tut, soll es versuchen dürfen. Wird sie
   wirklich gerissen, sagt die Instanz ab, **bevor** sie anfängt zu bauen,
   statt nach zwei Minuten mit einem Speicherfehler abzubrechen.
-- **Export in Teilen** *(Eigentümer, seit 0.12.4)* — der Weg, wenn die eine
+- **Export in Teilen** *(Eigentümer)* — der Weg, wenn die eine
   Datei nicht mehr geht. Die Instanz rechnet aus, wie viele Teile es braucht,
   und **jeder Teil ist eine vollständige Exportdatei**: derselbe Umschlag,
   dieselbe Formatnummer, nur weniger Einträge darin. **Geschnitten wird
@@ -1443,9 +1450,9 @@ Listen.
 - **Import** einer Exportdatei, wahlweise *ersetzen* oder *zusammenführen* —
   ebenfalls nur für den Eigentümer, und zwar in beiden Fällen: eine
   Exportdatei kann Beiträge **unter fremdem Namen** anlegen.
-  **Das Austauschformat trägt seit 0.14.0 die Nummer 11** — dazugekommen sind
-  Datum, Grund und Verfasser einer Ablehnung; der Verfasser wandert als **Name**
-  hinaus, nie als Zugangsnummer. **Eine Datei der Nummer 10 (und jeder älteren)
+  **Das Austauschformat trägt die Nummer 11** — darin stehen auch Datum, Grund
+  und Verfasser einer Ablehnung; der Verfasser wandert als **Name** hinaus, nie
+  als Zugangsnummer. **Eine Datei der Nummer 10 (und jeder älteren)
   lässt sich weiterhin einspielen**: die drei Felder fehlen dann und bleiben
   leer. *Ein fehlender Ablehnender fällt dabei ausdrücklich **nicht** an den
   Einspielenden — ein Eintrag, den niemand abgelehnt hat, hat keinen
@@ -1574,8 +1581,8 @@ geöffnet hat.
 
 ### Die Glocke und der Zähler „Offen"
 
-*(seit 0.16.0, auf jedem Gerät — die Kopfzeile ist **eine**, und was in ihr
-steht, wandert auf dem Telefon von selbst hinter das Menüzeichen.)*
+*(auf jedem Gerät — die Kopfzeile ist **eine**, und was in ihr steht, wandert
+auf dem Telefon von selbst hinter das Menüzeichen.)*
 
 **Die Glocke trägt einen Punkt, der Knopf „Offen" eine Zahl.** Das ist kein
 Zufall: eine Zahl beschreibt einen **Zustand** — so viele Aufgaben stehen offen
@@ -1587,16 +1594,16 @@ etwas hinzugekommen ist, und **jede Zeile führt zu ihrem Eintrag**.
 Eine Meldung, die man nicht anspringen kann, wäre eine Mitteilung ohne Weg.
 
 **Was die Glocke verspricht:** **Kommentare** und **Bewertungen** seit dem
-letzten Öffnen der Tafel — **von allen, die eigenen eingeschlossen**
-*(seit 0.17.0; bis dahin meldete sie nur fremde)*. **Der Grund für die
-Änderung ist der Betreiber, der allein arbeitet:** ihm meldete eine Glocke, die
-nur Fremdes zeigt, nie etwas. *Eine Regel statt zwei — eine Ausnahme für den
-Fall „ein Zugang" wäre selbst wieder eine zweite Wahrheit.*
+letzten Öffnen der Tafel — **von den anderen. Die eigenen meldet sie nicht.**
+*Eine Glocke ist eine Nachricht von jemand anderem; über die eigene Hand
+braucht niemand eine, man war dabei.* **Wer allein an einer Instanz arbeitet,
+sieht sie deshalb nie läuten.** Das ist die gewollte Folge und keine Lücke:
+sie hätte ihm nichts zu sagen, was er nicht selbst getan hat.
 
 **Und jede Zeile sagt, WAS neu ist:** „3 Kommentare · 4 Bewertungen" statt
-„7 neue Beiträge" *(seit 0.17.0)*. **Bei nur einer Art steht auch nur eine
-Angabe da** — „0 Bewertungen" wäre eine Auskunft über nichts, dieselbe Regel
-wie beim Zähler „Offen" weiter unten.
+„7 neue Beiträge". **Bei nur einer Art steht auch nur eine Angabe da** —
+„0 Bewertungen" wäre eine Auskunft über nichts, dieselbe Regel wie beim Zähler
+„Offen" weiter unten.
 
 **Darunter steht, von wem** — und zwar **nur zu den Kommentaren**. *Ein
 Kommentar trägt seinen Verfasser am Eintrag ohnehin sichtbar; eine Bewertung
@@ -1616,10 +1623,10 @@ keine Ausnahme.**
   **alles** auf gesehen, auch was man gleich nicht anklickt. Ein Lesestand je
   Zeile bräuchte eine eigene Tabelle; die schlanke Fassung führt einen
   **Zeitstempel**, und das ist ihre bewusste Grenze.
-- **Bewertungen von vor der Umstellung auf 0.16.0 bleiben ihr unsichtbar.**
-  Sie tragen keinen Zeitpunkt, und ein nachgetragener wäre erfunden — entweder
-  sähe alles gleich alt aus oder alles brandneu, und die Glocke läutete beim
-  ersten Start für den ganzen Bestand.
+- **Bewertungen ohne Zeitpunkt bleiben ihr unsichtbar.** Ältere Bewertungen
+  tragen keinen, und ein nachgetragener wäre erfunden — entweder sähe alles
+  gleich alt aus oder alles brandneu, und die Glocke läutete beim ersten Start
+  für den ganzen Bestand.
 - **Vor dem ersten Verlassen der Übersicht gibt es sie gar nicht.** Ohne
   gespeicherten Bezugspunkt weiß die Instanz nicht, was jemand schon gesehen
   hat.
@@ -1627,15 +1634,7 @@ keine Ausnahme.**
   Titel, eine neue Datei, ein neuer Testtag stehen nicht darin. *Das ist etwas,
   das jemand **am** Eintrag getan hat, und kein Beitrag, der **für** dich
   daliegt — und die Übersicht ordnet ohnehin nach der letzten Änderung: was
-  sich zuletzt getan hat, steht oben.* **Bis 0.16.0 fing der Filter „Neu
-  seit …" diese Fälle mit; er ist mit 0.17.0 gestrichen.**
-
-> **DIE PILLE „NEU SEIT …" IST MIT 0.17.0 WEGGEFALLEN.** Zwei Anzeigen für
-> dieselbe Frage — *was hat sich getan, seit ich zuletzt hier war* — sind eine
-> zu viel; die Auskunft trägt die Glocke. **Eine gespeicherte Ansicht aus einer
-> älteren Version, die den Filter trägt, bleibt lesbar** — er wird übergangen,
-> und der gespeicherte Wert bleibt unangetastet. *Was dabei verlorengeht, steht
-> einen Punkt weiter oben.*
+  sich zuletzt getan hat, steht oben.*
 
 **Der Zähler „Offen"** summiert die offenen Aufgaben über den ganzen Bestand —
 gerechnet aus derselben Bedingung wie die Ansicht dahinter, damit Knopf und
@@ -1643,8 +1642,7 @@ Ansicht nicht zwei verschiedene Zahlen nennen. **Ohne offene Aufgaben steht
 dort keine Null:** „Offen 0" wäre eine Auskunft über nichts.
 
 *Beide Zahlen reisen mit einer Antwort mit, die die Übersicht ohnehin holt. Es
-gibt keinen zusätzlichen Abruf je Seitenaufbau — genau daran war dieser Zähler
-in 0.8.60 gescheitert.*
+gibt keinen zusätzlichen Abruf je Seitenaufbau.*
 
 ### Die Filter
 
@@ -1666,15 +1664,12 @@ verschwinden.
 
 ### Die Kästen — Kaffeesatz und Kartenstapel
 
-Bis 0.11.0 war jeder Block eine Karte: eigener Untergrund, eigener Rahmen, eigene
-Ecke, eigener Innenabstand. **Worin** die Karte stand, war schon die Seite;
-**was** darin stand, waren wieder Kästen. Auf 390 Pixeln lagen damit fünf Kanten
-und drei verschiedene Eckenradien zwischen dem Bildschirmrand und dem ersten
-Buchstaben — und der Bildbereich saß am Seitenrand, die Kommentarkarte 36 Pixel
-weiter innen.
+Wäre jeder Block eine Karte — eigener Untergrund, eigener Rahmen, eigene Ecke,
+eigener Innenabstand —, lägen auf 390 Pixeln fünf Kanten und drei verschiedene
+Eckenradien zwischen dem Bildschirmrand und dem ersten Buchstaben. **Worin** die
+Karte steht, ist schon die Seite; **was** darin steht, wären wieder Kästen.
 
-**Auf dem Telefon ist ein Block deshalb kein Kasten mehr, sondern ein
-Abschnitt:** ein Trennstrich darüber, ein Titel, der Inhalt. Er steht auf der
+**Auf dem Telefon ist ein Block deshalb kein Kasten, sondern ein Abschnitt:** ein Trennstrich darüber, ein Titel, der Inhalt. Er steht auf der
 Seite und nicht auf einer Karte. Damit bleibt genau **eine** Kastenebene übrig —
 die Kommentarkarte, die Linkzeile, die Dateizeile —, und die steht auf voller
 Breite, bündig unter dem Bild darüber. Dieselbe Kante, dieselbe Flucht, **eine**
@@ -1706,10 +1701,9 @@ Das ist kein neuer Gedanke, es ist der vorhandene: *ein Merkmal, ein Zeichen.*
   Spalten selbst auszählt: passen fünf Kacheln hinein, stehen dort fünf; passen
   nur vier, werden die vier größer. **Links und rechts bleibt derselbe Rand wie
   überall auf der Seite**, und die Reihe endet bündig unter dem Bild darüber.
-  *Vorher stand die Kachel fest auf 62 Pixeln, und was nicht mehr hineinpasste,
-  blieb als Streifen rechts liegen — auf einem 360 Pixel breiten Telefon ein
-  Fünftel der Breite, weil die fünfte Kachel an zwei Pixeln scheiterte.* Am
-  Desktop bleibt die Kachel bei ihren 62 Pixeln.
+  *Eine feste Kachelbreite ließe auf einem 360 Pixel breiten Telefon einen
+  Streifen rechts liegen — ein Fünftel der Breite, wenn die fünfte Kachel an
+  zwei Pixeln scheitert.* Am Desktop bleibt die Kachel bei 62 Pixeln.
 - **Eingabefelder fallen nicht unter 16 Pixel.** Darunter zoomt Safari auf dem
   iPhone beim Antippen die ganze Seite heran und wieder heraus tut sie es nicht
   von selbst. Wer die Schrift auf 80 Prozent stellt, bekommt hier deshalb nicht
@@ -1729,11 +1723,15 @@ nach kurzem Halten** (0,4 Sekunden). Bewegt sich der Finger vorher, war es ein
 Wisch — dann wird gescrollt und nichts umsortiert. Sobald gegriffen ist, meldet
 das die Zeile mit einem Rahmen, und das Gerät gibt einen kurzen Impuls.
 
-**Keine Liste scrollt in sich selbst.** Wer die Seite herunterzieht und dabei
-über eine lange Linkliste oder eine Tagwolke kommt, scrollt weiter die Seite —
-die Listen werden abgeschnitten statt scrollbar gemacht, und der Weg zum Rest
-ist der Aufklappknopf darunter. Ein eigener Bildlauf mitten in der Seite fängt
-sonst die Wischbewegung ab.
+**Am Eintrag scrollt keine Liste in sich selbst.** Wer die Seite herunterzieht
+und dabei über eine lange Linkliste oder eine Tagwolke kommt, scrollt weiter
+die Seite — die Listen werden abgeschnitten statt scrollbar gemacht, und der
+Weg zum Rest ist der Aufklappknopf darunter. Ein eigener Bildlauf mitten in der
+Seite fängt sonst die Wischbewegung ab.
+
+*Die Karten im Systembereich sind die Ausnahme, und sie ist begründet:* eine
+Liste, die auf hunderte Zeilen wachsen kann, hat dort keinen Aufklappknopf
+unter sich, sondern einen Deckel — siehe „Systembereich".
 
 Zeilenaktionen sind überall Zeichen (`✎` bearbeiten, `✕` löschen), nicht mal
 Text und mal Zeichen. Auf schmalen Bildschirmen passt Text nicht in die
@@ -1756,9 +1754,8 @@ dem Finger die Kachel und mit der Maus das Kreuz.*
 Im Vollbild **zoomt mit der Maus ein Klick, mit dem Finger erst der zweite
 Tipp** innerhalb einer knappen Sekunde. Ein einzelner Tipp tut nichts —
 Schließen wäre bei jedem versehentlichen Antippen zu hart. Die Pfeile zum
-Blättern hängen an der Lightbox, nicht an der Bildfläche: im gezoomten Zustand
-wird diese zum Scrollbereich, und Kinder davon wandern beim Verschieben mit dem
-Bild aus dem Bild.
+Blättern bleiben auch im herangezoomten Bild stehen, wo immer man es gerade
+hingeschoben hat.
 
 **Nach dem Zoom steht die Mitte des Bildes im Blick**, nicht die linke obere
 Ecke, und in jede Richtung lässt sich schieben. Ist das Original kleiner als die
@@ -1808,10 +1805,10 @@ echten Textbausteinen aussehen.
 
 ## Schriftgröße
 
-Sämtliche Schriftgrößen im Stylesheet sind relativ (`rem`) und hängen an einem
-einzigen Grundmaß am Wurzelelement. Die Einstellung im Systembereich setzt genau
-dieses Maß. **Layoutmaße bleiben in Pixeln** — bei 120 % wird es deshalb an
-einigen Stellen enger, dafür verschiebt sich das Gefüge nicht. Die Anmeldeseite
+**Die Einstellung im Systembereich vergrößert oder verkleinert die Schrift der
+ganzen Oberfläche**, in fünf Stufen von 80 auf 120 Prozent. **Die Abstände
+gehen nicht mit** — bei 120 % wird es deshalb an einigen Stellen enger, dafür
+verschiebt sich das Gefüge nicht. Die Anmeldeseite
 bleibt bei der Vorgabegröße, weil der Endpunkt vor der Anmeldung nur den
 öffentlichen Titel ausliefert.
 
@@ -1906,9 +1903,8 @@ einem `img`-Element läuft es nicht, aber ein direkt geöffneter Tab ist eine
 Webseite. SVG wird deshalb wie jede andere Datei heruntergeladen.
 
 Die `.docx`-Vorschau packt das Dokument mit dem eingebauten `zlib` selbst aus
-und liest `word/document.xml` als Text — eine eigene Abhängigkeit dafür wäre für
-eine vereinfachte Lesevorschau zu viel gewesen. Absätze und Zeilenumbrüche
-bleiben, alles andere fällt weg.
+und liest `word/document.xml` als Text. Absätze und Zeilenumbrüche bleiben,
+alles andere fällt weg.
 
 ## Kurzvideos
 
@@ -2042,16 +2038,15 @@ auch **ein einzelner Eintrag** als Datei ziehen.
 > vorab sichtbar: die Dateigröße steht ja fest, und die Instanz fragt nach,
 > bevor sie zu lesen anfängt.
 >
-> **Seit 0.12.4 ist das kein Ende mehr, sondern ein Schnitt:** „In Teilen
-> exportieren" schreibt so viele vollständige Exportdateien, wie es braucht,
-> und der vorhandene Import nimmt sie mit „Zusammenführen" wieder auf. *Die
-> Grenze gilt weiterhin je Datei — sie gilt nur nicht mehr für den Bestand.*
+> **Das ist kein Ende, sondern ein Schnitt:** „In Teilen exportieren" schreibt
+> so viele vollständige Exportdateien, wie es braucht, und der vorhandene
+> Import nimmt sie mit „Zusammenführen" wieder auf. *Die Grenze gilt je Datei —
+> sie gilt nicht für den Bestand.*
 >
-> **Seit 0.13.0 wird dabei EINMAL bestätigt** — Passwort und, wenn der Zugang
-> einen zweiten Faktor trägt, **ein** Code. Danach lädst du jeden Teil selbst.
-> *Bis dahin fragte der Knopf einmal und schickte dieselbe Eingabe je Teil an
-> den Server; ein Code des zweiten Faktors gilt aber genau einmal, und damit
-> ging der Weg mit eingeschaltetem Faktor überhaupt nicht.*
+> **Bestätigt wird dabei EINMAL** — Passwort und, wenn der Zugang einen zweiten
+> Faktor trägt, **ein** Code. Danach lädst du jeden Teil selbst. *Ein Code des
+> zweiten Faktors gilt genau einmal; eine Rückfrage je Teil ginge mit
+> eingeschaltetem Faktor überhaupt nicht.*
 >
 > **Für eine Kopie zum Zurückspielen bleibt die Sicherung der kürzere Weg** —
 > ein Griff statt n, und sie braucht dabei keinen nennenswerten
@@ -2059,8 +2054,8 @@ auch **ein einzelner Eintrag** als Datei ziehen.
 > Formatwechsel und braucht keinen Schlüssel.
 
 > **Vor einer Version, die die Datenbank anfasst, ist die Sicherung Pflicht.**
-> Ob eine Version das tut, sagt `CHANGELOG.md` unter „Was du danach von Hand
-> tun musst", und ausführlich das Änderungsprotokoll der Version.
+> Ob eine Version das tut, steht im `CHANGELOG.md` über ihren Änderungen, und
+> ausführlich im Änderungsprotokoll der Version.
 >
 > **Rüstet sie eine Spalte nach**, lässt sich der Bestand danach nicht mehr
 > ohne Weiteres auf die vorige Version zurückbringen. Der Weg zurück ist dann
@@ -2082,10 +2077,9 @@ Umbenennung des Projekts bewusst **nicht** mit: ein anderer Name ließe den
 Start eine leere Neuinstallation vermuten.
 
 - `items` — Titel, Beschreibung, Getestet-/Abgelehnt-Merkmal, Kategorie. **Zur
-  Ablehnung gehören seit 0.14.0 drei Spalten:** `rejected_at` (wann),
-  `rejected_grund` (warum, eine Zeile) und `rejected_von` (wer). Alle drei
-  dürfen leer sein — eine Ablehnung aus einer Instanz vor 0.14.0 kennt keine
-  davon, und ein Grund ist freiwillig. *„Getestet" bekommt bewusst nichts
+  Ablehnung gehören drei Spalten:** `rejected_at` (wann), `rejected_grund`
+  (warum, eine Zeile) und `rejected_von` (wer). Alle drei dürfen leer sein —
+  eine ältere Ablehnung kennt keine davon, und ein Grund ist freiwillig. *„Getestet" bekommt bewusst nichts
   davon: es ist ein Zustand und keine Entscheidung.*
 - `item_pins` — der **Favorit**, je Benutzer und je Eintrag; nur Zeilen für
   tatsächlich Markiertes. Die Spalte `items.favorite` bleibt ungenutzt im
@@ -2099,11 +2093,10 @@ Start eine leere Neuinstallation vermuten.
   Reihenfolge **und Gewicht** (`gewicht`, 0,2 bis 2, Vorgabe 1), Werte je
   Eintrag und je Benutzer. Reihenfolge und Gewicht sind zwei Spalten, weil sie
   zwei Aussagen sind: die eine über die Anzeige, die andere über die Rechnung.
-  **Seit 0.16.0 trägt `ratings` mit `gesetzt_am` den Zeitpunkt der letzten
-  Setzung** — für die Glocke. Er heißt nicht `created_at`, weil die Zeile beim
-  ersten Stern entsteht und danach überschrieben wird, und er hat **keinen
-  Vorgabewert**: Bewertungen aus einer Instanz vor 0.16.0 und **eingespielte**
-  Bewertungen stehen ohne Zeitpunkt da. *Die Instanz weiß dann nicht, wann das
+  **`ratings` trägt mit `gesetzt_am` den Zeitpunkt der letzten Setzung** — für
+  die Glocke. Er heißt nicht `created_at`, weil die Zeile beim ersten Stern
+  entsteht und danach überschrieben wird, und er hat **keinen Vorgabewert**:
+  ältere und **eingespielte** Bewertungen stehen ohne Zeitpunkt da. *Die Instanz weiß dann nicht, wann das
   war, und behauptet es auch nicht — die Glocke übergeht solche Zeilen*
 - `product_categories`, `tags`, `item_tags`
 - `comments` — mit Bearbeitungszeitpunkt und `images_removed`: die Zahl der
@@ -2120,10 +2113,10 @@ Start eine leere Neuinstallation vermuten.
   benutzte Filterwahl, die **gespeicherten Ansichten**, der Bezugspunkt der
   **Glocke**, Schriftgröße, Blockanordnung, sichtbare Linkzeilen, Zeitleiste
   und die Zahl der Anbieternamen. Je Benutzer eine Zeile pro Schlüssel.
-  *Bis 0.16.0 waren es neun: der Bezugspunkt für „Neu seit …" ist mit der Pille
-  weggefallen. **Vorhandene Zeilen bleiben stehen und werden nicht mehr
-  gelesen** — es gibt dafür keinen Migrationsblock, und eine Migration, die
-  persönliche Zeilen löscht, wäre teurer als die Zeilen selbst.*
+  *Ein Schlüssel aus einer älteren Fassung, den es nicht mehr gibt, **bleibt
+  stehen und wird nicht mehr gelesen** — es gibt dafür keinen Migrationsblock,
+  und eine Migration, die persönliche Zeilen löscht, wäre teurer als die Zeilen
+  selbst.*
 - `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
   `eigentuemer`), Adresse, Status und letzte Anmeldung. Entfernte Zugänge
   bleiben als Grabstein (`status = geloescht`, Name `geloescht-<id>`) stehen.
@@ -2240,10 +2233,9 @@ Teilstring aus einem einzigen Zeichen, **Prozentzeichen und Unterstrich als
 Text samt der Gegenlage, dass man sie suchen kann**, und die Zusicherung, dass
 jede Trefferliste eine **Teilmenge** der Liste ohne Suchbegriff ist —
 nachgestellt an einem Eintrag, der vor dem Löschen gefunden wird und danach
-nicht mehr. **Feld für Feld gegen eine namentliche Liste** wird geprüft, dass
-`searchText` fort ist und **sonst nichts**, und dass `testDays` genau dann
-fehlt, wenn die Zeitleiste aus ist — samt der Nachschau, dass die Kachelzahlen
-trotzdem stimmen. Am Bildschirm: dass **drei Anschläge hintereinander EINE
+nicht mehr. **Feld für Feld gegen eine namentliche Liste** wird geprüft, dass die Übersicht
+nur noch mitschickt, was sie wirklich zeigt — samt der Nachschau, dass die
+Kachelzahlen trotzdem stimmen. Am Bildschirm: dass **drei Anschläge hintereinander EINE
 Anfrage** sind, dass der zuletzt getippte Begriff gewinnt, dass das Leeren
 ohne Anfrage auskommt und dass die Liste **stehenbleibt**, wenn die Suche
 scheitert.
@@ -2292,8 +2284,8 @@ Gewechselt wird **auf dem Wirt**, im Projektverzeichnis:
 ./schluessel.sh wechseln     # anhalten, sichern, wechseln, starten
 ```
 
-> **„Keine Berechtigung"?** Dann fehlt dem Skript das Ausführungsrecht —
-> `python3 -m zipfile -e` im Einspielweg bringt es nicht mit. Einmal
+> **„Keine Berechtigung"?** Dann fehlt dem Skript das Ausführungsrecht — das
+> passiert beim Auspacken mit `python3 -m zipfile -e` und unter Windows. Einmal
 > `chmod +x schluessel.sh`, und es ist erledigt; ohne das Recht geht auch
 > `bash schluessel.sh zeigen`.
 

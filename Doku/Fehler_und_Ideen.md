@@ -151,6 +151,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.16.0** *MINOR, Schema* *(war 0.15.0)* — **GEBAUT am 29. August 2026** | Der Systembereich bekommt Abschnitte · zwei Funktionen sind zu groß · die Gewichtung erklärt sich nicht · die Glocke · Kennzahlen: Version und Verfahren · Import und Export in einer Kachel · der Zähler „Offen 7" · **Löschen in der Zoomansicht** *(aus dem Betrieb, 28.08.2026 — nicht aus dem Sammelblatt)*. **Was gebaut wurde, steht im Änderungsprotokoll 0.16.0.** *Zwei Abweichungen: **die „Vorschau der Rangfolge" ist NICHT mitgefahren** — sie ist der einzige Teil mit eigener Ansicht und eigenem Endpunkt und war im Auftrag als erster Kandidat des Schnitts benannt; sie steht weiter in Abschnitt 10 des Projektstands. Und **die Runde ist doch eine Datenbankstufe geworden**: `ratings` trug keinen Zeitpunkt, und ohne ihn kann die Glocke über fremde Bewertungen nichts sagen — siebter Migrationsblock, auf ausdrückliche Anweisung.* **Mitgefahren ist der Werkzeugbefund am Rückbaufilter aus Teil II.** |
 | **0.17.0** *MINOR* — **GEBAUT am 30. August 2026** | **Was dasteht, und was nicht dasteht** — neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, keiner davon aus diesem Blatt und keiner aus dem Fahrplan. Die Kriterienliste zerfällt bei genau **einem** Zugang; zwei Erklärtexte verlassen die Oberfläche; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen wird.** *Die Nummer ist MINOR, weil die Glockentafel eine Funktion bringt; der Auftrag ging als 0.16.1 in die Besprechung.* **Was gebaut wurde, steht im Änderungsprotokoll 0.17.0.** *Alle neun Punkte sind gebaut; nichts ist hierher zurückgekommen. **Eine Abweichung:** die Tafel nennt die Namen nur zu den **Kommentaren** — „Eine Glocke, die nennt, WER bewertet hat" steht in Teil III dieses Blatts als geprüft und verworfen, und die gebaute Fassung hält sich daran. **Und ein zehnter Befund ist beim Bauen dazugekommen und gleich mitgefahren:** der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt — derselbe blinde Fleck wie Punkt 1, eine Ansicht weiter.* |
 | **0.17.1** *PATCH* — **GEBAUT am 30. August 2026** | **Nichts aus diesem Blatt.** Sechs Befunde aus einem Rundlauf von Hand, unmittelbar nachdem 0.17.0 gebaut war: der Text im Kachel „Zugang", die Kachelhöhe, die Aufteilung des Mailversands, **„Anlage" wird „Instanz"**, die Zeile einer Sitzung — und das Video, das im Vollbild ein zweites Mal anfängt. **Was gebaut wurde, steht im Änderungsprotokoll 0.17.1.** *Alle sechs Punkte sind gebaut; nichts ist hierher zurückgekommen. **Ein Befund aus dem Bauen:** der Auftrag nannte zwei falsche Freunde, die Anhänge meinen — es sind fünf, und einer der beiden genannten war keiner (Stolperstein 236).* |
+| **0.17.2** *PATCH* — **GEBAUT am 31. August 2026** | **Nichts aus diesem Blatt.** Sechs Befunde aus dem Rundlauf mit 0.17.1, zwei davon Nacharbeit an ihr selbst: der Name in der Anmeldezeile wurde abgeschnitten, **die Listen brauchten einen Deckel bei zwölf Zeilen** (die Tagliste zog die Seite auf), der Mailversand ordnet sich zu Ende, die Klammer bei einer einzigen Stimme fällt weg, **die Glocke meldet die eigenen Beiträge wieder nicht** — und die README erzählt keine Versionsgeschichte mehr. *Die zweite Wende an derselben Entscheidung: 0.16.0 schloss sie aus, 0.17.0 nahm das zurück, 0.17.2 stellt 0.16.0 wieder her.* **Was gebaut wurde, steht im Änderungsprotokoll 0.17.2.** *Alle sechs Punkte sind gebaut; nichts ist hierher zurückgekommen. Der sechste — die README — ist während der Runde dazugekommen und vor dem Bauen in den Auftrag nachgetragen worden.* |
 | **0.18.0** *MINOR* *(war 0.17.0)* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
 | **0.19.0** *MINOR* *(war 0.18.0)* | Die Bildablage: Original und zwei Ableitungen — **dazu seit dem 30. August der engere Bildausschnitt und das wählbare Bildformat** |
 | **0.20.0** *MINOR* *(neu, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
@@ -447,6 +448,13 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
 > Änderungsprotokoll 0.17.1.** *Zurückgekommen ist nichts;* **eine Zeile hat
 > die Runde erzeugt, und sie steht gleich hier darunter.**
 
+> **UND DIE SECHS BEFUNDE VOM 31. AUGUST 2026 SIND GEBAUT** — **0.17.2**, und
+> auch keiner von ihnen stand je hier. **Was gebaut wurde, steht im
+> Änderungsprotokoll 0.17.2.** *Zurückgekommen ist nichts.* **Ein Punkt ist
+> während der Runde dazugekommen** — die README, die an siebenundvierzig
+> Stellen Versionsgeschichte erzählte — **und ist vor dem Bauen in den Auftrag
+> nachgetragen worden**, damit er beim nächsten Lesen noch da ist.
+
 - **Die beiden Konzeptpapiere tragen „Anlage" je einmal** *(0.17.1, aus der
   Durchsicht der Runde — gefunden, benannt, nicht behoben)*.
   **Art: Kleinigkeit.** Mit 0.17.1 heißt die Installation überall **Instanz**;
@@ -478,9 +486,27 @@ schwerer zu beurteilen als eine, bei der man weiß, was sie ausgelöst hat.*
   Warnung** ist erlaubt, und eine **Folge**, die man kennen muss, um zu
   entscheiden, auch. *Der Unterschied ist die Frage, die der Satz beantwortet:
   „was passiert, wenn ich das tue" ja — „warum haben wir das so gebaut" nein.*
-  *(Claude: eine eigene kleine Runde wert, aber keine eilige. Zwölf Sätze in
-  einer Datei, jeder einzeln zu entscheiden — und die Hälfte davon sind
-  Grenzfälle, über die man reden muss.)*
+  **NACHGETRAGEN AM 31. AUGUST 2026, aus einem Lauf über alle Texte, die einen
+  Betreiber ansprechen:** von achtzig gemeldeten Stellen haben sechzehn eine
+  strenge Gegenprobe überstanden, und **vier davon liegen im ausgelieferten
+  Text** — nicht in einem Papier. *Der Mailverteiler-Satz ist mit 0.17.2
+  gestrichen; die drei übrigen stehen noch:*
+  - *„das ist so gewollt und bleibt so"* (Karte „Meine Sitzungen") — der
+    Halbsatz davor sagt schon, WAS IST: weder Adresse noch Browserkennung
+    werden gespeichert.
+  - *„…, weil es dort keine Wolke gibt"* (Karte „Tags", Admin-Zweig).
+  - *„Der Schlüssel geht roh in die Datenbank (`PRAGMA key = x'…'`) — ohne
+    Ableitung, …"* (Karte „Kennzahlen") — die Klammer ist eine Zeile aus dem
+    Quelltext.
+  **Zwei Meldungen kommen dazu, außerhalb der Oberfläche:** *„AUTH_RESET wird
+  **seit Version 0.8.0** nicht mehr ausgeführt"* (`auth.js`, Startwarnung — die
+  Nummer sagt dem Leser nichts, seine Handlung bleibt dieselbe) und die Klammer
+  *„(role=eigentuemer)"* in der Auffangmeldung von `db.js`, die den Satz davor
+  in der Schreibweise der Datenbankspalte wiederholt.
+  *(Claude: eine eigene kleine Runde wert, aber keine eilige. Jeder Satz ist
+  einzeln zu entscheiden, und ein Teil davon sind Grenzfälle, über die man
+  reden muss. **Nicht mit 0.17.2 mitgemacht**, weil jede dieser Dateien in den
+  Fingerprint geht und die Runde ihre Papiere schon geschrieben hatte.)*
 - **`.rz-summe:first-of-type` im Stilblatt kann nie greifen** *(0.16.0, beim
   Bau von 0.17.0 aufgefallen)*. Die Regel soll der ersten Summenzeile des
   Erklärkastens einen Strich darüber geben; `:first-of-type` zählt aber

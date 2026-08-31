@@ -2481,12 +2481,30 @@ const qOffenJeEintrag = db.prepare(
    wurde, traegt keinen Zeitpunkt. Die Glocke uebergeht es, statt es fuer neu
    zu erklaeren. Der Vergleich `> ?` faellt bei NULL ohnehin nicht wahr aus;
    die Bedingung steht trotzdem da, weil sie die Absicht sagt. */
+/* DIE EIGENE HAND ZAEHLT NICHT -- `user_id IS NOT ?` in beiden Abfragen.
+   `IS NOT` UND NICHT `!=`: eine herrenlose Zeile traegt user_id NULL, und
+   `NULL != 1` ist in SQL nicht wahr, sondern NULL. Mit `!=` fielen genau die
+   Zeilen still heraus, deren Verfasser entfernt wurde.
+   EINE GLOCKE IST EINE NACHRICHT VON JEMAND ANDEREM. Wer selbst einen
+   Kommentar schreibt oder einen Stern setzt, weiss das; ihm dafuer einen Punkt
+   zu zeigen, ist keine Auskunft, sondern ein Echo.
+   DAS IST DIE ZWEITE WENDE AN DIESER ENTSCHEIDUNG, und beide Vermerke bleiben
+   stehen (Stolperstein 201): 0.16.0 schloss die eigenen aus, 0.17.0 nahm das
+   zurueck -- mit der Begruendung, einer Betreiberin, die ALLEIN arbeitet, melde
+   eine Glocke, die nur Fremdes zeigt, nie etwas --, und 0.17.2 stellt 0.16.0
+   wieder her.
+   DIE FOLGE IST GEWOLLT UND GEHOERT AUSGESPROCHEN: bei genau einem Zugang
+   bleibt die Glocke still, und die Pille „Neu seit …" gibt es seit 0.17.0 nicht
+   mehr. Wer allein arbeitet, hat nichts, wovon ihm jemand berichten muesste --
+   das ist die Antwort auf dieselbe Frage, und diesmal die richtige.
+   DER BEZUGSPUNKT WIRD TROTZDEM WEITER GESETZT (siehe glockeGesehen): sonst
+   staute sich beim ersten fremden Beitrag alles seit Wochen auf. */
 const qNeueKommentare = db.prepare(
   `SELECT item_id, user_id, COUNT(*) AS n FROM comments
-    WHERE created_at > ? GROUP BY item_id, user_id`);
+    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);
 const qNeueBewertungen = db.prepare(
   `SELECT item_id, user_id, COUNT(*) AS n FROM ratings
-    WHERE gesetzt_am IS NOT NULL AND gesetzt_am > ? AND value > 0
+    WHERE gesetzt_am IS NOT NULL AND gesetzt_am > ? AND value > 0 AND user_id IS NOT ?
     GROUP BY item_id, user_id`);
 
 app.get('/api/items', (req, res) => {
@@ -2561,11 +2579,18 @@ app.get('/api/items', (req, res) => {
       if (!neuVonJe.has(id)) neuVonJe.set(id, new Set());
       neuVonJe.get(id).add(uid);
     };
-    for (const z of qNeueKommentare.all(bezug)) {
+    /* BEIDE ABFRAGEN BEKOMMEN DENSELBEN ZWEITEN WERT. Zoege man ihn nur an
+       einer nach, meldete die Tafel Bewertungen von jemandem, dessen Kommentare
+       sie verschweigt -- eine Zeile mit einem Namen und einer Zahl, die nicht
+       zueinander gehoeren.
+       `IS NOT` UND NICHT `!=`: eine herrenlose Zeile traegt `user_id = NULL`,
+       und `NULL != 1` ist in SQL weder wahr noch falsch, sondern NULL -- die
+       Zeile fiele stillschweigend heraus. `IS NOT` vergleicht auch NULL. */
+    for (const z of qNeueKommentare.all(bezug, req.benutzer.id)) {
       neuKommJe.set(z.item_id, (neuKommJe.get(z.item_id) || 0) + z.n);
       wer(z.item_id, z.user_id);
     }
-    for (const z of qNeueBewertungen.all(bezug))
+    for (const z of qNeueBewertungen.all(bezug, req.benutzer.id))
       neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);
   }
   for (const it of rows) {

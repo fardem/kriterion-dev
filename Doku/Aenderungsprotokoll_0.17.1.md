@@ -742,8 +742,40 @@ Abschnitt 6.*
 
 ### Die fünf Handgriffe, die diese Runde im Feld belegen
 
+> **NACHGETRAGEN AM 31. AUGUST 2026 — DIE RUNDE IST IM FELD ANGEKOMMEN.**
+> *Dieses Papier ist abgeschlossen und wird genau dafür ein zweites Mal
+> angefasst: die Belege waren beim Schreiben noch nicht da, und der Auftrag
+> verlangt sie hierher.*
+>
+> **DIE LAUFENDE INSTANZ MELDET `1775fcd4`** — Systembereich → Datenbank →
+> Kennzahlen. **Der Fingerprint stimmt mit dem gebauten Stand überein**; auf
+> dem Wirt liegt keine Datei, die kein Commit trägt (Stolperstein 158).
+>
+> **WAS DIE BILDER VOM 31. AUGUST ZEIGEN:**
+> * **Punkt 1 — der Zugangstext.** Am Adressfeld steht **„(wird gebraucht)"**
+>   *(die Selbstanmeldung ist an)*, am Passwortfeld **„(mindestens 10
+>   Zeichen)"**, und der Absatz sagt, dass die Adresse gebraucht wird.
+>   *Der Wirtsbefehl steht da — der Blick kam vom Eigentümer, also richtig.*
+>   **Offen bleibt der Blick als gewöhnlicher Benutzer.**
+> * **Punkt 3 — der Mailversand.** Vier Reihen: Anbieter allein, dann Server ·
+>   Port · Verschlüsselung, dann Benutzername · Passwort, dann die
+>   Absenderadresse. **Gebaut wie beschrieben.**
+> * **Punkt 4 — die Umbenennung.** Der fünfte Reiter heißt **Instanz**, und die
+>   Oberfläche sagt durchgehend „Instanz".
+> * **Punkt 5 — die Sitzungszeile.** Beide Zeitangaben stehen **rechtsbündig
+>   untereinander**, der orangene Rahmen der eigenen Anmeldung reicht **bis zum
+>   Rand**. *Die Zusage aus 0.17.0 ist nicht zurückgefallen.*
+>
+> **UND ZWEI BEFUNDE AUS DEMSELBEN BLICK, beide in 0.17.2 beauftragt:**
+> * **Der Name in der Anmeldezeile wird abgeschnitten** — „Diese Anmeldung (…".
+>   *Die Namensspalte gibt nach, wie gebaut; sie gibt zu weit nach.*
+> * **Punkt 2 ist zu weit gegangen.** Die feste Höhe ist weg, ein Deckel kam
+>   nicht dazu: im Abschnitt „Bestand" zieht die Tagliste die Seite auf rund
+>   fünfzig Zeilen auseinander. **Der Auftrag meinte „den vorhandenen Platz
+>   nutzen", nicht „keine Grenze mehr" — und das ist beim Lesen verlorengegangen.**
+
 *Am Prüfstand ist belegt, was sich dort belegen lässt; jsdom rechnet kein
-Layout und spielt nichts ab.* **Am Wirt fehlt:**
+Layout und spielt nichts ab.* **Am Wirt fehlt weiterhin:**
 
 1. **Die Kachel „Zugang" als gewöhnlicher Benutzer** — der Server-Befehl darf
    dort **nicht** stehen, stattdessen der Satz mit dem Admin.

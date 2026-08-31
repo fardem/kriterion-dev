@@ -2655,10 +2655,14 @@ const RUECKBAUTEN = [
        einem Betreiber, der allein arbeitet, nie etwas. Der Rueckbau baut die
        alte Bedingung deshalb WIEDER EIN -- und genau daran muss die Gruppe rot
        werden. */
-    nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare wieder nicht mit',
+    /* UMGEDREHT MIT 0.17.2, ZUM ZWEITEN MAL (Stolperstein 201). Bis 0.16.0
+       hiess er „zaehlt die eigenen nicht mit", 0.17.0 machte daraus das
+       Gegenteil, und seit 0.17.2 gilt wieder 0.16.0 -- der Anker faehrt die
+       Bedingung also wieder HERAUS statt hinein. */
+    nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare wieder mit',
     datei: 'server.js',
-    suche: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? GROUP BY item_id, user_id`);",
-    ersatz: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT 1 GROUP BY item_id, user_id`);",
+    suche: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
+    ersatz: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT NULL GROUP BY item_id, user_id`);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -2824,9 +2828,9 @@ const RUECKBAUTEN = [
        SEIT 0.17.1 ZIELT ER AUFS RASTER. Die Zusage ist dieselbe geblieben --
        der Rahmen der eigenen Anmeldung reicht bis zum Rand --, sie haengt nur
        nicht mehr am Umbruch, sondern an der nachgebenden Namensspalte. */
-    suche: `.mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+    suche: `.mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: center; column-gap: 9px; row-gap: 2px; }`,
-    ersatz: ".mrow.sitz { display: grid; grid-template-columns: max-content auto auto; }",
+    ersatz: ".mrow.sitz { display: grid; grid-template-columns: max-content auto; }",
     erwartet: 'Zwei Masse vom echten Geraet — 0.17.0'
   },
   {
@@ -2970,8 +2974,8 @@ const RUECKBAUTEN = [
        (Stolperstein 235). Der Anker gehoert an die tragende Zusage. */
     nr: '321', name: 'Die Abfrage gruppiert nicht mehr nach Verfasser',
     datei: 'server.js',
-    suche: "    WHERE created_at > ? GROUP BY item_id, user_id`);",
-    ersatz: "    WHERE created_at > ? GROUP BY item_id`);",
+    suche: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
+    ersatz: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id`);",
     erwartet: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -3128,17 +3132,18 @@ const RUECKBAUTEN = [
     erwartet: 'Der Zugangstext sagt, was gilt — 0.17.1'
   },
   {
-    nr: '339', name: 'Die Liste bekommt ihre festen 280 Pixel zurueck',
+    nr: '339', name: 'Die Liste bekommt ihre feste Hoehe zurueck',
     datei: 'public/style.css',
-    suche: ".manage-list { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
+    suche: `.manage-list { flex: 1 1 33.5rem; min-height: 0; max-height: max-content;
+  overflow-y: auto; margin: 0 -4px; padding: 0 4px; }`,
     ersatz: ".manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
     erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
   },
   {
     nr: '340', name: 'Die Liste verliert die Zeile, an der es sonst scheitert',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1; min-height: 0; overflow-y: auto;",
-    ersatz: ".prot-liste { flex: 1; overflow-y: auto;",
+    suche: ".prot-liste { flex: 1 1 28rem; min-height: 0; max-height: max-content;",
+    ersatz: ".prot-liste { flex: 1 1 28rem; max-height: max-content;",
     erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
   },
   {
@@ -3193,15 +3198,15 @@ const RUECKBAUTEN = [
   {
     nr: '348', name: 'Die Zeitangaben stehen wieder linksbuendig',
     datei: 'public/style.css',
-    suche: ".mrow.sitz .sitz-zeit { grid-column: 2; justify-self: end; text-align: right; }",
-    ersatz: ".mrow.sitz .sitz-zeit { grid-column: 2; }",
+    suche: ".mrow.sitz .sitz-zeit { grid-column: 1 / -1; justify-self: end; text-align: right; }",
+    ersatz: ".mrow.sitz .sitz-zeit { grid-column: 1 / -1; }",
     erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
   {
-    nr: '349', name: 'Der Name steht nicht mehr ueber beide Zeilen',
+    nr: '349', name: 'Der Name teilt seine Reihe wieder mit den Zeiten',
     datei: 'public/style.css',
-    suche: ".mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 2; }",
-    ersatz: ".mrow.sitz .mname { grid-column: 1; }",
+    suche: ".mrow.sitz .mname { grid-column: 1; grid-row: 1; }",
+    ersatz: ".mrow.sitz .mname { grid-column: 1; grid-row: 1 / span 3; }",
     erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
   },
   {
@@ -3232,6 +3237,116 @@ const RUECKBAUTEN = [
     suche: "    if (uebergabe && bildQuelle(weg, '') === uebergabe.quelle) uebergabe = null;\n",
     ersatz: "",
     erwartet: 'Genau ein Abspieler laeuft — 0.17.1'
+  },
+
+  /* ---- 0.17.2: der Deckel, die Reihen, die Klammer und die Glocke ---- */
+  {
+    nr: '354', name: 'Das Raster der Sitzungszeile bekommt seine dritte Spalte zurueck',
+    datei: 'public/style.css',
+    suche: ".mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto;",
+    ersatz: ".mrow.sitz { display: grid; grid-template-columns: minmax(0, 1fr) auto auto;",
+    erwartet: 'Die Zeitangaben stehen untereinander — 0.17.1'
+  },
+  {
+    nr: '355', name: 'Die Liste fordert wieder so viele Zeilen, wie sie hat',
+    datei: 'public/style.css',
+    suche: ".manage-list { flex: 1 1 33.5rem;",
+    ersatz: ".manage-list { flex: 1 1 auto;",
+    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+  },
+  {
+    nr: '356', name: 'Das Sicherheitsprotokoll fordert wieder alle seine Zeilen',
+    datei: 'public/style.css',
+    suche: ".prot-liste { flex: 1 1 28rem;",
+    ersatz: ".prot-liste { flex: 1 1 auto;",
+    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+  },
+  {
+    nr: '357', name: 'Auf dem Telefon deckelt nichts mehr am Fenster',
+    datei: 'public/style.css',
+    suche: "  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {\n" +
+           "    flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }",
+    ersatz: "",
+    erwartet: 'Die Liste bekommt die Hoehe der Kachel — 0.17.1'
+  },
+  {
+    nr: '358', name: 'Die beiden letzten Reihen des Mailversands teilen wieder gleich',
+    datei: 'public/style.css',
+    suche: ".mail-alswer, .mail-tun { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }",
+    ersatz: ".mail-alswer, .mail-tun { grid-template-columns: repeat(2, minmax(0, 1fr)); }",
+    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+  },
+  {
+    nr: '359', name: 'Der Satz sitzt wieder an der Oberkante seines Feldes',
+    datei: 'public/style.css',
+    suche: ".mail-satz { margin: 0; align-self: end; padding-bottom: 10px; }",
+    ersatz: ".mail-satz { margin: 0; }",
+    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+  },
+  {
+    nr: '360', name: 'Auf dem Telefon bleibt der Satz an der Grundlinie haengen',
+    datei: 'public/style.css',
+    suche: "  .mail-satz { align-self: start; padding-bottom: 0; margin: 0 0 14px; }",
+    ersatz: "",
+    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+  },
+  {
+    nr: '361', name: 'Die Absenderadresse faellt aus ihrer Reihe',
+    datei: 'public/app.js',
+    suche: "        <div class=\"mail-reihe mail-alswer\">",
+    ersatz: "        <div class=\"mail-alswer\">",
+    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+  },
+  {
+    nr: '362', name: 'Die beiden Knoepfe fallen aus ihrer Reihe',
+    datei: 'public/app.js',
+    suche: "        <div class=\"mail-reihe mail-tun\">",
+    ersatz: "        <div class=\"mail-tun\">",
+    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+  },
+  {
+    nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
+    datei: 'public/app.js',
+    suche: "deines eigenen Zugangs</strong>. Antwortet der Mailserver nicht, bricht der",
+    ersatz: "deines eigenen Zugangs</strong> — es gibt kein Adressfeld daneben, und zwar mit\n" +
+            "            Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener\n" +
+            "            Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
+    erwartet: 'Der Mailversand ordnet sich — 0.17.1'
+  },
+  {
+    nr: '364', name: 'Die Klammer steht wieder auch bei einer einzigen Stimme',
+    datei: 'public/app.js',
+    suche: "          a.textContent = r.count > 1 ? `⌀ ${schnitt} (${r.count})` : `⌀ ${schnitt}`;",
+    ersatz: "          a.textContent = `⌀ ${schnitt} (${r.count})`;",
+    erwartet: 'Die Klammer steht erst ab zwei Stimmen — 0.17.2'
+  },
+  {
+    nr: '365', name: 'Die Glocke meldet wieder die eigenen Kommentare',
+    datei: 'server.js',
+    suche: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
+    ersatz: "    WHERE created_at > ? AND (user_id IS NOT ? OR 1) GROUP BY item_id, user_id`);",
+    erwartet: 'Die Glocke: was mit der Liste mitreist'
+  },
+  {
+    nr: '366', name: 'Die Glocke meldet wieder die eigenen Bewertungen',
+    datei: 'server.js',
+    suche: "    WHERE gesetzt_am IS NOT NULL AND gesetzt_am > ? AND value > 0 AND user_id IS NOT ?",
+    ersatz: "    WHERE gesetzt_am IS NOT NULL AND gesetzt_am > ? AND value > 0 AND (user_id IS NOT ? OR 1)",
+    erwartet: 'Die Glocke: was mit der Liste mitreist'
+  },
+  {
+    nr: '367', name: 'Die Tafel verspricht wieder die eigenen Beitraege',
+    datei: 'public/app.js',
+    suche: "      Bewertungen <strong>von den anderen</strong>.</p>",
+    ersatz: "      Bewertungen, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
+    erwartet: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    nr: '368', name: 'Die README erzaehlt wieder, seit wann etwas gilt',
+    datei: 'README.md',
+    suche: "**Über der Liste steht eine Reihe von Ansichten**",
+    ersatz: "**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**",
+    erwartet: 'Der Sprachwaechter'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
