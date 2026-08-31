@@ -3850,6 +3850,25 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Eine zurueckgesetzte Bewertung meldet nichts',
     (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 0,
     JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuBewertungen));
+  /* UND DIE EIGENE BEWERTUNG ZAEHLT SO WENIG WIE DER EIGENE KOMMENTAR -- seit
+     0.17.2. DIESE ZEILE HAT GEFEHLT, und die Gegenprobe hat es gezeigt: der
+     Rueckbau, der die Ausnahme aus der BEWERTUNGSABFRAGE nimmt, blieb STUMM.
+     Beide Abfragen tragen dieselbe Bedingung, und jede braucht ihre eigene
+     Lage — eine Zusage, die nur an einer von zwei Stellen geprueft ist, ist an
+     der anderen keine (Stolperstein 81).
+     DIE LAGE IST DIESELBE GEBLIEBEN, nur die Zusage wird gepruefft: die eigene
+     Bewertung wird wirklich gesetzt, und die Zahl darf sich davon NICHT
+     bewegen. */
+  await eRuf('cookie-e-eins', 'PUT', '/api/items/1/ratings', { criterionId: zpKrit, value: 5 });
+  pruefe('Und die eigene Bewertung zaehlt ebenso wenig mit',
+    (await glEintrag('cookie-e-eins', 1))?.neuBewertungen === 0,
+    JSON.stringify((await glEintrag('cookie-e-eins', 1))?.neuBewertungen));
+  /* DIE GEGENLAGE AM ZWEITEN ZUGANG: fuer IHN ist dieselbe Bewertung fremd und
+     zaehlt sehr wohl. Ohne sie belegte die Zeile darueber nur, dass die
+     Bewertung ueberhaupt nicht ankommt. */
+  pruefe('Fuer einen anderen Zugang zaehlt genau dieselbe Bewertung sehr wohl',
+    ((await glEintrag('cookie-e-zwei', 1))?.neuBewertungen || 0) > 0,
+    JSON.stringify((await glEintrag('cookie-e-zwei', 1))?.neuBewertungen));
 
   /* DAS OEFFNEN DER TAFEL SETZT ALLES AUF GESEHEN -- die bewusste Grenze der
      schlanken Fassung: bei einem Zeitstempel gibt es keinen Lesestand je
@@ -17978,6 +17997,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // 339, 340, 348 und 349 zeigten auf Zeilen, die diese Runde umgebaut hat --
   // 286 zum zweiten Mal. Ein Rueckbau, der ins Leere greift, ist stumm und
   // verfaelscht die Tabelle (Stolperstein 192).
+  // DREI DER FUENFZEHN SIND STUMM GEBLIEBEN und haben je eine Luecke im
+  // Pruefstand aufgedeckt: die weissraumempfindliche Verneinung am Mailsatz,
+  // die fehlende Lage fuer die EIGENE Bewertung und der ungeprueffte
+  // Einleitungssatz der Glockentafel. Alle drei sind geschlossen; die
+  // Rueckbauten bleiben, wo sie sind.
   pruefe('Es sind genau 368 Rueckbauten', gpListe.length === 368, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
@@ -31390,6 +31414,18 @@ async function pruefeOberflaeche() {
     await new Promise(r => setTimeout(r, 40));
     const tafel = dok.getElementById('glocken-modal');
     pruefe('Der Klick oeffnet die Tafel', !!tafel, dok.body.innerHTML.slice(0, 140));
+    /* UND SIE SAGT, WESSEN BEITRAEGE SIE MELDET. DIESE ZEILE HAT GEFEHLT, und
+       die Gegenprobe hat es gezeigt: der Rueckbau, der die alte Zusage „von
+       allen, die eigenen stehen mit da" wieder hineinschreibt, blieb STUMM --
+       der Einleitungssatz der Tafel war an keiner Stelle geprueft.
+       ERST DAS VORHANDENSEIN, DANN DIE VERNEINUNG (Stolperstein 81): ein
+       ersatzloses Loeschen des Absatzes bliebe sonst gruen. */
+    const glSatz = (tafel?.textContent || '').replace(/\s+/g, ' ');
+    pruefe('Sie sagt, dass sie die Beitraege der ANDEREN meldet',
+      /Kommentare und Bewertungen von den anderen/.test(glSatz), glSatz.slice(0, 200));
+    pruefe('Und sie verspricht nicht mehr die eigenen mit',
+      !/von allen/.test(glSatz) && !/eigenen stehen mit da/.test(glSatz),
+      glSatz.slice(0, 200));
     const zeilen = [...(tafel?.querySelectorAll('#glocken-liste .glocken-zeile') || [])];
     pruefe('Sie listet nur die Eintraege mit Neuem',
       zeilen.length === 2, `${zeilen.length} Zeilen`);
@@ -31974,9 +32010,15 @@ async function pruefeOberflaeche() {
        war ein Gedanke vom Bauen; eine Oberflaeche sagt, WAS IST (Projektstand
        5.6). Sie steht in der README, und das wird eine Zeile weiter unten
        geprueft. */
+    /* WEISSRAUM NORMALISIERT -- UND DAS IST EIN BEFUND DER GEGENPROBE. Der
+       Rueckbau, der den Satz wieder einbaut, blieb STUMM: er schreibt ihn ueber
+       drei Quelltextzeilen, und `textContent` traegt den Umbruch samt
+       Einrueckung mit. „offener Mailverteiler" stand dann als „offener\n
+       Mailverteiler" da und wurde nicht gefunden. Eine Verneinung, die am
+       Zeilenumbruch scheitert, ist gruen aus dem falschen Grund. */
     pruefe('Die Begruendung zum fehlenden Adressfeld steht nicht mehr in der Karte',
-      !/offener Mailverteiler/.test(karte?.textContent || ''),
-      (karte?.textContent || '').slice(0, 60));
+      !/offener Mailverteiler/.test((karte?.textContent || '').replace(/\s+/g, ' ')),
+      (karte?.textContent || '').replace(/\s+/g, ' ').slice(0, 60));
     /* WEISSRAUM NORMALISIERT: der Satz steht im Quelltext ueber zwei Zeilen,
        und textContent traegt den Umbruch samt Einrueckung mit. Ein Vergleich
        gegen den rohen Text pruefte die Zeilenlaenge und nicht den Satz. */
