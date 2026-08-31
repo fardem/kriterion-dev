@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 42 · Stand 31. August 2026 · gebaut: Version 0.17.2**
+**Kompakte Übergabe · Revision 43 · Stand 31. August 2026 · gebaut: Version 0.17.3**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,21 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.17.3 in einem Satz: die Karte zeigt, der Dialog stellt ein.** *PATCH — die
+Instanz kann danach nichts, was sie vorher nicht konnte; vier Handgriffe an
+Anordnung und Anzeige.* **Vier Handgriffe aus dem Rundlauf mit 0.17.2, zwei
+davon Nacharbeit an 0.17.2 selbst.** Der schwerste: **die Karte „Mailversand"
+wird eine Zustandskarte, und eingetragen wird in einem Dialog** — aus neun
+Feldern werden drei, und die zweite Bestätigung bleibt, wo sie ist. **Und der
+Deckel geht endlich auch nach unten:** die Ursache lag nicht in der Liste,
+sondern in der Kachel — ein Raster streckt jedes Kind auf die Höhe seiner Reihe
+(`align-items: start`); im selben Zug fällt der Deckel von zwölf auf **zehn**
+Zeilen. **Der Erklärkasten hinter der Gesamtnote rollt nicht mehr**, und **die
+Filterleiste bekommt ihren Rücksetzer** — mit der Zahl aus `filterZahl()` und
+aus keiner zweiten Zählung. **Keine Datenbankstufe** — Austauschformat
+unverändert **11**, `F_ROUTEN` unverändert **69**. *Alles Weitere in Abschnitt 2
+und Abschnitt 9.*
 
 **0.17.2 in einem Satz: der Deckel und die eigene Hand.** *PATCH — die Instanz
 kann danach nichts, was sie vorher nicht konnte; sie sagt an zwei Stellen
@@ -182,46 +197,60 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.17.2** — Fingerprint **`edbd76b6`**, **4747
-Prüfungen**, **368 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
-(Abschnitt 8). *0.17.2 stellt die Anmeldezeile in zwei Reihen, gibt den Listen
-einen **Deckel, der mitgeht**, ordnet den Mailversand zu Ende, setzt die
-Klammer hinter dem Schnitt erst ab zwei Stimmen, nimmt der Glocke die eigene
-Hand und räumt die Versionsgeschichte aus der README.* **PATCH — die Instanz
-kann danach nichts, was sie vorher nicht konnte; sie sagt an zwei Stellen
-weniger.**
+**Gebaut ist 0.17.3** — Fingerprint **`FINGERPRINT_0173`**, **4805
+Prüfungen**, **380 Rückbauten in der Liste; gefahren ist der volle Lauf nicht**
+(Abschnitt 8). *0.17.3 macht jede Kachel so hoch wie ihren Inhalt und deckelt
+die Listen bei **zehn** Zeilen, macht aus der Karte „Mailversand" eine
+Zustandskarte mit eigenem Dialog, nimmt dem Erklärkasten hinter der Gesamtnote
+den Rollbalken und gibt der Filterleiste einen Rücksetzer.* **PATCH — die
+Instanz kann danach nichts, was sie vorher nicht konnte; vier Handgriffe an
+Anordnung und Anzeige.**
 
-> **ZWEI DER SECHS PUNKTE SIND NACHARBEIT AN 0.17.1.** Punkt 2 jener Runde
-> hatte die feste Höhe der Listen gestrichen, **ohne etwas an ihre Stelle zu
-> setzen** — die Tagliste zog den Abschnitt „Bestand" auf fünfzig Zeilen, und
-> daneben standen vier leere Kacheln. Und die Anmeldezeile stellte die Zeiten
-> untereinander, ließ den Namen aber daneben, wo er auf dem Telefon zu Punkten
-> gekürzt wurde. *Beides ist kein neuer Befund, sondern eine Regel, die zu weit
-> ging.*
+> **ZWEI DER VIER PUNKTE SIND NACHARBEIT AN 0.17.2.** Der Deckel der Listen
+> griff, die **Kachel** darum aber nicht: `.sys-grid` ist ein Raster, und ein
+> Raster zieht jedes Kind auf die Höhe der höchsten Zelle seiner Reihe. *Der
+> Leerraum stand unter dem Inhalt IN der Kachel, nicht in der Liste — und
+> genau deshalb hat die Messung zu 0.17.2 ihn nicht gesehen: sie hat die
+> Liste gemessen und die Kachel übersehen.* Und der Mailversand war zwar
+> geordnet, aber nicht ruhig geworden: neun Bedienelemente in vier
+> Spaltenaufteilungen.
 
 > **DIES IST KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine
 > neue Formatnummer: es bleibt bei **sieben** markierten Blöcken und bei
-> **Austauschformat 11**. **Die Sicherung des Datenverzeichnisses ist deshalb
-> Empfehlung und nicht Pflicht.** *Keine neue Zeile in der `.env`, keine neue
-> Abhängigkeit, `F_ROUTEN` unverändert bei 69, achtzehn Karten in fünf
-> Abschnitten, acht persönliche Schlüssel.*
+> **Austauschformat 11**. Keiner der vier Punkte fasst Daten an.
+> **DIE SICHERUNG DES DATENVERZEICHNISSES IST DESHALB EMPFEHLUNG UND NICHT
+> PFLICHT.** *Keine neue Zeile in der `.env`, keine neue Abhängigkeit,
+> `F_ROUTEN` unverändert bei 69, achtzehn Karten in fünf Abschnitten, acht
+> persönliche Schlüssel, sieben Zwecke in `BESTAETIGUNG_ZWECKE`.*
 
-> **DIE GLOCKE MELDET DIE EIGENE HAND NICHT MEHR — und wer allein arbeitet,
-> sieht sie deshalb nie läuten.** Das ist die gewollte Folge und gehört einem
-> Betreiber gesagt, bevor er sie für kaputt hält. *Der Bezugspunkt wird
-> trotzdem weiter gesetzt; sonst staute sich beim ersten fremden Beitrag alles
-> seit Wochen auf.*
+> **DIE KARTE „MAILVERSAND" SIEHT ANDERS AUS ALS GESTERN, UND SIE KANN
+> DASSELBE.** Wer sie einstellen will, drückt „Mailzugang ändern"; das Fenster
+> danach fragt dasselbe wie die Karte vorher, und **Speichern verlangt
+> weiterhin das eigene Passwort**. *Das gehört einem Betreiber gesagt, bevor er
+> die Felder sucht.*
 
-**Was 0.17.2 für den Betrieb bedeutet: einspielen, fertig.** Keine
+**Was 0.17.3 für den Betrieb bedeutet: einspielen, fertig.** Keine
 Datenbankstufe, keine Sicherungspflicht, keine `.env`-Zeile, niemand wird
 abgemeldet, **keine Zeile im Protokoll**.
 
-> **IM FELD BESTÄTIGT AM 31. AUGUST 2026: die laufende Instanz meldet
-> `edbd76b6`** — Systembereich → Datenbank → Kennzahlen, genau der gebaute
-> Wert. *Auf dem Wirt liegt keine Datei, die kein Commit trägt* (Stolperstein
-> 158). **Drei der fünf Handgriffe stehen weiterhin aus** (Abschnitt 8), **und
-> der erste hat einen Befund gebracht:** der Deckel der Listen greift, die
-> **Kachel** darum aber klemmt nicht — behoben in 0.17.3.
+*Davor, am 31. August:* **Die Blöcke ab hier gehören 0.17.2 und den Runden
+davor.**
+
+> **DIE VORHERIGE ZEILE, ZUM VERGLEICH: 0.17.2** — Fingerprint **`edbd76b6`**,
+> **4747 Prüfungen**, 368 Rückbauten. *PATCH, ebenfalls keine Datenbankstufe:
+> die Anmeldezeile in zwei Reihen, ein **Deckel, der mitgeht**, der Mailversand
+> zu Ende geordnet, die Klammer hinter dem Schnitt erst ab zwei Stimmen, die
+> Glocke ohne die eigene Hand und eine README ohne Versionsgeschichte.*
+> **IM FELD BESTÄTIGT AM 31. AUGUST 2026: die laufende Instanz meldete
+> `edbd76b6`** (Stolperstein 158). **Drei der fünf Handgriffe zu jener Runde
+> stehen weiterhin aus** (Abschnitt 8), **und der erste hat den Befund
+> gebracht, aus dem Punkt 1 dieser Runde geworden ist.**
+
+> **DIE GLOCKE MELDET DIE EIGENE HAND NICHT MEHR — und wer allein arbeitet,
+> sieht sie deshalb nie läuten.** Das gilt seit 0.17.2 unverändert; es ist die
+> gewollte Folge und gehört einem Betreiber gesagt, bevor er sie für kaputt
+> hält. *Der Bezugspunkt wird trotzdem weiter gesetzt; sonst staute sich beim
+> ersten fremden Beitrag alles seit Wochen auf.*
 
 *Davor, am 30. August:* **Die Blöcke ab hier gehören 0.17.1 und den Runden
 davor.**
@@ -574,7 +603,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.2** | **`edbd76b6`** *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4747 |
+| **0.17.3** | **`FINGERPRINT_0173`** *(im Feld noch nicht bestätigt)* | 4805 |
+| 0.17.2 | `edbd76b6` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4747 |
 | 0.17.1 | `1775fcd4` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4715 |
 | 0.17.0 | `1b6bb5d2` | 4630 |
 | 0.16.0 | `aa76c352` | 4523 |
@@ -1263,10 +1293,33 @@ der **verschlüsselten Datenbank** statt unverschlüsselt auf dem Wirt, und die
 **Exportdatei trägt es nicht**. *Damit wird die Ausnahme von der `.env`-Regel
 aus Abschnitt 11 nicht gebraucht.*
 
-**Das Passwort kommt aus keiner Antwort heraus** — die Karte sagt „gesetzt" oder
-„nicht gesetzt", nie die Länge, nie der Anfang, nie Sternchen mit der richtigen
-Zahl; ein leeres Feld beim Speichern heißt „unverändert lassen". Es steht in
-**keiner** Protokollzeile und in **keiner** Kontrollausgabe.
+**DIE KARTE ZEIGT, DER DIALOG STELLT EIN — seit 0.17.3.** Die Karte
+„Mailversand" ist eine Zustandskarte wie ihre Nachbarn: fünf Zeilen (Zustand,
+Anbieter als **eine** Zeile aus Name, Server mit Port und Verschlüsselung,
+Absender, öffentliche Adresse, zuletzt erfolgreich getestet), darunter zwei
+Knöpfe und der Satz zur Testmail. **Eingetragen wird in einem Dialog**, und der
+trägt einen Rhythmus: eine Spalte, Beschriftung über dem Feld, Hinweis **unter**
+seiner Sache. *Bis 0.17.2 standen neun Bedienelemente in vier verschiedenen
+Spaltenaufteilungen in der Karte, dazwischen vier Erklärsätze, zwei davon neben
+einem Feld — das Auge fand keine Spalte.*
+**Bei einer der fünf Vorlagen sind Server, Port und Verschlüsselung eine
+gelesene Zeile und kein Feld:** die Werte stehen fest, und ein gesperrtes Feld
+sieht aus wie eines, das gleich aufgeht. **Aus neun Feldern werden drei.** Nur
+bei „Eigener Server" sind es Felder — und **dort** steht auch der Satz zum
+Hausanschluss, dort, wo er gilt.
+**Der Speicherweg ist derselbe wie vorher**, und das ist die harte Klemme
+dieses Umbaus: `mail` ist einer der sieben Zwecke in `BESTAETIGUNG_ZWECKE`, und
+der Dialog kürzt daran nichts ab. *Ein Dialog, der eine Schranke abkürzt, weil
+er selbst schon ein Dialog ist, wäre der stillste Verlust einer Runde.* **Keine
+neue Route:** `F_ROUTEN` steht unverändert bei 69.
+
+**Das Passwort kommt aus keiner Antwort heraus** — nie der Wert, nie die Länge,
+nie der Anfang, nie Sternchen mit der richtigen Zahl; ein leeres Feld beim
+Speichern heißt „unverändert lassen", und das sagt der Platzhalter am Feld.
+*Die Zeile „Passwort: gesetzt/nicht gesetzt" in der Karte ist mit 0.17.3
+weggefallen: sie beantwortete dieselbe Frage wie „Zustand" eine Zeile darüber —
+ein Zugang ist nur dann eingerichtet, wenn ein Passwort gesetzt ist.* Es steht
+in **keiner** Protokollzeile und in **keiner** Kontrollausgabe.
 **Die Vorlage gewinnt:** wer GMX gewählt hat, bekommt GMX, auch wenn ein anderer
 Server mitgeschickt wird — wechselt ein Anbieter morgen den Port, kommt der neue
 aus dem Quelltext, eine Kopie in der Datenbank wäre eingefroren.
@@ -1301,7 +1354,11 @@ setzt**.
 **Die Stolpersteine beim Anbieter stehen in der README** (Gmail: Zwei-Faktor und
 App-Passwort; GMX und Web.de: Versand über fremde Programme freischalten; die
 Absenderadresse muss zum Konto gehören). Sie kommen vom **Server**, nicht aus
-einer zweiten Liste in der Oberfläche.
+einer zweiten Liste in der Oberfläche — **seit 0.17.3 je Anbietereintrag**,
+zusammen mit dessen Server, Port und Verschlüsselung: der Dialog wechselt beides
+mit der Auswahl, und zwei Ausfertigungen liefen auseinander, sobald ein Anbieter
+dazukommt (Stolperstein 102). *Die Anbieterliste selbst ist unverändert — fünf
+Vorlagen und „Eigener Server".*
 
 ### Die öffentliche Adresse — `OEFFENTLICHE_ADRESSE`
 
@@ -1586,6 +1643,28 @@ gedämpft** — Tags und Kategorien gleichermaßen. *Die Regel galt bis 0.16.0 a
 der ERSTEN Zeile** ihres Inhalts und nicht mehr in der Mitte des Blocks; bei
 aufgeklappter Wolke saßen sie bis zu 59 px zu tief. *Die Höhe der Leiste ändert
 sich dadurch nicht — dieselben 154 px, nachgemessen.*
+
+**„Filter zurücksetzen" steht seit 0.17.3 rechts in der Sortierzeile**, neben
+„+ Ansicht speichern", **und nur dann, wenn wirklich etwas gesetzt ist**. Er
+nennt die Zahl: *„Filter zurücksetzen (3)"*. *Ein Knopf, der nichts zu tun hat,
+ist dieselbe Auskunft über nichts wie eine Null am Zähler „Offen".* Bis dahin
+gab es ein „zurücksetzen" genau **einmal**, in der Tagzeile, und auch dort nur,
+solange mindestens ein Tag gewählt war.
+**Die Zahl kommt aus `filterZahl()` und aus nichts anderem** — derselben
+Funktion, die den Schalter über den Filtern trägt, mit denselben Regeln: die
+Sortierung zählt nicht mit, drei Kategorien zählen als **ein** Filter, jeder Tag
+einzeln. *Eine zweite Zählung daneben wäre eine zweite Wahrheit (Stolperstein
+47); der Prüfstand hält beide Orte gegeneinander.*
+**Zurückgesetzt wird auf `FILTER_VORGABE`, und der Weg dorthin ist
+`filterNormal()`** — derselbe wie beim Anwenden einer gespeicherten Ansicht.
+**Die Suche wird ausdrücklich NICHT mitgeräumt:** sie hat ihr eigenes ✕ im
+Suchfeld, und `filterZahl()` zählt sie nicht mit. *Ein Knopf, der „(3)" sagt und
+vier Dinge wegnimmt, sagt die Unwahrheit.* **Die Sortierung ebenso wenig**, aus
+demselben Grund — eine andere Reihenfolge nimmt nichts weg, sie ordnet nur.
+**Und eine gespeicherte Ansicht wird nicht angetastet:** zurücksetzen heißt
+„zeig mir alles", nicht „vergiss, was ich mir gemerkt habe". *Der Filterstand
+fährt über dieselbe `PUT /api/settings` hinaus wie jeder Klick auf eine Pille —
+keine neue Route.*
 
 **Die Suche läuft seit 0.11.0 im SERVER** (`GET /api/items?q=…`) und nicht mehr
 im Browser. **Sie findet dasselbe wie vorher:** dieselben **sieben Quellen**
@@ -3079,6 +3158,16 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   weiterhin genau einmal, am Ende, und die Oberfläche kürzt nur für die
   Anzeige und sagt es dazu. **Die Übersicht bekommt ihn nicht:** tausend
   Einträge trügen tausend Aufstellungen für eine Zahl, die niemand aufklappt.
+  **Unter der Tabelle stehen seit 0.17.3 zwei Absätze und nicht drei**, und die
+  Zeilen rücken enger (`3px` statt `6px`), der Kasten ist breiter (620 statt
+  540 px). *Bei sieben Kriterien lief er über `88dvh` hinaus und rollte.*
+  **Weggefallen ist genau eine doppelte Angabe** — die ausgeschriebene Rechnung
+  „Summe ÷ Teiler = Ergebnis", die als Summe, Teiler und Ergebnis schon in der
+  Tabelle steht — **und eine Begründung**, warum der Teiler nur bewertete
+  Kriterien zählt: WARUM etwas so gebaut ist, gehört hierher und nicht in einen
+  Kasten, den man beim Lesen einer Note öffnet. *Alles Übrige trug etwas, das
+  in der Tabelle nicht steht, und ist geblieben — der Absatz zur Gewichtung
+  unverändert: er ist der Punkt des ganzen Kastens.*
 - **Eine Bewertung trägt seit 0.16.0 ihren Zeitpunkt** (`ratings.gesetzt_am`).
   Er heißt **nicht** `created_at`, und das ist kein Geschmack: die Zeile
   entsteht beim ersten Stern und wird danach überschrieben — was dort steht,
@@ -3692,19 +3781,30 @@ sucht, und nicht dort, wo sie jemanden aufhält.*
   machte die Zurück-Taste unbrauchbar). **Der zuletzt offene Abschnitt wird
   nicht gemerkt:** die Adresse tut es schon, ein Merker daneben wäre eine
   zweite Wahrheit.
-- **Eine Liste in einer Karte fordert zwölf Zeilen und deckelt nicht bei
-  zwölf** (seit 0.17.2). *0.17.1 hatte die feste Höhe gestrichen, ohne etwas an
-  ihre Stelle zu setzen; die Tagliste zog den Abschnitt „Bestand" auf fünfzig
-  Zeilen auseinander, und daneben standen vier leere Kacheln.* **Der Deckel
-  steht deshalb in `flex-basis` und nicht in `max-height`:** eine feste Zahl
-  dort klemmt **beides** — was die Liste fordert UND wie hoch sie werden darf —,
-  und der Platz einer höheren Nachbarkachel bliebe leer. **`max-height:
-  max-content` ist die Zeile, die einer kurzen Liste ihre zwölf Zeilen wieder
-  wegnimmt**, `min-height: 0` die, ohne die ein Flexkind wächst statt zu rollen
-  (Stolperstein 237). *In `rem` und nicht in Pixeln: die Oberfläche stellt ihre
-  Schrift von 80 bis 120 Prozent.* **Auf dem Telefon ist der Deckel wieder eine
-  Grenze und keine Forderung** — dort steht jede Kachel allein in ihrer Zeile,
-  es gibt keine Nachbarin, deren Höhe eine Liste mitnehmen könnte.
+- **Jede Kachel ist so hoch wie ihr Inhalt, und eine Liste darin fordert zehn
+  Zeilen** (seit 0.17.3). **Die Regel wird hier berichtigt und nicht gelöscht**
+  (Stolperstein 201): bis 0.17.2 stand hier, der Deckel gehe mit der Höhe einer
+  höheren Nachbarkachel mit. *Diese Zusage ist mit 0.17.3 gegenstandslos
+  geworden — nicht gebrochen: es gibt keine geschenkte Höhe mehr, die ungenutzt
+  bliebe.*
+  **`.sys-grid { align-items: start }` ist die Zeile, die den Leerraum nimmt,
+  und sie steht an der KACHEL.** Ein Raster zieht jedes Kind auf die Höhe der
+  höchsten Zelle seiner Reihe (`align-items` steht von Haus aus auf `stretch`);
+  der Leerraum stand deshalb **unter dem Inhalt IN der Kachel** und nicht in
+  der Liste, die korrekt klemmte. *Genau daran ist die Messung zu 0.17.2
+  vorbeigegangen: sie hat die Liste gemessen und die Kachel übersehen.*
+  **Der Deckel der Liste steht weiterhin in `flex-basis` und nicht in
+  `max-height`:** eine feste Zahl dort klemmt **beides** — was die Liste fordert
+  UND wie hoch sie werden darf. **`max-height: max-content` ist die Zeile, die
+  einer kurzen Liste ihre zehn Zeilen wieder wegnimmt**, `min-height: 0` die,
+  ohne die ein Flexkind wächst statt zu rollen (Stolperstein 237). *In `rem`
+  und nicht in Pixeln: die Oberfläche stellt ihre Schrift von 80 bis 120
+  Prozent.* **Zehn gilt auch fürs Sicherheitsprotokoll, obwohl dessen Zeilen
+  schmaler sind** — zwei Zahlen für dieselbe Sache wären eine zu viel
+  (Stolperstein 47); wer die Liste wirklich durchsieht, nimmt den Filter
+  darüber. **Auf dem Telefon hängt der Deckel am Fenster** (`62dvh`) — dort
+  steht jede Kachel allein in ihrer Zeile, und das Fenstermaß ist das einzige,
+  das etwas sagt.
   **Die eine Ausnahme ist `#ex-teil-liste`**, und ihr Grund steht als Satz
   daneben: sie steht mitten in ihrer Karte und schöbe den Import aus dem Blick.
 - **Die Reiter sind Links und keine Knöpfe** (seit 0.16.0). Ein Reiter mit
@@ -6063,6 +6163,65 @@ Version, in der sie entstanden sind.*
     und weiß er überhaupt, wovon die Rede ist".** *Dieselbe Frage hätte die
     siebenundvierzig Versionsnummern in der README zwei Runden früher gefunden.*
 
+246. **Wer eine Höhe nachmisst, muss zuerst sagen, WELCHES Element sie trägt.**
+    0.17.2 hat den Listen einen Deckel gegeben und ihn am Bildschirm
+    nachgemessen: zwei Einträge sind 84 px, eine leere Liste ist 0 — beides
+    richtig. **Der Leerraum stand trotzdem da**, denn er saß nicht in der Liste,
+    sondern **unter dem Inhalt IN der Kachel**: `.sys-grid` ist ein Raster, und
+    ein Raster zieht jedes Kind auf die Höhe der höchsten Zelle seiner Reihe
+    (`align-items: stretch` von Haus aus). *Die Messung hat die Liste gemessen
+    und die Kachel übersehen.*
+    **Stolperstein 140 hat gegriffen und war trotzdem zu eng gefasst:**
+    „nachmessen statt annehmen" sagt nichts darüber, WORAN gemessen wird.
+    **Die Regel lautet deshalb: erst den Kasten benennen, dessen Höhe erklärt
+    werden soll, dann messen** — und wenn die gemessene Zahl stimmt und der
+    Befund trotzdem steht, ist der gemessene Kasten der falsche.
+
+247. **Ein gesperrtes Feld ist keine Anzeige — es sieht aus wie eines, das
+    gleich aufgeht.** 0.17.1 hat Server, Port und Verschlüsselung bei einer
+    Anbietervorlage **gesperrt und nicht versteckt**, und die Begründung war
+    richtig: *„wer GMX gewählt hat, soll SEHEN, wohin die Instanz schickt."*
+    **Die Absicht trug, das Mittel nicht.** Drei graue Felder mit festen Werten
+    sind drei Bedienelemente, die nichts bedienen; sie kosten drei Beschriftungen
+    und einen eigenen Rhythmus in der Spalte.
+    **Was gezeigt und nicht eingestellt wird, ist eine Zeile und kein Feld.**
+    *Seit 0.17.3 steht dort `mail.gmx.net · 587 · STARTTLS`, und die Auskunft
+    ist dieselbe.*
+
+248. **Eine Behauptung aus einem Vorschlag gehört nachgelesen, bevor sie gebaut
+    wird — auch dann, wenn der Vorschlag besprochen und angenommen ist.** Im
+    Designvorschlag zu 0.17.3 stand, zwei der drei Absätze unter dem
+    Erklärkasten wiederholten die Tabelle. **Beim Nachlesen war das nicht
+    haltbar:** wiederholt wurde genau **eine** Angabe, die ausgeschriebene
+    Rechnung. *Wer der Behauptung gefolgt wäre, hätte zwei Absätze gestrichen,
+    die etwas tragen, das in der Tabelle nicht steht.*
+    **Ein angenommener Vorschlag ist eine Entscheidung über die Richtung und
+    keine über den Bestand.** Der Auftrag hat die Behauptung ausdrücklich
+    berichtigt, statt sie stillschweigend anders zu bauen — und genau so gehört
+    es gemacht.
+
+249. **Eine Umbenennung über einen ganzen Block trifft auch Teilwörter.** Beim
+    Auflösen einer doppelten Bezeichnervergabe im Prüfstand ist `rListe` zu
+    `rAnbListe` geworden — und mit ihr `anbieterListe` zu `anbieterAnbListe`.
+    **Die Prüfung war danach grün-aussehend rot**: die Liste kam als `[]`
+    heraus, `every` auf einer leeren Liste ist wahr, und zwei der sieben
+    Prüfungen waren aus dem falschen Grund grün.
+    **Eine Ersetzung über einen Block braucht eine Wortgrenze oder eine
+    Nachschau**, und die Nachschau ist billiger als ein Prüflauf von fünfeinhalb
+    Minuten. *Dass es überhaupt auffiel, lag an den fünf roten Punkten daneben —
+    nicht an den beiden grünen.*
+
+250. **Im Prüfstand ist eine Konstante, die weiter unten steht, eine tote Zone —
+    und der Lauf reißt ab, statt rot zu werden.** `pruefung.js` ist EIN langer
+    Ablauf, und `pruefeOberflaeche()` ist eine einzige Funktion über mehrere
+    tausend Zeilen. Wer eine Prüfung oben einfügt, die `css123` liest, bekommt
+    kein rotes Kreuz, sondern *„Cannot access 'css123' before initialization"* —
+    und mit ihm bricht **alles danach** weg, auch das, was in Ordnung ist.
+    **Die Regel: Prüfungen am DOM stehen bei ihrer Gruppe, Prüfungen am
+    Stilblatt hinter der Stelle, an der das Stilblatt gelesen wird.** *Ein
+    zweiter Leser daneben wäre die andere Lösung und die schlechtere — zwei
+    Leser für dieselbe Datei laufen auseinander (Stolperstein 47).*
+
 ---
 
 ## 7. Prüfstand
@@ -6076,30 +6235,49 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4747 von 4747 bestanden** (0.17.2) — **32 neue Prüfungen netto**;
-0.17.1 davor brachte 85, davon 83 in sechs neuen Gruppen. Die Gegenproben
-stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und
-**nicht** der volle Lauf über alle **368** Rückbauten.
+**Stand: 4805 von 4805 bestanden** (0.17.3) — **58 neue Prüfungen netto**;
+0.17.2 davor brachte 32. Die Gegenproben stehen in Abschnitt 8: sie sind auf
+die jeweils neuen Zusagen beschränkt und **nicht** der volle Lauf über alle
+**380** Rückbauten.
 
 | Gruppe | vorher | nachher | wofür |
 |---|---|---|---|
-| **Die Klammer steht erst ab zwei Stimmen — 0.17.2** *(neu)* | — | **8** | die Klammer ab zwei Stimmen, die Verneinung über **alle** Zeilen, der Klartext in Ein- und Mehrzahl |
-| Der Sprachwaechter | 16 | **24** | der Wächter über die Versionsnummern in der README — die drei, die bleiben, die Verneinung über alle anderen, die Zahl selbst und zwei Gegenproben am Wächter |
-| Der Mailversand ordnet sich — 0.17.1 | 14 | **20** | fünf Reihen, „als wer" und „tun" mit ihrem Satz **daneben**, die drei Regeln im Stilblatt, der gestrichene Satz |
-| Die Liste bekommt die Hoehe der Kachel — 0.17.1 | 17 | **21** | der Deckel als **Forderung** in `flex-basis`, `max-height: max-content`, die Telefonregel als Grenze |
-| Die Glocke in der Kopfzeile | 51 | **53** | der Einleitungssatz der Tafel, die **stille** Glocke bei einem einzigen Zugang, der eigene Name in keiner Zeile |
-| Die Glocke: was mit der Liste mitreist | 25 | **27** | die eigene **Bewertung** zählt nicht mit — und für einen anderen Zugang sehr wohl |
-| Die Zeitangaben stehen untereinander — 0.17.1 | 6 | **7** | der Name in seiner eigenen Reihe, das Raster mit nur noch zwei Spalten |
-| Zwei Masse vom echten Geraet — 0.17.0 | 16 | **17** | die Zusage zum Rahmen der eigenen Anmeldung liest jetzt das **globale** Raster |
-| **zusammen** | | | **+32** |
+| **Der Dialog „Mailzugang einrichten“ — 0.17.3** *(neu)* | — | **36** | eine Spalte statt vier Rastern, der Hinweis **unter** seiner Sache und wechselnd mit der Auswahl, die feste Zeile statt dreier gesperrter Felder, der Satz zum Hausanschluss nur bei „Eigener Server", die zweite Bestätigung samt Abbruch |
+| **Der Ruecksetzer fuer die Filterleiste — 0.17.3** *(neu)* | — | **22** | er steht nur bei gesetztem Filter, nennt die Zahl aus `filterZahl()` und **dieselbe** wie der Schalter, räumt Suche, Sortierung und gespeicherte Ansicht **nicht** mit |
+| **Der Mailversand im Stilblatt — 0.17.3** *(neu)* | — | **6** | die drei Regeln des Dialogs — und dass die sechs Regeln der vier Reihen wirklich weg sind |
+| Die Kachel ist so hoch wie ihr Inhalt — 0.17.1, berichtigt in 0.17.3 | 21 | **25** | `align-items: start` am Raster, ausserhalb jeder Medienabfrage, und der Deckel bei **genau zehn** Zeilen für beide Listen |
+| Der Mailzugang: wer ihn setzen darf | 14 | **21** | die Anbieterliste trägt je Eintrag Server, Port, Verschlüsselung und Hinweis — und kein Geheimnis |
+| Die Rechnung hinter der Kopfzahl | 47 | **53** | zwei Absätze statt drei, keine zweite Rechnung, der Teiler bleibt — und die beiden Zahlen im Stilblatt |
+| Die Karte „Mailversand“ | 33 | **30** | fünf Zeilen, kein Feld, zwei Knöpfe mit dem richtigen Wort — die Prüfungen an den Feldern sind in den Dialog gewandert |
+| Der Mailversand ordnet sich — 0.17.1 | 20 | **—** | die Gruppe ist **weg**: sie prüfte die vier Reihen, und genau die sind der Befund dieser Runde gewesen |
+| **zusammen** | | | **+58** |
 
-> **KEINE EINZIGE GRUPPE IST GESCHRUMPFT.** *Die Zusagen der Glocke sind
-> **umgedreht** und nicht gelöscht worden (Stolperstein 201): der eigene Name
-> steht weiter in der Prüftabelle — er belegt seit dieser Runde seine
-> **Abwesenheit** statt seines Daseins.*
+> **EINE GRUPPE IST GESCHRUMPFT UND EINE GANZ WEGGEFALLEN, und beides gehört
+> benannt.** *„Die Karte „Mailversand“"* verliert drei Prüfungen an den Dialog
+> — dieselben Zusagen, ein anderer Ort. *„Der Mailversand ordnet sich — 0.17.1"*
+> ist gestrichen: **eine Prüfung auf etwas, das es nicht mehr gibt, lässt sich
+> nicht mitnehmen** (Stolperstein 201 greift hier nicht — sie hat keinen Ort
+> mehr). **An ihrer Stelle steht ein Satz im Prüfstand**, der sagt, was sie
+> geprüft hat und warum sie weg ist, und die Gruppe „Der Mailversand im
+> Stilblatt" sieht ausdrücklich nach, dass ihre sechs Regeln wirklich
+> verschwunden sind — *eine Regel ohne Wähler im Markup fällt sonst niemandem
+> auf.*
 
-**Und die Runde davor, zum Vergleich — 0.17.1 brachte 85 netto, davon 83 in
-sechs neuen Gruppen:**
+**Und die Runde davor, zum Vergleich — 0.17.2 brachte 32 netto:**
+
+| Gruppe (0.17.2) | vorher | nachher |
+|---|---|---|
+| **Die Klammer steht erst ab zwei Stimmen — 0.17.2** *(neu)* | — | **8** |
+| Der Sprachwaechter | 16 | **24** |
+| Der Mailversand ordnet sich — 0.17.1 | 14 | **20** |
+| Die Liste bekommt die Hoehe der Kachel — 0.17.1 | 17 | **21** |
+| Die Glocke in der Kopfzeile | 51 | **53** |
+| Die Glocke: was mit der Liste mitreist | 25 | **27** |
+| Die Zeitangaben stehen untereinander — 0.17.1 | 6 | **7** |
+| Zwei Masse vom echten Geraet — 0.17.0 | 16 | **17** |
+| **zusammen** | | **+32** |
+
+**Und 0.17.1 davor brachte 85 netto, davon 83 in sechs neuen Gruppen:**
 
 | neue Gruppe (0.17.1) | Prüfungen |
 |---|---|
@@ -6680,7 +6858,8 @@ eine Buchführung.*
 | 0.16.0 | Der Systembereich, die Glocke und die Auskunft (157) | 29 neue (271 → 300); gefahren wurden sie einzeln, **sieben Befunde** dabei | Stolpersteine 217 bis 225 |
 | 0.17.0 | Was dasteht, und was nicht dasteht (107 netto) | 33 neue (300 → 333), zehn nachgezogen (Stolperstein 201); 43 gefahren, 0 stumm | Stolpersteine 226 bis 235 |
 | 0.17.1 | Was der Benutzer sieht (85 netto) | 20 neue (333 → 353), einer nachgezogen (Stolperstein 201); 21 gefahren, 0 stumm | Stolpersteine 236 bis 241 |
-| **0.17.2** | **Der Deckel und die eigene Hand (32 netto)** | **15 neue (353 → 368), sieben nachgezogen (Stolperstein 201); 15 gefahren, 3 STUMM — und jede der drei war eine Lücke im Prüfstand; nach dem Schließen 15 gefahren, 0 stumm** | **Stolpersteine 242 bis 245** |
+| 0.17.2 | Der Deckel und die eigene Hand (32 netto) | 15 neue (353 → 368), sieben nachgezogen (Stolperstein 201); 15 gefahren, 3 STUMM — und jede der drei war eine Lücke im Prüfstand; nach dem Schließen 15 gefahren, 0 stumm | Stolpersteine 242 bis 245 |
+| **0.17.3** | **Die Karte zeigt, der Dialog stellt ein (58 netto)** | **20 neue, ACHT weggefallen (368 → 380); vier nachgezogen (Stolperstein 201); GEGENPROBENLAUF_0173** | **Stolpersteine 246 bis 250** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -6696,6 +6875,19 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **0.17.3 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** **Am Wirt fehlt:**
+  *(a)* der Abschnitt **„Zugänge"** auf einem breiten Schirm — **keine Kachel
+  steht mehr leer**: eine leere Liste macht eine kurze Kachel, und die
+  Nachbarin daneben zieht sie nicht mehr auf; *im selben Blick der Abschnitt
+  „Bestand", wo die Tagliste bei **zehn** Zeilen deckelt und rollt*; *(b)*
+  **„Mailzugang ändern"** drücken — der Dialog kommt, bei einer Vorlage stehen
+  Server, Port und Verschlüsselung als **eine gelesene Zeile** da und nicht als
+  drei Felder, der Hinweis wechselt mit der Auswahl, und **Speichern fragt nach
+  dem Passwort**; *(c)* einen Eintrag mit **sieben Kriterien** öffnen und auf
+  die Gesamtnote klicken — **kein Rollbalken** im Erklärkasten; *(d)* einen
+  Filter setzen: **der Rücksetzer erscheint mit der richtigen Zahl**, und ein
+  Klick räumt die Filter weg, ohne den Suchbegriff oder die Sortierung
+  anzufassen. *Die Befehle dazu standen im Chat der Runde, nicht hier.*
 - **0.17.2 IST AM WIRT ANGEKOMMEN — DREI HANDGRIFFE FEHLEN NOCH, EINER HAT
   EINEN BEFUND GEBRACHT.** *Am 31. August 2026 bestätigt: die laufende Instanz
   meldet `edbd76b6`, genau den gebauten Wert.* **Gesehen ist *(a)*** — der
@@ -6743,7 +6935,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   „Mailversand" im Abschnitt „Zugänge" — sie steht jetzt so breit wie ihre drei
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT FÜNFZEHN RUNDEN AUS.** 368 Rückbauten
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT SECHZEHN RUNDEN AUS.** 380 Rückbauten
   zu je einem vollen Prüflauf sind bei rund fünfeinhalb Minuten je Lauf etwa
   **vierunddreißig Stunden** hintereinander, in vier Nebenspuren rund neun. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
@@ -7140,6 +7332,83 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.17.3 — „Die Karte zeigt, der Dialog stellt ein"
+
+**PATCH · 31. August 2026 · vier Handgriffe aus dem Rundlauf mit 0.17.2,
+gemeldet unmittelbar nach dem Einspielen.** *Die Instanz kann danach nichts,
+was sie vorher nicht konnte — vier Handgriffe an Anordnung und Anzeige
+(Abschnitt 5.1).* **Zwei davon sind Nacharbeit an 0.17.2 selbst.**
+
+**DER DECKEL GING NACH OBEN MIT UND NACH UNTEN NICHT — und die Ursache lag
+nicht dort, wo 0.17.2 sie gesucht hat.** Die **Liste** klemmte korrekt: zwei
+Einträge sind 84 px, eine leere Liste ist 0. **Die Kachel klemmte nicht.**
+`.sys-grid` ist ein Raster, und ein Raster zieht jedes Kind auf die Höhe der
+höchsten Zelle seiner Reihe. *Der Leerraum stand unter dem Inhalt IN der
+Kachel, nicht in der Liste — und genau deshalb hat die Messung zu 0.17.2 ihn
+nicht gesehen.* **Zwei Zeilen im Stilblatt:** `align-items: start` am Raster,
+und der Deckel von zwölf auf **zehn** Zeilen für **beide** Listen
+(`.manage-list` 27.95rem, `.prot-liste` 23.3rem). **Nachgemessen in Chromium
+bei 1600×913, drei Kacheln nebeneinander:** eine Kachel mit zwei Listenzeilen
+fällt von **605 auf 186 px**, eine mit leerer Liste auf **136**, eine mit
+fünfzig Zeilen auf **521** *(die Liste darin 419 px = zehn Zeilen, und sie
+rollt)*. **Zehn gilt auch fürs Sicherheitsprotokoll, obwohl dessen Zeilen
+schmaler sind** — zwei Zahlen für dieselbe Sache wären eine zu viel. *Die
+Zusage aus 0.17.1, dass eine Liste die Höhe ihrer Kachel bekommt, ist damit
+gegenstandslos statt gebrochen: es gibt keine geschenkte Höhe mehr.*
+
+**DER MAILVERSAND: DIE KARTE ZEIGT, DER DIALOG STELLT EIN.** Die Karte trug
+neun Bedienelemente in **vier verschiedenen Spaltenaufteilungen** und
+dazwischen vier Erklärsätze, zwei davon **neben** einem Feld — *das Auge fand
+keine Spalte.* **Jetzt ist sie eine Zustandskarte wie ihre Nachbarn:** Zustand,
+Anbieter als **eine** Zeile („GMX · mail.gmx.net:587 · STARTTLS"), Absender,
+öffentliche Adresse, zuletzt getestet — darunter zwei Knöpfe und der Satz zur
+Testmail. **Eingetragen wird in einem Dialog mit EINEM Rhythmus:** eine Spalte,
+Beschriftung über dem Feld, Hinweis **unter** seiner Sache und wechselnd mit
+der Auswahl. **Bei einer der fünf Vorlagen sind Server, Port und
+Verschlüsselung eine gelesene Zeile und kein Feld** — *aus neun Feldern werden
+drei*; nur bei „Eigener Server" sind es Felder, und dort steht der Satz zum
+Hausanschluss. **Die zweite Bestätigung bleibt, wo sie ist:** `mail` ist einer
+der sieben Zwecke, und ein Dialog, der eine Schranke abkürzt, weil er selbst
+schon ein Dialog ist, wäre der stillste Verlust einer Runde. **Keine neue
+Route, keine neue Karte, kein neues Feld im Bestand.** *Die Zeile „Passwort" in
+der Karte ist weggefallen — sie beantwortete dieselbe Frage wie „Zustand".*
+
+**DER ERKLÄRKASTEN ZUR GEWICHTUNG ROLLT NICHT MEHR.** Bei sieben Kriterien trug
+er zwölf Tabellenzeilen und darunter drei Absätze und lief über `88dvh` hinaus.
+**Die Zeilen rücken enger** (`3px` statt `6px` — rund 72 px), **der Kasten wird
+breiter** (620 statt 540 px), **und aus drei Absätzen werden zwei.**
+*Weggefallen ist genau eine doppelte Angabe* — die ausgeschriebene Rechnung,
+die als Summe, Teiler und Ergebnis schon in der Tabelle steht — *und eine
+Begründung zum Teiler, die sagt, WARUM es so gebaut ist.* **Der Absatz zur
+Gewichtung ist unverändert: er ist der Punkt des ganzen Kastens.** *Gerechnet
+rund 590 px statt rund 800 — gerechnet, nicht gemessen.*
+
+**DIE FILTERLEISTE BEKOMMT IHREN RÜCKSETZER.** Es gab ihn nicht: ein
+„zurücksetzen" stand genau **einmal** in der Tagzeile, und auch dort nur bei
+gewähltem Tag. **„Filter zurücksetzen (3)" steht jetzt rechts in der
+Sortierzeile**, neben „+ Ansicht speichern", **und nur, wenn wirklich etwas
+gesetzt ist**. **Die Zahl kommt aus `filterZahl()` und aus nichts anderem** —
+derselben Funktion, die den Schalter trägt; der Prüfstand hält beide Orte
+gegeneinander. **Suche und Sortierung werden nicht mitgeräumt** *(ein Knopf,
+der „(3)" sagt und vier Dinge wegnimmt, sagt die Unwahrheit)*, **und eine
+gespeicherte Ansicht wird nicht angetastet.** *Zurückgesetzt wird über
+`filterNormal()` auf `FILTER_VORGABE`, und der Stand fährt über dieselbe
+`PUT /api/settings` hinaus wie jeder Klick auf eine Pille.*
+
+**KEINE DATENBANKSTUFE.** Kein Schema, kein Migrationsblock, keine neue
+Formatnummer: sieben markierte Blöcke, Austauschformat **11**, `F_ROUTEN` bei
+**69**, achtzehn Karten in fünf Abschnitten, acht persönliche Schlüssel, sieben
+Zwecke in `BESTAETIGUNG_ZWECKE`. **Die Sicherung ist Empfehlung und nicht
+Pflicht.**
+
+**UND ACHT RÜCKBAUTEN SIND WEGGEFALLEN STATT MITGEGANGEN.** *Sie bauten die
+vier Reihen des Mailversands zurück — und genau diese Anordnung ist der Befund
+dieser Runde gewesen.* **Ein Rückbau auf etwas, das es nicht mehr gibt, lässt
+sich nicht mitnehmen: er hat keinen Ort mehr.** Neun neue treten an ihre
+Stelle, am Dialog und an der Zustandskarte.
+
+**4747 → 4805 Prüfungen, 368 → 380 Rückbauten.** **Keine neue Abhängigkeit.**
 
 ### 0.17.2 — „Der Deckel und die eigene Hand"
 
@@ -8108,6 +8377,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.17.0** | Was dasteht, und was nicht dasteht | **GEBAUT.** Neun Befunde aus **einem** Rundlauf von Hand am 30. August 2026, unmittelbar nach dem Einspielen von 0.16.0. Die Kriterienliste zerfiel bei genau **einem** Zugang; zwei Erklärtexte haben die Oberfläche verlassen; die Glockentafel sagt, **was** neu ist; drei Anzeigefehler vom echten Gerät; der Erklärkasten nennt die Vergleichszahl ohne Gewichtung — **und die Glocke ersetzt die Pille „Neu seit …", die dafür gestrichen ist.** *MINOR.* **Kein Schema, keine Route — MINOR wegen der Glockentafel. Alle neun Punkte sind gebaut, dazu ein zehnter Befund aus dem Bauen: der Erklärkasten verwies auf eine Spalte, die es bei einem einzigen Zugang nicht gibt** | nein | — |
 | **0.17.1** | Was der Benutzer sieht | **GEBAUT.** Sechs Handgriffe aus einem Rundlauf von Hand: der Text im Kachel „Zugang" stimmt nicht und sagt zu viel, Kacheln nutzen ihre Höhe nicht, der Mailversand ordnet sich, **aus „Anlage" wird „Instanz"**, die Zeile einer Sitzung steht schief — und das Video fängt im Vollbild ein zweites Mal an. *PATCH: fünf sind Wortlaut und Anzeige, einer ist ein echter Fehler.* **Alle sechs Punkte sind gebaut; keiner ist herausgefallen. Die Umbenennung traf 692 Stellen, und die alte Adresse `#/system/anlage` wird still übersetzt** | nein | — |
 | **0.17.2** | Der Deckel und die eigene Hand | **GEBAUT.** Sechs Handgriffe aus dem Rundlauf mit 0.17.1, zwei davon Nacharbeit an ihr selbst: die Zeile einer Anmeldung schnitt den Namen ab, **die Listen brauchten einen Deckel bei zwölf Zeilen** (die Tagliste zog die Seite auf), der Mailversand ordnet sich zu Ende, die Klammer bei einer einzigen Stimme fällt weg, **die Glocke meldet die eigenen Beiträge wieder nicht** — und die README erzählt keine Versionsgeschichte mehr. *PATCH: die Instanz sagt an zwei Stellen weniger.* **Alle sechs Punkte sind gebaut; der Deckel steht in `flex-basis` und nicht in `max-height`, damit er mitgeht** | nein | — |
+| **0.17.3** | Die Karte zeigt, der Dialog stellt ein | **GEBAUT.** Vier Handgriffe aus dem Rundlauf mit 0.17.2, zwei davon Nacharbeit an ihr selbst: **der Deckel ging nach oben mit und nach unten nicht** — die Ursache lag nicht in der Liste, sondern in der Kachel (`align-items: start`), und der Deckel fällt im selben Zug auf **zehn** Zeilen —, die Karte „Mailversand" wird eine **Zustandskarte mit eigenem Dialog**, der Erklärkasten zur Gewichtung rollt nicht mehr, und die Filterleiste bekommt ihren **Rücksetzer**. *PATCH: vier Handgriffe an Anordnung und Anzeige; die Instanz kann danach nichts, was sie vorher nicht konnte.* **Alle vier Punkte sind gebaut; die zweite Bestätigung im Mailversand bleibt, wo sie ist, und `F_ROUTEN` bleibt bei 69** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
 | **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
@@ -8592,6 +8862,38 @@ an 0.17.1 selbst.* **Alle sechs sind gebaut; was dabei herauskam, steht im
    Versionsnummern bleiben sechs, und jede bestimmt eine Handlung.* **Dieser
    Punkt ist während der Runde dazugekommen und im Auftrag nachgetragen
    worden.**
+
+---
+
+### 0.17.3 — GEBAUT, herausgegeben am 31. August 2026
+
+**GEBAUT am 31. August 2026.** *Nichts aus dem Sammelblatt — vier Befunde aus
+dem Rundlauf mit 0.17.2, unmittelbar nach dem Einspielen; zwei davon Nacharbeit
+an 0.17.2 selbst.* **Alle vier sind gebaut; was dabei herauskam, steht im
+Änderungsprotokoll `Doku/Aenderungsprotokoll_0.17.3.md` und in Abschnitt 9.**
+
+**Die Ausarbeitung stand im Auftrag** (`Doku/Auftrag_0.17.3.md`) und nicht hier.
+*Ein Designvorschlag mit gezeichneten Kacheln lag daneben; besprochen, und
+**Vorschlag A ist gewählt** — verbindlich war der Auftrag und nicht die Seite.*
+**In einem Satz je Punkt:**
+
+1. **Der Deckel ging nach oben mit und nach unten nicht** — und die Ursache lag
+   nicht in der Liste, sondern in der **Kachel**: ein Raster streckt jedes Kind
+   auf die Höhe seiner Reihe. *`align-items: start` am Raster, und der Deckel
+   fällt von zwölf auf **zehn** Zeilen — für beide Listen.* **In Chromium bei
+   1600×913 nachgemessen: 605 → 186 px bei zwei Zeilen, 605 → 136 px bei
+   leerer Liste.**
+2. **Die Karte „Mailversand" zeigt, der Dialog stellt ein.** *Vier Rhythmen in
+   einer Karte werden einer in einem Fenster; aus neun Feldern werden drei, und
+   die festen Werte einer Vorlage sind eine gelesene Zeile statt dreier
+   gesperrter Felder.* **Die zweite Bestätigung bleibt, wo sie ist.**
+3. **Der Erklärkasten zur Gewichtung rollt nicht mehr:** engere Zeilen,
+   breiterer Kasten, zwei Absätze statt drei. *Weggefallen ist genau eine
+   doppelte Angabe — und der Auftrag hat die Behauptung des Designvorschlags,
+   es seien zwei, ausdrücklich berichtigt (Stolperstein 248).*
+4. **Die Filterleiste bekommt ihren Rücksetzer** — rechts in der Sortierzeile,
+   nur bei gesetztem Filter, mit der Zahl aus `filterZahl()`. *Suche,
+   Sortierung und gespeicherte Ansichten bleiben unangetastet.*
 
 ---
 

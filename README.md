@@ -747,20 +747,42 @@ Schlüsselwert sehen darf, gewinnt hier nichts dazu. Was der Admin bekommt, ist
 die Auskunft an der Stelle, an der sie ihn angeht: neben dem Link steht, ob
 etwas hinausging und warum nicht.
 
-Die Karte **„Mailversand"** im Systembereich fragt nach:
+**Die Karte „Mailversand" zeigt, der Dialog stellt ein.** Im Systembereich
+unter **Zugänge** steht die Karte und sagt in fünf Zeilen, woran man ist:
+
+| Zeile | |
+|---|---|
+| **Zustand** | eingerichtet oder nicht eingerichtet |
+| **Anbieter** | Name, Server mit Port und Verschlüsselung in einer Zeile |
+| **Absender** | die Absenderadresse |
+| **Öffentliche Adresse** | der Wert aus der `.env`, auf den die Links zeigen |
+| **Zuletzt erfolgreich getestet** | wann die letzte Testmail durchkam |
+
+Darunter zwei Knöpfe: **„Mailzugang einrichten"** beziehungsweise **„Mailzugang
+ändern"** — und **„Testmail an mich"**.
+
+**Der Knopf öffnet einen Dialog, und der fragt der Reihe nach:**
 
 | Feld | |
 |---|---|
 | **Anbieter** | GMX, Web.de, Gmail, Strato, IONOS oder „Eigener Server" |
-| **Server, Port, Verschlüsselung** | füllt die Vorlage; offen nur bei „Eigener Server" |
+| **Server, Port, Verschlüsselung** | bei einer Vorlage stehen sie nur da und sind kein Feld; einzutragen sind sie ausschließlich bei „Eigener Server" |
 | **Benutzername, Passwort** | dein Zugang beim Anbieter |
 | **Absenderadresse** | muss zum Konto gehören |
 
-**Das Passwort wird nie angezeigt** — die Karte sagt „gesetzt" oder „nicht
-gesetzt", nie die Länge, nie den Anfang, nie Sternchen mit der richtigen Zahl.
-Beim Speichern bedeutet ein leeres Passwortfeld „unverändert lassen". Es steht
-in der **verschlüsselten Datenbank**, nicht in der `.env`, und wandert weder in
-eine Exportdatei noch in eine Protokollzeile.
+**Wer eine der fünf Vorlagen nimmt, füllt drei Felder** — Benutzername,
+Passwort, Absenderadresse. Server, Port und Verschlüsselung stehen fest und
+werden aus der Vorlage gelesen; wechselt der Anbieter morgen den Port, kommt
+der neue mit dem nächsten Kriterion und nicht aus deiner Datenbank.
+
+**Speichern verlangt dein eigenes Passwort** — und, wenn du den zweiten Faktor
+eingeschaltet hast, zusätzlich einen Code. Der Dialog kürzt daran nichts ab.
+
+**Das Passwort wird nie angezeigt** — nie der Wert, nie die Länge, nie den
+Anfang, nie Sternchen mit der richtigen Zahl. Beim Speichern bedeutet ein
+leeres Passwortfeld „unverändert lassen". Es steht in der **verschlüsselten
+Datenbank**, nicht in der `.env`, und wandert weder in eine Exportdatei noch in
+eine Protokollzeile.
 
 Drei Hinweise, an denen die meisten Versuche scheitern:
 
@@ -773,7 +795,8 @@ Drei Hinweise, an denen die meisten Versuche scheitern:
 
 Und der Grund für die Vorlagen: **immer über den SMTP-Zugang eines Anbieters,
 nie unmittelbar vom Hausanschluss.** Dort fehlen rDNS und SPF/DKIM, und die
-Mail landet im besten Fall im Spam.
+Mail landet im besten Fall im Spam. *Dieser Satz steht auch im Dialog — aber
+nur dort, wo er gilt: bei „Eigener Server".*
 
 **Der Testmail-Knopf geht ausschließlich an die Adresse deines eigenen
 Zugangs.** Es gibt kein Adressfeld daneben, und das ist Absicht: ein Knopf, der
@@ -1081,6 +1104,14 @@ es zwei, beide im Systembereich einstellbar:
   garantiert leer; die Zeile hat deshalb keinen Umschalter. Am Ende steht
   **„Ohne"** mit eigener Zahl: Einträge, die keiner Kategorie zugeordnet sind
   und über keine einzelne Kategorie zu finden wären.
+- **„Filter zurücksetzen" steht rechts in der Sortierzeile**, neben „+ Ansicht
+  speichern" — und nur dann, wenn wirklich etwas gesetzt ist. Er nennt die
+  Zahl: *„Filter zurücksetzen (3)"*. Ein Klick stellt Status, Ablehnung,
+  Favoriten, Kategorien und Tags auf „alles zeigen" zurück.
+  **Der Suchbegriff bleibt stehen** — er hat sein eigenes Kreuz im Suchfeld —,
+  **die Sortierung ebenfalls**, und **eine gespeicherte Ansicht wird nicht
+  angetastet**. *Zurücksetzen heißt „zeig mir alles", nicht „vergiss, was ich
+  mir gemerkt habe".*
 - **Zeitleiste der Testtage** zwischen Filterleiste und Kartenraster: waagerecht
   die Zeit, senkrecht die Tagesnote, ein Punkt je Testtag. Überfahren zeigt
   Titel, Datum und Note, ein Klick öffnet den Eintrag. Sie richtet sich nach den
@@ -1340,16 +1371,19 @@ weitergeben, in einem neuen Fenster öffnen und mit der Zurück-Taste wieder
 verlassen. `#/system` ohne Abschnitt bleibt gültig und löst sich auf den ersten
 sichtbaren auf.
 
-> **EINE LISTE IN EINER KARTE WÄCHST BIS ZWÖLF ZEILEN UND ROLLT DANN.** Tags,
+> **EINE LISTE IN EINER KARTE WÄCHST BIS ZEHN ZEILEN UND ROLLT DANN.** Tags,
 > Kategorien, Zugänge und das Sicherheitsprotokoll können beliebig lang werden;
 > ohne Deckel zöge eine einzige Karte die Seite auf fünfzig Zeilen, und
 > daneben stünden vier leere.
 >
-> **Der Deckel geht aber mit.** Steht neben der Karte eine höhere — eine, die
-> den Platz ohnehin braucht —, wächst die Liste bis auf deren Höhe und rollt
-> erst darüber hinaus. *Zwölf Zeilen sind eine Forderung und keine
-> Obergrenze:* der Platz, der in der Reihe ohnehin da ist, wird genutzt, und
-> was fehlt, holt der Rollbalken.
+> **Und jede Karte ist so hoch wie ihr Inhalt.** Eine Karte mit zwei Zeilen
+> bleibt zwei Zeilen hoch, auch wenn daneben eine mit fünfzig steht — sie
+> streckt sich nicht auf deren Höhe. *Eine leere Karte ist eine leere Karte
+> und kein leeres Feld.*
+>
+> **Auf dem Telefon steht jede Karte allein in ihrer Zeile.** Dort hängt der
+> Deckel am Fenster: eine Liste nimmt höchstens gut sechs Zehntel der
+> Fensterhöhe, und der Rest kommt über den Rollbalken.
 
 > **DIE ALTE ADRESSE `#/system/anlage` WIRD WEITER VERSTANDEN.** Sie führt
 > still an dieselbe Stelle wie `#/system/instanz` und wird dabei in der
