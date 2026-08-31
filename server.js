@@ -1226,7 +1226,10 @@ function mailKarte() {
   const test = mailtestStand(roh);
   return {
     ...mail.zustand(roh),
-    anbieterListe: mail.ANBIETER.map(a => ({ schluessel: a.schluessel, name: a.name })),
+    /* SAMT HINWEIS UND DEN DREI FESTEN WERTEN JE ANBIETER -- seit 0.17.3.
+       Der Dialog wechselt mit der Auswahl beides, und beides steht in mail.js;
+       zwei Ausfertigungen liefen auseinander (Stolperstein 102). */
+    anbieterListe: mail.fuerDieAuswahl(),
     eingerichtet: mail.eingerichtet(roh),
     // Der ZUSTAND der oeffentlichen Adresse, nicht die Adresse selbst -- die
     // steht in der Karte "Zugaenge", wo der Link entsteht.

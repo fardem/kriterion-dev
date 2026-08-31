@@ -7780,7 +7780,9 @@ function karteMailversand(geholt) {
      „Anfragen", „Sicherheitsprotokoll" und „Mailversand" im selben Abschnitt;
      die ersten drei nehmen die volle Breite, und die vierte wirkte daneben wie
      ein Rest. Vier gleich breite Kacheln sind einfacher zu begruenden als drei
-     plus ein Rest, und diese Karte traegt die Breite mit ihren Feldern gut. */
+     plus ein Rest -- und seit 0.17.3 traegt sie die Breite mit ihrer laengsten
+     Zeile, „Eigener Server · smtp.beispiel.de:587 · STARTTLS", statt mit
+     Feldern. */
   return `<div class="sys-card breit">
         <h3>Mailversand</h3>
         ${/* DIE ACHTZEHNTE KARTE, und sie gehört dem EIGENTÜMER — nicht dem
@@ -7789,10 +7791,12 @@ function karteMailversand(geholt) {
               setzt; ein Admin, der ihn einträgt, böge damit die Rücksetzmail
               des Eigentümers auf einen Server seiner Wahl. Über dem Eigentümer
               steht niemand — die Rollenleiter bleibt heil.
-              DAS PASSWORT STEHT HIER NIE: „gesetzt“ oder „nicht gesetzt“, nie
-              die Länge, nie der Anfang, nie Sternchen mit der richtigen Zahl.
-              Aus jedem davon ließe sich etwas ableiten, und keines hilft dem,
-              der die Karte ansieht. */''}
+              DAS PASSWORT STEHT HIER NIE — nie der Wert, nie die Länge, nie
+              der Anfang, nie Sternchen mit der richtigen Zahl. Aus jedem davon
+              ließe sich etwas ableiten, und keines hilft dem, der die Karte
+              ansieht. Bis 0.17.2 stand hier wenigstens „gesetzt" oder „nicht
+              gesetzt"; die Zeile ist weg, weil sie dieselbe Frage beantwortete
+              wie „Zustand" — der Dialog sagt es jetzt am Feld selbst. */''}
         <p class="desc"><strong>E-Mail ist eine Bequemlichkeit, keine Voraussetzung.</strong>
           Ohne Mailzugang läuft die Instanz vollständig — Einladungs- und Rücksetzlinks stehen
           dann wie bisher im Verwaltungsbereich zum Kopieren. Mit Mailzugang gehen sie
@@ -7800,8 +7804,26 @@ function karteMailversand(geholt) {
         <div class="kv"><span class="k">Zustand</span><span class="v">${mailstand.eingerichtet
           ? '<strong class="mail-gut">eingerichtet</strong>'
           : '<strong class="mail-aus">nicht eingerichtet</strong>'}</span></div>
-        <div class="kv"><span class="k">Passwort</span><span class="v">${mailstand.passwortGesetzt
-          ? 'gesetzt' : 'nicht gesetzt'}</span></div>
+        ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
+              BIS 0.17.2 STANDEN HIER NEUN BEDIENELEMENTE in vier verschiedenen
+              Spaltenaufteilungen, und dazwischen vier Erklärsätze: zwei NEBEN
+              einem Feld, zwei über die volle Breite. Das Auge fand keine
+              Spalte. Die Reihe „Anbieter" war der sichtbarste Teil davon: ein
+              Feld auf einem Drittel, daneben zwei Drittel Leere mit einem
+              Strich darin.
+              JETZT IST SIE EINE ZUSTANDSKARTE WIE IHRE NACHBARN — fünf Zeilen,
+              zwei Knöpfe, ein Satz. Was eingestellt wird, stellt der Dialog
+              ein, und der trägt EINEN Rhythmus.
+              KEINE ZEILE „PASSWORT" MEHR: sie beantwortete dieselbe Frage wie
+              „Zustand" eine Zeile darüber — ein Zugang ist nur dann
+              eingerichtet, wenn ein Passwort gesetzt ist. Der Dialog sagt es
+              am Feld selbst. DASS DAS PASSWORT NIE DASTEHT, gilt unverändert:
+              nie der Wert, nie die Länge, nie Sternchen mit der richtigen
+              Zahl. */''}
+        <div class="kv"><span class="k">Anbieter</span><span class="v">${mailAnbieterZeile(mailstand)}</span></div>
+        <div class="kv"><span class="k">Absender</span><span class="v">${mailstand.absender
+          ? esc(mailstand.absender)
+          : '<strong class="mail-aus">nicht gesetzt</strong>'}</span></div>
         <div class="kv"><span class="k">Öffentliche Adresse</span><span class="v">${mailstand.adresseGesetzt
           ? esc(mailstand.adresse)
           : '<strong class="mail-aus">nicht gesetzt — es wird nicht verschickt</strong>'}</span></div>
@@ -7812,127 +7834,159 @@ function karteMailversand(geholt) {
           verschickt.</strong> Der Server wüsste sonst nicht, worauf der Link zeigen soll —
           und aus dem <code>Host</code>-Kopf darf er es nicht ableiten: über einen gefälschten
           Kopf ließe sich ein Rücksetzlink auf einen fremden Server umbiegen.</p>`}
-
-        ${/* ---- VIER REIHEN, UND JEDE BEANTWORTET EINE FRAGE ----
-              WER (Anbieter) · WOHIN (Server, Port, Verschlüsselung) · WOMIT
-              (Benutzername, Passwort) · ALS WER (Absenderadresse). Bis 0.17.0
-              standen sechs Felder untereinander, jedes über die volle Breite
-              einer Karte, die seit 0.16.0 `.breit` ist — ein Auswahlfeld mit
-              sechs Einträgen über neunhundert Pixel. Der Platz war da und
-              wurde nicht genutzt.
-              DIE ABSENDERADRESSE STEHT ALLEIN, und das ist der einzige Grund,
-              warum sie keine Reihe teilt: unter ihr stehen zwei eigene
-              Hinweissätze. Neben zwei anderen Feldern klebten sie unter dreien,
-              und niemand wüsste, auf welches sie sich beziehen.
-              AUF DEM TELEFON FÄLLT ALLES WIEDER UNTEREINANDER — das entscheidet
-              das Stilblatt. Eine Reihe, die auf 366 Pixeln drei Felder
-              nebeneinander zwingt, ist schlechter als die Spalte, die es
-              vorher war. */''}
-        <div class="mail-reihe mail-wer" style="margin-top:14px">
-          <div class="field"><label for="mail-anbieter">Anbieter</label>
-            <select class="input" id="mail-anbieter">
-              <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
-              ${mailstand.anbieterListe.map(a => `<option value="${esc(a.schluessel)}"${
-                a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
-            </select></div>
+        ${/* ZWEI KNÖPFE, und der erste sagt, was er tut: einrichten, wenn noch
+              nichts steht, ändern, wenn etwas steht. „Speichern" hieß er bis
+              0.17.2 — an einer Karte, in der die Felder schon dastanden. Ein
+              Knopf, der einen Dialog öffnet, verspricht mit „Speichern" einen
+              Vorgang, den er gar nicht auslöst.
+              DER SATZ ZUR TESTMAIL STEHT DARUNTER und nicht daneben: er nennt
+              eine Folge, die man kennen muss, bevor man drückt. */''}
+        <div class="row-in" style="margin-top:14px">
+          <button class="btn btn-accent btn-sm" id="mail-einrichten">Mailzugang ${
+            mailstand.eingerichtet ? 'ändern' : 'einrichten'}</button>
+          <button class="btn btn-sm" id="mail-test">Testmail an mich</button>
         </div>
-        ${/* Server, Port und Verschlüsselung stehen für die Vorlagen im
-              Quelltext und werden hier nur GEZEIGT. Wechselt ein Anbieter
-              morgen den Port, kommt der neue aus der Liste — eine Kopie in
-              der Datenbank wäre eingefroren und liefe auseinander. Nur bei
-              „Eigener Server“ sind die Felder offen. */''}
-        <div class="mail-reihe mail-wohin">
-          <div class="field"><label for="mail-server">Server</label>
-            <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
-              autocapitalize="off" spellcheck="false"></div>
-          <div class="field"><label for="mail-port">Port</label>
-            <input class="input" id="mail-port" type="number" min="1" max="65535"
-              value="${mailstand.port || ''}"></div>
-          <div class="field"><label for="mail-sicher">Verschlüsselung</label>
-            <select class="input" id="mail-sicher">
-              <option value="starttls"${mailstand.sicher ? '' : ' selected'}>STARTTLS (meist 587)</option>
-              <option value="tls"${mailstand.sicher ? ' selected' : ''}>TLS von Anfang an (meist 465)</option>
-            </select></div>
-        </div>
-        <div class="mail-reihe mail-womit">
-          <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
-            <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
-              autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-          <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
-            <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
-              placeholder="${mailstand.passwortGesetzt ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
-        </div>
-        ${/* ALS WER · UND WAS DER SATZ DANEBEN SAGT. Die Absenderadresse ist ein
-              Feld wie die darüber und braucht die Breite nicht; der Satz, der
-              sie erklärt, stand bis 0.17.1 als eigene Zeile darunter und ließ
-              die halbe Karte leer. Jetzt stehen sie NEBENEINANDER — das Feld
-              links, der Satz rechts.
-              DER SATZ IST WEITERHIN ZWEITEILIG: was der Anbieter verlangt
-              (`hinweis`, nur wenn es ihn gibt) und was immer gilt
-              (`hinweisImmer`). Beide gehören zur Adresse und zu keinem anderen
-              Feld — deshalb bekommt sie ihre eigene Reihe. */''}
-        <div class="mail-reihe mail-alswer">
-          <div class="field"><label for="mail-absender">Absenderadresse</label>
-            <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
-              autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-          <p class="desc mail-satz" id="mail-hinweis">${mailstand.hinweis ? `<strong>${esc(mailstand.hinweis)}</strong><br>` : ''}
-            ${esc(mailstand.hinweisImmer)}</p>
-        </div>
-        <p class="desc">Immer über den SMTP-Zugang eines Anbieters, nie unmittelbar vom
-          Hausanschluss: dort fehlen rDNS und SPF/DKIM, und die Mail landet im besten Fall
-          im Spam.</p>
-        ${/* TUN · UND WAS DER SATZ DANEBEN SAGT. Dieselbe Bauform wie darüber:
-              die beiden Knöpfe links, der Satz zur Testmail rechts.
-              WAS HIER NICHT MEHR STEHT: die Begründung, warum es kein
-              Adressfeld neben der Testmail gibt. Sie ist richtig und war ein
-              Gedanke vom Bauen — eine Oberfläche sagt, WAS IST (Projektstand
-              5.6). Sie steht in der README. */''}
-        <div class="mail-reihe mail-tun">
-          <div class="row-in">
-            <button class="btn btn-accent btn-sm" id="mail-save">Mailzugang speichern</button>
-            <button class="btn btn-sm" id="mail-test">Testmail an mich</button>
-          </div>
-          <p class="desc mail-satz">Die Testmail geht <strong>ausschließlich an die Adresse
-            deines eigenen Zugangs</strong>. Antwortet der Mailserver nicht, bricht der
-            Versuch nach ${mailstand.sekunden} Sekunden ab.</p>
-        </div>
+        <p class="desc" style="margin:10px 0 0">Die Testmail geht <strong>ausschließlich an die
+          Adresse deines eigenen Zugangs</strong>. Antwortet der Mailserver nicht, bricht der
+          Versuch nach ${mailstand.sekunden} Sekunden ab.</p>
         <div id="mail-ergebnis"></div>
       </div>`;
 }
-function ruesteMailversandAus(geholt) {
-  /* NUR FUER DEN EIGENTUEMER; die Klemme steht in SYS_KARTEN, und die
-     Endpunkte darunter weisen jeden anderen ohnehin ab. Die Abfrage auf das
-     Element bleibt trotzdem stehen: sie ist der Schutz davor, dass ein
-     Behandler ins Leere greift, wenn die Karte einmal woanders steht
-     (Stolperstein 211). */
-  const { mailstand } = geholt;
-  const mailAnbieter = document.getElementById('mail-anbieter');
-  if (mailAnbieter && mailstand) {
-    const feld = (id) => document.getElementById('mail-' + id);
-    /* SERVER, PORT UND VERSCHLUESSELUNG GEHOEREN DER VORLAGE, ausser bei
-       "eigen". Sie werden gesperrt und nicht versteckt: wer GMX gewaehlt hat,
-       soll SEHEN, wohin die Instanz schickt -- ein leeres Feld waere eine
-       Auskunft weniger, kein Schutz mehr. */
-    const nachVorlage = () => {
-      const eigen = mailAnbieter.value === 'eigen';
-      const keiner = mailAnbieter.value === '';
-      for (const id of ['server', 'port', 'sicher']) feld(id).disabled = !eigen;
-      for (const id of ['benutzer', 'passwort', 'absender']) feld(id).disabled = keiner;
-      const h = document.getElementById('mail-hinweis');
-      if (h) h.hidden = keiner;
-    };
-    mailAnbieter.onchange = nachVorlage;
-    nachVorlage();
 
-    const mailErgebnis = (text, gut) => {
-      const box = document.getElementById('mail-ergebnis');
-      if (box) box.innerHTML = `<p class="warn-box ${gut ? 'mail-erfolg' : ''}"
-        style="margin:10px 0 0">${esc(text)}</p>`;
-    };
+/* DIE ANBIETERZEILE DER KARTE: Name · Server:Port · Verschlüsselung, in EINER
+   Zeile — „Eigener Server · smtp.beispiel.de:587 · STARTTLS".
+   OHNE ANBIETER STEHT DA, DASS KEINER GEWÄHLT IST, und nicht nichts: eine
+   leere Zelle sieht aus wie eine Auskunft, die nicht geladen hat.
+   BEI „Eigener Server" OHNE EINGETRAGENEN SERVER steht nur der Name. Ein
+   „:0" oder ein nacktes „:587" wäre eine Angabe über etwas, das gar nicht
+   eingetragen ist. */
+function mailAnbieterZeile(m) {
+  if (!m.anbieter) return '<strong class="mail-aus">noch keiner gewählt</strong>';
+  const teile = [esc(m.anbieterName || m.anbieter)];
+  if (m.server && m.port) {
+    teile.push(`${esc(m.server)}:${m.port}`);
+    teile.push(m.sicher ? 'TLS von Anfang an' : 'STARTTLS');
+  }
+  return teile.join(' · ');
+}
 
-    document.getElementById('mail-save').onclick = async () => {
+/* ---- Der Dialog „Mailzugang einrichten" — 0.17.3 ----
+   EINE SPALTE, BESCHRIFTUNG ÜBER DEM FELD, HINWEIS UNTER SEINER SACHE. Das ist
+   der ganze Umbau, und er hat einen Satz: die Karte zeigt, der Dialog stellt
+   ein.
+   AUS NEUN FELDERN WERDEN DREI für jeden, der eine der fünf Vorlagen nimmt.
+   Server, Port und Verschlüsselung stehen dann als GELESENE Zeile da und nicht
+   als drei gesperrte Felder: die Werte stehen fest, und ein gesperrtes Feld
+   sieht aus wie eines, das gleich aufgeht. Bei „Eigener Server" sind es
+   Felder, und DORT steht auch der Satz zum Hausanschluss — dort, wo er gilt,
+   und sonst nirgends.
+   DER SPEICHERWEG IST DERSELBE WIE VORHER, und das ist die harte Klemme dieses
+   Umbaus: `mail` ist einer der sieben Zwecke in BESTAETIGUNG_ZWECKE, und die
+   zweite Bestätigung bleibt, wo sie ist — Passwort, und bei eingeschaltetem
+   zweitem Faktor ein Code. Ein Dialog, der eine Schranke abkürzt, weil er
+   selbst schon ein Dialog ist, wäre der stillste Verlust dieser Runde.
+   BRICHT DIE BESTÄTIGUNG AB, BLEIBT DER DIALOG STEHEN: sonst wäre das
+   Eingetippte weg, und ein Anbieterpasswort tippt niemand gern zweimal.
+   LIEFERT true, wenn wirklich gespeichert wurde — der Rufer zeichnet dann neu. */
+function mailDialog(mailstand) {
+  return new Promise(resolve => {
+    const liste = Array.isArray(mailstand.anbieterListe) ? mailstand.anbieterListe : [];
+    const vorlage = (schluessel) => liste.find(a => a.schluessel === schluessel) || null;
+    const bd = document.createElement('div');
+    bd.className = 'backdrop';
+    bd.innerHTML = `<div class="modal mail-dialog" id="mail-dialog">
+      <h2>Mailzugang ${mailstand.eingerichtet ? 'ändern' : 'einrichten'}</h2>
+      <div class="field"><label for="mail-anbieter">Anbieter</label>
+        <select class="input" id="mail-anbieter">
+          <option value=""${mailstand.anbieter ? '' : ' selected'}>— kein Versand —</option>
+          ${liste.map(a => `<option value="${esc(a.schluessel)}"${
+            a.schluessel === mailstand.anbieter ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
+        </select></div>
+      ${/* DER HINWEIS ZUM GEWÄHLTEN ANBIETER — DARUNTER, NICHT DANEBEN, und er
+            wechselt mit der Auswahl. Er kommt vom Server: zwei Ausfertigungen
+            derselben Hinweise liefen auseinander, sobald ein Anbieter
+            dazukommt (Stolperstein 102). */''}
+      <p class="desc mail-hinweis" id="mail-anbieter-hinweis"></p>
+      ${/* DIE FESTEN WERTE EINER VORLAGE — GELESEN UND NICHT EINGESTELLT. Sie
+            stehen im Quelltext des Servers; wechselt ein Anbieter morgen den
+            Port, kommt der neue von dort. Drei Felder für drei feste Werte
+            wären drei Felder zu viel. */''}
+      <div class="field" id="mail-fest-feld"><label>Server, Port und Verschlüsselung</label>
+        <div class="mail-fest" id="mail-fest"></div></div>
+      <div id="mail-eigen">
+        <div class="field"><label for="mail-server">Server</label>
+          <input class="input" id="mail-server" value="${esc(mailstand.server || '')}"
+            autocapitalize="off" spellcheck="false"></div>
+        <div class="field"><label for="mail-port">Port</label>
+          <input class="input" id="mail-port" type="number" min="1" max="65535"
+            value="${mailstand.port || ''}"></div>
+        <div class="field"><label for="mail-sicher">Verschlüsselung</label>
+          <select class="input" id="mail-sicher">
+            <option value="starttls"${mailstand.sicher ? '' : ' selected'}>STARTTLS (meist 587)</option>
+            <option value="tls"${mailstand.sicher ? ' selected' : ''}>TLS von Anfang an (meist 465)</option>
+          </select></div>
+        <p class="desc mail-hinweis">Immer über den SMTP-Zugang eines Anbieters, nie unmittelbar
+          vom Hausanschluss: dort fehlen rDNS und SPF/DKIM, und die Mail landet im besten Fall
+          im Spam.</p>
+      </div>
+      <div class="field"><label for="mail-benutzer">Benutzername beim Anbieter</label>
+        <input class="input" id="mail-benutzer" value="${esc(mailstand.benutzer || '')}"
+          autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="field"><label for="mail-passwort">Passwort beim Anbieter</label>
+        <input class="input" id="mail-passwort" type="password" autocomplete="new-password"
+          placeholder="${mailstand.passwortGesetzt
+            ? 'gesetzt — leer lassen ändert es nicht' : 'nicht gesetzt'}"></div>
+      <div class="field"><label for="mail-absender">Absenderadresse</label>
+        <input class="input" id="mail-absender" type="email" value="${esc(mailstand.absender || '')}"
+          autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <p class="desc mail-hinweis" id="mail-absender-hinweis">${esc(mailstand.hinweisImmer)}</p>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>Abbrechen</button>
+        <button class="btn btn-accent" id="mail-save">Speichern</button></div></div>`;
+    document.body.appendChild(bd);
+    const feld = (id) => bd.querySelector('#mail-' + id);
+    const auswahl = feld('anbieter');
+    const hinweis = bd.querySelector('#mail-anbieter-hinweis');
+    const festFeld = bd.querySelector('#mail-fest-feld');
+    const eigenBox = bd.querySelector('#mail-eigen');
+    const absenderHinweis = bd.querySelector('#mail-absender-hinweis');
+
+    /* WAS DIE AUSWAHL UMSTELLT, an EINER Stelle. Drei Fälle und nicht zwei:
+       eine Vorlage (feste Zeile), „Eigener Server" (Felder) und „kein
+       Versand" — dort gibt es weder das eine noch das andere, und auch die
+       drei Felder darunter haben nichts zu tragen. */
+    const nachAuswahl = () => {
+      const v = vorlage(auswahl.value);
+      const eigen = auswahl.value === 'eigen';
+      hinweis.textContent = v && v.hinweis ? v.hinweis : '';
+      hinweis.hidden = !(v && v.hinweis);
+      festFeld.hidden = !v || eigen;
+      if (v && !eigen) bd.querySelector('#mail-fest').textContent =
+        `${v.server} · ${v.port} · ${v.sicher ? 'TLS von Anfang an' : 'STARTTLS'}`;
+      eigenBox.hidden = !eigen;
+      for (const id of ['benutzer', 'passwort', 'absender']) feld(id).disabled = !v;
+      absenderHinweis.hidden = !v;
+    };
+    auswahl.onchange = nachAuswahl;
+    nachAuswahl();
+
+    const fertig = (v) => {
+      document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v);
+    };
+    /* Escape schliesst nur den OBERSTEN Dialog -- steht die zweite
+       Bestaetigung darueber, gehoert die Taste ihr. Dieselbe Regel wie am
+       Erklaerkasten und an den Grabsteinen. */
+    const onKey = e => {
+      if (e.key !== 'Escape') return;
+      if ([...document.querySelectorAll('.backdrop')].pop() !== bd) return;
+      fertig(false);
+    };
+    document.addEventListener('keydown', onKey, true);
+    bd.querySelector('[data-no]').onclick = () => fertig(false);
+    bd.onclick = e => { if (e.target === bd) fertig(false); };
+
+    bd.querySelector('#mail-save').onclick = async () => {
       const koerper = {
-        anbieter: mailAnbieter.value,
+        anbieter: auswahl.value,
         server: feld('server').value.trim(),
         port: Number(feld('port').value),
         sicher: feld('sicher').value === 'tls',
@@ -7951,8 +8005,33 @@ function ruesteMailversandAus(geholt) {
       try {
         await api('PUT', '/api/mail', koerper);
         toast('Mailzugang gespeichert');
-        renderSystem();   // zeichnet den Zustand neu und leert das Passwortfeld
+        fertig(true);
       } catch (e) { toast(e.message, true); }
+    };
+    auswahl.focus();
+  });
+}
+function ruesteMailversandAus(geholt) {
+  /* NUR FUER DEN EIGENTUEMER; die Klemme steht in SYS_KARTEN, und die
+     Endpunkte darunter weisen jeden anderen ohnehin ab. Die Abfrage auf das
+     Element bleibt trotzdem stehen: sie ist der Schutz davor, dass ein
+     Behandler ins Leere greift, wenn die Karte einmal woanders steht
+     (Stolperstein 211). */
+  const { mailstand } = geholt;
+  const mailKnopf = document.getElementById('mail-einrichten');
+  if (mailKnopf && mailstand) {
+    /* DER DIALOG BEKOMMT DEN ZUSTAND MIT, den die Karte ohnehin schon hat --
+       kein zweiter Ruf an den Server fuer dieselbe Auskunft (Stolperstein 145).
+       NEU GEZEICHNET WIRD NUR, WENN WIRKLICH GESPEICHERT WURDE. renderSystem()
+       nach einem Abbruch waere ein Neuaufbau fuer nichts. */
+    mailKnopf.onclick = async () => {
+      if (await mailDialog(mailstand)) renderSystem();
+    };
+
+    const mailErgebnis = (text, gut) => {
+      const box = document.getElementById('mail-ergebnis');
+      if (box) box.innerHTML = `<p class="warn-box ${gut ? 'mail-erfolg' : ''}"
+        style="margin:10px 0 0">${esc(text)}</p>`;
     };
 
     document.getElementById('mail-test').onclick = async (e) => {

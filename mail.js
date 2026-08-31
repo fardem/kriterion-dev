@@ -102,6 +102,24 @@ const istAdresse = (a) => ADRESSE_MUSTER.test(String(a || '').trim());
 
 const anbieterZu = (schluessel) => ANBIETER.find(a => a.schluessel === schluessel) || null;
 
+/* WAS DIE OBERFLAECHE JE ANBIETER BRAUCHT -- seit 0.17.3, und der Grund ist der
+   Dialog. Dort wechselt mit der Auswahl ZWEIERLEI: der Hinweis, der zu genau
+   diesem Anbieter gehoert, und die drei festen Werte, die dann gelten. Beides
+   muss vorliegen, BEVOR gespeichert wird; ein Ruf an den Server je Auswahl
+   waere eine Anfrage fuer eine Angabe, die im Quelltext steht.
+   BEIDES KOMMT WEITERHIN VON HIER UND NICHT AUS app.js: zwei Ausfertigungen
+   liefen auseinander, sobald ein Anbieter dazukommt oder einer den Port
+   wechselt (Stolperstein 102). Die Liste selbst ist unveraendert -- fuenf
+   Vorlagen und "Eigener Server".
+   KEIN GEHEIMNIS DABEI. Server, Port und Verschluesselung stehen in jeder
+   Anleitung des Anbieters; das PASSWORT kommt hier so wenig heraus wie in
+   zustand(). */
+const fuerDieAuswahl = () => ANBIETER.map(a => ({
+  schluessel: a.schluessel, name: a.name,
+  server: a.server, port: a.port, sicher: a.sicher,
+  hinweis: HINWEISE[a.schluessel] || ''
+}));
+
 /* Loest den gespeicherten Zugang zu dem auf, was der Versand wirklich braucht.
    DIE VORLAGE GEWINNT UEBER DAS GESPEICHERTE, ausser bei 'eigen': wer GMX
    gewaehlt hat und bei dem der Anbieter morgen den Port wechselt, bekommt den
@@ -358,6 +376,6 @@ function textTest({ titel, username }) {
 module.exports = {
   ANBIETER, HINWEISE, HINWEIS_IMMER, SCHLUESSEL,
   VERSAND_MS, VERBINDUNG_MS, GRUSS_MS,
-  istAdresse, anbieterZu, loeseAuf, zustand, eingerichtet, pruefeEingabe, marke,
+  istAdresse, anbieterZu, fuerDieAuswahl, loeseAuf, zustand, eingerichtet, pruefeEingabe, marke,
   versende, textEinladung, textRuecksetzung, textBestaetigung, textTest
 };

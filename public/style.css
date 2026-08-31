@@ -1243,44 +1243,41 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* Die Karte "Mailversand". Zwei Woerter tragen die ganze Karte -- eingerichtet
    oder nicht -- und stehen deshalb farbig da. */
 .mail-gut { color: var(--green); }
-/* ---- DIE VIER REIHEN DES MAILVERSANDS ----
-   Bis 0.17.0 standen sechs Felder untereinander, jedes ueber die volle Breite
-   einer Karte, die seit 0.16.0 `.breit` ist. Jetzt ordnet sich jede Reihe nach
-   der Frage, die sie beantwortet: WER, WOHIN, WOMIT, ALS WER.
-   EIN RASTER UND KEINE FLEXREIHE. `.row-in` gaebe den Feldern die Breite, die
-   ihr Inhalt braucht; hier soll SERVER breit und PORT schmal sein, und das ist
-   eine Angabe ueber die Reihe und nicht ueber das einzelne Feld.
-   `minmax(0, …)` UND NICHT BLOSS `…fr`: eine Rasterspalte gibt von sich aus
-   nicht unter ihre Mindestbreite nach, und ein Auswahlfeld mit einem langen
-   Eintrag ("TLS von Anfang an (meist 465)") schoebe die Reihe sonst breiter
-   als die Karte.
-   `align-items: start`: die Felder tragen unterschiedlich lange Beschriftungen
-   ("Port" gegen "Benutzername beim Anbieter"), und die Eingabefelder sollen
-   trotzdem auf einer Linie beginnen. */
-.mail-reihe { display: grid; gap: 0 12px; align-items: start; }
-/* WER -- der Anbieter steht allein und etwa ein Drittel breit. Ein
-   Auswahlfeld mit sechs Eintraegen ueber neunhundert Pixel war der Befund. */
-.mail-wer { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-/* WOHIN -- der Servername ist die lange Angabe, der Port die kuerzeste, die
-   Verschluesselung traegt zwei ausgeschriebene Eintraege. */
-.mail-wohin { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 2fr); }
-/* WOMIT -- zwei gleichrangige Angaben, also zwei gleiche Haelften. */
-.mail-womit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-/* ALS WER und TUN -- links das Feld beziehungsweise die beiden Knoepfe, rechts
-   der Satz, der dazugehoert. Bis 0.17.1 stand jeder dieser Saetze als eigene
-   Zeile UNTER seiner Sache und liess die halbe Karte leer.
-   EIN DRITTEL LINKS: dieselbe Breite wie der Anbieter in der ersten Reihe --
-   eine Adresse und zwei Knoepfe brauchen sie nicht ganz, und der Satz daneben
-   liest sich als das, was er ist, naemlich eine Erlaeuterung zu genau dieser
-   Sache und nicht zur ganzen Karte. */
-.mail-alswer, .mail-tun { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
-/* Der Satz sitzt an der Grundlinie des Feldes daneben und nicht an dessen
-   Oberkante: links steht ueber dem Feld noch eine Beschriftung, und ein Satz,
-   der auf ihrer Hoehe begaenne, saehe aus wie eine zweite Beschriftung. */
-.mail-satz { margin: 0; align-self: end; padding-bottom: 10px; }
+/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
+   HIER STANDEN BIS 0.17.2 SECHS REGELN FUER VIER REIHEN, und sie sind weg.
+   Die Karte trug neun Bedienelemente in vier verschiedenen Spaltenaufteilungen
+   -- `1fr`, `3fr 1fr 2fr`, `1fr 1fr`, `1fr 2fr` -- und dazwischen vier
+   Erklaersaetze, zwei NEBEN einem Feld und zwei ueber die volle Breite. Das
+   Auge fand keine Spalte. Der Satz steht hier, damit die Reihen nicht
+   wiederkommen (Stolperstein 201).
+   DIE KARTE IST JETZT EINE ZUSTANDSKARTE WIE IHRE NACHBARN und braucht dafuer
+   gar keine eigene Regel: `.kv` traegt die fuenf Zeilen, `.row-in` die beiden
+   Knoepfe. Was von dieser Karte im Stilblatt bleibt, sind zwei Farben. */
 .mail-aus { color: var(--red); }
 .mail-erfolg { background: var(--green-dim); border-color: rgba(63,211,154,.3); }
 .mail-erfolg strong { color: var(--green); }
+/* ---- DER DIALOG „Mailzugang einrichten" — 0.17.3 ----
+   EIN RHYTHMUS UND NICHT VIER: eine Spalte, Beschriftung ueber dem Feld,
+   Hinweis unter seiner Sache. `.modal` ist selbst schon eine Spalte mit
+   eigenem Abstand -- die 14 Pixel, die ein `.field` sonst unter sich traegt,
+   kaemen zu diesem Abstand hinzu und ergaeben zwei verschiedene Luecken in
+   derselben Spalte. */
+.mail-dialog { max-width: 520px; }
+.mail-dialog .field { margin-bottom: 0; }
+/* DER HINWEIS HAENGT AM FELD UEBER IHM und nicht an der Spalte: er rueckt
+   deshalb nach oben an seine Sache heran. Der negative Abstand nimmt genau die
+   Haelfte der Luecke zurueck, die `.modal` zwischen ihren Kindern setzt --
+   damit steht er naeher an dem, was er erklaert, als am naechsten Feld. */
+.mail-hinweis { margin: -7px 0 0; }
+/* DIE FESTEN WERTE EINER VORLAGE WERDEN GELESEN UND NICHT EINGESTELLT. Server,
+   Port und Verschluesselung stehen im Quelltext; drei Felder fuer drei feste
+   Werte waeren drei Felder zu viel. GESPERRTE Felder waren es bis 0.17.2, und
+   ein gesperrtes Feld sieht aus wie eines, das gleich aufgeht.
+   IN DER MONOSCHRIFT, wie jede andere Angabe der Instanz, die ein Rechner
+   gesetzt hat und kein Mensch. */
+.mail-fest { font-family: var(--mono); font-size: .84rem; color: var(--text-2);
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r-sm); padding: 9px 11px; }
 
 /* Das Sicherheitsprotokoll. Eine Zeile je Vorgang, die juengste oben; die
    Liste laeuft in sich und schiebt die Karte nicht auf -- seit 0.17.1 in der
@@ -2685,10 +2682,6 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      als die Spalte, die es vorher war -- "Benutzername beim Anbieter" stuende
      dann dreizeilig ueber einem Feld von hundert Pixeln.
      EINE REGEL FUER ALLE VIER REIHEN und nicht vier: die Frage ist dieselbe. */
-  .mail-reihe { grid-template-columns: minmax(0, 1fr); }
-  /* Untereinander steht der Satz wieder UNTER seiner Sache, und dann gehoert er
-     an ihren Anfang und nicht an ihr Ende. */
-  .mail-satz { align-self: start; padding-bottom: 0; margin: 0 0 14px; }
 
   /* Die Listen, die in sich scrollen, tun das jetzt selten genug, dass die
      Wischbewegung fast immer die Seite bewegt -- 62 Prozent der Fensterhoehe
