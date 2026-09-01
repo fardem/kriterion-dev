@@ -16452,9 +16452,24 @@ const freigabeHaupt = (zweck, ziel = null) =>
        anders aus als eine migrierte. */
     const u19Anf = u19Quelle.indexOf('CREATE TABLE IF NOT EXISTS photos (');
     const u19Ddl = u19Quelle.slice(u19Anf, u19Quelle.indexOf('\n);', u19Anf));
+    /* GELESEN WERDEN DIE SPALTENZEILEN und nicht der ganze Ausschnitt: der
+       Kommentar ueber der Spalte nennt ihren Namen ebenfalls, und ein
+       match(/zoom.../) griffe ihn statt der Zeile, um die es geht. */
+    const u19DdlSpalten = u19Ddl.split('\n').map(z => z.trim())
+      .filter(z => z && !z.startsWith('--') && !z.startsWith('CREATE'));
     pruefe('Auch die DDL gibt zoom die Vorgabe 100',
-      /zoom REAL NOT NULL DEFAULT 100,/.test(u19Ddl),
-      JSON.stringify((u19Ddl.match(/zoom[^\n]*/) || [''])[0]));
+      u19DdlSpalten.some(z => /^zoom REAL NOT NULL DEFAULT 100$/.test(z)),
+      JSON.stringify(u19DdlSpalten.filter(z => z.startsWith('zoom'))));
+    /* UND SIE STEHT DORT ALS LETZTE SPALTE, und das ist keine Formfrage:
+       ALTER TABLE ADD COLUMN haengt eine Spalte IMMER HINTEN AN. Stuende sie
+       in der DDL an ihrem inhaltlich richtigen Platz -- neben focus_y --,
+       traege eine frische Instanz sie dort und eine migrierte am Ende
+       (Stolperstein 273). Die Pruefung zwei Zeilen tiefer faende das auch,
+       aber erst nach zwei Serverstarts; diese hier sagt, WARUM es so ist,
+       und sie faellt dem auf, der die Spalte spaeter „aufraeumt". */
+    pruefe('Und zoom ist die LETZTE Spalte der DDL',
+      u19DdlSpalten[u19DdlSpalten.length - 1] === 'zoom REAL NOT NULL DEFAULT 100',
+      JSON.stringify(u19DdlSpalten[u19DdlSpalten.length - 1]));
   }
 
   // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.

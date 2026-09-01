@@ -167,8 +167,9 @@ CREATE TABLE IF NOT EXISTS photos (
   -- der DDL weiter oben, saehe eine frisch angelegte Instanz anders aus als
   -- eine migrierte -- dieselbe Datenbank in zwei Spaltenreihenfolgen. Das ist
   -- keine Schoenheitsfrage: SELECT * liefert dann zwei verschiedene
-  -- Reihenfolgen, und der Pruefstand haelt genau das fest (Stolperstein 219,
-  -- gefunden zu 0.16.0 und hier zum zweiten Mal aufgeschlagen).
+  -- Reihenfolgen, und der Pruefstand haelt genau das fest (Stolperstein 273 --
+  -- gefunden hat es die Zeile, die 0.16.0 dafuer hinterlassen hat, beim
+  -- allerersten Lauf der Migrationsgruppe dieser Runde).
   -- gesetzt_am an ratings steht aus demselben Grund am Ende seiner Tabelle.
   --
   -- DIE VORGABE IST DER HEUTIGE ZUSTAND, wie bei focus_x/focus_y: jede
