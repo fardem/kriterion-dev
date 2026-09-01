@@ -1397,6 +1397,10 @@ sichtbaren auf.
 > Liste mit den meisten Zeilen das Maß — höchstens **zehn** Zeilen, beim
 > Sicherheitsprotokoll höchstens **fünfzehn**, und mindestens eine.
 >
+> **Zehn Zeilen heißt zehn Zeilen DIESER Liste.** Eine Zeile in „Meine
+> Sitzungen" trägt drei Angaben untereinander und ist damit fast doppelt so hoch
+> wie eine gewöhnliche; sie zeigt trotzdem zehn Sitzungen und nicht fünf.
+>
 > **Eine Liste ist so hoch wie ihr Inhalt und rollt, wenn er den Deckel
 > übersteigt.** Tags, Kategorien, Zugänge und das Sicherheitsprotokoll können
 > beliebig lang werden; ohne Deckel zöge eine einzige Karte die Seite auf
@@ -1404,8 +1408,9 @@ sichtbaren auf.
 >
 > **Bekommt eine Karte mehr Platz, als ihre Liste braucht, bleibt der Rest
 > leer.** Eine Karte mit zwei Zeilen zeigt zwei Zeilen und bläst sich nicht auf
-> zehn auf. *Und eine leere Liste ist eine Zeile hoch und sagt, dass nichts da
-> ist — nicht null Zeilen und keine stumme Lücke.*
+> zehn auf. *Und eine leere Liste ist **zwei** Zeilen hoch und sagt, dass nichts
+> da ist — eine Zeile allein läse sich wie ein Absatz und nicht wie ein leerer
+> Bereich.*
 >
 > **In einem Fenster gilt kein Deckel** — die Glockentafel und die Liste der
 > gelöschten Zugänge zeigen, was da ist; das Fenster selbst rollt.
