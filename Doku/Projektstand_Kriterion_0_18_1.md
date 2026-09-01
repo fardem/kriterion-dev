@@ -266,7 +266,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.18.1** — Fingerprint **`7b12ead4`**, **4919
+**Gebaut ist 0.18.1 und im Feld bestätigt** — Fingerprint **`7b12ead4`**, am
+1. September 2026 von der laufenden Instanz gemeldet, **4919
 Prüfungen**, **422 Rückbauten in der Liste; gefahren sind die drei dieser Runde,
 keiner stumm** (Abschnitt 8). *0.18.1 gibt der Sitzungsliste den Deckel im Maß
 ihrer eigenen Zeile — zehn Sitzungen statt fünf — und macht eine leere Liste
@@ -788,7 +789,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.18.1** | **`7b12ead4`** *(im Feld noch nicht bestätigt)* | 4919 |
+| **0.18.1** | **`7b12ead4`** *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4919 |
 | 0.18.0 | `0bf6ac9d` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4917 |
 | 0.17.5 | `6a2c264a` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4813 |
 | 0.17.4 | `d3113d62` *(am 31. August 2026 von der laufenden Instanz gemeldet — und dieser Beleg hat den Fehler aufgedeckt)* | 4811 |
@@ -7554,13 +7555,10 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.18.1 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** **Am Wirt fehlt:**
-  *(a)* der Abschnitt **„Persönlich"** — **zehn** Sitzungen stehen da, nicht
-  fünf, und unter der Liste bleibt nur noch eine schmale Kante; *(b)* der
-  **Papierkorb** im Abschnitt „Bestand" — die Meldung steht in einem sichtbar
-  **leeren Bereich** und nicht als Textzeile; *(c)* die Karte **„Anfragen"** —
-  dasselbe zwischen dem Knopf und dem Erklärabsatz. *Ein harter Neuladen gehört
-  davor: geändert ist ausschließlich das Stilblatt.*
+- **0.18.1 IST AM WIRT ANGEKOMMEN UND GESEHEN.** *Am 1. September 2026
+  bestätigt: die laufende Instanz meldet `7b12ead4`, und beide Befunde sind weg
+  — „jetzt bin ich damit zufrieden."* **Damit ist auch die Kette aus 0.17.2 bis
+  0.18.1 zu Ende: die Kachelhöhe im Systembereich ist durch.**
 - **0.18.0 IST AM WIRT ANGEKOMMEN.** *Am 1. September 2026 bestätigt: die
   laufende Instanz meldet `0bf6ac9d`.* **Die vier Handgriffe jener Runde stehen
   weiterhin aus** — was darunter steht, gilt unverändert.
