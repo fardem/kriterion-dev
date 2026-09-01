@@ -1136,50 +1136,50 @@ const RUECKBAUTEN = [
   {
     nr: '126', name: 'Die Suche sieht den Titel nicht mehr an',
     datei: 'server.js',
-    suche: "  WHERE instr(kkl(i.title), :q) > 0",
-    ersatz: "  WHERE 0 > 1",
+    suche: "instr(kkl(i.title), :q) > 0",
+    ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '127', name: 'Und die Beschreibung nicht',
     datei: 'server.js',
-    suche: "     OR instr(kkl(i.description), :q) > 0",
-    ersatz: "     OR 0 > 1",
+    suche: "instr(kkl(i.description), :q) > 0",
+    ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '128', name: 'Und den Namen der Kategorie nicht',
     datei: 'server.js',
-    suche: "     OR instr(kkl(c.name), :q) > 0",
-    ersatz: "     OR 0 > 1",
+    suche: "instr(kkl(c.name), :q) > 0",
+    ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '129', name: 'Und die Tags am Eintrag nicht',
     datei: 'server.js',
-    suche: "                WHERE it.item_id = i.id AND instr(kkl(t.name), :q) > 0)",
-    ersatz: "                WHERE it.item_id = i.id AND 0 > 1)",
+    suche: "instr(kkl(t.name), :q) > 0",
+    ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '130', name: 'Und die Tags an den Testtagen nicht',
     datei: 'server.js',
-    suche: "                WHERE d.item_id = i.id AND instr(kkl(tt.name), :q) > 0)",
-    ersatz: "                WHERE d.item_id = i.id AND 0 > 1)",
+    suche: "instr(kkl(tt.name), :q) > 0",
+    ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '131', name: 'Und die Adressen der Links nicht',
     datei: 'server.js',
-    suche: "     OR EXISTS (SELECT 1 FROM links l WHERE l.item_id = i.id AND instr(kkl(l.url), :q) > 0)",
-    ersatz: "     OR EXISTS (SELECT 1 FROM links l WHERE l.item_id = i.id AND 0 > 1)",
+    suche: "instr(kkl(l.url), :q) > 0",
+    ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   {
     nr: '132', name: 'Und die Kommentartexte nicht',
     datei: 'server.js',
-    suche: "     OR EXISTS (SELECT 1 FROM comments k WHERE k.item_id = i.id AND instr(kkl(k.text), :q) > 0)",
-    ersatz: "     OR EXISTS (SELECT 1 FROM comments k WHERE k.item_id = i.id AND 0 > 1)",
+    suche: "instr(kkl(k.text), :q) > 0",
+    ersatz: "0 > 1",
     erwartet: 'Die Volltextsuche'
   },
   /* ---- Die Schreibung und die Wildcards ---- */
@@ -1198,8 +1198,8 @@ const RUECKBAUTEN = [
   {
     nr: '134', name: 'Der Titel wird wieder ueber LIKE gesucht -- Wildcards wirken',
     datei: 'server.js',
-    suche: "  WHERE instr(kkl(i.title), :q) > 0",
-    ersatz: "  WHERE kkl(i.title) LIKE '%' || :q || '%'",
+    suche: "instr(kkl(i.title), :q) > 0",
+    ersatz: "kkl(i.title) LIKE '%' || :q || '%'",
     erwartet: 'Die Volltextsuche'
   },
   {
@@ -3508,6 +3508,256 @@ const RUECKBAUTEN = [
     suche: "  .prot-liste { display: block; }\n  .prot-zeile { display: grid;",
     ersatz: "  .prot-zeile { display: grid;",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
+  },
+
+  /* ---- 0.18.0: die Suche wird nachvollziehbar ---- */
+  {
+    nr: '398', name: 'Der Trefferkontext faellt ganz aus der Antwort',
+    datei: 'server.js',
+    suche: "    if (begriff) it.fundstelle = fundstellen.get(it.id);",
+    ersatz: "    if (false) it.fundstelle = fundstellen.get(it.id);",
+    erwartet: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    /* DIE ANDERE RICHTUNG: das Feld steht auch da, wenn gar nicht gesucht
+       wurde. Ohne diesen Rueckbau belegte die Gruppe nur, DASS es bei einer
+       Suche dasteht -- und nicht, dass es sonst fehlt. */
+    nr: '399', name: 'Der Trefferkontext steht auch ohne Suche in der Antwort',
+    datei: 'server.js',
+    suche: "  const fundstellen = begriff ? volltextTreffer(begriff) : new Map();",
+    ersatz: "  const fundstellen = volltextTreffer(begriff || 'e');",
+    erwartet: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    nr: '400', name: 'Der Ausschnitt wird vorn geschnitten statt an der Fundstelle',
+    datei: 'server.js',
+    suche: "const AUSSCHNITT_VORLAUF = 4;",
+    ersatz: "const AUSSCHNITT_VORLAUF = 1000;",
+    erwartet: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    /* UND DIE GEGENRICHTUNG: der Ausschnitt beginnt GENAU bei der Fundstelle
+       und verschweigt damit, dass sie mitten in einem Wort steht -- der
+       Befund, wegen dem es diese Runde ueberhaupt gibt. */
+    nr: '401', name: 'Der Ausschnitt beginnt genau bei der Fundstelle',
+    datei: 'server.js',
+    suche: "const AUSSCHNITT_VORLAUF = 4;",
+    ersatz: "const AUSSCHNITT_VORLAUF = 0;",
+    erwartet: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    nr: '402', name: 'Der Ausschnitt wird nicht mehr eingeebnet',
+    datei: 'server.js',
+    suche: "const einZeilig = (s) => String(s ?? '').replace(/\\s+/g, ' ').trim();",
+    ersatz: "const einZeilig = (s) => String(s ?? '');",
+    erwartet: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    nr: '403', name: 'Der Ausschnitt wird gar nicht mehr gekuerzt',
+    datei: 'server.js',
+    suche: "const AUSSCHNITT_LAENGE = 56;",
+    ersatz: "const AUSSCHNITT_LAENGE = 100000;",
+    erwartet: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    nr: '404', name: 'Die Zahl der weiteren Stellen ist immer null',
+    datei: 'server.js',
+    suche: "    weitere: getroffen.length - 1",
+    ersatz: "    weitere: 0",
+    erwartet: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    /* DIE FESTE FOLGE KEHRT SICH UM: genannt wird der Titel zuerst -- also
+       genau das, was die Kachel ohnehin zeigt. */
+    nr: '405', name: 'Die Folge der Quellen kehrt sich um',
+    datei: 'server.js',
+    suche: "  const getroffen = VOLLTEXT_QUELLEN.filter(q => r['f_' + q.schluessel] != null);",
+    ersatz: "  const getroffen = [...VOLLTEXT_QUELLEN].reverse().filter(q => r['f_' + q.schluessel] != null);",
+    erwartet: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    /* WELCHER KOMMENTAR GENANNT WIRD, IST BESTIMMT. Der Rueckbau dreht die
+       Ordnung um statt sie zu entfernen: ohne ORDER BY entschiede die
+       Abfrageplanung, und der Rueckbau koennte zufaellig dasselbe liefern --
+       ein Rueckbau, der nur manchmal greift, ist keiner. */
+    nr: '406', name: 'Der genannte Kommentar ist der juengste statt der aeltesten',
+    datei: 'server.js',
+    suche: "             ORDER BY k.id LIMIT 1)",
+    ersatz: "             ORDER BY k.id DESC LIMIT 1)",
+    erwartet: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    nr: '407', name: 'Die Kachel baut keine Trefferzeile mehr',
+    datei: 'public/app.js',
+    suche: "  const fundZeile = f ? `<div class=\"card-fund\"",
+    ersatz: "  const fundZeile = false ? `<div class=\"card-fund\"",
+    erwartet: 'Die Trefferzeile an der Kachel'
+  },
+  {
+    nr: '408', name: 'Die Trefferzeile rutscht unter die Tags',
+    datei: 'public/app.js',
+    suche: "      <h3 class=\"card-title\">${esc(it.title)}</h3>\n      ${fundZeile}",
+    ersatz: "      <h3 class=\"card-title\">${esc(it.title)}</h3>",
+    erwartet: 'Die Trefferzeile an der Kachel'
+  },
+  {
+    nr: '409', name: 'Die Zahl der weiteren Stellen faellt aus der Zeile',
+    datei: 'public/app.js',
+    suche: "class=\"fund-text\"></span>${f.weitere ? `<span class=\"fund-mehr\">+${f.weitere}</span>` : ''}",
+    ersatz: "class=\"fund-text\"></span>${''}",
+    erwartet: 'Die Trefferzeile an der Kachel'
+  },
+  {
+    nr: '410', name: 'Der Ueberfahrtext nennt die weiteren Stellen nicht mehr',
+    datei: 'public/app.js',
+    suche: "const fundUeberfahrt = (f) => `Gefunden in: ${fundWort(f.quelle)}` + (",
+    ersatz: "const fundUeberfahrt = (f) => `Gefunden in: ${fundWort(f.quelle)}` + (0 ? '' : '') + (",
+    erwartet: 'Die Trefferzeile an der Kachel'
+  },
+  {
+    nr: '411', name: 'Eine unbekannte Quelle faellt aus der Zeile',
+    datei: 'public/app.js',
+    suche: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => 'Fundstelle'))();",
+    ersatz: "const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => ''))();",
+    erwartet: 'Die Trefferzeile an der Kachel'
+  },
+  {
+    /* DER AUSSCHNITT KOMMT WIEDER UEBER innerHTML IN DIE SEITE -- genau der
+       Weg, den 0.5.4 zugemacht hat, auf dem Umweg ueber die Kachel. Er kann
+       aus einem Kommentar stammen. */
+    nr: '412', name: 'Der Ausschnitt kommt ueber innerHTML in die Kachel',
+    datei: 'public/app.js',
+    suche: "  if (f) a.querySelector('.fund-text').replaceChildren(hebeHervor(f.text, begriff));",
+    ersatz: "  if (f) a.querySelector('.fund-text').innerHTML = f.text;",
+    erwartet: 'Die Trefferzeile an der Kachel'
+  },
+  {
+    /* UND DIE MARKE SELBST. Sie ist die einzige Stelle, an der aus einem
+       Stueck ein ELEMENT wird -- wenn irgendwo Markup entstehen kann, dann
+       hier. */
+    nr: '413', name: 'Die Marke wird ueber innerHTML gefuellt',
+    datei: 'public/app.js',
+    suche: "  const m = document.createElement('mark');\n  m.textContent = text;",
+    ersatz: "  const m = document.createElement('mark');\n  m.innerHTML = text;",
+    erwartet: 'Links im Kommentartext'
+  },
+  {
+    nr: '414', name: 'Der Titel der Kachel wird nicht mehr hervorgehoben',
+    datei: 'public/app.js',
+    suche: "  hebeImKnoten(a.querySelector('.card-title'), it.title, begriff);",
+    ersatz: "  hebeImKnoten(a.querySelector('.card-title'), it.title, '');",
+    erwartet: 'Die Hervorhebung in der Uebersicht'
+  },
+  {
+    nr: '415', name: 'Nur die erste Fundstelle wird hervorgehoben',
+    datei: 'public/app.js',
+    suche: "    von = i + b.length;\n  }",
+    ersatz: "    von = i + b.length;\n    break;\n  }",
+    erwartet: 'Die Hervorhebung in der Uebersicht'
+  },
+  {
+    /* DER BEGRIFF ALS MUSTER STATT ALS TEXT -- derselbe Fehler wie LIKE gegen
+       instr() im Server, nur im Browser: ein eingegebener Punkt faende jedes
+       Zeichen. */
+    nr: '416', name: 'Der Begriff wird als Muster gelesen',
+    datei: 'public/app.js',
+    suche: "    const i = klein.indexOf(kleinB, von);",
+    ersatz: "    const i = klein.slice(von).search(new RegExp(kleinB, 'i')) < 0 ? -1 : von + klein.slice(von).search(new RegExp(kleinB, 'i'));",
+    erwartet: 'Die Hervorhebung in der Uebersicht'
+  },
+  {
+    nr: '417', name: 'Die Hervorhebung erreicht den Kommentartext nicht mehr',
+    datei: 'public/app.js',
+    suche: "        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text, begriff)));",
+    ersatz: "        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text)));",
+    erwartet: 'Der Suchbegriff in der Adresse'
+  },
+  {
+    nr: '418', name: 'Eine Adresse mit Begriff zerfaellt in mehrere Anker',
+    datei: 'public/app.js',
+    suche: "      let j = i;\n      while (j < liste.length && String(liste[j].ziel ?? '') === String(s.ziel))\n        a.appendChild(stueckKnoten(liste[j++]));\n      i = j - 1;",
+    ersatz: "      a.appendChild(stueckKnoten(s));",
+    erwartet: 'Links im Kommentartext'
+  },
+  {
+    nr: '419', name: 'In der Linkliste wird der Anzeigename hervorgehoben',
+    datei: 'public/app.js',
+    suche: "          namensBox.appendChild(s);",
+    ersatz: "          hebeImKnoten(s, a.name, begriff);\n          namensBox.appendChild(s);",
+    erwartet: 'Der Suchbegriff in der Adresse'
+  },
+  {
+    nr: '420', name: 'Die Adresse in der Linkliste wird nicht mehr hervorgehoben',
+    datei: 'public/app.js',
+    suche: "      hebeImKnoten(row.querySelector('.dom'), oben, begriff);",
+    ersatz: "      hebeImKnoten(row.querySelector('.dom'), oben, '');",
+    erwartet: 'Der Suchbegriff in der Adresse'
+  },
+  {
+    nr: '421', name: 'Das Adressmuster nimmt keinen Begriff mehr an',
+    datei: 'public/app.js',
+    suche: "const EINTRAG_MUSTER = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
+    ersatz: "const EINTRAG_MUSTER = /^#\\/item\\/(\\d+)$/;",
+    erwartet: 'Der Suchbegriff in der Adresse'
+  },
+  {
+    nr: '422', name: 'Das Adressmuster ist hinten nicht mehr verankert',
+    datei: 'public/app.js',
+    suche: "const EINTRAG_MUSTER = /^#\\/item\\/(\\d+)(?:\\?(.*))?$/;",
+    ersatz: "const EINTRAG_MUSTER = /^#\\/item\\/(\\d+)/;",
+    erwartet: 'Der Suchbegriff in der Adresse'
+  },
+  {
+    nr: '423', name: 'Die Detailansicht zieht die Adresse nicht mehr nach',
+    datei: 'public/app.js',
+    suche: "  if (location.hash !== gewollt &&\n      typeof history !== 'undefined' && typeof history.replaceState === 'function')\n    history.replaceState(null, '', gewollt);",
+    ersatz: "  void gewollt;",
+    erwartet: 'Der Suchbegriff in der Adresse'
+  },
+  {
+    /* DIE ADRESSE WIRD UEBER location.hash GESETZT STATT UEBER replaceState.
+       Sie steht dann zwar richtig da, aber jeder Aufruf legt einen Eintrag im
+       Verlauf an und loest ein zweites Zeichnen aus. */
+    nr: '424', name: 'Die Adresse wird ueber location.hash gesetzt',
+    datei: 'public/app.js',
+    suche: "    history.replaceState(null, '', gewollt);",
+    ersatz: "    location.hash = gewollt;",
+    erwartet: 'Der Suchbegriff in der Adresse'
+  },
+  {
+    nr: '425', name: 'Die Kachel haengt den Begriff nicht an ihre Adresse',
+    datei: 'public/app.js',
+    suche: "  a.href = eintragAdresse(it.id, begriff);",
+    ersatz: "  a.href = eintragAdresse(it.id, '');",
+    erwartet: 'Die Trefferzeile an der Kachel'
+  },
+  {
+    nr: '426', name: 'Der Begriff aus der Adresse wird nicht entschluesselt',
+    datei: 'public/app.js',
+    suche: "  try { return new URLSearchParams(frage || '').get('q') || ''; }",
+    ersatz: "  try { return (String(frage || '').match(/(?:^|&)q=([^&]*)/) || [])[1] || ''; }",
+    erwartet: 'Der Suchbegriff in der Adresse'
+  },
+  {
+    nr: '427', name: 'Die Marke bringt wieder Schwarz auf Gelb mit',
+    datei: 'public/style.css',
+    suche: "mark {\n  background: var(--accent-dim); color: var(--accent-hi);",
+    ersatz: "mark {\n  border-radius: 3px;",
+    erwartet: 'Die Trefferzeile im Stylesheet'
+  },
+  {
+    nr: '428', name: 'Die Trefferzeile darf wieder umbrechen',
+    datei: 'public/style.css',
+    suche: "  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\n}\n/* Die Zahl in der Schreibmaschinenschrift",
+    ersatz: "}\n/* Die Zahl in der Schreibmaschinenschrift",
+    erwartet: 'Die Trefferzeile im Stylesheet'
+  },
+  {
+    nr: '429', name: 'Die Quelle gibt in der Trefferzeile nach statt der Ausschnitt',
+    datei: 'public/style.css',
+    suche: ".card-fund .fund-quelle { flex-shrink: 0; color: var(--faint); font-weight: 600; }",
+    ersatz: ".card-fund .fund-quelle { color: var(--faint); font-weight: 600; }",
+    erwartet: 'Die Trefferzeile im Stylesheet'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */

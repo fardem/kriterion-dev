@@ -1513,6 +1513,62 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /\.lnum[^}]*min-width: *[0-9.]+em/.test(css));
 
   /* ---------------------------------------------------------------- */
+  gruppe('Die Trefferzeile im Stylesheet');
+
+  /* jsdom RECHNET KEIN CSS (Stolperstein 223). Was sich am Bild nicht pruefen
+     laesst, wird an der REGEL festgenagelt -- so, wie 0.15.1 es mit [hidden]
+     getan hat. Die Zahlen dazu stehen im Aenderungsprotokoll 0.18.0 und sind
+     in Chromium gemessen, nicht hier.
+
+     DREI ZUSAGEN, UND JEDE HAENGT AN EINER ENTSCHEIDUNG:
+       1. Die Zeile bricht nicht um. Ein Ausschnitt, der auf der schmalsten
+          Kachel auf zwei Zeilen ginge, machte GENAU DIESE Kachel hoeher als
+          ihre Nachbarn -- und die Kachelhoehe war das Thema der drei Runden
+          davor.
+       2. Nachgeben darf allein der Ausschnitt. Quelle und Zahl sind kurz und
+          waeren abgeschnitten wertlos; der Ausschnitt verliert dabei nur
+          Umgebung, denn die Fundstelle steht in ihm ganz vorn.
+       3. Die Marke bringt vom Browser Schwarz auf Gelb mit. In dieser
+          Oberflaeche ist das nicht nur haesslich, sondern unlesbar: schwarze
+          Schrift auf dunklem Grund daneben. */
+  const cssTz = css.replace(/\s+/g, ' ');
+  const regelTz = (wahl) =>
+    (cssTz.match(new RegExp(wahl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
+
+  pruefe('Die Trefferzeile bricht nicht um',
+    /white-space: nowrap/.test(regelTz('.card-fund .fund-text')),
+    regelTz('.card-fund .fund-text') || '(keine Regel)');
+  pruefe('Und was nicht hineinpasst, wird mit einem Auslassungszeichen gekappt',
+    /text-overflow: ellipsis/.test(regelTz('.card-fund .fund-text')) &&
+    /overflow: hidden/.test(regelTz('.card-fund .fund-text')),
+    regelTz('.card-fund .fund-text') || '(keine Regel)');
+  pruefe('Nachgeben darf allein der Ausschnitt',
+    /min-width: 0/.test(regelTz('.card-fund .fund-text')) &&
+    /flex: 1/.test(regelTz('.card-fund .fund-text')),
+    regelTz('.card-fund .fund-text') || '(keine Regel)');
+  pruefe('Die Quelle gibt nicht nach',
+    /flex-shrink: 0/.test(regelTz('.card-fund .fund-quelle')),
+    regelTz('.card-fund .fund-quelle') || '(keine Regel)');
+  pruefe('Und die Zahl der weiteren Stellen ebenso wenig',
+    /flex-shrink: 0/.test(regelTz('.card-fund .fund-mehr')),
+    regelTz('.card-fund .fund-mehr') || '(keine Regel)');
+  pruefe('Die Marke setzt Grund UND Schrift',
+    /background:/.test(regelTz('mark')) && /color:/.test(regelTz('mark')),
+    regelTz('mark') || '(keine Regel)');
+  /* KEINE NEUE FARBE: Orange ist in dieser Instanz das Signal, und genau das
+     sagt eine Fundstelle. Der Grund ist dieselbe leise Flaeche wie an jeder
+     ausgewaehlten Pille. */
+  pruefe('Und beides aus den Farben, die es schon gibt',
+    /var\(--accent/.test(regelTz('mark')) && !/#[0-9a-f]{3,6}/i.test(regelTz('mark')),
+    regelTz('mark') || '(keine Regel)');
+  /* SIE GILT UEBERALL, WO GESUCHT WURDE, und braucht deshalb keine Klasse:
+     die Marke steht in der Kachel, in der Linkliste und im Kommentartext.
+     Drei Abschriften derselben Regel liefen auseinander. */
+  pruefe('Die Regel steht genau einmal und nicht je Ort',
+    (cssTz.match(/(?:^|[ }])mark \{/g) || []).length === 1,
+    `${(cssTz.match(/(?:^|[ }])mark \{/g) || []).length} Regeln`);
+
+  /* ---------------------------------------------------------------- */
   gruppe('Handy und Tablett: die Staffel der Umbruchpunkte');
 
   const indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
@@ -17565,6 +17621,183 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Der Begriff wird außen getrimmt', vsTrim.ok, vsTrim.wie);
 
   /* ---------------------------------------------------------------- */
+  gruppe('Der Trefferkontext an der Antwort');
+
+  /* WARUM EIN EINTRAG IN DER TREFFERLISTE STEHT -- 0.18.0. Die Suche fand
+     schon vorher richtig; sie sagte nur nicht, WO. Geprueft wird deshalb
+     dreierlei: dass das Feld nur bei einer Suche dasteht, dass es die RICHTIGE
+     Quelle nennt, und dass der Ausschnitt die Fundstelle wirklich enthaelt.
+
+     JE QUELLE EINE EIGENE ZEILE, wie oben bei der Suche selbst: faellt eine
+     aus der Spaltenliste, soll GENAU SIE namentlich rot werden. */
+  const fkFund = async (q, id) => (await vsSuche(q) || []).find(i => i.id === id)?.fundstelle;
+
+  pruefe('Ohne Begriff traegt kein Eintrag einen Trefferkontext',
+    (await ruf('GET', '/api/items')).inhalt.every(i => i.fundstelle === undefined),
+    'das Feld steht auch ohne Suche da');
+  const fkAlleTreffer = await vsSuche('volltext');
+  pruefe('Der Aufbau steht: die Suche liefert ueberhaupt Treffer',
+    fkAlleTreffer.length >= 5, `${fkAlleTreffer.length}`);
+  pruefe('Mit Begriff traegt JEDER Treffer einen',
+    fkAlleTreffer.every(i => i.fundstelle && typeof i.fundstelle.quelle === 'string'),
+    JSON.stringify(fkAlleTreffer.filter(i => !i.fundstelle).map(i => i.id)));
+
+  for (const [was, wort, ziel, quelle] of [
+    ['den Titel', 'stichsäge', () => vsTitel.id, 'titel'],
+    ['die Beschreibung', 'münchenquelle', () => vsBeschr.id, 'beschreibung'],
+    ['den Namen der Kategorie', 'vollkategorie', () => vsKatE.id, 'kategorie'],
+    ['einen Tag am Eintrag', 'grünspanig', () => vsTag.id, 'tag'],
+    ['einen Tag am Testtag', 'nebelfeucht', () => vsTagTag.id, 'testtag'],
+    ['die Adresse eines Links', 'xyzzyquux', () => vsLink.id, 'link'],
+    ['den Text eines Kommentars', 'quastenflosser', () => vsKomm.id, 'kommentar']
+  ]) {
+    const f = await fkFund(wort, ziel());
+    pruefe(`Und sie sagt bei einem Treffer ueber ${was}, dass es ${quelle} war`,
+      f?.quelle === quelle, JSON.stringify(f));
+    pruefe(`Und der Ausschnitt dazu traegt den Begriff`,
+      !!f && f.text.toLowerCase().includes(wort), JSON.stringify(f?.text));
+  }
+
+  /* DER AUSSCHNITT IST EINE ZEILE. Ein Kommentar traegt Absaetze; die
+     Kachelzeile ist eine Zeile, und ein eingeschmuggelter Umbruch machte
+     GENAU DIESE Kachel hoeher als ihre Nachbarn. */
+  const fkAbsatz = await vsAnlegen('Absatzprobe Quirlgurke');
+  await sendeKommentar(fkAbsatz.id, { text: 'Zeile eins\n\nund weit darunter das Wort Schlingerpfad hier' });
+  const fkZeile = await fkFund('schlingerpfad', fkAbsatz.id);
+  pruefe('Der Ausschnitt traegt keinen Zeilenumbruch',
+    !!fkZeile && !/[\r\n]/.test(fkZeile.text), JSON.stringify(fkZeile?.text));
+  pruefe('Und keinen doppelten Leerraum',
+    !!fkZeile && !/\s\s/.test(fkZeile.text), JSON.stringify(fkZeile?.text));
+
+  /* VOR DER FUNDSTELLE STEHEN HOECHSTENS VIER ZEICHEN, und das ist gemessen
+     und nicht gewaehlt: auf der schmalsten Kachel (173 px bei 390 px
+     Schirmbreite) bleiben nach der Quelle acht Zeichen fuer den Ausschnitt.
+     Mit mehr Vorlauf waere die Fundstelle dort abgeschnitten -- eine Zeile mit
+     Umgebung und ohne das Wort, um das es geht.
+     UND NICHT NULL: gerade weil "ella" auch "eurobella" findet, muss zu sehen
+     sein, dass die Fundstelle mitten in einem Wort steht. */
+  const fkLang = await vsAnlegen('Vorlaufprobe',
+    'weit vorne steht viel Text und erst dann kommt das Wort Kringelzange und danach noch mehr Text, deutlich mehr als in eine Zeile passt');
+  const fkV = await fkFund('kringelzange', fkLang.id);
+  pruefe('Der Ausschnitt beginnt mit einem Auslassungszeichen, wenn vorne etwas fehlt',
+    !!fkV && fkV.text.startsWith('…'), JSON.stringify(fkV?.text));
+  pruefe('Und hoert mit einem auf, wenn hinten etwas fehlt',
+    !!fkV && fkV.text.endsWith('…'), JSON.stringify(fkV?.text));
+  pruefe('Vor der Fundstelle stehen hoechstens vier Zeichen',
+    !!fkV && fkV.text.toLowerCase().indexOf('kringelzange') <= 5,
+    `${fkV?.text.toLowerCase().indexOf('kringelzange')} (mit dem Auslassungszeichen)`);
+  /* UND NICHT NULL -- die Gegenrichtung. Ein Ausschnitt, der genau bei der
+     Fundstelle beginnt, verschwiege, dass sie mitten in einem Wort steht. */
+  pruefe('Und mindestens eines, wenn davor ueberhaupt etwas steht',
+    !!fkV && fkV.text.toLowerCase().indexOf('kringelzange') >= 2,
+    JSON.stringify(fkV?.text));
+  pruefe('Der Ausschnitt bleibt kurz genug fuer eine Kachelzeile',
+    !!fkV && fkV.text.length <= 60, `${fkV?.text.length} Zeichen`);
+
+  /* EIN KURZER TEXT WIRD NICHT GEKUERZT und traegt deshalb auch kein
+     Auslassungszeichen. Ohne diese Gegenlage waeren die beiden Zeilen darueber
+     auch dann gruen, wenn immer eines dranstuende. */
+  const fkKurz = await fkFund('grünspanig', vsTag.id);
+  pruefe('Ein Tag, der ganz hineinpasst, steht ohne Auslassungszeichen da',
+    fkKurz?.text === 'Grünspanig', JSON.stringify(fkKurz?.text));
+
+  /* DIE FESTE FOLGE. Sie beginnt bei dem, was die Kachel NICHT zeigt:
+     Beschreibung, Kommentar, Link, Tag am Testtag, Tag, Kategorie, Titel.
+     GEPRUEFT AN EINEM EINTRAG, DER ALLE SIEBEN TRIFFT -- an weniger liesse
+     sich die Folge gar nicht ablesen. */
+  const fkKat = (await ruf('POST', '/api/product-categories', { name: 'Siebenfach Kategorie' })).inhalt;
+  const fkSieben = await vsAnlegen('Siebenfach im Titel', 'siebenfach in der Beschreibung');
+  await ruf('PUT', `/api/items/${fkSieben.id}`, { productCategoryId: fkKat.id });
+  await ruf('POST', `/api/items/${fkSieben.id}/tags`, { name: 'siebenfach-tag' });
+  const fkTd = await ruf('POST', `/api/items/${fkSieben.id}/test-days`, { day: '2026-06-06', rating: 3 });
+  await ruf('POST', `/api/test-days/${fkTd.inhalt.testDays[0].id}/tags`, { name: 'siebenfach-testtag' });
+  await ruf('POST', `/api/items/${fkSieben.id}/links`, { url: 'https://beispiel.test/siebenfach' });
+  await sendeKommentar(fkSieben.id, { text: 'siebenfach auch im Kommentar' });
+  const fkS = await fkFund('siebenfach', fkSieben.id);
+  pruefe('Trifft der Begriff alle sieben Quellen, nennt die Antwort die Beschreibung',
+    fkS?.quelle === 'beschreibung', JSON.stringify(fkS));
+  pruefe('Und zaehlt die uebrigen sechs als weitere Stellen',
+    fkS?.weitere === 6, `${fkS?.weitere}`);
+
+  /* DIE FOLGE WIRD SCHRITT FUER SCHRITT ABGERAEUMT. Faellt die Beschreibung
+     weg, uebernimmt der Kommentar; faellt der weg, der Link -- und so fort.
+     Ohne diese Kette belegte die Zeile darueber nur, dass „beschreibung" ganz
+     vorn steht, und nichts ueber die Reihenfolge dahinter. */
+  const fkFolge = [];
+  await ruf('PUT', `/api/items/${fkSieben.id}`, { description: 'ohne das Wort' });
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  const fkKommentare = (await ruf('GET', `/api/items/${fkSieben.id}`)).inhalt.comments;
+  await ruf('DELETE', `/api/comments/${fkKommentare[0].id}`);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  const fkLinks = (await ruf('GET', `/api/items/${fkSieben.id}`)).inhalt.links;
+  await ruf('DELETE', `/api/links/${fkLinks[0].id}`);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  await ruf('DELETE', `/api/test-days/${fkTd.inhalt.testDays[0].id}`);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  const fkTags = (await ruf('GET', `/api/items/${fkSieben.id}`)).inhalt.tags;
+  await ruf('DELETE', `/api/items/${fkSieben.id}/tags/${fkTags[0].id}`);
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  await ruf('PUT', `/api/items/${fkSieben.id}`, { productCategoryId: null });
+  fkFolge.push((await fkFund('siebenfach', fkSieben.id))?.quelle);
+  pruefe('Die Folge ist Kommentar, Link, Tag am Testtag, Tag, Kategorie, Titel',
+    gleich(fkFolge, ['kommentar', 'link', 'testtag', 'tag', 'kategorie', 'titel']),
+    JSON.stringify(fkFolge));
+  /* TRIFFT NUR DER TITEL, STEHT DIE ZEILE TROTZDEM DA -- eine Regel und keine
+     Ausnahme. Sie wiederholt dort, was ohnehin zu sehen ist, und genau das ist
+     die Auskunft: der Begriff steht NUR im Titel und in keiner der sechs
+     Quellen, die die Kachel nicht zeigt. */
+  const fkNurTitel = await fkFund('siebenfach', fkSieben.id);
+  pruefe('Trifft nur der Titel, steht die Zeile trotzdem da',
+    fkNurTitel?.quelle === 'titel' && fkNurTitel?.weitere === 0,
+    JSON.stringify(fkNurTitel));
+
+  /* WELCHER KOMMENTAR GENANNT WIRD, IST BESTIMMT UND NICHT ZUFAELLIG. Ohne
+     ORDER BY entschiede die Abfrageplanung, welcher auf der Kachel steht, und
+     dieselbe Suche zeigte morgen einen anderen. */
+  const fkMehr = await vsAnlegen('Zwei Kommentare Wurzelzwerg');
+  /* DAS UNTERSCHEIDENDE WORT STEHT NEBEN DER FUNDSTELLE und nicht am
+     Zeilenanfang: der Ausschnitt wird um die Fundstelle herum geschnitten,
+     und ein Kennwort weit davor stuende gar nicht darin. */
+  await sendeKommentar(fkMehr.id, { text: 'hier steht Wurzelzwerg zum ersten Mal' });
+  await sendeKommentar(fkMehr.id, { text: 'hier steht Wurzelzwerg zum zweiten Mal' });
+  const fkErst = await fkFund('wurzelzwerg', fkMehr.id);
+  pruefe('Bei mehreren treffenden Kommentaren steht der aelteste da',
+    !!fkErst && /ersten Mal/.test(fkErst.text) && !/zweiten Mal/.test(fkErst.text),
+    JSON.stringify(fkErst?.text));
+  pruefe('Und dieselbe Suche liefert zweimal dasselbe',
+    JSON.stringify(await fkFund('wurzelzwerg', fkMehr.id)) === JSON.stringify(fkErst),
+    JSON.stringify(await fkFund('wurzelzwerg', fkMehr.id)));
+
+  /* EIN KOMMENTAR, DER DEN BEGRIFF NICHT TRAEGT, KOMMT NICHT AUF DIE KACHEL.
+     Der Ausschnitt stammt aus der Zeile, die WIRKLICH getroffen hat -- ein
+     `LIMIT 1` ohne die Bedingung naehme den erstbesten. */
+  const fkZweit = await vsAnlegen('Nur der zweite Kommentar Schlummerkiste');
+  await sendeKommentar(fkZweit.id, { text: 'dieser hier sagt nichts zur Sache' });
+  await sendeKommentar(fkZweit.id, { text: 'und dieser nennt die Schlummerkiste' });
+  const fkZ = await fkFund('schlummerkiste', fkZweit.id);
+  pruefe('Der Ausschnitt stammt aus dem Kommentar, der wirklich trifft',
+    !!fkZ && /Schlummerkiste/.test(fkZ.text) && !/zur Sache/.test(fkZ.text),
+    JSON.stringify(fkZ?.text));
+
+  /* PROZENT UND UNTERSTRICH GELTEN AUCH HIER ALS TEXT. Der Ausschnitt wird
+     ueber indexOf geschnitten und nicht ueber ein Muster -- ein Begriff, aus
+     dem jemand ein regulaeres Muster baut, faende sonst die falsche Stelle. */
+  const fkPz = await fkFund('50 %', vsProzent.id);
+  pruefe('Auch ein Prozentzeichen findet seine Stelle im Ausschnitt',
+    !!fkPz && fkPz.text.includes('50 %'), JSON.stringify(fkPz?.text));
+  const fkPunkt = await vsAnlegen('Punktprobe', 'hier steht Zwirbel.Knoten mit einem Punkt');
+  const fkP = await fkFund('zwirbel.knoten', fkPunkt.id);
+  pruefe('Und ein Punkt im Begriff wird als Zeichen gelesen, nicht als Muster',
+    !!fkP && fkP.text.includes('Zwirbel.Knoten'), JSON.stringify(fkP?.text));
+
+  /* DAS FELD IST EINE ERWEITERUNG UND KEINE WEGNAHME. Was vorher in der
+     Antwort stand, steht Zeichen fuer Zeichen weiter da (Stolperstein 102). */
+  const fkFelder = new Set(Object.keys((await vsSuche('volltext'))[0] || {}));
+  pruefe('Und die Antwort auf eine Suche traegt weiterhin alle bekannten Felder',
+    ['id', 'title', 'tags', 'category', 'avgRating', 'linkCount'].every(f => fkFelder.has(f)),
+    JSON.stringify([...fkFelder]));
+
+  /* ---------------------------------------------------------------- */
   gruppe('searchText ist fort, und sonst nichts');
 
   /* FELD FUER FELD GEGEN DIE ALTE ANTWORT. Die Liste hat bis 0.10.0 je Eintrag
@@ -18064,7 +18297,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Runde umgebaut hat. 391 IST DABEI UMGEDREHT -- er baute die Nutzung ueber
   // den Deckel hinaus zurueck, und jetzt setzt er das Schluesselwort wieder,
   // an dem die Runde gescheitert ist.
-  pruefe('Es sind genau 389 Rueckbauten', gpListe.length === 389, `${gpListe.length}`);
+  pruefe('Es sind genau 421 Rueckbauten', gpListe.length === 421, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -19813,13 +20046,21 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        und `neuVon`. Eine Summe gibt es nicht -- die bildet die Oberflaeche.
        DIE PRUEFLAGE DARF BEIDES UEBERSCHREIBEN: was in uebersichtItems steht,
        gewinnt -- deshalb steht `...i` HINTER der gerechneten Zahl. */
-    const mitKopfzahlen = (liste) => liste.map(i => {
+    const mitKopfzahlen = (liste, gesucht) => liste.map(i => {
       const zeile = {
         offeneAufgaben: offen.filter(z => z.kind === 'task' && z.item?.id === i.id).length,
         ...i
       };
       if (!einstellungen.glockeGesehen)
         for (const k of ['neuKommentare', 'neuBewertungen', 'neuVon']) delete zeile[k];
+      /* DER TREFFERKONTEXT STEHT NUR IN DER ANTWORT AUF EINE SUCHE -- 0.18.0,
+         und der Mock macht das mit. Was die Prueflage am Eintrag hinterlegt,
+         geht bei einer Suche mit hinaus und faellt ohne Begriff weg. Ein Mock,
+         der das Feld immer mitgaebe, naehme genau die Pruefung weg, fuer die
+         er gebraucht wird (Stolperstein 102): "die Zeile steht nur waehrend
+         einer Suche da" waere von "sie steht immer da" nicht zu
+         unterscheiden. */
+      if (!gesucht) delete zeile.fundstelle;
       return zeile;
     });
     if (url.startsWith('/api/items?q=')) {
@@ -19831,7 +20072,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       // Schleife. Ein Mock, der die beiden Wege verschieden beantwortete,
       // verschwaende die Kopfzahlen bei jeder Suche.
       const antwort = gib(mitKopfzahlen(
-        qMock ? quelle.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : quelle));
+        qMock ? quelle.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : quelle, !!qMock));
       /* EINE STELLBARE VERZOEGERUNG JE ANFRAGE, seit 0.11.0. Ohne sie antwortet
          der Mock augenblicklich, und dann koennen sich zwei Anfragen gar nicht
          ueberholen -- der Rueckbau auf die laufende Nummer in
@@ -23730,6 +23971,58 @@ async function pruefeOberflaeche() {
     gut.querySelector('a')?.getAttribute('href') === 'https://beispiel.de/x');
   pruefe('Auch der Knotenbauer erzeugt aus Markup niemals Markup',
     bau([{ text: '<img src=x onerror=alert(1)>' }]).querySelector('img') === null);
+
+  /* UND DASSELBE MIT EINEM SUCHBEGRIFF MITTEN DARIN -- 0.18.0. Die
+     Hervorhebung durchsetzt fremden Text mit Markup, und Kommentartexte kommen
+     von Menschen: genau hier waere der Weg wieder offen, den 0.5.4 zugemacht
+     hat. Wer den Rohtext maskiert und danach ein <mark> hineinschreibt, hat
+     ihn geoeffnet -- deshalb dieselbe Zeile ein zweites Mal, jetzt mit einem
+     Begriff, der MITTEN IM Angriffstext trifft. */
+  const boeseTreffer = wb.zerlegeAmBegriff('<img src=x onerror=alert(1)>', 'onerror');
+  const boeseKnoten = bau(boeseTreffer);
+  pruefe('Der Aufbau steht: der Begriff trifft wirklich mitten im Angriffstext',
+    boeseTreffer.some(s => s.treffer && s.text === 'onerror'), JSON.stringify(boeseTreffer));
+  pruefe('Auch mit Hervorhebung erzeugt der Knotenbauer aus Markup niemals Markup',
+    boeseKnoten.querySelector('img') === null && boeseKnoten.querySelector('*:not(mark)') === null,
+    boeseKnoten.querySelector('img') ? 'ein img' : 'ein fremdes Element');
+  pruefe('Und der Text steht dabei Zeichen fuer Zeichen so da, wie er gespeichert ist',
+    boeseKnoten.textContent === '<img src=x onerror=alert(1)>', boeseKnoten.textContent);
+  pruefe('Die Marke traegt den Begriff und nicht mehr',
+    boeseKnoten.querySelector('mark')?.textContent === 'onerror',
+    boeseKnoten.querySelector('mark')?.textContent);
+
+  /* EINE ADRESSE BLEIBT EIN LINK, auch wenn der Begriff mitten in ihr steht.
+     Die Zerlegung liefert sie dann als mehrere Stuecke mit demselben Ziel;
+     drei Anker nebeneinander waeren drei Links auf dieselbe Adresse -- fuer
+     ein Vorleseprogramm drei Ziele statt einem. */
+  const linkTreffer = bau(wb.zerlegeKommentartext('Siehe https://beispiel.de/pfad hier', 'beispiel'));
+  pruefe('Ein Begriff in der Adresse macht aus einem Link nicht drei',
+    linkTreffer.querySelectorAll('a').length === 1,
+    `${linkTreffer.querySelectorAll('a').length} Links`);
+  pruefe('Und die Fundstelle steht IM Link',
+    linkTreffer.querySelector('a mark')?.textContent === 'beispiel',
+    linkTreffer.querySelector('a mark')?.textContent);
+  pruefe('Das Ziel bleibt die ganze Adresse',
+    linkTreffer.querySelector('a')?.getAttribute('href') === 'https://beispiel.de/pfad',
+    linkTreffer.querySelector('a')?.getAttribute('href'));
+  pruefe('Und der angezeigte Text ebenso',
+    linkTreffer.querySelector('a')?.textContent === 'https://beispiel.de/pfad',
+    linkTreffer.querySelector('a')?.textContent);
+
+  /* DIE ZERLEGUNG VERLIERT UND ERFINDET AUCH MIT BEGRIFF KEIN ZEICHEN -- die
+     Zeile von oben, jetzt mit dem dritten Stueck im Spiel. */
+  pruefe('Die Zerlegung verliert und erfindet auch mit Begriff kein Zeichen',
+    ['Vor https://a.de/x, mitte www.b.de. Ende',
+     'nur Text ohne alles',
+     '(https://a.de/y_(z)) und [https://a.de/w]'].every(roh =>
+       wb.zerlegeKommentartext(roh, 'a.de').map(s => s.text).join('') === roh),
+    JSON.stringify(wb.zerlegeKommentartext('Vor https://a.de/x, mitte www.b.de. Ende', 'a.de')
+      .map(s => s.text)));
+  // Und ohne Begriff bleibt sie Stueck fuer Stueck die von vorher.
+  pruefe('Ohne Begriff entsteht kein einziges drittes Stueck',
+    wb.zerlegeKommentartext('Vor https://a.de/x, mitte www.b.de. Ende')
+      .every(s => !s.treffer),
+    JSON.stringify(wb.zerlegeKommentartext('Vor https://a.de/x, mitte www.b.de. Ende')));
 
   // Aussehen laesst sich hier nur am Stylesheet pruefen (Abschnitt 7).
   const cssK = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
@@ -28430,6 +28723,346 @@ async function pruefeOberflaeche() {
     !/Keine Treffer|Noch nichts erfasst/.test(sk.document.getElementById('body').textContent),
     sk.document.getElementById('body').textContent.slice(0, 80));
   sk.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Trefferzeile an der Kachel');
+
+  /* WARUM EIN EINTRAG IN DER TREFFERLISTE STEHT -- 0.18.0. Geprueft wird die
+     OBERFLAECHE: dass die Zeile nur waehrend einer Suche dasteht, dass sie an
+     der richtigen Stelle sitzt, dass sie die Quelle benennt und dass der
+     Ausschnitt als echte Knoten in die Seite kommt. WELCHE Quelle es ist,
+     entscheidet der Server; das prueft die Servergruppe an einer echten
+     Datenbank. */
+  const trBestand = [
+    { id: 1, title: 'Bosch Akkuschrauber', rejected: false, tested: true, favorite: false,
+      category: { id: 21, name: 'Werkzeug' }, tags: [{ id: 5, name: 'akku' }],
+      mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
+      testCount: 0, testAvg: null, testLast: null, testDays: [],
+      updated_at: '2026-08-01 10:00:00',
+      fundstelle: { quelle: 'kommentar', text: '…hat mir der Bosch-Händler empfohlen…', weitere: 2 } },
+    { id: 2, title: 'Bosch Bohrhammer', rejected: false, tested: false, favorite: false,
+      category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
+      testCount: 0, testAvg: null, testLast: null, testDays: [],
+      updated_at: '2026-08-01 10:00:00',
+      fundstelle: { quelle: 'link', text: '…bosch.example/werkzeug…', weitere: 0 } }
+  ];
+  const trDom = baueDom(JSDOM, { uebersichtItems: trBestand });
+  const tr = trDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const trZeilen = () => [...tr.document.querySelectorAll('.card-fund')];
+
+  pruefe('Der Aufbau steht: die Uebersicht zeigt beide Kacheln',
+    tr.document.querySelectorAll('.card').length === 2,
+    `${tr.document.querySelectorAll('.card').length}`);
+  pruefe('Ohne Suche traegt keine Kachel eine Trefferzeile',
+    trZeilen().length === 0, `${trZeilen().length} Zeilen`);
+
+  const trFeld = tr.document.getElementById('q');
+  trFeld.value = 'bosch';
+  trFeld.dispatchEvent(new tr.Event('input'));
+  await warteSuche(tr);
+  pruefe('Mit Suche traegt jede Trefferkachel genau eine',
+    trZeilen().length === 2, `${trZeilen().length} Zeilen`);
+
+  /* SIE STEHT UNTER DEM TITEL UND UEBER DEN TAGS -- bei dem, was sie erklaert,
+     und nicht am Fuss bei den Zahlen. Gefragt wird die Reihenfolge der Kinder
+     und nicht ihr Aussehen: jsdom rechnet kein CSS (Stolperstein 223). */
+  const trKoerper = tr.document.querySelector('.card .card-body');
+  const trFolge = [...trKoerper.children].map(k => k.className.split(' ')[0]);
+  pruefe('Die Zeile steht unter dem Titel',
+    trFolge.indexOf('card-fund') === trFolge.indexOf('card-title') + 1,
+    JSON.stringify(trFolge));
+  pruefe('Und ueber den Tags',
+    trFolge.indexOf('card-fund') < trFolge.indexOf('card-tags'),
+    JSON.stringify(trFolge));
+
+  pruefe('Sie nennt die Quelle in Worten',
+    gleich(trZeilen().map(z => z.querySelector('.fund-quelle').textContent),
+           ['Kommentar:', 'Link:']),
+    JSON.stringify(trZeilen().map(z => z.querySelector('.fund-quelle').textContent)));
+  pruefe('Und zeigt den Ausschnitt daneben',
+    trZeilen()[0].querySelector('.fund-text').textContent === '…hat mir der Bosch-Händler empfohlen…',
+    JSON.stringify(trZeilen()[0].querySelector('.fund-text').textContent));
+
+  /* DIE ZAHL DER WEITEREN STELLEN steht kurz in der Zeile und ausgeschrieben
+     im Ueberfahrtext. In der Zeile ist kein Platz fuer den ganzen Satz: auf
+     der schmalsten Kachel misst "und 2 weitere Stellen" 116,63 px und der
+     Ausschnitt haette danach keinen mehr (gemessen, Aenderungsprotokoll
+     0.18.0). */
+  pruefe('Bei weiteren Stellen steht ihre Zahl in der Zeile',
+    trZeilen()[0].querySelector('.fund-mehr')?.textContent === '+2',
+    JSON.stringify(trZeilen()[0].querySelector('.fund-mehr')?.textContent));
+  pruefe('Und ohne weitere Stellen steht dort gar nichts',
+    !trZeilen()[1].querySelector('.fund-mehr'),
+    trZeilen()[1].querySelector('.fund-mehr')?.textContent);
+  pruefe('Der Ueberfahrtext sagt es ausgeschrieben',
+    trZeilen()[0].getAttribute('title') === 'Gefunden in: Kommentar und 2 weitere Stellen',
+    trZeilen()[0].getAttribute('title'));
+  pruefe('Und bei einer einzigen Quelle nennt er nur sie',
+    trZeilen()[1].getAttribute('title') === 'Gefunden in: Link',
+    trZeilen()[1].getAttribute('title'));
+
+  /* DIE ADRESSE DER KACHEL TRAEGT DEN BEGRIFF. Wer einen Treffer oeffnet und
+     neu laedt, behaelt damit die Hervorhebung. */
+  pruefe('Die Kachel fuehrt mit dem Begriff in der Adresse zum Eintrag',
+    tr.document.querySelector('.card').getAttribute('href') === '#/item/1?q=bosch',
+    tr.document.querySelector('.card').getAttribute('href'));
+
+  /* DAS LEEREN NIMMT ALLES WIEDER WEG -- Zeile, Marken und den Begriff in der
+     Adresse. Die Hervorhebung gehoert der Suche und nicht dem Eintrag. */
+  trFeld.value = '';
+  trFeld.dispatchEvent(new tr.Event('input'));
+  await new Promise(r => setTimeout(r, 160));
+  pruefe('Das Leeren nimmt alle Trefferzeilen wieder weg',
+    trZeilen().length === 0, `${trZeilen().length} Zeilen`);
+  pruefe('Und alle Marken dazu',
+    tr.document.querySelectorAll('.card mark').length === 0,
+    `${tr.document.querySelectorAll('.card mark').length} Marken`);
+  pruefe('Und die Adresse der Kachel traegt keinen Begriff mehr',
+    tr.document.querySelector('.card').getAttribute('href') === '#/item/1',
+    tr.document.querySelector('.card').getAttribute('href'));
+  tr.close();
+
+  /* EINE QUELLE, DIE DIESE OBERFLAECHE NICHT KENNT, faellt nicht aus der
+     Zeile. Ein Server, der eine achte kennt, und eine Oberflaeche, die sie
+     noch nicht kennt, sind derselbe Fall wie eine alte Oberflaeche an einer
+     neuen Antwort: die Zeile sagt dann weniger, aber sie luegt nicht. */
+  /* UND DERSELBE AUSSCHNITT TRAEGT MARKUP. Er kann aus einem KOMMENTAR
+     stammen, und Kommentartext kommt nie ueber innerHTML in die Seite
+     (Projektstand 5.6, seit 0.5.4) -- auch dann nicht, wenn er auf dem Weg
+     ueber die Kachel kommt. Die Vorlage laesst die Stelle deshalb leer und
+     fuellt sie mit echten Knoten. Ohne diese Lage bliebe ein Rueckbau, der
+     dort innerHTML setzt, vollstaendig gruen. */
+  const trUnbekannt = baueDom(JSDOM, { uebersichtItems: [{ ...trBestand[1],
+    fundstelle: { quelle: 'anhangname',
+                  text: 'Bosch <img src=x onerror=alert(1)> Handbuch', weitere: 0 } }] });
+  const tu = trUnbekannt.w;
+  await new Promise(r => setTimeout(r, 80));
+  const tuFeld = tu.document.getElementById('q');
+  tuFeld.value = 'bosch';
+  tuFeld.dispatchEvent(new tu.Event('input'));
+  await warteSuche(tu);
+  pruefe('Eine unbekannte Quelle heisst „Fundstelle" und faellt nicht weg',
+    tu.document.querySelector('.fund-quelle')?.textContent === 'Fundstelle:',
+    tu.document.querySelector('.fund-quelle')?.textContent);
+  const tuText = tu.document.querySelector('.fund-text');
+  pruefe('Aus Markup im Ausschnitt entsteht kein Element',
+    !!tuText && !tuText.querySelector('img, b, i, script, iframe, style'),
+    tuText?.innerHTML);
+  pruefe('Und der Ausschnitt steht Zeichen fuer Zeichen so da, wie er kam',
+    tuText?.textContent === 'Bosch <img src=x onerror=alert(1)> Handbuch',
+    tuText?.textContent);
+  pruefe('Die Marke steht trotzdem darin',
+    tuText?.querySelector('mark')?.textContent === 'Bosch',
+    tuText?.querySelector('mark')?.textContent);
+  tu.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Hervorhebung in der Uebersicht');
+
+  /* DIE HERVORHEBUNG GEHOERT DER SUCHE UND NICHT DEM EINTRAG. Sie lebt genau
+     so lange wie der Begriff, sie wird nicht gespeichert, und sie gilt dort,
+     wo gesucht wurde -- an der Kachel also in Titel, Kategorie, Tags und in
+     der Trefferzeile. */
+  const hvBestand = [{ id: 1, title: 'Bella Bohrmaschine von eurobella',
+    rejected: false, tested: false, favorite: false,
+    category: { id: 21, name: 'Bellawerkzeug' }, tags: [{ id: 5, name: 'bella-tag' }],
+    mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
+    testCount: 0, testAvg: null, testLast: null, testDays: [],
+    updated_at: '2026-08-01 10:00:00',
+    fundstelle: { quelle: 'beschreibung', text: '…urobella im Text…', weitere: 1 } }];
+  const hvDom = baueDom(JSDOM, { uebersichtItems: hvBestand });
+  const hv = hvDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const hvMarken = (wo) => [...hv.document.querySelectorAll(`${wo} mark`)].map(m => m.textContent);
+
+  pruefe('Ohne Suche traegt die Kachel keine einzige Marke',
+    hv.document.querySelectorAll('.card mark').length === 0,
+    `${hv.document.querySelectorAll('.card mark').length}`);
+  const hvFeld = hv.document.getElementById('q');
+  hvFeld.value = 'bella';
+  hvFeld.dispatchEvent(new hv.Event('input'));
+  await warteSuche(hv);
+  /* ALLE VORKOMMEN UND NICHT NUR DAS ERSTE -- "Bella ... eurobella" ist
+     zweimal getroffen, und eine Zeile, die nur das erste markiert, behauptet
+     etwas ueber das zweite. */
+  pruefe('Im Titel werden alle Vorkommen markiert',
+    gleich(hvMarken('.card-title'), ['Bella', 'bella']), JSON.stringify(hvMarken('.card-title')));
+  /* MARKIERT WIRD DER ORIGINALTEXT, verglichen wird kleingeschrieben: wer
+     "bella" tippt, will "Bella" markiert sehen und nicht "bella"
+     daruntergelegt. */
+  pruefe('Und zwar mit der Schreibung, die dort wirklich steht',
+    hvMarken('.card-title')[0] === 'Bella', JSON.stringify(hvMarken('.card-title')));
+  pruefe('Der Titel bleibt dabei Zeichen fuer Zeichen derselbe',
+    hv.document.querySelector('.card-title').textContent === 'Bella Bohrmaschine von eurobella',
+    hv.document.querySelector('.card-title').textContent);
+  pruefe('In der Kategorie ebenso', gleich(hvMarken('.card-cat'), ['Bella']),
+    JSON.stringify(hvMarken('.card-cat')));
+  pruefe('Und an den Tags', gleich(hvMarken('.card-tags'), ['bella']),
+    JSON.stringify(hvMarken('.card-tags')));
+  pruefe('Und in der Trefferzeile', gleich(hvMarken('.card-fund'), ['bella']),
+    JSON.stringify(hvMarken('.card-fund')));
+
+  /* DER BEGRIFF IST TEXT UND KEIN MUSTER. Wer aus ihm ein regulaeres
+     Ausdrucksmuster baute, muesste jedes Sonderzeichen darin maskieren -- ein
+     eingegebener Punkt faende sonst jedes Zeichen. Derselbe Fehler wie LIKE
+     gegen instr() im Server, nur im Browser. */
+  hvFeld.value = 'a.b';
+  hvFeld.dispatchEvent(new hv.Event('input'));
+  await warteSuche(hv);
+  pruefe('Ein Punkt im Begriff findet keinen beliebigen Buchstaben',
+    hv.document.querySelectorAll('.card mark').length === 0,
+    JSON.stringify([...hv.document.querySelectorAll('.card mark')].map(m => m.textContent)));
+  hv.close();
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Der Suchbegriff in der Adresse');
+
+  /* BIS 0.17.5 LEBTE DER BEGRIFF NUR IN state.search. Wer einen Treffer
+     oeffnete und neu lud, verlor ihn -- und mit ihm die Hervorhebung. Ein
+     Eintrag, der beim ersten Blick markierte Stellen hat und nach F5 keine
+     mehr, sieht aus wie ein Fehler.
+     GEPRUEFT WIRD UEBER DIE ANSICHT UND NICHT UEBER DAS MUSTER: die Frage
+     lautet, wohin eine Adresse fuehrt, und nicht, wie sie zerlegt wird. */
+  const adBaue = async (h) => {
+    const d = baueDom(JSDOM, { hash: h });
+    await new Promise(r => setTimeout(r, 200));
+    return d.w;
+  };
+  const adIstEintrag = (w) => !!w.document.querySelector('.title-in');
+  const adIstListe = (w) => !!w.document.getElementById('q');
+
+  const adOhne = await adBaue('#/item/1');
+  pruefe('Eine Adresse ohne Begriff fuehrt weiterhin in den Eintrag',
+    adIstEintrag(adOhne), adOhne.document.body.textContent.slice(0, 60));
+  pruefe('Und dort ist keine einzige Marke',
+    adOhne.document.querySelectorAll('mark').length === 0,
+    `${adOhne.document.querySelectorAll('mark').length}`);
+  pruefe('Und die Adresse bleibt, wie sie war',
+    adOhne.location.hash === '#/item/1', adOhne.location.hash);
+  adOhne.close();
+
+  const adMit = await adBaue('#/item/1?q=beispiel');
+  pruefe('Eine Adresse mit Begriff fuehrt in denselben Eintrag',
+    adIstEintrag(adMit), adMit.document.body.textContent.slice(0, 60));
+  /* DIE HERVORHEBUNG UEBERSTEHT DAMIT EIN NEULADEN -- das ist der ganze
+     Zweck. Der Kommentartext traegt "beispiel.de", die Linkliste ebenso. */
+  pruefe('Und die Hervorhebung steht nach einem Neuladen wieder da',
+    adMit.document.querySelectorAll('#cmts .cmt-body mark').length > 0,
+    `${adMit.document.querySelectorAll('#cmts .cmt-body mark').length} Marken im Kommentar`);
+  pruefe('Auch in der Linkliste, und zwar an der Adresse',
+    adMit.document.querySelectorAll('#links .lrow .dom mark').length > 0,
+    `${adMit.document.querySelectorAll('#links .lrow .dom mark').length} Marken`);
+  /* DER TITEL UND DIE BESCHREIBUNG TRAGEN KEINE MARKE, und das ist kein
+     Versehen: beide sind Eingabefelder. Ein <input> und ein <textarea> haben
+     keine Kindknoten -- in sie laesst sich kein Element haengen, und ein
+     zweiter, nur zum Ansehen gebauter Titel daneben waere eine zweite
+     Anzeige derselben Sache. Die Abweichung steht im Aenderungsprotokoll
+     0.18.0; hier steht sie als Zusage, damit niemand sie fuer einen Fehler
+     haelt und still einen Weg dafuer baut. */
+  pruefe('Der Titel ist ein Eingabefeld und traegt deshalb keine Marke',
+    adMit.document.querySelectorAll('.title-in mark').length === 0 &&
+    adMit.document.getElementById('title').tagName === 'INPUT',
+    adMit.document.getElementById('title').tagName);
+  pruefe('Und die Beschreibung ebenso',
+    adMit.document.querySelectorAll('#desc mark').length === 0 &&
+    adMit.document.getElementById('desc').tagName === 'TEXTAREA',
+    adMit.document.getElementById('desc').tagName);
+  adMit.close();
+
+  /* DER ANZEIGENAME WIRD NICHT HERVORGEHOBEN. Gesucht wurde in `links.url`;
+     ein hervorgehobener Anbietername, in dem der Begriff gar nicht steht,
+     waere eine Falschaussage. Die Suchzeile traegt dafuer denselben Text wie
+     ein Anbieter -- an einer Zeile, in der der Begriff nur im Namen stuende,
+     liesse sich der Unterschied nicht sehen. */
+  const adSuchzeile = baueDom(JSDOM, { hash: '#/item/1?q=startpage' });
+  adSuchzeile.beispiel.links = [{ id: 87, url: 'Startpage Handbuch 3000', sort_order: 0,
+    created_at: '2026-08-04 13:00:00', mine: false, verfasser: null }];
+  await new Promise(r => setTimeout(r, 200));
+  const adSz = adSuchzeile.w;
+  const adNamen = [...adSz.document.querySelectorAll('#links .snamen .sname')];
+  pruefe('Der Aufbau steht: die Suchzeile nennt wirklich Anbieter mit demselben Wort',
+    adNamen.some(s => /Startpage/i.test(s.textContent)),
+    adNamen.map(s => s.textContent).join(' · ') || '(keine)');
+  pruefe('Hervorgehoben wird die Adresse',
+    adSz.document.querySelectorAll('#links .lrow .dom mark').length === 1,
+    `${adSz.document.querySelectorAll('#links .lrow .dom mark').length}`);
+  pruefe('Und ausdruecklich nicht der Anbietername',
+    adSz.document.querySelectorAll('#links .snamen mark').length === 0,
+    `${adSz.document.querySelectorAll('#links .snamen mark').length} Marken am Namen`);
+  adSz.close();
+
+  /* DAS MUSTER IST VERANKERT UND BLEIBT ES. `#/item/1x` ist keine
+     Eintragsadresse -- weder mit noch ohne Begriff. */
+  const adKrumm = await adBaue('#/item/1x');
+  pruefe('`#/item/1x` fuehrt nicht in einen Eintrag',
+    !adIstEintrag(adKrumm) && adIstListe(adKrumm),
+    adKrumm.document.body.textContent.slice(0, 60));
+  adKrumm.close();
+  const adKrumm2 = await adBaue('#/item/1x?q=beispiel');
+  pruefe('Und mit Begriff dahinter erst recht nicht',
+    !adIstEintrag(adKrumm2) && adIstListe(adKrumm2),
+    adKrumm2.document.body.textContent.slice(0, 60));
+  adKrumm2.close();
+
+  /* EIN `?q=` OHNE WERT IST DASSELBE WIE KEINS -- "keine Suche". Ohne diese
+     Lage waere "die Marke fehlt" nicht von "der Begriff kam nicht an" zu
+     unterscheiden. */
+  const adLeer = await adBaue('#/item/1?q=');
+  pruefe('Ein `?q=` ohne Wert heisst „keine Suche"',
+    adIstEintrag(adLeer) && adLeer.document.querySelectorAll('mark').length === 0,
+    `${adLeer.document.querySelectorAll('mark').length} Marken`);
+  adLeer.close();
+  /* UND EIN PARAMETER, DEN DIESE FASSUNG NICHT KENNT, WIRFT DIE ADRESSE NICHT
+     UM. Gelesen wird mit URLSearchParams und nicht mit einem zweiten Muster --
+     sonst faende `#/item/1?q=x&spur=3` gar keinen Eintrag mehr. */
+  const adFremd = await adBaue('#/item/1?spur=3&q=beispiel');
+  pruefe('Ein unbekannter Parameter daneben stoert nicht',
+    adIstEintrag(adFremd) &&
+    adFremd.document.querySelectorAll('#cmts .cmt-body mark').length > 0,
+    `${adFremd.document.querySelectorAll('#cmts .cmt-body mark').length} Marken`);
+  adFremd.close();
+
+  /* DER BEGRIFF WIRD ENTSCHLUESSELT. Ein Leerzeichen steht als %20 in der
+     Adresse; wer es nicht zurueckwandelt, sucht nach dem Prozentzeichen. */
+  const adRaum = await adBaue('#/item/1?q=ein%20bericht');
+  pruefe('Ein Begriff mit Leerzeichen kommt entschluesselt an',
+    [...adRaum.document.querySelectorAll('#cmts .cmt-body mark')]
+      .some(m => m.textContent === 'Ein Bericht'),
+    JSON.stringify([...adRaum.document.querySelectorAll('#cmts .cmt-body mark')]
+      .map(m => m.textContent)));
+  adRaum.close();
+
+  /* DIE ADRESSE WIRD NACHGEZOGEN, WENN DER WEG IN DEN EINTRAG SIE NICHT
+     TRAEGT. Nicht jeder Weg kommt von einer Kachel: die Glockentafel, die
+     Zeitleiste, die offenen Aufgaben und der Vergleich setzen die Adresse
+     selbst. Statt an jedem dieser Absender den Begriff anzuhaengen, zieht
+     renderDetail() ihn an EINER Stelle nach -- derselbe Griff wie am Ende von
+     renderSystem(). */
+  const adNachDom = baueDom(JSDOM, { uebersichtItems: [{ id: 1, title: 'Beispiel',
+    rejected: false, tested: false, favorite: false, category: null, tags: [],
+    mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
+    testCount: 0, testAvg: null, testLast: null, testDays: [],
+    updated_at: '2026-08-01 10:00:00',
+    fundstelle: { quelle: 'titel', text: 'Beispiel', weitere: 0 } }] });
+  const adN = adNachDom.w;
+  await new Promise(r => setTimeout(r, 80));
+  const adNFeld = adN.document.getElementById('q');
+  adNFeld.value = 'beispiel';
+  adNFeld.dispatchEvent(new adN.Event('input'));
+  await warteSuche(adN);
+  pruefe('Der Aufbau steht: die Suche laeuft und die Kachel steht da',
+    adN.document.querySelectorAll('.card-fund').length === 1,
+    `${adN.document.querySelectorAll('.card-fund').length}`);
+  // Ein Weg in den Eintrag, der die Adresse OHNE Begriff setzt.
+  adN.location.hash = '#/item/1';
+  await new Promise(r => setTimeout(r, 300));
+  pruefe('Ein Weg ohne Begriff bekommt ihn nachtraeglich in die Adresse',
+    adN.location.hash === '#/item/1?q=beispiel', adN.location.hash);
+  pruefe('Und die Hervorhebung steht daraufhin im Eintrag',
+    adN.document.querySelectorAll('#cmts .cmt-body mark').length > 0,
+    `${adN.document.querySelectorAll('#cmts .cmt-body mark').length} Marken`);
+  adN.close();
 
   /* ---------------------------------------------------------------- */
   gruppe('Gespeicherte Ansichten in der Oberflaeche');
