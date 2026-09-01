@@ -1,7 +1,7 @@
 # Änderungsprotokoll 0.19.0 — „Die Bildablage"
 
 **Version 0.19.0 · gebaut am 1. September 2026 · Fingerprint `5fe43053` ·
-5050 Prüfungen · 450 Rückbauten in `gegenprobe.js`**
+5051 Prüfungen · 450 Rückbauten in `gegenprobe.js`**
 
 ---
 
@@ -547,7 +547,7 @@ kein PNG mehr da" wäre an einer Instanz mit einem winzigen PNG schlicht falsch.
 
 ## 12. Der Prüfstand
 
-**5050 von 5050 bestanden** — **131 neue Prüfungen netto**
+**5051 von 5051 bestanden** — **132 neue Prüfungen netto**
 gegenüber 4919 in 0.18.1.
 
 | Gruppe | vorher | nachher | wofür |
@@ -556,15 +556,27 @@ gegenüber 4919 in 0.18.1.
 | **Die Bildablage: die Rechte** *(neu)* | — | **11** | Schalter und Knopf gehören dem **Eigentümer** — der gewöhnliche Benutzer und der Admin ohne Eigentümerrolle bekommen 403, **und die Stellung verschiebt sich dabei nicht**; lesen darf den Schalter jeder; die Eigentümerin braucht **zusätzlich** ihr Passwort |
 | **Die Bildablage in der Oberflaeche** *(neu)* | — | **28** | es bleibt bei **achtzehn** Karten; der Abschnitt „Bildablage" steht in „Kennzahlen"; je Format eine Zeile mit Zahl und Größe, **ein Format ohne Bilder bekommt keine Zeile mit einer Null**; der Schalter geht über `PUT /api/settings` und **über keine eigene Route**; der Knopf **schreibt nicht sofort los**, sondern fragt das Passwort, und der Dialog nennt Zahl, Verlust und Sicherung; die drei Gegenlagen (kein PNG, ein Lauf unterwegs, ein Lauf durch); der Admin ohne Eigentümerrolle sieht die Zahlen und **weder Schalter noch Knopf** |
 | **Fokuspunkt der Vorschau** | 12 | **22** | der Zoom: Vorgabe, Setzen, Runden auf ganze Prozent, **Beschneiden nach unten und oben**, Text als Absage, **ein fehlendes Feld behält den Wert**, Übersicht, Export, Import — und **ein unsinniger Wert in der Datei fällt auf die Vorgabe, statt das Einspielen abzubrechen** |
-| **Fokuspunkt in der Oberflaeche** | 8 | **28** | `ausschnitt()` liefert beide Hälften, der Zoom wird zum **Faktor**, `fokus()` gibt es nicht mehr daneben, **die Kachel trägt `--zoom` wirklich**; der Schieber: Spanne wie im Server, Ziehen zeichnet **ohne zu schicken**, **der Rahmen zieht sich wirklich zusammen**, Loslassen schickt alle drei Werte in EINEM Ruf, und **ein Griff an den Schieber setzt keinen Fokuspunkt** |
+| **Fokuspunkt in der Oberflaeche** | 8 | **29** | `ausschnitt()` liefert beide Hälften, der Zoom wird zum **Faktor**, `fokus()` gibt es nicht mehr daneben, **die Kachel trägt `--zoom` wirklich**; der Schieber: Spanne wie im Server, Ziehen zeichnet **ohne zu schicken**, **der Rahmen zieht sich wirklich zusammen**, Loslassen schickt alle drei Werte in EINEM Ruf, und **ein Griff an den Schieber setzt keinen Fokuspunkt** |
 | **MIGRATION 0.19.0 — ENTFAELLT MIT 1.0** *(neu)* | — | **16** | die Prüflage aus 0.18.1 trägt die Spalte nicht und **wirklich Fotos**; die Migration ergänzt sie und **nennt im Protokoll die Zahl**; die Fokuspunkte bleiben, `zoom` steht auf 100; **kein `UPDATE` im Block**, die Vorgabe steht am `ALTER TABLE`, in der DDL **und im Verhalten**; `zoom` ist die **letzte** Spalte der DDL; ein zweiter Lauf bleibt stumm; eine frische Instanz trägt sie ohne Migration — **und migriert wie frisch tragen dieselben Spalten in derselben Reihenfolge** |
-| **zusammen** | | | **+131** |
+| **zusammen** | | | **+132** |
 
 **Nachgezogen und nicht neu:** die Zahl der schreibenden Routen (69 → 70), der
 Zwecke der zweiten Bestätigung (7 → 8, **mit einer eigenen Zeile für den Namen
 des achten**), der Migrationsfunktionen und markierten Blöcke (7 → 8, **mit
 einer eigenen Zeile dafür, dass der achte zu 0.19.0 gehört**), die Formatnummer
 (11 → 12 an fünf Stellen) und die Zahl der Rückbauten (422 → 450).
+
+> **UND DIE GEGENPROBE HAT DIE PRÜFLAGE SELBST BERICHTIGT.** Der erste Lauf
+> über die neuen Rückbauten meldete an **458** *ABGERISSEN* statt roter Punkte:
+> der Rückbau lässt den Upload mit 500 scheitern, die Antwort trug dann `error`
+> statt `photos`, und `.length` darauf riss den ganzen Prüflauf mit
+> (Stolperstein 161). **Dieselbe Falle steckte an einem Dutzend weiterer
+> Stellen** — 440 (der Fortschritt fehlt) und 441 (die Aufteilung fehlt) hätten
+> sie ebenso ausgelöst, und 450 (der Schieber fehlt) auch. *Jede Stelle liest
+> ihre Felder jetzt durch eine Klammer (`letztesFoto()`, `formate()`, `zieh()`),
+> und eine zusätzliche Prüfung hält fest, dass der Schieber überhaupt da ist —
+> ohne sie wäre „es wurde nichts geschickt" trivial wahr.*
+> **Ein abgerissener Lauf ist kein stummer Rückbau: er belegt gar nichts.**
 
 > **DIE FRAGE DES AUFTRAGS — „erkennt man an der Prüfung, dass das Bild wirklich
 > unversehrt ist, oder nur, dass eine Funktion gerufen wurde?"** — ist der Grund
@@ -649,7 +661,7 @@ am ENDE ihrer Tabelle, und der Grund gehört danebengeschrieben.**
 
 | | vorher (0.18.1) | nachher (0.19.0) |
 |---|---|---|
-| Prüfungen | 4919 | **5050** |
+| Prüfungen | 4919 | **5051** |
 | Rückbauten in der Liste | 422 | **450** |
 | höchste Rückbaunummer | 430 | **458** |
 | schreibende Routen (`F_ROUTEN`) | 69 | **70** |

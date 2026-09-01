@@ -16601,14 +16601,21 @@ const freigabeHaupt = (zweck, ziel = null) =>
     JSON.stringify(ohneZoom.inhalt.photos[0]));
 
   await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 20, y: 70, zoom: 180 });
-  const uebersichtF = (await ruf('GET', '/api/items')).inhalt.find(i => i.id === fp.id);
+  /* MIT KLAMMER: ein Rueckbau, der die Uebersicht scheitern laesst, soll die
+     Zusagen darunter rot faerben und nicht den Lauf abreissen
+     (Stolperstein 161). Dasselbe gilt fuer die eingespielten Eintraege
+     weiter unten. */
+  const uebersichtF = ((await ruf('GET', '/api/items')).inhalt || [])
+    .find(i => i.id === fp.id) || { mainPhoto: {} };
+  const uebersichtFoto = uebersichtF.mainPhoto || {};
   pruefe('Übersicht liefert den Fokuspunkt des Hauptbilds mit',
-    uebersichtF.mainPhoto.focus_x === 20 && uebersichtF.mainPhoto.focus_y === 70);
-  pruefe('Und den engeren Ausschnitt dazu', uebersichtF.mainPhoto.zoom === 180,
-    String(uebersichtF.mainPhoto.zoom));
+    uebersichtFoto.focus_x === 20 && uebersichtFoto.focus_y === 70);
+  pruefe('Und den engeren Ausschnitt dazu', uebersichtFoto.zoom === 180,
+    String(uebersichtFoto.zoom));
 
   const ausF = await rufF('GET', '/api/export?photos=1');
-  const ausFoto = ausF.inhalt.items.find(i => i.title === 'Fokusprobe').photos[0];
+  const ausFoto = (((ausF.inhalt && ausF.inhalt.items) || [])
+    .find(i => i.title === 'Fokusprobe') || { photos: [] }).photos[0] || {};
   pruefe('Export nimmt den Fokuspunkt mit', ausFoto.focus_x === 20 && ausFoto.focus_y === 70);
   pruefe('Und den engeren Ausschnitt mit', ausFoto.zoom === 180, String(ausFoto.zoom));
   await ruf('DELETE', `/api/items/${fp.id}`);
@@ -16621,26 +16628,27 @@ const freigabeHaupt = (zweck, ziel = null) =>
         data_base64: PNG_BASE64 }] }
   ]}, 'merge');
   pruefe('Import mit Fotos gelingt', impF.status === 200, JSON.stringify(impF.inhalt));
-  const mitF = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Mit Fokus');
-  const ohneF = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Ohne Fokus');
-  const wildF = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Wilder Zoom');
+  const impListe = (await ruf('GET', '/api/items')).inhalt || [];
+  const mitF = impListe.find(i => i.title === 'Mit Fokus') || { mainPhoto: {} };
+  const ohneF = impListe.find(i => i.title === 'Ohne Fokus') || { mainPhoto: {} };
+  const wildF = impListe.find(i => i.title === 'Wilder Zoom') || { mainPhoto: {} };
   pruefe('Eingespielter Fokuspunkt kommt an',
-    mitF.mainPhoto.focus_x === 30 && mitF.mainPhoto.focus_y === 90);
-  pruefe('Und der eingespielte Ausschnitt ebenso', mitF.mainPhoto.zoom === 220,
-    String(mitF.mainPhoto.zoom));
+    (mitF.mainPhoto || {}).focus_x === 30 && (mitF.mainPhoto || {}).focus_y === 90);
+  pruefe('Und der eingespielte Ausschnitt ebenso', (mitF.mainPhoto || {}).zoom === 220,
+    String((mitF.mainPhoto || {}).zoom));
   pruefe('Ältere Exportdatei ohne Fokuspunkt landet in der Mitte',
-    ohneF.mainPhoto.focus_x === 50 && ohneF.mainPhoto.focus_y === 50);
+    (ohneF.mainPhoto || {}).focus_x === 50 && (ohneF.mainPhoto || {}).focus_y === 50);
   /* DIE DATEI DER FORMATNUMMER 11 KENNT KEIN `zoom` -- dann gilt die Vorgabe,
      und das ist genau der weiteste Ausschnitt. Entschieden wird ueber das
      VORHANDENSEIN des Feldes und nicht ueber die Formatnummer; die hier oben
      steht auf 5. */
   pruefe('Und eine Datei ohne Ausschnitt auf dem weitesten',
-    ohneF.mainPhoto.zoom === 100, String(ohneF.mainPhoto.zoom));
+    (ohneF.mainPhoto || {}).zoom === 100, String((ohneF.mainPhoto || {}).zoom));
   /* EIN UNSINNIGER WERT IN DER DATEI BRICHT DAS EINSPIELEN NICHT AB -- die
      Datei ist, wie sie ist, und ein Abbruch waere die schlechtere Antwort.
      Das ist der EINE Unterschied zur Route oben, die absagt. */
   pruefe('Ein unsinniger Ausschnitt in der Datei faellt auf die Vorgabe',
-    wildF.mainPhoto.zoom === 100, String(wildF.mainPhoto.zoom));
+    (wildF.mainPhoto || {}).zoom === 100, String((wildF.mainPhoto || {}).zoom));
   await ruf('DELETE', `/api/items/${mitF.id}`);
   await ruf('DELETE', `/api/items/${ohneF.id}`);
   await ruf('DELETE', `/api/items/${wildF.id}`);
@@ -16658,12 +16666,27 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const ladeBild = async (itemId, name, typ, inhalt) =>
     (await sendeMultipart(`/api/items/${itemId}/photos`, 'photos',
       [{ name, typ, inhalt }])).inhalt;
+  /* DAS ZULETZT ANGELEGTE FOTO -- UND EIN LEERES OBJEKT, WENN ES KEINES GIBT.
+     Ohne diese Klammer reisst ein Rueckbau, der den Upload scheitern laesst,
+     den ganzen Lauf ab, statt eine Pruefung rot zu faerben (Stolperstein 161):
+     die Antwort traegt dann `error` statt `photos`, und `.length` darauf wirft.
+     GENAU DAS HAT DIE GEGENPROBE ZU DIESER RUNDE GEFUNDEN, an Rueckbau 458.
+     Ein leeres Objekt macht jede Zusage darunter rot und laesst den Lauf
+     weiterlaufen -- so soll es sein. */
+  const letztesFoto = (antwort) => {
+    const liste = Array.isArray(antwort && antwort.photos) ? antwort.photos : [];
+    return liste[liste.length - 1] || {};
+  };
+  // Dasselbe fuer die Aufstellung nach Format: faellt sie aus der Antwort
+  // (Rueckbau 441), soll die Zeile rot werden und nicht der Lauf enden.
+  const formate = (stats) => (stats && stats.bildFormate) || {};
+  const formatZahl = (stats, k) => (formate(stats)[k] || {}).anzahl || 0;
 
   const ba = (await ruf('POST', '/api/items', { title: 'Bildablage' })).inhalt;
   const vorlagePNG = await machPruefPNG(96);
 
   const baDetail = await ladeBild(ba.id, 'schirm.png', 'image/png', vorlagePNG);
-  const baFoto = baDetail.photos[baDetail.photos.length - 1];
+  const baFoto = letztesFoto(baDetail);
   pruefe('Ein eingefügtes PNG wird angenommen', !!baFoto, JSON.stringify(baDetail).slice(0, 160));
   pruefe('Und liegt danach als WebP in der Tabelle', baFoto.mime_type === 'image/webp',
     baFoto.mime_type);
@@ -16713,14 +16736,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---- WAS NICHT ANGEFASST WIRD ---- */
   const jpegVorlage = await sharp(vorlagePNG).jpeg({ quality: 90 }).toBuffer();
   const jpegDetail = await ladeBild(ba.id, 'foto.jpg', 'image/jpeg', jpegVorlage);
-  const jpegFoto = jpegDetail.photos[jpegDetail.photos.length - 1];
+  const jpegFoto = letztesFoto(jpegDetail);
   pruefe('Ein JPEG behält seinen Typ', jpegFoto.mime_type === 'image/jpeg', jpegFoto.mime_type);
   pruefe('Und liegt byte-genau so da, wie es ankam',
     (await bildRoh(jpegFoto.id)).bytes.equals(jpegVorlage));
 
   const gifVorlage = Buffer.from(GIF_BASE64, 'base64');
   const gifDetail = await ladeBild(ba.id, 'bewegt.gif', 'image/gif', gifVorlage);
-  const gifFoto = gifDetail.photos[gifDetail.photos.length - 1];
+  const gifFoto = letztesFoto(gifDetail);
   /* GIF WIRD NICHT UMGEWANDELT, und der Grund ist nicht Bequemlichkeit: sharp
      liest ohne `animated: true` nur die erste Seite. Eine Umwandlung verloere
      die Bewegung, und zwar still. */
@@ -16730,7 +16753,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   const webpVorlage = Buffer.from(WEBP_BASE64, 'base64');
   const webpDetail = await ladeBild(ba.id, 'schon.webp', 'image/webp', webpVorlage);
-  const webpFoto = webpDetail.photos[webpDetail.photos.length - 1];
+  const webpFoto = letztesFoto(webpDetail);
   pruefe('Vorhandenes WebP wird nicht noch einmal kodiert',
     (await bildRoh(webpFoto.id)).bytes.equals(webpVorlage));
 
@@ -16753,7 +16776,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const grossPNG = await sharp({ create: { width: 16400, height: 4, channels: 3,
                                            background: '#888' } }).png().toBuffer();
   const grossDetail = await ladeBild(ba.id, 'breit.png', 'image/png', grossPNG);
-  const grossFoto = grossDetail.photos[grossDetail.photos.length - 1];
+  const grossFoto = letztesFoto(grossDetail);
   pruefe('Ein PNG, das WebP nicht fassen kann, bleibt PNG',
     grossFoto.mime_type === 'image/png', grossFoto.mime_type);
   pruefe('Und zwar byte-genau',
@@ -16761,9 +16784,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* UND DER UPLOAD IST DABEI NICHT GESCHEITERT. Ohne diese Zeile bliebe die
      Zusage darueber auch dann gruen, wenn der Rueckfall ein 500 waere und
      gar keine Zeile entstuende (Stolperstein 81). */
+  const zeilenZahl = (a) => (Array.isArray(a && a.photos) ? a.photos.length : -1);
   pruefe('Und die Zeile ist wirklich angelegt worden',
-    grossDetail.photos.length === webpDetail.photos.length + 1,
-    `${webpDetail.photos.length} vorher, ${grossDetail.photos.length} nachher`);
+    zeilenZahl(grossDetail) === zeilenZahl(webpDetail) + 1,
+    `${zeilenZahl(webpDetail)} vorher, ${zeilenZahl(grossDetail)} nachher`);
 
   /* ---- DIE ABLEITUNGEN BLEIBEN JPEG ----
      Diese Runde macht das ARCHIV unversehrt und laesst die ANZEIGE, wie sie
@@ -16774,18 +16798,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* ---- DIE AUFSTELLUNG NACH FORMAT ---- */
   const baStats = (await ruf('GET', '/api/stats')).inhalt;
-  pruefe('Die Kennzahlen führen die Fotos nach Format auf', !!baStats.bildFormate,
-    JSON.stringify(baStats.bildFormate));
+  pruefe('Die Kennzahlen führen die Fotos nach Format auf',
+    !!(baStats && baStats.bildFormate), JSON.stringify(baStats && baStats.bildFormate));
   pruefe('WebP, JPEG, GIF und PNG stehen darin',
-    ['webp', 'jpeg', 'gif', 'png'].every(k => baStats.bildFormate[k] &&
-      baStats.bildFormate[k].anzahl > 0), JSON.stringify(baStats.bildFormate));
+    ['webp', 'jpeg', 'gif', 'png'].every(k => formatZahl(baStats, k) > 0),
+    JSON.stringify(formate(baStats)));
   /* DIE SUMME DER AUFTEILUNG IST DIE ALTE ZAHL. Ohne diese Zeile koennte die
      Aufteilung still etwas anderes zaehlen als photoCount -- zwei Wahrheiten
      ueber denselben Bestand. */
-  const baSumme = Object.values(baStats.bildFormate).reduce((a2, f) => a2 + f.anzahl, 0);
+  const baSumme = Object.values(formate(baStats)).reduce((a2, f) => a2 + f.anzahl, 0);
   pruefe('Und ihre Summe ist genau photoCount', baSumme === baStats.photoCount,
     `${baSumme} gegen ${baStats.photoCount}`);
-  const baBytesSumme = Object.values(baStats.bildFormate).reduce((a2, f) => a2 + f.bytes, 0);
+  const baBytesSumme = Object.values(formate(baStats)).reduce((a2, f) => a2 + f.bytes, 0);
   pruefe('Und ihre Bytesumme genau photoBytes', baBytesSumme === baStats.photoBytes,
     `${baBytesSumme} gegen ${baStats.photoBytes}`);
   pruefe('Videos stehen ausdrücklich NICHT in der Aufteilung',
@@ -16798,9 +16822,10 @@ const freigabeHaupt = (zweck, ziel = null) =>
     JSON.stringify((await ruf('GET', '/api/settings')).inhalt.bilderUmwandeln));
   const baAus = await ruf('PUT', '/api/settings', { bilderUmwandeln: false });
   pruefe('Er lässt sich ausschalten', baAus.status === 200 &&
-    baAus.inhalt.bilderUmwandeln === false, JSON.stringify(baAus.inhalt.bilderUmwandeln));
+    baAus.inhalt && baAus.inhalt.bilderUmwandeln === false,
+    JSON.stringify(baAus.inhalt && baAus.inhalt.bilderUmwandeln));
   const ausDetail = await ladeBild(ba.id, 'aus.png', 'image/png', vorlagePNG);
-  const ausFotoB = ausDetail.photos[ausDetail.photos.length - 1];
+  const ausFotoB = letztesFoto(ausDetail);
   /* AUS HEISST AUS: byte-genau, nicht „fast unveraendert". Das ist die
      Stellung, die dem Verhalten von Immich, Nextcloud und Piwigo entspricht --
      wer die Abweichung nicht mitgehen will, hat sie hier. */
@@ -16824,16 +16849,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   ]}, 'merge');
   pruefe('Der Import mit PNG geht durch', baImpAntwort.status === 200, JSON.stringify(baImpAntwort.inhalt));
   const baImpItem = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Eingespieltes PNG');
+  const impFoto = (baImpItem && baImpItem.mainPhoto) || {};
   pruefe('Und er lässt das eingespielte PNG PNG',
-    baImpItem && baImpItem.mainPhoto.mime_type === 'image/png',
-    baImpItem && baImpItem.mainPhoto.mime_type);
+    impFoto.mime_type === 'image/png', JSON.stringify(impFoto.mime_type));
   pruefe('Und zwar byte-genau',
-    (await bildRoh(baImpItem.mainPhoto.id)).bytes.equals(vorlagePNG));
+    (await bildRoh(impFoto.id)).bytes.equals(vorlagePNG));
 
   /* ---- DER KNOPF: den vorhandenen Bestand nachziehen ---- */
-  const vorPNG = (await ruf('GET', '/api/stats')).inhalt.bildFormate.png;
-  pruefe('Vor dem Lauf liegt noch PNG da', vorPNG && vorPNG.anzahl >= 2,
-    JSON.stringify(vorPNG));
+  const vorPNG = formatZahl((await ruf('GET', '/api/stats')).inhalt, 'png');
+  pruefe('Vor dem Lauf liegt noch PNG da', vorPNG >= 2, String(vorPNG));
   /* OHNE ZWEITE BESTAETIGUNG GEHT ES NICHT. Der Lauf schreibt jeden PNG-Blob
      der Instanz um, und die alten Bytes sind danach weg -- genau die Art
      Vorgang, fuer die es die zweite Bestaetigung gibt. */
@@ -16842,7 +16866,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     ohneFreigabe.status === 403 && ohneFreigabe.inhalt?.bestaetigung === 'bilder',
     JSON.stringify(ohneFreigabe.inhalt));
   pruefe('Und der Bestand ist dabei unberührt geblieben',
-    (await ruf('GET', '/api/stats')).inhalt.bildFormate.png.anzahl === vorPNG.anzahl);
+    formatZahl((await ruf('GET', '/api/stats')).inhalt, 'png') === vorPNG);
 
   const lauf = await rufF('POST', '/api/bilder/umstellen', {});
   /* SIE KEHRT SOFORT ZURUECK. Acht Minuten Rechenzeit an einer offenen
@@ -16850,7 +16874,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Die Umstellung kehrt sofort zurück (202)', lauf.status === 202,
     `Status ${lauf.status}: ${JSON.stringify(lauf.inhalt)}`);
   pruefe('Und nennt dabei, wie viele Bilder sie vorhat',
-    lauf.inhalt && lauf.inhalt.laeuft === true && lauf.inhalt.gesamt === vorPNG.anzahl,
+    !!lauf.inhalt && lauf.inhalt.laeuft === true && lauf.inhalt.gesamt === vorPNG,
     JSON.stringify(lauf.inhalt));
   /* ZWEIMAL DRUECKEN STARTET NICHT ZWEIMAL. Eine Absage ist ehrlicher als
      eine zweite Schleife, die dem gemeldeten Fortschritt die Grundlage
@@ -16861,12 +16885,17 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   // Warten, bis der Lauf durch ist -- der Fortschritt steht in /api/stats und
   // ausdruecklich NICHT in einer zweiten Route.
+  /* GEWARTET WIRD MIT GRENZE UND MIT KLAMMER: faellt der Fortschritt aus der
+     Antwort (Rueckbau 440), bleibt `baStand` leer, die Schleife laeuft in ihre
+     Grenze und die Zusagen darunter werden rot -- der Lauf laeuft weiter. */
   let baStand = null;
   for (let i = 0; i < 400; i++) {
-    baStand = (await ruf('GET', '/api/stats')).inhalt.umstellung;
+    const st = (await ruf('GET', '/api/stats')).inhalt;
+    baStand = (st && st.umstellung) || null;
     if (baStand && !baStand.laeuft) break;
     await new Promise(r => setTimeout(r, 50));
   }
+  const stand = baStand || {};
   pruefe('Der Fortschritt steht in den Kennzahlen und läuft aus',
     baStand && baStand.laeuft === false, JSON.stringify(baStand));
   pruefe('Und am Ende ist jedes vorgesehene Bild erledigt',
@@ -16876,30 +16905,34 @@ const freigabeHaupt = (zweck, ziel = null) =>
      zaehlt es als „geblieben" und laesst es in Ruhe; „kein PNG mehr da" waere
      an dieser Instanz also die FALSCHE Zusage. */
   pruefe('Nach dem Lauf bleibt genau das PNG liegen, das WebP nicht fassen kann',
-    (nachStats.bildFormate.png ? nachStats.bildFormate.png.anzahl : 0) === baStand.geblieben,
-    `${nachStats.bildFormate.png ? nachStats.bildFormate.png.anzahl : 0} gegen ${baStand.geblieben}`);
-  pruefe('Und der Lauf hat wirklich etwas umgestellt', baStand.umgestellt > 0,
-    JSON.stringify(baStand));
-  pruefe('Und dabei Platz gespart', baStand.gespart > 0, JSON.stringify(baStand));
-  const baImpNachher = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Eingespieltes PNG');
+    formatZahl(nachStats, 'png') === stand.geblieben,
+    `${formatZahl(nachStats, 'png')} gegen ${stand.geblieben}`);
+  pruefe('Und der Lauf hat wirklich etwas umgestellt', stand.umgestellt > 0,
+    JSON.stringify(stand));
+  pruefe('Und dabei Platz gespart', stand.gespart > 0, JSON.stringify(stand));
+  const baImpNachher = ((await ruf('GET', '/api/items')).inhalt || [])
+    .find(i => i.title === 'Eingespieltes PNG');
+  const nachFoto = (baImpNachher && baImpNachher.mainPhoto) || {};
   pruefe('Das eingespielte PNG ist jetzt WebP',
-    baImpNachher.mainPhoto.mime_type === 'image/webp', baImpNachher.mainPhoto.mime_type);
+    nachFoto.mime_type === 'image/webp', JSON.stringify(nachFoto.mime_type));
   /* UND ES IST DABEI UNVERSEHRT GEBLIEBEN -- dieselbe Messung wie oben, nur
      am anderen Weg. Ohne sie belegte der Lauf nur, dass sich etwas geaendert
      hat, nicht dass es dasselbe Bild ist. */
+  const nachBytes = (await bildRoh(nachFoto.id)).bytes;
   pruefe('Und dabei unversehrt geblieben',
-    (await groessteAbweichung(vorlagePNG, (await bildRoh(baImpNachher.mainPhoto.id)).bytes)) <= 2);
+    nachBytes.length > 0 && (await groessteAbweichung(vorlagePNG, nachBytes)) <= 2,
+    `${nachBytes.length} Bytes`);
   /* thumb UND medium WERDEN NICHT NEU GERECHNET. Sie sind aus demselben Bild
      entstanden und bleiben gueltig; ein Neurechnen kostete Zeit und aenderte
      nichts. */
   pruefe('Die Ableitungen sind dabei unberührt geblieben',
-    (await bildRoh(baImpNachher.mainPhoto.id, '?size=thumb')).bytes.slice(0, 2).toString('hex') === 'ffd8');
+    (await bildRoh(nachFoto.id, '?size=thumb')).bytes.slice(0, 2).toString('hex') === 'ffd8');
   pruefe('JPEG und GIF haben den Lauf unverändert überstanden',
     (await bildRoh(jpegFoto.id)).bytes.equals(jpegVorlage) &&
     (await bildRoh(gifFoto.id)).bytes.equals(gifVorlage));
 
   await ruf('DELETE', `/api/items/${ba.id}`);
-  await ruf('DELETE', `/api/items/${baImpItem.id}`);
+  if (baImpItem) await ruf('DELETE', `/api/items/${baImpItem.id}`);
 
   /* ---------------------------------------------------------------- */
   gruppe('Berichte und angepinnte Kommentare');
@@ -25291,13 +25324,24 @@ async function pruefeOberflaeche() {
   /* ZIEHEN ZEICHNET, LOSLASSEN SPEICHERT -- getrennt geprueft, denn ein
      Schieber, der bei jedem Zwischenschritt schickt, erzeugt bei einem Zug
      ueber die ganze Leiter sechzig Anfragen. */
+  /* JEDER GRIFF AN DEN SCHIEBER GEHT DURCH DIESE KLAMMER. Fehlt er (Rueckbau
+     450), werden die Zusagen darunter rot und der Lauf laeuft weiter -- ein
+     Rueckbau, der den Lauf abreisst, belegt gar nichts (Stolperstein 161). */
+  const zieh = (wert, art = 'input') => {
+    if (!schieber) return false;
+    schieber.value = String(wert);
+    schieber.dispatchEvent(new wb.Event(art, { bubbles: true }));
+    return true;
+  };
+  const zoomWert = () => wb.document.querySelector('#vzoom-wert')?.textContent ?? '(keine Anzeige)';
+  const rahmenBreite = () =>
+    parseFloat(wb.document.querySelector('.focus-frame')?.style.width) || 0;
+
   bd.gesendet.length = 0;
-  schieber.value = '250';
-  schieber.dispatchEvent(new wb.Event('input', { bubbles: true }));
+  zieh(250);
   await new Promise(r => setTimeout(r, 20));
   pruefe('Das Ziehen schreibt den Wert an den Rahmen',
-    wb.document.querySelector('#vzoom-wert').textContent === '250 %',
-    wb.document.querySelector('#vzoom-wert').textContent);
+    zoomWert() === '250 %', zoomWert());
   pruefe('Und es schickt dabei noch nichts',
     !bd.gesendet.some(g => /\/focus$/.test(g.url)), JSON.stringify(bd.gesendet.map(g => g.url)));
   /* UND DER RAHMEN ZIEHT SICH WIRKLICH ZUSAMMEN -- um seine Mitte, so wie
@@ -25313,16 +25357,16 @@ async function pruefeOberflaeche() {
     const bildEl = wb.document.querySelector('.viewer img');
     const rechteck = (l, o, b, h) => () => ({ left: l, top: o, width: b, height: h,
       right: l + b, bottom: o + h, x: l, y: o, toJSON() { return this; } });
-    betr.getBoundingClientRect = rechteck(0, 0, 600, 400);
-    bildEl.getBoundingClientRect = rechteck(0, 0, 600, 400);
-    Object.defineProperty(bildEl, 'naturalWidth', { value: 1200, configurable: true });
-    Object.defineProperty(bildEl, 'naturalHeight', { value: 800, configurable: true });
-    schieber.value = '100';
-    schieber.dispatchEvent(new wb.Event('input', { bubbles: true }));
-    const rahmenWeit = parseFloat(wb.document.querySelector('.focus-frame').style.width) || 0;
-    schieber.value = '200';
-    schieber.dispatchEvent(new wb.Event('input', { bubbles: true }));
-    const rahmenEng = parseFloat(wb.document.querySelector('.focus-frame').style.width) || 0;
+    if (betr) betr.getBoundingClientRect = rechteck(0, 0, 600, 400);
+    if (bildEl) {
+      bildEl.getBoundingClientRect = rechteck(0, 0, 600, 400);
+      Object.defineProperty(bildEl, 'naturalWidth', { value: 1200, configurable: true });
+      Object.defineProperty(bildEl, 'naturalHeight', { value: 800, configurable: true });
+    }
+    zieh(100);
+    const rahmenWeit = rahmenBreite();
+    zieh(200);
+    const rahmenEng = rahmenBreite();
     // Erst das Vorhandensein, dann der Vergleich: zwei Nullen waeren sonst
     // "gleich" und die Zusage darunter gruen.
     pruefe('Der Rahmen hat ueberhaupt eine gemessene Breite', rahmenWeit > 0,
@@ -25334,9 +25378,8 @@ async function pruefeOberflaeche() {
     pruefe('Und zwar auf die Haelfte bei 200 Prozent',
       Math.abs(rahmenEng * 2 - rahmenWeit) < 0.5, `${rahmenEng} · 2 gegen ${rahmenWeit}`);
   }
-  schieber.value = '250';
-  schieber.dispatchEvent(new wb.Event('input', { bubbles: true }));
-  schieber.dispatchEvent(new wb.Event('change', { bubbles: true }));
+  zieh(250);
+  zieh(250, 'change');
   await new Promise(r => setTimeout(r, 30));
   const zoomRuf = bd.gesendet.find(g => /\/focus$/.test(g.url));
   pruefe('Das Loslassen speichert', !!zoomRuf, JSON.stringify(bd.gesendet.map(g => g.url)));
@@ -25348,9 +25391,12 @@ async function pruefeOberflaeche() {
      der Zeigerklemme laege der Punkt danach dort, wo der Schieber steht --
      also unten in der Mitte, bei jedem Zug aufs Neue. */
   bd.gesendet.length = 0;
-  schieber.dispatchEvent(new wb.Event('pointerdown', { bubbles: true }));
-  schieber.dispatchEvent(new wb.Event('pointerup', { bubbles: true }));
+  schieber?.dispatchEvent(new wb.Event('pointerdown', { bubbles: true }));
+  schieber?.dispatchEvent(new wb.Event('pointerup', { bubbles: true }));
   await new Promise(r => setTimeout(r, 20));
+  /* ZWEI HAELFTEN, und ohne die erste belegt die zweite nichts: fehlt der
+     Schieber ganz, ist „es wurde nichts geschickt" trivial wahr. */
+  pruefe('Der Schieber ist fuer diese Frage ueberhaupt da', !!schieber);
   pruefe('Ein Griff an den Schieber setzt keinen Fokuspunkt',
     !bd.gesendet.some(g => /\/focus$/.test(g.url)), JSON.stringify(bd.gesendet.map(g => g.url)));
 
@@ -28698,17 +28744,16 @@ async function pruefeOberflaeche() {
 
     const haken = baEig.w.document.getElementById('bild-umwandeln');
     pruefe('Die Eigentuemerin bekommt den Schalter', !!haken);
-    pruefe('Und er steht auf der Stellung aus der Antwort', haken && haken.checked === true);
+    pruefe('Und er steht auf der Stellung aus der Antwort', !!haken && haken.checked === true);
     const knopf = baEig.w.document.getElementById('bild-um');
     pruefe('Und den Knopf, der den Bestand nachzieht', !!knopf);
-    pruefe('Der Knopf ist bedienbar, solange PNG dasteht', knopf && !knopf.disabled);
+    pruefe('Der Knopf ist bedienbar, solange PNG dasteht', !!knopf && !knopf.disabled);
 
     /* DER SCHALTER SCHREIBT WIRKLICH -- und ueber PUT /api/settings, nicht
        ueber eine eigene Route. Ohne diese Zeile bliebe gruen, wer den Haken
        zeichnet und nichts damit tut. */
     baEig.gesendet.length = 0;
-    haken.checked = false;
-    await haken.onchange();
+    if (haken) { haken.checked = false; await haken.onchange(); }
     const schalterRuf = baEig.gesendet.find(g => g.url === '/api/settings' && g.methode === 'PUT');
     pruefe('Der Schalter geht ueber PUT /api/settings', !!schalterRuf,
       baEig.gesendet.map(g => `${g.methode} ${g.url}`).join(' · '));
@@ -28723,7 +28768,7 @@ async function pruefeOberflaeche() {
        kein einziger Byte umgeschrieben werden -- und der Dialog davor sagt,
        was verloren geht. */
     baEig.gesendet.length = 0;
-    knopf.onclick();
+    knopf?.onclick();
     await new Promise(r => setTimeout(r, 40));
     const dialog = baEig.w.document.querySelector('.backdrop .modal');
     const dialogText = (baEig.w.document.body.textContent || '');
