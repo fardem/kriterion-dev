@@ -482,6 +482,65 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   letter-spacing: .1em; color: var(--accent); font-weight: 600;
 }
 .card-title { font-size: 1.03rem; font-weight: 600; letter-spacing: -.015em; margin: 0; line-height: 1.34; }
+/* ---- DIE TREFFERZEILE AN DER KACHEL -- 0.18.0 ----
+   SIE STEHT UNTER DEM TITEL UND UEBER DEN TAGS, also bei dem, was sie
+   erklaert, und nicht am Fuss bei den Zahlen. Und sie steht NUR da, solange
+   eine Suche laeuft: ohne Begriff traegt die Antwort das Feld nicht, die
+   Kachel baut die Zeile gar nicht erst, und sie ist damit Pixel fuer Pixel
+   die von vorher.
+
+   EINE ZEILE, DIE NICHT UMBRICHT. Die schmalste Kachel ist 240 px breit
+   (.grid, minmax(240px, 1fr)); ein Ausschnitt, der dort auf zwei Zeilen
+   ginge, machte GENAU DIESE Kachel hoeher als ihre Nachbarn -- und die
+   Kachelhoehe ist das Thema der drei Runden davor gewesen. Mit Suchbegriff
+   sind alle Trefferkacheln um dieselbe eine Zeile hoeher, also verschiebt
+   sich nichts gegeneinander.
+
+   DREI TEILE, UND NUR DER MITTLERE GIBT NACH. Die Quelle sagt, WO der Begriff
+   steht, die Zahl, wie viele weitere Stellen es gibt -- beide sind kurz und
+   beide waeren abgeschnitten wertlos. Der Ausschnitt ist der einzige Teil, der
+   sich kuerzen laesst, ohne eine Aussage zu verlieren: die Fundstelle steht in
+   ihm ganz vorn (AUSSCHNITT_VORLAUF im Server), was hinten fehlt, ist
+   Umgebung. */
+.card-fund {
+  display: flex; align-items: baseline; gap: 5px;
+  font-size: .73rem; line-height: 1.45; color: var(--muted);
+  min-width: 0;
+}
+.card-fund .fund-quelle { flex-shrink: 0; color: var(--faint); font-weight: 600; }
+.card-fund .fund-text {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Die Zahl in der Schreibmaschinenschrift, wie jede andere Zahl an der
+   Kachel -- und mit einem eigenen Traeger, damit sie nicht als Teil des
+   Ausschnitts gelesen wird. Was sie bedeutet, steht im Ueberfahrtext der
+   Zeile ausgeschrieben. */
+.card-fund .fund-mehr {
+  flex-shrink: 0; font-family: var(--mono); font-size: .66rem;
+  color: var(--faint); background: var(--surface-2);
+  border-radius: 4px; padding: 1px 5px;
+}
+
+/* ---- DIE FUNDSTELLE SELBST ----
+   DAS ELEMENT BRINGT VOM BROWSER SCHWARZ AUF GELB MIT, und das ist in dieser
+   Oberflaeche nicht nur haesslich, sondern unlesbar: schwarze Schrift auf
+   dunklem Grund daneben. Gesetzt wird deshalb beides, Grund und Schrift.
+   DIE FARBE IST --accent UND KEINE NEUE. Orange ist in dieser Instanz das
+   Signal ("hier, das ist gemeint"), und genau das sagt eine Fundstelle. Der
+   Grund ist --accent-dim, dieselbe leise Flaeche wie an jeder ausgewaehlten
+   Pille -- eine volle Orangeflaeche zoege mehr Aufmerksamkeit auf sich als
+   der Eintrag, an dem sie steht.
+   KEIN FETTDRUCK: er machte die Zeile bei mehreren Fundstellen unruhig und
+   verschoebe ausserdem die Breite -- an einer Zeile, die auf ein Zeichen
+   genau geschnitten ist, ist das keine Kleinigkeit.
+   SIE GILT UEBERALL, WO GESUCHT WURDE, und braucht deshalb keine Klasse:
+   die Marke steht in der Kachel, in der Linkliste und im Kommentartext, und
+   drei Abschriften derselben Regel liefen auseinander. */
+mark {
+  background: var(--accent-dim); color: var(--accent-hi);
+  border-radius: 3px; padding: 0 1px;
+}
 .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .card-test {
   display: flex; align-items: center; gap: 7px;

@@ -25,7 +25,7 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 | **Mitschreiben** | Kommentare in drei Arten — **Notiz**, **Bericht**, **Aufgabe** (mit Erledigt-Haken) —, dazu Bilder am Kommentar |
 | **Testtage führen** | datierte Einträge mit Note und Tags; sie sind die Zeitreihe, die Kriterienbewertung ist das gegenwärtige Urteil |
 | **Vergleichen** | mehrere Einträge nebeneinander, Kriterium für Kriterium |
-| **Suchen und filtern** | Volltextsuche über Titel, Beschreibung, Kategorie, Tags, Links und Kommentare; Filterstellungen lassen sich als **Ansicht** speichern |
+| **Suchen und filtern** | Volltextsuche über Titel, Beschreibung, Kategorie, Tags, Links und Kommentare — **jede Trefferkachel sagt, wo das Wort steht, und der Begriff ist hervorgehoben**; Filterstellungen lassen sich als **Ansicht** speichern |
 | **Den Überblick behalten** | „Offen" zeigt alle unerledigten Aufgaben über alle Einträge, die **Glocke** alles, was seit dem letzten Blick dazugekommen ist |
 | **Zu mehreren arbeiten** | Zugänge mit drei Rollen; jeder Beitrag trägt seinen Verfasser |
 | **Sichern** | verschlüsselte Kopie auf Knopfdruck, dazu ein JSON-Export, der ohne Schlüssel auskommt |
@@ -1073,6 +1073,27 @@ es zwei, beide im Systembereich einstellbar:
   *Gesucht wird im Server.* Gefragt wird kurz nach dem letzten Anschlag, damit
   nicht jeder Tastendruck über das Netz geht. Ist der Server einmal nicht
   erreichbar, bleibt die zuletzt gezeigte Liste stehen und sagt es.
+- **Solange gesucht wird, sagt jede Kachel, WARUM sie in der Liste steht.**
+  Unter dem Titel steht eine Zeile mit der Quelle und einem Ausschnitt:
+  *„Kommentar: …hat mir der Händler in Bellavista empfohlen…"* oder
+  *„Link: …eurobella.example/werkzeug/…"*. **Eine Zeile je Kachel und nicht
+  eine je Quelle** — trifft der Begriff mehrere, nennt sie die erste in einer
+  festen Folge und hängt an, wie viele weitere es sind. *Die Folge beginnt bei
+  dem, was die Kachel sonst nicht zeigt: Beschreibung, Kommentar, Link, Tag am
+  Testtag, Tag, Kategorie, Titel.* **Ohne Suchbegriff steht die Zeile nicht
+  da**, und die Kachel ist dann genau die von vorher.
+- **Der gefundene Begriff ist hervorgehoben** — an der Kachel in Titel,
+  Kategorie, Tags und in der Zeile darunter, im Eintrag in der Linkliste und in
+  den Kommentaren. **In der Linkliste ist es die Adresse und nicht der
+  Anbietername**, denn gesucht wurde in der Adresse.
+  **Die Hervorhebung gehört der Suche und nicht dem Eintrag:** Feld geleert,
+  Begriff geändert, Ansicht ohne Begriff gewählt — weg. Gespeichert wird sie
+  nicht.
+  *Wer einen Treffer öffnet, findet den Begriff in der Adresse wieder
+  (`#/item/12?q=ella`); ein Neuladen behält die Hervorhebung deshalb, und der
+  Link lässt sich so weitergeben.* **Titel und Beschreibung sind im Eintrag
+  Eingabefelder — dort ist keine Hervorhebung möglich**, und die Zeile an der
+  Kachel nennt die Beschreibung dafür ausdrücklich als Quelle.
 - **Gespeicherte Ansichten** stehen als Knöpfe unter den Filtern. Wer eine
   Kombination öfter braucht, stellt sie ein und drückt **„+ Ansicht
   speichern"**; ein Klick auf den Knopf stellt sie wieder her. Gemerkt wird

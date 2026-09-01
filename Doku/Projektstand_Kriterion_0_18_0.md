@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 45 · Stand 31. August 2026 · gebaut: Version 0.17.5**
+**Kompakte Übergabe · Revision 46 · Stand 1. September 2026 · gebaut: Version 0.18.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,21 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.18.0 in einem Satz: die Suche wird nachvollziehbar.** *MINOR — die
+Übersicht sagt danach, **warum** ein Eintrag in der Trefferliste steht; das
+konnte sie vorher nicht.* **Der älteste offene Punkt des Sammelblatts, Nr. 1**,
+aufgefallen am 27. August 2026 unmittelbar nach 0.11.0 und seither dreimal
+übersprungen. **Der Befund war nie ein Fehler:** eine Suche nach „ella" findet
+auch „eurobella", unter anderem in einer Linkadresse — der Treffer ist richtig,
+die Kachel sagte nur nicht, **wo** das Wort steht. **Drei Stücke:** eine Zeile
+an der Kachel nennt die **Quelle** und zeigt den **Ausschnitt** mit der
+Fundstelle darin; der gefundene Begriff wird **hervorgehoben**, in der Kachel
+wie in der Detailansicht; und der Begriff **wandert in die Adresse**
+(`#/item/12?q=ella`), damit die Hervorhebung ein Neuladen übersteht.
+**KEINE DATENBANKSTUFE:** es bleibt bei **sieben** markierten Blöcken und bei
+**Austauschformat 11** — die Suche liest, sie schreibt nichts. *Alles Weitere in
+Abschnitt 2 und Abschnitt 9.*
 
 **0.17.5 in einem Satz: so hoch wie der Inhalt.** *PATCH — nur
 `public/style.css`; die Instanz kann danach nichts, was sie vorher nicht
@@ -238,9 +253,23 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.17.5 und im Feld bestätigt** — Fingerprint **`6a2c264a`**, am
-31. August 2026 von der laufenden Instanz gemeldet, **4813
-Prüfungen**, **389 Rückbauten in der Liste; gefahren sind die dreizehn dieser
+**Gebaut ist 0.18.0** — Fingerprint **`0bf6ac9d`**, **4917
+Prüfungen**, **421 Rückbauten in der Liste; gefahren sind die 32 dieser Runde,
+keiner stumm** (Abschnitt 8). *0.18.0 gibt der Trefferliste eine Begründung: je
+Eintrag nennt die Suchantwort die erste getroffene der sieben Quellen, den
+Ausschnitt mit der Fundstelle und die Zahl der weiteren Stellen; die Kachel
+zeigt das als eine Zeile unter dem Titel, der Begriff wird hervorgehoben, und er
+steht in der Adresse des Eintrags.* **MINOR — die Instanz kann danach etwas, was
+sie vorher nicht konnte. KEINE DATENBANKSTUFE:** kein Schema, kein
+Migrationsblock, keine neue Formatnummer.
+
+> **IM FELD NOCH NICHT BESTÄTIGT.** Der Fingerprint oben ist der **gebaute**
+> Wert; was die laufende Instanz meldet, gehört nach dem Einspielen daneben
+> (Stolperstein 158).
+
+**Gebaut war davor 0.17.5 und im Feld bestätigt** — Fingerprint **`6a2c264a`**,
+am 31. August 2026 von der laufenden Instanz gemeldet, **4813
+Prüfungen**, **389 Rückbauten in der Liste; gefahren sind die dreizehn jener
 Runde, keiner stumm** (Abschnitt 8). *0.17.5 nimmt `max-height: max-content` aus
 beiden Listen heraus und setzt an seine Stelle zwei Zeilen ohne Schlüsselwort:
 `flex: 0 1 auto` (so hoch wie mein Inhalt, und ich nehme mir nichts von der
@@ -306,7 +335,17 @@ Instanz kann danach nichts, was sie vorher nicht konnte.**
 > weiterhin.* **Im Sicherheitsprotokoll stehen die Namen untereinander** statt
 > je Zeile an einer anderen Stelle.
 
-**Was 0.17.5 für den Betrieb bedeutet: einspielen, fertig.** Keine
+**Was 0.18.0 für den Betrieb bedeutet: einspielen, fertig.** Keine
+Datenbankstufe, keine Sicherungspflicht, keine `.env`-Zeile, niemand wird
+abgemeldet, **keine Zeile im Protokoll**. *Ein harter Neuladen im Browser gehört
+dazu — `public/app.js` und `public/style.css` sind geändert, und beide liegen
+im Zwischenspeicher.* **Die Sicherung des Datenverzeichnisses ist Empfehlung und
+nicht Pflicht:** es ist keine Datenbankstufe.
+
+*Davor, am 31. August:* **Die Blöcke ab hier gehören 0.17.5 und den Runden
+davor.**
+
+**Was 0.17.5 für den Betrieb bedeutete: einspielen, fertig.** Keine
 Datenbankstufe, keine Sicherungspflicht, keine `.env`-Zeile, niemand wird
 abgemeldet, **keine Zeile im Protokoll**. *Ein harter Neuladen im Browser
 gehört dazu — geändert ist ausschließlich das Stilblatt, und das liegt im
@@ -712,7 +751,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.5** | **`6a2c264a`** *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4813 |
+| **0.18.0** | **`0bf6ac9d`** *(im Feld noch nicht bestätigt)* | 4917 |
+| 0.17.5 | `6a2c264a` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4813 |
 | 0.17.4 | `d3113d62` *(am 31. August 2026 von der laufenden Instanz gemeldet — und dieser Beleg hat den Fehler aufgedeckt)* | 4811 |
 | 0.17.3 | `ebd36b66` *(im Feld noch nicht bestätigt)* | 4805 |
 | 0.17.2 | `edbd76b6` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4747 |
@@ -1789,6 +1829,23 @@ unterwegs ist, bleibt die alte Liste **gedämpft stehen**, und scheitert sie,
 bleibt sie stehen und die Zählzeile sagt es. **Das Leeren der Suche kostet keine
 Anfrage.** *Die Übersicht ist dadurch um 73 Prozent leichter geworden; das je
 Eintrag mitgeschickte Feld `searchText` gibt es nicht mehr.*
+
+**Seit 0.18.0 sagt die Trefferliste, WARUM ein Eintrag darin steht.** Je Eintrag
+trägt die Suchantwort ein Feld `fundstelle` mit drei Angaben: der **Quelle**
+(welche der sieben getroffen hat), dem **Ausschnitt** um die Fundstelle herum
+und der Zahl der **weiteren** getroffenen Quellen. **Es steht nur da, wenn
+wirklich gesucht wurde** — ohne Begriff fällt es aus der Antwort, wie `testDays`
+es bei ausgeschalteter Zeitleiste vormacht. **Getroffen mehrere Quellen, nennt
+die Antwort die erste einer festen Folge:** Beschreibung · Kommentar · Link ·
+Tag am Testtag · Tag · Kategorie · Titel. *Die Folge beginnt bei dem, was die
+Kachel NICHT zeigt: steht der Begriff im Titel, sieht man ihn ohnehin; steht er
+in einem Kommentar, ist diese Zeile die einzige Auskunft, die es gibt.* Die
+Kachel macht daraus **eine** Zeile unter dem Titel — „Kommentar: …hat mir der
+Händler in Bellavista empfohlen…" —, und der gefundene Begriff ist **überall
+hervorgehoben**, wo gesucht wurde: Titel, Kategorie und Tags an der Kachel,
+Linkadressen und Kommentartexte in der Detailansicht. **Der Begriff steht dabei
+in der Adresse** (`#/item/12?q=ella`), damit die Hervorhebung ein Neuladen
+übersteht; eine Adresse ohne `?q=` bleibt gültig und heißt „keine Suche".
 
 **Gespeicherte Ansichten** (seit 0.11.0): bis zu **acht** benannte
 Filterstellungen je Zugang, als Knöpfe in der Filterzeile — **nicht** als eigene
@@ -3156,6 +3213,130 @@ zweite Route für dieselbe Liste wären zwei Wege zu einer Menge.* **Die Suche
 bekommt auch keine eigene Bremse:** sie steht hinter der Anmeldung, und die
 Anmeldebremse verteidigt gegen Fremde.
 
+#### Der Trefferkontext: eine Zeile, die den Treffer erklärt (0.18.0)
+
+**Die Suche fand von Anfang an richtig — sie sagte nur nicht, WO.** Eine Suche
+nach „ella" findet auch „eurobella", unter anderem in einer Linkadresse; der
+Treffer ist richtig und war bis 0.18.0 nicht nachvollziehbar. *Vor 0.11.0 lief
+`searchText.includes(q)` im Browser über genau dieselben Quellen; 0.11.0 hat
+das Verhalten Zeichen für Zeichen erhalten. Sichtbar geworden ist es, weil die
+Suche seither benutzt wird.*
+
+**Die sieben Quellen stehen genau einmal, als Liste in `VOLLTEXT_QUELLEN`.**
+Seit 0.18.0 muss dieselbe Bedingung zweimal ausgewertet werden — einmal als
+Filter (`WHERE`) und einmal als Auskunft (die Spaltenliste). **Abgeschrieben
+liefen die beiden ab dem nächsten Zusatz auseinander**, und ein Eintrag stünde
+dann in der Trefferliste, ohne dass eine Quelle dazu genannt wäre. *Jeder
+Ausdruck liefert den getroffenen Text oder `NULL`; `IS NOT NULL` ist damit genau
+dieselbe Frage wie vorher `instr(…) > 0` beziehungsweise `EXISTS (…)`.*
+
+**Der Filter bleibt die ODER-Kette, und das ist keine Formsache.** SQLite bricht
+sie beim ersten Treffer ab. Stünden die sieben Ausdrücke stattdessen in einer
+inneren Abfrage und die Bedingung darüber, wären sie für **jede** Zeile des
+Bestands vollständig zu rechnen — auch für die, die schon am Titel hängen
+bleibt. **Die Spaltenliste rechnet nur für die Zeilen, die durchkommen:** was
+der Trefferkontext kostet, hängt an der Zahl der **Treffer** und nicht an der
+Größe des Bestands.
+
+> **DER AUFTRAG SAGTE, DIE ZAHL SEI UMSONST ZU HABEN — SIE IST ES NICHT.** *„Der
+> ODER-Ausdruck wertet ohnehin alle sieben aus" gilt genau für die Zeilen, die
+> NICHT treffen; für die Treffer bricht er ab.* **Nachgemessen an 1000
+> Einträgen mit 4001 Kommentaren und 2,77 MB Suchtext, je 200 Läufe, Median:**
+> ein häufiges Wort mit 100 Treffern kostet **17,07 ms ohne und 19,96 ms mit**
+> Kontext (**+17 %**), ein seltenes mit einem Treffer 17,01 gegen 17,84 ms
+> (**+5 %**), und ein Begriff ohne Treffer 17,35 gegen 17,82 ms (**+3 %**).
+> **Der Aufschlag hängt an der Zahl der TREFFER und nicht an der Größe des
+> Bestands** — genau deshalb steht die Spaltenliste hinter dem Filter und nicht
+> in einer inneren Abfrage darunter. *Das ist der Preis der Auskunft und kein
+> Versehen; er steht hier, damit ihn niemand für gratis hält.*
+
+**Eine Zeile je Kachel und nicht eine je Quelle.** Die Kachel ist dicht; sieben
+mögliche Zeilen machten aus der Übersicht eine Liste von Fundstellen.
+**Getroffen mehrere Quellen, nennt die Zeile die erste einer festen Folge** —
+Beschreibung · Kommentar · Link · Tag am Testtag · Tag · Kategorie · Titel — und
+hängt die Zahl der weiteren an. **Die Folge ist nicht willkürlich: sie beginnt
+bei dem, was die Kachel NICHT zeigt.** *Steht der Begriff im Titel, sieht man
+ihn ohnehin; steht er in einem Kommentar, ist die Zeile die einzige Auskunft,
+die es gibt.* **Trifft nur der Titel, steht die Zeile trotzdem da** — eine Regel
+und keine Ausnahme.
+
+**Je Quelle ein bestimmter Satz und nicht irgendeiner.** Wo mehrere Zeilen
+treffen können (Tags, Links, Kommentare), steht ein `ORDER BY`: ohne es
+entschiede die Abfrageplanung, welcher Kommentar auf der Kachel steht, und
+dieselbe Suche zeigte morgen einen anderen.
+
+**Der Ausschnitt wird um die Fundstelle herum geschnitten, mit vier Zeichen
+Vorlauf.** *Vier ist gemessen und nicht gewählt: auf der schmalsten Kachel
+(173 px bei 390 px Schirmbreite) bleiben nach der Quelle 55,30 px, gemessen
+neun Zeichen. Mit mehr Vorlauf wäre die Fundstelle dort abgeschnitten — eine Zeile mit Umgebung und
+ohne das Wort, um das es geht.* **Und nicht null:** gerade weil „ella" auch
+„eurobella" findet, muss zu sehen sein, dass die Fundstelle **mitten in einem
+Wort** steht.
+
+**Der Begriff wird genommen, wie er getippt und getrimmt ist.** Weißraum wird im
+**Text** eingeebnet und nie im **Begriff** — gesucht hat `instr()` Zeichen für
+Zeichen, und wer den Begriff zusätzlich einebnete, suchte im Ausschnitt nach
+etwas anderem als im Bestand.
+
+#### Die Hervorhebung gehört der Suche und nicht dem Eintrag (0.18.0)
+
+**Daraus folgt alles Weitere.** Sie lebt genau so lange wie der Begriff — Feld
+geleert, Begriff geändert, Ansicht ohne Begriff gewählt: **weg**. Sie wird
+**nicht gespeichert** (Ansichtszustand, wie „meine / alle" im Vergleich). Und
+sie gilt **überall dort, wo der Begriff gesucht wurde**, und nirgends sonst.
+
+**Gesucht wird mit `indexOf` und nicht mit einem Muster.** Aus einem Suchbegriff
+ein reguläres Ausdrucksmuster zu bauen hieße, jedes Sonderzeichen darin
+maskieren zu müssen; ein eingegebenes `.` fände sonst jedes Zeichen. *Derselbe
+Fehler wie `LIKE` gegen `instr()` im Server, nur im Browser.* **Verglichen wird
+kleingeschrieben, angezeigt der Originaltext.**
+
+**In der Linkliste wird die ADRESSE hervorgehoben und nicht der Anzeigename.**
+*Gesucht wurde in `links.url`; ein hervorgehobener Anbietername, in dem der
+Begriff gar nicht steht, wäre eine Falschaussage.*
+
+**Eine Adresse bleibt ein Link, auch wenn der Begriff mitten in ihr steht.** Die
+Zerlegung liefert sie dann als mehrere Stücke mit demselben Ziel, und der
+Knotenbauer setzt sie zu **einem** Anker zusammen. *Drei Anker nebeneinander
+wären drei Links auf dieselbe Adresse — für ein Vorleseprogramm drei Ziele statt
+einem.*
+
+> **TITEL UND BESCHREIBUNG DER DETAILANSICHT TRAGEN KEINE MARKE, und das ist
+> kein Versehen.** Beide sind **Eingabefelder**: ein `<input>` und ein
+> `<textarea>` haben keine Kindknoten, in sie lässt sich kein Element hängen.
+> *Ein zweiter, nur zum Ansehen gebauter Titel daneben wäre eine zweite Anzeige
+> derselben Sache.* **Der Auftrag 0.18.0 nennt beide; die Abweichung steht mit
+> ihrer Begründung im Änderungsprotokoll und als Zusage im Prüfstand**, damit
+> niemand sie für einen Fehler hält und still einen Weg dafür baut. *Was der
+> Kachel dafür bleibt, ist die Trefferzeile — sie nennt die Beschreibung
+> ausdrücklich als Quelle.*
+
+#### Der Suchbegriff steht in der Adresse des Eintrags (0.18.0)
+
+**`#/item/12?q=ella`.** Bis 0.17.5 lebte der Begriff nur in `state.search`; wer
+einen Treffer öffnete und neu lud, verlor ihn — und mit ihm die Hervorhebung.
+*Ein Eintrag, der beim ersten Blick markierte Stellen hat und nach F5 keine
+mehr, sieht aus wie ein Fehler.*
+
+**Das Muster bleibt verankert** (`#/item/12x` trifft nicht), **eine Adresse ohne
+`?q=` bleibt gültig** und heißt „keine Suche", und **gelesen wird mit
+`URLSearchParams`** und nicht mit einem zweiten Muster: das Entschlüsseln steht
+damit an einer Stelle, und ein Parameter, den diese Fassung nicht kennt, wirft
+die Adresse nicht um.
+
+**Gesetzt wird über `history.replaceState` und nicht über `location.hash`** —
+dieselbe Entscheidung wie im Systembereich: ein neuer Eintrag im Verlauf je
+getipptem Buchstaben machte die Zurück-Taste unbrauchbar, und ein gesetzter Hash
+löste ein zweites Zeichnen aus. **Nachgezogen wird an genau einer Stelle**, in
+`renderDetail()`: nicht jeder Weg in einen Eintrag kommt von einer Kachel — die
+Glockentafel, die Zeitleiste, die offenen Aufgaben und der Vergleich setzen die
+Adresse selbst. *Wer stattdessen an jedem Absender den Begriff anhängte, hätte
+ihn ab dem nächsten Absender vergessen.*
+
+**Die Übersicht bekommt den Begriff NICHT in die Adresse.** *Dort steht er im
+Feld, und das Feld ist sichtbar.* Nur die Detailansicht braucht ihn, weil sie
+das Feld nicht zeigt.
+
 #### Die gespeicherten Ansichten liegen in `settings` und nicht in einer Tabelle (0.11.0)
 
 **Eine Ansicht ist kein Träger** — sie hat keinen
@@ -3668,6 +3849,18 @@ sucht, und nicht dort, wo sie jemanden aufhält.*
   `createElement('a')` mit `textContent` und `href` für Links. **Damit ist
   Maskierung nicht „nicht vergessen worden", sondern baulich unmöglich.** Die
   Zerlegung arbeitet auf dem **Rohtext**, nicht auf maskiertem.
+  **DIE HERVORHEBUNG AUS 0.18.0 GEHT DENSELBEN WEG UND MACHT DIE REGEL
+  SCHÄRFER, NICHT SCHWÄCHER.** Hervorheben heißt, fremden Text mit Markup zu
+  durchsetzen — genau hier wäre der Weg wieder offen. Die Fundstelle ist deshalb
+  ein **drittes Stück der Zerlegung** neben „Text" und „Link", und der
+  Knotenbauer macht daraus `createElement('mark')` mit `textContent`: **kein
+  `innerHTML`, kein `replace()` auf einem String, kein „ich maskiere ja
+  vorher".** *Wer den Rohtext maskiert und danach `<mark>` hineinschreibt, hat
+  den Weg wieder aufgemacht, den 0.5.4 zugemacht hat.* **Und die Regel gilt
+  auch, wo Kommentartext auf einem Umweg erscheint:** der Ausschnitt an der
+  Kachel kann aus einem Kommentar stammen und wird deshalb ebenfalls als
+  Knoten eingehängt, nicht über die Vorlage. *Die Prüfung dazu fährt einen
+  echten Angriffstext, und der Begriff trifft mitten darin.*
 - **Als Link im Kommentartext gilt nur ausdrücklich Geschriebenes**: `http://`,
   `https://` und `www.`. Ein blankes `beispiel.de` ausdrücklich **nicht** —
   anders als in der Linkliste. *Deutscher Fließtext ist voll von „z.B." und
@@ -6497,6 +6690,78 @@ Version, in der sie entstanden sind.*
     Zeile dort wieder zu einem eigenen Kasten machen — und ihr damit auch die
     Trennlinie zurückgeben.*
 
+260. **Eine ODER-Kette in SQL wertet nicht alle Glieder aus.** SQLite bricht sie
+    beim ersten wahren Glied ab. **Wer aus „die Bedingung steht ohnehin da"
+    schließt, eine zusätzliche Auskunft aus denselben Ausdrücken sei umsonst,
+    rechnet falsch:** umsonst ist sie nur für die Zeilen, die **nicht**
+    treffen — dort läuft die Kette ganz durch. *Für die Treffer ist sie neue
+    Arbeit.* **Der Auftrag 0.18.0 behauptete genau das Gegenteil**, und im
+    Quelltext daneben stand seit 0.11.0 die richtige Aussage samt Messung.
+    *Das ist Stolperstein 248 in seiner unangenehmsten Form: die Behauptung
+    stand im Papier, ihre Widerlegung im Kommentar der Zeile, die sie
+    beschreibt.*
+
+261. **Die Grundregel eines Rasters ist nicht sein schmalster Fall.** `.grid`
+    heißt `minmax(240px, 1fr)` — und zwei Medienabfragen setzen darunter
+    **200 px** und **150 px**. **Wer die Grundregel liest und danach rechnet,
+    rechnet an drei von vier Bildschirmen falsch.** *Gemessen: die Kachel ist
+    293,5 px breit bei 1280 px Schirm, 188,66 bei 620 und **173** bei 390 —
+    keiner dieser Werte steht in der Grundregel.* **Eine Zusage über „die
+    schmalste Kachel" ist an der schmalsten gemessenen zu prüfen, nicht an der
+    Zahl in der ersten Regel.**
+
+262. **Wer einen Text serverseitig um eine Fundstelle schneidet und ihn danach
+    per CSS kappen lässt, kappt zweimal — und das zweite Mal von hinten.**
+    `text-overflow: ellipsis` schneidet den **Schwanz** ab; sichtbar bleibt
+    also nur der **Anfang** des Ausschnitts. **Steht die Fundstelle in der
+    Mitte, ist sie auf einer schmalen Kachel weg**, und übrig bleibt Umgebung
+    ohne das Wort, um das es geht. *Ein mittig geschnittener Ausschnitt ist
+    genau dort abgeschnitten, wo er etwas zu sagen hat.* **Die Fundstelle
+    gehört an den Anfang, mit so viel Vorlauf, wie an der schmalsten
+    gemessenen Stelle noch sichtbar ist** — und nicht mit null, sonst
+    verschweigt der Ausschnitt, dass sie mitten in einem Wort steht.
+
+263. **In ein `<input>` und ein `<textarea>` lässt sich kein Element hängen.**
+    Beide haben keine Kindknoten; ihr Inhalt ist ein Wert und kein Baum. **Eine
+    Hervorhebung ist dort nicht schwierig, sondern baulich unmöglich** — auch
+    über die Custom-Highlight-Schnittstelle nicht, die Formularfelder ebenso
+    wenig erreicht. *Wer sie trotzdem zusagt, baut entweder einen zweiten, nur
+    zum Ansehen gebauten Zwilling daneben — eine zweite Anzeige derselben
+    Sache — oder eine Spiegelschicht hinter einem durchsichtigen Feld.*
+    **Beides ist teurer als die Auskunft wert ist; die Abweichung gehört
+    benannt und geprüft, nicht umgangen.**
+
+264. **Ein Rückbau, der auf die UMGEBUNG eines Ausdrucks zielt, veraltet beim
+    ersten Umbau.** Die acht Rückbauten zur Volltextsuche suchten Zeilen wie
+    `  WHERE instr(kkl(i.title), :q) > 0` — mitsamt Einrückung und
+    Schlüsselwort. **0.18.0 hat dieselben Ausdrücke in eine Liste gehoben, und
+    alle acht griffen ins Leere.** *Sie sind stumm geworden, ohne dass sich an
+    ihrem Gegenstand etwas geändert hätte.* **Der Suchtext gehört so kurz wie
+    möglich und auf den Ausdruck selbst** — `instr(kkl(i.title), :q) > 0` —,
+    dann überlebt er jedes Umhängen. *Der Wächter „jeder Suchtext kommt genau
+    einmal vor" hat sie gefunden; ohne ihn wären acht Rückbauten grün
+    geblieben, weil sie nichts mehr taten.*
+
+265. **`$&` in einem Ersetzungstext ist kein Text.** `String.replace` liest
+    `$&`, `$1`, `` $` `` und `$'` im **zweiten** Argument als Verweise — auch
+    dann, wenn dieses Argument aus einer Datei kommt. **Ein Skript, das einen
+    Codeblock in eine Quelldatei einsetzt, zerstört ihn damit still**, wenn im
+    Block ein regulärer Ausdruck mit `$&` steht. *Genau das ist beim Einsetzen
+    der Prüfgruppe zur Trefferzeile passiert; die Datei war danach syntaktisch
+    kaputt, und die Ursache stand nicht dort, wo der Fehler gemeldet wurde.*
+    **Wer Text einsetzt, gibt eine Funktion als Ersatz** (`() => neu`) — dann
+    gibt es keine Verweise.
+266. **Die Hervorhebung trägt IMMER den Suchbegriff — und den tippt ein
+    Mensch.** An einer Stelle, an der sonst nur eigener oder längst geprüfter
+    Text steht, steht damit Fremdtext: wer `<img src=x onerror=…>` ins Suchfeld
+    schreibt, findet einen Kommentar, der genau das trägt, und die Marke trägt
+    danach **denselben Text**. **Eine Prüfung, die den Angriffstext nur im
+    UMGEBENDEN Text unterbringt, sieht das nicht** — dort steht die Marke um
+    ein harmloses Wort herum, und ein Rückbau, der sie über `innerHTML` füllt,
+    bleibt **stumm**. *Der Angriffstext gehört auch in den BEGRIFF.* **Gefunden
+    hat das die Gegenprobe und nicht der Prüfstand** — der Rückbau war gebaut,
+    die Lage dazu fehlte.
+
 ---
 
 ## 7. Prüfstand
@@ -6510,15 +6775,20 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4813 von 4813 bestanden** (0.17.5) — **2 neue Prüfungen netto**
-(sieben neue, fünf weggefallen oder umgeschrieben); 0.17.4 davor brachte 6. Die
-Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **389** Rückbauten.
+**Stand: 4917 von 4917 bestanden** (0.18.0) — **104 neue Prüfungen netto**,
+keine weggefallen; 0.17.5 davor brachte 2. Die Gegenproben stehen in
+Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der
+volle Lauf über alle **421** Rückbauten.
 
-| Gruppe (0.17.5) | vorher | nachher | wofür |
+| Gruppe (0.18.0) | vorher | nachher | wofür |
 |---|---|---|---|
-| **So hoch wie der Inhalt — 0.17.5** *(hieß in 0.17.4 „Fordern und nutzen")* | 31 | **33** | die Liste ist so hoch wie ihr Inhalt und **hängt an keinem Schlüsselwort mehr**, sie deckelt bei ihrem eigenen Maß — und das Raster des Protokolls gehört der **Liste**: `display: contents` an der Zeile, die Trennlinie an den Feldern, die Unterkante als Ausrichtung, und auf dem schmalen Schirm alles zurück |
-| **zusammen** | | | **+2** |
+| **Der Trefferkontext an der Antwort** *(neu)* | — | **35** | je Quelle die richtige Benennung und ein Ausschnitt, der den Begriff trägt; der Ausschnitt einzeilig, gekürzt, mit Vorlauf zwischen zwei und fünf Zeichen; die feste Folge **Schritt für Schritt abgeräumt**; „nur der Titel" trägt die Zeile trotzdem; der genannte Kommentar ist bestimmt und nicht zufällig; Prozentzeichen und Punkt als Text |
+| **Die Trefferzeile an der Kachel** *(neu)* | — | **19** | ohne Suche keine Zeile, mit Suche genau eine; sie steht **unter dem Titel und über den Tags**; Quelle, Ausschnitt, Zahl und Überfahrtext; **aus Markup im Ausschnitt entsteht kein Element**; eine unbekannte Quelle heißt „Fundstelle"; das Leeren nimmt Zeile, Marken und den Begriff in der Adresse wieder weg |
+| **Die Hervorhebung in der Übersicht** *(neu)* | — | **9** | alle Vorkommen in Titel, Kategorie, Tags und Trefferzeile, in der Schreibung, die dort steht; ohne Suche keine einzige Marke; **ein Punkt im Begriff findet keinen beliebigen Buchstaben** |
+| **Der Suchbegriff in der Adresse** *(neu)* | — | **20** | mit und ohne `?q=`, `#/item/1x` trifft nicht, ein leeres `?q=` heißt „keine Suche", ein unbekannter Parameter stört nicht, `%20` kommt entschlüsselt an; die Adresse wird nachgezogen; **die Adresse wird hervorgehoben und nicht der Anzeigename**; Titel und Beschreibung tragen als Eingabefelder keine Marke |
+| **Die Trefferzeile im Stylesheet** *(neu)* | — | **8** | die Zeile bricht nicht um, nachgeben darf allein der Ausschnitt, die Marke setzt Grund **und** Schrift aus vorhandenen Farben und steht **genau einmal** |
+| **Links im Kommentartext** | 46 | **59** | der Angriffstext **mit** Begriff mitten darin; eine Adresse mit Begriff bleibt **ein** Link; die Zerlegung verliert und erfindet auch mit Begriff kein Zeichen |
+| **zusammen** | | | **+104** |
 
 > **ZWEI PRÜFUNGEN SIND WEGGEFALLEN UND VIER UMGESCHRIEBEN.** *„nimmt, was die
 > Kachel hergibt"* und *„nutzt mehr als seinen Deckel, wenn die Kachel es
@@ -6907,6 +7177,17 @@ Rückbauten.*
   Fenster, statt fest zu schlafen:** fiele die Grenze der dreißig Sekunden
   dazwischen, würde eine Prüfung zufällig rot — *roter Zufall ist schlimmer als
   keine Prüfung.*
+- **Der Trefferkontext, je eine Lage für jede der sieben Quellen** (0.18.0) —
+  dieselben sieben Suchwörter wie darunter, jetzt mit der Frage, welche Quelle
+  die Antwort **nennt**. Dazu die feste Folge **Schritt für Schritt
+  abgeräumt** — Beschreibung weg, dann übernimmt der Kommentar; Kommentar weg,
+  dann der Link, und so fort bis zum Titel. *Ohne diese Kette belegte die
+  Prüfung nur, dass „Beschreibung" ganz vorn steht, und nichts über die
+  Reihenfolge dahinter.* **Der Ausschnitt wird auf drei Zusagen geprüft:**
+  einzeilig (ein Kommentar mit Absätzen), gekürzt mit Auslassungszeichen an
+  beiden Enden **samt der Gegenlage**, dass ein kurzer Text keines bekommt, und
+  ein Vorlauf zwischen zwei und fünf Zeichen — **nicht null**, sonst
+  verschwiege er, dass die Fundstelle mitten in einem Wort steht.
 - **Die Volltextsuche, je eine Lage für jede der sieben Quellen** — mit
   erfundenen Suchwörtern, damit jede Trefferzahl **exakt** ist und nicht
   „mindestens einer": fällt eine Quelle aus der Abfrage, wird genau sie
@@ -7167,6 +7448,7 @@ eine Buchführung.*
 | **0.17.3** | **Die Karte zeigt, der Dialog stellt ein (58 netto)** | **20 neue, ACHT weggefallen (368 → 380); vier nachgezogen (Stolperstein 201); 24 gefahren, 0 stumm** | **Stolpersteine 246 bis 250** |
 | **0.17.4** | **Fordern und nutzen (6 netto: sieben neue, eine weggefallen)** | **fünf neue (380 → 385); vier nachgezogen, davon einer UMGEDREHT (Stolperstein 201); 9 gefahren, 0 stumm** | **Stolpersteine 251 bis 255** |
 | **0.17.5** | **So hoch wie der Inhalt (2 netto: sieben neue, zwei weggefallen, vier umgeschrieben)** | **vier neue (385 → 389); neun nachgezogen, davon einer UMGEDREHT; 13 gefahren, 0 stumm** | **Stolpersteine 256 bis 259** |
+| **0.18.0** | **Die Suche wird nachvollziehbar (104 netto, keine weggefallen)** | **32 neue (389 → 421); ACHT nachgezogen, weil sie auf die Umgebung eines Ausdrucks zeigten statt auf ihn (Stolperstein 264); alle 32 gefahren, 0 stumm — der erste Lauf hatte NEUN Befunde: sechs stumme Rückbauten und drei abgerissene Läufe, alle abgearbeitet** | **Stolpersteine 260 bis 266** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -7182,6 +7464,19 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **0.18.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Vier Handgriffe, und
+  keiner davon kostet mehr als eine Minute:* **(a)** nach einem Wort suchen,
+  das **nur in einem Kommentar** steht — die Kachel sagt „Kommentar: …";
+  **(b)** nach einem Wort suchen, das **nur in einer Linkadresse** steht — die
+  Kachel sagt „Link: …"; **(c)** einen Treffer **öffnen und neu laden** — die
+  Hervorhebung bleibt, und in der Adresse steht `?q=…`; **(d)** das **Suchfeld
+  leeren** — alle Hervorhebungen und alle Kontextzeilen sind weg, und die
+  Adresse der Kachel trägt keinen Begriff mehr. *Die Befehle dazu standen im
+  Chat der Runde, nicht hier.*
+  **UND EIN BLICK AUF DAS TELEFON GEHÖRT DAZU:** dort ist die Kachel 173 px
+  breit, und von der Trefferzeile bleiben nach der Quelle neun Zeichen. *Die
+  Zahlen sind in Chromium gemessen (Änderungsprotokoll 0.18.0) — was ein echtes
+  Gerät daraus macht, ist damit noch nicht belegt.*
 - **0.17.5 IST AM WIRT ANGEKOMMEN UND GESEHEN.** *Am 31. August 2026
   bestätigt: die laufende Instanz meldet `6a2c264a`, und der Befund ist weg —
   „endlich sieht das gut aus."* **Damit ist die Kette geschlossen, die mit dem
@@ -7261,9 +7556,9 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   „Mailversand" im Abschnitt „Zugänge" — sie steht jetzt so breit wie ihre drei
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT SECHZEHN RUNDEN AUS.** 380 Rückbauten
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT SIEBZEHN RUNDEN AUS.** 421 Rückbauten
   zu je einem vollen Prüflauf sind bei rund fünfeinhalb Minuten je Lauf etwa
-  **vierunddreißig Stunden** hintereinander, in vier Nebenspuren rund neun. **Er lässt
+  **achtunddreißig Stunden** hintereinander, in vier Nebenspuren rund zehn. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
   `git archive HEAD`, und ein Commit mitten im Lauf verschiebt die Grundlage.
   *Was in 0.17.2 gefahren wurde, steht im Änderungsprotokoll dieser Runde;
@@ -7658,6 +7953,76 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.18.0 — „Die Suche wird nachvollziehbar"
+
+**MINOR · 1. September 2026 · der älteste offene Punkt des Sammelblatts, Nr. 1,
+aufgefallen am 27. August 2026 und seither dreimal übersprungen.** *Angefasst
+sind `server.js`, `public/app.js` und `public/style.css`.* **KEINE
+DATENBANKSTUFE:** kein Schema, kein Migrationsblock, keine neue Formatnummer —
+es bleibt bei **sieben** markierten Blöcken und **Austauschformat 11**. Die
+Suche liest, sie schreibt nichts.
+
+**DER BEFUND WAR NIE EIN FEHLER.** Eine Suche nach „ella" findet auch
+„eurobella" — unter anderem in einer Linkadresse. *Der Treffer ist richtig; er
+war nur nicht nachvollziehbar, weil die Kachel nicht sagte, **wo** das Wort
+steht.* **Vor 0.11.0 lief `searchText.includes(q)` im Browser über genau
+dieselben Quellen, zusammengeklebt zu einem Feld; 0.11.0 hat das Verhalten
+Zeichen für Zeichen erhalten.** Sichtbar geworden ist es, weil die Suche seither
+benutzt wird.
+
+**DREI STÜCKE.**
+
+1. **Der Trefferkontext.** Die Suchantwort trägt je Eintrag ein Feld
+   `fundstelle`: die **Quelle**, den **Ausschnitt** um die Fundstelle herum und
+   die Zahl der **weiteren** getroffenen Quellen. *Es steht nur da, wenn
+   wirklich gesucht wurde.* Die Kachel macht daraus **eine** Zeile unter dem
+   Titel und über den Tags. **Getroffen mehrere Quellen, nennt die Zeile die
+   erste einer festen Folge** — Beschreibung · Kommentar · Link · Tag am Testtag
+   · Tag · Kategorie · Titel —, *und die Folge beginnt bei dem, was die Kachel
+   NICHT zeigt.*
+2. **Die Hervorhebung.** Der gefundene Begriff wird markiert: in der Kachel
+   (Titel, Kategorie, Tags, Trefferzeile) und in der Detailansicht (Linkliste,
+   Kommentare). **Sie ist ein drittes Stück der Zerlegung und kein
+   Nachbearbeiten des Ergebnisses** — aus einem Stück wird ein Element mit
+   `textContent` und niemals ein String. *Damit bleibt die Zusage aus 0.5.4
+   baulich und nicht durch Aufpassen erfüllt.*
+3. **Der Begriff in der Adresse.** `#/item/12?q=ella`. Wer einen Treffer öffnet
+   und neu lädt, behält die Hervorhebung. *Eine Adresse ohne `?q=` bleibt
+   gültig und heißt „keine Suche".*
+
+> **DIE SIEBEN QUELLEN STEHEN JETZT GENAU EINMAL.** Der Trefferkontext braucht
+> dieselbe Bedingung ein zweites Mal — einmal als Filter, einmal als Auskunft.
+> **Abgeschrieben liefen die beiden ab dem nächsten Zusatz auseinander**, also
+> stehen sie als Liste da und werden von dort in beide Hälften der Abfrage
+> gesetzt. *Nebenbei ist damit nachzählbar, dass es **sieben** sind und nicht
+> sechs: die Tags kommen zweimal vor, einmal am Eintrag und einmal am Testtag.*
+
+> **ZWEI BEHAUPTUNGEN DES AUFTRAGS HABEN NICHT GETRAGEN, und beide sind
+> nachgemessen worden statt gebaut** (Stolperstein 248). *Erstens:* „die Zahl
+> ist umsonst zu haben, der ODER-Ausdruck wertet ohnehin alle sieben aus" —
+> **SQLite bricht die Kette beim ersten Treffer ab**, und im Quelltext daneben
+> stand seit 0.11.0 die Messung dazu (Stolperstein 260). *Zweitens:* „die Kachel
+> ist `minmax(240px, 1fr)`" — **zwei Medienabfragen setzen darunter 200 und
+> 150 px**; die schmalste gemessene Kachel ist **173 px** breit (Stolperstein
+> 261).
+
+> **WAS NICHT GEBAUT IST, UND WARUM.** **Titel und Beschreibung der
+> Detailansicht tragen keine Marke:** beide sind Eingabefelder, und in ein
+> `<input>` lässt sich kein Element hängen (Stolperstein 263). *Der Auftrag
+> nennt beide; die Abweichung steht mit ihrer Begründung im Änderungsprotokoll
+> und als Zusage im Prüfstand.* **Der Suchbereich als Häkchen bleibt liegen** —
+> mit Begründung und nicht aus Zeitmangel: er ist eine zweite Bedienfläche neben
+> einer Suche, die heute ein Feld ist, und **er ist erst zu beurteilen, wenn der
+> Trefferkontext steht.** *Vielleicht beantwortet die Zeile „Link: …" die Frage
+> schon.* **Wortgrenzen statt Teilstring**, **eine Sortierung nach Treffergüte**
+> und **ein zweiter Abruf für den Kontext** sind ebenfalls ausdrücklich nicht
+> gebaut.
+
+**Der Prüfstand wächst um 104 auf 4917**, in fünf neuen Gruppen und einer
+erweiterten; die Gegenprobe um 32 auf 421 Rückbauten. **Acht ältere Rückbauten
+waren nachzuziehen** — sie zeigten auf die Umgebung eines SQL-Ausdrucks statt
+auf ihn und griffen nach dem Umbau ins Leere (Stolperstein 264).
 
 ### 0.17.5 — „So hoch wie der Inhalt"
 
@@ -8846,7 +9211,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.17.3** | Die Karte zeigt, der Dialog stellt ein | **GEBAUT.** Vier Handgriffe aus dem Rundlauf mit 0.17.2, zwei davon Nacharbeit an ihr selbst: **der Deckel ging nach oben mit und nach unten nicht** — dafür kam `align-items: start` an das Raster, und der Deckel fiel im selben Zug auf **zehn** Zeilen —, die Karte „Mailversand" wird eine **Zustandskarte mit eigenem Dialog**, der Erklärkasten zur Gewichtung rollt nicht mehr, und die Filterleiste bekommt ihren **Rücksetzer**. *PATCH: vier Handgriffe an Anordnung und Anzeige; die Instanz kann danach nichts, was sie vorher nicht konnte.* **Alle vier Punkte sind gebaut; ***Punkt 1 ist mit 0.17.4 zurückgenommen*** — die Zeile am Raster war falsch, der Deckel richtig. Die zweite Bestätigung im Mailversand bleibt, wo sie ist, und `F_ROUTEN` bleibt bei 69** | nein | — |
 | **0.17.4** | Fordern und nutzen | **GEBAUT.** Eine Runde, die **Punkt 1 von 0.17.3 zurücknimmt**: `align-items: start` fällt weg, und an seine Stelle tritt die Regel, die gemeint war — **die Reihe ist so hoch wie ihre höchste starre Kachel**, sonst so hoch wie die größte **Forderung** der dynamischen. *Was eine Liste fordert, ist nicht, was sie nutzt* — ***dieser Mechanismus ist mit 0.17.5 zurückgenommen***, er hing an `max-height: max-content`. Dazu drei Maße: **fünfzehn** statt zehn Zeilen fürs Sicherheitsprotokoll, **eine Zeile** statt null für eine leere Liste, und **kein Deckel** für die Listen in einem Fenster — **diese drei stehen**. *PATCH: nur `public/style.css` ist angefasst.* **Alles in Chromium bei 1600 × 913 nachgemessen; ein Fall (eine niedrigere starre Kachel gewinnt) ist mit reinem CSS-Raster nicht baubar und als Abweichung vermerkt** | nein | — |
 | **0.17.5** | So hoch wie der Inhalt | **GEBAUT.** Der Befund aus 0.17.2, gefunden nach drei Runden: **`max-height: max-content` klemmt die Forderung nicht überall** — in Chromium schon, in der laufenden Instanz nicht, und dort forderte JEDE Liste ihre zehn Zeilen, auch die leere. *Gemessen: „Zugänge" 728 gegen 498 px, der Papierkorb leer rund 570 gegen 225.* An ihre Stelle treten zwei Zeilen ohne Schlüsselwort: `flex: 0 1 auto` und `max-height: <Deckel>rem`. **Dazu wandert das Raster des Sicherheitsprotokolls von der Zeile auf die Liste**, damit die Namen untereinander stehen — vorher vier linke Kanten, jetzt eine. *PATCH: nur `public/style.css`.* **Der Preis: eine Liste nutzt die Höhe einer höheren Nachbarin nicht mehr aus — die Zusage aus 0.17.4 ist zurückgenommen** | nein | — |
-| **0.18.0** | Die Suche wird nachvollziehbar | *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
+| **0.18.0** | Die Suche wird nachvollziehbar | **GEBAUT.** *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht: eine Zeile an der Kachel nennt die Quelle und zeigt den Ausschnitt mit der Fundstelle darin, in einer festen Folge, die bei dem beginnt, was die Kachel nicht zeigt. Dazu die **Hervorhebung** — als drittes Stück der Zerlegung und nicht als Nachbearbeitung, damit „Kommentartext kommt nie über `innerHTML` in die Seite" baulich erfüllt bleibt — und der **Suchbegriff in der Adresse** (`#/item/12?q=ella`), damit sie ein Neuladen übersteht. *MINOR.* **Teil (b), der Suchbereich als Häkchen, bleibt mit Begründung liegen; Titel und Beschreibung der Detailansicht tragen keine Marke, weil beide Eingabefelder sind** | nein | — |
 | **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.21.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0 vorgemerkt — **die Nummer ist vorläufig**.)* Migrationscode raus — **jetzt sieben Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
@@ -9488,12 +9853,32 @@ Folge.
 
 ---
 
-### 0.18.0 — „Die Suche wird nachvollziehbar" · *MINOR*
+### 0.18.0 — „Die Suche wird nachvollziehbar" · *MINOR* · **GEBAUT am 1. September 2026**
 
 *(War als 0.17.0 vorgemerkt; die Nummer ist am 30. August 2026 an die Runde
 darüber gegangen.)*
 
 **Ausgearbeitet aus dem Sammelblatt:** Nr. 1
+
+> **WAS DARAUS GEWORDEN IST.** **Teil (a) und (c) sind gebaut**, dazu der
+> Suchbegriff in der Adresse — die offene Entscheidung darüber ist mit „ja"
+> beantwortet. **Teil (b), der Suchbereich als Häkchen, bleibt liegen**, und
+> zwar mit Begründung und nicht aus Zeitmangel: *er ist erst zu beurteilen,
+> wenn der Trefferkontext steht — vielleicht beantwortet die Zeile „Link: …"
+> die Frage schon, und dann braucht niemand mehr ein Häkchen, um Links
+> auszuschließen.* Er steht als eigene Zeile im Sammelblatt.
+> **Die offenen Entscheidungen unten sind beantwortet:** *eine* Zeile je Kachel
+> und nicht eine je Quelle; bei mehreren Quellen die erste einer festen Folge
+> samt der Zahl der weiteren; der Begriff wandert in die Adresse; die
+> Hervorhebung gehört der Suche und wird nicht gespeichert; die Antwort trägt
+> ein neues Feld je Eintrag.
+> **Eine Abweichung gibt es:** *Titel und Beschreibung der Detailansicht tragen
+> keine Marke* — beide sind Eingabefelder, und in ein `<input>` lässt sich kein
+> Element hängen (Stolperstein 263). **Und zwei Behauptungen dieser Ausarbeitung
+> haben nicht getragen:** die Antwort ist **nicht** umsonst zu haben (SQLite
+> bricht die ODER-Kette ab, Stolperstein 260), und die schmalste Kachel ist
+> nicht 240, sondern **173 px** breit (Stolperstein 261). *Wie es gebaut wurde,
+> steht im Änderungsprotokoll 0.18.0; was davon gilt, in Abschnitt 5.6.*
 
 
 #### Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung

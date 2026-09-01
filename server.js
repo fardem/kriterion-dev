@@ -2429,27 +2429,161 @@ const qAnhangZahl = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id
 
    DER SUCHBEGRIFF GEHT NICHT INS SICHERHEITSPROTOKOLL, und eine eigene Bremse
    gibt es nicht: die Route steht hinter der Anmeldung. */
+/* ---- DIE SIEBEN QUELLEN STEHEN GENAU EINMAL -- 0.18.0 ------------------
+   BIS 0.17.5 STAND DIE BEDINGUNG NUR IM `WHERE`, und die Antwort warf weg,
+   WELCHE der sieben getroffen hatte. Seit 0.18.0 sagt die Kachel es -- dazu
+   muss dieselbe Bedingung zweimal ausgewertet werden: einmal als Filter
+   (`WHERE`) und einmal als Auskunft (die Spaltenliste).
+
+   DESHALB STEHT SIE HIER ALS LISTE UND NICHT ZWEIMAL IM SQL. Wer sie
+   abschriebe, haette sie ab dem naechsten Zusatz an zwei Stellen zu pflegen,
+   und die beiden liefen auseinander -- ein Eintrag stuende dann in der
+   Trefferliste, ohne dass eine Quelle dazu genannt waere.
+
+   JEDER AUSDRUCK LIEFERT DEN GETROFFENEN TEXT ODER NULL. Damit ist
+   `IS NOT NULL` genau dieselbe Frage wie vorher `instr(...) > 0`
+   beziehungsweise `EXISTS (...)`: getroffen wird nur ueber nicht leeren Text,
+   und der Suchbegriff ist nie leer (volltextBegriff schneidet ihn zu, und ein
+   leerer ist gar keine Suche). Eine fehlende Beschreibung faellt ueber kkl()
+   auf den leeren String und trifft damit nicht.
+
+   DIE REIHENFOLGE IN DIESER LISTE IST DIE ANZEIGEREIHENFOLGE, und sie ist
+   nicht die des Fahrplans: sie beginnt bei dem, was die Kachel NICHT ZEIGT.
+   Steht der Begriff im Titel, sieht man ihn ohnehin -- die Zeile truege dort
+   nichts bei. Steht er in einem Kommentar, ist sie die einzige Auskunft, die
+   es gibt. Genannt wird die ERSTE getroffene Quelle dieser Folge.
+
+   ES SIND SIEBEN UND NICHT SECHS: die Tags kommen zweimal vor, einmal am
+   Eintrag und einmal am Testtag. Der Fahrplan zaehlt sechs; nachgezaehlt sind
+   es sieben, und diese Liste ist die Stelle, an der sich das zaehlen laesst.
+
+   JE QUELLE EIN BESTIMMTER SATZ UND NICHT IRGENDEINER. Wo mehrere Zeilen
+   treffen koennen (Tags, Links, Kommentare), steht ein ORDER BY: ohne es
+   entschiede die Abfrageplanung, welcher Kommentar auf der Kachel steht, und
+   dieselbe Suche zeigte morgen einen anderen. Gewaehlt ist jeweils die
+   Reihenfolge, in der die Oberflaeche die Zeilen ohnehin zeigt -- Links nach
+   ihrer Sortierung, Kommentare nach ihrem Alter, Tags nach ihrem Namen. */
+const VOLLTEXT_QUELLEN = [
+  { schluessel: 'beschreibung',
+    wert: 'CASE WHEN instr(kkl(i.description), :q) > 0 THEN i.description END' },
+  { schluessel: 'kommentar',
+    wert: `(SELECT k.text FROM comments k
+             WHERE k.item_id = i.id AND instr(kkl(k.text), :q) > 0
+             ORDER BY k.id LIMIT 1)` },
+  { schluessel: 'link',
+    wert: `(SELECT l.url FROM links l
+             WHERE l.item_id = i.id AND instr(kkl(l.url), :q) > 0
+             ORDER BY l.sort_order, l.id LIMIT 1)` },
+  { schluessel: 'testtag',
+    wert: `(SELECT tt.name FROM test_days d
+              JOIN test_day_tags dt ON dt.test_day_id = d.id
+              JOIN tags tt ON tt.id = dt.tag_id
+             WHERE d.item_id = i.id AND instr(kkl(tt.name), :q) > 0
+             ORDER BY tt.name, tt.id LIMIT 1)` },
+  { schluessel: 'tag',
+    wert: `(SELECT t.name FROM item_tags it JOIN tags t ON t.id = it.tag_id
+             WHERE it.item_id = i.id AND instr(kkl(t.name), :q) > 0
+             ORDER BY t.name, t.id LIMIT 1)` },
+  { schluessel: 'kategorie',
+    wert: 'CASE WHEN instr(kkl(c.name), :q) > 0 THEN c.name END' },
+  { schluessel: 'titel',
+    wert: 'CASE WHEN instr(kkl(i.title), :q) > 0 THEN i.title END' }
+];
+
+/* DER FILTER BLEIBT DIE ODER-KETTE, und das ist keine Formsache: SQLite
+   bricht sie beim ersten Treffer ab. Stuenden die sieben Ausdruecke
+   stattdessen in einer inneren Abfrage und die Bedingung darueber, waeren sie
+   fuer JEDE Zeile des Bestands vollstaendig zu rechnen -- auch fuer die, die
+   schon am Titel haengen bleibt.
+   DIE SPALTENLISTE RECHNET NUR FUER DIE ZEILEN, DIE DURCHKOMMEN. Was der
+   Trefferkontext kostet, haengt damit an der Zahl der TREFFER und nicht an
+   der Groesse des Bestands.
+   UND ER IST NICHT UMSONST -- nachgemessen an 1000 Eintraegen mit 4001
+   Kommentaren und 2,77 MB Suchtext, je 200 Laeufe, Median: ein haeufiges Wort
+   mit 100 Treffern kostet 17,07 ms ohne und 19,96 ms mit Kontext, ein seltenes
+   mit einem Treffer 17,01 gegen 17,84 ms, ein Begriff ohne Treffer 17,35 gegen
+   17,82 ms. Die Behauptung, die Auskunft falle bei der Filterung ohnehin an,
+   gilt nur fuer die Zeilen, die NICHT treffen (Stolperstein 260). */
 const qVolltext = db.prepare(`
-  SELECT i.id FROM items i
-  LEFT JOIN product_categories c ON c.id = i.product_category_id
-  WHERE instr(kkl(i.title), :q) > 0
-     OR instr(kkl(i.description), :q) > 0
-     OR instr(kkl(c.name), :q) > 0
-     OR EXISTS (SELECT 1 FROM item_tags it JOIN tags t ON t.id = it.tag_id
-                WHERE it.item_id = i.id AND instr(kkl(t.name), :q) > 0)
-     OR EXISTS (SELECT 1 FROM test_days d JOIN test_day_tags dt ON dt.test_day_id = d.id
-                JOIN tags tt ON tt.id = dt.tag_id
-                WHERE d.item_id = i.id AND instr(kkl(tt.name), :q) > 0)
-     OR EXISTS (SELECT 1 FROM links l WHERE l.item_id = i.id AND instr(kkl(l.url), :q) > 0)
-     OR EXISTS (SELECT 1 FROM comments k WHERE k.item_id = i.id AND instr(kkl(k.text), :q) > 0)`);
+  SELECT i.id,
+         ${VOLLTEXT_QUELLEN.map(q => `${q.wert} AS f_${q.schluessel}`).join(',\n         ')}
+    FROM items i
+    LEFT JOIN product_categories c ON c.id = i.product_category_id
+   WHERE ${VOLLTEXT_QUELLEN.map(q => `(${q.wert}) IS NOT NULL`).join('\n      OR ')}`);
+
+/* WIE LANG EIN AUSSCHNITT IST -- GEMESSEN UND NICHT GESCHAETZT.
+   Die schmalste Kachel ist 240 px breit (`.grid`, minmax(240px, 1fr)), davon
+   gehen 28 px Innenabstand ab: 212 px fuer die Zeile. Gemessen in Chromium
+   bei --window-size=1280,900 und Schriftgrad 100 traegt diese Zeile 42
+   Zeichen, bevor sie ueberlaeuft; bei Schriftgrad 80 sind es 53.
+   HIER STEHT DIE GROESSERE ZAHL, und das ist Absicht: abgeschnitten wird im
+   Stylesheet (text-overflow), und was hinten fehlt, fehlt hinten. Zu kurz
+   geschnitten kann der Browser dagegen nichts mehr nachholen.
+   DER VORLAUF IST DER EIGENTLICHE PUNKT, und er ist KURZ. Vor der Fundstelle
+   stehen hoechstens vier Zeichen. Vier und nicht zwoelf, weil die schmalste
+   Kachel es entscheidet: bei 390 px Schirmbreite ist sie 173 px breit, davon
+   bleiben nach der Quelle ("Beschreibung:" misst 88,7 px) 55,3 px fuer den
+   Ausschnitt -- gemessen neun Zeichen. Mit zwoelf Zeichen Vorlauf waere die
+   Fundstelle dort abgeschnitten gewesen: eine Zeile mit Umgebung und ohne das
+   Wort, um das es geht.
+   UND NICHT NULL: gerade weil "ella" auch "eurobella" findet, muss zu sehen
+   sein, dass die Fundstelle MITTEN IN EINEM WORT steht. Ein Ausschnitt, der
+   genau bei ihr beginnt, verschwiege das -- und das ist der Befund, wegen dem
+   es diese Zeile ueberhaupt gibt. */
+const AUSSCHNITT_LAENGE = 56;
+const AUSSCHNITT_VORLAUF = 4;
+
+/* WEISSRAUM WIRD EINGEEBNET -- ABER NUR IM TEXT UND NIE IM BEGRIFF. Ein
+   Kommentar traegt Absaetze; die Kachelzeile ist EINE Zeile.
+   DER BEGRIFF DAGEGEN WIRD GENOMMEN, WIE ER GETIPPT UND GETRIMMT IST, weil
+   genau so auch gesucht wurde: instr() vergleicht Zeichen fuer Zeichen. Wer
+   ihn hier zusaetzlich einebnete, suchte im Ausschnitt nach etwas anderem als
+   im Bestand -- und die Oberflaeche, die den Begriff im Ausschnitt wiederfinden
+   muss, haette eine dritte Lesart. */
+const einZeilig = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
+
+function ausschnitt(text, begriff) {
+  const t = einZeilig(text);
+  const b = String(begriff ?? '');
+  if (!b) return t.slice(0, AUSSCHNITT_LAENGE);
+  const stelle = t.toLowerCase().indexOf(b.toLowerCase());
+  /* GEFUNDEN WIRD SIE HIER NORMALERWEISE WIEDER -- gesucht hat SQLite auf dem
+     Rohtext, geschnitten wird auf dem eingeebneten. Ein Begriff, der selbst
+     einen doppelten Leerraum traegt, ist danach nicht mehr zu finden; dann
+     steht der Anfang des Textes da statt gar nichts. Ein stiller Fehlgriff
+     waere ein Ausschnitt OHNE die Fundstelle -- der Anfang ist wenigstens
+     wahr. */
+  const von = stelle < 0 ? 0 : Math.max(0, stelle - AUSSCHNITT_VORLAUF);
+  const bis = von + AUSSCHNITT_LAENGE;
+  return (von > 0 ? '…' : '') + t.slice(von, bis) + (bis < t.length ? '…' : '');
+}
 
 /* DER BEGRIFF WIRD GENAU SO ZUGESCHNITTEN WIE VORHER IM BROWSER: aussen
    getrimmt, klein geschrieben. Ein Begriff, von dem danach nichts uebrig ist,
    ist KEINE Suche und keine Suche ohne Treffer -- die Liste bleibt dann die
-   ganze Liste. Zurueck kommt eine Menge von Nummern und keine Reihenfolge:
-   sortiert wird die Liste selbst, an einer Stelle. */
+   ganze Liste. Zurueck kommt eine Abbildung Nummer -> Trefferkontext und
+   keine Reihenfolge: sortiert wird die Liste selbst, an einer Stelle. */
 const volltextBegriff = (roh) => (typeof roh === 'string' ? roh.trim().toLowerCase() : '');
-const volltextTreffer = (begriff) => new Set(qVolltext.all({ q: begriff }).map(r => r.id));
+
+/* WAS JE EINTRAG HERAUSKOMMT: die erste getroffene Quelle der festen Folge,
+   ihr Ausschnitt und die Zahl der WEITEREN getroffenen Quellen.
+   EINE ZEILE JE KACHEL UND NICHT EINE JE QUELLE -- die Kachel ist dicht, und
+   sieben moegliche Zeilen machten aus der Uebersicht eine Liste von
+   Fundstellen. Die Zahl daneben sagt, dass es mehr zu sehen gibt.
+   `weitere` ZAEHLT QUELLEN UND KEINE VORKOMMEN: „und 2 weitere Stellen" heisst
+   „in zwei weiteren der sieben Quellen", nicht „noch zweimal im selben Text".
+   DIE BENENNUNG DER QUELLE BLEIBT DER OBERFLAECHE UEBERLASSEN: hier steht ein
+   Schluessel, kein Wort. „Tag am Testtag" heisst je nach eingestelltem
+   Vokabular anders, und das weiss die Oberflaeche. */
+const volltextTreffer = (begriff) => new Map(qVolltext.all({ q: begriff }).map(r => {
+  const getroffen = VOLLTEXT_QUELLEN.filter(q => r['f_' + q.schluessel] != null);
+  const erste = getroffen[0];
+  return [r.id, erste ? {
+    quelle: erste.schluessel,
+    text: ausschnitt(r['f_' + erste.schluessel], begriff),
+    weitere: getroffen.length - 1
+  } : null];
+}));
 
 /* ---- ZWEI ZAHLEN, DIE MIT DER LISTE MITREISEN -- 0.16.0 ----------------
    BEIDE HAENGEN AN EINER ANTWORT, DIE ES OHNEHIN GIBT, und das ist der ganze
@@ -2513,10 +2647,11 @@ const qNeueBewertungen = db.prepare(
 app.get('/api/items', (req, res) => {
   let rows = qAlleItems.all();
   const begriff = volltextBegriff(req.query.q);
-  if (begriff) {
-    const treffer = volltextTreffer(begriff);
-    rows = rows.filter(r => treffer.has(r.id));
-  }
+  /* DIE FUNDSTELLEN KOMMEN AUS DERSELBEN ABFRAGE WIE DER FILTER -- kein
+     zweiter Weg und keine Abfrage je Eintrag. Ohne Begriff bleibt die
+     Abbildung leer, und weiter unten faellt das Feld damit aus der Antwort. */
+  const fundstellen = begriff ? volltextTreffer(begriff) : new Map();
+  if (begriff) rows = rows.filter(r => fundstellen.has(r.id));
   /* DIE ZEITLEISTE EINMAL FUER DIE GANZE LISTE GEFRAGT, nicht je Eintrag:
      eine persoenliche Einstellung aendert sich innerhalb einer Antwort nicht.
      Ist sie aus, faellt `testDays` aus der Antwort -- gemessen 6 Prozent.
@@ -2641,6 +2776,14 @@ app.get('/api/items', (req, res) => {
        die Zahl. Gerechnet wird beides aus DERSELBEN Bedingung (kind = 'task'),
        sonst naennten Knopf und Ansicht zwei verschiedene Zahlen. */
     it.offeneAufgaben = offenJe.get(it.id) || 0;
+    /* DER TREFFERKONTEXT -- 0.18.0. WARUM EIN EINTRAG IN DER TREFFERLISTE
+       STEHT, und zwar nur dann, wenn wirklich gesucht wurde: ohne Begriff
+       faellt das Feld ganz aus der Antwort, wie testDays es bei
+       ausgeschalteter Zeitleiste vormacht. Ein leeres Feld waere eine dritte
+       Lage neben „getroffen" und „gar nicht gesucht".
+       ES IST EINE ERWEITERUNG UND KEINE WEGNAHME: was vorher in der Antwort
+       stand, steht Zeichen fuer Zeichen weiter da. */
+    if (begriff) it.fundstelle = fundstellen.get(it.id);
     /* DREI ANGABEN, UND SIE STEHEN ODER FEHLEN GEMEINSAM. Die Verfasser gehen
        als dieselben Objekte hinaus wie ueberall sonst -- aus verfasserKarte(),
        nicht als nackte Zugangsnummern. */
