@@ -253,7 +253,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.18.0** — Fingerprint **`FINGERPRINT_PLATZ`**, **4917
+**Gebaut ist 0.18.0** — Fingerprint **`0bf6ac9d`**, **4917
 Prüfungen**, **421 Rückbauten in der Liste; gefahren sind die 32 dieser Runde,
 keiner stumm** (Abschnitt 8). *0.18.0 gibt der Trefferliste eine Begründung: je
 Eintrag nennt die Suchantwort die erste getroffene der sieben Quellen, den
@@ -751,7 +751,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.18.0** | **`FINGERPRINT_PLATZ`** *(im Feld noch nicht bestätigt)* | 4917 |
+| **0.18.0** | **`0bf6ac9d`** *(im Feld noch nicht bestätigt)* | 4917 |
 | 0.17.5 | `6a2c264a` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4813 |
 | 0.17.4 | `d3113d62` *(am 31. August 2026 von der laufenden Instanz gemeldet — und dieser Beleg hat den Fehler aufgedeckt)* | 4811 |
 | 0.17.3 | `ebd36b66` *(im Feld noch nicht bestätigt)* | 4805 |
@@ -7448,7 +7448,7 @@ eine Buchführung.*
 | **0.17.3** | **Die Karte zeigt, der Dialog stellt ein (58 netto)** | **20 neue, ACHT weggefallen (368 → 380); vier nachgezogen (Stolperstein 201); 24 gefahren, 0 stumm** | **Stolpersteine 246 bis 250** |
 | **0.17.4** | **Fordern und nutzen (6 netto: sieben neue, eine weggefallen)** | **fünf neue (380 → 385); vier nachgezogen, davon einer UMGEDREHT (Stolperstein 201); 9 gefahren, 0 stumm** | **Stolpersteine 251 bis 255** |
 | **0.17.5** | **So hoch wie der Inhalt (2 netto: sieben neue, zwei weggefallen, vier umgeschrieben)** | **vier neue (385 → 389); neun nachgezogen, davon einer UMGEDREHT; 13 gefahren, 0 stumm** | **Stolpersteine 256 bis 259** |
-| **0.18.0** | **Die Suche wird nachvollziehbar (104 netto, keine weggefallen)** | **32 neue (389 → 421); ACHT nachgezogen, weil sie auf die Umgebung eines Ausdrucks zeigten statt auf ihn (Stolperstein 264); GEGENPROBE_GEFAHREN** | **Stolpersteine 260 bis 266** |
+| **0.18.0** | **Die Suche wird nachvollziehbar (104 netto, keine weggefallen)** | **32 neue (389 → 421); ACHT nachgezogen, weil sie auf die Umgebung eines Ausdrucks zeigten statt auf ihn (Stolperstein 264); alle 32 gefahren, 0 stumm — der erste Lauf hatte NEUN Befunde: sechs stumme Rückbauten und drei abgerissene Läufe, alle abgearbeitet** | **Stolpersteine 260 bis 266** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die

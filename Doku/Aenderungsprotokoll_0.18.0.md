@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.18.0 — „Die Suche wird nachvollziehbar"
 
-**Version 0.18.0 · gebaut am 1. September 2026 · Fingerprint `FINGERPRINT_PLATZ` ·
+**Version 0.18.0 · gebaut am 1. September 2026 · Fingerprint `0bf6ac9d` ·
 4917 Prüfungen · 421 Rückbauten in `gegenprobe.js`**
 
 ---
@@ -443,7 +443,73 @@ sagt nichts, was die Quelle davor nicht schon sagt.
 
 **421 Rückbauten, gefahren wurden die 32 dieser Runde.**
 
-GEGENPROBENTABELLE_PLATZ
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 398 | Der Trefferkontext faellt ganz aus der Antwort | 31 Prüfungen, darunter „Mit Begriff traegt JEDER Treffer einen" |
+| 399 | Der Trefferkontext steht auch ohne Suche in der Antwort | „Ohne Begriff traegt kein Eintrag einen Trefferkontext" |
+| 400 | Der Ausschnitt wird vorn geschnitten statt an der Fundstelle | „Der Ausschnitt beginnt mit einem Auslassungszeichen, wenn vorne etwas fehlt", „Und mindestens eines, wenn davor ueberhaupt etwas steht" |
+| 401 | Der Ausschnitt beginnt genau bei der Fundstelle | „Und mindestens eines, wenn davor ueberhaupt etwas steht" |
+| 402 | Der Ausschnitt wird nicht mehr eingeebnet | „Der Ausschnitt traegt keinen Zeilenumbruch", „Und keinen doppelten Leerraum" |
+| 403 | Der Ausschnitt wird gar nicht mehr gekuerzt | „Und hoert mit einem auf, wenn hinten etwas fehlt", „Der Ausschnitt bleibt kurz genug fuer eine Kachelzeile" |
+| 404 | Die Zahl der weiteren Stellen ist immer null | „Und zaehlt die uebrigen sechs als weitere Stellen" |
+| 405 | Die Folge der Quellen kehrt sich um | 3 Prüfungen, darunter „Trifft der Begriff alle sieben Quellen, nennt die Antwort die Beschreibung" |
+| 406 | Der genannte Kommentar ist der juengste statt der aeltesten | „Bei mehreren treffenden Kommentaren steht der aelteste da" |
+| 407 | Die Kachel baut keine Trefferzeile mehr | 14 Prüfungen, darunter „Mit Suche traegt jede Trefferkachel genau eine" |
+| 408 | Die Trefferzeile rutscht ueber den Titel | „Die Zeile steht unter dem Titel" |
+| 409 | Die Zahl der weiteren Stellen faellt aus der Zeile | „Bei weiteren Stellen steht ihre Zahl in der Zeile" |
+| 410 | Der Ueberfahrtext nennt die weiteren Stellen nicht mehr | „Der Ueberfahrtext sagt es ausgeschrieben" |
+| 411 | Eine unbekannte Quelle faellt aus der Zeile | „Eine unbekannte Quelle heisst „Fundstelle" und faellt nicht weg" |
+| 412 | Der Ausschnitt kommt ueber innerHTML in die Kachel | 4 Prüfungen, darunter „Aus Markup im Ausschnitt entsteht kein Element" |
+| 413 | Die Marke wird ueber innerHTML gefuellt | 3 Prüfungen, darunter „Der Aufbau steht: der Begriff selbst ist der Angriffstext" |
+| 414 | Der Titel der Kachel wird nicht mehr hervorgehoben | 3 Prüfungen, darunter „Im Titel werden alle Vorkommen markiert" |
+| 415 | Nur die erste Fundstelle wird hervorgehoben | „Im Titel werden alle Vorkommen markiert" |
+| 416 | Der Begriff wird als Muster gelesen | „Der Aufbau steht: der Begriff selbst ist der Angriffstext", „Ein Punkt im Begriff findet keinen beliebigen Buchstaben" |
+| 417 | Die Hervorhebung erreicht den Kommentartext nicht mehr | 4 Prüfungen, darunter „Und die Hervorhebung steht nach einem Neuladen wieder da" |
+| 418 | Eine Adresse mit Begriff zerfaellt in mehrere Anker | „Ein Begriff in der Adresse macht aus einem Link nicht drei", „Und der angezeigte Text ebenso" |
+| 419 | In der Linkliste wird der Anzeigename hervorgehoben | „Und ausdruecklich nicht der Anbietername" |
+| 420 | Die Adresse in der Linkliste wird nicht mehr hervorgehoben | „Auch in der Linkliste, und zwar an der Adresse", „Hervorgehoben wird die Adresse" |
+| 421 | Das Adressmuster nimmt keinen Begriff mehr an | 10 Prüfungen, darunter „Eine Adresse mit Begriff fuehrt in denselben Eintrag" |
+| 422 | Das Adressmuster ist hinten nicht mehr verankert | 7 Prüfungen, darunter „Und die Hervorhebung steht nach einem Neuladen wieder da" |
+| 423 | Die Detailansicht zieht die Adresse nicht mehr nach | „Ein Weg ohne Begriff bekommt ihn nachtraeglich in die Adresse" |
+| 424 | Die Adresse wird ueber location.hash gesetzt | „Und der Eintrag wurde dabei genau einmal geholt" |
+| 425 | Die Kachel haengt den Begriff nicht an ihre Adresse | „Die Kachel fuehrt mit dem Begriff in der Adresse zum Eintrag" |
+| 426 | Der Begriff aus der Adresse wird nicht entschluesselt | „Ein Begriff mit Leerzeichen kommt entschluesselt an" |
+| 427 | Die Marke bringt wieder Schwarz auf Gelb mit | „Die Marke setzt Grund UND Schrift", „Und beides aus den Farben, die es schon gibt" |
+| 428 | Die Trefferzeile darf wieder umbrechen | „Die Trefferzeile bricht nicht um", „Und was nicht hineinpasst, wird mit einem Auslassungszeichen gekappt" |
+| 429 | Die Quelle gibt in der Trefferzeile nach statt der Ausschnitt | „Die Quelle gibt nicht nach" |
+
+> **DIE ZEILE „Jeder Suchtext kommt in seiner Datei genau einmal vor" IST DIE
+> SELBSTPROBE UND KEIN BEFUND** — sie wird bei jedem gefahrenen Rückbau rot und
+> steht deshalb in dieser Tabelle nicht (Stolperstein 213).
+
+> **KEINER IST STUMM — aber der erste Lauf hatte NEUN Befunde**, und sie stehen
+> hier, weil sie die eigentliche Ausbeute dieser Gegenprobe sind:
+>
+> * **Sechs Rückbauten blieben stumm.** *399* und *410* griffen daneben — die
+>   Klemme sitzt eine Zeile tiefer als angenommen, und der Ersatz war ein
+>   Nulleingriff. **Das sind Fehler am Rückbau.** *402*, *416* und *424* waren
+>   dagegen richtig gebaut und trafen auf **keine Zusage**: der Umbruch stand
+>   außerhalb des Ausschnitts, der Begriff traf die Kachel gar nicht *(die
+>   Trefferliste war leer, es gab überhaupt nichts zu markieren — Stolperstein
+>   81)*, und der Unterschied zwischen `replaceState` und `location.hash` war
+>   nirgends festgehalten. **Das sind Lücken im Prüfstand.**
+> * ***413* hat die wichtigste gezeigt.** In der Marke steht **immer der
+>   Suchbegriff**, und den tippt ein Mensch: wer Markup ins Suchfeld schreibt,
+>   findet einen Kommentar, der es trägt — und die Marke trägt danach denselben
+>   Text. **Die vorhandene Lage brachte den Angriffstext nur in der UMGEBUNG
+>   unter**, und dort steht die Marke um ein harmloses Wort herum. *Der
+>   Angriffstext gehört auch in den Begriff* (Stolperstein 266).
+> * **Drei Läufe rissen ab statt rot zu werden** — *407*, *408* und *421*.
+>   *408* nahm die Zeile ganz weg statt sie zu verschieben und war damit
+>   derselbe Rückbau wie *407*; *407* selbst ließ ein Feld stehen, dessen
+>   Vorlage er entfernte, und die Kachel zerriss beim Zeichnen. **Ein Rückbau
+>   muss einen lauffähigen Stand ergeben.** Bei *421* griffen zwei Prüflagen an
+>   Elementen, die er gerade wegnimmt (Stolperstein 138) — sie fragen jetzt
+>   erst nach dem Vorhandensein.
+>
+> *Nach dem Abarbeiten ist der Lauf gegen `576d6dd` gefahren: 32 Rückbauten,
+> **0 stumm**, einer nicht auswertbar — und der eine, 407, nach dem
+> berichtigten Rückbau gegen `b3b1aa0` nachgefahren.*
 
 ---
 
@@ -478,7 +544,7 @@ GEGENPROBENTABELLE_PLATZ
 | Austauschformat | 11 | **11** |
 | Abhängigkeiten | 5 + 1 zum Entwickeln | **5 + 1 zum Entwickeln** |
 | Versionsnummern in der README | 6 | **6** |
-| Fingerprint | `6a2c264a` | **`FINGERPRINT_PLATZ`** |
+| Fingerprint | `6a2c264a` | **`0bf6ac9d`** |
 
 ---
 
