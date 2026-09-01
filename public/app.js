@@ -1209,12 +1209,59 @@ function kuerzeLinkende(adresse) {
   }
 }
 
+/* ---- DIE HERVORHEBUNG, ALS DRITTES STUECK -- 0.18.0 --------------------
+   BIS 0.17.5 KANNTE DIE ZERLEGUNG ZWEI STUECKE: gewoehnlichen Text und einen
+   Link. Seit 0.18.0 gibt es ein drittes -- die Fundstelle des Suchbegriffs.
+
+   SIE ENTSTEHT IN DER ZERLEGUNG UND NICHT HINTERHER. Wer das fertige Ergebnis
+   nachbearbeitet, muss dafuer wieder in Strings denken -- maskieren,
+   `<mark>` hineinschreiben, wieder als Markup einsetzen --, und genau dort
+   entsteht der Fehler, den 0.5.4 zugemacht hat. Hier entsteht kein einziges
+   Zeichen Markup: das Stueck sagt nur, DASS es eine Fundstelle ist, und der
+   Knotenbauer macht daraus ein Element mit textContent.
+
+   DER BEGRIFF WIRD GENOMMEN, WIE ER GETIPPT UND GETRIMMT IST -- dieselbe
+   Klemme wie im Server (volltextBegriff), und gesucht wird mit indexOf und
+   nicht mit einem Muster: aus einem Suchbegriff ein regulaeres Ausdrucksmuster
+   zu bauen hiesse, jedes Sonderzeichen darin maskieren zu muessen. Ein
+   eingegebenes `.` faende sonst jedes Zeichen -- derselbe Fehler wie LIKE
+   gegen instr() im Server, nur im Browser.
+
+   VERGLICHEN WIRD KLEINGESCHRIEBEN, angezeigt der Originaltext: wer "bella"
+   tippt, will "Bellavista" markiert sehen und nicht "bella" daruntergelegt.
+
+   DIE UEBRIGEN ANGABEN EINES STUECKS REISEN MIT (`rest`). Damit zerfaellt auch
+   eine Adresse, in der der Begriff steht, in mehrere Stuecke MIT demselben
+   Ziel -- der Knotenbauer setzt sie danach wieder zu EINEM Link zusammen. */
+function zerlegeAmBegriff(text, begriff, rest = {}) {
+  const t = String(text ?? '');
+  const b = String(begriff ?? '');
+  if (!t) return [];
+  if (!b) return [{ text: t, ...rest }];
+  const klein = t.toLowerCase(), kleinB = b.toLowerCase();
+  const stuecke = [];
+  let von = 0;
+  for (;;) {
+    const i = klein.indexOf(kleinB, von);
+    if (i < 0) break;
+    if (i > von) stuecke.push({ text: t.slice(von, i), ...rest });
+    stuecke.push({ text: t.slice(i, i + b.length), ...rest, treffer: true });
+    von = i + b.length;
+  }
+  if (von < t.length) stuecke.push({ text: t.slice(von), ...rest });
+  return stuecke;
+}
+
 // Zerlegt den Rohtext in Stuecke: { text } ist gewoehnlicher Text,
-// { text, ziel } ein Link. Gearbeitet wird auf dem Rohtext, nicht auf
-// maskiertem -- sonst zerrisse ein &amp; jede Abfragezeichenfolge.
-function zerlegeKommentartext(roh) {
+// { text, ziel } ein Link, { text, treffer } eine Fundstelle des Suchbegriffs.
+// Gearbeitet wird auf dem Rohtext, nicht auf maskiertem -- sonst zerrisse ein
+// &amp; jede Abfragezeichenfolge.
+// DIE LINKS WERDEN ZUERST GESUCHT UND DER BEGRIFF DANACH: umgekehrt zerschnitte
+// eine Fundstelle die Adresse, bevor sie ueberhaupt als eine erkannt waere.
+function zerlegeKommentartext(roh, begriff) {
   const text = String(roh ?? '');
   const stuecke = [];
+  const nimm = (t, rest) => { for (const s of zerlegeAmBegriff(t, begriff, rest)) stuecke.push(s); };
   let zuletzt = 0, treffer;
   KOMMENTAR_LINK.lastIndex = 0;
   while ((treffer = KOMMENTAR_LINK.exec(text)) !== null) {
@@ -1223,38 +1270,77 @@ function zerlegeKommentartext(roh) {
     // keine Adresse und wird wieder zu Text. Gefragt wird allein, ob nach dem
     // Anfang noch etwas steht -- ueber das Schema entscheidet das Muster.
     if (adresse.length <= treffer[1].length) continue;
-    if (treffer.index > zuletzt) stuecke.push({ text: text.slice(zuletzt, treffer.index) });
-    stuecke.push({
-      text: adresse,                     // angezeigt wird die Adresse, wie geschrieben
+    if (treffer.index > zuletzt) nimm(text.slice(zuletzt, treffer.index), {});
+    nimm(adresse, {
+      // angezeigt wird die Adresse, wie geschrieben
       ziel: /^www\./i.test(adresse) ? 'https://' + adresse : adresse
     });
     zuletzt = treffer.index + adresse.length;
   }
-  if (zuletzt < text.length) stuecke.push({ text: text.slice(zuletzt) });
+  if (zuletzt < text.length) nimm(text.slice(zuletzt), {});
   return stuecke;
+}
+
+/* Ein Stueck als Knoten. EINE FUNDSTELLE WIRD ZU <mark>, alles andere zu
+   gewoehnlichem Text -- in beiden Faellen ueber textContent. Markup kann auf
+   diesem Weg gar nicht entstehen, und das ist der ganze Punkt: die Zusage aus
+   0.5.4 haengt nicht daran, dass jemand das Maskieren nicht vergisst. */
+function stueckKnoten(s) {
+  const text = String(s?.text ?? '');
+  if (!s?.treffer) return document.createTextNode(text);
+  const m = document.createElement('mark');
+  m.textContent = text;
+  return m;
 }
 
 // Baut echte DOM-Knoten. Kein innerHTML auf diesem Weg: Maskierung ist damit
 // nicht "nicht vergessen worden", sondern baulich unmoeglich.
 function baueKommentarknoten(stuecke) {
   const teil = document.createDocumentFragment();
-  (stuecke || []).forEach(s => {
-    const text = String(s?.text ?? '');
-    if (!text) return;
+  // Leere Stuecke fallen vorher heraus, damit weiter unten keine Abfrage auf
+  // "" mitten in der Zusammenfassung eines Links steht.
+  const liste = (stuecke || []).filter(s => String(s?.text ?? '') !== '');
+  for (let i = 0; i < liste.length; i++) {
+    const s = liste[i];
     // Schranke 2: unmittelbar vor dem Setzen von href noch einmal pruefen.
     // Faellt der String durch, wird sie gewoehnlicher Text, nicht Link.
-    if (s?.ziel && /^https?:\/\//i.test(String(s.ziel))) {
+    if (s.ziel && /^https?:\/\//i.test(String(s.ziel))) {
       const a = document.createElement('a');
       a.href = String(s.ziel);
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
-      a.textContent = text;
+      /* EINE ADRESSE BLEIBT EIN LINK, AUCH WENN DER BEGRIFF MITTEN DARIN
+         STEHT. Die Zerlegung liefert sie dann als mehrere Stuecke mit
+         DEMSELBEN Ziel; hier werden sie in EINEN Anker gefuellt. Drei Anker
+         nebeneinander waeren drei Links auf dieselbe Adresse -- fuer ein
+         Vorleseprogramm drei Ziele statt einem, und beim Kopieren drei
+         Stuecke statt einer Adresse. */
+      let j = i;
+      while (j < liste.length && String(liste[j].ziel ?? '') === String(s.ziel))
+        a.appendChild(stueckKnoten(liste[j++]));
+      i = j - 1;
       teil.appendChild(a);
-      return;
+      continue;
     }
-    teil.appendChild(document.createTextNode(text));
-  });
+    teil.appendChild(stueckKnoten(s));
+  }
   return teil;
+}
+
+/* DIE HERVORHEBUNG FUER JEDEN TEXT OHNE LINKS -- Titel, Kategorie, Tag,
+   Kontextzeile, Linkadresse. Denselben Weg geht der Kommentartext, nur mit
+   der Linkzerlegung davor: ein Knotenbauer und nicht zwei. */
+const hebeHervor = (text, begriff) =>
+  baueKommentarknoten(zerlegeAmBegriff(String(text ?? ''), begriff));
+
+/* DEN INHALT EINES ELEMENTS DURCH HERVORGEHOBENE KNOTEN ERSETZEN. Ohne
+   Begriff wird gar nichts angefasst -- ohne Suche gibt es nichts
+   hervorzuheben, und ein unnoetig neu gebauter Knoten waere Arbeit ohne
+   Wirkung. Ein fehlendes Element ist kein Fehler: die Kategorie steht nicht
+   an jeder Kachel. */
+function hebeImKnoten(el, text, begriff) {
+  if (!el || !begriff) return;
+  el.replaceChildren(hebeHervor(text, begriff));
 }
 
 let SCHRIFT = 100;
@@ -1776,11 +1862,34 @@ const merkeGesehen = () => {
   GLOCKE_GESEHEN = true;
   api('PUT', '/api/settings', { glockeGesehen: 1 }).catch(() => {});
 };
+/* ================= Der Suchbegriff in der Adresse -- 0.18.0 =================
+   BIS 0.17.5 LEBTE DER BEGRIFF NUR IN state.search. Wer einen Treffer oeffnete
+   und neu lud, verlor ihn -- und mit ihm die Hervorhebung. Ein Eintrag, der
+   beim ersten Blick markierte Stellen hat und nach F5 keine mehr, sieht aus
+   wie ein Fehler.
+
+   DAS MUSTER IST VERANKERT UND BLEIBT ES. `#/item/12x` darf nicht treffen,
+   und `#/item/12` ohne Begriff bleibt gueltig -- jedes Lesezeichen von gestern
+   fuehrt dorthin, wohin es immer fuehrte. Dieselbe Bauform wie SYS_MUSTER,
+   das seit 0.16.0 genau das fuer den Systembereich tut.
+
+   GELESEN WIRD MIT URLSearchParams UND NICHT MIT EINEM ZWEITEN MUSTER: das
+   Entschluesseln der Prozentzeichen steht damit an einer Stelle, und ein
+   Parameter, den diese Fassung nicht kennt, wirft die Adresse nicht um.
+   Ein `?q=` ohne Wert ist dasselbe wie kein `?q=` -- "keine Suche". */
+const EINTRAG_MUSTER = /^#\/item\/(\d+)(?:\?(.*))?$/;
+const eintragAdresse = (id, begriff) =>
+  `#/item/${id}` + (begriff ? `?q=${encodeURIComponent(begriff)}` : '');
+const begriffAusAdresse = (frage) => {
+  try { return new URLSearchParams(frage || '').get('q') || ''; }
+  catch { return ''; }
+};
+
 function route() {
   const h = location.hash || '#/';
   // Die alte Ansicht ist gleich fort; ihre Wolke darf niemand mehr zeichnen.
   wolkeNeuzeichnen = null;
-  const m = h.match(/^#\/item\/(\d+)$/);
+  const m = h.match(EINTRAG_MUSTER);
   /* DER SYSTEMBEREICH HAT SEIT 0.16.0 FUENF ADRESSEN STATT EINER --
      `#/system` und `#/system/<abschnitt>`. Welcher Abschnitt gemeint ist,
      liest renderSystem() selbst aus der Adresse; hier steht nur, DASS es der
@@ -1795,7 +1904,7 @@ function route() {
   if (ansicht === 'system') return renderSystem();
   if (ansicht === 'vergleich') return renderCompare();
   if (ansicht === 'offen') return renderOffen();
-  if (m) return renderDetail(+m[1]);
+  if (m) return renderDetail(+m[1], begriffAusAdresse(m[2]));
   return renderList();
 }
 
@@ -2737,9 +2846,54 @@ function bestandText(it) {
   return `<div class="photo-count">${teile.join(' · ')}</div>`;
 }
 
+/* ================= Der Trefferkontext an der Kachel -- 0.18.0 =================
+   WARUM EIN EINTRAG IN DER TREFFERLISTE STEHT. Eine Suche nach "ella" findet
+   auch "eurobella" -- unter anderem in einer Linkadresse. Der Treffer ist
+   richtig; ohne diese Zeile ist er nur nicht nachvollziehbar, weil die Kachel
+   nicht sagt, WO das Wort steht.
+
+   DIE ZEILE STEHT NUR DA, SOLANGE EINE SUCHE LAEUFT. Ohne Begriff traegt die
+   Antwort das Feld gar nicht, und die Kachel ist dann Pixel fuer Pixel die
+   von vorher.
+
+   WELCHE QUELLE GENANNT WIRD, ENTSCHEIDET DER SERVER -- an einer Stelle und in
+   einer festen Folge (VOLLTEXT_QUELLEN). Hier steht nur, wie sie HEISST.
+   "Tag am Testtag" heisst je nach eingestelltem Vokabular anders; deshalb
+   sind es Funktionen und keine Strings, die einmal beim Laden
+   festgelegt wuerden. */
+const FUND_WORTE = {
+  beschreibung: () => 'Beschreibung',
+  kommentar: () => 'Kommentar',
+  link: () => 'Link',
+  testtag: () => `Tag am ${V.zeitpunktEinzahl}`,
+  tag: () => 'Tag',
+  kategorie: () => 'Kategorie',
+  titel: () => 'Titel'
+};
+/* EINE UNBEKANNTE QUELLE HEISST "Fundstelle" UND FAELLT NICHT AUS DER ZEILE.
+   Ein Server, der eine achte Quelle kennt, und eine Oberflaeche, die sie noch
+   nicht kennt, sind derselbe Fall wie eine alte Oberflaeche an einer neuen
+   Antwort: die Zeile sagt dann weniger, aber sie luegt nicht und sie
+   verschwindet nicht. */
+const fundWort = (quelle) => (FUND_WORTE[quelle] || (() => 'Fundstelle'))();
+
+/* DIE VOLLE AUSSAGE STEHT IM UEBERFAHRTEXT. In der Zeile selbst ist kein
+   Platz dafuer: die schmalste Kachel ist 240 px breit, und "und 2 weitere
+   Stellen" nimmt dort mehr Raum ein als der Ausschnitt, den sie begleitet
+   (gemessen, siehe Aenderungsprotokoll 0.18.0). Die Zahl steht deshalb kurz
+   in der Zeile und ausgeschrieben darueber. */
+const fundUeberfahrt = (f) => `Gefunden in: ${fundWort(f.quelle)}` + (
+  f.weitere === 1 ? ' und 1 weitere Stelle'
+  : f.weitere > 1 ? ` und ${f.weitere} weitere Stellen` : '');
+
 function card(it) {
   const a = document.createElement('a');
-  a.href = `#/item/${it.id}`;
+  /* DER BEGRIFF WANDERT IN DIE ADRESSE DER KACHEL. Wer einen Treffer oeffnet
+     und neu laedt, behaelt damit die Hervorhebung -- ein Eintrag, der beim
+     ersten Blick markierte Stellen hat und nach F5 keine mehr, saehe aus wie
+     ein Fehler. Ohne Suche bleibt es bei der Adresse von vorher. */
+  const begriff = state.search.trim();
+  a.href = eintragAdresse(it.id, begriff);
   a.className = 'card' + (state.compare.has(it.id) ? ' picked' : '') + (it.rejected ? ' rejected' : '');
   const badges = [];
   if (it.rejected) badges.push(`<span class="badge badge-rejected">abgelehnt</span>`);
@@ -2750,6 +2904,19 @@ function card(it) {
       <span class="sep">·</span><span>⌀ ${it.testAvg.toFixed(1).replace('.', ',')}</span>
       <span class="sep">·</span><span>zuletzt ${it.testLast}</span>
     </div>` : '';
+
+  /* DIE ZEILE STEHT UNTER DEM TITEL UND UEBER DEN TAGS -- bei dem, was sie
+     erklaert, und nicht am Fuss bei den Zahlen.
+     DER AUSSCHNITT BLEIBT IN DER VORLAGE LEER. Er kann aus einem Kommentar
+     stammen, und fuer Kommentartext gilt seit 0.5.4: er kommt nie ueber
+     innerHTML in die Seite (Projektstand 5.6). Gefuellt wird er weiter unten
+     mit echten Knoten -- mit Hervorhebung, wenn ein Begriff da ist, und ohne,
+     wenn nicht. */
+  const f = it.fundstelle;
+  const fundZeile = f ? `<div class="card-fund" title="${esc(fundUeberfahrt(f))}">
+        <span class="fund-quelle">${esc(fundWort(f.quelle))}:</span><span
+          class="fund-text"></span>${f.weitere ? `<span class="fund-mehr">+${f.weitere}</span>` : ''}
+      </div>` : '';
 
   a.innerHTML = `
     <div class="card-img">
@@ -2763,6 +2930,7 @@ function card(it) {
     <div class="card-body">
       ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
       <h3 class="card-title">${esc(it.title)}</h3>
+      ${fundZeile}
       ${it.tags.length ? `<div class="card-tags">${it.tags.slice(0,4).map(t => `<span class="chip ro">${esc(t.name)}</span>`).join('')}</div>` : ''}
       ${testLine}
       <div class="card-foot">
@@ -2774,6 +2942,18 @@ function card(it) {
         <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="Zum Vergleich auswählen">✓</button>
       </div>
     </div>`;
+
+  if (f) a.querySelector('.fund-text').replaceChildren(hebeHervor(f.text, begriff));
+  /* DIE HERVORHEBUNG GILT DORT, WO GESUCHT WURDE -- und die Kachel zeigt drei
+     der sieben Quellen: Titel, Kategorie und die ersten vier Tags. Der Rest
+     steht in der Zeile darueber.
+     ERSETZT WIRD DER FERTIGE TEXTKNOTEN, nicht die Vorlage umgebaut: `esc()`
+     hat den Text schon richtig hineingeschrieben, und ohne Begriff bleibt er
+     unangetastet stehen. */
+  hebeImKnoten(a.querySelector('.card-title'), it.title, begriff);
+  if (it.category) hebeImKnoten(a.querySelector('.card-cat'), it.category.name, begriff);
+  if (begriff) [...a.querySelectorAll('.card-tags .chip')]
+    .forEach((chip, i) => hebeImKnoten(chip, it.tags[i].name, begriff));
 
   a.querySelector('.pick-box').addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
@@ -3559,7 +3739,26 @@ function sparkline(days) {
 }
 
 /* ================= Detailansicht ================= */
-async function renderDetail(id) {
+async function renderDetail(id, begriffAdresse) {
+  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND -- und danach
+     stehen beide gleich. Aus der Adresse kommt er nach einem Neuladen und aus
+     einem weitergegebenen Link; aus dem Zustand kommt er auf jedem Weg in
+     einen Eintrag, den die Kachel nicht gebaut hat -- die Glockentafel, die
+     Zeitleiste, die offenen Aufgaben, der Vergleich.
+     EINE STELLE UND NICHT SECHS: die Adresse hier nachzuziehen ist derselbe
+     Griff wie am Ende von renderSystem(), und er greift fuer jeden dieser
+     Wege. Wer stattdessen an jedem Absender den Begriff anhaengte, haette ihn
+     ab dem naechsten Absender vergessen.
+     replaceState UND NICHT location.hash: der Begriff ist kein anderer Ort,
+     sondern dieselbe Ansicht mit einer Angabe mehr. Ein Eintrag im Verlauf je
+     Buchstabe machte die Zurueck-Taste unbrauchbar, und ein gesetzter Hash
+     loeste ein zweites Zeichnen aus. */
+  const begriff = (begriffAdresse || state.search).trim();
+  if (begriff) state.search = begriff;
+  const gewollt = eintragAdresse(id, begriff);
+  if (location.hash !== gewollt &&
+      typeof history !== 'undefined' && typeof history.replaceState === 'function')
+    history.replaceState(null, '', gewollt);
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">lädt …</p></div>`;
   let item, cats, allTags;
   try {
@@ -5089,6 +5288,17 @@ async function renderDetail(id) {
         }</span>
         <span class="go">${suche ? ICON_SEARCH : '↗'}</span>
         ${darfWeg ? `<button class="xdel" title="${suche ? 'Sucheintrag entfernen' : 'Link entfernen'}">✕</button>` : ''}`;
+      /* IN DER LINKLISTE WIRD DIE ADRESSE HERVORGEHOBEN UND NICHT DER
+         ANZEIGENAME -- 0.18.0. Gesucht wurde in `links.url`; ein
+         hervorgehobener Anbietername, in dem der Begriff gar nicht steht,
+         waere eine Falschaussage. Hervorgehoben werden deshalb `.dom` und
+         `.path` -- die beiden Stuecke, in die splitUrl() die Adresse zerlegt
+         -- und ausdruecklich nicht `.snamen`.
+         Bei einer Suchzeile steht oben der Rohtext, und der IST hier die
+         Adresse: gesucht hat SQLite in derselben Spalte. */
+      hebeImKnoten(row.querySelector('.dom'), oben, begriff);
+      if (!suche && path) hebeImKnoten(row.querySelector('.path'), path, begriff);
+
       // Die Namen sind Eingabe des Admins und werden als Beschriftung
       // gerendert -- die erste Stelle in der Linkliste, an der das gilt.
       // Deshalb echte Knoten mit textContent statt innerHTML: Maskierung ist
@@ -5388,11 +5598,15 @@ async function renderDetail(id) {
         <div class="cmt-body"></div>
         <div class="cmt-imgs"></div>`;
 
-      // Der Text kommt nicht aus der Vorlage, sondern als echte Knoten -- so
-      // kann hier gar kein Markup entstehen. Der Bearbeitenmodus weiter unten
-      // zeigt weiterhin den Rohtext im Textfeld.
+      /* Der Text kommt nicht aus der Vorlage, sondern als echte Knoten -- so
+         kann hier gar kein Markup entstehen. Der Bearbeitenmodus weiter unten
+         zeigt weiterhin den Rohtext im Textfeld.
+         DIE HERVORHEBUNG GEHT DENSELBEN WEG -- 0.18.0. Sie ist ein drittes
+         Stueck der Zerlegung und kein Nachbearbeiten des Ergebnisses: aus
+         `<mark>` wird hier ein Element mit textContent und niemals ein
+         String. Ohne Begriff aendert sich an dieser Zeile nichts. */
       el.querySelector('.cmt-body')
-        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text)));
+        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text, begriff)));
 
       const umschalten = async (feld, wert) => {
         try { item = await api('PUT', `/api/comments/${c.id}`, { [feld]: wert }); drawComments(); }
