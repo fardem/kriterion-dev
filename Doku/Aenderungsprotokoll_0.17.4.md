@@ -330,6 +330,15 @@ Leere wie alle anderen und ist eine Zeile hoch.*
 
 ### 6.3 Der Deckel ist eine Höhe, keine Zahl von Einträgen
 
+> **⚠️ DIE ZWEITE BEGRÜNDUNG UNTEN IST MIT 0.17.5 WEGGEFALLEN.** *„Der Fall
+> tritt gar nicht ein, weil die Kachel daneben der Liste ohnehin 852 px gibt"*
+> — **genau diese Zusage hat 0.17.5 zurückgenommen.** Damit wurde die Grenze
+> scharf: die Sitzungsliste zeigte **fünf** Sitzungen statt zehn.
+> **Behoben mit 0.18.1**, wo `#msitzungen` den Deckel im Maß **seiner eigenen
+> Zeile** bekommt (Stolperstein 267). *Der Absatz darunter bleibt im Wortlaut
+> stehen — er ist der Beleg dafür, wie eine Grenze harmlos aussieht, solange
+> eine andere Zusage sie deckt.*
+
 **`27.95rem` sind zehn **Standardzeilen** zu 41,92 px.** Eine Liste, deren
 Zeilen höher sind, zeigt entsprechend weniger. *Der deutlichste Fall ist „Meine
 Sitzungen": eine `.mrow.sitz` ist ein Raster über drei Zeilen — Name, Anmeldezeit,

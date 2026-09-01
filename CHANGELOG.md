@@ -29,6 +29,14 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.18.1] - 2026-09-01
+
+> **Nur die Anzeige ändert sich, und nur im Systembereich.** Nach dem Einspielen
+> im Browser einmal hart neu laden — geändert ist ausschließlich das Stilblatt.
+
+- Fixed: „Meine Sitzungen" zeigte fünf Anmeldungen statt zehn — eine Sitzungszeile ist fast doppelt so hoch wie eine gewöhnliche
+- Changed: Eine leere Liste ist zwei Zeilen hoch statt einer; mit einer las sie sich wie ein Absatz und nicht wie ein leerer Bereich
+
 ## [0.18.0] - 2026-09-01
 
 - Added: Solange gesucht wird, sagt jede Kachel unter dem Titel, wo das Wort steht — mit der Quelle und einem Ausschnitt: „Kommentar: …in Bellavista empfohlen…"

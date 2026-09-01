@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 46 · Stand 1. September 2026 · gebaut: Version 0.18.0**
+**Kompakte Übergabe · Revision 47 · Stand 1. September 2026 · gebaut: Version 0.18.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,19 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.18.1 in einem Satz: zehn Zeilen heißt zehn Zeilen DIESER Liste.** *PATCH —
+nur `public/style.css`; zwei Zahlen und eine neue Zeile.* **Zwei Befunde aus dem
+Rundlauf mit 0.18.0, beide mit Bild.** *Erstens:* die Liste „Meine Sitzungen"
+zeigte **fünf** Sitzungen, wo die Zusage `min(Einträge, 10)` zehn sagt — der
+gemeinsame Deckel `27.95rem` ist eine Höhe im Maß der **Standardzeile** (41,92
+px), eine `.mrow.sitz` misst aber **72,55**. *Unter der Liste standen 453 von
+1054,92 Pixeln leer.* **`#msitzungen` deckelt seither bei `55.23rem`** — zehn
+Sitzungszeilen plus die Fußzeile, die innerhalb der Liste steht; gemessen zehn
+sichtbare Sitzungen und 44 Pixel Rest. *Zweitens:* eine **leere Liste ist jetzt
+zwei Zeilen hoch statt einer — mit einer las sich die Meldung wie ein dritter
+Absatz zwischen zwei Absätzen. **Keine Datenbankstufe.** *Alles Weitere in
+Abschnitt 2 und Abschnitt 9.*
 
 **0.18.0 in einem Satz: die Suche wird nachvollziehbar.** *MINOR — die
 Übersicht sagt danach, **warum** ein Eintrag in der Trefferliste steht; das
@@ -253,15 +266,39 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.18.0** — Fingerprint **`0bf6ac9d`**, **4917
-Prüfungen**, **421 Rückbauten in der Liste; gefahren sind die 32 dieser Runde,
-keiner stumm** (Abschnitt 8). *0.18.0 gibt der Trefferliste eine Begründung: je
-Eintrag nennt die Suchantwort die erste getroffene der sieben Quellen, den
-Ausschnitt mit der Fundstelle und die Zahl der weiteren Stellen; die Kachel
-zeigt das als eine Zeile unter dem Titel, der Begriff wird hervorgehoben, und er
-steht in der Adresse des Eintrags.* **MINOR — die Instanz kann danach etwas, was
-sie vorher nicht konnte. KEINE DATENBANKSTUFE:** kein Schema, kein
-Migrationsblock, keine neue Formatnummer.
+**Gebaut ist 0.18.1** — Fingerprint **`7b12ead4`**, **4919
+Prüfungen**, **422 Rückbauten in der Liste; gefahren sind die drei dieser Runde,
+keiner stumm** (Abschnitt 8). *0.18.1 gibt der Sitzungsliste den Deckel im Maß
+ihrer eigenen Zeile — zehn Sitzungen statt fünf — und macht eine leere Liste
+zwei Zeilen hoch statt einer.* **PATCH — nur `public/style.css`; die Instanz kann
+danach nichts, was sie vorher nicht konnte. KEINE DATENBANKSTUFE.**
+
+> **ZEHN ZEILEN HEISST ZEHN ZEILEN DIESER LISTE, und das ist keine dritte Regel,
+> sondern dieselbe.** `.mrow` misst 41,92 px, `.prot-zeile` 35, `.mrow.sitz`
+> **72,55** — *drei Zeilenarten, drei Maße, eine Regel.* **Der gemeinsame Deckel
+> `27.95rem` lieferte an der Sitzungsliste fünf statt zehn** (419,25 ÷ 72,55 =
+> 5,8), und darunter standen 453 von 1054,92 Pixeln leer. **`#msitzungen` trägt
+> deshalb `55.23rem`:** zehn Sitzungszeilen (725,50) plus die `.sitz-fuss`
+> (102,88), die innerhalb der Liste steht. *Gemessen: zehn sichtbare Sitzungen,
+> 44 Pixel Rest, und die Reihe unverändert bei 1054,92.*
+
+> **DIESE GRENZE STAND SEIT 0.17.4 IM PAPIER — als harmlos, weil die Kachel
+> daneben der Liste ohnehin 852 px gebe.** *Genau diese Zusage hat 0.17.5
+> zurückgenommen.* **Eine bekannte Grenze, deren Harmlosigkeit an einer ANDEREN
+> Zusage hängt, wird scharf, sobald jene zurückgenommen wird (Stolperstein
+> 267)** — wer eine Zusage zurücknimmt, geht die Stellen durch, die sich auf sie
+> berufen.
+
+*Davor, am 1. September:* **Die Blöcke ab hier gehören 0.18.0 und den Runden
+davor.**
+
+> **DIE VORHERIGE ZEILE, ZUM VERGLEICH: 0.18.0** — Fingerprint **`0bf6ac9d`**,
+> **4917 Prüfungen**, 421 Rückbauten. *MINOR: die Trefferliste bekommt eine
+> Begründung — je Eintrag nennt die Suchantwort die erste getroffene der sieben
+> Quellen, den Ausschnitt mit der Fundstelle und die Zahl der weiteren Stellen;
+> die Kachel zeigt das als eine Zeile unter dem Titel, der Begriff wird
+> hervorgehoben, und er steht in der Adresse des Eintrags.* **KEINE
+> DATENBANKSTUFE.**
 
 > **IM FELD NOCH NICHT BESTÄTIGT.** Der Fingerprint oben ist der **gebaute**
 > Wert; was die laufende Instanz meldet, gehört nach dem Einspielen daneben
@@ -751,7 +788,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.18.0** | **`0bf6ac9d`** *(im Feld noch nicht bestätigt)* | 4917 |
+| **0.18.1** | **`7b12ead4`** *(im Feld noch nicht bestätigt)* | 4919 |
+| 0.18.0 | `0bf6ac9d` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4917 |
 | 0.17.5 | `6a2c264a` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4813 |
 | 0.17.4 | `d3113d62` *(am 31. August 2026 von der laufenden Instanz gemeldet — und dieser Beleg hat den Fehler aufgedeckt)* | 4811 |
 | 0.17.3 | `ebd36b66` *(im Feld noch nicht bestätigt)* | 4805 |
@@ -4124,11 +4162,31 @@ sucht, und nicht dort, wo sie jemanden aufhält.*
   **Textzeile** mit Trennlinie und misst 35 (Deckel `35rem` = fünfzehn). *Zwei
   verschiedene Dinge dürfen zwei Maße haben; 0.17.3 hatte beide auf zehn
   gesetzt, und das Protokoll rollte schon bei elf Vorgängen.*
-  **DER DECKEL IST EINE HÖHE, KEINE ZAHL VON EINTRÄGEN.** Eine Liste mit
-  höheren Zeilen zeigt entsprechend weniger — die Sitzungszeile ist ein Raster
-  über drei Zeilen und misst rund 81 px. *Angefasst ist das nicht: sonst stünde
-  an jeder Liste eine eigene Zahl.*
-  **EINE LEERE LISTE IST EINE ZEILE HOCH UND NICHT NULL.** Die Meldung steht in
+  **DER DECKEL IST EINE HÖHE, UND SIE GILT FÜR DIE ZEILE, AN DER SIE GEMESSEN
+  WURDE** (seit 0.18.1). *`.mrow` misst 41,92 px, `.prot-zeile` 35, `.mrow.sitz`
+  **72,55** — die Sitzungszeile ist ein Raster über drei Zeilen.* **Wer den
+  gemeinsamen Deckel auf eine Liste mit anderen Zeilen anwendet, liefert eine
+  andere Zahl, als die Zusage sagt:** die Sitzungsliste zeigte fünf statt zehn.
+  **`#msitzungen` trägt deshalb `55.23rem`** — zehn Sitzungszeilen (725,50 px)
+  plus die `.sitz-fuss` (102,88), die **innerhalb** der Liste steht; ohne sie im
+  Deckel müsste man an zehn Sitzungen vorbeirollen, um den Knopf darunter zu
+  sehen. *Drei Zeilenarten, drei Maße, **eine** Regel: zehn Zeilen, gemessen an
+  der Zeile, die diese Liste wirklich hat.*
+  > **BIS 0.18.0 STAND HIER: „Angefasst ist das nicht: sonst stünde an jeder
+  > Liste eine eigene Zahl."** *Der Vermerk bleibt (Stolperstein 201).* Die
+  > zweite Begründung von damals — der Fall trete nicht ein, weil die Nachbarin
+  > der Liste ohnehin 852 px gebe — **ist mit 0.17.5 weggefallen, und damit fiel
+  > auch die erste** (Stolperstein 267).
+  **DER WEG ÜBER DIE NUMMER UND NICHT ÜBER `:has()`:** welche Zeilen eine Liste
+  trägt, weiß das Stilblatt nicht. *Ein Wähler, auf den erst seit ein paar
+  Jahren Verlass ist, hat diese Instanz schon einmal Leerraum gekostet
+  (Stolperstein 256); `#ex-teil-liste` macht es seit 0.17.0 genauso.*
+  **EINE LEERE LISTE IST ZWEI ZEILEN HOCH UND NICHT EINE** (seit 0.18.1; bis
+  dahin eine, davor null). *Mit einer las sich die Meldung wie ein dritter
+  Absatz zwischen zwei Absätzen — „sonst sieht es aus wie gefüllt, und es steht
+  dann nichts drin".* **Zwei Zeilen machen aus der Meldung einen leeren
+  Bereich**, und mehr als zwei wäre wieder ein Loch (Stolperstein 268).
+  Die Meldung steht in
   jedem Zeichenweg als `.hint` schon drin; das Maß gibt eine Regel am Elternteil
   und nicht sechs Zeichenwege. *`margin: 0` gehört dazu: das Protokoll meldet
   seine Leere als `<p>`, und dessen Vorgabemarge machte die leere Liste 68 px
@@ -6762,6 +6820,33 @@ Version, in der sie entstanden sind.*
     hat das die Gegenprobe und nicht der Prüfstand** — der Rückbau war gebaut,
     die Lage dazu fehlte.
 
+267. **Eine bekannte Grenze, deren Harmlosigkeit an einer ANDEREN Zusage hängt,
+    wird scharf, sobald jene zurückgenommen wird.** 0.17.4 hat notiert, dass der
+    Deckel eine **Höhe** ist und die Sitzungsliste deshalb weniger als zehn
+    Einträge zeigt — und zwei Gründe genannt, warum das nicht angefasst wird:
+    *„sonst stünde an jeder Liste eine eigene Zahl"* und *„der Fall tritt gar
+    nicht ein, weil die Kachel daneben der Liste ohnehin 852 px gibt".*
+    **0.17.5 hat genau die zweite Zusage zurückgenommen**, und damit fiel auch
+    die erste: die Liste zeigte fünf Sitzungen statt zehn, und darunter standen
+    453 Pixel leer.
+    **Wer eine Zusage zurücknimmt, geht die Stellen durch, die sich auf sie
+    berufen.** *Eine Rücknahme ist nie nur eine Zeile weniger — sie ist auch
+    jede Begründung weniger, die auf ihr stand.*
+
+268. **Eine leere Fläche, die genau eine Zeile hoch ist, liest sich als Zeile und
+    nicht als Leere.** Zwischen zwei Absätzen wird aus der Meldung „hier ist
+    nichts" ein dritter Absatz — *„sonst sieht es aus wie gefüllt, und es steht
+    dann nichts drin".* **Eine Auskunft über Leere braucht mehr Raum als das,
+    worüber sie Auskunft gibt.** *Zwei Zeilen genügen; drei wären ein Loch, und
+    damit wieder das, was die Runden 0.17.3 bis 0.17.5 beschäftigt hat.*
+
+269. **Die ZAHL der Rückbauten und die HÖCHSTE Rückbaunummer sind nicht
+    dasselbe.** In `gegenprobe.js` stehen 422 Einträge, die Nummern reichen aber
+    bis **429** — Runden, die Rückbauten haben fallen lassen, hinterlassen
+    Lücken (0.17.3 acht auf einmal). **Wer die nächste Nummer aus der Anzahl
+    ableitet, vergibt eine, die es schon gibt.** *Der Prüfstand fängt es ab
+    („Und keine Nummer steht zweimal") — aber erst nach einem vollen Lauf.*
+
 ---
 
 ## 7. Prüfstand
@@ -6775,7 +6860,11 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4917 von 4917 bestanden** (0.18.0) — **104 neue Prüfungen netto**,
+**Stand: 4919 von 4919 bestanden** (0.18.1) — **2 neue Prüfungen** am Deckel der
+Sitzungsliste; die beiden Maße der leeren Meldung sind nachgezogen. 0.18.0 davor
+brachte 104.
+
+*Und die Runde davor, zum Vergleich:* **4917 von 4917 bestanden** (0.18.0) — **104 neue Prüfungen netto**,
 keine weggefallen; 0.17.5 davor brachte 2. Die Gegenproben stehen in
 Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der
 volle Lauf über alle **421** Rückbauten.
@@ -7448,6 +7537,7 @@ eine Buchführung.*
 | **0.17.3** | **Die Karte zeigt, der Dialog stellt ein (58 netto)** | **20 neue, ACHT weggefallen (368 → 380); vier nachgezogen (Stolperstein 201); 24 gefahren, 0 stumm** | **Stolpersteine 246 bis 250** |
 | **0.17.4** | **Fordern und nutzen (6 netto: sieben neue, eine weggefallen)** | **fünf neue (380 → 385); vier nachgezogen, davon einer UMGEDREHT (Stolperstein 201); 9 gefahren, 0 stumm** | **Stolpersteine 251 bis 255** |
 | **0.17.5** | **So hoch wie der Inhalt (2 netto: sieben neue, zwei weggefallen, vier umgeschrieben)** | **vier neue (385 → 389); neun nachgezogen, davon einer UMGEDREHT; 13 gefahren, 0 stumm** | **Stolpersteine 256 bis 259** |
+| **0.18.1** | **Zehn Zeilen heisst zehn Zeilen dieser Liste (2 netto)** | **einer neu (421 → 422, Nummer 430 — bis 429 ist vergeben, Stolperstein 269); zwei nachgezogen; 3 gefahren, 0 stumm** | **Stolpersteine 267 bis 269** |
 | **0.18.0** | **Die Suche wird nachvollziehbar (104 netto, keine weggefallen)** | **32 neue (389 → 421); ACHT nachgezogen, weil sie auf die Umgebung eines Ausdrucks zeigten statt auf ihn (Stolperstein 264); alle 32 gefahren, 0 stumm — der erste Lauf hatte NEUN Befunde: sechs stumme Rückbauten und drei abgerissene Läufe, alle abgearbeitet** | **Stolpersteine 260 bis 266** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
@@ -7464,6 +7554,16 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **0.18.1 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** **Am Wirt fehlt:**
+  *(a)* der Abschnitt **„Persönlich"** — **zehn** Sitzungen stehen da, nicht
+  fünf, und unter der Liste bleibt nur noch eine schmale Kante; *(b)* der
+  **Papierkorb** im Abschnitt „Bestand" — die Meldung steht in einem sichtbar
+  **leeren Bereich** und nicht als Textzeile; *(c)* die Karte **„Anfragen"** —
+  dasselbe zwischen dem Knopf und dem Erklärabsatz. *Ein harter Neuladen gehört
+  davor: geändert ist ausschließlich das Stilblatt.*
+- **0.18.0 IST AM WIRT ANGEKOMMEN.** *Am 1. September 2026 bestätigt: die
+  laufende Instanz meldet `0bf6ac9d`.* **Die vier Handgriffe jener Runde stehen
+  weiterhin aus** — was darunter steht, gilt unverändert.
 - **0.18.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Vier Handgriffe, und
   keiner davon kostet mehr als eine Minute:* **(a)** nach einem Wort suchen,
   das **nur in einem Kommentar** steht — die Kachel sagt „Kommentar: …";
@@ -7953,6 +8053,36 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.18.1 — „Zehn Zeilen heißt zehn Zeilen dieser Liste"
+
+**PATCH · 1. September 2026 · zwei Befunde aus dem Rundlauf mit 0.18.0, beide
+mit Bild gemeldet.** *Nur `public/style.css` ist angefasst — zwei Zahlen und
+eine neue Zeile.*
+
+**DIE SITZUNGSLISTE ZEIGTE FÜNF, WO DIE ZUSAGE ZEHN SAGT.** `27.95rem` sind zehn
+**Standardzeilen** zu 41,92 Pixeln; eine `.mrow.sitz` ist ein Raster über drei
+Zeilen und misst **72,55**. *419,25 geteilt durch 72,55 sind 5,8.* **Unter der
+Liste standen 453 von 1054,92 Pixeln leer** — gemeldet mit Bild: *„sie hat nach
+unten hin Platz bis zum Boden und könnte ihn nutzen, aber sie tut es nicht."*
+**`#msitzungen` deckelt seither bei `55.23rem`:** zehn Sitzungszeilen (725,50)
+plus die `.sitz-fuss` (102,88), die **innerhalb** der Liste steht. *Gemessen:
+zehn sichtbare Sitzungen statt fünf, 44 Pixel Rest statt 453, und die Reihe
+unverändert bei 1054,92.* **Keine dritte Regel, sondern dieselbe:** zehn Zeilen,
+gemessen an der Zeile, die diese Liste wirklich hat.
+
+**DIE GRENZE STAND SEIT 0.17.4 IM PAPIER — als harmlos**, weil die Kachel
+daneben der Liste ohnehin 852 px gebe. *Genau diese Zusage hat 0.17.5
+zurückgenommen* (Stolperstein 267).
+
+**EINE LEERE LISTE IST ZWEI ZEILEN HOCH STATT EINER.** Mit einer las sich die
+Meldung wie ein dritter Absatz zwischen zwei Absätzen — *„sonst sieht es aus wie
+gefüllt, und es steht dann nichts drin".* **Gemessen 84 Pixel statt 42 in den
+Bedienlisten, 70 statt 35 im Protokoll**; die Karte „Papierkorb" wächst von 225
+auf 267. *Mehr als zwei wäre ein Loch (Stolperstein 268).*
+
+**KEINE DATENBANKSTUFE, KEIN QUELLTEXT.** Sieben markierte Blöcke,
+Austauschformat **11**, `F_ROUTEN` bei **69**.
 
 ### 0.18.0 — „Die Suche wird nachvollziehbar"
 
@@ -9211,6 +9341,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.17.3** | Die Karte zeigt, der Dialog stellt ein | **GEBAUT.** Vier Handgriffe aus dem Rundlauf mit 0.17.2, zwei davon Nacharbeit an ihr selbst: **der Deckel ging nach oben mit und nach unten nicht** — dafür kam `align-items: start` an das Raster, und der Deckel fiel im selben Zug auf **zehn** Zeilen —, die Karte „Mailversand" wird eine **Zustandskarte mit eigenem Dialog**, der Erklärkasten zur Gewichtung rollt nicht mehr, und die Filterleiste bekommt ihren **Rücksetzer**. *PATCH: vier Handgriffe an Anordnung und Anzeige; die Instanz kann danach nichts, was sie vorher nicht konnte.* **Alle vier Punkte sind gebaut; ***Punkt 1 ist mit 0.17.4 zurückgenommen*** — die Zeile am Raster war falsch, der Deckel richtig. Die zweite Bestätigung im Mailversand bleibt, wo sie ist, und `F_ROUTEN` bleibt bei 69** | nein | — |
 | **0.17.4** | Fordern und nutzen | **GEBAUT.** Eine Runde, die **Punkt 1 von 0.17.3 zurücknimmt**: `align-items: start` fällt weg, und an seine Stelle tritt die Regel, die gemeint war — **die Reihe ist so hoch wie ihre höchste starre Kachel**, sonst so hoch wie die größte **Forderung** der dynamischen. *Was eine Liste fordert, ist nicht, was sie nutzt* — ***dieser Mechanismus ist mit 0.17.5 zurückgenommen***, er hing an `max-height: max-content`. Dazu drei Maße: **fünfzehn** statt zehn Zeilen fürs Sicherheitsprotokoll, **eine Zeile** statt null für eine leere Liste, und **kein Deckel** für die Listen in einem Fenster — **diese drei stehen**. *PATCH: nur `public/style.css` ist angefasst.* **Alles in Chromium bei 1600 × 913 nachgemessen; ein Fall (eine niedrigere starre Kachel gewinnt) ist mit reinem CSS-Raster nicht baubar und als Abweichung vermerkt** | nein | — |
 | **0.17.5** | So hoch wie der Inhalt | **GEBAUT.** Der Befund aus 0.17.2, gefunden nach drei Runden: **`max-height: max-content` klemmt die Forderung nicht überall** — in Chromium schon, in der laufenden Instanz nicht, und dort forderte JEDE Liste ihre zehn Zeilen, auch die leere. *Gemessen: „Zugänge" 728 gegen 498 px, der Papierkorb leer rund 570 gegen 225.* An ihre Stelle treten zwei Zeilen ohne Schlüsselwort: `flex: 0 1 auto` und `max-height: <Deckel>rem`. **Dazu wandert das Raster des Sicherheitsprotokolls von der Zeile auf die Liste**, damit die Namen untereinander stehen — vorher vier linke Kanten, jetzt eine. *PATCH: nur `public/style.css`.* **Der Preis: eine Liste nutzt die Höhe einer höheren Nachbarin nicht mehr aus — die Zusage aus 0.17.4 ist zurückgenommen** | nein | — |
+| **0.18.1** | Zehn Zeilen heißt zehn Zeilen dieser Liste | **GEBAUT.** Zwei Befunde aus dem Rundlauf mit 0.18.0: die Sitzungsliste zeigte **fünf** Sitzungen statt zehn, weil der gemeinsame Deckel eine Höhe im Maß der Standardzeile ist und eine `.mrow.sitz` fast doppelt so hoch misst — `#msitzungen` deckelt seither bei `55.23rem`. Und eine **leere Liste ist zwei Zeilen hoch statt einer**, weil sie sich sonst wie ein Absatz liest. *PATCH: nur `public/style.css`.* **Die Grenze stand seit 0.17.4 als harmlos im Papier — ihre Begründung hing an einer Zusage, die 0.17.5 zurückgenommen hat (Stolperstein 267)** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | **GEBAUT.** *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht: eine Zeile an der Kachel nennt die Quelle und zeigt den Ausschnitt mit der Fundstelle darin, in einer festen Folge, die bei dem beginnt, was die Kachel nicht zeigt. Dazu die **Hervorhebung** — als drittes Stück der Zerlegung und nicht als Nachbearbeitung, damit „Kommentartext kommt nie über `innerHTML` in die Seite" baulich erfüllt bleibt — und der **Suchbegriff in der Adresse** (`#/item/12?q=ella`), damit sie ein Neuladen übersteht. *MINOR.* **Teil (b), der Suchbereich als Häkchen, bleibt mit Begründung liegen; Titel und Beschreibung der Detailansicht tragen keine Marke, weil beide Eingabefelder sind** | nein | — |
 | **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
@@ -9850,6 +9981,26 @@ repoweiter Kommentarschnitt daneben machte sie unlesbar.
 Schema, kein Format. **Der Fingerprint verschiebt sich** — Kommentare stehen in
 den Dateien, über die er geht —, und das ist die einzige nach außen sichtbare
 Folge.
+
+---
+
+### 0.18.1 — „Zehn Zeilen heißt zehn Zeilen dieser Liste" · *PATCH* · **GEBAUT am 1. September 2026**
+
+**Nichts aus dem Sammelblatt** — zwei Befunde aus dem Rundlauf mit 0.18.0, beide
+mit Bild gemeldet und beide an derselben Sache: *was eine Kachel zeigt, wenn
+wenig oder nichts darin steht.* **Es gab keinen Auftrag.** **Was gebaut wurde,
+steht im Änderungsprotokoll `Doku/Aenderungsprotokoll_0.18.1.md`.**
+
+1. **Die Sitzungsliste zeigte fünf Sitzungen, wo die Zusage zehn sagt.** *Der
+   gemeinsame Deckel ist eine Höhe im Maß der Standardzeile; eine `.mrow.sitz`
+   misst fast das Doppelte.* `#msitzungen` bekommt `55.23rem`.
+2. **Eine leere Liste war eine Zeile hoch und las sich wie eine Zeile.** *Zwei
+   Zeilen machen daraus einen leeren Bereich.*
+
+**Der erste Punkt stand seit 0.17.4 als bekannte Grenze im Papier — mit einer
+Begründung, die 0.17.5 weggenommen hat, ohne dass jemand nachgesehen hat**
+(Stolperstein 267). *Das ist die Lehre der Runde und sie ist größer als die
+zwei Zahlen.*
 
 ---
 

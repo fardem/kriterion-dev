@@ -18303,7 +18303,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // Runde umgebaut hat. 391 IST DABEI UMGEDREHT -- er baute die Nutzung ueber
   // den Deckel hinaus zurueck, und jetzt setzt er das Schluesselwort wieder,
   // an dem die Runde gescheitert ist.
-  pruefe('Es sind genau 421 Rueckbauten', gpListe.length === 421, `${gpListe.length}`);
+  // 422 SEIT 0.18.1: einer neu am Deckel der Sitzungsliste -- er traegt die
+  // Nummer 430, weil die Nummern bis 429 vergeben sind; die ZAHL der Rueckbauten
+  // und die HOECHSTE Nummer sind nicht dasselbe. ZWEI VORHANDENE
+  // SIND MITGEGANGEN statt geloescht zu werden (Stolperstein 201): 389 und 392
+  // zeigten auf die leere Meldung, die jetzt zwei Zeilen hoch ist -- sie bauen
+  // deshalb auf EINE Zeile zurueck und nicht mehr auf null.
+  pruefe('Es sind genau 422 Rueckbauten', gpListe.length === 422, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -32951,12 +32957,34 @@ async function pruefeOberflaeche() {
       (ohneMedien.match(new RegExp('\\} (' + waehler + ' \\{[^}]*\\})')) || ['', ''])[1];
     const khLeerBedien = eigeneRegel('\\.manage-list > \\.hint');
     const khLeerText = eigeneRegel('\\.prot-liste > \\.hint');
+    /* ZWEI ZEILEN UND NICHT EINE -- SEIT 0.18.1. Mit einer war die Leere nicht
+       zu sehen: die Meldung stand als eine Textzeile zwischen zwei Absaetzen und
+       las sich wie einer davon. Gemeldet am Bild der Karte „Anfragen".
+       5.59rem SIND ZWEI `.mrow` zu 41,92 px, 4.666rem ZWEI `.prot-zeile` zu 35
+       -- dieselben zwei Masse wie beim Deckel darueber, nur verdoppelt. */
     pruefe('Eine leere Bedienliste faellt nicht auf null zusammen',
-      /min-height: 2\.795rem/.test(khLeerBedien) && /padding: 0 9px/.test(khLeerBedien),
+      /min-height: 5\.59rem/.test(khLeerBedien) && /padding: 0 9px/.test(khLeerBedien),
       khLeerBedien || '(keine Regel)');
     pruefe('Und ein leeres Protokoll ebenso wenig, nach seinem eigenen Mass',
-      /min-height: 2\.333rem/.test(khLeerText) && /padding: 0 2px/.test(khLeerText),
+      /min-height: 4\.666rem/.test(khLeerText) && /padding: 0 2px/.test(khLeerText),
       khLeerText || '(keine Regel)');
+    /* ---- DIE SITZUNGSLISTE DECKELT NACH IHRER EIGENEN ZEILE — 0.18.1 ----
+       KEINE DRITTE REGEL, SONDERN DIESELBE: zehn Zeilen, gemessen an der Zeile,
+       die DIESE Liste wirklich hat. Eine `.mrow.sitz` ist ein Raster ueber drei
+       Zeilen und misst 72,55 px, wo eine gewoehnliche `.mrow` 41,92 misst; mit
+       dem gemeinsamen Deckel standen FUENF Sitzungen da, wo die Zusage zehn
+       sagt. 55.23rem sind 10 x 72,55 plus die 102,88 der `.sitz-fuss`, die
+       INNERHALB der Liste steht. Nachgemessen in Chromium bei 1384x1061: zehn
+       sichtbare Sitzungen statt fuenf, und unter der Liste bleiben 44 Pixel
+       statt 453. */
+    const khSitz = (ohneMedien.match(/#msitzungen \{[^}]*\}/) || [''])[0];
+    pruefe('Die Sitzungsliste deckelt nach ihrer eigenen Zeile',
+      /max-height: 55\.23rem/.test(khSitz), khSitz || '(keine Regel)');
+    /* UND SIE SAGT NICHTS ZWEIMAL: alles andere -- die Forderung, das
+       Schrumpfen, das Rollen -- steht in der Grundregel und gilt weiter
+       (Stolperstein 47). */
+    pruefe('Und wiederholt die Grundregel nicht',
+      !/flex:/.test(khSitz) && !/overflow/.test(khSitz), khSitz || '(keine Regel)');
     /* ---- IN EINEM FENSTER GILT DER DECKEL NICHT — 0.17.4 ----
        Glockentafel und Grabsteine tragen dieselbe Klasse, stehen aber in einem
        `.modal`. Dort gibt es keine Reihe und keine Nachbarin, und das Fenster

@@ -1225,11 +1225,19 @@ mark {
    ZWEI ZEILENMASSE, WEIL ES ZWEI ZEILEN SIND -- dieselbe Unterscheidung wie
    beim Deckel darueber: eine `.mrow` misst 41,92 Pixel und rueckt 9 Pixel ein,
    eine `.prot-zeile` misst 35 und rueckt 2 ein. Ein gemeinsames Mass waere hier
-   keine Regel, sondern ein Fehler an einer der beiden. */
+   keine Regel, sondern ein Fehler an einer der beiden.
+   ZWEI ZEILEN UND NICHT EINE -- SEIT 0.18.1. Mit einer war die Leere nicht zu
+   sehen: die Meldung stand als eine Textzeile zwischen zwei Absaetzen und las
+   sich wie einer davon. „Sonst sieht es aus wie gefuellt, und es steht dann
+   nichts drin" -- gemeldet am Bild der Karte „Anfragen", und der Satz trifft
+   es. ZWEI ZEILEN MACHEN AUS DER MELDUNG EINEN LEEREN BEREICH: die Meldung
+   steht mittig darin, und darunter bleibt eine Zeile Luft, die sagt, dass hier
+   ein Ort ist, an dem sonst etwas stuende. Mehr als zwei waere ein Loch, und
+   ein Loch ist wieder das, wovon die drei Runden davor gehandelt haben. */
 .manage-list > .hint, .prot-liste > .hint {
   display: flex; align-items: center; margin: 0; }
-.manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }
-.prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }
+.manage-list > .hint { min-height: 5.59rem; padding: 0 9px; }
+.prot-liste > .hint { min-height: 4.666rem; padding: 0 2px; grid-column: 1 / -1; }
 /* DIE LISTEN IN EINEM FENSTER TRAGEN DEN DECKEL NICHT -- Glockentafel und
    Grabsteine. Dort gibt es keine Reihe und keine Nachbarin, an der sich etwas
    ausrichten koennte, und das Fenster deckelt laengst bei `88dvh`. Ein
@@ -1238,6 +1246,25 @@ mark {
    EINE REGEL STATT ZWEI KLASSEN IM MARKUP: die Frage ist nicht, WELCHE Liste
    es ist, sondern WO sie steht. */
 .modal .manage-list { max-height: none; }
+/* DIE SITZUNGSLISTE DECKELT NACH IHRER EIGENEN ZEILE -- und das ist keine
+   dritte Regel, sondern dieselbe: ZEHN ZEILEN, gemessen an der Zeile, die
+   DIESE Liste wirklich hat.
+   EINE `.mrow.sitz` IST EIN RASTER UEBER DREI ZEILEN -- Name, Anmeldezeit,
+   letzter Zugriff -- und misst gemessen 72,55 Pixel, wo eine gewoehnliche
+   `.mrow` 41,92 misst. Mit dem gemeinsamen Deckel von 27.95rem standen deshalb
+   FUENF Sitzungen da, wo die Zusage zehn sagt: 419,25 Pixel geteilt durch
+   72,55 sind 5,8. Gemeldet mit Bild -- „er hat nach unten hin Platz bis zum
+   Boden und koennte ihn nutzen": unter der Liste standen 453 von 1054,92
+   Pixeln leer.
+   55.23rem SIND ZEHN SITZUNGSZEILEN UND DIE FUSSZEILE: 10 x 72,55 = 725,5, dazu
+   die 102,88 der `.sitz-fuss`, die INNERHALB der Liste steht -- zusammen 828,38
+   Pixel bei Wurzelschrift 15. Ohne die Fusszeile im Deckel muesste man an zehn
+   Sitzungen vorbeirollen, um den Knopf darunter zu sehen.
+   DER WEG UEBER DIE NUMMER UND NICHT UEBER `:has()`: welche Zeilen eine Liste
+   traegt, weiss das Stilblatt nicht, und ein Waehler, auf den erst seit ein
+   paar Jahren Verlass ist, hat diese Instanz schon einmal Leerraum gekostet
+   (Stolperstein 256). `#ex-teil-liste` weiter unten macht es genauso. */
+#msitzungen { max-height: 55.23rem; }
 
 /* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
    einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
