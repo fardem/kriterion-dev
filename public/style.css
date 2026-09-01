@@ -440,8 +440,13 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   aspect-ratio: 1/1; background: #0a0c0e;   /* quadratisch, Ausschnitt ueber den Fokuspunkt */
   display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
 }
-.card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: filter .2s var(--ease), transform .4s var(--ease); }
-.card:hover .card-img img { transform: scale(1.03); }
+/* DER ENGERE AUSSCHNITT, seit 0.19.0. `--zoom` kommt als Inline-Eigenschaft
+   vom Foto (app.js, ausschnitt()); fehlt sie, gilt 1 und damit genau das
+   Verhalten bis 0.18.1. GERECHNET WIRD HIER UND NICHT DORT: ein Inline-
+   transform schluege die Ueberfahrregel eine Zeile tiefer, und die Kachel mit
+   eingestelltem Ausschnitt verloere als einzige ihre Bewegung. */
+.card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(var(--zoom, 1)); transition: filter .2s var(--ease), transform .4s var(--ease); }
+.card:hover .card-img img { transform: scale(calc(var(--zoom, 1) * 1.03)); }
 .card-img .ph { color: #333b44; }
 .card.rejected .card-img img { filter: grayscale(.85) brightness(.5); }
 .card.rejected .card-title { color: var(--muted); }
@@ -638,7 +643,7 @@ mark {
   border: 2px solid var(--line); position: relative; background: #0a0c0e;
   cursor: grab; transition: border-color .15s var(--ease), transform .14s var(--ease), opacity .14s var(--ease);
 }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; transform: scale(var(--zoom, 1)); }
 .thumb.current { border-color: var(--accent); }
 .thumb.dragging { opacity: .45; transform: scale(.93); cursor: grabbing; }
 .thumb .num { position: absolute; bottom: 0; left: 0; background: rgba(8,10,12,.82); color: var(--text-2); font-family: var(--mono); font-size: .6rem; padding: 1px 5px; border-radius: 0 5px 0 0; }
@@ -1145,6 +1150,10 @@ mark {
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line-2); font-size: .9rem; }
 .kv:last-child { border-bottom: none; }
 .kv .k { color: var(--muted); }
+/* Der Zusatz an einer Formatzeile der Bildablage -- „bleiben unangetastet"
+   und dergleichen. Blasser als die Beschriftung, weil er sie erlaeutert und
+   nicht neben ihr steht. */
+.kv .k .zusatz { color: var(--faint); }
 .kv .v { font-family: var(--mono); font-size: .83rem; }
 .vok-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0 12px; }
 .vok-grid .field { margin-bottom: 10px; }
@@ -1851,6 +1860,23 @@ body.lb-open { overflow: hidden; }
   border: 2px solid var(--accent); border-radius: 2px;
   box-shadow: 0 0 0 9999px rgba(8,10,12,.55);
 }
+/* DER SCHIEBER FUER DIE WEITE DES AUSSCHNITTS, nur im Ausschnittmodus.
+   z-index ueber dem Rahmen: der Rahmen legt einen Schleier ueber alles
+   (box-shadow 9999px), und darunter waere der Schieber sichtbar, aber matt.
+   pointer-events bleibt an -- er ist die einzige Stelle im Betrachter, die
+   im Ausschnittmodus etwas anderes tut als den Punkt zu setzen. */
+.vzoom {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 3;
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px; border-radius: 999px;
+  background: rgba(8,10,12,.88); border: 1px solid var(--line);
+}
+.vzoom label { color: var(--text-2); font-size: .73rem; }
+.vzoom input[type="range"] { width: 132px; accent-color: var(--accent); cursor: pointer; }
+.vzoom .vzoom-wert {
+  color: var(--text-2); font-family: var(--mono); font-size: .68rem;
+  min-width: 42px; text-align: right;
+}
 
 /* ================= Dateien am Eintrag ================= */
 .arow {
@@ -2476,7 +2502,10 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      ihre eigene Auswahl wieder weg: das Kaestchen stand auf orange, die Karte
      sah aus wie jede andere. Nachgemessen am Bildschirm, nicht vermutet. */
   .card:hover:not(.picked) { box-shadow: none; border-color: var(--line); }
-  .card:hover .card-img img { transform: none; }
+  /* Die Ueberfahrvergroesserung faellt weg, der EINGESTELLTE Ausschnitt
+     nicht: `transform: none` naehme ihn mit, und auf dem Telefon saehe
+     dieselbe Kachel anders aus als auf dem Desktop. */
+  .card:hover .card-img img { transform: scale(var(--zoom, 1)); }
   .stars .star:hover { transform: none; }
   .pin-btn:hover { transform: none; }
   .zl-punkt:hover { transform: none; opacity: .68; }
