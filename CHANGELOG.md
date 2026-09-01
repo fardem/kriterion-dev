@@ -29,6 +29,15 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.17.5] - 2026-08-31
+
+> **Nur die Anzeige ändert sich, und nur im Systembereich.** Nach dem Einspielen
+> im Browser einmal hart neu laden — geändert ist ausschließlich das Stilblatt.
+
+- Fixed: Karten mit kurzer oder leerer Liste waren viel zu hoch — sie hielten Platz für zehn Zeilen frei, die sie nicht hatten
+- Fixed: Im Sicherheitsprotokoll stand der Name in jeder Zeile an einer anderen Stelle
+- Changed: Eine Liste neben einer höheren Karte zeigt wieder höchstens zehn Zeilen; der Rest der Karte bleibt leer
+
 ## [0.17.4] - 2026-08-31
 
 > **Nur die Anzeige ändert sich, und nur im Systembereich.** Nach dem Einspielen
@@ -36,7 +45,7 @@ bleiben in der Form ihrer Zeit.*
 > und das liegt im Zwischenspeicher.
 
 - Changed: Die Karten einer Reihe sind wieder gleich hoch — 0.17.3 hatte sie zu einer Treppe gemacht
-- Changed: Steht neben einer Liste eine hohe Karte, zeigt die Liste auch mehr als zehn Zeilen
+- Changed: Steht neben einer Liste eine hohe Karte, zeigt die Liste auch mehr als zehn Zeilen *(zurückgenommen mit 0.17.5)*
 - Changed: Das Sicherheitsprotokoll zeigt fünfzehn Zeilen statt zehn, bevor es rollt
 - Changed: Eine leere Liste ist eine Zeile hoch und sagt, dass nichts da ist
 - Changed: In der Glockentafel und bei den gelöschten Zugängen gilt kein Deckel — dort rollt das Fenster

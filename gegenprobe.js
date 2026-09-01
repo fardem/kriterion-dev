@@ -3134,31 +3134,31 @@ const RUECKBAUTEN = [
   {
     nr: '339', name: 'Die Liste bekommt ihre feste Hoehe zurueck',
     datei: 'public/style.css',
-    suche: `.manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;
+    suche: `.manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;
   overflow-y: auto; margin: 0 -4px; padding: 0 4px; }`,
     ersatz: ".manage-list { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '340', name: 'Die Liste verliert die Zeile, an der es sonst scheitert',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 35rem; min-height: 0; max-height: max-content;",
-    ersatz: ".prot-liste { flex: 1 1 35rem; max-height: max-content;",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    suche: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
+    ersatz: ".prot-liste { flex: 0 1 auto; max-height: 35rem;",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '341', name: 'Die Kachel ist wieder keine Spalte',
     datei: 'public/style.css',
     suche: "padding: 18px 20px 20px;\n  display: flex; flex-direction: column; }",
     ersatz: "padding: 18px 20px 20px; }",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '342', name: 'Der Knopf in der Kachel wird wieder ueber die volle Breite gezogen',
     datei: 'public/style.css',
     suche: ".sys-card > .btn { align-self: flex-start; }",
     ersatz: "",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '346', name: 'Die alte Adresse des fuenften Abschnitts wird nicht mehr uebersetzt',
@@ -3229,16 +3229,16 @@ const RUECKBAUTEN = [
   {
     nr: '355', name: 'Die Liste fordert wieder so viele Zeilen, wie sie hat',
     datei: 'public/style.css',
-    suche: ".manage-list { flex: 1 1 27.95rem;",
-    ersatz: ".manage-list { flex: 1 1 auto;",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    suche: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;",
+    ersatz: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: none;",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '356', name: 'Das Sicherheitsprotokoll fordert wieder alle seine Zeilen',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 35rem;",
-    ersatz: ".prot-liste { flex: 1 1 auto;",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    suche: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: 35rem;\n",
+    ersatz: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: none;\n",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '357', name: 'Auf dem Telefon deckelt nichts mehr am Fenster',
@@ -3246,7 +3246,7 @@ const RUECKBAUTEN = [
     suche: "  .manage-list, .prot-liste, .test-scroll, .atext, #ex-teil-liste {\n" +
            "    flex: 0 1 auto; max-height: 62vh; max-height: 62dvh; }",
     ersatz: "",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
@@ -3299,21 +3299,21 @@ const RUECKBAUTEN = [
     datei: 'public/style.css',
     suche: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; }",
     ersatz: "grid-auto-flow: dense; gap: 18px; margin-top: 6px; align-items: start; }",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '370', name: 'Die Liste fordert wieder zwoelf Zeilen',
     datei: 'public/style.css',
-    suche: ".manage-list { flex: 1 1 27.95rem; min-height: 0;",
-    ersatz: ".manage-list { flex: 1 1 33.5rem; min-height: 0;",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    suche: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;\n",
+    ersatz: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 33.5rem;\n",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '371', name: 'Das Sicherheitsprotokoll deckelt wieder bei zehn Zeilen',
     datei: 'public/style.css',
-    suche: ".prot-liste { flex: 1 1 35rem; min-height: 0;",
-    ersatz: ".prot-liste { flex: 1 1 23.3rem; min-height: 0;",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    suche: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: 35rem;",
+    ersatz: ".prot-liste { flex: 0 1 auto; min-height: 0; max-height: 23.3rem;",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '372', name: 'Die Karte bekommt ihre Passwortzeile zurueck',
@@ -3449,35 +3449,65 @@ const RUECKBAUTEN = [
     datei: 'public/style.css',
     suche: ".manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }",
     ersatz: ".manage-list > .hint { padding: 0 9px; }",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '392', name: 'Das leere Protokoll bekommt das Mass der Bedienzeile',
     datei: 'public/style.css',
-    suche: ".prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; }",
-    ersatz: ".prot-liste > .hint { min-height: 2.795rem; padding: 0 9px; }",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    suche: ".prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }",
+    ersatz: ".prot-liste > .hint { min-height: 2.795rem; padding: 0 9px; grid-column: 1 / -1; }",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '393', name: 'Die leere Meldung traegt die Vorgabemarge wieder mit',
     datei: 'public/style.css',
     suche: "  display: flex; align-items: center; margin: 0; }\n.manage-list > .hint {",
     ersatz: "  display: flex; align-items: center; }\n.manage-list > .hint {",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
     nr: '390', name: 'Die Liste im Fenster bekommt den Deckel wieder',
     datei: 'public/style.css',
-    suche: ".modal .manage-list { flex: 0 1 auto; max-height: none; }",
-    ersatz: ".modal .manage-list { flex: 0 1 auto; }",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    suche: ".modal .manage-list { max-height: none; }",
+    ersatz: ".modal .manage-list { max-height: 27.95rem; }",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
-    nr: '391', name: 'Die Liste nutzt den Platz der Kachel nicht mehr',
+    nr: '391', name: 'Die Liste haengt wieder am Schluesselwort',
     datei: 'public/style.css',
-    suche: ".manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;",
-    ersatz: ".manage-list { flex: 0 1 27.95rem; min-height: 0; max-height: max-content;",
-    erwartet: 'Fordern und nutzen — 0.17.4'
+    suche: ".manage-list { flex: 0 1 auto; min-height: 0; max-height: 27.95rem;",
+    ersatz: ".manage-list { flex: 1 1 27.95rem; min-height: 0; max-height: max-content;",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
+  },
+
+  /* ---- 0.17.5: die Hoehe ohne Schluesselwort, das Raster der Liste ---- */
+  {
+    nr: '394', name: 'Die Spalten gehoeren wieder der Zeile',
+    datei: 'public/style.css',
+    suche: "  display: grid; grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }",
+    ersatz: "  grid-template-columns: 128px 1fr 1fr auto auto; align-content: start; }",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
+  },
+  {
+    nr: '395', name: 'Die Zeile wird wieder ein eigener Kasten',
+    datei: 'public/style.css',
+    suche: ".prot-zeile { display: contents; }",
+    ersatz: ".prot-zeile { display: block; }",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
+  },
+  {
+    nr: '396', name: 'Die Felder richten sich wieder an der Schriftlinie aus',
+    datei: 'public/style.css',
+    suche: "  font-size: .86rem; align-self: end; }",
+    ersatz: "  font-size: .86rem; align-self: baseline; }",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
+  },
+  {
+    nr: '397', name: 'Auf dem Telefon bleibt die Liste ein Raster',
+    datei: 'public/style.css',
+    suche: "  .prot-liste { display: block; }\n  .prot-zeile { display: grid;",
+    ersatz: "  .prot-zeile { display: grid;",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */

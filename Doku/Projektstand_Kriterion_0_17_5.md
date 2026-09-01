@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 44 · Stand 31. August 2026 · gebaut: Version 0.17.4**
+**Kompakte Übergabe · Revision 45 · Stand 31. August 2026 · gebaut: Version 0.17.5**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -43,6 +43,26 @@ dort unter `Doku/`.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
 
+**0.17.5 in einem Satz: so hoch wie der Inhalt.** *PATCH — nur
+`public/style.css`; die Instanz kann danach nichts, was sie vorher nicht
+konnte.* **Der Befund aus 0.17.2 ist gefunden, nach drei Runden**, und es war
+die ganze Zeit eine einzige Zeile: **`max-height: max-content`**. In Chromium
+klemmt sie die Forderung einer kurzen Liste — *deshalb war der Befund zwei
+Runden lang nicht nachstellbar, und deshalb sind zwei Runden lang Ursachen
+gebaut worden, die es nicht gab.* **In der laufenden Instanz klemmt sie nicht:**
+dort forderte JEDE Liste ihre zehn Zeilen, auch die leere. Gemeldet mit Bild und
+Fingerprint `d3113d62`: die Karte „Zugänge" mit fünf Zeilen stand **728** Pixel
+hoch, wo dieselbe Karte in Chromium **498** misst; der Papierkorb mit **leerer**
+Liste stand allein in seiner Reihe und war trotzdem rund **570** hoch.
+**An ihre Stelle treten zwei Zeilen ohne Schlüsselwort:** `flex: 0 1 auto` —
+*so hoch wie mein Inhalt, und ich nehme mir nichts von der Kachel* — und
+`max-height: <Deckel>rem` — *hier ist Schluss*. **Der Preis steht dazu:** eine
+Liste nutzt die Höhe einer höheren Nachbarin nicht mehr aus; die Zusage aus
+0.17.4 ist zurückgenommen. **Dazu das Raster des Sicherheitsprotokolls:** es
+gehört jetzt der **Liste** und nicht mehr der einzelnen Zeile, damit die Namen
+untereinander stehen — vorher vier verschiedene linke Kanten, jetzt eine.
+*Alles Weitere in Abschnitt 2 und Abschnitt 9.*
+
 **0.17.4 in einem Satz: fordern und nutzen.** *PATCH — eine Zeile aus dem
 Stilblatt zurückgenommen und drei Maße daneben gesetzt; die Instanz kann danach
 nichts, was sie vorher nicht konnte.* **Diese Runde nimmt Punkt 1 von 0.17.3
@@ -52,7 +72,9 @@ zurück.** `align-items: start` sollte den Leerraum unter einer Liste nehmen —
 steht die Regel, die gemeint war:** die Reihe ist so hoch wie ihre höchste
 **starre** Kachel; gibt es keine, so hoch wie die größte **Forderung** der
 dynamischen. **Was eine Liste FORDERT, ist nicht, was sie NUTZT** — der Deckel
-steht in `flex-basis` und begrenzt deshalb nur die Forderung. **Drei Maße
+stand dafür in `flex-basis`; ***dieser Mechanismus ist mit 0.17.5
+zurückgenommen***, weil er an `max-height: max-content` hing und dieses
+Schlüsselwort nicht überall klemmt. **Drei Maße
 daneben:** das Sicherheitsprotokoll deckelt bei **fünfzehn** statt zehn Zeilen
 (eine Textzeile ist keine Bedienzeile), eine **leere Liste ist eine Zeile hoch**
 statt null, und die Listen **in einem Fenster** tragen den Deckel gar nicht.
@@ -216,15 +238,38 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.17.4** — Fingerprint **`d3113d62`**, **4811
-Prüfungen**, **385 Rückbauten in der Liste; gefahren sind die zehn dieser Runde**
-(Abschnitt 8; **neun gefahren, null stumm**). *0.17.4 nimmt `align-items: start` aus dem Kachelraster wieder
-heraus und setzt an seine Stelle die Regel, die gemeint war: **die Reihe ist so
-hoch wie ihre höchste starre Kachel**; gibt es keine, so hoch wie die größte
-**Forderung** der dynamischen. Dazu drei Maße: fünfzehn statt zehn Zeilen fürs
-Sicherheitsprotokoll, eine Zeile statt null für eine leere Liste, und kein
-Deckel für die Listen in einem Fenster.* **PATCH — nur `public/style.css` ist
-angefasst; die Instanz kann danach nichts, was sie vorher nicht konnte.**
+**Gebaut ist 0.17.5** — Fingerprint **`6a2c264a`**, **4813
+Prüfungen**, **389 Rückbauten in der Liste; gefahren sind die dreizehn dieser
+Runde, keiner stumm** (Abschnitt 8). *0.17.5 nimmt `max-height: max-content` aus
+beiden Listen heraus und setzt an seine Stelle zwei Zeilen ohne Schlüsselwort:
+`flex: 0 1 auto` (so hoch wie mein Inhalt, und ich nehme mir nichts von der
+Kachel) und `max-height: <Deckel>rem` (hier ist Schluss). Dazu wandert das
+Raster des Sicherheitsprotokolls von der Zeile auf die Liste, damit die Namen
+untereinander stehen.* **PATCH — nur `public/style.css` ist angefasst; die
+Instanz kann danach nichts, was sie vorher nicht konnte.**
+
+> **DER BEFUND AUS 0.17.2 IST GEFUNDEN, NACH DREI RUNDEN — und es war die ganze
+> Zeit diese eine Zeile.** In Chromium klemmt `max-height: max-content` die
+> Forderung einer kurzen Liste; *deshalb war der Befund zwei Runden lang nicht
+> nachstellbar, und deshalb sind zwei Runden lang Ursachen gebaut worden, die es
+> nicht gab.* **In der laufenden Instanz klemmt sie nicht:** dort fordert JEDE
+> Liste ihre zehn Zeilen, auch die leere. **Gemeldet mit Bild und Fingerprint
+> `d3113d62`:** die Karte „Zugänge" mit fünf Zeilen stand **728** Pixel hoch, wo
+> dieselbe Karte in Chromium **498** misst; der Papierkorb mit **leerer** Liste
+> stand allein in seiner Reihe und war trotzdem rund **570** hoch. *Die Differenz
+> ist auf den Pixel die geforderte statt der gebrauchten Höhe.*
+> **DER EIGENTLICHE FEHLER IST DER UMGANG MIT DEM NICHT NACHSTELLBAREN BEFUND
+> (Stolperstein 257):** die Frage hätte lauten müssen, was an der Messmaschine
+> anders ist als an der Instanz — nicht, welche Ursache sich denken lässt.
+
+> **WAS DAS KOSTET, UND DER VERMERK GEHÖRT DAZU (Stolperstein 201).** Eine Liste
+> **nutzt die Höhe einer höheren Nachbarin nicht mehr aus**; die Zusage aus
+> 0.17.4 ist zurückgenommen. *In einem Flexkind ist `max-height` die einzige
+> Eigenschaft, die einen Deckel setzt, und sie klemmt beides — Forderung UND
+> Wachstum.* **Neben „Zugang" (1055 px) zeigt die Sitzungsliste wieder zehn
+> Zeilen statt zwanzig, und darunter bleibt die Kachel leer** — so leer wie
+> „Darstellung" daneben, die dasselbe tut. *Gleich hohe Reihen erzeugen Leerraum
+> in der kürzeren Kachel, und das war die Zusage, nicht der Fehler.*
 
 > **DIESE RUNDE NIMMT PUNKT 1 VON 0.17.3 ZURÜCK, und der Vermerk gehört dazu
 > (Stolperstein 201).** 0.17.3 hat begründet, ein Raster ziehe jedes Kind auf
@@ -253,17 +298,32 @@ angefasst; die Instanz kann danach nichts, was sie vorher nicht konnte.**
 > `F_ROUTEN` unverändert bei 69, achtzehn Karten in fünf Abschnitten, acht
 > persönliche Schlüssel, sieben Zwecke in `BESTAETIGUNG_ZWECKE`.*
 
-> **DER SYSTEMBEREICH SIEHT ANDERS AUS ALS MIT 0.17.3, UND ER ZEIGT DASSELBE.**
-> Die Kacheln einer Reihe stehen wieder gleich hoch; das Sicherheitsprotokoll
-> zeigt fünfzehn Zeilen statt zehn; eine leere Liste ist eine Zeile hoch statt
-> null. *Es geht keine einzige Angabe verloren — was vorher rollte, rollt
-> weiterhin, nur später.*
+> **DER SYSTEMBEREICH SIEHT ANDERS AUS ALS MIT 0.17.4, UND ER ZEIGT DASSELBE.**
+> **Keine Karte steht mehr höher da, als sie Inhalt hat** — der Papierkorb mit
+> leerer Liste misst 225 statt rund 570, „Zugänge" mit fünf Zeilen 498 statt
+> 728. *Es geht keine einzige Angabe verloren; was vorher rollte, rollt
+> weiterhin.* **Im Sicherheitsprotokoll stehen die Namen untereinander** statt
+> je Zeile an einer anderen Stelle.
 
-**Was 0.17.4 für den Betrieb bedeutet: einspielen, fertig.** Keine
+**Was 0.17.5 für den Betrieb bedeutet: einspielen, fertig.** Keine
 Datenbankstufe, keine Sicherungspflicht, keine `.env`-Zeile, niemand wird
 abgemeldet, **keine Zeile im Protokoll**. *Ein harter Neuladen im Browser
 gehört dazu — geändert ist ausschließlich das Stilblatt, und das liegt im
 Zwischenspeicher.*
+
+*Davor, am 31. August:* **Die Blöcke ab hier gehören 0.17.4 und den Runden
+davor.**
+
+> **DIE VORHERIGE ZEILE, ZUM VERGLEICH: 0.17.4** — Fingerprint **`d3113d62`**,
+> **4811 Prüfungen**, 385 Rückbauten. *PATCH, ebenfalls keine Datenbankstufe:
+> `align-items: start` zurückgenommen, die Regel „die Reihe ist so hoch wie ihre
+> höchste starre Kachel" aufgeschrieben, fünfzehn Zeilen fürs
+> Sicherheitsprotokoll, eine Zeile für eine leere Liste, kein Deckel im
+> Fenster.* **IM FELD BESTÄTIGT AM 31. AUGUST 2026: die laufende Instanz meldete
+> `d3113d62`** (Stolperstein 158) — **und genau dieser Beleg hat den Fehler
+> aufgedeckt**, denn damit stand fest, dass die Bilder wirklich 0.17.4 zeigen.
+> *Der Mechanismus unter der Regel ist mit 0.17.5 zurückgenommen; die Regel
+> selbst und die drei Maße stehen.*
 
 *Davor, am 31. August:* **Die Blöcke ab hier gehören 0.17.3 und den Runden
 davor.**
@@ -651,7 +711,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.4** | **`d3113d62`** *(im Feld noch nicht bestätigt)* | 4811 |
+| **0.17.5** | **`6a2c264a`** *(im Feld noch nicht bestätigt)* | 4813 |
+| 0.17.4 | `d3113d62` *(am 31. August 2026 von der laufenden Instanz gemeldet — und dieser Beleg hat den Fehler aufgedeckt)* | 4811 |
 | 0.17.3 | `ebd36b66` *(im Feld noch nicht bestätigt)* | 4805 |
 | 0.17.2 | `edbd76b6` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4747 |
 | 0.17.1 | `1775fcd4` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4715 |
@@ -3830,20 +3891,29 @@ sucht, und nicht dort, wo sie jemanden aufhält.*
   machte die Zurück-Taste unbrauchbar). **Der zuletzt offene Abschnitt wird
   nicht gemerkt:** die Adresse tut es schon, ein Merker daneben wäre eine
   zweite Wahrheit.
-- **Die Reihe ist so hoch wie ihre höchste starre Kachel** (seit 0.17.4).
+- **Die Reihe ist so hoch wie ihre höchste starre Kachel** (seit 0.17.4, der
+  Bau darunter seit 0.17.5).
   Gibt es keine starre, ist sie so hoch wie die größte **Forderung** der
   dynamischen — `min(Einträge, 10)`, beim Sicherheitsprotokoll
   `min(Einträge, 15)`, **mindestens eine Zeile**. **Die Liste zeigt, was in ihre
   Kachel passt, und rollt, wenn nicht alles passt.**
-  **WAS EINE LISTE FORDERT, IST NICHT, WAS SIE NUTZT (Stolperstein 254), und
-  das ist die ganze Regel.** Vier Zeilen tragen sie, und jede beantwortet eine
-  andere Frage: `flex-basis` — *was fordere ich?* (höchstens zehn Zeilen);
-  `max-height: max-content` — *was fordere ich wirklich?* (nur, was dasteht);
-  `flex-grow: 1` — *was nutze ich?* (alles, was die Kachel hergibt);
-  `min-height: 0` — die, ohne die ein Flexkind wächst statt zu rollen
-  (Stolperstein 237). *In `rem` und nicht in Pixeln: die Oberfläche stellt ihre
-  Schrift von 80 bis 120 Prozent.* **Ein Deckel in `max-height` klemmte
-  beides** — die Forderung UND die Nutzung; deshalb steht er in `flex-basis`.
+  **ZWEI ZEILEN TRAGEN SIE, UND KEINE HÄNGT AN EINEM SCHLÜSSELWORT** (seit
+  0.17.5): `flex: 0 1 auto` — *wie hoch bin ich?* (so hoch wie mein Inhalt, und
+  ich nehme mir nichts von dem, was die Kachel neben mir übrig hat) — und
+  `max-height: <Deckel>rem` — *wo ist Schluss?*. Dazu `min-height: 0`, ohne die
+  ein Flexkind wächst statt zu rollen (Stolperstein 237). *In `rem` und nicht in
+  Pixeln: die Oberfläche stellt ihre Schrift von 80 bis 120 Prozent.*
+  > **0.17.2 BIS 0.17.4 STAND HIER `flex: 1 1 <Deckel>rem` MIT
+  > `max-height: max-content`, UND DAS WAR DER FEHLER** (Stolperstein 256); der
+  > Vermerk bleibt stehen (Stolperstein 201). Der Gedanke war richtig:
+  > `flex-basis` sollte die **Forderung** deckeln, `max-content` sie einer
+  > kurzen Liste wieder wegnehmen, `flex-grow` die geschenkte Höhe einer höheren
+  > Nachbarin **nutzen** lassen. *In Chromium tat es genau das.* **Nur eben
+  > nicht überall:** wo `max-content` im Blockfluss die Forderung nicht klemmt,
+  > fordert JEDE Liste ihre zehn Zeilen — auch die leere. **Damit fällt auch die
+  > Zusage „der Deckel begrenzt die Forderung und nicht die Nutzung":** seit
+  > 0.17.5 ist er **beides**, und eine Liste neben einer höheren Nachbarin
+  > lässt den Rest der Kachel leer.
   > **DIE REGEL WIRD HIER BERICHTIGT UND NICHT GELÖSCHT (Stolperstein 201).**
   > **0.17.3 stand hier: „`.sys-grid { align-items: start }` ist die Zeile, die
   > den Leerraum nimmt … der Leerraum stand unter dem Inhalt IN der Kachel."**
@@ -3888,6 +3958,29 @@ sucht, und nicht dort, wo sie jemanden aufhält.*
   > schon kennt. ***Im Bestand tritt der Fall nicht auf*** (nachgesehen, siehe
   > Änderungsprotokoll 0.17.4, Abschnitt 6.1); **käme eine solche Reihe dazu,
   > ist dieser Absatz der Ort, an dem nachgesehen wird.**
+- **Das Raster des Sicherheitsprotokolls gehört der LISTE und nicht der Zeile**
+  (seit 0.17.5). *Bis dahin war jede Zeile ihr eigenes Raster
+  (`128px 1fr 1fr auto auto`); die beiden letzten Spalten sind `auto`, und wo
+  nichts darin steht, fallen sie auf null und die beiden `1fr` teilen sich den
+  Platz.* **Der Name in Spalte drei stand damit in jeder Zeile woanders** —
+  gemessen in Chromium bei 1410 px vier verschiedene linke Kanten (706, 708,
+  734, 769), nach dem Umbau **eine** (693).
+  **Die Liste spannt die Spalten, die Zeile setzt ihre fünf Felder über
+  `display: contents` direkt hinein.** Damit misst eine Spalte so breit wie ihr
+  breitester Inhalt im **ganzen** Protokoll. *Feste Spalten wären der andere Weg
+  und der schlechtere: „→ Gelöschter Benutzer 128" misst 176 px,
+  „zusammengeführt" 110 — zusammen 286, die jede Zeile mitschleppte.*
+  **ZWEI ZEILEN FOLGEN DARAUS, DIE SONST WIE KOSMETIK AUSSÄHEN.** Eine Zeile
+  ohne eigenen Kasten kann keine Trennlinie tragen: die Linie sitzt an den
+  Feldern, und der Spaltenabstand steht deshalb als `padding-right` am Feld und
+  nicht als `column-gap` am Raster — *ein Abstand zwischen den Spalten risse die
+  Linie in fünf Stücke.* Und die Felder richten sich an der **Unterkante** aus
+  statt an der Schriftlinie: *`align-items: baseline` gibt einem Feld ohne Text
+  keine Schriftlinie — es blieb 15 px hoch, wo seine Nachbarn 35 maßen
+  (Stolperstein 258).*
+  **AUF DEM SCHMALEN SCHIRM TRÄGT DIE ZEILE IHR RASTER WIEDER SELBST.** *Fünf
+  Felder in zwei Spalten gehen nicht auf: bei `display: contents` liefe das
+  sechste Feld der ersten Zeile in die Reihe der zweiten (Stolperstein 259).*
 - **Die Reiter sind Links und keine Knöpfe** (seit 0.16.0). Ein Reiter mit
   Adresse lässt sich kopieren, in einem neuen Fenster öffnen und mit der
   Zurück-Taste verlassen — ein Knopf könnte davon nichts. *Auf dem Telefon wird
@@ -6355,6 +6448,54 @@ Version, in der sie entstanden sind.*
     *Wer eine Meldung an einer Regel misst, die für mehrere Zeichenwege gilt,
     setzt `margin: 0` dazu — oder zeichnet in allen Wegen dasselbe Element.*
 
+256. **`max-content` im Blockfluss ist ein Schlüsselwort, auf das kein Verlass
+    ist.** Seit 0.17.2 stand an beiden Listen
+    `flex: 1 1 <Deckel>rem; max-height: max-content` — der Deckel als
+    **Forderung**, die eine kurze Liste über `max-content` wieder loswird. **In
+    Chromium tut das genau, was es soll.** In der laufenden Instanz nicht: dort
+    fordert JEDE Liste ihre zehn Zeilen, auch die leere, und die Karte wird so
+    hoch, wie die Liste FORDERT statt wie sie BRAUCHT. *Gemessen: „Zugänge" mit
+    fünf Zeilen 728 px gegen 498 in Chromium; der Papierkorb mit leerer Liste
+    rund 570 gegen 225.*
+    **Die allgemeine Fassung ist die wichtigere: eine Regel, die nur in dem
+    Browser gemessen wird, in dem sie gebaut wurde, ist nicht belegt — sie ist
+    nur nicht widerlegt.** *Was daraus folgt, ist keine zweite Messmaschine,
+    sondern Zurückhaltung: wo eine einfache Bauform reicht, ist sie die
+    richtige.* **`flex: 0 1 auto` mit `max-height: <Deckel>rem` sagt dasselbe
+    mit Mitteln, die es seit zwanzig Jahren überall gibt** — und kostet die
+    Zusage, dass eine Liste die Höhe einer höheren Nachbarin ausnutzt.
+
+257. **Ein Befund, den man nicht nachstellen kann, ist nicht erledigt — er ist
+    unerklärt, und der Unterschied zwischen Meldung und Messung IST der Fund.**
+    Der Leerraum ist am 31. August zu **0.17.2** gemeldet worden. **0.17.3 hat
+    eine Ursache dafür gebaut** (`align-items: start` am Kachelraster) — sie war
+    falsch und hat die gleiche Höhe der Reihen zerstört. **0.17.4 hat die Zeile
+    zurückgenommen, die Regel richtig aufgeschrieben und alles nachgemessen** —
+    und den Befund trotzdem nicht behoben, weil der Mechanismus darunter blieb.
+    *Beide Male ist gemessen worden, beide Male stimmten die Zahlen, und beide
+    Male war der Befund am Bildschirm des Betreibers weiterhin da.*
+    **Die Frage hätte nach dem ersten Fehlschlag lauten müssen: was ist an
+    MEINER Maschine anders als an SEINER?** Nicht: welche Ursache lässt sich
+    denken. *Die drei Runden haben genau eine Sache gebraucht, um zu Ende zu
+    kommen — ein Bild MIT dem Fingerprint daneben, das beweist, dass beide
+    dieselbe Fassung ansehen.*
+
+258. **`align-items: baseline` gibt einem Feld OHNE Text keine Schriftlinie.**
+    Es bleibt auf seiner eigenen Höhe stehen — im Sicherheitsprotokoll 15 Pixel
+    gegen 35 bei den Nachbarn. *Solange die Zeile selbst der Kasten war, fiel
+    das nicht auf; sobald die **Felder** die Trennlinie tragen, sitzt sie an
+    genau den leeren Feldern zwanzig Pixel zu hoch und die Linie sieht aus wie
+    eine Treppe.* **Wer eine Linie an Zellen hängt, richtet sie an der
+    Unterkante aus und nicht an der Schrift.**
+
+259. **Fünf Felder in zwei Spalten gehen nicht auf.** Bei `display: contents`
+    hat die Zeile keinen eigenen Kasten mehr — ihre Felder liegen direkt im
+    Raster der Liste. **Ändert eine Medienabfrage die Spaltenzahl, laufen die
+    Felder der einen Zeile in die Reihe der nächsten**, und aus zwei Vorgängen
+    wird eine Zeile. *Wer die Spaltenzahl an einem Umbruchpunkt ändert, muss die
+    Zeile dort wieder zu einem eigenen Kasten machen — und ihr damit auch die
+    Trennlinie zurückgeben.*
+
 ---
 
 ## 7. Prüfstand
@@ -6368,10 +6509,25 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4811 von 4811 bestanden** (0.17.4) — **6 neue Prüfungen netto**
-(sieben neue, eine weggefallen); 0.17.3 davor brachte 58. Die Gegenproben stehen
-in Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht**
-der volle Lauf über alle **385** Rückbauten.
+**Stand: 4813 von 4813 bestanden** (0.17.5) — **2 neue Prüfungen netto**
+(sieben neue, fünf weggefallen oder umgeschrieben); 0.17.4 davor brachte 6. Die
+Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
+beschränkt und **nicht** der volle Lauf über alle **389** Rückbauten.
+
+| Gruppe (0.17.5) | vorher | nachher | wofür |
+|---|---|---|---|
+| **So hoch wie der Inhalt — 0.17.5** *(hieß in 0.17.4 „Fordern und nutzen")* | 31 | **33** | die Liste ist so hoch wie ihr Inhalt und **hängt an keinem Schlüsselwort mehr**, sie deckelt bei ihrem eigenen Maß — und das Raster des Protokolls gehört der **Liste**: `display: contents` an der Zeile, die Trennlinie an den Feldern, die Unterkante als Ausrichtung, und auf dem schmalen Schirm alles zurück |
+| **zusammen** | | | **+2** |
+
+> **ZWEI PRÜFUNGEN SIND WEGGEFALLEN UND VIER UMGESCHRIEBEN.** *„nimmt, was die
+> Kachel hergibt"* und *„nutzt mehr als seinen Deckel, wenn die Kachel es
+> hergibt"* hielten die Zusage fest, die diese Runde zurücknimmt — **eine
+> Prüfung auf eine zurückgenommene Entscheidung ist keine Lücke, sondern eine
+> Falschaussage** (dieselbe Lehre wie in 0.13.2). *An ihre Stelle tritt
+> „hängt an keinem Schlüsselwort mehr": sie hält fest, dass `max-content` in
+> der Regel nicht mehr vorkommt.*
+
+**Und die Runde davor, zum Vergleich — 0.17.4 brachte 6 netto:**
 
 | Gruppe (0.17.4) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -7009,6 +7165,7 @@ eine Buchführung.*
 | 0.17.2 | Der Deckel und die eigene Hand (32 netto) | 15 neue (353 → 368), sieben nachgezogen (Stolperstein 201); 15 gefahren, 3 STUMM — und jede der drei war eine Lücke im Prüfstand; nach dem Schließen 15 gefahren, 0 stumm | Stolpersteine 242 bis 245 |
 | **0.17.3** | **Die Karte zeigt, der Dialog stellt ein (58 netto)** | **20 neue, ACHT weggefallen (368 → 380); vier nachgezogen (Stolperstein 201); 24 gefahren, 0 stumm** | **Stolpersteine 246 bis 250** |
 | **0.17.4** | **Fordern und nutzen (6 netto: sieben neue, eine weggefallen)** | **fünf neue (380 → 385); vier nachgezogen, davon einer UMGEDREHT (Stolperstein 201); 9 gefahren, 0 stumm** | **Stolpersteine 251 bis 255** |
+| **0.17.5** | **So hoch wie der Inhalt (2 netto: sieben neue, zwei weggefallen, vier umgeschrieben)** | **vier neue (385 → 389); neun nachgezogen, davon einer UMGEDREHT; 13 gefahren, 0 stumm** | **Stolpersteine 256 bis 259** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -7024,24 +7181,30 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.17.4 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** **Am Wirt fehlt:**
-  *(a)* der Abschnitt **„Bestand"** auf einem breiten Schirm — **drei gleich
-  hohe Kacheln in Reihe 1, drei in Reihe 2, keine Treppe**; *(b)* der Abschnitt
-  **„Persönlich"** — die Sitzungsliste steht neben „Zugang" und zeigt **mehr**
-  als zehn Zeilen, ohne dass unter ihr etwas leer bleibt; *(c)* das
-  **Sicherheitsprotokoll** — **fünfzehn** Zeilen, bevor es rollt; *(d)* eine
-  **leere Liste** (Tags oder Papierkorb) — **eine Zeile hoch**, mit ihrer
-  Meldung darin. *Ein harter Neuladen gehört davor: geändert ist ausschließlich
-  das Stilblatt.*
-- **DER BEFUND, AUS DEM PUNKT 1 VON 0.17.3 ENTSTANDEN IST, IST NICHT
-  REPRODUZIERT.** *Auf keiner Messung zu 0.17.4 stand unter einer Liste Luft —
-  weder vor noch nach dem Rückbau.* **Tritt er wieder auf, sind drei Dinge zu
-  prüfen:** der **Fingerprint** in Systembereich → Datenbank → Kennzahlen (eine
-  andere Fassung erklärt jeden Befund), ein **harter Neuladen** (das Stilblatt
-  liegt im Zwischenspeicher), und die drei Zahlen an der betroffenen Liste —
-  `flexBasis`, gemessene Höhe und `scrollHeight`. *Sind die letzten beiden
-  gleich, steht keine Luft in der Liste, und der Leerraum sitzt woanders
-  (Stolperstein 246).*
+- **0.17.5 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** **Am Wirt fehlt:**
+  *(a)* der **Papierkorb** im Abschnitt „Bestand" — leer und allein in seiner
+  Reihe: die Karte ist nur noch so hoch wie ihr Text plus **eine** Zeile;
+  *(b)* die Karte **„Zugänge"** — direkt hinter der letzten Zeile kommt der
+  Knopf „Gelöschte Zugänge", **kein Loch dazwischen**; *(c)* das
+  **Sicherheitsprotokoll** — alle Namen stehen untereinander, und die
+  Trennlinie läuft **ohne Treppe** durch; *(d)* eine **lange Liste** (Kriterien
+  oder Tags) — zehn Zeilen, dann Rollbalken. *Ein harter Neuladen gehört davor:
+  geändert ist ausschließlich das Stilblatt.*
+- **DER BEFUND AUS 0.17.2 IST MIT 0.17.5 GEFUNDEN UND BEHOBEN** — nach drei
+  Runden. *Was ihn zu Ende gebracht hat, war ein Bild MIT dem Fingerprint
+  daneben: damit stand fest, dass beide Seiten dieselbe Fassung ansehen, und
+  die Frage konnte lauten „was ist an meiner Maschine anders" statt „welche
+  Ursache lässt sich denken" (Stolperstein 257).*
+  **WAS OFFEN BLEIBT: welcher Browser.** Für den Bau ist das gleichgültig — die
+  neue Regel hängt an keinem Schlüsselwort. *Für die Akte wäre es gut zu
+  wissen, denn dann ließe sich sagen, welche weiteren Zeilen im Stilblatt dort
+  anders greifen könnten.*
+- **0.17.4 IST AM WIRT ANGEKOMMEN.** *Am 31. August 2026 bestätigt: die
+  laufende Instanz meldete `d3113d62`.* **Die vier Handgriffe jener Runde sind
+  damit teils belegt, teils überholt:** die gleiche Höhe der Reihen und die
+  fünfzehn Zeilen im Protokoll stehen; **die leere Liste war weiterhin nicht
+  eine Zeile hoch**, und genau das ist der Befund gewesen, aus dem 0.17.5
+  geworden ist.
 - **0.17.3 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN — PUNKT 1 DAVON IST
   ZURÜCKGENOMMEN.** ***(a)*** *— der Abschnitt „Zugänge", an dem keine Kachel
   mehr leer stehen sollte — **entfällt: die Zeile dahinter war falsch und ist
@@ -7500,7 +7663,69 @@ in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstof
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
 
+### 0.17.5 — „So hoch wie der Inhalt"
+
+**PATCH · 31. August 2026 · der Befund aus 0.17.2, gefunden nach drei Runden.**
+*Gemeldet mit Bildern von der laufenden Instanz und — zum ersten Mal — **mit dem
+Fingerprint dazu**: `d3113d62`, also nachweislich 0.17.4.* **Nur
+`public/style.css` ist angefasst.**
+
+**ES WAR DIE GANZE ZEIT EINE EINZIGE ZEILE: `max-height: max-content`.** Seit
+0.17.2 stand an beiden Listen `flex: 1 1 <Deckel>rem` mit `max-height:
+max-content` — der Deckel als **Forderung**, die eine kurze Liste über
+`max-content` wieder loswird. **In Chromium tut das genau, was es soll; deshalb
+war der Befund zwei Runden lang nicht nachstellbar, und deshalb sind zwei Runden
+lang Ursachen gebaut worden, die es nicht gab** (Stolperstein 257). **In der
+laufenden Instanz klemmt die Zeile nicht:** dort fordert JEDE Liste ihre zehn
+Zeilen, auch die leere, und die Karte wird so hoch, wie die Liste **fordert**,
+statt wie sie **braucht**.
+
+**GEMESSEN, UND DIE DIFFERENZ IST AUF DEN PIXEL DIE GEFORDERTE HÖHE:** die Karte
+„Zugänge" mit fünf Zeilen stand in der Instanz **728** Pixel hoch, wo dieselbe
+Karte in Chromium **498** misst — 230 Pixel, und `27.95rem` minus fünf Zeilen
+sind 195. Der Papierkorb mit **leerer** Liste stand allein in seiner Reihe und
+war trotzdem rund **570** hoch statt **225**.
+
+**AN IHRE STELLE TRETEN ZWEI ZEILEN OHNE SCHLÜSSELWORT.** `flex: 0 1 auto` sagt:
+*so hoch wie mein Inhalt, und ich nehme mir nichts von dem, was die Kachel neben
+mir übrig hat.* `max-height: <Deckel>rem` sagt: *hier ist Schluss* — zehn Zeilen
+für die Bedienlisten, fünfzehn fürs Protokoll. **Nachgemessen bei 1410 Pixeln:**
+Papierkorb 225, „Zugänge" 498, die Kriterienliste mit fünfzig Einträgen 419 =
+zehn Zeilen und rollt, das Sicherheitsprotokoll 525 = fünfzehn Zeilen und rollt.
+
+**DER PREIS STEHT DAZU, UND ER IST BEZAHLT.** Eine Liste **nutzt die Höhe einer
+höheren Nachbarin nicht mehr aus**; die Zusage aus 0.17.4 ist zurückgenommen.
+*In einem Flexkind ist `max-height` die einzige Eigenschaft, die einen Deckel
+setzt, und sie klemmt beides — Forderung UND Wachstum.* **Der Leerraum unter der
+Sitzungsliste ist derselbe, den die starre Karte „Darstellung" daneben schon
+immer hatte:** gleich hohe Reihen erzeugen Leerraum in der kürzeren Kachel, und
+das war die Zusage, nicht der Fehler. *Eine Zusage, die in einem Browser gilt
+und im nächsten Leerraum erzeugt, ist keine.*
+
+**DAS RASTER DES SICHERHEITSPROTOKOLLS GEHÖRT JETZT DER LISTE.** Als Frage
+gemeldet — *„dass der Name so mal links, mal rechts verschoben ist, ist
+gewollt?"* — und die Antwort war nein: bis dahin war **jede Zeile ihr eigenes
+Raster**, und wo die beiden letzten `auto`-Spalten leer blieben, teilten sich
+die beiden `1fr` den Platz. **Gemessen vier verschiedene linke Kanten für den
+Namen — 706, 708, 734, 769 —, jetzt eine: 693.** Die Zeile setzt ihre fünf
+Felder über `display: contents` direkt in das Raster der Liste; die Trennlinie
+sitzt dafür an den Feldern, der Spaltenabstand steht als `padding-right` statt
+als `column-gap`, und die Felder richten sich an der **Unterkante** aus — ein
+Feld ohne Text hat keine Schriftlinie und blieb sonst 15 Pixel hoch, wo seine
+Nachbarn 35 maßen (Stolperstein 258).
+
+**KEINE DATENBANKSTUFE, KEIN QUELLTEXT.** Sieben markierte Blöcke,
+Austauschformat **11**, `F_ROUTEN` bei **69**, achtzehn Karten in fünf
+Abschnitten. **Die Deckelzahlen und die leere Liste sind nicht angefasst** —
+zehn, fünfzehn, eine Zeile, wie in 0.17.4 gemessen und begründet.
+
 ### 0.17.4 — „Fordern und nutzen"
+
+> **DER MECHANISMUS UNTER DER REGEL IST MIT 0.17.5 ZURÜCKGENOMMEN.** *Die Regel
+> selbst gilt, und die drei Maße stehen.* **Was fällt, ist der Halbsatz „der
+> Deckel begrenzt die Forderung und nicht die Nutzung"** — er hing an
+> `max-height: max-content`, und dieses Schlüsselwort klemmt nicht überall
+> (Stolperstein 256). *Der Absatz darunter bleibt im Wortlaut stehen.*
 
 **PATCH · 31. August 2026 · eine Runde, die einen Punkt der vorigen
 zurücknimmt.** *Gemeldet unmittelbar nach dem Einspielen von 0.17.3 und mit
@@ -8623,7 +8848,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.17.1** | Was der Benutzer sieht | **GEBAUT.** Sechs Handgriffe aus einem Rundlauf von Hand: der Text im Kachel „Zugang" stimmt nicht und sagt zu viel, Kacheln nutzen ihre Höhe nicht, der Mailversand ordnet sich, **aus „Anlage" wird „Instanz"**, die Zeile einer Sitzung steht schief — und das Video fängt im Vollbild ein zweites Mal an. *PATCH: fünf sind Wortlaut und Anzeige, einer ist ein echter Fehler.* **Alle sechs Punkte sind gebaut; keiner ist herausgefallen. Die Umbenennung traf 692 Stellen, und die alte Adresse `#/system/anlage` wird still übersetzt** | nein | — |
 | **0.17.2** | Der Deckel und die eigene Hand | **GEBAUT.** Sechs Handgriffe aus dem Rundlauf mit 0.17.1, zwei davon Nacharbeit an ihr selbst: die Zeile einer Anmeldung schnitt den Namen ab, **die Listen brauchten einen Deckel bei zwölf Zeilen** (die Tagliste zog die Seite auf), der Mailversand ordnet sich zu Ende, die Klammer bei einer einzigen Stimme fällt weg, **die Glocke meldet die eigenen Beiträge wieder nicht** — und die README erzählt keine Versionsgeschichte mehr. *PATCH: die Instanz sagt an zwei Stellen weniger.* **Alle sechs Punkte sind gebaut; der Deckel steht in `flex-basis` und nicht in `max-height`, damit er mitgeht** | nein | — |
 | **0.17.3** | Die Karte zeigt, der Dialog stellt ein | **GEBAUT.** Vier Handgriffe aus dem Rundlauf mit 0.17.2, zwei davon Nacharbeit an ihr selbst: **der Deckel ging nach oben mit und nach unten nicht** — dafür kam `align-items: start` an das Raster, und der Deckel fiel im selben Zug auf **zehn** Zeilen —, die Karte „Mailversand" wird eine **Zustandskarte mit eigenem Dialog**, der Erklärkasten zur Gewichtung rollt nicht mehr, und die Filterleiste bekommt ihren **Rücksetzer**. *PATCH: vier Handgriffe an Anordnung und Anzeige; die Instanz kann danach nichts, was sie vorher nicht konnte.* **Alle vier Punkte sind gebaut; ***Punkt 1 ist mit 0.17.4 zurückgenommen*** — die Zeile am Raster war falsch, der Deckel richtig. Die zweite Bestätigung im Mailversand bleibt, wo sie ist, und `F_ROUTEN` bleibt bei 69** | nein | — |
-| **0.17.4** | Fordern und nutzen | **GEBAUT.** Eine Runde, die **Punkt 1 von 0.17.3 zurücknimmt**: `align-items: start` fällt weg, und an seine Stelle tritt die Regel, die gemeint war — **die Reihe ist so hoch wie ihre höchste starre Kachel**, sonst so hoch wie die größte **Forderung** der dynamischen. *Was eine Liste fordert, ist nicht, was sie nutzt.* Dazu drei Maße: **fünfzehn** statt zehn Zeilen fürs Sicherheitsprotokoll, **eine Zeile** statt null für eine leere Liste, und **kein Deckel** für die Listen in einem Fenster. *PATCH: nur `public/style.css` ist angefasst.* **Alles in Chromium bei 1600 × 913 nachgemessen; ein Fall (eine niedrigere starre Kachel gewinnt) ist mit reinem CSS-Raster nicht baubar und als Abweichung vermerkt** | nein | — |
+| **0.17.4** | Fordern und nutzen | **GEBAUT.** Eine Runde, die **Punkt 1 von 0.17.3 zurücknimmt**: `align-items: start` fällt weg, und an seine Stelle tritt die Regel, die gemeint war — **die Reihe ist so hoch wie ihre höchste starre Kachel**, sonst so hoch wie die größte **Forderung** der dynamischen. *Was eine Liste fordert, ist nicht, was sie nutzt* — ***dieser Mechanismus ist mit 0.17.5 zurückgenommen***, er hing an `max-height: max-content`. Dazu drei Maße: **fünfzehn** statt zehn Zeilen fürs Sicherheitsprotokoll, **eine Zeile** statt null für eine leere Liste, und **kein Deckel** für die Listen in einem Fenster — **diese drei stehen**. *PATCH: nur `public/style.css` ist angefasst.* **Alles in Chromium bei 1600 × 913 nachgemessen; ein Fall (eine niedrigere starre Kachel gewinnt) ist mit reinem CSS-Raster nicht baubar und als Abweichung vermerkt** | nein | — |
+| **0.17.5** | So hoch wie der Inhalt | **GEBAUT.** Der Befund aus 0.17.2, gefunden nach drei Runden: **`max-height: max-content` klemmt die Forderung nicht überall** — in Chromium schon, in der laufenden Instanz nicht, und dort forderte JEDE Liste ihre zehn Zeilen, auch die leere. *Gemessen: „Zugänge" 728 gegen 498 px, der Papierkorb leer rund 570 gegen 225.* An ihre Stelle treten zwei Zeilen ohne Schlüsselwort: `flex: 0 1 auto` und `max-height: <Deckel>rem`. **Dazu wandert das Raster des Sicherheitsprotokolls von der Zeile auf die Liste**, damit die Namen untereinander stehen — vorher vier linke Kanten, jetzt eine. *PATCH: nur `public/style.css`.* **Der Preis: eine Liste nutzt die Höhe einer höheren Nachbarin nicht mehr aus — die Zusage aus 0.17.4 ist zurückgenommen** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht; danach Suchbereich und Hervorhebung. *MINOR.* **Mit einer eigenen Prüflage gegen `innerHTML`** | nein | — |
 | **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
@@ -9108,6 +9334,26 @@ an 0.17.1 selbst.* **Alle sechs sind gebaut; was dabei herauskam, steht im
    Versionsnummern bleiben sechs, und jede bestimmt eine Handlung.* **Dieser
    Punkt ist während der Runde dazugekommen und im Auftrag nachgetragen
    worden.**
+
+---
+
+### 0.17.5 — GEBAUT, herausgegeben am 31. August 2026
+
+**GEBAUT am 31. August 2026.** *Nichts aus dem Sammelblatt — zwei Befunde aus
+dem Rundlauf mit 0.17.4, gemeldet mit Bildern und **mit dem Fingerprint
+daneben**.* **Es gab keinen Auftrag.** **Was gebaut wurde, steht im
+Änderungsprotokoll `Doku/Aenderungsprotokoll_0.17.5.md` und in Abschnitt 9.**
+
+1. **Die Karten waren so hoch, wie ihre Liste FORDERT, statt wie sie BRAUCHT.**
+   *Ursache: `max-height: max-content` klemmt die Forderung nicht überall.* An
+   ihre Stelle treten `flex: 0 1 auto` und `max-height: <Deckel>rem` — zwei
+   Zeilen ohne Schlüsselwort.
+2. **Der Name im Sicherheitsprotokoll stand in jeder Zeile woanders.** *Ursache:
+   jede Zeile war ihr eigenes Raster.* Jetzt spannt die Liste die Spalten.
+
+**Zwei Dinge sind dabei zurückgenommen:** die Zusage aus 0.17.4, dass eine Liste
+die Höhe einer höheren Nachbarin ausnutzt, und der Satz, der Deckel sei „eine
+Forderung und keine Grenze". *Beide hingen an demselben Schlüsselwort.*
 
 ---
 
