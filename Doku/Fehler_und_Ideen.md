@@ -156,15 +156,17 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.17.4** *PATCH* — **GEBAUT am 31. August 2026** | **Nichts aus diesem Blatt.** Ein Befund aus dem Rundlauf mit 0.17.3, gemeldet mit Bildern unmittelbar nach dem Einspielen: *„das Einzige, was mir gefällt, ist das mit der Mailkachel — der Rest ist schlechter geworden."* **Diese Runde nimmt Punkt 1 von 0.17.3 zurück:** `align-items: start` hat den gemeldeten Leerraum nie verursacht (die betroffenen Kacheln stehen allein in ihrer Reihe) und stattdessen die gleiche Höhe aufgehoben — „Bestand" stand als Treppe von 206 bis 909 Pixeln da. **An seiner Stelle steht die Regel, die gemeint war**, dazu drei Maße: fünfzehn Zeilen fürs Sicherheitsprotokoll, eine Zeile für eine leere Liste, kein Deckel in einem Fenster. **Was gebaut wurde, steht im Änderungsprotokoll 0.17.4.** *Es gab keinen Auftrag: die Regel ist im Gespräch erarbeitet und an einem Schaubild gegengelesen worden, bevor eine Zeile fiel.* ***Eine Abweichung:*** *eine starre Kachel, die niedriger ist als die Forderung der dynamischen daneben, gewinnt nicht — mit reinem CSS-Raster nicht baubar; der Fall tritt im Bestand nicht auf.* ***Und ein Befund aus dem Schreiben:*** *die Tabelle „nachgemessen in Chromium" im Änderungsprotokoll 0.17.3 war nicht gemessen (Stolperstein 252) — sie ist dort als solche gekennzeichnet.* |
 | **0.17.5** *PATCH* — **GEBAUT am 31. August 2026** | **Nichts aus diesem Blatt.** Zwei Befunde aus dem Rundlauf mit 0.17.4, gemeldet mit Bildern und **mit dem Fingerprint daneben** (`d3113d62`). **Der erste ist der Befund aus 0.17.2, endlich gefunden:** `max-height: max-content` klemmt die Forderung einer kurzen Liste nicht überall — in Chromium schon, in der laufenden Instanz nicht, und dort forderte JEDE Liste ihre zehn Zeilen, auch die leere. *Gemessen: „Zugänge" 728 gegen 498 px, der Papierkorb leer rund 570 gegen 225.* **Der zweite:** der Name im Sicherheitsprotokoll stand in jeder Zeile woanders, weil jede Zeile ihr eigenes Raster war. **Was gebaut wurde, steht im Änderungsprotokoll 0.17.5.** *Beide Punkte sind gebaut; nichts ist hierher zurückgekommen.* ***Zwei Zusagen sind zurückgenommen:*** *dass eine Liste die Höhe einer höheren Nachbarin ausnutzt, und dass der Deckel „eine Forderung und keine Grenze" sei — beide hingen an demselben Schlüsselwort.* ***Die Lehre steht als Stolperstein 257:*** *ein Befund, den man nicht nachstellen kann, ist nicht erledigt, sondern unerklärt — und der Unterschied zwischen Meldung und Messung ist der Fund.* |
 | **0.18.0** *MINOR* *(war 0.17.0)* — **GEBAUT am 1. September 2026** | **Die Suche schärfen — Trefferkontext und Hervorhebung.** *Der älteste Punkt dieses Blatts, aufgefallen am 27. August 2026 und dreimal übersprungen.* Eine Zeile an der Kachel nennt die Quelle und zeigt den Ausschnitt mit der Fundstelle darin, in einer festen Folge, die bei dem beginnt, was die Kachel nicht zeigt; der Begriff ist hervorgehoben und steht in der Adresse des geöffneten Treffers. **Was gebaut wurde, steht im Änderungsprotokoll 0.18.0.** *Teil (a) und (c) sind gebaut, dazu die offene Frage nach der Adresse — mit „ja" beantwortet.* ***Was liegen bleibt, steht als eigener Punkt unten: der Suchbereich als Häkchen (b).*** ***Eine Abweichung:*** *Titel und Beschreibung der Detailansicht tragen keine Marke — beide sind Eingabefelder, und in ein `<input>` lässt sich kein Element hängen (Stolperstein 263).* ***Und zwei Behauptungen der Ausarbeitung haben nicht getragen:*** *die Antwort ist nicht umsonst zu haben — SQLite bricht die ODER-Kette beim ersten Treffer ab (Stolperstein 260) —, und die schmalste Kachel ist nicht 240, sondern 173 px breit (Stolperstein 261).* |
-| **0.19.0** *MINOR* *(war 0.18.0)* | Die Bildablage: Original und zwei Ableitungen — **dazu seit dem 30. August der engere Bildausschnitt und das wählbare Bildformat** |
+| **0.19.0** *MINOR, Schema* *(war 0.18.0)* — **GEBAUT am 1. September 2026** | **Die Bildablage.** *Punkt 15 dieses Blatts, aufgefallen am 28. August 2026 aus der Frage nach der Größe der Datenbank; am 30. August um den engeren Ausschnitt und das Bildformat erweitert.* **Gemessen an der echten Instanz: 679 der 1032 Bilder lagen als PNG im Original, 435,7 von 568,9 MB — als WebP `nearLossless` 60 werden daraus 161,9 MB, bei einer größten Abweichung von 2 von 255 und null von hundert Bildern mit sichtbarer Kante.** Gebaut sind: die Umwandlung beim Hereinkommen samt Schalter (Vorgabe an, nur der Eigentümer), der **Knopf**, der den vorhandenen Bestand nachzieht, der **engere Ausschnitt** (`photos.zoom`, achter Migrationsblock, Austauschformat 12), die aufgeschriebene **Asymmetrie der beiden Bildwege** und die zusammengelegte Kennzahlenabfrage. **Was gebaut wurde, steht im Änderungsprotokoll 0.19.0.** ***Diese Runde hebt eine Einschätzung dieses Blatts auf:*** *„Claude: nicht empfohlen für (a)" und „das Original wird nicht angefasst" galten vor der Messung und gelten für eine **Kameraaufnahme**; dieser Bestand besteht zu 92 % aus **Bildschirmfotos**, und die haben kein Negativ. Die Aufhebung steht mit ihrem Grund in Abschnitt 10a und am Quelltext — sie ist nicht gelöscht.* ***Was liegen bleibt, steht als eigene Zeile unten: die Ableitungen auf WebP.*** ***Und ein Befund aus dem Bauen:*** *die `effort`-Leiter ließ sich nicht am echten Bestand messen, und an erzeugtem Material hängt die Antwort vom Material ab (Stolperstein 270).* |
 | **0.20.0** *MINOR* *(neu, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
 | **0.21.0** *MINOR* *(war 0.19.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
-**Was hier bleibt, bleibt aus einem Grund:** die vier Punkte unten haben
+**Was hier bleibt, bleibt aus einem Grund:** die fünf Punkte unten haben
 **keine Nummer**, weil keiner von ihnen jetzt gebaut werden soll — zwei sind
-`nicht empfohlen`, zwei sind `später`. *Punkt 4 ist am 1. September 2026
+`nicht empfohlen`, drei sind `später`. *Punkt 4 ist am 1. September 2026
 dazugekommen: er ist der Teil von Punkt 1, den 0.18.0 mit Begründung liegen
-gelassen hat.* *Ein Sammelblatt, in dem nur noch das Verworfene
+gelassen hat.* *Punkt 5 ist am selben Tag dazugekommen: er ist der Teil von
+Punkt 15, den 0.19.0 liegen lässt — **und sein Grund ist ein anderer als
+vorher.*** *Ein Sammelblatt, in dem nur noch das Verworfene
 steht, sieht mager aus. Es ist trotzdem der richtige Zustand: alles Übrige ist
 entschieden und hat seinen Ort.*
 
@@ -178,10 +180,11 @@ entschieden und hat seinen Ort.*
 | **Verbesserung** | — |
 | **Neue Funktion** | 1, 2, 3, 4 |
 | **Design** | — |
+| **Verbesserung** *(nachgetragen)* | 5 |
 
 | Einschätzung | Punkte |
 |---|---|
-| **später** | 2, 4 |
+| **später** | 2, 4, 5 |
 | **nicht empfohlen** | 1, 3 |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
@@ -469,6 +472,49 @@ nicht reicht — und dann mit einem Beispiel, an dem man das sehen kann.*
 
 Die Suchroute (ein Parameter für den Bereich), die Filterzeile, die
 gespeicherten Ansichten, Prüfungen, Gegenproben, README. **Kein Schema.**
+
+---
+
+## 5. Die Ableitungen auf WebP — was von Punkt 15 liegen geblieben ist
+
+**Ausgelöst von 0.19.0** — *und der Punkt steht hier, weil sein GRUND sich mit
+jener Runde geändert hat.*
+
+> **Art: Verbesserung** · **Claude: später** — es berührt die Auslieferung und
+> ist nicht gemessen.
+> **Draußen üblich:** Ableitungen in WebP oder AVIF sind der Normalfall; das
+> ist gerade die Stelle, an der draußen umkodiert wird.
+
+### Woher
+
+Aus Punkt 15 (die Bildablage), Teil (b). Er stand dort als *„später, wenn Platz
+wirklich knapp wird"*.
+
+### Warum der Grund jetzt ein anderer ist
+
+**Bis 0.19.0 waren die Ableitungen die kleinere Hälfte** — 71,1 MB gegen 497,7
+MB Originale, und die Ersparnis wäre eine ohne Not gewesen. **Nach 0.19.0
+schrumpfen die Originale auf rund 162 MB, und die Ableitungen bleiben bei 71,1
+MB: sie sind damit die größere Hälfte.**
+
+**Und ein zweiter Befund ist dazugekommen.** `medium` ist **JPEG q84** und damit
+verlustbehaftet — es franst an Text genauso aus wie die verlustbehafteten
+WebP-Stufen. **Was man in der Anwendung anschaut, ist die Ableitung und nicht
+das Original.** *0.19.0 macht das Archiv unversehrt und lässt die Anzeige, wie
+sie ist. Das ist vertretbar, aber es ist eine halbe Antwort.*
+
+### Warum er trotzdem liegen bleibt
+
+**Es berührt die Auslieferung** (`setzeBildHeader`) und damit einen zweiten Weg
+— 0.19.0 fasst nur die Ablage an. **Und die Frage, ob `medium` ebenfalls
+`nearLossless` werden sollte, ist NICHT gemessen**; sie braucht einen eigenen
+Lauf, nicht eine Vermutung im Vorbeigehen. *Eine Ersparnis, die man nicht
+gemessen hat, ist eine Vermutung — dieselbe Regel, an der 0.19.0 selbst hängt.*
+
+### Was es anfasst
+
+`makeVariants()`, `kodiereKommentarBild()`, die Auslieferung, das Nachrüsten
+beim Start, Prüfungen, Gegenproben, README. **Kein Schema.**
 
 ---
 

@@ -29,6 +29,31 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.19.0] - 2026-09-01
+
+> **VOR DEM EINSPIELEN DAS DATENVERZEICHNIS SICHERN.** Diese Version rüstet eine
+> Spalte nach (`photos.zoom`) und hebt das Austauschformat von 11 auf 12; ein
+> Rückweg ist danach keine reine Dateikopie mehr.
+>
+> **UND DER KNOPF „Alle PNG nach WebP umstellen" ÜBERSCHREIBT BILDBYTES.** Die
+> PNG-Fassung ist danach weg — es gibt dafür keinen Papierkorb und keinen
+> Rückweg. Die Sicherung ist die einzige Rückfahrkarte. *Der Knopf läuft nur,
+> wenn du ihn drückst; das Einspielen allein ändert an vorhandenen Bildern
+> nichts.*
+>
+> **Was von selbst anders wird:** ein ab jetzt eingefügtes Bildschirmfoto liegt
+> als WebP in der Datenbank statt als PNG. Der Schalter dazu steht unter
+> Datenbank → Kennzahlen → Bildablage und lässt sich abschalten.
+
+- Added: Ein mit Strg+V eingefügtes Bildschirmfoto wird als WebP abgelegt — rund zwei Drittel kleiner, ohne sichtbaren Verlust
+- Added: Schalter „PNG-Originale beim Hereinkommen umwandeln" unter Datenbank → Kennzahlen (Vorgabe an, nur der Eigentümer)
+- Added: Knopf „Alle PNG nach WebP umstellen" daneben — er zieht den vorhandenen Bestand nach und fragt vorher das Passwort
+- Added: Die Kennzahlen führen die Fotos nach Format auf — PNG, JPEG, WebP, jeweils mit Zahl und Größe
+- Added: Der Bildausschnitt der Vorschau lässt sich enger ziehen; ein Schieber im Ausschnittmodus stellt ein, wie nah
+- Changed: Die Kennzahlenkarte lädt spürbar schneller — sie geht einmal statt zweimal durch die Bildtabelle
+- Changed: JPEG, GIF und vorhandenes WebP bleiben unberührt — und ein PNG bleibt PNG, wenn es als WebP größer wäre oder zu groß für WebP ist (mehr als 16383 Pixel je Kante)
+- Changed: Der Import wandelt ausdrücklich nichts um — wer eine alte Sicherung einspielt, holt PNG zurück und drückt danach den Knopf
+
 ## [0.18.1] - 2026-09-01
 
 > **Nur die Anzeige ändert sich, und nur im Systembereich.** Nach dem Einspielen
