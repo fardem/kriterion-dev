@@ -238,7 +238,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.17.5** — Fingerprint **`6a2c264a`**, **4813
+**Gebaut ist 0.17.5 und im Feld bestätigt** — Fingerprint **`6a2c264a`**, am
+31. August 2026 von der laufenden Instanz gemeldet, **4813
 Prüfungen**, **389 Rückbauten in der Liste; gefahren sind die dreizehn dieser
 Runde, keiner stumm** (Abschnitt 8). *0.17.5 nimmt `max-height: max-content` aus
 beiden Listen heraus und setzt an seine Stelle zwei Zeilen ohne Schlüsselwort:
@@ -711,7 +712,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.17.5** | **`6a2c264a`** *(im Feld noch nicht bestätigt)* | 4813 |
+| **0.17.5** | **`6a2c264a`** *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4813 |
 | 0.17.4 | `d3113d62` *(am 31. August 2026 von der laufenden Instanz gemeldet — und dieser Beleg hat den Fehler aufgedeckt)* | 4811 |
 | 0.17.3 | `ebd36b66` *(im Feld noch nicht bestätigt)* | 4805 |
 | 0.17.2 | `edbd76b6` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4747 |
@@ -7181,15 +7182,10 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
-- **0.17.5 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** **Am Wirt fehlt:**
-  *(a)* der **Papierkorb** im Abschnitt „Bestand" — leer und allein in seiner
-  Reihe: die Karte ist nur noch so hoch wie ihr Text plus **eine** Zeile;
-  *(b)* die Karte **„Zugänge"** — direkt hinter der letzten Zeile kommt der
-  Knopf „Gelöschte Zugänge", **kein Loch dazwischen**; *(c)* das
-  **Sicherheitsprotokoll** — alle Namen stehen untereinander, und die
-  Trennlinie läuft **ohne Treppe** durch; *(d)* eine **lange Liste** (Kriterien
-  oder Tags) — zehn Zeilen, dann Rollbalken. *Ein harter Neuladen gehört davor:
-  geändert ist ausschließlich das Stilblatt.*
+- **0.17.5 IST AM WIRT ANGEKOMMEN UND GESEHEN.** *Am 31. August 2026
+  bestätigt: die laufende Instanz meldet `6a2c264a`, und der Befund ist weg —
+  „endlich sieht das gut aus."* **Damit ist die Kette geschlossen, die mit dem
+  Bild zu 0.17.2 begonnen hat.**
 - **DER BEFUND AUS 0.17.2 IST MIT 0.17.5 GEFUNDEN UND BEHOBEN** — nach drei
   Runden. *Was ihn zu Ende gebracht hat, war ein Bild MIT dem Fingerprint
   daneben: damit stand fest, dass beide Seiten dieselbe Fassung ansehen, und
