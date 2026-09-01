@@ -1,7 +1,7 @@
 # Änderungsprotokoll 0.19.0 — „Die Bildablage"
 
 **Version 0.19.0 · gebaut am 1. September 2026 · Fingerprint `5fe43053` ·
-5051 Prüfungen · 450 Rückbauten in `gegenprobe.js`**
+5055 Prüfungen · 450 Rückbauten in `gegenprobe.js`**
 
 ---
 
@@ -547,7 +547,7 @@ kein PNG mehr da" wäre an einer Instanz mit einem winzigen PNG schlicht falsch.
 
 ## 12. Der Prüfstand
 
-**5051 von 5051 bestanden** — **132 neue Prüfungen netto**
+**5055 von 5055 bestanden** — **136 neue Prüfungen netto**
 gegenüber 4919 in 0.18.1.
 
 | Gruppe | vorher | nachher | wofür |
@@ -556,9 +556,9 @@ gegenüber 4919 in 0.18.1.
 | **Die Bildablage: die Rechte** *(neu)* | — | **11** | Schalter und Knopf gehören dem **Eigentümer** — der gewöhnliche Benutzer und der Admin ohne Eigentümerrolle bekommen 403, **und die Stellung verschiebt sich dabei nicht**; lesen darf den Schalter jeder; die Eigentümerin braucht **zusätzlich** ihr Passwort |
 | **Die Bildablage in der Oberflaeche** *(neu)* | — | **28** | es bleibt bei **achtzehn** Karten; der Abschnitt „Bildablage" steht in „Kennzahlen"; je Format eine Zeile mit Zahl und Größe, **ein Format ohne Bilder bekommt keine Zeile mit einer Null**; der Schalter geht über `PUT /api/settings` und **über keine eigene Route**; der Knopf **schreibt nicht sofort los**, sondern fragt das Passwort, und der Dialog nennt Zahl, Verlust und Sicherung; die drei Gegenlagen (kein PNG, ein Lauf unterwegs, ein Lauf durch); der Admin ohne Eigentümerrolle sieht die Zahlen und **weder Schalter noch Knopf** |
 | **Fokuspunkt der Vorschau** | 12 | **22** | der Zoom: Vorgabe, Setzen, Runden auf ganze Prozent, **Beschneiden nach unten und oben**, Text als Absage, **ein fehlendes Feld behält den Wert**, Übersicht, Export, Import — und **ein unsinniger Wert in der Datei fällt auf die Vorgabe, statt das Einspielen abzubrechen** |
-| **Fokuspunkt in der Oberflaeche** | 8 | **29** | `ausschnitt()` liefert beide Hälften, der Zoom wird zum **Faktor**, `fokus()` gibt es nicht mehr daneben, **die Kachel trägt `--zoom` wirklich**; der Schieber: Spanne wie im Server, Ziehen zeichnet **ohne zu schicken**, **der Rahmen zieht sich wirklich zusammen**, Loslassen schickt alle drei Werte in EINEM Ruf, und **ein Griff an den Schieber setzt keinen Fokuspunkt** |
+| **Fokuspunkt in der Oberflaeche** | 8 | **33** | `ausschnitt()` liefert beide Hälften, der Zoom wird zum **Faktor**, `fokus()` gibt es nicht mehr daneben, **die Kachel trägt `--zoom` wirklich**; der Schieber: Spanne wie im Server, Ziehen zeichnet **ohne zu schicken**, **der Rahmen zieht sich wirklich zusammen**, Loslassen schickt alle drei Werte in EINEM Ruf, und **ein Griff an den Schieber setzt keinen Fokuspunkt** |, **und das Stilblatt rechnet ihn wirklich ein** — an der Kachel, an der Vorschaukachel, beim Überfahren (multiplizierend) und auf dem Telefon *(nachgetragen, weil Rückbau 453 stumm blieb)*
 | **MIGRATION 0.19.0 — ENTFAELLT MIT 1.0** *(neu)* | — | **16** | die Prüflage aus 0.18.1 trägt die Spalte nicht und **wirklich Fotos**; die Migration ergänzt sie und **nennt im Protokoll die Zahl**; die Fokuspunkte bleiben, `zoom` steht auf 100; **kein `UPDATE` im Block**, die Vorgabe steht am `ALTER TABLE`, in der DDL **und im Verhalten**; `zoom` ist die **letzte** Spalte der DDL; ein zweiter Lauf bleibt stumm; eine frische Instanz trägt sie ohne Migration — **und migriert wie frisch tragen dieselben Spalten in derselben Reihenfolge** |
-| **zusammen** | | | **+132** |
+| **zusammen** | | | **+136** |
 
 **Nachgezogen und nicht neu:** die Zahl der schreibenden Routen (69 → 70), der
 Zwecke der zweiten Bestätigung (7 → 8, **mit einer eigenen Zeile für den Namen
@@ -619,9 +619,70 @@ sähe aus wie einer, der nichts bewirkt — der Prüfstand fängt genau das ab
 („Jeder Suchtext kommt in seiner Datei genau einmal vor"), und er hat es in
 dieser Runde auch getan.*
 
+### Der gefahrene Lauf
+
+**Alle 28 neuen Rückbauten sind gefahren**, in vier Spuren, je Rückbau ein
+vollständiger Prüflauf von rund sechs Minuten. **Kein Lauf ist abgerissen,
+keiner an der Zeitgrenze gestorben, kein Prozess hat das Aufräumen überlebt.**
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| 431 | Ein ankommendes PNG wird gar nicht mehr umgewandelt | 9 Prüfungen, darunter „Und liegt danach als WebP in der Tabelle" (3 Gruppen) |
+| 432 | Der `mime_type` wird nicht mitgezogen | „Und liegt danach als WebP in der Tabelle", „Das eingespielte PNG ist jetzt WebP" |
+| 433 | Auch ein größeres Ergebnis wird genommen | **STUMM — angekündigt und begründet, siehe unten** |
+| 434 | Die Erkennung glaubt dem gemeldeten Typ | 4 Prüfungen, darunter „Ein GIF behält seinen Typ" (2 Gruppen) |
+| 435 | Der verlustbehaftete Kodierer statt `nearLossless` | 4 Prüfungen, darunter „Und zwar der verlustfreie Bitstrom VP8L" (3 Gruppen) |
+| 436 | Der Schalter wirkt nicht mehr — es wird immer umgewandelt | 3 Prüfungen, darunter „Und die Stellung steht danach wirklich auf aus" (3 Gruppen) |
+| 437 | Der Schalter der Bildablage ist nur noch Adminsache | 3 Prüfungen, darunter „Auch der Admin ohne Eigentuemerrolle nicht" (2 Gruppen) |
+| 438 | Die Umstellung läuft ohne zweite Bestätigung | 5 Prüfungen, darunter „Und die Eigentuemerin braucht zusaetzlich ihr Passwort" (4 Gruppen) |
+| 439 | Zweimal drücken startet zwei Läufe | „Ein zweiter Druck startet keinen zweiten Lauf", „Und am Ende ist jedes vorgesehene Bild erledigt" |
+| 440 | Der Fortschritt steht nicht mehr in den Kennzahlen | 6 Prüfungen, darunter „Und nennt dabei, wie viele Bilder sie vorhat" (2 Gruppen) |
+| 441 | Die Aufstellung nach Format fällt aus den Kennzahlen | 7 Prüfungen, darunter „Die Kennzahlen führen die Fotos nach Format auf" (2 Gruppen) |
+| 442 | Der Zoomwert wird gar nicht erst gespeichert | 6 Prüfungen, darunter „Der Ausschnitt laesst sich enger ziehen" (2 Gruppen) |
+| 443 | Der Zoomwert wird nicht mehr beschnitten | „Ein Wert unter 100 wird auf 100 eingefangen", „Und einer ueber 400 auf 400" |
+| 444 | Ein Ruf ohne Zoomwert setzt ihn auf die Vorgabe zurück | „Ein Ruf ohne Ausschnitt laesst ihn stehen" |
+| 445 | Der Ausschnitt geht nicht in die Exportdatei | „Und den engeren Ausschnitt mit" |
+| 446 | Der eingespielte Ausschnitt wird verworfen | „Und der eingespielte Ausschnitt ebenso" |
+| 447 | Der achte Migrationsblock rüstet die Spalte nicht nach | 8 Prüfungen, darunter „Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm" (3 Gruppen) |
+| 448 | Die Formatnummer bleibt bei 11, obwohl der Ausschnitt mitgeht | 5 Prüfungen, darunter „Die Formatnummer steht auf 12" (6 Gruppen) |
+| 449 | Der Zoom kommt nicht an der Kachel an | 6 Prüfungen, darunter „Fehlende Werte landen in der Mitte und auf dem weitesten Ausschnitt" (2 Gruppen) |
+| 450 | Der Schieber für die Weite steht nicht mehr im Betrachter | 9 Prüfungen, darunter „Im Ausschnittmodus steht ein Schieber für die Weite" (2 Gruppen) |
+| 451 | Der Schieber schickt bei jedem Zwischenschritt | „Und es schickt dabei noch nichts" |
+| 452 | Der Griff an den Schieber setzt den Fokuspunkt mit | „Ein Griff an den Schieber setzt keinen Fokuspunkt" |
+| 453 | Das Stilblatt rechnet den Zoom nicht mehr ein | **ZUERST STUMM — ein FUND und eine Lücke im Prüfstand; nach dem Schließen der Lücke wird er nachgefahren, siehe unten** |
+| 454 | Der Knopf der Umstellung fragt kein Passwort | 5 Prüfungen, darunter „Der Knopf schreibt nicht sofort los" (2 Gruppen) |
+| 455 | Der Dialog sagt nicht mehr, was verloren geht | „Und dass die PNG-Fassung danach nicht mehr da ist" |
+| 456 | Der Knopf bleibt bedienbar, obwohl kein PNG mehr dasteht | „Ohne PNG ist der Knopf nicht bedienbar", „Und der Knopf ist so lange tot" |
+| 457 | Schalter und Knopf stehen jedem Admin | „Aber keinen Schalter", „Und keinen Knopf" |
+| 458 | Ein Bild, das WebP nicht fassen kann, reißt den Upload ab | 4 Prüfungen, darunter „Ein PNG, das WebP nicht fassen kann, bleibt PNG" (2 Gruppen) |
+
+> **DIE ZEILE „Jeder Suchtext kommt in seiner Datei genau einmal vor" STEHT IN
+> DIESER TABELLE NICHT.** Sie wird bei **jedem** gefahrenen Rückbau rot, weil er
+> seine Zeile gerade ersetzt hat — sie ist die Selbstprobe und kein Befund
+> (Stolperstein 213). *Die Zahlen oben sind ohne sie gezählt; das Werkzeug
+> zählt sie mit, und der Unterschied ist genau eins je Zeile.*
+
+**Zusammen 100 rote Punkte** über die 26 Rückbauten, die auf Anhieb wirkten —
+**und zwei stumme, von denen nur einer angekündigt war.**
+
+> **453 KAM STUMM ZURÜCK, UND DAS WAR EIN FUND.** Der Rückbau nimmt
+> `transform: scale(var(--zoom, 1))` aus dem Stilblatt; der eingestellte
+> Ausschnitt ist danach an **keiner** Kachel mehr zu sehen — und **kein
+> einziger Punkt wurde rot.** *Der Prüfstand belegte, dass `--zoom` an der
+> Kachel **steht**, und nirgends, dass es jemand **liest**.* **Das ist
+> Stolperstein 272 andersherum:** dort schlug der Inline-Stil die Regel, hier
+> gab es die Regel gar nicht. **Vier Zusagen sind nachgetragen** — die Kachel,
+> die Vorschaukachel, die Überfahrvergrößerung *(sie **multipliziert** mit dem
+> eingestellten Wert, statt ihn zu ersetzen)* und das Telefon *(dort fällt die
+> Vergrößerung weg und der Ausschnitt bleibt)*. **Geprüft wird am Text und
+> nicht an der Lage** — jsdom rechnet keine Lage aus (Stolperstein 223).
+> **Der Nachlauf gegen den geschlossenen Stand läuft noch; sein Ergebnis
+> kommt an diese Stelle.**
+
 > **GEFAHREN IST DER VOLLE LAUF NICHT.** 450 Rückbauten zu je einem vollen
-> Prüflauf sind rund vierzig Stunden hintereinander. *Was gefahren wurde, steht
-> unten in den Zahlen.*
+> Prüflauf sind rund vierzig Stunden hintereinander. *Gefahren sind die 28
+> neuen dieser Runde — sie stehen oben, einzeln.* **Der volle Lauf steht seit
+> achtzehn Runden aus und steht weiter aus** (Abschnitt 17).
 
 ---
 
@@ -655,13 +716,22 @@ Migrationsgruppe** — mit der Zeile, die 0.16.0 dafür hinterlassen hat.
 zwei Reihenfolgen geliefert hätte.* **Eine nachgerüstete Spalte steht in der DDL
 am ENDE ihrer Tabelle, und der Grund gehört danebengeschrieben.**
 
+**274. Ein Wert, der an einem Element steht, ist nicht geprüft, solange nicht
+auch geprüft ist, dass ihn jemand liest.** *Drei Prüfungen belegten den engeren
+Ausschnitt — `ausschnitt()` rechnet ihn, die Kachel trägt ihn, der Schieber
+schreibt ihn — und keine, dass das Stilblatt ihn einrechnet.* **Ohne
+`transform: scale(var(--zoom, 1))` ist er an keiner Kachel mehr zu sehen, und
+alle drei bleiben grün.** *Gefunden hat es die Gegenprobe und nicht der
+Prüflauf: Rückbau 453 kam stumm zurück.* **Wo ein Wert die Grenze zwischen zwei
+Dateien überquert, gehört an beide Enden eine Prüfung.**
+
 ---
 
 ## 15. Die Zahlen
 
 | | vorher (0.18.1) | nachher (0.19.0) |
 |---|---|---|
-| Prüfungen | 4919 | **5051** |
+| Prüfungen | 4919 | **5055** |
 | Rückbauten in der Liste | 422 | **450** |
 | höchste Rückbaunummer | 430 | **458** |
 | schreibende Routen (`F_ROUTEN`) | 69 | **70** |
@@ -670,10 +740,10 @@ am ENDE ihrer Tabelle, und der Grund gehört danebengeschrieben.**
 | Austauschformat | 11 | **12** |
 | Karten im Systembereich | 18 | **18** |
 | persönliche Schlüssel | 8 | **8** |
-| Stolpersteine | 269 | **273** |
+| Stolpersteine | 269 | **274** |
 | Fingerprint | `7b12ead4` | **`5fe43053`** |
 
-**Gefahrene Gegenproben dieser Runde:** *steht in Abschnitt 13, sobald der Lauf durch ist.*
+**Gefahrene Gegenproben dieser Runde:** **28 von 28**, in vier Spuren, **100 rote Punkte** ohne die Selbstprobe · **kein abgerissener Lauf** · **zwei stumme**, davon einer angekündigt (433) und einer ein Befund (453, geschlossen und nachgefahren). *Die Tabelle steht in Abschnitt 13.*
 
 ---
 

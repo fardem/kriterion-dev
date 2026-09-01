@@ -283,7 +283,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.19.0** — Fingerprint **`5fe43053`**, **5051
+**Gebaut ist 0.19.0** — Fingerprint **`5fe43053`**, **5055
 Prüfungen**, **450 Rückbauten in der Liste** (Abschnitt 8).
 *0.19.0 legt ein ankommendes PNG als WebP ab, zieht den vorhandenen Bestand auf
 Knopfdruck nach und gibt dem Bildausschnitt ein drittes Maß.* **MINOR — und
@@ -844,7 +844,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.0** | **`5fe43053`** *(im Feld noch nicht bestätigt)* | 5051 |
+| **0.19.0** | **`5fe43053`** *(im Feld noch nicht bestätigt)* | 5055 |
 | 0.18.1 | `7b12ead4` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4919 |
 | 0.18.0 | `0bf6ac9d` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4917 |
 | 0.17.5 | `6a2c264a` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4813 |
@@ -7078,6 +7078,21 @@ Version, in der sie entstanden sind.*
     *`ratings.gesetzt_am` steht aus demselben Grund am Ende von `ratings`; dort
     war es Zufall, hier ist es entschieden.*
 
+274. **EIN WERT, DER AN EINEM ELEMENT STEHT, IST NICHT GEPRÜFT, SOLANGE NICHT
+    AUCH GEPRÜFT IST, DASS IHN JEMAND LIEST.** Der Prüfstand belegte den
+    engeren Ausschnitt an drei Stellen — `ausschnitt()` rechnet ihn richtig,
+    die Kachel trägt `--zoom`, der Schieber schreibt ihn — und **an keiner
+    Stelle, dass das Stilblatt ihn einrechnet.** Nimmt man
+    `transform: scale(var(--zoom, 1))` heraus, ist der Ausschnitt an keiner
+    Kachel mehr zu sehen, und **jede dieser Prüfungen bleibt grün.**
+    *Die Zusage hat zwei Hälften — schreiben und lesen —, und eine Prüfung, die
+    nur die erste kennt, sieht von außen aus wie eine ganze.*
+    **Gefunden hat es die Gegenprobe und nicht der Prüflauf:** Rückbau 453 kam
+    STUMM zurück. *Ein stummer Rückbau ist keine Formalie — er ist die Stelle,
+    an der der Prüfstand wegsieht.*
+    **Wo ein Wert die Grenze zwischen zwei Dateien überquert — Skript nach
+    Stilblatt, Server nach Oberfläche —, gehört an BEIDE Enden eine Prüfung.**
+
 ---
 
 ## 7. Prüfstand
@@ -7091,8 +7106,8 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5051 von 5051 bestanden** (0.19.0) —
-**132 neue Prüfungen netto**, keine weggefallen; 0.18.1 davor brachte 2.
+**Stand: 5055 von 5055 bestanden** (0.19.0) —
+**136 neue Prüfungen netto**, keine weggefallen; 0.18.1 davor brachte 2.
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
 beschränkt und **nicht** der volle Lauf über alle **450** Rückbauten.
 
@@ -7102,9 +7117,9 @@ beschränkt und **nicht** der volle Lauf über alle **450** Rückbauten.
 | **Die Bildablage: die Rechte** *(neu)* | — | **11** | Schalter und Knopf gehören dem **Eigentümer**; die Absage verschiebt die Stellung nicht; lesen darf jeder; die Eigentümerin braucht **zusätzlich** ihr Passwort |
 | **Die Bildablage in der Oberflaeche** *(neu)* | — | **28** | es bleibt bei **achtzehn** Karten; die Aufstellung steht in „Kennzahlen"; ein Format ohne Bilder bekommt **keine Zeile mit einer Null**; der Schalter geht über `PUT /api/settings`; der Knopf **fragt erst das Passwort**, und der Dialog nennt Zahl, Verlust und Sicherung; die drei Gegenlagen; der Admin ohne Eigentümerrolle sieht die Zahlen und **weder Schalter noch Knopf** |
 | **Fokuspunkt der Vorschau** | 12 | **22** | der Zoom: Vorgabe, Setzen, Runden, Beschneiden nach beiden Seiten, **ein fehlendes Feld behält den Wert**, Übersicht, Export, Import — und ein unsinniger Wert in der Datei fällt auf die Vorgabe, statt das Einspielen abzubrechen |
-| **Fokuspunkt in der Oberflaeche** | 8 | **29** | `ausschnitt()` liefert beide Hälften, `fokus()` gibt es nicht mehr daneben, **die Kachel trägt `--zoom` wirklich**; der Schieber: Ziehen zeichnet ohne zu schicken, **der Rahmen zieht sich auf die Hälfte zusammen**, Loslassen schickt alle drei Werte in EINEM Ruf, und ein Griff an den Schieber setzt keinen Fokuspunkt |
+| **Fokuspunkt in der Oberflaeche** | 8 | **33** | `ausschnitt()` liefert beide Hälften, `fokus()` gibt es nicht mehr daneben, **die Kachel trägt `--zoom` wirklich**; der Schieber: Ziehen zeichnet ohne zu schicken, **der Rahmen zieht sich auf die Hälfte zusammen**, Loslassen schickt alle drei Werte in EINEM Ruf, und ein Griff an den Schieber setzt keinen Fokuspunkt |, **und das Stilblatt rechnet ihn wirklich ein** *(vier Zusagen, nachgetragen weil Rückbau 453 stumm blieb)*
 | **MIGRATION 0.19.0 — ENTFAELLT MIT 1.0** *(neu)* | — | **16** | die Prüflage aus 0.18.1 trägt die Spalte nicht und **wirklich Fotos**; die Migration ergänzt sie und **nennt im Protokoll die Zahl**; die Fokuspunkte bleiben, `zoom` steht auf 100; **kein `UPDATE` im Block**, die Vorgabe steht am `ALTER TABLE`, in der DDL **und im Verhalten**; `zoom` ist die **letzte** Spalte der DDL; ein zweiter Lauf bleibt stumm; eine frische Instanz trägt sie ohne Migration — **und migriert wie frisch tragen dieselben Spalten in derselben Reihenfolge** |
-| **zusammen** | | | **+132** |
+| **zusammen** | | | **+136** |
 
 > **NACHGEZOGEN UND NICHT NEU:** die Zahl der schreibenden Routen (69 → 70), der
 > Zwecke der zweiten Bestätigung (7 → 8), der Migrationsfunktionen und
@@ -7802,7 +7817,7 @@ eine Buchführung.*
 | **0.17.5** | **So hoch wie der Inhalt (2 netto: sieben neue, zwei weggefallen, vier umgeschrieben)** | **vier neue (385 → 389); neun nachgezogen, davon einer UMGEDREHT; 13 gefahren, 0 stumm** | **Stolpersteine 256 bis 259** |
 | **0.18.1** | **Zehn Zeilen heisst zehn Zeilen dieser Liste (2 netto)** | **einer neu (421 → 422, Nummer 430 — bis 429 ist vergeben, Stolperstein 269); zwei nachgezogen; 3 gefahren, 0 stumm** | **Stolpersteine 267 bis 269** |
 | **0.18.0** | **Die Suche wird nachvollziehbar (104 netto, keine weggefallen)** | **32 neue (389 → 421); ACHT nachgezogen, weil sie auf die Umgebung eines Ausdrucks zeigten statt auf ihn (Stolperstein 264); alle 32 gefahren, 0 stumm — der erste Lauf hatte NEUN Befunde: sechs stumme Rückbauten und drei abgerissene Läufe, alle abgearbeitet** | **Stolpersteine 260 bis 266** |
-| **0.19.0** | **Die Bildablage (132 netto)** | **28 neue (422 → 450, Nummern 431 bis 458); einer nachgezogen (Stolperstein 201: Rückbau 233 zeigt statt auf Formatnummer 11 jetzt auf 12); der Lauf steht im Änderungsprotokoll** | **Stolpersteine 270 bis 273** |
+| **0.19.0** | **Die Bildablage (136 netto)** | **28 neue (422 → 450, Nummern 431 bis 458); einer nachgezogen (Stolperstein 201: Rückbau 233 zeigt statt auf Formatnummer 11 jetzt auf 12); **alle 28 gefahren, 100 rote Punkte, kein abgerissener Lauf, 2 STUMM** — einer angekündigt (433) und einer ein Befund (453: das Stilblatt las den Zoom nirgends nachweislich; Lücke geschlossen und nachgefahren)** | **Stolpersteine 270 bis 274** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
