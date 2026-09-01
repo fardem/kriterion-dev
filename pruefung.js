@@ -22,6 +22,13 @@ const crypto = require('crypto');
 const { spawn, spawnSync, execFileSync } = require('child_process');
 const Database = require('better-sqlite3-multiple-ciphers');
 const anh = require('./anhaenge');
+/* SHARP STEHT HIER, SEIT 0.19.0, UND ZWAR AUS EINEM GENAUEN GRUND: die Runde
+   legt jedes ankommende PNG als WebP ab, und die Zusage lautet nicht „eine
+   Funktion wurde gerufen", sondern „das Bild ist unversehrt". Das laesst sich
+   nur belegen, indem der Prueflauf die abgelegte Datei DEKODIERT und Pixel
+   gegen Pixel haelt. Ohne sharp bliebe an dieser Stelle eine Behauptung.
+   ES IST KEINE NEUE ABHAENGIGKEIT: sharp traegt der Server ohnehin. */
+const sharp = require('sharp');
 
 /* DIE README ALS EIN LANGER STRING, EINMAL GELESEN. Gebraucht wird sie
    ueberall dort, wo ein Text die Oberflaeche VERLAESST: was aus der Instanz
@@ -473,6 +480,9 @@ function bestaetigungNoetig(methode, pfad, koerper) {
   }
   const link = ohneAbfrage.match(/^\/api\/users\/(\d+)\/token$/);
   if (link && methode === 'POST') return [['link', Number(link[1])]];
+  // Der achte Zweck, seit 0.19.0: die Umstellung der Bildablage. Kein Ziel --
+  // sie trifft die Instanz als Ganzes, wie Export und Import.
+  if (methode === 'POST' && ohneAbfrage === '/api/bilder/umstellen') return [['bilder', null]];
   return [];
 }
 
@@ -3567,7 +3577,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await gSetz('Preis', 1); await gSetz('Kundendienst', 1);
   const eEinsF = mitFreigabe((m, p, k) => eRuf('cookie-e-eins', m, p, k), eWort);
   const gAus = (await eEinsF('GET', '/api/export?photos=0')).inhalt;
-  pruefe('Die Formatnummer steht auf 11', gAus?.version === 11, JSON.stringify(gAus?.version));
+  pruefe('Die Formatnummer steht auf 12', gAus?.version === 12, JSON.stringify(gAus?.version));
   pruefe('criteria bleibt eine Liste von Namen',
     Array.isArray(gAus?.criteria) && gAus.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gAus?.criteria));
@@ -4134,7 +4144,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
     e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Eintrag?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  pruefe('Die Formatnummer der Datei steht auf 11', e2Aus?.version === 11, JSON.stringify(e2Aus?.version));
+  pruefe('Die Formatnummer der Datei steht auf 12', e2Aus?.version === 12, JSON.stringify(e2Aus?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
@@ -5285,6 +5295,68 @@ const freigabeHaupt = (zweck, ziel = null) =>
   }
 
   /* ---------------------------------------------------------------- */
+  gruppe('Die Bildablage: die Rechte');
+
+  /* DIESELBE PRUEFLAGE, DIESELBEN DREI ROLLEN -- anna ist Eigentuemerin, bert
+     Admin ohne Eigentuemerrolle, carla gewoehnliche Benutzerin. Sie steht
+     hier und nicht im Hauptlauf, weil es dort nur EINEN Zugang gibt und die
+     Frage „Admin ja, Eigentuemer nein" dann gar nicht gestellt werden kann.
+
+     ZWEI DINGE STEHEN ZUR FRAGE, und sie liegen in derselben Rechtezeile:
+     der SCHALTER (er bestimmt, wie die ganze Instanz kuenftig ablegt) und der
+     KNOPF (er schreibt jeden PNG-Blob um). Beides trifft die Instanz als
+     Ganzes und gehoert damit dem Eigentuemer -- wie Export, Import und
+     Sicherung. */
+  {
+    const schalterCarla = await pkRuf('cookie-pk-carla', 'PUT', '/api/settings',
+      { bilderUmwandeln: false });
+    pruefe('Ein gewoehnlicher Benutzer stellt die Bildablage nicht um',
+      schalterCarla.status === 403, `Status ${schalterCarla.status}`);
+    const schalterBert = await pkRuf('cookie-pk-bert', 'PUT', '/api/settings',
+      { bilderUmwandeln: false });
+    pruefe('Auch der Admin ohne Eigentuemerrolle nicht',
+      schalterBert.status === 403, `Status ${schalterBert.status}`);
+    pruefe('Und die Absage nennt den Eigentuemer',
+      /nur der Eigentümer/.test(schalterBert.inhalt?.error || ''), schalterBert.inhalt?.error);
+    /* UND DIE STELLUNG HAT SICH DABEI NICHT VERSCHOBEN. Ohne diese Zeile
+       bliebe gruen, wer erst schreibt und dann absagt -- die Absage staende
+       da, die Einstellung waere trotzdem gesetzt. */
+    pruefe('Und der Schalter steht danach unveraendert auf an',
+      (await pkRuf('cookie-pk-anna', 'GET', '/api/settings')).inhalt?.bilderUmwandeln === true);
+    const schalterAnna = await pkRuf('cookie-pk-anna', 'PUT', '/api/settings',
+      { bilderUmwandeln: false });
+    pruefe('Die Eigentuemerin kommt durch', schalterAnna.status === 200,
+      JSON.stringify(schalterAnna.inhalt).slice(0, 120));
+    pruefe('Und die Stellung steht danach wirklich auf aus',
+      (await pkRuf('cookie-pk-anna', 'GET', '/api/settings')).inhalt?.bilderUmwandeln === false);
+    await pkRuf('cookie-pk-anna', 'PUT', '/api/settings', { bilderUmwandeln: true });
+
+    /* DER SCHALTER IST NICHT PERSOENLICH, sondern global -- er beschreibt,
+       wie DIESE INSTANZ ablegt, nicht wie jemand sie ansieht. Carla muss ihn
+       deshalb LESEN koennen: die Zahl in der Karte steht hinter dem Admin,
+       die Stellung selbst ist nichts Schuetzenswertes. */
+    pruefe('Lesen darf ihn jeder',
+      (await pkRuf('cookie-pk-carla', 'GET', '/api/settings')).inhalt?.bilderUmwandeln === true);
+
+    const knopfCarla = await pkRuf('cookie-pk-carla', 'POST', '/api/bilder/umstellen', {});
+    pruefe('Ein gewoehnlicher Benutzer stellt den Bestand nicht um',
+      knopfCarla.status === 403, `Status ${knopfCarla.status}`);
+    const knopfBert = await pkRuf('cookie-pk-bert', 'POST', '/api/bilder/umstellen', {});
+    pruefe('Auch der Admin ohne Eigentuemerrolle nicht',
+      knopfBert.status === 403, `Status ${knopfBert.status}`);
+    pruefe('Und die Absage nennt auch hier den Eigentuemer',
+      /nur der Eigentümer/.test(knopfBert.inhalt?.error || ''), knopfBert.inhalt?.error);
+    /* DIE ROLLE ALLEIN GENUEGT AUCH DER EIGENTUEMERIN NICHT: der Waechter
+       steht VOR der zweiten Bestaetigung, und beide muessen halten. Ohne
+       diese Zeile bliebe gruen, wer den Waechter richtig setzt und die
+       Bestaetigung vergisst. */
+    const knopfAnnaOhne = await pkRuf('cookie-pk-anna', 'POST', '/api/bilder/umstellen', {});
+    pruefe('Und die Eigentuemerin braucht zusaetzlich ihr Passwort',
+      knopfAnnaOhne.status === 403 && knopfAnnaOhne.inhalt?.bestaetigung === 'bilder',
+      JSON.stringify(knopfAnnaOhne.inhalt));
+  }
+
+  /* ---------------------------------------------------------------- */
   gruppe('Ein einzelner Eintrag als Datei');
 
   /* Der kleinste Punkt der Runde -- und der, der dem Papierkorb sein Werkzeug
@@ -5299,8 +5371,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Der Einzelexport geht durch', einzeln.status === 200, JSON.stringify(einzeln.inhalt).slice(0, 200));
     pruefe('Er liefert genau EINEN Eintrag',
       einzeln.inhalt?.items?.length === 1, JSON.stringify(einzeln.inhalt?.items?.length));
-    pruefe('Die Formatnummer bleibt bei 11',
-      einzeln.inhalt?.version === 11, JSON.stringify(einzeln.inhalt?.version));
+    // Dieselbe Nummer wie beim vollen Export: ein Einzelexport ist ein
+    // vollstaendiges Paket mit einem Eintrag darin, kein halbes.
+    pruefe('Die Formatnummer ist dieselbe wie beim vollen Export',
+      einzeln.inhalt?.version === 12 && voll.inhalt?.version === 12,
+      JSON.stringify([einzeln.inhalt?.version, voll.inhalt?.version]));
     pruefe('Der Umschlag traegt dieselben Felder wie beim vollen Export',
       gleich(Object.keys(einzeln.inhalt || {}).sort(), Object.keys(voll.inhalt || {}).sort()),
       JSON.stringify(Object.keys(einzeln.inhalt || {})));
@@ -7594,7 +7669,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   const agRufF = mitFreigabe((m, p, k) => agRuf('cookie-ag-anna', m, p, k), AG_WORT);
   const agDatei = (await agRufF('GET', '/api/export?fotos=0')).inhalt;
   const agPaket = agDatei?.items?.find(i => i.title === 'Berts Saege');
-  pruefe('Die Formatnummer der Datei steht auf 11', agDatei?.version === 11,
+  pruefe('Die Formatnummer der Datei steht auf 12', agDatei?.version === 12,
     JSON.stringify(agDatei?.version));
   pruefe('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
     agPaket?.rejected_at === agVorher.rejected_at &&
@@ -12605,11 +12680,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und der mitgeschickte Code ist dabei NICHT verbraucht worden',
       (await zfS.ruf('POST', '/api/bestaetigung',
         { passwort: zfH.passwort, zweck: 'export', ziel: null, code: zfH.codes[2] })).status === 200);
-    // BESTAETIGUNG_ZWECKE bleibt bei sieben -- es kommt kein Zweck dazu,
+    // BESTAETIGUNG_ZWECKE bewegt sich hier nicht -- es kommt kein Zweck dazu,
     // sondern eine zweite Frage an derselben Stelle.
     const zfZweck = await zfS.ruf('POST', '/api/bestaetigung',
       { passwort: zfH.passwort, zweck: 'zweifaktor', ziel: null, code: zfH.codes[3] });
-    pruefe('Es gibt keinen achten Zweck namens zweifaktor',
+    pruefe('Es gibt keinen Zweck namens zweifaktor',
       zfZweck.status === 400, JSON.stringify(zfZweck.inhalt));
 
     /* ---------------------------------------------------------------- */
@@ -12819,11 +12894,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
       } catch { tNach = ['(Start gescheitert)']; }
       pruefe('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
         !tNach.includes('letzter_zaehler'), JSON.stringify(tNach));
-      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein achter mit
+      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein neunter mit
          anderem Wortlaut waere eine zweite Schreibweise fuer dieselbe Sache.
-         SIEBEN SEIT 0.16.0, vorher sechs: die Bewertungen bekommen mit
-         `gesetzt_am` einen Zeitpunkt, und ohne ihn kann die Glocke nicht
-         sagen, ob seit dem letzten Blick jemand bewertet hat. */
+         ACHT SEIT 0.19.0, vorher sieben: `photos` bekommt mit `zoom` die
+         dritte Angabe zum Ausschnitt, und ohne sie gaebe es fuer den engeren
+         Ausschnitt keinen Ort. (Der siebte kam mit 0.16.0 und gab den
+         Bewertungen mit `gesetzt_am` einen Zeitpunkt.) */
       const tQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
       /* GEZAEHLT WERDEN DIE VERSCHIEDENEN MARKEN UND NICHT IHRE VORKOMMEN:
          jede steht zweimal in db.js -- einmal ueber dem Block und einmal an
@@ -12832,10 +12908,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
          was gemeint ist, nicht was dasteht). */
       const tBloecke = [...new Set(
         (tQuelle.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))];
-      pruefe('Es sind genau sieben markierte Migrationsbloecke',
-        tBloecke.length === 7, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
-      pruefe('Und alle sieben tragen denselben Wortlaut der Marke',
+      pruefe('Es sind genau acht markierte Migrationsbloecke',
+        tBloecke.length === 8, `${tBloecke.length}: ${tBloecke.join(' · ')}`);
+      pruefe('Und alle acht tragen denselben Wortlaut der Marke',
         tBloecke.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBloecke.join(' · '));
+      /* UND DER ACHTE HEISST 0.19.0. Ohne diese Zeile bliebe die Zahl auch
+         dann gruen, wenn jemand einen Block gegen einen anderen tauscht --
+         die Menge stimmte, die Sache waere eine andere. */
+      pruefe('Und der achte gehoert zu 0.19.0',
+        tBloecke.includes('MIGRATION 0.19.0 — ENTFAELLT MIT 1.0') &&
+        /function migration0190\(/.test(tQuelle), tBloecke.join(' · '));
       pruefe('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tQuelle) && !/migration0100/.test(tQuelle));
       /* UND KEINEN FUER 0.11.0. Die Runde braucht keinen: die Volltextsuche
@@ -13052,7 +13134,16 @@ const freigabeHaupt = (zweck, ziel = null) =>
        aus PERSOENLICHE_SCHLUESSEL ab, und was dort nicht persoenlich ist, ist
        Adminsache. Der Sicherungsort ist es nicht. */
     ['PUT',    '/api/sicherung/ort',             'nurEigentuemer'],
-    ['POST',   '/api/sicherung',                 'nurEigentuemer']
+    ['POST',   '/api/sicherung',                 'nurEigentuemer'],
+    /* Die Bildumstellung, 0.19.0 -- die siebzigste. Beim Eigentuemer und
+       zweitbestaetigt, dieselbe Zeile wie Export, Import und Sicherung: der
+       Lauf schreibt jeden PNG-Blob der Instanz um, und die alte Fassung ist
+       danach weg.
+       DER SCHALTER DANEBEN BEKOMMT AUSDRUECKLICH KEINE ROUTE. Er geht ueber
+       PUT /api/settings wie jede andere Einstellung; der Fortschritt des
+       Laufs ist ein Feld in GET /api/stats und damit lesend. Eine neue Spalte
+       ist erst recht keine Route. */
+    ['POST',   '/api/bilder/umstellen',          'nurEigentuemer, zweitbestaetigt']
   ];
 
   function schreibendeRouten(text) {
@@ -13123,15 +13214,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
      gibt, und ihre Rechtezeile hat sich nicht verschoben: sie sind
      persoenlich wie alles andere unter PERSOENLICHE_SCHLUESSEL. Wer aus dem
      Suchweg eine eigene schreibende Route machte, wird hier namentlich rot. */
-  pruefe('Und es sind jetzt genau 69 schreibende Routen',
-    F_ROUTEN.length === 69 && fGefunden.length === 69,
+  /* 0.19.0 bewegt sie um EINE: 69 werden 70 -- POST /api/bilder/umstellen.
+     UND DREI DINGE DIESER RUNDE BEWEGEN SIE AUSDRUECKLICH NICHT: der Schalter
+     „PNG-Originale beim Hereinkommen umwandeln" geht ueber PUT /api/settings,
+     das es laengst gibt; der Fortschritt der Umstellung ist ein Feld in
+     GET /api/stats und damit lesend wie eh und je; und der Zoomwert geht
+     ueber PUT /api/photos/:id/focus -- dieselbe Route, ein Feld mehr, und
+     ihre Rechtezeile hat sich nicht verschoben. Wer aus einem davon eine
+     eigene schreibende Route machte, wird hier namentlich rot. */
+  pruefe('Und es sind jetzt genau 70 schreibende Routen',
+    F_ROUTEN.length === 70 && fGefunden.length === 70,
     `${F_ROUTEN.length} erwartet, ${fGefunden.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
      dieselbe Bauform wie F_ROUTEN und aus demselben Grund (Stolperstein 137):
      eine Zahl in einem Papier ist eine Behauptung, eine Zahl im Pruefstand
      ist ein Beleg. VORGAENGE waechst mit 0.9.1 von fuenfzehn auf siebzehn
      (anfrage.frei und anfrage.ab); MERKMALE bleibt bei dreizehn, denn keiner
-     der beiden traegt eines, und BESTAETIGUNG_ZWECKE bleibt bei sieben. */
+     der beiden traegt eines. BESTAETIGUNG_ZWECKE steht seit 0.19.0 bei acht. */
   /* GELESEN WIRD DIE LAUFENDE LISTE, NICHT DER QUELLTEXT DANEBEN: ein Waechter
      ueber den Quelltext faerbt sich am Warnschild statt an der Sache
      (Stolperstein 106). auth.js oeffnet beim Laden die Datenbank und laeuft
@@ -13174,8 +13273,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und das vierzehnte heisst "teil" und traegt keine Nummer',
     fAuth.MERKMALE.includes('teil') && !fAuth.MERKMALE.some(m => /\d/.test(m)),
     fAuth.MERKMALE.join(' '));
-  pruefe('Und bei sieben Zwecken der zweiten Bestaetigung',
-    fAuth.BESTAETIGUNG_ZWECKE.length === 7, fAuth.BESTAETIGUNG_ZWECKE.join(' '));
+  /* ACHT SEIT 0.19.0, vorher sieben. Der achte heisst 'bilder' und ist der
+     einzige der Liste, der BYTES UEBERSCHREIBT statt Rechte oder Zugaenge zu
+     verschieben -- und der einzige ohne Rueckweg: es gibt keinen Papierkorb
+     fuer Bildbytes. */
+  pruefe('Und bei acht Zwecken der zweiten Bestaetigung',
+    fAuth.BESTAETIGUNG_ZWECKE.length === 8, fAuth.BESTAETIGUNG_ZWECKE.join(' '));
+  pruefe('Und der achte heisst bilder',
+    fAuth.BESTAETIGUNG_ZWECKE[7] === 'bilder', fAuth.BESTAETIGUNG_ZWECKE.join(' '));
 
   const WAECHTER_WOERTER = ['nurAdmin', 'nurEigentuemer', 'nurEintragVerfasser'];
   const ZWEIT_WORT = 'zweiteBestaetigung';
@@ -13564,13 +13669,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
      die Tabelle legt sich selbst an" hat es hergegeben: CREATE TABLE IF NOT
      EXISTS legt eine fehlende TABELLE bei jedem Start an -- eine SPALTE
      dagegen nicht, und nur dafuer gibt es Migrationsbloecke.
-     SIEBEN SEIT 0.16.0, vorher sechs: die Runde ruestet `gesetzt_am` an
-     ratings nach -- ohne den Zeitpunkt kann die Glocke ueber fremde
-     Bewertungen nichts sagen. Wer einen achten anlegt, wird hier namentlich
-     rot -- und muss sagen, welche SPALTE er nachruestet. */
+     ACHT SEIT 0.19.0, vorher sieben: die Runde ruestet `zoom` an photos nach
+     -- ohne die Spalte gaebe es fuer den engeren Ausschnitt keinen Ort. (Der
+     siebte kam mit 0.16.0 und ruestete `gesetzt_am` an ratings nach.) Wer
+     einen neunten anlegt, wird hier namentlich rot -- und muss sagen, welche
+     SPALTE er nachruestet. */
   const fDbQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
   const fMigrationen = (fDbQuelle.match(/function migration0?\d+\(/g) || []);
-  pruefe('Es gibt genau sieben Migrationsfunktionen', fMigrationen.length === 7,
+  pruefe('Es gibt genau acht Migrationsfunktionen', fMigrationen.length === 8,
     fMigrationen.join(' · '));
   // Und jede markierte Marke hat ihre Funktion -- eine Marke ohne Block waere
   // eine Ankuendigung, die nichts tut.
@@ -16216,6 +16322,180 @@ const freigabeHaupt = (zweck, ziel = null) =>
   fs.rmSync(u16Dir, { recursive: true, force: true });
   fs.rmSync(u16FrischDir, { recursive: true, force: true });
 
+  /* ================================================================
+     MIGRATION 0.19.0 — ENTFAELLT MIT 1.0
+     DER ACHTE BLOCK: photos bekommt `zoom`, die dritte Angabe zum Ausschnitt.
+     ER IST DER GEGENFALL ZU 0.16.0, und deshalb steht er unmittelbar daneben:
+     dort war jeder nachgetragene Wert eine ERFINDUNG (die Instanz weiss nicht,
+     wann eine alte Bewertung entstand), hier weiss sie es -- jedes vorhandene
+     Foto stand bisher auf „so weit wie moeglich", und genau das bedeutet 100.
+     **Die Vorgabe traegt also keine Behauptung, sondern den bisherigen
+     Zustand.** Geprueft wird das an beiden Enden: die Bestandszeilen stehen
+     danach auf 100, UND der Wert kommt aus dem DEFAULT und nicht aus einem
+     nachgeschobenen UPDATE. */
+  gruppe('MIGRATION 0.19.0 — ENTFAELLT MIT 1.0');
+
+  const u19Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0190-'));
+  const u19FrischDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0190-'));
+  const u19Spalten = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    const sp = d.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
+    d.close();
+    return sp;
+  };
+  /* Abgefangen wie jede Lesestelle auf eine neue Spalte: fehlt sie, werden die
+     Pruefungen darunter rot, statt den Lauf abzureissen (Stolperstein 103). */
+  const u19Zeilen = (verzeichnis = u19Dir) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    let z = [];
+    try { z = d.prepare('SELECT id, focus_x, focus_y, zoom FROM photos ORDER BY id').all(); }
+    catch { /* die Spalte fehlt -- die Pruefungen darunter werden rot */ }
+    d.close();
+    return z;
+  };
+  /* Eine Instanz aus 0.18.1 nachbauen: Tabellenneubau statt
+     ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
+     darueber (Stolperstein 106). Ausserhalb jeder Transaktion, sonst waere das
+     PRAGMA ein stiller No-op (Stolperstein 12).
+     UND MIT FOTOS DARIN, davon eines mit VERSCHOBENEM Fokuspunkt: eine leere
+     Tabelle bewiese nichts darueber, was mit dem Bestand geschieht
+     (Stolperstein 81) -- und nicht einmal etwas darueber, ob das ALTER TABLE
+     mit seiner Vorgabe ueberhaupt durchgeht (Stolperstein 202, und genau dort
+     ist die Vorgabe die Frage). */
+  const u19Rueckbau = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    d.pragma('foreign_keys = OFF');
+    d.exec(`
+      CREATE TABLE photos_0181 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+        mime_type TEXT NOT NULL,
+        data BLOB NOT NULL,
+        thumb BLOB,
+        medium BLOB,
+        art TEXT NOT NULL DEFAULT 'bild',
+        dauer INTEGER,
+        focus_x REAL NOT NULL DEFAULT 50,
+        focus_y REAL NOT NULL DEFAULT 50,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO photos_0181 (id, item_id, mime_type, data, thumb, medium, art, dauer,
+                               focus_x, focus_y, sort_order, created_at)
+        SELECT id, item_id, mime_type, data, thumb, medium, art, dauer,
+               focus_x, focus_y, sort_order, created_at FROM photos;
+      DROP TABLE photos;
+      ALTER TABLE photos_0181 RENAME TO photos;
+      CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);
+    `);
+    d.close();
+  };
+
+  uLauf(u19Dir);
+  {
+    const d = oeffne(path.join(u19Dir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
+    d.prepare("INSERT INTO items (title, user_id) VALUES ('Altbestand', 1)").run();
+    const roh = Buffer.from(PNG_BASE64, 'base64');
+    d.prepare(`INSERT INTO photos (item_id, mime_type, data, focus_x, focus_y, sort_order)
+               VALUES (1, 'image/png', ?, 50, 50, 0)`).run(roh);
+    d.prepare(`INSERT INTO photos (item_id, mime_type, data, focus_x, focus_y, sort_order)
+               VALUES (1, 'image/png', ?, 20, 80, 1)`).run(roh);
+    d.close();
+  }
+  u19Rueckbau(u19Dir);
+  pruefe('Die Prueflage traegt die Spalte zoom nicht',
+    !u19Spalten(u19Dir).includes('zoom'), u19Spalten(u19Dir).join(', '));
+  /* Und sie traegt wirklich Fotos -- ohne diese Zeile stuende der Beleg unten
+     auf null Zeilen und bliebe gruen (Stolperstein 81). */
+  {
+    const d = oeffne(path.join(u19Dir, 'katalog.sqlite'));
+    const z = d.prepare('SELECT COUNT(*) AS n FROM photos').get();
+    d.close();
+    pruefe('Und sie traegt zwei Fotos', z.n === 2, JSON.stringify(z));
+  }
+
+  const u19Ausgabe = uLauf(u19Dir);
+  pruefe('Die Migration ergaenzt zoom im Bestand',
+    u19Spalten(u19Dir).includes('zoom'), u19Spalten(u19Dir).join(', '));
+  pruefe('Er sagt im Protokoll, was er getan hat',
+    /photos um zoom ergaenzt \(Migration auf 0\.19\.0\)/.test(u19Ausgabe),
+    JSON.stringify(u19Ausgabe.trim()));
+  pruefe('Und er nennt dabei, wie viele Fotos auf dem weitesten Ausschnitt stehen',
+    /2 vorhandene Fotos stehen auf dem weitesten Ausschnitt/.test(u19Ausgabe),
+    JSON.stringify(u19Ausgabe.trim()));
+
+  /* DER KERN DIESES ABSCHNITTS. Die Bestandszeilen behalten ihren Fokuspunkt,
+     und der neue Wert bedeutet genau das, was bis 0.18.1 galt. */
+  pruefe('Beide Fotos sind noch da mit ihren Fokuspunkten',
+    u19Zeilen().length === 2 &&
+    u19Zeilen().map(z => `${z.focus_x}/${z.focus_y}`).join(',') === '50/50,20/80',
+    JSON.stringify(u19Zeilen()));
+  pruefe('Und zoom steht an beiden auf dem weitesten Ausschnitt',
+    u19Zeilen().length === 2 && u19Zeilen().every(z => z.zoom === 100),
+    JSON.stringify(u19Zeilen()));
+
+  /* Nachgestellt am Quelltext: kein UPDATE an photos im Block, und die Vorgabe
+     steht am ALTER TABLE -- sie ist hier ausdruecklich GEWOLLT, anders als bei
+     0.16.0. Beide Blöcke stehen nebeneinander, und wer den einen fuer den
+     anderen abschreibt, baut den falschen. */
+  {
+    const u19Quelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const u19Block = u19Quelle.slice(u19Quelle.indexOf('// MIGRATION 0.19.0'),
+                                     u19Quelle.indexOf('// ENDE MIGRATION 0.19.0'));
+    pruefe('Der Block schiebt kein UPDATE nach',
+      !/UPDATE\s+photos/i.test(u19Block), JSON.stringify(u19Block.slice(0, 80)));
+    pruefe('Und das ALTER TABLE traegt die Vorgabe 100',
+      /ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100'/.test(u19Block),
+      JSON.stringify((u19Block.match(/ALTER TABLE[^']*/) || [''])[0]));
+    /* UND DIE DDL TRAEGT DIESELBE -- sonst saehe eine frisch angelegte Instanz
+       anders aus als eine migrierte. */
+    const u19Anf = u19Quelle.indexOf('CREATE TABLE IF NOT EXISTS photos (');
+    const u19Ddl = u19Quelle.slice(u19Anf, u19Quelle.indexOf('\n);', u19Anf));
+    pruefe('Auch die DDL gibt zoom die Vorgabe 100',
+      /zoom REAL NOT NULL DEFAULT 100,/.test(u19Ddl),
+      JSON.stringify((u19Ddl.match(/zoom[^\n]*/) || [''])[0]));
+  }
+
+  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
+  const u19Zweitens = uLauf(u19Dir);
+  pruefe('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
+    !/photos um zoom/.test(u19Zweitens), JSON.stringify(u19Zweitens.trim()));
+  pruefe('Und die Zeilen sind dabei unangetastet geblieben',
+    u19Zeilen().length === 2 && u19Zeilen().every(z => z.zoom === 100),
+    JSON.stringify(u19Zeilen()));
+
+  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der
+     Migration -- und beide sehen danach GLEICH aus. Zu 1.0 faellt die
+     Migration weg, die Spalte muss bleiben. */
+  const u19Frisch = uLauf(u19FrischDir);
+  pruefe('Eine frische Instanz traegt zoom ohne Migration',
+    u19Spalten(u19FrischDir).includes('zoom') && !/photos um zoom/.test(u19Frisch),
+    `${u19Spalten(u19FrischDir).join(', ')} / ${JSON.stringify(u19Frisch.trim())}`);
+  pruefe('Und migriert wie frisch tragen dieselben Spalten in derselben Reihenfolge',
+    gleich(u19Spalten(u19Dir), u19Spalten(u19FrischDir)),
+    `${u19Spalten(u19Dir).join(', ')} gegen ${u19Spalten(u19FrischDir).join(', ')}`);
+  /* UND BEIDE HABEN DENSELBEN VORGABEWERT: 100. Nachgemessen am VERHALTEN und
+     nicht am Text -- eine eingefuegte Zeile ohne Angabe traegt ihn. */
+  const u19Vorgabe = (verzeichnis) => {
+    const d = oeffne(path.join(verzeichnis, 'katalog.sqlite'));
+    let wert = 'Prueflage gescheitert';
+    try {
+      d.pragma('foreign_keys = OFF');
+      d.prepare(`INSERT INTO photos (id, item_id, mime_type, data) VALUES (9001, 9001, 'x', x'00')`).run();
+      wert = d.prepare('SELECT zoom FROM photos WHERE id = 9001').get().zoom;
+      d.prepare('DELETE FROM photos WHERE id = 9001').run();
+    } catch (e) { wert = `Prueflage gescheitert: ${e.message}`; }
+    d.close();
+    return wert;
+  };
+  pruefe('Eine Zeile ohne Angabe traegt in beiden Instanzen 100',
+    u19Vorgabe(u19Dir) === 100 && u19Vorgabe(u19FrischDir) === 100,
+    `${JSON.stringify(u19Vorgabe(u19Dir))} gegen ${JSON.stringify(u19Vorgabe(u19FrischDir))}`);
+
+  fs.rmSync(u19Dir, { recursive: true, force: true });
+  fs.rmSync(u19FrischDir, { recursive: true, force: true });
+
   /* ---------------------------------------------------------------- */
   gruppe('Anordnung der Blöcke');
 
@@ -16273,30 +16553,338 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Unbekanntes Foto meldet 404',
     (await ruf('PUT', '/api/photos/99999/focus', { x: 10, y: 10 })).status === 404);
 
-  await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 20, y: 70 });
+  /* --- DER ENGERE AUSSCHNITT, seit 0.19.0 ---
+     Der dritte Wert derselben Art und ueber DIESELBE Route: er wird dort
+     eingestellt, wo der Punkt eingestellt wird, und eine zweite schreibende
+     Route liesse F_ROUTEN wachsen, ohne dass es etwas Neues zu bewachen gaebe. */
+  pruefe('Neues Foto steht auf dem weitesten Ausschnitt', bild.zoom === 100, String(bild.zoom));
+  const zSetz = await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 20, y: 70, zoom: 240 });
+  pruefe('Der Ausschnitt laesst sich enger ziehen',
+    zSetz.inhalt.photos[0].zoom === 240, String(zSetz.inhalt.photos[0].zoom));
+  const zRund = await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 20, y: 70, zoom: 137.4 });
+  pruefe('Und er wird auf ganze Prozent gerundet',
+    zRund.inhalt.photos[0].zoom === 137, String(zRund.inhalt.photos[0].zoom));
+  /* BESCHNITTEN, NICHT ABGEWIESEN -- wie beim Fokuspunkt: der Wert kommt aus
+     einem Schieber, der gar nichts anderes senden kann. Unter 100 zeigte der
+     Rand Leere statt Bild, darum ist dort Schluss. */
+  const zEng = await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 20, y: 70, zoom: 20 });
+  pruefe('Ein Wert unter 100 wird auf 100 eingefangen',
+    zEng.inhalt.photos[0].zoom === 100, String(zEng.inhalt.photos[0].zoom));
+  const zWeit = await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 20, y: 70, zoom: 9000 });
+  pruefe('Und einer ueber 400 auf 400', zWeit.inhalt.photos[0].zoom === 400,
+    String(zWeit.inhalt.photos[0].zoom));
+  pruefe('Text als Ausschnitt wird abgewiesen',
+    (await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 20, y: 70, zoom: 'nah' })).status === 400);
+  /* UND EIN FEHLENDES FELD BEHAELT DEN WERT. Zwei Bedienungen fuehren auf
+     dieselbe Route -- das Ziehen setzt den Punkt und schickt kein `zoom` mit;
+     ein stilles Zuruecksetzen auf 100 naehme bei jedem Zug den eingestellten
+     Ausschnitt weg. */
+  await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 20, y: 70, zoom: 300 });
+  const ohneZoom = await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 25, y: 65 });
+  pruefe('Ein Ruf ohne Ausschnitt laesst ihn stehen',
+    ohneZoom.inhalt.photos[0].zoom === 300 && ohneZoom.inhalt.photos[0].focus_x === 25,
+    JSON.stringify(ohneZoom.inhalt.photos[0]));
+
+  await ruf('PUT', `/api/photos/${bild.id}/focus`, { x: 20, y: 70, zoom: 180 });
   const uebersichtF = (await ruf('GET', '/api/items')).inhalt.find(i => i.id === fp.id);
   pruefe('Übersicht liefert den Fokuspunkt des Hauptbilds mit',
     uebersichtF.mainPhoto.focus_x === 20 && uebersichtF.mainPhoto.focus_y === 70);
+  pruefe('Und den engeren Ausschnitt dazu', uebersichtF.mainPhoto.zoom === 180,
+    String(uebersichtF.mainPhoto.zoom));
 
   const ausF = await rufF('GET', '/api/export?photos=1');
   const ausFoto = ausF.inhalt.items.find(i => i.title === 'Fokusprobe').photos[0];
   pruefe('Export nimmt den Fokuspunkt mit', ausFoto.focus_x === 20 && ausFoto.focus_y === 70);
+  pruefe('Und den engeren Ausschnitt mit', ausFoto.zoom === 180, String(ausFoto.zoom));
   await ruf('DELETE', `/api/items/${fp.id}`);
 
   const impF = await sendeImport({ version: 5, title: 'F', items: [
     { title: 'Mit Fokus', photos: [{ mime_type: 'image/png', focus_x: 30, focus_y: 90,
-        data_base64: PNG_BASE64 }] },
-    { title: 'Ohne Fokus', photos: [{ mime_type: 'image/png', data_base64: PNG_BASE64 }] }
+        zoom: 220, data_base64: PNG_BASE64 }] },
+    { title: 'Ohne Fokus', photos: [{ mime_type: 'image/png', data_base64: PNG_BASE64 }] },
+    { title: 'Wilder Zoom', photos: [{ mime_type: 'image/png', zoom: 'ganz nah',
+        data_base64: PNG_BASE64 }] }
   ]}, 'merge');
   pruefe('Import mit Fotos gelingt', impF.status === 200, JSON.stringify(impF.inhalt));
   const mitF = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Mit Fokus');
   const ohneF = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Ohne Fokus');
+  const wildF = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Wilder Zoom');
   pruefe('Eingespielter Fokuspunkt kommt an',
     mitF.mainPhoto.focus_x === 30 && mitF.mainPhoto.focus_y === 90);
+  pruefe('Und der eingespielte Ausschnitt ebenso', mitF.mainPhoto.zoom === 220,
+    String(mitF.mainPhoto.zoom));
   pruefe('Ältere Exportdatei ohne Fokuspunkt landet in der Mitte',
     ohneF.mainPhoto.focus_x === 50 && ohneF.mainPhoto.focus_y === 50);
+  /* DIE DATEI DER FORMATNUMMER 11 KENNT KEIN `zoom` -- dann gilt die Vorgabe,
+     und das ist genau der weiteste Ausschnitt. Entschieden wird ueber das
+     VORHANDENSEIN des Feldes und nicht ueber die Formatnummer; die hier oben
+     steht auf 5. */
+  pruefe('Und eine Datei ohne Ausschnitt auf dem weitesten',
+    ohneF.mainPhoto.zoom === 100, String(ohneF.mainPhoto.zoom));
+  /* EIN UNSINNIGER WERT IN DER DATEI BRICHT DAS EINSPIELEN NICHT AB -- die
+     Datei ist, wie sie ist, und ein Abbruch waere die schlechtere Antwort.
+     Das ist der EINE Unterschied zur Route oben, die absagt. */
+  pruefe('Ein unsinniger Ausschnitt in der Datei faellt auf die Vorgabe',
+    wildF.mainPhoto.zoom === 100, String(wildF.mainPhoto.zoom));
   await ruf('DELETE', `/api/items/${mitF.id}`);
   await ruf('DELETE', `/api/items/${ohneF.id}`);
+  await ruf('DELETE', `/api/items/${wildF.id}`);
+
+  /* ================= Die Bildablage ================= */
+  gruppe('Die Bildablage: PNG kommt herein, WebP geht in die Tabelle');
+
+  // Die rohen Bytes einer Fotozeile. Ueber die Auslieferung und nicht ueber
+  // die Datenbank: das ist der Weg, den ein Browser auch geht.
+  const bildRoh = async (id2, abfrage = '') => {
+    const a2 = await fetch(`${BASIS}/api/photos/${id2}/raw${abfrage}`, { headers: { cookie: cookie } });
+    return { status: a2.status, h: Object.fromEntries(a2.headers),
+             bytes: Buffer.from(await a2.arrayBuffer()) };
+  };
+  const ladeBild = async (itemId, name, typ, inhalt) =>
+    (await sendeMultipart(`/api/items/${itemId}/photos`, 'photos',
+      [{ name, typ, inhalt }])).inhalt;
+
+  const ba = (await ruf('POST', '/api/items', { title: 'Bildablage' })).inhalt;
+  const vorlagePNG = await machPruefPNG(96);
+
+  const baDetail = await ladeBild(ba.id, 'schirm.png', 'image/png', vorlagePNG);
+  const baFoto = baDetail.photos[baDetail.photos.length - 1];
+  pruefe('Ein eingefügtes PNG wird angenommen', !!baFoto, JSON.stringify(baDetail).slice(0, 160));
+  pruefe('Und liegt danach als WebP in der Tabelle', baFoto.mime_type === 'image/webp',
+    baFoto.mime_type);
+  const baBytes = (await bildRoh(baFoto.id)).bytes;
+  /* AM INHALT GEPRUEFT UND NICHT AN DER SPALTE. Eine Zeile, die `image/webp`
+     heisst und ein PNG traegt, saehe an mime_type richtig aus -- genau das
+     soll hier nicht durchgehen. RIFF an Byte 0, WEBP an Byte 8. */
+  pruefe('Und die Bytes sind wirklich WebP',
+    baBytes.slice(0, 4).toString('latin1') === 'RIFF' &&
+    baBytes.slice(8, 12).toString('latin1') === 'WEBP',
+    baBytes.slice(0, 12).toString('hex'));
+  /* UND ES IST DER VERLUSTFREIE BITSTROM. WebP hat zwei: VP8 (verlustbehaftet,
+     franst an harten Kanten aus) und VP8L (verlustfrei). `nearLossless` faehrt
+     den zweiten -- ohne diese Zeile bliebe gruen, wer versehentlich auf
+     `quality` umstellt, und die Bilder wuerden still schlechter. */
+  pruefe('Und zwar der verlustfreie Bitstrom VP8L',
+    baBytes.slice(12, 16).toString('latin1') === 'VP8L',
+    baBytes.slice(12, 16).toString('latin1'));
+  pruefe('Und die Auslieferung setzt den richtigen Kopf',
+    (await bildRoh(baFoto.id)).h['content-type'] === 'image/webp',
+    (await bildRoh(baFoto.id)).h['content-type']);
+  pruefe('Die abgelegte Fassung ist kleiner als die Vorlage',
+    baBytes.length < vorlagePNG.length, `${baBytes.length} gegen ${vorlagePNG.length}`);
+
+  /* ---- DIE ZUSAGE, AUF DIE ES ANKOMMT ----
+     Nicht „eine Funktion wurde gerufen", sondern „das Bild ist unversehrt".
+     Die abgelegte Datei wird DEKODIERT und Pixel gegen Pixel gehalten. */
+  const baAbw = await groessteAbweichung(vorlagePNG, baBytes);
+  pruefe('Das Bild ist unversehrt: größte Abweichung höchstens 2 von 255',
+    baAbw >= 0 && baAbw <= 2, `groesste Abweichung ${baAbw}`);
+  const baMasse = await sharp(baBytes).metadata();
+  pruefe('Und es hat dieselben Maße wie die Vorlage',
+    baMasse.width === 96 && baMasse.height === 96, `${baMasse.width}x${baMasse.height}`);
+  /* DIE GEGENPROBE ZUR PRUEFUNG SELBST (Stolperstein 106): sie darf nicht
+     deshalb gruen sein, weil sie JEDEN Unterschied durchliesse. Dieselbe
+     Vorlage durch den VERLUSTBEHAFTETEN Kodierer muss sie finden. */
+  const baSchlecht = await sharp(vorlagePNG).webp({ quality: 70 }).toBuffer();
+  pruefe('Und die Messung fände einen verlustbehafteten Kodierer wirklich',
+    (await groessteAbweichung(vorlagePNG, baSchlecht)) > 2,
+    `groesste Abweichung ${await groessteAbweichung(vorlagePNG, baSchlecht)}`);
+  /* UND SIE FAENDE AUCH EIN BILD ANDERER MASSE -- sonst bliebe gruen, wer
+     versehentlich die 1600px-Ableitung ins Original schriebe. */
+  const baKlein = await sharp(vorlagePNG).resize(48, 48).png().toBuffer();
+  pruefe('Und ein Bild anderer Maße ebenso',
+    (await groessteAbweichung(vorlagePNG, baKlein)) === -1);
+
+  /* ---- WAS NICHT ANGEFASST WIRD ---- */
+  const jpegVorlage = await sharp(vorlagePNG).jpeg({ quality: 90 }).toBuffer();
+  const jpegDetail = await ladeBild(ba.id, 'foto.jpg', 'image/jpeg', jpegVorlage);
+  const jpegFoto = jpegDetail.photos[jpegDetail.photos.length - 1];
+  pruefe('Ein JPEG behält seinen Typ', jpegFoto.mime_type === 'image/jpeg', jpegFoto.mime_type);
+  pruefe('Und liegt byte-genau so da, wie es ankam',
+    (await bildRoh(jpegFoto.id)).bytes.equals(jpegVorlage));
+
+  const gifVorlage = Buffer.from(GIF_BASE64, 'base64');
+  const gifDetail = await ladeBild(ba.id, 'bewegt.gif', 'image/gif', gifVorlage);
+  const gifFoto = gifDetail.photos[gifDetail.photos.length - 1];
+  /* GIF WIRD NICHT UMGEWANDELT, und der Grund ist nicht Bequemlichkeit: sharp
+     liest ohne `animated: true` nur die erste Seite. Eine Umwandlung verloere
+     die Bewegung, und zwar still. */
+  pruefe('Ein GIF behält seinen Typ', gifFoto.mime_type === 'image/gif', gifFoto.mime_type);
+  pruefe('Und liegt ebenfalls byte-genau da',
+    (await bildRoh(gifFoto.id)).bytes.equals(gifVorlage));
+
+  const webpVorlage = Buffer.from(WEBP_BASE64, 'base64');
+  const webpDetail = await ladeBild(ba.id, 'schon.webp', 'image/webp', webpVorlage);
+  const webpFoto = webpDetail.photos[webpDetail.photos.length - 1];
+  pruefe('Vorhandenes WebP wird nicht noch einmal kodiert',
+    (await bildRoh(webpFoto.id)).bytes.equals(webpVorlage));
+
+  /* ---- DER RUECKFALL ----
+     WEBP KANN HOECHSTENS 16383 px JE KANTE. Bei 16384 wirft sharp
+     „Processed image is too large for the WebP format", und dann bleibt die
+     Vorlage unveraendert liegen. **Das ist der Rueckfall, der sich hier
+     wirklich nachstellen laesst** -- ein PNG in Bildschirmgroesse mit einer
+     Kante darueber ist 306 Bytes gross und geht durch rasterBild() glatt
+     hindurch.
+
+     DER ZWEITE RUECKFALL -- „ein PNG, das als WebP GROESSER waere, bleibt
+     PNG" -- IST HIER NICHT NACHGESTELLT, und das gehoert gesagt: er kommt am
+     echten Bestand vor, liess sich mit erzeugtem Material aber nicht
+     herstellen. Neun Anlaeufe (1x1 bis 256x256, Rauschen, Palette,
+     Graustufen, mit und ohne Alpha) ergaben ausnahmslos ein kleineres WebP --
+     schon das kleinste moegliche PNG ist 68 Bytes gross, das kleinste WebP
+     36. **Die Zeile steht im Quelltext und ist durch Rueckbau 433 abgedeckt,
+     der ausdruecklich als STUMM gefuehrt wird.** */
+  const grossPNG = await sharp({ create: { width: 16400, height: 4, channels: 3,
+                                           background: '#888' } }).png().toBuffer();
+  const grossDetail = await ladeBild(ba.id, 'breit.png', 'image/png', grossPNG);
+  const grossFoto = grossDetail.photos[grossDetail.photos.length - 1];
+  pruefe('Ein PNG, das WebP nicht fassen kann, bleibt PNG',
+    grossFoto.mime_type === 'image/png', grossFoto.mime_type);
+  pruefe('Und zwar byte-genau',
+    (await bildRoh(grossFoto.id)).bytes.equals(grossPNG));
+  /* UND DER UPLOAD IST DABEI NICHT GESCHEITERT. Ohne diese Zeile bliebe die
+     Zusage darueber auch dann gruen, wenn der Rueckfall ein 500 waere und
+     gar keine Zeile entstuende (Stolperstein 81). */
+  pruefe('Und die Zeile ist wirklich angelegt worden',
+    grossDetail.photos.length === webpDetail.photos.length + 1,
+    `${webpDetail.photos.length} vorher, ${grossDetail.photos.length} nachher`);
+
+  /* ---- DIE ABLEITUNGEN BLEIBEN JPEG ----
+     Diese Runde macht das ARCHIV unversehrt und laesst die ANZEIGE, wie sie
+     ist. Wer das fuer erledigt haelt, irrt -- und diese Zeile sagt es. */
+  pruefe('Die Ableitungen bleiben JPEG',
+    (await bildRoh(baFoto.id, '?size=thumb')).bytes.slice(0, 2).toString('hex') === 'ffd8' &&
+    (await bildRoh(baFoto.id, '?size=medium')).bytes.slice(0, 2).toString('hex') === 'ffd8');
+
+  /* ---- DIE AUFSTELLUNG NACH FORMAT ---- */
+  const baStats = (await ruf('GET', '/api/stats')).inhalt;
+  pruefe('Die Kennzahlen führen die Fotos nach Format auf', !!baStats.bildFormate,
+    JSON.stringify(baStats.bildFormate));
+  pruefe('WebP, JPEG, GIF und PNG stehen darin',
+    ['webp', 'jpeg', 'gif', 'png'].every(k => baStats.bildFormate[k] &&
+      baStats.bildFormate[k].anzahl > 0), JSON.stringify(baStats.bildFormate));
+  /* DIE SUMME DER AUFTEILUNG IST DIE ALTE ZAHL. Ohne diese Zeile koennte die
+     Aufteilung still etwas anderes zaehlen als photoCount -- zwei Wahrheiten
+     ueber denselben Bestand. */
+  const baSumme = Object.values(baStats.bildFormate).reduce((a2, f) => a2 + f.anzahl, 0);
+  pruefe('Und ihre Summe ist genau photoCount', baSumme === baStats.photoCount,
+    `${baSumme} gegen ${baStats.photoCount}`);
+  const baBytesSumme = Object.values(baStats.bildFormate).reduce((a2, f) => a2 + f.bytes, 0);
+  pruefe('Und ihre Bytesumme genau photoBytes', baBytesSumme === baStats.photoBytes,
+    `${baBytesSumme} gegen ${baStats.photoBytes}`);
+  pruefe('Videos stehen ausdrücklich NICHT in der Aufteilung',
+    baStats.videoCount === 0 || baSumme === baStats.photoCount,
+    `${baSumme} / ${baStats.photoCount} / ${baStats.videoCount}`);
+
+  /* ---- DER SCHALTER ---- */
+  pruefe('Der Schalter steht in den Einstellungen und ist an',
+    (await ruf('GET', '/api/settings')).inhalt.bilderUmwandeln === true,
+    JSON.stringify((await ruf('GET', '/api/settings')).inhalt.bilderUmwandeln));
+  const baAus = await ruf('PUT', '/api/settings', { bilderUmwandeln: false });
+  pruefe('Er lässt sich ausschalten', baAus.status === 200 &&
+    baAus.inhalt.bilderUmwandeln === false, JSON.stringify(baAus.inhalt.bilderUmwandeln));
+  const ausDetail = await ladeBild(ba.id, 'aus.png', 'image/png', vorlagePNG);
+  const ausFotoB = ausDetail.photos[ausDetail.photos.length - 1];
+  /* AUS HEISST AUS: byte-genau, nicht „fast unveraendert". Das ist die
+     Stellung, die dem Verhalten von Immich, Nextcloud und Piwigo entspricht --
+     wer die Abweichung nicht mitgehen will, hat sie hier. */
+  pruefe('Ausgeschaltet bleibt ein ankommendes PNG byte-genau PNG',
+    ausFotoB.mime_type === 'image/png' &&
+    (await bildRoh(ausFotoB.id)).bytes.equals(vorlagePNG),
+    ausFotoB.mime_type);
+  await ruf('PUT', '/api/settings', { bilderUmwandeln: true });
+  pruefe('Und er lässt sich wieder einschalten',
+    (await ruf('GET', '/api/settings')).inhalt.bilderUmwandeln === true);
+
+  /* ---- DER IMPORT WANDELT AUSDRÜCKLICH NICHT UM ----
+     Begruendet: der Import ist EIN Aufruf ueber den ganzen Bestand und
+     rechnet ohnehin schon zwei Ableitungen je Bild. Eine Umwandlung obendrauf
+     verlaengerte ausgerechnet das Wiederherstellen. Die Folge -- eine alte
+     Sicherung bringt PNG zurueck -- ist gewollt, und der Knopf ist die
+     Antwort darauf. */
+  const baImpAntwort = await sendeImport({ version: 12, title: 'B', items: [
+    { title: 'Eingespieltes PNG',
+      photos: [{ mime_type: 'image/png', data_base64: vorlagePNG.toString('base64') }] }
+  ]}, 'merge');
+  pruefe('Der Import mit PNG geht durch', baImpAntwort.status === 200, JSON.stringify(baImpAntwort.inhalt));
+  const baImpItem = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Eingespieltes PNG');
+  pruefe('Und er lässt das eingespielte PNG PNG',
+    baImpItem && baImpItem.mainPhoto.mime_type === 'image/png',
+    baImpItem && baImpItem.mainPhoto.mime_type);
+  pruefe('Und zwar byte-genau',
+    (await bildRoh(baImpItem.mainPhoto.id)).bytes.equals(vorlagePNG));
+
+  /* ---- DER KNOPF: den vorhandenen Bestand nachziehen ---- */
+  const vorPNG = (await ruf('GET', '/api/stats')).inhalt.bildFormate.png;
+  pruefe('Vor dem Lauf liegt noch PNG da', vorPNG && vorPNG.anzahl >= 2,
+    JSON.stringify(vorPNG));
+  /* OHNE ZWEITE BESTAETIGUNG GEHT ES NICHT. Der Lauf schreibt jeden PNG-Blob
+     der Instanz um, und die alten Bytes sind danach weg -- genau die Art
+     Vorgang, fuer die es die zweite Bestaetigung gibt. */
+  const ohneFreigabe = await ruf('POST', '/api/bilder/umstellen', {});
+  pruefe('Ohne zweite Bestätigung sagt die Umstellung ab',
+    ohneFreigabe.status === 403 && ohneFreigabe.inhalt?.bestaetigung === 'bilder',
+    JSON.stringify(ohneFreigabe.inhalt));
+  pruefe('Und der Bestand ist dabei unberührt geblieben',
+    (await ruf('GET', '/api/stats')).inhalt.bildFormate.png.anzahl === vorPNG.anzahl);
+
+  const lauf = await rufF('POST', '/api/bilder/umstellen', {});
+  /* SIE KEHRT SOFORT ZURUECK. Acht Minuten Rechenzeit an einer offenen
+     HTTP-Verbindung sind das, was beim Import ausdruecklich vermieden wird. */
+  pruefe('Die Umstellung kehrt sofort zurück (202)', lauf.status === 202,
+    `Status ${lauf.status}: ${JSON.stringify(lauf.inhalt)}`);
+  pruefe('Und nennt dabei, wie viele Bilder sie vorhat',
+    lauf.inhalt && lauf.inhalt.laeuft === true && lauf.inhalt.gesamt === vorPNG.anzahl,
+    JSON.stringify(lauf.inhalt));
+  /* ZWEIMAL DRUECKEN STARTET NICHT ZWEIMAL. Eine Absage ist ehrlicher als
+     eine zweite Schleife, die dem gemeldeten Fortschritt die Grundlage
+     entzieht. */
+  const zweiterRuf = await rufF('POST', '/api/bilder/umstellen', {});
+  pruefe('Ein zweiter Druck startet keinen zweiten Lauf', zweiterRuf.status === 409,
+    `Status ${zweiterRuf.status}: ${JSON.stringify(zweiterRuf.inhalt)}`);
+
+  // Warten, bis der Lauf durch ist -- der Fortschritt steht in /api/stats und
+  // ausdruecklich NICHT in einer zweiten Route.
+  let baStand = null;
+  for (let i = 0; i < 400; i++) {
+    baStand = (await ruf('GET', '/api/stats')).inhalt.umstellung;
+    if (baStand && !baStand.laeuft) break;
+    await new Promise(r => setTimeout(r, 50));
+  }
+  pruefe('Der Fortschritt steht in den Kennzahlen und läuft aus',
+    baStand && baStand.laeuft === false, JSON.stringify(baStand));
+  pruefe('Und am Ende ist jedes vorgesehene Bild erledigt',
+    baStand && baStand.erledigt === baStand.gesamt, JSON.stringify(baStand));
+  const nachStats = (await ruf('GET', '/api/stats')).inhalt;
+  /* DAS ZU BREITE PNG BLEIBT LIEGEN -- WebP kann es nicht fassen. Der Lauf
+     zaehlt es als „geblieben" und laesst es in Ruhe; „kein PNG mehr da" waere
+     an dieser Instanz also die FALSCHE Zusage. */
+  pruefe('Nach dem Lauf bleibt genau das PNG liegen, das WebP nicht fassen kann',
+    (nachStats.bildFormate.png ? nachStats.bildFormate.png.anzahl : 0) === baStand.geblieben,
+    `${nachStats.bildFormate.png ? nachStats.bildFormate.png.anzahl : 0} gegen ${baStand.geblieben}`);
+  pruefe('Und der Lauf hat wirklich etwas umgestellt', baStand.umgestellt > 0,
+    JSON.stringify(baStand));
+  pruefe('Und dabei Platz gespart', baStand.gespart > 0, JSON.stringify(baStand));
+  const baImpNachher = (await ruf('GET', '/api/items')).inhalt.find(i => i.title === 'Eingespieltes PNG');
+  pruefe('Das eingespielte PNG ist jetzt WebP',
+    baImpNachher.mainPhoto.mime_type === 'image/webp', baImpNachher.mainPhoto.mime_type);
+  /* UND ES IST DABEI UNVERSEHRT GEBLIEBEN -- dieselbe Messung wie oben, nur
+     am anderen Weg. Ohne sie belegte der Lauf nur, dass sich etwas geaendert
+     hat, nicht dass es dasselbe Bild ist. */
+  pruefe('Und dabei unversehrt geblieben',
+    (await groessteAbweichung(vorlagePNG, (await bildRoh(baImpNachher.mainPhoto.id)).bytes)) <= 2);
+  /* thumb UND medium WERDEN NICHT NEU GERECHNET. Sie sind aus demselben Bild
+     entstanden und bleiben gueltig; ein Neurechnen kostete Zeit und aenderte
+     nichts. */
+  pruefe('Die Ableitungen sind dabei unberührt geblieben',
+    (await bildRoh(baImpNachher.mainPhoto.id, '?size=thumb')).bytes.slice(0, 2).toString('hex') === 'ffd8');
+  pruefe('JPEG und GIF haben den Lauf unverändert überstanden',
+    (await bildRoh(jpegFoto.id)).bytes.equals(jpegVorlage) &&
+    (await bildRoh(gifFoto.id)).bytes.equals(gifVorlage));
+
+  await ruf('DELETE', `/api/items/${ba.id}`);
+  await ruf('DELETE', `/api/items/${baImpItem.id}`);
 
   /* ---------------------------------------------------------------- */
   gruppe('Berichte und angepinnte Kommentare');
@@ -16758,8 +17346,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
     return { status: a2.status, h: Object.fromEntries(a2.headers), bytes: Buffer.from(await a2.arrayBuffer()) };
   };
   const fPng = await fAntwort(foNach.photos[0].id);
-  pruefe('Ein Rasterbild wird mit seinem eigenen Typ ausgeliefert',
-    fPng.h['content-type'] === 'image/png', fPng.h['content-type']);
+  /* DER AUSGELIEFERTE TYP KOMMT AUS DEN BYTES, nie aus mime_type -- und seit
+     0.19.0 laesst sich das an dieser Stelle wirklich zeigen: das hochgeladene
+     PNG liegt als WebP in der Tabelle. Verglichen wird deshalb der Kopf gegen
+     das, was DA IST, und nicht gegen das, was hochgeladen wurde; die zweite
+     Zeile haelt fest, dass dort wirklich WebP liegt -- ohne sie waere die
+     erste auch dann gruen, wenn beides PNG bliebe. */
+  const fInhaltsTyp = fPng.bytes.slice(0, 4).toString('latin1') === 'RIFF' &&
+                      fPng.bytes.slice(8, 12).toString('latin1') === 'WEBP'
+    ? 'image/webp' : 'image/png';
+  pruefe('Ein Rasterbild wird mit dem Typ seiner BYTES ausgeliefert',
+    fPng.h['content-type'] === fInhaltsTyp, `${fPng.h['content-type']} zu ${fInhaltsTyp}`);
+  pruefe('Und seit 0.19.0 liegt dort WebP, weil ein PNG umgewandelt wird',
+    fInhaltsTyp === 'image/webp', fPng.bytes.slice(0, 12).toString('hex'));
   pruefe('Und darf eingebettet werden', /^inline;/.test(fPng.h['content-disposition'] || ''),
     fPng.h['content-disposition']);
   pruefe('nosniff steht auch am Foto', fPng.h['x-content-type-options'] === 'nosniff');
@@ -17152,10 +17751,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Ein Foto bietet weiterhin KEINE Ranges an',
     vFotoRaw.h['accept-ranges'] === undefined, JSON.stringify(vFotoRaw.h['accept-ranges']));
   const vFotoRange = vBildId ? await vAntwort(vBildId, '', { range: 'bytes=0-3' }) : vLeer;
+  /* VERGLICHEN WIRD GEGEN DEN VOLLEN ABRUF DERSELBEN ZEILE und nicht gegen die
+     hochgeladene Datei: seit 0.19.0 liegt ein PNG als WebP in der Tabelle, und
+     die Zusage lautet „der ganze Blob geht hinaus", nicht „genau diese
+     Bytes kamen herein". Die Laenge steht ausdruecklich daneben -- ohne sie
+     waere ein leerer Rumpf gegen einen leeren Rumpf ebenfalls gleich. */
   pruefe('Und ein Range am Foto wird uebergangen, nicht beantwortet',
-    vFotoRange.status === 200 &&
-    vFotoRange.bytes.equals(Buffer.from(PNG_BASE64, 'base64')),
-    `Status ${vFotoRange.status}, ${vFotoRange.bytes.length} Bytes`);
+    vFotoRange.status === 200 && vFotoRange.bytes.length > 4 &&
+    vFotoRange.bytes.equals(vFotoRaw.bytes),
+    `Status ${vFotoRange.status}, ${vFotoRange.bytes.length} gegen ${vFotoRaw.bytes.length} Bytes`);
 
   /* BESTANDSDATEN UND UNBEKANNTE MARKEN. Eine ISO-Datei mit einer Marke, die
      nicht auf der Liste steht, geht als Download heraus -- nicht abspielbar,
@@ -18309,7 +18913,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   // SIND MITGEGANGEN statt geloescht zu werden (Stolperstein 201): 389 und 392
   // zeigten auf die leere Meldung, die jetzt zwei Zeilen hoch ist -- sie bauen
   // deshalb auf EINE Zeile zurueck und nicht mehr auf null.
-  pruefe('Es sind genau 422 Rueckbauten', gpListe.length === 422, `${gpListe.length}`);
+  /* 450 SEIT 0.19.0: achtundzwanzig neue, ab Nummer 431 -- zwoelf an der
+     Bildablage, sieben am engeren Ausschnitt, neun an der Oberflaeche dazu.
+     EINER IST MITGEGANGEN statt geloescht zu werden (Stolperstein 201): 233
+     nahm der Exportdatei ihre Formatnummer und zeigte auf die 11; er zeigt
+     jetzt auf die 12 und bleibt derselbe Fund.
+     UND DIE ZAHL 429 IM STOLPERSTEIN 269 WAR FALSCH: nachgezaehlt sind es 422
+     Eintraege, davon 419 mit Nummer, und die hoechste war 430. Der Stolperstein
+     ueber falsche Zahlen trug selbst eine. */
+  pruefe('Es sind genau 450 Rueckbauten', gpListe.length === 450, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -18850,8 +19462,74 @@ async function pruefeErstanmeldung() {
 
 // Ein echtes, winziges PNG (1x1). Muss echt sein: der Server jagt jedes Foto
 // durch sharp, ein Fantasie-Puffer scheiterte dort.
+/* SEIT 0.19.0 LIEGT ES NACH DEM HOCHLADEN ALS WEBP IN DER TABELLE -- auch
+   dieses winzige: 70 Bytes PNG werden 36 Bytes WebP. **Nachgemessen und
+   ausdruecklich hier vermerkt, weil die naheliegende Annahme falsch ist**: das
+   kleinste moegliche PNG ist groesser als das kleinste moegliche WebP, und der
+   Rueckfall „ein PNG, das groesser waere, bleibt PNG" laesst sich damit gerade
+   NICHT zeigen. Wer eine Pruefung darauf baut, baut sie auf eine Vermutung.
+   WAS DAS FUER DIE UEBRIGEN PRUEFLAGEN HEISST: wo dieses Bild hochgeladen und
+   danach BYTEWEISE verglichen wird, ist der Vergleichswert die abgelegte
+   Fassung und nicht diese Konstante. */
 const PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+/* EIN ECHTES, WINZIGES WEBP (16x16, verlustfrei) -- 54 Bytes. Gebraucht wird
+   es fuer die Zusage „vorhandenes WebP wird nicht angefasst": ohne eine echte
+   WebP-Datei liesse sich nicht zeigen, dass der Server sie byte-genau
+   durchreicht statt sie noch einmal durch den Kodierer zu schicken.
+   ALS BASE64-KONSTANTE UND NICHT ALS DATEI: im Repo liegt keine einzige
+   Binaerdatei, und diese Runde legt keine an. */
+const WEBP_BASE64 = 'UklGRi4AAABXRUJQVlA4TCIAAAAvD8ADALkyRPQ/dhHR/wCRtk0l3L/hwdOBGMCYAKoO1H8A';
+
+/* EIN ECHTES, WINZIGES GIF (8x8, zwei Farben) -- 53 Bytes. Gebraucht wird es
+   fuer die Gegenzusage: GIF wird NICHT umgewandelt. sharp liest ohne
+   `animated: true` nur die erste Seite; eine Umwandlung verloere die Bewegung,
+   und zwar still. Die Probe zeigt, dass die Bytes unberuehrt bleiben. */
+const GIF_BASE64 = 'R0lGODlhCAAIAIAAAAD/AP8AACH5BAQAAAAALAAAAAAIAAgAAAIMDIxwi5nM3IKNKhkKADs=';
+
+/* EIN ERZEUGTES PRUEFBILD -- gross genug, dass die Umwandlung ueberhaupt
+   etwas bringt, und mit dem Gemisch, um das es geht: weiche Flaechen wie auf
+   einer Aufnahme, harte Kanten wie auf einer Bedienoberflaeche. Genau so sieht
+   ein Bildschirmfoto VON einem Foto aus, und daraus besteht der echte Bestand
+   zu 92 %.
+   ERZEUGT UND NICHT MITGELIEFERT: als Base64 waeren es 33 kB Quelltext, und
+   fuer die Zusage „verlustfrei" braucht es keine echte Aufnahme -- nur ein
+   Bild, dessen Pixel man vorher kennt. */
+async function machPruefPNG(seite = 96) {
+  const roh = Buffer.alloc(seite * seite * 3);
+  for (let y = 0; y < seite; y++) {
+    for (let x = 0; x < seite; x++) {
+      const i = (y * seite + x) * 3;
+      roh[i]     = Math.round(120 + 90 * Math.sin(x / 7) * Math.cos(y / 5)) & 255;
+      roh[i + 1] = Math.round(110 + 80 * Math.sin((x + y) / 6)) & 255;
+      roh[i + 2] = Math.round(140 + 70 * Math.cos(x / 4)) & 255;
+      // Harte Kanten obenauf, sonst waere es ein reines Farbfeld.
+      if (y % 17 < 2) { roh[i] = 18; roh[i + 1] = 18; roh[i + 2] = 22; }
+    }
+  }
+  // Mit Alphakanal, wie ein Bildschirmfoto aus der Zwischenablage.
+  return sharp(roh, { raw: { width: seite, height: seite, channels: 3 } })
+    .ensureAlpha().png({ compressionLevel: 9 }).toBuffer();
+}
+
+/* DIE GROESSTE ABWEICHUNG EINES EINZELNEN FARBWERTS zwischen zwei Bildern --
+   nicht der Durchschnitt, der SCHLIMMSTE Einzelfall. Ein Mittelwert verwischt
+   genau das, worauf es ankommt: eine einzelne ausgefranste Kante geht darin
+   unter. Liefert -1, wenn die beiden Bilder nicht dieselben Masse haben. */
+async function groessteAbweichung(a, b) {
+  const ma = await sharp(a).metadata(), mb = await sharp(b).metadata();
+  if (ma.width !== mb.width || ma.height !== mb.height) return -1;
+  const pa = await sharp(a).removeAlpha().raw().toBuffer();
+  const pb = await sharp(b).removeAlpha().raw().toBuffer();
+  if (pa.length !== pb.length) return -1;
+  let max = 0;
+  for (let i = 0; i < pa.length; i++) {
+    const d = Math.abs(pa[i] - pb[i]);
+    if (d > max) max = d;
+  }
+  return max;
+}
 
 /* ECHTE VIDEODATEIEN, keine Nachbildung. Beide sind in einem Browser
    aufgenommen und tragen deshalb genau die Koepfe, die eine echte Datei
@@ -19127,6 +19805,12 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   oeffentlicheAdresse = '', mailStand = null, mailFehler = false, eigeneAdresse = 'chefin@beispiel.de',
   tokenBremse = 0, registrierung = false, anfragenStand = null, zweifaktorStand = null, statsExport = null,
   statsVerfahren = undefined,
+  /* DIE BILDABLAGE IN DEN KENNZAHLEN, seit 0.19.0 -- stellbar, weil die Karte
+     drei Lagen zeigen muss: es liegt PNG da (der Knopf ist bedienbar), es
+     liegt keines mehr da (er ist es nicht), und ein Lauf ist unterwegs. */
+  statsBildFormate = undefined,
+  statsUmstellung = null,
+  bilderUmwandeln = true,
   zweifaktorCodes = null, anmeldeFaktor = false, suchFehler = false, suchBremsen = null,
   kategorien = [{ id: 21, name: 'Werkzeug', usage_count: 2 }, { id: 22, name: 'Material', usage_count: 0 }],
   /* Die Ablehnung am Beispieleintrag, seit 0.14.0. Vorgabe ist "nicht
@@ -19872,8 +20556,23 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
     /* zweifaktor SEIT 0.10.0: daran haengt, ob das Bestaetigungsfenster ein
        zweites Feld zeigt. Es kommt aus DEMSELBEN Stand wie die Karte -- eine
        zweite Wahrheit im Mock waere genau der Fehler, den er finden soll. */
+    if (url === '/api/settings' && (opt.method || 'GET') === 'GET')
+      return gib({ name: 'chefin', papierkorbTage: 30, bilderUmwandeln,
+        zweifaktor: zfStandMock.an === true, ...einstellungen });
+    /* SCHREIBEND, seit 0.19.0 -- und der Mock AENDERT SEINE ANTWORT WIRKLICH
+       (Stolperstein 90): sonst waere „der Haken ist gesetzt" von „der Haken
+       springt zurueck" nicht zu unterscheiden. */
+    if (url === '/api/settings' && opt.method === 'PUT') {
+      const ein = opt.body ? JSON.parse(opt.body) : {};
+      if (ein.bilderUmwandeln !== undefined) bilderUmwandeln = !!ein.bilderUmwandeln;
+      /* NUR DER GEAENDERTE WERT ZURUECK, nicht die ganze Antwort: bis 0.18.1
+         fiel dieser Weg auf `gib({})` durch, und mehrere Karten lesen aus dem
+         Ergebnis. Wer hier die volle Antwort einsetzt, aendert still das
+         Verhalten von Prueflagen, die mit dieser Runde nichts zu tun haben. */
+      return gib({ bilderUmwandeln });
+    }
     if (url === '/api/settings') return gib({ name: 'chefin', papierkorbTage: 30,
-      zweifaktor: zfStandMock.an === true, ...einstellungen });
+      bilderUmwandeln, zweifaktor: zfStandMock.an === true, ...einstellungen });
     /* DER PAPIERKORB IM MOCK, und er muss BEIDE Zustaende koennen: gefuellt
        und leer. Eine Karte ohne Zeilen belegte nichts ueber die Zeilen, eine
        ohne den leeren Fall nichts ueber die Auskunft "hier liegt nichts"
@@ -20234,6 +20933,26 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
       beispiel.photos = beispiel.photos.filter(p => p.id !== wegId);
       return gib({ ok: true });
     }
+    /* DER AUSSCHNITT, seit 0.19.0. ER MUSS HIER STEHEN, und zwar aus dem
+       Grund, der eine Zeile tiefer schon steht: ohne eigenen Zweig fiele der
+       Ruf auf `gib({})` durch, `item` waere danach leer, und JEDE spaetere
+       Pruefung an diesem Fenster bräche -- an einer Stelle, die mit dem
+       Ausschnitt nichts zu tun hat.
+       UND DER MOCK AENDERT SEINE ANTWORT WIRKLICH (Stolperstein 90): sonst
+       waere „der Wert kommt an" von „der Wert wird verworfen" nicht zu
+       unterscheiden, und beides bliebe gruen. Beschnitten wird wie im
+       Server, denn genau das soll die Oberflaeche nicht selbst tun. */
+    if (/^\/api\/photos\/\d+\/focus$/.test(url) && opt.method === 'PUT') {
+      const nr = Number(url.split('/')[3]);
+      const k = (v, min, max) => Math.min(max, Math.max(min, Number(v)));
+      const f = beispiel.photos.find(p => p.id === nr);
+      if (f) {
+        const ein = opt.body ? JSON.parse(opt.body) : {};
+        f.focus_x = k(ein.x, 0, 100); f.focus_y = k(ein.y, 0, 100);
+        if (ein.zoom !== undefined) f.zoom = k(ein.zoom, 100, 400);
+      }
+      return gib(beispiel);
+    }
     if (url.startsWith('/api/items/1')) return gib(beispiel);
     // Endpunkte, die den ganzen Eintrag zurueckgeben. Ohne das wird `item` im
     // Frontend leer, und alles Folgende bricht -- der Prueflauf stuerzte
@@ -20278,6 +20997,14 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
           anhaenge: 8192, kommentarbilder: 2048,
           warnAb: 300 * 1024 * 1024, grenze: 483183799 },
         version: require('./package.json').version, fingerprint: 'a1b2c3d4',
+        /* DIE AUFTEILUNG NACH FORMAT und der Stand eines Laufs. Der Mock
+           liefert sie wie der Server: erkannt an den ersten Bytes, nur
+           Bilder, keine Videos. */
+        bildFormate: statsBildFormate === undefined
+          ? { png: { anzahl: 12, bytes: 6291456 }, jpeg: { anzahl: 5, bytes: 524288 },
+              webp: { anzahl: 2, bytes: 65536 } }
+          : statsBildFormate,
+        umstellung: statsUmstellung,
         /* DIE VERFAHREN, seit 0.16.0 -- dieselben Werte, die db.js aus der
            geoeffneten Datei abliest. STELLBAR AUF null: eine Antwort ohne sie
            ist die Lage, in der der Abschnitt in der Karte gar nicht dastehen
@@ -24482,22 +25209,49 @@ async function pruefeOberflaeche() {
   /* ================= Fokuspunkt in der Oberflaeche ================= */
   gruppe('Fokuspunkt in der Oberflaeche');
 
-  pruefe('Fehlende Werte landen in der Mitte', wb.fokus({}) === '50% 50%');
+  /* EINE FUNKTION FUER ALLE DREI WERTE, seit 0.19.0. Bis 0.18.1 hiess sie
+     fokus() und lieferte nur die object-position; sie heisst jetzt
+     ausschnitt() und traegt die Weite als Eigenschaft `--zoom` daneben.
+     GEPRUEFT WIRD BEIDES EINZELN: eine Zusicherung mit zwei Haelften, von der
+     nur eine wirkt, sieht von aussen aus wie eine ganze. */
+  pruefe('Fehlende Werte landen in der Mitte und auf dem weitesten Ausschnitt',
+    wb.ausschnitt({}) === 'object-position:50% 50%;--zoom:1', wb.ausschnitt({}));
   pruefe('Vorhandene Werte werden zu object-position',
-    wb.fokus({ focus_x: 20, focus_y: 80 }) === '20% 80%');
+    wb.ausschnitt({ focus_x: 20, focus_y: 80 }) === 'object-position:20% 80%;--zoom:1',
+    wb.ausschnitt({ focus_x: 20, focus_y: 80 }));
   pruefe('Unsinnige Werte fallen auf die Mitte zurück',
-    wb.fokus({ focus_x: 'links', focus_y: null }) === '50% 50%');
+    wb.ausschnitt({ focus_x: 'links', focus_y: null }) === 'object-position:50% 50%;--zoom:1',
+    wb.ausschnitt({ focus_x: 'links', focus_y: null }));
+  /* DER ZOOM GEHT ALS FAKTOR HINAUS UND NICHT ALS PROZENT: im Stylesheet steht
+     scale(var(--zoom)), und scale() rechnet mit 2 und nicht mit 200. */
+  pruefe('Der Zoomwert wird zum Faktor',
+    wb.ausschnitt({ focus_x: 50, focus_y: 50, zoom: 200 }) === 'object-position:50% 50%;--zoom:2',
+    wb.ausschnitt({ focus_x: 50, focus_y: 50, zoom: 200 }));
+  pruefe('Und ein unsinniger Zoomwert faellt auf den weitesten Ausschnitt',
+    wb.ausschnitt({ zoom: 'nah' }) === 'object-position:50% 50%;--zoom:1',
+    wb.ausschnitt({ zoom: 'nah' }));
+  /* UND ES GIBT KEINE ZWEITE FUNKTION MEHR, die nur den Punkt liefert -- sonst
+     stuenden zwei Wahrheiten ueber denselben Ausschnitt nebeneinander, und die
+     Aufrufstelle, die die aeltere nimmt, saehe von aussen richtig aus. */
+  pruefe('Und fokus() gibt es nicht mehr daneben', typeof wb.fokus === 'undefined',
+    typeof wb.fokus);
 
   const fokusDom = baueDom(JSDOM, {
     uebersichtItems: [{ id: 1, title: 'Mit Fokus', rejected: false, tested: false, favorite: false,
       category: null, tags: [], photoCount: 1, linkCount: 0, avgRating: null, testCount: null,
       testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00', testDays: [],
-      mainPhoto: { id: 5, focus_x: 10, focus_y: 90 } }]
+      mainPhoto: { id: 5, focus_x: 10, focus_y: 90, zoom: 250 } }]
   });
   await new Promise(r => setTimeout(r, 80));
   const kartenBild = fokusDom.w.document.querySelector('.card-img img');
   pruefe('Karte setzt den Fokuspunkt', kartenBild.style.objectPosition === '10% 90%',
     kartenBild.style.objectPosition);
+  /* DIE KACHEL TRAEGT DEN ZOOM WIRKLICH -- und zwar als Eigenschaft. Ohne
+     diese Zeile bliebe gruen, wer ausschnitt() richtig rechnet und das
+     Ergebnis nirgends hinschreibt. */
+  pruefe('Und sie traegt den engeren Ausschnitt als Eigenschaft',
+    kartenBild.style.getPropertyValue('--zoom').trim() === '2.5',
+    kartenBild.getAttribute('style'));
   fokusDom.w.close();
 
   const vf = wb.document.querySelector('.vfocus');
@@ -24509,6 +25263,81 @@ async function pruefeOberflaeche() {
   pruefe('Schalter aktiviert den Modus',
     wb.document.querySelector('.viewer').classList.contains('focus-mode'));
   pruefe('Ein Rahmen zeigt den künftigen Ausschnitt', !!wb.document.querySelector('.focus-frame'));
+
+  /* --- DER SCHIEBER FUER DIE WEITE, seit 0.19.0 ---
+     Er steht IM BETRACHTER und nur im Ausschnittmodus: der Ausschnitt wird an
+     EINEM Ort eingestellt, nicht an zweien. */
+  const schieber = wb.document.querySelector('#vzoom-schieber');
+  pruefe('Im Ausschnittmodus steht ein Schieber für die Weite', !!schieber);
+  pruefe('Er steht auf dem weitesten Ausschnitt', schieber && schieber.value === '100',
+    schieber ? schieber.value : 'kein Schieber');
+  pruefe('Und seine Spanne ist die des Servers', schieber &&
+    schieber.min === '100' && schieber.max === '400', schieber ? `${schieber.min}..${schieber.max}` : '—');
+  /* ZIEHEN ZEICHNET, LOSLASSEN SPEICHERT -- getrennt geprueft, denn ein
+     Schieber, der bei jedem Zwischenschritt schickt, erzeugt bei einem Zug
+     ueber die ganze Leiter sechzig Anfragen. */
+  bd.gesendet.length = 0;
+  schieber.value = '250';
+  schieber.dispatchEvent(new wb.Event('input', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Das Ziehen schreibt den Wert an den Rahmen',
+    wb.document.querySelector('#vzoom-wert').textContent === '250 %',
+    wb.document.querySelector('#vzoom-wert').textContent);
+  pruefe('Und es schickt dabei noch nichts',
+    !bd.gesendet.some(g => /\/focus$/.test(g.url)), JSON.stringify(bd.gesendet.map(g => g.url)));
+  /* UND DER RAHMEN ZIEHT SICH WIRKLICH ZUSAMMEN -- um seine Mitte, so wie
+     scale() es am Bild tut. Ohne diese Zeile bliebe gruen, wer die Zahl
+     anzeigt und den Rahmen stehen laesst.
+     JSDOM RECHNET KEIN LAYOUT: getBoundingClientRect() liefert dort ueberall
+     Nullen, und der Rahmen waere in JEDER Stellung 0 px breit -- die Pruefung
+     koennte gar nicht scheitern (Stolperstein 106). Deshalb bekommen Bild und
+     Betrachter fuer diese eine Frage ein gemessenes Rechteck untergeschoben;
+     gerechnet wird danach wirklich in app.js. */
+  {
+    const betr = wb.document.querySelector('.viewer');
+    const bildEl = wb.document.querySelector('.viewer img');
+    const rechteck = (l, o, b, h) => () => ({ left: l, top: o, width: b, height: h,
+      right: l + b, bottom: o + h, x: l, y: o, toJSON() { return this; } });
+    betr.getBoundingClientRect = rechteck(0, 0, 600, 400);
+    bildEl.getBoundingClientRect = rechteck(0, 0, 600, 400);
+    Object.defineProperty(bildEl, 'naturalWidth', { value: 1200, configurable: true });
+    Object.defineProperty(bildEl, 'naturalHeight', { value: 800, configurable: true });
+    schieber.value = '100';
+    schieber.dispatchEvent(new wb.Event('input', { bubbles: true }));
+    const rahmenWeit = parseFloat(wb.document.querySelector('.focus-frame').style.width) || 0;
+    schieber.value = '200';
+    schieber.dispatchEvent(new wb.Event('input', { bubbles: true }));
+    const rahmenEng = parseFloat(wb.document.querySelector('.focus-frame').style.width) || 0;
+    // Erst das Vorhandensein, dann der Vergleich: zwei Nullen waeren sonst
+    // "gleich" und die Zusage darunter gruen.
+    pruefe('Der Rahmen hat ueberhaupt eine gemessene Breite', rahmenWeit > 0,
+      `${rahmenWeit}`);
+    pruefe('Der Rahmen wird beim Zuziehen kleiner', rahmenEng < rahmenWeit,
+      `${rahmenEng} gegen ${rahmenWeit}`);
+    /* UND ZWAR UM GENAU DEN FAKTOR: bei 200 % ist die Seite halb so lang.
+       Ohne diese Zeile bliebe gruen, wer irgendetwas kleiner macht. */
+    pruefe('Und zwar auf die Haelfte bei 200 Prozent',
+      Math.abs(rahmenEng * 2 - rahmenWeit) < 0.5, `${rahmenEng} · 2 gegen ${rahmenWeit}`);
+  }
+  schieber.value = '250';
+  schieber.dispatchEvent(new wb.Event('input', { bubbles: true }));
+  schieber.dispatchEvent(new wb.Event('change', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 30));
+  const zoomRuf = bd.gesendet.find(g => /\/focus$/.test(g.url));
+  pruefe('Das Loslassen speichert', !!zoomRuf, JSON.stringify(bd.gesendet.map(g => g.url)));
+  pruefe('Und schickt alle drei Werte in EINEM Ruf',
+    zoomRuf && zoomRuf.koerper && zoomRuf.koerper.zoom === 250 &&
+    typeof zoomRuf.koerper.x === 'number' && typeof zoomRuf.koerper.y === 'number',
+    JSON.stringify(zoomRuf && zoomRuf.koerper));
+  /* DER GRIFF AN DEN SCHIEBER SETZT KEINEN FOKUSPUNKT. Ohne die Ausnahme in
+     der Zeigerklemme laege der Punkt danach dort, wo der Schieber steht --
+     also unten in der Mitte, bei jedem Zug aufs Neue. */
+  bd.gesendet.length = 0;
+  schieber.dispatchEvent(new wb.Event('pointerdown', { bubbles: true }));
+  schieber.dispatchEvent(new wb.Event('pointerup', { bubbles: true }));
+  await new Promise(r => setTimeout(r, 20));
+  pruefe('Ein Griff an den Schieber setzt keinen Fokuspunkt',
+    !bd.gesendet.some(g => /\/focus$/.test(g.url)), JSON.stringify(bd.gesendet.map(g => g.url)));
 
   /* --- Verlassen des Modus. Der Betrachter wird beim Neuzeichnen nicht
    * ersetzt, sondern nur sein Inhalt -- was an ihm selbst haengt, ueberlebt.
@@ -27754,9 +28583,13 @@ async function pruefeOberflaeche() {
       [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim())
         .join('|').includes('Version|Fingerprint'),
       [...(karte?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
-    const kvUnter = karte?.querySelector('.sys-unter');
+    /* GESUCHT WIRD DER ABSCHNITT MIT DEM NAMEN und nicht der erste: seit
+       0.19.0 traegt die Karte zwei -- „Bildablage" steht vor „Verfahren".
+       Ein querySelector auf den ersten faende ab da den falschen. */
+    const kvUnterschriften = [...(karte?.querySelectorAll('.sys-unter') || [])]
+      .map(u => u.textContent.trim());
     pruefe('Ein eigener, untergeordneter Abschnitt nennt die Verfahren',
-      kvUnter?.textContent.trim() === 'Verfahren', kvUnter?.textContent);
+      kvUnterschriften.includes('Verfahren'), kvUnterschriften.join(' · '));
     /* DIE BESCHRIFTUNGEN SIND IN DER KARTE EINDEUTIG -- „Datenbank" steht dort
        schon einmal, fuer die Belegung auf der Platte. Deshalb heisst die Zeile
        der Chiffre „Verschlüsselung"; ohne das griffe die Suche die falsche
@@ -27804,9 +28637,144 @@ async function pruefeOberflaeche() {
     const kOhne = [...ohneVerf.w.document.querySelectorAll('.sys-grid > .sys-card')]
       .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
     pruefe('Ohne Verfahrensangaben steht der Abschnitt gar nicht da',
-      !!kOhne && !kOhne.querySelector('.sys-unter'),
-      kOhne?.querySelector('.sys-unter')?.textContent);
+      !!kOhne && ![...kOhne.querySelectorAll('.sys-unter')]
+        .some(u => u.textContent.trim() === 'Verfahren'),
+      [...(kOhne?.querySelectorAll('.sys-unter') || [])].map(u => u.textContent.trim()).join(' · '));
     ohneVerf.w.close();
+  }
+
+  /* ---------------------------------------------------------------- */
+  gruppe('Die Bildablage in der Oberflaeche');
+
+  /* SIE STEHT IN DER KARTE „Kennzahlen" UND NICHT IN EINER NEUNZEHNTEN.
+     Die Aufstellung IST eine Kennzahl, und der Knopf gehoert neben die Zahl,
+     die sagt, ob er noch etwas zu tun hat. Geprueft wird deshalb IN DIESER
+     KARTE -- ein Knopf irgendwo im Systembereich belegte das nicht. */
+  {
+    const baKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
+    const baZeilen = (k) => [...(k?.querySelectorAll('.kv .k') || [])]
+      .map(z => z.textContent.trim());
+
+    const baEig = await pkSystem({ istAdmin: true, istEigentuemer: true });
+    await sysAbschnitt(baEig.w, 'datenbank');
+    const kEig = baKarte(baEig);
+    pruefe('Es bleibt bei achtzehn Karten', [...baEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
+      .every(c => c.querySelector('h3')?.textContent.trim() !== 'Bildablage'),
+      [...baEig.w.document.querySelectorAll('.sys-grid > .sys-card h3')].map(h => h.textContent).join(' · '));
+    const unterschriften = [...(kEig?.querySelectorAll('.sys-unter') || [])].map(u => u.textContent.trim());
+    pruefe('Die Karte traegt einen Abschnitt „Bildablage"',
+      unterschriften.includes('Bildablage'), unterschriften.join(' · '));
+    for (const [wort, wert] of [['PNG', '12 · 6,0 MB'], ['JPEG', '5 · 512,0 KB'], ['WebP', '2 · 64,0 KB']]) {
+      const zeile = [...(kEig?.querySelectorAll('.kv') || [])]
+        .find(z => z.querySelector('.k')?.textContent.trim().startsWith(wort));
+      pruefe(`Die Zeile „${wort}" steht darin und nennt Zahl und Groesse`,
+        zeile?.querySelector('.v')?.textContent.trim() === wert,
+        `${wort}: ${zeile?.querySelector('.v')?.textContent}`);
+    }
+    /* EIN FORMAT OHNE BILDER BEKOMMT KEINE ZEILE MIT EINER NULL. Eine Null ist
+       eine Aussage, und sie lenkt von den beiden Zahlen ab, um die es geht. */
+    pruefe('Ein Format ohne Bilder steht gar nicht da',
+      !baZeilen(kEig).some(z => z.startsWith('GIF')), baZeilen(kEig).join(' · '));
+    pruefe('Und PNG traegt den Zusatz, dass es umgestellt wird',
+      baZeilen(kEig).some(z => /^PNG.*umgestellt/.test(z)), baZeilen(kEig).join(' · '));
+    pruefe('Und JPEG den, dass es unangetastet bleibt',
+      baZeilen(kEig).some(z => /^JPEG.*unangetastet/.test(z)), baZeilen(kEig).join(' · '));
+
+    const haken = baEig.w.document.getElementById('bild-umwandeln');
+    pruefe('Die Eigentuemerin bekommt den Schalter', !!haken);
+    pruefe('Und er steht auf der Stellung aus der Antwort', haken && haken.checked === true);
+    const knopf = baEig.w.document.getElementById('bild-um');
+    pruefe('Und den Knopf, der den Bestand nachzieht', !!knopf);
+    pruefe('Der Knopf ist bedienbar, solange PNG dasteht', knopf && !knopf.disabled);
+
+    /* DER SCHALTER SCHREIBT WIRKLICH -- und ueber PUT /api/settings, nicht
+       ueber eine eigene Route. Ohne diese Zeile bliebe gruen, wer den Haken
+       zeichnet und nichts damit tut. */
+    baEig.gesendet.length = 0;
+    haken.checked = false;
+    await haken.onchange();
+    const schalterRuf = baEig.gesendet.find(g => g.url === '/api/settings' && g.methode === 'PUT');
+    pruefe('Der Schalter geht ueber PUT /api/settings', !!schalterRuf,
+      baEig.gesendet.map(g => `${g.methode} ${g.url}`).join(' · '));
+    pruefe('Und schickt genau die eine Stellung',
+      schalterRuf && schalterRuf.koerper && schalterRuf.koerper.bilderUmwandeln === false,
+      JSON.stringify(schalterRuf && schalterRuf.koerper));
+    pruefe('Und es gibt keine eigene Route dafuer',
+      !baEig.gesendet.some(g => /bilder\/(schalter|umwandeln)$/.test(g.url)),
+      baEig.gesendet.map(g => g.url).join(' · '));
+
+    /* DER KNOPF FRAGT ERST DAS PASSWORT. Ohne die zweite Bestaetigung darf
+       kein einziger Byte umgeschrieben werden -- und der Dialog davor sagt,
+       was verloren geht. */
+    baEig.gesendet.length = 0;
+    knopf.onclick();
+    await new Promise(r => setTimeout(r, 40));
+    const dialog = baEig.w.document.querySelector('.backdrop .modal');
+    const dialogText = (baEig.w.document.body.textContent || '');
+    pruefe('Der Knopf schreibt nicht sofort los',
+      !baEig.gesendet.some(g => g.url === '/api/bilder/umstellen'),
+      baEig.gesendet.map(g => `${g.methode} ${g.url}`).join(' · '));
+    pruefe('Sondern fragt vorher nach dem Passwort',
+      !!dialog && !!baEig.w.document.getElementById('best-pass'),
+      dialogText.replace(/\s+/g, ' ').slice(0, 160));
+    /* UND DER TEXT BESCHOENIGT NICHTS: er nennt die Zahl, den Platz, dass die
+       PNG-Fassung danach weg ist, und die Sicherung als einzigen Rueckweg. */
+    pruefe('Und sagt vorher, wie viele Bilder es trifft', /12 PNG-Original/.test(dialogText),
+      dialogText.replace(/\s+/g, ' ').slice(0, 300));
+    pruefe('Und dass die PNG-Fassung danach nicht mehr da ist',
+      /nicht mehr da/.test(dialogText), dialogText.replace(/\s+/g, ' ').slice(0, 300));
+    pruefe('Und dass nur eine Sicherung zurueckfuehrt',
+      /Sicherung des Datenverzeichnisses/.test(dialogText),
+      dialogText.replace(/\s+/g, ' ').slice(0, 300));
+    baEig.w.document.querySelectorAll('.backdrop').forEach(e => e.remove());
+    baEig.w.close();
+
+    /* ---- DIE DREI GEGENLAGEN ---- */
+    // Kein PNG mehr da: der Knopf ist tot, und die Karte sagt, warum.
+    const baLeer = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { statsBildFormate: { webp: { anzahl: 9, bytes: 65536 } } });
+    await sysAbschnitt(baLeer.w, 'datenbank');
+    pruefe('Ohne PNG ist der Knopf nicht bedienbar',
+      baLeer.w.document.getElementById('bild-um')?.disabled === true);
+    pruefe('Und die Karte sagt, warum',
+      /kein PNG-Original mehr/.test(baKarte(baLeer)?.textContent || ''),
+      baKarte(baLeer)?.textContent?.replace(/\s+/g, ' ').slice(-200));
+    baLeer.w.close();
+
+    // Ein Lauf ist unterwegs: die Zeile zaehlt mit, der Knopf ist tot.
+    const baLauf = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { statsUmstellung: { laeuft: true, gesamt: 12, erledigt: 5, umgestellt: 4, geblieben: 1, gespart: 100 } });
+    await sysAbschnitt(baLauf.w, 'datenbank');
+    pruefe('Waehrend eines Laufs zeigt die Karte den Fortschritt',
+      /5 von 12/.test(baLauf.w.document.getElementById('bild-lauf')?.textContent || ''),
+      baLauf.w.document.getElementById('bild-lauf')?.textContent);
+    pruefe('Und der Knopf ist so lange tot',
+      baLauf.w.document.getElementById('bild-um')?.disabled === true);
+    baLauf.w.close();
+
+    // Ein Lauf ist durch: die Zeile sagt, was herauskam.
+    const baFertig = await pkSystem({ istAdmin: true, istEigentuemer: true },
+      { statsUmstellung: { laeuft: false, gesamt: 12, erledigt: 12, umgestellt: 11, geblieben: 1, gespart: 4194304 } });
+    await sysAbschnitt(baFertig.w, 'datenbank');
+    const fertigZeile = baFertig.w.document.getElementById('bild-lauf')?.textContent || '';
+    pruefe('Nach einem Lauf sagt die Zeile, was herauskam',
+      /11 von 12/.test(fertigZeile) && /1 blieben PNG/.test(fertigZeile) &&
+      /4,0 MB gespart/.test(fertigZeile), fertigZeile);
+    baFertig.w.close();
+
+    /* ---- UND WER SIE NICHT BEDIENEN DARF ----
+       Der Admin ohne Eigentuemerrolle sieht die ZAHLEN -- sie stehen hinter
+       nurAdmin --, aber weder Schalter noch Knopf. Ein Knopf, der
+       zuverlaessig 403 erzeugt, sieht aus wie ein Fehler. */
+    const baAdm = await pkSystem({ istAdmin: true, istEigentuemer: false });
+    await sysAbschnitt(baAdm.w, 'datenbank');
+    pruefe('Der Admin ohne Eigentuemerrolle sieht die Aufstellung',
+      baZeilen(baKarte(baAdm)).some(z => z.startsWith('PNG')),
+      baZeilen(baKarte(baAdm)).join(' · '));
+    pruefe('Aber keinen Schalter', !baAdm.w.document.getElementById('bild-umwandeln'));
+    pruefe('Und keinen Knopf', !baAdm.w.document.getElementById('bild-um'));
+    baAdm.w.close();
   }
 
   /* ---------------------------------------------------------------- */
@@ -29715,8 +30683,10 @@ async function pruefeOberflaeche() {
     tlPakete.every(p => p.version === tlPakete[0].version && p.title === tlPakete[0].title
       && Array.isArray(p.criteria) && p.criteria.length === tlPakete[0].criteria.length),
     JSON.stringify(tlPakete.map(p => [p.version, p.criteria?.length])));
-  pruefe('Und die Formatnummer ist unveraendert die elf',
-    tlPakete.every(p => p.version === 11), JSON.stringify(tlPakete.map(p => p.version)));
+  // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
+  // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
+  pruefe('Und jeder Teil traegt die Formatnummer des vollen Exports',
+    tlPakete.every(p => p.version === 12), JSON.stringify(tlPakete.map(p => p.version)));
   pruefe('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPakete.reduce((n, p) => n + p.items.length, 0) === 6 &&
     new Set(tlPakete.flatMap(p => p.items.map(i => i.title))).size === 6,
