@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS items (
 --   thumb            Kachel 400 px         STANDBILD 400 px
 --   medium           1600 px               STANDBILD 1600 px
 --   focus_x/focus_y  Ausschnitt der Kachel dasselbe, am Standbild
+--   zoom             wie eng der Ausschn. dasselbe, am Standbild
 --   dauer            NULL                  Sekunden
 --
 -- Das Standbild erzeugt der Browser des Hochladenden, nicht der Server: er
@@ -150,8 +151,37 @@ CREATE TABLE IF NOT EXISTS photos (
   -- Vorschau (object-position).
   focus_x REAL NOT NULL DEFAULT 50,
   focus_y REAL NOT NULL DEFAULT 50,
+  -- Der dritte Wert dieser Art heisst zoom und steht GANZ UNTEN, nicht hier.
+  -- Der Grund steht dort.
   sort_order INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  -- WIE ENG DAS FENSTER SITZT, in Prozent. 100 heisst "so weit wie das Bild
+  -- hergibt" -- also genau das, was bis 0.18.1 die einzige Moeglichkeit war;
+  -- 400 heisst viermal so nah. Der dritte Wert derselben Art wie focus_x und
+  -- focus_y und mit derselben Zusicherung: ES WIRD NICHTS GESCHNITTEN. Die
+  -- Datei bleibt ganz, die Anzeige skaliert (transform: scale) und der
+  -- Behaelter beschneidet. Kein Neurechnen, keine zweite Fassung.
+  --
+  -- WARUM ER HIER UNTEN STEHT UND NICHT NEBEN focus_y, wo er hingehoerte:
+  -- ALTER TABLE ADD COLUMN haengt eine Spalte IMMER HINTEN AN. Stuende sie in
+  -- der DDL weiter oben, saehe eine frisch angelegte Instanz anders aus als
+  -- eine migrierte -- dieselbe Datenbank in zwei Spaltenreihenfolgen. Das ist
+  -- keine Schoenheitsfrage: SELECT * liefert dann zwei verschiedene
+  -- Reihenfolgen, und der Pruefstand haelt genau das fest (Stolperstein 219,
+  -- gefunden zu 0.16.0 und hier zum zweiten Mal aufgeschlagen).
+  -- gesetzt_am an ratings steht aus demselben Grund am Ende seiner Tabelle.
+  --
+  -- DIE VORGABE IST DER HEUTIGE ZUSTAND, wie bei focus_x/focus_y: jede
+  -- vorhandene Zeile steht damit ohne Umschreiben richtig da.
+  -- UNTER 100 GAEBE ES NICHT MEHR ZU SEHEN, SONDERN LEERE: der Behaelter ist
+  -- quadratisch und das Bild deckt ihn bei 100 gerade eben. Die Spanne steht
+  -- im Server an einer Stelle und ausdruecklich NICHT als CHECK hier -- sonst
+  -- stuende sie zweimal, und die zweite meldete sich nicht als Absage,
+  -- sondern als abgebrochene Schreibung (dieselbe Ueberlegung wie beim
+  -- Gewicht eines Kriteriums).
+  -- REAL wie focus_x, und aus demselben Grund: eine Umrechnung an jeder
+  -- Lesestelle vergisst irgendwann jemand.
+  zoom REAL NOT NULL DEFAULT 100
 );
 CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);
 
@@ -224,7 +254,7 @@ CREATE TABLE IF NOT EXISTS ratings (
   -- OHNE VORGABEWERT, und zwar mit Absicht. Eine Zeile ohne Zeitpunkt heisst
   -- „die Instanz weiss nicht, wann das war" -- das gilt fuer alles, was vor
   -- 0.16.0 entstanden ist, und ebenso fuer eingespielte Bewertungen: die
-  -- Exportdatei traegt den Zeitpunkt nicht (Format 11 bleibt Format 11), und
+  -- Exportdatei traegt den Zeitpunkt nicht (auch Format 12 traegt ihn nicht),
   -- ein datetime('now') beim Einspielen machte daraus die Behauptung, sie
   -- seien eben erst vergeben worden. Die Glocke uebergeht Zeilen ohne Zeitpunkt.
   -- ALTER TABLE ADD COLUMN kann in SQLite ohnehin keinen nicht-konstanten
@@ -877,6 +907,34 @@ function migration0160() {
 migration0160();
 // ENDE MIGRATION 0.16.0
 
+// MIGRATION 0.19.0 — ENTFAELLT MIT 1.0
+/* DER AUSSCHNITT BEKOMMT EIN DRITTES MASS. Bis 0.18.1 trug ein Foto zwei
+   Prozentwerte -- wohin das quadratische Fenster rutscht --, aber keinen
+   dafuer, wie eng es sitzt. `zoom` ist dieser dritte Wert.
+   MIT VORGABE, ANDERS ALS gesetzt_am AUS 0.16.0, und der Unterschied ist
+   keine Geschmacksfrage: dort waere jeder nachgetragene Zeitpunkt eine
+   ERFINDUNG gewesen (die Instanz weiss nicht, wann eine alte Bewertung
+   entstand). Hier weiss sie es: jedes vorhandene Foto stand bisher auf
+   „so weit wie moeglich", und genau das bedeutet 100. Die Vorgabe traegt
+   also keine Behauptung, sondern den bisherigen Zustand.
+   DAS GEHT AUCH TECHNISCH: ALTER TABLE ADD COLUMN nimmt in SQLite eine
+   KONSTANTE Vorgabe an -- 100 ist eine, datetime('now') waere keine
+   (Stolperstein 105).
+   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
+   PRAGMA table_info, nicht ein Merker. */
+function migration0190() {
+  const spalten = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
+  if (spalten.includes('zoom')) return 0;
+  db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');
+  const n = db.prepare("SELECT COUNT(*) AS n FROM photos WHERE art != 'video'").get().n;
+  console.log(`[Kriterion] photos um zoom ergaenzt (Migration auf 0.19.0); ` +
+    `${n} vorhandene ${n === 1 ? 'Foto steht' : 'Fotos stehen'} auf dem weitesten ` +
+    `Ausschnitt und sehen damit aus wie bisher.`);
+  return 1;
+}
+migration0190();
+// ENDE MIGRATION 0.19.0
+
 // --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
@@ -986,4 +1044,6 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
                    migration0140,
                    // MIGRATION 0.16.0 — ENTFAELLT MIT 1.0
-                   migration0160 };
+                   migration0160,
+                   // MIGRATION 0.19.0 — ENTFAELLT MIT 1.0
+                   migration0190 };

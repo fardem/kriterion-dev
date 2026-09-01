@@ -1286,13 +1286,19 @@ function leseProtokoll(grenze = PROTOKOLL_GRENZE, gruppe = null) {
    ZIEL: eine Freigabe fuer den Export entfernt keinen Zugang.
    EINMAL GUELTIG. */
 const FREIGABE_MS = 120 * 1000;
-/* SIEBEN WEGE UEBER SECHS ROUTEN -- 'mail' kommt dazu. Wer den
+/* ACHT WEGE UEBER SIEBEN ROUTEN. 'mail' kam mit 0.9.0 dazu: wer den
    Mailzugang setzt, entscheidet, ueber wessen Server JEDER kuenftige
    Ruecksetzlink dieser Instanz laeuft; das trifft die Instanz als Ganzes und
    liegt damit in derselben Zeile wie Export und Import.
+   'bilder' kommt mit 0.19.0 dazu und ist der einzige Zweck der Liste, der
+   BYTES UEBERSCHREIBT: die Umstellung der Bildablage schreibt jeden PNG-Blob
+   der Instanz um, und die alte Fassung ist danach weg. Es gibt dafuer keinen
+   Papierkorb und keinen Rueckweg -- die Rueckfahrkarte ist die Sicherung des
+   Datenverzeichnisses. Genau deshalb steht er hier und nicht bloss hinter
+   nurEigentuemer.
    Die Zahl steht im Projektstand und wird dort nachgezaehlt, nicht
    abgeschrieben -- Stolperstein 137. */
-const BESTAETIGUNG_ZWECKE = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link', 'mail'];
+const BESTAETIGUNG_ZWECKE = ['export', 'import', 'rolle', 'passwort', 'entfernen', 'link', 'mail', 'bilder'];
 /* DER SCHLUESSEL IST DIE GANZE BINDUNG: Sitzungstoken, Zweck und Ziel. Ein
    einziger Platz je Sitzung waere eine stille Falle -- eine Anfrage, die zwei
    Zwecke braucht (Rolle UND Passwort in einem Rumpf), verloere mit dem ersten
