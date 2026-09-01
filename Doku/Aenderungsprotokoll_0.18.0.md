@@ -286,7 +286,7 @@ Höhen je Fenster gab es vorher genauso; sie kommen vom Inhalt.*
 | Fenster | Kachel | Platz für den Ausschnitt | sichtbare Zeichen |
 |---|---|---|---|
 | 1280 × 900 | 293,50 px | 172,30 px | **30** |
-| 620 × 900 | 188,66 px | 70,95 px | **10** |
+| 620 × 900 | 188,66 px | 70,95 px | **12** |
 | 390 × 844 | 173,00 px | 55,30 px | **9** |
 
 *Schrift: 10,95 px / 15,88 px, mittlere Zeichenbreite 5,78 px. Die Quelle

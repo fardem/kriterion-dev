@@ -17677,7 +17677,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
 
   /* VOR DER FUNDSTELLE STEHEN HOECHSTENS VIER ZEICHEN, und das ist gemessen
      und nicht gewaehlt: auf der schmalsten Kachel (173 px bei 390 px
-     Schirmbreite) bleiben nach der Quelle acht Zeichen fuer den Ausschnitt.
+     Schirmbreite) bleiben nach der Quelle 55,3 px -- gemessen neun Zeichen.
      Mit mehr Vorlauf waere die Fundstelle dort abgeschnitten -- eine Zeile mit
      Umgebung und ohne das Wort, um das es geht.
      UND NICHT NULL: gerade weil "ella" auch "eurobella" findet, muss zu sehen

@@ -3267,8 +3267,8 @@ dieselbe Suche zeigte morgen einen anderen.
 
 **Der Ausschnitt wird um die Fundstelle herum geschnitten, mit vier Zeichen
 Vorlauf.** *Vier ist gemessen und nicht gewählt: auf der schmalsten Kachel
-(173 px bei 390 px Schirmbreite) bleiben nach der Quelle acht Zeichen. Mit mehr
-Vorlauf wäre die Fundstelle dort abgeschnitten — eine Zeile mit Umgebung und
+(173 px bei 390 px Schirmbreite) bleiben nach der Quelle 55,30 px, gemessen
+neun Zeichen. Mit mehr Vorlauf wäre die Fundstelle dort abgeschnitten — eine Zeile mit Umgebung und
 ohne das Wort, um das es geht.* **Und nicht null:** gerade weil „ella" auch
 „eurobella" findet, muss zu sehen sein, dass die Fundstelle **mitten in einem
 Wort** steht.
@@ -7474,7 +7474,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   Adresse der Kachel trägt keinen Begriff mehr. *Die Befehle dazu standen im
   Chat der Runde, nicht hier.*
   **UND EIN BLICK AUF DAS TELEFON GEHÖRT DAZU:** dort ist die Kachel 173 px
-  breit, und von der Trefferzeile bleiben nach der Quelle acht Zeichen. *Die
+  breit, und von der Trefferzeile bleiben nach der Quelle neun Zeichen. *Die
   Zahlen sind in Chromium gemessen (Änderungsprotokoll 0.18.0) — was ein echtes
   Gerät daraus macht, ist damit noch nicht belegt.*
 - **0.17.5 IST AM WIRT ANGEKOMMEN UND GESEHEN.** *Am 31. August 2026

@@ -2523,7 +2523,7 @@ const qVolltext = db.prepare(`
    stehen hoechstens vier Zeichen. Vier und nicht zwoelf, weil die schmalste
    Kachel es entscheidet: bei 390 px Schirmbreite ist sie 173 px breit, davon
    bleiben nach der Quelle ("Beschreibung:" misst 88,7 px) 55,3 px fuer den
-   Ausschnitt -- gemessen acht Zeichen. Mit zwoelf Zeichen Vorlauf waere die
+   Ausschnitt -- gemessen neun Zeichen. Mit zwoelf Zeichen Vorlauf waere die
    Fundstelle dort abgeschnitten gewesen: eine Zeile mit Umgebung und ohne das
    Wort, um das es geht.
    UND NICHT NULL: gerade weil "ella" auch "eurobella" findet, muss zu sehen
