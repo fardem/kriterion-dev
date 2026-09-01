@@ -384,6 +384,13 @@ umgeschrieben.*
 
 ## 13. Offen geblieben
 
+> ## ✅ IM FELD BESTÄTIGT — 31. August 2026
+>
+> **Die laufende Instanz meldet `6a2c264a`** — genau den gebauten Wert
+> (Stolperstein 158). *Auf dem Wirt liegt keine Datei, die kein Commit trägt.*
+> **Und der Befund ist weg:** *„endlich sieht das gut aus."* **Damit ist die
+> Kette geschlossen, die mit dem Bild zu 0.17.2 begonnen hat.**
+
 ### Welcher Browser — und ob das noch etwas ändert
 
 **Die Instanz meldet `d3113d62`, also 0.17.4; welcher Browser die Bilder gemacht
