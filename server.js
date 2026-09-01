@@ -2497,7 +2497,13 @@ const VOLLTEXT_QUELLEN = [
    schon am Titel haengen bleibt.
    DIE SPALTENLISTE RECHNET NUR FUER DIE ZEILEN, DIE DURCHKOMMEN. Was der
    Trefferkontext kostet, haengt damit an der Zahl der TREFFER und nicht an
-   der Groesse des Bestands. */
+   der Groesse des Bestands.
+   UND ER IST NICHT UMSONST -- nachgemessen an 1000 Eintraegen mit 4001
+   Kommentaren und 2,77 MB Suchtext, je 200 Laeufe, Median: ein haeufiges Wort
+   mit 100 Treffern kostet 17,07 ms ohne und 19,96 ms mit Kontext, ein seltenes
+   mit einem Treffer 17,01 gegen 17,84 ms, ein Begriff ohne Treffer 17,35 gegen
+   17,82 ms. Die Behauptung, die Auskunft falle bei der Filterung ohnehin an,
+   gilt nur fuer die Zeilen, die NICHT treffen (Stolperstein 260). */
 const qVolltext = db.prepare(`
   SELECT i.id,
          ${VOLLTEXT_QUELLEN.map(q => `${q.wert} AS f_${q.schluessel}`).join(',\n         ')}

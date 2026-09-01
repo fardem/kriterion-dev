@@ -3521,11 +3521,17 @@ const RUECKBAUTEN = [
   {
     /* DIE ANDERE RICHTUNG: das Feld steht auch da, wenn gar nicht gesucht
        wurde. Ohne diesen Rueckbau belegte die Gruppe nur, DASS es bei einer
-       Suche dasteht -- und nicht, dass es sonst fehlt. */
+       Suche dasteht -- und nicht, dass es sonst fehlt.
+       ER GREIFT AN DER KLEMME UND NICHT AN DER ABBILDUNG -- 0.18.0. Der erste
+       Anlauf fuellte die Abbildung auch ohne Begriff (`volltextTreffer(begriff
+       || 'e')`) und blieb STUMM: die Klemme sitzt eine Zeile tiefer, am
+       `if (begriff)` vor dem Feld, und die Antwort aenderte sich dadurch
+       ueberhaupt nicht. Ein Rueckbau muss die Stelle treffen, die die Zusage
+       traegt, nicht eine daneben. */
     nr: '399', name: 'Der Trefferkontext steht auch ohne Suche in der Antwort',
     datei: 'server.js',
-    suche: "  const fundstellen = begriff ? volltextTreffer(begriff) : new Map();",
-    ersatz: "  const fundstellen = volltextTreffer(begriff || 'e');",
+    suche: "    if (begriff) it.fundstelle = fundstellen.get(it.id);",
+    ersatz: "    it.fundstelle = fundstellen.get(it.id) || null;",
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
@@ -3594,10 +3600,15 @@ const RUECKBAUTEN = [
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
-    nr: '408', name: 'Die Trefferzeile rutscht unter die Tags',
+    /* SIE WANDERT UND VERSCHWINDET NICHT. Ein Rueckbau, der sie ganz wegnimmt,
+       waere derselbe wie 407 -- und er liesse den Lauf ABREISSEN statt rot zu
+       werden, weil die Prueflagen danach an einer fehlenden Zeile griffen
+       (Stolperstein 138). So bleibt die Zeile da und steht nur an der
+       falschen Stelle. */
+    nr: '408', name: 'Die Trefferzeile rutscht ueber den Titel',
     datei: 'public/app.js',
     suche: "      <h3 class=\"card-title\">${esc(it.title)}</h3>\n      ${fundZeile}",
-    ersatz: "      <h3 class=\"card-title\">${esc(it.title)}</h3>",
+    ersatz: "      ${fundZeile}\n      <h3 class=\"card-title\">${esc(it.title)}</h3>",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
@@ -3610,8 +3621,8 @@ const RUECKBAUTEN = [
   {
     nr: '410', name: 'Der Ueberfahrtext nennt die weiteren Stellen nicht mehr',
     datei: 'public/app.js',
-    suche: "const fundUeberfahrt = (f) => `Gefunden in: ${fundWort(f.quelle)}` + (",
-    ersatz: "const fundUeberfahrt = (f) => `Gefunden in: ${fundWort(f.quelle)}` + (0 ? '' : '') + (",
+    suche: "  f.weitere === 1 ? ' und 1 weitere Stelle'\n  : f.weitere > 1 ? ` und ${f.weitere} weitere Stellen` : '');",
+    ersatz: "  '');",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {

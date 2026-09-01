@@ -17662,7 +17662,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Kachelzeile ist eine Zeile, und ein eingeschmuggelter Umbruch machte
      GENAU DIESE Kachel hoeher als ihre Nachbarn. */
   const fkAbsatz = await vsAnlegen('Absatzprobe Quirlgurke');
-  await sendeKommentar(fkAbsatz.id, { text: 'Zeile eins\n\nund weit darunter das Wort Schlingerpfad hier' });
+  /* DER UMBRUCH UND DER DOPPELTE LEERRAUM STEHEN UNMITTELBAR AN DER
+     FUNDSTELLE und nicht irgendwo im Text. Der Ausschnitt wird um die
+     Fundstelle herum geschnitten; was weiter weg steht, kommt gar nicht erst
+     hinein -- eine Prueflage mit dem Umbruch am Zeilenanfang blieb deshalb
+     gruen, und der Rueckbau auf die Einebnung war STUMM. */
+  await sendeKommentar(fkAbsatz.id,
+    { text: 'Zeile eins\nund\nSchlingerpfad  steht mit doppeltem Leerraum dahinter' });
   const fkZeile = await fkFund('schlingerpfad', fkAbsatz.id);
   pruefe('Der Ausschnitt traegt keinen Zeilenumbruch',
     !!fkZeile && !/[\r\n]/.test(fkZeile.text), JSON.stringify(fkZeile?.text));
@@ -23991,6 +23997,25 @@ async function pruefeOberflaeche() {
     boeseKnoten.querySelector('mark')?.textContent === 'onerror',
     boeseKnoten.querySelector('mark')?.textContent);
 
+  /* UND DER BEGRIFF SELBST IST MARKUP -- die Lage, die der Gegenprobe zu
+     0.18.0 aufgefallen ist. In der Marke steht IMMER genau der Suchbegriff,
+     und den tippt ein Mensch: wer `<img src=x onerror=alert(1)>` ins Suchfeld
+     schreibt, findet damit einen Kommentar, der das traegt -- und die Marke
+     traegt danach denselben Text. **Ein Rueckbau, der die Marke ueber
+     innerHTML fuellt, blieb ohne diese Zeile STUMM**, weil in allen anderen
+     Lagen nur harmlose Woerter markiert werden. */
+  const boeserBegriff = '<img src=x onerror=alert(1)>';
+  const alsBegriff = bau(wb.zerlegeAmBegriff('davor ' + boeserBegriff + ' danach', boeserBegriff));
+  pruefe('Der Aufbau steht: der Begriff selbst ist der Angriffstext',
+    alsBegriff.querySelector('mark')?.textContent === boeserBegriff,
+    alsBegriff.querySelector('mark')?.textContent);
+  pruefe('Auch ein Suchbegriff aus Markup wird in der Marke niemals Markup',
+    !alsBegriff.querySelector('img, b, i, script, iframe, style'),
+    alsBegriff.querySelector('mark')?.innerHTML);
+  pruefe('Und der ganze Text steht Zeichen fuer Zeichen da',
+    alsBegriff.textContent === 'davor ' + boeserBegriff + ' danach',
+    alsBegriff.textContent);
+
   /* EINE ADRESSE BLEIBT EIN LINK, auch wenn der Begriff mitten in ihr steht.
      Die Zerlegung liefert sie dann als mehrere Stuecke mit demselben Ziel;
      drei Anker nebeneinander waeren drei Links auf dieselbe Adresse -- fuer
@@ -28777,12 +28802,15 @@ async function pruefeOberflaeche() {
     JSON.stringify(trFolge));
 
   pruefe('Sie nennt die Quelle in Worten',
-    gleich(trZeilen().map(z => z.querySelector('.fund-quelle').textContent),
+    gleich(trZeilen().map(z => z.querySelector('.fund-quelle')?.textContent),
            ['Kommentar:', 'Link:']),
-    JSON.stringify(trZeilen().map(z => z.querySelector('.fund-quelle').textContent)));
+    JSON.stringify(trZeilen().map(z => z.querySelector('.fund-quelle')?.textContent)));
+  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81). Ein
+     Rueckbau, der die Zeile GAR NICHT baut, liess den Lauf sonst ABREISSEN
+     statt rot zu werden -- gefunden in der Gegenprobe zu 0.18.0. */
   pruefe('Und zeigt den Ausschnitt daneben',
-    trZeilen()[0].querySelector('.fund-text').textContent === '…hat mir der Bosch-Händler empfohlen…',
-    JSON.stringify(trZeilen()[0].querySelector('.fund-text').textContent));
+    trZeilen()[0]?.querySelector('.fund-text')?.textContent === '…hat mir der Bosch-Händler empfohlen…',
+    JSON.stringify(trZeilen()[0]?.querySelector('.fund-text')?.textContent));
 
   /* DIE ZAHL DER WEITEREN STELLEN steht kurz in der Zeile und ausgeschrieben
      im Ueberfahrtext. In der Zeile ist kein Platz fuer den ganzen Satz: auf
@@ -28790,17 +28818,17 @@ async function pruefeOberflaeche() {
      Ausschnitt haette danach keinen mehr (gemessen, Aenderungsprotokoll
      0.18.0). */
   pruefe('Bei weiteren Stellen steht ihre Zahl in der Zeile',
-    trZeilen()[0].querySelector('.fund-mehr')?.textContent === '+2',
-    JSON.stringify(trZeilen()[0].querySelector('.fund-mehr')?.textContent));
+    trZeilen()[0]?.querySelector('.fund-mehr')?.textContent === '+2',
+    JSON.stringify(trZeilen()[0]?.querySelector('.fund-mehr')?.textContent));
   pruefe('Und ohne weitere Stellen steht dort gar nichts',
-    !trZeilen()[1].querySelector('.fund-mehr'),
-    trZeilen()[1].querySelector('.fund-mehr')?.textContent);
+    trZeilen().length === 2 && !trZeilen()[1].querySelector('.fund-mehr'),
+    trZeilen()[1]?.querySelector('.fund-mehr')?.textContent ?? '(keine zweite Zeile)');
   pruefe('Der Ueberfahrtext sagt es ausgeschrieben',
-    trZeilen()[0].getAttribute('title') === 'Gefunden in: Kommentar und 2 weitere Stellen',
-    trZeilen()[0].getAttribute('title'));
+    trZeilen()[0]?.getAttribute('title') === 'Gefunden in: Kommentar und 2 weitere Stellen',
+    trZeilen()[0]?.getAttribute('title'));
   pruefe('Und bei einer einzigen Quelle nennt er nur sie',
-    trZeilen()[1].getAttribute('title') === 'Gefunden in: Link',
-    trZeilen()[1].getAttribute('title'));
+    trZeilen()[1]?.getAttribute('title') === 'Gefunden in: Link',
+    trZeilen()[1]?.getAttribute('title'));
 
   /* DIE ADRESSE DER KACHEL TRAEGT DEN BEGRIFF. Wer einen Treffer oeffnet und
      neu laedt, behaelt damit die Hervorhebung. */
@@ -28864,7 +28892,7 @@ async function pruefeOberflaeche() {
      so lange wie der Begriff, sie wird nicht gespeichert, und sie gilt dort,
      wo gesucht wurde -- an der Kachel also in Titel, Kategorie, Tags und in
      der Trefferzeile. */
-  const hvBestand = [{ id: 1, title: 'Bella Bohrmaschine von eurobella',
+  const hvBestand = [{ id: 1, title: 'Bella Bohrmaschine a.b und axb von eurobella',
     rejected: false, tested: false, favorite: false,
     category: { id: 21, name: 'Bellawerkzeug' }, tags: [{ id: 5, name: 'bella-tag' }],
     mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
@@ -28894,7 +28922,7 @@ async function pruefeOberflaeche() {
   pruefe('Und zwar mit der Schreibung, die dort wirklich steht',
     hvMarken('.card-title')[0] === 'Bella', JSON.stringify(hvMarken('.card-title')));
   pruefe('Der Titel bleibt dabei Zeichen fuer Zeichen derselbe',
-    hv.document.querySelector('.card-title').textContent === 'Bella Bohrmaschine von eurobella',
+    hv.document.querySelector('.card-title').textContent === 'Bella Bohrmaschine a.b und axb von eurobella',
     hv.document.querySelector('.card-title').textContent);
   pruefe('In der Kategorie ebenso', gleich(hvMarken('.card-cat'), ['Bella']),
     JSON.stringify(hvMarken('.card-cat')));
@@ -28907,12 +28935,23 @@ async function pruefeOberflaeche() {
      Ausdrucksmuster baute, muesste jedes Sonderzeichen darin maskieren -- ein
      eingegebener Punkt faende sonst jedes Zeichen. Derselbe Fehler wie LIKE
      gegen instr() im Server, nur im Browser. */
+  /* DER TITEL TRAEGT BEIDES: "a.b" und "axb". Als TEXT gelesen trifft der
+     Begriff genau das erste, als MUSTER gelesen beide -- und daran ist der
+     Unterschied zu sehen.
+     DER BEGRIFF MUSS DABEI WIRKLICH EIN TREFFER SEIN. Die erste Fassung suchte
+     "a.b" an einem Titel, der die drei Zeichen gar nicht trug: die Trefferliste
+     blieb leer, es gab ueberhaupt keine Kachel, und der Rueckbau auf das Muster
+     war STUMM -- er konnte nichts bewirken, weil nichts zu markieren war
+     (Stolperstein 81). */
   hvFeld.value = 'a.b';
   hvFeld.dispatchEvent(new hv.Event('input'));
   await warteSuche(hv);
+  pruefe('Der Aufbau steht: der Begriff trifft die Kachel wirklich',
+    hv.document.querySelectorAll('.card').length === 1,
+    `${hv.document.querySelectorAll('.card').length} Kacheln`);
   pruefe('Ein Punkt im Begriff findet keinen beliebigen Buchstaben',
-    hv.document.querySelectorAll('.card mark').length === 0,
-    JSON.stringify([...hv.document.querySelectorAll('.card mark')].map(m => m.textContent)));
+    gleich(hvMarken('.card-title'), ['a.b']),
+    JSON.stringify(hvMarken('.card-title')));
   hv.close();
 
   /* ---------------------------------------------------------------- */
@@ -28960,14 +28999,18 @@ async function pruefeOberflaeche() {
      Anzeige derselben Sache. Die Abweichung steht im Aenderungsprotokoll
      0.18.0; hier steht sie als Zusage, damit niemand sie fuer einen Fehler
      haelt und still einen Weg dafuer baut. */
+  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81 und 138).
+     Ein Rueckbau, der die Adresse gar nicht mehr in den Eintrag fuehren laesst,
+     liess den Lauf sonst ABREISSEN statt rot zu werden -- gefunden in der
+     Gegenprobe zu 0.18.0. */
   pruefe('Der Titel ist ein Eingabefeld und traegt deshalb keine Marke',
     adMit.document.querySelectorAll('.title-in mark').length === 0 &&
-    adMit.document.getElementById('title').tagName === 'INPUT',
-    adMit.document.getElementById('title').tagName);
+    adMit.document.getElementById('title')?.tagName === 'INPUT',
+    adMit.document.getElementById('title')?.tagName ?? '(kein Titelfeld)');
   pruefe('Und die Beschreibung ebenso',
     adMit.document.querySelectorAll('#desc mark').length === 0 &&
-    adMit.document.getElementById('desc').tagName === 'TEXTAREA',
-    adMit.document.getElementById('desc').tagName);
+    adMit.document.getElementById('desc')?.tagName === 'TEXTAREA',
+    adMit.document.getElementById('desc')?.tagName ?? '(kein Beschreibungsfeld)');
   adMit.close();
 
   /* DER ANZEIGENAME WIRD NICHT HERVORGEHOBEN. Gesucht wurde in `links.url`;
@@ -29062,6 +29105,15 @@ async function pruefeOberflaeche() {
   pruefe('Und die Hervorhebung steht daraufhin im Eintrag',
     adN.document.querySelectorAll('#cmts .cmt-body mark').length > 0,
     `${adN.document.querySelectorAll('#cmts .cmt-body mark').length} Marken`);
+  /* UND DER EINTRAG WIRD DABEI GENAU EINMAL GEHOLT. Das ist der Unterschied
+     zwischen replaceState und location.hash: ein gesetzter Hash loest
+     hashchange aus, route() laeuft ein zweites Mal, und die Ansicht wird
+     samt ihrer Abrufe neu gebaut. Ohne diese Zeile blieb der Rueckbau darauf
+     STUMM -- die Adresse stand danach richtig da, nur eben zweimal
+     gezeichnet. */
+  pruefe('Und der Eintrag wurde dabei genau einmal geholt',
+    adNachDom.gesendet.filter(g => String(g.url) === '/api/items/1').length === 1,
+    `${adNachDom.gesendet.filter(g => String(g.url) === '/api/items/1').length} Abrufe`);
   adN.close();
 
   /* ---------------------------------------------------------------- */

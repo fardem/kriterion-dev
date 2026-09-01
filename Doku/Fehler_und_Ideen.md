@@ -155,14 +155,16 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.17.3** *PATCH* — **GEBAUT am 31. August 2026** | **Nichts aus diesem Blatt.** Vier Befunde aus dem Rundlauf mit 0.17.2, zwei davon Nacharbeit an ihr selbst: **der Deckel ging nach oben mit und nach unten nicht** — *dafür kam `align-items: start` an das Raster; **Punkt 1 ist mit 0.17.4 zurückgenommen**, der Deckel von zehn Zeilen ist geblieben* —, die Karte „Mailversand" wird eine **Zustandskarte mit eigenem Dialog**, der Erklärkasten zur Gewichtung rollt nicht mehr, und die Filterleiste bekommt ihren **Rücksetzer**. **Was gebaut wurde, steht im Änderungsprotokoll 0.17.3.** *Alle vier Punkte sind gebaut; nichts ist hierher zurückgekommen. **Eine Abweichung:** der Auftrag sagt „aus drei Absätzen werden zwei" und beschreibt darunter drei, die alle drei bleiben — gebaut ist die Überschrift, zusammengelegt sind „Teiler" und „Gerundet". **Und acht Rückbauten sind weggefallen statt mitgezogen:** sie bauten die vier Reihen des Mailversands zurück, und genau die sind der Befund dieser Runde gewesen.* |
 | **0.17.4** *PATCH* — **GEBAUT am 31. August 2026** | **Nichts aus diesem Blatt.** Ein Befund aus dem Rundlauf mit 0.17.3, gemeldet mit Bildern unmittelbar nach dem Einspielen: *„das Einzige, was mir gefällt, ist das mit der Mailkachel — der Rest ist schlechter geworden."* **Diese Runde nimmt Punkt 1 von 0.17.3 zurück:** `align-items: start` hat den gemeldeten Leerraum nie verursacht (die betroffenen Kacheln stehen allein in ihrer Reihe) und stattdessen die gleiche Höhe aufgehoben — „Bestand" stand als Treppe von 206 bis 909 Pixeln da. **An seiner Stelle steht die Regel, die gemeint war**, dazu drei Maße: fünfzehn Zeilen fürs Sicherheitsprotokoll, eine Zeile für eine leere Liste, kein Deckel in einem Fenster. **Was gebaut wurde, steht im Änderungsprotokoll 0.17.4.** *Es gab keinen Auftrag: die Regel ist im Gespräch erarbeitet und an einem Schaubild gegengelesen worden, bevor eine Zeile fiel.* ***Eine Abweichung:*** *eine starre Kachel, die niedriger ist als die Forderung der dynamischen daneben, gewinnt nicht — mit reinem CSS-Raster nicht baubar; der Fall tritt im Bestand nicht auf.* ***Und ein Befund aus dem Schreiben:*** *die Tabelle „nachgemessen in Chromium" im Änderungsprotokoll 0.17.3 war nicht gemessen (Stolperstein 252) — sie ist dort als solche gekennzeichnet.* |
 | **0.17.5** *PATCH* — **GEBAUT am 31. August 2026** | **Nichts aus diesem Blatt.** Zwei Befunde aus dem Rundlauf mit 0.17.4, gemeldet mit Bildern und **mit dem Fingerprint daneben** (`d3113d62`). **Der erste ist der Befund aus 0.17.2, endlich gefunden:** `max-height: max-content` klemmt die Forderung einer kurzen Liste nicht überall — in Chromium schon, in der laufenden Instanz nicht, und dort forderte JEDE Liste ihre zehn Zeilen, auch die leere. *Gemessen: „Zugänge" 728 gegen 498 px, der Papierkorb leer rund 570 gegen 225.* **Der zweite:** der Name im Sicherheitsprotokoll stand in jeder Zeile woanders, weil jede Zeile ihr eigenes Raster war. **Was gebaut wurde, steht im Änderungsprotokoll 0.17.5.** *Beide Punkte sind gebaut; nichts ist hierher zurückgekommen.* ***Zwei Zusagen sind zurückgenommen:*** *dass eine Liste die Höhe einer höheren Nachbarin ausnutzt, und dass der Deckel „eine Forderung und keine Grenze" sei — beide hingen an demselben Schlüsselwort.* ***Die Lehre steht als Stolperstein 257:*** *ein Befund, den man nicht nachstellen kann, ist nicht erledigt, sondern unerklärt — und der Unterschied zwischen Meldung und Messung ist der Fund.* |
-| **0.18.0** *MINOR* *(war 0.17.0)* | Die Suche schärfen — Trefferkontext, Suchbereich, Hervorhebung |
+| **0.18.0** *MINOR* *(war 0.17.0)* — **GEBAUT am 1. September 2026** | **Die Suche schärfen — Trefferkontext und Hervorhebung.** *Der älteste Punkt dieses Blatts, aufgefallen am 27. August 2026 und dreimal übersprungen.* Eine Zeile an der Kachel nennt die Quelle und zeigt den Ausschnitt mit der Fundstelle darin, in einer festen Folge, die bei dem beginnt, was die Kachel nicht zeigt; der Begriff ist hervorgehoben und steht in der Adresse des geöffneten Treffers. **Was gebaut wurde, steht im Änderungsprotokoll 0.18.0.** *Teil (a) und (c) sind gebaut, dazu die offene Frage nach der Adresse — mit „ja" beantwortet.* ***Was liegen bleibt, steht als eigener Punkt unten: der Suchbereich als Häkchen (b).*** ***Eine Abweichung:*** *Titel und Beschreibung der Detailansicht tragen keine Marke — beide sind Eingabefelder, und in ein `<input>` lässt sich kein Element hängen (Stolperstein 263).* ***Und zwei Behauptungen der Ausarbeitung haben nicht getragen:*** *die Antwort ist nicht umsonst zu haben — SQLite bricht die ODER-Kette beim ersten Treffer ab (Stolperstein 260) —, und die schmalste Kachel ist nicht 240, sondern 173 px breit (Stolperstein 261).* |
 | **0.19.0** *MINOR* *(war 0.18.0)* | Die Bildablage: Original und zwei Ableitungen — **dazu seit dem 30. August der engere Bildausschnitt und das wählbare Bildformat** |
 | **0.20.0** *MINOR* *(neu, Nummer vorläufig)* | Die Oberfläche wird ruhiger — **nichts aus diesem Blatt**, aus dem Betrieb am 30. August 2026. *Ausarbeitung samt der Liste dessen, was ausdrücklich NICHT mitkommt: Projektstand, Abschnitt 10a.* |
 | **0.21.0** *MINOR* *(war 0.19.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
-**Was hier bleibt, bleibt aus einem Grund:** die drei Punkte unten haben
-**keine Nummer**, weil keiner von ihnen gebaut werden soll — zwei sind `nicht
-empfohlen`, einer ist `später`. *Ein Sammelblatt, in dem nur noch das Verworfene
+**Was hier bleibt, bleibt aus einem Grund:** die vier Punkte unten haben
+**keine Nummer**, weil keiner von ihnen jetzt gebaut werden soll — zwei sind
+`nicht empfohlen`, zwei sind `später`. *Punkt 4 ist am 1. September 2026
+dazugekommen: er ist der Teil von Punkt 1, den 0.18.0 mit Begründung liegen
+gelassen hat.* *Ein Sammelblatt, in dem nur noch das Verworfene
 steht, sieht mager aus. Es ist trotzdem der richtige Zustand: alles Übrige ist
 entschieden und hat seinen Ort.*
 
@@ -174,12 +176,12 @@ entschieden und hat seinen Ort.*
 |---|---|
 | **Fehler** | — *(der einzige, der Export, ist 0.12.3 geworden)* |
 | **Verbesserung** | — |
-| **Neue Funktion** | 1, 2, 3 |
+| **Neue Funktion** | 1, 2, 3, 4 |
 | **Design** | — |
 
 | Einschätzung | Punkte |
 |---|---|
-| **später** | 2 |
+| **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
@@ -416,6 +418,57 @@ Austauschformat.**
 **Was dagegen spricht:** **der abtippbare Schlüssel trägt den Weg auch ohne
 ihn.** Es ist Bequemlichkeit, gemessen an mehreren hundert Zeilen mit doppelter
 Prüflast — und diese Rechnung hat 0.10.0 schon einmal verloren.
+
+---
+
+## 4. Der Suchbereich als Häkchen — was von Punkt 1 liegen geblieben ist
+
+**Aufgefallen mit derselben Meldung wie der Trefferkontext** — 27. August 2026,
+unmittelbar nach dem Einspielen der Suche im Server.
+
+> **Art: Neue Funktion** · **Claude: später** — *nicht aus Zeitmangel, sondern
+> weil die Frage jetzt anders aussieht.*
+> **Draußen üblich:** der Suchbereich als Häkchen hinter „Erweitert" ist der
+> Normalfall.
+
+### Woher
+
+Er stand als Teil **(b)** in Punkt 1 dieses Blatts („Die Suche schärfen") und
+ist mit ihm in den Fahrplan gegangen. **Die Runde 0.18.0 hat (a) und (c)
+gebaut und ihn ausdrücklich liegen gelassen**; damit steht er wieder hier, und
+zwar allein.
+
+### Was gemeint ist
+
+Titel, Beschreibung, Kategorie, Tags, Links und Kommentare einzeln an- und
+abwählbar. **Verengend**, Vorgabe **alle an** — also genau das heutige
+Verhalten —, und hinter einem Schalter „Erweitert", damit der einfache Fall ein
+Feld bleibt. **Der Bereich gehörte in die gespeicherte Ansicht**, sonst zeigte
+eine Ansicht „Bosch, nur Titel" beim Anklicken etwas anderes als beim
+Speichern; eine alte Ansicht **ohne** das Feld müsste „alle Quellen" heißen und
+nicht „keine".
+
+### Warum er liegen bleibt
+
+**Er ist eine zweite Bedienfläche neben einer Suche, die heute ein Feld ist.**
+Wer sie überfrachtet, macht den einfachen Fall teurer, um den seltenen billiger
+zu machen.
+
+**Und er war erst zu beurteilen, wenn der Trefferkontext steht.** *Genau das ist
+jetzt der Fall — die Frage lautet deshalb nicht mehr „wollen wir Häkchen",
+sondern: **beantwortet die Zeile „Link: …" die Frage schon?*** Wer eine Suche
+absetzt und an jeder Kachel liest, warum sie dort steht, braucht womöglich kein
+Häkchen mehr, um Links auszuschließen — er sieht auf einen Blick, welche Treffer
+ihn nichts angehen.
+
+**Das ist eine Entscheidung mit Begründung und keine Verschiebung.** *Wieder
+aufgemacht wird sie, wenn aus dem Betrieb die Meldung kommt, dass die Zeile
+nicht reicht — und dann mit einem Beispiel, an dem man das sehen kann.*
+
+### Was es anfasst
+
+Die Suchroute (ein Parameter für den Bereich), die Filterzeile, die
+gespeicherten Ansichten, Prüfungen, Gegenproben, README. **Kein Schema.**
 
 ---
 

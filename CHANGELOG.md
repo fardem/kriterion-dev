@@ -29,6 +29,14 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.18.0] - 2026-09-01
+
+- Added: Solange gesucht wird, sagt jede Kachel unter dem Titel, wo das Wort steht — mit der Quelle und einem Ausschnitt: „Kommentar: …in Bellavista empfohlen…"
+- Added: Trifft der Begriff mehrere Quellen, nennt die Zeile die erste in fester Folge und hängt an, wie viele weitere es sind
+- Added: Der gefundene Begriff ist hervorgehoben — an der Kachel in Titel, Kategorie, Tags und Trefferzeile, im Eintrag in der Linkliste und in den Kommentaren
+- Added: Der Suchbegriff steht in der Adresse eines geöffneten Treffers; ein Neuladen behält die Hervorhebung, und der Link lässt sich weitergeben
+- Changed: In der Linkliste wird die Adresse hervorgehoben und nicht der Anbietername — gesucht wurde in der Adresse
+
 ## [0.17.5] - 2026-08-31
 
 > **Nur die Anzeige ändert sich, und nur im Systembereich.** Nach dem Einspielen
