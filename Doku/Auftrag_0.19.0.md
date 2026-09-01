@@ -52,8 +52,9 @@ Falsche.*
 **0.19.0.** Abschnitt 5.1 des Projektstands: *„Zweite Zahl (MINOR) für alles,
 was die Instanz danach kann und vorher nicht konnte."*
 
-**Zwei Dinge kann sie danach:** Bilder platzsparend ablegen, ohne sie zu
-verschlechtern — und den Bildausschnitt enger wählen.
+**Drei Dinge kann sie danach:** Bilder platzsparend ablegen, ohne sie zu
+verschlechtern; **den vorhandenen Bestand auf Knopfdruck nachziehen**; und den
+Bildausschnitt enger wählen.
 
 > **DIES IST EINE DATENBANKSTUFE, und zwar wegen des Ausschnitts.** Der
 > Zoomwert ist eine **gespeicherte Spalte**: es kommt der **achte**
@@ -247,12 +248,42 @@ Sonst: unverändert.
 
 ### Die Entscheidungen, und sie sind hier getroffen
 
-**a) EINE REGEL, KEINE EINSTELLUNG.** *Der Fahrplan sah unter (e) einen Schalter
-im Reiter „Datenbank" vor.* **Er entfällt.** Die Messung hat für die Frage genau
-eine richtige Antwort ergeben, und **ein Regler für eine Frage mit einer
-richtigen Antwort ist ein Regler, der irgendwann falsch steht.** *Wer den Wert
-ändern will, ändert eine Zeile im Quelltext — sichtbar, im Fingerprint, im
-Änderungsprotokoll.*
+**a) EIN SCHALTER — ABER NICHT NACH HERKUNFT.** *Der Fahrplan sah unter (e) einen
+Schalter im Reiter „Datenbank" vor, und er kommt* (Punkt 1a1). **Was ausdrücklich
+NICHT kommt, ist die Aufteilung „Original behalten bei Dateiauswahl, umwandeln
+bei Strg+V".**
+
+> **ERSTENS KANN DER SERVER DAS GAR NICHT SEHEN.** In `public/app.js` führen
+> **drei** Einstiege auf **dieselbe** Funktion und damit auf dieselbe Route:
+> `#file.onchange` (~4236), `onPaste` (~4245) und das Ablegen per Maus (~4253).
+> **In `req.files` steht eine Datei und sonst nichts.** *Baubar wäre es — ein
+> Feld im Formular —, aber dann entschiede eine **Behauptung des Browsers**, wie
+> das Archiv speichert.*
+>
+> **ZWEITENS TUT DAS FORMAT ES SCHON.** Ein Browser legt die Zwischenablage
+> **immer als PNG** ab; eine Aufnahme aus Kamera oder Telefon ist **JPEG**. Der
+> Bestand belegt es: **679 PNG gegen 344 JPEG.** *Die Regel „PNG umwandeln, JPEG
+> in Ruhe lassen" trifft damit genau die Unterscheidung, die gemeint ist — ohne
+> dem Browser etwas zu glauben.*
+>
+> **DRITTENS WÄREN ES ZWEI FORMATE FÜR DENSELBEN INHALT**, entschieden dadurch,
+> wie er hereinkam. *Dasselbe Bildschirmfoto läge als WebP vor, wenn es eingefügt
+> wurde, und als PNG, wenn es vorher gespeichert und dann ausgewählt wurde —
+> und hinterher sieht man das keinem Bild mehr an.* **Ein Schalter sagt eine
+> Sache: dieses Archiv wandelt um, oder es tut es nicht.**
+
+**a1) DER SCHALTER.** **„PNG-Originale beim Hereinkommen umwandeln"** — an/aus,
+**Vorgabe an**, **nur für den Eigentümer** (`nurEigentuemer`, `server.js:662`),
+im Reiter **„Datenbank"**. *Dort steht schon alles andere, was über Platz redet.*
+
+* **Über `PUT /api/settings`** (~1678), wie die anderen Einstellungen — **keine
+  eigene Route.**
+* **Aus heißt aus:** ankommende PNG bleiben PNG, byte-genau. *Das ist die Zeile,
+  die dem Verhalten von Immich, Nextcloud und Piwigo entspricht — wer die
+  Abweichung nicht mitgehen will, hat sie hier.*
+* **Der Schalter ist nie endgültig** — in beide Richtungen holt der Knopf aus
+  Punkt 2 nach, was in der anderen Stellung entstanden ist. *Genau deshalb ist
+  er billig.*
 
 **b) STRG+V UND DATEIAUSWAHL SIND DERSELBE WEG.** Beide gehen durch
 `POST /api/items/:id/photos`; der Browser schickt in beiden Fällen ein PNG, und
@@ -292,42 +323,72 @@ zehnte Import liefert dieselben Ableitungen wie der erste.
 
 ---
 
-## 2. Der Umstellungslauf für den vorhandenen Bestand
+## 2. Der Knopf: den vorhandenen Bestand umstellen
+
+> **DIES WAR ALS WIRTSSKRIPT `bilder.js` GEPLANT, IN DER BAUFORM VON
+> `zugang.js` UND `schluessel.js`. Es wird stattdessen ein Knopf** — und das
+> ist die bessere Wahl, nicht die bequemere:
+> * **Es ist keine einmalige Umstellung, sondern eine Funktion, die bleibt.**
+>   Der Schalter aus Punkt 1a1 kann ein Jahr aus stehen; eine alte Sicherung
+>   bringt PNG zurück; der Bestand wächst wieder. *Ein Werkzeug, das man über
+>   `docker compose exec` aufrufen muss, wird in keinem dieser Fälle benutzt.*
+> * **Der Server ist ohnehin der bessere Schreiber.** Ein Wirtsskript müsste die
+>   Instanz anhalten (fremder Schreiber auf einer WAL-Datei); der Server schreibt
+>   in seiner eigenen Verbindung, Zeile für Zeile, im laufenden Betrieb.
+> * **Und es gäbe sonst zwei Werkzeuge für eine Sache.**
 
 ### GEBAUT WIRD
 
-**`bilder.js` auf dem Wirt**, in der Bauform von `zugang.js` und
-`schluessel.js`: **im Abbild, aber vom Server nie geladen** — und damit
-**nicht im Fingerprint**.
+**Im Reiter „Datenbank", bei der Einstellung aus Punkt 1a1, nur für den
+Eigentümer:** die Aufstellung des Bildbestands nach Format und darunter der
+Knopf **„Alle PNG nach WebP umstellen"**.
 
 ```
-node bilder.js zeigen      -- was liegt im Bestand, nach Format aufgeschlüsselt
-node bilder.js umstellen   -- PNG -> WebP, mit --ja gegen Rückfrage
+Fotos am Eintrag
+  PNG    679   435,7 MB      [ Alle PNG nach WebP umstellen ]
+  JPEG   344    61,5 MB      (bleiben unangetastet)
+  WebP     9     0,6 MB
 ```
 
-* **`zeigen` liest nur.** *Die Datenbank wird schreibgeschützt geöffnet
-  (`readonly`), und der Schlüssel wird **nur gelesen, nie erzeugt**.*
+**Der Ablauf:**
 
-> **`require('./db')` IST DAFÜR DER FALSCHE WEG, und das ist beim Bauen der
-> Messwerkzeuge teuer gelernt worden:** `db.js` fährt **beim Laden** das Schema
-> und **alle sieben Migrationen**. Ein Werkzeug, das „nur nachsieht", legt damit
-> Tabellen an. **Die Datei wird direkt geöffnet, mit `cipher='sqlcipher'` und
-> dem Schlüssel aus `ENCRYPTION_KEY` oder `data/encryption.key`** — und
-> `loadKey()` aus `keys.js` ist ebenfalls untauglich, weil es **eine neue
-> Schlüsseldatei schreibt**, wenn keine da ist.
-
-* **`umstellen` läuft bei ANGEHALTENER Instanz**, wie `schluessel.sh`: anhalten,
-  sichern, umstellen, starten. *Ein `bilder.sh` daneben, das genau das tut.*
-* **Je Bild eine eigene Transaktion**, damit ein Abbruch nach vierzig Minuten die
-  vierzig Minuten behält. **Fortschritt Zeile für Zeile.**
+* **`POST /api/bilder/umstellen`** startet und **kehrt sofort zurück** (202).
+  *Acht Minuten Rechenzeit an einer offenen HTTP-Verbindung sind das, was beim
+  Import ausdrücklich vermieden wird (Punkt 1c) — hier gilt derselbe Satz.*
+* **Gearbeitet wird wie in `backfillVariants()`** (`server.js` ~5199): Zeile für
+  Zeile, **je Bild eine eigene Transaktion**, und **30 ms Pause dazwischen**,
+  damit der Server ansprechbar bleibt. *Das Vorbild steht schon da und hat
+  dieselbe Aufgabe.*
+* **Der Fortschritt geht als Feld in `/api/stats`** — `{ läuft, erledigt,
+  gesamt }` oder `null`. **Keine zweite Route dafür.** Die Karte fragt nach,
+  solange es läuft.
+* **Zweimal drücken startet nicht zweimal.** *Ein Lauf zur Zeit; der zweite
+  Aufruf bekommt eine Absage und keine zweite Schleife.*
 * **Dieselbe Regel wie in Punkt 1**, Zeichen für Zeichen: nur PNG, nur wenn
   kleiner, `mime_type` mitziehen, sonst unverändert.
 * **`thumb` und `medium` werden NICHT neu gerechnet.** *Sie sind aus demselben
-  Bild entstanden und bleiben gültig; sie neu zu rechnen wäre eine zweite,
-  überflüssige Kodierung.*
+  Bild entstanden und bleiben gültig.*
+* **`reclaim()` danach.** *Sonst wächst die Datei erst und schrumpft nie —
+  dieselbe Überlegung wie beim Papierkorb.*
 
-**Erwartete Dauer: rund 8 Minuten für 435,7 MB** — gemessen aus den Zeiten der
-laufenden Instanz. *Das ist kein Grund für irgendeine Vorsichtsmaßnahme.*
+### Die zweite Bestätigung — und damit acht Zwecke
+
+**Der Lauf schreibt jeden PNG-Blob der Instanz um, und die alten Bytes sind
+danach weg.** *Das ist genau die Art Vorgang, für die es die zweite Bestätigung
+gibt.* **`BESTAETIGUNG_ZWECKE` geht von sieben auf acht.**
+
+> **UND DER DIALOG SAGT ES VORHER, ohne zu beschönigen:** wie viele Bilder,
+> wie viel Platz, **dass die PNG-Fassung danach nicht mehr da ist**, und dass
+> eine Sicherung des Datenverzeichnisses davor die einzige Rückfahrkarte ist.
+> *„Unwiderruflich" ist hier richtig und nicht wie beim Löschen falsch.*
+
+### Was das für die Messwerkzeuge heißt
+
+**Die vier Messskripte dieser Runde** (`bildstand.js`, `bildwahl.js`,
+`bildguete.js`, `bildregel.js`) **kommen NICHT ins Repo.** *Sie haben ihre
+Arbeit getan; ihre Zahlen stehen oben in diesem Papier und gehören ins
+Änderungsprotokoll.* **Was von ihnen bleiben soll, ist die Aufstellung nach
+Format — und die steht künftig in der Karte.**
 
 ---
 
@@ -404,10 +465,27 @@ und nicht in einer eigenen Runde.**
 
 *`COUNT(*)` allein kostet 0 ms — teuer ist der Durchgang, nicht das Zählen.*
 
-**Zusammengelegt zu einer Abfrage.** **Die gelieferten Felder ändern sich
-nicht** — `photoCount`, `photoBytes`, `videoCount`, `videoBytes` behalten
-Namen und Bedeutung. *Es ist eine reine Rechenänderung; die Karte sieht danach
-aus wie vorher, nur früher.*
+**Zusammengelegt zu einer Abfrage** — und zwar zu **derselben**, die Punkt 2 für
+die Aufstellung nach Format braucht:
+
+```sql
+SELECT art, <Format aus den ersten Bytes>, COUNT(*), SUM(length(data))
+  FROM photos GROUP BY 1, 2
+```
+
+> **DAS IST DER ANGENEHME TEIL DIESER RUNDE: die Anzeige kostet nichts.** Die
+> gemessenen **2.990 ms** sind der Wert **mit** der Formataufteilung — sie ist in
+> derselben Zeile schon drin. **Die Karte bekommt eine Auskunft dazu und wird
+> dabei um 1,2 Sekunden schneller.**
+>
+> *Die Formaterkennung läuft über `hex(substr(data,1,8))` und Ähnliches — SQLite
+> holt die ersten Bytes, ohne das Blob zu lesen. Der Durchgang durch die Tabelle
+> ist der Preis, nicht das Schnüffeln, und den zahlt die Karte heute zweimal.*
+
+**Die vorhandenen Felder ändern sich nicht** — `photoCount`, `photoBytes`,
+`videoCount`, `videoBytes` behalten Namen und Bedeutung; die Aufteilung kommt
+**daneben**. *Dieselbe Regel wie bei den Videos und dem Papierkorb: die alten
+Zahlen behalten ihre Aussage und bekommen einen Nachbarn.*
 
 ---
 
@@ -432,7 +510,10 @@ aus wie vorher, nur früher.*
 > ebenfalls `nearLossless` werden sollte, ist **nicht gemessen** — sie braucht
 > einen eigenen Lauf, nicht eine Vermutung im Vorbeigehen.*
 
-**b) DER SCHALTER FÜRS BILDFORMAT** — Teil (e). *Begründet in Punkt 1(a).*
+**b) DIE AUFTEILUNG NACH HERKUNFT** — „Original behalten bei Dateiauswahl,
+umwandeln bei Strg+V". *Begründet in Punkt 1(a): der Server sieht den
+Unterschied nicht, das Format bildet ihn ohnehin ab, und es wären zwei Formate
+für denselben Inhalt.*
 
 **c) DIE UMWANDLUNG BEIM IMPORT.** *Begründet in Punkt 1(c).*
 
@@ -443,10 +524,16 @@ aber langsamer zu rechnen und in älteren Browsern nicht überall da.* **Für ei
 Instanz, die zehn Jahre laufen soll, ist WebP die sichere Wahl** — und
 `nearLossless` gibt es dort, wo es gebraucht wird.
 
-**f) EINE ANZEIGE DES BILDBESTANDS IN DER OBERFLÄCHE.** *Sie war erwogen und ist
-verworfen: die Kachel im Reiter „Datenbank" ist voll, und die Auskunft holt das
-Wirtsskript aus Punkt 2, ohne dass etwas eingebaut werden muss.* **Eine
-Entscheidung mit Begründung, keine Verschiebung aus Zeitmangel.**
+**f) EIN WIRTSSKRIPT `bilder.js`.** *Es war geplant und ist durch den Knopf
+ersetzt — begründet in Punkt 2.* **Zwei Werkzeuge für eine Sache wären eines zu
+viel.**
+
+**g) EIN RÜCKWEG „WebP wieder nach PNG".** *Er ginge — WebP ist verlustfrei
+kodiert und dekodiert zu genau den Pixeln, die drin stehen. Aber er stellte
+nicht das PNG wieder her, das dagewesen ist, sondern ein neues mit denselben
+Pixeln.* **Ein Knopf, der „zurück" verspricht und etwas anderes liefert, ist
+schlechter als keiner.** Die Rückfahrkarte ist die Sicherung, und der Dialog
+sagt das.
 
 ---
 
@@ -469,9 +556,13 @@ Entscheidung mit Begründung, keine Verschiebung aus Zeitmangel.**
   anzuhalten und zu fragen, nicht stillschweigend abzuweichen.*
 * **Die Sicherung des Datenverzeichnisses ist PFLICHT.** **Im Changelog steht ein
   Kasten über den Änderungen.**
-* **`F_ROUTEN` bleibt bei 69.** *Eine neue Spalte ist keine neue Route.*
-  **`BESTAETIGUNG_ZWECKE` bei sieben**, **achtzehn Karten in fünf Abschnitten**,
-  **acht persönliche Schlüssel**. **Nachzählen, nicht annehmen.**
+* **`F_ROUTEN` GEHT VON 69 AUF 70** — `POST /api/bilder/umstellen`. *Die
+  Einstellung selbst braucht keine: sie geht über `PUT /api/settings`, und der
+  Fortschritt ist ein Feld in `/api/stats`. Eine neue Spalte ist erst recht
+  keine Route.*
+* **`BESTAETIGUNG_ZWECKE` GEHT VON SIEBEN AUF ACHT** — die Umstellung des
+  Bestands. *Achtzehn Karten in fünf Abschnitten und acht persönliche Schlüssel
+  bleiben.* **Nachzählen, nicht annehmen.**
 * **Kommentare sind zeitlos.** Eine fachliche Warnung ja, eine
   Entstehungsgeschichte nein — **außer dort, wo eine zurückgenommene Entscheidung
   sonst wiederkäme** (Stolperstein 201). *Der Satz „das Original wird nicht
@@ -531,8 +622,8 @@ Entscheidung mit Begründung, keine Verschiebung aus Zeitmangel.**
   gebildet**, nach der letzten Änderung an einer ausgelieferten Datei — die
   Versionsnummer in `package.json` eingeschlossen, **und `package-lock.json`
   trägt sie ein zweites Mal.** **`public/` gehört dazu** (Stolperstein 158).
-  *`bilder.js` gehört **nicht** dazu, so wenig wie `zugang.js` und
-  `schluessel.js` — der Server lädt sie nicht.*
+  *Diese Runde fasst `public/app.js` und `public/style.css` an — der Fingerprint
+  ändert sich also ohnehin.*
 * **DIESE RUNDE IST EINE DATENBANKSTUFE — sag es ausdrücklich**, und sag dazu,
   **was vor dem Einspielen zu sichern ist**.
 * Die Befehle zum Nachprüfen auf dem Server mit erwartetem Ergebnis — **im Chat,
@@ -540,10 +631,12 @@ Entscheidung mit Begründung, keine Verschiebung aus Zeitmangel.**
   **ein Bildschirmfoto mit Strg+V einfügen** *(in der Datenbank liegt WebP, und
   der Text darauf ist im Vollbild scharf)*, **ein JPEG hochladen** *(es liegt
   unverändert da)*, **ein GIF hochladen** *(unverändert, und die Bewegung ist
-  noch da)*, **`node bilder.js zeigen`** *(nach dem Lauf steht dort kein PNG
-  mehr)*, **einen Ausschnitt enger ziehen, neu laden** *(er bleibt)*, und
-  **exportieren und in eine ZWEITINSTANZ einspielen** *(der Ausschnitt kommt
-  mit)*.
+  noch da)*, **den Schalter ausschalten und wieder einfügen** *(jetzt liegt PNG
+  da)*, **den Knopf drücken** *(die Karte zählt herunter, danach steht dort kein
+  PNG mehr, und die Bilder sehen aus wie vorher)*, **den Knopf als normaler
+  Admin suchen** *(er ist nicht da)*, **einen Ausschnitt enger ziehen, neu
+  laden** *(er bleibt)*, und **exportieren und in eine ZWEITINSTANZ einspielen**
+  *(der Ausschnitt kommt mit)*.
 
 ---
 
