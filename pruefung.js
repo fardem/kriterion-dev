@@ -25302,6 +25302,41 @@ async function pruefeOberflaeche() {
     kartenBild.getAttribute('style'));
   fokusDom.w.close();
 
+  /* UND DAS STILBLATT MUSS DEN WERT AUCH LESEN. Bis hierher ist nur belegt,
+     dass `--zoom` an der Kachel STEHT -- ein Stilblatt, das ihn nirgends
+     einrechnet, liesse jede dieser Zusagen gruen und jede Kachel unveraendert
+     (Stolperstein 272, andersherum: dort schlug der Inline-Stil die Regel,
+     hier gibt es die Regel gar nicht).
+     GEFUNDEN HAT DIESE LUECKE DIE GEGENPROBE: Rueckbau 453 nahm die Zeile aus
+     dem Stilblatt und blieb STUMM -- kein einziger roter Punkt fuer einen
+     Ausschnitt, der danach an keiner Kachel mehr zu sehen ist.
+     GEPRUEFT WIRD AM TEXT UND NICHT AN DER LAGE: jsdom rechnet keine Lage aus
+     (Stolperstein 223). */
+  const cssAus = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+    .replace(/\s+/g, ' ');
+  const regelAus = (w) => (cssAus.match(new RegExp(
+    w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
+  pruefe('Das Stilblatt rechnet den Ausschnitt an der Kachel ein',
+    /transform: scale\(var\(--zoom, 1\)\)/.test(regelAus('.card-img img')),
+    regelAus('.card-img img') || '(keine Regel)');
+  pruefe('Und an der Vorschaukachel ebenso',
+    /transform: scale\(var\(--zoom, 1\)\)/.test(regelAus('.thumb img')),
+    regelAus('.thumb img') || '(keine Regel)');
+  /* DIE UEBERFAHRVERGROESSERUNG MULTIPLIZIERT, sie ersetzt nicht: ein
+     `scale(1.03)` allein naehme der Kachel beim Ueberfahren genau den
+     Ausschnitt weg, den jemand eingestellt hat. */
+  pruefe('Die Ueberfahrvergroesserung nimmt den Ausschnitt mit',
+    /transform: scale\(calc\(var\(--zoom, 1\) \* 1\.03\)\)/
+      .test(regelAus('.card:hover .card-img img')),
+    regelAus('.card:hover .card-img img') || '(keine Regel)');
+  /* AUF DEM TELEFON FAELLT DIE VERGROESSERUNG WEG UND DER AUSSCHNITT NICHT.
+     `transform: none` naehme ihn mit, und dieselbe Kachel saehe auf dem
+     Telefon anders aus als auf dem Rechner. */
+  pruefe('Auf dem Telefon faellt nur die Vergroesserung weg, nicht der Ausschnitt',
+    (cssAus.match(/\.card:hover \.card-img img \{ transform: scale\(var\(--zoom, 1\)\); \}/g)
+      || []).length === 1,
+    cssAus.includes('.card:hover .card-img img { transform: none') ? 'transform: none' : '(nicht gefunden)');
+
   const vf = wb.document.querySelector('.vfocus');
   pruefe('Betrachter hat einen Schalter für den Ausschnitt', !!vf);
   pruefe('Ausschnitt-Modus ist zunächst aus',
