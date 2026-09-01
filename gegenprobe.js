@@ -3445,17 +3445,17 @@ const RUECKBAUTEN = [
 
   /* ---- 0.17.4: fordern und nutzen ---- */
   {
-    nr: '389', name: 'Die leere Bedienliste faellt wieder auf null zusammen',
+    nr: '389', name: 'Die leere Bedienliste wird wieder eine Zeile hoch',
     datei: 'public/style.css',
-    suche: ".manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }",
-    ersatz: ".manage-list > .hint { padding: 0 9px; }",
+    suche: ".manage-list > .hint { min-height: 5.59rem; padding: 0 9px; }",
+    ersatz: ".manage-list > .hint { min-height: 2.795rem; padding: 0 9px; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
-    nr: '392', name: 'Das leere Protokoll bekommt das Mass der Bedienzeile',
+    nr: '392', name: 'Das leere Protokoll wird wieder eine Zeile hoch',
     datei: 'public/style.css',
-    suche: ".prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }",
-    ersatz: ".prot-liste > .hint { min-height: 2.795rem; padding: 0 9px; grid-column: 1 / -1; }",
+    suche: ".prot-liste > .hint { min-height: 4.666rem; padding: 0 2px; grid-column: 1 / -1; }",
+    ersatz: ".prot-liste > .hint { min-height: 2.333rem; padding: 0 2px; grid-column: 1 / -1; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
@@ -3775,6 +3775,15 @@ const RUECKBAUTEN = [
     suche: ".card-fund .fund-quelle { flex-shrink: 0; color: var(--faint); font-weight: 600; }",
     ersatz: ".card-fund .fund-quelle { color: var(--faint); font-weight: 600; }",
     erwartet: 'Die Trefferzeile im Stylesheet'
+  },
+
+  /* ---- 0.18.1: der Deckel der Sitzungsliste, die leere Meldung ---- */
+  {
+    nr: '430', name: 'Die Sitzungsliste deckelt wieder nach der fremden Zeile',
+    datei: 'public/style.css',
+    suche: "#msitzungen { max-height: 55.23rem; }",
+    ersatz: "#msitzungen { max-height: 27.95rem; }",
+    erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
