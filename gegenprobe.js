@@ -3593,10 +3593,16 @@ const RUECKBAUTEN = [
     erwartet: 'Der Trefferkontext an der Antwort'
   },
   {
+    /* ER NIMMT DAS FELD WEG UND NICHT NUR DIE VORLAGE. Der erste Anlauf setzte
+       `fundZeile` auf leer und liess `f` stehen -- die Kachel suchte danach
+       eine `.fund-text`, die es nicht mehr gab, und riss beim Zeichnen ab
+       statt rot zu werden. EIN RUECKBAU MUSS EINEN LAUFFAEHIGEN STAND
+       ERGEBEN; einer, der die Oberflaeche zerreisst, sagt nichts darueber,
+       welche Pruefung ihn bemerkt haette (Stolperstein 138). */
     nr: '407', name: 'Die Kachel baut keine Trefferzeile mehr',
     datei: 'public/app.js',
-    suche: "  const fundZeile = f ? `<div class=\"card-fund\"",
-    ersatz: "  const fundZeile = false ? `<div class=\"card-fund\"",
+    suche: "  const f = it.fundstelle;",
+    ersatz: "  const f = null;",
     erwartet: 'Die Trefferzeile an der Kachel'
   },
   {
