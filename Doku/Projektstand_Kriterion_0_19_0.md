@@ -7800,9 +7800,9 @@ eine Buchführung.*
 | **0.17.3** | **Die Karte zeigt, der Dialog stellt ein (58 netto)** | **20 neue, ACHT weggefallen (368 → 380); vier nachgezogen (Stolperstein 201); 24 gefahren, 0 stumm** | **Stolpersteine 246 bis 250** |
 | **0.17.4** | **Fordern und nutzen (6 netto: sieben neue, eine weggefallen)** | **fünf neue (380 → 385); vier nachgezogen, davon einer UMGEDREHT (Stolperstein 201); 9 gefahren, 0 stumm** | **Stolpersteine 251 bis 255** |
 | **0.17.5** | **So hoch wie der Inhalt (2 netto: sieben neue, zwei weggefallen, vier umgeschrieben)** | **vier neue (385 → 389); neun nachgezogen, davon einer UMGEDREHT; 13 gefahren, 0 stumm** | **Stolpersteine 256 bis 259** |
-| **0.19.0** | **Die Bildablage (132 netto)** | **28 neue (422 → 450, Nummern 431 bis 458); einer nachgezogen (Stolperstein 201: Rückbau 233 zeigt statt auf Formatnummer 11 jetzt auf 12); der Lauf steht im Änderungsprotokoll** | **Stolpersteine 270 bis 273** |
 | **0.18.1** | **Zehn Zeilen heisst zehn Zeilen dieser Liste (2 netto)** | **einer neu (421 → 422, Nummer 430 — bis 429 ist vergeben, Stolperstein 269); zwei nachgezogen; 3 gefahren, 0 stumm** | **Stolpersteine 267 bis 269** |
 | **0.18.0** | **Die Suche wird nachvollziehbar (104 netto, keine weggefallen)** | **32 neue (389 → 421); ACHT nachgezogen, weil sie auf die Umgebung eines Ausdrucks zeigten statt auf ihn (Stolperstein 264); alle 32 gefahren, 0 stumm — der erste Lauf hatte NEUN Befunde: sechs stumme Rückbauten und drei abgerissene Läufe, alle abgearbeitet** | **Stolpersteine 260 bis 266** |
+| **0.19.0** | **Die Bildablage (132 netto)** | **28 neue (422 → 450, Nummern 431 bis 458); einer nachgezogen (Stolperstein 201: Rückbau 233 zeigt statt auf Formatnummer 11 jetzt auf 12); der Lauf steht im Änderungsprotokoll** | **Stolpersteine 270 bis 273** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
