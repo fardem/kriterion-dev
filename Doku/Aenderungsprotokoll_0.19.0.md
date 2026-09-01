@@ -649,7 +649,7 @@ keiner an der Zeitgrenze gestorben, kein Prozess hat das Aufräumen überlebt.**
 | 450 | Der Schieber für die Weite steht nicht mehr im Betrachter | 9 Prüfungen, darunter „Im Ausschnittmodus steht ein Schieber für die Weite" (2 Gruppen) |
 | 451 | Der Schieber schickt bei jedem Zwischenschritt | „Und es schickt dabei noch nichts" |
 | 452 | Der Griff an den Schieber setzt den Fokuspunkt mit | „Ein Griff an den Schieber setzt keinen Fokuspunkt" |
-| 453 | Das Stilblatt rechnet den Zoom nicht mehr ein | **ZUERST STUMM — ein FUND und eine Lücke im Prüfstand; nach dem Schließen der Lücke wird er nachgefahren, siehe unten** |
+| 453 | Das Stilblatt rechnet den Zoom nicht mehr ein | **ZUERST STUMM — ein FUND und eine Lücke im Prüfstand; nach dem Schließen: „Das Stilblatt rechnet den Ausschnitt an der Kachel ein"** |
 | 454 | Der Knopf der Umstellung fragt kein Passwort | 5 Prüfungen, darunter „Der Knopf schreibt nicht sofort los" (2 Gruppen) |
 | 455 | Der Dialog sagt nicht mehr, was verloren geht | „Und dass die PNG-Fassung danach nicht mehr da ist" |
 | 456 | Der Knopf bleibt bedienbar, obwohl kein PNG mehr dasteht | „Ohne PNG ist der Knopf nicht bedienbar", „Und der Knopf ist so lange tot" |
@@ -663,7 +663,8 @@ keiner an der Zeitgrenze gestorben, kein Prozess hat das Aufräumen überlebt.**
 > zählt sie mit, und der Unterschied ist genau eins je Zeile.*
 
 **Zusammen 100 rote Punkte** über die 26 Rückbauten, die auf Anhieb wirkten —
-**und zwei stumme, von denen nur einer angekündigt war.**
+**und zwei stumme, von denen nur einer angekündigt war.** *Nach dem Schließen der
+Lücke sind es 101 über 27, und stumm bleibt allein der angekündigte 433.*
 
 > **453 KAM STUMM ZURÜCK, UND DAS WAR EIN FUND.** Der Rückbau nimmt
 > `transform: scale(var(--zoom, 1))` aus dem Stilblatt; der eingestellte
@@ -676,8 +677,8 @@ keiner an der Zeitgrenze gestorben, kein Prozess hat das Aufräumen überlebt.**
 > eingestellten Wert, statt ihn zu ersetzen)* und das Telefon *(dort fällt die
 > Vergrößerung weg und der Ausschnitt bleibt)*. **Geprüft wird am Text und
 > nicht an der Lage** — jsdom rechnet keine Lage aus (Stolperstein 223).
-> **Der Nachlauf gegen den geschlossenen Stand läuft noch; sein Ergebnis
-> kommt an diese Stelle.**
+> **Nachgefahren gegen den geschlossenen Stand: er wird rot** — „Das Stilblatt
+> rechnet den Ausschnitt an der Kachel ein", **5053 von 5055 bestanden, 0 STUMM.**
 
 > **GEFAHREN IST DER VOLLE LAUF NICHT.** 450 Rückbauten zu je einem vollen
 > Prüflauf sind rund vierzig Stunden hintereinander. *Gefahren sind die 28
@@ -743,7 +744,7 @@ Dateien überquert, gehört an beide Enden eine Prüfung.**
 | Stolpersteine | 269 | **274** |
 | Fingerprint | `7b12ead4` | **`5fe43053`** |
 
-**Gefahrene Gegenproben dieser Runde:** **28 von 28**, in vier Spuren, **100 rote Punkte** ohne die Selbstprobe · **kein abgerissener Lauf** · **zwei stumme**, davon einer angekündigt (433) und einer ein Befund (453, geschlossen und nachgefahren). *Die Tabelle steht in Abschnitt 13.*
+**Gefahrene Gegenproben dieser Runde:** **28 von 28**, in vier Spuren, **100 rote Punkte** ohne die Selbstprobe · **kein abgerissener Lauf** · **zwei stumme**, davon einer angekündigt (433) und einer ein Befund (453 — Lücke geschlossen, nachgefahren, jetzt rot). *Die Tabelle steht in Abschnitt 13.*
 
 ---
 
