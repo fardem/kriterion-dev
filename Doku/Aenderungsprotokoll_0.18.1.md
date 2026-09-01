@@ -252,6 +252,12 @@ Wert als der Fingerprint oben, liegt auf dem Wirt eine Datei, die kein Commit
 trägt (Stolperstein 158). **Ein harter Neuladen gehört davor — geändert ist
 ausschließlich das Stilblatt.**
 
+> ## ✅ IM FELD BESTÄTIGT — 1. September 2026
+>
+> **Die laufende Instanz meldet `7b12ead4`** — genau den gebauten Wert
+> (Stolperstein 158). *Auf dem Wirt liegt keine Datei, die kein Commit trägt.*
+> **Und beide Befunde sind weg:** *„jetzt bin ich damit zufrieden."*
+
 ### Was diese Runde im Feld belegen soll
 
 1. **Der Abschnitt „Persönlich".** *Zehn Sitzungen stehen da, nicht fünf, und
