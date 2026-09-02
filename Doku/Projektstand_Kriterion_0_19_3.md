@@ -390,13 +390,23 @@ nicht mehr, was sie nicht zeigt.*
 > Protokollzeile für den Betreiber: „Die Instanz laeuft weiter …". Sie ist
 > keine Bildschirmmeldung, und der Wächter zählt sie ausdrücklich mit.*
 
-> **IM FELD NOCH NICHT BESTÄTIGT.** Der Fingerprint oben ist der **gebaute**
-> Wert (Stolperstein 158). **Und der eine Nachweis, der nur am Wirt zu führen
-> ist, steht seit 0.19.1 aus:** einen Umstellungslauf fahren und dabei in der
+> **IM FELD BESTÄTIGT.** Die laufende Installation hat am 2. September 2026
+> **`cdbe0925`** gemeldet — den gebauten Wert (Stolperstein 158).
+>
+> **UND SIE TRÄGT ZWEI RUNDEN ZUGLEICH, wie vorhergesagt.** Auf dem Wirt lief
+> zuletzt `f4f8a479`, also **0.19.2 ohne ihre zweite Hälfte**: der deckende
+> Index `idx_photos_kachel` und die eine Fotoabfrage der Übersicht sind erst
+> mit `0cdc709d` dazugekommen und mit diesem Sprung mitgereist. *Der
+> Betreiber meldet die Übersicht und den Systembereich als spürbar schneller
+> als zuvor — **welcher Anteil davon 0.19.2 gehört und welcher 0.19.3, ist
+> damit nicht auseinanderzuhalten.** Genau davor hat der Auftrag gewarnt; die
+> Ursachen sind je einzeln gemessen (Änderungsprotokolle 0.19.2 und 0.19.3),
+> die Aufteilung am Wirt ist es nicht.*
+>
+> **DER EINE NACHWEIS, DER NUR AM WIRT ZU FÜHREN IST, STEHT WEITER AUS** — und
+> er steht seit 0.19.1 aus: einen Umstellungslauf fahren und dabei in der
 > Übersicht blättern und im Systembereich klicken. *Reagiert die Oberfläche
-> durchgehend, ist der Thread im Feld belegt.* **Davor gehört `0cdc709d`
-> eingespielt** — auf dem Wirt lief zuletzt `f4f8a479`, also 0.19.2 ohne ihre
-> zweite Hälfte; sonst trägt der nächste Feldbeleg zwei Runden zugleich.
+> durchgehend, ist der Thread im Feld belegt.*
 
 *Davor, am 2. September:* **0.19.2** — Fingerprint **`0cdc709d`**, **5108
 Prüfungen**, **481 Rückbauten in der Liste**.
@@ -1019,8 +1029,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.3** | **`cdbe0925`** *(im Feld noch nicht bestätigt)* | 5170 |
-| 0.19.2 | `0cdc709d` *(im Feld noch nicht bestätigt — auf dem Wirt lief zuletzt `f4f8a479`, also 0.19.2 ohne ihre zweite Hälfte)* | 5108 |
+| **0.19.3** | **`cdbe0925`** *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5170 |
+| 0.19.2 | `0cdc709d` *(nie einzeln im Feld gelaufen — auf dem Wirt lief `f4f8a479`, also 0.19.2 ohne ihre zweite Hälfte; die fehlende Hälfte ist mit 0.19.3 mitgereist)* | 5108 |
 | 0.19.1 | `b0c4da5b` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5104 |
 | 0.19.0 | `5fe43053` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5055 |
 | 0.18.1 | `7b12ead4` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4919 |

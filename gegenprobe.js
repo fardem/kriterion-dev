@@ -4472,7 +4472,7 @@ const RUECKBAUTEN = [
     datei: 'server.js',
     suche: "  const liste = [...new Set([...ausgefuehrt, BESTANDSLAUF,",
     ersatz: "  const liste = [...new Set([...ausgefuehrt,",
-    erwartet: 'Der Fingerprint'
+    erwartet: 'Der Versions-Fingerprint'
   },
   {
     /* DER THREAD UEBERLAESST sharp SEINE VORGABE. sharp wird dort EIGENS

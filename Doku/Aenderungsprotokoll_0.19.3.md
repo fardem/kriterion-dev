@@ -619,24 +619,88 @@ Prüflauf: rund sieben Minuten, in mehreren Nebenspuren nebeneinander.*
 > **UND ES IST DER ERSTE AUSWERTBARE LAUF SEIT 0.19.1.** Der erste Anlauf
 > dieser Runde meldete für **jeden** Rückbau „LAUF ABGERISSEN" — die Ursache
 > steht in Abschnitt 6a. *Was hier steht, ist der Lauf danach.*
+>
+> **VIERUNDZWANZIG GEFAHREN, EINER STUMM — und der eine ist der bekannte.**
+> *Ein zweiter war es beim ersten Durchgang auch: **Rückbau 495 blieb stumm**,
+> und das war ein Fund. Die Ursache lag nicht am Rückbau, sondern an der
+> Zusage: sie suchte irgendwo im Fehlerhandler nach `umstellung.laeuft =
+> false`, und diese Zeichenfolge steht auch hinter einem `if (false)` noch da.
+> **Gesucht wird jetzt die ganze Zeile samt ihrer Klemme**, und mit dem Rückbau
+> greift das Muster nicht mehr — die Zeile in der Tabelle ist die des Laufs
+> danach.* **Ein stummer Rückbau ist ein Fund und keine Formalie.**
 
-GEGENPROBE_PLATZHALTER
+**Die Zeilen sind die des Treibers.** *Eine Zeile ist in jeder von ihnen
+ausgelassen und steht hier einmal:* **„Jeder Suchtext kommt in seiner Datei
+genau einmal vor"** *— die Selbstprobe. Sie wird bei **jedem** gefahrenen
+Rückbau rot, weil er gerade seine eigene Zeile ersetzt hat; der Treiber zählt
+sie deshalb selbst nicht zu den inhaltlichen Punkten.*
+
+| # | Rückbau | Namentlich rot |
+|---|---|---|
+| **491** | Der Thread meldet seinen Stand erst am Ende | „Und meldet je Zeile einmal, dazu einmal am Ende", „Und der Stand zaehlt hoch, bis alle Zeilen erledigt sind" |
+| **492** | Der Haupt-Thread hoert die Meldungen des Threads nicht mehr | 7 Prüfungen, darunter „Der Fortschritt steht in den Kennzahlen und läuft aus" (2 Gruppen) |
+| **493** | Der Schluessel reist ueber workerData in den Thread | „Der Schluessel reist nicht ueber workerData" |
+| **494** | SIGTERM kuerzt die WAL, waehrend der Thread noch schreibt | „SIGTERM beendet erst die Threads und dann die Datei", „Und er nimmt jeden laufenden Thread mit, nicht nur den letzten" |
+| **495** | Ein Fehler im Thread laesst den Lauf auf „laeuft" stehen | „Ein Fehler im Thread setzt den Lauf auf beendet und laesst den Rest stehen" |
+| **496** | Der Fingerprint kennt die Datei des Threads nicht | „Eine Änderung an bestandslauf.js ändert ihn — obwohl nur der Thread ihn lädt", „Der Pfad des Threads steht an einer Stelle" |
+| **497** | Der Thread ueberlaesst sharp seine Vorgabe | „Der Thread setzt die Threadzahl von sharp selbst" |
+| **498** | Der Schluesselhinweis wiederholt sich in jedem Thread | „Der Schluesselhinweis wird im Neben-Thread nicht wiederholt" |
+| **499** | Die gebuendelten Schlagworte verlieren ihre zweite Ordnung | „Die Kachel traegt dieselben Schlagworte wie der Eintrag", „Und sie stehen alphabetisch, nicht in der Reihenfolge des Eintragens" |
+| **500** | Die gebuendelten Testtage verlieren ihre zweite Ordnung | 7 Prüfungen, darunter „Übersicht liefert die Testtage selbst, nicht nur die Anzahl" (4 Gruppen) |
+| **501** | Die Linkzahl fehlt ganz, wo kein Link ist | 5 Prüfungen, darunter „Und die Antwort auf eine Suche traegt weiterhin alle bekannten Felder" (4 Gruppen) |
+| **502** | Die gebuendelte Schlagwortabfrage liest eine Spalte mehr | 5 Prüfungen, darunter „Eine Sekunde vor Ablauf traegt der Link noch" (3 Gruppen) |
+| **503** | Die Testtage der Liste tragen wieder Schlagworte und Verfasser | „Und sie sind schmal: id, day, rating und mine, sonst nichts", „Der Testtag der Liste traegt id, day, rating und mine — sonst nichts" |
+| **504** | Die Schlagwortabfrage liest wieder alle Spalten | 4 Prüfungen, darunter „Ein Schlagwort traegt nur noch id und name — an der Kachel" (2 Gruppen) |
+| **505** | Eine Stelle im Bildschirmtext sagt wieder „Instanz" | „In public/app.js steht das Wort in keiner Nicht-Kommentarzeile mehr", „In den Kommentaren derselben Datei stehen unveraendert 33 Vorkommen" |
+| **136** | testDays kommt wieder immer mit | „Ausgeschaltet fehlt das Feld ganz", „Und die Suche antwortet in derselben Form" |
+| **137** | testDays fehlt immer, auch mit eingeschalteter Zeitleiste | 14 Prüfungen, darunter „Übersicht liefert die Testtage selbst, nicht nur die Anzahl" (7 Gruppen) |
+| **431** | Ein ankommendes PNG wird gar nicht mehr umgewandelt | 12 Prüfungen, darunter „Und liegt danach als WebP in der Tabelle" (4 Gruppen) |
+| **432** | Der mime_type wird nicht mitgezogen | 6 Prüfungen, darunter „Und liegt danach als WebP in der Tabelle" (3 Gruppen) |
+| **433** | Auch ein groesseres Ergebnis wird genommen | **STUMM — das ist ein FUND** |
+| **434** | Die Erkennung glaubt dem gemeldeten Typ | 5 Prüfungen, darunter „Ein GIF behält seinen Typ" (2 Gruppen) |
+| **435** | Der verlustbehaftete Kodierer statt nearLossless | 5 Prüfungen, darunter „Und zwar der verlustfreie Bitstrom VP8L" (3 Gruppen) |
+| **458** | Ein Bild, das WebP nicht fassen kann, reisst den Upload ab | 5 Prüfungen, darunter „Ein PNG, das WebP nicht fassen kann, bleibt PNG" (2 Gruppen) |
+| **W14** | Die Dateiliste des Sprachwaechters verliert die neuen Dateien | „Der Sprachwaechter sieht alle dreizehn Quelltextdateien an" |
+
+> **433 IST STUMM, UND DAS IST KEIN VERSEHEN.** Er steht seit 0.19.1
+> ausdrücklich als STUMM erwartet in der Liste: der Größenvergleich in
+> `legeBildAb()` lässt sich nicht rot machen, weil **PNG nie über die Größe
+> gewinnt** — achtzehn Laborversuche ohne Gegenbeispiel, und am echten Bestand
+> 679 von 679 umgestellt. *Er bleibt trotzdem in der Liste: verschwindet die
+> Zeile aus dem Quelltext, greift sein Suchtext ins Leere, und **genau das**
+> meldet der Prüfstand.*
+
+> **UND EINE ZEILE IN 502 GEHÖRT NICHT ZUM RÜCKBAU:** „Eine Sekunde vor Ablauf
+> trägt der Link noch". *Das ist die Zeitprobe mit dem zu engen Fenster, die
+> unter Last rot wird und im Projektstand als offene Kleinigkeit steht — sie
+> hat mit der Schlagwortabfrage nichts zu tun.* **Sie steht hier, damit der
+> nächste Leser nicht danach sucht.**
+
+**136, 137 UND 431 BIS 458 SIND DIE MITGEGANGENEN.** *Sie belegen, dass ein
+Rückbau, der in eine andere Datei umzieht oder auf eine umgeschriebene Zeile
+zeigt, weiter greift — ein Rückbau, der ins Leere greift, ist stumm und
+verfälscht die Tabelle (Stolperstein 192).*
 
 ---
 
 ## 12. Offen geblieben
 
-**IM FELD NOCH NICHT BESTÄTIGT.** *Nach dem Einspielen gehört ein Blick in
-Systembereich → Datenbank → Kennzahlen: steht dort ein anderer Wert als der
-Fingerprint oben, liegt auf dem Wirt eine Datei, die kein Commit trägt
-(Stolperstein 158).* **Ein hartes Neuladen gehört davor.**
+**IM FELD BESTÄTIGT — 2. September 2026.** *Die laufende Installation meldet
+`cdbe0925`, den gebauten Wert* (Stolperstein 158).
 
-> **UND VORHER GEHÖRT `0cdc709d` EINGESPIELT.** Auf dem Wirt lief zuletzt
-> `f4f8a479` — das ist 0.19.2 **ohne ihre zweite Hälfte**: der deckende Index
-> `idx_photos_kachel` und die eine Fotoabfrage der Übersicht sind erst in
-> `0cdc709d` dazugekommen. *Wird 0.19.3 darüber gespielt, trägt der nächste
-> Feldbeleg zwei Runden zugleich, und wenn etwas klemmt, ist nicht mehr zu
-> sagen, welche es war.*
+> **UND SIE TRÄGT ZWEI RUNDEN ZUGLEICH — die Warnung oben ist eingetreten.**
+> Auf dem Wirt lief zuletzt `f4f8a479`, also 0.19.2 **ohne ihre zweite
+> Hälfte**; `0cdc709d` ist nie einzeln gelaufen. Der deckende Index
+> `idx_photos_kachel` und die eine Fotoabfrage der Übersicht sind mit diesem
+> Sprung **mitgereist**.
+>
+> **DER BETREIBER MELDET ÜBERSICHT UND SYSTEMBEREICH ALS SPÜRBAR SCHNELLER als
+> zuvor — und welcher Anteil davon welcher Runde gehört, ist am Wirt nicht
+> auseinanderzuhalten.** *Die Ursachen sind je einzeln gemessen (0.19.2
+> Punkt 5: 9,3 → 1,6 ms für die Fotos; 0.19.3 Punkte 2 und 3: 3200 → 405
+> Abfragen und 484 → 348 kB), die Aufteilung an dieser Installation ist es
+> nicht.* **Eine Beobachtung ist kein Messwert, und sie steht hier als
+> Beobachtung.**
 
 **DER EINE NACHWEIS, DER NUR AM WIRT ZU FÜHREN IST, STEHT WEITER AUS** — und er
 steht seit 0.19.1 aus: ein PNG einfügen, den Schalter aus- und wieder
