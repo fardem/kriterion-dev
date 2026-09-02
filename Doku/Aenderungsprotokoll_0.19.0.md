@@ -18,6 +18,17 @@ Server hat sie unverändert gespeichert.
 `nearLossless` bei `quality: 60` werden aus 435,7 MB **161,9 MB**, ohne dass
 eines von hundert Bildern sichtbar schlechter wird.*
 
+> ### ✓ NACHGETRAGEN IN 0.19.1 — DIE VORHERSAGE HAT GEHALTEN
+>
+> Der Lauf ist am echten Bestand gefahren worden: **679 von 679 umgestellt,
+> 272,1 MB gespart.** Die umgestellten Bilder belegen danach
+> 435,7 − 272,1 = **163,6 MB** gegen vorhergesagte **161,9 MB** —
+> **Abweichung 1,0 %.**
+>
+> *Das steht hier, weil eine Messung, die sich bestätigt, genauso
+> berichtenswert ist wie eine, die sich nicht bestätigt. Dieselbe Runde, die
+> zwei falsche Zahlen aus diesem Papier gestrichen hat, trägt diese ein.*
+
 > **DIE NUMMER: MINOR.** *Drei Dinge kann die Instanz danach: Bilder
 > platzsparend ablegen, ohne sie zu verschlechtern; den vorhandenen Bestand auf
 > Knopfdruck nachziehen; und den Bildausschnitt enger wählen.*
@@ -255,7 +266,7 @@ verlustfreien Weg:** `effort: 5` war in **allen vier** hier gefahrenen Leitern
 | ein undurchsichtiger Alphakanal kostet nichts | **ja** — byte-identisch, 1.039.086 = 1.039.086 |
 | WebP kann höchstens 16383 px je Kante | **ja** — 16383 geht, 16384 wirft „Processed image is too large for the WebP format" |
 | `nearLossless` 60 weicht höchstens um 2 von 255 ab | **ja** — am erzeugten Material max 2; im Prüflauf als Zusage festgenagelt |
-| ein PNG, das als WebP größer wäre, bleibt PNG | **NEIN — nicht nachstellbar.** Neun Anläufe (1×1 bis 256×256, Rauschen, Palette, Graustufen, mit und ohne Alpha) ergaben ausnahmslos ein **kleineres** WebP. Der Fall kommt am echten Bestand vor; mit erzeugtem Material ließ er sich nicht herstellen. *Siehe Abschnitt 10c.* |
+| ein PNG, das als WebP größer wäre, bleibt PNG | **NEIN — nicht nachstellbar.** Neun Anläufe (1×1 bis 256×256, Rauschen, Palette, Graustufen, mit und ohne Alpha) ergaben ausnahmslos ein **kleineres** WebP. ***Berichtigt in 0.19.1:*** *hier stand, der Fall komme am echten Bestand vor — das ist widerlegt. Am echten Bestand wurden 679 von 679 umgestellt, keines blieb. Siehe Abschnitt 10c.* |
 
 ---
 
@@ -402,22 +413,44 @@ dieser Runde und nicht in einer eigenen.
 `WHERE art != 'video'`, einmal `WHERE art = 'video'`. **Jeder Durchlauf ist ein
 voller Tabellendurchgang über alle Blobs.**
 
-**Gemessen an einer eigens gebauten Datenbank in der Größe der echten**
-(679 PNG, 344 JPEG, 9 WebP, 606 MB):
-
-| | kalt | warm |
-|---|---|---|
-| **zwei getrennte Durchläufe (bis 0.18.1)** | 6.566 ms | **4.230 ms** |
-| **ein `GROUP BY`** | 3.235 ms | **2.990 ms** |
-
-*`COUNT(*)` allein kostet 0 ms — teuer ist der Durchgang, nicht das Zählen.*
-
-**Die gemessenen 2.990 ms sind der Wert MIT der Formataufteilung** — sie steckt
-in derselben Zeile schon drin. **Die Karte bekommt eine Auskunft dazu und wird
-dabei um 1,2 Sekunden schneller.**
-
-*Die Formaterkennung läuft über `hex(substr(data,1,8))` und Ähnliches — SQLite
-holt die ersten Bytes, ohne das Blob zu lesen.*
+> ### ⚠ BERICHTIGT IN 0.19.1 — DIE ZAHLEN, DIE HIER STANDEN, WAREN KEINE MESSUNG
+>
+> An dieser Stelle stand eine Tabelle mit vier Zeiten, angeblich gemessen an
+> einer Datenbank „in der Größe der echten (679 PNG, 344 JPEG, 9 WebP,
+> 606 MB)": zwei getrennte Durchläufe kalt und warm, ein `GROUP BY` kalt und
+> warm — der beste Wert knapp unter drei Sekunden. **Eine Datenbank mit 606 MB
+> Bilddaten beantwortet diese Abfrage nicht in drei Sekunden, und sie hat es
+> nie getan.** Die Zahlen dürften an einer Datenbank **ohne** Bilddaten
+> entstanden sein; dort kostet der Durchgang wirklich nichts.
+>
+> **Sie sind gestrichen und nicht überschrieben** — eine Zahl, die um
+> Größenordnungen zu gut aussieht, ist keine Messung (Stolperstein 277). Was an
+> ihre Stelle tritt, ist nachgefahren: an einer **SQLCipher-Datenbank mit 400
+> Zeilen à 512 kB (205 MB)**, einmal je Form.
+>
+> | Abfrage | Zeit |
+> |---|---|
+> | `COUNT(*)` allein | 0,0 ms |
+> | `COUNT(*), SUM(length(data))` **ohne** `GROUP BY` | 0,0 ms |
+> | `COUNT(*), SUM(length(data))` **mit** `GROUP BY` | 778 ms |
+> | die Abfrage aus 0.19.0 (mit `hex(substr(...))`) | 919 ms |
+> | `SUM(length(hex(data)))` — liest garantiert alles, als Obergrenze | 753 ms |
+> | `hex(substr(data,1,8))` **ohne** `GROUP BY` | 657 ms |
+> | nur die Größe gruppiert, über eine **materialisierte** Zwischenabfrage | 0,1 ms |
+> | `art` + `mime_type`, materialisiert | 0,2 ms |
+>
+> **Und der Satz daneben war ebenfalls falsch.** Er lautete, `hex(substr(data,1,8))`
+> hole die ersten Bytes und lese das Blob dabei nicht. **Gemessen 657 ms** —
+> das 0,87-fache der Obergrenze: `substr()` auf einem Blob liest das Blob.
+> `length()` dagegen ist kostenlos, **aber nur außerhalb eines `GROUP BY`**
+> (Stolperstein 275): SQLite liest die Länge aus dem Satzkopf, und sobald die
+> Spalte durch den Sortierer der Gruppierung muss, wird das Blob materialisiert.
+>
+> **Das Zusammenlegen der beiden Durchläufe war richtig gedacht und falsch
+> gebaut.** Hochgerechnet auf die echte Installation (606 MB) kostete die
+> Abfrage rund **2,7 Sekunden — bei jedem Zeichnen des Systembereichs.**
+> 0.19.1 baut sie über eine materialisierte Zwischenabfrage neu; die Aufteilung
+> nach Format kommt seitdem aus `mime_type`.
 
 **Die vorhandenen Felder ändern sich nicht** — `photoCount`, `photoBytes`,
 `videoCount`, `videoBytes` behalten Namen und Bedeutung; sie werden nur anders
@@ -601,16 +634,29 @@ Nummer bei **458**. *Die ZAHL und die HÖCHSTE NUMMER sind nicht dasselbe
 
 > **EIN RÜCKBAU IST ALS STUMM ERWARTET, und das ist ein Befund und keine
 > Ausrede.** Nummer 433 nimmt den Größenvergleich weg (`if (webp.length <
-> buf.length)` → `if (true)`). **Der Fall kommt am echten Bestand vor, ließ
-> sich aber mit erzeugtem Material nicht herstellen:** neun Anläufe — 1×1 bis
-> 256×256, Rauschen, Palette, Graustufen, mit und ohne Alpha — ergaben
-> ausnahmslos ein **kleineres** WebP, und schon das kleinste mögliche PNG (68
-> Bytes) ist größer als das kleinste mögliche WebP (36). **Er bleibt trotzdem
-> in der Liste:** verschwindet die Zeile aus dem Quelltext, greift sein
-> Suchtext ins Leere, und genau das meldet der Prüfstand. *Der Rückbau bewacht
-> damit das Vorhandensein der Regel, auch wo er ihre Wirkung nicht zeigen
-> kann.* **Der andere Rückfall — WebP kann höchstens 16383 px je Kante — ist
-> dagegen nachgestellt** (Rückbau 458 und eine eigene Prüfung).
+> buf.length)` → `if (true)`). Neun Anläufe — 1×1 bis 256×256, Rauschen,
+> Palette, Graustufen, mit und ohne Alpha — ergaben ausnahmslos ein
+> **kleineres** WebP, und schon das kleinste mögliche PNG (68 Bytes) ist größer
+> als das kleinste mögliche WebP (36). **Er bleibt trotzdem in der Liste:**
+> verschwindet die Zeile aus dem Quelltext, greift sein Suchtext ins Leere, und
+> genau das meldet der Prüfstand. *Der Rückbau bewacht damit das Vorhandensein
+> der Regel, auch wo er ihre Wirkung nicht zeigen kann.* **Der andere Rückfall
+> — WebP kann höchstens 16383 px je Kante — ist dagegen nachgestellt**
+> (Rückbau 458 und eine eigene Prüfung).
+>
+> ### ⚠ BERICHTIGT IN 0.19.1 — DER ERSTE HALBSATZ WAR WIDERLEGT
+>
+> Hier stand, der Fall komme am echten Bestand vor und lasse sich nur mit
+> erzeugtem Material nicht herstellen. **Der erste Halbsatz stammte aus dem
+> Auftrag zu 0.19.0 und aus keiner Messung.** Am echten Bestand ist der Lauf
+> inzwischen gefahren worden: **679 von 679 umgestellt, keines geblieben**, und
+> in `bildFormate` stand danach kein `png` mehr. Dazu achtzehn Laborversuche
+> (die neun von oben und neun danach: Palette mit 8 und mit 256 Farben, reiner
+> Text, Graustufen, Alpha, 1×1, Flächen) — **PNG gewinnt nie über die Größe.**
+> **Der einzige Fall, in dem PNG liegen bleibt, ist der, in dem WebP nicht
+> kann** — über 16383 Bildpunkte je Kante, und der ist als Rückbau 458 gebaut
+> und geprüft. *Der Rückbau bleibt und bleibt als STUMM erwartet; berichtigt
+> ist nur seine Begründung.*
 
 **Rückbau 233 ist MITGEGANGEN statt gelöscht zu werden (Stolperstein 201):** er
 nahm der Exportdatei ihre Formatnummer und zeigte auf die 11; er zeigt jetzt auf

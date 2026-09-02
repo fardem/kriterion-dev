@@ -29,6 +29,36 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.19.1] - 2026-09-02
+
+> **DIE `docker-compose.yml` HEISST IM REPO JETZT `docker-compose.example.yml`
+> UND STEHT IN DER `.gitignore`** — dasselbe Muster wie bei der `.env`. *Grund:
+> wer das ZIP von GitHub über seinen Ordner entpackte, verlor seine angepasste
+> Fassung samt Port, Sicherungsort und Containernamen. Im Feld passiert.*
+>
+> **Wer per `git pull` aktualisiert, sieht seine `docker-compose.yml` danach als
+> unverfolgte Datei** — sie bleibt liegen, wie sie ist, und wird nicht mehr
+> überschrieben. **Wer das ZIP entpackt, behält sie ebenfalls.** *Beides ist der
+> Zweck.*
+>
+> **Wer noch keine hat, legt sie einmal an:**
+> `cp docker-compose.example.yml docker-compose.yml`. Ohne sie bricht
+> `docker compose up` mit „no configuration file provided: not found" ab.
+>
+> **Sonst nichts zu tun.** *Keine Datenbankstufe, keine Migration, kein neues
+> Austauschformat — gesichert werden muss vor dem Einspielen nichts.* **Nach dem
+> Einspielen im Browser einmal hart neu laden.**
+
+- Fixed: Der Systembereich lädt wieder sofort — die Kennzahlen lasen bei jedem Abschnittswechsel jedes Bild aus der Datenbank
+- Fixed: Während einer Bildumstellung reagierte die Oberfläche zeitweise nicht — dieselbe Abfrage lief alle 1,5 Sekunden
+- Fixed: Ein enger gezogener Bildausschnitt erreichte die Bildränder nicht; die Vergrößerung saß immer in der Mitte
+- Fixed: Eine Rückfrage aus dem Vollbild heraus — etwa beim Löschen — stand hinter dem Vollbild und war nicht zu sehen
+- Changed: „Bildablage" ist eine eigene Karte unter Datenbank statt ein Abschnitt in „Kennzahlen"; die Karte war zu groß geworden
+- Changed: Der Dialog vor „Alle PNG nach WebP umstellen" sagt jetzt, dass der Lauf dauern und den Betrieb stören kann
+- Changed: Der fünfte Abschnitt des Systembereichs heißt „Installation" statt „Instanz"; die alten Adressen führen weiter dorthin
+- Changed: Meldungen sagen „dieser Installation" statt „der Instanz" — der Produktname steht nicht mehr dort, wo deine Anlage gemeint ist
+- Changed: Die Bildverarbeitung nimmt sich höchstens die halbe Kernzahl der Maschine, statt sich auf die Vorgabe zu verlassen
+
 ## [0.19.0] - 2026-09-01
 
 > **VOR DEM EINSPIELEN DAS DATENVERZEICHNIS SICHERN.** Diese Version rüstet eine

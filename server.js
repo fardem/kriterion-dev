@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
@@ -8,6 +9,25 @@ const anh = require('./anhaenge');
 // sagt, dass sich noch alles aendern darf; die Veroeffentlichung bekaeme 1.0.0.
 const VERSION = require('./package.json').version;
 const sharp = require('sharp');
+/* WIE VIELE THREADS libvips SICH NEHMEN DARF -- ausdruecklich gesetzt und
+   nicht der Vorgabe ueberlassen.
+
+   UND DIE EHRLICHKEIT GEHOERT DAZU: auf der Installation, die den Befund
+   gemeldet hat, AENDERT DIESE ZEILE NICHTS -- dort steht die Vorgabe schon auf
+   1. Sie steht hier, weil sharp seine Vorgabe VOM IMAGE ABHAENGIG macht:
+   unter glibc ohne jemalloc ist sie 1, unter musl oder mit jemalloc kann sie
+   die Kernzahl sein. Wer Kriterion auf einer fremden Maschine betreibt,
+   bekommt sonst einen Wartungslauf, der sich die ganze Maschine nimmt.
+   Eine Zeile, der man eine Wirkung zuschreibt, die sie im gemessenen Fall
+   nicht hat, waere eine Unwahrheit -- deshalb steht die Einschraenkung hier
+   und ebenso in den Papieren.
+
+   UND os.cpus() IST IM CONTAINER NICHT DIE WAHRHEIT UEBER DAS KONTINGENT
+   (Stolperstein 278): es meldet die Kerne des WIRTS, nicht das, was dem
+   Container zugeteilt ist. Wer den Container auf eine CPU begrenzt, bekommt
+   trotzdem die halbe Kernzahl des Wirts. Ob daraus mehr wird -- das Lesen der
+   cgroup-Grenze --, ist eine Frage fuer 0.19.2 und nicht fuer diese Runde. */
+sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
@@ -100,10 +120,10 @@ function mailtestStand(roh) {
 function versandBereit() {
   const roh = getSetting(mail.SCHLUESSEL, null);
   if (!mail.eingerichtet(roh))
-    return { ok: false, grund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer der Instanz.' };
+    return { ok: false, grund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.' };
   if (!mailtestStand(roh))
     return { ok: false, grund: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen. ' +
-      'Der Eigentümer der Instanz drückt sie in der Karte „Mailversand“.' };
+      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };
   if (!OEFFENTLICHE.adresse)
     return { ok: false, grund:
       'Ohne OEFFENTLICHE_ADRESSE in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
@@ -314,6 +334,12 @@ async function makeVariants(buf) {
    Zwischenablage als PNG ab, und der Server hat sie unveraendert gespeichert.
    Als WebP im Verfahren `nearLossless` werden daraus 161,9 MB.
 
+   UND DIE VORHERSAGE HAT GEHALTEN. Der Lauf ist am echten Bestand gefahren:
+   679 von 679 umgestellt, 272,1 MB gespart -- die umgestellten Bilder belegen
+   danach 435,7 - 272,1 = 163,6 MB gegen vorhergesagte 161,9 MB, ABWEICHUNG
+   1,0 %. Eine Messung, die sich bestaetigt, ist so berichtenswert wie eine,
+   die es nicht tut.
+
    DIESER ABSATZ IST AUSDRUECKLICH KEINE ENTSTEHUNGSGESCHICHTE, sondern eine
    zurueckgenommene Entscheidung, die sonst wiederkaeme (Stolperstein 201):
    Fahrplan und Sammelblatt fuehrten bis zum 1. September 2026 den Satz „das
@@ -351,6 +377,20 @@ const PNG_MAGIE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const PNG_MAGIE_HEX = PNG_MAGIE.toString('hex').toUpperCase();
 const istPNG = (buf) =>
   Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIE);
+
+/* WELCHER SCHLUESSEL AUF DER FORMATZEILE DER KARTE STEHT -- die Zuordnung von
+   mime_type auf den Schluessel steht HIER UND NUR HIER. Die Oberflaeche kennt
+   nur noch die Schluessel und die Namen dazu (BILDFORMATE in public/app.js);
+   zwei Tabellen ueber dieselbe Sache duerfen sich nicht widersprechen
+   (Stolperstein 47).
+   WAS SIE NICHT KENNT, FAELLT IN 'anderes' -- ein leeres oder unbekanntes
+   mime_type ist eine Aussage und keine Zeile weniger.
+   KLEINGESCHRIEBEN VERGLICHEN: `IMAGE/PNG` ist derselbe Typ, und die Spalte
+   traegt, was der Hochladende gemeldet hat. */
+const BILD_MIME_FORMAT = {
+  'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/gif': 'gif'
+};
+const formatAusMime = (m) => BILD_MIME_FORMAT[String(m || '').trim().toLowerCase()] || 'anderes';
 
 /* Der Schalter aus dem Reiter „Datenbank". VORGABE AN -- und „aus" heisst
    wirklich aus: ankommende PNG bleiben dann byte-genau PNG. Das ist die
@@ -863,7 +903,7 @@ function istEigentuemer(req) { return req.benutzer.role === 'eigentuemer'; }
 function istAdmin(req) { return req.benutzer.role === 'admin' || istEigentuemer(req); }
 
 const VERWEIGERT_ADMIN = 'Das verwaltet nur der Admin.';
-const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer der Instanz.';
+const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer dieser Installation.';
 const VERWEIGERT_EINTRAG = 'Diesen Eintrag ändert nur, wer ihn angelegt hat — oder der Admin.';
 const VERWEIGERT_SELBST = 'Das ändert nur, wer es geschrieben hat.';
 const VERWEIGERT_TAG_NEU = 'Neue Tags legt nur der Admin an. Vorhandene lassen sich weiterhin vergeben.';
@@ -998,8 +1038,8 @@ const NUR_VERFASSER_FELDER = ['title', 'description', 'rejected', 'rejectedGrund
 function darfAnZugang(req, ziel) {
   return ziel.role === 'user' ? istAdmin(req) : istEigentuemer(req);
 }
-const VERWEIGERT_ZUGANG = 'An einen Admin oder den Eigentümer kommt nur der Eigentümer der Instanz.';
-const VERWEIGERT_ROLLE = 'Rollen vergibt nur der Eigentümer der Instanz.';
+const VERWEIGERT_ZUGANG = 'An einen Admin oder den Eigentümer kommt nur der Eigentümer dieser Installation.';
+const VERWEIGERT_ROLLE = 'Rollen vergibt nur der Eigentümer dieser Installation.';
 const VERWEIGERT_SELBST_ZUGANG = 'Den eigenen Zugang ändert man unter „Zugang“, nicht hier.';
 
 /* ---- Zugang ---- */
@@ -4001,55 +4041,101 @@ app.get('/api/offen', (req, res) => {
 app.get('/api/stats', nurAdmin, (req, res) => {
   let dbBytes = 0;
   try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
-  /* EIN DURCHGANG DURCH photos, NICHT ZWEI. Bis 0.18.1 standen hier zwei
-     Abfragen -- `WHERE art != 'video'` und `WHERE art = 'video'` --, und jede
-     war ein voller Tabellendurchgang ueber alle Blobs.
+  /* ZWEI ABFRAGEN, UND BEIDE UEBER EINE MATERIALISIERTE ZWISCHENABFRAGE.
+     Bis 0.18.1 standen hier zwei volle Tabellendurchgaenge; 0.19.0 hat sie zu
+     EINEM GROUP BY zusammengelegt und dabei den Fehler erst gebaut, den diese
+     Runde wegraeumt.
 
-     GEMESSEN AN EINER DATENBANK IN DER GROESSE DER ECHTEN (679 PNG, 344 JPEG,
-     9 WebP, 606 MB):
+     WAS 0.19.0 BEHAUPTET HAT, UND WARUM ES FALSCH WAR. An dieser Stelle stand
+     eine Messung: ein GROUP BY ueber eine Datenbank „in der Groesse der
+     echten" (679 PNG, 344 JPEG, 9 WebP, 606 MB) koste knapp drei Sekunden.
+     DIESE ZAHLEN SIND GESTRICHEN und stehen nur noch im Aenderungsprotokoll zu
+     0.19.1, wo die Berichtigung sie zitiert: eine Datenbank mit 606 MB
+     Bilddaten beantwortet diese Abfrage nicht in drei Sekunden, und sie hat es
+     nie getan. Sie duerften an einer Datenbank OHNE Bilddaten entstanden sein
+     -- dort kostet der Durchgang wirklich nichts. Eine Messung, die um
+     Groessenordnungen zu gut aussieht, ist keine Messung (Stolperstein 277).
 
-                                        kalt      warm
-       zwei getrennte Durchlaeufe    6.566 ms   4.230 ms
-       ein GROUP BY                  3.235 ms   2.990 ms
+     NACHGEFAHREN AN EINER SQLCIPHER-DATENBANK MIT 400 ZEILEN A 512 kB
+     (205 MB), einmal je Form:
 
-     COUNT(*) allein kostet 0 ms -- teuer ist der DURCHGANG, nicht das Zaehlen.
+       COUNT(*) allein                                        0,0 ms
+       COUNT(*), SUM(length(data)) OHNE GROUP BY              0,0 ms
+       COUNT(*), SUM(length(data)) MIT GROUP BY             778   ms
+       die Abfrage aus 0.19.0 (mit hex(substr(...)))        919   ms
+       SUM(length(hex(data))) -- liest garantiert alles     753   ms
+       hex(substr(data,1,8)) OHNE GROUP BY                  657   ms
+       nur die Groesse gruppiert, MATERIALIZED                0,1 ms
+       art + mime_type, MATERIALIZED                          0,2 ms
 
-     UND DIE FORMATAUFTEILUNG IST IN DERSELBEN ZEILE SCHON DRIN: die 2.990 ms
-     sind der Wert MIT ihr. Die Karte bekommt also eine Auskunft dazu und wird
-     dabei schneller. hex(substr(data,1,8)) holt die ersten Bytes, ohne das
-     Blob zu lesen.
+     ZWEI BEFUNDE, und beide widersprechen dem, was hier bis 0.19.1 stand:
 
-     ERKANNT WIRD AM INHALT, NICHT AN mime_type: die Spalte ist eine Angabe des
-     Hochladenden. Dieselbe Haltung wie bei der Auslieferung und bei
-     legeBildAb().
+     1. substr() AUF EINEM BLOB LIEST DAS BLOB. 657 ms auch ohne GROUP BY, das
+        0,87-fache der Obergrenze. 0.19.0 hat hier das Gegenteil behauptet --
+        hex(substr(data,1,8)) hole die ersten Bytes und lasse das Blob dabei
+        ungelesen. DAS IST FALSCH und ist deshalb hier gestrichen; der
+        Wortlaut steht im Aenderungsprotokoll zu 0.19.1.
+     2. length() AUF EINEM BLOB IST KOSTENLOS -- ABER NUR AUSSERHALB EINES
+        GROUP BY. SQLite liest die Laenge aus dem Satzkopf; sobald die Spalte
+        durch den Sortierer der Gruppierung muss, wird das Blob materialisiert
+        (Stolperstein 275). Das Zusammenlegen der beiden Durchlaeufe hat den
+        Fehler erst gebaut.
+
+     HOCHGERECHNET AUF DIE ECHTE INSTALLATION (606 MB) waren das rund 2,7 s --
+     bei JEDEM Zeichnen des Systembereichs, der sich bei jedem
+     Abschnittswechsel neu zeichnet. Und waehrend einer Umstellung fragt die
+     Fortschrittsanzeige dieselbe Abfrage alle 1500 ms ab; eine Abfrage, die
+     2700 ms kostet, lastet den Haupt-Thread damit zu 180 % aus.
+
+     DER AUSWEG IST DIE MATERIALISIERTE ZWISCHENABFRAGE: sie zieht erst die
+     Laenge (billig, aus dem Satzkopf) und gruppiert danach ueber eine Zahl.
+     Ein Durchgang bleibt ein Durchgang -- die Zusammenlegung aus 0.19.0 war
+     richtig gedacht und nur falsch gebaut.
 
      DIE ALTEN FELDER BEHALTEN NAMEN UND BEDEUTUNG. photoCount, photoBytes,
      videoCount und videoBytes werden hier nur ANDERS GERECHNET, nicht anders
      gemeint -- die Aufteilung kommt daneben. Dieselbe Regel wie bei den Videos
      und beim Papierkorb. */
   const proArt = db.prepare(`
-    SELECT art,
-           CASE
-             WHEN hex(substr(data,1,8)) = '89504E470D0A1A0A' THEN 'png'
-             WHEN hex(substr(data,1,3)) = 'FFD8FF'           THEN 'jpeg'
-             WHEN hex(substr(data,1,4)) = '52494646'
-              AND hex(substr(data,9,4)) = '57454250'         THEN 'webp'
-             WHEN hex(substr(data,1,3)) = '474946'           THEN 'gif'
-             ELSE 'anderes'
-           END AS format,
-           COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o
-      FROM photos GROUP BY 1, 2`).all();
+    WITH x AS MATERIALIZED (SELECT art AS a, length(data) AS o FROM photos)
+    SELECT a, COUNT(*) AS n, COALESCE(SUM(o),0) AS o FROM x GROUP BY 1`).all();
   const p = { n: 0, o: 0 }, vi = { n: 0, o: 0 };
-  /* DIE AUFTEILUNG ZAEHLT NUR BILDER. Bei einer Videozeile traegt `data` die
+  for (const z of proArt) {
+    const topf = z.a === 'video' ? vi : p;
+    topf.n += z.n; topf.o += z.o;
+  }
+  /* DIE AUFTEILUNG NACH FORMAT KOMMT AUS mime_type UND NICHT MEHR AUS DEM
+     INHALT. Gemessen 0,2 ms gegen 919 ms.
+
+     0.19.0 HAT AUSDRUECKLICH ANDERS ENTSCHIEDEN, und der Satz von damals
+     bleibt richtig, WO ER HINGEHOERT: „erkannt wird am Inhalt, nicht an
+     mime_type -- die Spalte ist eine Angabe des Hochladenden." Am UPLOAD gilt
+     er unveraendert: legeBildAb() sieht weiter in die ersten acht Bytes und
+     glaubt dem gemeldeten Typ nicht.
+
+     AUFGEHOBEN IST ER FUER EINE KENNZAHL AUF EINER KARTE, und der Grund ist
+     eine Abwaegung: 2,7 Sekunden bei JEDEM Klick gegen die Moeglichkeit, dass
+     eine Zeile falsch gezaehlt wird, weil jemand beim Hochladen einen falschen
+     Typ gemeldet hat. Was aufgehoben wird, wird mit dem Grund hingeschrieben
+     und nicht geloescht (Stolperstein 201).
+
+     UND DER KNOPF BLEIBT DAVON UNBERUEHRT: qOffenePNG sucht weiter am INHALT
+     (hex(substr(data,1,8))), laeuft aber nur auf Verlangen und nicht bei jedem
+     Zeichnen. DIE KARTE KANN SICH ALSO VERZAEHLEN, DER KNOPF NIE DAS FALSCHE
+     TUN.
+
+     AUSDRUECKLICH OHNE VIDEOS: bei einer Videozeile traegt `data` die
      Videodatei -- ihr Format gehoert in keine Zeile, die „Fotos am Eintrag
      nach Format" ueberschrieben ist. Die Videos stehen wie bisher als eigene
      Zahl daneben. */
+  const proFormat = db.prepare(`
+    WITH x AS MATERIALIZED (
+      SELECT mime_type AS m, length(data) AS o FROM photos WHERE art != 'video')
+    SELECT m, COUNT(*) AS n, COALESCE(SUM(o),0) AS o FROM x GROUP BY 1`).all();
   const bildFormate = {};
-  for (const z of proArt) {
-    const topf = z.art === 'video' ? vi : p;
-    topf.n += z.n; topf.o += z.o;
-    if (z.art === 'video') continue;
-    const f = bildFormate[z.format] || (bildFormate[z.format] = { anzahl: 0, bytes: 0 });
+  for (const z of proFormat) {
+    const s = formatAusMime(z.m);
+    const f = bildFormate[s] || (bildFormate[s] = { anzahl: 0, bytes: 0 });
     f.anzahl += z.n; f.bytes += z.o;
   }
   const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();

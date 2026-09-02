@@ -260,7 +260,7 @@ function nameBox(title, text, vorgabe = '', okLabel = 'Speichern', maxLaenge = 4
    Liefert true, wenn die Freigabe steht -- der Rufer handelt danach. Bei false
    ist entweder abgebrochen worden oder das Passwort war falsch; die Meldung
    steht dann schon. */
-const BESTAETIGUNG_GRUND = 'Das trifft die Instanz als Ganzes. Damit eine fremde offene ' +
+const BESTAETIGUNG_GRUND = 'Das trifft diese Installation als Ganzes. Damit eine fremde offene ' +
   'Anmeldung das nicht kann, bestätigst du es mit deinem Passwort.';
 
 /* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
@@ -1028,6 +1028,19 @@ async function sendeFormular(pfad, formular) {
    den Ausschnitt eingestellt hat. Als Eigenschaft rechnet das Stylesheet
    beides zusammen.
 
+   UND DER VERGROESSERUNGSPUNKT GEHT MIT, seit 0.19.1. `transform-origin` steht
+   auf DEMSELBEN Punkt wie `object-position`. Ohne ihn verankert `scale()` in
+   der Mitte: man saehe erst den object-position-Ausschnitt und DAVON nochmal
+   den mittigen Teil, und je enger man zieht, desto weiter sind die Raender
+   weg. GEMESSEN IN ECHTEM CHROMIUM (Kachel 313 x 313, Zoom 250 %, Fokuspunkt
+   in eine Ecke): von der gewaehlten Bildecke war in allen vier Richtungen
+   0,0 % zu sehen; mit `transform-origin` sind es 30,7 % oben und 15,4 % unten.
+   Das ist Stolperstein 276.
+
+   ER DARF MIT HINAUS, DER ZOOM NICHT: `transform-origin` IST KEIN `transform`
+   und schlaegt deshalb die Ueberfahrregel nicht (Stolperstein 272). Gerechnet
+   wird der Zoom weiter im Stilblatt.
+
    EINE FUNKTION UND NICHT ZWEI: `fokus()` hiess sie bis 0.18.1 und lieferte
    nur die object-position. Zwei Funktionen -- eine fuer den Punkt, eine fuer
    die Weite -- waeren zwei Wahrheiten ueber denselben Ausschnitt, und die
@@ -1037,7 +1050,11 @@ function ausschnitt(p) {
   // pruefen und nicht bloss umwandeln. Sonst rutscht ein fehlender Wert in
   // die Ecke oben links statt in die Mitte.
   const z = (v, vorgabe) => (typeof v === 'number' && Number.isFinite(v) ? v : vorgabe);
-  return `object-position:${z(p && p.focus_x, 50)}% ${z(p && p.focus_y, 50)}%;` +
+  // EIN Wertepaar, zweimal ausgegeben -- nicht zweimal gerechnet. Zwei
+  // Rechenwege liefen frueher oder spaeter auseinander, und dann zoege die
+  // Vergroesserung an einem anderen Punkt als der Ausschnitt.
+  const x = z(p && p.focus_x, 50), y = z(p && p.focus_y, 50);
+  return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%;` +
          `--zoom:${z(p && p.zoom, 100) / 100}`;
 }
 
@@ -5909,7 +5926,7 @@ async function renderDetail(id, begriffAdresse) {
     if (eigen.length) saetze.push(`Dazu ${eigen.join(', ')} von mir.`);
     if (fremd.length) saetze.push(`Und von anderen: ${fremd.join(', ')}.`);
     saetze.push(`Alles davon liegt danach ${PAPIERKORB_TAGE} Tage im Papierkorb; ` +
-      `zurückholen kann es der Eigentümer der Instanz.`);
+      `zurückholen kann es der Eigentümer dieser Installation.`);
 
     if (!await confirmBox(`${V.sacheEinzahl} löschen?`, saetze.join(' '))) return;
     try { await api('DELETE', `/api/items/${id}`); state.compare.delete(id); location.hash = '#/'; }
@@ -5952,17 +5969,24 @@ async function renderDetail(id, begriffAdresse) {
 
 /* DIE FUENF ABSCHNITTE, IN DER REIHENFOLGE DER RECHTELEITER: was jedem
    gehoert, steht vorn; was nur der Eigentuemer sieht, steht hinten.
-   "Instanz" traegt heute genau eine Karte. Das ist kein Versehen: der
-   oeffentliche Titel ist die einzige Einstellung, die die INSTANZ als Ganzes
-   nach aussen beschreibt, und sie gehoert weder zum Bestand noch zu den
+   "Installation" traegt heute genau eine Karte. Das ist kein Versehen: der
+   oeffentliche Titel ist die einzige Einstellung, die die INSTALLATION als
+   Ganzes nach aussen beschreibt, und sie gehoert weder zum Bestand noch zu den
    Zugaengen. Ein Abschnitt mit einer Karte ist ehrlicher als eine Karte am
-   falschen Platz. */
+   falschen Platz.
+   ER HEISST SEIT 0.19.1 "Installation"; die beiden aelteren Namen stehen in
+   SYS_ALTE_ABSCHNITTE eine Zeile weiter unten. EINWORTIG WIE SEINE VIER
+   NACHBARN -- "Kriterion Installation" stuende quer in der Reihe, zumal
+   ueberall daneben schon Kriterion draufsteht. Und NICHT "von Kriterion",
+   weil `title_app` einstellbar ist: wer seinen Bestand "Produktliste" nennt,
+   laese sonst eine Meldung ueber "Kriterion" und muesste erst ueberlegen, was
+   gemeint ist. */
 const SYS_ABSCHNITTE = [
-  { schluessel: 'persoenlich', name: 'Persönlich' },
-  { schluessel: 'bestand',     name: 'Bestand' },
-  { schluessel: 'zugaenge',    name: 'Zugänge' },
-  { schluessel: 'datenbank',   name: 'Datenbank' },
-  { schluessel: 'instanz',     name: 'Instanz' }
+  { schluessel: 'persoenlich',  name: 'Persönlich' },
+  { schluessel: 'bestand',      name: 'Bestand' },
+  { schluessel: 'zugaenge',     name: 'Zugänge' },
+  { schluessel: 'datenbank',    name: 'Datenbank' },
+  { schluessel: 'installation', name: 'Installation' }
 ];
 
 /* DIE ADRESSE IST DIE EINE WAHRHEIT UEBER DEN OFFENEN ABSCHNITT. Kein
@@ -5974,9 +5998,10 @@ const SYS_ABSCHNITTE = [
 const SYS_MUSTER = /^#\/system(?:\/([a-z]+))?$/;
 const sysAdresse = (schluessel) => `#/system/${schluessel}`;
 
-/* DIE ALTE ADRESSE WIRD STILL UEBERSETZT, NICHT ABGEWIESEN. Bis 0.17.0 hiess
-   der fuenfte Abschnitt „Anlage" und trug den Schluessel `anlage`; die Adresse
-   dazu steht in Lesezeichen, in aelteren Papieren und womoeglich in einer Mail.
+/* DIE ALTE ADRESSE WIRD STILL UEBERSETZT, NICHT ABGEWIESEN. Der fuenfte
+   Abschnitt hiess bis 0.17.0 „Anlage" (Schluessel `anlage`) und bis 0.19.1
+   „Instanz" (Schluessel `instanz`); beide Adressen stehen in Lesezeichen, in
+   aelteren Papieren und womoeglich in einer Mail.
    EIN LINK, DER INS LEERE FUEHRT, IST EINE MITTEILUNG OHNE WEG. Ohne diese
    Tafel faende `#/system/anlage` keinen Abschnitt und fiele auf den ersten
    sichtbaren zurueck -- der Empfaenger landete also woanders, ohne dass ihm
@@ -5984,9 +6009,15 @@ const sysAdresse = (schluessel) => `#/system/${schluessel}`;
    und `replaceState` am Ende von renderSystem() zieht die Adresse gleich nach.
    DIESELBE BAUFORM WIE `delete f.neu` IN 0.17.0 und wie der Schluessel
    `abgelehnt` in 0.15.0: was einmal draussen war, wird weiter verstanden.
-   EINE TAFEL UND KEINE VERZWEIGUNG -- kaeme je ein zweiter alter Name dazu,
-   steht er als Zeile daneben und nicht als zweites `if`. */
-const SYS_ALTE_ABSCHNITTE = { anlage: 'instanz' };
+   EINE TAFEL UND KEINE VERZWEIGUNG -- der zweite alte Name steht als ZEILE
+   daneben und nicht als zweites `if`. Genau das hatte der Kommentar hier
+   vorausgesagt, und genau das ist jetzt eingetreten.
+   UND SIE WIRD EINMAL NACHGESCHLAGEN UND NICHT VERKETTET. Deshalb steht hier
+   `{ anlage: 'installation', instanz: 'installation' }` und NICHT
+   `{ anlage: 'instanz', instanz: 'installation' }` -- sonst landete
+   `#/system/anlage` bei einem Schluessel, den es nicht mehr gibt, und der
+   aelteste Link waere ausgerechnet der einzige, der ins Leere fuehrt. */
+const SYS_ALTE_ABSCHNITTE = { anlage: 'installation', instanz: 'installation' };
 
 /* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. EIN Ort fuer die
    Frage nach einem fehlenden Element: stuende vor jedem Behandler dieselbe
@@ -5995,19 +6026,18 @@ const SYS_ALTE_ABSCHNITTE = { anlage: 'instanz' };
 const amElement = (id, tu) => { const el = document.getElementById(id); if (el) tu(el); };
 
 
-/* ---- DIE ACHTZEHN KARTEN ----
+/* ---- DIE NEUNZEHN KARTEN ----
    `sichtbar` ist die Klemme, `markup` das Aussehen, `ausruesten` die
    Behandler. Eine Karte ohne Behandler laesst `ausruesten` weg, und eine leere
    Funktion daneben waere eine Zeile, die behauptet, es gaebe dort etwas zu tun.
-   SEIT 0.19.0 TRAEGT JEDE KARTE EINEN BEHANDLER. "Kennzahlen" war bis dahin
-   die einzige ohne -- sie zeigte nur Zahlen; jetzt steht der Schalter der
-   Bildablage darin und der Knopf, der den Bestand nachzieht. Die Auslassung
-   bleibt trotzdem vorgesehen: sie kostet nichts, und die naechste reine
-   Anzeigekarte braucht sie wieder.
-   ES BLEIBEN ACHTZEHN. Diese Runde legt KEINE neunzehnte an -- der Schalter
-   und der Knopf gehoeren zu den Zahlen, neben denen sie wirken, und eine
-   eigene Karte fuer zwei Bedienelemente stuende neben der Aufstellung, die
-   sie erklaert. */
+   "Kennzahlen" ist wieder die einzige ohne: sie zeigt nur Zahlen.
+   NEUNZEHN SEIT 0.19.1, vorher achtzehn. Die Bildablage hat "Kennzahlen"
+   verlassen und eine eigene bekommen -- nicht, weil etwas dazugekommen waere,
+   sondern weil die Karte darunter zu gross geworden war. 0.19.0 hat sie
+   ausdruecklich HINEINgesetzt und "es bleibt bei achtzehn Karten" dazu
+   geschrieben; das war fuer zwei Zeilen und einen Schalter richtig und ist es
+   fuer fuenf Formatzeilen, einen Schalter mit Erlaeuterung, einen Knopf, eine
+   Fortschrittszeile und eine Meldung nicht mehr. */
 const SYS_KARTEN = [
   { schluessel: 'zugang',       abschnitt: 'persoenlich', sichtbar: () => true,
     markup: karteZugang,       ausruesten: ruesteZugangAus },
@@ -6041,13 +6071,15 @@ const SYS_KARTEN = [
     markup: karteMailversand,  ausruesten: ruesteMailversandAus },
 
   { schluessel: 'kennzahlen',   abschnitt: 'datenbank', sichtbar: () => ADMIN,
-    markup: karteKennzahlen,   ausruesten: ruesteKennzahlenAus },
+    markup: karteKennzahlen },
+  { schluessel: 'bildablage',   abschnitt: 'datenbank', sichtbar: () => ADMIN,
+    markup: karteBildablage,   ausruesten: ruesteBildablageAus },
   { schluessel: 'sicherung',    abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
     markup: karteSicherung,    ausruesten: ruesteSicherungAus },
   { schluessel: 'export',       abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
     markup: karteExport,       ausruesten: ruesteExportAus },
 
-  { schluessel: 'titel',        abschnitt: 'instanz', sichtbar: () => ADMIN,
+  { schluessel: 'titel',        abschnitt: 'installation', sichtbar: () => ADMIN,
     markup: karteTitel,        ausruesten: ruesteTitelAus }
 ];
 
@@ -6145,7 +6177,7 @@ async function renderSystem() {
 }
 
 
-/* ---- Karte „Titel" — Abschnitt „Instanz" ---- */
+/* ---- Karte „Titel" — Abschnitt „Installation" ---- */
 function karteTitel(geholt) {
   const { titles } = geholt;
   return `<div class="sys-card">
@@ -6304,7 +6336,7 @@ function ruesteZugangAus(geholt) {
       </div>` : `
       <div class="zf-zustand zf-aus"><strong>Zweiter Faktor: aus</strong> — zum Anmelden
         genügt dein Passwort.</div>
-      <p class="desc" style="margin:8px 0 10px">Mit zweitem Faktor fragt die Instanz beim
+      <p class="desc" style="margin:8px 0 10px">Mit zweitem Faktor fragt diese Installation beim
         Anmelden zusätzlich nach einem sechsstelligen Code aus einer App auf deinem Telefon
         (Google Authenticator, Aegis, 1Password, iOS-Passwörter). Der Code entsteht
         <strong>ohne Netz</strong> und ist alle 30 Sekunden ein anderer.
@@ -7146,7 +7178,7 @@ function kartePapierkorb() {
           und lassen sich zurückholen; danach fallen sie heraus. Zurück kommt eine
           <strong>neue</strong> Nummer mit demselben Inhalt — Fotos, Videos, Dateien, Kommentare,
           Bewertungen und ${esc(V.zeitpunktMehrzahl)} samt ihren Verfassern.
-          ${EIGENTUEMER ? '' : 'Zurückholen und endgültig entfernen kann der Eigentümer der Instanz.'}</p>
+          ${EIGENTUEMER ? '' : 'Zurückholen und endgültig entfernen kann der Eigentümer dieser Installation.'}</p>
         <div class="manage-list" id="mpapierkorb"></div>
       </div>`;
 }
@@ -7233,8 +7265,8 @@ function karteZugaenge() {
           was man eigentlich will</strong> — die Anmeldung wird abgewiesen, die Beiträge bleiben
           unangetastet stehen, und der Name bleibt vergeben.
           ${EIGENTUEMER
-            ? `Als Eigentümer der Instanz vergibst du Rollen und kommst auch an andere Admins.`
-            : `Rollen vergibt der Eigentümer der Instanz; an einen anderen Admin kommst du nicht.`}</p>
+            ? `Als Eigentümer dieser Installation vergibst du Rollen und kommst auch an andere Admins.`
+            : `Rollen vergibt der Eigentümer dieser Installation; an einen anderen Admin kommst du nicht.`}</p>
         <div class="manage-list" id="mzugaenge"></div>
         ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
              nichts geloescht wurde -- gefuellt wird sie von
@@ -7811,7 +7843,7 @@ function karteProtokoll(geholt) {
   const { protokoll } = geholt;
   return `<div class="sys-card breit">
         <h3>Sicherheitsprotokoll</h3>
-        <p class="desc">Wer Zugang hatte und wer die Instanz als Ganzes angefasst hat.
+        <p class="desc">Wer Zugang hatte und wer diese Installation als Ganzes angefasst hat.
           <strong>Was hier nicht steht:</strong> was jemand geschrieben oder bewertet hat — das ist
           kein Änderungsverlauf, und das bleibt so. Ebenso wenig Adresse oder Browserkennung:
           die Instanz speichert beides nicht.</p>
@@ -8293,7 +8325,7 @@ function mailDialog(mailstand) {
         absender: feld('absender').value.trim()
       };
       if (!await zweiteBestaetigung('mail', null, 'Mailzugang setzen',
-        'Über diesen Server läuft künftig JEDE Mail dieser Instanz — auch jeder ' +
+        'Über diesen Server läuft künftig JEDE Mail dieser Installation — auch jeder ' +
         'Link, der ein Passwort setzt.')) return;
       try {
         await api('PUT', '/api/mail', koerper);
@@ -8374,10 +8406,11 @@ function umstellungsZeile(u) {
 }
 
 /* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ----
-   SEIT 0.19.0 MIT BEHANDLER: die Aufstellung nach Format gehoert zu den
-   Zahlen, und der Schalter und der Knopf gehoeren neben die Aufstellung, die
-   sie erklaert. Die beiden Bedienelemente stehen hinter EIGENTUEMER -- die
-   Zahlen darueber sieht jeder Admin. */
+   OHNE BEHANDLER, WIEDER. In 0.19.0 trug sie einen -- der Schalter und der
+   Knopf der Bildablage sassen darin. Sie sind in 0.19.1 in eine eigene Karte
+   gezogen (siehe karteBildablage()), und was hier bleibt, sind Zahlen. Eine
+   leere ausruesten-Funktion daneben waere eine Zeile, die behauptet, es gaebe
+   hier etwas zu tun. */
 function karteKennzahlen(geholt) {
   const { stats } = geholt;
   return `<div class="sys-card">
@@ -8426,53 +8459,6 @@ function karteKennzahlen(geholt) {
              nebeneinander. */''}
         <div class="kv"><span class="k">Version</span><span class="v">${esc(stats.version || '—')}</span></div>
         <div class="kv"><span class="k">Fingerprint</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
-        ${/* ---- DIE BILDABLAGE ----
-             SIE STEHT HIER UND NICHT IN EINER EIGENEN KARTE: die Aufstellung
-             IST eine Kennzahl, und der Knopf gehoert neben die Zahl, die
-             sagt, ob er noch etwas zu tun hat. Sie kostet ausserdem nichts --
-             die Abfrage dahinter ist DIESELBE, die oben schon Fotos und
-             Videos zaehlt.
-             DIE ZEILE FUER JEDES FORMAT NUR, WENN ES DAS FORMAT GIBT. Eine
-             Instanz ohne ein einziges GIF soll keine GIF-Zeile mit einer
-             Null tragen -- eine Null ist eine Aussage, und sie lenkt hier von
-             den beiden Zahlen ab, um die es geht. */''}
-        ${(() => {
-          const bf = stats.bildFormate || {};
-          const zeilen = BILDFORMATE.filter(f => bf[f.schluessel] && bf[f.schluessel].anzahl);
-          if (!zeilen.length) return '';
-          const png = bf.png ? bf.png.anzahl : 0;
-          // Solange einer laeuft, ist der Knopf tot: der Server sagt dem
-          // zweiten Ruf ohnehin ab, und ein Knopf, der zuverlaessig eine
-          // Absage erzeugt, sieht aus wie ein Fehler.
-          const laeuft = !!(stats.umstellung && stats.umstellung.laeuft);
-          return `<div class="sys-teil"></div>
-        <h4 class="sys-unter">Bildablage</h4>
-        <p class="desc" style="margin:0 0 8px">Die <strong>Originale</strong> der Fotos am
-          ${esc(V.sacheEinzahl)}, nach Format. Die beiden Ableitungen (400 px und 1600 px)
-          sind immer JPEG und stehen hier nicht.</p>
-        ${zeilen.map(f => {
-          const z = bf[f.schluessel];
-          return `<div class="kv"><span class="k">${f.name}${
-            f.hinweis ? ` <span class="zusatz">— ${f.hinweis}</span>` : ''
-          }</span><span class="v">${z.anzahl} · ${fmtBytes(z.bytes)}</span></div>`;
-        }).join('')}
-        ${EIGENTUEMER ? `
-        <label class="ex-files" style="margin-top:10px"><input type="checkbox" id="bild-umwandeln">
-          PNG-Originale beim Hereinkommen umwandeln</label>
-        ${/* WAS DER SCHALTER TUT, UND WAS ER NICHT TUT. Der Satz nennt beides:
-             ein eingefügtes Bildschirmfoto liegt danach als WebP da, und die
-             Güte bleibt dabei erhalten. Ohne Häkchen bleibt jedes PNG
-             byte-genau, wie es hereinkam. */''}
-        <p class="hint hint-sm" style="margin:6px 2px 0">Ein mit Strg+V eingefügtes
-          Bildschirmfoto kommt als PNG herein und wird als WebP abgelegt — rund zwei Drittel
-          kleiner, ohne sichtbaren Verlust. JPEG, GIF und vorhandenes WebP bleiben unberührt.
-          Ohne Häkchen bleibt jedes PNG byte-genau so liegen, wie es ankam.</p>
-        <div class="row-in" style="margin-top:10px">
-          <button class="btn btn-sm" id="bild-um"${png && !laeuft ? '' : ' disabled'}>Alle PNG nach WebP umstellen</button>
-        </div>
-        ${png || laeuft ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">Es liegt kein PNG-Original mehr da.</p>`}
-        ${umstellungsZeile(stats.umstellung)}` : ''}`;
-        })()}
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">Der Schlüssel kommt aus der Umgebung. Denk daran: <strong>.env und data/ nicht in dieselbe Sicherung legen</strong> — und ohne den Schlüssel sind die Daten unwiederbringlich verloren.</div>`
           : `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.
@@ -8516,6 +8502,74 @@ function karteKennzahlen(geholt) {
       </div>`;
 }
 
+/* ---- Karte „Bildablage" — Abschnitt „Datenbank" ----
+   SIE HAT DIE KARTE „Kennzahlen" VERLASSEN, und der Grund ist gewachsen und
+   nicht erfunden. In 0.19.0 stand hier ausdruecklich „es bleibt bei achtzehn
+   Karten", und der Abschnitt war zwei Zeilen und ein Schalter gross. Inzwischen
+   traegt er zwei bis fuenf Formatzeilen, einen Schalter mit Erlaeuterung, einen
+   Knopf, eine Fortschrittszeile und eine Meldung -- DIE KARTE WAR ZU GROSS
+   GEWORDEN, und das ist im Feld aufgefallen. Damit sind es NEUNZEHN Karten.
+
+   ES IST KEINE NEUE FUNKTION: dieselben Zahlen, derselbe Schalter, derselbe
+   Knopf, nur an einem eigenen Platz. Deshalb bleibt die Nummer dieser Runde
+   ein PATCH.
+
+   SIE STEHT NEBEN „Kennzahlen" IM ABSCHNITT „Datenbank" -- die Aufstellung
+   sagt, wovon die Datenbank so gross ist, und der Knopf daneben sagt, ob er
+   noch etwas zu tun hat.
+
+   SICHTBAR FUER JEDEN ADMIN, wie „Kennzahlen": die Zahlen sind eine Auskunft
+   ueber den Bestand. DIE BEIDEN BEDIENELEMENTE STEHEN HINTER EIGENTUEMER --
+   der Schalter bestimmt, wie die ganze Installation ablegt, und der Server
+   weist einen Admin ohne diese Rolle ohnehin ab.
+
+   DIE ZEILE FUER JEDES FORMAT NUR, WENN ES DAS FORMAT GIBT. Eine Installation
+   ohne ein einziges GIF soll keine GIF-Zeile mit einer Null tragen -- eine
+   Null ist eine Aussage, und sie lenkt von den Zahlen ab, um die es geht.
+   LIEGT UEBERHAUPT KEIN BILD DA, sagt die Karte GENAU DAS und verschwindet
+   nicht: eine Karte, die je nach Bestand da ist oder nicht, liesse den
+   Systembereich unter der Hand die Gestalt wechseln. */
+function karteBildablage(geholt) {
+  const stats = geholt.stats || {};
+  const bf = stats.bildFormate || {};
+  const zeilen = BILDFORMATE.filter(f => bf[f.schluessel] && bf[f.schluessel].anzahl);
+  const png = bf.png ? bf.png.anzahl : 0;
+  // Solange einer laeuft, ist der Knopf tot: der Server sagt dem zweiten Ruf
+  // ohnehin ab, und ein Knopf, der zuverlaessig eine Absage erzeugt, sieht aus
+  // wie ein Fehler.
+  const laeuft = !!(stats.umstellung && stats.umstellung.laeuft);
+  return `<div class="sys-card">
+        <h3>Bildablage</h3>
+        <p class="desc">Die <strong>Originale</strong> der Fotos am
+          ${esc(V.sacheEinzahl)}, nach Format. Die beiden Ableitungen (400 px und 1600 px)
+          sind immer JPEG und stehen hier nicht.</p>
+        ${zeilen.length ? zeilen.map(f => {
+          const z = bf[f.schluessel];
+          return `<div class="kv"><span class="k">${f.name}${
+            f.hinweis ? ` <span class="zusatz">— ${f.hinweis}</span>` : ''
+          }</span><span class="v">${z.anzahl} · ${fmtBytes(z.bytes)}</span></div>`;
+        }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">Es liegt noch kein Foto am
+          ${esc(V.sacheEinzahl)}.</p>`}
+        ${EIGENTUEMER ? `
+        <label class="ex-files" style="margin-top:10px"><input type="checkbox" id="bild-umwandeln">
+          PNG-Originale beim Hereinkommen umwandeln</label>
+        ${/* WAS DER SCHALTER TUT, UND WAS ER NICHT TUT. Der Satz nennt beides:
+             ein eingefügtes Bildschirmfoto liegt danach als WebP da, und die
+             Güte bleibt dabei erhalten. Ohne Häkchen bleibt jedes PNG
+             byte-genau, wie es hereinkam. */''}
+        <p class="hint hint-sm" style="margin:6px 2px 0">Ein mit Strg+V eingefügtes
+          Bildschirmfoto kommt als PNG herein und wird als WebP abgelegt — rund zwei Drittel
+          kleiner, ohne sichtbaren Verlust. JPEG, GIF und vorhandenes WebP bleiben unberührt.
+          Ohne Häkchen bleibt jedes PNG byte-genau so liegen, wie es ankam.</p>
+        <div class="row-in" style="margin-top:10px">
+          <button class="btn btn-sm" id="bild-um"${png && !laeuft ? '' : ' disabled'}>Alle PNG nach WebP umstellen</button>
+        </div>
+        ${png || laeuft ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">Es liegt kein PNG-Original mehr da.</p>`}
+        ${umstellungsZeile(stats.umstellung)}` : ''}
+      </div>`;
+}
+
+
 /* DIE UHR, DIE DEM LAUF ZUSIEHT. Sie steht ausserhalb der Karte, weil es
    genau EINE geben darf: zwei Uhren auf denselben Lauf fragten doppelt und
    meldeten unabhaengig voneinander „fertig".
@@ -8546,7 +8600,7 @@ function verfolgeUmstellung() {
   }, 1500);
 }
 
-function ruesteKennzahlenAus(geholt) {
+function ruesteBildablageAus(geholt) {
   /* DERSELBE HELFER WIE BEI DEN BEIDEN ANLEGEN-SCHALTERN. Er nimmt die
      Stellung bei einem Fehlschlag zurueck -- sonst zeigte der Bildschirm
      etwas anderes an, als der Server haelt. */
@@ -8570,7 +8624,19 @@ function ruesteKennzahlenAus(geholt) {
         `(${fmtBytes(png.bytes)}) werden nach WebP umgeschrieben — erwartet rund ` +
         `${fmtBytes(Math.round(png.bytes * 0.37))}. Die PNG-Fassung ist danach nicht mehr da; ` +
         `zurück führt nur eine Sicherung des Datenverzeichnisses. Die Bilder selbst bleiben, ` +
-        `wie sie aussehen.`);
+        `wie sie aussehen. ` +
+        /* UND WIE LANGE ES DAUERT -- AUSDRUECKLICH OHNE ZAHL. Der Server kennt
+           sie nicht: gemessen 394 ms je Bild auf der Maschine, an der das
+           nachgefahren wurde, gegen 5,3 s je Bild im Feld -- FAKTOR DREIZEHN.
+           Eine Schaetzung waere auf der einen Maschine beruhigend falsch und
+           auf der anderen erschreckend falsch. Fehlt eine Zahl, steht das
+           ausdruecklich da (Stolperstein 252).
+           UND KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE: sie waere aus dem
+           gemessenen Takt zwar ehrlich zu rechnen, aber wenn dieser Satz seine
+           Arbeit tut, braucht es sie nicht -- und sie kostet eine Anzeige, die
+           bei jedem Umlauf springt. */
+        `Wie lange das dauert, hängt an dieser Maschine und ist hier nicht gemessen — ` +
+        `rechne mit Minuten bis Stunden. Der Lauf stört den Betrieb, solange er läuft.`);
       if (!ok) return;
       try { await api('POST', '/api/bilder/umstellen', {}); }
       catch (e) { return toast(e.message, true); }
@@ -8662,7 +8728,7 @@ function ruesteSicherungAus(geholt) {
              Schlüssel — <code>./schluessel.sh</code> hat ihn beim Wechsel genannt und, wenn er aus
              der <code>.env</code> kam, dort auskommentiert stehen lassen.
              <strong>Sicher jetzt neu</strong>, dann liegt wieder eine Kopie da, die zur laufenden
-             Instanz gehört.</div>`
+             Installation gehört.</div>`
         : (d.veraltet
           ? `<div class="warn-box" style="margin:0 0 12px"><strong>${d.veraltet} ${d.veraltet === 1
                ? 'Kopie stammt' : 'Kopien stammen'} von vor dem Schlüsselwechsel</strong>

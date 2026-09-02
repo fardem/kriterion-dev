@@ -418,8 +418,8 @@ const RUECKBAUTEN = [
   {
     nr: '44', name: 'Der Schalter laesst sich ohne oeffentliche Adresse einschalten',
     datei: 'server.js',
-    suche: "      'Der Eigentümer der Instanz drückt sie in der Karte „Mailversand“.' };\n  if (!OEFFENTLICHE.adresse)",
-    ersatz: "      'Der Eigentümer der Instanz drückt sie in der Karte „Mailversand“.' };\n  if (false)",
+    suche: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (!OEFFENTLICHE.adresse)",
+    ersatz: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (false)",
     erwartet: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
   {
@@ -3166,18 +3166,33 @@ const RUECKBAUTEN = [
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
-    nr: '346', name: 'Die alte Adresse des fuenften Abschnitts wird nicht mehr uebersetzt',
+    /* MITGEGANGEN IN 0.19.1 (Stolperstein 201): die Tafel traegt seit dieser
+       Runde ZWEI alte Namen. Derselbe Fund, ein anderer Wortlaut. */
+    nr: '346', name: 'Die alten Adressen des fuenften Abschnitts werden nicht mehr uebersetzt',
     datei: 'public/app.js',
-    suche: "const SYS_ALTE_ABSCHNITTE = { anlage: 'instanz' };",
+    suche: "const SYS_ALTE_ABSCHNITTE = { anlage: 'installation', instanz: 'installation' };",
     ersatz: "const SYS_ALTE_ABSCHNITTE = {};",
-    erwartet: 'Aus „Anlage" wird „Instanz" — 0.17.1'
+    erwartet: 'Aus „Anlage" wird „Instanz" wird „Installation" — 0.17.1 und 0.19.1'
   },
   {
+    /* DIE TAFEL WIRD VERKETTET STATT EINMAL NACHGESCHLAGEN. Genau die Falle,
+       vor der der Kommentar dort warnt: `#/system/anlage` landete damit bei
+       `instanz`, und den Schluessel gibt es seit 0.19.1 nicht mehr -- der
+       aelteste Link waere der einzige, der ins Leere fuehrt. */
+    nr: '459', name: 'Die Tafel der alten Adressen wird verkettet',
+    datei: 'public/app.js',
+    suche: "const SYS_ALTE_ABSCHNITTE = { anlage: 'installation', instanz: 'installation' };",
+    ersatz: "const SYS_ALTE_ABSCHNITTE = { anlage: 'instanz', instanz: 'installation' };",
+    erwartet: 'Aus „Anlage" wird „Instanz" wird „Installation" — 0.17.1 und 0.19.1'
+  },
+  {
+    /* MITGEGANGEN IN 0.19.1 (Stolperstein 201): der Abschnitt heisst jetzt
+       „Installation", der Rueckbau setzt weiter den aeltesten Namen. */
     nr: '347', name: 'Der fuenfte Abschnitt heisst wieder „Anlage"',
     datei: 'public/app.js',
-    suche: "  { schluessel: 'instanz',     name: 'Instanz' }",
-    ersatz: "  { schluessel: 'instanz',     name: 'Anlage' }",
-    erwartet: 'Aus „Anlage" wird „Instanz" — 0.17.1'
+    suche: "  { schluessel: 'installation', name: 'Installation' }",
+    ersatz: "  { schluessel: 'installation', name: 'Anlage' }",
+    erwartet: 'Aus „Anlage" wird „Instanz" wird „Installation" — 0.17.1 und 0.19.1'
   },
   {
     nr: '348', name: 'Die Zeitangaben stehen wieder linksbuendig',
@@ -3361,7 +3376,7 @@ const RUECKBAUTEN = [
     nr: '377', name: 'Der Dialog kuerzt die zweite Bestaetigung ab',
     datei: 'public/app.js',
     suche: "      if (!await zweiteBestaetigung('mail', null, 'Mailzugang setzen',\n" +
-           "        'Über diesen Server läuft künftig JEDE Mail dieser Instanz — auch jeder ' +\n" +
+           "        'Über diesen Server läuft künftig JEDE Mail dieser Installation — auch jeder ' +\n" +
            "        'Link, der ein Passwort setzt.')) return;\n",
     ersatz: "",
     erwartet: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
@@ -3817,12 +3832,26 @@ const RUECKBAUTEN = [
   },
   {
     /* DER GROESSENVERGLEICH FAELLT WEG: auch ein groesseres Ergebnis wird
-       genommen. ER IST ALS STUMM ERWARTET, und das ist ein Befund und keine
-       Ausrede: der Fall kommt am ECHTEN Bestand vor, liess sich aber mit
-       erzeugtem Material nicht herstellen -- neun Anlaeufe (1x1 bis 256x256,
-       Rauschen, Palette, Graustufen, mit und ohne Alpha) ergaben ausnahmslos
-       ein kleineres WebP, und schon das kleinste moegliche PNG ist groesser
-       als das kleinste moegliche WebP.
+       genommen. ER IST ALS STUMM ERWARTET.
+
+       DIE BEGRUENDUNG IST IN 0.19.1 BERICHTIGT WORDEN, und das gehoert
+       hierher und nicht in eine Fussnote. Bis dahin stand hier, der Fall
+       komme am echten Bestand vor und lasse sich nur mit erzeugtem Material
+       nicht herstellen. DER ERSTE HALBSATZ IST WIDERLEGT -- er stammte aus dem
+       Auftrag zu 0.19.0 und aus keiner Messung; der Wortlaut steht im
+       Aenderungsprotokoll dieser Runde.
+
+       GEMESSEN AM ECHTEN BESTAND: 679 von 679 PNG umgestellt, KEINES
+       geblieben; in `bildFormate` stand danach kein `png` mehr. Dazu achtzehn
+       Laborversuche (neun in 0.19.0, neun danach: Palette mit 8 und mit 256
+       Farben, reiner Text, Graustufen, mit und ohne Alpha, 1x1, Flaechen) --
+       PNG gewinnt nie ueber die Groesse, und schon das kleinste moegliche PNG
+       ist groesser als das kleinste moegliche WebP.
+
+       DER EINZIGE FALL, IN DEM PNG LIEGEN BLEIBT, ist der, in dem WebP NICHT
+       KANN -- ueber 16383 Bildpunkte je Kante. Der ist als Rueckbau 458
+       gebaut und geprueft und macht Pruefungen rot.
+
        ER BLEIBT TROTZDEM IN DER LISTE: verschwindet die Zeile aus dem
        Quelltext, greift sein Suchtext ins Leere, und GENAU DAS meldet der
        Pruefstand ("Jeder Suchtext kommt in seiner Datei genau einmal vor").
@@ -3832,7 +3861,7 @@ const RUECKBAUTEN = [
     datei: 'server.js',
     suche: "    if (webp.length < buf.length)",
     ersatz: "    if (true)",
-    erwartet: '(erwartet STUMM — der Fall kommt am echten Bestand vor, laesst sich mit erzeugtem Material aber nicht herstellen)'
+    erwartet: '(erwartet STUMM — achtzehn Laborversuche ohne Gegenbeispiel, und am echten Bestand 679 von 679 umgestellt; nur die Kantengrenze laesst PNG liegen, und die ist Rueckbau 458)'
   },
   {
     /* DER ANDERE RUECKFALL, und der laesst sich zeigen: WebP kann hoechstens
@@ -4053,7 +4082,230 @@ const RUECKBAUTEN = [
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
 
+  /* ---- 0.19.1: was 0.19.0 falsch gemacht hat ----
+     ZEHN PUNKTE, ZEHN RUECKBAUTEN UND MEHR. Nummer 459 steht weiter oben bei
+     der Tafel der alten Adressen, wo sie hingehoert. */
+  {
+    /* DIE AUFTEILUNG NACH FORMAT LIEST WIEDER DEN INHALT -- die Abfrage aus
+       0.19.0. Sie ist nicht falsch, sie ist teuer: gemessen 919 ms gegen
+       0,2 ms, und sie laeuft bei JEDEM Zeichnen des Systembereichs. Rot wird
+       die Zeile, die eine falsch benannte Datei zaehlt: ein JPEG unter dem
+       Namen `image/png` faellt am Inhalt in die JPEG-Spalte und an der Spalte
+       in die PNG-Spalte. */
+    nr: '460', name: 'Die Aufteilung nach Format liest wieder den Inhalt',
+    datei: 'server.js',
+    suche: "      SELECT mime_type AS m, length(data) AS o FROM photos WHERE art != 'video')",
+    ersatz: "      SELECT CASE\n" +
+            "               WHEN hex(substr(data,1,8)) = '89504E470D0A1A0A' THEN 'image/png'\n" +
+            "               WHEN hex(substr(data,1,3)) = 'FFD8FF'           THEN 'image/jpeg'\n" +
+            "               WHEN hex(substr(data,1,4)) = '52494646'\n" +
+            "                AND hex(substr(data,9,4)) = '57454250'         THEN 'image/webp'\n" +
+            "               WHEN hex(substr(data,1,3)) = '474946'           THEN 'image/gif'\n" +
+            "               ELSE 'anderes'\n" +
+            "             END AS m, length(data) AS o FROM photos WHERE art != 'video')",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DIE MATERIALISIERTE ZWISCHENABFRAGE FAELLT WEG -- die Gruppierung geht
+       wieder unmittelbar ueber length(data). Das Ergebnis bleibt richtig und
+       kostet 778 statt 0,1 ms; genau deshalb haengt die Zusage am TEXT und
+       nicht am Ergebnis. */
+    nr: '461', name: 'Die Groessen werden wieder unmittelbar gruppiert',
+    datei: 'server.js',
+    suche: "    WITH x AS MATERIALIZED (SELECT art AS a, length(data) AS o FROM photos)\n" +
+           "    SELECT a, COUNT(*) AS n, COALESCE(SUM(o),0) AS o FROM x GROUP BY 1",
+    ersatz: "    SELECT art AS a, COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o\n" +
+            "      FROM photos GROUP BY 1",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DER KNOPF SUCHT AM GEMELDETEN TYP statt an den ersten acht Bytes. Er
+       naehme damit genau die Zeilen mit, die die Karte sich verzaehlt -- und
+       schriebe eine Datei um, die gar kein PNG ist. */
+    nr: '462', name: 'Der Knopf sucht am gemeldeten Typ statt am Inhalt',
+    datei: 'server.js',
+    suche: "  \"SELECT id FROM photos WHERE art != 'video' AND hex(substr(data,1,8)) = ?\");",
+    ersatz: "  \"SELECT id FROM photos WHERE art != 'video' AND mime_type = 'image/png' AND ? IS NOT NULL\");",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DIE ZUORDNUNG KENNT KEIN FORMAT MEHR -- jede Zeile faellt in 'anderes'.
+       Ohne diese Tafel stuende die Aufstellung leer da. */
+    nr: '463', name: 'Die Zuordnung von mime_type auf den Schluessel ist leer',
+    datei: 'server.js',
+    suche: "const BILD_MIME_FORMAT = {\n  'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/gif': 'gif'\n};",
+    ersatz: "const BILD_MIME_FORMAT = {};",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DER VERGROESSERUNGSPUNKT FAELLT WEG. scale() verankert wieder in der
+       Mitte, und von der eingestellten Bildecke ist nichts zu sehen --
+       gemessen 0,0 % in allen vier Richtungen. */
+    nr: '464', name: 'Der Ausschnitt liefert keinen transform-origin mehr',
+    datei: 'public/app.js',
+    suche: "  return `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%;` +",
+    ersatz: "  return `object-position:${x}% ${y}%;` +",
+    erwartet: 'Fokuspunkt in der Oberflaeche'
+  },
+  {
+    /* ER STEHT DA, ABER AUF DER MITTE. Der gefaehrlichere der beiden: die
+       Eigenschaft ist vorhanden, und wer nur nachsieht, OB sie dasteht, findet
+       nichts. */
+    nr: '465', name: 'Der Vergroesserungspunkt steht auf der Mitte statt auf dem Fokuspunkt',
+    datei: 'public/app.js',
+    suche: "transform-origin:${x}% ${y}%;",
+    ersatz: "transform-origin:50% 50%;",
+    erwartet: 'Fokuspunkt in der Oberflaeche'
+  },
+  {
+    /* DER DIALOG LIEGT WIEDER UNTER DEM VOLLBILD -- der Zustand bis 0.19.1.
+       Die Rueckfrage steht dann erst da, wenn man das Vollbild schliesst. */
+    nr: '466', name: 'Der Dialog liegt wieder unter dem Vollbild',
+    datei: 'public/style.css',
+    suche: "  --z-dialog: 100;",
+    ersatz: "  --z-dialog: 60;",
+    erwartet: 'Die Stapelordnung — 0.19.1'
+  },
+  {
+    /* DIE REGEL TRAEGT WIEDER IHRE EIGENE ZAHL. Sie sieht damit richtig aus
+       und steht doch neben der Ordnung statt in ihr -- die naechste Kachel
+       macht sie wieder auf. */
+    nr: '467', name: 'Der Dialog traegt seine Stufe wieder als Zahl in der Regel',
+    datei: 'public/style.css',
+    suche: "padding: 22px; z-index: var(--z-dialog);",
+    ersatz: "padding: 22px; z-index: 60;",
+    erwartet: 'Die Stapelordnung — 0.19.1'
+  },
+  {
+    /* DIE MELDUNG RUTSCHT UNTER DEN DIALOG. Sie ist die Quittung des Dialogs
+       und waere von ihm verdeckt. */
+    nr: '468', name: 'Die Meldung liegt unter dem Dialog',
+    datei: 'public/style.css',
+    suche: "  --z-meldung: 120;",
+    ersatz: "  --z-meldung: 95;",
+    erwartet: 'Die Stapelordnung — 0.19.1'
+  },
+  {
+    /* DIE BILDABLAGE HAT KEINE EIGENE KARTE MEHR. Sie steht damit nirgends --
+       weder als Karte noch als Abschnitt in „Kennzahlen". */
+    nr: '469', name: 'Die Bildablage faellt aus der Kartentabelle',
+    datei: 'public/app.js',
+    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank', sichtbar: () => ADMIN,\n" +
+           "    markup: karteBildablage,   ausruesten: ruesteBildablageAus },\n",
+    ersatz: "",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* SIE STEHT IM FALSCHEN ABSCHNITT. Der Knopf, der die Datenbank umschreibt,
+       laege dann bei den Kategorien und Tags. */
+    nr: '470', name: 'Die Karte „Bildablage" steht im Abschnitt „Bestand"',
+    datei: 'public/app.js',
+    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank',",
+    ersatz: "  { schluessel: 'bildablage',   abschnitt: 'bestand',",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* SIE VERSCHWINDET, WENN KEIN BILD DALIEGT. Der Systembereich wechselte
+       damit unter der Hand die Gestalt -- achtzehn Karten auf einer frischen
+       Installation, neunzehn auf einer benutzten. */
+    nr: '471', name: 'Die Karte „Bildablage" verschwindet ohne Bilder',
+    datei: 'public/app.js',
+    suche: "  { schluessel: 'bildablage',   abschnitt: 'datenbank', sichtbar: () => ADMIN,",
+    ersatz: "  { schluessel: 'bildablage',   abschnitt: 'datenbank',\n" +
+            "    sichtbar: (g) => ADMIN && !!Object.keys((g.stats && g.stats.bildFormate) || {}).length,",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* DER DIALOG SAGT NICHT MEHR, DASS ES DAUERN KANN. Wer den Knopf drueckt,
+       rechnet dann mit Sekunden und bekommt eine Stunde. */
+    nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
+    datei: 'public/app.js',
+    suche: "        `Wie lange das dauert, hängt an dieser Maschine und ist hier nicht gemessen — ` +\n" +
+           "        `rechne mit Minuten bis Stunden. Der Lauf stört den Betrieb, solange er läuft.`);",
+    ersatz: "        ``);",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* ER ERFINDET DOCH EINE ZAHL. Gemessen 394 ms je Bild hier gegen 5,3 s im
+       Feld -- Faktor dreizehn: eine Schaetzung waere auf der einen Maschine
+       beruhigend falsch und auf der anderen erschreckend falsch. */
+    nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
+    datei: 'public/app.js',
+    suche: "        `rechne mit Minuten bis Stunden. Der Lauf stört den Betrieb, solange er läuft.`);",
+    ersatz: "        `rechne mit etwa 20 Minuten. Der Lauf stört den Betrieb, solange er läuft.`);",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* DIE THREADZAHL VON sharp WIRD NICHT MEHR GESETZT. Auf der Installation,
+       die den Befund gemeldet hat, aendert das nichts -- auf einem Image mit
+       jemalloc oder unter musl nimmt sich libvips die ganze Maschine. */
+    nr: '474', name: 'Die Threadzahl von sharp wird nicht mehr gesetzt',
+    datei: 'server.js',
+    suche: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
+    ersatz: "",
+    erwartet: 'Die Threadzahl von sharp — 0.19.1'
+  },
+  {
+    /* SIE WIRD AUF DIE VOLLE KERNZAHL GESETZT -- die Zeile steht da und tut
+       das Gegenteil dessen, wofuer sie da ist. */
+    nr: '475', name: 'Die Threadzahl von sharp ist die volle Kernzahl',
+    datei: 'server.js',
+    suche: "Math.max(1, Math.floor(os.cpus().length / 2))",
+    ersatz: "os.cpus().length",
+    erwartet: 'Die Threadzahl von sharp — 0.19.1'
+  },
+  {
+    /* DER BILDSCHIRMTEXT SAGT WIEDER „der Instanz". Wer seine Anlage anders
+       benannt hat, liest eine Meldung ueber ein Wort, das nirgends auf seinem
+       Bildschirm steht. */
+    nr: '476', name: 'Die Absage nennt wieder „den Eigentümer der Instanz"',
+    datei: 'server.js',
+    suche: "const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer dieser Installation.';",
+    ersatz: "const VERWEIGERT_EIGEN = 'Das kann nur der Eigentümer der Instanz.';",
+    erwartet: 'Die Rechte am Papierkorb'
+  },
+  {
+    /* DIE ARBEITSDATEI STEHT WIEDER NICHT IN DER IGNORIERLISTE. Wer das ZIP
+       ueber seinen Ordner entpackt, verliert seine angepasste Fassung. */
+    nr: '477', name: 'Die docker-compose.yml steht nicht mehr in der .gitignore',
+    datei: '.gitignore',
+    suche: "\ndocker-compose.yml",
+    ersatz: "",
+    erwartet: 'Die Compose-Datei wird nicht ueberschrieben'
+  },
+  {
+    /* DIE README NENNT DEN PFLICHTSCHRITT NICHT MEHR. Ohne ihn bricht
+       `docker compose up` mit „no configuration file provided" ab -- karg,
+       aber es haelt an; die README ist die Stelle, die es vorher sagt. */
+    nr: '478', name: 'Die README nennt den Pflichtschritt zur Compose-Datei nicht mehr',
+    datei: 'README.md',
+    suche: "**Der Schritt `cp docker-compose.example.yml docker-compose.yml` ist Pflicht.**",
+    ersatz: "",
+    erwartet: 'Die Compose-Datei wird nicht ueberschrieben'
+  },
+  {
+    /* DER WAECHTER UEBER DIE BERICHTIGTEN BEHAUPTUNGEN LAEUFT INS LEERE.
+       Ohne die Berichtigung im Quelltext stuende dort wieder ein Satz, der
+       gemessen falsch ist. */
+    nr: '479', name: 'Die Berichtigung zu substr() faellt aus dem Quelltext',
+    datei: 'server.js',
+    suche: "     1. substr() AUF EINEM BLOB LIEST DAS BLOB. 657 ms auch ohne GROUP BY, das",
+    ersatz: "     1. substr() liest wenig. 657 ms auch ohne GROUP BY, das",
+    erwartet: 'Die berichtigten Behauptungen stehen nirgends mehr'
+  },
+
   /* ---- Der Pruefstand ueber sich selbst ---- */
+  {
+    /* DIE SPRACHLISTE VERLIERT IHREN DREIZEHNTEN EINTRAG -- 0.19.1 hat ihn
+       eingetragen, weil das Wort in dieser Runde gefallen ist und 0.19.2 voll
+       davon sein wird. Ein Waechter, dem ein Wort fehlt, sieht aus wie einer,
+       der nichts zu beanstanden hat. */
+    nr: 'W13', name: 'Die Sprachliste verliert ihren juengsten Eintrag',
+    datei: 'pruefung.js',
+    suche: "    ['Faden', 'Thread']\n  ];",
+    ersatz: "  ];",
+    erwartet: 'Der Sprachwaechter'
+  },
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
     datei: 'pruefung.js',

@@ -48,6 +48,57 @@
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
 
   --ease: cubic-bezier(.22,.61,.36,1);
+
+  /* ================= DIE STAPELORDNUNG =================
+     SIE STEHT AN EINER STELLE, seit 0.19.1. Vorher standen zehn Zahlen ueber
+     2600 Zeilen verstreut, und keine sagte, wo sie im Verhaeltnis zu den
+     anderen liegt. DER BEFUND, DER DAZU GEFUEHRT HAT: `.backdrop` lag auf 60,
+     `.lightbox` auf 90 -- ein Bestaetigungsdialog, den man AUS DEM VOLLBILD
+     heraus ausloest, stand also DAHINTER. Im Feld gemeldet als „Loeschen im
+     Vollbild sieht aus, als reagiere nichts"; betroffen war JEDER Dialog aus
+     dem Vollbild, nicht nur das Loeschen.
+
+     DIE ORDNUNG WURDE SORTIERT UND NICHT DURCHEINANDERGEWORFEN: nur `.backdrop`
+     hat den Platz gewechselt (60 -> 100). Alle uebrigen Werte stehen, wo sie
+     standen -- sie sind nur nicht mehr verstreut.
+
+     EIN SATZ JE EBENE, WARUM SIE DORT LIEGT. Von unten nach oben:
+
+       2   der Ausschnittrahmen im Betrachter. Er legt seinen Schleier
+           (box-shadow 9999px) UEBER das Bild und muss deshalb ueber ihm
+           liegen -- aber UNTER allem, was man anfassen kann.
+       3   die Bedienung IM Betrachter -- Werkzeugecke und Weitenschieber.
+           Sie liegen ueber dem Schleier, sonst waeren sie matt und nicht
+           erreichbar.
+       4   die Blaetterpfeile des Vollbilds. Sie liegen ueber der Bedienung,
+           weil sie die groesste Flaeche haben und nichts verdecken duerfen.
+       5   der Schwebehinweis der Zeitleiste, ueber den Punkten der Leiste.
+      20   die klebende Kopfzeile, ueber dem scrollenden Inhalt.
+      30   ihr eingeklapptes Menue, ueber der Kopfzeile selbst.
+      40   die Vergleichsleiste am unteren Rand -- sie steht ueber dem
+           Inhalt, aber unter allem, was den Bildschirm uebernimmt.
+      90   das Vollbild. Es uebernimmt den Bildschirm.
+     100   der Bestaetigungsdialog. ER GEHOERT UEBER DAS VOLLBILD: er wird oft
+           genug daraus heraus ausgeloest, und eine Rueckfrage, die man erst
+           nach dem Schliessen sieht, ist keine.
+     120   die Meldung. Sie liegt ueber allem, ist aber nur ein Hinweis und
+           faengt keine Klicks.
+
+     DIE VIER UNTERSTEN LIEGEN INNERHALB DES VOLLBILDS und ordnen sich nur
+     untereinander -- ihre Zahlen sind deshalb klein und stehen NICHT in
+     Konkurrenz zu 90 oder 100.
+     EINE PRUEFUNG HAELT DIE REIHENFOLGE FEST, damit die naechste Kachel sie
+     nicht wieder aufmacht. */
+  --z-ausschnittrahmen: 2;
+  --z-betrachter-bedienung: 3;
+  --z-blaetterpfeile: 4;
+  --z-zeitleisten-hinweis: 5;
+  --z-kopfzeile: 20;
+  --z-kopfzeilen-menue: 30;
+  --z-vergleichsleiste: 40;
+  --z-vollbild: 90;
+  --z-dialog: 100;
+  --z-meldung: 120;
 }
 
 * { box-sizing: border-box; }
@@ -254,7 +305,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .masthead {
   display: flex; align-items: center; gap: 12px;
   padding: 20px 0 17px; border-bottom: 1px solid var(--line); margin-bottom: 22px; flex-wrap: wrap;
-  position: sticky; top: 0; z-index: 20;
+  position: sticky; top: 0; z-index: var(--z-kopfzeile);
   background: linear-gradient(var(--bg) 78%, rgba(14,16,18,.82));
   backdrop-filter: blur(10px);
 }
@@ -444,7 +495,13 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    vom Foto (app.js, ausschnitt()); fehlt sie, gilt 1 und damit genau das
    Verhalten bis 0.18.1. GERECHNET WIRD HIER UND NICHT DORT: ein Inline-
    transform schluege die Ueberfahrregel eine Zeile tiefer, und die Kachel mit
-   eingestelltem Ausschnitt verloere als einzige ihre Bewegung. */
+   eingestelltem Ausschnitt verloere als einzige ihre Bewegung.
+   WORAN DIESES scale() VERANKERT, STEHT DAGEGEN INLINE: `transform-origin`
+   kommt seit 0.19.1 aus derselben Funktion und traegt denselben Punkt wie
+   `object-position`. Ohne ihn vergroesserte diese Zeile um die MITTE, und von
+   der eingestellten Bildecke waere nichts zu sehen -- gemessen 0,0 % in allen
+   vier Richtungen. Ein `transform-origin` HIER waere die zweite Wahrheit: es
+   kennt den Punkt des Fotos nicht. */
 .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(var(--zoom, 1)); transition: filter .2s var(--ease), transform .4s var(--ease); }
 .card:hover .card-img img { transform: scale(calc(var(--zoom, 1) * 1.03)); }
 .card-img .ph { color: #333b44; }
@@ -1051,7 +1108,7 @@ mark {
   width: max-content; max-width: calc(100% - 24px); margin: 0 auto;
   background: var(--surface-3); border: 1px solid var(--line); color: var(--text);
   border-radius: 999px; padding: 8px 9px 8px 19px;
-  display: flex; align-items: center; gap: 13px; box-shadow: var(--sh-lg); z-index: 40; font-size: .9rem;
+  display: flex; align-items: center; gap: 13px; box-shadow: var(--sh-lg); z-index: var(--z-vergleichsleiste); font-size: .9rem;
   animation: rise .26s var(--ease) both;
 }
 .cmp-bar .btn-x { color: var(--muted); padding: 4px 8px; }
@@ -1603,7 +1660,7 @@ mark {
    weiter -- man schliesst das Bild und steht an einer voellig anderen Stelle
    der Liste. `body.lb-open { overflow: hidden }` weiter unten allein reicht
    dafuer nicht: es haelt den Bildlauf an, nicht die Weiterreichung. */
-.lightbox { position: fixed; inset: 0; z-index: 90; background: rgba(6,7,9,.97); display: flex; flex-direction: column; overscroll-behavior: contain; animation: fade .2s var(--ease) both; }
+.lightbox { position: fixed; inset: 0; z-index: var(--z-vollbild); background: rgba(6,7,9,.97); display: flex; flex-direction: column; overscroll-behavior: contain; animation: fade .2s var(--ease) both; }
 .lb-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
 .lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; user-select: none; -webkit-user-drag: none; }
 /* flex-start ist Absicht und muss bleiben: ein zentriertes Flex-Kind, das
@@ -1643,7 +1700,7 @@ mark {
 /* Die Pfeile haengen an der Lightbox, nicht an der Buehne: im gezoomten
    Zustand wird .lb-stage zum Scrollbereich, und Kinder davon wandern beim
    Verschieben mit dem Bild aus dem Bild. .lightbox ist fixed und scrollt nie. */
-.lb-nav { position: absolute; z-index: 4; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%; background: rgba(20,23,27,.86); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.11); display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 1.53rem; transition: all .16s var(--ease); }
+.lb-nav { position: absolute; z-index: var(--z-blaetterpfeile); top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%; background: rgba(20,23,27,.86); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.11); display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 1.53rem; transition: all .16s var(--ease); }
 .lb-nav:hover { background: var(--accent); border-color: var(--accent); color: #14161a; transform: translateY(-50%) scale(1.07); }
 .lb-nav.prev { left: 16px; } .lb-nav.next { right: 16px; }
 /* `safe center` STEHT ZWEIMAL DA, UND DAS IST ABSICHT: mittig ist richtig,
@@ -1662,7 +1719,7 @@ mark {
 body.lb-open { overflow: hidden; }
 
 /* ---------- Dialoge ---------- */
-.backdrop { position: fixed; inset: 0; background: rgba(6,7,9,.74); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 22px; z-index: 60; animation: fade .18s var(--ease) both; }
+.backdrop { position: fixed; inset: 0; background: rgba(6,7,9,.74); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 22px; z-index: var(--z-dialog); animation: fade .18s var(--ease) both; }
 .modal { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 24px; width: 100%; max-width: 460px; box-shadow: var(--sh-lg); display: flex; flex-direction: column; gap: 13px; max-height: 88vh; max-height: 88dvh; overflow-y: auto; animation: rise .24s var(--ease) both; }
 .modal h2 { font-size: 1.27rem; font-weight: 640; letter-spacing: -.022em; margin: 0; }
 .modal p { margin: 0; color: var(--muted); font-size: .93rem; line-height: 1.6; }
@@ -1719,7 +1776,7 @@ body.lb-open { overflow: hidden; }
 
 /* Ueber dem Bedienbalken des Telefons und nicht darunter -- sonst steht die
    Meldung zur Haelfte hinter dem Griffstreifen. */
-.toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px; border-radius: 999px; font-size: .9rem; z-index: 120; box-shadow: var(--sh-lg); animation: pop 2.6s forwards; max-width: 82vw; text-align: center; }
+.toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px; border-radius: 999px; font-size: .9rem; z-index: var(--z-meldung); box-shadow: var(--sh-lg); animation: pop 2.6s forwards; max-width: 82vw; text-align: center; }
 .toast.err { background: var(--red); border-color: var(--red); color: #fff; }
 @keyframes pop { 0% { opacity: 0; transform: translate(-50%, 8px); } 8% { opacity: 1; transform: translate(-50%, 0); } 84% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -4px); } }
 
@@ -1756,7 +1813,7 @@ body.lb-open { overflow: hidden; }
 }
 .zl-hinweis {
   position: absolute; bottom: 100%; transform: translateX(-50%);
-  margin-bottom: -6px; padding: 7px 10px; z-index: 5; pointer-events: none;
+  margin-bottom: -6px; padding: 7px 10px; z-index: var(--z-zeitleisten-hinweis); pointer-events: none;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
   display: flex; flex-direction: column; gap: 2px; white-space: nowrap;
   box-shadow: 0 6px 18px rgba(0,0,0,.45);
@@ -1814,7 +1871,7 @@ body.lb-open { overflow: hidden; }
    Geste beruehrt wird -- und ein Papierkorb gehoert aus dem Daumenbereich
    heraus und nicht hinein. */
 .vtools {
-  position: absolute; top: 10px; right: 10px; z-index: 3;
+  position: absolute; top: 10px; right: 10px; z-index: var(--z-betrachter-bedienung);
   display: flex; align-items: center; gap: 6px;
   opacity: 0; transition: opacity .15s var(--ease);
 }
@@ -1856,7 +1913,7 @@ body.lb-open { overflow: hidden; }
 .viewer.focus-mode { cursor: crosshair; touch-action: none; }
 .viewer.focus-mode img { cursor: crosshair; }
 .focus-frame {
-  position: absolute; pointer-events: none; z-index: 2;
+  position: absolute; pointer-events: none; z-index: var(--z-ausschnittrahmen);
   border: 2px solid var(--accent); border-radius: 2px;
   box-shadow: 0 0 0 9999px rgba(8,10,12,.55);
 }
@@ -1866,7 +1923,7 @@ body.lb-open { overflow: hidden; }
    pointer-events bleibt an -- er ist die einzige Stelle im Betrachter, die
    im Ausschnittmodus etwas anderes tut als den Punkt zu setzen. */
 .vzoom {
-  position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 3;
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: var(--z-betrachter-bedienung);
   display: flex; align-items: center; gap: 10px;
   padding: 7px 12px; border-radius: 999px;
   background: rgba(8,10,12,.88); border: 1px solid var(--line);
@@ -2596,7 +2653,7 @@ body.anmeldung .login-screen { flex: 1 0 auto; min-height: 0; }
      `position: relative` waere hier wirkungslos und stuende nur da. */
   .mast-rest {
     display: none;
-    position: absolute; top: 100%; right: 0; z-index: 30;
+    position: absolute; top: 100%; right: 0; z-index: var(--z-kopfzeilen-menue);
     flex-direction: column; align-items: stretch; gap: 2px;
     min-width: 208px; max-width: min(290px, calc(100vw - 24px));
     margin-top: 7px; padding: 7px;
