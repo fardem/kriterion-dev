@@ -4569,6 +4569,18 @@ const RUECKBAUTEN = [
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
+    /* DIE DATEILISTE DES SPRACHWAECHTERS VERLIERT DIE BEIDEN NEUEN DATEIEN --
+       0.19.3. Sie ist eine gepflegte Liste und keine abgeleitete; wer eine
+       Quelltextdatei anlegt und sie hier vergisst, bekommt einen Waechter, der
+       ueber sie schweigt. GENAU DAS IST IN DIESER RUNDE PASSIERT: in
+       bestandslauf.js stand ein Wort aus der Sperrliste, und niemand sah es. */
+    nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
+    datei: 'pruefung.js',
+    suche: "                          'bilder.js', 'bestandslauf.js'];",
+    ersatz: "                          ];",
+    erwartet: 'Der Sprachwaechter'
+  },
+  {
     /* DIE SPRACHLISTE VERLIERT IHREN DREIZEHNTEN EINTRAG -- 0.19.1 hat ihn
        eingetragen, weil das Wort in dieser Runde gefallen ist und 0.19.2 voll
        davon sein wird. Ein Waechter, dem ein Wort fehlt, sieht aus wie einer,

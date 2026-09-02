@@ -6,7 +6,7 @@
    (einmal beim Start). Beide lasen bis 0.19.2 im Haupt-Thread eine halbe
    Megabyte Blob, wandelten sie um und schrieben sie zurueck --
    `better-sqlite3` ist SYNCHRON, und jede seiner Zeilen haelt die
-   Ereignisschleife an. Die 30 ms Pause zwischen den Zeilen halfen dagegen
+   Event Loop an. Die 30 ms Pause zwischen den Zeilen halfen dagegen
    nicht: sie liegt ZWISCHEN den Zeilen, und angehalten wird WAEHREND einer.
 
    GEMESSEN AM 2. SEPTEMBER 2026, als Verspaetung eines Taktgebers, der alle

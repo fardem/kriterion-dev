@@ -14117,10 +14117,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
   }
 
   /* zweifaktor.js SEIT 0.10.0 -- eine neue Quelltextdatei mit deutschen
-     Kommentaren, die der Waechter nicht saehe, stuende sie nicht hier. */
+     Kommentaren, die der Waechter nicht saehe, stuende sie nicht hier.
+     UND bilder.js UND bestandslauf.js SEIT 0.19.3, aus demselben Grund. Beide
+     tragen lange deutsche Kommentare; ohne diese Zeile stuenden sie ausserhalb
+     jeder Sprachpruefung -- und der erste Lauf hat es bewiesen: in
+     bestandslauf.js stand `Ereignisschleife`, und der Waechter sah es nicht.
+     DAS ZITIERTE WORT STEHT IN BACKTICKS, sonst faenge der Waechter seine
+     eigene Begruendung -- er liest Kommentare und laesst zitierten Code in
+     Ruhe. */
   const SPRACH_QUELLEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
                           'zugang.js', 'schluessel.js', 'zweifaktor.js', 'pruefung.js',
-                          'gegenprobe.js', 'public/app.js'];
+                          'gegenprobe.js', 'public/app.js',
+                          'bilder.js', 'bestandslauf.js'];
   const sprachQuelltext = SPRACH_QUELLEN.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p)
@@ -14150,8 +14158,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      noch die halbe Anwendung an. Genau das ist beim Bauen dieser Gruppe an
      einer Gegenprobe aufgefallen -- der Rueckbau auf eine einzige Datei blieb
      stumm. Dieselbe Ueberlegung wie bei der Zahl in F_ROUTEN. */
-  pruefe('Der Sprachwaechter sieht alle elf Quelltextdateien an',
-    SPRACH_QUELLEN.length === 11 &&
+  pruefe('Der Sprachwaechter sieht alle dreizehn Quelltextdateien an',
+    SPRACH_QUELLEN.length === 13 &&
     SPRACH_QUELLEN.every(n => fs.existsSync(path.join(__dirname, n))),
     `${SPRACH_QUELLEN.length} Dateien, fehlend: ` +
     JSON.stringify(SPRACH_QUELLEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
@@ -18849,7 +18857,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* WAS 0.19.3 GEBAUT HAT UND WAS DIESE GRUPPE DAVON PRUEFT. Fuenf Abfragen
      der Uebersichtsschleife sind VOR die Schleife gezogen -- einmal fragen, in
      eine Karte legen, in der Schleife nachschlagen. Aus 3200 Abfragen je
-     Abruf werden neun.
+     Abruf werden 405: die fuenf gebuendelten schrumpfen auf je eine,
+     `testStats` bleibt bei 400 -- gebuendelt waere es langsamer.
 
      DIE GEFAHR IST NICHT DIE GESCHWINDIGKEIT, SONDERN DIE ZWEITE WAHRHEIT
      (Stolperstein 47): neben jeder gebuendelten Fassung steht die einzelne
@@ -18890,47 +18899,60 @@ const freigabeHaupt = (zweck, ziel = null) =>
   await ruf('PUT', `/api/items/${ueB.id}/ratings`, { criterionId: ueKrit[0].id, value: 5 });
 
   const ueListe = (await ruf('GET', '/api/items')).inhalt;
-  const ueKachel = (id) => (ueListe || []).find(i => i.id === id);
-  const ueDetail = async (id) => (await ruf('GET', `/api/items/${id}`)).inhalt;
+  /* JEDER ZUGRIFF GEHT DURCH EINE KLAMMER, und das ist keine Zierde: die
+     Rueckbauten 499 bis 504 nehmen genau diese Felder weg. Eine Zeile, die
+     dann auf `undefined.map` greift, REISST DEN LAUF AB, statt namentlich rot
+     zu werden -- und ein abgerissener Lauf belegt nichts (Stolpersteine 138,
+     161 und 170). Das ist beim ersten Gegenprobenlauf dieser Runde wirklich
+     passiert. */
+  const ueKachel = (id) => (ueListe || []).find(i => i.id === id) || {};
+  const ueDetail = async (id) => (await ruf('GET', `/api/items/${id}`)).inhalt || {};
   const ueDA = await ueDetail(ueA.id), ueDB = await ueDetail(ueB.id);
+  const ueTags = (o) => (o && o.tags) || [];
+  const ueTage = (o) => (o && o.testDays) || [];
   pruefe('Der Aufbau steht: beide Eintraege stehen in der Uebersicht',
-    !!ueKachel(ueA.id) && !!ueKachel(ueB.id), `${(ueListe || []).length} Eintraege`);
+    (ueListe || []).some(i => i.id === ueA.id) &&
+    (ueListe || []).some(i => i.id === ueB.id), `${(ueListe || []).length} Eintraege`);
 
   /* --- Die Schlagworte: gleiche Felder, gleiche Folge, und beim richtigen
          Eintrag --- */
   pruefe('Die Kachel traegt dieselben Schlagworte wie der Eintrag',
-    gleich(ueKachel(ueA.id).tags, ueDA.tags), JSON.stringify(ueKachel(ueA.id).tags));
+    ueTags(ueDA).length === 3 && gleich(ueTags(ueKachel(ueA.id)), ueTags(ueDA)),
+    JSON.stringify(ueTags(ueKachel(ueA.id))));
   pruefe('Und sie stehen alphabetisch, nicht in der Reihenfolge des Eintragens',
-    gleich(ueKachel(ueA.id).tags.map(t => t.name), ['Amboss', 'Meissel', 'Zange']),
-    JSON.stringify(ueKachel(ueA.id).tags.map(t => t.name)));
+    gleich(ueTags(ueKachel(ueA.id)).map(t => t.name), ['Amboss', 'Meissel', 'Zange']),
+    JSON.stringify(ueTags(ueKachel(ueA.id)).map(t => t.name)));
   pruefe('Und das Schlagwort des zweiten Eintrags steht nur bei ihm',
-    gleich(ueKachel(ueB.id).tags.map(t => t.name), ['Nurbei B']),
-    JSON.stringify(ueKachel(ueB.id).tags.map(t => t.name)));
+    gleich(ueTags(ueKachel(ueB.id)).map(t => t.name), ['Nurbei B']),
+    JSON.stringify(ueTags(ueKachel(ueB.id)).map(t => t.name)));
   /* `t.*` IST SEIT 0.19.3 EINE SPALTENLISTE. `created_at` eines Schlagworts
      liest die Oberflaeche nirgends -- und was niemand ansieht, wird zweimal
      bezahlt: beim Holen und beim Senden. AN BEIDEN WEGEN, sonst waere es
      genau die zweite Wahrheit, um die es hier geht. */
   pruefe('Ein Schlagwort traegt nur noch id und name — an der Kachel',
-    ueKachel(ueA.id).tags.every(t => gleich(Object.keys(t).sort(), ['id', 'name'])),
-    JSON.stringify(ueKachel(ueA.id).tags.map(t => Object.keys(t))));
+    ueTags(ueKachel(ueA.id)).length === 3 &&
+    ueTags(ueKachel(ueA.id)).every(t => gleich(Object.keys(t).sort(), ['id', 'name'])),
+    JSON.stringify(ueTags(ueKachel(ueA.id)).map(t => Object.keys(t))));
   pruefe('Und ebenso am Eintrag',
-    ueDA.tags.every(t => gleich(Object.keys(t).sort(), ['id', 'name'])),
-    JSON.stringify(ueDA.tags.map(t => Object.keys(t))));
+    ueTags(ueDA).length === 3 &&
+    ueTags(ueDA).every(t => gleich(Object.keys(t).sort(), ['id', 'name'])),
+    JSON.stringify(ueTags(ueDA).map(t => Object.keys(t))));
 
   /* --- Die Zahlen: gezaehlt statt geholt, und beim richtigen Eintrag --- */
+  const ueLinks = (o) => ((o && o.links) || []).length;
   pruefe('Die Linkzahl der Kachel ist die Zahl der Links am Eintrag',
-    ueKachel(ueA.id).linkCount === ueDA.links.length && ueDA.links.length === 2 &&
-    ueKachel(ueB.id).linkCount === ueDB.links.length && ueDB.links.length === 1,
-    `${ueKachel(ueA.id).linkCount}/${ueDA.links.length} und ` +
-    `${ueKachel(ueB.id).linkCount}/${ueDB.links.length}`);
+    ueKachel(ueA.id).linkCount === ueLinks(ueDA) && ueLinks(ueDA) === 2 &&
+    ueKachel(ueB.id).linkCount === ueLinks(ueDB) && ueLinks(ueDB) === 1,
+    `${ueKachel(ueA.id).linkCount}/${ueLinks(ueDA)} und ` +
+    `${ueKachel(ueB.id).linkCount}/${ueLinks(ueDB)}`);
   /* EIN EINTRAG OHNE LINKS TRAEGT 0 UND NICHT undefined. Eine Karte kennt nur,
      was sie gefunden hat; wer den Rueckfall vergisst, schickt die Kachel mit
      einem leeren Feld hinaus. */
   pruefe('Ein Eintrag ohne Links traegt die Zahl 0',
-    ueKachel(vsTagTag.id) && ueKachel(vsTagTag.id).linkCount === 0 &&
+    ueKachel(vsTagTag.id).linkCount === 0 &&
     ueKachel(vsTagTag.id).attachmentCount === 0,
-    JSON.stringify(ueKachel(vsTagTag.id) &&
-      [ueKachel(vsTagTag.id).linkCount, ueKachel(vsTagTag.id).attachmentCount]));
+    JSON.stringify([ueKachel(vsTagTag.id).linkCount,
+                    ueKachel(vsTagTag.id).attachmentCount]));
 
   /* --- Der Schnitt: dieselbe Rechnung, aus einer anderen Abfrage --- */
   pruefe('Der Schnitt der Kachel ist der Schnitt des Eintrags',
@@ -18945,42 +18967,46 @@ const freigabeHaupt = (zweck, ziel = null) =>
     ueKachel(ueA.id).avgRating !== ueKachel(ueB.id).avgRating,
     `${ueKachel(ueA.id).avgRating} gegen ${ueKachel(ueB.id).avgRating}`);
   pruefe('Ein Eintrag ohne Bewertung traegt weiterhin null und nicht 0',
-    ueKachel(vsTagTag.id) && ueKachel(vsTagTag.id).avgRating === null,
-    JSON.stringify(ueKachel(vsTagTag.id) && ueKachel(vsTagTag.id).avgRating));
+    ueKachel(vsTagTag.id).avgRating === null,
+    JSON.stringify(ueKachel(vsTagTag.id).avgRating));
 
   /* --- Die Kategorie: einmal geholt, nicht je Eintrag --- */
   pruefe('Die Kategorie der Kachel ist die des Eintrags',
     gleich(ueKachel(ueA.id).category, ueDA.category) &&
-    ueKachel(ueA.id).category.name === 'Buendelprobe',
+    (ueKachel(ueA.id).category || {}).name === 'Buendelprobe',
     JSON.stringify(ueKachel(ueA.id).category));
   pruefe('Und ein Eintrag ohne Kategorie traegt null',
     ueKachel(ueB.id).category === null, JSON.stringify(ueKachel(ueB.id).category));
 
   /* --- Die Testtage: schmal in der Liste, voll am Eintrag, gleiche Folge --- */
   pruefe('Die Testtage der Liste stehen in derselben Folge wie am Eintrag',
-    gleich(ueKachel(ueA.id).testDays.map(d => d.day), ueDA.testDays.map(d => d.day)) &&
-    gleich(ueKachel(ueA.id).testDays.map(d => d.id), ueDA.testDays.map(d => d.id)),
-    JSON.stringify([ueKachel(ueA.id).testDays.map(d => d.id), ueDA.testDays.map(d => d.id)]));
+    ueTage(ueDA).length === 3 &&
+    gleich(ueTage(ueKachel(ueA.id)).map(d => d.day), ueTage(ueDA).map(d => d.day)) &&
+    gleich(ueTage(ueKachel(ueA.id)).map(d => d.id), ueTage(ueDA).map(d => d.id)),
+    JSON.stringify([ueTage(ueKachel(ueA.id)).map(d => d.id), ueTage(ueDA).map(d => d.id)]));
   pruefe('Und die Folge ist wirklich der Tag absteigend, nicht die Eingabefolge',
-    gleich(ueKachel(ueA.id).testDays.map(d => d.day),
+    gleich(ueTage(ueKachel(ueA.id)).map(d => d.day),
            ['2026-05-07', '2026-05-03', '2026-05-01']),
-    JSON.stringify(ueKachel(ueA.id).testDays.map(d => [d.day, d.id])));
+    JSON.stringify(ueTage(ueKachel(ueA.id)).map(d => [d.day, d.id])));
   /* DIE WEGNAHME, UND SIE STEHT AN BEIDEN SEITEN DA: die Liste traegt vier
      Felder, der Eintrag traegt daneben weiter Schlagworte und Verfasser. Eine
      Pruefung nur an der Liste liesse offen, ob die Angaben ueberhaupt noch
      irgendwo stehen. */
   pruefe('Der Testtag der Liste traegt id, day, rating und mine — sonst nichts',
-    ueKachel(ueA.id).testDays.every(d =>
+    ueTage(ueKachel(ueA.id)).length === 3 &&
+    ueTage(ueKachel(ueA.id)).every(d =>
       gleich(Object.keys(d).sort(), ['day', 'id', 'mine', 'rating'])),
-    JSON.stringify(ueKachel(ueA.id).testDays.map(d => Object.keys(d))));
+    JSON.stringify(ueTage(ueKachel(ueA.id)).map(d => Object.keys(d))));
   pruefe('Und der Testtag am Eintrag traegt Schlagworte und Verfasser weiter',
-    ueDA.testDays.every(d => Array.isArray(d.tags) && d.verfasser !== undefined),
-    JSON.stringify(ueDA.testDays.map(d => Object.keys(d))));
+    ueTage(ueDA).length === 3 &&
+    ueTage(ueDA).every(d => Array.isArray(d.tags) && d.verfasser !== undefined),
+    JSON.stringify(ueTage(ueDA).map(d => Object.keys(d))));
   /* DIE NOTEN GEHEN DABEI NICHT VERLOREN -- ohne sie zeichnete die Zeitleiste
      lauter Punkte auf derselben Hoehe. */
   pruefe('Die Noten der Liste sind die des Eintrags',
-    gleich(ueKachel(ueA.id).testDays.map(d => d.rating), ueDA.testDays.map(d => d.rating)),
-    JSON.stringify(ueKachel(ueA.id).testDays.map(d => d.rating)));
+    ueTage(ueDA).length === 3 &&
+    gleich(ueTage(ueKachel(ueA.id)).map(d => d.rating), ueTage(ueDA).map(d => d.rating)),
+    JSON.stringify(ueTage(ueKachel(ueA.id)).map(d => d.rating)));
   /* UND DIE KENNZAHLEN BLEIBEN UNGEBUENDELT. testStats gebuendelt ist gemessen
      LANGSAMER (2,58 gegen 1,94 ms bei 400 Eintraegen) -- eine Buendelung ist
      kein Selbstzweck. Die Zahlen muessen trotzdem stimmen. */
@@ -19504,21 +19530,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Runde abgebaut worden. **Ein Rueckbau auf etwas, das es nicht mehr gibt,
      laesst sich nicht mitnehmen: er hat keinen Ort mehr.** An ihre Stelle
      tritt 487, der die Tafel WIEDER EINBAUT -- dieselbe Sache, andersherum. */
-  /* 496 SEIT 0.19.3: FUENFZEHN neue, ab Nummer 491 -- acht am Bestandslauf im
+  /* 497 SEIT 0.19.3: SECHZEHN neue, fuenfzehn ab Nummer 491 -- acht am Bestandslauf im
      eigenen Thread (die Meldung je Zeile, ihr Empfaenger, der Schluessel in
      workerData, der Abschluss, der stille Fehler, die Datei im Fingerprint,
      die Threadzahl von sharp und der wiederholte Schluesselhinweis), sechs an
      der Uebersicht (zweimal die verlorene zweite Ordnung, die fehlende
      Linkzahl, die gebuendelte Fassung mit einer Spalte zu viel, die wieder
      vollen Testtage und `t.*` statt der Spaltenliste) und einer am
-     Bildschirmtext.
+     Bildschirmtext -- dazu W14 am Pruefstand selbst, der Dateiliste des
+     Sprachwaechters. DIE ZAEHLUNG DER NEUEN IST 15 + 1: die W-Nummern gehoeren
+     zur Zahl der Rueckbauten, aber nicht zur Reihe ab 491.
      ACHT VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
      201): 431 bis 435 und 458 zeigten auf die Umwandlung, die jetzt in
      bilder.js steht -- derselbe Fund, andere Datei; 136 und 137 auf die Zeile
      der Testtage in der Uebersichtsschleife, die jetzt anders lautet.
      KEINER IST WEGGEFALLEN: diese Runde hat nichts abgebaut, sie hat
      verschoben. */
-  pruefe('Es sind genau 496 Rueckbauten', gpListe.length === 496, `${gpListe.length}`);
+  pruefe('Es sind genau 497 Rueckbauten', gpListe.length === 497, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -36276,9 +36304,12 @@ async function pruefeBestandslauf() {
     um.staende.every(m => m && m.art === 'stand' && m.stand &&
       typeof m.stand.erledigt === 'number' && typeof m.stand.gesamt === 'number'),
     JSON.stringify(um.staende[0]));
+  /* AUCH HIER GEHT JEDER ZUGRIFF DURCH EINE KLAMMER: Rueckbau 491 nimmt der
+     Schleife ihre Meldung, und eine Zeile, die dann auf `m.stand.erledigt`
+     greift, riesse den Lauf ab statt rot zu werden (Stolperstein 161). */
+  const ueErledigt = um.staende.map(m => (m && m.stand && m.stand.erledigt));
   pruefe('Und der Stand zaehlt hoch, bis alle Zeilen erledigt sind',
-    gleich(um.staende.map(m => m.stand.erledigt), [1, 2, 3, 4, 5, 6, 6]),
-    JSON.stringify(um.staende.map(m => m.stand.erledigt)));
+    gleich(ueErledigt, [1, 2, 3, 4, 5, 6, 6]), JSON.stringify(ueErledigt));
   pruefe('Am Ende steht laeuft: false und jede Zeile umgestellt',
     letzter.stand && letzter.stand.laeuft === false &&
     letzter.stand.umgestellt === ZEILEN && letzter.stand.gespart > 0,

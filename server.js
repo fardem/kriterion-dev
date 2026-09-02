@@ -3057,8 +3057,11 @@ app.get('/api/items', (req, res) => {
   }
   /* UND DIE UEBRIGEN FUENF DERSELBE WEG — 0.19.3. Was 0.19.2 fuer die Fotos
      gebaut hat, gilt hier fuer die Nachbarn: einmal fragen, in eine Karte
-     legen, in der Schleife nachschlagen. Aus 3200 Abfragen je Abruf werden
-     neun.
+     legen, in der Schleife nachschlagen. AUS 3200 ABFRAGEN JE ABRUF WERDEN 405
+     -- die fuenf gebuendelten schrumpfen auf je eine, `testStats` bleibt bei
+     400. (Der Auftrag zu dieser Runde schrieb „neun"; er hatte testStats
+     mitgezaehlt, das nach der Messung in E ausdruecklich NICHT gebuendelt
+     wird. Nachgezaehlt am gebauten Stand sind es 405.)
 
      GEZAEHLT AN 400 EINTRAEGEN mit je drei Schlagworten, drei Bewertungen,
      drei Testtagen und einem Link -- so war der Bestand gebaut, an dem
