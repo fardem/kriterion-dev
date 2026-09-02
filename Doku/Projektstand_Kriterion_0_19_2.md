@@ -322,8 +322,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.19.2** — Fingerprint **`f4f8a479`**, **5104
-Prüfungen**, **478 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.19.2** — Fingerprint **`0cdc709d`**, **5108
+Prüfungen**, **481 Rückbauten in der Liste** (Abschnitt 8).
 *0.19.2 macht die Bestandskarte wirklich schnell (gemessen 4698 → 4,4 ms), gibt
 dem engeren Ausschnitt seinen Spielraum zurück und kürzt zwei Dialoge.*
 **PATCH — KEINE DATENBANKSTUFE.**
@@ -943,7 +943,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.2** | **`f4f8a479`** *(im Feld noch nicht bestätigt)* | 5104 |
+| **0.19.2** | **`0cdc709d`** *(im Feld noch nicht bestätigt)* | 5108 |
 | 0.19.1 | `b0c4da5b` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5104 |
 | 0.19.0 | `5fe43053` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5055 |
 | 0.18.1 | `7b12ead4` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4919 |
@@ -7292,8 +7292,26 @@ Version, in der sie entstanden sind.*
     Stolperstein 275: dort ist der Sortierer der Gruppierung der Kostenpunkt,
     hier die Lage der Spalte. Zwei Ursachen, zwei Handgriffe — und wer nur die
     erste kennt, baut die Hälfte und hält sie für das Ganze.*
+
+    **DER PREIS FÄLLT IN ZWEI SEHR VERSCHIEDENEN STUFEN AN, und das gehört
+    dazu — sonst baut die nächste Runde Indizes, wo keine nötig sind:**
+
+    | | über dieselben 400 Zeilen |
+    |---|---|
+    | **voller Tabellendurchgang** *(kein Index nutzbar)* | **1338,8 ms** |
+    | **N Einzelzugriffe über einen Index** *(`WHERE item_id = ?`)* | **38,8 ms** |
+    | dieselben N, aber nur Spalten **vor** dem Blob | 4,0 ms |
+
+    *Beim Durchgang liest SQLite die Tabelle Seite für Seite und kommt an
+    keiner Overflow-Kette vorbei; beim Index-Zugriff springt es je Zeile an den
+    Satzanfang und läuft nur bis zur gesuchten Spalte.* **Zehnfach statt
+    dreihundertfach** — spürbar wird die zweite Stufe erst, wenn sie oft
+    genug läuft.
+
     **Der Ausweg ist ein Index über die kleine Spalte** — dann kommt sie aus
-    dem Index statt aus dem Satz.
+    dem Index statt aus dem Satz. *Bei einer Abfrage, die MEHRERE Spalten
+    hinter dem Blob liest, muss er sie alle tragen: fehlt eine einzige, fällt
+    SQLite auf einen anderen Index zurück und liest wieder den Satz — still.*
     **UND ER WIRKT NUR MIT EINER GLEICHHEIT:** `WHERE art != 'video'` schlägt
     den Index aus, `WHERE art IS ?` nutzt ihn. *Wer die Ungleichheit stehen
     lässt, legt den Index an und misst keinen Unterschied.*
@@ -7346,28 +7364,27 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5104 von 5104 bestanden** (0.19.2) — **netto keine einzige neue, und
-das ist eine Aussage und keine Leerstelle: vier sind dazugekommen und vier
-weggefallen.** *0.19.1 davor brachte 49.*
+**Stand: 5108 von 5108 bestanden** (0.19.2) — **vier netto, aus acht neuen und
+vier weggefallenen.** *0.19.1 davor brachte 49.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **478** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **481** Rückbauten.
 
 | Gruppe (0.19.2) | vorher | nachher | wofür |
 |---|---|---|---|
-| **Die Bildablage: PNG kommt herein, WebP geht in die Tabelle** | 56 | **60** | **vier neue** an der Bauform der Abfragen: der Index auf `photos(art)`, **seine Lage hinter der Migration**, die Frage je Art mit einer **Gleichheit** und **dass die Exportgröße der Bilder nicht ein zweites Mal gefragt wird** |
+| **Die Bildablage: PNG kommt herein, WebP geht in die Tabelle** | 56 | **64** | **acht neue** an der Bauform der Abfragen: der Index auf `photos(art)`, **die Lage beider Indizes hinter der letzten Migration**, die Frage je Art mit einer **Gleichheit** und dass die Exportgröße nicht ein zweites Mal gefragt wird — dazu vier zur Übersicht: die Spaltenliste an **einer** Stelle, der deckende Index mit **genau** diesen Spalten, **eine** Abfrage statt vierhundert, und `detail()` liest dieselben |
 | **Der fuenfte Abschnitt heisst „Installation"** | 14 | **10** | **vier weggefallen.** Die Übersetzung der alten Adressen ist abgebaut; an ihre Stelle tritt die **umgedrehte** Zusage — es gibt sie nicht mehr, und `anlage`, `instanz` und ein erfundener Abschnitt nehmen **denselben** Weg |
 | *Fokuspunkt in der Oberflaeche* | 35 | *35* | **keine neue** — der Spielraum des Rahmens wird von den vorhandenen Zusagen und den Rückbauten 483 und 484 gehalten |
 | *Die Bildablage in der Oberflaeche* | 33 | *33* | **keine neue** — die vier Zusagen am Dialogtext sind **umgeschrieben** statt ergänzt (Stolperstein 201) |
-| **zusammen** | | | **+4 − 4 = 0** |
+| **zusammen** | | | **+8 − 4 = +4** |
 
-> **EINE NETTO-NULL IST KEIN LEERLAUF.** *Vier Zusagen sind dazugekommen, vier
+> **DIE NETTO-VIER SIND ACHT UND VIER.** *Acht Zusagen sind dazugekommen, vier
 > sind mit dem Code verschwunden, den sie hielten. Wer nur die Summe liest,
-> sieht eine Runde ohne Prüfstandsarbeit — deshalb steht die Aufteilung hier.*
+> sieht die halbe Arbeit — deshalb steht die Aufteilung hier.*
 
 > **DIE WIRKUNG STEHT ALS MESSUNG IM ÄNDERUNGSPROTOKOLL, nicht als Prüfung.**
 > *Eine Prüflage mit 400 Zeilen à 512 kB dauerte länger als der ganze Lauf; was
-> hier steht, ist, dass die Bauform noch da ist.* **Acht Rückbauten stehen
-> daneben** (480 bis 487) — sie machen jede einzelne Zusage rot.
+> hier steht, ist, dass die Bauform noch da ist.* **Elf Rückbauten stehen
+> daneben** (480 bis 490) — sie machen jede einzelne Zusage rot.
 
 **Und die Runde davor, zum Vergleich — 5104 von 5104 bestanden** (0.19.1),
 **49 neue Prüfungen netto**, keine weggefallen.
@@ -8255,7 +8272,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
 - **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZWANZIG RUNDEN AUS.**
-  478 Rückbauten zu je einem vollen Prüflauf sind bei rund
+  481 Rückbauten zu je einem vollen Prüflauf sind bei rund
   fünfeinhalb Minuten je Lauf etwa **vierzig Stunden** hintereinander, in vier
   Nebenspuren rund elf. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
@@ -8667,7 +8684,8 @@ Stufe: kein Migrationsblock, keine Spalte, keine neue Formatnummer.
 | **2** | Der engere Ausschnitt erreicht die Ränder **wirklich** | `transform-origin` war richtig und blieb wirkungslos: der Spielraum im Betrachter rechnete den Zoom nicht ein, und bei einem fast quadratischen Bild war er **null** — `focus_x` konnte nie etwas anderes als 50 werden |
 | **3** | Die beiden Dialoge werden kurz | Der Umstellungsdialog sagte dasselbe zweimal und erklärte nebenher, woher eine fehlende Zahl kommt; die Rückfrage nach dem Passwort trug einen Nebensatz zu viel |
 | **4** | Die Übersetzung alter Abschnittsadressen ist **abgebaut** | *„Dinge abfangen, die es nicht geben wird, ist verschwendete Ressource."* Die Anlage hat **einen** Zugang — es gibt keine fremden Lesezeichen auf `#/system/instanz`. **Der Grund bleibt im Quelltext, der Code geht** (Stolperstein 201) |
-| **5** | Zwei Zahlen aus 0.19.1 sind berichtigt | „0,1 ms" und „0,2 ms" waren aus dem Auftrag übernommen und **nicht am eigenen Gegenstand nachgefahren** (Stolperstein 280) |
+| **5** | Die Übersicht liest ihre Fotos aus einem **deckenden Index** | Dieselbe Erkenntnis, zweite Fundstelle: `qPhotos` liest **sieben** Spalten hinter den Blobs, je Eintrag einmal. **Gemessen: 9,3 → 1,6 ms** (Index + eine Abfrage statt vierhundert); die ganze Route 26 → 21 ms. *Es war ihr größter Einzelposten — die Nachbarn kosten 0,9 bis 2,1 ms* |
+| **6** | Zwei Zahlen aus 0.19.1 sind berichtigt | „0,1 ms" und „0,2 ms" waren aus dem Auftrag übernommen und **nicht am eigenen Gegenstand nachgefahren** (Stolperstein 280) |
 
 > **UND KEIN ZWISCHENSPEICHER.** *Die Frage lag nahe — muss die Karte bei jedem
 > Klick den ganzen Bestand zählen? Bei 4,4 ms gibt es dafür keinen Gegenwert,

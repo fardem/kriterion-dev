@@ -836,49 +836,6 @@ function migration0850() {
 migration0850();
 // ENDE MIGRATION 0.8.50
 
-/* DER INDEX AUF `art` STEHT HIER UND NICHT IN DER DDL, seit 0.19.2 -- und der
-   Grund ist ein Befund des Pruefstands, kein Geschmack.
-
-   `photos.art` KOMMT ERST MIT migration0850(). Eine Datenbank aus 0.8.0 bis
-   0.8.40 traegt die Spalte nicht, und `CREATE TABLE IF NOT EXISTS` ruehrt eine
-   vorhandene Tabelle nicht an (Stolperstein 13). Ein `CREATE INDEX` in der DDL
-   liefe dort auf „no such column: art" -- und zwar beim Oeffnen der Datei, also
-   BEVOR der Server ueberhaupt startet. **Gefunden hat das der Pruefstand beim
-   ersten Lauf, an der nachgebauten Datenbank aus 0.8.40.**
-
-   EIN INDEX AUF EINER NACHGERUESTETEN SPALTE GEHOERT HINTER IHRE MIGRATION,
-   nicht in die DDL daneben (Stolperstein 281).
-
-   WOZU ER DA IST: `art` steht in der Spaltenreihenfolge hinter drei Blobs
-   (data, thumb, medium). Wer sie aus dem SATZ liest, muss ihn bis dorthin
-   durchlaufen -- und das heisst bei einem 512-kB-Bild: die ganze Kette der
-   Overflow-Seiten lesen und entschluesseln. Gemessen an einer SQLCipher-Datei
-   mit 400 Zeilen a 512 kB (312 MB), je Abfrage ueber die ganze Tabelle:
-
-     COUNT(*)                                        0,0 ms
-     mime_type gruppiert  (Spalte 2, VOR den Blobs)  8,7 ms
-     art gruppiert        (Spalte 6, HINTER ihnen)   1338,8 ms
-     SUM(length(data))    (Spalte 3)                 7,2 ms
-     SUM(length(data)) mit WHERE art != 'video'      1334,1 ms
-     art gruppiert, MIT diesem Index                 0,1 ms
-
-   DER UNTERSCHIED IST NICHT DIE MENGE, SONDERN DIE LAGE DER SPALTE
-   (Stolperstein 279). Mit diesem Index kommt `art` aus dem Index statt aus
-   dem Satz.
-
-   EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE art != 'video'` schlaegt den
-   Index aus, `WHERE art IS ?` nutzt ihn. Die Abfragen in /api/stats holen
-   deshalb erst die vorhandenen Arten und fragen dann je Art.
-
-   ER IST KEINE DATENBANKSTUFE: kein Migrationsblock, keine Spalte, keine neue
-   Formatnummer. Beim ersten Start nach dem Einspielen baut SQLite ihn einmal
-   auf -- gemessen 1,4 s bei 312 MB, danach steht er.
-
-   UND ER FAELLT MIT DER BEREINIGUNG NICHT WEG. Zu 1.0 verschwindet
-   migration0850(), die Spalte in der DDL bleibt -- und dann darf diese Zeile
-   mit ihr nach oben wandern. Der Satz steht hier, damit sie beim Aufraeumen
-   nicht uebersehen wird. */
-db.exec('CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art)');
 
 // MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
 // Die Spalten rejected_at, rejected_grund und rejected_von stehen in der DDL,
@@ -979,6 +936,89 @@ function migration0190() {
 }
 migration0190();
 // ENDE MIGRATION 0.19.0
+
+/* ================= DIE INDIZES AUF NACHGERUESTETE SPALTEN =================
+   SIE STEHEN HIER UNTEN UND NICHT IN DER DDL, und der Grund ist ein Befund des
+   Pruefstands -- zweimal derselbe, in zwei Stufen.
+
+   EIN INDEX AUF EINER NACHGERUESTETEN SPALTE GEHOERT HINTER IHRE MIGRATION
+   (Stolperstein 281). `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
+   Tabelle nicht an (Stolperstein 13): eine Datenbank aus 0.8.40 traegt
+   `photos.art` erst, nachdem migration0850() gelaufen ist, und `photos.zoom`
+   erst nach migration0190(). Ein CREATE INDEX weiter oben scheitert dort mit
+   „no such column" -- beim OEFFNEN der Datei, also bevor der Server ueberhaupt
+   startet. Kein Fehlerbild, keine halbe Funktion: die Anwendung kommt nicht
+   hoch.
+
+   DESHALB STEHEN SIE HIER UNTEN UND NICHT JE HINTER IHRER EIGENEN MIGRATION:
+   die Reihenfolge muesste sonst bei jeder neuen Migration nachgezogen werden,
+   und ein Index, der zwei nachgeruestete Spalten nennt, haette gar keinen
+   richtigen Platz. **Hinter der letzten Migration ist jede Spalte da.**
+   *Gefunden hat das der Pruefstand: der erste Anlauf stellte den einen Index in
+   die DDL (scheiterte an `art` aus 0.8.40), der zweite hinter migration0850()
+   -- und scheiterte am `zoom` aus 0.19.0.*
+
+   ZU 1.0 FALLEN DIE MIGRATIONSBLOECKE WEG, die Spalten in der DDL bleiben --
+   dann duerfen diese Zeilen mit nach oben. Der Satz steht hier, damit sie beim
+   Aufraeumen nicht uebersehen werden.
+
+   KEINE VON BEIDEN IST EINE DATENBANKSTUFE: kein Migrationsblock, keine
+   Spalte, keine neue Formatnummer. */
+
+/* WOZU DER ERSTE: `art` steht in der Spaltenreihenfolge hinter drei Blobs
+   (data, thumb, medium). Wer sie aus dem SATZ liest, muss ihn bis dorthin
+   durchlaufen -- und das heisst bei einem 512-kB-Bild: die ganze Kette der
+   Overflow-Seiten lesen und entschluesseln. Gemessen an einer SQLCipher-Datei
+   mit 400 Zeilen a 512 kB (312 MB), je Abfrage ueber die ganze Tabelle:
+
+     COUNT(*)                                        0,0 ms
+     mime_type gruppiert  (Spalte 2, VOR den Blobs)  8,7 ms
+     art gruppiert        (Spalte 6, HINTER ihnen)   1338,8 ms
+     SUM(length(data))    (Spalte 3)                 7,2 ms
+     SUM(length(data)) mit WHERE art != 'video'      1334,1 ms
+     art gruppiert, MIT diesem Index                 0,1 ms
+
+   DER UNTERSCHIED IST NICHT DIE MENGE, SONDERN DIE LAGE DER SPALTE
+   (Stolperstein 279). EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE art !=
+   'video'` schlaegt den Index aus, `WHERE art IS ?` nutzt ihn. Die Abfragen in
+   /api/stats holen deshalb erst die vorhandenen Arten und fragen dann je Art.
+
+   Beim ersten Start nach dem Einspielen baut SQLite ihn einmal auf --
+   gemessen 1,4 s bei 312 MB, danach steht er. */
+db.exec('CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art)');
+
+/* WOZU DER ZWEITE: `/api/items` holt je Eintrag die Fotoliste; jede dieser
+   Zeilen traegt focus_x, focus_y, zoom, sort_order, created_at, art und dauer
+   -- SIEBEN Spalten, die hinter data, thumb und medium stehen. Der Index
+   `idx_photos_item` deckt davon nur `sort_order` ab; alles andere kaeme aus
+   dem Satz.
+
+   GEMESSEN AN DERSELBEN DATEI (400 Eintraege, 400 Fotos, 312 MB), je Aufruf
+   ueber alle Eintraege:
+
+     bis 0.19.2: N Abfragen, aus dem Satz               9,3 ms
+     N Abfragen, aus diesem deckenden Index             3,0 ms
+     EINE Abfrage, aus diesem deckenden Index           1,6 ms
+     EINE Abfrage, ohne ihn                             6,3 ms
+
+   Die Uebersicht kostete damit 26 ms; die Fotoabfrage war mit rund einem
+   Drittel ihr groesster Einzelposten. Zum Vergleich die Nachbarn derselben
+   Schleife: Tags 0,9 ms, Anhaenge 1,2 ms, Links 2,0 ms.
+
+   DIE LISTE MUSS VOLLSTAENDIG SEIN: fehlt eine einzige Spalte -- created_at
+   etwa --, faellt SQLite auf idx_photos_item zurueck und liest wieder den
+   Satz. Nachgemessen am Abfrageplan: mit created_at steht dort „SCAN photos
+   USING COVERING INDEX", ohne es „SEARCH photos USING INDEX idx_photos_item".
+   Der Index staende da, saehe richtig aus und deckte nichts mehr.
+
+   ER KOSTET FAST NICHTS: gemessen 20 kB bei 400 Zeilen -- er traegt keine
+   Blobs, nur Zahlen und kurze Zeichen.
+
+   WER IN DER UEBERSICHT EINE SPALTE ERGAENZT, ergaenzt sie AUCH HIER. Die
+   Abfrage fuehrt ihre Liste als PHOTO_SPALTEN an einer Stelle, und eine
+   Pruefung haelt beide gegeneinander. */
+db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_kachel
+           ON photos(item_id, sort_order, id, mime_type, focus_x, focus_y, zoom, created_at, art, dauer)`);
 
 // --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn

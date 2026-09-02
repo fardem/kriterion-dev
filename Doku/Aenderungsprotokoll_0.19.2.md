@@ -1,11 +1,11 @@
 # Änderungsprotokoll 0.19.2 — „Was 0.19.1 nur zur Hälfte getroffen hat"
 
-**Version 0.19.2 · gebaut am 2. September 2026 · Fingerprint `f4f8a479` ·
-5104 Prüfungen · 478 Rückbauten in `gegenprobe.js`**
+**Version 0.19.2 · gebaut am 2. September 2026 · Fingerprint `0cdc709d` ·
+5108 Prüfungen · 481 Rückbauten in `gegenprobe.js`**
 
 ---
 
-**VIER BEFUNDE AUS DEM RUNDLAUF MIT 0.19.1, und zwei davon sind Nacharbeit an
+**FÜNF BEFUNDE AUS DEM RUNDLAUF MIT 0.19.1, und zwei davon sind Nacharbeit an
 ihr selbst.** *0.19.1 ist im Feld bestätigt — die laufende Installation hat
 `b0c4da5b` gemeldet, den gebauten Wert. Beim Durchklicken kam heraus, dass zwei
 ihrer drei sichtbaren Punkte nur zur Hälfte trugen.*
@@ -77,6 +77,7 @@ Index anlegt und die Ungleichheit stehen lässt, misst keinen Unterschied.**
 |---|---|
 | 0.19.1 *(zwei materialisierte Abfragen)* | **4698 ms** |
 | **0.19.2, kalt** | **28,6 ms** |
+| **`/api/items` vorher · nachher** | **26–29 ms · 21–25 ms** |
 | **0.19.2, warm** | **4,4 ms** |
 
 *Gemessen am laufenden Server gegen dieselbe 312-MB-Datei, mit gleichem
@@ -276,7 +277,87 @@ oder eine dritte Sonderbehandlung.*
 
 ---
 
-## 5. Zwei Zahlen aus 0.19.1 sind berichtigt
+## 5. Die Übersicht liest ihre Fotos aus einem deckenden Index
+
+**Der Befund kam aus der Frage des Betreibers:** *„Gibt es an anderen Stellen
+Abfragen, die auch verbessert werden könnten, weil bis dahin unsere Erkenntnis
+nicht gereicht hatte?"* — **und aus dem Feld daneben:** *„Übersicht war auch
+etwas träge, etwa 0,5 s."*
+
+### Gesucht wurde systematisch, nicht geraten
+
+**Drei Kandidaten hat die Suche ergeben, und zwei davon sind harmlos:**
+
+| Stelle | gemessen |
+|---|---|
+| `backfillVariants()` beim Serverstart *(`WHERE (thumb IS NULL OR medium IS NULL) AND art != 'video'`)* | **0,5 ms** |
+| Der Plan des Teilexports *(`qTeilGroessen`, korrelierte Unterabfragen)* | **6,4 ms** |
+| **`qPhotos` in `/api/items`** | **9,3 ms** — der größte Einzelposten der Route |
+
+*Die beiden ersten laufen zwar über die ganze Tabelle, treffen aber wenige
+Zeilen oder lesen nur Spalten, die der Index schon trägt.*
+
+### Was `/api/items` wirklich kostet
+
+Aufgeschlüsselt, warm, an derselben Datei (400 Einträge, 400 Fotos, 312 MB):
+
+| Teil | ms | Anteil |
+|---|---|---|
+| **`qPhotos` je Eintrag** | **8,3–9,3** | **≈ 35 %** |
+| `schnitteJeKriterium` je Eintrag | 3,6 | 15 % |
+| `JSON.stringify` der Antwort | 2,7 | 11 % |
+| die Eintragsliste selbst | 2,1 | |
+| `testStats` je Eintrag | 2,1 | |
+| `qLinks` je Eintrag | 2,0 | |
+| `qAnhangZahl` je Eintrag | 1,2 | |
+| `qTags` je Eintrag | 0,9 | |
+
+**`qPhotos` liest zehn Spalten, und SIEBEN davon stehen in `photos` hinter den
+Blobs** — `focus_x`, `focus_y`, `zoom`, `sort_order`, `created_at`, `art`,
+`dauer`. *Der vorhandene Index `idx_photos_item` deckt davon nur `sort_order`
+ab; alles andere kommt aus dem Satz.*
+
+### GEBAUT
+
+| Form | ms |
+|---|---|
+| bis 0.19.2: N Abfragen, aus dem Satz | **9,3** |
+| N Abfragen, aus dem deckenden Index | **3,0** |
+| **EINE Abfrage, aus dem deckenden Index** | **1,6** |
+| eine Abfrage, ohne den Index | 6,3 |
+
+* **`idx_photos_kachel`** in `db.js` — über genau die zehn Spalten, die
+  `qPhotos` liest. *Gemessen 20 kB bei 400 Zeilen: er trägt keine Blobs.*
+* **Die Übersicht holt die Fotos in EINER Abfrage** und legt sie in eine Karte
+  — dieselbe Bauform, die die Route für die neuen Kommentare und Bewertungen
+  schon benutzt.
+* **Die Spaltenliste steht an einer Stelle** (`PHOTO_SPALTEN`). `qPhotos` und
+  `qAlleFotos` lesen beide daraus; `detail()` benutzt weiter die Einzelabfrage.
+
+> **DIE LISTE MUSS VOLLSTÄNDIG SEIN, und das ist die Falle.** *Fehlt im Index
+> auch nur eine Spalte — `created_at` etwa —, fällt SQLite auf
+> `idx_photos_item` zurück und liest wieder den Satz.* **Nachgemessen am
+> Abfrageplan:** mit `created_at` steht dort *„SCAN photos USING COVERING
+> INDEX"*, ohne es *„SEARCH photos USING INDEX idx_photos_item"*. **Der Index
+> stünde da, sähe richtig aus und deckte nichts mehr** — still, ohne dass
+> irgendetwas rot würde. *Eine Prüfung hält beide Listen gegeneinander, und
+> Rückbau 489 nimmt genau eine Spalte weg.*
+
+### Was das bringt, ehrlich
+
+**Die ganze Route: 41,8 → 30,2 ms kalt, 26–29 → 21–25 ms warm.** *Rund ein
+Viertel — kein Sprung wie bei den Kennzahlen (4698 → 4,4 ms), aber der größte
+Posten, der zu diesem Befund gehört.*
+
+**Was NICHT gebaut wurde:** die übrigen Posten der Schleife —
+`schnitteJeKriterium`, `testStats`, `qLinks`, `qTags`, `qAnhangZahl` — fragen
+ebenfalls je Eintrag einmal. *Sie kosten zusammen rund 10 ms und haben mit den
+Blobs nichts zu tun; das ist das N+1-Muster und eine eigene Runde wert.* **Es
+steht als offener Punkt in Abschnitt 10.**
+
+---
+
+## 6. Zwei Zahlen aus 0.19.1 sind berichtigt
 
 **In `Doku/Aenderungsprotokoll_0.19.1.md`, Abschnitt 0.A, stehen „0,1 ms" und
 „0,2 ms" für die materialisierten Zwischenabfragen.** Beide Zahlen sind echt —
@@ -294,15 +375,15 @@ fehlte, war die zweite Ursache — nicht die erste.**
 
 ---
 
-## 6. Was je Datei geändert wurde
+## 7. Was je Datei geändert wurde
 
 | Datei | Was |
 |---|---|
-| `db.js` | **Der Index `idx_photos_art`** samt der Messung, die ihn begründet. |
-| `server.js` | **Punkt 1:** vier vorbereitete Anweisungen neben `qOffenePNG`; `/api/stats` holt die Arten aus dem Index und fragt je Art mit `IS ?`; die Exportgröße der Bilder kommt aus derselben Schleife. **Punkt 4:** die Berichtigung zu `substr()` steht wieder im Kommentar, jetzt neben der zweiten Ursache. |
+| `db.js` | **Zwei Indizes:** `idx_photos_art` (Punkt 1) und `idx_photos_kachel` (Punkt 5), jeder mit der Messung daneben, die ihn begründet. |
+| `server.js` | **Punkt 5:** `PHOTO_SPALTEN` an einer Stelle, `qAlleFotos` daneben, die Übersicht holt einmal statt je Eintrag. **Punkt 1:** vier vorbereitete Anweisungen neben `qOffenePNG`; `/api/stats` holt die Arten aus dem Index und fragt je Art mit `IS ?`; die Exportgröße der Bilder kommt aus derselben Schleife. **Punkt 4:** die Berichtigung zu `substr()` steht wieder im Kommentar, jetzt neben der zweiten Ursache. |
 | `public/app.js` | **Punkt 2:** `masse()` als eine Stelle für Ausschnitt und Spielraum; `zeichne()` und `ausPunkt()` lesen daraus. **Punkt 3:** beide Dialogtexte. **Punkt 4:** `SYS_ALTE_ABSCHNITTE` abgebaut, der Grund steht an seiner Stelle. |
 | `pruefung.js` | Die Zusagen zur Abfrageform neu — Index, Gleichheit, blobfreie Artenabfrage, materialisierte Formatzeile, keine zweite Exportfrage. Die vier Zusagen am Dialogtext. |
-| `gegenprobe.js` | **Acht neue** (480 bis 487). **Sechs mitgegangen** (455, 460, 461, 472, 473, 479). **Zwei weggefallen** (346, 459 — die Tafel, die sie zurückbauten, gibt es nicht mehr). |
+| `gegenprobe.js` | **Elf neue** (480 bis 490). **Sechs mitgegangen** (455, 460, 461, 472, 473, 479). **Zwei weggefallen** (346, 459 — die Tafel, die sie zurückbauten, gibt es nicht mehr). |
 | `CHANGELOG.md` | Abschnitt **0.19.2**, mit Kasten wegen des Indexaufbaus. |
 | `Doku/Aenderungsprotokoll_0.19.1.md` | Der Feldbeleg (`b0c4da5b`), die drei Befunde des Rundlaufs und die Berichtigung der beiden übernommenen Zahlen. |
 | `Doku/Aenderungsprotokoll_0.19.2.md` | **NEU** — dieses Papier. |
@@ -311,7 +392,7 @@ fehlte, war die zweite Ursache — nicht die erste.**
 
 ---
 
-## 7. Der Fahrplan rückt
+## 8. Der Fahrplan rückt
 
 **Die 0.19er hinter dieser Runde rücken um eine Stelle:**
 
@@ -326,7 +407,7 @@ jeder Runde mit einem Bestandslauf, und 0.19.4 bleibt trotzdem früh.*
 
 ---
 
-## 8. Neue Stolpersteine
+## 9. Neue Stolpersteine
 
 **Drei, und sie zählen bei 279 weiter** — 278 war vergeben. *Der dritte kam
 beim Bauen dazu: der Prüfstand hat ihn gefunden.*
@@ -339,25 +420,26 @@ beim Bauen dazu: der Prüfstand hat ihn gefunden.*
 
 ---
 
-## 9. Die Zahlen
+## 10. Die Zahlen
 
 | | vorher (0.19.1) | nachher (0.19.2) |
 |---|---|---|
-| Prüfungen | 5104 | **5104** *(vier neu, vier weggefallen)* |
-| Rückbauten in `gegenprobe.js` | 472 | **478** |
-| höchste Rückbaunummer | 479 | **487** |
+| Prüfungen | 5104 | **5108** *(acht neu, vier weggefallen)* |
+| Rückbauten in `gegenprobe.js` | 472 | **481** |
+| höchste Rückbaunummer | 479 | **490** |
 | Stolpersteine | 278 | **281** |
 | Routen (`F_ROUTEN`) | 70 | **70** |
 | Karten im Systembereich | 19 | **19** |
 | markierte Migrationsblöcke | 8 | **8** |
 | Austauschformat | 12 | **12** |
-| Indizes auf `photos` | 1 | **2** |
+| Indizes auf `photos` | 1 | **3** |
+| `GET /api/items` an 312 MB | 26–29 ms warm | **21–25 ms warm** |
 | `GET /api/stats` an 312 MB | 4698 ms | **28,6 ms kalt · 4,4 ms warm** |
-| Fingerprint | `b0c4da5b` | **`f4f8a479`** |
+| Fingerprint | `b0c4da5b` | **`0cdc709d`** |
 
 ---
 
-## 10. Offen geblieben
+## 11. Offen geblieben
 
 **IM FELD NOCH NICHT BESTÄTIGT.** *Nach dem Einspielen gehört ein Blick in
 Systembereich → Datenbank → Kennzahlen: steht dort ein anderer Wert als der
@@ -377,7 +459,7 @@ Fingerprint oben, liegt auf dem Wirt eine Datei, die kein Commit trägt
 
 **Weiter offen, unverändert:**
 
-- **Der volle Gegenprobenlauf** über alle 478 Rückbauten — rund vierzig Stunden,
+- **Der volle Gegenprobenlauf** über alle 481 Rückbauten — rund vierzig Stunden,
   seit zwanzig Runden ausstehend.
 - **Die Aussetzer während eines Bestandslaufs.** *Nach dieser Runde ist die
   Erklärung aus 0.19.1 noch besser belegt: die Abfrage, die alle 1500 ms lief,
@@ -386,3 +468,15 @@ Fingerprint oben, liegt auf dem Wirt eine Datei, die kein Commit trägt
   Umstellungslauf fahren und dabei im Systembereich klicken.
 - **Weitere Vorkommen von „Instanz" im Bildschirmtext** — acht Stellen in
   `public/app.js`, unverändert aus 0.19.1 offen.
+- **DAS N+1-MUSTER IN `/api/items`.** *Neu aufgefallen beim Messen zu Punkt 5:*
+  die Übersichtsschleife fragt je Eintrag **fünfmal** einzeln —
+  `schnitteJeKriterium` (3,6 ms), `testStats` (2,1), `qLinks` (2,0),
+  `qAnhangZahl` (1,2), `qTags` (0,9). **Zusammen rund 10 ms von 21**, und bei
+  400 Einträgen sind das 2000 Abfragen. *Sie haben mit den Blobs nichts zu tun
+  — jede einzelne ist billig, es sind nur viele.* **Derselbe Handgriff wie bei
+  den Fotos würde tragen:** einmal fragen, in eine Karte legen, in der Schleife
+  nachschlagen. *Das ist eine eigene Runde und kein Anhängsel; hier steht es,
+  damit es nicht wieder gefunden werden muss.*
+- **Und `JSON.stringify` kostet 2,7 ms** für 233 kB Antwort. *Nicht zu ändern,
+  aber die Zahl gehört daneben: sie ist die Untergrenze dessen, was diese Route
+  kosten kann.*

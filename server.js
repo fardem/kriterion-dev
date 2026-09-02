@@ -2436,7 +2436,14 @@ function qComments(itemId, benutzerId, karte) {
 // allein die Spalte art -- nicht der ausgelieferte Typ und nichts sonst. Ohne
 // die beiden Felder zeichnete sie ins Leere. Sie haengen damit an detail() UND
 // an /api/items (mainPhoto).
-const qPhotos = db.prepare('SELECT id, item_id, mime_type, focus_x, focus_y, zoom, sort_order, created_at, art, dauer FROM photos WHERE item_id = ? ORDER BY sort_order, id');
+const PHOTO_SPALTEN = 'id, item_id, mime_type, focus_x, focus_y, zoom, sort_order, created_at, art, dauer';
+const qPhotos = db.prepare(`SELECT ${PHOTO_SPALTEN} FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
+/* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL -- die Uebersicht ruft sie,
+   detail() ruft die Zeile darueber. DIE SPALTENLISTE STEHT AN EINER STELLE:
+   liefe sie auseinander, traege die Kachel ein anderes Foto als der Eintrag.
+   UND SIE IST ZUGLEICH DIE LISTE DES INDEX `idx_photos_kachel` -- fehlt dort
+   eine, faellt der Index still aus. Eine Pruefung haelt beide gegeneinander. */
+const qAlleFotos = db.prepare(`SELECT ${PHOTO_SPALTEN} FROM photos ORDER BY item_id, sort_order, id`);
 const qTags = db.prepare('SELECT t.* FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE');
 const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
@@ -3035,12 +3042,42 @@ app.get('/api/items', (req, res) => {
     for (const z of qNeueBewertungen.all(bezug, req.benutzer.id))
       neuBewJe.set(z.item_id, (neuBewJe.get(z.item_id) || 0) + z.n);
   }
+  /* DIE FOTOS ALLER EINTRAEGE IN EINER ABFRAGE, seit 0.19.2 -- vorher eine je
+     Eintrag. DIESELBE BAUFORM WIE bei den neuen Kommentaren und Bewertungen
+     eine Schleife hoeher: einmal fragen, in eine Karte legen, in der Schleife
+     nachschlagen.
+
+     ZWEI GRUENDE, UND BEIDE GEMESSEN (400 Eintraege, 400 Fotos, 312 MB):
+       N Abfragen aus dem Satz                9,3 ms
+       N Abfragen aus dem deckenden Index     3,0 ms
+       EINE Abfrage aus dem deckenden Index   1,6 ms
+     Der groessere Anteil kommt vom Index (`idx_photos_kachel` in db.js): SIEBEN
+     der zehn Spalten stehen in `photos` hinter den Blobs, und wer sie aus dem
+     Satz liest, liest dessen Overflow-Ketten mit (Stolperstein 279). Der
+     kleinere kommt daraus, dass eine Abfrage eine ist und nicht
+     vierhundert. `qPhotos` war damit der groesste Einzelposten dieser Route --
+     rund ein Drittel von 26 ms; die Nachbarn kosten 0,9 bis 2,1 ms.
+
+     GEHOLT WERDEN ALLE FOTOS, nicht nur die der gezeigten Eintraege. Bei einer
+     gefilterten Uebersicht faellt damit etwas ab, das niemand braucht -- aus
+     dem Index gelesen kostet das nichts, und ein `IN (…)` mit vierhundert
+     Nummern waere teurer als die Ersparnis.
+
+     `qPhotos` BLEIBT UND WIRD WEITER GEBRAUCHT: detail() holt damit die Fotos
+     EINES Eintrags. Dort ist die Zeilenzahl einstellig, und eine zweite
+     Bauform daneben waere eine zweite Wahrheit ueber dasselbe. Beide lesen
+     dieselben Spalten in derselben Folge -- eine Pruefung haelt das fest. */
+  const fotosJe = new Map();
+  for (const f of qAlleFotos.all()) {
+    if (!fotosJe.has(f.item_id)) fotosJe.set(f.item_id, []);
+    fotosJe.get(f.item_id).push(f);
+  }
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
     it.verfasser = verfasserAus(karte, it.user_id);
     delete it.user_id;
     it.favorite = meinePins.has(it.id);
-    const ph = qPhotos.all(it.id);
+    const ph = fotosJe.get(it.id) || [];
     // Das erste Element ist das Hauptbild, gleich welcher Art -- bei einem
     // Video steht dort sein Standbild. Die beiden Zaehler daneben sind
     // getrennt: photoCount zaehlt Fotos und hat damit dieselbe Bedeutung wie

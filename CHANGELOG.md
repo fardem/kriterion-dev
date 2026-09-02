@@ -34,11 +34,12 @@ bleiben in der Form ihrer Zeit.*
 > **Nichts zu tun.** *Keine Datenbankstufe, keine Migration, kein neues
 > Austauschformat — gesichert werden muss vor dem Einspielen nichts.*
 >
-> **Beim ersten Start legt die Datenbank einen Index an** (`photos(art)`). Das
-> dauert einmalig ein bis zwei Sekunden und geschieht von selbst; danach steht
-> er. **Nach dem Einspielen im Browser einmal hart neu laden.**
+> **Beim ersten Start legt die Datenbank zwei Indizes an.** Das dauert einmalig
+> ein bis zwei Sekunden und geschieht von selbst; danach stehen sie. **Nach dem
+> Einspielen im Browser einmal hart neu laden.**
 
 - Fixed: Der Systembereich lädt jetzt wirklich sofort — 0.19.1 hatte nur die eine von zwei Ursachen behoben
+- Changed: Auch die Übersicht kommt schneller — sie holt die Vorschaubilder in einer Abfrage statt in einer je Eintrag
 - Fixed: Der engere Bildausschnitt lässt sich endlich in alle Richtungen verschieben; bei fast quadratischen Bildern ging waagerecht bisher gar nichts
 - Changed: Der Dialog vor „Alle PNG nach WebP umstellen" ist kürzer und sagt jetzt, dass die Umwandlung nahezu verlustfrei ist
 - Changed: Die Rückfrage nach dem Passwort ist kürzer und nennt den zweiten Faktor beim Namen
