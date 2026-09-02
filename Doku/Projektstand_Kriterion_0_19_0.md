@@ -844,7 +844,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.0** | **`5fe43053`** *(im Feld noch nicht bestätigt)* | 5055 |
+| **0.19.0** | **`5fe43053`** *(am 2. September 2026 von der laufenden Instanz gemeldet)* | 5055 |
 | 0.18.1 | `7b12ead4` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4919 |
 | 0.18.0 | `0bf6ac9d` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4917 |
 | 0.17.5 | `6a2c264a` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4813 |
