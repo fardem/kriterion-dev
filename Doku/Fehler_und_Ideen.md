@@ -187,7 +187,7 @@ entschieden und hat seinen Ort.*
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
 | **eingetragen als 0.21.0** | **5, 6** |
-| **eingetragen als 0.19.3** | **7** |
+| **eingetragen als 0.19.4** | **7** |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
 
@@ -483,8 +483,8 @@ gespeicherten Ansichten, Prüfungen, Gegenproben, README. **Kein Schema.**
 > gehen in **0.21.0** mit — in derselben Runde, die über die Verfahren der
 > Bildablage entscheidet. *Ein Durchgang über den Bestand statt zwei.*
 > **Und der Grund, warum er überhaupt drängt, hat sich noch einmal geschärft:**
-> die Vorschaukachel rechnet ihr Bild ohnehin hoch (siehe Punkt 6 und die
-> Runde 0.19.3), und was man dabei sieht, ist ein JPEG q84.
+> die Vorschaukachel rechnet ihr Bild ohnehin hoch (siehe Punkt 7 und die
+> Runde 0.19.4), und was man dabei sieht, ist ein JPEG q84.
 
 **Ausgelöst von 0.19.0** — *und der Punkt steht hier, weil sein GRUND sich mit
 jener Runde geändert hat.*
@@ -1129,7 +1129,8 @@ Die Ableitungsregel auf die **kurze** Kante umstellen und die vorhandenen
 
 `makeVariants()`, ein Bestandslauf über alle Bilder. **Kein Schema.**
 
-> **EINGETRAGEN ALS 0.19.3**, und ausdrücklich NICHT zusammen mit den
+> **EINGETRAGEN ALS 0.19.4** *(bis zum 2. September 2026 als 0.19.3 geführt;
+> gerückt, weil 0.19.2 dazwischenkam)*, und ausdrücklich NICHT zusammen mit den
 > Verfahren: die Geometrie ist ein Fehler und wartet nicht auf eine
-> Entscheidung. **Sie steht aber hinter 0.19.2** — der Lauf über 1034 Bilder
+> Entscheidung. **Sie steht aber hinter 0.19.3** — der Lauf über 1034 Bilder
 > hat im Anfrageweg nichts verloren.
