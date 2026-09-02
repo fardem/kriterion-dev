@@ -1012,16 +1012,33 @@ async function sendeFormular(pfad, formular) {
   return daten;
 }
 
-/* ================= Fokuspunkt der Vorschau ================= */
-// Zwei Prozentwerte als object-position. Zugeschnitten wird nichts: die Datei
-// bleibt, wie sie ist, nur das sichtbare Fenster der quadratischen Vorschau
-// verschiebt sich. Fehlende Werte (aeltere Fotos) landen in der Mitte.
-function fokus(p) {
+/* ================= Der Ausschnitt der Vorschau =================
+   DREI WERTE ALS EIN STIL. Zugeschnitten wird nichts: die Datei bleibt, wie
+   sie ist. Die beiden Prozentwerte verschieben das sichtbare Fenster der
+   quadratischen Vorschau (object-position), der dritte zieht es enger.
+   FEHLENDE WERTE (aeltere Fotos, eine Antwort ohne das Feld) landen in der
+   Mitte und auf dem weitesten Ausschnitt -- also genau dort, wo sie bis
+   0.18.1 immer lagen.
+
+   DER ZOOM GEHT ALS EIGENSCHAFT `--zoom` HINAUS UND NICHT ALS transform.
+   Der Grund steht im Stylesheet: `.card:hover .card-img img` skaliert die
+   Kachel beim Ueberfahren um 1,03. Ein transform HIER waere ein Inline-Stil
+   und schluege jede Regel von dort -- der zugezogene Ausschnitt naehme der
+   Uebersicht ihre Bewegung weg, und zwar nur an den Kacheln, an denen jemand
+   den Ausschnitt eingestellt hat. Als Eigenschaft rechnet das Stylesheet
+   beides zusammen.
+
+   EINE FUNKTION UND NICHT ZWEI: `fokus()` hiess sie bis 0.18.1 und lieferte
+   nur die object-position. Zwei Funktionen -- eine fuer den Punkt, eine fuer
+   die Weite -- waeren zwei Wahrheiten ueber denselben Ausschnitt, und die
+   Aufrufstelle, die die zweite vergisst, saehe von aussen richtig aus. */
+function ausschnitt(p) {
   // Vorsicht: Number(null) ist 0, nicht NaN -- deshalb erst auf eine Zahl
   // pruefen und nicht bloss umwandeln. Sonst rutscht ein fehlender Wert in
   // die Ecke oben links statt in die Mitte.
-  const z = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 50);
-  return `${z(p && p.focus_x)}% ${z(p && p.focus_y)}%`;
+  const z = (v, vorgabe) => (typeof v === 'number' && Number.isFinite(v) ? v : vorgabe);
+  return `object-position:${z(p && p.focus_x, 50)}% ${z(p && p.focus_y, 50)}%;` +
+         `--zoom:${z(p && p.zoom, 100) / 100}`;
 }
 
 /* ================= Tagwolken ================= */
@@ -1441,6 +1458,11 @@ let GLOCKE_GESEHEN = null;
    und Wolke bleiben, denn zuweisen darf immer jeder. */
 let TAGS_FREI = true;
 let KATEGORIEN_FREI = true;
+/* WANDELT DIESE INSTANZ ANKOMMENDE PNG UM? Vorgabe an, wie im Server. Der Wert
+   entscheidet hier NICHTS -- die Umwandlung geschieht im Server, und der liest
+   seine eigene Einstellung. Er sagt der Karte nur, wo der Haken steht; die
+   Schranke liegt nicht hier. */
+let BILDER_UMWANDELN = true;
 /* Ob DIESER Zugang einen zweiten Faktor traegt, . KOMMT VOM SERVER
    und wird hier nie geraten: die Oberflaeche entscheidet damit nur, ob das
    Bestaetigungsfenster ein zweites Feld zeigt. Wer den Wert von Hand auf false
@@ -1489,6 +1511,8 @@ async function ladeEinstellungen() {
   if (EINSTELLUNGEN.tagsFreiAnlegen !== undefined) TAGS_FREI = EINSTELLUNGEN.tagsFreiAnlegen !== false;
   if (EINSTELLUNGEN.kategorienFreiAnlegen !== undefined)
     KATEGORIEN_FREI = EINSTELLUNGEN.kategorienFreiAnlegen !== false;
+  if (EINSTELLUNGEN.bilderUmwandeln !== undefined)
+    BILDER_UMWANDELN = EINSTELLUNGEN.bilderUmwandeln !== false;
   if (EINSTELLUNGEN.papierkorbTage) PAPIERKORB_TAGE = EINSTELLUNGEN.papierkorbTage;
   ZWEIFAKTOR = EINSTELLUNGEN.zweifaktor === true;
   wendeSchriftAn();
@@ -2921,7 +2945,7 @@ function card(it) {
   a.innerHTML = `
     <div class="card-img">
       ${it.mainPhoto ? `<img src="/api/photos/${it.mainPhoto.id}/raw?size=thumb" alt="" loading="lazy"
-        style="object-position:${fokus(it.mainPhoto)}">` : ICON_PH}
+        style="${ausschnitt(it.mainPhoto)}">` : ICON_PH}
       ${badges.length ? `<div class="card-badges">${badges.join('')}</div>` : ''}
       ${it.favorite ? `<div class="card-pin" title="Favorit">★</div>` : ''}
       ${istVideo(it.mainPhoto) ? `<div class="card-spielmarke" title="Video">▶</div>` : ''}
@@ -4003,6 +4027,18 @@ async function renderDetail(id, begriffAdresse) {
         <button class="vweg" title="${istVideo(ps[idx]) ? 'Video' : 'Foto'} löschen"
           aria-label="${istVideo(ps[idx]) ? 'Video' : 'Foto'} löschen">${ICON_PAPIERKORB}</button>
       </div>
+      ${/* DER SCHIEBER STEHT NUR IM AUSSCHNITTMODUS, und er steht IM
+           BETRACHTER und nicht in einer eigenen Bedienflaeche daneben: der
+           Ausschnitt wird an einem Ort eingestellt, nicht an zweien.
+           EIN SCHIEBER UND KEIN MAUSRAD: ein Rad gaebe es auf dem Telefon
+           nicht, und die Bedienung waere dann geraeteabhaengig -- genau das,
+           was die Kachelreihe seit 0.12.0 vermeidet. */''}
+      ${ausschnittModus && !zeigtVideo ? `<div class="vzoom">
+        <label for="vzoom-schieber">Näher</label>
+        <input type="range" id="vzoom-schieber" min="100" max="400" step="5"
+          value="${Number(ps[idx].zoom) || 100}" aria-label="Wie eng der Ausschnitt sitzt">
+        <span class="vzoom-wert" id="vzoom-wert">${Math.round(Number(ps[idx].zoom) || 100)} %</span>
+      </div>` : ''}
       ${ps.length > 1 ? `<button class="vnav prev" title="Vorheriges (←)">‹</button>
         <button class="vnav next" title="Nächstes (→)">›</button>
         <span class="vcount">${idx + 1} / ${ps.length}</span>` : ''}`;
@@ -4066,6 +4102,11 @@ async function renderDetail(id, begriffAdresse) {
     };
 
     let fx = Number(foto.focus_x ?? 50), fy = Number(foto.focus_y ?? 50);
+    /* DIE WEITE WIRD HIER GEMERKT UND NICHT AM foto GELESEN. Nach dem
+       Speichern kommt `item` frisch vom Server, `foto` zeigt aber weiter auf
+       die alte Liste -- der Betrachter wird dabei absichtlich nicht neu
+       gezeichnet, sonst spraenge der Ausschnittmodus bei jedem Zug zu. */
+    let zoom = Number(foto.zoom ?? 100) || 100;
 
     const zeichne = () => {
       const f = flaeche();
@@ -4075,10 +4116,15 @@ async function renderDetail(id, begriffAdresse) {
       // Ende -- der Weg dazwischen ist die Ueberlaenge der laengeren Seite.
       const x = f.links - vr.left + (f.breite - seite) * fx / 100;
       const y = f.oben - vr.top + (f.hoehe - seite) * fy / 100;
-      rahmen.style.left = x + 'px';
-      rahmen.style.top = y + 'px';
-      rahmen.style.width = seite + 'px';
-      rahmen.style.height = seite + 'px';
+      /* DER ZOOM ZIEHT DEN RAHMEN UM SEINE MITTE ZUSAMMEN -- genau das tut
+         `transform: scale()` am Bild, und der Rahmen soll zeigen, was die
+         Kachel spaeter zeigt, nicht etwas Aehnliches. Der Mittelpunkt bleibt
+         also stehen, die Seite wird kuerzer. */
+      const eng = seite * 100 / zoom;
+      rahmen.style.left = (x + (seite - eng) / 2) + 'px';
+      rahmen.style.top = (y + (seite - eng) / 2) + 'px';
+      rahmen.style.width = eng + 'px';
+      rahmen.style.height = eng + 'px';
     };
     zeichne();
     if (!bild.complete) bild.onload = zeichne;
@@ -4097,21 +4143,46 @@ async function renderDetail(id, begriffAdresse) {
 
     let zieht = false;
     v.onpointerdown = (e) => {
-      if (e.target.closest('.vfocus, .vnav')) return;
+      // Der Schieber gehoert nicht zur Flaeche, auf der gezogen wird -- ohne
+      // ihn in dieser Liste setzte jeder Griff an den Schieber zugleich den
+      // Fokuspunkt auf die Stelle, an der der Schieber steht.
+      if (e.target.closest('.vfocus, .vnav, .vzoom')) return;
       zieht = true; ausPunkt(e);
       v.setPointerCapture?.(e.pointerId);
       e.preventDefault();
     };
     v.onpointermove = (e) => { if (zieht) ausPunkt(e); };
-    v.onpointerup = async () => {
-      if (!zieht) return;
-      zieht = false;
+    /* EIN SPEICHERWEG FUER BEIDE BEDIENUNGEN. Ziehen und Schieben setzen
+       denselben Ausschnitt und gehen deshalb durch dieselbe Zusage -- zwei
+       Aufrufstellen mit zwei Meldungen waeren zwei Wahrheiten darueber, was
+       gerade gespeichert wurde. */
+    const speichere = async () => {
       try {
-        item = await api('PUT', `/api/photos/${foto.id}/focus`, { x: fx, y: fy });
+        item = await api('PUT', `/api/photos/${foto.id}/focus`, { x: fx, y: fy, zoom });
         drawThumbs();
         toast('Bildausschnitt gespeichert');
       } catch (e) { toast(e.message, true); }
     };
+    v.onpointerup = () => {
+      if (!zieht) return;
+      zieht = false;
+      speichere();
+    };
+
+    /* DER SCHIEBER: `input` zeichnet mit, `change` speichert. Beim Ziehen des
+       Fokuspunkts ist es dieselbe Teilung -- die Bewegung ist sichtbar, die
+       Schreibung geschieht einmal am Ende. Ein Aufruf je Zwischenschritt
+       schickte bei einem Zug ueber die ganze Leiter sechzig Anfragen. */
+    const schieber = v.querySelector('#vzoom-schieber');
+    if (schieber) {
+      const wert = v.querySelector('#vzoom-wert');
+      schieber.oninput = () => {
+        zoom = Number(schieber.value) || 100;
+        if (wert) wert.textContent = `${Math.round(zoom)} %`;
+        zeichne();
+      };
+      schieber.onchange = speichere;
+    }
   }
   const markThumb = () =>
     document.querySelectorAll('#thumbs .thumb').forEach((t, i) => t.classList.toggle('current', i === idx));
@@ -4127,7 +4198,7 @@ async function renderDetail(id, begriffAdresse) {
       // wenn die Dauer bekannt ist, die Laenge daneben.
       const laenge = istVideo(p) ? dauerText(p.dauer) : '';
       const wort = istVideo(p) ? 'Video' : 'Foto';
-      t.innerHTML = `<img src="/api/photos/${p.id}/raw?size=thumb" alt="" style="object-position:${fokus(p)}">` +
+      t.innerHTML = `<img src="/api/photos/${p.id}/raw?size=thumb" alt="" style="${ausschnitt(p)}">` +
         (istVideo(p) ? `<span class="spielmarke">▶</span>` : '') +
         (laenge ? `<span class="dauer">${laenge}</span>` : '') +
         `<span class="num">${i + 1}</span><span class="del" title="${wort} löschen">✕</span>`;
@@ -5926,9 +5997,17 @@ const amElement = (id, tu) => { const el = document.getElementById(id); if (el) 
 
 /* ---- DIE ACHTZEHN KARTEN ----
    `sichtbar` ist die Klemme, `markup` das Aussehen, `ausruesten` die
-   Behandler. Eine Karte ohne Behandler laesst `ausruesten` weg -- "Kennzahlen"
-   zeigt nur Zahlen, und eine leere Funktion daneben waere eine Zeile, die
-   behauptet, es gaebe dort etwas zu tun. */
+   Behandler. Eine Karte ohne Behandler laesst `ausruesten` weg, und eine leere
+   Funktion daneben waere eine Zeile, die behauptet, es gaebe dort etwas zu tun.
+   SEIT 0.19.0 TRAEGT JEDE KARTE EINEN BEHANDLER. "Kennzahlen" war bis dahin
+   die einzige ohne -- sie zeigte nur Zahlen; jetzt steht der Schalter der
+   Bildablage darin und der Knopf, der den Bestand nachzieht. Die Auslassung
+   bleibt trotzdem vorgesehen: sie kostet nichts, und die naechste reine
+   Anzeigekarte braucht sie wieder.
+   ES BLEIBEN ACHTZEHN. Diese Runde legt KEINE neunzehnte an -- der Schalter
+   und der Knopf gehoeren zu den Zahlen, neben denen sie wirken, und eine
+   eigene Karte fuer zwei Bedienelemente stuende neben der Aufstellung, die
+   sie erklaert. */
 const SYS_KARTEN = [
   { schluessel: 'zugang',       abschnitt: 'persoenlich', sichtbar: () => true,
     markup: karteZugang,       ausruesten: ruesteZugangAus },
@@ -5962,7 +6041,7 @@ const SYS_KARTEN = [
     markup: karteMailversand,  ausruesten: ruesteMailversandAus },
 
   { schluessel: 'kennzahlen',   abschnitt: 'datenbank', sichtbar: () => ADMIN,
-    markup: karteKennzahlen },
+    markup: karteKennzahlen,   ausruesten: ruesteKennzahlenAus },
   { schluessel: 'sicherung',    abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
     markup: karteSicherung,    ausruesten: ruesteSicherungAus },
   { schluessel: 'export',       abschnitt: 'datenbank', sichtbar: () => EIGENTUEMER,
@@ -8266,8 +8345,39 @@ function ruesteMailversandAus(geholt) {
 }
 
 
+/* ---- Die Bildablage in der Karte „Kennzahlen" ----
+   DIE NAMEN UND DIE REIHENFOLGE STEHEN AN EINER STELLE. Die Schluessel kommen
+   aus /api/stats, wo sie an den ERSTEN BYTES erkannt werden -- nicht am
+   gemeldeten Typ. Was der Server nicht einordnen kann, faellt in 'anderes';
+   die Zeile erscheint nur, wenn es wirklich etwas gibt, und dann ist sie ein
+   Befund und keine Verzierung. */
+const BILDFORMATE = [
+  { schluessel: 'png',     name: 'PNG',     hinweis: 'werden umgestellt' },
+  { schluessel: 'jpeg',    name: 'JPEG',    hinweis: 'bleiben unangetastet' },
+  { schluessel: 'webp',    name: 'WebP',    hinweis: 'liegen schon so' },
+  { schluessel: 'gif',     name: 'GIF',     hinweis: 'bleiben unangetastet' },
+  { schluessel: 'anderes', name: 'Anderes', hinweis: '' }
+];
+
+/* Die Fortschrittszeile. EIN Ort fuer den Satz, den drei Zustaende brauchen --
+   laeuft, fertig, nie gelaufen --, sonst stuenden drei Formulierungen
+   nebeneinander und wuerden bei der naechsten Aenderung drei verschiedene. */
+function umstellungsZeile(u) {
+  if (!u) return '';
+  if (u.laeuft)
+    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">Umstellung läuft — ` +
+           `${u.erledigt} von ${u.gesamt} …</p>`;
+  return `<p class="hint hint-sm" style="margin:8px 2px 0" id="bild-lauf">Umstellung fertig: ` +
+         `${u.umgestellt} von ${u.gesamt} umgestellt` +
+         (u.geblieben ? `, ${u.geblieben} blieben PNG` : '') +
+         (u.gespart > 0 ? ` — ${fmtBytes(u.gespart)} gespart` : '') + `.</p>`;
+}
+
 /* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ----
-   OHNE BEHANDLER: die Karte zeigt Zahlen und nimmt nichts entgegen. */
+   SEIT 0.19.0 MIT BEHANDLER: die Aufstellung nach Format gehoert zu den
+   Zahlen, und der Schalter und der Knopf gehoeren neben die Aufstellung, die
+   sie erklaert. Die beiden Bedienelemente stehen hinter EIGENTUEMER -- die
+   Zahlen darueber sieht jeder Admin. */
 function karteKennzahlen(geholt) {
   const { stats } = geholt;
   return `<div class="sys-card">
@@ -8316,6 +8426,53 @@ function karteKennzahlen(geholt) {
              nebeneinander. */''}
         <div class="kv"><span class="k">Version</span><span class="v">${esc(stats.version || '—')}</span></div>
         <div class="kv"><span class="k">Fingerprint</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
+        ${/* ---- DIE BILDABLAGE ----
+             SIE STEHT HIER UND NICHT IN EINER EIGENEN KARTE: die Aufstellung
+             IST eine Kennzahl, und der Knopf gehoert neben die Zahl, die
+             sagt, ob er noch etwas zu tun hat. Sie kostet ausserdem nichts --
+             die Abfrage dahinter ist DIESELBE, die oben schon Fotos und
+             Videos zaehlt.
+             DIE ZEILE FUER JEDES FORMAT NUR, WENN ES DAS FORMAT GIBT. Eine
+             Instanz ohne ein einziges GIF soll keine GIF-Zeile mit einer
+             Null tragen -- eine Null ist eine Aussage, und sie lenkt hier von
+             den beiden Zahlen ab, um die es geht. */''}
+        ${(() => {
+          const bf = stats.bildFormate || {};
+          const zeilen = BILDFORMATE.filter(f => bf[f.schluessel] && bf[f.schluessel].anzahl);
+          if (!zeilen.length) return '';
+          const png = bf.png ? bf.png.anzahl : 0;
+          // Solange einer laeuft, ist der Knopf tot: der Server sagt dem
+          // zweiten Ruf ohnehin ab, und ein Knopf, der zuverlaessig eine
+          // Absage erzeugt, sieht aus wie ein Fehler.
+          const laeuft = !!(stats.umstellung && stats.umstellung.laeuft);
+          return `<div class="sys-teil"></div>
+        <h4 class="sys-unter">Bildablage</h4>
+        <p class="desc" style="margin:0 0 8px">Die <strong>Originale</strong> der Fotos am
+          ${esc(V.sacheEinzahl)}, nach Format. Die beiden Ableitungen (400 px und 1600 px)
+          sind immer JPEG und stehen hier nicht.</p>
+        ${zeilen.map(f => {
+          const z = bf[f.schluessel];
+          return `<div class="kv"><span class="k">${f.name}${
+            f.hinweis ? ` <span class="zusatz">— ${f.hinweis}</span>` : ''
+          }</span><span class="v">${z.anzahl} · ${fmtBytes(z.bytes)}</span></div>`;
+        }).join('')}
+        ${EIGENTUEMER ? `
+        <label class="ex-files" style="margin-top:10px"><input type="checkbox" id="bild-umwandeln">
+          PNG-Originale beim Hereinkommen umwandeln</label>
+        ${/* WAS DER SCHALTER TUT, UND WAS ER NICHT TUT. Der Satz nennt beides:
+             ein eingefügtes Bildschirmfoto liegt danach als WebP da, und die
+             Güte bleibt dabei erhalten. Ohne Häkchen bleibt jedes PNG
+             byte-genau, wie es hereinkam. */''}
+        <p class="hint hint-sm" style="margin:6px 2px 0">Ein mit Strg+V eingefügtes
+          Bildschirmfoto kommt als PNG herein und wird als WebP abgelegt — rund zwei Drittel
+          kleiner, ohne sichtbaren Verlust. JPEG, GIF und vorhandenes WebP bleiben unberührt.
+          Ohne Häkchen bleibt jedes PNG byte-genau so liegen, wie es ankam.</p>
+        <div class="row-in" style="margin-top:10px">
+          <button class="btn btn-sm" id="bild-um"${png && !laeuft ? '' : ' disabled'}>Alle PNG nach WebP umstellen</button>
+        </div>
+        ${png || laeuft ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">Es liegt kein PNG-Original mehr da.</p>`}
+        ${umstellungsZeile(stats.umstellung)}` : ''}`;
+        })()}
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">Der Schlüssel kommt aus der Umgebung. Denk daran: <strong>.env und data/ nicht in dieselbe Sicherung legen</strong> — und ohne den Schlüssel sind die Daten unwiederbringlich verloren.</div>`
           : `<div class="warn-box"><strong>Der Schlüssel liegt neben der Datenbank</strong> (data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.
@@ -8357,6 +8514,79 @@ function karteKennzahlen(geholt) {
           Datenbank (<code>PRAGMA key = x'…'</code>) — ohne Ableitung, weil er kein Passwort ist,
           sondern schon 256 Zufallsbits trägt.</p>` : ''}
       </div>`;
+}
+
+/* DIE UHR, DIE DEM LAUF ZUSIEHT. Sie steht ausserhalb der Karte, weil es
+   genau EINE geben darf: zwei Uhren auf denselben Lauf fragten doppelt und
+   meldeten unabhaengig voneinander „fertig".
+   UND SIE HAELT AN, SOBALD DIE ZEILE NICHT MEHR DASTEHT. Ohne diese Frage
+   liefe sie als herrenlose Zusage weiter, auch wenn der Systembereich laengst
+   verlassen ist (Stolperstein 118). */
+let umstellungsUhr = null;
+function verfolgeUmstellung() {
+  if (umstellungsUhr) return;
+  const halt = () => { clearInterval(umstellungsUhr); umstellungsUhr = null; };
+  umstellungsUhr = setInterval(async () => {
+    const zeile = document.getElementById('bild-lauf');
+    if (!zeile) return halt();
+    let s;
+    // Ein Fehlschlag haelt an, statt im Sekundentakt weiterzufragen: wer die
+    // Sitzung verloren hat, bekommt sonst eine Meldung je Umlauf.
+    try { s = await api('GET', '/api/stats'); } catch { return halt(); }
+    const u = s.umstellung;
+    if (!u) return halt();
+    if (u.laeuft) { zeile.textContent = `Umstellung läuft — ${u.erledigt} von ${u.gesamt} …`; return; }
+    halt();
+    /* FERTIG HEISST: DIE GANZE KARTE NEU. Die Aufstellung nach Format ist
+       jetzt eine andere, und nur die Fortschrittszeile nachzuziehen hiesse,
+       zwei Staende nebeneinander stehen zu lassen -- unten „fertig", darueber
+       die alte PNG-Zahl. */
+    toast('Die Bildumstellung ist fertig');
+    renderSystem();
+  }, 1500);
+}
+
+function ruesteKennzahlenAus(geholt) {
+  /* DERSELBE HELFER WIE BEI DEN BEIDEN ANLEGEN-SCHALTERN. Er nimmt die
+     Stellung bei einem Fehlschlag zurueck -- sonst zeigte der Bildschirm
+     etwas anderes an, als der Server haelt. */
+  anlegeSchalter('bild-umwandeln', 'bilderUmwandeln',
+    () => BILDER_UMWANDELN, v => { BILDER_UMWANDELN = v; });
+
+  amElement('bild-um', (knopf) => {
+    knopf.onclick = async () => {
+      const bf = (geholt.stats && geholt.stats.bildFormate) || {};
+      const png = bf.png || { anzahl: 0, bytes: 0 };
+      /* DER DIALOG SAGT ES VORHER UND BESCHOENIGT NICHTS: wie viele Bilder,
+         wie viel Platz, dass die PNG-Fassung danach nicht mehr da ist, und
+         dass die Sicherung des Datenverzeichnisses die einzige Rueckfahrkarte
+         ist. „Unwiderruflich" ist hier richtig und nicht wie beim Loeschen
+         falsch -- fuer Bildbytes gibt es keinen Papierkorb.
+         ER STEHT IM BESTAETIGUNGSFENSTER und nicht als eigener Dialog davor:
+         zwei Fenster hintereinander liest niemand, und das zweite traegt
+         ohnehin die schwerere Frage. */
+      const ok = await zweiteBestaetigung('bilder', null, 'Bildablage umstellen',
+        `${png.anzahl} PNG-Original${png.anzahl === 1 ? '' : 'e'} ` +
+        `(${fmtBytes(png.bytes)}) werden nach WebP umgeschrieben — erwartet rund ` +
+        `${fmtBytes(Math.round(png.bytes * 0.37))}. Die PNG-Fassung ist danach nicht mehr da; ` +
+        `zurück führt nur eine Sicherung des Datenverzeichnisses. Die Bilder selbst bleiben, ` +
+        `wie sie aussehen.`);
+      if (!ok) return;
+      try { await api('POST', '/api/bilder/umstellen', {}); }
+      catch (e) { return toast(e.message, true); }
+      /* NEU ZEICHNEN STATT DIE ZEILE VON HAND EINZUSETZEN: die Antwort auf
+         /api/stats traegt den Lauf jetzt, die Karte baut sich daraus auf, und
+         ruesteKennzahlenAus() haengt die Uhr gleich unten selbst an. Ein
+         zweiter Weg, dieselbe Zeile zu erzeugen, liefe frueher oder spaeter
+         von der Karte weg. */
+      renderSystem();
+    };
+  });
+
+  // Laeuft beim Oeffnen der Karte schon einer -- weil jemand sie neu geladen
+  // hat oder von woanders zurueckkommt --, wird weitergezaehlt.
+  if (geholt.stats && geholt.stats.umstellung && geholt.stats.umstellung.laeuft)
+    verfolgeUmstellung();
 }
 
 

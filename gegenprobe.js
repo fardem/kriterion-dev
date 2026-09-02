@@ -2143,10 +2143,15 @@ const RUECKBAUTEN = [
   },
   /* ---- 0.14.0: das Austauschformat ---- */
   {
-    nr: '233', name: 'Die Formatnummer bleibt auf 10',
+    /* MIT 0.19.0 STEHT DIE NUMMER AUF 12 -- der Ausschnitt geht in die Datei.
+       DER RUECKBAU BLEIBT DERSELBE FUND und wird deshalb nicht durch einen
+       neuen ersetzt: er nimmt der Datei ihre Nummer und laesst alles andere
+       stehen. Nur der Zielwert rueckt mit, sonst griffe die Suche ins Leere
+       und der Rueckbau saehe aus wie einer, der nichts bewirkt. */
+    nr: '233', name: 'Die Formatnummer bleibt auf 11',
     datei: 'server.js',
-    suche: "const AUSTAUSCH_FORMAT = 11;",
-    ersatz: "const AUSTAUSCH_FORMAT = 10;",
+    suche: "const AUSTAUSCH_FORMAT = 12;",
+    ersatz: "const AUSTAUSCH_FORMAT = 11;",
     erwartet: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -3784,6 +3789,268 @@ const RUECKBAUTEN = [
     suche: "#msitzungen { max-height: 55.23rem; }",
     ersatz: "#msitzungen { max-height: 27.95rem; }",
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
+  },
+
+  /* ---- 0.19.0: die Bildablage ----
+     ELF RUECKBAUTEN AN DER ABLAGE, und sie zielen auf verschiedene Haelften
+     derselben Zusage: dass ein PNG umgewandelt wird, dass es NUR ein PNG ist,
+     dass die Spalte mitgeht, dass der Rueckfall greift und dass das Bild dabei
+     unversehrt bleibt. Ein Rueckbau, der alles zugleich abschaltet, sagte nur,
+     dass irgendetwas fehlt. */
+  {
+    nr: '431', name: 'Ein ankommendes PNG wird gar nicht mehr umgewandelt',
+    datei: 'server.js',
+    suche: "  if (!istPNG(buf)) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };",
+    ersatz: "  if (true) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* Die Spalte bleibt auf image/png stehen, obwohl WebP daruntersteht. Die
+       AUSLIEFERUNG faellt darauf nicht herein -- sie liest die ersten Bytes --,
+       aber der naechste Export traegt die Luege weiter. Genau deshalb muss die
+       Pruefung an der SPALTE haengen und nicht nur am Kopf der Antwort. */
+    nr: '432', name: 'Der mime_type wird nicht mitgezogen',
+    datei: 'server.js',
+    suche: "      return { data: webp, mime: 'image/webp', umgewandelt: true };",
+    ersatz: "      return { data: webp, mime: gemeldeterTyp, umgewandelt: true };",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DER GROESSENVERGLEICH FAELLT WEG: auch ein groesseres Ergebnis wird
+       genommen. ER IST ALS STUMM ERWARTET, und das ist ein Befund und keine
+       Ausrede: der Fall kommt am ECHTEN Bestand vor, liess sich aber mit
+       erzeugtem Material nicht herstellen -- neun Anlaeufe (1x1 bis 256x256,
+       Rauschen, Palette, Graustufen, mit und ohne Alpha) ergaben ausnahmslos
+       ein kleineres WebP, und schon das kleinste moegliche PNG ist groesser
+       als das kleinste moegliche WebP.
+       ER BLEIBT TROTZDEM IN DER LISTE: verschwindet die Zeile aus dem
+       Quelltext, greift sein Suchtext ins Leere, und GENAU DAS meldet der
+       Pruefstand ("Jeder Suchtext kommt in seiner Datei genau einmal vor").
+       Der Rueckbau bewacht damit das Vorhandensein der Regel, auch wo er ihre
+       Wirkung nicht zeigen kann. */
+    nr: '433', name: 'Auch ein groesseres Ergebnis wird genommen',
+    datei: 'server.js',
+    suche: "    if (webp.length < buf.length)",
+    ersatz: "    if (true)",
+    erwartet: '(erwartet STUMM — der Fall kommt am echten Bestand vor, laesst sich mit erzeugtem Material aber nicht herstellen)'
+  },
+  {
+    /* DER ANDERE RUECKFALL, und der laesst sich zeigen: WebP kann hoechstens
+       16383 px je Kante. Faengt niemand den Fehler ab, scheitert der ganze
+       Upload mit 500, statt das PNG unveraendert abzulegen. */
+    nr: '458', name: 'Ein Bild, das WebP nicht fassen kann, reisst den Upload ab',
+    datei: 'server.js',
+    suche: "    console.error('[Kriterion] PNG blieb PNG:', e.message);",
+    ersatz: "    throw e;",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* Die Erkennung geht ueber den GEMELDETEN TYP statt ueber die ersten acht
+       Bytes. Sie sieht damit richtig aus und glaubt dem Browser aufs Wort --
+       ein JPEG, das sich image/png nennt, ginge durch den Kodierer. */
+    nr: '434', name: 'Die Erkennung glaubt dem gemeldeten Typ',
+    datei: 'server.js',
+    suche: "  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIE);",
+    ersatz: "  Buffer.isBuffer(buf) && buf.length >= 8;",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* Der verlustbehaftete Bitstrom statt VP8L. Die Datei ist danach kleiner
+       und heisst weiterhin WebP -- nur franst sie an harten Kanten aus. Ohne
+       eine Pruefung, die PIXEL vergleicht, bliebe dieser Rueckbau stumm. */
+    nr: '435', name: 'Der verlustbehaftete Kodierer statt nearLossless',
+    datei: 'server.js',
+    suche: "const WEBP_ABLAGE = { nearLossless: true, quality: 60, effort: 4 };",
+    ersatz: "const WEBP_ABLAGE = { quality: 60, effort: 4 };",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    nr: '436', name: 'Der Schalter wirkt nicht mehr -- es wird immer umgewandelt',
+    datei: 'server.js',
+    suche: "const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;",
+    ersatz: "const bilderUmwandeln = () => true;",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* Der Schalter faellt aus der Eigentuemerliste und wird damit gewoehnliche
+       Adminsache. Er bestimmt, wie die ganze Instanz ablegt. */
+    nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
+    datei: 'server.js',
+    suche: "const EIGENTUEMER_SCHLUESSEL = ['bilderUmwandeln'];",
+    ersatz: "const EIGENTUEMER_SCHLUESSEL = [];",
+    erwartet: 'Die Bildablage: die Rechte'
+  },
+  {
+    nr: '438', name: 'Die Umstellung laeuft ohne zweite Bestaetigung',
+    datei: 'server.js',
+    suche: "app.post('/api/bilder/umstellen', nurEigentuemer, zweiteBestaetigungNoetig('bilder'), (req, res) => {",
+    ersatz: "app.post('/api/bilder/umstellen', nurEigentuemer, (req, res) => {",
+    erwartet: 'Die Bildablage: die Rechte'
+  },
+  {
+    nr: '439', name: 'Zweimal druecken startet zwei Laeufe',
+    datei: 'server.js',
+    suche: "  if (umstellung && umstellung.laeuft)\n    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });",
+    ersatz: "  if (false)\n    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* Der Fortschritt verschwindet aus den Kennzahlen. Die Karte kann danach
+       nicht mehr sagen, wie weit der Lauf ist -- und die Pruefung, die auf
+       sein Ende wartet, laeuft in ihre Grenze. */
+    nr: '440', name: 'Der Fortschritt steht nicht mehr in den Kennzahlen',
+    datei: 'server.js',
+    suche: "const umstellungsStand = () => umstellung && { ...umstellung };",
+    ersatz: "const umstellungsStand = () => null;",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* Die Aufteilung nach Format faellt aus der Antwort. Die alten Zahlen
+       bleiben stehen -- der Rueckbau nimmt genau den Nachbarn weg, nicht die
+       Zeile daneben. */
+    nr: '441', name: 'Die Aufstellung nach Format faellt aus den Kennzahlen',
+    datei: 'server.js',
+    suche: "    bildFormate,\n",
+    ersatz: "",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+
+  /* ---- 0.19.0: der engere Ausschnitt ---- */
+  {
+    nr: '442', name: 'Der Zoomwert wird gar nicht erst gespeichert',
+    datei: 'server.js',
+    suche: "  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ?, zoom = ? WHERE id = ?')\n    .run(x, y, z, req.params.id);",
+    ersatz: "  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ? WHERE id = ?')\n    .run(x, y, req.params.id);",
+    erwartet: 'Fokuspunkt der Vorschau'
+  },
+  {
+    /* DIE SPANNE FAELLT WEG. Ein Wert unter 100 zeigte am Rand Leere statt
+       Bild, einer ueber 400 die Ableitung statt des Motivs. */
+    nr: '443', name: 'Der Zoomwert wird nicht mehr beschnitten',
+    datei: 'server.js',
+    suche: "  zoom:    { min: ZOOM_MIN, max: ZOOM_MAX, vorgabe: ZOOM_MIN, stellen: 0 }",
+    ersatz: "  zoom:    { min: 0, max: 100000, vorgabe: ZOOM_MIN, stellen: 0 }",
+    erwartet: 'Fokuspunkt der Vorschau'
+  },
+  {
+    /* EIN FEHLENDES FELD SETZT ZURUECK. Das Ziehen im Bild schickt kein
+       `zoom` mit -- der eingestellte Ausschnitt waere bei jedem Zug weg
+       (Stolperstein 271). */
+    nr: '444', name: 'Ein Ruf ohne Zoomwert setzt ihn auf die Vorgabe zurueck',
+    datei: 'server.js',
+    suche: "  let z = p.zoom;\n  if (req.body.zoom !== undefined) {",
+    ersatz: "  let z = ANZEIGEWERTE.zoom.vorgabe;\n  if (req.body.zoom !== undefined) {",
+    erwartet: 'Fokuspunkt der Vorschau'
+  },
+  {
+    nr: '445', name: 'Der Ausschnitt geht nicht in die Exportdatei',
+    datei: 'server.js',
+    suche: "        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,\n                    zoom: p.zoom, art: p.art };",
+    ersatz: "        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,\n                    art: p.art };",
+    erwartet: 'Fokuspunkt der Vorschau'
+  },
+  {
+    nr: '446', name: 'Der eingespielte Ausschnitt wird verworfen',
+    datei: 'server.js',
+    suche: "                    zoom: im('zoom', p.zoom),",
+    ersatz: "                    zoom: ANZEIGEWERTE.zoom.vorgabe,",
+    erwartet: 'Fokuspunkt der Vorschau'
+  },
+  {
+    /* DIE MIGRATION LEGT DIE SPALTE NICHT AN. Eine Instanz aus 0.18.1 stuerbe
+       danach an jedem Zugriff auf photos.zoom -- die DDL greift nur bei einer
+       fehlenden TABELLE, nie bei einer fehlenden SPALTE (Stolperstein 13). */
+    nr: '447', name: 'Der achte Migrationsblock ruestet die Spalte nicht nach',
+    datei: 'db.js',
+    suche: "  db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
+    ersatz: "  // db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
+    erwartet: 'MIGRATION 0.19.0 — ENTFAELLT MIT 1.0'
+  },
+  {
+    nr: '448', name: 'Die Formatnummer bleibt bei 11, obwohl der Ausschnitt mitgeht',
+    datei: 'server.js',
+    suche: "const AUSTAUSCH_FORMAT = 12;",
+    ersatz: "const AUSTAUSCH_FORMAT = 11;",
+    erwartet: 'Die Exportdatei'
+  },
+
+  /* ---- 0.19.0: die Bildablage in der Oberflaeche ---- */
+  {
+    /* DER ZOOM GEHT NICHT MEHR AN DIE KACHEL. ausschnitt() rechnet ihn
+       weiterhin richtig aus und schreibt ihn nirgends hin -- genau der Fall,
+       den eine Pruefung an der Funktion allein nicht faende. */
+    nr: '449', name: 'Der Zoom kommt nicht an der Kachel an',
+    datei: 'public/app.js',
+    suche: "         `--zoom:${z(p && p.zoom, 100) / 100}`;",
+    ersatz: "         ``;",
+    erwartet: 'Fokuspunkt in der Oberflaeche'
+  },
+  {
+    nr: '450', name: 'Der Schieber fuer die Weite steht nicht mehr im Betrachter',
+    datei: 'public/app.js',
+    suche: "      ${ausschnittModus && !zeigtVideo ? `<div class=\"vzoom\">",
+    ersatz: "      ${false ? `<div class=\"vzoom\">",
+    erwartet: 'Fokuspunkt in der Oberflaeche'
+  },
+  {
+    /* JEDER ZWISCHENSCHRITT SCHICKT. Ein Zug ueber die ganze Leiter erzeugte
+       damit sechzig Anfragen statt einer. */
+    nr: '451', name: 'Der Schieber schickt bei jedem Zwischenschritt',
+    datei: 'public/app.js',
+    suche: "        zeichne();\n      };\n      schieber.onchange = speichere;",
+    ersatz: "        zeichne();\n        speichere();\n      };\n      schieber.onchange = speichere;",
+    erwartet: 'Fokuspunkt in der Oberflaeche'
+  },
+  {
+    /* DER GRIFF AN DEN SCHIEBER SETZT DEN FOKUSPUNKT. Er laege danach dort,
+       wo der Schieber steht -- unten in der Mitte, bei jedem Zug aufs Neue. */
+    nr: '452', name: 'Der Griff an den Schieber setzt den Fokuspunkt mit',
+    datei: 'public/app.js',
+    suche: "      if (e.target.closest('.vfocus, .vnav, .vzoom')) return;",
+    ersatz: "      if (e.target.closest('.vfocus, .vnav')) return;",
+    erwartet: 'Fokuspunkt in der Oberflaeche'
+  },
+  {
+    /* DAS STILBLATT RECHNET DEN ZOOM NICHT MEHR EIN. Der Wert steht an der
+       Kachel, und niemand liest ihn (Stolperstein 272, andersherum). */
+    nr: '453', name: 'Das Stilblatt rechnet den Zoom nicht mehr ein',
+    datei: 'public/style.css',
+    suche: "transform: scale(var(--zoom, 1)); transition: filter .2s var(--ease), transform .4s var(--ease); }",
+    ersatz: "transition: filter .2s var(--ease), transform .4s var(--ease); }",
+    erwartet: 'Fokuspunkt in der Oberflaeche'
+  },
+  {
+    nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
+    datei: 'public/app.js',
+    suche: "      const ok = await zweiteBestaetigung('bilder', null, 'Bildablage umstellen',",
+    ersatz: "      const ok = true || await zweiteBestaetigung('bilder', null, 'Bildablage umstellen',",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* DER DIALOG BESCHOENIGT. Er nennt die Zahl nicht mehr und sagt nicht
+       mehr, dass die PNG-Fassung danach weg ist. */
+    nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
+    datei: 'public/app.js',
+    suche: "        `${fmtBytes(Math.round(png.bytes * 0.37))}. Die PNG-Fassung ist danach nicht mehr da; ` +",
+    ersatz: "        `${fmtBytes(Math.round(png.bytes * 0.37))}. ` +",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    nr: '456', name: 'Der Knopf bleibt bedienbar, obwohl kein PNG mehr dasteht',
+    datei: 'public/app.js',
+    suche: "id=\"bild-um\"${png && !laeuft ? '' : ' disabled'}",
+    ersatz: "id=\"bild-um\"${''}",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* DER SCHALTER STEHT AUCH DEM ADMIN OHNE EIGENTUEMERROLLE. Der Server
+       weist ihn ab -- ein Haken, der zuverlaessig 403 erzeugt, sieht aus wie
+       ein Fehler. */
+    nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
+    datei: 'public/app.js',
+    suche: "        ${EIGENTUEMER ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"bild-umwandeln\">",
+    ersatz: "        ${true ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"bild-umwandeln\">",
+    erwartet: 'Die Bildablage in der Oberflaeche'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */

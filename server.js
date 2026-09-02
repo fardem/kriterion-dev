@@ -231,6 +231,17 @@ const putSetting = { run: (k, v) => {
 const PERSOENLICHE_SCHLUESSEL = ['filters', 'schrift', 'bloecke', 'linkZeilen', 'zeitleiste', 'suchNamen',
                                 'glockeGesehen', 'ansichten'];
 
+/* DER DRITTE RANG IN DERSELBEN ROUTE, seit 0.19.0. Bis dahin kannte
+   PUT /api/settings zwei Haelften: was in dieser Liste steht, ist persoenlich,
+   alles Uebrige ist Adminsache -- abgeleitet, nicht aufgezaehlt. Ein Schluessel,
+   der den PLATZBEDARF DER GANZEN INSTANZ bestimmt, gehoert aber in dieselbe
+   Rechtezeile wie Export, Sicherung und Schluessel: zum Eigentuemer.
+   ALS LISTE UND NICHT ALS `if`, aus demselben Grund wie oben: der zweite
+   Schluessel dieser Art steht dann daneben und nicht als zweite Verzweigung.
+   DIE ABLEITUNG BLEIBT: was weder hier noch oben steht, ist weiterhin
+   Adminsache. */
+const EIGENTUEMER_SCHLUESSEL = ['bilderUmwandeln'];
+
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
 // Ohne die Klemme lieferte eine vergessene Aufrufstelle wortlos die Vorgaben
@@ -256,7 +267,34 @@ const putUserSetting = (benutzerId, k, wert) => {
   putUserSettingS.run(benutzerId, k, wert);
 };
 
-/* ================= Bildableitungen ================= */
+/* ================= Bildableitungen =================
+   DIE INSTANZ HAT ZWEI BILDWEGE, UND SIE SPEICHERN VERSCHIEDEN. Das ist keine
+   Nachlaessigkeit, sondern eine Entscheidung; sie steht hier, weil sie sonst
+   nur im Quelltext beider Wege zu finden waere:
+
+     Weg                          was in der Datenbank landet
+     ---------------------------  ------------------------------------------
+     Foto am Eintrag (photos)     DAS ORIGINAL (ein PNG als WebP, siehe
+                                  legeBildAb() weiter unten), dazu 1600px-
+                                  und 400px-JPEG
+     Bild im Kommentar            NUR 1600px- und 400px-JPEG --
+     (comment_images)             KEIN ORIGINAL
+
+   WARUM DAS KOMMENTARBILD KEINS BEKOMMT, und es bleibt dabei: am Eintrag hat
+   das Original einen Zweck -- das Vollbild zeigt es. Im Kommentar gibt es kein
+   Vollbild in diesem Sinn, und die meisten Bilder fallen genau dort an. Ein
+   Original je Kommentarbild vergroesserte die Datenbank an der Stelle, an der
+   sie ohnehin am schnellsten waechst, und niemand saehe es je an.
+
+   WAS DARAUS FOLGT UND GEMESSEN IST: das Kommentarbild summiert sich beim
+   wiederholten Ein- und Ausspielen, denn der Import kodiert das gespeicherte
+   JPEG erneut als JPEG (kein Original, aus dem er neu rechnen koennte). Die
+   Zahlen dazu: MAE 0,06 nach einer Runde, 0,10 nach sechs -- es laeuft aus
+   statt davonzulaufen, und die ERSTE Kodierung kostet mit 1,89 ohnehin ein
+   Vielfaches davon. Am Foto passiert das nicht: dort schreibt der Import das
+   Original byte-genau zurueck und rechnet thumb/medium neu daraus.
+   KEIN HANDLUNGSBEDARF -- aber wer es entdeckt, soll die Zahlen daneben
+   finden und es nicht fuer schlimmer halten, als es ist. */
 const VARIANTS = { thumb: { px: 400, q: 78 }, medium: { px: 1600, q: 84 } };
 async function makeVariants(buf) {
   const out = {};
@@ -268,6 +306,183 @@ async function makeVariants(buf) {
     } catch { out[name] = null; }
   }
   return out;
+}
+
+/* ================= Die Ablage des Originals =================
+   679 VON 1032 BILDERN LAGEN ALS PNG IM ORIGINAL -- 435,7 MB von 568,9 MB des
+   ganzen Bildbestands. Es sind Bildschirmfotos: der Browser legt die
+   Zwischenablage als PNG ab, und der Server hat sie unveraendert gespeichert.
+   Als WebP im Verfahren `nearLossless` werden daraus 161,9 MB.
+
+   DIESER ABSATZ IST AUSDRUECKLICH KEINE ENTSTEHUNGSGESCHICHTE, sondern eine
+   zurueckgenommene Entscheidung, die sonst wiederkaeme (Stolperstein 201):
+   Fahrplan und Sammelblatt fuehrten bis zum 1. September 2026 den Satz „das
+   Original wird nicht angefasst" -- so halten es Immich, Nextcloud Photos und
+   Piwigo, und fuer eine KAMERAAUFNAHME ist das richtig. Dieser Bestand
+   besteht zu 92 % aus Bildschirmfotos; ein Bildschirmfoto hat kein Negativ
+   und ist selbst schon eine Ableitung.
+
+   WARUM `nearLossless` UND NICHT `quality`. WebP hat zwei Bitstroeme: VP8
+   (verlustbehaftet) und VP8L (verlustfrei). `quality: 90…100` faehrt den
+   ersten und franst an harten Kanten aus -- gemessen beschaedigt `quality: 100`
+   DIESELBEN elf von hundert Bildern mit DERSELBEN Abweichung wie `quality: 90`;
+   eine hoehere Guete aendert daran nichts, es ist eine Frage des Verfahrens.
+   `nearLossless` faehrt den zweiten: es glaettet vor dem verlustfreien
+   Kodieren dort, wo man es nicht sieht. `quality` steuert dabei NICHT die
+   Bildguete, sondern wie stark geglaettet wird.
+
+   WARUM 60. Der Gewinn viertelt sich mit jedem Schritt (34,2 → 20,5 → 6,9 →
+   1,4 MB), die groesste Abweichung verdoppelt sich (1 → 2 → 4 → 8 von 255).
+   Bei 60 kreuzen sich die Kurven. Und `nearLossless` 60 schlaegt das rein
+   Verlustfreie deutlich: 161,9 gegen 216,6 MB.
+
+   WER DIE ABWAEGUNG ANDERS TRIFFT, setzt hier `nearLossless: true` mit
+   `quality: 100` (dann wird gar nicht geglaettet) und zahlt 55 MB. Beides ist
+   vertretbar; entschieden ist 60. */
+const WEBP_ABLAGE = { nearLossless: true, quality: 60, effort: 4 };
+
+/* DIE ERKENNUNG GEHT UEBER DIE ERSTEN ACHT BYTES, nicht ueber den gemeldeten
+   Typ: ein Byte-Vergleich kostet nichts, und er glaubt dem Browser nicht auf
+   sein Wort. Dieselbe Haltung wie bei der Auslieferung, die den Kopf ebenfalls
+   aus den Bytes setzt. Der String daneben ist DERSELBE Wert in der Form,
+   in der SQLite ihn liefert (hex(substr(data,1,8))) -- eine zweite Stelle mit
+   einer zweiten Schreibweise liefe auseinander. */
+const PNG_MAGIE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const PNG_MAGIE_HEX = PNG_MAGIE.toString('hex').toUpperCase();
+const istPNG = (buf) =>
+  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIE);
+
+/* Der Schalter aus dem Reiter „Datenbank". VORGABE AN -- und „aus" heisst
+   wirklich aus: ankommende PNG bleiben dann byte-genau PNG. Das ist die
+   Stellung, die dem Verhalten von Immich, Nextcloud und Piwigo entspricht.
+   DER SCHALTER IST NIE ENDGUELTIG: in beide Richtungen holt der Knopf
+   „Alle PNG nach WebP umstellen" nach, was in der anderen Stellung entstanden
+   ist. Genau deshalb ist er billig. */
+const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;
+
+/* WAS WIRKLICH IN photos.data GEHT. Ein PNG wird ein WebP, alles andere bleibt,
+   wie es ist.
+
+   JPEG, GIF UND VORHANDENES WEBP WERDEN NICHT ANGEFASST, und jedes aus einem
+   eigenen Grund:
+     JPEG  eine Neukodierung waere verlustbehaftet, und die Ausrichtung haengt
+           an den EXIF-Daten, die makeVariants() ueber .rotate() liest.
+     GIF   sharp liest ohne `animated: true` nur die erste Seite. Eine
+           Umwandlung verloere die Bewegung, und zwar still.
+     WebP  ist schon da, wo es hinsoll.
+   BMP steht gar nicht zur Frage: RASTER_FORMATE fuehrt es nicht, der Upload
+   wird abgewiesen.
+
+   DER RUECKFALL IST NICHT ZIERDE. WebP kann hoechstens 16383 px je Kante --
+   bei 16384 wirft sharp „Processed image is too large for the WebP format".
+   Und ein PNG, das nach der Umwandlung GROESSER waere, bleibt PNG; gemessen
+   kommt das vor. In beiden Faellen liegt danach die unveraenderte Vorlage da.
+
+   `mime_type` MUSS MITGEZOGEN WERDEN. Sonst laege WebP unter dem Namen
+   `image/png` in der Tabelle, und der naechste Export truege die Luege weiter.
+   (Die Auslieferung selbst faellt darauf nicht herein -- sie liest die
+   ersten Bytes --, aber eine falsche Spalte bleibt eine falsche Spalte.)
+
+   AUSDRUECKLICH OHNE `failOn: 'none'`, anders als makeVariants(): eine
+   Vorlage, an der sharp etwas zu beanstanden hat, soll hier NICHT halb
+   umgewandelt werden. Sie faellt in den Rueckfall und bleibt unberuehrt --
+   bei einer Ableitung ist ein Rest besser als nichts, beim Original nicht. */
+async function legeBildAb(buf, gemeldeterTyp) {
+  if (!istPNG(buf)) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };
+  try {
+    const webp = await sharp(buf).webp(WEBP_ABLAGE).toBuffer();
+    if (webp.length < buf.length)
+      return { data: webp, mime: 'image/webp', umgewandelt: true };
+  } catch (e) {
+    // Laut ins Protokoll, still in der Antwort: das Bild ist gespeichert, nur
+    // eben als PNG. Wer es wissen will, sieht es an der Formatzeile der Karte.
+    console.error('[Kriterion] PNG blieb PNG:', e.message);
+  }
+  return { data: buf, mime: gemeldeterTyp, umgewandelt: false };
+}
+
+/* ---- Den vorhandenen Bestand nachziehen ----
+   DIES WAR ALS WIRTSSKRIPT `bilder.js` GEPLANT, in der Bauform von zugang.js
+   und schluessel.js. Es ist ein Knopf geworden, und das ist die bessere Wahl,
+   nicht die bequemere:
+     * Es ist KEINE einmalige Umstellung, sondern eine Funktion, die bleibt.
+       Der Schalter kann ein Jahr aus stehen; eine alte Sicherung bringt PNG
+       zurueck (der Import wandelt ausdruecklich nicht um); der Bestand waechst
+       wieder. Ein Werkzeug, das man ueber `docker compose exec` aufrufen muss,
+       wird in keinem dieser Faelle benutzt.
+     * DER SERVER IST DER BESSERE SCHREIBER. Ein Wirtsskript muesste die
+       Instanz anhalten -- ein fremder Schreiber auf einer WAL-Datei --; der
+       Server schreibt in seiner eigenen Verbindung, Zeile fuer Zeile, im
+       laufenden Betrieb.
+     * Und es gaebe sonst ZWEI WERKZEUGE FUER EINE SACHE.
+
+   ES GIBT KEINEN RUECKWEG „WebP wieder nach PNG", und das ist entschieden: er
+   ginge technisch -- VP8L dekodiert zu genau den Pixeln, die drinstehen --,
+   aber er stellte nicht das PNG wieder her, das dagewesen ist, sondern ein
+   neues mit denselben Pixeln. Ein Knopf, der „zurueck" verspricht und etwas
+   anderes liefert, ist schlechter als keiner. Die Rueckfahrkarte ist die
+   Sicherung des Datenverzeichnisses, und der Dialog sagt das. */
+let umstellung = null;
+
+/* Der Stand fuer /api/stats -- oder null, solange in dieser Laufzeit nie einer
+   lief. ER BLEIBT NACH DEM ENDE STEHEN, mit `laeuft: false`: die Karte fragt
+   waehrend des Laufs nach, und die letzte Antwort soll sagen koennen, was
+   herauskam. Ein Stand, der im Augenblick des Fertigwerdens auf null
+   zurueckspringt, liesse die Karte im Ungewissen -- sie saehe nicht den
+   Abschluss, sondern nur das Verschwinden. */
+const umstellungsStand = () => umstellung && { ...umstellung };
+
+/* WELCHE ZEILEN UEBERHAUPT IN FRAGE KOMMEN -- am INHALT erkannt, mit derselben
+   Byte-Folge wie istPNG() und in derselben Schreibweise wie die Aufteilung in
+   /api/stats. AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die Videodatei. */
+const qOffenePNG = db.prepare(
+  "SELECT id FROM photos WHERE art != 'video' AND hex(substr(data,1,8)) = ?");
+
+/* GEARBEITET WIRD WIE IN backfillVariants(): Zeile fuer Zeile, 30 ms Pause
+   dazwischen, damit der Server ansprechbar bleibt. Das Vorbild steht schon da
+   und hat dieselbe Aufgabe.
+   JE BILD EINE EIGENE TRANSAKTION -- und dafuer steht hier bewusst KEIN
+   db.transaction() um das einzelne UPDATE: eine einzelne Anweisung IST in
+   SQLite ihre eigene Transaktion. Eine Klammer darum sagte, es geschehe mehr
+   als eines, und das waere unwahr.
+   WAS AUSDRUECKLICH NICHT PASSIERT: thumb und medium werden NICHT neu
+   gerechnet. Sie sind aus demselben Bild entstanden und bleiben gueltig; ein
+   Neurechnen kostete Zeit und aenderte nichts. */
+async function stelleBestandUm(zeilen) {
+  const hole = db.prepare('SELECT data FROM photos WHERE id = ?');
+  const schreib = db.prepare('UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');
+  for (const { id } of zeilen) {
+    try {
+      const z = hole.get(id);
+      // Die Zeile kann waehrend des Laufs geloescht oder schon umgestellt
+      // worden sein. Beides ist kein Fehler -- nur nichts zu tun.
+      if (z && istPNG(z.data)) {
+        const ab = await legeBildAb(z.data, 'image/png');
+        if (ab.umgewandelt) {
+          schreib.run(ab.mime, ab.data, id);
+          umstellung.umgestellt++;
+          umstellung.gespart += z.data.length - ab.data.length;
+        } else umstellung.geblieben++;
+      }
+    } catch (e) {
+      // EINE ZEILE REISST DEN LAUF NICHT AB. Sie bleibt, wie sie ist, wird
+      // gezaehlt und genannt -- dieselbe Regel wie beim Nachruesten der
+      // Vorschaubilder.
+      umstellung.geblieben++;
+      console.error(`[Kriterion] Foto ${id} nicht umgestellt:`, e.message);
+    }
+    umstellung.erledigt++;
+    await new Promise(r => setTimeout(r, 30));
+  }
+  umstellung.laeuft = false;
+  /* reclaim() DANACH. Ohne ihn waechst die Datei erst und schrumpft nie: die
+     alten Blobs geben ihre Seiten frei, aber SQLite gibt sie ohne
+     incremental_vacuum nicht ans Dateisystem zurueck. Dieselbe Ueberlegung
+     wie beim Papierkorb. */
+  reclaim();
+  console.log(`[Kriterion] Bildumstellung fertig: ${umstellung.umgestellt} von ` +
+    `${umstellung.gesamt} umgestellt, ${umstellung.geblieben} blieben PNG, ` +
+    `${umstellung.gespart} Bytes gespart.`);
 }
 
 /* ================= Speicherpflege ================= */
@@ -668,7 +883,7 @@ function nurEigentuemer(req, res, next) {
    WAS DIE INSTANZ ALS GANZES TRIFFT, WIRD EIN ZWEITES MAL BESTAETIGT.
    Verteidigt wird gegen eine FREMDE OFFENE SITZUNG.
 
-   SIEBEN WEGE UEBER SECHS ROUTEN, und PUT /api/users/:id traegt zwei davon:
+   ACHT WEGE UEBER SIEBEN ROUTEN, und PUT /api/users/:id traegt zwei davon:
      export     GET    /api/export
      import     POST   /api/import
      rolle      PUT    /api/users/:id   (nur wenn rolle im Rumpf steht)
@@ -676,6 +891,7 @@ function nurEigentuemer(req, res, next) {
      entfernen  DELETE /api/users/:id
      link       POST   /api/users/:id/token
      mail       PUT    /api/mail
+     bilder     POST   /api/bilder/umstellen
 
    AUSDRUECKLICH NICHT DAHINTER: Sperren und Freigeben (umkehrbar), das
    Anlegen eines Zugangs (es nimmt niemandem etwas) und POST /api/setup (dort
@@ -1014,8 +1230,10 @@ app.post('/api/bestaetigung', async (req, res) => {
      WARUM GERADE HIER: die zweite Bestaetigung verteidigt gegen die
      UEBERNOMMENE OFFENE SITZUNG, und genau dort traegt ein zweiter Faktor am
      meisten -- das Passwort mag mitgelesen sein, das Telefon liegt woanders.
-     BESTAETIGUNG_ZWECKE BLEIBT BEI SIEBEN: es ist eine zweite Frage an
-     derselben Stelle, kein achter Weg.
+     DIESE FRAGE FUEGT KEINEN ZWECK HINZU: es ist eine zweite Frage an
+     derselben Stelle, kein weiterer Weg. (BESTAETIGUNG_ZWECKE steht seit
+     0.19.0 bei acht -- der achte ist die Umstellung der Bildablage und
+     kommt aus einer eigenen Route, nicht von hier.)
      DIE REIHENFOLGE IST PASSWORT, DANN CODE: wer das Passwort nicht hat, soll
      nicht erfahren, ob am Zugang ein Faktor haengt. */
   if (auth.zweifaktorAn(req.benutzer.id) && !auth.pruefeZweitenFaktor(req.benutzer.id, code)) {
@@ -1662,6 +1880,14 @@ app.get('/api/settings', (req, res) => res.json({
   // Vorhandenen bleibt in jedem Fall stehen.
   tagsFreiAnlegen: freiAnlegen('tagsFreiAnlegen'),
   kategorienFreiAnlegen: freiAnlegen('kategorienFreiAnlegen'),
+  /* DER SCHALTER DER BILDABLAGE, seit 0.19.0. Er steht in DIESER Antwort und
+     nicht nur in /api/stats: die Karte im Reiter „Datenbank" zeigt ihn, aber
+     die Stellung ist eine EINSTELLUNG und keine Kennzahl. Gelesen wird er
+     ohnehin serverseitig -- die Antwort hier sagt der Karte nur, wo der Haken
+     steht. Ausgeliefert an jeden, geschrieben nur vom Eigentuemer: die
+     Stellung ist nichts Schuetzenswertes, sie steht auch an der Formatzeile
+     der Kennzahlen ablesbar da. */
+  bilderUmwandeln: bilderUmwandeln(),
   /* Fragt die zweite Bestaetigung bei DIESEM Zugang zusaetzlich den Code?
      Gebraucht wird es ausserhalb des Systembereichs -- das
      Bestaetigungsfenster steht auch vor Export und Import, und ohne die
@@ -1684,6 +1910,14 @@ app.put('/api/settings', (req, res) => {
   const fremd = Object.keys(req.body || {}).filter(k => !PERSOENLICHE_SCHLUESSEL.includes(k));
   if (fremd.length && !istAdmin(req))
     return res.status(403).json({ error: VERWEIGERT_ADMIN });
+  /* DIE ENGERE FRAGE STEHT DANEBEN UND NICHT ANSTELLE DER OBEREN: was dem
+     Eigentuemer gehoert, ist auch Adminsache -- nur eben nicht jedem Admin.
+     BEIDE VOR DEM ERSTEN SCHREIBEN, aus demselben Grund wie die Ansichten
+     weiter unten: eine Absage, die schon etwas geschrieben hat, waere
+     schlimmer als gar keine. */
+  const nurDemEigentuemer = Object.keys(req.body || {}).filter(k => EIGENTUEMER_SCHLUESSEL.includes(k));
+  if (nurDemEigentuemer.length && !istEigentuemer(req))
+    return res.status(403).json({ error: VERWEIGERT_EIGEN });
 
   /* DIE ANSICHTEN WERDEN HIER GEPRUEFT UND ERST WEITER UNTEN GESCHRIEBEN --
      VOR dem ersten putUserSetting: eine Absage, die `filters` schon
@@ -1828,6 +2062,12 @@ app.put('/api/settings', (req, res) => {
   // Ableitung ganz oben, ohne zweite Liste und ohne eigene Route.
   for (const k of ['tagsFreiAnlegen', 'kategorienFreiAnlegen'])
     if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
+  /* DER SCHALTER DER BILDABLAGE. Er geht denselben Weg wie die beiden
+     darueber -- eine eigene schreibende Route liesse F_ROUTEN wachsen, ohne
+     dass es etwas Neues zu bewachen gaebe. Die Rechtefrage steht ganz oben in
+     EINER Zeile (EIGENTUEMER_SCHLUESSEL) und nicht hier ein zweites Mal. */
+  if (req.body.bilderUmwandeln !== undefined)
+    putSetting.run('bilderUmwandeln', JSON.stringify(!!req.body.bilderUmwandeln));
   res.json({ filters: getUserSetting(req.benutzer.id, 'filters', null), vokabular: vokabular(),
              ansichten: ansichten(req.benutzer.id), ansichtenDeckel: ANSICHTEN_DECKEL,
              schrift: schriftgroesse(req.benutzer.id), bloecke: bloecke(req.benutzer.id),
@@ -1835,7 +2075,8 @@ app.put('/api/settings', (req, res) => {
              suche: suchvorlage(), suchAnbieter: suchAnbieter(),
              suchNamen: suchNamen(req.benutzer.id),
              tagsFreiAnlegen: freiAnlegen('tagsFreiAnlegen'),
-             kategorienFreiAnlegen: freiAnlegen('kategorienFreiAnlegen') });
+             kategorienFreiAnlegen: freiAnlegen('kategorienFreiAnlegen'),
+             bilderUmwandeln: bilderUmwandeln() });
 });
 
 /* ---- Bewertungskriterien (Skala fest 1-5) ---- */
@@ -2132,7 +2373,7 @@ function qComments(itemId, benutzerId, karte) {
 // allein die Spalte art -- nicht der ausgelieferte Typ und nichts sonst. Ohne
 // die beiden Felder zeichnete sie ins Leere. Sie haengen damit an detail() UND
 // an /api/items (mainPhoto).
-const qPhotos = db.prepare('SELECT id, item_id, mime_type, focus_x, focus_y, sort_order, created_at, art, dauer FROM photos WHERE item_id = ? ORDER BY sort_order, id');
+const qPhotos = db.prepare('SELECT id, item_id, mime_type, focus_x, focus_y, zoom, sort_order, created_at, art, dauer FROM photos WHERE item_id = ? ORDER BY sort_order, id');
 const qTags = db.prepare('SELECT t.* FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE');
 const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
@@ -3015,8 +3256,22 @@ app.post('/api/items/:id/photos', nurEintragVerfasser, upload.array('photos', 40
     for (const f of req.files || []) {
       if (!await rasterBild(f.buffer))
         return res.status(400).json({ error: 'Nur Bilddateien sind erlaubt' });
+      /* DIE ABLEITUNGEN KOMMEN AUS DER VORLAGE, NICHT AUS DER ABLAGEFASSUNG.
+         Beide Wege ergaeben dasselbe Bild -- `nearLossless` weicht hoechstens
+         um 2 von 255 ab --, aber ein zweites Dekodieren waere Arbeit ohne
+         Ertrag, und die Ausrichtung (.rotate()) liest EXIF, das in der
+         WebP-Fassung nicht mehr steht. */
       const v = await makeVariants(f.buffer);
-      ins.run(req.params.id, f.mimetype, f.buffer, v.thumb, v.medium, pos++);
+      /* STRG+V UND DATEIAUSWAHL SIND HIER DERSELBE WEG, und das ist Absicht:
+         in `req.files` steht eine Datei und sonst nichts -- der Server kann
+         die beiden gar nicht unterscheiden, und ein Feld im Formular waere
+         eine BEHAUPTUNG des Browsers darueber, wie das Archiv speichern soll.
+         Er braucht die Unterscheidung auch nicht: die Zwischenablage liefert
+         IMMER PNG, eine Kamera JPEG. Die Regel „PNG umwandeln, JPEG in Ruhe
+         lassen" trifft damit genau das, was gemeint ist. */
+      const ab = bilderUmwandeln() ? await legeBildAb(f.buffer, f.mimetype)
+                                   : { data: f.buffer, mime: f.mimetype };
+      ins.run(req.params.id, ab.mime, ab.data, v.thumb, v.medium, pos++);
     }
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.benutzer.id));
@@ -3125,21 +3380,77 @@ app.get('/api/photos/:id/raw', (req, res) => {
   res.status(206).send(blob.slice(b.von, b.bis + 1));
 });
 
-// Fokuspunkt eines Fotos. Zwei Prozentwerte, sonst nichts -- das Bild selbst
-// wird nie veraendert.
+/* --- Der Ausschnitt der Vorschau: drei Werte, EINE Spanne ----------------
+   Zwei Wege setzen diese Werte -- die Route gleich darunter und der Import --,
+   und sie unterscheiden sich in genau einem Punkt: WAS BEI UNSINN GESCHIEHT.
+   Die Route sagt ab, denn dort sitzt jemand davor und soll es erfahren; der
+   Import nimmt die Vorgabe, denn die Datei ist, wie sie ist, und ein Abbruch
+   des ganzen Einspielens waere die schlechtere Antwort.
+   WELCHE SPANNE GILT, IST BEI BEIDEN DIESELBE, und ohne diese Tafel stuende
+   sie zweimal da -- genau die zweite Wahrheit, die frueher oder spaeter
+   auseinanderlaeuft.
+
+   BESCHNITTEN UND NICHT ABGEWIESEN, wo die Zahl ueberhaupt eine ist: die drei
+   Werte kommen aus einem Zeigergeraet und einem Schieber, die gar nichts
+   anderes senden koennen. Dieselbe Haltung wie beim Bewertungswert und
+   ausdruecklich nicht die beim Gewicht, das von Hand getippt wird.
+
+   ZOOM: 100 IST DER WEITESTE AUSSCHNITT und damit der Zustand bis 0.18.1.
+   Nach unten ist bei 100 Schluss -- darunter deckte das Bild den
+   quadratischen Behaelter nicht mehr, und der Rand zeigte Leere statt Bild.
+   Nach oben bei 400: vier Stufen sind an einer 1600px-Ableitung das, was noch
+   etwas zeigt; wer weiter zoege, saehe die Ableitung und nicht das Motiv. */
+const ZOOM_MIN = 100, ZOOM_MAX = 400;
+const ANZEIGEWERTE = {
+  focus_x: { min: 0, max: 100, vorgabe: 50, stellen: 1 },
+  focus_y: { min: 0, max: 100, vorgabe: 50, stellen: 1 },
+  // Ganze Prozent: ein Ausschnitt von 137,4 % ist keine Angabe, die jemand
+  // machen wollte, und der Schieber kann sie gar nicht erzeugen.
+  zoom:    { min: ZOOM_MIN, max: ZOOM_MAX, vorgabe: ZOOM_MIN, stellen: 0 }
+};
+// null heisst "das war keine Zahl". Was das wert ist, entscheidet der Rufer.
+function anzeigeWert(name, roh) {
+  const g = ANZEIGEWERTE[name];
+  const n = Number(roh);
+  if (!Number.isFinite(n)) return null;
+  const f = 10 ** g.stellen;
+  return Math.min(g.max, Math.max(g.min, Math.round(n * f) / f));
+}
+
+/* Ausschnitt eines Fotos. Drei Zahlen, sonst nichts -- DAS BILD SELBST WIRD
+   NIE VERAENDERT: die beiden Prozentwerte verschieben das sichtbare Fenster
+   (object-position), der dritte zieht es enger (transform: scale). Es wird
+   nichts geschnitten und nichts neu gerechnet.
+   EINE ROUTE UND KEINE ZWEITE FUER DEN ZOOM. Er wird an derselben Stelle
+   eingestellt wie der Fokuspunkt, er gehoert derselben Zeile, und eine zweite
+   schreibende Route liesse F_ROUTEN wachsen, ohne dass es etwas Neues zu
+   bewachen gaebe.
+   DER NAME DER ROUTE BLEIBT `focus`. Ein Umbenennen braechte nichts und
+   verlangte, jede Aufrufstelle mitzuziehen; die Adresse ist ein Name, keine
+   Beschreibung. */
 app.put('/api/photos/:id/focus', (req, res) => {
-  const p = db.prepare('SELECT item_id FROM photos WHERE id = ?').get(req.params.id);
+  const p = db.prepare('SELECT item_id, zoom FROM photos WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'Nicht gefunden' });
   // Die Eintragsnummer kommt erst aus der Kindzeile -- deshalb die
   // zweite Form desselben Aufrufs, nicht eine zweite Regel.
   if (!eintragFrei(req, res, p.item_id)) return;
-  const zahl = (v) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n * 10) / 10)) : null;
-  };
-  const x = zahl(req.body.x), y = zahl(req.body.y);
+  const x = anzeigeWert('focus_x', req.body.x), y = anzeigeWert('focus_y', req.body.y);
   if (x === null || y === null) return res.status(400).json({ error: 'Ungültiger Fokuspunkt' });
-  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ? WHERE id = ?').run(x, y, req.params.id);
+  /* DER ZOOM DARF FEHLEN und behaelt dann seinen Wert. Nicht aus Nachsicht
+     gegenueber einer aelteren Oberflaeche -- die wird im selben Dateisatz
+     ausgeliefert --, sondern weil zwei Bedienungen auf dieselbe Route fuehren:
+     das Ziehen setzt den Punkt, der Schieber die Weite. Wer zieht, schickt
+     kein `zoom` mit, und ein stilles Zuruecksetzen auf 100 naehme ihm bei
+     jedem Zug den eingestellten Ausschnitt weg.
+     EIN MITGESCHICKTER UNSINN IST DAGEGEN EINE ABSAGE und nicht der alte
+     Wert: wer ein Feld setzt, soll erfahren, dass es nicht angekommen ist. */
+  let z = p.zoom;
+  if (req.body.zoom !== undefined) {
+    z = anzeigeWert('zoom', req.body.zoom);
+    if (z === null) return res.status(400).json({ error: 'Ungültiger Bildausschnitt' });
+  }
+  db.prepare('UPDATE photos SET focus_x = ?, focus_y = ?, zoom = ? WHERE id = ?')
+    .run(x, y, z, req.params.id);
   touch.run(p.item_id);
   res.json(detail(p.item_id, req.benutzer.id));
 });
@@ -3690,11 +4001,57 @@ app.get('/api/offen', (req, res) => {
 app.get('/api/stats', nurAdmin, (req, res) => {
   let dbBytes = 0;
   try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
-  // Getrennt nach Art, aus demselben Grund wie im Loeschdialog: photoCount und
-  // photoBytes behalten ihre Bedeutung und bekommen Nachbarn. Zusammengezaehlt
-  // waere die alte Zahl kuenftig eine andere Aussage.
-  const p = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art != 'video'").get();
-  const vi = db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art = 'video'").get();
+  /* EIN DURCHGANG DURCH photos, NICHT ZWEI. Bis 0.18.1 standen hier zwei
+     Abfragen -- `WHERE art != 'video'` und `WHERE art = 'video'` --, und jede
+     war ein voller Tabellendurchgang ueber alle Blobs.
+
+     GEMESSEN AN EINER DATENBANK IN DER GROESSE DER ECHTEN (679 PNG, 344 JPEG,
+     9 WebP, 606 MB):
+
+                                        kalt      warm
+       zwei getrennte Durchlaeufe    6.566 ms   4.230 ms
+       ein GROUP BY                  3.235 ms   2.990 ms
+
+     COUNT(*) allein kostet 0 ms -- teuer ist der DURCHGANG, nicht das Zaehlen.
+
+     UND DIE FORMATAUFTEILUNG IST IN DERSELBEN ZEILE SCHON DRIN: die 2.990 ms
+     sind der Wert MIT ihr. Die Karte bekommt also eine Auskunft dazu und wird
+     dabei schneller. hex(substr(data,1,8)) holt die ersten Bytes, ohne das
+     Blob zu lesen.
+
+     ERKANNT WIRD AM INHALT, NICHT AN mime_type: die Spalte ist eine Angabe des
+     Hochladenden. Dieselbe Haltung wie bei der Auslieferung und bei
+     legeBildAb().
+
+     DIE ALTEN FELDER BEHALTEN NAMEN UND BEDEUTUNG. photoCount, photoBytes,
+     videoCount und videoBytes werden hier nur ANDERS GERECHNET, nicht anders
+     gemeint -- die Aufteilung kommt daneben. Dieselbe Regel wie bei den Videos
+     und beim Papierkorb. */
+  const proArt = db.prepare(`
+    SELECT art,
+           CASE
+             WHEN hex(substr(data,1,8)) = '89504E470D0A1A0A' THEN 'png'
+             WHEN hex(substr(data,1,3)) = 'FFD8FF'           THEN 'jpeg'
+             WHEN hex(substr(data,1,4)) = '52494646'
+              AND hex(substr(data,9,4)) = '57454250'         THEN 'webp'
+             WHEN hex(substr(data,1,3)) = '474946'           THEN 'gif'
+             ELSE 'anderes'
+           END AS format,
+           COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o
+      FROM photos GROUP BY 1, 2`).all();
+  const p = { n: 0, o: 0 }, vi = { n: 0, o: 0 };
+  /* DIE AUFTEILUNG ZAEHLT NUR BILDER. Bei einer Videozeile traegt `data` die
+     Videodatei -- ihr Format gehoert in keine Zeile, die „Fotos am Eintrag
+     nach Format" ueberschrieben ist. Die Videos stehen wie bisher als eigene
+     Zahl daneben. */
+  const bildFormate = {};
+  for (const z of proArt) {
+    const topf = z.art === 'video' ? vi : p;
+    topf.n += z.n; topf.o += z.o;
+    if (z.art === 'video') continue;
+    const f = bildFormate[z.format] || (bildFormate[z.format] = { anzahl: 0, bytes: 0 });
+    f.anzahl += z.n; f.bytes += z.o;
+  }
   const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();
   /* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos:
      sonst wundert sich jemand ueber eine Datenbank, die nach dem
@@ -3730,6 +4087,16 @@ app.get('/api/stats', nurAdmin, (req, res) => {
     attachmentCount: an.n, attachmentBytes: an.o,
     papierkorbCount: pk.n, papierkorbBytes: pk.o,
     commentImageCount: ci.n, commentImageBytes: ci.o,
+    /* DIE FOTOS AM EINTRAG NACH FORMAT -- die Auskunft, um derentwillen die
+       Abfrage oben zusammengelegt wurde. Sie sagt, wovon die Datenbank so
+       gross ist, und sie sagt, ob der Knopf daneben noch etwas zu tun hat.
+       NUR DAS ORIGINAL. thumb und medium sind immer JPEG und stehen in keiner
+       eigenen Zeile; sie werden von dieser Runde nicht angefasst. */
+    bildFormate,
+    /* WIE WEIT DIE UMSTELLUNG IST -- ODER null. KEINE ZWEITE ROUTE dafuer:
+       die Karte fragt ohnehin die Kennzahlen ab, und ein eigener Endpunkt fuer
+       drei Zahlen liefe als zweite Wahrheit ueber denselben Lauf mit. */
+    umstellung: umstellungsStand(),
     /* DIE ERWARTETE EXPORTGROESSE, je Schalter getrennt. Sie steht hier als
        AUFTEILUNG und nicht als eine Summe: die Karte darunter hat drei
        Schalter, und wer nur eine Gesamtzahl bekaeme, koennte an keinem
@@ -3763,6 +4130,43 @@ app.get('/api/stats', nurAdmin, (req, res) => {
   });
 });
 
+/* Den vorhandenen Bestand nachziehen -- der Knopf aus dem Reiter „Datenbank".
+   Das Werkzeug dazu steht oben bei der Bildablage; hier steht nur der Weg
+   hinein.
+
+   NUR DER EIGENTUEMER, und ZUSAETZLICH die zweite Bestaetigung: der Lauf
+   schreibt jeden PNG-Blob der Instanz um, und die alten Bytes sind danach weg.
+   Das ist genau die Art Vorgang, fuer die es die zweite Bestaetigung gibt --
+   verteidigt wird gegen eine fremde offene Sitzung. „Unwiderruflich" ist hier
+   richtig und nicht wie beim Loeschen falsch: es gibt keinen Papierkorb fuer
+   Bytes.
+
+   UND SIE KEHRT SOFORT ZURUECK (202). Acht Minuten Rechenzeit an einer offenen
+   HTTP-Verbindung sind das, was beim Import ausdruecklich vermieden wird --
+   hier gilt derselbe Satz. Der Fortschritt geht als Feld in /api/stats. */
+app.post('/api/bilder/umstellen', nurEigentuemer, zweiteBestaetigungNoetig('bilder'), (req, res) => {
+  /* ZWEIMAL DRUECKEN STARTET NICHT ZWEIMAL. Zwei Schleifen ueber dieselben
+     Zeilen taeten der zweiten nichts (nach der ersten ist kein PNG mehr da),
+     aber sie liefen doppelt, und der gemeldete Fortschritt waere der der
+     zuletzt gestarteten. Eine Absage ist ehrlicher als eine zweite Schleife. */
+  if (umstellung && umstellung.laeuft)
+    return res.status(409).json({ error: 'Die Umstellung läuft schon.' });
+  const zeilen = qOffenePNG.all(PNG_MAGIE_HEX);
+  umstellung = { laeuft: true, gesamt: zeilen.length, erledigt: 0,
+                 umgestellt: 0, geblieben: 0, gespart: 0 };
+  console.log(`[Kriterion] Bildumstellung gestartet: ${zeilen.length} PNG.`);
+  res.status(202).json(umstellungsStand());
+  /* OHNE await UND MIT EIGENEM catch: die Antwort ist schon hinaus, ein
+     geworfener Fehler faende hier keinen Empfaenger mehr -- und eine
+     unbehandelte Zusage nimmt in Node den ganzen Server mit. Der Lauf faengt
+     jede einzelne Zeile schon selbst ab; dieses Netz gilt dem, was daneben
+     schiefgehen kann. */
+  stelleBestandUm(zeilen).catch(e => {
+    umstellung.laeuft = false;
+    console.error('[Kriterion] Bildumstellung abgebrochen:', e.message);
+  });
+});
+
 /* ================= Das Austauschformat =================
 
    EINE ABBILDUNG JE EINTRAG, und sie steht hier statt mitten in der
@@ -3785,7 +4189,7 @@ app.get('/api/stats', nurAdmin, (req, res) => {
 // die Oberflaeche lesen sie. Entschieden wird ueber das Vorhandensein der
 // Felder -- nur so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
 // Fallunterscheidung nach Nummer steht. Sie steht an genau einer Stelle.
-const AUSTAUSCH_FORMAT = 11;
+const AUSTAUSCH_FORMAT = 12;
 
 // Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
 // hier und nicht als Zahl im Rumpf: der Wert kommt aus Node und nicht aus
@@ -3914,9 +4318,14 @@ function eintragAlsPaket(it, lage) {
     photos: [], attachments: []
   };
   if (mitFotos) {
-    o.photos = db.prepare('SELECT mime_type, data, thumb, medium, focus_x, focus_y, art, dauer FROM photos WHERE item_id = ? ORDER BY sort_order, id')
+    o.photos = db.prepare('SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, art, dauer FROM photos WHERE item_id = ? ORDER BY sort_order, id')
       .all(it.id).map(p => {
-        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y, art: p.art };
+        /* DER AUSSCHNITT GEHT MIT -- alle DREI Werte, seit Formatnummer 12.
+           Ohne `zoom` in der Datei ginge er beim Einspielen verloren, und die
+           Zweitinstanz zeigte einen anderen Ausschnitt als die erste. Eine
+           aeltere Instanz uebergeht das zusaetzliche Feld wortlos. */
+        const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,
+                    zoom: p.zoom, art: p.art };
         if (p.art !== 'video') { z['data' + t] = trichter.nimm(p.data); return z; }
         z.dauer = p.dauer;
         /* OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN -- ohne Bytes.
@@ -4375,18 +4784,21 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
       // Varianten, wird die Zeile nicht angelegt. Das Nachruesten beim Start
       // holt sie an einer Videozeile nicht nach.
       if (istVideo && (!v.thumb || !v.medium)) { videosUnlesbar++; continue; }
-      // Fokuspunkt aus der Datei uebernehmen; aeltere Exportdateien haben
-      // ihn nicht und landen auf der Mitte.
-      const im = (v2, vorgabe) => {
-        const n = Number(v2);
-        return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : vorgabe;
-      };
+      /* DEN AUSSCHNITT AUS DER DATEI UEBERNEHMEN -- alle drei Werte, ueber
+         DIESELBE Tafel, die auch die Route benutzt. Fehlt ein Feld (Datei der
+         Formatnummer 11 oder aelter, oder ein Export ohne Fokuspunkt), gilt
+         die Vorgabe: Mitte und weitester Ausschnitt. Das ist genau die Regel,
+         mit der der Fokuspunkt seinerzeit eingefuehrt wurde, und sie ist der
+         Grund, warum hier keine Fallunterscheidung nach Formatnummer steht --
+         entschieden wird ueber das Vorhandensein der Felder. */
+      const im = (name, roh) => anzeigeWert(name, roh) ?? ANZEIGEWERTE[name].vorgabe;
       // Die Dauer ist eine Angabe wie der gemeldete Typ, und sie wird
       // genauso beschnitten wie beim Hochladen.
       const d = Math.round(Number(p.dauer));
       photos.push({ mime: p.mime_type || (istVideo ? 'video/mp4' : 'image/jpeg'),
                     buf, thumb: v.thumb, medium: v.medium,
-                    fx: im(p.focus_x, 50), fy: im(p.focus_y, 50),
+                    fx: im('focus_x', p.focus_x), fy: im('focus_y', p.focus_y),
+                    zoom: im('zoom', p.zoom),
                     art: istVideo ? 'video' : 'bild',
                     dauer: istVideo && Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null });
     }
@@ -4638,9 +5050,9 @@ async function spieleEin(payload, benutzerId, modus, bytesQuelle = null) {
       // Fortlaufend neu nummeriert: uebergangene Videos hinterlassen keine
       // Luecke in der Reihenfolge.
       photos.forEach((p, i) =>
-        { db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, sort_order, art, dauer)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-            .run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, i, p.art, p.dauer);
+        { db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, zoom, sort_order, art, dauer)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+            .run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, p.zoom, i, p.art, p.dauer);
           if (p.art === 'video') stats.videos++; else stats.photos++; });
 
       /* Fehlt das Feld (aeltere Exportdatei oder Export ohne Dateien),

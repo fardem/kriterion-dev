@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 47 · Stand 1. September 2026 · gebaut: Version 0.18.1**
+**Kompakte Übergabe · Revision 48 · Stand 1. September 2026 · gebaut: Version 0.19.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,23 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.19.0 in einem Satz: die Bildablage wird gemessen und nachgezogen.** *MINOR —
+die Instanz legt ein eingefügtes Bildschirmfoto danach als WebP ab, zieht den
+vorhandenen Bestand auf Knopfdruck nach und lässt den Bildausschnitt enger
+wählen.* **Ein ankommendes PNG wird zu WebP im Verfahren `nearLossless` bei
+`quality: 60`** — gemessen an hundert Bildern des echten Bestands: **435,7 MB
+werden 161,9 MB**, bei einer größten Abweichung von **2 von 255**. *JPEG, GIF und
+vorhandenes WebP bleiben unberührt; ein PNG, das größer würde, bleibt PNG.* **Ein
+Schalter im Reiter „Datenbank" schaltet es ab** (Vorgabe an, nur der
+Eigentümer), **und ein Knopf daneben zieht den vorhandenen Bestand nach** —
+hinter der zweiten Bestätigung, weil die PNG-Fassung danach weg ist.
+**`photos` bekommt die Spalte `zoom`**, den achten Migrationsblock, und das
+**Austauschformat geht von 11 auf 12**. *Nebenher legt `/api/stats` seine zwei
+Tabellendurchgänge zu einem zusammen und wird dabei um 1,2 Sekunden schneller —
+mitsamt der neuen Aufteilung nach Format.* **DIES IST EINE DATENBANKSTUFE: vor
+dem Einspielen ist das Datenverzeichnis zu sichern.** *Alles Weitere in
+Abschnitt 2 und Abschnitt 9.*
 
 **0.18.1 in einem Satz: zehn Zeilen heißt zehn Zeilen DIESER Liste.** *PATCH —
 nur `public/style.css`; zwei Zahlen und eine neue Zeile.* **Zwei Befunde aus dem
@@ -266,13 +283,51 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.18.1 und im Feld bestätigt** — Fingerprint **`7b12ead4`**, am
-1. September 2026 von der laufenden Instanz gemeldet, **4919
-Prüfungen**, **422 Rückbauten in der Liste; gefahren sind die drei dieser Runde,
-keiner stumm** (Abschnitt 8). *0.18.1 gibt der Sitzungsliste den Deckel im Maß
-ihrer eigenen Zeile — zehn Sitzungen statt fünf — und macht eine leere Liste
-zwei Zeilen hoch statt einer.* **PATCH — nur `public/style.css`; die Instanz kann
-danach nichts, was sie vorher nicht konnte. KEINE DATENBANKSTUFE.**
+**Gebaut ist 0.19.0** — Fingerprint **`5fe43053`**, **5055
+Prüfungen**, **450 Rückbauten in der Liste** (Abschnitt 8).
+*0.19.0 legt ein ankommendes PNG als WebP ab, zieht den vorhandenen Bestand auf
+Knopfdruck nach und gibt dem Bildausschnitt ein drittes Maß.* **MINOR — und
+DIES IST EINE DATENBANKSTUFE.**
+
+> **VOR DEM EINSPIELEN IST DAS DATENVERZEICHNIS ZU SICHERN.** Es kommt der
+> **achte** Migrationsblock dazu (`photos.zoom`), und das **Austauschformat geht
+> von 11 auf 12**. *Die Migration selbst ist harmlos — eine Spalte mit
+> konstanter Vorgabe —, aber der Knopf „Alle PNG nach WebP umstellen"
+> **überschreibt Bildbytes**, und dafür gibt es keinen Papierkorb.* **Die
+> Sicherung ist die einzige Rückfahrkarte, und der Dialog sagt das.**
+
+> **DIE ZAHLEN, AN DENEN DIESE RUNDE HÄNGT, SIND GEMESSEN UND NICHT GESCHÄTZT.**
+> Vier Messläufe an der **echten Instanz** mit je hundert zufällig gezogenen
+> Bildern: **679 von 1032 Bildern lagen als PNG im Original**, 435,7 MB von
+> 568,9 MB des Bildbestands. Als WebP `nearLossless` 60 werden daraus **161,9
+> MB** — bei einer **größten Abweichung von 2 von 255** und **null** von hundert
+> Bildern mit sichtbarer Kante. *Die Leiter, die Begründung für 60 und die
+> Gegenrede stehen im Änderungsprotokoll 0.19.0.*
+
+> **UND EINE ZAHL DIESER RUNDE IST AUSDRÜCKLICH NICHT AM ECHTEN BESTAND
+> GEMESSEN:** die `effort`-Leiter. Sie ist an **erzeugtem** Material nachgeholt
+> worden, weil der bauende Lauf der Instanz nicht beikommt — und dabei kam
+> **Stolperstein 270** heraus: dasselbe Verfahren beantwortet dieselbe Frage
+> verschieden, je nachdem, woran gemessen wird. *Das Ergebnis und seine Grenze
+> stehen im Änderungsprotokoll; `effort: 4` bleibt.*
+
+> **IM FELD NOCH NICHT BESTÄTIGT.** Der Fingerprint oben ist der **gebaute**
+> Wert; was die laufende Instanz meldet, gehört nach dem Einspielen daneben
+> (Stolperstein 158). **Ebenso ausstehend: der Rundlauf am Bildschirm** — ein
+> Bildschirmfoto einfügen, der Knopf, der Schalter in beiden Stellungen, der
+> engere Ausschnitt und der Export in eine Zweitinstanz.
+
+*Davor, am 1. September:* **Die Blöcke ab hier gehören 0.18.1 und den Runden
+davor.**
+
+> **DIE VORHERIGE ZEILE, ZUM VERGLEICH: 0.18.1 — im Feld bestätigt.**
+> Fingerprint **`7b12ead4`**, am 1. September 2026 von der laufenden Instanz
+> gemeldet, **4919 Prüfungen**, **422 Rückbauten in der Liste; gefahren sind die
+> drei jener Runde, keiner stumm** (Abschnitt 8). *0.18.1 gibt der
+> Sitzungsliste den Deckel im Maß ihrer eigenen Zeile — zehn Sitzungen statt
+> fünf — und macht eine leere Liste zwei Zeilen hoch statt einer.* **PATCH — nur
+> `public/style.css`; die Instanz kann danach nichts, was sie vorher nicht
+> konnte. KEINE DATENBANKSTUFE.**
 
 > **ZEHN ZEILEN HEISST ZEHN ZEILEN DIESER LISTE, und das ist keine dritte Regel,
 > sondern dieselbe.** `.mrow` misst 41,92 px, `.prot-zeile` 35, `.mrow.sitz`
@@ -789,7 +844,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.18.1** | **`7b12ead4`** *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4919 |
+| **0.19.0** | **`5fe43053`** *(im Feld noch nicht bestätigt)* | 5055 |
+| 0.18.1 | `7b12ead4` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4919 |
 | 0.18.0 | `0bf6ac9d` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4917 |
 | 0.17.5 | `6a2c264a` *(am 31. August 2026 von der laufenden Instanz gemeldet)* | 4813 |
 | 0.17.4 | `d3113d62` *(am 31. August 2026 von der laufenden Instanz gemeldet — und dieser Beleg hat den Fehler aufgedeckt)* | 4811 |
@@ -862,8 +918,10 @@ Datenbankstufe ist ein Downgrade **keine reine Dateikopie mehr**.
 | 0.8.90 | Tabelle `sicherheitsprotokoll` | **keiner** | Pflicht |
 | 0.9.1 | Tabelle `anfragen` | **keiner** | Pflicht |
 | 0.10.0 | Tabellen `zweifaktor`, `zweifaktor_codes` | **keiner** | Pflicht |
-| **0.14.0** | **Spalten `items.rejected_at`, `items.rejected_grund`, `items.rejected_von`** | **`migration0140()`** | **Pflicht** |
-| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · 0.12.0 · 0.12.1 · 0.12.2 · 0.12.3 · 0.12.4 · 0.13.0 · 0.13.1 · 0.13.2 · 0.15.0 · **0.15.1** | — | — | Empfehlung |
+| 0.14.0 | Spalten `items.rejected_at`, `items.rejected_grund`, `items.rejected_von` | `migration0140()` | Pflicht |
+| 0.16.0 | Spalte `ratings.gesetzt_am` | `migration0160()` | Pflicht |
+| **0.19.0** | **Spalte `photos.zoom`** | **`migration0190()`** | **Pflicht** |
+| 0.8.6 · 0.8.10 · 0.8.20 · 0.8.60 · 0.8.71 · 0.8.91 · 0.9.0 · 0.11.0 · 0.12.0 · 0.12.1 · 0.12.2 · 0.12.3 · 0.12.4 · 0.13.0 · 0.13.1 · 0.13.2 · 0.15.0 · 0.15.1 · 0.17.0 · 0.17.1 · 0.17.2 · 0.17.3 · 0.17.4 · 0.17.5 · 0.18.0 · **0.18.1** | — | — | Empfehlung |
 
 *Die Spalte „Sicherung" ist eine rückblickende Einordnung. **Als Regel steht sie
 erst seit 0.8.30 im Einspielweg** — 0.8.3 lag davor, und damals war der Rückweg
@@ -872,9 +930,11 @@ noch das Zurückkopieren des alten Dateisatzes.*
 **Eine neue SPALTE braucht die DDL UND einen Migrationsblock, eine neue TABELLE
 nicht.** `CREATE TABLE IF NOT EXISTS` legt eine fehlende **Tabelle** bei jedem
 Start an, eine fehlende **Spalte** in einer vorhandenen Tabelle dagegen nie
-(Stolperstein 13). Deshalb bleibt es trotz elf Datenbankstufen bei **sechs**
-markierten Blöcken; nachgestellt statt abgeschrieben, an jeder neuen Tabelle
-erneut, samt der Gegenlage an einer Spalte.
+(Stolperstein 13). Deshalb bleibt es trotz **dreizehn** Datenbankstufen bei
+**acht** markierten Blöcken; nachgestellt statt abgeschrieben, an jeder neuen
+Tabelle erneut, samt der Gegenlage an einer Spalte. *Der Prüfstand zählt die
+acht ausdrücklich — wer einen neunten anlegt, wird dort namentlich rot und muss
+sagen, welche SPALTE er nachrüstet.*
 
 **`migration0850()` und `migration0140()` fragen jede ihrer Spalten EINZELN
 ab.** Zwei `ALTER TABLE` sind zwei Anweisungen: scheitert die zweite, bleibt die
@@ -914,20 +974,27 @@ herein. **Die Sicherung ist der Weg, der ohne diese Fußnoten auskommt.***
 
 ### Der Weg zum Einspielen
 
-> **FÜR 0.17.1 IST DIE SICHERUNGSZEILE EMPFEHLUNG UND NICHT PFLICHT** — diese
-> Version ist **keine Datenbankstufe**: kein Schema, kein Migrationsblock,
-> Austauschformat unverändert 11, weiterhin sieben markierte Blöcke. *Sie steht
-> trotzdem im Rezept, und wer sie mitnimmt, tut nichts Falsches.* **Für 0.17.0
-> galt dasselbe.**
+> **FÜR 0.19.0 IST DIE SICHERUNGSZEILE PFLICHT UND NICHT EMPFEHLUNG.** Diese
+> Version **ist** eine Datenbankstufe: es läuft der **achte** Migrationsblock
+> (`photos.zoom`), und das **Austauschformat geht von 11 auf 12**.
 >
-> **BEI 0.16.0 WAR SIE PFLICHT, und der Unterschied gehört benannt** — sonst
-> liest ein Betreiber über beides hinweg. Dort lief der siebte Migrationsblock
-> (`ratings.gesetzt_am`); hier läuft keiner.
+> **UND SIE IST ES AUS EINEM ZWEITEN GRUND, der schwerer wiegt als die Spalte.**
+> Der Knopf „Alle PNG nach WebP umstellen" **schreibt jeden PNG-Blob der Instanz
+> um**; die alte Fassung ist danach weg, und es gibt keinen Rückweg — auch
+> keinen halben. *Eine Rückverwandlung nach PNG stellte nicht die Datei wieder
+> her, die dagewesen ist, sondern eine neue mit denselben Pixeln.* **Wer den
+> Knopf drückt, ohne vorher gesichert zu haben, hat keine Kopie der Originale
+> mehr.** Der Dialog vor dem Knopf sagt genau das.
 >
-> **WER VON EINER FASSUNG VOR 0.16.0 KOMMT, SICHERT DAGEGEN PFLICHTGEMÄSS.**
-> Der Sprung führt dann über die Datenbankstufen 0.14.0 und/oder 0.16.0 hinweg,
-> und deren Migrationsblöcke laufen beim ersten Start mit — **ohne die Kopie
-> gibt es danach keinen Rückweg.**
+> **FÜR 0.18.1, 0.18.0 UND DIE 0.17er WAR SIE EMPFEHLUNG** — keine davon ist
+> eine Datenbankstufe: kein Schema, kein Migrationsblock, Austauschformat
+> unverändert. *Sie stand trotzdem im Rezept, und wer sie mitnahm, tat nichts
+> Falsches.*
+>
+> **WER VON EINER FASSUNG VOR 0.16.0 KOMMT, SICHERT ERST RECHT.** Der Sprung
+> führt dann über die Datenbankstufen 0.14.0, 0.16.0 und 0.19.0 hinweg, und
+> deren Migrationsblöcke laufen beim ersten Start mit — **ohne die Kopie gibt es
+> danach keinen Rückweg.**
 
 Das Repo ist **privat**, der Server zieht deshalb nicht selbst — das ZIP kommt
 über „Download ZIP" von GitHub auf den Wirt. Der Pfad steht am laufenden
@@ -1609,6 +1676,7 @@ oder Sprache — und das entscheidet, wem sie gehört.**
 | `linkZeilen` — sichtbare Linkzeilen | `mailtestOk` — Marke der letzten Testmail *(0.9.0)* |
 | `zeitleiste` — ein/aus | `schluesselGewechseltAm` — Marke des Wechsels *(0.8.91)* |
 | `suchNamen` — Zahl der Anbieternamen | `mailzugang` *(0.9.0 — **beim Eigentümer**, nicht beim Admin)* |
+| | `bilderUmwandeln` *(0.19.0 — **beim Eigentümer**, nicht beim Admin)* |
 
 > **NEUN WAREN ES BIS 0.16.0: `zuletztGesehen`, der Bezugspunkt für „Neu
 > seit …", ist mit 0.17.0 weggefallen.** Die Pille ist gestrichen, und ein
@@ -1625,8 +1693,21 @@ oder Sprache — und das entscheidet, wem sie gehört.**
 > persönlichen Schlüssel aus der globalen Tabelle heraushält. *Heute ruft ihn
 > niemand; wer ihn je wieder einbaut, muss ihn in die Liste zurücknehmen.*
 
-**`mailzugang` ist die eine Zeile in `settings`, die NICHT dem Admin gehört** —
-und die einzige Ausnahme von „global heißt Adminsache".
+**`mailzugang` und `bilderUmwandeln` sind die beiden Zeilen in `settings`, die
+NICHT dem Admin gehören** — und damit die Ausnahmen von „global heißt
+Adminsache". *`mailzugang` geht über eine eigene Route (`PUT /api/mail`),
+`bilderUmwandeln` über `PUT /api/settings` wie jede andere Einstellung.*
+
+> **DARAUS FOLGT EIN DRITTER RANG IN `PUT /api/settings`, seit 0.19.0.** Bis
+> 0.18.1 kannte die Route zwei Hälften: was in `PERSOENLICHE_SCHLUESSEL` steht,
+> ist persönlich, **alles Übrige ist Adminsache** — abgeleitet, nicht
+> aufgezählt. **`EIGENTUEMER_SCHLUESSEL` steht jetzt als zweite Liste daneben**,
+> und die Ableitung bleibt: was in **keiner** der beiden Listen steht, ist
+> weiterhin Adminsache. *Als Liste und nicht als `if`, aus demselben Grund wie
+> oben: der zweite Schlüssel dieser Art steht dann daneben und nicht als zweite
+> Verzweigung.* **Beide Fragen stehen VOR dem ersten Schreiben** — eine Absage,
+> die schon etwas geschrieben hat, wäre schlimmer als gar keine.
+
 **`PERSOENLICHE_SCHLUESSEL` in `server.js` ist Schranke und Wahrheit zugleich:**
 `PUT /api/settings` leitet daraus ab, was jeder für sich schreiben darf, und
 `putSetting` weist einen persönlichen Schlüssel auf dem globalen Weg laut ab.
@@ -2031,13 +2112,84 @@ und **wer zurückholen darf**: nicht der, der hier klickt.
 
 ### Bilder und Videos
 
-**Bilder:** Originale bleiben unverändert — was hereinkommt, muss aber seit
-0.8.20 ein Rasterbild **sein**, nicht bloß so heißen (Abschnitt 5a). Zusätzlich
+**Bilder:** was hereinkommt, muss seit 0.8.20 ein Rasterbild **sein**, nicht
+bloß so heißen (Abschnitt 5a). Zusätzlich
 Kachel (400 px, ~17 KB) und mittlere Variante (1600 px, ~140 KB). Übersicht
 nutzt die Kachel, Detail und Vollbild die mittlere, erst der Zoom lädt das
 Original. Aufschlag rund 7 %, Ersparnis beim Blättern etwa Faktor 100. Fotos
 ohne Varianten werden nach dem Start im Hintergrund nachgerüstet —
 **Videozeilen ausdrücklich nicht** (Stolperstein 109).
+
+**SEIT 0.19.0 WIRD EIN ANKOMMENDES PNG ALS WEBP ABGELEGT.** Bis 0.18.1 blieb
+das Original in jedem Fall unverändert; das gilt weiter für **JPEG, GIF und
+vorhandenes WebP** und für **jedes** PNG, sobald der Schalter aus ist.
+
+> **WARUM DIE ABWEICHUNG, und sie ist eine:** Immich, Nextcloud Photos und
+> Piwigo fassen das Original nie an — für eine Kameraaufnahme ist das richtig.
+> **Dieser Bestand besteht zu 92 % aus Bildschirmfotos**, und ein Bildschirmfoto
+> hat kein Negativ; es ist selbst schon eine Ableitung. **679 von 1032 Bildern
+> lagen als PNG da**, 435,7 von 568,9 MB. Als WebP `nearLossless` 60: **161,9
+> MB**, größte Abweichung **2 von 255**.
+>
+> **`nearLossless` IST KEIN GÜTEWERT, SONDERN EIN DRITTES VERFAHREN.** WebP hat
+> zwei Bitströme: `VP8` (verlustbehaftet) und `VP8L` (verlustfrei).
+> `quality: 90…100` fährt den ersten und franst an harten Kanten aus — gemessen
+> beschädigt `quality: 100` **dieselben elf** von hundert Bildern mit
+> **derselben** Abweichung wie `quality: 90`. `nearLossless` fährt den zweiten;
+> der `quality`-Wert steuert dabei, wie stark **vorgeglättet** wird, nicht die
+> Bildgüte. *Der Prüfstand nagelt das an der Chunk-Kennung `VP8L` fest.*
+>
+> **DIE RÜCKFÄLLE SIND NICHT ZIERDE:** WebP kann höchstens **16383 px je
+> Kante**, und ein PNG, das als WebP größer wäre, bleibt PNG — beides kommt vor.
+> **`mime_type` wird mitgezogen**, sonst trüge der nächste Export die Lüge
+> weiter.
+>
+> **ES GIBT KEINEN RÜCKWEG „WebP wieder nach PNG".** Er ginge technisch —
+> `VP8L` dekodiert zu genau den Pixeln, die drinstehen —, stellte aber nicht
+> die Datei wieder her, die dagewesen ist, sondern eine neue mit denselben
+> Pixeln. **Ein Knopf, der „zurück" verspricht und etwas anderes liefert, ist
+> schlechter als keiner.** Die Rückfahrkarte ist die Sicherung.
+>
+> **UND ES IST EINE HALBE ANTWORT, das gehört dazu:** `medium` ist **JPEG
+> q84** und damit verlustbehaftet. **Was man in der Anwendung anschaut, ist die
+> Ableitung und nicht das Original.** Diese Runde macht das Archiv unversehrt
+> und lässt die Anzeige, wie sie ist; die Ableitungen auf WebP stehen in
+> Abschnitt 10.
+
+**Der Schalter und der Knopf stehen im Reiter „Datenbank", in der Karte
+„Kennzahlen", und beide gehören dem Eigentümer.** Der Schalter
+(„PNG-Originale beim Hereinkommen umwandeln", Vorgabe an) geht über
+`PUT /api/settings` und braucht keine eigene Route. Der Knopf („Alle PNG nach
+WebP umstellen") ist `POST /api/bilder/umstellen`, **zweitbestätigt** — er
+schreibt jeden PNG-Blob der Instanz um. Er kehrt sofort zurück (202), arbeitet
+Zeile für Zeile mit 30 ms Pause wie `backfillVariants()`, meldet seinen
+Fortschritt als **Feld in `/api/stats`** und ruft danach `reclaim()`. **Ein Lauf
+zur Zeit**; der zweite Aufruf bekommt eine Absage. **`thumb` und `medium` werden
+dabei NICHT neu gerechnet** — sie sind aus demselben Bild entstanden.
+
+**Der Import wandelt ausdrücklich nicht um.** Er ist ein einziger HTTP-Aufruf
+über den ganzen Bestand und rechnet ohnehin schon zwei Ableitungen je Bild; eine
+Umwandlung obendrauf verlängerte ausgerechnet das Wiederherstellen. **Die Folge
+gehört benannt: wer eine alte Sicherung einspielt, holt PNG zurück** — und
+drückt danach den Knopf.
+
+**Die beiden Bildwege speichern verschieden, und das ist entschieden:**
+
+| Weg | Was in der Datenbank landet |
+|---|---|
+| Foto am **Eintrag** (`photos`) | **das Original** (ein PNG als WebP), dazu 1600px- und 400px-JPEG |
+| Bild im **Kommentar** (`comment_images`) | **nur** 1600px- und 400px-JPEG — **kein Original** |
+
+**Das Kommentarbild bekommt auch künftig keines.** Es wäre einheitlich, und es
+vergrößerte die Datenbank an der Stelle, an der die meisten Bilder anfallen; im
+Kommentar gibt es kein Vollbild in dem Sinn, in dem der Eintrag eines hat.
+**Was daraus folgt und gemessen ist:** beim wiederholten Ein- und Ausspielen
+summiert sich das Kommentarbild, weil der Import das gespeicherte JPEG erneut
+als JPEG kodiert — *MAE 0,06 nach einer Runde, 0,10 nach sechs; es läuft aus
+statt davonzulaufen, und die erste Kodierung kostet mit 1,89 ohnehin ein
+Vielfaches.* **Kein Handlungsbedarf — aber wer es entdeckt, soll die Zahlen
+daneben finden.** *Am Foto passiert das nicht: dort schreibt der Import das
+Original byte-genau zurück und rechnet `thumb`/`medium` neu daraus.*
 
 **Kurzvideos stehen in derselben Reihe wie die Fotos** (seit 0.8.50), bis
 **20 MB**, als MP4, WebM oder MOV. **Erkannt wird nach dem Inhalt, nicht nach
@@ -2061,6 +2213,7 @@ Was die vorhandenen Spalten dabei bedeuten:
 | `thumb` | Kachel 400 px | **Standbild** 400 px |
 | `medium` | 1600 px | **Standbild** 1600 px |
 | `focus_x`/`focus_y` | Ausschnitt der Kachel | dasselbe, am Standbild |
+| `zoom` | wie eng der Ausschnitt sitzt | dasselbe, am Standbild |
 | `dauer` | `NULL` | Sekunden |
 
 **Damit greift jede vorhandene Regel von selbst** — Rechte, Kaskade,
@@ -2118,7 +2271,8 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 > sie war.**
 
 **Dem Admin:** beide Titel, Kennzahlen (Umfang des Bestands je Art —
-**seit 0.12.3 auch die Kommentarbilder und die erwartete Exportgröße** —,
+**seit 0.12.3 auch die Kommentarbilder und die erwartete Exportgröße**, **seit
+0.19.0 die Fotos nach Format** —,
 Belegung der Datenbank und der Fingerprint), Kategorien und Tags umbenennen und
 löschen, Bewertungskriterien umbenennen, löschen, per Ziehen sortieren und
 **gewichten**, Karte **„Zugänge"** (anlegen mit Passwort oder mit Link, sperren,
@@ -2142,8 +2296,19 @@ Eigentümer die beiden Knöpfe sieht.
 
 **Dem Eigentümer zusätzlich:** Export mit/ohne Fotos, mit eigenem Häkchen für
 Dateien und eines für **Videos**, Import (ersetzen oder zusammenführen), die
-Karte **„Sicherung"**, das **„Sicherheitsprotokoll"** und die Karte
-**„Mailversand"**.
+Karte **„Sicherung"**, das **„Sicherheitsprotokoll"**, die Karte
+**„Mailversand"** — und **seit 0.19.0 der Abschnitt „Bildablage" in den
+Kennzahlen**: der Schalter „PNG-Originale beim Hereinkommen umwandeln" und der
+Knopf „Alle PNG nach WebP umstellen". *Die Zahlen darüber sieht jeder Admin;
+bedienen darf sie nur der Eigentümer — ein Knopf, der zuverlässig 403 erzeugt,
+sieht aus wie ein Fehler.*
+
+> **UND ES BLEIBT BEI ACHTZEHN KARTEN.** Schalter und Knopf stehen in
+> „Kennzahlen", neben der Aufstellung, die sie erklärt — eine neunzehnte Karte
+> für zwei Bedienelemente stünde neben ihrer eigenen Begründung. **Damit trägt
+> seit 0.19.0 jede Karte einen Behandler:** „Kennzahlen" war bis dahin die
+> einzige ohne. *Die Auslassung bleibt trotzdem vorgesehen — sie kostet nichts,
+> und die nächste reine Anzeigekarte braucht sie wieder.*
 **Die Exportkarte nennt seit 0.12.3 die erwartete Dateigröße, und die Zahlen
 folgen den Häkchen.** Ab **300 MB** steht ein Hinweis darunter — *gewarnt wird,
 verweigert nicht.* **Der Import fragt vor dem Einlesen nach**, wenn die Datei
@@ -2397,7 +2562,7 @@ Versionswechsel hinweg verlässt:**
 1. **Das Datenverzeichnis** — das Schema der verschlüsselten Datenbank und die
    Art der Verschlüsselung. Eine neue Fassung muss ein Verzeichnis der
    vorherigen öffnen können.
-2. **Das Austauschformat** mit seiner Formatnummer (derzeit **11**).
+2. **Das Austauschformat** mit seiner Formatnummer (derzeit **12**).
 3. **Die Schlüssel in der `.env`** und ihre Bedeutung.
 4. **Die Werkzeuge auf dem Wirt** — `schluessel.sh` und `zugang.js` samt ihren
    Unterbefehlen. Sie sind der Notausgang; wer sie ändert, ändert einen Weg, den
@@ -6842,11 +7007,91 @@ Version, in der sie entstanden sind.*
     damit wieder das, was die Runden 0.17.3 bis 0.17.5 beschäftigt hat.*
 
 269. **Die ZAHL der Rückbauten und die HÖCHSTE Rückbaunummer sind nicht
-    dasselbe.** In `gegenprobe.js` stehen 422 Einträge, die Nummern reichen aber
-    bis **429** — Runden, die Rückbauten haben fallen lassen, hinterlassen
-    Lücken (0.17.3 acht auf einmal). **Wer die nächste Nummer aus der Anzahl
-    ableitet, vergibt eine, die es schon gibt.** *Der Prüfstand fängt es ab
-    („Und keine Nummer steht zweimal") — aber erst nach einem vollen Lauf.*
+    dasselbe.** In `gegenprobe.js` standen zu 0.18.1 **422 Einträge**, die
+    höchste Nummer war aber **430** — Runden, die Rückbauten haben fallen
+    lassen, hinterlassen Lücken (0.17.3 acht auf einmal). **Wer die nächste
+    Nummer aus der Anzahl ableitet, vergibt eine, die es schon gibt.** *Der
+    Prüfstand fängt es ab („Und keine Nummer steht zweimal") — aber erst nach
+    einem vollen Lauf.*
+    > **UND DIESER SATZ HAT SICH AN SICH SELBST BEWIESEN:** er stand hier bis
+    > 0.19.0 mit **429** statt 430 da. Nachgezählt am Quelltext sind es 422
+    > Einträge, davon **419 mit Nummer** (die drei übrigen heißen `W2`, `W5`
+    > und `W6`) und die höchste ist 430. *Eine abgeschriebene Zahl bleibt
+    > falsch, auch wenn sie in einem Stolperstein über falsche Zahlen steht.*
+
+270. **Dasselbe Verfahren beantwortet dieselbe Frage verschieden, je nachdem,
+    woran gemessen wird — und der Unterschied ist keine Feinheit.** 0.19.0
+    holte die `effort`-Leiter für `nearLossless` 60 nach, weil sie bis dahin
+    nur vom rein verlustfreien Weg **übertragen** war. Gemessen an
+    **erzeugtem** Material kam heraus:
+    > **Material mit Pixelrauschen:** `effort` 5 und 6 liefern **13,5 %**
+    > kleinere Dateien als 2 bis 4 — die Übertragung „ab 2 flach" wäre damit
+    > widerlegt.
+    > **Material mit räumlich zusammenhängendem Rauschen** (weichgezeichnet,
+    > harte Kanten obenauf — so sieht ein Bildschirmfoto VON einem Foto aus):
+    > 2, 3 und 4 sind in der Summe **byte-identisch**, 5 und 6 bringen **2,0 %**
+    > und kosten **24 %** mehr Zeit. Die Übertragung hält.
+    **Zwei Läufe, dasselbe Verfahren, dieselbe Frage, zwei Antworten — und der
+    Unterschied liegt allein am Material.** *Dieselbe Falle hat schon die
+    Messung zur Bildablage selbst gestellt: eine Empfehlung „verlustfrei, ohne
+    Einstellung" stand auf Prüfbildern, die Bedienoberflächen zeigten; der echte
+    Bestand ist zu 92 % fotografisch, und die Empfehlung war falsch.*
+    **Wer an Beispielmaterial misst, misst das Beispielmaterial.** Die Zahl
+    gehört an den echten Bestand — und wo das nicht geht, gehört genau dieser
+    Satz daneben und nicht das Ergebnis allein.
+
+271. **Ein Wert, den ZWEI Bedienungen über dieselbe Route setzen, darf beim
+    Fehlen nicht auf die Vorgabe zurückfallen.** `PUT /api/photos/:id/focus`
+    trägt seit 0.19.0 drei Werte; das Ziehen im Bild schickt nur zwei davon,
+    der Schieber daneben alle drei. Ein `zoom`, das bei jedem Zug auf 100
+    zurückspränge, nähme dem Bedienenden den eingestellten Ausschnitt weg —
+    **und zwar genau dann, wenn er ihn gerade feinjustiert.**
+    **Die Regel: ein FEHLENDES Feld behält seinen Wert, ein MITGESCHICKTER
+    Unsinn ist eine Absage.** *Das ist nicht dieselbe Frage, und wer sie zu
+    einer macht, baut eine der beiden falsch.*
+
+272. **Ein Inline-Stil schlägt jede Regel aus dem Stilblatt — auch die, die man
+    behalten wollte.** Der Zoom einer Kachel ist ein `transform: scale()`, und
+    er entsteht je Foto in `app.js`. Als `style="transform:…"` geschrieben
+    hätte er `.card:hover .card-img img { transform: scale(1.03) }`
+    ausgehebelt: **die Kacheln mit eingestelltem Ausschnitt — und nur die —
+    hätten ihre Bewegung beim Überfahren verloren.** *Ein Fehler, der genau an
+    den Stellen auftritt, an denen jemand etwas eingestellt hat, fällt beim
+    Ausprobieren am seltensten auf.*
+    **Deshalb geht der Wert als EIGENSCHAFT hinaus (`--zoom`), und gerechnet
+    wird im Stilblatt** — dort, wo auch die andere Hälfte steht.
+
+273. **`ALTER TABLE ADD COLUMN` hängt eine Spalte IMMER HINTEN AN — wer sie in
+    der DDL an ihren logischen Platz stellt, bekommt zwei verschiedene
+    Datenbanken.** Der achte Migrationsblock rüstet `photos.zoom` nach; in der
+    DDL stand die Spalte zunächst neben `focus_x`/`focus_y`, wo sie inhaltlich
+    hingehört. **Eine frische Instanz trug sie dort, eine migrierte am Ende** —
+    dieselbe Version, zwei Spaltenreihenfolgen.
+    *Gefunden hat es der Prüfstand mit der Zeile, die 0.16.0 dafür hinterlassen
+    hat („Und migriert wie frisch tragen dieselben Spalten in derselben
+    Reihenfolge") — beim allerersten Lauf der neuen Migrationsgruppe. Ohne sie
+    wäre der Unterschied still geblieben, bis irgendwann ein `SELECT *` zwei
+    Reihenfolgen geliefert hätte.*
+    **Eine nachgerüstete Spalte steht in der DDL am ENDE ihrer Tabelle, und der
+    Grund gehört danebengeschrieben** — sonst rückt der Nächste sie an ihren
+    „richtigen" Platz und macht den Unterschied wieder auf.
+    *`ratings.gesetzt_am` steht aus demselben Grund am Ende von `ratings`; dort
+    war es Zufall, hier ist es entschieden.*
+
+274. **EIN WERT, DER AN EINEM ELEMENT STEHT, IST NICHT GEPRÜFT, SOLANGE NICHT
+    AUCH GEPRÜFT IST, DASS IHN JEMAND LIEST.** Der Prüfstand belegte den
+    engeren Ausschnitt an drei Stellen — `ausschnitt()` rechnet ihn richtig,
+    die Kachel trägt `--zoom`, der Schieber schreibt ihn — und **an keiner
+    Stelle, dass das Stilblatt ihn einrechnet.** Nimmt man
+    `transform: scale(var(--zoom, 1))` heraus, ist der Ausschnitt an keiner
+    Kachel mehr zu sehen, und **jede dieser Prüfungen bleibt grün.**
+    *Die Zusage hat zwei Hälften — schreiben und lesen —, und eine Prüfung, die
+    nur die erste kennt, sieht von außen aus wie eine ganze.*
+    **Gefunden hat es die Gegenprobe und nicht der Prüflauf:** Rückbau 453 kam
+    STUMM zurück. *Ein stummer Rückbau ist keine Formalie — er ist die Stelle,
+    an der der Prüfstand wegsieht.*
+    **Wo ein Wert die Grenze zwischen zwei Dateien überquert — Skript nach
+    Stilblatt, Server nach Oberfläche —, gehört an BEIDE Enden eine Prüfung.**
 
 ---
 
@@ -6861,14 +7106,36 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 4919 von 4919 bestanden** (0.18.1) — **2 neue Prüfungen** am Deckel der
-Sitzungsliste; die beiden Maße der leeren Meldung sind nachgezogen. 0.18.0 davor
-brachte 104.
+**Stand: 5055 von 5055 bestanden** (0.19.0) —
+**136 neue Prüfungen netto**, keine weggefallen; 0.18.1 davor brachte 2.
+Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
+beschränkt und **nicht** der volle Lauf über alle **450** Rückbauten.
 
-*Und die Runde davor, zum Vergleich:* **4917 von 4917 bestanden** (0.18.0) — **104 neue Prüfungen netto**,
-keine weggefallen; 0.17.5 davor brachte 2. Die Gegenproben stehen in
-Abschnitt 8: sie sind auf die jeweils neuen Zusagen beschränkt und **nicht** der
-volle Lauf über alle **421** Rückbauten.
+| Gruppe (0.19.0) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Die Bildablage: PNG kommt herein, WebP geht in die Tabelle** *(neu)* | — | **46** | ein PNG liegt als WebP da — **an den Bytes und am `VP8L`-Bitstrom geprüft, nicht an der Spalte**; das Bild ist dabei **unversehrt** (größte Abweichung ≤ 2 von 255, gleiche Maße), und die Messung fände einen verlustbehafteten Kodierer wirklich; JPEG, GIF und vorhandenes WebP bleiben **byte-genau**; ein PNG, das WebP nicht fassen kann, bleibt PNG; die Aufteilung nach Format samt **Summenprobe gegen `photoCount`/`photoBytes`**; der Schalter in beiden Stellungen; der Import wandelt nicht um; der Knopf: 403 ohne, 202 mit Bestätigung, 409 beim zweiten Druck, der Fortschritt in `/api/stats`, danach kein umstellbares PNG mehr und die Ableitungen unberührt |
+| **Die Bildablage: die Rechte** *(neu)* | — | **11** | Schalter und Knopf gehören dem **Eigentümer**; die Absage verschiebt die Stellung nicht; lesen darf jeder; die Eigentümerin braucht **zusätzlich** ihr Passwort |
+| **Die Bildablage in der Oberflaeche** *(neu)* | — | **28** | es bleibt bei **achtzehn** Karten; die Aufstellung steht in „Kennzahlen"; ein Format ohne Bilder bekommt **keine Zeile mit einer Null**; der Schalter geht über `PUT /api/settings`; der Knopf **fragt erst das Passwort**, und der Dialog nennt Zahl, Verlust und Sicherung; die drei Gegenlagen; der Admin ohne Eigentümerrolle sieht die Zahlen und **weder Schalter noch Knopf** |
+| **Fokuspunkt der Vorschau** | 12 | **22** | der Zoom: Vorgabe, Setzen, Runden, Beschneiden nach beiden Seiten, **ein fehlendes Feld behält den Wert**, Übersicht, Export, Import — und ein unsinniger Wert in der Datei fällt auf die Vorgabe, statt das Einspielen abzubrechen |
+| **Fokuspunkt in der Oberflaeche** | 8 | **33** | `ausschnitt()` liefert beide Hälften, `fokus()` gibt es nicht mehr daneben, **die Kachel trägt `--zoom` wirklich**; der Schieber: Ziehen zeichnet ohne zu schicken, **der Rahmen zieht sich auf die Hälfte zusammen**, Loslassen schickt alle drei Werte in EINEM Ruf, und ein Griff an den Schieber setzt keinen Fokuspunkt |, **und das Stilblatt rechnet ihn wirklich ein** *(vier Zusagen, nachgetragen weil Rückbau 453 stumm blieb)*
+| **MIGRATION 0.19.0 — ENTFAELLT MIT 1.0** *(neu)* | — | **16** | die Prüflage aus 0.18.1 trägt die Spalte nicht und **wirklich Fotos**; die Migration ergänzt sie und **nennt im Protokoll die Zahl**; die Fokuspunkte bleiben, `zoom` steht auf 100; **kein `UPDATE` im Block**, die Vorgabe steht am `ALTER TABLE`, in der DDL **und im Verhalten**; `zoom` ist die **letzte** Spalte der DDL; ein zweiter Lauf bleibt stumm; eine frische Instanz trägt sie ohne Migration — **und migriert wie frisch tragen dieselben Spalten in derselben Reihenfolge** |
+| **zusammen** | | | **+136** |
+
+> **NACHGEZOGEN UND NICHT NEU:** die Zahl der schreibenden Routen (69 → 70), der
+> Zwecke der zweiten Bestätigung (7 → 8), der Migrationsfunktionen und
+> markierten Blöcke (7 → 8), die Formatnummer (11 → 12 an fünf Stellen) und die
+> Zahl der Rückbauten (422 → 450). **Zwei vorhandene Zusagen sind umgeschrieben
+> statt gelöscht (Stolperstein 201):** „ein Rasterbild wird mit seinem eigenen
+> Typ ausgeliefert" fragt jetzt den Typ **der Bytes** ab, und „ein Range am Foto
+> wird übergangen" vergleicht gegen den **vollen Abruf derselben Zeile** statt
+> gegen die hochgeladene Datei. *Beide Male ist die Zusage dieselbe geblieben;
+> was sich geändert hat, ist das, was in der Tabelle liegt.*
+
+**Und die Runde davor, zum Vergleich — 0.18.1 brachte 2 netto** am Deckel der
+Sitzungsliste; die beiden Maße der leeren Meldung sind nachgezogen.
+
+*Und die davor:* **4917 von 4917 bestanden** (0.18.0) — **104 neue Prüfungen netto**,
+keine weggefallen.
 
 | Gruppe (0.18.0) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -7326,14 +7593,23 @@ Rückbauten.*
 **Die Zahl der Abhängigkeiten steht im Prüfstand fest** — `npm ls --omit=dev`
 liefert **122 Pfade**. Wächst der Baum später still, wird es namentlich rot.
 
-### Die sieben Migrationsabschnitte — ENTFAELLT MIT 1.0
+### Die acht Migrationsabschnitte — ENTFAELLT MIT 1.0
 
-**Es gibt sieben, und alle tragen dieselbe Marke.** Je Block wird nachgestellt:
+**Es gibt acht, und alle tragen dieselbe Marke.** Je Block wird nachgestellt:
 die Spalte kommt dazu, die Bestandszeilen stehen auf der Vorgabe **aus dem
 `DEFAULT`** (am Quelltext nachgesehen, nicht aus einem `UPDATE`), ein zweiter
 Lauf bleibt **stumm**, und eine **frische** Instanz trägt die Spalte **ohne**
-Migration. *Der siebte ist der erste ohne `DEFAULT`; dort steht statt der
+Migration. *Der siebte ist der einzige ohne `DEFAULT`; dort steht statt der
 Vorgabe die leere Zelle, und sie wird ebenso geprüft.*
+
+> **DER SIEBTE UND DER ACHTE SIND DER GEGENFALL ZUEINANDER, und sie stehen
+> deshalb nebeneinander.** Bei `ratings.gesetzt_am` (0.16.0) wäre jeder
+> nachgetragene Wert eine **Erfindung** gewesen — die Instanz weiß nicht, wann
+> eine alte Bewertung entstand. Bei `photos.zoom` (0.19.0) **weiß sie es**:
+> jedes vorhandene Foto stand bisher auf „so weit wie möglich", und genau das
+> bedeutet 100. **Die Vorgabe trägt dort keine Behauptung, sondern den
+> bisherigen Zustand.** *Wer den einen für den anderen abschreibt, baut den
+> falschen — der Prüfstand hält beide Seiten fest.*
 
 | Abschnitt | Prüflage | Was er außerdem belegt |
 |---|---|---|
@@ -7344,9 +7620,10 @@ Vorgabe die leere Zelle, und sie wird ebenso geprüft.*
 | 0.8.50 | Datenbank aus 0.8.40, `photos` **mit Fotos darin** | **jede der beiden Spalten wird EINZELN nachgerüstet** (zwei weitere Prüflagen, Stolperstein 108); es gibt **keinen `CHECK`** |
 | **0.14.0** | Datenbank aus 0.13.2, `items` **mit Einträgen darin, davon einer abgelehnt** | **jede der drei Spalten wird EINZELN nachgerüstet** (drei weitere Prüflagen); die drei bleiben **leer**, auch am abgelehnten Eintrag — **kein `UPDATE` im Block**; die drei `ALTER TABLE` laufen in **EINER Transaktion**; der **Fremdschlüssel** wird am Verhalten geprüft, migriert gegen frisch; und **beide Lagen zu Stolperstein 202**, leere Tabelle gegen Tabelle mit Zeilen |
 | **0.16.0** | Datenbank aus 0.15.1, `ratings` **mit zwei Bewertungen darin** | **`gesetzt_am` bekommt KEINEN Vorgabewert** — geprüft am `ALTER TABLE` *und* an der DDL, damit frisch und migriert gleich aussehen (Stolperstein 219); die beiden Bewertungen behalten ihre Werte und stehen danach **ohne Zeitpunkt** da — **kein `UPDATE` im Block**; das Protokoll **nennt die Zahl** der Bewertungen ohne Zeitpunkt, statt nur zu melden, dass es etwas getan hat |
+| **0.19.0** | Datenbank aus 0.18.1, `photos` **mit zwei Fotos darin, davon eines mit verschobenem Fokuspunkt** | **`zoom` bekommt die Vorgabe 100** — geprüft am `ALTER TABLE`, an der DDL **und am VERHALTEN** (eine eingefügte Zeile ohne Angabe trägt sie wirklich); die beiden Fotos behalten ihre Fokuspunkte und stehen danach auf dem weitesten Ausschnitt — **kein `UPDATE` im Block**; das Protokoll **nennt die Zahl** der betroffenen Fotos |
 
 **Die Probe „Ein Sprung von 0.8.20 fährt ALLE Migrationen in einem Start" gehört
-allen sieben Blöcken.** Sie steht im Abschnitt von 0.8.31 und ist mit 0.8.50
+allen acht Blöcken.** Sie steht im Abschnitt von 0.8.31 und ist mit 0.8.50
 **erweitert worden, nicht verdoppelt**. *Wer nur einen Block entfernt, muss sie
 umschreiben statt löschen.*
 
@@ -7540,6 +7817,7 @@ eine Buchführung.*
 | **0.17.5** | **So hoch wie der Inhalt (2 netto: sieben neue, zwei weggefallen, vier umgeschrieben)** | **vier neue (385 → 389); neun nachgezogen, davon einer UMGEDREHT; 13 gefahren, 0 stumm** | **Stolpersteine 256 bis 259** |
 | **0.18.1** | **Zehn Zeilen heisst zehn Zeilen dieser Liste (2 netto)** | **einer neu (421 → 422, Nummer 430 — bis 429 ist vergeben, Stolperstein 269); zwei nachgezogen; 3 gefahren, 0 stumm** | **Stolpersteine 267 bis 269** |
 | **0.18.0** | **Die Suche wird nachvollziehbar (104 netto, keine weggefallen)** | **32 neue (389 → 421); ACHT nachgezogen, weil sie auf die Umgebung eines Ausdrucks zeigten statt auf ihn (Stolperstein 264); alle 32 gefahren, 0 stumm — der erste Lauf hatte NEUN Befunde: sechs stumme Rückbauten und drei abgerissene Läufe, alle abgearbeitet** | **Stolpersteine 260 bis 266** |
+| **0.19.0** | **Die Bildablage (136 netto)** | **28 neue (422 → 450, Nummern 431 bis 458); einer nachgezogen (Stolperstein 201: Rückbau 233 zeigt statt auf Formatnummer 11 jetzt auf 12); alle 28 gefahren, 100 rote Punkte, kein abgerissener Lauf, 2 STUMM — einer angekündigt (433, der Größenvergleich ließ sich mit erzeugtem Material nicht herstellen), einer ein Befund (453: der Prüfstand belegte nirgends, dass das Stilblatt den Zoom einrechnet; Lücke geschlossen, nachgefahren, jetzt rot)** | **Stolpersteine 270 bis 274** |
 
 **Ausführlich steht nur die jüngste Runde.** Von den älteren bleibt hier, was
 heute noch bindet; die Lehren selbst sind Stolpersteine in Abschnitt 6, die
@@ -7555,6 +7833,42 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
 
 ### Offen aus der laufenden Runde
 
+- **0.19.0 IST GEBAUT UND AM WIRT NOCH NICHT GESEHEN.** *Acht Handgriffe, und
+  sie sind die Runde:* **(a)** ein **Bildschirmfoto mit Strg+V einfügen** — in
+  der Datenbank liegt WebP (die Karte zählt es), und der **Text darauf ist im
+  Vollbild scharf**; **(b)** ein **JPEG hochladen** — es liegt unverändert da;
+  **(c)** ein **GIF hochladen** — unverändert, und **die Bewegung ist noch da**;
+  **(d)** den **Schalter ausschalten und wieder einfügen** — jetzt liegt PNG da;
+  **(e)** den **Knopf drücken** — die Karte zählt herunter, danach steht dort
+  kein PNG mehr, **und die Bilder sehen aus wie vorher**; **(f)** den **Knopf
+  als gewöhnlicher Admin suchen** — er ist nicht da; **(g)** einen **Ausschnitt
+  enger ziehen und neu laden** — er bleibt; **(h)** **exportieren und in eine
+  ZWEITINSTANZ einspielen** — der Ausschnitt kommt mit. *Die Befehle dazu
+  standen im Chat der Runde, nicht hier.*
+- **DER MIGRATIONSBLOCK 0.19.0 IST AM ECHTEN BESTAND NOCH NICHT GEFAHREN.** Er
+  ist am Prüfstand belegt. **Am Wirt fehlt der Beleg:** nach dem Einspielen
+  einmal ins Protokoll sehen (`docker compose logs kriterion`), dass die Zeile
+  *„photos um zoom ergaenzt (Migration auf 0.19.0)"* dasteht — **und welche
+  Zahl sie nennt.** *Das ist die Zahl der Fotos, die auf dem weitesten
+  Ausschnitt stehen; sie steht genau einmal da und beim nächsten Start nicht
+  mehr.*
+- **DIE `effort`-LEITER IST NICHT AM ECHTEN BESTAND GEMESSEN** *(Stolperstein
+  270)*. Der bauende Lauf kommt der Instanz nicht bei; gemessen wurde an
+  erzeugtem Material, und **dabei kam heraus, dass die Antwort vom Material
+  abhängt**: bei Pixelrauschen bringen `effort` 5 und 6 **13,5 %**, bei
+  fotoähnlichem Material **2,0 %** bei 24 % mehr Zeit. **`effort: 4` bleibt.**
+  *Was am echten Bestand fehlt: dieselbe Leiter über hundert gezogene Bilder,
+  Größe **und** Zeit. Ergibt sich dort ein Gewinn wie im ersten Fall, ist
+  `effort: 5` eine eigene kleine Runde wert — mehr nicht.*
+- **DIE ABLEITUNGEN SIND WEITERHIN JPEG, UND DAS IST JETZT DIE GRÖSSERE
+  HÄLFTE.** Nach dieser Runde schrumpfen die Originale auf rund 162 MB, während
+  `thumb` und `medium` mit **71,1 MB** bleiben, wo sie sind — *bisher hieß es
+  „später, wenn Platz wirklich knapp wird"; der Grund hat sich geändert.*
+  **Und `medium` ist JPEG q84 und damit verlustbehaftet:** was man in der
+  Anwendung anschaut, ist die Ableitung und nicht das Original. *Ob `medium`
+  ebenfalls `nearLossless` werden sollte, ist **nicht gemessen** — das braucht
+  einen eigenen Lauf, und es berührt die Auslieferung.* **Steht in Abschnitt
+  10 als eigene Zeile.**
 - **0.18.1 IST AM WIRT ANGEKOMMEN UND GESEHEN.** *Am 1. September 2026
   bestätigt: die laufende Instanz meldet `7b12ead4`, und beide Befunde sind weg
   — „jetzt bin ich damit zufrieden."* **Damit ist auch die Kette aus 0.17.2 bis
@@ -7654,9 +7968,9 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   „Mailversand" im Abschnitt „Zugänge" — sie steht jetzt so breit wie ihre drei
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT SIEBZEHN RUNDEN AUS.** 421 Rückbauten
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ACHTZEHN RUNDEN AUS.** 450 Rückbauten
   zu je einem vollen Prüflauf sind bei rund fünfeinhalb Minuten je Lauf etwa
-  **achtunddreißig Stunden** hintereinander, in vier Nebenspuren rund zehn. **Er lässt
+  **vierzig Stunden** hintereinander, in vier Nebenspuren rund elf. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
   `git archive HEAD`, und ein Commit mitten im Lauf verschiebt die Grundlage.
   *Was in 0.17.2 gefahren wurde, steht im Änderungsprotokoll dieser Runde;
@@ -8051,6 +8365,83 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.19.0 — „Die Bildablage"
+
+**MINOR · 1. September 2026 · Sammelblatt Nr. 15, aufgefallen im Betrieb am
+28. August 2026 aus der Frage nach der Größe der Datenbank; am 30. August um
+den engeren Ausschnitt und das Bildformat erweitert.** *Angefasst sind
+`server.js`, `db.js`, `auth.js`, `public/app.js`, `public/style.css`,
+`pruefung.js` und `gegenprobe.js`.* **DIES IST EINE DATENBANKSTUFE:** der
+**achte** markierte Migrationsblock (`photos.zoom`) und **Austauschformat 11 →
+12**. **Die Sicherung des Datenverzeichnisses ist Pflicht.**
+
+**DER BEFUND IN EINEM SATZ:** *679 der 1032 Bilder lagen als PNG im Original —
+435,7 MB von 568,9 MB des gesamten Bildbestands.* Es sind Bildschirmfotos: der
+Browser legt die Zwischenablage als PNG ab, und der Server hat sie unverändert
+gespeichert.
+
+**DAS ERGEBNIS DER MESSUNG IN EINEM SATZ:** *als WebP im Verfahren
+`nearLossless` bei `quality: 60` werden aus 435,7 MB **161,9 MB**, ohne dass
+eines von hundert Bildern sichtbar schlechter wird.*
+
+**DIE MESSUNG, weil die Runde auf ihr steht.** Vier Läufe an der echten Instanz,
+je hundert zufällig gezogene Bilder:
+
+| Verfahren | für alle 679 PNG | mittl. MAE | max | Bilder > 30 |
+|---|---|---|---|---|
+| `lossless` | 216,6 MB | 0 | **0** | 0 von 100 |
+| `nearLossless` 80 | 182,4 MB | 0,30 | **1** | 0 von 100 |
+| **`nearLossless` 60** | **161,9 MB** | **0,53** | **2** | **0 von 100** |
+| `nearLossless` 40 | 155,0 MB | 0,82 | **4** | 0 von 100 |
+| `quality: 100` | 88,1 MB | 0,78 | **115** | **11 von 100** |
+| `quality: 90` | 46,8 MB | 1,31 | **112** | **11 von 100** |
+
+**Die entscheidende Zeile ist `quality: 100`.** Die höchste verlustbehaftete
+Güte, die es gibt, beschädigt **dieselben elf** Bilder mit **derselben**
+Abweichung wie `quality: 90` — es sind immer dieselben, die mit harten Kanten.
+*Das ist keine Frage der Einstellung, sondern des Verfahrens.* **`nearLossless`
+60 schlägt außerdem das rein Verlustfreie: 161,9 gegen 216,6 MB.**
+
+**DREI STÜCKE.**
+
+1. **Jedes PNG wird beim Hereinkommen ein WebP** — erkannt an den ersten acht
+   Bytes, nicht am gemeldeten Typ. `mime_type` wird mitgezogen. **JPEG, GIF und
+   vorhandenes WebP werden nicht angefasst**, und ein PNG, das größer würde,
+   bleibt PNG. Ein **Schalter** im Reiter „Datenbank" (Vorgabe an, nur der
+   Eigentümer, über `PUT /api/settings`) schaltet es ab; *aus heißt byte-genau
+   aus.*
+2. **Ein Knopf zieht den vorhandenen Bestand nach** —
+   `POST /api/bilder/umstellen`, **zweitbestätigt**, kehrt sofort zurück (202),
+   arbeitet Zeile für Zeile mit 30 ms Pause und meldet seinen Fortschritt als
+   Feld in `/api/stats`. **Ein Lauf zur Zeit.** *Er war als Wirtsskript
+   `bilder.js` geplant und ist ein Knopf geworden: es ist keine einmalige
+   Umstellung, sondern eine Funktion, die bleibt — der Schalter kann ein Jahr
+   aus stehen, und eine alte Sicherung bringt PNG zurück.*
+3. **Der Bildausschnitt lässt sich enger ziehen** — `photos.zoom`, ein
+   Prozentwert von 100 bis 400. **Es wird weiterhin nichts geschnitten:** die
+   drei Werte sind `object-position` und eine Skalierung, reine Anzeige. Die
+   Bedienung sitzt dort, wo der Fokuspunkt gesetzt wird, und geht über
+   **dieselbe** Route.
+
+**NEBENHER, UND ES KOSTET NICHTS:** `/api/stats` fragte `photos` **zweimal** ab
+— einmal `art != 'video'`, einmal `art = 'video'` —, und jeder Durchlauf war ein
+voller Tabellendurchgang. *Gemessen an einer Datenbank in der Größe der echten:
+**4.230 ms** warm für zwei Durchläufe, **2.990 ms** für ein `GROUP BY` —
+**mitsamt** der neuen Aufteilung nach Format.* **Die Karte bekommt eine Auskunft
+dazu und wird dabei um 1,2 Sekunden schneller.** *`photoCount`, `photoBytes`,
+`videoCount` und `videoBytes` behalten Namen und Bedeutung; die Aufteilung kommt
+daneben.*
+
+**WAS AUSDRÜCKLICH NICHT GEBAUT WURDE:** die Ableitungen auf WebP (Abschnitt
+10), die Aufteilung nach Herkunft („Strg+V gegen Dateiauswahl" — der Server
+sieht den Unterschied nicht, und das Format bildet ihn ohnehin ab), die
+Umwandlung beim Import, ein Original am Kommentarbild, AVIF, ein Wirtsskript
+`bilder.js` und ein Rückweg „WebP wieder nach PNG".
+
+**DATENBANKSTUFE:** acht markierte Blöcke, **Austauschformat 12**, `F_ROUTEN`
+von **69 auf 70**, `BESTAETIGUNG_ZWECKE` von **sieben auf acht**. *Es bleibt bei
+achtzehn Karten in fünf Abschnitten und acht persönlichen Schlüsseln.*
 
 ### 0.18.1 — „Zehn Zeilen heißt zehn Zeilen dieser Liste"
 
@@ -9341,9 +9732,9 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.17.5** | So hoch wie der Inhalt | **GEBAUT.** Der Befund aus 0.17.2, gefunden nach drei Runden: **`max-height: max-content` klemmt die Forderung nicht überall** — in Chromium schon, in der laufenden Instanz nicht, und dort forderte JEDE Liste ihre zehn Zeilen, auch die leere. *Gemessen: „Zugänge" 728 gegen 498 px, der Papierkorb leer rund 570 gegen 225.* An ihre Stelle treten zwei Zeilen ohne Schlüsselwort: `flex: 0 1 auto` und `max-height: <Deckel>rem`. **Dazu wandert das Raster des Sicherheitsprotokolls von der Zeile auf die Liste**, damit die Namen untereinander stehen — vorher vier linke Kanten, jetzt eine. *PATCH: nur `public/style.css`.* **Der Preis: eine Liste nutzt die Höhe einer höheren Nachbarin nicht mehr aus — die Zusage aus 0.17.4 ist zurückgenommen** | nein | — |
 | **0.18.1** | Zehn Zeilen heißt zehn Zeilen dieser Liste | **GEBAUT.** Zwei Befunde aus dem Rundlauf mit 0.18.0: die Sitzungsliste zeigte **fünf** Sitzungen statt zehn, weil der gemeinsame Deckel eine Höhe im Maß der Standardzeile ist und eine `.mrow.sitz` fast doppelt so hoch misst — `#msitzungen` deckelt seither bei `55.23rem`. Und eine **leere Liste ist zwei Zeilen hoch statt einer**, weil sie sich sonst wie ein Absatz liest. *PATCH: nur `public/style.css`.* **Die Grenze stand seit 0.17.4 als harmlos im Papier — ihre Begründung hing an einer Zusage, die 0.17.5 zurückgenommen hat (Stolperstein 267)** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | **GEBAUT.** *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht: eine Zeile an der Kachel nennt die Quelle und zeigt den Ausschnitt mit der Fundstelle darin, in einer festen Folge, die bei dem beginnt, was die Kachel nicht zeigt. Dazu die **Hervorhebung** — als drittes Stück der Zerlegung und nicht als Nachbearbeitung, damit „Kommentartext kommt nie über `innerHTML` in die Seite" baulich erfüllt bleibt — und der **Suchbegriff in der Adresse** (`#/item/12?q=ella`), damit sie ein Neuladen übersteht. *MINOR.* **Teil (b), der Suchbereich als Häkchen, bleibt mit Begründung liegen; Titel und Beschreibung der Detailansicht tragen keine Marke, weil beide Eingabefelder sind** | nein | — |
-| **0.19.0** | Die Bildablage | *(War als 0.18.0 vorgemerkt.)* Das Original und zwei Ableitungen an **einer** Stelle. **Dazugekommen am 30. August 2026: der engere Bildausschnitt und das wählbare Bildformat** — Einzelheiten in 10a. *MINOR; der Ausschnitt braucht eine gespeicherte Angabe mehr* | ja, für den Ausschnitt | — |
+| **0.19.0** | Die Bildablage | **GEBAUT.** *(War als 0.18.0 vorgemerkt.)* Ein ankommendes PNG wird als WebP abgelegt — `nearLossless` bei `quality: 60`, **gemessen an hundert Bildern des echten Bestands: 435,7 MB werden 161,9 MB bei einer größten Abweichung von 2 von 255.** Dazu ein Schalter (Vorgabe an, nur der Eigentümer) und ein **Knopf**, der den vorhandenen Bestand nachzieht — zweitbestätigt, weil die PNG-Fassung danach weg ist. Der **engere Bildausschnitt** kommt als dritte gespeicherte Angabe (`photos.zoom`), und `/api/stats` legt seine zwei Tabellendurchgänge zu einem zusammen. *MINOR.* **Dieses Papier hebt Teil (a) des Fahrplans auf — „das Original wird nicht angefasst" gilt für eine Kameraaufnahme, nicht für einen Bildschirmfoto-Bestand. Die Ableitungen auf WebP bleiben liegen und sind seither die größere Hälfte** | ja, **achter Block** | 11 → 12 |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
-| **0.21.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0 vorgemerkt — **die Nummer ist vorläufig**.)* Migrationscode raus — **jetzt sieben Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
+| **0.21.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0 vorgemerkt — **die Nummer ist vorläufig**.)* Migrationscode raus — **jetzt acht Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
 | **0.21.x** | Die Kommentare werden knapp | *(Neu am 31. August 2026 — **keine geplante Nummer, sondern die nächste freie PATCH-Zahl nach der Bereinigung**; dieselbe Bauform wie die 0.12.x-Zeile darüber.)* **Fast dreißig Prozent des Quelltextes sind Kommentar** — 16.281 von 54.822 Zeilen, `zweifaktor.js` zu 52 %, `auth.js` zu 46 %, `server.js` zu 44 %. **Was das Offensichtliche wiederholt, geht; was eine ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger stehen.** *PATCH: die Instanz kann danach nichts, was sie vorher nicht konnte. Der Fingerprint verschiebt sich, sonst nichts.* **Nach der Bereinigung und nicht davor** — sie löscht ganze Blöcke samt ihren Kommentaren, und wer vorher schneidet, schneidet zweimal. Einzelheiten in 10a | nein | — |
 
 > **DIE BEREINIGUNG HIESS EINMAL 0.12.0, DANN 0.13.0, DANN 0.17.0, DANN 0.18.0,
@@ -10129,163 +10520,145 @@ macht den einfachen Fall teurer, um den seltenen billiger zu machen.
 
 ---
 
-### 0.19.0 — „Die Bildablage" · *MINOR*
+### 0.19.0 — „Die Bildablage" · *MINOR* · **GEBAUT am 1. September 2026**
 
-**Ausgearbeitet aus dem Sammelblatt:** Nr. 15
+**Ausgearbeitet aus dem Sammelblatt:** Nr. 15 · **am 30. August 2026 um Teil (d)
+und (e) erweitert** · **am 1. September 2026 gemessen und gebaut.**
+
+> **DIESER ABSCHNITT IST FÜR 0.19.0 NEU GESCHRIEBEN UND NICHT ERGÄNZT.** Was
+> hier bis zum 1. September 2026 stand, war eine **Einschätzung vor der
+> Messung** — und die Messung hat den wichtigsten Satz darin aufgehoben. Zwei
+> Wahrheiten über dieselbe Sache nebeneinander stehen zu lassen wäre
+> Stolperstein 47; **was aufgehoben ist, steht deshalb weiter unten mit dem
+> Grund und ist nicht gelöscht.**
 
 > **DIESER ABSCHNITT HIESS BIS ZUM 30. AUGUST 2026 „Bereinigung — der Bruch",
 > und das war ein Versehen.** Sein Inhalt war schon immer die **Bildablage**;
-> beim Rücken der Nummern in 0.17.0 ist die Überschrift mitgewandert, der
-> Inhalt gehörte nie dazu. *Das Sammelblatt führte 0.19.0 durchgehend als
-> Bildablage, der Fahrplan als Bereinigung — zwei Wahrheiten über dieselbe
-> Nummer (Stolperstein 47).* **Aufgelöst: die Bildablage behält 0.19.0, die
-> Bereinigung rückt auf 0.21.0.**
-
-
-#### Die Bildablage: das Original und zwei Ableitungen — an einer Stelle
-
-*(stand als Punkt 15 im Sammelblatt)*
-
-**Aufgefallen im Betrieb, 28. August 2026**, aus der Frage nach der Größe der
-Datenbank.
-
-> **Art: Verbesserung** · **Claude: empfohlen** für (c), **später** für (b), **nicht empfohlen** für (a).
-> **Draußen üblich:** **Das Original wird nicht angefasst.** Immich, Nextcloud
-> Photos und Piwigo rechnen ausnahmslos Ableitungen daneben und lassen die
-> hochgeladene Datei unverändert. *Eine verlustbehaftete Umwandlung des
-> Originals gilt draußen als Datenverlust, nicht als Optimierung.*
+> beim Rücken der Nummern in 0.17.0 ist die Überschrift mitgewandert.
+> **Aufgelöst: die Bildablage behält 0.19.0, die Bereinigung rückt auf 0.21.0.**
 
 ### Woher
 
 Aus dem Betrieb, **28. August 2026**. Die Frage war: *973 Bilder, 660 MB — ist
 das groß oder normal? Und landet ein mit Strg+V eingefügtes Bild als BMP in der
-Datenbank? Ließe sich die dann durch Umwandlung nach JPEG verkleinern?*
+Datenbank?*
 
-### Was auffiel
+### Was die Messung ergeben hat
 
-**Die Antwort auf die Frage lautet: normal, und es ist kein BMP.** Rund 680 kB
-je Bild, und darin stecken **drei** Fassungen. Browser legen Bilder aus der
-Zwischenablage als **PNG** ab — die Windows-Zwischenablage hält intern eine
-DIB, der Browser reicht sie als PNG weiter.
+**Der Bestand, gezählt und nicht geschätzt** *(1. September 2026, an der
+laufenden Instanz)*:
 
-**Beim Nachsehen kam etwas anderes heraus, und das ist der eigentliche Punkt:
-die beiden Bildwege der Instanz speichern verschieden, und nirgends steht,
-warum.**
+| | Anzahl | Original | `thumb` | `medium` | zusammen |
+|---|---|---|---|---|---|
+| **PNG** | **679** | **435,7 MB** | 9,6 MB | 36,1 MB | 481,4 MB |
+| JPEG | 344 | 61,5 MB | 4,7 MB | 20,3 MB | 86,4 MB |
+| WebP | 9 | 0,6 MB | 0,1 MB | 0,3 MB | 1,0 MB |
+| **zusammen** | **1032** | **497,7 MB** | **14,4 MB** | **56,7 MB** | **568,9 MB** |
 
-| Weg | Was in der Datenbank landet |
-|---|---|
-| Foto am **Eintrag** (`photos`) | **das Original unverändert**, dazu 1600px- und 400px-JPEG |
-| Bild im **Kommentar** (`comment_images`) | **nur** 1600px- und 400px-JPEG — kein Original |
+**Das Gewicht liegt am Original, nicht an den Ableitungen** — 497,7 von 568,9 MB.
+*Genau die Frage stellte der Fahrplan, und die Antwort ist: ja, dort.*
 
-Am Eintrag wird `f.buffer` mit dem gemeldeten Typ gespeichert (`server.js:2471`);
-im Kommentar geht jede Datei durch `kodiereKommentarBild()` und kommt als JPEG
-heraus. **Zwei Regeln für dieselbe Sache.**
+**Wie die Bilder beschaffen sind: 92 von 100** zufällig gezogenen PNG sind
+**fotografisch** — *der Betreiber macht Bildschirmfotos **von Fotos**.* **Es sind
+also weder reine Bedienoberflächen noch reine Aufnahmen, sondern beides
+gemischt, oft im selben Bild.** **100 von 100 haben einen Alphakanal**, und er
+trägt nichts — *libwebp wirft einen durchgehend undurchsichtigen Alphakanal von
+selbst weg; die WebP-Datei ist mit und ohne ihn **byte-identisch**. Da ist
+nichts zu holen.*
 
-### Was es nicht ist
+### Der Satz, den diese Runde aufgehoben hat
 
-**Kein Fehler, und keine der beiden Regeln ist falsch.** Am Eintrag hat das
-Original einen Zweck: das Vollbild zeigt es (`app.js:2484` fragt ohne
-`?size=`). Im Kommentar gibt es kein Vollbild in diesem Sinn.
+**Der Fahrplan sagte zu (a):** *„Was NICHT gebaut werden soll: die vorhandenen
+Originale umwandeln. Verlustbehaftet und unumkehrbar — und bei einem
+Bildschirmfoto ist PNG die bessere Wahl."* **Die Einschätzung daneben lautete
+„Claude: nicht empfohlen für (a)".**
 
-**Es ist auch kein Speicherproblem.** 660 MB sind für 973 Bilder unauffällig.
-**Was daran hängt, ist etwas anderes: der Export** — und der steht als Punkt 3
-mit eigener Rechnung da.
+**Der Satz ist richtig über JPEG.** Er ist auch richtig über verlustbehaftetes
+WebP. **Er ist falsch über `nearLossless`, und `nearLossless` gab es in der
+Überlegung vom 28. August nicht.**
 
-**Was es ist: eine unaufgeschriebene Asymmetrie.** Wer in einem halben Jahr
-fragt „warum ist das eine Bild schärfer als das andere", findet die Antwort
-heute nur im Quelltext.
-
-### Was gebaut werden könnte
-
-**a) Was NICHT gebaut werden soll: die vorhandenen Originale nach JPEG
-umwandeln.** Verlustbehaftet und unumkehrbar — und bei einem **Bildschirmfoto
-ist PNG die bessere Wahl**: scharfe Kanten und Text leiden unter JPEG sichtbar.
-Eine Umwandlung über den ganzen Bestand träfe genau die Bilder, denen sie
-schadet.
-
-**b) Später, wenn Platz wirklich knapp wird: die Ableitungen auf WebP.**
-Rund 30 Prozent kleiner bei gleicher Güte, **ohne das Original anzufassen**,
-und `sharp` kann es ohne neue Abhängigkeit. *Es berührt die Auslieferung
-(`setzeBildHeader`) und ist deshalb keine reine Rechenänderung.*
-
-**c) Der Unterschied gehört aufgeschrieben.** Ein Absatz am Quelltext beider
-Wege und eine Zeile im Projektstand. *Das ist der Teil, der heute wirklich
-fehlt.*
-
-### Offene Entscheidungen
-
-* **Soll das Kommentarbild künftig auch sein Original behalten?** Es wäre
-  einheitlich — und es vergrößerte die Datenbank an der Stelle, an der die
-  meisten Bilder anfallen. *Vorschlag: nein, aber die Begründung aufschreiben.*
-* **Wenn (b) kommt: AVIF statt WebP?** Kleiner, aber langsamer zu rechnen und
-  in älteren Browsern nicht überall da. *Für eine Instanz, die zehn Jahre laufen
-  soll, ist WebP die sichere Wahl.*
-* **Und die Frage, die Punkt 3 stellt und hier beantwortet werden müsste:**
-  zählt die Größenschätzung für den Export das Original **und** beide
-  Ableitungen? *Sie muss — im Export steckt alles drei.*
-
-### Was es anfasst
-
-Für (c): zwei Kommentare und eine Zeile im Projektstand. **Sonst nichts.** Für
-(b): `makeVariants()`, `kodiereKommentarBild()`, die Auslieferung, die
-Prüflagen. **Kein Schema in beiden Fällen.**
-
-**Was dagegen spricht:** gegen (c) nichts. Gegen (b) spricht, dass nichts
-klemmt — *es ist eine Ersparnis ohne Not, und sie fasst den Weg an, über den
-jedes Bild der Instanz läuft.*
-
-#### Dazugekommen am 30. August 2026: der engere Ausschnitt und das Bildformat
-
-*(Aus dem Betrieb, nicht aus dem Sammelblatt — beim Durchsehen von 0.17.0.)*
-
-**(d) DER AUSSCHNITT SOLL SICH ENGER WÄHLEN LASSEN.** Heute lässt sich nur
-verschieben, nicht zoomen.
-
-> **NACHGESEHEN, UND DIE ANTWORT IST ANGENEHM:** es wird **gar nichts
-> geschnitten.** `fokus()` liefert zwei Prozentwerte als `object-position`, die
-> Datei bleibt ganz. **Ein engerer Ausschnitt wäre ein drittes Maß daneben** —
-> wieder rein in der Anzeige, **ohne jede Neuberechnung des Bildes.**
-> *Aber es ist eine gespeicherte Spalte, und damit eine Datenbankstufe. Genau
-> deshalb steht der Punkt hier und nicht in 0.17.1.*
-
-**(e) DAS BILDFORMAT SOLL WÄHLBAR SEIN.** Der Bestand ist auf rund 700 MB
-gewachsen.
-
-> **ZWEI BEFUNDE VORWEG, beide nachgesehen und beide angenehm:**
-> **Erstens: die Bilder liegen nicht als PNG.** `makeVariants()` kodiert
-> **jedes** Bild neu — `thumb` 400 px bei q78, `medium` 1600 px bei q84, beide
-> mit mozjpeg; die Kommentarbilder denselben Weg. **PNG kommt herein, nie
-> hinaus.**
-> **Zweitens: WebP kostet keine neue Abhängigkeit.** `sharp` ist längst da und
-> kann es; der Wechsel wäre je Stelle eine Zeile. *Realistisch 25 bis 35 Prozent
-> kleiner bei gleicher Qualität.*
-
-> **UND DAS GILT AUCH FÜR ALLES, WAS MIT STRG+V HEREINKOMMT.** Es gibt drei
-> Einfügestellen — am Eintrag, im neuen Kommentar und am nachgereichten —, und
-> **keine davon ist ein eigener Weg:** sie sparen nur den Umweg über eine Datei
-> und landen bei denselben Funktionen wie die Dateiauswahl. *Ebenso das
-> Standbild eines Videos und die Bilder aus einem Import: `makeVariants()` steht
-> an vier Stellen, und alle vier führen dorthin.*
+> **DIE GEGENREDE GEHÖRT MIT AUFGESCHRIEBEN, WEIL SIE STIMMT.** Unter „Draußen
+> üblich" stand: *„Das Original wird nicht angefasst. Immich, Nextcloud Photos
+> und Piwigo rechnen ausnahmslos Ableitungen daneben."* **Diese Runde weicht
+> davon ab, und zwar bewusst.**
 >
-> **DAS IST SOGAR DAS STÄRKSTE ARGUMENT FÜR (e).** Ein Bildschirmfoto liegt als
-> **PNG** in der Zwischenablage, und **JPEG ist für Bildschirmfotos der falsche
-> Kodierer**: Text auf flachem Hintergrund bekommt bei q84 Kanten und Schlieren.
-> *Genau dort ist WebP am stärksten.* **Sind viele der 700 MB eingefügte
-> Bildschirmfotos, spart die Umstellung nicht nur Platz — sie sieht auch
-> besser aus.** Das gehört bei der Messung unten mit erhoben: **wie viele
-> Bilder sind Bildschirmfotos und nicht Aufnahmen?**
+> **Die Begründung, und sie muss diese Abweichung tragen:** Der Bestand besteht
+> zu 92 % aus **Bildschirmfotos**, nicht aus Kameraaufnahmen. Ein Bildschirmfoto
+> hat kein Negativ und keine EXIF-Herkunft; es ist selbst schon eine Ableitung.
+> **Und die Änderung beträgt im schlimmsten gemessenen Einzelfall 2 von 255** —
+> gegen **274 MB**.
+>
+> **Wer diese Abwägung anders trifft, nimmt `lossless` statt `nearLossless` 60
+> und zahlt 55 MB.** *Beides ist vertretbar; die Entscheidung ist gefallen und
+> steht hier, damit sie nicht in einem halben Jahr als Versehen gelesen wird.*
+>
+> **UND DER SCHALTER IST DER AUSWEG:** wer die Abweichung gar nicht mitgehen
+> will, schaltet sie ab, und dann verhält sich die Instanz wie Immich,
+> Nextcloud und Piwigo.
 
-**WAS ZUERST GEMESSEN GEHÖRT, BEVOR JEMAND ETWAS BAUT:** wie sich die 700 MB
-auf **Original**, `medium` und `thumb` verteilen. **Liegt das Gewicht am
-Original, ist die Umstellung der Ableitungen die kleinere Hälfte** — und die
-Frage lautet dann, ob das Original überhaupt bleiben muss. *Eine Ersparnis, die
-man nicht gemessen hat, ist eine Vermutung.*
+### Was gebaut wurde
 
-**Der Ort für die Einstellung ist „Datenbank" und nicht der Reiter „Instanz":**
-das Format entscheidet, wie viel Platz der Bestand braucht, und dort steht schon
-alles andere, was über Platz redet.
+**a) JEDES ANKOMMENDE PNG WIRD EIN WEBP** — `nearLossless: true, quality: 60,
+effort: 4`, erkannt an den ersten acht Bytes. `mime_type` wird mitgezogen.
+**JPEG, GIF und vorhandenes WebP werden nicht angefasst**; ein PNG, das größer
+würde, bleibt PNG; über 16383 px je Kante gibt WebP auf, und dann bleibt es
+ebenfalls PNG.
 
----
+**a1) EIN SCHALTER, ABER NICHT NACH HERKUNFT.** „PNG-Originale beim
+Hereinkommen umwandeln", Vorgabe an, nur der Eigentümer, im Reiter „Datenbank",
+über `PUT /api/settings`. **Was ausdrücklich NICHT kommt, ist die Aufteilung
+„Original behalten bei Dateiauswahl, umwandeln bei Strg+V":** *erstens sieht der
+Server den Unterschied gar nicht — in `req.files` steht eine Datei und sonst
+nichts; zweitens tut das Format es schon (Zwischenablage → PNG, Kamera → JPEG,
+und der Bestand belegt es mit 679 zu 344); drittens wären es zwei Formate für
+denselben Inhalt, entschieden dadurch, wie er hereinkam.*
+
+**b) EIN KNOPF ZIEHT DEN BESTAND NACH.** `POST /api/bilder/umstellen`,
+zweitbestätigt, 202, ein Lauf zur Zeit, Fortschritt als Feld in `/api/stats`,
+`reclaim()` danach. **`thumb` und `medium` werden nicht neu gerechnet.** *Es
+war ein Wirtsskript `bilder.js` geplant; der Knopf ist die bessere Wahl, nicht
+die bequemere — es ist keine einmalige Umstellung, sondern eine Funktion, die
+bleibt.*
+
+**c) DIE ASYMMETRIE DER BEIDEN BILDWEGE IST AUFGESCHRIEBEN** — am Quelltext
+beider Wege und in Abschnitt 4, samt der Antwort auf die offene Frage: **nein,
+das Kommentarbild bekommt kein Original**, und der gemessene Generationsverlust
+(MAE 0,06 nach einer Runde, 0,10 nach sechs) steht daneben.
+
+**d) DER ENGERE AUSSCHNITT** — `photos.zoom`, 100 bis 400 Prozent, achter
+Migrationsblock, Austauschformat 12. **Es wird nichts geschnitten.**
+
+**e) NEBENHER:** `/api/stats` geht einmal statt zweimal durch `photos` und
+liefert dabei die Aufteilung nach Format mit — **4.230 → 2.990 ms warm.**
+
+### Was ausdrücklich NICHT gebaut wurde
+
+**Die Ableitungen auf WebP** — Teil (b) des Fahrplans. *Er bleibt liegen, und
+**der Grund hat sich durch diese Runde geändert**: bisher hieß es „später, wenn
+Platz wirklich knapp wird"; nach dieser Runde sind die Ableitungen mit 71,1 MB
+die **größere** Hälfte.* **Und ein Befund ist dazugekommen: `medium` ist JPEG
+q84 und damit verlustbehaftet** — was man in der Anwendung anschaut, ist die
+Ableitung und nicht das Original. *Diese Runde macht das Archiv unversehrt und
+lässt die Anzeige, wie sie ist. Das ist vertretbar, aber es ist eine halbe
+Antwort, und die nächste Runde muss sie kennen.* **Warum trotzdem nicht jetzt:**
+es berührt die Auslieferung (`setzeBildHeader`) und damit einen zweiten Weg, und
+ob `medium` ebenfalls `nearLossless` werden sollte, ist **nicht gemessen**.
+
+**Die Aufteilung nach Herkunft**, **die Umwandlung beim Import**, **das Original
+am Kommentarbild**, **AVIF** *(kleiner, aber langsamer zu rechnen und in älteren
+Browsern nicht überall da — für eine Instanz, die zehn Jahre laufen soll, ist
+WebP die sichere Wahl)*, **ein Wirtsskript `bilder.js`** und **ein Rückweg „WebP
+wieder nach PNG"** *(er stellte nicht die Datei wieder her, die dagewesen ist,
+sondern eine neue mit denselben Pixeln)*.
+
+### Was offen blieb
+
+* **Die `effort`-Leiter am echten Bestand** (Stolperstein 270). `effort: 4`
+  stammt aus der Messung am rein verlustfreien Weg; die Nachmessung an
+  erzeugtem Material hat gezeigt, dass die Antwort **vom Material abhängt**.
+* **Die Ableitungen auf WebP** — mit dem neuen Grund oben.
+* **Ob `medium` `nearLossless` werden sollte** — nicht gemessen.
+
 
 ### 0.20.0 — „Die Oberfläche wird ruhiger" · *MINOR* *(Nummer vorläufig)*
 

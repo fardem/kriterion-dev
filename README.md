@@ -1203,8 +1203,11 @@ es zwei, beide im Systembereich einstellbar:
   abgesichert ist.
 - **Bildausschnitt der Vorschau**: Der Schalter „Ausschnitt" über dem Bild legt
   je Foto fest, welcher Teil auf der quadratischen Karte zu sehen ist. Ein
-  Rahmen zeigt dabei den künftigen Ausschnitt. Zugeschnitten wird nichts — die
-  Datei bleibt unangetastet, es verschiebt sich nur das sichtbare Fenster.
+  Rahmen zeigt dabei den künftigen Ausschnitt. Ein Schieber daneben zieht ihn
+  **enger** — von „so weit wie das Bild hergibt" bis viermal so nah. Ziehen
+  setzt den Punkt, der Schieber die Weite; beides landet in derselben Zeile.
+  Zugeschnitten wird nichts — die Datei bleibt unangetastet, es verschiebt sich
+  nur das sichtbare Fenster.
 - **Kommentare** tragen zwei unabhängige Merkmale: die **Art** (Notiz, Bericht
   oder Aufgabe) und die **Anpinnung**. Frei kombinierbar. Daraus folgt die
   Reihenfolge: erst Angepinntes, dann Aufgaben, dann Berichte, dann Notizen —
@@ -2002,12 +2005,29 @@ bleiben davon unberührt.
 
 ## Speicherbedarf
 
-Fotos werden **unverändert** gespeichert — ein Bild aus einer Systemkamera
-bleibt bei seinen 8–12 MB. Zusätzlich entstehen zwei kleinere Varianten: eine
+Fotos werden gespeichert, wie sie ankommen — ein Bild aus einer Systemkamera
+bleibt bei seinen 8–12 MB. **Eine Ausnahme gibt es, und sie ist gemessen: ein
+eingefügtes Bildschirmfoto wird als WebP abgelegt.** Was mit Strg+V hereinkommt,
+liefert der Browser als PNG; als WebP im Verfahren `nearLossless` ist es rund
+zwei Drittel kleiner, **ohne dass man einen Unterschied sieht** — an hundert
+Bildern des echten Bestands gemessen weicht der schlimmste einzelne Farbwert um
+**2 von 255** ab. **JPEG, GIF und vorhandenes WebP bleiben unberührt**, und ein
+PNG, das als WebP größer wäre, bleibt PNG.
+
+Wer das nicht will, schaltet es ab: im Systembereich unter **Datenbank →
+Kennzahlen → Bildablage** steht der Schalter „PNG-Originale beim Hereinkommen
+umwandeln" (Vorgabe an, nur der Eigentümer). Ohne Häkchen bleibt jedes PNG
+byte-genau so liegen, wie es ankam. **Daneben steht ein Knopf, der den
+vorhandenen Bestand nachzieht** — er fragt vorher das Passwort und sagt, was
+er tut: die PNG-Fassung ist danach weg, und zurück führt nur eine Sicherung des
+Datenverzeichnisses.
+
+Zusätzlich entstehen zwei kleinere Varianten: eine
 Kachel (400 px) für die Übersicht und eine mittlere (1600 px) für Detail- und
 Vollbildansicht. Das kostet rund 7 % mehr Speicher, spart beim Blättern aber
 etwa den Faktor 100 an Datenübertragung. Das Original wird erst geladen, wenn im
-Vollbild gezoomt wird.
+Vollbild gezoomt wird. **Beide Varianten sind JPEG und bleiben es** — das
+Original ist unversehrt, die Anzeige ist es nicht.
 
 **Ein Video zählt voll.** Es wird nicht umkodiert, sondern unverändert
 abgelegt; dazu kommen die beiden Varianten seines Standbilds. Bei 20 MB je
@@ -2173,10 +2193,16 @@ Start eine leere Neuinstallation vermuten.
 - `comments.kind` / `comments.pinned` — Art und Anpinnung je Kommentar
 - `comment_images` — Bilder in Kommentaren, eigene Tabelle neben `attachments`
 - `attachments` — angehängte Dateien samt Bytes **und Verfasser**
-- `photos.focus_x` / `photos.focus_y` — Fokuspunkt der quadratischen Vorschau
+- `photos.focus_x` / `photos.focus_y` / `photos.zoom` — Fokuspunkt und Weite der
+  quadratischen Vorschau. `zoom` ist ein Prozentwert; 100 heißt „so weit wie das
+  Bild hergibt". **Es wird nichts geschnitten** — die drei Werte steuern nur die
+  Anzeige
 - `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchanbieter
-  (Vorrat, eigene Anbieter, Startanbieter) und die beiden Schalter, wer neue
-  Tags und Kategorien anlegen darf. Sache des Admins
+  (Vorrat, eigene Anbieter, Startanbieter), die beiden Schalter, wer neue
+  Tags und Kategorien anlegen darf, und der Schalter der **Bildablage**.
+  Sache des Admins — der Schalter der Bildablage allerdings nur des
+  **Eigentümers**: er bestimmt, wie die ganze Instanz künftig ablegt, und
+  liegt damit in derselben Zeile wie Export, Sicherung und Schlüssel
 - `user_settings` — die **persönliche** Hälfte, **acht** Schlüssel: die zuletzt
   benutzte Filterwahl, die **gespeicherten Ansichten**, der Bezugspunkt der
   **Glocke**, Schriftgröße, Blockanordnung, sichtbare Linkzeilen, Zeitleiste
