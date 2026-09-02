@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 50 · Stand 2. September 2026 · gebaut: Version 0.19.2**
+**Kompakte Übergabe · Revision 51 · Stand 2. September 2026 · gebaut: Version 0.19.3**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,31 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.19.3 in einem Satz: zwei Arbeiten verlassen den Anfrageweg.** *PATCH — die
+Installation kann danach nichts, was sie vorher nicht konnte; dieselben Knöpfe,
+dieselben Zahlen, nur ohne die Wartezeit.* **Erstens: der Bestandslauf fährt in
+einem eigenen Thread.** Die Umstellung PNG → WebP und das Nachrüsten fehlender
+Vorschaubilder lasen und schrieben bis 0.19.2 im Haupt-Thread —
+`better-sqlite3` ist **synchron**, und die 30 ms Pause zwischen den Zeilen half
+nicht gegen die Blockade **während** einer: *gemessen 133 ms im 95. Perzentil
+und 200 ms im schlechtesten Fall; im Thread 0,9 und 1,3 ms.* **Zwei neue
+Dateien:** `bilder.js` (eine Wahrheit über die Ablage, weil der Thread dieselbe
+Umwandlung braucht wie der Anfrageweg) und `bestandslauf.js` (der Worker).
+*Zwei Schreiber auf einer WAL-Datei sind nachgemessen und nicht befürchtet: 60
+Zeilen und 88 Transaktionen daneben, **null** Abweisungen — `busy_timeout` steht
+auf 5000 ms.* **Zweitens: die Übersicht fragt einmal statt vierhundertmal** —
+fünf Abfragen ziehen vor die Schleife, **3200 Abfragen je Abruf werden 405**;
+`testStats` bleibt ausdrücklich einzeln, weil es gebündelt langsamer ist (1,94 →
+2,58 ms). **Drittens: sie holt nicht mehr, was sie nicht zeigt** — die Testtage
+der **Liste** tragen `id`, `day`, `rating` und `mine` statt zusätzlich
+Schlagworte und Verfasser, von den Links wird nur gezählt, und `qTags` nennt
+seine Spalten. *Gemessen 43 → 24 ms und 484 → 348 kB — die zweiten Werte am Prototyp der Runde, nicht am gebauten Stand; die Einzelabfragen darüber schon.*
+**Viertens: die letzten acht „Instanz" im Bildschirmtext heißen
+„Installation"** — damit ist der Produktname dort auf null. **KEINE
+DATENBANKSTUFE:** acht Migrationsblöcke, Austauschformat **12**, `F_ROUTEN`
+**70**, neunzehn Karten, kein neuer Index. *Alles Weitere in Abschnitt 2 und
+Abschnitt 9.*
 
 **0.19.2 in einem Satz: was 0.19.1 nur zur Hälfte getroffen hat.** *PATCH — drei
 Befunde aus dem Rundlauf mit 0.19.1, und zwei davon sind Nacharbeit an ihr
@@ -322,8 +347,59 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.19.2** — Fingerprint **`0cdc709d`**, **5108
-Prüfungen**, **481 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.19.3** — Fingerprint **`cdbe0925`**, **5170
+Prüfungen**, **497 Rückbauten in der Liste** (Abschnitt 8).
+*0.19.3 nimmt zwei Arbeiten aus dem Anfrageweg: der Bestandslauf fährt in einem
+eigenen Thread, und die Übersicht fragt einmal statt vierhundertmal und holt
+nicht mehr, was sie nicht zeigt.*
+**PATCH — KEINE DATENBANKSTUFE.**
+
+> **GESICHERT WERDEN MUSS VOR DEM EINSPIELEN NICHTS.** *Kein Migrationsblock,
+> keine Schemaänderung, **kein neuer Index**, das Austauschformat bleibt 12.*
+> **Nach dem Einspielen im Browser einmal hart neu laden.**
+
+> **ZWEI NEUE AUSGELIEFERTE DATEIEN:** `bilder.js` und `bestandslauf.js`. Sie
+> gehen in den Fingerprint ein und stehen im Handgriff der README, mit dem sich
+> die Prüfsummen von Hand nachrechnen lassen. *`bestandslauf.js` wird nicht
+> `require`t, sondern an `new Worker` gereicht — es stünde in keiner
+> `require.cache` und fiele aus der abgeleiteten Liste heraus; gelesen wird
+> deshalb dieselbe Konstante, mit der der Thread erzeugt wird (Stolperstein
+> 286).*
+
+> **`busy_timeout` STEHT AUF 5000 ms, UND ZWAR ALS VORGABE VON
+> `better-sqlite3`** — in `db.js` steht dazu keine Zeile. **Diese Runde hängt
+> daran:** seit 0.19.3 schreiben zwei Threads auf dieselbe WAL-Datei, und wer
+> dort auf den Schreiblock wartet, wartet Millisekunden und wird nicht
+> abgewiesen. *Nachgemessen: 60 Zeilen aus dem Thread und 88 Transaktionen aus
+> dem Haupt-Thread daneben, **null** Abweisungen, langsamste Schreibung
+> 3,6 ms.* **Was eine Runde trägt, gehört aufgeschrieben und nicht
+> vorausgesetzt.**
+
+> **DIE ANTWORT VON `GET /api/items` IST SCHMALER GEWORDEN.** Ein Testtag der
+> **Liste** trägt `id`, `day`, `rating` und `mine`; **Schlagworte und Verfasser
+> stehen dort nicht mehr.** *Am **Eintrag** stehen beide unverändert weiter.*
+> **Das ist eine Wegnahme an einer öffentlichen Antwort** — vor 1.0.0 erlaubt,
+> und deshalb steht sie im CHANGELOG mit Kasten und in Abschnitt 5 mit ihrem
+> Grund. *Wer die Übersicht im Browser benutzt, merkt davon nichts.*
+
+> **„Instanz" IST AUS DEM BILDSCHIRMTEXT HERAUS.** 0.19.1 hat siebzehn Stellen
+> umbenannt, 0.19.3 die letzten acht — nachgezählt und von einem Wächter
+> festgehalten, der **Nicht-Kommentarzeilen** zählt. *Die Kommentare sind
+> ausdrücklich nicht angefasst (33 in `public/app.js`, 37 in `server.js`,
+> eines in `public/index.html`), und in `server.js` bleibt **eine**
+> Protokollzeile für den Betreiber: „Die Instanz laeuft weiter …". Sie ist
+> keine Bildschirmmeldung, und der Wächter zählt sie ausdrücklich mit.*
+
+> **IM FELD NOCH NICHT BESTÄTIGT.** Der Fingerprint oben ist der **gebaute**
+> Wert (Stolperstein 158). **Und der eine Nachweis, der nur am Wirt zu führen
+> ist, steht seit 0.19.1 aus:** einen Umstellungslauf fahren und dabei in der
+> Übersicht blättern und im Systembereich klicken. *Reagiert die Oberfläche
+> durchgehend, ist der Thread im Feld belegt.* **Davor gehört `0cdc709d`
+> eingespielt** — auf dem Wirt lief zuletzt `f4f8a479`, also 0.19.2 ohne ihre
+> zweite Hälfte; sonst trägt der nächste Feldbeleg zwei Runden zugleich.
+
+*Davor, am 2. September:* **0.19.2** — Fingerprint **`0cdc709d`**, **5108
+Prüfungen**, **481 Rückbauten in der Liste**.
 *0.19.2 macht die Bestandskarte wirklich schnell (gemessen 4698 → 4,4 ms), gibt
 dem engeren Ausschnitt seinen Spielraum zurück und kürzt zwei Dialoge.*
 **PATCH — KEINE DATENBANKSTUFE.**
@@ -943,7 +1019,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.2** | **`0cdc709d`** *(im Feld noch nicht bestätigt)* | 5108 |
+| **0.19.3** | **`cdbe0925`** *(im Feld noch nicht bestätigt)* | 5170 |
+| 0.19.2 | `0cdc709d` *(im Feld noch nicht bestätigt — auf dem Wirt lief zuletzt `f4f8a479`, also 0.19.2 ohne ihre zweite Hälfte)* | 5108 |
 | 0.19.1 | `b0c4da5b` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5104 |
 | 0.19.0 | `5fe43053` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5055 |
 | 0.18.1 | `7b12ead4` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4919 |
@@ -3698,6 +3775,34 @@ eine geteilte Ansicht wäre ein neuer Träger und eine neue Rechtefrage.
   keinen niedrigen Wert, sondern gar keinen.
 - **Ein Testtag hat keine Null.** Er fand statt und hat eine Note, oder er wird
   gelöscht. Der Doppelklick-Rücksetzer der Kriterien gilt dort nicht.
+- **DIE TESTTAGE DER LISTE SIND SCHMALER ALS DIE DES EINTRAGS** *(seit 0.19.3)*.
+  In `GET /api/items` trägt ein Testtag **`id`, `day`, `rating` und `mine`** —
+  und **nicht** `tags` und `verfasser`. In `GET /api/items/:id` trägt er beides
+  weiter. **Zwei Formen für zwei Fragen**, und der Unterschied steht an beiden
+  Abfragen im Quelltext.
+  *Der Grund ist nachgesehen und nicht angenommen:* `zeitleistePunkte()` ist die
+  **einzige** Stelle in `public/app.js`, die das Feld aus der **Listen**antwort
+  liest, und sie nimmt `day`, `rating` und `mine`. Die vier übrigen Leser
+  arbeiten auf dem Objekt aus `detail()`. **Geholt wurden damit je Eintrag die
+  Schlagworte jedes Testtags — 1200 Einzelabfragen bei 400 Einträgen — und der
+  Verfasser dazu; beides ging ungelesen wieder hinaus** (Stolperstein 285).
+  *Gemessen 11,61 → 3,30 ms, und 96 kB weniger Antwort.*
+  **`id` BLEIBT TROTZDEM DRIN:** vier Bytes je Zeile, und es ist die einzige
+  Handhabe, falls die Zeitleiste je auf einen Punkt zeigen soll.
+  **DIES IST EINE WEGNAHME AN EINER ÖFFENTLICHEN ANTWORT** — vor 1.0.0 erlaubt,
+  aber benannt: sie steht im CHANGELOG mit Kasten. *Eine Prüfung hält Kachel und
+  Eintrag Feld für Feld gegeneinander.*
+- **DIE ÜBERSICHT FRAGT EINMAL, NICHT JE EINTRAG** *(seit 0.19.2 für die Fotos,
+  seit 0.19.3 für fünf weitere)*. Schlagworte, Linkzahl, Anhangzahl,
+  Kriterienschnitte und Kategorien werden **einmal für die ganze Liste** geholt
+  und in der Schleife nachgeschlagen. *Aus 3200 Abfragen je Abruf werden 405.*
+  **`testStats` BLEIBT AUSDRÜCKLICH EINZELN** — gebündelt gemessen 2,58 gegen
+  1,94 ms; **eine Bündelung ist kein Selbstzweck** (Stolperstein 284).
+  **Die Einzelfassungen bleiben stehen, wo `detail()` sie braucht**, und beide
+  Fassungen lesen dieselben Spalten in derselben Folge — sonst trüge die Kachel
+  etwas anderes als der Eintrag (Stolperstein 47). *Wer gruppiert, sortiert
+  **zuerst nach `item_id`** und dann wie bisher; sonst stehen die Schlagworte
+  einer Kachel in einer anderen Folge als am Eintrag.*
 - **„Getestet" ist gesperrt**, solange Testtage vorhanden sind — serverseitig
   durchgesetzt, mit sprechender Begründung, und **über alle Benutzer**: fremde
   Testtage können den eigenen Schalter blockieren. *Ein Schalter, der wortlos
@@ -7351,6 +7456,55 @@ Version, in der sie entstanden sind.*
     *Und der Rückweg gehört danebengeschrieben: fällt der Migrationsblock zu
     1.0 weg, darf die Zeile mit nach oben.*
 
+282. **EINE MESSUNG AN EINER LEEREN TABELLE MISST DEN LEERLAUF UND NICHT DEN
+    PREIS.** Was 0.19.2 an der Übersichtsschleife gemessen hat, war der Preis
+    von Abfragen, die **nichts finden** — `tags`, `ratings` und `test_days`
+    waren leer. *Das ist eine Untergrenze und keine Auskunft über den Bestand.*
+    **UND SCHLIMMER: SIE VERBIRGT DEN GRÖSSTEN POSTEN.** `qTestDays` stand gar
+    nicht in der Aufschlüsselung, weil es ohne Testtage nichts zu holen gab —
+    mit Inhalt ist es mit **11,61 ms** teurer als die fünf genannten zusammen.
+    **Wer eine Abfrage misst, füllt vorher die Tabellen, aus denen sie liest** —
+    und in der Form, in der sie im Betrieb stehen. *Die vierte Zahl dieser
+    Kette, die auf diese Weise entstanden ist: nicht erfunden, sondern an einem
+    Aufbau erhoben, der die Frage gar nicht stellen konnte.*
+
+283. **`better-sqlite3` IST SYNCHRON — JEDE SEINER ZEILEN HÄLT DEN EVENT LOOP
+    AN.** Was daneben asynchron ist, hält ihn nicht an: `sharp` läuft im
+    Threadpool von libuv. **Wer eine Blockade sucht, sucht das Synchrone.**
+    *Und eine Pause ZWISCHEN den Zeilen hilft nicht gegen eine Blockade
+    WÄHREND einer:* der Bestandslauf legte seit jeher 30 ms zwischen zwei
+    Zeilen ein und hielt den Server trotzdem an. **Der Median verrät das nicht
+    — er lag bei 0,9 ms; das 95. Perzentil lag bei 133 ms.** *Wer eine
+    Aussetzer-Meldung nachstellt, misst Perzentile und keine Mittelwerte.*
+
+284. **EINE BÜNDELUNG IST KEIN SELBSTZWECK.** `testStats` gebündelt kostet
+    2,58 ms, wo 400 Einzelabfragen 1,94 ms kosten — die eine Abfrage mit
+    Fensterfunktion kostet mehr, als das Bündeln spart. **Sie lohnt, wo sie
+    etwas spart, und sonst nicht.** *„Ihre vier Nachbarn sind es auch" ist kein
+    Grund; eine Bauform, die neben vier gleichartigen steht und langsamer ist,
+    wird trotzdem wieder eingebaut, wenn niemand die Zahl danebenschreibt.*
+
+285. **WER FRAGT, WAS ER NICHT ANZEIGT, BEZAHLT ES ZWEIMAL** — beim Holen und
+    beim Senden. Die Übersicht holte je Testtag dessen Schlagworte (1200
+    Abfragen bei 400 Einträgen) und dessen Verfasser; **gelesen hat beides dort
+    nie jemand.** **Vor jeder Bündelung gehört die Frage, ob das Gebündelte
+    überhaupt gelesen wird** — sonst wird eine Verschwendung bloß billiger.
+    *Nachgesehen wird an der Oberfläche und nicht am Kommentar daneben: der
+    Kommentar in `server.js` behauptete es seit 0.17.0 richtig, nachgezählt
+    hatte es seither niemand.*
+
+286. **EIN MODUL, DAS NUR IN EINEM THREAD LEBT, STEHT IN KEINER
+    `require.cache`.** Eine Dateiliste, die aus dem Modulgraphen abgeleitet
+    wird, sieht es deshalb nicht — **obwohl der Server es ausführt.**
+    `bestandslauf.js` wird an `new Worker` gereicht und nicht `require`t; der
+    Fingerprint kennte eine ausgelieferte Datei nicht, und das wäre eine halbe
+    Aussage. **Was an `new Worker` geht, gehört in dieselbe Ableitung** — über
+    die eine Zeile, mit der der Thread erzeugt wird, und nicht über eine zweite
+    gepflegte Liste daneben. *Dieselbe Falle steckt in jeder gepflegten Liste
+    über Dateien: die Dateiliste des Sprachwächters hat in derselben Runde die
+    beiden neuen Dateien nicht gesehen, und in einer davon stand ein Wort aus
+    seiner eigenen Sperrliste.*
+
 ---
 
 ## 7. Prüfstand
@@ -7364,10 +7518,39 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5108 von 5108 bestanden** (0.19.2) — **vier netto, aus acht neuen und
-vier weggefallenen.** *0.19.1 davor brachte 49.*
+**Stand: 5170 von 5170 bestanden** (0.19.3) — **62 neue, keine weggefallen.**
+*0.19.2 davor brachte vier netto.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **481** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **497** Rückbauten.
+
+| Gruppe (0.19.3) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3** *(neu)* | — | **29** | **Der Thread wird von hier aus erzeugt**, an einer echten, verschlüsselten Instanz und **ohne Server dazwischen** — über HTTP wäre davon nichts zu sehen, die Antwort ist dieselbe wie vorher. Belegt wird, dass er die Vorschaubilder nachrüstet, **wirklich in die verschlüsselte Datei schreibt** (sechs PNG werden sechs WebP), **je Zeile meldet und einmal am Ende**, dass jede Meldung den **ganzen Stand** trägt und nicht eine Zunahme, und dass ein **zweiter Schreiber daneben durchkommt: null Abweisungen.** Ein Fehler im Thread endet als Fehler und nicht still. Dazu am Quelltext: die Schleifen stehen nur noch in `bestandslauf.js`, **der Schlüssel reist nicht über `workerData`**, SIGTERM beendet **jeden laufenden** Thread und erst dann die Datei, `maintainStorage()` bleibt im Haupt-Thread, `db.js` legt keine Tabelle ohne `IF NOT EXISTS` an — und der Schlüsselhinweis wiederholt sich im Neben-Thread nicht |
+| **Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3** *(neu)* | — | **24** | **Feld für Feld zwischen Kachel und Eintrag** — Schlagworte samt Folge und Spalten, Linkzahl, Anhangzahl, Kategorie, Schnitt, Kennzahlen. *Die Gefahr der Bündelung ist nicht die Geschwindigkeit, sondern die zweite Wahrheit.* Dazu die Testtage in **beiden** Formen: die Liste trägt `id`, `day`, `rating`, `mine` und **sonst nichts**, der Eintrag trägt Schlagworte und Verfasser weiter. **Ein Eintrag ohne Links trägt die Zahl 0** und nicht gar kein Feld; **`testStats` fragt weiterhin je Eintrag** |
+| **„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3** *(neu)* | — | **5** | Ein Wächter, der **Nicht-Kommentarzeilen** zählt und dabei auch Kommentare **mitten in einer Zeile** liest — `public/app.js` baut seine Oberfläche aus Vorlagen-Strings. Er würde eine solche Zeile wirklich finden und lässt einen Kommentar stehen; die 33 Vorkommen in den Kommentaren stehen unverändert da, und in `server.js` bleibt **genau eine** Protokollzeile für den Betreiber |
+| **Der Versions-Fingerprint** | 16 | **18** | **Eine Änderung an `bestandslauf.js` ändert ihn — obwohl nur der Thread es lädt**; und `bilder.js` wie `bestandslauf.js` stehen beide im abgeleiteten Modulgraphen, der eine über `require`, der andere über die Zeile, mit der der Thread erzeugt wird |
+| **Verfasser in der Antwort** | 16 | **18** | **umgedreht statt gelöscht** (Stolperstein 201): dass auch die Testtage der **Übersicht** ihren Verfasser nennen, war bis 0.19.2 eine Zusage. Jetzt steht dort die Gegenrichtung — die Liste trägt vier Felder, `mine` sagt weiter, welcher Punkt mir gehört, und die Zusagen am **Eintrag** sind unverändert dieselben geblieben |
+| **Der Sprachwaechter** | 27 | *27* | **keine neue** — aber seine Dateiliste kennt jetzt **dreizehn statt elf** Dateien; ohne sie stünden `bilder.js` und `bestandslauf.js` außerhalb jeder Sprachprüfung. **Rückbau W14 bewacht die Liste** |
+| **zusammen** | | | **+62** |
+
+> **UND EIN BEFUND, DER ÄLTER IST ALS DIESE RUNDE.** Der erste
+> Gegenprobenlauf seit 0.19.1 hat gezeigt, dass **jede** Gegenprobe seither
+> unauswertbar war: die Zusage „Und die Arbeitsdatei ist nicht mehr verfolgt"
+> ruft `git ls-files` ohne Auffangnetz, und **eine Gegenprobenkopie hat kein
+> `.git`** — sie entsteht über `git archive HEAD`. Der Aufruf steht vor jeder
+> Zusicherung und **riss den ganzen Lauf ab**, statt eine Prüfung rot zu
+> färben (Stolpersteine 103 und 161). *0.19.2 hat keinen Lauf gefahren; deshalb
+> ist es dort nicht aufgefallen.* **Ein Werkzeug, das nur am Ende einer Runde
+> gebraucht wird, verrottet zwischen zwei Runden, ohne dass irgendetwas rot
+> wird.**
+
+> **DIE MESSUNGEN STEHEN IM ÄNDERUNGSPROTOKOLL, NICHT ALS PRÜFUNG.** *Eine
+> Prüflage mit 400 Zeilen à 512 kB dauerte länger als der ganze Lauf; was hier
+> steht, ist, dass die Bauform noch da ist.* **Sechzehn Rückbauten stehen
+> daneben** (491 bis 505 und W14) — sie machen jede einzelne Zusage rot.
+
+**Und die Runde davor, zum Vergleich — 5108 von 5108 bestanden** (0.19.2) —
+**vier netto, aus acht neuen und vier weggefallenen.**
 
 | Gruppe (0.19.2) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -7386,7 +7569,7 @@ beschränkt und **nicht** der volle Lauf über alle **481** Rückbauten.
 > hier steht, ist, dass die Bauform noch da ist.* **Elf Rückbauten stehen
 > daneben** (480 bis 490) — sie machen jede einzelne Zusage rot.
 
-**Und die Runde davor, zum Vergleich — 5104 von 5104 bestanden** (0.19.1),
+**Und die Runde davor — 5104 von 5104 bestanden** (0.19.1),
 **49 neue Prüfungen netto**, keine weggefallen.
 
 | Gruppe (0.19.1) | vorher | nachher | wofür |
@@ -8271,8 +8454,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   „Mailversand" im Abschnitt „Zugänge" — sie steht jetzt so breit wie ihre drei
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZWANZIG RUNDEN AUS.**
-  481 Rückbauten zu je einem vollen Prüflauf sind bei rund
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT EINUNDZWANZIG RUNDEN AUS.**
+  497 Rückbauten zu je einem vollen Prüflauf sind bei rund
   fünfeinhalb Minuten je Lauf etwa **vierzig Stunden** hintereinander, in vier
   Nebenspuren rund elf. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
@@ -8669,6 +8852,34 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.19.3 — „Bestandsläufe verlassen den Anfrageweg"
+
+**PATCH · 2. September 2026 · zwei Arbeiten verlassen den Anfrageweg, nichts
+Neues kommt dazu.** *Angefasst sind `server.js`, `db.js`, `keys.js`,
+`public/app.js`, `pruefung.js`, `gegenprobe.js`, `README.md`, `CHANGELOG.md`
+und die Papiere — dazu **zwei neue ausgelieferte Dateien**, `bilder.js` und
+`bestandslauf.js`.* **KEINE DATENBANKSTUFE** — kein Migrationsblock, keine
+Schemaänderung, **kein neuer Index**, Austauschformat **12**.
+
+| # | Was | Womit belegt |
+|---|---|---|
+| **1** | Der Bestandslauf fährt in einem **eigenen Thread** | `better-sqlite3` ist **synchron**, und die 30 ms Pause zwischen den Zeilen half nicht gegen die Blockade **während** einer: gemessen als Verspätung eines 20-ms-Taktgebers **133,0 ms im 95. Perzentil und 200,1 ms im schlechtesten Fall**; im Thread **0,9 und 1,3 ms** (Stolperstein 283). *Zwei Schreiber auf einer WAL-Datei sind nachgemessen: 60 Zeilen und 88 Transaktionen daneben, **null** Abweisungen — `busy_timeout` steht auf 5000 ms.* **`reclaim()` kommt aus dem Thread durch:** `busy: 0`, WAL 720 kB → 0 |
+| **2** | Die Übersicht fragt **einmal** statt vierhundertmal | Fünf Abfragen ziehen vor die Schleife: **3200 Abfragen je Abruf werden 405.** *Gemessen je über 400 Einträge: Schlagworte 3,76 → 2,41 ms, Schnitte 4,18 → 2,70 ms, Anhänge 1,33 → 0,23 ms.* **`testStats` bleibt ausdrücklich einzeln** — gebündelt 2,58 gegen 1,94 ms (Stolperstein 284) |
+| **3** | Sie holt nicht mehr, was sie **nicht zeigt** | Die Testtage der **Liste** tragen `id`, `day`, `rating`, `mine` — **11,61 → 3,30 ms**, und 1200 Einzelabfragen fallen ganz weg. Von den Links wird nur gezählt (2,36 → 0,47 ms), `qTags` nennt seine Spalten. *Nachgesehen und nicht dem Kommentar geglaubt: `zeitleistePunkte()` ist die einzige Stelle, die das Feld aus der Liste liest* (Stolperstein 285). **Die ganze Route: 43 → 24 ms, die Antwort 484 → 348 kB** *(am Prototyp gemessen)* |
+| **4** | Die letzten **acht „Instanz"** im Bildschirmtext | 0.19.1 hatte siebzehn umbenannt, weil der Auftrag siebzehn aufzählte. **Damit ist das Wort dort auf null** — festgehalten von einem Wächter, der Nicht-Kommentarzeilen zählt; die Kommentare sind ausdrücklich unberührt |
+| **5** | *Berichtigung:* die Aufschlüsselung aus 0.19.2 war an **leeren Tabellen** entstanden | Gemessen war der Leerlauf von Abfragen, die nichts finden — **und der größte Posten fehlte ganz**, weil er ohne Testtage gar nicht auftauchte (Stolperstein 282) |
+
+> **UND EINE ABWEICHUNG VOM AUFTRAG, DIE DER FINGERPRINT ERZWUNGEN HAT.**
+> *„Die README wird nicht angefasst"* — sie trägt aber den Handgriff, mit dem
+> ein Betreiber die Prüfsummen der ausgelieferten Dateien von Hand nachrechnet,
+> und **ohne die beiden neuen Namen nennt er zwei Dateien zu wenig**
+> (Stolperstein 158). *Zwei Namen in einer Zeile; sonst ist sie unangetastet.*
+>
+> **UND `bestandslauf.js` WÄRE VON SELBST GAR NICHT IN DEN FINGERPRINT
+> GEKOMMEN:** es wird an `new Worker` gereicht und nicht `require`t, steht also
+> in keiner `require.cache` (Stolperstein 286). *Der Pfad steht jetzt an einer
+> Stelle, und `new Worker` wie der Fingerprint lesen dieselbe.*
 
 ### 0.19.2 — „Was 0.19.1 nur zur Hälfte getroffen hat"
 
@@ -10102,7 +10313,7 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.19.0** | Die Bildablage | **GEBAUT.** *(War als 0.18.0 vorgemerkt.)* Ein ankommendes PNG wird als WebP abgelegt — `nearLossless` bei `quality: 60`, **gemessen an hundert Bildern des echten Bestands: 435,7 MB werden 161,9 MB bei einer größten Abweichung von 2 von 255.** Dazu ein Schalter (Vorgabe an, nur der Eigentümer) und ein **Knopf**, der den vorhandenen Bestand nachzieht — zweitbestätigt, weil die PNG-Fassung danach weg ist. Der **engere Bildausschnitt** kommt als dritte gespeicherte Angabe (`photos.zoom`), und `/api/stats` legt seine zwei Tabellendurchgänge zu einem zusammen. *MINOR.* **Dieses Papier hebt Teil (a) des Fahrplans auf — „das Original wird nicht angefasst" gilt für eine Kameraaufnahme, nicht für einen Bildschirmfoto-Bestand. Die Ableitungen auf WebP bleiben liegen und sind seither die größere Hälfte** | ja, **achter Block** | 11 → 12 |
 | **0.19.1** | Was 0.19.0 falsch gemacht hat | **GEBAUT am 2. September 2026** — im Feld bestätigt (`b0c4da5b`); der Rundlauf hat drei Befunde gebracht, sie sind 0.19.2. Vier belegte Fehler aus 0.19.0 und dem Betrieb: die Bestandskarte liest bei **jedem** Klick jedes Bild (**919 ms gegen 0,2 ms gemessen**, hochgerechnet 2,7 s an der echten Datenbank) — **`SUM(length(data))` verliert seine Abkürzung im `GROUP BY`, und `substr()` auf einem Blob hatte nie eine.** *Und während einer Umstellung wird daraus eine **Selbstblockade**: `verfolgeUmstellung()` fragt dieselbe Abfrage alle 1500 ms ab, was bei 2700 ms Kosten 180 % Auslastung des Haupt-Threads bedeutet — die beste Erklärung für die im Feld gemeldeten Aussetzer*, der engere Ausschnitt erreicht die Bildränder nicht (**in Chromium gemessen: 0,0 % der gewählten Ecke sichtbar**), ein Dialog aus dem Vollbild heraus liegt dahinter (`z-index` 60 gegen 90), und die Karte „Kennzahlen" ist zu groß geworden — **die Bildablage bekommt eine eigene Kachel, damit sind es neunzehn.** Dazu: der Umstellungsknopf warnt vor der Dauer, `sharp.concurrency` wird ausdrücklich gesetzt, **„Instanz" heißt „Installation"**, die `docker-compose.yml` wird zur Vorlage, damit ein Update sie nicht überschreibt — und **drei falsche Angaben in den eigenen Papieren werden berichtigt.** *PATCH: die Installation kann danach nichts, was sie vorher nicht konnte* | nein | — |
 | **0.19.2** | Was 0.19.1 nur zur Hälfte getroffen hat | **GEBAUT am 2. September 2026.** Drei Befunde aus dem Rundlauf mit 0.19.1, zwei davon Nacharbeit an ihr selbst. **Die Bestandskarte war weiter langsam** — 0.19.1 hat die eine von zwei Ursachen behoben; die zweite ist die **Spaltenlage**: `art` steht hinter drei Blobs, und wer sie aus dem Satz liest, liest die Overflow-Ketten mit (**1338,8 ms gegen 0,1 ms aus einem Index**; `MATERIALIZED` hilft dagegen nichts). *Die ganze Route: 4698 ms vorher, 28,6 ms kalt und 4,4 ms warm nachher.* **Der engere Ausschnitt erreichte die Ränder immer noch nicht** — `transform-origin` war richtig und blieb wirkungslos, weil der Betrachter keinen anderen Wert als 50 zuließ. **Und zwei Dialoge sind kurz geworden.** Dazu **zwei berichtigte Zahlen aus 0.19.1** und der Index `idx_photos_art`. *PATCH — ein Index ist keine Datenbankstufe* | nein | — |
-| **0.19.3** | Bestandsläufe verlassen den Anfrageweg | *(Neu am 2. September 2026, **gerückt von 0.19.2**.)* Der Umstellungslauf und `backfillVariants()` ziehen in einen **Worker-Thread**. Heute laufen ihre Datenbankzugriffe im Haupt-Thread und halten die Installation an — im Feld über eine ganze Stunde verteilt. **Belegt machbar:** `better-sqlite3-multiple-ciphers` beschreibt die verschlüsselte Datei aus einem Thread heraus, die Verzögerung des Haupt-Threads fiel von 126 auf 38 ms, die Dauer blieb gleich. **Steht vor jeder Runde mit einem Bestandslauf.** *Die im Feld gemeldeten Aussetzer gehen allerdings nach heutigem Stand auf die Kennzahlenabfrage zurück (0.19.1, Punkt 1) und nicht auf den Lauf: CPU und Platte sind am Wirt gemessen und ausgeschlossen (`sharp.concurrency` steht auf 1, `fsync` über 4 MB kostet 6 ms). **Diese Runde ist damit die saubere Bauform und nicht die Heilung.*** *PATCH* | nein | — |
+| **0.19.3** | Bestandsläufe verlassen den Anfrageweg | **GEBAUT am 2. September 2026.** Vier Punkte, und keiner davon ist neu: der Umstellungslauf und das Nachrüsten der Vorschaubilder ziehen in einen **eigenen Thread** (`bilder.js` und `bestandslauf.js` sind dazugekommen), die Übersichtsschleife fragt **einmal statt vierhundertmal** (3200 Abfragen je Abruf werden 405) und holt nicht mehr, was sie nicht zeigt (die Testtage der **Liste** sind schmal, von den Links wird nur gezählt, `qTags` nennt seine Spalten), und die **letzten acht „Instanz"** im Bildschirmtext heißen „Installation". **Gemessen: 133 → 0,9 ms Verspätung des Haupt-Threads im 95. Perzentil, die Route 43 → 24 ms, die Antwort 484 → 348 kB.** *`testStats` bleibt ausdrücklich ungebündelt — gebündelt ist es langsamer.* **Stand vor jeder Runde mit einem Bestandslauf**, und das gilt für 0.19.4 und 0.21.0 weiter. *PATCH* | nein | — |
 | **0.19.4** | Die Kachel zeigt, was das Original hergibt | *(Neu am 2. September 2026, **gerückt von 0.19.3**.)* `thumb` ist 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto wird deshalb **immer** 1,39× hochgerechnet, auf einem 2×-Bildschirm 2,78×, mit Zoom 250 % 3,48×. Ableitungsregel ändern **und** 1034 Vorschaubilder neu ableiten. **Nach 0.19.3, damit der Lauf niemanden lahmlegt.** *PATCH* | nein | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig und ausdrücklich NICHT gerückt worden**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.21.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
@@ -11395,6 +11606,13 @@ keine mehr.*
   **Code lässt er in Ruhe**, und was in Backticks steht, ist zitierter Code und
   keine Sprache. **Die Regel gilt für alles Neue**, unabhängig davon, wie weit
   die Bereinigung des Bestands geht.
+
+  > **SEINE DATEILISTE IST GEPFLEGT UND NICHT ABGELEITET — wer eine
+  > Quelltextdatei anlegt, trägt sie dort ein.** *In 0.19.3 sind `bilder.js`
+  > und `bestandslauf.js` dazugekommen, und bis sie in der Liste standen, sah
+  > der Wächter über beide hinweg: in einer davon stand ein Wort aus seiner
+  > eigenen Sperrliste, ohne dass irgendetwas rot wurde.* **Rückbau W14 bewacht
+  > die Liste seither, und ihre Länge steht als Zahl in einer Prüfung.**
 - **Ein Papier trägt eine Sache, und nur eines trägt sie.** Was gebaut ist,
   steht in diesem Blatt; was ein Betreiber wissen muss, im Changelog; was
   wirklich gebaut wurde, im Änderungsprotokoll; wie man es bedient, in der

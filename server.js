@@ -4,6 +4,7 @@ const os = require('os');
 const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
+const { Worker } = require('worker_threads');
 const anh = require('./anhaenge');
 // Eine Quelle fuer die Versionsnummer: die package.json. Die fuehrende Null
 // sagt, dass sich noch alles aendern darf; die Veroeffentlichung bekaeme 1.0.0.
@@ -28,6 +29,17 @@ const sharp = require('sharp');
    trotzdem die halbe Kernzahl des Wirts. Ob daraus mehr wird -- das Lesen der
    cgroup-Grenze --, ist eine Frage fuer 0.19.2 und nicht fuer diese Runde. */
 sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
+/* DIE BILDABLEITUNGEN STEHEN SEIT 0.19.3 IN bilder.js und nicht mehr hier.
+   Der Grund ist nicht Ordnung, sondern EINE Wahrheit ueber die Ablage: der
+   Bestandslauf faehrt seit dieser Runde in einem eigenen Thread und braucht
+   dieselbe Umwandlung wie der Anfrageweg (Stolperstein 47). Gerufen wird
+   dasselbe wie vorher, nur aus einer Datei daneben. */
+/* `istPNG` STEHT HIER NICHT MEHR: die einzige Stelle, die es im Server rief,
+   war die Schleife des Bestandslaufs -- und die faehrt seit dieser Runde im
+   Thread. Ein Import, den niemand ruft, ist eine Zeile, die beim naechsten
+   Lesen erklaert werden muss. Der KOMMENTAR ueber qOffenePNG nennt es
+   weiterhin, und das ist richtig: die Byte-Folge dort ist dieselbe. */
+const { makeVariants, PNG_MAGIE_HEX, legeBildAb } = require('./bilder');
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
@@ -287,97 +299,6 @@ const putUserSetting = (benutzerId, k, wert) => {
   putUserSettingS.run(benutzerId, k, wert);
 };
 
-/* ================= Bildableitungen =================
-   DIE INSTANZ HAT ZWEI BILDWEGE, UND SIE SPEICHERN VERSCHIEDEN. Das ist keine
-   Nachlaessigkeit, sondern eine Entscheidung; sie steht hier, weil sie sonst
-   nur im Quelltext beider Wege zu finden waere:
-
-     Weg                          was in der Datenbank landet
-     ---------------------------  ------------------------------------------
-     Foto am Eintrag (photos)     DAS ORIGINAL (ein PNG als WebP, siehe
-                                  legeBildAb() weiter unten), dazu 1600px-
-                                  und 400px-JPEG
-     Bild im Kommentar            NUR 1600px- und 400px-JPEG --
-     (comment_images)             KEIN ORIGINAL
-
-   WARUM DAS KOMMENTARBILD KEINS BEKOMMT, und es bleibt dabei: am Eintrag hat
-   das Original einen Zweck -- das Vollbild zeigt es. Im Kommentar gibt es kein
-   Vollbild in diesem Sinn, und die meisten Bilder fallen genau dort an. Ein
-   Original je Kommentarbild vergroesserte die Datenbank an der Stelle, an der
-   sie ohnehin am schnellsten waechst, und niemand saehe es je an.
-
-   WAS DARAUS FOLGT UND GEMESSEN IST: das Kommentarbild summiert sich beim
-   wiederholten Ein- und Ausspielen, denn der Import kodiert das gespeicherte
-   JPEG erneut als JPEG (kein Original, aus dem er neu rechnen koennte). Die
-   Zahlen dazu: MAE 0,06 nach einer Runde, 0,10 nach sechs -- es laeuft aus
-   statt davonzulaufen, und die ERSTE Kodierung kostet mit 1,89 ohnehin ein
-   Vielfaches davon. Am Foto passiert das nicht: dort schreibt der Import das
-   Original byte-genau zurueck und rechnet thumb/medium neu daraus.
-   KEIN HANDLUNGSBEDARF -- aber wer es entdeckt, soll die Zahlen daneben
-   finden und es nicht fuer schlimmer halten, als es ist. */
-const VARIANTS = { thumb: { px: 400, q: 78 }, medium: { px: 1600, q: 84 } };
-async function makeVariants(buf) {
-  const out = {};
-  for (const [name, v] of Object.entries(VARIANTS)) {
-    try {
-      out[name] = await sharp(buf, { failOn: 'none' }).rotate()
-        .resize(v.px, v.px, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: v.q, mozjpeg: true }).toBuffer();
-    } catch { out[name] = null; }
-  }
-  return out;
-}
-
-/* ================= Die Ablage des Originals =================
-   679 VON 1032 BILDERN LAGEN ALS PNG IM ORIGINAL -- 435,7 MB von 568,9 MB des
-   ganzen Bildbestands. Es sind Bildschirmfotos: der Browser legt die
-   Zwischenablage als PNG ab, und der Server hat sie unveraendert gespeichert.
-   Als WebP im Verfahren `nearLossless` werden daraus 161,9 MB.
-
-   UND DIE VORHERSAGE HAT GEHALTEN. Der Lauf ist am echten Bestand gefahren:
-   679 von 679 umgestellt, 272,1 MB gespart -- die umgestellten Bilder belegen
-   danach 435,7 - 272,1 = 163,6 MB gegen vorhergesagte 161,9 MB, ABWEICHUNG
-   1,0 %. Eine Messung, die sich bestaetigt, ist so berichtenswert wie eine,
-   die es nicht tut.
-
-   DIESER ABSATZ IST AUSDRUECKLICH KEINE ENTSTEHUNGSGESCHICHTE, sondern eine
-   zurueckgenommene Entscheidung, die sonst wiederkaeme (Stolperstein 201):
-   Fahrplan und Sammelblatt fuehrten bis zum 1. September 2026 den Satz „das
-   Original wird nicht angefasst" -- so halten es Immich, Nextcloud Photos und
-   Piwigo, und fuer eine KAMERAAUFNAHME ist das richtig. Dieser Bestand
-   besteht zu 92 % aus Bildschirmfotos; ein Bildschirmfoto hat kein Negativ
-   und ist selbst schon eine Ableitung.
-
-   WARUM `nearLossless` UND NICHT `quality`. WebP hat zwei Bitstroeme: VP8
-   (verlustbehaftet) und VP8L (verlustfrei). `quality: 90…100` faehrt den
-   ersten und franst an harten Kanten aus -- gemessen beschaedigt `quality: 100`
-   DIESELBEN elf von hundert Bildern mit DERSELBEN Abweichung wie `quality: 90`;
-   eine hoehere Guete aendert daran nichts, es ist eine Frage des Verfahrens.
-   `nearLossless` faehrt den zweiten: es glaettet vor dem verlustfreien
-   Kodieren dort, wo man es nicht sieht. `quality` steuert dabei NICHT die
-   Bildguete, sondern wie stark geglaettet wird.
-
-   WARUM 60. Der Gewinn viertelt sich mit jedem Schritt (34,2 → 20,5 → 6,9 →
-   1,4 MB), die groesste Abweichung verdoppelt sich (1 → 2 → 4 → 8 von 255).
-   Bei 60 kreuzen sich die Kurven. Und `nearLossless` 60 schlaegt das rein
-   Verlustfreie deutlich: 161,9 gegen 216,6 MB.
-
-   WER DIE ABWAEGUNG ANDERS TRIFFT, setzt hier `nearLossless: true` mit
-   `quality: 100` (dann wird gar nicht geglaettet) und zahlt 55 MB. Beides ist
-   vertretbar; entschieden ist 60. */
-const WEBP_ABLAGE = { nearLossless: true, quality: 60, effort: 4 };
-
-/* DIE ERKENNUNG GEHT UEBER DIE ERSTEN ACHT BYTES, nicht ueber den gemeldeten
-   Typ: ein Byte-Vergleich kostet nichts, und er glaubt dem Browser nicht auf
-   sein Wort. Dieselbe Haltung wie bei der Auslieferung, die den Kopf ebenfalls
-   aus den Bytes setzt. Der String daneben ist DERSELBE Wert in der Form,
-   in der SQLite ihn liefert (hex(substr(data,1,8))) -- eine zweite Stelle mit
-   einer zweiten Schreibweise liefe auseinander. */
-const PNG_MAGIE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const PNG_MAGIE_HEX = PNG_MAGIE.toString('hex').toUpperCase();
-const istPNG = (buf) =>
-  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIE);
-
 /* WELCHER SCHLUESSEL AUF DER FORMATZEILE DER KARTE STEHT -- die Zuordnung von
    mime_type auf den Schluessel steht HIER UND NUR HIER. Die Oberflaeche kennt
    nur noch die Schluessel und die Namen dazu (BILDFORMATE in public/app.js);
@@ -399,47 +320,6 @@ const formatAusMime = (m) => BILD_MIME_FORMAT[String(m || '').trim().toLowerCase
    „Alle PNG nach WebP umstellen" nach, was in der anderen Stellung entstanden
    ist. Genau deshalb ist er billig. */
 const bilderUmwandeln = () => getSetting('bilderUmwandeln', true) !== false;
-
-/* WAS WIRKLICH IN photos.data GEHT. Ein PNG wird ein WebP, alles andere bleibt,
-   wie es ist.
-
-   JPEG, GIF UND VORHANDENES WEBP WERDEN NICHT ANGEFASST, und jedes aus einem
-   eigenen Grund:
-     JPEG  eine Neukodierung waere verlustbehaftet, und die Ausrichtung haengt
-           an den EXIF-Daten, die makeVariants() ueber .rotate() liest.
-     GIF   sharp liest ohne `animated: true` nur die erste Seite. Eine
-           Umwandlung verloere die Bewegung, und zwar still.
-     WebP  ist schon da, wo es hinsoll.
-   BMP steht gar nicht zur Frage: RASTER_FORMATE fuehrt es nicht, der Upload
-   wird abgewiesen.
-
-   DER RUECKFALL IST NICHT ZIERDE. WebP kann hoechstens 16383 px je Kante --
-   bei 16384 wirft sharp „Processed image is too large for the WebP format".
-   Und ein PNG, das nach der Umwandlung GROESSER waere, bleibt PNG; gemessen
-   kommt das vor. In beiden Faellen liegt danach die unveraenderte Vorlage da.
-
-   `mime_type` MUSS MITGEZOGEN WERDEN. Sonst laege WebP unter dem Namen
-   `image/png` in der Tabelle, und der naechste Export truege die Luege weiter.
-   (Die Auslieferung selbst faellt darauf nicht herein -- sie liest die
-   ersten Bytes --, aber eine falsche Spalte bleibt eine falsche Spalte.)
-
-   AUSDRUECKLICH OHNE `failOn: 'none'`, anders als makeVariants(): eine
-   Vorlage, an der sharp etwas zu beanstanden hat, soll hier NICHT halb
-   umgewandelt werden. Sie faellt in den Rueckfall und bleibt unberuehrt --
-   bei einer Ableitung ist ein Rest besser als nichts, beim Original nicht. */
-async function legeBildAb(buf, gemeldeterTyp) {
-  if (!istPNG(buf)) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };
-  try {
-    const webp = await sharp(buf).webp(WEBP_ABLAGE).toBuffer();
-    if (webp.length < buf.length)
-      return { data: webp, mime: 'image/webp', umgewandelt: true };
-  } catch (e) {
-    // Laut ins Protokoll, still in der Antwort: das Bild ist gespeichert, nur
-    // eben als PNG. Wer es wissen will, sieht es an der Formatzeile der Karte.
-    console.error('[Kriterion] PNG blieb PNG:', e.message);
-  }
-  return { data: buf, mime: gemeldeterTyp, umgewandelt: false };
-}
 
 /* ---- Den vorhandenen Bestand nachziehen ----
    DIES WAR ALS WIRTSSKRIPT `bilder.js` GEPLANT, in der Bauform von zugang.js
@@ -501,51 +381,59 @@ const qVideoExportBytes = db.prepare(`
   SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) AS n
     FROM photos WHERE art IS ?`);
 
-/* GEARBEITET WIRD WIE IN backfillVariants(): Zeile fuer Zeile, 30 ms Pause
-   dazwischen, damit der Server ansprechbar bleibt. Das Vorbild steht schon da
-   und hat dieselbe Aufgabe.
-   JE BILD EINE EIGENE TRANSAKTION -- und dafuer steht hier bewusst KEIN
-   db.transaction() um das einzelne UPDATE: eine einzelne Anweisung IST in
-   SQLite ihre eigene Transaktion. Eine Klammer darum sagte, es geschehe mehr
-   als eines, und das waere unwahr.
-   WAS AUSDRUECKLICH NICHT PASSIERT: thumb und medium werden NICHT neu
-   gerechnet. Sie sind aus demselben Bild entstanden und bleiben gueltig; ein
-   Neurechnen kostete Zeit und aenderte nichts. */
-async function stelleBestandUm(zeilen) {
-  const hole = db.prepare('SELECT data FROM photos WHERE id = ?');
-  const schreib = db.prepare('UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');
-  for (const { id } of zeilen) {
-    try {
-      const z = hole.get(id);
-      // Die Zeile kann waehrend des Laufs geloescht oder schon umgestellt
-      // worden sein. Beides ist kein Fehler -- nur nichts zu tun.
-      if (z && istPNG(z.data)) {
-        const ab = await legeBildAb(z.data, 'image/png');
-        if (ab.umgewandelt) {
-          schreib.run(ab.mime, ab.data, id);
-          umstellung.umgestellt++;
-          umstellung.gespart += z.data.length - ab.data.length;
-        } else umstellung.geblieben++;
-      }
-    } catch (e) {
-      // EINE ZEILE REISST DEN LAUF NICHT AB. Sie bleibt, wie sie ist, wird
-      // gezaehlt und genannt -- dieselbe Regel wie beim Nachruesten der
-      // Vorschaubilder.
-      umstellung.geblieben++;
-      console.error(`[Kriterion] Foto ${id} nicht umgestellt:`, e.message);
-    }
-    umstellung.erledigt++;
-    await new Promise(r => setTimeout(r, 30));
-  }
-  umstellung.laeuft = false;
-  /* reclaim() DANACH. Ohne ihn waechst die Datei erst und schrumpft nie: die
-     alten Blobs geben ihre Seiten frei, aber SQLite gibt sie ohne
-     incremental_vacuum nicht ans Dateisystem zurueck. Dieselbe Ueberlegung
-     wie beim Papierkorb. */
-  reclaim();
-  console.log(`[Kriterion] Bildumstellung fertig: ${umstellung.umgestellt} von ` +
-    `${umstellung.gesamt} umgestellt, ${umstellung.geblieben} blieben PNG, ` +
-    `${umstellung.gespart} Bytes gespart.`);
+/* ================= DER BESTANDSLAUF IN EINEM EIGENEN THREAD — 0.19.3 =========
+
+   DIE SCHLEIFEN SELBST STEHEN IN bestandslauf.js, und die Begruendung mit
+   ihren Messungen steht dort im Kopf. Hier steht nur, was der Haupt-Thread
+   damit zu tun hat: den Thread erzeugen, seine Meldungen entgegennehmen und
+   ihn beim Herunterfahren mitnehmen.
+
+   EIN THREAD JE LAUF, danach beendet. Kein Threadpool, kein Dauerlaeufer: das
+   Nachruesten laeuft einmal beim Start, die Umstellung auf Knopfdruck. Die
+   19 ms Verbindungsaufbau und die 76 ms fuer sharp fallen dabei einmal an;
+   ein Dauerlaeufer hielte dafuer eine zweite Verbindung auf die Datenbank
+   offen, solange der Server laeuft.
+
+   DIE LAUFENDEN THREADS STEHEN IN EINER MENGE, und zwar aus genau einem
+   Grund: SIGTERM muss sie beenden koennen, BEVOR db.close() die WAL-Datei
+   kuerzt. Ein Thread, der in eine Datei schreibt, deren WAL gerade
+   verschwindet, ist der eine Fall, den diese Runde neu einbringt.
+   EINE MENGE UND KEINE EINZELNE VARIABLE, obwohl im Regelfall hoechstens
+   einer laeuft: das Nachruesten faengt 1500 ms nach dem Start an, und wer in
+   genau diesem Augenblick den Umstellungsknopf drueckt, hat zwei. Eine
+   Variable truege dann nur den zweiten, und der erste schriebe weiter in eine
+   Datei, deren WAL gerade gekuerzt wird. `umstellung.laeuft` faengt das nicht
+   ab -- es bewacht zwei UMSTELLUNGEN und nicht zwei Laeufe. */
+const bestandsThreads = new Set();
+
+/* DER PFAD STEHT AN EINER STELLE, und das ist keine Ordnungsliebe: der
+   Fingerprint liest ihn ein zweites Mal. Ein Modul, das NUR im Thread lebt,
+   steht in der `require.cache` des Haupt-Threads nicht -- der Server fuehrt
+   es aus, und der abgeleitete Dateisatz saehe es trotzdem nicht. Ein
+   Fingerprint, der eine ausgelieferte Datei nicht kennt, ist eine halbe
+   Aussage. Beide lesen deshalb DIESE Zeile, und eine Pruefung haelt sie
+   gegeneinander. */
+const BESTANDSLAUF = path.join(__dirname, 'bestandslauf.js');
+
+/* EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB -- dieselbe Regel wie
+   heute fuer eine einzelne Zeile. Was hier ankommt, ist alles, was die
+   Schleife NICHT schon selbst abgefangen hat; der Lauf ist dann zu Ende, der
+   Rest des Servers steht.
+   `umstellung.laeuft` FAELLT DABEI AUF false, und nicht der ganze Stand auf
+   null: die Karte soll sehen, wie weit er gekommen ist. */
+function starteBestandsThread(aufgabe, zeilen, fertig) {
+  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen } });
+  bestandsThreads.add(w);
+  /* DER STAND WIRD ERSETZT UND NICHT FORTGESCHRIEBEN. Der Thread meldet je
+     Zeile den GANZEN Stand; eine Zunahme muesste hier aufaddiert werden, und
+     dann haengt die Zahl an der Vollstaendigkeit der Meldungsfolge. */
+  w.on('message', (m) => { if (m && m.art === 'stand') umstellung = m.stand; });
+  w.on('error', (e) => {
+    if (umstellung) umstellung.laeuft = false;
+    console.error(`[Kriterion] Bestandslauf (${aufgabe}) abgebrochen:`, e.message);
+  });
+  w.on('exit', () => { bestandsThreads.delete(w); if (fertig) fertig(); });
+  return w;
 }
 
 /* ================= Speicherpflege ================= */
@@ -2444,9 +2332,40 @@ const qPhotos = db.prepare(`SELECT ${PHOTO_SPALTEN} FROM photos WHERE item_id = 
    UND SIE IST ZUGLEICH DIE LISTE DES INDEX `idx_photos_kachel` -- fehlt dort
    eine, faellt der Index still aus. Eine Pruefung haelt beide gegeneinander. */
 const qAlleFotos = db.prepare(`SELECT ${PHOTO_SPALTEN} FROM photos ORDER BY item_id, sort_order, id`);
-const qTags = db.prepare('SELECT t.* FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE');
+/* `t.*` IST SEIT 0.19.3 EINE SPALTENLISTE, und das ist eine Wegnahme mit
+   Nachweis: ein Schlagwort traegt id, name und created_at, und `created_at`
+   wird in public/app.js an einem Schlagwort NIRGENDS gelesen -- nachgesehen,
+   nicht geglaubt. Was niemand ansieht, wird zweimal bezahlt: beim Holen und
+   beim Senden. Gemessen ueber 400 Eintraege: 3,76 -> 2,41 ms.
+   DIE LISTE STEHT AN EINER STELLE, wie PHOTO_SPALTEN darueber: die
+   gebuendelte Fassung fuer die Uebersicht und die einzelne fuer detail()
+   muessen dieselben Spalten in derselben Folge lesen, sonst traegt die Kachel
+   ein anderes Schlagwort als der Eintrag (Stolperstein 47). Eine Pruefung
+   haelt beide gegeneinander. */
+const TAG_SPALTEN = 't.id, t.name';
+const qTags = db.prepare(`SELECT ${TAG_SPALTEN} FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE`);
+/* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL -- 0.19.3, dieselbe
+   Bauform wie qAlleFotos. SORTIERT WIRD ZUERST NACH item_id UND DANN WIE
+   BISHER: wer nur gruppiert und die zweite Ordnung vergisst, bekommt die
+   Schlagworte einer Kachel in einer anderen Folge als am Eintrag.
+   `item_id` FAELLT BEIM EINSORTIEREN WIEDER WEG -- es ist der Schluessel der
+   Karte und kein Feld des Schlagworts; bliebe es stehen, truege die Kachel
+   ein Feld, das der Eintrag nicht hat. */
+const qAlleTags = db.prepare(`SELECT it.item_id, ${TAG_SPALTEN} FROM tags t
+  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id, t.name COLLATE NOCASE`);
 const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
+/* DIE UEBERSICHT ZAEHLT NUR -- 0.19.3. Sie hat bis 0.19.2 je Eintrag die
+   VOLLEN Linkzeilen geholt (id, url, sort_order, created_at, user_id) und
+   davon `.length` genommen; gebraucht wird an der Kachel allein `linkCount`.
+   Gemessen ueber 400 Eintraege: 2,36 -> 0,47 ms.
+   qLinks BLEIBT UND WIRD WEITER GEBRAUCHT: detail() zeigt die Adressen mit
+   ihren Verfassern, und dort ist die Zeilenzahl einstellig. */
+const qLinkZahlen = db.prepare('SELECT item_id, COUNT(*) n FROM links GROUP BY item_id');
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
+/* Und dieselbe Frage fuer die ganze Liste. Es sind wenige Zeilen, und sie
+   stehen ohnehin gleich wieder da: eine Abfrage je Eintrag holte dieselbe
+   Kategorie hundertmal. */
+const qAlleKategorien = db.prepare('SELECT id, name FROM product_categories');
 /* --- Schnitt und Anzahl je Kriterium --------------------------------------
    EINE Abfrage, gruppiert -- ausdruecklich KEIN zweiter JOIN AUF `ratings`
    neben dem in detail(): zwei JOINs auf DIESELBE Tabelle vervielfachen sich,
@@ -2466,6 +2385,30 @@ function schnitteJeKriterium(itemId) {
   const m = new Map();
   for (const z of qSchnittJeKriterium.all(itemId)) m.set(z.criterion_id, z);
   return m;
+}
+
+/* DIESELBE ABFRAGE FUER ALLE EINTRAEGE AUF EINMAL -- 0.19.3. Es ist Zeile fuer
+   Zeile dieselbe: derselbe JOIN, dasselbe `value > 0`, dieselbe Gruppierung --
+   nur steht `r.item_id` mit in SELECT und GROUP BY, und das WHERE auf den
+   einen Eintrag faellt weg. Gemessen ueber 400 Eintraege: 4,18 -> 2,70 ms.
+   ZWEI FASSUNGEN, EINE RECHNUNG: was herauskommt, geht durch DENSELBEN
+   gesamtSchnitt() wie in detail(). Zwei Rechenwege fuer dieselbe Kopfzahl
+   waeren zwei Wahrheiten (Stolperstein 47); zwei Abfragen mit demselben
+   Ergebnis sind es nicht -- eine Pruefung haelt sie gegeneinander. */
+const qSchnittJeKriteriumAlle = db.prepare(`
+  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,
+         c.gewicht
+    FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
+   WHERE r.value > 0
+   GROUP BY r.item_id, r.criterion_id, c.gewicht`);
+
+function schnitteJeEintrag() {
+  const alle = new Map();
+  for (const z of qSchnittJeKriteriumAlle.all()) {
+    if (!alle.has(z.item_id)) alle.set(z.item_id, new Map());
+    alle.get(z.item_id).set(z.criterion_id, z);
+  }
+  return alle;
 }
 
 /* Wer welchen Wert vergeben hat -- je Kriterium eine Liste. Wieder eine
@@ -2579,6 +2522,48 @@ function qTestDays(itemId, benutzerId, karte) {
     delete t.user_id;
   }
   return tage;
+}
+
+/* ---- DIE SCHMALE FASSUNG FUER DIE LISTE — 0.19.3 -------------------------
+   ZWEI FORMEN FUER ZWEI FRAGEN, und der Unterschied steht an beiden:
+   qTestDays() darueber beantwortet „was steht an DIESEM Eintrag" -- dort zeigt
+   die Zeile ihre Schlagworte und ihren Verfasser. Diese hier beantwortet „was
+   braucht die ZEITLEISTE der Uebersicht", und die liest genau drei Felder.
+
+   WAS HERAUSFAELLT UND WARUM ES NIEMAND VERMISST: `tags` und `verfasser`.
+   zeitleistePunkte() (public/app.js) ist die EINZIGE Stelle, die testDays aus
+   der LISTENANTWORT liest, und sie nimmt `day`, `rating` und `mine`. Die vier
+   uebrigen Leser arbeiten auf dem Objekt aus detail() -- erkennbar daran, was
+   danebensteht: item.links und item.description, it.ratings, item.tested,
+   sparkline(item.testDays). Nachgezaehlt am heutigen Stand und nicht dem
+   Kommentar geglaubt, der das seit 0.17.0 behauptet.
+   `id` BLEIBT TROTZDEM DRIN. Es kostet vier Bytes je Zeile -- sie stehen im
+   Zeilenkopf und werden weder gesucht noch entschluesselt -- und ist die
+   einzige Handhabe, falls die Zeitleiste je auf einen Punkt zeigen soll.
+
+   WAS DAS SPART, gemessen ueber 400 Eintraege mit je drei Testtagen: 11,61 ->
+   3,30 ms, und die 1200 Einzelabfragen nach den Schlagworten der Testtage
+   fallen ganz weg. Von der Antwort gehen 96 kB ab. `qTestDays` war damit der
+   groesste Einzelposten der ganzen Route -- mehr als die fuenf gebuendelten
+   Nachbarn zusammen.
+
+   SORTIERT WIRD ZUERST NACH item_id UND DANN WIE BISHER (day DESC, id DESC).
+   Ohne die zweite Ordnung bekaeme die Zeitleiste ihre Punkte verdreht. */
+const qAlleTestTageSchmal = db.prepare(
+  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC');
+
+function testTageJeEintrag(benutzerId) {
+  if (benutzerId == null) throw new Error('testTageJeEintrag() ohne Benutzer aufgerufen');
+  const je = new Map();
+  for (const t of qAlleTestTageSchmal.all()) {
+    if (!je.has(t.item_id)) je.set(t.item_id, []);
+    // mine kommt vom Server, wie in qTestDays(): die Zeitleiste zeichnet die
+    // eigenen Punkte gefuellt und fremde als Ring. Die Verfassernummer geht
+    // nicht hinaus -- hier so wenig wie dort.
+    je.get(t.item_id).push({ id: t.id, day: t.day, rating: t.rating,
+                             mine: t.user_id === benutzerId });
+  }
+  return je;
 }
 const qTestStats = db.prepare(`
   SELECT COUNT(*) AS cnt, AVG(rating * 1.0) AS avg,
@@ -2705,9 +2690,18 @@ const qAlleItems = db.prepare('SELECT * FROM items ORDER BY updated_at DESC');
 /* VORBEREITET UND NICHT JE EINTRAG UEBERSETZT. Beide Abfragen standen in der
    Schleife darunter und wurden damit einmal je Eintrag uebersetzt. Gemessen an
    1000 Eintraegen: 24,2 ms so, 11,5 ms vorbereitet. Die uebrigen Abfragen der
-   Schleife (qPhotos, qTags, qLinks) stehen aus demselben Grund laengst
-   oben. */
-const qAnhangZahl = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?');
+   Schleife (qPhotos, qTags, qLinks) stehen aus demselben Grund laengst oben.
+
+   UND SEIT 0.19.3 WIRD SIE AUCH NICHT MEHR JE EINTRAG GEFRAGT. Vorbereiten und
+   Buendeln sind zwei verschiedene Ersparnisse; die zweite kommt hier dazu.
+   Gemessen ueber 400 Eintraege: 1,33 -> 0,23 ms.
+   DIE EINZELFASSUNG IST DABEI GANZ WEGGEFALLEN und nicht daneben stehen
+   geblieben -- anders als qTags, qLinks und qPhotos, die detail() weiter
+   braucht. Die Zahl der Anhaenge fragte NUR die Uebersicht; detail() holt die
+   Dateien selbst (qAttachments) und zaehlt sie im Browser. Eine Abfrage, die
+   niemand mehr ruft, ist kein Vorrat, sondern eine Zeile, die beim naechsten
+   Lesen erklaert werden muss. */
+const qAnhangZahlen = db.prepare('SELECT item_id, COUNT(*) n FROM attachments GROUP BY item_id');
 
 /* ================= Die Volltextsuche =================
    SIE SUCHT SIEBEN QUELLEN: Titel, Beschreibung, Kategoriename, Tags am
@@ -3072,6 +3066,51 @@ app.get('/api/items', (req, res) => {
     if (!fotosJe.has(f.item_id)) fotosJe.set(f.item_id, []);
     fotosJe.get(f.item_id).push(f);
   }
+  /* UND DIE UEBRIGEN FUENF DERSELBE WEG — 0.19.3. Was 0.19.2 fuer die Fotos
+     gebaut hat, gilt hier fuer die Nachbarn: einmal fragen, in eine Karte
+     legen, in der Schleife nachschlagen. AUS 3200 ABFRAGEN JE ABRUF WERDEN 405
+     -- die fuenf gebuendelten schrumpfen auf je eine, `testStats` bleibt bei
+     400. (Der Auftrag zu dieser Runde schrieb „neun"; er hatte testStats
+     mitgezaehlt, das nach der Messung in E ausdruecklich NICHT gebuendelt
+     wird. Nachgezaehlt am gebauten Stand sind es 405.)
+
+     GEZAEHLT AN 400 EINTRAEGEN mit je drei Schlagworten, drei Bewertungen,
+     drei Testtagen und einem Link -- so war der Bestand gebaut, an dem
+     gemessen wurde:
+       qTags                       400
+       qLinks                      400
+       qAnhangZahl                 400
+       schnitteJeKriterium         400
+       testStats                   400
+       qTestDays -> qTestDaysRoh   400
+       qTestDays -> qTestDayTags  1200   (je TESTTAG eine)
+       zusammen                   3200
+
+     `testStats` IST NICHT DABEI, UND DAS IST GEMESSEN UND KEIN VERSEHEN:
+     gebuendelt kostet es 2,58 ms statt 1,94 -- die eine Abfrage mit
+     Fensterfunktion kostet mehr, als die 400 Einzelabfragen sparen. EINE
+     BUENDELUNG IST KEIN SELBSTZWECK; sie lohnt, wo sie etwas spart, und sonst
+     nicht.
+
+     GEHOLT WIRD JEWEILS ALLES und nicht `IN (…)` mit vierhundert Nummern --
+     dieselbe Begruendung wie bei den Fotos: die gefilterte Uebersicht wirft
+     dann etwas weg, und das ist billiger als die Liste zu binden.
+
+     DIE EINZELFASSUNGEN BLEIBEN ALLE STEHEN, wo detail() sie braucht: dort
+     geht es um EINEN Eintrag, und eine zweite Bauform daneben waere keine
+     Ersparnis, sondern eine zweite Wahrheit. */
+  const tagsJe = new Map();
+  for (const z of qAlleTags.all()) {
+    if (!tagsJe.has(z.item_id)) tagsJe.set(z.item_id, []);
+    tagsJe.get(z.item_id).push(z);
+    delete z.item_id;
+  }
+  const linkZahlJe = new Map(qLinkZahlen.all().map(z => [z.item_id, z.n]));
+  const anhangZahlJe = new Map(qAnhangZahlen.all().map(z => [z.item_id, z.n]));
+  const schnitteJe = schnitteJeEintrag();
+  const katJe = new Map(qAlleKategorien.all().map(k => [k.id, k]));
+  // Die Testtage nur, wenn die Zeitleiste ueberhaupt an ist -- wie bisher.
+  const testTageJe = zeitleiste ? testTageJeEintrag(req.benutzer.id) : null;
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
     it.verfasser = verfasserAus(karte, it.user_id);
@@ -3086,19 +3125,26 @@ app.get('/api/items', (req, res) => {
     it.mainPhoto = ph[0] || null;
     it.photoCount = ph.filter(p2 => p2.art !== 'video').length;
     it.videoCount = ph.filter(p2 => p2.art === 'video').length;
-    it.category = it.product_category_id ? qCat.get(it.product_category_id) : null;
-    it.tags = qTags.all(it.id);
-    const links = qLinks.all(it.id);
-    it.linkCount = links.length;
-    it.attachmentCount = qAnhangZahl.get(it.id).n;
+    it.category = it.product_category_id ? (katJe.get(it.product_category_id) || null) : null;
+    it.tags = tagsJe.get(it.id) || [];
+    /* NUR DIE ZAHL, NICHT DIE ZEILEN. Bis 0.19.2 holte die Uebersicht je
+       Eintrag die vollen Linkzeilen und nahm davon `.length` -- die Kachel
+       zeigt nichts davon ausser dieser Zahl. */
+    it.linkCount = linkZahlJe.get(it.id) || 0;
+    it.attachmentCount = anhangZahlJe.get(it.id) || 0;
     // Dieselbe Rechnung wie in detail(), ueber denselben Helfer. Zwei
     // Rechenwege fuer die Kachel und die Zeile daneben waeren zwei Wahrheiten
-    // ueber dieselbe Zahl.
-    it.avgRating = gesamtSchnitt(schnitteJeKriterium(it.id));
+    // ueber dieselbe Zahl. Was sich geaendert hat, ist woher die Karte kommt --
+    // nicht, was mit ihr geschieht.
+    it.avgRating = gesamtSchnitt(schnitteJe.get(it.id) || new Map());
     Object.assign(it, testStats(it.id));
-    // Die Zeitleiste braucht die Testtage selbst, nicht nur ihre Anzahl --
-    // und dazu, wem sie gehoeren. Ohne sie braucht die Liste sie nicht.
-    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);
+    /* DIE ZEITLEISTE BRAUCHT DIE TESTTAGE SELBST, nicht nur ihre Anzahl -- und
+       dazu, wem sie gehoeren. Ohne sie braucht die Liste sie nicht.
+       SEIT 0.19.3 IN DER SCHMALEN FASSUNG: id, day, rating, mine. Die
+       Schlagworte und der Verfasser jedes Testtags stehen weiter am EINTRAG
+       (detail() ruft qTestDays), nur nicht mehr in der Liste -- gelesen hat
+       sie dort niemand. Die Begruendung steht bei qAlleTestTageSchmal. */
+    if (zeitleiste) it.testDays = testTageJe.get(it.id) || [];
     /* DIE BESCHREIBUNG FAELLT AUS DER LISTE, WIE BISHER. Sie stand nie in
        dieser Antwort -- gebraucht wurde sie allein zum Bilden des Suchfelds,
        und das gibt es nicht mehr. Die Kachel zeigt keine Beschreibung; wer sie
@@ -4307,15 +4353,15 @@ app.post('/api/bilder/umstellen', nurEigentuemer, zweiteBestaetigungNoetig('bild
                  umgestellt: 0, geblieben: 0, gespart: 0 };
   console.log(`[Kriterion] Bildumstellung gestartet: ${zeilen.length} PNG.`);
   res.status(202).json(umstellungsStand());
-  /* OHNE await UND MIT EIGENEM catch: die Antwort ist schon hinaus, ein
-     geworfener Fehler faende hier keinen Empfaenger mehr -- und eine
-     unbehandelte Zusage nimmt in Node den ganzen Server mit. Der Lauf faengt
-     jede einzelne Zeile schon selbst ab; dieses Netz gilt dem, was daneben
-     schiefgehen kann. */
-  stelleBestandUm(zeilen).catch(e => {
-    umstellung.laeuft = false;
-    console.error('[Kriterion] Bildumstellung abgebrochen:', e.message);
-  });
+  /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
+     laeuft die Schleife nicht mehr hier, sondern in bestandslauf.js. Was der
+     Aufrufer bekommt, ist unveraendert: 202 mit dem Anfangsstand, und der
+     Fortschritt geht weiter als Feld in /api/stats.
+     DAS NETZ GEGEN DAS, WAS DANEBEN SCHIEFGEHEN KANN, HAENGT JETZT AM THREAD
+     (worker.on('error') in starteBestandsThread) statt an einem catch: eine
+     unbehandelte Zusage naehme in Node den ganzen Server mit, ein Fehler im
+     Thread nimmt nur den Lauf. */
+  starteBestandsThread('umstellung', zeilen);
 });
 
 /* ================= Das Austauschformat =================
@@ -5758,29 +5804,29 @@ app.use((err, req, res, next) => {
    sharp liefe darauf in einen Fehler, beide Varianten kaemen leer zurueck und
    das vorhandene Standbild waere ueberschrieben. Die Zeile bliebe ausserdem
    bei jedem Start aufs Neue faellig. Und der Kernsatz gilt auch hier: der
-   Server oeffnet nie ein Video. Das Standbild kommt vom Browser. */
-async function backfillVariants() {
-  const pending = db.prepare(
+   Server oeffnet nie ein Video. Das Standbild kommt vom Browser.
+
+   DIE SCHLEIFE SELBST LAEUFT SEIT 0.19.3 IM THREAD (bestandslauf.js) --
+   dieselbe Bauform und derselbe Grund wie bei der Umstellung: sie liest und
+   schreibt Blobs, und better-sqlite3 ist synchron.
+   DIE FRAGE, OB ES ETWAS ZU TUN GIBT, BLEIBT HIER. Ohne sie entstuende bei
+   jedem Start ein Thread fuer eine leere Liste -- 19 ms fuer die Verbindung
+   und 76 ms fuer sharp, fuer nichts. */
+function ruesteVorschaubilderNach() {
+  const offen = db.prepare(
     "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND art != 'video'").all();
-  if (!pending.length) return;
-  console.log(`[Kriterion] Erzeuge Vorschaubilder für ${pending.length} Foto(s) ...`);
-  const get = db.prepare('SELECT data FROM photos WHERE id = ?');
-  const upd = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
-  let done = 0;
-  for (const { id } of pending) {
-    try {
-      const row = get.get(id);
-      if (!row) continue;
-      const v = await makeVariants(row.data);
-      upd.run(v.thumb, v.medium, id);
-      done++;
-    } catch (e) { console.error(`[Kriterion] Foto ${id} übersprungen:`, e.message); }
-    await new Promise(r => setTimeout(r, 30));
-  }
-  console.log(`[Kriterion] ${done} Vorschaubild(er) erzeugt.`);
+  if (!offen.length) return maintainStorage();
+  /* maintainStorage() ERST DANACH, und deshalb steht es hier im Abschluss und
+     nicht in einer Kette daneben: es fasst die ganze Datei an (beim ersten Mal
+     ein VACUUM) und darf nicht neben der Schleife laufen. */
+  starteBestandsThread('vorschaubilder', offen, maintainStorage);
 }
 
-async function maintainStorage() {
+/* NICHT MEHR `async` SEIT 0.19.3, und das ist keine Kosmetik: nichts darin ist
+   asynchron, und seit dieser Runde wird es als ABSCHLUSS eines Threads
+   gerufen. Eine Zusage, die dort geworfen wuerde, faende keinen Empfaenger
+   mehr -- und eine unbehandelte Zusage nimmt in Node den ganzen Server mit. */
+function maintainStorage() {
   if (db.pragma('auto_vacuum', { simple: true }) !== 2) {
     db.pragma('auto_vacuum = INCREMENTAL');
     db.exec('VACUUM');
@@ -5822,7 +5868,15 @@ function dateienUnter(verzeichnis) {
 function bildeFingerprint() {
   const ausgefuehrt = Object.keys(require.cache).filter(f =>
     f.startsWith(__dirname + path.sep) && !f.split(path.sep).includes('node_modules'));
-  const liste = [...new Set([...ausgefuehrt, ...dateienUnter(path.join(__dirname, 'public'))])]
+  /* UND DIE DATEI, DIE NUR IM THREAD LEBT -- 0.19.3. bestandslauf.js wird
+     nicht requiret, sondern an `new Worker` gereicht; es steht deshalb in
+     keiner require.cache des Haupt-Threads und fiele aus der Ableitung
+     heraus. DER SERVER FUEHRT ES TROTZDEM AUS, und genau das ist der Massstab
+     dieser Liste. Es ist KEINE zweite, gepflegte Liste: gelesen wird
+     dieselbe Konstante, mit der der Thread erzeugt wird, und eine Pruefung
+     haelt beide gegeneinander. */
+  const liste = [...new Set([...ausgefuehrt, BESTANDSLAUF,
+                             ...dateienUnter(path.join(__dirname, 'public'))])]
     .map(f => path.relative(__dirname, f).split(path.sep).join('/'))
     .sort();
   const h = crypto.createHash('sha256');
@@ -5849,6 +5903,14 @@ const FINGERPRINT = bildeFingerprint();
    Der Abschluss darf nichts werfen -- wer beendet, ist nicht mehr zu retten. */
 for (const zeichen of ['SIGTERM', 'SIGINT']) {
   process.on(zeichen, () => {
+    /* ERST DIE THREADS, DANN DIE DATEI -- 0.19.3. Laeuft ein Bestandslauf,
+       schreibt er in dieselbe Datei; wer ihre WAL kuerzt, waehrend er
+       schreibt, tut genau das, wogegen dieser Abschluss gebaut ist.
+       terminate() OHNE await: der Abschluss darf nicht warten, und ein
+       beendeter Thread schreibt keine Zeile mehr. Die halb umgestellte Zeile,
+       die er gerade in der Hand hatte, bleibt PNG -- der Knopf holt sie beim
+       naechsten Lauf nach, und genau dafuer ist er nie endgueltig. */
+    for (const w of bestandsThreads) { try { w.terminate(); } catch {} }
     try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}
     process.exit(0);
   });
@@ -5909,5 +5971,10 @@ app.listen(PORT, () => {
         'Ruecksetzlinks stehen wie bisher im Verwaltungsbereich zum Kopieren.');
     }
   }
-  setTimeout(() => backfillVariants().then(maintainStorage).catch(e => console.error(e)), 1500);
+  /* DAS NACHRUESTEN UND DIE SPEICHERPFLEGE, 1500 ms nach dem Horchen. Die
+     Kette aus .then() ist weggefallen, weil die Schleife nicht mehr hier
+     laeuft: ruesteVorschaubilderNach() gibt maintainStorage als Abschluss an
+     den Thread weiter und ruft es selbst, wenn es gar nichts nachzuruesten
+     gibt. Der Fehlerfall haengt am Thread (worker.on('error')). */
+  setTimeout(ruesteVorschaubilderNach, 1500);
 });

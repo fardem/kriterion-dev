@@ -681,6 +681,33 @@ CREATE TABLE IF NOT EXISTS papierkorb_bytes (
 );
 `;
 
+/* ================= WAS BEIM OEFFNEN LAEUFT — UND DASS ES ZWEIMAL DARF ========
+   NACHGESEHEN FUER 0.19.3, weil seit dieser Runde ein ZWEITER Leser dieselbe
+   Datei oeffnet: der Bestandslauf requiret db.js aus seinem eigenen Thread und
+   faehrt damit alles hier ein zweites Mal. Der Auftrag liess die Wahl zwischen
+   einem Schalter „nur oeffnen, nicht wandern" und dem Nachweis, dass nichts
+   davon zweimal schadet. Nachgesehen wurde, Zeile fuer Zeile, und es ist der
+   Nachweis geworden:
+
+     db.exec(SCHEMA)              CREATE TABLE/INDEX IF NOT EXISTS -- beim
+                                  zweiten Mal geschieht nichts.
+     die acht Migrationsblöcke    jeder fragt zuerst, ob die Spalte schon da
+                                  ist, und kehrt sonst wortlos zurueck. Beim
+                                  zweiten Mal ist sie es immer, denn der
+                                  Haupt-Thread war zuerst da.
+     die beiden CREATE INDEX      IF NOT EXISTS.
+     das Auffangnetz              UPDATE ... AND NOT EXISTS (... eigentuemer)
+     ordneBestandZu()             UPDATE OR IGNORE ... WHERE user_id IS NULL
+     die Grundausstattung         INSERT OR IGNORE
+     renumberCriteria()           schreibt nur, wo die Nummer abweicht
+   EIN VACUUM WAERE ES NICHT, und genau deshalb steht keines hier: es liegt in
+   maintainStorage() in server.js und bleibt im Haupt-Thread.
+   WAS TROTZDEM ZWEIMAL SCHADET, IST DAS GEREDE: die Ansagen an den Betreiber
+   -- allen voran der halbe Bildschirm Schluesselhinweis -- haelt keys.js im
+   Neben-Thread zurueck. Das ist der eine Schalter dieser Runde.
+   WER HIER ETWAS ERGAENZT, PRUEFT ES GEGEN DIESE LISTE. Eine Zeile, die beim
+   zweiten Lauf etwas anderes tut als beim ersten, faellt nicht auf: sie faellt
+   dem Bestandslauf zur Last, und der laeuft still im Hintergrund. */
 const db = open(DB_FILE);
 
 /* kkl() -- KLEINSCHREIBUNG NACH UNICODE, IN SQL EINGEHAENGT.

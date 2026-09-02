@@ -29,6 +29,25 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.19.3] - 2026-09-02
+
+> **Nichts zu tun.** *Keine Datenbankstufe, keine Migration, kein neuer Index,
+> das Austauschformat bleibt 12 — gesichert werden muss vor dem Einspielen
+> nichts.* **Nach dem Einspielen im Browser einmal hart neu laden.**
+>
+> **EINE ANTWORT WIRD SCHMALER, und das steht hier, weil es sonst niemand
+> erführe:** die Übersicht (`GET /api/items`) liefert zu jedem Testtag nur noch
+> Datum, Note und „gehört mir" — die Schlagworte des Testtags und sein Verfasser
+> stehen dort nicht mehr. **Am Eintrag selbst stehen beide unverändert weiter.**
+> *Wer die Übersicht nur im Browser benutzt, merkt davon nichts; wer die Antwort
+> selbst abfragt, soll es nicht aus einem Diff erfahren müssen.*
+
+- Changed: Der Umstellungslauf „Alle PNG nach WebP umstellen" hält den Server nicht mehr an — er läuft in einem eigenen Thread
+- Changed: Dasselbe gilt für das Nachrüsten fehlender Vorschaubilder beim Start
+- Changed: Die Übersicht kommt noch einmal spürbar schneller — sie stellt 405 Abfragen statt 3200
+- Changed: Und sie holt nicht mehr, was sie gar nicht zeigt; die Antwort ist gut ein Viertel kleiner
+- Changed: Die letzten acht Meldungen sagen „Installation" statt „Instanz" — damit ist der Produktname aus dem Bildschirmtext heraus
+
 ## [0.19.2] - 2026-09-02
 
 > **Nichts zu tun.** *Keine Datenbankstufe, keine Migration, kein neues

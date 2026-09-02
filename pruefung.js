@@ -20,6 +20,12 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { spawn, spawnSync, execFileSync } = require('child_process');
+/* SEIT 0.19.3: der Bestandslauf faehrt in einem eigenen Thread, und die Gruppe
+   „Der Bestandslauf faehrt in einem eigenen Thread" erzeugt ihn von hier aus --
+   an einer echten, verschluesselten Instanz und ohne Server dazwischen. Ueber
+   HTTP waere davon nichts zu sehen: die Antwort ist dieselbe wie vorher, und
+   genau das ist der Sinn der Runde. */
+const { Worker } = require('worker_threads');
 const Database = require('better-sqlite3-multiple-ciphers');
 const anh = require('./anhaenge');
 /* SHARP STEHT HIER, SEIT 0.19.0, UND ZWAR AUS EINEM GENAUEN GRUND: die Runde
@@ -906,6 +912,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
     `${fingerprintDb} gegen ${fingerprintKopie} und ${fingerprintApp}`);
   fs.writeFileSync(path.join(quellKopie, 'db.js'), dbVorher);
 
+  /* UND EINE AN bestandslauf.js EBENSO — 0.19.3, und das ist die Zeile, um die
+     es in dieser Runde geht. Der Bestandslauf wird NICHT requiret, sondern an
+     `new Worker` gereicht: er steht in keiner require.cache des Haupt-Threads.
+     Ein Fingerprint, der ihn aus der require.cache allein ableitete, kennte
+     eine ausgelieferte Datei nicht -- und das waere eine halbe Aussage. */
+  const laufVorher = fs.readFileSync(path.join(__dirname, 'bestandslauf.js'), 'utf8');
+  const fingerprintLauf = await nachAenderung('bestandslauf.js',
+    laufVorher + '\n// eine Zeile mehr\n');
+  pruefe('Eine Änderung an bestandslauf.js ändert ihn — obwohl nur der Thread ihn lädt',
+    fingerprintLauf !== fingerprintKopie && fingerprintLauf !== fingerprintDb,
+    `${fingerprintLauf} gegen ${fingerprintKopie} und ${fingerprintDb}`);
+  fs.writeFileSync(path.join(quellKopie, 'bestandslauf.js'), laufVorher);
+
   /* DER NAME GEHOERT MIT HINEIN, nicht nur der Inhalt. Zwei Dateien mit
      GLEICHEM Inhalt und verschiedenem Namen muessen zu verschiedenen Abdruecken
      fuehren -- sonst bliebe eine Umbenennung unsichtbar. Der Inhalt ist bei
@@ -935,15 +954,24 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Geprueft wird an dem, was WIRKLICH im Fingerprint steht, also am Modulgraphen
      ab server.js. Auch das eine Ableitung und keine zweite Liste. zugang.js
      und pruefung.js fallen heraus -- beide laden innerhalb von Funktionen und
-     duerfen das auch, weil der Server sie nie laedt. */
+     duerfen das auch, weil der Server sie nie laedt.
+
+     UND SEIT 0.19.3 FOLGT DER GRAPH AUCH DEM, WAS AN EINEN THREAD GEHT.
+     bestandslauf.js wird nicht requiret, sondern an `new Worker` gereicht --
+     es stuende in keiner require.cache des Haupt-Threads und fiele aus jeder
+     Ableitung heraus, die nur require() liest. DER SERVER FUEHRT ES TROTZDEM
+     AUS, und das ist der Massstab dieser Liste. Der Anker ist derselbe wie im
+     Server: `path.join(__dirname, '<datei>.js')` -- die Zeile, mit der der
+     Thread erzeugt wird, und keine zweite gepflegte Liste daneben. */
   const modulGraph = (start) => {
     const gesehen = new Set();
     const holen = (rel) => {
       if (gesehen.has(rel)) return;
       gesehen.add(rel);
       for (const t of fs.readFileSync(path.join(__dirname, rel), 'utf8')
-        .matchAll(/require\('\.\/([\w.-]+)'\)/g)) {
-        const name = /\.(js|json)$/.test(t[1]) ? t[1] : t[1] + '.js';
+        .matchAll(/require\('\.\/([\w.-]+)'\)|__dirname, '([\w.-]+\.js)'/g)) {
+        const roh = t[1] || t[2];
+        const name = /\.(js|json)$/.test(roh) ? roh : roh + '.js';
         if (fs.existsSync(path.join(__dirname, name))) holen(name);
       }
     };
@@ -966,6 +994,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
     imFingerprint.join(' · '));
   pruefe('Kein Modul des Servers wird erst innerhalb einer Funktion geladen',
     spaetGeladen.length === 0, spaetGeladen.join(', '));
+  /* DIE BEIDEN NEUEN AUS 0.19.3 STEHEN NAMENTLICH DA, und aus zwei
+     verschiedenen Gruenden: bilder.js kommt ueber require() herein und belegt,
+     dass die gewohnte Ableitung greift; bestandslauf.js kommt NUR ueber die
+     Zeile, mit der der Thread erzeugt wird. Ohne diese Pruefung faellt es aus
+     dem Handgriff und aus dem Fingerprint, ohne dass irgendetwas rot wird. */
+  pruefe('bilder.js und bestandslauf.js stehen beide im Graphen',
+    imFingerprint.includes('bilder.js') && imFingerprint.includes('bestandslauf.js'),
+    imFingerprint.join(' · '));
 
   /* DER HANDGRIFF IM README NENNT DIESELBEN DATEIEN -- und das ist seit 0.10.0
      geprueft statt gepflegt. Er steht dort, weil der Fingerprint sagt, DASS
@@ -6843,9 +6879,27 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Auch die Uebersicht nennt den Verfasser je Eintrag',
     (fVListe || []).find(i => i.id === fVId)?.verfasser?.name === 'bert',
     JSON.stringify((fVListe || []).find(i => i.id === fVId)?.verfasser));
-  pruefe('Und die Testtage in der Uebersicht ebenso',
-    ((fVListe || []).find(i => i.id === fVId)?.testDays || [])
-      .every(d => d.verfasser && d.user_id === undefined));
+  /* SEIT 0.19.3 STEHT HIER DIE GEGENRICHTUNG, und die Zeile ist umgedreht
+     worden statt geloescht (Stolperstein 201): bis 0.19.2 stand hier, dass
+     auch jeder Testtag der UEBERSICHT seinen Verfasser nennt. Er nennt ihn
+     nicht mehr -- gelesen hat ihn dort nie jemand, und wer holt, was er nicht
+     zeigt, bezahlt es zweimal. AM EINTRAG steht er unveraendert, und die
+     Pruefungen darueber (fVTag) sind genau dieselben geblieben.
+     ERST DIE ZEILEN, DANN IHRE FORM (Stolperstein 81): ein `every` ueber eine
+     leere Liste ist wahr, und dann belegte diese Pruefung, dass die Testtage
+     ganz fehlen. */
+  const fVListeTage = (fVListe || []).find(i => i.id === fVId)?.testDays || [];
+  pruefe('Die Uebersicht traegt die Testtage ueberhaupt',
+    fVListeTage.length === 2, JSON.stringify(fVListeTage));
+  pruefe('Und sie sind schmal: id, day, rating und mine, sonst nichts',
+    fVListeTage.every(d => gleich(Object.keys(d).sort(), ['day', 'id', 'mine', 'rating'])),
+    JSON.stringify(fVListeTage.map(d => Object.keys(d))));
+  /* mine BLEIBT, und zwar richtig herum: daran haengt die Fuellung der Punkte
+     in der Zeitleiste. Bert hat gefragt -- seine Zeile ist seine, annas nicht. */
+  pruefe('Und mine sagt weiter, welcher Punkt mir gehoert',
+    fVListeTage.find(d => d.day === '2024-06-01')?.mine === true &&
+    fVListeTage.find(d => d.day === '2024-06-02')?.mine === false,
+    JSON.stringify(fVListeTage.map(d => [d.day, d.mine])));
 
   /* ---------------------------------------------------------------- */
   gruppe('Der Loeschdialog am Eintrag');
@@ -14063,10 +14117,18 @@ const freigabeHaupt = (zweck, ziel = null) =>
   }
 
   /* zweifaktor.js SEIT 0.10.0 -- eine neue Quelltextdatei mit deutschen
-     Kommentaren, die der Waechter nicht saehe, stuende sie nicht hier. */
+     Kommentaren, die der Waechter nicht saehe, stuende sie nicht hier.
+     UND bilder.js UND bestandslauf.js SEIT 0.19.3, aus demselben Grund. Beide
+     tragen lange deutsche Kommentare; ohne diese Zeile stuenden sie ausserhalb
+     jeder Sprachpruefung -- und der erste Lauf hat es bewiesen: in
+     bestandslauf.js stand `Ereignisschleife`, und der Waechter sah es nicht.
+     DAS ZITIERTE WORT STEHT IN BACKTICKS, sonst faenge der Waechter seine
+     eigene Begruendung -- er liest Kommentare und laesst zitierten Code in
+     Ruhe. */
   const SPRACH_QUELLEN = ['server.js', 'db.js', 'auth.js', 'anhaenge.js', 'keys.js',
                           'zugang.js', 'schluessel.js', 'zweifaktor.js', 'pruefung.js',
-                          'gegenprobe.js', 'public/app.js'];
+                          'gegenprobe.js', 'public/app.js',
+                          'bilder.js', 'bestandslauf.js'];
   const sprachQuelltext = SPRACH_QUELLEN.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p)
@@ -14096,8 +14158,8 @@ const freigabeHaupt = (zweck, ziel = null) =>
      noch die halbe Anwendung an. Genau das ist beim Bauen dieser Gruppe an
      einer Gegenprobe aufgefallen -- der Rueckbau auf eine einzige Datei blieb
      stumm. Dieselbe Ueberlegung wie bei der Zahl in F_ROUTEN. */
-  pruefe('Der Sprachwaechter sieht alle elf Quelltextdateien an',
-    SPRACH_QUELLEN.length === 11 &&
+  pruefe('Der Sprachwaechter sieht alle dreizehn Quelltextdateien an',
+    SPRACH_QUELLEN.length === 13 &&
     SPRACH_QUELLEN.every(n => fs.existsSync(path.join(__dirname, n))),
     `${SPRACH_QUELLEN.length} Dateien, fehlend: ` +
     JSON.stringify(SPRACH_QUELLEN.filter(n => !fs.existsSync(path.join(__dirname, n)))));
@@ -18790,6 +18852,219 @@ const freigabeHaupt = (zweck, ziel = null) =>
     (await ruf('GET', '/api/items')).inhalt.every(i => Array.isArray(i.testDays)));
 
   /* ---------------------------------------------------------------- */
+  gruppe('Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3');
+
+  /* WAS 0.19.3 GEBAUT HAT UND WAS DIESE GRUPPE DAVON PRUEFT. Fuenf Abfragen
+     der Uebersichtsschleife sind VOR die Schleife gezogen -- einmal fragen, in
+     eine Karte legen, in der Schleife nachschlagen. Aus 3200 Abfragen je
+     Abruf werden 405: die fuenf gebuendelten schrumpfen auf je eine,
+     `testStats` bleibt bei 400 -- gebuendelt waere es langsamer.
+
+     DIE GEFAHR IST NICHT DIE GESCHWINDIGKEIT, SONDERN DIE ZWEITE WAHRHEIT
+     (Stolperstein 47): neben jeder gebuendelten Fassung steht die einzelne
+     weiter da, weil detail() sie braucht. Laufen die beiden auseinander,
+     traegt die KACHEL etwas anderes als der EINTRAG -- und zwar unbemerkt,
+     denn beide sehen fuer sich richtig aus. Geprueft wird deshalb nicht, DASS
+     gebuendelt wird, sondern dass beide Wege Feld fuer Feld dasselbe sagen.
+
+     GEBAUT WIRD DER GEGENSTAND EIGENS: zwei Eintraege, damit eine Gruppierung
+     nach item_id ueberhaupt etwas zu tun hat, und der zweite traegt anderes
+     als der erste -- eine Karte, die alles demselben Eintrag zuordnet, faellt
+     mit einem einzigen Eintrag nicht auf. */
+  const ueKat = (await ruf('POST', '/api/product-categories', { name: 'Buendelprobe' })).inhalt;
+  const ueA = (await ruf('POST', '/api/items', { title: 'Buendel A' })).inhalt;
+  const ueB = (await ruf('POST', '/api/items', { title: 'Buendel B' })).inhalt;
+  await ruf('PUT', `/api/items/${ueA.id}`, { productCategoryId: ueKat.id });
+  /* DIE DREI SCHLAGWORTE STEHEN ABSICHTLICH IN VERKEHRTER FOLGE: die
+     gebuendelte Abfrage sortiert zuerst nach item_id und DANN nach Namen. Wer
+     die zweite Ordnung vergisst, bekommt sie in Einfuegereihenfolge -- und
+     das faellt nur auf, wenn die beiden verschieden sind. */
+  for (const n of ['Zange', 'Amboss', 'Meissel'])
+    await ruf('POST', `/api/items/${ueA.id}/tags`, { name: n });
+  await ruf('POST', `/api/items/${ueB.id}/tags`, { name: 'Nurbei B' });
+  await ruf('POST', `/api/items/${ueA.id}/links`, { url: 'https://buendel.test/eins' });
+  await ruf('POST', `/api/items/${ueA.id}/links`, { url: 'https://buendel.test/zwei' });
+  await ruf('POST', `/api/items/${ueB.id}/links`, { url: 'https://buendel.test/drei' });
+  /* DREI TESTTAGE, IN VERKEHRTER FOLGE EINGETRAGEN: die Liste sortiert
+     absteigend nach Tag, und das faellt nur auf, wenn die Eingabefolge eine
+     andere ist. ZWEI AM SELBEN TAG GINGEN HIER NICHT -- ein Zugang darf einen
+     Tag nur einmal eintragen; dass bei Gleichstand die id entscheidet, haelt
+     die Zeile am Quelltext weiter unten fest. */
+  for (const [tag, note] of [['2026-05-03', 5], ['2026-05-01', 3], ['2026-05-07', 1]])
+    await ruf('POST', `/api/items/${ueA.id}/test-days`, { day: tag, rating: note });
+  await ruf('POST', `/api/items/${ueB.id}/test-days`, { day: '2026-04-04', rating: 2 });
+  const ueKrit = (await ruf('GET', '/api/criteria')).inhalt;
+  await ruf('PUT', `/api/items/${ueA.id}/ratings`, { criterionId: ueKrit[0].id, value: 4 });
+  await ruf('PUT', `/api/items/${ueA.id}/ratings`, { criterionId: ueKrit[1].id, value: 2 });
+  await ruf('PUT', `/api/items/${ueB.id}/ratings`, { criterionId: ueKrit[0].id, value: 5 });
+
+  const ueListe = (await ruf('GET', '/api/items')).inhalt;
+  /* JEDER ZUGRIFF GEHT DURCH EINE KLAMMER, und das ist keine Zierde: die
+     Rueckbauten 499 bis 504 nehmen genau diese Felder weg. Eine Zeile, die
+     dann auf `undefined.map` greift, REISST DEN LAUF AB, statt namentlich rot
+     zu werden -- und ein abgerissener Lauf belegt nichts (Stolpersteine 138,
+     161 und 170). Das ist beim ersten Gegenprobenlauf dieser Runde wirklich
+     passiert. */
+  const ueKachel = (id) => (ueListe || []).find(i => i.id === id) || {};
+  const ueDetail = async (id) => (await ruf('GET', `/api/items/${id}`)).inhalt || {};
+  const ueDA = await ueDetail(ueA.id), ueDB = await ueDetail(ueB.id);
+  const ueTags = (o) => (o && o.tags) || [];
+  const ueTage = (o) => (o && o.testDays) || [];
+  pruefe('Der Aufbau steht: beide Eintraege stehen in der Uebersicht',
+    (ueListe || []).some(i => i.id === ueA.id) &&
+    (ueListe || []).some(i => i.id === ueB.id), `${(ueListe || []).length} Eintraege`);
+
+  /* --- Die Schlagworte: gleiche Felder, gleiche Folge, und beim richtigen
+         Eintrag --- */
+  pruefe('Die Kachel traegt dieselben Schlagworte wie der Eintrag',
+    ueTags(ueDA).length === 3 && gleich(ueTags(ueKachel(ueA.id)), ueTags(ueDA)),
+    JSON.stringify(ueTags(ueKachel(ueA.id))));
+  pruefe('Und sie stehen alphabetisch, nicht in der Reihenfolge des Eintragens',
+    gleich(ueTags(ueKachel(ueA.id)).map(t => t.name), ['Amboss', 'Meissel', 'Zange']),
+    JSON.stringify(ueTags(ueKachel(ueA.id)).map(t => t.name)));
+  pruefe('Und das Schlagwort des zweiten Eintrags steht nur bei ihm',
+    gleich(ueTags(ueKachel(ueB.id)).map(t => t.name), ['Nurbei B']),
+    JSON.stringify(ueTags(ueKachel(ueB.id)).map(t => t.name)));
+  /* `t.*` IST SEIT 0.19.3 EINE SPALTENLISTE. `created_at` eines Schlagworts
+     liest die Oberflaeche nirgends -- und was niemand ansieht, wird zweimal
+     bezahlt: beim Holen und beim Senden. AN BEIDEN WEGEN, sonst waere es
+     genau die zweite Wahrheit, um die es hier geht. */
+  pruefe('Ein Schlagwort traegt nur noch id und name — an der Kachel',
+    ueTags(ueKachel(ueA.id)).length === 3 &&
+    ueTags(ueKachel(ueA.id)).every(t => gleich(Object.keys(t).sort(), ['id', 'name'])),
+    JSON.stringify(ueTags(ueKachel(ueA.id)).map(t => Object.keys(t))));
+  pruefe('Und ebenso am Eintrag',
+    ueTags(ueDA).length === 3 &&
+    ueTags(ueDA).every(t => gleich(Object.keys(t).sort(), ['id', 'name'])),
+    JSON.stringify(ueTags(ueDA).map(t => Object.keys(t))));
+
+  /* --- Die Zahlen: gezaehlt statt geholt, und beim richtigen Eintrag --- */
+  const ueLinks = (o) => ((o && o.links) || []).length;
+  pruefe('Die Linkzahl der Kachel ist die Zahl der Links am Eintrag',
+    ueKachel(ueA.id).linkCount === ueLinks(ueDA) && ueLinks(ueDA) === 2 &&
+    ueKachel(ueB.id).linkCount === ueLinks(ueDB) && ueLinks(ueDB) === 1,
+    `${ueKachel(ueA.id).linkCount}/${ueLinks(ueDA)} und ` +
+    `${ueKachel(ueB.id).linkCount}/${ueLinks(ueDB)}`);
+  /* EIN EINTRAG OHNE LINKS TRAEGT 0 UND NICHT undefined. Eine Karte kennt nur,
+     was sie gefunden hat; wer den Rueckfall vergisst, schickt die Kachel mit
+     einem leeren Feld hinaus. */
+  pruefe('Ein Eintrag ohne Links traegt die Zahl 0',
+    ueKachel(vsTagTag.id).linkCount === 0 &&
+    ueKachel(vsTagTag.id).attachmentCount === 0,
+    JSON.stringify([ueKachel(vsTagTag.id).linkCount,
+                    ueKachel(vsTagTag.id).attachmentCount]));
+
+  /* --- Der Schnitt: dieselbe Rechnung, aus einer anderen Abfrage --- */
+  pruefe('Der Schnitt der Kachel ist der Schnitt des Eintrags',
+    ueKachel(ueA.id).avgRating === ueDA.avgRating && ueDA.avgRating !== null &&
+    ueKachel(ueB.id).avgRating === ueDB.avgRating && ueDB.avgRating !== null,
+    `${ueKachel(ueA.id).avgRating}/${ueDA.avgRating} und ` +
+    `${ueKachel(ueB.id).avgRating}/${ueDB.avgRating}`);
+  /* UND DIE BEIDEN SIND WIRKLICH VERSCHIEDEN. Waeren sie gleich, belegte die
+     Zeile darueber auch dann nichts, wenn die Karte allen denselben Wert
+     gaebe. */
+  pruefe('Und die beiden Eintraege haben dabei verschiedene Schnitte',
+    ueKachel(ueA.id).avgRating !== ueKachel(ueB.id).avgRating,
+    `${ueKachel(ueA.id).avgRating} gegen ${ueKachel(ueB.id).avgRating}`);
+  pruefe('Ein Eintrag ohne Bewertung traegt weiterhin null und nicht 0',
+    ueKachel(vsTagTag.id).avgRating === null,
+    JSON.stringify(ueKachel(vsTagTag.id).avgRating));
+
+  /* --- Die Kategorie: einmal geholt, nicht je Eintrag --- */
+  pruefe('Die Kategorie der Kachel ist die des Eintrags',
+    gleich(ueKachel(ueA.id).category, ueDA.category) &&
+    (ueKachel(ueA.id).category || {}).name === 'Buendelprobe',
+    JSON.stringify(ueKachel(ueA.id).category));
+  pruefe('Und ein Eintrag ohne Kategorie traegt null',
+    ueKachel(ueB.id).category === null, JSON.stringify(ueKachel(ueB.id).category));
+
+  /* --- Die Testtage: schmal in der Liste, voll am Eintrag, gleiche Folge --- */
+  pruefe('Die Testtage der Liste stehen in derselben Folge wie am Eintrag',
+    ueTage(ueDA).length === 3 &&
+    gleich(ueTage(ueKachel(ueA.id)).map(d => d.day), ueTage(ueDA).map(d => d.day)) &&
+    gleich(ueTage(ueKachel(ueA.id)).map(d => d.id), ueTage(ueDA).map(d => d.id)),
+    JSON.stringify([ueTage(ueKachel(ueA.id)).map(d => d.id), ueTage(ueDA).map(d => d.id)]));
+  pruefe('Und die Folge ist wirklich der Tag absteigend, nicht die Eingabefolge',
+    gleich(ueTage(ueKachel(ueA.id)).map(d => d.day),
+           ['2026-05-07', '2026-05-03', '2026-05-01']),
+    JSON.stringify(ueTage(ueKachel(ueA.id)).map(d => [d.day, d.id])));
+  /* DIE WEGNAHME, UND SIE STEHT AN BEIDEN SEITEN DA: die Liste traegt vier
+     Felder, der Eintrag traegt daneben weiter Schlagworte und Verfasser. Eine
+     Pruefung nur an der Liste liesse offen, ob die Angaben ueberhaupt noch
+     irgendwo stehen. */
+  pruefe('Der Testtag der Liste traegt id, day, rating und mine — sonst nichts',
+    ueTage(ueKachel(ueA.id)).length === 3 &&
+    ueTage(ueKachel(ueA.id)).every(d =>
+      gleich(Object.keys(d).sort(), ['day', 'id', 'mine', 'rating'])),
+    JSON.stringify(ueTage(ueKachel(ueA.id)).map(d => Object.keys(d))));
+  pruefe('Und der Testtag am Eintrag traegt Schlagworte und Verfasser weiter',
+    ueTage(ueDA).length === 3 &&
+    ueTage(ueDA).every(d => Array.isArray(d.tags) && d.verfasser !== undefined),
+    JSON.stringify(ueTage(ueDA).map(d => Object.keys(d))));
+  /* DIE NOTEN GEHEN DABEI NICHT VERLOREN -- ohne sie zeichnete die Zeitleiste
+     lauter Punkte auf derselben Hoehe. */
+  pruefe('Die Noten der Liste sind die des Eintrags',
+    ueTage(ueDA).length === 3 &&
+    gleich(ueTage(ueKachel(ueA.id)).map(d => d.rating), ueTage(ueDA).map(d => d.rating)),
+    JSON.stringify(ueTage(ueKachel(ueA.id)).map(d => d.rating)));
+  /* UND DIE KENNZAHLEN BLEIBEN UNGEBUENDELT. testStats gebuendelt ist gemessen
+     LANGSAMER (2,58 gegen 1,94 ms bei 400 Eintraegen) -- eine Buendelung ist
+     kein Selbstzweck. Die Zahlen muessen trotzdem stimmen. */
+  pruefe('Und die Kennzahlen der Kachel stimmen mit dem Eintrag ueberein',
+    ueKachel(ueA.id).testCount === ueDA.testCount &&
+    ueKachel(ueA.id).testAvg === ueDA.testAvg &&
+    ueKachel(ueA.id).testLast === ueDA.testLast && ueDA.testCount === 3 &&
+    ueDA.testLast === 1,
+    JSON.stringify([ueKachel(ueA.id).testCount, ueKachel(ueA.id).testAvg,
+                    ueKachel(ueA.id).testLast]));
+
+  /* --- Und der Quelltext dazu: eine Spaltenliste, zwei Abfragen --- */
+  {
+    const ueQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const ueEinzeilig = ueQuelle.replace(/\s+/g, ' ');
+    /* DIE SPALTENLISTE DER SCHLAGWORTE STEHT AN EINER STELLE -- dieselbe
+       Bauform wie PHOTO_SPALTEN. Liefe sie auseinander, traege die Kachel ein
+       anderes Schlagwort als der Eintrag, und die Pruefungen oben faenden es
+       erst am naechsten Feld. */
+    pruefe('Die Spaltenliste der Schlagworte steht an einer Stelle',
+      /const TAG_SPALTEN = 't\.id, t\.name';/.test(ueQuelle),
+      (ueQuelle.match(/const TAG_SPALTEN = [^\n]*/) || ['(nicht gefunden)'])[0]);
+    pruefe('Und beide Abfragen lesen sie',
+      ueEinzeilig.includes('const qTags = db.prepare(`SELECT ${TAG_SPALTEN} FROM tags t') &&
+      ueEinzeilig.includes('const qAlleTags = db.prepare(`SELECT it.item_id, ${TAG_SPALTEN} FROM tags t'),
+      (ueEinzeilig.match(/const qAlleTags = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+    /* DIE ORDNUNG DER GEBUENDELTEN TESTTAGE STEHT AM QUELLTEXT: zuerst
+       item_id, dann WIE BISHER. Der Gleichstand zweier Testtage am selben Tag
+       laesst sich mit einem Zugang gar nicht herstellen (ein Zugang darf einen
+       Tag nur einmal eintragen) -- die zweite Ordnung wird deshalb hier
+       festgehalten und nicht am Bestand. Ohne sie bekaeme die Zeitleiste ihre
+       Punkte verdreht, sobald zwei Leute denselben Tag eintragen. */
+    pruefe('Die gebuendelten Testtage sortieren zuerst nach Eintrag, dann wie bisher',
+      ueEinzeilig.includes(
+        "'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC'") &&
+      ueEinzeilig.includes(
+        "FROM test_days WHERE item_id = ? ORDER BY day DESC, id DESC'"),
+      (ueEinzeilig.match(/qAlleTestTageSchmal = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+    /* KEIN `IN (…)` MIT VIERHUNDERT NUMMERN -- dieselbe Begruendung wie bei
+       den Fotos: die gefilterte Uebersicht wirft dann etwas weg, und das ist
+       billiger als die Liste zu binden. */
+    pruefe('Keine der gebuendelten Abfragen bindet eine Nummernliste',
+      !/qAlleTags|qLinkZahlen|qAnhangZahlen|qAlleKategorien|qAlleTestTageSchmal|qSchnittJeKriteriumAlle/
+        .test((ueEinzeilig.match(/IN \(\$\{[^)]*\)/g) || []).join(' ')),
+      (ueEinzeilig.match(/IN \(\$\{[^)]*\)/g) || []).join(' ') || '(keine)');
+    /* UND testStats BLEIBT UNGEBUENDELT. Ohne diese Zeile bliebe gruen, wer es
+       aus lauter Ordnungsliebe mitnimmt -- und die Route waere langsamer. */
+    pruefe('testStats fragt weiterhin je Eintrag',
+      ueEinzeilig.includes('Object.assign(it, testStats(it.id));') &&
+      !/qTestStatsAlle|testStatsJeEintrag/.test(ueQuelle),
+      (ueEinzeilig.match(/Object\.assign\(it, testStats[^;]*/) || ['(nicht gefunden)'])[0]);
+  }
+
+  await ruf('DELETE', `/api/items/${ueA.id}`);
+  await ruf('DELETE', `/api/items/${ueB.id}`);
+  await ruf('DELETE', `/api/product-categories/${ueKat.id}`);
+
+  /* ---------------------------------------------------------------- */
   gruppe('Gespeicherte Ansichten');
 
   /* SIE STEHEN IN settings UNTER EINEM PERSOENLICHEN SCHLUESSEL und brauchen
@@ -18944,6 +19219,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* ---------------------------------------------------------------- */
   await pruefeOberflaeche();
   await pruefeErstanmeldung();
+  await pruefeBestandslauf();
   pruefeSchluesselwechsel();
 
   /* ---------------------------------------------------------------- */
@@ -19254,7 +19530,23 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Runde abgebaut worden. **Ein Rueckbau auf etwas, das es nicht mehr gibt,
      laesst sich nicht mitnehmen: er hat keinen Ort mehr.** An ihre Stelle
      tritt 487, der die Tafel WIEDER EINBAUT -- dieselbe Sache, andersherum. */
-  pruefe('Es sind genau 481 Rueckbauten', gpListe.length === 481, `${gpListe.length}`);
+  /* 497 SEIT 0.19.3: SECHZEHN neue, fuenfzehn ab Nummer 491 -- acht am Bestandslauf im
+     eigenen Thread (die Meldung je Zeile, ihr Empfaenger, der Schluessel in
+     workerData, der Abschluss, der stille Fehler, die Datei im Fingerprint,
+     die Threadzahl von sharp und der wiederholte Schluesselhinweis), sechs an
+     der Uebersicht (zweimal die verlorene zweite Ordnung, die fehlende
+     Linkzahl, die gebuendelte Fassung mit einer Spalte zu viel, die wieder
+     vollen Testtage und `t.*` statt der Spaltenliste) und einer am
+     Bildschirmtext -- dazu W14 am Pruefstand selbst, der Dateiliste des
+     Sprachwaechters. DIE ZAEHLUNG DER NEUEN IST 15 + 1: die W-Nummern gehoeren
+     zur Zahl der Rueckbauten, aber nicht zur Reihe ab 491.
+     ACHT VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
+     201): 431 bis 435 und 458 zeigten auf die Umwandlung, die jetzt in
+     bilder.js steht -- derselbe Fund, andere Datei; 136 und 137 auf die Zeile
+     der Testtage in der Uebersichtsschleife, die jetzt anders lautet.
+     KEINER IST WEGGEFALLEN: diese Runde hat nichts abgebaut, sie hat
+     verschoben. */
+  pruefe('Es sind genau 497 Rueckbauten', gpListe.length === 497, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -19644,13 +19936,36 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* UND DIE ALTE LIEGT NICHT MEHR DANEBEN. Zwei Dateien mit fast demselben
        Namen liessen offen, welche gilt -- und die verfolgte waere wieder die,
        die ueberschrieben wird. Geprueft wird an der ABLAGE und nicht am
-       Arbeitsbaum: wer sie sich beim Einrichten anlegt, soll sie behalten. */
-    const verfolgt = String(execFileSync('git', ['ls-files'], { cwd: __dirname }))
-      .split('\n').map(z => z.trim());
-    pruefe('Und die Arbeitsdatei ist nicht mehr verfolgt',
-      !verfolgt.includes('docker-compose.yml') &&
-      verfolgt.includes('docker-compose.example.yml'),
-      verfolgt.filter(z => /^docker-compose/.test(z)).join(' · ') || '(keine)');
+       Arbeitsbaum: wer sie sich beim Einrichten anlegt, soll sie behalten.
+
+       GEFRAGT WIRD GIT, UND ZWAR NUR DORT, WO ES EIN GIT GIBT -- 0.19.3.
+       EINE GEGENPROBENKOPIE HAT KEINES: sie entsteht ueber `git archive HEAD`
+       und traegt kein `.git`. Der ungeschuetzte Aufruf WARF dort, und weil er
+       vor jeder Zusicherung steht, RISS ER DEN GANZEN LAUF AB, statt eine
+       Pruefung rot zu faerben (Stolpersteine 103 und 161). **Damit war JEDE
+       Gegenprobe seit 0.19.1 unauswertbar** -- gefunden hat es der erste
+       Gegenprobenlauf seither, in dieser Runde. *0.19.2 hat keinen gefahren;
+       deshalb ist es dort nicht aufgefallen.*
+       STATT DER FRAGE STEHT DANN IHRE VORAUSSETZUNG DA und nicht ein gruener
+       Punkt ohne Gegenstand: dass es hier wirklich keine Ablage gibt. So
+       bleibt die Zahl der Pruefungen dieselbe, und stillschweigend
+       uebersprungen wird nichts. */
+    const ablage = (() => {
+      try {
+        return String(execFileSync('git', ['ls-files'],
+          { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }))
+          .split('\n').map(z => z.trim());
+      } catch { return null; }
+    })();
+    if (ablage)
+      pruefe('Und die Arbeitsdatei ist nicht mehr verfolgt',
+        !ablage.includes('docker-compose.yml') &&
+        ablage.includes('docker-compose.example.yml'),
+        ablage.filter(z => /^docker-compose/.test(z)).join(' · ') || '(keine)');
+    else
+      pruefe('Und die Ablage laesst sich hier nicht befragen — eine Kopie ohne .git',
+        !fs.existsSync(path.join(__dirname, '.git')),
+        'git ls-files ist gescheitert, obwohl ein .git danebensteht');
     pruefe('Die Arbeitsdatei steht in der .gitignore',
       ignoriert.includes('docker-compose.yml'), ignoriert.join(' · '));
     /* DIESELBE ZEILE FUER `.env` STEHT DANEBEN -- ohne sie bliebe die Zusage
@@ -29636,9 +29951,11 @@ async function pruefeOberflaeche() {
     /50,0 MB/.test(siKarte(siEig)?.textContent || ''),
     siKarte(siEig)?.textContent?.slice(0, 600));
   /* DIE DAUER STEHT VORHER DA. VACUUM INTO laeuft synchron, die Instanz steht
-     so lange still -- eine Ansage ist besser als ein stiller Stillstand. */
-  pruefe('Die Karte sagt vorher, dass die Instanz stillsteht',
-    /steht die\s+Instanz still/.test(siKarte(siEig)?.textContent || ''),
+     so lange still -- eine Ansage ist besser als ein stiller Stillstand.
+     DER BILDSCHIRMTEXT SAGT SEIT 0.19.3 „Installation"; der Kommentar hier
+     bleibt, wie er ist -- Kommentare sind kein Bildschirmtext. */
+  pruefe('Die Karte sagt vorher, dass die Installation stillsteht',
+    /steht die\s+Installation still/.test(siKarte(siEig)?.textContent || ''),
     siKarte(siEig)?.textContent?.slice(0, 700));
   pruefe('Und nennt die erwartete Dauer aus der Antwort',
     /etwa\s+1 Sekunden/.test(siKarte(siEig)?.textContent || ''),
@@ -34864,6 +35181,86 @@ async function pruefeOberflaeche() {
       `${(fs.readFileSync(path.join(__dirname, 'anhaenge.js'), 'utf8').match(/[Aa]nlage/g) || []).length}`);
   }
 
+  /* ---- 4a. Und das Wort selbst steht in keinem Bildschirmtext mehr ---- */
+  gruppe('„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3');
+
+  /* 0.19.1 HAT SIEBZEHN STELLEN UMBENANNT, 0.19.3 DIE LETZTEN ACHT. Damit ist
+     das Wort aus dem Bildschirmtext heraus -- und „damit ist es heraus"
+     laesst sich nur belegen, indem man nachzaehlt.
+
+     GEZAEHLT WERDEN ZEILEN, NICHT VORKOMMEN, und ausdruecklich nur solche
+     ausserhalb von Kommentaren: in public/app.js stehen dreiunddreissig
+     weitere Vorkommen, in server.js sechsunddreissig, dazu eines in
+     public/index.html -- alle in Kommentaren. Sie sind kein Bildschirmtext,
+     und sie umzubenennen bewegte nur den Fingerprint.
+
+     WAS ALS KOMMENTAR ZAEHLT, IST HIER WEITER GEFASST als beim Waechter ueber
+     den Cookienamen (ohneKommentare oben): public/app.js baut seine
+     Oberflaeche aus Vorlagen-Strings, und ein Kommentar DARIN faengt
+     mitten in der Zeile an -- hinter einer geoeffneten Einsetzung. Der
+     Waechter oben misst am Zeilenanfang und saehe acht solcher Zeilen fuer
+     Bildschirmtext an; sie
+     sind keiner. Hier oeffnet ein `/*` deshalb an JEDER Stelle den Block.
+     `//` WIRD NUR AM ZEILENANFANG GELESEN und nicht mitten in der Zeile: dort
+     steht in einer Oberflaeche viel eher ein `https://` als ein Kommentar,
+     und ein Waechter, der die halbe Zeile wegwirft, uebersaehe den Treffer
+     dahinter. */
+  {
+    const ohneJedenKommentar = (text) => {
+      let inBlock = false;
+      return text.split('\n').map(z => {
+        if (z.trim().startsWith('//')) return '';
+        let raus = '', rest = z;
+        while (rest.length) {
+          if (inBlock) {
+            const e = rest.indexOf('*/');
+            if (e < 0) { rest = ''; break; }
+            inBlock = false; rest = rest.slice(e + 2);
+          } else {
+            const a = rest.indexOf('/*');
+            if (a < 0) { raus += rest; break; }
+            raus += rest.slice(0, a); inBlock = true; rest = rest.slice(a + 2);
+          }
+        }
+        return raus;
+      }).join('\n');
+    };
+    const bildschirmzeilen = (datei) => ohneJedenKommentar(
+      fs.readFileSync(path.join(__dirname, ...datei.split('/')), 'utf8'))
+      .split('\n').map((z, i) => [i + 1, z]).filter(([, z]) => z.includes('Instanz'));
+
+    const iApp = bildschirmzeilen('public/app.js');
+    pruefe('In public/app.js steht das Wort in keiner Nicht-Kommentarzeile mehr',
+      iApp.length === 0, iApp.map(([n, z]) => `${n}: ${z.trim()}`).join(' · '));
+    /* ERST DER WAECHTER, DANN SEIN BEFUND (Stolperstein 81): ein Zaehler, der
+       nichts findet, weil er nichts liest, ist gruen und belegt nichts. */
+    pruefe('Und der Waechter wuerde eine solche Zeile wirklich finden',
+      ohneJedenKommentar("  const t = 'die Instanz sagt es';").includes('Instanz'),
+      'der Waechter sieht die Zeile nicht');
+    pruefe('Aber einen Kommentar mitten in einem Vorlagen-String laesst er stehen',
+      !ohneJedenKommentar("      ${/* die Instanz meint es anders */''}").includes('Instanz'),
+      'der Waechter haelt den Kommentar fuer Bildschirmtext');
+    /* UND DIE KOMMENTARE TRAGEN DAS WORT WEITER. Ohne diese Zeile bliebe die
+       Gruppe auch dann gruen, wenn jemand die Datei leerte -- und sie haelt
+       zugleich fest, dass die Kommentare AUSDRUECKLICH nicht mitgenommen
+       wurden (Stolperstein 201). */
+    const iAppRoh = (fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+      .match(/Instanz/g) || []).length;
+    pruefe('In den Kommentaren derselben Datei stehen unveraendert 33 Vorkommen',
+      iAppRoh === 33, `${iAppRoh} Vorkommen`);
+
+    /* DIE EINE ZEILE, DIE BLEIBT, UND SIE STEHT NAMENTLICH DA. server.js
+       schreibt „Die Instanz laeuft weiter …" ins Containerprotokoll, wenn
+       OEFFENTLICHE_ADRESSE unbrauchbar ist. Das ist eine Zeile fuer den
+       BETREIBER und keine Bildschirmmeldung; sie bleibt, und sie bleibt
+       gezaehlt -- eine Ausnahme ohne Zahl deckte den naechsten echten Treffer
+       mit zu. */
+    const iServer = bildschirmzeilen('server.js');
+    pruefe('In server.js bleibt genau eine Zeile — die Protokollzeile fuer den Betreiber',
+      iServer.length === 1 && /Die Instanz laeuft weiter/.test(iServer[0][1]),
+      iServer.map(([n, z]) => `${n}: ${z.trim()}`).join(' · '));
+  }
+
   /* ---- 5. Die Zeile einer Sitzung steht gerade ---- */
   gruppe('Die Zeitangaben stehen untereinander — 0.17.1');
 
@@ -35787,4 +36184,320 @@ function pruefeSchluesselwechsel() {
     fs.readFileSync(envDatei, 'utf8') === envNachher);
 
   fs.rmSync(SW, { recursive: true, force: true });
+}
+
+/* ================= Der Bestandslauf im eigenen Thread — 0.19.3 ==============
+   WAS HIER GEPRUEFT WIRD UND WARUM NICHT AM SERVER. Dass die Umstellung
+   ueberhaupt umstellt, steht in der Gruppe „Die Bildablage: PNG kommt herein,
+   WebP geht in die Tabelle" und laeuft dort ueber den Knopf. HIER geht es um
+   die Zusage, die 0.19.3 dazugelegt hat: dass die Schleife in einem EIGENEN
+   THREAD faehrt, dort in die VERSCHLUESSELTE Datei schreibt, ihren Stand je
+   Zeile meldet -- und dass daneben ein zweiter Schreiber auf derselben
+   WAL-Datei durchkommt.
+
+   DAS LAESST SICH UEBER HTTP NICHT SEHEN: die Antwort ist dieselbe wie vorher,
+   und genau das ist der Sinn der Runde. Geprueft wird deshalb wie beim
+   Schluesselwechsel -- an einer echten, verschluesselten Instanz in einem
+   Wegwerfverzeichnis, und der Thread wird von hier aus erzeugt. */
+async function pruefeBestandslauf() {
+  gruppe('Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3');
+
+  const BL = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-bestandslauf-'));
+  const dir = path.join(BL, 'data');
+  fs.mkdirSync(dir);
+  const hex = crypto.randomBytes(32).toString('hex');
+  const umgebung = { ...process.env, DATA_DIR: dir, ENCRYPTION_KEY: hex };
+  delete umgebung.AUTH_RESET;
+
+  /* DAS SCHEMA KOMMT AUS db.js UND NICHT AUS DER HAND -- ein von Hand gebautes
+     waere eine zweite Wahrheit darueber, wie eine Instanz aussieht. */
+  execFileSync(process.execPath, ['-e', "require('./db');"],
+    { cwd: __dirname, encoding: 'utf8', env: umgebung });
+  const oeffne = () => {
+    const d = new Database(path.join(dir, 'katalog.sqlite'));
+    d.pragma("cipher='sqlcipher'");
+    d.pragma(`key="x'${hex}'"`);
+    d.pragma('journal_mode = WAL');
+    return d;
+  };
+
+  /* DIE VORLAGE IST EIN ECHTES PNG und kein Byte-Haufen: der Thread laedt
+     sharp und wandelt wirklich um. Ohne Bild bliebe offen, ob er nur die
+     Spalte umschreibt. */
+  const vorlage = await sharp({ create: { width: 240, height: 160, channels: 3,
+    background: { r: 30, g: 90, b: 200 } } }).png().toBuffer();
+  const ZEILEN = 6;
+  {
+    const d = oeffne();
+    const item = d.prepare("INSERT INTO items (title) VALUES ('Bestandslauf')").run().lastInsertRowid;
+    const ins = d.prepare("INSERT INTO photos (item_id, data, mime_type, art) VALUES (?,?,?,'foto')");
+    for (let i = 0; i < ZEILEN; i++) ins.run(item, vorlage, 'image/png');
+    d.close();
+  }
+
+  /* DER THREAD WIRD VON HIER AUS ERZEUGT, mit derselben Datei, die auch
+     server.js an `new Worker` reicht. `env` traegt DATA_DIR und
+     ENCRYPTION_KEY -- der Schluessel kommt damit AUS DER UMGEBUNG und nicht
+     ueber workerData, genau wie im Betrieb. */
+  const fahre = (aufgabe, zeilen, daneben) => new Promise((fertig) => {
+    const w = new Worker(path.join(__dirname, 'bestandslauf.js'),
+      { workerData: { aufgabe, zeilen }, env: umgebung, stdout: true, stderr: true });
+    const staende = [];
+    let fehler = null;
+    w.on('message', (m) => staende.push(m));
+    w.on('error', (e) => { fehler = e; });
+    /* DER ZWEITE SCHREIBER HAENGT SICH ZUERST AN 'exit', und das ist keine
+       Geschmacksfrage: Node ruft die Horcher in der Reihenfolge ihrer
+       Anmeldung. Stuende die Zeile darunter, waere die Zusage schon
+       aufgeloest, bevor er sein Ergebnis abgelegt hat -- und die Pruefung
+       laese eine leere Abbildung. */
+    if (daneben) daneben.starte(w);
+    w.on('exit', (code) => fertig({ staende, fehler, code }));
+  });
+
+  /* ---- Die Vorschaubilder, aus dem Thread ---- */
+  const offen = (() => {
+    const d = oeffne();
+    const r = d.prepare(
+      "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND art != 'video'").all();
+    d.close();
+    return r;
+  })();
+  pruefe('Der Aufbau steht: sechs Zeilen ohne Vorschaubild',
+    offen.length === ZEILEN, `${offen.length}`);
+  const vor = await fahre('vorschaubilder', offen);
+  pruefe('Der Thread ruestet die Vorschaubilder nach und endet sauber',
+    vor.code === 0 && vor.fehler === null, `Rueckgabe ${vor.code}: ${vor.fehler && vor.fehler.message}`);
+  {
+    const d = oeffne();
+    const fehlend = d.prepare(
+      'SELECT COUNT(*) n FROM photos WHERE thumb IS NULL OR medium IS NULL').get().n;
+    d.close();
+    pruefe('Und danach fehlt keines mehr', fehlend === 0, `${fehlend} ohne Vorschaubild`);
+  }
+
+  /* ---- Die Umstellung, aus dem Thread, mit einem zweiten Schreiber daneben ----
+     DIE ZWEITE HAELFTE IST DER EIGENTLICHE GEGENSTAND: der Auftrag 0.19.1 hat
+     diese Runde mit dem Satz zurueckgestellt, ein zweiter Schreiber auf einer
+     WAL-Datei sei heikel. Nachgemessen ist er es nicht -- `busy_timeout` steht
+     bei better-sqlite3 auf 5000 ms, und wer in WAL auf den Schreiblock wartet,
+     wartet Millisekunden und wird nicht abgewiesen. Hier schreibt der
+     Haupt-Thread waehrend des ganzen Laufs alle 20 ms eine Transaktion. */
+  const pngs = (() => {
+    const d = oeffne();
+    const r = d.prepare("SELECT id FROM photos WHERE art != 'video' AND hex(substr(data,1,8)) = ?")
+      .all('89504E470D0A1A0A');
+    d.close();
+    return r;
+  })();
+  pruefe('Der Aufbau steht: sechs PNG liegen da', pngs.length === ZEILEN, `${pngs.length}`);
+
+  const nebenher = { ergebnis: null, starte: null };
+  nebenher.starte = (w) => {
+    const d = oeffne();
+    const schreib = d.prepare("INSERT INTO settings (key, value) VALUES (?, ?) " +
+      "ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+    let geschrieben = 0, abgewiesen = 0, langsamste = 0;
+    const uhr = setInterval(() => {
+      const t0 = Date.now();
+      try { schreib.run('bestandslauf-probe', JSON.stringify(geschrieben)); geschrieben++; }
+      catch { abgewiesen++; }
+      langsamste = Math.max(langsamste, Date.now() - t0);
+    }, 20);
+    w.on('exit', () => {
+      clearInterval(uhr);
+      d.close();
+      nebenher.ergebnis = { geschrieben, abgewiesen, langsamste };
+    });
+  };
+  const um = await fahre('umstellung', pngs, nebenher);
+  pruefe('Der Thread stellt um und endet sauber',
+    um.code === 0 && um.fehler === null,
+    `Rueckgabe ${um.code}: ${um.fehler && um.fehler.message}`);
+  /* JE ZEILE EINE MELDUNG, DAZU DIE EINE AM ENDE. Die Karte im Systembereich
+     fragt alle 1500 ms; eine Meldung erst am Schluss liesse sie waehrend des
+     ganzen Laufs dieselbe Null zeigen. */
+  pruefe('Und meldet je Zeile einmal, dazu einmal am Ende',
+    um.staende.length === ZEILEN + 1, `${um.staende.length} Meldungen`);
+  /* SIE TRAEGT DEN STAND UND KEINE ZUNAHME: der Haupt-Thread ERSETZT damit,
+     statt zu addieren. Eine Zunahme haengt an der Vollstaendigkeit der
+     Meldungsfolge, ein voller Stand kann gar nicht auseinanderlaufen. */
+  const letzter = um.staende[um.staende.length - 1] || {};
+  pruefe('Jede Meldung traegt den ganzen Stand und nicht eine Zunahme',
+    um.staende.every(m => m && m.art === 'stand' && m.stand &&
+      typeof m.stand.erledigt === 'number' && typeof m.stand.gesamt === 'number'),
+    JSON.stringify(um.staende[0]));
+  /* AUCH HIER GEHT JEDER ZUGRIFF DURCH EINE KLAMMER: Rueckbau 491 nimmt der
+     Schleife ihre Meldung, und eine Zeile, die dann auf `m.stand.erledigt`
+     greift, riesse den Lauf ab statt rot zu werden (Stolperstein 161). */
+  const ueErledigt = um.staende.map(m => (m && m.stand && m.stand.erledigt));
+  pruefe('Und der Stand zaehlt hoch, bis alle Zeilen erledigt sind',
+    gleich(ueErledigt, [1, 2, 3, 4, 5, 6, 6]), JSON.stringify(ueErledigt));
+  pruefe('Am Ende steht laeuft: false und jede Zeile umgestellt',
+    letzter.stand && letzter.stand.laeuft === false &&
+    letzter.stand.umgestellt === ZEILEN && letzter.stand.gespart > 0,
+    JSON.stringify(letzter.stand));
+  {
+    const d = oeffne();
+    const webp = d.prepare("SELECT COUNT(*) n FROM photos WHERE mime_type = 'image/webp'").get().n;
+    const png = d.prepare("SELECT COUNT(*) n FROM photos WHERE hex(substr(data,1,8)) = ?")
+      .get('89504E470D0A1A0A').n;
+    d.close();
+    /* DER THREAD HAT WIRKLICH IN DIE VERSCHLUESSELTE DATEI GESCHRIEBEN --
+       better-sqlite3-multiple-ciphers oeffnet sie aus einem Worker-Thread
+       heraus und beschreibt sie. Ohne diese Zeile belegte die Meldung nur,
+       dass der Thread etwas GEZAEHLT hat. */
+    pruefe('Der Thread hat wirklich in die verschluesselte Datei geschrieben',
+      webp === ZEILEN && png === 0, `${webp} WebP, ${png} PNG`);
+  }
+  /* KEINE EINZIGE ABWEISUNG, und die Zahl der Schreibungen steht daneben: ein
+     zweiter Schreiber, der gar nicht erst zum Zuge kam, belegte nichts
+     (Stolperstein 81). */
+  const nb = nebenher.ergebnis || {};
+  pruefe('Der zweite Schreiber kam waehrenddessen ueberhaupt zum Zuge',
+    nb.geschrieben > 0, JSON.stringify(nb));
+  pruefe('Und keine einzige seiner Schreibungen wurde abgewiesen',
+    nb.abgewiesen === 0, JSON.stringify(nb));
+
+  /* ---- Ein Fehler im Thread kommt als Fehler an ----
+     Er reisst den Server NICHT ab: server.js faengt ihn in worker.on('error'),
+     setzt umstellung.laeuft auf false und laesst den Rest stehen. Hier wird
+     nur belegt, dass er ueberhaupt dort ankommt -- ein Thread, der still
+     endet, liesse die Karte fuer immer auf „laeuft" stehen. */
+  const unfug = await fahre('unfug', []);
+  pruefe('Eine unbekannte Aufgabe endet als Fehler und nicht still',
+    unfug.fehler !== null && /Unbekannte Aufgabe/.test(unfug.fehler.message || ''),
+    JSON.stringify(unfug.fehler && unfug.fehler.message));
+
+  /* ---- Und der Quelltext dazu ----
+     WAS SICH AM VERHALTEN NICHT ZEIGT, muss am Quelltext festgehalten werden:
+     dass die Schleife WIRKLICH nur noch im Thread steht, dass der Schluessel
+     NICHT mitreist und dass der Abschluss den Thread VOR der Datei beendet.
+     Alle drei liessen sich still zuruecknehmen, ohne dass eine Antwort anders
+     aussaehe. */
+  {
+    const blServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const blLauf = fs.readFileSync(path.join(__dirname, 'bestandslauf.js'), 'utf8');
+    const blBilder = fs.readFileSync(path.join(__dirname, 'bilder.js'), 'utf8');
+    const blDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const einzeilig = (t) => t.replace(/\s+/g, ' ');
+
+    /* 1. DIE SCHLEIFE STEHT NUR NOCH IM THREAD. Ohne diese Zeile bliebe gruen,
+       wer den Thread baut und die alte Schleife daneben stehen laesst -- zwei
+       Wege, die dasselbe tun, und einer davon haelt den Server wieder an. */
+    pruefe('Die beiden Schleifen stehen nur noch in bestandslauf.js',
+      /for \(const \{ id \} of zeilen\)/.test(blLauf) &&
+      !/for \(const \{ id \} of zeilen\)/.test(blServer) &&
+      !/UPDATE photos SET thumb = \?, medium = \? WHERE id = \?/.test(blServer),
+      (blServer.match(/UPDATE photos SET thumb[^\n]*/) || ['(nicht mehr im Server — richtig)'])[0]);
+    /* 2. UND DER SERVER RUFT SIE UEBER EINEN THREAD. Beide Aufgaben, nicht
+       eine: die Umstellung auf Knopfdruck und das Nachruesten beim Start. */
+    pruefe('Und der Server startet fuer beide Aufgaben einen Thread',
+      einzeilig(blServer).includes("starteBestandsThread('umstellung', zeilen)") &&
+      einzeilig(blServer).includes("starteBestandsThread('vorschaubilder', offen, maintainStorage)"),
+      (blServer.match(/starteBestandsThread\([^)]*\)/g) || []).join(' · ') || '(nicht gefunden)');
+    /* 3. DER PFAD STEHT AN EINER STELLE, und der Fingerprint liest dieselbe.
+       Zwei Zeilen mit demselben Dateinamen liefen bei der naechsten
+       Umbenennung auseinander -- und der Fingerprint kennte dann eine
+       ausgelieferte Datei nicht. */
+    pruefe('Der Pfad des Threads steht an einer Stelle',
+      /const BESTANDSLAUF = path\.join\(__dirname, 'bestandslauf\.js'\);/.test(blServer) &&
+      /new Worker\(BESTANDSLAUF,/.test(blServer) &&
+      /\.\.\.ausgefuehrt, BESTANDSLAUF,/.test(einzeilig(blServer)),
+      (blServer.match(/const BESTANDSLAUF = [^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* 4. DER SCHLUESSEL REIST NICHT MIT. `workerData` wird beim Erzeugen
+       strukturiert kopiert -- ein Schluessel darin staende in einem zweiten
+       Speicher. Er kommt im Thread denselben Weg wie im Haupt-Thread, ueber
+       keys.js und die Umgebung. */
+    pruefe('Der Schluessel reist nicht ueber workerData',
+      einzeilig(blServer).includes('{ workerData: { aufgabe, zeilen } }') &&
+      !/workerData[^\n]*(key|hex|schluessel|Schluessel)/i.test(blServer) &&
+      !/workerData\.(key|hex|schluessel)/i.test(blLauf),
+      (blServer.match(/workerData: \{[^}]*\}/) || ['(nicht gefunden)'])[0]);
+    pruefe('Und der Thread laedt ihn ueber db.js wie der Haupt-Thread',
+      /require\('\.\/db'\)/.test(blLauf) && !/loadKey|ENCRYPTION_KEY/.test(blLauf),
+      (blLauf.match(/const \{ db \} = [^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* 5. DER ABSCHLUSS BEENDET DEN THREAD VOR DER DATEI. Andersherum schriebe
+       er in eine Datei, deren WAL gerade gekuerzt wird -- der eine Fall, den
+       diese Runde neu einbringt. */
+    const sigterm = (blServer.match(/for \(const zeichen of \['SIGTERM'[\s\S]{0,1600}?\n\}/) || [''])[0];
+    pruefe('SIGTERM beendet erst die Threads und dann die Datei',
+      sigterm.indexOf('w.terminate()') > 0 &&
+      sigterm.indexOf('w.terminate()') < sigterm.indexOf('db.close()'),
+      sigterm.slice(0, 400) || '(kein Abschluss gefunden)');
+    /* UND ES IST EINE MENGE UND KEINE EINZELNE VARIABLE. Im Regelfall laeuft
+       hoechstens einer -- aber wer den Umstellungsknopf 1500 ms nach dem Start
+       drueckt, hat zwei, und eine Variable truege dann nur den zweiten. */
+    pruefe('Und er nimmt jeden laufenden Thread mit, nicht nur den letzten',
+      /const bestandsThreads = new Set\(\);/.test(blServer) &&
+      /bestandsThreads\.add\(w\);/.test(blServer) &&
+      /bestandsThreads\.delete\(w\);/.test(blServer) &&
+      /for \(const w of bestandsThreads\)/.test(sigterm),
+      (blServer.match(/const bestandsThreads = [^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* 6. EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB, und er laesst die
+       Karte auch nicht fuer immer auf „laeuft" stehen.
+       DIE ERSTE FASSUNG DIESER ZEILE WAR ZU LOCKER, und die Gegenprobe hat es
+       gezeigt: sie suchte irgendwo im Handler nach `umstellung.laeuft = false`
+       -- und Rueckbau 495 setzt genau davor ein `if (false)`. Der Rueckbau
+       blieb STUMM. Gesucht wird deshalb die GANZE Zeile samt ihrer Klemme:
+       ohne `if (umstellung)` wuerde der Handler bei einem Fehler VOR dem
+       ersten Lauf selbst werfen (Stolperstein 81 -- erst der Gegenstand, dann
+       die Aussage darueber). */
+    pruefe('Ein Fehler im Thread setzt den Lauf auf beendet und laesst den Rest stehen',
+      /w\.on\('error', \(e\) => \{\s*\n\s*if \(umstellung\) umstellung\.laeuft = false;\s*\n\s*console\.error\(/
+        .test(blServer),
+      (blServer.match(/w\.on\('error'[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
+    /* 7. UND ER WIRD JE LAUF ERZEUGT UND DANACH BEENDET -- kein Threadpool,
+       kein Dauerlaeufer. Ein Dauerlaeufer hielte eine zweite Verbindung auf
+       die Datenbank offen, solange der Server laeuft. */
+    pruefe('Der Thread wird je Lauf erzeugt und danach vergessen',
+      /w\.on\('exit', \(\) => \{ bestandsThreads\.delete\(w\);/.test(blServer) &&
+      /parentPort\.close\(\);/.test(blLauf) && /db\.close\(\);/.test(blLauf),
+      (blServer.match(/w\.on\('exit'[^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* 8. DIE UMWANDLUNG GIBT ES GENAU EINMAL. Zwei Fassungen liefen
+       auseinander, und zwar unbemerkt -- beide saehen richtig aus
+       (Stolperstein 47). Deshalb steht sie in bilder.js, und BEIDE Wege rufen
+       dieselbe. */
+    pruefe('legeBildAb und makeVariants stehen genau einmal, in bilder.js',
+      /async function legeBildAb\(/.test(blBilder) && /async function makeVariants\(/.test(blBilder) &&
+      !/function legeBildAb\(|function makeVariants\(/.test(blServer) &&
+      !/function legeBildAb\(|function makeVariants\(/.test(blLauf),
+      (blServer.match(/function (legeBildAb|makeVariants)\(/) || ['(nur in bilder.js — richtig)'])[0]);
+    pruefe('Und beide Wege rufen dieselbe',
+      /require\('\.\/bilder'\)/.test(blServer) && /require\('\.\/bilder'\)/.test(blLauf),
+      'einer der beiden Wege laedt bilder.js nicht');
+    /* 9. UND DIE THREADZAHL VON sharp WIRD IM THREAD EIGENS GESETZT. sharp wird
+       dort neu geladen und traegt sonst wieder seine Vorgabe -- unter musl
+       oder mit jemalloc die Kernzahl (Stolperstein 278). */
+    pruefe('Der Thread setzt die Threadzahl von sharp selbst',
+      /sharp\.concurrency\(Math\.max\(1, Math\.floor\(os\.cpus\(\)\.length \/ 2\)\)\);/.test(blLauf),
+      (blLauf.match(/sharp\.concurrency\([^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* 10. maintainStorage BLEIBT IM HAUPT-THREAD. Es fasst die ganze Datei an
+       -- beim ersten Mal ein VACUUM -- und gehoert nicht neben die Schleife. */
+    pruefe('maintainStorage bleibt im Haupt-Thread',
+      /db\.exec\('VACUUM'\);/.test(blServer) && !/db\.exec\('VACUUM'\)/.test(blLauf) &&
+      /starteBestandsThread\('vorschaubilder', offen, maintainStorage\);/.test(blServer),
+      (blLauf.match(/db\.exec\('VACUUM'\)/) || ['(kein VACUUM im Thread — richtig)'])[0]);
+    /* 11. UND db.js FUEHRT BEIM OEFFNEN NICHTS AUS, WAS ZWEIMAL SCHADET. Der
+       Thread requiret es ein zweites Mal; ein VACUUM oder ein CREATE TABLE
+       ohne `IF NOT EXISTS` waere genau die Zeile, die das nicht vertraegt. Der
+       Nachweis steht als Liste im Quelltext daneben -- ohne ihn muesste die
+       naechste Runde ihn noch einmal fuehren. */
+    const blOhneWenn = (blDb.match(/CREATE TABLE (?!IF NOT EXISTS)/g) || []).length;
+    pruefe('db.js legt keine Tabelle ohne IF NOT EXISTS an',
+      blOhneWenn === 0 && !/db\.exec\('VACUUM'\)/.test(blDb), `${blOhneWenn} Stellen`);
+    pruefe('Und der Nachweis der Wiederholbarkeit steht dort geschrieben',
+      /WAS BEIM OEFFNEN LAEUFT — UND DASS ES ZWEIMAL DARF/.test(blDb),
+      'die Begruendung fehlt');
+    /* 12. DIE ANSAGEN AN DEN BETREIBER BLEIBEN IM HAUPT-THREAD. Der
+       Schluesselhinweis ist ein halber Bildschirm; ein zweites Mal je
+       Umstellungslauf im Containerprotokoll hilft niemandem. */
+    const blKeys = fs.readFileSync(path.join(__dirname, 'keys.js'), 'utf8');
+    pruefe('Der Schluesselhinweis wird im Neben-Thread nicht wiederholt',
+      /const \{ isMainThread \} = require\('worker_threads'\);/.test(blKeys) &&
+      /function warnKeyBesideData\(\) \{\s*if \(!isMainThread\) return;/.test(blKeys),
+      (blKeys.match(/function warnKeyBesideData\(\) \{[^\n]*\n[^\n]*/) || ['(nicht gefunden)'])[0]);
+  }
+
+  fs.rmSync(BL, { recursive: true, force: true });
 }

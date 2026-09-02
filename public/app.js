@@ -6355,7 +6355,7 @@ function ruesteZugangAus(geholt) {
     box.innerHTML = stand.an ? `
       <div class="zf-zustand zf-an">
         <strong>Zweiter Faktor: an</strong> — seit ${esc(String(stand.seit || '').slice(0, 10))}.
-        Beim Anmelden fragt die Instanz zusätzlich nach dem Code des zweiten Faktors.
+        Beim Anmelden fragt die Installation zusätzlich nach dem Code des zweiten Faktors.
         <div class="zf-codestand">Wiederherstellungscodes:
           <strong>noch ${stand.codesOffen} von ${stand.codesGesamt}</strong>${stand.codesOffen <= 2
             ? ' — <strong>das wird knapp.</strong> Hol dir neue, solange du noch hereinkommst.' : ''}</div>
@@ -6425,7 +6425,7 @@ function ruesteZugangAus(geholt) {
     box.innerHTML = `
       <div class="warn-box zf-einrichten">
         <strong>Schritt 1 — diesen Schlüssel in deine App eintragen.</strong>
-        Er wird <strong>nur dieses eine Mal</strong> angezeigt; danach gibt ihn die Instanz
+        Er wird <strong>nur dieses eine Mal</strong> angezeigt; danach gibt ihn die Installation
         nie wieder heraus, auch dir nicht.
         <div class="zf-schluessel" id="zf-geheim">${esc(d.gruppen)}</div>
         <div class="row-in" style="margin:8px 0 0">
@@ -6496,7 +6496,7 @@ function karteSitzungen() {
   return `<div class="sys-card">
         <h3>Meine Sitzungen</h3>
         <p class="desc">Wo dieser Zugang überall angemeldet ist. <strong>Was hier nicht
-          steht:</strong> von welchem Gerät. Die Instanz speichert weder Adresse noch
+          steht:</strong> von welchem Gerät. Die Installation speichert weder Adresse noch
           Browserkennung — das ist so gewollt und bleibt so. Sie kann deshalb
           <strong>diese</strong> Anmeldung von <strong>allen anderen</strong> trennen, und
           mehr braucht der Knopf darunter nicht.</p>
@@ -7695,7 +7695,7 @@ function ruesteZugaengeAus() {
     bd.innerHTML = `<div class="modal" id="grabstein-modal"><h2>Gelöschte Zugänge</h2>
       <p>Ein entfernter Zugang wird zum <strong>Grabstein</strong>: der Name ist frei geworden,
       und was er geschrieben hat, trägt seither „Gelöschter Benutzer &lt;Nummer&gt;“.
-      <strong>Der ursprüngliche Name steht hier nicht</strong> — die Instanz bewahrt ihn nirgends
+      <strong>Der ursprüngliche Name steht hier nicht</strong> — die Installation bewahrt ihn nirgends
       auf, denn der Grabstein IST das Löschen. Zurückholen lässt sich ein Zugang nicht;
       <strong>sperren</strong> ist der umkehrbare Weg.</p>
       <div class="manage-list" id="grabsteinliste"></div>
@@ -7876,7 +7876,7 @@ function karteProtokoll(geholt) {
         <p class="desc">Wer Zugang hatte und wer diese Installation als Ganzes angefasst hat.
           <strong>Was hier nicht steht:</strong> was jemand geschrieben oder bewertet hat — das ist
           kein Änderungsverlauf, und das bleibt so. Ebenso wenig Adresse oder Browserkennung:
-          die Instanz speichert beides nicht.</p>
+          die Installation speichert beides nicht.</p>
         <p class="desc">Die Zeilen bleiben <strong>${protokoll.tage} Tage</strong> stehen und werden
           danach von selbst geräumt. Einen anderen Weg hinaus gibt es nicht — ein Sicherheitsprotokoll,
           das sich wegräumen lässt, wäre keins.</p>
@@ -8153,7 +8153,7 @@ function karteMailversand(geholt) {
               gesetzt"; die Zeile ist weg, weil sie dieselbe Frage beantwortete
               wie „Zustand" — der Dialog sagt es jetzt am Feld selbst. */''}
         <p class="desc"><strong>E-Mail ist eine Bequemlichkeit, keine Voraussetzung.</strong>
-          Ohne Mailzugang läuft die Instanz vollständig — Einladungs- und Rücksetzlinks stehen
+          Ohne Mailzugang läuft die Installation vollständig — Einladungs- und Rücksetzlinks stehen
           dann wie bisher im Verwaltungsbereich zum Kopieren. Mit Mailzugang gehen sie
           <em>zusätzlich</em> hinaus; schlägt das fehl, bricht nichts ab.</p>
         <div class="kv"><span class="k">Zustand</span><span class="v">${mailstand.eingerichtet
@@ -8806,7 +8806,7 @@ function ruesteSicherungAus(geholt) {
       ${stand}
       ${wechsel}
       <p class="desc" style="margin:0 0 10px">Während die Kopie entsteht, <strong>steht die
-        Instanz still</strong> — bei ${fmtBytes(d.dbBytes)} sind das etwa
+        Installation still</strong> — bei ${fmtBytes(d.dbBytes)} sind das etwa
         ${d.dauerSekunden} Sekunden.</p>
       <button class="btn btn-accent btn-sm" id="sich-los">Jetzt sichern</button>`;
 
@@ -9064,7 +9064,7 @@ function ruesteExportAus(geholt) {
            wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
            Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
       <p class="hint hint-sm" style="margin:10px 2px 6px">Ein Export nimmt den Bestand
-        mit aus dem Haus. Deshalb fragt die Instanz einmal nach deinem Passwort${ZWEIFAKTOR
+        mit aus dem Haus. Deshalb fragt die Installation einmal nach deinem Passwort${ZWEIFAKTOR
           ? ' und dem Code deines zweiten Faktors' : ''} — danach lädst du jeden Teil selbst.</p>
       <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-frei">
         Einmal bestätigen, dann ${n === 1 ? 'den Teil' : `alle ${n} Teile`} laden</button></div>
