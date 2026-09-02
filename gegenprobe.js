@@ -3166,33 +3166,13 @@ const RUECKBAUTEN = [
     erwartet: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
-    /* MITGEGANGEN IN 0.19.1 (Stolperstein 201): die Tafel traegt seit dieser
-       Runde ZWEI alte Namen. Derselbe Fund, ein anderer Wortlaut. */
-    nr: '346', name: 'Die alten Adressen des fuenften Abschnitts werden nicht mehr uebersetzt',
-    datei: 'public/app.js',
-    suche: "const SYS_ALTE_ABSCHNITTE = { anlage: 'installation', instanz: 'installation' };",
-    ersatz: "const SYS_ALTE_ABSCHNITTE = {};",
-    erwartet: 'Aus „Anlage" wird „Instanz" wird „Installation" — 0.17.1 und 0.19.1'
-  },
-  {
-    /* DIE TAFEL WIRD VERKETTET STATT EINMAL NACHGESCHLAGEN. Genau die Falle,
-       vor der der Kommentar dort warnt: `#/system/anlage` landete damit bei
-       `instanz`, und den Schluessel gibt es seit 0.19.1 nicht mehr -- der
-       aelteste Link waere der einzige, der ins Leere fuehrt. */
-    nr: '459', name: 'Die Tafel der alten Adressen wird verkettet',
-    datei: 'public/app.js',
-    suche: "const SYS_ALTE_ABSCHNITTE = { anlage: 'installation', instanz: 'installation' };",
-    ersatz: "const SYS_ALTE_ABSCHNITTE = { anlage: 'instanz', instanz: 'installation' };",
-    erwartet: 'Aus „Anlage" wird „Instanz" wird „Installation" — 0.17.1 und 0.19.1'
-  },
-  {
     /* MITGEGANGEN IN 0.19.1 (Stolperstein 201): der Abschnitt heisst jetzt
        „Installation", der Rueckbau setzt weiter den aeltesten Namen. */
     nr: '347', name: 'Der fuenfte Abschnitt heisst wieder „Anlage"',
     datei: 'public/app.js',
     suche: "  { schluessel: 'installation', name: 'Installation' }",
     ersatz: "  { schluessel: 'installation', name: 'Anlage' }",
-    erwartet: 'Aus „Anlage" wird „Instanz" wird „Installation" — 0.17.1 und 0.19.1'
+    erwartet: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
   },
   {
     nr: '348', name: 'Die Zeitangaben stehen wieder linksbuendig',
@@ -4060,7 +4040,8 @@ const RUECKBAUTEN = [
        mehr, dass die PNG-Fassung danach weg ist. */
     nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
     datei: 'public/app.js',
-    suche: "        `${fmtBytes(Math.round(png.bytes * 0.37))}. Die PNG-Fassung ist danach nicht mehr da; ` +",
+    suche: "        `${fmtBytes(Math.round(png.bytes * 0.37))}. Zurück führt nur eine Sicherung des ` +\n" +
+           "        `Datenverzeichnisses, die vorher angelegt wurde. ` +",
     ersatz: "        `${fmtBytes(Math.round(png.bytes * 0.37))}. ` +",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4086,7 +4067,10 @@ const RUECKBAUTEN = [
      ZEHN PUNKTE, ZEHN RUECKBAUTEN UND MEHR. Nummer 459 steht weiter oben bei
      der Tafel der alten Adressen, wo sie hingehoert. */
   {
-    /* DIE AUFTEILUNG NACH FORMAT LIEST WIEDER DEN INHALT -- die Abfrage aus
+    /* MITGEGANGEN IN 0.19.2 (Stolperstein 201): die Formatabfrage traegt jetzt
+       `WHERE art IS ?` statt `art != 'video'`. Derselbe Fund, ein anderer
+       Wortlaut.
+       DIE AUFTEILUNG NACH FORMAT LIEST WIEDER DEN INHALT -- die Abfrage aus
        0.19.0. Sie ist nicht falsch, sie ist teuer: gemessen 919 ms gegen
        0,2 ms, und sie laeuft bei JEDEM Zeichnen des Systembereichs. Rot wird
        die Zeile, die eine falsch benannte Datei zaehlt: ein JPEG unter dem
@@ -4094,28 +4078,28 @@ const RUECKBAUTEN = [
        in die PNG-Spalte. */
     nr: '460', name: 'Die Aufteilung nach Format liest wieder den Inhalt',
     datei: 'server.js',
-    suche: "      SELECT mime_type AS m, length(data) AS o FROM photos WHERE art != 'video')",
-    ersatz: "      SELECT CASE\n" +
-            "               WHEN hex(substr(data,1,8)) = '89504E470D0A1A0A' THEN 'image/png'\n" +
-            "               WHEN hex(substr(data,1,3)) = 'FFD8FF'           THEN 'image/jpeg'\n" +
-            "               WHEN hex(substr(data,1,4)) = '52494646'\n" +
-            "                AND hex(substr(data,9,4)) = '57454250'         THEN 'image/webp'\n" +
-            "               WHEN hex(substr(data,1,3)) = '474946'           THEN 'image/gif'\n" +
-            "               ELSE 'anderes'\n" +
-            "             END AS m, length(data) AS o FROM photos WHERE art != 'video')",
+    suche: "    SELECT mime_type AS m, length(data) AS o FROM photos WHERE art IS ?)",
+    ersatz: "    SELECT CASE\n" +
+            "             WHEN hex(substr(data,1,8)) = '89504E470D0A1A0A' THEN 'image/png'\n" +
+            "             WHEN hex(substr(data,1,3)) = 'FFD8FF'           THEN 'image/jpeg'\n" +
+            "             WHEN hex(substr(data,1,4)) = '52494646'\n" +
+            "              AND hex(substr(data,9,4)) = '57454250'         THEN 'image/webp'\n" +
+            "             WHEN hex(substr(data,1,3)) = '474946'           THEN 'image/gif'\n" +
+            "             ELSE 'anderes'\n" +
+            "           END AS m, length(data) AS o FROM photos WHERE art IS ?)",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* DIE MATERIALISIERTE ZWISCHENABFRAGE FAELLT WEG -- die Gruppierung geht
-       wieder unmittelbar ueber length(data). Das Ergebnis bleibt richtig und
-       kostet 778 statt 0,1 ms; genau deshalb haengt die Zusage am TEXT und
-       nicht am Ergebnis. */
-    nr: '461', name: 'Die Groessen werden wieder unmittelbar gruppiert',
+    /* MITGEGANGEN IN 0.19.2 (Stolperstein 201): die art-Aufteilung ist keine
+       materialisierte Zwischenabfrage mehr, sondern eine Schleife ueber die
+       Arten -- weil `MATERIALIZED` die zweite Ursache gar nicht traf.
+       DIE ARTEN KOMMEN WIEDER AUS DEM SATZ STATT AUS DEM INDEX. Das Ergebnis
+       bleibt richtig und kostet 1338,8 statt 0,1 ms; genau deshalb haengt die
+       Zusage am TEXT und nicht am Ergebnis. */
+    nr: '461', name: 'Die Arten kommen wieder aus dem Satz statt aus dem Index',
     datei: 'server.js',
-    suche: "    WITH x AS MATERIALIZED (SELECT art AS a, length(data) AS o FROM photos)\n" +
-           "    SELECT a, COUNT(*) AS n, COALESCE(SUM(o),0) AS o FROM x GROUP BY 1",
-    ersatz: "    SELECT art AS a, COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o\n" +
-            "      FROM photos GROUP BY 1",
+    suche: "const qBildArten = db.prepare('SELECT art AS a FROM photos GROUP BY 1');",
+    ersatz: "const qBildArten = db.prepare('SELECT DISTINCT art || \\'\\' AS a FROM photos');",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4220,8 +4204,8 @@ const RUECKBAUTEN = [
        rechnet dann mit Sekunden und bekommt eine Stunde. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     datei: 'public/app.js',
-    suche: "        `Wie lange das dauert, hängt an dieser Maschine und ist hier nicht gemessen — ` +\n" +
-           "        `rechne mit Minuten bis Stunden. Der Lauf stört den Betrieb, solange er läuft.`);",
+    suche: "        `Wie lange das dauert, lässt sich nicht vorhersagen — plane ein Zeitfenster ein, ` +\n" +
+           "        `das den Betrieb am wenigsten stört (je nach Größe des Bestands bis zu Stunden).`);",
     ersatz: "        ``);",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
@@ -4231,8 +4215,8 @@ const RUECKBAUTEN = [
        beruhigend falsch und auf der anderen erschreckend falsch. */
     nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
     datei: 'public/app.js',
-    suche: "        `rechne mit Minuten bis Stunden. Der Lauf stört den Betrieb, solange er läuft.`);",
-    ersatz: "        `rechne mit etwa 20 Minuten. Der Lauf stört den Betrieb, solange er läuft.`);",
+    suche: "        `das den Betrieb am wenigsten stört (je nach Größe des Bestands bis zu Stunden).`);",
+    ersatz: "        `das den Betrieb am wenigsten stört (rechne mit etwa 20 Minuten).`);",
     erwartet: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4289,9 +4273,94 @@ const RUECKBAUTEN = [
        gemessen falsch ist. */
     nr: '479', name: 'Die Berichtigung zu substr() faellt aus dem Quelltext',
     datei: 'server.js',
-    suche: "     1. substr() AUF EINEM BLOB LIEST DAS BLOB. 657 ms auch ohne GROUP BY, das",
-    ersatz: "     1. substr() liest wenig. 657 ms auch ohne GROUP BY, das",
+    suche: "     -- substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei 205 MB,",
+    ersatz: "     -- substr() liest wenig, gemessen 657 ms bei 205 MB,",
     erwartet: 'Die berichtigten Behauptungen stehen nirgends mehr'
+  },
+
+  /* ---- 0.19.2: was 0.19.1 nur zur Haelfte getroffen hat ---- */
+  {
+    /* DER INDEX AUF `art` FAELLT WEG. Ohne ihn kostet jede Frage nach der Art
+       den ganzen Satz -- gemessen 1338,8 ms gegen 0,1 ms, und keine Umformung
+       der Abfrage hilft dagegen (Stolperstein 279). */
+    nr: '480', name: 'Der Index auf photos(art) faellt weg',
+    datei: 'db.js',
+    suche: "db.exec('CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art)');",
+    ersatz: "",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DER INDEX WANDERT ZURUECK IN DIE DDL -- vor die Migration, die seine
+       Spalte anlegt. Eine Datenbank aus 0.8.40 traegt `photos.art` nicht, und
+       das Oeffnen der Datei scheitert dann mit „no such column: art"
+       (Stolperstein 281). */
+    nr: '486', name: 'Der Index steht wieder vor seiner Migration',
+    datei: 'db.js',
+    suche: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);",
+    ersatz: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);\n" +
+            "CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art);",
+    erwartet: 'MIGRATION 0.8.50 — ENTFAELLT MIT 1.0'
+  },
+  {
+    /* GEFRAGT WIRD WIEDER MIT EINER UNGLEICHHEIT. Sie sieht richtig aus und
+       schlaegt den Index aus: 1334 ms gegen 0,5 ms, dieselbe Antwort. */
+    nr: '481', name: 'Die Aufteilung fragt wieder mit einer Ungleichheit',
+    datei: 'server.js',
+    suche: "  'SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art IS ?');",
+    ersatz: "  \"SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art != 'video' AND ? IS NOT NULL\");",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DIE EXPORTGROESSE DER BILDER WIRD WIEDER EIN ZWEITES MAL GEFRAGT --
+       dieselbe teure Frage nach `art != 'video'`, gemessen 1363 und 1310 ms
+       zusaetzlich. Die Zahl bleibt dieselbe; nur der Weg dorthin ist ein
+       zweiter (Stolperstein 47). */
+    nr: '482', name: 'Die Exportgroesse der Bilder wird ein zweites Mal gefragt',
+    datei: 'server.js',
+    suche: "      ...austauschTeile(null, { mitDateien: true }),",
+    ersatz: "      ...austauschTeile(null, { mitFotos: true, mitDateien: true, mitVideos: true }),",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DER SPIELRAUM DES RAHMENS RECHNET DEN ZOOM NICHT MEHR EIN -- der Zustand
+       bis 0.19.1. An einem fast quadratischen Bild laesst sich der Ausschnitt
+       damit waagerecht gar nicht verschieben, und die eingestellte Ecke ist
+       auch mit `transform-origin` nie zu erreichen. */
+    nr: '483', name: 'Der Spielraum des Ausschnitts rechnet den Zoom nicht ein',
+    datei: 'public/app.js',
+    suche: "      return { f, seite, eng, spielX: f.breite - eng, spielY: f.hoehe - eng };",
+    ersatz: "      return { f, seite, eng, spielX: f.breite - seite, spielY: f.hoehe - seite };",
+    erwartet: 'Fokuspunkt in der Oberflaeche'
+  },
+  {
+    /* DER ZEIGER LANDET NICHT MEHR IN DER MITTE DES RAHMENS, den er gerade
+       zieht -- gerechnet wird wieder mit der vollen Seite statt mit dem
+       engeren Ausschnitt. Der Sprung ist umso groesser, je enger man zieht. */
+    nr: '484', name: 'Der Griff setzt den Punkt neben die Mitte des Rahmens',
+    datei: 'public/app.js',
+    suche: "      fx = spielX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / spielX * 100)) : 50;",
+    ersatz: "      fx = spielX > 0 ? Math.min(100, Math.max(0, (px - seite / 2) / spielX * 100)) : 50;",
+    erwartet: 'Fokuspunkt in der Oberflaeche'
+  },
+  {
+    /* DER DIALOG SAGT NICHT MEHR, DASS DIE UMWANDLUNG NAHEZU VERLUSTFREI IST.
+       Wer das nicht liest, haelt den Knopf fuer eine Verschlechterung. */
+    nr: '485', name: 'Der Dialog sagt nicht mehr, dass es nahezu verlustfrei ist',
+    datei: 'public/app.js',
+    suche: "nahezu verlustfrei ` +",
+    ersatz: "` +",
+    erwartet: 'Die Bildablage in der Oberflaeche'
+  },
+
+  {
+    /* DIE UEBERSETZUNG KOMMT ZURUECK. Sie sieht harmlos aus und faengt einen
+       Fall ab, den es an dieser Anlage nicht gibt -- Aufwand ohne Gegenwert,
+       der bei jeder weiteren Umbenennung gepflegt werden will. */
+    nr: '487', name: 'Die Uebersetzung der alten Abschnittsadressen kommt zurueck',
+    datei: 'public/app.js',
+    suche: "  const gewuenscht = ausDerAdresse;",
+    ersatz: "  const gewuenscht = { anlage: 'installation', instanz: 'installation' }[ausDerAdresse] || ausDerAdresse;",
+    erwartet: 'Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
