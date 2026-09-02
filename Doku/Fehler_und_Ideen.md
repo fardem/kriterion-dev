@@ -181,11 +181,13 @@ entschieden und hat seinen Ort.*
 | **Neue Funktion** | 1, 2, 3, 4, **6** |
 | **Design** | — |
 | **Verbesserung** *(nachgetragen)* | 5 |
+| **Bauwunsch** *(nachgetragen)* | **8** |
 
 | Einschätzung | Punkte |
 |---|---|
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
+| **empfohlen, noch ohne Nummer** | **8** |
 | **eingetragen als 0.21.0** | **5, 6** |
 | **eingetragen als 0.19.4** | **7** |
 
@@ -1134,3 +1136,129 @@ Die Ableitungsregel auf die **kurze** Kante umstellen und die vorhandenen
 > Verfahren: die Geometrie ist ein Fehler und wartet nicht auf eine
 > Entscheidung. **Sie steht aber hinter 0.19.3** — der Lauf über 1034 Bilder
 > hat im Anfrageweg nichts verloren.
+
+---
+
+## 8. Alte Sicherungen aufräumen — ohne Shell
+
+**Art:** Bauwunsch · **Claude:** empfohlen · **Draußen üblich:** ja — jede
+Sicherungslösung kennt eine Aufbewahrungsregel („retention"), und praktisch
+alle bauen sie aus **zwei** Bedingungen: eine Mindestzahl und ein Alter.
+
+### Woher
+
+Aus dem Betrieb, **2. September 2026**, unmittelbar nach dem Einspielen von
+0.19.3: *„wie löscht man ohne Shell zu nutzen alte Sicherungen?"*
+
+### Was auffiel
+
+**Kriterion schreibt Sicherungen, aber es entfernt keine.** `POST
+/api/sicherung` legt eine Datei `kriterion-<Zeitmarke>.sqlite` im
+Sicherungsordner ab; die Karte zeigt seit 0.16.0 die **jüngste** Kopie, ihre
+**Zahl** und wie viele davon **vor dem letzten Schlüsselwechsel** entstanden
+sind. **Wegräumen lässt sich nichts** — dafür braucht es heute eine Shell auf
+dem Wirt, und genau die soll ein Betreiber für den Alltag nicht brauchen.
+
+**Und jede Kopie ist so groß wie die ganze Datenbank.** *Bei heute rund
+570 MB Bildbestand ist die zehnte Sicherung ein halbes Dutzend Gigabyte.*
+
+### Was es nicht ist
+
+**Kein Fehler.** Es ist keine falsche Zusage und keine kaputte Funktion — es
+fehlt eine Hälfte, die von Anfang an nicht gebaut wurde. *Ein Wunsch, der als
+Fehler abgeheftet wird, drängelt sich in die falsche Runde.*
+
+**Und ausdrücklich keine Zeitsteuerung.** Kriterion hat keinen Scheduler und
+soll für diese eine Sache keinen bekommen. **Was hier gebaut wird, läuft im
+Anschluss an eine Sicherung** — an dem einen Augenblick, in dem sicher
+feststeht, dass eine frische, vollständige Kopie da ist.
+
+### Was gebaut werden könnte
+
+**a) DIE REGEL — zwei Bedingungen, und beide müssen zutreffen.** *Das ist der
+Kern des Vorschlags; alles andere hängt daran.*
+
+> **Gelöscht wird eine Kopie nur, wenn sie BEIDES ist:
+> nicht unter den N jüngsten UND älter als X Tage.**
+
+*Vorschlag für die Vorgaben: **N = 3**, **X = 30**.*
+
+**Warum beide und nicht eine:**
+
+| nur „älter als 30 Tage" | nur „die letzten 3" |
+|---|---|
+| Eine Installation, an der ein halbes Jahr nicht gesichert wurde, verliert **alle** Kopien auf einen Schlag — genau dann, wenn sie die einzigen sind. | Wer an einem Nachmittag viermal auf den Knopf drückt, wirft damit die Kopie vom Vormonat weg, obwohl nichts alt ist. |
+
+**Zusammen decken sie sich gegenseitig ab:** die Zahl ist der **Boden**, das
+Alter ist die **Schere**. *Eine Kopie fällt nur, wenn sie entbehrlich **und**
+alt ist.*
+
+**b) EINE VORSCHAU, BEVOR ETWAS GESCHIEHT.** Die Karte nennt namentlich, welche
+Dateien die Regel treffen würde, mit Datum und Größe, und was das an Platz
+freigäbe. **Ohne Vorschau ist es eine Wette.**
+
+**c) DER SCHALTER, UND ER STEHT AUF AUS.** *Das ist die Abweichung von
+`bilderUmwandeln`, und sie hat einen Grund:* eine umgewandelte PNG-Datei holt
+der Knopf in der Gegenrichtung zurück — **eine gelöschte Sicherung holt
+nichts zurück.** Was nicht umkehrbar ist, wird nicht stillschweigend
+eingeschaltet. *Die Karte fragt einmal deutlich; wer will, schaltet ein.*
+
+**d) UND EIN KNOPF DANEBEN, der die Regel EINMAL anwendet** — für den, der
+nicht dauerhaft einschalten will. **Hinter der zweiten Bestätigung**, wie jeder
+Vorgang, der Bytes unwiderruflich entfernt.
+
+**e) DIE KOPIEN VON VOR DEM SCHLÜSSELWECHSEL FASST DIE REGEL NICHT AN.** *Sie
+lassen sich mit dem heutigen Schlüssel gar nicht öffnen — die Karte sagt das
+seit 0.16.0 und zählt sie.* **Sie sind nicht entbehrlich, sondern etwas
+anderes:** wer den alten Schlüssel noch hat, kommt an sie heran, und wer ihn
+nicht mehr hat, hat ohnehin nichts verloren. **Eine automatische Regel entfernt
+Überflüssiges, nicht Fremdes.** *Wegräumen lassen sie sich über denselben Knopf
+— aber ausdrücklich und einzeln, nicht nebenbei.*
+
+**f) JEDE LÖSCHUNG GEHT INS SICHERHEITSPROTOKOLL**, mit Zahl und
+freigegebenen Bytes — neben dem `sicherung`-Eintrag, den es schon gibt.
+
+### Offene Entscheidungen
+
+1. **Sind N und X einstellbar oder fest?** *Einstellbar heißt zwei Felder in
+   der Karte und zwei Werte in `settings`; fest heißt eine Zeile im Quelltext
+   und keine Bedienfrage.* **Vorschlag: einstellbar, aber mit engen Grenzen**
+   — N von 1 bis 20, X von 7 bis 365. *Ein Feld, in das jemand 0 schreiben
+   kann, ist eine Falle.*
+2. **Löschen oder in einen Papierkorb schieben?** *Kriterion hat einen
+   Papierkorb für Einträge. Für eine 600-MB-Datei wäre er sinnlos — der Platz
+   ist ja der Grund.* **Vorschlag: löschen, und die Vorschau ist der Ersatz für
+   den Papierkorb.**
+3. **Läuft die Regel auch, wenn eine Sicherung fehlschlägt?** **Nein**, und das
+   ist die wichtigste Zeile des ganzen Punktes: *aufgeräumt wird nur nach einer
+   Sicherung, die gelungen ist.* Sonst räumt die Installation genau in dem
+   Augenblick auf, in dem sie keine neue Kopie zustande bringt.
+4. **Was, wenn im Ordner fremde Dateien liegen?** **Angefasst wird
+   ausschließlich, was auf `SICHERUNG_MUSTER` passt** (`kriterion-*.sqlite`),
+   nur im geprüften Ordner, nie in Unterverzeichnissen. *Der Pfad geht durch
+   dieselbe Prüfung wie beim Schreiben — eine Löschroute, die sich auf ein
+   anderes Verzeichnis lenken lässt, wäre die gefährlichste Route der
+   Anwendung.*
+5. **Zählt der Boden alle Kopien oder nur die brauchbaren?** *Drei Kopien, von
+   denen zwei vor dem Schlüsselwechsel entstanden sind, sind in Wahrheit eine.*
+   **Vorschlag: der Boden zählt nur Kopien nach dem Wechsel** — dann wird bei
+   dieser Lage gar nichts gelöscht, und das ist die sichere Seite.
+
+### Was es anfasst
+
+`server.js` (eine Route, die Regel, der Aufruf nach `POST /api/sicherung`),
+`public/app.js` und `public/style.css` (Vorschau, Schalter, Knopf in der Karte
+„Sicherung"), dazu `F_ROUTEN` **70 → 71** und die Zwecke der zweiten
+Bestätigung **acht → neun**. **Kein Schema** — die zwei Werte gehören in
+`settings`. **Kein Bestandslauf**, keine Migration, kein neues Austauschformat.
+
+> **DIE HÄLFTE DER ARBEIT LIEGT SCHON DA.** `letzteSicherung()` liest den
+> Ordner bereits, prüft jede Datei gegen `SICHERUNG_MUSTER`, holt Größe und
+> Zeitpunkt und sortiert nach Alter — **die Regel ist ein Filter über genau
+> dieser Liste.** *Was fehlt, ist das Löschen, die Vorschau und die Bedienung.*
+
+> **EINGETRAGEN OHNE NUMMER**, wie jeder neue Punkt. **Es ist ein MINOR**
+> (neue Route, neuer Zweck der zweiten Bestätigung), und es passt in keine der
+> vorgemerkten Runden: 0.20.0 ist die Oberfläche, 0.21.0 die Bildablage, 0.22.0
+> die Bereinigung. *Es ist klein genug für eine eigene kleine MINOR-Runde und
+> hängt an nichts — es kann jederzeit dazwischen.*
