@@ -61,7 +61,7 @@ fünf Abfragen ziehen vor die Schleife, **3200 Abfragen je Abruf werden 405**;
 2,58 ms). **Drittens: sie holt nicht mehr, was sie nicht zeigt** — die Testtage
 der **Liste** tragen `id`, `day`, `rating` und `mine` statt zusätzlich
 Schlagworte und Verfasser, von den Links wird nur gezählt, und `qTags` nennt
-seine Spalten. *Gemessen 43 → 24 ms, und die Antwort fällt von 484 auf 348 kB.*
+seine Spalten. *Gemessen 43 → 24 ms und 484 → 348 kB — die zweiten Werte am Prototyp der Runde, nicht am gebauten Stand; die Einzelabfragen darüber schon.*
 **Viertens: die letzten acht „Instanz" im Bildschirmtext heißen
 „Installation"** — damit ist der Produktname dort auf null. **KEINE
 DATENBANKSTUFE:** acht Migrationsblöcke, Austauschformat **12**, `F_ROUTEN`
@@ -8866,7 +8866,7 @@ Schemaänderung, **kein neuer Index**, Austauschformat **12**.
 |---|---|---|
 | **1** | Der Bestandslauf fährt in einem **eigenen Thread** | `better-sqlite3` ist **synchron**, und die 30 ms Pause zwischen den Zeilen half nicht gegen die Blockade **während** einer: gemessen als Verspätung eines 20-ms-Taktgebers **133,0 ms im 95. Perzentil und 200,1 ms im schlechtesten Fall**; im Thread **0,9 und 1,3 ms** (Stolperstein 283). *Zwei Schreiber auf einer WAL-Datei sind nachgemessen: 60 Zeilen und 88 Transaktionen daneben, **null** Abweisungen — `busy_timeout` steht auf 5000 ms.* **`reclaim()` kommt aus dem Thread durch:** `busy: 0`, WAL 720 kB → 0 |
 | **2** | Die Übersicht fragt **einmal** statt vierhundertmal | Fünf Abfragen ziehen vor die Schleife: **3200 Abfragen je Abruf werden 405.** *Gemessen je über 400 Einträge: Schlagworte 3,76 → 2,41 ms, Schnitte 4,18 → 2,70 ms, Anhänge 1,33 → 0,23 ms.* **`testStats` bleibt ausdrücklich einzeln** — gebündelt 2,58 gegen 1,94 ms (Stolperstein 284) |
-| **3** | Sie holt nicht mehr, was sie **nicht zeigt** | Die Testtage der **Liste** tragen `id`, `day`, `rating`, `mine` — **11,61 → 3,30 ms**, und 1200 Einzelabfragen fallen ganz weg. Von den Links wird nur gezählt (2,36 → 0,47 ms), `qTags` nennt seine Spalten. *Nachgesehen und nicht dem Kommentar geglaubt: `zeitleistePunkte()` ist die einzige Stelle, die das Feld aus der Liste liest* (Stolperstein 285). **Die ganze Route: 43 → 24 ms, die Antwort 484 → 348 kB** |
+| **3** | Sie holt nicht mehr, was sie **nicht zeigt** | Die Testtage der **Liste** tragen `id`, `day`, `rating`, `mine` — **11,61 → 3,30 ms**, und 1200 Einzelabfragen fallen ganz weg. Von den Links wird nur gezählt (2,36 → 0,47 ms), `qTags` nennt seine Spalten. *Nachgesehen und nicht dem Kommentar geglaubt: `zeitleistePunkte()` ist die einzige Stelle, die das Feld aus der Liste liest* (Stolperstein 285). **Die ganze Route: 43 → 24 ms, die Antwort 484 → 348 kB** *(am Prototyp gemessen)* |
 | **4** | Die letzten **acht „Instanz"** im Bildschirmtext | 0.19.1 hatte siebzehn umbenannt, weil der Auftrag siebzehn aufzählte. **Damit ist das Wort dort auf null** — festgehalten von einem Wächter, der Nicht-Kommentarzeilen zählt; die Kommentare sind ausdrücklich unberührt |
 | **5** | *Berichtigung:* die Aufschlüsselung aus 0.19.2 war an **leeren Tabellen** entstanden | Gemessen war der Leerlauf von Abfragen, die nichts finden — **und der größte Posten fehlte ganz**, weil er ohne Testtage gar nicht auftauchte (Stolperstein 282) |
 

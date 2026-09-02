@@ -603,7 +603,7 @@ standen als Kandidaten im Auftrag; der fünfte kam beim Bauen dazu.*
 | Indizes auf `photos` | 3 | **3** |
 | ausgelieferte Module | 7 | **9** |
 | Abfragen je `GET /api/items` (400 Einträge) | 3200 | **405** *(nachgezählt)* |
-| `GET /api/items` an 312 MB | 43 ms warm | **24 ms warm** |
+| `GET /api/items` an 312 MB | 43 ms warm | **24 ms warm** *(am Prototyp gemessen)* |
 | Antwortgröße derselben Route | 495.820 B | **356.443 B** *(342.343 gemessen + 14.100 gemessen)* |
 | Verspätung des Haupt-Threads im Lauf (95 %) | 133,0 ms | **0,9 ms** |
 | Fingerprint | `0cdc709d` | **`cdbe0925`** |

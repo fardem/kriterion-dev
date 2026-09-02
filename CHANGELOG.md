@@ -45,7 +45,7 @@ bleiben in der Form ihrer Zeit.*
 - Changed: Der Umstellungslauf „Alle PNG nach WebP umstellen" hält den Server nicht mehr an — er läuft in einem eigenen Thread
 - Changed: Dasselbe gilt für das Nachrüsten fehlender Vorschaubilder beim Start
 - Changed: Die Übersicht kommt noch einmal spürbar schneller — sie stellt 405 Abfragen statt 3200
-- Changed: Und sie holt nicht mehr, was sie gar nicht zeigt; die Antwort ist rund ein Drittel kleiner
+- Changed: Und sie holt nicht mehr, was sie gar nicht zeigt; die Antwort ist gut ein Viertel kleiner
 - Changed: Die letzten acht Meldungen sagen „Installation" statt „Instanz" — damit ist der Produktname aus dem Bildschirmtext heraus
 
 ## [0.19.2] - 2026-09-02
