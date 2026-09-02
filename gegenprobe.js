@@ -1215,17 +1215,21 @@ const RUECKBAUTEN = [
   },
   /* ---- testDays und die Zeitleiste ---- */
   {
+    /* MITGEGANGEN MIT 0.19.3 (Stolperstein 201): die Zeile holt seit dieser
+       Runde die schmale Fassung aus einer Karte statt je Eintrag zu fragen.
+       Derselbe Fund, andere Zeile. */
     nr: '136', name: 'testDays kommt wieder immer mit',
     datei: 'server.js',
-    suche: "    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
-    ersatz: "    it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
+    suche: "    if (zeitleiste) it.testDays = testTageJe.get(it.id) || [];",
+    ersatz: "    it.testDays = testTageJeEintrag(req.benutzer.id).get(it.id) || [];",
     erwartet: 'testDays haengt an der Zeitleiste'
   },
   {
+    /* MITGEGANGEN MIT 0.19.3, wie 136 daneben. */
     nr: '137', name: 'testDays fehlt immer, auch mit eingeschalteter Zeitleiste',
     datei: 'server.js',
-    suche: "    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
-    ersatz: "    if (false) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
+    suche: "    if (zeitleiste) it.testDays = testTageJe.get(it.id) || [];",
+    ersatz: "    if (false) it.testDays = testTageJe.get(it.id) || [];",
     erwartet: 'testDays haengt an der Zeitleiste'
   },
   /* ---- Die Suche am Bildschirm ---- */
@@ -3791,10 +3795,17 @@ const RUECKBAUTEN = [
      derselben Zusage: dass ein PNG umgewandelt wird, dass es NUR ein PNG ist,
      dass die Spalte mitgeht, dass der Rueckfall greift und dass das Bild dabei
      unversehrt bleibt. Ein Rueckbau, der alles zugleich abschaltet, sagte nur,
-     dass irgendetwas fehlt. */
+     dass irgendetwas fehlt.
+
+     SECHS DAVON ZEIGEN SEIT 0.19.3 AUF bilder.js -- 431 bis 435 und 458. Die
+     Umwandlung steht nicht mehr in server.js, weil der Bestandslauf sie aus
+     einem eigenen Thread braucht; die Rueckbauten sind MITGEGANGEN und nicht
+     geloescht worden (Stolperstein 201). Es ist derselbe Fund an derselben
+     Zeile, nur in einer anderen Datei -- und ein Rueckbau, der ins Leere
+     greift, ist stumm und verfaelscht die Tabelle (Stolperstein 192). */
   {
     nr: '431', name: 'Ein ankommendes PNG wird gar nicht mehr umgewandelt',
-    datei: 'server.js',
+    datei: 'bilder.js',
     suche: "  if (!istPNG(buf)) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };",
     ersatz: "  if (true) return { data: buf, mime: gemeldeterTyp, umgewandelt: false };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -3805,7 +3816,7 @@ const RUECKBAUTEN = [
        aber der naechste Export traegt die Luege weiter. Genau deshalb muss die
        Pruefung an der SPALTE haengen und nicht nur am Kopf der Antwort. */
     nr: '432', name: 'Der mime_type wird nicht mitgezogen',
-    datei: 'server.js',
+    datei: 'bilder.js',
     suche: "      return { data: webp, mime: 'image/webp', umgewandelt: true };",
     ersatz: "      return { data: webp, mime: gemeldeterTyp, umgewandelt: true };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -3838,7 +3849,7 @@ const RUECKBAUTEN = [
        Der Rueckbau bewacht damit das Vorhandensein der Regel, auch wo er ihre
        Wirkung nicht zeigen kann. */
     nr: '433', name: 'Auch ein groesseres Ergebnis wird genommen',
-    datei: 'server.js',
+    datei: 'bilder.js',
     suche: "    if (webp.length < buf.length)",
     ersatz: "    if (true)",
     erwartet: '(erwartet STUMM — achtzehn Laborversuche ohne Gegenbeispiel, und am echten Bestand 679 von 679 umgestellt; nur die Kantengrenze laesst PNG liegen, und die ist Rueckbau 458)'
@@ -3848,7 +3859,7 @@ const RUECKBAUTEN = [
        16383 px je Kante. Faengt niemand den Fehler ab, scheitert der ganze
        Upload mit 500, statt das PNG unveraendert abzulegen. */
     nr: '458', name: 'Ein Bild, das WebP nicht fassen kann, reisst den Upload ab',
-    datei: 'server.js',
+    datei: 'bilder.js',
     suche: "    console.error('[Kriterion] PNG blieb PNG:', e.message);",
     ersatz: "    throw e;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -3858,7 +3869,7 @@ const RUECKBAUTEN = [
        Bytes. Sie sieht damit richtig aus und glaubt dem Browser aufs Wort --
        ein JPEG, das sich image/png nennt, ginge durch den Kodierer. */
     nr: '434', name: 'Die Erkennung glaubt dem gemeldeten Typ',
-    datei: 'server.js',
+    datei: 'bilder.js',
     suche: "  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIE);",
     ersatz: "  Buffer.isBuffer(buf) && buf.length >= 8;",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -3868,7 +3879,7 @@ const RUECKBAUTEN = [
        und heisst weiterhin WebP -- nur franst sie an harten Kanten aus. Ohne
        eine Pruefung, die PIXEL vergleicht, bliebe dieser Rueckbau stumm. */
     nr: '435', name: 'Der verlustbehaftete Kodierer statt nearLossless',
-    datei: 'server.js',
+    datei: 'bilder.js',
     suche: "const WEBP_ABLAGE = { nearLossless: true, quality: 60, effort: 4 };",
     ersatz: "const WEBP_ABLAGE = { quality: 60, effort: 4 };",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
@@ -4391,6 +4402,169 @@ const RUECKBAUTEN = [
     suche: "    const ph = fotosJe.get(it.id) || [];",
     ersatz: "    const ph = qPhotos.all(it.id);",
     erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+
+  /* ---- 0.19.3: der Bestandslauf im eigenen Thread ----
+     NEUN RUECKBAUTEN, und sie zielen auf verschiedene Haelften derselben
+     Zusage: dass der Stand waehrend des Laufs ueberhaupt zurueckreist, dass er
+     im Haupt-Thread ankommt, dass der Schluessel NICHT mitreist, dass der
+     Abschluss den Thread mitnimmt, dass ein Fehler nicht still bleibt, dass
+     der Fingerprint die Datei kennt und dass der Thread sich nicht die ganze
+     Maschine nimmt. Ein Rueckbau, der alles zugleich abschaltet, sagte nur,
+     dass irgendetwas fehlt. */
+  {
+    /* DER STAND REIST ERST AM ENDE ZURUECK. Die Karte im Systembereich fragt
+       alle 1500 ms und saehe waehrend des ganzen Laufs dieselbe Null -- am
+       Ergebnis aendert sich nichts, an der Auskunft alles. */
+    nr: '491', name: 'Der Thread meldet seinen Stand erst am Ende',
+    datei: 'bestandslauf.js',
+    suche: "    stand.erledigt++;\n    melde(stand);",
+    ersatz: "    stand.erledigt++;",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DER HAUPT-THREAD HOERT NICHT MEHR ZU. `umstellung.laeuft` bleibt damit
+       fuer immer auf true stehen -- die Karte meldet einen Lauf, der laengst
+       vorbei ist, und die Pruefung, die auf sein Ende wartet, laeuft in ihre
+       Grenze. */
+    nr: '492', name: 'Der Haupt-Thread hoert die Meldungen des Threads nicht mehr',
+    datei: 'server.js',
+    suche: "  w.on('message', (m) => { if (m && m.art === 'stand') umstellung = m.stand; });",
+    ersatz: "  w.on('message', () => {});",
+    erwartet: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* DER SCHLUESSEL REIST UEBER workerData. `workerData` wird beim Erzeugen
+       des Threads strukturiert KOPIERT -- der Schluessel staende danach in
+       einem zweiten Speicher, und zwar ohne Not: der Thread liest ihn
+       denselben Weg wie der Haupt-Thread. */
+    nr: '493', name: 'Der Schluessel reist ueber workerData in den Thread',
+    datei: 'server.js',
+    suche: "  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen } });",
+    ersatz: "  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen, schluessel: keyHex } });",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DER ABSCHLUSS LAESST DEN THREAD LAUFEN. Er schreibt dann in eine Datei,
+       deren WAL gerade gekuerzt wird -- der eine Fall, den diese Runde neu
+       einbringt. */
+    nr: '494', name: 'SIGTERM kuerzt die WAL, waehrend der Thread noch schreibt',
+    datei: 'server.js',
+    suche: "    try { if (bestandsThread) bestandsThread.terminate(); } catch {}",
+    ersatz: "    // der Thread laeuft weiter",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* EIN FEHLER IM THREAD BLEIBT STILL. Der Server steht danach zwar noch,
+       aber die Karte zeigt fuer immer „laeuft" -- und ein zweiter Druck wird
+       mit 409 abgewiesen, obwohl gar nichts mehr laeuft. */
+    nr: '495', name: 'Ein Fehler im Thread laesst den Lauf auf „laeuft" stehen',
+    datei: 'server.js',
+    suche: "    if (umstellung) umstellung.laeuft = false;",
+    ersatz: "    if (false) umstellung.laeuft = false;",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DER FINGERPRINT KENNT DIE DATEI DES THREADS NICHT MEHR. Sie wird nicht
+       requiret, sondern an `new Worker` gereicht -- ohne diese Zeile steht sie
+       in keiner Ableitung, und der Fingerprint ist eine halbe Aussage. */
+    nr: '496', name: 'Der Fingerprint kennt die Datei des Threads nicht',
+    datei: 'server.js',
+    suche: "  const liste = [...new Set([...ausgefuehrt, BESTANDSLAUF,",
+    ersatz: "  const liste = [...new Set([...ausgefuehrt,",
+    erwartet: 'Der Fingerprint'
+  },
+  {
+    /* DER THREAD UEBERLAESST sharp SEINE VORGABE. sharp wird dort EIGENS
+       geladen; unter musl oder mit jemalloc ist die Vorgabe die Kernzahl, und
+       ausgerechnet der Wartungslauf naehme sich dann die ganze Maschine. */
+    nr: '497', name: 'Der Thread ueberlaesst sharp seine Vorgabe',
+    datei: 'bestandslauf.js',
+    suche: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
+    ersatz: "// sharp nimmt sich, was es will",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+  {
+    /* DER SCHLUESSELHINWEIS STEHT BEI JEDEM LAUF EIN ZWEITES MAL IM
+       PROTOKOLL -- ein halber Bildschirm, jedes Mal. Wer ihn einmal gelesen
+       hat, liest ihn beim zweiten Mal nicht besser. */
+    nr: '498', name: 'Der Schluesselhinweis wiederholt sich in jedem Thread',
+    datei: 'keys.js',
+    suche: "function warnKeyBesideData() {\n  if (!isMainThread) return;",
+    ersatz: "function warnKeyBesideData() {",
+    erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
+  },
+
+  /* ---- 0.19.3: die Uebersicht fragt einmal und holt nur, was sie zeigt ----
+     SECHS RUECKBAUTEN, und sie zielen auf die beiden Gefahren der Buendelung:
+     die verlorene ZWEITE Ordnung (wer nach item_id gruppiert und den Rest
+     vergisst, bekommt die Zeilen in Einfuegereihenfolge) und die zweite
+     WAHRHEIT (die gebuendelte Fassung liest andere Spalten als die
+     einzelne). */
+  {
+    nr: '499', name: 'Die gebuendelten Schlagworte verlieren ihre zweite Ordnung',
+    datei: 'server.js',
+    suche: "  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id, t.name COLLATE NOCASE`);",
+    ersatz: "  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id`);",
+    erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
+  },
+  {
+    nr: '500', name: 'Die gebuendelten Testtage verlieren ihre zweite Ordnung',
+    datei: 'server.js',
+    suche: "  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC');",
+    ersatz: "  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id');",
+    erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
+  },
+  {
+    /* EINE KARTE KENNT NUR, WAS SIE GEFUNDEN HAT. Ohne den Rueckfall traegt
+       die Kachel eines Eintrags ohne Link gar kein Feld -- und die
+       Oberflaeche zeigt dort nichts statt einer Null. */
+    nr: '501', name: 'Die Linkzahl fehlt ganz, wo kein Link ist',
+    datei: 'server.js',
+    suche: "    it.linkCount = linkZahlJe.get(it.id) || 0;",
+    ersatz: "    it.linkCount = linkZahlJe.get(it.id);",
+    erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
+  },
+  {
+    /* DIE GEBUENDELTE FASSUNG LIEST EINE SPALTE MEHR ALS DIE EINZELNE. Beide
+       sehen fuer sich richtig aus, und die Kachel traegt trotzdem etwas
+       anderes als der Eintrag (Stolperstein 47). */
+    nr: '502', name: 'Die gebuendelte Schlagwortabfrage liest eine Spalte mehr',
+    datei: 'server.js',
+    suche: "const qAlleTags = db.prepare(`SELECT it.item_id, ${TAG_SPALTEN} FROM tags t",
+    ersatz: "const qAlleTags = db.prepare(`SELECT it.item_id, t.id, t.name, t.created_at FROM tags t",
+    erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
+  },
+  {
+    /* DIE LISTE HOLT WIEDER, WAS SIE NICHT ZEIGT: die Schlagworte jedes
+       Testtags (bei 400 Eintraegen 1200 Einzelabfragen) und den Verfasser
+       dazu. Gelesen hat beides in der Uebersicht nie jemand. */
+    nr: '503', name: 'Die Testtage der Liste tragen wieder Schlagworte und Verfasser',
+    datei: 'server.js',
+    suche: "    if (zeitleiste) it.testDays = testTageJe.get(it.id) || [];",
+    ersatz: "    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);",
+    erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
+  },
+  {
+    /* `t.*` STATT DER SPALTENLISTE. `created_at` eines Schlagworts liest die
+       Oberflaeche nirgends -- und was niemand ansieht, wird zweimal bezahlt:
+       beim Holen und beim Senden. */
+    nr: '504', name: 'Die Schlagwortabfrage liest wieder alle Spalten',
+    datei: 'server.js',
+    suche: "const TAG_SPALTEN = 't.id, t.name';",
+    ersatz: "const TAG_SPALTEN = 't.*';",
+    erwartet: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
+  },
+
+  /* ---- 0.19.3: die letzten acht „Instanz" ---- */
+  {
+    /* EINE DER ACHT STELLEN SAGT WIEDER „Instanz". Der Waechter zaehlt
+       Nicht-Kommentarzeilen; eine einzige genuegt, damit er anschlaegt. */
+    nr: '505', name: 'Eine Stelle im Bildschirmtext sagt wieder „Instanz"',
+    datei: 'public/app.js',
+    suche: "          Ohne Mailzugang läuft die Installation vollständig",
+    ersatz: "          Ohne Mailzugang läuft die Instanz vollständig",
+    erwartet: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
   },
 
   /* ---- Der Pruefstand ueber sich selbst ---- */
