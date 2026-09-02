@@ -1,6 +1,7 @@
 node_modules/
 data/
 .env
+docker-compose.yml
 *.log
 .DS_Store
 kriterion-sicherung*/
