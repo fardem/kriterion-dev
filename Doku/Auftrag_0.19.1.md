@@ -86,6 +86,25 @@ zwar bei **jedem** Zeichnen des Systembereichs, der sich bei **jedem
 Abschnittswechsel** neu zeichnet. Im Feld gemeldet als „ca. 3 Sekunden
 Ladezeit".
 
+> **UND WÄHREND EINER UMSTELLUNG WIRD DARAUS EINE SELBSTBLOCKADE.**
+> `verfolgeUmstellung()` (`public/app.js`, um Zeile 8535) fragt `/api/stats`
+> **alle 1500 ms** ab, solange der Lauf läuft. **Eine Abfrage, die 2700 ms
+> kostet, alle 1500 ms gestellt, lastet den Haupt-Thread zu 180 % aus** — und
+> `setInterval` wartet die Antwort nicht ab, die Anfragen stapeln sich also
+> zusätzlich. **Der Server beantwortet in dieser Zeit praktisch nichts mehr,
+> und der Umstellungslauf selbst kommt kaum noch dran.**
+>
+> **Das ist die beste Erklärung für den gemeldeten Befund** — „Kriterion
+> reagiert ab und an nicht, über die ganze Stunde verteilt". Sie erklärt
+> zugleich, warum der Lauf **5,3 s je Bild** brauchte, wo das Kodieren nur
+> ~0,35 s kostet.
+>
+> **SIE IST HERGELEITET UND NICHT AM WIRT NACHGEMESSEN.** Der Beleg ist
+> einfach zu führen: **nach dieser Runde denselben Lauf noch einmal fahren.**
+> Sind die Aussetzer weg und dauert er ein Vielfaches weniger, war es das.
+> Das gehört ins Änderungsprotokoll dieser Runde, nicht als Behauptung,
+> sondern als Nachtrag mit der gemessenen Zahl.
+
 ### B. Der engere Ausschnitt erreicht die Bildränder nicht
 
 Gemessen **in echtem Chromium**, Kachel 313 × 313, `object-fit: cover`,
@@ -139,12 +158,21 @@ gemessen ist `sharp.concurrency()` bereits **1**, der Container ist
 libvips nimmt sich also **nicht** die Maschine. Auch hier meldet sharp 0.35.3
 unter glibc 2.39 die Vorgabe **1**.
 
-> **WAS DIE AUSSETZER WIRKLICH VERURSACHT, IST IN DIESER RUNDE NICHT GEKLÄRT**
-> und gehört auch nicht hierher. Der Verdacht liegt auf den **synchronen
-> Datenbankzugriffen im Haupt-Thread** samt WAL-Checkpoint und `fsync`; die
-> Behebung ist **0.19.2** („Bestandsläufe verlassen den Anfrageweg"), und die
-> ist eine eigene Runde mit eigener Gegenprobe. **Diese Runde warnt nur davor**
-> (Punkt 5).
+> **ZWEI VERDÄCHTIGE SIND AUSGESCHLOSSEN, und beide durch eine Messung am
+> Wirt selbst.**
+>
+> * **Die CPU nicht:** `sharp.concurrency()` steht dort schon auf **1**, der
+>   Container ist unbeschränkt und hat vier Kerne. libvips nimmt sich die
+>   Maschine also nicht.
+> * **Die Platte nicht:** `fsync` über 4 MB kostet dort **6 ms im Median, 7 ms
+>   im schlimmsten Fall** — eine SSD. 679 Checkpoints ergeben fünf Sekunden auf
+>   die ganze Stunde.
+>
+> **Übrig bleibt die Selbstblockade aus Abschnitt A**, und die behebt **Punkt 1
+> dieser Runde**. *0.19.2 („Bestandsläufe verlassen den Anfrageweg") bleibt
+> trotzdem richtig — ein Bestandslauf hat im Anfrageweg nichts verloren, gleich
+> wer ihn gerade ausbremst —, ist aber nach diesem Befund **nicht mehr die
+> vermutete Heilung**, sondern die saubere Bauform.*
 
 ### E. Die Vorhersage von 0.19.0 hat gehalten
 
@@ -168,6 +196,12 @@ Kante, und der ist als Rückbau 458 gebaut und geprüft.
 ---
 
 ## 1. Die Bestandskarte fragt wieder schnell
+
+> **DIESER PUNKT IST GRÖSSER, ALS ER AUSSIEHT.** Er behebt nicht nur die
+> Ladezeit im Systembereich, sondern aller Voraussicht nach auch die
+> **Aussetzer während der Umstellung**: die Fortschrittsanzeige fragt dieselbe
+> Abfrage alle 1,5 s ab, die 2,7 s kostet (Abschnitt A). **Wird sie billig,
+> löst sich beides auf einmal.**
 
 ### GEBAUT WIRD
 
@@ -608,6 +642,11 @@ zur Wahl — **eine Funktion, also MINOR.** Steht als 0.21.0 im Fahrplan.
   Kachel „Bildablage" suchen** *(sie steht für sich, nicht mehr in den
   Kennzahlen)* und **den Umstellungsknopf drücken, ohne zu bestätigen** *(der
   Dialog sagt, dass es dauern kann)*.
+* **UND DER EINE NACHWEIS, DER NUR AM WIRT ZU FÜHREN IST:** ein PNG einfügen,
+  den Schalter aus- und wieder einschalten und **den Umstellungslauf über die
+  wenigen offenen Bilder fahren** — währenddessen im Systembereich klicken.
+  **Reagiert die Oberfläche jetzt, war die Selbstblockade aus Abschnitt A die
+  Ursache**, und die Zahl gehört ins Änderungsprotokoll.
 
 ---
 
