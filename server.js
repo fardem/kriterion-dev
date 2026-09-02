@@ -2321,9 +2321,40 @@ const qPhotos = db.prepare(`SELECT ${PHOTO_SPALTEN} FROM photos WHERE item_id = 
    UND SIE IST ZUGLEICH DIE LISTE DES INDEX `idx_photos_kachel` -- fehlt dort
    eine, faellt der Index still aus. Eine Pruefung haelt beide gegeneinander. */
 const qAlleFotos = db.prepare(`SELECT ${PHOTO_SPALTEN} FROM photos ORDER BY item_id, sort_order, id`);
-const qTags = db.prepare('SELECT t.* FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE');
+/* `t.*` IST SEIT 0.19.3 EINE SPALTENLISTE, und das ist eine Wegnahme mit
+   Nachweis: ein Schlagwort traegt id, name und created_at, und `created_at`
+   wird in public/app.js an einem Schlagwort NIRGENDS gelesen -- nachgesehen,
+   nicht geglaubt. Was niemand ansieht, wird zweimal bezahlt: beim Holen und
+   beim Senden. Gemessen ueber 400 Eintraege: 3,76 -> 2,41 ms.
+   DIE LISTE STEHT AN EINER STELLE, wie PHOTO_SPALTEN darueber: die
+   gebuendelte Fassung fuer die Uebersicht und die einzelne fuer detail()
+   muessen dieselben Spalten in derselben Folge lesen, sonst traegt die Kachel
+   ein anderes Schlagwort als der Eintrag (Stolperstein 47). Eine Pruefung
+   haelt beide gegeneinander. */
+const TAG_SPALTEN = 't.id, t.name';
+const qTags = db.prepare(`SELECT ${TAG_SPALTEN} FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE`);
+/* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL -- 0.19.3, dieselbe
+   Bauform wie qAlleFotos. SORTIERT WIRD ZUERST NACH item_id UND DANN WIE
+   BISHER: wer nur gruppiert und die zweite Ordnung vergisst, bekommt die
+   Schlagworte einer Kachel in einer anderen Folge als am Eintrag.
+   `item_id` FAELLT BEIM EINSORTIEREN WIEDER WEG -- es ist der Schluessel der
+   Karte und kein Feld des Schlagworts; bliebe es stehen, truege die Kachel
+   ein Feld, das der Eintrag nicht hat. */
+const qAlleTags = db.prepare(`SELECT it.item_id, ${TAG_SPALTEN} FROM tags t
+  JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id, t.name COLLATE NOCASE`);
 const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
+/* DIE UEBERSICHT ZAEHLT NUR -- 0.19.3. Sie hat bis 0.19.2 je Eintrag die
+   VOLLEN Linkzeilen geholt (id, url, sort_order, created_at, user_id) und
+   davon `.length` genommen; gebraucht wird an der Kachel allein `linkCount`.
+   Gemessen ueber 400 Eintraege: 2,36 -> 0,47 ms.
+   qLinks BLEIBT UND WIRD WEITER GEBRAUCHT: detail() zeigt die Adressen mit
+   ihren Verfassern, und dort ist die Zeilenzahl einstellig. */
+const qLinkZahlen = db.prepare('SELECT item_id, COUNT(*) n FROM links GROUP BY item_id');
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
+/* Und dieselbe Frage fuer die ganze Liste. Es sind wenige Zeilen, und sie
+   stehen ohnehin gleich wieder da: eine Abfrage je Eintrag holte dieselbe
+   Kategorie hundertmal. */
+const qAlleKategorien = db.prepare('SELECT id, name FROM product_categories');
 /* --- Schnitt und Anzahl je Kriterium --------------------------------------
    EINE Abfrage, gruppiert -- ausdruecklich KEIN zweiter JOIN AUF `ratings`
    neben dem in detail(): zwei JOINs auf DIESELBE Tabelle vervielfachen sich,
@@ -2343,6 +2374,30 @@ function schnitteJeKriterium(itemId) {
   const m = new Map();
   for (const z of qSchnittJeKriterium.all(itemId)) m.set(z.criterion_id, z);
   return m;
+}
+
+/* DIESELBE ABFRAGE FUER ALLE EINTRAEGE AUF EINMAL -- 0.19.3. Es ist Zeile fuer
+   Zeile dieselbe: derselbe JOIN, dasselbe `value > 0`, dieselbe Gruppierung --
+   nur steht `r.item_id` mit in SELECT und GROUP BY, und das WHERE auf den
+   einen Eintrag faellt weg. Gemessen ueber 400 Eintraege: 4,18 -> 2,70 ms.
+   ZWEI FASSUNGEN, EINE RECHNUNG: was herauskommt, geht durch DENSELBEN
+   gesamtSchnitt() wie in detail(). Zwei Rechenwege fuer dieselbe Kopfzahl
+   waeren zwei Wahrheiten (Stolperstein 47); zwei Abfragen mit demselben
+   Ergebnis sind es nicht -- eine Pruefung haelt sie gegeneinander. */
+const qSchnittJeKriteriumAlle = db.prepare(`
+  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS schnitt, COUNT(*) AS anzahl,
+         c.gewicht
+    FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
+   WHERE r.value > 0
+   GROUP BY r.item_id, r.criterion_id, c.gewicht`);
+
+function schnitteJeEintrag() {
+  const alle = new Map();
+  for (const z of qSchnittJeKriteriumAlle.all()) {
+    if (!alle.has(z.item_id)) alle.set(z.item_id, new Map());
+    alle.get(z.item_id).set(z.criterion_id, z);
+  }
+  return alle;
 }
 
 /* Wer welchen Wert vergeben hat -- je Kriterium eine Liste. Wieder eine
@@ -2456,6 +2511,48 @@ function qTestDays(itemId, benutzerId, karte) {
     delete t.user_id;
   }
   return tage;
+}
+
+/* ---- DIE SCHMALE FASSUNG FUER DIE LISTE — 0.19.3 -------------------------
+   ZWEI FORMEN FUER ZWEI FRAGEN, und der Unterschied steht an beiden:
+   qTestDays() darueber beantwortet „was steht an DIESEM Eintrag" -- dort zeigt
+   die Zeile ihre Schlagworte und ihren Verfasser. Diese hier beantwortet „was
+   braucht die ZEITLEISTE der Uebersicht", und die liest genau drei Felder.
+
+   WAS HERAUSFAELLT UND WARUM ES NIEMAND VERMISST: `tags` und `verfasser`.
+   zeitleistePunkte() (public/app.js) ist die EINZIGE Stelle, die testDays aus
+   der LISTENANTWORT liest, und sie nimmt `day`, `rating` und `mine`. Die vier
+   uebrigen Leser arbeiten auf dem Objekt aus detail() -- erkennbar daran, was
+   danebensteht: item.links und item.description, it.ratings, item.tested,
+   sparkline(item.testDays). Nachgezaehlt am heutigen Stand und nicht dem
+   Kommentar geglaubt, der das seit 0.17.0 behauptet.
+   `id` BLEIBT TROTZDEM DRIN. Es kostet vier Bytes je Zeile -- sie stehen im
+   Zeilenkopf und werden weder gesucht noch entschluesselt -- und ist die
+   einzige Handhabe, falls die Zeitleiste je auf einen Punkt zeigen soll.
+
+   WAS DAS SPART, gemessen ueber 400 Eintraege mit je drei Testtagen: 11,61 ->
+   3,30 ms, und die 1200 Einzelabfragen nach den Schlagworten der Testtage
+   fallen ganz weg. Von der Antwort gehen 96 kB ab. `qTestDays` war damit der
+   groesste Einzelposten der ganzen Route -- mehr als die fuenf gebuendelten
+   Nachbarn zusammen.
+
+   SORTIERT WIRD ZUERST NACH item_id UND DANN WIE BISHER (day DESC, id DESC).
+   Ohne die zweite Ordnung bekaeme die Zeitleiste ihre Punkte verdreht. */
+const qAlleTestTageSchmal = db.prepare(
+  'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC');
+
+function testTageJeEintrag(benutzerId) {
+  if (benutzerId == null) throw new Error('testTageJeEintrag() ohne Benutzer aufgerufen');
+  const je = new Map();
+  for (const t of qAlleTestTageSchmal.all()) {
+    if (!je.has(t.item_id)) je.set(t.item_id, []);
+    // mine kommt vom Server, wie in qTestDays(): die Zeitleiste zeichnet die
+    // eigenen Punkte gefuellt und fremde als Ring. Die Verfassernummer geht
+    // nicht hinaus -- hier so wenig wie dort.
+    je.get(t.item_id).push({ id: t.id, day: t.day, rating: t.rating,
+                             mine: t.user_id === benutzerId });
+  }
+  return je;
 }
 const qTestStats = db.prepare(`
   SELECT COUNT(*) AS cnt, AVG(rating * 1.0) AS avg,
@@ -2582,9 +2679,18 @@ const qAlleItems = db.prepare('SELECT * FROM items ORDER BY updated_at DESC');
 /* VORBEREITET UND NICHT JE EINTRAG UEBERSETZT. Beide Abfragen standen in der
    Schleife darunter und wurden damit einmal je Eintrag uebersetzt. Gemessen an
    1000 Eintraegen: 24,2 ms so, 11,5 ms vorbereitet. Die uebrigen Abfragen der
-   Schleife (qPhotos, qTags, qLinks) stehen aus demselben Grund laengst
-   oben. */
-const qAnhangZahl = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?');
+   Schleife (qPhotos, qTags, qLinks) stehen aus demselben Grund laengst oben.
+
+   UND SEIT 0.19.3 WIRD SIE AUCH NICHT MEHR JE EINTRAG GEFRAGT. Vorbereiten und
+   Buendeln sind zwei verschiedene Ersparnisse; die zweite kommt hier dazu.
+   Gemessen ueber 400 Eintraege: 1,33 -> 0,23 ms.
+   DIE EINZELFASSUNG IST DABEI GANZ WEGGEFALLEN und nicht daneben stehen
+   geblieben -- anders als qTags, qLinks und qPhotos, die detail() weiter
+   braucht. Die Zahl der Anhaenge fragte NUR die Uebersicht; detail() holt die
+   Dateien selbst (qAttachments) und zaehlt sie im Browser. Eine Abfrage, die
+   niemand mehr ruft, ist kein Vorrat, sondern eine Zeile, die beim naechsten
+   Lesen erklaert werden muss. */
+const qAnhangZahlen = db.prepare('SELECT item_id, COUNT(*) n FROM attachments GROUP BY item_id');
 
 /* ================= Die Volltextsuche =================
    SIE SUCHT SIEBEN QUELLEN: Titel, Beschreibung, Kategoriename, Tags am
@@ -2949,6 +3055,48 @@ app.get('/api/items', (req, res) => {
     if (!fotosJe.has(f.item_id)) fotosJe.set(f.item_id, []);
     fotosJe.get(f.item_id).push(f);
   }
+  /* UND DIE UEBRIGEN FUENF DERSELBE WEG — 0.19.3. Was 0.19.2 fuer die Fotos
+     gebaut hat, gilt hier fuer die Nachbarn: einmal fragen, in eine Karte
+     legen, in der Schleife nachschlagen. Aus 3200 Abfragen je Abruf werden
+     neun.
+
+     GEZAEHLT AN 400 EINTRAEGEN mit je drei Schlagworten, drei Bewertungen,
+     drei Testtagen und einem Link -- so war der Bestand gebaut, an dem
+     gemessen wurde:
+       qTags                       400
+       qLinks                      400
+       qAnhangZahl                 400
+       schnitteJeKriterium         400
+       testStats                   400
+       qTestDays -> qTestDaysRoh   400
+       qTestDays -> qTestDayTags  1200   (je TESTTAG eine)
+       zusammen                   3200
+
+     `testStats` IST NICHT DABEI, UND DAS IST GEMESSEN UND KEIN VERSEHEN:
+     gebuendelt kostet es 2,58 ms statt 1,94 -- die eine Abfrage mit
+     Fensterfunktion kostet mehr, als die 400 Einzelabfragen sparen. EINE
+     BUENDELUNG IST KEIN SELBSTZWECK; sie lohnt, wo sie etwas spart, und sonst
+     nicht.
+
+     GEHOLT WIRD JEWEILS ALLES und nicht `IN (…)` mit vierhundert Nummern --
+     dieselbe Begruendung wie bei den Fotos: die gefilterte Uebersicht wirft
+     dann etwas weg, und das ist billiger als die Liste zu binden.
+
+     DIE EINZELFASSUNGEN BLEIBEN ALLE STEHEN, wo detail() sie braucht: dort
+     geht es um EINEN Eintrag, und eine zweite Bauform daneben waere keine
+     Ersparnis, sondern eine zweite Wahrheit. */
+  const tagsJe = new Map();
+  for (const z of qAlleTags.all()) {
+    if (!tagsJe.has(z.item_id)) tagsJe.set(z.item_id, []);
+    tagsJe.get(z.item_id).push(z);
+    delete z.item_id;
+  }
+  const linkZahlJe = new Map(qLinkZahlen.all().map(z => [z.item_id, z.n]));
+  const anhangZahlJe = new Map(qAnhangZahlen.all().map(z => [z.item_id, z.n]));
+  const schnitteJe = schnitteJeEintrag();
+  const katJe = new Map(qAlleKategorien.all().map(k => [k.id, k]));
+  // Die Testtage nur, wenn die Zeitleiste ueberhaupt an ist -- wie bisher.
+  const testTageJe = zeitleiste ? testTageJeEintrag(req.benutzer.id) : null;
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
     it.verfasser = verfasserAus(karte, it.user_id);
@@ -2963,19 +3111,26 @@ app.get('/api/items', (req, res) => {
     it.mainPhoto = ph[0] || null;
     it.photoCount = ph.filter(p2 => p2.art !== 'video').length;
     it.videoCount = ph.filter(p2 => p2.art === 'video').length;
-    it.category = it.product_category_id ? qCat.get(it.product_category_id) : null;
-    it.tags = qTags.all(it.id);
-    const links = qLinks.all(it.id);
-    it.linkCount = links.length;
-    it.attachmentCount = qAnhangZahl.get(it.id).n;
+    it.category = it.product_category_id ? (katJe.get(it.product_category_id) || null) : null;
+    it.tags = tagsJe.get(it.id) || [];
+    /* NUR DIE ZAHL, NICHT DIE ZEILEN. Bis 0.19.2 holte die Uebersicht je
+       Eintrag die vollen Linkzeilen und nahm davon `.length` -- die Kachel
+       zeigt nichts davon ausser dieser Zahl. */
+    it.linkCount = linkZahlJe.get(it.id) || 0;
+    it.attachmentCount = anhangZahlJe.get(it.id) || 0;
     // Dieselbe Rechnung wie in detail(), ueber denselben Helfer. Zwei
     // Rechenwege fuer die Kachel und die Zeile daneben waeren zwei Wahrheiten
-    // ueber dieselbe Zahl.
-    it.avgRating = gesamtSchnitt(schnitteJeKriterium(it.id));
+    // ueber dieselbe Zahl. Was sich geaendert hat, ist woher die Karte kommt --
+    // nicht, was mit ihr geschieht.
+    it.avgRating = gesamtSchnitt(schnitteJe.get(it.id) || new Map());
     Object.assign(it, testStats(it.id));
-    // Die Zeitleiste braucht die Testtage selbst, nicht nur ihre Anzahl --
-    // und dazu, wem sie gehoeren. Ohne sie braucht die Liste sie nicht.
-    if (zeitleiste) it.testDays = qTestDays(it.id, req.benutzer.id, karte);
+    /* DIE ZEITLEISTE BRAUCHT DIE TESTTAGE SELBST, nicht nur ihre Anzahl -- und
+       dazu, wem sie gehoeren. Ohne sie braucht die Liste sie nicht.
+       SEIT 0.19.3 IN DER SCHMALEN FASSUNG: id, day, rating, mine. Die
+       Schlagworte und der Verfasser jedes Testtags stehen weiter am EINTRAG
+       (detail() ruft qTestDays), nur nicht mehr in der Liste -- gelesen hat
+       sie dort niemand. Die Begruendung steht bei qAlleTestTageSchmal. */
+    if (zeitleiste) it.testDays = testTageJe.get(it.id) || [];
     /* DIE BESCHREIBUNG FAELLT AUS DER LISTE, WIE BISHER. Sie stand nie in
        dieser Antwort -- gebraucht wurde sie allein zum Bilden des Suchfelds,
        und das gibt es nicht mehr. Die Kachel zeigt keine Beschreibung; wer sie
