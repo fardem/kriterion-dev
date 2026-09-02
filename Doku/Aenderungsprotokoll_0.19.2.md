@@ -470,13 +470,38 @@ Fingerprint oben, liegt auf dem Wirt eine Datei, die kein Commit trägt
   `public/app.js`, unverändert aus 0.19.1 offen.
 - **DAS N+1-MUSTER IN `/api/items`.** *Neu aufgefallen beim Messen zu Punkt 5:*
   die Übersichtsschleife fragt je Eintrag **fünfmal** einzeln —
-  `schnitteJeKriterium` (3,6 ms), `testStats` (2,1), `qLinks` (2,0),
-  `qAnhangZahl` (1,2), `qTags` (0,9). **Zusammen rund 10 ms von 21**, und bei
+  `schnitteJeKriterium`, `testStats`, `qLinks`, `qAnhangZahl`, `qTags`. Bei
   400 Einträgen sind das 2000 Abfragen. *Sie haben mit den Blobs nichts zu tun
   — jede einzelne ist billig, es sind nur viele.* **Derselbe Handgriff wie bei
   den Fotos würde tragen:** einmal fragen, in eine Karte legen, in der Schleife
   nachschlagen. *Das ist eine eigene Runde und kein Anhängsel; hier steht es,
   damit es nicht wieder gefunden werden muss.*
+
+  > **BERICHTIGUNG vom 2. September 2026, beim Vorbereiten von 0.19.3.** An
+  > dieser Stelle standen fünf Millisekundenwerte zwischen knapp einer und
+  > knapp vier und die Aussage, sie machten zusammen rund die Hälfte von
+  > einundzwanzig aus. **Alle fünf sind gestrichen, und zwar aus zwei
+  > Gründen.**
+  >
+  > **Erstens waren die Tabellen leer.** Die Testdatenbank hatte null
+  > Schlagwortbindungen, null Bewertungen und null Testtage; gemessen wurde
+  > damit, was eine Abfrage kostet, die **nichts findet**. Mit einem Bestand
+  > in der Größenordnung einer Installation mit einem Benutzer — drei
+  > Schlagworte, drei Bewertungen, drei Testtage und ein Link je Eintrag —
+  > kosten dieselben fünf zusammen **13,6 ms** statt der genannten zehn.
+  >
+  > **Zweitens, und das wiegt schwerer: der größte Posten fehlte ganz.**
+  > `qTestDays` stand nicht in der Aufzählung, weil es ohne Testtage nichts
+  > zu holen gab. Es ist mit **11,61 ms** der teuerste Einzelposten der
+  > ganzen Route — mehr als die fünf genannten zusammen —, und es fragt
+  > **400 + 1200** mal statt 400. *Damit sind es 3200 Abfragen und nicht
+  > 2000.*
+  >
+  > **Die belastbaren Zahlen stehen im Auftrag 0.19.3, Abschnitte D bis F**,
+  > samt der Bedingungen, unter denen sie entstanden sind. **Es ist die
+  > vierte übertragene oder unter falscher Bedingung erhobene Zahl in dieser
+  > Kette** — und die erste, bei der nicht die Höhe falsch war, sondern die
+  > Auswahl: gemessen wurde, was dastand, und nicht, was die Route tut.
 - **Und `JSON.stringify` kostet 2,7 ms** für 233 kB Antwort. *Nicht zu ändern,
   aber die Zahl gehört daneben: sie ist die Untergrenze dessen, was diese Route
   kosten kann.*
