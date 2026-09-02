@@ -836,6 +836,50 @@ function migration0850() {
 migration0850();
 // ENDE MIGRATION 0.8.50
 
+/* DER INDEX AUF `art` STEHT HIER UND NICHT IN DER DDL, seit 0.19.2 -- und der
+   Grund ist ein Befund des Pruefstands, kein Geschmack.
+
+   `photos.art` KOMMT ERST MIT migration0850(). Eine Datenbank aus 0.8.0 bis
+   0.8.40 traegt die Spalte nicht, und `CREATE TABLE IF NOT EXISTS` ruehrt eine
+   vorhandene Tabelle nicht an (Stolperstein 13). Ein `CREATE INDEX` in der DDL
+   liefe dort auf „no such column: art" -- und zwar beim Oeffnen der Datei, also
+   BEVOR der Server ueberhaupt startet. **Gefunden hat das der Pruefstand beim
+   ersten Lauf, an der nachgebauten Datenbank aus 0.8.40.**
+
+   EIN INDEX AUF EINER NACHGERUESTETEN SPALTE GEHOERT HINTER IHRE MIGRATION,
+   nicht in die DDL daneben (Stolperstein 281).
+
+   WOZU ER DA IST: `art` steht in der Spaltenreihenfolge hinter drei Blobs
+   (data, thumb, medium). Wer sie aus dem SATZ liest, muss ihn bis dorthin
+   durchlaufen -- und das heisst bei einem 512-kB-Bild: die ganze Kette der
+   Overflow-Seiten lesen und entschluesseln. Gemessen an einer SQLCipher-Datei
+   mit 400 Zeilen a 512 kB (312 MB), je Abfrage ueber die ganze Tabelle:
+
+     COUNT(*)                                        0,0 ms
+     mime_type gruppiert  (Spalte 2, VOR den Blobs)  8,7 ms
+     art gruppiert        (Spalte 6, HINTER ihnen)   1338,8 ms
+     SUM(length(data))    (Spalte 3)                 7,2 ms
+     SUM(length(data)) mit WHERE art != 'video'      1334,1 ms
+     art gruppiert, MIT diesem Index                 0,1 ms
+
+   DER UNTERSCHIED IST NICHT DIE MENGE, SONDERN DIE LAGE DER SPALTE
+   (Stolperstein 279). Mit diesem Index kommt `art` aus dem Index statt aus
+   dem Satz.
+
+   EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE art != 'video'` schlaegt den
+   Index aus, `WHERE art IS ?` nutzt ihn. Die Abfragen in /api/stats holen
+   deshalb erst die vorhandenen Arten und fragen dann je Art.
+
+   ER IST KEINE DATENBANKSTUFE: kein Migrationsblock, keine Spalte, keine neue
+   Formatnummer. Beim ersten Start nach dem Einspielen baut SQLite ihn einmal
+   auf -- gemessen 1,4 s bei 312 MB, danach steht er.
+
+   UND ER FAELLT MIT DER BEREINIGUNG NICHT WEG. Zu 1.0 verschwindet
+   migration0850(), die Spalte in der DDL bleibt -- und dann darf diese Zeile
+   mit ihr nach oben wandern. Der Satz steht hier, damit sie beim Aufraeumen
+   nicht uebersehen wird. */
+db.exec('CREATE INDEX IF NOT EXISTS idx_photos_art ON photos(art)');
+
 // MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
 // Die Spalten rejected_at, rejected_grund und rejected_von stehen in der DDL,
 // aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an

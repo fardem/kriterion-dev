@@ -473,10 +473,33 @@ let umstellung = null;
 const umstellungsStand = () => umstellung && { ...umstellung };
 
 /* WELCHE ZEILEN UEBERHAUPT IN FRAGE KOMMEN -- am INHALT erkannt, mit derselben
-   Byte-Folge wie istPNG() und in derselben Schreibweise wie die Aufteilung in
-   /api/stats. AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die Videodatei. */
+   Byte-Folge wie istPNG(). AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die
+   Videodatei.
+   HIER DARF `art != 'video'` STEHEN, anders als in /api/stats: diese Abfrage
+   laeuft nur auf Knopfdruck, sie liest ohnehin die ersten Bytes jedes Blobs,
+   und der Index brächte ihr nichts (gemessen 1424 ms -- das ist der Preis des
+   Lesens und nicht der der Spaltenlage). */
 const qOffenePNG = db.prepare(
   "SELECT id FROM photos WHERE art != 'video' AND hex(substr(data,1,8)) = ?");
+
+/* ---- DIE VIER ABFRAGEN DER BESTANDSKARTE ----
+   VORBEREITET UND NICHT JE ANFRAGE GEBAUT: sie laufen bei jedem Zeichnen des
+   Systembereichs. Die Begruendung ihrer FORM steht an der Aufrufstelle in
+   /api/stats, wo die Messung danebensteht.
+   `art` KOMMT AUS DEM INDEX idx_photos_art -- deshalb `GROUP BY` ohne weitere
+   Spalte und deshalb `IS ?` statt `!= 'video'`. */
+const qBildArten = db.prepare('SELECT art AS a FROM photos GROUP BY 1');
+const qJeArt = db.prepare(
+  'SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE art IS ?');
+const qJeFormat = db.prepare(`
+  WITH x AS MATERIALIZED (
+    SELECT mime_type AS m, length(data) AS o FROM photos WHERE art IS ?)
+  SELECT m, COUNT(*) AS n, COALESCE(SUM(o),0) AS o FROM x GROUP BY 1`);
+/* Die Videozeile traegt neben `data` auch eine Ableitung, und die geht mit in
+   die Exportdatei -- dieselbe Rechnung wie in austauschTeile(). */
+const qVideoExportBytes = db.prepare(`
+  SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) AS n
+    FROM photos WHERE art IS ?`);
 
 /* GEARBEITET WIRD WIE IN backfillVariants(): Zeile fuer Zeile, 30 ms Pause
    dazwischen, damit der Server ansprechbar bleibt. Das Vorbild steht schon da
@@ -4041,102 +4064,95 @@ app.get('/api/offen', (req, res) => {
 app.get('/api/stats', nurAdmin, (req, res) => {
   let dbBytes = 0;
   try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
-  /* ZWEI ABFRAGEN, UND BEIDE UEBER EINE MATERIALISIERTE ZWISCHENABFRAGE.
-     Bis 0.18.1 standen hier zwei volle Tabellendurchgaenge; 0.19.0 hat sie zu
-     EINEM GROUP BY zusammengelegt und dabei den Fehler erst gebaut, den diese
-     Runde wegraeumt.
+  /* DIE AUFTEILUNG DES BILDBESTANDS -- und sie ist in 0.19.1 ZWEIMAL umgebaut
+     worden, weil der erste Umbau nur die halbe Ursache traf.
 
-     WAS 0.19.0 BEHAUPTET HAT, UND WARUM ES FALSCH WAR. An dieser Stelle stand
-     eine Messung: ein GROUP BY ueber eine Datenbank „in der Groesse der
-     echten" (679 PNG, 344 JPEG, 9 WebP, 606 MB) koste knapp drei Sekunden.
-     DIESE ZAHLEN SIND GESTRICHEN und stehen nur noch im Aenderungsprotokoll zu
-     0.19.1, wo die Berichtigung sie zitiert: eine Datenbank mit 606 MB
-     Bilddaten beantwortet diese Abfrage nicht in drei Sekunden, und sie hat es
-     nie getan. Sie duerften an einer Datenbank OHNE Bilddaten entstanden sein
-     -- dort kostet der Durchgang wirklich nichts. Eine Messung, die um
-     Groessenordnungen zu gut aussieht, ist keine Messung (Stolperstein 277).
+     WAS 0.19.0 GEBAUT HATTE: eine Abfrage mit `GROUP BY` ueber `length(data)`
+     und `hex(substr(data,1,8))`. Sie kostete bei jedem Zeichnen des
+     Systembereichs Sekunden.
 
-     NACHGEFAHREN AN EINER SQLCIPHER-DATENBANK MIT 400 ZEILEN A 512 kB
-     (205 MB), einmal je Form:
+     WAS DER ERSTE ANLAUF VON 0.19.1 DARAUS MACHTE: zwei materialisierte
+     Zwischenabfragen. Das behebt die eine Haelfte -- `length()` verliert seine
+     Abkuerzung im Sortierer einer Gruppierung (Stolperstein 275) --, und die
+     Karte wurde messbar schneller. SIE BLIEB TROTZDEM LANGSAM, und der Grund
+     stand nicht im Auftrag:
 
-       COUNT(*) allein                                        0,0 ms
-       COUNT(*), SUM(length(data)) OHNE GROUP BY              0,0 ms
-       COUNT(*), SUM(length(data)) MIT GROUP BY             778   ms
-       die Abfrage aus 0.19.0 (mit hex(substr(...)))        919   ms
-       SUM(length(hex(data))) -- liest garantiert alles     753   ms
-       hex(substr(data,1,8)) OHNE GROUP BY                  657   ms
-       nur die Groesse gruppiert, MATERIALIZED                0,1 ms
-       art + mime_type, MATERIALIZED                          0,2 ms
+     `art` STEHT IN DER SPALTENREIHENFOLGE HINTER DREI BLOBS (data, thumb,
+     medium). Wer sie aus dem SATZ liest, muss ihn bis dorthin durchlaufen --
+     und das heisst, die Overflow-Ketten der Blobs zu lesen und zu
+     entschluesseln. Das ist von der Gruppierung ganz unabhaengig, und
+     `MATERIALIZED` hilft dagegen nichts (Stolperstein 279).
 
-     ZWEI BEFUNDE, und beide widersprechen dem, was hier bis 0.19.1 stand:
+     UND DIE BERICHTIGUNG AUS 0.19.1 GILT UNVERAENDERT WEITER, sie war nur
+     nicht die ganze Geschichte: 0.19.0 hat behauptet, hex(substr(data,1,8))
+     hole die ersten Bytes und lasse das Blob dabei ungelesen. DAS IST FALSCH
+     -- substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei 205 MB,
+     das 0,87-fache dessen, was garantiertes Volllesen kostet. Der Wortlaut
+     der gestrichenen Saetze steht im Aenderungsprotokoll zu 0.19.1.
 
-     1. substr() AUF EINEM BLOB LIEST DAS BLOB. 657 ms auch ohne GROUP BY, das
-        0,87-fache der Obergrenze. 0.19.0 hat hier das Gegenteil behauptet --
-        hex(substr(data,1,8)) hole die ersten Bytes und lasse das Blob dabei
-        ungelesen. DAS IST FALSCH und ist deshalb hier gestrichen; der
-        Wortlaut steht im Aenderungsprotokoll zu 0.19.1.
-     2. length() AUF EINEM BLOB IST KOSTENLOS -- ABER NUR AUSSERHALB EINES
-        GROUP BY. SQLite liest die Laenge aus dem Satzkopf; sobald die Spalte
-        durch den Sortierer der Gruppierung muss, wird das Blob materialisiert
-        (Stolperstein 275). Das Zusammenlegen der beiden Durchlaeufe hat den
-        Fehler erst gebaut.
+     GEMESSEN AN EINER SQLCIPHER-DATEI MIT 400 ZEILEN A 512 kB (312 MB):
 
-     HOCHGERECHNET AUF DIE ECHTE INSTALLATION (606 MB) waren das rund 2,7 s --
-     bei JEDEM Zeichnen des Systembereichs, der sich bei jedem
-     Abschnittswechsel neu zeichnet. Und waehrend einer Umstellung fragt die
-     Fortschrittsanzeige dieselbe Abfrage alle 1500 ms ab; eine Abfrage, die
-     2700 ms kostet, lastet den Haupt-Thread damit zu 180 % aus.
+       COUNT(*)                                          0,0 ms
+       mime_type gruppiert (Spalte 2, VOR den Blobs)      8,7 ms
+       art gruppiert       (Spalte 6, HINTER ihnen)    1338,8 ms
+       SUM(length(data))   (Spalte 3), ohne WHERE         7,2 ms
+       SUM(length(data))   mit WHERE art != 'video'    1334,1 ms
+       length(data)+art,   materialisiert              1343,3 ms
+       length(data)+mime,  materialisiert                 7,8 ms
+       art gruppiert, MIT Index auf photos(art)           0,1 ms
 
-     DER AUSWEG IST DIE MATERIALISIERTE ZWISCHENABFRAGE: sie zieht erst die
-     Laenge (billig, aus dem Satzkopf) und gruppiert danach ueber eine Zahl.
-     Ein Durchgang bleibt ein Durchgang -- die Zusammenlegung aus 0.19.0 war
-     richtig gedacht und nur falsch gebaut.
+     DARAUS FOLGT DIESE FORM, und jeder ihrer drei Handgriffe hat einen Grund:
+
+       1. `art` KOMMT AUS DEM INDEX und nicht aus dem Satz -- der Index steht
+          in db.js und ist keine Datenbankstufe.
+       2. GEFRAGT WIRD MIT `IS ?` UND NICHT MIT `!= 'video'`. Eine Ungleichheit
+          schlaegt den Index aus; deshalb werden erst die vorhandenen Arten
+          geholt und dann je Art gefragt. Es sind zwei ('photo' und 'video'),
+          und was hier steht, gilt fuer jede weitere von selbst.
+       3. DIE FORMATZEILE BLEIBT MATERIALISIERT -- dort ist die Gruppierung
+          ueber eine Blob-Laenge der Kostenpunkt, und `MATERIALIZED` behebt ihn.
+
+     ZUSAMMEN GEMESSEN: 0,5 ms warm, 7,9 ms kalt -- gegen 4698 ms in der Form
+     davor, an derselben Datei.
+
+     UND DESHALB WIRD NICHTS ZWISCHENGESPEICHERT. Eine mitgefuehrte
+     Zaehlertabelle waere eine zweite Wahrheit ueber denselben Bestand
+     (Stolperstein 47): sie muesste bei jedem Hochladen, Loeschen, Einspielen,
+     Papierkorb-Griff und Umstellungslauf nachgezogen werden, und der erste
+     vergessene Weg liesse die Karte still falsche Zahlen zeigen. Bei 0,5 ms
+     gibt es dafuer keinen Gegenwert.
 
      DIE ALTEN FELDER BEHALTEN NAMEN UND BEDEUTUNG. photoCount, photoBytes,
      videoCount und videoBytes werden hier nur ANDERS GERECHNET, nicht anders
-     gemeint -- die Aufteilung kommt daneben. Dieselbe Regel wie bei den Videos
-     und beim Papierkorb. */
-  const proArt = db.prepare(`
-    WITH x AS MATERIALIZED (SELECT art AS a, length(data) AS o FROM photos)
-    SELECT a, COUNT(*) AS n, COALESCE(SUM(o),0) AS o FROM x GROUP BY 1`).all();
+     gemeint. */
+  const arten = qBildArten.all().map(z => z.a);
   const p = { n: 0, o: 0 }, vi = { n: 0, o: 0 };
-  for (const z of proArt) {
-    const topf = z.a === 'video' ? vi : p;
-    topf.n += z.n; topf.o += z.o;
-  }
-  /* DIE AUFTEILUNG NACH FORMAT KOMMT AUS mime_type UND NICHT MEHR AUS DEM
-     INHALT. Gemessen 0,2 ms gegen 919 ms.
-
-     0.19.0 HAT AUSDRUECKLICH ANDERS ENTSCHIEDEN, und der Satz von damals
-     bleibt richtig, WO ER HINGEHOERT: „erkannt wird am Inhalt, nicht an
-     mime_type -- die Spalte ist eine Angabe des Hochladenden." Am UPLOAD gilt
-     er unveraendert: legeBildAb() sieht weiter in die ersten acht Bytes und
-     glaubt dem gemeldeten Typ nicht.
-
-     AUFGEHOBEN IST ER FUER EINE KENNZAHL AUF EINER KARTE, und der Grund ist
-     eine Abwaegung: 2,7 Sekunden bei JEDEM Klick gegen die Moeglichkeit, dass
-     eine Zeile falsch gezaehlt wird, weil jemand beim Hochladen einen falschen
-     Typ gemeldet hat. Was aufgehoben wird, wird mit dem Grund hingeschrieben
-     und nicht geloescht (Stolperstein 201).
-
-     UND DER KNOPF BLEIBT DAVON UNBERUEHRT: qOffenePNG sucht weiter am INHALT
-     (hex(substr(data,1,8))), laeuft aber nur auf Verlangen und nicht bei jedem
-     Zeichnen. DIE KARTE KANN SICH ALSO VERZAEHLEN, DER KNOPF NIE DAS FALSCHE
-     TUN.
-
-     AUSDRUECKLICH OHNE VIDEOS: bei einer Videozeile traegt `data` die
-     Videodatei -- ihr Format gehoert in keine Zeile, die „Fotos am Eintrag
-     nach Format" ueberschrieben ist. Die Videos stehen wie bisher als eigene
-     Zahl daneben. */
-  const proFormat = db.prepare(`
-    WITH x AS MATERIALIZED (
-      SELECT mime_type AS m, length(data) AS o FROM photos WHERE art != 'video')
-    SELECT m, COUNT(*) AS n, COALESCE(SUM(o),0) AS o FROM x GROUP BY 1`).all();
   const bildFormate = {};
-  for (const z of proFormat) {
-    const s = formatAusMime(z.m);
-    const f = bildFormate[s] || (bildFormate[s] = { anzahl: 0, bytes: 0 });
-    f.anzahl += z.n; f.bytes += z.o;
+  /* DIE EXPORTGROESSE DER BILDER FAELLT HIER MIT AB. Sie stand bis 0.19.1 in
+     zwei eigenen Abfragen mit `WHERE art != 'video'` und kostete damit
+     dasselbe zweite und dritte Mal -- gemessen 1363 und 1310 ms. Es ist
+     dieselbe Summe, die eine Zeile hoeher schon gebildet wird; sie hier
+     mitzunehmen ist kein zweiter Rechenweg, sondern die Abschaffung eines
+     zweiten. */
+  let exportFotoBytes = 0, exportVideoBytes = 0;
+  for (const art of arten) {
+    const z = qJeArt.get(art);
+    if (art === 'video') {
+      vi.n += z.n; vi.o += z.o;
+      exportVideoBytes += qVideoExportBytes.get(art).n;
+      continue;
+    }
+    p.n += z.n; p.o += z.o;
+    exportFotoBytes += z.o;
+    /* AUSDRUECKLICH OHNE VIDEOS: bei einer Videozeile traegt `data` die
+       Videodatei -- ihr Format gehoert in keine Zeile, die „Fotos am Eintrag
+       nach Format" ueberschrieben ist. Die Videos stehen wie bisher als eigene
+       Zahl daneben. */
+    for (const g of qJeFormat.all(art)) {
+      const k = formatAusMime(g.m);
+      const f = bildFormate[k] || (bildFormate[k] = { anzahl: 0, bytes: 0 });
+      f.anzahl += g.n; f.bytes += g.o;
+    }
   }
   const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();
   /* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos:
@@ -4191,7 +4207,19 @@ app.get('/api/stats', nurAdmin, (req, res) => {
        512 MB selbst kennen, und dann staende dieselbe Zahl an zwei Orten. */
     export: {
       umschlag: austauschUmschlagBytes(null),
-      ...austauschTeile(null, { mitFotos: true, mitDateien: true, mitVideos: true }),
+      /* DIE BILDBYTES KOMMEN AUS DER SCHLEIFE OBEN und nicht aus zwei eigenen
+         Abfragen. Bis 0.19.1 rief diese Zeile austauschTeile(null, …), und das
+         stellte dieselbe teure Frage nach `art != 'video'` ein zweites und
+         drittes Mal -- gemessen 1363 und 1310 ms zusaetzlich zu den 1343 der
+         Aufteilung selbst. Es ist DIESELBE Summe; sie hier weiterzureichen ist
+         die Abschaffung eines zweiten Rechenwegs und nicht die Einfuehrung
+         eines (Stolperstein 47).
+         DIE UEBRIGEN ZWEI TEILE bleiben bei austauschTeile(): `attachments`
+         und `comment_images` tragen ihre Blobs als LETZTE Spalte und kosten
+         gemessen 1,2 und 0,1 ms. */
+      ...austauschTeile(null, { mitDateien: true }),
+      fotos: Math.round(exportFotoBytes * 4 / 3),
+      videos: Math.round(exportVideoBytes * 4 / 3),
       /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen:
          `warnAb`  ab hier steht ein Hinweis -- geschaetzt, nimmt nichts weg.
          `grenze`  ab hier sagt die Route ab -- unsere Marge, mit Luft davor.
