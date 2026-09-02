@@ -29,6 +29,20 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.19.2] - 2026-09-02
+
+> **Nichts zu tun.** *Keine Datenbankstufe, keine Migration, kein neues
+> Austauschformat — gesichert werden muss vor dem Einspielen nichts.*
+>
+> **Beim ersten Start legt die Datenbank einen Index an** (`photos(art)`). Das
+> dauert einmalig ein bis zwei Sekunden und geschieht von selbst; danach steht
+> er. **Nach dem Einspielen im Browser einmal hart neu laden.**
+
+- Fixed: Der Systembereich lädt jetzt wirklich sofort — 0.19.1 hatte nur die eine von zwei Ursachen behoben
+- Fixed: Der engere Bildausschnitt lässt sich endlich in alle Richtungen verschieben; bei fast quadratischen Bildern ging waagerecht bisher gar nichts
+- Changed: Der Dialog vor „Alle PNG nach WebP umstellen" ist kürzer und sagt jetzt, dass die Umwandlung nahezu verlustfrei ist
+- Changed: Die Rückfrage nach dem Passwort ist kürzer und nennt den zweiten Faktor beim Namen
+
 ## [0.19.1] - 2026-09-02
 
 > **DIE `docker-compose.yml` HEISST IM REPO JETZT `docker-compose.example.yml`
@@ -55,7 +69,6 @@ bleiben in der Form ihrer Zeit.*
 - Fixed: Eine Rückfrage aus dem Vollbild heraus — etwa beim Löschen — stand hinter dem Vollbild und war nicht zu sehen
 - Changed: „Bildablage" ist eine eigene Karte unter Datenbank statt ein Abschnitt in „Kennzahlen"; die Karte war zu groß geworden
 - Changed: Der Dialog vor „Alle PNG nach WebP umstellen" sagt jetzt, dass der Lauf dauern und den Betrieb stören kann
-- Changed: Der fünfte Abschnitt des Systembereichs heißt „Installation" statt „Instanz"; die alten Adressen führen weiter dorthin
 - Changed: Meldungen sagen „dieser Installation" statt „der Instanz" — der Produktname steht nicht mehr dort, wo deine Anlage gemeint ist
 - Changed: Die Bildverarbeitung nimmt sich höchstens die halbe Kernzahl der Maschine, statt sich auf die Vorgabe zu verlassen
 

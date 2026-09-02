@@ -706,7 +706,52 @@ neue**, keine weggefallen.*
 
 ## 17. Offen geblieben
 
-**DIESE RUNDE IST IM FELD NOCH NICHT BESTÄTIGT.** *Nach dem Einspielen gehört ein
+> ## ✅ IM FELD BESTÄTIGT — 2. September 2026
+>
+> **Die laufende Installation meldet `b0c4da5b`** — genau den gebauten Wert
+> (Stolperstein 158). *Auf dem Wirt liegt keine Datei, die kein Commit trägt.*
+>
+> ### ⚠ UND DER RUNDLAUF HAT DREI BEFUNDE GEBRACHT — SIE SIND 0.19.2
+>
+> **1. Die Bestandskarte war weiter langsam.** *„Etwas schneller, ca. zwei
+> Sekunden — immer noch langsamer als nötig."* **Punkt 1 hat nur die eine von
+> zwei Ursachen getroffen.** Die zweite: `art` steht in der Spaltenreihenfolge
+> **hinter** drei Blobs, und wer sie aus dem Satz liest, muss dessen
+> Overflow-Ketten lesen und entschlüsseln. *`MATERIALIZED` hilft dagegen
+> nichts.* **Damit sind auch zwei Zahlen dieses Papiers zu berichtigen** —
+> siehe den Kasten unten.
+>
+> **2. Der engere Ausschnitt erreichte die Ränder immer noch nicht.**
+> *„Verhält sich genauso wie vorher; nach links und rechts kann man gar nicht
+> verschieben."* **`transform-origin` an der Kachel war richtig und blieb
+> wirkungslos**, weil der Betrachter gar keinen anderen Wert als 50 zulässt:
+> sein Spielraum rechnete den Zoom nicht ein. *Eine der beiden Hälften zu
+> bauen und die andere für gegeben zu halten, ist derselbe Fehler wie
+> Stolperstein 274 — nur andersherum.*
+>
+> **3. Die beiden Dialogtexte waren zu lang.** *Sie sagten dasselbe zweimal und
+> erklärten nebenher, woher eine fehlende Zahl kommt.*
+>
+> ### ⚠ BERICHTIGT IN 0.19.2 — ZWEI ZAHLEN DIESES PAPIERS WAREN NICHT AN DIESEM GEGENSTAND GEMESSEN
+>
+> **In Abschnitt 0.A stehen „0,1 ms" und „0,2 ms" für die materialisierten
+> Zwischenabfragen. Diese beiden Zahlen sind aus dem Auftrag übernommen und
+> nicht an der echten Tabellenform nachgefahren worden.** An `photos` — wo
+> `art` hinter `data`, `thumb` und `medium` steht — kostet dieselbe Form
+> **1343 ms**; nur die Aufteilung nach `mime_type` (Spalte 2, vor den Blobs)
+> liegt wirklich bei **7,8 ms**.
+>
+> **Die übrigen Zahlen des Abschnitts halten:** `length()` verliert seine
+> Abkürzung im Sortierer einer Gruppierung, und `substr()` liest das Blob. *Was
+> fehlte, war die zweite Ursache — nicht die erste.*
+>
+> **Das ist die dritte übernommene Zahl in dieser Kette, und sie ist auf
+> dieselbe Weise entstanden wie die beiden, die diese Runde gestrichen hat:
+> gemessen an einem anderen Gegenstand als dem, über den sie etwas sagt.**
+> *Die Lehre steht als Stolperstein 280.*
+
+**DIESE RUNDE WAR IM FELD NOCH NICHT BESTÄTIGT, als dieses Papier geschrieben
+wurde.** *Nach dem Einspielen gehört ein
 Blick in Systembereich → Datenbank → Kennzahlen:* steht dort ein anderer Wert als
 der Fingerprint oben, liegt auf dem Wirt eine Datei, die kein Commit trägt
 (Stolperstein 158). **Ein hartes Neuladen gehört davor.**

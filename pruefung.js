@@ -15966,17 +15966,29 @@ const freigabeHaupt = (zweck, ziel = null) =>
      laufen auseinander. */
   pruefe('Und art traegt keinen CHECK -- die Menge steht allein im Server',
     u50BauFrisch.dritteArt === 'geht durch', JSON.stringify(u50BauFrisch.dritteArt));
-  /* Ein Index ueber art bringt nichts: die Zeilen je Eintrag sind einstellig,
-     und gefiltert wird nirgends nach Art. Der vorhandene Index bleibt, wie er
-     ist -- und dass er den Tabellenneubau der Prueflage ueberlebt hat, steht
-     hier gleich mit. */
+  /* ZWEI INDIZES AUF photos SEIT 0.19.2, und der zweite widerlegt einen Satz,
+     der bis dahin hier stand: „ein Index ueber art bringt nichts -- die Zeilen
+     je Eintrag sind einstellig, und gefiltert wird nirgends nach Art."
+
+     BEIDE HAELFTEN WAREN FALSCH. Gefiltert wird sehr wohl nach Art -- die
+     Bestandskarte tut es bei jedem Zeichnen --, und die Zeilen je EINTRAG sind
+     nicht der Massstab: die Abfrage laeuft ueber die ganze TABELLE. Und der
+     Gewinn kommt nicht vom Filtern, sondern daraus, dass `art` HINTER drei
+     Blobs steht: aus dem Satz gelesen kostet sie 1338,8 ms, aus dem Index
+     0,1 ms (Stolperstein 279).
+
+     GEPRUEFT WIRD HIER BEIDES: dass der alte Index den Tabellenneubau der
+     Prueflage ueberlebt hat, und dass der neue wirklich angelegt wurde --
+     an einer Datenbank, die aus 0.8.40 hochmigriert ist. GENAU DA WAERE ER
+     BEINAHE GESCHEITERT: `photos.art` gibt es dort erst nach migration0850(),
+     und ein CREATE INDEX in der DDL liefe ins Leere (Stolperstein 281). */
   {
     const d = oeffne(path.join(u50FrischDir, 'katalog.sqlite'));
     const idx = d.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'photos'")
       .all().map(z => z.name);
     d.close();
-    pruefe('Der Index auf photos ist unveraendert der eine von vorher',
-      idx.includes('idx_photos_item') && !idx.some(n => /art/i.test(n)), idx.join(', '));
+    pruefe('Die migrierte Datenbank traegt beide Indizes auf photos',
+      idx.includes('idx_photos_item') && idx.includes('idx_photos_art'), idx.join(', '));
   }
   fs.rmSync(u50Dir, { recursive: true, force: true });
   fs.rmSync(u50FrischDir, { recursive: true, force: true });
@@ -17059,33 +17071,70 @@ const freigabeHaupt = (zweck, ziel = null) =>
       (await bildRoh(falschFoto.id)).bytes.equals(jpegVorlage));
   }
 
-  /* ---- WORAUS DIE BEIDEN ABFRAGEN GEBAUT SIND — 0.19.1
+  /* ---- WORAUS DIE ABFRAGEN DER BESTANDSKARTE GEBAUT SIND — 0.19.1
      GEPRUEFT WIRD AM TEXT, und der Grund ist derselbe wie beim Stilblatt: die
      Zusage ist eine ueber die LAUFZEIT, und die laesst sich am Pruefstand
      nicht messen -- eine Prueflage mit 400 Zeilen a 512 kB dauerte laenger als
      der ganze Lauf. DIE WIRKUNG STEHT ALS MESSUNG IN DEN PAPIEREN, nicht als
      Pruefung; hier steht, dass die Bauform noch da ist.
-     GEMESSEN AN 205 MB (400 Zeilen a 512 kB): gruppiert ohne MATERIALIZED
-     778 ms, mit 0,1 ms. `length()` auf einem Blob ist kostenlos -- aber nur
-     ausserhalb eines GROUP BY (Stolperstein 275). */
+
+     ZWEI URSACHEN, ZWEI HANDGRIFFE, und beide gemessen an einer
+     SQLCipher-Datei mit 400 Zeilen a 512 kB (312 MB):
+       `length()` verliert seine Abkuerzung im Sortierer einer Gruppierung --
+         mime_type gruppiert 1417 ms, materialisiert 7,8 ms (Stolperstein 275);
+       eine Spalte HINTER den Blobs kostet den ganzen Satz -- `art` gruppiert
+         1338,8 ms, aus einem Index 0,1 ms (Stolperstein 279).
+     Die ganze Route: 4698 ms vorher, 28,6 ms kalt und 4,4 ms warm nachher. */
   {
     const serverQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const einzeilig = serverQuelle.replace(/\s+/g, ' ');
-    pruefe('Die Aufteilung nach art laeuft ueber eine materialisierte Zwischenabfrage',
-      einzeilig.includes('WITH x AS MATERIALIZED (SELECT art AS a, length(data) AS o FROM photos)'),
-      (einzeilig.match(/WITH x AS MATERIALIZED \(SELECT art[^)]*\)/) || ['(nicht gefunden)'])[0]);
-    pruefe('Und die Aufteilung nach Format ebenso',
-      einzeilig.includes('WITH x AS MATERIALIZED ( SELECT mime_type AS m, length(data) AS o FROM photos'),
+    const dbQuelle = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    /* 1. `art` KOMMT AUS DEM INDEX. Ohne ihn kostet jede Frage nach der Art
+       den ganzen Satz, und keine Umformung der Abfrage hilft dagegen. */
+    pruefe('Es gibt einen Index auf photos(art)',
+      /CREATE INDEX IF NOT EXISTS idx_photos_art ON photos\(art\)/.test(dbQuelle),
+      (dbQuelle.match(/CREATE INDEX[^\n]*photos\(art[^\n]*/) || ['(kein Index)'])[0]);
+    /* UND ER STEHT HINTER SEINER MIGRATION, nicht in der DDL. `photos.art`
+       kommt erst mit migration0850(); eine Datenbank aus 0.8.40 traegt die
+       Spalte nicht, und ein CREATE INDEX in der DDL liefe dort beim OEFFNEN
+       der Datei auf „no such column: art" -- also bevor der Server startet.
+       GEFUNDEN HAT DAS DER PRUEFSTAND an der nachgebauten Datenbank aus 0.8.40
+       (Stolperstein 281). */
+    pruefe('Und er steht hinter der Migration, die seine Spalte anlegt',
+      dbQuelle.indexOf('idx_photos_art') > dbQuelle.indexOf('// ENDE MIGRATION 0.8.50'),
+      `Index bei ${dbQuelle.indexOf('idx_photos_art')}, Migration endet bei ` +
+      `${dbQuelle.indexOf('// ENDE MIGRATION 0.8.50')}`);
+    /* 2. GEFRAGT WIRD MIT `IS ?` UND NICHT MIT `!= 'video'`. Eine Ungleichheit
+       schlaegt den Index aus -- gemessen 1334 ms gegen 0,5 ms. Das ist die
+       Zeile, die beim naechsten Umbau am leichtesten zurueckfaellt. */
+    pruefe('Die Aufteilung fragt je Art mit einer Gleichheit',
+      einzeilig.includes("FROM photos WHERE art IS ?") &&
+      !/const qJeArt[^;]*art != 'video'/.test(einzeilig),
+      (einzeilig.match(/const qJeArt = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+    pruefe('Und die Arten kommen aus einer eigenen, blobfreien Abfrage',
+      einzeilig.includes("const qBildArten = db.prepare('SELECT art AS a FROM photos GROUP BY 1')"),
+      (einzeilig.match(/const qBildArten = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+    /* 3. DIE FORMATZEILE BLEIBT MATERIALISIERT -- dort ist die Gruppierung
+       ueber eine Blob-Laenge der Kostenpunkt. */
+    pruefe('Die Aufteilung nach Format laeuft ueber eine materialisierte Zwischenabfrage',
+      einzeilig.includes('WITH x AS MATERIALIZED ( SELECT mime_type AS m, length(data) AS o FROM photos WHERE art IS ?)'),
       (einzeilig.match(/WITH x AS MATERIALIZED \( SELECT mime_type[^)]*\)/) || ['(nicht gefunden)'])[0]);
-    /* UND DIE FORMATABFRAGE LIEST KEINEN INHALT MEHR. Ohne diese Zeile bliebe
-       gruen, wer `MATERIALIZED` stehen laesst und `hex(substr(...))` wieder
-       hineinschreibt -- die 919 ms waeren zurueck. */
+    /* UND SIE LIEST KEINEN INHALT MEHR. Ohne diese Zeile bliebe gruen, wer
+       `MATERIALIZED` stehen laesst und `hex(substr(...))` wieder hineinschreibt
+       -- die 919 ms waeren zurueck. */
     pruefe('Die Formatabfrage liest keinen Blob-Inhalt mehr',
       !/WITH x AS MATERIALIZED \( SELECT mime_type[\s\S]{0,240}?hex\(substr/.test(einzeilig),
       (einzeilig.match(/WITH x AS MATERIALIZED \( SELECT mime_type[\s\S]{0,240}/) || [''])[0]);
-    /* DER KNOPF DAGEGEN SEHR WOHL -- er laeuft nur auf Verlangen. Ohne diese
-       Zeile bliebe gruen, wer beide auf die Spalte umstellt, und dann schriebe
-       der Lauf Zeilen um, die gar keine PNG sind. */
+    /* 4. DIE EXPORTGROESSE DER BILDER WIRD NICHT EIN ZWEITES MAL GEFRAGT.
+       Bis zum ersten Anlauf von 0.19.1 stellte austauschTeile(null, …)
+       dieselbe teure Frage noch zweimal -- gemessen 1363 und 1310 ms. */
+    pruefe('Die Exportgroesse der Bilder kommt aus derselben Schleife',
+      einzeilig.includes('...austauschTeile(null, { mitDateien: true })') &&
+      einzeilig.includes('fotos: Math.round(exportFotoBytes * 4 / 3)'),
+      (einzeilig.match(/\.\.\.austauschTeile\(null[^,]*,[^)]*\)/) || ['(nicht gefunden)'])[0]);
+    /* DER KNOPF DAGEGEN SUCHT WEITER AM INHALT -- er laeuft nur auf Verlangen.
+       Ohne diese Zeile bliebe gruen, wer beide auf die Spalte umstellt, und
+       dann schriebe der Lauf Zeilen um, die gar keine PNG sind. */
     pruefe('Der Knopf sucht dagegen weiter am Inhalt',
       /qOffenePNG = db\.prepare\([\s\S]{0,200}?hex\(substr\(data,1,8\)\)/.test(serverQuelle),
       (serverQuelle.match(/qOffenePNG = db\.prepare\([\s\S]{0,200}/) || [''])[0]);
@@ -19151,7 +19200,19 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Zeile bekommen hat; 347 auf den Abschnitt, der jetzt „Installation"
      heisst. Ein Rueckbau, der ins Leere greift, ist stumm und verfaelscht die
      Tabelle (Stolperstein 192). */
-  pruefe('Es sind genau 472 Rueckbauten', gpListe.length === 472, `${gpListe.length}`);
+  /* 478 SEIT 0.19.2: ACHT neue, ab Nummer 480 -- einer am Index, einer an
+     seiner Lage hinter der Migration, einer an der Gleichheit, einer an der
+     zweiten Exportfrage, zwei am Spielraum des Ausschnitts, einer am
+     gekuerzten Dialog und einer an der abgebauten Uebersetzung (487).
+     SECHS VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
+     201): 455, 472 und 473 zeigten auf die beiden Dialogtexte, 460 und 461 auf
+     die umgebaute Aufteilung, 479 auf die Berichtigung im Quelltext.
+     UND ZWEI SIND WEGGEFALLEN, nicht mitgegangen -- 346 und 459 bauten die
+     Tafel der alten Abschnittsadressen zurueck, und genau die ist in dieser
+     Runde abgebaut worden. **Ein Rueckbau auf etwas, das es nicht mehr gibt,
+     laesst sich nicht mitnehmen: er hat keinen Ort mehr.** An ihre Stelle
+     tritt 487, der die Tafel WIEDER EINBAUT -- dieselbe Sache, andersherum. */
+  pruefe('Es sind genau 478 Rueckbauten', gpListe.length === 478, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -19497,8 +19558,12 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Stattdessen steht im Server, dass substr() das Blob sehr wohl liest',
       /substr\(\) AUF EINEM BLOB LIEST DAS BLOB/.test(serverText),
       'die Berichtigung fehlt');
+    /* UND DIE NACHGEFAHRENE MESSUNG STEHT MIT IHREM GEGENSTAND DANEBEN --
+       Zeilenzahl und Groesse der Datei, an der sie entstanden ist. Eine
+       Messung ohne ihren Gegenstand laesst sich nicht widerlegen und deshalb
+       auch nicht glauben (Stolperstein 280). */
     pruefe('Und die nachgefahrene Messung mit ihrer Datenbankgroesse daneben',
-      /400 ZEILEN A 512 kB/.test(serverText) && /919/.test(serverText),
+      /400 ZEILEN A 512 kB \(312 MB\)/.test(serverText) && /1338,8 ms/.test(serverText),
       'die nachgefahrene Messung fehlt');
     const gpText = fs.readFileSync(path.join(__dirname, 'gegenprobe.js'), 'utf8');
     /* RUECKBAU 433 BLEIBT UND BLEIBT ALS STUMM ERWARTET -- er bewacht das
@@ -27182,8 +27247,11 @@ async function pruefeOberflaeche() {
   await new Promise(r => setTimeout(r, 40));
   pruefe('Mit zweitem Faktor traegt das Bestaetigungsfenster ein Codefeld',
     Boolean(zkBest.w.document.getElementById('best-code')), 'kein Codefeld');
+  /* SEIT 0.19.2 IM NOMINATIV: „weil in deinem Profil ein zweiter Faktor
+     eingeschaltet ist" statt „weil dein Zugang einen zweiten Faktor traegt".
+     Dieselbe Zusage, ein anderer Wortlaut (Stolperstein 201). */
   pruefe('Und sagt daneben, warum der Code dazugehoert',
-    /zweiten Faktor/.test(
+    /zweiter Faktor eingeschaltet/.test(
       zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
     zkBest.w.document.querySelector('.modal .desc')?.textContent);
   /* --- 0.12.3: die Beschriftung nennt das VERFAHREN, nicht das Geraet ---
@@ -28108,8 +28176,12 @@ async function pruefeOberflaeche() {
     zeile?.querySelector('.zug-l')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     pruefe('Der Dialog steht da', !!zdDialog(d), 'kein Dialog');
+    /* SEIT 0.19.2 KUERZER: der Nebensatz ueber die fremde offene Anmeldung ist
+       weg, der Grund steht in einem Satz. Die Zusage bleibt dieselbe -- der
+       Dialog sagt, WARUM gefragt wird (Stolperstein 201: umgeschrieben statt
+       geloescht). */
     pruefe('Und er sagt, WARUM gefragt wird',
-      /fremde offene Anmeldung/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
+      /trifft die ganze Anwendung/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
       zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 220));
     pruefe('Das Feld verbirgt die Eingabe',
       zdDialog(d)?.type === 'password', zdDialog(d)?.type);
@@ -29235,29 +29307,33 @@ async function pruefeOberflaeche() {
     pruefe('Sondern fragt vorher nach dem Passwort',
       !!dialog && !!baEig.w.document.getElementById('best-pass'),
       dialogText.replace(/\s+/g, ' ').slice(0, 160));
-    /* UND DER TEXT BESCHOENIGT NICHTS: er nennt die Zahl, den Platz, dass die
-       PNG-Fassung danach weg ist, und die Sicherung als einzigen Rueckweg. */
+    /* UND DER TEXT BESCHOENIGT NICHTS UND SAGT NICHTS ZWEIMAL. Er ist in
+       0.19.2 gekuerzt worden: „nahezu verlustfrei" und „die Bilder bleiben,
+       wie sie aussehen" waren derselbe Satz, und woher die fehlende
+       Zeitangabe kommt, gehoert in die Papiere und nicht in einen Dialog.
+       VIER ZUSAGEN, UND JEDE HAELT EINE ANDERE HAELFTE: wie viele, was
+       geschieht, was danach weg ist, und dass es dauern kann. */
     pruefe('Und sagt vorher, wie viele Bilder es trifft', /12 PNG-Original/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
-    pruefe('Und dass die PNG-Fassung danach nicht mehr da ist',
-      /nicht mehr da/.test(dialogText), dialogText.replace(/\s+/g, ' ').slice(0, 300));
-    pruefe('Und dass nur eine Sicherung zurueckfuehrt',
-      /Sicherung des Datenverzeichnisses/.test(dialogText),
+    pruefe('Und dass die Umwandlung nahezu verlustfrei ist',
+      /nahezu verlustfrei/.test(dialogText), dialogText.replace(/\s+/g, ' ').slice(0, 300));
+    pruefe('Und dass nur eine vorher angelegte Sicherung zurueckfuehrt',
+      /Sicherung des Datenverzeichnisses, die vorher angelegt wurde/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
-    /* UND SEIT 0.19.1: DASS ES DAUERN KANN -- ausdruecklich OHNE Zahl. Der
-       Server kennt sie nicht: gemessen 394 ms je Bild an der nachgefahrenen
-       Maschine gegen 5,3 s je Bild im Feld, Faktor dreizehn. Eine Schaetzung
-       waere auf der einen Maschine beruhigend falsch und auf der anderen
-       erschreckend falsch; fehlt eine Zahl, steht das da (Stolperstein 252).
+    /* DASS ES DAUERN KANN -- ausdruecklich OHNE Zahl. Der Server kennt sie
+       nicht: gemessen 394 ms je Bild an der nachgefahrenen Maschine gegen
+       5,3 s je Bild im Feld, Faktor dreizehn. Eine Schaetzung waere auf der
+       einen Maschine beruhigend falsch und auf der anderen erschreckend
+       falsch; fehlt eine Zahl, steht das da (Stolperstein 252).
        ZWEI ZUSAGEN UND NICHT EINE: dass der Satz dasteht, und dass er KEINE
        Zeitangabe traegt. Eine Haelfte allein bliebe gruen, wenn die andere
        kippte. */
-    pruefe('Und dass die Dauer an der Maschine haengt und hier nicht gemessen ist',
-      /hängt an dieser Maschine und ist hier nicht gemessen/.test(dialogText) &&
-      /Minuten bis Stunden/.test(dialogText),
+    pruefe('Und dass sich die Dauer nicht vorhersagen laesst',
+      /lässt sich nicht vorhersagen/.test(dialogText) &&
+      /bis zu Stunden/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 460));
-    pruefe('Und dass der Lauf den Betrieb stoert, solange er laeuft',
-      /stört den Betrieb, solange er läuft/.test(dialogText),
+    pruefe('Und bittet um ein Zeitfenster, das den Betrieb am wenigsten stoert',
+      /Zeitfenster ein, das den Betrieb am wenigsten stört/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 460));
     /* KEINE ERFUNDENE MINUTENANGABE. Der Dialog nennt Bilder und Bytes -- aber
        keine Dauer in Minuten, Stunden oder Sekunden. */
@@ -34640,78 +34716,58 @@ async function pruefeOberflaeche() {
      Stilblatt verschwunden sind: eine Regel ohne Waehler im Markup faellt
      sonst niemandem auf. */
 
-  /* ---- 4. Aus „Anlage" wird „Instanz" wird „Installation" ---- */
-  gruppe('Aus „Anlage" wird „Instanz" wird „Installation" — 0.17.1 und 0.19.1');
+  /* ---- 4. Der fuenfte Abschnitt und sein Name ---- */
+  gruppe('Der fuenfte Abschnitt heisst „Installation" — 0.17.1, 0.19.1 und 0.19.2');
 
-  /* EIN WORT UND KEINE FUNKTION -- zweimal inzwischen. Der fuenfte Abschnitt
-     trug bis 0.17.0 den Schluessel `anlage`, bis 0.19.1 den Schluessel
-     `instanz` und heisst jetzt `installation`. Aus jedem der beiden alten ist
-     eine Adresse geworden, die in Lesezeichen und in aelteren Papieren steht.
+  /* EIN WORT UND KEINE FUNKTION -- zweimal inzwischen. Der Abschnitt trug bis
+     0.17.0 den Schluessel `anlage`, bis 0.19.1 `instanz` und heisst jetzt
+     `installation`.
+
+     DIE UEBERSETZUNG DER ALTEN ADRESSEN IST IN 0.19.2 ABGEBAUT WORDEN, und das
+     ist eine Entscheidung des Betreibers: die Anlage hat EINEN Zugang, es gibt
+     keine fremden Lesezeichen und keine verschickten Links auf einen Abschnitt
+     des Systembereichs. Eine Tafel, die einen Fall abfaengt, den es nicht
+     gibt, ist Aufwand ohne Gegenwert.
+     GEPRUEFT WIRD DESHALB JETZT DAS GEGENTEIL: dass es die Tafel NICHT mehr
+     gibt und dass eine unbekannte Adresse denselben Weg nimmt wie jede andere
+     -- den Rueckfall auf den ersten sichtbaren Abschnitt (Stolperstein 74: die
+     Pruefung der Vorgaengerfassung wird UMGEDREHT statt geloescht).
      DASS DIE NEUE ADRESSE TRAEGT, steht in der Gruppe ueber die Reiter weiter
-     oben (der Reiter heisst „Installation" und zeigt auf
-     `#/system/installation`). Hier geht es um die BEIDEN ALTEN -- und um das
-     Wort im ganzen ausgelieferten Stand.
-     BEIDE BEKOMMEN DIESELBE PRUEFUNG, in einer Schleife und nicht zweimal
-     abgeschrieben: der aeltere Name ist der gefaehrdetere, weil eine verkettete
-     Tafel ihn auf einen Schluessel schicken wuerde, den es nicht mehr gibt. */
-  for (const alteAdresse of ['anlage', 'instanz']) {
+     oben. */
+  for (const alteAdresse of ['anlage', 'instanz', 'scheune']) {
     const d = baueDom(JSDOM,
       { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
     await new Promise(r => setTimeout(r, 60));
-    /* NICHT UEBER sysAbschnitt(): die alte Adresse ist der Gegenstand, und
-       sie wird hier von Hand gesetzt, damit im Aufruf sichtbar steht, was
-       geprueft wird. */
     d.w.history.replaceState(null, '', `#/system/${alteAdresse}`);
     await d.w.renderSystem();
     await new Promise(r => setTimeout(r, 40));
-    const ueberschriften = [...d.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
-      .map(h => h.textContent.trim());
-    pruefe(`Die alte Adresse „${alteAdresse}" fuehrt weiter auf denselben Abschnitt`,
-      gleich(ueberschriften, ['Titel']), ueberschriften.join(' · '));
-    /* STILL UEBERSETZT UND NICHT ABGEWIESEN: der Reiter „Installation" steht
-       offen da, und die Adresse ist danach die neue. Ohne die zweite Zeile
-       bliebe offen, ob die alte Adresse haengengeblieben ist -- und der
-       naechste, der sie kopiert, gaebe sie weiter. */
-    pruefe(`Und der Reiter „Installation" steht dabei offen (aus „${alteAdresse}")`,
-      d.w.document.querySelector('.sys-reiter-k.on')?.textContent.trim() === 'Installation',
-      d.w.document.querySelector('.sys-reiter-k.on')?.textContent);
-    pruefe(`Und die Adresse wird still auf die neue nachgezogen (aus „${alteAdresse}")`,
-      d.w.location.hash === '#/system/installation', d.w.location.hash);
-    /* DIE GEGENLAGE: ein Schluessel, den es weder alt noch neu gibt, faellt
-       weiterhin auf den ersten sichtbaren Abschnitt zurueck. Ohne sie belegte
-       die Uebersetzung nichts -- sie sieht sonst aus wie der Rueckfall. */
-    d.w.history.replaceState(null, '', '#/system/scheune');
-    await d.w.renderSystem();
-    await new Promise(r => setTimeout(r, 40));
-    pruefe(`Ein erfundener Abschnitt faellt dagegen auf den ersten zurueck (nach „${alteAdresse}")`,
+    /* ALLE DREI NEHMEN DENSELBEN WEG -- die beiden alten Namen sind nichts
+       Besonderes mehr. Ein erfundener Abschnitt steht ausdruecklich daneben:
+       ohne ihn belegte die Zeile nicht, dass es der REGELWEG ist und nicht
+       eine dritte Sonderbehandlung. */
+    pruefe(`„${alteAdresse}" faellt auf den ersten sichtbaren Abschnitt zurueck`,
       d.w.location.hash === '#/system/persoenlich', d.w.location.hash);
     d.w.close();
   }
   {
-    /* DIE TAFEL IST EINE TAFEL UND KEINE VERZWEIGUNG. Der zweite alte Name
-       steht als ZEILE daneben -- genau so, wie der Kommentar dort es seit
-       0.17.0 vorausgesagt hat.
-       UND SIE WIRD EINMAL NACHGESCHLAGEN UND NICHT VERKETTET. Die zweite
-       Zeile ist der eigentliche Gegenstand: mit `{ anlage: 'instanz', ... }`
-       liefe der aelteste Link auf einen Schluessel, den es nicht mehr gibt,
-       und der Systembereich fiele auf „Persoenlich" zurueck. Die Lage
-       darueber faende das zwar auch -- aber erst am Ergebnis; hier steht,
-       WORAN es liegen wuerde. */
     const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-    const tafelZeile = (quelle.match(/const SYS_ALTE_ABSCHNITTE = [^\n]*/) || ['(keine Tafel)'])[0];
-    pruefe('Die alten Schluessel stehen in einer Tafel',
-      /const SYS_ALTE_ABSCHNITTE = \{ anlage: 'installation', instanz: 'installation' \};/
-        .test(quelle), tafelZeile);
-    /* GELESEN WIRD DER QUELLTEXT UND NICHT DAS FENSTER: `const` auf oberster
-       Ebene wird in jsdom keine Eigenschaft von window, `function` schon --
-       deshalb steht wb.ausschnitt() weiter oben zur Verfuegung und
-       SYS_ABSCHNITTE hier nicht. */
-    const zieleDerTafel = [...tafelZeile.matchAll(/\w+: '(\w+)'/g)].map(m => m[1]);
-    const abschnittsSchluessel = [...(quelle.match(/const SYS_ABSCHNITTE = \[[^\]]*\]/) || [''])[0]
-      .matchAll(/schluessel: '(\w+)'/g)].map(m => m[1]);
-    pruefe('Und beide zeigen auf einen Schluessel, den es wirklich gibt',
-      zieleDerTafel.length === 2 && zieleDerTafel.every(z => abschnittsSchluessel.includes(z)),
-      `${zieleDerTafel.join(', ')} gegen ${abschnittsSchluessel.join(', ')}`);
+    /* DIE TAFEL IST WEG, UND ZWAR GANZ -- kein Rest, der beim naechsten Lesen
+       wie ein vergessener Zweig aussieht. */
+    pruefe('Die Tafel der alten Abschnittsadressen gibt es nicht mehr',
+      !/const SYS_ALTE_ABSCHNITTE/.test(quelle),
+      (quelle.match(/const SYS_ALTE_ABSCHNITTE[^\n]*/) || ['(keine Tafel — richtig)'])[0]);
+    /* UND DER GRUND STEHT DA. Was aufgehoben wird, wird mit dem Grund
+       hingeschrieben und nicht geloescht (Stolperstein 201) -- sonst baut es
+       beim naechsten Mal jemand wieder ein. */
+    pruefe('Und der Grund fuer den Abbau steht im Quelltext daneben',
+      /UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0\.19\.2 ABGEBAUT WORDEN/.test(quelle),
+      'die Begruendung fehlt');
+    /* DER RUECKFALL SELBST IST EINE ZEILE OHNE TAFEL. Ohne diese Zusage bliebe
+       gruen, wer die Tafel durch ein `if` ersetzt -- und genau davor warnt der
+       Kommentar dort. */
+    pruefe('Und die Adresse wird ohne Umweg gelesen',
+      /const gewuenscht = ausDerAdresse;/.test(quelle),
+      (quelle.match(/const gewuenscht = [^\n]*/) || ['(nicht gefunden)'])[0]);
   }
   {
     /* DER WAECHTER UEBER DAS WORT SELBST. „Ueberall" laesst sich nur so
@@ -34732,16 +34788,14 @@ async function pruefeOberflaeche() {
        „irgendwie oft" hiesse, deckte den naechsten echten Treffer mit zu.
        `Anlagenbytes` MEINT EINEN ANHANG -- es steht an der Route, die die
        Bytes eines Anhangs ausliefert.
-       DIE SIEBEN IN app.js SIND DIE TAFEL DER ALTEN ADRESSEN samt ihrer
-       Begruendung. Sie MUSS das alte Wort nennen: `#/system/anlage` ist die
-       Adresse, die weiter verstanden werden soll. AUS VIER SIND SIEBEN
-       GEWORDEN, weil 0.19.1 einen ZWEITEN alten Namen danebengestellt hat und
-       der Kommentar dort ausdruecklich sagt, warum die Tafel
-       `{ anlage: 'installation', ... }` heissen muss und nicht
-       `{ anlage: 'instanz', ... }`. */
+       DIE VIER IN app.js SIND DER NACHRUF AUF DIE ABGEBAUTE TAFEL: zweimal
+       der alte Abschnittsname, zweimal die alte Adresse. Sie MUESSEN das Wort
+       nennen -- ohne es liesse sich nicht sagen, was abgebaut wurde
+       (Stolperstein 201). Bis 0.19.1 waren es sieben, weil die Tafel selbst
+       noch dastand. */
     const ERLAUBT = {
       'server.js': ['Anlagenbytes'],
-      'public/app.js': ['Anlage', 'anlage', 'anlage', 'anlage', 'anlage', 'anlage', 'anlage']
+      'public/app.js': ['Anlage', 'anlage', 'Anlage', 'anlage']
     };
     const gefunden = {};
     for (const datei of ausgeliefert)
@@ -34755,7 +34809,7 @@ async function pruefeOberflaeche() {
        wirklich noch da. Eine Ausnahmeliste, die auf nichts zeigt, sagt beim
        naechsten Lesen etwas Falsches ueber den Bestand (Stolperstein 81). */
     pruefe('Und beide Ausnahmen zeigen wirklich auf etwas',
-      gefunden['server.js'].length === 1 && gefunden['public/app.js'].length === 7,
+      gefunden['server.js'].length === 1 && gefunden['public/app.js'].length === 4,
       `${gefunden['server.js'].length} / ${gefunden['public/app.js'].length}`);
     /* NEUN VON ELF DATEIEN TRAGEN DAS WORT GAR NICHT MEHR. Ohne diese Zeile
        bestuende die Gruppe auch dann, wenn jemand die Erlaubnis auf alle

@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 49 · Stand 2. September 2026 · gebaut: Version 0.19.1**
+**Kompakte Übergabe · Revision 50 · Stand 2. September 2026 · gebaut: Version 0.19.2**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -42,6 +42,24 @@ dort unter `Doku/`.
 > gebaut wurde, im Änderungsprotokoll seiner Version.
 > **In diesem Fahrplan steht seither nur, was eine Nummer hat oder für 1.0
 > vorgemerkt ist**; in Abschnitt 8 nur, was am laufenden Betrieb zu tun ist.
+
+**0.19.2 in einem Satz: was 0.19.1 nur zur Hälfte getroffen hat.** *PATCH — drei
+Befunde aus dem Rundlauf mit 0.19.1, und zwei davon sind Nacharbeit an ihr
+selbst.* **Erstens: die Bestandskarte war weiter langsam.** 0.19.1 hat die eine
+von **zwei** Ursachen behoben; die zweite ist die **Spaltenlage**: `art` steht
+in `photos` hinter drei Blobs, und wer sie aus dem Satz liest, muss dessen
+Overflow-Ketten lesen und entschlüsseln — *gemessen 1338,8 ms gegen 0,1 ms aus
+einem Index, und `MATERIALIZED` hilft dagegen nichts.* **Die ganze Route
+`GET /api/stats`: 4698 ms vorher, 28,6 ms kalt und 4,4 ms warm nachher**, an
+derselben 312-MB-Datei. **Zweitens: der engere Ausschnitt erreichte die Ränder
+immer noch nicht** — `transform-origin` an der Kachel war richtig und blieb
+wirkungslos, weil der **Betrachter** gar keinen anderen Wert als 50 zuließ: sein
+Spielraum rechnete den Zoom nicht ein. **Drittens: die beiden Dialogtexte sind
+kurz geworden.** **Und zwei Zahlen aus 0.19.1 sind berichtigt** — sie waren aus
+dem Auftrag übernommen und nicht an der echten Tabellenform nachgefahren.
+**KEINE DATENBANKSTUFE:** acht Migrationsblöcke, Austauschformat **12**,
+`F_ROUTEN` **70** — *ein Index ist keine Stufe.* *Alles Weitere in Abschnitt 2
+und Abschnitt 9.*
 
 **0.19.1 in einem Satz: was 0.19.0 falsch gemacht hat.** *PATCH — die
 Installation kann danach nichts, was sie vorher nicht konnte; dieselben Knöpfe,
@@ -304,8 +322,20 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.19.1** — Fingerprint **`b0c4da5b`**, **5104
-Prüfungen**, **472 Rückbauten in der Liste** (Abschnitt 8).
+**Gebaut ist 0.19.2** — Fingerprint **`f4f8a479`**, **5104
+Prüfungen**, **478 Rückbauten in der Liste** (Abschnitt 8).
+*0.19.2 macht die Bestandskarte wirklich schnell (gemessen 4698 → 4,4 ms), gibt
+dem engeren Ausschnitt seinen Spielraum zurück und kürzt zwei Dialoge.*
+**PATCH — KEINE DATENBANKSTUFE.**
+
+> **EIN INDEX KOMMT DAZU, UND ER IST KEINE STUFE.** `idx_photos_art` auf
+> `photos(art)` — kein Migrationsblock, keine Spalte, keine neue Formatnummer.
+> **Beim ersten Start nach dem Einspielen baut SQLite ihn einmal auf**;
+> gemessen **1,4 s bei 312 MB**, danach steht er. *Gesichert werden muss
+> deshalb nichts.*
+
+*Davor, am 2. September:* **0.19.1** — Fingerprint **`b0c4da5b`**, **5104
+Prüfungen**, **472 Rückbauten in der Liste**.
 *0.19.1 räumt auf, was 0.19.0 hinterlassen hat: die Kennzahlenabfrage liest
 keine Blobs mehr, der engere Ausschnitt erreicht die Bildränder, ein Dialog aus
 dem Vollbild steht davor, und die Bildablage bekommt eine eigene Kachel.*
@@ -913,7 +943,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.19.1** | **`b0c4da5b`** *(im Feld noch nicht bestätigt)* | 5104 |
+| **0.19.2** | **`f4f8a479`** *(im Feld noch nicht bestätigt)* | 5104 |
+| 0.19.1 | `b0c4da5b` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5104 |
 | 0.19.0 | `5fe43053` *(am 2. September 2026 von der laufenden Installation gemeldet)* | 5055 |
 | 0.18.1 | `7b12ead4` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4919 |
 | 0.18.0 | `0bf6ac9d` *(am 1. September 2026 von der laufenden Instanz gemeldet)* | 4917 |
@@ -2312,21 +2343,19 @@ Anhang, nicht ein Umkodierer** — `ffmpeg` kommt nicht ins Image (Abschnitt 5).
 > | **Datenbank** | `#/system/datenbank` | Kennzahlen, **Bildablage**, Sicherung, Export und Import |
 > | **Installation** | `#/system/installation` | Titel |
 >
-> **SEIT 0.19.1 HEISST DER FÜNFTE ABSCHNITT „INSTALLATION" — und BEIDE ALTEN
-> ADRESSEN WERDEN WEITER VERSTANDEN.** Er hieß bis 0.17.0 „Anlage" und bis
-> 0.19.1 „Instanz"; beide Adressen stehen in Lesezeichen und in älteren
-> Papieren und werden über die Tafel `SYS_ALTE_ABSCHNITTE` still übersetzt und
-> dabei in der Adresszeile auf die neue nachgezogen. *Ein erfundener Abschnitt
-> fällt weiterhin auf den ersten sichtbaren zurück — die Übersetzung ist etwas
-> anderes als der Rückfall, und beides wird geprüft.*
+> **SEIT 0.19.1 HEISST DER FÜNFTE ABSCHNITT „INSTALLATION".** Er hieß bis
+> 0.17.0 „Anlage" und bis 0.19.1 „Instanz".
 >
-> **DIE TAFEL WIRD EINMAL NACHGESCHLAGEN UND NICHT VERKETTET.** Sie lautet
-> `{ anlage: 'installation', instanz: 'installation' }` und ausdrücklich nicht
-> `{ anlage: 'instanz', instanz: 'installation' }` — sonst landete
-> `#/system/anlage` bei einem Schlüssel, den es nicht mehr gibt, und der
-> älteste Link wäre der einzige, der ins Leere führt. *Genau das hatte der
-> Kommentar dort seit 0.17.0 vorausgesagt: „käme je ein zweiter alter Name
-> dazu, steht er als Zeile daneben und nicht als zweites `if`."*
+> **DIE ÜBERSETZUNG DER BEIDEN ALTEN ADRESSEN IST MIT 0.19.2 ABGEBAUT.** Sie
+> schickte `#/system/anlage` und `#/system/instanz` still auf `installation` —
+> *für den Fall, dass ein Lesezeichen oder ein Link aus einer Mail darauf
+> zeigt.* **Diesen Fall gibt es an einer Anlage mit einem Zugang nicht**, und
+> eine Tafel, die ihn abfängt, will bei jeder weiteren Umbenennung gepflegt
+> werden. **Beide alten Adressen fallen jetzt auf den ersten sichtbaren
+> Abschnitt zurück** — derselbe Weg wie jede unbekannte Adresse.
+> *Der Grund steht im Quelltext an ihrer Stelle, samt der Bauform, die es
+> bräuchte, wenn der Fall je einträte: eine Tafel, einmal nachgeschlagen und
+> nicht verkettet (Stolperstein 201).*
 >
 > **UND „INSTALLATION" UND NICHT „KRITERION INSTALLATION".** Einwortig wie
 > seine vier Nachbarn; und nicht der Produktname, weil `title_app` einstellbar
@@ -7241,6 +7270,69 @@ Version, in der sie entstanden sind.*
     der man eine Wirkung zuschreibt, die sie nicht überall hat, ist eine
     Unwahrheit.*
 
+279. **EINE SPALTE HINTER EINEM BLOB KOSTET DEN GANZEN SATZ — ganz unabhängig
+    davon, wie die Abfrage geschrieben ist.** SQLite liest einen Datensatz von
+    vorn; wer Spalte 6 will, muss über die Spalten 3, 4 und 5 hinweg, und
+    liegen dort Blobs, heißt das: ihre Overflow-Ketten lesen — bei SQLCipher
+    zusätzlich entschlüsseln.
+    **Gemessen an `photos` (312 MB, 400 Zeilen à 512 kB), je Abfrage über die
+    ganze Tabelle:**
+
+    | Abfrage | Zeit |
+    |---|---|
+    | `COUNT(*)` | 0,0 ms |
+    | `mime_type` gruppiert *(Spalte 2, **vor** den Blobs)* | 8,7 ms |
+    | `SUM(length(data))` *(Spalte 3)* | 7,2 ms |
+    | **`art` gruppiert** *(Spalte 6, **hinter** ihnen)* | **1338,8 ms** |
+    | `SUM(length(data))` mit `WHERE art != 'video'` | 1334,1 ms |
+    | `art` gruppiert, **mit Index** auf `photos(art)` | **0,1 ms** |
+
+    **`MATERIALIZED` hilft dagegen NICHT** — die Zwischenabfrage muss die
+    Spalte ja lesen, um sie weiterzureichen. *Das ist der Unterschied zu
+    Stolperstein 275: dort ist der Sortierer der Gruppierung der Kostenpunkt,
+    hier die Lage der Spalte. Zwei Ursachen, zwei Handgriffe — und wer nur die
+    erste kennt, baut die Hälfte und hält sie für das Ganze.*
+    **Der Ausweg ist ein Index über die kleine Spalte** — dann kommt sie aus
+    dem Index statt aus dem Satz.
+    **UND ER WIRKT NUR MIT EINER GLEICHHEIT:** `WHERE art != 'video'` schlägt
+    den Index aus, `WHERE art IS ?` nutzt ihn. *Wer die Ungleichheit stehen
+    lässt, legt den Index an und misst keinen Unterschied.*
+    **Die Regel für den Entwurf:** was oft gefragt wird, gehört VOR die Blobs
+    — oder in einen Index.
+
+280. **EINE ZAHL, DIE AN EINEM ANDEREN GEGENSTAND GEMESSEN WURDE, IST FÜR
+    DIESEN GEGENSTAND KEINE MESSUNG.** Der Auftrag zu 0.19.1 nannte „0,1 ms"
+    und „0,2 ms" für zwei materialisierte Zwischenabfragen. Beide Zahlen sind
+    echt — aber an einer Tabelle gemessen, in der die gelesene Spalte **vor**
+    den Blobs steht. An `photos` kostet dieselbe Form **1343 ms**.
+    **Die Runde hat sie ungeprüft in den Quelltext und in drei Papiere
+    geschrieben**, und die Karte blieb langsam. *Das ist dieselbe Sorte Fehler
+    wie die beiden, die 0.19.1 gerade gestrichen hatte — nur eine Stufe
+    subtiler: die Zahl war nicht erfunden, sie war übertragen.*
+    **Wo eine Zahl aus einem Auftrag, einem Papier oder einem fremden Lauf
+    übernommen wird, gehört sie am eigenen Gegenstand nachgefahren** — und wenn
+    das nicht geht, gehört *„übernommen von …, hier nicht nachgemessen"*
+    daneben (Stolperstein 252).
+    *Die billige Probe: fährt die Zahl den Fall, um den es geht? Die 0,1 ms
+    sind an einer Abfrage entstanden, die `art` gar nicht las.*
+
+281. **EIN INDEX AUF EINER NACHGERÜSTETEN SPALTE GEHÖRT HINTER IHRE MIGRATION,
+    NICHT IN DIE DDL DANEBEN.** `photos.art` steht in der DDL — aber
+    `CREATE TABLE IF NOT EXISTS` rührt eine vorhandene Tabelle nicht an
+    (Stolperstein 13), und eine Datenbank aus 0.8.0 bis 0.8.40 trägt die Spalte
+    erst, nachdem `migration0850()` gelaufen ist.
+    **Ein `CREATE INDEX` im DDL-Block scheitert dort mit „no such column: art"
+    — beim ÖFFNEN der Datei, also bevor der Server überhaupt startet.** *Kein
+    Fehlerbild, keine halbe Funktion: die Anwendung kommt nicht hoch.*
+    **Gefunden hat es der Prüfstand beim ersten Lauf**, an der nachgebauten
+    Datenbank aus 0.8.40 — *die Gruppe, die es fand, gibt es seit 0.8.50 und
+    sie prüft etwas ganz anderes.*
+    **Die Regel gilt für jede Zeile, die eine nachgerüstete Spalte NENNT** —
+    Index, Trigger, `CREATE VIEW`, erzeugte Spalte. *Die DDL beschreibt eine
+    frische Datenbank; alles, was auf eine Migration wartet, steht dahinter.*
+    *Und der Rückweg gehört danebengeschrieben: fällt der Migrationsblock zu
+    1.0 weg, darf die Zeile mit nach oben.*
+
 ---
 
 ## 7. Prüfstand
@@ -7254,10 +7346,31 @@ Altbestand gibt es seit 0.8.1 nicht mehr. Die Oberflächenprüfungen brauchen
 außerhalb des Docker-Images). **`pruefung.js` und `gegenprobe.js` landen nicht
 im Image.**
 
-**Stand: 5104 von 5104 bestanden** (0.19.1) —
-**49 neue Prüfungen netto**, keine weggefallen; 0.19.0 davor brachte 136.
+**Stand: 5104 von 5104 bestanden** (0.19.2) — **netto keine einzige neue, und
+das ist eine Aussage und keine Leerstelle: vier sind dazugekommen und vier
+weggefallen.** *0.19.1 davor brachte 49.*
 Die Gegenproben stehen in Abschnitt 8: sie sind auf die jeweils neuen Zusagen
-beschränkt und **nicht** der volle Lauf über alle **472** Rückbauten.
+beschränkt und **nicht** der volle Lauf über alle **478** Rückbauten.
+
+| Gruppe (0.19.2) | vorher | nachher | wofür |
+|---|---|---|---|
+| **Die Bildablage: PNG kommt herein, WebP geht in die Tabelle** | 56 | **60** | **vier neue** an der Bauform der Abfragen: der Index auf `photos(art)`, **seine Lage hinter der Migration**, die Frage je Art mit einer **Gleichheit** und **dass die Exportgröße der Bilder nicht ein zweites Mal gefragt wird** |
+| **Der fuenfte Abschnitt heisst „Installation"** | 14 | **10** | **vier weggefallen.** Die Übersetzung der alten Adressen ist abgebaut; an ihre Stelle tritt die **umgedrehte** Zusage — es gibt sie nicht mehr, und `anlage`, `instanz` und ein erfundener Abschnitt nehmen **denselben** Weg |
+| *Fokuspunkt in der Oberflaeche* | 35 | *35* | **keine neue** — der Spielraum des Rahmens wird von den vorhandenen Zusagen und den Rückbauten 483 und 484 gehalten |
+| *Die Bildablage in der Oberflaeche* | 33 | *33* | **keine neue** — die vier Zusagen am Dialogtext sind **umgeschrieben** statt ergänzt (Stolperstein 201) |
+| **zusammen** | | | **+4 − 4 = 0** |
+
+> **EINE NETTO-NULL IST KEIN LEERLAUF.** *Vier Zusagen sind dazugekommen, vier
+> sind mit dem Code verschwunden, den sie hielten. Wer nur die Summe liest,
+> sieht eine Runde ohne Prüfstandsarbeit — deshalb steht die Aufteilung hier.*
+
+> **DIE WIRKUNG STEHT ALS MESSUNG IM ÄNDERUNGSPROTOKOLL, nicht als Prüfung.**
+> *Eine Prüflage mit 400 Zeilen à 512 kB dauerte länger als der ganze Lauf; was
+> hier steht, ist, dass die Bauform noch da ist.* **Acht Rückbauten stehen
+> daneben** (480 bis 487) — sie machen jede einzelne Zusage rot.
+
+**Und die Runde davor, zum Vergleich — 5104 von 5104 bestanden** (0.19.1),
+**49 neue Prüfungen netto**, keine weggefallen.
 
 | Gruppe (0.19.1) | vorher | nachher | wofür |
 |---|---|---|---|
@@ -8141,8 +8254,8 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   „Mailversand" im Abschnitt „Zugänge" — sie steht jetzt so breit wie ihre drei
   Nachbarn — und die Zeile der eigenen Anmeldung, deren orangener Rahmen bis
   zum Rand reichen muss.*
-- **DER VOLLE GEGENPROBENLAUF STEHT SEIT NEUNZEHN RUNDEN AUS.**
-  472 Rückbauten zu je einem vollen Prüflauf sind bei rund
+- **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZWANZIG RUNDEN AUS.**
+  478 Rückbauten zu je einem vollen Prüflauf sind bei rund
   fünfeinhalb Minuten je Lauf etwa **vierzig Stunden** hintereinander, in vier
   Nebenspuren rund elf. **Er lässt
   sich nicht neben dem Bauen fahren** — `gegenprobe.js` zieht seine Kopie aus
@@ -8539,6 +8652,29 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.19.2 — „Was 0.19.1 nur zur Hälfte getroffen hat"
+
+**PATCH · 2. September 2026 · vier Befunde aus dem Rundlauf mit 0.19.1, zwei
+davon Nacharbeit an ihr selbst.** *Angefasst sind `db.js`, `server.js`,
+`public/app.js`, `pruefung.js`, `gegenprobe.js`, `CHANGELOG.md` und die
+Papiere.* **KEINE DATENBANKSTUFE** — der neue Index `idx_photos_art` ist keine
+Stufe: kein Migrationsblock, keine Spalte, keine neue Formatnummer.
+
+| # | Was | Womit belegt |
+|---|---|---|
+| **1** | Die Bestandskarte fragt **wirklich** schnell | 0.19.1 hat die eine von **zwei** Ursachen behoben. Die zweite: **eine Spalte hinter einem Blob kostet den ganzen Satz** — `art` gruppiert **1338,8 ms**, aus einem Index **0,1 ms**; `MATERIALIZED` hilft dagegen nichts (Stolperstein 279). *Und `!=` schlägt den Index aus: 1334 ms gegen 0,5 ms.* **Die ganze Route: 4698 ms → 28,6 ms kalt, 4,4 ms warm** |
+| **2** | Der engere Ausschnitt erreicht die Ränder **wirklich** | `transform-origin` war richtig und blieb wirkungslos: der Spielraum im Betrachter rechnete den Zoom nicht ein, und bei einem fast quadratischen Bild war er **null** — `focus_x` konnte nie etwas anderes als 50 werden |
+| **3** | Die beiden Dialoge werden kurz | Der Umstellungsdialog sagte dasselbe zweimal und erklärte nebenher, woher eine fehlende Zahl kommt; die Rückfrage nach dem Passwort trug einen Nebensatz zu viel |
+| **4** | Die Übersetzung alter Abschnittsadressen ist **abgebaut** | *„Dinge abfangen, die es nicht geben wird, ist verschwendete Ressource."* Die Anlage hat **einen** Zugang — es gibt keine fremden Lesezeichen auf `#/system/instanz`. **Der Grund bleibt im Quelltext, der Code geht** (Stolperstein 201) |
+| **5** | Zwei Zahlen aus 0.19.1 sind berichtigt | „0,1 ms" und „0,2 ms" waren aus dem Auftrag übernommen und **nicht am eigenen Gegenstand nachgefahren** (Stolperstein 280) |
+
+> **UND KEIN ZWISCHENSPEICHER.** *Die Frage lag nahe — muss die Karte bei jedem
+> Klick den ganzen Bestand zählen? Bei 4,4 ms gibt es dafür keinen Gegenwert,
+> und der Preis wäre eine zweite Wahrheit über denselben Bestand
+> (Stolperstein 47): eine mitgeführte Zählertabelle müsste an jedem Weg
+> nachgezogen werden, der Bilder anlegt oder entfernt, und der erste vergessene
+> ließe die Karte still falsche Zahlen zeigen.*
 
 ### 0.19.1 — „Was 0.19.0 falsch gemacht hat"
 
@@ -9946,9 +10082,10 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 | **0.18.1** | Zehn Zeilen heißt zehn Zeilen dieser Liste | **GEBAUT.** Zwei Befunde aus dem Rundlauf mit 0.18.0: die Sitzungsliste zeigte **fünf** Sitzungen statt zehn, weil der gemeinsame Deckel eine Höhe im Maß der Standardzeile ist und eine `.mrow.sitz` fast doppelt so hoch misst — `#msitzungen` deckelt seither bei `55.23rem`. Und eine **leere Liste ist zwei Zeilen hoch statt einer**, weil sie sich sonst wie ein Absatz liest. *PATCH: nur `public/style.css`.* **Die Grenze stand seit 0.17.4 als harmlos im Papier — ihre Begründung hing an einer Zusage, die 0.17.5 zurückgenommen hat (Stolperstein 267)** | nein | — |
 | **0.18.0** | Die Suche wird nachvollziehbar | **GEBAUT.** *(War als 0.17.0 vorgemerkt.)* Der Trefferkontext sagt, **wo** das Wort steht: eine Zeile an der Kachel nennt die Quelle und zeigt den Ausschnitt mit der Fundstelle darin, in einer festen Folge, die bei dem beginnt, was die Kachel nicht zeigt. Dazu die **Hervorhebung** — als drittes Stück der Zerlegung und nicht als Nachbearbeitung, damit „Kommentartext kommt nie über `innerHTML` in die Seite" baulich erfüllt bleibt — und der **Suchbegriff in der Adresse** (`#/item/12?q=ella`), damit sie ein Neuladen übersteht. *MINOR.* **Teil (b), der Suchbereich als Häkchen, bleibt mit Begründung liegen; Titel und Beschreibung der Detailansicht tragen keine Marke, weil beide Eingabefelder sind** | nein | — |
 | **0.19.0** | Die Bildablage | **GEBAUT.** *(War als 0.18.0 vorgemerkt.)* Ein ankommendes PNG wird als WebP abgelegt — `nearLossless` bei `quality: 60`, **gemessen an hundert Bildern des echten Bestands: 435,7 MB werden 161,9 MB bei einer größten Abweichung von 2 von 255.** Dazu ein Schalter (Vorgabe an, nur der Eigentümer) und ein **Knopf**, der den vorhandenen Bestand nachzieht — zweitbestätigt, weil die PNG-Fassung danach weg ist. Der **engere Bildausschnitt** kommt als dritte gespeicherte Angabe (`photos.zoom`), und `/api/stats` legt seine zwei Tabellendurchgänge zu einem zusammen. *MINOR.* **Dieses Papier hebt Teil (a) des Fahrplans auf — „das Original wird nicht angefasst" gilt für eine Kameraaufnahme, nicht für einen Bildschirmfoto-Bestand. Die Ableitungen auf WebP bleiben liegen und sind seither die größere Hälfte** | ja, **achter Block** | 11 → 12 |
-| **0.19.1** | Was 0.19.0 falsch gemacht hat | **GEBAUT am 2. September 2026.** Vier belegte Fehler aus 0.19.0 und dem Betrieb: die Bestandskarte liest bei **jedem** Klick jedes Bild (**919 ms gegen 0,2 ms gemessen**, hochgerechnet 2,7 s an der echten Datenbank) — **`SUM(length(data))` verliert seine Abkürzung im `GROUP BY`, und `substr()` auf einem Blob hatte nie eine.** *Und während einer Umstellung wird daraus eine **Selbstblockade**: `verfolgeUmstellung()` fragt dieselbe Abfrage alle 1500 ms ab, was bei 2700 ms Kosten 180 % Auslastung des Haupt-Threads bedeutet — die beste Erklärung für die im Feld gemeldeten Aussetzer*, der engere Ausschnitt erreicht die Bildränder nicht (**in Chromium gemessen: 0,0 % der gewählten Ecke sichtbar**), ein Dialog aus dem Vollbild heraus liegt dahinter (`z-index` 60 gegen 90), und die Karte „Kennzahlen" ist zu groß geworden — **die Bildablage bekommt eine eigene Kachel, damit sind es neunzehn.** Dazu: der Umstellungsknopf warnt vor der Dauer, `sharp.concurrency` wird ausdrücklich gesetzt, **„Instanz" heißt „Installation"**, die `docker-compose.yml` wird zur Vorlage, damit ein Update sie nicht überschreibt — und **drei falsche Angaben in den eigenen Papieren werden berichtigt.** *PATCH: die Installation kann danach nichts, was sie vorher nicht konnte* | nein | — |
-| **0.19.2** | Bestandsläufe verlassen den Anfrageweg | *(Neu am 2. September 2026.)* Der Umstellungslauf und `backfillVariants()` ziehen in einen **Worker-Thread**. Heute laufen ihre Datenbankzugriffe im Haupt-Thread und halten die Installation an — im Feld über eine ganze Stunde verteilt. **Belegt machbar:** `better-sqlite3-multiple-ciphers` beschreibt die verschlüsselte Datei aus einem Thread heraus, die Verzögerung des Haupt-Threads fiel von 126 auf 38 ms, die Dauer blieb gleich. **Steht vor jeder Runde mit einem Bestandslauf.** *Die im Feld gemeldeten Aussetzer gehen allerdings nach heutigem Stand auf die Kennzahlenabfrage zurück (0.19.1, Punkt 1) und nicht auf den Lauf: CPU und Platte sind am Wirt gemessen und ausgeschlossen (`sharp.concurrency` steht auf 1, `fsync` über 4 MB kostet 6 ms). **Diese Runde ist damit die saubere Bauform und nicht die Heilung.*** *PATCH* | nein | — |
-| **0.19.3** | Die Kachel zeigt, was das Original hergibt | *(Neu am 2. September 2026.)* `thumb` ist 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto wird deshalb **immer** 1,39× hochgerechnet, auf einem 2×-Bildschirm 2,78×, mit Zoom 250 % 3,48×. Ableitungsregel ändern **und** 1034 Vorschaubilder neu ableiten. **Nach 0.19.2, damit der Lauf niemanden lahmlegt.** *PATCH* | nein | — |
+| **0.19.1** | Was 0.19.0 falsch gemacht hat | **GEBAUT am 2. September 2026** — im Feld bestätigt (`b0c4da5b`); der Rundlauf hat drei Befunde gebracht, sie sind 0.19.2. Vier belegte Fehler aus 0.19.0 und dem Betrieb: die Bestandskarte liest bei **jedem** Klick jedes Bild (**919 ms gegen 0,2 ms gemessen**, hochgerechnet 2,7 s an der echten Datenbank) — **`SUM(length(data))` verliert seine Abkürzung im `GROUP BY`, und `substr()` auf einem Blob hatte nie eine.** *Und während einer Umstellung wird daraus eine **Selbstblockade**: `verfolgeUmstellung()` fragt dieselbe Abfrage alle 1500 ms ab, was bei 2700 ms Kosten 180 % Auslastung des Haupt-Threads bedeutet — die beste Erklärung für die im Feld gemeldeten Aussetzer*, der engere Ausschnitt erreicht die Bildränder nicht (**in Chromium gemessen: 0,0 % der gewählten Ecke sichtbar**), ein Dialog aus dem Vollbild heraus liegt dahinter (`z-index` 60 gegen 90), und die Karte „Kennzahlen" ist zu groß geworden — **die Bildablage bekommt eine eigene Kachel, damit sind es neunzehn.** Dazu: der Umstellungsknopf warnt vor der Dauer, `sharp.concurrency` wird ausdrücklich gesetzt, **„Instanz" heißt „Installation"**, die `docker-compose.yml` wird zur Vorlage, damit ein Update sie nicht überschreibt — und **drei falsche Angaben in den eigenen Papieren werden berichtigt.** *PATCH: die Installation kann danach nichts, was sie vorher nicht konnte* | nein | — |
+| **0.19.2** | Was 0.19.1 nur zur Hälfte getroffen hat | **GEBAUT am 2. September 2026.** Drei Befunde aus dem Rundlauf mit 0.19.1, zwei davon Nacharbeit an ihr selbst. **Die Bestandskarte war weiter langsam** — 0.19.1 hat die eine von zwei Ursachen behoben; die zweite ist die **Spaltenlage**: `art` steht hinter drei Blobs, und wer sie aus dem Satz liest, liest die Overflow-Ketten mit (**1338,8 ms gegen 0,1 ms aus einem Index**; `MATERIALIZED` hilft dagegen nichts). *Die ganze Route: 4698 ms vorher, 28,6 ms kalt und 4,4 ms warm nachher.* **Der engere Ausschnitt erreichte die Ränder immer noch nicht** — `transform-origin` war richtig und blieb wirkungslos, weil der Betrachter keinen anderen Wert als 50 zuließ. **Und zwei Dialoge sind kurz geworden.** Dazu **zwei berichtigte Zahlen aus 0.19.1** und der Index `idx_photos_art`. *PATCH — ein Index ist keine Datenbankstufe* | nein | — |
+| **0.19.3** | Bestandsläufe verlassen den Anfrageweg | *(Neu am 2. September 2026, **gerückt von 0.19.2**.)* Der Umstellungslauf und `backfillVariants()` ziehen in einen **Worker-Thread**. Heute laufen ihre Datenbankzugriffe im Haupt-Thread und halten die Installation an — im Feld über eine ganze Stunde verteilt. **Belegt machbar:** `better-sqlite3-multiple-ciphers` beschreibt die verschlüsselte Datei aus einem Thread heraus, die Verzögerung des Haupt-Threads fiel von 126 auf 38 ms, die Dauer blieb gleich. **Steht vor jeder Runde mit einem Bestandslauf.** *Die im Feld gemeldeten Aussetzer gehen allerdings nach heutigem Stand auf die Kennzahlenabfrage zurück (0.19.1, Punkt 1) und nicht auf den Lauf: CPU und Platte sind am Wirt gemessen und ausgeschlossen (`sharp.concurrency` steht auf 1, `fsync` über 4 MB kostet 6 ms). **Diese Runde ist damit die saubere Bauform und nicht die Heilung.*** *PATCH* | nein | — |
+| **0.19.4** | Die Kachel zeigt, was das Original hergibt | *(Neu am 2. September 2026, **gerückt von 0.19.3**.)* `thumb` ist 400 px auf der **langen** Kante, die Kachel ist quadratisch und fordert die **kurze** — ein 16:9-Bildschirmfoto wird deshalb **immer** 1,39× hochgerechnet, auf einem 2×-Bildschirm 2,78×, mit Zoom 250 % 3,48×. Ableitungsregel ändern **und** 1034 Vorschaubilder neu ableiten. **Nach 0.19.3, damit der Lauf niemanden lahmlegt.** *PATCH* | nein | — |
 | **0.20.0** | Die Oberfläche wird ruhiger | *(Neu am 30. August 2026 — **die Nummer ist vorläufig und ausdrücklich NICHT gerückt worden**.)* Ein Hauch Moderne, ohne die eigenen Regeln zu brechen: Karten heben sich beim Überfahren, eigene Fokusringe, weichere Übergänge, farbige Marken an Rolle und Status. **Dazu neu seit dem 2. September 2026: den Ausschnitt als Rechteck aufziehen** — heute setzt ein Klick den Punkt und ein Schieber die Weite; das Rechteck sagt beides in einer Geste. *Es ist eine Bedienform und kein neues Feld: `focus_x`, `focus_y` und `zoom` bleiben, wie sie sind.* **Was ausdrücklich nicht mitkommt und warum, steht in 10a.** *MINOR* | nein | — |
 | **0.21.0** | **Die wählbare Bildablage** | *(Neu am 2. September 2026.)* Drei Verfahren zur Wahl statt eines Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei** (braucht sie), **WebP verlustbehaftet** (für Fotos aus der Zwischenablage). **Gemessen:** ein 5,21-MB-JPEG wird über „Grafik kopieren" zu 34,79 MB PNG und liegt heute als 20,42 MB WebP — verlustbehaftet q90 wären es 6,64 MB, **67 % weniger**. **Bei einem Bildschirmfoto wäre verlustbehaftet dagegen siebenmal GRÖSSER** — deshalb eine Wahl und keine Regel. Wird PNG abgewählt, bietet die Kachel die Umstellung an. **Und die Ableitungen gehen im selben Durchgang auf WebP** (Sammelblatt Punkt 5) — ein Lauf über den Bestand statt zwei. *MINOR* | nein | — |
 | **0.22.0** | Bereinigung — der Bruch | *(War als 0.13.0, dann 0.17.0, dann 0.18.0, dann 0.19.0, dann 0.21.0 vorgemerkt — **die Nummer ist vorläufig**.)* Migrationscode raus — **jetzt acht Blöcke statt fünf** —, die Datenbankstruktur festgeschrieben, **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR* | ja | — |
@@ -9960,16 +10097,16 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > hier und nicht im Auftrag — ein Auftrag wird beim Schreiben des nächsten
 > weggeworfen, und was darin stand, wäre dann weg.
 >
-> * **0.19.2 steht vor jeder Runde mit einem Bestandslauf.** 0.19.3 und 0.21.0
+> * **0.19.3 steht vor jeder Runde mit einem Bestandslauf.** 0.19.4 und 0.21.0
 >   fahren beide über alle Bilder; ohne sie hielte jede einzelne davon die
 >   Installation wieder für Stunden an.
-> * **0.19.3 bleibt trotzdem früh.** Eine unscharfe Kachel ist jeden Tag zu
->   sehen, die wählbare Ablage ist eine Bequemlichkeit. Nach 0.19.2 kostet ihr
+> * **0.19.4 bleibt trotzdem früh.** Eine unscharfe Kachel ist jeden Tag zu
+>   sehen, die wählbare Ablage ist eine Bequemlichkeit. Nach 0.19.3 kostet ihr
 >   Lauf niemanden mehr etwas.
-> * **Die Ableitungen auf WebP fahren in 0.21.0 mit und nicht in 0.19.3.** Dort
+> * **Die Ableitungen auf WebP fahren in 0.21.0 mit und nicht in 0.19.4.** Dort
 >   wird ohnehin über Verfahren entschieden, und beides zusammen ist **ein**
 >   Durchgang über den Bestand statt zwei. *Die thumb-GEOMETRIE gehört dagegen
->   nach 0.19.3: sie ist ein Fehler und hängt an keinem Verfahren.*
+>   nach 0.19.4: sie ist ein Fehler und hängt an keinem Verfahren.*
 > * **Die Mehrsprachigkeit kommt nach der Oberfläche und nach der Bereinigung.**
 >   Wer Texte herauszieht, die gleich darauf umbenannt oder ganz gelöscht
 >   werden, zieht sie zweimal heraus.
@@ -10769,6 +10906,18 @@ Gegenprobe, nicht nur eine sorgfältige Zeile.
 **Was dagegen spricht:** nichts ist kaputt. Und Teil (b) ist eine **zweite
 Bedienfläche** neben der Suche, die heute ein Feld ist — wer sie überfrachtet,
 macht den einfachen Fall teurer, um den seltenen billiger zu machen.
+
+---
+
+### 0.19.2 — „Was 0.19.1 nur zur Hälfte getroffen hat" · *PATCH* · **GEBAUT am 2. September 2026**
+
+**Die Ausarbeitung steht nicht mehr hier.** Was gebaut ist, steht im
+Änderungsprotokoll 0.19.2 und in Abschnitt 9.
+
+> **AUCH DIESE RUNDE KAM NICHT AUS DEM SAMMELBLATT**, sondern aus dem Rundlauf
+> mit 0.19.1 — und zwei ihrer drei Punkte sind Nacharbeit an jener Runde.
+> *Es gab keinen Auftrag: die Befunde kamen mit Bildern aus dem Betrieb, und
+> gemessen wurde, bevor eine Zeile fiel.*
 
 ---
 

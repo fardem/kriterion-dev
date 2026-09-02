@@ -260,8 +260,8 @@ function nameBox(title, text, vorgabe = '', okLabel = 'Speichern', maxLaenge = 4
    Liefert true, wenn die Freigabe steht -- der Rufer handelt danach. Bei false
    ist entweder abgebrochen worden oder das Passwort war falsch; die Meldung
    steht dann schon. */
-const BESTAETIGUNG_GRUND = 'Das trifft diese Installation als Ganzes. Damit eine fremde offene ' +
-  'Anmeldung das nicht kann, bestätigst du es mit deinem Passwort.';
+const BESTAETIGUNG_GRUND = 'Das trifft die ganze Anwendung — deshalb bestätigst du es mit ' +
+  'deinem Passwort.';
 
 /* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
    zweiten Faktor eingeschaltet haben. Wer ihn nicht will, sieht denselben
@@ -315,8 +315,8 @@ function passwortFenster(titel, was, grund, mitCode) {
    Frage, die gar nicht gestellt wird, waere Verwirrung ohne Gegenwert. */
 const bestaetigungsFeld = (titel, was) => passwortFenster(titel, was,
   BESTAETIGUNG_GRUND + (ZWEIFAKTOR
-    ? ' Weil dein Zugang einen zweiten Faktor trägt, gehört sein Code dazu — gerade hier hilft ' +
-      'er am meisten. Hast du ihn nicht zur Hand, trägt auch ein Wiederherstellungscode.'
+    ? ' Weil in deinem Profil ein zweiter Faktor eingeschaltet ist, gehört sein Code dazu. ' +
+      'Hast du ihn nicht zur Hand, trägt auch ein Wiederherstellungscode.'
     : ''), ZWEIFAKTOR);
 
 /* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, .
@@ -4125,21 +4125,46 @@ async function renderDetail(id, begriffAdresse) {
        gezeichnet, sonst spraenge der Ausschnittmodus bei jedem Zug zu. */
     let zoom = Number(foto.zoom ?? 100) || 100;
 
-    const zeichne = () => {
+    /* WIE GROSS DER SICHTBARE AUSSCHNITT IST UND WIE WEIT ER WANDERN KANN.
+       BEIDES AN EINER STELLE, seit 0.19.1 -- vorher rechnete `zeichne()` die
+       Lage des Rahmens und `ausPunkt()` den Spielraum, und die beiden liefen
+       auseinander.
+
+       DER BEFUND, DER DAZU GEFUEHRT HAT: an einem fast quadratischen Bild
+       liess sich der Ausschnitt WAAGERECHT GAR NICHT verschieben und senkrecht
+       kaum. Der Grund stand hier: der Spielraum war `breite - seite`, also
+       allein die Ueberlaenge der laengeren Seite -- bei 542 x 568 Bildpunkten
+       sind das 0 waagerecht und 26 senkrecht. DER ZOOM KAM DARIN NICHT VOR,
+       und genau er macht den sichtbaren Ausschnitt kleiner und damit den
+       Spielraum groesser.
+
+       DIE RECHNUNG, UND SIE IST DIE DER KACHEL:
+         die Kachel ist quadratisch und zeigt mit `object-fit: cover` die
+         kurze Seite ganz -- `seite`;
+         `transform: scale(z)` verkuerzt das Sichtbare auf `seite / z` -- `eng`;
+         `object-position: X%` und `transform-origin: X%` zusammen legen diesen
+         Ausschnitt linear auf den Weg `breite - eng`.
+       Nachgerechnet: der sichtbare Bereich in Bildpunkten beginnt bei
+       `(X/100) * (breite - eng)` und ist `eng` breit. BEI zoom = 100 IST
+       `eng === seite`, und die Rechnung ist Zeichen fuer Zeichen die alte --
+       diese Runde nimmt also nichts weg, sie ergaenzt den Zoom.
+
+       WARUM DAS OHNE `transform-origin` GAR NICHT GINGE: mit ihm folgt der
+       Vergroesserungspunkt dem eingestellten Punkt, ohne ihn saesse er in der
+       Mitte. Beide Haelften gehoeren zusammen -- die eine ohne die andere
+       zeigt etwas anderes als die Kachel (Stolperstein 276). */
+    const masse = () => {
       const f = flaeche();
+      const seite = Math.min(f.breite, f.hoehe);   // was die Kachel bei zoom 100 zeigt
+      const eng = seite * 100 / zoom;              // was sie beim eingestellten Zoom zeigt
+      return { f, seite, eng, spielX: f.breite - eng, spielY: f.hoehe - eng };
+    };
+
+    const zeichne = () => {
+      const { f, eng, spielX, spielY } = masse();
       const vr = v.getBoundingClientRect();
-      const seite = Math.min(f.breite, f.hoehe);          // der quadratische Ausschnitt
-      // object-position: bei 0 % liegt der Ausschnitt am Anfang, bei 100 % am
-      // Ende -- der Weg dazwischen ist die Ueberlaenge der laengeren Seite.
-      const x = f.links - vr.left + (f.breite - seite) * fx / 100;
-      const y = f.oben - vr.top + (f.hoehe - seite) * fy / 100;
-      /* DER ZOOM ZIEHT DEN RAHMEN UM SEINE MITTE ZUSAMMEN -- genau das tut
-         `transform: scale()` am Bild, und der Rahmen soll zeigen, was die
-         Kachel spaeter zeigt, nicht etwas Aehnliches. Der Mittelpunkt bleibt
-         also stehen, die Seite wird kuerzer. */
-      const eng = seite * 100 / zoom;
-      rahmen.style.left = (x + (seite - eng) / 2) + 'px';
-      rahmen.style.top = (y + (seite - eng) / 2) + 'px';
+      rahmen.style.left = (f.links - vr.left + spielX * fx / 100) + 'px';
+      rahmen.style.top = (f.oben - vr.top + spielY * fy / 100) + 'px';
       rahmen.style.width = eng + 'px';
       rahmen.style.height = eng + 'px';
     };
@@ -4149,12 +4174,15 @@ async function renderDetail(id, begriffAdresse) {
     // Aus der Zeigerposition den Fokuspunkt errechnen: der angeklickte Punkt
     // soll in der Mitte des Ausschnitts liegen, soweit das Bild das hergibt.
     const ausPunkt = (e) => {
-      const f = flaeche();
-      const seite = Math.min(f.breite, f.hoehe);
+      const { f, eng, spielX, spielY } = masse();
       const px = e.clientX - f.links, py = e.clientY - f.oben;
-      const spielX = f.breite - seite, spielY = f.hoehe - seite;
-      fx = spielX > 0 ? Math.min(100, Math.max(0, (px - seite / 2) / spielX * 100)) : 50;
-      fy = spielY > 0 ? Math.min(100, Math.max(0, (py - seite / 2) / spielY * 100)) : 50;
+      /* GERECHNET WIRD MIT DEMSELBEN `eng` WIE OBEN. Stuende hier `seite`,
+         landete der Zeiger nicht in der Mitte des Rahmens, den er gerade
+         zieht -- und der Sprung waere umso groesser, je enger der Ausschnitt.
+         BLEIBT KEIN SPIELRAUM, IST 50 DIE EINZIGE EHRLICHE ANTWORT: ein Bild,
+         von dem die Kachel alles zeigt, hat keine Wahl zu treffen. */
+      fx = spielX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / spielX * 100)) : 50;
+      fy = spielY > 0 ? Math.min(100, Math.max(0, (py - eng / 2) / spielY * 100)) : 50;
       zeichne();
     };
 
@@ -5974,9 +6002,8 @@ async function renderDetail(id, begriffAdresse) {
    Ganzes nach aussen beschreibt, und sie gehoert weder zum Bestand noch zu den
    Zugaengen. Ein Abschnitt mit einer Karte ist ehrlicher als eine Karte am
    falschen Platz.
-   ER HEISST SEIT 0.19.1 "Installation"; die beiden aelteren Namen stehen in
-   SYS_ALTE_ABSCHNITTE eine Zeile weiter unten. EINWORTIG WIE SEINE VIER
-   NACHBARN -- "Kriterion Installation" stuende quer in der Reihe, zumal
+   ER HEISST SEIT 0.19.1 "Installation" und hiess bis 0.17.0 "Anlage", bis
+   0.19.1 "Instanz". EINWORTIG WIE SEINE VIER NACHBARN -- "Kriterion Installation" stuende quer in der Reihe, zumal
    ueberall daneben schon Kriterion draufsteht. Und NICHT "von Kriterion",
    weil `title_app` einstellbar ist: wer seinen Bestand "Produktliste" nennt,
    laese sonst eine Meldung ueber "Kriterion" und muesste erst ueberlegen, was
@@ -5998,26 +6025,29 @@ const SYS_ABSCHNITTE = [
 const SYS_MUSTER = /^#\/system(?:\/([a-z]+))?$/;
 const sysAdresse = (schluessel) => `#/system/${schluessel}`;
 
-/* DIE ALTE ADRESSE WIRD STILL UEBERSETZT, NICHT ABGEWIESEN. Der fuenfte
-   Abschnitt hiess bis 0.17.0 „Anlage" (Schluessel `anlage`) und bis 0.19.1
-   „Instanz" (Schluessel `instanz`); beide Adressen stehen in Lesezeichen, in
-   aelteren Papieren und womoeglich in einer Mail.
-   EIN LINK, DER INS LEERE FUEHRT, IST EINE MITTEILUNG OHNE WEG. Ohne diese
-   Tafel faende `#/system/anlage` keinen Abschnitt und fiele auf den ersten
-   sichtbaren zurueck -- der Empfaenger landete also woanders, ohne dass ihm
-   jemand sagt, warum. Uebersetzt fuehrt er dorthin, wo er immer hinfuehrte,
-   und `replaceState` am Ende von renderSystem() zieht die Adresse gleich nach.
-   DIESELBE BAUFORM WIE `delete f.neu` IN 0.17.0 und wie der Schluessel
-   `abgelehnt` in 0.15.0: was einmal draussen war, wird weiter verstanden.
-   EINE TAFEL UND KEINE VERZWEIGUNG -- der zweite alte Name steht als ZEILE
-   daneben und nicht als zweites `if`. Genau das hatte der Kommentar hier
-   vorausgesagt, und genau das ist jetzt eingetreten.
-   UND SIE WIRD EINMAL NACHGESCHLAGEN UND NICHT VERKETTET. Deshalb steht hier
-   `{ anlage: 'installation', instanz: 'installation' }` und NICHT
-   `{ anlage: 'instanz', instanz: 'installation' }` -- sonst landete
-   `#/system/anlage` bei einem Schluessel, den es nicht mehr gibt, und der
-   aelteste Link waere ausgerechnet der einzige, der ins Leere fuehrt. */
-const SYS_ALTE_ABSCHNITTE = { anlage: 'installation', instanz: 'installation' };
+/* DIE UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0.19.2 ABGEBAUT WORDEN,
+   und der Grund ist eine Entscheidung des Betreibers und keine Nachlaessigkeit.
+
+   WAS HIER STAND: eine Tafel `SYS_ALTE_ABSCHNITTE`, die `#/system/anlage`
+   (bis 0.17.0) und `#/system/instanz` (bis 0.19.1) still auf `installation`
+   uebersetzte -- damit ein Lesezeichen oder ein Link aus einer Mail nicht ins
+   Leere fuehrt.
+
+   WARUM SIE WEG IST: dieser Fall tritt hier nicht ein. Die Anlage hat EINEN
+   Zugang; es gibt keine fremden Lesezeichen und keine verschickten Links auf
+   einen Abschnitt des Systembereichs. **Eine Tafel, die einen Fall abfaengt,
+   den es nicht gibt, ist Aufwand ohne Gegenwert** -- sie will gepflegt,
+   geprueft und bei jeder weiteren Umbenennung nachgezogen werden.
+
+   WAS STATTDESSEN GESCHIEHT: eine unbekannte Adresse faellt auf den ersten
+   sichtbaren Abschnitt zurueck -- derselbe Weg, den `#/system/scheune` schon
+   immer nimmt. Kein Fehler, keine leere Seite, nur ein anderer Ort.
+
+   WER SIE WIEDER BRAUCHT, BRAUCHT SIE ALS TAFEL UND NICHT ALS VERZWEIGUNG:
+   `{ alt: 'neu', … }`, einmal nachgeschlagen und nicht verkettet. Der Satz
+   steht hier, weil das die Falle war, die 0.19.1 beinahe gestellt haette --
+   `{ anlage: 'instanz', instanz: 'installation' }` haette den aeltesten Link
+   auf einen Schluessel geschickt, den es nicht mehr gibt. */
 
 /* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. EIN Ort fuer die
    Frage nach einem fehlenden Element: stuende vor jedem Behandler dieselbe
@@ -6137,7 +6167,7 @@ async function renderSystem() {
      sonst eine leere Seite. */
   const sichtbare = sysSichtbareAbschnitte(geholt);
   const ausDerAdresse = (SYS_MUSTER.exec(location.hash || '') || [])[1] || '';
-  const gewuenscht = SYS_ALTE_ABSCHNITTE[ausDerAdresse] || ausDerAdresse;
+  const gewuenscht = ausDerAdresse;
   const offen = sichtbare.find(a => a.schluessel === gewuenscht) || sichtbare[0];
   const karten = SYS_KARTEN.filter(k => k.abschnitt === offen.schluessel && k.sichtbar(geholt));
 
@@ -8619,24 +8649,30 @@ function ruesteBildablageAus(geholt) {
          ER STEHT IM BESTAETIGUNGSFENSTER und nicht als eigener Dialog davor:
          zwei Fenster hintereinander liest niemand, und das zweite traegt
          ohnehin die schwerere Frage. */
+      /* DER DIALOG SAGT DREI DINGE UND SONST NICHTS: was geschieht, was danach
+         weg ist, und dass es dauern kann. ER IST IN 0.19.1 GEKUERZT WORDEN --
+         die erste Fassung sagte dasselbe zweimal („nahezu verlustfrei" und
+         „die Bilder bleiben, wie sie aussehen") und erklaerte nebenher, WOHER
+         die fehlende Zeitangabe kommt. Ein Dialog wird gelesen, bevor jemand
+         etwas Unwiderrufliches tut; jeder Satz, den er zu viel traegt, kostet
+         die Aufmerksamkeit fuer die uebrigen.
+         UND WIE LANGE ES DAUERT, STEHT OHNE ZAHL DA. Der Server kennt sie
+         nicht: gemessen 394 ms je Bild auf der Maschine, an der das
+         nachgefahren wurde, gegen 5,3 s je Bild im Feld -- FAKTOR DREIZEHN.
+         Eine Schaetzung waere auf der einen Maschine beruhigend falsch und auf
+         der anderen erschreckend falsch. Fehlt eine Zahl, steht das
+         ausdruecklich da (Stolperstein 252).
+         KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE, aus demselben Grund: sie
+         waere aus dem gemessenen Takt zwar ehrlich zu rechnen, aber sie kostet
+         eine Anzeige, die bei jedem Umlauf springt. */
       const ok = await zweiteBestaetigung('bilder', null, 'Bildablage umstellen',
         `${png.anzahl} PNG-Original${png.anzahl === 1 ? '' : 'e'} ` +
-        `(${fmtBytes(png.bytes)}) werden nach WebP umgeschrieben — erwartet rund ` +
-        `${fmtBytes(Math.round(png.bytes * 0.37))}. Die PNG-Fassung ist danach nicht mehr da; ` +
-        `zurück führt nur eine Sicherung des Datenverzeichnisses. Die Bilder selbst bleiben, ` +
-        `wie sie aussehen. ` +
-        /* UND WIE LANGE ES DAUERT -- AUSDRUECKLICH OHNE ZAHL. Der Server kennt
-           sie nicht: gemessen 394 ms je Bild auf der Maschine, an der das
-           nachgefahren wurde, gegen 5,3 s je Bild im Feld -- FAKTOR DREIZEHN.
-           Eine Schaetzung waere auf der einen Maschine beruhigend falsch und
-           auf der anderen erschreckend falsch. Fehlt eine Zahl, steht das
-           ausdruecklich da (Stolperstein 252).
-           UND KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE: sie waere aus dem
-           gemessenen Takt zwar ehrlich zu rechnen, aber wenn dieser Satz seine
-           Arbeit tut, braucht es sie nicht -- und sie kostet eine Anzeige, die
-           bei jedem Umlauf springt. */
-        `Wie lange das dauert, hängt an dieser Maschine und ist hier nicht gemessen — ` +
-        `rechne mit Minuten bis Stunden. Der Lauf stört den Betrieb, solange er läuft.`);
+        `(${fmtBytes(png.bytes)}) ${png.anzahl === 1 ? 'wird' : 'werden'} nahezu verlustfrei ` +
+        `zu WebP umgewandelt und ersetzt — erwartet rund ` +
+        `${fmtBytes(Math.round(png.bytes * 0.37))}. Zurück führt nur eine Sicherung des ` +
+        `Datenverzeichnisses, die vorher angelegt wurde. ` +
+        `Wie lange das dauert, lässt sich nicht vorhersagen — plane ein Zeitfenster ein, ` +
+        `das den Betrieb am wenigsten stört (je nach Größe des Bestands bis zu Stunden).`);
       if (!ok) return;
       try { await api('POST', '/api/bilder/umstellen', {}); }
       catch (e) { return toast(e.message, true); }
