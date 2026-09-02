@@ -176,7 +176,7 @@ entschieden und hat seinen Ort.*
 
 | Art | Punkte in Teil I |
 |---|---|
-| **Fehler** | — *(der einzige, der Export, ist 0.12.3 geworden)* |
+| **Fehler** | **7** *(der einzige davor, der Export, ist 0.12.3 geworden)* |
 | **Verbesserung** | — |
 | **Neue Funktion** | 1, 2, 3, 4, **6** |
 | **Design** | — |
@@ -187,6 +187,7 @@ entschieden und hat seinen Ort.*
 | **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
 | **eingetragen als 0.21.0** | **5, 6** |
+| **eingetragen als 0.19.3** | **7** |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
 
@@ -1081,3 +1082,54 @@ gegen die Wahl, gehört aber in die Abwägung.*
 Umstellungslauf, die zweite Bestätigung. **Kein Schema.**
 
 > **EINGETRAGEN ALS 0.21.0**, zusammen mit den Ableitungen aus Punkt 5.
+
+---
+
+## 7. Die Vorschaubilder werden zu klein gerechnet
+
+**Art:** Fehler · **Claude:** empfohlen · **Draußen üblich:** ja — jede
+Fotoverwaltung leitet nach der **kurzen** Kante ab, wenn die Kachel quadratisch
+ist.
+
+### Woher
+
+Aus dem Messen zu 0.19.1, **2. September 2026**. Aufgefallen ist es beim
+Nachrechnen des engeren Ausschnitts: die Kachel zieht das Bild größer, als das
+Vorschaubild hergibt.
+
+### Was auffiel
+
+**`thumb` ist 400 px auf der LANGEN Kante, die Kachel ist quadratisch und
+fordert die KURZE.** Ein Bildschirmfoto im Verhältnis 16:9 hat als `thumb` also
+400 × 225 Bildpunkte, und die Kachel braucht 313 × 313:
+
+| | Faktor |
+|---|---|
+| 16:9 auf einer Kachel von 313 px | **1,39×** hochgerechnet |
+| dasselbe auf einem 2×-Bildschirm | **2,78×** |
+| dazu der engere Ausschnitt bei 250 % | **3,48×** |
+
+**Das ist keine Anzeigefrage, sondern die Ableitungsregel.** Sie ist seit dem
+ersten Tag so, und sie fällt erst auf, seit die Kachel den Ausschnitt enger
+ziehen kann.
+
+### Was es NICHT ist
+
+**Kein Fehler des engeren Ausschnitts.** Der Zoom macht die Unschärfe nur
+sichtbarer; sie ist auch ohne ihn da. **Und keine Frage des Formats** — ob die
+Ableitung JPEG bleibt oder WebP wird, entscheidet die Runde über die Verfahren
+(Punkt 5 und Punkt 6). *Die Geometrie hängt an keinem Verfahren.*
+
+### Was gebaut werden könnte
+
+Die Ableitungsregel auf die **kurze** Kante umstellen und die vorhandenen
+**1034** Vorschaubilder neu ableiten.
+
+### Was es anfasst
+
+`makeVariants()`, ein Bestandslauf über alle Bilder. **Kein Schema.**
+
+> **EINGETRAGEN ALS 0.19.3**, und ausdrücklich NICHT zusammen mit den
+> Verfahren: die Geometrie ist ein Fehler und wartet nicht auf eine
+> Entscheidung. **Sie steht aber hinter 0.19.2** — der Lauf über 1034 Bilder
+> hat im Anfrageweg nichts verloren.
