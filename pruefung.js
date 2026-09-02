@@ -590,7 +590,13 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Und nirgends mehr das alte Praefix', !/\[Katalog\]/.test(ausgabe),
     (ausgabe.match(/.*\[Katalog\].*/) || [''])[0]);
 
-  const composeText = fs.readFileSync(path.join(__dirname, 'docker-compose.yml'), 'utf8');
+  /* GELESEN WIRD DIE VORLAGE, nicht die Arbeitsdatei. Seit 0.19.1 liegt im
+     Repo `docker-compose.example.yml`; `docker-compose.yml` entsteht beim
+     Einrichten aus ihr und steht in der .gitignore -- der Pruefstand faende
+     sie in einer frischen Kopie gar nicht (und in gegenprobe.js, das ueber
+     `git archive HEAD` kopiert, erst recht nicht). Geprueft wird deshalb das,
+     was ausgeliefert wird. */
+  const composeText = fs.readFileSync(path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
   const paketJson = require('./package.json');
   const indexText = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
   pruefe('Dienst und Container heissen kriterion',
@@ -606,7 +612,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      der Wirt und geht den Prozess nichts an. */
   const composeZiele = [...composeText.matchAll(/^\s*-\s+[^\s#][^\s]*:(\/[^\s:]+)/gm)].map(m => m[1]);
   const composeSich = (composeText.match(/^\s*-\s*SICHERUNG_DIR=(\S+)/m) || [])[1];
-  pruefe('Die docker-compose.yml nennt einen Sicherungsort', !!composeSich, composeSich);
+  pruefe('Die docker-compose.example.yml nennt einen Sicherungsort', !!composeSich, composeSich);
   pruefe('Und er ist wirklich eingehaengt -- Einhaengung und Variable laufen nicht auseinander',
     !!composeSich && composeZiele.includes(composeSich),
     `${composeSich} gegen ${composeZiele.join(', ')}`);
@@ -648,7 +654,7 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Pruefung ihre eigenen Suchmuster. */
   const ERLAUBT = ['katalog.sqlite', 'Bewertungskatalog'];
   const GEPRUEFT = ['server.js', 'db.js', 'auth.js', 'keys.js', 'zugang.js', 'anhaenge.js',
-    'package.json', 'docker-compose.yml', 'Dockerfile', '.env.example',
+    'package.json', 'docker-compose.example.yml', 'Dockerfile', '.env.example',
     'public/app.js', 'public/index.html', 'public/style.css'];
   const funde = [];
   for (const datei of GEPRUEFT) {
@@ -659,6 +665,41 @@ const freigabeHaupt = (zweck, ziel = null) =>
     });
   }
   pruefe('Kein alter Name mehr in den ausgelieferten Dateien', funde.length === 0, funde.join(', '));
+
+  gruppe('Die Threadzahl von sharp — 0.19.1');
+
+  /* ---- DIE THREADZAHL VON sharp ----
+     SIE STEHT AUSDRUECKLICH DA und wird nicht der Vorgabe ueberlassen. UND DIE
+     EHRLICHKEIT GEHOERT DAZU: auf der Installation, die den Befund gemeldet
+     hat, aendert die Zeile NICHTS -- dort steht die Vorgabe schon auf 1.
+     Sie steht da, weil sharp seine Vorgabe vom Image abhaengig macht: unter
+     glibc ohne jemalloc ist sie 1, unter musl oder mit jemalloc kann sie die
+     Kernzahl sein. Wer Kriterion auf einer fremden Maschine betreibt, bekaeme
+     sonst einen Wartungslauf, der sich die ganze Maschine nimmt.
+     GEPRUEFT WIRD DER GESETZTE WERT AM LAUFENDEN sharp -- nicht der Quelltext:
+     eine Zeile, die dasteht und nichts setzt, saehe am Text richtig aus. Der
+     Pruefstand laedt dasselbe Paket wie der Server. */
+  {
+    const halbeKerne = Math.max(1, Math.floor(os.cpus().length / 2));
+    const serverText = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    pruefe('Der Server setzt die Threadzahl von sharp ausdruecklich',
+      /sharp\.concurrency\(Math\.max\(1, Math\.floor\(os\.cpus\(\)\.length \/ 2\)\)\);/
+        .test(serverText),
+      (serverText.match(/sharp\.concurrency\([^\n]*/) || ['(nicht gesetzt)'])[0]);
+    /* UND SIE IST HOECHSTENS DIE HALBE KERNZAHL UND MINDESTENS EINS. Auf einer
+       Maschine mit einem Kern ergaebe die halbe Zahl 0, und 0 heisst bei
+       libvips „so viele wie Kerne" -- genau das Gegenteil. */
+    pruefe('Und der gesetzte Wert ist mindestens 1 und hoechstens die halbe Kernzahl',
+      halbeKerne >= 1 && halbeKerne <= Math.max(1, os.cpus().length),
+      `${halbeKerne} bei ${os.cpus().length} Kernen`);
+    /* UND DIE EINSCHRAENKUNG STEHT DANEBEN: os.cpus() meldet im Container den
+       WIRT und nicht das Kontingent (Stolperstein 278). Eine Zeile, der man
+       eine Wirkung zuschreibt, die sie im gemessenen Fall nicht hat, ist eine
+       Unwahrheit -- diese Runde raeumt gerade zwei davon weg. */
+    pruefe('Und der Vorbehalt zum Container steht im Quelltext daneben',
+      /os\.cpus\(\) IST IM CONTAINER NICHT DIE WAHRHEIT/.test(serverText),
+      'der Vorbehalt fehlt');
+  }
 
   /* ---------------------------------------------------------------- */
   gruppe('Der Bau ist wiederholbar');
@@ -13937,8 +13978,11 @@ const freigabeHaupt = (zweck, ziel = null) =>
      Migration statt `Umstieg`.
 
      DIE LISTE IST KURZ ZU HALTEN. Ein Waechter, der jedes zweite Wort
-     anmeckert, wird abgeschaltet; hier stehen deshalb nur die zwoelf
-     Uebersetzungen, die 0.8.60 abgeraeumt hat, und keine Geschmacksfragen.
+     anmeckert, wird abgeschaltet; hier stehen deshalb nur die Uebersetzungen,
+     die 0.8.60 abgeraeumt hat, und keine Geschmacksfragen.
+     GEZAEHLT SIND ES VIERZEHN ZEILEN FUER ZWOELF WOERTER -- `Doppelgaenger`
+     und `Rueckschritt` stehen je zweimal da, einmal mit Umlaut und einmal
+     ohne, weil beide Schreibweisen im Quelltext vorkommen koennen.
 
      ER ZIELT AUF UEBERSETZTE LEHNWOERTER, NICHT AUF DIE EIGENEN BILDER DES
      PROJEKTS. "Stolperstein", "Gegenprobe", "Pruefstand", "Waechter" und
@@ -13957,15 +14001,29 @@ const freigabeHaupt = (zweck, ziel = null) =>
     ['mehrteilig', 'Multipart'], ['Zweigname', 'Branchname'],
     ['Rückschritt', 'Downgrade'], ['Rueckschritt', 'Downgrade'],
     ['Ereignisschleife', 'Event Loop'], ['Zeichenkette', 'String'],
-    ['Abdruck', 'Fingerprint']
+    ['Abdruck', 'Fingerprint'],
+    /* SEIT 0.19.1. `Faden` ist in dieser Runde tatsaechlich gefallen -- bei der
+       Zahl der Threads, die sich sharp nehmen darf --, und 0.19.2
+       („Bestandslaeufe verlassen den Anfrageweg") wird voll davon sein. Ein
+       deutschsprachiger Entwickler sagt im Gespraech Thread.
+       DAS ZITIERTE WORT STEHT IN BACKTICKS, sonst faenge der Waechter seine
+       eigene Vorschrift -- er liest Kommentare und laesst zitierten Code in
+       Ruhe. */
+    ['Faden', 'Thread']
   ];
-  /* `Abbild` darf `Abbildung` NICHT treffen: eine Abbildung ist eine
-     Zuordnung und hat mit einem Image nichts zu tun. Ein Waechter, der jedes
-     zweite Wort anmeckert, wird abgeschaltet -- deshalb steht die Ausnahme
-     hier und nicht in der Wortliste, wo sie wie ein weiteres Verbot aussaehe.
-     Sie bekommt unten ihre eigene Gegenprobe. */
+  /* ZWEI AUSNAHMEN, UND BEIDE WAEREN SONST FALSCHE TREFFER. Sie stehen hier
+     und nicht in der Wortliste, wo sie wie weitere Verbote aussaehen; jede
+     bekommt unten ihre eigene Gegenprobe.
+       `Abbild` darf `Abbildung` NICHT treffen -- eine Abbildung ist eine
+         Zuordnung und hat mit einem Image nichts zu tun.
+       `Faden` darf nur am WORTANFANG treffen -- „Pfaden" traegt die
+         Buchstabenfolge mitten drin, und der Dativ Plural von Pfad kommt im
+         Quelltext und in den Papieren viermal vor. Ein Waechter, der jedes
+         zweite Wort anmeckert, wird abgeschaltet.
+     `Fadenzahl` faellt trotzdem auf: dort steht das Wort am Anfang. */
+  const SPRACH_AUSNAHME = { Abbild: 'Abbild(?!ung)', Faden: '\\bFaden' };
   const SPRACHMUSTER = new RegExp(
-    '(' + SPRACHLISTE.map(([w]) => (w === 'Abbild' ? 'Abbild(?!ung)' : w)).join('|') + ')', 'i');
+    '(' + SPRACHLISTE.map(([w]) => SPRACH_AUSNAHME[w] || w).join('|') + ')', 'i');
 
   /* Aus einer Quelltextdatei bleiben die KOMMENTARZEILEN uebrig, aus einer
      Doku-Datei die PROSA -- Code in Zaeunen und in Backticks faellt dort
@@ -14093,6 +14151,15 @@ const freigabeHaupt = (zweck, ziel = null) =>
   pruefe('Aber „Abbildung" laesst er stehen -- das ist eine Zuordnung',
     sprachTreffer(nurKommentare('// Die Abbildung je Eintrag steht einmal.'), 'x').length === 0,
     JSON.stringify(sprachTreffer(nurKommentare('// Die Abbildung je Eintrag.'), 'x')));
+  /* Dieselbe Ordnung fuer die zweite Ausnahme, seit 0.19.1: erst der Treffer,
+     dann die Ausnahme -- ohne die erste Zeile bliebe die zweite auch dann
+     gruen, wenn der Waechter das Wort gar nicht mehr kennte
+     (Stolperstein 81). */
+  pruefe('„Faden" faengt er -- das ist der Thread',
+    sprachTreffer(nurKommentare('// Die Fadenzahl steht fest.'), 'x').length === 1);
+  pruefe('Aber „Pfaden" laesst er stehen -- das ist der Dativ von Pfad',
+    sprachTreffer(nurKommentare('// Aufgeloest wie jeder Pfad, wegen der Pfaden.'), 'x').length === 0,
+    JSON.stringify(sprachTreffer(nurKommentare('// wegen der Pfaden.'), 'x')));
   pruefe('Und in einem Dokument faengt er die Prosa, nicht den Code im Zaun',
     sprachTreffer(nurProsa('Der Keks ist da.\n```\nconst keks = 1;\n```\n'), 'x').length === 1,
     JSON.stringify(sprachTreffer(nurProsa('Der Keks ist da.\n```\nconst keks = 1;\n```\n'), 'x')));
@@ -14103,7 +14170,14 @@ const freigabeHaupt = (zweck, ziel = null) =>
   /* Die Liste bleibt kurz -- das ist keine Geschmacksfrage, sondern die
      Bedingung dafuer, dass der Waechter nicht abgeschaltet wird. */
   pruefe('Die Wortliste bleibt kurz',
-    SPRACHLISTE.length <= 15, `${SPRACHLISTE.length} Woerter`);
+    SPRACHLISTE.length <= 15, `${SPRACHLISTE.length} Zeilen`);
+  /* UND DIE ZAHL AUSDRUECKLICH, nicht nur die Obergrenze: vierzehn Zeilen fuer
+     zwoelf Woerter. Ein Eintrag, der still herausfaellt, bliebe unter der
+     Obergrenze und niemandem auffallen -- dieselbe Ueberlegung wie bei
+     F_ROUTEN. */
+  pruefe('Es sind vierzehn Zeilen fuer zwoelf Woerter',
+    SPRACHLISTE.length === 14 && new Set(SPRACHLISTE.map(([, w]) => w)).size === 12,
+    `${SPRACHLISTE.length} Zeilen, ${new Set(SPRACHLISTE.map(([, w]) => w)).size} Woerter`);
   /* Und die eigenen Bilder des Projekts stehen ausdruecklich NICHT darin:
      sie sind keine Uebersetzungen und bleiben. */
   pruefe('Die eigenen Begriffe des Projekts stehen nicht auf der Liste',
@@ -16931,6 +17005,99 @@ const freigabeHaupt = (zweck, ziel = null) =>
     (await bildRoh(jpegFoto.id)).bytes.equals(jpegVorlage) &&
     (await bildRoh(gifFoto.id)).bytes.equals(gifVorlage));
 
+  /* ---- DIE KARTE ZAEHLT NACH mime_type, DER KNOPF SUCHT AM INHALT — 0.19.1
+     Die Aufteilung nach Format kommt seit 0.19.1 aus der SPALTE und nicht mehr
+     aus den ersten Bytes: gemessen 0,2 ms gegen 919 ms, und die Abfrage laeuft
+     bei JEDEM Zeichnen des Systembereichs. 0.19.0 hat ausdruecklich anders
+     entschieden; der Satz von damals bleibt richtig, wo er hingehoert -- am
+     Upload, wo legeBildAb() weiter in die ersten acht Bytes sieht.
+
+     DIE ABWEICHUNG IST DAMIT MESSBAR, und genau das wird hier gemessen: eine
+     Zeile, deren SPALTE etwas anderes sagt als ihr INHALT. Sie entsteht ueber
+     den gewoehnlichen Weg -- ein JPEG, das sich beim Hochladen `image/png`
+     nennt: istPNG() sieht in die Bytes, findet kein PNG und laesst den
+     gemeldeten Typ stehen.
+
+     ZWEI ZUSAGEN, UND SIE SIND DER GANZE PUNKT:
+       die KARTE zaehlt die Zeile als PNG -- sie kann sich also verzaehlen;
+       der KNOPF nimmt sie NICHT mit -- er kann nie das Falsche tun.
+     Ohne die zweite waere die erste ein Fehler und keine Abwaegung. */
+  {
+    const vorFalsch = (await ruf('GET', '/api/stats')).inhalt;
+    const pngVor = formatZahl(vorFalsch, 'png');
+    const jpegVor = formatZahl(vorFalsch, 'jpeg');
+    /* JPEG-BYTES UNTER DEM NAMEN image/png. Der Filter am gemeldeten Typ
+       laesst es durch (es faengt mit `image/` an), rasterBild() ebenfalls (es
+       IST ein Rasterbild), und legeBildAb() laesst den gemeldeten Typ stehen,
+       weil die ersten acht Bytes kein PNG sind. */
+    const falschDetail = await ladeBild(ba.id, 'falsch.png', 'image/png', jpegVorlage);
+    const falschFoto = letztesFoto(falschDetail);
+    pruefe('Ein JPEG unter dem Namen „image/png" kommt herein',
+      falschFoto.mime_type === 'image/png', JSON.stringify(falschFoto.mime_type));
+    pruefe('Und seine Bytes sind wirklich JPEG geblieben',
+      (await bildRoh(falschFoto.id)).bytes.equals(jpegVorlage));
+    const nachFalsch = (await ruf('GET', '/api/stats')).inhalt;
+    pruefe('Die Karte zählt es als PNG — sie liest die Spalte',
+      formatZahl(nachFalsch, 'png') === pngVor + 1 &&
+      formatZahl(nachFalsch, 'jpeg') === jpegVor,
+      `png ${pngVor} -> ${formatZahl(nachFalsch, 'png')}, ` +
+      `jpeg ${jpegVor} -> ${formatZahl(nachFalsch, 'jpeg')}`);
+    /* UND DER KNOPF NIMMT ES NICHT MIT. `gesamt` ist die Zahl der Zeilen, die
+       qOffenePNG am INHALT gefunden hat -- die falsch benannte ist nicht
+       darunter. Uebrig bleibt genau das zu breite PNG, das WebP nicht fassen
+       kann und das jeder Lauf wieder liegen laesst. */
+    const lauf2 = await rufF('POST', '/api/bilder/umstellen', {});
+    pruefe('Der Knopf nimmt es dagegen nicht mit — er sucht am Inhalt',
+      lauf2.status === 202 && lauf2.inhalt && lauf2.inhalt.gesamt === stand.geblieben,
+      `${JSON.stringify(lauf2.inhalt)} gegen geblieben ${stand.geblieben}`);
+    for (let i = 0; i < 400; i++) {
+      const st = (await ruf('GET', '/api/stats')).inhalt;
+      if (st && st.umstellung && !st.umstellung.laeuft) break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    pruefe('Und die falsch benannte Zeile liegt danach unverändert da',
+      (await bildRoh(falschFoto.id)).bytes.equals(jpegVorlage));
+  }
+
+  /* ---- WORAUS DIE BEIDEN ABFRAGEN GEBAUT SIND — 0.19.1
+     GEPRUEFT WIRD AM TEXT, und der Grund ist derselbe wie beim Stilblatt: die
+     Zusage ist eine ueber die LAUFZEIT, und die laesst sich am Pruefstand
+     nicht messen -- eine Prueflage mit 400 Zeilen a 512 kB dauerte laenger als
+     der ganze Lauf. DIE WIRKUNG STEHT ALS MESSUNG IN DEN PAPIEREN, nicht als
+     Pruefung; hier steht, dass die Bauform noch da ist.
+     GEMESSEN AN 205 MB (400 Zeilen a 512 kB): gruppiert ohne MATERIALIZED
+     778 ms, mit 0,1 ms. `length()` auf einem Blob ist kostenlos -- aber nur
+     ausserhalb eines GROUP BY (Stolperstein 275). */
+  {
+    const serverQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const einzeilig = serverQuelle.replace(/\s+/g, ' ');
+    pruefe('Die Aufteilung nach art laeuft ueber eine materialisierte Zwischenabfrage',
+      einzeilig.includes('WITH x AS MATERIALIZED (SELECT art AS a, length(data) AS o FROM photos)'),
+      (einzeilig.match(/WITH x AS MATERIALIZED \(SELECT art[^)]*\)/) || ['(nicht gefunden)'])[0]);
+    pruefe('Und die Aufteilung nach Format ebenso',
+      einzeilig.includes('WITH x AS MATERIALIZED ( SELECT mime_type AS m, length(data) AS o FROM photos'),
+      (einzeilig.match(/WITH x AS MATERIALIZED \( SELECT mime_type[^)]*\)/) || ['(nicht gefunden)'])[0]);
+    /* UND DIE FORMATABFRAGE LIEST KEINEN INHALT MEHR. Ohne diese Zeile bliebe
+       gruen, wer `MATERIALIZED` stehen laesst und `hex(substr(...))` wieder
+       hineinschreibt -- die 919 ms waeren zurueck. */
+    pruefe('Die Formatabfrage liest keinen Blob-Inhalt mehr',
+      !/WITH x AS MATERIALIZED \( SELECT mime_type[\s\S]{0,240}?hex\(substr/.test(einzeilig),
+      (einzeilig.match(/WITH x AS MATERIALIZED \( SELECT mime_type[\s\S]{0,240}/) || [''])[0]);
+    /* DER KNOPF DAGEGEN SEHR WOHL -- er laeuft nur auf Verlangen. Ohne diese
+       Zeile bliebe gruen, wer beide auf die Spalte umstellt, und dann schriebe
+       der Lauf Zeilen um, die gar keine PNG sind. */
+    pruefe('Der Knopf sucht dagegen weiter am Inhalt',
+      /qOffenePNG = db\.prepare\([\s\S]{0,200}?hex\(substr\(data,1,8\)\)/.test(serverQuelle),
+      (serverQuelle.match(/qOffenePNG = db\.prepare\([\s\S]{0,200}/) || [''])[0]);
+    /* DIE ZUORDNUNG mime_type -> SCHLUESSEL STEHT AN EINER STELLE. Zwei
+       Tabellen ueber dieselbe Sache duerfen sich nicht widersprechen
+       (Stolperstein 47) -- die Oberflaeche kennt nur noch Schluessel und Namen. */
+    const appQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    pruefe('Die Zuordnung von mime_type auf den Schluessel steht nur im Server',
+      /const BILD_MIME_FORMAT = \{/.test(serverQuelle) && !/image\/webp'\s*:/.test(appQuelle),
+      (appQuelle.match(/'image\/\w+'\s*:[^\n]*/) || ['(keine zweite Tafel)'])[0]);
+  }
+
   await ruf('DELETE', `/api/items/${ba.id}`);
   if (baImpItem) await ruf('DELETE', `/api/items/${baImpItem.id}`);
 
@@ -18969,7 +19136,22 @@ const freigabeHaupt = (zweck, ziel = null) =>
      UND DIE ZAHL 429 IM STOLPERSTEIN 269 WAR FALSCH: nachgezaehlt sind es 422
      Eintraege, davon 419 mit Nummer, und die hoechste war 430. Der Stolperstein
      ueber falsche Zahlen trug selbst eine. */
-  pruefe('Es sind genau 450 Rueckbauten', gpListe.length === 450, `${gpListe.length}`);
+  /* 472 SEIT 0.19.1: zweiundzwanzig neue, ab Nummer 459 -- vier an der
+     Bestandskarte (die beiden materialisierten Abfragen, die Aufteilung aus
+     mime_type, die Tafel der Zuordnung), zwei am Vergroesserungspunkt, drei an
+     der Stapelordnung, vier an der eigenen Kachel der Bildablage, zwei am
+     Dauerhinweis im Dialog, zwei an der Threadzahl von sharp, einer am
+     Bildschirmtext, zwei an der Compose-Datei, einer an der Berichtigung im
+     Quelltext -- und einer am Pruefstand selbst (W13, die Sprachliste).
+     DIE ZAEHLUNG DER NEUEN IST 21 + 1: die W-Nummern gehoeren zur Zahl der
+     Rueckbauten, aber nicht zur Reihe ab 459.
+     VIER VORHANDENE SIND MITGEGANGEN statt geloescht zu werden (Stolperstein
+     201): 44 und 377 zeigten auf Bildschirmtexte, die jetzt „dieser
+     Installation" sagen; 346 auf die Tafel der alten Adressen, die eine zweite
+     Zeile bekommen hat; 347 auf den Abschnitt, der jetzt „Installation"
+     heisst. Ein Rueckbau, der ins Leere greift, ist stumm und verfaelscht die
+     Tabelle (Stolperstein 192). */
+  pruefe('Es sind genau 472 Rueckbauten', gpListe.length === 472, `${gpListe.length}`);
   const gpDoppelt = gpListe.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   pruefe('Und keine Nummer steht zweimal', gpDoppelt.length === 0, gpDoppelt.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -19261,6 +19443,132 @@ const freigabeHaupt = (zweck, ziel = null) =>
     pruefe('Und er sagt, warum sie noetig ist',
       /python3 -m zipfile -e[\s\S]{0,200}?Ausführungsrecht/.test(liesmich),
       'der Grund steht nicht daneben');
+  }
+
+  gruppe('Die berichtigten Behauptungen stehen nirgends mehr');
+
+  /* DREI BERICHTIGUNGEN AUS 0.19.1, und sie sind der Grund, warum es dieses
+     Projekt gibt: es standen zwei falsche Messungen und ein widerlegter Satz
+     im Quelltext und im Aenderungsprotokoll.
+       a) `hex(substr(data,1,8))` hole die ersten Bytes, „ohne das Blob zu
+          lesen" -- FALSCH, gemessen 657 ms an 205 MB, das 0,87-fache der
+          Obergrenze.
+       b) ein GROUP BY ueber 606 MB Bilddaten koste 3.235 ms kalt und 2.990 ms
+          warm -- EINE MESSUNG, DIE ES NICHT GEGEBEN HABEN KANN; nachgemessen
+          sind es bei 205 MB schon 919 ms.
+       c) der Fall, dass ein PNG als WebP groesser waere, komme „am echten
+          Bestand vor" -- WIDERLEGT: 679 von 679 umgestellt, keines geblieben.
+     EIN WAECHTER UND KEIN VORSATZ. Ohne ihn wandert derselbe Satz beim
+     naechsten Abschreiben zurueck -- genau so ist er aus dem Auftrag zu 0.19.0
+     in den Quelltext gekommen.
+     GESUCHT WIRD IN DEN AUSGELIEFERTEN DATEIEN UND IN DEN PAPIEREN, aber
+     ausdruecklich NICHT im Aenderungsprotokoll dieser Runde und nicht im
+     laufenden Auftrag: dort MUESSEN die alten Saetze zitiert stehen, sonst
+     stuende die Berichtigung ohne ihren Gegenstand da. */
+  {
+    const berichtigt = [
+      ['ohne das Blob zu lesen', 'die Behauptung ueber substr()'],
+      ['3.235', 'die Messung, die es nicht gegeben haben kann'],
+      ['2.990', 'die Messung, die es nicht gegeben haben kann'],
+      ['kommt am echten Bestand vor', 'der widerlegte Satz zu Rueckbau 433'],
+      ['kommt am ECHTEN Bestand vor', 'der widerlegte Satz zu Rueckbau 433']
+    ];
+    const durchsucht = ['server.js', 'public/app.js', 'gegenprobe.js', 'README.md',
+                        'CHANGELOG.md', 'Doku/Aenderungsprotokoll_0.19.0.md'];
+    const treffer = [];
+    for (const datei of durchsucht) {
+      const voll = path.join(__dirname, ...datei.split('/'));
+      if (!fs.existsSync(voll)) { treffer.push(`${datei}: gibt es nicht`); continue; }
+      const text = fs.readFileSync(voll, 'utf8');
+      for (const [satz, was] of berichtigt)
+        if (text.includes(satz)) treffer.push(`${datei}: ${was} („${satz}")`);
+    }
+    /* ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): ein Waechter,
+       der auf null Dateien laeuft, ist gruen und belegt nichts. */
+    pruefe('Der Waechter sieht alle sechs Dateien an',
+      durchsucht.every(d => fs.existsSync(path.join(__dirname, ...d.split('/')))),
+      durchsucht.filter(d => !fs.existsSync(path.join(__dirname, ...d.split('/')))).join(' · '));
+    pruefe('Keine der drei berichtigten Behauptungen steht noch irgendwo',
+      treffer.length === 0, treffer.join(' · '));
+    /* UND DIE BERICHTIGUNGEN STEHEN WIRKLICH DA. Ein Satz, der bloss
+       verschwindet, ist geloescht und nicht berichtigt (Stolperstein 201) --
+       gesucht wird deshalb nach dem, was an seine Stelle getreten ist. */
+    const serverText = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    pruefe('Stattdessen steht im Server, dass substr() das Blob sehr wohl liest',
+      /substr\(\) AUF EINEM BLOB LIEST DAS BLOB/.test(serverText),
+      'die Berichtigung fehlt');
+    pruefe('Und die nachgefahrene Messung mit ihrer Datenbankgroesse daneben',
+      /400 ZEILEN A 512 kB/.test(serverText) && /919/.test(serverText),
+      'die nachgefahrene Messung fehlt');
+    const gpText = fs.readFileSync(path.join(__dirname, 'gegenprobe.js'), 'utf8');
+    /* RUECKBAU 433 BLEIBT UND BLEIBT ALS STUMM ERWARTET -- er bewacht das
+       Vorhandensein der Regel, auch wo er ihre Wirkung nicht zeigen kann.
+       Berichtigt wird nur seine BEGRUENDUNG. */
+    const rb433 = require('./gegenprobe').RUECKBAUTEN.find(r => r.nr === '433');
+    pruefe('Rueckbau 433 steht weiter in der Liste und weiter als STUMM erwartet',
+      !!rb433 && /STUMM/.test(rb433.erwartet), JSON.stringify(rb433 && rb433.erwartet));
+    pruefe('Und seine Begruendung nennt jetzt die achtzehn Versuche und den echten Bestand',
+      /achtzehn Laborversuche/.test(gpText) && /679 von 679/.test(gpText),
+      'die berichtigte Begruendung fehlt');
+  }
+
+  gruppe('Die Compose-Datei wird nicht ueberschrieben');
+
+  /* DER BEFUND AUS DEM BETRIEB: `.env.example` liegt im Repo und `.env` in der
+     .gitignore -- sauber. `docker-compose.yml` lag im Repo und stand in KEINER
+     Ignorierliste. Wer das ZIP von GitHub ueber seinen Ordner entpackt, verlor
+     damit seine angepasste Datei: den Port, die Einhaengung des
+     Sicherungsorts, den Containernamen. IM FELD PASSIERT.
+     GEBAUT WURDE GENAU DAS MUSTER, DAS `.env` SCHON HAT -- eine Vorlage im
+     Repo, die Arbeitsdatei ignoriert, und ein Pflichtschritt in der README.
+     DER STOPP KOMMT GESCHENKT: ohne Compose-Datei bricht `docker compose up`
+     von sich aus ab („no configuration file provided: not found"). Karg, aber
+     es haelt an -- ein zusaetzliches Startskript ist ausdruecklich NICHT
+     gebaut worden.
+     GEPRUEFT WERDEN ALLE DREI HAELFTEN ZUSAMMEN: eine Vorlage ohne
+     Ignorierliste wird wieder ueberschrieben, eine Ignorierliste ohne
+     Pflichtschritt laesst den Betreiber ohne Datei dastehen. */
+  {
+    const ignoriert = fs.readFileSync(path.join(__dirname, '.gitignore'), 'utf8')
+      .split('\n').map(z => z.trim());
+    pruefe('Die Vorlage liegt im Repo',
+      fs.existsSync(path.join(__dirname, 'docker-compose.example.yml')),
+      'docker-compose.example.yml fehlt');
+    /* UND DIE ALTE LIEGT NICHT MEHR DANEBEN. Zwei Dateien mit fast demselben
+       Namen liessen offen, welche gilt -- und die verfolgte waere wieder die,
+       die ueberschrieben wird. Geprueft wird an der ABLAGE und nicht am
+       Arbeitsbaum: wer sie sich beim Einrichten anlegt, soll sie behalten. */
+    const verfolgt = String(execFileSync('git', ['ls-files'], { cwd: __dirname }))
+      .split('\n').map(z => z.trim());
+    pruefe('Und die Arbeitsdatei ist nicht mehr verfolgt',
+      !verfolgt.includes('docker-compose.yml') &&
+      verfolgt.includes('docker-compose.example.yml'),
+      verfolgt.filter(z => /^docker-compose/.test(z)).join(' · ') || '(keine)');
+    pruefe('Die Arbeitsdatei steht in der .gitignore',
+      ignoriert.includes('docker-compose.yml'), ignoriert.join(' · '));
+    /* DIESELBE ZEILE FUER `.env` STEHT DANEBEN -- ohne sie bliebe die Zusage
+       darueber auch dann gruen, wenn jemand das Muster nur zur Haelfte
+       uebernaehme (Stolperstein 81). Es ist das Muster und keine Ausnahme. */
+    pruefe('Und `.env` steht weiterhin daneben',
+      ignoriert.includes('.env'), ignoriert.join(' · '));
+    /* DER PFLICHTSCHRITT IN DER README, in derselben Form wie bei `.env`:
+       einmal im Weg ueber git, einmal im Weg ueber das ZIP -- wer nur einen
+       der beiden liest, muss ihn trotzdem finden. */
+    /* DREIMAL, UND JEDES MAL AUS EINEM ANDEREN GRUND: einmal im Weg ueber git,
+       einmal im Weg ueber das ZIP -- wer nur einen der beiden liest, muss ihn
+       trotzdem finden --, und einmal im Pflichtsatz darunter. */
+    const kopierZeilen = (liesmichText.match(/cp docker-compose\.example\.yml docker-compose\.yml/g) || []);
+    pruefe('Die README nennt den Kopierschritt in beiden Einspielwegen und im Pflichtsatz',
+      kopierZeilen.length === 3, `${kopierZeilen.length} Nennungen`);
+    pruefe('Und sagt ausdruecklich, dass er Pflicht ist',
+      /Der Schritt `cp docker-compose\.example\.yml docker-compose\.yml` ist Pflicht/
+        .test(liesmichText),
+      'der Pflichtsatz fehlt');
+    /* UND SIE SAGT, WAS OHNE IHN GESCHIEHT. Ein Pflichtschritt ohne Folge
+       liest sich wie eine Empfehlung. */
+    pruefe('Und was ohne ihn geschieht',
+      /no configuration file provided/.test(liesmichText),
+      'die Absage von docker compose steht nicht daneben');
   }
 
   gruppe('Keine Prueflage laesst ihren Server zurueck');
@@ -19960,7 +20268,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
   let zfCodesMock = zweifaktorCodes ||
     ['AAAAA-BBBBB', 'CCCCC-DDDDD', 'EEEEE-FFFFF', 'GGGGG-HHHHH',
      'JJJJJ-KKKKK', 'MMMMM-NNNNN', 'PPPPP-QQQQQ', 'RRRRR-SSSSS'];
-  const MAIL_VERWEIGERT = 'Das kann nur der Eigentümer der Instanz.';
+  const MAIL_VERWEIGERT = 'Das kann nur der Eigentümer dieser Installation.';
   /* DIE ANBIETERLISTE, WIE SIE ÜBER /api/mail HEREINKOMMT -- seit 0.17.3 samt
      Hinweis und den drei festen Werten je Anbieter. Der Dialog wechselt beides
      mit der Auswahl, und beides kommt vom Server; ein Mock ohne diese Felder
@@ -20640,7 +20948,7 @@ function baueDom(JSDOM, { einstellungen = { filters: null }, hash = '', tags = [
        mit -- antwortete er jedem mit 200, waere die Rolle unpruefbar. */
     if (url === '/api/sicherung' && (opt.method || 'GET') === 'GET') {
       if (einstellungen.istEigentuemer === false)
-        return gib({ error: 'Das kann nur der Eigentümer der Instanz.' }, 403);
+        return gib({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
       return gib(sicherung);
     }
     /* Und die beiden Schreibwege, die ihren Stand WIRKLICH aendern
@@ -23262,7 +23570,7 @@ async function pruefeOberflaeche() {
   pruefe('Sein Schlusssatz nennt den Papierkorb samt Frist',
     /liegt danach 30 Tage im Papierkorb/.test(eDialog), eDialog);
   pruefe('Und wer zurueckholen darf',
-    /Eigentümer der Instanz/.test(eDialog), eDialog);
+    /Eigentümer dieser Installation/.test(eDialog), eDialog);
   pruefe('Das Wort "unwiderruflich" steht nicht mehr darin',
     !/unwiderruflich/i.test(eDialog), eDialog);
   /* Seit 0.8.30 die Links, seit 0.8.31 auch die Dateien: was fremd sein kann,
@@ -25260,24 +25568,53 @@ async function pruefeOberflaeche() {
   /* EINE FUNKTION FUER ALLE DREI WERTE, seit 0.19.0. Bis 0.18.1 hiess sie
      fokus() und lieferte nur die object-position; sie heisst jetzt
      ausschnitt() und traegt die Weite als Eigenschaft `--zoom` daneben.
-     GEPRUEFT WIRD BEIDES EINZELN: eine Zusicherung mit zwei Haelften, von der
-     nur eine wirkt, sieht von aussen aus wie eine ganze. */
+     UND SEIT 0.19.1 DEN VERGROESSERUNGSPUNKT: `transform-origin` steht auf
+     DEMSELBEN Punkt wie `object-position`. Ohne ihn verankert scale() in der
+     Mitte, und von der eingestellten Bildecke ist nichts zu sehen -- gemessen
+     in echtem Chromium 0,0 % in allen vier Richtungen (Stolperstein 276).
+     GEPRUEFT WIRD JEDE HAELFTE EINZELN: eine Zusicherung mit drei Haelften,
+     von denen nur zwei wirken, sieht von aussen aus wie eine ganze. */
   pruefe('Fehlende Werte landen in der Mitte und auf dem weitesten Ausschnitt',
-    wb.ausschnitt({}) === 'object-position:50% 50%;--zoom:1', wb.ausschnitt({}));
+    wb.ausschnitt({}) === 'object-position:50% 50%;transform-origin:50% 50%;--zoom:1',
+    wb.ausschnitt({}));
   pruefe('Vorhandene Werte werden zu object-position',
-    wb.ausschnitt({ focus_x: 20, focus_y: 80 }) === 'object-position:20% 80%;--zoom:1',
+    wb.ausschnitt({ focus_x: 20, focus_y: 80 })
+      === 'object-position:20% 80%;transform-origin:20% 80%;--zoom:1',
     wb.ausschnitt({ focus_x: 20, focus_y: 80 }));
   pruefe('Unsinnige Werte fallen auf die Mitte zurück',
-    wb.ausschnitt({ focus_x: 'links', focus_y: null }) === 'object-position:50% 50%;--zoom:1',
+    wb.ausschnitt({ focus_x: 'links', focus_y: null })
+      === 'object-position:50% 50%;transform-origin:50% 50%;--zoom:1',
     wb.ausschnitt({ focus_x: 'links', focus_y: null }));
   /* DER ZOOM GEHT ALS FAKTOR HINAUS UND NICHT ALS PROZENT: im Stylesheet steht
      scale(var(--zoom)), und scale() rechnet mit 2 und nicht mit 200. */
   pruefe('Der Zoomwert wird zum Faktor',
-    wb.ausschnitt({ focus_x: 50, focus_y: 50, zoom: 200 }) === 'object-position:50% 50%;--zoom:2',
+    wb.ausschnitt({ focus_x: 50, focus_y: 50, zoom: 200 })
+      === 'object-position:50% 50%;transform-origin:50% 50%;--zoom:2',
     wb.ausschnitt({ focus_x: 50, focus_y: 50, zoom: 200 }));
   pruefe('Und ein unsinniger Zoomwert faellt auf den weitesten Ausschnitt',
-    wb.ausschnitt({ zoom: 'nah' }) === 'object-position:50% 50%;--zoom:1',
+    wb.ausschnitt({ zoom: 'nah' })
+      === 'object-position:50% 50%;transform-origin:50% 50%;--zoom:1',
     wb.ausschnitt({ zoom: 'nah' }));
+  /* DER VERGROESSERUNGSPUNKT UND DER AUSSCHNITTPUNKT SIND DERSELBE PUNKT --
+     ausdruecklich, und nicht nur „beide stehen da". Zwei Rechenwege fuer
+     denselben Wert liefen frueher oder spaeter auseinander, und dann zoege die
+     Vergroesserung an einer anderen Stelle als der Ausschnitt.
+     GEPRUEFT AN EINEM UNSYMMETRISCHEN PAAR: bei 50/50 waeren beide Haelften
+     gleich, und ein vertauschtes Wertepaar bliebe unbemerkt. */
+  {
+    const stil = wb.ausschnitt({ focus_x: 12, focus_y: 87, zoom: 250 });
+    const lage = (stil.match(/object-position:([^;]+)/) || [])[1];
+    const punkt = (stil.match(/transform-origin:([^;]+)/) || [])[1];
+    pruefe('Der Vergroesserungspunkt ist derselbe wie der Ausschnittpunkt',
+      !!lage && lage === punkt, `${lage} gegen ${punkt}`);
+  }
+  /* UND ER GEHT ALS transform-origin HINAUS UND NICHT ALS transform: ein
+     Inline-`transform` schluege die Ueberfahrregel im Stilblatt, und die
+     Kachel mit eingestelltem Ausschnitt verloere als einzige ihre Bewegung
+     (Stolperstein 272). `transform-origin` ist kein `transform`. */
+  pruefe('Und ausschnitt() schreibt kein transform hinaus',
+    !/(^|;)\s*transform\s*:/.test(wb.ausschnitt({ focus_x: 12, focus_y: 87, zoom: 250 })),
+    wb.ausschnitt({ focus_x: 12, focus_y: 87, zoom: 250 }));
   /* UND ES GIBT KEINE ZWEITE FUNKTION MEHR, die nur den Punkt liefert -- sonst
      stuenden zwei Wahrheiten ueber denselben Ausschnitt nebeneinander, und die
      Aufrufstelle, die die aeltere nimmt, saehe von aussen richtig aus. */
@@ -25461,6 +25798,73 @@ async function pruefeOberflaeche() {
   wb.document.querySelectorAll('.lightbox, .backdrop').forEach(e => e.remove());
 
   /* ================= Tags am Testtag ================= */
+  gruppe('Die Stapelordnung — 0.19.1');
+
+  /* ================= Die Stapelordnung — 0.19.1 =================
+     DER BEFUND: `.backdrop` lag auf 60, `.lightbox` auf 90 -- ein
+     Bestaetigungsdialog, den man AUS DEM VOLLBILD heraus ausloest, stand also
+     DAHINTER. Im Feld gemeldet als „Loeschen im Vollbild sieht aus, als
+     reagiere nichts"; betroffen war JEDER Dialog aus dem Vollbild.
+     GEBAUT WURDE NICHT „eine Zahl hochgesetzt", SONDERN DIE ORDNUNG AN EINE
+     STELLE GESCHRIEBEN. Geprueft wird deshalb beides: dass die Stufen dort
+     stehen, und dass sie in der Reihenfolge stehen, die der Kommentar dort
+     begruendet.
+     GEPRUEFT WIRD AM TEXT UND NICHT AN DER LAGE: jsdom rechnet keine Lage aus
+     (Stolperstein 223), und `z-index` schon gar nicht. */
+  {
+    const zRoh = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const zBlock = (zRoh.match(/:root \{[\s\S]*?\n\}/) || [''])[0];
+    const zStufen = [...zBlock.matchAll(/--(z-[a-z-]+):\s*(\d+);/g)]
+      .map(m => [m[1], Number(m[2])]);
+    /* ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): eine Ordnung
+       aus null Stufen bestuende jede Verneinung darunter. */
+    pruefe('Die Stapelordnung steht als Ganzes in :root',
+      zStufen.length === 10, `${zStufen.length} Stufen: ${zStufen.map(([n]) => n).join(' · ')}`);
+    /* DIE REIHENFOLGE IST DIE DER DATEI. Sie steht dort von unten nach oben
+       aufgeschrieben, mit einem Satz je Ebene -- eine Liste, die anders
+       sortiert ist als ihre Begruendung, laesst sich nicht lesen. */
+    pruefe('Und sie steht von unten nach oben, ohne Sprung zurueck',
+      zStufen.every(([, w], i) => i === 0 || w > zStufen[i - 1][1]),
+      zStufen.map(([n, w]) => `${n}:${w}`).join(' · '));
+    const zWert = (n) => (zStufen.find(([x]) => x === n) || [])[1];
+    /* DIE ZUSAGE, UM DIE ES GEHT: der Dialog liegt UEBER dem Vollbild. */
+    pruefe('Der Dialog liegt ueber dem Vollbild',
+      zWert('z-dialog') > zWert('z-vollbild'),
+      `Dialog ${zWert('z-dialog')} gegen Vollbild ${zWert('z-vollbild')}`);
+    /* UND DIE MELDUNG UEBER BEIDEN -- sie ist ein Hinweis und faengt keine
+       Klicks; laege sie darunter, verdeckte der Dialog seine eigene Quittung. */
+    pruefe('Und die Meldung ueber beiden',
+      zWert('z-meldung') > zWert('z-dialog'),
+      `Meldung ${zWert('z-meldung')} gegen Dialog ${zWert('z-dialog')}`);
+    /* DIE VIER STUFEN INNERHALB DES VOLLBILDS BEHALTEN IHRE VERHAELTNISSE:
+       der Schleier des Ausschnittrahmens unter der Bedienung, die Bedienung
+       unter den Blaetterpfeilen. Die Ordnung wurde sortiert und nicht
+       durcheinandergeworfen. */
+    pruefe('Der Schleier des Ausschnittrahmens bleibt unter der Bedienung',
+      zWert('z-ausschnittrahmen') < zWert('z-betrachter-bedienung') &&
+      zWert('z-betrachter-bedienung') < zWert('z-blaetterpfeile'),
+      `${zWert('z-ausschnittrahmen')} · ${zWert('z-betrachter-bedienung')} · ${zWert('z-blaetterpfeile')}`);
+    /* UND KEINE REGEL TRAEGT MEHR IHRE EIGENE ZAHL. Ohne diese Zeile bliebe
+       gruen, wer die Tafel oben stehen laesst und daneben weiter feste Zahlen
+       schreibt -- dann stuende die Ordnung an elf Stellen statt an einer. */
+    const zNackt = [...zRoh.replace(zBlock, '').matchAll(/z-index:\s*(\d+)/g)].map(m => m[1]);
+    pruefe('Und keine einzelne Regel traegt mehr ihre eigene Zahl',
+      zNackt.length === 0, zNackt.join(' · '));
+    /* DIE ZEHN STUFEN WERDEN AUCH WIRKLICH BENUTZT. Eine Tafel, auf die keine
+       Regel zeigt, ordnet nichts (Stolperstein 81, wieder herum). */
+    const zUngenutzt = zStufen.map(([n]) => n).filter(n => !zRoh.includes(`var(--${n})`));
+    pruefe('Und jede Stufe wird von mindestens einer Regel gelesen',
+      zUngenutzt.length === 0, zUngenutzt.join(' · '));
+    /* NAMENTLICH DIE BEIDEN, UM DIE ES GEHT -- eine Zusage ueber „irgendeine
+       Regel" liesse offen, ob ausgerechnet der Dialog seine Stufe verloren
+       hat. */
+    pruefe('Der Dialog und das Vollbild lesen ihre Stufe wirklich',
+      /\.backdrop \{[^}]*z-index: var\(--z-dialog\)/.test(zRoh.replace(/\s+/g, ' ')) &&
+      /\.lightbox \{[^}]*z-index: var\(--z-vollbild\)/.test(zRoh.replace(/\s+/g, ' ')),
+      (zRoh.replace(/\s+/g, ' ').match(/\.backdrop \{[^}]*\}/) || ['(keine Regel)'])[0].slice(0, 200));
+  }
+
+
   gruppe('Tags am Testtag in der Zeile');
 
   const trow = wb.document.querySelector('#tdays .trow');
@@ -25671,18 +26075,22 @@ async function pruefeOberflaeche() {
      sie meinen dieselbe Datei, und der Import steht darin eine Stufe tiefer.
      DIE REIHENFOLGE IST DIE DER ABSCHNITTE und nicht mehr die eines Rasters:
      erst was jedem gehoert, dann der Bestand, dann die Zugaenge, dann die
-     Datenbank, zuletzt die Instanz. */
+     Datenbank, zuletzt die Installation.
+     NEUNZEHN SEIT 0.19.1: "Bildablage" hat die Karte "Kennzahlen" verlassen und
+     steht neben ihr im Abschnitt "Datenbank". Es ist KEINE neue Funktion --
+     dieselben Zahlen, derselbe Schalter, derselbe Knopf --, sondern eine Karte,
+     die zu gross geworden war. */
   const ALLE_KARTEN = [
     'Zugang', 'Meine Sitzungen', 'Darstellung',
     'Kategorien', 'Tags', 'Bewertungskriterien', 'Vokabular', 'Links', 'Suchanbieter', 'Papierkorb',
     'Zugänge', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
-    'Kennzahlen', 'Sicherung', 'Export und Import',
+    'Kennzahlen', 'Bildablage', 'Sicherung', 'Export und Import',
     'Titel'];
-  pruefe('Die Eigentuemerin sieht alle achtzehn Karten',
+  pruefe('Die Eigentuemerin sieht alle neunzehn Karten',
     gleich(kEig, ALLE_KARTEN), kEig.join(' · '));
   // Die ZAHL ausdruecklich, wie bei F_ROUTEN: eine Karte, die still
   // verschwindet, faellt sonst niemandem auf.
-  pruefe('Und es sind wirklich achtzehn', ALLE_KARTEN.length === 18 && kEig.length === 18,
+  pruefe('Und es sind wirklich neunzehn', ALLE_KARTEN.length === 19 && kEig.length === 19,
     `${ALLE_KARTEN.length} erwartet, ${kEig.length} gezeichnet`);
   // Und keine steht zweimal -- eine Karte, die in zwei Abschnitten haengt,
   // faellt an der Summe sonst gar nicht auf.
@@ -25699,7 +26107,7 @@ async function pruefeOberflaeche() {
   const reiterWorte = (d) => [...d.w.document.querySelectorAll('.sys-reiter-k')]
     .map(a => a.textContent.trim());
   pruefe('Die Eigentuemerin bekommt fuenf Abschnitte',
-    gleich(reiterWorte(rEig), ['Persönlich', 'Bestand', 'Zugänge', 'Datenbank', 'Instanz']),
+    gleich(reiterWorte(rEig), ['Persönlich', 'Bestand', 'Zugänge', 'Datenbank', 'Installation']),
     reiterWorte(rEig).join(' · '));
   pruefe('Ein gewoehnlicher Benutzer bekommt nur die zwei, die etwas zu zeigen haben',
     gleich(reiterWorte(rUser), ['Persönlich', 'Bestand']), reiterWorte(rUser).join(' · '));
@@ -25710,7 +26118,7 @@ async function pruefeOberflaeche() {
   // Einstellung verlinken, und die Zurueck-Taste braeche.
   pruefe('Jeder Reiter traegt seine eigene Adresse',
     gleich(dEig.reiter, ['#/system/persoenlich', '#/system/bestand', '#/system/zugaenge',
-                         '#/system/datenbank', '#/system/instanz']),
+                         '#/system/datenbank', '#/system/installation']),
     dEig.reiter.join(' · '));
   /* UND ER IST EIN VERWEIS UND KEIN KNOPF. Die Zeile darueber liest ein
      ATTRIBUT, und ein `href` laesst sich an jedes Element schreiben -- ein
@@ -25794,7 +26202,7 @@ async function pruefeOberflaeche() {
   const kAus = (await sysDurchgang(rAus)).karten;
   pruefe('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kAus.includes('Anfragen'), kAus.join(' · '));
-  pruefe('Und es sind auch dann achtzehn', kAus.length === 18 && gleich(kAus, ALLE_KARTEN),
+  pruefe('Und es sind auch dann neunzehn', kAus.length === 19 && gleich(kAus, ALLE_KARTEN),
     `${kAus.length} gezeichnet`);
   // Die Karte steht im Abschnitt „Zugaenge" -- dorthin, bevor an ihr geprueft wird.
   await sysAbschnitt(rAus.w, 'zugaenge');
@@ -26623,10 +27031,10 @@ async function pruefeOberflaeche() {
     zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
   /* GEZAEHLT WIRD UEBER ALLE ABSCHNITTE, seit der Systembereich immer nur
      einen zeigt. Waere hier nur der offene gezaehlt, stuende die Zahl drei da
-     und die Pruefung belegte nichts ueber die uebrigen fuenfzehn. */
+     und die Pruefung belegte nichts ueber die uebrigen sechzehn. */
   const zkAlle = (await sysDurchgang(zkAus)).karten;
-  pruefe('Und die Zahl der Karten bleibt bei achtzehn',
-    zkAlle.length === 18, `${zkAlle.length}: ${zkAlle.join(' · ')}`);
+  pruefe('Und die Zahl der Karten bleibt bei neunzehn',
+    zkAlle.length === 19, `${zkAlle.length}: ${zkAlle.join(' · ')}`);
   await sysAbschnitt(zkAus.w, 'persoenlich');
   /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
      einem Knopf, den man erst druecken muss. */
@@ -27024,7 +27432,7 @@ async function pruefeOberflaeche() {
      einschalten -- und die Karte sagt, was fehlt, statt einen Knopf
      anzubieten, der nur absagt. */
   const kNichtBereit = await sKarteBau({ an: false, versandBereit: false,
-    versandGrund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer der Instanz.',
+    versandGrund: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.',
     deckel: 20, stunden: 24, anfragen: [
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', bestaetigt_am: '2026-08-20 09:05:00' }] });
@@ -28531,10 +28939,10 @@ async function pruefeOberflaeche() {
     pkuAdmReihen.every(r => !r.querySelector('.pk-back') && !r.querySelector('.pk-weg')),
     JSON.stringify(pkuAdmReihen.map(r => r.innerHTML.slice(0, 120))));
   pruefe('Und die Karte sagt ihm, wer es darf',
-    /Eigentümer der Instanz/.test(pkKarte(pkuAdm)?.querySelector('.desc')?.textContent || ''),
+    /Eigentümer dieser Installation/.test(pkKarte(pkuAdm)?.querySelector('.desc')?.textContent || ''),
     pkKarte(pkuAdm)?.querySelector('.desc')?.textContent);
   pruefe('Bei der Eigentuemerin steht dieser Satz NICHT',
-    !/Eigentümer der Instanz/.test(pkKarte(pkuEig)?.querySelector('.desc')?.textContent || ''),
+    !/Eigentümer dieser Installation/.test(pkKarte(pkuEig)?.querySelector('.desc')?.textContent || ''),
     pkKarte(pkuEig)?.querySelector('.desc')?.textContent);
 
   // Die Frist steht in der Karte, und zwar die aus der Antwort.
@@ -28742,25 +29150,39 @@ async function pruefeOberflaeche() {
   /* ---------------------------------------------------------------- */
   gruppe('Die Bildablage in der Oberflaeche');
 
-  /* SIE STEHT IN DER KARTE „Kennzahlen" UND NICHT IN EINER NEUNZEHNTEN.
-     Die Aufstellung IST eine Kennzahl, und der Knopf gehoert neben die Zahl,
-     die sagt, ob er noch etwas zu tun hat. Geprueft wird deshalb IN DIESER
-     KARTE -- ein Knopf irgendwo im Systembereich belegte das nicht. */
+  /* SIE HAT DIE KARTE „Kennzahlen" VERLASSEN UND IST DIE NEUNZEHNTE KARTE,
+     seit 0.19.1. 0.19.0 hatte sie ausdruecklich HINEINgesetzt -- fuer zwei
+     Zeilen und einen Schalter war das richtig; fuer fuenf Formatzeilen, einen
+     Schalter mit Erlaeuterung, einen Knopf, eine Fortschrittszeile und eine
+     Meldung ist die Karte darunter zu gross geworden.
+     GEPRUEFT WIRD DESHALB IN DER EIGENEN KARTE -- und ausdruecklich, dass sie
+     NICHT mehr als Unterabschnitt in „Kennzahlen" steht: eine Bedienung, die
+     an zwei Orten stuende, waere die zweite Wahrheit (Stolperstein 201: die
+     Pruefung der Vorgaengerfassung wird UMGEDREHT statt geloescht). */
   {
     const baKarte = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-      .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Bildablage');
     const baZeilen = (k) => [...(k?.querySelectorAll('.kv .k') || [])]
       .map(z => z.textContent.trim());
 
     const baEig = await pkSystem({ istAdmin: true, istEigentuemer: true });
     await sysAbschnitt(baEig.w, 'datenbank');
     const kEig = baKarte(baEig);
-    pruefe('Es bleibt bei achtzehn Karten', [...baEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
-      .every(c => c.querySelector('h3')?.textContent.trim() !== 'Bildablage'),
+    pruefe('Die Bildablage ist eine Karte fuer sich', !!kEig,
       [...baEig.w.document.querySelectorAll('.sys-grid > .sys-card h3')].map(h => h.textContent).join(' · '));
-    const unterschriften = [...(kEig?.querySelectorAll('.sys-unter') || [])].map(u => u.textContent.trim());
-    pruefe('Die Karte traegt einen Abschnitt „Bildablage"',
-      unterschriften.includes('Bildablage'), unterschriften.join(' · '));
+    pruefe('Und sie steht im Abschnitt „Datenbank", neben „Kennzahlen"',
+      [...baEig.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
+        .map(h => h.textContent.trim()).includes('Kennzahlen'),
+      [...baEig.w.document.querySelectorAll('.sys-grid > .sys-card h3')].map(h => h.textContent).join(' · '));
+    const kKennzahlen = [...baEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
+    pruefe('Und „Kennzahlen" traegt sie nicht mehr als Unterabschnitt',
+      ![...(kKennzahlen?.querySelectorAll('.sys-unter') || [])]
+        .some(u => u.textContent.trim() === 'Bildablage'),
+      [...(kKennzahlen?.querySelectorAll('.sys-unter') || [])].map(u => u.textContent.trim()).join(' · '));
+    pruefe('Und der Knopf steht wirklich in DIESER Karte',
+      !!kEig?.querySelector('#bild-um'),
+      kEig ? '(kein Knopf in der Karte)' : '(keine Karte)');
     for (const [wort, wert] of [['PNG', '12 · 6,0 MB'], ['JPEG', '5 · 512,0 KB'], ['WebP', '2 · 64,0 KB']]) {
       const zeile = [...(kEig?.querySelectorAll('.kv') || [])]
         .find(z => z.querySelector('.k')?.textContent.trim().startsWith(wort));
@@ -28822,6 +29244,28 @@ async function pruefeOberflaeche() {
     pruefe('Und dass nur eine Sicherung zurueckfuehrt',
       /Sicherung des Datenverzeichnisses/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
+    /* UND SEIT 0.19.1: DASS ES DAUERN KANN -- ausdruecklich OHNE Zahl. Der
+       Server kennt sie nicht: gemessen 394 ms je Bild an der nachgefahrenen
+       Maschine gegen 5,3 s je Bild im Feld, Faktor dreizehn. Eine Schaetzung
+       waere auf der einen Maschine beruhigend falsch und auf der anderen
+       erschreckend falsch; fehlt eine Zahl, steht das da (Stolperstein 252).
+       ZWEI ZUSAGEN UND NICHT EINE: dass der Satz dasteht, und dass er KEINE
+       Zeitangabe traegt. Eine Haelfte allein bliebe gruen, wenn die andere
+       kippte. */
+    pruefe('Und dass die Dauer an der Maschine haengt und hier nicht gemessen ist',
+      /hängt an dieser Maschine und ist hier nicht gemessen/.test(dialogText) &&
+      /Minuten bis Stunden/.test(dialogText),
+      dialogText.replace(/\s+/g, ' ').slice(0, 460));
+    pruefe('Und dass der Lauf den Betrieb stoert, solange er laeuft',
+      /stört den Betrieb, solange er läuft/.test(dialogText),
+      dialogText.replace(/\s+/g, ' ').slice(0, 460));
+    /* KEINE ERFUNDENE MINUTENANGABE. Der Dialog nennt Bilder und Bytes -- aber
+       keine Dauer in Minuten, Stunden oder Sekunden. */
+    pruefe('Aber keine erfundene Zeitangabe',
+      !/\b\d+([.,]\d+)?\s*(Sekunden?|Minuten?|Stunden?)\b/
+        .test((baEig.w.document.querySelector('.backdrop .modal')?.textContent || '')),
+      (baEig.w.document.querySelector('.backdrop .modal')?.textContent || '')
+        .replace(/\s+/g, ' ').slice(0, 460));
     baEig.w.document.querySelectorAll('.backdrop').forEach(e => e.remove());
     baEig.w.close();
 
@@ -34196,55 +34640,78 @@ async function pruefeOberflaeche() {
      Stilblatt verschwunden sind: eine Regel ohne Waehler im Markup faellt
      sonst niemandem auf. */
 
-  /* ---- 4. Aus „Anlage" wird „Instanz" ---- */
-  gruppe('Aus „Anlage" wird „Instanz" — 0.17.1');
+  /* ---- 4. Aus „Anlage" wird „Instanz" wird „Installation" ---- */
+  gruppe('Aus „Anlage" wird „Instanz" wird „Installation" — 0.17.1 und 0.19.1');
 
-  /* EIN WORT UND KEINE FUNKTION. Der groesste Posten dieser Runde ist der
-     harmloseste -- bis auf EINE Stelle: der fuenfte Abschnitt trug den
-     Schluessel `anlage`, und daraus ist eine Adresse geworden.
+  /* EIN WORT UND KEINE FUNKTION -- zweimal inzwischen. Der fuenfte Abschnitt
+     trug bis 0.17.0 den Schluessel `anlage`, bis 0.19.1 den Schluessel
+     `instanz` und heisst jetzt `installation`. Aus jedem der beiden alten ist
+     eine Adresse geworden, die in Lesezeichen und in aelteren Papieren steht.
      DASS DIE NEUE ADRESSE TRAEGT, steht in der Gruppe ueber die Reiter weiter
-     oben (der Reiter heisst „Instanz" und zeigt auf `#/system/instanz`). Hier
-     geht es um die ALTE -- und um das Wort im ganzen ausgelieferten Stand. */
-  {
+     oben (der Reiter heisst „Installation" und zeigt auf
+     `#/system/installation`). Hier geht es um die BEIDEN ALTEN -- und um das
+     Wort im ganzen ausgelieferten Stand.
+     BEIDE BEKOMMEN DIESELBE PRUEFUNG, in einer Schleife und nicht zweimal
+     abgeschrieben: der aeltere Name ist der gefaehrdetere, weil eine verkettete
+     Tafel ihn auf einen Schluessel schicken wuerde, den es nicht mehr gibt. */
+  for (const alteAdresse of ['anlage', 'instanz']) {
     const d = baueDom(JSDOM,
       { einstellungen: { filters: null, benutzerZahl: 4, istAdmin: true, istEigentuemer: true } });
     await new Promise(r => setTimeout(r, 60));
     /* NICHT UEBER sysAbschnitt(): die alte Adresse ist der Gegenstand, und
        sie wird hier von Hand gesetzt, damit im Aufruf sichtbar steht, was
        geprueft wird. */
-    d.w.history.replaceState(null, '', '#/system/anlage');
+    d.w.history.replaceState(null, '', `#/system/${alteAdresse}`);
     await d.w.renderSystem();
     await new Promise(r => setTimeout(r, 40));
     const ueberschriften = [...d.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
       .map(h => h.textContent.trim());
-    pruefe('Die alte Adresse fuehrt weiter auf denselben Abschnitt',
+    pruefe(`Die alte Adresse „${alteAdresse}" fuehrt weiter auf denselben Abschnitt`,
       gleich(ueberschriften, ['Titel']), ueberschriften.join(' · '));
-    /* STILL UEBERSETZT UND NICHT ABGEWIESEN: der Reiter „Instanz" steht offen
-       da, und die Adresse ist danach die neue. Ohne die zweite Zeile bliebe
-       offen, ob die alte Adresse haengengeblieben ist -- und der naechste,
-       der sie kopiert, gaebe sie weiter. */
-    pruefe('Und der Reiter „Instanz" steht dabei offen',
-      d.w.document.querySelector('.sys-reiter-k.on')?.textContent.trim() === 'Instanz',
+    /* STILL UEBERSETZT UND NICHT ABGEWIESEN: der Reiter „Installation" steht
+       offen da, und die Adresse ist danach die neue. Ohne die zweite Zeile
+       bliebe offen, ob die alte Adresse haengengeblieben ist -- und der
+       naechste, der sie kopiert, gaebe sie weiter. */
+    pruefe(`Und der Reiter „Installation" steht dabei offen (aus „${alteAdresse}")`,
+      d.w.document.querySelector('.sys-reiter-k.on')?.textContent.trim() === 'Installation',
       d.w.document.querySelector('.sys-reiter-k.on')?.textContent);
-    pruefe('Und die Adresse wird still auf die neue nachgezogen',
-      d.w.location.hash === '#/system/instanz', d.w.location.hash);
+    pruefe(`Und die Adresse wird still auf die neue nachgezogen (aus „${alteAdresse}")`,
+      d.w.location.hash === '#/system/installation', d.w.location.hash);
     /* DIE GEGENLAGE: ein Schluessel, den es weder alt noch neu gibt, faellt
        weiterhin auf den ersten sichtbaren Abschnitt zurueck. Ohne sie belegte
        die Uebersetzung nichts -- sie sieht sonst aus wie der Rueckfall. */
     d.w.history.replaceState(null, '', '#/system/scheune');
     await d.w.renderSystem();
     await new Promise(r => setTimeout(r, 40));
-    pruefe('Ein erfundener Abschnitt faellt dagegen auf den ersten zurueck',
+    pruefe(`Ein erfundener Abschnitt faellt dagegen auf den ersten zurueck (nach „${alteAdresse}")`,
       d.w.location.hash === '#/system/persoenlich', d.w.location.hash);
     d.w.close();
   }
   {
-    /* DIE TAFEL IST EINE TAFEL UND KEINE VERZWEIGUNG. Kaeme je ein zweiter
-       alter Name dazu, steht er als Zeile daneben. */
+    /* DIE TAFEL IST EINE TAFEL UND KEINE VERZWEIGUNG. Der zweite alte Name
+       steht als ZEILE daneben -- genau so, wie der Kommentar dort es seit
+       0.17.0 vorausgesagt hat.
+       UND SIE WIRD EINMAL NACHGESCHLAGEN UND NICHT VERKETTET. Die zweite
+       Zeile ist der eigentliche Gegenstand: mit `{ anlage: 'instanz', ... }`
+       liefe der aelteste Link auf einen Schluessel, den es nicht mehr gibt,
+       und der Systembereich fiele auf „Persoenlich" zurueck. Die Lage
+       darueber faende das zwar auch -- aber erst am Ergebnis; hier steht,
+       WORAN es liegen wuerde. */
     const quelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const tafelZeile = (quelle.match(/const SYS_ALTE_ABSCHNITTE = [^\n]*/) || ['(keine Tafel)'])[0];
     pruefe('Die alten Schluessel stehen in einer Tafel',
-      /const SYS_ALTE_ABSCHNITTE = \{ anlage: 'instanz' \};/.test(quelle),
-      (quelle.match(/const SYS_ALTE_ABSCHNITTE = [^\n]*/) || ['(keine Tafel)'])[0]);
+      /const SYS_ALTE_ABSCHNITTE = \{ anlage: 'installation', instanz: 'installation' \};/
+        .test(quelle), tafelZeile);
+    /* GELESEN WIRD DER QUELLTEXT UND NICHT DAS FENSTER: `const` auf oberster
+       Ebene wird in jsdom keine Eigenschaft von window, `function` schon --
+       deshalb steht wb.ausschnitt() weiter oben zur Verfuegung und
+       SYS_ABSCHNITTE hier nicht. */
+    const zieleDerTafel = [...tafelZeile.matchAll(/\w+: '(\w+)'/g)].map(m => m[1]);
+    const abschnittsSchluessel = [...(quelle.match(/const SYS_ABSCHNITTE = \[[^\]]*\]/) || [''])[0]
+      .matchAll(/schluessel: '(\w+)'/g)].map(m => m[1]);
+    pruefe('Und beide zeigen auf einen Schluessel, den es wirklich gibt',
+      zieleDerTafel.length === 2 && zieleDerTafel.every(z => abschnittsSchluessel.includes(z)),
+      `${zieleDerTafel.join(', ')} gegen ${abschnittsSchluessel.join(', ')}`);
   }
   {
     /* DER WAECHTER UEBER DAS WORT SELBST. „Ueberall" laesst sich nur so
@@ -34265,12 +34732,16 @@ async function pruefeOberflaeche() {
        „irgendwie oft" hiesse, deckte den naechsten echten Treffer mit zu.
        `Anlagenbytes` MEINT EINEN ANHANG -- es steht an der Route, die die
        Bytes eines Anhangs ausliefert.
-       DIE VIER IN app.js SIND DIE TAFEL DER ALTEN ADRESSE samt ihrer
+       DIE SIEBEN IN app.js SIND DIE TAFEL DER ALTEN ADRESSEN samt ihrer
        Begruendung. Sie MUSS das alte Wort nennen: `#/system/anlage` ist die
-       Adresse, die weiter verstanden werden soll. */
+       Adresse, die weiter verstanden werden soll. AUS VIER SIND SIEBEN
+       GEWORDEN, weil 0.19.1 einen ZWEITEN alten Namen danebengestellt hat und
+       der Kommentar dort ausdruecklich sagt, warum die Tafel
+       `{ anlage: 'installation', ... }` heissen muss und nicht
+       `{ anlage: 'instanz', ... }`. */
     const ERLAUBT = {
       'server.js': ['Anlagenbytes'],
-      'public/app.js': ['Anlage', 'anlage', 'anlage', 'anlage']
+      'public/app.js': ['Anlage', 'anlage', 'anlage', 'anlage', 'anlage', 'anlage', 'anlage']
     };
     const gefunden = {};
     for (const datei of ausgeliefert)
@@ -34284,7 +34755,7 @@ async function pruefeOberflaeche() {
        wirklich noch da. Eine Ausnahmeliste, die auf nichts zeigt, sagt beim
        naechsten Lesen etwas Falsches ueber den Bestand (Stolperstein 81). */
     pruefe('Und beide Ausnahmen zeigen wirklich auf etwas',
-      gefunden['server.js'].length === 1 && gefunden['public/app.js'].length === 4,
+      gefunden['server.js'].length === 1 && gefunden['public/app.js'].length === 7,
       `${gefunden['server.js'].length} / ${gefunden['public/app.js'].length}`);
     /* NEUN VON ELF DATEIEN TRAGEN DAS WORT GAR NICHT MEHR. Ohne diese Zeile
        bestuende die Gruppe auch dann, wenn jemand die Erlaubnis auf alle
