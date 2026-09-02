@@ -612,6 +612,14 @@ standen als Kandidaten im Auftrag; der fünfte kam beim Bauen dazu.*
 
 ## 11. Die Gegenprobentabelle
 
+**Gefahren wurden die sechzehn neuen Rückbauten und die acht mitgegangenen** —
+nicht der volle Lauf über alle 497. *Jeder einzelne ist ein vollständiger
+Prüflauf: rund sieben Minuten, in mehreren Nebenspuren nebeneinander.*
+
+> **UND ES IST DER ERSTE AUSWERTBARE LAUF SEIT 0.19.1.** Der erste Anlauf
+> dieser Runde meldete für **jeden** Rückbau „LAUF ABGERISSEN" — die Ursache
+> steht in Abschnitt 6a. *Was hier steht, ist der Lauf danach.*
+
 GEGENPROBE_PLATZHALTER
 
 ---
