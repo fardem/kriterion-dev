@@ -178,14 +178,15 @@ entschieden und hat seinen Ort.*
 |---|---|
 | **Fehler** | — *(der einzige, der Export, ist 0.12.3 geworden)* |
 | **Verbesserung** | — |
-| **Neue Funktion** | 1, 2, 3, 4 |
+| **Neue Funktion** | 1, 2, 3, 4, **6** |
 | **Design** | — |
 | **Verbesserung** *(nachgetragen)* | 5 |
 
 | Einschätzung | Punkte |
 |---|---|
-| **später** | 2, 4, 5 |
+| **später** | 2, 4 |
 | **nicht empfohlen** | 1, 3 |
+| **eingetragen als 0.21.0** | **5, 6** |
 
 *Die Reihenfolge unten ist weiterhin die des Auffallens und sonst nichts.*
 
@@ -476,6 +477,13 @@ gespeicherten Ansichten, Prüfungen, Gegenproben, README. **Kein Schema.**
 ---
 
 ## 5. Die Ableitungen auf WebP — was von Punkt 15 liegen geblieben ist
+
+> **STAND 2. SEPTEMBER 2026: er hat eine Nummer bekommen.** Die Ableitungen
+> gehen in **0.21.0** mit — in derselben Runde, die über die Verfahren der
+> Bildablage entscheidet. *Ein Durchgang über den Bestand statt zwei.*
+> **Und der Grund, warum er überhaupt drängt, hat sich noch einmal geschärft:**
+> die Vorschaukachel rechnet ihr Bild ohnehin hoch (siehe Punkt 6 und die
+> Runde 0.19.3), und was man dabei sieht, ist ein JPEG q84.
 
 **Ausgelöst von 0.19.0** — *und der Punkt steht hier, weil sein GRUND sich mit
 jener Runde geändert hat.*
@@ -998,3 +1006,78 @@ Punkten herausgefallen und stehen hier, damit sie nicht als Idee wiederkommen:
   geht weg, wenn man sie liest, eine Aufgabe erst, wenn man sie erledigt.** Ein
   Punkt, der beides meint, geht nie ganz weg. *Draußen trennt es jeder:
   Instagram, Facebook, GitHub, Jira, Linear.* Siehe Fahrplan 0.16.0, „Die Glocke".
+
+
+---
+
+## 6. Fotos aus der Zwischenablage — die Ablage soll wählbar werden
+
+**Art:** Funktion · **Claude:** empfohlen, mit einer Auflage · **Draußen üblich:**
+ja, jede Fotoverwaltung lässt das Ablageverfahren wählen.
+
+### Woher
+
+Aus dem Betrieb, **2. September 2026**: ein JPEG von 5 MB, im Browser über
+„Grafik kopieren" genommen und in Kriterion eingefügt, liegt danach als **12 MB**
+in der Datenbank. Gemeldet als Verdacht auf einen Fehler in 0.19.0.
+
+### Was gemessen wurde
+
+Die Kette hat **drei** Glieder, und Kriterion sitzt am dritten:
+
+| | |
+|---|---|
+| das Original im Netz | **5,21 MB** JPEG |
+| was die Zwischenablage liefert | **34,79 MB** PNG |
+| was Kriterion daraus macht | **20,42 MB** WebP `nearLossless` |
+| was verlustbehaftet q90 daraus würde | **6,64 MB** — 67 % weniger |
+
+**Die Zwischenablage trägt keine Datei, sondern Bildpunkte.** Der Browser legt
+sie als PNG ab — verlustfrei, aus den *dekodierten* Bildpunkten des JPEG,
+Kompressionsspuren eingeschlossen. **Kriterion bläht also nichts auf; es
+verkleinert um 41 %, nur von einer Zahl aus, die es vorher nicht gab.**
+
+### Was es NICHT ist
+
+**Keine fehlende Größenprüfung.** `legeBildAb()` nimmt das WebP nur, wenn es
+kleiner ist als das, was hereinkam — die Regel gibt es, sie ist als Rückbau 433
+bewacht, und sie hat hier richtig entschieden: **das PNG war der große Brocken.**
+Achtzehn Laborversuche quer durch Palette, Text, Graustufen, Alpha und 1×1
+zeigen: **PNG gewinnt nie über die Größe.**
+
+### Was gebaut werden könnte
+
+**Drei Verfahren zur Wahl**, statt eines Schalters:
+
+* **PNG** — keine Rechenzeit, größte Ablage
+* **WebP verlustfrei** (`nearLossless` 60) — heutiges Verhalten
+* **WebP verlustbehaftet** — für Fotos; gemessen 67 % kleiner
+
+Und wenn PNG abgewählt wird, bietet die Kachel an, den Bestand nachzuziehen.
+
+### Die Auflage, und sie ist der Grund für „mit einer Auflage"
+
+**Verlustbehaftet darf keine Regel werden, sondern nur eine Wahl.** Gemessen an
+einem Bildschirmfoto mit Text ist WebP q90 **rund siebenmal GRÖSSER** als
+`nearLossless` — 0,09 gegen 0,01 MB, weil der verlustbehaftete Bitstrom mit
+harten Kanten nichts anfangen kann. **Die Entscheidung von 0.19.0 war für
+diesen Bestand richtig und bleibt die Vorgabe.**
+
+*Die Rechtfertigung für den verlustbehafteten Weg trägt außerdem nur bei einem
+Bild aus der Zwischenablage: dort ist der Verlust schon passiert, bevor
+Kriterion es sieht. Bei einem hochgeladenen PNG wäre dasselbe Argument falsch —
+und aus den Bytes sind die beiden nicht zu unterscheiden.*
+
+### Der billigste Weg steht gar nicht im Quelltext
+
+**„Bild speichern unter" und dann hochladen: 5,21 MB, kein Generationsverlust,
+kein Kodierer, keine Entscheidung.** Kriterion fasst JPEG nicht an. Ein Hinweis
+an der Einfügestelle wäre deutlich billiger als jede Wahl — *das spricht nicht
+gegen die Wahl, gehört aber in die Abwägung.*
+
+### Was es anfasst
+
+`legeBildAb()`, die Kachel „Bildablage" (ab 0.19.1 eine eigene), der
+Umstellungslauf, die zweite Bestätigung. **Kein Schema.**
+
+> **EINGETRAGEN ALS 0.21.0**, zusammen mit den Ableitungen aus Punkt 5.
