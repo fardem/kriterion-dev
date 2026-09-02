@@ -394,7 +394,7 @@ function setzeRolle(benutzerId, rolle, wer) {
   // noch weiter unten durch Sperren oder Loeschen. Ohne ihn kaeme niemand mehr
   // an Rollen, Export und Import, und der einzige Ausweg waere zugang.js.
   if (u.role === 'eigentuemer' && rolle !== 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Error('Das ist der letzte Eigentümer der Instanz — vorher einen zweiten bestimmen.');
+    throw new Error('Das ist der letzte Eigentümer dieser Installation — vorher einen zweiten bestimmen.');
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(rolle, u.id);
   protokolliere('zugang.rolle', { wer: handelt, ziel: u.id, merkmal: rolle });
   return { id: u.id, username: u.username, role: rolle };
@@ -408,7 +408,7 @@ function setzeStatus(benutzerId, status, wer) {
   if (status !== 'aktiv' && status !== 'gesperrt')
     throw new Error('Dieser Status lässt sich hier nicht setzen.');
   if (u.role === 'eigentuemer' && status !== 'aktiv' && zahlEigentuemer() <= 1)
-    throw new Error('Das ist der letzte Eigentümer der Instanz — vorher einen zweiten bestimmen.');
+    throw new Error('Das ist der letzte Eigentümer dieser Installation — vorher einen zweiten bestimmen.');
   db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, u.id);
   // Erste von zwei Schichten. requireAuth wuerde eine laufende Sitzung ohnehin
   // abweisen; das Wegraeumen haelt die Tabelle sauber und wirkt sofort.
@@ -473,7 +473,7 @@ function entferneZugang(benutzerId, optionen = {}, wer) {
   if (!u) throw new Error('Diesen Zugang gibt es nicht.');
   if (u.status === 'geloescht') throw new Error('Dieser Zugang ist bereits gelöscht.');
   if (u.role === 'eigentuemer' && zahlEigentuemer() <= 1)
-    throw new Error('Das ist der letzte Eigentümer der Instanz — vorher einen zweiten bestimmen.');
+    throw new Error('Das ist der letzte Eigentümer dieser Installation — vorher einen zweiten bestimmen.');
   const zahlen = zaehleBestand(u.id);
   db.transaction(() => {
     // Reihenfolge: erst die Eintraege, dann der Rest. Umgekehrt zaehlte das
