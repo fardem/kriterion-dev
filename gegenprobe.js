@@ -4450,8 +4450,8 @@ const RUECKBAUTEN = [
        einbringt. */
     nr: '494', name: 'SIGTERM kuerzt die WAL, waehrend der Thread noch schreibt',
     datei: 'server.js',
-    suche: "    try { if (bestandsThread) bestandsThread.terminate(); } catch {}",
-    ersatz: "    // der Thread laeuft weiter",
+    suche: "    for (const w of bestandsThreads) { try { w.terminate(); } catch {} }",
+    ersatz: "    // die Threads laufen weiter",
     erwartet: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {

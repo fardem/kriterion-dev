@@ -34,7 +34,12 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    Bestandslauf faehrt seit dieser Runde in einem eigenen Thread und braucht
    dieselbe Umwandlung wie der Anfrageweg (Stolperstein 47). Gerufen wird
    dasselbe wie vorher, nur aus einer Datei daneben. */
-const { makeVariants, PNG_MAGIE_HEX, istPNG, legeBildAb } = require('./bilder');
+/* `istPNG` STEHT HIER NICHT MEHR: die einzige Stelle, die es im Server rief,
+   war die Schleife des Bestandslaufs -- und die faehrt seit dieser Runde im
+   Thread. Ein Import, den niemand ruft, ist eine Zeile, die beim naechsten
+   Lesen erklaert werden muss. Der KOMMENTAR ueber qOffenePNG nennt es
+   weiterhin, und das ist richtig: die Byte-Folge dort ist dieselbe. */
+const { makeVariants, PNG_MAGIE_HEX, legeBildAb } = require('./bilder');
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, verfahren } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
@@ -389,11 +394,17 @@ const qVideoExportBytes = db.prepare(`
    ein Dauerlaeufer hielte dafuer eine zweite Verbindung auf die Datenbank
    offen, solange der Server laeuft.
 
-   DER LAUFENDE THREAD STEHT IN EINER VARIABLEN, und zwar aus genau einem
-   Grund: SIGTERM muss ihn beenden koennen, BEVOR db.close() die WAL-Datei
+   DIE LAUFENDEN THREADS STEHEN IN EINER MENGE, und zwar aus genau einem
+   Grund: SIGTERM muss sie beenden koennen, BEVOR db.close() die WAL-Datei
    kuerzt. Ein Thread, der in eine Datei schreibt, deren WAL gerade
-   verschwindet, ist der eine Fall, den diese Runde neu einbringt. */
-let bestandsThread = null;
+   verschwindet, ist der eine Fall, den diese Runde neu einbringt.
+   EINE MENGE UND KEINE EINZELNE VARIABLE, obwohl im Regelfall hoechstens
+   einer laeuft: das Nachruesten faengt 1500 ms nach dem Start an, und wer in
+   genau diesem Augenblick den Umstellungsknopf drueckt, hat zwei. Eine
+   Variable truege dann nur den zweiten, und der erste schriebe weiter in eine
+   Datei, deren WAL gerade gekuerzt wird. `umstellung.laeuft` faengt das nicht
+   ab -- es bewacht zwei UMSTELLUNGEN und nicht zwei Laeufe. */
+const bestandsThreads = new Set();
 
 /* DER PFAD STEHT AN EINER STELLE, und das ist keine Ordnungsliebe: der
    Fingerprint liest ihn ein zweites Mal. Ein Modul, das NUR im Thread lebt,
@@ -412,7 +423,7 @@ const BESTANDSLAUF = path.join(__dirname, 'bestandslauf.js');
    null: die Karte soll sehen, wie weit er gekommen ist. */
 function starteBestandsThread(aufgabe, zeilen, fertig) {
   const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen } });
-  bestandsThread = w;
+  bestandsThreads.add(w);
   /* DER STAND WIRD ERSETZT UND NICHT FORTGESCHRIEBEN. Der Thread meldet je
      Zeile den GANZEN Stand; eine Zunahme muesste hier aufaddiert werden, und
      dann haengt die Zahl an der Vollstaendigkeit der Meldungsfolge. */
@@ -421,7 +432,7 @@ function starteBestandsThread(aufgabe, zeilen, fertig) {
     if (umstellung) umstellung.laeuft = false;
     console.error(`[Kriterion] Bestandslauf (${aufgabe}) abgebrochen:`, e.message);
   });
-  w.on('exit', () => { bestandsThread = null; if (fertig) fertig(); });
+  w.on('exit', () => { bestandsThreads.delete(w); if (fertig) fertig(); });
   return w;
 }
 
@@ -5892,14 +5903,14 @@ const FINGERPRINT = bildeFingerprint();
    Der Abschluss darf nichts werfen -- wer beendet, ist nicht mehr zu retten. */
 for (const zeichen of ['SIGTERM', 'SIGINT']) {
   process.on(zeichen, () => {
-    /* ERST DER THREAD, DANN DIE DATEI -- 0.19.3. Laeuft ein Bestandslauf,
+    /* ERST DIE THREADS, DANN DIE DATEI -- 0.19.3. Laeuft ein Bestandslauf,
        schreibt er in dieselbe Datei; wer ihre WAL kuerzt, waehrend er
        schreibt, tut genau das, wogegen dieser Abschluss gebaut ist.
        terminate() OHNE await: der Abschluss darf nicht warten, und ein
        beendeter Thread schreibt keine Zeile mehr. Die halb umgestellte Zeile,
        die er gerade in der Hand hatte, bleibt PNG -- der Knopf holt sie beim
        naechsten Lauf nach, und genau dafuer ist er nie endgueltig. */
-    try { if (bestandsThread) bestandsThread.terminate(); } catch {}
+    for (const w of bestandsThreads) { try { w.terminate(); } catch {} }
     try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}
     process.exit(0);
   });

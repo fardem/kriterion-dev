@@ -36420,11 +36420,20 @@ async function pruefeBestandslauf() {
     /* 5. DER ABSCHLUSS BEENDET DEN THREAD VOR DER DATEI. Andersherum schriebe
        er in eine Datei, deren WAL gerade gekuerzt wird -- der eine Fall, den
        diese Runde neu einbringt. */
-    const sigterm = (blServer.match(/for \(const zeichen of \['SIGTERM'[\s\S]{0,1200}?\n\}/) || [''])[0];
-    pruefe('SIGTERM beendet erst den Thread und dann die Datei',
-      sigterm.indexOf('bestandsThread.terminate()') > 0 &&
-      sigterm.indexOf('bestandsThread.terminate()') < sigterm.indexOf('db.close()'),
+    const sigterm = (blServer.match(/for \(const zeichen of \['SIGTERM'[\s\S]{0,1600}?\n\}/) || [''])[0];
+    pruefe('SIGTERM beendet erst die Threads und dann die Datei',
+      sigterm.indexOf('w.terminate()') > 0 &&
+      sigterm.indexOf('w.terminate()') < sigterm.indexOf('db.close()'),
       sigterm.slice(0, 400) || '(kein Abschluss gefunden)');
+    /* UND ES IST EINE MENGE UND KEINE EINZELNE VARIABLE. Im Regelfall laeuft
+       hoechstens einer -- aber wer den Umstellungsknopf 1500 ms nach dem Start
+       drueckt, hat zwei, und eine Variable truege dann nur den zweiten. */
+    pruefe('Und er nimmt jeden laufenden Thread mit, nicht nur den letzten',
+      /const bestandsThreads = new Set\(\);/.test(blServer) &&
+      /bestandsThreads\.add\(w\);/.test(blServer) &&
+      /bestandsThreads\.delete\(w\);/.test(blServer) &&
+      /for \(const w of bestandsThreads\)/.test(sigterm),
+      (blServer.match(/const bestandsThreads = [^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 6. EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB, und er laesst die
        Karte auch nicht fuer immer auf „laeuft" stehen. */
     pruefe('Ein Fehler im Thread setzt den Lauf auf beendet und laesst den Rest stehen',
@@ -36434,7 +36443,7 @@ async function pruefeBestandslauf() {
        kein Dauerlaeufer. Ein Dauerlaeufer hielte eine zweite Verbindung auf
        die Datenbank offen, solange der Server laeuft. */
     pruefe('Der Thread wird je Lauf erzeugt und danach vergessen',
-      /w\.on\('exit', \(\) => \{ bestandsThread = null;/.test(blServer) &&
+      /w\.on\('exit', \(\) => \{ bestandsThreads\.delete\(w\);/.test(blServer) &&
       /parentPort\.close\(\);/.test(blLauf) && /db\.close\(\);/.test(blLauf),
       (blServer.match(/w\.on\('exit'[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 8. DIE UMWANDLUNG GIBT ES GENAU EINMAL. Zwei Fassungen liefen

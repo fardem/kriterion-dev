@@ -151,5 +151,11 @@ async function legeBildAb(buf, gemeldeterTyp) {
   return { data: buf, mime: gemeldeterTyp, umgewandelt: false };
 }
 
-module.exports = { VARIANTS, makeVariants, WEBP_ABLAGE,
-                   PNG_MAGIE, PNG_MAGIE_HEX, istPNG, legeBildAb };
+/* AUSGEGEBEN WIRD, WAS GERUFEN WIRD, UND SONST NICHTS. `VARIANTS`,
+   `WEBP_ABLAGE` und `PNG_MAGIE` sind die Werte, mit denen die drei Funktionen
+   hier arbeiten -- ausserhalb ruft sie niemand, und eine Ausgabe ohne
+   Empfaenger ist eine Zeile, die beim naechsten Lesen erklaert werden muss.
+   `PNG_MAGIE_HEX` STEHT DAGEGEN DABEI: server.js braucht dieselbe Byte-Folge
+   in der Schreibweise, in der SQLite sie liefert (hex(substr(data,1,8))), und
+   eine zweite Stelle mit einer zweiten Schreibweise liefe auseinander. */
+module.exports = { makeVariants, PNG_MAGIE_HEX, istPNG, legeBildAb };
