@@ -36435,9 +36435,17 @@ async function pruefeBestandslauf() {
       /for \(const w of bestandsThreads\)/.test(sigterm),
       (blServer.match(/const bestandsThreads = [^\n]*/) || ['(nicht gefunden)'])[0]);
     /* 6. EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB, und er laesst die
-       Karte auch nicht fuer immer auf „laeuft" stehen. */
+       Karte auch nicht fuer immer auf „laeuft" stehen.
+       DIE ERSTE FASSUNG DIESER ZEILE WAR ZU LOCKER, und die Gegenprobe hat es
+       gezeigt: sie suchte irgendwo im Handler nach `umstellung.laeuft = false`
+       -- und Rueckbau 495 setzt genau davor ein `if (false)`. Der Rueckbau
+       blieb STUMM. Gesucht wird deshalb die GANZE Zeile samt ihrer Klemme:
+       ohne `if (umstellung)` wuerde der Handler bei einem Fehler VOR dem
+       ersten Lauf selbst werfen (Stolperstein 81 -- erst der Gegenstand, dann
+       die Aussage darueber). */
     pruefe('Ein Fehler im Thread setzt den Lauf auf beendet und laesst den Rest stehen',
-      /w\.on\('error', \(e\) => \{[\s\S]{0,240}?umstellung\.laeuft = false;/.test(blServer),
+      /w\.on\('error', \(e\) => \{\s*\n\s*if \(umstellung\) umstellung\.laeuft = false;\s*\n\s*console\.error\(/
+        .test(blServer),
       (blServer.match(/w\.on\('error'[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     /* 7. UND ER WIRD JE LAUF ERZEUGT UND DANACH BEENDET -- kein Threadpool,
        kein Dauerlaeufer. Ein Dauerlaeufer hielte eine zweite Verbindung auf
