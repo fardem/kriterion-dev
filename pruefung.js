@@ -19936,13 +19936,36 @@ const freigabeHaupt = (zweck, ziel = null) =>
     /* UND DIE ALTE LIEGT NICHT MEHR DANEBEN. Zwei Dateien mit fast demselben
        Namen liessen offen, welche gilt -- und die verfolgte waere wieder die,
        die ueberschrieben wird. Geprueft wird an der ABLAGE und nicht am
-       Arbeitsbaum: wer sie sich beim Einrichten anlegt, soll sie behalten. */
-    const verfolgt = String(execFileSync('git', ['ls-files'], { cwd: __dirname }))
-      .split('\n').map(z => z.trim());
-    pruefe('Und die Arbeitsdatei ist nicht mehr verfolgt',
-      !verfolgt.includes('docker-compose.yml') &&
-      verfolgt.includes('docker-compose.example.yml'),
-      verfolgt.filter(z => /^docker-compose/.test(z)).join(' · ') || '(keine)');
+       Arbeitsbaum: wer sie sich beim Einrichten anlegt, soll sie behalten.
+
+       GEFRAGT WIRD GIT, UND ZWAR NUR DORT, WO ES EIN GIT GIBT -- 0.19.3.
+       EINE GEGENPROBENKOPIE HAT KEINES: sie entsteht ueber `git archive HEAD`
+       und traegt kein `.git`. Der ungeschuetzte Aufruf WARF dort, und weil er
+       vor jeder Zusicherung steht, RISS ER DEN GANZEN LAUF AB, statt eine
+       Pruefung rot zu faerben (Stolpersteine 103 und 161). **Damit war JEDE
+       Gegenprobe seit 0.19.1 unauswertbar** -- gefunden hat es der erste
+       Gegenprobenlauf seither, in dieser Runde. *0.19.2 hat keinen gefahren;
+       deshalb ist es dort nicht aufgefallen.*
+       STATT DER FRAGE STEHT DANN IHRE VORAUSSETZUNG DA und nicht ein gruener
+       Punkt ohne Gegenstand: dass es hier wirklich keine Ablage gibt. So
+       bleibt die Zahl der Pruefungen dieselbe, und stillschweigend
+       uebersprungen wird nichts. */
+    const ablage = (() => {
+      try {
+        return String(execFileSync('git', ['ls-files'],
+          { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }))
+          .split('\n').map(z => z.trim());
+      } catch { return null; }
+    })();
+    if (ablage)
+      pruefe('Und die Arbeitsdatei ist nicht mehr verfolgt',
+        !ablage.includes('docker-compose.yml') &&
+        ablage.includes('docker-compose.example.yml'),
+        ablage.filter(z => /^docker-compose/.test(z)).join(' · ') || '(keine)');
+    else
+      pruefe('Und die Ablage laesst sich hier nicht befragen — eine Kopie ohne .git',
+        !fs.existsSync(path.join(__dirname, '.git')),
+        'git ls-files ist gescheitert, obwohl ein .git danebensteht');
     pruefe('Die Arbeitsdatei steht in der .gitignore',
       ignoriert.includes('docker-compose.yml'), ignoriert.join(' · '));
     /* DIESELBE ZEILE FUER `.env` STEHT DANEBEN -- ohne sie bliebe die Zusage
